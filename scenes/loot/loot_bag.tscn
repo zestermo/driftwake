@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/loot_bag.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/interaction/interactable.gd" id="2"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bag"]
+albedo_color = Color(0.8, 0.65, 0.2, 1)
+emission_enabled = true
+emission = Color(0.4, 0.3, 0.1, 1)
+emission_energy_multiplier = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_bag"]
+size = Vector3(0.5, 0.4, 0.5)
+material = SubResource("StandardMaterial3D_bag")
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bag"]
+size = Vector3(0.5, 0.4, 0.5)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_interact"]
+radius = 2.0
+
+[node name="LootBag" type="StaticBody3D"]
+collision_layer = 1024
+collision_mask = 0
+script = ExtResource("1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+mesh = SubResource("BoxMesh_bag")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+shape = SubResource("BoxShape3D_bag")
+
+[node name="Interactable" type="Area3D" parent="."]
+collision_layer = 512
+collision_mask = 0
+script = ExtResource("2")
+prompt_text = "Pick up loot"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interactable"]
+shape = SubResource("SphereShape3D_interact")

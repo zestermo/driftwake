@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grand Line Prototype — GDD v0.2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --ocean: #0a1628;
+    --deep: #060e1a;
+    --gold: #f0a500;
+    --gold-light: #ffd166;
+    --red: #e63946;
+    --teal: #06d6a0;
+    --blue: #118ab2;
+    --purple: #9b5de5;
+    --orange: #fb8500;
+    --text: #e0e8f0;
+    --muted: #8899aa;
+    --card: #0e1f35;
+    --card-border: #1a3050;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--deep);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(160deg, #0a1628 0%, #0d2340 40%, #0a1628 100%);
+    border-bottom: 2px solid var(--gold);
+    padding: 60px 40px 50px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 80%, rgba(240,165,0,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-wave {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+    animation: bob 3s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+  .hero h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--orange) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+  .hero-sub {
+    font-family: 'Cinzel', serif;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero-desc {
+    max-width: 680px;
+    margin: 0 auto;
+    color: #b0c4d8;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+  .version-badge {
+    display: inline-block;
+    background: rgba(240,165,0,0.15);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-top: 16px;
+    text-transform: uppercase;
+  }
+
+  /* LAYOUT */
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* SECTION HEADERS */
+  .section {
+    margin-bottom: 48px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .section-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .section-num {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+
+  /* ACCENT COLORS PER SECTION */
+  .accent-gold .section-title { color: var(--gold); }
+  .accent-gold .section-header { border-color: rgba(240,165,0,0.3); }
+  .accent-teal .section-title { color: var(--teal); }
+  .accent-teal .section-header { border-color: rgba(6,214,160,0.3); }
+  .accent-red .section-title { color: var(--red); }
+  .accent-red .section-header { border-color: rgba(230,57,70,0.3); }
+  .accent-blue .section-title { color: var(--blue); }
+  .accent-blue .section-header { border-color: rgba(17,138,178,0.3); }
+  .accent-purple .section-title { color: var(--purple); }
+  .accent-purple .section-header { border-color: rgba(155,93,229,0.3); }
+  .accent-orange .section-title { color: var(--orange); }
+  .accent-orange .section-header { border-color: rgba(251,133,0,0.3); }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card p, .card li { color: #b0c4d8; font-size: 14px; }
+  .card ul { padding-left: 18px; }
+  .card li { margin-bottom: 4px; }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+
+  /* PILLAR CARDS */
+  .pillar {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 22px 20px;
+    border-top: 3px solid;
+    transition: transform 0.2s;
+  }
+  .pillar:hover { transform: translateY(-3px); }
+  .pillar-icon { font-size: 30px; margin-bottom: 10px; display: block; }
+  .pillar-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+  .pillar p { color: #8899aa; font-size: 13px; line-height: 1.6; }
+  .p1 { border-color: var(--red); }    .p1 .pillar-title { color: var(--red); }
+  .p2 { border-color: var(--teal); }   .p2 .pillar-title { color: var(--teal); }
+  .p3 { border-color: var(--gold); }   .p3 .pillar-title { color: var(--gold); }
+  .p4 { border-color: var(--blue); }   .p4 .pillar-title { color: var(--blue); }
+
+  /* LOOP STEPS */
+  .loop-steps { display: flex; flex-direction: column; gap: 0; }
+  .loop-step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 14px 0;
+    position: relative;
+  }
+  .loop-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 42px;
+    bottom: -2px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+  }
+  .step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(240,165,0,0.15);
+    border: 2px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--gold);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content strong { font-size: 15px; display: block; margin-bottom: 3px; color: var(--text); }
+  .step-content p { font-size: 13px; color: var(--muted); }
+
+  /* TIER BADGES */
+  .tier-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 8px;
+  }
+  .tier-grunt  { background: rgba(136,153,170,0.2); color: #8899aa; border: 1px solid #8899aa; }
+  .tier-spec   { background: rgba(17,138,178,0.2);  color: var(--blue);   border: 1px solid var(--blue); }
+  .tier-elite  { background: rgba(251,133,0,0.2);   color: var(--orange); border: 1px solid var(--orange); }
+  .tier-boss   { background: rgba(230,57,70,0.2);   color: var(--red);    border: 1px solid var(--red); }
+
+  /* DEATH FLOW */
+  .death-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .df-node {
+    background: rgba(230,57,70,0.12);
+    border: 1px solid rgba(230,57,70,0.4);
+    color: #e0e8f0;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .df-arrow { color: var(--muted); font-size: 18px; }
+
+  /* FRUIT CARDS */
+  .fruit-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 20px;
+    border-left: 4px solid;
+  }
+  .fruit-ember { border-color: var(--orange); }
+  .fruit-fang  { border-color: var(--red); }
+  .fruit-plant { border-color: var(--teal); }
+  .fruit-name { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .fruit-ember .fruit-name { color: var(--orange); }
+  .fruit-fang  .fruit-name { color: var(--red); }
+  .fruit-plant .fruit-name { color: var(--teal); }
+  .fruit-card p { font-size: 13px; color: #8899aa; }
+
+  /* CALLOUT */
+  .callout {
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .callout-gold { background: rgba(240,165,0,0.08); border-left: 3px solid var(--gold); }
+  .callout-teal { background: rgba(6,214,160,0.08); border-left: 3px solid var(--teal); }
+  .callout-red  { background: rgba(230,57,70,0.08);  border-left: 3px solid var(--red); }
+  .callout-purple { background: rgba(155,93,229,0.08); border-left: 3px solid var(--purple); }
+  .callout-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .callout p { color: #b0c4d8; line-height: 1.6; }
+  .callout strong { color: var(--text); }
+
+  /* PROGRESSION LAYERS */
+  .prog-layer {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 14px 18px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .prog-icon { font-size: 26px; flex-shrink: 0; }
+  .prog-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .prog-body { font-size: 13px; color: var(--muted); }
+
+  /* MVP CHECKLIST */
+  .mvp-list { list-style: none; padding: 0; }
+  .mvp-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .mvp-list li::before { content: '✅'; font-size: 16px; }
+
+  /* PRINCIPLES */
+  .principles { display: flex; flex-direction: column; gap: 10px; }
+  .principle {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .principle span { font-size: 20px; }
+
+  /* TAGS */
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 3px;
+  }
+  .tag-dmg  { background: rgba(230,57,70,0.2);   color: var(--red);    border: 1px solid var(--red); }
+  .tag-ctrl { background: rgba(17,138,178,0.2);  color: var(--blue);   border: 1px solid var(--blue); }
+  .tag-mob  { background: rgba(6,214,160,0.2);   color: var(--teal);   border: 1px solid var(--teal); }
+  .tag-def  { background: rgba(240,165,0,0.2);   color: var(--gold);   border: 1px solid var(--gold); }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 40px;
+    border-top: 1px solid var(--card-border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .footer strong { color: var(--gold); font-family: 'Cinzel', serif; letter-spacing: 1px; }
+
+  /* DIVIDER */
+  hr.divider { border: none; border-top: 1px solid var(--card-border); margin: 32px 0; }
+
+  /* PROSE */
+  .prose { color: #b0c4d8; line-height: 1.8; font-size: 14px; margin-bottom: 14px; }
+  .prose strong { color: var(--text); }
+
+  /* TABLE OF CONTENTS */
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+  .toc-title {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 20px; }
+  .toc-item {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 4px 0;
+    border-bottom: 1px dotted rgba(136,153,170,0.2);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .toc-item:hover { color: var(--gold); }
+  .toc-item span { color: var(--gold); margin-right: 6px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-wave">🌊</span>
+  <h1>GRAND LINE PROTOTYPE</h1>
+  <div class="hero-sub">Game Design Document</div>
+  <p class="hero-desc">
+    A third-person co-op action RPG built on freedom, discovery, and the thrill of becoming legendary.
+    Navigate a living ocean world, master expressive combat, and carve your own path through danger and mystery.
+  </p>
+  <div class="version-badge">v0.2 — Systems-First Design</div>
+</div>
+
+<div class="container">
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <div class="toc-title">📋 Table of Contents</div>
+    <div class="toc-grid">
+      <div class="toc-item"><span>01</span> Introduction</div>
+      <div class="toc-item"><span>02</span> Core Player Experience</div>
+      <div class="toc-item"><span>03</span> Gameplay Pillars</div>
+      <div class="toc-item"><span>04</span> Combat System</div>
+      <div class="toc-item"><span>05</span> Devil Fruit System</div>
+      <div class="toc-item"><span>06</span> Enemy Design</div>
+      <div class="toc-item"><span>07</span> Island Gameplay Loop</div>
+      <div class="toc-item"><span>08</span> Death & Recovery</div>
+      <div class="toc-item"><span>09</span> Ship System</div>
+      <div class="toc-item"><span>10</span> Multiplayer</div>
+      <div class="toc-item"><span>11</span> Long-Term Progression</div>
+      <div class="toc-item"><span>12</span> MVP Implementation</div>
+      <div class="toc-item"><span>13</span> Dev Principles</div>
+    </div>
+  </div>
+
+  <!-- 1. INTRODUCTION -->
+  <div class="section accent-gold">
+    <div class="section-header">
+      <span class="section-icon">⚓</span>
+      <div class="section-title">Introduction</div>
+      <div class="section-num">Section 01</div>
+    </div>
+
+    <p class="prose">
+      <strong>Grand Line Prototype</strong> is a third-person, co-op action RPG centered around player-driven exploration, expressive combat, and emergent gameplay systems. Players take on the role of independent pirate captains navigating a dynamic ocean world composed of handcrafted and systemic islands. Through combat mastery, rare discoveries, and risk-based progression, players gradually build their legend.
+    </p>
+    <p class="prose">
+      This project is designed as a <strong>systems-first experience</strong> — gameplay emerges from the interaction between combat mechanics, environmental systems, and player decisions rather than scripted content. The world doesn't push you forward; you choose how far you go.
+    </p>
+
+    <div class="callout callout-gold">
+      <span class="callout-icon">🧭</span>
+      <p><strong>Design Intent:</strong> The core intent of the game is to create a feeling of freedom, discovery, and personal growth. Players are not guided through a rigid narrative but instead uncover meaning through exploration, experimentation, and risk-taking.</p>
+    </div>
+
+    <div class="grid-3" style="margin-top:18px;">
+      <div class="card">
+        <div class="card-title">🗺️ A Personal Journey</div>
+        <p>Not a directed story — the meaning you find is the meaning you made.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">⚙️ Interconnected Systems</div>
+        <p>A sandbox of mechanics that talk to each other, not isolated features.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Tension & Release</div>
+        <p>A continuous loop of risk and reward driven entirely by player choice.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CORE PLAYER EXPERIENCE -->
+  <div class="section accent-teal">
+    <div class="section-header">
+      <span class="section-icon">🎮</span>
+      <div class="section-title">Core Player Experience</div>
+      <div class="section-num">Section 02</div>
+    </div>
+
+    <p class="prose">At its heart, the game is about <strong>becoming stronger while navigating risk</strong>. A typical session is not defined by completing objectives but by the player's evolving decisions: how far to push into danger, whether to extract or continue, how to approach combat encounters, and what to prioritize in progression.</p>
+
+    <div class="callout callout-teal">
+      <span class="callout-icon">💡</span>
+      <p>The session loop is not goal-driven — it's <strong>player-driven</strong>. Every decision point belongs to you. There are no waypoints telling you what to do next.</p>
+    </div>
+
+    <p class="prose" style="margin-top:12px; margin-bottom:10px;"><strong>This creates a layered, evolving experience:</strong></p>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title" style="color:var(--teal)">⚔️ Short-Term</div>
+        <p>Survive encounters, secure loot, and make it back to your ship in one piece.</p>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--blue)">🔧 Mid-Term</div>
+        <p>Refine your build, discover new islands, push into harder territory.</p>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--purple)">🌟 Long-Term</div>
+        <p>Uncover the mysteries of the world and carve your name into legend.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. GAMEPLAY PILLARS -->
+  <div class="section accent-red">
+    <div class="section-header">
+      <span class="section-icon">🏛️</span>
+      <div class="section-title">Gameplay Pillars</div>
+      <div class="section-num">Section 03</div>
+    </div>
+    <p class="prose">Four core pillars define every design decision made in this game. When a feature conflicts with these pillars, the pillar wins.</p>
+
+    <div class="grid-2" style="margin-top: 4px;">
+      <div class="pillar p1">
+        <span class="pillar-icon">⚔️</span>
+        <div class="pillar-title">Expressive Combat</div>
+        <p>Combat is skill-based, fast, and deeply expressive. Players get a flexible toolkit — not fixed roles — allowing unique playstyles to emerge through ability combinations and mechanical mastery. Success depends on timing, positioning, and build synergy.</p>
+      </div>
+      <div class="pillar p2">
+        <span class="pillar-icon">🏴‍☠️</span>
+        <div class="pillar-title">Player-Driven Identity</div>
+        <p>There are no rigid classes. Identity emerges from your weapon archetype, ability loadout, and Devil Fruit powers. Two players using the same base archetype can feel entirely different. Your build is your fingerprint.</p>
+      </div>
+      <div class="pillar p3">
+        <span class="pillar-icon">⚠️</span>
+        <div class="pillar-title">Risk and Reward</div>
+        <p>Progress made during an island run is temporary until secured. Every moment is a gamble — push further for greater reward, or retreat and bank what you've found. Failure creates loss, but also the thrill of recovery.</p>
+      </div>
+      <div class="pillar p4">
+        <span class="pillar-icon">🔭</span>
+        <div class="pillar-title">Exploration & Mystery</div>
+        <p>The world is not explained directly. Players learn through environmental clues, encounter patterns, and indirect hints. Long-term progression is driven by curiosity, not explicit direction. Discovering something should feel earned.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. COMBAT SYSTEM -->
+  <div class="section accent-red">
+    <div class="section-header">
+      <span class="section-icon">⚔️</span>
+      <div class="section-title">Combat System</div>
+      <div class="section-num">Section 04</div>
+    </div>
+
+    <div class="callout callout-red">
+      <span class="callout-icon">🎯</span>
+      <p><strong>Combat Philosophy:</strong> A hybrid of action mechanics and ability-driven gameplay. It prioritizes responsiveness and player control while allowing abilities to shape engagement strategy. Players should feel in control, rewarded for skill, and encouraged to experiment.</p>
+    </div>
+
+    <div class="grid-2" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-title">🕹️ Core Mechanics</div>
+        <ul>
+          <li>🔸 <strong>Light Attacks</strong> — fast combo chains</li>
+          <li>🔸 <strong>Heavy Attacks</strong> — high-impact strikes</li>
+          <li>🔸 <strong>Dodge</strong> — mobility and avoidance</li>
+          <li>🔸 <strong>Parry</strong> — high-risk, high-reward defense</li>
+        </ul>
+        <p style="margin-top:10px;">Combat uses a <strong>free-aim system</strong>, letting you fluidly engage multiple enemies rather than locking to a single target.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">✨ Ability System</div>
+        <p>Each player equips a carefully limited loadout:</p>
+        <ul style="margin-top:8px;">
+          <li>🔹 <strong>4 Active Abilities</strong></li>
+          <li>🔹 <strong>1 Ultimate Ability</strong></li>
+        </ul>
+        <p style="margin-top:10px;">This constraint ensures clear decision-making, readable combat, and strong build identity. Every slot counts.</p>
+        <div style="margin-top:12px;">
+          <span class="tag tag-dmg">Damage</span>
+          <span class="tag tag-ctrl">Control</span>
+          <span class="tag tag-mob">Mobility</span>
+          <span class="tag tag-def">Defense</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 4px;">
+      <div class="card-title">🗡️ Sword Archetype — Stylistic Directions</div>
+      <p style="margin-bottom:12px;">The sword archetype is a <strong>flexible foundation</strong>, not a fixed class. Identity emerges through ability selection, letting players carve their own combat identity:</p>
+      <div class="grid-3">
+        <div style="padding: 12px; background: rgba(6,214,160,0.06); border: 1px solid rgba(6,214,160,0.2); border-radius: 6px;">
+          <div style="color:var(--teal); font-weight:700; margin-bottom:4px; font-size:13px;">💨 AoE / Mobility</div>
+          <div style="font-size:12px; color:var(--muted);">Wide attacks, movement-heavy, controls space</div>
+        </div>
+        <div style="padding: 12px; background: rgba(230,57,70,0.06); border: 1px solid rgba(230,57,70,0.2); border-radius: 6px;">
+          <div style="color:var(--red); font-weight:700; margin-bottom:4px; font-size:13px;">🎯 Precision</div>
+          <div style="font-size:12px; color:var(--muted);">Single-target, timing-focused, punishing</div>
+        </div>
+        <div style="padding: 12px; background: rgba(17,138,178,0.06); border: 1px solid rgba(17,138,178,0.2); border-radius: 6px;">
+          <div style="color:var(--blue); font-weight:700; margin-bottom:4px; font-size:13px;">🔗 Control</div>
+          <div style="font-size:12px; color:var(--muted);">Positioning, enemy manipulation, crowd control</div>
+        </div>
+      </div>
+      <p style="margin-top:12px; font-size:13px; color:var(--muted);">Players are free to mix abilities across styles — identity emerges organically from play, not from a character select screen.</p>
+    </div>
+  </div>
+
+  <!-- 5. DEVIL FRUIT -->
+  <div class="section accent-purple">
+    <div class="section-header">
+      <span class="section-icon">🍎</span>
+      <div class="section-title">Devil Fruit System</div>
+      <div class="section-num">Section 05</div>
+    </div>
+
+    <div class="callout callout-purple">
+      <span class="callout-icon">✨</span>
+      <p><strong>Design Philosophy:</strong> Devil Fruits are rare, transformative abilities that <em>fundamentally alter</em> how a player interacts with combat and the world. They are not simply power increases — they redefine gameplay behavior at a structural level.</p>
+    </div>
+
+    <div class="grid-2" style="margin-top:16px; margin-bottom:16px;">
+      <div class="card">
+        <div class="card-title" style="color:var(--purple)">🧬 Fruit Structure</div>
+        <p>Each fruit is a complete gameplay identity:</p>
+        <ul style="margin-top:8px;">
+          <li>🔹 Core passive identity (always active)</li>
+          <li>🔹 Combat interaction effects</li>
+          <li>🔹 World interaction effects</li>
+          <li>🔹 A pool of abilities</li>
+          <li>🔹 Evolution paths for specialization</li>
+          <li>🔹 A defined weakness</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--purple)">⚡ Passive System — 3 Levels</div>
+        <ul>
+          <li style="margin-bottom:10px;"><strong>Identity:</strong> Changes how the player inherently behaves — movement, survivability, etc.</li>
+          <li style="margin-bottom:10px;"><strong>Combat Interaction:</strong> Alters how abilities and attacks function in battle.</li>
+          <li><strong>World Interaction:</strong> Allows new interactions with the environment — traversal, terrain influence, and more.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">🌍 Environmental Influence</div>
+      <p>Environmental interaction is <strong>intentionally moderate</strong> to preserve level design integrity. Players can create temporary effects (e.g., vines, fire zones) and access alternate paths — but effects are constrained so no single fruit breaks the world.</p>
+    </div>
+
+    <p class="prose"><strong>Example Fruit Roles:</strong></p>
+    <div class="grid-3">
+      <div class="fruit-card fruit-ember">
+        <div class="fruit-name">🔥 Ember Fruit</div>
+        <p><strong>Elemental</strong> — Area pressure and damage over time. Control the battlefield by making it hurt to stand still.</p>
+      </div>
+      <div class="fruit-card fruit-fang">
+        <div class="fruit-name">🐺 Fang Fruit</div>
+        <p><strong>Predator</strong> — Aggressive single-target pursuit. Hunt. Close gaps. Never let prey escape.</p>
+      </div>
+      <div class="fruit-card fruit-plant">
+        <div class="fruit-name">🌿 Plant Fruit</div>
+        <p><strong>Control</strong> — Battlefield manipulation and setup. Trap, slow, and reshape the encounter on your terms.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. ENEMY DESIGN -->
+  <div class="section accent-orange">
+    <div class="section-header">
+      <span class="section-icon">👾</span>
+      <div class="section-title">Enemy Design</div>
+      <div class="section-num">Section 06</div>
+    </div>
+
+    <div class="callout callout-gold">
+      <span class="callout-icon">🧩</span>
+      <p><strong>Philosophy:</strong> Enemies are <strong>interactive challenges</strong>, not passive damage receivers. Each enemy type introduces a specific problem the player must solve. Facing a new enemy should feel like learning a new puzzle.</p>
+    </div>
+
+    <div class="grid-2" style="margin-top:16px; margin-bottom:16px;">
+      <div class="card">
+        <div class="card-title"><span class="tier-badge tier-grunt">Grunt</span> Basic Enemies</div>
+        <p>Create pressure in groups. Easy alone, dangerous in numbers. Teach players to manage space and stay aware of positioning.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="tier-badge tier-spec">Specialist</span> Adapters</div>
+        <p>Force the player to adapt — shield users block standard combos, snipers punish stationary play. No single strategy works on every encounter.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="tier-badge tier-elite">Elite</span> Mini-Bosses</div>
+        <p>Test player skill and situational awareness at a high level. Expect real consequences for recklessness here.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="tier-badge tier-boss">Boss</span> Full Encounters</div>
+        <p>Large-scale multi-mechanic encounters. These are milestone moments that demand everything you've learned.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--orange)">🎖️ Elite Example: Marine Captain</div>
+      <p style="margin-bottom:10px;">The Marine Captain is a tactical opponent designed to punish aggression and teach respect for enemy mechanics:</p>
+      <div class="grid-2">
+        <div>
+          <p style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px;">What the Captain does:</p>
+          <ul>
+            <li>Uses guard and parry mechanics</li>
+            <li>Punishes reckless attack patterns</li>
+            <li>Buffs nearby ally enemies</li>
+          </ul>
+        </div>
+        <div>
+          <p style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px;">What it teaches the player:</p>
+          <ul>
+            <li>Manage attack timing carefully</li>
+            <li>Respect enemy defensive windows</li>
+            <li>Prioritize high-value targets first</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. ISLAND LOOP -->
+  <div class="section accent-blue">
+    <div class="section-header">
+      <span class="section-icon">🏝️</span>
+      <div class="section-title">Island Gameplay Loop</div>
+      <div class="section-num">Section 07</div>
+    </div>
+
+    <p class="prose">Each island functions as a <strong>self-contained gameplay experience</strong> — with no explicit objectives. Instead, players navigate opportunities, dynamic events, and emergent encounters. Every island must offer meaningful interaction. There are no empty spaces.</p>
+
+    <div class="loop-steps" style="margin: 20px 0;">
+      <div class="loop-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>🚢 Arrival & Observation</strong>
+          <p>Read the island. What's here? What's dangerous? What's worth finding?</p>
+        </div>
+      </div>
+      <div class="loop-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>🧭 Player-Driven Decision Making</strong>
+          <p>No waypoints. No quests. You decide where to go and why.</p>
+        </div>
+      </div>
+      <div class="loop-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>⚔️ Engagement</strong>
+          <p>Combat, exploration, and environmental interaction — on your terms.</p>
+        </div>
+      </div>
+      <div class="loop-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>💰 Reward Acquisition</strong>
+          <p>Find loot, abilities, and secrets. Everything is temporary until banked.</p>
+        </div>
+      </div>
+      <div class="loop-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>⚖️ Risk Evaluation</strong>
+          <p>The most important moment: keep pushing, or extract now? The tension lives here.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="prose" style="margin-top:4px;"><strong>Island Types vary in structure and tone:</strong></p>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">⚓ Military Zones</div>
+        <p>Structured, high-threat combat. Marines patrol in formation. Order enforced at gunpoint.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">💀 Pirate Territories</div>
+        <p>Chaotic and unpredictable. Alliances shift. Danger comes from every direction.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">🌿 Wild Environments</div>
+        <p>Nature is the threat. Strange creatures, difficult terrain, hidden rewards.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">🏘️ Neutral Towns</div>
+        <p>Temporary respite. Trade, gather info, and prepare before heading back into danger.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. DEATH & RECOVERY -->
+  <div class="section accent-red">
+    <div class="section-header">
+      <span class="section-icon">💀</span>
+      <div class="section-title">Death & Recovery System</div>
+      <div class="section-num">Section 08</div>
+    </div>
+
+    <div class="callout callout-red">
+      <span class="callout-icon">⚡</span>
+      <p><strong>Philosophy:</strong> Failure should create <strong>tension</strong>, not frustration. Death is not a game-over screen — it's the beginning of a new decision.</p>
+    </div>
+
+    <div class="death-flow" style="margin-top:16px;">
+      <div class="df-node">☠️ Player Dies</div>
+      <div class="df-arrow">→</div>
+      <div class="df-node">🚢 Respawn at Ship</div>
+      <div class="df-arrow">→</div>
+      <div class="df-node">📦 Resources Dropped at Death Location</div>
+      <div class="df-arrow">→</div>
+      <div class="df-node">⚔️ Recovery Run?</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title" style="color:var(--teal)">✅ The Recovery Option</div>
+        <p>Players can return to retrieve lost resources from a clearly marked cache. This transforms death from a punishment into an opportunity — the <strong>revenge run</strong>.</p>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--red)">⚠️ The Risk</div>
+        <p>The environment remains dangerous during recovery. A <strong>second failure</strong> before banking results in permanent loss. The clock is ticking.</p>
+      </div>
+    </div>
+
+    <div class="callout callout-teal" style="margin-top:12px;">
+      <span class="callout-icon">🎭</span>
+      <p>This system creates natural emotional arcs: tension during exploration, motivation for recovery, and the emergent drama of the <strong>"revenge run"</strong> — one of the most memorable moments a player can experience.</p>
+    </div>
+  </div>
+
+  <!-- 9. SHIP SYSTEM -->
+  <div class="section accent-blue">
+    <div class="section-header">
+      <span class="section-icon">⛵</span>
+      <div class="section-title">Ship System (MVP)</div>
+      <div class="section-num">Section 09</div>
+    </div>
+
+    <p class="prose">In the MVP, the ship is the player's anchor — the one safe place in a dangerous world. Its role is intentionally simple, serving as a foundation that will expand in future iterations.</p>
+
+    <div class="grid-3">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px; margin-bottom:8px;">🔁</div>
+        <div class="card-title" style="justify-content:center;">Safe Respawn</div>
+        <p>Always a way back. Always a second chance.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px; margin-bottom:8px;">🏦</div>
+        <div class="card-title" style="justify-content:center;">Resource Banking</div>
+        <p>The act of banking is the act of committing. It makes safety meaningful.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px; margin-bottom:8px;">🌊</div>
+        <div class="card-title" style="justify-content:center;">Transition Hub</div>
+        <p>The breath between runs. The calm before the next storm.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. MULTIPLAYER -->
+  <div class="section accent-teal">
+    <div class="section-header">
+      <span class="section-icon">👥</span>
+      <div class="section-title">Multiplayer Structure</div>
+      <div class="section-num">Section 10</div>
+    </div>
+
+    <div class="callout callout-teal">
+      <span class="callout-icon">🤝</span>
+      <p><strong>Co-op Design:</strong> Players can join each other's sessions as crew members with <strong>drop-in / drop-out functionality</strong>. Encounters are shared, but progression remains individual — no one is left behind or held back.</p>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">📦 MVP Scope</div>
+      <p>No NPC crew systems in the MVP. Players serve as the only crew layer. This reduces complexity while preserving the cooperative gameplay experience that matters most. The social layer is human or nothing.</p>
+    </div>
+  </div>
+
+  <!-- 11. PROGRESSION -->
+  <div class="section accent-purple">
+    <div class="section-header">
+      <span class="section-icon">📈</span>
+      <div class="section-title">Long-Term Progression</div>
+      <div class="section-num">Section 11</div>
+    </div>
+
+    <p class="prose">Progression exists across <strong>three distinct layers</strong>, each operating on a different timescale and providing a different kind of satisfaction.</p>
+
+    <div class="prog-layer">
+      <span class="prog-icon">⚔️</span>
+      <div>
+        <div class="prog-title" style="color:var(--red)">Power</div>
+        <div class="prog-body">Abilities, builds, and mechanical mastery. The most immediate layer — felt every session as your loadout sharpens and your skill deepens.</div>
+      </div>
+    </div>
+    <div class="prog-layer">
+      <span class="prog-icon">🗺️</span>
+      <div>
+        <div class="prog-title" style="color:var(--blue)">World</div>
+        <div class="prog-body">Access to new regions and increasing difficulty. The world is bigger than it first appears — new islands, new dangers, new secrets waiting for players ready to find them.</div>
+      </div>
+    </div>
+    <div class="prog-layer">
+      <span class="prog-icon">👑</span>
+      <div>
+        <div class="prog-title" style="color:var(--gold)">Legend</div>
+        <div class="prog-body">Reputation, bounty, and long-term legacy goals. This is the layer that makes your playthrough feel like a story worth telling.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px; border-top: 3px solid var(--purple);">
+      <div class="card-title" style="color:var(--purple)">🗿 Poneglyph System</div>
+      <p style="margin-bottom:10px;">The primary long-term objective is the discovery of hidden artifacts — <strong>Poneglyphs</strong>. These are not tracked in a quest log. They must be discovered through exploration and inference, providing fragmented information that slowly reveals a final goal.</p>
+      <div class="callout callout-purple" style="margin-bottom:0; margin-top:12px;">
+        <span class="callout-icon">🔮</span>
+        <p>No quest markers. No linear path. Multiple overlapping clues. Players build understanding over time, and the moment of revelation belongs entirely to them.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. MVP -->
+  <div class="section accent-teal">
+    <div class="section-header">
+      <span class="section-icon">🚀</span>
+      <div class="section-title">Implementation Strategy (MVP)</div>
+      <div class="section-num">Section 12</div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-title" style="color:var(--teal)">🛠️ Engine Choice: Unity 6.3 LTS</div>
+        <p>Selected for stability, strong AI-assisted development support, and flexible system design. A proven foundation for a systems-first project.</p>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--teal)">🎯 Development Focus</div>
+        <p>The primary goal is to validate <strong>combat feel</strong>, the <strong>core gameplay loop</strong>, and <strong>risk/reward engagement</strong>. All non-essential systems are deferred until the core is proven.</p>
+      </div>
+    </div>
+
+    <p class="prose"><strong>The first playable version will include:</strong></p>
+    <ul class="mvp-list">
+      <li>One fully realized island</li>
+      <li>Sword-based combat system</li>
+      <li>One Devil Fruit implementation</li>
+      <li>Basic enemy types + one Elite enemy</li>
+      <li>Death and recovery system</li>
+      <li>Simple ship respawn system</li>
+    </ul>
+  </div>
+
+  <!-- 13. PRINCIPLES -->
+  <div class="section accent-gold">
+    <div class="section-header">
+      <span class="section-icon">📐</span>
+      <div class="section-title">Development Principles</div>
+      <div class="section-num">Section 13</div>
+    </div>
+    <p class="prose">These principles are not suggestions. They are guardrails that keep the project focused and the scope honest.</p>
+    <div class="principles">
+      <div class="principle"><span>🧱</span> Build the smallest playable version first</div>
+      <div class="principle"><span>🎮</span> Prioritize feel over features — always</div>
+      <div class="principle"><span>🚫</span> Avoid premature complexity at every stage</div>
+      <div class="principle"><span>🔬</span> Test early and iterate frequently</div>
+      <div class="principle"><span>📏</span> Expand only after the core loop is proven</div>
+    </div>
+  </div>
+
+  <!-- CONCLUSION -->
+  <div class="card" style="border: 1px solid var(--gold); border-top: 3px solid var(--gold); padding: 28px; text-align:center; margin-top:8px;">
+    <div style="font-size:36px; margin-bottom:12px;">🏴‍☠️</div>
+    <div style="font-family:'Cinzel',serif; font-size:20px; color:var(--gold); margin-bottom:14px; letter-spacing:1px;">Conclusion</div>
+    <p style="color:#b0c4d8; max-width:580px; margin:0 auto 16px; line-height:1.8; font-size:14px;">
+      <strong style="color:var(--text);">Grand Line Prototype</strong> is a systems-driven RPG focused on emergent gameplay, player identity, and meaningful risk. The MVP is not intended to be complete — it is intended to answer one question:
+    </p>
+    <div style="font-family:'Cinzel',serif; font-size:18px; color:var(--gold-light); padding:16px 24px; background:rgba(240,165,0,0.08); border-radius:8px; border: 1px solid rgba(240,165,0,0.2); display:inline-block; margin-bottom:16px;">
+      "Is the core gameplay loop fun and engaging?"
+    </div>
+    <p style="color:var(--muted); font-size:13px;">If yes — the system scales into something legendary.</p>
+  </div>
+
+</div>
+
+<div class="footer">
+  <strong>GRAND LINE PROTOTYPE</strong> — Game Design Document v0.2<br>
+  <span style="margin-top:6px; display:block;">All systems subject to iteration. Build. Test. Expand.</span>
+</div>
+
+</body>
+</html>
