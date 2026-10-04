@@ -55,8 +55,8 @@ func enter(data: Dictionary) -> void:
 			_yaw_local = _local_yaw(anchor, fwd)
 		total = 0.78
 		player.body_model.play("mantle", total)
-		FX.splash(Vector3(player.global_position.x, player.water_surface(), player.global_position.z), 5, 0.6)
-	FX.sfx("splash", player.global_position, -8.0, 0.1, 1.2)
+		Net.fx("splash", [Vector3(player.global_position.x, player.water_surface(), player.global_position.z), 5, 0.6])
+	Net.fx("sfx", ["splash", player.global_position, -8.0, 0.1, 1.2])
 	player.sheathe_weapon(true)
 
 

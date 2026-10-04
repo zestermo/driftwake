@@ -6,6 +6,30 @@ var loot_bag_scene: PackedScene
 
 var ship: Ship
 var player: Player
+## Saved world state: chests opened (LootBag.save_id) and thornbrush burned
+## (node names).
+var opened: Dictionary = {}
+var burned: Dictionary = {}
+## Devil Fruits already found in this world (item id -> who found it).
+var fruit_claims: Dictionary = {}
+const AUTOSAVE_EVERY := 120.0
+var _autosave_t: float = 0.0
+## Seconds played in this save (counted while the game isn't paused).
+var play_time: float = 0.0
+
+
+## A fresh start for a new game or a load (the world scene is about to be
+## rebuilt): forget everything from the previous session.
+func reset_session() -> void:
+	banked_items.clear()
+	opened.clear()
+	burned.clear()
+	fruit_claims.clear()
+	play_time = 0.0
+	_autosave_t = 0.0
+	active_loot_bag = null
+	ship = null
+	player = null
 
 
 func _ready() -> void:
@@ -15,8 +39,70 @@ func _ready() -> void:
 ## Called by the player when it enters the scene (works however the scene was loaded).
 func register_player(p: Player) -> void:
 	player = p
+	Net.register_local(p)
 	if not player.health_component.died.is_connected(_on_player_died):
 		player.health_component.died.connect(_on_player_died)
+	_load_save.call_deferred()
+
+
+func _load_save() -> void:
+	# let the world finish building (chests, thornbrush, the ship) first
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if player and is_instance_valid(player) and SaveGame.load_into(player):
+		get_tree().call_group("hud", "show_toast", "Welcome back, captain")
+	if player and is_instance_valid(player):
+		Net.world_loaded()
+
+
+## A message for the title screen (e.g. "The host closed the session").
+var title_message: String = ""
+
+
+func show_title_message(text: String) -> void:
+	title_message = text
+
+
+func _process(delta: float) -> void:
+	if player == null or not is_instance_valid(player) or get_tree().paused:
+		return
+	play_time += delta
+	_autosave_t += delta
+	if _autosave_t >= AUTOSAVE_EVERY:
+		_autosave_t = 0.0
+		if player.health_component.current_health > 0.0 and not CharacterCreator.active:
+			SaveGame.save(player)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and player and is_instance_valid(player):
+		SaveGame.save(player)
+
+
+func mark_opened(save_id: String) -> void:
+	if save_id != "":
+		opened[save_id] = true
+
+
+func mark_burned(node_name: String) -> void:
+	burned[node_name] = true
+
+
+## After loading: remove opened chests and burned thornbrush from the world.
+func apply_world_state() -> void:
+	for bag in get_tree().current_scene.find_children("*", "LootBag", true, false):
+		var lb := bag as LootBag
+		if lb.save_id != "" and opened.has(lb.save_id):
+			lb.queue_free()
+	for b in get_tree().get_nodes_in_group("burnable"):
+		if burned.has(str((b as Node).name)):
+			(b as Burnable).burn_away_instantly()
+
+
+## Combat experience for the player (an enemy went down at `at`).
+func award_xp(amount: int, at: Vector3 = Vector3.INF) -> void:
+	if player and is_instance_valid(player) and player.progression:
+		player.progression.add_xp(amount, at)
 
 
 func _get_ship() -> Ship:
@@ -38,6 +124,7 @@ func bank_items() -> int:
 	for stack in items:
 		_add_banked(stack)
 		count += stack.quantity
+	SaveGame.save(player)
 	return count
 
 
@@ -59,6 +146,21 @@ func banked_count(item_id: String = "") -> int:
 
 
 func _on_player_died() -> void:
+	if not player:
+		return
+	# co-op: knocked out first - a crewmate can still get you up (the
+	# player calls bleed_out() if nobody does)
+	if Net.coop() and Net.others_standing() and player.context == Player.Context.ON_FOOT:
+		return
+	_die_for_real()
+
+
+## Nobody got you up in time.
+func bleed_out() -> void:
+	_die_for_real()
+
+
+func _die_for_real() -> void:
 	if not player:
 		return
 

@@ -4,6 +4,11 @@ extends PlayerState
 ##   forward with the point leading, long reach, quick recovery
 ## * axe: a one-handed overhead chop - rear back, then hack down through a
 ##   forward step, slower but hits hardest and staggers longest
+## * dual swords: both blades raised, then crashing down together
+## * fists: a flying kick
+## * one pistol: a pistol-whip; two pistols: gun kata (spin and shoot
+##   everyone close)
+## * claws (Zoan hybrid): a pouncing maul
 ## * anything else: the leaping two-handed slam
 
 ## Per-style timing / feel. windup -> active (hitbox on) -> recovery.
@@ -14,6 +19,21 @@ const STYLES := {
 	"axe": {"anim": "axe_heavy", "windup": 0.34, "active": 0.14, "recovery": 0.42, "impulse": 4.0,
 		"damage": 40.0, "hitstop": 0.12, "shake": 0.3, "knockback": 9.0, "stagger": 0.6,
 		"trail": "overhead", "trail_len": 0.26, "sfx": "whoosh_big", "pitch": 0.9, "impact_fx": true},
+	"dual_heavy": {"anim": "dual_heavy", "windup": 0.32, "active": 0.18, "recovery": 0.38, "impulse": 6.0,
+		"damage": 42.0, "hitstop": 0.12, "shake": 0.28, "knockback": 11.0, "stagger": 0.6,
+		"trail": "overhead", "trail_len": 0.28, "sfx": "whoosh_big", "pitch": 0.95, "impact_fx": true, "reach": "wide", "double_trail": true},
+	"kick": {"anim": "flying_kick", "windup": 0.33, "active": 0.22, "recovery": 0.3, "impulse": 9.5, "wind": true,
+		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
+	"whip": {"anim": "pistol_whip", "windup": 0.2, "active": 0.12, "recovery": 0.3, "impulse": 5.0,
+		"damage": 18.0, "hitstop": 0.07, "shake": 0.14, "knockback": 10.0, "stagger": 0.4,
+		"trail": "left", "trail_len": 0.2, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "fist"},
+	"kata": {"anim": "gun_kata", "windup": 0.12, "active": 0.5, "recovery": 0.2, "impulse": 0.0,
+		"damage": 0.0, "hitstop": 0.05, "shake": 0.12, "knockback": 4.0, "stagger": 0.3,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.3, "impact_fx": false, "reach": "fist", "kata": true},
+	"maul": {"anim": "maul", "windup": 0.3, "active": 0.2, "recovery": 0.32, "impulse": 10.0,
+		"damage": 36.0, "hitstop": 0.1, "shake": 0.24, "knockback": 11.0, "stagger": 0.5,
+		"trail": "overhead", "trail_len": 0.26, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": true, "reach": "claw", "color": Color(1.0, 0.35, 0.3)},
 	"slam": {"anim": "heavy", "windup": 0.3, "active": 0.2, "recovery": 0.3, "impulse": 5.0,
 		"damage": 35.0, "hitstop": 0.1, "shake": 0.2, "knockback": 10.0, "stagger": 0.5,
 		"trail": "overhead", "trail_len": 0.3, "sfx": "whoosh_big", "pitch": 1.0, "impact_fx": true},
@@ -24,6 +44,7 @@ var phase: int = 0  # 0 = windup, 1 = active, 2 = recovery
 var hitbox_activated: bool = false
 var impact_fx: bool = false
 var cfg: Dictionary = {}
+var _kata_shots: int = 0
 
 
 static func style_for(weapon_model: String) -> String:
@@ -42,7 +63,21 @@ func enter(_data: Dictionary) -> void:
 	impact_fx = false
 	player.reset_combo()
 	var model := player.equipped_weapon.weapon_model if player.equipped_weapon else ""
-	cfg = STYLES[style_for(model)]
+	match player.style():
+		"dual_sword":
+			cfg = STYLES["dual_heavy"]
+		"fist":
+			cfg = STYLES["kick"]
+		"pistol":
+			cfg = STYLES["whip"]
+		"dual_pistol":
+			cfg = STYLES["kata"]
+		"claw":
+			cfg = STYLES["maul"]
+		_:
+			cfg = STYLES[style_for(model)]
+	player.set_reach(str(cfg.get("reach", "sword")))
+	_kata_shots = 0
 
 	# Snap to camera forward
 	var forward := get_camera_forward()
@@ -63,34 +98,54 @@ func physics_update(delta: float) -> void:
 			if timer >= float(cfg["windup"]):
 				phase = 1
 				timer = 0.0
-				FX.slash(player.player_model, str(cfg["trail"]), float(cfg["trail_len"]))
-				FX.sfx(str(cfg["sfx"]), player.global_position, -4.0, 0.08, float(cfg["pitch"]))
+				var col: Color = cfg.get("color", Color(0.45, 0.75, 1.0))
+				if player.power.buff("coat"):
+					col = Player.HAKI_TRAIL
+				if str(cfg["trail"]) != "":
+					Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), col])
+				if cfg.get("double_trail", false):
+					Net.fx("slash", [player.player_model, "spin", float(cfg["trail_len"]), col])
+				Net.fx("sfx", [str(cfg["sfx"]), player.global_position, -4.0, 0.08, float(cfg["pitch"])])
+				if cfg.get("wind", false):
+					var b := player.player_model.global_basis
+					Net.fx("punch_wind", [player.global_position + Vector3.UP * 1.05 + b.x * 0.15 - b.z * 0.3, -b.z, 1.7,
+						col if player.power.buff("coat") else Color(1.0, 0.97, 0.9), true])
 				player.squash(-3.0)
 				var face_dir := get_camera_forward()
 				player.velocity.x = face_dir.x * float(cfg["impulse"])
 				player.velocity.z = face_dir.z * float(cfg["impulse"])
-				var hit := HitData.new()
-				hit.damage = float(cfg["damage"]) * player.damage_multiplier()
+				var hit := player.melee_hit(float(cfg["damage"]))
+				# Armament Haki: heavy attacks can't be blocked
+				if player.progression.has_flag("armament"):
+					hit.unblockable = true
+					hit.haki = true
 				hit.hitstop_duration = float(cfg["hitstop"])
 				hit.camera_shake_intensity = float(cfg["shake"])
 				hit.knockback_force = float(cfg["knockback"])
 				hit.stagger_duration = float(cfg["stagger"])
 				hit.knockdown = true
-				player.sword_hitbox.activate(hit)
+				if not cfg.get("kata", false):
+					player.sword_hitbox.activate(hit)
 				hitbox_activated = true
 
 		1:  # Active
+			# gun kata: spin and put a shot into everyone close
+			if cfg.get("kata", false):
+				var due := int(timer / float(cfg["active"]) * 4.0)
+				while _kata_shots < mini(due + 1, 4):
+					_kata_shots += 1
+					_kata_volley()
 			if cfg["impact_fx"] and timer >= float(cfg["active"]) * 0.5 and not impact_fx:
 				impact_fx = true
 				var front := player.global_position - player.player_model.global_basis.z * 1.3
-				FX.dust_ring(front, 16, 1.0)
-				FX.sparkle(front + Vector3(0, 0.3, 0), 8, Color(1.0, 0.85, 0.5))
+				Net.fx("dust_ring", [front, 16, 1.0])
+				Net.fx("sparkle", [front + Vector3(0, 0.3, 0), 8, Color(1.0, 0.85, 0.5)])
 			if timer >= float(cfg["active"]):
 				phase = 2
 				timer = 0.0
 				player.sword_hitbox.deactivate()
 				if not cfg["impact_fx"]:
-					FX.dust(player.global_position + Vector3(0, 0.05, 0), 5, 0.5)
+					Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 5, 0.5])
 
 		2:  # Recovery
 			if timer >= float(cfg["recovery"]):
@@ -99,6 +154,28 @@ func physics_update(delta: float) -> void:
 	# Allow dodge cancel during recovery
 	if phase == 2 and wants_dodge():
 		transitioned.emit(self, "Dodge", {})
+
+
+func _kata_volley() -> void:
+	var c := player.global_position + Vector3(0, 1.1, 0)
+	var pc := player.power
+	var hit_any := false
+	for e in pc.enemies_in(c, 6.0):
+		var hb := (e as Node).get("hurtbox") as Hurtbox
+		if hb == null:
+			continue
+		var hd := player.melee_hit(9.0)
+		hd.knockback_force = 4.0
+		hd.ranged = true
+		hb.take_hit(hd, player)
+		Net.fx("tracer", [c, hb.global_position])
+		hit_any = true
+	var a := randf() * TAU
+	var d := Vector3(cos(a), 0, sin(a))
+	Net.fx("muzzle_sparks", [c + d * 0.5, d, 6])
+	Net.fx("sfx", ["gunshot", c, -6.0, 0.1, 1.35])
+	if hit_any:
+		CombatManager.apply_hitstop(0.03)
 
 
 func exit() -> void:

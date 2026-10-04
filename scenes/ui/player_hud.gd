@@ -1,6 +1,8 @@
 extends CanvasLayer
 ## Low-res PSX HUD: health, loot count, ship compass, interaction prompt,
-## island title banners, toasts, hotbar and reticle. F4 toggles the debug state label.
+## island title banners, toasts, the skill bar (health / stamina / energy,
+## Devil Fruit skills and the item hotbar) and reticle. F4 toggles the debug
+## state label.
 
 @onready var health_bar: ProgressBar = $Top/VBox/HealthRow/HealthBar
 @onready var health_label: Label = $Top/VBox/HealthRow/HealthBar/Label
@@ -21,16 +23,10 @@ var ship: Node3D
 var _banner_tween: Tween
 var _toast_tween: Tween
 var _chime: AudioStreamPlayer
-var _hotbar_box: HBoxContainer
-var _hotbar_slots: Array[Button] = []
+var _skill_bar: SkillBar
 var _reticle: Reticle
 var _fps: Label
 var _in_dialogue: bool = false
-var _stamina_bar: ProgressBar
-var _stamina_fill: StyleBoxFlat
-var _stamina_flash: float = 0.0
-const STAMINA_COLOR := Color(0.36, 0.78, 0.32)
-const STAMINA_EMPTY_COLOR := Color(0.85, 0.62, 0.18)
 
 
 func _ready() -> void:
@@ -44,8 +40,9 @@ func _ready() -> void:
 	_chime.volume_db = -6.0
 	_chime.bus = "UI"
 	add_child(_chime)
-	_build_hotbar()
-	_build_stamina()
+	_build_skill_bar()
+	# health and stamina live in the skill bar's orbs now
+	$Top/VBox/HealthRow.visible = false
 	_reticle = Reticle.new()
 	add_child(_reticle)
 	_fps = Label.new()
@@ -57,6 +54,7 @@ func _ready() -> void:
 	_fps.offset_left = -60; _fps.offset_top = 28; _fps.offset_right = -10
 	_fps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_fps)
+	_build_coop()
 	Dialogue.dialogue_started.connect(func(_id): _in_dialogue = true)
 	Dialogue.dialogue_ended.connect(func(_id): _in_dialogue = false)
 	await get_tree().process_frame
@@ -66,18 +64,11 @@ func _ready() -> void:
 		health_bar.max_value = player.health_component.max_health
 		health_bar.value = player.health_component.current_health
 		player.health_component.health_changed.connect(_on_health_changed)
-		player.stamina_changed.connect(_on_stamina_changed)
-		player.stamina_denied.connect(func(): _stamina_flash = 0.45)
-		_on_stamina_changed(player.stamina, player.max_stamina)
+		_skill_bar.bind(player)
 		player.interaction_component.prompt_changed.connect(_on_prompt_changed)
 		player.interaction_component.prompt_hidden.connect(_on_prompt_hidden)
 		player.inventory_component.inventory_changed.connect(_on_inventory_changed)
 		player.inventory_component.item_added.connect(_on_item_added)
-		player.inventory_component.hotbar_changed.connect(_refresh_hotbar)
-		player.inventory_component.inventory_changed.connect(_refresh_hotbar)
-		player.armed_changed.connect(func(_a): _refresh_hotbar())
-		player.weapon_changed.connect(func(_w): _refresh_hotbar())
-		_refresh_hotbar()
 		_on_inventory_changed()
 
 
@@ -86,11 +77,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		state_label.visible = not state_label.visible
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_update_reticle()
-	_update_stamina_flash(_delta)
-	var show_hotbar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT
-	_hotbar_box.visible = show_hotbar
+	_update_party(delta)
+	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT
+	_skill_bar.visible = show_bar and not _menu_open
 	toast.visible = true
 	_fps.visible = Settings.get_value("video", "show_fps")
 	if _fps.visible:
@@ -175,33 +166,19 @@ func _on_inventory_changed() -> void:
 		inventory_label.text = "Loot: %d (bank it at the ship)" % count if count > 0 else ""
 
 
-# ---- Hotbar ----
-func _build_hotbar() -> void:
-	_hotbar_box = HBoxContainer.new()
-	_hotbar_box.add_theme_constant_override("separation", 2)
-	_hotbar_box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_hotbar_box.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_hotbar_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_hotbar_box.offset_top = -36
-	_hotbar_box.offset_bottom = -6
-	_hotbar_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_hotbar_box)
-	for i in range(InventoryComponent.HOTBAR_SIZE):
-		var slot := GameMenu.make_slot(30)
-		slot.focus_mode = Control.FOCUS_NONE
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_hotbar_box.add_child(slot)
-		_hotbar_slots.append(slot)
+# ---- Skill bar ----
+var _menu_open: bool = false
 
 
-func _refresh_hotbar() -> void:
-	if player == null:
-		return
-	var inv := player.inventory_component
-	for i in range(_hotbar_slots.size()):
-		var item := inv.get_hotbar_item(i)
-		var equipped := item != null and item == player.equipped_weapon and player.armed
-		GameMenu.set_slot(_hotbar_slots[i], item, inv.count(item.id) if item else 0, str(i + 1), equipped)
+func _build_skill_bar() -> void:
+	_skill_bar = SkillBar.new()
+	_skill_bar.name = "SkillBar"
+	_skill_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_skill_bar.offset_left = -SkillBar.W * 0.5
+	_skill_bar.offset_right = SkillBar.W * 0.5
+	_skill_bar.offset_top = -SkillBar.H - 3.0
+	_skill_bar.offset_bottom = -3.0
+	add_child(_skill_bar)
 
 
 # ---- Reticle ----
@@ -227,60 +204,115 @@ func _on_item_added(item: ItemData, quantity: int) -> void:
 	show_toast("+%d %s" % [quantity, item.display_name])
 
 
-# --------------------------------------------------------------------------
-# Stamina
-# --------------------------------------------------------------------------
-## A thin bar under the health bar (same frame style), green while there's
-## stamina, amber once it's run dry; flashes red when an action is refused.
-func _build_stamina() -> void:
-	var row := HBoxContainer.new()
-	row.name = "StaminaRow"
-	var lab := Label.new()
-	lab.text = "ST"
-	lab.label_settings = $Top/VBox/HealthRow/HP.label_settings
-	row.add_child(lab)
-	_stamina_bar = ProgressBar.new()
-	_stamina_bar.name = "StaminaBar"
-	_stamina_bar.custom_minimum_size = Vector2(110, 7)
-	_stamina_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_stamina_bar.show_percentage = false
-	_stamina_bar.max_value = 100.0
-	_stamina_bar.value = 100.0
-	_stamina_bar.add_theme_stylebox_override("background", health_bar.get_theme_stylebox("background"))
-	_stamina_fill = StyleBoxFlat.new()
-	_stamina_fill.bg_color = STAMINA_COLOR
-	_stamina_bar.add_theme_stylebox_override("fill", _stamina_fill)
-	row.add_child(_stamina_bar)
-	var vbox := $Top/VBox
-	vbox.add_child(row)
-	vbox.move_child(row, $Top/VBox/HealthRow.get_index() + 1)
-
-
-func _on_stamina_changed(current: float, maximum: float) -> void:
-	if _stamina_bar == null:
-		return
-	_stamina_bar.max_value = maximum
-	_stamina_bar.value = current
-
-
-func _update_stamina_flash(delta: float) -> void:
-	if _stamina_fill == null or player == null:
-		return
-	var base := STAMINA_EMPTY_COLOR if (player.stamina < player.LIGHT_COST or player.winded) else STAMINA_COLOR
-	if _stamina_flash > 0.0:
-		_stamina_flash -= delta
-		var on := int(_stamina_flash * 16.0) % 2 == 0
-		_stamina_fill.bg_color = Color(0.9, 0.2, 0.15) if on else base
-		_stamina_bar.modulate = Color(1.4, 0.7, 0.7) if on else Color.WHITE
-	else:
-		_stamina_fill.bg_color = base
-		_stamina_bar.modulate = Color.WHITE
-
-
 ## Called by GameMenu (the HUD is paused while menus are open): the inventory
 ## overlay has its own hotbar and uses the bottom of the screen.
 func set_menu_open(open: bool) -> void:
-	if _hotbar_box:
-		_hotbar_box.visible = not open
+	_menu_open = open
+	if _skill_bar:
+		_skill_bar.visible = not open
 	toast.visible = not open
 	banner.visible = not open
+
+
+# ---- Co-op: crew list, knocked-out / revive prompt ----
+var _party: VBoxContainer
+var _party_t: float = 0.0
+var _prompt: Label
+var _prompt_bar: ProgressBar
+
+
+func _build_coop() -> void:
+	_party = VBoxContainer.new()
+	_party.name = "Party"
+	_party.position = Vector2(8, 46)
+	_party.add_theme_constant_override("separation", 2)
+	_party.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_party)
+	_prompt = UIStyle.label("", 12, UIStyle.TEXT)
+	_prompt.add_theme_color_override("font_outline_color", Color.BLACK)
+	_prompt.add_theme_constant_override("outline_size", 4)
+	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_prompt.set_anchors_preset(Control.PRESET_CENTER)
+	_prompt.offset_left = -160
+	_prompt.offset_right = 160
+	_prompt.offset_top = 40
+	_prompt.offset_bottom = 58
+	_prompt.visible = false
+	add_child(_prompt)
+	_prompt_bar = _bar(Color(0.95, 0.8, 0.35))
+	_prompt_bar.set_anchors_preset(Control.PRESET_CENTER)
+	_prompt_bar.offset_left = -50
+	_prompt_bar.offset_right = 50
+	_prompt_bar.offset_top = 60
+	_prompt_bar.offset_bottom = 65
+	_prompt_bar.max_value = 1.0
+	_prompt_bar.visible = false
+	add_child(_prompt_bar)
+
+
+func _bar(fill: Color) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.05, 0.04, 0.04, 0.8)
+	bg.border_color = Color(0, 0, 0, 0.9)
+	bg.set_border_width_all(1)
+	var fg := StyleBoxFlat.new()
+	fg.bg_color = fill
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fg)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return bar
+
+
+## A centered prompt with an optional progress bar (progress < 0: none).
+## Empty text hides it.
+func show_prompt(text: String, progress: float = -1.0) -> void:
+	if _prompt == null:
+		return
+	_prompt.text = text
+	_prompt.visible = text != ""
+	_prompt_bar.visible = text != "" and progress >= 0.0
+	if progress >= 0.0:
+		_prompt_bar.value = progress
+
+
+## The rest of the crew: name, health, and whether they're down.
+func _update_party(delta: float) -> void:
+	_party_t -= delta
+	if _party_t > 0.0 or _party == null:
+		return
+	_party_t = 0.2
+	var others: Array = []
+	if Net.active:
+		for p in Net.all_players():
+			if p != player:
+				others.append(p)
+	while _party.get_child_count() > others.size():
+		var c := _party.get_child(_party.get_child_count() - 1)
+		_party.remove_child(c)
+		c.queue_free()
+	while _party.get_child_count() < others.size():
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		var nm := UIStyle.label("", 8, UIStyle.TEXT)
+		nm.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+		nm.add_theme_color_override("font_outline_color", Color.BLACK)
+		nm.add_theme_constant_override("outline_size", 3)
+		nm.custom_minimum_size = Vector2(70, 0)
+		row.add_child(nm)
+		var bar := _bar(Color(0.85, 0.25, 0.2))
+		bar.custom_minimum_size = Vector2(54, 5)
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(bar)
+		_party.add_child(row)
+	for i in range(others.size()):
+		var p = others[i]
+		var row := _party.get_child(i)
+		var nm := row.get_child(0) as Label
+		var bar := row.get_child(1) as ProgressBar
+		var down: bool = p.is_bleeding()
+		nm.text = str(p.display_name()) + (" (down)" if down else "")
+		nm.modulate = Color(1.0, 0.5, 0.4) if down else Color.WHITE
+		bar.max_value = maxf(p.health_component.max_health, 1.0)
+		bar.value = p.health_component.current_health

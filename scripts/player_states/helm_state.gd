@@ -80,6 +80,7 @@ func exit() -> void:
 	if player.current_ship:
 		player.current_ship.is_player_steering = false
 		player.current_ship.cam_yaw = 0.0
+		Net.release_helm()
 		# step back from the wheel, onto the deck
 		player.global_position = player.current_ship.helm_position.global_position + Vector3.UP * 0.05
 		player.reset_physics_interpolation()

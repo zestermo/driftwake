@@ -8,6 +8,8 @@ render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabl
 
 uniform vec4 core_color : source_color = vec4(1.0, 1.0, 0.95, 1.0);
 uniform vec4 edge_color : source_color = vec4(0.25, 0.55, 1.0, 1.0);
+// Per-trail edge color (alpha 0 = use edge_color).
+instance uniform vec4 edge_override : source_color = vec4(0.0, 0.0, 0.0, 0.0);
 uniform float tail_length = 0.55;
 uniform float bands = 6.0;  // PSX-style banding of the gradient
 instance uniform float progress = 0.0;
@@ -28,6 +30,7 @@ void fragment() {
 	float across = pow(UV.y, 1.6);  // bright near the blade edge
 	float a = visible * across * fade;
 	a = floor(a * bands + 0.5) / bands;
-	vec3 col = mix(edge_color.rgb, core_color.rgb, smoothstep(0.75, 1.0, UV.y) * t);
+	vec3 edge = mix(edge_color.rgb, edge_override.rgb, edge_override.a);
+	vec3 col = mix(edge, core_color.rgb, smoothstep(0.75, 1.0, UV.y) * t);
 	ALBEDO = col * a * 1.6;
 }

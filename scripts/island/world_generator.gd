@@ -25,6 +25,7 @@ var _decor := {}  # name -> Array[Mesh]
 
 
 func _ready() -> void:
+	GrapplePoints.clear()
 	_generate_world()
 
 
@@ -396,6 +397,8 @@ func _decorate_island(island: Node3D, center: Vector2, radius: float, island_typ
 			if not buckets.has(mesh):
 				buckets[mesh] = []
 			buckets[mesh].append(Transform3D(basis, local))
+			if kind == "palm" or kind == "jungle":
+				GrapplePoints.add(island, local + basis * GrapplePoints.crown_of(mesh))
 			if kind == "palm" or kind == "jungle" or (kind == "rock" and s > 0.9):
 				var cs := CollisionShape3D.new()
 				var cyl := CylinderShape3D.new()

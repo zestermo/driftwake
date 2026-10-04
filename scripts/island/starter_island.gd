@@ -736,7 +736,7 @@ func _log() -> MeshInstance3D:
 
 # ==========================================================================
 # Smugglers' camp: a pirate crew's hideout on the shore past the cove, with
-# a strongbox worth fighting for. Five cutlass grunts (GruntCamp).
+# a strongbox worth fighting for. Three cutlass grunts and two riflemen (GruntCamp).
 # ==========================================================================
 var smugglers: GruntCamp
 
@@ -784,10 +784,15 @@ func _build_smugglers_camp() -> void:
 	pole.add_card(flag_mat, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 3.8, 0.45)), 0.9, 0.55, Rect2(0, 0, 0.5, 0.5))
 	pole.add_card(flag_mat, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 3.8, 0.45)), 0.9, 0.55, Rect2(0, 0, 0.5, 0.5))
 	place(pole.to_instance("CrewFlag"), at.call(-3.0, -1.0), 0.4)
-	# the strongbox: treasure, gold and the crew's best hat
+	# the strongbox: treasure, gold, the crew's best hat - and the prize
+	# they were smuggling: a Devil Fruit
 	var chest_p: Vector2 = at.call(-8.5, 0.5)
 	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	var items: Array[ItemStack] = []
+	var fruit := ItemStack.new()
+	fruit.item = load("res://resources/items/ember_fruit.tres")
+	fruit.quantity = 1
+	items.append(fruit)
 	for it in [[load("res://resources/items/treasure.tres"), 2], [load("res://resources/items/gold.tres"), 6]]:
 		var st := ItemStack.new()
 		st.item = it[0]
@@ -798,6 +803,7 @@ func _build_smugglers_camp() -> void:
 	hat.quantity = 1
 	items.append(hat)
 	bag.setup(items)
+	bag.save_id = "smugglers_strongbox"
 	place(bag, chest_p, face_yaw(c - chest_p))
 	var chest_mesh := bag.get_node_or_null("MeshInstance3D") as MeshInstance3D
 	if chest_mesh:
@@ -819,11 +825,11 @@ func _build_smugglers_camp() -> void:
 	smugglers.add_grunt({"post": v3.call(sit_b), "yaw": g_yaw.call(sit_b, c), "mode": "sit", "seat_y": 0.42, "seed": 23})
 	var toward_wren := (CAMP - c).normalized()
 	var guard_p := c + toward_wren * 9.0
-	smugglers.add_grunt({"post": v3.call(guard_p), "yaw": g_yaw.call(guard_p, guard_p + toward_wren), "mode": "stand", "seed": 37})
+	smugglers.add_grunt({"post": v3.call(guard_p), "yaw": g_yaw.call(guard_p, guard_p + toward_wren), "mode": "stand", "seed": 37, "role": "rifle"})
 	var route := [v3.call(at.call(-4.0, -1.0)), v3.call(at.call(-0.5, -5.0)), v3.call(at.call(3.5, -2.5)), v3.call(at.call(1.0, 3.5))]
 	smugglers.add_grunt({"post": route[0], "yaw": 0.0, "mode": "patrol", "patrol": route, "seed": 41})
 	var boat_guard: Vector2 = at.call(7.5, 2.5)
-	smugglers.add_grunt({"post": v3.call(boat_guard), "yaw": g_yaw.call(boat_guard, boat_guard + to_sea), "mode": "stand", "seed": 53})
+	smugglers.add_grunt({"post": v3.call(boat_guard), "yaw": g_yaw.call(boat_guard, boat_guard + to_sea), "mode": "stand", "seed": 53, "role": "rifle"})
 
 
 # ==========================================================================
@@ -1003,7 +1009,11 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: Ra
 	if s < 0.0:
 		s = rng.randf_range(0.85, 1.15)
 	var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s)
-	_bucket(buckets, meshes[rng.randi() % meshes.size()], Transform3D(basis, Vector3(p.x, h - 0.15, p.y)))
+	var tree_mesh: Mesh = meshes[rng.randi() % meshes.size()]
+	var xf := Transform3D(basis, Vector3(p.x, h - 0.15, p.y))
+	_bucket(buckets, tree_mesh, xf)
+	# the crown is something a vine can latch onto
+	GrapplePoints.add(self, xf * GrapplePoints.crown_of(tree_mesh))
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = col_r * s
@@ -1255,7 +1265,17 @@ func _spawn_loot() -> void:
 		[HILL + Vector2(4.0, 3.5), gold, 2],
 		[COVE + Vector2(9, -21), gold, 2],
 	]
-	reserve(JUNGLE_STASH, 2.5)
+	reserve(JUNGLE_STASH, 3.5)
+	# the jungle stash is walled in by dry thornbrush: fire gets you in
+	for k in range(4):
+		var a := float(k) * PI * 0.5
+		var off := Vector2(sin(a), cos(a)) * 2.1
+		var bp := JUNGLE_STASH + off
+		var thorn := Burnable.new().setup(Vector3(4.6, 2.9, 0.9))
+		thorn.name = "Thornbrush%d" % k
+		thorn.position = Vector3(bp.x, minf(hv(bp), hv(JUNGLE_STASH)) - 0.25, bp.y)
+		thorn.rotation.y = a
+		add_child(thorn)
 	for s in spots:
 		var bag := bag_scene.instantiate() as LootBag
 		var stack := ItemStack.new()
@@ -1282,8 +1302,23 @@ func _spawn_loot() -> void:
 			gs.item = gear
 			gs.quantity = 1
 			items.append(gs)
+		# a pistol in the old camp's stash; two more Devil Fruits hidden on
+		# the island (the Wolf Fruit in the ruins, the Vine Fruit up the hill)
+		var extra := ""
+		if s[0] == CAMP + Vector2(-6.0, -4.0):
+			extra = "pistol"
+		elif s[0] == RUINS + Vector2(-1.5, 2.2):
+			extra = "wolf_fruit"
+		elif s[0] == HILL + Vector2(4.0, 3.5):
+			extra = "vine_fruit"
+		if extra != "" and ItemDB.get_item(extra):
+			var es := ItemStack.new()
+			es.item = ItemDB.get_item(extra)
+			es.quantity = 1
+			items.append(es)
 		bag.setup(items, false)
 		var p: Vector2 = s[0]
+		bag.save_id = "chest_%d_%d" % [int(round(p.x)), int(round(p.y))]
 		bag.position = Vector3(p.x, hv(p), p.y)
 		add_child(bag)
 		var mi := bag.get_node_or_null("MeshInstance3D") as MeshInstance3D

@@ -74,6 +74,10 @@ var _head_from := Transform3D.IDENTITY
 var _body_rest := Transform3D.IDENTITY
 var _head_rest := Transform3D.IDENTITY
 var _damage_number_scene: PackedScene
+## Co-op client: a puppet of the host's bug.
+var net_puppet: bool = false
+var _net_serial: int = -1
+var _net_hb_t: float = 0.0
 
 
 ## Call before adding to the tree.
@@ -88,6 +92,10 @@ func setup(is_big: bool, home_pos: Vector3) -> Scuttlebug:
 func _ready() -> void:
 	_rng.randomize()
 	add_to_group("enemies")
+	add_to_group("net_sync")
+	net_puppet = Net.is_client()
+	if net_puppet:
+		physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	collision_layer = 4
 	collision_mask = 1
 	floor_snap_length = 0.3
@@ -101,6 +109,8 @@ func _ready() -> void:
 	model.rotation.y = _yaw
 	_wander_wait = _rng.randf_range(0.5, 2.5)
 	_wander_target = global_position
+	if Net.hosting:
+		net_rescale(Net.hp_scale())
 
 
 # ==========================================================================
@@ -273,8 +283,16 @@ func _set_state(s: S) -> void:
 
 
 func _target() -> Node3D:
-	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("player") as Node3D
+	if not Net.coop():
+		if _player == null or not is_instance_valid(_player):
+			_player = get_tree().get_first_node_in_group("player") as Node3D
+		return _player
+	if not is_instance_valid(_player):
+		_player = null
+	var p := Net.nearest_player(global_position, _player_ok, _player) as Node3D
+	if p == null:
+		p = Net.nearest_player(global_position, Callable(), _player) as Node3D
+	_player = p
 	return _player
 
 
@@ -298,6 +316,10 @@ func _face(dir: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if net_puppet:
+		if state == S.DEAD:
+			_dead_update(delta)
+		return
 	st_t += delta
 	_cooldown -= delta
 	if state == S.DEAD:
@@ -324,7 +346,7 @@ func _physics_process(delta: float) -> void:
 			if _player_ok(p) and dist < NOTICE_RANGE and _cooldown <= 0.0 and _flat(global_position - home).length() < LEASH:
 				_set_state(S.NOTICE)
 				velocity.y = 2.6
-				FX.sfx("chitter", global_position, -2.0, 0.1, 0.85 if big else 1.1)
+				Net.fx("sfx", ["chitter", global_position, -2.0, 0.1, 0.85 if big else 1.1])
 		S.NOTICE:
 			_face(to_p)
 			turn = 14.0
@@ -343,7 +365,7 @@ func _physics_process(delta: float) -> void:
 					want = -to_p.normalized() * 1.4  # back off to get a run-up
 				elif _cooldown <= 0.0:
 					_set_state(S.REAR)
-					FX.sfx("bug_hiss", global_position, -1.0, 0.08, 0.8 if big else 1.0)
+					Net.fx("sfx", ["bug_hiss", global_position, -1.0, 0.08, 0.8 if big else 1.0])
 		S.REAR:
 			var dur := 0.95 if big else 0.75
 			if st_t < dur * 0.7 and p:
@@ -352,7 +374,7 @@ func _physics_process(delta: float) -> void:
 			_fx_t -= delta
 			if _fx_t <= 0.0:
 				_fx_t = 0.14
-				FX.dust(global_position + model.global_basis.z * 0.45 * size_k, 3, 0.35 * size_k)
+				Net.fx("dust", [global_position + model.global_basis.z * 0.45 * size_k, 3, 0.35 * size_k])
 			if st_t >= dur:
 				_ram_dir = -model.global_basis.z
 				_ram_dir.y = 0.0
@@ -360,7 +382,7 @@ func _physics_process(delta: float) -> void:
 				_ram_dist = 0.0
 				_set_state(S.RAM)
 				hitbox.activate()
-				FX.sfx("whoosh", global_position, -3.0, 0.08, 0.7)
+				Net.fx("sfx", ["whoosh", global_position, -3.0, 0.08, 0.7])
 				velocity = _ram_dir * _ram_speed()
 		S.RAM:
 			want = _ram_dir * _ram_speed()
@@ -369,7 +391,7 @@ func _physics_process(delta: float) -> void:
 			_fx_t -= delta
 			if _fx_t <= 0.0:
 				_fx_t = 0.08
-				FX.dust(global_position, 2, 0.4 * size_k)
+				Net.fx("dust", [global_position, 2, 0.4 * size_k])
 			if not hitbox.hit_targets.is_empty():
 				# rammed you: bounce off
 				velocity = -_ram_dir * 3.0 + Vector3.UP * 2.2
@@ -379,9 +401,9 @@ func _physics_process(delta: float) -> void:
 			elif is_on_wall() and st_t > 0.06:
 				# rammed a wall / tree: bonk, long daze
 				velocity = -_ram_dir * 2.5 + Vector3.UP * 2.6
-				FX.sfx("thud", global_position, 0.0, 0.08, 0.9)
-				FX.sparkle(global_position + Vector3(0, 0.6 * size_k, 0) + _ram_dir * 0.4, 10, Color(1.0, 0.95, 0.6))
-				FX.dust_ring(global_position, 10, 0.6)
+				Net.fx("sfx", ["thud", global_position, 0.0, 0.08, 0.9])
+				Net.fx("sparkle", [global_position + Vector3(0, 0.6 * size_k, 0) + _ram_dir * 0.4, 10, Color(1.0, 0.95, 0.6)])
+				Net.fx("dust_ring", [global_position, 10, 0.6])
 				_daze_len = 2.0
 				_set_state(S.RECOVER)
 			elif _ram_dist > 7.5 or st_t > 1.0:
@@ -392,7 +414,7 @@ func _physics_process(delta: float) -> void:
 			_fx_t -= delta
 			if _fx_t <= 0.0 and hv.length() > 1.5:
 				_fx_t = 0.07
-				FX.dust(global_position, 2, 0.4 * size_k)
+				Net.fx("dust", [global_position, 2, 0.4 * size_k])
 			if st_t > 0.32:
 				_set_state(S.DAZED)
 		S.DAZED:
@@ -400,7 +422,7 @@ func _physics_process(delta: float) -> void:
 			_fx_t -= delta
 			if _fx_t <= 0.0:
 				_fx_t = 0.5
-				FX.sparkle(global_position + Vector3(0, 0.75 * size_k, 0), 4, Color(1.0, 0.95, 0.55))
+				Net.fx("sparkle", [global_position + Vector3(0, 0.75 * size_k, 0), 4, Color(1.0, 0.95, 0.55)])
 			if st_t > _daze_len:
 				_cooldown = 0.9
 				_set_state(S.APPROACH)
@@ -416,6 +438,11 @@ func _physics_process(delta: float) -> void:
 					_set_state(S.APPROACH)
 	if state != S.RECOVER or st_t > 0.12:
 		hv = hv.move_toward(want, accel * delta)
+	if _yank > 0.0:
+		_yank -= delta
+		hv = _yank_v
+		if _yank <= 0.0:
+			hv *= 0.15
 	velocity.x = hv.x
 	velocity.z = hv.z
 	move_and_slide()
@@ -466,11 +493,17 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if attacker is Node3D:
 		dir = _flat(global_position - (attacker as Node3D).global_position)
 	dir = dir.normalized() if dir.length() > 0.01 else model.global_basis.z
+	if hit.dot:
+		_number(hit.damage)
+		health.take_damage(hit.damage)
+		return
 	_flash_hit()
+	Net.event(self, "flash", [])
 	_number(hit.damage)
-	FX.impact(global_position + Vector3(0, 0.45 * size_k, 0) - dir * 0.3 * size_k, Color(0.75, 1.0, 0.55))
-	FX.sfx("hit", global_position, -2.0, 0.1, 1.2 if hit.damage < 20.0 else 0.9)
-	get_node("/root/CombatManager").apply_hit_effects(hit)
+	Net.fx("impact", [global_position + Vector3(0, 0.45 * size_k, 0) - dir * 0.3 * size_k, Color(0.75, 1.0, 0.55)])
+	Net.fx("sfx", ["hit", global_position, -2.0, 0.1, 1.2 if hit.damage < 20.0 else 0.9])
+	if not Net.active:
+		get_node("/root/CombatManager").apply_hit_effects(hit)
 	var was_down := state == S.DOWN
 	health.take_damage(hit.damage)
 	if state == S.DEAD:
@@ -495,6 +528,8 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 
 ## The player parried the ram: it gets flipped onto its back.
 func parried(by: Node) -> void:
+	if Net.forward(self, "parried", [by]):
+		return
 	if state in [S.DEAD, S.DOWN]:
 		return
 	var dir := -_ram_dir if _ram_dir.length() > 0.1 else model.global_basis.z
@@ -503,12 +538,47 @@ func parried(by: Node) -> void:
 	_knock_down(dir * 3.5 + Vector3.UP * 4.8, model.global_basis.z.normalized() * 11.0)
 
 
-func _number(dmg: float) -> void:
-	if _damage_number_scene == null:
+## Vine Snare: tied in place for a while.
+var _yank: float = 0.0
+var _yank_v := Vector3.ZERO
+
+
+## Vine grapple: small bugs get reeled in, big ones haul the player over.
+func vine_weight() -> String:
+	return "heavy" if big else "light"
+
+
+func vine_yank(to: Vector3, dmg: float = 4.0) -> void:
+	if Net.forward(self, "vine_yank", [to, dmg]):
 		return
-	var n: Node = _damage_number_scene.instantiate()
-	get_tree().current_scene.add_child(n)
-	n.call("setup", dmg, global_position + Vector3(0, 0.6 * size_k, 0))
+	if state in [S.DEAD, S.DOWN]:
+		return
+	var d := _flat(to - global_position)
+	var dist := maxf(d.length() - 1.3, 0.0)
+	var secs := clampf(dist / 16.0, 0.12, 0.6)
+	_yank = secs
+	_yank_v = d.normalized() * (dist / secs) if d.length() > 0.01 else Vector3.ZERO
+	velocity.y = 3.0
+	_daze_len = secs + 0.8
+	_set_state(S.DAZED)
+	health.take_damage(dmg)
+	_number(dmg)
+	Net.fx("vine_wrap", [self, secs + 0.3, 0.45 * size_k])
+
+
+func rooted(secs: float) -> void:
+	if Net.forward(self, "rooted", [secs]):
+		return
+	if state in [S.DEAD, S.DOWN]:
+		return
+	_daze_len = secs
+	velocity = Vector3.ZERO
+	_set_state(S.DAZED)
+	Net.fx("vine_wrap", [self, secs, 0.45 * size_k])
+
+
+func _number(dmg: float) -> void:
+	Net.damage_number(dmg, global_position + Vector3(0, 0.6 * size_k, 0))
 
 
 func _set_tint(c: Color) -> void:
@@ -539,6 +609,7 @@ func _make_ragdoll(v: Vector3, spin: Vector3) -> void:
 
 
 func _knock_down(v: Vector3, spin: Vector3) -> void:
+	Net.event(self, "knock", [v, spin])
 	hitbox.deactivate()
 	_rear = 0.0
 	_make_ragdoll(v, spin)
@@ -548,7 +619,7 @@ func _knock_down(v: Vector3, spin: Vector3) -> void:
 	_righting = 0.0
 	velocity = Vector3.ZERO
 	_set_state(S.DOWN)
-	FX.sfx("chitter", global_position, -1.0, 0.1, 1.35)
+	Net.fx("sfx", ["chitter", global_position, -1.0, 0.1, 1.35])
 
 
 func _shell_up() -> float:
@@ -603,8 +674,8 @@ func _down_update(delta: float) -> void:
 		_righting = 0.45
 		for p in _rag.parts:
 			(p["body"] as RigidBody3D).linear_velocity += Vector3.UP * 2.8
-		FX.sfx("chitter", global_position, -3.0, 0.1, 1.2)
-		FX.dust(rb.global_position, 4, 0.5)
+		Net.fx("sfx", ["chitter", global_position, -3.0, 0.1, 1.2])
+		Net.fx("dust", [rb.global_position, 4, 0.5])
 	if st_t > 7.0:
 		_get_up()
 
@@ -612,6 +683,7 @@ func _down_update(delta: float) -> void:
 ## Back on its feet: the root turns to where the shell points and the body
 ## eases from where it lies back into its stance.
 func _get_up() -> void:
+	Net.event(self, "getup", [])
 	var g := body_node.global_transform
 	var hg := head_node.global_transform
 	var f := -g.basis.z
@@ -646,8 +718,10 @@ func _on_died() -> void:
 		_rag.push(dir * 3.0 + Vector3.UP * 3.0)
 	_set_state(S.DEAD)
 	_dead_t = 0.0
-	FX.sfx("chitter", global_position, 0.0, 0.05, 0.6)
-	CoinPickup.spawn(get_tree(), global_position + Vector3(0, 0.4, 0), _rng.randi_range(3, 5) if big else _rng.randi_range(1, 2))
+	Net.event(self, "die", [dir])
+	Net.fx("sfx", ["chitter", global_position, 0.0, 0.05, 0.6])
+	Net.coins(global_position + Vector3(0, 0.4, 0), _rng.randi_range(3, 5) if big else _rng.randi_range(1, 2))
+	Net.award_xp(120 if big else 25, global_position + Vector3(0, 1.2 * size_k, 0))
 	died.emit(self)
 
 
@@ -690,6 +764,8 @@ func _exit_tree() -> void:
 # Animation: tripod gait, rear-up, ram, daze, flailing on its back, death curl
 # ==========================================================================
 func _process(delta: float) -> void:
+	if net_puppet:
+		_net_update(delta)
 	_t += delta
 	_shake = maxf(_shake - delta * 5.0, 0.0)
 	var hspeed := _flat(velocity).length() if state != S.DOWN else 0.0
@@ -772,3 +848,91 @@ func _process(delta: float) -> void:
 		var knee: Node3D = leg["knee"]
 		coxa.rotation = Vector3(0.0, swing * side, lift * side)
 		knee.rotation = Vector3(0.0, 0.0, -bend * side)
+
+
+# ==========================================================================
+# Co-op
+# ==========================================================================
+func net_rescale(k: float) -> void:
+	var frac := health.current_health / maxf(health.max_health, 1.0)
+	health.max_health = max_hp * k
+	if state != S.DEAD:
+		health.current_health = maxf(frac * health.max_health, 1.0)
+
+
+func net_pack() -> Array:
+	return [global_position, model.rotation.y, velocity, int(state), health.current_health, health.max_health,
+		hitbox.active, hitbox.activations]
+
+
+func _net_update(delta: float) -> void:
+	_net_hb_t -= delta
+	var smp := Net.sample(self)
+	if smp.is_empty() or state == S.DEAD:
+		return
+	var a: Array = smp[0]
+	var b: Array = smp[1]
+	var f: float = smp[2]
+	if a.size() < 8 or b.size() < 8:
+		return
+	var st := int(a[3])
+	if st == S.DEAD:
+		_net_die(model.global_basis.z)
+		return
+	global_position = (a[0] as Vector3).lerp(b[0], f)
+	if _rag == null:
+		model.rotation.y = lerp_angle(float(a[1]), float(b[1]), f)
+		_yaw = model.rotation.y
+	velocity = b[2]
+	if st != state:
+		if state == S.RAM:
+			hitbox.deactivate()
+		state = st as S
+		st_t = 0.0
+	health.max_health = float(b[5])
+	health.current_health = float(b[4])
+	var serial := int(a[7])
+	if serial != _net_serial:
+		var first := _net_serial < 0
+		_net_serial = serial
+		if not first:
+			hitbox.activate()
+			_net_hb_t = 0.15
+	if hitbox.active and not bool(a[6]) and _net_hb_t <= 0.0:
+		hitbox.deactivate()
+
+
+func _net_die(dir: Vector3) -> void:
+	if state == S.DEAD:
+		return
+	hitbox.deactivate()
+	hurtbox.set_deferred("monitorable", false)
+	hurtbox.set_deferred("monitoring", false)
+	_col.set_deferred("disabled", true)
+	collision_layer = 0
+	if _rag == null:
+		_make_ragdoll(dir * 4.0 / sqrt(size_k) + Vector3.UP * 4.2, Vector3.UP.cross(dir) * 10.0)
+	else:
+		_rag.push(dir * 3.0 + Vector3.UP * 3.0)
+	state = S.DEAD
+	st_t = 0.0
+	_dead_t = 0.0
+	died.emit(self)
+
+
+func net_event(what: String, args: Array) -> void:
+	match what:
+		"flash":
+			_flash_hit()
+		"knock":
+			hitbox.deactivate()
+			_rear = 0.0
+			_make_ragdoll(args[0], args[1])
+			state = S.DOWN
+			st_t = 0.0
+		"getup":
+			_get_up()
+		"die":
+			_net_die(args[0])
+		"burn_fx":
+			BurnStatus.apply(self, float(args[0]), 0.0, null)

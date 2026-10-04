@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/wolf_fruit.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "wolf_fruit"
+display_name = "Wolf Fruit"
+description = "A shaggy, grey-skinned fruit with swirling stripes, warm like a living thing. A Zoan Devil Fruit: eat it and you can become a wolf-man - but the sea will never let you swim again."
+value = 0
+stackable = false
+max_stack = 1
+item_type = 2
+icon = ExtResource("2")
+use_time = 1.6
+devil_fruit = "wolf"

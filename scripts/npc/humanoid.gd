@@ -25,6 +25,8 @@ signal footstep(strength: float)
 
 const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r"]
+## Actions that spin the whole body (applied instantly, pivot reset after).
+const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "dual_spin", "gun_kata"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r"]
 
 var look: Dictionary = {}
@@ -71,8 +73,21 @@ var helm_steer: float = 0.0
 ## ducks under head first. `climbing` = hand over hand up a ladder, with
 ## `climb_phase` = how high you are (drives the arm/leg cycle).
 var swimming: bool = false
+## Carrying a long gun at the ready (riflemen): both hands on it across the body.
+var carry: String = ""
+## Gun elevation while aiming (radians, + = up).
+var aim_pitch: float = 0.0
 var diving: bool = false
 var climbing: bool = false
+## Plant the feet on uneven ground (stairs, slopes, the deck): two-bone leg IK
+## with the hips dropping to the lower foot. Off while airborne, swimming,
+## climbing, seated or at the helm.
+var foot_ik: bool = true
+var _ik_w: float = 0.0
+var _ik_h := Vector2.ZERO        # smoothed ground offset under each foot (l, r)
+var _ik_drop: float = 0.0
+var _ik_body: RID
+var _ik_body_found: bool = false
 var climb_phase: float = 0.0
 var _swim_phase: float = 0.0
 var _swim_move: float = 0.0
@@ -87,6 +102,32 @@ var look_weight: float = 0.0
 # ---- Weapon ----
 var weapon: MeshInstance3D
 var weapon_in_hand: bool = false
+## Off-hand weapon (dual wielding): in the left hand when drawn, on the left hip
+## when sheathed.
+var offhand: MeshInstance3D
+var _hip_socket_l: Node3D
+## Fighting stance for the guard pose: sword, dual_sword, fist, pistol,
+## dual_pistol, claw.
+var stance: String = "sword"
+## Hanging from a vine: the free arm and both legs swing loose, ragdoll
+## style, driven by what the body feels - `dangle_g` (gravity minus the
+## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
+## in the body's local frame (set by the owner every frame).
+var dangle: bool = false
+var dangle_g: Vector3 = Vector3(0, -9.8, 0)
+var dangle_v: Vector3 = Vector3.ZERO
+var _dg: Dictionary = {}   # joint -> [angle Vector2 (x = swing fwd, y = toward +X), velocity Vector2]
+## Loose limbs and where they rest relative to straight down (x fwd, toward +X).
+const DANGLE_LIMBS := {"leg_l": Vector2(0.2, -0.12), "leg_r": Vector2(0.05, 0.12), "arm_l": Vector2(0.15, -0.3)}
+## Build the hands as separate meshes so they can close into fists (the
+## player; set before setup()).
+var swappable_hands: bool = false
+## Hands closed into fists (bare-handed fighting; set automatically while the
+## fist stance is up).
+var fists: bool = false
+## Zoan hybrid extras (ears, snout, claws, tail).
+var _beast: Array = []
+var _tail: Node3D
 var _left_prop: MeshInstance3D
 
 # ---- Internal state ----
@@ -125,8 +166,20 @@ var _prev_lift_y := INF
 var _prev_lift_vy := 0.0
 ## Physics ragdoll (heavy hits, death). While it exists the bodies pose the rig.
 var ragdoll: Ragdoll = null
+## Co-op: this body is simulated here (your captain, or an enemy on the
+## host), so its one-shot animations, ragdolls and get-ups are mirrored to
+## the other players (through the Net autoload, looked up at run time so the
+## class stays usable without it).
+var net_sync: bool = false
+var _net_last_name: String = ""
+var _net_last_dur: float = 0.0
+var _net_last_ms: int = -100000
 var _getup_from: Dictionary = {}
 var _getup_lift := Vector3.ZERO
+## A soft blend out of the ragdoll (recover_from_ragdoll): pose smoothing is
+## slowed for this long.
+var _soft_t: float = 0.0
+var _soft_dur: float = 0.0
 var _getup_face_up := true
 
 
@@ -164,10 +217,15 @@ func apply_look(look_dict: Dictionary) -> void:
 	if weapon and weapon.get_parent():
 		weapon.get_parent().remove_child(weapon)
 	hide_left_prop()
+	if offhand and offhand.get_parent():
+		offhand.get_parent().remove_child(offhand)
+	_hip_socket_l = null
 	look = look_dict
 	_build()
-	if weapon:
-		_attach_weapon(weapon_in_hand)
+	_beast.clear()
+	_tail = null
+	_attach_weapon(weapon_in_hand)
+	_apply_fists()
 
 
 func _update_physics(delta: float) -> void:
@@ -203,6 +261,13 @@ func set_weapon(mesh: Mesh) -> void:
 
 func _attach_weapon(in_hand: bool) -> void:
 	weapon_in_hand = in_hand
+	if offhand:
+		var t2 := hand_l if in_hand else _left_hip()
+		if offhand.get_parent() != t2:
+			if offhand.get_parent():
+				offhand.get_parent().remove_child(offhand)
+			t2.add_child(offhand)
+		offhand.transform = Transform3D.IDENTITY
 	if weapon == null:
 		return
 	var target := hand_r if in_hand else hip_socket
@@ -211,6 +276,166 @@ func _attach_weapon(in_hand: bool) -> void:
 			weapon.get_parent().remove_child(weapon)
 		target.add_child(weapon)
 	weapon.transform = Transform3D.IDENTITY
+
+
+## A second weapon in the off hand (null clears it).
+func set_offhand(mesh: Mesh) -> void:
+	if offhand:
+		offhand.queue_free()
+		offhand = null
+	if mesh == null:
+		return
+	offhand = MeshInstance3D.new()
+	offhand.name = "Offhand"
+	offhand.mesh = mesh
+	_attach_weapon(weapon_in_hand)
+
+
+## Zoan hybrid form extras: pointed ears, a muzzle, claws and a tail, in the
+## fur color (the body itself is re-skinned by the caller).
+func set_beast(on: bool, fur: Color = Color(0.55, 0.5, 0.44)) -> void:
+	for n in _beast:
+		if is_instance_valid(n):
+			(n as Node).queue_free()
+	_beast.clear()
+	_tail = null
+	if not on:
+		return
+	var fm := PSXMat.lit("hair", fur)
+	var dk := PSXMat.flat(fur.darkened(0.55))
+	var cl := PSXMat.flat(Color(0.93, 0.9, 0.8))
+	# ears + muzzle on the head
+	var hb := MeshBuilder.new()
+	for sx in [-1.0, 1.0]:
+		hb.add_cone(fm, Transform3D(Basis(Vector3.FORWARD, -sx * 0.3), Vector3(sx * 0.085, 0.25, 0.0)), 0.06, 0.18, 4)
+		hb.add_cone(dk, Transform3D(Basis(Vector3.FORWARD, -sx * 0.3), Vector3(sx * 0.085, 0.255, -0.02)), 0.035, 0.12, 4)
+	var lt := PSXMat.lit("hair", fur.lightened(0.25))
+	hb.add_box(lt, Transform3D(Basis(Vector3.RIGHT, 0.12), Vector3(0, 0.055, -0.13)), Vector3(0.1, 0.075, 0.13))
+	hb.add_box(dk, Transform3D(Basis(), Vector3(0, 0.085, -0.2)), Vector3(0.05, 0.035, 0.03))
+	hb.add_box(PSXMat.flat(Color(0.95, 0.93, 0.85)), Transform3D(Basis(), Vector3(0, 0.022, -0.17)), Vector3(0.07, 0.012, 0.04))
+	var hm := hb.to_instance("BeastHead")
+	head.add_child(hm)
+	_beast.append(hm)
+	# claws: three on each hand
+	for hand in [hand_l, hand_r]:
+		var cb := MeshBuilder.new()
+		for i in range(3):
+			var x := (float(i) - 1.0) * 0.022
+			cb.add_cone(cl, Transform3D(Basis(Vector3.RIGHT, PI * 0.88), Vector3(x, -0.07, -0.03)), 0.009, 0.06, 4)
+		var cm := cb.to_instance("Claws")
+		(hand as Node3D).add_child(cm)
+		_beast.append(cm)
+	# tail off the hips
+	_tail = Node3D.new()
+	_tail.name = "Tail"
+	_tail.position = Vector3(0, -0.02, 0.13)
+	hips.add_child(_tail)
+	var tb := MeshBuilder.new()
+	tb.add_cylinder(fm, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.14)), 0.045, 0.06, 0.28, 5, 1.0)
+	tb.add_cone(fm, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.28)), 0.06, 0.2, 5)
+	_tail.add_child(tb.to_instance("TailMesh"))
+	_beast.append(_tail)
+
+
+## The right hip socket mirrored to the left side (made on demand).
+func _left_hip() -> Node3D:
+	if _hip_socket_l == null or not is_instance_valid(_hip_socket_l):
+		_hip_socket_l = Node3D.new()
+		_hip_socket_l.name = "HipSocketL"
+		hip_socket.get_parent().add_child(_hip_socket_l)
+		var m := Basis(Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
+		_hip_socket_l.transform = Transform3D(m * hip_socket.basis * m, Vector3(-hip_socket.position.x, hip_socket.position.y, hip_socket.position.z))
+	return _hip_socket_l
+
+
+## Guard pose for the current stance.
+func _guard() -> Dictionary:
+	match stance:
+		"dual_sword":
+			return {"arm_r": Vector3(0.75, -0.2, 0.35), "fore_r": Vector3(0.5, 0, 0),
+				"arm_l": Vector3(0.75, 0.2, -0.35), "fore_l": Vector3(0.5, 0, 0),
+				"torso": Vector3(-0.12, 0.1, 0), "head": Vector3(0.08, -0.1, 0)}
+		"fist":
+			return FIST_GUARD
+		"claw":
+			return {"arm_r": Vector3(0.95, -0.35, 0.3), "fore_r": Vector3(1.95, 0, 0),
+				"arm_l": Vector3(1.1, 0.35, -0.3), "fore_l": Vector3(1.85, 0, 0),
+				"torso": Vector3(-0.15, 0.35, 0), "head": Vector3(0.12, -0.3, 0)}
+		"pistol":
+			return {"arm_r": Vector3(1.05, -0.2, 0.18), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(-0.35, 0, 0),
+				"arm_l": Vector3(0.25, 0.1, -0.2), "fore_l": Vector3(0.6, 0, 0),
+				"torso": Vector3(-0.05, 0.25, 0), "head": Vector3(0.05, -0.2, 0)}
+		"dual_pistol":
+			return {"arm_r": Vector3(1.0, -0.15, 0.3), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(-0.35, 0, 0),
+				"arm_l": Vector3(1.0, 0.15, -0.3), "fore_l": Vector3(0.45, 0, 0),
+				"torso": Vector3(-0.05, 0.0, 0), "head": Vector3(0.05, 0, 0)}
+	return GUARD
+
+
+## Loose limbs while hanging (see `dangle`): each swings like a damped
+## pendulum toward the direction it would hang given what the body feels.
+func _update_dangle(delta: float) -> void:
+	if not dangle:
+		if not _dg.is_empty():
+			_dg.clear()
+		return
+	var g := dangle_g - dangle_v * 0.8   # air drag: limbs trail behind the motion
+	var d := g.normalized() if g.length() > 0.5 else Vector3.DOWN
+	var ax := atan2(-d.z, -d.y)
+	var az := atan2(d.x, sqrt(d.y * d.y + d.z * d.z))
+	var steps := clampi(ceili(minf(delta, 0.1) / (1.0 / 120.0)), 1, 12)
+	var h := minf(delta, 0.1) / steps
+	for j in DANGLE_LIMBS.keys():
+		var rest: Vector2 = DANGLE_LIMBS[j]
+		if not _dg.has(j):
+			_dg[j] = [rest, Vector2.ZERO]
+		var a: Vector2 = _dg[j][0]
+		var v: Vector2 = _dg[j][1]
+		var tgt := Vector2(clampf(ax + rest.x, -1.3, 2.2), clampf(az + rest.y, -1.2, 1.2))
+		var k := 55.0 if j != "arm_l" else 40.0
+		for i in range(steps):
+			var acc := (tgt - a) * k - v * 4.0
+			v += acc * h
+			a += v * h
+		_dg[j] = [a, v]
+
+
+## The held block for the current stance (upper body; the legs keep walking).
+func _block_pose() -> Dictionary:
+	match stance:
+		"fist", "claw", "dual_pistol", "pistol":
+			# forearms up in front of the face, chin tucked, square to the front
+			return {"torso": Vector3(-0.2, 0.45, 0), "head": Vector3(0.28, 0.05, 0),
+				"arm_l": Vector3(1.3, -0.32, -0.05), "fore_l": Vector3(2.2, 0, 0),
+				"arm_r": Vector3(1.3, 0.32, 0.05), "fore_r": Vector3(2.2, 0, 0), "hand_r": Vector3(-0.3, 0, 0)}
+		"dual_sword":
+			# both blades crossed in front
+			return {"torso": Vector3(-0.12, 0.0, 0), "head": Vector3(0.12, 0, 0),
+				"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),
+				"arm_l": Vector3(1.35, 0.6, 0.15), "fore_l": Vector3(1.25, 0, 0)}
+	# one blade held level across the body, the off hand bracing it
+	return {"torso": Vector3(-0.08, -0.2, 0), "head": Vector3(0.08, 0.2, 0),
+		"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),
+		"arm_l": Vector3(1.1, 0.5, -0.1), "fore_l": Vector3(1.6, 0, 0)}
+
+
+## Close or open both hands (swaps the mitten hand meshes for fists).
+func set_fists(on: bool) -> void:
+	if on == fists:
+		return
+	fists = on
+	_apply_fists()
+
+
+func _apply_fists() -> void:
+	for f in [fore_l, fore_r]:
+		if f == null or not is_instance_valid(f):
+			continue
+		var mit := f.get_node_or_null("Mitten") as Node3D
+		var fi := f.get_node_or_null("Fist") as Node3D
+		if mit and fi:
+			mit.visible = not fists
+			fi.visible = fists
 
 
 ## Show a temporary prop in the left hand (e.g. a rum bottle while drinking).
@@ -233,13 +458,24 @@ func hide_left_prop() -> void:
 ## Play a named action. Known names: draw, sheathe, slash_r, slash_l, slash_down,
 ## heavy, roll, flip, parry, stagger, drink, wave, hit.
 func play(action_name: String, duration: float) -> void:
+	if net_sync:
+		var now := Time.get_ticks_msec()
+		# (some states re-play a held pose every frame: don't flood the wire)
+		if action_name != _net_last_name or absf(duration - _net_last_dur) > 0.01 or now - _net_last_ms > 250:
+			_net_last_name = action_name
+			_net_last_dur = duration
+			_net_last_ms = now
+			_net_send("play", [action_name, duration])
 	if not _action.is_empty() and _action["name"] != action_name:
 		_finish_action()
 	_action = {"name": action_name, "t": 0.0, "dur": maxf(duration, 0.01), "events": {}}
-	_action_w = 1.0 if action_name in ["roll", "flip", "spin_slash"] else 0.0
+	_action_w = 1.0 if action_name in SPIN_ACTIONS else 0.0
 
 
 func stop_action() -> void:
+	if net_sync and not _action.is_empty():
+		_net_last_name = ""
+		_net_send("stop", [])
 	if not _action.is_empty():
 		_finish_action()
 
@@ -261,7 +497,7 @@ func _finish_action() -> void:
 		_attach_weapon(false)
 	elif n == "drink":
 		hide_left_prop()
-	if n in ["roll", "flip", "spin_slash"]:
+	if n in SPIN_ACTIONS:
 		_cur["pivot"] = Vector3.ZERO
 	_action = {}
 	action_finished.emit(n)
@@ -337,6 +573,14 @@ const E_REACH := {"arm_r": Vector3(1.5, 0.05, 0.12), "fore_r": Vector3(0.02, 0, 
 	"leg_r": Vector3(1.2, 0, 0.04), "shin_r": Vector3(-1.3, 0, 0), "leg_l": Vector3(-0.95, 0, -0.06), "shin_l": Vector3(-0.08, 0, 0)}
 const E_BLOCK := {"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2), "arm_l": Vector3(1.1, 0.5, -0.1), "fore_l": Vector3(1.6, 0, 0),
 	"torso": Vector3(0.1, -0.35, 0), "head": Vector3(0.05, 0.3, 0), "leg_l": Vector3(0.35, 0, -0.12), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.35, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0)}
+# Bare-handed boxing guard (orthodox): hips and shoulders turned so the left
+# side leads, lead fist out at chin height, rear fist tucked by the cheek,
+# elbows down, chin tucked and eyes forward.
+const FIST_GUARD := {
+	"hips": Vector3(0, -0.5, 0), "torso": Vector3(-0.14, -0.12, 0), "head": Vector3(0.14, 0.58, 0),
+	"arm_l": Vector3(1.15, 0.5, -0.12), "fore_l": Vector3(1.45, 0, 0),
+	"arm_r": Vector3(0.75, 0.75, 0.12), "fore_r": Vector3(2.3, 0, 0),
+}
 const REST_ARMS := {"arm_r": Vector3(0, 0, 0.08), "fore_r": Vector3(0.15, 0, 0), "arm_l": Vector3(0, 0, -0.08), "fore_l": Vector3(0.15, 0, 0)}
 
 
@@ -511,8 +755,17 @@ func _action_pose(n: String, u: float) -> Array:
 			p["torso"] += Vector3(0.1, 0, 0) * wb
 			p["pivot"] += Vector3(0.22, 0, 0) * wb
 			if armed:
-				p["arm_r"] = GUARD["arm_r"] + Vector3(0.0, 0.0, 0.15 * sx * wx)
-				p["fore_r"] = GUARD["fore_r"]
+				p["arm_r"] = _guard()["arm_r"] + Vector3(0.0, 0.0, 0.15 * sx * wx)
+				p["fore_r"] = _guard()["fore_r"]
+				# the free (off) hand opens out for balance: reaching ahead when
+				# dashing forward or to the left, flung out to the side otherwise
+				var reach := clampf(wf + (wx if sx < 0.0 else 0.0), 0.0, 1.0)
+				var fling := clampf(wb + (wx if sx > 0.0 else 0.0), 0.0, 1.0)
+				p["arm_l"] = Vector3(1.2, 0.0, -0.95) * reach + Vector3(0.35, 0.0, -1.35) * fling
+				p["fore_l"] = Vector3(0.1, 0, 0) * reach + Vector3(0.3, 0, 0) * fling
+				if reach + fling < 0.2:
+					p["arm_l"] = Vector3(0.9, 0.1, -1.0)
+					p["fore_l"] = Vector3(0.25, 0, 0)
 			else:
 				# unarmed: lead arm reaches straight out in front
 				var inward := -0.15 if lead == "r" else 0.15
@@ -575,6 +828,54 @@ func _action_pose(n: String, u: float) -> Array:
 		"block":
 			lift.y = -0.08 * sin(clampf(u, 0, 1) * PI)
 			return [_keys(u, [[0.0, GUARD], [0.15, E_BLOCK, "out"], [0.7, E_BLOCK], [1.0, GUARD]]), "full", lift]
+		# --- jumping attack: sword raised, knees tucked, then the plunge ---
+		"plunge_air":
+			var up := {"arm_r": Vector3(3.0, 0, 0.25), "fore_r": Vector3(1.0, 0, 0), "hand_r": Vector3(0.3, 0, 0),
+				"arm_l": Vector3(2.6, 0, -0.45), "fore_l": Vector3(1.2, 0, 0), "torso": Vector3(0.3, 0, 0), "head": Vector3(0.1, 0, 0),
+				"leg_l": Vector3(1.4, 0, -0.1), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(1.1, 0, 0.1), "shin_r": Vector3(-1.7, 0, 0)}
+			var dive := {"arm_r": Vector3(0.35, 0, 0.1), "fore_r": Vector3(-0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+				"arm_l": Vector3(0.2, 0, -1.2), "fore_l": Vector3(0.3, 0, 0), "torso": Vector3(-0.6, 0, 0), "head": Vector3(-0.2, 0, 0),
+				"leg_l": Vector3(0.7, 0, -0.1), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(0.2, 0, 0.1), "shin_r": Vector3(-0.6, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.3, up, "out"], [0.45, up], [0.6, dive, "in"], [1.0, dive]]), "full", lift]
+		"plunge_land":
+			var hit := {"arm_r": Vector3(0.35, 0, 0.1), "fore_r": Vector3(-0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+				"arm_l": Vector3(0.2, 0, -1.2), "fore_l": Vector3(0.3, 0, 0), "torso": Vector3(-0.75, 0, 0), "head": Vector3(-0.15, 0, 0),
+				"leg_l": Vector3(1.4, 0, -0.15), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(-0.4, 0, 0.15), "shin_r": Vector3(-1.2, 0, 0)}
+			lift.y = -0.42 * (1.0 - _ease((u - 0.35) / 0.65))
+			return [_keys(u, [[0.0, hit], [0.35, hit], [1.0, GUARD]]), "full", lift]
+		# --- firearms (the grunt points the gun itself; these pose the body) ---
+		"aim_pistol":
+			var ap := aim_pitch
+			var aim := {"torso": Vector3(ap * 0.3, -0.45, 0), "head": Vector3(-ap * 0.2, 0.4, 0),
+				"arm_r": Vector3(1.5 + ap, 0.45, 0.05), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.55, 0, 0),
+				"arm_l": Vector3(-0.15, 0, -0.5), "fore_l": Vector3(1.3, 0, 0)}
+			var kick := aim.duplicate()
+			kick["arm_r"] = (aim["arm_r"] as Vector3) + Vector3(0.6, 0, 0)
+			if u < 0.85:
+				return [_keys(u, [[0.0, {}], [0.2, aim, "out"], [0.85, aim]]), "upper", lift]
+			return [_keys(u, [[0.85, aim], [0.9, kick, "out"], [1.0, aim]]), "upper", lift]
+		"aim_rifle":
+			var ap2 := aim_pitch
+			var aim2 := {"torso": Vector3(ap2 * 0.3, -0.4, 0), "head": Vector3(0.15 - ap2 * 0.2, 0.35, 0.1),
+				"arm_r": Vector3(0.75 + ap2, 0.65, 0.4), "fore_r": Vector3(1.65, 0, 0), "hand_r": Vector3(-2.4, 0, 0),
+				"arm_l": Vector3(1.45 + ap2, -0.1, 0.05), "fore_l": Vector3(0.25, 0, 0),
+				"leg_l": Vector3(0.3, 0, -0.12), "shin_l": Vector3(-0.25, 0, 0), "leg_r": Vector3(-0.25, 0, 0.12), "shin_r": Vector3(-0.15, 0, 0)}
+			var kick2 := aim2.duplicate()
+			kick2["torso"] = (aim2["torso"] as Vector3) + Vector3(0.25, 0, 0)
+			kick2["head"] = (aim2["head"] as Vector3) + Vector3(0.2, 0, 0)
+			if u < 0.85:
+				return [_keys(u, [[0.0, {}], [0.2, aim2, "out"], [0.85, aim2]]), "full", lift]
+			return [_keys(u, [[0.85, aim2], [0.9, kick2, "out"], [1.0, aim2]]), "full", lift]
+		"shove":
+			# rifle butt: pull back, then drive it forward into whoever's too close
+			var cock := {"torso": Vector3(0.1, 0.5, 0), "arm_r": Vector3(0.2, 0.3, 0.3), "fore_r": Vector3(1.6, 0, 0),
+				"arm_l": Vector3(0.6, 0.4, -0.2), "fore_l": Vector3(1.5, 0, 0), "leg_l": Vector3(0.4, 0, -0.1), "shin_l": Vector3(-0.4, 0, 0),
+				"leg_r": Vector3(-0.35, 0, 0.1), "shin_r": Vector3(-0.3, 0, 0)}
+			var ram := {"torso": Vector3(-0.35, -0.35, 0), "arm_r": Vector3(1.2, -0.2, 0.2), "fore_r": Vector3(0.6, 0, 0),
+				"arm_l": Vector3(1.35, 0.2, -0.1), "fore_l": Vector3(0.4, 0, 0), "leg_l": Vector3(0.85, 0, -0.1), "shin_l": Vector3(-0.8, 0, 0),
+				"leg_r": Vector3(-0.6, 0, 0.1), "shin_r": Vector3(-0.2, 0, 0)}
+			lift.y = -0.12 * sin(clampf(u, 0, 1) * PI)
+			return [_keys(u, [[0.0, {}], [0.45, cock, "out"], [0.6, ram, "out"], [0.8, ram], [1.0, {}]]), "full", lift]
 		"mantle":
 			# hands on the edge, haul up, knee onto the ledge, stand
 			var hang := {"pivot": Vector3.ZERO, "torso": Vector3(-0.2, 0, 0), "head": Vector3(0.35, 0, 0),
@@ -585,6 +886,332 @@ func _action_pose(n: String, u: float) -> Array:
 				"leg_l": Vector3(1.7, 0, -0.1), "shin_l": Vector3(-2.2, 0, 0), "leg_r": Vector3(-0.3, 0, 0.05), "shin_r": Vector3(-0.6, 0, 0)}
 			lift.y = -0.15 * sin(clampf(u, 0.0, 1.0) * PI)
 			return [_keys(u, [[0.0, hang], [0.25, hang], [0.62, push, "out"], [1.0, {}]]), "full", lift]
+		# --- Devil Fruit powers ---
+		"fire_punch":
+			var wind := {"arm_r": Vector3(-0.5, 0.2, 0.35), "fore_r": Vector3(1.9, 0, 0), "torso": Vector3(0.0, 0.55, 0), "head": Vector3(0, -0.45, 0),
+				"arm_l": Vector3(1.2, -0.3, -0.2), "fore_l": Vector3(0.6, 0, 0),
+				"leg_l": Vector3(0.45, 0, -0.12), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.35, 0, 0.12), "shin_r": Vector3(-0.35, 0, 0)}
+			var punch := {"arm_r": Vector3(1.55, -0.15, 0.05), "fore_r": Vector3(0.05, 0, 0), "torso": Vector3(-0.2, -0.5, 0), "head": Vector3(0.1, 0.45, 0),
+				"arm_l": Vector3(-0.45, 0.2, -0.3), "fore_l": Vector3(1.5, 0, 0),
+				"leg_l": Vector3(0.7, 0, -0.12), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.55, 0, 0.12), "shin_r": Vector3(-0.25, 0, 0)}
+			lift.y = -0.08 * sin(clampf(u, 0, 1) * PI)
+			return [_keys(u, [[0.0, {}], [0.25, wind, "out"], [0.4, punch, "out"], [0.75, punch], [1.0, {}]]), "full", lift]
+		"flame_dash":
+			var streak := {"pivot": Vector3(-0.35, 0, 0), "torso": Vector3(-0.4, 0, 0), "head": Vector3(0.45, 0, 0),
+				"arm_l": Vector3(-1.0, 0, -0.35), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(-1.0, 0, 0.35), "fore_r": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(0.9, 0, -0.08), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(-0.4, 0, 0.08), "shin_r": Vector3(-0.7, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.12, streak, "out"], [0.62, streak], [1.0, {}]]), "full", lift]
+		"fire_ring":
+			var gather := {"torso": Vector3(-0.45, 0, 0), "head": Vector3(0.2, 0, 0),
+				"arm_l": Vector3(1.1, -0.6, 0.35), "fore_l": Vector3(1.9, 0, 0), "arm_r": Vector3(1.1, 0.6, -0.35), "fore_r": Vector3(1.9, 0, 0),
+				"leg_l": Vector3(0.6, 0, -0.2), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.6, 0, 0.2), "shin_r": Vector3(-1.1, 0, 0)}
+			var burst := {"torso": Vector3(0.22, 0, 0), "head": Vector3(0.3, 0, 0),
+				"arm_l": Vector3(0.25, 0, -1.55), "fore_l": Vector3(0.15, 0, 0), "arm_r": Vector3(0.25, 0, 1.55), "fore_r": Vector3(0.15, 0, 0),
+				"leg_l": Vector3(0.15, 0, -0.38), "shin_l": Vector3(-0.3, 0, 0), "leg_r": Vector3(0.15, 0, 0.38), "shin_r": Vector3(-0.3, 0, 0)}
+			lift.y = -0.22 * _ease(u / 0.35) * (1.0 - _ease((u - 0.38) / 0.12))
+			return [_keys(u, [[0.0, {}], [0.35, gather, "out"], [0.45, burst, "out"], [0.8, burst], [1.0, {}]]), "full", lift]
+		"fire_plant":
+			var plant := {"torso": Vector3(-0.55, 0, 0), "head": Vector3(0.35, 0, 0),
+				"arm_l": Vector3(0.95, 0, -0.25), "fore_l": Vector3(0.2, 0, 0), "arm_r": Vector3(0.95, 0, 0.25), "fore_r": Vector3(0.2, 0, 0),
+				"hand_r": Vector3(-0.6, 0, 0),
+				"leg_l": Vector3(0.95, 0, -0.15), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(-0.2, 0, 0.15), "shin_r": Vector3(-0.9, 0, 0)}
+			lift.y = -0.25 * _ease(u / 0.45) * (1.0 - _ease((u - 0.8) / 0.2))
+			return [_keys(u, [[0.0, {}], [0.45, plant, "out"], [0.8, plant], [1.0, {}]]), "full", lift]
+		"inferno":
+			var up := {"torso": Vector3(0.2, 0, 0), "head": Vector3(0.35, 0, 0),
+				"arm_l": Vector3(2.9, 0, -0.3), "fore_l": Vector3(0.4, 0, 0), "arm_r": Vector3(2.9, 0, 0.3), "fore_r": Vector3(0.4, 0, 0),
+				"leg_l": Vector3(1.3, 0, -0.1), "shin_l": Vector3(-1.8, 0, 0), "leg_r": Vector3(1.0, 0, 0.1), "shin_r": Vector3(-1.6, 0, 0)}
+			var slam := {"torso": Vector3(-0.8, 0, 0), "head": Vector3(-0.1, 0, 0),
+				"arm_l": Vector3(0.45, 0, -0.15), "fore_l": Vector3(0.1, 0, 0), "arm_r": Vector3(0.45, 0, 0.15), "fore_r": Vector3(0.1, 0, 0),
+				"leg_l": Vector3(1.45, 0, -0.25), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(-0.3, 0, 0.25), "shin_r": Vector3(-1.4, 0, 0)}
+			lift.y = -0.4 * _ease((u - 0.36) / 0.12) * (1.0 - _ease((u - 0.72) / 0.28))
+			return [_keys(u, [[0.0, {}], [0.12, up, "out"], [0.36, up], [0.46, slam, "in"], [0.72, slam], [1.0, {}]]), "full", lift]
+		"eat":
+			var bite := {"arm_l": Vector3(1.85, 0.6, 0.35), "fore_l": Vector3(2.35, 0, 0), "head": Vector3(-0.1, 0, 0), "torso": Vector3(-0.08, 0, 0)}
+			var chew := bite.duplicate()
+			chew["head"] = Vector3(0.05 + sin(_t * 18.0) * 0.06, 0, 0)
+			return [_keys(u, [[0.0, {}], [0.2, bite], [0.4, chew], [0.8, chew], [1.0, {}]]), "upper", lift]
+		# --- holding a block (player) ---
+		"guard_block", "guard_block_hit":
+			var bp := _block_pose()
+			if n == "guard_block_hit":
+				var rock := bp.duplicate()
+				rock["torso"] = (bp["torso"] as Vector3) + Vector3(0.22, 0, 0)
+				rock["head"] = (bp["head"] as Vector3) + Vector3(-0.15, 0, 0)
+				return [_keys(u, [[0.0, bp], [0.25, rock, "out"], [1.0, bp]]), "upper", lift]
+			return [_keys(u, [[0.0, {}], [0.0004, bp, "out"], [1.0, bp]]), "upper", lift]
+		# --- unarmed: jab, cross, hook, roundhouse; heavy flying kick ---
+		"fists_up":
+			return [_keys(u, [[0.0, REST_ARMS], [1.0, _guard()]]), "upper", lift]
+		"jab":
+			# lead (left) straight: the shoulder rolls forward and the fist snaps
+			# out to full reach at chin height as the lead foot steps in
+			var g := _guard()
+			var load_ := {"hips": Vector3(0, -0.4, 0), "torso": Vector3(-0.1, -0.05, 0), "head": Vector3(0.14, 0.45, 0),
+				"arm_l": Vector3(0.9, 0.55, -0.1), "fore_l": Vector3(1.95, 0, 0), "arm_r": g["arm_r"], "fore_r": g["fore_r"]}
+			var hit := {"hips": Vector3(0, -0.72, 0), "torso": Vector3(-0.22, -0.32, 0.06), "head": Vector3(0.12, 1.0, 0),
+				"arm_l": Vector3(1.58, 1.04, 0.0), "fore_l": Vector3(0.02, 0, 0),
+				"arm_r": Vector3(0.8, 0.95, 0.15), "fore_r": Vector3(2.35, 0, 0),
+				"leg_l": Vector3(0.55, 0, -0.22), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.42, 0, 0.22), "shin_r": Vector3(-0.22, 0, 0)}
+			lift.y = -0.1 * sin(clampf(u * 1.4, 0, 1) * PI)
+			return [_keys(u, [[0.0, g], [0.12, load_], [0.3, hit, "out"], [0.52, hit], [1.0, g]]), "full", lift]
+		"cross":
+			# rear (right) straight: the back heel spins, hips and shoulders whip
+			# round and the right fist drives through the middle; the left hand
+			# snaps back to the chin
+			var g := _guard()
+			var load_ := {"hips": Vector3(0, -0.65, 0), "torso": Vector3(-0.08, -0.2, 0), "head": Vector3(0.14, 0.8, 0),
+				"arm_r": Vector3(0.55, 0.8, 0.2), "fore_r": Vector3(2.4, 0, 0), "arm_l": g["arm_l"], "fore_l": g["fore_l"]}
+			var hit := {"hips": Vector3(0, 0.32, 0), "torso": Vector3(-0.32, 0.42, -0.06), "head": Vector3(0.12, -0.72, 0),
+				"arm_r": Vector3(1.6, -0.72, 0.0), "fore_r": Vector3(0.02, 0, 0),
+				"arm_l": Vector3(0.75, -0.55, -0.05), "fore_l": Vector3(2.35, 0, 0),
+				"leg_l": Vector3(0.62, 0, -0.24), "shin_l": Vector3(-0.72, 0, 0), "leg_r": Vector3(-0.6, 0, 0.26), "shin_r": Vector3(-0.12, 0, 0)}
+			lift.y = -0.14 * sin(clampf(u * 1.4, 0, 1) * PI)
+			return [_keys(u, [[0.0, g], [0.12, load_], [0.3, hit, "out"], [0.52, hit], [1.0, g]]), "full", lift]
+		"hook":
+			# lead hook: load onto the lead side, then the whole body turns and
+			# the bent arm (elbow at shoulder height) swings round into the target
+			var g := _guard()
+			var load_ := {"hips": Vector3(0, -0.2, 0), "torso": Vector3(-0.1, 0.25, 0.1), "head": Vector3(0.14, 0.0, 0),
+				"arm_l": Vector3(0.55, 0.3, -0.75), "fore_l": Vector3(1.75, 0, 0), "arm_r": g["arm_r"], "fore_r": g["fore_r"],
+				"leg_l": Vector3(0.3, 0, -0.2), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.15, 0, 0.2), "shin_r": Vector3(-0.55, 0, 0)}
+			var hit := {"hips": Vector3(0, -0.9, 0), "torso": Vector3(-0.2, -0.5, -0.1), "head": Vector3(0.12, 1.3, 0),
+				"arm_l": Vector3(0.12, 0.1, -1.5), "fore_l": Vector3(1.6, 0, 0),
+				"arm_r": Vector3(0.75, 0.95, 0.12), "fore_r": Vector3(2.35, 0, 0),
+				"leg_l": Vector3(0.45, 0, -0.22), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.35, 0, 0.22), "shin_r": Vector3(-0.35, 0, 0)}
+			lift.y = -0.12 * sin(clampf(u * 1.3, 0, 1) * PI)
+			return [_keys(u, [[0.0, g], [0.16, load_, "out"], [0.36, hit, "out"], [0.56, hit], [1.0, g]]), "full", lift]
+		"roundhouse":
+			# rear-leg roundhouse: chamber the knee up and out while pivoting on
+			# the lead foot, then the shin whips round level with the ribs; the
+			# body leans away and the right arm swings down for balance
+			var g2 := _guard()
+			var chamber := {"leg_r": Vector3(1.0, 0, 1.15), "shin_r": Vector3(-2.1, 0, 0),
+				"leg_l": Vector3(0.05, 0, -0.08), "shin_l": Vector3(-0.3, 0, 0),
+				"hips": Vector3.ZERO, "torso": Vector3(0.0, 0.0, 0.3), "head": Vector3(0.1, -0.7, -0.2),
+				"arm_l": Vector3(1.0, 0.5, -0.2), "fore_l": Vector3(1.8, 0, 0), "arm_r": Vector3(0.2, 0, 0.7), "fore_r": Vector3(1.2, 0, 0)}
+			var kick := {"leg_r": Vector3(0.25, 0, 1.6), "shin_r": Vector3(-0.08, 0, 0),
+				"leg_l": Vector3(0.0, 0, -0.1), "shin_l": Vector3(-0.2, 0, 0),
+				"hips": Vector3.ZERO, "torso": Vector3(0.05, 0.0, 0.62), "head": Vector3(0.1, -1.25, -0.45),
+				"arm_l": Vector3(1.2, 0.6, -0.3), "fore_l": Vector3(1.6, 0, 0), "arm_r": Vector3(-0.45, 0, 0.9), "fore_r": Vector3(0.5, 0, 0)}
+			var pose := _keys(u, [[0.0, g2], [0.22, chamber, "out"], [0.42, kick, "out"], [0.64, kick], [1.0, g2]])
+			var turn := 0.0
+			if u < 0.42:
+				turn = 1.35 * (1.0 - pow(1.0 - u / 0.42, 2.2))
+			else:
+				turn = 1.35 * (1.0 - _ease((u - 0.64) / 0.36))
+			pose["pivot"] = Vector3(0, turn, 0)
+			lift.y = 0.04 * sin(clampf(u / 0.7, 0, 1) * PI)
+			return [pose, "full", lift]
+		"flying_kick":
+			# crouch, spring up with the left knee tucked, then shoot the right
+			# leg out straight, leaning back behind it, arms flung back
+			var g3 := _guard()
+			var crouch := {"leg_l": Vector3(0.95, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.5, 0, 0.12), "shin_r": Vector3(-1.4, 0, 0),
+				"hips": Vector3.ZERO, "torso": Vector3(-0.5, 0, 0), "head": Vector3(0.35, 0, 0),
+				"arm_l": Vector3(-0.6, 0, -0.35), "fore_l": Vector3(0.4, 0, 0), "arm_r": Vector3(-0.6, 0, 0.35), "fore_r": Vector3(0.4, 0, 0)}
+			var tuck := {"pivot": Vector3(0.15, 0, 0), "leg_l": Vector3(1.6, 0, -0.1), "shin_l": Vector3(-2.3, 0, 0),
+				"leg_r": Vector3(1.4, 0, 0.1), "shin_r": Vector3(-2.2, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.2, 0, 0), "head": Vector3(0.1, 0, 0),
+				"arm_l": Vector3(1.3, 0, -0.5), "fore_l": Vector3(1.4, 0, 0), "arm_r": Vector3(0.9, 0, 0.5), "fore_r": Vector3(1.6, 0, 0)}
+			var fly := {"pivot": Vector3(0.34, 0, 0), "leg_r": Vector3(1.3, 0, 0.04), "shin_r": Vector3(-0.02, 0, 0),
+				"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-2.3, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.05, 0, 0), "head": Vector3(-0.3, 0, 0),
+				"arm_l": Vector3(0.9, 0.3, -0.75), "fore_l": Vector3(1.3, 0, 0), "arm_r": Vector3(-0.9, 0, 0.55), "fore_r": Vector3(0.3, 0, 0)}
+			if u < 0.25:
+				lift.y = -0.26 * _ease(u / 0.25)
+			elif u < 0.72:
+				lift.y = lerpf(-0.26, 0.0, _ease((u - 0.25) / 0.1)) + 0.38 * sin(clampf((u - 0.25) / 0.47, 0, 1) * PI)
+			return [_keys(u, [[0.0, g3], [0.24, crouch, "out"], [0.34, tuck, "out"], [0.44, fly, "out"], [0.68, fly], [1.0, g3]]), "full", lift]
+		# --- dual swords ---
+		"dual_1", "dual_2":
+			var gd := _guard()
+			var r1 := n == "dual_1"
+			var wind_d := {"arm_r": Vector3(0.9, 0.7, 1.6) if r1 else Vector3(0.6, 0.2, 0.4), "fore_r": Vector3(0.7, 0, 0),
+				"arm_l": Vector3(0.6, -0.2, -0.4) if r1 else Vector3(0.9, -0.7, -1.6), "fore_l": Vector3(0.7, 0, 0),
+				"torso": Vector3(0.05, 0.9 if r1 else -0.9, 0)}
+			var hit_d := {"arm_r": Vector3(1.4, -0.9, -1.0) if r1 else Vector3(0.7, 0.3, 0.6), "fore_r": Vector3(0.05, 0, 0),
+				"arm_l": Vector3(0.7, -0.3, -0.6) if r1 else Vector3(1.4, 0.9, 1.0), "fore_l": Vector3(0.05, 0, 0),
+				"torso": Vector3(-0.25, -0.9 if r1 else 0.9, 0),
+				"leg_l": Vector3(0.75, 0, -0.1) if r1 else Vector3(-0.5, 0, -0.1), "shin_l": Vector3(-0.7, 0, 0),
+				"leg_r": Vector3(-0.5, 0, 0.1) if r1 else Vector3(0.75, 0, 0.1), "shin_r": Vector3(-0.4, 0, 0)}
+			lift.y = -0.12 * sin(clampf(u * 1.3, 0.0, 1.0) * PI)
+			return [_keys(u, [[0.0, gd], [0.2, wind_d, "out"], [0.42, hit_d, "out"], [0.62, hit_d], [1.0, gd]]), "full", lift]
+		"dual_cross":
+			var gc := _guard()
+			var open_x := {"arm_r": Vector3(2.4, 0.3, 0.9), "fore_r": Vector3(0.4, 0, 0), "arm_l": Vector3(2.4, -0.3, -0.9), "fore_l": Vector3(0.4, 0, 0),
+				"torso": Vector3(0.3, 0, 0), "head": Vector3(0.2, 0, 0)}
+			var cross_x := {"arm_r": Vector3(1.2, -0.9, -0.6), "fore_r": Vector3(0.1, 0, 0), "arm_l": Vector3(1.2, 0.9, 0.6), "fore_l": Vector3(0.1, 0, 0),
+				"torso": Vector3(-0.45, 0, 0), "head": Vector3(-0.1, 0, 0),
+				"leg_l": Vector3(0.85, 0, -0.12), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.55, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0)}
+			lift.y = -0.2 * sin(clampf((u - 0.25) / 0.6, 0.0, 1.0) * PI)
+			return [_keys(u, [[0.0, gc], [0.24, open_x, "out"], [0.42, cross_x, "in"], [0.65, cross_x], [1.0, gc]]), "full", lift]
+		"dual_spin", "gun_kata":
+			var gs := _guard()
+			var out2 := {"arm_r": Vector3(1.4, 0.0, 1.5), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.4, 0.0, -1.5), "fore_l": Vector3(0.05, 0, 0),
+				"torso": Vector3(-0.2, 0, 0), "leg_l": Vector3(0.5, 0, -0.25), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(0.5, 0, 0.25), "shin_r": Vector3(-0.8, 0, 0)}
+			if n == "gun_kata":
+				out2["hand_r"] = Vector3(-1.4, 0, 0)
+			var spin2 := 1.0 - pow(1.0 - clampf((u - 0.15) / 0.6, 0.0, 1.0), 2.2)
+			var pose2 := _keys(u, [[0.0, gs], [0.15, out2, "out"], [0.78, out2], [1.0, gs]])
+			pose2["pivot"] = Vector3(0, -TAU * spin2 * (1.0 if n == "dual_spin" else 2.0), 0)
+			lift.y = 0.18 * sin(clampf((u - 0.15) / 0.6, 0.0, 1.0) * PI) - 0.1
+			return [pose2, "full", lift]
+		"dual_heavy":
+			var gh := _guard()
+			var up2 := {"arm_r": Vector3(3.1, 0.2, 0.45), "fore_r": Vector3(0.6, 0, 0), "arm_l": Vector3(3.1, -0.2, -0.45), "fore_l": Vector3(0.6, 0, 0),
+				"torso": Vector3(0.4, 0, 0), "head": Vector3(0.3, 0, 0), "leg_l": Vector3(0.6, 0, -0.15), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.3, 0, 0.15), "shin_r": Vector3(-1.0, 0, 0)}
+			var down2 := {"arm_r": Vector3(0.6, -0.4, 0.2), "fore_r": Vector3(0.0, 0, 0), "arm_l": Vector3(0.6, 0.4, -0.2), "fore_l": Vector3(0.0, 0, 0),
+				"torso": Vector3(-0.85, 0, 0), "head": Vector3(-0.3, 0, 0), "leg_l": Vector3(1.1, 0, -0.1), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(-0.85, 0, 0.1), "shin_r": Vector3(-0.15, 0, 0)}
+			lift.y = (-0.2 * _ease(u / 0.35)) if u < 0.35 else (-0.4 * (1.0 - _ease((u - 0.6) / 0.4)) if u > 0.6 else -0.4)
+			return [_keys(u, [[0.0, gh], [0.32, up2, "out"], [0.45, down2, "in"], [0.68, down2], [1.0, gh]]), "full", lift]
+		# --- pistols ---
+		"shoot_r", "shoot_l":
+			var gp := _guard()
+			var rr := n == "shoot_r"
+			var aim := gp.duplicate()
+			if rr:
+				aim["arm_r"] = Vector3(1.55 + aim_pitch, -0.05, 0.1)
+				aim["fore_r"] = Vector3(0.05, 0, 0)
+				aim["hand_r"] = Vector3(-1.55, 0, 0)
+			else:
+				aim["arm_l"] = Vector3(1.55 + aim_pitch, 0.05, -0.1)
+				aim["fore_l"] = Vector3(0.05, 0, 0)
+			aim["torso"] = Vector3(0.0, -0.35 if rr else 0.35, 0)
+			var kick3 := aim.duplicate()
+			kick3["arm_r" if rr else "arm_l"] = (aim["arm_r" if rr else "arm_l"] as Vector3) + Vector3(0.55, 0, 0)
+			kick3["fore_r" if rr else "fore_l"] = Vector3(0.4, 0, 0)
+			return [_keys(u, [[0.0, aim], [0.12, kick3, "out"], [0.5, aim], [1.0, gp]]), "upper", lift]
+		"reload":
+			var rl := {"arm_r": Vector3(0.6, 0.6, 0.2), "fore_r": Vector3(1.7, 0, 0), "arm_l": Vector3(0.6, -0.5, -0.2), "fore_l": Vector3(1.7, 0, 0),
+				"head": Vector3(-0.35, 0, 0), "torso": Vector3(-0.15, 0, 0)}
+			var rl2 := rl.duplicate()
+			rl2["arm_l"] = Vector3(0.75, -0.45, -0.1) + Vector3(sin(_t * 18.0) * 0.08, 0, 0)
+			return [_keys(u, [[0.0, {}], [0.2, rl], [0.5, rl2], [0.8, rl], [1.0, {}]]), "upper", lift]
+		"pistol_whip":
+			var gw := _guard()
+			var cockw := {"arm_r": Vector3(1.6, 0.9, 1.4), "fore_r": Vector3(1.2, 0, 0), "torso": Vector3(0.05, 0.8, 0), "arm_l": Vector3(0.8, 0, -0.5), "fore_l": Vector3(1.2, 0, 0)}
+			var whip := {"arm_r": Vector3(1.3, -0.9, -0.9), "fore_r": Vector3(0.3, 0, 0), "torso": Vector3(-0.3, -0.8, 0), "arm_l": Vector3(0.3, 0, -1.0), "fore_l": Vector3(0.5, 0, 0),
+				"leg_l": Vector3(0.8, 0, -0.1), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(-0.6, 0, 0.1), "shin_r": Vector3(-0.3, 0, 0)}
+			return [_keys(u, [[0.0, gw], [0.3, cockw, "out"], [0.48, whip, "out"], [0.7, whip], [1.0, gw]]), "full", lift]
+		# --- claws (Zoan hybrid) ---
+		"claw_r", "claw_l", "claw_double", "rending_fang":
+			var gk := _guard()
+			var right := n != "claw_l"
+			var both := n in ["claw_double", "rending_fang"]
+			var rake_up := {"torso": Vector3(0.1, 0.5 if right else -0.5, 0)}
+			var rake := {"torso": Vector3(-0.45, -0.5 if right else 0.5, 0), "head": Vector3(0.25, 0, 0),
+				"leg_l": Vector3(0.85, 0, -0.12), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.5, 0, 0.12), "shin_r": Vector3(-0.4, 0, 0)}
+			if right or both:
+				rake_up["arm_r"] = Vector3(2.6, 0.3, 0.6)
+				rake_up["fore_r"] = Vector3(0.6, 0, 0)
+				rake["arm_r"] = Vector3(0.9, -0.7, -0.5)
+				rake["fore_r"] = Vector3(0.2, 0, 0)
+			if (not right) or both:
+				rake_up["arm_l"] = Vector3(2.6, -0.3, -0.6)
+				rake_up["fore_l"] = Vector3(0.6, 0, 0)
+				rake["arm_l"] = Vector3(0.9, 0.7, 0.5)
+				rake["fore_l"] = Vector3(0.2, 0, 0)
+			lift.y = -0.14 * sin(clampf(u, 0, 1) * PI)
+			return [_keys(u, [[0.0, gk], [0.25, rake_up, "out"], [0.45, rake, "in"], [0.65, rake], [1.0, gk]]), "full", lift]
+		"maul", "pounce":
+			var gm := _guard()
+			var low := {"leg_l": Vector3(1.1, 0, -0.15), "shin_l": Vector3(-1.8, 0, 0), "leg_r": Vector3(0.8, 0, 0.15), "shin_r": Vector3(-1.7, 0, 0),
+				"torso": Vector3(-0.7, 0, 0), "head": Vector3(0.6, 0, 0), "arm_l": Vector3(0.6, 0, -0.3), "fore_l": Vector3(0.6, 0, 0),
+				"arm_r": Vector3(0.6, 0, 0.3), "fore_r": Vector3(0.6, 0, 0)}
+			var leap := {"pivot": Vector3(-0.6, 0, 0), "leg_l": Vector3(-0.3, 0, -0.1), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.5, 0, 0.1),
+				"shin_r": Vector3(-0.4, 0, 0), "torso": Vector3(0.1, 0, 0), "head": Vector3(0.5, 0, 0),
+				"arm_l": Vector3(2.7, 0, -0.35), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(2.7, 0, 0.35), "fore_r": Vector3(0.3, 0, 0)}
+			var land := {"leg_l": Vector3(1.2, 0, -0.2), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(0.6, 0, 0.2), "shin_r": Vector3(-1.6, 0, 0),
+				"torso": Vector3(-0.8, 0, 0), "head": Vector3(0.5, 0, 0), "arm_l": Vector3(1.0, 0, -0.2), "fore_l": Vector3(0.1, 0, 0),
+				"arm_r": Vector3(1.0, 0, 0.2), "fore_r": Vector3(0.1, 0, 0)}
+			lift.y = -0.3 * _ease(u / 0.2) if u < 0.2 else (-0.4 * (1.0 - _ease((u - 0.75) / 0.25)) if u > 0.6 else 0.0)
+			return [_keys(u, [[0.0, gm], [0.2, low, "out"], [0.32, leap, "out"], [0.6, leap], [0.7, land, "in"], [0.85, land], [1.0, gm]]), "full", lift]
+		"howl":
+			var hw := {"head": Vector3(1.0, 0, 0), "torso": Vector3(0.45, 0, 0), "arm_l": Vector3(0.4, 0, -1.0), "fore_l": Vector3(1.4, 0, 0),
+				"arm_r": Vector3(0.4, 0, 1.0), "fore_r": Vector3(1.4, 0, 0), "leg_l": Vector3(0.4, 0, -0.2), "shin_l": Vector3(-0.6, 0, 0),
+				"leg_r": Vector3(0.4, 0, 0.2), "shin_r": Vector3(-0.6, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.25, hw, "out"], [0.8, hw], [1.0, {}]]), "full", lift]
+		# --- body techniques / sword / gun / haki skills ---
+		"soru":
+			var sp := {"pivot": Vector3(-0.5, 0, 0), "torso": Vector3(-0.3, 0, 0), "arm_l": Vector3(-0.8, 0, -0.3), "arm_r": Vector3(-0.8, 0, 0.3),
+				"leg_l": Vector3(1.0, 0, -0.1), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(-0.6, 0, 0.1), "shin_r": Vector3(-0.6, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.2, sp, "out"], [0.7, sp], [1.0, {}]]), "full", lift]
+		"tekkai":
+			var tk := {"arm_l": Vector3(1.45, 0.9, 0.5), "fore_l": Vector3(1.9, 0, 0), "arm_r": Vector3(1.45, -0.9, -0.5), "fore_r": Vector3(1.9, 0, 0),
+				"torso": Vector3(-0.2, 0, 0), "head": Vector3(-0.25, 0, 0), "leg_l": Vector3(0.45, 0, -0.35), "shin_l": Vector3(-0.8, 0, 0),
+				"leg_r": Vector3(0.45, 0, 0.35), "shin_r": Vector3(-0.8, 0, 0)}
+			lift.y = -0.18 * _ease(u / 0.15) * (1.0 - _ease((u - 0.9) / 0.1))
+			return [_keys(u, [[0.0, {}], [0.12, tk, "out"], [0.9, tk], [1.0, {}]]), "full", lift]
+		"flying_slash":
+			var gf := _guard()
+			var wf := {"arm_r": Vector3(0.6, 0.9, 1.9), "fore_r": Vector3(0.6, 0, 0), "torso": Vector3(0.1, 1.3, 0.1), "arm_l": Vector3(0.9, 0, -0.6), "fore_l": Vector3(1.2, 0, 0),
+				"leg_l": Vector3(0.5, 0, -0.2), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.3, 0, 0.2), "shin_r": Vector3(-0.8, 0, 0)}
+			var sf := {"arm_r": Vector3(1.5, -1.0, -1.3), "fore_r": Vector3(0.0, 0, 0), "torso": Vector3(-0.3, -1.2, -0.1), "arm_l": Vector3(0.2, 0, -1.4), "fore_l": Vector3(0.4, 0, 0),
+				"leg_l": Vector3(1.0, 0, -0.15), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.75, 0, 0.1), "shin_r": Vector3(-0.2, 0, 0)}
+			lift.y = -0.22 * sin(clampf(u, 0, 1) * PI)
+			return [_keys(u, [[0.0, gf], [0.3, wf, "out"], [0.45, sf, "out"], [0.7, sf], [1.0, gf]]), "full", lift]
+		"bullet_storm":
+			var gb := _guard()
+			var fan := sin(_t * 30.0) * 0.08
+			var sw := clampf((u - 0.1) / 0.75, 0.0, 1.0)
+			var bs := {"arm_r": Vector3(1.55, lerpf(0.7, -0.7, sw), 0.1), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.55, 0, 0),
+				"arm_l": Vector3(1.3 + fan, lerpf(0.5, -0.5, sw), -0.2), "fore_l": Vector3(0.6, 0, 0), "torso": Vector3(0, lerpf(0.5, -0.5, sw), 0)}
+			return [_keys(u, [[0.0, gb], [0.1, bs, "out"], [0.85, bs], [1.0, gb]]), "upper", lift]
+		"coat":
+			var ct := {"arm_r": Vector3(1.8, 0, 0.3), "fore_r": Vector3(1.9, 0, 0), "torso": Vector3(-0.1, 0.3, 0), "head": Vector3(-0.2, 0.2, 0),
+				"arm_l": Vector3(0.4, 0, -0.4), "fore_l": Vector3(1.0, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.35, ct, "out"], [0.75, ct], [1.0, {}]]), "upper", lift]
+		"foresight":
+			var fs := {"arm_r": Vector3(2.2, 0.8, -0.4), "fore_r": Vector3(2.3, 0, 0), "head": Vector3(-0.3, 0, 0), "torso": Vector3(0.05, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.3, fs, "out"], [0.75, fs], [1.0, {}]]), "upper", lift]
+		# --- vines ---
+		"vine_throw", "thorn_whip":
+			var vt := {"arm_r": Vector3(2.8, 0.2, 0.6), "fore_r": Vector3(1.4, 0, 0), "torso": Vector3(0.2, 0.6, 0), "arm_l": Vector3(1.1, 0, -0.4), "fore_l": Vector3(0.6, 0, 0),
+				"leg_l": Vector3(0.6, 0, -0.1), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.4, 0, 0.1), "shin_r": Vector3(-0.4, 0, 0)}
+			var vr := {"arm_r": Vector3(1.4, -0.3, -0.2), "fore_r": Vector3(0.05, 0, 0), "torso": Vector3(-0.3, -0.5, 0), "arm_l": Vector3(-0.3, 0, -0.6), "fore_l": Vector3(0.5, 0, 0),
+				"leg_l": Vector3(0.9, 0, -0.1), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.6, 0, 0.1), "shin_r": Vector3(-0.2, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.3, vt, "out"], [0.48, vr, "out"], [0.7, vr], [1.0, {}]]), "full", lift]
+		"vine_hang":
+			# the vine hand straight up the vine (the body is lined up with it);
+			# everything else hangs loose and swings with the momentum
+			var vh := {"arm_r": Vector3(3.05, 0.0, 0.1), "fore_r": Vector3(0.15, 0, 0), "torso": Vector3(0.08, 0.15, 0.04), "head": Vector3(0.25, -0.1, 0)}
+			for j in DANGLE_LIMBS.keys():
+				var a: Vector2 = _dg[j][0] if _dg.has(j) else DANGLE_LIMBS[j]
+				vh[j] = Vector3(a.x, 0, a.y)
+			var lk: Vector2 = _dg["leg_l"][0] if _dg.has("leg_l") else Vector2.ZERO
+			var rk: Vector2 = _dg["leg_r"][0] if _dg.has("leg_r") else Vector2.ZERO
+			var av: Vector2 = _dg["arm_l"][1] if _dg.has("arm_l") else Vector2.ZERO
+			# knees fold as a leg swings forward, the elbow flops with the arm
+			vh["shin_l"] = Vector3(-0.35 - maxf(lk.x, 0.0) * 0.8, 0, 0)
+			vh["shin_r"] = Vector3(-0.25 - maxf(rk.x, 0.0) * 0.8, 0, 0)
+			vh["fore_l"] = Vector3(0.35 + clampf(absf(av.x) * 0.06, 0.0, 0.8), 0, 0)
+			return [vh, "full", lift]
+		"vine_shoot":
+			# fling the vine hand up and out at the anchor
+			var aim := {"arm_r": Vector3(2.6, 0.0, 0.35), "fore_r": Vector3(0.05, 0, 0), "torso": Vector3(0.25, 0.45, 0.1), "head": Vector3(0.35, -0.3, 0),
+				"arm_l": Vector3(0.6, 0, -0.8), "fore_l": Vector3(0.7, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.4, aim, "out"], [1.0, aim]]), "full", lift]
+		"vine_release":
+			# let go: arms fling up and out, legs trail, then you tuck to land
+			var rel := {"arm_r": Vector3(2.5, 0, 0.7), "fore_r": Vector3(0.35, 0, 0), "arm_l": Vector3(1.9, 0, -1.0), "fore_l": Vector3(0.5, 0, 0),
+				"leg_l": Vector3(0.75, 0, -0.18), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.15, 0, 0.14), "shin_r": Vector3(-0.7, 0, 0),
+				"torso": Vector3(0.2, 0, 0), "head": Vector3(0.2, 0, 0)}
+			return [_keys(u, [[0.0, rel], [0.55, rel], [1.0, {}]]), "full", lift]
+		"vine_zip":
+			# reeled along the vine toward a big target: vine arm ahead, knees up
+			var zp := {"arm_r": Vector3(1.9, 0.0, 0.1), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(0.4, 0, -0.9), "fore_l": Vector3(0.9, 0, 0),
+				"leg_l": Vector3(1.3, 0, -0.12), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(0.9, 0, 0.12), "shin_r": Vector3(-1.6, 0, 0),
+				"torso": Vector3(-0.3, 0, 0), "head": Vector3(0.35, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.15, zp, "out"], [1.0, zp]]), "full", lift]
+		"vine_pull":
+			# shoot the vine at them, then haul it back hand over fist
+			var cast := {"arm_r": Vector3(1.65, -0.1, 0.05), "fore_r": Vector3(0.05, 0, 0), "torso": Vector3(-0.25, -0.3, 0), "head": Vector3(0.1, 0.3, 0),
+				"arm_l": Vector3(0.8, 0, -0.5), "fore_l": Vector3(1.1, 0, 0),
+				"leg_l": Vector3(0.6, 0, -0.12), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.4, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0)}
+			var haul := {"arm_r": Vector3(0.4, 0.6, 0.35), "fore_r": Vector3(2.1, 0, 0), "torso": Vector3(0.25, 0.6, 0), "head": Vector3(0.0, -0.5, 0),
+				"arm_l": Vector3(1.1, 0.3, -0.2), "fore_l": Vector3(1.6, 0, 0),
+				"leg_l": Vector3(0.45, 0, -0.14), "shin_l": Vector3(-0.3, 0, 0), "leg_r": Vector3(-0.2, 0, 0.14), "shin_r": Vector3(-0.8, 0, 0)}
+			lift.y = -0.1 * sin(clampf(u, 0, 1) * PI)
+			return [_keys(u, [[0.0, {}], [0.2, cast, "out"], [0.32, cast], [0.5, haul, "out"], [0.75, haul], [1.0, {}]]), "full", lift]
 		"hit":
 			var flinch := {"torso": Vector3(0.25, -0.15, 0), "head": Vector3(0.2, 0, 0)}
 			return [_keys(u, [[0.0, {}], [0.3, flinch], [1.0, {}]]), "upper", lift]
@@ -642,8 +1269,14 @@ func _locomotion(delta: float) -> Dictionary:
 		var knee_up := lerpf(1.12, 1.3, jog * (1.0 - run))
 		var swing_l := s * amp * (knee_up if s > 0.0 else 0.9)
 		var swing_r := -s * amp * (knee_up if s < 0.0 else 0.9)
-		p["leg_l"] = Vector3((swing_l + lift_bias) * fwd_amount, 0, -s * amp * 0.5 * side)
-		p["leg_r"] = Vector3((swing_r + lift_bias) * fwd_amount, 0, s * amp * 0.5 * side)
+		# swing the legs along the direction of travel (strafing / diagonals in
+		# combat stance): the stepping foot reaches toward where you're going,
+		# and a leg never swings across the other one
+		var mv := local_move.normalized() * dir_sign if local_move.length() > 0.01 else Vector2(0, 1)
+		var fx := clampf(absf(mv.y) + (1.0 - absf(mv.x)) * 0.0, 0.0, 1.0)
+		var lat := mv.x * 0.6
+		p["leg_l"] = Vector3((swing_l + lift_bias) * fx, 0, minf(swing_l * lat, 0.08))
+		p["leg_r"] = Vector3((swing_r + lift_bias) * fx, 0, maxf(swing_r * lat, -0.08))
 		# knee: folds on the forward swing (heel kicks up behind when running),
 		# and gives a little under the body while the foot is planted
 		var fold := lerpf(lerpf(0.85, 1.7, jog), 1.95, run) * walk
@@ -703,12 +1336,23 @@ func _locomotion(delta: float) -> Dictionary:
 		# combat stance: guard arms, wide knees, boxer-style hop
 		if armed and not sprinting:
 			var hop := absf(sin(_t * 4.5))
-			for j in GUARD.keys():
-				p[j] = GUARD[j] + Vector3(hop * 0.06, 0, sin(_t * 4.5) * 0.03)
+			var gd := _guard()
+			var fist := stance == "fist"
+			for j in gd.keys():
+				if j == "hips":
+					# the bladed hips relax while moving so the legs stride straight
+					p[j] = (gd[j] as Vector3) * (1.0 - clampf(walk, 0.0, 1.0) * 0.6)
+					continue
+				p[j] = gd[j] + Vector3(hop * 0.06, 0, sin(_t * 4.5) * 0.03)
 			if walk < 0.5:
 				var st := 1.0 - walk * 2.0
-				p["leg_l"] += Vector3(0.35, 0, -0.14) * st
-				p["leg_r"] += Vector3(-0.3, 0, 0.14) * st
+				if fist:
+					# feet shoulder-width apart; the turned hips put the left foot ahead
+					p["leg_l"] += Vector3(0.12, 0, -0.2) * st
+					p["leg_r"] += Vector3(-0.12, 0, 0.2) * st
+				else:
+					p["leg_l"] += Vector3(0.35, 0, -0.14) * st
+					p["leg_r"] += Vector3(-0.3, 0, 0.14) * st
 				p["shin_l"] += Vector3(-0.45 - hop * 0.15, 0, 0) * st
 				p["shin_r"] += Vector3(-0.35 - hop * 0.15, 0, 0) * st
 				lift.y += (-0.1 + hop * 0.045) * st
@@ -736,8 +1380,8 @@ func _locomotion(delta: float) -> Dictionary:
 		for j in jump.keys():
 			p[j] = (fall[j] as Vector3).lerp(jump[j], rise)
 		if armed:
-			p["arm_r"] = GUARD["arm_r"] + Vector3(0.5, 0, 0)
-			p["fore_r"] = GUARD["fore_r"]
+			p["arm_r"] = _guard()["arm_r"] + Vector3(0.5, 0, 0)
+			p["fore_r"] = _guard()["fore_r"]
 
 	# landing squash
 	if grounded and not _was_grounded:
@@ -776,6 +1420,13 @@ func _locomotion(delta: float) -> Dictionary:
 		p["fore_l"] = Vector3(0.9, 0, 0)
 		p["fore_r"] = Vector3(0.95 + (0.6 if talking else 0.0), 0, 0)
 		lift = Vector3(0, (seat_y + 0.05 - hip_y) * PIVOT_Y / hip_y, 0)
+	if carry == "rifle" and grounded and not swimming:
+		var bob := sin(_t * 1.6) * 0.03
+		p["arm_r"] = Vector3(0.35, 0.1, 0.18)
+		p["fore_r"] = Vector3(1.45 + bob, 0, 0)
+		p["arm_l"] = Vector3(0.95, 0.35, -0.1)
+		p["fore_l"] = Vector3(1.35 - bob, 0, 0)
+		p["torso"] += Vector3(0, -0.15, 0)
 	if swimming:
 		_swim_pose(p, delta)
 		lift = Vector3.ZERO
@@ -823,9 +1474,12 @@ func _process(delta: float) -> void:
 	if not is_visible_in_tree() or pivot == null:
 		return
 	_t += delta
+	# bare-handed fighting: close the hands while the fist stance is up
+	set_fists(stance == "fist" and armed and not weapon_in_hand and ragdoll == null)
 	if ragdoll != null:
 		_update_physics(delta)  # hair and cloth still swing
 		return
+	_update_dangle(delta)
 	var target := _locomotion(delta)
 	var lift: Vector3 = target["_lift"]
 	var sharp := 22.0
@@ -847,6 +1501,9 @@ func _process(delta: float) -> void:
 		if u >= 1.0:
 			_finish_action()
 
+	if _soft_t > 0.0:
+		_soft_t -= delta
+		sharp = lerpf(sharp, 4.0, clampf(_soft_t / maxf(_soft_dur, 0.01), 0.0, 1.0))
 	var k := 1.0 - exp(-sharp * delta)
 	for j in JOINTS:
 		var tv: Vector3 = target[j]
@@ -876,10 +1533,85 @@ func _process(delta: float) -> void:
 	leg_r.rotation = _cur["leg_r"]
 	shin_l.rotation = _cur["shin_l"]
 	shin_r.rotation = _cur["shin_r"]
+	_foot_ik(delta)
 	# wrist (only the weapon socket turns; e.g. a thrust lines the blade up with the arm)
 	if hand_r:
 		hand_r.rotation = _cur["hand_r"]
+	if _tail and is_instance_valid(_tail):
+		var wag := 1.0 + clampf(ground_speed * 0.15, 0.0, 1.0)
+		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
 	_update_physics(delta)
+
+
+## Foot IK. The animator poses legs for flat ground at the character's feet;
+## here each foot's ground is probed: the hips drop by the lower foot's dip
+## and each leg is re-solved (thigh swing + knee bend, in the leg's plane) so
+## its ankle lands that far above the real ground. On flat ground nothing
+## changes.
+func _foot_ik(delta: float) -> void:
+	var want := foot_ik and grounded and not swimming and not climbing and not seated and not at_helm \
+		and ragdoll == null and current_action() != "getup" and is_inside_tree()
+	_ik_w = move_toward(_ik_w, 1.0 if want else 0.0, delta * 6.0)
+	if _ik_w <= 0.0:
+		_ik_h = Vector2.ZERO
+		_ik_drop = 0.0
+		return
+	var vp := get_viewport()
+	var cam := vp.get_camera_3d() if vp else null
+	if cam and cam.global_position.distance_squared_to(global_position) > 40.0 * 40.0:
+		return
+	if not _ik_body_found:
+		_ik_body_found = true
+		var n := get_parent()
+		while n:
+			if n is CollisionObject3D:
+				_ik_body = (n as CollisionObject3D).get_rid()
+				break
+			n = n.get_parent()
+	var space := get_world_3d().direct_space_state
+	var up := global_basis.y.normalized()
+	var sc := global_basis.get_scale().y
+	var root := global_position
+	var hs := [0.0, 0.0]
+	var legs := [[leg_l, shin_l], [leg_r, shin_r]]
+	for i in range(2):
+		var shin: Node3D = legs[i][1]
+		var ankle := shin.global_transform * Vector3(0, shin_l.position.y, 0)
+		var from := Vector3(ankle.x, root.y + 0.55 * sc, ankle.z)
+		var q := PhysicsRayQueryParameters3D.create(from, Vector3(ankle.x, root.y - 0.6 * sc, ankle.z), 1)
+		if _ik_body.is_valid():
+			q.exclude = [_ik_body]
+		var hit := space.intersect_ray(q)
+		var h := 0.0
+		if not hit.is_empty() and (hit["normal"] as Vector3).y > 0.5:
+			h = clampf((hit["position"] as Vector3).y - root.y, -0.45 * sc, 0.45 * sc)
+		hs[i] = h
+	var k := 1.0 - exp(-18.0 * delta)
+	_ik_h = _ik_h.lerp(Vector2(hs[0], hs[1]), k)
+	_ik_drop = lerpf(_ik_drop, minf(minf(_ik_h.x, _ik_h.y), 0.0), k)
+	var drop := _ik_drop * _ik_w
+	pivot.position.y += drop / sc
+	var l1 := shin_l.position.length() * sc
+	var l2 := absf(shin_l.position.y) * sc
+	for i in range(2):
+		var adj := ((_ik_h.x if i == 0 else _ik_h.y) - _ik_drop) * _ik_w
+		if absf(adj) < 0.004:
+			continue
+		var leg: Node3D = legs[i][0]
+		var shin: Node3D = legs[i][1]
+		var hip := leg.global_position
+		var ankle := shin.global_transform * Vector3(0, shin_l.position.y, 0)
+		var target := ankle + up * adj
+		# work in the thigh's parent frame (sagittal plane = its y/z)
+		var pb := leg.get_parent_node_3d().global_basis.orthonormalized()
+		var v := pb.inverse() * (target - hip)
+		var d := clampf(Vector2(v.y, v.z).length(), absf(l1 - l2) + 0.01, l1 + l2 - 0.005)
+		var knee := acos(clampf((l1 * l1 + l2 * l2 - d * d) / (2.0 * l1 * l2), -1.0, 1.0))
+		var alpha := acos(clampf((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d), -1.0, 1.0))
+		var theta := atan2(-v.z, -v.y)
+		var r := leg.rotation
+		leg.rotation = Vector3(theta + alpha, r.y, r.z)
+		shin.rotation = Vector3(-(PI - knee), shin.rotation.y, shin.rotation.z)
 
 
 ## Head and neck life on top of every pose:
@@ -969,10 +1701,29 @@ func _update_look(delta: float) -> void:
 # ==========================================================================
 # Ragdoll + getting back up
 # ==========================================================================
+## Brace pose for a living body thrown off its feet (local eulers, rig terms):
+## arms flung out to the sides and a little forward, elbows bent, knees
+## pulled up, chin tucked.
+const BRACE := {
+	"chest": Vector3(-0.25, 0, 0), "head": Vector3(-0.15, 0, 0),
+	"arm_l": Vector3(0.7, 0, -1.05), "arm_r": Vector3(0.7, 0, 1.05),
+	"fore_l": Vector3(0.8, 0, 0), "fore_r": Vector3(0.8, 0, 0),
+	"thigh_l": Vector3(0.85, 0, -0.12), "thigh_r": Vector3(0.6, 0, 0.12),
+	"shin_l": Vector3(-1.3, 0, 0), "shin_r": Vector3(-1.0, 0, 0),
+}
+const BRACE_WIGGLE := {
+	"arm_l": Vector3(0.35, 0, 0.25), "arm_r": Vector3(0.35, 0, 0.25),
+	"fore_l": Vector3(0.3, 0, 0), "fore_r": Vector3(0.3, 0, 0),
+	"thigh_l": Vector3(0.2, 0, 0), "thigh_r": Vector3(0.2, 0, 0),
+}
+
+
 ## Turn the body into a physics ragdoll launched with `velocity` (the hit).
 ## The upper body is flung a little harder than the legs, so a hit from the
 ## front tips the character over backwards.
-func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO) -> Ragdoll:
+## alive: the body braces (stiff joints, arms out, knees up); dead goes limp.
+func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO, alive: bool = true) -> Ragdoll:
+	_net_send("ragdoll", [velocity, spin, alive])
 	end_ragdoll()
 	if not _action.is_empty():
 		_finish_action()
@@ -1007,6 +1758,10 @@ func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO) -> Ragdoll:
 	r.launch(velocity, spin, {"chest": 1.15, "head": 1.25, "arm_l": 1.1, "arm_r": 1.1, "fore_l": 1.1, "fore_r": 1.1,
 		"thigh_l": 0.7, "thigh_r": 0.7, "shin_l": 0.55, "shin_r": 0.55})
 	r.drive()
+	if alive:
+		r.set_targets(BRACE, BRACE_WIGGLE)
+		r.stiffness = 0.35
+		r.stiffness_target = 1.0
 	ragdoll = r
 	return r
 
@@ -1034,6 +1789,7 @@ func ragdoll_rest_info() -> Dictionary:
 
 ## Snap back to a plain standing pose (respawn).
 func reset_pose() -> void:
+	_net_send("reset_pose", [])
 	end_ragdoll()
 	if not _action.is_empty():
 		_finish_action()
@@ -1050,6 +1806,26 @@ func reset_pose() -> void:
 ## way (face up: head behind, face down: head in front). `hips_xform` is the
 ## hips' world transform captured before the root was turned.
 func begin_getup(face_up: bool, duration: float, hips_xform: Transform3D) -> void:
+	_net_send("getup", [face_up, duration, hips_xform])
+	_capture_ragdoll_pose(face_up, hips_xform)
+	_getup_from = _cur.duplicate()
+	_getup_lift = _lift
+	_getup_face_up = face_up
+	play("getup", duration)
+	_action_w = 1.0
+
+
+## Leave the ragdoll without an animation: the body eases from where the
+## physics left it into whatever the locomotion wants (e.g. treading water
+## after floating back up).
+func recover_from_ragdoll(face_up: bool, hips_xform: Transform3D, blend: float = 0.6) -> void:
+	_net_send("recover", [face_up, hips_xform, blend])
+	_capture_ragdoll_pose(face_up, hips_xform)
+	_soft_t = blend
+	_soft_dur = blend
+
+
+func _capture_ragdoll_pose(face_up: bool, hips_xform: Transform3D) -> void:
 	end_ragdoll()
 	pivot.rotation = Vector3(PI * 0.5 if face_up else -PI * 0.5, 0, 0)
 	pivot.position = global_transform.affine_inverse() * hips_xform.origin
@@ -1066,11 +1842,6 @@ func begin_getup(face_up: bool, duration: float, hips_xform: Transform3D) -> voi
 	_look_v = Vector3.ZERO
 	_hs = Vector3.ZERO
 	_hv = Vector3.ZERO
-	_getup_from = _cur.duplicate()
-	_getup_lift = _lift
-	_getup_face_up = face_up
-	play("getup", duration)
-	_action_w = 1.0
 
 
 func _lift_for(pelvis_h: float) -> float:
@@ -1158,3 +1929,75 @@ func _swim_pose(p: Dictionary, delta: float) -> void:
 			"leg_l": Vector3(fl * 0.3, 0, -0.04), "leg_r": Vector3(-fl * 0.3, 0, 0.04), "shin_l": Vector3(-0.3, 0, 0), "shin_r": Vector3(-0.3, 0, 0)}
 		for j in d.keys():
 			p[j] = d[j]
+
+
+## Two-bone IK for the left arm: put the left hand on `target` (world), with
+## the elbow bending toward `pole` (world direction). Run after the pose has
+## been applied (e.g. a rifleman keeping his off hand on the stock).
+func reach_left_hand(target: Vector3, pole: Vector3) -> void:
+	if ragdoll != null or arm_l == null or fore_l == null or hand_l == null:
+		return
+	var sc := global_basis.get_scale().x
+	var shoulder := arm_l.global_position
+	var l1 := fore_l.position.length() * sc
+	var l2 := (hand_l.position + Vector3(0, -0.05, 0)).length() * sc
+	var to := target - shoulder
+	var d := clampf(to.length(), 0.05, (l1 + l2) * 0.999)
+	var dir := to.normalized()
+	var cos_e := clampf((l1 * l1 + l2 * l2 - d * d) / (2.0 * l1 * l2), -1.0, 1.0)
+	var bend := PI - acos(cos_e)
+	var cos_a := clampf((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d), -1.0, 1.0)
+	var a := acos(cos_a)
+	# the elbow sits toward the pole, in the plane of (shoulder->target, pole)
+	var pp := pole - dir * pole.dot(dir)
+	if pp.length() < 0.05:
+		pp = Vector3.DOWN - dir * Vector3.DOWN.dot(dir)
+	pp = pp.normalized()
+	var upper := dir * cos(a) + pp * sin(a)
+	var elbow := shoulder + upper * l1
+	var fore_dir := (target - elbow).normalized()
+	# forearm bends (local +x rotation) from the arm's -Y toward its -Z
+	var n := fore_dir - upper * fore_dir.dot(upper)
+	n = n.normalized() if n.length() > 0.001 else pp
+	var y_axis := -upper
+	var z_axis := -n
+	var x_axis := y_axis.cross(z_axis).normalized()
+	arm_l.global_basis = Basis(x_axis, y_axis, z_axis).scaled(Vector3(sc, sc, sc))
+	fore_l.rotation = Vector3(bend, 0, 0)
+
+
+# ==========================================================================
+# Co-op mirroring
+# ==========================================================================
+func _net_send(what: String, args: Array) -> void:
+	if not net_sync or not is_inside_tree():
+		return
+	var net := get_node_or_null("/root/Net")
+	if net and net.active:
+		net.event(self, what, args)
+
+
+## Settle a ragdoll into a limp body (death) - mirrored.
+func relax_ragdoll() -> void:
+	_net_send("relax", [])
+	if ragdoll != null and is_instance_valid(ragdoll):
+		ragdoll.relax()
+
+
+## Another player's copy of this body did something (see _net_send).
+func net_event(what: String, args: Array) -> void:
+	match what:
+		"play":
+			play(str(args[0]), float(args[1]))
+		"stop":
+			stop_action()
+		"ragdoll":
+			start_ragdoll(args[0], args[1], bool(args[2]))
+		"reset_pose":
+			reset_pose()
+		"getup":
+			begin_getup(bool(args[0]), float(args[1]), args[2])
+		"recover":
+			recover_from_ragdoll(bool(args[0]), args[1], float(args[2]))
+		"relax":
+			relax_ragdoll()

@@ -15,11 +15,11 @@ func _launch(double: bool) -> void:
 	player.squash(4.5 if not double else 3.5)
 	if double:
 		player.body_model.play("flip", 0.45)
-		FX.sparkle(player.global_position + Vector3(0, 0.8, 0), 10, Color(1.0, 0.95, 0.7))
-		FX.sfx("jump", player.global_position, -8.0, 0.05, 1.15)
+		Net.fx("sparkle", [player.global_position + Vector3(0, 0.8, 0), 10, Color(1.0, 0.95, 0.7)])
+		Net.fx("sfx", ["jump", player.global_position, -8.0, 0.05, 1.15])
 	else:
-		FX.dust(player.global_position + Vector3(0, 0.05, 0), 6, 0.6)
-		FX.sfx("jump", player.global_position, -8.0, 0.06)
+		Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 6, 0.6])
+		Net.fx("sfx", ["jump", player.global_position, -8.0, 0.06])
 
 
 func physics_update(delta: float) -> void:
@@ -37,6 +37,11 @@ func physics_update(delta: float) -> void:
 			face_direction(direction, delta)
 
 	player.move_and_slide()
+
+	var air := air_attack_input()
+	if air != "":
+		transitioned.emit(self, air, {})
+		return
 
 	# Double jump
 	if Input.is_action_just_pressed("jump") and player.jumps_remaining > 0:

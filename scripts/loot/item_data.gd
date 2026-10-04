@@ -29,6 +29,8 @@ enum ItemType { LOOT, WEAPON, CONSUMABLE, GEAR }
 @export_group("Consumable")
 @export var heal_amount: float = 0.0
 @export var use_time: float = 1.0
+## A Devil Fruit (fruit id, see DevilFruits): eating it is permanent.
+@export var devil_fruit: String = ""
 
 
 ## Loot is what gets dropped on death and stored when banking.

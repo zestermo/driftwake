@@ -44,7 +44,7 @@ func _ready() -> void:
 	active = true
 	_original = look.duplicate(true)
 	_rng.randomize()
-	get_tree().paused = true
+	_set_paused(true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_blip = AudioStreamPlayer.new()
 	_blip.stream = load("res://assets/audio/select.wav")
@@ -438,8 +438,17 @@ func _randomize() -> void:
 func _finish(accepted: bool) -> void:
 	_play()
 	var result := look if accepted else _original
-	get_tree().paused = false
+	_set_paused(false)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	active = false
 	finished.emit(result.duplicate(true), accepted)
 	queue_free()
+
+
+## (co-op: the world keeps running while you're in the creator)
+func _set_paused(on: bool) -> void:
+	var net := get_node_or_null("/root/Net")
+	if net:
+		net.set_paused(on)
+	else:
+		get_tree().paused = on

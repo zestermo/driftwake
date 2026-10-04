@@ -58,6 +58,8 @@ func apply_gravity(delta: float) -> void:
 func combat_input() -> String:
 	if input_buffer.consume_action("light_attack"):
 		if player.can_attack():
+			if player.weapon_class() == "gun":
+				return "Shoot"
 			return "LightAttack" if player.spend_stamina(player.LIGHT_COST) else ""
 		player.draw_weapon()
 		return ""
@@ -74,9 +76,23 @@ func combat_input() -> String:
 	return ""
 
 
+## Attack pressed in the air: the plunging jump attack (needs a drawn weapon,
+## a bit of height under you and the stamina); unarmed it draws the weapon.
+func air_attack_input() -> String:
+	# too close to the ground: leave the press buffered for a landing attack
+	if player.can_attack() and player.height_above_ground() < 0.9:
+		return ""
+	if input_buffer.consume_action("light_attack") or input_buffer.consume_action("heavy_attack"):
+		if not player.can_attack():
+			player.draw_weapon()
+			return ""
+		return "Plunge" if player.spend_stamina(player.PLUNGE_COST) else ""
+	return ""
+
+
 ## Dodge pressed (or buffered) and there's stamina for it.
 func wants_dodge() -> bool:
-	return input_buffer.consume_action("dodge") and player.spend_stamina(player.DODGE_COST)
+	return input_buffer.consume_action("dodge") and player.spend_stamina(player.dodge_cost())
 
 
 ## Combat stance keeps the character facing where the camera looks.

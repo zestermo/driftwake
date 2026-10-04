@@ -1,17 +1,21 @@
 extends Node
 class_name InventoryComponent
-## Carried items plus a 5-slot hotbar. Hotbar slots store item ids, so a slot
-## remembers its item even when the stack runs out (e.g. you drank all the rum).
+## Carried items plus three quick-item slots (keys 5-7) for consumables.
+## Quick slots fill themselves as you pick up consumables and store item ids,
+## so a slot remembers its item even when the stack runs out (you drank all
+## the rum) and lights up again when you find more. Weapons are equipped from
+## the inventory, not from here. (The slots are still called the "hotbar" in
+## code and saves.)
 
 signal inventory_changed
 signal item_added(item: ItemData, quantity: int)
 signal hotbar_changed
 
-const HOTBAR_SIZE := 5
+const HOTBAR_SIZE := 3
 
 @export var max_slots: int = 20
 var items: Array[ItemStack] = []
-var hotbar: Array[String] = ["", "", "", "", ""]
+var hotbar: Array[String] = ["", "", ""]
 
 
 func add_item(item_data: ItemData, quantity: int = 1) -> bool:
@@ -141,8 +145,15 @@ func clear() -> void:
 
 
 # ---- Hotbar ----
+## Can this item go in a quick slot? (Consumables only, not Devil Fruits.)
+static func quick_ok(item_data: ItemData) -> bool:
+	return item_data != null and item_data.is_consumable() and item_data.devil_fruit == ""
+
+
 func assign_hotbar(slot: int, item_id: String) -> void:
 	if slot < 0 or slot >= HOTBAR_SIZE:
+		return
+	if item_id != "" and not quick_ok(ItemDB.get_item(item_id)):
 		return
 	# an item lives in one slot only
 	for i in range(HOTBAR_SIZE):
@@ -165,7 +176,7 @@ func get_hotbar_item(slot: int) -> ItemData:
 
 
 func _auto_assign(item_data: ItemData) -> void:
-	if item_data.is_loot() or item_data.is_gear() or hotbar.has(item_data.id):
+	if not quick_ok(item_data) or hotbar.has(item_data.id):
 		return
 	for i in range(HOTBAR_SIZE):
 		if hotbar[i] == "":

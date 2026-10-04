@@ -818,6 +818,24 @@ static func weapon_mesh(kind: String) -> ArrayMesh:
 			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0.1, -0.68)), Vector3(0.04, 0.26, 0.16), 2.0)
 			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, 0.22, -0.74)), Vector3(0.035, 0.14, 0.22), 2.0)
 			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0, 0.1)), Vector3(0.06, 0.06, 0.05), 2.0)
+		"pistol":
+			# flintlock: barrel forward (-Z) above the hand, curved wooden grip
+			var wood := PSXMat.lit("planks", Color(0.75, 0.5, 0.3))
+			mb.add_cylinder(steel, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0.06, -0.05)), 0.022, 0.02, 0.36, 6, 2.0)
+			mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.05, -0.1)), Vector3(0.045, 0.05, 0.22), 2.0)
+			mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, 0.5), Vector3(0, -0.03, 0.03)), Vector3(0.045, 0.16, 0.06), 2.0)
+			mb.add_box(brass, Transform3D(Basis(Vector3.RIGHT, 0.5), Vector3(0, -0.1, 0.07)), Vector3(0.055, 0.04, 0.07), 2.0)
+			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.4), Vector3(0, 0.1, 0.02)), Vector3(0.02, 0.05, 0.02), 2.0)
+			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0.0, -0.04)), Vector3(0.01, 0.04, 0.05), 2.0)
+		"rifle":
+			# long musket: grip at the origin, barrel 1.1 m forward, stock back to the shoulder
+			var wood := PSXMat.lit("planks", Color(0.7, 0.45, 0.26))
+			mb.add_cylinder(steel, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0.06, -0.2)), 0.024, 0.022, 1.15, 6, 2.0)
+			mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.035, -0.45)), Vector3(0.06, 0.06, 0.75), 2.0)
+			mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, 0.18), Vector3(0, -0.01, 0.22)), Vector3(0.06, 0.11, 0.5), 2.0)
+			mb.add_box(brass, Transform3D(Basis(Vector3.RIGHT, 0.18), Vector3(0, -0.06, 0.47)), Vector3(0.065, 0.13, 0.04), 2.0)
+			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0.06, -0.62)), Vector3(0.05, 0.05, 0.03), 2.0)
+			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.4), Vector3(0, 0.1, 0.0)), Vector3(0.02, 0.05, 0.02), 2.0)
 		_:
 			# cutlass: slightly curved blade (two segments), knuckle guard, grip
 			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0, -0.38)), Vector3(0.025, 0.07, 0.56), 2.0)
@@ -825,7 +843,24 @@ static func weapon_mesh(kind: String) -> ArrayMesh:
 			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0, -0.08)), Vector3(0.05, 0.16, 0.05), 2.0)
 			mb.add_box(brass, Transform3D(Basis(), Vector3(0, -0.07, 0.03)), Vector3(0.04, 0.03, 0.2), 2.0)
 			mb.add_box(grip, Transform3D(Basis(), Vector3(0, 0, 0.04)), Vector3(0.045, 0.05, 0.16), 2.0)
-	return mb.commit()
+	var m := mb.commit()
+	m.set_meta("model", kind)  # co-op: other players rebuild the same weapon by name
+	return m
+
+
+## A Devil Fruit held in the hand: a swirled round fruit with a curled stem
+## and a leaf.
+static func devil_fruit_mesh(skin: String = "devil_fruit_ember") -> ArrayMesh:
+	var mb := MeshBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var r := 0.085
+	mb.add_blob(PSXMat.lit(skin), Transform3D(Basis.IDENTITY, Vector3(0, 0.0, -0.06)), Vector3(r, r * 0.95, r), rng, 0.06, 5, 8, 1.0 / (TAU * r))
+	mb.add_cylinder(PSXMat.flat(Color(0.35, 0.22, 0.1)), Transform3D(Basis(Vector3.FORWARD, 0.4), Vector3(0, r * 0.9, -0.06)), 0.01, 0.006, 0.05, 4, 1.0)
+	mb.add_card(PSXMat.flat(Color(0.3, 0.6, 0.2)), Transform3D(Basis(Vector3.FORWARD, -1.0), Vector3(0.03, r + 0.02, -0.06)), 0.05, 0.035)
+	var m := mb.commit()
+	m.set_meta("model", skin)
+	return m
 
 
 static func bottle_mesh() -> ArrayMesh:
@@ -836,4 +871,6 @@ static func bottle_mesh() -> ArrayMesh:
 	mb.add_cylinder(glass, Transform3D(b, Vector3(0, 0, 0.08)), 0.06, 0.06, 0.18, 6, 2.0)
 	mb.add_cylinder(glass, Transform3D(b, Vector3(0, 0, -0.1)), 0.06, 0.025, 0.06, 6, 2.0)
 	mb.add_cylinder(cork, Transform3D(b, Vector3(0, 0, -0.16)), 0.025, 0.025, 0.05, 5, 2.0)
-	return mb.commit()
+	var m := mb.commit()
+	m.set_meta("model", "bottle")
+	return m

@@ -13,7 +13,7 @@ extends RefCounted
 
 const STYLES := {
 	# One Piece-ish shonen: ~6 heads tall, big expressive head, long legs, strong V-taper
-	"shonen": {"head": 0.74, "leg": 1.13, "torso": 0.86, "neck": 0.9, "arm": 1.04, "sh": 1.15, "wa": 0.84,
+	"shonen": {"head": 0.74, "leg": 1.13, "torso": 0.86, "neck": 0.55, "arm": 1.04, "sh": 1.15, "wa": 0.84,
 		"ch": 1.06, "hand": 1.18, "foot": 1.15, "eye": 1.0, "limb": 1.0, "leg_gap": 0.1},
 	# Chibi / super-deformed: ~3 heads tall, huge head, stubby limbs
 	"chibi": {"head": 1.1, "leg": 0.46, "torso": 0.62, "neck": 0.45, "arm": 0.66, "sh": 0.98, "wa": 1.04,
@@ -305,11 +305,12 @@ func _skeleton() -> void:
 	h.shin_l = _node("ShinL", Vector3(0, -0.42 * Ls, 0), h.leg_l)
 	h.shin_r = _node("ShinR", Vector3(0, -0.42 * Ls, 0), h.leg_r)
 	h.torso = _node("Torso", Vector3.ZERO, h.hips)
-	# shoulder joints sit a little inside the torso's edge so the arm tops
-	# overlap the shoulders
-	var sxr := (0.174 * sh + 0.026) if fem else (0.22 * sh + 0.032)
-	h.arm_l = _node("ArmL", Vector3(-sxr, ty(0.53), 0), h.torso)
-	h.arm_r = _node("ArmR", Vector3(sxr, ty(0.53), 0), h.torso)
+	# shoulder joints sit just inside the torso's edge, under the deltoid
+	# cap of the torso, so the top of each arm is buried in the shoulder
+	# instead of sitting on it like an action figure's ball joint
+	var sxr := (0.158 * sh + 0.004) if fem else (0.2 * sh + 0.004)
+	h.arm_l = _node("ArmL", Vector3(-sxr, ty(0.52), 0), h.torso)
+	h.arm_r = _node("ArmR", Vector3(sxr, ty(0.52), 0), h.torso)
 	h.fore_l = _node("ForeL", Vector3(0, -0.3 * A, 0), h.arm_l)
 	h.fore_r = _node("ForeR", Vector3(0, -0.3 * A, 0), h.arm_r)
 	var wrist := -0.23 * A
@@ -351,7 +352,8 @@ func _torso_rings() -> Array:
 			[0.385, 0.165 * ch, 0.128 * de, -0.016, 0.0, P_BUST()],
 			[0.45, 0.178 * sh, 0.11 * de, -0.004, 0.0, B],
 			[0.5, 0.198 * sh, 0.106 * de, 0.0, 0.0, B],
-			[0.56, 0.172 * sh, 0.098 * de, 0.004, 0.0, B],
+			[0.535, 0.2 * sh, 0.102 * de, 0.002, 0.0, B],
+			[0.57, 0.162 * sh, 0.095 * de, 0.005, 0.0, B],
 			[0.615, 0.118 * sh, 0.086 * de, 0.01, 0.0, B],
 			[0.655, 0.064, 0.06, 0.01, 0.0, B]]
 	else:
@@ -361,7 +363,8 @@ func _torso_rings() -> Array:
 			[0.27, 0.2 * ch, 0.128 * de, -0.004, 0.0, B],
 			[0.39, 0.222 * ch, 0.136 * de, -0.008, 0.0, P_PEC()],
 			[0.49, 0.25 * sh, 0.128 * de, 0.0, 0.0, B],
-			[0.56, 0.215 * sh, 0.118 * de, 0.004, 0.0, B],
+			[0.535, 0.252 * sh, 0.122 * de, 0.002, 0.0, B],
+			[0.575, 0.205 * sh, 0.112 * de, 0.005, 0.0, B],
 			[0.615, 0.14 * sh, 0.1 * de, 0.01, 0.0, B],
 			[0.655, 0.075, 0.068, 0.01, 0.0, B]]
 	# slimmer through the chest and shoulders, a touch at the waist (depth kept)
@@ -528,7 +531,7 @@ func _arms() -> void:
 	var gloves: bool = lk.get("gloves", false)
 	var m_hand := _leather("gloves_color") if gloves else m_skin
 	var L := limb * (1.0 + (sh - 1.0) * 0.4)
-	var up := [[0.058, 0.022 * L, 0.026 * L], [0.044, 0.046 * L, 0.052 * L], [0.016, 0.064 * L, 0.07 * L], [-0.06 * A, 0.071 * L, 0.077 * L],
+	var up := [[0.036, 0.02 * L, 0.024 * L], [0.026, 0.046 * L, 0.052 * L], [0.0, 0.064 * L, 0.07 * L], [-0.06 * A, 0.071 * L, 0.077 * L],
 		[-0.17 * A, 0.063 * L, 0.069 * L], [-0.3 * A, 0.055 * L, 0.06 * L]]
 	var fo := [[0.02, 0.056 * L, 0.06 * L], [-0.08 * A, 0.06 * L, 0.064 * L, 0.004], [-0.23 * A, 0.043 * L, 0.047 * L]]
 	var prof := MeshBuilder.profile_oct(0.5)
@@ -555,14 +558,39 @@ func _arms() -> void:
 			_:
 				amb.add_loft(m_skin, Transform3D.IDENTITY, up, prof, 3.0, Color.WHITE, false, true)
 				fmb.add_loft(m_skin, Transform3D.IDENTITY, fo, prof, 3.0, Color.WHITE, false, true)
-		# mitten hand: wide front-to-back, thumb toward the front
+		# mitten hand: wide front-to-back, thumb toward the front. Built as its
+		# own mesh ("Mitten") so it can swap with a closed fist ("Fist") when
+		# fighting bare-handed (Humanoid.set_fists).
 		var k := Hk * limb
+		var hmb := MeshBuilder.new()
 		var hand := [[wrist + 0.015, 0.03 * k, 0.04 * k], [wrist - 0.02 * Hk, 0.028 * k, 0.056 * k, -0.005], [wrist - 0.08 * Hk, 0.026 * k, 0.057 * k, -0.005],
 			[wrist - 0.115 * Hk, 0.02 * k, 0.04 * k, -0.004]]
-		fmb.add_loft(m_hand, Transform3D.IDENTITY, hand, MeshBuilder.profile_oct(0.6), 3.0, Color.WHITE, true, true)
+		hmb.add_loft(m_hand, Transform3D.IDENTITY, hand, MeshBuilder.profile_oct(0.6), 3.0, Color.WHITE, true, true)
 		var inward := -float(side)
 		var tx := Transform3D(Basis(Vector3.FORWARD, inward * 0.5) * Basis(Vector3.RIGHT, 0.35), Vector3(inward * 0.012 * k, wrist - 0.005, -0.05 * k))
-		fmb.add_loft(m_hand, tx, [[0.0, 0.016 * k, 0.018 * k], [-0.05 * k, 0.014 * k, 0.016 * k], [-0.07 * k, 0.008 * k, 0.01 * k]], MeshBuilder.profile_oct(0.6), 3.0, Color.WHITE, true, true)
+		hmb.add_loft(m_hand, tx, [[0.0, 0.016 * k, 0.018 * k], [-0.05 * k, 0.014 * k, 0.016 * k], [-0.07 * k, 0.008 * k, 0.01 * k]], MeshBuilder.profile_oct(0.6), 3.0, Color.WHITE, true, true)
+		if not h.swappable_hands:
+			# NPCs never fight bare-handed: keep the hand in the forearm's mesh
+			fmb.merge(hmb)
+			if gloves:
+				fmb.add_loft(m_hand, Transform3D.IDENTITY, [[wrist + 0.06, 0.056 * L, 0.06 * L], [wrist + 0.01, 0.05 * L, 0.054 * L]], prof, 3.0, Color.WHITE, false, false, true, false, true)
+			_mesh(arm, amb)
+			_mesh(fore, fmb)
+			continue
+		var mit := hmb.to_instance("Mitten")
+		fore.add_child(mit)
+		# closed fist: a chunky block of knuckles, the thumb wrapped across the front
+		var fist_mb := MeshBuilder.new()
+		var fist := [[wrist + 0.015, 0.031 * k, 0.041 * k], [wrist - 0.012 * Hk, 0.038 * k, 0.055 * k, -0.006],
+			[wrist - 0.05 * Hk, 0.041 * k, 0.06 * k, -0.008], [wrist - 0.078 * Hk, 0.036 * k, 0.052 * k, -0.008], [wrist - 0.088 * Hk, 0.026 * k, 0.04 * k, -0.007]]
+		fist_mb.add_loft(m_hand, Transform3D.IDENTITY, fist, MeshBuilder.profile_oct(0.85), 3.0, Color.WHITE, true, true)
+		# the thumb lies across the front of the curled fingers, pointing in
+		# toward the palm side, inside the outline of the fist
+		var ttx := Transform3D(Basis(Vector3.BACK, inward * 1.5) * Basis(Vector3.RIGHT, -0.15), Vector3(-inward * 0.014 * k, wrist - 0.04 * Hk, -0.058 * k))
+		fist_mb.add_loft(m_hand, ttx, [[0.0, 0.015 * k, 0.016 * k], [-0.034 * k, 0.014 * k, 0.014 * k], [-0.048 * k, 0.009 * k, 0.01 * k]], MeshBuilder.profile_oct(0.6), 3.0, Color.WHITE, true, true)
+		var fi := fist_mb.to_instance("Fist")
+		fi.visible = false
+		fore.add_child(fi)
 		if gloves:
 			fmb.add_loft(m_hand, Transform3D.IDENTITY, [[wrist + 0.06, 0.056 * L, 0.06 * L], [wrist + 0.01, 0.05 * L, 0.054 * L]], prof, 3.0, Color.WHITE, false, false, true, false, true)
 		_mesh(arm, amb)

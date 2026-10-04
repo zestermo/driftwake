@@ -17,6 +17,7 @@ const MAX_STAMINA := 100.0
 const LIGHT_COST := 12.0
 const HEAVY_COST := 30.0
 const DODGE_COST := 18.0
+const PLUNGE_COST := 16.0
 ## Sprinting drains this much per second. Run the bar dry and you're winded:
 ## no sprinting until it's back to SPRINT_RECOVER.
 const SPRINT_DRAIN := 16.0
@@ -61,6 +62,8 @@ const LEAN_REF_SPEED := 12.0
 ## Bank per (camera turn rate x speed).
 @export var bank_lean: float = 0.004
 @export var max_lean: float = 0.32
+## Jump momentum tilt (radians): forward at take-off, back on the way down.
+@export var air_lean: float = 0.16
 
 @onready var player_model: Node3D = $PlayerModel
 @onready var sword_pivot: Marker3D = $PlayerModel/SwordPivot
@@ -73,6 +76,8 @@ const LEAN_REF_SPEED := 12.0
 @onready var inventory_component: InventoryComponent = $InventoryComponent
 
 var is_parrying: bool = false
+## Holding a block (Block state): frontal hits glance off the guard.
+var is_blocking: bool = false
 var context: Context = Context.ON_FOOT
 var current_ship: Ship = null
 var jumps_remaining: int = 1
@@ -95,6 +100,13 @@ var air_speed: float = 0.0
 var _coyote: float = 0.0
 var _jump_buffer: float = 0.0
 var _lean_q := Quaternion.IDENTITY
+## Body alignment override (Vine Swing): the body's up axis turns toward
+## `align_up` (world) by `align_w`. While `align_hold` is off the weight
+## eases back to 0 in the air - faster close to the ground - so a tilted
+## release rights itself before you land.
+var align_up := Vector3.UP
+var align_w: float = 0.0
+var align_hold: bool = false
 var _lean_f: float = 0.0  # smoothed speed along camera forward
 var _lean_r: float = 0.0  # smoothed speed along camera right (slow)
 var _lean_acc_f: float = 0.0
@@ -114,6 +126,21 @@ var max_stamina: float = MAX_STAMINA
 ## this plus the equipped gear (Gear.compose).
 var appearance: Dictionary = {}
 var equipment: EquipmentComponent
+## Skills and Devil Fruit powers (loadout, energy, cooldowns, the ultimate).
+var power: PowerComponent
+## Level, experience and the skill map.
+var progression: Progression
+## Off-hand weapon (dual wielding: a second sword or pistol), or null.
+var offhand_weapon: ItemData
+## Zoan: in hybrid beast form.
+var hybrid: bool = false
+## Loaded shots per pistol [main, off-hand].
+var ammo: Array[int] = [2, 2]
+var _reload_t: float = 0.0
+var _since_hit: float = 99.0
+var _last_stand_cd: float = 0.0
+const BASE_MOVE := 6.0
+const BASE_SPRINT := 9.0
 ## Base attributes; the skill system will raise them later.
 var attributes: Dictionary = {"strength": 5, "agility": 5, "endurance": 5}
 ## Unlockable movement abilities (skill system later; F9 toggles in debug builds).
@@ -133,18 +160,55 @@ var _looking_at_cam: bool = false
 ## States in which the player may draw/sheathe or use the hotbar.
 const FREE_STATES := ["Idle", "Move", "Jump", "Fall"]
 
+## Co-op. false on the other players' captains here (puppets): no brain,
+## no input - they play back their owner's snapshots (see Net).
+var is_local: bool = true
+## The peer that controls this captain.
+var net_id: int = 1
+## Puppets: what the owner told us when joining (name, look).
+var net_profile: Dictionary = {}
+## A menu is open in co-op (the world keeps running): no control.
+var input_locked: bool = false
+## Knocked out in co-op: on the ground, waiting for a crewmate (see revive).
+var bleeding: bool = false
+var bleed_t: float = 0.0
+const BLEED_TIME := 20.0
+const REVIVE_TIME := 2.5
+const REVIVE_RANGE := 1.9
+const REVIVE_HEALTH := 0.3
+var _revive_t: float = 0.0
+var _revive_target: Node = null
+var _net_state: String = "Idle"
+var _net_flags: int = 0
+var _nameplate: Label3D
+const NF_COAT := 1
+const NF_BLEED := 2
+const NF_FLOOR := 4
+
 
 func _ready() -> void:
 	equipment = EquipmentComponent.new()
 	equipment.name = "EquipmentComponent"
 	add_child(equipment)
+	progression = Progression.new()
+	progression.name = "Progression"
+	add_child(progression)
+	power = PowerComponent.new()
+	power.name = "PowerComponent"
+	add_child(power)
+	inventory_component.item_added.connect(_on_item_added)
 	floor_snap_length = 0.1
 	floor_constant_speed = true
 	floor_max_angle = deg_to_rad(50.0)
+	add_to_group("players")
+	if not is_local:
+		_setup_puppet()
+		return
 	_build_body()
 	_give_starting_items()
 	GameManager.register_player(self)
 	hurtbox.hit_received.connect(_on_hit_received)
+	sword_hitbox.hit_landed.connect(func(target: Node, data: HitData): power.on_sword_hit(target, data))
 	health_component.died.connect(_on_died)
 	_recalc_stats()
 
@@ -162,8 +226,17 @@ func _build_body() -> void:
 	player_model.add_child(lean)
 	body_model = Humanoid.new()
 	body_model.name = "Body"
-	var first_launch := not CharacterLook.has_saved()
-	appearance = CharacterLook.default_look() if first_launch else CharacterLook.load_look()
+	body_model.swappable_hands = true
+	# which save slot this session plays (the title screen normally chose it)
+	SaveGame.ensure_session()
+	var first_launch := SaveGame.new_game if SaveGame.enabled() else not CharacterLook.has_saved()
+	var saved_look := SaveGame.peek_look()
+	if first_launch:
+		appearance = CharacterLook.default_look()
+	elif not saved_look.is_empty():
+		appearance = saved_look
+	else:
+		appearance = CharacterLook.load_look()
 	body_model.setup(appearance)
 	lean.add_child(body_model)
 	body_model.footstep.connect(_on_footstep)
@@ -185,6 +258,8 @@ func open_creator(first_time: bool = false) -> void:
 			# the outfit you designed becomes your starting gear
 			appearance = lk
 			_wear_outfit_of(lk)
+			# the new captain's slot exists from here on
+			SaveGame.save(self)
 		elif ok:
 			# later visits change body / face / hair only; clothes are gear now
 			for k in lk.keys():
@@ -227,7 +302,11 @@ func refresh_look() -> void:
 		return
 	body_model.apply_look(Gear.compose(appearance, equipment.slots))
 	CharacterLook.save_look(body_model.look)
+	if hybrid:
+		hybrid = false
+		set_hybrid(true)
 	_recalc_stats()
+	_net_look()
 
 
 ## Wear the gear at a bag position; whatever it replaces takes its place.
@@ -264,7 +343,12 @@ func attribute(name_: String) -> int:
 
 
 func defense() -> float:
-	return equipment.defense() if equipment else 0.0
+	var d := equipment.defense() if equipment else 0.0
+	if progression:
+		d += progression.stat("defense")
+		if hybrid:
+			d += progression.stat("hybrid_defense")
+	return d
 
 
 ## Share of incoming damage the worn gear soaks up (diminishing returns).
@@ -274,17 +358,42 @@ func damage_reduction() -> float:
 
 
 func _recalc_stats() -> void:
-	max_stamina = MAX_STAMINA + (attribute("endurance") - 5) * 8.0
+	var pr := progression
+	max_stamina = MAX_STAMINA + (attribute("endurance") - 5) * 8.0 + (pr.stat("max_stamina") if pr else 0.0)
 	stamina = minf(stamina, max_stamina)
 	var hc := health_component
 	if hc:
 		var mh := 100.0 + (attribute("endurance") - 5) * 10.0
+		if pr:
+			mh += pr.stat("max_hp") + float(pr.level - 1) * 4.0
 		if not is_equal_approx(hc.max_health, mh):
 			hc.max_health = mh
 			hc.current_health = minf(hc.current_health, mh)
 			hc.health_changed.emit(hc.current_health, mh)
+	var move_k := 1.0 + (pr.stat("move_pct") if pr else 0.0)
+	var sprint_k := 1.0 + (pr.stat("sprint_pct") if pr else 0.0)
+	if hybrid:
+		var hk := 1.15 + (pr.stat("hybrid_speed_pct") if pr else 0.0)
+		move_k *= hk
+		sprint_k *= hk
+	if power and power.buff("howl"):
+		move_k *= 1.15
+		sprint_k *= 1.15
+	if power and power.buff("tekkai"):
+		move_k *= 0.3
+		sprint_k *= 0.3
+	move_speed = BASE_MOVE * move_k
+	sprint_speed = BASE_SPRINT * sprint_k
+	var air := int(pr.stat("air_jumps")) if pr else 0
+	if has_ability("double_jump"):
+		air = maxi(air, 1)
+	max_jumps = 1 + air
 	stamina_changed.emit(stamina, max_stamina)
 	stats_changed.emit()
+
+
+func dodge_cost() -> float:
+	return DODGE_COST * (1.0 - progression.stat("dodge_cost_pct"))
 
 
 ## Getting hit: damage (less armor), a short flinch with a little shove
@@ -298,24 +407,78 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		dir = global_position - (attacker as Node3D).global_position
 		dir.y = 0.0
 	dir = dir.normalized() if dir.length() > 0.01 else player_model.global_basis.z
-	if is_parrying:
+	# an unblockable attack (the enemy flashed red) gets through parries and blocks
+	if is_parrying and not hit.unblockable:
 		if attacker and attacker.has_method("parried"):
 			attacker.call("parried", self)
 		return
+	if is_blocking and not hit.unblockable and not hit.dot and current_state_name() == "Block":
+		var fwd := -player_model.global_basis.z
+		fwd.y = 0.0
+		if fwd.normalized().dot(-dir) > 0.25:
+			var blk = state_machine.states.get("block")
+			if blk and blk.absorb(hit, dir):
+				return
+			# out of stamina: the guard breaks
+			Net.fx("sparkle", [global_position + Vector3(0, 1.4, 0), 10, Color(1.0, 0.8, 0.4)])
+			_toast("Guard broken!")
+			state_machine.force_state("Stagger", {"stagger_duration": 0.6, "knockback_dir": dir, "knockback_force": 4.0, "flinch": false})
+			health_component.take_damage(hit.damage * 0.5 * (1.0 - damage_reduction()))
+			return
+	# Observation Haki: Foresight dodges the next hit by itself
+	if power.buff("foresight") and not hit.dot:
+		power.buffs["foresight"] = 0.0
+		_foresight_dodge(dir)
+		return
+	_since_hit = 0.0
+	var dmg := hit.damage * (1.0 - damage_reduction())
+	if power.buff("tekkai"):
+		dmg *= 0.3
+	# Last Stand: once a minute, a killing blow leaves you at 1
+	if progression.has_flag("last_stand") and _last_stand_cd <= 0.0 and dmg >= health_component.current_health and health_component.current_health > 1.0:
+		dmg = health_component.current_health - 1.0
+		_last_stand_cd = 60.0
+		Net.fx("sparkle", [global_position + Vector3(0, 1.2, 0), 18, Color(1.0, 0.85, 0.4)])
+		_toast("Last Stand!")
+	# Thorn Hide: melee attackers get pricked
+	var thorns := progression.stat("thorn_hide")
+	if thorns > 0.0 and not hit.ranged and attacker and attacker.get("hurtbox") is Hurtbox:
+		var th := HitData.new()
+		th.dot = true
+		th.damage = thorns
+		(attacker.get("hurtbox") as Hurtbox).take_hit(th, self)
+		Net.fx("sparkle", [(attacker as Node3D).global_position + Vector3(0, 1.0, 0), 4, Color(0.5, 0.9, 0.3)])
 	_last_hit_velocity = dir * maxf(hit.knockback_force, 3.0) + Vector3.UP * (3.5 if hit.knockdown else 2.0)
-	health_component.take_damage(hit.damage * (1.0 - damage_reduction()))
-	FX.impact(global_position + Vector3(0, 1.0, 0) - dir * 0.3, Color(1.0, 0.55, 0.45))
-	FX.sfx("hit", global_position, -3.0, 0.08, 0.8)
+	health_component.take_damage(dmg)
+	Net.fx("impact", [global_position + Vector3(0, 1.0, 0) - dir * 0.3, Color(1.0, 0.55, 0.45)])
+	Net.fx("sfx", ["hit", global_position, -3.0, 0.08, 0.8])
 	get_node("/root/CombatManager").apply_hit_effects(hit)
 	if health_component.current_health <= 0.0:
 		return  # _on_died ragdolls the body
 	if context != Context.ON_FOOT or current_state_name() in ["Talk", "Helm"]:
 		return
+	if power.buff("tekkai"):
+		return  # Tekkai: nothing moves you
 	if hit.knockdown:
 		knock_down(_last_hit_velocity)
 		return
+	if progression.has_flag("steadfast"):
+		return  # Steadfast: light hits don't make you flinch
 	state_machine.force_state("Stagger", {"stagger_duration": clampf(hit.stagger_duration * 0.5, 0.12, 0.22),
 		"knockback_dir": dir, "knockback_force": minf(hit.knockback_force * 0.5, 4.0), "flinch": true})
+
+
+## Foresight: you saw it coming - an instant sidestep with an afterimage and
+## a beat of slow motion.
+func _foresight_dodge(dir: Vector3) -> void:
+	var side := Vector3.UP.cross(dir).normalized() * (1.0 if randf() < 0.5 else -1.0)
+	Net.fx("afterimage", [body_model, Color(0.95, 0.5, 0.8)])
+	global_position += side * 1.6
+	velocity = side * 4.0
+	reset_physics_interpolation()
+	Net.fx("sfx", ["whoosh", global_position, -4.0, 0.05, 1.5])
+	CombatManager.apply_hitstop(0.18)
+	_toast("Foresight!")
 
 
 ## Thrown off your feet: physics ragdoll, then get back up.
@@ -326,7 +489,22 @@ func knock_down(throw_velocity: Vector3) -> void:
 
 
 func _on_died() -> void:
+	if not is_local:
+		return
+	# co-op with a crewmate still standing: you go down instead, and they
+	# have a while to get you back up
+	if Net.coop() and Net.others_standing() and context == Context.ON_FOOT:
+		bleeding = true
+		bleed_t = BLEED_TIME
+		_revive_t = 0.0
+		_toast("You're down! A crewmate can get you up (hold F next to you)")
 	if context != Context.ON_FOOT:
+		return
+	# already down (e.g. drowning, or hit while on the ground): just go limp
+	if current_state_name() == "Downed" and body_model.ragdoll != null:
+		var ds := state_machine.current_state
+		ds.set("dead", true)
+		body_model.relax_ragdoll()
 		return
 	state_machine.force_state("Downed", {"dead": true, "velocity": _last_hit_velocity})
 
@@ -364,7 +542,7 @@ func has_ability(ability: String) -> bool:
 
 func set_ability(ability: String, unlocked: bool) -> void:
 	abilities[ability] = unlocked
-	max_jumps = 2 if has_ability("double_jump") else 1
+	_recalc_stats()
 	jumps_remaining = mini(jumps_remaining, max_jumps) if not is_on_floor() else max_jumps
 	abilities_changed.emit()
 
@@ -375,6 +553,10 @@ func set_ability(ability: String, unlocked: bool) -> void:
 func _process(delta: float) -> void:
 	if body_model == null:
 		return
+	if not is_local:
+		_puppet_process(delta)
+		return
+	body_model.net_sync = Net.active
 	var hv := Vector3(velocity.x, 0, velocity.z)
 	var local := player_model.global_basis.inverse() * hv
 	body_model.ground_speed = hv.length()
@@ -383,12 +565,161 @@ func _process(delta: float) -> void:
 	body_model.vertical_speed = velocity.y
 	body_model.armed = armed
 	body_model.sprinting = sprinting
+	body_model.stance = style()
 	_update_head_look()
+	_tick_body(delta)
+	_point_pistols()
 	if _using_item:
 		_use_timer -= delta
 		if _use_timer <= 0.0:
 			_finish_use()
 	_update_lean(delta)
+
+
+## Pistols in hand point where you face (pitched with the aim) instead of
+## along the wrist.
+func _point_pistols() -> void:
+	if weapon_class() != "gun" or not body_model.weapon_in_hand or reloading():
+		return
+	var fwd := -player_model.global_basis.z
+	fwd.y = 0.0
+	if fwd.length() < 0.01:
+		return
+	fwd = fwd.normalized()
+	var dir := (fwd * cos(body_model.aim_pitch) + Vector3.UP * sin(body_model.aim_pitch)).normalized()
+	for w in [body_model.weapon, body_model.offhand]:
+		if w and is_instance_valid(w) and (w as Node3D).is_inside_tree():
+			(w as Node3D).global_basis = Basis.looking_at(dir, Vector3.UP)
+
+
+func _tick_body(delta: float) -> void:
+	_since_hit += delta
+	_last_stand_cd = maxf(_last_stand_cd - delta, 0.0)
+	var hc := health_component
+	if hc.current_health <= 0.0 or current_state_name() == "Downed":
+		return
+	# Mend: heal out of combat
+	var regen := progression.stat("regen_hp")
+	# Vine Fruit: Photosynthesis (out of combat, on land)
+	if power.fruit == "vine" and _since_hit > 4.0 and is_on_floor() and water_depth() < 0.3:
+		var k := 1.0 + progression.stat("photo_mult")
+		regen += 1.5 * k
+		power.add_energy(3.0 * k * delta)
+		if randf() < delta * 1.5:
+			Net.fx("sparkle", [global_position + Vector3(randf_range(-0.4, 0.4), randf_range(0.4, 1.6), randf_range(-0.4, 0.4)), 1, Color(0.6, 1.0, 0.4)])
+	if regen > 0.0 and _since_hit > 5.0 and hc.current_health < hc.max_health:
+		hc.heal(regen * delta)
+	# pistols reload by themselves once empty (or put away)
+	if _reload_t > 0.0:
+		_reload_t -= delta
+		if _reload_t <= 0.0:
+			ammo[0] = max_ammo()
+			ammo[1] = max_ammo()
+			Net.fx("sfx", ["blip_low", global_position, -14.0, 0.05, 1.6])
+	if _coat_on and not power.buff("coat"):
+		update_coat_visual()
+	elif _coat_on:
+		# purple sparks crawl over the coated arm
+		_coat_fx -= delta
+		if _coat_fx <= 0.0:
+			_coat_fx = 0.12
+			var hand: Node3D = body_model.hand_r if randf() < 0.6 or weapon_class() not in ["fist", "claw"] else body_model.hand_l
+			Net.fx("sparkle", [hand.global_position + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, HAKI_SPARK])
+	# buffs that change speed come and go
+	var buff_key := "%s|%s" % [power.buff("howl"), power.buff("tekkai")]
+	if buff_key != _buff_key:
+		_buff_key = buff_key
+		_recalc_stats()
+
+
+var _buff_key := ""
+var _coat_on: bool = false
+var _coat_fx: float = 0.0
+## Armament Haki colors: the coated limb and blade, the slash trails.
+const HAKI_BLACK := Color(0.07, 0.03, 0.11)
+const HAKI_TRAIL := Color(0.62, 0.25, 1.0)
+const HAKI_SPARK := Color(0.75, 0.45, 1.0)
+
+
+## Armament: Coat darkens the weapons (or fists) while it lasts.
+## Armament: Coat - the weapon arm (both arms when fighting bare-handed or
+## with two blades) turns glossy black with a purple sheen, and so do the
+## blades.
+func update_coat_visual() -> void:
+	var on := power.buff("coat")
+	_coat_on = on
+	var skin: Material = null
+	var blade: Material = null
+	if on:
+		# PSX materials, so the coat snaps and warps exactly like the body under it
+		skin = PSXMat.lit("", HAKI_BLACK, {"emission": Color(0.25, 0.06, 0.45), "emission_energy": 0.35, "vertex_color": false})
+		blade = PSXMat.lit("metal", HAKI_BLACK.lightened(0.05), {"emission": Color(0.4, 0.1, 0.7), "emission_energy": 0.8})
+	for w in [body_model.weapon, body_model.offhand]:
+		if w and is_instance_valid(w):
+			(w as MeshInstance3D).material_override = blade
+	var both := weapon_class() in ["fist", "claw"] or offhand_weapon != null
+	var bones: Array = [body_model.arm_r, body_model.fore_r]
+	if both:
+		bones.append_array([body_model.arm_l, body_model.fore_l])
+	for side in [[body_model.arm_r, body_model.fore_r], [body_model.arm_l, body_model.fore_l]]:
+		for bone in side:
+			for c in (bone as Node3D).get_children():
+				if c is MeshInstance3D and c != body_model.weapon and c != body_model.offhand:
+					(c as MeshInstance3D).material_override = skin if bone in bones else null
+
+
+# --------------------------------------------------------------------------
+# Zoan: hybrid form
+# --------------------------------------------------------------------------
+const FUR := Color(0.55, 0.5, 0.44)
+
+
+func toggle_hybrid() -> void:
+	if current_state_name() not in FREE_STATES and current_state_name() not in ["LightAttack", "HeavyAttack"]:
+		return
+	set_hybrid(not hybrid)
+
+
+func set_hybrid(on: bool) -> void:
+	if on == hybrid:
+		return
+	hybrid = on
+	var lk := Gear.compose(appearance, equipment.slots)
+	if on:
+		lk["skin"] = FUR
+		lk["hair"] = "wild"
+		lk["hair_color"] = FUR.darkened(0.25)
+		lk["facial_hair"] = "beard"
+		lk["eye_color"] = Color(0.95, 0.75, 0.2)
+		lk["hat"] = "none"
+		lk["height"] = float(lk.get("height", 1.0)) * 1.1
+		lk["build"] = "broad"
+	body_model.apply_look(lk)
+	body_model.set_beast(on, FUR)
+	# weapons stay sheathed in hybrid form: you fight with claws
+	if on:
+		body_model._attach_weapon(false)
+		if body_model.weapon:
+			body_model.weapon.visible = false
+		if body_model.offhand:
+			body_model.offhand.visible = false
+		armed = true
+		armed_changed.emit(true)
+	else:
+		if body_model.weapon:
+			body_model.weapon.visible = true
+		if body_model.offhand:
+			body_model.offhand.visible = true
+		body_model._attach_weapon(armed and equipped_weapon != null)
+	Net.fx("smoke", [global_position + Vector3(0, 1.0, 0), 10, 1.4, 1.2])
+	Net.fx("dust_ring", [global_position, 14, 0.9])
+	Net.fx("sfx", ["howl" if on else "whoosh_big", global_position, -4.0, 0.05, 1.15 if on else 0.8])
+	if on and is_inside_tree():
+		FX.power_aura.call_deferred(body_model, "wolf", 2.0)
+	CombatManager.apply_camera_shake(0.12)
+	_recalc_stats()
+	weapon_changed.emit(equipped_weapon)
+	_net_look()
 
 
 ## The head eases toward where the camera aims. Once the camera swings more
@@ -440,6 +771,14 @@ func _update_lean(delta: float) -> void:
 	tilt = tilt.limit_length(max_lean)
 	if not is_on_floor():
 		tilt *= 0.4
+		# jump momentum: tipped forward into the take-off, rocking back as you
+		# come down to land - only when you're actually travelling
+		if context == Context.ON_FOOT and current_state_name() in ["Jump", "Fall"]:
+			var hv := Vector3(velocity.x, 0.0, velocity.z)
+			var travel := clampf((hv.length() - 1.0) / 4.0, 0.0, 1.0)
+			if travel > 0.0:
+				var arc := clampf(velocity.y / jump_force, -1.0, 1.0)
+				tilt += hv.normalized() * air_lean * arc * travel
 	var tilt_q := Quaternion.IDENTITY
 	var ang := tilt.length()
 	if ang > 0.0005:
@@ -455,7 +794,22 @@ func _update_lean(delta: float) -> void:
 		var n := player_model.global_basis.inverse() * get_floor_normal()
 		up = Vector3.UP.slerp(n.normalized(), slope_align)
 	var target := Quaternion(Vector3.UP, up) * tilt_q
-	_lean_q = _lean_q.slerp(target, minf(12.0 * delta, 1.0))
+	var lean_rate := 12.0
+	if not align_hold and align_w > 0.0:
+		if is_on_floor():
+			align_w = 0.0
+		else:
+			var k := 1.0 if height_above_ground() > 2.5 else 4.5
+			align_w = move_toward(align_w, 0.0, k * delta)
+	if align_w > 0.001:
+		var lu := (player_model.global_basis.orthonormalized().inverse() * align_up).normalized()
+		# never more than ~80 degrees off upright
+		var off_up := Vector3.UP.angle_to(lu)
+		if off_up > 1.4:
+			lu = Vector3.UP.slerp(lu, 1.4 / off_up).normalized()
+		target = target.slerp(Quaternion(Vector3.UP, lu), clampf(align_w, 0.0, 1.0))
+		lean_rate = 16.0
+	_lean_q = _lean_q.slerp(target, minf(lean_rate * delta, 1.0))
 	# damped spring for squash & stretch (bouncy, slightly under-damped).
 	# Fixed substeps: one long frame (a hitch, or the first frame after a
 	# pause) must not blow the spring up into a stretched-tall character.
@@ -470,6 +824,12 @@ func _update_lean(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if not is_local:
+		return
+	if bleeding:
+		_bleed_tick(delta)
+	elif Net.coop():
+		_revive_tick(delta)
 	var on_floor := is_on_floor()
 	if on_floor:
 		_coyote = coyote_time
@@ -488,7 +848,15 @@ func _physics_process(delta: float) -> void:
 
 
 ## States that drop into swimming when the water gets deep enough.
-const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger"]
+const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing"]
+
+
+## Distance down to the ground (or INF over nothing within 30 m).
+func height_above_ground() -> float:
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.1, global_position + Vector3.DOWN * 30.0, 1)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return INF if hit.is_empty() else global_position.y - (hit["position"] as Vector3).y
 
 
 ## Height of the ocean surface (with the waves) at a point (default: here).
@@ -503,6 +871,40 @@ func water_surface(at: Vector3 = Vector3.INF) -> float:
 ## How far the water surface is above your feet (negative = dry).
 func water_depth() -> float:
 	return water_surface() - global_position.y
+
+
+## Water depth under a point (surface to sea floor); see Ocean.depth_at.
+func water_depth_at(at: Vector3) -> float:
+	var ocean := get_node_or_null("/root/Ocean")
+	if ocean == null:
+		return -INF
+	return float(ocean.call("depth_at", at, [get_rid()]))
+
+
+## Leave the ragdoll straight into swimming: the body is floating in deep
+## water, so instead of a get-up it rights itself and starts treading water.
+func recover_into_swim() -> void:
+	var info := body_model.ragdoll_rest_info()
+	var face_up: bool = info["face_up"]
+	var head_dir: Vector3 = info["head_dir"]
+	var f := -head_dir if face_up else head_dir
+	player_model.rotation.y = atan2(-f.x, -f.z)
+	reset_lean()
+	var hip := body_model.hip_y * body_model.scale.y
+	var y := water_surface() - 0.42 * body_model.scale.y - hip
+	if power.has_fruit():
+		y = minf(y, body_model.hips.global_position.y - hip)  # cursed: no bobbing up
+	var space := get_world_3d().direct_space_state
+	# don't put the feet into the sea floor
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 2.0, global_position + Vector3.DOWN * 20.0, 1)
+	q.exclude = [get_rid()]
+	var hit := space.intersect_ray(q)
+	if not hit.is_empty():
+		y = maxf(y, (hit["position"] as Vector3).y + 0.02)
+	global_position.y = y
+	velocity = Vector3.ZERO
+	body_model.recover_from_ragdoll(face_up, info["hips_xform"], 0.7)
+	state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
 
 
 func is_swimming() -> bool:
@@ -577,7 +979,8 @@ func _regen_stamina(delta: float) -> void:
 		_stamina_delay -= delta
 		return
 	if stamina < max_stamina and stamina_regen_mult > 0.0:
-		stamina = minf(stamina + STAMINA_REGEN * stamina_regen_mult * delta, max_stamina)
+		var k := 1.0 + progression.stat("stamina_regen_pct")
+		stamina = minf(stamina + STAMINA_REGEN * stamina_regen_mult * k * delta, max_stamina)
 		stamina_changed.emit(stamina, max_stamina)
 
 
@@ -605,17 +1008,43 @@ func _update_lean_target(delta: float) -> void:
 	_lean_tilt = cam_f * fwd + cam_r * side
 
 
+## Falls up to ~5 m are free (a double or triple jump never hurts); past
+## that the landing hurts - about 25 damage from 8 m, 50 from 12 m, 85 from
+## 20 m or more - and a long drop leaves you reeling. A plunge attack's dive
+## doesn't count. (Falling is 1.6x gravity, so a 5 m drop lands at ~18 m/s.)
+const SAFE_FALL_SPEED := 18.0
+const FALL_DAMAGE_PER_MS := 5.3
+
+
 func _on_landed(impact_vy: float) -> void:
 	var k := clampf(-impact_vy / 16.0, 0.0, 1.0)
+	var speed := -impact_vy
+	if speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
+		_fall_damage(speed)
 	if k < 0.15:
 		return
 	squash(-2.0 - 5.0 * k)
-	FX.dust_ring(global_position, int(6 + 14 * k), 0.6 + 0.6 * k)
-	FX.sfx("land", global_position, -8.0 + 6.0 * k)
+	Net.fx("dust_ring", [global_position, int(6 + 14 * k), 0.6 + 0.6 * k])
+	Net.fx("sfx", ["land", global_position, -8.0 + 6.0 * k])
+
+
+func _fall_damage(speed: float) -> void:
+	var dmg := (speed - SAFE_FALL_SPEED) * FALL_DAMAGE_PER_MS
+	if power.buff("tekkai"):
+		dmg *= 0.3
+	_since_hit = 0.0
+	health_component.take_damage(dmg)
+	Net.fx("sfx", ["thud", global_position, -2.0, 0.05, 0.8])
+	Net.fx("dust_ring", [global_position, 18, 1.2])
+	CombatManager.apply_camera_shake(clampf(dmg / 60.0, 0.1, 0.4))
+	Net.damage_number(roundf(dmg), global_position + Vector3(0, 1.9, 0))
+	if health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai"):
+		state_machine.force_state("Stagger", {"stagger_duration": 0.55, "knockback_dir": Vector3.ZERO, "knockback_force": 0.0, "flinch": false})
 
 
 func _on_footstep(strength: float) -> void:
-	if not is_on_floor():
+	# (a puppet isn't moved by physics here: its owner says if it's grounded)
+	if not (is_on_floor() if is_local else bool(_net_flags & NF_FLOOR)):
 		return
 	_step_count += 1
 	FX.sfx("step", global_position, -20.0 + 10.0 * strength, 0.15)
@@ -625,7 +1054,7 @@ func _on_footstep(strength: float) -> void:
 		FX.splash(Vector3(global_position.x, global_position.y + wet, global_position.z), 2 + int(strength * 3.0), 0.45)
 		FX.sfx("splash", global_position, -16.0 + 6.0 * strength, 0.15, 1.3)
 		return
-	if sprinting:
+	if sprinting or (not is_local and body_model.sprinting):
 		squash(-0.9)
 		FX.dust(global_position + Vector3(0, 0.05, 0), 4, 0.5)
 	elif strength > 0.4 and _step_count % 2 == 0:
@@ -669,6 +1098,8 @@ func reset_combo() -> void:
 
 
 func current_state_name() -> String:
+	if not is_local:
+		return _net_state
 	return str(state_machine.current_state.name) if state_machine and state_machine.current_state else ""
 
 
@@ -677,15 +1108,22 @@ func is_free() -> bool:
 
 
 # --------------------------------------------------------------------------
-# Input: ready weapon + hotbar
+# Input: ready weapon + quick items
 # --------------------------------------------------------------------------
 func _unhandled_input(event: InputEvent) -> void:
+	if not is_local or input_locked:
+		return
 	if event.is_action_pressed("jump"):
 		buffer_jump()
-	# debug builds: F9 toggles the double jump until the skill system exists
+	# debug builds: F9 grants a level (try the skill map)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F9:
-		set_ability("double_jump", not has_ability("double_jump"))
-		_toast("Debug: double jump %s" % ("unlocked" if has_ability("double_jump") else "locked"))
+		progression.add_xp(Progression.xp_to_next(progression.level) - progression.xp)
+		get_viewport().set_input_as_handled()
+		return
+	# Zoan: shift between human and hybrid form
+	if event.is_action_pressed("transform"):
+		if power.fruit_type() == "zoan":
+			toggle_hybrid()
 		get_viewport().set_input_as_handled()
 		return
 	# debug builds: F10 knocks you over (try the ragdoll + get-up)
@@ -699,6 +1137,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_weapon()
 		get_viewport().set_input_as_handled()
 		return
+	# Devil Fruit skills (1-4) and the ultimate (R)
+	for i in range(5):
+		var act := "ultimate" if i == 4 else "skill_%d" % (i + 1)
+		if event.is_action_pressed(act):
+			if context == Context.ON_FOOT and current_state_name() not in ["Talk", "Downed", "Skill"]:
+				power.try_cast(i)
+			get_viewport().set_input_as_handled()
+			return
 	for i in range(InventoryComponent.HOTBAR_SIZE):
 		if event.is_action_pressed("hotbar_%d" % (i + 1)):
 			activate_hotbar(i)
@@ -715,12 +1161,7 @@ func activate_hotbar(slot: int) -> void:
 	if inventory_component.count(item.id) <= 0:
 		_toast("Out of %s" % item.display_name)
 		return
-	if item.is_weapon():
-		if equipped_weapon == item:
-			toggle_weapon()
-		else:
-			equip_weapon(item, true)
-	elif item.is_consumable():
+	if item.is_consumable() and item.devil_fruit == "":
 		use_item(item)
 
 
@@ -732,9 +1173,105 @@ func equip_weapon(item: ItemData, draw: bool = true) -> void:
 		return
 	equipped_weapon = item
 	body_model.set_weapon(Props.weapon_mesh(item.weapon_model))
+	if offhand_weapon and not _offhand_valid(offhand_weapon):
+		set_offhand(null)
+	_reset_ammo()
 	weapon_changed.emit(item)
 	if draw and not armed:
 		draw_weapon()
+
+
+## Fight with your fists (no weapon in the main hand).
+func unequip_weapon() -> void:
+	equipped_weapon = null
+	set_offhand(null)
+	body_model.set_weapon(null)
+	weapon_changed.emit(null)
+
+
+## Weapon class of an item: "sword" or "gun".
+static func class_of(item: ItemData) -> String:
+	if item == null:
+		return "fist"
+	return "gun" if item.weapon_model in ["pistol", "rifle"] else "sword"
+
+
+## What you're fighting with: fist / sword / gun / claw (Zoan hybrid).
+func weapon_class() -> String:
+	if hybrid:
+		return "claw"
+	return class_of(equipped_weapon)
+
+
+## Fighting style: fist, sword, dual_sword, pistol, dual_pistol or claw.
+func style() -> String:
+	var c := weapon_class()
+	var dual := offhand_weapon != null and not hybrid
+	match c:
+		"sword":
+			return "dual_sword" if dual else "sword"
+		"gun":
+			return "dual_pistol" if dual else "pistol"
+	return c
+
+
+func _offhand_valid(item: ItemData) -> bool:
+	if item == null or equipped_weapon == null:
+		return false
+	if class_of(item) != class_of(equipped_weapon):
+		return false
+	if item == equipped_weapon and inventory_component.count(item.id) < 2:
+		return false
+	return inventory_component.count(item.id) > 0
+
+
+## Hold a second sword or pistol in the off hand (dual wielding). null clears it.
+func set_offhand(item: ItemData) -> bool:
+	if item != null and not _offhand_valid(item):
+		return false
+	offhand_weapon = item
+	body_model.set_offhand(Props.weapon_mesh(item.weapon_model) if item else null)
+	_reset_ammo()
+	weapon_changed.emit(equipped_weapon)
+	return true
+
+
+## Picking up a second sword or pistol: dual wield it right away.
+func _on_item_added(item: ItemData, _qty: int) -> void:
+	if not item.is_weapon() or equipped_weapon == null or offhand_weapon != null:
+		return
+	if class_of(item) == class_of(equipped_weapon) and _offhand_valid(item):
+		set_offhand(item)
+		_toast("Dual wielding: %s + %s" % [equipped_weapon.display_name, item.display_name])
+
+
+# --------------------------------------------------------------------------
+# Pistols
+# --------------------------------------------------------------------------
+func max_ammo() -> int:
+	return 2 + int(progression.stat("extra_shots"))
+
+
+func _reset_ammo() -> void:
+	ammo = [max_ammo(), max_ammo()]
+	_reload_t = 0.0
+
+
+func reloading() -> bool:
+	return _reload_t > 0.0
+
+
+func reload_time() -> float:
+	var t := 1.5 if offhand_weapon else 1.1
+	return t * (1.0 - progression.stat("reload_pct"))
+
+
+func start_reload() -> void:
+	if _reload_t > 0.0:
+		return
+	_reload_t = reload_time()
+	body_model.play("reload", _reload_t)
+	Net.fx("sfx", ["blip_low", global_position, -12.0, 0.05, 1.1])
 
 
 func toggle_weapon() -> void:
@@ -744,20 +1281,18 @@ func toggle_weapon() -> void:
 		draw_weapon()
 
 
-func draw_weapon() -> void:
+## Ready your weapon (or raise your fists when you have none). quick: no draw
+## animation (skills that need the weapon out).
+func draw_weapon(quick: bool = false) -> void:
 	if armed:
 		return
-	if equipped_weapon == null:
-		# pick the first weapon we carry
-		for stack in inventory_component.items:
-			if stack.item.is_weapon():
-				equip_weapon(stack.item, false)
-				break
-	if equipped_weapon == null:
-		_toast("No weapon")
-		return
 	armed = true
-	body_model.play("draw", 0.35)
+	if equipped_weapon == null or hybrid:
+		body_model.play("fists_up", 0.25)
+	elif quick:
+		body_model._attach_weapon(true)
+	else:
+		body_model.play("draw", 0.35)
 	armed_changed.emit(true)
 
 
@@ -779,9 +1314,53 @@ func can_attack() -> bool:
 	return armed and not (body_model.current_action() in ["draw", "sheathe", "drink"])
 
 
+## A melee hit for `base` damage with your bonuses (and Haki coating).
+func melee_hit(base: float) -> HitData:
+	var h := HitData.new()
+	h.damage = base * damage_multiplier()
+	if power.buff("coat"):
+		# Armament: Coat - nothing can block it, and it breaks red wind-ups
+		h.unblockable = true
+		h.haki = true
+	return h
+
+
+## Size the melee hitbox for the style: sword, wide (dual blades), fist, claw.
+const REACH := {
+	"sword": [Vector3(1.8, 1.2, 1.6), Vector3(-0.3, 0.2, -0.9)],
+	"wide": [Vector3(2.4, 1.2, 1.7), Vector3(-0.3, 0.2, -0.95)],
+	"fist": [Vector3(1.3, 1.2, 1.15), Vector3(-0.3, 0.2, -0.7)],
+	"claw": [Vector3(1.7, 1.2, 1.35), Vector3(-0.3, 0.2, -0.78)],
+}
+
+
+func set_reach(kind: String) -> void:
+	var cs := sword_hitbox.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if cs == null or not (cs.shape is BoxShape3D):
+		return
+	var r: Array = REACH.get(kind, REACH["sword"])
+	(cs.shape as BoxShape3D).size = r[0]
+	cs.position = r[1]
+
+
 func damage_multiplier() -> float:
-	var w := equipped_weapon.damage_mult if equipped_weapon else 1.0
-	return w * (1.0 + (attribute("strength") - 5) * 0.05)
+	var w := equipped_weapon.damage_mult if (equipped_weapon and not hybrid) else 1.0
+	var pr := progression
+	var k := 1.0 + (attribute("strength") - 5) * 0.05 + pr.stat("damage_pct") + float(pr.level - 1) * 0.02
+	match style():
+		"sword":
+			k += pr.stat("sword_pct")
+		"dual_sword":
+			k += pr.stat("sword_pct") + pr.stat("dual_sword_pct")
+		"pistol", "dual_pistol":
+			k += pr.stat("gun_pct")
+		"claw":
+			k += 0.25
+	if power.buff("coat"):
+		k += 0.3
+	if power.buff("howl"):
+		k += 0.25
+	return w * k
 
 
 # --------------------------------------------------------------------------
@@ -791,6 +1370,9 @@ func use_item(item: ItemData) -> void:
 	if _using_item or not item.is_consumable():
 		return
 	if not current_state_name() in ["Idle", "Move"]:
+		return
+	if item.devil_fruit != "":
+		eat_devil_fruit(item)
 		return
 	if item.heal_amount > 0.0 and health_component.current_health >= health_component.max_health:
 		_toast("Already at full health")
@@ -803,9 +1385,51 @@ func use_item(item: ItemData) -> void:
 	body_model.play("drink", item.use_time)
 
 
+## Eat a Devil Fruit (the inventory asks first: it can't be undone).
+func eat_devil_fruit(item: ItemData) -> void:
+	if power.has_fruit():
+		_toast("A second Devil Fruit would kill you")
+		return
+	if not inventory_component.remove_item(item, 1):
+		return
+	for i in range(InventoryComponent.HOTBAR_SIZE):
+		if inventory_component.hotbar[i] == item.id:
+			inventory_component.clear_hotbar_slot(i)
+	_using_item = item
+	_use_timer = item.use_time
+	body_model.show_left_prop(Props.devil_fruit_mesh("devil_fruit_" + item.devil_fruit))
+	body_model.play("eat", item.use_time)
+	for k in range(3):
+		get_tree().create_timer(0.3 + k * 0.38).timeout.connect(func(): Net.fx("sfx", ["crunch", global_position + Vector3(0, 1.5, 0), -4.0, 0.1]))
+
+
 func _finish_use() -> void:
 	var item := _using_item
 	_using_item = null
+	if item.devil_fruit != "":
+		body_model.hide_left_prop()
+		power.eat(item.devil_fruit)
+		var fd := DevilFruits.get_fruit(item.devil_fruit)
+		var col: Color = fd.get("color", Color.WHITE)
+		match item.devil_fruit:
+			"ember":
+				Net.fx("flame", [global_position + Vector3(0, 0.9, 0), 26, 1.0, 0.8, 0.7])
+				Net.fx("fire_ring", [global_position, 2.5, 30])
+				Net.fx("sfx", ["fire_blast", global_position, -4.0, 0.05, 1.1])
+			"wolf":
+				Net.fx("smoke", [global_position + Vector3(0, 1.0, 0), 10, 1.4, 1.2])
+				Net.fx("sfx", ["howl", global_position, -2.0, 0.03])
+			_:
+				Net.fx("sparkle", [global_position + Vector3(0, 1.0, 0), 30, col])
+				Net.fx("dust_ring", [global_position, 14, 1.0])
+				Net.fx("sfx", ["whoosh_big", global_position, -4.0, 0.05, 0.8])
+		CombatManager.apply_camera_shake(0.25)
+		var line: String = {"logia": "Your body is %s now... but the sea will never hold you again." % ("fire" if item.devil_fruit == "ember" else "an element"),
+			"zoan": "The beast is in you now (press V)... but the sea will never hold you again.",
+			"paramecia": "Plants answer to you now... but the sea will never hold you again."}.get(power.fruit_type(), "")
+		get_tree().call_group("hud", "show_banner", "%s (%s)" % [fd.get("name", "Devil Fruit"), DevilFruits.type_name(item.devil_fruit)], line, true)
+		SaveGame.save(self)
+		return
 	if item.heal_amount > 0.0:
 		health_component.heal(item.heal_amount)
 		_toast("+%d health" % int(item.heal_amount))
@@ -817,3 +1441,334 @@ func is_using_item() -> bool:
 
 func _toast(text: String) -> void:
 	get_tree().call_group("hud", "show_toast", text)
+
+
+# ==========================================================================
+# Co-op: puppets of the other players' captains
+# ==========================================================================
+## A puppet's setup: the same body and parts, but no brain, input or camera.
+func _setup_puppet() -> void:
+	remove_from_group("player")
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	collision_mask = 0
+	for n in [state_machine, input_buffer, interaction_component, power, progression, inventory_component, equipment]:
+		(n as Node).process_mode = Node.PROCESS_MODE_DISABLED
+	interaction_component.set_deferred("monitoring", false)
+	interaction_component.set_deferred("monitorable", false)
+	sword_hitbox.deactivate()
+	var capsule := player_model.get_node_or_null("MeshInstance3D")
+	if capsule:
+		capsule.visible = false
+	var old_sword := sword_pivot.get_node_or_null("SwordMesh")
+	if old_sword:
+		old_sword.visible = false
+	lean = Node3D.new()
+	lean.name = "Lean"
+	player_model.add_child(lean)
+	body_model = Humanoid.new()
+	body_model.name = "Body"
+	body_model.swappable_hands = true
+	var lk: Dictionary = net_profile.get("look", {})
+	appearance = lk if not lk.is_empty() else CharacterLook.default_look()
+	body_model.setup(appearance)
+	lean.add_child(body_model)
+	body_model.footstep.connect(_on_footstep)
+	_nameplate = Label3D.new()
+	_nameplate.name = "Nameplate"
+	_nameplate.font = load("res://assets/fonts/PixelifySans-Regular.woff2")
+	_nameplate.font_size = 34
+	_nameplate.pixel_size = 0.007
+	_nameplate.outline_size = 10
+	_nameplate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_nameplate.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	_nameplate.no_depth_test = true
+	_nameplate.fixed_size = false
+	_nameplate.position = Vector3(0, 2.25, 0)
+	_nameplate.modulate = Color(0.85, 0.95, 1.0)
+	add_child(_nameplate)
+	_update_nameplate()
+	visible = false  # until the first snapshot
+
+
+func _update_nameplate() -> void:
+	if _nameplate == null:
+		return
+	var nm := str(net_profile.get("name", body_model.look.get("name", "Captain") if body_model else "Captain"))
+	if _net_flags & NF_BLEED:
+		_nameplate.text = "%s\n[DOWN]" % nm
+		_nameplate.modulate = Color(1.0, 0.45, 0.35)
+	else:
+		_nameplate.text = nm
+		_nameplate.modulate = Color(0.85, 0.95, 1.0)
+
+
+func display_name() -> String:
+	if not is_local:
+		return str(net_profile.get("name", "Captain"))
+	return str(body_model.look.get("name", appearance.get("name", "Captain"))) if body_model else "Captain"
+
+
+## Who we are, for the other players (sent when joining).
+func net_info() -> Dictionary:
+	return {"name": display_name(), "look": body_model.look.duplicate(true) if body_model else appearance,
+		"level": progression.level if progression else 1}
+
+
+## On our feet (not knocked out, not dead).
+func is_standing() -> bool:
+	if not is_local:
+		return health_component.current_health > 0.0 and not (_net_flags & NF_BLEED)
+	return health_component.current_health > 0.0 and not bleeding
+
+
+func is_bleeding() -> bool:
+	return bleeding if is_local else bool(_net_flags & NF_BLEED)
+
+
+## The ship under your feet (for deck-relative positions), or null.
+func _deck_ship() -> Node3D:
+	if context == Context.HELM and current_ship:
+		return current_ship
+	if not is_on_floor():
+		return null
+	var c := get_last_slide_collision()
+	if c and c.get_collider() is Ship:
+		return c.get_collider() as Node3D
+	return null
+
+
+## Our snapshot (~20 times a second): where, how, and the body's state.
+func net_pack() -> Array:
+	var pos := global_position
+	var yaw := player_model.rotation.y
+	var ship := _deck_ship()
+	if ship:
+		# on deck: relative to the ship, so we ride it on every screen
+		pos = ship.global_transform.affine_inverse() * pos
+		yaw -= ship.global_rotation.y
+	var flags := 0
+	if _coat_on:
+		flags |= NF_COAT
+	if bleeding:
+		flags |= NF_BLEED
+	if is_on_floor() or context == Context.HELM:
+		flags |= NF_FLOOR
+	return [pos, ship != null, velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
+		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end()]
+
+
+## Where our vine (swing / grapple) is stretched to, or INF.
+func _rope_end() -> Vector3:
+	for key in ["swing", "skill"]:
+		var st = state_machine.states.get(key)
+		if st == null or st != state_machine.current_state:
+			continue
+		var r = st.get("_vine") if key == "swing" else st.get("_rope")
+		if r != null and is_instance_valid(r) and not bool(r.get("_retracting")):
+			return r.get("_b")
+	return Vector3.INF
+
+
+var _net_rope: Node3D
+
+
+func _exit_tree() -> void:
+	if _net_rope and is_instance_valid(_net_rope):
+		_net_rope.queue_free()
+
+
+func _net_pos(snap: Array) -> Vector3:
+	var pos: Vector3 = snap[0]
+	if bool(snap[1]):
+		var ship := get_tree().get_first_node_in_group("ship") as Node3D
+		if ship:
+			return ship.global_transform * pos
+	return pos
+
+
+func _net_yaw(snap: Array) -> float:
+	var yaw := float(snap[3])
+	if bool(snap[1]):
+		var ship := get_tree().get_first_node_in_group("ship") as Node3D
+		if ship:
+			yaw += ship.global_rotation.y
+	return yaw
+
+
+func _puppet_process(delta: float) -> void:
+	var smp := Net.sample(self)
+	if smp.is_empty():
+		return
+	var a: Array = smp[0]
+	var b: Array = smp[1]
+	var f: float = smp[2]
+	if a.size() < 11 or b.size() < 11:
+		return
+	visible = true
+	global_position = _net_pos(a).lerp(_net_pos(b), f)
+	velocity = b[2]
+	player_model.rotation.y = lerp_angle(_net_yaw(a), _net_yaw(b), f)
+	lean.transform.basis = b[4]
+	_net_state = str(a[5])
+	context = Context.HELM if _net_state == "Helm" else Context.ON_FOOT
+	var hc := health_component
+	if hc.max_health != float(b[7]) or hc.current_health != float(b[6]):
+		hc.max_health = float(b[7])
+		hc.current_health = float(b[6])
+		hc.health_changed.emit(hc.current_health, hc.max_health)
+	var flags := int(a[8])
+	if flags != _net_flags:
+		var changed := flags ^ _net_flags
+		_net_flags = flags
+		if changed & NF_COAT:
+			power.buffs["coat"] = 9999.0 if flags & NF_COAT else 0.0
+			update_coat_visual()
+		_update_nameplate()
+	HumanoidSync.apply(body_model, a[9], b[9], f)
+	# hybrid form fights with claws: weapons stay hidden
+	for w in [body_model.weapon, body_model.offhand]:
+		if w and is_instance_valid(w):
+			(w as Node3D).visible = not hybrid
+	# their vine, from the hand to wherever it's stretched
+	var rope_end: Vector3 = b[10]
+	if rope_end != Vector3.INF:
+		if _net_rope == null or not is_instance_valid(_net_rope):
+			_net_rope = VineRope.make(get_tree().current_scene, body_model.hand_r.global_position, rope_end, 0.1)
+		_net_rope.set_ends(body_model.hand_r.global_position, rope_end)
+	elif _net_rope != null:
+		if is_instance_valid(_net_rope):
+			_net_rope.call("retract")
+		_net_rope = null
+	if _coat_on:
+		_coat_fx -= delta
+		if _coat_fx <= 0.0:
+			_coat_fx = 0.12
+			FX.sparkle(body_model.hand_r.global_position + Vector3(randf_range(-0.08, 0.08), randf_range(-0.05, 0.12), randf_range(-0.08, 0.08)), 2, HAKI_SPARK)
+
+
+## Tell the other machines our captain changed clothes / shape.
+func _net_look() -> void:
+	if is_local and Net.active and body_model:
+		Net.event(self, "look", [body_model.look, hybrid])
+
+
+## A power object we launched (fireball, flying slash, burning ground):
+## the other machines get a harmless copy fired by our puppet there.
+func net_power(kind: String, args: Array) -> void:
+	if is_local and Net.active:
+		Net.event(self, "power", [kind, args])
+
+
+func net_event(what: String, args: Array) -> void:
+	match what:
+		"power":
+			var a: Array = args[1]
+			match str(args[0]):
+				"projectile":
+					Projectile.launch(get_tree(), str(a[0]), a[1], a[2], self, float(a[3]))
+				"fireball":
+					Fireball.launch(get_tree(), a[0], a[1], self)
+				"fire_zone":
+					FireZone.spawn(get_tree(), a[0], float(a[1]), float(a[2]), float(a[3]), self)
+		"look":
+			if body_model and args.size() >= 2:
+				body_model.apply_look(args[0])
+				body_model.set_beast(bool(args[1]), FUR)
+				hybrid = bool(args[1])
+				net_profile["look"] = args[0]
+				# apply_look rebuilds the body: put the gear back on next snapshot
+				for k in ["net_w", "net_o", "net_ih", "net_lp"]:
+					if body_model.has_meta(k):
+						body_model.remove_meta(k)
+				_update_nameplate()
+
+
+# --------------------------------------------------------------------------
+# Knocked out (co-op)
+# --------------------------------------------------------------------------
+func _bleed_tick(delta: float) -> void:
+	bleed_t -= delta
+	get_tree().call_group("hud", "show_prompt", "DOWN - hold on! %ds" % ceili(maxf(bleed_t, 0.0)), clampf(bleed_t / BLEED_TIME, 0.0, 1.0))
+	if bleed_t <= 0.0 or not Net.others_standing():
+		# nobody came (or nobody's left standing): the usual death
+		bleeding = false
+		get_tree().call_group("hud", "show_prompt", "", -1.0)
+		GameManager.bleed_out()
+
+
+## A crewmate got you back on your feet.
+func revive() -> void:
+	if not bleeding:
+		return
+	bleeding = false
+	get_tree().call_group("hud", "show_prompt", "", -1.0)
+	var hc := health_component
+	hc.current_health = maxf(hc.max_health * REVIVE_HEALTH, 1.0)
+	hc.health_changed.emit(hc.current_health, hc.max_health)
+	var ds = state_machine.current_state
+	if current_state_name() == "Downed" and ds:
+		ds.set("dead", false)
+		ds.set("timer", maxf(float(ds.get("timer")), 1.0))
+	Net.fx("sparkle", [global_position + Vector3(0, 1.0, 0), 20, Color(1.0, 0.9, 0.5)])
+	Net.fx("sfx", ["blip_high", global_position, -6.0, 0.05, 1.2])
+
+
+## Hold F next to a knocked-out crewmate to get them up.
+func _revive_tick(delta: float) -> void:
+	var target: Node = null
+	if is_free() and not input_locked:
+		var best := REVIVE_RANGE
+		for p in Net.all_players():
+			if p == self or not p.is_bleeding():
+				continue
+			var d := (p as Node3D).global_position.distance_to(global_position)
+			if d < best:
+				best = d
+				target = p
+	if target == null:
+		if _revive_target != null:
+			get_tree().call_group("hud", "show_prompt", "", -1.0)
+		_revive_target = null
+		_revive_t = 0.0
+		return
+	if target != _revive_target:
+		_revive_t = 0.0
+	_revive_target = target
+	if Input.is_action_pressed("interact"):
+		_revive_t += delta
+		velocity.x = 0.0
+		velocity.z = 0.0
+	else:
+		_revive_t = maxf(_revive_t - delta * 2.0, 0.0)
+	var nm := str(target.display_name())
+	get_tree().call_group("hud", "show_prompt", "Hold F: get %s up" % nm, _revive_t / REVIVE_TIME)
+	if _revive_t >= REVIVE_TIME:
+		_revive_t = 0.0
+		Net.revive(int(target.net_id))
+		get_tree().call_group("hud", "show_prompt", "", -1.0)
+		_toast("%s is back on their feet" % nm)
+
+
+## While a menu is open in co-op (the world keeps going): stand still.
+## Returns true when it handled the frame (the state machine skips it).
+func locked_physics(delta: float) -> bool:
+	if current_state_name() not in FREE_STATES:
+		return false
+	if not is_on_floor():
+		velocity.y = maxf(velocity.y - gravity * fall_gravity_mult * delta, -34.0)
+	velocity.x = move_toward(velocity.x, 0.0, deceleration * delta)
+	velocity.z = move_toward(velocity.z, 0.0, deceleration * delta)
+	move_and_slide()
+	if is_on_floor() and current_state_name() != "Idle":
+		state_machine.force_state("Idle", {})
+	return true
+
+
+## Co-op client: the host gave us the wheel.
+func take_helm() -> void:
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	if ship == null or not is_free():
+		Net.release_helm()
+		return
+	current_ship = ship
+	state_machine.force_state("Helm", {})

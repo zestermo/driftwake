@@ -36,16 +36,18 @@ static func get_theme() -> Theme:
 	var ts := TextServerManager.get_primary_interface()
 	fv.opentype_features = {ts.name_to_tag("liga"): 0, ts.name_to_tag("clig"): 0}
 	t.default_font = fv
-	t.default_font_size = 16
+	# compact by default: everything has to fit a 640x360 canvas with room
+	# to spare at the edges
+	t.default_font_size = 12
 	t.set_color("font_color", "Label", TEXT)
 	t.set_stylebox("panel", "Panel", box())
 	t.set_stylebox("panel", "PanelContainer", box())
 	# Buttons
-	t.set_stylebox("normal", "Button", box(BG_LIGHT, BORDER_DIM, 8, 1))
-	t.set_stylebox("hover", "Button", box(Color(0.2, 0.17, 0.1, 0.95), BORDER, 8, 1))
-	t.set_stylebox("pressed", "Button", box(Color(0.3, 0.24, 0.12, 0.95), ACCENT, 8, 1))
-	t.set_stylebox("focus", "Button", box(Color(0, 0, 0, 0), ACCENT, 8, 1))
-	t.set_stylebox("disabled", "Button", box(BG, Color(0.25, 0.25, 0.25), 8, 1))
+	t.set_stylebox("normal", "Button", box(BG_LIGHT, BORDER_DIM, 5, 1))
+	t.set_stylebox("hover", "Button", box(Color(0.2, 0.17, 0.1, 0.95), BORDER, 5, 1))
+	t.set_stylebox("pressed", "Button", box(Color(0.3, 0.24, 0.12, 0.95), ACCENT, 5, 1))
+	t.set_stylebox("focus", "Button", box(Color(0, 0, 0, 0), ACCENT, 5, 1))
+	t.set_stylebox("disabled", "Button", box(BG, Color(0.25, 0.25, 0.25), 5, 1))
 	t.set_color("font_color", "Button", TEXT)
 	t.set_color("font_hover_color", "Button", ACCENT)
 	t.set_color("font_pressed_color", "Button", ACCENT)
@@ -82,7 +84,7 @@ static func _square_icon(size: int, fill: Color, edge: Color) -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
-static func label(text: String, size: int = 16, color: Color = TEXT) -> Label:
+static func label(text: String, size: int = 12, color: Color = TEXT) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
@@ -91,12 +93,25 @@ static func label(text: String, size: int = 16, color: Color = TEXT) -> Label:
 
 
 static func title(text: String) -> Label:
-	var l := label(text, 32, ACCENT)
+	var l := label(text, 22, ACCENT)
 	l.add_theme_font_override("font", load("res://assets/fonts/PixelifySans-SemiBold.woff2"))
 	l.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.02))
-	l.add_theme_constant_override("outline_size", 6)
+	l.add_theme_constant_override("outline_size", 4)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return l
+
+
+## Shrink a centered panel (via scale) if it would run off the screen,
+## keeping `margin` canvas pixels clear on every side. Call after layout.
+static func fit_to_screen(c: Control, margin: float = 10.0) -> void:
+	if c == null or not c.is_inside_tree():
+		return
+	c.scale = Vector2.ONE
+	var vis := c.get_viewport_rect().size
+	var sz := c.get_combined_minimum_size().max(c.size)
+	var k := minf(1.0, minf((vis.x - margin * 2.0) / maxf(sz.x, 1.0), (vis.y - margin * 2.0) / maxf(sz.y, 1.0)))
+	c.pivot_offset = sz * 0.5
+	c.scale = Vector2(k, k)
 
 
 static func button(text: String, min_width: float = 0.0) -> Button:

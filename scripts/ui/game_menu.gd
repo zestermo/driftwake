@@ -13,6 +13,10 @@ var _blip: AudioStreamPlayer
 
 # inventory overlay (paper doll + bag + character sheet)
 var _inventory: InventoryScreen
+# skill map (K)
+var _skills: SkillMapScreen
+# save slots (Load Game from the pause menu)
+var _load: SaveSlotList
 
 # options widgets that need refreshing
 var _opt_refreshers: Array[Callable] = []
@@ -40,13 +44,35 @@ func _ready() -> void:
 	_screens["controls"] = _build_controls()
 	_inventory = InventoryScreen.new(self)
 	_screens["inventory"] = _inventory
+	_skills = SkillMapScreen.new(self)
+	_screens["skills"] = _skills
+	_load = SaveSlotList.new()
+	_load.chosen.connect(_load_slot)
+	_load.cancelled.connect(func(): open("pause"))
+	_screens["load"] = _load
 	for s in _screens.values():
 		_root.add_child(s)
 	_root.visible = false
+	get_tree().root.size_changed.connect(func():
+		if _current != "":
+			_fit_current())
 
 
 func is_open() -> bool:
 	return _current != ""
+
+
+## On the title screen only Options opens (from its own menu).
+func _on_title() -> bool:
+	return get_tree().get_first_node_in_group("title_screen") != null
+
+
+## Back from Options / Controls: the pause menu, or the title screen.
+func _back() -> void:
+	if _on_title():
+		close()
+	else:
+		open("pause")
 
 
 # _input (not _unhandled_input) so Tab/Esc are seen before GUI focus navigation.
@@ -56,12 +82,23 @@ func _input(event: InputEvent) -> void:
 		return
 	if CharacterCreator.active:
 		return
+	if _on_title():
+		if _current != "" and event.is_action_pressed("pause"):
+			close()
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("pause"):
 		if _current == "":
 			open("pause")
-		elif _current in ["options", "controls"]:
+		elif _current in ["options", "controls", "load"]:
 			open("pause")
 		else:
+			close()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("skill_map"):
+		if _current == "":
+			open("skills")
+		elif _current == "skills":
 			close()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("inventory"):
@@ -72,8 +109,8 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif _current == "inventory" and event is InputEventKey and event.pressed and not event.echo:
 		var k: int = event.keycode
-		if k >= KEY_1 and k <= KEY_5:
-			_inventory.assign_hotbar(k - KEY_1)
+		if k >= KEY_5 and k <= KEY_9:
+			_inventory.assign_hotbar(k - KEY_5)
 			get_viewport().set_input_as_handled()
 
 
@@ -85,10 +122,11 @@ func open(screen: String) -> void:
 	_current = screen
 	_root.visible = true
 	# the inventory sits on top of the game; other screens dim it
-	_dim.visible = screen != "inventory"
+	_dim.visible = screen != "inventory" and screen != "skills"
 	for n in _screens.keys():
 		_screens[n].visible = (n == screen)
-	get_tree().paused = true
+	# (in co-op the world keeps running: your captain just stands still)
+	Net.set_paused(true)
 	get_tree().call_group("hud", "set_menu_open", true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if screen == "inventory":
@@ -96,10 +134,21 @@ func open(screen: String) -> void:
 	elif screen == "options":
 		for r in _opt_refreshers:
 			r.call()
+	_fit_current.call_deferred()
 	if screen == "inventory":
 		_inventory.focus_bag()
+	elif screen == "skills":
+		_skills.on_open()
+	elif screen == "load":
+		_load.open("load", true)
 	else:
 		_focus_first(_screens[screen])
+
+
+## Shrink the open panel if it wouldn't fit (small or odd-shaped windows).
+func _fit_current() -> void:
+	if _current in ["pause", "options", "controls", "load"]:
+		UIStyle.fit_to_screen(_screens[_current] as Control)
 
 
 func close() -> void:
@@ -107,7 +156,10 @@ func close() -> void:
 		_inventory.on_close()
 	_current = ""
 	_root.visible = false
-	get_tree().paused = false
+	Net.set_paused(false)
+	if _on_title():
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		return
 	get_tree().call_group("hud", "set_menu_open", false)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -137,25 +189,76 @@ func _centered_panel(min_size: Vector2) -> PanelContainer:
 # Pause
 # ==========================================================================
 func _build_pause() -> Control:
-	var p := _centered_panel(Vector2(220, 0))
+	var p := _centered_panel(Vector2(190, 0))
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 6)
+	vb.add_theme_constant_override("separation", 3)
 	p.add_child(vb)
 	vb.add_child(UIStyle.title("Paused"))
 	var items := [
 		["Resume", func(): close()],
 		["Inventory", func(): open("inventory")],
+		["Skill Map", func(): open("skills")],
 		["Appearance", func(): _open_appearance()],
 		["Options", func(): open("options")],
 		["Controls", func(): open("controls")],
-		["Quit Game", func(): get_tree().quit()],
+		["Save Game", func():
+			var pl := _player()
+			if pl:
+				SaveGame.save(pl)
+				pl.call("_toast", "Saved to slot %d" % maxi(SaveGame.slot, 1))
+			close()],
+		["Load Game", func():
+			if Net.active:
+				_player().call("_toast", "Leave the co-op session first")
+				close()
+				return
+			open("load")],
+		["Host Co-op", func(): _host_from_game()],
+		["Quit to Title", func(): _quit_to_title()],
+		["Quit Game", func():
+			var pl := _player()
+			if pl:
+				SaveGame.save(pl)
+			get_tree().quit()],
 	]
 	for it in items:
-		var b := UIStyle.button(it[0], 180)
+		var b := UIStyle.button(it[0], 160)
 		b.pressed.connect(it[1])
 		b.pressed.connect(_play)
 		vb.add_child(b)
 	return p
+
+
+## Open this running game to friends (they join from the title screen).
+func _host_from_game() -> void:
+	var pl := _player()
+	close()
+	if Net.active:
+		if pl:
+			pl.call("_toast", "Already in a co-op session (%d aboard)" % Net.roster.size())
+		return
+	Net.my_info = {"name": pl.display_name() if pl else "Captain", "look": pl.body_model.look if pl else {}}
+	var err := Net.host_game()
+	if pl:
+		pl.call("_toast", ("Hosting co-op on port %d - friends can join from the title screen" % Net.DEFAULT_PORT) if err == OK else Net.last_error)
+
+
+## Save, then back to the title screen.
+func _quit_to_title() -> void:
+	var pl := _player()
+	if pl and pl.health_component.current_health > 0.0:
+		SaveGame.save(pl)
+	close()
+	Net.leave()
+	SaveGame.slot = 0
+	get_tree().change_scene_to_file(SaveGame.TITLE_SCENE)
+
+
+## Load a slot from the pause menu: rebuild the world from that save.
+func _load_slot(slot: int) -> void:
+	close()
+	SaveGame.begin(slot, false, get_tree())
+	get_tree().change_scene_to_file(SaveGame.WORLD_SCENE)
 
 
 func _open_appearance() -> void:
@@ -169,13 +272,13 @@ func _open_appearance() -> void:
 # Options
 # ==========================================================================
 func _build_options() -> Control:
-	var p := _centered_panel(Vector2(470, 300))
+	var p := _centered_panel(Vector2(420, 0))
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 4)
 	p.add_child(outer)
 	outer.add_child(UIStyle.title("Options"))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(450, 220)
+	scroll.custom_minimum_size = Vector2(400, 210)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	outer.add_child(scroll)
 	var list := VBoxContainer.new()
@@ -216,14 +319,14 @@ func _build_options() -> Control:
 			r.call())
 	buttons.add_child(reset)
 	var back := UIStyle.button("Back", 120)
-	back.pressed.connect(func(): open("pause"))
+	back.pressed.connect(_back)
 	back.pressed.connect(_play)
 	buttons.add_child(back)
 	return p
 
 
 func _section(list: VBoxContainer, text: String) -> void:
-	var l := UIStyle.label(text, 16, UIStyle.ACCENT)
+	var l := UIStyle.label(text, 14, UIStyle.ACCENT)
 	list.add_child(l)
 	list.add_child(HSeparator.new())
 
@@ -232,7 +335,7 @@ func _row(list: VBoxContainer, text: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	var l := UIStyle.label(text)
-	l.custom_minimum_size = Vector2(170, 0)
+	l.custom_minimum_size = Vector2(140, 0)
 	row.add_child(l)
 	list.add_child(row)
 	return row
@@ -271,11 +374,11 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 	s.min_value = lo
 	s.max_value = hi
 	s.step = step
-	s.custom_minimum_size = Vector2(170, 16)
+	s.custom_minimum_size = Vector2(150, 14)
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	s.focus_mode = Control.FOCUS_ALL
 	row.add_child(s)
-	var val := UIStyle.label("", 16, UIStyle.TEXT_DIM)
+	var val := UIStyle.label("", 12, UIStyle.TEXT_DIM)
 	val.custom_minimum_size = Vector2(56, 0)
 	row.add_child(val)
 	var refresh := func():
@@ -293,30 +396,35 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 # ==========================================================================
 const BINDINGS := [
 	["Move", "W A S D"], ["Look", "Mouse"], ["Sprint", "Shift"], ["Jump / double jump", "Space"],
-	["Ready / sheathe weapon", "R"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
-	["Dodge roll", "Left Ctrl"], ["Parry", "Q"], ["Interact / talk", "F"], ["Hotbar", "1 - 5"],
-	["Inventory", "Tab / I"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
+	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
+	["Dodge roll", "Left Ctrl"], ["Parry", "Q"], ["Interact / talk", "F"], ["Devil Fruit skills", "1 - 4"],
+	["Ultimate", "R"], ["Quick items (rum...)", "5 - 7"], ["Block (hold)", "Q"],
+	["Inventory", "Tab / I"], ["Skill map", "K"], ["Zoan: shift form", "V"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
 ]
 
 
 func _build_controls() -> Control:
-	var p := _centered_panel(Vector2(420, 0))
+	var p := _centered_panel(Vector2(520, 0))
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
+	vb.add_theme_constant_override("separation", 4)
 	p.add_child(vb)
 	vb.add_child(UIStyle.title("Controls"))
+	# two columns of (action, key) pairs
 	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 24)
-	grid.add_theme_constant_override("v_separation", -2)
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 0)
 	vb.add_child(grid)
-	for b in BINDINGS:
-		grid.add_child(UIStyle.label(b[0]))
-		grid.add_child(UIStyle.label(b[1], 16, UIStyle.ACCENT))
+	var half := ceili(BINDINGS.size() / 2.0)
+	for i in range(half):
+		for j in [i, i + half]:
+			if j < BINDINGS.size():
+				grid.add_child(UIStyle.label(BINDINGS[j][0], 12))
+				grid.add_child(UIStyle.label(BINDINGS[j][1], 12, UIStyle.ACCENT))
 	var back := UIStyle.button("Back", 120)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.pressed.connect(func(): open("pause"))
+	back.pressed.connect(_back)
 	back.pressed.connect(_play)
 	vb.add_child(back)
 	return p

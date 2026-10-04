@@ -93,6 +93,9 @@ func _physics_process(delta: float) -> void:
 		_placed = true
 		_pos = global_position
 		_heading = global_rotation.y
+	if Net.active and Net.ship_owner != Net.my_id():
+		_puppet_physics(delta)
+		return
 	var heading := _heading
 	var pos := _pos
 	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
@@ -100,7 +103,7 @@ func _physics_process(delta: float) -> void:
 
 	var throttle := 0.0
 	var turn := 0.0
-	if is_player_steering:
+	if is_player_steering and not _helm_locked():
 		throttle = Input.get_axis("move_back", "move_forward")
 		turn = Input.get_axis("move_left", "move_right")
 	if throttle > 0.0:
@@ -133,13 +136,13 @@ func _physics_process(delta: float) -> void:
 					var cm := get_node_or_null("/root/CombatManager")
 					if cm:
 						cm.apply_camera_shake(0.25)
-					FX.sfx("thud", global_position + fwd * (BOW_Z * -1.0), 2.0, 0.05, 0.6)
+					Net.fx("sfx", ["thud", global_position + fwd * (BOW_Z * -1.0), 2.0, 0.05, 0.6])
 				speed *= lerpf(1.0, -0.15, head_on)
 				_yaw_rate *= 0.5
 	pos += motion
 
 	# swell: sample the waves under bow, stern and both sides
-	var t := Time.get_ticks_msec() / 1000.0
+	var t: float = _ocean.call("clock") if _ocean and _ocean.has_method("clock") else Time.get_ticks_msec() / 1000.0
 	var hb := _wave(pos + fwd * -BOW_Z, t)
 	var hs := _wave(pos + fwd * -STERN_Z, t)
 	var hp := _wave(pos - right * HALF_BEAM, t)
@@ -177,7 +180,11 @@ func _physics_process(delta: float) -> void:
 	# wheel follows the rudder
 	if wheel:
 		wheel.rotation.z = -rudder * 2.4
-	# bow spray and wake
+	_wake(delta, pos, fwd, right, mean)
+
+
+## Bow spray and wake (every machine makes its own from the ship's speed).
+func _wake(delta: float, pos: Vector3, fwd: Vector3, right: Vector3, mean: float) -> void:
 	_wake_t -= delta
 	if absf(speed) > 2.5 and _wake_t <= 0.0:
 		_wake_t = clampf(0.5 - absf(speed) * 0.03, 0.12, 0.4)
@@ -264,6 +271,10 @@ func _shape(shape: Shape3D, xf: Transform3D) -> void:
 # ==========================================================================
 func _on_helm_interacted(player: Player) -> void:
 	if player.is_free():
+		# co-op: one captain at the wheel (clients ask the host first; the
+		# answer puts them at the helm - Player.take_helm)
+		if Net.active and not Net.request_helm():
+			return
 		player.current_ship = self
 		var sm := player.state_machine
 		if sm.current_state:
@@ -382,3 +393,70 @@ func _build_psx_model() -> void:
 		lad.position = Vector3(sgn * 3.0, DECK_Y, 0.6)
 		lad.rotation.y = sgn * PI * 0.5
 		ship_model.add_child(lad)
+
+
+# ==========================================================================
+# Co-op: the ship belongs to whoever is at the helm (the host otherwise)
+# ==========================================================================
+func _helm_locked() -> bool:
+	var gm := get_node_or_null("/root/GameManager")
+	return gm != null and gm.player != null and is_instance_valid(gm.player) and gm.player.input_locked
+
+
+func net_pack() -> Array:
+	return [_pos, _heading, _y, _pitch, _roll, speed, rudder, _yaw_rate, _vy, _vpitch, _vroll]
+
+
+## We now steer: carry on from where the ship was shown.
+func net_take_over(state: Array) -> void:
+	var st := state
+	if st.size() < 11:
+		var smp := Net.sample(self)
+		st = smp[1] if not smp.is_empty() else []
+	if st.size() >= 11:
+		_pos = st[0]
+		_heading = float(st[1])
+		_y = float(st[2])
+		_pitch = float(st[3])
+		_roll = float(st[4])
+		speed = float(st[5])
+		rudder = float(st[6])
+		_yaw_rate = float(st[7])
+		_vy = float(st[8])
+		_vpitch = float(st[9])
+		_vroll = float(st[10])
+		_init = true
+		_placed = true
+
+
+## Someone else steers: ride their snapshots (still a moving platform, so
+## whoever stands on deck is carried along).
+func _puppet_physics(delta: float) -> void:
+	var smp := Net.sample(self)
+	if smp.is_empty():
+		return
+	var a: Array = smp[0]
+	var b: Array = smp[1]
+	var f: float = smp[2]
+	if a.size() < 11 or b.size() < 11:
+		return
+	var pos: Vector3 = (a[0] as Vector3).lerp(b[0], f)
+	var heading := lerp_angle(float(a[1]), float(b[1]), f)
+	var y := lerpf(float(a[2]), float(b[2]), f)
+	var pitch := lerpf(float(a[3]), float(b[3]), f)
+	var roll := lerpf(float(a[4]), float(b[4]), f)
+	speed = float(b[5])
+	rudder = float(b[6])
+	_yaw_rate = float(b[7])
+	_pos = pos
+	_heading = heading
+	_y = y
+	_pitch = pitch
+	_roll = roll
+	_init = true
+	global_transform = Transform3D(Basis.from_euler(Vector3(pitch, heading, roll)), Vector3(pos.x, y, pos.z))
+	if wheel:
+		wheel.rotation.z = -rudder * 2.4
+	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
+	var right := Vector3(cos(heading), 0.0, -sin(heading))
+	_wake(delta, pos, fwd, right, _wave(pos, Net.time()))

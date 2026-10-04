@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/pistol.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "pistol"
+display_name = "Flintlock Pistol"
+description = "A smuggler's sidearm. Two shots, then a reload. Carry two and you'll fire them both."
+value = 14
+stackable = false
+max_stack = 1
+item_type = 1
+icon = ExtResource("2")
+weapon_model = "pistol"
+damage_mult = 1.0

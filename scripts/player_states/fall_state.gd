@@ -19,6 +19,11 @@ func physics_update(delta: float) -> void:
 
 	player.move_and_slide()
 
+	var air := air_attack_input()
+	if air != "":
+		transitioned.emit(self, air, {})
+		return
+
 	# ran off a ledge and coyote time is over: the ground jump is gone, only
 	# air jumps (double jump, once unlocked) are left
 	if not player.can_coyote_jump() and player.jumps_remaining == player.max_jumps:

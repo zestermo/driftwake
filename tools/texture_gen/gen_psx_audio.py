@@ -248,6 +248,174 @@ def splash_sound():
     write_wav("splash", out * 0.75)
 
 
+def gunshot_sound():
+    """Flintlock shot: a cracking burst of noise over a deep boom, short tail."""
+    rng = np.random.default_rng(113)
+    n = int(SR * 0.7)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    crack = (w - lowpass(w, 0.25)) * np.exp(-t * 55) * np.minimum(1, t / 0.0015)
+    f = 70 - 30 * np.minimum(t / 0.2, 1.0)
+    ph = np.cumsum(2 * np.pi * f / SR)
+    boom = np.sin(ph) * np.exp(-t * 9) * np.minimum(1, t / 0.003)
+    tail = lowpass(rng.standard_normal(n), 0.04) * np.exp(-t * 6) * 2.0
+    out = crack * 1.2 + boom * 0.9 + tail * 0.6
+    out = lowpass(out, 0.6)
+    out /= np.max(np.abs(out))
+    write_wav("gunshot", out * 0.9)
+
+
+def parry_sound():
+    """Parry: a bright metallic ting (inharmonic bell partials) on a hard click."""
+    rng = np.random.default_rng(127)
+    n = int(SR * 0.55)
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    for ratio, amp, decay in ((1.0, 1.0, 9.0), (2.76, 0.55, 14.0), (5.40, 0.3, 22.0), (8.93, 0.15, 30.0)):
+        f = 1450 * ratio
+        out += np.sin(2 * np.pi * f * t + rng.uniform(0, 6.28)) * amp * np.exp(-t * decay)
+    w = rng.standard_normal(n)
+    click = (w - lowpass(w, 0.4)) * np.exp(-t * 160)
+    out = out * np.minimum(1, t / 0.0008) + click * 1.4
+    out /= np.max(np.abs(out))
+    write_wav("parry", out * 0.7)
+
+
+def fire_burst_sound():
+    """Fire: a breathy roar that swells and dies (fireballs, flame dashes)."""
+    rng = np.random.default_rng(131)
+    n = int(SR * 0.6)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    roar = lowpass(w, 0.09) * 3.0 + (w - lowpass(w, 0.3)) * 0.25
+    env = np.minimum(1, t / 0.05) * np.exp(-t * 5.5)
+    crack = np.zeros(n)
+    for _ in range(18):
+        p0 = rng.integers(0, n - 200)
+        L = rng.integers(30, 120)
+        crack[p0:p0 + L] += rng.standard_normal(L) * np.exp(-np.arange(L) / 20.0) * rng.uniform(0.2, 0.6)
+    out = roar * env + crack * env
+    out = lowpass(out, 0.7)
+    out /= np.max(np.abs(out))
+    write_wav("fire_burst", out * 0.8)
+
+
+def fire_blast_sound():
+    """Big fire explosion: deep thump, roaring wash, crackling tail."""
+    rng = np.random.default_rng(137)
+    n = int(SR * 1.5)
+    t = np.arange(n) / SR
+    f = 55 - 25 * np.minimum(t / 0.4, 1.0)
+    boom = np.sin(np.cumsum(2 * np.pi * f / SR)) * np.exp(-t * 4.0) * np.minimum(1, t / 0.004)
+    w = rng.standard_normal(n)
+    wash = lowpass(w, 0.06) * 3.5 * np.minimum(1, t / 0.03) * np.exp(-t * 2.4)
+    crack = np.zeros(n)
+    for _ in range(40):
+        p0 = rng.integers(int(SR * 0.05), n - 200)
+        L = rng.integers(30, 150)
+        crack[p0:p0 + L] += rng.standard_normal(L) * np.exp(-np.arange(L) / 25.0) * rng.uniform(0.1, 0.4)
+    crack *= np.exp(-t * 1.6)
+    out = boom * 1.1 + wash + crack
+    out = lowpass(out, 0.65)
+    out /= np.max(np.abs(out))
+    write_wav("fire_blast", out * 0.95)
+
+
+def crunch_sound():
+    """Biting into a fruit: three wet crunches."""
+    rng = np.random.default_rng(139)
+    out = np.zeros(int(SR * 0.5))
+    for start in (0.0, 0.11, 0.24):
+        L = int(SR * 0.09)
+        tt = np.arange(L) / SR
+        w = rng.standard_normal(L)
+        c = (lowpass(w, 0.35) * 1.5 + (w - lowpass(w, 0.5)) * 0.5) * np.exp(-tt * 45) * np.minimum(1, tt / 0.002)
+        p0 = int(SR * start)
+        out[p0:p0 + L] += c * rng.uniform(0.6, 1.0)
+    out /= np.max(np.abs(out))
+    write_wav("crunch", out * 0.6)
+
+
+def howl_sound():
+    """A wolf's howl: a rising then long falling tone with vibrato and breath."""
+    rng = np.random.default_rng(149)
+    n = int(SR * 1.6)
+    t = np.arange(n) / SR
+    f = np.interp(t, [0, 0.25, 0.7, 1.6], [330, 560, 520, 300])
+    f = f * (1 + 0.012 * np.sin(2 * np.pi * 5.5 * t))
+    ph = np.cumsum(2 * np.pi * f / SR)
+    tone = np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3 * ph)
+    breath = lowpass(rng.standard_normal(n), 0.2) * 0.4
+    env = np.minimum(1, t / 0.12) * np.clip((1.6 - t) / 0.6, 0, 1)
+    out = (tone + breath) * env
+    out = lowpass(out, 0.5)
+    out /= np.max(np.abs(out))
+    write_wav("howl", out * 0.7)
+
+
+def haki_sound():
+    """Armament Haki: a rushing swell into a deep, distorted boom, with electric
+    crackle and a dark metallic shimmer ringing out."""
+    rng = np.random.default_rng(151)
+    n = int(SR * 1.1)
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    hit = 0.16
+    # swell: filtered noise rising into the hit
+    w = rng.standard_normal(n)
+    swell = lowpass(w, 0.08) * 2.5 * np.clip(t / hit, 0, 1) ** 2 * (t < hit)
+    out += swell
+    # boom: a pitch-dropping sine, driven hard
+    tb = np.clip(t - hit, 0, None)
+    f = 130 * np.exp(-tb * 7.0) + 38
+    ph = np.cumsum(2 * np.pi * f / SR)
+    boom = np.tanh(np.sin(ph) * 3.0) * np.exp(-tb * 3.2) * (t >= hit)
+    out += boom * 1.2
+    # crackle: short bright bursts of static
+    crack = np.zeros(n)
+    hp = w - lowpass(w, 0.5)
+    for _ in range(40):
+        p0 = int(hit * SR) + rng.integers(0, int(0.7 * SR))
+        L = rng.integers(20, 90)
+        if p0 + L < n:
+            crack[p0:p0 + L] += hp[p0:p0 + L] * rng.uniform(0.3, 1.0) * np.exp(-np.arange(L) / 18.0)
+    out += crack * np.exp(-tb * 2.5) * 0.9
+    # dark shimmer
+    for ratio, amp in ((1.0, 0.35), (2.41, 0.2), (3.87, 0.12)):
+        out += np.sin(2 * np.pi * 520 * ratio * tb) * amp * np.exp(-tb * 4.5) * (t >= hit)
+    out = lowpass(out, 0.75)
+    out /= np.max(np.abs(out))
+    write_wav("haki", out * 0.85)
+
+
+def block_sound():
+    """Blocking a blow: a dull, heavy clank."""
+    rng = np.random.default_rng(157)
+    n = int(SR * 0.3)
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    for ratio, amp, decay in ((1.0, 1.0, 22.0), (2.3, 0.5, 30.0), (3.9, 0.25, 40.0)):
+        out += np.sin(2 * np.pi * 420 * ratio * t + rng.uniform(0, 6.28)) * amp * np.exp(-t * decay)
+    w = rng.standard_normal(n)
+    out += lowpass(w, 0.25) * np.exp(-t * 60) * 2.0
+    out = lowpass(out, 0.6)
+    out /= np.max(np.abs(out))
+    write_wav("block", out * 0.75)
+
+
+def peril_sound():
+    """An unblockable attack's warning: a sharp rising sting."""
+    n = int(SR * 0.4)
+    t = np.arange(n) / SR
+    f = np.interp(t, [0, 0.08, 0.4], [700, 1500, 1350])
+    ph = np.cumsum(2 * np.pi * f / SR)
+    tone = np.sign(np.sin(ph)) * 0.5 + np.sin(2 * ph) * 0.3
+    env = np.minimum(1, t / 0.005) * np.exp(-t * 7.0)
+    out = lowpass(tone * env, 0.55)
+    out /= np.max(np.abs(out))
+    write_wav("peril", out * 0.6)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     print("Generating retro audio ->", os.path.relpath(OUT, ROOT))
@@ -269,6 +437,15 @@ def main():
     thud_sound()
     coin_sound()
     splash_sound()
+    gunshot_sound()
+    parry_sound()
+    fire_burst_sound()
+    fire_blast_sound()
+    crunch_sound()
+    howl_sound()
+    haki_sound()
+    block_sound()
+    peril_sound()
     print("done.")
 
 

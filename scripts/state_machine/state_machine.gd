@@ -19,18 +19,25 @@ func _ready() -> void:
 		current_state = initial
 
 
+## Co-op: a menu is open but the world keeps running (no control).
+func _locked() -> bool:
+	return owner != null and owner.get("input_locked") == true
+
+
 func _process(delta: float) -> void:
-	if current_state:
+	if current_state and not _locked():
 		current_state.update(delta)
 
 
 func _physics_process(delta: float) -> void:
 	if current_state:
+		if _locked() and owner.has_method("locked_physics") and owner.locked_physics(delta):
+			return
 		current_state.physics_update(delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if current_state:
+	if current_state and not _locked():
 		current_state.handle_input(event)
 
 

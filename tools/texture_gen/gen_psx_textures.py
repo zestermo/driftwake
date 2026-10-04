@@ -402,6 +402,38 @@ def gen_bush():
     save(img, "bush")
 
 
+def gen_thornbrush():
+    """Dry thornbrush card: tangled bare tan/brown stems with thorns and a few
+    withered leaves (alpha cutout)."""
+    W = 64
+    rng = np.random.default_rng(1777)
+    img = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    stems = pal("4a3220", "5e4229", "765634", "8e6c42", "a88452")
+    for _ in range(34):
+        x = rng.uniform(4, 60)
+        y = 63.0
+        ang = rng.uniform(-1.2, 1.2) - np.pi / 2
+        c = stems[rng.integers(0, len(stems))] + (255,)
+        for _seg in range(rng.integers(5, 10)):
+            l = rng.uniform(4, 9)
+            nx, ny = x + np.cos(ang) * l, y + np.sin(ang) * l
+            d.line([(x, y), (nx, ny)], fill=c, width=1)
+            # thorns
+            if rng.random() < 0.7:
+                tx, ty = (x + nx) / 2, (y + ny) / 2
+                d.point((tx + rng.choice([-1, 1]), ty), fill=hexc("c8a878") + (255,))
+            x, y = nx, ny
+            ang += rng.uniform(-0.7, 0.7)
+            if not (1 < x < 63 and 1 < y < 64):
+                break
+    for _ in range(40):
+        x, y = rng.uniform(4, 60), rng.uniform(12, 60)
+        d.point((x, y), fill=pal("6a6a2a", "7a6a30", "8a7a3a")[rng.integers(0, 3)] + (255,))
+        d.point((x + 1, y), fill=pal("6a6a2a", "7a6a30", "8a7a3a")[rng.integers(0, 3)] + (255,))
+    save(img, "thornbrush")
+
+
 def gen_grass_tuft():
     W = 32
     rng = np.random.default_rng(1801)
@@ -672,6 +704,274 @@ def gen_icons():
 
 
 # --------------------------------------------------------------------------
+# Devil Fruit: the Ember Fruit's icon + swirl texture, and skill icons
+# --------------------------------------------------------------------------
+def gen_power_icons():
+    Y = hexc("fff2a0") + (255,)
+    O = hexc("ff9a2a") + (255,)
+    R = hexc("e0441a") + (255,)
+    D = hexc("8a1c0c") + (255,)
+    W = (255, 255, 240, 255)
+
+    def flame(d, cx, by, h, w):
+        """A flame tongue: red outer, orange, yellow core."""
+        for col, k in ((R, 1.0), (O, 0.72), (Y, 0.42)):
+            hh, ww = h * k, w * k
+            d.polygon([(cx - ww, by), (cx - ww * 0.8, by - hh * 0.45), (cx - ww * 0.2, by - hh * 0.7),
+                       (cx, by - hh), (cx + ww * 0.35, by - hh * 0.55), (cx + ww, by - hh * 0.3), (cx + ww, by)], fill=col)
+
+    def ember_fruit(d):
+        # round fruit with curling swirls, a stem and a leaf
+        d.ellipse([3, 5, 21, 22], fill=hexc("e8541c") + (255,))
+        d.ellipse([5, 6, 15, 13], fill=hexc("ff8a3a") + (255,))
+        for (x, y) in ((8, 15), (14, 11), (16, 17)):
+            d.arc([x - 3, y - 3, x + 3, y + 3], 0, 300, fill=D)
+            d.point((x, y), fill=D)
+        d.line([(12, 6), (13, 2)], fill=hexc("5a3a1a") + (255,), width=1)
+        d.polygon([(13, 3), (18, 1), (20, 4), (15, 5)], fill=hexc("4a9a30") + (255,))
+
+    def fire_fist(d):
+        # a fist trailing fire
+        flame(d, 8, 20, 9, 7)
+        d.polygon([(4, 15), (10, 9), (14, 13), (8, 19)], fill=O)
+        d.rectangle([12, 8, 20, 16], fill=hexc("e8b088") + (255,))
+        for x in (14, 16, 18):
+            d.line([(x, 8), (x, 12)], fill=hexc("a06a48") + (255,))
+        d.rectangle([12, 14, 16, 18], fill=hexc("d09070") + (255,))
+
+    def flame_dash(d):
+        # speed streaks of fire ending in a burst
+        for i, y in enumerate((7, 12, 17)):
+            d.line([(2 + i * 2, y), (15, y)], fill=R, width=2)
+            d.line([(6 + i * 2, y), (15, y)], fill=O, width=1)
+        flame(d, 17, 21, 16, 5)
+        d.ellipse([15, 9, 21, 15], fill=Y)
+
+    def fire_ring(d):
+        d.ellipse([1, 13, 23, 22], outline=R, width=2)
+        d.ellipse([3, 14, 21, 21], outline=O, width=1)
+        for cx, by, h in ((3, 18, 8), (21, 18, 8), (7, 21, 9), (17, 21, 9), (8, 15, 6), (16, 15, 6)):
+            flame(d, cx, by, h, 2.5)
+        # a figure at the center, arms flung out
+        K = hexc("3a2418") + (255,)
+        d.rectangle([11, 9, 13, 17], fill=K)
+        d.ellipse([10, 5, 14, 9], fill=K)
+        d.line([(7, 9), (17, 9)], fill=K, width=1)
+
+    def ember_field(d):
+        d.polygon([(1, 20), (12, 15), (23, 20), (12, 23)], fill=hexc("6a1c08") + (255,))
+        for cx, h in ((6, 9), (12, 14), (18, 10), (9, 7), (15, 8)):
+            flame(d, cx, 20, h, 3)
+
+    def inferno(d):
+        # a pillar of fire on a burst ring
+        d.ellipse([1, 16, 23, 23], fill=R)
+        d.ellipse([4, 17, 20, 22], fill=O)
+        flame(d, 12, 21, 21, 7)
+        d.rectangle([10, 6, 14, 18], fill=Y)
+        for (x, y) in ((3, 6), (21, 9), (5, 12), (19, 3)):
+            d.point((x, y), fill=Y)
+
+    _icon("ember_fruit", ember_fruit)
+    _icon("skill_fire_fist", fire_fist)
+    _icon("skill_flame_dash", flame_dash)
+    _icon("skill_fire_ring", fire_ring)
+    _icon("skill_ember_field", ember_field)
+    _icon("skill_inferno", inferno)
+
+
+def gen_devil_fruit_tex():
+    """Ember Fruit skin: orange-red with dark curling swirls (tiles around)."""
+    n = 32
+    img = Image.new("RGB", (n, n), hexc("e05018"))
+    d = ImageDraw.Draw(img)
+    rng = np.random.default_rng(4242)
+    for y in range(n):
+        for x in range(n):
+            if rng.random() < 0.25:
+                d.point((x, y), fill=hexc("f06a28") if rng.random() < 0.6 else hexc("c8401a"))
+    for (x, y) in ((6, 8), (22, 6), (14, 20), (28, 24), (4, 26)):
+        for k in range(3):
+            r = 5 - k * 1.6
+            d.arc([x - r, y - r, x + r, y + r], 30 + k * 40, 330, fill=hexc("6a120a"))
+    d.rectangle([0, 0, n, 2], fill=hexc("ff9a40"))
+    save(img, "devil_fruit_ember")
+
+
+# --------------------------------------------------------------------------
+# Skill map icons (body techniques, sword, gun, Haki, Wolf and Vine fruits),
+# the pistol, the Wolf / Vine fruit icons and their skins
+# --------------------------------------------------------------------------
+def gen_skill_icons():
+    W_ = (255, 255, 245, 255)
+    BLUE = hexc("8fd0ff") + (255,)
+    BLUE_D = hexc("3a78c0") + (255,)
+    STEEL = hexc("d0d8e0") + (255,)
+    STEEL_D = hexc("7a8490") + (255,)
+    GOLD = hexc("e8b850") + (255,)
+    WOOD = hexc("7a4a28") + (255,)
+    PURP = hexc("6a3a9a") + (255,)
+    BLACK = hexc("1a1222") + (255,)
+    PINK = hexc("f07ac0") + (255,)
+    GREEN = hexc("5ac040") + (255,)
+    GREEN_D = hexc("2e7a22") + (255,)
+    FUR = hexc("a89880") + (255,)
+    FUR_D = hexc("6a5a48") + (255,)
+    RED = hexc("e04030") + (255,)
+    SKIN = hexc("e8b088") + (255,)
+
+    def soru(d):
+        for i, x in enumerate((4, 9, 14)):
+            a = 90 + i * 60
+            d.rectangle([x, 6, x + 4, 18], fill=(150, 200, 255, a))
+        d.ellipse([16, 5, 21, 10], fill=SKIN)
+        d.rectangle([16, 10, 21, 18], fill=BLUE_D)
+        d.line([(2, 20), (22, 20)], fill=BLUE, width=1)
+
+    def tekkai(d):
+        d.polygon([(12, 2), (21, 6), (19, 17), (12, 22), (5, 17), (3, 6)], fill=STEEL_D)
+        d.polygon([(12, 4), (19, 7), (17, 16), (12, 20), (7, 16), (5, 7)], fill=STEEL)
+        d.line([(8, 9), (16, 15)], fill=STEEL_D, width=2)
+        d.line([(16, 9), (8, 15)], fill=STEEL_D, width=2)
+
+    def flying_slash(d):
+        d.arc([2, 3, 22, 21], 200, 340, fill=W_, width=3)
+        d.arc([4, 6, 20, 19], 205, 335, fill=BLUE, width=2)
+        d.line([(6, 20), (11, 15)], fill=STEEL, width=2)
+        d.line([(4, 22), (6, 20)], fill=WOOD, width=2)
+
+    def tiger_rush(d):
+        for y in (8, 12, 16):
+            d.line([(2, y), (12, y)], fill=BLUE, width=1)
+        d.line([(10, 16), (22, 6)], fill=STEEL, width=2)
+        d.line([(11, 17), (22, 8)], fill=STEEL_D)
+        d.line([(8, 18), (11, 15)], fill=GOLD, width=2)
+
+    def pistol_(d):
+        d.rectangle([4, 8, 19, 11], fill=STEEL_D)
+        d.rectangle([4, 7, 19, 8], fill=STEEL)
+        d.polygon([(12, 10), (17, 10), (14, 20), (9, 20)], fill=WOOD)
+        d.rectangle([9, 19, 14, 21], fill=GOLD)
+        d.point((16, 6), fill=STEEL)
+
+    def bullet_storm(d):
+        for a in range(-2, 3):
+            x2 = 20
+            y2 = 12 + a * 4
+            d.line([(8, 12), (x2, y2)], fill=GOLD, width=1)
+            d.ellipse([x2 - 1, y2 - 1, x2 + 1, y2 + 1], fill=W_)
+        d.rectangle([2, 10, 9, 13], fill=STEEL_D)
+        d.polygon([(4, 12), (7, 12), (6, 18), (3, 18)], fill=WOOD)
+
+    def armament(d):
+        # a fist hardened black, crackling with purple
+        for grow, col in ((1, PURP), (0, BLACK)):
+            d.rectangle([6 - grow, 9 - grow, 18 + grow, 19 + grow], fill=col)
+            for x in (7, 10, 13, 16):
+                d.rectangle([x - grow, 6 - grow, x + 2 + grow, 10], fill=col)
+            d.rectangle([4 - grow, 12 - grow, 7, 17 + grow], fill=col)
+        d.line([(8, 12), (11, 14), (9, 16), (13, 18)], fill=hexc("c08ae8") + (255,))
+        d.line([(19, 4), (21, 2)], fill=hexc("c08ae8") + (255,))
+        d.line([(2, 8), (4, 10)], fill=hexc("c08ae8") + (255,))
+
+    def foresight(d):
+        d.ellipse([2, 7, 22, 17], fill=PINK)
+        d.ellipse([7, 8, 17, 16], fill=W_)
+        d.ellipse([9, 9, 15, 15], fill=PURP)
+        d.ellipse([11, 11, 13, 13], fill=BLACK)
+        for x, y in ((3, 3), (21, 4), (2, 20), (20, 21)):
+            d.point((x, y), fill=PINK)
+
+    def rending_fang(d):
+        for i in range(3):
+            x = 6 + i * 5
+            d.line([(x, 3), (x + 4, 21)], fill=W_, width=2)
+            d.line([(x + 1, 3), (x + 5, 21)], fill=RED, width=1)
+
+    def pounce(d):
+        d.arc([3, 6, 21, 26], 190, 350, fill=FUR, width=2)
+        d.ellipse([15, 3, 21, 9], fill=FUR)
+        d.polygon([(19, 3), (21, 0), (21, 4)], fill=FUR_D)
+        for x in (2, 6, 10):
+            d.line([(x, 20), (x + 2, 22)], fill=FUR_D)
+
+    def howl(d):
+        d.polygon([(6, 22), (8, 10), (12, 6), (16, 2), (17, 7), (14, 12), (14, 22)], fill=FUR)
+        d.polygon([(15, 2), (18, 0), (18, 4)], fill=FUR_D)
+        for r in (4, 7):
+            d.arc([16 - r, 4 - r, 16 + r + 4, 4 + r + 4], 280, 360, fill=W_)
+
+    def vine_snare(d):
+        d.ellipse([9, 10, 15, 16], fill=hexc("8a6a3a") + (255,))
+        for a, b in (((12, 10), (8, 3)), ((12, 10), (17, 4)), ((9, 14), (3, 18)), ((15, 14), (21, 19))):
+            d.line([a, b], fill=GREEN_D, width=2)
+            d.line([a, b], fill=GREEN, width=1)
+        d.polygon([(7, 3), (10, 2), (9, 5)], fill=GREEN)
+        d.polygon([(17, 4), (20, 3), (18, 6)], fill=GREEN)
+
+    def vine_swing(d):
+        d.line([(12, 1), (12, 4)], fill=GREEN_D, width=2)
+        d.arc([2, -6, 22, 16], 20, 160, fill=GREEN_D, width=2)
+        d.arc([2, -6, 22, 16], 20, 160, fill=GREEN, width=1)
+        d.ellipse([3, 9, 8, 14], fill=SKIN)
+        d.rectangle([4, 14, 8, 21], fill=BLUE_D)
+
+    def thorn_whip(d):
+        pts = [(2, 20), (7, 14), (11, 15), (15, 9), (19, 8), (22, 3)]
+        d.line(pts, fill=GREEN_D, width=3)
+        d.line(pts, fill=GREEN, width=1)
+        for x, y in ((6, 15), (12, 13), (17, 8)):
+            d.point((x, y - 2), fill=hexc("e8d8a0") + (255,))
+
+    def fruit_icon(base, light, line_c, leaf):
+        def f(d):
+            d.ellipse([3, 5, 21, 22], fill=base)
+            d.ellipse([5, 6, 15, 13], fill=light)
+            for (x, y) in ((8, 15), (14, 11), (16, 17)):
+                d.arc([x - 3, y - 3, x + 3, y + 3], 0, 300, fill=line_c)
+                d.point((x, y), fill=line_c)
+            d.line([(12, 6), (13, 2)], fill=hexc("5a3a1a") + (255,), width=1)
+            d.polygon([(13, 3), (18, 1), (20, 4), (15, 5)], fill=leaf)
+        return f
+
+    _icon("skill_soru", soru)
+    _icon("skill_tekkai", tekkai)
+    _icon("skill_flying_slash", flying_slash)
+    _icon("skill_tiger_rush", tiger_rush)
+    _icon("pistol", pistol_)
+    _icon("skill_bullet_storm", bullet_storm)
+    _icon("skill_armament_coat", armament)
+    _icon("skill_foresight", foresight)
+    _icon("skill_rending_fang", rending_fang)
+    _icon("skill_pounce", pounce)
+    _icon("skill_howl", howl)
+    _icon("skill_vine_snare", vine_snare)
+    _icon("skill_vine_swing", vine_swing)
+    _icon("skill_thorn_whip", thorn_whip)
+    _icon("wolf_fruit", fruit_icon(hexc("8a8478") + (255,), hexc("b0aa9c") + (255,), hexc("3a3430") + (255,), hexc("4a9a30") + (255,)))
+    _icon("vine_fruit", fruit_icon(hexc("4a9a36") + (255,), hexc("7ac85a") + (255,), hexc("1e5a18") + (255,), hexc("9ad860") + (255,)))
+
+
+def gen_fruit_skins():
+    for name, base, dots, swirl, top in (("devil_fruit_wolf", "8a8478", ("a09a8c", "6a645a"), "2a2420", "c0b8a8"),
+                                          ("devil_fruit_vine", "4a9a36", ("62b04a", "36802a"), "1a4a14", "a0e070")):
+        n = 32
+        img = Image.new("RGB", (n, n), hexc(base))
+        d = ImageDraw.Draw(img)
+        rng = np.random.default_rng(hash(name) % 9999)
+        for y in range(n):
+            for x in range(n):
+                if rng.random() < 0.25:
+                    d.point((x, y), fill=hexc(dots[0]) if rng.random() < 0.6 else hexc(dots[1]))
+        for (x, y) in ((6, 8), (22, 6), (14, 20), (28, 24), (4, 26)):
+            for k in range(3):
+                r = 5 - k * 1.6
+                d.arc([x - r, y - r, x + r, y + r], 30 + k * 40, 330, fill=hexc(swirl))
+        d.rectangle([0, 0, n, 2], fill=hexc(top))
+        save(img, name)
+
+
+# --------------------------------------------------------------------------
 # Particle sprites -> assets/textures/fx/
 # --------------------------------------------------------------------------
 FX_OUT = os.path.join(ROOT, "assets", "textures", "fx")
@@ -921,6 +1221,11 @@ def main():
     gen_faces()
     gen_face_parts(); gen_hair(); gen_leather()
     gen_icons()
+    gen_power_icons()
+    gen_skill_icons()
+    gen_fruit_skins()
+    gen_thornbrush()
+    gen_devil_fruit_tex()
     gen_fx()
     print("done.")
 

@@ -26,6 +26,7 @@ func _ready() -> void:
 	_build_post_pass()
 	_build_toast()
 	get_tree().root.size_changed.connect(_update_snap)
+	get_tree().root.size_changed.connect(_update_pixelate)
 	Settings.changed.connect(_on_setting_changed)
 	_apply_preset()
 	if Settings.get_value("video", "fullscreen"):
@@ -88,25 +89,47 @@ func _apply_preset() -> void:
 	var preset: Dictionary = PRESETS[preset_index()]
 	var win := get_tree().root
 	if _is_lowres():
+		# The canvas (and so every menu) is always 640x360; smaller presets
+		# pixelate the 3D view in the post pass instead of shrinking the canvas,
+		# so the UI never ends up laid out on a 320x180 screen.
 		win.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
 		win.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-		win.content_scale_size = preset["size"]
+		win.content_scale_size = Vector2i(640, 360)
 	else:
 		win.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 		win.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 		win.content_scale_size = Vector2i(640, 360)
 	_post_rect.material.set_shader_parameter("enabled", bool(Settings.get_value("video", "dither")) and _is_lowres())
+	_update_pixelate()
 	var warp := float(Settings.get_value("video", "warp"))
 	RenderingServer.global_shader_parameter_set("psx_affine", warp if _is_lowres() else 0.0)
 	_update_snap()
 	preset_changed.emit(preset["name"])
 
 
+## The 3D pixel grid for the preset (the canvas is wider than 640 on wide
+## windows, so the grid scales with it).
+func pixel_res() -> Vector2:
+	var preset: Vector2i = PRESETS[preset_index()]["size"]
+	var vis: Vector2 = get_tree().root.get_visible_rect().size
+	if preset == Vector2i.ZERO:
+		return vis
+	return (vis * (float(preset.x) / 640.0)).round()
+
+
+func _update_pixelate() -> void:
+	if _post_rect == null:
+		return
+	var preset: Vector2i = PRESETS[preset_index()]["size"]
+	_post_rect.material.set_shader_parameter("pixelate", _is_lowres() and preset.x < 640)
+	_post_rect.material.set_shader_parameter("pixel_res", pixel_res())
+
+
 func _update_snap() -> void:
 	var res := Vector2(8192.0, 8192.0)
 	var wobble := clampf(float(Settings.get_value("video", "wobble")), 0.0, 1.0)
 	if _is_lowres() and wobble > 0.01:
-		var size: Vector2 = get_tree().root.get_visible_rect().size
+		var size: Vector2 = pixel_res()
 		# wobble 1.0 -> snap to half the internal resolution; lower = finer grid
 		var divisor := lerpf(0.25, 2.0, wobble)
 		res = size / divisor

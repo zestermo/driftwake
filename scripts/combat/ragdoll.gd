@@ -13,15 +13,42 @@ extends Node3D
 ## swing still can't bend its knees backwards.
 ##
 ## Parts sit on their own physics layer and only collide with the world.
+##
+## Muscles: a living body isn't a sack. With `stiffness` > 0 every joint is
+## pulled toward a target pose (set_targets, in the same local-euler terms as
+## the limits) by a damped spring torque applied between the part and its
+## parent, so the body still tumbles and falls freely but braces: arms out,
+## knees up. Stiffness 0 (the default, and on death) is a plain limp ragdoll.
 
 const LAYER := 1024
 ## Sign of a joint's relative rotation vs. the rig's local euler change
 ## (Jolt measures the second body against the first in the joint frame).
 const LIMIT_SIGN := -1.0
 
+## Water: bodies under the surface get buoyancy (a little more than their
+## weight, so a body plunges in, slows, then bobs back up and floats) and
+## heavy water drag.
+const BUOYANCY := 1.3
+## Per body: a Devil Fruit user doesn't float (set ~0.2: they sink).
+var buoyancy: float = BUOYANCY
+const WATER_DRAG := 2.6
+const WATER_ANG_DRAG := 2.2
+
 var parts: Array = []          # [{name, body, node, offset}] parent-first
+var in_water: bool = false     # the root part is below the surface
+var _splashed: bool = false
+var _ocean: Node
 var _by_name: Dictionary = {}
 var _scale: float = 1.0
+## 0 = limp, 1 = fully braced. Eased toward stiffness_target.
+var stiffness: float = 0.0
+var stiffness_target: float = 0.0
+## Muscle spring (1/s^2) and damping (1/s) at full stiffness.
+var muscle_k: float = 220.0
+var muscle_c: float = 20.0
+var _targets: Dictionary = {}   # part name -> local euler target
+var _wiggle: Dictionary = {}    # part name -> euler amplitude of a slow flail
+var _t: float = 0.0
 
 
 ## Ragdolls live in the scene root so they don't move with the character.
@@ -85,7 +112,11 @@ func add_part(part_name: String, node: Node3D, shape: Dictionary, mass: float,
 	add_child(b)
 	b.global_transform = Transform3D(g.basis.orthonormalized(), g.origin)
 	b.reset_physics_interpolation()
-	var part := {"name": part_name, "body": b, "node": node, "offset": b.global_transform.affine_inverse() * g}
+	var part := {"name": part_name, "body": b, "node": node, "offset": b.global_transform.affine_inverse() * g,
+		"parent": parent_name, "cur": node.rotation, "rel0": Basis.IDENTITY}
+	if parent_name != "" and _by_name.has(parent_name):
+		var pb: RigidBody3D = _by_name[parent_name]["body"]
+		part["rel0"] = pb.global_basis.orthonormalized().inverse() * b.global_basis.orthonormalized()
 	parts.append(part)
 	_by_name[part_name] = part
 	if parent_name != "" and _by_name.has(parent_name):
@@ -126,6 +157,62 @@ func _join(parent: RigidBody3D, child: RigidBody3D, node: Node3D, limits: Dictio
 	j.exclude_nodes_from_collision = true
 	j.node_a = j.get_path_to(parent)
 	j.node_b = j.get_path_to(child)
+
+
+## Target pose for the muscles: {part name: local euler (rig terms)}, plus an
+## optional slow wiggle amplitude per part.
+func set_targets(targets: Dictionary, wiggle: Dictionary = {}) -> void:
+	_targets = targets
+	_wiggle = wiggle
+
+
+## Go limp (death).
+func relax() -> void:
+	stiffness = 0.0
+	stiffness_target = 0.0
+
+
+func _muscles(delta: float) -> void:
+	_t += delta
+	stiffness = move_toward(stiffness, stiffness_target, delta * 1.5)
+	if stiffness <= 0.001 or _targets.is_empty():
+		return
+	var k := muscle_k * stiffness
+	var c := muscle_c * sqrt(stiffness)
+	for i in range(parts.size()):
+		var part: Dictionary = parts[i]
+		var pn: String = part["parent"]
+		if pn == "" or not _targets.has(part["name"]) or not _by_name.has(pn):
+			continue
+		var b: RigidBody3D = part["body"]
+		var pb: RigidBody3D = _by_name[pn]["body"]
+		if b.freeze or pb.freeze:
+			continue
+		var tgt: Vector3 = _targets[part["name"]]
+		if _wiggle.has(part["name"]):
+			# flail in the air, then calm down so the body can come to rest
+			var w: Vector3 = _wiggle[part["name"]] * clampf(1.0 - (_t - 1.0) / 0.8, 0.0, 1.0)
+			var ph := float(i) * 1.7
+			tgt += Vector3(w.x * sin(_t * 4.3 + ph), w.y * sin(_t * 3.1 + ph * 0.6), w.z * sin(_t * 3.7 + ph * 1.3))
+		var cur0: Vector3 = part["cur"]
+		# desired relative rotation: the creation offset re-posed from cur0 to tgt
+		var want_rel: Basis = (part["rel0"] as Basis) * Basis.from_euler(cur0).inverse() * Basis.from_euler(tgt)
+		var pbas := pb.global_basis.orthonormalized()
+		var want := (pbas * want_rel).orthonormalized()
+		var err_q := Quaternion(want) * Quaternion(b.global_basis.orthonormalized()).inverse()
+		err_q = err_q.normalized()
+		if err_q.w < 0.0:
+			err_q = -err_q
+		var ang := err_q.get_angle()
+		var axis := err_q.get_axis() if ang > 0.0001 else Vector3.ZERO
+		var rel_w := b.angular_velocity - pb.angular_velocity
+		var acc := axis * ang * k - rel_w * c
+		# scale by the part's inertia so light limbs and heavy chests move alike
+		var inv := b.get_inverse_inertia_tensor()
+		var inertia := inv.inverse() if absf(inv.determinant()) > 1e-9 else Basis.IDENTITY * b.mass * 0.02
+		var torque := inertia * acc
+		b.apply_torque(torque)
+		pb.apply_torque(-torque)
 
 
 func body(part_name: String) -> RigidBody3D:
@@ -180,6 +267,54 @@ func settled(lin: float = 0.35, ang: float = 1.2) -> bool:
 
 func _process(_delta: float) -> void:
 	drive()
+
+
+func _physics_process(delta: float) -> void:
+	_muscles(delta)
+	if _ocean == null:
+		_ocean = get_node_or_null("/root/Ocean")
+		if _ocean == null:
+			return
+	var g := float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8))
+	var root_wet := false
+	for i in range(parts.size()):
+		var b: RigidBody3D = parts[i]["body"]
+		if b.freeze:
+			continue
+		var p := b.global_position
+		var depth := float(_ocean.call("get_wave_height", p)) - p.y
+		if depth <= -0.15:
+			continue
+		if i == 0:
+			root_wet = depth > 0.1
+		# buoyancy ramps in over the last 15 cm so bodies settle at the surface
+		var sub := clampf((depth + 0.15) / 0.4, 0.0, 1.0)
+		b.sleeping = false
+		b.apply_central_force(Vector3.UP * b.mass * g * buoyancy * sub)
+		var k := clampf(WATER_DRAG * sub * delta, 0.0, 0.9)
+		b.linear_velocity *= 1.0 - k
+		b.angular_velocity *= 1.0 - clampf(WATER_ANG_DRAG * sub * delta, 0.0, 0.9)
+	if root_wet and not in_water and not _splashed:
+		_splashed = true
+		var rb: RigidBody3D = parts[0]["body"]
+		var at := Vector3(rb.global_position.x, float(_ocean.call("get_wave_height", rb.global_position)), rb.global_position.z)
+		var fx := get_node_or_null("/root/FX")
+		if fx:
+			fx.call("splash", at, 12, 1.0)
+			fx.call("sfx", "splash", at, -2.0, 0.08, 0.85)
+	in_water = root_wet
+
+
+## Is the main part in (or right at) the water?
+func root_depth() -> float:
+	if parts.is_empty():
+		return -INF
+	if _ocean == null:
+		_ocean = get_node_or_null("/root/Ocean")
+	if _ocean == null:
+		return -INF
+	var p: Vector3 = (parts[0]["body"] as RigidBody3D).global_position
+	return float(_ocean.call("get_wave_height", p)) - p.y
 
 
 ## Pose the rig from the bodies (parents first, so children land correctly).

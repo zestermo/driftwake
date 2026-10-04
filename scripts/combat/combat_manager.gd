@@ -6,6 +6,11 @@ var _hitstop_active: bool = false
 func apply_hitstop(duration: float) -> void:
 	if _hitstop_active:
 		return
+	# co-op: the world can't freeze for one player (enemies, the other
+	# captains and the clock all keep going)
+	var net := get_node_or_null("/root/Net")
+	if net and net.active:
+		return
 	_hitstop_active = true
 	Engine.time_scale = 0.05
 	await get_tree().create_timer(duration, true, false, true).timeout
