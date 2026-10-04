@@ -1,0 +1,49 @@
+{
+	"speaker": "Keeper Ambrose",
+	"voice": 0.8,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Ah. Footsteps. Not many make the climb.",
+				"I keep the light. The light keeps the sea honest. Mostly."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "What brings you up here?",
+			"choices": [
+				{ "text": "What's out there?", "next": "horizon" },
+				{ "text": "Why keep a light at all?", "next": "light" },
+				{ "text": "Nessa says there's something shiny up here.", "next": "shiny" },
+				{ "text": "Just enjoying the view.", "next": "bye" }
+			]
+		},
+		"horizon": {
+			"text": [
+				"On a clear day? The nearest is {nearest_island}.",
+				"Beyond that, more than I can count. Some I've watched for forty years. Some appeared last spring.",
+				"Islands don't appear, captain. And yet."
+			],
+			"next": "menu"
+		},
+		"light": {
+			"text": [
+				"So ships find home. And so whatever is out past the reef knows we're still here, still watching.",
+				"I'm not sure which purpose matters more these days."
+			],
+			"next": "menu"
+		},
+		"shiny": {
+			"text": [
+				"Hm. A few coins I set aside for whoever bothered to climb up here. East side, by the cliff edge.",
+				"Consider it a reward for curiosity. The sea rewards it too, though not always kindly."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Watch the horizon, captain. It's watching you."
+		}
+	}
+}

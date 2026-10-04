@@ -17,6 +17,11 @@ const _island_script = preload("res://scripts/island/island.gd")
 
 var heightmap: Array = []
 var island_positions: Array[Vector3] = []  # (x, peak_height, z)
+var island_infos: Array[Dictionary] = []   # procedural islands: {pos, type, radius}
+var starter_island: StarterIsland
+var starter_center := Vector2.ZERO
+
+var _decor := {}  # name -> Array[Mesh]
 
 
 func _ready() -> void:
@@ -31,7 +36,7 @@ func _generate_world() -> void:
 	var centers: Array[Dictionary] = []
 
 	# First island near player spawn
-	centers.append({"pos": Vector2(150.0, 150.0), "radius": 160.0, "peak": 4.0, "type": "wild"})
+	centers.append({"pos": Vector2(150.0, 150.0), "radius": 160.0, "peak": 4.0, "type": "town", "starter": true})
 
 	var type_pool: Array[String] = ["wild", "pirate", "military", "town"]
 	var attempts := 0
@@ -84,8 +89,12 @@ func _generate_world() -> void:
 	add_child(terrain_body)
 
 	# Step 4: Furnish each island (spawn points, dock, enemies)
+	_build_decor_meshes()
 	for i in range(centers.size()):
 		var c: Dictionary = centers[i]
+		if c.get("starter", false):
+			_build_starter_island(c)
+			continue
 		var pos: Vector2 = c["pos"]
 		var island_type: String = c["type"]
 		var peak: float = c["peak"]
@@ -106,23 +115,19 @@ func _generate_world() -> void:
 		})
 		var island: Node3D = result["island"]
 		add_child(island)
+		_decorate_island(island, Vector2(pos.x, pos.y), radius, island_type, world_seed + i * 131, result["dock_world_pos"])
 
 		# Track for other systems
 		var peak_y := _sample_height(pos.x, pos.y)
 		island_positions.append(Vector3(pos.x, peak_y, pos.y))
-
-		# Place the ship at the first island's dock
-		if i == 0:
-			var dock_pos: Vector3 = result["dock_world_pos"]
-			var ship := get_tree().get_first_node_in_group("ship") as Ship
-			if ship:
-				ship.global_position = Vector3(dock_pos.x, 5.0, dock_pos.z)
+		island_infos.append({"pos": Vector2(pos.x, pos.y), "type": island_type, "radius": radius})
 
 		# Connect all docking areas to board the ship
 		var dock_area := island.get_node_or_null("DockingArea")
 		if dock_area and dock_area is Interactable:
 			dock_area.interacted.connect(_on_dock_interacted)
 
+	_register_dialogue_tokens()
 	print("WorldGenerator: Generated terrain with %d islands (seed: %d)" % [centers.size(), world_seed])
 
 
@@ -133,6 +138,7 @@ func _on_dock_interacted(player: Player) -> void:
 	# Teleport player to ship and enter helm
 	player.current_ship = ship
 	player.global_position = ship.helm_position.global_position
+	player.reset_physics_interpolation()
 	var sm := player.state_machine
 	if sm.current_state:
 		sm.current_state.transitioned.emit(sm.current_state, "Helm", {})
@@ -181,6 +187,12 @@ func _generate_heightmap(centers: Array[Dictionary], _rng: RandomNumberGenerator
 			# Plateau-style island shapes: flat top with steep edges
 			var island_influence := 0.0
 			for c in centers:
+				if c.get("starter", false):
+					# Hand-built island sits here: keep the seafloor below its chunk
+					var sp: Vector2 = c["pos"]
+					if absf(wx - sp.x) < 215.0 and absf(wz - sp.y) < 215.0:
+						h = minf(h, seafloor_depth - 3.0)
+					continue
 				var cp: Vector2 = c["pos"]
 				var peak: float = c["peak"]
 				var radius: float = c["radius"]
@@ -250,13 +262,7 @@ func _build_mesh() -> ArrayMesh:
 
 
 func _create_terrain_material() -> ShaderMaterial:
-	var mat := ShaderMaterial.new()
-	mat.shader = _terrain_shader
-	mat.set_shader_parameter("water_level", water_level)
-	mat.set_shader_parameter("sand_height", water_level + 2.0)
-	mat.set_shader_parameter("grass_height", water_level + 6.0)
-	mat.set_shader_parameter("rock_height", water_level + 12.0)
-	return mat
+	return PSXMat.terrain(false, water_level)
 
 
 func _sample_height(wx: float, wz: float) -> float:
@@ -267,3 +273,191 @@ func _sample_height(wx: float, wz: float) -> float:
 		if gx < row.size():
 			return row[gx]
 	return 0.0
+
+
+## Exact height of the rendered world terrain (matches the mesh triangles).
+func height_at(wx: float, wz: float) -> float:
+	var cell := terrain_size / float(terrain_resolution)
+	var fx := (wx + terrain_size * 0.5) / cell
+	var fz := (wz + terrain_size * 0.5) / cell
+	var ix := clampi(int(floor(fx)), 0, terrain_resolution - 1)
+	var iz := clampi(int(floor(fz)), 0, terrain_resolution - 1)
+	var u := clampf(fx - ix, 0.0, 1.0)
+	var v := clampf(fz - iz, 0.0, 1.0)
+	var r0: PackedFloat32Array = heightmap[iz]
+	var r1: PackedFloat32Array = heightmap[iz + 1]
+	var h00 := r0[ix]
+	var h10 := r0[ix + 1]
+	var h01 := r1[ix]
+	var h11 := r1[ix + 1]
+	if u + v <= 1.0:
+		return h00 + (h10 - h00) * u + (h01 - h00) * v
+	return h11 + (h01 - h11) * (1.0 - u) + (h10 - h11) * (1.0 - v)
+
+
+# --------------------------------------------------------------------------
+# Starter island (Brinehollow)
+# --------------------------------------------------------------------------
+func _build_starter_island(c: Dictionary) -> void:
+	var pos: Vector2 = c["pos"]
+	starter_center = pos
+	starter_island = StarterIsland.new()
+	starter_island.name = "Brinehollow"
+	starter_island.position = Vector3(pos.x, 0.0, pos.y)
+	add_child(starter_island)
+	var result: Dictionary = starter_island.build(world_seed)
+	island_positions.append(Vector3(pos.x, 4.0, pos.y))
+
+	var dock_area := starter_island.get_node_or_null("DockingArea")
+	if dock_area and dock_area is Interactable:
+		dock_area.interacted.connect(_on_dock_interacted)
+
+	# Moor the ship alongside the dock, bow pointing out to sea
+	var outward: Vector3 = result["dock_outward"]
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	if ship:
+		var dp: Vector3 = result["dock_world_pos"]
+		ship.place(Vector3(dp.x, 0.5, dp.z), atan2(-outward.x, -outward.z))
+
+	# Start the player on the dock, facing the village
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player:
+		player.global_position = result["player_spawn"]
+		player.reset_physics_interpolation()
+		var model := player.get_node_or_null("PlayerModel") as Node3D
+		if model:
+			model.rotation.y = atan2(outward.x, outward.z)
+	for child in get_parent().get_children():
+		if child.has_method("shake"):
+			(child as Node3D).rotation.y = atan2(outward.x, outward.z)
+
+
+# --------------------------------------------------------------------------
+# Procedural island decoration (palms, jungle trees, bushes, rocks)
+# --------------------------------------------------------------------------
+func _build_decor_meshes() -> void:
+	_decor["palm"] = [Props.palm_mesh(101), Props.palm_mesh(102), Props.palm_mesh(103)]
+	_decor["jungle"] = [Props.jungle_tree_mesh(201), Props.jungle_tree_mesh(202)]
+	_decor["bush"] = [Props.bush_mesh(301), Props.bush_mesh(302)]
+	_decor["rock"] = [Props.rock_mesh(401, 1.0), Props.rock_mesh(402, 1.0, true)]
+	_decor["grass"] = [Props.grass_mesh()]
+
+
+func _decorate_island(island: Node3D, center: Vector2, radius: float, island_type: String, seed_value: int, dock_world: Vector3) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var buckets := {}
+	var colliders := StaticBody3D.new()
+	colliders.name = "DecorColliders"
+	colliders.collision_layer = 1
+	colliders.collision_mask = 0
+	island.add_child(colliders)
+	var jungle_bias := 0.45 if island_type == "wild" else (0.15 if island_type == "pirate" else 0.05)
+	var dock2 := Vector2(dock_world.x, dock_world.z)
+	var step := 6.0
+	var x := -radius
+	while x <= radius:
+		var z := -radius
+		while z <= radius:
+			var p := center + Vector2(x + rng.randf_range(-2.5, 2.5), z + rng.randf_range(-2.5, 2.5))
+			z += step
+			if p.distance_to(center) > radius * 1.05:
+				continue
+			if p.distance_to(dock2) < 60.0:
+				continue
+			var h := height_at(p.x, p.y)
+			if h < 0.8:
+				continue
+			var e := 2.0
+			var nrm := Vector3(height_at(p.x - e, p.y) - height_at(p.x + e, p.y), 2.0 * e, height_at(p.x, p.y - e) - height_at(p.x, p.y + e)).normalized()
+			var slope := 1.0 - nrm.y
+			var roll := rng.randf()
+			var beach := 1.0 - smoothstep(2.0, 4.0, h)
+			var kind := ""
+			if slope > 0.5:
+				kind = "rock" if roll < 0.25 else ""
+			elif roll < 0.25 * beach + 0.04:
+				kind = "palm"
+			elif roll < 0.25 * beach + 0.04 + jungle_bias * (1.0 - beach):
+				kind = "jungle"
+			elif roll < 0.25 * beach + 0.1 + jungle_bias * (1.0 - beach):
+				kind = "bush"
+			elif roll < 0.25 * beach + 0.13 + jungle_bias * (1.0 - beach):
+				kind = "rock"
+			elif roll < 0.6:
+				kind = "grass"
+			if kind == "":
+				continue
+			var meshes: Array = _decor[kind]
+			var mesh: Mesh = meshes[rng.randi() % meshes.size()]
+			var s := rng.randf_range(0.8, 1.3) * (rng.randf_range(0.6, 2.0) if kind == "rock" else 1.0)
+			var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s)
+			var local := Vector3(p.x, h - 0.15, p.y) - island.position
+			if not buckets.has(mesh):
+				buckets[mesh] = []
+			buckets[mesh].append(Transform3D(basis, local))
+			if kind == "palm" or kind == "jungle" or (kind == "rock" and s > 0.9):
+				var cs := CollisionShape3D.new()
+				var cyl := CylinderShape3D.new()
+				cyl.radius = 0.4 * s if kind != "rock" else 0.8 * s
+				cyl.height = 3.0
+				cs.shape = cyl
+				cs.position = local + Vector3(0, 1.5, 0)
+				colliders.add_child(cs)
+		x += step
+	for mesh in buckets.keys():
+		var xforms: Array = buckets[mesh]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = mesh
+		mm.instance_count = xforms.size()
+		for i in range(xforms.size()):
+			mm.set_instance_transform(i, xforms[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		island.add_child(mmi)
+
+
+# --------------------------------------------------------------------------
+# Dialogue tokens (NPCs can mention real islands of this world)
+# --------------------------------------------------------------------------
+const _TYPE_DESC := {
+	"wild": "an untamed jungle isle",
+	"pirate": "a pirate haven",
+	"military": "a Marine fort",
+	"town": "a trading town",
+}
+const _COMPASS := ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
+
+
+func _compass(from: Vector2, to: Vector2) -> String:
+	var d := to - from
+	var ang := atan2(d.x, -d.y)  # 0 = north (-Z), clockwise
+	var idx := int(round(ang / (TAU / 8.0))) % 8
+	if idx < 0:
+		idx += 8
+	return _COMPASS[idx]
+
+
+func _island_phrase(info: Dictionary) -> String:
+	var pos: Vector2 = info["pos"]
+	var dist := int(round(starter_center.distance_to(pos) / 50.0) * 50.0)
+	return "%s to the %s, some %d meters out" % [_TYPE_DESC.get(info["type"], "an island"), _compass(starter_center, pos), dist]
+
+
+func _register_dialogue_tokens() -> void:
+	var dm := get_node_or_null("/root/Dialogue")
+	if dm == null or island_infos.is_empty():
+		return
+	dm.register_token("rumor", func() -> String:
+		var info: Dictionary = island_infos[randi() % island_infos.size()]
+		return _island_phrase(info))
+	dm.register_token("nearest_island", func() -> String:
+		var best: Dictionary = island_infos[0]
+		for info in island_infos:
+			if starter_center.distance_to(info["pos"]) < starter_center.distance_to(best["pos"]):
+				best = info
+		return _island_phrase(best))
+	dm.register_token("banked", func() -> String:
+		var gm := get_node_or_null("/root/GameManager")
+		return str(gm.banked_count() if gm else 0))

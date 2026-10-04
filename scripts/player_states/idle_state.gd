@@ -21,22 +21,18 @@ func physics_update(delta: float) -> void:
 		transitioned.emit(self, "Fall", {})
 		return
 
-	if Input.is_action_just_pressed("jump"):
+	if wants_jump():
 		transitioned.emit(self, "Jump", {})
 		return
 
-	if input_buffer.consume_action("light_attack"):
-		transitioned.emit(self, "LightAttack", {"combo_index": 0})
-		return
+	if player.armed:
+		face_camera(delta)
 
-	if input_buffer.consume_action("heavy_attack"):
-		transitioned.emit(self, "HeavyAttack", {})
-		return
-
-	if input_buffer.consume_action("dodge"):
+	if wants_dodge():
 		transitioned.emit(self, "Dodge", {})
 		return
 
-	if input_buffer.consume_action("parry"):
-		transitioned.emit(self, "Parry", {})
+	var next := combat_input()
+	if next != "":
+		transitioned.emit(self, next, {"combo_index": 0})
 		return

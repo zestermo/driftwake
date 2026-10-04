@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/axe.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "boarding_axe"
+display_name = "Boarding Axe"
+description = "Heavy and slow to swing, but it splits planks and pirates alike. Hits harder than the cutlass."
+value = 18
+stackable = false
+max_stack = 1
+item_type = 1
+icon = ExtResource("2")
+weapon_model = "axe"
+damage_mult = 1.4

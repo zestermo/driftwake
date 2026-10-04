@@ -1,0 +1,50 @@
+{
+	"speaker": "Old Pell",
+	"voice": 0.82,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Mm? Oh, a visitor. Sit, sit. Mind the nets, they've more holes than sense.",
+				"You've the look of someone who doesn't know what sea they're sailing on."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "Ask an old man something, then.",
+			"choices": [
+				{ "text": "What sea is this?", "next": "wake" },
+				{ "text": "Why are the nets empty?", "next": "nets" },
+				{ "text": "What are Driftstones?", "next": "stones", "requires": "driftstone_found" },
+				{ "text": "I'll leave you to it.", "next": "bye" }
+			]
+		},
+		"wake": {
+			"text": [
+				"We call it the Driftwake. My grandmother said something enormous passed through here, long before anyone.",
+				"What we sail on is only the wake it left behind. Currents that don't follow the moon. Islands that drift a little further every year.",
+				"Folk laugh. But I've mended nets on this beach sixty years, and the horizon isn't where it used to be."
+			],
+			"next": "menu"
+		},
+		"nets": {
+			"text": [
+				"Fish are clever. They leave before trouble does.",
+				"Something's stirring out past the reef. They felt it before we did."
+			],
+			"next": "menu"
+		},
+		"stones": {
+			"text": [
+				"You found one, didn't you. I can see it on you.",
+				"They say each stone holds a piece of a route. Find them all and you'll know where the great thing went.",
+				"Or why it left. I'm not sure which frightens me more."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Tides keep you, young captain."
+		}
+	}
+}

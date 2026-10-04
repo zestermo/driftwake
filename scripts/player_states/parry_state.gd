@@ -13,6 +13,8 @@ func enter(_data: Dictionary) -> void:
 	parry_active = true
 	parry_succeeded = false
 	player.is_parrying = true
+	player.body_model.play("parry", parry_window + recovery_time)
+	player.reset_combo()
 
 	# Connect to hurtbox for parry check
 	if not player.hurtbox.hit_received.is_connected(_on_hit_during_parry):
@@ -52,6 +54,8 @@ func exit() -> void:
 func _on_hit_during_parry(_hit_data: HitData, _attacker: Node) -> void:
 	if parry_active:
 		parry_succeeded = true
+		FX.sparkle(player.global_position + Vector3(0, 1.3, 0) - player.player_model.global_basis.z * 0.7, 14, Color(1.0, 1.0, 0.8))
+		FX.sfx("hit", player.global_position, -2.0, 0.05, 1.6)
 		var combat_mgr := get_node("/root/CombatManager")
 		combat_mgr.apply_hitstop(0.1)
 		combat_mgr.apply_camera_shake(0.15)

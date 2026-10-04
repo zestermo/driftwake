@@ -1,0 +1,70 @@
+{
+	"speaker": "Harbormaster Odile",
+	"voice": 1.15,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Another captain washed in on the tide. {captain}, is it? Welcome to Brinehollow.",
+				"I keep the dock, the ledger and the peace, in that order. You'll be wanting to know the rules."
+			],
+			"next": "rules",
+			"set_flag": "met_odile"
+		},
+		"rules": {
+			"text": [
+				"One: your ship is the only safe ground you've got out there. Die on some rock and you wake up aboard.",
+				"Two: anything you carry is only borrowed until it's stowed. Bank your haul at the ship's chest, or lose it where you fall.",
+				"Fall twice before you get it back? The sea keeps it. She always does."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "What else?",
+			"choices": [
+				{
+					"text": "How do I sail?",
+					"next": "sail"
+				},
+				{
+					"text": "What's on this island?",
+					"next": "island"
+				},
+				{
+					"text": "Where should I go after this?",
+					"next": "where"
+				},
+				{
+					"text": "Nothing. Fair winds.",
+					"next": "bye"
+				}
+			]
+		},
+		"sail": {
+			"text": [
+				"Walk to the end of my dock and you'll board. Take the helm with F, steer with your keys, F again to let go.",
+				"She's no warship, but she floats. Mostly."
+			],
+			"next": "menu"
+		},
+		"island": {
+			"text": [
+				"Tavern's to the west of the square. Gus pours, Nessa trades, and the Sergeant beats sense into folk in the yard past the tavern.",
+				"Lighthouse up on the east hill. The cove's south-east, and the old ruins sit deep in the jungle to the south-west.",
+				"People go into those ruins and come back quiet. Make of that what you will."
+			],
+			"next": "menu"
+		},
+		"where": {
+			"text": [
+				"Ambrose up at the lighthouse watches the horizon all day. Ask him what's out there.",
+				"Or ask Gus. Every rumor on this sea ends up at his bar eventually."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Mind the planks at the end. Third one bites."
+		}
+	}
+}

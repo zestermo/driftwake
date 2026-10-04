@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/rum.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "rum"
+display_name = "Brinehollow Black"
+description = "Gus's finest rum. Tastes like tar and regret. Restores 35 health."
+value = 3
+stackable = true
+max_stack = 10
+item_type = 2
+icon = ExtResource("2")
+heal_amount = 35.0
+use_time = 1.0

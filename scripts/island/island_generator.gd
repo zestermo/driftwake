@@ -169,15 +169,14 @@ static func _add_dock(island: Node3D, local_shore_pos: Vector3, outward: Vector3
 	dock_body.rotation.y = atan2(-outward.x, -outward.z)
 	island.add_child(dock_body)
 
-	var dock_mat := StandardMaterial3D.new()
-	dock_mat.albedo_color = Color(0.45, 0.32, 0.18)
-	var dock_mesh := BoxMesh.new()
-	dock_mesh.size = Vector3(4.0, 0.5, 32.0)
-	dock_mesh.material = dock_mat
-
-	var dock_mesh_inst := MeshInstance3D.new()
-	dock_mesh_inst.name = "MeshInstance3D"
-	dock_mesh_inst.mesh = dock_mesh
+	var mb := MeshBuilder.new()
+	var deck := PSXMat.lit("planks_weathered", Color.WHITE, {"affine": 0.5})
+	var post := PSXMat.lit("planks_dark")
+	mb.add_box(deck, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3.ZERO), Vector3(32.0, 0.5, 4.0), 0.5, Color.WHITE, false, false)
+	for i in range(9):
+		for x in [-1.9, 1.9]:
+			mb.add_cylinder(post, Transform3D(Basis(), Vector3(x, -8.0, -16.0 + i * 4.0)), 0.16, 0.16, 8.6, 6, 0.6)
+	var dock_mesh_inst := mb.to_instance("MeshInstance3D")
 	dock_body.add_child(dock_mesh_inst)
 
 	var dock_col := CollisionShape3D.new()

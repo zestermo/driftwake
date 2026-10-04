@@ -18,6 +18,8 @@ func _ready() -> void:
 	var ocean_mesh := get_tree().get_first_node_in_group("ocean_mesh") as MeshInstance3D
 	if ocean_mesh and ocean_mesh.mesh:
 		ocean_material = ocean_mesh.mesh.material as ShaderMaterial
+		# Re-positioned every frame on a grid; interpolating would make it slide.
+		ocean_mesh.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 
 
 func get_wave_height(world_pos: Vector3, time: float = -1.0) -> float:

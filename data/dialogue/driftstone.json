@@ -1,0 +1,25 @@
+{
+	"speaker": "",
+	"voice": 0.6,
+	"start": "read",
+	"return": "read_again",
+	"nodes": {
+		"read": {
+			"text": [
+				"A black monolith, warm to the touch. Glyphs crawl across its face, glowing the color of deep water.",
+				"You can't read them. And yet, as you look, the meaning settles into you like silt:",
+				"\"WE PASSED THIS WAY AND THE WATERS FOLLOWED. SEEK THE STONE WHERE THE SUN DROWNS.\"",
+				"The glow pulses once, as if something far away noticed."
+			],
+			"event": "driftstone_read",
+			"next": "end"
+		},
+		"read_again": {
+			"text": [
+				"\"SEEK THE STONE WHERE THE SUN DROWNS.\"",
+				"The glyphs hum faintly. Somewhere to the west, perhaps."
+			],
+			"next": "end"
+		}
+	}
+}

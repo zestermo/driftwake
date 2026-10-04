@@ -1,0 +1,48 @@
+{
+	"speaker": "Wren",
+	"voice": 1.1,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Shh! Don't step on the crabs, they're in conference.",
+				"Oh. You're not a crab. You're a captain. Even better, captains have boats."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "Wren's listening. Mostly.",
+			"choices": [
+				{ "text": "Who are you?", "next": "who" },
+				{ "text": "What are Driftstones?", "next": "stones" },
+				{ "text": "Know any secrets?", "next": "secret" },
+				{ "text": "I should go.", "next": "bye" }
+			]
+		},
+		"who": {
+			"text": [
+				"Castaway. Professional. My ship went down chasing a Driftstone three islands west of here. Or east. Islands move.",
+				"Washed up in this cove with an eyepatch I definitely didn't have before. Lovely place."
+			],
+			"next": "menu"
+		},
+		"stones": {
+			"text": [
+				"Big black stones with glowing letters. There's one in the ruins, through the jungle, south-west.",
+				"Touch it, read it, feel the sea lean in to listen. Every stone points to the next. Like breadcrumbs left by something huge."
+			],
+			"next": "menu"
+		},
+		"secret": {
+			"text": [
+				"Head west from the ruins into the deep green. Someone buried a chest there and drew a terrible map.",
+				"And there's gold in the cove, by the water on the far side. The crabs guard it. Poorly."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "If you find another stone, come tell me what it said! The crabs want to know."
+		}
+	}
+}

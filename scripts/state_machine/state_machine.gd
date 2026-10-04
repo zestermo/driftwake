@@ -46,3 +46,15 @@ func _on_child_transitioned(state: State, new_state_name: String, data: Dictiona
 	current_state.exit()
 	new_state.enter(data)
 	current_state = new_state
+
+
+## Switch state from outside (getting hit, dying), whatever state is active.
+func force_state(new_state_name: String, data: Dictionary = {}) -> void:
+	var new_state := states.get(new_state_name.to_lower()) as State
+	if new_state == null:
+		push_warning("StateMachine: State '%s' not found" % new_state_name)
+		return
+	if current_state:
+		current_state.exit()
+	new_state.enter(data)
+	current_state = new_state

@@ -1,9 +1,25 @@
 extends PlayerState
+## Jump / double jump. Hold jump for full height, tap for a short hop.
 
 
-func enter(_data: Dictionary) -> void:
+func enter(data: Dictionary) -> void:
+	var double: bool = player.jumps_remaining < player.max_jumps and not data.get("coyote", false)
+	player.air_speed = maxf(Vector2(player.velocity.x, player.velocity.z).length(), player.move_speed)
+	_launch(double)
+
+
+func _launch(double: bool) -> void:
 	player.jumps_remaining -= 1
-	player.velocity.y = player.jump_force
+	player.velocity.y = player.jump_force * (0.92 if double else 1.0)
+	player.variable_jump_active = true
+	player.squash(4.5 if not double else 3.5)
+	if double:
+		player.body_model.play("flip", 0.45)
+		FX.sparkle(player.global_position + Vector3(0, 0.8, 0), 10, Color(1.0, 0.95, 0.7))
+		FX.sfx("jump", player.global_position, -8.0, 0.05, 1.15)
+	else:
+		FX.dust(player.global_position + Vector3(0, 0.05, 0), 6, 0.6)
+		FX.sfx("jump", player.global_position, -8.0, 0.06)
 
 
 func physics_update(delta: float) -> void:
@@ -12,16 +28,19 @@ func physics_update(delta: float) -> void:
 	var input := get_movement_input()
 	if input.length() > 0.1:
 		var direction := get_camera_relative_direction(input)
-		player.velocity.x = direction.x * player.move_speed
-		player.velocity.z = direction.z * player.move_speed
-		face_direction(direction, delta)
+		var spd := air_speed()
+		player.velocity.x = direction.x * spd
+		player.velocity.z = direction.z * spd
+		if player.armed:
+			face_camera(delta)
+		else:
+			face_direction(direction, delta)
 
 	player.move_and_slide()
 
 	# Double jump
 	if Input.is_action_just_pressed("jump") and player.jumps_remaining > 0:
-		player.jumps_remaining -= 1
-		player.velocity.y = player.jump_force
+		_launch(true)
 		return
 
 	if player.velocity.y < 0.0:

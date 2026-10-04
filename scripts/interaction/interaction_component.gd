@@ -17,12 +17,17 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Dialogue.is_blocking():
+		return
 	if event.is_action_pressed("interact") and current_interactable:
+		get_viewport().set_input_as_handled()
 		current_interactable.interact(player)
 
 
 func _physics_process(_delta: float) -> void:
-	if player.context != Player.Context.ON_FOOT:
+	if not player:
+		return
+	if player.context != Player.Context.ON_FOOT or Dialogue.active:
 		if current_interactable:
 			current_interactable = null
 			prompt_hidden.emit()
@@ -32,6 +37,8 @@ func _physics_process(_delta: float) -> void:
 	var best_dist := 999.0
 	for inter in nearby_interactables:
 		if not is_instance_valid(inter) or not inter.enabled:
+			continue
+		if (player.is_swimming() or player.current_state_name() == "Climb") and not inter.usable_in_water:
 			continue
 		var dist := player.global_position.distance_to(inter.global_position)
 		if dist < best_dist:

@@ -43,12 +43,59 @@ func get_camera_forward() -> Vector3:
 
 func apply_gravity(delta: float) -> void:
 	if not player.is_on_floor():
-		player.velocity.y -= player.gravity * delta
-		player.velocity.y = maxf(player.velocity.y, -30.0)
+		var g := player.gravity
+		if player.velocity.y < 0.0:
+			g *= player.fall_gravity_mult
+			player.variable_jump_active = false
+		elif player.variable_jump_active and not Input.is_action_pressed("jump"):
+			g *= player.short_hop_gravity_mult  # let go early = shorter hop
+		player.velocity.y -= g * delta
+		player.velocity.y = maxf(player.velocity.y, -34.0)
+
+
+## Attack/parry input: first press draws the weapon, later presses attack.
+## Returns the state to enter, or "" if nothing should happen.
+func combat_input() -> String:
+	if input_buffer.consume_action("light_attack"):
+		if player.can_attack():
+			return "LightAttack" if player.spend_stamina(player.LIGHT_COST) else ""
+		player.draw_weapon()
+		return ""
+	if input_buffer.consume_action("heavy_attack"):
+		if player.can_attack():
+			return "HeavyAttack" if player.spend_stamina(player.HEAVY_COST) else ""
+		player.draw_weapon()
+		return ""
+	if input_buffer.consume_action("parry"):
+		if player.can_attack():
+			return "Parry"
+		player.draw_weapon()
+		return ""
+	return ""
+
+
+## Dodge pressed (or buffered) and there's stamina for it.
+func wants_dodge() -> bool:
+	return input_buffer.consume_action("dodge") and player.spend_stamina(player.DODGE_COST)
+
+
+## Combat stance keeps the character facing where the camera looks.
+func face_camera(delta: float) -> void:
+	face_direction(get_camera_forward(), delta)
 
 
 func face_direction(direction: Vector3, delta: float) -> void:
 	if direction.length_squared() < 0.01:
 		return
 	var target_angle := atan2(-direction.x, -direction.z)
-	player.player_model.rotation.y = lerp_angle(player.player_model.rotation.y, target_angle, 12.0 * delta)
+	player.player_model.rotation.y = lerp_angle(player.player_model.rotation.y, target_angle, minf(player.turn_speed * delta, 1.0))
+
+
+## Jump pressed now, or buffered just before landing.
+func wants_jump() -> bool:
+	return Input.is_action_just_pressed("jump") or player.consume_jump_buffer()
+
+
+## Horizontal air speed keeps your running momentum.
+func air_speed() -> float:
+	return maxf(player.move_speed, player.air_speed)

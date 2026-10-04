@@ -1,0 +1,62 @@
+{
+	"speaker": "Gus Brannock",
+	"voice": 0.72,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Welcome to the Salted Gull! Best rum on the island. Only rum on the island, but still.",
+				"New face, eh? Pull up a barrel. What'll it be?"
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "What can I get you?",
+			"choices": [
+				{ "text": "Heard any rumors?", "next": "rumor" },
+				{ "text": "Tell me about Brinehollow.", "next": "town" },
+				{ "text": "A drink.", "next": "drink" },
+				{ "text": "Just passing through.", "next": "bye" }
+			]
+		},
+		"rumor": {
+			"text": [
+				"Rumors? I've got a cellar full. Sailors swear there's {rumor}.",
+				"Can't promise it's still there, mind. Islands out here have a way of... moving."
+			],
+			"next": "rumor_more"
+		},
+		"rumor_more": {
+			"text": "Want another?",
+			"choices": [
+				{ "text": "Go on.", "next": "rumor2" },
+				{ "text": "That's enough for now.", "next": "menu" }
+			]
+		},
+		"rumor2": {
+			"text": [
+				"Fella last week said he'd seen {rumor}. Paid in fish. I don't take fish.",
+				"And there's old talk of standing stones with writing nobody can read. Driftstones, Wren calls 'em. Wren also talks to crabs."
+			],
+			"next": "menu"
+		},
+		"town": {
+			"text": [
+				"Fishing village, born and bred. Odile runs the dock, Ambrose keeps the light, and I keep everyone else from thinking too hard.",
+				"Quiet place. Too quiet, some say. The nets have been coming up empty, and the tide's been strange since spring."
+			],
+			"next": "menu"
+		},
+		"drink": {
+			"text": [
+				"Here. Brinehollow Black. Tastes like tar and regret.",
+				"First one's free. The second one's also free, we don't have a currency system yet. Don't tell Nessa."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Come back alive and I'll pour you something worth bragging about."
+		}
+	}
+}

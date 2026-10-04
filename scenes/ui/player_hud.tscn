@@ -1,84 +1,174 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/player_hud.gd" id="1"]
+[ext_resource type="FontFile" path="res://assets/fonts/PixelifySans-SemiBold.woff2" id="2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_bar_bg"]
+bg_color = Color(0.08, 0.06, 0.06, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.74, 0.45, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_bar_fill"]
+bg_color = Color(0.75, 0.16, 0.14, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_prompt"]
+bg_color = Color(0.04, 0.05, 0.09, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.74, 0.45, 1)
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_small"]
+font_size = 16
+outline_size = 4
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font = ExtResource("2")
+font_size = 32
+font_color = Color(1, 0.88, 0.55, 1)
+outline_size = 6
+outline_color = Color(0.1, 0.05, 0.02, 1)
+shadow_size = 0
+shadow_color = Color(0, 0, 0, 0.6)
+shadow_offset = Vector2(2, 2)
 
 [node name="PlayerHUD" type="CanvasLayer"]
 script = ExtResource("1")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-anchors_preset = 0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 320.0
-offset_bottom = 160.0
+[node name="Top" type="MarginContainer" parent="."]
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 250.0
+offset_bottom = 80.0
+mouse_filter = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBox" type="VBoxContainer" parent="Top"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="HealthRow" type="HBoxContainer" parent="Top/VBox"]
 layout_mode = 2
 
-[node name="HealthBar" type="ProgressBar" parent="MarginContainer/VBoxContainer"]
+[node name="HP" type="Label" parent="Top/VBox/HealthRow"]
 layout_mode = 2
-custom_minimum_size = Vector2(280, 28)
-max_value = 100.0
+text = "HP"
+label_settings = SubResource("LabelSettings_small")
+
+[node name="HealthBar" type="ProgressBar" parent="Top/VBox/HealthRow"]
+custom_minimum_size = Vector2(110, 12)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/background = SubResource("StyleBox_bar_bg")
+theme_override_styles/fill = SubResource("StyleBox_bar_fill")
 value = 100.0
 show_percentage = false
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/HealthBar"]
+[node name="Label" type="Label" parent="Top/VBox/HealthRow/HealthBar"]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-text = "100 / 100"
-horizontal_alignment = 1
-vertical_alignment = 1
+text = "100/100"
 
-[node name="StateLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="InventoryLabel" type="Label" parent="Top/VBox"]
+layout_mode = 2
+label_settings = SubResource("LabelSettings_small")
+
+[node name="StateLabel" type="Label" parent="Top/VBox"]
 layout_mode = 2
 text = "Idle"
+label_settings = SubResource("LabelSettings_small")
 
-[node name="InventoryLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="CompassContainer" type="HBoxContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -130.0
+offset_top = 6.0
+offset_right = -10.0
+offset_bottom = 30.0
+grow_horizontal = 0
+alignment = 2
+
+[node name="CompassLabel" type="Label" parent="CompassContainer"]
 layout_mode = 2
-text = ""
+text = "Ship"
+label_settings = SubResource("LabelSettings_small")
 
-[node name="InteractPrompt" type="Label" parent="."]
+[node name="CompassArrow" type="Label" parent="CompassContainer"]
+custom_minimum_size = Vector2(22, 0)
+layout_mode = 2
+text = "^"
+label_settings = SubResource("LabelSettings_small")
+horizontal_alignment = 1
+
+[node name="CompassDist" type="Label" parent="CompassContainer"]
+layout_mode = 2
+text = "0m"
+label_settings = SubResource("LabelSettings_small")
+
+[node name="InteractPanel" type="PanelContainer" parent="."]
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -150.0
-offset_top = -60.0
-offset_right = 150.0
-offset_bottom = -30.0
+offset_left = -80.0
+offset_top = -64.0
+offset_right = 80.0
+offset_bottom = -42.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_prompt")
+
+[node name="InteractPrompt" type="Label" parent="InteractPanel"]
+layout_mode = 2
 text = "[F] Interact"
+label_settings = SubResource("LabelSettings_small")
 horizontal_alignment = 1
-vertical_alignment = 1
 
-[node name="CompassContainer" type="VBoxContainer" parent="."]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -140.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = 90.0
-grow_horizontal = 0
+[node name="Banner" type="VBoxContainer" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 70.0
+offset_right = 200.0
+offset_bottom = 130.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = -4
 
-[node name="CompassLabel" type="Label" parent="CompassContainer"]
+[node name="Title" type="Label" parent="Banner"]
 layout_mode = 2
-text = "Ship"
-horizontal_alignment = 2
+text = "Brinehollow"
+label_settings = SubResource("LabelSettings_title")
+horizontal_alignment = 1
 
-[node name="CompassArrow" type="Label" parent="CompassContainer"]
+[node name="Subtitle" type="Label" parent="Banner"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "^"
-horizontal_alignment = 2
+text = "A quiet fishing village"
+label_settings = SubResource("LabelSettings_small")
+horizontal_alignment = 1
 
-[node name="CompassDist" type="Label" parent="CompassContainer"]
-layout_mode = 2
-text = "0m"
-horizontal_alignment = 2
+[node name="Toast" type="Label" parent="."]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -58.0
+offset_right = 300.0
+offset_bottom = -38.0
+grow_vertical = 0
+label_settings = SubResource("LabelSettings_small")

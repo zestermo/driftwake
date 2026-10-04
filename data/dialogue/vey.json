@@ -1,0 +1,64 @@
+{
+	"speaker": "Sergeant Vey",
+	"voice": 0.9,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"You. Captain {captain}. You walk like someone who's never been hit properly.",
+				"Retired Marine, twenty years. These dummies are my pupils now. They listen better than recruits ever did."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "Want a lesson? Pick one.",
+			"choices": [
+				{ "text": "Light attacks", "next": "light" },
+				{ "text": "Heavy attack", "next": "heavy" },
+				{ "text": "Dodging", "next": "dodge" },
+				{ "text": "Parrying", "next": "parry" },
+				{ "text": "Why'd you leave the Marines?", "next": "story" },
+				{ "text": "Dismissed.", "next": "bye" }
+			]
+		},
+		"light": {
+			"text": [
+				"Left click. Three cuts in a chain, the third one hits hardest. Click again just as a swing ends to keep the chain going.",
+				"Go on, hit a dummy. They don't hit back. Yet."
+			],
+			"next": "menu"
+		},
+		"heavy": {
+			"text": [
+				"Right click. You wind up, lunge forward, then you're open for a moment. Commit or don't bother.",
+				"A heavy blow ends fights. A missed one ends you."
+			],
+			"next": "menu"
+		},
+		"dodge": {
+			"text": [
+				"Left Ctrl rolls you in the direction you're moving. While you're rolling, nothing touches you.",
+				"Roll through an attack, not away from it. Cowards roll away."
+			],
+			"next": "menu"
+		},
+		"parry": {
+			"text": [
+				"Q. Hold your blade up at the instant a blow lands and you'll turn it aside. Too early or too late and you eat it.",
+				"High risk. The best kind."
+			],
+			"next": "menu"
+		},
+		"story": {
+			"text": [
+				"Saw things on the Grand Patrol that weren't in any manual. Stones that hummed. Water that ran uphill.",
+				"Command said forget it. I said no. So here I am, teaching straw men to fear me."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Keep your guard up and your blade wet."
+		}
+	}
+}

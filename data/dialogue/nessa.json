@@ -1,0 +1,48 @@
+{
+	"speaker": "Nessa",
+	"voice": 1.25,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"Ooh, a captain! A real one, with a real ship? Welcome, welcome!",
+				"Nessa's Notions: rope, salt, citrus, and things I promise are not stolen."
+			],
+			"next": "menu"
+		},
+		"menu": {
+			"text": "What can Nessa do for you?",
+			"choices": [
+				{ "text": "What do you sell?", "next": "shop" },
+				{ "text": "What's loot worth?", "next": "loot" },
+				{ "text": "Any work?", "next": "work" },
+				{ "text": "Bye, Nessa.", "next": "bye" }
+			]
+		},
+		"shop": {
+			"text": [
+				"Honestly? Not much yet. Supply ship's late. Again.",
+				"When the stalls fill up I'll trade you blades, charms, the works. Bring me banked treasure and we'll talk."
+			],
+			"next": "menu"
+		},
+		"loot": {
+			"text": [
+				"Gold's gold. Treasure's better. But only what's banked on your ship counts. What's in your pockets is just a promise.",
+				"Last I heard you'd stowed {banked} pieces. Keep it up!"
+			],
+			"next": "menu"
+		},
+		"work": {
+			"text": [
+				"Wren swears there's a stash hidden in the jungle west of the ruins. Wren also swears the moon owes her money.",
+				"There's supposed to be something shiny up by the lighthouse, too. Ambrose won't say what."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Come back rich! Or at least come back."
+		}
+	}
+}

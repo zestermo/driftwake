@@ -6,3 +6,5 @@ class_name HitData
 @export var hitstop_duration: float = 0.05
 @export var camera_shake_intensity: float = 0.1
 @export var stagger_duration: float = 0.3
+## Heavy hit: throws the target off its feet (physics ragdoll, then it gets up).
+@export var knockdown: bool = false
