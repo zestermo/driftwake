@@ -15,6 +15,10 @@ var data := {}
 var rest := {}
 var downs := 0
 var t0 := 0.0
+var seq := []
+var label := ""
+var sampling := false
+var samples := []
 
 const RIG := ["hips", "torso", "neck", "head", "arm_l", "fore_l", "hand_l", "arm_r", "fore_r", "hand_r", "leg_l", "shin_l", "leg_r", "shin_r"]
 
@@ -112,8 +116,30 @@ func gait_run(legs: Array) -> Array:
 	return out
 
 
+func press(a: String) -> void:
+	var e := InputEventAction.new()
+	e.action = a
+	e.pressed = true
+	Input.parse_input_event(e)
+
+
+func release(a: String) -> void:
+	var e := InputEventAction.new()
+	e.action = a
+	e.pressed = false
+	Input.parse_input_event(e)
+
+
+func tap(a: String) -> void:
+	press(a)
+	release(a)
+
+
 func _process(d: float) -> bool:
 	t += d
+	if sampling:
+		var bm = p.body_model
+		samples.append([bm._gait_back, bm._travel_ang, bm.ground_speed])
 	if wait > 0.0:
 		wait -= d
 		return false
@@ -276,6 +302,62 @@ func _process(d: float) -> bool:
 			var early: Vector3 = tp[1][8][2]
 			var settled: Vector3 = tp[1][tp[1].size() - 1][2]
 			check("a change of direction tips the chest into it (roll %.2f vs settled %.2f)" % [early.z, settled.z], early.z < settled.z - 0.1)
-			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
-			quit()
+			# --- the real player: attack / dodge / backpedal, then forward-diagonal
+			var isl = root.get_node("World/Islands/Brinehollow")
+			var v = isl.VILLAGE + Vector2(0, 6)
+			p.global_position = Vector3(150 + v.x, isl.hv(v) + 0.3, 150 + v.y)
+			p.reset_physics_interpolation()
+			if not p.armed:
+				tap("ready_weapon")
+			seq = [
+				["say", "after a 3-hit combo"], ["tap", "light_attack", 0.35], ["tap", "light_attack", 0.35], ["tap", "light_attack", 0.9],
+				["press", "move_forward", 0.0], ["press", "move_right", 0.5], ["sample", 0.8], ["release", "move_forward", 0.0], ["release", "move_right", 0.6],
+				["say", "after a heavy attack"], ["tap", "heavy_attack", 1.3],
+				["press", "move_forward", 0.0], ["press", "move_left", 0.5], ["sample", 0.8], ["release", "move_forward", 0.0], ["release", "move_left", 0.6],
+				["say", "after a backstep dodge"], ["press", "move_back", 0.1], ["tap", "dodge", 0.15], ["release", "move_back", 0.6],
+				["press", "move_forward", 0.0], ["press", "move_right", 0.5], ["sample", 0.8], ["release", "move_forward", 0.0], ["release", "move_right", 0.6],
+				["say", "after attacking while backpedalling"], ["press", "move_back", 0.3], ["tap", "light_attack", 0.5], ["release", "move_back", 0.0],
+				["press", "move_forward", 0.0], ["press", "move_left", 0.5], ["sample", 0.8], ["release", "move_forward", 0.0], ["release", "move_left", 0.6],
+				["say", "after sweeping back-left -> back-right"], ["press", "move_back", 0.0], ["press", "move_left", 0.6], ["release", "move_left", 0.0], ["press", "move_right", 0.6],
+				["release", "move_back", 0.0], ["press", "move_forward", 0.5], ["sample", 0.8], ["release", "move_forward", 0.0], ["release", "move_right", 0.6],
+			]
+			wait = 0.8
+			step = 7
+		7:
+			if seq.is_empty():
+				print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
+				quit()
+				return false
+			var e: Array = seq.pop_front()
+			match str(e[0]):
+				"say":
+					label = e[1]
+				"tap":
+					tap(e[1])
+					wait = e[2]
+				"press":
+					press(e[1])
+					wait = e[2]
+				"release":
+					release(e[1])
+					wait = e[2]
+				"sample":
+					samples = []
+					sampling = true
+					wait = e[1]
+					step = 8
+		8:
+			sampling = false
+			var back := 0
+			var worst := 0.0
+			var slow := 0
+			for s in samples:
+				if s[0]:
+					back += 1
+				worst = maxf(worst, absf(s[1]))
+				if s[2] < 2.0:
+					slow += 1
+			check("%s, forward-diagonal strides forward (backpedal frames %d/%d, worst travel %.0f deg, state %s)" % [label, back, samples.size(), rad_to_deg(worst), p.current_state_name()],
+				samples.size() > 10 and back == 0 and worst < deg_to_rad(80.0) and slow < samples.size() / 4)
+			step = 7
 	return false
