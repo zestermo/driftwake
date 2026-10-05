@@ -380,8 +380,8 @@ func _torso_rings() -> Array:
 
 func _hips_hw() -> float:
 	var base := (0.198 if fem else 0.175) * hp * (1.0 + (wa - 1.0) * 0.5)
-	# wide enough that the thighs run up into the pelvis instead of beside it
-	return maxf(base, float(st["leg_gap"]) + (0.088 if fem else 0.082) * limb)
+	# wide enough that the thighs run up inside the pelvis (it, not the thighs, makes the hips' outline)
+	return maxf(base, float(st["leg_gap"]) + (0.098 if fem else 0.09) * limb)
 
 
 func _hips_hd() -> float:
@@ -394,10 +394,11 @@ func _hips_hd() -> float:
 func _thigh_rings(side: float) -> Array:
 	var L := limb
 	var inx := -side * 0.015
+	# (the dome stays below the waist: higher, its sides poked out above the shirt hem)
 	if fem:
-		return [[0.12, 0.05 * L, 0.055 * L, 0.0, inx], [0.07, 0.092 * L, 0.096 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.104 * L, 0.108 * L, 0.005],
+		return [[0.05, 0.04 * L, 0.045 * L, 0.0, inx], [0.02, 0.072 * L, 0.078 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.094 * L, 0.1 * L, 0.005],
 			[-0.24 * Ls, 0.084 * L, 0.09 * L, 0.002], [-0.42 * Ls, 0.06 * L, 0.07 * L], [-0.45 * Ls, 0.05 * L, 0.058 * L, -0.004]]
-	return [[0.12, 0.05 * L, 0.055 * L, 0.0, inx], [0.07, 0.085 * L, 0.09 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.096 * L, 0.104 * L, 0.004],
+	return [[0.05, 0.04 * L, 0.045 * L, 0.0, inx], [0.02, 0.066 * L, 0.074 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.084 * L, 0.094 * L, 0.004],
 		[-0.24 * Ls, 0.085 * L, 0.094 * L, 0.002], [-0.42 * Ls, 0.066 * L, 0.076 * L], [-0.45 * Ls, 0.056 * L, 0.064 * L, -0.004]]
 
 
@@ -479,14 +480,17 @@ func _pelvis() -> void:
 	var m := _cloth("legs_color")
 	var hw := _hips_hw()
 	var hd := _hips_hd()
+	# the top tucks inside the shirt's waist and the hips only widen below its hem
+	var tr0: Array = _torso_rings()[0]
+	var ww := float(tr0[1])
+	var wd := float(tr0[2])
 	var rings: Array
 	if fem:
-		var w := bf["wa"] as float * float(st["wa"]) * 1.02
-		rings = [[0.06, 0.13 * w * 0.95, 0.098 * de], [0.0, hw * 0.86, 0.11 * de], [-0.06, hw, hd], [-0.13, hw * 0.95, hd * 0.94],
-			[-0.175, hw * 0.66, hd * 0.76], [-0.2, hw * 0.26, hd * 0.34]]
+		rings = [[0.04, ww * 0.9, wd * 0.9], [0.0, ww + 0.004, wd + 0.004], [-0.05, lerpf(ww, hw, 0.7), lerpf(wd, hd, 0.7), 0.004],
+			[-0.1, hw, hd, 0.008], [-0.14, hw * 0.94, hd * 0.92, 0.006], [-0.175, hw * 0.66, hd * 0.76], [-0.2, hw * 0.26, hd * 0.34]]
 	else:
-		rings = [[0.06, 0.158 * wa * 0.95, 0.108 * de], [-0.02, lerpf(0.158 * wa * 0.95, hw, 0.7), hd * 0.98], [-0.08, hw, hd], [-0.13, hw * 0.94, hd * 0.93],
-			[-0.17, hw * 0.64, hd * 0.72], [-0.195, hw * 0.26, hd * 0.32]]
+		rings = [[0.04, ww * 0.9, wd * 0.9], [0.0, ww + 0.004, wd + 0.004], [-0.045, lerpf(ww, hw, 0.6), lerpf(wd, hd, 0.6), 0.003],
+			[-0.095, hw, hd, 0.006], [-0.135, hw * 0.94, hd * 0.92, 0.005], [-0.17, hw * 0.66, hd * 0.72], [-0.195, hw * 0.26, hd * 0.32]]
 	var mb := MeshBuilder.new()
 	mb.add_loft(m, Transform3D.IDENTITY, rings, MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, true, false)
 	_mesh(h.hips, mb)
@@ -1284,7 +1288,8 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 func _belts(mb: MeshBuilder, tr: Array, prof: PackedVector2Array) -> void:
 	var belt := str(lk.get("belt", "none"))
 	if belt in ["belt", "belt_sash"]:
-		var by := ty(0.01) if belt == "belt" else -0.035
+		# straddles the seam where the shirt meets the trousers
+		var by := -0.025 if belt == "belt" else -0.035
 		var band := _off(_clip(tr, maxf(by, 0.0), by + 0.06), 0.017, 0.0, true)
 		if by < 0.0:
 			band = [[by, (tr[0][1] as float) + 0.02, (tr[0][2] as float) + 0.02], [by + 0.055, (tr[0][1] as float) + 0.018, (tr[0][2] as float) + 0.018]]

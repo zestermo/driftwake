@@ -2023,7 +2023,7 @@ func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO, alive: bool 
 	var shin_len := shin_l.position.y  # shins are about as long as thighs
 	r.add_part("pelvis", hips, {"capsule": [Vector3(-hw, -0.03, 0), Vector3(hw, -0.03, 0), 0.12]}, 12.0)
 	r.add_part("chest", torso, {"capsule": [Vector3(0, 0.14, 0), Vector3(0, neck_y * 0.82, 0), 0.14]}, 16.0, "pelvis",
-		{"x": [-1.0, 0.45], "y": [-0.6, 0.6], "z": [-0.4, 0.4]})
+		{"x": [-0.75, 0.45], "y": [-0.6, 0.6], "z": [-0.4, 0.4]})
 	r.add_part("head", head_node, {"sphere": [head_c, 0.125]}, 5.0, "chest",
 		{"x": [-0.7, 0.6], "y": [-0.9, 0.9], "z": [-0.4, 0.4]})
 	for side in [-1.0, 1.0]:
@@ -2039,10 +2039,12 @@ func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO, alive: bool 
 		r.add_part("fore" + sfx, fore, {"capsule": [Vector3.ZERO, hand.position + Vector3(0, -0.06, 0), 0.05]}, 1.8, "arm" + sfx,
 			{"x": [0.0, 2.4]})
 		var leg_z: Array = [-0.75, 0.2] if side < 0 else [-0.2, 0.75]
-		r.add_part("thigh" + sfx, leg, {"capsule": [Vector3(0, -0.02, 0), shin.position, 0.075]}, 7.0, "pelvis",
-			{"x": [-0.45, 1.9], "y": [-0.5, 0.5], "z": leg_z})
+		# (starts below the hip so it doesn't already touch the chest: it has to bump it)
+		r.add_part("thigh" + sfx, leg, {"capsule": [Vector3(0, -0.1, 0), shin.position, 0.075]}, 7.0, "pelvis",
+			{"x": [-0.45, 1.5], "y": [-0.5, 0.5], "z": leg_z})
 		r.add_part("shin" + sfx, shin, {"capsule": [Vector3.ZERO, Vector3(0, shin_len * 0.98, 0.0), 0.062]}, 4.0, "thigh" + sfx,
 			{"x": [-2.5, 0.0]})
+	r.enable_self_collision()
 	r.launch(velocity, spin, {"chest": 1.15, "head": 1.25, "arm_l": 1.1, "arm_r": 1.1, "fore_l": 1.1, "fore_r": 1.1,
 		"thigh_l": 0.7, "thigh_r": 0.7, "shin_l": 0.55, "shin_r": 0.55})
 	r.drive()

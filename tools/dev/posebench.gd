@@ -105,6 +105,15 @@ func place_cam(v: String) -> void:
 		"chests":
 			c = Vector3(0, 1.35, 0)
 			cam.global_position = c + Vector3(-1.9, 0.1, 0)
+		"hipsb":   # close on the waist and seat: from behind, the side, three-quarter back
+			c = Vector3(0, 0.95, 0)
+			cam.global_position = c + Vector3(0, 0.15, 1.9)
+		"hipss":
+			c = Vector3(0, 0.95, 0)
+			cam.global_position = c + Vector3(-1.9, 0.1, 0)
+		"hips3":
+			c = Vector3(0, 0.95, 0)
+			cam.global_position = c + Vector3(-1.35, 0.2, 1.35)
 		_:        # three-quarter front-left
 			cam.global_position = c + Vector3(-3.0, 1.2, -2.8)
 	cam.look_at(c, Vector3.UP if v != "top" else Vector3.FORWARD)

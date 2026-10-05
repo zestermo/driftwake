@@ -93,10 +93,13 @@ func add_part(part_name: String, node: Node3D, shape: Dictionary, mass: float,
 	pm.bounce = 0.05
 	b.physics_material_override = pm
 	var cs := CollisionShape3D.new()
+	# body-local segment + radius, for the self-collision overlap check
+	var seg := [Vector3.ZERO, Vector3.ZERO, 0.0]
 	if shape.has("capsule"):
 		var a: Vector3 = shape["capsule"][0] * s
 		var e: Vector3 = shape["capsule"][1] * s
 		var r: float = float(shape["capsule"][2]) * s
+		seg = [a, e, r]
 		var cap := CapsuleShape3D.new()
 		cap.radius = r
 		cap.height = maxf(a.distance_to(e) + r * 2.0, r * 2.0 + 0.01)
@@ -113,11 +116,13 @@ func add_part(part_name: String, node: Node3D, shape: Dictionary, mass: float,
 		box.size = shape["box"][1] * s
 		cs.shape = box
 		cs.position = shape["box"][0] * s
+		seg = [cs.position, cs.position, box.size.length() * 0.5]
 	else:
 		var sp := SphereShape3D.new()
 		sp.radius = float(shape["sphere"][1]) * s
 		cs.shape = sp
 		cs.position = shape["sphere"][0] * s
+		seg = [cs.position, cs.position, sp.radius]
 	b.add_child(cs)
 	add_child(b)
 	b.global_transform = Transform3D(g.basis.orthonormalized(), g.origin)
@@ -125,7 +130,7 @@ func add_part(part_name: String, node: Node3D, shape: Dictionary, mass: float,
 	var part := {"name": part_name, "body": b, "node": node, "offset": b.global_transform.affine_inverse() * g,
 		"parent": parent_name, "cur": node.rotation, "rel0": Basis.IDENTITY,
 		"rest_origin": node.position, "rest_scale": node.basis.get_scale(),
-		"top0": node.top_level, "interp0": node.physics_interpolation_mode}
+		"top0": node.top_level, "interp0": node.physics_interpolation_mode, "seg": seg}
 	# the rig hangs off a physics-interpolated character that chases the hips; driven
 	# through that parent the drawn body shimmers and slides, so each part is placed
 	# in world space, uninterpolated, until restore_rig()
@@ -174,6 +179,25 @@ func _join(parent: RigidBody3D, child: RigidBody3D, node: Node3D, limits: Dictio
 	j.exclude_nodes_from_collision = true
 	j.node_a = j.get_path_to(parent)
 	j.node_b = j.get_path_to(child)
+
+
+## Parts collide with each other (so folding legs bump the chest instead of
+## passing through it), except pairs that already touch in the starting pose,
+## which would otherwise burst apart. Call after every part is added.
+func enable_self_collision() -> void:
+	var world := []
+	for p in parts:
+		var b: RigidBody3D = p["body"]
+		b.collision_mask |= LAYER
+		var sg: Array = p["seg"]
+		world.append([b.global_transform * (sg[0] as Vector3), b.global_transform * (sg[1] as Vector3), float(sg[2])])
+	for i in range(parts.size()):
+		for j in range(i + 1, parts.size()):
+			var wa: Array = world[i]
+			var wb: Array = world[j]
+			var cp := Geometry3D.get_closest_points_between_segments(wa[0], wa[1], wb[0], wb[1])
+			if cp[0].distance_to(cp[1]) < float(wa[2]) + float(wb[2]) + 0.01:
+				(parts[i]["body"] as RigidBody3D).add_collision_exception_with(parts[j]["body"])
 
 
 ## Target pose for the muscles: {part name: local euler (rig terms)}, plus an

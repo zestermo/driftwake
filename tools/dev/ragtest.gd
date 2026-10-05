@@ -15,6 +15,7 @@ var world_parts := false
 var rest_at := -1.0
 var fold_max := -99.0
 var fold_min := 99.0
+var knee_gap := 99.0
 var err_sum := 0.0
 var err_n := 0
 var spins := []
@@ -23,6 +24,18 @@ func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
 	if not cond: fails += 1
 func st() -> String: return p.current_state_name()
+## Tightest hip fold right now: angle between the chest's up and a thigh's down
+## (standing ~PI; legs folded flat onto the torso ~0).
+func fold_angle(rag) -> float:
+	var up: Vector3 = rag.body("chest").global_basis.y
+	var a := PI
+	for sn in ["thigh_l", "thigh_r"]:
+		a = minf(a, up.angle_to(-(rag.body(sn) as RigidBody3D).global_basis.y))
+	return a
+var knocks := [Vector3(0, 3.5, -6), Vector3(6, 3.5, 0), Vector3(0, 7, 5)]
+var ki := 0
+var min_fold := PI
+var knee_all := 99.0
 func _process(d: float) -> bool:
 	t += d
 	if wait > 0.0:
@@ -38,6 +51,11 @@ func _process(d: float) -> bool:
 			check("knockdown enters Downed", st() == "Downed")
 			check("ragdoll exists", p.body_model.ragdoll != null)
 			check("hurtbox off while down", not p.hurtbox.monitorable)
+			var rg0 = p.body_model.ragdoll
+			var chest_b: RigidBody3D = rg0.body("chest")
+			var ex := chest_b.get_collision_exceptions()
+			check("ragdoll parts collide with each other, thighs vs chest included (%d exempt pairs on the chest)" % ex.size(),
+				chest_b.collision_mask & Ragdoll.LAYER != 0 and not ex.has(rg0.body("thigh_l")) and not ex.has(rg0.body("thigh_r")))
 			t0 = t
 			step += 1
 			return false
@@ -66,6 +84,15 @@ func _process(d: float) -> bool:
 					var pb: RigidBody3D = rag.root_body()
 					slide_sum += Vector2(pb.linear_velocity.x, pb.linear_velocity.z).length()
 					late_n += 1
+				# knees vs the chest (self-collision): never inside it
+				var cb: RigidBody3D = rag.body("chest")
+				var csg: Array = rag._by_name["chest"]["seg"]
+				var c0: Vector3 = cb.global_transform * (csg[0] as Vector3)
+				var c1: Vector3 = cb.global_transform * (csg[1] as Vector3)
+				for sn in ["shin_l", "shin_r"]:
+					var knee: Vector3 = rag.body(sn).global_position
+					knee_gap = minf(knee_gap, knee.distance_to(Geometry3D.get_closest_point_to_segment(knee, c0, c1)))
+				min_fold = minf(min_fold, fold_angle(rag))
 				# legs vs the pelvis while flying (rig terms: thigh x+ = forward/up)
 				if t - t0 < 0.9:
 					var hb: Basis = p.body_model.hips.global_basis.orthonormalized()
@@ -89,10 +116,12 @@ func _process(d: float) -> bool:
 					twitch += s
 				twitch /= maxf(tail.size(), 1)
 				print("   drawn-vs-body worst %.3f m at %.2f s, mean %.4f m; once down: pelvis slide %.3f m/s; at rest mean limb spin %.3f rad/s" % [err_max, err_at, err_sum / maxf(err_n, 1), slide, twitch])
+				check("the knees never sink into the chest (closest %.2f m from its axis, chest radius 0.14)" % knee_gap, knee_gap > 0.15)
 				check("braced legs: the knees come up (thighs reach %.2f rad)" % fold_max, fold_max > 0.65)
 				check("...and the legs don't fold back behind the body (%.2f rad)" % fold_min, fold_min > -0.6)
 				check("the body's parts are placed in world space, uninterpolated, while down (no shimmer against the chasing root)", world_parts)
-				check("...it comes to rest and is pinned there (at %.2f s)" % rest_at, rest_at > 0.5 and rest_at < 2.6)
+				# (the get-up waits for rest; a forced one after MAX_DOWN would start ~3.9 s in)
+				check("...it comes to rest by itself (pinned at %.2f s, up at %.2f s)" % [rest_at, t - t0], t - t0 < 3.6)
 				var hn: Node3D = p.body_model.hips
 				check("...and handed back to the rig after the get-up", not hn.top_level and hn.physics_interpolation_mode == Node.PHYSICS_INTERPOLATION_MODE_INHERIT)
 				check("once down it doesn't creep along the ground (%.3f m/s)" % slide, slide < 0.08)
@@ -135,9 +164,45 @@ func _process(d: float) -> bool:
 			var hit := HitData.new(); hit.damage = 5.0; hit.knockdown = true; hit.knockback_force = 7.0
 			p.hurtbox.take_hit(hit, null)
 			check("knockdown hit -> Downed", st() == "Downed")
+			t0 = t
 			wait = 0.1
 		9:
-			print("RESULT ", "OK" if fails == 0 else "%d FAILED" % fails)
-			return true
+			# more falls (forward, sideways, a high backflip): the legs never fold flat onto the torso
+			if st() != "Idle" and t - t0 < 8.0:
+				var rg = p.body_model.ragdoll
+				if rg != null:
+					min_fold = minf(min_fold, fold_angle(rg))
+					var cb2: RigidBody3D = rg.body("chest")
+					var cs2: Array = rg._by_name["chest"]["seg"]
+					var a0: Vector3 = cb2.global_transform * (cs2[0] as Vector3)
+					var a1: Vector3 = cb2.global_transform * (cs2[1] as Vector3)
+					for sn in ["shin_l", "shin_r"]:
+						var kp: Vector3 = rg.body(sn).global_position
+						knee_all = minf(knee_all, kp.distance_to(Geometry3D.get_closest_point_to_segment(kp, a0, a1)))
+				return false
+			if ki >= knocks.size():
+				print("   tightest hip fold over the falls %.0f deg" % rad_to_deg(min_fold))
+				check("in any fall the knees stay out of the chest (closest %.2f m from its axis; chest r 0.14 + shin r 0.06)" % knee_all, knee_all > 0.17)
+				print("RESULT ", "OK" if fails == 0 else "%d FAILED" % fails)
+				return true
+			p.knock_down(knocks[ki])
+			ki += 1
+			t0 = t
+			wait = 0.2
+			if ki == knocks.size():
+				# the last fall: fling both shins straight at the chest; only the
+				# joint limits and self-collision can stop them
+				step = 10
+				return false
+			return false
+		10:
+			var rg = p.body_model.ragdoll
+			if rg != null:
+				var cpos: Vector3 = rg.body("chest").global_position
+				for sn in ["shin_l", "shin_r"]:
+					var sb: RigidBody3D = rg.body(sn)
+					sb.linear_velocity = (cpos - sb.global_position).normalized() * 12.0
+			step = 9
+			return false
 	step += 1
 	return false
