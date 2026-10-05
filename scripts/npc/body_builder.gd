@@ -395,16 +395,30 @@ func _hips_hd() -> float:
 func _thigh_rings(side: float) -> Array:
 	var L := limb
 	var inx := -side * 0.015
+	var r: Array
 	# (the dome stays below the waist: higher, its sides poked out above the shirt hem)
 	if fem:
 		# full, rounded thighs set a little toward the middle: they meet near the
 		# top and only part slightly toward the knee
 		var fi := -side * 0.02
-		return [[0.05, 0.045 * L, 0.05 * L, 0.0, inx], [0.02, 0.082 * L, 0.088 * L, 0.004, fi], [-0.05 * Ls, 0.106 * L, 0.11 * L, 0.008, fi],
+		r = [[0.05, 0.045 * L, 0.05 * L, 0.0, inx], [0.02, 0.082 * L, 0.088 * L, 0.004, fi], [-0.05 * Ls, 0.106 * L, 0.11 * L, 0.008, fi],
 			[-0.14 * Ls, 0.102 * L, 0.104 * L, 0.006, fi * 0.75], [-0.24 * Ls, 0.088 * L, 0.092 * L, 0.003, fi * 0.4],
-			[-0.34 * Ls, 0.072 * L, 0.078 * L, 0.0], [-0.42 * Ls, 0.062 * L, 0.07 * L], [-0.45 * Ls, 0.052 * L, 0.058 * L, -0.004]]
-	return [[0.05, 0.04 * L, 0.045 * L, 0.0, inx], [0.02, 0.066 * L, 0.074 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.084 * L, 0.094 * L, 0.004],
-		[-0.24 * Ls, 0.085 * L, 0.094 * L, 0.002], [-0.42 * Ls, 0.066 * L, 0.076 * L], [-0.45 * Ls, 0.056 * L, 0.064 * L, -0.004]]
+			[-0.34 * Ls, 0.072 * L, 0.078 * L, 0.0, 0.0], [-0.42 * Ls, 0.062 * L, 0.07 * L, 0.0, 0.0], [-0.45 * Ls, 0.052 * L, 0.058 * L, -0.004, 0.0]]
+	else:
+		r = [[0.05, 0.04 * L, 0.045 * L, 0.0, inx], [0.02, 0.066 * L, 0.074 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.084 * L, 0.094 * L, 0.004, 0.0],
+			[-0.24 * Ls, 0.085 * L, 0.094 * L, 0.002, 0.0], [-0.42 * Ls, 0.066 * L, 0.076 * L, 0.0, 0.0], [-0.45 * Ls, 0.056 * L, 0.064 * L, -0.004, 0.0]]
+	# heavier builds widen the hips: the upper thighs fill out (mostly outward)
+	# to meet them, so the pelvis's lower corners don't hang out past the legs
+	var top: Array = r[2]
+	var c0 := float(st["leg_gap"]) + float(top[4]) * side
+	var g := maxf((_hips_hw() * 0.92 - c0 - float(top[1])) / 1.6, 0.0)
+	if g > 0.0:
+		for ring in r:
+			var w := 1.0 - smoothstep(-0.06 * Ls, -0.38 * Ls, float(ring[0]))
+			ring[1] = float(ring[1]) + g * w
+			ring[2] = float(ring[2]) + g * w * 0.5
+			ring[4] = float(ring[4]) + side * g * w * 0.6
+	return r
 
 
 func _shin_rings() -> Array:
@@ -498,8 +512,8 @@ func _pelvis() -> void:
 		rings = [[0.04, ww * 0.9, wd * 0.9, 0.0, 0.0, seat], [0.0, ww + 0.004, wd + 0.004, 0.0, 0.0, seat],
 			[-0.025, lerpf(ww, hw, 0.45), lerpf(wd, hd, 0.55), 0.008, 0.0, _seat_profile(0.92)],
 			[-0.055, lerpf(ww, hw, 0.8), hd * 0.98, 0.014, 0.0, _seat_profile(0.84)],
-			[-0.09, hw, hd * 1.02, 0.018, 0.0, _seat_profile(0.8)], [-0.13, hw * 0.98, hd * 1.02, 0.018, 0.0, _seat_profile(0.8)],
-			[-0.165, hw * 0.88, hd * 0.9, 0.014, 0.0, _seat_profile(0.82)], [-0.195, hw * 0.64, hd * 0.62, 0.008, 0.0, _seat_profile(0.88)],
+			[-0.09, hw, hd, 0.012, 0.0, _seat_profile(0.8)], [-0.13, hw * 0.96, hd, 0.012, 0.0, _seat_profile(0.8)],
+			[-0.165, hw * 0.82, hd * 0.88, 0.01, 0.0, _seat_profile(0.82)], [-0.195, hw * 0.56, hd * 0.6, 0.006, 0.0, _seat_profile(0.88)],
 			[-0.218, hw * 0.3, hd * 0.3, 0.004, 0.0, seat]]
 	else:
 		rings = [[0.04, ww * 0.9, wd * 0.9], [0.0, ww + 0.004, wd + 0.004], [-0.045, lerpf(ww, hw, 0.6), lerpf(wd, hd, 0.6), 0.003],
@@ -509,9 +523,9 @@ func _pelvis() -> void:
 	if fem:
 		# two glutes, one behind each hip joint: overlapping a little at the middle
 		# (the crease where they meet) and each with its own round underside
-		var lg := float(st["leg_gap"])
+		# (placed and sized from the hip width so they scale with the build)
 		for s in [-1.0, 1.0]:
-			_glute(mb, m, Vector3(s * lg * 0.72, -0.124, hd * 0.6), Vector3(0.082, 0.102, 0.084) * Vector3(hp, 1.0, de))
+			_glute(mb, m, Vector3(s * hw * 0.36, -0.124, hd * 0.48), Vector3(hw * 0.41, 0.102, 0.076 * de))
 	_mesh(h.hips, mb)
 
 
