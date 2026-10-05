@@ -44,8 +44,8 @@ var _scale: float = 1.0
 var stiffness: float = 0.0
 var stiffness_target: float = 0.0
 ## Muscle spring (1/s^2) and damping (1/s) at full stiffness.
-var muscle_k: float = 220.0
-var muscle_c: float = 20.0
+var muscle_k: float = 480.0
+var muscle_c: float = 32.0
 var _targets: Dictionary = {}   # part name -> local euler target
 var _wiggle: Dictionary = {}    # part name -> euler amplitude of a slow flail
 var _t: float = 0.0

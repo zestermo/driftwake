@@ -18,6 +18,7 @@ var t0 := 0.0
 var seq := []
 var label := ""
 var sampling := false
+var watch := {}
 var samples := []
 
 const RIG := ["hips", "torso", "neck", "head", "arm_l", "fore_l", "hand_l", "arm_r", "fore_r", "hand_r", "leg_l", "shin_l", "leg_r", "shin_r"]
@@ -66,6 +67,7 @@ func strafe_slide(mv: Vector2) -> Array:
 	var n := 0
 	var hy := 0.0
 	var cy := 0.0
+	var ly := 0.0
 	for f in range(240):
 		h.global_position += Vector3(mv.x, 0, -mv.y) * 4.8 * dt
 		h._process(dt)
@@ -76,6 +78,10 @@ func strafe_slide(mv: Vector2) -> Array:
 		var cz := -h.torso.global_basis.orthonormalized().z
 		hy += Vector2(fwd.x, fwd.z).angle_to(Vector2(hz.x, hz.z))
 		cy += Vector2(fwd.x, fwd.z).angle_to(Vector2(cz.x, cz.z))
+		# the thigh's swing plane: its knee hinge (local x) vs the body's right
+		var bx := h.global_basis.x
+		var kx := h.leg_l.global_basis.orthonormalized().x
+		ly += Vector2(bx.x, bx.z).angle_to(Vector2(kx.x, kx.z))
 		for side in ["l", "r"]:
 			var sh: Node3D = h.get("shin_" + side)
 			var other: Node3D = h.get("shin_" + ("r" if side == "l" else "l"))
@@ -87,7 +93,7 @@ func strafe_slide(mv: Vector2) -> Array:
 				n += 1
 			prev[side] = a
 	h.queue_free()
-	return [slip / maxf(n, 1), hy / 180.0, cy / 180.0]
+	return [slip / maxf(n, 1), hy / 180.0, cy / 180.0, ly / 180.0]
 
 
 ## A lone armed body run through a list of [local_move, seconds] legs at
@@ -204,6 +210,9 @@ func _process(d: float) -> bool:
 	if sampling:
 		var bm = p.body_model
 		samples.append([bm._gait_back, bm._travel_ang, bm.ground_speed])
+	if not watch.is_empty():
+		for k in watch.keys():
+			watch[k] = maxf(watch[k], float(p.body_model.get("_" + k)))
 	if wait > 0.0:
 		wait -= d
 		return false
@@ -349,7 +358,9 @@ func _process(d: float) -> bool:
 				if mv.y > 0.5:
 					var dh: float = r[1] - base[1]
 					var dc: float = r[2] - base[2]
-					check("...the hips turn into the move, the chest stays on the target (hips %.0f deg, chest %.0f deg)" % [rad_to_deg(dh), rad_to_deg(dc)], absf(dh) > 0.5 and absf(dc) < 0.15)
+					var dl: float = r[3] - base[3]
+					check("...the legs turn into the move, the chest stays on the target (thighs %.0f deg, chest %.0f deg)" % [rad_to_deg(dl), rad_to_deg(dc)], absf(dl) > 0.5 and absf(dc) < 0.15)
+					check("...without wringing the waist (pelvis vs chest %.0f deg)" % rad_to_deg(dh - dc), absf(dh - dc) < 0.45)
 			# a swing through straight-back (back-left -> back-right), then forward-diagonal:
 			# the travel angle used to wind past ±PI and latch the backpedal gait
 			var g := gait_run([[Vector2(-0.7071, -0.7071), 1.0], [Vector2(0.7071, -0.7071), 1.0], [Vector2(0.7071, 0.7071), 1.5]])
@@ -443,6 +454,14 @@ func _process(d: float) -> bool:
 				["press", "move_forward", 0.0], ["press", "move_left", 0.5], ["sample", 0.8], ["release", "move_forward", 0.0], ["release", "move_left", 0.6],
 				["say", "after sweeping back-left -> back-right"], ["press", "move_back", 0.0], ["press", "move_left", 0.6], ["release", "move_left", 0.0], ["press", "move_right", 0.6],
 				["release", "move_back", 0.0], ["press", "move_forward", 0.5], ["sample", 0.8], ["release", "move_forward", 0.0], ["release", "move_right", 0.6],
+				# out of combat, with real input (braking takes a few ticks; a reversal
+				# usually passes through a moment with both keys held)
+				["tap", "ready_weapon", 0.8], ["say", "weapon away"], ["check_unarmed"],
+				["press", "move_forward", 1.0], ["watch"], ["release", "move_forward", 0.4], ["expect", "stop", "letting go of a jog plants a stop"],
+				["watch"], ["press", "move_forward", 0.3], ["expect", "start", "setting off leans into the first step"],
+				["press", "sprint", 0.8], ["watch"], ["press", "move_back", 0.08], ["release", "move_forward", 0.4],
+				["expect", "skid", "reversing at a sprint skids (both keys held for a moment)"],
+				["release", "move_back", 0.0], ["release", "sprint", 0.5],
 			]
 			wait = 0.8
 			step = 7
@@ -469,6 +488,13 @@ func _process(d: float) -> bool:
 					sampling = true
 					wait = e[1]
 					step = 8
+				"check_unarmed":
+					check("weapon put away for the casual moves", not p.armed)
+				"watch":
+					watch = {"stop": 0.0, "start": 0.0, "skid": 0.0}
+				"expect":
+					check("%s (peak %.2f)" % [e[2], watch[e[1]]], watch[e[1]] > 0.5)
+					watch = {}
 		8:
 			sampling = false
 			var back := 0

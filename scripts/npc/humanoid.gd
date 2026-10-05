@@ -148,6 +148,8 @@ var _gait_back: bool = false
 var _hip_yaw: float = 0.0
 ## Most the hips turn into a strafe; the rest is a side-reach of the legs.
 const HIP_YAW_MAX := 0.95
+## How much of that turn the pelvis takes; the thighs turn in their sockets for the rest.
+const PELVIS_SHARE := 0.4
 ## Combat stance: the chest tips into a change of direction (lagging body-space velocity).
 var _tip_lag: Vector2 = Vector2.ZERO
 const TIP_GAIN := 0.075
@@ -167,7 +169,9 @@ var _skid: float = 0.0
 var _skid_k: float = 0.0
 var _slow_t: float = 0.0
 var _prev_spd: float = 0.0
-var _prev_wdir: Vector3 = Vector3.ZERO
+var _peak_spd: float = 0.0
+var _fast_dir: Vector3 = Vector3.ZERO
+var _fast_t: float = 99.0
 var _t: float = 0.0
 var _was_grounded: bool = true
 var _land: float = 0.0
@@ -1493,9 +1497,14 @@ func _locomotion(delta: float) -> Dictionary:
 				lift.y += (-0.1 + hop * 0.045) * st
 		# strafing: hips (and legs) turned into the travel line, chest square
 		# (_hip_yaw is toward +X = the body's right; a positive Y turn is left)
+		# (the pelvis and chest are rigid, so a big twist between them shears the
+		# waist: the pelvis takes a little, the thighs turn in their sockets for the rest)
 		if absf(_hip_yaw) > 0.0005:
-			p["hips"] += Vector3(0, -_hip_yaw, 0)
-			p["torso"] += Vector3(0, _hip_yaw, 0)
+			var pel := _hip_yaw * PELVIS_SHARE
+			p["hips"] += Vector3(0, -pel, 0)
+			p["torso"] += Vector3(0, pel, 0)
+			p["leg_l"] += Vector3(0, -(_hip_yaw - pel), 0)
+			p["leg_r"] += Vector3(0, -(_hip_yaw - pel), 0)
 		var lv := local_move * spd if spd > 0.2 else Vector2.ZERO
 		_tip_lag = _tip_lag.lerp(lv, 1.0 - exp(-5.0 * delta))
 		if armed and not sprinting and stance != "claw":
@@ -1807,8 +1816,8 @@ func _foot_ik(delta: float) -> void:
 		var hip := leg.global_position
 		var ankle := shin.global_transform * Vector3(0, shin_l.position.y, 0)
 		var target := ankle + up * adj
-		# work in the thigh's parent frame (sagittal plane = its y/z)
-		var pb := leg.get_parent_node_3d().global_basis.orthonormalized()
+		# work in the thigh's parent frame turned by the thigh's own twist (sagittal plane = its y/z)
+		var pb := leg.get_parent_node_3d().global_basis.orthonormalized() * Basis(Vector3.UP, leg.rotation.y)
 		var v := pb.inverse() * (target - hip)
 		var d := clampf(Vector2(v.y, v.z).length(), absf(l1 - l2) + 0.01, l1 + l2 - 0.005)
 		var knee := acos(clampf((l1 * l1 + l2 * l2 - d * d) / (2.0 * l1 * l2), -1.0, 1.0))
@@ -1914,24 +1923,31 @@ func _casual_moves(p: Dictionary, delta: float, spd: float, casual: bool) -> voi
 		_skid = 0.0
 	elif spd > 2.5 and _prev_spd < 0.5 and _slow_t > 0.15:
 		_start = 1.0
-	if casual and spd < 0.5 and _prev_spd > 4.0:
+	# (the player brakes over a few ticks, and a reversal often passes through a
+	# moment of no input, so both look back over a short window, not one frame)
+	if casual and spd < 0.5 and _prev_spd >= 0.5 and _peak_spd > 4.0:
 		_stop = 1.0
-		_stop_k = clampf(0.5 + (_prev_spd - 4.0) / 8.0, 0.5, 1.0)
+		_stop_k = clampf(0.5 + (_peak_spd - 4.0) / 8.0, 0.5, 1.0)
 		_stop_side = 1.0 if sin(_phase) >= 0.0 else -1.0
 		_start = 0.0
-	if casual and spd > 5.0 and _prev_spd > 5.0 and _prev_wdir.dot(wdir) < -0.3:
+	if casual and spd > 4.5 and _fast_t < 0.3 and _skid < 0.5 and _fast_dir.dot(wdir.normalized()) < -0.3:
 		_skid = 1.0
-		_skid_k = smoothstep(5.0, 9.0, spd)
+		_skid_k = smoothstep(4.5, 9.0, maxf(spd, _peak_spd))
 		_start = 0.0
+		_stop = 0.0
 		if is_inside_tree():
 			var fx := get_node_or_null("/root/FX")
 			if fx:
-				fx.call("dust", global_position - _prev_wdir * 0.3, int(6 + 8 * _skid_k), 0.5 + 0.3 * _skid_k)
+				fx.call("dust", global_position - _fast_dir * 0.3, int(6 + 8 * _skid_k), 0.5 + 0.3 * _skid_k)
 				fx.call("sfx", "land", global_position, -7.0 + 4.0 * _skid_k, 0.1, 1.35)
 	_slow_t = _slow_t + delta if spd < 0.5 else 0.0
+	_peak_spd = maxf(spd, _peak_spd - 20.0 * delta)
 	_prev_spd = spd
-	if spd > 0.2:
-		_prev_wdir = wdir
+	if spd > 4.0:
+		_fast_dir = wdir.normalized()
+		_fast_t = 0.0
+	else:
+		_fast_t += delta
 	if _start > 0.0:
 		_start = maxf(_start - delta / 0.35, 0.0)
 		var e := sin(_start * PI * 0.5)
@@ -2024,7 +2040,7 @@ func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO, alive: bool 
 			{"x": [0.0, 2.4]})
 		var leg_z: Array = [-0.75, 0.2] if side < 0 else [-0.2, 0.75]
 		r.add_part("thigh" + sfx, leg, {"capsule": [Vector3(0, -0.02, 0), shin.position, 0.075]}, 7.0, "pelvis",
-			{"x": [-0.7, 1.9], "y": [-0.5, 0.5], "z": leg_z})
+			{"x": [-0.45, 1.9], "y": [-0.5, 0.5], "z": leg_z})
 		r.add_part("shin" + sfx, shin, {"capsule": [Vector3.ZERO, Vector3(0, shin_len * 0.98, 0.0), 0.062]}, 4.0, "thigh" + sfx,
 			{"x": [-2.5, 0.0]})
 	r.launch(velocity, spin, {"chest": 1.15, "head": 1.25, "arm_l": 1.1, "arm_r": 1.1, "fore_l": 1.1, "fore_r": 1.1,

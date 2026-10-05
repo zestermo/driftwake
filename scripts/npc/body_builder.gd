@@ -524,6 +524,31 @@ func _torso() -> void:
 	_mesh(h.neck, nmb)
 
 
+## Rounded end rings around a joint at y0, running away from it (dir +1 up,
+## -1 down): with both sides of the elbow domed about the pivot, a bent arm
+## shows a rounded elbow instead of a flat cut.
+func _dome(y0: float, rw: float, rd: float, dir: float) -> Array:
+	var r := maxf(rw, rd)
+	var out := []
+	for a in [0.6, 1.05, 1.4]:
+		out.append([y0 + dir * r * sin(a), rw * cos(a), rd * cos(a)])
+	return out
+
+
+## Upper-arm rings closed by a dome under the elbow pivot.
+func _elbow_end(up: Array, elbow_y: float) -> Array:
+	var last: Array = up[up.size() - 1]
+	return up + _dome(elbow_y, float(last[1]), float(last[2]), -1.0)
+
+
+## Forearm rings opened by a dome over the elbow pivot (forearm space: pivot at 0).
+func _elbow_start(fo: Array) -> Array:
+	var first: Array = fo[0]
+	var d := _dome(0.0, float(first[1]), float(first[2]), 1.0)
+	d.reverse()
+	return d + fo
+
+
 func _arms() -> void:
 	var top := str(lk.get("top", "shirt"))
 	var sleeves := str(lk.get("sleeves", "long"))
@@ -534,9 +559,9 @@ func _arms() -> void:
 	var gloves: bool = lk.get("gloves", false)
 	var m_hand := _leather("gloves_color") if gloves else m_skin
 	var L := limb * (1.0 + (sh - 1.0) * 0.4)
-	var up := [[0.036, 0.02 * L, 0.024 * L], [0.026, 0.046 * L, 0.052 * L], [0.0, 0.064 * L, 0.07 * L], [-0.06 * A, 0.071 * L, 0.077 * L],
-		[-0.17 * A, 0.063 * L, 0.069 * L], [-0.3 * A, 0.055 * L, 0.06 * L]]
-	var fo := [[0.02, 0.056 * L, 0.06 * L], [-0.08 * A, 0.06 * L, 0.064 * L, 0.004], [-0.23 * A, 0.043 * L, 0.047 * L]]
+	var up := _elbow_end([[0.036, 0.02 * L, 0.024 * L], [0.026, 0.046 * L, 0.052 * L], [0.0, 0.064 * L, 0.07 * L], [-0.06 * A, 0.071 * L, 0.077 * L],
+		[-0.17 * A, 0.063 * L, 0.069 * L], [-0.3 * A, 0.055 * L, 0.06 * L]], -0.3 * A)
+	var fo := _elbow_start([[0.02, 0.056 * L, 0.06 * L], [-0.08 * A, 0.06 * L, 0.064 * L, 0.004], [-0.23 * A, 0.043 * L, 0.047 * L]])
 	var prof := MeshBuilder.profile_oct(0.5)
 	var wrist := -0.23 * A
 	for side in [-1, 1]:
@@ -551,16 +576,16 @@ func _arms() -> void:
 				amb.add_loft(m_top, Transform3D.IDENTITY, _off(up, 0.006), prof, 3.0, Color.WHITE, false, true)
 				var f2 := _off(fo, 0.006)
 				if top == "blouse":
-					f2 = [[0.02, 0.066 * L, 0.07 * L], [-0.1 * A, 0.08 * L, 0.084 * L, 0.006], [-0.19 * A, 0.062 * L, 0.066 * L], [wrist + 0.02, 0.05 * L, 0.054 * L]]
+					f2 = _elbow_start([[0.02, 0.066 * L, 0.07 * L], [-0.1 * A, 0.08 * L, 0.084 * L, 0.006], [-0.19 * A, 0.062 * L, 0.066 * L], [wrist + 0.02, 0.05 * L, 0.054 * L]])
 					fmb.add_loft(m_top, Transform3D.IDENTITY, [[wrist + 0.03, 0.05 * L, 0.054 * L], [wrist - 0.005, 0.052 * L, 0.056 * L]], prof, 3.0)
-				fmb.add_loft(m_top, Transform3D.IDENTITY, f2, prof, 3.0, Color.WHITE, false, true)
+				fmb.add_loft(m_top, Transform3D.IDENTITY, f2, prof, 3.0, Color.WHITE, true, true)
 			"short":
 				amb.add_loft(m_top, Transform3D.IDENTITY, _off(_clip(up, -0.16 * A, 1.0), 0.01), prof, 3.0, Color.WHITE, false, true)
-				amb.add_loft(m_skin, Transform3D.IDENTITY, _clip(up, -1.0, -0.15 * A), prof, 3.0)
-				fmb.add_loft(m_skin, Transform3D.IDENTITY, fo, prof, 3.0, Color.WHITE, false, true)
+				amb.add_loft(m_skin, Transform3D.IDENTITY, _clip(up, -1.0, -0.15 * A), prof, 3.0, Color.WHITE, false, true)
+				fmb.add_loft(m_skin, Transform3D.IDENTITY, fo, prof, 3.0, Color.WHITE, true, true)
 			_:
 				amb.add_loft(m_skin, Transform3D.IDENTITY, up, prof, 3.0, Color.WHITE, false, true)
-				fmb.add_loft(m_skin, Transform3D.IDENTITY, fo, prof, 3.0, Color.WHITE, false, true)
+				fmb.add_loft(m_skin, Transform3D.IDENTITY, fo, prof, 3.0, Color.WHITE, true, true)
 		# mitten hand: wide front-to-back, thumb toward the front. Built as its
 		# own mesh ("Mitten") so it can swap with a closed fist ("Fist") when
 		# fighting bare-handed (Humanoid.set_fists).
@@ -1189,16 +1214,16 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 			mb.add_box(m_trim, Transform3D(Basis(), Vector3(ex + s * 0.05, ty(0.6) - 0.03, 0.0)), Vector3(0.012, 0.05, 0.11), 3.0, Color.WHITE, false)
 	# sleeves with turned-back cuffs
 	var L := limb * (1.0 + (sh - 1.0) * 0.4)
-	var up := [[0.07, 0.03 * L, 0.034 * L], [0.055, 0.062 * L, 0.068 * L], [0.02, 0.082 * L, 0.088 * L], [-0.06 * A, 0.09 * L, 0.096 * L], [-0.3 * A, 0.075 * L, 0.08 * L]]
+	var up := _elbow_end([[0.07, 0.03 * L, 0.034 * L], [0.055, 0.062 * L, 0.068 * L], [0.02, 0.082 * L, 0.088 * L], [-0.06 * A, 0.09 * L, 0.096 * L], [-0.3 * A, 0.075 * L, 0.08 * L]], -0.3 * A)
 	var wrist := -0.23 * A
-	var fo := [[0.02, 0.076 * L, 0.08 * L], [wrist + 0.02, 0.064 * L, 0.068 * L]]
+	var fo := _elbow_start([[0.02, 0.076 * L, 0.08 * L], [wrist + 0.02, 0.064 * L, 0.068 * L]])
 	var cuff := [[wrist + 0.11, 0.08 * L, 0.084 * L], [wrist + 0.015, 0.082 * L, 0.086 * L]]
 	for side in [-1, 1]:
 		var amb := MeshBuilder.new()
 		amb.add_loft(m_coat, Transform3D.IDENTITY, up, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, true)
 		_mesh(h.arm_l if side < 0 else h.arm_r, amb)
 		var fmb := MeshBuilder.new()
-		fmb.add_loft(m_coat, Transform3D.IDENTITY, fo, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, true)
+		fmb.add_loft(m_coat, Transform3D.IDENTITY, fo, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true)
 		fmb.add_loft(m_trim if captain else lap, Transform3D.IDENTITY, cuff, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
 		_mesh(h.fore_l if side < 0 else h.fore_r, fmb)
 	if coat in ["longcoat", "captain"]:

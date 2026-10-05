@@ -13,6 +13,8 @@ var late_n := 0
 var err_at := 0.0
 var world_parts := false
 var rest_at := -1.0
+var fold_max := -99.0
+var fold_min := 99.0
 var err_sum := 0.0
 var err_n := 0
 var spins := []
@@ -64,6 +66,13 @@ func _process(d: float) -> bool:
 					var pb: RigidBody3D = rag.root_body()
 					slide_sum += Vector2(pb.linear_velocity.x, pb.linear_velocity.z).length()
 					late_n += 1
+				# legs vs the pelvis while flying (rig terms: thigh x+ = forward/up)
+				if t - t0 < 0.9:
+					var hb: Basis = p.body_model.hips.global_basis.orthonormalized()
+					for leg in [p.body_model.leg_l, p.body_model.leg_r]:
+						var lx: float = (hb.inverse() * (leg as Node3D).global_basis.orthonormalized()).get_euler().x
+						fold_max = maxf(fold_max, lx)
+						fold_min = minf(fold_min, lx)
 				var spin := 0.0
 				for q in rag.parts:
 					spin += (q["body"] as RigidBody3D).angular_velocity.length()
@@ -80,6 +89,8 @@ func _process(d: float) -> bool:
 					twitch += s
 				twitch /= maxf(tail.size(), 1)
 				print("   drawn-vs-body worst %.3f m at %.2f s, mean %.4f m; once down: pelvis slide %.3f m/s; at rest mean limb spin %.3f rad/s" % [err_max, err_at, err_sum / maxf(err_n, 1), slide, twitch])
+				check("braced legs: the knees come up (thighs reach %.2f rad)" % fold_max, fold_max > 0.65)
+				check("...and the legs don't fold back behind the body (%.2f rad)" % fold_min, fold_min > -0.6)
 				check("the body's parts are placed in world space, uninterpolated, while down (no shimmer against the chasing root)", world_parts)
 				check("...it comes to rest and is pinned there (at %.2f s)" % rest_at, rest_at > 0.5 and rest_at < 2.6)
 				var hn: Node3D = p.body_model.hips

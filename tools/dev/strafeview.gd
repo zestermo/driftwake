@@ -1,7 +1,8 @@
 extends SceneTree
 ## Combat-stance strafing: bodies facing -Z, moving in different directions
 ## at combat speed (6 x 0.8). Prints how much the planted foot slides, and
-## saves a filmstrip of one of them. Args: <out_prefix> [dir index for frames, -1 = none] [switch to dir index at the first frame]
+## saves a filmstrip of one of them. Args: <out_prefix> [dir index for frames, -1 = none] [switch to dir index at the first frame, -1 = none]
+## [camera zoom, 1 = default, 0.45 = a close look at the hips] [armed 1/0]
 ## (with a frame index the other bodies are hidden, which stops their animation: their numbers are meaningless)
 const DIRS := [Vector2(0.7071, 0.7071), Vector2(1, 0), Vector2(0.7071, -0.7071), Vector2(0, -1), Vector2(-0.7071, 0.7071), Vector2(0, 1)]
 const SPEED := 4.8
@@ -11,6 +12,7 @@ var out := ""
 var frames := true
 var only := -1
 var switch_to := -1
+var zoom := 1.0
 var cam: Camera3D
 var slip := {}
 var prev := {}
@@ -25,6 +27,8 @@ func _initialize():
 	out = a[0]
 	only = int(a[1]) if a.size() > 1 else -1
 	switch_to = int(a[2]) if a.size() > 2 else -1
+	zoom = float(a[3]) if a.size() > 3 else 1.0
+	var armed := int(a[4]) != 0 if a.size() > 4 else true
 	frames = only >= 0
 	var env := WorldEnvironment.new(); var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR; e.background_color = Color(0.42, 0.56, 0.72)
@@ -36,7 +40,7 @@ func _initialize():
 	for i in range(DIRS.size()):
 		var h := Humanoid.new(); h.setup(CharacterLook.default_look()); root.add_child(h)
 		h.position = Vector3((i - 2.5) * 2.2, 0, 0)
-		h.armed = true
+		h.armed = armed
 		h.stance = "sword"
 		h.grounded = true
 		h.ground_speed = SPEED
@@ -84,7 +88,8 @@ func _process(_d):
 		var hp: Vector3 = hs[only].position
 		for j in range(hs.size()):
 			hs[j].visible = j == only
-		cam.look_at_from_position(hp + Vector3(3.2, 1.9, 4.2), hp + Vector3(0, 0.75, 0))
+		var focus := hp + Vector3(0, lerpf(0.55, 0.75, clampf((zoom - 0.4) / 0.6, 0.0, 1.0)), 0)
+		cam.look_at_from_position(focus + Vector3(3.2, 1.15, 4.2) * zoom, focus)
 	if frames and f > 60 and f % 4 == 0 and f <= 60 + 4 * 12:
 		_shot((f - 60) / 4)
 	if f >= 60 + 180:
