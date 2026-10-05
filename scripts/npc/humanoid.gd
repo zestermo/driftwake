@@ -152,6 +152,10 @@ const HIP_YAW_MAX := 0.95
 var _tip_lag: Vector2 = Vector2.ZERO
 const TIP_GAIN := 0.075
 const TIP_MAX := 0.5
+## Jump pose variety: which side leads (+1 = left) and per-limb offsets, rolled each take-off.
+var _jside: float = 1.0
+var _jv: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+var _air_vy: float = 0.0
 var _t: float = 0.0
 var _was_grounded: bool = true
 var _land: float = 0.0
@@ -1475,23 +1479,35 @@ func _locomotion(delta: float) -> Dictionary:
 		_air_time += delta
 		_hip_yaw = lerp_angle(_hip_yaw, 0.0, 1.0 - exp(-8.0 * delta))
 		var vy := vertical_speed
+		# each take-off (and a double jump's kick) rolls which leg leads and a little
+		# per-limb variety, so no two jumps hold the same mirrored pose
+		if _was_grounded or vy > _air_vy + 4.0:
+			_jside = 1.0 if _rng.randf() < 0.5 else -1.0
+			for i in range(_jv.size()):
+				_jv[i] = _rng.randf_range(-1.0, 1.0)
+		_air_vy = vy
 		var rise := _ease((vy + 2.0) / 4.0)
-		# rising: both arms swing up and a little out, knees tucked
-		var jump := {
-			"leg_l": Vector3(0.85, 0, -0.08), "shin_l": Vector3(-1.3, 0, 0),
-			"leg_r": Vector3(0.25, 0, 0.08), "shin_r": Vector3(-0.9, 0, 0),
-			"arm_l": Vector3(1.75, 0, -0.5), "fore_l": Vector3(0.55, 0, 0),
-			"arm_r": Vector3(1.75, 0, 0.5), "fore_r": Vector3(0.55, 0, 0),
-			"torso": Vector3(-0.05, 0, 0), "head": Vector3(0.12, 0, 0)}
+		var ls := "l" if _jside > 0.0 else "r"
+		var ts := "r" if _jside > 0.0 else "l"
+		var lo := -1.0 if ls == "l" else 1.0
+		var to := -lo
 		var flail := sin(_t * 13.0) * 0.12
 		var fall_k := clampf(-vy / 14.0, 0.35, 1.0)
-		# coming down: both knees draw up in front of the chest, ready to land
+		# rising: the lead knee tucks, the other leg trails; arms swing up and out
+		# to the sides, the one over the trailing leg higher
+		var jump := {
+			"leg_" + ls: Vector3(0.9 + _jv[0] * 0.15, 0, 0.08 * lo), "shin_" + ls: Vector3(-1.35, 0, 0),
+			"leg_" + ts: Vector3(0.22 + _jv[1] * 0.12, 0, 0.1 * to), "shin_" + ts: Vector3(-0.8 - _jv[1] * 0.15, 0, 0),
+			"arm_" + ts: Vector3(1.4 + _jv[2] * 0.15, 0, (1.15 + _jv[3] * 0.12) * to), "fore_" + ts: Vector3(0.5, 0, 0),
+			"arm_" + ls: Vector3(0.9 + _jv[4] * 0.15, 0, (1.0 + _jv[5] * 0.12) * lo), "fore_" + ls: Vector3(0.75, 0, 0),
+			"torso": Vector3(-0.05, 0.08 * _jside, 0.04 * _jv[6]), "head": Vector3(0.12, -0.04 * _jside, 0)}
+		# coming down: the lead knee draws up to the chest, the other hangs lower
 		var fall := {
-			"leg_l": Vector3(1.75 + flail * 0.25, 0, -0.14), "shin_l": Vector3(-2.2, 0, 0),
-			"leg_r": Vector3(1.5 - flail * 0.25, 0, 0.14), "shin_r": Vector3(-2.05, 0, 0),
-			"arm_l": Vector3(0.45, 0, -1.25 * fall_k - flail), "fore_l": Vector3(0.6, 0, 0),
-			"arm_r": Vector3(0.45, 0, 1.25 * fall_k + flail), "fore_r": Vector3(0.6, 0, 0),
-			"torso": Vector3(-0.12, 0, 0), "head": Vector3(0.22, 0, 0)}
+			"leg_" + ls: Vector3(1.8 + flail * 0.25, 0, 0.14 * lo), "shin_" + ls: Vector3(-2.2, 0, 0),
+			"leg_" + ts: Vector3(1.2 + _jv[7] * 0.15 - flail * 0.25, 0, 0.16 * to), "shin_" + ts: Vector3(-1.7, 0, 0),
+			"arm_" + ts: Vector3(0.3, 0, (1.35 * fall_k + flail) * to), "fore_" + ts: Vector3(0.5, 0, 0),
+			"arm_" + ls: Vector3(0.65, 0, (1.05 * fall_k + flail) * lo), "fore_" + ls: Vector3(0.75, 0, 0),
+			"torso": Vector3(-0.12, 0.06 * _jside, 0.04 * _jv[6]), "head": Vector3(0.22, 0, 0)}
 		for j in jump.keys():
 			p[j] = (fall[j] as Vector3).lerp(jump[j], rise)
 		if armed:

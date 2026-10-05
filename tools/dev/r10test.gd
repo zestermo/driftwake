@@ -116,6 +116,42 @@ func gait_run(legs: Array) -> Array:
 	return out
 
 
+## A lone body jumping `n` times: per jump [lead side, knee gap rising, knee gap
+## falling, arms' sideways vs forward reach rising (min over both arms)].
+func jump_poses(n: int) -> Array:
+	var h := Humanoid.new()
+	h.setup(CharacterLook.default_look())
+	root.add_child(h)
+	h.global_position = Vector3(5400, 0, 5000)
+	h.set_process(false)
+	var dt := 1.0 / 60.0
+	var out := []
+	for i in range(n):
+		h.grounded = true
+		h.vertical_speed = 0.0
+		for f in range(20):
+			h._process(dt)
+		h.grounded = false
+		var rec := [0.0, 0.0, 0.0, 99.0]
+		for f in range(70):
+			h.vertical_speed = 7.0 - f * 0.3
+			h._process(dt)
+			if f == 0:
+				rec[0] = h._jside
+			var gap: float = h.leg_l.rotation.x - h.leg_r.rotation.x
+			if f == 14:
+				rec[1] = gap
+				var inv := h.global_basis.orthonormalized().inverse()
+				for arm in [h.arm_l, h.arm_r]:
+					var dirv: Vector3 = inv * ((arm as Node3D).global_basis.orthonormalized() * Vector3.DOWN)
+					rec[3] = minf(rec[3], absf(dirv.x) - absf(dirv.z))
+			if f == 65:
+				rec[2] = gap
+		out.append(rec)
+	h.queue_free()
+	return out
+
+
 func press(a: String) -> void:
 	var e := InputEventAction.new()
 	e.action = a
@@ -302,6 +338,24 @@ func _process(d: float) -> bool:
 			var early: Vector3 = tp[1][8][2]
 			var settled: Vector3 = tp[1][tp[1].size() - 1][2]
 			check("a change of direction tips the chest into it (roll %.2f vs settled %.2f)" % [early.z, settled.z], early.z < settled.z - 0.1)
+			# --- jumps: uneven legs, arms out to the sides, a different lead from jump to jump
+			var jp := jump_poses(10)
+			var sides := {}
+			var min_gap := 99.0
+			var min_side := 99.0
+			var gaps := []
+			for r in jp:
+				sides[r[0]] = true
+				min_gap = minf(min_gap, minf(absf(r[1]), absf(r[2])))
+				min_side = minf(min_side, r[3])
+				gaps.append(snappedf(r[2], 0.01))
+			check("jumps lead with either leg (%d sides over 10 jumps)" % sides.size(), sides.size() == 2)
+			check("...one knee higher than the other, rising and falling (smallest gap %.2f rad)" % min_gap, min_gap > 0.3)
+			check("...the arms reach out more to the sides than in front (worst side-front %.2f)" % min_side, min_side > 0.1)
+			var uniq := {}
+			for g2 in gaps:
+				uniq[g2] = true
+			check("...and not the same pose every time (%d distinct falling poses)" % uniq.size(), uniq.size() >= 6)
 			# --- the real player: attack / dodge / backpedal, then forward-diagonal
 			var isl = root.get_node("World/Islands/Brinehollow")
 			var v = isl.VILLAGE + Vector2(0, 6)

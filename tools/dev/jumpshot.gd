@@ -1,6 +1,7 @@
 extends SceneTree
-## Running jump, side view: lean frames. Args: <out_prefix>
+## Running jump, side view: lean frames. Args: <out_prefix> [view: side|front]
 var t := 0.0
+var view := "side"
 var p
 var cam: Camera3D
 var out := ""
@@ -9,7 +10,10 @@ var t0 := 0.0
 var shots := 0
 var log_t := 0.0
 func _initialize():
-	out = OS.get_cmdline_user_args()[0]
+	var args := OS.get_cmdline_user_args()
+	out = args[0]
+	if args.size() > 1:
+		view = args[1]
 	change_scene_to_file("res://scenes/world/world.tscn")
 func _process(d: float) -> bool:
 	t += d
@@ -42,7 +46,13 @@ func _process(d: float) -> bool:
 			phase = 2; t0 = t
 		2:
 			var foc: Vector3 = p.global_position + Vector3(0, 1.0, 0)
-			cam.global_position = foc + Vector3(5.0, 0.3, 0)
+			if view == "front":
+				var fwd: Vector3 = -p.player_model.global_basis.z
+				fwd.y = 0.0
+				fwd = fwd.normalized()
+				cam.global_position = foc + fwd * 4.5 + fwd.cross(Vector3.UP) * 2.2 + Vector3(0, 0.4, 0)
+			else:
+				cam.global_position = foc + Vector3(5.0, 0.3, 0)
 			cam.look_at(foc, Vector3.UP)
 			if e > 0.3: Input.action_release("jump")
 			var times := [0.05, 0.18, 0.32, 0.5, 0.65, 0.8]
