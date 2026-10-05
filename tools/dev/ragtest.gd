@@ -7,6 +7,15 @@ var p
 var fails := 0
 var t0 := 0.0
 var max_sep := 0.0
+var err_max := 0.0
+var slide_sum := 0.0
+var late_n := 0
+var err_at := 0.0
+var world_parts := false
+var rest_at := -1.0
+var err_sum := 0.0
+var err_n := 0
+var spins := []
 func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
@@ -34,8 +43,49 @@ func _process(d: float) -> bool:
 			var hips: Vector3 = p.body_model.hips.global_position
 			var sep := Vector2(hips.x - p.global_position.x, hips.z - p.global_position.z).length()
 			if t - t0 > 0.6: max_sep = maxf(max_sep, sep)
+			var rag = p.body_model.ragdoll
+			if rag != null and not p.state_machine.current_state.getting_up:
+				# what's drawn vs where the physics body is (interpolation mismatch = shimmer);
+				# (this runs before the nodes' _process, so pose this frame first)
+				rag.drive()
+				var hn: Node3D = p.body_model.hips
+				world_parts = hn.top_level and hn.physics_interpolation_mode == Node.PHYSICS_INTERPOLATION_MODE_OFF
+				var part: Dictionary = rag.parts[0]
+				var want: Vector3 = ((part["body"] as RigidBody3D).get_global_transform_interpolated() * (part["offset"] as Transform3D)).origin
+				var drawn: Vector3 = p.body_model.hips.get_global_transform_interpolated().origin
+				var e := drawn.distance_to(want) if t - t0 > 0.1 else 0.0
+				if e > err_max:
+					err_max = e
+					err_at = t - t0
+				err_sum += e
+				err_n += 1
+				# once it's down: the bodies shouldn't creep along the ground or twitch
+				if t - t0 > 1.4:
+					var pb: RigidBody3D = rag.root_body()
+					slide_sum += Vector2(pb.linear_velocity.x, pb.linear_velocity.z).length()
+					late_n += 1
+				var spin := 0.0
+				for q in rag.parts:
+					spin += (q["body"] as RigidBody3D).angular_velocity.length()
+				spins.append(spin / rag.parts.size())
+				if rag._rested and rest_at < 0.0:
+					rest_at = t - t0
 			if st() == "Idle" or t - t0 > 7.0:
 				print("   got up after ", snappedf(t - t0, 0.01), " s  (max root/hips gap after 0.6s: ", snappedf(max_sep, 0.01), ")")
+				var slide := slide_sum / maxf(late_n, 1)
+				# limb spin over the last ~0.25 s before the get-up (at rest)
+				var tail := spins.slice(maxi(spins.size() - 15, 0))
+				var twitch := 0.0
+				for s in tail:
+					twitch += s
+				twitch /= maxf(tail.size(), 1)
+				print("   drawn-vs-body worst %.3f m at %.2f s, mean %.4f m; once down: pelvis slide %.3f m/s; at rest mean limb spin %.3f rad/s" % [err_max, err_at, err_sum / maxf(err_n, 1), slide, twitch])
+				check("the body's parts are placed in world space, uninterpolated, while down (no shimmer against the chasing root)", world_parts)
+				check("...it comes to rest and is pinned there (at %.2f s)" % rest_at, rest_at > 0.5 and rest_at < 2.6)
+				var hn: Node3D = p.body_model.hips
+				check("...and handed back to the rig after the get-up", not hn.top_level and hn.physics_interpolation_mode == Node.PHYSICS_INTERPOLATION_MODE_INHERIT)
+				check("once down it doesn't creep along the ground (%.3f m/s)" % slide, slide < 0.08)
+				check("...or twitch at rest (mean limb spin %.3f rad/s)" % twitch, twitch < 0.3)
 				check("gets back up (Idle)", st() == "Idle")
 				check("ragdoll gone", p.body_model.ragdoll == null)
 				check("root followed the body", max_sep < 1.0)

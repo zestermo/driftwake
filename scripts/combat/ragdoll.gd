@@ -49,6 +49,16 @@ var muscle_c: float = 20.0
 var _targets: Dictionary = {}   # part name -> local euler target
 var _wiggle: Dictionary = {}    # part name -> euler amplitude of a slow flail
 var _t: float = 0.0
+## 0..1: how long the body has been slow; relaxes the muscles and raises damping so it comes to rest.
+var _calm: float = 0.0
+const CALM_SPEED := 1.2
+const CALM_TIME := 0.4
+## Pinned in place (frozen) after this long fully calm and slower than REST_SPEED.
+var _rested: bool = false
+var _net_puppet: bool = false
+var _still_t: float = 0.0
+const REST_SPEED := 0.3
+const REST_TIME := 0.3
 
 
 ## Ragdolls live in the scene root so they don't move with the character.
@@ -114,7 +124,13 @@ func add_part(part_name: String, node: Node3D, shape: Dictionary, mass: float,
 	b.reset_physics_interpolation()
 	var part := {"name": part_name, "body": b, "node": node, "offset": b.global_transform.affine_inverse() * g,
 		"parent": parent_name, "cur": node.rotation, "rel0": Basis.IDENTITY,
-		"rest_origin": node.position, "rest_scale": node.basis.get_scale()}
+		"rest_origin": node.position, "rest_scale": node.basis.get_scale(),
+		"top0": node.top_level, "interp0": node.physics_interpolation_mode}
+	# the rig hangs off a physics-interpolated character that chases the hips; driven
+	# through that parent the drawn body shimmers and slides, so each part is placed
+	# in world space, uninterpolated, until restore_rig()
+	node.top_level = true
+	node.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	if parent_name != "" and _by_name.has(parent_name):
 		var pb: RigidBody3D = _by_name[parent_name]["body"]
 		part["rel0"] = pb.global_basis.orthonormalized().inverse() * b.global_basis.orthonormalized()
@@ -175,7 +191,8 @@ func relax() -> void:
 
 func _muscles(delta: float) -> void:
 	_t += delta
-	stiffness = move_toward(stiffness, stiffness_target, delta * 1.5)
+	_settle(delta)
+	stiffness = move_toward(stiffness, stiffness_target * (1.0 - _calm), delta * 1.5)
 	if stiffness <= 0.001 or _targets.is_empty():
 		return
 	var k := muscle_k * stiffness
@@ -208,12 +225,58 @@ func _muscles(delta: float) -> void:
 		var axis := err_q.get_axis() if ang > 0.0001 else Vector3.ZERO
 		var rel_w := b.angular_velocity - pb.angular_velocity
 		var acc := axis * ang * k - rel_w * c
-		# scale by the part's inertia so light limbs and heavy chests move alike
-		var inv := b.get_inverse_inertia_tensor()
+		# scale by the pair's reduced inertia, so the relative motion follows the
+		# spring; the child's alone over-drove the light pelvis (chest + thighs) into vibration
+		var ia := b.get_inverse_inertia_tensor()
+		var ib := pb.get_inverse_inertia_tensor()
+		var inv := Basis(ia.x + ib.x, ia.y + ib.y, ia.z + ib.z)
 		var inertia := inv.inverse() if absf(inv.determinant()) > 1e-9 else Basis.IDENTITY * b.mass * 0.02
 		var torque := inertia * acc
 		b.apply_torque(torque)
 		pb.apply_torque(-torque)
+
+
+func _settle(delta: float) -> void:
+	if parts.is_empty() or _net_puppet:
+		return
+	# floating bodies bob on the waves and never rest
+	var wet := in_water or root_depth() > -0.4
+	if _rested:
+		if wet:
+			_wake()
+		return
+	if wet:
+		_calm = 0.0
+	elif _t > 0.5 and root_speed() < CALM_SPEED:
+		_calm = minf(_calm + delta / CALM_TIME, 1.0)
+	else:
+		_calm = maxf(_calm - delta * 4.0, 0.0)
+	for p in parts:
+		var b: RigidBody3D = p["body"]
+		b.angular_damp = lerpf(0.8, 7.0, _calm)
+		b.linear_damp = lerpf(0.05, 2.5, _calm)
+	# Jolt's joints and ground contacts never quite agree on a limp body, so it
+	# shivers and creeps; once it has been still a moment, pin it where it lies
+	_still_t = _still_t + delta if _calm >= 1.0 and root_speed() < REST_SPEED else 0.0
+	if _still_t > REST_TIME:
+		_rested = true
+		for p in parts:
+			var b: RigidBody3D = p["body"]
+			if not b.freeze:
+				b.linear_velocity = Vector3.ZERO
+				b.angular_velocity = Vector3.ZERO
+				b.freeze_mode = RigidBody3D.FREEZE_MODE_STATIC
+				b.freeze = true
+
+
+func _wake() -> void:
+	_rested = false
+	_still_t = 0.0
+	_calm = 0.0
+	for p in parts:
+		var b: RigidBody3D = p["body"]
+		b.freeze = false
+		b.sleeping = false
 
 
 ## Hand the rig back the way the ragdoll found it. The physics joints give a
@@ -226,8 +289,11 @@ func restore_rig() -> void:
 		var node: Node3D = p["node"]
 		if node == null or not is_instance_valid(node):
 			continue
+		node.top_level = p["top0"]
+		node.physics_interpolation_mode = p["interp0"]
 		var q := node.basis.orthonormalized().get_rotation_quaternion()
 		node.transform = Transform3D(Basis(q) * Basis.from_scale(p["rest_scale"]), p["rest_origin"])
+		node.reset_physics_interpolation()
 
 
 func body(part_name: String) -> RigidBody3D:
@@ -246,6 +312,9 @@ func launch(velocity: Vector3, spin: Vector3 = Vector3.ZERO, mult: Dictionary = 
 
 ## Push the whole ragdoll (another hit while it's down).
 func push(velocity: Vector3) -> void:
+	if _rested:
+		_wake()
+	_calm = 0.0
 	for p in parts:
 		var b: RigidBody3D = p["body"]
 		b.sleeping = false
@@ -273,6 +342,8 @@ func root_body() -> RigidBody3D:
 
 ## Is everything (nearly) at rest?
 func settled(lin: float = 0.35, ang: float = 1.2) -> bool:
+	if _rested:
+		return true
 	for p in parts:
 		var b: RigidBody3D = p["body"]
 		if b.linear_velocity.length() > lin or b.angular_velocity.length() > ang * 2.0:
@@ -351,6 +422,7 @@ func net_follow(a: Array, b: Array, f: float) -> void:
 		return
 	if a.size() != n:
 		a = b
+	_net_puppet = true
 	for i in range(parts.size()):
 		var body: RigidBody3D = parts[i]["body"]
 		if not body.freeze:
