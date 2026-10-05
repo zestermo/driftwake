@@ -148,6 +148,10 @@ var _gait_back: bool = false
 var _hip_yaw: float = 0.0
 ## Most the hips turn into a strafe; the rest is a side-reach of the legs.
 const HIP_YAW_MAX := 0.95
+## Combat stance: the chest tips into a change of direction (lagging body-space velocity).
+var _tip_lag: Vector2 = Vector2.ZERO
+const TIP_GAIN := 0.075
+const TIP_MAX := 0.5
 var _t: float = 0.0
 var _was_grounded: bool = true
 var _land: float = 0.0
@@ -1315,7 +1319,8 @@ func _locomotion(delta: float) -> Dictionary:
 		# (or a diagonal) swings the gait round instead of snapping it.
 		var want_ang := atan2(local_move.x, local_move.y) if local_move.length() > 0.01 else 0.0
 		var ease_k := 1.0 - exp(-(12.0 if spd > 0.1 else 4.0) * delta)
-		_travel_ang = lerp_angle(_travel_ang, want_ang if spd > 0.1 else 0.0, ease_k)
+		# (lerp_angle doesn't wrap: past ±PI the backpedal check below would latch on)
+		_travel_ang = wrapf(lerp_angle(_travel_ang, want_ang if spd > 0.1 else 0.0, ease_k), -PI, PI)
 		# forward stride or backpedal, with some hysteresis so a back-diagonal
 		# doesn't flicker between the two
 		if _gait_back and absf(_travel_ang) < deg_to_rad(96.0):
@@ -1456,6 +1461,15 @@ func _locomotion(delta: float) -> Dictionary:
 		if absf(_hip_yaw) > 0.0005:
 			p["hips"] += Vector3(0, -_hip_yaw, 0)
 			p["torso"] += Vector3(0, _hip_yaw, 0)
+		var lv := local_move * spd if spd > 0.2 else Vector2.ZERO
+		_tip_lag = _tip_lag.lerp(lv, 1.0 - exp(-5.0 * delta))
+		if armed and not sprinting and stance != "claw":
+			var tip := ((lv - _tip_lag) * TIP_GAIN).limit_length(TIP_MAX)
+			# braking leans back less than pushing off leans in
+			if tip.y < 0.0:
+				tip.y *= 0.6
+			p["torso"] += Vector3(-tip.y, 0, -tip.x)
+			p["head"] += Vector3(tip.y * 0.4, 0, 0)
 		_air_time = 0.0
 	else:
 		_air_time += delta
