@@ -55,7 +55,15 @@ var _env: Environment
 var _sun: DirectionalLight3D
 var _sky_mat: ShaderMaterial
 var _clouds: Node
-var _shadow_mat: ShaderMaterial
+## The fog as last set (the sky's horizon haze and the 3D clouds match it).
+var fog_color := Color(0.5, 0.72, 0.92)
+var fog_begin: float = 90.0
+var fog_end: float = 750.0
+var haze_height: float = 0.08
+## Cloud shadows on the ground and sea drift with the wind (metres).
+var _shadow_drift := Vector2.ZERO
+## What the cloud_shadow shader global was last set to.
+var cloud_shadow := Vector4(0.3, 0.0, 0.0, 0.0)
 var _scene: Node
 var _rain: GPUParticles3D
 var _rays: MultiMeshInstance3D
@@ -195,8 +203,6 @@ func _attach(scene: Node) -> void:
 	_env = we.environment if we else null
 	_sun = scene.get_node_or_null("DirectionalLight3D") as DirectionalLight3D
 	_clouds = scene.get_node_or_null("Clouds")
-	var cs := scene.get_node_or_null("CloudShadows") as MeshInstance3D
-	_shadow_mat = cs.mesh.surface_get_material(0) as ShaderMaterial if cs and cs.mesh else null
 	if _env:
 		_sky_mat = ShaderMaterial.new()
 		_sky_mat.shader = load("res://shaders/psx/psx_sky.gdshader")
@@ -222,6 +228,8 @@ func _attach(scene: Node) -> void:
 
 
 func _detach() -> void:
+	RenderingServer.global_shader_parameter_set("cloud_shadow", Vector4(0.3, 0.0, 0.0, 0.0))
+	RenderingServer.global_shader_parameter_set("sky_haze", Vector4(0.5, 0.72, 0.92, 0.0))
 	_scene = null
 	_env = null
 	_sun = null
@@ -382,6 +390,8 @@ func _update_env() -> void:
 		_sky_mat.set_shader_parameter("storm", storm)
 		_sky_mat.set_shader_parameter("flash", flash)
 		_sky_mat.set_shader_parameter("cloud_time", _sky_t)
+		_sky_mat.set_shader_parameter("fog_color", fog_color)
+		_sky_mat.set_shader_parameter("haze_height", haze_height)
 		var lit := Color(0.92, 0.93, 0.95).lerp(_sun_col, 0.3).lerp(Color(0.2, 0.22, 0.3), night * 0.85) * clampf(_sun_e / 1.2, 0.55, 1.0)
 		_sky_mat.set_shader_parameter("cloud_lit", lit.lerp(Color(0.5, 0.52, 0.56), storm * 0.7))
 		_sky_mat.set_shader_parameter("cloud_shade", (_amb * 1.1).lerp(Color(0.25, 0.26, 0.3), storm * 0.8))
@@ -391,15 +401,28 @@ func _update_env() -> void:
 		_env.ambient_light_energy = _amb_e * (1.0 - storm * 0.3) + flash * 1.5
 		var fogc := hor.lerp(Color(0.85, 0.88, 0.92), in_cloud)
 		_env.fog_light_color = fogc
-		var begin := lerpf(90.0, 28.0, fog)
-		var end := lerpf(750.0, 240.0, fog)
+		# Long-range fog: the sea is fully fogged well inside its edge (1 km),
+		# and the sky shader hazes into the same colour at the horizon.
+		var begin := lerpf(110.0, 28.0, fog)
+		var end := lerpf(820.0, 240.0, fog)
 		begin = lerpf(begin, 0.0, in_cloud)
 		end = lerpf(end, 28.0, in_cloud)
 		_env.fog_depth_begin = begin
 		_env.fog_depth_end = end
-	if _shadow_mat:
-		_shadow_mat.set_shader_parameter("cloud_coverage", clampf(coverage * 0.75, 0.0, 0.85))
-		_shadow_mat.set_shader_parameter("shadow_strength", 0.45 * (1.0 - night) * (1.0 - storm * 0.5))
+		_env.fog_sky_affect = 0.0
+		_env.fog_sun_scatter = 0.0
+		fog_color = fogc
+		fog_begin = begin
+		fog_end = end
+		haze_height = lerpf(lerpf(0.09, 0.3, fog), 1.6, in_cloud)
+		RenderingServer.global_shader_parameter_set("sky_haze", Vector4(fogc.r, fogc.g, fogc.b, haze_height))
+	# cloud shadows (shaders/world/cloud_shadow.gdshaderinc): the global the
+	# terrain and ocean read
+	var wd := Vector2(1.0, 0.3).normalized() * (3.0 + wind * 9.0)
+	_shadow_drift += wd * get_process_delta_time()
+	var strength := 0.4 * (1.0 - night) * (1.0 - storm * 0.6) * (1.0 - in_cloud)
+	cloud_shadow = Vector4(clampf(coverage * 0.75, 0.0, 0.85), strength if _env else 0.0, _shadow_drift.x, _shadow_drift.y)
+	RenderingServer.global_shader_parameter_set("cloud_shadow", cloud_shadow)
 	if _ocean_mat:
 		var dk := 1.0 - storm * 0.35
 		var dc := Color(_base_deep.r * dk, _base_deep.g * dk, _base_deep.b * dk * 1.02, _base_deep.a)
@@ -419,6 +442,10 @@ func _update_clouds() -> void:
 	_clouds.set("coverage", coverage)
 	_clouds.set("storm", storm)
 	_clouds.set("wind_speed", 3.0 + wind * 9.0)
+	_clouds.set("fog_color", fog_color)
+	_clouds.set("haze_height", haze_height)
+	_clouds.set("fog_begin", fog_begin)
+	_clouds.set("fog_end", fog_end)
 	var lit := Color(1, 1, 1).lerp(_sun_col, 0.3).lerp(Color(0.24, 0.26, 0.36), night * 0.85)
 	_clouds.set("lit_color", lit.lerp(Color(0.48, 0.5, 0.55), storm * 0.75))
 	_clouds.set("shade_color", (_amb * 1.05).lerp(Color(0.22, 0.23, 0.27), storm * 0.8).lerp(Color(0.08, 0.09, 0.14), night * 0.6))

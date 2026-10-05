@@ -7,6 +7,7 @@ shader_type spatial;
 render_mode diffuse_lambert, specular_disabled, cull_back;
 
 #include "res://shaders/psx/psx_common.gdshaderinc"
+#include "res://shaders/world/cloud_shadow.gdshaderinc"
 
 uniform sampler2D tex_grass : source_color, filter_nearest_mipmap, repeat_enable, hint_default_white;
 uniform sampler2D tex_sand : source_color, filter_nearest_mipmap, repeat_enable, hint_default_white;
@@ -105,7 +106,7 @@ void fragment() {
 	if (s4 > best) { best = s4; col = texture(tex_rock, uv * 0.75).rgb; }
 	if (s5 > best) { best = s5; col = texture(tex_grass, uv).rgb; }
 
-	ALBEDO = col * tint.rgb;
+	ALBEDO = col * tint.rgb * cloud_shade(world_pos.xz);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 }

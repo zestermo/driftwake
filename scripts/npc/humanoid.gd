@@ -139,6 +139,15 @@ var _left_prop: MeshInstance3D
 var _cur: Dictionary = {}
 var _lift: Vector3 = Vector3.ZERO
 var _phase: float = 0.0
+## Strafing (combat stance): the travel direction relative to where the body
+## faces (smoothed, radians, 0 = ahead), whether the legs are backpedalling,
+## and how far the hips (and so the legs) turn toward it while the chest stays
+## square to the target.
+var _travel_ang: float = 0.0
+var _gait_back: bool = false
+var _hip_yaw: float = 0.0
+## Most the hips turn into a strafe; the rest is a side-reach of the legs.
+const HIP_YAW_MAX := 0.95
 var _t: float = 0.0
 var _was_grounded: bool = true
 var _land: float = 0.0
@@ -1302,11 +1311,30 @@ func _locomotion(delta: float) -> Dictionary:
 		var walk := clampf(spd / 1.5, 0.0, 1.0)
 		var jog := smoothstep(2.0, 5.5, spd)
 		var run := smoothstep(6.3, 8.8, spd)
-		var fwd := local_move.y
-		var side := local_move.x
-		var dir_sign := -1.0 if fwd < -0.3 else 1.0
+		# Where we're going relative to the facing, eased so a change of keys
+		# (or a diagonal) swings the gait round instead of snapping it.
+		var want_ang := atan2(local_move.x, local_move.y) if local_move.length() > 0.01 else 0.0
+		var ease_k := 1.0 - exp(-(12.0 if spd > 0.1 else 4.0) * delta)
+		_travel_ang = lerp_angle(_travel_ang, want_ang if spd > 0.1 else 0.0, ease_k)
+		# forward stride or backpedal, with some hysteresis so a back-diagonal
+		# doesn't flicker between the two
+		if _gait_back and absf(_travel_ang) < deg_to_rad(96.0):
+			_gait_back = false
+		elif not _gait_back and absf(_travel_ang) > deg_to_rad(114.0):
+			_gait_back = true
+		var dir_sign := -1.0 if _gait_back else 1.0
+		# the legs stride along the travel line: the hips turn toward it (the
+		# chest counter-turns below, so the guard stays on the target) and
+		# whatever the hips can't turn is taken up by a side reach
+		var heading := wrapf(_travel_ang + (PI if _gait_back else 0.0), -PI, PI)
+		var yaw_want := clampf(heading, -HIP_YAW_MAX, HIP_YAW_MAX) * walk if spd > 0.1 else 0.0
+		_hip_yaw = lerp_angle(_hip_yaw, yaw_want, 1.0 - exp(-10.0 * delta))
+		var resid := wrapf(heading - _hip_yaw, -PI, PI)
 		# cadence (stride cycles per second): unhurried, longer strides when fast
 		var cps := (0.75 + spd * 0.1) if spd < 6.0 else maxf(1.35 - (spd - 6.0) * 0.03, 1.1)
+		# backpedalling: a touch quicker, much shorter steps (see amp below)
+		if _gait_back:
+			cps *= 1.08
 		if spd > 0.1:
 			_phase += delta * TAU * cps * dir_sign
 		else:
@@ -1320,18 +1348,18 @@ func _locomotion(delta: float) -> Dictionary:
 			footstep.emit(clampf(spd / 12.0, 0.2, 1.0))
 		_last_step_sign = step_sign
 
-		var fwd_amount := clampf(absf(fwd) + (1.0 - absf(side)), 0.0, 1.0)
 		# legs: knee lifts more in front than the leg trails behind
-		var amp := lerpf(lerpf(0.5, 0.62, jog), 0.92, run) * walk
+		var amp := lerpf(lerpf(0.5, 0.62, jog), 0.92, run) * walk * (0.7 if _gait_back else 1.0)
 		var lift_bias := lerpf(0.0, 0.14, maxf(jog * 0.75, run)) * walk
 		# the jog lifts its knees higher in front (springier, not a shuffle)
 		var knee_up := lerpf(1.12, 1.3, jog * (1.0 - run))
-		var swing_l := s * amp * (knee_up if s > 0.0 else 0.9)
-		var swing_r := -s * amp * (knee_up if s < 0.0 else 0.9)
+		# (the reach toward where you're going is the long one, backpedalling too)
+		var swing_l := s * amp * (knee_up if s * dir_sign > 0.0 else 0.9)
+		var swing_r := -s * amp * (knee_up if s * dir_sign < 0.0 else 0.9)
 		# swing the legs along the direction of travel (strafing / diagonals in
 		# combat stance): the stepping foot reaches toward where you're going,
 		# and a leg never swings across the other one
-		var mv := local_move.normalized() * dir_sign if local_move.length() > 0.01 else Vector2(0, 1)
+		var mv := Vector2(sin(resid), cos(resid))
 		var fx := clampf(absf(mv.y) + (1.0 - absf(mv.x)) * 0.0, 0.0, 1.0)
 		var lat := mv.x * 0.6
 		p["leg_l"] = Vector3((swing_l + lift_bias) * fx, 0, minf(swing_l * lat, 0.08))
@@ -1343,10 +1371,14 @@ func _locomotion(delta: float) -> Dictionary:
 		var give := lerpf(0.08, 0.32, jog) * walk
 		# the leading leg lands soft (knee unlocked), more so at a jog
 		var land := lerpf(0.06, 0.3, jog) * walk * (1.0 - run * 0.4)
-		var swing_l_t := maxf(0.0, cos(_phase + kick) * dir_sign)
-		var swing_r_t := maxf(0.0, -cos(_phase + kick) * dir_sign)
-		p["shin_l"] = Vector3(-fold * swing_l_t * swing_l_t * 0.6 - fold * swing_l_t * 0.4 - give * maxf(0.0, -c * dir_sign) - land * maxf(0.0, s) - 0.08 * walk, 0, 0)
-		p["shin_r"] = Vector3(-fold * swing_r_t * swing_r_t * 0.6 - fold * swing_r_t * 0.4 - give * maxf(0.0, c * dir_sign) - land * maxf(0.0, -s) - 0.08 * walk, 0, 0)
+		# (the lifted leg is the one travelling with you: forward when walking
+		# on, backward when backpedalling - which in phase terms is cos > 0
+		# either way, since a backpedal runs the cycle in reverse)
+		var kk := kick * dir_sign
+		var swing_l_t := maxf(0.0, cos(_phase + kk))
+		var swing_r_t := maxf(0.0, -cos(_phase + kk))
+		p["shin_l"] = Vector3(-fold * swing_l_t * swing_l_t * 0.6 - fold * swing_l_t * 0.4 - give * maxf(0.0, -c) - land * maxf(0.0, s * dir_sign) - 0.08 * walk, 0, 0)
+		p["shin_r"] = Vector3(-fold * swing_r_t * swing_r_t * 0.6 - fold * swing_r_t * 0.4 - give * maxf(0.0, c) - land * maxf(0.0, -s * dir_sign) - 0.08 * walk, 0, 0)
 		# arms: loose swing opposite the legs; elbows bend more with speed and
 		# the forearms trail the upper arm a little (follow-through)
 		var arm_amp := lerpf(lerpf(0.4, 0.62, jog), 0.82, run) * walk
@@ -1363,8 +1395,8 @@ func _locomotion(delta: float) -> Dictionary:
 		var twist := lerpf(lerpf(0.16, 0.2, jog), 0.14, run) * walk
 		var hip_twist := lerpf(0.12, 0.1, run) * walk
 		var hip_drop := lerpf(lerpf(0.07, 0.065, jog), 0.035, run) * walk
-		p["hips"] = Vector3(0, -s * hip_twist, c * hip_drop * dir_sign)
-		p["torso"] = Vector3(-lean - c2 * lerpf(0.015, 0.035, jog) * walk, s * (twist + hip_twist), -c * hip_drop * 0.7 * dir_sign)
+		p["hips"] = Vector3(0, -s * hip_twist, c * hip_drop)
+		p["torso"] = Vector3(-lean - c2 * lerpf(0.015, 0.035, jog) * walk, s * (twist + hip_twist), -c * hip_drop * 0.7)
 		p["head"] = Vector3(lean * 0.55, 0, 0)
 		# vertical bob: a walk rises over the planted leg, a jog/run dips into
 		# the planted leg and floats between steps
@@ -1373,7 +1405,7 @@ func _locomotion(delta: float) -> Dictionary:
 		var pop := absf(s) * absf(s) * lerpf(0.03, 0.035, run) * jog * walk
 		lift.y = c2 * bob + pop - lerpf(0.0, 0.04, jog) * walk
 		# weight shifts over the planted foot
-		lift.x = c * lerpf(0.028, 0.012, jog) * walk * dir_sign
+		lift.x = c * lerpf(0.028, 0.012, jog) * walk
 
 		# bouncy idle: a rhythmic knee-bend bob with swinging arms
 		var idle := 1.0 - walk
@@ -1419,9 +1451,15 @@ func _locomotion(delta: float) -> Dictionary:
 				p["shin_l"] += Vector3(-0.45 - hop * 0.15, 0, 0) * st
 				p["shin_r"] += Vector3(-0.35 - hop * 0.15, 0, 0) * st
 				lift.y += (-0.1 + hop * 0.045) * st
+		# strafing: hips (and legs) turned into the travel line, chest square
+		# (_hip_yaw is toward +X = the body's right; a positive Y turn is left)
+		if absf(_hip_yaw) > 0.0005:
+			p["hips"] += Vector3(0, -_hip_yaw, 0)
+			p["torso"] += Vector3(0, _hip_yaw, 0)
 		_air_time = 0.0
 	else:
 		_air_time += delta
+		_hip_yaw = lerp_angle(_hip_yaw, 0.0, 1.0 - exp(-8.0 * delta))
 		var vy := vertical_speed
 		var rise := _ease((vy + 2.0) / 4.0)
 		# rising: both arms swing up and a little out, knees tucked
@@ -1864,6 +1902,7 @@ func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO, alive: bool 
 ## Drop the ragdoll; the rig keeps the last pose until the animator takes over.
 func end_ragdoll() -> void:
 	if ragdoll != null and is_instance_valid(ragdoll):
+		ragdoll.restore_rig()
 		ragdoll.queue_free()
 	ragdoll = null
 
@@ -1926,6 +1965,9 @@ func _capture_ragdoll_pose(face_up: bool, hips_xform: Transform3D) -> void:
 	pivot.position = global_transform.affine_inverse() * hips_xform.origin
 	_lift = (pivot.position - Vector3(0, hip_y, 0)) * (PIVOT_Y / hip_y)
 	hips.global_transform = hips_xform
+	# (only its turn: the pivot already sits where the hips were, and a
+	# global transform carries float slack in scale)
+	hips.transform = Transform3D(Basis(hips.basis.orthonormalized().get_rotation_quaternion()), Vector3.ZERO)
 	_cur["pivot"] = pivot.rotation
 	_cur["hips"] = hips.rotation
 	for j in ["torso", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r"]:

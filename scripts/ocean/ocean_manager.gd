@@ -1,14 +1,39 @@
 extends Node
 
-@export var wave_amplitude: float = 0.8
-@export var wave_frequency: float = 0.8
-@export var wave_speed: float = 1.5
-@export var wave_direction: Vector2 = Vector2(1.0, 0.6).normalized()
+## The swell: several crossing wave trains of different lengths, headings and
+## speeds (longer waves run faster, like real water), with peaked crests and
+## broad troughs, and slow wave groups rolling across them. One table drives
+## both the game (get_wave_height) and the ocean shader, so the sea you see is
+## the sea everything floats on.
+## [heading (deg), wavelength (m), amplitude (m), phase]
+const WAVES := [
+	[31.0, 10.5, 0.39, 0.0],
+	[58.0, 15.3, 0.29, 1.7],
+	[2.0, 7.1, 0.22, 4.1],
+	[97.0, 4.6, 0.12, 2.3],
+	[-38.0, 5.7, 0.10, 5.2],
+	[44.0, 27.0, 0.26, 0.9],
+]
+## How fast waves run relative to deep water (1 = real; gentler reads better).
+const SPEED := 0.62
+## Crest shape: 2 * ((sin + 1) / 2)^2, minus its mean so sea level stays at 0.
+const CREST_POW := 2.0
+const CREST_MEAN := 0.75
+## Wave groups: the whole swell swells and settles over a few hundred metres.
+const ENV_AMOUNT := 0.22
+const ENV_A := Vector2(0.019, 0.011)
+const ENV_B := Vector2(-0.008, 0.016)
+const ENV_SPEED := Vector2(0.05, 0.037)
+## Rogue crests are eased down past CREST_KNEE (they can't climb more than
+## CREST_ROOM above it), so the odd pile-up of every train at once doesn't
+## wash up the beach; storms still scale it all with amp_mult.
+const CREST_KNEE := 0.85
+const CREST_ROOM := 0.4
 
-@export var wave2_amplitude: float = 0.3
-@export var wave2_frequency: float = 1.5
-@export var wave2_speed: float = 0.8
-@export var wave2_direction: Vector2 = Vector2(-0.7, 1.0).normalized()
+## Unpacked WAVES: [dir.x, dir.y, k, omega], [amplitude, phase]
+var _w4: Array[Vector4] = []
+var _w2: Array[Vector2] = []
+var _amp_total: float = 0.0
 
 var ocean_material: ShaderMaterial
 ## Rough seas (Weather sets it: 1 calm .. ~1.8 in a storm). Scales both waves
@@ -20,11 +45,28 @@ var _amp_sent: float = -1.0
 ## The sea mesh: 1 m cells near the camera so the surface you see is the
 ## surface the game computes (characters, the ship and enemies sample the same
 ## sine waves); cells grow toward the horizon. One grid, no seams.
-const NEAR_HALF := 80.0
+const NEAR_HALF := 120.0
 const FAR_HALF := 1000.0
 const SNAP := 8.0
+## Cell growth per line beyond NEAR_HALF (the shader mirrors it to fade
+## waves the grid is too coarse to draw).
+const GROWTH := 1.08
 static var _graded: ArrayMesh
 var _mesh_node: MeshInstance3D
+
+
+func _init() -> void:
+	for w in WAVES:
+		var a := deg_to_rad(float(w[0]))
+		var k := TAU / float(w[1])
+		_w4.append(Vector4(cos(a), sin(a), k, SPEED * sqrt(9.8 * k)))
+		_w2.append(Vector2(float(w[2]), float(w[3])))
+		_amp_total += float(w[2])
+
+
+## The biggest crest the calm swell can make (before amp_mult), for foam.
+func amplitude_total() -> float:
+	return _amp_total
 
 
 func _ready() -> void:
@@ -62,7 +104,7 @@ static func _lines() -> PackedFloat32Array:
 	while x < FAR_HALF:
 		x = minf(x + step, FAR_HALF)
 		far.append(x)
-		step *= 1.13
+		step *= GROWTH
 	for i in range(far.size() - 1, -1, -1):
 		out.append(-float(far[i]))
 	var n := int(NEAR_HALF)
@@ -153,14 +195,18 @@ func _physics_process(delta: float) -> void:
 func get_wave_height(world_pos: Vector3, time: float = -1.0) -> float:
 	if time < 0.0:
 		time = clock()
-
-	var dot1 := world_pos.x * wave_direction.x + world_pos.z * wave_direction.y
-	var h1 := sin(dot1 * wave_frequency + time * wave_speed) * wave_amplitude * amp_mult
-
-	var dot2 := world_pos.x * wave2_direction.x + world_pos.z * wave2_direction.y
-	var h2 := sin(dot2 * wave2_frequency + time * wave2_speed) * wave2_amplitude * amp_mult
-
-	return h1 + h2
+	var x := world_pos.x
+	var z := world_pos.z
+	var h := 0.0
+	for i in range(_w4.size()):
+		var w: Vector4 = _w4[i]
+		var s := sin((x * w.x + z * w.y) * w.z + time * w.w + _w2[i].y)
+		h += _w2[i].x * (2.0 * pow(maxf(0.5 + 0.5 * s, 0.0), CREST_POW) - CREST_MEAN)
+	var env := 1.0 + ENV_AMOUNT * sin(x * ENV_A.x + z * ENV_A.y + time * ENV_SPEED.x) * sin(x * ENV_B.x + z * ENV_B.y - time * ENV_SPEED.y)
+	h *= env
+	if h > CREST_KNEE:
+		h = CREST_KNEE + (h - CREST_KNEE) / (1.0 + (h - CREST_KNEE) / CREST_ROOM)
+	return h * amp_mult
 
 
 func get_wave_normal(world_pos: Vector3, time: float = -1.0) -> Vector3:
@@ -183,12 +229,9 @@ func _process(_delta: float) -> void:
 		ocean_material.set_shader_parameter("time_val", time)
 		if absf(amp_mult - _amp_sent) > 0.0005:
 			_amp_sent = amp_mult
-			ocean_material.set_shader_parameter("wave_amplitude", wave_amplitude * amp_mult)
-			ocean_material.set_shader_parameter("wave2_amplitude", wave2_amplitude * amp_mult)
+			_send_waves()
 
-	# Follow camera on XZ for infinite ocean illusion
-	# Snap to grid so vertices always align with world positions (prevents pattern sliding)
-	# Mesh is 2000 units with 256 subdivisions = ~7.8125 per cell
+	# Follow the camera on XZ (snapped, so the 1 m cells stay on whole metres)
 	var camera := get_viewport().get_camera_3d()
 	if camera:
 		var ocean_mesh := _mesh_node
@@ -197,6 +240,19 @@ func _process(_delta: float) -> void:
 			ocean_mesh.global_position.x = snappedf(camera.global_position.x, SNAP)
 			ocean_mesh.global_position.z = snappedf(camera.global_position.z, SNAP)
 			ocean_mesh.global_position.y = 0.0
+
+
+func _send_waves() -> void:
+	ocean_material.set_shader_parameter("waves", PackedVector4Array(_w4))
+	ocean_material.set_shader_parameter("wave_amp_phase", PackedVector2Array(_w2))
+	ocean_material.set_shader_parameter("amp_mult", amp_mult)
+	ocean_material.set_shader_parameter("wave_total", _amp_total * amp_mult)
+	ocean_material.set_shader_parameter("crest", Vector2(CREST_POW, CREST_MEAN))
+	ocean_material.set_shader_parameter("env_dirs", Vector4(ENV_A.x, ENV_A.y, ENV_B.x, ENV_B.y))
+	ocean_material.set_shader_parameter("env_params", Vector3(ENV_AMOUNT, ENV_SPEED.x, ENV_SPEED.y))
+	ocean_material.set_shader_parameter("crest_cap", Vector2(CREST_KNEE, CREST_ROOM))
+	ocean_material.set_shader_parameter("near_half", NEAR_HALF)
+	ocean_material.set_shader_parameter("growth", GROWTH - 1.0)
 
 
 ## How deep the water is at a spot: wave surface minus the ground (world

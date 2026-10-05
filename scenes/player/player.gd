@@ -998,13 +998,20 @@ func _update_lean_target(delta: float) -> void:
 	var hv := Vector3(velocity.x, 0.0, velocity.z)
 	var prev_f := _lean_f
 	_lean_f = lerpf(_lean_f, hv.dot(cam_f), minf(6.0 * delta, 1.0))
-	_lean_r = lerpf(_lean_r, hv.dot(cam_r), minf(2.5 * delta, 1.0))
+	# (side lean eases at nearly the forward rate, so on a diagonal the lean
+	# points along the move instead of swinging round over half a second)
+	_lean_r = lerpf(_lean_r, hv.dot(cam_r), minf(5.0 * delta, 1.0))
 	_lean_acc_f = lerpf(_lean_acc_f, (_lean_f - prev_f) / maxf(delta, 0.0001), minf(10.0 * delta, 1.0))
 	var turn := wrapf(yaw - _cam_yaw_prev, -PI, PI) / maxf(delta, 0.0001)
 	_cam_yaw_prev = yaw
 	_cam_turn = lerpf(_cam_turn, clampf(turn, -8.0, 8.0), minf(6.0 * delta, 1.0))
-	var fwd := _lean_f / LEAN_REF_SPEED * speed_lean + _lean_acc_f * accel_lean
-	var side := _lean_r / LEAN_REF_SPEED * speed_lean
+	var fwd := _lean_f / LEAN_REF_SPEED * speed_lean
+	# backpedalling (combat stance) keeps the weight over the feet: only a
+	# slight lean back
+	if fwd < 0.0:
+		fwd *= 0.4
+	fwd += _lean_acc_f * accel_lean
+	var side := _lean_r / LEAN_REF_SPEED * speed_lean * 0.8
 	# camera yaw + = turning left -> lean left (-cam_r)
 	side -= _cam_turn * hv.length() * bank_lean
 	_lean_tilt = cam_f * fwd + cam_r * side

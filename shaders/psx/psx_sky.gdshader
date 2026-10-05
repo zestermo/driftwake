@@ -19,6 +19,12 @@ uniform vec3 cloud_shade : source_color = vec3(0.62, 0.68, 0.8);
 uniform float flash = 0.0;          // lightning
 uniform float cloud_time = 0.0;
 uniform vec2 wind = vec2(1.0, 0.3);
+// Long-range haze: the sky melts into the world's fog colour toward the
+// horizon (and is pure fog below it), so the fogged sea, distant clouds and
+// the sky meet with no seam. haze_height = how far up it reaches (sin of the
+// elevation): low on a clear day, high in rain and storms, everything in a cloud.
+uniform vec3 fog_color : source_color = vec3(0.5, 0.72, 0.92);
+uniform float haze_height = 0.08;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -85,6 +91,8 @@ void sky() {
 		col = mix(col, cc, c * edge * mix(0.85, 1.0, storm));
 	}
 	col = mix(col, col * 0.55 + vec3(0.18, 0.19, 0.21), storm * 0.6);
+	float haze = 1.0 - smoothstep(0.0, max(haze_height, 0.001), up);
+	col = mix(col, fog_color, haze * haze * (3.0 - 2.0 * haze));
 	col += vec3(0.75, 0.8, 1.0) * flash;
 	COLOR = col;
 }

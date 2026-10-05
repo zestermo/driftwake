@@ -113,7 +113,8 @@ func add_part(part_name: String, node: Node3D, shape: Dictionary, mass: float,
 	b.global_transform = Transform3D(g.basis.orthonormalized(), g.origin)
 	b.reset_physics_interpolation()
 	var part := {"name": part_name, "body": b, "node": node, "offset": b.global_transform.affine_inverse() * g,
-		"parent": parent_name, "cur": node.rotation, "rel0": Basis.IDENTITY}
+		"parent": parent_name, "cur": node.rotation, "rel0": Basis.IDENTITY,
+		"rest_origin": node.position, "rest_scale": node.basis.get_scale()}
 	if parent_name != "" and _by_name.has(parent_name):
 		var pb: RigidBody3D = _by_name[parent_name]["body"]
 		part["rel0"] = pb.global_basis.orthonormalized().inverse() * b.global_basis.orthonormalized()
@@ -213,6 +214,20 @@ func _muscles(delta: float) -> void:
 		var torque := inertia * acc
 		b.apply_torque(torque)
 		pb.apply_torque(-torque)
+
+
+## Hand the rig back the way the ragdoll found it. The physics joints give a
+## little, and driving the rig by global transforms leaves that slack in the
+## joints' local offsets and scale, so without this every knockdown left the
+## limbs a bit longer, shorter or squashed (until the body was rebuilt, e.g.
+## by changing clothes). Rotations stay: the animator blends out of them.
+func restore_rig() -> void:
+	for p in parts:
+		var node: Node3D = p["node"]
+		if node == null or not is_instance_valid(node):
+			continue
+		var q := node.basis.orthonormalized().get_rotation_quaternion()
+		node.transform = Transform3D(Basis(q) * Basis.from_scale(p["rest_scale"]), p["rest_origin"])
 
 
 func body(part_name: String) -> RigidBody3D:

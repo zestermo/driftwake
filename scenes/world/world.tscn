@@ -7,7 +7,6 @@
 [ext_resource type="Script" uid="uid://4b8ppqym5jub" path="res://scenes/player/camera_rig.gd" id="6"]
 [ext_resource type="Script" uid="uid://7dqdtd8oejvm" path="res://scripts/island/world_generator.gd" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/dummy_target.tscn" id="8"]
-[ext_resource type="Shader" uid="uid://bkhjn5je1pghm" path="res://scenes/world/cloud_shadows.gdshader" id="9"]
 [ext_resource type="Script" uid="uid://cfwcqyfqcs5nq" path="res://scripts/world/cloud_spawner.gd" id="10"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_clouds"]
@@ -58,19 +57,6 @@ fog_depth_curve = 1.6
 fog_depth_begin = 90.0
 fog_depth_end = 750.0
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_cloud_shadow"]
-render_priority = 1
-shader = ExtResource("9")
-shader_parameter/cloud_scale = 0.0012
-shader_parameter/cloud_speed = 0.005
-shader_parameter/shadow_strength = 0.45
-shader_parameter/wind_direction = Vector2(1, 0.3)
-shader_parameter/cloud_coverage = 0.4
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_cloud_shadow"]
-material = SubResource("ShaderMaterial_cloud_shadow")
-size = Vector2(3000, 3000)
-
 [node name="World" type="Node3D" unique_id=1816862741]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=953124535]
@@ -93,11 +79,6 @@ directional_shadow_max_distance = 120.0
 
 [node name="Clouds" type="Node3D" parent="." unique_id=541984501]
 script = ExtResource("10")
-
-[node name="CloudShadows" type="MeshInstance3D" parent="." unique_id=1658735295]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 0)
-cast_shadow = 0
-mesh = SubResource("PlaneMesh_cloud_shadow")
 
 [node name="Ocean" parent="." unique_id=1008132384 instance=ExtResource("1")]
 

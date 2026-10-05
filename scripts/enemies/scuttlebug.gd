@@ -702,6 +702,7 @@ func _get_up() -> void:
 		_face(f.normalized())
 		model.rotation.y = _yaw
 	if _rag:
+		_rag.restore_rig()
 		_rag.queue_free()
 		_rag = null
 	_settle_from = rear_pivot.global_transform.affine_inverse() * g
@@ -761,12 +762,14 @@ func _dead_update(delta: float) -> void:
 			body_node.global_position + Vector3.DOWN * 0.25 * delta / 0.7)
 		if _sink >= 1.0:
 			if _rag:
+				_rag.restore_rig()
 				_rag.queue_free()
 			queue_free()
 
 
 func _exit_tree() -> void:
 	if _rag and is_instance_valid(_rag):
+		_rag.restore_rig()
 		_rag.queue_free()
 
 

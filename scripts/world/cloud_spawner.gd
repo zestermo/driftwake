@@ -1,7 +1,8 @@
 extends Node3D
 class_name PuffClouds
 ## Physical 3D clouds: big low-poly-feeling volumes built from soft
-## camera-facing puffs (one MultiMesh, PS1 dithered transparency), drifting
+## camera-facing puffs (one MultiMesh, blended and sorted back to front each
+## frame so they layer properly; the PSX post pass quantises them), drifting
 ## with the wind and wrapping around the camera so the sky never runs out.
 ## The weather decides how many there are, how dark and how low; a storm
 ## pulls them down and turns them grey.
@@ -23,6 +24,10 @@ var wind := Vector2(1.0, 0.3)
 var wind_speed: float = 4.0
 var lit_color := Color(1, 1, 1)
 var shade_color := Color(0.62, 0.68, 0.8)
+var fog_color := Color(0.5, 0.72, 0.92)
+var haze_height: float = 0.08
+var fog_begin: float = 90.0
+var fog_end: float = 750.0
 
 ## clouds: {base: Vector3 (world, unwrapped), radii: Vector3, puffs: [[offset, size, shade]], thr: float}
 var clouds: Array = []
@@ -32,6 +37,13 @@ var _mat: ShaderMaterial
 var _drift := Vector3.ZERO
 var _total: int = 0
 var _t: float = 0.0
+var _buf := PackedFloat32Array()
+var _keys := PackedFloat64Array()
+## Per puff, flattened: [cloud index, offset, size, shade, seed]
+var _puffs: Array = []
+
+## MultiMesh buffer layout: 12 transform floats, 4 colour, 4 custom.
+const STRIDE := 20
 
 
 func _ready() -> void:
@@ -51,6 +63,7 @@ func _ready() -> void:
 			var size := rng.randf_range(0.65, 1.0) * (r.x + r.z) * 0.55 * (1.0 - absf(dir.y) * 0.25)
 			var shade := 0.82 + 0.18 * clampf((dir.y + 0.35) / 1.35, 0.0, 1.0)
 			(c["puffs"] as Array).append([off, size, shade])
+			_puffs.append([i, off, size, shade, float(_total + k) * 0.618])
 		clouds.append(c)
 		_total += n
 	_mm = MultiMesh.new()
@@ -61,8 +74,9 @@ func _ready() -> void:
 	q.size = Vector2(1, 1)
 	_mm.mesh = q
 	_mm.instance_count = _total
-	for j in range(_total):
-		_mm.set_instance_custom_data(j, Color(float(j) * 0.618, 0, 0, 0))
+	_mm.visible_instance_count = 0
+	_buf.resize(_total * STRIDE)
+	_keys.resize(_total)
 	_mat = ShaderMaterial.new()
 	_mat.shader = load("res://shaders/world/cloud_puff.gdshader")
 	_mmi = MultiMeshInstance3D.new()
@@ -120,20 +134,54 @@ func _process(delta: float) -> void:
 	_mat.set_shader_parameter("lit_color", lit_color)
 	_mat.set_shader_parameter("shade_color", shade_color)
 	_mat.set_shader_parameter("time_s", _t)
+	_mat.set_shader_parameter("fog_color", fog_color)
+	_mat.set_shader_parameter("haze_height", haze_height)
+	# far clouds thin out (the sky's own cloud layer carries on beyond them),
+	# well before the 1.2 km wrap so none ever pops
+	var fade_end := clampf(fog_end * 2.0, 500.0, 1150.0)
+	_mat.set_shader_parameter("fade", Vector2(fade_end * 0.72, fade_end))
+	_mat.set_shader_parameter("fog_range", Vector2(fog_begin, fade_end))
 	var k := _scale_of()
 	var dark := 1.0 - storm * 0.45
-	var i := 0
-	for c in clouds:
-		var v := _vis(c)
-		var cc := center_of(c, around)
-		for p in c["puffs"]:
-			var off: Vector3 = p[0]
-			var s: float = float(p[1]) * k
-			if v <= 0.0:
-				_mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(0.001, 0.001, 0.001)), cc))
-				_mm.set_instance_color(i, Color(1, 1, 1, 0))
-			else:
-				_mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(s, s * 0.8, s)), cc + off * k))
-				var sh: float = float(p[2]) * dark
-				_mm.set_instance_color(i, Color(sh, sh, sh, v * lerpf(0.92, 1.0, storm)))
-			i += 1
+	var alpha_k := lerpf(0.92, 1.0, storm)
+	# where each visible cloud is this frame
+	var centers := []
+	var vis := PackedFloat32Array()
+	centers.resize(clouds.size())
+	vis.resize(clouds.size())
+	for ci in range(clouds.size()):
+		var c: Dictionary = clouds[ci]
+		vis[ci] = _vis(c)
+		if vis[ci] > 0.0:
+			var cc := center_of(c, around)
+			if Vector2(cc.x - around.x, cc.z - around.z).length() > fade_end + 150.0:
+				vis[ci] = 0.0
+			centers[ci] = cc
+	# back-to-front: blended puffs must be drawn farthest first
+	var n := 0
+	for pi in range(_puffs.size()):
+		var pf: Array = _puffs[pi]
+		var ci: int = pf[0]
+		if vis[ci] <= 0.0:
+			continue
+		var pos: Vector3 = centers[ci] + (pf[1] as Vector3) * k
+		var dist := pos.distance_to(around)
+		_keys[n] = float(20000 - mini(int(dist * 8.0), 19999)) * 4096.0 + float(pi)
+		n += 1
+	var keys := _keys.slice(0, n)
+	keys.sort()
+	for j in range(n):
+		var pi := int(fposmod(keys[j], 4096.0))
+		var pf: Array = _puffs[pi]
+		var ci: int = pf[0]
+		var pos: Vector3 = centers[ci] + (pf[1] as Vector3) * k
+		var s: float = float(pf[2]) * k
+		var o := j * STRIDE
+		_buf[o] = s; _buf[o + 1] = 0.0; _buf[o + 2] = 0.0; _buf[o + 3] = pos.x
+		_buf[o + 4] = 0.0; _buf[o + 5] = s * 0.8; _buf[o + 6] = 0.0; _buf[o + 7] = pos.y
+		_buf[o + 8] = 0.0; _buf[o + 9] = 0.0; _buf[o + 10] = s; _buf[o + 11] = pos.z
+		var sh: float = float(pf[3]) * dark
+		_buf[o + 12] = sh; _buf[o + 13] = sh; _buf[o + 14] = sh; _buf[o + 15] = vis[ci] * alpha_k
+		_buf[o + 16] = float(pf[4]); _buf[o + 17] = 0.0; _buf[o + 18] = 0.0; _buf[o + 19] = 0.0
+	_mm.buffer = _buf
+	_mm.visible_instance_count = n
