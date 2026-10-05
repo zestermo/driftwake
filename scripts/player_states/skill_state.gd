@@ -315,12 +315,12 @@ func physics_update(delta: float) -> void:
 # --------------------------------------------------------------------------
 ## Where the reticle points (first world hit within `reach`), else that far.
 func _aim_point(reach: float) -> Vector3:
-	var cam := player.get_viewport().get_camera_3d()
-	if cam == null:
+	var ray: Array = player.reticle_ray()
+	if ray.is_empty():
 		return player.global_position + _dir * reach
-	var cf := -cam.global_basis.z
-	var from := cam.global_position
-	var extra := cam.global_position.distance_to(player.global_position)
+	var from: Vector3 = ray[0]
+	var cf: Vector3 = ray[1]
+	var extra := from.distance_to(player.global_position)
 	var q := PhysicsRayQueryParameters3D.create(from, from + cf * (reach + extra), 1 | 4)
 	q.exclude = [player.get_rid()]
 	var h := player.get_world_3d().direct_space_state.intersect_ray(q)
@@ -347,11 +347,11 @@ func _nearest_enemy(reach: float) -> Node3D:
 ##                                 if it's above you
 ##   {}                            nothing
 func _vine_target() -> Dictionary:
-	var cam := player.get_viewport().get_camera_3d()
-	if cam == null:
+	var ray: Array = player.reticle_ray()
+	if ray.is_empty():
 		return {}
-	var cf := -cam.global_basis.z
-	var from := cam.global_position
+	var from: Vector3 = ray[0]
+	var cf: Vector3 = ray[1]
 	var reach := 24.0
 	var extra := from.distance_to(player.global_position)
 	var space := player.get_world_3d().direct_space_state
@@ -622,13 +622,14 @@ func _throw_fireball() -> void:
 		from = player.body_model.hand_r.global_position + _dir * 0.25
 	# aim where the screen center points (the reticle)
 	var target := from + _dir * 30.0
-	var cam := player.get_viewport().get_camera_3d()
-	if cam:
-		var cf := -cam.global_basis.z
-		var q := PhysicsRayQueryParameters3D.create(cam.global_position, cam.global_position + cf * 60.0, 1 | 4)
+	var ray: Array = player.reticle_ray()
+	if not ray.is_empty():
+		var o: Vector3 = ray[0]
+		var cf: Vector3 = ray[1]
+		var q := PhysicsRayQueryParameters3D.create(o, o + cf * 60.0, 1 | 4)
 		q.exclude = [player.get_rid()]
 		var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
-		target = (hit["position"] as Vector3) if not hit.is_empty() else cam.global_position + cf * 60.0
+		target = (hit["position"] as Vector3) if not hit.is_empty() else o + cf * 60.0
 	var d := target - from
 	if d.length() < 1.0 or d.normalized().dot(_dir) < 0.2:
 		d = _dir

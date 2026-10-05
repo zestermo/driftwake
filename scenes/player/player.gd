@@ -1774,6 +1774,17 @@ func revive() -> void:
 
 var _mark_cd: float = 0.0
 
+
+## The ray through the reticle: [origin, direction], or [] without a camera.
+## (The combat camera sits over the shoulder via h/v_offset, which the camera's
+## own global transform doesn't include; project_ray_* does.)
+func reticle_ray() -> Array:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return []
+	var c := get_viewport().get_visible_rect().size * 0.5
+	return [cam.project_ray_origin(c), cam.project_ray_normal(c)]
+
 ## G / middle mouse: mark where the camera points (an enemy, if one is under
 ## the crosshair) for the whole crew.
 func place_marker() -> void:
@@ -1781,12 +1792,11 @@ func place_marker() -> void:
 	if now < _mark_cd:
 		return
 	_mark_cd = now + 0.35
-	var cam := get_viewport().get_camera_3d()
-	if cam == null:
+	var ray := reticle_ray()
+	if ray.is_empty():
 		return
-	var c := get_viewport().get_visible_rect().size * 0.5
-	var from := cam.project_ray_origin(c)
-	var dir := cam.project_ray_normal(c)
+	var from: Vector3 = ray[0]
+	var dir: Vector3 = ray[1]
 	var q := PhysicsRayQueryParameters3D.create(from, from + dir * 250.0, 1 | 4 | 2048)
 	q.exclude = [get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)

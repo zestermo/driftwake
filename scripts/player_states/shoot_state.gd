@@ -37,37 +37,43 @@ func enter(_data: Dictionary) -> void:
 
 
 func _fire(dual: bool) -> void:
-	var cam := player.get_viewport().get_camera_3d()
-	var hand_node: Node3D = player.body_model.hand_r if _hand == 0 else player.body_model.hand_l
+	var shoulder_node: Node3D = player.body_model.arm_r if _hand == 0 else player.body_model.arm_l
+	var shoulder := shoulder_node.global_position if shoulder_node else player.global_position + Vector3(0, 1.35, 0)
 	var fwd := get_camera_forward()
-	var muzzle := (hand_node.global_position if hand_node else player.global_position + Vector3(0, 1.3, 0)) + fwd * 0.45 + Vector3(0, 0.05, 0)
-	# where the reticle points
-	var target := muzzle + fwd * RANGE
 	var space := player.get_world_3d().direct_space_state
-	if cam:
-		var cf := -cam.global_basis.z
-		var q := PhysicsRayQueryParameters3D.create(cam.global_position, cam.global_position + cf * (RANGE + 8.0), 1)
+	# where the reticle points: the first enemy or solid on the screen-centre ray
+	# (starting level with the player, so nothing behind you catches it)
+	var target := shoulder + fwd * RANGE
+	var ray := player.reticle_ray()
+	var on_enemy := false
+	if not ray.is_empty():
+		var cd: Vector3 = ray[1]
+		var from: Vector3 = ray[0]
+		from += cd * maxf((player.global_position - from).dot(cd), 0.0)
+		var q := PhysicsRayQueryParameters3D.create(from, from + cd * RANGE, 1 | 4 | 2048)
 		q.exclude = [player.get_rid()]
 		var h := space.intersect_ray(q)
-		target = (h["position"] as Vector3) if not h.is_empty() else cam.global_position + cf * (RANGE + 8.0)
-	# aim assist: an enemy close to the reticle's heading gets the shot
-	var best: Node3D = null
-	var best_a := 0.2
-	for e in player.power.enemies_in(player.global_position, RANGE):
-		var hb := (e as Node).get("hurtbox") as Hurtbox
-		if hb == null:
-			continue
-		var to := hb.global_position - muzzle
-		var flat := Vector3(to.x, 0, to.z)
-		if flat.length() < 0.5:
-			continue
-		var a := absf(fwd.signed_angle_to(flat.normalized(), Vector3.UP))
-		if a < best_a:
-			best_a = a
-			best = hb
-	if best:
-		target = best.global_position
-	var dir := (target - muzzle).normalized()
+		target = (h["position"] as Vector3) if not h.is_empty() else from + cd * RANGE
+		on_enemy = not h.is_empty() and (h["collider"] as CollisionObject3D).collision_layer & 4 != 0
+		# aim assist: only when the reticle is just off an enemy in clear view
+		if not on_enemy:
+			var best_a := 0.06
+			for e in player.power.enemies_in(player.global_position, RANGE):
+				var hb := (e as Node).get("hurtbox") as Hurtbox
+				if hb == null:
+					continue
+				var a := cd.angle_to(hb.global_position - from)
+				if a >= best_a:
+					continue
+				var los := PhysicsRayQueryParameters3D.create(shoulder, hb.global_position, 1)
+				los.exclude = [player.get_rid()]
+				if space.intersect_ray(los).is_empty():
+					best_a = a
+					target = hb.global_position
+	# the gun is at the end of the arm, pointed along the shot
+	var dir := (target - shoulder).normalized()
+	var muzzle := shoulder + dir * 0.7
+	dir = (target - muzzle).normalized()
 	# aim pose follows the pitch
 	player.body_model.aim_pitch = clampf(asin(clampf(dir.y, -1.0, 1.0)), -0.6, 0.6)
 	player.body_model.play("shoot_r" if _hand == 0 else "shoot_l", dur + 0.15)

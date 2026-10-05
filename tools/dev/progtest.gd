@@ -26,6 +26,16 @@ func face(target: Vector3) -> void:
 	var d: Vector3 = target - p.global_position; d.y = 0
 	rig().rotation.y = atan2(-d.x, -d.z)
 	p.player_model.rotation.y = atan2(-d.x, -d.z)
+## Put the crosshair on `target` (turn the camera like the mouse would).
+func aim_at(target: Vector3) -> void:
+	var arm: Node3D = root.get_viewport().get_camera_3d().get_parent()
+	for i in range(8):
+		var ray: Array = p.reticle_ray()
+		var want: Vector3 = (target - (ray[0] as Vector3)).normalized()
+		var have: Vector3 = ray[1]
+		rig().rotation.y += wrapf(atan2(-want.x, -want.z) - atan2(-have.x, -have.z), -PI, PI)
+		arm.rotation.x += asin(clampf(want.y, -1.0, 1.0)) - asin(clampf(have.y, -1.0, 1.0))
+	p.player_model.rotation.y = rig().rotation.y
 func put(pos: Vector3) -> void:
 	p.global_position = pos
 	p.velocity = Vector3.ZERO
@@ -195,6 +205,7 @@ func _process(d: float) -> bool:
 			step += 1
 		13:
 			face(g.global_position)
+			aim_at(g.hurtbox.global_position)
 			v0 = g.health.current_health
 			set_meta("ammo", p.ammo[0])
 			attack("light_attack")
@@ -205,10 +216,24 @@ func _process(d: float) -> bool:
 			print("   shot: ", v0, " -> ", g.health.current_health, " ammo ", p.ammo)
 			check("pistol shot uses a round", p.ammo[0] == int(get_meta("ammo")) - 1)
 			check("pistol shot hits", g.health.current_health < v0)
+			# the over-the-shoulder camera is shifted by h/v_offset: the shot ray must
+			# still go through the crosshair (screen centre)
+			var cam: Camera3D = root.get_viewport().get_camera_3d()
+			var centre: Vector2 = root.get_viewport().get_visible_rect().size * 0.5
+			var ray: Array = p.reticle_ray()
+			var on_px: float = cam.unproject_position(ray[0] + ray[1] * 20.0).distance_to(centre)
+			var old_px: float = cam.unproject_position(cam.global_position - cam.global_basis.z * 20.0).distance_to(centre)
+			print("   reticle ray lands %.2f px off centre (camera-node ray: %.1f px; h_offset %.2f)" % [on_px, old_px, cam.h_offset])
+			check("the shot ray goes through the crosshair (%.2f px off)" % on_px, on_px < 1.0)
+			# crosshair well beside him: the shot goes where it points, not into him
+			var side: Vector3 = p.player_model.global_basis.x
+			aim_at(g.hurtbox.global_position + side * 1.5)
+			set_meta("hp1", g.health.current_health)
 			attack("light_attack")
 			wait = 0.5
 			step += 1
 		15:
+			check("a shot with the crosshair off the enemy misses", g.health.current_health == float(get_meta("hp1")))
 			check("empty pistol reloads", p.reloading() or p.ammo[0] == p.max_ammo())
 			p.inventory_component.add_item(item("pistol"), 1)
 			check("second pistol = dual pistols", p.style() == "dual_pistol")
@@ -217,6 +242,7 @@ func _process(d: float) -> bool:
 		16:
 			check("reloaded", p.ammo[0] == p.max_ammo() and p.ammo[1] == p.max_ammo())
 			face(g.global_position)
+			aim_at(g.hurtbox.global_position)
 			attack("light_attack")
 			wait = 0.3
 			step += 1

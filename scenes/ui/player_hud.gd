@@ -25,6 +25,7 @@ var _toast_tween: Tween
 var _chime: AudioStreamPlayer
 var _skill_bar: SkillBar
 var _reticle: Reticle
+const SHOOT_STATE := preload("res://scripts/player_states/shoot_state.gd")
 var _fps: Label
 var _in_dialogue: bool = false
 
@@ -199,13 +200,17 @@ func _update_reticle() -> void:
 		return
 	var on_target := false
 	if player.armed:
-		var cam := get_viewport().get_camera_3d()
-		if cam:
-			var from := cam.global_position
-			var to := from - cam.global_basis.z * (cam.global_position.distance_to(player.global_position) + 4.0)
-			var q := PhysicsRayQueryParameters3D.create(from, to, 4)  # EnemyBody layer
+		var ray: Array = player.reticle_ray()
+		if not ray.is_empty():
+			var from: Vector3 = ray[0]
+			var dir: Vector3 = ray[1]
+			var reach := SHOOT_STATE.RANGE if player.weapon_class() == "gun" else 4.0
+			from += dir * maxf((player.global_position - from).dot(dir), 0.0)
+			# World too, so an enemy behind a wall doesn't light it up
+			var q := PhysicsRayQueryParameters3D.create(from, from + dir * reach, 1 | 4)
 			q.exclude = [player.get_rid()]
-			on_target = not player.get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+			var h := player.get_world_3d().direct_space_state.intersect_ray(q)
+			on_target = not h.is_empty() and (h["collider"] as CollisionObject3D).collision_layer & 4 != 0
 	_reticle.set_state(player.armed, on_target)
 
 
