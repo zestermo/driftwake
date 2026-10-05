@@ -317,12 +317,44 @@ func root_depth() -> float:
 	return float(_ocean.call("get_wave_height", p)) - p.y
 
 
+## Co-op: the bodies' transforms for a snapshot ([pos, rotation] per part).
+func net_pack() -> Array:
+	var out: Array = []
+	for p in parts:
+		var b: RigidBody3D = p["body"]
+		out.append(b.global_position)
+		out.append(b.global_basis.orthonormalized().get_rotation_quaternion())
+	return out
+
+
+## Co-op: follow the copy on the machine that owns this body (so it lies,
+## floats and sinks exactly where theirs does): the bodies turn kinematic
+## and are placed between two snapshots.
+func net_follow(a: Array, b: Array, f: float) -> void:
+	var n := parts.size() * 2
+	if b.size() != n:
+		return
+	if a.size() != n:
+		a = b
+	for i in range(parts.size()):
+		var body: RigidBody3D = parts[i]["body"]
+		if not body.freeze:
+			body.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
+			body.freeze = true
+			body.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+		var pos: Vector3 = (a[i * 2] as Vector3).lerp(b[i * 2], f)
+		var q: Quaternion = (a[i * 2 + 1] as Quaternion).slerp(b[i * 2 + 1], f)
+		body.global_transform = Transform3D(Basis(q), pos)
+
+
 ## Pose the rig from the bodies (parents first, so children land correctly).
 func drive() -> void:
 	for p in parts:
-		var node: Node3D = p["node"]
+		var node = p["node"]
 		if not is_instance_valid(node):
-			continue
+			# the body it posed is gone (its owner left the world)
+			queue_free()
+			return
 		var b: RigidBody3D = p["body"]
 		var xf := b.get_global_transform_interpolated() if b.is_inside_tree() else b.global_transform
 		node.global_transform = xf * (p["offset"] as Transform3D)

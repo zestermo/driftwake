@@ -20,6 +20,8 @@ var island_positions: Array[Vector3] = []  # (x, peak_height, z)
 var island_infos: Array[Dictionary] = []   # procedural islands: {pos, type, radius}
 var starter_island: StarterIsland
 var starter_center := Vector2.ZERO
+var redtide: RedtideFort
+var fleet: EnemyFleet
 
 var _decor := {}  # name -> Array[Mesh]
 
@@ -128,6 +130,7 @@ func _generate_world() -> void:
 		if dock_area and dock_area is Interactable:
 			dock_area.interacted.connect(_on_dock_interacted)
 
+	_build_redtide()
 	_register_dialogue_tokens()
 	print("WorldGenerator: Generated terrain with %d islands (seed: %d)" % [centers.size(), world_seed])
 
@@ -334,6 +337,71 @@ func _build_starter_island(c: Dictionary) -> void:
 
 
 # --------------------------------------------------------------------------
+# Redtide Rock (the pirate captain's fort) and the pirate ships at sea
+# --------------------------------------------------------------------------
+func _deep_enough(c: Vector2, r: float) -> bool:
+	if height_at(c.x, c.y) > -12.0:
+		return false
+	for k in range(16):
+		var q: Vector2 = c + Vector2(cos(k * TAU / 16.0), sin(k * TAU / 16.0)) * r
+		if height_at(q.x, q.y) > -12.0:
+			return false
+	for info in island_infos:
+		if c.distance_to(info["pos"]) < float(info["radius"]) + r + 80.0:
+			return false
+	return true
+
+
+func _build_redtide() -> void:
+	# north of Brinehollow, past the harbour (or the nearest clear stretch)
+	var spot := starter_center + Vector2(0, -400)
+	if not _deep_enough(spot, 60.0):
+		var found := false
+		for r in [400.0, 460.0, 520.0]:
+			for k in range(24):
+				var a := -PI * 0.5 + (k / 2 + 1) * (TAU / 24.0) * (1.0 if k % 2 == 0 else -1.0)
+				var c: Vector2 = starter_center + Vector2(cos(a), sin(a)) * r
+				if _deep_enough(c, 60.0):
+					spot = c
+					found = true
+					break
+			if found:
+				break
+	redtide = RedtideFort.new()
+	redtide.name = "RedtideRock"
+	var to_home := (starter_center - spot).normalized()
+	redtide.position = Vector3(spot.x, 0.0, spot.y)
+	redtide.rotation.y = atan2(to_home.x, to_home.y)
+	add_child(redtide)
+	EnemyShip.safe_center = Vector3(starter_center.x, 0.0, starter_center.y)
+	fleet = EnemyFleet.new()
+	fleet.name = "PirateFleet"
+	add_child(fleet)
+	fleet.add_zone(Vector3(spot.x, 0.0, spot.y), 115.0)
+	# a second patrol on the way out to the nearest island
+	var near := Vector2.ZERO
+	var best := INF
+	for info in island_infos:
+		var d := starter_center.distance_to(info["pos"])
+		if d < best:
+			best = d
+			near = info["pos"]
+	if best < INF:
+		var dir := (near - starter_center).normalized()
+		var z2 := starter_center + dir * (EnemyShip.SAFE_RADIUS + 240.0)
+		if z2.distance_to(spot) > 220.0:
+			fleet.add_zone(Vector3(z2.x, 0.0, z2.y), 110.0)
+
+
+func redtide_phrase() -> String:
+	if redtide == null:
+		return "a rock to the north"
+	var p := Vector2(redtide.position.x, redtide.position.z)
+	var dist := int(round(starter_center.distance_to(p) / 50.0) * 50.0)
+	return "out to the %s, some %d meters past the harbour mouth" % [_compass(starter_center, p), dist]
+
+
+# --------------------------------------------------------------------------
 # Procedural island decoration (palms, jungle trees, bushes, rocks)
 # --------------------------------------------------------------------------
 func _build_decor_meshes() -> void:
@@ -461,6 +529,8 @@ func _register_dialogue_tokens() -> void:
 			if starter_center.distance_to(info["pos"]) < starter_center.distance_to(best["pos"]):
 				best = info
 		return _island_phrase(best))
+	dm.register_token("redtide", func() -> String:
+		return redtide_phrase())
 	dm.register_token("banked", func() -> String:
 		var gm := get_node_or_null("/root/GameManager")
 		return str(gm.banked_count() if gm else 0))

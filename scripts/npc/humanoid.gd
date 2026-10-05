@@ -69,6 +69,11 @@ var seated: bool = false
 ## turns the wheel and shifts the body with it.
 var at_helm: bool = false
 var helm_steer: float = 0.0
+## Down on one knee, hands reaching to someone on the ground (reviving a
+## crewmate).
+var kneeling: bool = false
+## Working a ship's cannon: crouched behind it, hands on the carriage.
+var manning: bool = false
 ## In the water: breaststroke when moving, treading water otherwise; `diving`
 ## ducks under head first. `climbing` = hand over hand up a ladder, with
 ## `climb_phase` = how high you are (drives the arm/leg cycle).
@@ -358,9 +363,10 @@ func _guard() -> Dictionary:
 		"fist":
 			return FIST_GUARD
 		"claw":
-			return {"arm_r": Vector3(0.95, -0.35, 0.3), "fore_r": Vector3(1.95, 0, 0),
-				"arm_l": Vector3(1.1, 0.35, -0.3), "fore_l": Vector3(1.85, 0, 0),
-				"torso": Vector3(-0.15, 0.35, 0), "head": Vector3(0.12, -0.3, 0)}
+			# hunched forward, claws held out low at the sides
+			return {"arm_r": Vector3(0.3, -0.25, 0.75), "fore_r": Vector3(1.25, 0, 0),
+				"arm_l": Vector3(0.3, 0.25, -0.75), "fore_l": Vector3(1.25, 0, 0),
+				"torso": Vector3(-0.5, -0.15, 0), "head": Vector3(0.8, 0.15, 0)}
 		"pistol":
 			return {"arm_r": Vector3(1.05, -0.2, 0.18), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(-0.35, 0, 0),
 				"arm_l": Vector3(0.25, 0.1, -0.2), "fore_l": Vector3(0.6, 0, 0),
@@ -506,6 +512,42 @@ func _finish_action() -> void:
 static func _ease(x: float) -> float:
 	x = clampf(x, 0.0, 1.0)
 	return x * x * (3.0 - 2.0 * x)
+
+
+## The hybrid's beast stance (stance "claw"): `walk` 0 = crouched in place,
+## 1 = on the move; `run` adds the sprint. Writes the pose into `p` (the
+## legs keep the gait's stride, deeper and wider) and returns how far the
+## hips drop.
+func _feral(p: Dictionary, walk: float, run: float, s: float) -> float:
+	var br := sin(_t * 4.2)
+	var tw := sin(_t * 9.0) * 0.05
+	if sprinting:
+		run = 1.0
+	# (the whole body pitches forward from the hips: the "pivot")
+	var idle := {
+		"pivot": Vector3(-0.22, 0, 0),
+		"hips": Vector3(0, 0.25, 0), "torso": Vector3(-0.5 + br * 0.04, -0.15, br * 0.02), "head": Vector3(0.8 - br * 0.03, 0.15, 0),
+		"arm_l": Vector3(0.3 + br * 0.05, 0.25, -0.75 - br * 0.04), "fore_l": Vector3(1.25 + tw, 0, 0),
+		"arm_r": Vector3(0.3 + br * 0.05, -0.25, 0.75 + br * 0.04), "fore_r": Vector3(1.25 - tw, 0, 0),
+		"leg_l": Vector3(1.25, 0, -0.34), "shin_l": Vector3(-1.85, 0, 0),
+		"leg_r": Vector3(0.6, 0, 0.34), "shin_r": Vector3(-1.45, 0, 0)}
+	var lean := lerpf(0.6, 0.85, run)
+	var back := lerpf(0.35, 0.8, run)
+	var move := {
+		"pivot": Vector3(-lerpf(0.25, 0.4, run), 0, 0),
+		"hips": p["hips"], "torso": Vector3(-lean, s * 0.25, 0), "head": Vector3(lean + 0.35, 0, 0),
+		"arm_l": Vector3(-back - s * 0.55, 0.2, -0.9 - absf(s) * 0.15), "fore_l": Vector3(0.95, 0, 0),
+		"arm_r": Vector3(-back + s * 0.55, -0.2, 0.9 + absf(s) * 0.15), "fore_r": Vector3(0.95, 0, 0)}
+	for leg in ["leg_l", "leg_r"]:
+		var g: Vector3 = p[leg]
+		var side := -1.0 if leg == "leg_l" else 1.0
+		move[leg] = Vector3(g.x * 1.25 + 0.55, 0, g.z + side * 0.12)
+	for shin in ["shin_l", "shin_r"]:
+		move[shin] = (p[shin] as Vector3) * 1.2 + Vector3(-0.55, 0, 0)
+	var w := clampf(walk, 0.0, 1.0)
+	for j in idle.keys():
+		p[j] = (idle[j] as Vector3).lerp(move[j], w)
+	return lerpf(-0.44, lerpf(-0.3, -0.36, run), w) + br * 0.015 * (1.0 - w)
 
 
 ## Interpolate between key poses. keys = [[t, {joint: Vector3}], ...]
@@ -1093,25 +1135,42 @@ func _action_pose(n: String, u: float) -> Array:
 				"leg_l": Vector3(0.8, 0, -0.1), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(-0.6, 0, 0.1), "shin_r": Vector3(-0.3, 0, 0)}
 			return [_keys(u, [[0.0, gw], [0.3, cockw, "out"], [0.48, whip, "out"], [0.7, whip], [1.0, gw]]), "full", lift]
 		# --- claws (Zoan hybrid) ---
-		"claw_r", "claw_l", "claw_double", "rending_fang":
+		"claw_r", "claw_l":
+			# a big wound-up rake: the arm cocks high behind the shoulder, the
+			# body coils, then lunges low and tears across
 			var gk := _guard()
-			var right := n != "claw_l"
-			var both := n in ["claw_double", "rending_fang"]
-			var rake_up := {"torso": Vector3(0.1, 0.5 if right else -0.5, 0)}
-			var rake := {"torso": Vector3(-0.45, -0.5 if right else 0.5, 0), "head": Vector3(0.25, 0, 0),
-				"leg_l": Vector3(0.85, 0, -0.12), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.5, 0, 0.12), "shin_r": Vector3(-0.4, 0, 0)}
-			if right or both:
-				rake_up["arm_r"] = Vector3(2.6, 0.3, 0.6)
-				rake_up["fore_r"] = Vector3(0.6, 0, 0)
-				rake["arm_r"] = Vector3(0.9, -0.7, -0.5)
-				rake["fore_r"] = Vector3(0.2, 0, 0)
-			if (not right) or both:
-				rake_up["arm_l"] = Vector3(2.6, -0.3, -0.6)
-				rake_up["fore_l"] = Vector3(0.6, 0, 0)
-				rake["arm_l"] = Vector3(0.9, 0.7, 0.5)
-				rake["fore_l"] = Vector3(0.2, 0, 0)
-			lift.y = -0.14 * sin(clampf(u, 0, 1) * PI)
-			return [_keys(u, [[0.0, gk], [0.25, rake_up, "out"], [0.45, rake, "in"], [0.65, rake], [1.0, gk]]), "full", lift]
+			var sg := 1.0 if n == "claw_r" else -1.0
+			var coil := {"torso": Vector3(-0.45, 0.85 * sg, 0), "head": Vector3(0.7, -0.5 * sg, 0), "pivot": Vector3(-0.18, 0, 0),
+				"leg_l": Vector3(1.05, 0, -0.3), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.1, 0, 0.3), "shin_r": Vector3(-1.2, 0, 0)}
+			var rake := {"torso": Vector3(-0.95, -0.95 * sg, 0), "head": Vector3(0.75, 0.45 * sg, 0), "pivot": Vector3(-0.28, 0, 0),
+				"leg_l": Vector3(1.4, 0, -0.22), "shin_l": Vector3(-1.65, 0, 0), "leg_r": Vector3(-0.8, 0, 0.22), "shin_r": Vector3(-0.35, 0, 0)}
+			var att := "_r" if sg > 0.0 else "_l"
+			var off := "_l" if sg > 0.0 else "_r"
+			coil["arm" + att] = Vector3(-0.55, 0.0, 1.5 * sg)
+			coil["fore" + att] = Vector3(1.3, 0, 0)
+			coil["arm" + off] = Vector3(0.95, 0.1 * sg, -0.4 * sg)
+			coil["fore" + off] = Vector3(1.25, 0, 0)
+			rake["arm" + att] = Vector3(0.55, -1.0 * sg, -1.05 * sg)
+			rake["fore" + att] = Vector3(0.1, 0, 0)
+			rake["arm" + off] = Vector3(-0.4, 0.2 * sg, -1.0 * sg)
+			rake["fore" + off] = Vector3(0.9, 0, 0)
+			lift.y = -0.12 * _ease(u / 0.3) if u < 0.3 else -0.12 - 0.22 * sin(clampf((u - 0.3) / 0.7, 0.0, 1.0) * PI)
+			return [_keys(u, [[0.0, gk], [0.3, coil, "out"], [0.48, rake, "in"], [0.72, rake], [1.0, gk]]), "full", lift]
+		"claw_double", "rending_fang":
+			# both claws up overhead in a hop, then a crossing double slash
+			# down through the target, landing low
+			var gk := _guard()
+			var rear := {"torso": Vector3(-0.15, 0, 0), "head": Vector3(0.5, 0, 0), "pivot": Vector3(-0.05, 0, 0),
+				"arm_l": Vector3(2.1, -0.4, -0.95), "fore_l": Vector3(1.25, 0, 0), "arm_r": Vector3(2.1, 0.4, 0.95), "fore_r": Vector3(1.25, 0, 0),
+				"leg_l": Vector3(1.0, 0, -0.3), "shin_l": Vector3(-1.6, 0, 0), "leg_r": Vector3(0.5, 0, 0.3), "shin_r": Vector3(-1.3, 0, 0)}
+			var cross := {"torso": Vector3(-1.05, 0, 0), "head": Vector3(0.8, 0, 0), "pivot": Vector3(-0.32, 0, 0),
+				"arm_l": Vector3(0.35, 0.95, 0.85), "fore_l": Vector3(0.15, 0, 0), "arm_r": Vector3(0.35, -0.95, -0.85), "fore_r": Vector3(0.15, 0, 0),
+				"leg_l": Vector3(1.35, 0, -0.35), "shin_l": Vector3(-1.8, 0, 0), "leg_r": Vector3(-0.6, 0, 0.35), "shin_r": Vector3(-0.5, 0, 0)}
+			if u < 0.32:
+				lift.y = lerpf(-0.2, 0.06, sin(clampf(u / 0.32, 0.0, 1.0) * PI * 0.5))
+			else:
+				lift.y = lerpf(0.06, -0.38, _ease((u - 0.32) / 0.18)) * (1.0 - _ease((u - 0.75) / 0.25)) - 0.2 * _ease((u - 0.75) / 0.25)
+			return [_keys(u, [[0.0, gk], [0.32, rear, "out"], [0.5, cross, "in"], [0.75, cross], [1.0, gk]]), "full", lift]
 		"maul", "pounce":
 			var gm := _guard()
 			var low := {"leg_l": Vector3(1.1, 0, -0.15), "shin_l": Vector3(-1.8, 0, 0), "leg_r": Vector3(0.8, 0, 0.15), "shin_r": Vector3(-1.7, 0, 0),
@@ -1333,8 +1392,12 @@ func _locomotion(delta: float) -> Dictionary:
 			p["arm_r"] += Vector3(-sin(_t * 1.7 + 0.5) * 0.1, 0, 0.12 + b * 0.06) * idle
 			p["fore_l"] += Vector3(0.25 + b * 0.1, 0, 0) * idle
 			p["fore_r"] += Vector3(0.25 + b * 0.1, 0, 0) * idle
+		# Zoan hybrid: a low feral crouch, claws out at the sides, and a
+		# forward-pitched, bounding run
+		if armed and stance == "claw":
+			lift.y += _feral(p, walk, maxf(jog * 0.6, run), s)
 		# combat stance: guard arms, wide knees, boxer-style hop
-		if armed and not sprinting:
+		elif armed and not sprinting:
 			var hop := absf(sin(_t * 4.5))
 			var gd := _guard()
 			var fist := stance == "fist"
@@ -1420,6 +1483,38 @@ func _locomotion(delta: float) -> Dictionary:
 		p["fore_l"] = Vector3(0.9, 0, 0)
 		p["fore_r"] = Vector3(0.95 + (0.6 if talking else 0.0), 0, 0)
 		lift = Vector3(0, (seat_y + 0.05 - hip_y) * PIVOT_Y / hip_y, 0)
+	if kneeling and grounded and not swimming:
+		# right knee on the ground, left foot planted ahead, both hands pressing
+		# down on the crewmate in front (pumping)
+		var pump := sin(_t * 9.0)
+		p["pivot"] = Vector3.ZERO
+		p["hips"] = Vector3(0, 0.1, 0)
+		p["leg_l"] = Vector3(1.45, 0, -0.14)
+		p["shin_l"] = Vector3(-1.5, 0, 0)
+		p["leg_r"] = Vector3(-0.05, 0, 0.12)
+		p["shin_r"] = Vector3(-1.6, 0, 0)
+		p["torso"] = Vector3(-0.55 - pump * 0.06, 0, 0)
+		p["head"] = Vector3(0.35, 0, 0)
+		p["arm_l"] = Vector3(0.75 + pump * 0.08, 0.1, -0.12)
+		p["arm_r"] = Vector3(0.75 + pump * 0.08, -0.1, 0.12)
+		p["fore_l"] = Vector3(0.35, 0, 0)
+		p["fore_r"] = Vector3(0.35, 0, 0)
+		lift = Vector3(0, -0.42 - pump * 0.015, 0)
+	elif manning and grounded and not swimming:
+		# crouched behind the gun, hands on the carriage
+		var br := sin(_t * 2.0) * 0.02
+		p["pivot"] = Vector3.ZERO
+		p["leg_l"] = Vector3(1.0, 0, -0.22)
+		p["shin_l"] = Vector3(-1.3, 0, 0)
+		p["leg_r"] = Vector3(0.35, 0, 0.22)
+		p["shin_r"] = Vector3(-1.25, 0, 0)
+		p["torso"] = Vector3(-0.42 + br, 0, 0)
+		p["head"] = Vector3(0.3, 0, 0)
+		p["arm_l"] = Vector3(1.0, 0.15, -0.25)
+		p["arm_r"] = Vector3(1.0, -0.15, 0.25)
+		p["fore_l"] = Vector3(0.5, 0, 0)
+		p["fore_r"] = Vector3(0.5, 0, 0)
+		lift = Vector3(0, -0.24, 0)
 	if carry == "rifle" and grounded and not swimming:
 		var bob := sin(_t * 1.6) * 0.03
 		p["arm_r"] = Vector3(0.35, 0.1, 0.18)
@@ -1549,7 +1644,7 @@ func _process(delta: float) -> void:
 ## its ankle lands that far above the real ground. On flat ground nothing
 ## changes.
 func _foot_ik(delta: float) -> void:
-	var want := foot_ik and grounded and not swimming and not climbing and not seated and not at_helm \
+	var want := foot_ik and grounded and not swimming and not climbing and not seated and not at_helm and not kneeling and not manning \
 		and ragdoll == null and current_action() != "getup" and is_inside_tree()
 	_ik_w = move_toward(_ik_w, 1.0 if want else 0.0, delta * 6.0)
 	if _ik_w <= 0.0:
@@ -2001,3 +2096,4 @@ func net_event(what: String, args: Array) -> void:
 			recover_from_ragdoll(bool(args[0]), args[1], float(args[2]))
 		"relax":
 			relax_ragdoll()
+

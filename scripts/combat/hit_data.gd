@@ -18,3 +18,5 @@ class_name HitData
 @export var unblockable: bool = false
 ## Struck with Armament Haki: breaks an enemy's unblockable wind-up.
 @export var haki: bool = false
+## Cannon fire: the only thing that damages a ship's hull.
+@export var siege: bool = false

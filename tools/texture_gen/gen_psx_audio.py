@@ -4,14 +4,22 @@ Driftwake retro audio generator: dialogue blips, ocean ambience, campfire crackl
 Low sample rate on purpose (22.05 kHz) for a PS1-ish crunch.
 
 Usage (from the project root):
-    pip install numpy
-    python tools/texture_gen/gen_psx_audio.py
+    pip install numpy scipy
+    python tools/texture_gen/gen_psx_audio.py              # everything
+    python tools/texture_gen/gen_psx_audio.py cannon horn  # only the named sounds
 Output: assets/audio/*.wav
 """
 import os
+import sys
 import wave
 
 import numpy as np
+
+try:
+    from scipy.signal import lfilter, iirpeak
+except ImportError:  # the older sounds only need numpy
+    lfilter = None
+    iirpeak = None
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT = os.path.join(ROOT, "assets", "audio")
@@ -37,6 +45,32 @@ def lowpass(x, alpha):
         acc += alpha * (v - acc)
         y[i] = acc
     return y
+
+
+def lpf(x, alpha):
+    """Same one-pole lowpass as lowpass(), but vectorised through scipy."""
+    if lfilter is None:
+        return lowpass(x, alpha)
+    return lfilter([alpha], [1.0, alpha - 1.0], x)
+
+
+def hpf(x, alpha):
+    return x - lpf(x, alpha)
+
+
+def resonate(x, freq, q):
+    """Two-pole resonant bandpass (wood / hull / formant bodies)."""
+    b, a = iirpeak(freq, q, fs=SR)
+    return lfilter(b, a, x)
+
+
+def finish(name, out, peak=0.9, fade=0.0):
+    if fade > 0:
+        k = int(SR * fade)
+        out[-k:] *= np.linspace(1, 0, k) ** 2
+    out = out - np.mean(out)
+    out /= np.max(np.abs(out)) + 1e-9
+    write_wav(name, out * peak)
 
 
 def blip(freq, dur=0.045, name="blip"):
@@ -416,36 +450,287 @@ def peril_sound():
     write_wav("peril", out * 0.6)
 
 
-def main():
+def _sweep_sine(t, f):
+    return np.sin(np.cumsum(2 * np.pi * f / SR))
+
+
+def _scatter_bursts(n, rng, count, t0, t1, freq_lo, freq_hi, len_lo, len_hi, amp_decay=0.0):
+    """Short decaying resonant 'ticks' scattered in time (splinters, debris, drops)."""
+    out = np.zeros(n)
+    for _ in range(count):
+        p0 = int(SR * (t0 + (t1 - t0) * rng.random() ** 1.6))
+        L = int(rng.integers(len_lo, len_hi))
+        if p0 + L >= n:
+            continue
+        tt = np.arange(L) / SR
+        f = rng.uniform(freq_lo, freq_hi)
+        tick = np.sin(2 * np.pi * f * tt + rng.uniform(0, 6.28)) * (0.5 + 0.5 * rng.standard_normal(L))
+        tick *= np.exp(-tt * rng.uniform(150, 400))
+        out[p0:p0 + L] += tick * rng.uniform(0.3, 1.0) * np.exp(-amp_decay * p0 / SR)
+    return out
+
+
+def cannon_sound():
+    """Ship cannon: a sharp crack, a very deep 60->40 Hz boom and a long rolling
+    rumble with a couple of reflections off the water. Much heavier than gunshot."""
+    rng = np.random.default_rng(163)
+    n = int(SR * 2.0)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    crack = hpf(w, 0.3) * np.exp(-t * 75) * np.minimum(1, t / 0.0008)
+    blast = lpf(w, 0.07) * np.exp(-t * 13) * np.minimum(1, t / 0.002) * 3.0
+    f = 60 - 20 * np.minimum(t / 0.6, 1.0) ** 0.7
+    ph = np.cumsum(2 * np.pi * f / SR)
+    boom = np.tanh(2.4 * np.sin(ph)) * np.exp(-t * 2.4) * np.minimum(1, t / 0.004)
+    boom += np.sin(2 * ph) * 0.35 * np.exp(-t * 4.0)  # 2nd harmonic: audible on small speakers
+    flutter = 1 + 0.6 * lpf(rng.standard_normal(n), 0.0015) / 0.03
+    rumble = lpf(lpf(rng.standard_normal(n), 0.03), 0.05)
+    rumble = rumble / (np.max(np.abs(rumble)) + 1e-9)
+    rumble *= np.clip(flutter, 0.2, 2.0) * np.minimum(1, t / 0.06) * np.exp(-t * 1.6)
+    out = crack * 1.0 + blast * 0.9 + boom * 1.1 + rumble * 0.9
+    # distant reflections of the blast
+    for delay, gain in ((0.19, 0.35), (0.43, 0.2), (0.71, 0.1)):
+        d = int(SR * delay)
+        out[d:] += lpf(crack + blast, 0.12)[: n - d] * gain
+    out = lpf(out, 0.55)
+    finish("cannon", out, 0.9, fade=0.35)
+
+
+def cannon_hit_sound():
+    """Cannonball impact: a noisy explosion, splintering wood crackle, falling debris."""
+    rng = np.random.default_rng(167)
+    n = int(SR * 1.0)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    burst = lpf(w, 0.14) * np.exp(-t * 7) * np.minimum(1, t / 0.002) * 2.5
+    crack = hpf(w, 0.35) * np.exp(-t * 45)
+    f = 75 - 40 * np.minimum(t / 0.35, 1.0)
+    boom = np.tanh(2.0 * _sweep_sine(t, f)) * np.exp(-t * 5.0) * np.minimum(1, t / 0.003)
+    splinter = _scatter_bursts(n, rng, 70, 0.01, 0.55, 700, 3200, 60, 260, amp_decay=3.0)
+    splinter = resonate(splinter, 1100, 2.0) * 1.3 + splinter * 0.6
+    debris = _scatter_bursts(n, rng, 25, 0.25, 0.95, 300, 1200, 80, 300, amp_decay=2.0) * 0.5
+    out = burst + crack * 0.8 + boom * 1.0 + splinter * 0.9 + debris
+    out = lpf(out, 0.6)
+    finish("cannon_hit", out, 0.9, fade=0.2)
+
+
+def wood_crack_sound():
+    """Hull taking a hit: a splintering crunch, then a strained timber creak."""
+    rng = np.random.default_rng(173)
+    n = int(SR * 0.6)
+    t = np.arange(n) / SR
+    # crunch: dense impulses through woody resonances
+    imp = np.zeros(n)
+    k = int(SR * 0.16)
+    hits = rng.random(k) < np.linspace(0.25, 0.02, k)
+    imp[:k] = hits * rng.uniform(-1, 1, k)
+    crunch = resonate(imp, 520, 3.0) * 1.2 + resonate(imp, 1350, 4.0) * 0.8 + hpf(imp, 0.5) * 0.4
+    crunch += lpf(rng.standard_normal(n), 0.12) * np.exp(-t * 30) * 1.2
+    # creak: stick-slip pulse train with a wandering rate
+    rate = np.interp(t, [0, 0.12, 0.3, 0.6], [55, 70, 105, 75])
+    ph = np.cumsum(rate / SR)
+    pulses = np.diff(np.floor(ph), prepend=0.0) * (1 + 0.3 * rng.standard_normal(n))
+    creak_env = np.clip((t - 0.1) / 0.06, 0, 1) * np.clip((0.6 - t) / 0.15, 0, 1)
+    creak = (resonate(pulses, 680, 9.0) + resonate(pulses, 1450, 12.0) * 0.5) * creak_env
+    creak /= np.max(np.abs(creak)) + 1e-9
+    crunch /= np.max(np.abs(crunch)) + 1e-9
+    out = crunch * 1.0 + creak * 0.55
+    out = lpf(out, 0.7)
+    finish("wood_crack", out, 0.85, fade=0.05)
+
+
+def horn_sound():
+    """Pirate alarm horn / conch: two brassy blasts (low then a fourth up) from
+    detuned saws and a square, swelling through a lowpass, with slight vibrato."""
+    rng = np.random.default_rng(179)
+    n = int(SR * 1.4)
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    for start, end, f0 in ((0.0, 0.56, 147.0), (0.6, 1.4, 196.0)):
+        m = (t >= start) & (t < end)
+        tt = t[m] - start
+        L = end - start
+        vib = 1 + 0.006 * np.sin(2 * np.pi * 5.2 * tt) * np.minimum(1, tt / 0.25)
+        scoop = 1 - 0.04 * np.exp(-tt / 0.04)
+        raw = np.zeros(len(tt))
+        for cents, amp, p0 in ((0, 1.0, 0.0), (9, 0.4, 0.33), (-8, 0.4, 0.71)):
+            f = f0 * 2 ** (cents / 1200) * vib * scoop
+            ph = np.cumsum(f / SR) + p0
+            raw += amp * (2 * (ph % 1.0) - 1)  # saw
+        ph = np.cumsum(f0 * vib * scoop / SR)
+        raw += 0.5 * np.sign(np.sin(2 * np.pi * ph))  # square
+        env = np.minimum(1, tt / 0.07) * np.clip((L - tt) / 0.12, 0, 1)
+        dark = lpf(lpf(raw, 0.05), 0.08)
+        bright = lpf(raw, 0.22)
+        b = env ** 1.5 * 0.8
+        tone = (dark * (1 - b) + bright * b) * env
+        blat = lpf(rng.standard_normal(len(tt)), 0.2) * np.exp(-tt * 40) * 0.5
+        out[m] += tone + blat
+    out = np.tanh(out * 0.6)
+    out = lpf(out, 0.5)
+    finish("horn", out, 0.75, fade=0.05)
+
+
+def roar_sound():
+    """Pirate captain's battle roar: a gravelly human 'RAAAH'. Rough glottal saw
+    with period-doubling growl, rasp noise locked to the pitch, through 'R'->'AA'
+    vocal formants, ending on a breathy 'H'."""
+    rng = np.random.default_rng(181)
+    n = int(SR * 1.3)
+    t = np.arange(n) / SR
+    f0 = np.interp(t, [0, 0.1, 0.45, 1.0, 1.3], [100, 138, 132, 118, 82])
+    jitter = lpf(rng.standard_normal(n), 0.01)
+    f0 = f0 * (1 + 0.6 * jitter)
+    ph = np.cumsum(f0 / SR)
+    K = 36
+    src = np.zeros(n)
+    for k in range(1, K + 1):
+        src += np.sin(2 * np.pi * k * ph) / k
+    growl = 1 + 0.55 * np.sin(np.pi * ph)  # subharmonic (period doubling) = vocal growl
+    rough = 1 + 0.5 * lpf(rng.standard_normal(n), 0.02) / 0.1
+    src = src * growl * np.clip(rough, 0.2, 2.0)
+    rasp = rng.standard_normal(n) * (0.4 + 0.6 * (np.sin(2 * np.pi * ph) > 0.3))
+    voice = np.tanh(src * 1.8) + rasp * 0.35
+    # parallel formant banks: 'R' (low F3) and 'AA', crossfaded
+    def formants(x, fs):
+        y = np.zeros_like(x)
+        for f, q, g in fs:
+            y += resonate(x, f, q) * g
+        return y
+    r_vow = formants(voice, ((480, 6, 1.0), (1250, 9, 0.6), (1650, 10, 0.4)))
+    aa_vow = formants(voice, ((760, 6, 1.0), (1180, 8, 0.75), (2550, 12, 0.35), (3400, 14, 0.15)))
+    x = np.clip((t - 0.04) / 0.12, 0, 1)
+    vow = r_vow * (1 - x) + aa_vow * x
+    env = np.minimum(1, t / 0.07) * np.clip((1.22 - t) / 0.4, 0, 1)
+    breath_env = np.exp(-((t - 1.12) / 0.12) ** 2)
+    breath = resonate(rng.standard_normal(n), 900, 1.5) * breath_env * 0.25
+    out = vow * env + breath * np.max(np.abs(vow)) * 0.5
+    out = lpf(out, 0.6)
+    finish("roar", out, 0.85, fade=0.08)
+
+
+def bell_sound():
+    """Ship's bell, two quick strikes ('ding-ding'), inharmonic bell partials."""
+    rng = np.random.default_rng(191)
+    n = int(SR * 1.6)
+    t = np.arange(n) / SR
+    base = 640.0
+    partials = ((0.5, 0.35, 1.6), (1.0, 1.0, 2.6), (1.2, 0.55, 3.4), (1.5, 0.35, 4.2),
+                (2.0, 0.6, 5.0), (2.51, 0.25, 7.0), (2.66, 0.2, 8.0), (3.01, 0.12, 10.0))
+    phases = rng.uniform(0, 6.28, len(partials))
+    out = np.zeros(n)
+    for start, amp in ((0.0, 1.0), (0.3, 0.85)):
+        m = t >= start
+        tt = t[m] - start
+        ring = np.zeros(len(tt))
+        for (r, a, d), p in zip(partials, phases):
+            ring += np.sin(2 * np.pi * base * r * tt + p) * a * np.exp(-tt * d)
+        click = hpf(rng.standard_normal(len(tt)), 0.4) * np.exp(-tt * 300) * 1.5
+        out[m] += (ring * np.minimum(1, tt / 0.001) + click) * amp
+    out = lpf(out, 0.7)
+    finish("bell", out, 0.75, fade=0.3)
+
+
+def splash_big_sound():
+    """Cannonball into the sea: a deep plunge 'whump' and cavity gulp, a tall
+    spray hiss, the water column crashing back, and scattered drops."""
+    rng = np.random.default_rng(193)
+    n = int(SR * 1.0)
+    t = np.arange(n) / SR
+    whump = np.sin(np.cumsum(2 * np.pi * (45 + 100 * np.exp(-t / 0.05)) / SR)) * np.exp(-t * 8) * 1.2
+    tg = np.clip(t - 0.1, 0, None)
+    gulp = np.sin(np.cumsum(2 * np.pi * (170 + 280 * np.minimum(tg / 0.18, 1)) / SR))
+    gulp *= np.exp(-((t - 0.2) / 0.06) ** 2) * 0.55
+    w = rng.standard_normal(n)
+    spray = lpf(hpf(w, 0.15), 0.55) * np.minimum(1, t / 0.02) * np.exp(-t * 4.2) * 1.4
+    crash = lpf(rng.standard_normal(n), 0.12) * np.exp(-((t - 0.5) / 0.14) ** 2) * 1.3
+    drops = _scatter_bursts(n, rng, 30, 0.08, 0.95, 900, 2600, 60, 220, amp_decay=1.5) * 0.35
+    out = whump + gulp + spray + crash + drops
+    out = lpf(out, 0.65)
+    finish("splash_big", out, 0.85, fade=0.2)
+
+
+def rope_sound():
+    """Grappling hook / rope: a rising whip whoosh, a snap, a wooden thunk and a
+    short rope creak as the line goes taut."""
+    rng = np.random.default_rng(197)
+    n = int(SR * 0.4)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    whip = np.zeros(n)
+    acc = acc2 = 0.0
+    k = int(SR * 0.13)
+    for i in range(k):
+        a = 0.04 + 0.5 * (i / k) ** 2
+        acc += a * (w[i] - acc)
+        acc2 += a * 0.3 * (acc - acc2)
+        whip[i] = acc - acc2
+    whip *= (t / 0.13) ** 2 * (t < 0.13) * 2.0
+    snap = hpf(w, 0.45) * np.exp(-np.clip(t - 0.125, 0, None) * 220) * (t >= 0.125) * 1.2
+    tt = np.clip(t - 0.14, 0, None)
+    on = t >= 0.14
+    thunk = np.sin(np.cumsum(2 * np.pi * (110 + 90 * np.exp(-tt / 0.02)) / SR)) * np.exp(-tt * 28) * on
+    thunk += lpf(w, 0.2) * np.exp(-tt * 70) * on * 1.5
+    pulses = np.diff(np.floor(np.cumsum(np.interp(t, [0, 0.2, 0.4], [90, 140, 110]) / SR)), prepend=0.0)
+    creak = resonate(pulses, 820, 10.0) * np.clip((t - 0.19) / 0.03, 0, 1) * np.clip((0.38 - t) / 0.1, 0, 1)
+    creak /= np.max(np.abs(creak)) + 1e-9
+    out = whip + snap + thunk * 1.2 + creak * 0.3
+    out = lpf(out, 0.7)
+    finish("rope", out, 0.8, fade=0.04)
+
+
+SOUNDS = [
+    ("blip", lambda: blip(520, name="blip")),
+    ("blip_low", lambda: blip(330, name="blip_low")),
+    ("blip_high", lambda: blip(780, name="blip_high")),
+    ("select", lambda: blip(660, dur=0.07, name="select")),
+    ("ocean_loop", ocean_loop),
+    ("campfire_loop", campfire_loop),
+    ("discover_chime", chime),
+    ("whoosh", lambda: whoosh("whoosh")),
+    ("whoosh_big", lambda: whoosh("whoosh_big", dur=0.42, f0=0.03, f1=0.22, seed=33)),
+    ("hit", hit_sound),
+    ("step", step_sound),
+    ("jump", jump_sound),
+    ("land", land_sound),
+    ("chitter", chitter_sound),
+    ("bug_hiss", bug_hiss_sound),
+    ("thud", thud_sound),
+    ("coin", coin_sound),
+    ("splash", splash_sound),
+    ("gunshot", gunshot_sound),
+    ("parry", parry_sound),
+    ("fire_burst", fire_burst_sound),
+    ("fire_blast", fire_blast_sound),
+    ("crunch", crunch_sound),
+    ("howl", howl_sound),
+    ("haki", haki_sound),
+    ("block", block_sound),
+    ("peril", peril_sound),
+    ("cannon", cannon_sound),
+    ("cannon_hit", cannon_hit_sound),
+    ("wood_crack", wood_crack_sound),
+    ("horn", horn_sound),
+    ("roar", roar_sound),
+    ("bell", bell_sound),
+    ("splash_big", splash_big_sound),
+    ("rope", rope_sound),
+]
+
+
+def main(argv=None):
+    wanted = list(sys.argv[1:] if argv is None else argv)
+    known = {name for name, _ in SOUNDS}
+    unknown = [w for w in wanted if w not in known]
+    if unknown:
+        print("unknown sound(s):", ", ".join(unknown))
+        print("available:", ", ".join(name for name, _ in SOUNDS))
+        sys.exit(1)
     os.makedirs(OUT, exist_ok=True)
     print("Generating retro audio ->", os.path.relpath(OUT, ROOT))
-    blip(520, name="blip")
-    blip(330, name="blip_low")
-    blip(780, name="blip_high")
-    blip(660, dur=0.07, name="select")
-    ocean_loop()
-    campfire_loop()
-    chime()
-    whoosh("whoosh")
-    whoosh("whoosh_big", dur=0.42, f0=0.03, f1=0.22, seed=33)
-    hit_sound()
-    step_sound()
-    jump_sound()
-    land_sound()
-    chitter_sound()
-    bug_hiss_sound()
-    thud_sound()
-    coin_sound()
-    splash_sound()
-    gunshot_sound()
-    parry_sound()
-    fire_burst_sound()
-    fire_blast_sound()
-    crunch_sound()
-    howl_sound()
-    haki_sound()
-    block_sound()
-    peril_sound()
+    for name, fn in SOUNDS:
+        if not wanted or name in wanted:
+            fn()
     print("done.")
 
 

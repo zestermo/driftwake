@@ -1,4 +1,4 @@
-[gd_scene load_steps=36 format=3]
+[gd_scene load_steps=37 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/state_machine/state_machine.gd" id="2"]
@@ -27,6 +27,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/shoot_state.gd" id="shoot_state"]
 [ext_resource type="Script" path="res://scripts/player_states/swing_state.gd" id="swing_state"]
 [ext_resource type="Script" path="res://scripts/player_states/block_state.gd" id="block_state"]
+[ext_resource type="Script" path="res://scripts/player_states/cannon_state.gd" id="cannon_state"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -149,6 +150,9 @@ script = ExtResource("swing_state")
 
 [node name="Block" type="Node" parent="StateMachine"]
 script = ExtResource("block_state")
+
+[node name="Cannon" type="Node" parent="StateMachine"]
+script = ExtResource("cannon_state")
 
 [node name="Hurtbox" type="Area3D" parent="."]
 collision_layer = 128

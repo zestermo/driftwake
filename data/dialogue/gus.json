@@ -15,6 +15,7 @@
 			"text": "What can I get you?",
 			"choices": [
 				{ "text": "Heard any rumors?", "next": "rumor" },
+				{ "text": "Who runs these waters?", "next": "redtide" },
 				{ "text": "Tell me about Brinehollow.", "next": "town" },
 				{ "text": "A drink.", "next": "drink" },
 				{ "text": "Just passing through.", "next": "bye" }
@@ -26,6 +27,13 @@
 				"Can't promise it's still there, mind. Islands out here have a way of... moving."
 			],
 			"next": "rumor_more"
+		},
+		"redtide": {
+			"text": [
+				"Captain Morrow. \"Red Tide\", they call him. Holds a rock {redtide} - a fort on top, guns on the walls, black sails circling it like gulls.",
+				"Sink one of his ships and he takes it personal. Board his rock and you'd best bring friends. And a bigger boat."
+			],
+			"next": "menu"
 		},
 		"rumor_more": {
 			"text": "Want another?",

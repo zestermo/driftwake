@@ -38,7 +38,7 @@ func enter(_data: Dictionary) -> void:
 		var ship_cam := ship_camera.get_node("SpringArm3D/Camera3D") as Camera3D
 		if ship_cam:
 			ship_cam.current = true
-	player.call("_toast", "W/S: sails   A/D: rudder   F: leave the wheel")
+	player.call("_toast", "W/S: sails   A/D: rudder   Left click: broadside   F: leave the wheel")
 
 
 ## Stand at the wheel, facing the bow.
@@ -60,6 +60,34 @@ func physics_update(delta: float) -> void:
 
 	if Input.is_action_just_pressed("interact"):
 		transitioned.emit(self, "Idle", {})
+		return
+	# a broadside: every loaded gun on the side you're looking at
+	if Input.is_action_just_pressed("light_attack") and ship and not player.input_locked:
+		_broadside(ship)
+
+
+func _broadside(ship: Ship) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var fwd := -cam.global_basis.z
+	var right := ship.global_basis.x
+	var side := 1.0 if fwd.dot(right) >= 0.0 else -1.0
+	# aim where the view meets the sea (25-90 m out), along the beam
+	var from := cam.global_position
+	var target := Vector3.INF
+	if fwd.y < -0.02:
+		var t := -from.y / fwd.y
+		target = from + fwd * t
+	var flat := Vector3(fwd.x, 0, fwd.z).normalized()
+	if target == Vector3.INF or target.distance_to(ship.global_position) > 90.0:
+		target = ship.global_position + flat * 70.0
+	elif target.distance_to(ship.global_position) < 25.0:
+		target = ship.global_position + flat * 25.0
+	target.y = 0.0
+	var n := ship.broadside(side, target, player)
+	if n == 0:
+		player.call("_toast", "Those guns are still reloading")
 
 
 func handle_input(event: InputEvent) -> void:

@@ -13,6 +13,7 @@ const PRESETS := [
 	{"name": "480x270", "size": Vector2i(480, 270)},
 	{"name": "320x180", "size": Vector2i(320, 180)},
 	{"name": "Off (native)", "size": Vector2i.ZERO},
+	{"name": "960x540 (sharper)", "size": Vector2i(960, 540)},
 ]
 
 var _post_layer: CanvasLayer
@@ -88,7 +89,8 @@ func _is_lowres() -> bool:
 func _apply_preset() -> void:
 	var preset: Dictionary = PRESETS[preset_index()]
 	var win := get_tree().root
-	if _is_lowres():
+	var sz: Vector2i = preset["size"]
+	if _is_lowres() and sz.x <= 640:
 		# The canvas (and so every menu) is always 640x360; smaller presets
 		# pixelate the 3D view in the post pass instead of shrinking the canvas,
 		# so the UI never ends up laid out on a 320x180 screen.
@@ -121,7 +123,9 @@ func _update_pixelate() -> void:
 	if _post_rect == null:
 		return
 	var preset: Vector2i = PRESETS[preset_index()]["size"]
-	_post_rect.material.set_shader_parameter("pixelate", _is_lowres() and preset.x < 640)
+	# 640x360 renders the 3D at that size; the others render finer (or the
+	# window size, for 960x540) and the post pass lays the pixel grid on it
+	_post_rect.material.set_shader_parameter("pixelate", _is_lowres() and preset.x != 640)
 	_post_rect.material.set_shader_parameter("pixel_res", pixel_res())
 
 

@@ -55,6 +55,8 @@ func _ready() -> void:
 	_fps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_fps)
 	_build_coop()
+	_build_feed()
+	_build_bars()
 	Dialogue.dialogue_started.connect(func(_id): _in_dialogue = true)
 	Dialogue.dialogue_ended.connect(func(_id): _in_dialogue = false)
 	await get_tree().process_frame
@@ -80,6 +82,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	_update_reticle()
 	_update_party(delta)
+	_update_feed(delta)
+	_update_hull()
 	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT
 	_skill_bar.visible = show_bar and not _menu_open
 	toast.visible = true
@@ -201,7 +205,114 @@ func _update_reticle() -> void:
 
 
 func _on_item_added(item: ItemData, quantity: int) -> void:
-	show_toast("+%d %s" % [quantity, item.display_name])
+	_feed_add(item, quantity)
+
+
+# ---- Pickup feed: "+3 Gold" rows in the top-right corner ----
+const FEED_TIME := 3.5
+const FEED_MAX := 5
+var _feed: VBoxContainer
+## item id -> [row, quantity, time left]
+var _feed_rows: Dictionary = {}
+
+
+func _build_feed() -> void:
+	_feed = VBoxContainer.new()
+	_feed.name = "PickupFeed"
+	_feed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_feed.offset_left = -150
+	_feed.offset_right = -8
+	_feed.offset_top = 32
+	_feed.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_feed.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_feed.add_theme_constant_override("separation", 1)
+	_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_feed)
+
+
+func _feed_add(item: ItemData, quantity: int) -> void:
+	if _feed == null or item == null:
+		return
+	var key := item.id if item.id != "" else item.display_name
+	if _feed_rows.has(key):
+		var e: Array = _feed_rows[key]
+		e[1] = int(e[1]) + quantity
+		e[2] = FEED_TIME
+		_feed_text(e)
+		(e[0] as Control).modulate.a = 1.0
+		_feed.move_child(e[0], _feed.get_child_count() - 1)
+		_bump(e[0])
+		return
+	var row := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.04, 0.03, 0.05, 0.62)
+	sb.border_color = Color(UIStyle.ACCENT.r, UIStyle.ACCENT.g, UIStyle.ACCENT.b, 0.5)
+	sb.border_width_left = 2
+	sb.content_margin_left = 4
+	sb.content_margin_right = 5
+	sb.content_margin_top = 1
+	sb.content_margin_bottom = 1
+	row.add_theme_stylebox_override("panel", sb)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 4)
+	row.add_child(hb)
+	var ic := TextureRect.new()
+	ic.texture = item.icon
+	ic.custom_minimum_size = Vector2(12, 12)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hb.add_child(ic)
+	var lb := Label.new()
+	lb.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+	lb.add_theme_font_size_override("font_size", 8)
+	lb.add_theme_color_override("font_outline_color", Color.BLACK)
+	lb.add_theme_constant_override("outline_size", 3)
+	hb.add_child(lb)
+	_feed.add_child(row)
+	var e := [row, quantity, FEED_TIME, lb, item]
+	_feed_rows[key] = e
+	_feed_text(e)
+	_bump(row)
+	# too many: the oldest goes first
+	while _feed.get_child_count() > FEED_MAX:
+		var old := _feed.get_child(0)
+		for k in _feed_rows.keys():
+			if _feed_rows[k][0] == old:
+				_feed_rows.erase(k)
+				break
+		_feed.remove_child(old)
+		old.queue_free()
+
+
+func _feed_text(e: Array) -> void:
+	var item: ItemData = e[4]
+	var lb: Label = e[3]
+	lb.text = "+%d %s" % [int(e[1]), item.display_name]
+	lb.modulate = UIStyle.ACCENT if item.devil_fruit != "" or item.is_gear() else Color.WHITE
+
+
+func _bump(c: Control) -> void:
+	c.pivot_offset = Vector2(c.size.x, c.size.y * 0.5)
+	c.scale = Vector2(1.15, 1.15)
+	create_tween().tween_property(c, "scale", Vector2.ONE, 0.18)
+
+
+func _update_feed(delta: float) -> void:
+	if _feed == null:
+		return
+	_feed.visible = not _menu_open
+	for k in _feed_rows.keys():
+		var e: Array = _feed_rows[k]
+		e[2] = float(e[2]) - delta
+		var c: Control = e[0]
+		if float(e[2]) < 0.6:
+			c.modulate.a = clampf(float(e[2]) / 0.6, 0.0, 1.0)
+		if float(e[2]) <= 0.0:
+			_feed_rows.erase(k)
+			c.queue_free()
 
 
 ## Called by GameMenu (the HUD is paused while menus are open): the inventory
@@ -212,11 +323,15 @@ func set_menu_open(open: bool) -> void:
 		_skill_bar.visible = not open
 	toast.visible = not open
 	banner.visible = not open
+	if _feed:
+		_feed.visible = not open
 
 
 # ---- Co-op: crew list, knocked-out / revive prompt ----
 var _party: VBoxContainer
 var _party_t: float = 0.0
+var _my_ping: Label
+var markers: MarkerLayer
 var _prompt: Label
 var _prompt_bar: ProgressBar
 
@@ -228,6 +343,13 @@ func _build_coop() -> void:
 	_party.add_theme_constant_override("separation", 2)
 	_party.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_party)
+	_my_ping = _tiny_label()
+	_my_ping.visible = false
+	_party.add_child(_my_ping)
+	markers = MarkerLayer.new()
+	markers.name = "Markers"
+	add_child(markers)
+	move_child(markers, 0)
 	_prompt = UIStyle.label("", 12, UIStyle.TEXT)
 	_prompt.add_theme_color_override("font_outline_color", Color.BLACK)
 	_prompt.add_theme_constant_override("outline_size", 4)
@@ -265,6 +387,136 @@ func _bar(fill: Color) -> ProgressBar:
 	return bar
 
 
+func _tiny_label() -> Label:
+	var l := UIStyle.label("", 8, UIStyle.TEXT)
+	l.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+	l.add_theme_color_override("font_outline_color", Color.BLACK)
+	l.add_theme_constant_override("outline_size", 3)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
+# --------------------------------------------------------------------------
+# Boss health and the ship's hull
+# --------------------------------------------------------------------------
+var _boss_box: VBoxContainer
+var _boss_name: Label
+var _boss_bar: ProgressBar
+var _boss_ticks: Array = []
+var _boss_shown: float = 0.0
+var _hull_box: HBoxContainer
+var _hull_bar: ProgressBar
+var _hull_label: Label
+
+
+func _build_bars() -> void:
+	_boss_box = VBoxContainer.new()
+	_boss_box.name = "BossBar"
+	_boss_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_boss_box.offset_left = -130
+	_boss_box.offset_right = 130
+	_boss_box.offset_top = 6
+	_boss_box.add_theme_constant_override("separation", 1)
+	_boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_box.visible = false
+	add_child(_boss_box)
+	_boss_name = UIStyle.label("", 12, Color(1.0, 0.85, 0.75))
+	_boss_name.add_theme_color_override("font_outline_color", Color.BLACK)
+	_boss_name.add_theme_constant_override("outline_size", 4)
+	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_box.add_child(_boss_name)
+	_boss_bar = _bar(Color(0.8, 0.12, 0.1))
+	_boss_bar.custom_minimum_size = Vector2(260, 7)
+	_boss_bar.max_value = 1.0
+	_boss_box.add_child(_boss_bar)
+	# phase marks at 60% and 30%
+	for f in [0.6, 0.3]:
+		var tick := ColorRect.new()
+		tick.color = Color(1.0, 0.9, 0.7, 0.9)
+		tick.size = Vector2(1, 7)
+		tick.position = Vector2(260.0 * f, 0)
+		tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_boss_bar.add_child(tick)
+		_boss_ticks.append(tick)
+	_hull_box = HBoxContainer.new()
+	_hull_box.name = "Hull"
+	_hull_box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_hull_box.offset_left = -60
+	_hull_box.offset_right = 60
+	_hull_box.offset_top = -76
+	_hull_box.offset_bottom = -68
+	_hull_box.add_theme_constant_override("separation", 4)
+	_hull_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hull_box.visible = false
+	add_child(_hull_box)
+	_hull_label = _tiny_label()
+	_hull_label.text = "Hull"
+	_hull_box.add_child(_hull_label)
+	_hull_bar = _bar(Color(0.75, 0.55, 0.3))
+	_hull_bar.custom_minimum_size = Vector2(90, 5)
+	_hull_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_hull_bar.max_value = 1.0
+	_hull_box.add_child(_hull_bar)
+
+
+## The boss's name and health across the top (phase marks on the bar).
+func show_boss(boss_name: String, frac: float, phase: int) -> void:
+	if _boss_box == null:
+		return
+	_boss_box.visible = not _menu_open
+	_boss_name.text = boss_name
+	var prev := _boss_bar.value
+	_boss_bar.value = clampf(frac, 0.0, 1.0)
+	if _boss_bar.value < prev - 0.001:
+		_boss_bar.modulate = Color(1.6, 1.6, 1.6)
+	else:
+		_boss_bar.modulate = _boss_bar.modulate.lerp(Color.WHITE, 0.2)
+	for i in range(_boss_ticks.size()):
+		(_boss_ticks[i] as ColorRect).visible = phase <= i + 1
+
+
+func hide_boss() -> void:
+	if _boss_box:
+		_boss_box.visible = false
+
+
+## The ship's hull, while you're aboard (or it's damaged and you're near).
+func _update_hull() -> void:
+	if _hull_box == null or player == null or ship == null or not is_instance_valid(ship):
+		return
+	var hull: float = float(ship.get("hull")) if ship.get("hull") != null else -1.0
+	if hull < 0.0:
+		return
+	var mx: float = Ship.MAX_HULL
+	var aboard := player.context != Player.Context.ON_FOOT or player.global_position.distance_to(ship.global_position) < 9.0
+	_hull_box.visible = aboard and not _menu_open and not _in_dialogue and (hull < mx - 0.5 or player.context != Player.Context.ON_FOOT)
+	if _hull_box.visible:
+		_hull_bar.value = hull / mx
+		var crippled: bool = bool(ship.get("crippled"))
+		_hull_label.text = "Hull!" if crippled else "Hull"
+		_hull_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3) if crippled else UIStyle.TEXT)
+
+
+## A crew marker (Net.mark): a diamond over the spot / enemy.
+func add_marker(id: int, who: String, pos: Vector3, target: Node) -> void:
+	if markers == null:
+		return
+	var col: Color = Net.crew_color(id) if Net.active else Color(1.0, 0.85, 0.3)
+	markers.add(id, who, pos, target, col)
+	FX.sparkle(pos, 10, col)
+	FX.sfx("blip_high", pos, -8.0, 0.02, 1.35)
+
+
+static func ping_color(ms: int) -> Color:
+	if ms < 0:
+		return UIStyle.TEXT_DIM
+	if ms < 90:
+		return Color(0.55, 0.95, 0.5)
+	if ms < 180:
+		return Color(1.0, 0.85, 0.35)
+	return Color(1.0, 0.4, 0.35)
+
+
 ## A centered prompt with an optional progress bar (progress < 0: none).
 ## Empty text hides it.
 func show_prompt(text: String, progress: float = -1.0) -> void:
@@ -288,31 +540,51 @@ func _update_party(delta: float) -> void:
 		for p in Net.all_players():
 			if p != player:
 				others.append(p)
-	while _party.get_child_count() > others.size():
+	# your own ping (co-op guests) above the crew
+	var mine := Net.ping_ms(Net.my_id()) if Net.active and not Net.hosting else -1
+	_my_ping.visible = mine >= 0 and not others.is_empty()
+	if _my_ping.visible:
+		_my_ping.text = "Ping %dms" % mine
+		_my_ping.add_theme_color_override("font_color", ping_color(mine))
+	var rows := _party.get_child_count() - 1
+	while rows > others.size():
 		var c := _party.get_child(_party.get_child_count() - 1)
 		_party.remove_child(c)
 		c.queue_free()
-	while _party.get_child_count() < others.size():
+		rows -= 1
+	while rows < others.size():
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
-		var nm := UIStyle.label("", 8, UIStyle.TEXT)
-		nm.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
-		nm.add_theme_color_override("font_outline_color", Color.BLACK)
-		nm.add_theme_constant_override("outline_size", 3)
+		var sw := ColorRect.new()
+		sw.custom_minimum_size = Vector2(3, 7)
+		sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(sw)
+		var nm := _tiny_label()
 		nm.custom_minimum_size = Vector2(70, 0)
 		row.add_child(nm)
 		var bar := _bar(Color(0.85, 0.25, 0.2))
 		bar.custom_minimum_size = Vector2(54, 5)
 		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(bar)
+		var pg := _tiny_label()
+		pg.custom_minimum_size = Vector2(34, 0)
+		pg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(pg)
 		_party.add_child(row)
+		rows += 1
 	for i in range(others.size()):
 		var p = others[i]
-		var row := _party.get_child(i)
-		var nm := row.get_child(0) as Label
-		var bar := row.get_child(1) as ProgressBar
+		var row := _party.get_child(i + 1)
+		var sw := row.get_child(0) as ColorRect
+		var nm := row.get_child(1) as Label
+		var bar := row.get_child(2) as ProgressBar
+		var pg := row.get_child(3) as Label
 		var down: bool = p.is_bleeding()
+		sw.color = Net.crew_color(int(p.net_id))
 		nm.text = str(p.display_name()) + (" (down)" if down else "")
 		nm.modulate = Color(1.0, 0.5, 0.4) if down else Color.WHITE
 		bar.max_value = maxf(p.health_component.max_health, 1.0)
 		bar.value = p.health_component.current_health
+		var ms := Net.ping_ms(int(p.net_id))
+		pg.text = "host" if int(p.net_id) == 1 else ("%dms" % ms if ms >= 0 else "...")
+		pg.add_theme_color_override("font_color", UIStyle.TEXT_DIM if int(p.net_id) == 1 else ping_color(ms))

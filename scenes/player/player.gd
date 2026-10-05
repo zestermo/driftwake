@@ -1,7 +1,7 @@
 extends CharacterBody3D
 class_name Player
 
-enum Context { ON_FOOT, HELM }
+enum Context { ON_FOOT, HELM, CANNON }
 
 signal armed_changed(armed: bool)
 signal weapon_changed(item: ItemData)
@@ -455,7 +455,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	get_node("/root/CombatManager").apply_hit_effects(hit)
 	if health_component.current_health <= 0.0:
 		return  # _on_died ragdolls the body
-	if context != Context.ON_FOOT or current_state_name() in ["Talk", "Helm"]:
+	if context == Context.HELM or current_state_name() in ["Talk", "Helm"]:
 		return
 	if power.buff("tekkai"):
 		return  # Tekkai: nothing moves you
@@ -483,7 +483,7 @@ func _foresight_dodge(dir: Vector3) -> void:
 
 ## Thrown off your feet: physics ragdoll, then get back up.
 func knock_down(throw_velocity: Vector3) -> void:
-	if context != Context.ON_FOOT:
+	if context == Context.HELM:
 		return
 	state_machine.force_state("Downed", {"velocity": throw_velocity})
 
@@ -493,12 +493,12 @@ func _on_died() -> void:
 		return
 	# co-op with a crewmate still standing: you go down instead, and they
 	# have a while to get you back up
-	if Net.coop() and Net.others_standing() and context == Context.ON_FOOT:
+	if Net.coop() and Net.others_standing() and context != Context.HELM:
 		bleeding = true
 		bleed_t = BLEED_TIME
 		_revive_t = 0.0
 		_toast("You're down! A crewmate can get you up (hold F next to you)")
-	if context != Context.ON_FOOT:
+	if context == Context.HELM:
 		return
 	# already down (e.g. drowning, or hit while on the ground): just go limp
 	if current_state_name() == "Downed" and body_model.ragdoll != null:
@@ -561,7 +561,7 @@ func _process(delta: float) -> void:
 	var local := player_model.global_basis.inverse() * hv
 	body_model.ground_speed = hv.length()
 	body_model.local_move = Vector2(local.x, -local.z).normalized() if hv.length() > 0.2 else Vector2(0, 1)
-	body_model.grounded = is_on_floor() or context == Context.HELM
+	body_model.grounded = is_on_floor() or context != Context.ON_FOOT
 	body_model.vertical_speed = velocity.y
 	body_model.armed = armed
 	body_model.sprinting = sprinting
@@ -787,8 +787,8 @@ func _update_lean(delta: float) -> void:
 		tilt_q = Quaternion(axis_local, ang)
 	# slope alignment
 	var up := Vector3.UP
-	if context == Context.HELM and current_ship:
-		# at the wheel the body rides the deck's pitch and roll
+	if context != Context.ON_FOOT and current_ship:
+		# at the wheel (or a cannon) the body rides the deck's pitch and roll
 		up = (player_model.global_basis.inverse() * current_ship.global_basis.y).normalized()
 	elif is_on_floor():
 		var n := player_model.global_basis.inverse() * get_floor_normal()
@@ -830,6 +830,8 @@ func _physics_process(delta: float) -> void:
 		_bleed_tick(delta)
 	elif Net.coop():
 		_revive_tick(delta)
+	elif body_model.kneeling:
+		body_model.kneeling = false
 	var on_floor := is_on_floor()
 	if on_floor:
 		_coyote = coyote_time
@@ -1137,6 +1139,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_weapon()
 		get_viewport().set_input_as_handled()
 		return
+	if event.is_action_pressed("ping_marker"):
+		place_marker()
+		get_viewport().set_input_as_handled()
+		return
 	# Devil Fruit skills (1-4) and the ultimate (R)
 	for i in range(5):
 		var act := "ultimate" if i == 4 else "skill_%d" % (i + 1)
@@ -1233,6 +1239,38 @@ func set_offhand(item: ItemData) -> bool:
 	body_model.set_offhand(Props.weapon_mesh(item.weapon_model) if item else null)
 	_reset_ammo()
 	weapon_changed.emit(equipped_weapon)
+	return true
+
+
+## Something left the bag (dropped, stored in a chest): stop holding a
+## weapon you no longer carry.
+func check_equipped() -> void:
+	if equipped_weapon and inventory_component.count(equipped_weapon.id) <= 0:
+		if armed:
+			sheathe_weapon(true)
+		unequip_weapon()
+	if offhand_weapon and not _offhand_valid(offhand_weapon):
+		set_offhand(null)
+
+
+## Put a bag stack on the ground at your feet (in co-op everyone sees it and
+## anyone can pick it up: that's how you trade).
+func drop_from_bag(idx: int, qty: int = -1) -> bool:
+	var st := inventory_component.take_amount(idx, qty)
+	if st == null:
+		return false
+	check_equipped()
+	var fwd := -player_model.global_basis.z
+	fwd.y = 0.0
+	var at := global_position + fwd.normalized() * 0.9
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 1.5, at + Vector3.DOWN * 4.0, 1)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty():
+		at = hit["position"]
+	Net.drop_items([[SaveGame.item_ref(st.item), st.quantity]], at)
+	Net.fx("sfx", ["whoosh", at, -14.0, 0.1, 1.4])
+	_toast("Dropped %s%s" % [st.item.display_name, " x%d" % st.quantity if st.quantity > 1 else ""])
 	return true
 
 
@@ -1504,7 +1542,8 @@ func _update_nameplate() -> void:
 
 func display_name() -> String:
 	if not is_local:
-		return str(net_profile.get("name", "Captain"))
+		var lk: Dictionary = net_profile.get("look", {})
+		return str(net_profile.get("name", lk.get("name", "Captain")))
 	return str(body_model.look.get("name", appearance.get("name", "Captain"))) if body_model else "Captain"
 
 
@@ -1554,7 +1593,8 @@ func net_pack() -> Array:
 	if is_on_floor() or context == Context.HELM:
 		flags |= NF_FLOOR
 	return [pos, ship != null, velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
-		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end()]
+		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
+		body_model.ragdoll.net_pack() if body_model.ragdoll else []]
 
 
 ## Where our vine (swing / grapple) is stretched to, or INF.
@@ -1602,7 +1642,7 @@ func _puppet_process(delta: float) -> void:
 	var a: Array = smp[0]
 	var b: Array = smp[1]
 	var f: float = smp[2]
-	if a.size() < 11 or b.size() < 11:
+	if a.size() < 12 or b.size() < 12:
 		return
 	visible = true
 	global_position = _net_pos(a).lerp(_net_pos(b), f)
@@ -1625,6 +1665,9 @@ func _puppet_process(delta: float) -> void:
 			update_coat_visual()
 		_update_nameplate()
 	HumanoidSync.apply(body_model, a[9], b[9], f)
+	# knocked down: the body lies (or floats) exactly where theirs does
+	if body_model.ragdoll and (b[11] as Array).size() > 0:
+		body_model.ragdoll.net_follow(a[11], b[11], f)
 	# hybrid form fights with claws: weapons stay hidden
 	for w in [body_model.weapon, body_model.offhand]:
 		if w and is_instance_valid(w):
@@ -1674,8 +1717,17 @@ func net_event(what: String, args: Array) -> void:
 			if body_model and args.size() >= 2:
 				body_model.apply_look(args[0])
 				body_model.set_beast(bool(args[1]), FUR)
+				if bool(args[1]) and not hybrid and is_inside_tree():
+					FX.power_aura.call_deferred(body_model, "wolf", 2.0)
 				hybrid = bool(args[1])
 				net_profile["look"] = args[0]
+				# a new captain names themselves in the creator after joining
+				var nm := str((args[0] as Dictionary).get("name", ""))
+				if nm != "":
+					net_profile["name"] = nm
+					if Net.roster.has(net_id):
+						Net.roster[net_id]["name"] = nm
+					Net.roster_changed.emit()
 				# apply_look rebuilds the body: put the gear back on next snapshot
 				for k in ["net_w", "net_o", "net_ih", "net_lp"]:
 					if body_model.has_meta(k):
@@ -1713,6 +1765,44 @@ func revive() -> void:
 	Net.fx("sfx", ["blip_high", global_position, -6.0, 0.05, 1.2])
 
 
+var _mark_cd: float = 0.0
+
+## G / middle mouse: mark where the camera points (an enemy, if one is under
+## the crosshair) for the whole crew.
+func place_marker() -> void:
+	var now := Time.get_ticks_msec() * 0.001
+	if now < _mark_cd:
+		return
+	_mark_cd = now + 0.35
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var c := get_viewport().get_visible_rect().size * 0.5
+	var from := cam.project_ray_origin(c)
+	var dir := cam.project_ray_normal(c)
+	var q := PhysicsRayQueryParameters3D.create(from, from + dir * 250.0, 1 | 4 | 2048)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	var pos := Vector3.INF
+	var target: Node = null
+	if not hit.is_empty():
+		pos = hit["position"]
+		var col := hit["collider"] as Node
+		while col and not col.has_method("is_dead") and col != get_tree().current_scene:
+			col = col.get_parent()
+		if col and col.has_method("is_dead") and col != self and not col.is_dead():
+			target = col
+	# the sea: where the ray meets the water
+	if dir.y < -0.01:
+		var t := (0.0 - from.y) / dir.y
+		if t > 0.0 and (pos == Vector3.INF or t < from.distance_to(pos)):
+			pos = from + dir * t
+			target = null
+	if pos == Vector3.INF:
+		pos = from + dir * 120.0
+	Net.mark(pos, target)
+
+
 ## Hold F next to a knocked-out crewmate to get them up.
 func _revive_tick(delta: float) -> void:
 	var target: Node = null
@@ -1730,20 +1820,29 @@ func _revive_tick(delta: float) -> void:
 			get_tree().call_group("hud", "show_prompt", "", -1.0)
 		_revive_target = null
 		_revive_t = 0.0
+		body_model.kneeling = false
 		return
 	if target != _revive_target:
 		_revive_t = 0.0
 	_revive_target = target
-	if Input.is_action_pressed("interact"):
+	var holding := Input.is_action_pressed("interact")
+	if holding:
 		_revive_t += delta
 		velocity.x = 0.0
 		velocity.z = 0.0
+		# kneel down facing them
+		var to := (target as Node3D).global_position - global_position
+		if Vector2(to.x, to.z).length() > 0.2:
+			var want := atan2(-to.x, -to.z)
+			player_model.rotation.y = lerp_angle(player_model.rotation.y, want, clampf(delta * 12.0, 0.0, 1.0))
 	else:
 		_revive_t = maxf(_revive_t - delta * 2.0, 0.0)
+	body_model.kneeling = holding and is_on_floor()
 	var nm := str(target.display_name())
 	get_tree().call_group("hud", "show_prompt", "Hold F: get %s up" % nm, _revive_t / REVIVE_TIME)
 	if _revive_t >= REVIVE_TIME:
 		_revive_t = 0.0
+		body_model.kneeling = false
 		Net.revive(int(target.net_id))
 		get_tree().call_group("hud", "show_prompt", "", -1.0)
 		_toast("%s is back on their feet" % nm)
@@ -1762,6 +1861,20 @@ func locked_physics(delta: float) -> bool:
 	if is_on_floor() and current_state_name() != "Idle":
 		state_machine.force_state("Idle", {})
 	return true
+
+
+## Step up to a ship's cannon (the seat is ours).
+func man_cannon(c: Node) -> void:
+	if not is_free():
+		Net.release_seat(c)
+		return
+	state_machine.force_state("Cannon", {"cannon": c})
+
+
+## Co-op client: the host gave us a seat (a cannon).
+func take_seat(n: Node) -> void:
+	if n is ShipCannon:
+		man_cannon(n)
 
 
 ## Co-op client: the host gave us the wheel.

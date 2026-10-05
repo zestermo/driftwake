@@ -27,7 +27,7 @@ signal roster_changed
 
 const DEFAULT_PORT := 24680
 const MAX_CLIENTS := 3
-const PROTOCOL := 1
+const PROTOCOL := 2
 const SNAP_RATE := 20.0
 ## Puppets are shown this far in the past (seconds), between two snapshots.
 const INTERP := 0.1
@@ -52,6 +52,11 @@ var ship_owner: int = 1
 var my_info: Dictionary = {}
 ## Round trip to the host, seconds (clients).
 var rtt: float = 0.0
+## Everyone's round trip in ms (the host collects them and passes them on).
+var pings: Dictionary = {}
+## Who sits where (cannons): node key -> net id. The host hands them out.
+var seats: Dictionary = {}
+var _pings_t: float = 0.0
 ## Client: the save slot we joined with.
 var join_slot: int = 0
 var last_error: String = ""
@@ -147,9 +152,28 @@ func nearest_player(pos: Vector3, ok: Callable = Callable(), keep: Node = null) 
 	return best
 
 
-## Enemies get tougher with more captains around.
+## Enemies get tougher with more captains around: x1, x1.6, x2.2, x2.8.
 func hp_scale() -> float:
-	return 1.0 + 0.5 * float(maxi(roster.size(), 1) - 1)
+	return 1.0 + 0.6 * float(crew_size() - 1)
+
+
+func crew_size() -> int:
+	return maxi(roster.size(), 1) if active else 1
+
+
+## How many extra attackers an enemy group lets swing at once (3-4 captains
+## keep more of the crew busy).
+func extra_attackers() -> int:
+	return clampi(crew_size() - 2, 0, 2)
+
+
+## Round trip to the host in ms for a captain (the host itself: 0).
+func ping_ms(id: int) -> int:
+	if id == 1:
+		return 0
+	if id == my_id() and not hosting:
+		return int(rtt * 1000.0)
+	return int(pings.get(id, -1))
 
 
 # ==========================================================================
@@ -215,6 +239,8 @@ func leave() -> void:
 			p.queue_free()
 	players.clear()
 	roster.clear()
+	pings.clear()
+	seats.clear()
 	_events.clear()
 	_buffers.clear()
 	_cache.clear()
@@ -271,6 +297,15 @@ func _on_peer_connected(_id: int) -> void:
 
 func _on_peer_disconnected(id: int) -> void:
 	_despawn(id)
+	pings.erase(id)
+	if hosting:
+		var freed := false
+		for k in seats.keys():
+			if int(seats[k]) == id:
+				seats.erase(k)
+				freed = true
+		if freed:
+			_seats.rpc(seats)
 	if hosting:
 		_despawn_all.rpc(id)
 		if ship_owner == id:
@@ -467,7 +502,12 @@ func _process(delta: float) -> void:
 		_ping_t -= delta
 		if _ping_t <= 0.0 and multiplayer.multiplayer_peer and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
 			_ping_t = 0.25 if not _have_offset else 1.0
-			_ping.rpc_id(1, Time.get_ticks_usec() * 0.000001)
+			_ping.rpc_id(1, Time.get_ticks_usec() * 0.000001, int(rtt * 1000.0))
+	elif roster.size() > 1:
+		_pings_t -= delta
+		if _pings_t <= 0.0:
+			_pings_t = 2.0
+			_pings.rpc(pings)
 	if not world_ready:
 		return
 	_snap_t += delta
@@ -478,9 +518,19 @@ func _process(delta: float) -> void:
 
 
 @rpc("any_peer", "call_remote", "unreliable")
-func _ping(client_t: float) -> void:
+func _ping(client_t: float, my_ms: int = -1) -> void:
 	if hosting:
-		_pong.rpc_id(multiplayer.get_remote_sender_id(), client_t, time())
+		var id := multiplayer.get_remote_sender_id()
+		if my_ms > 0:
+			pings[id] = my_ms
+		_pong.rpc_id(id, client_t, time())
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _pings(p: Dictionary) -> void:
+	for id in p.keys():
+		if int(id) != my_id():
+			pings[int(id)] = int(p[id])
 
 
 @rpc("authority", "call_remote", "unreliable")
@@ -750,7 +800,7 @@ func applying() -> bool:
 # ==========================================================================
 func hit_pack(h: HitData) -> Array:
 	return [h.damage, h.knockback_force, h.hitstop_duration, h.camera_shake_intensity, h.stagger_duration,
-		h.knockdown, h.ranged, h.dot, h.unblockable, h.haki]
+		h.knockdown, h.ranged, h.dot, h.unblockable, h.haki, h.siege]
 
 
 func hit_unpack(a: Array) -> HitData:
@@ -767,6 +817,7 @@ func hit_unpack(a: Array) -> HitData:
 	h.dot = bool(a[7])
 	h.unblockable = bool(a[8])
 	h.haki = bool(a[9])
+	h.siege = a.size() > 10 and bool(a[10])
 	return h
 
 
@@ -903,18 +954,18 @@ func _all_shot(from: Vector3, to: Vector3, hd: Array, sk: String, radius: float)
 # ==========================================================================
 # Rewards (rolled on the host, collected by each captain for themselves)
 # ==========================================================================
-func award_xp(amount: int, at: Vector3) -> void:
+func award_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
 	if not active:
 		GameManager.award_xp(amount, at)
 		return
-	everyone("_all_xp", [amount, at])
+	everyone("_all_xp", [amount, at, reach])
 
 
-func _all_xp(amount: int, at: Vector3) -> void:
+func _all_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
 	var p := local_player as Node3D
 	if p == null or not is_instance_valid(p):
 		return
-	if at == Vector3.INF or p.global_position.distance_to(at) <= XP_RANGE:
+	if at == Vector3.INF or p.global_position.distance_to(at) <= reach:
 		GameManager.award_xp(amount, at)
 
 
@@ -954,6 +1005,165 @@ func _all_drop(id: String, at: Vector3, yaw: float) -> void:
 		mi.mesh = Props.weapon_mesh(item.weapon_model)
 		mi.rotation = Vector3(PI * 0.5, yaw, 0)
 		mi.position = Vector3(0, 0.06, 0)
+
+
+# --------------------------------------------------------------------------
+# Dropped items (shared bags): the host keeps what's in them
+# --------------------------------------------------------------------------
+var _drop_seq: int = 0
+var _local_drop_seq: int = 0
+
+
+## Drop items on the ground ([[item_ref, qty], ...]). Single player: a plain
+## bag. Co-op: a bag every captain sees; the host owns its contents.
+func drop_items(stacks: Array, at: Vector3) -> void:
+	if not active or not world_ready:
+		_local_drop_seq += 1
+		_make_drop("L%d" % _local_drop_seq, stacks, at, false)
+		return
+	if hosting:
+		_host_drop(stacks, at)
+	else:
+		_drop_req.rpc_id(1, stacks, at)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _drop_req(stacks: Array, at: Vector3) -> void:
+	if hosting:
+		_host_drop(stacks, at)
+
+
+func _host_drop(stacks: Array, at: Vector3) -> void:
+	_drop_seq += 1
+	var id := "D%d" % _drop_seq
+	_make_drop(id, stacks, at, true)
+	_drop_spawn.rpc(id, stacks, at)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _drop_spawn(id: String, stacks: Array, at: Vector3) -> void:
+	if world_ready:
+		_make_drop(id, stacks, at, true)
+
+
+func _make_drop(id: String, stacks: Array, at: Vector3, shared: bool) -> Node:
+	var cs := get_tree().current_scene
+	if cs == null or cs.get_node_or_null("Drop_" + id):
+		return null
+	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	var items: Array[ItemStack] = []
+	for e in stacks:
+		var it := SaveGame.item_from(e[0])
+		if it:
+			var st := ItemStack.new()
+			st.item = it
+			st.quantity = int(e[1])
+			items.append(st)
+	if items.is_empty():
+		bag.free()
+		return null
+	bag.setup(items, false)
+	if shared:
+		bag.shared_id = id
+	bag.name = "Drop_" + id
+	cs.add_child(bag)
+	bag.global_position = at
+	var mi := bag.get_node_or_null("MeshInstance3D") as MeshInstance3D
+	if mi:
+		var only: ItemData = items[0].item if items.size() == 1 else null
+		if only and only.is_weapon():
+			mi.mesh = Props.weapon_mesh(only.weapon_model)
+			mi.rotation = Vector3(PI * 0.5, randf() * TAU, 0)
+			mi.position = Vector3(0, 0.06, 0)
+		elif only and only.devil_fruit != "":
+			mi.mesh = Props.devil_fruit_mesh("devil_fruit_" + only.devil_fruit)
+			mi.position = Vector3(0, 0.1, 0)
+		else:
+			mi.mesh = Props.sack_mesh()
+			mi.position = Vector3.ZERO
+	return bag
+
+
+func _shared_bag(id: String) -> LootBag:
+	var cs := get_tree().current_scene
+	return cs.get_node_or_null("Drop_" + id) as LootBag if cs else null
+
+
+## Take from a shared bag: the host checks it's still there, then hands it over.
+func bag_take(bag: LootBag, item: ItemData, qty: int) -> void:
+	if hosting or not active:
+		var got := _host_take(bag.shared_id, SaveGame.item_ref(item), qty)
+		if got > 0 and local_player:
+			local_player.inventory_component.add_item(item, got)
+	else:
+		_take_req.rpc_id(1, bag.shared_id, SaveGame.item_ref(item), qty)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _take_req(id: String, ref: Array, qty: int) -> void:
+	if not hosting:
+		return
+	var got := _host_take(id, ref, qty)
+	if got > 0:
+		_take_ok.rpc_id(multiplayer.get_remote_sender_id(), ref, got)
+
+
+func _host_take(id: String, ref: Array, qty: int) -> int:
+	var bag := _shared_bag(id)
+	var item := SaveGame.item_from(ref)
+	if bag == null or item == null:
+		return 0
+	var i := bag.find_stack(item)
+	if i < 0:
+		return 0
+	var got := mini(qty, bag.contents[i].quantity)
+	bag._remove(i, got)
+	var r := bag.refs()
+	_bag_contents.rpc(id, r)
+	bag.set_contents(r)
+	return got
+
+
+@rpc("authority", "call_remote", "reliable")
+func _take_ok(ref: Array, qty: int) -> void:
+	var item := SaveGame.item_from(ref)
+	if item and local_player and is_instance_valid(local_player):
+		local_player.inventory_component.add_item(item, qty)
+
+
+## Put something into a shared bag (it already left our bag).
+func bag_store(bag: LootBag, item: ItemData, qty: int) -> void:
+	if hosting or not active:
+		_host_store(bag.shared_id, SaveGame.item_ref(item), qty)
+	else:
+		_store_req.rpc_id(1, bag.shared_id, SaveGame.item_ref(item), qty)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _store_req(id: String, ref: Array, qty: int) -> void:
+	if hosting:
+		_host_store(id, ref, qty)
+
+
+func _host_store(id: String, ref: Array, qty: int) -> void:
+	var bag := _shared_bag(id)
+	var item := SaveGame.item_from(ref)
+	if item == null:
+		return
+	if bag == null:
+		# gone meanwhile (someone emptied it): drop it fresh where it was
+		return
+	bag.add_stack(item, qty)
+	var r := bag.refs()
+	_bag_contents.rpc(id, r)
+	bag.set_contents(r)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _bag_contents(id: String, r: Array) -> void:
+	var bag := _shared_bag(id)
+	if bag:
+		bag.set_contents(r)
 
 
 ## A damage number over something, on every screen.
@@ -1055,6 +1265,115 @@ func others_standing() -> bool:
 
 
 # ==========================================================================
+# Map markers (G / middle mouse): "look here" for the whole crew
+# ==========================================================================
+## Mark a spot (or an enemy: `target` follows it) for everyone.
+func mark(pos: Vector3, target: Node = null) -> void:
+	var tk := ""
+	if target and is_instance_valid(target) and target.is_inside_tree():
+		tk = key_of(target)
+	everyone("_all_mark", [my_id(), pos, tk])
+
+
+func _all_mark(id: int, pos: Vector3, tk: String) -> void:
+	var nm := "You" if id == my_id() else str(roster.get(id, {}).get("name", "Crewmate"))
+	var t: Node = node_of(tk) if tk != "" else null
+	get_tree().call_group("hud", "add_marker", id, nm, pos, t)
+
+
+## The crew colour of a captain (markers, name tags).
+func crew_color(id: int) -> Color:
+	var cols := [Color(1.0, 0.85, 0.3), Color(0.45, 0.85, 1.0), Color(0.6, 1.0, 0.45), Color(1.0, 0.55, 0.85)]
+	var ids: Array = roster.keys()
+	ids.sort()
+	var i := ids.find(id)
+	return cols[maxi(i, 0) % cols.size()]
+
+
+# ==========================================================================
+# Seats (cannons): one captain each, handed out by the host
+# ==========================================================================
+func seat_holder(n: Node) -> int:
+	if not active:
+		return 0
+	return int(seats.get(key_of(n), 0))
+
+
+## Ask for a seat. True = it's yours now (host / single player); a client
+## gets its answer later (Player.take_seat).
+func request_seat(n: Node) -> bool:
+	if not active:
+		return true
+	var k := key_of(n)
+	if hosting:
+		var h := int(seats.get(k, 0))
+		if h != 0 and h != my_id() and players.has(h):
+			get_tree().call_group("hud", "show_toast", "A crewmate is on that gun")
+			return false
+		_set_seat(k, my_id())
+		return true
+	_want_seat.rpc_id(1, k)
+	return false
+
+
+func release_seat(n: Node) -> void:
+	if not active:
+		return
+	var k := key_of(n)
+	if int(seats.get(k, 0)) != my_id():
+		return
+	if hosting:
+		_set_seat(k, 0)
+	else:
+		seats.erase(k)
+		_drop_seat.rpc_id(1, k)
+
+
+func _set_seat(k: String, id: int) -> void:
+	if id == 0:
+		seats.erase(k)
+	else:
+		seats[k] = id
+	_seats.rpc(seats)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _want_seat(k: String) -> void:
+	if not hosting:
+		return
+	var id := multiplayer.get_remote_sender_id()
+	var h := int(seats.get(k, 0))
+	if h != 0 and h != id and players.has(h):
+		_seat_denied.rpc_id(id)
+		return
+	_set_seat(k, id)
+	_seat_granted.rpc_id(id, k)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _drop_seat(k: String) -> void:
+	if hosting and int(seats.get(k, 0)) == multiplayer.get_remote_sender_id():
+		_set_seat(k, 0)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _seats(s: Dictionary) -> void:
+	seats = s.duplicate()
+
+
+@rpc("authority", "call_remote", "reliable")
+func _seat_granted(k: String) -> void:
+	var n := node_of(k)
+	if n and local_player and is_instance_valid(local_player):
+		local_player.take_seat(n)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _seat_denied() -> void:
+	get_tree().call_group("hud", "show_toast", "A crewmate is on that gun")
+
+
+# ==========================================================================
 # The ship
 # ==========================================================================
 func _ship() -> Node:
@@ -1139,6 +1458,19 @@ func _ship_owner(id: int, state: Array) -> void:
 		ship.net_take_over(state)
 
 
+## Host: the crew's ship hull changed.
+func ship_hull(v: float) -> void:
+	if hosting and world_ready:
+		_hull.rpc(v)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _hull(v: float) -> void:
+	var ship := _ship()
+	if ship and ship.has_method("net_hull"):
+		ship.net_hull(v)
+
+
 # ==========================================================================
 # Joining a running world
 # ==========================================================================
@@ -1150,8 +1482,14 @@ func _world_state() -> Dictionary:
 	for s in get_tree().get_nodes_in_group("net_spawner"):
 		spawners[key_of(s)] = s.net_gen()
 	var gm := get_node_or_null("/root/GameManager")
+	var drops: Array = []
+	for b in get_tree().current_scene.find_children("Drop_D*", "", false, false):
+		if b is LootBag and (b as LootBag).shared_id != "":
+			drops.append([(b as LootBag).shared_id, (b as LootBag).refs(), (b as Node3D).global_position])
+	var ship := _ship()
 	return {"ents": ents, "spawners": spawners, "burned": gm.burned.keys() if gm else [], "ship_owner": ship_owner,
-		"fruits": gm.fruit_claims.duplicate() if gm else {}}
+		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
+		"hull": float(ship.get("hull")) if ship else 0.0}
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -1164,6 +1502,10 @@ func _world_sync(state: Dictionary) -> void:
 
 func _apply_world_sync(state: Dictionary) -> void:
 	ship_owner = int(state.get("ship_owner", 1))
+	seats = (state.get("seats", {}) as Dictionary).duplicate()
+	var ship := _ship()
+	if ship and ship.has_method("net_hull") and state.has("hull"):
+		ship.net_hull(float(state["hull"]))
 	var gm := get_node_or_null("/root/GameManager")
 	if gm:
 		gm.fruit_claims = (state.get("fruits", {}) as Dictionary).duplicate()
@@ -1174,6 +1516,8 @@ func _apply_world_sync(state: Dictionary) -> void:
 			s.net_set_gen(sp[k])
 	for nm in state.get("burned", []):
 		_burn_all(str(nm), true)
+	for d in state.get("drops", []):
+		_make_drop(str(d[0]), d[1], d[2], true)
 	# enemies the host no longer has (killed before we came)
 	var alive := {}
 	for k in state.get("ents", []):

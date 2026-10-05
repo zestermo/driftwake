@@ -10,7 +10,7 @@ const PATH := "user://settings.cfg"
 const DEFAULTS := {
 	"video": {
 		"fullscreen": false,
-		"psx_preset": 0,        # index into PSX.PRESETS
+		"psx_preset": 4,        # index into PSX.PRESETS (4 = 960x540, the default since v2)
 		"dither": true,
 		"wobble": 1.0,          # vertex snapping strength 0..1
 		"warp": 0.6,            # affine texture warp 0..1
@@ -22,6 +22,7 @@ const DEFAULTS := {
 		"sfx": 1.0,
 		"ambience": 0.8,
 		"ui": 0.8,
+		"music": 0.6,
 	},
 	"controls": {
 		"mouse_sensitivity": 1.0,
@@ -34,7 +35,7 @@ const DEFAULTS := {
 	},
 }
 
-const BUSES := ["SFX", "Ambience", "UI"]
+const BUSES := ["SFX", "Ambience", "UI", "Music"]
 
 var _values: Dictionary = {}
 
@@ -72,6 +73,7 @@ func reset_section(section: String) -> void:
 
 func save() -> void:
 	var cfg := ConfigFile.new()
+	cfg.set_value("meta", "version", VERSION)
 	for section in _values.keys():
 		for key in _values[section].keys():
 			cfg.set_value(section, key, _values[section][key])
@@ -97,6 +99,15 @@ func _load() -> void:
 				elif d is bool:
 					v = bool(v)
 				_values[section][key] = v
+	# v2: 640x360 made distant things too hard to make out - move players who
+	# never changed it to the sharper 960x540 grid (once)
+	if int(cfg.get_value("meta", "version", 1)) < 2:
+		if int(_values["video"]["psx_preset"]) == 0:
+			_values["video"]["psx_preset"] = 4
+		save()
+
+
+const VERSION := 2
 
 
 func _ensure_buses() -> void:
@@ -113,6 +124,7 @@ func _apply_audio() -> void:
 	_set_bus("SFX", float(get_value("audio", "sfx")))
 	_set_bus("Ambience", float(get_value("audio", "ambience")))
 	_set_bus("UI", float(get_value("audio", "ui")))
+	_set_bus("Music", float(get_value("audio", "music")))
 
 
 func _set_bus(bus_name: String, linear: float) -> void:

@@ -80,6 +80,16 @@ var _net_serial: int = -1
 var _net_hb_t: float = 0.0
 
 
+## Markers and the like: is it down for good?
+func is_dead() -> bool:
+	return state == S.DEAD
+
+
+## Fighting someone (the music picks up)?
+func in_combat() -> bool:
+	return state not in [S.WANDER, S.DEAD]
+
+
 ## Call before adding to the tree.
 func setup(is_big: bool, home_pos: Vector3) -> Scuttlebug:
 	big = is_big
@@ -862,18 +872,22 @@ func net_rescale(k: float) -> void:
 
 func net_pack() -> Array:
 	return [global_position, model.rotation.y, velocity, int(state), health.current_health, health.max_health,
-		hitbox.active, hitbox.activations]
+		hitbox.active, hitbox.activations, _rag.net_pack() if _rag else []]
 
 
 func _net_update(delta: float) -> void:
 	_net_hb_t -= delta
 	var smp := Net.sample(self)
-	if smp.is_empty() or state == S.DEAD:
+	if smp.is_empty():
 		return
 	var a: Array = smp[0]
 	var b: Array = smp[1]
 	var f: float = smp[2]
-	if a.size() < 8 or b.size() < 8:
+	if a.size() < 9 or b.size() < 9:
+		return
+	if _rag and (b[8] as Array).size() > 0:
+		_rag.net_follow(a[8], b[8], f)
+	if state == S.DEAD:
 		return
 	var st := int(a[3])
 	if st == S.DEAD:

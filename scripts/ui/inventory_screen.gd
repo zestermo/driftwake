@@ -5,10 +5,16 @@ extends Control
 ## and your real in-world character is the paper doll: gear slots flank them,
 ## with the bag / character sheet in a panel on the right.
 ##
-## Inventory tab: bag and item details (5-7 puts a consumable on a quick slot). Character tab: attributes and the
-## numbers that come from them and your gear, plus unlocked abilities.
-## Click bag gear to wear it, click a worn slot to take it off. Drag on the
-## character to turn them.
+## Inventory tab: bag, quick slots and item details. Character tab:
+## attributes and the numbers that come from them and your gear, plus
+## unlocked abilities.
+## Drag and drop: move items around the bag, onto a gear / weapon slot to
+## equip, onto a quick slot (consumables), out of a slot back into the bag,
+## or out onto the world to drop them (X drops the hovered stack, shift+X
+## one). Click bag gear to wear it, click a worn slot to take it off. Drag on
+## the character to turn them.
+## Opening a chest or a bag shows its contents in place of the paper doll:
+## click to take, F takes everything, drag your own items in to store them.
 
 ## Sized for the game's 640x360 UI canvas (the window scales it up).
 const SLOT := 28
@@ -35,6 +41,12 @@ var _footer: Label
 var _sheet: VBoxContainer
 var _selected := -1
 var _dragging := false
+var _doll_nodes: Array[Control] = []
+var _quick: Array[Button] = []
+var _loot_panel: PanelContainer
+var _loot_title: Label
+var _loot_slots: Array[Button] = []
+var _container: Node = null
 var _body_was_mode := Node.PROCESS_MODE_INHERIT
 
 
@@ -77,10 +89,13 @@ func _build() -> void:
 	drag.anchor_bottom = 1.0
 	drag.mouse_filter = Control.MOUSE_FILTER_STOP
 	drag.gui_input.connect(_on_drag_input)
+	# ...and drop items out onto the world here
+	drag.set_drag_forwarding(Callable(), _can_drop_world, _drop_world)
 	add_child(drag)
 
 	_build_doll()
 	_build_panel()
+	_build_loot()
 
 
 func _build_doll() -> void:
@@ -94,6 +109,7 @@ func _build_doll() -> void:
 				if s[0] == slot:
 					label = s[1]
 			_doll[slot] = _doll_slot(label, col[1], 0.15 + float(e[1]) * 0.135, func(): _on_doll_pressed(slot), func(): _show_worn(slot))
+			_drag_slot(_doll[slot], {"src": "doll", "slot": slot})
 	_weapon_slot = _doll_slot("Weapon", 0.05, 0.83, func():
 		# click: put it away and fight with your fists
 		var pl := _player()
@@ -107,12 +123,15 @@ func _build_doll() -> void:
 			pl.set_offhand(null)
 			menu._play()
 			refresh(), func(): _show_weapon(true))
+	_drag_slot(_weapon_slot, {"src": "weapon"})
+	_drag_slot(_offhand_slot, {"src": "offhand"})
 	_defense_label = UIStyle.label("", 16, UIStyle.ACCENT)
 	_defense_label.add_theme_color_override("font_outline_color", Color(0.05, 0.03, 0.02))
 	_defense_label.add_theme_constant_override("outline_size", 4)
 	_defense_label.anchor_left = 0.33
 	_defense_label.anchor_top = 0.845
 	add_child(_defense_label)
+	_doll_nodes.append(_defense_label)
 	_name_label = UIStyle.title("")
 	_name_label.add_theme_font_size_override("font_size", 16)
 	_name_label.add_theme_constant_override("outline_size", 4)
@@ -121,6 +140,7 @@ func _build_doll() -> void:
 	_name_label.anchor_top = 0.86
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_name_label)
+	_doll_nodes.append(_name_label)
 
 
 func _doll_slot(text: String, ax: float, ay: float, on_press: Callable, on_hover: Callable) -> Button:
@@ -142,6 +162,7 @@ func _doll_slot(text: String, ax: float, ay: float, on_press: Callable, on_hover
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.custom_minimum_size = Vector2(DOLL_SLOT, 0)
 	holder.add_child(l)
+	_doll_nodes.append(holder)
 	# center the column on the slot, not on the (wider) label
 	holder.offset_left = -max(0.0, l.get_minimum_size().x - DOLL_SLOT) * 0.5
 	return b
@@ -196,6 +217,7 @@ func _build_panel() -> void:
 		b.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
 				_offhand_from_bag(idx))
+		_drag_slot(b, {"src": "bag", "idx": idx})
 		grid.add_child(b)
 		_bag.append(b)
 	var info := VBoxContainer.new()
@@ -215,6 +237,28 @@ func _build_panel() -> void:
 	for l in [_info_name, _info_type, _info_desc, _info_stats, _info_hint]:
 		(l as Label).custom_minimum_size = Vector2(110, 0)
 		info.add_child(l)
+	# quick slots (keys 5-7): drag a consumable here
+	var qrow := HBoxContainer.new()
+	qrow.add_theme_constant_override("separation", 2)
+	inv.add_child(qrow)
+	var ql := _tiny("QUICK\nITEMS", UIStyle.TEXT_DIM)
+	ql.custom_minimum_size = Vector2(36, 0)
+	qrow.add_child(ql)
+	for k in range(InventoryComponent.HOTBAR_SIZE):
+		var qb: Button = _small_slot(SLOT)
+		var qi := k
+		qb.mouse_entered.connect(func(): _show_quick(qi))
+		qb.focus_entered.connect(func(): _show_quick(qi))
+		qb.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
+				var pl := _player()
+				if pl:
+					pl.inventory_component.clear_hotbar_slot(qi)
+					menu._play()
+					refresh())
+		_drag_slot(qb, {"src": "quick", "idx": qi})
+		qrow.add_child(qb)
+		_quick.append(qb)
 	var grow := Control.new()
 	grow.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	inv.add_child(grow)
@@ -237,7 +281,7 @@ func _build_panel() -> void:
 
 	var bottom := HBoxContainer.new()
 	vb.add_child(bottom)
-	bottom.add_child(_tiny("Tab / I: close\nDrag your captain to turn them", UIStyle.TEXT_DIM))
+	bottom.add_child(_tiny("Tab / I: close   Drag items to move, equip or drop\nX: drop (shift: one)   Drag your captain to turn", UIStyle.TEXT_DIM))
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom.add_child(sp)
@@ -276,6 +320,7 @@ func focus_bag() -> void:
 
 
 func on_close() -> void:
+	set_container(null)
 	var pl := _player()
 	if pl and pl.body_model:
 		pl.body_model.process_mode = _body_was_mode
@@ -340,6 +385,11 @@ func refresh() -> void:
 		menu.set_slot(_doll[slot], it, 1 if it else 0)
 	menu.set_slot(_weapon_slot, pl.equipped_weapon, 1 if pl.equipped_weapon else 0, "", pl.armed)
 	menu.set_slot(_offhand_slot, pl.offhand_weapon, 1 if pl.offhand_weapon else 0, "", pl.armed and pl.offhand_weapon != null)
+	for k in range(_quick.size()):
+		var qid: String = inv.hotbar[k]
+		var qit: ItemData = inv.get_hotbar_item(k) if qid != "" else null
+		menu.set_slot(_quick[k], qit, inv.count(qid) if qit else 0, str(k + 5))
+	_refresh_loot()
 	_defense_label.text = "DEF %d" % int(pl.defense())
 	_name_label.text = str(pl.body_model.look.get("name", "Captain")) if pl.body_model else "Captain"
 	var gm := get_node_or_null("/root/GameManager")
@@ -666,3 +716,287 @@ func _small_slot(size: int) -> Button:
 	icon.offset_right = -pad
 	icon.offset_bottom = -pad
 	return b
+
+
+# ==========================================================================
+# Drag and drop
+# ==========================================================================
+## Make a slot draggable (with `data` describing where it came from) and a
+## drop target.
+func _drag_slot(b: Button, data: Dictionary) -> void:
+	b.set_drag_forwarding(func(_at: Vector2): return _drag_from(b, data),
+		func(_at: Vector2, d) -> bool: return _can_drop_on(data, d),
+		func(_at: Vector2, d) -> void: _drop_on(data, d))
+
+
+func _item_of(data: Dictionary) -> ItemData:
+	var pl := _player()
+	if pl == null:
+		return null
+	var inv := pl.inventory_component
+	match str(data.get("src", "")):
+		"bag":
+			var i := int(data["idx"])
+			return inv.items[i].item if i < inv.items.size() else null
+		"doll":
+			return pl.equipment.get_item(str(data["slot"]))
+		"weapon":
+			return pl.equipped_weapon
+		"offhand":
+			return pl.offhand_weapon
+		"quick":
+			var q := int(data["idx"])
+			return inv.get_hotbar_item(q) if inv.hotbar[q] != "" else null
+		"loot":
+			var j := int(data["idx"])
+			if has_container() and j < _container.contents.size():
+				return _container.contents[j].item
+	return null
+
+
+func _drag_from(b: Button, data: Dictionary):
+	var it := _item_of(data)
+	if it == null:
+		return null
+	var prev := TextureRect.new()
+	prev.texture = it.icon
+	prev.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	prev.size = Vector2(24, 24)
+	prev.position = Vector2(-12, -12)
+	prev.modulate = Color(1, 1, 1, 0.85)
+	var holder := Control.new()
+	holder.add_child(prev)
+	b.set_drag_preview(holder)
+	var d := data.duplicate()
+	d["item"] = it
+	return d
+
+
+func _can_drop_on(target: Dictionary, d) -> bool:
+	if not (d is Dictionary) or not (d as Dictionary).has("src"):
+		return false
+	var pl := _player()
+	if pl == null:
+		return false
+	var it: ItemData = d.get("item")
+	var src := str(d["src"])
+	match str(target.get("src", "")):
+		"bag":
+			return src in ["bag", "doll", "weapon", "offhand", "quick", "loot"]
+		"doll":
+			return src == "bag" and it != null and it.is_gear() and pl.equipment.slot_for(it) == str(target["slot"])
+		"weapon", "offhand":
+			return src == "bag" and it != null and it.is_weapon()
+		"quick":
+			return (src == "bag" or src == "quick") and InventoryComponent.quick_ok(it)
+		"loot":
+			return src == "bag" and has_container()
+	return false
+
+
+func _drop_on(target: Dictionary, d) -> void:
+	var pl := _player()
+	if pl == null or not _can_drop_on(target, d):
+		return
+	var inv := pl.inventory_component
+	var src := str(d["src"])
+	var it: ItemData = d["item"]
+	match str(target["src"]):
+		"bag":
+			var to := int(target["idx"])
+			match src:
+				"bag":
+					inv.move_stack(int(d["idx"]), to)
+				"doll":
+					pl.unequip_gear(str(d["slot"]))
+				"weapon":
+					pl.unequip_weapon()
+				"offhand":
+					pl.set_offhand(null)
+				"quick":
+					inv.clear_hotbar_slot(int(d["idx"]))
+				"loot":
+					if has_container():
+						_container.take(int(d["idx"]), pl)
+		"doll":
+			var bi := inv.items.find(_stack_of(inv, int(d["idx"]), it))
+			if bi >= 0:
+				pl.equip_gear_from_bag(bi)
+		"weapon":
+			pl.equip_weapon(it, false)
+		"offhand":
+			if not pl.set_offhand(it):
+				_info_hint.text = "The off hand needs the same kind of weapon as your main hand (two swords or two pistols)."
+		"quick":
+			var tq := int(target["idx"])
+			if src == "quick":
+				var other: String = inv.hotbar[tq]
+				inv.assign_hotbar(tq, it.id)
+				if other != "" and other != it.id:
+					inv.assign_hotbar(int(d["idx"]), other)
+			else:
+				inv.assign_hotbar(tq, it.id)
+		"loot":
+			if has_container():
+				_container.store(pl, int(d["idx"]))
+	menu._play()
+	refresh()
+
+
+func _stack_of(inv: InventoryComponent, idx: int, it: ItemData) -> ItemStack:
+	if idx < inv.items.size() and inv.items[idx].item == it:
+		return inv.items[idx]
+	for st in inv.items:
+		if st.item == it:
+			return st
+	return null
+
+
+## Dragging a bag item out onto the world: drop it.
+func _can_drop_world(_at: Vector2, d) -> bool:
+	return d is Dictionary and str((d as Dictionary).get("src", "")) == "bag"
+
+
+func _drop_world(_at: Vector2, d) -> void:
+	var pl := _player()
+	if pl and _can_drop_world(_at, d):
+		pl.drop_from_bag(int(d["idx"]))
+		menu._play()
+		refresh()
+
+
+## X over a bag slot: drop that stack (one, with shift).
+func drop_selected(one: bool) -> void:
+	var pl := _player()
+	if pl == null or _selected < 0 or _selected >= pl.inventory_component.items.size():
+		return
+	pl.drop_from_bag(_selected, 1 if one else -1)
+	menu._play()
+	refresh()
+
+
+func _show_quick(k: int) -> void:
+	var pl := _player()
+	if pl == null:
+		return
+	var it: ItemData = pl.inventory_component.get_hotbar_item(k) if pl.inventory_component.hotbar[k] != "" else null
+	if it == null:
+		_clear_info()
+		_info_name.text = "Quick slot %d: empty" % (k + 5)
+		_info_hint.text = "Drag a consumable here (or hover one in the bag and press %d)." % (k + 5)
+		return
+	_describe(it, false, pl.inventory_component.count(it.id))
+	_info_hint.text = "Press %d to use it in the world. Right-click: clear." % (k + 5)
+
+
+# ==========================================================================
+# Loot window (a chest or bag beside your bag)
+# ==========================================================================
+func _build_loot() -> void:
+	_loot_panel = PanelContainer.new()
+	_loot_panel.anchor_left = 0.03
+	_loot_panel.anchor_right = 0.46
+	_loot_panel.anchor_top = 0.1
+	_loot_panel.anchor_bottom = 0.8
+	_loot_panel.add_theme_stylebox_override("panel", UIStyle.box(Color(0.06, 0.04, 0.03, 0.9), UIStyle.ACCENT, 6, 1))
+	_loot_panel.visible = false
+	add_child(_loot_panel)
+	_loot_panel.set_drag_forwarding(Callable(), func(_at: Vector2, d) -> bool: return _can_drop_on({"src": "loot"}, d),
+		func(_at: Vector2, d) -> void: _drop_on({"src": "loot"}, d))
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	_loot_panel.add_child(vb)
+	_loot_title = UIStyle.label("Chest", 16, UIStyle.ACCENT)
+	vb.add_child(_loot_title)
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 2)
+	grid.add_theme_constant_override("v_separation", 2)
+	vb.add_child(grid)
+	for i in range(20):
+		var b: Button = _small_slot(SLOT)
+		var idx := i
+		b.mouse_entered.connect(func(): _show_loot(idx))
+		b.focus_entered.connect(func(): _show_loot(idx))
+		b.pressed.connect(func():
+			var pl := _player()
+			if pl and has_container():
+				_container.take(idx, pl, 1 if Input.is_key_pressed(KEY_SHIFT) else -1)
+				menu._play()
+				refresh())
+		_drag_slot(b, {"src": "loot", "idx": idx})
+		grid.add_child(b)
+		_loot_slots.append(b)
+	var hint := _tiny("Click: take (shift: one)   Drag your items here to store", UIStyle.TEXT_DIM)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(150, 0)
+	vb.add_child(hint)
+	var take := UIStyle.button("Take all  [F]", 110)
+	take.add_theme_font_size_override("font_size", 12)
+	take.pressed.connect(func(): take_all())
+	vb.add_child(take)
+
+
+func has_container() -> bool:
+	return _container != null and is_instance_valid(_container) and not _container.is_queued_for_deletion()
+
+
+## Show a chest / bag's contents (null: back to the paper doll).
+func set_container(c: Node) -> void:
+	if _container != null and is_instance_valid(_container):
+		if _container.contents_changed.is_connected(_on_container_changed):
+			_container.contents_changed.disconnect(_on_container_changed)
+		if _container.tree_exiting.is_connected(_on_container_gone):
+			_container.tree_exiting.disconnect(_on_container_gone)
+	_container = c
+	if c:
+		c.contents_changed.connect(_on_container_changed)
+		c.tree_exiting.connect(_on_container_gone)
+		show_tab("inventory")
+	_loot_panel.visible = c != null
+	for n in _doll_nodes:
+		n.visible = c == null
+	refresh()
+
+
+func _on_container_changed() -> void:
+	if visible:
+		refresh()
+
+
+## Emptied (or picked up by a crewmate): back to the game.
+func _on_container_gone() -> void:
+	_container = null
+	if visible:
+		menu.close.call_deferred()
+
+
+func take_all() -> void:
+	var pl := _player()
+	if pl and has_container():
+		_container.take_all(pl)
+		menu._play()
+		if has_container():
+			refresh()
+
+
+func _refresh_loot() -> void:
+	if not has_container():
+		return
+	_loot_title.text = str(_container.title())
+	var cont: Array = _container.contents
+	for i in range(_loot_slots.size()):
+		if i < cont.size():
+			menu.set_slot(_loot_slots[i], cont[i].item, cont[i].quantity)
+		else:
+			menu.set_slot(_loot_slots[i], null, 0)
+
+
+func _show_loot(idx: int) -> void:
+	if not has_container() or idx >= _container.contents.size():
+		_clear_info()
+		_info_name.text = "Empty"
+		return
+	var st = _container.contents[idx]
+	_describe(st.item, false, st.quantity)
+	_info_hint.text = "Click: take it   Shift+click: take one"

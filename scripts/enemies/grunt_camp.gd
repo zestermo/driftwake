@@ -59,7 +59,7 @@ func request_token(g: Node) -> bool:
 	for t in _tokens:
 		if (t as PirateGrunt)._player == target:
 			same += 1
-	var cap := max_attackers + (2 if Net.coop() else 0)
+	var cap := max_attackers + (2 + Net.extra_attackers() if Net.coop() else 0)
 	if same < max_attackers and _tokens.size() < cap:
 		_tokens.append(g)
 		return true

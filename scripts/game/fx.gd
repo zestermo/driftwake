@@ -125,6 +125,69 @@ func _burst(pos: Vector3, amount: int, mat: Material, size: float, life: float, 
 	return p
 
 
+static var _tele_mat: StandardMaterial3D
+static var _ring_mesh: ArrayMesh
+static var _disc_mesh: ArrayMesh
+
+
+## A warning on the ground: a ring where a big attack will land, filling in
+## over `secs` (then it's gone).
+func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.0, 0.18, 0.12)) -> void:
+	if _tele_mat == null:
+		_tele_mat = StandardMaterial3D.new()
+		_tele_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_tele_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_tele_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_tele_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_tele_mat.vertex_color_use_as_albedo = true
+		_ring_mesh = _annulus(0.88, 1.0)
+		_disc_mesh = _annulus(0.0, 1.0)
+	var holder := Node3D.new()
+	holder.name = "Telegraph"
+	_scene_root().add_child(holder)
+	holder.global_position = pos + Vector3(0, 0.07, 0)
+	var ring := MeshInstance3D.new()
+	ring.mesh = _ring_mesh
+	ring.material_override = _tele_mat
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ring.scale = Vector3(radius, 1.0, radius)
+	holder.add_child(ring)
+	var disc := MeshInstance3D.new()
+	disc.mesh = _disc_mesh
+	disc.material_override = _tele_mat
+	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	disc.scale = Vector3(0.01, 1.0, 0.01)
+	holder.add_child(disc)
+	var c1 := Color(color.r, color.g, color.b, 0.85)
+	var c2 := Color(color.r, color.g, color.b, 0.35)
+	_tint(ring, c1)
+	_tint(disc, c2)
+	var tw := holder.create_tween()
+	tw.tween_property(disc, "scale", Vector3(radius, 1.0, radius), maxf(secs, 0.05))
+	tw.tween_callback(holder.queue_free)
+
+
+func _tint(mi: MeshInstance3D, c: Color) -> void:
+	var m := _tele_mat.duplicate() as StandardMaterial3D
+	m.albedo_color = c
+	mi.material_override = m
+
+
+func _annulus(inner: float, outer: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 32
+	for i in range(n):
+		var a0 := TAU * i / n
+		var a1 := TAU * (i + 1) / n
+		var o0 := Vector3(cos(a0), 0, sin(a0))
+		var o1 := Vector3(cos(a1), 0, sin(a1))
+		for v in [o0 * inner, o0 * outer, o1 * outer, o0 * inner, o1 * outer, o1 * inner]:
+			st.set_color(Color.WHITE)
+			st.add_vertex(v)
+	return st.commit()
+
+
 ## Little dust puff (footsteps, jumps, rolls).
 func dust(pos: Vector3, amount: int = 5, size: float = 0.5) -> void:
 	_burst(pos, amount, _dust_mat, size, 0.55, {

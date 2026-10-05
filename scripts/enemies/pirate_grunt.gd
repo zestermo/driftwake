@@ -26,7 +26,7 @@ extends CharacterBody3D
 
 signal died(grunt: PirateGrunt)
 
-enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM }
+enum S { IDLE, ALERT, CHASE, CIRCLE, CLOSE, WIND, SWING, RECOVER, BLOCK, STAGGER, HITSTUN, DOWN, GETUP, RETURN, DEAD, AIM, KEEP, REPOSITION, SHOVE, SWIM, LEAP }
 
 const GRAVITY := 20.0
 const RUN_SPEED := 4.4
@@ -83,6 +83,10 @@ var look: Dictionary = {}
 var seat_y: float = 0.45
 ## "sword" (cutlass + pistol) or "rifle" (rifle only).
 var role: String = "sword"
+## Came over the side from a pirate ship: no post to go back to, fights on
+## wherever it lands.
+var boarder: bool = false
+var _leap_v := Vector3.ZERO
 
 var state: S = S.IDLE
 var st_t: float = 0.0
@@ -164,6 +168,11 @@ var net_puppet: bool = false
 var _net_serial: int = -1
 var _net_hb_t: float = 0.0
 var _net_glow: bool = false
+
+
+## Markers and the like: is it down for good?
+func is_dead() -> bool:
+	return state == S.DEAD
 
 
 func setup(cfg: Dictionary) -> PirateGrunt:
@@ -538,15 +547,9 @@ func _physics_process(delta: float) -> void:
 				elif dist > CIRCLE_RANGE + 3.0:
 					_set_state(S.CHASE)
 				elif _cooldown <= 0.0 and _player_ok(p) and _get_token():
-					_attack = "lunge" if dist > 2.9 and _rng.randf() < 0.55 else "combo"
-					if _peril_cd <= 0.0 and _rng.randf() < 0.4:
-						_attack = "peril"
-						_peril_cd = _rng.randf_range(9.0, 14.0)
+					_attack = _choose_attack(dist)
 					_swing_i = 0
-					if _attack == "lunge":
-						_start_wind()
-					else:
-						_set_state(S.CLOSE)
+					_begin_attack(dist)
 		S.CLOSE:
 			_face(dir_p)
 			want = dir_p * RUN_SPEED * 0.85 + _separation()
@@ -613,8 +616,8 @@ func _physics_process(delta: float) -> void:
 				elif st_t >= 0.22:
 					hitbox.deactivate()
 				if st_t > 0.42:
-					if _swing_i == 0:
-						_swing_i = 1
+					if _swing_i < _combo_hits() - 1:
+						_swing_i += 1
 						_start_wind()
 					else:
 						_end_attack(0.6)
@@ -650,6 +653,19 @@ func _physics_process(delta: float) -> void:
 			if st_t > _getup_len:
 				_cooldown = 1.0
 				_set_state(_fight_state())
+		S.LEAP:
+			# flying across from the pirate ship's deck
+			want = _leap_v
+			accel = 200.0
+			turn = 4.0
+			if st_t > 0.3 and is_on_floor():
+				post = global_position
+				Net.fx("dust_ring", [global_position, 10, 0.7])
+				Net.fx("sfx", ["land", global_position, -4.0, 0.08])
+				humanoid.play("draw", 0.45)
+				_set_state(S.CHASE)
+			elif st_t > 3.0:
+				_set_state(S.CHASE)
 		S.AIM:
 			accel = 14.0
 			turn = 12.0 if st_t < _aim_len - _lock_len else 1.0
@@ -747,7 +763,7 @@ func _physics_process(delta: float) -> void:
 		if want.length() > 0.3:
 			want = (want.normalized() * 0.4 + _detour * 0.9).normalized() * want.length()
 	# stay out of the sea (a knockback can still put you in it)
-	if state not in [S.HITSTUN, S.STAGGER]:
+	if state not in [S.HITSTUN, S.STAGGER, S.LEAP]:
 		want = _avoid_water(want)
 	if state == S.SWING and _attack == "lunge" and st_t < 0.32:
 		hv = want
@@ -790,6 +806,8 @@ func _feed_body(hv: Vector3, running: bool) -> void:
 func _lost(p: Node3D, dist: float) -> bool:
 	if p == null:
 		return true
+	if boarder:
+		return dist > 60.0
 	if dist > GIVE_UP_RANGE or _flat(global_position - post).length() > LEASH:
 		return true
 	# the player swam off / is on the ship: give up after a while
@@ -800,7 +818,22 @@ func _lost(p: Node3D, dist: float) -> bool:
 
 func _go_home() -> void:
 	_release_token()
+	if boarder:
+		post = global_position
 	_set_state(S.RETURN)
+
+
+## Boarding: jump from where it stands to `to`, landing in `t` seconds.
+func leap(to: Vector3, t: float = 1.0) -> void:
+	var d := to - global_position
+	_leap_v = Vector3(d.x / t, 0.0, d.z / t)
+	velocity = _leap_v + Vector3.UP * (d.y / t + 0.5 * GRAVITY * t)
+	_face(Vector3(d.x, 0.0, d.z))
+	facing.rotation.y = _yaw
+	humanoid.seated = false
+	humanoid.play("flip", minf(t, 0.9))
+	bark(["Boarders away!", "Take the ship!", "Yaaargh!", "Over the side, lads!"], 0.8)
+	_set_state(S.LEAP)
 
 
 func _get_token() -> bool:
@@ -842,6 +875,32 @@ func _idle_move(delta: float) -> Vector3:
 # ==========================================================================
 # Attacks
 # ==========================================================================
+## Pick the next attack (bosses override this).
+func _choose_attack(dist: float) -> String:
+	var a := "lunge" if dist > 2.9 and _rng.randf() < 0.55 else "combo"
+	if _peril_cd <= 0.0 and _rng.randf() < 0.4:
+		a = "peril"
+		_peril_cd = _rng.randf_range(9.0, 14.0)
+	return a
+
+
+func _begin_attack(_dist: float) -> void:
+	if _attack == "lunge":
+		_start_wind()
+	else:
+		_set_state(S.CLOSE)
+
+
+## Swings in a combo.
+func _combo_hits() -> int:
+	return 2
+
+
+## Light hits the guard soaks up before it breaks.
+func _guard_max() -> int:
+	return GUARD_BLOCKS
+
+
 func _wind_len() -> float:
 	if _attack == "peril":
 		return PERIL_WIND
@@ -870,10 +929,26 @@ func _start_wind() -> void:
 		_set_glow(true)
 		_glow_t = HEAVY_GLOW
 	# Observation Haki: you sense the intent the moment it forms
-	var p := _target()
-	if p and p.get("progression") and p.progression.has_flag("observation"):
-		Net.fx("sparkle", [global_position + Vector3(0, 2.0, 0), 6, Color(1.0, 0.25, 0.2)])
-		Net.fx("impact", [global_position + Vector3(0, 1.9, 0), Color(1.0, 0.3, 0.25)])
+	_sense(_target())
+
+
+## Observation Haki: the captain being targeted senses the attack coming (a
+## red flash over the attacker) - on their own screen, since only they have
+## the skill (co-op: the target may be on another machine).
+func _sense(p: Node) -> void:
+	if p == null:
+		return
+	if p.is_in_group("player"):
+		_sense_fx()
+	elif Net.coop():
+		Net.event(self, "sense", [int(p.get("net_id"))])
+
+
+func _sense_fx() -> void:
+	var me := get_tree().get_first_node_in_group("player")
+	if me and me.get("progression") and me.progression.has_flag("observation"):
+		FX.sparkle(global_position + Vector3(0, 2.0, 0), 6, Color(1.0, 0.25, 0.2))
+		FX.impact(global_position + Vector3(0, 1.9, 0), Color(1.0, 0.3, 0.25))
 
 
 func _start_swing() -> void:
@@ -981,7 +1056,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	# blocked: sparks, no damage (until the guard breaks)
 	# (a cutlass can't stop a bullet)
 	if guarding and from_front and not hit.knockdown and not hit.unblockable and not hit.ranged:
-		if _guard_hits < GUARD_BLOCKS:
+		if _guard_hits < _guard_max():
 			_guard_hits += 1
 			_guard_t = 3.5
 			var spark := global_position + Vector3(0, 1.25, 0) - dir * 0.55
@@ -1722,7 +1797,8 @@ func net_pack() -> Array:
 	return [global_position, facing.rotation.y, velocity, int(state), health.current_health, health.max_health,
 		HumanoidSync.pack(humanoid), hitbox.active, hitbox.activations, _hit_kind(),
 		_aim_line.visible, _aim_point, _locked, _fired, _gun, glow, _peril_on,
-		_bark.text if _bark.visible else "", get_meta("shot_end", Vector3.ZERO)]
+		_bark.text if _bark.visible else "", get_meta("shot_end", Vector3.ZERO),
+		humanoid.ragdoll.net_pack() if humanoid.ragdoll else []]
 
 
 ## Puppet: play back the host's grunt.
@@ -1730,12 +1806,17 @@ func _net_update(delta: float) -> void:
 	_bark_t -= delta
 	_net_hb_t -= delta
 	var smp := Net.sample(self)
-	if smp.is_empty() or state == S.DEAD:
+	if smp.is_empty():
 		return
 	var a: Array = smp[0]
 	var b: Array = smp[1]
 	var f: float = smp[2]
-	if b.size() < 19 or a.size() < 19:
+	if b.size() < 20 or a.size() < 20:
+		return
+	# a body on the ground (or floating, or dead) lies where the host's does
+	if humanoid.ragdoll and (b[19] as Array).size() > 0:
+		humanoid.ragdoll.net_follow(a[19], b[19], f)
+	if state == S.DEAD:
 		return
 	var st := int(a[3])  # (discrete state from the older snapshot: in step with events)
 	if st == S.DEAD:
@@ -1808,5 +1889,9 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"die":
 			_net_die()
+		"sense":
+			var me := get_tree().get_first_node_in_group("player")
+			if me and int(me.get("net_id")) == int(args[0]):
+				_sense_fx()
 		"burn_fx":
 			BurnStatus.apply(self, float(args[0]), 0.0, null)

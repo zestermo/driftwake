@@ -4,7 +4,7 @@ render_mode diffuse_lambert, specular_disabled, cull_disabled;
 
 #include "res://shaders/psx/psx_common.gdshaderinc"
 
-uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap, repeat_disable, hint_default_white;
+uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap_anisotropic, repeat_disable, hint_default_white;
 uniform vec4 albedo_color : source_color = vec4(1.0);
 uniform bool use_vertex_color = true;
 uniform float alpha_cut : hint_range(0.0, 1.0) = 0.5;
@@ -41,7 +41,7 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 uv = mix(UV, affine_uv.xy / affine_uv.z, psx_affine * affine_amount);
+	vec2 uv = mix(UV, affine_uv.xy / affine_uv.z, psx_affine * affine_amount * (1.0 - psx_far(affine_uv.z)));
 	vec4 tex = texture(albedo_tex, uv);
 	vec3 tint = albedo_color.rgb;
 	if (use_vertex_color) {

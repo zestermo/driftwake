@@ -863,6 +863,21 @@ static func devil_fruit_mesh(skin: String = "devil_fruit_ember") -> ArrayMesh:
 	return m
 
 
+## A tied canvas sack (dropped items).
+static func sack_mesh() -> ArrayMesh:
+	var mb := MeshBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 31
+	var canvas := PSXMat.lit("canvas", Color(0.85, 0.75, 0.55))
+	var rope := PSXMat.lit("planks", Color(0.6, 0.45, 0.25))
+	mb.add_blob(canvas, Transform3D(Basis.IDENTITY, Vector3(0, 0.17, 0)), Vector3(0.2, 0.17, 0.18), rng, 0.12, 5, 8, 2.0)
+	mb.add_cylinder(canvas, Transform3D(Basis.IDENTITY, Vector3(0, 0.33, 0)), 0.07, 0.04, 0.09, 6, 1.0)
+	mb.add_cylinder(rope, Transform3D(Basis.IDENTITY, Vector3(0, 0.33, 0)), 0.075, 0.075, 0.025, 6, 1.0)
+	var m := mb.commit()
+	m.set_meta("model", "sack")
+	return m
+
+
 static func bottle_mesh() -> ArrayMesh:
 	var mb := MeshBuilder.new()
 	var glass := PSXMat.lit("", Color(0.35, 0.22, 0.1), {"emission": Color(0.25, 0.12, 0.04), "emission_energy": 0.4})

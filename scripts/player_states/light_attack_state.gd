@@ -26,9 +26,11 @@ const STYLES := {
 		# rush of air for each hit: [side (m, + = right), height, sideways slant, big]
 		"winds": [[-0.16, 1.32, 0.0, false], [0.16, 1.3, 0.0, false], [-0.5, 1.28, 0.55, false], [0.35, 1.0, -0.35, true]]},
 	"claw": {"anims": ["claw_r", "claw_l", "claw_double"], "trails": ["right", "left", "cross"],
-		"durations": [0.22, 0.22, 0.36], "lengths": [0.36, 0.36, 0.5], "impulses": [5.0, 5.0, 6.5],
-		"damages": [11.0, 11.0, 20.0], "hitstops": [0.045, 0.045, 0.08], "shakes": [0.08, 0.08, 0.16],
-		"start": 0.07, "end": 0.2, "reach": "claw", "color": Color(1.0, 0.35, 0.3)},
+		"durations": [0.28, 0.28, 0.44], "lengths": [0.44, 0.44, 0.62], "impulses": [6.5, 6.5, 9.0],
+		"damages": [12.0, 12.0, 22.0], "hitstops": [0.05, 0.05, 0.09], "shakes": [0.1, 0.1, 0.2],
+		# the claws land at the end of the lunge
+		"starts": [0.12, 0.12, 0.2], "ends": [0.26, 0.26, 0.36],
+		"start": 0.12, "end": 0.26, "reach": "claw", "color": Color(1.0, 0.35, 0.3)},
 }
 
 var cfg: Dictionary = STYLES["sword"]

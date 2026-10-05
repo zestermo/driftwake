@@ -78,6 +78,58 @@ func insert_item(item_data: ItemData, at: int) -> void:
 	inventory_changed.emit()
 
 
+## Drag and drop: move the stack at `from` onto bag position `to`. The same
+## item merges (as far as the stack allows), anything else swaps places;
+## past the last stack = to the end.
+func move_stack(from: int, to: int) -> void:
+	if from < 0 or from >= items.size() or from == to:
+		return
+	if to >= items.size():
+		var st := items[from]
+		items.remove_at(from)
+		items.append(st)
+		inventory_changed.emit()
+		return
+	var a := items[from]
+	var b := items[to]
+	if a.item == b.item and a.item.stackable and b.quantity < a.item.max_stack:
+		var moved := mini(a.quantity, a.item.max_stack - b.quantity)
+		b.quantity += moved
+		a.quantity -= moved
+		if a.quantity <= 0:
+			items.remove_at(from)
+	else:
+		items[from] = b
+		items[to] = a
+	inventory_changed.emit()
+
+
+## Take `qty` from the stack at a bag position (all of it with qty < 0).
+func take_amount(idx: int, qty: int = -1) -> ItemStack:
+	if idx < 0 or idx >= items.size():
+		return null
+	var st := items[idx]
+	if qty < 0 or qty >= st.quantity:
+		return take_at(idx)
+	st.quantity -= qty
+	var out := ItemStack.new()
+	out.item = st.item
+	out.quantity = qty
+	inventory_changed.emit()
+	return out
+
+
+## How many of an item would fit right now.
+func room_for(item_data: ItemData) -> int:
+	var n := 0
+	if item_data.stackable:
+		for stack in items:
+			if stack.item == item_data:
+				n += maxi(item_data.max_stack - stack.quantity, 0)
+	n += (max_slots - items.size()) * (item_data.max_stack if item_data.stackable else 1)
+	return n
+
+
 ## Take the stack at a bag position out entirely.
 func take_at(idx: int) -> ItemStack:
 	if idx < 0 or idx >= items.size():

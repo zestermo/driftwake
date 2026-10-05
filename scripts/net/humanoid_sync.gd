@@ -7,7 +7,7 @@ extends RefCounted
 
 const FIELDS := ["ground_speed", "local_move", "grounded", "vertical_speed", "armed", "sprinting",
 	"stance", "seated", "seat_y", "at_helm", "helm_steer", "swimming", "carry", "aim_pitch", "diving",
-	"climbing", "climb_phase", "dash_dir", "look_target", "look_weight", "dangle", "talking"]
+	"climbing", "climb_phase", "dash_dir", "look_target", "look_weight", "dangle", "talking", "kneeling", "manning"]
 ## Fields blended between snapshots (the rest snap to the newer one).
 const BLEND := ["ground_speed", "vertical_speed", "helm_steer", "aim_pitch", "look_target", "look_weight", "seat_y"]
 

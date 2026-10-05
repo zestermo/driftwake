@@ -107,11 +107,25 @@ func _input(event: InputEvent) -> void:
 		elif _current == "inventory":
 			close()
 		get_viewport().set_input_as_handled()
+	elif _current == "inventory" and event.is_action_pressed("interact") and _inventory.has_container():
+		# F in the loot window: take everything
+		_inventory.take_all()
+		get_viewport().set_input_as_handled()
 	elif _current == "inventory" and event is InputEventKey and event.pressed and not event.echo:
 		var k: int = event.keycode
-		if k >= KEY_5 and k <= KEY_9:
+		if k >= KEY_5 and k <= KEY_7:
 			_inventory.assign_hotbar(k - KEY_5)
 			get_viewport().set_input_as_handled()
+		elif k == KEY_X or k == KEY_DELETE:
+			# drop the hovered stack (shift: just one)
+			_inventory.drop_selected(event.shift_pressed)
+			get_viewport().set_input_as_handled()
+
+
+## Open a chest / bag: the inventory with the container beside your bag.
+func open_container(bag: Node) -> void:
+	open("inventory")
+	_inventory.set_container(bag)
 
 
 func open(screen: String) -> void:
@@ -299,6 +313,7 @@ func _build_options() -> Control:
 	_slider_row(list, "Effects", "audio", "sfx", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Ambience", "audio", "ambience", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Interface", "audio", "ui", 0.0, 1.0, 0.05, "%d%%", 100.0)
+	_slider_row(list, "Music", "audio", "music", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_section(list, "Controls")
 	_slider_row(list, "Mouse sensitivity", "controls", "mouse_sensitivity", 0.2, 3.0, 0.05, "%.2fx", 1.0)
 	_toggle_row(list, "Invert look Y", "controls", "invert_y")

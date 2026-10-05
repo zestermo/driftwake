@@ -150,7 +150,7 @@ func _on_player_died() -> void:
 		return
 	# co-op: knocked out first - a crewmate can still get you up (the
 	# player calls bleed_out() if nobody does)
-	if Net.coop() and Net.others_standing() and player.context == Player.Context.ON_FOOT:
+	if Net.coop() and Net.others_standing() and player.context != Player.Context.HELM:
 		return
 	_die_for_real()
 

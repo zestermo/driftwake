@@ -22,6 +22,12 @@ const BOW_Z := -5.8
 const STERN_Z := 5.8
 const HALF_BEAM := 2.7
 const DECK_Y := 0.32
+## Hull strength: enemy cannon fire wears it down. At zero the ship is
+## crippled (barely makes way, smoke and flames) until it patches itself up.
+const MAX_HULL := 400.0
+const CRIPPLED_SPEED := 0.35
+const REPAIR_DELAY := 10.0
+const REPAIR_RATE := 5.0
 
 var is_player_steering: bool = false
 ## Current forward speed (m/s, negative = backing) and smoothed rudder (-1..1).
@@ -31,6 +37,14 @@ var rudder: float = 0.0
 var cam_yaw: float = 0.0
 
 var wheel: Node3D
+var hull: float = MAX_HULL
+var crippled: bool = false
+## Swivel guns on the rails (port and starboard).
+var cannons: Array = []
+var _since_hit: float = 99.0
+var _hull_sent: float = MAX_HULL
+var _hull_send_t: float = 0.0
+var _burn_t: float = 0.0
 var _ocean: Node
 var _game_manager: Node
 var _yaw_rate: float = 0.0
@@ -62,6 +76,7 @@ var _cam_y: float = 0.0
 func _ready() -> void:
 	_build_psx_model()
 	_build_collision()
+	_build_cannons()
 	_ocean = get_node_or_null("/root/Ocean")
 	_game_manager = get_node("/root/GameManager")
 	helm_zone.interacted.connect(_on_helm_interacted)
@@ -106,8 +121,9 @@ func _physics_process(delta: float) -> void:
 	if is_player_steering and not _helm_locked():
 		throttle = Input.get_axis("move_back", "move_forward")
 		turn = Input.get_axis("move_left", "move_right")
+	var top := MAX_SPEED * (CRIPPLED_SPEED if crippled else 1.0)
 	if throttle > 0.0:
-		speed = move_toward(speed, MAX_SPEED * throttle, ACCEL * delta)
+		speed = move_toward(speed, top * throttle, ACCEL * delta)
 	elif throttle < 0.0:
 		speed = move_toward(speed, -MAX_REVERSE, BRAKE * delta)
 	else:
@@ -181,6 +197,120 @@ func _physics_process(delta: float) -> void:
 	if wheel:
 		wheel.rotation.z = -rudder * 2.4
 	_wake(delta, pos, fwd, right, mean)
+	if speed > top:
+		speed = move_toward(speed, top, 2.0 * delta)
+
+
+## The hull's own velocity (cannonballs fired from it carry it along).
+func hull_velocity() -> Vector3:
+	return Vector3(-sin(_heading), 0.0, -cos(_heading)) * speed
+
+
+# ==========================================================================
+# Cannons and the hull
+# ==========================================================================
+func _build_cannons() -> void:
+	# two swivel guns a side: forward of the mast and amidships
+	var spots := [[-3.6, 2.28], [-0.6, 2.5]]
+	for sgn in [-1.0, 1.0]:
+		for i in range(spots.size()):
+			var c := ShipCannon.new()
+			c.name = "Cannon%s%d" % ["S" if sgn > 0.0 else "P", i]
+			c.ship = self
+			c.team = "crew"
+			c.position = Vector3(sgn * float(spots[i][1]), DECK_Y, float(spots[i][0]))
+			c.rotation.y = -sgn * PI * 0.5
+			ship_model.add_child(c)
+			cannons.append(c)
+
+
+## Cannons on one side: +1 starboard, -1 port.
+func side_cannons(side: float) -> Array:
+	var out: Array = []
+	for c in cannons:
+		if signf((c as Node3D).position.x) == signf(side):
+			out.append(c)
+	return out
+
+
+## The helmsman's broadside: every loaded, unmanned gun on that side fires
+## at `target` (one after another). Returns how many fired.
+func broadside(side: float, target: Vector3, by: Node) -> int:
+	var n := 0
+	for c in side_cannons(side):
+		var cn := c as ShipCannon
+		if not cn.loaded() or (cn.holder() != 0 and cn.holder() != Net.my_id()) or cn.aiming_locally:
+			continue
+		cn.aim_at(target)
+		var delay := 0.16 * n
+		n += 1
+		if delay <= 0.0:
+			cn.fire(by)
+		else:
+			get_tree().create_timer(delay).timeout.connect(func():
+				if is_instance_valid(cn):
+					cn.aim_at(target)
+					cn.fire(by))
+	return n
+
+
+## Enemy cannon fire hit the ship (decided by the host).
+func hull_hit(dmg: float, at: Vector3) -> void:
+	if Net.is_client():
+		return
+	hull = maxf(hull - dmg, 0.0)
+	_since_hit = 0.0
+	FX.dust(at, 10, 0.8)
+	if hull <= 0.0 and not crippled:
+		_set_crippled(true)
+	_send_hull(true)
+
+
+func _set_crippled(on: bool) -> void:
+	if crippled == on:
+		return
+	crippled = on
+	if on:
+		get_tree().call_group("hud", "show_banner", "Hull breached!", "The ship barely makes way until she's patched up", false)
+		FX.sfx("wood_crack", global_position, 4.0, 0.05, 0.7)
+	else:
+		get_tree().call_group("hud", "show_toast", "The hull is patched up")
+
+
+func _send_hull(now: bool) -> void:
+	if not Net.active or Net.is_client():
+		return
+	if now or absf(hull - _hull_sent) >= 8.0:
+		_hull_sent = hull
+		Net.ship_hull(hull)
+
+
+## Co-op client: the host says how the hull is holding up.
+func net_hull(v: float) -> void:
+	if v < hull - 0.5:
+		_since_hit = 0.0
+	hull = v
+	_set_crippled(hull <= 0.0 or (crippled and hull < MAX_HULL * 0.5))
+
+
+func _hull_tick(delta: float) -> void:
+	_since_hit += delta
+	if not Net.is_client():
+		if _since_hit > REPAIR_DELAY and hull < MAX_HULL:
+			hull = minf(hull + REPAIR_RATE * delta, MAX_HULL)
+			_send_hull(false)
+			if crippled and hull >= MAX_HULL * 0.5:
+				_set_crippled(false)
+				_send_hull(true)
+	# a crippled ship smokes and burns on deck
+	if crippled or hull < MAX_HULL * 0.3:
+		_burn_t -= delta
+		if _burn_t <= 0.0:
+			_burn_t = 0.25 if crippled else 0.6
+			var spot := global_transform * Vector3(randf_range(-1.8, 1.8), DECK_Y + 0.2, randf_range(-5.0, 4.0))
+			FX.smoke(spot, 2, 1.2, 2.0)
+			if crippled:
+				FX.flame(spot, 4, 0.5, 0.5, 0.3)
 
 
 ## Bow spray and wake (every machine makes its own from the ship's speed).
@@ -207,6 +337,7 @@ func _wave(p: Vector3, t: float) -> float:
 ## Ship camera (used at the helm): follows the hull's position and heading
 ## but not its pitch/roll/heave jitter, so steering stays steady.
 func _process(delta: float) -> void:
+	_hull_tick(delta)
 	var xf := get_global_transform_interpolated()
 	var heading := xf.basis.get_euler().y
 	_cam_heading = lerp_angle(_cam_heading, heading, minf(4.0 * delta, 1.0))
