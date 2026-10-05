@@ -112,6 +112,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `shippos`: (no description)
 - `shipprobe`: (no description)
 - `shot`: (no description)
+- `skidshot`: Out-of-combat start / stop / skid filmstrip, side view. Args: <out_prefix> <skid|stop|start>
 - `strafeview`: Combat-stance strafing: bodies facing -Z, moving in different directions at combat speed (6 x 0.8). Prints how much the planted foot slides, and saves a filmstrip of one of them. Args: <out_prefix> [dir index for frames, -1 = none]
 - `styleshot`: Fighting styles, fruit forms and the skill map. Args: <out_prefix>
 - `styleshot2`: Fighting styles, fruit forms and the skill map. Args: <out_prefix>

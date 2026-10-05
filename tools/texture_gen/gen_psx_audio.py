@@ -197,6 +197,27 @@ def land_sound():
     write_wav("land", out * 0.8)
 
 
+def skid_sound():
+    """Boots scraping to a stop on dirt: gritty noise, the grit thinning out."""
+    rng = np.random.default_rng(81)
+    n = int(SR * 0.34)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    out = np.zeros(n)
+    acc = 0.0
+    acc2 = 0.0
+    for i in range(n):
+        a = 0.32 - 0.22 * (i / n)  # the scrape's pitch drops as it slows
+        acc += a * (w[i] - acc)
+        acc2 += 0.03 * (acc - acc2)
+        out[i] = acc - acc2
+    # grain: little bursts as the sole catches and slips
+    grain = 0.55 + 0.45 * (lpf(np.abs(rng.standard_normal(n)), 0.02) > 0.75)
+    env = np.minimum(1, t / 0.012) * np.exp(-t * 7.5)
+    thump = np.sin(2 * np.pi * 75 * t) * np.exp(-t * 40) * 0.5
+    finish("skid", out * grain * env + thump, 0.8, fade=0.05)
+
+
 def chitter_sound():
     """Scuttlebug chitter: fast clicking bursts with a raspy hiss under them."""
     rng = np.random.default_rng(83)
@@ -757,6 +778,7 @@ SOUNDS = [
     ("step", step_sound),
     ("jump", jump_sound),
     ("land", land_sound),
+    ("skid", skid_sound),
     ("chitter", chitter_sound),
     ("bug_hiss", bug_hiss_sound),
     ("thud", thud_sound),

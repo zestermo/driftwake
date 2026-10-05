@@ -156,6 +156,18 @@ const TIP_MAX := 0.5
 var _jside: float = 1.0
 var _jv: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var _air_vy: float = 0.0
+## Idle weight shift phase (per body, so a crowd doesn't sway in step).
+var _idle_seed: float = 0.0
+## Out of combat: push-off / planted stop / skid timers (1 -> 0) and what set them.
+var _start: float = 0.0
+var _stop: float = 0.0
+var _stop_k: float = 0.0
+var _stop_side: float = 1.0
+var _skid: float = 0.0
+var _skid_k: float = 0.0
+var _slow_t: float = 0.0
+var _prev_spd: float = 0.0
+var _prev_wdir: Vector3 = Vector3.ZERO
 var _t: float = 0.0
 var _was_grounded: bool = true
 var _land: float = 0.0
@@ -210,6 +222,7 @@ func setup(look_dict: Dictionary) -> Humanoid:
 	_build()
 	_rng.randomize()
 	_glance_t = _rng.randf_range(0.5, 2.5)
+	_idle_seed = _rng.randf() * TAU
 	for j in JOINTS:
 		_cur[j] = Vector3.ZERO
 	return self
@@ -1311,6 +1324,7 @@ func _locomotion(delta: float) -> Dictionary:
 	var spd := ground_speed
 	if spd <= 0.01 and move_speed > 0.01:
 		spd = move_speed * 1.4
+	var air_before := _air_time
 
 	if grounded:
 		# Gait blends by speed: a real walk at low speed (NPCs, light stick),
@@ -1433,6 +1447,23 @@ func _locomotion(delta: float) -> Dictionary:
 			p["arm_r"] += Vector3(-sin(_t * 1.7 + 0.5) * 0.1, 0, 0.12 + b * 0.06) * idle
 			p["fore_l"] += Vector3(0.25 + b * 0.1, 0, 0) * idle
 			p["fore_r"] += Vector3(0.25 + b * 0.1, 0, 0) * idle
+			# weight on one leg, every several seconds shifting to the other: the
+			# standing leg straightens, the other relaxes, the hip drops on the
+			# relaxed side and the chest counters it (not in the combat stance)
+			if not (armed and not sprinting):
+				var w := clampf(sin(_t * 0.35 + _idle_seed) * 3.0, -1.0, 1.0)
+				var ws := absf(w) * idle * (1.0 - smoothstep(0.0, 0.3, _land))
+				var rs := "l" if w > 0.0 else "r"
+				var ss := "r" if w > 0.0 else "l"
+				var ro := -1.0 if rs == "l" else 1.0
+				p["shin_" + ss] += Vector3(0.12, 0, 0) * ws
+				p["shin_" + ss].x = minf(p["shin_" + ss].x, -0.04)
+				p["leg_" + ss] += Vector3(-0.04, 0, 0) * ws
+				p["shin_" + rs] += Vector3(-0.32, 0, 0) * ws
+				p["leg_" + rs] += Vector3(0.16, 0, 0.05 * ro) * ws
+				p["hips"] += Vector3(0, 0.05 * ro, -0.07 * ro) * ws
+				p["torso"] += Vector3(0, -0.04 * ro, 0.06 * ro) * ws
+				lift.x += -0.03 * ro * ws
 		# Zoan hybrid: a low feral crouch, claws out at the sides, and a
 		# forward-pitched, bounding run
 		if armed and stance == "claw":
@@ -1474,6 +1505,10 @@ func _locomotion(delta: float) -> Dictionary:
 				tip.y *= 0.6
 			p["torso"] += Vector3(-tip.y, 0, -tip.x)
 			p["head"] += Vector3(tip.y * 0.4, 0, 0)
+			_casual_moves(p, delta, spd, false)
+		else:
+			_casual_moves(p, delta, spd, true)
+			lift.y -= _casual_dip()
 		_air_time = 0.0
 	else:
 		_air_time += delta
@@ -1516,19 +1551,26 @@ func _locomotion(delta: float) -> Dictionary:
 
 	# landing squash
 	if grounded and not _was_grounded:
-		_land_strength = clampf(absf(vertical_speed) / 14.0, 0.3, 1.0) if _air_time > 0.08 else 0.0
+		_land_strength = clampf(absf(vertical_speed) / 14.0, 0.3, 1.0) if air_before > 0.08 else 0.0
 		_land = 1.0 if _land_strength > 0.0 else 0.0
 	if _land > 0.0:
 		_land = maxf(_land - delta / 0.3, 0.0)
 		var k := sin(_land * PI * 0.5) * _land_strength
-		lift.y -= 0.34 * k
-		p["shin_l"] += Vector3(-1.1 * k, 0, 0)
-		p["shin_r"] += Vector3(-1.1 * k, 0, 0)
-		p["leg_l"] += Vector3(0.6 * k, 0, -0.1 * k)
-		p["leg_r"] += Vector3(0.6 * k, 0, 0.1 * k)
-		p["torso"] += Vector3(-0.35 * k, 0, 0)
-		p["arm_l"] += Vector3(0.3 * k, 0, -0.6 * k)
-		p["arm_r"] += Vector3(0.3 * k, 0, 0.6 * k)
+		# the foot that hung lower in the fall touches down first and takes the
+		# weight; the tucked lead foot comes down a beat later
+		var late := smoothstep(0.0, 0.2, 1.0 - _land)
+		var fs := "r" if _jside > 0.0 else "l"
+		var ls := "l" if _jside > 0.0 else "r"
+		var fo := 1.0 if fs == "r" else -1.0
+		var vary := 1.0 + 0.2 * float(_jv[0])
+		lift.y -= 0.34 * k * lerpf(0.8, 1.0, late)
+		p["shin_" + fs] += Vector3(-1.4 * k, 0, 0)
+		p["leg_" + fs] += Vector3(0.6 * k, 0, 0.1 * k * fo)
+		p["shin_" + ls] += Vector3(-0.6 * k * late - 0.7 * (1.0 - late) * _land_strength, 0, 0)
+		p["leg_" + ls] += Vector3(0.55 * k * late + 0.45 * (1.0 - late) * _land_strength, 0, -0.12 * k * fo)
+		p["torso"] += Vector3(-0.35 * k, 0.08 * k * fo, -0.12 * k * fo * vary)
+		p["arm_" + fs] += Vector3(0.3 * k, 0, 0.4 * k * fo)
+		p["arm_" + ls] += Vector3(0.35 * k, 0, -0.85 * k * fo * vary)
 	_was_grounded = grounded
 
 	if talking:
@@ -1859,6 +1901,73 @@ func _update_look(delta: float) -> void:
 		_hs += _hv * h
 	_hs = _hs.clamp(Vector3(-0.35, -0.35, -0.35), Vector3(0.35, 0.35, 0.35))
 	_look_total = _look + _gait_look + _hs
+
+
+## Out of combat (velocity changes instantly, so these are all pose): a lean
+## into the first step when you set off, a planted stop with a dip when you
+## let go at a jog or run, and a braced skid when you reverse at a run.
+func _casual_moves(p: Dictionary, delta: float, spd: float, casual: bool) -> void:
+	var wdir := global_basis.orthonormalized() * Vector3(local_move.x, 0.0, -local_move.y) if spd > 0.2 else Vector3.ZERO
+	if not casual:
+		_start = 0.0
+		_stop = 0.0
+		_skid = 0.0
+	elif spd > 2.5 and _prev_spd < 0.5 and _slow_t > 0.15:
+		_start = 1.0
+	if casual and spd < 0.5 and _prev_spd > 4.0:
+		_stop = 1.0
+		_stop_k = clampf(0.5 + (_prev_spd - 4.0) / 8.0, 0.5, 1.0)
+		_stop_side = 1.0 if sin(_phase) >= 0.0 else -1.0
+		_start = 0.0
+	if casual and spd > 5.0 and _prev_spd > 5.0 and _prev_wdir.dot(wdir) < -0.3:
+		_skid = 1.0
+		_skid_k = smoothstep(5.0, 9.0, spd)
+		_start = 0.0
+		if is_inside_tree():
+			var fx := get_node_or_null("/root/FX")
+			if fx:
+				fx.call("dust", global_position - _prev_wdir * 0.3, int(6 + 8 * _skid_k), 0.5 + 0.3 * _skid_k)
+				fx.call("sfx", "land", global_position, -7.0 + 4.0 * _skid_k, 0.1, 1.35)
+	_slow_t = _slow_t + delta if spd < 0.5 else 0.0
+	_prev_spd = spd
+	if spd > 0.2:
+		_prev_wdir = wdir
+	if _start > 0.0:
+		_start = maxf(_start - delta / 0.35, 0.0)
+		var e := sin(_start * PI * 0.5)
+		p["torso"] += Vector3(-0.28 * e, 0, 0)
+		p["head"] += Vector3(0.12 * e, 0, 0)
+	if _stop > 0.0:
+		_stop = maxf(_stop - delta / 0.4, 0.0)
+		var e := sin(_stop * PI * 0.5) * _stop_k
+		# the forward foot plants out in front, the back knee folds, the chest
+		# carries on a little and the arms swing through
+		var fs := "l" if _stop_side > 0.0 else "r"
+		var bs := "r" if _stop_side > 0.0 else "l"
+		p["leg_" + fs] += Vector3(0.42 * e, 0, 0)
+		p["shin_" + fs] += Vector3(-0.25 * e, 0, 0)
+		p["leg_" + bs] += Vector3(-0.3 * e, 0, 0)
+		p["shin_" + bs] += Vector3(-0.6 * e, 0, 0)
+		p["torso"] += Vector3(-0.2 * e, 0, 0)
+		p["arm_l"] += Vector3(0.4 * e, 0, -0.1 * e)
+		p["arm_r"] += Vector3(0.4 * e, 0, 0.1 * e)
+	if _skid > 0.0:
+		_skid = maxf(_skid - delta / 0.32, 0.0)
+		var e := sin(_skid * PI * 0.5) * _skid_k
+		# lean toward the new way (in body space, so it holds while you turn
+		# round), knees deep and braced, arms out for balance
+		p["torso"] += Vector3(-local_move.y * 0.45 * e, 0, -local_move.x * 0.45 * e)
+		p["leg_l"] += Vector3(0.35 * e, 0, -0.12 * e)
+		p["leg_r"] += Vector3(0.35 * e, 0, 0.12 * e)
+		p["shin_l"] += Vector3(-0.65 * e, 0, 0)
+		p["shin_r"] += Vector3(-0.65 * e, 0, 0)
+		p["arm_l"] += Vector3(0.3 * e, 0, -0.75 * e)
+		p["arm_r"] += Vector3(0.3 * e, 0, 0.75 * e)
+
+
+## How far the stop / skid drop the hips this frame.
+func _casual_dip() -> float:
+	return 0.09 * sin(_stop * PI * 0.5) * _stop_k + 0.12 * sin(_skid * PI * 0.5) * _skid_k
 
 
 # ==========================================================================

@@ -152,6 +152,34 @@ func jump_poses(n: int) -> Array:
 	return out
 
 
+## A lone body run through phases {spd, mv, t, armed, air}; per phase, per frame:
+## {hips, torso, pivot_y, shin_l, shin_r, skid, stop, start}.
+func body_run(phases: Array) -> Array:
+	var h := Humanoid.new()
+	h.setup(CharacterLook.default_look())
+	root.add_child(h)
+	h.global_position = Vector3(5600, 0, 5000)
+	h.set_process(false)
+	var dt := 1.0 / 60.0
+	var out := []
+	for ph in phases:
+		h.ground_speed = float(ph.get("spd", 0.0))
+		h.local_move = ph.get("mv", Vector2(0, 1))
+		h.armed = bool(ph.get("armed", false))
+		var air := bool(ph.get("air", false))
+		h.grounded = not air
+		var frames := []
+		for f in range(int(float(ph["t"]) * 60.0)):
+			h.vertical_speed = (4.0 - f * 0.4) if air else float(ph.get("vy", 0.0))
+			h._process(dt)
+			frames.append({"hips": h.hips.rotation, "torso": h.torso.rotation, "pivot_y": h.pivot.position.y,
+				"shin_l": h.shin_l.rotation.x, "shin_r": h.shin_r.rotation.x,
+				"skid": h._skid, "stop": h._stop, "start": h._start, "jside": h._jside})
+		out.append(frames)
+	h.queue_free()
+	return out
+
+
 func press(a: String) -> void:
 	var e := InputEventAction.new()
 	e.action = a
@@ -356,6 +384,47 @@ func _process(d: float) -> bool:
 			for g2 in gaps:
 				uniq[g2] = true
 			check("...and not the same pose every time (%d distinct falling poses)" % uniq.size(), uniq.size() >= 6)
+			# --- landings: one foot first, either side
+			var land_sides := {}
+			var land_gap := 99.0
+			for i in range(8):
+				var lr := body_run([{"t": 0.5}, {"t": 0.55, "air": true}, {"t": 0.3, "vy": -10.0}])
+				var fr: Dictionary = lr[2][6]
+				land_sides[fr["jside"]] = true
+				# the first (lower) foot is the right one when the left leads
+				var first_bend: float = -float(fr["shin_r"] if float(fr["jside"]) > 0.0 else fr["shin_l"])
+				var other_bend: float = -float(fr["shin_l"] if float(fr["jside"]) > 0.0 else fr["shin_r"])
+				land_gap = minf(land_gap, first_bend - other_bend)
+			check("landings take the weight on the foot that came down first (it bends %.2f rad more, worst case)" % land_gap, land_gap > 0.25)
+			check("...either foot (%d sides over 8 landings)" % land_sides.size(), land_sides.size() == 2)
+			# --- idle: the weight shifts from leg to leg
+			var idl := body_run([{"t": 24.0}])
+			var roll_lo := 99.0
+			var roll_hi := -99.0
+			var knee_gap := 0.0
+			for fr in idl[0]:
+				roll_lo = minf(roll_lo, (fr["hips"] as Vector3).z)
+				roll_hi = maxf(roll_hi, (fr["hips"] as Vector3).z)
+				knee_gap = maxf(knee_gap, absf(float(fr["shin_l"]) - float(fr["shin_r"])))
+			check("idle weight shifts to both legs (hip roll %.2f..%.2f)" % [roll_lo, roll_hi], roll_lo < -0.04 and roll_hi > 0.04)
+			check("...one knee relaxed, the other straight (gap %.2f rad)" % knee_gap, knee_gap > 0.25)
+			# --- setting off leans into the first step
+			var so := body_run([{"t": 1.0}, {"spd": 6.0, "t": 1.2}])
+			var lean0: float = (so[1][6]["torso"] as Vector3).x
+			var lean1: float = (so[1][so[1].size() - 1]["torso"] as Vector3).x
+			check("setting off leans into the first step (torso %.2f vs %.2f running)" % [lean0, lean1], lean0 < lean1 - 0.12)
+			# --- stopping from a run plants and dips
+			var sp := body_run([{"spd": 6.0, "t": 1.0}, {"t": 1.2}])
+			var dip0: float = sp[1][6]["pivot_y"]
+			var dip1: float = sp[1][sp[1].size() - 1]["pivot_y"]
+			check("stopping from a run plants with a dip (hips %.3f vs %.3f standing)" % [dip0, dip1], dip0 < dip1 - 0.03 and float(sp[1][1]["stop"]) > 0.0)
+			# --- reversing at a run skids; not at a walk, not in the combat stance
+			var sk := body_run([{"spd": 9.0, "t": 1.0}, {"spd": 9.0, "mv": Vector2(0, -1), "t": 0.6}])
+			var back: float = (sk[1][6]["torso"] as Vector3).x
+			check("reversing at a run skids (skid %.2f, leaning toward the new way: torso %.2f)" % [float(sk[1][1]["skid"]), back], float(sk[1][1]["skid"]) > 0.5 and back > 0.15)
+			var sw := body_run([{"spd": 3.0, "t": 1.0}, {"spd": 3.0, "mv": Vector2(0, -1), "t": 0.3}])
+			var sc := body_run([{"spd": 4.8, "t": 1.0, "armed": true}, {"spd": 4.8, "mv": Vector2(0, -1), "t": 0.3, "armed": true}])
+			check("...but not at a walk, or in the combat stance", float(sw[1][1]["skid"]) == 0.0 and float(sc[1][1]["skid"]) == 0.0)
 			# --- the real player: attack / dodge / backpedal, then forward-diagonal
 			var isl = root.get_node("World/Islands/Brinehollow")
 			var v = isl.VILLAGE + Vector2(0, 6)
