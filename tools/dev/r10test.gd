@@ -86,6 +86,32 @@ func strafe_slide(mv: Vector2) -> Array:
 	return [slip / maxf(n, 1), hy / 180.0, cy / 180.0]
 
 
+## A lone armed body run through a list of [local_move, seconds] legs at
+## combat speed; returns per-leg samples of [_gait_back, _travel_ang, torso rotation].
+func gait_run(legs: Array) -> Array:
+	var h := Humanoid.new()
+	h.setup(CharacterLook.default_look())
+	root.add_child(h)
+	h.global_position = Vector3(5200, 0, 5000)
+	h.armed = true
+	h.grounded = true
+	h.ground_speed = 4.8
+	h.set_process(false)
+	var dt := 1.0 / 60.0
+	var out := []
+	for leg in legs:
+		var mv: Vector2 = leg[0]
+		h.local_move = mv
+		var frames := []
+		for f in range(int(float(leg[1]) * 60.0)):
+			h.global_position += Vector3(mv.x, 0, -mv.y) * 4.8 * dt
+			h._process(dt)
+			frames.append([h._gait_back, h._travel_ang, h.torso.rotation])
+		out.append(frames)
+	h.queue_free()
+	return out
+
+
 func _process(d: float) -> bool:
 	t += d
 	if wait > 0.0:
@@ -234,6 +260,22 @@ func _process(d: float) -> bool:
 					var dh: float = r[1] - base[1]
 					var dc: float = r[2] - base[2]
 					check("...the hips turn into the move, the chest stays on the target (hips %.0f deg, chest %.0f deg)" % [rad_to_deg(dh), rad_to_deg(dc)], absf(dh) > 0.5 and absf(dc) < 0.15)
+			# a swing through straight-back (back-left -> back-right), then forward-diagonal:
+			# the travel angle used to wind past ±PI and latch the backpedal gait
+			var g := gait_run([[Vector2(-0.7071, -0.7071), 1.0], [Vector2(0.7071, -0.7071), 1.0], [Vector2(0.7071, 0.7071), 1.5]])
+			var last: Array = g[2][g[2].size() - 1]
+			check("after turning through straight back, forward-diagonal strides forward again (back %s, travel %.0f deg)" % [str(last[0]), rad_to_deg(last[1])], not last[0] and absf(last[1] - PI / 4.0) < 0.1)
+			var wound := false
+			for leg in g:
+				for fr in leg:
+					if absf(fr[1]) > PI + 0.001:
+						wound = true
+			check("...the travel angle stays within ±180 deg", not wound)
+			# chest tip: stepping off to the right rolls the chest right, then it settles
+			var tp := gait_run([[Vector2(0, 1), 1.0], [Vector2(1, 0), 1.5]])
+			var early: Vector3 = tp[1][8][2]
+			var settled: Vector3 = tp[1][tp[1].size() - 1][2]
+			check("a change of direction tips the chest into it (roll %.2f vs settled %.2f)" % [early.z, settled.z], early.z < settled.z - 0.1)
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 	return false

@@ -1,7 +1,8 @@
 extends SceneTree
 ## Combat-stance strafing: bodies facing -Z, moving in different directions
 ## at combat speed (6 x 0.8). Prints how much the planted foot slides, and
-## saves a filmstrip of one of them. Args: <out_prefix> [dir index for frames, -1 = none]
+## saves a filmstrip of one of them. Args: <out_prefix> [dir index for frames, -1 = none] [switch to dir index at the first frame]
+## (with a frame index the other bodies are hidden, which stops their animation: their numbers are meaningless)
 const DIRS := [Vector2(0.7071, 0.7071), Vector2(1, 0), Vector2(0.7071, -0.7071), Vector2(0, -1), Vector2(-0.7071, 0.7071), Vector2(0, 1)]
 const SPEED := 4.8
 var hs: Array = []
@@ -9,6 +10,7 @@ var f := 0
 var out := ""
 var frames := true
 var only := -1
+var switch_to := -1
 var cam: Camera3D
 var slip := {}
 var prev := {}
@@ -22,6 +24,7 @@ func _initialize():
 	var a := OS.get_cmdline_user_args()
 	out = a[0]
 	only = int(a[1]) if a.size() > 1 else -1
+	switch_to = int(a[2]) if a.size() > 2 else -1
 	frames = only >= 0
 	var env := WorldEnvironment.new(); var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR; e.background_color = Color(0.42, 0.56, 0.72)
@@ -56,9 +59,12 @@ func _process(_d):
 	t += dt
 	if f == 2:
 		root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+	if f == 61 and only >= 0 and switch_to >= 0:
+		hs[only].local_move = DIRS[switch_to]
 	for i in range(hs.size()):
 		var h: Humanoid = hs[i]
-		var v := Vector3(DIRS[i].x, 0, -DIRS[i].y) * SPEED
+		var mv: Vector2 = h.local_move
+		var v := Vector3(mv.x, 0, -mv.y) * SPEED
 		h.position += v * dt
 		h._process(dt)
 		# the planted (lower) foot shouldn't slide over the ground
