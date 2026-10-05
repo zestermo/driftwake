@@ -1458,6 +1458,13 @@ func _ship_owner(id: int, state: Array) -> void:
 		ship.net_take_over(state)
 
 
+## Everyone: the host changed the weather override / skipped time.
+func _all_weather(s: int, at: float, offset: float) -> void:
+	var w := get_node_or_null("/root/Weather")
+	if w:
+		w.net_apply(s, at, offset)
+
+
 ## Host: the crew's ship hull changed.
 func ship_hull(v: float) -> void:
 	if hosting and world_ready:
@@ -1489,7 +1496,12 @@ func _world_state() -> Dictionary:
 	var ship := _ship()
 	return {"ents": ents, "spawners": spawners, "burned": gm.burned.keys() if gm else [], "ship_owner": ship_owner,
 		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
-		"hull": float(ship.get("hull")) if ship else 0.0}
+		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state()}
+
+
+func _weather_state() -> Array:
+	var w := get_node_or_null("/root/Weather")
+	return [int(w.forced), float(w.forced_at), float(w.world_offset)] if w else []
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -1503,6 +1515,10 @@ func _world_sync(state: Dictionary) -> void:
 func _apply_world_sync(state: Dictionary) -> void:
 	ship_owner = int(state.get("ship_owner", 1))
 	seats = (state.get("seats", {}) as Dictionary).duplicate()
+	var wst: Array = state.get("weather", [])
+	var wn := get_node_or_null("/root/Weather")
+	if wn and wst.size() >= 3:
+		wn.net_apply(int(wst[0]), float(wst[1]), float(wst[2]))
 	var ship := _ship()
 	if ship and ship.has_method("net_hull") and state.has("hull"):
 		ship.net_hull(float(state["hull"]))

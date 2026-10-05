@@ -21,11 +21,20 @@ uniform float emission_pulse = 0.0;
 // 16 slots), which a village full of characters and props would exceed.
 // Objects that flash use their own material copies (see dummy_target.gd).
 uniform vec4 tint_mul : source_color = vec4(1.0);
+// Pull the surface toward the camera (metres, growing with distance): hair
+// sits a couple of centimetres off the scalp, and far away vertex snapping +
+// depth precision let the scalp poke through without this.
+uniform float depth_pull = 0.0;
 
 varying vec3 affine_uv;
 
 void vertex() {
-	vec4 clip = PROJECTION_MATRIX * (MODELVIEW_MATRIX * vec4(VERTEX, 1.0));
+	vec4 view = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+	if (depth_pull > 0.0 && !IN_SHADOW_PASS) {
+		float dd = -view.z;
+		view.xyz -= normalize(view.xyz) * depth_pull * clamp(dd / 5.0, 0.6, 5.0);
+	}
+	vec4 clip = PROJECTION_MATRIX * view;
 	// Never snap in the shadow pass: the light's projection follows the camera, so
 	// snapping there makes shadows pop and flicker as the player moves.
 	if (!IN_SHADOW_PASS) {
@@ -38,7 +47,7 @@ void vertex() {
 void fragment() {
 	vec2 uv_persp = UV * uv_scale;
 	vec2 uv_aff = affine_uv.xy / affine_uv.z;
-	vec2 uv = mix(uv_persp, uv_aff, psx_affine * affine_amount * (1.0 - psx_far(affine_uv.z)));
+	vec2 uv = mix(uv_persp, uv_aff, affine_amount * psx_affine_at(affine_uv.z));
 
 	vec4 tex = texture(albedo_tex, uv);
 	vec3 tint = albedo_color.rgb;

@@ -27,6 +27,7 @@ Dialogue="*res://scripts/dialogue/dialogue_manager.gd"
 GameMenu="*res://scripts/ui/game_menu.gd"
 Net="*res://scripts/net/network_manager.gd"
 Music="*res://scripts/game/music.gd"
+Weather="*res://scripts/world/weather.gd"
 
 [display]
 

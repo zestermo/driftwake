@@ -51,7 +51,7 @@ func _ready() -> void:
 	_fps.add_theme_color_override("font_outline_color", Color.BLACK)
 	_fps.add_theme_constant_override("outline_size", 3)
 	_fps.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_fps.offset_left = -60; _fps.offset_top = 28; _fps.offset_right = -10
+	_fps.offset_left = -90; _fps.offset_top = 19; _fps.offset_right = -10
 	_fps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_fps)
 	_build_coop()
@@ -87,9 +87,14 @@ func _process(delta: float) -> void:
 	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT
 	_skill_bar.visible = show_bar and not _menu_open
 	toast.visible = true
-	_fps.visible = Settings.get_value("video", "show_fps")
-	if _fps.visible:
-		_fps.text = "%d FPS" % Engine.get_frames_per_second()
+	_fps.visible = true
+	var wx := get_node_or_null("/root/Weather")
+	var clock := str(wx.clock_text()) if wx and wx.get("_scene") != null else ""
+	if Settings.get_value("video", "show_fps"):
+		_fps.text = "%d FPS\n%s" % [Engine.get_frames_per_second(), clock]
+	else:
+		_fps.text = clock
+	_fps.visible = _fps.text != "" and not _menu_open
 	if state_label.visible and player and player.state_machine and player.state_machine.current_state:
 		state_label.text = player.state_machine.current_state.name
 
@@ -222,7 +227,7 @@ func _build_feed() -> void:
 	_feed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_feed.offset_left = -150
 	_feed.offset_right = -8
-	_feed.offset_top = 32
+	_feed.offset_top = 44
 	_feed.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_feed.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_feed.add_theme_constant_override("separation", 1)

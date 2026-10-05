@@ -424,8 +424,12 @@ func add_loft(mat: Material, xf: Transform3D, rings: Array, profile: PackedVecto
 			var vb1 := PackedInt32Array([b0, b0, b1])
 			var vb2 := PackedInt32Array([b0, b1, b1])
 			var qm := mat
-			# projected decal region (e.g. a face wrapped around a head)
-			if face_mat != null and face_pick.call((grid[r][i] + grid[r][i1] + grid[r + 1][i1] + grid[r + 1][i]) * 0.25):
+			# projected decal region (e.g. a face wrapped around a head); the
+			# picker may also hand back another material for a quad
+			var pk = face_pick.call((grid[r][i] + grid[r][i1] + grid[r + 1][i1] + grid[r + 1][i]) * 0.25) if face_mat != null else false
+			if pk is Material:
+				qm = pk
+			elif pk:
 				qm = face_mat
 				ua = face_uv.call(grid[r][i]); ub = face_uv.call(grid[r][i1])
 				uc = face_uv.call(grid[r + 1][i1]); ud = face_uv.call(grid[r + 1][i])

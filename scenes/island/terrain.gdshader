@@ -53,7 +53,9 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 wuv = mix(world_pos.xz, affine_w.xy / affine_w.z, psx_affine * affine_amount);
+	// (world-space texturing stays put: affine warp on these big triangles made
+	// the ground slide with the camera)
+	vec2 wuv = world_pos.xz;
 	vec2 uv = wuv * tex_scale;
 	float h = world_pos.y;
 	float slope = 1.0 - clamp(normalize(world_normal).y, 0.0, 1.0);

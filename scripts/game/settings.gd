@@ -13,7 +13,7 @@ const DEFAULTS := {
 		"psx_preset": 4,        # index into PSX.PRESETS (4 = 960x540, the default since v2)
 		"dither": true,
 		"wobble": 1.0,          # vertex snapping strength 0..1
-		"warp": 0.6,            # affine texture warp 0..1
+		"warp": 0.0,            # affine texture warp 0..1 (off by default since v3)
 		"fov": 75.0,
 		"show_fps": false,
 	},
@@ -104,10 +104,15 @@ func _load() -> void:
 	if int(cfg.get_value("meta", "version", 1)) < 2:
 		if int(_values["video"]["psx_preset"]) == 0:
 			_values["video"]["psx_preset"] = 4
+	# v3: affine texture warp made textures slide with the camera - off unless
+	# someone turned it up themselves
+	if int(cfg.get_value("meta", "version", 1)) < 3:
+		if absf(float(_values["video"]["warp"]) - 0.6) < 0.01:
+			_values["video"]["warp"] = 0.0
 		save()
 
 
-const VERSION := 2
+const VERSION := 3
 
 
 func _ensure_buses() -> void:

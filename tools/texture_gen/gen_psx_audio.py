@@ -679,6 +679,70 @@ def rope_sound():
     finish("rope", out, 0.8, fade=0.04)
 
 
+def _loop_xfade(data, fade_s):
+    fade = int(SR * fade_s)
+    r = np.linspace(0, 1, fade)
+    data[:fade] = data[:fade] * r + data[-fade:] * (1 - r)
+    return data[:-fade]
+
+
+def rain_loop_sound(seconds=8.0):
+    """Steady rain: filtered hiss with a bed of tiny droplet ticks (seamless loop)."""
+    rng = np.random.default_rng(211)
+    n = int(SR * (seconds + 0.6))
+    w = rng.standard_normal(n)
+    hiss = hpf(lpf(w, 0.45), 0.05) * 0.5
+    body = lpf(rng.standard_normal(n), 0.06) * 0.6
+    drops = np.zeros(n)
+    for _ in range(int(seconds * 260)):
+        p = rng.integers(0, n - 200)
+        L = rng.integers(30, 160)
+        drops[p:p + L] += hpf(rng.standard_normal(L), 0.3) * np.exp(-np.arange(L) / (L / 5)) * rng.uniform(0.1, 0.5)
+    out = hiss + body + drops * 0.6
+    out = _loop_xfade(out, 0.6)
+    out = out - np.mean(out)
+    out /= np.max(np.abs(out)) + 1e-9
+    write_wav("rain_loop", out * 0.7)
+
+
+def wind_loop_sound(seconds=10.0):
+    """Gusting sea wind: band-limited noise whose loudness and pitch swell (loops)."""
+    rng = np.random.default_rng(223)
+    n = int(SR * (seconds + 1.0))
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    gust = 0.55 + 0.45 * np.sin(2 * np.pi * t * (2 / (seconds + 1.0))) ** 2
+    gust *= 0.8 + 0.2 * np.sin(2 * np.pi * t * (5 / (seconds + 1.0)) + 1.3)
+    low = lpf(w, 0.02)
+    mid = resonate(w, 420.0, 1.5) * 0.04
+    whistle = resonate(w, 1150.0, 12.0) * 0.012 * gust ** 3
+    out = (low * 4.0 + mid) * gust + whistle
+    out = _loop_xfade(out, 1.0)
+    out = out - np.mean(out)
+    out /= np.max(np.abs(out)) + 1e-9
+    write_wav("wind_loop", out * 0.7)
+
+
+def thunder_sound(name="thunder", seed=231, dur=4.5, crack=1.0):
+    """Thunder: a sharp crack (close strikes) rolling into long low rumbles."""
+    rng = np.random.default_rng(seed)
+    n = int(SR * dur)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    snap = hpf(w, 0.25) * np.exp(-t * 30) * np.minimum(1, t / 0.002) * crack
+    env = np.zeros(n)
+    k = 0.05
+    while k < dur - 0.5:
+        a = rng.uniform(0.4, 1.0) * np.exp(-k * 0.55)
+        env += a * np.exp(-np.maximum(t - k, 0) * rng.uniform(1.5, 3.5)) * (t >= k)
+        k += rng.uniform(0.12, 0.6)
+    rumble = lpf(lpf(rng.standard_normal(n), 0.02), 0.03)
+    rumble /= np.max(np.abs(rumble)) + 1e-9
+    out = snap * 0.8 + rumble * env * 1.4
+    out = lpf(out, 0.4)
+    finish(name, out, 0.9, fade=0.8)
+
+
 SOUNDS = [
     ("blip", lambda: blip(520, name="blip")),
     ("blip_low", lambda: blip(330, name="blip_low")),
@@ -715,6 +779,10 @@ SOUNDS = [
     ("bell", bell_sound),
     ("splash_big", splash_big_sound),
     ("rope", rope_sound),
+    ("rain_loop", rain_loop_sound),
+    ("wind_loop", wind_loop_sound),
+    ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),
+    ("thunder_far", lambda: thunder_sound("thunder_far", 237, 5.0, 0.15)),
 ]
 
 

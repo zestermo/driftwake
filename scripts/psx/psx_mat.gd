@@ -42,6 +42,8 @@ static func lit(tex_name: String, tint: Color = Color.WHITE, opts: Dictionary = 
 		if not opts.has("emission_tex"):
 			# Full-surface glow: use a white emission texture
 			m.set_shader_parameter("emission_tex", _white())
+	if opts.has("pull"):
+		m.set_shader_parameter("depth_pull", float(opts["pull"]))
 	if opts.has("cull_disabled"):
 		m.render_priority = 0
 	_cache[key] = m

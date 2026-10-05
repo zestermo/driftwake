@@ -16,6 +16,13 @@ float psx_far(float depth) {
 	return smoothstep(PSX_NEAR, PSX_FAR, depth);
 }
 
+// How much affine (PS1) texture warp to use at a depth: none right up
+// against the camera (big polygons there make textures slide around as the
+// camera moves) and none far away; the global psx_affine in between.
+float psx_affine_at(float depth) {
+	return psx_affine * smoothstep(2.0, 7.0, depth) * (1.0 - psx_far(depth));
+}
+
 // Snap a clip-space position to a coarse screen grid (PS1 had no sub-pixel precision).
 vec4 psx_snap(vec4 clip, vec2 res) {
 	if (clip.w <= 0.0) {

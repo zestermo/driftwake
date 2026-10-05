@@ -253,12 +253,13 @@ static func save(player: Player) -> bool:
 		"player_yaw": player.player_model.rotation.y,
 		"ship_pos": ship.global_position if ship else Vector3.INF,
 		"ship_yaw": ship.global_rotation.y if ship else 0.0,
+		"world_time": float(player.get_node("/root/Weather").world_time()) if player.get_node_or_null("/root/Weather") else 0.0,
 	}
 	var old := _read(path())
 	data["char_id"] = str(old.get("char_id", "%08x%08x" % [randi(), randi()]))
 	if _guest(player):
 		# keep our own world's state, not the host's
-		for k in ["burned", "fruit_claims", "ship_pos", "ship_yaw", "player_pos", "player_yaw"]:
+		for k in ["burned", "fruit_claims", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time"]:
 			if old.has(k):
 				data[k] = old[k]
 			else:
@@ -353,6 +354,9 @@ static func load_into(player: Player) -> bool:
 			for k in data.get("burned", []):
 				gm.burned[str(k)] = true
 			gm.fruit_claims = (data.get("fruit_claims", {}) as Dictionary).duplicate()
+			var wn := player.get_node_or_null("/root/Weather")
+			if wn and data.has("world_time"):
+				wn.set_world_time(float(data["world_time"]))
 		gm.apply_world_state()
 		if guest:
 			_loading = false

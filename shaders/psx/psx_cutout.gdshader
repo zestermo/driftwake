@@ -41,7 +41,7 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 uv = mix(UV, affine_uv.xy / affine_uv.z, psx_affine * affine_amount * (1.0 - psx_far(affine_uv.z)));
+	vec2 uv = mix(UV, affine_uv.xy / affine_uv.z, affine_amount * psx_affine_at(affine_uv.z));
 	vec4 tex = texture(albedo_tex, uv);
 	vec3 tint = albedo_color.rgb;
 	if (use_vertex_color) {

@@ -65,7 +65,7 @@ void vertex() {
 
 void fragment() {
 	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), fresnel_power);
-	vec2 wuv = mix(world_pos.xz, affine_w.xy / affine_w.z, psx_affine * 0.3);
+	vec2 wuv = world_pos.xz;
 	vec3 tex = texture(water_tex, wuv * water_tex_scale + water_scroll * time_val).rgb;
 
 	vec3 base_color = mix(deep_color.rgb, shallow_color.rgb, fresnel);

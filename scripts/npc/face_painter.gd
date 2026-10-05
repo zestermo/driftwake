@@ -22,6 +22,10 @@ const TEETH := Color(0.98, 0.97, 0.93)
 static var _cache: Dictionary = {}
 
 var img: Image
+## The hair style's hairline (BodyBuilder.HAIRLINES): above it the face
+## texture is hair-coloured, so the forehead/scalp under the hair never shows
+## skin through it.
+var hairline: Array = []
 
 
 ## UV for a head-local point (y already divided by any vertical head stretch).
@@ -40,14 +44,15 @@ static func px(angle_deg: float, y: float) -> Vector2:
 	return Vector2((0.5 + deg_to_rad(angle_deg) / (2.0 * SPAN)) * SIZE, (Y_TOP - y) / (Y_TOP - Y_BOT) * SIZE)
 
 
-static func material(lk: Dictionary, eye_scale: float) -> Material:
-	var key := "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%.2f" % [lk.get("eyes", 0), lk.get("brows", 0), lk.get("mouth", 0),
+static func material(lk: Dictionary, eye_scale: float, hairline: Array = []) -> Material:
+	var key := str(hairline.hash()) + "|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%.2f" % [lk.get("eyes", 0), lk.get("brows", 0), lk.get("mouth", 0),
 		lk.get("marks", "none"), lk.get("facial_hair", "none"), lk.get("eyepatch", false), lk.get("body", "masc"),
 		(lk.get("eye_color", Color.BROWN) as Color).to_html(), (lk.get("hair_color", Color.BLACK) as Color).to_html(),
 		(lk.get("skin", Color.WHITE) as Color).to_html(), lk.get("head", "round"), lk.get("style", ""), eye_scale]
 	if _cache.has(key):
 		return _cache[key]
 	var fp := FacePainter.new()
+	fp.hairline = hairline
 	fp.paint(lk, eye_scale)
 	var m := ShaderMaterial.new()
 	m.shader = LIT_SHADER
@@ -67,6 +72,15 @@ func paint(lk: Dictionary, eye_scale: float) -> void:
 	var hair: Color = lk.get("hair_color", Color(0.2, 0.12, 0.08))
 	var skin: Color = lk.get("skin", Color(0.85, 0.65, 0.5))
 	var marks := str(lk.get("marks", "none"))
+	if not hairline.is_empty():
+		var hc := hair.darkened(0.15)
+		for x in range(SIZE):
+			var a := ((float(x) + 0.5) / SIZE - 0.5) * 2.0 * SPAN
+			var hl := BodyBuilder._hairline(hairline, a) + 0.015
+			for y in range(SIZE):
+				var hy := Y_TOP - (float(y) + 0.5) / SIZE * (Y_TOP - Y_BOT)
+				if hy > hl:
+					img.set_pixel(x, y, Color(hc.r, hc.g, hc.b, 1.0))
 	_marks_under(marks, skin)
 	if str(lk.get("facial_hair", "none")) == "stubble":
 		_stubble(hair)

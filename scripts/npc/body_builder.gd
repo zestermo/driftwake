@@ -89,7 +89,10 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	Hk = float(st["hand"]) * (0.84 if fem else 1.0)
 	Fk = float(st["foot"]) * (0.86 if fem else 1.0)
 	m_skin = PSXMat.flat(_col("skin"))
-	m_hair = _textured("hair", _col("hair_color"))
+	# (pulled a touch toward the camera so the scalp never shows through it)
+	var hk := 1.25
+	var hc := _col("hair_color")
+	m_hair = PSXMat.lit("hair", Color(minf(hc.r * hk, 1.0), minf(hc.g * hk, 1.0), minf(hc.b * hk, 1.0)), {"pull": 0.01})
 	_skeleton()
 	_colliders()
 	_legs()
@@ -636,9 +639,25 @@ func _head() -> void:
 	for r in head_rings:
 		r[0] = float(r[0]) * yk
 	var mb := MeshBuilder.new()
-	var face := FacePainter.material(lk, float(st["eye"]))
+	var hs := str(lk.get("hair", "short"))
+	var face := FacePainter.material(lk, float(st["eye"]), [] if hs == "bald" else HAIRLINES.get(hs, HAIRLINES["ponytail"] if hs == "bun" else HAIRLINES["short"]))
+	# under the hair the scalp is hair-coloured: wherever it peeks through the
+	# hair shell (vertex snapping at a distance) it still reads as hair
+	var scalp: Material = null
+	var hstyle := str(lk.get("hair", "short"))
+	var hline: Array = []
+	if hstyle != "bald":
+		scalp = PSXMat.flat(_col("hair_color").darkened(0.15))
+		hline = HAIRLINES.get(hstyle, HAIRLINES["ponytail"] if hstyle == "bun" else HAIRLINES["short"])
+	var hy := yk
+	var pick := func(c: Vector3):
+		if FacePainter.pick(c, hy):
+			return true
+		if scalp != null and c.y / hy > BodyBuilder._hairline(hline, atan2(c.x, -c.z)) + 0.015:
+			return scalp
+		return false
 	mb.add_loft(m_skin, Transform3D.IDENTITY, head_rings, R, 3.0, Color.WHITE, true, true, true, false, false,
-		PackedInt32Array(), face, Callable(FacePainter, "uv").bind(yk), Callable(FacePainter, "pick").bind(yk))
+		PackedInt32Array(), face, Callable(FacePainter, "uv").bind(yk), pick)
 	_nose(mb)
 	# ears (covered by long hair)
 	var ears := [] if hair_hides_ears(str(lk.get("hair", "short"))) and str(lk.get("hat", "none")) != "hood" else [-1.0, 1.0]
