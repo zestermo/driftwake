@@ -348,7 +348,8 @@ func _torso_rings() -> Array:
 	if fem:
 		var w := bf["wa"] as float * float(st["wa"]) * 1.02
 		r = [
-			[0.0, 0.128 * w, 0.098 * de, 0.0, 0.0, B],
+			# (narrowest at 0.11; already flaring toward the hips at the bottom: hourglass)
+			[0.0, 0.142 * w, 0.1 * de, 0.0, 0.0, B],
 			[0.11, 0.125 * w, 0.096 * de, 0.0, 0.0, B],
 			[0.22, 0.14 * ch, 0.104 * de, -0.004, 0.0, B],
 			[0.31, 0.158 * ch, 0.126 * de, -0.016, 0.0, P_BUST()],
@@ -396,8 +397,12 @@ func _thigh_rings(side: float) -> Array:
 	var inx := -side * 0.015
 	# (the dome stays below the waist: higher, its sides poked out above the shirt hem)
 	if fem:
-		return [[0.05, 0.04 * L, 0.045 * L, 0.0, inx], [0.02, 0.072 * L, 0.078 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.094 * L, 0.1 * L, 0.005],
-			[-0.24 * Ls, 0.084 * L, 0.09 * L, 0.002], [-0.42 * Ls, 0.06 * L, 0.07 * L], [-0.45 * Ls, 0.05 * L, 0.058 * L, -0.004]]
+		# full, rounded thighs set a little toward the middle: they meet near the
+		# top and only part slightly toward the knee
+		var fi := -side * 0.02
+		return [[0.05, 0.045 * L, 0.05 * L, 0.0, inx], [0.02, 0.082 * L, 0.088 * L, 0.004, fi], [-0.05 * Ls, 0.106 * L, 0.11 * L, 0.008, fi],
+			[-0.14 * Ls, 0.102 * L, 0.104 * L, 0.006, fi * 0.75], [-0.24 * Ls, 0.088 * L, 0.092 * L, 0.003, fi * 0.4],
+			[-0.34 * Ls, 0.072 * L, 0.078 * L, 0.0], [-0.42 * Ls, 0.062 * L, 0.07 * L], [-0.45 * Ls, 0.052 * L, 0.058 * L, -0.004]]
 	return [[0.05, 0.04 * L, 0.045 * L, 0.0, inx], [0.02, 0.066 * L, 0.074 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.084 * L, 0.094 * L, 0.004],
 		[-0.24 * Ls, 0.085 * L, 0.094 * L, 0.002], [-0.42 * Ls, 0.066 * L, 0.076 * L], [-0.45 * Ls, 0.056 * L, 0.064 * L, -0.004]]
 
@@ -486,14 +491,30 @@ func _pelvis() -> void:
 	var wd := float(tr0[2])
 	var rings: Array
 	if fem:
-		rings = [[0.04, ww * 0.9, wd * 0.9], [0.0, ww + 0.004, wd + 0.004], [-0.05, lerpf(ww, hw, 0.7), lerpf(wd, hd, 0.7), 0.004],
-			[-0.1, hw, hd, 0.008], [-0.14, hw * 0.94, hd * 0.92, 0.006], [-0.175, hw * 0.66, hd * 0.76], [-0.2, hw * 0.26, hd * 0.34]]
+		# a rounded seat that sits back and curves under into the thighs; the seat
+		# rings pull the back centre in (the cleft) so it reads as two glutes
+		var seat := _seat_profile(1.0)
+		var cleft := _seat_profile(0.84)
+		rings = [[0.04, ww * 0.9, wd * 0.9, 0.0, 0.0, seat], [0.0, ww + 0.004, wd + 0.004, 0.0, 0.0, seat],
+			[-0.03, lerpf(ww, hw, 0.55), lerpf(wd, hd, 0.5), 0.004, 0.0, seat],
+			[-0.065, lerpf(ww, hw, 0.88), lerpf(wd, hd, 0.85), 0.012, 0.0, _seat_profile(0.94)],
+			[-0.1, hw, hd * 1.08, 0.02, 0.0, cleft], [-0.145, hw * 0.97, hd * 1.08, 0.024, 0.0, cleft],
+			[-0.18, hw * 0.84, hd * 0.92, 0.02, 0.0, cleft], [-0.205, hw * 0.58, hd * 0.62, 0.012, 0.0, _seat_profile(0.9)],
+			[-0.222, hw * 0.24, hd * 0.28, 0.006, 0.0, seat]]
 	else:
 		rings = [[0.04, ww * 0.9, wd * 0.9], [0.0, ww + 0.004, wd + 0.004], [-0.045, lerpf(ww, hw, 0.6), lerpf(wd, hd, 0.6), 0.003],
 			[-0.095, hw, hd, 0.006], [-0.135, hw * 0.94, hd * 0.92, 0.005], [-0.17, hw * 0.66, hd * 0.72], [-0.195, hw * 0.26, hd * 0.32]]
 	var mb := MeshBuilder.new()
-	mb.add_loft(m, Transform3D.IDENTITY, rings, MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, true, false)
+	mb.add_loft(m, Transform3D.IDENTITY, rings, _seat_profile(1.0) if fem else MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, true, false)
 	_mesh(h.hips, mb)
+
+
+## Rounded 12-point hip cross-section (-z = front). `back` < 1 pulls the back
+## centre in while the two sides stay full: the cleft between the glutes.
+func _seat_profile(back: float) -> PackedVector2Array:
+	var bulge := 1.0 + (1.0 - back) * 0.35
+	return MeshBuilder.profile_mirror(PackedVector2Array([Vector2(0, -1), Vector2(0.55, -0.92), Vector2(0.92, -0.5),
+		Vector2(1.0, 0.05), Vector2(0.9, 0.6), Vector2(0.5, 0.97 * bulge), Vector2(0, back)]))
 
 
 func _torso() -> void:

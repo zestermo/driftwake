@@ -54,7 +54,11 @@ func _initialize():
 	w.add_child(tgt)
 	h = Humanoid.new()
 	h.swappable_hands = true
-	h.setup(CharacterLook.base_look() if OS.get_environment("PB_BASE") != "" else CharacterLook.default_look())
+	var lk0 := CharacterLook.base_look() if OS.get_environment("PB_BASE") != "" else CharacterLook.default_look()
+	if OS.get_environment("PB_FEM") != "":
+		lk0["body"] = "fem"
+		lk0["hair"] = "long"
+	h.setup(lk0)
 	w.add_child(h)
 	h.stance = stance
 	if weapon != "none":
@@ -111,6 +115,9 @@ func place_cam(v: String) -> void:
 		"hipss":
 			c = Vector3(0, 0.95, 0)
 			cam.global_position = c + Vector3(-1.9, 0.1, 0)
+		"hipsf":
+			c = Vector3(0, 0.95, 0)
+			cam.global_position = c + Vector3(0, 0.15, -1.9)
 		"hips3":
 			c = Vector3(0, 0.95, 0)
 			cam.global_position = c + Vector3(-1.35, 0.2, 1.35)
