@@ -493,28 +493,53 @@ func _pelvis() -> void:
 	if fem:
 		# a rounded seat that sits back and curves under into the thighs; the seat
 		# rings pull the back centre in (the cleft) so it reads as two glutes
+		# (the seat fills out right under the belt so its top is round and high)
 		var seat := _seat_profile(1.0)
-		var cleft := _seat_profile(0.84)
 		rings = [[0.04, ww * 0.9, wd * 0.9, 0.0, 0.0, seat], [0.0, ww + 0.004, wd + 0.004, 0.0, 0.0, seat],
-			[-0.03, lerpf(ww, hw, 0.55), lerpf(wd, hd, 0.5), 0.004, 0.0, seat],
-			[-0.065, lerpf(ww, hw, 0.88), lerpf(wd, hd, 0.85), 0.012, 0.0, _seat_profile(0.94)],
-			[-0.1, hw, hd * 1.08, 0.02, 0.0, cleft], [-0.145, hw * 0.97, hd * 1.08, 0.024, 0.0, cleft],
-			[-0.18, hw * 0.84, hd * 0.92, 0.02, 0.0, cleft], [-0.205, hw * 0.58, hd * 0.62, 0.012, 0.0, _seat_profile(0.9)],
-			[-0.222, hw * 0.24, hd * 0.28, 0.006, 0.0, seat]]
+			[-0.025, lerpf(ww, hw, 0.45), lerpf(wd, hd, 0.55), 0.008, 0.0, _seat_profile(0.92)],
+			[-0.055, lerpf(ww, hw, 0.8), hd * 0.98, 0.014, 0.0, _seat_profile(0.84)],
+			[-0.09, hw, hd * 1.02, 0.018, 0.0, _seat_profile(0.8)], [-0.13, hw * 0.98, hd * 1.02, 0.018, 0.0, _seat_profile(0.8)],
+			[-0.165, hw * 0.88, hd * 0.9, 0.014, 0.0, _seat_profile(0.82)], [-0.195, hw * 0.64, hd * 0.62, 0.008, 0.0, _seat_profile(0.88)],
+			[-0.218, hw * 0.3, hd * 0.3, 0.004, 0.0, seat]]
 	else:
 		rings = [[0.04, ww * 0.9, wd * 0.9], [0.0, ww + 0.004, wd + 0.004], [-0.045, lerpf(ww, hw, 0.6), lerpf(wd, hd, 0.6), 0.003],
 			[-0.095, hw, hd, 0.006], [-0.135, hw * 0.94, hd * 0.92, 0.005], [-0.17, hw * 0.66, hd * 0.72], [-0.195, hw * 0.26, hd * 0.32]]
 	var mb := MeshBuilder.new()
 	mb.add_loft(m, Transform3D.IDENTITY, rings, _seat_profile(1.0) if fem else MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, true, false)
+	if fem:
+		# two glutes, one behind each hip joint: overlapping a little at the middle
+		# (the crease where they meet) and each with its own round underside
+		var lg := float(st["leg_gap"])
+		for s in [-1.0, 1.0]:
+			_glute(mb, m, Vector3(s * lg * 0.72, -0.124, hd * 0.6), Vector3(0.082, 0.102, 0.084) * Vector3(hp, 1.0, de))
 	_mesh(h.hips, mb)
+
+
+## A rounded lobe (ellipsoid) with radii r, centred at c in the pelvis's space.
+func _glute(mb: MeshBuilder, m: Material, c: Vector3, r: Vector3) -> void:
+	var prof := PackedVector2Array()
+	for i in range(12):
+		var a := TAU * i / 12.0
+		prof.append(Vector2(sin(a), -cos(a)))
+	var rings := []
+	for deg in [84.0, 62.0, 35.0, 8.0, -20.0, -46.0, -68.0, -86.0]:
+		var a := deg_to_rad(deg)
+		rings.append([r.y * sin(a), r.x * cos(a), r.z * cos(a)])
+	# wrapped uv (the loft's own u comes from its tiny top ring and stripes the cloth);
+	# the seam is at the front, buried in the pelvis
+	var wrap := func(p: Vector3) -> Vector2: return Vector2(atan2(p.x, p.z) * r.x * 3.0, -p.y * 3.0)
+	mb.add_loft(m, Transform3D(Basis(), c), rings, prof, 3.0, Color.WHITE, true, true, true, false, false,
+		PackedInt32Array(), m, wrap, func(_p: Vector3) -> bool: return true)
 
 
 ## Rounded 12-point hip cross-section (-z = front). `back` < 1 pulls the back
 ## centre in while the two sides stay full: the cleft between the glutes.
 func _seat_profile(back: float) -> PackedVector2Array:
-	var bulge := 1.0 + (1.0 - back) * 0.35
+	# extra points round the back so each glute is its own rounded lobe
+	var b := 1.0 + (1.0 - back) * 0.3
 	return MeshBuilder.profile_mirror(PackedVector2Array([Vector2(0, -1), Vector2(0.55, -0.92), Vector2(0.92, -0.5),
-		Vector2(1.0, 0.05), Vector2(0.9, 0.6), Vector2(0.5, 0.97 * bulge), Vector2(0, back)]))
+		Vector2(1.0, 0.05), Vector2(0.93, 0.48), Vector2(0.76, 0.84 * b), Vector2(0.48, 1.0 * b), Vector2(0.2, 0.96 * b),
+		Vector2(0, back)]))
 
 
 func _torso() -> void:
