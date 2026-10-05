@@ -58,6 +58,10 @@ func _initialize():
 	if OS.get_environment("PB_FEM") != "":
 		lk0["body"] = "fem"
 		lk0["hair"] = "long"
+	# look overrides, e.g. PB_KV="legs=shorts;build=broad;top=tube"
+	for kv in OS.get_environment("PB_KV").split(";", false):
+		var p := kv.split("=")
+		lk0[p[0]] = p[1]
 	h.setup(lk0)
 	w.add_child(h)
 	h.stance = stance

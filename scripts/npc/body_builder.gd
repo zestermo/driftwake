@@ -522,9 +522,14 @@ func _glute(mb: MeshBuilder, m: Material, c: Vector3, r: Vector3) -> void:
 		var a := TAU * i / 12.0
 		prof.append(Vector2(sin(a), -cos(a)))
 	var rings := []
-	for deg in [84.0, 62.0, 35.0, 8.0, -20.0, -46.0, -68.0, -86.0]:
+	for deg in [84.0, 62.0, 35.0, 8.0]:
 		var a := deg_to_rad(deg)
 		rings.append([r.y * sin(a), r.x * cos(a), r.z * cos(a)])
+	# below the middle it stays full and tapers forward into the back of the
+	# thigh (a ball's underside left a ledge and a shadowed undercut)
+	# (ends above a shorts hem so its lip never meets the rolled cuff)
+	for k in [[0.3, 0.98, 0.95, 0.0], [0.52, 0.93, 0.85, -0.008], [0.7, 0.84, 0.7, -0.018], [0.82, 0.7, 0.52, -0.026], [0.88, 0.4, 0.26, -0.03]]:
+		rings.append([-r.y * float(k[0]), r.x * float(k[1]), r.z * float(k[2]), float(k[3])])
 	# wrapped uv (the loft's own u comes from its tiny top ring and stripes the cloth);
 	# the seam is at the front, buried in the pelvis
 	var wrap := func(p: Vector3) -> Vector2: return Vector2(atan2(p.x, p.z) * r.x * 3.0, -p.y * 3.0)
