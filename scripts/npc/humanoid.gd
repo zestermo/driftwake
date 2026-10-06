@@ -430,9 +430,10 @@ func _guard() -> Dictionary:
 				"arm_l": Vector3(0.25, 0.1, -0.2), "fore_l": Vector3(0.6, 0, 0),
 				"torso": Vector3(-0.05, 0.25, 0), "head": Vector3(0.05, -0.2, 0)}
 		"dual_pistol":
-			# held low and close, elbows a little bent (raised to fire: shoot_r/l)
-			return {"arm_r": Vector3(0.35, -0.1, 0.1), "fore_r": Vector3(0.7, 0, 0),
-				"arm_l": Vector3(0.35, 0.1, -0.1), "fore_l": Vector3(0.7, 0, 0),
+			# held low and close, uneven: the right a little higher with the elbow
+			# bent more, the left lower and straighter (raised to fire: shoot_r/l)
+			return {"arm_r": Vector3(0.48, -0.12, 0.12), "fore_r": Vector3(0.85, 0, 0),
+				"arm_l": Vector3(0.22, 0.08, -0.17), "fore_l": Vector3(0.5, 0, 0),
 				"torso": Vector3(-0.05, 0.0, 0), "head": Vector3(0.05, 0, 0)}
 	return GUARD
 
@@ -1228,28 +1229,34 @@ func _action_pose(n: String, u: float) -> Array:
 			var gp := _guard()
 			var rr := n == "shoot_r"
 			var aim := gp.duplicate()
+			# keyed in seconds: kick, settle, then the arms stay up until the last
+			# 0.3 s of the action (the shoot state plays it long so they linger)
+			var T: float = _action.get("dur", 0.5)
+			var k_kick := minf(0.03 / T, 0.2)
+			var k_aim := minf(0.13 / T, 0.45)
+			var k_hold := maxf(k_aim, 1.0 - 0.3 / T)
 			if stance == "dual_pistol":
-				# both guns come up in front, close together; the firing one kicks
-				aim["arm_r"] = Vector3(1.33 + aim_pitch, 0.02, 0.1)
-				aim["arm_l"] = Vector3(1.33 + aim_pitch, -0.02, -0.1)
-				aim["fore_r"] = Vector3(0.12, 0, 0)
-				aim["fore_l"] = Vector3(0.12, 0, 0)
+				# both guns up in front, shoulder-width apart; the firing one kicks
+				aim["arm_r"] = Vector3(1.5 + aim_pitch, 0.02, 0.1)
+				aim["arm_l"] = Vector3(1.5 + aim_pitch, -0.02, -0.1)
+				aim["fore_r"] = Vector3.ZERO
+				aim["fore_l"] = Vector3.ZERO
 				aim["torso"] = Vector3(0.0, 0.0, 0)
 				var kd := aim.duplicate()
 				kd["arm_r" if rr else "arm_l"] = (aim["arm_r" if rr else "arm_l"] as Vector3) + Vector3(0.4, 0, 0)
 				kd["fore_r" if rr else "fore_l"] = Vector3(0.35, 0, 0)
-				return [_keys(u, [[0.0, gp], [0.08, kd, "out"], [0.35, aim], [0.8, aim], [1.0, gp]]), "upper", lift]
+				return [_keys(u, [[0.0, aim], [k_kick, kd, "out"], [k_aim, aim], [k_hold, aim], [1.0, gp]]), "upper", lift]
 			if rr:
-				aim["arm_r"] = Vector3(1.4 + aim_pitch, -0.05, 0.1)
-				aim["fore_r"] = Vector3(0.05, 0, 0)
+				aim["arm_r"] = Vector3(1.5 + aim_pitch, -0.05, 0.1)
+				aim["fore_r"] = Vector3.ZERO
 			else:
-				aim["arm_l"] = Vector3(1.4 + aim_pitch, 0.05, -0.1)
-				aim["fore_l"] = Vector3(0.05, 0, 0)
+				aim["arm_l"] = Vector3(1.5 + aim_pitch, 0.05, -0.1)
+				aim["fore_l"] = Vector3.ZERO
 			aim["torso"] = Vector3(0.0, -0.35 if rr else 0.35, 0)
 			var kick3 := aim.duplicate()
 			kick3["arm_r" if rr else "arm_l"] = (aim["arm_r" if rr else "arm_l"] as Vector3) + Vector3(0.55, 0, 0)
 			kick3["fore_r" if rr else "fore_l"] = Vector3(0.4, 0, 0)
-			return [_keys(u, [[0.0, aim], [0.12, kick3, "out"], [0.5, aim], [1.0, gp]]), "upper", lift]
+			return [_keys(u, [[0.0, aim], [k_kick, kick3, "out"], [k_aim, aim], [k_hold, aim], [1.0, gp]]), "upper", lift]
 		"reload":
 			var rl := {"arm_r": Vector3(0.6, 0.6, 0.2), "fore_r": Vector3(1.7, 0, 0), "arm_l": Vector3(0.6, -0.5, -0.2), "fore_l": Vector3(1.7, 0, 0),
 				"head": Vector3(-0.35, 0, 0), "torso": Vector3(-0.15, 0, 0)}

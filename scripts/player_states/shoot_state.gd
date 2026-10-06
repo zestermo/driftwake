@@ -8,6 +8,8 @@ extends PlayerState
 const RANGE := 45.0
 const SINGLE_DAMAGE := 14.0
 const DUAL_DAMAGE := 11.0
+## The arms stay up this long after the shot before lowering.
+const LINGER := 1.0
 
 var timer: float = 0.0
 var dur: float = 0.3
@@ -76,7 +78,7 @@ func _fire(dual: bool) -> void:
 	dir = (target - muzzle).normalized()
 	# aim pose follows the pitch
 	player.body_model.aim_pitch = clampf(asin(clampf(dir.y, -1.0, 1.0)), -0.6, 0.6)
-	player.body_model.play("shoot_r" if _hand == 0 else "shoot_l", dur + 0.15)
+	player.body_model.play("shoot_r" if _hand == 0 else "shoot_l", dur + LINGER)
 	# what's on the line: walls, or the first enemy hurtbox
 	var end := muzzle + dir * RANGE
 	var wq := PhysicsRayQueryParameters3D.create(muzzle, end, 1)
