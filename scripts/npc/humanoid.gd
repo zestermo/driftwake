@@ -535,7 +535,24 @@ func _katana_hands() -> void:
 			if _run_sheath and not weapon_in_hand:
 				_hands_on_scabbard()
 			elif weapon_in_hand and armed:
+				if current_action() in ["parry", "guard_block", "guard_block_hit"]:
+					_hang_blade()
 				reach_hand(false, weapon.global_transform * Vector3(0, 0, 0.17), pole_l)
+
+
+## Parry / block: the blade hangs from the raised hands, point down, out in
+## front and slanted across the body to the left (set on the wrist directly).
+const HANG_DIR := Vector3(-0.6, -0.6, -0.55)
+
+
+func _hang_blade() -> void:
+	var want := (global_basis.orthonormalized() * HANG_DIR).normalized()
+	var face := global_basis.orthonormalized().z
+	var target := Basis.looking_at(want, face)
+	var k := clampf(float(_action["t"]) / 0.08, 0.0, 1.0) if current_action() == "parry" else 1.0
+	var sc := hand_r.global_basis.get_scale()
+	var cur := Quaternion(hand_r.global_basis.orthonormalized())
+	hand_r.global_basis = Basis(cur.slerp(Quaternion(target), k)).scaled(sc)
 
 
 func _hands_on_scabbard() -> void:
@@ -813,7 +830,7 @@ const KATANA_GUARD := {"arm_r": Vector3(0.8, 0.35, -0.05), "fore_r": Vector3(0.8
 	"arm_l": Vector3(0.75, -0.3, 0.05), "fore_l": Vector3(1.1, 0, 0),
 	"torso": Vector3(-0.1, 0.15, 0), "head": Vector3(0.08, -0.15, 0)}
 # Katana parry / block: both hands raised high, the blade hanging point-down in front.
-const KATANA_HANG := {"arm_r": Vector3(2.2, 0.4, -0.05), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(1.25, 0, 0),
+const KATANA_HANG := {"arm_r": Vector3(1.55, 0.3, 0.05), "fore_r": Vector3(0.65, 0, 0), "hand_r": Vector3(1.85, 0, 0),
 	"arm_l": Vector3(2.3, -0.35, 0.05), "fore_l": Vector3(1.0, 0, 0),
 	"torso": Vector3(0.05, 0.0, 0), "head": Vector3(0.12, 0, 0)}
 

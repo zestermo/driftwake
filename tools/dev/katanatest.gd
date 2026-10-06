@@ -206,8 +206,12 @@ func _process(d: float) -> bool:
 			step += 1
 		14:
 			var b = p.body_model
-			var down: float = (-b.weapon.global_basis.z.normalized()).y
-			check("parry: the katana hangs point-down (%s, blade dir y %.2f)" % [b.current_action(), down], b.current_action() == "parry" and down < -0.6)
+			var blade: Vector3 = -b.weapon.global_basis.z.normalized()
+			var body_b: Basis = p.player_model.global_basis.orthonormalized()
+			var out := blade.dot(-body_b.z)
+			var across := blade.dot(-body_b.x)
+			check("parry: the katana hangs point-down, out in front, across to the left (%s, down %.2f, out %.2f, across %.2f)" % [b.current_action(), -blade.y, out, across],
+				b.current_action() == "parry" and blade.y < -0.4 and out > 0.3 and across > 0.3)
 			check("...held up high in both hands (hands %.2f m above the shoulders, left %.2f m off the hilt)" % [b.hand_r.global_position.y - b.arm_r.global_position.y, hilt_gap()],
 				b.hand_r.global_position.y > b.arm_r.global_position.y + 0.15 and hilt_gap() < 0.12)
 			# sprinting: the katana rides in its scabbard, ready for the running draw
