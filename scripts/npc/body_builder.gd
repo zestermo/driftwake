@@ -295,6 +295,17 @@ func ty(v: float) -> float:
 	return v * T
 
 
+## Torso height for the upper chest: from the top of the chest up (shoulders,
+## traps, neck base, collars) heights are compressed, so the shoulders sit
+## lower and the traps don't climb the neck. Everything placed up there uses this.
+const UPPER_FROM := 0.45
+const UPPER_K := 0.82
+
+
+func tu(v: float) -> float:
+	return ty(v if v <= UPPER_FROM else UPPER_FROM + (v - UPPER_FROM) * UPPER_K)
+
+
 # --------------------------------------------------------------------------
 # skeleton + colliders
 # --------------------------------------------------------------------------
@@ -312,15 +323,15 @@ func _skeleton() -> void:
 	# cap of the torso, so the top of each arm is buried in the shoulder
 	# instead of sitting on it like an action figure's ball joint
 	var sxr := (0.158 * sh + 0.004) if fem else (0.2 * sh + 0.004)
-	h.arm_l = _node("ArmL", Vector3(-sxr, ty(0.52), 0), h.torso)
-	h.arm_r = _node("ArmR", Vector3(sxr, ty(0.52), 0), h.torso)
+	h.arm_l = _node("ArmL", Vector3(-sxr, tu(0.52), 0), h.torso)
+	h.arm_r = _node("ArmR", Vector3(sxr, tu(0.52), 0), h.torso)
 	h.fore_l = _node("ForeL", Vector3(0, -0.3 * A, 0), h.arm_l)
 	h.fore_r = _node("ForeR", Vector3(0, -0.3 * A, 0), h.arm_r)
 	var wrist := -0.23 * A
 	h.hand_l = _node("HandL", Vector3(0, wrist - 0.07 * Hk, -0.02), h.fore_l)
 	h.hand_r = _node("HandR", Vector3(0, wrist - 0.07 * Hk, -0.02), h.fore_r)
-	h.neck = _node("Neck", Vector3(0, ty(0.6), 0.012), h.torso)
-	h.head = _node("Head", Vector3(0, ty(0.62) + 0.1 * float(st["neck"]), 0) - h.neck.position, h.neck)
+	h.neck = _node("Neck", Vector3(0, tu(0.6), 0.012), h.torso)
+	h.head = _node("Head", Vector3(0, tu(0.62) + 0.06 * float(st["neck"]), 0) - h.neck.position, h.neck)
 	var hs := float(st["head"]) * (0.97 if fem else 1.0)
 	h.head.scale = Vector3(hs, hs, hs)
 	var waist := _torso_rings()[0][1] as float
@@ -335,7 +346,7 @@ func _colliders() -> void:
 	colliders["shin_l"] = {"node": h.shin_l, "a": Vector3.ZERO, "b": Vector3(0, -0.4 * Ls, 0), "r": 0.075 * limb + 0.025}
 	colliders["shin_r"] = {"node": h.shin_r, "a": Vector3.ZERO, "b": Vector3(0, -0.4 * Ls, 0), "r": 0.075 * limb + 0.025}
 	colliders["hips"] = {"node": h.hips, "a": Vector3(0, 0.05, 0), "b": Vector3(0, -0.08, 0), "r": _hips_hw() * 0.82}
-	colliders["torso"] = {"node": h.torso, "a": Vector3(0, ty(0.12), 0.01), "b": Vector3(0, ty(0.5), 0.01), "r": 0.13 * de + 0.025}
+	colliders["torso"] = {"node": h.torso, "a": Vector3(0, ty(0.12), 0.01), "b": Vector3(0, tu(0.5), 0.01), "r": 0.13 * de + 0.025}
 	colliders["head"] = {"node": h.head, "a": Vector3(0, 0.13, 0.01), "b": Vector3(0, 0.26, 0.01), "r": 0.17}
 
 
@@ -374,7 +385,7 @@ func _torso_rings() -> Array:
 	# slimmer through the chest and shoulders, a touch at the waist (depth kept)
 	for i in range(r.size()):
 		var ring: Array = r[i]
-		ring[0] = ty(ring[0])
+		ring[0] = tu(ring[0])
 		ring[1] = float(ring[1]) * (0.95 if i < 2 else 0.88)
 	return r
 
@@ -710,14 +721,14 @@ func _torso() -> void:
 		hem = _off(hem, 0.0, 0.0, true)
 		mb.add_loft(m_top, Transform3D.IDENTITY, hem, MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, false, false, true, false, true)
 	if top != "bare":
-		var r := _at(tr, ty(0.6))
+		var r := _at(tr, tu(0.6))
 		var cz := _front_z(r) - 0.004
 		var mc := _textured("fabric", _col("top_color").lightened(0.08))
 		for s in [-1.0, 1.0]:
-			mb.add_quad(mc, Vector3(0.0, ty(0.57), cz - 0.012), Vector3(s * 0.075, ty(0.665), cz + 0.012),
-				Vector3(s * 0.1, ty(0.62), cz), Vector3(s * 0.025, ty(0.55), cz - 0.02),
+			mb.add_quad(mc, Vector3(0.0, tu(0.57), cz - 0.012), Vector3(s * 0.075, tu(0.665), cz + 0.012),
+				Vector3(s * 0.1, tu(0.62), cz), Vector3(s * 0.025, tu(0.55), cz - 0.02),
 				Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1))
-		mb.add_tri(m_skin, Vector3(-0.045, ty(0.64), cz + 0.002), Vector3(0.045, ty(0.64), cz + 0.002), Vector3(0, ty(0.575), cz - 0.018),
+		mb.add_tri(m_skin, Vector3(-0.045, tu(0.64), cz + 0.002), Vector3(0.045, tu(0.64), cz + 0.002), Vector3(0, tu(0.575), cz - 0.018),
 			Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Color.WHITE, Vector3.FORWARD)
 	_mesh(h.torso, mb)
 	# neck (its own joint) from inside the collar up into the head
@@ -878,6 +889,12 @@ func _arms() -> void:
 # --------------------------------------------------------------------------
 # head, face, hair, hats
 # --------------------------------------------------------------------------
+## Height of the skull's dome above the 0.268 ring (it was a flatter 0.078).
+const DOME_H := 0.12
+## How much taller the dome is than hats were made for: their crowns rise by it.
+const DOME_EXTRA := DOME_H - 0.078
+
+
 func _head() -> void:
 	var shape := str(lk.get("head", "round"))
 	var wk := 1.0
@@ -903,14 +920,14 @@ func _head() -> void:
 		[0.085, c2 * wk, 0.1 if fem else 0.106, -0.04 if fem else -0.036, 0.0, _back_ext(cs, 1.4 if fem else 1.33, 1.15 if fem else 1.12)],
 		[0.135, (0.136 if fem else 0.148) * wk, 0.13, -0.015, 0.0, _back_ext(R, 1.05 if fem else 1.08, 1.0)],
 		[0.195, (0.153 if fem else 0.158) * wk, 0.148, -0.004, 0.0, R],
-		# short cranium with a flattish, rounded-off top (not a ball)
 		[0.235, (0.162 if fem else 0.164) * wk, 0.156, 0.0, 0.0, R],
-		[0.268, (0.16 if fem else 0.162) * wk, 0.158, 0.004, 0.0, R],
-		[0.294, 0.15 * wk, 0.152, 0.008, 0.0, R],
-		[0.316, 0.126 * wk, 0.13, 0.01, 0.0, R],
-		[0.333, 0.088 * wk, 0.092, 0.011, 0.0, R],
-		[0.343, 0.042 * wk, 0.046, 0.011, 0.0, R],
-		[0.346, 0.012 * wk, 0.014, 0.011, 0.0, R]]
+		[0.268, (0.16 if fem else 0.162) * wk, 0.158, 0.004, 0.0, R]]
+	# a tall, round dome above the hairline (the face and forehead below are unchanged)
+	var w0 := float(head_rings[head_rings.size() - 1][1])
+	for deg in [24.0, 44.0, 61.0, 75.0, 85.0, 89.5]:
+		var a := deg_to_rad(deg)
+		var c := pow(cos(a), 0.85)
+		head_rings.append([0.268 + DOME_H * sin(a), w0 * c, 0.158 * c, lerpf(0.004, 0.011, sin(a)), 0.0, R])
 	for r in head_rings:
 		r[0] = float(r[0]) * yk
 	var mb := MeshBuilder.new()
@@ -1269,9 +1286,9 @@ func _tufts(mb: MeshBuilder, style: String, hat: String, rng: RandomNumberGenera
 				_clump(mb, a, ry, j.call((0.1 if not wild else 0.12) + (ry - 0.2)), 0.056, 0.013, (a - 180.0) * 0.1, 0.004 if not wild else 0.012)
 			if crowned and not wild:
 				# cowlick at the crown
-				_spike(mb, 170.0, 0.33, Vector3(0.15, 1.0, 0.7), 0.08, 0.026)
-				_spike(mb, 200.0, 0.325, Vector3(-0.3, 1.0, 0.8), 0.065, 0.022)
-				_spike(mb, 10.0, 0.335, Vector3(0.2, 1.0, -0.25), 0.06, 0.02)
+				_spike(mb, 170.0, 0.33 + DOME_EXTRA, Vector3(0.15, 1.0, 0.7), 0.08, 0.026)
+				_spike(mb, 200.0, 0.325 + DOME_EXTRA, Vector3(-0.3, 1.0, 0.8), 0.065, 0.022)
+				_spike(mb, 10.0, 0.335 + DOME_EXTRA, Vector3(0.2, 1.0, -0.25), 0.06, 0.02)
 		"long", "braids":
 			# centre-parted bangs sweeping outward, with face-framing locks
 			for s in [-1.0, 1.0]:
@@ -1281,7 +1298,7 @@ func _tufts(mb: MeshBuilder, style: String, hat: String, rng: RandomNumberGenera
 				_clump(mb, s * 54.0, 0.262, j.call(0.2), 0.05, 0.013, s * 6.0, 0.008, 0.004)
 				_clump(mb, s * 66.0, 0.25, j.call(0.24), 0.05, 0.013, s * 4.0, 0.01, 0.008)
 			if crowned:
-				_spike(mb, 185.0, 0.335, Vector3(0.1, 1.0, 0.6), 0.06, 0.02)
+				_spike(mb, 185.0, 0.335 + DOME_EXTRA, Vector3(0.1, 1.0, 0.6), 0.06, 0.02)
 		"ponytail", "bun":
 			# swept bangs, long side strands framing the face, hair pulled back
 			for i in range(6):
@@ -1354,7 +1371,7 @@ func _hat(mb: MeshBuilder) -> void:
 			if captain:
 				mb.add_loft(m_trim, Transform3D.IDENTITY, [[y0 + 0.08, bw * 1.115, bw * 1.115], [y0 + 0.092, bw * 1.135, bw * 1.135]], tri, 3.0, Color.WHITE, false, false, true, false, true)
 		"bicorne":
-			mb.add_loft(m_hat, Transform3D.IDENTITY, [[y0, rw, rd], [y0 + 0.06, rw * 0.98, rd * 0.98], [y0 + 0.1, rw * 0.7, rd * 0.72]], crown_prof, 3.0, Color.WHITE, false, true)
+			mb.add_loft(m_hat, Transform3D.IDENTITY, [[y0, rw, rd], [y0 + 0.06 + DOME_EXTRA * 0.6, rw * 0.98, rd * 0.98], [y0 + 0.1 + DOME_EXTRA, rw * 0.7, rd * 0.72]], crown_prof, 3.0, Color.WHITE, false, true)
 			var ell := PackedVector2Array()
 			for i in range(14):
 				var a := TAU * float(i) / 14.0
@@ -1381,7 +1398,7 @@ func _hat(mb: MeshBuilder) -> void:
 					rr.append([pts[i].y, lerpf(0.022, 0.014, i / 2.0), 0.005, pts[i].z, pts[i].x])
 				sim.mb.add_loft(m_hat, Transform3D.IDENTITY, rr, MeshBuilder.profile_oct(0.6), 3.0, Color.WHITE, true, true, true, false, false, bones)
 		"cap":
-			mb.add_loft(m_hat, Transform3D.IDENTITY, [[y0, rw, rd], [y0 + 0.06, rw * 1.04, rd * 1.05, -0.01], [y0 + 0.1, rw * 0.92, rd * 0.97, -0.012], [y0 + 0.115, rw * 0.58, rd * 0.62, -0.01]],
+			mb.add_loft(m_hat, Transform3D.IDENTITY, [[y0, rw, rd], [y0 + 0.06 + DOME_EXTRA * 0.5, rw * 1.04, rd * 1.05, -0.01], [y0 + 0.1 + DOME_EXTRA, rw * 0.92, rd * 0.97, -0.012], [y0 + 0.115 + DOME_EXTRA, rw * 0.58, rd * 0.62, -0.01]],
 				crown_prof, 3.0, Color.WHITE, false, true)
 			mb.add_box(m_hat, Transform3D(Basis(Vector3.RIGHT, 0.18), Vector3(0, y0 + 0.008, -rd - 0.03)), Vector3(rw * 1.4, 0.014, 0.09), 3.0, Color.WHITE, false)
 		"knit":
@@ -1396,7 +1413,7 @@ func _hat(mb: MeshBuilder) -> void:
 		"hood":
 			var hood := _off(head_rings, 0.04, 0.0, true)
 			hood.insert(0, [-0.08, 0.13, 0.13, 0.03, 0.0])
-			hood.append([0.385 * yk, 0.04, 0.06, 0.03, 0.0])
+			hood.append([(0.385 + DOME_EXTRA) * yk, 0.04, 0.06, 0.03, 0.0])
 			mb.add_loft(m_hat, Transform3D.IDENTITY, hood, open_front(0.6), 3.0, Color.WHITE, false, false, false)
 
 
@@ -1409,7 +1426,7 @@ func _clothes() -> void:
 	var mb := MeshBuilder.new()
 	match str(lk.get("vest", "none")):
 		"vest":
-			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, _off(_clip(tr, 0.0, ty(0.57)), 0.016, 0.0, true), open_body(0.3), 3.0, Color.WHITE, false, false, false)
+			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, _off(_clip(tr, 0.0, tu(0.57)), 0.016, 0.0, true), open_body(0.3), 3.0, Color.WHITE, false, false, false)
 			for i in range(3):
 				var by := ty(0.12 + i * 0.12)
 				var r := _at(tr, by)
@@ -1435,18 +1452,18 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	var m_coat := _cloth("coat_color")
 	var m_trim := PSXMat.flat(_col("trim_color"))
 	var captain := coat == "captain"
-	var shell := _off(_clip(tr, 0.0, ty(0.62)), 0.03 + (0.012 if fem else 0.0), 0.0, true)
+	var shell := _off(_clip(tr, 0.0, tu(0.62)), 0.03 + (0.012 if fem else 0.0), 0.0, true)
 	if coat == "jacket":
 		shell.insert(0, [-0.14, _hips_hw() + 0.03, _hips_hd() + 0.03, 0.0, 0.0])
 	mb.add_loft(m_coat, Transform3D.IDENTITY, shell, open_body(0.3), 3.0, Color.WHITE, false, false, false)
-	mb.add_loft(m_coat, Transform3D.IDENTITY, [[ty(0.6), 0.105, 0.095, 0.012], [ty(0.6) + 0.11, 0.115, 0.105, 0.02]], open_front(0.55), 3.0, Color.WHITE, false, false, false)
+	mb.add_loft(m_coat, Transform3D.IDENTITY, [[tu(0.6), 0.105, 0.095, 0.012], [tu(0.6) + 0.11, 0.115, 0.105, 0.02]], open_front(0.55), 3.0, Color.WHITE, false, false, false)
 	var lap := m_trim if captain else _textured("fabric", _col("coat_color").darkened(0.12))
 	for s in [-1.0, 1.0]:
-		var rt := _at(tr, ty(0.56))
+		var rt := _at(tr, tu(0.56))
 		var rb := _at(tr, ty(0.3))
 		var zt := _front_z(rt) - 0.028
 		var zb := _front_z(rb) - 0.03
-		mb.add_quad(lap, Vector3(s * 0.07, ty(0.6), zt + 0.01), Vector3(s * 0.16, ty(0.55), zt + 0.02),
+		mb.add_quad(lap, Vector3(s * 0.07, tu(0.6), zt + 0.01), Vector3(s * 0.16, tu(0.55), zt + 0.02),
 			Vector3(s * float(rb[1]) * 0.42, ty(0.3), zb), Vector3(s * float(rb[1]) * 0.3, ty(0.3), zb - 0.002),
 			Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1))
 	if captain:
@@ -1460,8 +1477,8 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 				var b: Vector3 = pts[i + 1]
 				mb.add_quad(m_trim, a, a + Vector3(s * 0.018, 0, 0), b + Vector3(s * 0.018, 0, 0), b, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Color.WHITE, Vector3.FORWARD)
 			var ex: float = s * (h.arm_r.position.x - 0.02)
-			mb.add_box(m_trim, Transform3D(Basis(Vector3.FORWARD, s * 0.25), Vector3(ex, ty(0.6), 0.0)), Vector3(0.11, 0.02, 0.12), 3.0, Color.WHITE, false)
-			mb.add_box(m_trim, Transform3D(Basis(), Vector3(ex + s * 0.05, ty(0.6) - 0.03, 0.0)), Vector3(0.012, 0.05, 0.11), 3.0, Color.WHITE, false)
+			mb.add_box(m_trim, Transform3D(Basis(Vector3.FORWARD, s * 0.25), Vector3(ex, tu(0.6), 0.0)), Vector3(0.11, 0.02, 0.12), 3.0, Color.WHITE, false)
+			mb.add_box(m_trim, Transform3D(Basis(), Vector3(ex + s * 0.05, tu(0.6) - 0.03, 0.0)), Vector3(0.012, 0.05, 0.11), 3.0, Color.WHITE, false)
 	# turned-back cuffs (the sleeves themselves are the skinned arms, see _arms)
 	var L := limb * (1.0 + (sh - 1.0) * 0.4)
 	var wrist := -0.23 * A
@@ -1584,9 +1601,9 @@ func _accessories() -> void:
 	var tr := _torso_rings()
 	if lk.get("scarf", false):
 		var m := _cloth("scarf_color")
-		mb.add_loft(m, Transform3D.IDENTITY, [[ty(0.59), 0.1, 0.092, 0.012], [ty(0.65), 0.088, 0.084, 0.012], [ty(0.65) + 0.04, 0.07, 0.068, 0.012]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
-		var r := _at(tr, ty(0.5))
-		mb.add_tri(m, Vector3(-0.08, ty(0.62), -0.085), Vector3(0.08, ty(0.62), -0.085), Vector3(0.0, ty(0.45), _front_z(r) - 0.02),
+		mb.add_loft(m, Transform3D.IDENTITY, [[tu(0.59), 0.1, 0.092, 0.012], [tu(0.65), 0.088, 0.084, 0.012], [tu(0.65) + 0.04, 0.07, 0.068, 0.012]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
+		var r := _at(tr, tu(0.5))
+		mb.add_tri(m, Vector3(-0.08, tu(0.62), -0.085), Vector3(0.08, tu(0.62), -0.085), Vector3(0.0, tu(0.45), _front_z(r) - 0.02),
 			Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2(0, 0), Vector2(1, 0), Vector2(0.5, 1), Color.WHITE, Vector3.FORWARD)
 	if lk.get("pouch", false):
 		var r2 := _at(tr, 0.02)
