@@ -2,25 +2,27 @@ extends PlayerState
 ## Jumping attack: attack in the air and you hang for a beat with the sword
 ## raised, then drop fast in an overhead slash and slam into the ground with
 ## a little shockwave. Hits on the way down and again on landing.
-## Dual pistols instead fire straight down (Gun Rain): a quick spinning volley,
-## each shot's recoil holding you up in the air, the last one from both guns.
+## Dual pistols instead fire both guns down at once (Gun Rain): a scatter blast
+## whose recoil launches you forward, pitched nose-down, righting yourself
+## before it ends.
 
 const HANG := 0.16
 const DIVE_SPEED := 22.0
 const RECOVER := 0.38
 
-const RAIN_DUR := 0.31
-const RAIN_KICK := 1.6        # m/s up from each shot's recoil
-const RAIN_GRAVITY := 0.45    # x gravity between shots
-const RAIN_REACH := 2.6       # m sideways from under you that a shot can find
-const RAIN_DEPTH := 14.0
-const RAIN_DAMAGE := 5.0
+const RAIN_DUR := 0.6
+const RAIN_LAUNCH := Vector2(7.5, 5.5)   # m/s forward, up from the recoil
+const RAIN_PITCH := 0.85                 # rad tipped forward at the blast, easing back upright
+const RAIN_CONE := 0.55                  # rad around the shot line an enemy is caught in
+const RAIN_DEPTH := 10.0
+const RAIN_PELLETS := 4                  # per gun (for show; enemies are judged by the cone)
+const RAIN_DAMAGE := 20.0
 
 var phase: int = 0   # 0 hang, 1 dive, 2 land
 var timer: float = 0.0
 var _dir := Vector3.ZERO
 var _rain := false
-var _shots := 0
+var _fired := false
 
 
 func enter(_data: Dictionary) -> void:
@@ -31,13 +33,11 @@ func enter(_data: Dictionary) -> void:
 	player.player_model.rotation.y = atan2(-f.x, -f.z)
 	_dir = f
 	_rain = player.style() == "dual_pistol"
-	_shots = 0
+	_fired = false
 	if _rain:
 		player.gun_rains += 1
-		player.velocity =Vector3(player.velocity.x * 0.4, maxf(player.velocity.y, 0.0) * 0.3 + 2.0, player.velocity.z * 0.4)
+		player.velocity = Vector3(player.velocity.x * 0.4, maxf(player.velocity.y, 0.0) * 0.3, player.velocity.z * 0.4)
 		player.body_model.play("gun_rain", RAIN_DUR)
-		player.squash(1.5)
-		Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.06, 1.3])
 		return
 	player.velocity = Vector3(player.velocity.x * 0.3, 2.5, player.velocity.z * 0.3)
 	player.body_model.play("plunge_air", 0.6)
@@ -121,69 +121,86 @@ func _land() -> void:
 
 
 func _rain_update(delta: float) -> void:
-	player.velocity.y = maxf(player.velocity.y - player.gravity * RAIN_GRAVITY * delta, -8.0)
-	var mi := get_movement_input()
-	var want := get_camera_relative_direction(mi) * player.move_speed * 0.4 if mi.length() > 0.1 else Vector3.ZERO
-	player.velocity.x = move_toward(player.velocity.x, want.x, 20.0 * delta)
-	player.velocity.z = move_toward(player.velocity.z, want.z, 20.0 * delta)
+	var blast_t := Humanoid.GUN_RAIN_AT * RAIN_DUR
+	if not _fired:
+		# a beat to point the guns down, hanging
+		player.velocity.y = move_toward(player.velocity.y, 0.0, 40.0 * delta)
+		if timer >= blast_t:
+			_fired = true
+			_rain_blast()
+			player.velocity = _dir * RAIN_LAUNCH.x + Vector3.UP * RAIN_LAUNCH.y
+	else:
+		apply_gravity(delta)
 	player.move_and_slide()
-	while _shots < Humanoid.GUN_RAIN_SHOTS and timer >= (Humanoid.GUN_RAIN_FIRST + Humanoid.GUN_RAIN_STEP * _shots) * RAIN_DUR:
-		var last := _shots == Humanoid.GUN_RAIN_SHOTS - 1
-		if last or _shots % 2 == 0:
-			_rain_shot(player.body_model.weapon, last)
-		if last or _shots % 2 == 1:
-			_rain_shot(player.body_model.offhand, last)
-		player.velocity.y = maxf(player.velocity.y, RAIN_KICK * (1.8 if last else 1.0))
-		_shots += 1
-	if player.is_on_floor() and timer > 0.1:
+	# pitched forward by the blast, swinging back upright before it ends
+	var k := 0.0
+	if _fired:
+		var since := timer - blast_t
+		var back := RAIN_DUR - blast_t
+		k = clampf(since / 0.05, 0.0, 1.0) * (1.0 - smoothstep(back * 0.35, back * 0.95, since))
+	player.align_hold = true
+	player.align_up = (Vector3.UP + _dir * tan(RAIN_PITCH * k)).normalized()
+	player.align_w = 1.0
+	if player.is_on_floor() and _fired and timer > blast_t + 0.1:
 		transitioned.emit(self, "Idle", {})
 	elif timer >= RAIN_DUR:
 		transitioned.emit(self, "Fall", {})
 
 
-## One shot straight down from a gun's muzzle: it finds an enemy below you
-## (the nearest under that gun) or hits the ground.
-func _rain_shot(gun: Node3D, last: bool) -> void:
-	if gun == null or not is_instance_valid(gun):
-		return
-	var muzzle := gun.global_transform * Vector3(0, 0.06, -0.24)
+## Both guns at once, down and a little behind: a scatter of shot that catches
+## every enemy inside the cone below, the rest kicking up dirt.
+func _rain_blast() -> void:
+	var line := (Vector3.DOWN - _dir * 0.3).normalized()
+	var side := line.cross(_dir).normalized()
+	var across := line.cross(side).normalized()
 	var space := player.get_world_3d().direct_space_state
-	var gq := PhysicsRayQueryParameters3D.create(muzzle, muzzle + Vector3.DOWN * RAIN_DEPTH, 1)
-	gq.exclude = [player.get_rid()]
-	var ground := space.intersect_ray(gq)
-	var end: Vector3 = ground["position"] if not ground.is_empty() else muzzle + Vector3.DOWN * RAIN_DEPTH
-	var best: Hurtbox = null
-	var best_d := RAIN_REACH
-	for e in player.power.enemies_in(muzzle + Vector3.DOWN * RAIN_DEPTH * 0.5, RAIN_DEPTH * 0.5 + RAIN_REACH):
+	var muzzles: Array = []
+	for gun in [player.body_model.weapon, player.body_model.offhand]:
+		if gun != null and is_instance_valid(gun):
+			muzzles.append((gun as Node3D).global_transform * Vector3(0, 0.06, -0.24))
+	var centre := player.global_position + Vector3.UP * 0.9
+	if muzzles.is_empty():
+		muzzles.append(centre)
+	for m in muzzles:
+		var muzzle: Vector3 = m
+		for i in range(RAIN_PELLETS):
+			var a := randf() * TAU
+			var r := sqrt(randf()) * tan(RAIN_CONE * 0.8)
+			var d := (line + side * cos(a) * r + across * sin(a) * r).normalized()
+			var q := PhysicsRayQueryParameters3D.create(muzzle, muzzle + d * RAIN_DEPTH, 1)
+			q.exclude = [player.get_rid()]
+			var h := space.intersect_ray(q)
+			var end: Vector3 = h["position"] if not h.is_empty() else muzzle + d * RAIN_DEPTH
+			Net.fx("tracer", [muzzle, end])
+			if not h.is_empty():
+				Net.fx("dust", [end + Vector3(0, 0.05, 0), 2, 0.35])
+		Net.fx("muzzle_sparks", [muzzle, line, 14])
+		Net.fx("smoke", [muzzle + line * 0.2, 6, 0.6, 1.1])
+		Net.fx("sfx", ["gunshot", muzzle, -2.0, 0.08, 0.9])
+	for e in player.power.enemies_in(centre + line * RAIN_DEPTH * 0.5, RAIN_DEPTH * 0.5 + 1.0):
 		var hb := (e as Node).get("hurtbox") as Hurtbox
-		if hb == null or hb.global_position.y > muzzle.y:
+		if hb == null:
 			continue
-		var d := Vector2(hb.global_position.x - muzzle.x, hb.global_position.z - muzzle.z).length()
-		if d < best_d:
-			best_d = d
-			best = hb
-	if best:
-		end = best.global_position
-		var hd := player.melee_hit(RAIN_DAMAGE * (1.5 if last else 1.0))
+		var to := hb.global_position - centre
+		if to.length() > RAIN_DEPTH or line.angle_to(to) > RAIN_CONE:
+			continue
+		var hd := player.melee_hit(RAIN_DAMAGE)
 		hd.ranged = true
-		hd.knockback_force = 6.0 if last else 2.0
-		hd.stagger_duration = 0.3
-		hd.hitstop_duration = 0.03
-		hd.camera_shake_intensity = 0.05
-		hd.knockdown = last
-		best.take_hit(hd, player)
-		player.power.on_sword_hit(best.owner, hd)
-		Net.fx("impact", [end, Color(1.0, 0.75, 0.45)])
-	else:
-		Net.fx("dust", [end + Vector3(0, 0.05, 0), 4 if last else 2, 0.4])
-	Net.fx("tracer", [muzzle, end])
-	Net.fx("muzzle_sparks", [muzzle, Vector3.DOWN, 10 if last else 7])
-	Net.fx("smoke", [muzzle + Vector3.DOWN * 0.2, 3, 0.45, 0.9])
-	Net.fx("sfx", ["gunshot", muzzle, -5.0, 0.1, 1.2 if last else 1.35])
-	CombatManager.apply_camera_shake(0.08 if last else 0.04)
-	if last and not ground.is_empty() and muzzle.y - end.y < 6.0:
-		Net.fx("dust_ring", [end, 10, 0.7])
+		hd.knockback_force = 7.0
+		hd.stagger_duration = 0.4
+		hd.hitstop_duration = 0.05
+		hd.camera_shake_intensity = 0.0
+		hd.knockdown = true
+		hb.take_hit(hd, player)
+		player.power.on_sword_hit(hb.owner, hd)
+		Net.fx("tracer", [muzzles[0], hb.global_position])
+		Net.fx("impact", [hb.global_position, Color(1.0, 0.75, 0.45)])
+	player.squash(-2.5)
+	CombatManager.apply_camera_shake(0.14)
 
 
 func exit() -> void:
+	if _rain:
+		player.align_hold = false
+		player.align_w = 0.0
 	player.sword_hitbox.deactivate()

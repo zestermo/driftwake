@@ -66,14 +66,23 @@ var kata_vy := -99.0
 var kata_hv := 0.0
 var kata_tilt := 0.0
 var kata_from := Vector3.ZERO
-var rain_min_vy := 99.0
+var rain := {}
 func _physics_process(_d: float) -> bool:
 	if p and p.current_state_name() == "HeavyAttack":
 		kata_vy = maxf(kata_vy, p.velocity.y)
 		kata_hv = maxf(kata_hv, Vector2(p.velocity.x, p.velocity.z).length())
 		kata_tilt = maxf(kata_tilt, p.lean.global_basis.y.normalized().angle_to(Vector3.UP))
 	if p and p.current_state_name() == "Plunge":
-		rain_min_vy = minf(rain_min_vy, p.velocity.y)
+		var fwd: Vector3 = -p.player_model.global_basis.z
+		var up: Vector3 = p.lean.global_basis.y.normalized()
+		rain["vy"] = maxf(rain.get("vy", -99.0), p.velocity.y)
+		rain["fwd"] = maxf(rain.get("fwd", 0.0), p.velocity.dot(fwd))
+		# pitched forward = the body's up tipped toward the facing
+		rain["pitch"] = maxf(rain.get("pitch", 0.0), up.dot(fwd))
+		rain["in"] = true
+	elif rain.get("in", false):
+		rain["in"] = false
+		rain["end_tilt"] = p.lean.global_basis.y.normalized().angle_to(Vector3.UP)
 	return false
 func _process(d: float) -> bool:
 	t += d
@@ -318,13 +327,13 @@ func _process(d: float) -> bool:
 			wait = 0.15
 			step = 182
 		182:
-			rain_min_vy = 99.0
+			rain = {}
 			attack("light_attack")
 			wait = 0.1
 			step = 183
 		183:
 			check("dual pistols' air attack is Gun Rain (%s / %s)" % [p.current_state_name(), p.body_model.current_action()], p.current_state_name() == "Plunge" and p.body_model.current_action() == "gun_rain")
-			wait = 0.3
+			wait = 0.55
 			step = 186
 		186:
 			attack("light_attack")
@@ -336,9 +345,14 @@ func _process(d: float) -> bool:
 			wait = 0.6
 			step = 184
 		184:
-			check("Gun Rain fires its volley (%d shots)" % p.get_node("StateMachine/Plunge")._shots, p.get_node("StateMachine/Plunge")._shots == 6)
-			check("the recoil holds you up (slowest fall %.1f m/s)" % rain_min_vy, rain_min_vy > -4.0)
-			check("Gun Rain hits the grunt below (%.0f -> %.0f)" % [v0, g.health.current_health], g.health.current_health < v0)
+			check("Gun Rain's recoil launches you up and forward (up %.1f, forward %.1f m/s)" % [rain.get("vy", 0.0), rain.get("fwd", 0.0)],
+				rain.get("vy", 0.0) > 4.0 and rain.get("fwd", 0.0) > 5.0)
+			check("...pitched forward (%.2f)" % rain.get("pitch", 0.0), rain.get("pitch", 0.0) > 0.45)
+			check("...and upright again when it ends (%.2f rad)" % rain.get("end_tilt", 9.0), rain.get("end_tilt", 9.0) < 0.12)
+			check("Gun Rain's scatter hits the grunt below (%.0f -> %.0f)" % [v0, g.health.current_health], g.health.current_health < v0)
+			p.global_position = kata_from   # (the launch can carry us off toward the shore)
+			p.velocity = Vector3.ZERO
+			p.reset_physics_interpolation()
 			wait = 1.0
 			step = 185
 		185:

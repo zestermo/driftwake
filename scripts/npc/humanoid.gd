@@ -322,10 +322,8 @@ func _attach_weapon(in_hand: bool) -> void:
 var auto_point_guns := false
 
 
-## gun_rain shot schedule (fractions of the action), shared with the Plunge state.
-const GUN_RAIN_SHOTS := 6
-const GUN_RAIN_FIRST := 0.13
-const GUN_RAIN_STEP := 0.12
+## When gun_rain's blast goes off (fraction of the action), shared with the Plunge state.
+const GUN_RAIN_AT := 0.1
 
 ## Barrel tilt off the forearm line toward the thumb side (a slightly cocked wrist).
 const GUN_GRIP_TILT := 0.12
@@ -1199,32 +1197,23 @@ func _action_pose(n: String, u: float) -> Array:
 				(-0.14 * sin(clampf((u - 0.8) / 0.2, 0.0, 1.0) * PI) if u > 0.8 else 0.0)
 			return [posek, "full", lift]
 		"gun_rain":
-			# dual pistols' air attack: knees up, both guns pointed straight down at
-			# the sides, firing in turn (each one kicks) through a full spin; the
-			# last shot is both at once, then the guns come up to the chest
-			var tuck := {"leg_l": Vector3(1.35, 0, -0.18), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(0.8, 0, 0.2), "shin_r": Vector3(-1.3, 0, 0),
-				"torso": Vector3(-0.2, 0, 0), "head": Vector3(-0.3, 0, 0)}
-			var down := tuck.duplicate()
-			down["arm_r"] = Vector3(0.05, 0, 0.3)
-			down["arm_l"] = Vector3(0.05, 0, -0.3)
-			down["fore_r"] = Vector3.ZERO
-			down["fore_l"] = Vector3.ZERO
-			down["hand_r"] = Vector3.ZERO
-			var pose := _keys(u, [[0.0, {}], [0.1, down, "out"], [0.82, down], [1.0, tuck]])
-			if u > 0.82:
-				_gun_tuck(pose, _ease((u - 0.82) / 0.18))
-			for i in range(GUN_RAIN_SHOTS):
-				var since := u - (GUN_RAIN_FIRST + float(i) * GUN_RAIN_STEP)
-				if since < 0.0 or since > 0.12:
-					continue
-				var kick := exp(-since * 40.0)
-				var both := i == GUN_RAIN_SHOTS - 1
-				for sd in ["r", "l"]:
-					if both or (sd == "r") == (i % 2 == 0):
-						pose["arm_" + sd] = (pose["arm_" + sd] as Vector3) + Vector3(0.0, 0.0, (0.35 if sd == "r" else -0.35) * kick)
-						pose["fore_" + sd] = (pose["fore_" + sd] as Vector3) + Vector3(0.4 * kick, 0, 0)
-			pose["pivot"] = Vector3(0, -TAU * _ease(clampf((u - 0.1) / 0.72, 0.0, 1.0)), 0)
-			lift.y = 0.08 * sin(clampf(u, 0.0, 1.0) * PI)
+			# dual pistols' air attack: knees up, both guns snapped down and a little
+			# back, one blast together; the recoil throws the arms up and out and the
+			# legs trail behind the forward launch, then the guns come in to the chest
+			var aim := {"leg_l": Vector3(1.35, 0, -0.18), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(0.8, 0, 0.2), "shin_r": Vector3(-1.3, 0, 0),
+				"torso": Vector3(-0.15, 0, 0), "head": Vector3(-0.35, 0, 0),
+				"arm_r": Vector3(-0.25, 0, 0.3), "fore_r": Vector3.ZERO, "hand_r": Vector3.ZERO,
+				"arm_l": Vector3(-0.25, 0, -0.3), "fore_l": Vector3.ZERO}
+			var kick := {"leg_l": Vector3(0.9, 0, -0.12), "shin_l": Vector3(-1.6, 0, 0), "leg_r": Vector3(-0.35, 0, 0.12), "shin_r": Vector3(-0.5, 0, 0),
+				"torso": Vector3(0.12, 0, 0), "head": Vector3(0.25, 0, 0),
+				"arm_r": Vector3(0.35, 0, 0.75), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3.ZERO,
+				"arm_l": Vector3(0.35, 0, -0.75), "fore_l": Vector3(0.7, 0, 0)}
+			var settle := {"leg_l": Vector3(1.0, 0, -0.1), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.45, 0, 0.12), "shin_r": Vector3(-1.1, 0, 0),
+				"torso": Vector3(-0.05, 0, 0), "head": Vector3(0.1, 0, 0)}
+			var a := GUN_RAIN_AT
+			var pose := _keys(u, [[0.0, {}], [a, aim, "out"], [a + 0.08, kick, "out"], [0.5, kick], [1.0, settle]])
+			if u > 0.5:
+				_gun_tuck(pose, _ease(clampf((u - 0.5) / 0.4, 0.0, 1.0)))
 			return [pose, "full", lift]
 		"dual_heavy":
 			var gh := _guard()
