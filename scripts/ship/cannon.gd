@@ -42,6 +42,8 @@ var _yaw_node: Node3D
 var _pitch_node: Node3D
 var _barrel: Node3D
 var _recoil: float = 0.0
+## Shots fired so far: with the gun's key, the ball's name on every screen.
+var _shots: int = 0
 var _arc: MeshInstance3D
 var _arc_mesh: ImmediateMesh
 var _cam_arm: Node3D
@@ -178,15 +180,16 @@ func fire(by: Node = null) -> bool:
 	cool = reload_time
 	var from := muzzle()
 	var vel := shot_velocity()
-	_shoot(from, vel, true, by)
-	Net.event(self, "fire", [from, vel])
+	_shots += 1
+	_shoot(from, vel, true, by, _shots)
+	Net.event(self, "fire", [from, vel, _shots])
 	fired.emit()
 	return true
 
 
-func _shoot(from: Vector3, vel: Vector3, auth: bool, by: Node) -> void:
+func _shoot(from: Vector3, vel: Vector3, auth: bool, by: Node, n: int) -> void:
 	_recoil = 1.0
-	var b := Cannonball.launch(get_tree(), from, vel, team, auth, by if by else ship, ship)
+	var b := Cannonball.launch(get_tree(), from, vel, team, auth, by if by else ship, ship, "%s#%d" % [Net.key_of(self), n])
 	b.hull_damage = hull_damage
 	b.splash_damage = splash_damage
 	var dir := vel.normalized()
@@ -200,9 +203,10 @@ func _shoot(from: Vector3, vel: Vector3, auth: bool, by: Node) -> void:
 
 
 func net_event(what: String, args: Array) -> void:
-	if what == "fire" and args.size() >= 2:
+	if what == "fire" and args.size() >= 3:
 		cool = reload_time
-		_shoot(args[0], args[1], false, null)
+		_shots = int(args[2])
+		_shoot(args[0], args[1], false, null, _shots)
 
 
 ## Point the barrel so the ball comes down at `target` (low arc). Returns

@@ -986,6 +986,11 @@ func coins(at: Vector3, count: int) -> void:
 	everyone("_all_coins", [at, count])
 
 
+## A cannonball stopped in flight (cut, deflected or set off) on someone's screen.
+func _all_ball(ball_id: String, what: String, at: Vector3, vel: Vector3, by_id: int) -> void:
+	Cannonball.net_act(ball_id, what, at, vel, by_id)
+
+
 func _all_coins(at: Vector3, count: int) -> void:
 	CoinPickup.spawn(get_tree(), at, count)
 
