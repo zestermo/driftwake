@@ -81,6 +81,10 @@ func _initialize():
 		lk["build"] = "broad"
 		h.apply_look(lk)
 		h.set_beast(true, fur)
+	# airborne at this vertical speed (e.g. -6 = coming down, knees tucked)
+	if OS.get_environment("PB_AIR") != "":
+		h.grounded = false
+		h.vertical_speed = float(OS.get_environment("PB_AIR"))
 	if OS.get_environment("PB_SPEED") != "":
 		h.ground_speed = float(OS.get_environment("PB_SPEED"))
 		h.local_move = Vector2(0, 1)

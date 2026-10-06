@@ -542,11 +542,21 @@ func _lower_body() -> void:
 	# the pelvis, but only near it (lower down the whole thigh follows the leg)
 	var wf := func(p: Vector3) -> Array:
 		var t := 1.0 - smoothstep(-0.21, -0.04, p.y)
-		# (a wide, slow blend: a narrow one folded the surface under the seat when a thigh tilted)
-		var fx := maxf(smoothstep(0.0, 0.07, absf(p.x)), 1.0 - smoothstep(ys - 0.2, ys - 0.02, p.y))
-		t *= fx
+		# The back of the seat and the middle of the crotch take their leg share
+		# from the seat helpers (they turn part way, push out on flex, and between
+		# them average the two legs) instead of a thigh, fading to the thigh below
+		# the crotch: a lifted leg no longer drags the seat flat or pinches the
+		# crotch. (Wide, slow blends: narrow ones folded the surface.)
+		var near := smoothstep(ys - 0.09, ys + 0.01, p.y)
+		var behind := smoothstep(-0.01, 0.05, p.z)
+		var mid := 1.0 - smoothstep(0.0, 0.07, absf(p.x))
+		var hs := maxf(behind, mid) * near
+		var helper := t * hs
+		var thigh := t * (1.0 - hs)
+		var to_left := clampf(0.5 - p.x / 0.1, 0.0, 1.0)
 		var b := LowerBody.THIGH_L if p.x < 0.0 else LowerBody.THIGH_R
-		return [PackedInt32Array([LowerBody.PELVIS, b, 0, 0]), PackedFloat32Array([1.0 - t, t, 0.0, 0.0])]
+		return [PackedInt32Array([LowerBody.PELVIS, b, LowerBody.SEAT_L, LowerBody.SEAT_R]),
+			PackedFloat32Array([1.0 - helper - thigh, thigh, helper * to_left, helper * (1.0 - to_left)])]
 	var mb := MeshBuilder.new()
 	mb.skinned = true
 	mb.weight_fn = wf

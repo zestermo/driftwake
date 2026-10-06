@@ -6,6 +6,30 @@ var p
 var got = null
 func check(n: String, c: bool) -> void:
 	print(("PASS " if c else "FAIL ") + n); if not c: fails += 1
+## How far back (hips-space z) the left glute reaches: rest mesh, or skinned
+## with the lower body's current bone poses.
+func seat_back(lb: LowerBody, posed: bool) -> float:
+	var mesh: ArrayMesh = (lb.get_node("Mesh") as MeshInstance3D).mesh
+	var best := -1.0
+	for s in range(mesh.get_surface_count()):
+		var arr := mesh.surface_get_arrays(s)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+		var weights: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+		for i in range(v.size()):
+			var p := v[i]
+			if p.x > -0.03 or p.y > -0.05 or p.y < -0.17:
+				continue
+			var q := p
+			if posed:
+				q = Vector3.ZERO
+				for k in range(4):
+					var b := bones[i * 4 + k]
+					q += (lb.get_bone_global_pose(b) * lb.get_bone_global_rest(b).affine_inverse() * p) * weights[i * 4 + k]
+			best = maxf(best, q.z)
+	return best
+
+
 func _initialize():
 	# 1. every option value builds
 	var opts := {"body": CharacterLook.BODIES, "build": CharacterLook.BUILDS, "height": CharacterLook.HEIGHTS,
@@ -109,6 +133,13 @@ func _process(d: float) -> bool:
 			lb._pose()
 			var want: Transform3D = bm.hips.global_transform.affine_inverse() * bm.leg_l.global_transform
 			check("lower body thigh bone follows the swung leg", lb.get_bone_global_pose(LowerBody.THIGH_L).is_equal_approx(want))
+			# lifting a leg (a jump tuck) mustn't flatten that side of the seat:
+			# skin the seat on the CPU and compare how far back it reaches
+			var depth_rest := seat_back(lb, false)
+			bm.leg_l.rotation = Vector3(1.4, 0.0, -0.1)
+			lb._pose()
+			var depth_up := seat_back(lb, true)
+			check("lifting a leg keeps the seat's volume (back of the left glute %.3f m -> %.3f m)" % [depth_rest, depth_up], depth_up > depth_rest * 0.9)
 			check("headless: creator not auto-opened", not CharacterCreator.active)
 			check("{captain} token fills the name", root.get_node("Dialogue")._fill_tokens("Hi {captain}") == "Hi Mara Vance")
 			# open from the pause menu
