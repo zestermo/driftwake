@@ -924,16 +924,17 @@ func _action_pose(n: String, u: float) -> Array:
 			lift.y = -0.4 * (1.0 - _ease(clampf((u - 0.62) / 0.38, 0.0, 1.0)))
 			return [_keys(u, [[0.0, _iai_pose()], [0.14, cut2, "out"], [0.62, cut2], [1.0, _guard()]]), "full", lift]
 		"air_slash":
-			# katana air attack: knees drawn up unevenly, the blade whipped up and
-			# back one-handed with the chest wound round, then a big arc swept down
-			# under the body (the strike overshoots and bounces), then back to guard
+			# katana air attack: knees drawn up unevenly, the blade whipped up over
+			# the left shoulder one-handed with the chest wound round, then a big arc
+			# swept down under the body and out to the right (the strike overshoots
+			# and bounces), then back to guard
 			var knees := {"leg_l": Vector3(1.45, 0, -0.16), "shin_l": Vector3(-2.05, 0, 0), "leg_r": Vector3(0.95, 0, 0.18), "shin_r": Vector3(-1.45, 0, 0)}
-			var wind := {"arm_r": Vector3(2.9, -0.4, 0.7), "fore_r": Vector3(1.1, 0, 0), "hand_r": Vector3.ZERO,
-				"arm_l": Vector3(0.9, 0, -1.1), "fore_l": Vector3(0.5, 0, 0),
-				"torso": Vector3(0.25, 0.85, 0.1), "head": Vector3(0.05, -0.5, 0)}.merged(knees)
-			var under := {"arm_r": Vector3(-0.6, 0.5, 0.35), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
-				"arm_l": Vector3(1.2, 0, -1.3), "fore_l": Vector3(0.4, 0, 0),
-				"torso": Vector3(-0.45, -0.9, -0.12), "head": Vector3(-0.35, 0.55, 0), "pivot": Vector3(-0.35, 0, 0)}.merged(knees)
+			var wind := {"arm_r": Vector3(2.6, -0.45, -0.8), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3.ZERO,
+				"arm_l": Vector3(0.3, 0, -1.2), "fore_l": Vector3(0.5, 0, 0),
+				"torso": Vector3(0.1, -0.9, -0.15), "head": Vector3(0.0, 0.6, 0)}.merged(knees)
+			var under := {"arm_r": Vector3(0.3, -0.4, 1.4), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.2, 0, 0),
+				"arm_l": Vector3(0.9, 0, -1.3), "fore_l": Vector3(0.4, 0, 0),
+				"torso": Vector3(-0.25, 0.9, 0.2), "head": Vector3(-0.2, -0.5, 0), "pivot": Vector3(-0.1, 0, 0.2)}.merged(knees)
 			var settle := {"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.6, 0, 0.14), "shin_r": Vector3(-1.1, 0, 0)}.merged(_guard())
 			return [_keys(u, [[0.0, {}], [0.22, wind, "out"], [0.3, wind], [0.5, under, "back"], [0.72, under], [1.0, settle]]), "full", lift]
 		"quick_draw":
