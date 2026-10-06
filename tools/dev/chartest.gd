@@ -39,6 +39,34 @@ func _initialize():
 		if n < 8: ok = false
 		h.free()
 	check("60 random looks build (max %d mesh instances each)" % max_meshes, ok and max_meshes <= 16)
+	# 1b. the skinned lower body: one surface, thighs without meshes of their own,
+	# nothing inside-out, and the thigh bones follow the leg joints
+	var lb_ok := true
+	var lb_msg := ""
+	for body in ["fem", "masc"]:
+		for build in CharacterLook.BUILDS:
+			for legs in CharacterLook.LEGS:
+				var lk := CharacterLook.base_look(); lk["body"] = body; lk["build"] = build; lk["legs"] = legs
+				var h := Humanoid.new(); h.setup(lk); root.add_child(h)
+				var lb = h.hips.get_node_or_null("LowerBody")
+				if lb == null or not (lb is LowerBody):
+					lb_ok = false; lb_msg = "%s/%s/%s: no LowerBody" % [body, build, legs]; h.free(); continue
+				var mi: MeshInstance3D = lb.get_node("Mesh")
+				if mi.skin == null or h.leg_l.find_children("*", "MeshInstance3D", false, false).size() > 0:
+					lb_ok = false; lb_msg = "%s/%s/%s: not skinned, or the thigh still has a mesh" % [body, build, legs]
+				var mesh: ArrayMesh = mi.mesh
+				for s in range(mesh.get_surface_count()):
+					var arr := mesh.surface_get_arrays(s)
+					var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+					var n: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+					for tt in range(0, v.size(), 3):
+						var fnm := (v[tt + 2] - v[tt]).cross(v[tt + 1] - v[tt])
+						if fnm.length() > 1e-9 and fnm.normalized().dot((n[tt] + n[tt + 1] + n[tt + 2]).normalized()) < 0.0:
+							lb_ok = false; lb_msg = "%s/%s/%s: inside-out triangle at %s" % [body, build, legs, str(v[tt])]
+				h.free()
+	if lb_msg != "":
+		print("   ", lb_msg)
+	check("skinned lower body for every body/build/legs: one surface, thighs without own meshes, nothing inside-out", lb_ok)
 	# 2. apply_look keeps the weapon
 	var h2 := Humanoid.new(); h2.setup(CharacterLook.default_look()); root.add_child(h2)
 	h2.set_weapon(Props.weapon_mesh("cutlass"))
@@ -74,6 +102,13 @@ func _process(d: float) -> bool:
 			if t < 1.0: return false
 			p = root.get_tree().get_first_node_in_group("player")
 			check("player loads the saved look", p.body_model.look["name"] == "Mara Vance")
+			# the lower body's thigh bones follow the leg joints (swing one, pose, compare)
+			var bm = p.body_model
+			var lb: LowerBody = bm.hips.get_node("LowerBody")
+			bm.leg_l.rotation = Vector3(0.9, 0.1, -0.2)
+			lb._pose()
+			var want: Transform3D = bm.hips.global_transform.affine_inverse() * bm.leg_l.global_transform
+			check("lower body thigh bone follows the swung leg", lb.get_bone_global_pose(LowerBody.THIGH_L).is_equal_approx(want))
 			check("headless: creator not auto-opened", not CharacterCreator.active)
 			check("{captain} token fills the name", root.get_node("Dialogue")._fill_tokens("Hi {captain}") == "Hi Mara Vance")
 			# open from the pause menu

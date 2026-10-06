@@ -15,6 +15,10 @@ var _order: Array[Material] = []
 ## add_tri's `vb`), which is all the segmented PS1-style chains need.
 var skinned := false
 var bone := 0
+## Optional blended skinning: func(position) -> [PackedInt32Array(4) bones,
+## PackedFloat32Array(4) weights], applied per vertex instead of `bone`.
+## (A pure function of position, so coincident vertices always move together.)
+var weight_fn: Callable
 
 
 func _surf(mat: Material) -> Dictionary:
@@ -56,6 +60,12 @@ func add_tri(mat: Material, a: Vector3, b: Vector3, c: Vector3,
 	s["n"].append_array([na, nb, nc])
 	s["uv"].append_array([ua, ub, uc])
 	s["c"].append_array([col, col, col])
+	if weight_fn.is_valid():
+		for p in [a, b, c]:
+			var bw: Array = weight_fn.call(p)
+			s["b"].append_array(bw[0])
+			s["w"].append_array(bw[1])
+		return
 	s["b"].append_array([ba, 0, 0, 0, bb, 0, 0, 0, bc, 0, 0, 0])
 	s["w"].append_array([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
 
@@ -512,6 +522,156 @@ func _loft_cap(mat: Material, xf: Transform3D, row: PackedVector3Array, center: 
 		add_tri(mat, c, a, b, nrm, nrm, nrm,
 			Vector2(center.x, center.z) * uv_scale, Vector2(row[i].x, row[i].z) * uv_scale,
 			Vector2(row[(i + 1) % row.size()].x, row[(i + 1) % row.size()].z) * uv_scale, col, nrm)
+
+
+## Tube through rings of absolute points (all the same count, ordered front ->
+## +x -> back -> -x), for shapes a scaled profile can't make (a pelvis that
+## splits into two thighs). Smooth normals within the tube, outward from each
+## ring's own centre; u runs along each ring, v down the tube. `pick`
+## (quad centre -> Material) can swap the material per quad.
+func add_rings(mat: Material, rings: Array, uv_scale: float = 3.0, col: Color = Color.WHITE,
+		cap_top: bool = false, cap_bottom: bool = false, pick: Callable = Callable()) -> void:
+	var nr := rings.size()
+	if nr < 2:
+		return
+	var n: int = (rings[0] as PackedVector3Array).size()
+	var centers: Array = []
+	for ring in rings:
+		var c := Vector3.ZERO
+		for p in ring:
+			c += p
+		centers.append(c / n)
+	# every ring runs the same way round, so all faces of the tube share one
+	# winding: decide outward once, by a vote weighted toward faces that clearly
+	# face away from the axis (a per-face test flips the flat ones at the crotch)
+	var fn: Array = []
+	var vote := 0.0
+	for r in range(nr - 1):
+		var row: Array = []
+		for i in range(n):
+			var i1 := (i + 1) % n
+			var a: Vector3 = rings[r][i]
+			var b: Vector3 = rings[r][i1]
+			var c: Vector3 = rings[r + 1][i1]
+			var d: Vector3 = rings[r + 1][i]
+			var nn := (b - a).cross(d - a)
+			if nn.length_squared() < 1e-12:
+				nn = (c - b).cross(a - b)
+			nn = nn.normalized()
+			var mid := (a + b + c + d) * 0.25
+			var axis: Vector3 = ((centers[r] as Vector3) + (centers[r + 1] as Vector3)) * 0.5
+			vote += nn.dot(Vector3(mid.x - axis.x, 0.0, mid.z - axis.z))
+			row.append(nn)
+		fn.append(row)
+	if vote < 0.0:
+		for row in fn:
+			for i in range(row.size()):
+				row[i] = -(row[i] as Vector3)
+	var vn: Array = []
+	for r in range(nr):
+		var row := PackedVector3Array()
+		for i in range(n):
+			var acc := Vector3.ZERO
+			for rr in [r - 1, r]:
+				if rr < 0 or rr >= nr - 1:
+					continue
+				acc += fn[rr][i] + fn[rr][(i - 1 + n) % n]
+			row.append(acc.normalized() if acc.length_squared() > 0.0 else Vector3.UP)
+		vn.append(row)
+	var vs := PackedFloat32Array([0.0])
+	for r in range(nr - 1):
+		vs.append(vs[r] + (centers[r + 1] as Vector3).distance_to(centers[r]) * uv_scale)
+	var us: Array = []
+	for r in range(nr):
+		var u := PackedFloat32Array([0.0])
+		for i in range(n):
+			u.append(u[i] + (rings[r][i] as Vector3).distance_to(rings[r][(i + 1) % n]) * uv_scale)
+		us.append(u)
+	for r in range(nr - 1):
+		for i in range(n):
+			var i1 := (i + 1) % n
+			var pa: Vector3 = rings[r][i]
+			var pb: Vector3 = rings[r][i1]
+			var pc: Vector3 = rings[r + 1][i1]
+			var pd: Vector3 = rings[r + 1][i]
+			var m := mat
+			if pick.is_valid():
+				m = pick.call((pa + pb + pc + pd) * 0.25)
+			var ua := Vector2(us[r][i], vs[r]); var ub := Vector2(us[r][i + 1], vs[r])
+			var uc := Vector2(us[r + 1][i + 1], vs[r + 1]); var ud := Vector2(us[r + 1][i], vs[r + 1])
+			var na: Vector3 = vn[r][i]; var nb: Vector3 = vn[r][i1]
+			var nc: Vector3 = vn[r + 1][i1]; var nd: Vector3 = vn[r + 1][i]
+			# split along the diagonal that folds the quad least (a twisted quad split
+			# the other way turns one triangle inside out), and face each triangle
+			# the way its own vertex normals do
+			if _fold([pa, pb, pc], na + nb + nc, [pa, pc, pd], na + nc + nd) >= _fold([pa, pb, pd], na + nb + nd, [pb, pc, pd], nb + nc + nd):
+				add_tri(m, pa, pb, pc, na, nb, nc, ua, ub, uc, col, na + nb + nc)
+				add_tri(m, pa, pc, pd, na, nc, nd, ua, uc, ud, col, na + nc + nd)
+			else:
+				add_tri(m, pa, pb, pd, na, nb, nd, ua, ub, ud, col, na + nb + nd)
+				add_tri(m, pb, pc, pd, nb, nc, nd, ub, uc, ud, col, nb + nc + nd)
+	for cap in [[cap_top, 0, 1.0], [cap_bottom, nr - 1, -1.0]]:
+		if not cap[0]:
+			continue
+		var ring: PackedVector3Array = rings[cap[1]]
+		var c: Vector3 = centers[cap[1]]
+		var nb: Vector3 = centers[1] if cap[1] == 0 else centers[nr - 2]
+		var cn := (c - nb).normalized()
+		var m := mat
+		if pick.is_valid():
+			m = pick.call(c)
+		for i in range(n):
+			add_tri(m, c, ring[i], ring[(i + 1) % n], cn, cn, cn, Vector2.ZERO, Vector2(uv_scale * 0.1, 0), Vector2(0, uv_scale * 0.1), col, cn)
+
+
+## How flat a quad split is: the dot of its two triangles' normals, each
+## turned to face the way its vertex normals (w1, w2) do.
+static func _fold(t1: Array, w1: Vector3, t2: Array, w2: Vector3) -> float:
+	var a1: Vector3 = t1[0]
+	var a2: Vector3 = t2[0]
+	var n1 := ((t1[1] as Vector3) - a1).cross((t1[2] as Vector3) - a1).normalized()
+	var n2 := ((t2[1] as Vector3) - a2).cross((t2[2] as Vector3) - a2).normalized()
+	if n1.dot(w1) < 0.0:
+		n1 = -n1
+	if n2.dot(w2) < 0.0:
+		n2 = -n2
+	return n1.dot(n2)
+
+
+## Average the normals of vertices that share a position (within `eps`) and
+## face roughly the same way (dot > `min_dot`), across every surface, so two
+## tubes that meet ring to ring shade as one surface.
+func weld_normals(eps: float = 0.0005, min_dot: float = 0.3) -> void:
+	var groups: Dictionary = {}
+	for mat in _order:
+		var s: Dictionary = _surfaces[mat]
+		var v: PackedVector3Array = s["v"]
+		for i in range(v.size()):
+			var key := Vector3i(roundi(v[i].x / eps), roundi(v[i].y / eps), roundi(v[i].z / eps))
+			if not groups.has(key):
+				groups[key] = []
+			groups[key].append([mat, i])
+	var updates: Dictionary = {}   # mat -> [[index, normal], ...]
+	for key in groups:
+		var g: Array = groups[key]
+		if g.size() < 2:
+			continue
+		var ns: Array = []
+		for e in g:
+			ns.append((_surfaces[e[0]]["n"] as PackedVector3Array)[e[1]])
+		for k in range(g.size()):
+			var acc := Vector3.ZERO
+			for j in range(g.size()):
+				if (ns[j] as Vector3).dot(ns[k]) > min_dot:
+					acc += ns[j]
+			if not updates.has(g[k][0]):
+				updates[g[k][0]] = []
+			updates[g[k][0]].append([g[k][1], acc.normalized()])
+	for mat in updates:
+		var arr: PackedVector3Array = _surfaces[mat]["n"]
+		for u in updates[mat]:
+			arr[u[0]] = u[1]
+		_surfaces[mat]["n"] = arr
 
 
 ## Append another builder's triangles (so several parts share one mesh).

@@ -96,7 +96,7 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	_skeleton()
 	_colliders()
 	_legs()
-	_pelvis()
+	_lower_body()
 	_torso()
 	_arms()
 	_head()
@@ -433,21 +433,9 @@ func _legs() -> void:
 	var m_legs := _cloth("legs_color")
 	var m_stock := _textured("fabric", Color(0.88, 0.86, 0.78)) if legs == "breeches" else m_skin
 	var prof := MeshBuilder.profile_oct(0.5)
+	# (the thighs are part of the skinned lower body, see _lower_body)
 	for side in [-1, 1]:
-		var leg: Node3D = h.leg_l if side < 0 else h.leg_r
 		var shin: Node3D = h.shin_l if side < 0 else h.shin_r
-		var th := _thigh_rings(float(side))
-		var tmb := MeshBuilder.new()
-		match legs:
-			"shorts":
-				tmb.add_loft(m_legs, Transform3D.IDENTITY, _off(_clip(th, -0.2 * Ls, 1.0), 0.008), prof, 3.0, Color.WHITE, false, true)
-				tmb.add_loft(m_skin, Transform3D.IDENTITY, _clip(th, -1.0, -0.19 * Ls), prof, 3.0)
-				tmb.add_loft(m_legs, Transform3D.IDENTITY, _off(_clip(th, -0.22 * Ls, -0.17 * Ls), 0.014), prof, 3.0)
-			"skirt":
-				tmb.add_loft(m_skin, Transform3D.IDENTITY, th, prof, 3.0, Color.WHITE, false, true)
-			_:
-				tmb.add_loft(m_legs, Transform3D.IDENTITY, _off(th, 0.006), prof, 3.0, Color.WHITE, false, true)
-		_mesh(leg, tmb)
 		var sr := _shin_rings()
 		var smb := MeshBuilder.new()
 		match legs:
@@ -495,67 +483,142 @@ func _feet(mb: MeshBuilder, sr: Array, feet: String) -> void:
 			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.04, sole + 0.19 * F), 0.016), sp, 3.0, Color.WHITE, false, true)
 
 
-func _pelvis() -> void:
-	var m := _cloth("legs_color")
+## Hips, seat and both thighs as ONE skinned surface (LowerBody): the pelvis
+## tube narrows into a "split ring" at the crotch whose two halves are the tops
+## of the two thigh tubes (they share their inner edge on the centre line), so
+## there are no overlapping rigid pieces to show seams or lumps. Every ring is
+## 12 points: front centre, 5 on the +x side, back centre, 5 on the -x side.
+func _lower_body() -> void:
+	var legs := str(lk.get("legs", "trousers"))
+	var m_legs := _cloth("legs_color")
 	var hw := _hips_hw()
 	var hd := _hips_hd()
+	var lg := float(st["leg_gap"])
 	# the top tucks inside the shirt's waist and the hips only widen below its hem
 	var tr0: Array = _torso_rings()[0]
 	var ww := float(tr0[1])
 	var wd := float(tr0[2])
-	var rings: Array
+	var ys := -0.18 if fem else -0.165
+	var pelvis: Array = []
 	if fem:
-		# a rounded seat that sits back and curves under into the thighs; the seat
-		# rings pull the back centre in (the cleft) so it reads as two glutes
-		# (the seat fills out right under the belt so its top is round and high)
-		var seat := _seat_profile(1.0)
-		rings = [[0.04, ww * 0.9, wd * 0.9, 0.0, 0.0, seat], [0.0, ww + 0.004, wd + 0.004, 0.0, 0.0, seat],
-			[-0.025, lerpf(ww, hw, 0.45), lerpf(wd, hd, 0.55), 0.008, 0.0, _seat_profile(0.92)],
-			[-0.055, lerpf(ww, hw, 0.8), hd * 0.98, 0.014, 0.0, _seat_profile(0.84)],
-			[-0.09, hw, hd, 0.012, 0.0, _seat_profile(0.8)], [-0.13, hw * 0.96, hd, 0.012, 0.0, _seat_profile(0.8)],
-			# (the lower back stays tucked behind the glutes: their round undersides
-			# make the edge, not this tube's)
-			[-0.165, hw * 0.82, hd * 0.72, -0.006, 0.0, _seat_profile(0.82)], [-0.195, hw * 0.56, hd * 0.46, -0.01, 0.0, _seat_profile(0.88)],
-			[-0.218, hw * 0.3, hd * 0.26, -0.01, 0.0, seat]]
+		# an hourglass that rounds into a high, full seat; the back centre pulls in
+		# (the cleft) and the split below divides it into two glutes
+		for r in [[0.04, ww * 0.9, wd * 0.9, 0.0, 1.0, 1.0], [0.0, ww + 0.004, wd + 0.004, 0.0, 1.0, 1.0],
+				[-0.03, lerpf(ww, hw, 0.55), lerpf(wd, hd, 0.6), 0.008, 0.94, 1.02], [-0.065, lerpf(ww, hw, 0.88), hd * 0.98, 0.014, 0.86, 1.06],
+				[-0.105, hw, hd, 0.016, 0.8, 1.08], [-0.145, hw * 0.95, hd * 0.96, 0.014, 0.76, 1.08]]:
+			pelvis.append(_hip_ring(r[0], r[1], r[2], r[3], r[4], r[5]))
 	else:
-		rings = [[0.04, ww * 0.9, wd * 0.9], [0.0, ww + 0.004, wd + 0.004], [-0.045, lerpf(ww, hw, 0.6), lerpf(wd, hd, 0.6), 0.003],
-			[-0.095, hw, hd, 0.006], [-0.135, hw * 0.94, hd * 0.92, 0.005], [-0.17, hw * 0.66, hd * 0.72], [-0.195, hw * 0.26, hd * 0.32]]
+		for r in [[0.04, ww * 0.9, wd * 0.9, 0.0, 1.0, 1.0], [0.0, ww + 0.004, wd + 0.004, 0.0, 1.0, 1.0],
+				[-0.045, lerpf(ww, hw, 0.6), lerpf(wd, hd, 0.6), 0.003, 0.96, 1.0], [-0.095, hw, hd, 0.006, 0.9, 1.02],
+				[-0.13, hw * 0.94, hd * 0.92, 0.005, 0.86, 1.02]]:
+			pelvis.append(_hip_ring(r[0], r[1], r[2], r[3], r[4], r[5]))
+	# the split: each thigh's top ring at the crotch height (thigh rings are in
+	# the leg joint's space, which sits at (+-leg_gap, -0.02) in hips space)
+	var th := {-1: _thigh_rings(-1.0), 1: _thigh_rings(1.0)}
+	var top := {}
+	for s in [-1, 1]:
+		var r := _at(th[s], ys + 0.02)
+		top[s] = [s * lg + float(r[4]), float(r[3]), float(r[1]), float(r[2])]   # cx, cz, rx, rz
+	var zf := minf(float(top[1][1]) - float(top[1][3]) * 0.92, -hd * 0.8)
+	var zb := float(top[1][1]) + float(top[1][3]) * (0.62 if fem else 0.8)
+	var outer := {}
+	for s in [-1, 1]:
+		var pts := PackedVector3Array()
+		for k in range(1, 6):
+			var a: float = deg_to_rad(30.0 * k) * s
+			pts.append(Vector3(float(top[s][0]) + float(top[s][2]) * sin(a), ys, float(top[s][1]) - float(top[s][3]) * cos(a)))
+		outer[s] = pts
+	var front := Vector3(0, ys, zf)
+	var back := Vector3(0, ys, zb)
+	var split := PackedVector3Array([front])
+	split.append_array(outer[1])
+	split.append(back)
+	var left_back_to_front: PackedVector3Array = outer[-1].duplicate()
+	left_back_to_front.reverse()
+	split.append_array(left_back_to_front)
+	pelvis.append(split)
+	# skinning: a pure function of position, so the shared ring moves as one.
+	# Pelvis above the hips, thigh below; near the crotch the centre stays with
+	# the pelvis, but only near it (lower down the whole thigh follows the leg)
+	var wf := func(p: Vector3) -> Array:
+		var t := 1.0 - smoothstep(-0.21, -0.04, p.y)
+		# (a wide, slow blend: a narrow one folded the surface under the seat when a thigh tilted)
+		var fx := maxf(smoothstep(0.0, 0.07, absf(p.x)), 1.0 - smoothstep(ys - 0.2, ys - 0.02, p.y))
+		t *= fx
+		var b := LowerBody.THIGH_L if p.x < 0.0 else LowerBody.THIGH_R
+		return [PackedInt32Array([LowerBody.PELVIS, b, 0, 0]), PackedFloat32Array([1.0 - t, t, 0.0, 0.0])]
 	var mb := MeshBuilder.new()
-	mb.add_loft(m, Transform3D.IDENTITY, rings, _seat_profile(1.0) if fem else MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, true, false)
-	if fem:
-		# two glutes, one behind each hip joint: overlapping a little at the middle
-		# (the crease where they meet) and each with its own round underside
-		# (placed and sized from the hip width so they scale with the build)
-		for s in [-1.0, 1.0]:
-			_glute(mb, m, Vector3(s * hw * 0.36, -0.124, hd * 0.48), Vector3(hw * 0.41, 0.102, 0.076 * de))
-	_mesh(h.hips, mb)
+	mb.skinned = true
+	mb.weight_fn = wf
+	# trousers/breeches: cloth all the way; shorts: cloth to the hem, then skin;
+	# skirt: bare thighs under it
+	var hem := -0.2 * Ls - 0.02
+	var pick := func(c: Vector3) -> Material:
+		if c.y > ys + 0.002:
+			return m_legs
+		match legs:
+			"shorts": return m_legs if c.y > hem else m_skin
+			"skirt": return m_skin
+		return m_legs
+	mb.add_rings(m_legs, pelvis, 3.0, Color.WHITE, true, false)
+	for s in [-1, 1]:
+		var ring0 := PackedVector3Array([front])
+		var inner := PackedVector3Array()
+		for j in range(1, 6):
+			inner.append(Vector3(0, ys, lerpf(zf, zb, j / 6.0)))
+		if s > 0:
+			ring0.append_array(outer[1])
+			ring0.append(back)
+			inner.reverse()
+			ring0.append_array(inner)
+		else:
+			ring0.append_array(inner)
+			ring0.append(back)
+			ring0.append_array(left_back_to_front)
+		var tube := [ring0]
+		var y_leg := ys + 0.02 - 0.045
+		tube.append(_thigh_ring(_at(th[s], y_leg), s, lg))
+		for r in th[s]:
+			if float(r[0]) < y_leg - 0.02:
+				tube.append(_thigh_ring(r, s, lg))
+		mb.add_rings(m_legs, tube, 3.0, Color.WHITE, false, true, pick)
+		if legs == "shorts":
+			# the rolled cuff at the hem: a bulge that starts and ends on the thigh
+			# (an open band showed its inside edge)
+			var cuff := []
+			for k in [[-0.17, 0.0], [-0.188, 0.006], [-0.206, 0.007], [-0.222, 0.0]]:
+				var r := _off([_at(th[s], float(k[0]) * Ls)], float(k[1]))[0] as Array
+				cuff.append(_thigh_ring(r, s, lg))
+			mb.add_rings(m_legs, cuff, 3.0)
+	mb.weld_normals()
+	var lb := LowerBody.new()
+	h.hips.add_child(lb)
+	lb.setup(h.leg_l, h.leg_r, mb)
 
 
-## A rounded lobe (ellipsoid) with radii r, centred at c in the pelvis's space.
-func _glute(mb: MeshBuilder, m: Material, c: Vector3, r: Vector3) -> void:
-	var prof := PackedVector2Array()
-	for i in range(12):
-		var a := TAU * i / 12.0
-		prof.append(Vector2(sin(a), -cos(a)))
-	var rings := []
-	for deg in [84.0, 62.0, 38.0, 13.0, -13.0, -38.0, -62.0, -84.0]:
-		var a := deg_to_rad(deg)
-		rings.append([r.y * sin(a), r.x * cos(a), r.z * cos(a)])
-	# wrapped uv (the loft's own u comes from its tiny top ring and stripes the cloth);
-	# the seam is at the front, buried in the pelvis
-	var wrap := func(p: Vector3) -> Vector2: return Vector2(atan2(p.x, p.z) * r.x * 3.0, -p.y * 3.0)
-	mb.add_loft(m, Transform3D(Basis(), c), rings, prof, 3.0, Color.WHITE, true, true, true, false, false,
-		PackedInt32Array(), m, wrap, func(_p: Vector3) -> bool: return true)
+## A 12-point hip ring (front centre, +x side, back centre, -x side) of half
+## width hw, half depth hd; `back` < 1 pulls the back centre in (the cleft),
+## `bulge` > 1 rounds the back out on either side of it (the seat).
+func _hip_ring(y: float, hw: float, hd: float, cz: float, back: float, bulge: float) -> PackedVector3Array:
+	var half := [Vector2(0, -1), Vector2(0.55, -0.9), Vector2(0.92, -0.5), Vector2(1.0, 0.02), Vector2(0.92, 0.52 * bulge),
+		Vector2(0.56, 0.95 * bulge), Vector2(0, back)]
+	var out := PackedVector3Array()
+	for p in half:
+		out.append(Vector3(p.x * hw, y, cz + p.y * hd))
+	for i in range(5, 0, -1):
+		var p: Vector2 = half[i]
+		out.append(Vector3(-p.x * hw, y, cz + p.y * hd))
+	return out
 
 
-## Rounded 12-point hip cross-section (-z = front). `back` < 1 pulls the back
-## centre in while the two sides stay full: the cleft between the glutes.
-func _seat_profile(back: float) -> PackedVector2Array:
-	# extra points round the back so each glute is its own rounded lobe
-	var b := 1.0 + (1.0 - back) * 0.3
-	return MeshBuilder.profile_mirror(PackedVector2Array([Vector2(0, -1), Vector2(0.55, -0.92), Vector2(0.92, -0.5),
-		Vector2(1.0, 0.05), Vector2(0.93, 0.48), Vector2(0.76, 0.84 * b), Vector2(0.48, 1.0 * b), Vector2(0.2, 0.96 * b),
-		Vector2(0, back)]))
+## A 12-point ellipse ring (same point order) from a leg-space thigh ring, in hips space.
+func _thigh_ring(r: Array, s: int, lg: float) -> PackedVector3Array:
+	var cx := s * lg + float(r[4])
+	var out := PackedVector3Array()
+	for k in range(12):
+		var a := deg_to_rad(30.0 * k)
+		out.append(Vector3(cx + float(r[1]) * sin(a), float(r[0]) - 0.02, float(r[3]) - float(r[2]) * cos(a)))
+	return out
 
 
 func _torso() -> void:

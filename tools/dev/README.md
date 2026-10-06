@@ -93,7 +93,8 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `npcs`: (no description)
 - `perf`: (no description)
 - `physdemo`: Physics demo: three characters run, stop, idle, jump. Saves frames for a GIF. Args: <style> <outdir>
-- `posebench`: Pose bench: a standalone Humanoid on a flat floor, actions frozen at given progress values, shot from several angles. Args: <out_prefix> <stance> <weapon|none> <action:u,action:u,...> [views: side,front,three,top]
+- `posebench`: Pose bench: a standalone Humanoid on a flat floor, actions frozen at given progress values, shot from several angles. Args: <out_prefix> <stance> <weapon|none> <action:u,action:u,...> [views: side,front,back,three,top,hipsb,hipss,hips3,hipsf,hipsu]. Env: PB_BASE=1 plain look, PB_REST=1 weapon away, PB_FEM=1 female, PB_SPEED=6 mid-stride, PB_KV="legs=shorts;build=stout" look overrides. Use "guard" as the action for no action.
+- `lbprobe`: Lower body mesh probe: lists triangles drawn inside-out or degenerate. Args: [fem 1/0]
 - `poses`: Renders a lineup of player poses for animation tuning.
 - `poses_angle`: Renders a lineup of player poses for animation tuning.
 - `powershot`: Ember Fruit + skill bar shots. Args: <out_prefix>

@@ -119,6 +119,9 @@ func place_cam(v: String) -> void:
 		"hipss":
 			c = Vector3(0, 0.95, 0)
 			cam.global_position = c + Vector3(-1.9, 0.1, 0)
+		"hipsu":   # low behind, looking up under the seat
+			c = Vector3(0, 0.75, 0)
+			cam.global_position = c + Vector3(0.0, -0.45, 1.1)
 		"hipsf":
 			c = Vector3(0, 0.95, 0)
 			cam.global_position = c + Vector3(0, 0.15, -1.9)

@@ -71,7 +71,7 @@ GameMenu, Net, Music, Weather, DevCapture.
 | Area | Files |
 |---|---|
 | Player + states | `scenes/player/player.gd`, `scripts/player_states/*_state.gd` (state machine; Move/Idle/Jump/Dodge/Swim/Downed/Swing/Cannon/Helm...) |
-| Body + animation | `scripts/npc/humanoid.gd` (procedural rig + locomotion + actions), `body_builder.gd`, `character_look.gd`, `face_painter.gd`, `spring_chains.gd` (hair/cloth) |
+| Body + animation | `scripts/npc/humanoid.gd` (procedural rig + locomotion + actions), `body_builder.gd`, `character_look.gd`, `face_painter.gd`, `spring_chains.gd` (hair/cloth), `lower_body.gd` (hips + thighs as one skinned mesh) |
 | Combat | `scenes/combat/hitbox.gd` + `hurtbox.gd`, `scripts/combat/` (HitData, health, ragdoll.gd), `scripts/enemies/` (pirate_grunt, pirate_boss, scuttlebug) |
 | Powers / progression | `scripts/powers/`, `scripts/progression/` (skill map, styles, fruits) |
 | World | `scripts/island/world_generator.gd` + islands in `scripts/island/`, `scripts/world/weather.gd` (day/night, weather, sky, rain, lightning, fog/haze), `cloud_spawner.gd` (PuffClouds 3D clouds) |
