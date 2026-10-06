@@ -7,7 +7,7 @@ var out := ""
 var p
 var g
 var g2
-var shots := [0.15, 0.5, 1.2, 2.5]
+var shots := [0.1, 0.3, 0.8, 1.6, 3.5]
 var si := 0
 var t_hit := -1.0
 func _initialize():

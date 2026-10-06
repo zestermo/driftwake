@@ -36,11 +36,14 @@ var _flame_mat: StandardMaterial3D
 var _flame_ramp: Gradient
 var _slash_mat: ShaderMaterial
 var _blood_mat: StandardMaterial3D
+var _streak_mesh: BoxMesh
 var _splat_mat: StandardMaterial3D
 var _splats: Array = []
-const BLOOD := Color(0.3, 0.01, 0.02)
+## Spray (flecks, streaks, mist) is darker than what lands: it reads lighter in the air.
+const BLOOD := Color(0.2, 0.0, 0.012)
+const SPLAT := Color(0.42, 0.02, 0.03)
 ## Ground splats kept at once (the oldest go first) and how long each lasts.
-const MAX_SPLATS := 60
+const MAX_SPLATS := 120
 const SPLAT_LIFE := 40.0
 var _streams: Dictionary = {}
 var _slash_meshes: Dictionary = {}
@@ -63,8 +66,17 @@ func _ready() -> void:
 	_blood_mat.vertex_color_use_as_albedo = true
 	_blood_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	_blood_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	# (taken as linear, BLOOD showed as a pinkish mid red)
+	_blood_mat.vertex_color_is_srgb = true
+	# streaks: thin boxes stretched along their flight (particle_flag_align_y)
+	var streak_mat := _blood_mat.duplicate() as StandardMaterial3D
+	streak_mat.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	_streak_mesh = BoxMesh.new()
+	_streak_mesh.size = Vector3(0.022, 0.16, 0.022)
+	_streak_mesh.material = streak_mat
 	_splat_mat = StandardMaterial3D.new()
-	_splat_mat.albedo_color = BLOOD
+	_splat_mat.albedo_color = SPLAT
+	_splat_mat.vertex_color_use_as_albedo = true
 	_splat_mat.roughness = 0.25
 	_splat_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	for k in SOUNDS.keys():
@@ -116,13 +128,20 @@ func _burst(pos: Vector3, amount: int, mat: Material, size: float, life: float, 
 	p.damping_max = cfg.get("damping", 2.0)
 	p.radial_accel_min = cfg.get("radial", 0.0)
 	p.radial_accel_max = cfg.get("radial", 0.0)
-	p.scale_amount_min = 0.7
-	p.scale_amount_max = 1.2
+	p.scale_amount_min = cfg.get("scale_min", 0.7)
+	p.scale_amount_max = cfg.get("scale_max", 1.2)
 	var curve := Curve.new()
-	var grow: bool = cfg.get("grow", true)
-	curve.add_point(Vector2(0, 0.6 if grow else 1.0))
-	curve.add_point(Vector2(1, 1.3 if grow else 0.0))
+	if cfg.get("hold", false):
+		# full size most of the way, then gone (drops, not puffs)
+		curve.add_point(Vector2(0, 1.0))
+		curve.add_point(Vector2(0.75, 1.0))
+		curve.add_point(Vector2(1, 0.0))
+	else:
+		var grow: bool = cfg.get("grow", true)
+		curve.add_point(Vector2(0, 0.6 if grow else 1.0))
+		curve.add_point(Vector2(1, 1.3 if grow else 0.0))
 	p.scale_amount_curve = curve
+	p.particle_flag_align_y = cfg.get("align", false)
 	if cfg.has("ramp"):
 		p.color_ramp = cfg["ramp"]
 	else:
@@ -131,10 +150,13 @@ func _burst(pos: Vector3, amount: int, mat: Material, size: float, life: float, 
 		grad.set_color(0, col)
 		grad.set_color(1, Color(col.r, col.g, col.b, 0.0))
 		p.color_ramp = grad
-	var quad := QuadMesh.new()
-	quad.size = Vector2(size, size)
-	quad.material = mat
-	p.mesh = quad
+	if cfg.has("mesh"):
+		p.mesh = cfg["mesh"]
+	else:
+		var quad := QuadMesh.new()
+		quad.size = Vector2(size, size)
+		quad.material = mat
+		p.mesh = quad
 	_scene_root().add_child(p)
 	p.global_position = pos
 	p.emitting = true
@@ -219,32 +241,62 @@ func dust_ring(pos: Vector3, amount: int = 12, size: float = 0.7) -> void:
 
 
 ## Twinkly stars (double jump, parry, pickups).
-## Blood from a wound: flecks thrown along `dir` (away from the blow) that
-## arc down, a little red mist, a splat on the ground ahead, and one on any
-## wall (or crate, mast...) close behind the wound in that direction.
+## Blood from a wound: the spray (bleed) thrown along `dir` (away from the
+## blow), red mist, a big splat on the ground ahead with smaller ones strung
+## out further along, and one on any wall (crate, mast...) close behind.
 func blood(pos: Vector3, dir: Vector3, amount: int = 12) -> void:
-	var d := (dir.normalized() + Vector3.UP * 0.35).normalized()
-	_burst(pos, amount, _blood_mat, 0.06, 0.65, {"radius": 0.08, "direction": d, "spread": 38.0,
-		"vel_min": 1.8, "vel_max": 4.8, "gravity": Vector3(0, -14.0, 0), "damping": 0.4, "grow": false,
-		"color": Color(BLOOD.r, BLOOD.g, BLOOD.b, 1.0)})
-	_burst(pos, 3, _dust_mat, 0.32, 0.35, {"radius": 0.05, "direction": d, "spread": 40.0, "vel_min": 0.3,
-		"vel_max": 0.8, "gravity": Vector3(0, -1.0, 0), "color": Color(BLOOD.r * 0.8, BLOOD.g, BLOOD.b, 0.55)})
-	var flat := Vector3(dir.x, 0.0, dir.z)
-	var ahead := flat.normalized() * randf_range(0.3, 1.1) if flat.length() > 0.01 else Vector3.ZERO
-	blood_splat(pos + ahead, 0.22 + 0.012 * amount)
+	var dn := dir.normalized() if dir.length() > 0.01 else Vector3.UP
+	var d := (dn + Vector3.UP * 0.35).normalized()
+	bleed(pos, d, amount)
+	_burst(pos, 5, _dust_mat, 0.4, 0.45, {"radius": 0.06, "direction": d, "spread": 45.0, "vel_min": 0.4,
+		"vel_max": 1.2, "gravity": Vector3(0, -1.5, 0), "color": Color(0.09, 0.0, 0.004, 0.6)})
+	var flat := Vector3(dn.x, 0.0, dn.z)
+	var along := flat.normalized() if flat.length() > 0.01 else Vector3.ZERO
+	blood_splat(pos + along * randf_range(0.3, 0.9), 0.3 + 0.014 * amount, along)
+	if along != Vector3.ZERO:
+		for i in range(randi_range(1, 3)):
+			var at := pos + along * randf_range(1.2, 2.8) + Vector3(randf_range(-0.35, 0.35), 0.0, randf_range(-0.35, 0.35))
+			blood_splat(at, (0.1 + 0.007 * amount) * randf_range(0.6, 1.3), along)
 	# the spray carries on along the blow and slightly down: whatever it meets
-	var spray := (dir.normalized() + Vector3.DOWN * 0.15).normalized() * WALL_REACH
+	var spray := (dn + Vector3.DOWN * 0.15).normalized() * WALL_REACH
 	var h := _ray(pos, pos + spray)
 	if not h.is_empty() and absf((h["normal"] as Vector3).y) < 0.7:
-		_place_splat(h["position"], h["normal"], 0.14 + 0.008 * amount)
+		_place_splat(h["position"], h["normal"], 0.24 + 0.012 * amount, dn)
 
 
-## A pool of blood on whatever is below `pos` (ground, deck), lying on it.
-func blood_splat(pos: Vector3, size: float = 0.3) -> void:
+## Just the spray, no splats (a stump pumping, a severed head dripping): a fast
+## jet of streaks along `dir` and flecks of every size arcing down.
+func bleed(pos: Vector3, dir: Vector3, amount: int = 12) -> void:
+	var d := dir.normalized()
+	# opaque until the drops shrink away (a fade read as pink against the sand)
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.8, 1.0])
+	ramp.colors = PackedColorArray([BLOOD, BLOOD, Color(BLOOD.r, BLOOD.g, BLOOD.b, 0.0)])
+	_burst(pos, amount * 2, _blood_mat, 0.07, 0.7, {"radius": 0.06, "direction": d, "spread": 34.0,
+		"vel_min": 1.6, "vel_max": 5.5, "gravity": Vector3(0, -14.0, 0), "damping": 0.3, "hold": true,
+		"scale_min": 0.35, "scale_max": 1.9, "ramp": ramp})
+	_burst(pos, maxi(int(amount * 0.5), 2), _blood_mat, 0.0, 0.45, {"radius": 0.03, "direction": d, "spread": 12.0,
+		"vel_min": 4.5, "vel_max": 8.5, "gravity": Vector3(0, -12.0, 0), "damping": 0.2, "hold": true,
+		"align": true, "mesh": _streak_mesh, "scale_min": 0.6, "scale_max": 1.5, "ramp": ramp})
+
+
+## A splat on whatever is below `pos` (ground, deck), lying on it; `along`
+## stretches it and flings its droplets that way (the way the spray flew).
+func blood_splat(pos: Vector3, size: float = 0.3, along: Vector3 = Vector3.ZERO) -> MeshInstance3D:
 	var h := _ray(pos + Vector3.UP * 0.3, pos + Vector3.DOWN * 4.0)
 	if h.is_empty():
+		return null
+	return _place_splat(h["position"], h["normal"], size, along)
+
+
+## A pool spreading out under `pos` over `secs` (a body bleeding out).
+func blood_pool(pos: Vector3, size: float, secs: float) -> void:
+	var mi := blood_splat(pos, size)
+	if mi == null:
 		return
-	_place_splat(h["position"], h["normal"], size)
+	var full := mi.scale
+	mi.scale = full * 0.15
+	mi.create_tween().tween_property(mi, "scale", full, secs).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 
 
 ## How far behind a wound the spray can reach a wall.
@@ -256,18 +308,27 @@ func _ray(from: Vector3, to: Vector3) -> Dictionary:
 	return get_viewport().world_3d.direct_space_state.intersect_ray(q)
 
 
-## A blood splat flat on a surface (any angle) at `at`, facing out along `n`.
-func _place_splat(at: Vector3, n: Vector3, size: float) -> void:
+## A blood splat flat on a surface (any angle) at `at`, facing out along `n`,
+## stretched along `along` (projected onto the surface) when given.
+func _place_splat(at: Vector3, n: Vector3, size: float, along: Vector3 = Vector3.ZERO) -> MeshInstance3D:
+	var up := n.normalized()
+	var x := along - up * along.dot(up)
+	var directed := x.length() > 0.05
 	var mi := MeshInstance3D.new()
-	mi.mesh = _splat_mesh()
+	mi.mesh = _splat_mesh(directed)
 	mi.material_override = _splat_mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_scene_root().add_child(mi)
-	var up := n.normalized()
-	var side := up.cross(Vector3.FORWARD if absf(up.z) < 0.9 else Vector3.RIGHT).normalized()
-	var b := Basis(side, up, side.cross(up)).rotated(up, randf() * TAU)
+	var b: Basis
+	if directed:
+		x = x.normalized()
+		b = Basis(x, up, x.cross(up))
+	else:
+		var side := up.cross(Vector3.FORWARD if absf(up.z) < 0.9 else Vector3.RIGHT).normalized()
+		b = Basis(side, up, side.cross(up)).rotated(up, randf() * TAU)
 	var s := size * randf_range(0.8, 1.25)
-	mi.global_transform = Transform3D(b.scaled(Vector3(s, s, s)), at + up * 0.015)
+	var stretch := randf_range(1.2, 1.6) if directed else 1.0
+	mi.global_transform = Transform3D(b * Basis.from_scale(Vector3(s * stretch, s, s)), at + up * 0.015)
 	_splats.append(mi)
 	while _splats.size() > MAX_SPLATS:
 		var old = _splats.pop_front()
@@ -279,31 +340,51 @@ func _place_splat(at: Vector3, n: Vector3, size: float) -> void:
 	tw.tween_callback(func():
 		_splats.erase(mi)
 		mi.queue_free())
+	return mi
 
 
-## An irregular unit blob with a few droplets around it (flat, +Y up).
-func _splat_mesh() -> ArrayMesh:
+## An uneven unit splat (flat, +Y up): a few lumpy blobs run together, thin
+## fingers out of it and droplets flung round it - mostly onward (+X) when
+## `directed`. Vertex colours darken the middle (the albedo multiplies them).
+func _splat_mesh(directed: bool) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	st.set_normal(Vector3.UP)
 	var blobs := [[Vector2.ZERO, 1.0]]
-	for i in range(randi_range(2, 5)):
+	for i in range(randi_range(1, 3)):
 		var a := randf() * TAU
-		blobs.append([Vector2(cos(a), sin(a)) * randf_range(1.1, 1.8), randf_range(0.12, 0.3)])
+		blobs.append([Vector2(cos(a), sin(a)) * randf_range(0.35, 0.7), randf_range(0.45, 0.8)])
+	for i in range(randi_range(4, 10)):
+		var a := randf_range(-0.9, 0.9) if directed and randf() < 0.75 else randf() * TAU
+		blobs.append([Vector2(cos(a), sin(a)) * randf_range(1.1, 2.6), randf_range(0.06, 0.26)])
 	for bl in blobs:
 		var c: Vector2 = bl[0]
 		var r: float = bl[1]
-		var seg := 9 if r > 0.5 else 5
+		var seg := 14 if r > 0.4 else 6
+		var ph1 := randf() * TAU
+		var ph2 := randf() * TAU
 		var rim: Array = []
 		for k in range(seg):
 			var a := float(k) / seg * TAU
-			rim.append(c + Vector2(cos(a), sin(a)) * r * randf_range(0.7, 1.15))
+			var lump := 1.0 + 0.22 * sin(3.0 * a + ph1) + 0.12 * sin(5.0 * a + ph2)
+			rim.append(c + Vector2(cos(a), sin(a)) * r * lump * randf_range(0.9, 1.08))
+		var mid := Color(0.9, 0.9, 0.9)
 		for k in range(seg):
 			var p0: Vector2 = rim[k]
 			var p1: Vector2 = rim[(k + 1) % seg]
+			st.set_color(mid)
 			st.add_vertex(Vector3(c.x, 0, c.y))
+			st.set_color(Color.WHITE)
 			st.add_vertex(Vector3(p1.x, 0, p1.y))
 			st.add_vertex(Vector3(p0.x, 0, p0.y))
+	for i in range(randi_range(2, 5)):
+		var a := randf_range(-0.7, 0.7) if directed else randf() * TAU
+		var dv := Vector2(cos(a), sin(a))
+		var side := Vector2(-dv.y, dv.x) * randf_range(0.08, 0.16)
+		var tip := dv * randf_range(1.25, 1.75)
+		st.set_color(Color.WHITE)
+		for p in [dv * 0.7 + side, tip, dv * 0.7 - side]:
+			st.add_vertex(Vector3(p.x, 0, p.y))
 	return st.commit()
 
 

@@ -2439,15 +2439,32 @@ func sever(part: String, v: Vector3) -> void:
 	if fx == null:
 		return
 	var up := torso.global_basis.y.normalized()
-	fx.call("blood", stump.global_position, (up + v.normalized() * 0.3).normalized(), 26)
+	fx.call("blood", stump.global_position, (up + v.normalized() * 0.3).normalized(), 34)
 	fx.call("sfx", "crunch", stump.global_position, -4.0, 0.08, 0.8)
-	# it keeps pumping for a moment
+	fx.call("blood_pool", stump.global_position, 0.9 if part == "head" else 0.65, 6.0)
+	# arterial spurts out of the stump, weakening, for about five seconds
+	var out_local := Vector3.UP if part == "head" else Vector3(signf(rest.x), 0.6, 0.0).normalized()
 	var tw := stump.create_tween()
-	for i in range(5):
-		tw.tween_interval(0.22)
+	for i in range(18):
+		tw.tween_interval(0.2 + 0.015 * i)
 		tw.tween_callback(func():
-			if is_instance_valid(stump):
-				fx.call("blood", stump.global_position, stump.global_basis.y.normalized(), 10 - i))
+			if not is_instance_valid(stump):
+				return
+			var out := stump.global_basis * out_local
+			var wob := Vector3(randf_range(-0.25, 0.25), randf_range(-0.1, 0.25), randf_range(-0.25, 0.25))
+			fx.call("bleed", stump.global_position, (out + wob).normalized(), maxi(16 - i, 3))
+			if i % 4 == 3:
+				fx.call("blood_splat", stump.global_position + out * 0.5, 0.25, out))
+	# the severed head or arm drips from its cut end as it tumbles
+	var drip := stump.create_tween()
+	for i in range(20):
+		drip.tween_interval(0.17)
+		drip.tween_callback(func():
+			if not is_instance_valid(node):
+				return
+			fx.call("bleed", node.global_position, Vector3(randf_range(-0.3, 0.3), -1.0, randf_range(-0.3, 0.3)).normalized(), maxi(6 - int(i / 4.0), 2))
+			if i % 5 == 4:
+				fx.call("blood_splat", node.global_position, 0.16))
 
 
 func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO, alive: bool = true) -> Ragdoll:
