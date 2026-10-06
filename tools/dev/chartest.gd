@@ -30,6 +30,39 @@ func seat_back(lb: LowerBody, posed: bool) -> float:
 	return best
 
 
+## Worst ratio, over the left thigh's sections between 6 and 20 cm below its
+## joint, of mean distance from the thigh axis posed vs at rest.
+func thigh_keep(lb: LowerBody) -> float:
+	var mesh: ArrayMesh = (lb.get_node("Mesh") as MeshInstance3D).mesh
+	var rest_t := lb.get_bone_global_rest(LowerBody.THIGH_L)
+	var pose_t := lb.get_bone_global_pose(LowerBody.THIGH_L)
+	var sums := {}
+	for s in range(mesh.get_surface_count()):
+		var arr := mesh.surface_get_arrays(s)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+		var weights: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+		for i in range(v.size()):
+			var p := v[i]
+			var lp := rest_t.affine_inverse() * p   # leg space at rest
+			if p.x > -0.02 or lp.y > -0.06 or lp.y < -0.2:
+				continue
+			var q := Vector3.ZERO
+			for k in range(4):
+				var b := bones[i * 4 + k]
+				q += (lb.get_bone_global_pose(b) * lb.get_bone_global_rest(b).affine_inverse() * p) * weights[i * 4 + k]
+			var lq := pose_t.affine_inverse() * q   # where it sits relative to the posed thigh
+			var key := snappedf(lp.y, 0.02)
+			if not sums.has(key):
+				sums[key] = [0.0, 0.0]
+			sums[key][0] += Vector2(lp.x, lp.z).length()
+			sums[key][1] += Vector2(lq.x, lq.z).length()
+	var worst := 1.0
+	for key in sums:
+		worst = minf(worst, sums[key][1] / maxf(sums[key][0], 1e-6))
+	return worst
+
+
 func _initialize():
 	# 1. every option value builds
 	var opts := {"body": CharacterLook.BODIES, "build": CharacterLook.BUILDS, "height": CharacterLook.HEIGHTS,
@@ -140,6 +173,10 @@ func _process(d: float) -> bool:
 			lb._pose()
 			var depth_up := seat_back(lb, true)
 			check("lifting a leg keeps the seat's volume (back of the left glute %.3f m -> %.3f m)" % [depth_rest, depth_up], depth_up > depth_rest * 0.9)
+			# ...and doesn't squash the upper thigh: each thigh-section vertex keeps its
+			# distance from the thigh's axis (rest vs lifted, worst ring)
+			var keep := thigh_keep(lb)
+			check("lifting a leg doesn't pinch the upper thigh (worst section keeps %d%% of its girth)" % roundi(keep * 100.0), keep > 0.9)
 			check("headless: creator not auto-opened", not CharacterCreator.active)
 			check("{captain} token fills the name", root.get_node("Dialogue")._fill_tokens("Hi {captain}") == "Hi Mara Vance")
 			# open from the pause menu

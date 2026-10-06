@@ -400,10 +400,14 @@ func _thigh_rings(side: float) -> Array:
 	if fem:
 		# full, rounded thighs set a little toward the middle: they meet near the
 		# top and only part slightly toward the knee
+		# ...and bulging outward up top, so from behind the outline curves from the
+		# widest point of the hips down to the knee instead of stepping in
 		var fi := -side * 0.02
-		r = [[0.05, 0.045 * L, 0.05 * L, 0.0, inx], [0.02, 0.082 * L, 0.088 * L, 0.004, fi], [-0.05 * Ls, 0.106 * L, 0.11 * L, 0.008, fi],
-			[-0.14 * Ls, 0.102 * L, 0.104 * L, 0.006, fi * 0.75], [-0.24 * Ls, 0.088 * L, 0.092 * L, 0.003, fi * 0.4],
-			[-0.34 * Ls, 0.072 * L, 0.078 * L, 0.0, 0.0], [-0.42 * Ls, 0.062 * L, 0.07 * L, 0.0, 0.0], [-0.45 * Ls, 0.052 * L, 0.058 * L, -0.004, 0.0]]
+		var o := side * 0.014
+		r = [[0.05, 0.045 * L, 0.05 * L, 0.0, inx], [0.02, 0.088 * L, 0.09 * L, 0.004, fi + o * 0.5],
+			[-0.05 * Ls, 0.116 * L, 0.112 * L, 0.008, fi + o], [-0.12 * Ls, 0.118 * L, 0.11 * L, 0.007, fi * 0.85 + o],
+			[-0.2 * Ls, 0.106 * L, 0.1 * L, 0.005, fi * 0.6 + o * 0.6], [-0.28 * Ls, 0.09 * L, 0.09 * L, 0.002, fi * 0.3 + o * 0.25],
+			[-0.35 * Ls, 0.075 * L, 0.08 * L, 0.0, 0.0], [-0.42 * Ls, 0.063 * L, 0.07 * L, 0.0, 0.0], [-0.45 * Ls, 0.053 * L, 0.058 * L, -0.004, 0.0]]
 	else:
 		r = [[0.05, 0.04 * L, 0.045 * L, 0.0, inx], [0.02, 0.066 * L, 0.074 * L, 0.0, inx * 0.6], [-0.05 * Ls, 0.084 * L, 0.094 * L, 0.004, 0.0],
 			[-0.24 * Ls, 0.085 * L, 0.094 * L, 0.002, 0.0], [-0.42 * Ls, 0.066 * L, 0.076 * L, 0.0, 0.0], [-0.45 * Ls, 0.056 * L, 0.064 * L, -0.004, 0.0]]
@@ -541,7 +545,8 @@ func _lower_body() -> void:
 	# Pelvis above the hips, thigh below; near the crotch the centre stays with
 	# the pelvis, but only near it (lower down the whole thigh follows the leg)
 	var wf := func(p: Vector3) -> Array:
-		var t := 1.0 - smoothstep(-0.21, -0.04, p.y)
+		# (short: a long pelvis/thigh blend squashed the upper thigh when a leg lifted)
+		var t := 1.0 - smoothstep(-0.12, -0.03, p.y)
 		# The back of the seat and the middle of the crotch take their leg share
 		# from the seat helpers (they turn part way, push out on flex, and between
 		# them average the two legs) instead of a thigh, fading to the thigh below
