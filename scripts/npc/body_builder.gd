@@ -513,8 +513,10 @@ func _pelvis() -> void:
 			[-0.025, lerpf(ww, hw, 0.45), lerpf(wd, hd, 0.55), 0.008, 0.0, _seat_profile(0.92)],
 			[-0.055, lerpf(ww, hw, 0.8), hd * 0.98, 0.014, 0.0, _seat_profile(0.84)],
 			[-0.09, hw, hd, 0.012, 0.0, _seat_profile(0.8)], [-0.13, hw * 0.96, hd, 0.012, 0.0, _seat_profile(0.8)],
-			[-0.165, hw * 0.82, hd * 0.88, 0.01, 0.0, _seat_profile(0.82)], [-0.195, hw * 0.56, hd * 0.6, 0.006, 0.0, _seat_profile(0.88)],
-			[-0.218, hw * 0.3, hd * 0.3, 0.004, 0.0, seat]]
+			# (the lower back stays tucked behind the glutes: their round undersides
+			# make the edge, not this tube's)
+			[-0.165, hw * 0.82, hd * 0.72, -0.006, 0.0, _seat_profile(0.82)], [-0.195, hw * 0.56, hd * 0.46, -0.01, 0.0, _seat_profile(0.88)],
+			[-0.218, hw * 0.3, hd * 0.26, -0.01, 0.0, seat]]
 	else:
 		rings = [[0.04, ww * 0.9, wd * 0.9], [0.0, ww + 0.004, wd + 0.004], [-0.045, lerpf(ww, hw, 0.6), lerpf(wd, hd, 0.6), 0.003],
 			[-0.095, hw, hd, 0.006], [-0.135, hw * 0.94, hd * 0.92, 0.005], [-0.17, hw * 0.66, hd * 0.72], [-0.195, hw * 0.26, hd * 0.32]]
@@ -536,14 +538,9 @@ func _glute(mb: MeshBuilder, m: Material, c: Vector3, r: Vector3) -> void:
 		var a := TAU * i / 12.0
 		prof.append(Vector2(sin(a), -cos(a)))
 	var rings := []
-	for deg in [84.0, 62.0, 35.0, 8.0]:
+	for deg in [84.0, 62.0, 38.0, 13.0, -13.0, -38.0, -62.0, -84.0]:
 		var a := deg_to_rad(deg)
 		rings.append([r.y * sin(a), r.x * cos(a), r.z * cos(a)])
-	# below the middle it stays full and tapers forward into the back of the
-	# thigh (a ball's underside left a ledge and a shadowed undercut)
-	# (ends above a shorts hem so its lip never meets the rolled cuff)
-	for k in [[0.3, 0.98, 0.95, 0.0], [0.52, 0.93, 0.85, -0.008], [0.7, 0.84, 0.7, -0.018], [0.82, 0.7, 0.52, -0.026], [0.88, 0.4, 0.26, -0.03]]:
-		rings.append([-r.y * float(k[0]), r.x * float(k[1]), r.z * float(k[2]), float(k[3])])
 	# wrapped uv (the loft's own u comes from its tiny top ring and stripes the cloth);
 	# the seam is at the front, buried in the pelvis
 	var wrap := func(p: Vector3) -> Vector2: return Vector2(atan2(p.x, p.z) * r.x * 3.0, -p.y * 3.0)
