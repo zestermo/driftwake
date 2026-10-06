@@ -90,7 +90,11 @@ func reset() -> void:
 func simulate(delta: float) -> void:
 	if not enabled or _chains.is_empty() or not is_inside_tree():
 		return
-	var g := global_transform
+	# the body is drawn where physics interpolation puts it between ticks, not
+	# where the last tick left it: simulating against the latter shook the
+	# chains back and forth relative to the body every frame (a blurry haze on
+	# coat tails and hair at high frame rates)
+	var g := get_global_transform_interpolated()
 	if _last_origin == Vector3.INF or g.origin.distance_to(_last_origin) > 2.5:
 		_snap(g)
 	_last_origin = g.origin
@@ -118,7 +122,7 @@ func _world_colliders() -> void:
 		var node: Node3D = c["node"]
 		if not is_instance_valid(node) or not node.is_inside_tree():
 			continue
-		var t := node.global_transform
+		var t := node.get_global_transform_interpolated()
 		_cw[key] = [t * (c["a"] as Vector3), t * (c["b"] as Vector3), float(c["r"]) * t.basis.get_scale().x]
 
 

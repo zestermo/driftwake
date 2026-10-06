@@ -481,12 +481,28 @@ func _feet(mb: MeshBuilder, sr: Array, feet: String) -> void:
 			mb.add_box(PSXMat.flat(Color(0.85, 0.75, 0.4)), Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, sole + 0.07 * F, -0.07 * F)), Vector3(0.05, 0.035, 0.012) * F, 2.0)
 		"tall_boots":
 			mb.add_loft(m_feet, fx, foot, fprof, 3.0, Color.WHITE, true, true)
-			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.04, -0.1 * Ls), 0.016), sp, 3.0)
-			var cuff := _off(_clip(sr, -0.13 * Ls, -0.02 * Ls), 0.03)
+			# (the cuff stops just under the knee's bend: higher, the bending knee
+			# pushed the trousers out through it)
+			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.04, -0.16 * Ls), 0.016), sp, 3.0)
+			var cuff := _off(_clip(sr, -0.19 * Ls, -KNEE_BAND - 0.012), 0.03)
 			mb.add_loft(_textured("leather", _col("feet_color").lightened(0.12)), Transform3D.IDENTITY, cuff, sp, 3.0, Color.WHITE, false, false, true, false, true)
 		_:  # boots
 			mb.add_loft(m_feet, fx, foot, fprof, 3.0, Color.WHITE, true, true)
 			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.04, sole + 0.19 * F), 0.016), sp, 3.0, Color.WHITE, false, true)
+
+
+## Top of the footwear's shaft in shin space (-INF: barefoot), where the legs
+## tuck into it.
+func _boot_top() -> float:
+	var sole := -0.46 * Ls
+	match str(lk.get("feet", "boots")):
+		"tall_boots":
+			return -KNEE_BAND - 0.012
+		"boots":
+			return sole + 0.19 * Fk
+		"shoes":
+			return sole + 0.1 * Fk
+	return -INF
 
 
 ## Half height of the blend across the knee, elbow and shoulder joints.
@@ -649,10 +665,17 @@ func _lower_body() -> void:
 					lerpf(float(tj[3]), float(sj[3]), 0.5), float(tj[4]) * 0.5], s, lg))
 			else:
 				tube.append(_shin_ring(_at(sr, dk), s, lg, kj))
+		# inside footwear the legs are tucked in, well clear of the shaft (a few
+		# millimetres let vertex snapping push them out through it)
+		var shod := _boot_top()
 		for r in sr:
 			if float(r[0]) < -KNEE_BAND - 0.02:
-				tube.append(_shin_ring(r, s, lg, kj))
-		if legs == "trousers":
+				var rr: Array = (r as Array).duplicate()
+				if float(rr[0]) < shod:
+					rr[1] = float(rr[1]) - 0.008
+					rr[2] = float(rr[2]) - 0.008
+				tube.append(_shin_ring(rr, s, lg, kj))
+		if legs == "trousers" and shod == -INF:
 			# a little flare at the hem
 			var last: Array = (sr[sr.size() - 1] as Array).duplicate()
 			last[1] = float(last[1]) + 0.012
@@ -1997,23 +2020,34 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 
 func _belts(mb: MeshBuilder, tr: Array, prof: PackedVector2Array) -> void:
 	var belt := str(lk.get("belt", "none"))
+	# under a coat only the front shows (its opening): the rest, a centimetre
+	# inside the coat, was pushed out through it by vertex snapping
+	var coated := str(lk.get("coat", "none")) != "none"
+	var closed := not coated
+	if coated:
+		prof = PackedVector2Array()
+		for i in range(9):
+			var a := lerpf(-1.25, 1.25, i / 8.0)
+			prof.append(Vector2(sin(a), -cos(a)))
 	if belt in ["belt", "belt_sash"]:
 		# straddles the seam where the shirt meets the trousers
 		var by := -0.025 if belt == "belt" else -0.035
 		var band := _off(_clip(tr, maxf(by, 0.0), by + 0.06), 0.017, 0.0, true)
 		if by < 0.0:
 			band = [[by, (tr[0][1] as float) + 0.02, (tr[0][2] as float) + 0.02], [by + 0.055, (tr[0][1] as float) + 0.018, (tr[0][2] as float) + 0.018]]
-		mb.add_loft(_leather("belt_color"), Transform3D.IDENTITY, band, prof, 3.0, Color.WHITE, false, false, true, false, true)
+		mb.add_loft(_leather("belt_color"), Transform3D.IDENTITY, band, prof, 3.0, Color.WHITE, false, false, closed, false, true)
 		var r := _at(tr, maxf(by, 0.0))
 		mb.add_box(PSXMat.flat(Color(0.82, 0.72, 0.38)), Transform3D(Basis(), Vector3(0, by + 0.03, _front_z(r) - 0.024)), Vector3(0.05, 0.045, 0.012), 3.0)
 	if belt in ["sash", "belt_sash"]:
 		var sy := ty(0.04) if belt == "belt_sash" else 0.0
 		var band2 := _off(_clip(tr, sy, sy + 0.1), 0.02, 0.0, true)
 		var m_sash := _cloth("sash_color")
-		mb.add_loft(m_sash, Transform3D.IDENTITY, band2, prof, 3.0, Color.WHITE, false, false, true, false, true)
+		mb.add_loft(m_sash, Transform3D.IDENTITY, band2, prof, 3.0, Color.WHITE, false, false, closed, false, true)
 		var r2 := _at(tr, sy + 0.05)
-		var kx := -float(r2[1]) * 0.75
-		var kz := float(r2[3]) - float(r2[2]) * 0.75 - 0.02
+		# the knot at the side, or in the coat's opening (its tail hung through the coat)
+		var kk := 0.3 if coated else 0.75
+		var kx := -float(r2[1]) * kk
+		var kz := float(r2[3]) - float(r2[2]) * (0.97 if coated else 0.75) - 0.02
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 5
 		mb.add_blob(m_sash, Transform3D(Basis(), Vector3(kx, sy + 0.05, kz)), Vector3(0.035, 0.035, 0.03), rng, 0.1, 3, 6, 3.0)
