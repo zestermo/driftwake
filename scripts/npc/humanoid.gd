@@ -1620,14 +1620,14 @@ func _locomotion(delta: float) -> Dictionary:
 			_casual_moves(p, delta, spd, true)
 			lift.y -= _casual_dip()
 		if armed and stance == "dual_pistol":
-			# jogging: both guns carried low at the sides, elbows soft, hands out a
-			# little, swinging slightly with the stride; sprinting: arms swept back
-			# ~30 deg and out, chest pitched well forward
+			# moving: the right gun stays up as in the guard (bobbing a little with
+			# the stride), the left is carried low at the side, elbow soft, hand out a
+			# little; sprinting: arms swept back ~30 deg and out, chest pitched well forward
 			var sw := s * 0.12
 			var jk := jog * (1.0 - run)
-			p["arm_r"] = (p["arm_r"] as Vector3).lerp(Vector3(0.12 + sw, 0.0, 0.32), jk).lerp(Vector3(-0.52 + sw * 0.4, 0.0, 0.38), run)
+			p["arm_r"] = (p["arm_r"] as Vector3).lerp(_guard()["arm_r"] + Vector3(sw * 0.3, 0, 0), jk).lerp(Vector3(-0.52 + sw * 0.4, 0.0, 0.38), run)
 			p["arm_l"] = (p["arm_l"] as Vector3).lerp(Vector3(0.12 - sw, 0.0, -0.32), jk).lerp(Vector3(-0.52 - sw * 0.4, 0.0, -0.38), run)
-			p["fore_r"] = (p["fore_r"] as Vector3).lerp(Vector3(0.55 + maxf(0.0, sw), 0, 0), jk).lerp(Vector3(0.12, 0, 0), run)
+			p["fore_r"] = (p["fore_r"] as Vector3).lerp(_guard()["fore_r"], jk).lerp(Vector3(0.12, 0, 0), run)
 			p["fore_l"] = (p["fore_l"] as Vector3).lerp(Vector3(0.55 + maxf(0.0, -sw), 0, 0), jk).lerp(Vector3(0.12, 0, 0), run)
 			p["torso"] += Vector3(-0.2, 0, 0) * run
 			p["head"] += Vector3(0.14, 0, 0) * run
