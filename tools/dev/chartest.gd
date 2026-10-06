@@ -89,6 +89,88 @@ func knee_keep(lb: LowerBody) -> float:
 	return b / maxf(a, 1e-6)
 
 
+## Sharpest turn (degrees) between neighbouring segments of a limb's front
+## centre line within 12 cm of a joint, skinned with the current pose. `joint`
+## is the bone whose origin is the joint, `upper` the bone above it (its rest x
+## is the limb's centre line).
+func front_kink(sk: Skeleton3D, joint: int, upper: int, back := false) -> float:
+	var mesh: ArrayMesh = left_mesh(sk)
+	var jr := sk.get_bone_global_rest(joint).origin
+	var cx := sk.get_bone_global_rest(upper).origin.x
+	var pts := {}
+	for s in range(mesh.get_surface_count()):
+		var arr := mesh.surface_get_arrays(s)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+		var weights: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+		for i in range(v.size()):
+			var p := v[i]
+			var outer := p.z - jr.z if back else jr.z - p.z
+			if absf(p.x - cx) > 0.012 or outer < 0.02 or absf(p.y - jr.y) > 0.12:
+				continue
+			var q := Vector3.ZERO
+			for k in range(4):
+				var bi := bones[i * 4 + k]
+				q += (sk.get_bone_global_pose(bi) * sk.get_bone_global_rest(bi).affine_inverse() * p) * weights[i * 4 + k]
+			pts[snappedf(p.y, 0.001)] = q
+	var ys := pts.keys()
+	ys.sort()
+	var worst := 0.0
+	for i in range(1, ys.size() - 1):
+		var a: Vector3 = pts[ys[i]] - pts[ys[i - 1]]
+		var b: Vector3 = pts[ys[i + 1]] - pts[ys[i]]
+		if a.length() > 0.004 and b.length() > 0.004:
+			worst = maxf(worst, rad_to_deg(a.angle_to(b)))
+		if OS.get_environment("KINK_DBG") != "":
+			print("   kink y %.3f  seg %.3f -> %.3f  turn %.0f" % [ys[i] - jr.y, a.length(), b.length(), rad_to_deg(a.angle_to(b))])
+	return worst
+
+
+## The skinned mesh carrying the left limb (ArmBody has one per arm).
+func left_mesh(sk: Skeleton3D) -> ArrayMesh:
+	return ((sk.get_node("MeshL") if sk.has_node("MeshL") else sk.get_node("Mesh")) as MeshInstance3D).mesh
+
+
+## Triangles whose winding disagrees with their vertex normals (drawn inside-out).
+func inside_out(mesh: ArrayMesh) -> int:
+	var bad := 0
+	for s in range(mesh.get_surface_count()):
+		var arr := mesh.surface_get_arrays(s)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var n: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+		for tt in range(0, v.size(), 3):
+			var fnm := (v[tt + 2] - v[tt]).cross(v[tt + 1] - v[tt])
+			if fnm.length() > 1e-9 and fnm.normalized().dot((n[tt] + n[tt + 1] + n[tt + 2]).normalized()) < 0.0:
+				bad += 1
+	return bad
+
+
+## Mean distance of the skinned vertices within `band` of a joint height from
+## that joint, posed vs rest. `bone` is the bone whose origin is the joint.
+func joint_keep(sk: Skeleton3D, bone: int, side_x: float, band: float) -> float:
+	var mesh: ArrayMesh = left_mesh(sk)
+	var jr := sk.get_bone_global_rest(bone).origin
+	var jp := sk.get_bone_global_pose(bone).origin
+	var a := 0.0
+	var b := 0.0
+	for s in range(mesh.get_surface_count()):
+		var arr := mesh.surface_get_arrays(s)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+		var weights: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+		for i in range(v.size()):
+			var p := v[i]
+			if p.x * side_x <= 0.0 or absf(p.y - jr.y) > band:
+				continue
+			var q := Vector3.ZERO
+			for k in range(4):
+				var bi := bones[i * 4 + k]
+				q += (sk.get_bone_global_pose(bi) * sk.get_bone_global_rest(bi).affine_inverse() * p) * weights[i * 4 + k]
+			a += p.distance_to(jr)
+			b += q.distance_to(jp)
+	return b / maxf(a, 1e-6)
+
+
 func _initialize():
 	# 1. every option value builds
 	var opts := {"body": CharacterLook.BODIES, "build": CharacterLook.BUILDS, "height": CharacterLook.HEIGHTS,
@@ -150,6 +232,26 @@ func _initialize():
 	if lb_msg != "":
 		print("   ", lb_msg)
 	check("skinned lower body for every body/build/legs: one surface, thighs without own meshes, nothing inside-out", lb_ok)
+	# the skinned arms: every top/sleeves/coat, both bodies
+	var ab_ok := true
+	var ab_msg := ""
+	for body in ["fem", "masc"]:
+		for top in CharacterLook.TOPS:
+			for sl in CharacterLook.SLEEVES:
+				for coat in ["none", "longcoat"]:
+					var lk := CharacterLook.base_look(); lk["body"] = body; lk["top"] = top; lk["sleeves"] = sl; lk["coat"] = coat
+					var h := Humanoid.new(); h.setup(lk); root.add_child(h)
+					var ab = h.torso.get_node_or_null("ArmBody")
+					if ab == null or not (ab is ArmBody):
+						ab_ok = false; ab_msg = "%s/%s/%s/%s: no ArmBody" % [body, top, sl, coat]
+					else:
+						var bad := inside_out(ab.arm_mesh(false).mesh) + inside_out(ab.arm_mesh(true).mesh)
+						if bad > 0:
+							ab_ok = false; ab_msg = "%s/%s/%s/%s: %d inside-out triangles" % [body, top, sl, coat, bad]
+					h.free()
+	if ab_msg != "":
+		print("   ", ab_msg)
+	check("skinned arms for every body/top/sleeves/coat: present, nothing inside-out", ab_ok)
 	# 2. apply_look keeps the weapon
 	var h2 := Humanoid.new(); h2.setup(CharacterLook.default_look()); root.add_child(h2)
 	h2.set_weapon(Props.weapon_mesh("cutlass"))
@@ -208,6 +310,19 @@ func _process(d: float) -> bool:
 			lb._pose()
 			var kk := knee_keep(lb)
 			check("a bent knee keeps its volume (knee section keeps %d%% of its size)" % roundi(kk * 100.0), kk > 0.88)
+			var kink := front_kink(lb, LowerBody.SHIN_L, LowerBody.THIGH_L)
+			check("a bent knee is round, not pointed (sharpest turn along its front %d deg)" % roundi(kink), kink < 30.0)
+			# arms: a deeply bent elbow and an arm raised overhead stay round
+			var ab: ArmBody = bm.torso.get_node("ArmBody")
+			bm.arm_l.rotation = Vector3(2.6, 0.0, -0.4)
+			bm.fore_l.rotation = Vector3(2.2, 0.0, 0.0)
+			ab._pose()
+			var ek := joint_keep(ab, ArmBody.FORE_L, -1.0, 0.035)
+			var sk := joint_keep(ab, ArmBody.ARM_L, -1.0, 0.035)
+			check("a bent elbow keeps its volume (%d%%)" % roundi(ek * 100.0), ek > 0.88)
+			var ekink := front_kink(ab, ArmBody.FORE_L, ArmBody.ARM_L, true)
+			check("a bent elbow is round, not pointed (sharpest turn along its back %d deg)" % roundi(ekink), ekink < 30.0)
+			check("a raised arm keeps the shoulder's volume (%d%%)" % roundi(sk * 100.0), sk > 0.85)
 			check("headless: creator not auto-opened", not CharacterCreator.active)
 			check("{captain} token fills the name", root.get_node("Dialogue")._fill_tokens("Hi {captain}") == "Hi Mara Vance")
 			# open from the pause menu

@@ -185,9 +185,8 @@ func _process(d: float) -> bool:
 			step += 1
 		6:
 			var blackened := false
-			for c in p.body_model.arm_r.get_children():
-				if c is MeshInstance3D and c.material_override != null:
-					blackened = true
+			var ab = p.body_model.torso.get_node("ArmBody")
+			blackened = ab.arm_mesh(true).material_override != null and (p.weapon_class() in ["fist", "claw"] or ab.arm_mesh(false).material_override == null)
 			check("the weapon arm turns haki black", blackened)
 			var h = p.melee_hit(10.0)
 			check("coated hits are haki + unblockable", h.haki and h.unblockable)

@@ -478,6 +478,23 @@ func _feet(mb: MeshBuilder, sr: Array, feet: String) -> void:
 			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.04, sole + 0.19 * F), 0.016), sp, 3.0, Color.WHITE, false, true)
 
 
+## Half height of the blend across the knee, elbow and shoulder joints.
+const KNEE_BAND := 0.07
+const ARM_BAND := 0.065
+
+
+## Weights across a joint for a chain of bones turning evenly from none to all
+## of the bend: `f` (0 above the joint's band .. 1 below it) picks the two
+## neighbours and blends them. Rings placed at the chain's steps ride one bone
+## each, so a bend fans them round the joint instead of averaging them in.
+static func _chain_w(f: float, chain: Array) -> Array:
+	var n := chain.size() - 1
+	var x := clampf(f, 0.0, 1.0) * n
+	var i := mini(int(x), n - 1)
+	var t := x - i
+	return [PackedInt32Array([chain[i], chain[i + 1], 0, 0]), PackedFloat32Array([1.0 - t, t, 0.0, 0.0])]
+
+
 ## Hips, seat and both thighs as ONE skinned surface (LowerBody): the pelvis
 ## tube narrows into a "split ring" at the crotch whose two halves are the tops
 ## of the two thigh tubes (they share their inner edge on the centre line), so
@@ -549,13 +566,8 @@ func _lower_body() -> void:
 	var wf := func(p: Vector3) -> Array:
 		var left := p.x < 0.0
 		var dk := p.y - kj
-		if dk < 0.06:
-			# thigh -> knee helper (centred on the joint) -> shin
-			var u := clampf((0.05 - dk) / 0.1, 0.0, 1.0)
-			var k := clampf(1.0 - absf(dk) / 0.05, 0.0, 1.0)
-			return [PackedInt32Array([LowerBody.THIGH_L if left else LowerBody.THIGH_R, LowerBody.KNEE_L if left else LowerBody.KNEE_R,
-				LowerBody.SHIN_L if left else LowerBody.SHIN_R, 0]),
-				PackedFloat32Array([(1.0 - u) * (1.0 - k), k, u * (1.0 - k), 0.0])]
+		if dk < KNEE_BAND:
+			return _chain_w((KNEE_BAND - dk) / (2.0 * KNEE_BAND), LowerBody.KNEE_L_CHAIN if left else LowerBody.KNEE_R_CHAIN)
 		# (short: a long pelvis/thigh blend squashed the upper thigh when a leg lifted)
 		var t := 1.0 - smoothstep(-0.12, -0.03, p.y)
 		# The back of the seat and the middle of the crotch take their leg share
@@ -610,16 +622,24 @@ func _lower_body() -> void:
 				tube.append(_thigh_ring(r, s, lg))
 		# through the knee (one round kneecap ring on the joint) and down the shin
 		# to the ankle, inside the boot
+		# (nine rings across the joint, an eighth of the band apart, so a deep bend
+		# turns over an arc, not a point; no kneecap bump, which jutted out of it)
 		var sr := _shin_rings()
-		var above := _at(th[s], -0.37 * Ls)
-		tube.append(_thigh_ring(above, s, lg))
-		var below := _at(sr, -0.05 * Ls)
-		var cap := [-0.42 * Ls, maxf(float(above[1]), float(below[1])) * 0.98, maxf(float(above[2]), float(below[2])) * 1.02,
-			-0.004, float(above[4]) * 0.3]
-		tube.append(_thigh_ring(cap, s, lg))
-		tube.append(_shin_ring(below, s, lg, kj))
+		# (the ring on the joint is the thigh's and shin's own size there, so it
+		# lines up with its neighbours)
+		var tj := _at(th[s], -0.42 * Ls)
+		var sj := _at(sr, 0.0)
+		for i in range(9):
+			var dk := KNEE_BAND - i * KNEE_BAND / 4.0
+			if i < 4:
+				tube.append(_thigh_ring(_at(th[s], -0.42 * Ls + dk), s, lg))
+			elif i == 4:
+				tube.append(_thigh_ring([-0.42 * Ls, lerpf(float(tj[1]), float(sj[1]), 0.5), lerpf(float(tj[2]), float(sj[2]), 0.5),
+					lerpf(float(tj[3]), float(sj[3]), 0.5), float(tj[4]) * 0.5], s, lg))
+			else:
+				tube.append(_shin_ring(_at(sr, dk), s, lg, kj))
 		for r in sr:
-			if float(r[0]) < -0.06 * Ls:
+			if float(r[0]) < -KNEE_BAND - 0.02:
 				tube.append(_shin_ring(r, s, lg, kj))
 		if legs == "trousers":
 			# a little flare at the hem
@@ -710,29 +730,16 @@ func _torso() -> void:
 	_mesh(h.neck, nmb)
 
 
-## Rounded end rings around a joint at y0, running away from it (dir +1 up,
-## -1 down): with both sides of the elbow domed about the pivot, a bent arm
-## shows a rounded elbow instead of a flat cut.
-func _dome(y0: float, rw: float, rd: float, dir: float) -> Array:
-	var r := maxf(rw, rd)
-	var out := []
-	for a in [0.6, 1.05, 1.4]:
-		out.append([y0 + dir * r * sin(a), rw * cos(a), rd * cos(a)])
+## A 12-point ellipse ring from a limb ring [y, hw, hd, cz?, cx?] in the space
+## of a joint whose rest position (in the skeleton's space) is `origin`.
+func _limb_ring(r: Array, origin: Vector3) -> PackedVector3Array:
+	var cz := float(r[3]) if r.size() > 3 else 0.0
+	var cx := float(r[4]) if r.size() > 4 else 0.0
+	var out := PackedVector3Array()
+	for k in range(12):
+		var a := deg_to_rad(30.0 * k)
+		out.append(origin + Vector3(cx + float(r[1]) * sin(a), float(r[0]), cz - float(r[2]) * cos(a)))
 	return out
-
-
-## Upper-arm rings closed by a dome under the elbow pivot.
-func _elbow_end(up: Array, elbow_y: float) -> Array:
-	var last: Array = up[up.size() - 1]
-	return up + _dome(elbow_y, float(last[1]), float(last[2]), -1.0)
-
-
-## Forearm rings opened by a dome over the elbow pivot (forearm space: pivot at 0).
-func _elbow_start(fo: Array) -> Array:
-	var first: Array = fo[0]
-	var d := _dome(0.0, float(first[1]), float(first[2]), 1.0)
-	d.reverse()
-	return d + fo
 
 
 func _arms() -> void:
@@ -745,33 +752,90 @@ func _arms() -> void:
 	var gloves: bool = lk.get("gloves", false)
 	var m_hand := _leather("gloves_color") if gloves else m_skin
 	var L := limb * (1.0 + (sh - 1.0) * 0.4)
-	var up := _elbow_end([[0.036, 0.02 * L, 0.024 * L], [0.026, 0.046 * L, 0.052 * L], [0.0, 0.064 * L, 0.07 * L], [-0.06 * A, 0.071 * L, 0.077 * L],
-		[-0.17 * A, 0.063 * L, 0.069 * L], [-0.3 * A, 0.055 * L, 0.06 * L]], -0.3 * A)
-	var fo := _elbow_start([[0.02, 0.056 * L, 0.06 * L], [-0.08 * A, 0.06 * L, 0.064 * L, 0.004], [-0.23 * A, 0.043 * L, 0.047 * L]])
 	var prof := MeshBuilder.profile_oct(0.5)
 	var wrist := -0.23 * A
+	var elbow_y := -0.3 * A
+	# upper arm rings (arm space) and forearm rings (forearm space) per outfit
+	var up := [[0.036, 0.02 * L, 0.024 * L], [0.026, 0.046 * L, 0.052 * L], [0.0, 0.064 * L, 0.07 * L], [-0.06 * A, 0.071 * L, 0.077 * L],
+		[-0.17 * A, 0.063 * L, 0.069 * L], [elbow_y, 0.055 * L, 0.06 * L]]
+	var fo := [[0.02, 0.056 * L, 0.06 * L], [-0.08 * A, 0.06 * L, 0.064 * L, 0.004], [wrist, 0.043 * L, 0.047 * L]]
+	var m_sleeve := m_top
+	if coated:
+		m_sleeve = _cloth("coat_color")
+		up = [[0.07, 0.03 * L, 0.034 * L], [0.055, 0.062 * L, 0.068 * L], [0.02, 0.082 * L, 0.088 * L], [-0.06 * A, 0.09 * L, 0.096 * L], [elbow_y, 0.075 * L, 0.08 * L]]
+		fo = [[0.02, 0.076 * L, 0.08 * L], [wrist + 0.02, 0.064 * L, 0.068 * L]]
+	elif sleeves == "long":
+		up = _off(up, 0.006)
+		fo = _off(fo, 0.006)
+		if top == "blouse":
+			fo = [[0.02, 0.066 * L, 0.07 * L], [-0.1 * A, 0.08 * L, 0.084 * L, 0.006], [-0.19 * A, 0.062 * L, 0.066 * L], [wrist + 0.02, 0.05 * L, 0.054 * L]]
+	elif sleeves == "short":
+		up = _off(up, 0.003)
+	var bare := not coated and sleeves != "long" and sleeves != "short"
+	var shoulder_y := h.arm_l.position.y
+	var short_hem := shoulder_y - 0.155 * A
+	var pick := func(c: Vector3) -> Material:
+		if bare or (not coated and sleeves == "short" and c.y < short_hem):
+			return m_skin
+		return m_sleeve
+	# skinning: torso -> shoulder helper -> upper arm around the shoulder joint,
+	# upper arm -> elbow helper -> forearm around the elbow (pure functions of position)
+	var wf := func(p: Vector3) -> Array:
+		var left := p.x < 0.0
+		var ay := p.y - shoulder_y
+		var de_ := ay - elbow_y
+		if de_ < ARM_BAND:
+			return _chain_w((ARM_BAND - de_) / (2.0 * ARM_BAND), ArmBody.ELBOW_L_CHAIN if left else ArmBody.ELBOW_R_CHAIN)
+		return _chain_w((ARM_BAND - ay) / (2.0 * ARM_BAND), ArmBody.SHOULDER_L_CHAIN if left else ArmBody.SHOULDER_R_CHAIN)
+	var arm_mbs := {}
+	for side in [-1, 1]:
+		var amb_all := MeshBuilder.new()
+		amb_all.skinned = true
+		amb_all.weight_fn = wf
+		arm_mbs[side] = amb_all
+		var a0 := (h.arm_l if side < 0 else h.arm_r).position
+		# shoulder dome, then rings across the shoulder blend and down the upper
+		# arm; five across the elbow (a deep bend turns over an arc); the forearm
+		var tube := []
+		var top_y := ARM_BAND + 0.004
+		for r in up:
+			if float(r[0]) > top_y:
+				tube.append(_limb_ring(r, a0))
+		if tube.is_empty():
+			tube.append(_limb_ring(up[0], a0))   # the dome's tip
+			top_y = float(up[0][0])
+		for i in range(9):
+			var y := ARM_BAND - i * ARM_BAND / 4.0
+			if y < top_y - 0.002:
+				tube.append(_limb_ring(_at(up, y), a0))
+		for r in up:
+			if float(r[0]) < -ARM_BAND - 0.02 and float(r[0]) > elbow_y + ARM_BAND + 0.02:
+				tube.append(_limb_ring(r, a0))
+		var ue: Array = up[up.size() - 1]
+		var fe: Array = fo[0]
+		var fo0 := a0 + Vector3(0, elbow_y, 0)
+		for i in range(9):
+			var de_ := ARM_BAND - i * ARM_BAND / 4.0
+			if i < 4:
+				tube.append(_limb_ring(_at(up, elbow_y + de_), a0))
+			elif i == 4:
+				tube.append(_limb_ring([elbow_y, maxf(float(ue[1]), float(fe[1])), maxf(float(ue[2]), float(fe[2]))], a0))
+			else:
+				tube.append(_limb_ring(_at(fo, de_), fo0))
+		for r in fo:
+			if float(r[0]) < -ARM_BAND - 0.02:
+				tube.append(_limb_ring(r, fo0))
+		amb_all.add_rings(m_sleeve, tube, 3.0, Color.WHITE, true, true, pick)
+	var ab := ArmBody.new()
+	h.torso.add_child(ab)
+	ab.setup(h.arm_l, h.arm_r, h.fore_l, h.fore_r, arm_mbs[-1], arm_mbs[1])
 	for side in [-1, 1]:
 		var arm: Node3D = h.arm_l if side < 0 else h.arm_r
 		var fore: Node3D = h.fore_l if side < 0 else h.fore_r
 		var amb := MeshBuilder.new()
 		var fmb := MeshBuilder.new()
-		match "coat" if coated else sleeves:
-			"coat":
-				pass  # the coat's own sleeves cover the arms
-			"long":
-				amb.add_loft(m_top, Transform3D.IDENTITY, _off(up, 0.006), prof, 3.0, Color.WHITE, false, true)
-				var f2 := _off(fo, 0.006)
-				if top == "blouse":
-					f2 = _elbow_start([[0.02, 0.066 * L, 0.07 * L], [-0.1 * A, 0.08 * L, 0.084 * L, 0.006], [-0.19 * A, 0.062 * L, 0.066 * L], [wrist + 0.02, 0.05 * L, 0.054 * L]])
-					fmb.add_loft(m_top, Transform3D.IDENTITY, [[wrist + 0.03, 0.05 * L, 0.054 * L], [wrist - 0.005, 0.052 * L, 0.056 * L]], prof, 3.0)
-				fmb.add_loft(m_top, Transform3D.IDENTITY, f2, prof, 3.0, Color.WHITE, true, true)
-			"short":
-				amb.add_loft(m_top, Transform3D.IDENTITY, _off(_clip(up, -0.16 * A, 1.0), 0.01), prof, 3.0, Color.WHITE, false, true)
-				amb.add_loft(m_skin, Transform3D.IDENTITY, _clip(up, -1.0, -0.15 * A), prof, 3.0, Color.WHITE, false, true)
-				fmb.add_loft(m_skin, Transform3D.IDENTITY, fo, prof, 3.0, Color.WHITE, true, true)
-			_:
-				amb.add_loft(m_skin, Transform3D.IDENTITY, up, prof, 3.0, Color.WHITE, false, true)
-				fmb.add_loft(m_skin, Transform3D.IDENTITY, fo, prof, 3.0, Color.WHITE, true, true)
+		if top == "blouse" and sleeves == "long" and not coated:
+			fmb.add_loft(m_top, Transform3D.IDENTITY, [[wrist + 0.03, 0.05 * L, 0.054 * L], [wrist - 0.005, 0.052 * L, 0.056 * L]], prof, 3.0)
 		# mitten hand: wide front-to-back, thumb toward the front. Built as its
 		# own mesh ("Mitten") so it can swap with a closed fist ("Fist") when
 		# fighting bare-handed (Humanoid.set_fists).
@@ -1398,18 +1462,12 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 			var ex: float = s * (h.arm_r.position.x - 0.02)
 			mb.add_box(m_trim, Transform3D(Basis(Vector3.FORWARD, s * 0.25), Vector3(ex, ty(0.6), 0.0)), Vector3(0.11, 0.02, 0.12), 3.0, Color.WHITE, false)
 			mb.add_box(m_trim, Transform3D(Basis(), Vector3(ex + s * 0.05, ty(0.6) - 0.03, 0.0)), Vector3(0.012, 0.05, 0.11), 3.0, Color.WHITE, false)
-	# sleeves with turned-back cuffs
+	# turned-back cuffs (the sleeves themselves are the skinned arms, see _arms)
 	var L := limb * (1.0 + (sh - 1.0) * 0.4)
-	var up := _elbow_end([[0.07, 0.03 * L, 0.034 * L], [0.055, 0.062 * L, 0.068 * L], [0.02, 0.082 * L, 0.088 * L], [-0.06 * A, 0.09 * L, 0.096 * L], [-0.3 * A, 0.075 * L, 0.08 * L]], -0.3 * A)
 	var wrist := -0.23 * A
-	var fo := _elbow_start([[0.02, 0.076 * L, 0.08 * L], [wrist + 0.02, 0.064 * L, 0.068 * L]])
 	var cuff := [[wrist + 0.11, 0.08 * L, 0.084 * L], [wrist + 0.015, 0.082 * L, 0.086 * L]]
 	for side in [-1, 1]:
-		var amb := MeshBuilder.new()
-		amb.add_loft(m_coat, Transform3D.IDENTITY, up, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, true)
-		_mesh(h.arm_l if side < 0 else h.arm_r, amb)
 		var fmb := MeshBuilder.new()
-		fmb.add_loft(m_coat, Transform3D.IDENTITY, fo, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true)
 		fmb.add_loft(m_trim if captain else lap, Transform3D.IDENTITY, cuff, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
 		_mesh(h.fore_l if side < 0 else h.fore_r, fmb)
 	if coat in ["longcoat", "captain"]:

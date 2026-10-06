@@ -19,9 +19,30 @@ func check(name: String, cond: bool) -> void:
 	if not cond: fails += 1
 func light() -> HitData:
 	var h := HitData.new(); h.damage = 12.0; h.knockback_force = 4.5; h.stagger_duration = 0.3; return h
+var _circ_since := -1.0
+## A circling grunt for the hit-reaction steps. Whether one is circling right
+## now is down to AI timing and where the fight drifted (a knock into the sea,
+## everyone mid-attack), so after 10 s without one: log why, and set one circling.
 func circling() -> Node:
 	for x in camp.grunts:
-		if is_instance_valid(x) and x.state == CIRCLE: return x
+		if is_instance_valid(x) and x.state == CIRCLE:
+			_circ_since = -1.0
+			return x
+	if _circ_since < 0.0:
+		_circ_since = t
+	if t - _circ_since < 10.0:
+		return null
+	var states := []
+	for x in camp.grunts:
+		states.append(x.state if is_instance_valid(x) else -1)
+	print("   (no grunt circling for 10 s: states %s, player %s; setting one circling)" % [str(states), p.current_state_name()])
+	_circ_since = -1.0
+	for x in camp.grunts:
+		if is_instance_valid(x) and x.state != DEAD and x.state != DOWN:
+			x.global_position = p.global_position - p.player_model.global_basis.z * 2.5
+			x.reset_physics_interpolation()
+			x._set_state(CIRCLE)
+			return x
 	return null
 func _process(d: float) -> bool:
 	t += d
@@ -69,8 +90,16 @@ func _process(d: float) -> bool:
 			check("wind-up tell before swinging", seen.has(WIND) and seen.has(SWING))
 			check("recover (punish window)", seen.has(RECOVER))
 			check("at most 2 attack at once", max_att <= 2)
+			print("   player state ", p.current_state_name())
 			print("   player hp lost ", snappedf(hp0 - p.health_component.current_health, 1))
 			check("they land hits", p.health_component.current_health < hp0)
+			# a hit can knock the player off the beach into the sea, where the crew
+			# won't follow (no one circles and step 4 waits forever): back on land
+			if p.current_state_name() == "Swim":
+				var g0 = camp.grunts[0]
+				p.global_position = g0.global_position + g0._fwd() * 4.0 + Vector3.UP * 0.5
+				p.reset_physics_interpolation()
+				p.state_machine.force_state("Idle")
 			step = 4
 			return false
 		4:

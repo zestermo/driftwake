@@ -666,6 +666,11 @@ func update_coat_visual() -> void:
 			for c in (bone as Node3D).get_children():
 				if c is MeshInstance3D and c != body_model.weapon and c != body_model.offhand:
 					(c as MeshInstance3D).material_override = skin if bone in bones else null
+	# the arms themselves are one skinned mesh per arm on the torso
+	var ab = body_model.torso.get_node_or_null("ArmBody")
+	if ab:
+		ab.arm_mesh(true).material_override = skin
+		ab.arm_mesh(false).material_override = skin if both else null
 
 
 # --------------------------------------------------------------------------
