@@ -826,6 +826,15 @@ func _slash_mesh(kind: String) -> ArrayMesh:
 			a0 = 0.2
 			a1 = 0.2 - TAU
 			r1 = 2.0
+		"under":
+			# katana air attack: from up in front, down and round under the feet
+			u = Vector3.FORWARD
+			v = Vector3.UP
+			a0 = deg_to_rad(75.0)
+			a1 = deg_to_rad(-170.0)
+			tilt = Basis(Vector3.UP, 0.35)
+			r0 = 0.5
+			r1 = 2.2
 		"overhead":
 			u = Vector3.FORWARD
 			v = Vector3.UP

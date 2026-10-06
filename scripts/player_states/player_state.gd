@@ -93,6 +93,8 @@ func air_attack_input() -> String:
 			return ""
 		if player.style() == "dual_pistol" and player.gun_rains >= 1 + int(player.progression.stat("gun_rain_uses")):
 			return ""
+		if player.style() == "katana" and player.air_slashes >= 1:
+			return ""
 		return "Plunge" if player.spend_stamina(player.PLUNGE_COST) else ""
 	return ""
 

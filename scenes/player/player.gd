@@ -83,6 +83,8 @@ var current_ship: Ship = null
 var jumps_remaining: int = 1
 ## Gun Rains fired since leaving the ground (1 per jump + the "gun_rain_uses" stat).
 var gun_rains: int = 0
+## Katana air slashes since leaving the ground (one per jump).
+var air_slashes: int = 0
 ## The next light attack is the katana's running draw (attacked while sprinting).
 var quick_draw: bool = false
 var body_model: Humanoid
@@ -829,6 +831,7 @@ func _physics_process(delta: float) -> void:
 	if on_floor:
 		_coyote = coyote_time
 		gun_rains = 0
+		air_slashes = 0
 		if not _was_on_floor:
 			_on_landed(_last_air_vy)
 	else:
@@ -1377,6 +1380,7 @@ const REACH := {
 	"claw": [Vector3(1.7, 1.2, 1.35), Vector3(-0.3, 0.2, -0.78)],
 	"katana": [Vector3(2.5, 1.3, 2.2), Vector3(-0.3, 0.2, -1.2)],
 	"iai": [Vector3(3.0, 1.3, 2.4), Vector3(-0.3, 0.2, -1.1)],
+	"under": [Vector3(3.2, 3.6, 3.2), Vector3(-0.3, -1.4, -0.5)],
 }
 
 

@@ -510,7 +510,7 @@ const IAI_CROUCH := -0.12
 
 
 func _iai_pose() -> Dictionary:
-	var pose := {"torso": Vector3(-0.55 + sin(_t * 41.0) * 0.01, -0.25, 0.04), "head": Vector3(0.55, 0.22, 0),
+	var pose := {"torso": Vector3(-0.45 + sin(_t * 41.0) * 0.01, -0.25, 0.04), "head": Vector3(0.45, 0.22, 0),
 		"arm_r": Vector3(0.7, 0.9, -0.45), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3.ZERO,
 		"arm_l": Vector3(0.25, -0.2, -0.15), "fore_l": Vector3(1.0, 0, 0)}
 	for s in ["_l", "_r"]:
@@ -528,20 +528,21 @@ func _katana_hands() -> void:
 	var pole_l := global_basis * Vector3(-0.7, -1.0, 0.2)
 	match current_action():
 		"iai_ready":
-			_hands_on_scabbard(pole_l)
-		"draw", "sheathe", "iai_slash", "dash", "quick_draw":
+			_hands_on_scabbard()
+		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash":
 			pass
 		_:
 			if _run_sheath and not weapon_in_hand:
-				_hands_on_scabbard(pole_l)
+				_hands_on_scabbard()
 			elif weapon_in_hand and armed:
 				reach_hand(false, weapon.global_transform * Vector3(0, 0, 0.17), pole_l)
 
 
-func _hands_on_scabbard(pole_l: Vector3) -> void:
+func _hands_on_scabbard() -> void:
 	reach_hand(true, weapon.global_transform * Vector3(0, 0, 0.07), global_basis * Vector3(0.5, -1.0, 0.4))
 	if _katana_socket:
-		reach_hand(false, _katana_socket.global_transform * Vector3(0, 0, -0.07), pole_l)
+		# (the scabbard hand's elbow tucks back along the body, not out to the side)
+		reach_hand(false, _katana_socket.global_transform * Vector3(0, 0, -0.07), global_basis * Vector3(-0.15, -0.5, 1.0))
 
 
 ## Sprinting with the katana out slips it into its scabbard (ready for the
@@ -681,7 +682,7 @@ func _finish_action() -> void:
 		_attach_weapon(true)
 	elif n == "sheathe":
 		_attach_weapon(false)
-	elif n in ["iai_ready", "iai_slash", "quick_draw"] and armed and not weapon_in_hand:
+	elif n in ["iai_ready", "iai_slash", "quick_draw", "air_slash"] and armed and not weapon_in_hand:
 		_attach_weapon(true)   # (a katana readied in its scabbard, then interrupted)
 	elif n == "drink":
 		hide_left_prop()
@@ -922,6 +923,19 @@ func _action_pose(n: String, u: float) -> Array:
 				"leg_l": Vector3(1.35, 0, -0.14), "shin_l": Vector3(-1.55, 0, 0), "leg_r": Vector3(-1.05, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0)}
 			lift.y = -0.4 * (1.0 - _ease(clampf((u - 0.62) / 0.38, 0.0, 1.0)))
 			return [_keys(u, [[0.0, _iai_pose()], [0.14, cut2, "out"], [0.62, cut2], [1.0, _guard()]]), "full", lift]
+		"air_slash":
+			# katana air attack: knees drawn up unevenly, the blade whipped up and
+			# back one-handed with the chest wound round, then a big arc swept down
+			# under the body (the strike overshoots and bounces), then back to guard
+			var knees := {"leg_l": Vector3(1.45, 0, -0.16), "shin_l": Vector3(-2.05, 0, 0), "leg_r": Vector3(0.95, 0, 0.18), "shin_r": Vector3(-1.45, 0, 0)}
+			var wind := {"arm_r": Vector3(2.9, -0.4, 0.7), "fore_r": Vector3(1.1, 0, 0), "hand_r": Vector3.ZERO,
+				"arm_l": Vector3(0.9, 0, -1.1), "fore_l": Vector3(0.5, 0, 0),
+				"torso": Vector3(0.25, 0.85, 0.1), "head": Vector3(0.05, -0.5, 0)}.merged(knees)
+			var under := {"arm_r": Vector3(-0.6, 0.5, 0.35), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
+				"arm_l": Vector3(1.2, 0, -1.3), "fore_l": Vector3(0.4, 0, 0),
+				"torso": Vector3(-0.45, -0.9, -0.12), "head": Vector3(-0.35, 0.55, 0), "pivot": Vector3(-0.35, 0, 0)}.merged(knees)
+			var settle := {"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.6, 0, 0.14), "shin_r": Vector3(-1.1, 0, 0)}.merged(_guard())
+			return [_keys(u, [[0.0, {}], [0.22, wind, "out"], [0.3, wind], [0.5, under, "back"], [0.72, under], [1.0, settle]]), "full", lift]
 		"quick_draw":
 			# katana, attacked at a sprint: straight out of the scabbard in one fast
 			# flat cut across to the right, a short step in, then back to guard
@@ -935,8 +949,13 @@ func _action_pose(n: String, u: float) -> Array:
 				"arm_r": Vector3(1.4, -0.5, 1.2), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.25, 0, 0),
 				"arm_l": Vector3(-0.4, 0.0, -0.8), "fore_l": Vector3(0.3, 0, 0),
 				"leg_l": Vector3(0.9, 0, -0.12), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.6, 0, 0.14), "shin_r": Vector3(-0.3, 0, 0)}
-			lift.y = -0.22 * sin(clampf(u / 0.7, 0.0, 1.0) * PI)
-			return [_keys(u, [[0.0, draw_from], [0.16, flick, "out"], [0.5, flick], [1.0, _guard()]]), "full", lift]
+			# (keyed in seconds: the cut lands at 0.08 s and the follow-through is
+			# held until the last 0.3 s of however long it's played)
+			var T: float = _action.get("dur", 0.5)
+			var k_cut := minf(0.08 / T, 0.3)
+			var k_hold := maxf(k_cut, 1.0 - 0.3 / T)
+			lift.y = -0.22 * (1.0 - _ease(clampf((u - k_hold) / (1.0 - k_hold), 0.0, 1.0))) * _ease(clampf(u / k_cut, 0.0, 1.0))
+			return [_keys(u, [[0.0, draw_from], [k_cut, flick, "out"], [k_hold, flick], [1.0, _guard()]]), "full", lift]
 		"slash_down":
 			var legs3 := {"leg_l": Vector3(0.75, 0, -0.08), "shin_l": Vector3(-0.7, 0, 0), "leg_r": Vector3(-0.6, 0, 0.08), "shin_r": Vector3(-0.35, 0, 0)}
 			var up := {"arm_r": Vector3(3.1, 0, 0.25), "fore_r": Vector3(0.9, 0, 0), "arm_l": Vector3(2.8, 0, -0.25), "fore_l": Vector3(1.1, 0, 0), "torso": Vector3(0.35, 0.1, 0), "head": Vector3(0.25, 0, 0)}

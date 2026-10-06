@@ -22,8 +22,9 @@ const STYLES := {
 		"start": 0.33, "end": 0.47, "reach": "katana", "color": Color(0.85, 0.92, 1.0)},
 	# katana, attacked at a sprint: a quick cut straight out of the scabbard,
 	# stepping in a little; catches the target mid-move (breaks wind-ups, staggers)
+	# (the follow-through is held about a second before you can move on)
 	"katana_draw": {"anims": ["quick_draw"], "trails": ["iai"],
-		"durations": [0.34], "lengths": [0.5], "impulses": [6.0],
+		"durations": [0.95], "lengths": [1.3], "impulses": [9.0],
 		"damages": [14.0], "hitstops": [0.05], "shakes": [0.1],
 		"start": 0.05, "end": 0.2, "reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true},
 	"dual_sword": {"anims": ["dual_1", "dual_2", "dual_cross", "dual_spin"], "trails": ["right", "left", "cross", "spin"],

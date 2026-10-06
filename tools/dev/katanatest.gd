@@ -16,6 +16,9 @@ var d0 := 0.0
 var pos0 := Vector3.ZERO
 var creep := 0.0
 var gpos0 := Vector3.ZERO
+var air_vy := -99.0
+var plunges := 0
+var last_state := ""
 func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
@@ -55,6 +58,11 @@ func hilt_gap() -> float:
 func _physics_process(_d: float) -> bool:
 	if p:
 		saw[p.body_model.current_action()] = true
+		if p.current_state_name() == "Plunge":
+			air_vy = maxf(air_vy, p.velocity.y)
+			if last_state != "Plunge":
+				plunges += 1
+		last_state = p.current_state_name()
 		if p.current_state_name() == "Iai" and Input.is_action_pressed("move_forward"):
 			creep = maxf(creep, Vector2(p.velocity.x, p.velocity.z).length())
 	return false
@@ -237,6 +245,39 @@ func _process(d: float) -> bool:
 		33:
 			var b = p.body_model
 			check("stopped: the katana back in hand (%s)" % b.weapon.get_parent().name, b.weapon.get_parent() == b.hand_r)
+			# air attack: over a grunt
+			wait = 0.8
+			step = 40
+		40:
+			target_grunt(3.0)
+			# (above and just behind it: landing on its head would reset the jump)
+			var back: Vector3 = p.player_model.global_basis.z
+			back.y = 0.0
+			p.global_position = g.global_position + back.normalized() * 1.2 + Vector3.UP * 2.5
+			p.velocity = Vector3.ZERO
+			p.reset_physics_interpolation()
+			p.stamina = p.max_stamina
+			air_vy = -99.0
+			plunges = 0
+			wait = 0.12
+			step += 1
+		41:
+			attack("light_attack")
+			wait = 0.1
+			step += 1
+		42:
+			check("the katana's air attack (%s / %s)" % [p.current_state_name(), p.body_model.current_action()], p.current_state_name() == "Plunge" and p.body_model.current_action() == "air_slash")
+			wait = 0.3
+			step += 1
+		43:
+			check("...gives a little lift (up to %.1f m/s)" % air_vy, air_vy > 3.0)
+			check("...and the arc under you cuts the grunt below (%.0f -> %.0f)" % [hp0, g.health.current_health], g.health.current_health < hp0)
+			attack("light_attack")
+			wait = 0.35
+			step += 1
+		44:
+			# (the second click came mid-air, while the first was still going)
+			check("one air slash per jump (%d air attacks, now %s)" % [plunges, p.current_state_name()], plunges == 1 and p.current_state_name() != "Plunge")
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 	return false

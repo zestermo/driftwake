@@ -5,6 +5,8 @@ extends PlayerState
 ## Dual pistols instead fire both guns down at once (Gun Rain): a scatter blast
 ## whose recoil launches you forward, pitched nose-down, righting yourself
 ## before it ends.
+## A katana instead gives a little lift and sweeps one big arc down under you
+## (once per jump).
 
 const HANG := 0.16
 const DIVE_SPEED := 22.0
@@ -18,10 +20,16 @@ const RAIN_DEPTH := 10.0
 const RAIN_PELLETS := 4                  # per gun (for show; enemies are judged by the cone)
 const RAIN_DAMAGE := 20.0
 
+const SLASH_DUR := 0.6
+const SLASH_BOOST := 4.0                 # m/s up as the slash starts
+const SLASH_HIT := Vector2(0.17, 0.34)   # s: hitbox on..off (the arc under you)
+const SLASH_DAMAGE := 24.0
+
 var phase: int = 0   # 0 hang, 1 dive, 2 land
 var timer: float = 0.0
 var _dir := Vector3.ZERO
 var _rain := false
+var _slash := false
 var _fired := false
 
 
@@ -33,11 +41,22 @@ func enter(_data: Dictionary) -> void:
 	player.player_model.rotation.y = atan2(-f.x, -f.z)
 	_dir = f
 	_rain = player.style() == "dual_pistol"
+	_slash = false
 	_fired = false
 	if _rain:
 		player.gun_rains += 1
 		player.velocity = Vector3(player.velocity.x * 0.4, maxf(player.velocity.y, 0.0) * 0.3, player.velocity.z * 0.4)
 		player.body_model.play("gun_rain", RAIN_DUR)
+		return
+	_slash = player.style() == "katana"
+	if _slash:
+		player.air_slashes += 1
+		player.variable_jump_active = false
+		player.velocity = Vector3(player.velocity.x * 0.5, maxf(player.velocity.y, 0.0) * 0.3 + SLASH_BOOST, player.velocity.z * 0.5)
+		player.body_model.play("air_slash", SLASH_DUR)
+		player.set_reach("under")
+		player.squash(1.5)
+		Net.fx("sfx", ["whoosh", player.global_position, -8.0, 0.06, 0.9])
 		return
 	player.velocity = Vector3(player.velocity.x * 0.3, 2.5, player.velocity.z * 0.3)
 	player.body_model.play("plunge_air", 0.6)
@@ -49,6 +68,9 @@ func physics_update(delta: float) -> void:
 	timer += delta
 	if _rain:
 		_rain_update(delta)
+		return
+	if _slash:
+		_slash_update(delta)
 		return
 	match phase:
 		0:
@@ -197,6 +219,32 @@ func _rain_blast() -> void:
 		Net.fx("impact", [hb.global_position, Color(1.0, 0.75, 0.45)])
 	player.squash(-2.5)
 	CombatManager.apply_camera_shake(0.14)
+
+
+func _slash_update(delta: float) -> void:
+	apply_gravity(delta)
+	var mi := get_movement_input()
+	var want := get_camera_relative_direction(mi) * player.move_speed * 0.5 if mi.length() > 0.1 else Vector3.ZERO
+	player.velocity.x = move_toward(player.velocity.x, want.x, 10.0 * delta)
+	player.velocity.z = move_toward(player.velocity.z, want.z, 10.0 * delta)
+	player.move_and_slide()
+	if not _fired and timer >= SLASH_HIT.x:
+		_fired = true
+		var hit := player.melee_hit(SLASH_DAMAGE)
+		hit.knockback_force = 7.0
+		hit.stagger_duration = 0.5
+		hit.hitstop_duration = 0.06
+		hit.camera_shake_intensity = 0.14
+		player.sword_hitbox.activate(hit)
+		var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else Color(0.85, 0.92, 1.0)
+		Net.fx("slash", [player.player_model, "under", 0.3, col])
+		Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 1.2])
+	if _fired and timer >= SLASH_HIT.y:
+		player.sword_hitbox.deactivate()
+	if player.is_on_floor() and timer > 0.15:
+		transitioned.emit(self, "Idle", {})
+	elif timer >= SLASH_DUR:
+		transitioned.emit(self, "Fall", {})
 
 
 func exit() -> void:
