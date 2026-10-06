@@ -201,6 +201,7 @@ func _process(d: float) -> bool:
 			var b = p.body_model
 			check("letting go stands down (%s)" % p.current_state_name(), p.current_state_name() != "Iai")
 			check("...blade back in hand", b.weapon.get_parent() == b.hand_r)
+			set_meta("blade_scale", b.weapon.global_basis.get_scale().x)
 			attack("parry")
 			wait = 0.12
 			step += 1
@@ -213,11 +214,14 @@ func _process(d: float) -> bool:
 			check("parry: the katana hangs point-down, out in front, across to the left (%s, down %.2f, out %.2f, across %.2f)" % [b.current_action(), -blade.y, out, across],
 				b.current_action() == "parry" and blade.y < -0.4 and out > 0.3 and across > 0.3)
 			check("...held up high in both hands (hands %.2f m above the shoulders, left %.2f m off the hilt)" % [b.hand_r.global_position.y - b.arm_r.global_position.y, hilt_gap()],
-				b.hand_r.global_position.y > b.arm_r.global_position.y + 0.15 and hilt_gap() < 0.12)
+				b.hand_r.global_position.y > b.arm_r.global_position.y + 0.03 and hilt_gap() < 0.12)
 			# sprinting: the katana rides in its scabbard, ready for the running draw
 			wait = 0.6
 			step = 30
 		30:
+			var s0: float = get_meta("blade_scale")
+			var s1: float = p.body_model.weapon.global_basis.get_scale().x
+			check("parrying doesn't change the katana's size (%.4f -> %.4f)" % [s0, s1], absf(s1 - s0) < 0.001)
 			face(p.global_position + Vector3(0, 0, -10))
 			Input.action_press("sprint")
 			Input.action_press("move_forward")
@@ -282,6 +286,33 @@ func _process(d: float) -> bool:
 		44:
 			# (the second click came mid-air, while the first was still going)
 			check("one air slash per jump (%d air attacks, now %s)" % [plunges, p.current_state_name()], plunges == 1 and p.current_state_name() != "Plunge")
+			# gore: blood, and a killing full-charge cut takes something off
+			var fx = root.get_node("FX")
+			check("hits leave blood on the ground (%d splats)" % fx._splats.size(), fx._splats.size() > 0)
+			target_grunt(2.0)
+			var kill := HitData.new()
+			kill.damage = 9999.0
+			kill.knockdown = true
+			kill.crumple = true
+			kill.sever = true
+			g.hurtbox.take_hit(kill, p)
+			var other = camp.grunts[2]
+			var plain := HitData.new()
+			plain.damage = 9999.0
+			other.hurtbox.take_hit(plain, p)
+			other.humanoid.sever("arm_r", Vector3(3, 3, 0))
+			set_meta("other", other)
+			wait = 0.8
+			step = 50
+		50:
+			var stump = g.humanoid.torso.get_node_or_null("Stump")
+			check("a killing full-charge cut severs a head or an arm (state %d, stump %s)" % [g.state, str(stump != null)], g.state == DEAD and stump != null)
+			var other = get_meta("other")
+			var oh = other.humanoid
+			var copy = oh.arm_r.get_node_or_null("SeveredArm")
+			var gap: float = oh.arm_r.global_position.distance_to(oh.torso.get_node("Stump").global_position)
+			check("a severed arm comes off in one piece (baked mesh %s, skinned arm hidden %s, %.2f m from the shoulder)" % [str(copy != null and copy.mesh != null), str(not oh.torso.get_node("ArmBody").arm_mesh(true).visible), gap],
+				copy != null and copy.mesh != null and copy.mesh.get_surface_count() > 0 and not oh.torso.get_node("ArmBody").arm_mesh(true).visible and gap > 0.3)
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 	return false

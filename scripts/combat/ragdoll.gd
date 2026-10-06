@@ -39,6 +39,7 @@ var in_water: bool = false     # the root part is below the surface
 var _splashed: bool = false
 var _ocean: Node
 var _by_name: Dictionary = {}
+var _joints: Dictionary = {}    # part name -> the joint holding it to its parent
 var _scale: float = 1.0
 ## 0 = limp, 1 = fully braced. Eased toward stiffness_target.
 var stiffness: float = 0.0
@@ -179,6 +180,48 @@ func _join(parent: RigidBody3D, child: RigidBody3D, node: Node3D, limits: Dictio
 	j.exclude_nodes_from_collision = true
 	j.node_a = j.get_path_to(parent)
 	j.node_b = j.get_path_to(child)
+	_joints[child.name] = j
+
+
+## Cut a part (and whatever hangs off it) free of its parent, thrown by `v`
+## (gore: a severed head or arm).
+func detach(part_name: String, v: Vector3) -> void:
+	if not _by_name.has(part_name):
+		return
+	_unjoin(part_name)
+	_by_name[part_name]["parent"] = ""
+	if _rested:
+		_wake()
+	var b: RigidBody3D = _by_name[part_name]["body"]
+	b.sleeping = false
+	b.linear_velocity += v
+	b.angular_velocity += Vector3(randf_range(-5, 5), randf_range(-5, 5), randf_range(-5, 5))
+
+
+## Make `part_name` ride rigidly on `into`'s body (a severed arm comes off in
+## one stiff piece, matching its baked mesh).
+func weld(part_name: String, into: String) -> void:
+	if not _by_name.has(part_name) or not _by_name.has(into):
+		return
+	_unjoin(part_name)
+	var p: Dictionary = _by_name[part_name]
+	var nb: RigidBody3D = _by_name[into]["body"]
+	var old: RigidBody3D = p["body"]
+	var node: Node3D = p["node"]
+	p["offset"] = nb.global_transform.affine_inverse() * node.global_transform
+	p["body"] = nb
+	p["parent"] = ""
+	if old != nb:
+		old.queue_free()
+
+
+func _unjoin(part_name: String) -> void:
+	var j = _joints.get(part_name)
+	if j != null and is_instance_valid(j):
+		(j as Joint3D).node_a = NodePath()
+		(j as Joint3D).node_b = NodePath()
+		(j as Node).queue_free()
+	_joints.erase(part_name)
 
 
 ## Parts collide with each other (so folding legs bump the chest instead of

@@ -35,6 +35,13 @@ var _impact_mat: StandardMaterial3D
 var _flame_mat: StandardMaterial3D
 var _flame_ramp: Gradient
 var _slash_mat: ShaderMaterial
+var _blood_mat: StandardMaterial3D
+var _splat_mat: StandardMaterial3D
+var _splats: Array = []
+const BLOOD := Color(0.42, 0.02, 0.03)
+## Ground splats kept at once (the oldest go first) and how long each lasts.
+const MAX_SPLATS := 60
+const SPLAT_LIFE := 40.0
 var _streams: Dictionary = {}
 var _slash_meshes: Dictionary = {}
 
@@ -50,6 +57,16 @@ func _ready() -> void:
 		Color(0.85, 0.22, 0.05, 0.7), Color(0.3, 0.06, 0.02, 0.0)])
 	_slash_mat = ShaderMaterial.new()
 	_slash_mat.shader = SLASH_SHADER
+	# blood droplets: plain square flecks (they read as pixels at PSX resolution)
+	_blood_mat = StandardMaterial3D.new()
+	_blood_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_blood_mat.vertex_color_use_as_albedo = true
+	_blood_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_blood_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_splat_mat = StandardMaterial3D.new()
+	_splat_mat.albedo_color = BLOOD
+	_splat_mat.roughness = 0.25
+	_splat_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	for k in SOUNDS.keys():
 		_streams[k] = load(SOUNDS[k])
 
@@ -202,6 +219,77 @@ func dust_ring(pos: Vector3, amount: int = 12, size: float = 0.7) -> void:
 
 
 ## Twinkly stars (double jump, parry, pickups).
+## Blood from a wound: flecks thrown along `dir` (away from the blow) that
+## arc down, a little red mist, and a splat on the ground ahead.
+func blood(pos: Vector3, dir: Vector3, amount: int = 12) -> void:
+	var d := (dir.normalized() + Vector3.UP * 0.35).normalized()
+	_burst(pos, amount, _blood_mat, 0.06, 0.65, {"radius": 0.08, "direction": d, "spread": 38.0,
+		"vel_min": 1.8, "vel_max": 4.8, "gravity": Vector3(0, -14.0, 0), "damping": 0.4, "grow": false,
+		"color": Color(BLOOD.r * 1.4, BLOOD.g, BLOOD.b, 1.0)})
+	_burst(pos, 3, _dust_mat, 0.32, 0.35, {"radius": 0.05, "direction": d, "spread": 40.0, "vel_min": 0.3,
+		"vel_max": 0.8, "gravity": Vector3(0, -1.0, 0), "color": Color(BLOOD.r, BLOOD.g, BLOOD.b, 0.55)})
+	var flat := Vector3(dir.x, 0.0, dir.z)
+	var ahead := flat.normalized() * randf_range(0.3, 1.1) if flat.length() > 0.01 else Vector3.ZERO
+	blood_splat(pos + ahead, 0.22 + 0.012 * amount)
+
+
+## A pool of blood on whatever is below `pos` (ground, deck), lying on it.
+func blood_splat(pos: Vector3, size: float = 0.3) -> void:
+	var space := get_viewport().world_3d.direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 0.3, pos + Vector3.DOWN * 4.0, 1)
+	var h := space.intersect_ray(q)
+	if h.is_empty():
+		return
+	var n: Vector3 = h["normal"]
+	var mi := MeshInstance3D.new()
+	mi.mesh = _splat_mesh()
+	mi.material_override = _splat_mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_scene_root().add_child(mi)
+	var up := n.normalized()
+	var side := up.cross(Vector3.FORWARD if absf(up.z) < 0.9 else Vector3.RIGHT).normalized()
+	var b := Basis(side, up, side.cross(up)).rotated(up, randf() * TAU)
+	var s := size * randf_range(0.8, 1.25)
+	mi.global_transform = Transform3D(b.scaled(Vector3(s, s, s)), (h["position"] as Vector3) + up * 0.015)
+	_splats.append(mi)
+	while _splats.size() > MAX_SPLATS:
+		var old = _splats.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()
+	var tw := mi.create_tween()
+	tw.tween_interval(SPLAT_LIFE)
+	tw.tween_property(mi, "scale", Vector3.ZERO, 1.5)
+	tw.tween_callback(func():
+		_splats.erase(mi)
+		mi.queue_free())
+
+
+## An irregular unit blob with a few droplets around it (flat, +Y up).
+func _splat_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_normal(Vector3.UP)
+	var blobs := [[Vector2.ZERO, 1.0]]
+	for i in range(randi_range(2, 5)):
+		var a := randf() * TAU
+		blobs.append([Vector2(cos(a), sin(a)) * randf_range(1.1, 1.8), randf_range(0.12, 0.3)])
+	for bl in blobs:
+		var c: Vector2 = bl[0]
+		var r: float = bl[1]
+		var seg := 9 if r > 0.5 else 5
+		var rim: Array = []
+		for k in range(seg):
+			var a := float(k) / seg * TAU
+			rim.append(c + Vector2(cos(a), sin(a)) * r * randf_range(0.7, 1.15))
+		for k in range(seg):
+			var p0: Vector2 = rim[k]
+			var p1: Vector2 = rim[(k + 1) % seg]
+			st.add_vertex(Vector3(c.x, 0, c.y))
+			st.add_vertex(Vector3(p1.x, 0, p1.y))
+			st.add_vertex(Vector3(p0.x, 0, p0.y))
+	return st.commit()
+
+
 func sparkle(pos: Vector3, amount: int = 8, color: Color = Color(1.0, 0.95, 0.6)) -> void:
 	_burst(pos, amount, _spark_mat, 0.22, 0.6, {
 		"radius": 0.25, "spread": 180.0, "vel_min": 1.0, "vel_max": 2.8, "gravity": Vector3(0, -3.0, 0),

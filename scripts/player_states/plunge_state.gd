@@ -84,6 +84,7 @@ func physics_update(delta: float) -> void:
 				Net.fx("slash", [player.player_model, "overhead", 0.3])
 				Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 1.1])
 				var hit := HitData.new()
+				hit.sever = player.weapon_class() == "sword"
 				hit.damage = 22.0 * player.damage_multiplier()
 				hit.knockback_force = 7.0
 				hit.stagger_duration = 0.45
@@ -231,6 +232,7 @@ func _slash_update(delta: float) -> void:
 	if not _fired and timer >= SLASH_HIT.x:
 		_fired = true
 		var hit := player.melee_hit(SLASH_DAMAGE)
+		hit.sever = true
 		hit.knockback_force = 7.0
 		hit.stagger_duration = 0.5
 		hit.hitstop_duration = 0.06

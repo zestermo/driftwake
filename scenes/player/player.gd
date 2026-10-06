@@ -458,6 +458,8 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	_last_hit_velocity = dir * maxf(hit.knockback_force, 3.0) + Vector3.UP * (3.5 if hit.knockdown else 2.0)
 	health_component.take_damage(dmg)
 	Net.fx("impact", [global_position + Vector3(0, 1.0, 0) - dir * 0.3, Color(1.0, 0.55, 0.45)])
+	if not hit.dot:
+		Net.fx("blood", [global_position + Vector3(0, 1.1, 0) - dir * 0.15, dir, clampi(int(hit.damage * 0.6), 6, 18)])
 	Net.fx("sfx", ["hit", global_position, -3.0, 0.08, 0.8])
 	get_node("/root/CombatManager").apply_hit_effects(hit)
 	if health_component.current_health <= 0.0:

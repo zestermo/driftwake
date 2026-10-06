@@ -137,6 +137,7 @@ func physics_update(delta: float) -> void:
 				hit.knockback_force = float(cfg["knockback"])
 				hit.stagger_duration = float(cfg["stagger"])
 				hit.knockdown = true
+				hit.sever = str(cfg.get("reach", "sword")) != "fist" and not cfg.get("kata", false)
 				if not cfg.get("kata", false):
 					player.sword_hitbox.activate(hit)
 				hitbox_activated = true

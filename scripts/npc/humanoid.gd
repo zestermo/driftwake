@@ -548,11 +548,15 @@ const HANG_DIR := Vector3(-0.6, -0.6, -0.55)
 func _hang_blade() -> void:
 	var want := (global_basis.orthonormalized() * HANG_DIR).normalized()
 	var face := global_basis.orthonormalized().z
-	var target := Basis.looking_at(want, face)
+	var target := Quaternion(Basis.looking_at(want, face))
 	var k := clampf(float(_action["t"]) / 0.08, 0.0, 1.0) if current_action() == "parry" else 1.0
-	var sc := hand_r.global_basis.get_scale()
 	var cur := Quaternion(hand_r.global_basis.orthonormalized())
-	hand_r.global_basis = Basis(cur.slerp(Quaternion(target), k)).scaled(sc)
+	var world := cur.slerp(target, k)
+	# set as a local rotation that keeps the hand's own scale: writing the
+	# world basis back with its measured scale fed rounding back in every
+	# frame, and the hand (and the blade in it) grew with each parry
+	var parent_q := Quaternion(hand_r.get_parent_node_3d().global_basis.orthonormalized())
+	hand_r.basis = Basis(parent_q.inverse() * world) * Basis.from_scale(hand_r.basis.get_scale())
 
 
 func _hands_on_scabbard() -> void:
@@ -834,7 +838,7 @@ const KATANA_GUARD := {"arm_r": Vector3(0.8, 0.35, -0.05), "fore_r": Vector3(0.8
 const KATANA_SPREAD := 0.12
 const KATANA_HANG := {"arm_r": Vector3(1.55, 0.3, 0.05), "fore_r": Vector3(0.65, 0, 0), "hand_r": Vector3(1.85, 0, 0),
 	"arm_l": Vector3(2.3, -0.35, 0.05), "fore_l": Vector3(1.0, 0, 0),
-	"torso": Vector3(0.05, 0.0, 0), "head": Vector3(0.12, 0, 0)}
+	"torso": Vector3(-0.18, 0.0, 0), "head": Vector3(0.24, 0, 0)}
 
 
 ## Returns [pose_dict, mask("upper"/"full"), extra_lift]
@@ -2375,6 +2379,60 @@ const BRACE_WIGGLE := {
 ## The upper body is flung a little harder than the legs, so a hit from the
 ## front tips the character over backwards.
 ## alive: the body braces (stiff joints, arms out, knees up); dead goes limp.
+## Gore: cut the head ("head") or an arm ("arm_l" / "arm_r") off a ragdolled
+## body. It flies off on its own physics part, thrown by `v`, leaving a bloody
+## stump that spurts for a moment. An arm's skinned mesh can't leave the torso,
+## so it's baked into a rigid copy that rides the severed arm. Mirrored.
+func sever(part: String, v: Vector3) -> void:
+	_net_send("sever", [part, v])
+	if ragdoll == null or not is_instance_valid(ragdoll):
+		return
+	var node: Node3D = (neck if neck else head) if part == "head" else (arm_l if part == "arm_l" else arm_r)
+	var side := part.substr(3)
+	if part != "head":
+		var ab = torso.get_node_or_null("ArmBody")
+		if ab:
+			var mi: MeshInstance3D = ab.arm_mesh(part == "arm_r")
+			var copy := MeshInstance3D.new()
+			copy.name = "SeveredArm"
+			copy.mesh = ab.bake_arm(part == "arm_r")
+			copy.material_override = mi.material_override
+			node.add_child(copy)
+			copy.global_transform = mi.global_transform
+			mi.visible = false
+		ragdoll.weld("fore" + side, "arm" + side)
+	var rest: Vector3 = node.position
+	for p in ragdoll.parts:
+		if p["node"] == node:
+			rest = p["rest_origin"]
+	ragdoll.detach(part, v)
+	# the stump
+	var stump := MeshInstance3D.new()
+	stump.name = "Stump"
+	var sm := SphereMesh.new()
+	sm.radius = 0.06 if part == "head" else 0.05
+	sm.height = sm.radius * 1.2
+	sm.radial_segments = 8
+	sm.rings = 4
+	stump.mesh = sm
+	stump.material_override = PSXMat.lit("leather", Color(0.45, 0.04, 0.05))
+	torso.add_child(stump)
+	stump.position = rest
+	var fx := get_node_or_null("/root/FX")
+	if fx == null:
+		return
+	var up := torso.global_basis.y.normalized()
+	fx.call("blood", stump.global_position, (up + v.normalized() * 0.3).normalized(), 26)
+	fx.call("sfx", "crunch", stump.global_position, -4.0, 0.08, 0.8)
+	# it keeps pumping for a moment
+	var tw := stump.create_tween()
+	for i in range(5):
+		tw.tween_interval(0.22)
+		tw.tween_callback(func():
+			if is_instance_valid(stump):
+				fx.call("blood", stump.global_position, stump.global_basis.y.normalized(), 10 - i))
+
+
 func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO, alive: bool = true) -> Ragdoll:
 	_net_send("ragdoll", [velocity, spin, alive])
 	end_ragdoll()
@@ -2660,6 +2718,8 @@ func net_event(what: String, args: Array) -> void:
 			stop_action()
 		"ragdoll":
 			start_ragdoll(args[0], args[1], bool(args[2]))
+		"sever":
+			sever(str(args[0]), args[1])
 		"reset_pose":
 			reset_pose()
 		"getup":

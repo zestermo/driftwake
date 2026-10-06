@@ -101,6 +101,7 @@ func _release() -> void:
 	# full charge: everything you cut through crumples where it stands
 	hit.knockdown = level == LEVELS.size()
 	hit.crumple = hit.knockdown
+	hit.sever = true
 	if player.progression.has_flag("armament"):
 		hit.unblockable = true
 		hit.haki = true

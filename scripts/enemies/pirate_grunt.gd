@@ -131,6 +131,10 @@ var _getup_len: float = 1.0
 var _rest: float = 0.0
 ## Least time on the ground before getting up (shorter after a crumple).
 var _down_min: float = 1.0
+## The last hit that landed (a cutting killing blow can sever).
+var _last_hit: HitData
+## Chance a cutting killing blow takes off a head or an arm (a full-charge katana draw always does).
+const SEVER_CHANCE := 0.6
 var _dead_t: float = 0.0
 var _sink: float = 0.0
 var _stuck: float = 0.0
@@ -1002,6 +1006,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		# burning: just the damage (no flinch, no guard)
 		Net.damage_number(hit.damage, global_position + Vector3(0, 1.9, 0))
 		set_meta("last_dir", dir)
+		_last_hit = null   # (burned to death: nothing to cut off)
 		health.take_damage(hit.damage)
 		if state == S.IDLE or state == S.RETURN:
 			alert()
@@ -1122,9 +1127,11 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 func _take_damage(hit: HitData, dir: Vector3) -> void:
 	Net.damage_number(hit.damage, global_position + Vector3(0, 1.9, 0))
 	Net.fx("impact", [global_position + Vector3(0, 1.2, 0) - dir * 0.35, Color(1.0, 0.6, 0.45)])
+	Net.fx("blood", [global_position + Vector3(0, 1.15, 0) - dir * 0.15, dir, clampi(int(hit.damage * 0.6), 6, 22)])
 	Net.fx("sfx", ["hit", global_position, -2.0, 0.1, 1.05 if hit.damage < 20.0 else 0.85])
 	_hit_feedback(hit)
 	set_meta("last_dir", dir)
+	_last_hit = hit
 	health.take_damage(hit.damage)
 
 
@@ -1241,6 +1248,11 @@ func _on_died() -> void:
 	else:
 		humanoid.relax_ragdoll()
 		humanoid.ragdoll.push(dir * 3.0)
+	if _last_hit and _last_hit.sever and _rng.randf() < (1.0 if _last_hit.crumple else SEVER_CHANCE):
+		# heads go a bit more often than either arm
+		var r := _rng.randf()
+		var part := "head" if r < 0.4 else ("arm_l" if r < 0.7 else "arm_r")
+		humanoid.sever(part, dir * 2.2 + Vector3.UP * 2.6)
 	_set_state(S.DEAD)
 	_dead_t = 0.0
 	Net.event(self, "die", [])

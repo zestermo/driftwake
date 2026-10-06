@@ -800,7 +800,7 @@ func applying() -> bool:
 # ==========================================================================
 func hit_pack(h: HitData) -> Array:
 	return [h.damage, h.knockback_force, h.hitstop_duration, h.camera_shake_intensity, h.stagger_duration,
-		h.knockdown, h.ranged, h.dot, h.unblockable, h.haki, h.siege]
+		h.knockdown, h.ranged, h.dot, h.unblockable, h.haki, h.siege, h.crumple, h.breaker, h.sever]
 
 
 func hit_unpack(a: Array) -> HitData:
@@ -818,6 +818,9 @@ func hit_unpack(a: Array) -> HitData:
 	h.unblockable = bool(a[8])
 	h.haki = bool(a[9])
 	h.siege = a.size() > 10 and bool(a[10])
+	h.crumple = a.size() > 11 and bool(a[11])
+	h.breaker = a.size() > 12 and bool(a[12])
+	h.sever = a.size() > 13 and bool(a[13])
 	return h
 
 

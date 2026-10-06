@@ -105,6 +105,7 @@ func physics_update(delta: float) -> void:
 		hit.camera_shake_intensity = float(cfg["shakes"][combo_index])
 		hit.knockback_force = 8.0 if combo_index == combo_count - 1 else 4.0
 		hit.breaker = cfg.get("breaker", false)
+		hit.sever = str(cfg["reach"]) != "fist"
 		player.sword_hitbox.activate(hit)
 		# swoosh!
 		var last := combo_index == combo_count - 1

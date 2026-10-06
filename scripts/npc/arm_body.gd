@@ -69,6 +69,47 @@ func setup(a_l: Node3D, a_r: Node3D, f_l: Node3D, f_r: Node3D, mb_l: MeshBuilder
 		mi.skeleton = NodePath("..")
 
 
+## The arm as it is posed right now, as a plain (unskinned) mesh in this
+## skeleton's space: skinned on the CPU, for a severed arm to carry off.
+func bake_arm(right: bool) -> ArrayMesh:
+	var mi := arm_mesh(right)
+	var src := mi.mesh as ArrayMesh
+	var skin := mi.skin
+	var mats: Array[Transform3D] = []
+	for i in range(skin.get_bind_count()):
+		mats.append(get_bone_global_pose(skin.get_bind_bone(i)) * skin.get_bind_pose(i))
+	var out := ArrayMesh.new()
+	for s in range(src.get_surface_count()):
+		var arr := src.surface_get_arrays(s)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var nrm: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+		var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+		var w: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+		var per := bones.size() / maxi(v.size(), 1)
+		for i in range(v.size()):
+			var p := Vector3.ZERO
+			var n := Vector3.ZERO
+			for k in range(per):
+				var wt := w[i * per + k]
+				if wt <= 0.0:
+					continue
+				var m: Transform3D = mats[bones[i * per + k]]
+				p += (m * v[i]) * wt
+				if nrm.size() == v.size():
+					n += (m.basis * nrm[i]) * wt
+			v[i] = p
+			if nrm.size() == v.size():
+				nrm[i] = n.normalized()
+		arr[Mesh.ARRAY_VERTEX] = v
+		if nrm.size() == v.size():
+			arr[Mesh.ARRAY_NORMAL] = nrm
+		arr[Mesh.ARRAY_BONES] = null
+		arr[Mesh.ARRAY_WEIGHTS] = null
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		out.surface_set_material(s, src.surface_get_material(s))
+	return out
+
+
 func _process(_delta: float) -> void:
 	_pose()
 

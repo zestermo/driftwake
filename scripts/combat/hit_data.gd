@@ -11,6 +11,8 @@ class_name HitData
 ## With knockdown: cut down where it stands instead - a limp collapse in
 ## place, nothing thrown, back up after a moment (the katana's charged draw).
 @export var crumple: bool = false
+## A cutting blow: as the killing blow it can take off a head or an arm.
+@export var sever: bool = false
 ## A bullet (parrying it deflects it, but doesn't stagger the shooter).
 @export var ranged: bool = false
 ## Damage over time (burning): the target just takes the damage - no flinch,
