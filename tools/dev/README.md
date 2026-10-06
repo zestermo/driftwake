@@ -131,5 +131,6 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `wavegrid`: Debug: balls placed on the computed wave surface should sit on the rendered sea. Args: <out_prefix>
 - `waveshot`: Swimmer vs waves, side view, several moments. Args: <out_prefix>
 - `weathershot`: Sky + weather renders. Args: <out_prefix>
+- `horizonshot`: The Redtide fort and ships on the horizon from the starter dock (rain at dawn like the capture, plus zoomed clear/rain/storm), to check distant things sit on the sea instead of floating on haze. Args: <out_prefix>
 - `wolfpose`: Standalone Zoan hybrid: front, 3/4 and side views. Args: <out_prefix>
 - `zigzag`: (no description)

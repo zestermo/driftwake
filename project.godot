@@ -226,3 +226,7 @@ sky_haze={
 "type": "vec4",
 "value": Vector4(0.5, 0.72, 0.92, 0)
 }
+fog_range={
+"type": "vec2",
+"value": Vector2(90, 750)
+}

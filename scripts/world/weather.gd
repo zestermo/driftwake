@@ -416,6 +416,7 @@ func _update_env() -> void:
 		fog_end = end
 		haze_height = lerpf(lerpf(0.09, 0.3, fog), 1.6, in_cloud)
 		RenderingServer.global_shader_parameter_set("sky_haze", Vector4(fogc.r, fogc.g, fogc.b, haze_height))
+		RenderingServer.global_shader_parameter_set("fog_range", Vector2(begin, end))
 	# cloud shadows (shaders/world/cloud_shadow.gdshaderinc): the global the
 	# terrain and ocean read
 	var wd := Vector2(1.0, 0.3).normalized() * (3.0 + wind * 9.0)

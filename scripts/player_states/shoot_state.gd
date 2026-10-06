@@ -95,8 +95,8 @@ func _fire(dual: bool) -> void:
 		end = hit["position"]
 		var hd := player.melee_hit(DUAL_DAMAGE if dual else SINGLE_DAMAGE)
 		hd.knockback_force = 3.0
-		hd.hitstop_duration = 0.03
-		hd.camera_shake_intensity = 0.05
+		hd.hitstop_duration = 0.0 if dual else 0.03   # (rapid dual fire: a freeze per hit reads as stutter)
+		hd.camera_shake_intensity = 0.0 if dual else 0.05
 		hd.ranged = true
 		hb.take_hit(hd, player)
 		player.power.on_sword_hit(hb.owner, hd)
@@ -107,7 +107,9 @@ func _fire(dual: bool) -> void:
 	Net.fx("muzzle_sparks", [muzzle, dir, 8])
 	Net.fx("smoke", [muzzle + dir * 0.2, 3, 0.45, 0.9])
 	Net.fx("sfx", ["gunshot", muzzle, -5.0, 0.08, 1.25 if dual else 1.15])
-	CombatManager.apply_camera_shake(0.04)
+	# (a shake this small lasts one frame: with rapid dual fire it's a hitch, not a kick)
+	if not dual:
+		CombatManager.apply_camera_shake(0.04)
 
 
 func physics_update(delta: float) -> void:

@@ -34,6 +34,8 @@ uniform float near_alpha = 0.82;
 // sky it reaches. Toward the horizon the sea melts into the same colour the
 // sky does just above it, so there is no line where the sea stops.
 global uniform vec4 sky_haze;
+// The scene's depth fog (Weather): begin, end in metres.
+global uniform vec2 fog_range;
 
 varying float wave_height_val;
 varying vec3 world_pos;
@@ -96,12 +98,13 @@ void fragment() {
 	base_color = mix(base_color, foam_color.rgb, foam_factor * 0.35);
 
 	// long-range haze: by how close to the horizon you look (the sky's own
-	// haze mirrored below it), only once the sea is properly far away
+	// haze mirrored below it), only near the end of the scene fog: any nearer and
+	// islands and ships (fogged by distance alone) float on a band of haze
 	vec3 rel = world_pos - CAMERA_POSITION_WORLD;
 	float dist = length(rel);
 	float below = max(-rel.y / max(dist, 0.001), 0.0);
 	float hz = 1.0 - smoothstep(0.0, max(sky_haze.a * 0.55, 0.004), below);
-	hz = hz * hz * (3.0 - 2.0 * hz) * smoothstep(30.0, 160.0, dist);
+	hz = hz * hz * (3.0 - 2.0 * hz) * smoothstep(fog_range.y * 0.7, fog_range.y, dist);
 	vec3 hc = sky_haze.rgb;
 	vec3 haze_lin = mix(hc / 12.92, pow((hc + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), hc));
 	ALBEDO = base_color * cloud_shade(world_pos.xz) * (1.0 - hz);

@@ -432,7 +432,7 @@ func _guard() -> Dictionary:
 		"dual_pistol":
 			# held low and close, uneven: the right a little higher with the elbow
 			# bent more, the left lower and straighter (raised to fire: shoot_r/l)
-			return {"arm_r": Vector3(0.48, -0.12, 0.12), "fore_r": Vector3(0.85, 0, 0),
+			return {"arm_r": Vector3(0.48, -0.12, 0.12), "fore_r": Vector3(1.1, 0, 0),
 				"arm_l": Vector3(0.22, 0.08, -0.17), "fore_l": Vector3(0.5, 0, 0),
 				"torso": Vector3(-0.05, 0.0, 0), "head": Vector3(0.05, 0, 0)}
 	return GUARD
