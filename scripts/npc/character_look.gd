@@ -32,10 +32,13 @@ const BROW_STYLES := 5
 const MOUTH_STYLES := 6
 const MARKS := ["none", "freckles", "scar", "blush", "war_paint", "age_lines"]
 const HAIR := ["bald", "crop", "short", "long", "ponytail", "bun", "braids", "wild",
-	"swept", "messy", "slick", "topknot", "hime", "twintails", "bob", "side_pony"]
+	"swept", "messy", "slick", "topknot", "hime", "twintails", "bob", "side_pony",
+	"quiff", "curtains", "spiky", "shag", "swoop", "low_pony", "layered", "lob", "braid"]
 ## Styles the random looks give each body (any style can still be picked for either).
-const HAIR_MASC := ["bald", "crop", "short", "long", "ponytail", "wild", "swept", "messy", "slick", "topknot"]
-const HAIR_FEM := ["long", "ponytail", "bun", "braids", "short", "wild", "hime", "twintails", "bob", "side_pony", "swept"]
+const HAIR_MASC := ["bald", "crop", "short", "long", "ponytail", "wild", "swept", "messy", "slick", "topknot",
+	"quiff", "curtains", "spiky", "shag", "swoop"]
+const HAIR_FEM := ["long", "ponytail", "bun", "braids", "short", "wild", "hime", "twintails", "bob", "side_pony", "swept",
+	"low_pony", "layered", "lob", "braid", "curtains", "shag"]
 const FACIAL_HAIR := ["none", "stubble", "moustache", "goatee", "chops", "beard", "long_beard"]
 const HATS := ["none", "tricorn", "bicorne", "bandana", "cap", "knit", "straw", "hood"]
 const TOPS := ["shirt", "tunic", "blouse", "bare"]

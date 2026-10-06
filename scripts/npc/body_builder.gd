@@ -1064,7 +1064,9 @@ const HAIRLINES := {
 
 ## Styles that share another's hairline.
 const HAIRLINE_OF := {"bun": "ponytail", "swept": "short", "messy": "wild", "slick": "short", "topknot": "crop",
-	"hime": "long", "twintails": "ponytail", "bob": "long", "side_pony": "ponytail"}
+	"hime": "long", "twintails": "ponytail", "bob": "long", "side_pony": "ponytail",
+	"quiff": "short", "curtains": "short", "spiky": "wild", "shag": "long", "swoop": "crop",
+	"layered": "long", "lob": "long", "braid": "ponytail", "low_pony": "ponytail"}
 
 
 static func hairline_for(style: String) -> Array:
@@ -1084,7 +1086,7 @@ static func _hairline(line: Array, a: float) -> float:
 
 ## Whether a hair style covers the ears (they're left off the head then).
 static func hair_hides_ears(style: String) -> bool:
-	return style in ["long", "braids", "hime", "bob"]
+	return style in ["long", "braids", "hime", "bob", "shag", "layered", "lob"]
 
 
 ## Distance from the ring center to the head surface along angle a (actual
@@ -1132,11 +1134,11 @@ func _hair(mb: MeshBuilder) -> void:
 		style = "crop"
 	var off := 0.018
 	match style:
-		"crop", "topknot":
+		"crop", "topknot", "swoop":
 			off = 0.009
 		"wild":
 			off = 0.024
-		"messy", "bob":
+		"messy", "bob", "shag", "spiky", "layered", "lob":
 			off = 0.021
 		"slick":
 			off = 0.012
@@ -1216,6 +1218,10 @@ func _hair(mb: MeshBuilder) -> void:
 		"hime":
 			# straight, long, cut level at the back
 			_back_strands([112.0, 136.0, 160.0, 180.0, 200.0, 224.0, 248.0], 4, 0.155, 0.055, 0.8, hair_cols)
+		"low_pony":
+			_low_pony(hair_cols)
+		"braid":
+			_single_braid(hair_cols)
 		"twintails":
 			_tails([-1.0, 1.0], hat, hair_cols)
 		"side_pony":
@@ -1303,6 +1309,69 @@ func _tails(sides: Array, hat: String, cols: Array) -> void:
 		_hair_tie(sim.mb, [tie, tie2], bones[0])
 
 
+## Hair gathered low at the nape on the right and drawn forward over the right
+## shoulder, a long loose tail with a slight wave.
+func _low_pony(cols: Array) -> void:
+	var sim := _sim(h.head)
+	var root := _hair_pt(deg_to_rad(150.0), 0.15 * yk, hair_off + 0.006)
+	var pts := PackedVector3Array([root, root + Vector3(0.04, -0.06, -0.03), root + Vector3(0.075, -0.17, -0.1),
+		root + Vector3(0.085, -0.3, -0.15), root + Vector3(0.075, -0.43, -0.16), root + Vector3(0.085, -0.54, -0.15)])
+	var bones := sim.add_chain(pts, 0.08, 0.06, 1.0, cols)
+	var radii := [0.032, 0.046, 0.05, 0.044, 0.034, 0.01]
+	var rr := []
+	for i in range(pts.size()):
+		rr.append([pts[i].y, radii[i], radii[i] * 0.8, pts[i].z, pts[i].x])
+	sim.mb.add_loft(m_hair, Transform3D.IDENTITY, rr, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true, true, false, false, bones)
+	var axis := (pts[1] - pts[0]).normalized()
+	var side := axis.cross(Vector3.FORWARD).normalized()
+	var up := side.cross(axis).normalized()
+	var tie := PackedVector3Array()
+	var tie2 := PackedVector3Array()
+	for k in range(8):
+		var ang := TAU * k / 8.0
+		var dd := side * cos(ang) + up * sin(ang)
+		tie.append(pts[0] + axis * 0.006 + dd * 0.038)
+		tie2.append(pts[0] + axis * 0.026 + dd * 0.04)
+	_hair_tie(sim.mb, [tie, tie2], bones[0])
+
+
+## One thick braid down the middle of the back, tied at the end.
+func _single_braid(cols: Array) -> void:
+	var sim := _sim(h.head)
+	var root := _hair_pt(PI, 0.19 * yk, hair_off - 0.002)
+	var pts := PackedVector3Array([root])
+	for i in range(1, 7):
+		pts.append(root + Vector3(0.004 * sin(i * 1.3), -0.085 * i, 0.012 * minf(i, 2.0)))
+	var bones := sim.add_chain(pts, 0.08, 0.06, 1.0, cols)
+	# plaited bumps, each pair of rings on its segment's bone
+	var rr := []
+	var rb := PackedInt32Array()
+	for i in range(pts.size() - 1):
+		var taper := lerpf(1.0, 0.6, float(i) / (pts.size() - 2))
+		for j in range(2):
+			var p := pts[i].lerp(pts[i + 1], j / 2.0)
+			var r := (0.056 if j == 0 else 0.04) * taper
+			rr.append([p.y, r, r * 0.85, p.z, p.x])
+			rb.append(bones[i])
+	var tip := pts[pts.size() - 1]
+	rr.append([tip.y + 0.012, 0.016, 0.014, tip.z, tip.x])
+	rb.append(bones[pts.size() - 1])
+	rr.append([tip.y - 0.05, 0.028, 0.024, tip.z, tip.x])
+	rb.append(bones[pts.size() - 1])
+	rr.append([tip.y - 0.09, 0.006, 0.006, tip.z, tip.x])
+	rb.append(bones[pts.size() - 1])
+	sim.mb.add_loft(m_hair, Transform3D.IDENTITY, rr, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true, true, false, false, rb)
+	var b_end := bones[pts.size() - 1]
+	var tie := PackedVector3Array()
+	var tie2 := PackedVector3Array()
+	for k in range(8):
+		var ang := TAU * k / 8.0
+		var dd := Vector3(cos(ang), 0, sin(ang))
+		tie.append(tip + Vector3(0, 0.02, 0) + dd * 0.02)
+		tie2.append(tip + Vector3(0, -0.004, 0) + dd * 0.021)
+	_hair_tie(sim.mb, [tie, tie2], b_end)
+
+
 func _hair_tie(smb: MeshBuilder, rings: Array, bone_i: int) -> void:
 	var was := smb.bone
 	smb.bone = bone_i
@@ -1313,32 +1382,60 @@ func _hair_tie(smb: MeshBuilder, rings: Array, bone_i: int) -> void:
 ## A flat strand combed back over the scalp: from the front hairline at
 ## `side_deg` (+ = right) up over the crown and down the back, `w` wide. Rings
 ## are laid across the path, so it follows the head instead of hanging.
-func _comb_strand(mb: MeshBuilder, side_deg: float, w: float, d: float, y_end: float) -> void:
+func _comb_strand(mb: MeshBuilder, side_deg: float, w: float, d: float, y_end: float, lift: float = 0.0) -> void:
 	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
 	var path := PackedVector3Array()
 	var n := 9
 	for i in range(n):
 		var t := float(i) / (n - 1)
-		# front half rises to the crown, back half comes down behind it
+		# front half rises to the crown, back half comes down behind it; `lift`
+		# raises it off the scalp most just behind the hairline (a quiff)
 		var front := t < 0.5
-		var a := deg_to_rad(side_deg if front else 180.0 - side_deg)
+		var a := side_deg if front else 180.0 - side_deg
 		var y := lerpf(0.292 * yk, top - 0.006, t * 2.0) if front else lerpf(top - 0.006, y_end * yk, (t - 0.5) * 2.0)
-		path.append(_hair_pt(a, y, hair_off + 0.002))
+		path.append(_scalp_pt(a, y, 0.002 + lift * sin(PI * clampf(t / 0.75, 0.0, 1.0))))
+	_path_strand(mb, path, w, d, 0.25)
+
+
+## Point on the hair surface at a_deg around the head (0 = front, + = right),
+## head-local height y, lifted `lift` off it along the head's outward normal.
+func _scalp_pt(a_deg: float, y: float, lift: float) -> Vector3:
+	var p := _hair_pt(deg_to_rad(a_deg), y, hair_off)
+	return p + (p - Vector3(0, 0.15 * yk, 0)).normalized() * lift
+
+
+## A flat strand through `path` (head-local), w wide and d thick, its width
+## laid along the head; it narrows to `tip` of its width at the end.
+func _path_strand(mb: MeshBuilder, path: PackedVector3Array, w: float, d: float, tip: float = 0.2) -> void:
 	var rings := []
 	var c := Vector3(0, 0.12 * yk, 0)
+	var n := path.size()
 	for i in range(n):
 		var p := path[i]
 		var tan := (path[mini(i + 1, n - 1)] - path[maxi(i - 1, 0)]).normalized()
 		var nrm := (p - c).normalized()
 		var side := tan.cross(nrm).normalized()
 		nrm = side.cross(tan).normalized()
-		var k := lerpf(1.0, 0.25, pow(float(i) / (n - 1), 2.0))
+		var k := lerpf(1.0, tip, pow(float(i) / (n - 1), 2.0))
 		var ring := PackedVector3Array()
 		for q in range(6):
 			var ang := TAU * q / 6.0
-			ring.append(p + side * cos(ang) * w * k + nrm * (sin(ang) * d + d))
+			ring.append(p + side * cos(ang) * w * k + nrm * (sin(ang) * d + d) * lerpf(1.0, 0.6, float(i) / (n - 1)))
 		rings.append(ring)
 	mb.add_rings(m_hair, rings, 3.0, Color.WHITE, false, true)
+
+
+## A strand swept from the front hairline at a0 over the crown round to a1,
+## rising off the head toward its end (lift0 -> lift1) so the tip sticks out.
+func _sweep_strand(mb: MeshBuilder, a0: float, a1: float, y_end: float, lift0: float, lift1: float, w: float, d: float) -> void:
+	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
+	var path := PackedVector3Array()
+	var n := 9
+	for i in range(n):
+		var t := float(i) / (n - 1)
+		var y := lerpf(0.29 * yk, top - 0.01, smoothstep(0.0, 0.45, t)) if t < 0.45 else lerpf(top - 0.01, y_end * yk, smoothstep(0.45, 1.0, t))
+		path.append(_scalp_pt(lerpf(a0, a1, t), y, lerpf(lift0, lift1, t * t)))
+	_path_strand(mb, path, w, d, 0.15)
 
 
 ## The hair mass: a shell over the scalp whose lower edge follows a natural
@@ -1524,6 +1621,98 @@ func _tufts(mb: MeshBuilder, style: String, hat: String, rng: RandomNumberGenera
 			for i in range(5):
 				_clump(mb, 140.0 + i * 20.0, 0.21, j.call(0.06), 0.05, 0.012, 0.0, 0.014)
 			_clump(mb, -22.0, 0.292, j.call(0.08), 0.02, 0.008, -12.0, 0.012)
+		"quiff":
+			# pompadour: the front swept up and back in a tall roll, short sides
+			for i in range(7):
+				var sd := -48.0 + i * 16.0
+				_comb_strand(mb, sd, 0.042, 0.011, 0.21, 0.055 * (1.0 - absf(sd) / 110.0))
+			for s in [-1.0, 1.0]:
+				_clump(mb, s * 72.0, 0.25, j.call(0.06), 0.045, 0.01, s * 4.0, 0.004)
+				_clump(mb, s * 100.0, 0.262, j.call(0.05), 0.05, 0.01, s * 6.0, 0.006)
+			for i in range(5):
+				_clump(mb, 140.0 + i * 20.0, 0.205, j.call(0.06), 0.05, 0.011, 0.0, 0.008)
+		"curtains":
+			# middle part, the fringe falling away to both sides, and an
+			# antenna strand springing up off the crown
+			for s in [-1.0, 1.0]:
+				for i in range(4):
+					var a: float = s * (4.0 + i * 13.0)
+					_clump(mb, a, 0.298, j.call(lerpf(0.11, 0.075, i / 3.0)), 0.055, 0.013, s * 24.0, 0.012)
+				_clump(mb, s * 66.0, 0.26, j.call(0.11), 0.048, 0.012, s * 8.0, 0.01)
+				_clump(mb, s * 96.0, 0.27, j.call(0.08), 0.052, 0.012, s * 8.0, 0.012)
+				_clump(mb, s * 116.0, 0.25, j.call(0.09), 0.052, 0.012, s * 6.0, 0.012)
+			for i in range(7):
+				var a := 122.0 + i * 19.3
+				_clump(mb, a, 0.21, j.call(0.1), 0.056, 0.013, (a - 180.0) * 0.1, 0.008)
+			if crowned:
+				var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
+				var p0 := _scalp_pt(175.0, top - 0.012, 0.0)
+				_path_strand(mb, PackedVector3Array([p0, p0 + Vector3(0.0, 0.05, -0.005), p0 + Vector3(0.008, 0.09, -0.04),
+					p0 + Vector3(0.012, 0.1, -0.08), p0 + Vector3(0.012, 0.085, -0.11)]), 0.02, 0.006, 0.2)
+		"spiky":
+			# short and jagged: a ragged fringe and spikes standing out all over
+			for i in range(9):
+				var t := float(i) / 8.0
+				_clump(mb, lerpf(-54.0, 54.0, t), 0.295, j.call(0.05 + 0.03 * float(i % 2)), 0.05, 0.012, rng.randf_range(-12.0, 12.0), 0.012)
+			for k in range(16):
+				var ka := -90.0 + k * 22.5
+				var yy := 0.31 + 0.035 * float(k % 3)
+				var dir := Vector3(sin(deg_to_rad(ka)) * 0.75, 1.0, -cos(deg_to_rad(ka)) * 0.75 + 0.15)
+				_spike(mb, ka, yy + DOME_EXTRA * 0.5, dir, j.call(0.075), 0.03)
+			for s in [-1.0, 1.0]:
+				_clump(mb, s * 72.0, 0.255, j.call(0.08), 0.045, 0.012, s * 10.0, 0.026)
+				_clump(mb, s * 100.0, 0.265, j.call(0.07), 0.05, 0.012, s * 12.0, 0.034)
+			for i in range(7):
+				var a := 124.0 + i * 18.7
+				_clump(mb, a, 0.21, j.call(0.09), 0.05, 0.012, (a - 180.0) * 0.15, 0.03)
+		"shag":
+			# wolf cut: choppy layers to the shoulders, a ragged fringe falling
+			# over one eye, flicking out at the ends
+			for i in range(8):
+				var t := float(i) / 7.0
+				_clump(mb, lerpf(48.0, -52.0, t), 0.298, j.call(lerpf(0.08, 0.15, t)), 0.056, 0.014, -14.0 * t + rng.randf_range(-6.0, 6.0), 0.012 + 0.01 * t)
+			for k in range(13):
+				var ka := 58.0 + k * 20.3
+				_clump(mb, ka, 0.285, j.call(0.15), 0.06, 0.014, rng.randf_range(-10.0, 10.0), 0.02)
+				_clump(mb, ka + 10.0, 0.235, j.call(0.2 + 0.03 * float(k % 2)), 0.058, 0.014, rng.randf_range(-8.0, 8.0), 0.03, 0.006)
+			if crowned:
+				for k in range(3):
+					var ka := 160.0 + k * 20.0
+					_spike(mb, ka, 0.33 + DOME_EXTRA, Vector3(sin(deg_to_rad(ka)) * 0.5, 1.0, 0.6), j.call(0.06), 0.024)
+		"swoop":
+			# undercut with a big sweep: the top swept up from the left round to
+			# the back right, its ends standing out behind
+			for i in range(5):
+				var a0 := -48.0 + i * 14.0
+				_sweep_strand(mb, a0, 120.0 + i * 10.0, 0.31 + 0.012 * i, 0.012, 0.075 - 0.008 * i, 0.05, 0.012)
+			for i in range(5):
+				_clump(mb, 140.0 + i * 20.0, 0.2, j.call(0.04), 0.05, 0.009, 0.0, 0.003)
+		"layered":
+			# shoulder-length layers flicking out at the ends, curtain bangs
+			for s in [-1.0, 1.0]:
+				for i in range(4):
+					var a: float = s * (5.0 + i * 13.0)
+					_clump(mb, a, 0.298, j.call(lerpf(0.13, 0.1, i / 3.0)), 0.055, 0.013, s * 26.0, 0.014)
+			for k in range(14):
+				var ka := 56.0 + k * 19.0
+				_clump(mb, ka, 0.275, j.call(0.22), 0.065, 0.015, 0.0, 0.045, 0.004)
+				_clump(mb, ka + 9.0, 0.24, j.call(0.15), 0.06, 0.014, 0.0, 0.03, 0.01)
+		"lob":
+			# a long bob to the shoulders, swept side bangs
+			for i in range(7):
+				var t := float(i) / 6.0
+				_clump(mb, lerpf(-46.0, 40.0, t), 0.298, j.call(lerpf(0.15, 0.08, t)), 0.058, 0.013, 22.0 * (1.0 - t), 0.008)
+			for k in range(15):
+				var ka := 52.0 + k * 18.0
+				_clump(mb, ka, 0.278, 0.26, 0.075, 0.016, 0.0, 0.016, 0.006)
+		"braid", "low_pony":
+			# hair drawn back, long face-framing strands (and side-swept bangs)
+			for i in range(6):
+				var t := float(i) / 5.0
+				_clump(mb, lerpf(-46.0, 38.0, t), 0.296, j.call(lerpf(0.12, 0.06, t)), 0.052, 0.012, 16.0 * (1.0 - t), 0.008)
+			for s in [-1.0, 1.0]:
+				_clump(mb, s * 62.0, 0.258, j.call(0.24), 0.04, 0.011, s * 6.0, 0.006)
+				_clump(mb, s * 72.0, 0.25, j.call(0.2), 0.034, 0.01, s * 4.0, 0.008, 0.004)
 		"topknot":
 			# shaved-short sides, a few loose strands at the temples
 			for s in [-1.0, 1.0]:

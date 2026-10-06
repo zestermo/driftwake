@@ -107,7 +107,7 @@ func _show(sheet: Array) -> void:
 		h.rotation.y = PI + deg_to_rad(yaw)
 		models.append(h)
 	if heads:
-		cam.size = gap * looks.size() * 0.6
+		cam.size = gap * maxi(looks.size(), 4) * 0.6
 		cam.look_at_from_position(Vector3(0, 1.66, 6.0), Vector3(0, 1.66, 0))
 	else:
 		cam.size = maxf(gap * looks.size() * 0.56, 2.0)
