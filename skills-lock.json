@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "camera-systems": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/camera-systems/SKILL.md",
+      "computedHash": "1f44b2163b2100583fe3f82300e759936045393fbefc7c058d3b9a7d1ad7ec85"
+    },
+    "game-ai": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/game-ai/SKILL.md",
+      "computedHash": "aaf0562a4b8a375af9dbdff7dc489a9f54bb4e2ab2096425a96a5979a8b5e8a8"
+    },
+    "game-feel": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/game-feel/SKILL.md",
+      "computedHash": "03b9da7e669419e69dfeea8abe0a542e051b2ea1ef8e18cd8a39cb32855416b3"
+    },
+    "godot-shaders": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/godot/godot-shaders/SKILL.md",
+      "computedHash": "8d77e198fc65c6d7ba304a1efb68499835bab892c0add0c961f8cd2c8c72e415"
+    },
+    "performance-optimization": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/performance-optimization/SKILL.md",
+      "computedHash": "9788da8674ddd2c5a895dad3a1ba54e815d3843060ad01366a5354c39f0ecde4"
+    },
+    "procedural-gen": {
+      "source": "gamedev-skills/awesome-gamedev-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/disciplines/procedural-gen/SKILL.md",
+      "computedHash": "a66b0ec9c81bdefd6829d3386aac61d9b34fc1d3c99cd160354043e23e434f2d"
+    }
+  }
+}

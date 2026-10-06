@@ -1,0 +1,47 @@
+Driftwake - Claude Code skills installed from skills.sh
+=======================================================
+
+Installed at project level into .claude/skills/ (copied, not symlinked).
+skills-lock.json records the source repo, path and hash of each one.
+
+Install / update one:   npx skills add <repo> --skill <name> -a claude-code -y --copy
+Remove one:             npx skills remove <name> -a claude-code -y
+Search for more:        npx skills find <query>
+
+Installed
+---------
+
+godot-shaders            gamedev-skills/awesome-gamedev-agent-skills
+    Godot 4.x shading language: render modes, hints, varyings, light().
+    For the PSX shaders (shaders/psx/, ocean.gdshader).
+
+game-feel                gamedev-skills/awesome-gamedev-agent-skills
+    Hit-stop, trauma screen shake, easing, importance tiers for feedback.
+    For combat impacts, weapon kits and powers.
+
+game-ai                  gamedev-skills/awesome-gamedev-agent-skills
+    FSMs, behavior trees, steering, A* / navmesh.
+    For grunts, bosses, scuttlebugs and future enemies/crew.
+
+camera-systems           gamedev-skills/awesome-gamedev-agent-skills
+    Third-person orbit, spring-arm collision, frame-rate independent smoothing.
+    For the player, ship and helm cameras.
+
+procedural-gen           gamedev-skills/awesome-gamedev-agent-skills
+    Seeded RNG, fBm noise, island shaping, scatter, weighted loot tables.
+    For world_generator, islands, loot and spawns.
+
+performance-optimization gamedev-skills/awesome-gamedev-agent-skills
+    Profile first, CPU vs GPU triage, pooling, MultiMesh, budgets.
+    For frame drops as islands, crews and effects grow.
+
+Considered and left out
+-----------------------
+
+godot-gdscript-patterns            wshobson/agents
+    2D-centric beginner patterns (event bus, "type everything") that
+    clash with how this repo is written.
+
+godot-adapt-single-to-multiplayer  thedivergentai/gd-agentic-skills
+    Marks MultiplayerSynchronizer, rpc bridges and client prediction as
+    mandatory; Driftwake's co-op is host-authoritative through Net.
