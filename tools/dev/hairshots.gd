@@ -12,6 +12,13 @@ func _initialize():
 	var sun := DirectionalLight3D.new(); sun.rotation = Vector3(deg_to_rad(-45), deg_to_rad(-30), 0); root.add_child(sun)
 	var styles := ["short", "crop", "wild", "long", "ponytail", "bun", "braids", "short"]
 	var fem := [false, false, false, true, true, true, true, false]
+	# optional 4th arg: four comma-separated styles (all masc) instead of the set
+	if a.size() > 3:
+		styles = Array(a[3].split(","))
+		while styles.size() < 8:
+			styles.append(styles[styles.size() % 4])
+		fem = [false, false, false, false, false, false, false, false]
+		set_i = 0
 	for i in range(set_i * 4, set_i * 4 + 4):
 		var lk := CharacterLook.base_look()
 		lk["hair"] = styles[i]

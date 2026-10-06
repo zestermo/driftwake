@@ -1385,6 +1385,7 @@ func _hair_tie(smb: MeshBuilder, rings: Array, bone_i: int) -> void:
 func _comb_strand(mb: MeshBuilder, side_deg: float, w: float, d: float, y_end: float, lift: float = 0.0) -> void:
 	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
 	var path := PackedVector3Array()
+	var lifts := PackedFloat32Array()
 	var n := 9
 	for i in range(n):
 		var t := float(i) / (n - 1)
@@ -1393,8 +1394,10 @@ func _comb_strand(mb: MeshBuilder, side_deg: float, w: float, d: float, y_end: f
 		var front := t < 0.5
 		var a := side_deg if front else 180.0 - side_deg
 		var y := lerpf(0.292 * yk, top - 0.006, t * 2.0) if front else lerpf(top - 0.006, y_end * yk, (t - 0.5) * 2.0)
-		path.append(_scalp_pt(a, y, 0.002 + lift * sin(PI * clampf(t / 0.75, 0.0, 1.0))))
-	_path_strand(mb, path, w, d, 0.25)
+		var l := lift * sin(PI * clampf(t / 0.75, 0.0, 1.0))
+		path.append(_scalp_pt(a, y, 0.002 + l))
+		lifts.append(l)
+	_path_strand(mb, path, w, d, 0.25, lifts)
 
 
 ## Point on the hair surface at a_deg around the head (0 = front, + = right),
@@ -1405,8 +1408,11 @@ func _scalp_pt(a_deg: float, y: float, lift: float) -> Vector3:
 
 
 ## A flat strand through `path` (head-local), w wide and d thick, its width
-## laid along the head; it narrows to `tip` of its width at the end.
-func _path_strand(mb: MeshBuilder, path: PackedVector3Array, w: float, d: float, tip: float = 0.2) -> void:
+## laid along the head; it narrows to `tip` of its width at the end. `fill`
+## (per point: how far it's lifted off the scalp) carries its underside down
+## to the scalp, so a lifted strand is a solid mass, not a sheet over a hollow.
+func _path_strand(mb: MeshBuilder, path: PackedVector3Array, w: float, d: float, tip: float = 0.2,
+		fill: PackedFloat32Array = PackedFloat32Array()) -> void:
 	var rings := []
 	var c := Vector3(0, 0.12 * yk, 0)
 	var n := path.size()
@@ -1420,10 +1426,12 @@ func _path_strand(mb: MeshBuilder, path: PackedVector3Array, w: float, d: float,
 		# (the start swells up out of the hair cap instead of a flat open end)
 		var k := lerpf(1.0, tip, pow(u, 2.0)) * lerpf(0.35, 1.0, smoothstep(0.0, 0.2, u))
 		var sink := lerpf(-d * 1.2, 0.0, smoothstep(0.0, 0.2, u))
+		var under := (float(fill[i]) + 0.004) if i < fill.size() else 0.0
 		var ring := PackedVector3Array()
 		for q in range(6):
 			var ang := TAU * q / 6.0
-			ring.append(p + side * cos(ang) * w * k + nrm * ((sin(ang) * d + d) * k * lerpf(1.0, 0.6, u) + sink))
+			var s := sin(ang)
+			ring.append(p + side * cos(ang) * w * k + nrm * ((s * d + d) * k * lerpf(1.0, 0.6, u) + sink - (under if s < 0.0 else 0.0)))
 		rings.append(ring)
 	mb.add_rings(m_hair, rings, 3.0, Color.WHITE, false, true)
 
@@ -1433,12 +1441,15 @@ func _path_strand(mb: MeshBuilder, path: PackedVector3Array, w: float, d: float,
 func _sweep_strand(mb: MeshBuilder, a0: float, a1: float, y_end: float, lift0: float, lift1: float, w: float, d: float) -> void:
 	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
 	var path := PackedVector3Array()
+	var lifts := PackedFloat32Array()
 	var n := 9
 	for i in range(n):
 		var t := float(i) / (n - 1)
 		var y := lerpf(0.29 * yk, top - 0.01, smoothstep(0.0, 0.45, t)) if t < 0.45 else lerpf(top - 0.01, y_end * yk, smoothstep(0.45, 1.0, t))
-		path.append(_scalp_pt(lerpf(a0, a1, t), y, lerpf(lift0, lift1, t * t)))
-	_path_strand(mb, path, w, d, 0.15)
+		var l := lerpf(lift0, lift1, t * t)
+		path.append(_scalp_pt(lerpf(a0, a1, t), y, l))
+		lifts.append(l)
+	_path_strand(mb, path, w, d, 0.15, lifts)
 
 
 ## The hair mass: a shell over the scalp whose lower edge follows a natural
@@ -1636,7 +1647,7 @@ func _tufts(mb: MeshBuilder, style: String, hat: String, rng: RandomNumberGenera
 			# pompadour: the front swept up and back in a tall roll, short sides
 			for i in range(7):
 				var sd := -48.0 + i * 16.0
-				_comb_strand(mb, sd, 0.042, 0.011, 0.21, 0.055 * (1.0 - absf(sd) / 110.0))
+				_comb_strand(mb, sd, 0.05, 0.011, 0.21, 0.055 * (1.0 - absf(sd) / 110.0))
 			for s in [-1.0, 1.0]:
 				_clump(mb, s * 72.0, 0.25, j.call(0.06), 0.045, 0.01, s * 4.0, 0.004)
 				_clump(mb, s * 100.0, 0.262, j.call(0.05), 0.05, 0.01, s * 6.0, 0.006)
