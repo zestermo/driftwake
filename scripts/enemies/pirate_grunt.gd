@@ -1037,7 +1037,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		_take_damage(hit, dir)
 		if state == S.DEAD:
 			return
-		if hit.haki:
+		if hit.haki or hit.breaker:
 			_set_peril(false)
 			hitbox.deactivate()
 			_release_token()
@@ -1062,7 +1062,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 
 	# blocked: sparks, no damage (until the guard breaks)
 	# (a cutlass can't stop a bullet)
-	if guarding and from_front and not hit.knockdown and not hit.unblockable and not hit.ranged:
+	if guarding and from_front and not hit.knockdown and not hit.unblockable and not hit.ranged and not hit.breaker:
 		if _guard_hits < _guard_max():
 			_guard_hits += 1
 			_guard_t = 3.5
@@ -1104,6 +1104,14 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		return
 	if state == S.STAGGER:
 		return  # already reeling: keep the punish window
+	if hit.breaker:
+		# caught mid-move: whatever it was winding up is gone
+		hitbox.deactivate()
+		velocity = dir * 2.5
+		_stagger_len = 1.0
+		humanoid.play("stagger", 1.0)
+		_set_state(S.STAGGER)
+		return
 	_stun_len = 0.28
 	_stun_vel = dir * minf(hit.knockback_force * 0.6, 5.0)
 	velocity = _stun_vel

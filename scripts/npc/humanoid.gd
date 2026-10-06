@@ -113,6 +113,8 @@ var offhand: MeshInstance3D
 var _hip_socket_l: Node3D
 ## A katana lives in its scabbard on the left hip (the scabbard stays when it's drawn).
 var _katana_socket: Node3D
+## Sprinting with the katana out: it rides in its scabbard, hands on it, ready to draw.
+var _run_sheath: bool = false
 ## Fighting stance for the guard pose: sword, dual_sword, fist, pistol,
 ## dual_pistol, claw, katana.
 var stance: String = "sword"
@@ -518,22 +520,40 @@ func _iai_pose() -> Dictionary:
 
 
 ## Katana hands: the left hand rides the hilt below the right; in the drawing
-## stance the right hand grips the hilt at the scabbard and the left holds its mouth.
+## stance (and running with it sheathed) the right hand grips the hilt at the
+## scabbard and the left holds its mouth.
 func _katana_hands() -> void:
 	if stance != "katana" or ragdoll != null or not is_katana() or not weapon.is_inside_tree():
 		return
 	var pole_l := global_basis * Vector3(-0.7, -1.0, 0.2)
 	match current_action():
 		"iai_ready":
-			reach_hand(true, weapon.global_transform * Vector3(0, 0, 0.07), global_basis * Vector3(0.5, -1.0, 0.4))
-			if _katana_socket:
-				reach_hand(false, _katana_socket.global_transform * Vector3(0, 0, -0.07), pole_l)
-		"draw", "sheathe", "iai_slash", "dash":
+			_hands_on_scabbard(pole_l)
+		"draw", "sheathe", "iai_slash", "dash", "quick_draw":
 			pass
 		_:
-			# (one hand carries it at a sprint)
-			if weapon_in_hand and armed and not (sprinting and grounded and ground_speed > 6.5):
+			if _run_sheath and not weapon_in_hand:
+				_hands_on_scabbard(pole_l)
+			elif weapon_in_hand and armed:
 				reach_hand(false, weapon.global_transform * Vector3(0, 0, 0.17), pole_l)
+
+
+func _hands_on_scabbard(pole_l: Vector3) -> void:
+	reach_hand(true, weapon.global_transform * Vector3(0, 0, 0.07), global_basis * Vector3(0.5, -1.0, 0.4))
+	if _katana_socket:
+		reach_hand(false, _katana_socket.global_transform * Vector3(0, 0, -0.07), pole_l)
+
+
+## Sprinting with the katana out slips it into its scabbard (ready for the
+## running draw); slowing down takes it back in hand. Not mid-action.
+func _update_run_sheath() -> void:
+	_run_sheath = stance == "katana" and armed and sprinting and grounded and ground_speed > 6.5 and is_katana() and ragdoll == null
+	if not _action.is_empty() or not is_katana():
+		return
+	if _run_sheath and weapon_in_hand:
+		_attach_weapon(false)
+	elif not _run_sheath and stance == "katana" and armed and not weapon_in_hand:
+		_attach_weapon(true)
 
 
 ## Loose limbs while hanging (see `dangle`): each swings like a damped
@@ -661,7 +681,7 @@ func _finish_action() -> void:
 		_attach_weapon(true)
 	elif n == "sheathe":
 		_attach_weapon(false)
-	elif n in ["iai_ready", "iai_slash"] and armed and not weapon_in_hand:
+	elif n in ["iai_ready", "iai_slash", "quick_draw"] and armed and not weapon_in_hand:
 		_attach_weapon(true)   # (a katana readied in its scabbard, then interrupted)
 	elif n == "drink":
 		hide_left_prop()
@@ -902,8 +922,23 @@ func _action_pose(n: String, u: float) -> Array:
 				"leg_l": Vector3(1.35, 0, -0.14), "shin_l": Vector3(-1.55, 0, 0), "leg_r": Vector3(-1.05, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0)}
 			lift.y = -0.4 * (1.0 - _ease(clampf((u - 0.62) / 0.38, 0.0, 1.0)))
 			return [_keys(u, [[0.0, _iai_pose()], [0.14, cut2, "out"], [0.62, cut2], [1.0, _guard()]]), "full", lift]
+		"quick_draw":
+			# katana, attacked at a sprint: straight out of the scabbard in one fast
+			# flat cut across to the right, a short step in, then back to guard
+			if u >= 0.02 and not _action["events"].has("hand"):
+				_action["events"]["hand"] = true
+				_attach_weapon(true)
+			var draw_from := {"torso": Vector3(-0.3, -0.3, 0.04), "head": Vector3(0.3, 0.25, 0),
+				"arm_r": Vector3(0.7, 0.9, -0.45), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3.ZERO,
+				"arm_l": Vector3(0.25, -0.2, -0.15), "fore_l": Vector3(1.0, 0, 0)}
+			var flick := {"torso": Vector3(-0.3, 0.8, 0.08), "head": Vector3(0.25, -0.6, 0),
+				"arm_r": Vector3(1.4, -0.5, 1.2), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.25, 0, 0),
+				"arm_l": Vector3(-0.4, 0.0, -0.8), "fore_l": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(0.9, 0, -0.12), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.6, 0, 0.14), "shin_r": Vector3(-0.3, 0, 0)}
+			lift.y = -0.22 * sin(clampf(u / 0.7, 0.0, 1.0) * PI)
+			return [_keys(u, [[0.0, draw_from], [0.16, flick, "out"], [0.5, flick], [1.0, _guard()]]), "full", lift]
 		"slash_down":
-			var legs3 :={"leg_l": Vector3(0.75, 0, -0.08), "shin_l": Vector3(-0.7, 0, 0), "leg_r": Vector3(-0.6, 0, 0.08), "shin_r": Vector3(-0.35, 0, 0)}
+			var legs3 := {"leg_l": Vector3(0.75, 0, -0.08), "shin_l": Vector3(-0.7, 0, 0), "leg_r": Vector3(-0.6, 0, 0.08), "shin_r": Vector3(-0.35, 0, 0)}
 			var up := {"arm_r": Vector3(3.1, 0, 0.25), "fore_r": Vector3(0.9, 0, 0), "arm_l": Vector3(2.8, 0, -0.25), "fore_l": Vector3(1.1, 0, 0), "torso": Vector3(0.35, 0.1, 0), "head": Vector3(0.25, 0, 0)}
 			var down := {"arm_r": Vector3(0.5, 0, 0.1), "fore_r": Vector3(-0.1, 0, 0), "arm_l": Vector3(0.7, 0, -0.1), "fore_l": Vector3(0.3, 0, 0), "torso": Vector3(-0.65, 0, 0), "head": Vector3(-0.3, 0, 0)}
 			lift.y = -0.18 * _ease(u * 2.0)
@@ -1775,6 +1810,15 @@ func _locomotion(delta: float) -> Dictionary:
 		else:
 			_casual_moves(p, delta, spd, true)
 			lift.y -= _casual_dip()
+		if _run_sheath:
+			# running with the katana sheathed: chest a little forward, hands on
+			# the hilt and scabbard (_katana_hands; these only seed it)
+			p["torso"] += Vector3(-0.15, -0.2, 0)
+			p["arm_r"] = Vector3(0.7, 0.9, -0.45)
+			p["fore_r"] = Vector3(1.4, 0, 0)
+			p["hand_r"] = Vector3.ZERO
+			p["arm_l"] = Vector3(0.25, -0.2, -0.15)
+			p["fore_l"] = Vector3(1.0, 0, 0)
 		if armed and stance == "dual_pistol":
 			# moving: the right gun stays up as in the guard (bobbing a little with
 			# the stride), the left is carried low at the side, elbow soft, hand out a
@@ -1966,6 +2010,7 @@ func _process(delta: float) -> void:
 		_update_physics(delta)  # hair and cloth still swing
 		return
 	_update_dangle(delta)
+	_update_run_sheath()
 	var target := _locomotion(delta)
 	var lift: Vector3 = target["_lift"]
 	var sharp := 22.0

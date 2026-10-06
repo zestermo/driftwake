@@ -20,6 +20,12 @@ const STYLES := {
 		"damages": [16.0, 18.0, 26.0], "hitstops": [0.06, 0.06, 0.1], "shakes": [0.1, 0.1, 0.18],
 		"starts": [0.33, 0.33, 0.36], "ends": [0.47, 0.47, 0.5],
 		"start": 0.33, "end": 0.47, "reach": "katana", "color": Color(0.85, 0.92, 1.0)},
+	# katana, attacked at a sprint: a quick cut straight out of the scabbard,
+	# stepping in a little; catches the target mid-move (breaks wind-ups, staggers)
+	"katana_draw": {"anims": ["quick_draw"], "trails": ["iai"],
+		"durations": [0.34], "lengths": [0.5], "impulses": [6.0],
+		"damages": [14.0], "hitstops": [0.05], "shakes": [0.1],
+		"start": 0.05, "end": 0.2, "reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true},
 	"dual_sword": {"anims": ["dual_1", "dual_2", "dual_cross", "dual_spin"], "trails": ["right", "left", "cross", "spin"],
 		"durations": [0.24, 0.24, 0.32, 0.44], "lengths": [0.4, 0.4, 0.5, 0.6], "impulses": [4.0, 4.0, 5.0, 6.0],
 		"damages": [8.0, 8.0, 13.0, 20.0], "hitstops": [0.035, 0.035, 0.06, 0.09], "shakes": [0.07, 0.07, 0.12, 0.18],
@@ -56,6 +62,9 @@ var chained: bool = false
 
 func enter(data: Dictionary) -> void:
 	var st := player.style()
+	if player.quick_draw:
+		st = "katana_draw"
+		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
 	player.set_reach(str(cfg["reach"]))
@@ -94,6 +103,7 @@ func physics_update(delta: float) -> void:
 		hit.hitstop_duration = float(cfg["hitstops"][combo_index])
 		hit.camera_shake_intensity = float(cfg["shakes"][combo_index])
 		hit.knockback_force = 8.0 if combo_index == combo_count - 1 else 4.0
+		hit.breaker = cfg.get("breaker", false)
 		player.sword_hitbox.activate(hit)
 		# swoosh!
 		var last := combo_index == combo_count - 1

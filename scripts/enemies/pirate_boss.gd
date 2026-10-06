@@ -389,7 +389,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		_take_damage(h, dir)
 		if state == S.DEAD:
 			return
-		if _special == "slam" and h.haki and _sp_t < SLAM_WIND:
+		if _special == "slam" and (h.haki or h.breaker) and _sp_t < SLAM_WIND:
 			_set_peril(false)
 			_special = ""
 			_stagger_len = 1.6
@@ -399,7 +399,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			_set_state(S.STAGGER)
 		return
 	# winding up a normal attack: armour against light hits
-	if state in [S.WIND, S.SWING] and _attack in ["combo", "lunge"] and not h.haki and h.damage < 20.0 and not h.dot:
+	if state in [S.WIND, S.SWING] and _attack in ["combo", "lunge"] and not h.haki and not h.breaker and h.damage < 20.0 and not h.dot:
 		var dir2 := _flat(global_position - (attacker as Node3D).global_position).normalized() if attacker is Node3D else -_fwd()
 		_take_damage(h, dir2)
 		return

@@ -83,6 +83,8 @@ var current_ship: Ship = null
 var jumps_remaining: int = 1
 ## Gun Rains fired since leaving the ground (1 per jump + the "gun_rain_uses" stat).
 var gun_rains: int = 0
+## The next light attack is the katana's running draw (attacked while sprinting).
+var quick_draw: bool = false
 var body_model: Humanoid
 
 ## Weapon currently equipped (sheathed on the hip or drawn).

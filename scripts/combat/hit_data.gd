@@ -21,5 +21,8 @@ class_name HitData
 @export var unblockable: bool = false
 ## Struck with Armament Haki: breaks an enemy's unblockable wind-up.
 @export var haki: bool = false
+## Catches the target mid-move (the katana's running draw): slips past a guard,
+## breaks wind-ups (the red kind too) and staggers.
+@export var breaker: bool = false
 ## Cannon fire: the only thing that damages a ship's hull.
 @export var siege: bool = false

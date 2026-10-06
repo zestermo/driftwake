@@ -60,7 +60,10 @@ func combat_input() -> String:
 		if player.can_attack():
 			if player.weapon_class() == "gun":
 				return "Shoot"
-			return "LightAttack" if player.spend_stamina(player.LIGHT_COST) else ""
+			if not player.spend_stamina(player.LIGHT_COST):
+				return ""
+			player.quick_draw = player.sprinting and player.style() == "katana"
+			return "LightAttack"
 		player.draw_weapon()
 		return ""
 	if input_buffer.consume_action("heavy_attack"):

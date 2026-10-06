@@ -202,6 +202,41 @@ func _process(d: float) -> bool:
 			check("parry: the katana hangs point-down (%s, blade dir y %.2f)" % [b.current_action(), down], b.current_action() == "parry" and down < -0.6)
 			check("...held up high in both hands (hands %.2f m above the shoulders, left %.2f m off the hilt)" % [b.hand_r.global_position.y - b.arm_r.global_position.y, hilt_gap()],
 				b.hand_r.global_position.y > b.arm_r.global_position.y + 0.15 and hilt_gap() < 0.12)
+			# sprinting: the katana rides in its scabbard, ready for the running draw
+			wait = 0.6
+			step = 30
+		30:
+			face(p.global_position + Vector3(0, 0, -10))
+			Input.action_press("sprint")
+			Input.action_press("move_forward")
+			wait = 0.8
+			step += 1
+		31:
+			var b = p.body_model
+			check("sprinting slips the katana into its scabbard (sprinting %s, in scabbard %s)" % [str(p.sprinting), str(b.weapon.get_parent() == b._katana_socket)],
+				p.sprinting and b._run_sheath and b.weapon.get_parent() == b._katana_socket)
+			# a grunt winding up a red (unblockable) chop just ahead
+			target_grunt(2.0)
+			g._yaw = atan2(p.global_position.x - g.global_position.x, p.global_position.z - g.global_position.z)
+			g.facing.rotation.y = g._yaw
+			g._set_state(0)
+			g._attack = "peril"
+			g._start_wind()
+			saw = {}
+			attack("light_attack")
+			wait = 0.4
+			step += 1
+		32:
+			Input.action_release("sprint")
+			Input.action_release("move_forward")
+			check("attacking at a sprint is the running draw (%s)" % str(saw.keys()), saw.has("quick_draw"))
+			check("...it breaks the red wind-up and staggers (state %d, peril %s)" % [g.state, str(g._peril_on)], g.state == STAGGER and not g._peril_on)
+			check("...and cuts (%.0f -> %.0f)" % [hp0, g.health.current_health], g.health.current_health < hp0)
+			wait = 0.8
+			step += 1
+		33:
+			var b = p.body_model
+			check("stopped: the katana back in hand (%s)" % b.weapon.get_parent().name, b.weapon.get_parent() == b.hand_r)
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 	return false
