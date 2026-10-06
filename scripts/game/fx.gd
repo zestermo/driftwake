@@ -803,19 +803,21 @@ func _slash_mesh(kind: String) -> ArrayMesh:
 			a1 = -0.5
 			tilt = Basis(Vector3.FORWARD, -0.28)
 		"kesa_r":
-			# katana: a long diagonal from high right down to low left
+			# katana: the long diagonal of the first cut
+			a0 = PI + 0.5
+			a1 = -0.5
 			tilt = Basis(Vector3.FORWARD, 0.75)
 			r1 = 2.15
 		"sweep_l":
-			# katana: a wide, nearly flat cut from the left across to the right
-			a0 = PI + 0.6
-			a1 = -0.6
+			# katana: the wide, nearly flat second cut
+			a0 = -0.6
+			a1 = PI + 0.6
 			tilt = Basis(Vector3.FORWARD, -0.12)
 			r1 = 2.15
 		"iai":
-			# katana drawing cut: the widest, flattest arc
-			a0 = PI + 0.75
-			a1 = -0.8
+			# katana drawing cut (same way as sweep_l): the widest, flattest arc
+			a0 = -0.8
+			a1 = PI + 0.75
 			tilt = Basis(Vector3.FORWARD, -0.06)
 			r0 = 0.5
 			r1 = 2.7

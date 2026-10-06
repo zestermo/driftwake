@@ -501,17 +501,20 @@ static func _strike_lift(u: float, wind_end: float, hit: float, hold: float, coi
 	return deep * (1.0 - _ease((u - hold) / (1.0 - hold)))
 
 
-## The katana's drawing stance: a deep forward lunge, left foot leading, chest
-## low and turned so the scabbard hip leads; the feet shuffle when moving.
+## The katana's drawing stance: the chest pitched well forward and turned a
+## little so the scabbard hip leads; the legs keep the normal gait (the charge
+## creeps slowly), knees bent a little lower (lift: IAI_CROUCH).
+const IAI_CROUCH := -0.12
+
+
 func _iai_pose() -> Dictionary:
-	var mv := clampf(ground_speed / 2.0, 0.0, 1.0)
-	var sh := sin(_t * 7.0) * 0.18 * mv
-	return {"pivot": Vector3(-0.12, 0, 0), "hips": Vector3(0, 0.35, 0),
-		"torso": Vector3(-0.4 + sin(_t * 41.0) * 0.01, -0.45, 0.05), "head": Vector3(0.45, 0.4, 0),
+	var pose := {"torso": Vector3(-0.55 + sin(_t * 41.0) * 0.01, -0.25, 0.04), "head": Vector3(0.55, 0.22, 0),
 		"arm_r": Vector3(0.7, 0.9, -0.45), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3.ZERO,
-		"arm_l": Vector3(0.25, -0.2, -0.15), "fore_l": Vector3(1.0, 0, 0),
-		"leg_l": Vector3(1.15 + sh, 0, -0.16), "shin_l": Vector3(-1.45, 0, 0),
-		"leg_r": Vector3(-0.8 - sh, 0, 0.18), "shin_r": Vector3(-0.3, 0, 0)}
+		"arm_l": Vector3(0.25, -0.2, -0.15), "fore_l": Vector3(1.0, 0, 0)}
+	for s in ["_l", "_r"]:
+		pose["leg" + s] = (_base.get("leg" + s, Vector3.ZERO) as Vector3) + Vector3(0.28, 0, 0)
+		pose["shin" + s] = (_base.get("shin" + s, Vector3.ZERO) as Vector3) + Vector3(-0.5, 0, 0)
+	return pose
 
 
 ## Katana hands: the left hand rides the hilt below the right; in the drawing
@@ -525,7 +528,7 @@ func _katana_hands() -> void:
 			reach_hand(true, weapon.global_transform * Vector3(0, 0, 0.07), global_basis * Vector3(0.5, -1.0, 0.4))
 			if _katana_socket:
 				reach_hand(false, _katana_socket.global_transform * Vector3(0, 0, -0.07), pole_l)
-		"draw", "sheathe", "iai_slash":
+		"draw", "sheathe", "iai_slash", "dash":
 			pass
 		_:
 			# (one hand carries it at a sprint)
@@ -879,12 +882,12 @@ func _action_pose(n: String, u: float) -> Array:
 			return [_keys(u, [[0.0, _guard()], [0.3, coil3, "out"], [0.4, coil3], [0.5, drive, "out"], [0.74, drive], [1.0, _guard()]]), "full", lift]
 		"iai_ready":
 			# katana heavy, held: the blade slips back into its scabbard and you
-			# sink into a low forward lunge, hands on scabbard and hilt (put
-			# there by _katana_hands); moving shuffles the feet
+			# lean into the draw, hands on scabbard and hilt (put there by
+			# _katana_hands), creeping on bent knees
 			if float(_action["t"]) >= 0.1 and weapon_in_hand and not _action["events"].has("saya"):
 				_action["events"]["saya"] = true
 				_attach_weapon(false)
-			lift.y = -0.34
+			lift = (_base.get("_lift", Vector3.ZERO) as Vector3) + Vector3(0, IAI_CROUCH, 0)
 			return [_iai_pose(), "full", lift]
 		"iai_slash":
 			# katana heavy, released: the blade leaves the scabbard in one wide cut
@@ -1036,6 +1039,11 @@ func _action_pose(n: String, u: float) -> Array:
 				if reach + fling < 0.2:
 					p["arm_l"] = Vector3(0.9, 0.1, -1.0)
 					p["fore_l"] = Vector3(0.25, 0, 0)
+				if stance == "katana":
+					# the hands come apart: the katana trails out behind in the right hand
+					p["arm_r"] = Vector3(-0.85, 0.0, 0.35)
+					p["fore_r"] = Vector3(0.15, 0, 0)
+					p["hand_r"] = Vector3(-2.3, 0, 0)
 			else:
 				# unarmed: lead arm reaches straight out in front
 				var inward := -0.15 if lead == "r" else 0.15

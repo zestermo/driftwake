@@ -11,7 +11,7 @@ const DAMAGE := [20.0, 34.0, 55.0]
 const DASH_SPEED := [11.0, 15.0, 20.0]
 const DASH_TIME := 0.18
 const RECOVER := 0.42
-const CREEP := 0.3          # x move speed while charging
+const CREEP := 0.2          # x move speed while charging
 const COLORS := [Color(0.85, 0.92, 1.0), Color(0.55, 0.8, 1.0), Color(1.0, 0.82, 0.35)]
 
 var phase: int = 0   # 0 charging, 1 dashing cut, 2 recovering, 3 standing down
