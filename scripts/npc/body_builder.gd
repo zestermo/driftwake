@@ -380,13 +380,14 @@ func _torso_rings() -> Array:
 
 
 func _hips_hw() -> float:
-	var base := (0.198 if fem else 0.175) * hp * (1.0 + (wa - 1.0) * 0.5)
+	# (female: the build's hip and waist factors compounded made the stout seat too wide)
+	var base := 0.198 * (1.0 + (hp - 1.0) * 0.6) * (1.0 + (wa - 1.0) * 0.3) if fem else 0.175 * hp * (1.0 + (wa - 1.0) * 0.5)
 	# wide enough that the thighs run up inside the pelvis (it, not the thighs, makes the hips' outline)
 	return maxf(base, float(st["leg_gap"]) + (0.098 if fem else 0.09) * limb)
 
 
 func _hips_hd() -> float:
-	return (0.122 if fem else 0.118) * de
+	return 0.122 * (1.0 + (de - 1.0) * 0.6) if fem else 0.118 * de
 
 
 ## Thigh rings in the leg joint's space. The top is a closed, rounded dome
@@ -523,6 +524,16 @@ func _lower_body() -> void:
 	for s in [-1, 1]:
 		var r := _at(th[s], ys + 0.02)
 		top[s] = [s * lg + float(r[4]), float(r[3]), float(r[1]), float(r[2])]   # cx, cz, rx, rz
+	# the side of the crotch ring runs halfway between the last hip ring and the
+	# thigh just below it (narrower, it made a notch where the thigh joins the hip)
+	var y_leg := ys + 0.02 - 0.045
+	for s in [-1, 1]:
+		var rl := _at(th[s], y_leg)
+		var below := absf(s * lg + float(rl[4])) + float(rl[1])
+		var above := absf((pelvis[pelvis.size() - 1] as PackedVector3Array)[3].x)
+		var want := lerpf(above, below, 0.5)
+		var cx: float = float(top[s][0]) * s
+		top[s][2] = maxf(float(top[s][2]), want - cx)
 	var zf := minf(float(top[1][1]) - float(top[1][3]) * 0.92, -hd * 0.8)
 	var zb := float(top[1][1]) + float(top[1][3]) * (0.62 if fem else 0.8)
 	var outer := {}
@@ -591,7 +602,6 @@ func _lower_body() -> void:
 			ring0.append(back)
 			ring0.append_array(left_back_to_front)
 		var tube := [ring0]
-		var y_leg := ys + 0.02 - 0.045
 		tube.append(_thigh_ring(_at(th[s], y_leg), s, lg))
 		for r in th[s]:
 			if float(r[0]) < y_leg - 0.02:
