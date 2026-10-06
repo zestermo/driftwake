@@ -1380,7 +1380,7 @@ const REACH := {
 	"claw": [Vector3(1.7, 1.2, 1.35), Vector3(-0.3, 0.2, -0.78)],
 	"katana": [Vector3(2.5, 1.3, 2.2), Vector3(-0.3, 0.2, -1.2)],
 	"iai": [Vector3(3.0, 1.3, 2.4), Vector3(-0.3, 0.2, -1.1)],
-	"under": [Vector3(3.2, 3.6, 3.2), Vector3(-0.3, -1.4, -0.5)],
+	"under": [Vector3(3.2, 3.6, 3.4), Vector3(-0.3, -1.3, -0.9)],
 }
 
 

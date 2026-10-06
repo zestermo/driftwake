@@ -830,6 +830,8 @@ const KATANA_GUARD := {"arm_r": Vector3(0.8, 0.35, -0.05), "fore_r": Vector3(0.8
 	"arm_l": Vector3(0.75, -0.3, 0.05), "fore_l": Vector3(1.1, 0, 0),
 	"torso": Vector3(-0.1, 0.15, 0), "head": Vector3(0.08, -0.15, 0)}
 # Katana parry / block: both hands raised high, the blade hanging point-down in front.
+## Extra stance width (leg roll, rad) in the katana's parry / block.
+const KATANA_SPREAD := 0.12
 const KATANA_HANG := {"arm_r": Vector3(1.55, 0.3, 0.05), "fore_r": Vector3(0.65, 0, 0), "hand_r": Vector3(1.85, 0, 0),
 	"arm_l": Vector3(2.3, -0.35, 0.05), "fore_l": Vector3(1.0, 0, 0),
 	"torso": Vector3(0.05, 0.0, 0), "head": Vector3(0.12, 0, 0)}
@@ -949,9 +951,10 @@ func _action_pose(n: String, u: float) -> Array:
 			var wind := {"arm_r": Vector3(2.6, -0.45, -0.8), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3.ZERO,
 				"arm_l": Vector3(0.3, 0, -1.2), "fore_l": Vector3(0.5, 0, 0),
 				"torso": Vector3(0.1, -0.9, -0.15), "head": Vector3(0.0, 0.6, 0)}.merged(knees)
-			var under := {"arm_r": Vector3(0.3, -0.4, 1.4), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.2, 0, 0),
+			# (the cut comes through a little in front of the body, not straight down)
+			var under := {"arm_r": Vector3(0.75, -0.4, 1.25), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.2, 0, 0),
 				"arm_l": Vector3(0.9, 0, -1.3), "fore_l": Vector3(0.4, 0, 0),
-				"torso": Vector3(-0.25, 0.9, 0.2), "head": Vector3(-0.2, -0.5, 0), "pivot": Vector3(-0.1, 0, 0.2)}.merged(knees)
+				"torso": Vector3(-0.35, 0.9, 0.2), "head": Vector3(-0.1, -0.5, 0), "pivot": Vector3(-0.28, 0, 0.2)}.merged(knees)
 			var settle := {"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.6, 0, 0.14), "shin_r": Vector3(-1.1, 0, 0)}.merged(_guard())
 			return [_keys(u, [[0.0, {}], [0.22, wind, "out"], [0.3, wind], [0.5, under, "back"], [0.72, under], [1.0, settle]]), "full", lift]
 		"quick_draw":
@@ -1146,7 +1149,9 @@ func _action_pose(n: String, u: float) -> Array:
 			return [pose2, "full", lift]
 		"parry":
 			var block: Dictionary = KATANA_HANG if stance == "katana" else {"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "arm_l": Vector3(1.1, 0.5, -0.1), "fore_l": Vector3(1.6, 0, 0), "torso": Vector3(-0.05, -0.35, 0), "head": Vector3(0, 0.3, 0)}
-			var crouch := {"leg_l": Vector3(0.35, 0, -0.1), "shin_l": Vector3(-0.45, 0, 0), "leg_r": Vector3(-0.25, 0, 0.1), "shin_r": Vector3(-0.35, 0, 0)}
+			# (the katana's high guard sets the feet a little wider)
+			var spread := KATANA_SPREAD if stance == "katana" else 0.0
+			var crouch := {"leg_l": Vector3(0.35, 0, -0.1 - spread), "shin_l": Vector3(-0.45, 0, 0), "leg_r": Vector3(-0.25, 0, 0.1 + spread), "shin_r": Vector3(-0.35, 0, 0)}
 			lift.y = -0.1 * sin(clampf(u, 0, 1) * PI)
 			return [_keys(u, [[0.0, GUARD.merged(crouch)], [0.12, block.merged(crouch)], [0.6, block.merged(crouch)], [1.0, GUARD.merged(crouch)]]), "full", lift]
 		"stagger":
@@ -1847,6 +1852,9 @@ func _locomotion(delta: float) -> Dictionary:
 		else:
 			_casual_moves(p, delta, spd, true)
 			lift.y -= _casual_dip()
+		if stance == "katana" and current_action() in ["guard_block", "guard_block_hit"]:
+			p["leg_l"] += Vector3(0, 0, -KATANA_SPREAD)
+			p["leg_r"] += Vector3(0, 0, KATANA_SPREAD)
 		if _run_sheath:
 			# running with the katana sheathed: chest a little forward, hands on
 			# the hilt and scabbard (_katana_hands; these only seed it)
