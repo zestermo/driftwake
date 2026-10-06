@@ -322,26 +322,20 @@ func _attach_weapon(in_hand: bool) -> void:
 var auto_point_guns := false
 
 
-## Pistols in hand point where the body faces (pitched by aim_pitch) instead of
-## along the wrist (which, with the hand down, is straight up); in the gun kata
-## each follows its own forearm, out to the sides. Called by whoever drives a
-## pistol-wielding body (the player and its co-op puppets) after posing it.
+## Barrel tilt off the forearm line toward the thumb side (a slightly cocked wrist).
+const GUN_GRIP_TILT := 0.12
+static var GUN_GRIP := Basis.looking_at(Vector3(0, -cos(GUN_GRIP_TILT), -sin(GUN_GRIP_TILT)), Vector3(0, sin(GUN_GRIP_TILT), -cos(GUN_GRIP_TILT)))
+
+
+## Pistols in hand sit in a fixed grip, barrel along the forearm, so they move
+## with the arm (the arm poses do the aiming). Weapon meshes otherwise point
+## along -Z of the hand (a sword grip), which for a raised arm is straight up.
 func point_guns() -> void:
-	if stance not in ["pistol", "dual_pistol"] or not weapon_in_hand or current_action() == "reload" or not is_inside_tree():
+	if stance not in ["pistol", "dual_pistol"] or not weapon_in_hand:
 		return
-	var kata := current_action() == "gun_kata"
-	var fwd := -global_basis.z
-	fwd.y = 0.0
-	if fwd.length() < 0.01:
-		return
-	fwd = fwd.normalized()
-	var dir := (fwd * cos(aim_pitch) + Vector3.UP * sin(aim_pitch)).normalized()
-	for g in [[weapon, fore_r], [offhand, fore_l]]:
-		var w: Node3D = g[0]
-		if w == null or not is_instance_valid(w) or not w.is_inside_tree():
-			continue
-		var d := -(g[1] as Node3D).global_basis.y.normalized() if kata else dir
-		w.global_basis = Basis.looking_at(d, Vector3.UP if absf(d.y) < 0.95 else Vector3.FORWARD)
+	for w in [weapon, offhand]:
+		if w != null and is_instance_valid(w):
+			(w as Node3D).basis = GUN_GRIP
 
 
 ## A second weapon in the off hand (null clears it).
@@ -429,15 +423,31 @@ func _guard() -> Dictionary:
 				"arm_l": Vector3(0.3, 0.25, -0.75), "fore_l": Vector3(1.25, 0, 0),
 				"torso": Vector3(-0.5, -0.15, 0), "head": Vector3(0.8, 0.15, 0)}
 		"pistol":
-			return {"arm_r": Vector3(1.05, -0.2, 0.18), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(-0.35, 0, 0),
+			return {"arm_r": Vector3(1.05, -0.2, 0.18), "fore_r": Vector3(0.35, 0, 0),
 				"arm_l": Vector3(0.25, 0.1, -0.2), "fore_l": Vector3(0.6, 0, 0),
 				"torso": Vector3(-0.05, 0.25, 0), "head": Vector3(0.05, -0.2, 0)}
 		"dual_pistol":
 			# held low and close, elbows a little bent (raised to fire: shoot_r/l)
-			return {"arm_r": Vector3(0.35, -0.1, 0.1), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3(-0.35, 0, 0),
+			return {"arm_r": Vector3(0.35, -0.1, 0.1), "fore_r": Vector3(0.7, 0, 0),
 				"arm_l": Vector3(0.35, 0.1, -0.1), "fore_l": Vector3(0.7, 0, 0),
 				"torso": Vector3(-0.05, 0.0, 0), "head": Vector3(0.05, 0, 0)}
 	return GUARD
+
+
+func _guns_out() -> bool:
+	return armed and stance in ["pistol", "dual_pistol"]
+
+
+## Pistols carried in close to the chest, elbows bent, barrels up (dashes, rolls, jumps).
+func _gun_tuck(p: Dictionary, k: float) -> void:
+	var tuck := {"arm_r": Vector3(0.4, 0.2, -0.05), "fore_r": Vector3(2.25, 0, 0), "hand_r": Vector3.ZERO,
+		"arm_l": Vector3(0.45, -0.2, 0.05), "fore_l": Vector3(2.2, 0, 0)}
+	if stance == "pistol":
+		# the single gun comes up by the face, the free hand stays out for balance
+		tuck.erase("arm_l")
+		tuck.erase("fore_l")
+	for j in tuck.keys():
+		p[j] = (p.get(j, Vector3.ZERO) as Vector3).lerp(tuck[j], k)
 
 
 ## Loose limbs while hanging (see `dangle`): each swings like a damped
@@ -807,6 +817,8 @@ func _action_pose(n: String, u: float) -> Array:
 			var pose := {}
 			for j in tuck.keys():
 				pose[j] = (tuck[j] as Vector3) * tw
+			if _guns_out():
+				_gun_tuck(pose, tw)
 			pose["pivot"] = Vector3(spin, 0, 0)
 			lift.y = -0.45 * tw
 			return [pose, "full", lift]
@@ -858,7 +870,9 @@ func _action_pose(n: String, u: float) -> Array:
 			p["fore_r"] += Vector3(0.8, 0, 0) * wb
 			p["torso"] += Vector3(0.1, 0, 0) * wb
 			p["pivot"] += Vector3(0.22, 0, 0) * wb
-			if armed:
+			if _guns_out():
+				_gun_tuck(p, 1.0)
+			elif armed:
 				p["arm_r"] = _guard()["arm_r"] + Vector3(0.0, 0.0, 0.15 * sx * wx)
 				p["fore_r"] = _guard()["fore_r"]
 				# the free (off) hand opens out for balance: reaching ahead when
@@ -894,6 +908,8 @@ func _action_pose(n: String, u: float) -> Array:
 			var pose2 := {}
 			for j in tuck2.keys():
 				pose2[j] = (tuck2[j] as Vector3) * tw2
+			if _guns_out():
+				_gun_tuck(pose2, tw2)
 			pose2["pivot"] = Vector3(-TAU * _ease(u), 0, 0)
 			return [pose2, "full", lift]
 		"parry":
@@ -1163,10 +1179,11 @@ func _action_pose(n: String, u: float) -> Array:
 			var gk := _guard()
 			var crouch := {"arm_r": Vector3(0.9, 0.9, -0.3), "fore_r": Vector3(0.9, 0, 0), "arm_l": Vector3(0.95, -0.9, 0.3), "fore_l": Vector3(0.9, 0, 0),
 				"torso": Vector3(-0.35, 0, 0), "head": Vector3(0.2, 0, 0),
-				"leg_l": Vector3(0.9, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.7, 0, 0.12), "shin_r": Vector3(-1.4, 0, 0)}
+				"leg_l": Vector3(1.15, 0, -0.15), "shin_l": Vector3(-1.75, 0, 0), "leg_r": Vector3(0.35, 0, 0.18), "shin_r": Vector3(-1.0, 0, 0)}
+			# in the air one knee tucks high, the other leg hangs long
 			var cross := {"arm_r": Vector3(1.45, 1.25, 0.0), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.62, -1.25, 0.0), "fore_l": Vector3(0.05, 0, 0),
 				"torso": Vector3(-0.05, 0, 0), "head": Vector3(0.05, 0, 0),
-				"leg_l": Vector3(0.75, 0, -0.08), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(0.25, 0, 0.08), "shin_r": Vector3(-0.7, 0, 0)}
+				"leg_l": Vector3(1.4, 0, -0.1), "shin_l": Vector3(-2.05, 0, 0), "leg_r": Vector3(0.05, 0, 0.14), "shin_r": Vector3(-0.3, 0, 0)}
 			var land := crouch.duplicate()
 			land["arm_r"] = Vector3(0.6, 0.2, 0.3)
 			land["arm_l"] = Vector3(0.6, -0.2, -0.3)
@@ -1191,8 +1208,8 @@ func _action_pose(n: String, u: float) -> Array:
 			var aim := gp.duplicate()
 			if stance == "dual_pistol":
 				# both guns come up in front, close together; the firing one kicks
-				aim["arm_r"] = Vector3(1.5 + aim_pitch, 0.18, -0.06)
-				aim["arm_l"] = Vector3(1.5 + aim_pitch, -0.18, 0.06)
+				aim["arm_r"] = Vector3(1.33 + aim_pitch, 0.18, -0.06)
+				aim["arm_l"] = Vector3(1.33 + aim_pitch, -0.18, 0.06)
 				aim["fore_r"] = Vector3(0.12, 0, 0)
 				aim["fore_l"] = Vector3(0.12, 0, 0)
 				aim["torso"] = Vector3(0.0, 0.0, 0)
@@ -1201,11 +1218,10 @@ func _action_pose(n: String, u: float) -> Array:
 				kd["fore_r" if rr else "fore_l"] = Vector3(0.35, 0, 0)
 				return [_keys(u, [[0.0, gp], [0.08, kd, "out"], [0.35, aim], [0.8, aim], [1.0, gp]]), "upper", lift]
 			if rr:
-				aim["arm_r"] = Vector3(1.55 + aim_pitch, -0.05, 0.1)
+				aim["arm_r"] = Vector3(1.4 + aim_pitch, -0.05, 0.1)
 				aim["fore_r"] = Vector3(0.05, 0, 0)
-				aim["hand_r"] = Vector3(-1.55, 0, 0)
 			else:
-				aim["arm_l"] = Vector3(1.55 + aim_pitch, 0.05, -0.1)
+				aim["arm_l"] = Vector3(1.4 + aim_pitch, 0.05, -0.1)
 				aim["fore_l"] = Vector3(0.05, 0, 0)
 			aim["torso"] = Vector3(0.0, -0.35 if rr else 0.35, 0)
 			var kick3 := aim.duplicate()
@@ -1574,6 +1590,15 @@ func _locomotion(delta: float) -> Dictionary:
 		else:
 			_casual_moves(p, delta, spd, true)
 			lift.y -= _casual_dip()
+		if armed and stance == "dual_pistol":
+			# jogging / sprinting: both guns carried low at the sides, elbows soft,
+			# hands out a little, swinging slightly with the stride
+			var rk := maxf(jog, run)
+			var sw := s * lerpf(0.12, 0.22, run)
+			p["arm_r"] = (p["arm_r"] as Vector3).lerp(Vector3(0.12 + sw, 0.0, 0.32), rk)
+			p["arm_l"] = (p["arm_l"] as Vector3).lerp(Vector3(0.12 - sw, 0.0, -0.32), rk)
+			p["fore_r"] = (p["fore_r"] as Vector3).lerp(Vector3(0.55 + maxf(0.0, sw), 0, 0), rk)
+			p["fore_l"] = (p["fore_l"] as Vector3).lerp(Vector3(0.55 + maxf(0.0, -sw), 0, 0), rk)
 		_air_time = 0.0
 	else:
 		_air_time += delta
@@ -1610,7 +1635,9 @@ func _locomotion(delta: float) -> Dictionary:
 			"torso": Vector3(-0.12, 0.06 * _jside, 0.04 * _jv[6]), "head": Vector3(0.22, 0, 0)}
 		for j in jump.keys():
 			p[j] = (fall[j] as Vector3).lerp(jump[j], rise)
-		if armed:
+		if _guns_out():
+			_gun_tuck(p, 1.0)
+		elif armed:
 			p["arm_r"] = _guard()["arm_r"] + Vector3(0.5, 0, 0)
 			p["fore_r"] = _guard()["fore_r"]
 

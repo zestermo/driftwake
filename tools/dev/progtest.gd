@@ -63,9 +63,14 @@ func item(id: String):
 func attack(action: String) -> void:
 	p.input_buffer.buffer_action(action)
 var kata_vy := -99.0
+var kata_hv := 0.0
+var kata_tilt := 0.0
+var kata_from := Vector3.ZERO
 func _physics_process(_d: float) -> bool:
 	if p and p.current_state_name() == "HeavyAttack":
 		kata_vy = maxf(kata_vy, p.velocity.y)
+		kata_hv = maxf(kata_hv, Vector2(p.velocity.x, p.velocity.z).length())
+		kata_tilt = maxf(kata_tilt, p.lean.global_basis.y.normalized().angle_to(Vector3.UP))
 	return false
 func _process(d: float) -> bool:
 	t += d
@@ -267,16 +272,33 @@ func _process(d: float) -> bool:
 		179:
 			var fwd: Vector3 = -p.player_model.global_basis.z
 			var worst := 1.0
+			var grip := 1.0
 			for w in [p.body_model.weapon, p.body_model.offhand]:
-				worst = minf(worst, (-(w as Node3D).global_basis.z).dot(fwd))
-			check("both pistols point forward (worst alignment %.2f)" % worst, worst > 0.8)
-			# gun kata: a hop into the spin
+				var barrel := -(w as Node3D).global_basis.z.normalized()
+				worst = minf(worst, barrel.dot(fwd))
+				grip = minf(grip, barrel.dot(-((w as Node3D).get_parent() as Node3D).global_basis.y.normalized()))
+			check("both pistols ride along the forearms (worst %.2f)" % grip, grip > 0.95)
+			check("both pistols point ahead in the guard (worst %.2f)" % worst, worst > 0.6)
+			# gun kata: a hop into the spin, on the move, tipped into the travel
 			kata_vy = -99.0
+			kata_hv = 0.0
+			kata_tilt = 0.0
+			kata_from = p.global_position
+			Input.action_press("move_right")
 			attack("heavy_attack")
 			wait = 1.1
 			step = 180
 		180:
+			Input.action_release("move_right")
 			check("the gun kata hops into the air (up %.1f m/s)" % kata_vy, kata_vy > 3.0)
+			check("the gun kata keeps moving (%.1f m/s)" % kata_hv, kata_hv > 4.0)
+			check("the gun kata leans into the move (%.2f rad)" % kata_tilt, kata_tilt > 0.35)
+			p.global_position = kata_from   # (the kata carried us off toward the shore)
+			p.velocity = Vector3.ZERO
+			p.reset_physics_interpolation()
+			wait = 0.4
+			step = 181
+		181:
 			# Bullet Storm (needs a gun)
 			pc.energy = 100.0
 			g = camp.grunts[4]

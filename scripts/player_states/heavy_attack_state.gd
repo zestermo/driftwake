@@ -41,6 +41,9 @@ const STYLES := {
 
 ## Gun kata hop (m/s up).
 const KATA_HOP := 5.0
+## The kata keeps moving with the stick (x move speed), tipped hard into the travel.
+const KATA_MOVE := 1.05
+const KATA_TILT := 0.6
 
 var timer: float = 0.0
 var phase: int = 0  # 0 = windup, 1 = active, 2 = recovery
@@ -90,8 +93,11 @@ func enter(_data: Dictionary) -> void:
 
 func physics_update(delta: float) -> void:
 	apply_gravity(delta)
-	player.velocity.x = move_toward(player.velocity.x, 0.0, 20.0 * delta)
-	player.velocity.z = move_toward(player.velocity.z, 0.0, 20.0 * delta)
+	if cfg.get("kata", false):
+		_kata_move(delta)
+	else:
+		player.velocity.x = move_toward(player.velocity.x, 0.0, 20.0 * delta)
+		player.velocity.z = move_toward(player.velocity.z, 0.0, 20.0 * delta)
 	player.move_and_slide()
 
 	timer += delta
@@ -114,11 +120,13 @@ func physics_update(delta: float) -> void:
 					Net.fx("punch_wind", [player.global_position + Vector3.UP * 1.05 + b.x * 0.15 - b.z * 0.3, -b.z, 1.7,
 						col if player.power.buff("coat") else Color(1.0, 0.97, 0.9), true])
 				player.squash(-3.0)
-				var face_dir := get_camera_forward()
-				player.velocity.x = face_dir.x * float(cfg["impulse"])
-				player.velocity.z = face_dir.z * float(cfg["impulse"])
-				if cfg.get("kata", false) and player.is_on_floor():
-					player.velocity.y = KATA_HOP   # spins in the air, not planted on the ground
+				if cfg.get("kata", false):
+					if player.is_on_floor():
+						player.velocity.y = KATA_HOP   # spins in the air, not planted on the ground
+				else:
+					var face_dir := get_camera_forward()
+					player.velocity.x = face_dir.x * float(cfg["impulse"])
+					player.velocity.z = face_dir.z * float(cfg["impulse"])
 				var hit := player.melee_hit(float(cfg["damage"]))
 				# Armament Haki: heavy attacks can't be blocked
 				if player.progression.has_flag("armament"):
@@ -161,6 +169,22 @@ func physics_update(delta: float) -> void:
 		transitioned.emit(self, "Dodge", {})
 
 
+func _kata_move(delta: float) -> void:
+	var input := get_movement_input()
+	if input.length() < 0.1:
+		player.velocity.x = move_toward(player.velocity.x, 0.0, 20.0 * delta)
+		player.velocity.z = move_toward(player.velocity.z, 0.0, 20.0 * delta)
+		player.align_hold = false
+		return
+	var dir := get_camera_relative_direction(input)
+	var speed := player.move_speed * KATA_MOVE * player.wade_mult()
+	player.velocity.x = dir.x * speed
+	player.velocity.z = dir.z * speed
+	player.align_hold = true
+	player.align_up = (Vector3.UP + dir * tan(KATA_TILT)).normalized()
+	player.align_w = move_toward(player.align_w, 1.0, 8.0 * delta)
+
+
 func _kata_volley() -> void:
 	var c := player.global_position + Vector3(0, 1.1, 0)
 	var pc := player.power
@@ -184,5 +208,6 @@ func _kata_volley() -> void:
 
 
 func exit() -> void:
+	player.align_hold = false
 	player.sword_hitbox.deactivate()
 	player.sword_pivot.rotation_degrees.z = 0.0
