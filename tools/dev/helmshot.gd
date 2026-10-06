@@ -33,8 +33,8 @@ func _process(d: float) -> bool:
 			if t < 2.5: return false
 			# moored, from the dock side
 			cam.current = true
-			cam.global_position = ship.global_transform * Vector3(-14, 6, 6)
-			cam.look_at(ship.global_transform * Vector3(0, 1, 0), Vector3.UP)
+			cam.global_position = ship.global_transform * Vector3(-16, 7, 6)
+			cam.look_at(ship.global_transform * Vector3(0, 4.5, 0), Vector3.UP)
 			phase = 1; t0 = t
 		1:
 			if e < 0.4: return false
@@ -42,6 +42,7 @@ func _process(d: float) -> bool:
 			p.current_ship = ship
 			p.state_machine.force_state("Helm", {})
 			Input.action_press("move_forward")
+			ship.sail = 1.0
 			phase = 2; t0 = t
 		2:
 			if e < 4.0: return false

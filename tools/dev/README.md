@@ -18,7 +18,7 @@ Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fail
 - `invtest`: Gear / paper doll / character sheet / abilities.
 - `ragtest`: Player ragdoll: knockdown -> get up, death -> stays down -> respawn.
 - `bugtest`: Scuttlebugs: spawned in the jungle, notice -> rear -> ram, hitstun, knockdown, death + gold.
-- `shiptest`: Ship: gentle swell, helm (visible captain), sailing, turning, riding the deck, shore collision.
+- `shiptest`: Ship: gentle swell, helm (visible captain), sails set in steps that stay set (furled canvas rolls down), turning, riding the deck, keeps sailing with nobody at the wheel, shore collision.
 - `swimtest`: Swimming: fall in, float, swim, stamina, dive, exhaustion, ladder, ledge, wade out.
 - `grunttest`: Pirate grunts: camp, alert, attack turns, guard/guard break, hitstun, parry stagger, knockdown, death, return home.
 - `guntest`: Grunt firearms: rifle shots on a line (hit when standing on it, miss when dodging/sidestepping), reposition, shove, pistol swap, heavy-attack glow, wider parry window.

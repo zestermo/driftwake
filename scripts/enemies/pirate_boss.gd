@@ -499,12 +499,12 @@ func _net_update(delta: float) -> void:
 	if smp.is_empty():
 		return
 	var b: Array = smp[1]
-	if b.size() >= 22:
-		if int(b[20]) != phase:
-			phase = int(b[20])
+	if b.size() >= 23:
+		if int(b[21]) != phase:
+			phase = int(b[21])
 			phase_changed.emit(phase)
-		if bool(b[21]) != _red:
-			_set_red(bool(b[21]))
+		if bool(b[22]) != _red:
+			_set_red(bool(b[22]))
 
 
 func net_event(what: String, args: Array) -> void:

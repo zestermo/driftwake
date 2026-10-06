@@ -1876,11 +1876,14 @@ func _hit_kind() -> int:
 func net_pack() -> Array:
 	humanoid.net_sync = true
 	var glow := humanoid.weapon != null and humanoid.weapon.material_override == _glow_mat and _glow_mat != null
-	return [global_position, facing.rotation.y, velocity, int(state), health.current_health, health.max_health,
+	# boarders on the crew's ship: deck-relative, so they ride it on every screen
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	var at: Array = ship.pack_pos(global_position) if ship else [global_position, false]
+	return [at[0], facing.rotation.y, velocity, int(state), health.current_health, health.max_health,
 		HumanoidSync.pack(humanoid), hitbox.active, hitbox.activations, _hit_kind(),
 		_aim_line.visible, _aim_point, _locked, _fired, _gun, glow, _peril_on,
 		_bark.text if _bark.visible else "", get_meta("shot_end", Vector3.ZERO),
-		humanoid.ragdoll.net_pack() if humanoid.ragdoll else []]
+		humanoid.ragdoll.net_pack() if humanoid.ragdoll else [], at[1]]
 
 
 ## Puppet: play back the host's grunt.
@@ -1893,7 +1896,7 @@ func _net_update(delta: float) -> void:
 	var a: Array = smp[0]
 	var b: Array = smp[1]
 	var f: float = smp[2]
-	if b.size() < 20 or a.size() < 20:
+	if b.size() < 21 or a.size() < 21:
 		return
 	# a body on the ground (or floating, or dead) lies where the host's does
 	if humanoid.ragdoll and (b[19] as Array).size() > 0:
@@ -1904,7 +1907,11 @@ func _net_update(delta: float) -> void:
 	if st == S.DEAD:
 		_net_die()  # (we joined after it fell, or missed the moment)
 		return
-	global_position = (a[0] as Vector3).lerp(b[0], f)
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	if ship:
+		global_position = ship.unpack_pos(a[0], a[20]).lerp(ship.unpack_pos(b[0], b[20]), f)
+	else:
+		global_position = (a[0] as Vector3).lerp(b[0], f)
 	facing.rotation.y = lerp_angle(float(a[1]), float(b[1]), f)
 	_yaw = facing.rotation.y
 	velocity = b[2]

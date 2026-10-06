@@ -498,10 +498,13 @@ func _process(d: float) -> bool:
 			check("we're at the helm", p.current_state_name() == "Helm")
 			var ship = net._ship()
 			data["ship0"] = ship.global_position
+			# full sail, and the host comes aboard to ride along
+			ship.sail = 1.0
 			ship.speed = 10.0
+			tn.ask("tp", [ship.global_transform * Vector3(0.0, 0.8, -3.0)])
 			go(26)
 		26:
-			if st_t < 2.0:
+			if st_t < 3.0:
 				return false
 			tn.ask("report")
 			go(27)
@@ -512,6 +515,15 @@ func _process(d: float) -> bool:
 			check("the ship moves when we steer (%.1f m)" % ship.global_position.distance_to(data["ship0"]), ship.global_position.distance_to(data["ship0"]) > 5.0)
 			check("the host's ship follows ours (%.2f m)" % ship.global_position.distance_to(rep()["ship_pos"]), flat(ship.global_position - rep()["ship_pos"]).length() < 2.0)
 			check("host knows we have the wheel", int(rep()["ship_owner"]) == net.my_id())
+			var r = rep()
+			check("the host's sails are set like ours (%.2f)" % float(r["ship_sail"]), is_equal_approx(float(r["ship_sail"]), 1.0))
+			check("the host rides along on its deck (aboard %s, on floor %s)" % [r["host_aboard"], r["host_on_floor"]], r["host_aboard"] and r["host_on_floor"])
+			var at_wheel: float = (r["puppet_on_ship"] as Vector3).distance_to(ship.helm_position.position + ship.ship_model.position)
+			check("on the host's ship our puppet stands at the wheel (%.2f m off)" % at_wheel, at_wheel < 0.35)
+			var host_pup = net.players.get(1)
+			var host_here: Vector3 = ship.to_local(host_pup.global_position) if host_pup else Vector3.INF
+			var host_off: float = host_here.distance_to(r["host_on_ship"])
+			check("the host stands on our deck where they are on theirs (%.2f m off)" % host_off, host_off < 0.5)
 			p.state_machine.force_state("Idle", {})
 			go(28)
 		28:

@@ -1,7 +1,8 @@
 extends PlayerState
 ## At the ship's wheel. The captain stays visible, standing at the helm with
-## hands on the spokes; W/S work the sails, A/D the rudder (the wheel turns and
-## the body leans with it). The ship camera follows the hull's heading; the
+## hands on the spokes; W/S set the sails a step at a time (they stay set when
+## you let go, or leave the wheel), A/D the rudder (the wheel turns and the
+## body leans with it). The ship camera follows the hull's heading; the
 ## mouse looks around. F steps away from the wheel (you stay on deck).
 
 var camera_rig: Node3D  # The player's CameraRig
@@ -38,7 +39,7 @@ func enter(_data: Dictionary) -> void:
 		var ship_cam := ship_camera.get_node("SpringArm3D/Camera3D") as Camera3D
 		if ship_cam:
 			ship_cam.current = true
-	player.call("_toast", "W/S: sails   A/D: rudder   Left click: broadside   F: leave the wheel")
+	player.call("_toast", "W/S: set sails   A/D: rudder   Left click: broadside   F: leave the wheel")
 
 
 ## Stand at the wheel, facing the bow.

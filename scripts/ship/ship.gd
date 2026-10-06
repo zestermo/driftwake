@@ -1,12 +1,18 @@
 extends AnimatableBody3D
 class_name Ship
 ## The player's sloop. A kinematic body moved by its own simple boat model:
-## sails (W/S) build speed slowly and drag bleeds it off, the rudder (A/D)
-## turns harder the faster you go, and the hull heaves, pitches and rolls on
-## the swell, averaged over bow, stern and both sides so the motion is a slow
-## roll rather than a jitter. Being a moving platform (sync_to_physics), it
-## carries whoever stands on the deck. It slides along / stops against shores
-## and docks instead of passing through them.
+## the sails are set in steps (W/S at the wheel) and stay set, so she keeps
+## making way with nobody steering; speed builds slowly toward what the sails
+## give and drag bleeds it off; the rudder (A/D) turns harder the faster you
+## go; with the sails furled and nearly stopped, holding S backs her. The hull
+## heaves, pitches and rolls on the swell, averaged over bow, stern and both
+## sides so the motion is a slow roll rather than a jitter. Being a moving
+## platform (sync_to_physics), it carries whoever stands on the deck. It
+## slides along / stops against shores and docks instead of passing through.
+##
+## Co-op: every machine runs this same simulation (so the deck under you moves
+## smoothly whatever the network does) from the helmsman's sails and rudder,
+## and eases toward the helmsman's latest state, projected to now.
 
 const MAX_SPEED := 13.0
 const MAX_REVERSE := 3.0
@@ -28,11 +34,28 @@ const MAX_HULL := 400.0
 const CRIPPLED_SPEED := 0.35
 const REPAIR_DELAY := 10.0
 const REPAIR_RATE := 5.0
+## Sail settings above furled (W/S step through them), and how fast the canvas
+## comes down or goes up (fraction of the sail a second).
+const SAIL_STEPS := 3
+const SAIL_RATE := 0.5
+## Co-op: how quickly a copy of the ship eases onto the helmsman's (1/s), and
+## how far off it may be before it just jumps there.
+const FIX_RATE := 2.5
+const FIX_SNAP := 6.0
+const PACK_SIZE := 14
 
 var is_player_steering: bool = false
 ## Current forward speed (m/s, negative = backing) and smoothed rudder (-1..1).
 var speed: float = 0.0
 var rudder: float = 0.0
+## The sails as set (0 furled .. 1 full) and as they are right now (the
+## canvas takes a moment to come down; the speed follows what's set out).
+var sail: float = 0.0
+var sail_shown: float = 0.0
+var _turn_in: float = 0.0
+var _back_in: bool = false
+var _sail_node: Node3D
+var _furl_node: Node3D
 ## Camera yaw offset from the heading while at the helm (mouse look).
 var cam_yaw: float = 0.0
 
@@ -99,6 +122,8 @@ func place(world_pos: Vector3, yaw: float) -> void:
 	_init = false
 	speed = 0.0
 	_yaw_rate = 0.0
+	sail = 0.0
+	sail_shown = 0.0
 	global_transform = Transform3D(Basis(Vector3.UP, yaw), Vector3(world_pos.x, global_position.y, world_pos.z))
 	reset_physics_interpolation()
 
@@ -108,27 +133,35 @@ func _physics_process(delta: float) -> void:
 		_placed = true
 		_pos = global_position
 		_heading = global_rotation.y
+	# the helmsman's latest state when someone else steers
+	var snap: Array = []
 	if Net.active and Net.ship_owner != Net.my_id():
-		_puppet_physics(delta)
-		return
+		snap = Net.latest(self)
+		# (a word older than a second is from before the wheel last changed hands)
+		if snap.size() == 2 and (snap[1] as Array).size() >= PACK_SIZE and Net.time() - float(snap[0]) < 1.0:
+			var s: Array = snap[1]
+			sail = float(s[11])
+			_turn_in = float(s[12])
+			_back_in = bool(s[13])
+		else:
+			snap = []
+	else:
+		_read_helm()
+	sail_shown = move_toward(sail_shown, sail, SAIL_RATE * delta)
 	var heading := _heading
 	var pos := _pos
 	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
-	var throttle := 0.0
-	var turn := 0.0
-	if is_player_steering and not _helm_locked():
-		throttle = Input.get_axis("move_back", "move_forward")
-		turn = Input.get_axis("move_left", "move_right")
 	var top := MAX_SPEED * (CRIPPLED_SPEED if crippled else 1.0)
-	if throttle > 0.0:
-		speed = move_toward(speed, top * throttle, ACCEL * delta)
-	elif throttle < 0.0:
+	var want := top * sail_shown
+	if _back_in:
 		speed = move_toward(speed, -MAX_REVERSE, BRAKE * delta)
+	elif speed < want:
+		speed = move_toward(speed, want, ACCEL * delta)
 	else:
-		speed = move_toward(speed, 0.0, (0.35 + 0.012 * speed * speed) * delta)
-	rudder = move_toward(rudder, turn, 2.2 * delta)
+		speed = move_toward(speed, want, (0.35 + 0.012 * speed * speed) * delta)
+	rudder = move_toward(rudder, _turn_in, 2.2 * delta)
 	var flow := clampf(absf(speed) / 4.0, 0.3, 1.0)
 	var target_rate := -rudder * MAX_TURN * flow * (-1.0 if speed < -0.3 else 1.0)
 	_yaw_rate = move_toward(_yaw_rate, target_rate, 1.1 * delta)
@@ -156,6 +189,12 @@ func _physics_process(delta: float) -> void:
 				speed *= lerpf(1.0, -0.15, head_on)
 				_yaw_rate *= 0.5
 	pos += motion
+	if not snap.is_empty():
+		var fixed := _follow_helmsman(snap, pos, heading, delta)
+		pos = fixed[0]
+		heading = fixed[1]
+		fwd = Vector3(-sin(heading), 0.0, -cos(heading))
+		right = Vector3(cos(heading), 0.0, -sin(heading))
 
 	# swell: sample the waves under bow, stern and both sides
 	var t: float = _ocean.call("clock") if _ocean and _ocean.has_method("clock") else Time.get_ticks_msec() / 1000.0
@@ -199,6 +238,68 @@ func _physics_process(delta: float) -> void:
 	_wake(delta, pos, fwd, right, mean)
 	if speed > top:
 		speed = move_toward(speed, top, 2.0 * delta)
+
+
+## The helmsman's hands (their machine, or the host's when nobody steers:
+## the sails stay as they were, the rudder eases back to centre).
+func _read_helm() -> void:
+	_turn_in = 0.0
+	_back_in = false
+	if not is_player_steering or _helm_locked():
+		return
+	_turn_in = Input.get_axis("move_left", "move_right")
+	var was := sail
+	if Input.is_action_just_pressed("move_forward"):
+		sail = minf(roundf(sail * SAIL_STEPS + 1.0) / SAIL_STEPS, 1.0)
+	elif Input.is_action_just_pressed("move_back"):
+		sail = maxf(roundf(sail * SAIL_STEPS - 1.0) / SAIL_STEPS, 0.0)
+	if sail != was:
+		var names := ["Sails furled", "A third of sail", "Two thirds of sail", "Full sail"]
+		get_tree().call_group("hud", "show_toast", names[int(roundf(sail * SAIL_STEPS))])
+		FX.sfx("whoosh", global_position + Vector3.UP * 7.0, -8.0, 0.08, 0.6)
+	# furled and nearly stopped: hold S to back her
+	_back_in = Input.is_action_pressed("move_back") and sail <= 0.0 and speed < 1.5
+
+
+## Ease our copy of the ship onto the helmsman's: their last state, carried
+## forward to now at its speed and turn rate. Returns [pos, heading].
+func _follow_helmsman(snap: Array, pos: Vector3, heading: float, delta: float) -> Array:
+	var s: Array = snap[1]
+	var ahead := clampf(Net.time() - float(snap[0]), 0.0, 0.5)
+	var their_speed := float(s[5])
+	var their_rate := float(s[7])
+	var mid := float(s[1]) + their_rate * ahead * 0.5
+	var at: Vector3 = (s[0] as Vector3) + Vector3(-sin(mid), 0.0, -cos(mid)) * their_speed * ahead
+	var head := float(s[1]) + their_rate * ahead
+	if Vector2(at.x - pos.x, at.z - pos.z).length() > FIX_SNAP:
+		speed = their_speed
+		_yaw_rate = their_rate
+		return [Vector3(at.x, 0.0, at.z), head]
+	var k := 1.0 - exp(-FIX_RATE * delta)
+	speed = lerpf(speed, their_speed, k)
+	_yaw_rate = lerpf(_yaw_rate, their_rate, k)
+	rudder = lerpf(rudder, float(s[6]), k)
+	return [pos + Vector3(at.x - pos.x, 0.0, at.z - pos.z) * k, lerp_angle(heading, head, k)]
+
+
+## Inside the ship's bounds: on deck, in the rigging, on a ladder, jumping
+## about over the deck (co-op positions are sent relative to the hull then).
+func aboard(p: Vector3) -> bool:
+	var l := global_transform.affine_inverse() * p
+	return absf(l.x) < 3.4 and l.z > -9.5 and l.z < 7.5 and l.y > -0.7 and l.y < 13.0
+
+
+## Co-op snapshots: a position as [pos, aboard], deck-relative when aboard,
+## so riders move with the hull on every screen whatever the delay.
+func pack_pos(p: Vector3) -> Array:
+	if aboard(p):
+		return [global_transform.affine_inverse() * p, true]
+	return [p, false]
+
+
+## Back to the world, against the hull as it's drawn this frame.
+func unpack_pos(p: Vector3, on_deck: bool) -> Vector3:
+	return get_global_transform_interpolated() * p if on_deck else p
 
 
 ## The hull's own velocity (cannonballs fired from it carry it along).
@@ -338,6 +439,7 @@ func _wave(p: Vector3, t: float) -> float:
 ## but not its pitch/roll/heave jitter, so steering stays steady.
 func _process(delta: float) -> void:
 	_hull_tick(delta)
+	_show_sail()
 	var xf := get_global_transform_interpolated()
 	var heading := xf.basis.get_euler().y
 	_cam_heading = lerp_angle(_cam_heading, heading, minf(4.0 * delta, 1.0))
@@ -475,15 +577,7 @@ func _build_psx_model() -> void:
 	# mast, yard, sail, flag
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, 0.3, -1.2)), 0.2, 0.13, 11.0, 6, 0.8)
 	mb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(3.0, 9.2, -1.2)), 0.08, 0.08, 6.0, 5, 0.8)
-	var sail_n := Vector3(0, 0, 1)
-	mb.add_quad(canvas, Vector3(-2.8, 9.1, -1.05), Vector3(2.8, 9.1, -1.05), Vector3(2.6, 6.2, -0.75), Vector3(-2.6, 6.2, -0.75),
-		Vector2(0, 0), Vector2(2.0, 0), Vector2(2.0, 1.0), Vector2(0, 1.0), Color.WHITE, sail_n)
-	mb.add_quad(canvas, Vector3(-2.6, 6.2, -0.75), Vector3(2.6, 6.2, -0.75), Vector3(2.4, 3.4, -1.0), Vector3(-2.4, 3.4, -1.0),
-		Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 2.0), Vector2(0, 2.0), Color.WHITE, sail_n)
-	mb.add_quad(canvas, Vector3(-2.8, 9.1, -1.05), Vector3(-2.6, 6.2, -0.75), Vector3(2.6, 6.2, -0.75), Vector3(2.8, 9.1, -1.05),
-		Vector2(0, 0), Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 0), Color(0.8, 0.8, 0.75), -sail_n)
-	mb.add_quad(canvas, Vector3(-2.6, 6.2, -0.75), Vector3(-2.4, 3.4, -1.0), Vector3(2.4, 3.4, -1.0), Vector3(2.6, 6.2, -0.75),
-		Vector2(0, 1.0), Vector2(0, 2.0), Vector2(2.0, 2.0), Vector2(2.0, 1.0), Color(0.8, 0.8, 0.75), -sail_n)
+	_build_sail(canvas)
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 11.0, -0.75)), 0.9, 0.5, Rect2(0, 0, 0.5, 0.5))
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 11.0, -0.75)), 0.9, 0.5, Rect2(0, 0, 0.5, 0.5))
 	# bowsprit
@@ -526,6 +620,40 @@ func _build_psx_model() -> void:
 		ship_model.add_child(lad)
 
 
+## The sail hangs from the yard (its own node, origin on the yard, so it
+## rolls up by scaling toward it) and the furled canvas bundled on the yard.
+func _build_sail(canvas: Material) -> void:
+	var top := Vector3(0, 9.1, -1.05)
+	var smb := MeshBuilder.new()
+	var n := Vector3(0, 0, 1)
+	var dim := Color(0.8, 0.8, 0.75)
+	var c := [Vector3(-2.8, 9.1, -1.05) - top, Vector3(2.8, 9.1, -1.05) - top, Vector3(2.6, 6.2, -0.75) - top,
+		Vector3(-2.6, 6.2, -0.75) - top, Vector3(2.4, 3.4, -1.0) - top, Vector3(-2.4, 3.4, -1.0) - top]
+	smb.add_quad(canvas, c[0], c[1], c[2], c[3], Vector2(0, 0), Vector2(2.0, 0), Vector2(2.0, 1.0), Vector2(0, 1.0), Color.WHITE, n)
+	smb.add_quad(canvas, c[3], c[2], c[4], c[5], Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 2.0), Vector2(0, 2.0), Color.WHITE, n)
+	smb.add_quad(canvas, c[0], c[3], c[2], c[1], Vector2(0, 0), Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 0), dim, -n)
+	smb.add_quad(canvas, c[3], c[5], c[4], c[2], Vector2(0, 1.0), Vector2(0, 2.0), Vector2(2.0, 2.0), Vector2(2.0, 1.0), dim, -n)
+	_sail_node = smb.to_instance("Sail")
+	_sail_node.position = top
+	ship_model.add_child(_sail_node)
+	var fmb := MeshBuilder.new()
+	fmb.add_cylinder(canvas, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(2.7, 0, 0)), 0.2, 0.2, 5.4, 6, 0.8)
+	_furl_node = fmb.to_instance("FurledSail")
+	_furl_node.position = top + Vector3(0, -0.12, 0.05)
+	ship_model.add_child(_furl_node)
+	_show_sail()
+
+
+## Canvas let down as far as sail_shown: the rest is bundled on the yard.
+func _show_sail() -> void:
+	var k := clampf(sail_shown, 0.0, 1.0)
+	_sail_node.scale = Vector3(1.0, lerpf(0.03, 1.0, k), 1.0)
+	_sail_node.visible = k > 0.01
+	var r := lerpf(1.0, 0.35, k)
+	_furl_node.scale = Vector3(1.0, r, r)
+	_furl_node.visible = k < 0.98
+
+
 # ==========================================================================
 # Co-op: the ship belongs to whoever is at the helm (the host otherwise)
 # ==========================================================================
@@ -535,59 +663,32 @@ func _helm_locked() -> bool:
 
 
 func net_pack() -> Array:
-	return [_pos, _heading, _y, _pitch, _roll, speed, rudder, _yaw_rate, _vy, _vpitch, _vroll]
+	return [_pos, _heading, _y, _pitch, _roll, speed, rudder, _yaw_rate, _vy, _vpitch, _vroll, sail, _turn_in, _back_in]
 
 
-## We now steer: carry on from where the ship was shown.
+## We now steer. Our copy has been following the helmsman all along, so it
+## carries on from itself; only the sails are taken from their last word
+## (and the whole state if we never had one, e.g. just joined).
 func net_take_over(state: Array) -> void:
 	var st := state
-	if st.size() < 11:
-		var smp := Net.sample(self)
-		st = smp[1] if not smp.is_empty() else []
-	if st.size() >= 11:
-		_pos = st[0]
-		_heading = float(st[1])
-		_y = float(st[2])
-		_pitch = float(st[3])
-		_roll = float(st[4])
-		speed = float(st[5])
-		rudder = float(st[6])
-		_yaw_rate = float(st[7])
-		_vy = float(st[8])
-		_vpitch = float(st[9])
-		_vroll = float(st[10])
-		_init = true
-		_placed = true
-
-
-## Someone else steers: ride their snapshots (still a moving platform, so
-## whoever stands on deck is carried along).
-func _puppet_physics(delta: float) -> void:
-	var smp := Net.sample(self)
-	if smp.is_empty():
+	if st.size() < PACK_SIZE:
+		var last := Net.latest(self)
+		st = last[1] if last.size() == 2 else []
+	if st.size() < PACK_SIZE:
 		return
-	var a: Array = smp[0]
-	var b: Array = smp[1]
-	var f: float = smp[2]
-	if a.size() < 11 or b.size() < 11:
+	sail = float(st[11])
+	if _init:
 		return
-	var pos: Vector3 = (a[0] as Vector3).lerp(b[0], f)
-	var heading := lerp_angle(float(a[1]), float(b[1]), f)
-	var y := lerpf(float(a[2]), float(b[2]), f)
-	var pitch := lerpf(float(a[3]), float(b[3]), f)
-	var roll := lerpf(float(a[4]), float(b[4]), f)
-	speed = float(b[5])
-	rudder = float(b[6])
-	_yaw_rate = float(b[7])
-	_pos = pos
-	_heading = heading
-	_y = y
-	_pitch = pitch
-	_roll = roll
+	_pos = st[0]
+	_heading = float(st[1])
+	_y = float(st[2])
+	_pitch = float(st[3])
+	_roll = float(st[4])
+	speed = float(st[5])
+	rudder = float(st[6])
+	_yaw_rate = float(st[7])
+	_vy = float(st[8])
+	_vpitch = float(st[9])
+	_vroll = float(st[10])
 	_init = true
-	global_transform = Transform3D(Basis.from_euler(Vector3(pitch, heading, roll)), Vector3(pos.x, y, pos.z))
-	if wheel:
-		wheel.rotation.z = -rudder * 2.4
-	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
-	var right := Vector3(cos(heading), 0.0, -sin(heading))
-	_wake(delta, pos, fwd, right, _wave(pos, Net.time()))
+	_placed = true

@@ -50,7 +50,7 @@ Drop-in co-op for 1–4 players: a friend joins your world, you sail one ship to
 
 **Knocked out**: with a crewmate still standing, 0 HP knocks you down for 20 s; a crewmate holds F next to you for 2.5 s to revive you at 30% HP; if time runs out or everyone is down, the usual death + respawn at the ship. HUD: crew list (name, HP, down) and a prompt with progress; nameplates over crewmates.
 
-**Ship**: owned by the helmsman (host by default); the owner simulates and sends the pose, everyone else rides it as a moving platform. Taking the wheel asks the host; leaving hands it back.
+**Ship**: owned by the helmsman (host by default). Every machine runs the same ship simulation from the helmsman's sails and rudder (sent ~20/s) and eases toward the helmsman's latest state projected to now, so the deck under you moves smoothly; heave/pitch/roll come from the shared wave clock. Captains and boarders anywhere over the hull are sent deck-relative and drawn against the hull's interpolated transform. Taking the wheel asks the host; leaving hands it back.
 
 **Saves**: playing as a guest saves your character into your slot but keeps that slot's own world (burnt brush, fruit claims, ship and player position); loading as a guest skips the world parts. Each save gets a `char_id`.
 

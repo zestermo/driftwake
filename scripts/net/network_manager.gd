@@ -656,6 +656,13 @@ func sample(n: Node) -> Array:
 	return [a[1], b[1], clampf((rt - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.0001), 0.0, 1.0)]
 
 
+## The newest snapshot for a node, as [sent at, data], or [] (for things
+## that run their own copy and only need the latest word, like the ship).
+func latest(n: Node) -> Array:
+	var buf: Array = _buffers.get(key_of(n), [])
+	return [] if buf.is_empty() else buf[-1]
+
+
 ## Seconds since the newest snapshot for a node was sent (INF = never).
 func snapshot_age(n: Node) -> float:
 	var buf: Array = _buffers.get(key_of(n), [])

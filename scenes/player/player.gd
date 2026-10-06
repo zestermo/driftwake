@@ -1600,16 +1600,13 @@ func is_bleeding() -> bool:
 	return bleeding if is_local else bool(_net_flags & NF_BLEED)
 
 
-## The ship under your feet (for deck-relative positions), or null.
-func _deck_ship() -> Node3D:
+## The ship we're aboard (on deck, mid-jump, in the rigging, on a ladder) for
+## deck-relative positions, or null.
+func _deck_ship() -> Ship:
 	if context == Context.HELM and current_ship:
 		return current_ship
-	if not is_on_floor():
-		return null
-	var c := get_last_slide_collision()
-	if c and c.get_collider() is Ship:
-		return c.get_collider() as Node3D
-	return null
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	return ship if ship and ship.aboard(global_position) else null
 
 
 ## Our snapshot (~20 times a second): where, how, and the body's state.
@@ -1618,7 +1615,7 @@ func net_pack() -> Array:
 	var yaw := player_model.rotation.y
 	var ship := _deck_ship()
 	if ship:
-		# on deck: relative to the ship, so we ride it on every screen
+		# aboard: relative to the ship, so we ride it on every screen
 		pos = ship.global_transform.affine_inverse() * pos
 		yaw -= ship.global_rotation.y
 	var flags := 0
@@ -1653,12 +1650,14 @@ func _exit_tree() -> void:
 		_net_rope.queue_free()
 
 
+## (against the hull as it's drawn this frame: its physics-tick transform is
+## up to a tick behind, which shook deck puppets back and forth under way)
 func _net_pos(snap: Array) -> Vector3:
 	var pos: Vector3 = snap[0]
 	if bool(snap[1]):
-		var ship := get_tree().get_first_node_in_group("ship") as Node3D
+		var ship := get_tree().get_first_node_in_group("ship") as Ship
 		if ship:
-			return ship.global_transform * pos
+			return ship.unpack_pos(pos, true)
 	return pos
 
 
@@ -1667,7 +1666,7 @@ func _net_yaw(snap: Array) -> float:
 	if bool(snap[1]):
 		var ship := get_tree().get_first_node_in_group("ship") as Node3D
 		if ship:
-			yaw += ship.global_rotation.y
+			yaw += ship.get_global_transform_interpolated().basis.get_euler().y
 	return yaw
 
 
