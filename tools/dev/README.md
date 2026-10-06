@@ -76,6 +76,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `hairdist`: Hair at a distance (scalp poking through?). Args: <out_prefix>
 - `hairshots`: Close head shots of every hair style. Args: <out.png> <yaw_deg>
 - `heavyshots`: Strip of frames of an action with a weapon. Args: <out.png> <anim> <weapon> <dur> <yaw_deg>
+- `heightshot`: The character creator at every Height option (what the player sees). Args: <out_prefix>
 - `helmshot`: Captain at the helm. Args: <out_prefix>
 - `hudshot`: (no description)
 - `iconsheet`: (no description)

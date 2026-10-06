@@ -235,10 +235,16 @@ func _update_camera(delta: float) -> void:
 	# frame from the character's actual size (art styles change proportions)
 	var head_y := 1.7
 	var head_s := 0.75
+	var s := 1.0
 	if _preview and _preview.head:
 		head_s = _preview.head.global_basis.get_scale().y
 		head_y = _preview.head.global_position.y + 0.16 * head_s
-	var top := head_y + 0.25 * head_s
+		s = maxf(_preview.scale.y, 0.01)
+	# the full-body view is framed for the tallest height, not this body's, so the
+	# Height option shows (framed to the body, every height looked the same);
+	# the face/hair close-up still follows the actual head
+	var tall: float = CharacterLook.HEIGHTS.max()
+	var top := (head_y + 0.25 * head_s) / s * tall
 	var target := Vector3(0, lerpf(top * 0.52, head_y, z), 0)
 	var dist := lerpf(top * 2.35, 0.9 + head_s * 1.1, z)
 	_cam.look_at_from_position(target + Vector3(0, lerpf(0.35, 0.05, z), dist), target)
