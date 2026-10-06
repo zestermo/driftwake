@@ -184,6 +184,14 @@ func _process(d: float) -> bool:
 			step = 9
 		9:
 			check("hull bar on the HUD while aboard", hud()._hull_box.visible or ship.hull >= 399.5)
+			# --- its crew, on deck before anyone boards
+			var on_board := 0
+			for c in es._crew:
+				var lp: Vector3 = es.to_local(c["node"].global_position)
+				if c["node"].visible and absf(lp.y - 0.32) < 0.1 and absf(lp.x) < 2.9 and lp.z > -8.0 and lp.z < 6.6:
+					on_board += 1
+			check("the pirate ship's crew stand on its deck (%d of %d)" % [on_board, es._crew.size()], on_board == 6)
+			check("...cutlasses out for the fight (helmsman at the wheel)", es._crew.slice(1).all(func(c): return c["node"].armed) and not es._crew[0]["node"].armed)
 			# --- boarders (force it)
 			var bp: Vector3 = ship.global_position + ship.global_basis.x * 8.0
 			es._pos = Vector3(bp.x, 0, bp.z)
@@ -192,9 +200,15 @@ func _process(d: float) -> bool:
 			wait = 0.3
 			step = 90
 		90:
+			set_meta("crew_at", es._crew[1]["node"].global_position)
 			es._board(ship)
 			check("boarders come over the side", es.boarders.size() >= 3)
 			check("...leaping", es.boarders.all(func(g): return g.state == 20))
+			var b0 = es.boarders[0]
+			check("the boarders are the crew who were on deck (same look, from where he stood: %.2f m)" % b0.global_position.distance_to(get_meta("crew_at")),
+				b0.look == es._crew[1]["look"] and b0.global_position.distance_to(get_meta("crew_at")) < 0.6)
+			var left = es._crew.filter(func(c): return c["node"].visible)
+			check("...they're gone from its deck, the rest stay aboard (%d left)" % left.size(), left.size() == es._crew.size() - es.boarders.size() and es._crew[0]["node"].visible)
 			wait = 2.5
 			step = 10
 		10:

@@ -8,7 +8,9 @@ class_name EnemyShip
 ##   three guns on that side one after another (a second's warning first:
 ##   sparks at the muzzles, the bosun's "Fire!");
 ## * after a couple of volleys, if you're slow or close, it pulls alongside,
-##   throws grapples and sends boarders leaping onto your deck;
+##   throws grapples and its crew (on deck all along: they draw their
+##   cutlasses for the chase and line the rail before boarding) go leaping
+##   onto your deck;
 ## * cannon fire wears its hull down; sunk, it heels over, burns and goes
 ##   under, leaving a floating chest of plunder.
 ##
@@ -35,6 +37,19 @@ const WARN := 1.0
 ## Brinehollow's harbour: they won't follow you in (world position, radius).
 static var safe_center := Vector3(150, 0, 150)
 const SAFE_RADIUS := 250.0
+## The crew on deck: [spot (ship-local, on the deck), yaw]. The helmsman (0)
+## stays aboard; the rest go over the side in this order when it boards.
+const CREW_SPOTS := [
+	[Vector3(0.0, 0.0, 4.0), 0.0],
+	[Vector3(0.7, 0.0, -0.3), 0.3],
+	[Vector3(1.9, 0.0, -2.7), -PI * 0.5],
+	[Vector3(-1.9, 0.0, -0.5), PI * 0.5],
+	[Vector3(-0.9, 0.0, 2.1), PI * 0.8],
+	[Vector3(0.4, 0.0, -5.2), 0.0],
+]
+## The crew are only drawn this close to the camera (bodies, hair and cloth).
+const CREW_SHOW := 220.0
+const CREW_WALK := 2.5
 
 var fleet: Node
 var patrol_center := Vector3.ZERO
@@ -78,6 +93,9 @@ var _rng := RandomNumberGenerator.new()
 var _ocean: Node
 var _tokens: Array = []
 var _stuck_t: float = 0.0
+## {node: Humanoid, look, spot, yaw, gone} per CREW_SPOTS entry.
+var _crew: Array = []
+var _crew_gone: int = 0
 
 
 func setup(center: Vector3, radius: float, start_angle: float, seed_value: int) -> EnemyShip:
@@ -118,6 +136,7 @@ func _ready() -> void:
 			c.rotation.y = -sgn * PI * 0.5
 			model.add_child(c)
 			cannons.append(c)
+	_build_crew(model)
 	# cannon fire finds the hull through this
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
@@ -383,20 +402,27 @@ func _board(tgt: Node3D) -> void:
 	Net.fx("sfx", ["rope", global_position, 2.0, 0.05])
 
 
+## The boarders are the crew who were on deck: each one is swapped for a
+## grunt with the same look, where he stood, facing the way he faced.
 func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var parent: Node = fleet if fleet else get_parent()
+	n = mini(n, _crew.size() - 1)
 	for i in range(n):
+		var c: Dictionary = _crew[i + 1]
+		var man := c["node"] as Humanoid
+		c["gone"] = true
+		man.visible = false
+		_crew_gone = maxi(_crew_gone, i + 1)
 		var g := PirateGrunt.new()
 		g.name = "BD_%s_%d" % [name, i]
-		var deck_local := Vector3(rng.randf_range(-1.6, 1.6), HullBuilder.DECK_Y + 0.1, rng.randf_range(-4.0, 3.0))
-		var start := global_transform * deck_local
-		g.setup({"post": start, "yaw": global_rotation.y, "mode": "stand", "role": "sword", "seed": rng.randi()})
+		var start := man.global_position + Vector3.UP * 0.05
+		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": rng.randi(), "look": c["look"]})
 		g.boarder = true
 		g.camp = self
 		parent.add_child(g)
-		g.global_position = start + Vector3.UP * 0.1
+		g.global_position = start
 		g.reset_physics_interpolation()
 		boarders.append(g)
 		if not net_puppet and tgt:
@@ -409,6 +435,68 @@ func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 	for g in boarders:
 		if is_instance_valid(g):
 			Net.fx("tracer", [g.global_position + Vector3(0, 1.4, 0), tgt.global_position + Vector3(0, 1.0, 0) if tgt else g.global_position, Color(0.75, 0.6, 0.4)])
+
+
+## The crew, the same men on every screen (seeded from the ship).
+func _build_crew(model: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = look_seed * 7 + 3
+	for i in range(CREW_SPOTS.size()):
+		var spot: Vector3 = CREW_SPOTS[i][0]
+		var yaw: float = CREW_SPOTS[i][1]
+		var look := PirateGrunt.crew_look(rng)
+		look["name"] = "Pirate"
+		var h := Humanoid.new()
+		h.name = "Crew%d" % i
+		h.setup(look)
+		model.add_child(h)
+		h.position = spot + Vector3(0, HullBuilder.DECK_Y, 0)
+		h.rotation.y = yaw
+		h.set_weapon(Props.weapon_mesh("cutlass"))
+		h._attach_weapon(false)
+		_crew.append({"node": h, "look": look, "spot": spot, "yaw": yaw, "gone": false, "drawn": false})
+
+
+## The crew on deck (every machine, from the ship's state): at their posts on
+## patrol; cutlasses out for the chase and the gunnery; boarding, the party
+## lines the rail on the side the crew's ship is on.
+func _crew_update(delta: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	var near := cam != null and cam.global_position.distance_to(global_position) < CREW_SHOW
+	var fighting := state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD]
+	var side := 0.0
+	var ship := get_tree().get_first_node_in_group("ship") as Node3D
+	if state == S.BOARD and ship:
+		side = 1.0 if _right().dot(ship.global_position - global_position) > 0.0 else -1.0
+	for i in range(_crew.size()):
+		var c: Dictionary = _crew[i]
+		var h := c["node"] as Humanoid
+		if c["gone"]:
+			continue
+		h.visible = near
+		if not near:
+			continue
+		var draw := fighting and i > 0
+		h.armed = draw
+		if draw != bool(c["drawn"]):
+			c["drawn"] = draw
+			h.play("draw" if draw else "sheathe", 0.45 if draw else 0.5)
+		var spot: Vector3 = c["spot"]
+		var want_yaw: float = c["yaw"]
+		if side != 0.0 and i > 0:
+			spot = Vector3(side * (HullBuilder.half_width(spot.z) - 0.75), 0.0, spot.z)
+			want_yaw = -PI * 0.5 * side
+		var at := Vector3(h.position.x, 0.0, h.position.z)
+		var to := spot - at
+		var step := minf(to.length(), CREW_WALK * delta)
+		if step > 0.001:
+			at += to.normalized() * step
+			want_yaw = atan2(-to.x, -to.z)
+		h.position = at + Vector3(0, HullBuilder.DECK_Y, 0)
+		h.rotation.y = lerp_angle(h.rotation.y, want_yaw, clampf(8.0 * delta, 0.0, 1.0))
+		h.ground_speed = CREW_WALK if step > 0.001 else 0.0
+		h.local_move = Vector2(0, 1)
+		h.grounded = true
 
 
 ## Grunts ask their "camp" (this ship) for a turn to swing.
@@ -591,6 +679,7 @@ func _wake(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_crew_update(delta)
 	# a battered hull smokes
 	if state != S.SINK and hull < max_hull * 0.5:
 		_smoke_t -= delta
@@ -613,7 +702,7 @@ func net_rescale(k: float) -> void:
 
 
 func net_pack() -> Array:
-	return [_pos, _heading, _y, _pitch, _roll, speed, int(state), hull, max_hull, _bark.text if _bark.visible else ""]
+	return [_pos, _heading, _y, _pitch, _roll, speed, int(state), hull, max_hull, _bark.text if _bark.visible else "", _crew_gone]
 
 
 func _puppet(delta: float) -> void:
@@ -640,6 +729,12 @@ func _puppet(delta: float) -> void:
 		state = st as S
 	hull = float(b[7])
 	max_hull = float(b[8])
+	# (joined after it boarded: those men are already over the side)
+	if b.size() > 10 and int(b[10]) > _crew_gone:
+		_crew_gone = int(b[10])
+		for i in range(1, mini(_crew_gone + 1, _crew.size())):
+			_crew[i]["gone"] = true
+			(_crew[i]["node"] as Node3D).visible = false
 	var txt := str(a[9])
 	if txt != "" and (txt != _bark.text or not _bark.visible):
 		_bark.text = txt

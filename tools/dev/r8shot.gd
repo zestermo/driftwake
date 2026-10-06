@@ -69,6 +69,13 @@ func _process(d: float) -> bool:
 		5:
 			if e < 0.4: return false
 			shot("enemy_ship2")
+			phase = 50; t0 = t
+		50:
+			# its crew on deck, close up
+			cam.global_position = es.global_transform * Vector3(7.5, 4.5, 3.0)
+			cam.look_at(es.global_transform * Vector3(0, 1.2, -0.8), Vector3.UP)
+			if e < 0.4: return false
+			shot("enemy_crew")
 			# start the boss fight: HUD back, player inside the gate
 			var hud = root.get_tree().get_first_node_in_group("hud")
 			if hud: hud.visible = true
