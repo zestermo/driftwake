@@ -66,11 +66,14 @@ var kata_vy := -99.0
 var kata_hv := 0.0
 var kata_tilt := 0.0
 var kata_from := Vector3.ZERO
+var rain_min_vy := 99.0
 func _physics_process(_d: float) -> bool:
 	if p and p.current_state_name() == "HeavyAttack":
 		kata_vy = maxf(kata_vy, p.velocity.y)
 		kata_hv = maxf(kata_hv, Vector2(p.velocity.x, p.velocity.z).length())
 		kata_tilt = maxf(kata_tilt, p.lean.global_basis.y.normalized().angle_to(Vector3.UP))
+	if p and p.current_state_name() == "Plunge":
+		rain_min_vy = minf(rain_min_vy, p.velocity.y)
 	return false
 func _process(d: float) -> bool:
 	t += d
@@ -299,6 +302,37 @@ func _process(d: float) -> bool:
 			wait = 0.4
 			step = 181
 		181:
+			# dual pistols' air attack: Gun Rain over a grunt (not Bullet Storm's: the last shot knocks it down)
+			g = camp.grunts[3]
+			clear_others(g)
+			park(g, ground(p.global_position + Vector3(0, 0, -5.0)))
+			g._stagger_len = 30.0
+			g._set_state(STAGGER)
+			g.health.current_health = 110.0
+			v0 = g.health.current_health
+			p.global_position = g.global_position + Vector3(0.6, 4.5, 0)
+			p.velocity = Vector3.ZERO
+			p.reset_physics_interpolation()
+			p.stamina = p.max_stamina
+			p.draw_weapon(true)   # (wading in during the kata holstered them)
+			wait = 0.15
+			step = 182
+		182:
+			rain_min_vy = 99.0
+			attack("light_attack")
+			wait = 0.1
+			step = 183
+		183:
+			check("dual pistols' air attack is Gun Rain (%s / %s)" % [p.current_state_name(), p.body_model.current_action()], p.current_state_name() == "Plunge" and p.body_model.current_action() == "gun_rain")
+			wait = 0.6
+			step = 184
+		184:
+			check("Gun Rain fires its volley (%d shots)" % p.get_node("StateMachine/Plunge")._shots, p.get_node("StateMachine/Plunge")._shots == 6)
+			check("the recoil holds you up (slowest fall %.1f m/s)" % rain_min_vy, rain_min_vy > -4.0)
+			check("Gun Rain hits the grunt below (%.0f -> %.0f)" % [v0, g.health.current_health], g.health.current_health < v0)
+			wait = 1.0
+			step = 185
+		185:
 			# Bullet Storm (needs a gun)
 			pc.energy = 100.0
 			g = camp.grunts[4]

@@ -322,6 +322,11 @@ func _attach_weapon(in_hand: bool) -> void:
 var auto_point_guns := false
 
 
+## gun_rain shot schedule (fractions of the action), shared with the Plunge state.
+const GUN_RAIN_SHOTS := 6
+const GUN_RAIN_FIRST := 0.13
+const GUN_RAIN_STEP := 0.12
+
 ## Barrel tilt off the forearm line toward the thumb side (a slightly cocked wrist).
 const GUN_GRIP_TILT := 0.12
 static var GUN_GRIP := Basis.looking_at(Vector3(0, -cos(GUN_GRIP_TILT), -sin(GUN_GRIP_TILT)), Vector3(0, sin(GUN_GRIP_TILT), -cos(GUN_GRIP_TILT)))
@@ -1193,6 +1198,34 @@ func _action_pose(n: String, u: float) -> Array:
 			lift.y = (-0.14 * sin(clampf(u / 0.16, 0.0, 1.0) * PI * 0.5)) if u < 0.16 else \
 				(-0.14 * sin(clampf((u - 0.8) / 0.2, 0.0, 1.0) * PI) if u > 0.8 else 0.0)
 			return [posek, "full", lift]
+		"gun_rain":
+			# dual pistols' air attack: knees up, both guns pointed straight down at
+			# the sides, firing in turn (each one kicks) through a full spin; the
+			# last shot is both at once, then the guns come up to the chest
+			var tuck := {"leg_l": Vector3(1.35, 0, -0.18), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(0.8, 0, 0.2), "shin_r": Vector3(-1.3, 0, 0),
+				"torso": Vector3(-0.2, 0, 0), "head": Vector3(-0.3, 0, 0)}
+			var down := tuck.duplicate()
+			down["arm_r"] = Vector3(0.05, 0, 0.3)
+			down["arm_l"] = Vector3(0.05, 0, -0.3)
+			down["fore_r"] = Vector3.ZERO
+			down["fore_l"] = Vector3.ZERO
+			down["hand_r"] = Vector3.ZERO
+			var pose := _keys(u, [[0.0, {}], [0.1, down, "out"], [0.82, down], [1.0, tuck]])
+			if u > 0.82:
+				_gun_tuck(pose, _ease((u - 0.82) / 0.18))
+			for i in range(GUN_RAIN_SHOTS):
+				var since := u - (GUN_RAIN_FIRST + float(i) * GUN_RAIN_STEP)
+				if since < 0.0 or since > 0.12:
+					continue
+				var kick := exp(-since * 40.0)
+				var both := i == GUN_RAIN_SHOTS - 1
+				for sd in ["r", "l"]:
+					if both or (sd == "r") == (i % 2 == 0):
+						pose["arm_" + sd] = (pose["arm_" + sd] as Vector3) + Vector3(0.0, 0.0, (0.35 if sd == "r" else -0.35) * kick)
+						pose["fore_" + sd] = (pose["fore_" + sd] as Vector3) + Vector3(0.4 * kick, 0, 0)
+			pose["pivot"] = Vector3(0, -TAU * _ease(clampf((u - 0.1) / 0.72, 0.0, 1.0)), 0)
+			lift.y = 0.08 * sin(clampf(u, 0.0, 1.0) * PI)
+			return [pose, "full", lift]
 		"dual_heavy":
 			var gh := _guard()
 			var up2 := {"arm_r": Vector3(3.1, 0.2, 0.45), "fore_r": Vector3(0.6, 0, 0), "arm_l": Vector3(3.1, -0.2, -0.45), "fore_l": Vector3(0.6, 0, 0),
@@ -1208,8 +1241,8 @@ func _action_pose(n: String, u: float) -> Array:
 			var aim := gp.duplicate()
 			if stance == "dual_pistol":
 				# both guns come up in front, close together; the firing one kicks
-				aim["arm_r"] = Vector3(1.33 + aim_pitch, 0.18, -0.06)
-				aim["arm_l"] = Vector3(1.33 + aim_pitch, -0.18, 0.06)
+				aim["arm_r"] = Vector3(1.33 + aim_pitch, 0.02, 0.1)
+				aim["arm_l"] = Vector3(1.33 + aim_pitch, -0.02, -0.1)
 				aim["fore_r"] = Vector3(0.12, 0, 0)
 				aim["fore_l"] = Vector3(0.12, 0, 0)
 				aim["torso"] = Vector3(0.0, 0.0, 0)
@@ -1591,14 +1624,18 @@ func _locomotion(delta: float) -> Dictionary:
 			_casual_moves(p, delta, spd, true)
 			lift.y -= _casual_dip()
 		if armed and stance == "dual_pistol":
-			# jogging / sprinting: both guns carried low at the sides, elbows soft,
-			# hands out a little, swinging slightly with the stride
-			var rk := maxf(jog, run)
-			var sw := s * lerpf(0.12, 0.22, run)
-			p["arm_r"] = (p["arm_r"] as Vector3).lerp(Vector3(0.12 + sw, 0.0, 0.32), rk)
-			p["arm_l"] = (p["arm_l"] as Vector3).lerp(Vector3(0.12 - sw, 0.0, -0.32), rk)
-			p["fore_r"] = (p["fore_r"] as Vector3).lerp(Vector3(0.55 + maxf(0.0, sw), 0, 0), rk)
-			p["fore_l"] = (p["fore_l"] as Vector3).lerp(Vector3(0.55 + maxf(0.0, -sw), 0, 0), rk)
+			# jogging: both guns carried low at the sides, elbows soft, hands out a
+			# little, swinging slightly with the stride; sprinting: arms swept back
+			# ~30 deg and out, chest pitched well forward
+			var sw := s * 0.12
+			var jk := jog * (1.0 - run)
+			p["arm_r"] = (p["arm_r"] as Vector3).lerp(Vector3(0.12 + sw, 0.0, 0.32), jk).lerp(Vector3(-0.52 + sw * 0.4, 0.0, 0.38), run)
+			p["arm_l"] = (p["arm_l"] as Vector3).lerp(Vector3(0.12 - sw, 0.0, -0.32), jk).lerp(Vector3(-0.52 - sw * 0.4, 0.0, -0.38), run)
+			p["fore_r"] = (p["fore_r"] as Vector3).lerp(Vector3(0.55 + maxf(0.0, sw), 0, 0), jk).lerp(Vector3(0.12, 0, 0), run)
+			p["fore_l"] = (p["fore_l"] as Vector3).lerp(Vector3(0.55 + maxf(0.0, -sw), 0, 0), jk).lerp(Vector3(0.12, 0, 0), run)
+			p["torso"] += Vector3(-0.2, 0, 0) * run
+			p["head"] += Vector3(0.14, 0, 0) * run
+			p["pivot"] += Vector3(-0.1, 0, 0) * run
 		_air_time = 0.0
 	else:
 		_air_time += delta
