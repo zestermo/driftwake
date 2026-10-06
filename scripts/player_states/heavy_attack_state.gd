@@ -205,7 +205,7 @@ func _kata_volley() -> void:
 	Net.fx("muzzle_sparks", [c + d * 0.5, d, 6])
 	Net.fx("sfx", ["gunshot", c, -6.0, 0.1, 1.35])
 	if hit_any:
-		CombatManager.apply_hitstop(0.03)
+		CombatManager.apply_hitstop(0.03, [player])
 
 
 func exit() -> void:

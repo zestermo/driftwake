@@ -758,7 +758,7 @@ func _slam() -> void:
 	Net.fx("dust_ring", [c, 16, 1.2])
 	Net.fx("sfx", ["fire_blast", c, 2.0, 0.05, 0.9])
 	CombatManager.apply_camera_shake(0.5)
-	CombatManager.apply_hitstop(0.08)
+	CombatManager.apply_hitstop(0.08, [player])
 	FireZone.spawn(player.get_tree(), c, 5.0, 5.0, 12.0, player)
 	player.squash(-3.0)
 

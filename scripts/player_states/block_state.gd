@@ -56,7 +56,7 @@ func absorb(hit: HitData, dir: Vector3) -> bool:
 	Net.fx("impact", [at, Color(1.0, 0.95, 0.75)])
 	Net.fx("sparkle", [at, 5, Color(1.0, 0.9, 0.55)])
 	Net.fx("sfx", ["block", at, -2.0, 0.08, 1.0])
-	CombatManager.apply_hitstop(0.04)
+	CombatManager.apply_hitstop(0.04, [player])
 	CombatManager.apply_camera_shake(0.06)
 	player.body_model.play("guard_block_hit", 0.2)
 	get_tree().create_timer(0.2).timeout.connect(func():

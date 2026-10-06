@@ -318,7 +318,7 @@ func _build_options() -> Control:
 	_slider_row(list, "Mouse sensitivity", "controls", "mouse_sensitivity", 0.2, 3.0, 0.05, "%.2fx", 1.0)
 	_toggle_row(list, "Invert look Y", "controls", "invert_y")
 	_section(list, "Gameplay")
-	_toggle_row(list, "Camera shake", "gameplay", "camera_shake")
+	_slider_row(list, "Camera shake", "gameplay", "camera_shake", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_toggle_row(list, "NPC name tags", "gameplay", "name_tags")
 	_toggle_row(list, "Reticle", "gameplay", "reticle")
 

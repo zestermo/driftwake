@@ -29,7 +29,7 @@ const DEFAULTS := {
 		"invert_y": false,
 	},
 	"gameplay": {
-		"camera_shake": true,
+		"camera_shake": 1.0,    # 0..1 (was a toggle: saved true/false load as 1/0)
 		"name_tags": true,
 		"reticle": true,
 	},

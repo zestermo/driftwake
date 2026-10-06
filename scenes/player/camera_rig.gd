@@ -3,16 +3,23 @@ extends Node3D
 @export var mouse_sensitivity: float = 0.002
 @export var min_pitch: float = -80.0
 @export var max_pitch: float = 60.0
-@export var follow_speed: float = 20.0
+@export var follow_speed: float = 24.0
 @export var spring_length: float = 5.0
 @export var min_zoom: float = 2.0
 @export var max_zoom: float = 25.0
 @export var zoom_speed: float = 1.5
 
 var target: Node3D
-var shake_intensity: float = 0.0
-var shake_decay: float = 8.0
 var current_zoom: float = 5.0
+
+## Shake is "trauma" (0..1): hits add to it, it drains away at SHAKE_DECAY a
+## second, and the offset is trauma^1.5 times smooth noise.
+const SHAKE_PER := 2.5        # trauma per unit of shake intensity (0.4 = full)
+const SHAKE_DECAY := 3.0
+const SHAKE_OFFSET := Vector2(0.6, 0.45)
+const SHAKE_ROLL := 0.05
+var trauma: float = 0.0
+var _shake_t: float = 0.0
 ## 0 = exploring, 1 = combat stance (over-the-shoulder, closer).
 var _combat_blend: float = 0.0
 ## Camera shoulder offset and max distance while the weapon is drawn.
@@ -98,7 +105,7 @@ func _process(delta: float) -> void:
 		if _saved_mask >= 0:
 			spring_arm.collision_mask = _saved_mask
 			_saved_mask = -1
-	spring_arm.spring_length = lerpf(spring_arm.spring_length, zoom, minf(10.0 * delta, 1.0))
+	spring_arm.spring_length = lerpf(spring_arm.spring_length, zoom, 1.0 - exp(-11.0 * delta))
 	var shoulder := combat_shoulder * _combat_blend
 
 	if target:
@@ -106,9 +113,8 @@ func _process(delta: float) -> void:
 		# (60 Hz), the camera at the display rate. Reading the raw position here
 		# makes everything judder on high-refresh monitors.
 		var target_pos := target.get_global_transform_interpolated().origin + Vector3(0, lerpf(1.2, 0.88, e), 0)
-		# Clamp the weight: at low framerates (delta > 1/follow_speed) an
-		# unclamped lerp overshoots and the camera flies away.
-		global_position = global_position.lerp(target_pos, minf(follow_speed * delta, 1.0))
+		# exponential weight: the same follow at 30 fps and at 165 fps
+		global_position = global_position.lerp(target_pos, 1.0 - exp(-follow_speed * delta))
 		# keep the camera above the waves (swimming, diving, falling in)
 		var ocean := get_node_or_null("/root/Ocean")
 		if ocean and camera:
@@ -118,13 +124,19 @@ func _process(delta: float) -> void:
 				global_position.y += wy - cam_p.y
 
 	shoulder += showcase_offset * e
-	if shake_intensity > 0.0:
-		camera.h_offset = shoulder + randf_range(-shake_intensity, shake_intensity)
-		camera.v_offset = 0.15 * _combat_blend - 0.3 * e + randf_range(-shake_intensity, shake_intensity)
-		shake_intensity = move_toward(shake_intensity, 0.0, shake_decay * delta)
-	else:
-		camera.h_offset = shoulder
-		camera.v_offset = 0.15 * _combat_blend - 0.3 * e
+	camera.h_offset = shoulder
+	camera.v_offset = 0.15 * _combat_blend - 0.3 * e
+	camera.rotation.z = 0.0
+	if trauma > 0.0:
+		# real time: a hit-stop slows the engine, but the freeze frame should still shake
+		var rd := delta / maxf(Engine.time_scale, 0.01)
+		_shake_t += rd
+		var s := pow(trauma, 1.5)
+		var t := _shake_t
+		camera.h_offset += SHAKE_OFFSET.x * s * (0.6 * sin(t * 39.0) + 0.4 * sin(t * 67.0 + 1.3))
+		camera.v_offset += SHAKE_OFFSET.y * s * (0.6 * sin(t * 43.0 + 2.1) + 0.4 * sin(t * 71.0 + 0.4))
+		camera.rotation.z = SHAKE_ROLL * s * sin(t * 29.0 + 0.7)
+		trauma = maxf(trauma - SHAKE_DECAY * rd, 0.0)
 
 
 ## Swing around to face the character (`facing_yaw` = their model's yaw) and
@@ -150,6 +162,4 @@ func is_showcasing() -> bool:
 
 
 func shake(intensity: float, _duration: float = 0.2) -> void:
-	if not Settings.get_value("gameplay", "camera_shake"):
-		return
-	shake_intensity = maxf(shake_intensity, intensity)
+	trauma = minf(trauma + intensity * SHAKE_PER * float(Settings.get_value("gameplay", "camera_shake")), 1.0)

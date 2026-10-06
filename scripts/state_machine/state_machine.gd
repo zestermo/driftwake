@@ -25,11 +25,14 @@ func _locked() -> bool:
 
 
 func _process(delta: float) -> void:
-	if current_state and not _locked():
+	if current_state and not _locked() and owner.get("hitstop_left") <= 0.0:
 		current_state.update(delta)
 
 
 func _physics_process(delta: float) -> void:
+	if owner.get("hitstop_left") > 0.0:
+		owner.hitstop_left -= delta
+		return
 	if current_state:
 		if _locked() and owner.has_method("locked_physics") and owner.locked_physics(delta):
 			return

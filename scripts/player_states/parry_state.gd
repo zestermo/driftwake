@@ -72,6 +72,6 @@ func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 		Net.fx("parry_sparks", [at, to_att])
 		Net.fx("sfx", ["parry", at, -1.0, 0.06, 1.0])
 		var combat_mgr := get_node("/root/CombatManager")
-		combat_mgr.apply_hitstop(0.1)
+		combat_mgr.apply_hitstop(0.1, [player, attacker])
 		combat_mgr.apply_camera_shake(0.15)
 		# TODO: stagger the attacker

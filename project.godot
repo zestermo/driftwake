@@ -195,6 +195,10 @@ ping_marker={
 3d_physics/layer_11="Ragdoll"
 3d_physics/layer_12="EnemySolid"
 
+[navigation]
+
+3d/merge_rasterizer_cell_scale=0.1
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

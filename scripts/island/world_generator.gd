@@ -14,6 +14,7 @@ extends Node3D
 
 const _terrain_shader = preload("res://scenes/island/terrain.gdshader")
 const _island_script = preload("res://scripts/island/island.gd")
+const _nav_baker = preload("res://scripts/world/nav_baker.gd")
 
 var heightmap: Array = []
 var island_positions: Array[Vector3] = []  # (x, peak_height, z)
@@ -93,6 +94,7 @@ func _generate_world() -> void:
 
 	# Step 4: Furnish each island (spawn points, dock, enemies)
 	_build_decor_meshes()
+	var nav_islands: Array = []
 	for i in range(centers.size()):
 		var c: Dictionary = centers[i]
 		if c.get("starter", false):
@@ -118,6 +120,7 @@ func _generate_world() -> void:
 		})
 		var island: Node3D = result["island"]
 		add_child(island)
+		nav_islands.append([island, radius])
 		_decorate_island(island, Vector2(pos.x, pos.y), radius, island_type, world_seed + i * 131, result["dock_world_pos"])
 
 		# Track for other systems
@@ -131,6 +134,15 @@ func _generate_world() -> void:
 			dock_area.interacted.connect(_on_dock_interacted)
 
 	_build_redtide()
+	if not Net.is_client():
+		var baker := _nav_baker.new()
+		baker.name = "NavBaker"
+		baker.gen = self
+		baker.add_zone(starter_island, StarterIsland.HALF, false)
+		baker.add_zone(redtide, 70.0, false)
+		for z in nav_islands:
+			baker.add_zone(z[0], z[1], true)
+		add_child(baker)
 	_register_dialogue_tokens()
 	print("WorldGenerator: Generated terrain with %d islands (seed: %d)" % [centers.size(), world_seed])
 

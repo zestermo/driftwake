@@ -376,6 +376,7 @@ func _aoe_local(center: Vector3, radius: float, dmg: float, knock: bool) -> void
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DEAD:
 		return
+	_hit_by = attacker
 	var h := hit
 	# not floored by ordinary heavies (only while he's reeling)
 	if h.knockdown and state != S.STAGGER:

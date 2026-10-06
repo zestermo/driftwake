@@ -183,6 +183,7 @@ var _land_strength: float = 0.0
 var _air_time: float = 0.0
 var _action: Dictionary = {}
 var _action_w: float = 0.0
+var _freeze: float = 0.0
 var _base: Dictionary = {}
 ## Hip height from the body style (the legs' length); PIVOT_Y is the reference.
 var hip_y: float = PIVOT_Y
@@ -663,6 +664,11 @@ func hide_left_prop() -> void:
 # ==========================================================================
 # Actions (one-shot animations)
 # ==========================================================================
+## Hold the pose where it is (co-op hit-stop: just this body, not the world).
+func freeze(duration: float) -> void:
+	_freeze = maxf(_freeze, duration)
+
+
 ## Play a named action. Known names: draw, sheathe, slash_r, slash_l, slash_down,
 ## heavy, roll, flip, parry, stagger, drink, wave, hit.
 func play(action_name: String, duration: float) -> void:
@@ -2059,6 +2065,9 @@ func _locomotion(delta: float) -> Dictionary:
 # ==========================================================================
 func _process(delta: float) -> void:
 	if not is_visible_in_tree() or pivot == null:
+		return
+	if _freeze > 0.0:
+		_freeze -= delta
 		return
 	_t += delta
 	# bare-handed fighting: close the hands while the fist stance is up

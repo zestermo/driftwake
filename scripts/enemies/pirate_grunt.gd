@@ -133,6 +133,7 @@ var _rest: float = 0.0
 var _down_min: float = 1.0
 ## The last hit that landed (a cutting killing blow can sever).
 var _last_hit: HitData
+var _hit_by: Node
 ## Chance a cutting killing blow takes off a head or an arm (a full-charge katana draw always does).
 const SEVER_CHANCE := 0.6
 var _dead_t: float = 0.0
@@ -141,6 +142,10 @@ var _stuck: float = 0.0
 var _riposte: bool = false
 var _detour := Vector3.ZERO
 var _detour_t: float = 0.0
+var _path := PackedVector3Array()
+var _path_i: int = 0
+var _path_goal := Vector3.INF
+var _path_t: float = 0.0
 var _damage_number_scene: PackedScene
 var _gun: String = ""
 var _aim_len: float = 1.0
@@ -530,11 +535,12 @@ func _physics_process(delta: float) -> void:
 			if _lost(p, dist):
 				_go_home()
 			else:
-				_face(dir_p)
+				var nd := _nav_dir(p.global_position, delta)
+				_face(nd)
 				if _want_pistol(p, dist, delta):
 					_start_aim("pistol")
 				elif dist > CIRCLE_RANGE + 0.6:
-					want = dir_p * RUN_SPEED + _separation()
+					want = nd * RUN_SPEED + _separation()
 					running = true
 				else:
 					_set_state(S.CIRCLE)
@@ -721,8 +727,9 @@ func _physics_process(delta: float) -> void:
 			else:
 				var to_spot := _flat(_repos_target - global_position)
 				if to_spot.length() > 0.7 and st_t < 3.5:
-					_face(to_spot if to_spot.length() > 2.0 else dir_p)
-					want = to_spot.normalized() * RUN_SPEED * 0.9 + _separation()
+					var nd := _nav_dir(_repos_target, delta)
+					_face(nd if to_spot.length() > 2.0 else dir_p)
+					want = nd * RUN_SPEED * 0.9 + _separation()
 					running = true
 				else:
 					_set_state(S.KEEP)
@@ -755,8 +762,9 @@ func _physics_process(delta: float) -> void:
 			if p and _player_ok(p) and dist < NOTICE_RANGE * 0.7:
 				alert()
 			elif to_post.length() > 0.6:
-				_face(to_post)
-				want = to_post.normalized() * WALK_SPEED * 1.6
+				var nd := _nav_dir(post, delta)
+				_face(nd)
+				want = nd * WALK_SPEED * 1.6
 			else:
 				global_position.x = post.x
 				global_position.z = post.z
@@ -850,6 +858,26 @@ func _get_token() -> bool:
 		return true
 	_has_token = bool(camp.call("request_token", self))
 	return _has_token
+
+
+## Which way to run to reach `goal`: along the island's navmesh around huts,
+## rocks and palms (NavBaker), or straight at it off the mesh (a ship's deck,
+## an island not baked yet). Paths refresh twice a second or when the goal moves.
+func _nav_dir(goal: Vector3, delta: float) -> Vector3:
+	var straight := _flat(goal - global_position).normalized()
+	_path_t -= delta
+	if _path_t <= 0.0 or goal.distance_to(_path_goal) > 1.5:
+		_path_t = _rng.randf_range(0.4, 0.6)
+		_path_goal = goal
+		_path_i = 1
+		var map := get_world_3d().navigation_map
+		var on_mesh := NavigationServer3D.map_get_closest_point(map, global_position).distance_to(global_position) < 1.2
+		_path = NavigationServer3D.map_get_path(map, global_position, goal, true) if on_mesh else PackedVector3Array()
+	while _path_i < _path.size() and _flat(_path[_path_i] - global_position).length() < 0.8:
+		_path_i += 1
+	if _path_i >= _path.size():
+		return straight
+	return _flat(_path[_path_i] - global_position).normalized()
 
 
 func _separation() -> Vector3:
@@ -998,6 +1026,7 @@ func _glint() -> void:
 func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DEAD:
 		return
+	_hit_by = attacker
 	var dir := Vector3.ZERO
 	if attacker is Node3D:
 		dir = _flat(global_position - (attacker as Node3D).global_position)
@@ -1051,7 +1080,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			Net.fx("sparkle", [at, 14, Color(0.75, 0.45, 1.0)])
 			Net.fx("impact", [at, Color(0.6, 0.3, 1.0)])
 			Net.fx("sfx", ["haki", at, -6.0, 0.05, 1.3])
-			get_node("/root/CombatManager").apply_hitstop(0.12)
+			get_node("/root/CombatManager").apply_hitstop(0.12, [_hit_by, self])
 			velocity = dir * 4.0
 			_stagger_len = 1.6
 			humanoid.play("stagger", 1.6)
@@ -1075,7 +1104,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			Net.fx("impact", [spark, Color(1.0, 0.95, 0.7)])
 			Net.fx("sparkle", [spark, 6, Color(1.0, 0.9, 0.5)])
 			Net.fx("sfx", ["hit", spark, -2.0, 0.05, 1.8])
-			get_node("/root/CombatManager").apply_hitstop(0.04)
+			get_node("/root/CombatManager").apply_hitstop(0.04, [_hit_by, self])
 			humanoid.play("block", 0.4)
 			velocity = dir * 2.5
 			# mashing into a guard gets you a quick counter-slash
@@ -1818,10 +1847,15 @@ func _exit_tree() -> void:
 # ==========================================================================
 # Co-op
 # ==========================================================================
-## Hit feedback (hitstop, shake) is for whoever landed the blow.
+## Hit feedback (hitstop, shake) is for whoever landed the blow (a guest's
+## own blows get theirs in Net.route_hit).
 func _hit_feedback(hit: HitData) -> void:
-	if not Net.active:
-		get_node("/root/CombatManager").apply_hit_effects(hit)
+	if not Net.active or _hit_by == Net.local_player:
+		get_node("/root/CombatManager").apply_hit_effects(hit, [_hit_by, self])
+
+
+func hit_freeze(duration: float) -> void:
+	humanoid.freeze(duration)
 
 
 ## More captains, more health (keeps the share of health it has left).

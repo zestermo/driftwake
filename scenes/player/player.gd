@@ -461,7 +461,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if not hit.dot:
 		Net.fx("blood", [global_position + Vector3(0, 1.1, 0) - dir * 0.15, dir, clampi(int(hit.damage * 0.6), 6, 18)])
 	Net.fx("sfx", ["hit", global_position, -3.0, 0.08, 0.8])
-	get_node("/root/CombatManager").apply_hit_effects(hit)
+	get_node("/root/CombatManager").apply_hit_effects(hit, [self, attacker])
 	if health_component.current_health <= 0.0:
 		return  # _on_died ragdolls the body
 	if context == Context.HELM or current_state_name() in ["Talk", "Helm"]:
@@ -486,8 +486,19 @@ func _foresight_dodge(dir: Vector3) -> void:
 	velocity = side * 4.0
 	reset_physics_interpolation()
 	Net.fx("sfx", ["whoosh", global_position, -4.0, 0.05, 1.5])
-	CombatManager.apply_hitstop(0.18)
+	CombatManager.apply_hitstop(0.18, [self])
 	_toast("Foresight!")
+
+
+## Co-op hit-stop: our own captain stops dead for a beat (the state machine
+## skips its ticks) while the rest of the world carries on.
+var hitstop_left: float = 0.0
+
+
+func hit_freeze(duration: float) -> void:
+	if is_local:
+		hitstop_left = maxf(hitstop_left, duration)
+	body_model.freeze(duration)
 
 
 ## Thrown off your feet: physics ragdoll, then get back up.

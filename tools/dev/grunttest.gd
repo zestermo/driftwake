@@ -93,6 +93,15 @@ func _process(d: float) -> bool:
 			print("   player state ", p.current_state_name())
 			print("   player hp lost ", snappedf(hp0 - p.health_component.current_health, 1))
 			check("they land hits", p.health_component.current_health < hp0)
+			var reg = root.get_node_or_null("World/Islands/Brinehollow/NavRegion")
+			var nm = reg.navigation_mesh if reg else null
+			print("   Brinehollow navmesh polygons ", nm.get_polygon_count() if nm else -1)
+			check("Brinehollow navmesh baked", nm != null and nm.get_polygon_count() > 100)
+			var map: RID = p.get_world_3d().navigation_map
+			var g1 = camp.grunts[0]
+			var path := NavigationServer3D.map_get_path(map, g1.post, g1.post + Vector3(30, 0, 0), true)
+			print("   path from a post 30 m east: %d points, ends %.1f m off" % [path.size(), path[path.size() - 1].distance_to(g1.post + Vector3(30, 0, 0)) if path.size() > 0 else -1.0])
+			check("grunts get navmesh paths", path.size() >= 2)
 			# a hit can knock the player off the beach into the sea, where the crew
 			# won't follow (no one circles and step 4 waits forever): back on land
 			if p.current_state_name() == "Swim":

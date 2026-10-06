@@ -842,8 +842,8 @@ func route_hit(hurtbox: Node, data: HitData, attacker: Node) -> bool:
 		var apos := (attacker as Node3D).global_position if attacker is Node3D else Vector3.INF
 		_hit_enemy.rpc_id(1, key_of(hurtbox), hit_pack(data), key_of(attacker), apos)
 		# the blow's feedback is ours (we landed it)
-		if attacker == local_player and data.camera_shake_intensity > 0.0 and not data.dot:
-			CombatManager.apply_camera_shake(data.camera_shake_intensity)
+		if attacker == local_player and not data.dot:
+			CombatManager.apply_hit_effects(data, [attacker, o])
 		return true
 	return false
 
