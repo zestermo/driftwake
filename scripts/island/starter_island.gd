@@ -1303,7 +1303,8 @@ func _spawn_loot() -> void:
 			gs.quantity = 1
 			items.append(gs)
 		# a pistol in the old camp's stash; two more Devil Fruits hidden on
-		# the island (the Wolf Fruit in the ruins, the Vine Fruit up the hill)
+		# the island (the Wolf Fruit in the ruins, the Vine Fruit up the hill);
+		# a katana in the cove
 		var extra := ""
 		if s[0] == CAMP + Vector2(-6.0, -4.0):
 			extra = "pistol"
@@ -1311,6 +1312,8 @@ func _spawn_loot() -> void:
 			extra = "wolf_fruit"
 		elif s[0] == HILL + Vector2(4.0, 3.5):
 			extra = "vine_fruit"
+		elif s[0] == COVE + Vector2(9, -21):
+			extra = "katana"
 		if extra != "" and ItemDB.get_item(extra):
 			var es := ItemStack.new()
 			es.item = ItemDB.get_item(extra)

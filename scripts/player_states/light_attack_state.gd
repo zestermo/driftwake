@@ -1,6 +1,7 @@
 extends PlayerState
 ## Light attack combo, shaped by your fighting style (player.style()):
 ##   sword       right slash -> backhand -> spinning finisher
+##   katana      high right diagonal -> wide left-to-right cut -> lunging stab (slow, two-handed)
 ##   dual_sword  forehand -> backhand -> X-cross with both blades -> twin spin
 ##   fist        jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
@@ -13,6 +14,12 @@ const STYLES := {
 		"durations": [0.3, 0.3, 0.46], "lengths": [0.48, 0.48, 0.62], "impulses": [4.5, 4.5, 6.5],
 		"damages": [10.0, 12.0, 22.0], "hitstops": [0.045, 0.045, 0.09], "shakes": [0.09, 0.09, 0.18],
 		"start": 0.08, "end": 0.24, "reach": "sword", "color": Color(0.45, 0.75, 1.0)},
+	# two-handed: slow, wide cuts with a held wind-up, hitting hard
+	"katana": {"anims": ["katana_r", "katana_l", "katana_stab"], "trails": ["kesa_r", "sweep_l", "thrust"],
+		"durations": [0.62, 0.62, 0.7], "lengths": [0.85, 0.85, 0.9], "impulses": [5.0, 5.0, 9.0],
+		"damages": [16.0, 18.0, 26.0], "hitstops": [0.06, 0.06, 0.1], "shakes": [0.1, 0.1, 0.18],
+		"starts": [0.33, 0.33, 0.36], "ends": [0.47, 0.47, 0.5],
+		"start": 0.33, "end": 0.47, "reach": "katana", "color": Color(0.85, 0.92, 1.0)},
 	"dual_sword": {"anims": ["dual_1", "dual_2", "dual_cross", "dual_spin"], "trails": ["right", "left", "cross", "spin"],
 		"durations": [0.24, 0.24, 0.32, 0.44], "lengths": [0.4, 0.4, 0.5, 0.6], "impulses": [4.0, 4.0, 5.0, 6.0],
 		"damages": [8.0, 8.0, 13.0, 20.0], "hitstops": [0.035, 0.035, 0.06, 0.09], "shakes": [0.07, 0.07, 0.12, 0.18],

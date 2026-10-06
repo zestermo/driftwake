@@ -44,7 +44,7 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 
 ```powershell
 .\tools\dev\run_tests.ps1 r10test swimtest        # specific suites (normal use)
-.\tools\dev\run_tests.ps1 -Jobs 4                 # all 24 suites, 4 at a time (faster, a bit flakier)
+.\tools\dev\run_tests.ps1 -Jobs 4                 # all 26 suites, 4 at a time (faster, a bit flakier)
 .\tools\dev\nettest.ps1                           # co-op: host + client on localhost (also: water, three, late, hostquit)
 & $env:GODOT --path . --script res://tools/dev/weathershot.gd -- res://tools/dev/out/wx   # renders (GPU, opens a window)
 ```
@@ -54,15 +54,25 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
   `.gdignore`d). Read the PNGs to check visuals.
 - `tools/dev/README.md` lists every test and tool with a one-line description.
 - Known flaky checks (rerun before digging in): swimtest "head still above water while
-  swimming", vinetest "aiming at the big bug" on 4.7, and fixtest under load. (grunttest's
-  hang was a real test bug: a hit could knock the player into the sea; fixed 2026-10-05.)
-  chartest/invtest can clash when run in parallel (shared saves). `-Jobs` > 1 makes these more
+  swimming", vinetest "aiming at the big bug" on 4.7, grunttest can hang waiting for a
+  circling grunt under heavy CPU load, grunttest "survivors return to their posts" (timing),
+  and fixtest under load. `-Jobs` > 1 makes these more
   likely.
 - Writing a test: copy the newest `tools/dev/rNtest.gd` pattern (step machine in `_process`,
   `check(name, cond)`, final `RESULT OK`/`RESULT FAILED (n)`). Don't statically type project
   classes that touch autoloads; nodes added in `_initialize()` aren't in the tree yet.
   Clamp `lerp(a, b, k * delta)` weights (frame times vary).
 - Exports: exclude `tools/*` and `docs/*` in the export preset.
+
+## Python (asset generators only)
+
+Python is only needed for `tools/texture_gen/*.py` (textures, SFX, music; numpy, scipy,
+pillow). Nothing else in the project or the tests uses it. On Windows use the `py`
+launcher (`py tools/texture_gen/gen_psx_audio.py`); `python` may hit the Microsoft Store
+stub. Setup: `py -m pip install -r tools/texture_gen/requirements.txt`. The music generator
+also wants `ffmpeg` on PATH for .ogg output (otherwise it keeps .wav). For one-off file
+edits or data crunching, use the editing tools, PowerShell or a GDScript `--script`
+instead of Python. If `py` isn't found, tell Zach rather than installing things.
 
 ## Where things are
 
@@ -72,7 +82,7 @@ GameMenu, Net, Music, Weather, DevCapture.
 | Area | Files |
 |---|---|
 | Player + states | `scenes/player/player.gd`, `scripts/player_states/*_state.gd` (state machine; Move/Idle/Jump/Dodge/Swim/Downed/Swing/Cannon/Helm...) |
-| Body + animation | `scripts/npc/humanoid.gd` (procedural rig + locomotion + actions), `body_builder.gd`, `character_look.gd`, `face_painter.gd`, `spring_chains.gd` (hair/cloth), `lower_body.gd` (hips to ankles as one skinned mesh), `arm_body.gd` (shoulders to wrists, one skinned mesh per arm) |
+| Body + animation | `scripts/npc/humanoid.gd` (procedural rig + locomotion + actions), `body_builder.gd`, `character_look.gd`, `face_painter.gd`, `spring_chains.gd` (hair/cloth) |
 | Combat | `scenes/combat/hitbox.gd` + `hurtbox.gd`, `scripts/combat/` (HitData, health, ragdoll.gd), `scripts/enemies/` (pirate_grunt, pirate_boss, scuttlebug) |
 | Powers / progression | `scripts/powers/`, `scripts/progression/` (skill map, styles, fruits) |
 | World | `scripts/island/world_generator.gd` + islands in `scripts/island/`, `scripts/world/weather.gd` (day/night, weather, sky, rain, lightning, fog/haze), `cloud_spawner.gd` (PuffClouds 3D clouds) |

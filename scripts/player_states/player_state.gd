@@ -65,7 +65,9 @@ func combat_input() -> String:
 		return ""
 	if input_buffer.consume_action("heavy_attack"):
 		if player.can_attack():
-			return "HeavyAttack" if player.spend_stamina(player.HEAVY_COST) else ""
+			if not player.spend_stamina(player.HEAVY_COST):
+				return ""
+			return "Iai" if player.style() == "katana" else "HeavyAttack"
 		player.draw_weapon()
 		return ""
 	if input_buffer.consume_action("parry"):

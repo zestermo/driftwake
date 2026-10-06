@@ -160,7 +160,8 @@ func _process(d: float) -> bool:
 		h._action_w = 1.0
 	hold += 1
 	place_cam(views[vi])
-	if hold >= 5:
+	# (the first view of a pose waits longer: the joints ease toward it)
+	if hold >= (20 if vi == 0 else 5):
 		root.get_texture().get_image().save_png("%s_%02d_%s_%s.png" % [out, si, name_, views[vi]])
 		vi += 1
 		hold = 1

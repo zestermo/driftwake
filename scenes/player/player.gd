@@ -842,7 +842,7 @@ func _physics_process(delta: float) -> void:
 
 
 ## States that drop into swimming when the water gets deep enough.
-const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing"]
+const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai"]
 
 
 ## Distance down to the ground (or INF over nothing within 30 m).
@@ -1214,6 +1214,8 @@ func style() -> String:
 	var dual := offhand_weapon != null and not hybrid
 	match c:
 		"sword":
+			if equipped_weapon.weapon_model == "katana":
+				return "katana"
 			return "dual_sword" if dual else "sword"
 		"gun":
 			return "dual_pistol" if dual else "pistol"
@@ -1224,6 +1226,9 @@ func _offhand_valid(item: ItemData) -> bool:
 	if item == null or equipped_weapon == null:
 		return false
 	if class_of(item) != class_of(equipped_weapon):
+		return false
+	# (the katana takes both hands)
+	if "katana" in [item.weapon_model, equipped_weapon.weapon_model]:
 		return false
 	if item == equipped_weapon and inventory_component.count(item.id) < 2:
 		return false
@@ -1368,6 +1373,8 @@ const REACH := {
 	"wide": [Vector3(2.4, 1.2, 1.7), Vector3(-0.3, 0.2, -0.95)],
 	"fist": [Vector3(1.3, 1.2, 1.15), Vector3(-0.3, 0.2, -0.7)],
 	"claw": [Vector3(1.7, 1.2, 1.35), Vector3(-0.3, 0.2, -0.78)],
+	"katana": [Vector3(2.5, 1.3, 2.2), Vector3(-0.3, 0.2, -1.2)],
+	"iai": [Vector3(3.0, 1.3, 2.4), Vector3(-0.3, 0.2, -1.1)],
 }
 
 
@@ -1385,7 +1392,7 @@ func damage_multiplier() -> float:
 	var pr := progression
 	var k := 1.0 + (attribute("strength") - 5) * 0.05 + pr.stat("damage_pct") + float(pr.level - 1) * 0.02
 	match style():
-		"sword":
+		"sword", "katana":
 			k += pr.stat("sword_pct")
 		"dual_sword":
 			k += pr.stat("sword_pct") + pr.stat("dual_sword_pct")

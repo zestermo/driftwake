@@ -111,8 +111,10 @@ var weapon_in_hand: bool = false
 ## when sheathed.
 var offhand: MeshInstance3D
 var _hip_socket_l: Node3D
+## A katana lives in its scabbard on the left hip (the scabbard stays when it's drawn).
+var _katana_socket: Node3D
 ## Fighting stance for the guard pose: sword, dual_sword, fist, pistol,
-## dual_pistol, claw.
+## dual_pistol, claw, katana.
 var stance: String = "sword"
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
@@ -259,10 +261,12 @@ func apply_look(look_dict: Dictionary) -> void:
 	if offhand and offhand.get_parent():
 		offhand.get_parent().remove_child(offhand)
 	_hip_socket_l = null
+	_katana_socket = null
 	look = look_dict
 	_build()
 	_beast.clear()
 	_tail = null
+	_build_saya()
 	_attach_weapon(weapon_in_hand)
 	_apply_fists()
 
@@ -291,11 +295,38 @@ func set_weapon(mesh: Mesh) -> void:
 		weapon.queue_free()
 		weapon = null
 	if mesh == null:
+		_build_saya()
 		return
 	weapon = MeshInstance3D.new()
 	weapon.name = "Weapon"
 	weapon.mesh = mesh
+	_build_saya()
 	_attach_weapon(weapon_in_hand)
+
+
+func is_katana() -> bool:
+	return weapon != null and is_instance_valid(weapon) and weapon.mesh != null and str(weapon.mesh.get_meta("model", "")) == "katana"
+
+
+## The katana's scabbard on the left hip, worn edge-up with the mouth forward
+## (made with the weapon, gone with it).
+func _build_saya() -> void:
+	if _katana_socket != null and is_instance_valid(_katana_socket):
+		if weapon and weapon.get_parent() == _katana_socket:
+			_katana_socket.remove_child(weapon)
+		_katana_socket.queue_free()
+	_katana_socket = null
+	if not is_katana() or hip_socket == null:
+		return
+	_katana_socket = Node3D.new()
+	_katana_socket.name = "KatanaSocket"
+	hip_socket.get_parent().add_child(_katana_socket)
+	_katana_socket.position = hip_socket.position + Vector3(0.0, 0.03, -0.09)
+	_katana_socket.basis = Basis.looking_at(Vector3(-0.2, -0.42, 0.88).normalized(), Vector3.UP)
+	var saya := MeshInstance3D.new()
+	saya.name = "Saya"
+	saya.mesh = Props.saya_mesh()
+	_katana_socket.add_child(saya)
 
 
 func _attach_weapon(in_hand: bool) -> void:
@@ -309,12 +340,14 @@ func _attach_weapon(in_hand: bool) -> void:
 		offhand.transform = Transform3D.IDENTITY
 	if weapon == null:
 		return
-	var target := hand_r if in_hand else hip_socket
+	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
+	var target := hand_r if in_hand else sheath
 	if weapon.get_parent() != target:
 		if weapon.get_parent():
 			weapon.get_parent().remove_child(weapon)
 		target.add_child(weapon)
-	weapon.transform = Transform3D.IDENTITY
+	# (a sheathed katana: guard just outside the scabbard's mouth)
+	weapon.transform = Transform3D(Basis(), Vector3(0, 0, 0.04)) if target == _katana_socket else Transform3D.IDENTITY
 
 
 ## The player's bodies (and their co-op puppets) aim their pistols every frame
@@ -429,6 +462,8 @@ func _guard() -> Dictionary:
 			return {"arm_r": Vector3(1.05, -0.2, 0.18), "fore_r": Vector3(0.35, 0, 0),
 				"arm_l": Vector3(0.25, 0.1, -0.2), "fore_l": Vector3(0.6, 0, 0),
 				"torso": Vector3(-0.05, 0.25, 0), "head": Vector3(0.05, -0.2, 0)}
+		"katana":
+			return KATANA_GUARD
 		"dual_pistol":
 			# held low and close, uneven: the right a little higher with the elbow
 			# bent more, the left lower and straighter (raised to fire: shoot_r/l)
@@ -452,6 +487,50 @@ func _gun_tuck(p: Dictionary, k: float) -> void:
 		tuck.erase("fore_l")
 	for j in tuck.keys():
 		p[j] = (p.get(j, Vector3.ZERO) as Vector3).lerp(tuck[j], k)
+
+
+## Hip height through a wound-up strike: sinks to `coil` by `wind_end`, drops
+## to `deep` by `hit`, holds until `hold`, then rises back by the end.
+static func _strike_lift(u: float, wind_end: float, hit: float, hold: float, coil: float, deep: float) -> float:
+	if u < wind_end:
+		return coil * _ease(u / wind_end)
+	if u < hit:
+		return lerpf(coil, deep, 1.0 - pow(1.0 - (u - wind_end) / (hit - wind_end), 3.0))
+	if u < hold:
+		return deep
+	return deep * (1.0 - _ease((u - hold) / (1.0 - hold)))
+
+
+## The katana's drawing stance: a deep forward lunge, left foot leading, chest
+## low and turned so the scabbard hip leads; the feet shuffle when moving.
+func _iai_pose() -> Dictionary:
+	var mv := clampf(ground_speed / 2.0, 0.0, 1.0)
+	var sh := sin(_t * 7.0) * 0.18 * mv
+	return {"pivot": Vector3(-0.12, 0, 0), "hips": Vector3(0, 0.35, 0),
+		"torso": Vector3(-0.4 + sin(_t * 41.0) * 0.01, -0.45, 0.05), "head": Vector3(0.45, 0.4, 0),
+		"arm_r": Vector3(0.7, 0.9, -0.45), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3.ZERO,
+		"arm_l": Vector3(0.25, -0.2, -0.15), "fore_l": Vector3(1.0, 0, 0),
+		"leg_l": Vector3(1.15 + sh, 0, -0.16), "shin_l": Vector3(-1.45, 0, 0),
+		"leg_r": Vector3(-0.8 - sh, 0, 0.18), "shin_r": Vector3(-0.3, 0, 0)}
+
+
+## Katana hands: the left hand rides the hilt below the right; in the drawing
+## stance the right hand grips the hilt at the scabbard and the left holds its mouth.
+func _katana_hands() -> void:
+	if stance != "katana" or ragdoll != null or not is_katana() or not weapon.is_inside_tree():
+		return
+	var pole_l := global_basis * Vector3(-0.7, -1.0, 0.2)
+	match current_action():
+		"iai_ready":
+			reach_hand(true, weapon.global_transform * Vector3(0, 0, 0.07), global_basis * Vector3(0.5, -1.0, 0.4))
+			if _katana_socket:
+				reach_hand(false, _katana_socket.global_transform * Vector3(0, 0, -0.07), pole_l)
+		"draw", "sheathe", "iai_slash":
+			pass
+		_:
+			# (one hand carries it at a sprint)
+			if weapon_in_hand and armed and not (sprinting and grounded and ground_speed > 6.5):
+				reach_hand(false, weapon.global_transform * Vector3(0, 0, 0.17), pole_l)
 
 
 ## Loose limbs while hanging (see `dangle`): each swings like a damped
@@ -485,6 +564,8 @@ func _update_dangle(delta: float) -> void:
 ## The held block for the current stance (upper body; the legs keep walking).
 func _block_pose() -> Dictionary:
 	match stance:
+		"katana":
+			return KATANA_HANG
 		"fist", "claw", "dual_pistol", "pistol":
 			# forearms up in front of the face, chin tucked, square to the front
 			return {"torso": Vector3(-0.2, 0.45, 0), "head": Vector3(0.28, 0.05, 0),
@@ -577,6 +658,8 @@ func _finish_action() -> void:
 		_attach_weapon(true)
 	elif n == "sheathe":
 		_attach_weapon(false)
+	elif n in ["iai_ready", "iai_slash"] and armed and not weapon_in_hand:
+		_attach_weapon(true)   # (a katana readied in its scabbard, then interrupted)
 	elif n == "drink":
 		hide_left_prop()
 	if n in SPIN_ACTIONS:
@@ -700,6 +783,15 @@ const FIST_GUARD := {
 	"arm_r": Vector3(0.75, 0.75, 0.12), "fore_r": Vector3(2.3, 0, 0),
 }
 const REST_ARMS := {"arm_r": Vector3(0, 0, 0.08), "fore_r": Vector3(0.15, 0, 0), "arm_l": Vector3(0, 0, -0.08), "fore_l": Vector3(0.15, 0, 0)}
+# Katana (two-handed; the left hand is put on the hilt by _katana_hands, its
+# arm values here only seed the IK): blade angled up and forward in front.
+const KATANA_GUARD := {"arm_r": Vector3(0.8, 0.35, -0.05), "fore_r": Vector3(0.8, 0, 0), "hand_r": Vector3(-1.0, 0, 0),
+	"arm_l": Vector3(0.75, -0.3, 0.05), "fore_l": Vector3(1.1, 0, 0),
+	"torso": Vector3(-0.1, 0.15, 0), "head": Vector3(0.08, -0.15, 0)}
+# Katana parry / block: both hands raised high, the blade hanging point-down in front.
+const KATANA_HANG := {"arm_r": Vector3(2.2, 0.4, -0.05), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(1.25, 0, 0),
+	"arm_l": Vector3(2.3, -0.35, 0.05), "fore_l": Vector3(1.0, 0, 0),
+	"torso": Vector3(0.05, 0.0, 0), "head": Vector3(0.12, 0, 0)}
 
 
 ## Returns [pose_dict, mask("upper"/"full"), extra_lift]
@@ -713,13 +805,13 @@ func _action_pose(n: String, u: float) -> Array:
 			return [_keys(u, [
 				[0.0, REST_ARMS],
 				[0.45, {"arm_r": Vector3(0.55, 0.0, -0.75), "fore_r": Vector3(1.35, 0, 0), "torso": Vector3(-0.05, 0.4, 0)}],
-				[1.0, GUARD]]), "upper", lift]
+				[1.0, KATANA_GUARD if stance == "katana" else GUARD]]), "upper", lift]
 		"sheathe":
 			if u >= 0.55 and not _action["events"].has("hip"):
 				_action["events"]["hip"] = true
 				_attach_weapon(false)
 			return [_keys(u, [
-				[0.0, GUARD],
+				[0.0, KATANA_GUARD if stance == "katana" else GUARD],
 				[0.55, {"arm_r": Vector3(0.55, 0.0, -0.75), "fore_r": Vector3(1.35, 0, 0), "torso": Vector3(-0.05, 0.4, 0), "arm_l": Vector3(0, 0, -0.1), "fore_l": Vector3(0.2, 0, 0)}],
 				[1.0, REST_ARMS]]), "upper", lift]
 		"slash_r":
@@ -751,8 +843,64 @@ func _action_pose(n: String, u: float) -> Array:
 			var dip := 1.0 - clampf(absf(u - 0.12) / 0.12, 0.0, 1.0)
 			lift = Vector3(0, -0.2 * dip + 0.32 * hop, 0)
 			return [pose, "full", lift]
+		# --- katana: slow, wide two-handed cuts through deep lunges ---
+		"katana_r":
+			# combo 1: the blade swung up behind the head over the right shoulder,
+			# held a beat, then a long diagonal cut down to the lower left
+			var coil := {"leg_l": Vector3(0.45, 0, -0.14), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.3, 0, 0.14), "shin_r": Vector3(-0.55, 0, 0)}
+			var lunge := {"leg_l": Vector3(1.25, 0, -0.14), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(-0.95, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0)}
+			var up := {"arm_r": Vector3(2.7, -0.3, 0.45), "fore_r": Vector3(1.3, 0, 0), "hand_r": Vector3.ZERO,
+				"torso": Vector3(0.2, 0.8, 0.12), "head": Vector3(0.0, -0.55, 0)}
+			var cut := {"arm_r": Vector3(0.75, 0.95, -0.45), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.0, 0, 0),
+				"torso": Vector3(-0.55, -0.85, -0.15), "head": Vector3(0.25, 0.6, 0)}
+			lift.y = _strike_lift(u, 0.4, 0.52, 0.74, -0.1, -0.34)
+			return [_keys(u, [[0.0, _guard()], [0.3, up.merged(coil), "out"], [0.4, up.merged(coil)], [0.52, cut.merged(lunge), "out"], [0.74, cut.merged(lunge)], [1.0, _guard()]]), "full", lift]
+		"katana_l":
+			# combo 2: the blade swung round to the left shoulder, then a wide
+			# flat cut across to the right, stepping through with the right foot
+			var coil2 := {"leg_r": Vector3(0.45, 0, 0.14), "shin_r": Vector3(-0.85, 0, 0), "leg_l": Vector3(-0.3, 0, -0.14), "shin_l": Vector3(-0.55, 0, 0)}
+			var lunge2 := {"leg_r": Vector3(1.25, 0, 0.14), "shin_r": Vector3(-1.4, 0, 0), "leg_l": Vector3(-0.95, 0, -0.16), "shin_l": Vector3(-0.2, 0, 0)}
+			var cock := {"arm_r": Vector3(1.7, 1.25, -0.2), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
+				"torso": Vector3(0.05, -0.95, -0.1), "head": Vector3(0.0, 0.7, 0)}
+			var sweep := {"arm_r": Vector3(1.35, -0.55, 1.25), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.25, 0, 0),
+				"torso": Vector3(-0.35, 1.0, 0.12), "head": Vector3(0.15, -0.75, 0)}
+			lift.y = _strike_lift(u, 0.4, 0.52, 0.74, -0.1, -0.32)
+			return [_keys(u, [[0.0, _guard()], [0.3, cock.merged(coil2), "out"], [0.4, cock.merged(coil2)], [0.52, sweep.merged(lunge2), "out"], [0.74, sweep.merged(lunge2)], [1.0, _guard()]]), "full", lift]
+		"katana_stab":
+			# combo 3: drawn back to the right hip, point forward, then driven
+			# straight out through a long lunge
+			var coil3 := {"arm_r": Vector3(0.25, 0.35, 0.35), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(-1.55, 0, 0),
+				"torso": Vector3(0.1, -0.7, 0.05), "head": Vector3(0.05, 0.6, 0),
+				"leg_r": Vector3(0.35, 0, 0.08), "shin_r": Vector3(-0.8, 0, 0), "leg_l": Vector3(-0.4, 0, -0.1), "shin_l": Vector3(-0.9, 0, 0)}
+			var drive := {"arm_r": Vector3(1.8, 0.25, 0.0), "fore_r": Vector3(0.0, 0, 0), "hand_r": Vector3(-1.6, 0, 0),
+				"torso": Vector3(-0.45, 0.35, 0), "head": Vector3(0.4, -0.3, 0),
+				"leg_r": Vector3(1.3, 0, 0.06), "shin_r": Vector3(-1.4, 0, 0), "leg_l": Vector3(-1.0, 0, -0.08), "shin_l": Vector3(-0.1, 0, 0)}
+			lift.y = _strike_lift(u, 0.4, 0.5, 0.74, -0.16, -0.36)
+			return [_keys(u, [[0.0, _guard()], [0.3, coil3, "out"], [0.4, coil3], [0.5, drive, "out"], [0.74, drive], [1.0, _guard()]]), "full", lift]
+		"iai_ready":
+			# katana heavy, held: the blade slips back into its scabbard and you
+			# sink into a low forward lunge, hands on scabbard and hilt (put
+			# there by _katana_hands); moving shuffles the feet
+			if float(_action["t"]) >= 0.1 and weapon_in_hand and not _action["events"].has("saya"):
+				_action["events"]["saya"] = true
+				_attach_weapon(false)
+			lift.y = -0.34
+			return [_iai_pose(), "full", lift]
+		"iai_slash":
+			# katana heavy, released: the blade leaves the scabbard in one wide cut
+			# across to the right as you drive forward, the scabbard hand thrown back
+			if u >= 0.03 and not _action["events"].has("hand"):
+				_action["events"]["hand"] = true
+				_attach_weapon(true)
+			var cut2 := {"pivot": Vector3(-0.15, 0, 0), "hips": Vector3(0, -0.3, 0),
+				"torso": Vector3(-0.35, 0.95, 0.1), "head": Vector3(0.3, -0.7, 0),
+				"arm_r": Vector3(1.45, -0.55, 1.3), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
+				"arm_l": Vector3(-0.55, 0.0, -0.95), "fore_l": Vector3(0.35, 0, 0),
+				"leg_l": Vector3(1.35, 0, -0.14), "shin_l": Vector3(-1.55, 0, 0), "leg_r": Vector3(-1.05, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0)}
+			lift.y = -0.4 * (1.0 - _ease(clampf((u - 0.62) / 0.38, 0.0, 1.0)))
+			return [_keys(u, [[0.0, _iai_pose()], [0.14, cut2, "out"], [0.62, cut2], [1.0, _guard()]]), "full", lift]
 		"slash_down":
-			var legs3 := {"leg_l": Vector3(0.75, 0, -0.08), "shin_l": Vector3(-0.7, 0, 0), "leg_r": Vector3(-0.6, 0, 0.08), "shin_r": Vector3(-0.35, 0, 0)}
+			var legs3 :={"leg_l": Vector3(0.75, 0, -0.08), "shin_l": Vector3(-0.7, 0, 0), "leg_r": Vector3(-0.6, 0, 0.08), "shin_r": Vector3(-0.35, 0, 0)}
 			var up := {"arm_r": Vector3(3.1, 0, 0.25), "fore_r": Vector3(0.9, 0, 0), "arm_l": Vector3(2.8, 0, -0.25), "fore_l": Vector3(1.1, 0, 0), "torso": Vector3(0.35, 0.1, 0), "head": Vector3(0.25, 0, 0)}
 			var down := {"arm_r": Vector3(0.5, 0, 0.1), "fore_r": Vector3(-0.1, 0, 0), "arm_l": Vector3(0.7, 0, -0.1), "fore_l": Vector3(0.3, 0, 0), "torso": Vector3(-0.65, 0, 0), "head": Vector3(-0.3, 0, 0)}
 			lift.y = -0.18 * _ease(u * 2.0)
@@ -917,7 +1065,7 @@ func _action_pose(n: String, u: float) -> Array:
 			pose2["pivot"] = Vector3(-TAU * _ease(u), 0, 0)
 			return [pose2, "full", lift]
 		"parry":
-			var block := {"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "arm_l": Vector3(1.1, 0.5, -0.1), "fore_l": Vector3(1.6, 0, 0), "torso": Vector3(-0.05, -0.35, 0), "head": Vector3(0, 0.3, 0)}
+			var block: Dictionary = KATANA_HANG if stance == "katana" else {"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "arm_l": Vector3(1.1, 0.5, -0.1), "fore_l": Vector3(1.6, 0, 0), "torso": Vector3(-0.05, -0.35, 0), "head": Vector3(0, 0.3, 0)}
 			var crouch := {"leg_l": Vector3(0.35, 0, -0.1), "shin_l": Vector3(-0.45, 0, 0), "leg_r": Vector3(-0.25, 0, 0.1), "shin_r": Vector3(-0.35, 0, 0)}
 			lift.y = -0.1 * sin(clampf(u, 0, 1) * PI)
 			return [_keys(u, [[0.0, GUARD.merged(crouch)], [0.12, block.merged(crouch)], [0.6, block.merged(crouch)], [1.0, GUARD.merged(crouch)]]), "full", lift]
@@ -1872,6 +2020,7 @@ func _process(delta: float) -> void:
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
 	if auto_point_guns:
 		point_guns()
+	_katana_hands()
 	_update_physics(delta)
 
 
@@ -2347,12 +2496,20 @@ func _swim_pose(p: Dictionary, delta: float) -> void:
 ## the elbow bending toward `pole` (world direction). Run after the pose has
 ## been applied (e.g. a rifleman keeping his off hand on the stock).
 func reach_left_hand(target: Vector3, pole: Vector3) -> void:
-	if ragdoll != null or arm_l == null or fore_l == null or hand_l == null:
+	reach_hand(false, target, pole)
+
+
+## Two-bone IK for either arm (see reach_left_hand).
+func reach_hand(right: bool, target: Vector3, pole: Vector3) -> void:
+	var arm := arm_r if right else arm_l
+	var fore := fore_r if right else fore_l
+	var hand := hand_r if right else hand_l
+	if ragdoll != null or arm == null or fore == null or hand == null:
 		return
 	var sc := global_basis.get_scale().x
-	var shoulder := arm_l.global_position
-	var l1 := fore_l.position.length() * sc
-	var l2 := (hand_l.position + Vector3(0, -0.05, 0)).length() * sc
+	var shoulder := arm.global_position
+	var l1 := fore.position.length() * sc
+	var l2 := (hand.position + Vector3(0, -0.05, 0)).length() * sc
 	var to := target - shoulder
 	var d := clampf(to.length(), 0.05, (l1 + l2) * 0.999)
 	var dir := to.normalized()
@@ -2374,8 +2531,8 @@ func reach_left_hand(target: Vector3, pole: Vector3) -> void:
 	var y_axis := -upper
 	var z_axis := -n
 	var x_axis := y_axis.cross(z_axis).normalized()
-	arm_l.global_basis = Basis(x_axis, y_axis, z_axis).scaled(Vector3(sc, sc, sc))
-	fore_l.rotation = Vector3(bend, 0, 0)
+	arm.global_basis = Basis(x_axis, y_axis, z_axis).scaled(Vector3(sc, sc, sc))
+	fore.rotation = Vector3(bend, 0, 0)
 
 
 # ==========================================================================

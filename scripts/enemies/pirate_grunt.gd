@@ -129,6 +129,8 @@ var _patrol_i: int = 0
 var _patrol_wait: float = 0.0
 var _getup_len: float = 1.0
 var _rest: float = 0.0
+## Least time on the ground before getting up (shorter after a crumple).
+var _down_min: float = 1.0
 var _dead_t: float = 0.0
 var _sink: float = 0.0
 var _stuck: float = 0.0
@@ -359,6 +361,8 @@ func _set_state(s: S) -> void:
 		_end_aim()
 	if state == S.SWIM and s != S.SWIM:
 		humanoid.swimming = false
+	if s != S.DOWN:
+		set_collision_mask_value(2, true)   # (off while crumpled)
 	state = s
 	st_t = 0.0
 
@@ -1012,7 +1016,10 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		if state == S.DOWN and humanoid.ragdoll:
 			humanoid.ragdoll.push(dir * minf(hit.knockback_force, 8.0) * 0.5 + Vector3.UP * 1.5)
 		elif hit.knockdown:
-			_knock_down(dir * clampf(hit.knockback_force * 0.7, 4.0, 8.0) + Vector3.UP * 3.2)
+			if hit.crumple:
+				_crumple()
+			else:
+				_knock_down(dir * clampf(hit.knockback_force * 0.7, 4.0, 8.0) + Vector3.UP * 3.2)
 		return
 	if state == S.SWIM:
 		_take_damage(hit, dir)
@@ -1089,6 +1096,9 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		return
 	bark(BARK_HURT, 0.3)
 	_release_token()
+	if hit.knockdown and hit.crumple:
+		_crumple()
+		return
 	if hit.knockdown:
 		_knock_down(dir * clampf(hit.knockback_force * 0.7, 4.0, 8.0) + Vector3.UP * 3.2)
 		return
@@ -1136,6 +1146,22 @@ func _knock_down(v: Vector3) -> void:
 	_release_token()
 	humanoid.start_ragdoll(v, Vector3.UP.cross(_flat(v).normalized()) * 5.0)
 	_rest = 0.0
+	_down_min = 1.0
+	_set_state(S.DOWN)
+
+
+## Cut down in place: the body goes limp and folds where it stood (no throw,
+## no spin), and is back up after half a second or so.
+func _crumple() -> void:
+	hitbox.deactivate()
+	_drop_aim()
+	_release_token()
+	velocity = Vector3.ZERO
+	# (the cut carries the player straight through: don't get shoved along by them)
+	set_collision_mask_value(2, false)
+	humanoid.start_ragdoll(Vector3.DOWN * 0.5, Vector3.ZERO, false)
+	_rest = 0.0
+	_down_min = 0.6
 	_set_state(S.DOWN)
 
 
@@ -1176,7 +1202,9 @@ func _down_update(delta: float) -> void:
 		_rest += delta
 	else:
 		_rest = 0.0
-	if st_t > 1.0 and (_rest > 0.3 or st_t > 3.5):
+	# (a crumple doesn't wait for the limp body to come fully to rest)
+	var crumpled := _down_min < 1.0
+	if st_t > _down_min and (_rest > (0.12 if crumpled else 0.3) or st_t > (1.0 if crumpled else 3.5)):
 		var info := humanoid.ragdoll_rest_info()
 		var face_up: bool = info["face_up"]
 		var head_dir: Vector3 = info["head_dir"]

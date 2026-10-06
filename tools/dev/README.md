@@ -33,6 +33,7 @@ Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fail
 - `r8test`: Round 8: markers, kneeling, cannons (man, fire, reload, leave), helm broadside, cannonballs vs an enemy ship's hull, enemy ship hunting and firing, boarders, sinking + floating plunder, Captain Morrow's phases, crew call, shockwave, death + hoard, reset, music, HUD bars.
 - `r9test`: Round 9: texture warp off by default, fine sea mesh + physics-ticked wave clock, swimmers on the waves, hair-coloured scalp, weather cycle + force, storm seas, rain, lightning, sun/moon by the hour, 3D cloud density and whiteout, world time saved and restored.
 - `capturetest`: F12 dev capture writes the state dump (+ screenshot with a display) and last.txt/last.png.
+- `katanatest`: Katana: own style, scabbard on the hip (blade in it when sheathed), no off-hand blade, left hand on the hilt; the three-cut combo lands; holding heavy readies the drawing strike (blade back in the scabbard), creeping while charging, charge level 2, an uncharged vs a full-charge draw (dash through the grunt, much more damage, the grunt crumples in place and gets up soon), letting go stands down; the parry holds the blade point-down overhead in both hands.
 - `r10test`: Round 10: the sky melts into a long-range fog at the horizon (no seam), an irregular sea (several crossing wave trains, peaked crests, wave groups), blended + sorted 3D clouds (no screen-door dither), cloud shadows on the sea/ground (no more multiply plane over the sky), and the rig is the same after a string of knockdowns as before them.
 
 ## Co-op (nettest.ps1)
@@ -94,7 +95,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `npcs`: (no description)
 - `perf`: (no description)
 - `physdemo`: Physics demo: three characters run, stop, idle, jump. Saves frames for a GIF. Args: <style> <outdir>
-- `posebench`: Pose bench: a standalone Humanoid on a flat floor, actions frozen at given progress values, shot from several angles. Args: <out_prefix> <stance> <weapon|none> <action:u,action:u,...> [views: side,front,back,three,top,hipsb,hipss,hips3,hipsf,hipsu]. Env: PB_BASE=1 plain look, PB_REST=1 weapon away, PB_FEM=1 female, PB_SPEED=6 mid-stride, PB_KV="legs=shorts;build=stout" look overrides. Use "guard" as the action for no action.
+- `posebench`: Pose bench: a standalone Humanoid on a flat floor, actions frozen at given progress values, shot from several angles. Args: <out_prefix> <stance> <weapon|none> <action:u,action:u,...> [views: side,front,back,three,top,hipsb,hipss,hips3,hipsf,hipsu]. Env: PB_BASE=1 plain look, PB_REST=1 weapon away, PB_FEM=1 female, PB_SPEED=6 mid-stride, PB_KV="legs=shorts;build=stout" look overrides. Use "guard" as the action for no action. The first view of each pose waits 20 frames (the joints ease toward it); later views 5. Stance/weapon "katana" for the katana.
 - `lbprobe`: Lower body mesh probe: lists triangles drawn inside-out or degenerate. Args: [fem 1/0]
 - `poses`: Renders a lineup of player poses for animation tuning.
 - `poses_angle`: Renders a lineup of player poses for animation tuning.

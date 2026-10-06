@@ -696,7 +696,19 @@ def gen_icons():
         d.polygon([(12, 3), (15, 9), (12, 21), (9, 9)], fill=hexc("90f0e0") + (255,))
         d.line([(5, 9), (19, 9)], fill=hexc("208070") + (255,))
 
+    def katana(d):
+        # long, gently curved blade, round guard, dark wrapped two-hand hilt
+        d.line([(9, 15), (15, 9)], fill=steel, width=2)
+        d.line([(15, 9), (19, 5)], fill=steel, width=2)
+        d.line([(19, 5), (21, 2)], fill=steel, width=1)
+        d.line([(10, 15), (20, 5)], fill=steel_d)
+        d.ellipse([6, 14, 10, 18], fill=hexc("4a4848") + (255,))
+        d.line([(2, 22), (8, 16)], fill=hexc("2a2230") + (255,), width=2)
+        d.point([(3, 21), (5, 19), (7, 17)], fill=hexc("8a7a90") + (255,))
+        d.point([(2, 22)], fill=brass)
+
     _icon("cutlass", cutlass)
+    _icon("katana", katana)
     _icon("axe", axe)
     _icon("rum", rum)
     _icon("gold", gold)

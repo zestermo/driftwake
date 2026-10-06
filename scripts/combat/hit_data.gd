@@ -8,6 +8,9 @@ class_name HitData
 @export var stagger_duration: float = 0.3
 ## Heavy hit: throws the target off its feet (physics ragdoll, then it gets up).
 @export var knockdown: bool = false
+## With knockdown: cut down where it stands instead - a limp collapse in
+## place, nothing thrown, back up after a moment (the katana's charged draw).
+@export var crumple: bool = false
 ## A bullet (parrying it deflects it, but doesn't stagger the shooter).
 @export var ranged: bool = false
 ## Damage over time (burning): the target just takes the damage - no flinch,
