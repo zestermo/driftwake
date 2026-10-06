@@ -24,6 +24,7 @@ var enabled := true
 var _chains: Array = []
 var _acc := 0.0
 var _last_origin := Vector3.INF
+var _g_step := Transform3D()
 var _cw: Dictionary = {}
 
 
@@ -97,12 +98,15 @@ func simulate(delta: float) -> void:
 	var g := get_global_transform_interpolated()
 	if _last_origin == Vector3.INF or g.origin.distance_to(_last_origin) > 2.5:
 		_snap(g)
+		_g_step = g
 	_last_origin = g.origin
 	_acc = minf(_acc + delta, STEP * MAX_STEPS)
 	while _acc >= STEP:
 		_acc -= STEP
 		_step(g)
-	_write_pose(g)
+		_g_step = g
+	# posed against the body as of the last step (against "now", a ship's speed snapped them back and forth between steps)
+	_write_pose(_g_step)
 
 
 func _snap(g: Transform3D) -> void:

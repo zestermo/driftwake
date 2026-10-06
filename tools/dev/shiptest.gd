@@ -1,5 +1,5 @@
 extends SceneTree
-## Ship: gentle swell, helm (visible captain), sails set in steps that stay set (furled canvas rolls down), turning, riding the deck, keeps sailing with nobody at the wheel, shore collision.
+## Ship: gentle swell, helm (visible captain), sails set in steps that stay set (furled canvas rolls down), turning, riding the deck, keeps sailing with nobody at the wheel, jumping on the moving deck, shore collision.
 var t := 0.0
 var step := 0
 var wait := 0.0
@@ -20,7 +20,7 @@ func act(a: String) -> void:
 	var e2 := InputEventAction.new(); e2.action = a; e2.pressed = false; Input.parse_input_event(e2)
 func _process(d: float) -> bool:
 	t += d
-	if step == 1 or step == 8:
+	if step == 1 or step == 10:
 		ys.append(ship.global_position.y)
 		pitches.append(absf(ship.rotation.x) + absf(ship.rotation.z))
 	if step == 6:
@@ -96,9 +96,21 @@ func _process(d: float) -> bool:
 			var loc: Vector3 = ship.to_local(p.global_position)
 			check("feet on the visible deck (~0.32)", absf(loc.y - 0.32) < 0.15)
 			print("   player local y ", snappedf(loc.y, 0.01))
+			# jump straight up on the moving deck
+			set_meta("jump_from", loc)
+			act("jump")
+			wait = 0.2
+		8:
+			check("in the air", not p.is_on_floor())
+			wait = 1.3
+		9:
+			var loc: Vector3 = ship.to_local(p.global_position)
+			var drift: float = Vector2(loc.x - (get_meta("jump_from") as Vector3).x, loc.z - (get_meta("jump_from") as Vector3).z).length()
+			print("   jumped at speed ", snappedf(ship.speed, 0.1), ": landed ", snappedf(drift, 0.01), " m from where it took off (on floor ", p.is_on_floor(), ")")
+			check("a jump on the moving deck comes down where it went up (< 0.3 m)", drift < 0.3 and p.is_on_floor())
 			ys.clear(); pitches.clear()
 			wait = 4.0
-		8:
+		10:
 			print("   under way heave ", snappedf(ys.max() - ys.min(), 0.01))
 			check("gentle while sailing too (< 0.9 m)", ys.max() - ys.min() < 0.9)
 			# sail straight at the island and make sure we stop at the shore
@@ -111,7 +123,7 @@ func _process(d: float) -> bool:
 			t0 = t
 			step += 1
 			return false
-		9:
+		11:
 			if t - t0 > 40.0 or (t - t0 > 3.0 and ship.speed < 1.0):
 				var isl = root.get_node("World/Islands/Brinehollow")
 				var lp: Vector3 = isl.to_local(ship.global_position)

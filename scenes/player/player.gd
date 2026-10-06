@@ -204,6 +204,9 @@ func _ready() -> void:
 	add_child(power)
 	inventory_component.item_added.connect(_on_item_added)
 	floor_snap_length = 0.1
+	# leaving the ship's deck, _ride_ship carries you instead (the states set
+	# the air velocity from the stick every tick, which dropped what this added)
+	platform_on_leave = CharacterBody3D.PLATFORM_ON_LEAVE_DO_NOTHING
 	floor_constant_speed = true
 	floor_max_angle = deg_to_rad(50.0)
 	add_to_group("players")
@@ -840,6 +843,7 @@ func _physics_process(delta: float) -> void:
 		_revive_tick(delta)
 	elif body_model.kneeling:
 		body_model.kneeling = false
+	_ride_ship()
 	var on_floor := is_on_floor()
 	if on_floor:
 		_coyote = coyote_time
@@ -857,6 +861,24 @@ func _physics_process(delta: float) -> void:
 	# deep enough water: swim (from walking, falling, attacking...)
 	if context == Context.ON_FOOT and current_state_name() in SWIM_FROM_STATES and water_depth() > SWIM_ENTER_DEPTH:
 		state_machine.force_state("Swim", {"entry_vy": velocity.y})
+
+
+## In the air over the ship (a jump, a fall, a flip, knocked off your feet):
+## carried along with the hull the way its deck carries you, so you come down
+## where you went up from.
+func _ride_ship() -> void:
+	if is_on_floor() or context != Context.ON_FOOT or current_state_name() in NO_RIDE_STATES:
+		return
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	if ship == null or not ship.aboard(global_position):
+		return
+	var d := ship.deck_delta()
+	global_position = d * global_position
+	player_model.rotation.y += d.basis.get_euler().y
+
+
+## States that hold you somewhere else (water, a ladder, a vine, a ragdoll).
+const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon"]
 
 
 ## States that drop into swimming when the water gets deep enough.

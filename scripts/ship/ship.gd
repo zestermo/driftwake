@@ -56,6 +56,8 @@ var _turn_in: float = 0.0
 var _back_in: bool = false
 var _sail_node: Node3D
 var _furl_node: Node3D
+## How the hull moved over the last tick (Player._ride_ship carries jumpers by it).
+var _deck_delta := Transform3D.IDENTITY
 ## Camera yaw offset from the heading while at the helm (mouse look).
 var cam_yaw: float = 0.0
 
@@ -124,6 +126,7 @@ func place(world_pos: Vector3, yaw: float) -> void:
 	_yaw_rate = 0.0
 	sail = 0.0
 	sail_shown = 0.0
+	_deck_delta = Transform3D.IDENTITY
 	global_transform = Transform3D(Basis(Vector3.UP, yaw), Vector3(world_pos.x, global_position.y, world_pos.z))
 	reset_physics_interpolation()
 
@@ -230,7 +233,9 @@ func _physics_process(delta: float) -> void:
 
 	_pos = Vector3(pos.x, 0.0, pos.z)
 	_heading = wrapf(heading, -PI, PI)
-	global_transform = Transform3D(Basis.from_euler(Vector3(_pitch, heading, _roll)), Vector3(pos.x, _y, pos.z))
+	var xf := Transform3D(Basis.from_euler(Vector3(_pitch, heading, _roll)), Vector3(pos.x, _y, pos.z))
+	_deck_delta = xf * global_transform.affine_inverse()
+	global_transform = xf
 
 	# wheel follows the rudder
 	if wheel:
@@ -280,6 +285,10 @@ func _follow_helmsman(snap: Array, pos: Vector3, heading: float, delta: float) -
 	_yaw_rate = lerpf(_yaw_rate, their_rate, k)
 	rudder = lerpf(rudder, float(s[6]), k)
 	return [pos + Vector3(at.x - pos.x, 0.0, at.z - pos.z) * k, lerp_angle(heading, head, k)]
+
+
+func deck_delta() -> Transform3D:
+	return _deck_delta
 
 
 ## Inside the ship's bounds: on deck, in the rigging, on a ladder, jumping

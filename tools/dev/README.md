@@ -135,6 +135,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `weathershot`: Sky + weather renders. Args: <out_prefix>
 - `outfitgrid`: Combination sheets to find clipping: `hats` (each hat over every hair style, 4 heads a sheet), `hair` (every style, no hat), `clothes` (each coat over every top x vest), `extras` (belts, apron, scarf, pauldron, pouch over coats). Args: <out_prefix> <mode> [yaw_deg] [fem]
 - `goreshot`: A camp grunt cut down by a severing killing blow (head or arm off, blood, splats) and a second losing an arm, frames at 0.15-2.5 s. Args: <out_prefix>
-- `horizonshot`: The Redtide fort and ships on the horizon from the starter dock (rain at dawn like the capture, plus zoomed clear/rain/storm), to check distant things sit on the sea instead of floating on haze. Args: <out_prefix>
+- `horizonshot`: The Redtide fort and ships on the horizon from the starter dock (rain at dawn like the capture, plus zoomed clear/rain/storm), to check distant things sit on the sea instead of floating on haze; also the sea from the dock (sun glare at 9-11 h). Args: <out_prefix>
+- `guestshot`: A rendered co-op guest: start `nethost.gd -- <port>` headless, then `guestshot.gd -- <port> <out_prefix>` joins it and shoots fixed views (dock, open sea) as a guest sees them; prints the guest's hour, sun and ocean state.
 - `wolfpose`: Standalone Zoan hybrid: front, 3/4 and side views. Args: <out_prefix>
 - `zigzag`: (no description)

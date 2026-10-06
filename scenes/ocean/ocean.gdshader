@@ -110,7 +110,9 @@ void fragment() {
 	ALBEDO = base_color * cloud_shade(world_pos.xz) * (1.0 - hz);
 	EMISSION = haze_lin * hz;
 	ALPHA = mix(mix(near_alpha, 1.0, fresnel), 1.0, hz);
-	ROUGHNESS = 0.5;
+	// (rough 0.5 spread the sun's reflection into pale sand-coloured sheets over
+	// whole stretches of sea at some sun angles: a tighter glitter path instead)
+	ROUGHNESS = 0.2;
 	METALLIC = 0.0;
-	SPECULAR = 0.3 * (1.0 - hz);
+	SPECULAR = 0.2 * (1.0 - hz);
 }

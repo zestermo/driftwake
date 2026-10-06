@@ -14,6 +14,11 @@ const SHOTS := [
 	["cap_rain_zoom", 6.39, 2, Vector3(149.42, 3.61, 4.53), Vector3(-0.12, -0.02, -0.99), 14.0],
 	["clear_zoom", 12.0, 0, Vector3(149.42, 3.61, 4.53), Vector3(-0.12, -0.02, -0.99), 14.0],
 	["storm_zoom", 15.0, 3, Vector3(149.42, 3.61, 4.53), Vector3(-0.12, -0.02, -0.99), 14.0],
+	# capture 161506 (a guest's white sea), and the same with no ocean drawn
+	["dock_sea", 10.76, 0, Vector3(147.36, 5.40, 23.20), Vector3(0.43, -0.50, -0.75), 85.0],
+	["dock_no_sea", 10.76, 0, Vector3(147.36, 5.40, 23.20), Vector3(0.43, -0.50, -0.75), 85.0, true],
+	["dock_sea_9", 9.24, 0, Vector3(147.36, 5.40, 23.20), Vector3(0.43, -0.50, -0.75), 85.0],
+	["sea_9", 9.24, 0, Vector3(150.0, 8.0, -20.0), Vector3(0.0, -0.3, -1.0), 85.0],
 ]
 func _initialize():
 	out = OS.get_cmdline_user_args()[0]
@@ -42,6 +47,7 @@ func _process(d: float) -> bool:
 			quit()
 			return false
 		var s: Array = SHOTS[i]
+		(get_first_node_in_group("ocean_mesh") as Node3D).visible = not (s.size() > 6 and s[6])
 		set_hour(float(s[1]))
 		w.forced = int(s[2])
 		w.forced_at = w.world_time() - 100.0
