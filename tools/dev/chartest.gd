@@ -63,6 +63,32 @@ func thigh_keep(lb: LowerBody) -> float:
 	return worst
 
 
+## Mean distance of the left knee's vertices (within 3.5 cm of the joint) from
+## the joint, posed vs rest.
+func knee_keep(lb: LowerBody) -> float:
+	var mesh: ArrayMesh = (lb.get_node("Mesh") as MeshInstance3D).mesh
+	var kr := lb.get_bone_global_rest(LowerBody.SHIN_L).origin
+	var kp := lb.get_bone_global_pose(LowerBody.SHIN_L).origin
+	var a := 0.0
+	var b := 0.0
+	for s in range(mesh.get_surface_count()):
+		var arr := mesh.surface_get_arrays(s)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+		var weights: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+		for i in range(v.size()):
+			var p := v[i]
+			if p.x > -0.02 or absf(p.y - kr.y) > 0.035:
+				continue
+			var q := Vector3.ZERO
+			for k in range(4):
+				var bi := bones[i * 4 + k]
+				q += (lb.get_bone_global_pose(bi) * lb.get_bone_global_rest(bi).affine_inverse() * p) * weights[i * 4 + k]
+			a += p.distance_to(kr)
+			b += q.distance_to(kp)
+	return b / maxf(a, 1e-6)
+
+
 func _initialize():
 	# 1. every option value builds
 	var opts := {"body": CharacterLook.BODIES, "build": CharacterLook.BUILDS, "height": CharacterLook.HEIGHTS,
@@ -177,6 +203,11 @@ func _process(d: float) -> bool:
 			# distance from the thigh's axis (rest vs lifted, worst ring)
 			var keep := thigh_keep(lb)
 			check("lifting a leg doesn't pinch the upper thigh (worst section keeps %d%% of its girth)" % roundi(keep * 100.0), keep > 0.9)
+			# a deeply bent knee stays round: the knee vertices keep their distance from the joint
+			bm.shin_l.rotation = Vector3(-2.0, 0.0, 0.0)
+			lb._pose()
+			var kk := knee_keep(lb)
+			check("a bent knee keeps its volume (knee section keeps %d%% of its size)" % roundi(kk * 100.0), kk > 0.88)
 			check("headless: creator not auto-opened", not CharacterCreator.active)
 			check("{captain} token fills the name", root.get_node("Dialogue")._fill_tokens("Hi {captain}") == "Hi Mara Vance")
 			# open from the pause menu

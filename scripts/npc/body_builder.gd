@@ -436,25 +436,15 @@ func _legs() -> void:
 	var legs := str(lk.get("legs", "trousers"))
 	var feet := str(lk.get("feet", "boots"))
 	var m_legs := _cloth("legs_color")
-	var m_stock := _textured("fabric", Color(0.88, 0.86, 0.78)) if legs == "breeches" else m_skin
 	var prof := MeshBuilder.profile_oct(0.5)
-	# (the thighs are part of the skinned lower body, see _lower_body)
+	# (thighs, knees and shins are the skinned lower body, see _lower_body; only
+	# the cuffs and footwear ride the shin joint)
 	for side in [-1, 1]:
 		var shin: Node3D = h.shin_l if side < 0 else h.shin_r
 		var sr := _shin_rings()
 		var smb := MeshBuilder.new()
-		match legs:
-			"trousers":
-				var hem := _off(sr, 0.008)
-				hem[hem.size() - 1][1] += 0.012
-				hem[hem.size() - 1][2] += 0.012
-				smb.add_loft(m_legs, Transform3D.IDENTITY, hem, prof, 3.0, Color.WHITE, false, true)
-			"breeches":
-				smb.add_loft(m_legs, Transform3D.IDENTITY, _off(_clip(sr, -0.09 * Ls, 1.0), 0.01), prof, 3.0, Color.WHITE, false, true)
-				smb.add_loft(m_stock, Transform3D.IDENTITY, _off(_clip(sr, -1.0, -0.08 * Ls), 0.002), prof, 3.0)
-				smb.add_loft(m_legs, Transform3D.IDENTITY, _off(_clip(sr, -0.11 * Ls, -0.06 * Ls), 0.016), prof, 3.0)
-			_:
-				smb.add_loft(m_skin, Transform3D.IDENTITY, sr, prof, 3.0, Color.WHITE, false, true)
+		if legs == "breeches":
+			smb.add_loft(m_legs, Transform3D.IDENTITY, _off(_clip(sr, -0.11 * Ls, -0.06 * Ls), 0.012), prof, 3.0)
 		_feet(smb, sr, feet)
 		_mesh(shin, smb)
 
@@ -555,7 +545,17 @@ func _lower_body() -> void:
 	# skinning: a pure function of position, so the shared ring moves as one.
 	# Pelvis above the hips, thigh below; near the crotch the centre stays with
 	# the pelvis, but only near it (lower down the whole thigh follows the leg)
+	var kj := -0.02 - 0.42 * Ls   # knee joint height (hips space)
 	var wf := func(p: Vector3) -> Array:
+		var left := p.x < 0.0
+		var dk := p.y - kj
+		if dk < 0.06:
+			# thigh -> knee helper (centred on the joint) -> shin
+			var u := clampf((0.05 - dk) / 0.1, 0.0, 1.0)
+			var k := clampf(1.0 - absf(dk) / 0.05, 0.0, 1.0)
+			return [PackedInt32Array([LowerBody.THIGH_L if left else LowerBody.THIGH_R, LowerBody.KNEE_L if left else LowerBody.KNEE_R,
+				LowerBody.SHIN_L if left else LowerBody.SHIN_R, 0]),
+				PackedFloat32Array([(1.0 - u) * (1.0 - k), k, u * (1.0 - k), 0.0])]
 		# (short: a long pelvis/thigh blend squashed the upper thigh when a leg lifted)
 		var t := 1.0 - smoothstep(-0.12, -0.03, p.y)
 		# The back of the seat and the middle of the crotch take their leg share
@@ -579,12 +579,14 @@ func _lower_body() -> void:
 	# trousers/breeches: cloth all the way; shorts: cloth to the hem, then skin;
 	# skirt: bare thighs under it
 	var hem := -0.2 * Ls - 0.02
+	var m_stock := _textured("fabric", Color(0.88, 0.86, 0.78))
 	var pick := func(c: Vector3) -> Material:
 		if c.y > ys + 0.002:
 			return m_legs
 		match legs:
 			"shorts": return m_legs if c.y > hem else m_skin
 			"skirt": return m_skin
+			"breeches": return m_legs if c.y > kj - 0.085 * Ls else m_stock
 		return m_legs
 	mb.add_rings(m_legs, pelvis, 3.0, Color.WHITE, true, false)
 	for s in [-1, 1]:
@@ -604,8 +606,27 @@ func _lower_body() -> void:
 		var tube := [ring0]
 		tube.append(_thigh_ring(_at(th[s], y_leg), s, lg))
 		for r in th[s]:
-			if float(r[0]) < y_leg - 0.02:
+			if float(r[0]) < y_leg - 0.02 and float(r[0]) > -0.33 * Ls:
 				tube.append(_thigh_ring(r, s, lg))
+		# through the knee (one round kneecap ring on the joint) and down the shin
+		# to the ankle, inside the boot
+		var sr := _shin_rings()
+		var above := _at(th[s], -0.37 * Ls)
+		tube.append(_thigh_ring(above, s, lg))
+		var below := _at(sr, -0.05 * Ls)
+		var cap := [-0.42 * Ls, maxf(float(above[1]), float(below[1])) * 0.98, maxf(float(above[2]), float(below[2])) * 1.02,
+			-0.004, float(above[4]) * 0.3]
+		tube.append(_thigh_ring(cap, s, lg))
+		tube.append(_shin_ring(below, s, lg, kj))
+		for r in sr:
+			if float(r[0]) < -0.06 * Ls:
+				tube.append(_shin_ring(r, s, lg, kj))
+		if legs == "trousers":
+			# a little flare at the hem
+			var last: Array = (sr[sr.size() - 1] as Array).duplicate()
+			last[1] = float(last[1]) + 0.012
+			last[2] = float(last[2]) + 0.012
+			tube[tube.size() - 1] = _shin_ring(last, s, lg, kj)
 		mb.add_rings(m_legs, tube, 3.0, Color.WHITE, false, true, pick)
 		if legs == "shorts":
 			# the rolled cuff at the hem: a bulge that starts and ends on the thigh
@@ -618,7 +639,7 @@ func _lower_body() -> void:
 	mb.weld_normals()
 	var lb := LowerBody.new()
 	h.hips.add_child(lb)
-	lb.setup(h.leg_l, h.leg_r, mb)
+	lb.setup(h.leg_l, h.leg_r, h.shin_l, h.shin_r, mb)
 
 
 ## A 12-point hip ring (front centre, +x side, back centre, -x side) of half
@@ -633,6 +654,17 @@ func _hip_ring(y: float, hw: float, hd: float, cz: float, back: float, bulge: fl
 	for i in range(5, 0, -1):
 		var p: Vector2 = half[i]
 		out.append(Vector3(-p.x * hw, y, cz + p.y * hd))
+	return out
+
+
+## A 12-point ellipse ring from a shin-space shin ring, in hips space (the shin
+## joint sits on the knee at kj, under the leg joint).
+func _shin_ring(r: Array, s: int, lg: float, kj: float) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var cz := float(r[3]) if r.size() > 3 else 0.0
+	for k in range(12):
+		var a := deg_to_rad(30.0 * k)
+		out.append(Vector3(s * lg + float(r[1]) * sin(a), kj + float(r[0]), cz - float(r[2]) * cos(a)))
 	return out
 
 
