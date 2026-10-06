@@ -674,6 +674,17 @@ func weld_normals(eps: float = 0.0005, min_dot: float = 0.3) -> void:
 		_surfaces[mat]["n"] = arr
 
 
+## Move every vertex of `mat`'s triangles through fn(position) -> position
+## (normals are kept: for small adjustments, e.g. hair pressed under a hat).
+func map_vertices(mat: Material, fn: Callable) -> void:
+	if not _surfaces.has(mat):
+		return
+	var v: PackedVector3Array = _surfaces[mat]["v"]
+	for i in range(v.size()):
+		v[i] = fn.call(v[i])
+	_surfaces[mat]["v"] = v
+
+
 ## Append another builder's triangles (so several parts share one mesh).
 func merge(other: MeshBuilder) -> void:
 	for mat in other._order:

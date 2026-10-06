@@ -44,7 +44,7 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 
 ```powershell
 .\tools\dev\run_tests.ps1 r10test swimtest        # specific suites (normal use)
-.\tools\dev\run_tests.ps1 -Jobs 4                 # all 26 suites, 4 at a time (faster, a bit flakier)
+.\tools\dev\run_tests.ps1 -Jobs 4                 # all 27 suites, 4 at a time (faster, a bit flakier)
 .\tools\dev\nettest.ps1                           # co-op: host + client on localhost (also: water, three, late, hostquit)
 & $env:GODOT --path . --script res://tools/dev/weathershot.gd -- res://tools/dev/out/wx   # renders (GPU, opens a window)
 ```

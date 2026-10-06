@@ -715,11 +715,14 @@ func _torso() -> void:
 	var tr := _torso_rings()
 	var mb := MeshBuilder.new()
 	mb.add_loft(m_top, Transform3D.IDENTITY, tr, P_BODY(), 3.0, Color.WHITE, false, true)
-	if top == "tunic":
-		var hw := _hips_hw()
-		var hem := [_at(_off(tr, 0.01), ty(0.1)), [0.0, (tr[0][1] as float) + 0.014, (tr[0][2] as float) + 0.014], [-0.22, hw + 0.04, _hips_hd() + 0.035]]
-		hem = _off(hem, 0.0, 0.0, true)
-		mb.add_loft(m_top, Transform3D.IDENTITY, hem, MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, false, false, true, false, true)
+	# the tunic's skirt hangs in cloth panels that swing with the legs (a rigid
+	# tube let the thighs through), snug under the belt and inside any coat's
+	# tails; with a skirt it's tucked in
+	if top == "tunic" and str(lk.get("legs", "")) != "skirt":
+		var secs := []
+		for i in range(6):
+			secs.append([i * 60.0, (i + 1) * 60.0])
+		_cloth_sectors(m_top, null, secs, -0.01, -0.21, [0.012, 0.02, 0.032], 0.2, 0.014)
 	if top != "bare":
 		var r := _at(tr, tu(0.6))
 		var cz := _front_z(r) - 0.004
@@ -932,7 +935,7 @@ func _head() -> void:
 		r[0] = float(r[0]) * yk
 	var mb := MeshBuilder.new()
 	var hs := str(lk.get("hair", "short"))
-	var face := FacePainter.material(lk, float(st["eye"]), [] if hs == "bald" else HAIRLINES.get(hs, HAIRLINES["ponytail"] if hs == "bun" else HAIRLINES["short"]))
+	var face := FacePainter.material(lk, float(st["eye"]), [] if hs == "bald" else hairline_for(hs))
 	# under the hair the scalp is hair-coloured: wherever it peeks through the
 	# hair shell (vertex snapping at a distance) it still reads as hair
 	var scalp: Material = null
@@ -940,7 +943,7 @@ func _head() -> void:
 	var hline: Array = []
 	if hstyle != "bald":
 		scalp = PSXMat.flat(_col("hair_color").darkened(0.15))
-		hline = HAIRLINES.get(hstyle, HAIRLINES["ponytail"] if hstyle == "bun" else HAIRLINES["short"])
+		hline = hairline_for(hstyle)
 	var hy := yk
 	var pick := func(c: Vector3):
 		if FacePainter.pick(c, hy):
@@ -961,9 +964,52 @@ func _head() -> void:
 	_mesh(h.head, mb)
 	var hmb := MeshBuilder.new()
 	_hair(hmb)
+	_press_under_hat(hmb)
+	if _sims.has(h.head):
+		_press_under_hat((_sims[h.head] as SpringChains).mb)
 	_facial_hair(hmb)
 	_hat(hmb)
 	_mesh(h.head, hmb)
+
+
+## Head-local height above which the hat covers the head (INF: no hat).
+func _hat_cut() -> float:
+	match str(lk.get("hat", "none")):
+		"none":
+			return INF
+		"hood":
+			return -1.0
+		"bandana":
+			return 0.241 * yk
+		"knit":
+			return 0.244 * yk
+	return 0.262 * yk
+
+
+## A hat presses the hair under it flat: every hair vertex inside what the hat
+## covers is pulled in to just over the scalp (and down under the crown), so
+## no clump, cowlick or spike pokes through; hair below the brim is untouched.
+func _press_under_hat(mb: MeshBuilder) -> void:
+	var cut := _hat_cut()
+	if cut == INF:
+		return
+	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
+	# nearly onto the scalp (which is hair-coloured): the hair material is drawn
+	# a centimetre toward the camera, so anything closer to the hat shows through
+	var flat := 0.004
+	var edge := hair_off + 0.004
+	mb.map_vertices(m_hair, func(p: Vector3) -> Vector3:
+		if p.y <= cut:
+			return p
+		var y := minf(p.y, top + flat)
+		var r := _at(head_rings, minf(y, top - 0.001))
+		var cx := float(r[4])
+		var cz := float(r[3])
+		var d := Vector2(p.x - cx, p.z - cz)
+		var lim := _surf_r(r, atan2(d.x, -d.y)) + lerpf(edge, flat, smoothstep(cut, cut + 0.014, y))
+		if d.length() > lim:
+			d = d.normalized() * lim
+		return Vector3(cx + d.x, y, cz + d.y))
 
 
 func _nose(mb: MeshBuilder) -> void:
@@ -1016,6 +1062,15 @@ const HAIRLINES := {
 }
 
 
+## Styles that share another's hairline.
+const HAIRLINE_OF := {"bun": "ponytail", "swept": "short", "messy": "wild", "slick": "short", "topknot": "crop",
+	"hime": "long", "twintails": "ponytail", "bob": "long", "side_pony": "ponytail"}
+
+
+static func hairline_for(style: String) -> Array:
+	return HAIRLINES.get(style, HAIRLINES.get(HAIRLINE_OF.get(style, "short"), HAIRLINES["short"]))
+
+
 static func _hairline(line: Array, a: float) -> float:
 	var d := absf(rad_to_deg(wrapf(a, -PI, PI)))
 	for i in range(1, line.size()):
@@ -1029,7 +1084,7 @@ static func _hairline(line: Array, a: float) -> float:
 
 ## Whether a hair style covers the ears (they're left off the head then).
 static func hair_hides_ears(style: String) -> bool:
-	return style in ["long", "braids"]
+	return style in ["long", "braids", "hime", "bob"]
 
 
 ## Distance from the ring center to the head surface along angle a (actual
@@ -1076,12 +1131,17 @@ func _hair(mb: MeshBuilder) -> void:
 	if hat == "hood" and style != "crop":
 		style = "crop"
 	var off := 0.018
-	if style == "crop":
-		off = 0.009
-	elif style == "wild":
-		off = 0.024
+	match style:
+		"crop", "topknot":
+			off = 0.009
+		"wild":
+			off = 0.024
+		"messy", "bob":
+			off = 0.021
+		"slick":
+			off = 0.012
 	hair_off = off
-	var line: Array = HAIRLINES.get(style, HAIRLINES["ponytail"] if style == "bun" else HAIRLINES["short"])
+	var line: Array = hairline_for(style)
 	_hair_shell(mb, line, off)
 	var trng := RandomNumberGenerator.new()
 	trng.seed = hash(style + str(lk.get("hair_color", "")) + str(lk.get("name", "")))
@@ -1115,7 +1175,8 @@ func _hair(mb: MeshBuilder) -> void:
 				sim.mb.add_loft(m_hair, Transform3D.IDENTITY, rings2, _strand_profile(a2, 0.03, 0.014), 3.0, Color.WHITE, true, true, true, false, false, bones2)
 		"ponytail":
 			var sim := _sim(head)
-			var root := Vector3(0, 0.275 * yk, 0.165)
+			# (under a hat it's tied lower, coming out below the brim)
+			var root := Vector3(0, 0.275 * yk, 0.165) if hat == "none" else Vector3(0, 0.215 * yk, 0.17)
 			var pts := PackedVector3Array([root, root + Vector3(0, -0.06, 0.06), root + Vector3(0, -0.2, 0.08), root + Vector3(0, -0.34, 0.07), root + Vector3(0, -0.46, 0.05)])
 			var bones := sim.add_chain(pts, 0.06, 0.05, 1.0, hair_cols)
 			var rr := []
@@ -1127,7 +1188,9 @@ func _hair(mb: MeshBuilder) -> void:
 		"bun":
 			var rng := RandomNumberGenerator.new()
 			rng.seed = 7
-			mb.add_blob(m_hair, Transform3D(Basis(), Vector3(0, 0.3 * yk, 0.15)), Vector3(0.08, 0.075, 0.075), rng, 0.08, 4, 7, 3.0)
+			# high on the crown, or a low bun at the nape under a hat
+			var at := Vector3(0, 0.3 * yk, 0.15) if hat == "none" else Vector3(0, 0.19 * yk, 0.17)
+			mb.add_blob(m_hair, Transform3D(Basis(), at), Vector3(0.08, 0.075, 0.075) * (1.0 if hat == "none" else 0.85), rng, 0.08, 4, 7, 3.0)
 		"braids":
 			var sim := _sim(head)
 			for s in [-1.0, 1.0]:
@@ -1150,6 +1213,25 @@ func _hair(mb: MeshBuilder) -> void:
 				rr.append([tip.y, 0.012, 0.012, tip.z, tip.x])
 				rb.append(bones[pts.size() - 1])
 				sim.mb.add_loft(m_hair, Transform3D.IDENTITY, rr, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true, true, false, false, rb)
+		"hime":
+			# straight, long, cut level at the back
+			_back_strands([112.0, 136.0, 160.0, 180.0, 200.0, 224.0, 248.0], 4, 0.155, 0.055, 0.8, hair_cols)
+		"twintails":
+			_tails([-1.0, 1.0], hat, hair_cols)
+		"side_pony":
+			_tails([-1.0], hat, hair_cols)
+		"topknot" when hat == "none":
+			# samurai knot on the crown with a short tail flicking back (under a hat: tucked away)
+			var rng2 := RandomNumberGenerator.new()
+			rng2.seed = 13
+			var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
+			var at := Vector3(0, top + 0.012, 0.035)
+			mb.add_blob(m_hair, Transform3D(Basis(), at), Vector3(0.042, 0.038, 0.05), rng2, 0.08, 4, 7, 3.0)
+			mb.add_loft(_cloth("sash_color"), Transform3D(Basis(Vector3.RIGHT, 0.5), at + Vector3(0, -0.012, 0.03)),
+				[[-0.012, 0.03, 0.026], [0.012, 0.03, 0.026]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true)
+			var tail_dir := Vector3(0, 0.45, 1.0).normalized()
+			mb.add_loft(m_hair, Transform3D(Basis(Quaternion(Vector3.UP, tail_dir)), at + Vector3(0, 0.0, 0.035)),
+				[[0.0, 0.03, 0.026], [0.06, 0.028, 0.02], [0.12, 0.004, 0.004]], MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, false, true)
 		"wild":
 			# big anime spikes all over
 			for i in range(14):
@@ -1169,6 +1251,94 @@ static func _strand_profile(angle: float, w: float, d: float) -> PackedVector2Ar
 		out.append(Vector2(p.x * w, p.y * d).rotated(angle))
 	return out
 
+
+
+## Physics strands hanging straight down the back (hime, bob): one per angle,
+## `segs` segments of `seg_len`, `w` wide, tapering only to `tip` (cut level).
+func _back_strands(angles: Array, segs: int, seg_len: float, w: float, tip: float, cols: Array) -> void:
+	var sim := _sim(h.head)
+	for ang in angles:
+		var a: float = deg_to_rad(ang)
+		var root := _hair_pt(a, 0.22 * yk, hair_off - 0.004)
+		var pts := PackedVector3Array([root])
+		var dir := Vector3(sin(a), 0, -cos(a))
+		for i in range(1, segs + 1):
+			pts.append(root + Vector3(0, -seg_len * i, 0) + dir * 0.012 * i)
+		var bones := sim.add_chain(pts, 0.1, 0.07, 1.0, cols)
+		var rings := []
+		for i in range(pts.size()):
+			var k := lerpf(1.0, tip, float(i) / segs)
+			rings.append([pts[i].y, k, k, pts[i].z, pts[i].x])
+		sim.mb.add_loft(m_hair, Transform3D.IDENTITY, rings, _strand_profile(a, w, 0.018), 3.0, Color.WHITE, true, true, true, false, false, bones)
+
+
+## Tied tails high on the sides of the head (s = -1 left, 1 right): twin tails
+## flare out and down, a single side ponytail hangs closer. Tied lower, below
+## the brim, under a hat.
+func _tails(sides: Array, hat: String, cols: Array) -> void:
+	var sim := _sim(h.head)
+	var twin := sides.size() == 2
+	for s in sides:
+		var root := _hair_pt(deg_to_rad(100.0) * s, (0.27 if hat == "none" else 0.215) * yk, hair_off + 0.004)
+		var out := 0.1 if twin else 0.06
+		var pts := PackedVector3Array([root, root + Vector3(s * out * 0.6, -0.04, 0.02), root + Vector3(s * out, -0.18, 0.03),
+			root + Vector3(s * out * 1.1, -0.33, 0.03), root + Vector3(s * out, -0.48, 0.02)])
+		var bones := sim.add_chain(pts, 0.06, 0.05, 1.0, cols)
+		var radii := [0.03, 0.048, 0.044, 0.034, 0.012]
+		var rr := []
+		for i in range(pts.size()):
+			rr.append([pts[i].y, radii[i], radii[i], pts[i].z, pts[i].x])
+		sim.mb.add_loft(m_hair, Transform3D.IDENTITY, rr, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, true, true, true, false, false, bones)
+		# the tie
+		var tie := PackedVector3Array()
+		var tie2 := PackedVector3Array()
+		var axis := (pts[1] - pts[0]).normalized()
+		var side := axis.cross(Vector3.FORWARD).normalized()
+		var up := side.cross(axis).normalized()
+		for k in range(8):
+			var ang := TAU * k / 8.0
+			var d := side * cos(ang) + up * sin(ang)
+			tie.append(pts[0] + axis * 0.004 + d * 0.036)
+			tie2.append(pts[0] + axis * 0.026 + d * 0.038)
+		_hair_tie(sim.mb, [tie, tie2], bones[0])
+
+
+func _hair_tie(smb: MeshBuilder, rings: Array, bone_i: int) -> void:
+	var was := smb.bone
+	smb.bone = bone_i
+	smb.add_rings(_cloth("sash_color"), rings, 3.0, Color.WHITE, true, true)
+	smb.bone = was
+
+
+## A flat strand combed back over the scalp: from the front hairline at
+## `side_deg` (+ = right) up over the crown and down the back, `w` wide. Rings
+## are laid across the path, so it follows the head instead of hanging.
+func _comb_strand(mb: MeshBuilder, side_deg: float, w: float, d: float, y_end: float) -> void:
+	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
+	var path := PackedVector3Array()
+	var n := 9
+	for i in range(n):
+		var t := float(i) / (n - 1)
+		# front half rises to the crown, back half comes down behind it
+		var front := t < 0.5
+		var a := deg_to_rad(side_deg if front else 180.0 - side_deg)
+		var y := lerpf(0.292 * yk, top - 0.006, t * 2.0) if front else lerpf(top - 0.006, y_end * yk, (t - 0.5) * 2.0)
+		path.append(_hair_pt(a, y, hair_off + 0.002))
+	var rings := []
+	var c := Vector3(0, 0.12 * yk, 0)
+	for i in range(n):
+		var p := path[i]
+		var tan := (path[mini(i + 1, n - 1)] - path[maxi(i - 1, 0)]).normalized()
+		var nrm := (p - c).normalized()
+		var side := tan.cross(nrm).normalized()
+		nrm = side.cross(tan).normalized()
+		var k := lerpf(1.0, 0.25, pow(float(i) / (n - 1), 2.0))
+		var ring := PackedVector3Array()
+		for q in range(6):
+			var ang := TAU * q / 6.0
+			ring.append(p + side * cos(ang) * w * k + nrm * (sin(ang) * d + d))
+		rings.append(ring)
+	mb.add_rings(m_hair, rings, 3.0, Color.WHITE, false, true)
 
 
 ## The hair mass: a shell over the scalp whose lower edge follows a natural
@@ -1256,7 +1426,7 @@ func _spike(mb: MeshBuilder, a_deg: float, y: float, dir: Vector3, length: float
 ## a little per character so no two heads look stamped out.
 func _tufts(mb: MeshBuilder, style: String, hat: String, rng: RandomNumberGenerator) -> void:
 	var j := func(v: float) -> float: return v * rng.randf_range(0.86, 1.14)
-	var crowned := hat in ["none", "bandana"]
+	var crowned := hat == "none"
 	match style:
 		"crop":
 			for i in range(5):
@@ -1299,7 +1469,7 @@ func _tufts(mb: MeshBuilder, style: String, hat: String, rng: RandomNumberGenera
 				_clump(mb, s * 66.0, 0.25, j.call(0.24), 0.05, 0.013, s * 4.0, 0.01, 0.008)
 			if crowned:
 				_spike(mb, 185.0, 0.335 + DOME_EXTRA, Vector3(0.1, 1.0, 0.6), 0.06, 0.02)
-		"ponytail", "bun":
+		"ponytail", "bun", "twintails", "side_pony":
 			# swept bangs, long side strands framing the face, hair pulled back
 			for i in range(6):
 				var t := float(i) / 5.0
@@ -1309,6 +1479,71 @@ func _tufts(mb: MeshBuilder, style: String, hat: String, rng: RandomNumberGenera
 				_clump(mb, s * 62.0, 0.255, j.call(0.15), 0.04, 0.012, s * 5.0, 0.008)
 			for i in range(5):
 				_clump(mb, 140.0 + i * 20.0, 0.16, j.call(0.03), 0.04, 0.01, 0.0, 0.004)
+		"swept":
+			# long bangs swept across to the left, the longest hanging over the
+			# left eye; short at the sides and nape
+			for i in range(8):
+				var t := float(i) / 7.0
+				var a := lerpf(46.0, -50.0, t)
+				_clump(mb, a, 0.298, j.call(lerpf(0.055, 0.165, t * t)), 0.06, 0.013, -26.0 * t, 0.006 + 0.014 * t)
+			for s in [-1.0, 1.0]:
+				_clump(mb, s * 68.0, 0.25, j.call(0.08), 0.042, 0.012, s * 5.0, 0.004)
+				_clump(mb, s * 96.0, 0.272, j.call(0.055), 0.05, 0.012, s * 8.0, 0.012)
+				_clump(mb, s * 114.0, 0.25, j.call(0.07), 0.05, 0.012, s * 6.0, 0.01)
+			for i in range(7):
+				var a := 122.0 + i * 19.3
+				_clump(mb, a, 0.21, j.call(0.09), 0.056, 0.013, (a - 180.0) * 0.1, 0.006)
+			if crowned:
+				_spike(mb, 175.0, 0.33 + DOME_EXTRA, Vector3(0.1, 1.0, 0.7), 0.07, 0.024)
+		"messy":
+			# straw-hat-captain mop: uneven bangs pointing every which way,
+			# tufts sticking out over the ears and at the nape
+			for i in range(9):
+				var t := float(i) / 8.0
+				var a := lerpf(-56.0, 56.0, t)
+				var lgt: float = j.call(0.06 + 0.035 * float(i % 3) / 2.0)
+				_clump(mb, a, 0.295, lgt, 0.056, 0.014, rng.randf_range(-18.0, 18.0), rng.randf_range(0.008, 0.024))
+			for s in [-1.0, 1.0]:
+				_clump(mb, s * 70.0, 0.258, j.call(0.1), 0.05, 0.013, s * 12.0, 0.03)
+				_clump(mb, s * 90.0, 0.275, j.call(0.075), 0.055, 0.013, s * 14.0, 0.042)
+				_clump(mb, s * 112.0, 0.26, j.call(0.085), 0.055, 0.013, s * 10.0, 0.036)
+			for i in range(8):
+				var a := 124.0 + i * 16.0
+				_clump(mb, a, 0.205 + 0.02 * float(i % 2), j.call(0.11), 0.058, 0.014, (a - 180.0) * 0.15, 0.028)
+			if crowned:
+				for k in range(4):
+					var ka := 150.0 + k * 22.0
+					_spike(mb, ka, 0.33 + DOME_EXTRA, Vector3(sin(deg_to_rad(ka)) * 0.6, 1.0, 0.5), j.call(0.07), 0.024)
+		"slick":
+			# combed straight back: strands laid over the crown from the
+			# hairline, the ends flicking out at the nape, one loose strand
+			# falling over the forehead
+			for i in range(7):
+				var sd := -54.0 + i * 18.0
+				_comb_strand(mb, sd, 0.03, 0.006, 0.2 + 0.02 * float(i % 2))
+			for i in range(5):
+				_clump(mb, 140.0 + i * 20.0, 0.21, j.call(0.06), 0.05, 0.012, 0.0, 0.014)
+			_clump(mb, -22.0, 0.292, j.call(0.08), 0.02, 0.008, -12.0, 0.012)
+		"topknot":
+			# shaved-short sides, a few loose strands at the temples
+			for s in [-1.0, 1.0]:
+				_clump(mb, s * 58.0, 0.268, j.call(0.1), 0.03, 0.009, s * 4.0, 0.004)
+		"hime":
+			# blunt bangs cut straight across, and cheek-length side locks cut level
+			for i in range(11):
+				var a := -50.0 + i * 10.0
+				_clump(mb, a, 0.296, 0.08, 0.05, 0.012, 0.0, 0.004)
+			for s in [-1.0, 1.0]:
+				_clump(mb, s * 64.0, 0.262, 0.17, 0.05, 0.013, 0.0, 0.008, 0.004)
+				_clump(mb, s * 76.0, 0.25, 0.17, 0.05, 0.013, 0.0, 0.01, 0.008)
+		"bob":
+			# rounded bob to the jaw all the way round, ends curling in, with bangs
+			for i in range(9):
+				var a := -44.0 + i * 11.0
+				_clump(mb, a, 0.296, j.call(0.075), 0.052, 0.013, 0.0, 0.006)
+			for k in range(15):
+				var a := 52.0 + k * 18.0
+				_clump(mb, a, 0.275, 0.2, 0.075, 0.016, 0.0, 0.01, 0.006)
 
 
 func _facial_hair(mb: MeshBuilder) -> void:
@@ -1414,7 +1649,11 @@ func _hat(mb: MeshBuilder) -> void:
 			var hood := _off(head_rings, 0.04, 0.0, true)
 			hood.insert(0, [-0.08, 0.13, 0.13, 0.03, 0.0])
 			hood.append([(0.385 + DOME_EXTRA) * yk, 0.04, 0.06, 0.03, 0.0])
-			mb.add_loft(m_hat, Transform3D.IDENTITY, hood, open_front(0.6), 3.0, Color.WHITE, false, false, false)
+			# the opening's edges sit back along the cheeks (edges as far forward as
+			# the face hid half of it from any angle but straight on)
+			var hood_prof := PackedVector2Array([Vector2(0.86, -0.5), Vector2(1, -0.15), Vector2(1, 0.45), Vector2(0.45, 1),
+				Vector2(-0.45, 1), Vector2(-1, 0.45), Vector2(-1, -0.15), Vector2(-0.86, -0.5)])
+			mb.add_loft(m_hat, Transform3D.IDENTITY, hood, hood_prof, 3.0, Color.WHITE, false, false, false)
 
 
 # --------------------------------------------------------------------------
@@ -1453,9 +1692,11 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	var m_trim := PSXMat.flat(_col("trim_color"))
 	var captain := coat == "captain"
 	var shell := _off(_clip(tr, 0.0, tu(0.62)), 0.03 + (0.012 if fem else 0.0), 0.0, true)
-	if coat == "jacket":
-		shell.insert(0, [-0.14, _hips_hw() + 0.03, _hips_hd() + 0.03, 0.0, 0.0])
 	mb.add_loft(m_coat, Transform3D.IDENTITY, shell, open_body(0.3), 3.0, Color.WHITE, false, false, false)
+	if coat == "jacket":
+		# short tails over the hips (cloth panels: a rigid hem let the thighs through)
+		_cloth_sectors(m_coat, null, [[32.0, 100.0], [100.0, 180.0], [180.0, 260.0], [260.0, 328.0]],
+			0.04, -0.14, [0.03, 0.045, 0.06], 0.18)
 	mb.add_loft(m_coat, Transform3D.IDENTITY, [[tu(0.6), 0.105, 0.095, 0.012], [tu(0.6) + 0.11, 0.115, 0.105, 0.02]], open_front(0.55), 3.0, Color.WHITE, false, false, false)
 	var lap := m_trim if captain else _textured("fabric", _col("coat_color").darkened(0.12))
 	for s in [-1.0, 1.0]:
@@ -1503,7 +1744,8 @@ func _skirt(m: Material) -> void:
 ## a physics chain so it swings and is pushed aside by the legs.
 ## angles: [[a0, a1], ...] in degrees (0 = front, 90 = right). Rows run from
 ## y_top down to y_bot with outward `flare` per row.
-func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float, y_bot: float, flare: Array, stiff: float) -> void:
+func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float, y_bot: float, flare: Array, stiff: float,
+		top_off: float = 0.035) -> void:
 	var sim := _sim(h.hips)
 	var hw := _hips_hw()
 	var hd := _hips_hd()
@@ -1520,8 +1762,8 @@ func _cloth_sectors(m: Material, m_trim: Material, sectors: Array, y_top: float,
 			var aw := hw + fl
 			var ad := hd + fl * 0.9
 			if r == 0:
-				aw = (_torso_rings()[0][1] as float) + 0.035
-				ad = (_torso_rings()[0][2] as float) + 0.035
+				aw = (_torso_rings()[0][1] as float) + top_off
+				ad = (_torso_rings()[0][2] as float) + top_off
 			var row := PackedVector3Array()
 			for k in range(4):
 				var a := lerpf(a0, a1, k / 3.0)
@@ -1579,18 +1821,22 @@ func _apron(mb: MeshBuilder, tr: Array) -> void:
 	var m_ap := _cloth("apron_color")
 	var rt := _at(tr, ty(0.38))
 	var rb := _at(tr, 0.0)
-	var zt := _front_z(rt) - 0.03
-	var zb := _front_z(rb) - 0.03
-	mb.add_quad(m_ap, Vector3(-0.12, ty(0.38), zt), Vector3(0.12, ty(0.38), zt), Vector3(0.15, 0.0, zb), Vector3(-0.15, 0.0, zb),
+	# out past a vest or corset (it showed through), and narrow enough to hang
+	# in a coat's open front instead of through its tails
+	var out := 0.03 + (0.018 if str(lk.get("vest", "none")) != "none" else 0.0)
+	var hw := 0.1 if str(lk.get("coat", "none")) != "none" else 0.17
+	var zt := _front_z(rt) - out
+	var zb := _front_z(rb) - out
+	mb.add_quad(m_ap, Vector3(-hw * 0.7, ty(0.38), zt), Vector3(hw * 0.7, ty(0.38), zt), Vector3(hw * 0.88, 0.0, zb), Vector3(-hw * 0.88, 0.0, zb),
 		Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, Vector3.FORWARD)
 	var sim := _sim(h.hips)
-	var z0 := -_hips_hd() - 0.035
+	var z0 := -_hips_hd() - 0.035 - (out - 0.03)
 	var y1 := -0.02 - 0.42 * Ls * 0.95
 	var chain := PackedVector3Array([Vector3(0, 0.0, z0), Vector3(0, y1 * 0.5, z0 - 0.02), Vector3(0, y1, z0 - 0.04)])
 	var bones := sim.add_chain(chain, 0.16, 0.06, 1.0, ["thigh_l", "thigh_r", "hips"])
 	var rows := []
 	for p in chain:
-		rows.append(PackedVector3Array([p + Vector3(-0.17, 0, 0.01), p + Vector3(-0.06, 0, -0.004), p + Vector3(0.06, 0, -0.004), p + Vector3(0.17, 0, 0.01)]))
+		rows.append(PackedVector3Array([p + Vector3(-hw, 0, 0.01), p + Vector3(-hw * 0.35, 0, -0.004), p + Vector3(hw * 0.35, 0, -0.004), p + Vector3(hw, 0, 0.01)]))
 	sim.mb.add_strip_grid(m_ap, Transform3D.IDENTITY, rows, bones, 3.0, Color.WHITE, Vector3(0, 0, 0.3))
 
 
@@ -1599,15 +1845,22 @@ func _accessories() -> void:
 	var hmb := MeshBuilder.new()
 	var gold := PSXMat.flat(Color(0.88, 0.72, 0.3))
 	var tr := _torso_rings()
+	var coated := str(lk.get("coat", "none")) != "none"
 	if lk.get("scarf", false):
 		var m := _cloth("scarf_color")
-		mb.add_loft(m, Transform3D.IDENTITY, [[tu(0.59), 0.1, 0.092, 0.012], [tu(0.65), 0.088, 0.084, 0.012], [tu(0.65) + 0.04, 0.07, 0.068, 0.012]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
+		# (outside a coat's collar, which it used to cut through)
+		var g := 0.022 if coated else 0.0
+		mb.add_loft(m, Transform3D.IDENTITY, [[tu(0.59), 0.1 + g, 0.092 + g, 0.012], [tu(0.65), 0.088 + g, 0.084 + g, 0.012], [tu(0.65) + 0.04, 0.07 + g * 0.5, 0.068 + g * 0.5, 0.012]], MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
 		var r := _at(tr, tu(0.5))
-		mb.add_tri(m, Vector3(-0.08, tu(0.62), -0.085), Vector3(0.08, tu(0.62), -0.085), Vector3(0.0, tu(0.45), _front_z(r) - 0.02),
+		mb.add_tri(m, Vector3(-0.08, tu(0.62), -0.085 - g), Vector3(0.08, tu(0.62), -0.085 - g), Vector3(0.0, tu(0.45), _front_z(r) - 0.02 - g),
 			Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2(0, 0), Vector2(1, 0), Vector2(0.5, 1), Color.WHITE, Vector3.FORWARD)
 	if lk.get("pouch", false):
 		var r2 := _at(tr, 0.02)
-		mb.add_box(_leather("belt_color"), Transform3D(Basis(Vector3.UP, -0.5), Vector3(float(r2[1]) * 0.8, -0.04, -float(r2[2]) * 0.6)), Vector3(0.08, 0.09, 0.05), 3.0, Color.WHITE, false)
+		if coated:
+			# on the belt in the coat's open front (at the hip it poked through the coat)
+			mb.add_box(_leather("belt_color"), Transform3D(Basis(Vector3.UP, -0.25), Vector3(float(r2[1]) * 0.42, -0.04, _front_z(r2) - 0.035)), Vector3(0.07, 0.08, 0.04), 3.0, Color.WHITE, false)
+		else:
+			mb.add_box(_leather("belt_color"), Transform3D(Basis(Vector3.UP, -0.5), Vector3(float(r2[1]) * 0.8, -0.04, -float(r2[2]) * 0.6)), Vector3(0.08, 0.09, 0.05), 3.0, Color.WHITE, false)
 	if lk.get("earring", false):
 		var re := _at(head_rings, 0.13 * yk)
 		hmb.add_cylinder(gold, Transform3D(Basis(Vector3.FORWARD, PI / 2.0), Vector3(-float(re[1]) - 0.012, 0.12 * yk, 0.012)), 0.016, 0.016, 0.006, 6, 3.0, Color.WHITE, false, false)
