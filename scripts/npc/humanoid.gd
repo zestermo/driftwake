@@ -529,12 +529,12 @@ func _katana_hands() -> void:
 	match current_action():
 		"iai_ready":
 			_hands_on_scabbard()
-		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash":
+		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash", "drink":
 			pass
 		_:
 			if _run_sheath and not weapon_in_hand:
 				_hands_on_scabbard()
-			elif weapon_in_hand and armed:
+			elif weapon_in_hand and armed and (grounded or not _action.is_empty()):
 				if current_action() in ["parry", "guard_block", "guard_block_hit"]:
 					_hang_blade()
 				reach_hand(false, weapon.global_transform * Vector3(0, 0, 0.17), pole_l)
@@ -834,6 +834,8 @@ const KATANA_GUARD := {"arm_r": Vector3(0.8, 0.35, -0.05), "fore_r": Vector3(0.8
 	"arm_l": Vector3(0.75, -0.3, 0.05), "fore_l": Vector3(1.1, 0, 0),
 	"torso": Vector3(-0.1, 0.15, 0), "head": Vector3(0.08, -0.15, 0)}
 # Katana parry / block: both hands raised high, the blade hanging point-down in front.
+## The katana held out behind in the right hand alone (dashing, in the air).
+const KATANA_TRAIL := {"arm_r": Vector3(-0.85, 0.0, 0.35), "fore_r": Vector3(0.15, 0, 0), "hand_r": Vector3(-2.3, 0, 0)}
 ## Extra stance width (leg roll, rad) in the katana's parry / block.
 const KATANA_SPREAD := 0.12
 const KATANA_HANG := {"arm_r": Vector3(1.55, 0.3, 0.05), "fore_r": Vector3(0.65, 0, 0), "hand_r": Vector3(1.85, 0, 0),
@@ -1120,9 +1122,9 @@ func _action_pose(n: String, u: float) -> Array:
 					p["fore_l"] = Vector3(0.25, 0, 0)
 				if stance == "katana":
 					# the hands come apart: the katana trails out behind in the right hand
-					p["arm_r"] = Vector3(-0.85, 0.0, 0.35)
-					p["fore_r"] = Vector3(0.15, 0, 0)
-					p["hand_r"] = Vector3(-2.3, 0, 0)
+					p["arm_r"] = KATANA_TRAIL["arm_r"]
+					p["fore_r"] = KATANA_TRAIL["fore_r"]
+					p["hand_r"] = KATANA_TRAIL["hand_r"]
 			else:
 				# unarmed: lead arm reaches straight out in front
 				var inward := -0.15 if lead == "r" else 0.15
@@ -1919,6 +1921,12 @@ func _locomotion(delta: float) -> Dictionary:
 			p[j] = (fall[j] as Vector3).lerp(jump[j], rise)
 		if _guns_out():
 			_gun_tuck(p, 1.0)
+		elif armed and stance == "katana":
+			# one hand: the katana held out behind, as in the dash (the free arm
+			# keeps the jump's swing)
+			p["arm_r"] = KATANA_TRAIL["arm_r"]
+			p["fore_r"] = KATANA_TRAIL["fore_r"]
+			p["hand_r"] = KATANA_TRAIL["hand_r"]
 		elif armed:
 			p["arm_r"] = _guard()["arm_r"] + Vector3(0.5, 0, 0)
 			p["fore_r"] = _guard()["fore_r"]

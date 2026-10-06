@@ -38,7 +38,7 @@ var _slash_mat: ShaderMaterial
 var _blood_mat: StandardMaterial3D
 var _splat_mat: StandardMaterial3D
 var _splats: Array = []
-const BLOOD := Color(0.42, 0.02, 0.03)
+const BLOOD := Color(0.3, 0.01, 0.02)
 ## Ground splats kept at once (the oldest go first) and how long each lasts.
 const MAX_SPLATS := 60
 const SPLAT_LIFE := 40.0
@@ -220,27 +220,44 @@ func dust_ring(pos: Vector3, amount: int = 12, size: float = 0.7) -> void:
 
 ## Twinkly stars (double jump, parry, pickups).
 ## Blood from a wound: flecks thrown along `dir` (away from the blow) that
-## arc down, a little red mist, and a splat on the ground ahead.
+## arc down, a little red mist, a splat on the ground ahead, and one on any
+## wall (or crate, mast...) close behind the wound in that direction.
 func blood(pos: Vector3, dir: Vector3, amount: int = 12) -> void:
 	var d := (dir.normalized() + Vector3.UP * 0.35).normalized()
 	_burst(pos, amount, _blood_mat, 0.06, 0.65, {"radius": 0.08, "direction": d, "spread": 38.0,
 		"vel_min": 1.8, "vel_max": 4.8, "gravity": Vector3(0, -14.0, 0), "damping": 0.4, "grow": false,
-		"color": Color(BLOOD.r * 1.4, BLOOD.g, BLOOD.b, 1.0)})
+		"color": Color(BLOOD.r, BLOOD.g, BLOOD.b, 1.0)})
 	_burst(pos, 3, _dust_mat, 0.32, 0.35, {"radius": 0.05, "direction": d, "spread": 40.0, "vel_min": 0.3,
-		"vel_max": 0.8, "gravity": Vector3(0, -1.0, 0), "color": Color(BLOOD.r, BLOOD.g, BLOOD.b, 0.55)})
+		"vel_max": 0.8, "gravity": Vector3(0, -1.0, 0), "color": Color(BLOOD.r * 0.8, BLOOD.g, BLOOD.b, 0.55)})
 	var flat := Vector3(dir.x, 0.0, dir.z)
 	var ahead := flat.normalized() * randf_range(0.3, 1.1) if flat.length() > 0.01 else Vector3.ZERO
 	blood_splat(pos + ahead, 0.22 + 0.012 * amount)
+	# the spray carries on along the blow and slightly down: whatever it meets
+	var spray := (dir.normalized() + Vector3.DOWN * 0.15).normalized() * WALL_REACH
+	var h := _ray(pos, pos + spray)
+	if not h.is_empty() and absf((h["normal"] as Vector3).y) < 0.7:
+		_place_splat(h["position"], h["normal"], 0.14 + 0.008 * amount)
 
 
 ## A pool of blood on whatever is below `pos` (ground, deck), lying on it.
 func blood_splat(pos: Vector3, size: float = 0.3) -> void:
-	var space := get_viewport().world_3d.direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 0.3, pos + Vector3.DOWN * 4.0, 1)
-	var h := space.intersect_ray(q)
+	var h := _ray(pos + Vector3.UP * 0.3, pos + Vector3.DOWN * 4.0)
 	if h.is_empty():
 		return
-	var n: Vector3 = h["normal"]
+	_place_splat(h["position"], h["normal"], size)
+
+
+## How far behind a wound the spray can reach a wall.
+const WALL_REACH := 2.4
+
+
+func _ray(from: Vector3, to: Vector3) -> Dictionary:
+	var q := PhysicsRayQueryParameters3D.create(from, to, 1)
+	return get_viewport().world_3d.direct_space_state.intersect_ray(q)
+
+
+## A blood splat flat on a surface (any angle) at `at`, facing out along `n`.
+func _place_splat(at: Vector3, n: Vector3, size: float) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = _splat_mesh()
 	mi.material_override = _splat_mat
@@ -250,7 +267,7 @@ func blood_splat(pos: Vector3, size: float = 0.3) -> void:
 	var side := up.cross(Vector3.FORWARD if absf(up.z) < 0.9 else Vector3.RIGHT).normalized()
 	var b := Basis(side, up, side.cross(up)).rotated(up, randf() * TAU)
 	var s := size * randf_range(0.8, 1.25)
-	mi.global_transform = Transform3D(b.scaled(Vector3(s, s, s)), (h["position"] as Vector3) + up * 0.015)
+	mi.global_transform = Transform3D(b.scaled(Vector3(s, s, s)), at + up * 0.015)
 	_splats.append(mi)
 	while _splats.size() > MAX_SPLATS:
 		var old = _splats.pop_front()
