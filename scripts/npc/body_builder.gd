@@ -1416,11 +1416,14 @@ func _path_strand(mb: MeshBuilder, path: PackedVector3Array, w: float, d: float,
 		var nrm := (p - c).normalized()
 		var side := tan.cross(nrm).normalized()
 		nrm = side.cross(tan).normalized()
-		var k := lerpf(1.0, tip, pow(float(i) / (n - 1), 2.0))
+		var u := float(i) / (n - 1)
+		# (the start swells up out of the hair cap instead of a flat open end)
+		var k := lerpf(1.0, tip, pow(u, 2.0)) * lerpf(0.35, 1.0, smoothstep(0.0, 0.2, u))
+		var sink := lerpf(-d * 1.2, 0.0, smoothstep(0.0, 0.2, u))
 		var ring := PackedVector3Array()
 		for q in range(6):
 			var ang := TAU * q / 6.0
-			ring.append(p + side * cos(ang) * w * k + nrm * (sin(ang) * d + d) * lerpf(1.0, 0.6, float(i) / (n - 1)))
+			ring.append(p + side * cos(ang) * w * k + nrm * ((sin(ang) * d + d) * k * lerpf(1.0, 0.6, u) + sink))
 		rings.append(ring)
 	mb.add_rings(m_hair, rings, 3.0, Color.WHITE, false, true)
 
@@ -1498,6 +1501,14 @@ func _hair_quad(mb: MeshBuilder, p: Array, uv: Array, c: Vector3, dark: Color) -
 func _clump(mb: MeshBuilder, a_deg: float, y_root: float, length: float, w: float, d: float,
 		sweep: float = 0.0, flick: float = 0.0, off_extra: float = 0.0) -> void:
 	var rings := []
+	# the root grows out of the hair cap: two narrower rings above it, sunk into
+	# the cap, so the top slopes in instead of ending in a flat ledge
+	var top: float = (head_rings[head_rings.size() - 1] as Array)[0]
+	var a0 := deg_to_rad(a_deg)
+	for b in [[0.05, 0.25, -1.4], [0.028, 0.6, -0.6], [0.012, 0.88, -0.15]]:
+		var yb := minf(y_root * yk + float(b[0]), top - 0.004)
+		var pb := _hair_pt(a0, yb, hair_off + 0.001 + off_extra + d * float(b[2]))
+		rings.append([pb.y, b[1], b[1], pb.z, pb.x])
 	var n := 5
 	for i in range(n):
 		var t := float(i) / (n - 1)
