@@ -9,7 +9,7 @@ const HANG := 0.16
 const DIVE_SPEED := 22.0
 const RECOVER := 0.38
 
-const RAIN_DUR := 0.62
+const RAIN_DUR := 0.31
 const RAIN_KICK := 1.6        # m/s up from each shot's recoil
 const RAIN_GRAVITY := 0.45    # x gravity between shots
 const RAIN_REACH := 2.6       # m sideways from under you that a shot can find
@@ -33,7 +33,8 @@ func enter(_data: Dictionary) -> void:
 	_rain = player.style() == "dual_pistol"
 	_shots = 0
 	if _rain:
-		player.velocity = Vector3(player.velocity.x * 0.4, maxf(player.velocity.y, 0.0) * 0.3 + 2.0, player.velocity.z * 0.4)
+		player.gun_rains += 1
+		player.velocity =Vector3(player.velocity.x * 0.4, maxf(player.velocity.y, 0.0) * 0.3 + 2.0, player.velocity.z * 0.4)
 		player.body_model.play("gun_rain", RAIN_DUR)
 		player.squash(1.5)
 		Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.06, 1.3])

@@ -81,6 +81,8 @@ var is_blocking: bool = false
 var context: Context = Context.ON_FOOT
 var current_ship: Ship = null
 var jumps_remaining: int = 1
+## Gun Rains fired since leaving the ground (1 per jump + the "gun_rain_uses" stat).
+var gun_rains: int = 0
 var body_model: Humanoid
 
 ## Weapon currently equipped (sheathed on the hip or drawn).
@@ -824,6 +826,7 @@ func _physics_process(delta: float) -> void:
 	var on_floor := is_on_floor()
 	if on_floor:
 		_coyote = coyote_time
+		gun_rains = 0
 		if not _was_on_floor:
 			_on_landed(_last_air_vy)
 	else:

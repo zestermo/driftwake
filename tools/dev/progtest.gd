@@ -310,7 +310,7 @@ func _process(d: float) -> bool:
 			g._set_state(STAGGER)
 			g.health.current_health = 110.0
 			v0 = g.health.current_health
-			p.global_position = g.global_position + Vector3(0.6, 4.5, 0)
+			p.global_position = g.global_position + Vector3(0.6, 6.0, 0)
 			p.velocity = Vector3.ZERO
 			p.reset_physics_interpolation()
 			p.stamina = p.max_stamina
@@ -324,6 +324,15 @@ func _process(d: float) -> bool:
 			step = 183
 		183:
 			check("dual pistols' air attack is Gun Rain (%s / %s)" % [p.current_state_name(), p.body_model.current_action()], p.current_state_name() == "Plunge" and p.body_model.current_action() == "gun_rain")
+			wait = 0.3
+			step = 186
+		186:
+			attack("light_attack")
+			wait = 0.1
+			step = 187
+		187:
+			check("one Gun Rain per jump (%s, %s, used %d)" % [p.current_state_name(), "air" if not p.is_on_floor() else "landed", p.gun_rains],
+				p.current_state_name() != "Plunge" and p.gun_rains == 1)
 			wait = 0.6
 			step = 184
 		184:

@@ -134,6 +134,8 @@ static func _build() -> void:
 	_add("g_storm", "Bullet Storm", "active", "Gun", _p(A, 265.0, 13.0), ["g_marks"], {}, "", {}, "bullet_storm")
 	_add("g_powder", "Extra Powder", "passive", "Gun", _p(A, 345.0), ["g_hands", "g_storm"], {"extra_shots": 1},
 		"Every pistol holds one more shot.", {"level": 4})
+	_add("g_hang", "Hang Time", "passive", "Gun", _p(A, 420.0), ["g_powder"], {"gun_rain_uses": 1},
+		"Gun Rain (dual pistols' air attack) can be fired twice before you land.", {"level": 6})
 
 	# ---- Haki (level-gated) ----
 	A = REGION_ANGLE["Armament"]
