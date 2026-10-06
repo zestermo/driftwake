@@ -869,10 +869,10 @@ func _physics_process(delta: float) -> void:
 func _ride_ship() -> void:
 	if is_on_floor() or context != Context.ON_FOOT or current_state_name() in NO_RIDE_STATES:
 		return
-	var ship := get_tree().get_first_node_in_group("ship") as Ship
-	if ship == null or not ship.aboard(global_position):
+	var ship := _deck_ship()
+	if ship == null:
 		return
-	var d := ship.deck_delta()
+	var d: Transform3D = ship.deck_delta()
 	global_position = d * global_position
 	player_model.rotation.y += d.basis.get_euler().y
 
@@ -1622,13 +1622,15 @@ func is_bleeding() -> bool:
 	return bleeding if is_local else bool(_net_flags & NF_BLEED)
 
 
-## The ship we're aboard (on deck, mid-jump, in the rigging, on a ladder) for
-## deck-relative positions, or null.
-func _deck_ship() -> Ship:
+## The ship we're aboard (ours or a pirate's: on deck, mid-jump, in the
+## rigging, on a ladder), or null.
+func _deck_ship() -> Node3D:
 	if context == Context.HELM and current_ship:
 		return current_ship
-	var ship := get_tree().get_first_node_in_group("ship") as Ship
-	return ship if ship and ship.aboard(global_position) else null
+	for d in get_tree().get_nodes_in_group("decks"):
+		if d.aboard(global_position):
+			return d
+	return null
 
 
 ## Our snapshot (~20 times a second): where, how, and the body's state.
@@ -1647,7 +1649,7 @@ func net_pack() -> Array:
 		flags |= NF_BLEED
 	if is_on_floor() or context == Context.HELM:
 		flags |= NF_FLOOR
-	return [pos, ship != null, velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
+	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else []]
 
@@ -1675,20 +1677,14 @@ func _exit_tree() -> void:
 ## (against the hull as it's drawn this frame: its physics-tick transform is
 ## up to a tick behind, which shook deck puppets back and forth under way)
 func _net_pos(snap: Array) -> Vector3:
-	var pos: Vector3 = snap[0]
-	if bool(snap[1]):
-		var ship := get_tree().get_first_node_in_group("ship") as Ship
-		if ship:
-			return ship.unpack_pos(pos, true)
-	return pos
+	return Net.deck_unpack(snap[0], str(snap[1]))
 
 
 func _net_yaw(snap: Array) -> float:
 	var yaw := float(snap[3])
-	if bool(snap[1]):
-		var ship := get_tree().get_first_node_in_group("ship") as Node3D
-		if ship:
-			yaw += ship.get_global_transform_interpolated().basis.get_euler().y
+	var ship := Net.node_of(str(snap[1])) as Node3D
+	if ship:
+		yaw += ship.get_global_transform_interpolated().basis.get_euler().y
 	return yaw
 
 

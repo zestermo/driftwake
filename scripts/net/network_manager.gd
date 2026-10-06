@@ -656,6 +656,24 @@ func sample(n: Node) -> Array:
 	return [a[1], b[1], clampf((rt - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.0001), 0.0, 1.0)]
 
 
+## A position for a snapshot: [pos, deck key] - relative to a ship's hull
+## (group "decks": ours and the pirates') when it's aboard one, so whoever
+## rides it moves with the hull on every screen whatever the delay.
+func deck_pack(p: Vector3) -> Array:
+	for d in get_tree().get_nodes_in_group("decks"):
+		if d.aboard(p):
+			return [(d as Node3D).global_transform.affine_inverse() * p, key_of(d)]
+	return [p, ""]
+
+
+## Back to the world, against the hull as it's drawn this frame.
+func deck_unpack(p: Vector3, key: String) -> Vector3:
+	if key == "":
+		return p
+	var d := node_of(key) as Node3D
+	return d.get_global_transform_interpolated() * p if d else p
+
+
 ## The newest snapshot for a node, as [sent at, data], or [] (for things
 ## that run their own copy and only need the latest word, like the ship).
 func latest(n: Node) -> Array:

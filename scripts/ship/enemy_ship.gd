@@ -12,14 +12,20 @@ class_name EnemyShip
 ##   cutlasses for the chase and line the rail before boarding) go leaping
 ##   onto your deck;
 ## * cannon fire wears its hull down; sunk, it heels over, burns and goes
-##   under, leaving a floating chest of plunder.
+##   under, leaving a floating chest of plunder;
+## * board it yourself (jump across while it's lashed alongside, or climb a
+##   ladder from the water): whoever is left aboard, helmsman too, fights you
+##   on its deck; clear it and the ship strikes its colours - a prize, with
+##   the captain's chest by the cabin. Left empty, it's scuttled.
 ##
-## Co-op: the host sails it (group net_sync); everyone else rides snapshots.
-## Its guns send their shots to every screen; boarders are ordinary grunts.
+## Co-op: the host sails it (group net_sync); every other screen runs the
+## same sailing from the host's latest state (smooth under whoever stands on
+## its deck). Its guns send their shots to every screen; boarders and deck
+## crews are ordinary grunts.
 
 signal sunk(ship: EnemyShip)
 
-enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK }
+enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE }
 
 const MAX_SPEED := 10.0
 const ACCEL := 2.2
@@ -103,6 +109,14 @@ var _stuck_t: float = 0.0
 ## {node: Humanoid, look, spot, yaw, gone} per CREW_SPOTS entry.
 var _crew: Array = []
 var _crew_gone: int = 0
+## The crew fighting boarders on this deck (grunts).
+var deck_crew: Array = []
+## A prize left empty this long is scuttled.
+const SCUTTLE_AFTER := 60.0
+var _empty_t: float = 0.0
+var _deck_delta := Transform3D.IDENTITY
+var _copy_ready: bool = false
+var _jolly: Node3D
 
 
 func setup(center: Vector3, radius: float, start_angle: float, seed_value: int) -> EnemyShip:
@@ -116,6 +130,7 @@ func setup(center: Vector3, radius: float, start_angle: float, seed_value: int) 
 func _ready() -> void:
 	add_to_group("enemy_ships")
 	add_to_group("net_sync")
+	add_to_group("decks")
 	net_puppet = Net.is_client()
 	_rng.seed = look_seed
 	collision_layer = 1
@@ -144,6 +159,17 @@ func _ready() -> void:
 			model.add_child(c)
 			cannons.append(c)
 	_build_crew(model)
+	_jolly = model.get_node_or_null("Jolly")
+	# rope ladders amidships: climb aboard from the water
+	for sgn in [-1.0, 1.0]:
+		var lad := Ladder.new()
+		lad.name = "LadderStarboard" if sgn > 0.0 else "LadderPort"
+		lad.length = 2.15
+		lad.rail = 0.75
+		lad.deck_depth = 0.9
+		lad.position = Vector3(sgn * 3.0, HullBuilder.DECK_Y, 0.6)
+		lad.rotation.y = sgn * PI * 0.5
+		model.add_child(lad)
 	# cannon fire finds the hull through this
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
@@ -172,8 +198,6 @@ func _ready() -> void:
 	add_child(_bark)
 	_pos = Vector3(global_position.x, 0, global_position.z)
 	_heading = global_rotation.y
-	if net_puppet:
-		physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	if Net.hosting:
 		net_rescale(Net.hp_scale())
 
@@ -183,7 +207,30 @@ func is_dead() -> bool:
 
 
 func in_combat() -> bool:
-	return state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD]
+	return state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.DECK]
+
+
+## Inside its bounds: on deck, in the rigging, on a ladder (same hull as ours).
+func aboard(p: Vector3) -> bool:
+	var l := global_transform.affine_inverse() * p
+	return absf(l.x) < 3.4 and l.z > -9.5 and l.z < 7.5 and l.y > -0.7 and l.y < 13.0
+
+
+## How the hull moved over the last tick (Player._ride_ship carries jumpers by it).
+func deck_delta() -> Transform3D:
+	return _deck_delta
+
+
+func _place_hull(xf: Transform3D) -> void:
+	_deck_delta = xf * global_transform.affine_inverse()
+	global_transform = xf
+
+
+func _anyone_aboard() -> bool:
+	for p in Net.all_players():
+		if aboard((p as Node3D).global_position):
+			return true
+	return false
 
 
 func hull_velocity() -> Vector3:
@@ -225,7 +272,20 @@ func _physics_process(delta: float) -> void:
 		to_t = tgt.global_position - _pos
 		to_t.y = 0.0
 		dist = to_t.length()
+	# a captain on our deck: all hands repel boarders
+	if state not in [S.SINK, S.DECK, S.PRIZE] and _anyone_aboard():
+		_start_deck_fight()
 	match state:
+		S.DECK:
+			want_speed = 0.0
+			deck_crew = deck_crew.filter(func(g): return is_instance_valid(g) and not g.is_dead())
+			if deck_crew.is_empty():
+				_strike()
+		S.PRIZE:
+			want_speed = 0.0
+			_empty_t = 0.0 if _anyone_aboard() else _empty_t + delta
+			if _empty_t > SCUTTLE_AFTER:
+				_start_sink(false)
 		S.PATROL:
 			var wp := patrol_center + Vector3(cos(_wp_a), 0, sin(_wp_a)) * patrol_radius
 			var to_wp := wp - _pos
@@ -566,15 +626,18 @@ func _on_hit(hit: HitData, _attacker: Node) -> void:
 		_start_sink()
 
 
-func _start_sink() -> void:
+## Sunk by gunfire (XP, flotsam), or a prize left empty and scuttled.
+func _start_sink(fought: bool = true) -> void:
 	_set_state(S.SINK)
 	_sink_t = 0.0
+	_chest_done = not fought
 	hurtbox.set_deferred("monitorable", false)
-	bark("Abandon ship!", 3.0)
-	Net.event(self, "sink", [])
+	Net.event(self, "sink", [fought])
 	Net.fx("sfx", ["wood_crack", global_position, 6.0, 0.05, 0.6])
-	Net.fx("sfx", ["bell", global_position, 2.0, 0.02, 0.8])
-	Net.award_xp(150, global_position, 160.0)
+	if fought:
+		bark("Abandon ship!", 3.0)
+		Net.fx("sfx", ["bell", global_position, 2.0, 0.02, 0.8])
+		Net.award_xp(150, global_position, 160.0)
 	sunk.emit(self)
 
 
@@ -586,7 +649,7 @@ func _sink_update(delta: float) -> void:
 	speed = move_toward(speed, 0.0, 1.5 * delta)
 	_pos += _fwd() * speed * delta
 	_y = lerpf(FREEBOARD, -8.0, k * k)
-	global_transform = Transform3D(Basis.from_euler(Vector3(_pitch, _heading, _roll)), Vector3(_pos.x, _y, _pos.z))
+	_place_hull(Transform3D(Basis.from_euler(Vector3(_pitch, _heading, _roll)), Vector3(_pos.x, _y, _pos.z)))
 	_sink_fx(delta)
 	if _sink_t > 1.5 and not _chest_done:
 		_chest_done = true
@@ -661,7 +724,7 @@ func _sail(delta: float, want_heading: float, want_speed: float) -> void:
 					speed = -2.0
 	_pos += motion
 	_swell(delta)
-	global_transform = Transform3D(Basis.from_euler(Vector3(_pitch, _heading, _roll)), Vector3(_pos.x, _y, _pos.z))
+	_place_hull(Transform3D(Basis.from_euler(Vector3(_pitch, _heading, _roll)), Vector3(_pos.x, _y, _pos.z)))
 	_wake(delta)
 
 
@@ -733,46 +796,58 @@ func net_rescale(k: float) -> void:
 
 
 func net_pack() -> Array:
-	return [_pos, _heading, _y, _pitch, _roll, speed, int(state), hull, max_hull, _bark.text if _bark.visible else "", _crew_gone]
+	return [_pos, _heading, _y, _pitch, _roll, speed, int(state), hull, max_hull, _bark.text if _bark.visible else "", _crew_gone, _yaw_rate]
 
 
+## Not the host: sail our own copy (so the deck under a boarder moves
+## smoothly) and ease it onto the host's latest state, carried forward to now.
 func _puppet(delta: float) -> void:
 	_bark_t -= delta
 	if state == S.SINK:
 		_sink_update(delta)
 		return
-	var smp := Net.sample(self)
-	if smp.is_empty():
+	var last := Net.latest(self)
+	if last.size() != 2 or (last[1] as Array).size() < 12:
 		return
-	var a: Array = smp[0]
-	var b: Array = smp[1]
-	var f: float = smp[2]
-	if a.size() < 10 or b.size() < 10:
-		return
-	_pos = (a[0] as Vector3).lerp(b[0], f)
-	_heading = lerp_angle(float(a[1]), float(b[1]), f)
-	_y = lerpf(float(a[2]), float(b[2]), f)
-	_pitch = lerpf(float(a[3]), float(b[3]), f)
-	_roll = lerpf(float(a[4]), float(b[4]), f)
-	speed = float(b[5])
-	var st := int(a[6])
-	if st != state and st != S.SINK:
+	var s: Array = last[1]
+	var st := int(s[6])
+	if st != state and st != S.SINK and st != S.PRIZE:
 		state = st as S
-	hull = float(b[7])
-	max_hull = float(b[8])
+	hull = float(s[7])
+	max_hull = float(s[8])
 	# (joined after it boarded: those men are already over the side)
-	if b.size() > 10 and int(b[10]) > _crew_gone:
-		_crew_gone = int(b[10])
+	if int(s[10]) > _crew_gone:
+		_crew_gone = int(s[10])
 		for i in range(1, mini(_crew_gone + 1, _crew.size())):
 			_crew[i]["gone"] = true
 			(_crew[i]["node"] as Node3D).visible = false
-	var txt := str(a[9])
+	var txt := str(s[9])
 	if txt != "" and (txt != _bark.text or not _bark.visible):
 		_bark.text = txt
 		_bark.visible = true
 	elif txt == "":
 		_bark.visible = false
-	global_transform = Transform3D(Basis.from_euler(Vector3(_pitch, _heading, _roll)), Vector3(_pos.x, _y, _pos.z))
+	var ahead := clampf(Net.time() - float(last[0]), 0.0, 0.5)
+	var rate := float(s[11])
+	var mid := float(s[1]) + rate * ahead * 0.5
+	var at: Vector3 = (s[0] as Vector3) + Vector3(-sin(mid), 0.0, -cos(mid)) * float(s[5]) * ahead
+	var head := float(s[1]) + rate * ahead
+	if not _copy_ready or Vector2(at.x - _pos.x, at.z - _pos.z).length() > 8.0:
+		_copy_ready = true
+		_pos = Vector3(at.x, 0.0, at.z)
+		_heading = head
+		speed = float(s[5])
+		_yaw_rate = rate
+	else:
+		_heading = wrapf(_heading + _yaw_rate * delta, -PI, PI)
+		_pos += _fwd() * speed * delta
+		var k := 1.0 - exp(-2.5 * delta)
+		_pos += Vector3(at.x - _pos.x, 0.0, at.z - _pos.z) * k
+		_heading = lerp_angle(_heading, head, k)
+		speed = lerpf(speed, float(s[5]), k)
+		_yaw_rate = lerpf(_yaw_rate, rate, k)
+	_swell(delta)
+	_place_hull(Transform3D(Basis.from_euler(Vector3(_pitch, _heading, _roll)), Vector3(_pos.x, _y, _pos.z)))
 	_wake(delta)
 
 
@@ -780,9 +855,86 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"board":
 			_spawn_boarders(int(args[0]), int(args[1]), null)
+		"deck":
+			_crew_to_deck()
+		"prize":
+			_prize()
 		"sink":
 			if state != S.SINK:
 				state = S.SINK
 				_sink_t = 0.0
+				_chest_done = args.size() > 0 and not bool(args[0])
 				hurtbox.set_deferred("monitorable", false)
 				sunk.emit(self)
+
+
+# --------------------------------------------------------------------------
+# Boarded: the fight on our deck, and the prize
+# --------------------------------------------------------------------------
+func _start_deck_fight() -> void:
+	_set_state(S.DECK)
+	bark(["Repel boarders!", "They're on our deck!", "All hands! Cut 'em down!"][_rng.randi() % 3], 2.5)
+	Net.fx("sfx", ["horn", global_position, 2.0, 0.03, 1.2])
+	_crew_to_deck()
+	Net.event(self, "deck", [])
+
+
+## Whoever's still aboard (helmsman too) turns to fight, where he stood.
+func _crew_to_deck() -> void:
+	var parent: Node = fleet if fleet else get_parent()
+	for i in range(_crew.size()):
+		var c: Dictionary = _crew[i]
+		if c["gone"]:
+			continue
+		var man := c["node"] as Humanoid
+		c["gone"] = true
+		man.visible = false
+		var g := PirateGrunt.new()
+		g.name = "DK_%s_%d" % [name, i]
+		var start := man.global_position + Vector3.UP * 0.05
+		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": look_seed + i, "look": c["look"]})
+		g.boarder = true
+		g.camp = self
+		parent.add_child(g)
+		g.global_position = start
+		g.reset_physics_interpolation()
+		deck_crew.append(g)
+		if not net_puppet:
+			g.alert(0.1 + 0.15 * i)
+
+
+## The deck is cleared: colours struck, the captain's chest by the cabin.
+func _strike() -> void:
+	_set_state(S.PRIZE)
+	_empty_t = 0.0
+	Net.award_xp(200, global_position, 60.0)
+	_prize()
+	Net.event(self, "prize", [])
+
+
+## (every screen) The colours come down; each captain finds their own chest.
+func _prize() -> void:
+	state = S.PRIZE
+	if _jolly:
+		_jolly.visible = false
+	get_tree().call_group("hud", "show_banner", "Prize taken!", "She strikes her colours. The captain's chest is yours.", false)
+	FX.sfx("bell", global_position, 0.0, 0.02, 1.2)
+	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	var items: Array[ItemStack] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(name + "prize")
+	var picks := [["gold", rng.randi_range(30, 50)], ["treasure", rng.randi_range(2, 4)], ["rum", rng.randi_range(1, 3)]]
+	if rng.randf() < 0.6:
+		picks.append([["pistol", "cutlass", "boarding_axe", "katana"][rng.randi() % 4], 1])
+	for e in picks:
+		var it := load("res://resources/items/%s.tres" % e[0]) as ItemData
+		if it == null:
+			continue
+		var stk := ItemStack.new()
+		stk.item = it
+		stk.quantity = int(e[1])
+		items.append(stk)
+	bag.setup(items, false)
+	bag.name = "Prize_%s" % name
+	get_node("Model").add_child(bag)
+	bag.position = Vector3(1.2, HullBuilder.DECK_Y, 4.6)

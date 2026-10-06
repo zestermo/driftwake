@@ -99,6 +99,7 @@ var _cam_y: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("decks")
 	_build_psx_model()
 	_build_collision()
 	_build_cannons()
@@ -296,19 +297,6 @@ func deck_delta() -> Transform3D:
 func aboard(p: Vector3) -> bool:
 	var l := global_transform.affine_inverse() * p
 	return absf(l.x) < 3.4 and l.z > -9.5 and l.z < 7.5 and l.y > -0.7 and l.y < 13.0
-
-
-## Co-op snapshots: a position as [pos, aboard], deck-relative when aboard,
-## so riders move with the hull on every screen whatever the delay.
-func pack_pos(p: Vector3) -> Array:
-	if aboard(p):
-		return [global_transform.affine_inverse() * p, true]
-	return [p, false]
-
-
-## Back to the world, against the hull as it's drawn this frame.
-func unpack_pos(p: Vector3, on_deck: bool) -> Vector3:
-	return get_global_transform_interpolated() * p if on_deck else p
 
 
 ## The hull's own velocity (cannonballs fired from it carry it along).

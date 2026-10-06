@@ -134,7 +134,7 @@ func _process(d: float) -> bool:
 			for h in halves:
 				if not is_instance_valid(h):
 					ok = false
-				elif not (h._wet or h.linear_velocity.length() < 1.5):
+				elif not (h._wet or (ship.aboard(h.global_position) and ship.to_local(h.global_position).y < 2.5)):
 					ok = false
 			for h in halves:
 				print("   half at ", h.global_position if is_instance_valid(h) else "gone", " wet ", h._wet if is_instance_valid(h) else "-")
@@ -204,6 +204,40 @@ func _process(d: float) -> bool:
 				return false
 			print("   steering round an island (keep-out %.0f m): closest %.1f m" % [zz[1], get_meta("closest")])
 			check("pirate ships keep clear of islands", float(get_meta("closest")) > float(zz[1]) - 8.0)
+			# --- boarding them: out at sea, our captain lands on its deck
+			var sea: Vector3 = get_meta("sea") + Vector3(0, 0, -80)
+			es._pos = sea
+			es.speed = 0.0
+			es.global_transform = Transform3D(Basis(), sea + Vector3(0, 0.85, 0))
+			es._set_state(0)
+			wait = 0.3
+			step = 14
+		14:
+			p.global_position = es.global_transform * Vector3(0.0, 0.8, -2.5)
+			p.reset_physics_interpolation()
+			wait = 1.0
+			step = 15
+		15:
+			check("our captain stands on the pirate deck (aboard, on floor)", es.aboard(p.global_position) and p.is_on_floor())
+			check("all hands turn to fight (%d grunts)" % es.deck_crew.size(), es.state == 6 and es.deck_crew.size() == 6)
+			check("...the men on deck became them (none left standing as crew)", es._crew.all(func(c): return not c["node"].visible))
+			check("...and they come at us", es.deck_crew.filter(func(g): return g.state != 0).size() >= 3)
+			for g in es.deck_crew:
+				g.health.take_damage(9999.0)
+			wait = 0.5
+			step = 16
+		16:
+			check("deck cleared: she strikes her colours (a prize)", es.state == 7 and not es._jolly.visible)
+			var bag = es.get_node("Model").get_node_or_null("Prize_" + es.name)
+			check("...the captain's chest waits on her deck", bag != null and es.aboard(bag.global_position))
+			# left empty, she's scuttled
+			p.global_position = ship.global_transform * Vector3(0, 1.0, 0)
+			p.reset_physics_interpolation()
+			es._empty_t = es.SCUTTLE_AFTER - 0.2
+			wait = 1.0
+			step = 17
+		17:
+			check("a prize left empty is scuttled", es.state == 5)
 			finish()
 	return false
 func get_root_halves() -> Array:

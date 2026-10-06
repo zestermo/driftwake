@@ -1876,9 +1876,8 @@ func _hit_kind() -> int:
 func net_pack() -> Array:
 	humanoid.net_sync = true
 	var glow := humanoid.weapon != null and humanoid.weapon.material_override == _glow_mat and _glow_mat != null
-	# boarders on the crew's ship: deck-relative, so they ride it on every screen
-	var ship := get_tree().get_first_node_in_group("ship") as Ship
-	var at: Array = ship.pack_pos(global_position) if ship else [global_position, false]
+	# on a ship's deck (boarders, a pirate crew): deck-relative, so they ride it on every screen
+	var at := Net.deck_pack(global_position)
 	return [at[0], facing.rotation.y, velocity, int(state), health.current_health, health.max_health,
 		HumanoidSync.pack(humanoid), hitbox.active, hitbox.activations, _hit_kind(),
 		_aim_line.visible, _aim_point, _locked, _fired, _gun, glow, _peril_on,
@@ -1907,11 +1906,7 @@ func _net_update(delta: float) -> void:
 	if st == S.DEAD:
 		_net_die()  # (we joined after it fell, or missed the moment)
 		return
-	var ship := get_tree().get_first_node_in_group("ship") as Ship
-	if ship:
-		global_position = ship.unpack_pos(a[0], a[20]).lerp(ship.unpack_pos(b[0], b[20]), f)
-	else:
-		global_position = (a[0] as Vector3).lerp(b[0], f)
+	global_position = Net.deck_unpack(a[0], str(a[20])).lerp(Net.deck_unpack(b[0], str(b[20])), f)
 	facing.rotation.y = lerp_angle(float(a[1]), float(b[1]), f)
 	_yaw = facing.rotation.y
 	velocity = b[2]
