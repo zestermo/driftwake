@@ -62,6 +62,11 @@ func item(id: String):
 	return load("res://resources/items/%s.tres" % id)
 func attack(action: String) -> void:
 	p.input_buffer.buffer_action(action)
+var kata_vy := -99.0
+func _physics_process(_d: float) -> bool:
+	if p and p.current_state_name() == "HeavyAttack":
+		kata_vy = maxf(kata_vy, p.velocity.y)
+	return false
 func _process(d: float) -> bool:
 	t += d
 	if camp:
@@ -254,6 +259,24 @@ func _process(d: float) -> bool:
 		18:
 			print("   dual ammo ", p.ammo)
 			check("dual pistols alternate hands", p.ammo[0] == p.max_ammo() - 1 and p.ammo[1] == p.max_ammo() - 1)
+			# drawn pistols point where we face (not up the wrist)
+			p.sheathe_weapon(true)   # (equipped mid-test: make sure they're really drawn)
+			p.draw_weapon(true)
+			wait = 0.5
+			step = 179
+		179:
+			var fwd: Vector3 = -p.player_model.global_basis.z
+			var worst := 1.0
+			for w in [p.body_model.weapon, p.body_model.offhand]:
+				worst = minf(worst, (-(w as Node3D).global_basis.z).dot(fwd))
+			check("both pistols point forward (worst alignment %.2f)" % worst, worst > 0.8)
+			# gun kata: a hop into the spin
+			kata_vy = -99.0
+			attack("heavy_attack")
+			wait = 1.1
+			step = 180
+		180:
+			check("the gun kata hops into the air (up %.1f m/s)" % kata_vy, kata_vy > 3.0)
 			# Bullet Storm (needs a gun)
 			pc.energy = 100.0
 			g = camp.grunts[4]
@@ -266,7 +289,7 @@ func _process(d: float) -> bool:
 			v0 = g.health.current_health
 			check("cast Bullet Storm", pc.try_cast(0))
 			wait = 1.0
-			step += 1
+			step = 19
 		19:
 			var mz: Vector3 = p.global_position + Vector3(0, 1.3, 0) + Vector3(0, 0, -0.5)
 			var eq := PhysicsRayQueryParameters3D.create(mz, mz + Vector3(0, 0, -30), 32)

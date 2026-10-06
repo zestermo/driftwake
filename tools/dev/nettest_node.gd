@@ -114,6 +114,14 @@ func _run(name_: String, args: Array, from: int):
 		"action":
 			lp.body_model.play(str(args[0]), float(args[1]))
 			return true
+		"host_pistols":
+			var pistol: ItemData = load("res://resources/items/pistol.tres")
+			lp.inventory_component.add_item(pistol, 2)
+			lp.equip_weapon(pistol, false)
+			lp.set_offhand(pistol)
+			lp.sheathe_weapon(true)
+			lp.draw_weapon(true)
+			return true
 		"respawn_camp":
 			var camp = _world().find_children("SmugglersCamp", "", true, false)[0]
 			camp.gen += 1

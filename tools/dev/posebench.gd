@@ -67,7 +67,11 @@ func _initialize():
 	h.stance = stance
 	if weapon != "none":
 		h.set_weapon(Props.weapon_mesh(weapon))
+		# PB_DUAL=1: the same weapon in the off hand too (dual pistols / swords)
+		if OS.get_environment("PB_DUAL") != "":
+			h.set_offhand(Props.weapon_mesh(weapon))
 		h._attach_weapon(true)
+		h.auto_point_guns = true
 	h.armed = OS.get_environment("PB_REST") == ""
 	if OS.get_environment("PB_BEAST") != "":
 		var lk: Dictionary = h.look.duplicate(true)

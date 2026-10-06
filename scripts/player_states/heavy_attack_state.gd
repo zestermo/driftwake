@@ -6,8 +6,8 @@ extends PlayerState
 ##   forward step, slower but hits hardest and staggers longest
 ## * dual swords: both blades raised, then crashing down together
 ## * fists: a flying kick
-## * one pistol: a pistol-whip; two pistols: gun kata (spin and shoot
-##   everyone close)
+## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
+##   spin, arms crossed, shooting everyone close)
 ## * claws (Zoan hybrid): a pouncing maul
 ## * anything else: the leaping two-handed slam
 
@@ -38,6 +38,9 @@ const STYLES := {
 		"damage": 35.0, "hitstop": 0.1, "shake": 0.2, "knockback": 10.0, "stagger": 0.5,
 		"trail": "overhead", "trail_len": 0.3, "sfx": "whoosh_big", "pitch": 1.0, "impact_fx": true},
 }
+
+## Gun kata hop (m/s up).
+const KATA_HOP := 5.0
 
 var timer: float = 0.0
 var phase: int = 0  # 0 = windup, 1 = active, 2 = recovery
@@ -114,6 +117,8 @@ func physics_update(delta: float) -> void:
 				var face_dir := get_camera_forward()
 				player.velocity.x = face_dir.x * float(cfg["impulse"])
 				player.velocity.z = face_dir.z * float(cfg["impulse"])
+				if cfg.get("kata", false) and player.is_on_floor():
+					player.velocity.y = KATA_HOP   # spins in the air, not planted on the ground
 				var hit := player.melee_hit(float(cfg["damage"]))
 				# Armament Haki: heavy attacks can't be blocked
 				if player.progression.has_flag("armament"):

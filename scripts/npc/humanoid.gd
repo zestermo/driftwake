@@ -317,6 +317,33 @@ func _attach_weapon(in_hand: bool) -> void:
 	weapon.transform = Transform3D.IDENTITY
 
 
+## The player's bodies (and their co-op puppets) aim their pistols every frame
+## after posing (grunts aim their own).
+var auto_point_guns := false
+
+
+## Pistols in hand point where the body faces (pitched by aim_pitch) instead of
+## along the wrist (which, with the hand down, is straight up); in the gun kata
+## each follows its own forearm, out to the sides. Called by whoever drives a
+## pistol-wielding body (the player and its co-op puppets) after posing it.
+func point_guns() -> void:
+	if stance not in ["pistol", "dual_pistol"] or not weapon_in_hand or current_action() == "reload" or not is_inside_tree():
+		return
+	var kata := current_action() == "gun_kata"
+	var fwd := -global_basis.z
+	fwd.y = 0.0
+	if fwd.length() < 0.01:
+		return
+	fwd = fwd.normalized()
+	var dir := (fwd * cos(aim_pitch) + Vector3.UP * sin(aim_pitch)).normalized()
+	for g in [[weapon, fore_r], [offhand, fore_l]]:
+		var w: Node3D = g[0]
+		if w == null or not is_instance_valid(w) or not w.is_inside_tree():
+			continue
+		var d := -(g[1] as Node3D).global_basis.y.normalized() if kata else dir
+		w.global_basis = Basis.looking_at(d, Vector3.UP if absf(d.y) < 0.95 else Vector3.FORWARD)
+
+
 ## A second weapon in the off hand (null clears it).
 func set_offhand(mesh: Mesh) -> void:
 	if offhand:
@@ -406,8 +433,9 @@ func _guard() -> Dictionary:
 				"arm_l": Vector3(0.25, 0.1, -0.2), "fore_l": Vector3(0.6, 0, 0),
 				"torso": Vector3(-0.05, 0.25, 0), "head": Vector3(0.05, -0.2, 0)}
 		"dual_pistol":
-			return {"arm_r": Vector3(1.0, -0.15, 0.3), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(-0.35, 0, 0),
-				"arm_l": Vector3(1.0, 0.15, -0.3), "fore_l": Vector3(0.45, 0, 0),
+			# held low and close, elbows a little bent (raised to fire: shoot_r/l)
+			return {"arm_r": Vector3(0.35, -0.1, 0.1), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3(-0.35, 0, 0),
+				"arm_l": Vector3(0.35, 0.1, -0.1), "fore_l": Vector3(0.7, 0, 0),
 				"torso": Vector3(-0.05, 0.0, 0), "head": Vector3(0.05, 0, 0)}
 	return GUARD
 
@@ -1120,17 +1148,34 @@ func _action_pose(n: String, u: float) -> Array:
 				"leg_l": Vector3(0.85, 0, -0.12), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.55, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0)}
 			lift.y = -0.2 * sin(clampf((u - 0.25) / 0.6, 0.0, 1.0) * PI)
 			return [_keys(u, [[0.0, gc], [0.24, open_x, "out"], [0.42, cross_x, "in"], [0.65, cross_x], [1.0, gc]]), "full", lift]
-		"dual_spin", "gun_kata":
+		"dual_spin":
 			var gs := _guard()
 			var out2 := {"arm_r": Vector3(1.4, 0.0, 1.5), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.4, 0.0, -1.5), "fore_l": Vector3(0.05, 0, 0),
 				"torso": Vector3(-0.2, 0, 0), "leg_l": Vector3(0.5, 0, -0.25), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(0.5, 0, 0.25), "shin_r": Vector3(-0.8, 0, 0)}
-			if n == "gun_kata":
-				out2["hand_r"] = Vector3(-1.4, 0, 0)
 			var spin2 := 1.0 - pow(1.0 - clampf((u - 0.15) / 0.6, 0.0, 1.0), 2.2)
 			var pose2 := _keys(u, [[0.0, gs], [0.15, out2, "out"], [0.78, out2], [1.0, gs]])
-			pose2["pivot"] = Vector3(0, -TAU * spin2 * (1.0 if n == "dual_spin" else 2.0), 0)
+			pose2["pivot"] = Vector3(0, -TAU * spin2, 0)
 			lift.y = 0.18 * sin(clampf((u - 0.15) / 0.6, 0.0, 1.0) * PI) - 0.1
 			return [pose2, "full", lift]
+		"gun_kata":
+			# crouch, hop up into a double spin with the arms crossed, each gun
+			# pointing out to the opposite side, land
+			var gk := _guard()
+			var crouch := {"arm_r": Vector3(0.9, 0.9, -0.3), "fore_r": Vector3(0.9, 0, 0), "arm_l": Vector3(0.95, -0.9, 0.3), "fore_l": Vector3(0.9, 0, 0),
+				"torso": Vector3(-0.35, 0, 0), "head": Vector3(0.2, 0, 0),
+				"leg_l": Vector3(0.9, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.7, 0, 0.12), "shin_r": Vector3(-1.4, 0, 0)}
+			var cross := {"arm_r": Vector3(1.45, 1.25, 0.0), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.62, -1.25, 0.0), "fore_l": Vector3(0.05, 0, 0),
+				"torso": Vector3(-0.05, 0, 0), "head": Vector3(0.05, 0, 0),
+				"leg_l": Vector3(0.75, 0, -0.08), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(0.25, 0, 0.08), "shin_r": Vector3(-0.7, 0, 0)}
+			var land := crouch.duplicate()
+			land["arm_r"] = Vector3(0.6, 0.2, 0.3)
+			land["arm_l"] = Vector3(0.6, -0.2, -0.3)
+			var spin_k := 1.0 - pow(1.0 - clampf((u - 0.16) / 0.62, 0.0, 1.0), 1.8)
+			var posek := _keys(u, [[0.0, gk], [0.13, crouch, "out"], [0.24, cross, "out"], [0.76, cross], [0.86, land, "in"], [1.0, gk]])
+			posek["pivot"] = Vector3(0, -TAU * 2.0 * spin_k, 0)
+			lift.y = (-0.14 * sin(clampf(u / 0.16, 0.0, 1.0) * PI * 0.5)) if u < 0.16 else \
+				(-0.14 * sin(clampf((u - 0.8) / 0.2, 0.0, 1.0) * PI) if u > 0.8 else 0.0)
+			return [posek, "full", lift]
 		"dual_heavy":
 			var gh := _guard()
 			var up2 := {"arm_r": Vector3(3.1, 0.2, 0.45), "fore_r": Vector3(0.6, 0, 0), "arm_l": Vector3(3.1, -0.2, -0.45), "fore_l": Vector3(0.6, 0, 0),
@@ -1144,6 +1189,17 @@ func _action_pose(n: String, u: float) -> Array:
 			var gp := _guard()
 			var rr := n == "shoot_r"
 			var aim := gp.duplicate()
+			if stance == "dual_pistol":
+				# both guns come up in front, close together; the firing one kicks
+				aim["arm_r"] = Vector3(1.5 + aim_pitch, 0.18, -0.06)
+				aim["arm_l"] = Vector3(1.5 + aim_pitch, -0.18, 0.06)
+				aim["fore_r"] = Vector3(0.12, 0, 0)
+				aim["fore_l"] = Vector3(0.12, 0, 0)
+				aim["torso"] = Vector3(0.0, 0.0, 0)
+				var kd := aim.duplicate()
+				kd["arm_r" if rr else "arm_l"] = (aim["arm_r" if rr else "arm_l"] as Vector3) + Vector3(0.4, 0, 0)
+				kd["fore_r" if rr else "fore_l"] = Vector3(0.35, 0, 0)
+				return [_keys(u, [[0.0, gp], [0.08, kd, "out"], [0.35, aim], [0.8, aim], [1.0, gp]]), "upper", lift]
 			if rr:
 				aim["arm_r"] = Vector3(1.55 + aim_pitch, -0.05, 0.1)
 				aim["fore_r"] = Vector3(0.05, 0, 0)
@@ -1754,6 +1810,8 @@ func _process(delta: float) -> void:
 	if _tail and is_instance_valid(_tail):
 		var wag := 1.0 + clampf(ground_speed * 0.15, 0.0, 1.0)
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
+	if auto_point_guns:
+		point_guns()
 	_update_physics(delta)
 
 

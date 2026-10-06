@@ -170,6 +170,8 @@ func _process(d: float) -> bool:
 			if st_t < 0.4:
 				return false
 			check("host's action plays on its puppet (%s)" % net.players[1].body_model.current_action(), net.players[1].body_model.current_action() == "wave")
+			# the host draws two pistols (checked on its puppet below)
+			tn.ask("host_pistols")
 			# our action plays on our puppet there
 			p.body_model.play("drink", 1.5)
 			# and we rename ourselves (a new captain names themselves after joining)
@@ -187,6 +189,16 @@ func _process(d: float) -> bool:
 			check("our action plays on the host's puppet of us (%s)" % rep()["puppet_action"], rep()["puppet_action"] == "drink")
 			check("host shows our new name (%s / %s)" % [rep()["puppet_name"], rep()["puppet_plate"]], rep()["puppet_name"] == "Renamed" and rep()["puppet_plate"].begins_with("Renamed"))
 			check("we show the host's name (%s)" % net.players[1].display_name(), net.players[1].display_name() == rep()["host_name"] and net.players[1]._nameplate.text.begins_with(rep()["host_name"]))
+			# the host's drawn pistols point where its puppet faces (they used to point up the wrist)
+			var hb = net.players[1].body_model
+			var hfwd: Vector3 = -net.players[1].player_model.global_basis.z
+			var gw := 1.0
+			var guns := 0
+			for w in [hb.weapon, hb.offhand]:
+				if w != null and is_instance_valid(w):
+					guns += 1
+					gw = minf(gw, (-(w as Node3D).global_basis.z).dot(hfwd))
+			check("the host's pistols point forward on its puppet (%d guns, %s, worst %.2f)" % [guns, hb.stance, gw], guns == 2 and hb.weapon_in_hand and gw > 0.8)
 			# --- we hit a grunt: the host applies it
 			var camp = current_scene.find_children("SmugglersCamp", "", true, false)[0]
 			var g = null

@@ -227,6 +227,7 @@ func _build_body() -> void:
 	body_model = Humanoid.new()
 	body_model.name = "Body"
 	body_model.swappable_hands = true
+	body_model.auto_point_guns = true
 	# which save slot this session plays (the title screen normally chose it)
 	SaveGame.ensure_session()
 	var first_launch := SaveGame.new_game if SaveGame.enabled() else not CharacterLook.has_saved()
@@ -568,28 +569,11 @@ func _process(delta: float) -> void:
 	body_model.stance = style()
 	_update_head_look()
 	_tick_body(delta)
-	_point_pistols()
 	if _using_item:
 		_use_timer -= delta
 		if _use_timer <= 0.0:
 			_finish_use()
 	_update_lean(delta)
-
-
-## Pistols in hand point where you face (pitched with the aim) instead of
-## along the wrist.
-func _point_pistols() -> void:
-	if weapon_class() != "gun" or not body_model.weapon_in_hand or reloading():
-		return
-	var fwd := -player_model.global_basis.z
-	fwd.y = 0.0
-	if fwd.length() < 0.01:
-		return
-	fwd = fwd.normalized()
-	var dir := (fwd * cos(body_model.aim_pitch) + Vector3.UP * sin(body_model.aim_pitch)).normalized()
-	for w in [body_model.weapon, body_model.offhand]:
-		if w and is_instance_valid(w) and (w as Node3D).is_inside_tree():
-			(w as Node3D).global_basis = Basis.looking_at(dir, Vector3.UP)
 
 
 func _tick_body(delta: float) -> void:
@@ -1518,6 +1502,7 @@ func _setup_puppet() -> void:
 	body_model = Humanoid.new()
 	body_model.name = "Body"
 	body_model.swappable_hands = true
+	body_model.auto_point_guns = true
 	var lk: Dictionary = net_profile.get("look", {})
 	appearance = lk if not lk.is_empty() else CharacterLook.default_look()
 	body_model.setup(appearance)
