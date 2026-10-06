@@ -1,0 +1,5 @@
+# Asset generators (gen_psx_textures.py, gen_psx_audio.py, gen_psx_music.py)
+# py -m pip install -r tools/texture_gen/requirements.txt
+numpy>=1.26
+scipy>=1.11
+pillow>=10
