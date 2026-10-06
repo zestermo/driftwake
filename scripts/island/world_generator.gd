@@ -386,6 +386,9 @@ func _build_redtide() -> void:
 	redtide.rotation.y = atan2(to_home.x, to_home.y)
 	add_child(redtide)
 	EnemyShip.safe_center = Vector3(starter_center.x, 0.0, starter_center.y)
+	EnemyShip.no_go = [[starter_center, StarterIsland.HALF + 5.0], [spot, 45.0]]
+	for info in island_infos:
+		EnemyShip.no_go.append([info["pos"], float(info["radius"]) + 30.0])
 	fleet = EnemyFleet.new()
 	fleet.name = "PirateFleet"
 	add_child(fleet)

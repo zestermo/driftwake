@@ -156,7 +156,16 @@ func _process(d: float) -> bool:
 			# (step off the deck first: a teleporting deck flings you)
 			p.global_position = Vector3(150, 3, 100)
 			p.reset_physics_interpolation()
-			var spot: Vector3 = es.global_position + es._right() * 34.0
+			# (open sea: they leave ships alone near land, the Redtide rock included)
+			var sc: Vector2 = root.get_node("World/Islands").starter_center
+			for k in range(32):
+				var a := k * TAU / 32.0
+				var c := Vector3(sc.x + cos(a) * 420.0, 0, sc.y + sin(a) * 420.0)
+				if es.huntable_at(c) and es.huntable_at(c + es._right() * 40.0):
+					es._pos = c
+					es.global_transform = Transform3D(Basis(Vector3.UP, es._heading), c + Vector3(0, 0.85, 0))
+					break
+			var spot: Vector3 = es._pos + es._right() * 34.0
 			ship.place(Vector3(spot.x, 0.5, spot.z), es.global_rotation.y)
 			wait = 0.3
 			step = 7

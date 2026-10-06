@@ -62,13 +62,24 @@ func _process(d: float) -> bool:
 			ship = get_first_node_in_group("ship")
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
-			# out at sea, east of Brinehollow, a pirate ship lying abeam (its brain off: just its guns)
-			ship.place(Vector3(450, 0, 150), 0.0)
 			es = get_nodes_in_group("enemy_ships")[0]
+			# out at sea where pirates hunt (clear of land), a pirate ship lying
+			# abeam (its brain off: just its guns)
+			var sc: Vector2 = root.get_node("World/Islands").starter_center
+			var sea := Vector3.INF
+			for k in range(32):
+				var a := k * TAU / 32.0
+				var c := Vector3(sc.x + cos(a) * 420.0, 0, sc.y + sin(a) * 420.0)
+				if es.huntable_at(c) and es.huntable_at(c + Vector3(40, 0, 0)):
+					sea = c
+					break
+			check("found open sea to fight in", sea != Vector3.INF)
+			set_meta("sea", sea)
+			ship.place(sea, 0.0)
 			es.set_physics_process(false)
-			es._pos = Vector3(482, 0, 150)
+			es._pos = sea + Vector3(32, 0, 0)
 			es._heading = 0.0
-			es.global_transform = Transform3D(Basis(), Vector3(482, 0.85, 150))
+			es.global_transform = Transform3D(Basis(), es._pos + Vector3(0, 0.85, 0))
 			for c in es.cannons:
 				if c.position.x < 0.0 and absf(c.position.z + 1.6) < 0.1:
 					gun = c
@@ -123,8 +134,10 @@ func _process(d: float) -> bool:
 			for h in halves:
 				if not is_instance_valid(h):
 					ok = false
-				elif not (h._wet or h.global_position.y < 3.0):
+				elif not (h._wet or h.linear_velocity.length() < 1.5):
 					ok = false
+			for h in halves:
+				print("   half at ", h.global_position if is_instance_valid(h) else "gone", " wet ", h._wet if is_instance_valid(h) else "-")
 			check("...the halves come down (in the sea or on deck)", ok)
 			p.equip_weapon(load("res://resources/items/cutlass.tres"))
 			shoot()
@@ -155,6 +168,42 @@ func _process(d: float) -> bool:
 		11:
 			print("   hull ", hull0, " -> ", ship.hull)
 			check("left alone, it lands (hull hit)", ship.hull < hull0)
+			# --- who the pirates go after
+			check("a captain aboard at sea: the pirates have a target", es._crew_ship() == ship and es._huntable(ship))
+			p.global_position = ship.global_transform * Vector3(0, 0, 30)
+			p.reset_physics_interpolation()
+			wait = 0.2
+			step = 12
+		12:
+			check("nobody aboard: no target (an empty ship isn't worth a shot)", es._crew_ship() == null)
+			var sc: Vector2 = root.get_node("World/Islands").starter_center
+			check("in Brinehollow's harbour, by its dock: not huntable", not es.huntable_at(Vector3(sc.x, 0, sc.y - 200.0)))
+			check("...nor just off another island's shore", not es.huntable_at(Vector3(es.no_go[2][0].x + float(es.no_go[2][1]) + 20.0, 0, es.no_go[2][0].y)))
+			# --- steering round land: a patrol whose waypoints lie on an island
+			var z: Array = es.no_go[2]
+			var c := Vector3(z[0].x, 0, z[0].y)
+			var r := float(z[1])
+			var from := c + Vector3(r + 120.0, 0, 0)
+			es._pos = from
+			es._heading = atan2(-(c - from).x, -(c - from).z)
+			es.global_transform = Transform3D(Basis(Vector3.UP, es._heading), from + Vector3(0, 0.85, 0))
+			es.patrol_center = c
+			es.patrol_radius = 5.0
+			es._set_state(0)
+			es.speed = 8.0
+			es.set_physics_process(true)
+			set_meta("zone", [c, r])
+			set_meta("closest", INF)
+			t0 = t
+			step = 13
+		13:
+			var zz: Array = get_meta("zone")
+			var dd: float = Vector2(es._pos.x - zz[0].x, es._pos.z - zz[0].z).length()
+			set_meta("closest", minf(float(get_meta("closest")), dd))
+			if t - t0 < 30.0:
+				return false
+			print("   steering round an island (keep-out %.0f m): closest %.1f m" % [zz[1], get_meta("closest")])
+			check("pirate ships keep clear of islands", float(get_meta("closest")) > float(zz[1]) - 8.0)
 			finish()
 	return false
 func get_root_halves() -> Array:

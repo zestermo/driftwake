@@ -37,6 +37,13 @@ const WARN := 1.0
 ## Brinehollow's harbour: they won't follow you in (world position, radius).
 static var safe_center := Vector3(150, 0, 150)
 const SAFE_RADIUS := 250.0
+## Land the pirates keep clear of: [centre (x, z), radius] (WorldGenerator
+## fills it: the islands, Brinehollow and its dock, the Redtide rock). They
+## steer round it, and leave alone a ship within STANDOFF of it (pulling in
+## to land, moored at a dock).
+static var no_go: Array = []
+const STANDOFF := 60.0
+const LOOK_AHEAD := 45.0
 ## The crew on deck: [spot (ship-local, on the deck), yaw]. The helmsman (0)
 ## stays aboard; the rest go over the side in this order when it boards.
 const CREW_SPOTS := [
@@ -305,23 +312,47 @@ func _set_state(s: S) -> void:
 	st_t = 0.0
 
 
-## The crew's ship, if someone's aboard (or swimming right by it).
+## The crew's ship, if a captain is aboard (an empty ship isn't worth a shot).
 func _crew_ship() -> Node3D:
-	var ship := get_tree().get_first_node_in_group("ship") as Node3D
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
 	if ship == null:
 		return null
 	for p in Net.all_players():
-		if (p as Node3D).global_position.distance_to(ship.global_position) < 14.0:
-			if _target != ship:
-				_target = ship
+		if ship.aboard((p as Node3D).global_position):
+			_target = ship
 			return ship
 	return null
 
 
 func _huntable(t: Node3D) -> bool:
-	var tp := Vector3(t.global_position.x, 0, t.global_position.z)
-	var sc := Vector3(safe_center.x, 0, safe_center.z)
-	return tp.distance_to(sc) > SAFE_RADIUS
+	return huntable_at(t.global_position)
+
+
+## Out at sea, clear of land: somewhere they'll chase and fire on a ship.
+static func huntable_at(p: Vector3) -> bool:
+	for z in no_go:
+		if Vector2(p.x, p.z).distance_to(z[0]) < float(z[1]) + STANDOFF:
+			return false
+	return true
+
+
+## Steer round land: bend the course away from any no-go circle it (or the
+## water just ahead) runs into.
+func _steer_clear(heading: float) -> float:
+	var dir := Vector3(-sin(heading), 0.0, -cos(heading))
+	var push := Vector3.ZERO
+	for z in no_go:
+		var c := Vector3((z[0] as Vector2).x, 0.0, (z[0] as Vector2).y)
+		var r := float(z[1])
+		for probe in [_pos, _pos + dir * LOOK_AHEAD * 0.5, _pos + dir * LOOK_AHEAD]:
+			var d: Vector3 = probe - c
+			d.y = 0.0
+			if d.length() < r:
+				push += d.normalized() * (1.0 - d.length() / r + 0.3)
+	if push == Vector3.ZERO:
+		return heading
+	dir = (dir + push * 1.5).normalized()
+	return atan2(-dir.x, -dir.z)
 
 
 func _vel_of(t: Node3D) -> Vector3:
@@ -605,7 +636,7 @@ func _drop_chest() -> void:
 ## Another ship (or a dock, or the shore) is in the way: slide along it.
 func _sail(delta: float, want_heading: float, want_speed: float) -> void:
 	speed = move_toward(speed, want_speed, (ACCEL if want_speed > speed else ACCEL * 1.5) * delta)
-	var diff := wrapf(want_heading - _heading, -PI, PI)
+	var diff := wrapf(_steer_clear(want_heading) - _heading, -PI, PI)
 	var flow := clampf(absf(speed) / 4.0, 0.3, 1.0)
 	var target_rate := clampf(diff * 1.2, -1.0, 1.0) * MAX_TURN * flow
 	_yaw_rate = move_toward(_yaw_rate, target_rate, 1.0 * delta)
