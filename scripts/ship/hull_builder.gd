@@ -18,6 +18,7 @@ const RINGS := [
 
 static var _jolly_tex: ImageTexture
 static var _jolly_mat: ShaderMaterial
+static var _marine_mat: ShaderMaterial
 
 
 ## Half the deck's width at `z` (ship-local).
@@ -32,7 +33,8 @@ static func half_width(z: float) -> float:
 
 
 ## Build the model under `parent`. opts: hull (Color), sail (Color),
-## trim (Color), jolly (bool: skull and crossbones on the sail and flag).
+## trim (Color), emblem ("jolly": skull and crossbones on the sail and flag,
+## "marine": the Marines' blue gull; the node is "Jolly" either way).
 static func build(parent: Node3D, opts: Dictionary = {}) -> Node3D:
 	var mb := MeshBuilder.new()
 	var hull := PSXMat.lit("planks_dark", opts.get("hull", Color.WHITE), {"affine": 0.6})
@@ -99,9 +101,10 @@ static func build(parent: Node3D, opts: Dictionary = {}) -> Node3D:
 	mb.add_box(crate, Transform3D(Basis(Vector3.UP, -0.2), Vector3(-1.5, DECK_Y + 0.25, -3.0)), Vector3(0.5, 0.5, 0.5), 1.0)
 	var inst := mb.to_instance("PSXModel")
 	parent.add_child(inst)
-	if bool(opts.get("jolly", false)):
+	var emblem := str(opts.get("emblem", ""))
+	if emblem != "":
 		var j := MeshBuilder.new()
-		var jm := jolly_material()
+		var jm := jolly_material() if emblem == "jolly" else marine_material()
 		# on the sail's front (+Z faces the stern... the sail's shown face is
 		# toward the bow, -Z): a big emblem, and both sides of the flag
 		j.add_card(jm, Transform3D(Basis(Vector3.UP, PI), Vector3(0, 6.6, -1.0)), 3.0, 3.0, Rect2(0, 0, 1, 1))
@@ -158,6 +161,42 @@ static func jolly_material() -> ShaderMaterial:
 	m.set_shader_parameter("wind_strength", 0.0)
 	m.set_shader_parameter("sway_height", 1.0)
 	_jolly_mat = m
+	return m
+
+
+## The Marines' seagull (painted at runtime), blue on transparent.
+static func marine_material() -> ShaderMaterial:
+	if _marine_mat:
+		return _marine_mat
+	var n := 64
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var blue := Color(0.16, 0.3, 0.62, 1.0)
+	for y in range(n):
+		for x in range(n):
+			var on := false
+			# two swept wings meeting at the body
+			for cx: float in [21.0, 43.0]:
+				var u := (x - cx) / 13.0
+				if absf(u) <= 1.0:
+					var wy := 24.0 + 9.0 * u * u * (1.0 if (x - cx) * (cx - 32.0) > 0.0 else 0.35)
+					if absf(y - wy) < 2.8 - absf(u) * 1.2:
+						on = true
+			# body and head
+			if Vector2(x, y).distance_to(Vector2(32, 30)) < 3.6 or Vector2(x, y).distance_to(Vector2(32, 25)) < 2.4:
+				on = true
+			# a bar of "MARINE" blue under it
+			if y > 44 and y < 49 and x > 14 and x < 50:
+				on = true
+			if on:
+				img.set_pixel(x, y, blue)
+	var m := ShaderMaterial.new()
+	m.shader = PSXMat.CUTOUT_SHADER
+	m.set_shader_parameter("albedo_tex", ImageTexture.create_from_image(img))
+	m.set_shader_parameter("albedo_color", Color.WHITE)
+	m.set_shader_parameter("wind_strength", 0.0)
+	m.set_shader_parameter("sway_height", 1.0)
+	_marine_mat = m
 	return m
 
 

@@ -25,21 +25,43 @@ class_name EnemyShip
 
 signal sunk(ship: EnemyShip)
 
-enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE }
+enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE, RAM, FLEE }
 
-const MAX_SPEED := 10.0
+## What sails: speed, hull, guns a side (deck z), crew, broadside range
+## [near, far], aim scatter, and how it fights (boards / rams / a second
+## broadside right after the first / surrenders when beaten).
+const KINDS := {
+	"sloop": {"speed": 10.0, "hull": 260.0, "guns": [-3.8, -1.6, 1.4], "crew": 6, "range": [24.0, 46.0], "scatter": 1.0,
+		"boards": true, "rams": false, "double": false, "yields": true,
+		"look": {"hull": Color(0.55, 0.45, 0.42), "deck": Color(0.75, 0.68, 0.6), "trim": Color(0.55, 0.12, 0.1), "sail": Color(0.22, 0.2, 0.2), "flag": Color(0.25, 0.22, 0.22), "emblem": "jolly"}},
+	"gunboat": {"speed": 13.0, "hull": 150.0, "guns": [-2.6, 0.6], "crew": 4, "range": [18.0, 34.0], "scatter": 1.25,
+		"boards": true, "rams": true, "double": false, "yields": true,
+		"look": {"hull": Color(0.6, 0.4, 0.3), "deck": Color(0.8, 0.7, 0.55), "trim": Color(0.75, 0.55, 0.2), "sail": Color(0.62, 0.16, 0.12), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
+	"brig": {"speed": 8.0, "hull": 420.0, "guns": [-4.4, -2.2, 0.0, 2.2], "crew": 8, "range": [26.0, 50.0], "scatter": 1.0,
+		"boards": true, "rams": true, "double": true, "yields": true,
+		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
+	"marine": {"speed": 11.0, "hull": 320.0, "guns": [-3.8, -1.6, 1.4], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
+		"boards": false, "rams": false, "double": false, "yields": false,
+		"look": {"hull": Color(1.7, 1.7, 1.65), "deck": Color(0.8, 0.74, 0.64), "trim": Color(0.2, 0.32, 0.62), "sail": Color(0.95, 0.95, 0.92), "flag": Color(0.92, 0.92, 0.9), "emblem": "marine"}},
+}
+
 const ACCEL := 2.2
 const MAX_TURN := 0.5
-const HULL := 260.0
 const FREEBOARD := 0.85
 const HEAVE_SCALE := 0.45
 const NOTICE := 150.0
 const LOSE := 240.0
-const RANGE_NEAR := 24.0
-const RANGE_FAR := 46.0
 const FIRE_MAX := 64.0
 const VOLLEY_EVERY := 7.5
 const WARN := 1.0
+## Ramming: closing speed, hull damage dealt (x the rammer's speed share),
+## and how long before it tries again.
+const RAM_DAMAGE := 45.0
+const RAM_EVERY := 25.0
+## Fleeing at this share of hull; striking its colours at this share (if it
+## would), once you've caught it.
+const FLEE_AT := 0.25
+const YIELD_AT := 0.15
 ## Brinehollow's harbour: they won't follow you in (world position, radius).
 static var safe_center := Vector3(150, 0, 150)
 const SAFE_RADIUS := 250.0
@@ -59,6 +81,8 @@ const CREW_SPOTS := [
 	[Vector3(-1.9, 0.0, -0.5), PI * 0.5],
 	[Vector3(-0.9, 0.0, 2.1), PI * 0.8],
 	[Vector3(0.4, 0.0, -5.2), 0.0],
+	[Vector3(-1.4, 0.0, -3.9), PI * 0.5],
+	[Vector3(1.7, 0.0, 3.1), -PI * 0.5],
 ]
 ## The crew are only drawn this close to the camera (bodies, hair and cloth).
 const CREW_SHOW := 220.0
@@ -69,8 +93,13 @@ var patrol_center := Vector3.ZERO
 var patrol_radius: float = 90.0
 var state: S = S.PATROL
 var st_t: float = 0.0
-var hull: float = HULL
-var max_hull: float = HULL
+var kind: String = "sloop"
+var spec: Dictionary = KINDS["sloop"]
+var hull: float = 260.0
+var max_hull: float = 260.0
+var _ram_cd: float = 0.0
+var _second: bool = false
+var _fled: bool = false
 var speed: float = 0.0
 var cannons: Array = []
 var hurtbox: Hurtbox
@@ -119,12 +148,20 @@ var _copy_ready: bool = false
 var _jolly: Node3D
 
 
-func setup(center: Vector3, radius: float, start_angle: float, seed_value: int) -> EnemyShip:
+func setup(center: Vector3, radius: float, start_angle: float, seed_value: int, kind_name: String = "sloop") -> EnemyShip:
 	patrol_center = center
 	patrol_radius = radius
 	_wp_a = start_angle
 	look_seed = seed_value
+	kind = kind_name
+	spec = KINDS[kind]
+	max_hull = float(spec["hull"])
+	hull = max_hull
 	return self
+
+
+func _max_speed() -> float:
+	return float(spec["speed"])
 
 
 func _ready() -> void:
@@ -140,18 +177,19 @@ func _ready() -> void:
 	var model := Node3D.new()
 	model.name = "Model"
 	add_child(model)
-	HullBuilder.build(model, {"hull": Color(0.55, 0.45, 0.42), "deck": Color(0.75, 0.68, 0.6),
-		"trim": Color(0.55, 0.12, 0.1), "sail": Color(0.22, 0.2, 0.2), "flag": Color(0.25, 0.22, 0.22), "jolly": true})
+	HullBuilder.build(model, spec["look"])
 	HullBuilder.collide(self)
-	# three guns a side
 	for sgn in [-1.0, 1.0]:
-		for z in [-3.8, -1.6, 1.4]:
+		var guns: Array = spec["guns"]
+		for gi in range(guns.size()):
+			var z: float = guns[gi]
 			var c := ShipCannon.new()
-			c.name = "Gun%s%d" % ["S" if sgn > 0.0 else "P", cannons.size() % 3]
+			c.name = "Gun%s%d" % ["S" if sgn > 0.0 else "P", gi]
 			c.ship = self
 			c.team = "enemy"
 			c.mannable = false
-			c.reload_time = VOLLEY_EVERY - 1.0
+			# (a double broadside reloads for the second straight away)
+			c.reload_time = 1.2 if spec["double"] else VOLLEY_EVERY - 1.0
 			c.hull_damage = 26.0
 			c.splash_damage = 18.0
 			c.position = Vector3(sgn * (HullBuilder.half_width(z) - 0.45), HullBuilder.DECK_Y, z)
@@ -207,7 +245,7 @@ func is_dead() -> bool:
 
 
 func in_combat() -> bool:
-	return state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.DECK]
+	return state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.DECK, S.RAM, S.FLEE]
 
 
 ## Inside its bounds: on deck, in the rigging, on a ladder (same hull as ours).
@@ -294,19 +332,28 @@ func _physics_process(delta: float) -> void:
 				_wp_a += 0.8
 			want_heading = atan2(-to_wp.x, -to_wp.z)
 			want_speed = 5.5
-			if tgt and dist < NOTICE and _huntable(tgt):
+			# patched up at sea after a beating (enough to fight again)
+			if hull < max_hull * 0.6:
+				hull = minf(hull + 1.5 * delta, max_hull * 0.6)
+			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4:
 				_set_state(S.HUNT)
 				bark("A ship! Run out the guns!", 2.5)
 				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
 		S.HUNT, S.BROADSIDE:
+			var near_r: float = spec["range"][0]
+			var far_r: float = spec["range"][1]
 			if tgt == null or dist > LOSE or not _huntable(tgt):
 				_set_state(S.PATROL)
-				bark("Bah, let 'em go.")
+				bark("Bah, let 'em go." if kind != "marine" else "They've slipped us. Back to patrol.")
+			elif hull < max_hull * FLEE_AT and not _fled:
+				_fled = true
+				_set_state(S.FLEE)
+				bark(["Fall back! Fall back!", "She's holed! Run for it!"][_rng.randi() % 2] if kind != "marine" else "Disengage! Make for open water!", 2.5)
 			elif state == S.HUNT:
 				var lead := tgt.global_position + _vel_of(tgt) * 2.5 - _pos
 				want_heading = atan2(-lead.x, -lead.z)
-				want_speed = MAX_SPEED
-				if dist < RANGE_FAR + 15.0:
+				want_speed = _max_speed()
+				if dist < far_r + 15.0:
 					_set_state(S.BROADSIDE)
 					_orbit = 1.0 if _right().dot(to_t) > 0.0 else -1.0
 			else:
@@ -314,20 +361,43 @@ func _physics_process(delta: float) -> void:
 				var b := to_t.normalized()
 				var tangent := Vector3.UP.cross(b) * -_orbit
 				var radial := 0.0
-				if dist > RANGE_FAR:
+				if dist > far_r:
 					radial = 0.6
-				elif dist < RANGE_NEAR:
+				elif dist < near_r:
 					radial = -0.7
 				var d := (tangent + b * radial).normalized()
 				want_heading = atan2(-d.x, -d.z)
-				want_speed = MAX_SPEED * 0.75
-				if dist > RANGE_FAR + 30.0:
+				want_speed = _max_speed() * 0.75
+				if dist > far_r + 30.0:
 					_set_state(S.HUNT)
 				_try_volley(tgt, to_t, dist)
+				_ram_cd -= delta
+				# ram them: hull sound, they're slow and not too far
+				if spec["rams"] and _ram_cd <= 0.0 and _volleys >= 1 and _warn_t < 0.0 and hull > max_hull * 0.5 and _speed_of(tgt) < 6.0 and dist < 45.0:
+					_set_state(S.RAM)
+					bark(["Ramming speed!", "Brace! We're going in!", "Run 'em down!"][_rng.randi() % 3], 2.0)
+					Net.fx("sfx", ["horn", global_position, 4.0, 0.03, 0.8])
 				# board them: after a couple of volleys, when they're slow or close
-				if not _boarded and _volleys >= 2 and _warn_t < 0.0 and (_speed_of(tgt) < 6.0 or dist < 30.0):
+				elif spec["boards"] and not _boarded and _volleys >= 2 and _warn_t < 0.0 and (_speed_of(tgt) < 6.0 or dist < 30.0):
 					_set_state(S.BOARD)
 					bark("Grapples! Prepare to board!", 2.5)
+		S.RAM:
+			if tgt == null or not _huntable(tgt) or st_t > 12.0:
+				_ram_cd = RAM_EVERY
+				_set_state(S.BROADSIDE if tgt else S.PATROL)
+			else:
+				var aim := tgt.global_position + _vel_of(tgt) * clampf(dist / maxf(speed, 1.0), 0.0, 3.0) - _pos
+				want_heading = atan2(-aim.x, -aim.z)
+				want_speed = _max_speed() * 1.15
+				# (the hit itself: _sail, when the bow meets their hull)
+		S.FLEE:
+			if tgt == null or dist > LOSE:
+				_set_state(S.PATROL)
+			elif spec["yields"] and hull < max_hull * YIELD_AT and dist < 40.0:
+				_surrender()
+			else:
+				want_heading = atan2(to_t.x, to_t.z)
+				want_speed = _max_speed()
 		S.BOARD:
 			if tgt == null or not _huntable(tgt):
 				_set_state(S.PATROL)
@@ -341,7 +411,7 @@ func _physics_process(delta: float) -> void:
 					want_heading = atan2(-to_s.x, -to_s.z)
 				else:
 					want_heading = lerp_angle(th, atan2(-to_s.x, -to_s.z), clampf(to_s.length() / 8.0, 0.0, 1.0) * 0.6)
-				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.6, 2.0, MAX_SPEED)
+				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.6, 2.0, _max_speed())
 				if to_s.length() < 4.5 and dist < 10.5:
 					_board(tgt)
 				elif st_t > 25.0:
@@ -355,7 +425,7 @@ func _physics_process(delta: float) -> void:
 				var to_s := spot - _pos
 				to_s.y = 0.0
 				want_heading = lerp_angle(tgt.global_rotation.y, atan2(-to_s.x, -to_s.z), clampf(to_s.length() / 6.0, 0.0, 0.7))
-				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.5, 0.0, MAX_SPEED)
+				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.5, 0.0, _max_speed())
 			boarders = boarders.filter(func(g): return is_instance_valid(g) and not g.is_dead())
 			if boarders.is_empty() or st_t > 30.0 or tgt == null:
 				_set_state(S.BROADSIDE if tgt and _huntable(tgt) else S.PATROL)
@@ -469,15 +539,54 @@ func _warn_update(tgt: Node3D, _to_t: Vector3, dist: float) -> void:
 				# lead the target, with some scatter (worse at range)
 				var fly := dist / ShipCannon.MUZZLE_SPEED
 				var spot := tgt.global_position + _vel_of(tgt) * fly
-				var spread := 1.5 + dist * 0.06
+				var spread := (1.5 + dist * 0.06) * float(spec["scatter"])
 				spot += Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread))
 				spot.y = 1.0
 				c.aim_at(spot)
 			c.fire(self)
 	if _warn_t >= WARN + 0.24 * guns.size() + 0.1:
+		# a brig's second broadside, hard on the heels of the first
+		if spec["double"] and not _second:
+			_second = true
+			_warn_t = WARN - 0.6
+			bark("Again! Fire!", 1.0)
+			return
+		_second = false
 		_warn_t = -1.0
 		_volley_cd = VOLLEY_EVERY
 		_volleys += 1
+
+
+# --------------------------------------------------------------------------
+# Ramming, running, striking
+# --------------------------------------------------------------------------
+## Bow first into their hull: the crew's ship takes it hard, everyone aboard
+## her is thrown about, and we back off to come round again.
+func _ram(tgt: Node3D) -> void:
+	_ram_cd = RAM_EVERY
+	var k := clampf(speed / _max_speed(), 0.4, 1.2)
+	var at := _pos + _fwd() * 7.5 + Vector3(0, 1.0, 0)
+	Net.fx("sfx", ["wood_crack", at, 8.0, 0.05, 0.6])
+	Net.fx("sfx", ["thud", at, 6.0, 0.05, 0.5])
+	Net.fx("dust", [at, 16, 1.4])
+	Net.fx("splash", [Vector3(at.x, 0.3, at.z), 14, 1.4])
+	if tgt is Ship:
+		(tgt as Ship).hull_hit(RAM_DAMAGE * k * (1.4 if kind == "brig" else 1.0), at)
+	hull = maxf(hull - max_hull * 0.06, 1.0)
+	Net.everyone("_all_rammed", [Net.key_of(tgt), at, _fwd() * k])
+	speed = -3.0
+	_set_state(S.BROADSIDE)
+	_volley_cd = maxf(_volley_cd, 3.0)
+
+
+## Beaten and caught: colours struck - a prize with no fight left in her.
+func _surrender() -> void:
+	bark(["We yield! Don't shoot!", "Quarter! We strike!", "Enough! She's yours!"][_rng.randi() % 3], 3.0)
+	_set_state(S.PRIZE)
+	_empty_t = 0.0
+	Net.award_xp(120, global_position, 160.0)
+	_prize()
+	Net.event(self, "prize", [])
 
 
 # --------------------------------------------------------------------------
@@ -532,11 +641,13 @@ func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 func _build_crew(model: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = look_seed * 7 + 3
-	for i in range(CREW_SPOTS.size()):
+	for i in range(mini(int(spec["crew"]), CREW_SPOTS.size())):
 		var spot: Vector3 = CREW_SPOTS[i][0]
 		var yaw: float = CREW_SPOTS[i][1]
 		var look := PirateGrunt.crew_look(rng)
 		look["name"] = "Pirate"
+		if kind == "marine":
+			EnemyShip.marine_look(look, rng, i == 0)
 		var h := Humanoid.new()
 		h.name = "Crew%d" % i
 		h.setup(look)
@@ -546,6 +657,31 @@ func _build_crew(model: Node3D) -> void:
 		h.set_weapon(Props.weapon_mesh("cutlass"))
 		h._attach_weapon(false)
 		_crew.append({"node": h, "look": look, "spot": spot, "yaw": yaw, "gone": false, "drawn": false})
+
+
+## Marine whites over a random body: white cap and shirt, a blue neckerchief,
+## no pirate trimmings. The officer (at the wheel) wears a white coat.
+static func marine_look(lk: Dictionary, rng: RandomNumberGenerator, officer: bool) -> void:
+	var white := Color(0.93, 0.93, 0.9)
+	var blue := Color(0.18, 0.28, 0.58)
+	lk["name"] = "Marine"
+	lk["hat"] = "cap"
+	lk["hat_color"] = white
+	lk["top"] = "shirt"
+	lk["top_color"] = white
+	lk["sleeves"] = "long"
+	lk["vest"] = "none"
+	lk["coat"] = "jacket" if officer else "none"
+	lk["coat_color"] = white
+	lk["legs"] = "trousers"
+	lk["legs_color"] = blue if rng.randf() < 0.5 else white
+	lk["belt"] = "belt"
+	lk["scarf"] = true
+	lk["scarf_color"] = blue
+	lk["eyepatch"] = false
+	lk["earring"] = false
+	lk["pauldron"] = false
+	lk["marks"] = "none"
 
 
 ## The crew on deck (every machine, from the ship's state): at their posts on
@@ -708,6 +844,9 @@ func _sail(delta: float, want_heading: float, want_speed: float) -> void:
 	if motion.length() > 0.0001:
 		var col := KinematicCollision3D.new()
 		if test_move(global_transform, motion, col, 0.05):
+			if state == S.RAM and col.get_collider() is Ship:
+				_ram(col.get_collider() as Node3D)
+				return
 			var n := col.get_normal()
 			n.y = 0.0
 			if n.length() > 0.1 and motion.dot(n) < 0.0:
@@ -790,7 +929,7 @@ func _process(delta: float) -> void:
 # ==========================================================================
 func net_rescale(k: float) -> void:
 	var frac := hull / maxf(max_hull, 1.0)
-	max_hull = HULL * k
+	max_hull = float(spec["hull"]) * k
 	if state != S.SINK:
 		hull = maxf(frac * max_hull, 1.0)
 

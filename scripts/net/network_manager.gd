@@ -1004,6 +1004,19 @@ func coins(at: Vector3, count: int) -> void:
 	everyone("_all_coins", [at, count])
 
 
+## A ship rammed ours (`ship_key`): the jolt, and our captain thrown off their
+## feet if they're standing on her deck.
+func _all_rammed(ship_key: String, at: Vector3, push: Vector3) -> void:
+	var p := local_player as Player if active else (get_node("/root/GameManager").player as Player)
+	if p == null or not is_instance_valid(p):
+		return
+	if p.global_position.distance_to(at) < 40.0:
+		CombatManager.apply_camera_shake(0.5)
+	var ship := node_of(ship_key) as Node3D
+	if ship and ship.aboard(p.global_position) and p.context == Player.Context.ON_FOOT and p.is_on_floor():
+		p.knock_down(push * 6.0 + Vector3.UP * 3.0)
+
+
 ## A cannonball stopped in flight (cut, deflected or set off) on someone's screen.
 func _all_ball(ball_id: String, what: String, at: Vector3, vel: Vector3, by_id: int) -> void:
 	Cannonball.net_act(ball_id, what, at, vel, by_id)

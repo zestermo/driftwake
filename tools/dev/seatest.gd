@@ -15,6 +15,7 @@ var hull0 := 0.0
 var hp0 := 0.0
 var t0 := 0.0
 var cut_vel := Vector3.ZERO
+var fired_n := 0
 var halves: Array = []
 func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
@@ -238,6 +239,101 @@ func _process(d: float) -> bool:
 			step = 17
 		17:
 			check("a prize left empty is scuttled", es.state == 5)
+			# --- the fleet: different ships
+			var by := {}
+			for s in get_nodes_in_group("enemy_ships"):
+				by[s.kind] = s
+			print("   fleet: ", by.keys())
+			check("a fleet of kinds: sloop, gunboat, brig, Marines", by.has("sloop") and by.has("gunboat") and by.has("brig") and by.has("marine"))
+			if by.has("brig") and by.has("gunboat") and by.has("marine"):
+				var bg = by["brig"]
+				check("the brig: 4 guns a side, 8 crew, a heavy hull", bg.cannons.size() == 8 and bg._crew.size() == 8 and bg.max_hull > 400.0)
+				check("the gunboat: 2 guns a side, 4 crew, fast", by["gunboat"].cannons.size() == 4 and by["gunboat"]._crew.size() == 4 and by["gunboat"]._max_speed() > 12.0)
+				var mr = by["marine"]
+				check("the Marines: in whites, the gull on the sail, never board", mr._crew.all(func(c): return c["look"]["name"] == "Marine" and c["look"]["top_color"].r > 0.9) and not mr.spec["boards"])
+				set_meta("by", by)
+				# --- ramming: the brig runs at our ship with our captain on deck
+				var sea: Vector3 = get_meta("sea")
+				ship.place(sea, 0.0)
+				ship.sail = 0.0
+				bg.set_physics_process(true)
+				bg._pos = sea + Vector3(0, 0, 45)
+				bg._heading = 0.0
+				bg.speed = 6.0
+				bg.global_transform = Transform3D(Basis(), bg._pos + Vector3(0, 0.85, 0))
+				wait = 0.3
+				step = 18
+			else:
+				finish()
+		18:
+			var bg = get_meta("by")["brig"]
+			p.global_position = ship.global_transform * Vector3(0.0, 0.8, 1.5)
+			p.reset_physics_interpolation()
+			p.state_machine.force_state("Idle", {})
+			hull0 = ship.hull
+			bg._ram_cd = 0.0
+			bg._volleys = 1
+			bg._set_state(8)
+			t0 = t
+			step = 19
+		19:
+			var bg = get_meta("by")["brig"]
+			if p.current_state_name() == "Downed":
+				set_meta("thrown", true)
+			set_meta("ram_min", minf(float(get_meta("ram_min", INF)), bg._pos.distance_to(ship.global_position * Vector3(1, 0, 1))))
+			if bg.state == 8 and t - t0 < 12.0:
+				return false
+			print("   ram: closest %.1f m, state %d" % [get_meta("ram_min"), bg.state])
+			print("   rammed: hull ", hull0, " -> ", ship.hull, ", captain thrown ", get_meta("thrown", false), " after %.1f s" % (t - t0))
+			check("the brig rams us: our hull takes it", ship.hull < hull0 - 20.0)
+			check("...and throws our captain off their feet", bool(get_meta("thrown", false)))
+			check("...then backs off to come round", bg.state != 8 and bg._ram_cd > 0.0)
+			# --- a double broadside: two volleys back to back
+			bg.set_physics_process(false)
+			var n0 := get_nodes_in_group("cannonballs").size()
+			set_meta("balls0", n0)
+			bg._volley_cd = 0.0
+			bg._heading = PI * 0.5
+			bg._pos = ship.global_position + Vector3(0, 0, 35)
+			bg.global_transform = Transform3D(Basis(Vector3.UP, bg._heading), bg._pos + Vector3(0, 0.85, 0))
+			fired_n = 0
+			bg._warn_t = -1.0
+			bg._second = false
+			for c in bg.cannons:
+				c.cool = 0.0
+				c.fired.connect(func(): fired_n += 1)
+			bg._try_volley(ship, ship.global_position - bg._pos, 35.0)
+			bg.set_physics_process(true)
+			t0 = t
+			step = 20
+		20:
+			if t - t0 < 4.5:
+				return false
+			print("   brig volley: %d shots" % fired_n)
+			check("the brig fires a double broadside (8 shots)", fired_n >= 8)
+			step = 200
+		200:
+			# --- beaten: it runs; caught, it strikes
+			var sl = get_meta("by")["gunboat"]
+			sl.set_physics_process(true)
+			sl._pos = ship.global_position + Vector3(30, 0, 0)
+			sl.global_transform = Transform3D(Basis(), sl._pos + Vector3(0, 0.85, 0))
+			sl.hull = sl.max_hull * 0.2
+			sl._fled = false
+			sl._set_state(2)
+			wait = 0.5
+			step = 21
+		21:
+			var sl = get_meta("by")["gunboat"]
+			check("badly holed, a pirate runs for it", sl.state == 9)
+			sl.hull = sl.max_hull * 0.1
+			wait = 0.5
+			step = 22
+		22:
+			var sl = get_meta("by")["gunboat"]
+			check("caught at a tenth of her hull, she strikes her colours", sl.state == 7 and not sl._jolly.visible)
+			check("...her crew don't fight (still aboard, cutlasses away)", sl._crew.all(func(c): return c["node"].visible and not c["node"].armed))
+			check("...the Marines would never", not get_meta("by")["marine"].spec["yields"])
 			finish()
 	return false
 func get_root_halves() -> Array:

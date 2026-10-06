@@ -9,11 +9,12 @@ class_name EnemyFleet
 @export var respawn_time: float = 150.0
 @export var respawn_clearance: float = 220.0
 
-var zones: Array = []   # {center: Vector3, radius: float, ship: EnemyShip, gen: int, timer: float}
+var zones: Array = []   # {center: Vector3, radius: float, kinds: Array, ship: EnemyShip, gen: int, timer: float}
 
 
-func add_zone(center: Vector3, radius: float) -> void:
-	zones.append({"center": center, "radius": radius, "ship": null, "gen": 0, "timer": 0.0})
+## `kinds` (EnemyShip.KINDS): what sails this stretch, in turn as ships are sunk and replaced.
+func add_zone(center: Vector3, radius: float, kinds: Array = ["sloop"]) -> void:
+	zones.append({"center": center, "radius": radius, "kinds": kinds, "ship": null, "gen": 0, "timer": 0.0})
 
 
 func _ready() -> void:
@@ -37,7 +38,8 @@ func _spawn(i: int) -> void:
 	var pos := c + Vector3(cos(a), 0.0, sin(a)) * r
 	var s := EnemyShip.new()
 	s.name = "ES%d_%d" % [i, int(z["gen"])]
-	s.setup(c, r, a + 0.6, 7000 + i * 31 + int(z["gen"]))
+	var kinds: Array = z["kinds"]
+	s.setup(c, r, a + 0.6, 7000 + i * 31 + int(z["gen"]), kinds[int(z["gen"]) % kinds.size()])
 	s.fleet = self
 	add_child(s)
 	var tangent := Vector3(-sin(a), 0.0, cos(a))

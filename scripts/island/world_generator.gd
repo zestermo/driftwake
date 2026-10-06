@@ -392,7 +392,7 @@ func _build_redtide() -> void:
 	fleet = EnemyFleet.new()
 	fleet.name = "PirateFleet"
 	add_child(fleet)
-	fleet.add_zone(Vector3(spot.x, 0.0, spot.y), 115.0)
+	fleet.add_zone(Vector3(spot.x, 0.0, spot.y), 115.0, ["sloop", "brig"])
 	# a second patrol on the way out to the nearest island
 	var near := Vector2.ZERO
 	var best := INF
@@ -401,11 +401,39 @@ func _build_redtide() -> void:
 		if d < best:
 			best = d
 			near = info["pos"]
+	var lanes: Array = [Vector3(spot.x, 0.0, spot.y)]
 	if best < INF:
 		var dir := (near - starter_center).normalized()
 		var z2 := starter_center + dir * (EnemyShip.SAFE_RADIUS + 240.0)
 		if z2.distance_to(spot) > 220.0:
-			fleet.add_zone(Vector3(z2.x, 0.0, z2.y), 110.0)
+			fleet.add_zone(Vector3(z2.x, 0.0, z2.y), 110.0, ["gunboat", "sloop"])
+			lanes.append(Vector3(z2.x, 0.0, z2.y))
+	# further out: a Marine patrol and a heavy brig's hunting ground, on open
+	# water between the far islands
+	var picks := [["marine"], ["brig", "gunboat"]]
+	for pi in range(picks.size()):
+		var c := _open_sea(lanes, 600.0 + 250.0 * pi, pi * 1.7)
+		if c != Vector3.INF:
+			fleet.add_zone(c, 120.0, picks[pi])
+			lanes.append(c)
+
+
+## Deep water clear of land at about `r` from Brinehollow, well apart from
+## the other patrol lanes (INF if there's none).
+func _open_sea(lanes: Array, r: float, a0: float) -> Vector3:
+	for k in range(36):
+		var a := a0 + k * TAU / 36.0
+		var c := starter_center + Vector2(cos(a), sin(a)) * r
+		var c3 := Vector3(c.x, 0.0, c.y)
+		if not _deep_enough(c, 120.0) or not EnemyShip.huntable_at(c3):
+			continue
+		var apart := true
+		for l in lanes:
+			if c3.distance_to(l) < 400.0:
+				apart = false
+		if apart:
+			return c3
+	return Vector3.INF
 
 
 func redtide_phrase() -> String:
