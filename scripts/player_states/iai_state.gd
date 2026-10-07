@@ -17,6 +17,7 @@ const COLORS := [Color(0.85, 0.92, 1.0), Color(0.55, 0.8, 1.0), Color(1.0, 0.82,
 var phase: int = 0   # 0 charging, 1 dashing cut, 2 recovering, 3 standing down
 var timer: float = 0.0
 var level: int = 0
+var _top: int = 2
 var _dir := Vector3.ZERO
 
 
@@ -24,6 +25,8 @@ func enter(_data: Dictionary) -> void:
 	phase = 0
 	timer = 0.0
 	level = 0
+	# the second charge level is Full Draw on the katana tree
+	_top = LEVELS.size() if player.progression.has_move("iai_full") else 1
 	player.reset_combo()
 	face_direction(get_camera_forward(), 1.0)
 	player.body_model.play("iai_ready", 600.0)
@@ -41,7 +44,7 @@ func physics_update(delta: float) -> void:
 			player.velocity.z = move_toward(player.velocity.z, want.z, 30.0 * delta)
 			player.move_and_slide()
 			face_camera(delta)
-			while level < LEVELS.size() and timer >= float(LEVELS[level]):
+			while level < _top and timer >= float(LEVELS[level]):
 				level += 1
 				_charged()
 			if input_buffer.consume_action("light_attack"):
@@ -80,7 +83,7 @@ func _charged() -> void:
 		at = w.global_position
 	Net.fx("sparkle", [at, 8 + 6 * level, COLORS[level]])
 	Net.fx("sfx", ["blip_high", at, -8.0, 0.0, 0.9 + 0.25 * level])
-	if level == LEVELS.size():
+	if level == _top:
 		Net.fx("impact", [at, COLORS[level]])
 
 

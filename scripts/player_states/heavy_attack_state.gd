@@ -80,7 +80,7 @@ func enter(_data: Dictionary) -> void:
 		"pistol":
 			cfg = STYLES["whip"]
 		"dual_pistol":
-			cfg = STYLES["kata"]
+			cfg = STYLES["kata"] if player.progression.has_move("gun_kata") else STYLES["whip"]
 		"claw":
 			cfg = STYLES["maul"]
 		_:

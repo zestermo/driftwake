@@ -298,6 +298,7 @@ static func load_into(player: Player) -> bool:
 	# progression first (the skill map decides stats and what's on the bar)
 	player.progression.from_dict(data.get("progression", {}))
 	player.power.from_dict(data.get("power", {}))
+	player.progression.after_load()
 	# inventory, gear, weapons
 	var inv := player.inventory_component
 	inv.items.clear()

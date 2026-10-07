@@ -1,24 +1,25 @@
 class_name SkillMapScreen
 extends Control
-## The skill map (K), in two tabs (click them or press Tab):
-## * Skill Map: one pannable, zoomable constellation - stats in the middle;
-##   Mobility, Survival, Sword, Gun, Armament and Observation Haki radiate out.
-## * Devil Fruit: your fruit's own tree (empty until you've eaten one).
-## Every time it opens it frames the whole cluster of the current tab.
+## The skill trees (K), one tab each (click them, or Tab / Shift+Tab):
+## Base & Haki, Unarmed, Cutlass, Katana, Axe, Dual Wield, Pistol, Devil Fruit
+## (SkillTree.TAB_ORDER). It opens on the tree of the weapon in your hand and
+## frames that tree's whole cluster. Weapon trees spend that weapon's mastery
+## points; the others spend skill points.
 ##
 ## Mouse: drag to pan, wheel to zoom, click a node to select it, click it again
-## (or Enter / F) to learn it. With a learned active skill selected, 1-4 puts
-## it on the skill bar (R for an ultimate). Right-click a bar slot to clear it.
-## WASD / arrows pan, Q / E zoom.
+## (or Enter / F) to learn it - or, on a learned skill, to rank it up a tier.
+## With a learned active skill selected, 1-4 puts it on the skill bar (R for an
+## ultimate). Right-click a bar slot to clear it. WASD / arrows pan, Q / E zoom.
 
 const FONT := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const PANEL_W := 160.0
 const BAR_SLOT := 24.0
+const HEADER_H := 30.0
 
 var menu: Node
 var _pan := Vector2.ZERO
 var _zoom := 0.38
-var _tab: int = 0   # 0 = skill map, 1 = devil fruit
+var _tab: String = "base"
 var _sel: String = "origin"
 var _hover: String = ""
 var _drag := false
@@ -53,15 +54,24 @@ func on_open() -> void:
 	for id in Skills.ALL.keys():
 		_icons[id] = Skills.icon(id)
 	grab_focus()
-	_frame_tab()
+	var pl := _player()
+	var tab := "base"
+	if pl and pl.armed:
+		tab = "fruit" if pl.hybrid else SkillTree.style_tree(pl.style())
+	set_tab(tab if tab != "" else "base")
 	queue_redraw()
 
 
-func set_tab(i: int) -> void:
-	_tab = clampi(i, 0, 1)
-	_sel = "origin" if _tab == 0 else _fruit_root()
+func set_tab(tree: String) -> void:
+	_tab = tree
+	_sel = _fruit_root() if _tab == "fruit" else SkillTree.root_of(_tab)
 	_hover = ""
 	_frame_tab()
+
+
+func _cycle_tab(step: int) -> void:
+	var i := SkillTree.TAB_ORDER.find(_tab)
+	set_tab(SkillTree.TAB_ORDER[posmod(i + step, SkillTree.TAB_ORDER.size())])
 
 
 ## The root node of your fruit's tree ("" without a fruit).
@@ -85,19 +95,19 @@ func _frame_tab() -> void:
 	for id in SkillTree.nodes().keys():
 		if _shown(id):
 			pts.append(SkillTree.nodes()[id]["pos"])
-	if _tab == 0 or pts.is_empty():
-		_pan = Vector2.ZERO
-		# the main constellation reaches ~470 from the center (region labels)
-		_zoom = clampf(minf(mr.size.x, mr.size.y - 24.0) / 2.0 / 470.0, 0.22, 1.6)
+	if _tab == "base" or pts.is_empty():
+		_pan = Vector2(0, -HEADER_H * 0.5)
+		# the base constellation reaches ~470 from the center (region labels)
+		_zoom = clampf(minf(mr.size.x, mr.size.y - HEADER_H) / 2.0 / 470.0, 0.22, 1.6)
 		return
 	var lo: Vector2 = pts[0]
 	var hi: Vector2 = pts[0]
 	for q in pts:
 		lo = lo.min(q)
 		hi = hi.max(q)
-	_pan = (lo + hi) * 0.5 + Vector2(0, -12.0)
 	var span := (hi - lo) + Vector2(140, 120)
-	_zoom = clampf(minf(mr.size.x / span.x, (mr.size.y - 30.0) / span.y), 0.3, 1.4)
+	_zoom = clampf(minf(mr.size.x / span.x, (mr.size.y - HEADER_H - 20.0) / span.y), 0.3, 1.4)
+	_pan = (lo + hi) * 0.5 + Vector2(0, -HEADER_H * 0.5 / _zoom)
 
 func _process(delta: float) -> void:
 	# the screen stays "visible" inside the hidden menu root when closed:
@@ -136,15 +146,15 @@ func _to_map(sp: Vector2) -> Vector2:
 	return (sp - mr.get_center()) / _zoom + _pan
 
 
-## Is a node on the current tab? (Skill map: everything but fruit nodes;
-## Devil Fruit tab: your own fruit's nodes.)
+## Is a node on the current tab? (The Devil Fruit tab shows only your own fruit.)
 func _shown(id: String) -> bool:
 	var n := SkillTree.get_node_def(id)
-	var fr := str(n["req"].get("fruit", ""))
-	if _tab == 0:
-		return fr == ""
+	if str(n["tree"]) != _tab:
+		return false
+	if _tab != "fruit":
+		return true
 	var pl := _player()
-	return fr != "" and pl != null and pl.power.fruit == fr
+	return pl != null and pl.power.fruit == str(n["req"].get("fruit", ""))
 
 
 func _radius(n: Dictionary) -> float:
@@ -155,7 +165,7 @@ func _radius(n: Dictionary) -> float:
 			return 14.0
 		"active":
 			return 12.5
-		"passive":
+		"passive", "move":
 			return 8.5
 	return 6.5
 
@@ -176,11 +186,11 @@ func _node_at(sp: Vector2) -> String:
 
 
 func _tab_rect(i: int) -> Rect2:
-	return Rect2(4.0 + i * 74.0, 2.0, 72.0, 14.0)
+	return Rect2(4.0 + i * 59.0, 2.0, 57.0, 14.0)
 
 
 func _tab_at(sp: Vector2) -> int:
-	for i in range(2):
+	for i in range(SkillTree.TAB_ORDER.size()):
 		if _tab_rect(i).has_point(sp):
 			return i
 	return -1
@@ -209,7 +219,7 @@ func _gui_input(event: InputEvent) -> void:
 					pl.power.equip("", i)
 					menu._play()
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and _tab_at(mb.position) >= 0:
-			set_tab(_tab_at(mb.position))
+			set_tab(SkillTree.TAB_ORDER[_tab_at(mb.position)])
 			menu._play()
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
@@ -258,7 +268,7 @@ func _input(event: InputEvent) -> void:
 	if pl == null:
 		return
 	if k == KEY_TAB:
-		set_tab(1 - _tab)
+		_cycle_tab(-1 if (event as InputEventKey).shift_pressed else 1)
 		menu._play()
 		get_viewport().set_input_as_handled()
 	elif k == KEY_ENTER or k == KEY_KP_ENTER or k == KEY_F:
@@ -289,9 +299,21 @@ func _try_learn(id: String) -> void:
 	var pl := _player()
 	if pl == null:
 		return
-	var why := pl.progression.can_learn(id)
+	var pr := pl.progression
+	var sk := str(SkillTree.get_node_def(id).get("skill", ""))
+	if pr.owns(id) and sk != "":
+		var rwhy := pr.can_rank_up(sk)
+		if rwhy == "":
+			pr.rank_up(sk)
+			menu._play()
+			_say("%s: %s" % [Skills.get_skill(sk)["name"], Skills.tier_def(sk, pr.skill_tier(sk))["name"]])
+			FX.sfx("coin", pl.global_position, -10.0, 0.0, 1.1)
+		else:
+			_say(rwhy)
+		return
+	var why := pr.can_learn(id)
 	if why == "":
-		pl.progression.learn(id)
+		pr.learn(id)
 		menu._play()
 		var n := SkillTree.get_node_def(id)
 		_say("Learned %s" % str(n["name"]))
@@ -324,9 +346,9 @@ func _draw() -> void:
 		sp = Vector2(fposmod(sp.x, size.x), fposmod(sp.y, size.y))
 		draw_rect(Rect2(sp, Vector2(1, 1)), Color(0.6, 0.65, 0.9, 0.35 + 0.25 * sin(_t * 1.3 + st.x * 40.0)))
 	var mr := _map_rect()
-	if _tab == 0:
+	if _tab == "base":
 		# region labels
-		var labels := [["Mobility", "Mobility"], ["Survival", "Survival"], ["Sword", "Sword"], ["Gun", "Gun"],
+		var labels := [["Mobility", "Mobility"], ["Survival", "Survival"],
 			["Armament", "Armament Haki"], ["Observation", "Observation Haki"]]
 		for l in labels:
 			var a := deg_to_rad(SkillTree.REGION_ANGLE[l[0]])
@@ -335,12 +357,16 @@ func _draw() -> void:
 			_text(lp + Vector2(-60, 0), str(l[1]).to_upper(), Color(col.r, col.g, col.b, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 			if pr.level < 10 and l[0] in ["Armament", "Observation"]:
 				_text(lp + Vector2(-60, 10), "awakens at level 10", Color(0.7, 0.6, 0.8, 0.6), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
+	elif _tab != "fruit":
+		var m := pr.mastery_of(_tab)
+		if int(m["lv"]) == 1 and int(m["xp"]) == 0 and int(m["pts"]) == 0:
+			_text(Vector2(0, HEADER_H + 12), "Fight with it to build mastery: every mastery level is a point for this tree.", Color(0.85, 0.85, 0.95, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	elif pl.power.has_fruit():
 		var fd := pl.power.fruit_data()
 		var fc: Color = fd["color"]
-		_text(Vector2(0, 32), ("%s (%s)" % [fd["name"], DevilFruits.type_name(pl.power.fruit)]).to_upper(), Color(fc.r, fc.g, fc.b, 0.9), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+		_text(Vector2(0, HEADER_H + 12), ("%s (%s)" % [fd["name"], DevilFruits.type_name(pl.power.fruit)]).to_upper(), Color(fc.r, fc.g, fc.b, 0.9), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 		var passive: Array = fd.get("passive", ["", ""])
-		_text(Vector2(0, 42), "Passive: %s" % passive[0], Color(0.8, 0.8, 0.9, 0.7), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+		_text(Vector2(0, HEADER_H + 22), "Passive: %s" % passive[0], Color(0.8, 0.8, 0.9, 0.7), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	else:
 		_text(Vector2(0, mr.size.y * 0.45), "NO DEVIL FRUIT YET", Color(0.75, 0.65, 0.8, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 		_text(Vector2(0, mr.size.y * 0.45 + 12), "Eat one and its powers grow here. Three are hidden on Brinehollow.", Color(0.6, 0.55, 0.65, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
@@ -364,20 +390,32 @@ func _draw() -> void:
 		if not _shown(id):
 			continue
 		_draw_node(id, SkillTree.nodes()[id], k, pr)
-	# header
-	draw_rect(Rect2(0, 0, mr.size.x, 18), Color(0, 0, 0, 0.55))
-	for i in range(2):
+	# header: a tab per tree (a dot = points to spend there), then this tree's points
+	draw_rect(Rect2(0, 0, mr.size.x, HEADER_H), Color(0, 0, 0, 0.6))
+	for i in range(SkillTree.TAB_ORDER.size()):
+		var tree: String = SkillTree.TAB_ORDER[i]
 		var tr := _tab_rect(i)
-		var on := i == _tab
+		var on := tree == _tab
 		draw_rect(tr, Color(0.25, 0.2, 0.1, 0.95) if on else Color(0.06, 0.06, 0.09, 0.95))
 		draw_rect(tr, UIStyle.ACCENT if on else UIStyle.BORDER_DIM, false, 1.0)
-		_text(tr.position + Vector2(0, 10), "SKILL MAP" if i == 0 else "DEVIL FRUIT", UIStyle.ACCENT if on else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_CENTER, tr.size.x)
-	_text(Vector2(156, 12), "Lv %d  XP %d/%d" % [pr.level, pr.xp, Progression.xp_to_next(pr.level)], UIStyle.TEXT)
-	var spc := Color(0.75, 0.95, 0.55) if pr.skill_points > 0 else UIStyle.TEXT_DIM
-	_text(Vector2(272, 12), "SP %d" % pr.skill_points, spc)
-	_text(Vector2(mr.size.x - 136, 12), "Tab: switch  K: close", UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_RIGHT, 130)
-	if pr.skill_points == 0 and pr.owned.size() <= 1:
-		_text(Vector2(0, 30), "Win fights to earn XP. Every level gives 2 skill points.", Color(0.85, 0.85, 0.95, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+		_text(tr.position + Vector2(0, 10), str(SkillTree.TREES[tree]["tab"]), UIStyle.ACCENT if on else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_CENTER, tr.size.x)
+		if pr.points(tree) > 0 and (tree != "fruit" or pl.power.has_fruit()):
+			draw_rect(Rect2(tr.end.x - 4, tr.position.y + 1, 3, 3), Color(0.75, 0.95, 0.55))
+	var info := ""
+	if SkillTree.is_mastery_tree(_tab):
+		var m := pr.mastery_of(_tab)
+		var lv := int(m["lv"])
+		info = "%s mastery %d  %s" % [SkillTree.TREES[_tab]["name"], lv,
+			"MAX" if lv >= Progression.MAX_MASTERY else "%d/%d" % [int(m["xp"]), Progression.mastery_to_next(lv)]]
+	else:
+		info = "Lv %d  XP %d/%d" % [pr.level, pr.xp, Progression.xp_to_next(pr.level)]
+	_text(Vector2(6, 26), info, UIStyle.TEXT)
+	var pts := pr.points(_tab)
+	var pts_name := "Points" if SkillTree.is_mastery_tree(_tab) else "SP"
+	_text(Vector2(230, 26), "%s %d" % [pts_name, pts], Color(0.75, 0.95, 0.55) if pts > 0 else UIStyle.TEXT_DIM)
+	_text(Vector2(mr.size.x - 136, 26), "Tab: next tree  K: close", UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_RIGHT, 130)
+	if _tab == "base" and pr.level == 1 and pr.skill_points == 0:
+		_text(Vector2(0, HEADER_H + 12), "Win fights to earn XP. Every level gives 2 skill points.", Color(0.85, 0.85, 0.95, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	_draw_panel(pl)
 	_draw_bar(pl)
 	if _msg_t > 0.0:
@@ -394,11 +432,16 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 	var avail := why == ""
 	var region_col: Color = SkillTree.REGION_COLORS.get(str(n["region"]), Color.WHITE)
 	var kind := str(n["kind"])
+	var sk := str(n["skill"])
 	var fill := Color(0.07, 0.07, 0.1)
 	var ring := Color(0.3, 0.3, 0.36)
 	if owned:
 		fill = region_col.darkened(0.35)
 		ring = UIStyle.ACCENT
+		# a skill ready to rank up pulses like a learnable node
+		if sk != "" and pr.can_rank_up(sk) == "":
+			avail = true
+			ring = UIStyle.ACCENT.lerp(Color.WHITE, 0.3 + 0.3 * sin(_t * 5.0))
 	elif avail:
 		ring = region_col.lerp(Color.WHITE, 0.3 + 0.3 * sin(_t * 5.0))
 	elif why.begins_with("Needs") and not why.ends_with("point") and not why.ends_with("points"):
@@ -412,6 +455,19 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 		draw_rect(rr, ring, false, 2.0 if (owned or avail) else 1.0)
 		if kind == "ult":
 			draw_arc(c, r * 1.45, 0, TAU, 24, Color(ring.r, ring.g, ring.b, 0.6), 1.0)
+		# tier pips along the bottom edge
+		var mt := Skills.max_tier(sk)
+		if owned and mt > 1:
+			for i in range(mt):
+				var px := c.x + (float(i) - float(mt - 1) * 0.5) * 4.0 - 1.0
+				draw_rect(Rect2(px, rr.end.y + 1.5, 2.5, 2.5), UIStyle.ACCENT if i < pr.skill_tier(sk) else Color(0.3, 0.3, 0.36))
+	elif kind == "move":
+		var hex := PackedVector2Array()
+		for i in range(6):
+			hex.append(c + Vector2.from_angle(TAU * i / 6.0) * r)
+		draw_colored_polygon(hex, fill)
+		hex.append(hex[0])
+		draw_polyline(hex, ring, 2.0 if (owned or avail) else 1.0)
 	elif kind == "passive":
 		var pts := PackedVector2Array([c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r), c + Vector2(-r, 0)])
 		draw_colored_polygon(pts, fill)
@@ -424,9 +480,9 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 			draw_circle(c, r * 0.45, region_col if owned else Color(0.3, 0.3, 0.35))
 	if id == _sel:
 		draw_arc(c, r + 4.0, 0, TAU, 24, Color.WHITE, 1.0)
-	if id == _hover or kind in ["active", "ult", "root"] or (k >= 1.2 and kind != "stat"):
+	if id == _hover or kind in ["active", "ult", "root", "move"] or (k >= 1.2 and kind != "stat"):
 		var nc := Color(1, 1, 1, 0.95) if (owned or avail or id == _hover) else Color(0.75, 0.75, 0.82, 0.7)
-		_text(c + Vector2(-60, r + 9.0), str(n["name"]), nc, 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
+		_text(c + Vector2(-60, r + (13.0 if kind in ["active", "ult"] else 9.0)), str(n["name"]), nc, 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 
 
 func _draw_panel(pl: Player) -> void:
@@ -445,7 +501,8 @@ func _draw_panel(pl: Player) -> void:
 	_text(Vector2(x0 + 8, y), title, UIStyle.ACCENT, tsz)
 	y += 14.0 if tsz == 16 else 10.0
 	var kind := str(n["kind"])
-	var kind_name: String = {"origin": "Start", "stat": "Stat", "passive": "Passive", "active": "Active skill", "ult": "Ultimate", "root": "Devil Fruit"}.get(kind, kind)
+	var kind_name: String = {"origin": "Start", "stat": "Stat", "passive": "Passive", "move": "Moveset", "active": "Active skill",
+		"ult": "Ultimate", "root": "Devil Fruit" if n["tree"] == "fruit" else "Weapon"}.get(kind, kind)
 	_text(Vector2(x0 + 8, y), "%s  -  %s" % [n["region"], kind_name], region_col)
 	y += 12.0
 	var desc := str(n["desc"])
@@ -465,7 +522,10 @@ func _draw_panel(pl: Player) -> void:
 	var why := pr.can_learn(id)
 	var cost := int(n["cost"])
 	if pr.owns(id):
-		_text(Vector2(x0 + 8, y), "LEARNED", Color(0.6, 0.95, 0.5))
+		var mt := Skills.max_tier(sk) if sk != "" else 1
+		var tier := pr.skill_tier(sk) if sk != "" else 1
+		var learned := "LEARNED" if mt <= 1 else ("MASTERED" if tier >= mt else "TIER %d / %d" % [tier, mt])
+		_text(Vector2(x0 + 8, y), learned, Color(0.6, 0.95, 0.5))
 		y += 12.0
 		if sk != "":
 			var slot := pl.power.loadout.find(sk)
@@ -473,8 +533,27 @@ func _draw_panel(pl: Player) -> void:
 				_text(Vector2(x0 + 8, y), "On the bar: %s" % ("R" if slot == 4 else str(slot + 1)), UIStyle.TEXT_DIM)
 			else:
 				_text(Vector2(x0 + 8, y), "Press %s to put it on the bar" % ("R" if Skills.is_ult(sk) else "1-4"), Color(0.75, 0.95, 0.55))
+			y += 14.0
+		if tier > 1:
+			var td := Skills.tier_def(sk, tier)
+			_text(Vector2(x0 + 8, y), "Tier %d: %s" % [tier, td["name"]], UIStyle.ACCENT)
+			y = _wrap(x0 + 8, y + 10.0, str(td["desc"]), PANEL_W - 16, UIStyle.TEXT_DIM) + 4.0
+		if tier < mt:
+			var nt := Skills.tier_def(sk, tier + 1)
+			_text(Vector2(x0 + 8, y), "Next - %s" % nt["name"], UIStyle.ACCENT)
+			y = _wrap(x0 + 8, y + 10.0, str(nt["desc"]), PANEL_W - 16, UIStyle.TEXT) + 2.0
+			var tree := str(n["tree"])
+			_text(Vector2(x0 + 8, y), "Uses %d/%d" % [mini(pr.uses_of(sk), int(nt["uses"])), int(nt["uses"])], Color(0.6, 0.8, 1.0))
+			y += 10.0
+			_text(Vector2(x0 + 8, y), "Cost: %s" % pr.points_word(tree, int(nt["cost"])), Color(0.6, 0.8, 1.0))
+			y += 12.0
+			var rwhy := pr.can_rank_up(sk)
+			if rwhy == "":
+				_text(Vector2(x0 + 8, y), "Click again to rank up", Color(0.75, 0.95, 0.55, 0.7 + 0.3 * sin(_t * 5.0)))
+			else:
+				_wrap(x0 + 8, y, rwhy, PANEL_W - 16, Color(1.0, 0.55, 0.45))
 	else:
-		_text(Vector2(x0 + 8, y), "Cost: %d skill point%s" % [cost, "" if cost == 1 else "s"], UIStyle.TEXT)
+		_text(Vector2(x0 + 8, y), "Cost: %s" % pr.points_word(str(n["tree"]), cost), UIStyle.TEXT)
 		y += 12.0
 		if why == "":
 			_text(Vector2(x0 + 8, y), "Click again / Enter to learn", Color(0.75, 0.95, 0.55, 0.7 + 0.3 * sin(_t * 5.0)))

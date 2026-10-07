@@ -8,15 +8,26 @@ extends RefCounted
 ##
 ##   needs: "sword" / "gun" (the weapon style you're fighting with) or "".
 ##   fruit: a fruit id, or "" for skills anyone can learn.
+##   tiers: the upgrades past tier 1, in order: {uses, cost, name, desc, cooldown?}. Using
+##     the skill `uses` times opens the tier, then it costs `cost` points from
+##     its tree (Progression.rank_up). The top tier changes how it works.
 
 const ICON_DIR := "res://assets/textures/icons/"
 
 const ALL := {
 	# --- Mobility / Survival (Rokushiki-style body techniques) ---
 	"soru": {"name": "Soru", "tree": "Mobility", "cost": 14.0, "cooldown": 4.0, "needs": "", "fruit": "",
-		"desc": "Kick off the ground so fast you vanish: an instant step forward, untouchable, on the ground or in the air."},
+		"desc": "Kick off the ground so fast you vanish: an instant step forward, untouchable, on the ground or in the air.",
+		"tiers": [
+			{"uses": 15, "cost": 2, "name": "Double Step", "desc": "Cast it again within a second of the first for a second step, free."},
+			{"uses": 50, "cost": 3, "name": "Shadow Step", "desc": "Mastered: your dodge vanishes you too. For about a second you're invisible and nothing can touch you (8 energy a dodge; a normal dodge without it)."},
+		]},
 	"tekkai": {"name": "Tekkai", "tree": "Survival", "cost": 20.0, "cooldown": 14.0, "needs": "", "fruit": "",
-		"desc": "Harden your whole body for 3 s: take 70% less damage and nothing knocks you down or makes you flinch, but you can barely move."},
+		"desc": "Harden your whole body for 3 s: take 70% less damage and nothing knocks you down or makes you flinch, but you can barely move.",
+		"tiers": [
+			{"uses": 12, "cost": 2, "name": "Walking Iron", "desc": "Lasts 5 s, and you can still walk at a steady pace."},
+			{"uses": 40, "cost": 3, "name": "Iron Reflex", "desc": "Mastered: it happens by itself. A blow that would knock you down hardens you on the spot for 1.5 s instead (once every 15 s)."},
+		]},
 	# --- Sword ---
 	"flying_slash": {"name": "Flying Slash", "tree": "Sword", "cost": 16.0, "cooldown": 3.5, "needs": "sword", "fruit": "",
 		"desc": "A cut so fast it flies: a crescent of wind that slices through every enemy in its path."},
@@ -27,9 +38,17 @@ const ALL := {
 		"desc": "Fan the hammer: seven shots swept across everything in front of you. Doesn't use your loaded shots."},
 	# --- Haki ---
 	"armament_coat": {"name": "Armament: Coat", "tree": "Armament", "cost": 30.0, "cooldown": 20.0, "needs": "", "fruit": "",
-		"desc": "Coat your weapon (or fists) in black Haki for 8 s: +30% damage, nothing can block it, and your heavy attacks break guards."},
+		"desc": "Coat your weapon (or fists) in black Haki for 8 s: +30% damage, nothing can block it, and your heavy attacks break guards.",
+		"tiers": [
+			{"uses": 12, "cost": 2, "name": "Hardened", "desc": "The coat holds for 12 s."},
+			{"uses": 40, "cost": 3, "name": "Ryuo", "desc": "Mastered: Haki flows out of the blade. Every coated heavy hit bursts outward, striking everyone around the target."},
+		]},
 	"foresight": {"name": "Foresight", "tree": "Observation", "cost": 25.0, "cooldown": 18.0, "needs": "", "fruit": "",
-		"desc": "Sense what's coming for 5 s: the next attack that would hit you is dodged automatically, and time slows for a moment."},
+		"desc": "Sense what's coming for 5 s: the next attack that would hit you is dodged automatically, and time slows for a moment.",
+		"tiers": [
+			{"uses": 12, "cost": 2, "name": "Second Sight", "desc": "Lasts 8 s and dodges the next two attacks."},
+			{"uses": 40, "cost": 3, "cooldown": 3.0, "name": "Future Sight", "desc": "Mastered: a stance you switch on and off. While on, it dodges an attack by itself every 3 s; it drains 2 energy a second and drops when you run dry."},
+		]},
 	# --- Ember Fruit (Logia) ---
 	"fire_fist": {"name": "Fire Fist", "tree": "Ember", "cost": 18.0, "cooldown": 2.5, "needs": "", "fruit": "ember",
 		"desc": "Hurl a ball of fire where you aim. It bursts on impact and sets enemies ablaze."},
@@ -64,6 +83,16 @@ static func get_skill(id: String) -> Dictionary:
 
 static func is_ult(id: String) -> bool:
 	return bool(get_skill(id).get("ult", false))
+
+
+static func max_tier(id: String) -> int:
+	return 1 + (get_skill(id).get("tiers", []) as Array).size()
+
+
+## The upgrade that makes tier `tier` (2 and up).
+static func tier_def(id: String, tier: int) -> Dictionary:
+	var t: Array = get_skill(id).get("tiers", [])
+	return t[tier - 2] if tier >= 2 and tier - 2 < t.size() else {}
 
 
 static var _icon_cache: Dictionary = {}

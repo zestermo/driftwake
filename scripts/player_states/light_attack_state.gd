@@ -84,6 +84,9 @@ func enter(data: Dictionary) -> void:
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
+	# the fourth hit is a skill-tree unlock (Roundhouse / Twin Spin)
+	if (st == "fist" and not player.progression.has_move("roundhouse")) or (st == "dual_sword" and not player.progression.has_move("twin_spin")):
+		combo_count -= 1
 	player.set_reach(str(cfg["reach"]))
 	# Continue the remembered chain unless this attack came straight from a chain.
 	combo_index = int(data.get("combo_index", 0)) if data.get("chain", false) else player.next_combo_index()
@@ -162,7 +165,7 @@ func physics_update(delta: float) -> void:
 
 	if can_combo:
 		combo_timer -= delta
-		if input_buffer.consume_action("light_attack") and player.spend_stamina(player.LIGHT_COST):
+		if input_buffer.consume_action("light_attack") and player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()):
 			chained = true
 			transitioned.emit(self, "LightAttack", {"combo_index": (combo_index + 1) % combo_count, "chain": true})
 			return

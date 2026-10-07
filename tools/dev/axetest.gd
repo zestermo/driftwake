@@ -79,6 +79,9 @@ func _process(d: float) -> bool:
 			if t < 1.5: return false
 			p = root.get_tree().get_first_node_in_group("player")
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
+			# moveset unlocks: Skybreaker (axe tree), Running Cut (cutlass tree)
+			for nid in ["a_sky", "s_dash"]:
+				p.progression._own(nid)
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
 			p.global_position = ground(camp.grunts[1].global_position + Vector3(12, 0, 0)) + Vector3.UP * 0.2

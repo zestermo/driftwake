@@ -60,16 +60,18 @@ func combat_input() -> String:
 		if player.can_attack():
 			if player.weapon_class() == "gun":
 				return "Shoot"
-			if not player.spend_stamina(player.LIGHT_COST):
+			if not player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()):
 				return ""
 			# (out of a sprint: the katana's quick draw, the cutlass's running cut)
-			player.quick_draw = player.sprinting and player.style() in ["katana", "sword"]
+			var st := player.style()
+			player.quick_draw = player.sprinting and ((st == "katana" and player.progression.has_move("quick_draw"))
+				or (st == "sword" and player.progression.has_move("dash_cut")))
 			return "LightAttack"
 		player.draw_weapon()
 		return ""
 	if input_buffer.consume_action("heavy_attack"):
 		if player.can_attack():
-			if not player.spend_stamina(player.HEAVY_COST):
+			if not player.spend_stamina(player.HEAVY_COST * player.attack_cost_k()):
 				return ""
 			return "Iai" if player.style() == "katana" else "HeavyAttack"
 		player.draw_weapon()
@@ -92,11 +94,12 @@ func air_attack_input() -> String:
 		if not player.can_attack():
 			player.draw_weapon()
 			return ""
-		if player.style() == "dual_pistol" and player.gun_rains >= 1 + int(player.progression.stat("gun_rain_uses")):
+		var pr := player.progression
+		if player.style() == "dual_pistol" and (not pr.has_move("gun_rain") or player.gun_rains >= 1 + int(pr.stat("gun_rain_uses"))):
 			return ""
-		if player.style() == "katana" and player.air_slashes >= 1:
+		if player.style() == "katana" and pr.has_move("air_slash") and player.air_slashes >= 1:
 			return ""
-		return "Plunge" if player.spend_stamina(player.PLUNGE_COST) else ""
+		return "Plunge" if player.spend_stamina(player.PLUNGE_COST * player.attack_cost_k()) else ""
 	return ""
 
 

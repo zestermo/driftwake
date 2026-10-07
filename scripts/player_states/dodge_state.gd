@@ -2,7 +2,8 @@ extends PlayerState
 ## Sidestep dash: a quick burst in the input direction (relative to the
 ## camera) while the body keeps facing where it was, or the camera when the
 ## weapon is drawn. No input = backstep. Fast at push-off, easing out.
-## Skill map: Shadow Step goes further and stays untouchable longer.
+## Skill map: Slip Step goes further and stays untouchable longer; mastered
+## Soru (Shadow Step) vanishes you for about a second.
 ## Logia: the body dematerializes into its element for the whole dash (full
 ## i-frames, passing through enemies and gunfire) and re-forms at the end.
 
@@ -65,7 +66,11 @@ func enter(_data: Dictionary) -> void:
 	_ember_prev = player.global_position
 	_vine = player.power.fruit == "vine" and not player.power.suppressed()
 	_vine_dist = 0.5
-	if _logia:
+	if player.power.shadow_step():
+		Net.fx("afterimage", [player.body_model, Color(0.6, 0.85, 1.0)])
+		Net.fx("sfx", ["whoosh_big", player.global_position, -5.0, 0.05, 1.5])
+		player.vanish(0.9)
+	elif _logia:
 		# dematerialize
 		player.body_model.visible = false
 		var col: Color = player.power.fruit_data().get("color", Color(1.0, 0.5, 0.15))
@@ -122,5 +127,6 @@ func exit() -> void:
 	if _logia:
 		_logia = false
 		player.set_collision_mask_value(12, true)
-		player.body_model.visible = true
-		Net.fx("flame", [player.global_position + Vector3(0, 0.9, 0), 12, 0.8, 0.4, 0.4])
+		if not player.vanished():
+			player.body_model.visible = true
+			Net.fx("flame", [player.global_position + Vector3(0, 0.9, 0), 12, 0.8, 0.4, 0.4])

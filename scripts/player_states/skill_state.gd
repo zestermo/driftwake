@@ -109,8 +109,9 @@ func enter(data: Dictionary) -> void:
 			Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.05, 1.5])
 		"tekkai":
 			dur = 0.45
-			_pc.add_buff("tekkai", 3.0)
-			player.body_model.play("tekkai", 3.0)
+			var tk := 5.0 if player.progression.skill_tier("tekkai") >= 2 else 3.0
+			_pc.add_buff("tekkai", tk)
+			player.body_model.play("tekkai", tk)
 			Net.fx("sparkle", [player.global_position + Vector3(0, 1.0, 0), 14, Color(0.7, 0.72, 0.8)])
 			Net.fx("sfx", ["hit", player.global_position, -4.0, 0.05, 0.6])
 			player.call("_recalc_stats")
@@ -133,7 +134,7 @@ func enter(data: Dictionary) -> void:
 			player.body_model.play("bullet_storm", dur)
 		"armament_coat":
 			dur = 0.45
-			_pc.add_buff("coat", 8.0)
+			_pc.add_buff("coat", 12.0 if player.progression.skill_tier("armament_coat") >= 2 else 8.0)
 			player.body_model.play("coat", dur)
 			player.update_coat_visual()
 			Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 18, Player.HAKI_SPARK])
@@ -142,7 +143,12 @@ func enter(data: Dictionary) -> void:
 			CombatManager.apply_camera_shake(0.12)
 		"foresight":
 			dur = 0.4
-			_pc.add_buff("foresight", 5.0)
+			var ft := player.progression.skill_tier("foresight")
+			if ft >= 3:
+				_pc.set_stance(true)
+			else:
+				_pc.add_buff("foresight", 8.0 if ft >= 2 else 5.0)
+				_pc.foresight_charges = 2 if ft >= 2 else 1
 			player.body_model.play("foresight", dur)
 			Net.fx("sparkle", [player.global_position + Vector3(0, 1.7, 0), 12, Color(0.95, 0.5, 0.8)])
 			Net.fx("sfx", ["blip_high", player.global_position, -6.0, 0.0, 0.8])

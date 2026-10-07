@@ -30,6 +30,12 @@ const ULT_LOCK := 6.0
 ## Waist deep: powers fizzle.
 const FIZZLE_DEPTH := 0.9
 const SLOTS := 5
+## Mastered Foresight (a stance): one automatic dodge every this many seconds,
+## for this much energy a second.
+const STANCE_EVERY := 3.0
+const STANCE_DRAIN := 2.0
+const REFLEX_COOLDOWN := 15.0
+const SHADOW_STEP_COST := 8.0
 
 var player: Player
 var fruit: String = ""
@@ -40,6 +46,14 @@ var loadout: Array[String] = ["", "", "", "", ""]
 var cooldowns: Dictionary = {}     # skill id -> seconds left
 var cooldown_len: Dictionary = {}  # skill id -> full cooldown
 var buffs: Dictionary = {}         # name -> seconds left
+## Foresight: attacks it will still dodge while the buff lasts; mastered, the stance.
+var foresight_charges: int = 0
+var foresight_stance: bool = false
+var _stance_ready: float = 0.0
+var _reflex_cd: float = 0.0
+var _ryuo_cd: float = 0.0
+## skill id -> seconds left to cast it again for free (Soru's Double Step)
+var _free_recast: Dictionary = {}
 var _ult_lock: float = 0.0
 var _regen_wait: float = 0.0
 
@@ -158,12 +172,14 @@ func can_cast(slot: int) -> String:
 		return "Needs a sword"
 	if needs == "gun" and player.weapon_class() != "gun":
 		return "Needs a pistol"
-	if cooldown_left(slot) > 0.0:
+	var free := float(_free_recast.get(str(sk["id"]), 0.0)) > 0.0
+	var stance_off := str(sk["id"]) == "foresight" and foresight_stance
+	if cooldown_left(slot) > 0.0 and not free and not stance_off:
 		return "Not ready"
 	if slot == 4:
 		if ult < ULT_MAX:
 			return "Ultimate not charged"
-	elif energy < float(sk.get("cost", 0.0)):
+	elif energy < float(sk.get("cost", 0.0)) and not free and not stance_off:
 		return "Not enough energy"
 	if not player.is_free() and player.current_state_name() not in ["LightAttack", "HeavyAttack", "Dodge", "Shoot"]:
 		return "Busy"
@@ -177,16 +193,27 @@ func try_cast(slot: int) -> bool:
 		return false
 	var sk := skill(slot)
 	var id := str(sk["id"])
-	if slot == 4:
-		ult = 0.0
-		_ult_lock = ULT_LOCK
+	if id == "foresight" and foresight_stance:
+		set_stance(false)
+		cast.emit(slot)
+		return true
+	var tier := player.progression.skill_tier(id)
+	if float(_free_recast.get(id, 0.0)) > 0.0:
+		_free_recast.erase(id)
 	else:
-		var c := float(sk.get("cost", 0.0))
-		energy = maxf(energy - c, 0.0)
-		_regen_wait = REGEN_DELAY
-		energy_spent.emit(c)
-	cooldowns[id] = float(sk.get("cooldown", 1.0))
-	cooldown_len[id] = cooldowns[id]
+		if slot == 4:
+			ult = 0.0
+			_ult_lock = ULT_LOCK
+		else:
+			var c := float(sk.get("cost", 0.0))
+			energy = maxf(energy - c, 0.0)
+			_regen_wait = REGEN_DELAY
+			energy_spent.emit(c)
+		cooldowns[id] = skill_cooldown(id, tier)
+		cooldown_len[id] = cooldowns[id]
+		if id == "soru" and tier >= 2:
+			_free_recast[id] = 1.0
+	player.progression.note_use(id)
 	var needs := str(sk.get("needs", ""))
 	if needs != "" and not player.armed:
 		player.draw_weapon(true)
@@ -195,16 +222,103 @@ func try_cast(slot: int) -> bool:
 	return true
 
 
+## A skill's cooldown at a tier (a tier can set its own).
+func skill_cooldown(id: String, tier: int) -> float:
+	var cd := float(Skills.get_skill(id).get("cooldown", 1.0))
+	for t in range(2, tier + 1):
+		cd = float(Skills.tier_def(id, t).get("cooldown", cd))
+	return cd
+
+
 func _process(delta: float) -> void:
 	_ult_lock = maxf(_ult_lock - delta, 0.0)
 	for k in cooldowns.keys():
 		cooldowns[k] = maxf(float(cooldowns[k]) - delta, 0.0)
 	for k in buffs.keys():
 		buffs[k] = maxf(float(buffs[k]) - delta, 0.0)
+	for k in _free_recast.keys():
+		_free_recast[k] = maxf(float(_free_recast[k]) - delta, 0.0)
+	_reflex_cd = maxf(_reflex_cd - delta, 0.0)
+	_ryuo_cd = maxf(_ryuo_cd - delta, 0.0)
 	_regen_wait = maxf(_regen_wait - delta, 0.0)
-	if not suppressed() and player and _regen_wait <= 0.0:
+	if foresight_stance:
+		_update_stance(delta)
+	elif not suppressed() and player and _regen_wait <= 0.0:
 		var regen := ENERGY_REGEN * (1.0 + player.progression.stat("energy_regen_pct"))
 		energy = minf(energy + regen * delta, max_energy())
+
+
+# --------------------------------------------------------------------------
+# Tier effects
+# --------------------------------------------------------------------------
+## Mastered Foresight: switch the stance on or off.
+func set_stance(on: bool) -> void:
+	foresight_stance = on
+	_stance_ready = 0.0
+	if player:
+		player.call("_toast", "Future Sight on" if on else "Future Sight off")
+
+
+func _update_stance(delta: float) -> void:
+	energy = maxf(energy - STANCE_DRAIN * delta, 0.0)
+	if energy <= 0.0:
+		set_stance(false)
+		return
+	if _stance_ready > 0.0:
+		_stance_ready -= delta
+		if _stance_ready <= 0.0 and player:
+			Net.fx("sparkle", [player.global_position + Vector3(0, 1.75, 0), 5, Color(0.95, 0.5, 0.8)])
+
+
+## An attack is about to land: does Foresight see it coming? (uses a charge)
+func use_foresight() -> bool:
+	if foresight_stance and _stance_ready <= 0.0:
+		_stance_ready = STANCE_EVERY
+		return true
+	if buff("foresight") and foresight_charges > 0:
+		foresight_charges -= 1
+		if foresight_charges <= 0:
+			buffs["foresight"] = 0.0
+		return true
+	return false
+
+
+## Mastered Tekkai: a knockdown blow hardens you on the spot instead.
+func iron_reflex() -> bool:
+	if player == null or _reflex_cd > 0.0 or buff("tekkai") or player.progression.skill_tier("tekkai") < 3:
+		return false
+	_reflex_cd = REFLEX_COOLDOWN
+	add_buff("tekkai", 1.5)
+	player.body_model.play("tekkai", 1.5)
+	Net.fx("sparkle", [player.global_position + Vector3(0, 1.0, 0), 14, Color(0.7, 0.72, 0.8)])
+	Net.fx("sfx", ["hit", player.global_position, -4.0, 0.05, 0.6])
+	return true
+
+
+## Mastered Soru: does this dodge vanish you? (spends the energy if so)
+func shadow_step() -> bool:
+	if player == null or player.progression.skill_tier("soru") < 3 or energy < SHADOW_STEP_COST:
+		return false
+	energy -= SHADOW_STEP_COST
+	energy_spent.emit(SHADOW_STEP_COST)
+	return true
+
+
+## Mastered Armament: Coat (Ryuo): a coated heavy hit bursts out around the target.
+func _ryuo(target: Node3D) -> void:
+	_ryuo_cd = 0.3
+	var hd := HitData.new()
+	hd.damage = 14.0
+	hd.knockback_force = 9.0
+	hd.stagger_duration = 0.45
+	hd.unblockable = true
+	hd.haki = true
+	var at := target.global_position
+	blast(at, 3.2, hd, 0.0, 0.0, [target])
+	Net.fx("punch_wind", [at + Vector3.UP * 1.0, Vector3.UP, 0.5, Player.HAKI_TRAIL, true])
+	Net.fx("sparkle", [at + Vector3(0, 1.0, 0), 16, Player.HAKI_SPARK])
+	Net.fx("dust_ring", [at, 12, 1.2])
+	CombatManager.apply_camera_shake(0.16)
 
 
 ## A fruit power just finished: its colors linger on you for a moment.
@@ -225,12 +339,17 @@ func add_ult(damage: float) -> void:
 		ult = minf(ult + damage * ULT_PER_DAMAGE * k, ULT_MAX)
 
 
-## A melee hit landed (energy, ultimate charge, Kindled Blade sears).
+## A weapon hit landed (energy, ultimate charge, mastery, Kindled Blade sears).
 func on_sword_hit(target: Node, hit: HitData) -> void:
 	if target == null:
 		return
-	add_energy(ENERGY_PER_HIT)
+	add_energy(ENERGY_PER_HIT * (1.0 + player.progression.style_stat("flow", player.style())))
 	add_ult(hit.damage)
+	if player.is_local:
+		player.progression.on_hit()
+	if hit.haki and buff("coat") and _ryuo_cd <= 0.0 and target is Node3D and player.is_local \
+			and player.current_state_name() in ["HeavyAttack", "Iai", "Plunge"] and player.progression.skill_tier("armament_coat") >= 3:
+		_ryuo(target as Node3D)
 	if fruit == "ember" and player.progression.has_flag("kindled_blade") and target is Node3D and not suppressed():
 		BurnStatus.apply(target as Node3D, 1.6, 5.0, player)
 

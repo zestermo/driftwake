@@ -390,8 +390,9 @@ func _recalc_stats() -> void:
 		move_k *= 1.15
 		sprint_k *= 1.15
 	if power and power.buff("tekkai"):
-		move_k *= 0.3
-		sprint_k *= 0.3
+		var tk := 0.6 if pr.skill_tier("tekkai") >= 2 else 0.3
+		move_k *= tk
+		sprint_k *= tk
 	move_speed = BASE_MOVE * move_k
 	sprint_speed = BASE_SPRINT * sprint_k
 	var air := int(pr.stat("air_jumps")) if pr else 0
@@ -406,11 +407,16 @@ func dodge_cost() -> float:
 	return DODGE_COST * (1.0 - progression.stat("dodge_cost_pct"))
 
 
+## Stamina scale for attacks with the weapon in hand (its tree's stam_ nodes).
+func attack_cost_k() -> float:
+	return 1.0 - progression.style_stat("stam", style())
+
+
 ## Getting hit: damage (less armor), a short flinch with a little shove
 ## (hitstun), or a full physics knockdown for heavy hits. A parry takes no
 ## damage and lets the attacker know it was parried.
 func _on_hit_received(hit: HitData, attacker: Node) -> void:
-	if health_component.current_health <= 0.0 or current_state_name() == "Downed":
+	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished():
 		return
 	var dir := Vector3.ZERO
 	if attacker is Node3D:
@@ -435,11 +441,12 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 			state_machine.force_state("Stagger", {"stagger_duration": 0.6, "knockback_dir": dir, "knockback_force": 4.0, "flinch": false})
 			health_component.take_damage(hit.damage * 0.5 * (1.0 - damage_reduction()))
 			return
-	# Observation Haki: Foresight dodges the next hit by itself
-	if power.buff("foresight") and not hit.dot:
-		power.buffs["foresight"] = 0.0
+	# Observation Haki: Foresight dodges by itself
+	if not hit.dot and power.use_foresight():
 		_foresight_dodge(dir)
 		return
+	if hit.knockdown and power.iron_reflex():
+		_toast("Iron Reflex!")
 	_since_hit = 0.0
 	var dmg := hit.damage * (1.0 - damage_reduction())
 	if power.buff("tekkai"):
@@ -491,6 +498,16 @@ func _foresight_dodge(dir: Vector3) -> void:
 	Net.fx("sfx", ["whoosh", global_position, -4.0, 0.05, 1.5])
 	CombatManager.apply_hitstop(0.18, [self])
 	_toast("Foresight!")
+
+
+## Soru mastered (Shadow Step): gone from sight, and nothing lands on you.
+func vanish(secs: float) -> void:
+	_vanish_t = secs
+	body_model.visible = false
+
+
+func vanished() -> bool:
+	return _vanish_t > 0.0
 
 
 ## Co-op hit-stop: our own captain stops dead for a beat (the state machine
@@ -602,6 +619,12 @@ func _process(delta: float) -> void:
 func _tick_body(delta: float) -> void:
 	_since_hit += delta
 	_last_stand_cd = maxf(_last_stand_cd - delta, 0.0)
+	if _vanish_t > 0.0:
+		_vanish_t -= delta
+		if _vanish_t <= 0.0:
+			body_model.visible = true
+			Net.fx("afterimage", [body_model, Color(0.6, 0.85, 1.0), 0.2])
+			Net.fx("dust", [global_position + Vector3(0, 0.05, 0), 6, 0.5])
 	var hc := health_component
 	if hc.current_health <= 0.0 or current_state_name() == "Downed":
 		return
@@ -640,6 +663,7 @@ func _tick_body(delta: float) -> void:
 
 
 var _buff_key := ""
+var _vanish_t: float = 0.0
 var _coat_on: bool = false
 var _coat_fx: float = 0.0
 ## Armament Haki colors: the coated limb and blade, the slash trails.
@@ -1223,7 +1247,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		buffer_jump()
 	# debug builds: F9 grants a level (try the skill map)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F9:
-		progression.add_xp(Progression.xp_to_next(progression.level) - progression.xp)
+		if (event as InputEventKey).shift_pressed:
+			# every known skill gets the uses its next tier asks for
+			for sk in progression.known_skills():
+				var nt := Skills.tier_def(sk, progression.skill_tier(sk) + 1)
+				if not nt.is_empty():
+					progression.uses[sk] = maxi(progression.uses_of(sk), int(nt["uses"]))
+			_toast("Debug: next tiers opened")
+		else:
+			var mt := SkillTree.style_tree(style())
+			if mt != "":
+				var m := progression.mastery_of(mt)
+				progression.add_mastery(mt, Progression.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+			progression.add_xp(Progression.xp_to_next(progression.level) - progression.xp)
 		get_viewport().set_input_as_handled()
 		return
 	# Zoan: shift between human and hybrid form
@@ -1500,16 +1536,11 @@ func set_reach(kind: String) -> void:
 func damage_multiplier() -> float:
 	var w := equipped_weapon.power() if (equipped_weapon and not hybrid) else 1.0
 	var pr := progression
+	var st := style()
 	var k := 1.0 + (attribute("strength") - 5) * 0.05 + pr.stat("damage_pct") + float(pr.level - 1) * 0.02
-	match style():
-		"sword", "katana", "axe":
-			k += pr.stat("sword_pct")
-		"dual_sword":
-			k += pr.stat("sword_pct") + pr.stat("dual_sword_pct")
-		"pistol", "dual_pistol":
-			k += pr.stat("gun_pct")
-		"claw":
-			k += 0.25
+	k += pr.style_stat("dmg", st)
+	if st == "claw":
+		k += 0.25
 	if power.buff("coat"):
 		k += 0.3
 	if power.buff("howl"):

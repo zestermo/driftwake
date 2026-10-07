@@ -58,7 +58,8 @@ func enter(_data: Dictionary) -> void:
 		player.velocity = Vector3(player.velocity.x * 0.4, maxf(player.velocity.y, 0.0) * 0.3, player.velocity.z * 0.4)
 		player.body_model.play("gun_rain", RAIN_DUR)
 		return
-	_slash = player.style() == "katana"
+	# (Crescent Arc and Skybreaker are skill-tree unlocks: without them, the plain plunge)
+	_slash = player.style() == "katana" and player.progression.has_move("air_slash")
 	if _slash:
 		player.air_slashes += 1
 		player.variable_jump_active = false
@@ -68,7 +69,7 @@ func enter(_data: Dictionary) -> void:
 		player.squash(1.5)
 		Net.fx("sfx", ["whoosh", player.global_position, -8.0, 0.06, 0.9])
 		return
-	_axe = player.style() == "axe"
+	_axe = player.style() == "axe" and player.progression.has_move("skybreaker")
 	if _axe:
 		player.velocity = Vector3(player.velocity.x * 0.3, AXE_LIFT, player.velocity.z * 0.3)
 		player.body_model.play("axe_flip", AXE_HANG / 0.62)

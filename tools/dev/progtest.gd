@@ -102,7 +102,8 @@ func _process(d: float) -> bool:
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
-			check("start at level 1 with nothing learned", pr.level == 1 and pr.skill_points == 0 and pr.owned.keys() == ["origin"])
+			check("start at level 1 with nothing learned (origin + weapon roots)", pr.level == 1 and pr.skill_points == 0
+				and pr.owned.size() == SkillTree.starting_nodes().size() and pr.owns("origin") and pr.owns("s_root") and not pr.owns("e_root"))
 			check("empty skill bar", pc.loadout == ["", "", "", "", ""])
 			check("no double jump at the start", p.max_jumps == 1)
 			check("everyone has energy", pc.max_energy() >= 100.0)
@@ -128,8 +129,13 @@ func _process(d: float) -> bool:
 			pr.level = 6
 			check("learn Soru (active)", pr.learn("m_soru"))
 			check("Soru goes on the bar", pc.loadout[0] == "soru")
-			for nid in ["c_vitality", "v_hardy", "v_tekkai", "v_steadfast", "c_strength", "w_blade", "w_flying", "c_endurance", "g_marks", "g_storm"]:
+			check("weapon trees spend mastery points, not skill points", pr.can_learn("s_edge") == "Needs 1 mastery point")
+			pr.mastery_of("sword")["pts"] = 10
+			pr.mastery_of("pistol")["pts"] = 10
+			for nid in ["c_vitality", "v_hardy", "v_tekkai", "v_steadfast", "c_strength", "s_edge", "s_flying", "c_endurance", "g_marks", "g_storm", "g_kata", "g_rain"]:
 				pr.learn(nid)
+			check("mastery points spent from their own tree", int(pr.mastery_of("sword")["pts"]) == 7 and int(pr.mastery_of("pistol")["pts"]) == 5 and pr.skill_points == 11)
+			check("moveset unlocks", pr.has_move("gun_kata") and pr.has_move("gun_rain") and not pr.has_move("iai_full"))
 			check("skills fill the bar", pc.loadout[1] == "tekkai" and pc.loadout[2] == "flying_slash" and pc.loadout[3] == "bullet_storm")
 			check("stats add up", pr.stat("max_hp") >= 40.0 and pr.has_flag("steadfast"))
 			# reslot
@@ -157,6 +163,11 @@ func _process(d: float) -> bool:
 			var dist = Vector2(p.global_position.x - pos0.x, p.global_position.z - pos0.z).length()
 			print("   soru distance ", snappedf(dist, 0.1))
 			check("Soru covers ground fast (>5 m)", dist > 5.0)
+			# tiers: uses open the next one, then it costs points
+			check("casting counts a use", pr.uses_of("soru") == 1 and pr.skill_tier("soru") == 1)
+			check("next tier needs uses first", pr.can_rank_up("soru").begins_with("Use it"))
+			pr.uses["soru"] = 15
+			check("rank Soru up to Double Step", pr.rank_up("soru") and pr.skill_tier("soru") == 2 and pr.skill_points == 9)
 			# fists: punch a grunt
 			p.unequip_weapon()
 			check("no weapon = fists", p.style() == "fist")
@@ -183,6 +194,7 @@ func _process(d: float) -> bool:
 		7:
 			print("   punch: ", v0, " -> ", g.health.current_health)
 			check("punches hurt", g.health.current_health < v0)
+			check("punching builds unarmed mastery", int(pr.mastery_of("unarmed")["xp"]) > 0 or pr.mastery_level("unarmed") > 1)
 			# dual swords: picking up a second cutlass
 			p.inventory_component.add_item(item("cutlass"), 1)
 			p.equip_weapon(p.inventory_component.find_item("cutlass"), false)
@@ -391,12 +403,19 @@ func _process(d: float) -> bool:
 			SG.use_test_file("user://progtest_save.dat")
 			check("save", SG.save(p))
 			set_meta("lv", pr.level); set_meta("owned", pr.owned.size()); set_meta("bar", pc.loadout.duplicate())
-			pr.level = 1; pr.owned = {"origin": true}
+			set_meta("mpts", int(pr.mastery_of("pistol")["pts"]))
+			pr.level = 1; pr.owned = {"origin": true}; pr.mastery = {}; pr.tiers = {}
 			for i in range(5): pc.loadout[i] = ""
 			p.unequip_weapon()
 			p.inventory_component.items.clear()
 			check("load", SG.load_into(p))
 			check("level and skill map restored", pr.level == int(get_meta("level" if false else "lv")) and pr.owned.size() == int(get_meta("owned")))
+			check("mastery and tiers restored", int(pr.mastery_of("pistol")["pts"]) == int(get_meta("mpts")) and pr.skill_tier("soru") == 2)
+			# a save from before the trees: everything refunded
+			var old = load("res://scripts/progression/progression.gd").new()
+			old.from_dict({"level": 5, "xp": 10, "sp": 1, "owned": ["origin", "c_agility", "w_blade"]})
+			check("old saves get every skill point back", old.skill_points == 8 and old.owned.size() == SkillTree.starting_nodes().size())
+			old.free()
 			check("skill bar restored", pc.loadout == get_meta("bar"))
 			check("weapons restored (dual pistols)", p.style() == "dual_pistol")
 			check("inventory restored", p.inventory_component.count("pistol") == 2 and p.inventory_component.count("cutlass") == 2)
