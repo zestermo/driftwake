@@ -180,7 +180,7 @@ static func item_ref(item: ItemData) -> Array:
 	if item == null:
 		return []
 	if item.is_gear():
-		return ["gear", item.gear_slot, item.icon_kind, item.look, item.display_name]
+		return ["gear", item.gear_slot, item.icon_kind, item.look, item.display_name, int(item.rarity)]
 	return ["id", item.id]
 
 
@@ -188,7 +188,8 @@ static func item_from(ref: Array) -> ItemData:
 	if ref.is_empty():
 		return null
 	if str(ref[0]) == "gear" and ref.size() >= 5:
-		return Gear.make(str(ref[1]), str(ref[2]), ref[3], str(ref[4]))
+		# (saves from before tiers have no tier: common)
+		return Gear.make(str(ref[1]), str(ref[2]), ref[3], str(ref[4]), int(ref[5]) if ref.size() >= 6 else 0)
 	return ItemDB.get_item(str(ref[1]))
 
 

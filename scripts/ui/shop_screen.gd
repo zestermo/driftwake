@@ -146,11 +146,13 @@ func _row(list: VBoxContainer, it: ItemData, text: String, price: String) -> HBo
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	row.add_child(icon)
-	var name_l := UIStyle.label(text, 12)
+	var name_l := UIStyle.label(text, 12, it.rarity_color())
+	name_l.add_theme_color_override("font_outline_color", it.rarity_outline())
+	name_l.add_theme_constant_override("outline_size", 3)
 	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_l.clip_text = true
 	name_l.mouse_filter = Control.MOUSE_FILTER_STOP
-	name_l.mouse_entered.connect(func(): _note.text = it.description)
+	name_l.mouse_entered.connect(func(): _note.text = "%s. %s" % [it.rarity_name(), it.description])
 	row.add_child(name_l)
 	row.add_child(UIStyle.label(price, 12, UIStyle.ACCENT))
 	list.add_child(row)

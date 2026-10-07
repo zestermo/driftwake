@@ -9,6 +9,7 @@ id = "wolf_fruit"
 display_name = "Wolf Fruit"
 description = "A shaggy, grey-skinned fruit with swirling stripes, warm like a living thing. A Zoan Devil Fruit: eat it and you can become a wolf-man - but the sea will never let you swim again."
 value = 0
+rarity = 4
 stackable = false
 max_stack = 1
 item_type = 2

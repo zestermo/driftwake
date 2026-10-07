@@ -18,7 +18,7 @@
 				{ "text": "Heavy attack", "next": "heavy" },
 				{ "text": "Dodging", "next": "dodge" },
 				{ "text": "Parrying", "next": "parry" },
-				{ "text": "I need a better blade.", "next": "arms" },
+				{ "text": "Buy or sell weapons.", "next": "arms" },
 				{ "text": "Why'd you leave the Marines?", "next": "story" },
 				{ "text": "Dismissed.", "next": "bye" }
 			]
@@ -52,7 +52,7 @@
 			"next": "menu"
 		},
 		"arms": {
-			"text": "I keep a rack of good steel. Not cheap. Neither is a funeral.",
+			"text": "I keep a rack of good steel, and I'll take blades you've no use for. Not cheap. Neither is a funeral.",
 			"event": "shop:vey",
 			"next": "end"
 		},

@@ -1446,7 +1446,7 @@ func set_reach(kind: String) -> void:
 
 
 func damage_multiplier() -> float:
-	var w := equipped_weapon.damage_mult if (equipped_weapon and not hybrid) else 1.0
+	var w := equipped_weapon.power() if (equipped_weapon and not hybrid) else 1.0
 	var pr := progression
 	var k := 1.0 + (attribute("strength") - 5) * 0.05 + pr.stat("damage_pct") + float(pr.level - 1) * 0.02
 	match style():

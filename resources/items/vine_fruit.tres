@@ -9,6 +9,7 @@ id = "vine_fruit"
 display_name = "Vine Fruit"
 description = "A green, leafy fruit wound with curling tendrils. A Paramecia Devil Fruit: eat it and plants answer to you - but the sea will never let you swim again."
 value = 0
+rarity = 4
 stackable = false
 max_stack = 1
 item_type = 2

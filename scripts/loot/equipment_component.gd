@@ -54,5 +54,5 @@ func defense() -> float:
 	var d := 0.0
 	for it in slots.values():
 		if it:
-			d += (it as ItemData).defense
+			d += (it as ItemData).armor()
 	return d

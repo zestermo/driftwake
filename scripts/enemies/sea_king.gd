@@ -472,9 +472,11 @@ func _dead_fx() -> void:
 	get_tree().call_group("hud", "show_banner", "The Sea King falls!", "Its hoard floats up from the deep.", true)
 	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	var items: Array[ItemStack] = []
-	for e in [["gold", 90], ["treasure", 6], ["rum", 3]]:
+	# (and a blade from something it swallowed: purple, or now and then gold)
+	var blade := "%s@%d" % [["cutlass", "katana", "boarding_axe"][randi() % 3], 4 if randf() < 0.25 else 3]
+	for e in [["gold", 90], ["treasure@2", 6], ["rum", 3], [blade, 1]]:
 		var st := ItemStack.new()
-		st.item = load("res://resources/items/%s.tres" % e[0]) as ItemData
+		st.item = ItemDB.get_item(str(e[0]))
 		st.quantity = int(e[1])
 		items.append(st)
 	bag.setup(items, false)

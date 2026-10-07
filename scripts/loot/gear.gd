@@ -128,9 +128,10 @@ static func color_name(c: Color) -> String:
 
 ## Make (and register) a gear item. `style` is the look value that names it
 ## (e.g. "longcoat"); `look` holds the keys it sets when worn.
-static func make(kind: String, style: String, look: Dictionary, display: String = "") -> ItemData:
+static func make(kind: String, style: String, look: Dictionary, display: String = "", tier: int = 0) -> ItemData:
 	var it := ItemData.new()
 	it.item_type = ItemData.ItemType.GEAR
+	it.rarity = tier as ItemData.Rarity
 	it.gear_slot = kind
 	it.look = look.duplicate(true)
 	it.icon_kind = style
@@ -148,7 +149,7 @@ static func make(kind: String, style: String, look: Dictionary, display: String 
 		if ck != "" and look.has(ck) and style != "straw":
 			nm = color_name(look[ck]) + " " + nm
 	it.display_name = nm
-	it.id = "gear_%s_%s_%d" % [kind, style, absi(hash(var_to_str(look)))]
+	it.id = "gear_%s_%s_%d" % [kind, style, absi(hash(var_to_str(look)))] + ("@%d" % tier if tier > 0 else "")
 	it.icon = GearIcons.icon(it)
 	return ItemDB.register(it)
 

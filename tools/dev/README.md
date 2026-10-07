@@ -140,6 +140,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `goreshot`: A camp grunt cut down by a severing killing blow (head or arm off, blood, splats) and a second losing an arm, frames at 0.15-2.5 s. Args: <out_prefix>
 - `horizonshot`: The Redtide fort and ships on the horizon from the starter dock (rain at dawn like the capture, plus zoomed clear/rain/storm), to check distant things sit on the sea instead of floating on haze; also the sea from the dock (sun glare at 9-11 h). Args: <out_prefix>
 - `fleetshot`: The enemy ship kinds side by side at sea (sloop, gunboat, brig, Marines). Args: <out_prefix>
+- `tiershot`: A cutlass at every item tier (white to black) in the bag with an epic one described, and Vey's stall. Args: <out_prefix>
 - `qolshot`: Nessa's and Sela's stalls, the yard's live preview, the helm with the compass and chart marks, the chart, the capstan and anchor chain, a hull hit's number. Args: <out_prefix>
 - `polishshot`: Sea polish: the foam wake behind the ship (astern, from above), turquoise shallows round Brinehollow and an island, rain pooling on deck. Args: <out_prefix>
 - `yardshot`: The ship plain, then refitted in a few colour schemes (side, bow, masthead flag, each figurehead), Tackett at his timber, and the yard screen. Args: <out_prefix>

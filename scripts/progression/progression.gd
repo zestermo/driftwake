@@ -26,9 +26,10 @@ func _ready() -> void:
 	player = get_parent() as Player
 
 
-## Experience needed to go from `lv` to the next level.
+## Experience needed to go from `lv` to the next level (100 x lv^1.3: was 50,
+## which levelled twice as fast as it should).
 static func xp_to_next(lv: int) -> int:
-	return int(round(50.0 * pow(float(lv), 1.3)))
+	return int(round(100.0 * pow(float(lv), 1.3)))
 
 
 func add_xp(amount: int, at: Vector3 = Vector3.INF) -> void:

@@ -576,5 +576,11 @@ static func set_slot(b: Button, item: ItemData, qty: int, key_text: String = "",
 	count.text = str(qty) if item and (qty > 1 or (item.stackable and qty != 1)) else ""
 	if equipped:
 		b.add_theme_stylebox_override("normal", UIStyle.box(Color(0.12, 0.09, 0.04, 0.95), UIStyle.ACCENT, 0, 2))
+	elif item and item.rarity == ItemData.Rarity.SUPREME:
+		# (black on black: a pale slot behind it)
+		b.add_theme_stylebox_override("normal", UIStyle.box(Color(0.45, 0.45, 0.42, 0.9), Color(0.02, 0.02, 0.02), 0, 2))
+	elif item and item.rarity > ItemData.Rarity.COMMON:
+		var rc := item.rarity_color()
+		b.add_theme_stylebox_override("normal", UIStyle.box(Color(rc.r * 0.12, rc.g * 0.12, rc.b * 0.12, 0.92), rc, 0, 1))
 	else:
 		b.add_theme_stylebox_override("normal", UIStyle.box(Color(0.02, 0.02, 0.04, 0.9), UIStyle.BORDER_DIM, 0, 1))

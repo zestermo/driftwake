@@ -1,16 +1,17 @@
 extends RefCounted
 ## Brinehollow's traders (ShopScreen; the NPC's "shop" or a dialogue event
-## "shop:<id>"). Each: a name, a line, what's for sale ([item id, price] or
-## [gear slot, style, look, price]) and what they'll buy (item kind -> the
-## share of its value they pay; gold and things worth nothing aren't bought).
+## "shop:<id>"). Each: a name, a line, what's for sale ([item id, price] -
+## "<id>@<tier>" for another tier - or [gear slot, style, look, tier, price])
+## and what they'll buy (item kind -> the share of its worth they pay; gold
+## and things worth nothing aren't bought).
 
 const SHOPS := {
 	"nessa": {
 		"name": "Nessa's Notions", "line": "Sea-gems at full price. Nobody on this island pays better.",
 		"stock": [["rum", 9], ["biscuit", 3],
-			["accessory", "earring", {"earring": true}, 40],
-			["accessory", "eyepatch", {"eyepatch": true}, 25],
-			["accessory", "pouch", {"pouch": true}, 30]],
+			["accessory", "earring", {"earring": true}, 1, 40],
+			["accessory", "eyepatch", {"eyepatch": true}, 0, 25],
+			["accessory", "pouch", {"pouch": true}, 0, 30]],
 		"buys": {"loot": 1.0, "gear": 0.5, "weapon": 0.5},
 	},
 	"gus": {
@@ -24,17 +25,22 @@ const SHOPS := {
 		"buys": {},
 	},
 	"sela": {
-		"name": "Sela's Cloth", "line": "Sailcloth, silk and wool. Wear it like you mean it.",
+		"name": "Sela's Clothier", "line": "Clothes and leathers. I'll take your old ones off your hands, too.",
 		"stock": [
-			["head", "tricorn", {"hat": "tricorn", "hat_color": Color(0.1, 0.09, 0.09)}, 45],
-			["head", "bicorne", {"hat": "bicorne", "hat_color": Color(0.14, 0.18, 0.34)}, 55],
-			["head", "bandana", {"hat": "bandana", "hat_color": Color(0.66, 0.14, 0.12)}, 15],
-			["coat", "longcoat", {"coat": "longcoat", "coat_color": Color(0.36, 0.12, 0.1), "trim_color": Color(0.85, 0.7, 0.3)}, 90],
-			["coat", "captain", {"coat": "captain", "coat_color": Color(0.14, 0.18, 0.34), "trim_color": Color(0.9, 0.75, 0.3)}, 160],
-			["vest", "vest", {"vest": "vest", "vest_color": Color(0.16, 0.42, 0.44)}, 30],
-			["feet", "tall_boots", {"feet": "tall_boots", "feet_color": Color(0.1, 0.09, 0.09)}, 40],
-			["belt", "sash", {"belt": "sash", "sash_color": Color(0.66, 0.14, 0.12)}, 20],
-			["accessory", "scarf", {"scarf": true, "scarf_color": Color(0.8, 0.62, 0.2)}, 18]],
+			["head", "bandana", {"hat": "bandana", "hat_color": Color(0.66, 0.14, 0.12)}, 0, 15],
+			["head", "tricorn", {"hat": "tricorn", "hat_color": Color(0.1, 0.09, 0.09)}, 0, 45],
+			["head", "bicorne", {"hat": "bicorne", "hat_color": Color(0.14, 0.18, 0.34)}, 1, 85],
+			["coat", "jacket", {"coat": "jacket", "coat_color": Color(0.4, 0.28, 0.18), "trim_color": Color(0.62, 0.52, 0.38)}, 0, 50],
+			["coat", "longcoat", {"coat": "longcoat", "coat_color": Color(0.36, 0.12, 0.1), "trim_color": Color(0.85, 0.7, 0.3)}, 0, 90],
+			["coat", "captain", {"coat": "captain", "coat_color": Color(0.14, 0.18, 0.34), "trim_color": Color(0.9, 0.75, 0.3)}, 1, 190],
+			["vest", "corset", {"vest": "corset", "vest_color": Color(0.24, 0.17, 0.12)}, 1, 70],
+			["vest", "vest", {"vest": "vest", "vest_color": Color(0.16, 0.42, 0.44)}, 0, 30],
+			["hands", "gloves", {"gloves": "gloves", "gloves_color": Color(0.24, 0.17, 0.12)}, 0, 25],
+			["legs", "breeches", {"legs": "breeches", "legs_color": Color(0.9, 0.88, 0.8)}, 0, 30],
+			["feet", "tall_boots", {"feet": "tall_boots", "feet_color": Color(0.1, 0.09, 0.09)}, 1, 70],
+			["belt", "sash", {"belt": "sash", "sash_color": Color(0.66, 0.14, 0.12)}, 0, 20],
+			["accessory", "pauldron", {"pauldron": true}, 1, 80],
+			["accessory", "scarf", {"scarf": true, "scarf_color": Color(0.8, 0.62, 0.2)}, 0, 18]],
 		"buys": {"gear": 0.6},
 	},
 	"ida": {
@@ -43,9 +49,10 @@ const SHOPS := {
 		"buys": {},
 	},
 	"vey": {
-		"name": "Vey's Armoury", "line": "Steel that's seen the Grand Patrol. Treat it better than I did.",
-		"stock": [["cutlass", 45], ["boarding_axe", 70], ["pistol", 90], ["katana", 160]],
-		"buys": {"weapon": 0.5},
+		"name": "Vey's Armoury", "line": "Steel that's seen the Grand Patrol. I'll buy your spare blades, too.",
+		"stock": [["cutlass", 45], ["boarding_axe", 70], ["pistol", 90],
+			["cutlass@1", 110], ["boarding_axe@1", 150], ["katana", 180]],
+		"buys": {"weapon": 0.6},
 	},
 }
 
@@ -56,7 +63,7 @@ const KINDS := ["loot", "weapon", "consumable", "gear"]
 static func item_of(entry: Array) -> ItemData:
 	if entry.size() == 2:
 		return ItemDB.get_item(str(entry[0]))
-	return Gear.make(str(entry[0]), str(entry[1]), entry[2])
+	return Gear.make(str(entry[0]), str(entry[1]), entry[2], "", int(entry[3]))
 
 
 static func price_of(entry: Array) -> int:
@@ -68,4 +75,4 @@ static func offer(shop_id: String, item: ItemData) -> int:
 	if item == null or item.id == "gold" or item.value <= 0:
 		return 0
 	var rate: float = float((SHOPS[shop_id]["buys"] as Dictionary).get(KINDS[int(item.item_type)], 0.0))
-	return maxi(int(floor(item.value * rate)), 1) if rate > 0.0 else 0
+	return maxi(int(floor(item.worth() * rate)), 1) if rate > 0.0 else 0

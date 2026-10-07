@@ -393,7 +393,8 @@ func _feed_text(e: Array) -> void:
 	var item: ItemData = e[4]
 	var lb: Label = e[3]
 	lb.text = "+%d %s" % [int(e[1]), item.display_name]
-	lb.modulate = UIStyle.ACCENT if item.devil_fruit != "" or item.is_gear() else Color.WHITE
+	lb.add_theme_color_override("font_color", item.rarity_color())
+	lb.add_theme_color_override("font_outline_color", item.rarity_outline())
 
 
 func _bump(c: Control) -> void:

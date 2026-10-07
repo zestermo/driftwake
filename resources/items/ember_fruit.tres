@@ -9,6 +9,7 @@ id = "ember_fruit"
 display_name = "Ember Fruit"
 description = "A swirl-patterned fruit, warm to the touch, that smells faintly of smoke. A Logia Devil Fruit: eat it and fire answers to you - but the sea will never let you swim again."
 value = 0
+rarity = 4
 stackable = false
 max_stack = 1
 item_type = 2

@@ -1150,10 +1150,10 @@ func _spawn_npcs() -> void:
 			"feet": "boots", "feet_color": CharacterLook.LEATHER[1], "belt": "belt", "belt_color": CharacterLook.LEATHER[1]},
 	}, _marker_point(_stall_fish, "Vendor"), _marker_face(_stall_fish, "Vendor"))
 	_npc({
-		"name": "Sela", "voice": 1.2, "shop": "sela",
+		"name": "Clothier Sela", "voice": 1.2, "shop": "sela",
 		"barks": [
 			"Sailcloth, silk, and wool from three islands over. Touch with your eyes, Captain.",
-			"That coat of yours has seen weather. I could patch it. For a price.",
+			"That coat of yours has seen weather. Sell me the old one, wear something better.",
 			"Blue's the fashion this season. Blue's always the fashion at sea.",
 		],
 		"look": {"body": "fem", "build": "slim", "height": 1.03, "skin": CharacterLook.SKIN_TONES[5],

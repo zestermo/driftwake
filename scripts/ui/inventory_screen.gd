@@ -409,30 +409,33 @@ func _clear_info() -> void:
 func _describe(it: ItemData, worn: bool, qty: int = 1) -> void:
 	var pl := _player()
 	_info_name.text = it.display_name + ("  x%d" % qty if qty > 1 else "")
+	_info_name.add_theme_color_override("font_color", it.rarity_color())
+	_info_name.add_theme_color_override("font_outline_color", it.rarity_outline())
+	_info_name.add_theme_constant_override("outline_size", 3)
 	_info_desc.text = it.description
 	match it.item_type:
 		ItemData.ItemType.WEAPON:
-			_info_type.text = "Weapon" + ("  (equipped)" if it == pl.equipped_weapon else "")
-			_info_stats.text = "Damage x%.1f\nHeavy: %s" % [it.damage_mult, {"thrust": "lunging thrust", "axe": "overhead chop", "slam": "leaping slam"}.get(
+			_info_type.text = it.rarity_name() + " weapon" + ("  (equipped)" if it == pl.equipped_weapon else "")
+			_info_stats.text = "Damage x%.2f\nHeavy: %s" % [it.power(), {"thrust": "lunging thrust", "axe": "overhead chop", "slam": "leaping slam"}.get(
 				preload("res://scripts/player_states/heavy_attack_state.gd").style_for(it.weapon_model), "slam")]
 			_info_hint.text = "Click: equip   Right-click: off hand"
 		ItemData.ItemType.CONSUMABLE:
-			_info_type.text = "Consumable"
+			_info_type.text = it.rarity_name() + " consumable"
 			_info_stats.text = "Restores %d health" % int(it.heal_amount)
 			var qs := pl.inventory_component.hotbar.find(it.id) if pl else -1
 			_info_hint.text = "Click: use   5-7: quick slot" + ("  (on %d)" % (qs + 5) if qs >= 0 else "")
 		ItemData.ItemType.GEAR:
-			_info_type.text = Gear.slot_label(it.gear_slot) + ("  (worn)" if worn else "")
-			var line := "Defense %d" % int(it.defense)
+			_info_type.text = it.rarity_name() + " " + Gear.slot_label(it.gear_slot).to_lower() + ("  (worn)" if worn else "")
+			var line := "Defense %d" % int(round(it.armor()))
 			if not worn and pl:
 				var cur := pl.equipment.get_item(pl.equipment.slot_for(it))
-				var d := int(it.defense - (cur.defense if cur else 0.0))
+				var d := int(round(it.armor() - (cur.armor() if cur else 0.0)))
 				line += "   (%s%d vs worn)" % ["+" if d >= 0 else "", d]
 			_info_stats.text = line
 			_info_hint.text = "Click: take off" if worn else "Click: wear"
 		_:
-			_info_type.text = "Loot"
-			_info_stats.text = "Value %d each" % it.value
+			_info_type.text = it.rarity_name() + " loot"
+			_info_stats.text = "Value %d each" % it.worth()
 			_info_hint.text = "Bank it at your ship's chest to keep it."
 
 
@@ -655,7 +658,7 @@ func _fill_sheet() -> void:
 		var it := pl.equipment.get_item(s[0])
 		if it:
 			any = true
-			_row(s[1], it.display_name, "DEF %d" % int(it.defense) if it.defense > 0.0 else "")
+			_row(s[1], it.display_name, "DEF %d" % int(round(it.armor())) if it.defense > 0.0 else "")
 	if not any:
 		_sheet.add_child(UIStyle.label("Nothing but smallclothes.", 12, UIStyle.TEXT_DIM))
 

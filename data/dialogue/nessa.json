@@ -35,7 +35,7 @@
 		},
 		"loot": {
 			"text": [
-				"Gold's gold. Treasure's better: twenty-five gold a gem, from me. Sell it, then spend it at Tackett's yard. A better ship finds better treasure.",
+				"Gold's gold. Treasure's better: a good twenty-odd gold a gem, from me, more for the rare ones. Sell it, then spend it at Tackett's yard. A better ship finds better treasure.",
 				"Last I heard you'd stowed {banked} pieces aboard. Keep it up!"
 			],
 			"next": "menu"

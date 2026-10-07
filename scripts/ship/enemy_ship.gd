@@ -1066,11 +1066,12 @@ func _prize() -> void:
 	rng.seed = hash(name + "prize")
 	var picks := [["gold", rng.randi_range(30, 50)], ["treasure", rng.randi_range(2, 4)], ["rum", rng.randi_range(1, 3)]]
 	if rng.randf() < 0.6:
-		picks.append([["pistol", "cutlass", "boarding_axe", "katana"][rng.randi() % 4], 1])
+		# out at sea the steel's better than Brinehollow's: green, often blue, now and then purple
+		var r := rng.randf()
+		var tier := 3 if r < 0.06 else (2 if r < 0.45 else 1)
+		picks.append(["%s@%d" % [["pistol", "cutlass", "boarding_axe", "katana"][rng.randi() % 4], tier], 1])
 	for e in picks:
-		var it := load("res://resources/items/%s.tres" % e[0]) as ItemData
-		if it == null:
-			continue
+		var it := ItemDB.get_item(str(e[0]))
 		var stk := ItemStack.new()
 		stk.item = it
 		stk.quantity = int(e[1])

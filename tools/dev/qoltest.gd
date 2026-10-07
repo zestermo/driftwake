@@ -58,6 +58,14 @@ func _process(d: float) -> bool:
 					vendors[n.shop_id] = n
 			check("market stalls trade (%s)" % ", ".join(vendors.keys()), vendors.has("marlo") and vendors.has("sela") and vendors.has("ida"))
 			check("...and say so", vendors.has("marlo") and vendors["marlo"].interactable.prompt_text.begins_with("Trade"))
+			# tiers: Brinehollow's goods are white or green
+			var top := 0
+			var shops = load("res://scripts/game/shops.gd")
+			for sid in shops.SHOPS.keys():
+				for e in shops.SHOPS[sid]["stock"]:
+					top = maxi(top, int(shops.item_of(e).rarity))
+			check("everything for sale on Brinehollow is white or green", top <= 1)
+			check("a level takes twice the XP it did (100 for the first)", p.progression.xp_to_next(1) == 100)
 			p.inventory_component.remove_item(item("gold"), gold())
 			p.inventory_component.add_item(item("treasure"), 10)
 			var dlg = root.get_node("Dialogue")
@@ -68,21 +76,41 @@ func _process(d: float) -> bool:
 		1:
 			check("Nessa's 'Let's trade' opens her stall", menu._current == "shop" and menu._shop.shop_id == "nessa")
 			var shop = menu._shop
+			var gem: int = item("treasure").worth()
 			shop.sell(item("treasure"), 10)
-			print("   sold 10 treasure: gold %d" % gold())
-			check("she buys treasure at full value (10 x 25)", gold() == 250 and p.inventory_component.count("treasure") == 0)
-			check("the gold counter shows it", hud._gold_label.text == "250" and hud._gold_t > 0.0)
+			print("   sold 10 treasure (green, %d each): gold %d" % [gem, gold()])
+			check("she buys treasure at full worth", gold() == 10 * gem and gem >= 24 and p.inventory_component.count("treasure") == 0)
+			check("the gold counter shows it", hud._gold_label.text == str(10 * gem) and hud._gold_t > 0.0)
 			shop.buy(["rum", 9])
-			check("buying rum: in the bag, gold gone", gold() == 241 and p.inventory_component.count("rum") >= 1)
+			check("buying rum: in the bag, gold gone", gold() == 10 * gem - 9 and p.inventory_component.count("rum") >= 1)
 			menu.close()
 			menu.open_shop("sela")
-			var coat: Array = menu._shop.SHOPS.SHOPS["sela"]["stock"][4]
+			var coat: Array = []
+			for e in menu._shop.SHOPS.SHOPS["sela"]["stock"]:
+				if e.size() == 5 and e[1] == "captain":
+					coat = e
 			var before: int = p.inventory_component.items.size()
+			var g0 := gold()
 			menu._shop.buy(coat)
-			check("Sela's captain's coat is a gear piece, made to order", p.inventory_component.items.size() == before + 1
-				and p.inventory_component.items[-1].item.is_gear() and gold() == 81)
+			var got = p.inventory_component.items[-1].item
+			check("Sela's captain's coat: a green gear piece, made to order", p.inventory_component.items.size() == before + 1
+				and got.is_gear() and got.rarity == 1 and gold() == g0 - 190)
 			menu._shop.buy(coat)
-			check("no gold, no coat", gold() == 81)
+			check("no gold, no coat", gold() == g0 - 190)
+			# selling clothes back to her, and spare steel to Vey
+			var sold_coat := gold()
+			menu._shop.sell(got, 1)
+			check("Sela buys clothes back (at a tier-weighted price)", gold() > sold_coat and gold() == sold_coat + menu._shop.SHOPS.offer("sela", got))
+			menu.close()
+			menu.open_shop("vey")
+			var blade = load("res://scripts/loot/item_db.gd").get_item("cutlass@2")
+			p.inventory_component.add_item(blade, 1)
+			var g1 := gold()
+			menu._shop.sell(blade, 1)
+			check("Vey buys a spare blue cutlass (%d g)" % (gold() - g1), gold() > g1 and blade.rarity == 2 and blade.id == "cutlass@2")
+			check("a blue cutlass hits harder than a white one", blade.power() > item("cutlass").power())
+			menu.close()
+			menu.open_shop("sela")
 			menu.close()
 			menu.open_shop("marlo")
 			check("Marlo doesn't buy", menu._shop._buy_list.get_child_count() >= 1)
