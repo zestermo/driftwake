@@ -96,7 +96,9 @@ distance culling/LOD anywhere).
 
 - Sword + pistol moveset: cutlass in the main hand, pistol in the off hand, with its own
   combo, right click and jump attack (like the axe and dual-sword sets).
-- Dagger and dual-dagger movesets.
+- Fix and polish the dual-sword moveset and make it the dual-wield moveset: it's used for
+  sword + sword, sword + axe and sword + dagger. Its skills live in a dual-wield tree.
+- Dagger and dual-dagger movesets (dagger + dagger keeps its own set).
 - Two-handed hammer moveset.
 - Each new weapon gets its own skill tree (see the skills refactor).
 
