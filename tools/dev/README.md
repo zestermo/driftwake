@@ -147,6 +147,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `capeshot`: Two outfits of the new pieces worn by the captain through the equipment slots in the world, front and back. Args: <out_prefix>
 - `weaponshot`: Every weapon design laid out per kind, the four kinds across all seven tiers, and a sheet of every weapon icon. Args: <out_prefix>
 - `handshot`: A few weapon designs held by the captain (nodachi, broadsword, war axe, dragon pistol, rapier). Args: <out_prefix>
+- `sheathshot`: Weapons put away on the hip (cutlasses, katanas in their scabbards, axes, pistol): side, front, back and a close front-left quarter each. Args: <out_prefix>
 - `tiershot`: A cutlass at every item tier (white to black) in the bag with an epic one described, and Vey's stall. Args: <out_prefix>
 - `qolshot`: Nessa's and Sela's stalls, the yard's live preview, the helm with the compass and chart marks, the chart, the capstan and anchor chain, a hull hit's number. Args: <out_prefix>
 - `polishshot`: Sea polish: the foam wake behind the ship (astern, from above), turquoise shallows round Brinehollow and an island, rain pooling on deck. Args: <out_prefix>

@@ -857,22 +857,6 @@ static func _build_weapon(kind: String) -> ArrayMesh:
 	return m
 
 
-## The katana's scabbard: mouth at the origin, running along -Z with the
-## blade's curve (black lacquer, a horn mouth and end cap, a red cord).
-static func saya_mesh() -> ArrayMesh:
-	var mb := MeshBuilder.new()
-	var lacquer := PSXMat.lit("leather", Color(0.13, 0.11, 0.12))
-	var horn := PSXMat.lit("metal", Color(0.85, 0.72, 0.45))
-	var cord := PSXMat.lit("fabric", Color(0.7, 0.14, 0.12))
-	mb.add_box(lacquer, Transform3D(Basis(), Vector3(0, 0, -0.17)), Vector3(0.03, 0.05, 0.34), 2.0)
-	mb.add_box(lacquer, Transform3D(Basis(Vector3.RIGHT, 0.05), Vector3(0, 0.008, -0.46)), Vector3(0.029, 0.048, 0.26), 2.0)
-	mb.add_box(lacquer, Transform3D(Basis(Vector3.RIGHT, 0.11), Vector3(0, 0.026, -0.71)), Vector3(0.028, 0.045, 0.27), 2.0)
-	mb.add_box(horn, Transform3D(Basis(), Vector3(0, 0, -0.012)), Vector3(0.036, 0.056, 0.024), 2.0)
-	mb.add_box(horn, Transform3D(Basis(Vector3.RIGHT, 0.11), Vector3(0, 0.04, -0.85)), Vector3(0.032, 0.048, 0.03), 2.0)
-	mb.add_box(cord, Transform3D(Basis(), Vector3(0, 0, -0.09)), Vector3(0.036, 0.056, 0.02), 2.0)
-	return mb.commit()
-
-
 ## A Devil Fruit held in the hand: a swirled round fruit with a curled stem
 ## and a leaf.
 static func devil_fruit_mesh(skin: String = "devil_fruit_ember") -> ArrayMesh:

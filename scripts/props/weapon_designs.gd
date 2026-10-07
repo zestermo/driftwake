@@ -106,10 +106,35 @@ static func item_ids(kind: String) -> Array:
 	return out
 
 
-## How much longer (or shorter) a katana's scabbard is than the plain one's.
-static func sheath_scale(model: String) -> float:
+## Where an axe's head sits along its haft (z in the weapon's frame).
+static func axe_head_z(model: String) -> float:
+	var p: Dictionary = (DESIGNS["axe"] as Dictionary).get(model.get_slice(":", 1), {})
+	return -(_f(p, "haft", 0.9) - 0.22)
+
+
+## A katana's scabbard in the blade's own frame: the same chain of segments
+## as its blade (length and curve), a little roomier, past the point.
+static func saya(model: String) -> ArrayMesh:
 	var p: Dictionary = (DESIGNS["katana"] as Dictionary).get(model.get_slice(":", 1), {})
-	return _f(p, "len", 0.82) / 0.82
+	var lacquer := PSXMat.lit("leather", Color(0.13, 0.11, 0.12))
+	var horn := PSXMat.lit("metal", Color(0.85, 0.72, 0.45))
+	var cord := PSXMat.lit("fabric", Color(0.7, 0.14, 0.12))
+	var mb := MeshBuilder.new()
+	var curve := _f(p, "curve", 0.32)
+	var segs := 5
+	var seg := _f(p, "len", 0.82) / segs
+	var h := _f(p, "w", 0.033) + 0.018
+	var at := Vector3(0, 0, -0.06)
+	var b := Basis()
+	for i in range(segs):
+		b = Basis(Vector3.RIGHT, curve * pow((i + 0.5) / segs, 1.6))
+		mb.add_box(lacquer, Transform3D(b, at + b * Vector3(0, 0, -seg * 0.5)), Vector3(0.03, h - 0.002 * i, seg + 0.012), 2.0)
+		at += b * Vector3(0, 0, -seg)
+	mb.add_box(lacquer, Transform3D(b, at + b * Vector3(0, 0, -0.06)), Vector3(0.028, h - 0.012, 0.12), 2.0)
+	mb.add_box(horn, Transform3D(b, at + b * Vector3(0, 0, -0.13)), Vector3(0.032, h - 0.008, 0.03), 2.0)
+	mb.add_box(horn, Transform3D(Basis(), Vector3(0, 0, -0.052)), Vector3(0.036, h + 0.005, 0.024), 2.0)
+	mb.add_box(cord, Transform3D(Basis(), Vector3(0, 0, -0.13)), Vector3(0.036, h + 0.005, 0.02), 2.0)
+	return mb.commit()
 
 
 ## Any weapon's item id: a kind, then one of its designs.

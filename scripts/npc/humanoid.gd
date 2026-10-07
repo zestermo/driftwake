@@ -459,9 +459,13 @@ func _build_saya() -> void:
 	_katana_socket.basis = Basis.looking_at(Vector3(-0.2, -0.42, 0.88).normalized(), Vector3.UP)
 	var saya := MeshInstance3D.new()
 	saya.name = "Saya"
-	saya.mesh = Props.saya_mesh()
-	saya.scale = Vector3(1, 1, WeaponDesigns.sheath_scale(str(weapon.mesh.get_meta("model", ""))))
+	saya.mesh = WeaponDesigns.saya(str(weapon.mesh.get_meta("model", "")))
+	saya.position = KATANA_SHEATHED
 	_katana_socket.add_child(saya)
+
+
+## A sheathed katana (and its scabbard) in the katana socket: guard just outside the mouth.
+const KATANA_SHEATHED := Vector3(0, 0, 0.04)
 
 
 func _attach_weapon(in_hand: bool) -> void:
@@ -472,7 +476,7 @@ func _attach_weapon(in_hand: bool) -> void:
 			if offhand.get_parent():
 				offhand.get_parent().remove_child(offhand)
 			t2.add_child(offhand)
-		offhand.transform = Transform3D.IDENTITY
+		offhand.transform = Transform3D.IDENTITY if in_hand else _on_hip(offhand)
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
@@ -481,8 +485,19 @@ func _attach_weapon(in_hand: bool) -> void:
 		if weapon.get_parent():
 			weapon.get_parent().remove_child(weapon)
 		target.add_child(weapon)
-	# (a sheathed katana: guard just outside the scabbard's mouth)
-	weapon.transform = Transform3D(Basis(), Vector3(0, 0, 0.04)) if target == _katana_socket else Transform3D.IDENTITY
+	if target == _katana_socket:
+		weapon.transform = Transform3D(Basis(), KATANA_SHEATHED)
+	else:
+		weapon.transform = Transform3D.IDENTITY if in_hand else _on_hip(weapon)
+
+
+## A weapon hung in a hip socket: grip up front, blade trailing down and back,
+## except an axe, which hangs head up through the belt with its bit to the back.
+func _on_hip(w: MeshInstance3D) -> Transform3D:
+	var model := str(w.mesh.get_meta("model", "")) if w.mesh else ""
+	if model.get_slice(":", 0) != "axe":
+		return Transform3D.IDENTITY
+	return Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0, WeaponDesigns.axe_head_z(model) + 0.1))
 
 
 ## The player's bodies (and their co-op puppets) aim their pistols every frame

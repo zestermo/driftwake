@@ -336,7 +336,8 @@ func _skeleton() -> void:
 	h.head.scale = Vector3(hs, hs, hs)
 	var waist := _torso_rings()[0][1] as float
 	h.hip_socket = _node("HipSocket", Vector3(-waist - 0.07, ty(0.05), 0.02), h.torso)
-	h.hip_socket.basis = Basis.looking_at(Vector3(-0.12, -0.9, 0.42).normalized(), Vector3.LEFT)
+	# (up square to the blade with no sideways part: the flat lies against the thigh, edge forward)
+	h.hip_socket.basis = Basis.looking_at(Vector3(-0.15, -0.78, 0.6).normalized(), Vector3(0, 0.6, 0.78))
 
 
 func _colliders() -> void:

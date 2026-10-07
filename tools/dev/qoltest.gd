@@ -242,7 +242,11 @@ func _process(d: float) -> bool:
 			p.inventory_component.add_item(db.get_item("nodachi"), 1)
 			p.equip_weapon(db.get_item("nodachi"))
 			var saya = p.body_model._katana_socket.get_node("Saya") if p.body_model._katana_socket else null
-			check("a nodachi is a katana (stance, scabbard) with a longer scabbard", p.style() == "katana" and p.body_model.is_katana() and saya != null and saya.scale.z > 1.2)
+			var saya_len: float = saya.mesh.get_aabb().size.z if saya else 0.0
+			var tip_z: float = p.body_model.weapon.mesh.get_aabb().position.z
+			print("   nodachi scabbard %.2f m, blade tip at %.2f" % [saya_len, tip_z])
+			check("a nodachi is a katana (stance, scabbard) with a longer scabbard that covers its blade", p.style() == "katana" and p.body_model.is_katana() and saya != null
+				and saya_len > 1.2 and saya.mesh.get_aabb().position.z < tip_z)
 			var blades := {}
 			for g in get_nodes_in_group("enemies"):
 				if g.get("_blade_model") != null:

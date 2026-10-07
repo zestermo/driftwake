@@ -572,3 +572,10 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Debug: F9 also levels the drawn weapon's mastery; Shift+F9 opens every known skill's next tier.
 - Not yet: Vanish isn't shown to co-op puppets (body hidden locally only); weapon/fruit skills have no tiers yet; the webs are small (about 6-8 nodes per weapon).
 - Tests: progtest (start nodes, mastery points per tree, unlocks, uses -> rank up, mastery from punches, save/load of mastery + tiers, old-save refund), r6test (tree tabs), katanatest/axetest own their unlocks first. Render: styleshot 15-17 (base map, Soru tier panel, cutlass tab).
+
+## 2026-10-07: weapons worn on the hip
+- Zach: the stowed sword looked wrong, katanas poked out of their scabbards, the axe hung backwards.
+- HipSocket (BodyBuilder) now points down-back at ~40 deg (was near vertical, so long blades nearly touched the ground) with up (0, 0.6, 0.78): the flat lies against the thigh, edge forward, spine and curve trailing back (before, the blade's width cut into the hip). Pistols tuck barrel-down, butt forward. The off-hand socket mirrors it as before.
+- Axes on the hip (Humanoid._on_hip) hang head up through the belt, bit to the back, the haft down (WeaponDesigns.axe_head_z puts the head 0.1 above the socket); they hung head-down by the boots.
+- Katana scabbards: WeaponDesigns.saya(model) builds each design's own, the same segment chain as its blade (len, curve) plus room past the point; it sits at the weapon's offset (Humanoid.KATANA_SHEATHED). The old Props.saya_mesh was one fixed curve stretched in z (WeaponDesigns.sheath_scale, both gone): curved blades left it through the top edge and every tip ran ~7 cm past the end.
+- Tests: qoltest checks the nodachi's scabbard covers its blade tip; katanatest. Render: tools/dev/sheathshot.gd.
