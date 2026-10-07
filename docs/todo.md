@@ -64,9 +64,12 @@ distance culling/LOD anywhere).
   checked: the ragdoll doesn't move with the ship (or the deck's motion flings it).
 
 - Stuck sprinting: in several different fights the character kept sprinting on its own.
-  Seen in the exported build. To find out: what clears it (tapping Shift, stopping,
-  rolling), and whether it starts after a particular move (a dodge, a knockdown, a menu or
-  dialogue opened mid-sprint, alt-tab).
+  Seen in the exported build. Only pressing sprint again clears it, so the game missed a
+  Shift key-up. There's already a workaround for this in `player.gd` `_input` (Windows
+  swallows Shift's key-up on Ctrl+Shift, its keyboard-layout hotkey, and sprint + dodge is
+  exactly that). It releases sprint when an event reports Shift up, which only works if
+  Godot's own modifier state isn't stuck too, so it seems not to catch every case. Fix
+  candidates: re-check Shift from the OS each tick while sprinting, or move dodge off Ctrl.
 
 ## UI
 
