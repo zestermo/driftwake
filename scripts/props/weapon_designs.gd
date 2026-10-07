@@ -44,8 +44,9 @@ const DESIGNS := {
 			"dmg": 1.12, "worth": 1.8, "len": 1.08, "curve": 0.42, "wrap": Color(0.16, 0.13, 0.17), "fit": Color(0.45, 0.42, 0.42)},
 		"tachi": {"id": "tachi", "name": "Tachi", "desc": "An old court blade with a deep curve and a flowered guard, wrapped in white.",
 			"dmg": 1.05, "worth": 1.6, "curve": 0.5, "tsuba": "flower", "wrap": Color(0.9, 0.88, 0.82), "fit": Color(1.0, 0.78, 0.4)},
-		"kuro": {"id": "kuro_katana", "name": "Kuro Katana", "desc": "Black steel with a pale edge, in black cord. It drinks the light.",
-			"dmg": 1.08, "worth": 1.9, "blade": Color(0.22, 0.21, 0.24), "wrap": Color(0.08, 0.08, 0.09), "fit": Color(0.35, 0.33, 0.35)},
+		# (dark blued steel, not black: a black blade is Supreme's alone)
+		"kuro": {"id": "kuro_katana", "name": "Kuro Katana", "desc": "Dark blued steel with a pale edge, in black cord. It drinks the light.",
+			"dmg": 1.08, "worth": 1.9, "blade": Color(0.42, 0.5, 0.68), "wrap": Color(0.08, 0.08, 0.09), "fit": Color(0.35, 0.33, 0.35)},
 		"wakizashi": {"id": "wakizashi", "name": "Wakizashi", "desc": "The short companion blade. Quick in close quarters below decks.",
 			"dmg": 0.95, "worth": 1.0, "len": 0.58, "curve": 0.22, "wrap": Color(0.18, 0.22, 0.4), "fit": Color(0.45, 0.42, 0.42)},
 		"ninjato": {"id": "ninjato", "name": "Ninjato", "desc": "A straight blade with a square guard. Made for the dark, not for show.",
