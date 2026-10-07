@@ -58,10 +58,6 @@ distance culling/LOD anywhere).
 
 ## Bugs
 
-- Knockdowns on a ship (cannon hits, enemies): sometimes the ragdolled body flies off the
-  ship while the camera stays put, then the body snaps back and stands up. The camera follows
-  the player body, which stays on deck while the ragdoll goes on its own. Likely suspect, not
-  checked: the ragdoll doesn't move with the ship (or the deck's motion flings it).
 
 - (fix in, 2026-10-07: confirm in play) Stuck sprinting: in several different fights the character kept sprinting on its own.
   Seen in the exported build. Only pressing sprint again clears it, so the game missed a
@@ -102,6 +98,13 @@ distance culling/LOD anywhere).
 - Rework banking resources and item storage on ships, plus other core mechanics.
 - Death: your whole inventory drops on a gravestone where you died (not on the ship).
   You carry only your inventory; banking happens in the ship's storage (see the crew cabin).
+- Decided (2026-10-07):
+  - Respawn in the crew cabin, next to the bed.
+  - Summoning the ship: it fades into existence out of nothing and slowly sails up to the
+    shore closest to you. Only works near water ("Cannot summon ship" otherwise).
+  - Die again before reaching your gravestone: the old one shakes, then slowly sinks into
+    the ground and is gone (its loot with it).
+  - The cabin storage is shared by the whole crew in co-op.
 
 ## Ships
 

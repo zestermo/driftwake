@@ -66,7 +66,7 @@ func _process(d: float) -> bool:
 		7:
 			act("heavy_attack"); wait = 1.2; step = 8
 		8:
-			check("axe heavy is the overhead chop", seen_anims.has("axe_heavy"))
+			check("axe heavy is the whirlwind", seen_anims.has("axe_whirl"))
 			act("ready_weapon"); wait = 0.6; step = 9
 		9:
 			hold("move_forward", true); hold("sprint", true); wait = 0.0; step = 10; t = 0.0
@@ -88,6 +88,8 @@ func _process(d: float) -> bool:
 		11:
 			var b = p.body_model
 			check("head looks along the camera aim when behind", b.look_weight > 0.9 and not p._looking_at_cam)
+			# (weapon out you strafe facing the camera, so it can't get in front: sheathe)
+			p.sheathe_weapon(true)
 			var r := rig()
 			r.global_rotation.y = p.player_model.global_rotation.y + PI  # camera swings in front
 			wait = 0.4; step = 12

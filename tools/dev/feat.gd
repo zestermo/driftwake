@@ -53,6 +53,9 @@ func _process(d: float) -> bool:
 			check("slash animation playing", p.body_model.current_action().begins_with("slash"))
 			wait = 0.6
 		4:
+			# (the cutlass's cut and recovery run past 0.6 s: Z only works once free)
+			if not p.is_free() or p.body_model.current_action() != "":
+				return false
 			var hc = get_meta("dummy_hc")
 			check("dummy took damage", hc.current_health < get_meta("dummy_hp") or hc.current_health == hc.max_health)
 			print("   dummy hp ", get_meta("dummy_hp"), " -> ", hc.current_health)

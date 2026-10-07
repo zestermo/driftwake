@@ -14,6 +14,8 @@ const MAX_DOWN := 3.0
 const FLOAT_DEPTH := 0.45
 ## ...or after this long regardless.
 const MAX_UNDER := 4.0
+## The root more than this behind the hips (it couldn't follow): it jumps there.
+const FOLLOW_GAP := 1.0
 
 var timer: float = 0.0
 var dead: bool = false
@@ -41,7 +43,8 @@ func enter(data: Dictionary) -> void:
 	player.reset_combo()
 	var v: Vector3 = data.get("velocity", Vector3.ZERO)
 	var spin := Vector3.UP.cross(Vector3(v.x, 0, v.z).normalized()) * 5.0 if v.length() > 0.1 else Vector3.ZERO
-	player.body_model.start_ragdoll(v, spin, not dead)
+	# on a ship under way the body keeps the deck's speed (or the deck sails out from under it)
+	player.body_model.start_ragdoll(v + _deck_velocity(), spin, not dead)
 	if player.power.has_fruit() and player.body_model.ragdoll:
 		player.body_model.ragdoll.buoyancy = 0.2  # the sea's curse: you sink
 	Net.fx("sfx", ["whoosh_big", player.global_position, -8.0, 0.1, 0.8])
@@ -79,6 +82,17 @@ func physics_update(delta: float) -> void:
 	else:
 		apply_gravity(delta)
 	player.move_and_slide()
+	# blocked (a ship's rail, a wall) while the body flies on: the root jumps
+	# to the ground under the body, so the camera goes with it and the get-up
+	# happens where it landed
+	var gap := hips - player.global_position
+	if Vector2(gap.x, gap.z).length() > FOLLOW_GAP:
+		var q := PhysicsRayQueryParameters3D.create(hips + Vector3.UP * 0.3, hips + Vector3.DOWN * 30.0, 1)
+		q.exclude = [player.get_rid()]
+		var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+		var y := (hit["position"] as Vector3).y if not hit.is_empty() else hips.y - player.body_model.hip_y * player.body_model.scale.y
+		player.global_position = Vector3(hips.x, maxf(y, hips.y - 1.5) if deep else y, hips.z)
+		player.velocity = Vector3.ZERO
 	# a thud when the body first hits the ground (the water splashes instead)
 	var rb := rag.root_body()
 	var vy := rb.linear_velocity.y if rb else 0.0
@@ -105,6 +119,17 @@ func physics_update(delta: float) -> void:
 		getting_up = true
 		timer = 0.0
 		getup_time = player.get_up_from_ragdoll()
+
+
+## The velocity of whatever deck you're standing on (a ship under way).
+func _deck_velocity() -> Vector3:
+	var pv := player.get_platform_velocity()
+	if pv.length() > 0.05:
+		return pv
+	var ship := player.get_tree().get_first_node_in_group("ship") as Node3D
+	if ship and ship.has_method("aboard") and ship.aboard(player.global_position):
+		return ship.hull_velocity()
+	return Vector3.ZERO
 
 
 func exit() -> void:
