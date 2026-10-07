@@ -62,10 +62,29 @@ distance culling/LOD anywhere).
   and the like (they're emissive only now). Do it after the performance pass and budget it:
   few shadowed lights, distance fades, so it doesn't undo that work.
 
+## Ships
+
+- Scale up the player ship and the enemy ships: taller, larger and longer hulls (decks,
+  cannon spots, the capstan and chain, crew posts, boarding and the Sea King's attacks
+  all need to follow the new size).
+- A crow's nest you can climb up to.
+- Climbable rigging.
+- Ropes you can swing from (the swing state exists for vines).
+- Other improvements to the player ship.
+
 ## Combat
 
 - Sword + pistol moveset: cutlass in the main hand, pistol in the off hand, with its own
   combo, right click and jump attack (like the axe and dual-sword sets).
+- Dagger and dual-dagger movesets.
+- Two-handed hammer moveset.
+- Each new weapon gets its own skill tree (see the skills refactor).
+
+## Co-op
+
+- Rescuing a Devil Fruit crewmate who falls in the sea: today they sink (the fruit-user
+  sinking is built) and nobody can get them out. A captain should be able to dive in and haul
+  them up (needs to work for a guest too).
 
 ## Skills refactor
 
@@ -77,5 +96,14 @@ distance culling/LOD anywhere).
 - **A web of passives:** each tree is a large web of passive skills, and paths through it
   lead to several different abilities.
 - **Ability tiers:** abilities have levels that upgrade them.
+- **Unarmed tree:** a martial-arts tree of passive upgrades and abilities for fighting with
+  bare hands.
+- **Mastering abilities:** many abilities level up, and at their top tiers they change how
+  they work, often becoming passive or automatic. Examples:
+  - Observation haki at tier 3–4 can be switched on as a passive that dodges a set number
+    of attacks per second by itself.
+  - A dodge upgrade that shadow-steps: you vanish (invisible) for about a second when you dodge.
+  - The idea is mastering individual abilities, so the tiers should feel like real changes,
+    not just bigger numbers.
 - Existing code: `scripts/progression/` (skill map, styles, fruits). Saves will need a
   migration for skills already owned.
