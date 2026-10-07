@@ -38,7 +38,7 @@ most moves have tuning notes and past bugs recorded there.
 
 ## Joints and sign conventions (radians, Euler `Vector3(x, y, z)`)
 
-`JOINTS = pivot, hips, torso, head, arm_l, fore_l, arm_r, fore_r, leg_l, shin_l, leg_r, shin_r, hand_r`
+`JOINTS = pivot, hips, torso, head, arm_l, fore_l, arm_r, fore_r, leg_l, shin_l, leg_r, shin_r, hand_r, hand_l`
 
 | Joint | Meaning |
 |---|---|
@@ -50,7 +50,7 @@ most moves have tuning notes and past bugs recorded there.
 | `fore_l` / `fore_r` | elbow. x+ = bend (0 = straight, 2.3 = fully folded) |
 | `leg_l` / `leg_r` | thigh. x+ = forward/knee up, x- = trail behind. z: `leg_l` z- / `leg_r` z+ = out to the side. Never let a leg cross the midline (gait clamps leg_l z ≤ 0.08, leg_r z ≥ -0.08) |
 | `shin_l` / `shin_r` | knee. **x- = bend** (-0.3 slight, -1.4 deep lunge, -2.2 full tuck) |
-| `hand_r` | right wrist / weapon socket. x- = blade tips forward along the arm (thrusts ~-1.5), x+ = cocked back |
+| `hand_r` / `hand_l` | wrists / weapon sockets. x- = blade tips forward along the arm (thrusts ~-1.5), x+ = cocked back; same sign both sides. `hand_l` holds the off-hand weapon and props (bottle, food) |
 
 Left/right mirror rule: to mirror a pose, swap `_l`/`_r` and negate y and z on every joint
 (keep x). Facing is -Z; feet at y 0; `PIVOT_Y` 0.9 m.
@@ -75,7 +75,7 @@ Add a branch to the `match n:` in `_action_pose()` (group it with its weapon/sty
   slow start/fast end, `"back"` overshoot and settle, default smoothstep.
 - **Missing joints fall back to the locomotion pose** (`_base`), per key. `{}` as a key means
   "whatever the body was doing", which is how upper-body actions ease in and out.
-- **Mask**: `"upper"` only applies `torso, head, arms, hand_r`; legs keep walking and `lift`
+- **Mask**: `"upper"` only applies `torso, head, arms, hands`; legs keep walking and `lift`
   is *added*. `"full"` takes legs too and `lift` *replaces* the gait's.
 - **Lift** is the hip offset (`Vector3`, y- = crouch). `_strike_lift(u, wind_end, hit, hold,
   coil, deep)` gives the standard sink-through-a-strike curve.
@@ -92,8 +92,9 @@ Add a branch to the `match n:` in `_action_pose()` (group it with its weapon/sty
 - Time-based wiggle (`sin(_t * f)`) is fine inside a pose; it keeps working during holds.
 - Two-handed weapons: if the left hand should leave the grip during the move, add the name
   to the skip list in `_katana_hands()` / `AXE_TWO_HANDED` handling in `_axe_hands()`.
-- **An unknown name silently does nothing** (falls through to `[{}, "upper", lift]`). When
-  renaming or removing an action, grep every caller (`play("name"`) in `scripts/`.
+- **An unknown name does nothing but log an error** ("Humanoid.play: no pose for action",
+  once per play). When renaming or removing an action, grep every caller (`play("name"`) in
+  `scripts/`, and watch the log after rendering.
 
 ## Wiring it up
 
@@ -142,9 +143,8 @@ Rules from the full review (each one was a visible problem in the renders):
   counter torso y with head y the way the punches do.
 - **Blades need the wrist.** Key `hand_r` on every key of a blade move: cocked back (x+) in
   the wind-up, flung out along the arm (x-) through the strike. Without it the blade stays
-  upright off the forearm and the cut doesn't read (all the dual-sword moves, the grunt
-  `E_*` swings). There is no `hand_l` joint: an off-hand blade only points where the forearm
-  points.
+  upright off the forearm and the cut doesn't read (the grunt `E_*` swings still lack it).
+  The off-hand blade works the same with `hand_l` (the dual-sword moves are the example).
 - **Player pistols: leave `hand_r` alone.** The player's guns sit in a fixed grip
   (`auto_point_guns`, `GUN_GRIP`), so the arm does the aiming. A wrist key bends the barrel
   off the arm (`bullet_storm`'s -1.55 points the gun at the ground). Only grunts, who aim

@@ -24,10 +24,10 @@ signal action_finished(action_name: String)
 signal footstep(strength: float)
 
 const PIVOT_Y := 0.9
-const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r"]
+const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r", "hand_l"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
 const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "dual_spin", "gun_kata", "axe_whirl", "axe_flip"]
-const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r"]
+const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r", "hand_l"]
 
 var look: Dictionary = {}
 
@@ -598,8 +598,8 @@ func _left_hip() -> Node3D:
 func _guard() -> Dictionary:
 	match stance:
 		"dual_sword":
-			return {"arm_r": Vector3(0.75, -0.2, 0.35), "fore_r": Vector3(0.5, 0, 0),
-				"arm_l": Vector3(0.75, 0.2, -0.35), "fore_l": Vector3(0.5, 0, 0),
+			return {"arm_r": Vector3(0.75, -0.2, 0.35), "fore_r": Vector3(0.5, 0, 0), "hand_r": Vector3(-0.5, 0, 0),
+				"arm_l": Vector3(0.75, 0.2, -0.35), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3(-0.5, 0, 0),
 				"torso": Vector3(-0.12, 0.1, 0), "head": Vector3(0.08, -0.1, 0)}
 		"fist":
 			return FIST_GUARD
@@ -1682,11 +1682,14 @@ func _action_pose(n: String, u: float) -> Array:
 		"dual_1", "dual_2":
 			var gd := _guard()
 			var r1 := n == "dual_1"
+			# (the cutting blade cocks back on its wrist, then is flung out along the arm)
 			var wind_d := {"arm_r": Vector3(0.9, 0.7, 1.6) if r1 else Vector3(0.6, 0.2, 0.4), "fore_r": Vector3(0.7, 0, 0),
 				"arm_l": Vector3(0.6, -0.2, -0.4) if r1 else Vector3(0.9, -0.7, -1.6), "fore_l": Vector3(0.7, 0, 0),
+				"hand_r": Vector3(0.6 if r1 else -0.5, 0, 0), "hand_l": Vector3(-0.5 if r1 else 0.6, 0, 0),
 				"torso": Vector3(0.05, 0.9 if r1 else -0.9, 0)}
 			var hit_d := {"arm_r": Vector3(1.4, -0.9, -1.0) if r1 else Vector3(0.7, 0.3, 0.6), "fore_r": Vector3(0.05, 0, 0),
 				"arm_l": Vector3(0.7, -0.3, -0.6) if r1 else Vector3(1.4, 0.9, 1.0), "fore_l": Vector3(0.05, 0, 0),
+				"hand_r": Vector3(-1.4 if r1 else -0.5, 0, 0), "hand_l": Vector3(-0.5 if r1 else -1.4, 0, 0),
 				"torso": Vector3(-0.25, -0.9 if r1 else 0.9, 0),
 				"leg_l": Vector3(0.75, 0, -0.1) if r1 else Vector3(-0.5, 0, -0.1), "shin_l": Vector3(-0.7, 0, 0),
 				"leg_r": Vector3(-0.5, 0, 0.1) if r1 else Vector3(0.75, 0, 0.1), "shin_r": Vector3(-0.4, 0, 0)}
@@ -1695,8 +1698,10 @@ func _action_pose(n: String, u: float) -> Array:
 		"dual_cross":
 			var gc := _guard()
 			var open_x := {"arm_r": Vector3(2.4, 0.3, 0.9), "fore_r": Vector3(0.4, 0, 0), "arm_l": Vector3(2.4, -0.3, -0.9), "fore_l": Vector3(0.4, 0, 0),
+				"hand_r": Vector3(0.6, 0, 0), "hand_l": Vector3(0.6, 0, 0),
 				"torso": Vector3(0.3, 0, 0), "head": Vector3(0.2, 0, 0)}
 			var cross_x := {"arm_r": Vector3(1.2, -0.9, -0.6), "fore_r": Vector3(0.1, 0, 0), "arm_l": Vector3(1.2, 0.9, 0.6), "fore_l": Vector3(0.1, 0, 0),
+				"hand_r": Vector3(-1.3, 0, 0), "hand_l": Vector3(-1.3, 0, 0),
 				"torso": Vector3(-0.45, 0, 0), "head": Vector3(-0.1, 0, 0),
 				"leg_l": Vector3(0.85, 0, -0.12), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.55, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0)}
 			lift.y = -0.2 * sin(clampf((u - 0.25) / 0.6, 0.0, 1.0) * PI)
@@ -1704,6 +1709,7 @@ func _action_pose(n: String, u: float) -> Array:
 		"dual_spin":
 			var gs := _guard()
 			var out2 := {"arm_r": Vector3(1.4, 0.0, 1.5), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.4, 0.0, -1.5), "fore_l": Vector3(0.05, 0, 0),
+				"hand_r": Vector3(-1.5, 0, 0), "hand_l": Vector3(-1.5, 0, 0),
 				"torso": Vector3(-0.2, 0, 0), "leg_l": Vector3(0.5, 0, -0.25), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(0.5, 0, 0.25), "shin_r": Vector3(-0.8, 0, 0)}
 			var spin2 := 1.0 - pow(1.0 - clampf((u - 0.15) / 0.6, 0.0, 1.0), 2.2)
 			var pose2 := _keys(u, [[0.0, gs], [0.15, out2, "out"], [0.78, out2], [1.0, gs]])
@@ -1752,8 +1758,10 @@ func _action_pose(n: String, u: float) -> Array:
 		"dual_heavy":
 			var gh := _guard()
 			var up2 := {"arm_r": Vector3(3.1, 0.2, 0.45), "fore_r": Vector3(0.6, 0, 0), "arm_l": Vector3(3.1, -0.2, -0.45), "fore_l": Vector3(0.6, 0, 0),
+				"hand_r": Vector3(0.5, 0, 0), "hand_l": Vector3(0.5, 0, 0),
 				"torso": Vector3(0.4, 0, 0), "head": Vector3(0.3, 0, 0), "leg_l": Vector3(0.6, 0, -0.15), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.3, 0, 0.15), "shin_r": Vector3(-1.0, 0, 0)}
 			var down2 := {"arm_r": Vector3(0.6, -0.4, 0.2), "fore_r": Vector3(0.0, 0, 0), "arm_l": Vector3(0.6, 0.4, -0.2), "fore_l": Vector3(0.0, 0, 0),
+				"hand_r": Vector3(-0.9, 0, 0), "hand_l": Vector3(-0.9, 0, 0),
 				"torso": Vector3(-0.85, 0, 0), "head": Vector3(-0.3, 0, 0), "leg_l": Vector3(1.1, 0, -0.1), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(-0.85, 0, 0.1), "shin_r": Vector3(-0.15, 0, 0)}
 			lift.y = (-0.2 * _ease(u / 0.35)) if u < 0.35 else (-0.4 * (1.0 - _ease((u - 0.6) / 0.4)) if u > 0.6 else -0.4)
 			return [_keys(u, [[0.0, gh], [0.32, up2, "out"], [0.45, down2, "in"], [0.68, down2], [1.0, gh]]), "full", lift]
@@ -1880,7 +1888,7 @@ func _action_pose(n: String, u: float) -> Array:
 			var gb := _guard()
 			var fan := sin(_t * 30.0) * 0.08
 			var sw := clampf((u - 0.1) / 0.75, 0.0, 1.0)
-			var bs := {"arm_r": Vector3(1.55, lerpf(0.7, -0.7, sw), 0.1), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.55, 0, 0),
+			var bs := {"arm_r": Vector3(1.55, lerpf(0.7, -0.7, sw), 0.1), "fore_r": Vector3(0.05, 0, 0),
 				"arm_l": Vector3(1.3 + fan, lerpf(0.5, -0.5, sw), -0.2), "fore_l": Vector3(0.6, 0, 0), "torso": Vector3(0, lerpf(0.5, -0.5, sw), 0)}
 			return [_keys(u, [[0.0, gb], [0.1, bs, "out"], [0.85, bs], [1.0, gb]]), "upper", lift]
 		"coat":
@@ -1891,7 +1899,20 @@ func _action_pose(n: String, u: float) -> Array:
 			var fs := {"arm_r": Vector3(2.2, 0.8, -0.4), "fore_r": Vector3(2.3, 0, 0), "head": Vector3(-0.3, 0, 0), "torso": Vector3(0.05, 0, 0)}
 			return [_keys(u, [[0.0, {}], [0.3, fs, "out"], [0.75, fs], [1.0, {}]]), "upper", lift]
 		# --- vines ---
-		"vine_throw", "thorn_whip":
+		"thorn_whip":
+			# the vine arm folded high behind the shoulder, chest turned away, then the
+			# lash cracked down across the body through a lunge (the whip fires at u 0.48),
+			# the hand drawn back a touch as it cracks
+			var cock := {"arm_r": Vector3(2.7, 0.5, 0.9), "fore_r": Vector3(1.5, 0, 0), "torso": Vector3(0.15, 0.75, 0.05), "head": Vector3(-0.08, -0.6, 0),
+				"hips": Vector3(0, 0.3, 0), "arm_l": Vector3(1.2, -0.2, -0.5), "fore_l": Vector3(0.5, 0, 0),
+				"leg_l": Vector3(0.5, 0, -0.14), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.4, 0, 0.14), "shin_r": Vector3(-0.45, 0, 0)}
+			var crack := {"arm_r": Vector3(1.1, -0.6, -0.5), "fore_r": Vector3(0.0, 0, 0), "torso": Vector3(-0.35, -0.7, -0.05), "head": Vector3(0.25, 0.55, 0),
+				"hips": Vector3(0, -0.25, 0), "arm_l": Vector3(-0.4, 0, -0.7), "fore_l": Vector3(0.6, 0, 0),
+				"leg_l": Vector3(0.95, 0, -0.12), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.65, 0, 0.12), "shin_r": Vector3(-0.25, 0, 0)}
+			var recoil := crack.merged({"arm_r": Vector3(1.45, -0.35, -0.3), "fore_r": Vector3(0.35, 0, 0)}, true)
+			lift.y = _strike_lift(u, 0.36, 0.48, 0.7, -0.05, -0.2)
+			return [_keys(u, [[0.0, {}], [0.3, cock, "out"], [0.38, cock], [0.48, crack, "out"], [0.58, recoil, "back"], [0.78, recoil], [1.0, {}]]), "full", lift]
+		"vine_throw":
 			var vt := {"arm_r": Vector3(2.8, 0.2, 0.6), "fore_r": Vector3(1.4, 0, 0), "torso": Vector3(0.2, 0.6, 0), "arm_l": Vector3(1.1, 0, -0.4), "fore_l": Vector3(0.6, 0, 0),
 				"leg_l": Vector3(0.6, 0, -0.1), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.4, 0, 0.1), "shin_r": Vector3(-0.4, 0, 0)}
 			var vr := {"arm_r": Vector3(1.4, -0.3, -0.2), "fore_r": Vector3(0.05, 0, 0), "torso": Vector3(-0.3, -0.5, 0), "arm_l": Vector3(-0.3, 0, -0.6), "fore_l": Vector3(0.5, 0, 0),
@@ -1948,6 +1969,9 @@ func _action_pose(n: String, u: float) -> Array:
 		"wave":
 			var wv := {"arm_r": Vector3(0.2, 0, 2.6 + sin(_t * 12.0) * 0.25), "fore_r": Vector3(0.4, 0, 0), "head": Vector3(0.1, -0.2, 0)}
 			return [_keys(u, [[0.0, {}], [0.2, wv], [0.85, wv], [1.0, {}]]), "upper", lift]
+	if not _action["events"].has("unknown"):
+		_action["events"]["unknown"] = true
+		push_error("Humanoid.play: no pose for action \"%s\" (the body just keeps moving)" % n)
 	return [{}, "upper", lift]
 
 
@@ -2445,6 +2469,8 @@ func _process(delta: float) -> void:
 	# wrist (only the weapon socket turns; e.g. a thrust lines the blade up with the arm)
 	if hand_r:
 		hand_r.rotation = _cur["hand_r"]
+	if hand_l:
+		hand_l.rotation = _cur["hand_l"]
 	if _tail and is_instance_valid(_tail):
 		var wag := 1.0 + clampf(ground_speed * 0.15, 0.0, 1.0)
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)

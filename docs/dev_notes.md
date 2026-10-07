@@ -579,3 +579,13 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Axes on the hip (Humanoid._on_hip) hang head up through the belt, bit to the back, the haft down (WeaponDesigns.axe_head_z puts the head 0.1 above the socket); they hung head-down by the boots.
 - Katana scabbards: WeaponDesigns.saya(model) builds each design's own, the same segment chain as its blade (len, curve) plus room past the point; it sits at the weapon's offset (Humanoid.KATANA_SHEATHED). The old Props.saya_mesh was one fixed curve stretched in z (WeaponDesigns.sheath_scale, both gone): curved blades left it through the top edge and every tip ran ~7 cm past the end.
 - Tests: qoltest checks the nodachi's scabbard covers its blade tip; katanatest. Render: tools/dev/sheathshot.gd.
+
+## 2026-10-07: animation review fixes
+- Full review of every action with tools/dev/animsheet.gd (contact sheets at each move's played length); rules from it are in the driftwake-animation skill.
+- Humanoid: `hand_l` is a joint now (JOINTS, UPPER; written after hand_r), same signs as hand_r. Nothing else writes HandL's rotation (IK only sets arm/fore), so it rests at zero unless a pose keys it.
+- Dual swords: the guard angles both blades forward (wrists -0.5); dual_1/dual_2/dual_cross/dual_heavy cock the cutting blade back on the wind-up (+0.5..0.6) and fling it out along the arm on the hit (-0.9..-1.4); dual_spin holds both out along the arms (-1.5). Before, both blades stood upright through every hit.
+- Dual-sword hitboxes per hit (were one 0.07-0.21 window for all four): starts 0.1/0.1/0.17/0.1, ends 0.22/0.22/0.29/0.42, from the strike keys (dual_cross lands at 0.21 s, dual_spin turns 0.09-0.45 s).
+- bullet_storm: no wrist key (its -1.55 bent the player's fixed-grip pistol to point at the ground).
+- thorn_whip has its own pose (was vine_throw's): arm folded high behind the shoulder, held, cracked down across through a lunge at u 0.48 (the whip fires at dur x 0.48), small recoil.
+- Humanoid.play of an unknown action name logs an error once per play (the removed axe_heavy played nothing for weeks).
+- Tests: fixtest, katanatest, progtest, r10test. Render: animsheet `dual_sword,bullet_storm,thorn_whip`.
