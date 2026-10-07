@@ -24,6 +24,10 @@ var _ip_edit: LineEdit
 var _slot_purpose: String = ""
 var _join_slot: int = 0
 const IP_FILE := "user://last_host.txt"
+## The version ribbon by the logo (click: what's new) and the notes themselves.
+const WHATS_NEW := preload("res://scripts/ui/whats_new.gd")
+const RIBBON := Rect2(318, 58, 66, 26)
+var _whats_new: PanelContainer
 
 
 func _ready() -> void:
@@ -52,6 +56,10 @@ func _ready() -> void:
 	_slots.chosen.connect(_on_slot_chosen)
 	_slots.cancelled.connect(_show_menu)
 	add_child(_slots)
+	_whats_new = WHATS_NEW.new()
+	_whats_new.visible = false
+	_whats_new.closed.connect(_show_menu)
+	add_child(_whats_new)
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 1)
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -67,6 +75,8 @@ func _ready() -> void:
 		_open_coop()
 		_coop_status.text = str(gm.title_message)
 		gm.title_message = ""
+	elif WHATS_NEW.unseen():
+		_open_whats_new()
 
 
 func _build_menu() -> void:
@@ -79,6 +89,7 @@ func _build_menu() -> void:
 	_item("New Game", func(): _open_slots("new"))
 	_item("Load Game", func(): _open_slots("load"))
 	_item("Co-op", func(): _open_coop())
+	_item("What's New", func(): _open_whats_new())
 	_item("Options", func(): GameMenu.open("options"))
 	_item("Quit", func(): get_tree().quit())
 
@@ -95,9 +106,17 @@ func _item(text: String, cb: Callable) -> Button:
 	return b
 
 
+func _open_whats_new() -> void:
+	_menu.visible = false
+	_slots.visible = false
+	_coop.visible = false
+	_whats_new.show_notes()
+
+
 func _show_menu() -> void:
 	_slots.visible = false
 	_coop.visible = false
+	_whats_new.visible = false
 	_slot_purpose = ""
 	_menu.visible = true
 	_continue_slot = SaveGame.latest_slot()
@@ -143,6 +162,19 @@ func _start(slot: int, fresh: bool) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# the version ribbon opens what's new
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
+			and _menu.visible and not _loading and RIBBON.has_point(event.position):
+		_blip.play()
+		_open_whats_new()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("pause") and _whats_new.visible and not _loading:
+		_whats_new.visible = false
+		WHATS_NEW.mark_seen()
+		_show_menu()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("pause") and (_slots.visible or _coop.visible) and not _loading:
 		Net.leave()
 		_show_menu()
@@ -333,9 +365,40 @@ func _draw() -> void:
 	draw_string(LOGO_FONT, lp, logo, HORIZONTAL_ALIGNMENT_LEFT, -1, 48, UIStyle.ACCENT)
 	draw_string_outline(SMALL_FONT, lp + Vector2(2, 18), "THE SEA REMEMBERS EVERY WAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(0, 0, 0, 0.8))
 	draw_string(SMALL_FONT, lp + Vector2(2, 18), "THE SEA REMEMBERS EVERY WAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.9, 0.75, 0.8))
+	_draw_ribbon()
 	if _loading:
 		var a := clampf(_fade.color.a * 2.0, 0.0, 1.0)
 		draw_string(SMALL_FONT, Vector2(w - 90, h - 12), "SETTING SAIL...", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 0.9, 0.7, a))
+
+
+## The version on a red ribbon with forked tails, beside the logo, glinting now
+## and then (and brighter under the mouse: it opens what's new).
+func _draw_ribbon() -> void:
+	var r := RIBBON
+	var hot := r.has_point(get_local_mouse_position()) and _menu.visible
+	var red := Color(0.62, 0.1, 0.08) if not hot else Color(0.78, 0.16, 0.1)
+	var dark := red.darkened(0.45)
+	var y0 := r.position.y
+	var y1 := r.end.y
+	var ym := (y0 + y1) * 0.5
+	# the forked tails, a step back behind the band
+	draw_colored_polygon(PackedVector2Array([Vector2(r.position.x - 9, y0 + 4), Vector2(r.position.x + 6, y0 + 4),
+		Vector2(r.position.x + 6, y1 + 4), Vector2(r.position.x - 9, y1 + 4), Vector2(r.position.x - 4, ym + 4)]), dark)
+	draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 6, y0 + 4), Vector2(r.end.x + 9, y0 + 4),
+		Vector2(r.end.x + 4, ym + 4), Vector2(r.end.x + 9, y1 + 4), Vector2(r.end.x - 6, y1 + 4)]), dark)
+	draw_rect(r, red)
+	draw_rect(Rect2(r.position + Vector2(0, 2), Vector2(r.size.x, 1)), Color(1.0, 0.8, 0.45, 0.6))
+	draw_rect(Rect2(r.position + Vector2(0, r.size.y - 3), Vector2(r.size.x, 1)), Color(1.0, 0.8, 0.45, 0.6))
+	# a glint sweeping across every few seconds (under the lettering)
+	var g := fposmod(_t * 0.4, 1.6)
+	if g < 1.0:
+		var gx := r.position.x + 4.0 + g * (r.size.x - 8.0)
+		draw_line(Vector2(gx + 3, y0 + 3), Vector2(gx - 3, y1 - 3), Color(1, 0.9, 0.7, 0.35), 3.0)
+	var txt := "v%s" % WHATS_NEW.version()
+	var tw := LOGO_FONT.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+	var tp := Vector2(r.position.x + (r.size.x - tw) * 0.5, y1 - 7)
+	draw_string_outline(LOGO_FONT, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 5, Color(0.15, 0.02, 0.02))
+	draw_string(LOGO_FONT, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, UIStyle.ACCENT)
 
 
 ## A brig in silhouette, pitching on the swell.

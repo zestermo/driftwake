@@ -354,6 +354,11 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Katana parry/block feet wider (KATANA_SPREAD 0.12 rad leg roll: in the parry's crouch keys, and on the gait legs while guard_block plays). Air slash angled forward: the "under" pose reaches further ahead (arm 0.75, pivot -0.28), trail plane leaned 0.65 forward, REACH "under" centred 0.9 m ahead (3.4 deep).
 - r10test now also: planted-foot slide on diagonals/backpedal < 1.6 m/s (pure strafes < 2.0), hips turn > 0.5 rad into a diagonal with the chest within 0.15 rad. All 24 suites x 2 Godot versions passed in one go; co-op default + water OK.
 
+## 2026-10-07: v1.5 on the title
+- project.godot application/config/version="1.5" (bump it for the next release; the ribbon and the pop-up read it).
+- Title screen: a red version ribbon beside the logo (RIBBON rect, glint; click it to open what's new) and a "What's New" menu item. scripts/ui/whats_new.gd: the version's NOTES (heading, line), shown by itself the first time a new version is opened (user://whats_new_seen.txt holds the last version seen; "Set sail" or Esc marks it). Update NOTES each release.
+- Render: tools/dev/newsshot.gd (clears the seen file, shoots the pop-up and the menu).
+
 ## 2026-10-07: cutlass polish
 - The wrist cuts now: hand_r cocks the blade back in each wind-up and flings it out along the arm into the cut (before, it stayed upright and the swings read as waves). slash_r is a diagonal forehand (high over the right shoulder, down across to the lower left), slash_l a flat backhand (back past the left shoulder, out level to the right; the upper arm untwisted at the strike - twisted, the wrist bent the blade back up), spin_slash flings the blade out level for the turn. The off arm no longer sticks straight out.
 - SWORD_GUARD (Humanoid._guard() for stance "sword"): side on, blade angled forward, off hand up; the thrust heavy blends from and back to it.

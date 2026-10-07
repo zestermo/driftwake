@@ -141,6 +141,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `goreshot`: A camp grunt cut down by a severing killing blow (head or arm off, blood, splats) and a second losing an arm, frames at 0.15-2.5 s. Args: <out_prefix>
 - `horizonshot`: The Redtide fort and ships on the horizon from the starter dock (rain at dawn like the capture, plus zoomed clear/rain/storm), to check distant things sit on the sea instead of floating on haze; also the sea from the dock (sun glare at 9-11 h). Args: <out_prefix>
 - `fleetshot`: The enemy ship kinds side by side at sea (sloop, gunboat, brig, Marines). Args: <out_prefix>
+- `newsshot`: The title screen's version ribbon and what's-new pop-up (as on the version's first launch), then the menu. Args: <out_prefix>
 - `armorshot`: The new clothing and armour on a lineup of bodies, front and back; `close <a> <b>` frames two of them up close. Args: <out_prefix> [close a b]
 - `capeshot`: Two outfits of the new pieces worn by the captain through the equipment slots in the world, front and back. Args: <out_prefix>
 - `weaponshot`: Every weapon design laid out per kind, the four kinds across all seven tiers, and a sheet of every weapon icon. Args: <out_prefix>
