@@ -301,7 +301,8 @@ static func _katana(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, 0.268)), Vector3(0.02, 0.024, 0.012), 2.0)
 
 
-## Axes: the haft back past the hand, the head out toward +Y near the far end.
+## Axes: the haft back past the hand, the head out toward -Y (the knuckle
+## side, as a sword's edge) near the far end.
 static func _axe(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 	var m := _mats(p, tier, Color(1.0, 0.78, 0.4), Color.WHITE, "planks_dark")
 	var wood := PSXMat.lit("planks_dark", _c(p, "wood", Color(1, 1, 1)))
@@ -315,34 +316,38 @@ static func _axe(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 	if bool(p.get("bands", false)):
 		for z in [hz * 0.3, hz * 0.6]:
 			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, z)), Vector3(0.058, 0.058, 0.025), 2.0)
+	# The head is laid out with its bit toward +y and mirrored to -y as it's
+	# placed: the bit leads the swing on the knuckle side, like a sword's edge.
+	var hb := func(mat: Material, ang: float, pos: Vector3, size: Vector3) -> void:
+		mb.add_box(mat, Transform3D(Basis(Vector3.RIGHT, -ang), Vector3(pos.x, -pos.y, pos.z)), size, 2.0)
 	match str(p.get("head", "boarding")):
 		"hatchet":
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0.07, hz)), Vector3(0.035, 0.14, 0.1), 2.0)
-			mb.add_box(edge, Transform3D(Basis(), Vector3(0, 0.145, hz)), Vector3(0.025, 0.02, 0.13), 2.0)
+			hb.call(steel, 0.0, Vector3(0, 0.07, hz), Vector3(0.035, 0.14, 0.1))
+			hb.call(edge, 0.0, Vector3(0, 0.145, hz), Vector3(0.025, 0.02, 0.13))
 		"bearded":
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0.07, hz)), Vector3(0.04, 0.14, 0.11), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.45), Vector3(0, 0.15, hz + 0.06)), Vector3(0.035, 0.1, 0.22), 2.0)
-			mb.add_box(edge, Transform3D(Basis(Vector3.RIGHT, 0.2), Vector3(0, 0.205, hz + 0.04)), Vector3(0.025, 0.02, 0.28), 2.0)
+			hb.call(steel, 0.0, Vector3(0, 0.07, hz), Vector3(0.04, 0.14, 0.11))
+			hb.call(steel, 0.45, Vector3(0, 0.15, hz + 0.06), Vector3(0.035, 0.1, 0.22))
+			hb.call(edge, 0.2, Vector3(0, 0.205, hz + 0.04), Vector3(0.025, 0.02, 0.28))
 		"double":
-			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, hz)), Vector3(0.06, 0.07, 0.09), 2.0)
+			hb.call(fit, 0.0, Vector3(0, 0, hz), Vector3(0.06, 0.07, 0.09))
 			for s in [-1.0, 1.0]:
-				mb.add_box(steel, Transform3D(Basis(), Vector3(0, s * 0.1, hz)), Vector3(0.035, 0.13, 0.12), 2.0)
-				mb.add_box(steel, Transform3D(Basis(), Vector3(0, s * 0.16, hz)), Vector3(0.03, 0.06, 0.24), 2.0)
-				mb.add_box(edge, Transform3D(Basis(), Vector3(0, s * 0.195, hz)), Vector3(0.022, 0.02, 0.26), 2.0)
+				hb.call(steel, 0.0, Vector3(0, s * 0.1, hz), Vector3(0.035, 0.13, 0.12))
+				hb.call(steel, 0.0, Vector3(0, s * 0.16, hz), Vector3(0.03, 0.06, 0.24))
+				hb.call(edge, 0.0, Vector3(0, s * 0.195, hz), Vector3(0.022, 0.02, 0.26))
 		"cleaver":
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0.1, hz - 0.06)), Vector3(0.03, 0.22, 0.3), 2.0)
-			mb.add_box(edge, Transform3D(Basis(), Vector3(0, 0.215, hz - 0.06)), Vector3(0.02, 0.02, 0.3), 2.0)
+			hb.call(steel, 0.0, Vector3(0, 0.1, hz - 0.06), Vector3(0.03, 0.22, 0.3))
+			hb.call(edge, 0.0, Vector3(0, 0.215, hz - 0.06), Vector3(0.02, 0.02, 0.3))
 		"war":
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0.07, hz)), Vector3(0.04, 0.13, 0.1), 2.0)
+			hb.call(steel, 0.0, Vector3(0, 0.07, hz), Vector3(0.04, 0.13, 0.1))
 			for s in [-1.0, 1.0]:
-				mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, s * 0.55), Vector3(0, 0.17, hz + s * 0.07)), Vector3(0.035, 0.08, 0.17), 2.0)
-				mb.add_box(edge, Transform3D(Basis(Vector3.RIGHT, s * 0.55), Vector3(0, 0.2, hz + s * 0.085)), Vector3(0.025, 0.02, 0.17), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.3), Vector3(0, -0.09, hz + 0.02)), Vector3(0.03, 0.16, 0.035), 2.0)
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0, hz - 0.12)), Vector3(0.03, 0.03, 0.14), 2.0)
+				hb.call(steel, s * 0.55, Vector3(0, 0.17, hz + s * 0.07), Vector3(0.035, 0.08, 0.17))
+				hb.call(edge, s * 0.55, Vector3(0, 0.2, hz + s * 0.085), Vector3(0.025, 0.02, 0.17))
+			hb.call(steel, 0.3, Vector3(0, -0.09, hz + 0.02), Vector3(0.03, 0.16, 0.035))
+			hb.call(steel, 0.0, Vector3(0, 0, hz - 0.12), Vector3(0.03, 0.03, 0.14))
 		_:
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0.1, hz)), Vector3(0.04, 0.26, 0.16), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, 0.22, hz - 0.06)), Vector3(0.035, 0.14, 0.22), 2.0)
-			mb.add_box(edge, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, 0.29, hz - 0.08)), Vector3(0.025, 0.02, 0.22), 2.0)
+			hb.call(steel, 0.0, Vector3(0, 0.1, hz), Vector3(0.04, 0.26, 0.16))
+			hb.call(steel, 0.25, Vector3(0, 0.22, hz - 0.06), Vector3(0.035, 0.14, 0.22))
+			hb.call(edge, 0.25, Vector3(0, 0.29, hz - 0.08), Vector3(0.025, 0.02, 0.22))
 	if m["gem"]:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, hz)), Vector3(0.062, 0.035, 0.035), 2.0)
 
