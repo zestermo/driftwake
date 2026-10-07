@@ -99,6 +99,8 @@ distance culling/LOD anywhere).
 - Fix and polish the dual-sword moveset and make it the dual-wield moveset: it's used for
   sword + sword, sword + axe and sword + dagger. Its skills live in a dual-wield tree.
 - Dagger and dual-dagger movesets (dagger + dagger keeps its own set).
+- Dual-axe moveset (axe + axe gets its own set). Open: its skills in the dual-wield tree or
+  the axe tree?
 - Two-handed hammer moveset.
 - Each new weapon gets its own skill tree (see the skills refactor).
 
