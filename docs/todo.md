@@ -56,6 +56,26 @@ distance culling/LOD anywhere).
 - Autosave every 120 s: measure; move work off the frame if it shows.
 - Try Vulkan vs the forced D3D12 driver on the test machine.
 
+## Bugs
+
+- Knockdowns on a ship (cannon hits, enemies): sometimes the ragdolled body flies off the
+  ship while the camera stays put, then the body snaps back and stands up. The camera follows
+  the player body, which stays on deck while the ragdoll goes on its own. Likely suspect, not
+  checked: the ragdoll doesn't move with the ship (or the deck's motion flings it).
+
+## UI
+
+- Tooltips on item hover with the item's details (tier, stats, worth...).
+- Redo most of the UI and menus. Today they're large, blocky and primitive. Wanted:
+  - better scaling;
+  - higher-fidelity, detailed pixel art;
+  - opaque panel backgrounds with ornate borders.
+  (The canvas is 640x360; check what scale the new art needs.)
+
+## Items
+
+- Rework how healing and consumable items work (design to be decided).
+
 ## Lighting
 
 - Real lights on the things that glow today: ship lanterns, town and window lights, torches
