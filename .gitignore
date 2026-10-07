@@ -6,4 +6,4 @@ __pycache__/
 # dev tool output (screenshots, test logs)
 /tools/dev/out/*
 !/tools/dev/out/.gdignore
-builds/*
+builds/**.exe
