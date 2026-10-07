@@ -20,6 +20,8 @@ const TONGUE := Color(0.8, 0.36, 0.34)
 const TEETH := Color(0.98, 0.97, 0.93)
 
 static var _cache: Dictionary = {}
+## (faces are painted on a worker thread too, see Humanoid.prebuild)
+static var _lock := Mutex.new()
 
 var img: Image
 ## The hair style's hairline (BodyBuilder.HAIRLINES): above it the face
@@ -49,8 +51,11 @@ static func material(lk: Dictionary, eye_scale: float, hairline: Array = []) -> 
 		lk.get("marks", "none"), lk.get("facial_hair", "none"), lk.get("eyepatch", false), lk.get("body", "masc"),
 		(lk.get("eye_color", Color.BROWN) as Color).to_html(), (lk.get("hair_color", Color.BLACK) as Color).to_html(),
 		(lk.get("skin", Color.WHITE) as Color).to_html(), lk.get("head", "round"), lk.get("style", ""), eye_scale]
-	if _cache.has(key):
-		return _cache[key]
+	_lock.lock()
+	var hit: Material = _cache.get(key)
+	_lock.unlock()
+	if hit:
+		return hit
 	var fp := FacePainter.new()
 	fp.hairline = hairline
 	fp.paint(lk, eye_scale)
@@ -61,7 +66,12 @@ static func material(lk: Dictionary, eye_scale: float, hairline: Array = []) -> 
 	m.set_shader_parameter("decal_mode", true)
 	m.set_shader_parameter("use_vertex_color", false)
 	m.set_shader_parameter("affine_amount", 0.0)
-	_cache[key] = m
+	_lock.lock()
+	if _cache.has(key):
+		m = _cache[key]
+	else:
+		_cache[key] = m
+	_lock.unlock()
 	return m
 
 

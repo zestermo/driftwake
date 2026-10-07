@@ -45,6 +45,9 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
+	if _t > LIFETIME:
+		queue_free()
+		return
 	rotate_y(delta * 4.5)
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as Node3D
@@ -75,8 +78,6 @@ func _physics_process(delta: float) -> void:
 				_ground_y = global_position.y
 	else:
 		global_position.y = _ground_y + 0.03 + sin(_t * 3.0) * 0.03
-	if _t > LIFETIME:
-		queue_free()
 
 
 func _collect() -> void:

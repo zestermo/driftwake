@@ -27,7 +27,15 @@ func add_zone(node: Node3D, radius: float, terrain: bool) -> void:
 	_zones.append({"node": node, "r": radius, "terrain": terrain, "baked": false})
 
 
+## Parsing an island's colliders has to happen on the main thread (a frame
+## hitch), so the islands nobody is near yet are baked one a second while the
+## world settles in, instead of when a ship sails up to them.
+const PREBAKE_AFTER := 2.0
+var _t := 0.0
+
+
 func _process(delta: float) -> void:
+	_t += delta
 	_check -= delta
 	if _check > 0.0:
 		return
@@ -40,7 +48,13 @@ func _process(delta: float) -> void:
 			var d := Vector2(p.global_position.x - c.x, p.global_position.z - c.z).length()
 			if d < float(z["r"]) + NEAR:
 				_bake(z)
-				break
+				return
+	if _t > PREBAKE_AFTER:
+		for z in _zones:
+			if not z["baked"]:
+				_bake(z)
+				return
+		set_process(false)
 
 
 func _bake(z: Dictionary) -> void:
@@ -91,6 +105,11 @@ func _terrain_faces(c: Vector3, r: float) -> PackedVector3Array:
 			var tr := Vector3((ix + 1) * cell - half, r0[ix + 1], iz * cell - half)
 			var bl := Vector3(ix * cell - half, r1[ix], (iz + 1) * cell - half)
 			var br := Vector3((ix + 1) * cell - half, r1[ix + 1], (iz + 1) * cell - half)
-			# same triangles and winding as WorldGenerator._build_mesh
-			faces.append_array([tl, tr, bl, tr, br, bl])
+			# same triangles and winding as WorldGenerator._build_chunk
+			faces.append(tl)
+			faces.append(tr)
+			faces.append(bl)
+			faces.append(tr)
+			faces.append(br)
+			faces.append(bl)
 	return faces

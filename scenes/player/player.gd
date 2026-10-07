@@ -1161,9 +1161,10 @@ func is_free() -> bool:
 ## Windows can swallow Shift's key-up (Ctrl+Shift is its keyboard-layout hotkey,
 ## and sprint + dodge is exactly that), leaving sprint held. Every mouse/key event
 ## carries the OS's real Shift state: when it says Shift is up, let go of sprint.
+## (Godot's own key state can be stuck as well, so it isn't asked.)
 func _input(event: InputEvent) -> void:
 	if is_local and event is InputEventWithModifiers and not event.shift_pressed \
-			and Input.is_action_pressed("sprint") and Input.is_physical_key_pressed(KEY_SHIFT) \
+			and Input.is_action_pressed("sprint") \
 			and not (event is InputEventKey and event.physical_keycode == KEY_SHIFT):
 		Input.action_release("sprint")
 
@@ -1573,6 +1574,7 @@ func _setup_puppet() -> void:
 	player_model.add_child(lean)
 	body_model = Humanoid.new()
 	body_model.name = "Body"
+	body_model.lod = true
 	body_model.swappable_hands = true
 	body_model.auto_point_guns = true
 	var lk: Dictionary = net_profile.get("look", {})

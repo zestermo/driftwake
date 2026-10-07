@@ -442,6 +442,7 @@ func _build_reef(c: Vector2, r: float) -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
 		mi.material_override = PSXMat.lit("rock", Color(0.32, 0.31, 0.3))
+		mi.visibility_range_end = 1000.0
 		mi.position = Vector3(cos(a) * d, -1.2 + s * 0.35, sin(a) * d)
 		mi.rotation = Vector3(_rng.randf_range(-0.3, 0.3), _rng.randf() * TAU, _rng.randf_range(-0.3, 0.3))
 		mi.scale = Vector3.ONE * s
@@ -479,6 +480,7 @@ func _build_fog(c: Vector2, r: float) -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = q
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 1000.0
 		mi.position = Vector3(cos(a) * d, _rng.randf_range(6.0, 26.0), sin(a) * d)
 		mi.scale = Vector3.ONE * _rng.randf_range(0.9, 1.8)
 		holder.add_child(mi)

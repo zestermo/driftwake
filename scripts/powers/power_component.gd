@@ -64,13 +64,19 @@ func max_energy() -> float:
 	return BASE_ENERGY + (player.progression.stat("max_energy") if player else 0.0)
 
 
-## The skill on a slot (with its id), or {}.
+## The skill on a slot (with its id), or {}. Shared: read it, don't change it.
 func skill(slot: int) -> Dictionary:
 	if slot < 0 or slot >= SLOTS or loadout[slot] == "":
 		return {}
-	var d := Skills.get_skill(loadout[slot]).duplicate()
-	d["id"] = loadout[slot]
-	return d
+	var id: String = loadout[slot]
+	if not _skill_dicts.has(id):
+		var d := Skills.get_skill(id).duplicate()
+		d["id"] = id
+		_skill_dicts[id] = d
+	return _skill_dicts[id]
+
+
+var _skill_dicts: Dictionary = {}
 
 
 func cooldown_left(slot: int) -> float:

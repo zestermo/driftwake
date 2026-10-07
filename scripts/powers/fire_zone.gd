@@ -80,6 +80,9 @@ func contains(p: Vector3, margin: float = 0.0) -> bool:
 
 
 static func any_contains(tree: SceneTree, p: Vector3, margin: float = 0.0) -> bool:
+	# (asked many times a tick by every grunt; usually there's no fire at all)
+	if not tree.has_group("fire_zones"):
+		return false
 	for z in tree.get_nodes_in_group("fire_zones"):
 		if (z as FireZone).contains(p, margin):
 			return true

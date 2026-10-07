@@ -807,7 +807,18 @@ static func signpost(arrows: Array) -> Node3D:
 # --------------------------------------------------------------------------
 # Hand-held items (grip at the origin, business end along -Z)
 # --------------------------------------------------------------------------
+## Built once per model and shared (a grunt drawing his pistol mid-fight, a
+## dropped blade): instances recolour them with overrides, never the mesh.
+static var _weapons: Dictionary = {}
+
+
 static func weapon_mesh(kind: String) -> ArrayMesh:
+	if not _weapons.has(kind):
+		_weapons[kind] = _build_weapon(kind)
+	return _weapons[kind]
+
+
+static func _build_weapon(kind: String) -> ArrayMesh:
 	# cutlasses, katanas, axes and pistols in all their designs and tiers
 	if kind.get_slice(":", 0) in WeaponDesigns.BASE_ITEM:
 		return WeaponDesigns.build(kind)

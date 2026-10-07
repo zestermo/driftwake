@@ -223,7 +223,8 @@ func _process(d: float) -> bool:
 		15:
 			check("our captain stands on the pirate deck (aboard, on floor)", es.aboard(p.global_position) and p.is_on_floor())
 			check("all hands turn to fight (%d grunts)" % es.deck_crew.size(), es.state == 6 and es.deck_crew.size() == 6)
-			check("...the men on deck became them (none left standing as crew)", es._crew.all(func(c): return not c["node"].visible))
+			check("...the men on deck became them (none left standing as crew)", es._crew.all(func(c): return c["gone"]))
+			check("...in their own bodies", es.deck_crew.all(func(g): return es._crew.any(func(c): return c["node"] == g.humanoid)))
 			check("...and they come at us", es.deck_crew.filter(func(g): return g.state != 0).size() >= 3)
 			for g in es.deck_crew:
 				g.health.take_damage(9999.0)

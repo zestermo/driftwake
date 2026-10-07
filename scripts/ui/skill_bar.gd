@@ -237,8 +237,21 @@ func _fill_poly(circle: PackedVector2Array, c: Vector2, r: float, frac: float, c
 	poly.append(Vector2(c.x + r, bottom))
 	poly.append(Vector2(c.x - r, bottom))
 	for piece in Geometry2D.intersect_polygons(circle, poly):
-		if (piece as PackedVector2Array).size() >= 3:
+		if _drawable(piece):
 			draw_colored_polygon(piece, col)
+
+
+## A sliver (nearly empty or full) can't be triangulated: Godot logs an error
+## with a backtrace for it every frame, which costs far more than drawing.
+static func _drawable(piece: PackedVector2Array) -> bool:
+	if piece.size() < 3:
+		return false
+	var area := 0.0
+	for i in range(piece.size()):
+		var a := piece[i]
+		var b := piece[(i + 1) % piece.size()]
+		area += a.x * b.y - b.x * a.y
+	return absf(area) > 1.0 and not Geometry2D.triangulate_polygon(piece).is_empty()
 
 
 func _slot_frame(r: Rect2, border: Color, bw: float = 1.0) -> void:
@@ -260,7 +273,7 @@ func _cooldown_pie(r: Rect2, frac: float) -> void:
 		pts.append(c + Vector2(cos(a), sin(a)) * rad)
 	var clip := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
 	for piece in Geometry2D.intersect_polygons(clip, pts):
-		if (piece as PackedVector2Array).size() >= 3:
+		if _drawable(piece):
 			draw_colored_polygon(piece, Color(0, 0, 0, 0.68))
 
 

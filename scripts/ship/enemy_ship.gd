@@ -135,6 +135,11 @@ var _rng := RandomNumberGenerator.new()
 var _ocean: Node
 var _tokens: Array = []
 var _stuck_t: float = 0.0
+## More than FAR from the camera (checked twice a second): no collision tests
+## on patrol, no roll or pitch, no wake.
+const FAR := 350.0
+var _far: bool = false
+var _far_t: float = 0.0
 ## {node: Humanoid, look, spot, yaw, gone} per CREW_SPOTS entry.
 var _crew: Array = []
 var _crew_gone: int = 0
@@ -293,6 +298,11 @@ func bark(text: String, secs: float = 1.8) -> void:
 # Brain (host)
 # ==========================================================================
 func _physics_process(delta: float) -> void:
+	_far_t -= delta
+	if _far_t <= 0.0:
+		_far_t = 0.5
+		var cam := get_viewport().get_camera_3d()
+		_far = cam != null and cam.global_position.distance_to(global_position) > FAR
 	if net_puppet:
 		_puppet(delta)
 		return
@@ -618,7 +628,7 @@ func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 		var g := PirateGrunt.new()
 		g.name = "BD_%s_%d" % [name, i]
 		var start := man.global_position + Vector3.UP * 0.05
-		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": rng.randi(), "look": c["look"]})
+		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": rng.randi(), "look": c["look"], "body": man})
 		g.boarder = true
 		g.camp = self
 		parent.add_child(g)
@@ -639,24 +649,35 @@ func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 
 ## The crew, the same men on every screen (seeded from the ship).
 func _build_crew(model: Node3D) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = look_seed * 7 + 3
-	for i in range(mini(int(spec["crew"]), CREW_SPOTS.size())):
+	var plan := EnemyShip.crew_plan(look_seed, kind)
+	for i in range(plan.size()):
 		var spot: Vector3 = CREW_SPOTS[i][0]
 		var yaw: float = CREW_SPOTS[i][1]
-		var look := PirateGrunt.crew_look(rng)
-		look["name"] = "Pirate"
-		if kind == "marine":
-			EnemyShip.marine_look(look, rng, i == 0)
-		var h := Humanoid.new()
+		var look: Dictionary = plan[i][0]
+		var h := Humanoid.make(look)
 		h.name = "Crew%d" % i
-		h.setup(look)
+		h.lod = true
 		model.add_child(h)
 		h.position = spot + Vector3(0, HullBuilder.DECK_Y, 0)
 		h.rotation.y = yaw
-		h.set_weapon(Props.weapon_mesh("cutlass:%s:0" % WeaponDesigns.random_design("cutlass", rng)))
+		h.set_weapon(Props.weapon_mesh("cutlass:%s:0" % plan[i][1]))
 		h._attach_weapon(false)
 		_crew.append({"node": h, "look": look, "spot": spot, "yaw": yaw, "gone": false, "drawn": false})
+
+
+## The crew a ship of `kind` seeded `seed_value` carries: [[look, cutlass design], ...]
+## (the same men on every screen; known ahead so their bodies can be built early).
+static func crew_plan(seed_value: int, kind_name: String) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value * 7 + 3
+	var out: Array = []
+	for i in range(mini(int(KINDS[kind_name]["crew"]), CREW_SPOTS.size())):
+		var look := PirateGrunt.crew_look(rng)
+		look["name"] = "Pirate"
+		if kind_name == "marine":
+			EnemyShip.marine_look(look, rng, i == 0)
+		out.append([look, WeaponDesigns.random_design("cutlass", rng)])
+	return out
 
 
 ## Marine whites over a random body: white cap and shirt, a blue neckerchief,
@@ -697,9 +718,10 @@ func _crew_update(delta: float) -> void:
 		side = 1.0 if _right().dot(ship.global_position - global_position) > 0.0 else -1.0
 	for i in range(_crew.size()):
 		var c: Dictionary = _crew[i]
-		var h := c["node"] as Humanoid
+		# (a gone man's body went over the side with him: it may be freed)
 		if c["gone"]:
 			continue
+		var h := c["node"] as Humanoid
 		h.visible = near
 		if not near:
 			continue
@@ -841,7 +863,8 @@ func _sail(delta: float, want_heading: float, want_speed: float) -> void:
 	_yaw_rate = move_toward(_yaw_rate, target_rate, 1.0 * delta)
 	_heading = wrapf(_heading + _yaw_rate * delta, -PI, PI)
 	var motion := _fwd() * speed * delta
-	if motion.length() > 0.0001:
+	# (far off on patrol there's only open water; _steer_clear keeps it there)
+	if motion.length() > 0.0001 and not (_far and state == S.PATROL):
 		var col := KinematicCollision3D.new()
 		if test_move(global_transform, motion, col, 0.05):
 			if state == S.RAM and col.get_collider() is Ship:
@@ -875,6 +898,10 @@ func _wave(p: Vector3, t: float) -> float:
 
 func _swell(delta: float) -> void:
 	var t: float = _ocean.call("clock") if _ocean and _ocean.has_method("clock") else Time.get_ticks_msec() / 1000.0
+	if _far and _swell_ready:
+		# too far to see her roll: ride the swell's height only
+		_y = lerpf(_y, _wave(_pos, t) * HEAVE_SCALE + FREEBOARD, minf(delta * 2.0, 1.0))
+		return
 	var fwd := _fwd()
 	var right := _right()
 	var hb := _wave(_pos + fwd * 5.8, t)
@@ -902,6 +929,8 @@ func _swell(delta: float) -> void:
 
 
 func _wake(delta: float) -> void:
+	if _far:
+		return
 	if absf(speed) > 1.0:
 		Ocean.wake(self, _pos - _fwd() * 5.8, clampf(absf(speed) / 9.0, 0.0, 1.0))
 	_wake_t -= delta
@@ -961,7 +990,10 @@ func _puppet(delta: float) -> void:
 		_crew_gone = int(s[10])
 		for i in range(1, mini(_crew_gone + 1, _crew.size())):
 			_crew[i]["gone"] = true
-			(_crew[i]["node"] as Node3D).visible = false
+			# (unless a boarder has already taken that body over)
+			var man = _crew[i]["node"]
+			if is_instance_valid(man) and man.get_parent() and not (man.get_parent().get_parent() is PirateGrunt):
+				man.visible = false
 	var txt := str(s[9])
 	if txt != "" and (txt != _bark.text or not _bark.visible):
 		_bark.text = txt
@@ -1033,7 +1065,7 @@ func _crew_to_deck() -> void:
 		var g := PirateGrunt.new()
 		g.name = "DK_%s_%d" % [name, i]
 		var start := man.global_position + Vector3.UP * 0.05
-		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": look_seed + i, "look": c["look"]})
+		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": look_seed + i, "look": c["look"], "body": man})
 		g.boarder = true
 		g.camp = self
 		parent.add_child(g)

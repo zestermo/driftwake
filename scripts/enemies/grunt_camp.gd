@@ -15,6 +15,7 @@ var _tokens: Array = []
 var _empty_t: float = 0.0
 ## Which wave this is (co-op: names the grunts the same on every machine).
 var gen: int = 0
+var _prebuilt: int = -1
 
 
 func add_grunt(cfg: Dictionary) -> void:
@@ -85,11 +86,15 @@ func alive_count() -> int:
 
 
 func _process(delta: float) -> void:
-	if Net.is_client():
-		return  # the host decides when the crew comes back
 	if specs.is_empty() or alive_count() > 0:
 		_empty_t = 0.0
 		return
+	# the next crew's bodies, built on a worker thread while they're away
+	if _prebuilt != gen + 1:
+		_prebuilt = gen + 1
+		Humanoid.prebuild(specs.map(func(c): return PirateGrunt.look_for(c)))
+	if Net.is_client():
+		return  # the host decides when the crew comes back
 	_empty_t += delta
 	if _empty_t < respawn_time:
 		return

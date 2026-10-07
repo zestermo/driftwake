@@ -102,3 +102,8 @@ func ignite() -> void:
 	tw.tween_property(light, "light_energy", 0.0, 1.0)
 	tw.tween_property(_mesh, "scale", Vector3(1.0, 0.04, 1.0), 1.0)
 	tw.tween_callback(func(): _mesh.visible = false)
+	# (the last embers have fallen by now)
+	tw.tween_callback(func():
+		light.queue_free()
+		for h in holders:
+			(h as Node).queue_free()).set_delay(2.0)

@@ -56,6 +56,8 @@ const WAKE_PTS := 18
 const WAKE_EVERY := 0.45
 const WAKE_LIFE := 8.0
 const WAKE_SLOTS := 40
+## Only trails whose hull is this close to the camera are drawn.
+const WAKE_SEND := 180.0
 var _wakes: Dictionary = {}
 ## The newest end of each trail: the stern itself, this tick.
 var _wake_heads: Dictionary = {}
@@ -67,6 +69,7 @@ var shoal_map: Texture2D
 var shoal_rect := Vector4.ZERO
 var shoal_fine: Texture2D
 var fine_rect := Vector4.ZERO
+var _shoals_sent: Array = []
 
 
 ## The sea mesh: 1 m cells near the camera so the surface you see is the
@@ -283,10 +286,13 @@ func _process(_delta: float) -> void:
 			wh.append(whirls[i] if i < whirls.size() else Vector4(0, 0, 0, 0))
 		ocean_material.set_shader_parameter("whirls", wh)
 		_send_wakes(time)
-		ocean_material.set_shader_parameter("shoal_map", shoal_map)
-		ocean_material.set_shader_parameter("shoal_rect", shoal_rect)
-		ocean_material.set_shader_parameter("shoal_fine", shoal_fine)
-		ocean_material.set_shader_parameter("fine_rect", fine_rect)
+		var shoals := [shoal_map, shoal_rect, shoal_fine, fine_rect, ocean_material]
+		if shoals != _shoals_sent:
+			_shoals_sent = shoals
+			ocean_material.set_shader_parameter("shoal_map", shoal_map)
+			ocean_material.set_shader_parameter("shoal_rect", shoal_rect)
+			ocean_material.set_shader_parameter("shoal_fine", shoal_fine)
+			ocean_material.set_shader_parameter("fine_rect", fine_rect)
 		if absf(amp_mult - _amp_sent) > 0.0005:
 			_amp_sent = amp_mult
 			_send_waves()
@@ -327,10 +333,14 @@ func _send_wakes(now: float) -> void:
 			_wake_heads.erase(id)
 			continue
 		var head: Vector4 = _wake_heads[id]
+		var dist := Vector2(head.x, head.y).distance_to(eye)
+		# (a far trail would only stretch the box every sea pixel tests against)
+		if dist > WAKE_SEND:
+			continue
 		var pts: Array = trail.duplicate()
 		if now - head.z < 0.2:
 			pts.append(head)
-		live.append([Vector2(head.x, head.y).distance_to(eye), pts])
+		live.append([dist, pts])
 	live.sort_custom(func(a, b): return a[0] < b[0])
 	var out := PackedVector4Array()
 	var lo := Vector2(INF, INF)

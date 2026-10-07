@@ -38,8 +38,7 @@ func _spawn(i: int) -> void:
 	var pos := c + Vector3(cos(a), 0.0, sin(a)) * r
 	var s := EnemyShip.new()
 	s.name = "ES%d_%d" % [i, int(z["gen"])]
-	var kinds: Array = z["kinds"]
-	s.setup(c, r, a + 0.6, 7000 + i * 31 + int(z["gen"]), kinds[int(z["gen"]) % kinds.size()])
+	s.setup(c, r, a + 0.6, _seed_of(i, int(z["gen"])), _kind_of(i, int(z["gen"])))
 	s.fleet = self
 	add_child(s)
 	var tangent := Vector3(-sin(a), 0.0, cos(a))
@@ -52,13 +51,18 @@ func _spawn(i: int) -> void:
 
 
 func _process(delta: float) -> void:
-	if Net.is_client():
-		return
 	for i in range(zones.size()):
 		var z: Dictionary = zones[i]
 		var s = z["ship"]
 		if s != null and is_instance_valid(s) and not (s as EnemyShip).is_dead():
 			continue
+		# the next ship's crew, built on a worker thread while she's away
+		if int(z.get("prebuilt", -1)) != int(z["gen"]) + 1:
+			z["prebuilt"] = int(z["gen"]) + 1
+			var plan := EnemyShip.crew_plan(_seed_of(i, int(z["gen"]) + 1), _kind_of(i, int(z["gen"]) + 1))
+			Humanoid.prebuild(plan.map(func(e): return e[0]))
+		if Net.is_client():
+			continue  # (the host decides when she comes back)
 		z["timer"] = float(z["timer"]) + delta
 		if float(z["timer"]) < respawn_time or (s != null and is_instance_valid(s)):
 			continue
@@ -72,6 +76,15 @@ func _process(delta: float) -> void:
 		z["gen"] = int(z["gen"]) + 1
 		_spawn(i)
 		Net.spawned(self, net_gen())
+
+
+func _seed_of(i: int, gen: int) -> int:
+	return 7000 + i * 31 + gen
+
+
+func _kind_of(i: int, gen: int) -> String:
+	var kinds: Array = zones[i]["kinds"]
+	return kinds[gen % kinds.size()]
 
 
 func net_gen():

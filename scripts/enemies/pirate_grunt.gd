@@ -59,6 +59,11 @@ const HEAVY_GLOW := 1.0
 const SWIM_ENTER_DEPTH := 1.15
 const SWIM_EXIT_DEPTH := 0.95
 const SWIM_SPEED := 2.6
+## Seconds a swimmer with no beach in reach lasts before it drowns.
+const SWIM_GIVE_UP := 20.0
+## A boarder idle this far from every captain for LEFT_BEHIND_SECS slips away.
+const LEFT_BEHIND_RANGE := 90.0
+const LEFT_BEHIND_SECS := 8
 ## Won't walk anywhere the sea floor is deeper than this under the mean water
 ## line (the swell rises ~1 m above it, so this keeps them out of swimming).
 const WADE_MAX := 0.0
@@ -172,6 +177,9 @@ var _bad_shores: Array = []
 var _swim_vy: float = 0.0
 var _prev_float: float = INF
 var _swim_stuck: float = 0.0
+var _swim_t: float = 0.0
+var _far_t: float = 0.0
+var _far_n: int = 0
 var _ripple_t: float = 0.0
 var _hit_heavy: HitData
 static var _glow_mat: ShaderMaterial
@@ -195,10 +203,22 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 	patrol = cfg.get("patrol", [])
 	seat_y = float(cfg.get("seat_y", 0.45))
 	role = str(cfg.get("role", "sword"))
+	look = PirateGrunt.look_for(cfg)
+	_body = cfg.get("body")
+	return self
+
+
+## The look a setup dict gives (its own, or the crew look its seed makes).
+static func look_for(cfg: Dictionary) -> Dictionary:
+	if cfg.has("look"):
+		return cfg["look"]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(cfg.get("seed", 1))
-	look = cfg.get("look", PirateGrunt.crew_look(rng))
-	return self
+	return PirateGrunt.crew_look(rng)
+
+
+## A body to take over (a ship's crewman turning boarder) instead of building one.
+var _body: Humanoid
 
 
 ## A random member of the smuggler crew: anyone from the character creator's
@@ -253,10 +273,21 @@ func _ready() -> void:
 	facing = Node3D.new()
 	facing.name = "Facing"
 	add_child(facing)
-	humanoid = Humanoid.new()
+	if _body and is_instance_valid(_body):
+		# the crewman himself goes over the side (no new body to build)
+		humanoid = _body
+		humanoid.get_parent().remove_child(humanoid)
+		humanoid.transform = Transform3D.IDENTITY
+		humanoid.scale = Vector3.ONE * float(humanoid.look.get("height", 1.0))
+		humanoid.visible = true
+		humanoid.seated = false
+		humanoid.at_helm = false
+		humanoid.stop_action()
+	else:
+		humanoid = Humanoid.make(look)
 	humanoid.name = "Model"
-	humanoid.setup(look)
 	facing.add_child(humanoid)
+	humanoid.reset_physics_interpolation()
 	# every pirate's blade is their own (and it's the one they drop)
 	var d := WeaponDesigns.random_design("cutlass", _rng)
 	_blade_model = "cutlass:%s:0" % d
@@ -503,6 +534,9 @@ func _physics_process(delta: float) -> void:
 	_shove_cd -= delta
 	if state == S.DEAD:
 		_dead_update(delta)
+		return
+	if boarder and state == S.IDLE and _left_behind(delta):
+		vanish(false)
 		return
 	if state == S.DOWN or (humanoid.ragdoll != null and state != S.DEAD):
 		if state != S.DOWN:
@@ -829,6 +863,8 @@ func _feed_body(hv: Vector3, running: bool) -> void:
 	humanoid.vertical_speed = velocity.y
 	humanoid.armed = in_combat() and role != "rifle" and state != S.AIM
 	humanoid.sprinting = running
+	# (a fighting grunt's blade and aim follow its pose: full detail)
+	humanoid.lod = not in_combat()
 
 
 func _lost(p: Node3D, dist: float) -> bool:
@@ -892,9 +928,24 @@ func _nav_dir(goal: Vector3, delta: float) -> Vector3:
 	return _flat(_path[_path_i] - global_position).normalized()
 
 
+static var _enemies: Array = []
+static var _enemies_tick: int = -1
+
+
+## Everyone in the "enemies" group, fetched once per physics tick for all grunts.
+func _all_enemies() -> Array:
+	var f := Engine.get_physics_frames()
+	if f != _enemies_tick:
+		_enemies_tick = f
+		_enemies = get_tree().get_nodes_in_group("enemies")
+	return _enemies
+
+
 func _separation() -> Vector3:
 	var push := Vector3.ZERO
-	for g in get_tree().get_nodes_in_group("enemies"):
+	for g in _all_enemies():
+		if not is_instance_valid(g):
+			continue
 		if g == self or not (g is PirateGrunt):
 			continue
 		var d := _flat(global_position - (g as Node3D).global_position)
@@ -1386,6 +1437,8 @@ func _dead_update(delta: float) -> void:
 		_sink += delta / 1.2
 		if rag:
 			rag.global_position += Vector3.DOWN * 0.6 * delta / 1.2
+		else:
+			global_position += Vector3.DOWN * 1.5 * delta / 1.2
 		if _sink >= 1.0:
 			queue_free()
 
@@ -1467,6 +1520,7 @@ func _enter_swim(entry_vy: float, quiet: bool = false) -> void:
 	_shore = Vector3.INF
 	_shore_t = 0.0
 	_swim_stuck = 0.0
+	_swim_t = 0.0
 	_bad_shores.clear()
 	_set_state(S.SWIM)
 	var at := Vector3(global_position.x, _surface(), global_position.z)
@@ -1531,6 +1585,12 @@ func _find_shore() -> Vector3:
 
 
 func _swim_update(delta: float) -> void:
+	# open sea with no beach in reach (knocked overboard, a sunk ship's crew):
+	# they drown instead of swimming forever
+	_swim_t += delta
+	if not net_puppet and not (self is PirateBoss) and ((_shore == Vector3.INF and _swim_t > SWIM_GIVE_UP) or _swim_t > SWIM_GIVE_UP * 3.0):
+		vanish(true)
+		return
 	# swim back to shore: no fighting in the water
 	_shore_t -= delta
 	if _shore == Vector3.INF or _shore_t <= 0.0:
@@ -1566,6 +1626,8 @@ func _swim_update(delta: float) -> void:
 			_swim_stuck = 0.0
 			if _shore != Vector3.INF:
 				_bad_shores.append(_shore)
+				if _bad_shores.size() > 12:
+					_bad_shores.pop_front()
 			_shore = Vector3.INF
 	else:
 		_swim_stuck = 0.0
@@ -1605,8 +1667,8 @@ func _want_pistol(p: Node3D, dist: float, delta: float) -> bool:
 ## No more than two guns aimed at you at once.
 func _guns_free() -> bool:
 	var n := 0
-	for g in get_tree().get_nodes_in_group("enemies"):
-		if g != self and g is PirateGrunt and (g as PirateGrunt).state == S.AIM:
+	for g in _all_enemies():
+		if is_instance_valid(g) and g != self and g is PirateGrunt and (g as PirateGrunt).state == S.AIM:
 			n += 1
 	return n < 2
 
@@ -1981,10 +2043,53 @@ func _net_die() -> void:
 	died.emit(self)
 
 
+## Gone without a fight, no loot or XP: a swimmer who can't reach land sinks,
+## a boarder left behind with no captain near just slips away.
+func vanish(sink: bool) -> void:
+	Net.event(self, "vanish", [sink])
+	_vanish(sink)
+
+
+func _vanish(sink: bool) -> void:
+	if state == S.DEAD:
+		return
+	hitbox.deactivate()
+	_drop_aim()
+	_set_glow(false)
+	_set_peril(false)
+	_release_token()
+	hurtbox.set_deferred("monitorable", false)
+	hurtbox.set_deferred("monitoring", false)
+	collision_layer = 0
+	state = S.DEAD
+	if not sink:
+		queue_free()
+		return
+	FX.splash(Vector3(global_position.x, _surface(), global_position.z), 6, 0.6)
+	_dead_t = 8.0
+	_sink = 0.001
+
+
+## No captain within LEFT_BEHIND_RANGE for LEFT_BEHIND_SECS (checked once a second).
+func _left_behind(delta: float) -> bool:
+	_far_t -= delta
+	if _far_t > 0.0:
+		return false
+	_far_t = 1.0
+	for c in get_tree().get_nodes_in_group("players"):
+		if (c as Node3D).global_position.distance_to(global_position) < LEFT_BEHIND_RANGE:
+			_far_n = 0
+			return false
+	_far_n += 1
+	return _far_n >= LEFT_BEHIND_SECS
+
+
 func net_event(what: String, args: Array) -> void:
 	match what:
 		"die":
 			_net_die()
+		"vanish":
+			_vanish(bool(args[0]))
 		"sense":
 			var me := get_tree().get_first_node_in_group("player")
 			if me and int(me.get("net_id")) == int(args[0]):

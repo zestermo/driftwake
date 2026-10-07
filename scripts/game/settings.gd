@@ -16,6 +16,7 @@ const DEFAULTS := {
 		"warp": 0.0,            # affine texture warp 0..1 (off by default since v3)
 		"fov": 75.0,
 		"show_fps": false,
+		"perf_overlay": false,  # F8
 	},
 	"audio": {
 		"master": 0.8,

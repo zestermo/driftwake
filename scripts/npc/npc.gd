@@ -52,6 +52,7 @@ func setup(cfg: Dictionary) -> NPC:
 
 	humanoid = Humanoid.new()
 	humanoid.name = "Model"
+	humanoid.lod = true
 	humanoid.setup(cfg.get("look", {}))
 	humanoid.seated = bool(cfg.get("seated", false))
 	add_child(humanoid)

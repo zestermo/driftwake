@@ -127,14 +127,25 @@ func grant_fruit(fruit_id: String) -> void:
 				_own(k)
 
 
-## Sum of an effect over every owned node.
+## Sum of an effect over every owned node (asked several times a frame:
+## remembered until the owned set changes).
 func stat(key: String) -> float:
+	if owned.size() != _stat_n:
+		_stat_n = owned.size()
+		_stats.clear()
+	if _stats.has(key):
+		return _stats[key]
 	var total := 0.0
 	for k in owned.keys():
 		var e: Dictionary = SkillTree.get_node_def(k).get("effects", {})
 		if e.has(key):
 			total += float(e[key])
+	_stats[key] = total
 	return total
+
+
+var _stats: Dictionary = {}
+var _stat_n: int = -1
 
 
 func has_flag(key: String) -> bool:
@@ -170,4 +181,5 @@ func from_dict(d: Dictionary) -> void:
 	for k in d.get("owned", []):
 		if not SkillTree.get_node_def(str(k)).is_empty():
 			owned[str(k)] = true
+	_stat_n = -1
 	changed.emit()

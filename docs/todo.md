@@ -2,7 +2,7 @@
 
 Zach's list of planned work. Nothing here is started unless it says so.
 
-## Performance (planned 2026-10-07, not started)
+## Performance (done 2026-10-07, see dev_notes; left: measure on the other PC with F8 / user://perf.log)
 
 Late-session slowdown: ~35 fps and stutters about 50 min into an exported build on another
 machine, after returning to Brinehollow. From a code audit (nothing measured yet): some
@@ -63,7 +63,7 @@ distance culling/LOD anywhere).
   the player body, which stays on deck while the ragdoll goes on its own. Likely suspect, not
   checked: the ragdoll doesn't move with the ship (or the deck's motion flings it).
 
-- Stuck sprinting: in several different fights the character kept sprinting on its own.
+- (fix in, 2026-10-07: confirm in play) Stuck sprinting: in several different fights the character kept sprinting on its own.
   Seen in the exported build. Only pressing sprint again clears it, so the game missed a
   Shift key-up. There's already a workaround for this in `player.gd` `_input` (Windows
   swallows Shift's key-up on Ctrl+Shift, its keyboard-layout hotkey, and sprint + dodge is
@@ -95,8 +95,21 @@ distance culling/LOD anywhere).
   and the like (they're emissive only now). Do it after the performance pass and budget it:
   few shadowed lights, distance fades, so it doesn't undo that work.
 
+## Gameplay loop (rethink)
+
+- Re-evaluate respawning (where and how you come back).
+- A way to get back to your ship, or summon it.
+- Rework banking resources and item storage on ships, plus other core mechanics.
+- Death: your whole inventory drops on a gravestone where you died (not on the ship).
+  You carry only your inventory; banking happens in the ship's storage (see the crew cabin).
+
 ## Ships
 
+- A small crew cabin under the raised captain's deck at the stern, with stairs down on
+  both sides. Inside:
+  - a bed: rest to regenerate health;
+  - a small kitchen: refill your consumable items;
+  - storage: where you "bank" resources (otherwise you only have your inventory).
 - Scale up the player ship and the enemy ships: taller, larger and longer hulls (decks,
   cannon spots, the capstan and chain, crew posts, boarding and the Sea King's attacks
   all need to follow the new size).

@@ -216,8 +216,9 @@ func _process(d: float) -> bool:
 			var b0 = es.boarders[0]
 			check("the boarders are the crew who were on deck (same look, from where he stood: %.2f m)" % b0.global_position.distance_to(get_meta("crew_at")),
 				b0.look == es._crew[1]["look"] and b0.global_position.distance_to(get_meta("crew_at")) < 0.6)
-			var left = es._crew.filter(func(c): return c["node"].visible)
+			var left = es._crew.filter(func(c): return not c["gone"] and c["node"].visible)
 			check("...they're gone from its deck, the rest stay aboard (%d left)" % left.size(), left.size() == es._crew.size() - es.boarders.size() and es._crew[0]["node"].visible)
+			check("...in their own bodies (no new ones built mid-fight)", b0.humanoid == es._crew[1]["node"] and b0.humanoid.visible)
 			wait = 2.5
 			step = 10
 		10:

@@ -72,23 +72,28 @@ func _generate_world() -> void:
 	# Step 2: Generate continuous heightmap
 	heightmap = _generate_heightmap(centers, rng)
 
-	# Step 3: Build terrain mesh
-	var mesh := _build_mesh()
+	# Step 3: Build terrain mesh (in chunks, so the view and the sun's shadow
+	# passes only draw the parts near them; one collision shape for it all)
 	var material := _create_terrain_material()
 
 	var terrain_body := StaticBody3D.new()
 	terrain_body.name = "WorldTerrain"
 	terrain_body.collision_layer = 1
 
-	var mesh_inst := MeshInstance3D.new()
-	mesh_inst.name = "MeshInstance3D"
-	mesh_inst.mesh = mesh
-	mesh_inst.material_override = material
-	terrain_body.add_child(mesh_inst)
+	var faces := PackedVector3Array()
+	for cz in range(TERRAIN_CHUNKS):
+		for cx in range(TERRAIN_CHUNKS):
+			var mesh_inst := MeshInstance3D.new()
+			mesh_inst.name = "Chunk%d_%d" % [cx, cz]
+			mesh_inst.mesh = _build_chunk(cx, cz, faces)
+			mesh_inst.material_override = material
+			terrain_body.add_child(mesh_inst)
 
 	var col := CollisionShape3D.new()
 	col.name = "CollisionShape3D"
-	col.shape = mesh.create_trimesh_shape()
+	var shape := ConcavePolygonShape3D.new()
+	shape.set_faces(faces)
+	col.shape = shape
 	terrain_body.add_child(col)
 
 	add_child(terrain_body)
@@ -256,16 +261,21 @@ func _generate_heightmap(centers: Array[Dictionary], _rng: RandomNumberGenerator
 	return hmap
 
 
-func _build_mesh() -> ArrayMesh:
+const TERRAIN_CHUNKS := 8
+
+
+## One square of the terrain grid (its triangles also go into `faces`).
+func _build_chunk(cx: int, cz: int, faces: PackedVector3Array) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var cell := terrain_size / float(terrain_resolution)
 	var half := terrain_size * 0.5
+	var n := terrain_resolution / TERRAIN_CHUNKS
 
-	for z in range(terrain_resolution):
+	for z in range(cz * n, mini((cz + 1) * n, terrain_resolution)):
 		var r0: PackedFloat32Array = heightmap[z]
 		var r1: PackedFloat32Array = heightmap[z + 1]
-		for x in range(terrain_resolution):
+		for x in range(cx * n, mini((cx + 1) * n, terrain_resolution)):
 			var fx := float(x)
 			var fz := float(z)
 			var p_tl := Vector3(fx * cell - half, r0[x], fz * cell - half)
@@ -279,6 +289,12 @@ func _build_mesh() -> ArrayMesh:
 			st.add_vertex(p_tr)
 			st.add_vertex(p_br)
 			st.add_vertex(p_bl)
+			faces.append(p_tl)
+			faces.append(p_tr)
+			faces.append(p_bl)
+			faces.append(p_tr)
+			faces.append(p_br)
+			faces.append(p_bl)
 
 	st.generate_normals()
 	return st.commit()
@@ -348,6 +364,7 @@ func _exit_tree() -> void:
 	# (the title screen's sea has no shoals)
 	Ocean.shoal_rect = Vector4.ZERO
 	Ocean.fine_rect = Vector4.ZERO
+	Humanoid.clear_prebuilt()
 
 
 # --------------------------------------------------------------------------
@@ -544,9 +561,10 @@ func _decorate_island(island: Node3D, center: Vector2, radius: float, island_typ
 			var s := rng.randf_range(0.8, 1.3) * (rng.randf_range(0.6, 2.0) if kind == "rock" else 1.0)
 			var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s)
 			var local := Vector3(p.x, h - 0.15, p.y) - island.position
-			if not buckets.has(mesh):
-				buckets[mesh] = []
-			buckets[mesh].append(Transform3D(basis, local))
+			var key := [mesh, kind, floori(local.x / DECOR_CELL), floori(local.z / DECOR_CELL)]
+			if not buckets.has(key):
+				buckets[key] = []
+			buckets[key].append(Transform3D(basis, local))
 			if kind == "palm" or kind == "jungle":
 				GrapplePoints.add(island, local + basis * GrapplePoints.crown_of(mesh))
 			if kind == "palm" or kind == "jungle" or (kind == "rock" and s > 0.9):
@@ -558,17 +576,32 @@ func _decorate_island(island: Node3D, center: Vector2, radius: float, island_typ
 				cs.position = local + Vector3(0, 1.5, 0)
 				colliders.add_child(cs)
 		x += step
-	for mesh in buckets.keys():
-		var xforms: Array = buckets[mesh]
+	# one MultiMesh per mesh per DECOR_CELL square (culled square by square);
+	# grass and bushes cast no shadow and stop drawing a little way off, the
+	# rest past the fog
+	for key in buckets.keys():
+		var xforms: Array = buckets[key]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = mesh
+		mm.mesh = key[0]
 		mm.instance_count = xforms.size()
 		for i in range(xforms.size()):
 			mm.set_instance_transform(i, xforms[i])
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
+		match str(key[1]):
+			"grass":
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mmi.visibility_range_end = 90.0
+			"bush":
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mmi.visibility_range_end = 160.0
+			_:
+				mmi.visibility_range_end = 1000.0
 		island.add_child(mmi)
+
+
+const DECOR_CELL := 70.0
 
 
 # --------------------------------------------------------------------------

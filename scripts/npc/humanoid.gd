@@ -31,6 +31,17 @@ const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r"]
 
 var look: Dictionary = {}
 
+## Level of detail (villagers, grunts, crews turn it on): far or off-screen
+## rigs pose every few frames, carrying the skipped time so they keep their
+## timing. The player's own rig, and rigs built by tools, always pose.
+var lod: bool = false
+## The process frame this rig last posed (the skinned limbs follow it).
+var pose_frame: int = -1
+var _lod_acc: float = 0.0
+var _lod_phase: int = -1
+static var _cam: Camera3D
+static var _cam_frame: int = -1
+
 var pivot: Node3D
 var hips: Node3D
 var torso: Node3D
@@ -274,13 +285,130 @@ func apply_look(look_dict: Dictionary) -> void:
 	_apply_fists()
 
 
+# ==========================================================================
+# Bodies built ahead (on a worker thread)
+# ==========================================================================
+## Building a body takes tens of milliseconds - a visible hitch when a crew
+## respawns all at once. Spawners name the looks they'll need next and
+## prebuild() makes them on a worker thread; make() hands one over (or builds
+## it there and then if none is waiting).
+static var _ready_bodies: Dictionary = {}   # look key -> [Humanoid]
+static var _queued: Dictionary = {}
+static var _tasks: Array = []
+static var _pool_lock := Mutex.new()
+
+
+static func _look_key(lk: Dictionary) -> int:
+	return str(lk).hash()
+
+
+static func prebuild(looks: Array) -> void:
+	_reap()
+	var todo: Array = []
+	_pool_lock.lock()
+	for lk in looks:
+		var k := _look_key(lk)
+		if not _queued.has(k) and (_ready_bodies.get(k, []) as Array).is_empty():
+			_queued[k] = true
+			todo.append(lk)
+	_pool_lock.unlock()
+	if todo.is_empty():
+		return
+	_tasks.append(WorkerThreadPool.add_task(func():
+		for lk in todo:
+			var h := Humanoid.new()
+			h.setup(lk)
+			var k := Humanoid._look_key(lk)
+			Humanoid._pool_lock.lock()
+			if not Humanoid._ready_bodies.has(k):
+				Humanoid._ready_bodies[k] = []
+			Humanoid._ready_bodies[k].append(h)
+			Humanoid._queued.erase(k)
+			Humanoid._pool_lock.unlock(), false, "prebuild bodies"))
+
+
+## A body for `lk`: one built ahead if there is one, else built now.
+static func make(lk: Dictionary) -> Humanoid:
+	_reap()
+	var k := _look_key(lk)
+	_pool_lock.lock()
+	var list: Array = _ready_bodies.get(k, [])
+	var h: Humanoid = list.pop_back() if not list.is_empty() else null
+	_pool_lock.unlock()
+	if h == null:
+		h = Humanoid.new()
+		h.setup(lk)
+	return h
+
+
+static func _reap() -> void:
+	for id in _tasks.duplicate():
+		if WorkerThreadPool.is_task_completed(id):
+			WorkerThreadPool.wait_for_task_completion(id)
+			_tasks.erase(id)
+
+
+## A new world: bodies built for the old one go.
+static func clear_prebuilt() -> void:
+	for id in _tasks:
+		WorkerThreadPool.wait_for_task_completion(id)
+	_tasks.clear()
+	for list in _ready_bodies.values():
+		for h in list:
+			(h as Node).free()
+	_ready_bodies.clear()
+	_queued.clear()
+
+
+## The rig a body part belongs to.
+static func rig_of(n: Node) -> Humanoid:
+	var p := n.get_parent()
+	while p and not (p is Humanoid):
+		p = p.get_parent()
+	return p as Humanoid
+
+
+## The current camera, looked up once a frame for every rig.
+func _camera() -> Camera3D:
+	var f := Engine.get_process_frames()
+	if f != _cam_frame or not is_instance_valid(_cam):
+		_cam_frame = f
+		var vp := get_viewport() if is_inside_tree() else null
+		_cam = vp.get_camera_3d() if vp else null
+	return _cam
+
+
+## Pose every Nth frame: near and on screen every frame, then less often with
+## distance; off screen (shadows only) rarely.
+func _lod_every() -> int:
+	var cam := _camera()
+	if cam == null:
+		return 1
+	var d2 := cam.global_position.distance_squared_to(global_position)
+	if d2 < 12.0 * 12.0:
+		return 1
+	if not cam.is_position_in_frustum(global_position + Vector3.UP):
+		return 6 if d2 < 60.0 * 60.0 else 12
+	if d2 < 30.0 * 30.0:
+		return 1
+	if d2 < 60.0 * 60.0:
+		return 2
+	return 3 if d2 < 120.0 * 120.0 else 6
+
+
+var _sims_near: bool = true
+
+
 func _update_physics(delta: float) -> void:
 	if _sims.is_empty():
 		return
 	# Physics only near the camera; far characters keep their last pose and
-	# snap to rest when they come back into range.
-	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	# snap to rest (once) when they leave range.
+	var cam := _camera()
 	var near := cam == null or cam.global_position.distance_squared_to(global_position) < 30.0 * 30.0
+	if not near and not _sims_near:
+		return
+	_sims_near = near
 	for s in _sims:
 		if near:
 			(s as SpringChains).simulate(delta)
@@ -2181,6 +2309,16 @@ func _process(delta: float) -> void:
 	if _freeze > 0.0:
 		_freeze -= delta
 		return
+	if lod and ragdoll == null:
+		if _lod_phase < 0:
+			_lod_phase = get_instance_id() % 12
+		_lod_acc += delta
+		var every := _lod_every()
+		if every > 1 and (Engine.get_process_frames() + _lod_phase) % every != 0:
+			return
+		delta = _lod_acc
+		_lod_acc = 0.0
+	pose_frame = Engine.get_process_frames()
 	_t += delta
 	# bare-handed fighting: close the hands while the fist stance is up
 	set_fists(stance == "fist" and armed and not weapon_in_hand and ragdoll == null)
@@ -2269,8 +2407,7 @@ func _foot_ik(delta: float) -> void:
 		_ik_h = Vector2.ZERO
 		_ik_drop = 0.0
 		return
-	var vp := get_viewport()
-	var cam := vp.get_camera_3d() if vp else null
+	var cam := _camera()
 	if cam and cam.global_position.distance_squared_to(global_position) > 40.0 * 40.0:
 		return
 	if not _ik_body_found:

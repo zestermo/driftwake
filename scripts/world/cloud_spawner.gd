@@ -125,15 +125,29 @@ func density_at(pos: Vector3) -> float:
 	return best
 
 
+## The sorted buffer is rebuilt REBUILD times a second; in between the layer
+## just slides with the wind (far, slow clouds: nobody sees the difference).
+const REBUILD := 0.05
+var _rebuild_t: float = 0.0
+var _drift_built := Vector3.ZERO
+
+
 func _process(delta: float) -> void:
 	_t += delta
 	var w := Vector3(wind.x, 0.0, wind.y).normalized()
 	_drift += w * wind_speed * delta
+	_mat.set_shader_parameter("time_s", _t)
+	_rebuild_t -= delta
+	if _rebuild_t > 0.0:
+		_mmi.position = _drift - _drift_built
+		return
+	_rebuild_t = REBUILD
+	_drift_built = _drift
+	_mmi.position = Vector3.ZERO
 	var cam := get_viewport().get_camera_3d()
 	var around := cam.global_position if cam else Vector3.ZERO
 	_mat.set_shader_parameter("lit_color", lit_color)
 	_mat.set_shader_parameter("shade_color", shade_color)
-	_mat.set_shader_parameter("time_s", _t)
 	_mat.set_shader_parameter("fog_color", fog_color)
 	_mat.set_shader_parameter("haze_height", haze_height)
 	# far clouds thin out (the sky's own cloud layer carries on beyond them),

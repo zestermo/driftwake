@@ -990,12 +990,15 @@ func _scatter_vegetation() -> void:
 				_bucket(buckets, grass, Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.4)), Vector3(p.x, h - 0.05, p.y)))
 		x += step
 
-	# --- commit MultiMeshes ---
+	# --- commit MultiMeshes: one per mesh per VEG_CELL square, so only the
+	# squares in view (and in the sun's shadow range) are drawn; the small
+	# stuff stops drawing a little way off ---
 	var vegetation := Node3D.new()
 	vegetation.name = "Vegetation"
 	add_child(vegetation)
-	for mesh in buckets.keys():
-		var xforms: Array = buckets[mesh]
+	for key in buckets.keys():
+		var mesh: Mesh = key[0]
+		var xforms: Array = buckets[key]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = mesh
@@ -1006,13 +1009,21 @@ func _scatter_vegetation() -> void:
 		mmi.multimesh = mm
 		if mesh == grass or ferns.has(mesh):
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mmi.visibility_range_end = 90.0
+		elif bushes.has(mesh):
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mmi.visibility_range_end = 160.0
 		vegetation.add_child(mmi)
 
 
+const VEG_CELL := 70.0
+
+
 func _bucket(buckets: Dictionary, mesh: Mesh, xf: Transform3D) -> void:
-	if not buckets.has(mesh):
-		buckets[mesh] = []
-	buckets[mesh].append(xf)
+	var key := [mesh, floori(xf.origin.x / VEG_CELL), floori(xf.origin.z / VEG_CELL)]
+	if not buckets.has(key):
+		buckets[key] = []
+	buckets[key].append(xf)
 
 
 func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: RandomNumberGenerator,

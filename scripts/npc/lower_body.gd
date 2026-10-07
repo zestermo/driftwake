@@ -76,7 +76,15 @@ func setup(hips_leg_l: Node3D, hips_leg_r: Node3D, hips_shin_l: Node3D, hips_shi
 	mi.skeleton = NodePath("..")
 
 
+var _rig: Humanoid
+
+
+## Only on frames the rig posed (a far or hidden rig skips them).
 func _process(_delta: float) -> void:
+	if _rig == null:
+		_rig = Humanoid.rig_of(self)
+	if _rig and _rig.pose_frame != Engine.get_process_frames():
+		return
 	_pose()
 
 

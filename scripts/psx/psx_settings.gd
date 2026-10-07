@@ -127,6 +127,11 @@ func _update_pixelate() -> void:
 	# window size, for 960x540) and the post pass lays the pixel grid on it
 	_post_rect.material.set_shader_parameter("pixelate", _is_lowres() and preset.x != 640)
 	_post_rect.material.set_shader_parameter("pixel_res", pixel_res())
+	# render the 3D at the grid's own size: the post pass samples one texel
+	# per cell, so every pixel past that was drawn and thrown away
+	var win := get_tree().root
+	var render_h := float(win.size.y) if win.content_scale_mode == Window.CONTENT_SCALE_MODE_CANVAS_ITEMS else win.get_visible_rect().size.y
+	win.scaling_3d_scale = clampf(pixel_res().y / maxf(render_h, 1.0), 0.25, 1.0) if _is_lowres() else 1.0
 
 
 func _update_snap() -> void:

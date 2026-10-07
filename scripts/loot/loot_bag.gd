@@ -22,6 +22,10 @@ var shared_id: String = ""
 ## Bobs on the waves (plunder from a sunken ship); grab it while swimming.
 var floating: bool = false
 var _bob_t: float = 0.0
+## Seconds before an untouched drop goes away (0 = stays; chests and your
+## recovery bag stay). Floating plunder lasts FLOAT_LIFE.
+var lifetime: float = 0.0
+const FLOAT_LIFE := 600.0
 
 @onready var interactable: Interactable = $Interactable
 @onready var mesh: MeshInstance3D = $MeshInstance3D
@@ -37,8 +41,27 @@ func _ready() -> void:
 	if floating:
 		interactable.usable_in_water = true
 		set_physics_process(true)
+		if lifetime <= 0.0 and save_id == "":
+			lifetime = FLOAT_LIFE
 	else:
 		set_physics_process(false)
+	add_to_group("loot_bags")
+	if lifetime > 0.0 and save_id == "" and not is_recovery_bag:
+		get_tree().create_timer(lifetime, false).timeout.connect(_expire)
+
+
+## Time's up: gone, unless a captain is right there (then a little later).
+## A shared bag is the host's to remove (it tells everyone).
+func _expire() -> void:
+	for c in get_tree().get_nodes_in_group("players"):
+		if (c as Node3D).global_position.distance_to(global_position) < 8.0:
+			get_tree().create_timer(30.0, false).timeout.connect(_expire)
+			return
+	if shared_id != "":
+		Net.bag_expire(self)
+		return
+	interactable.enabled = false
+	queue_free()
 
 
 func _physics_process(delta: float) -> void:

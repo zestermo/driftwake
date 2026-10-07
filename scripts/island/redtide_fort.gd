@@ -329,10 +329,30 @@ func _spawn_boss() -> void:
 func call_crew() -> void:
 	if Net.is_client():
 		return
+	# the last call's crew still standing (the fight was reset) rejoin instead
+	crew = crew.filter(func(g): return is_instance_valid(g) and g.state != PirateGrunt.S.DEAD)
+	if not crew.is_empty():
+		for g in crew:
+			g.alert()
+		return
 	crew_gen += 1
 	_spawn_crew(true)
 	Net.spawned(self, net_gen())
 	Net.fx("sfx", ["horn", to_global(ARENA), 2.0, 0.03, 1.1])
+
+
+var _prebuilt_crew: int = -1
+var _prebuilt_boss: int = -1
+
+
+## The looks of wave `g`'s crew (as _spawn_crew seeds them).
+func _crew_looks(g: int) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 500 + g
+	var out: Array = []
+	for i in range(3 + clampi(Net.crew_size() - 2, 0, 2)):
+		out.append(PirateGrunt.look_for({"seed": rng.randi()}))
+	return out
 
 
 func _spawn_crew(leap: bool) -> void:
@@ -395,6 +415,10 @@ func _process(delta: float) -> void:
 				boss.alert()
 				break
 	if alive and boss.in_combat():
+		# the crew he'll call in phase two, built on a worker thread meanwhile
+		if _prebuilt_crew != crew_gen + 1:
+			_prebuilt_crew = crew_gen + 1
+			Humanoid.prebuild(_crew_looks(crew_gen + 1))
 		var near := false
 		for p in Net.all_players():
 			var pp := p as Node3D
@@ -405,6 +429,9 @@ func _process(delta: float) -> void:
 			_empty_t = 0.0
 			boss.reset_fight()
 	elif not alive:
+		if _prebuilt_boss != boss_gen + 1:
+			_prebuilt_boss = boss_gen + 1
+			Humanoid.prebuild([PirateBoss.morrow_look()])
 		_dead_t += delta
 		if _dead_t > RESPAWN:
 			for p in Net.all_players():

@@ -110,7 +110,60 @@ func _scene_root() -> Node:
 	return cs if cs else get_tree().root
 
 
+## Bursts this far from the camera aren't made at all.
+const BURST_RANGE := 160.0
+## Shared burst resources (one each, not one per burst).
+static var _curves: Dictionary = {}
+static var _grads: Dictionary = {}
+static var _quads: Dictionary = {}
+
+
+static func _curve(kind: String) -> Curve:
+	if not _curves.has(kind):
+		var curve := Curve.new()
+		match kind:
+			"hold":
+				# full size most of the way, then gone (drops, not puffs)
+				curve.add_point(Vector2(0, 1.0))
+				curve.add_point(Vector2(0.75, 1.0))
+				curve.add_point(Vector2(1, 0.0))
+			"grow":
+				curve.add_point(Vector2(0, 0.6))
+				curve.add_point(Vector2(1, 1.3))
+			_:
+				curve.add_point(Vector2(0, 1.0))
+				curve.add_point(Vector2(1, 0.0))
+		_curves[kind] = curve
+	return _curves[kind]
+
+
+static func _fade_to_clear(col: Color) -> Gradient:
+	if not _grads.has(col):
+		if _grads.size() > 64:
+			_grads.clear()
+		var grad := Gradient.new()
+		grad.set_color(0, col)
+		grad.set_color(1, Color(col.r, col.g, col.b, 0.0))
+		_grads[col] = grad
+	return _grads[col]
+
+
+static func _quad(size: float, mat: Material) -> QuadMesh:
+	var key := [snappedf(size, 0.01), mat]
+	if not _quads.has(key):
+		if _quads.size() > 128:
+			_quads.clear()
+		var quad := QuadMesh.new()
+		quad.size = Vector2(size, size)
+		quad.material = mat
+		_quads[key] = quad
+	return _quads[key]
+
+
 func _burst(pos: Vector3, amount: int, mat: Material, size: float, life: float, cfg: Dictionary) -> CPUParticles3D:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_squared_to(pos) > BURST_RANGE * BURST_RANGE:
+		return null
 	var p := CPUParticles3D.new()
 	p.one_shot = true
 	p.explosiveness = cfg.get("explosiveness", 0.95)
@@ -138,33 +191,13 @@ func _burst(pos: Vector3, amount: int, mat: Material, size: float, life: float, 
 	p.radial_accel_max = cfg.get("radial", 0.0)
 	p.scale_amount_min = cfg.get("scale_min", 0.7)
 	p.scale_amount_max = cfg.get("scale_max", 1.2)
-	var curve := Curve.new()
-	if cfg.get("hold", false):
-		# full size most of the way, then gone (drops, not puffs)
-		curve.add_point(Vector2(0, 1.0))
-		curve.add_point(Vector2(0.75, 1.0))
-		curve.add_point(Vector2(1, 0.0))
-	else:
-		var grow: bool = cfg.get("grow", true)
-		curve.add_point(Vector2(0, 0.6 if grow else 1.0))
-		curve.add_point(Vector2(1, 1.3 if grow else 0.0))
-	p.scale_amount_curve = curve
+	p.scale_amount_curve = _curve("hold" if cfg.get("hold", false) else ("grow" if cfg.get("grow", true) else "shrink"))
 	p.particle_flag_align_y = cfg.get("align", false)
 	if cfg.has("ramp"):
 		p.color_ramp = cfg["ramp"]
 	else:
-		var grad := Gradient.new()
-		var col: Color = cfg.get("color", Color(0.85, 0.8, 0.68, 0.85))
-		grad.set_color(0, col)
-		grad.set_color(1, Color(col.r, col.g, col.b, 0.0))
-		p.color_ramp = grad
-	if cfg.has("mesh"):
-		p.mesh = cfg["mesh"]
-	else:
-		var quad := QuadMesh.new()
-		quad.size = Vector2(size, size)
-		quad.material = mat
-		p.mesh = quad
+		p.color_ramp = _fade_to_clear(cfg.get("color", Color(0.85, 0.8, 0.68, 0.85)))
+	p.mesh = cfg["mesh"] if cfg.has("mesh") else _quad(size, mat)
 	_scene_root().add_child(p)
 	p.global_position = pos
 	p.emitting = true
@@ -1107,6 +1140,10 @@ func _thrust_mesh() -> ArrayMesh:
 ## Positional one-shot on the SFX bus. pitch_jitter randomizes pitch +-.
 func sfx(sound_name: String, pos: Vector3, volume_db: float = 0.0, pitch_jitter: float = 0.08, pitch: float = 1.0) -> void:
 	if not _streams.has(sound_name):
+		return
+	# (past its max_distance nobody hears it: don't make it)
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_squared_to(pos) > 64.0 * 64.0:
 		return
 	var p := AudioStreamPlayer3D.new()
 	p.stream = _streams[sound_name]

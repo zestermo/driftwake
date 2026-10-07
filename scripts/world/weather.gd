@@ -565,6 +565,8 @@ func _build_rays() -> void:
 	_rays.material_override = _ray_mat
 	_rays.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_rays.extra_cull_margin = 4096.0
+	# (rebuilt around the camera every frame: interpolating it only warns)
+	_rays.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mm.custom_aabb = AABB(Vector3(-2000, -500, -2000), Vector3(4000, 1500, 4000))
 	_scene.add_child(_rays)
 

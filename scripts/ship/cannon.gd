@@ -71,11 +71,15 @@ func _ready() -> void:
 		# the gunner's camera: behind and above the breech, looking out
 		_cam_arm = Node3D.new()
 		_cam_arm.name = "CamArm"
+		# (aimed every frame; the hull under it is still interpolated)
+		_cam_arm.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 		_cam_arm.position = Vector3(0, PIVOT_Y, 0)
 		_yaw_node.add_child(_cam_arm)
 		camera = Camera3D.new()
 		camera.name = "GunCam"
 		camera.fov = 62.0
+		# (the fog is solid by 820 m)
+		camera.far = 1200.0
 		# over the gunner's right shoulder
 		camera.position = Vector3(0.75, 1.5, 3.3)
 		camera.rotation = Vector3(-0.2, 0.12, 0)

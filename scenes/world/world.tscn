@@ -101,5 +101,6 @@ spring_length = 5.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig/SpringArm3D" unique_id=533517647]
 current = true
+far = 1200.0
 
 [node name="PlayerHUD" parent="." unique_id=712669387 instance=ExtResource("5")]

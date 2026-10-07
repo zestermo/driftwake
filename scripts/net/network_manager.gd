@@ -1076,6 +1076,7 @@ func _all_drop(id: String, at: Vector3, yaw: float) -> void:
 	st.quantity = 1
 	var items: Array[ItemStack] = [st]
 	bag.setup(items, false)
+	bag.lifetime = 300.0
 	get_tree().current_scene.add_child(bag)
 	bag.global_position = at
 	var mi := bag.get_node_or_null("MeshInstance3D") as MeshInstance3D
@@ -1141,6 +1142,7 @@ func _make_drop(id: String, stacks: Array, at: Vector3, shared: bool) -> Node:
 		bag.free()
 		return null
 	bag.setup(items, false)
+	bag.lifetime = 600.0
 	if shared:
 		bag.shared_id = id
 	bag.name = "Drop_" + id
@@ -1235,6 +1237,15 @@ func _host_store(id: String, ref: Array, qty: int) -> void:
 	var r := bag.refs()
 	_bag_contents.rpc(id, r)
 	bag.set_contents(r)
+
+
+## A shared drop nobody took: the host empties it everywhere.
+func bag_expire(bag: LootBag) -> void:
+	if active and not hosting:
+		return
+	if active:
+		_bag_contents.rpc(bag.shared_id, [])
+	bag.set_contents([])
 
 
 @rpc("authority", "call_remote", "reliable")
