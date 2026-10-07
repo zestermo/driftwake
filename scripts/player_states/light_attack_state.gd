@@ -1,6 +1,6 @@
 extends PlayerState
 ## Light attack combo, shaped by your fighting style (player.style()):
-##   sword       right slash -> backhand -> spinning finisher
+##   sword       diagonal forehand -> flat backhand -> spinning finisher; at a sprint, a running cut
 ##   katana      high right diagonal -> wide left-to-right cut -> lunging stab (slow, two-handed)
 ##   axe         diagonal hack -> rising backhand hook -> two-handed overhead smash (knocks down)
 ##   dual_sword  forehand -> backhand -> X-cross with both blades -> twin spin
@@ -11,10 +11,18 @@ extends PlayerState
 ## Pistols shoot instead (Shoot state).
 
 const STYLES := {
+	# (each hitbox opens as its cut comes through: the strike frames of the anims)
 	"sword": {"anims": ["slash_r", "slash_l", "spin_slash"], "trails": ["right", "left", "spin"],
 		"durations": [0.3, 0.3, 0.46], "lengths": [0.48, 0.48, 0.62], "impulses": [4.5, 4.5, 6.5],
-		"damages": [10.0, 12.0, 22.0], "hitstops": [0.045, 0.045, 0.09], "shakes": [0.09, 0.09, 0.18],
-		"start": 0.08, "end": 0.24, "reach": "sword", "color": Color(0.45, 0.75, 1.0)},
+		"damages": [10.0, 12.0, 22.0], "hitstops": [0.05, 0.05, 0.09], "shakes": [0.09, 0.09, 0.18],
+		"starts": [0.11, 0.1, 0.13], "ends": [0.21, 0.2, 0.42],
+		"start": 0.11, "end": 0.21, "reach": "sword", "color": Color(0.45, 0.75, 1.0)},
+	# cutlass, attacked at a sprint: one low cut driving through the target,
+	# breaking its wind-up
+	"sword_dash": {"anims": ["dash_cut"], "trails": ["right"],
+		"durations": [0.5], "lengths": [0.62], "impulses": [12.0],
+		"damages": [14.0], "hitstops": [0.06], "shakes": [0.12],
+		"start": 0.17, "end": 0.3, "reach": "wide", "color": Color(0.45, 0.75, 1.0), "breaker": true},
 	# two-handed: slow, wide cuts with a held wind-up, hitting hard
 	"katana": {"anims": ["katana_r", "katana_l", "katana_stab"], "trails": ["kesa_r", "sweep_l", "thrust"],
 		"durations": [0.62, 0.62, 0.7], "lengths": [0.85, 0.85, 0.9], "impulses": [5.0, 5.0, 9.0],
@@ -72,7 +80,7 @@ var chained: bool = false
 func enter(data: Dictionary) -> void:
 	var st := player.style()
 	if player.quick_draw:
-		st = "katana_draw"
+		st = "katana_draw" if st == "katana" else "sword_dash"
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()

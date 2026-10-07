@@ -62,7 +62,8 @@ func combat_input() -> String:
 				return "Shoot"
 			if not player.spend_stamina(player.LIGHT_COST):
 				return ""
-			player.quick_draw = player.sprinting and player.style() == "katana"
+			# (out of a sprint: the katana's quick draw, the cutlass's running cut)
+			player.quick_draw = player.sprinting and player.style() in ["katana", "sword"]
 			return "LightAttack"
 		player.draw_weapon()
 		return ""

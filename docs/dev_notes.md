@@ -354,6 +354,13 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Katana parry/block feet wider (KATANA_SPREAD 0.12 rad leg roll: in the parry's crouch keys, and on the gait legs while guard_block plays). Air slash angled forward: the "under" pose reaches further ahead (arm 0.75, pivot -0.28), trail plane leaned 0.65 forward, REACH "under" centred 0.9 m ahead (3.4 deep).
 - r10test now also: planted-foot slide on diagonals/backpedal < 1.6 m/s (pure strafes < 2.0), hips turn > 0.5 rad into a diagonal with the chest within 0.15 rad. All 24 suites x 2 Godot versions passed in one go; co-op default + water OK.
 
+## 2026-10-07: cutlass polish
+- The wrist cuts now: hand_r cocks the blade back in each wind-up and flings it out along the arm into the cut (before, it stayed upright and the swings read as waves). slash_r is a diagonal forehand (high over the right shoulder, down across to the lower left), slash_l a flat backhand (back past the left shoulder, out level to the right; the upper arm untwisted at the strike - twisted, the wrist bent the blade back up), spin_slash flings the blade out level for the turn. The off arm no longer sticks straight out.
+- SWORD_GUARD (Humanoid._guard() for stance "sword"): side on, blade angled forward, off hand up; the thrust heavy blends from and back to it.
+- Hitbox timing matches the strikes ("starts" 0.11/0.1/0.13, "ends" 0.21/0.2/0.42; was 0.08-0.24 for all, opening before the swing and closing halfway through the spin).
+- Running cut (LightAttackState "sword_dash", anim dash_cut): attacking at a sprint with one cutlass (Player.quick_draw now covers sword as well as katana) - a low cut driving through the target, impulse 12, breaks wind-ups.
+- axetest also covers the cutlass: its style, combo, guard and running cut.
+
 ## 2026-10-07: the axe's own moveset
 - Player.style() is "axe" for an axe in the main hand (two axes are still dual_sword); it counts as a blade for sword_pct.
 - Light combo (LightAttackState.STYLES["axe"]): axe_hack (hauled over the right shoulder, hacked down across to the lower left), axe_hook (dropped low left, ripped up and across to the right), axe_split (two-handed, a hop, smashed into the ground ahead: knockdown, dust ring, thud). Slower than the cutlass (0.46/0.46/0.72 s), harder (14/15/30).

@@ -157,6 +157,43 @@ func _process(d: float) -> bool:
 		11:
 			check("...comes down and splits the ground (%s seen)" % str(saw.keys()), saw.has("axe_land"))
 			check("...and the split runs out to the grunt ahead (%.0f -> %.0f), knocked flat" % [hp0, g.health.current_health], g.health.current_health < hp0 and downed)
+			# --- the cutlass: its combo lands, and a sprint attack is the running cut
+			var cutlass = load("res://resources/items/cutlass.tres")
+			p.inventory_component.add_item(cutlass, 1)
+			p.state_machine.force_state("Idle", {})
+			p.equip_weapon(cutlass)
+			p.set_offhand(null)
+			check("one cutlass: the sword style (%s)" % p.style(), p.style() == "sword")
+			face(p.global_position + Vector3(0, 0, -10))
+			target_grunt(1.6)
+			saw = {}
+			attack("light_attack")
+			wait = 0.4
+			step += 1
+		12:
+			attack("light_attack")
+			wait = 0.4
+			step += 1
+		13:
+			attack("light_attack")
+			wait = 0.8
+			step += 1
+		14:
+			check("cutlass combo: forehand, backhand, spin (%s)" % str(saw.keys()), saw.has("slash_r") and saw.has("slash_l") and saw.has("spin_slash"))
+			check("...its cuts land (%.0f -> %.0f)" % [hp0, g.health.current_health], g.health.current_health < hp0)
+			check("the cutlass guards side on, blade angled forward", p.body_model._guard().get("hand_r", Vector3.ZERO).x < -0.3)
+			p.state_machine.force_state("Idle", {})
+			face(p.global_position + Vector3(0, 0, -10))
+			target_grunt(3.0)
+			p.stamina = p.max_stamina
+			p.sprinting = true
+			saw = {}
+			attack("light_attack")
+			wait = 0.6
+			step += 1
+		15:
+			check("attacking at a sprint: the running cut (%s)" % str(saw.keys()), saw.has("dash_cut"))
+			check("...drives through and cuts (%.0f -> %.0f)" % [hp0, g.health.current_health], g.health.current_health < hp0)
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 	return false
