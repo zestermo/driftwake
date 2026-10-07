@@ -1,5 +1,5 @@
 extends SceneTree
-## Strip of frames of an action with a weapon. Args: <out.png> <anim> <weapon> <dur> <yaw_deg>
+## Strip of frames of an action with a weapon. Args: <out.png> <anim> <weapon> <dur> <yaw_deg> [stance]
 var f := 0
 var out := ""
 var anim := ""
@@ -18,6 +18,8 @@ func _initialize():
 	h = Humanoid.new(); h.setup(CharacterLook.default_look()); root.add_child(h)
 	h.rotation.y = deg_to_rad(float(a[4]))
 	h.set_weapon(Props.weapon_mesh(a[2])); h._attach_weapon(true); h.armed = true
+	if a.size() > 5:
+		h.stance = a[5]
 	var cam := Camera3D.new(); root.add_child(cam); cam.current = true; cam.fov = 40
 	cam.look_at_from_position(Vector3(0, 1.3, 4.4), Vector3(0, 1.0, 0))
 func _process(_d):

@@ -2,6 +2,7 @@ extends PlayerState
 ## Light attack combo, shaped by your fighting style (player.style()):
 ##   sword       right slash -> backhand -> spinning finisher
 ##   katana      high right diagonal -> wide left-to-right cut -> lunging stab (slow, two-handed)
+##   axe         diagonal hack -> rising backhand hook -> two-handed overhead smash (knocks down)
 ##   dual_sword  forehand -> backhand -> X-cross with both blades -> twin spin
 ##   fist        jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
@@ -27,6 +28,13 @@ const STYLES := {
 		"durations": [0.95], "lengths": [1.3], "impulses": [9.0],
 		"damages": [14.0], "hitstops": [0.05], "shakes": [0.1],
 		"start": 0.05, "end": 0.2, "reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true},
+	# axe: heavy, deliberate hacks with the weight behind them; the finisher
+	# smashes down two-handed into the ground and knocks them flat
+	"axe": {"anims": ["axe_hack", "axe_hook", "axe_split"], "trails": ["kesa_r", "left", "overhead"],
+		"durations": [0.46, 0.46, 0.72], "lengths": [0.62, 0.62, 0.9], "impulses": [4.0, 4.5, 6.0],
+		"damages": [14.0, 15.0, 30.0], "hitstops": [0.065, 0.065, 0.13], "shakes": [0.11, 0.11, 0.28],
+		"starts": [0.24, 0.22, 0.38], "ends": [0.35, 0.33, 0.54],
+		"start": 0.24, "end": 0.35, "reach": "sword", "color": Color(1.0, 0.78, 0.5), "slam": true},
 	"dual_sword": {"anims": ["dual_1", "dual_2", "dual_cross", "dual_spin"], "trails": ["right", "left", "cross", "spin"],
 		"durations": [0.24, 0.24, 0.32, 0.44], "lengths": [0.4, 0.4, 0.5, 0.6], "impulses": [4.0, 4.0, 5.0, 6.0],
 		"damages": [8.0, 8.0, 13.0, 20.0], "hitstops": [0.035, 0.035, 0.06, 0.09], "shakes": [0.07, 0.07, 0.12, 0.18],
@@ -100,15 +108,23 @@ func physics_update(delta: float) -> void:
 	var t_end := float((cfg["ends"] as Array)[combo_index]) if cfg.has("ends") else float(cfg["end"])
 	if timer >= t_start and not hitbox_activated:
 		hitbox_activated = true
+		var last := combo_index == combo_count - 1
 		var hit := player.melee_hit(float(cfg["damages"][combo_index]))
 		hit.hitstop_duration = float(cfg["hitstops"][combo_index])
 		hit.camera_shake_intensity = float(cfg["shakes"][combo_index])
-		hit.knockback_force = 8.0 if combo_index == combo_count - 1 else 4.0
+		hit.knockback_force = 8.0 if last else 4.0
 		hit.breaker = cfg.get("breaker", false)
 		hit.sever = str(cfg["reach"]) != "fist"
+		# (the axe's finisher puts them on the ground)
+		hit.knockdown = last and cfg.get("slam", false)
 		player.sword_hitbox.activate(hit)
+		if last and cfg.get("slam", false):
+			var at := player.global_position - player.player_model.global_basis.z * 1.2
+			Net.fx("dust_ring", [at, 16, 1.1])
+			Net.fx("impact", [at + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
+			Net.fx("sfx", ["thud", at, -2.0, 0.05, 0.75])
+			CombatManager.apply_camera_shake(0.18)
 		# swoosh!
-		var last := combo_index == combo_count - 1
 		var trail_len := 0.4 if last else 0.26
 		var trail := str(cfg["trails"][combo_index])
 		var col: Color = cfg["color"]

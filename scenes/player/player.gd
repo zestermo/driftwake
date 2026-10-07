@@ -1265,7 +1265,7 @@ func weapon_class() -> String:
 	return class_of(equipped_weapon)
 
 
-## Fighting style: fist, sword, dual_sword, pistol, dual_pistol or claw.
+## Fighting style: fist, sword, axe, katana, dual_sword, pistol, dual_pistol or claw.
 func style() -> String:
 	var c := weapon_class()
 	var dual := offhand_weapon != null and not hybrid
@@ -1273,7 +1273,9 @@ func style() -> String:
 		"sword":
 			if equipped_weapon.weapon_model == "katana":
 				return "katana"
-			return "dual_sword" if dual else "sword"
+			if dual:
+				return "dual_sword"
+			return "axe" if equipped_weapon.weapon_model == "axe" else "sword"
 		"gun":
 			return "dual_pistol" if dual else "pistol"
 	return c
@@ -1433,6 +1435,8 @@ const REACH := {
 	"katana": [Vector3(2.5, 1.3, 2.2), Vector3(-0.3, 0.2, -1.2)],
 	"iai": [Vector3(3.0, 1.3, 2.4), Vector3(-0.3, 0.2, -1.1)],
 	"under": [Vector3(3.2, 3.6, 3.4), Vector3(-0.3, -1.3, -0.9)],
+	# the axe's whirlwind: all the way round
+	"whirl": [Vector3(4.4, 1.5, 4.4), Vector3(0.0, 0.2, 0.0)],
 }
 
 
@@ -1450,7 +1454,7 @@ func damage_multiplier() -> float:
 	var pr := progression
 	var k := 1.0 + (attribute("strength") - 5) * 0.05 + pr.stat("damage_pct") + float(pr.level - 1) * 0.02
 	match style():
-		"sword", "katana":
+		"sword", "katana", "axe":
 			k += pr.stat("sword_pct")
 		"dual_sword":
 			k += pr.stat("sword_pct") + pr.stat("dual_sword_pct")

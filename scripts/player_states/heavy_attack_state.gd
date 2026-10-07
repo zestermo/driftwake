@@ -2,8 +2,9 @@ extends PlayerState
 ## Heavy attack, shaped by the weapon in hand:
 ## * cutlass (and other blades): a lunging thrust - coil back, then drive
 ##   forward with the point leading, long reach, quick recovery
-## * axe: a one-handed overhead chop - rear back, then hack down through a
-##   forward step, slower but hits hardest and staggers longest
+## * axe: the whirlwind - the axe swung out two-handed and round twice,
+##   hitting everything about you on each turn (the second knocks them flat);
+##   you can steer it, slowly
 ## * dual swords: both blades raised, then crashing down together
 ## * fists: a flying kick
 ## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
@@ -16,9 +17,10 @@ const STYLES := {
 	"thrust": {"anim": "thrust", "windup": 0.22, "active": 0.18, "recovery": 0.35, "impulse": 11.0,
 		"damage": 32.0, "hitstop": 0.08, "shake": 0.16, "knockback": 12.0, "stagger": 0.4,
 		"trail": "thrust", "trail_len": 0.22, "sfx": "whoosh", "pitch": 1.25, "impact_fx": false},
-	"axe": {"anim": "axe_heavy", "windup": 0.34, "active": 0.14, "recovery": 0.42, "impulse": 4.0,
-		"damage": 40.0, "hitstop": 0.12, "shake": 0.3, "knockback": 9.0, "stagger": 0.6,
-		"trail": "overhead", "trail_len": 0.26, "sfx": "whoosh_big", "pitch": 0.9, "impact_fx": true},
+	"whirl": {"anim": "axe_whirl", "windup": 0.22, "active": 0.72, "recovery": 0.3, "impulse": 2.5,
+		"damage": 22.0, "hitstop": 0.06, "shake": 0.16, "knockback": 9.0, "stagger": 0.5,
+		"trail": "spin", "trail_len": 0.36, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false,
+		"reach": "whirl", "color": Color(1.0, 0.78, 0.5), "rehit": 0.36, "steer": 0.45},
 	"dual_heavy": {"anim": "dual_heavy", "windup": 0.32, "active": 0.18, "recovery": 0.38, "impulse": 6.0,
 		"damage": 42.0, "hitstop": 0.12, "shake": 0.28, "knockback": 11.0, "stagger": 0.6,
 		"trail": "overhead", "trail_len": 0.28, "sfx": "whoosh_big", "pitch": 0.95, "impact_fx": true, "reach": "wide", "double_trail": true},
@@ -51,12 +53,13 @@ var hitbox_activated: bool = false
 var impact_fx: bool = false
 var cfg: Dictionary = {}
 var _kata_shots: int = 0
+var _rehit_done: bool = false
 
 
 static func style_for(weapon_model: String) -> String:
 	match weapon_model:
 		"axe":
-			return "axe"
+			return "whirl"
 		"cutlass", "sword", "rapier", "dagger":
 			return "thrust"
 	return "slam"
@@ -84,6 +87,7 @@ func enter(_data: Dictionary) -> void:
 			cfg = STYLES[style_for(model)]
 	player.set_reach(str(cfg.get("reach", "sword")))
 	_kata_shots = 0
+	_rehit_done = false
 
 	# Snap to camera forward
 	var forward := get_camera_forward()
@@ -95,6 +99,8 @@ func physics_update(delta: float) -> void:
 	apply_gravity(delta)
 	if cfg.get("kata", false):
 		_kata_move(delta)
+	elif cfg.has("steer") and phase == 1:
+		_steer(delta, float(cfg["steer"]))
 	else:
 		player.velocity.x = move_toward(player.velocity.x, 0.0, 20.0 * delta)
 		player.velocity.z = move_toward(player.velocity.z, 0.0, 20.0 * delta)
@@ -127,22 +133,24 @@ func physics_update(delta: float) -> void:
 					var face_dir := get_camera_forward()
 					player.velocity.x = face_dir.x * float(cfg["impulse"])
 					player.velocity.z = face_dir.z * float(cfg["impulse"])
-				var hit := player.melee_hit(float(cfg["damage"]))
-				# Armament Haki: heavy attacks can't be blocked
-				if player.progression.has_flag("armament"):
-					hit.unblockable = true
-					hit.haki = true
-				hit.hitstop_duration = float(cfg["hitstop"])
-				hit.camera_shake_intensity = float(cfg["shake"])
-				hit.knockback_force = float(cfg["knockback"])
-				hit.stagger_duration = float(cfg["stagger"])
-				hit.knockdown = true
-				hit.sever = str(cfg.get("reach", "sword")) != "fist" and not cfg.get("kata", false)
+				# (the whirlwind's first turn only staggers: the second knocks them flat)
+				var hit := _hit(not cfg.has("rehit"))
 				if not cfg.get("kata", false):
 					player.sword_hitbox.activate(hit)
 				hitbox_activated = true
 
 		1:  # Active
+			# the whirlwind's second turn: a fresh hit on everyone about you (the
+			# hitbox off for a few frames first, so those already inside it register again)
+			if cfg.has("rehit") and not _rehit_done and timer >= float(cfg["rehit"]) - 0.06:
+				player.sword_hitbox.deactivate()
+			if cfg.has("rehit") and not _rehit_done and timer >= float(cfg["rehit"]):
+				_rehit_done = true
+				player.sword_hitbox.activate(_hit(true))
+				var col2: Color = Player.HAKI_TRAIL if player.power.buff("coat") else cfg.get("color", Color(0.45, 0.75, 1.0))
+				Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), col2])
+				Net.fx("sfx", [str(cfg["sfx"]), player.global_position, -4.0, 0.08, float(cfg["pitch"]) * 1.1])
+				Net.fx("dust_ring", [player.global_position, 10, 0.8])
 			# gun kata: spin and put a shot into everyone close
 			if cfg.get("kata", false):
 				var due := int(timer / float(cfg["active"]) * 4.0)
@@ -168,6 +176,29 @@ func physics_update(delta: float) -> void:
 	# Allow dodge cancel during recovery
 	if phase == 2 and wants_dodge():
 		transitioned.emit(self, "Dodge", {})
+
+
+func _hit(knockdown: bool) -> HitData:
+	var hit := player.melee_hit(float(cfg["damage"]))
+	# Armament Haki: heavy attacks can't be blocked
+	if player.progression.has_flag("armament"):
+		hit.unblockable = true
+		hit.haki = true
+	hit.hitstop_duration = float(cfg["hitstop"])
+	hit.camera_shake_intensity = float(cfg["shake"])
+	hit.knockback_force = float(cfg["knockback"])
+	hit.stagger_duration = float(cfg["stagger"])
+	hit.knockdown = knockdown
+	hit.sever = str(cfg.get("reach", "sword")) != "fist" and not cfg.get("kata", false)
+	return hit
+
+
+## Steered with the stick at a fraction of walking pace (the whirlwind).
+func _steer(delta: float, k: float) -> void:
+	var input := get_movement_input()
+	var want := get_camera_relative_direction(input) * player.move_speed * k * player.wade_mult() if input.length() > 0.1 else Vector3.ZERO
+	player.velocity.x = move_toward(player.velocity.x, want.x, 12.0 * delta)
+	player.velocity.z = move_toward(player.velocity.z, want.z, 12.0 * delta)
 
 
 func _kata_move(delta: float) -> void:

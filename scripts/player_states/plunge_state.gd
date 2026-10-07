@@ -7,6 +7,9 @@ extends PlayerState
 ## before it ends.
 ## A katana instead gives a little lift and sweeps one big arc down under you
 ## (once per jump).
+## An axe (Skybreaker) springs higher into a forward somersault, then comes down
+## two-handed and splits the ground in a line ahead: everyone along it is
+## knocked flat.
 
 const HANG := 0.16
 const DIVE_SPEED := 22.0
@@ -25,11 +28,18 @@ const SLASH_BOOST := 4.0                 # m/s up as the slash starts
 const SLASH_HIT := Vector2(0.17, 0.34)   # s: hitbox on..off (the arc under you)
 const SLASH_DAMAGE := 24.0
 
+const AXE_HANG := 0.36                   # s of somersault before the dive
+const AXE_LIFT := 4.5                    # m/s up as it springs
+const AXE_LINE := 5.5                    # m of ground split ahead on landing
+const AXE_LINE_W := 1.6
+const AXE_LINE_DAMAGE := 18.0
+
 var phase: int = 0   # 0 hang, 1 dive, 2 land
 var timer: float = 0.0
 var _dir := Vector3.ZERO
 var _rain := false
 var _slash := false
+var _axe := false
 var _fired := false
 
 
@@ -58,6 +68,13 @@ func enter(_data: Dictionary) -> void:
 		player.squash(1.5)
 		Net.fx("sfx", ["whoosh", player.global_position, -8.0, 0.06, 0.9])
 		return
+	_axe = player.style() == "axe"
+	if _axe:
+		player.velocity = Vector3(player.velocity.x * 0.3, AXE_LIFT, player.velocity.z * 0.3)
+		player.body_model.play("axe_flip", AXE_HANG / 0.62)
+		player.squash(2.5)
+		Net.fx("sfx", ["whoosh_big", player.global_position, -6.0, 0.06, 0.7])
+		return
 	player.velocity = Vector3(player.velocity.x * 0.3, 2.5, player.velocity.z * 0.3)
 	player.body_model.play("plunge_air", 0.6)
 	player.squash(2.0)
@@ -74,10 +91,10 @@ func physics_update(delta: float) -> void:
 		return
 	match phase:
 		0:
-			# brief hang at the top
-			player.velocity.y = move_toward(player.velocity.y, 0.0, 30.0 * delta)
+			# brief hang at the top (the axe: rising through its somersault)
+			player.velocity.y = move_toward(player.velocity.y, 0.0, (12.0 if _axe else 30.0) * delta)
 			player.move_and_slide()
-			if timer >= HANG:
+			if timer >= (AXE_HANG if _axe else HANG):
 				phase = 1
 				timer = 0.0
 				player.velocity = _dir * 3.5 + Vector3.DOWN * DIVE_SPEED
@@ -112,6 +129,9 @@ func _land() -> void:
 	timer = 0.0
 	player.sword_hitbox.deactivate()
 	player.velocity = Vector3.ZERO
+	if _axe:
+		_split_ground()
+		return
 	player.body_model.play("plunge_land", RECOVER + 0.1)
 	player.squash(-4.0)
 	var at := player.global_position - player.player_model.global_basis.z * 0.9
@@ -139,6 +159,46 @@ func _land() -> void:
 	for r in space.intersect_shape(q, 16):
 		var area := r["collider"] as Hurtbox
 		if area and area.owner and not (area.owner in already):
+			already.append(area.owner)
+			area.take_hit(wave, player)
+
+
+## Skybreaker's landing: the axe bites into the ground and splits it in a line
+## ahead; everyone along the line (not already struck on the way down) is
+## knocked flat.
+func _split_ground() -> void:
+	player.body_model.play("axe_land", RECOVER + 0.15)
+	player.squash(-4.5)
+	var f := -player.player_model.global_basis.z
+	f.y = 0.0
+	f = f.normalized()
+	var start := player.global_position + f * 0.8
+	for i in range(6):
+		var p := start + f * (i * AXE_LINE / 5.0)
+		Net.fx("dust", [p + Vector3(0, 0.05, 0), 6, 0.6 + i * 0.08])
+	Net.fx("dust_ring", [start, 14, 0.9])
+	Net.fx("impact", [start + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
+	Net.fx("sfx", ["thud", start, 2.0, 0.05, 0.7])
+	Net.fx("sfx", ["crunch", start + f * 2.0, -2.0, 0.05, 0.6])
+	CombatManager.apply_camera_shake(0.3)
+	var wave := player.melee_hit(AXE_LINE_DAMAGE)
+	wave.knockdown = true
+	wave.knockback_force = 9.0
+	wave.stagger_duration = 0.6
+	wave.hitstop_duration = 0.06
+	wave.camera_shake_intensity = 0.0
+	var already: Array = player.sword_hitbox.hit_targets.duplicate()
+	var q := PhysicsShapeQueryParameters3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(AXE_LINE_W, 1.8, AXE_LINE)
+	q.shape = box
+	q.transform = Transform3D(Basis.looking_at(f, Vector3.UP), start + f * (AXE_LINE * 0.5) + Vector3(0, 0.8, 0))
+	q.collision_mask = 32
+	q.collide_with_areas = true
+	q.collide_with_bodies = false
+	for r in player.get_world_3d().direct_space_state.intersect_shape(q, 16):
+		var area := r["collider"] as Hurtbox
+		if area and area.owner and area.owner != player and not (area.owner in already):
 			already.append(area.owner)
 			area.take_hit(wave, player)
 

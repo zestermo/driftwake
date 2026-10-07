@@ -26,7 +26,7 @@ signal footstep(strength: float)
 const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
-const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "dual_spin", "gun_kata"]
+const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "dual_spin", "gun_kata", "axe_whirl", "axe_flip"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r"]
 
 var look: Dictionary = {}
@@ -543,6 +543,18 @@ func _katana_hands() -> void:
 				reach_hand(false, weapon.global_transform * Vector3(0, 0, 0.17), pole_l)
 
 
+## The axe's two-handed moves (the splitter, the whirlwind, Skybreaker): the
+## left hand on the haft above the right.
+const AXE_TWO_HANDED := ["axe_split", "axe_whirl", "axe_flip", "axe_land"]
+
+
+func _axe_hands() -> void:
+	if stance != "axe" or ragdoll != null or weapon == null or not weapon.is_inside_tree() or not weapon_in_hand:
+		return
+	if current_action() in AXE_TWO_HANDED:
+		reach_hand(false, weapon.global_transform * Vector3(0, 0, -0.2), global_basis * Vector3(-0.7, -1.0, 0.2))
+
+
 ## Parry / block: the blade hangs from the raised hands, point down, out in
 ## front and slanted across the body to the left (set on the wrist directly).
 const HANG_DIR := Vector3(-0.6, -0.6, -0.55)
@@ -1032,25 +1044,87 @@ func _action_pose(n: String, u: float) -> Array:
 			else:
 				lift.y = -0.32 * (1.0 - _ease(clampf((u - 0.58) / 0.42, 0.0, 1.0)))
 			return [_keys(u, [[0.0, GUARD], [0.27, coil, "out"], [0.31, coil], [0.4, reach, "out"], [0.58, reach], [1.0, GUARD]]), "full", lift]
-		"axe_heavy":
-			# axe heavy: one-handed overhead chop. Rear back with the axe cocked
-			# behind the head, then hack down through a forward step.
-			# windup ..0.38, strike ..0.53, recovery.
-			var cock := {"arm_r": Vector3(2.95, -0.1, 0.35), "fore_r": Vector3(1.45, 0, 0), "hand_r": Vector3(0.2, 0, 0),
-				"arm_l": Vector3(1.25, 0.1, -0.55), "fore_l": Vector3(0.45, 0, 0),
-				"torso": Vector3(0.32, -0.3, 0.05), "head": Vector3(0.12, 0.25, 0),
-				"leg_l": Vector3(0.45, 0, -0.08), "shin_l": Vector3(-0.35, 0, 0), "leg_r": Vector3(-0.25, 0, 0.08), "shin_r": Vector3(-0.45, 0, 0)}
-			var chop := {"arm_r": Vector3(0.55, 0.0, 0.12), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-0.65, 0, 0),
-				"arm_l": Vector3(-0.35, 0, -0.75), "fore_l": Vector3(0.5, 0, 0),
-				"torso": Vector3(-0.62, 0.32, 0.0), "head": Vector3(0.22, -0.25, 0),
-				"leg_l": Vector3(0.95, 0, -0.1), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.6, 0, 0.1), "shin_r": Vector3(-0.3, 0, 0)}
-			if u < 0.36:
-				lift.y = 0.05 * _ease(u / 0.36)
-			elif u < 0.47:
-				lift.y = lerpf(0.05, -0.34, pow((u - 0.36) / 0.11, 2.0))
+		# --- axe: heavy hacks with the body behind them ---
+		"axe_hack":
+			# combo 1: the axe hauled up over the right shoulder, then hacked down
+			# across the body to the lower left through a lunge
+			var lunge := {"leg_l": Vector3(0.95, 0, -0.1), "shin_l": Vector3(-0.95, 0, 0), "leg_r": Vector3(-0.7, 0, 0.1), "shin_r": Vector3(-0.3, 0, 0)}
+			var wind := {"arm_r": Vector3(2.4, 0.6, 1.3), "fore_r": Vector3(1.3, 0, 0), "hand_r": Vector3(0.35, 0, 0),
+				"torso": Vector3(0.15, 1.0, 0.12), "head": Vector3(0.0, -0.7, 0), "arm_l": Vector3(0.8, 0, -0.5), "fore_l": Vector3(1.1, 0, 0)}
+			var hit := {"arm_r": Vector3(0.9, -0.85, -0.95), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-0.6, 0, 0),
+				"torso": Vector3(-0.5, -0.95, -0.12), "head": Vector3(-0.05, 0.75, 0), "arm_l": Vector3(0.25, 0, -1.25), "fore_l": Vector3(0.45, 0, 0)}
+			lift.y = _strike_lift(u, 0.36, 0.48, 0.68, -0.06, -0.3)
+			return [_keys(u, [[0.0, GUARD], [0.3, wind.merged(lunge), "out"], [0.36, wind.merged(lunge)], [0.48, hit.merged(lunge), "in"], [0.68, hit.merged(lunge)], [1.0, GUARD]]), "full", lift]
+		"axe_hook":
+			# combo 2: dropped low on the left, then ripped up and across to the
+			# right, the beard leading, stepping through with the other foot
+			var crouch := {"leg_l": Vector3(0.5, 0, -0.14), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.2, 0, 0.14), "shin_r": Vector3(-0.8, 0, 0)}
+			var stride := {"leg_l": Vector3(-0.55, 0, -0.1), "shin_l": Vector3(-0.35, 0, 0), "leg_r": Vector3(0.95, 0, 0.1), "shin_r": Vector3(-0.9, 0, 0)}
+			var low := {"arm_r": Vector3(0.35, -0.7, -0.85), "fore_r": Vector3(1.1, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
+				"torso": Vector3(0.3, -1.05, -0.1), "head": Vector3(-0.1, 0.8, 0), "arm_l": Vector3(0.5, 0, -0.5), "fore_l": Vector3(1.3, 0, 0)}
+			var rise := {"arm_r": Vector3(2.5, 0.55, 1.3), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-0.7, 0, 0),
+				"torso": Vector3(-0.3, 1.0, 0.12), "head": Vector3(0.1, -0.7, 0), "arm_l": Vector3(0.4, 0, -1.4), "fore_l": Vector3(0.3, 0, 0)}
+			if u < 0.34:
+				lift.y = -0.22 * _ease(u / 0.34)
+			elif u < 0.46:
+				lift.y = lerpf(-0.22, 0.02, 1.0 - pow(1.0 - (u - 0.34) / 0.12, 3.0))
 			else:
-				lift.y = -0.34 * (1.0 - _ease(clampf((u - 0.62) / 0.38, 0.0, 1.0)))
-			return [_keys(u, [[0.0, GUARD], [0.34, cock, "out"], [0.38, cock], [0.47, chop, "in"], [0.62, chop], [1.0, GUARD]]), "full", lift]
+				lift.y = 0.02 * (1.0 - _ease(clampf((u - 0.66) / 0.34, 0.0, 1.0)))
+			return [_keys(u, [[0.0, GUARD], [0.28, low.merged(crouch), "out"], [0.34, low.merged(crouch)], [0.46, rise.merged(stride), "in"], [0.66, rise.merged(stride)], [1.0, GUARD]]), "full", lift]
+		"axe_split":
+			# combo 3: both hands on the haft, the axe raised high over the head,
+			# a little hop, then smashed down into the ground through a deep lunge
+			var coil := {"leg_l": Vector3(0.6, 0, -0.15), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(0.3, 0, 0.15), "shin_r": Vector3(-1.1, 0, 0)}
+			var air := {"leg_l": Vector3(1.0, 0, -0.1), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(0.2, 0, 0.1), "shin_r": Vector3(-0.9, 0, 0)}
+			var raise := {"arm_r": Vector3(3.15, 0.15, 0.2), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0.5, 0, 0),
+				"arm_l": Vector3(3.0, -0.15, 0.2), "fore_l": Vector3(1.35, 0, 0), "torso": Vector3(0.45, 0.1, 0), "head": Vector3(0.3, 0, 0)}
+			# (arms reaching out ahead of the bent body: the head bites the ground in front)
+			var smash := {"arm_r": Vector3(1.3, 0, 0.0), "fore_r": Vector3(-0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+				"arm_l": Vector3(1.4, 0, 0.12), "fore_l": Vector3(0.2, 0, 0), "torso": Vector3(-0.9, 0, 0), "head": Vector3(-0.35, 0, 0),
+				"leg_l": Vector3(1.15, 0, -0.1), "shin_l": Vector3(-1.25, 0, 0), "leg_r": Vector3(-0.85, 0, 0.1), "shin_r": Vector3(-0.15, 0, 0)}
+			if u < 0.3:
+				lift.y = -0.2 * _ease(u / 0.3)
+			elif u < 0.42:
+				lift.y = lerpf(-0.2, 0.18, _ease((u - 0.3) / 0.12))
+			elif u < 0.5:
+				lift.y = lerpf(0.18, -0.4, (u - 0.42) / 0.08)
+			else:
+				lift.y = -0.4 * (1.0 - _ease(clampf((u - 0.72) / 0.28, 0.0, 1.0)))
+			return [_keys(u, [[0.0, GUARD], [0.3, raise.merged(coil), "out"], [0.42, raise.merged(air)], [0.5, smash, "in"], [0.72, smash], [1.0, GUARD]]), "full", lift]
+		"axe_whirl":
+			# heavy: the axe swung out wide in both hands and the whole body turned
+			# round twice with it, feet set wide and low
+			var wide := {"leg_l": Vector3(0.25, 0, -0.3), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.15, 0, 0.3), "shin_r": Vector3(-0.45, 0, 0)}
+			# (the wrist turned so the haft runs out along the arm: the head swings wide)
+			var cock := {"arm_r": Vector3(1.0, 0.3, 1.4), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3(-1.2, 0, 0),
+				"arm_l": Vector3(0.9, 0.2, 0.7), "fore_l": Vector3(0.6, 0, 0), "torso": Vector3(-0.1, 1.2, 0.1), "head": Vector3(0.0, -0.9, 0)}
+			var out := {"arm_r": Vector3(1.45, 0.0, 1.35), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.5, 0, 0),
+				"arm_l": Vector3(1.35, 0.15, 0.85), "fore_l": Vector3(0.35, 0, 0), "torso": Vector3(-0.2, 0.0, 0.1), "head": Vector3(0.1, 0, 0)}
+			var pose := _keys(u, [[0.0, GUARD], [0.16, cock.merged(wide), "out"], [0.22, out.merged(wide), "out"], [0.75, out.merged(wide)], [1.0, GUARD]])
+			var s := clampf((u - 0.18) / 0.59, 0.0, 1.0)
+			pose["pivot"] = Vector3(0, -2.0 * TAU * (1.0 - pow(1.0 - s, 1.4)), 0)
+			lift.y = -0.14 * sin(clampf(u / 0.85, 0.0, 1.0) * PI)
+			return [pose, "full", lift]
+		"axe_flip":
+			# jump attack: tucked into a forward somersault with the axe held high
+			# in both hands, then opened out into a two-handed chop on the way down
+			var tuck := {"leg_l": Vector3(1.5, 0, -0.1), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(1.3, 0, 0.1), "shin_r": Vector3(-1.9, 0, 0),
+				"arm_r": Vector3(3.0, 0.1, 0.2), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3(0.4, 0, 0),
+				"arm_l": Vector3(2.9, -0.1, 0.2), "fore_l": Vector3(1.3, 0, 0), "torso": Vector3(-0.4, 0, 0), "head": Vector3(-0.2, 0, 0)}
+			var dive := {"arm_r": Vector3(0.45, 0, 0.0), "fore_r": Vector3(-0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+				"arm_l": Vector3(0.6, 0, 0.12), "fore_l": Vector3(0.2, 0, 0), "torso": Vector3(-0.7, 0, 0), "head": Vector3(-0.25, 0, 0),
+				"leg_l": Vector3(0.6, 0, -0.1), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(0.2, 0, 0.1), "shin_r": Vector3(-0.5, 0, 0)}
+			var pose := _keys(u, [[0.0, {}], [0.15, tuck, "out"], [0.55, tuck], [0.72, dive, "in"], [1.0, dive]])
+			pose["pivot"] = Vector3(-TAU * _ease(clampf(u / 0.62, 0.0, 1.0)), 0, 0)
+			return [pose, "full", lift]
+		"axe_land":
+			# the axe bitten deep into the ground ahead, crouched over it, then
+			# wrenched free and back up to guard
+			var bury := {"arm_r": Vector3(1.3, 0, 0.0), "fore_r": Vector3(-0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+				"arm_l": Vector3(1.4, 0, 0.12), "fore_l": Vector3(0.2, 0, 0), "torso": Vector3(-0.95, 0, 0), "head": Vector3(-0.3, 0, 0),
+				"leg_l": Vector3(1.3, 0, -0.15), "shin_l": Vector3(-1.8, 0, 0), "leg_r": Vector3(-0.4, 0, 0.15), "shin_r": Vector3(-1.2, 0, 0)}
+			lift.y = -0.45 * (1.0 - _ease(clampf((u - 0.45) / 0.55, 0.0, 1.0)))
+			return [_keys(u, [[0.0, bury], [0.45, bury], [1.0, GUARD]]), "full", lift]
 		"roll":
 			var tuck := {"leg_l": Vector3(1.7, 0, 0), "shin_l": Vector3(-2.2, 0, 0), "leg_r": Vector3(1.5, 0, 0), "shin_r": Vector3(-2.1, 0, 0),
 				"arm_l": Vector3(1.2, 0, -0.3), "fore_l": Vector3(1.6, 0, 0), "arm_r": Vector3(1.2, 0, 0.3), "fore_r": Vector3(1.6, 0, 0),
@@ -2142,6 +2216,7 @@ func _process(delta: float) -> void:
 	if auto_point_guns:
 		point_guns()
 	_katana_hands()
+	_axe_hands()
 	_update_physics(delta)
 
 
