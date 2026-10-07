@@ -138,6 +138,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `goreshot`: A camp grunt cut down by a severing killing blow (head or arm off, blood, splats) and a second losing an arm, frames at 0.15-2.5 s. Args: <out_prefix>
 - `horizonshot`: The Redtide fort and ships on the horizon from the starter dock (rain at dawn like the capture, plus zoomed clear/rain/storm), to check distant things sit on the sea instead of floating on haze; also the sea from the dock (sun glare at 9-11 h). Args: <out_prefix>
 - `fleetshot`: The enemy ship kinds side by side at sea (sloop, gunboat, brig, Marines). Args: <out_prefix>
+- `kingshot`: The Sea King fighting our ship at its lair: circling, rearing over the deck (bite ring), head down on deck, tail up. Args: <out_prefix>
 - `guestshot`: A rendered co-op guest: start `nethost.gd -- <port>` headless, then `guestshot.gd -- <port> <out_prefix>` joins it and shoots fixed views (dock, open sea) as a guest sees them; prints the guest's hour, sun and ocean state.
 - `wolfpose`: Standalone Zoan hybrid: front, 3/4 and side views. Args: <out_prefix>
 - `zigzag`: (no description)

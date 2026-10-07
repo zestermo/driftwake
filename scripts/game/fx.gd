@@ -27,6 +27,14 @@ const SOUNDS := {
 	"haki": "res://assets/audio/haki.wav",
 	"block": "res://assets/audio/block.wav",
 	"peril": "res://assets/audio/peril.wav",
+	"bell": "res://assets/audio/bell.wav",
+	"cannon": "res://assets/audio/cannon.wav",
+	"cannon_hit": "res://assets/audio/cannon_hit.wav",
+	"horn": "res://assets/audio/horn.wav",
+	"roar": "res://assets/audio/roar.wav",
+	"rope": "res://assets/audio/rope.wav",
+	"splash_big": "res://assets/audio/splash_big.wav",
+	"wood_crack": "res://assets/audio/wood_crack.wav",
 }
 
 var _dust_mat: StandardMaterial3D
@@ -170,8 +178,9 @@ static var _disc_mesh: ArrayMesh
 
 
 ## A warning on the ground: a ring where a big attack will land, filling in
-## over `secs` (then it's gone).
-func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.0, 0.18, 0.12)) -> void:
+## over `secs` (then it's gone). `follow` (a node key) carries it along on
+## that node (a ship's deck under way).
+func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.0, 0.18, 0.12), follow: String = "") -> void:
 	if _tele_mat == null:
 		_tele_mat = StandardMaterial3D.new()
 		_tele_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -183,7 +192,12 @@ func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.
 		_disc_mesh = _annulus(0.0, 1.0)
 	var holder := Node3D.new()
 	holder.name = "Telegraph"
-	_scene_root().add_child(holder)
+	var net := get_node_or_null("/root/Net")
+	var on: Node3D = net.node_of(follow) as Node3D if net and follow != "" else null
+	if on:
+		on.add_child(holder)
+	else:
+		_scene_root().add_child(holder)
 	holder.global_position = pos + Vector3(0, 0.07, 0)
 	var ring := MeshInstance3D.new()
 	ring.mesh = _ring_mesh

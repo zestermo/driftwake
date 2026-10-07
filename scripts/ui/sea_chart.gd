@@ -105,6 +105,15 @@ func _draw() -> void:
 				draw_line(c + Vector2(-4, 2), c + Vector2(4, -1), ink, 2.0)
 				draw_line(c + Vector2(0, 0), c + Vector2(1, -6), ink, 1.0)
 				draw_string(_font, c + Vector2(6, 3), "wreck" + (" (picked over)" if gm.opened.has("wreck_%d" % i) else ""), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+		if sf.sea_king and gm.charted.has("king"):
+			var c := _to_chart(sf.sea_king.lair, centre, k)
+			var serp := Color(0.25, 0.4, 0.35)
+			var pts := PackedVector2Array()
+			for j in range(9):
+				pts.append(c + Vector2(-8 + j * 2.0, sin(j * 1.3) * 2.5))
+			draw_polyline(pts, serp, 1.5)
+			draw_circle(pts[pts.size() - 1], 1.8, serp)
+			draw_string(_font, c + Vector2(-26, 12), "here be a Sea King", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, serp)
 		# X marks the spot
 		for t in gm.maps.keys():
 			var ti := int(t)

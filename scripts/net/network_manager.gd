@@ -1013,6 +1013,8 @@ func _all_rammed(ship_key: String, at: Vector3, push: Vector3) -> void:
 	if p.global_position.distance_to(at) < 40.0:
 		CombatManager.apply_camera_shake(0.5)
 	var ship := node_of(ship_key) as Node3D
+	if ship and ship.has_method("jolt"):
+		ship.jolt(push)
 	if ship and ship.aboard(p.global_position) and p.context == Player.Context.ON_FOOT and p.is_on_floor():
 		p.knock_down(push * 6.0 + Vector3.UP * 3.0)
 

@@ -131,6 +131,12 @@ func _physics_process(delta: float) -> void:
 	if not hit.is_empty() and (hit["position"] as Vector3).y > sea - 0.05:
 		_burst(hit["position"], hit["collider"] as Node, hit.get("normal", Vector3.UP))
 		return
+	if team == "crew":
+		for k in get_tree().get_nodes_in_group("sea_kings"):
+			var at: Vector3 = k.struck(from, to)
+			if at != Vector3.INF and at.y > sea - 0.05:
+				_burst(at, k, (from - to).normalized())
+				return
 	if to.y < sea:
 		var t := clampf((from.y - sea) / maxf(from.y - to.y, 0.001), 0.0, 1.0)
 		_splash(from.lerp(to, t))
@@ -194,6 +200,9 @@ func _burst(at: Vector3, col: Node, normal: Vector3) -> void:
 			if ship and ship.has_method("is_dead") and ship.get("hurtbox"):
 				(ship.get("hurtbox") as Hurtbox).take_hit(hd, shooter)
 				hit_ship = true
+			elif col and col.is_in_group("sea_kings"):
+				(col.get("hurtbox") as Hurtbox).take_hit(hd, shooter)
+				hit_ship = true
 			_burst_enemies(at, hit_ship)
 		queue_free()
 		return
@@ -250,7 +259,7 @@ func _burst_enemies(at: Vector3, skip_ships: bool) -> void:
 		var o := hb.owner
 		if o == null or done.has(o) or o is Cannonball:
 			continue
-		if o.is_in_group("enemy_ships"):
+		if o.is_in_group("enemy_ships") or o.is_in_group("sea_kings"):
 			if skip_ships:
 				continue
 			# a near miss still rattles the hull a little

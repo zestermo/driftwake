@@ -317,6 +317,15 @@ func deck_delta() -> Transform3D:
 	return _deck_delta
 
 
+## Knocked hard (a ram, a Sea King's tail): `push` (world) throws her over
+## and rocks her bow; the hull's springs bring her back.
+func jolt(push: Vector3) -> void:
+	var l := global_basis.inverse() * push
+	_vroll += clampf(-l.x * 0.06, -0.5, 0.5)
+	_vpitch += clampf(l.z * 0.04, -0.3, 0.3)
+	_vy += 0.6
+
+
 ## Inside the ship's bounds: on deck, in the rigging, on a ladder, jumping
 ## about over the deck (co-op positions are sent relative to the hull then).
 func aboard(p: Vector3) -> bool:

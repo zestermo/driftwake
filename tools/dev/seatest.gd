@@ -1,7 +1,8 @@
 extends SceneTree
 ## Sea round: cannonballs cut in two by a katana or cutlass (the halves fly on, split
 ## 45 degrees, and land in the sea or on deck), not by other weapons; set off in
-## mid-air by a shot; left alone they land.
+## mid-air by a shot; left alone they land. Then chases, boarding, hull damage,
+## hazards, loot, the chart and the Sea King (rise, bite, tail slam, cannon, kill).
 var t := 0.0
 var step := 0
 var wait := 0.0
@@ -50,7 +51,7 @@ func gone() -> bool:
 	return not is_instance_valid(ball) or ball.is_queued_for_deletion()
 func _process(d: float) -> bool:
 	t += d
-	if t > 120.0:
+	if t > 200.0:
 		check("timed out at step %d" % step, false)
 		finish()
 		return true
@@ -556,6 +557,115 @@ func _process(d: float) -> bool:
 			menu.open("chart")
 			check("M opens the sea chart", menu._current == "chart" and menu._chart.visible)
 			menu.close()
+			step = 360
+		360:
+			# --- the Sea King: sail into its waters
+			var sf = get_first_node_in_group("sea_features")
+			var sk = sf.sea_king
+			check("a Sea King lurks out there, unseen", sk != null and not sk.visible and sk.state == 0)
+			for e in get_nodes_in_group("enemy_ships"):
+				e.queue_free()
+			p.state_machine.force_state("Idle", {})
+			ship.place(Vector3(sk.lair.x + 60.0, 0.0, sk.lair.y), 0.0)
+			wait = 0.3
+			step = 37
+		37:
+			p.global_position = ship.global_transform * Vector3(0, 0.8, 1.0)
+			p.reset_physics_interpolation()
+			p.state_machine.force_state("Idle", {})
+			wait = 3.0
+			step = 38
+		38:
+			var sk = get_first_node_in_group("sea_kings")
+			var gm = root.get_node("GameManager")
+			print("   sea king: state %d, head %s, ship %s" % [sk.state, sk.head_position(), ship.global_position])
+			check("it rises beside a manned ship", sk.visible and sk.state in [1, 2])
+			check("...and goes on the chart", gm.charted.has("king"))
+			sk._next = 999.0
+			wait = 1.5
+			step = 39
+		39:
+			var sk = get_first_node_in_group("sea_kings")
+			var off: float = sk.head_position().distance_to(ship.global_position)
+			check("it circles her, head high (%.1f m off)" % off, sk.state == 2 and off > 12.0 and off < 40.0 and sk.head_position().y > 2.0)
+			# the bite, aimed where our captain stands
+			p.global_position = ship.global_transform * Vector3(0.5, 0.8, 1.0)
+			p.reset_physics_interpolation()
+			p.state_machine.force_state("Idle", {})
+			sk._start_rear(ship)
+			var l: Vector3 = ship.global_transform.affine_inverse() * p.global_position
+			sk._bite_local = Vector3(l.x, 0.32, l.z)
+			check("a ring on the deck warns of the bite, riding with her", ship.find_child("Telegraph", true, false) != null)
+			hull0 = ship.hull
+			hp0 = p.health_component.current_health
+			wait = 2.1
+			step = 40
+		40:
+			var sk = get_first_node_in_group("sea_kings")
+			print("   bite: hull %.0f -> %.0f, hp %.0f -> %.0f, state %d (%s)" % [hull0, ship.hull, hp0, p.health_component.current_health, sk.state, p.current_state_name()])
+			check("it bites down on the deck: the hull takes it", ship.hull < hull0 - 30.0)
+			check("...and our captain in the ring with it", p.health_component.current_health < hp0)
+			var deck: Vector3 = ship.global_transform * sk._bite_local
+			check("its head lies on the deck a moment", sk.state == 5 and sk.head_position().distance_to(deck) < 2.5)
+			var before: float = sk.hp
+			var hd := HitData.new()
+			hd.damage = 60.0
+			sk.hurtbox.take_hit(hd, p)
+			check("...and a blade on its head hurts it", sk.hp < before - 59.0)
+			wait = 2.0
+			step = 41
+		41:
+			var sk = get_first_node_in_group("sea_kings")
+			p.state_machine.force_state("Idle", {})
+			p.global_position = ship.global_transform * Vector3(0, 0.8, 2.0)
+			p.reset_physics_interpolation()
+			sk._next = 999.0
+			sk._start_tail(ship)
+			set_meta("thrown", false)
+			t0 = t
+			wait = 0.6
+			step = 42
+		42:
+			var sk = get_first_node_in_group("sea_kings")
+			if p.current_state_name() == "Downed":
+				set_meta("thrown", true)
+			if t - t0 > 1.0:
+				set_meta("tail_y", maxf(float(get_meta("tail_y", -99.0)), (sk._seg_pos[sk.SEGS - 1] as Vector3).y))
+			if t - t0 < 3.0:
+				return false
+			print("   tail: tip rose to %.1f m, captain thrown %s" % [get_meta("tail_y"), get_meta("thrown")])
+			check("its tail rises out of the sea", float(get_meta("tail_y")) > 5.0)
+			check("...and slams down: our captain is thrown off their feet", bool(get_meta("thrown")))
+			# a cannonball from our side into it (held still, abeam)
+			p.state_machine.force_state("Idle", {})
+			sk.set_physics_process(false)
+			sk._head.global_position = ship.global_transform * Vector3(18.0, 4.0, -1.0)
+			sk._pose_segs()
+			set_meta("hp_gun", sk.hp)
+			var fired := false
+			for c in ship.cannons:
+				c.cool = 0.0
+				if not fired and c.aim_at(sk._head.global_transform * sk.HEAD_C):
+					fired = c.fire(p)
+			check("one of our guns bears on it", fired)
+			wait = 1.5
+			step = 43
+		43:
+			var sk = get_first_node_in_group("sea_kings")
+			print("   cannon: sea king hp %.0f -> %.0f" % [get_meta("hp_gun"), sk.hp])
+			check("a cannonball strikes it (siege hits count extra)", sk.hp < float(get_meta("hp_gun")) - 40.0)
+			sk.set_physics_process(true)
+			sk.hp = 10.0
+			var hd := HitData.new()
+			hd.damage = 30.0
+			sk.hurtbox.take_hit(hd, p)
+			check("killed, it sinks", sk.is_dead())
+			check("...and its hoard floats up", current_scene.find_child("SeaKingHoard*", true, false) != null)
+			wait = 7.0
+			step = 44
+		44:
+			var sk = get_first_node_in_group("sea_kings")
+			check("...gone under after a while", not sk.visible)
 			finish()
 	return false
 func get_root_halves() -> Array:

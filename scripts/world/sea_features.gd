@@ -35,6 +35,9 @@ var _spots: Array = []
 var _rng := RandomNumberGenerator.new()
 var _foam_t: float = 0.0
 const WHIRL_DEPTH := 2.6
+const SEA_KING := preload("res://scripts/enemies/sea_king.gd")
+## Lurks at its lair (SeaKing.lair), rising for a manned ship that comes near.
+var sea_king: Node3D
 
 
 func _ready() -> void:
@@ -80,6 +83,13 @@ func _ready() -> void:
 		EnemyShip.no_go.append([wr[0], 16.0])
 	for w in whirls:
 		EnemyShip.no_go.append([w[0], float(w[1]) + 10.0])
+	# (placed last so the seed puts everything above where it always was)
+	var lc := _open_spot(80.0)
+	if lc != Vector2.INF:
+		sea_king = SEA_KING.new()
+		sea_king.name = "SeaKing"
+		sea_king.lair = lc
+		add_child(sea_king)
 
 
 func _exit_tree() -> void:
