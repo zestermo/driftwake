@@ -71,6 +71,11 @@ distance culling/LOD anywhere).
   Godot's own modifier state isn't stuck too, so it seems not to catch every case. Fix
   candidates: re-check Shift from the OS each tick while sprinting, or move dodge off Ctrl.
 
+- Sea goes pale grey and opaque after a while (capture cap_20261006_161506: Brinehollow's
+  dock, clear, 10:45). It looks like the sandy seabed with no sea drawn over it. Not
+  reproduced in renders (hours, weathers, small window, after manning a cannon). F12 now
+  records the sea mesh and its shader inputs: press it the moment it happens.
+
 ## UI
 
 - Tooltips on item hover with the item's details (tier, stats, worth...).
