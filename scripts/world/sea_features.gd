@@ -179,6 +179,7 @@ func _process(delta: float) -> void:
 	if _state_t <= 0.0:
 		_state_t = 0.5
 		_apply_found()
+		_chart_near()
 	# surf breaks on the reefs near the camera
 	_foam_t -= delta
 	if _foam_t > 0.0:
@@ -364,6 +365,32 @@ func _bob_bottles() -> void:
 		n.rotation = Vector3(sin(t * 1.4 + i) * 0.25, t * 0.2 + i, cos(t * 1.1 + i) * 0.2)
 		if glint and cam and cam.global_position.distance_to(n.global_position) < 160.0:
 			FX.sparkle(n.global_position + Vector3.UP * 0.3, 4, Color(0.8, 1.0, 0.85))
+
+
+## Our captain comes near a place: it goes on the sea chart (islands get a
+## toast, the rest go on quietly).
+func _chart_near() -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	var me := get_tree().get_first_node_in_group("player") as Node3D
+	if gm == null or me == null:
+		return
+	var p := Vector2(me.global_position.x, me.global_position.z)
+	for info in gen.get("island_infos"):
+		var key := "island:" + str(info["name"])
+		if not gm.charted.has(key) and p.distance_to(info["pos"]) < float(info["radius"]) + 250.0:
+			gm.charted[key] = true
+			get_tree().call_group("hud", "show_toast", "Charted %s" % info["name"])
+	var rt = gen.get("redtide")
+	if rt and not gm.charted.has("island:Redtide Rock") and p.distance_to(Vector2(rt.position.x, rt.position.z)) < 350.0:
+		gm.charted["island:Redtide Rock"] = true
+		get_tree().call_group("hud", "show_toast", "Charted Redtide Rock")
+	for pair in [["reef", reefs, 0.0], ["whirl", whirls, 0.0], ["fog", fogs, 100.0], ["wreck", wrecks, 0.0]]:
+		var arr: Array = pair[1]
+		for i in range(arr.size()):
+			var key := "%s:%d" % [pair[0], i]
+			var reach: float = 220.0 + float(pair[2]) + (float(arr[i][1]) if pair[0] == "fog" else 0.0)
+			if not gm.charted.has(key) and p.distance_to(arr[i][0]) < reach:
+				gm.charted[key] = true
 
 
 ## Bottles already read are gone; treasures whose map you hold (and haven't

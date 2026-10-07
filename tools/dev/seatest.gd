@@ -531,6 +531,31 @@ func _process(d: float) -> bool:
 			var sf = get_first_node_in_group("sea_features")
 			var bt: int = int(sf.bottles[0][1])
 			check("...once (the X is gone)", not sf._treasure_nodes[bt].visible)
+			# --- the sea chart: sailing near things puts them on it
+			var gm = root.get_node("GameManager")
+			var rf: Array = sf.reefs[1]
+			p.state_machine.force_state("Idle", {})
+			p.global_position = Vector3(rf[0].x + 60.0, 2.0, rf[0].y)
+			p.reset_physics_interpolation()
+			set_meta("had_reef", gm.charted.has("reef:1"))
+			wait = 1.2
+			step = 35
+		35:
+			var gm = root.get_node("GameManager")
+			check("passing near a reef charts it", gm.charted.has("reef:1") and not get_meta("had_reef"))
+			var info: Dictionary = root.get_node("World/Islands").island_infos[0]
+			p.global_position = Vector3(info["pos"].x + float(info["radius"]) + 150.0, 2.0, info["pos"].y)
+			p.reset_physics_interpolation()
+			wait = 1.2
+			step = 36
+		36:
+			var gm = root.get_node("GameManager")
+			var info: Dictionary = root.get_node("World/Islands").island_infos[0]
+			check("coming near an island charts it (%s)" % info["name"], gm.charted.has("island:" + str(info["name"])))
+			var menu = root.get_node("GameMenu")
+			menu.open("chart")
+			check("M opens the sea chart", menu._current == "chart" and menu._chart.visible)
+			menu.close()
 			finish()
 	return false
 func get_root_halves() -> Array:

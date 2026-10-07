@@ -17,6 +17,9 @@ var _inventory: InventoryScreen
 var _skills: SkillMapScreen
 # save slots (Load Game from the pause menu)
 var _load: SaveSlotList
+# sea chart (M)
+const SEA_CHART := preload("res://scripts/ui/sea_chart.gd")
+var _chart: Control
 
 # options widgets that need refreshing
 var _opt_refreshers: Array[Callable] = []
@@ -46,6 +49,8 @@ func _ready() -> void:
 	_screens["inventory"] = _inventory
 	_skills = SkillMapScreen.new(self)
 	_screens["skills"] = _skills
+	_chart = SEA_CHART.new()
+	_screens["chart"] = _chart
 	_load = SaveSlotList.new()
 	_load.chosen.connect(_load_slot)
 	_load.cancelled.connect(func(): open("pause"))
@@ -101,6 +106,12 @@ func _input(event: InputEvent) -> void:
 		elif _current == "skills":
 			close()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("sea_chart"):
+		if _current == "":
+			open("chart")
+		elif _current == "chart":
+			close()
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("inventory"):
 		if _current == "":
 			open("inventory")
@@ -153,6 +164,8 @@ func open(screen: String) -> void:
 		_inventory.focus_bag()
 	elif screen == "skills":
 		_skills.on_open()
+	elif screen == "chart":
+		_chart.on_open()
 	elif screen == "load":
 		_load.open("load", true)
 	else:
@@ -212,6 +225,7 @@ func _build_pause() -> Control:
 		["Resume", func(): close()],
 		["Inventory", func(): open("inventory")],
 		["Skill Map", func(): open("skills")],
+		["Sea Chart", func(): open("chart")],
 		["Appearance", func(): _open_appearance()],
 		["Options", func(): open("options")],
 		["Controls", func(): open("controls")],
@@ -414,7 +428,7 @@ const BINDINGS := [
 	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
 	["Dodge roll", "Left Ctrl"], ["Parry", "Q"], ["Interact / talk", "F"], ["Devil Fruit skills", "1 - 4"],
 	["Ultimate", "R"], ["Quick items (rum...)", "5 - 7"], ["Block (hold)", "Q"],
-	["Inventory", "Tab / I"], ["Skill map", "K"], ["Zoan: shift form", "V"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
+	["Inventory", "Tab / I"], ["Skill map", "K"], ["Sea chart", "M"],["Zoan: shift form", "V"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
 ]
 

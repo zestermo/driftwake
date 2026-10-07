@@ -8,6 +8,7 @@ var sf
 var shots: Array = []
 var i := -1
 var t0 := 0.0
+var charting := false
 func _initialize():
 	out = OS.get_cmdline_user_args()[0]
 	change_scene_to_file("res://scenes/world/world.tscn")
@@ -40,8 +41,25 @@ func _process(d: float) -> bool:
 			root.get_texture().get_image().save_png("%s_%s.png" % [out, shots[i][0]])
 			print("shot ", shots[i][0])
 		i += 1
-		if i >= shots.size():
+		if i == shots.size() and not charting:
+			charting = true
+			# last: the sea chart with everything charted and a map in hand
+			var gm = root.get_node("GameManager")
+			for info in root.get_node("World/Islands").island_infos:
+				gm.charted["island:" + str(info["name"])] = true
+			gm.charted["island:Redtide Rock"] = true
+			for kind in [["reef", sf.reefs], ["whirl", sf.whirls], ["fog", sf.fogs], ["wreck", sf.wrecks]]:
+				for j in range(kind[1].size()):
+					gm.charted["%s:%d" % [kind[0], j]] = true
+			gm.maps[0] = true
+			root.get_node("GameMenu").open("chart")
+			shots.append(["chart", Vector3.ZERO, 0.0, 0.0])
+			t0 = t
+			return false
+		if i > shots.size() - 1:
 			quit()
+			return false
+		if shots[i][0] == "chart":
 			return false
 		var s: Array = shots[i]
 		var at: Vector3 = s[1]
