@@ -5,7 +5,7 @@ description: >
   scripts/npc/humanoid.gd (actions played with Humanoid.play, poses as joint-rotation
   dictionaries, the `_keys` easing modes, upper/full masks, hip lift, spins), wiring an
   action to a player state or enemy (hitbox start/end timing, durations vs lengths, slash
-  trails), co-op mirroring, and checking the result with the posebench / heavyshots render
+  trails), co-op mirroring, and checking the result with the animsheet / posebench render
   tools. Use when Zach asks for a new attack, move, emote, idle/locomotion tweak, pose fix,
   "the swing looks wrong", wind-up/follow-through timing, or anything about how a body moves.
 ---
@@ -107,7 +107,10 @@ Add a branch to the `match n:` in `_action_pose()` (group it with its weapon/sty
   air states follow the same idea.
 - **Match the hitbox to the keys**: open it near the end of the wind-up hold
   (`wind_key_u × length`), close it a little after the strike key lands. slash_r: wind held
-  to u 0.26, hit at 0.38, length 0.48 → hitbox 0.11–0.21 s.
+  to u 0.26, hit at 0.38, length 0.48 → hitbox 0.11–0.21 s. Give each combo hit its own
+  `starts`/`ends`: a single `start`/`end` shared by hits of different lengths drifts off
+  them (dual_sword's 0.07–0.21 closes as `dual_cross` lands and covers a third of
+  `dual_spin`).
 - Juice (hit-stop, shake, squash, wind puffs, sounds via `Net.fx`) belongs in the state, not
   the pose. See the game-feel skill.
 - **Co-op**: `play()`/`stop_action()` mirror to other screens automatically when the body has
@@ -131,6 +134,32 @@ Big arcs, both sides of the body working (the free arm counters), head leading t
 Check that limbs don't pass through the torso and that the blade doesn't bend back at the
 wrist (an upper-arm twist plus wrist bend does that, see the slash_l note).
 
+Rules from the full review (each one was a visible problem in the renders):
+
+- **Eyes stay on the target.** Head x adds to torso x. A raised overhead with torso +0.45
+  and head +0.3 stares at the sky (`heavy`, `axe_split`, `slash_down`, `dual_heavy`): when the
+  torso leans back, give the head roughly the opposite pitch (head x ≈ -0.6 × torso x), and
+  counter torso y with head y the way the punches do.
+- **Blades need the wrist.** Key `hand_r` on every key of a blade move: cocked back (x+) in
+  the wind-up, flung out along the arm (x-) through the strike. Without it the blade stays
+  upright off the forearm and the cut doesn't read (all the dual-sword moves, the grunt
+  `E_*` swings). There is no `hand_l` joint: an off-hand blade only points where the forearm
+  points.
+- **Player pistols: leave `hand_r` alone.** The player's guns sit in a fixed grip
+  (`auto_point_guns`, `GUN_GRIP`), so the arm does the aiming. A wrist key bends the barrel
+  off the arm (`bullet_storm`'s -1.55 points the gun at the ground). Only grunts, who aim
+  their own guns, use the wrist for aiming.
+- **A full-body move keys every joint on its main keys, `hips` included.** A joint left out
+  falls back to the stance pose, so the same skill looks different per stance: from the
+  boxing guard the hips stay turned (-0.5) and the hands stay up by the face, and
+  `foresight`, `coat` and `tekkai` barely change.
+- **Give every distinct move its own pose.** Two names on one branch play identically (e.g.
+  `vine_throw` / `thorn_whip`).
+- **Played at several lengths?** Check the shortest. Keys are in u, so `spin_slash` at the
+  boss's 0.32 s puts its crouch key 0.05 s in, below what the smoothing can show. For moves
+  played at varied lengths, key the important beats in seconds (the `quick_draw` /
+  `shoot_r` pattern: `k = t_seconds / _action["dur"]`).
+
 ## Rig gotchas
 
 - Anything that writes joint *global* transforms (ragdoll, IK, hand placement) must keep
@@ -144,14 +173,27 @@ wrist (an upper-arm twist plus wrist bend does that, see the slash_l note).
 
 ## Checking it
 
-Render, then read the PNGs. From bash, wrap in PowerShell so `$env:GODOT` resolves:
+Render, then read the PNGs. From bash, wrap in PowerShell so `$env:GODOT` resolves. Output
+goes straight into `tools/dev/out/` (subfolders must already exist or the save fails).
 
 ```bash
+# whole moves at the length the game plays them, 8 frames each, 3 moves per sheet
+# (args: out prefix, then names or stances to render, then yaw: 125 front 3/4, 90 side)
+powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/animsheet.gd -- res://tools/dev/out/anim slash_r,slash_l'
+powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/animsheet.gd -- res://tools/dev/out/side katana 90'
 # frozen key poses from several angles (u values = the keys you care about)
-powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/posebench.gd -- res://tools/dev/out/pb/axe sword cutlass guard,slash_r:0.26,slash_r:0.38,slash_r:0.6 side,front,three'
-# 8-frame strip of the whole move with the real timing: <out.png> <anim> <weapon> <length> <yaw_deg> [stance]
-powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/heavyshots.gd -- res://tools/dev/out/pb/strip.png slash_r cutlass 0.48 60 sword'
+powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/posebench.gd -- res://tools/dev/out/axe sword cutlass guard,slash_r:0.26,slash_r:0.38,slash_r:0.6 side,front,three'
 ```
+
+- **A new action needs an entry in `animsheet.gd`'s `CAT`** (name, the length its caller
+  plays it at, stance, weapon, extras), or it won't be rendered.
+- Moves render in place on flat ground: no root motion, jumps don't leave the floor.
+- Don't use `heavyshots` for timing or legs: it shows each pose a sample late and leaves the
+  skinned legs stale (boots come loose from the shins in lunges). The legs are a skinned
+  `LowerBody` that only follows on frames the rig posed itself, so a tool that steps
+  `_process` by hand must call `hips.get_node("LowerBody")._pose()` before capturing.
+- posebench and animsheet load the whole project: a parse error anywhere (even in unrelated
+  work in progress) can stop posebench from saving.
 
 posebench views: `side, right, front, back, three, top, chest, chestf, chests, hipsb, hipss,
 hips3, hipsf, hipsu`. Env: `PB_SPEED=6` (mid-stride, `PB_SPRINT=1`), `PB_AIR=-6`
