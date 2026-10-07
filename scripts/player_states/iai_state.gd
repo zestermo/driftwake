@@ -29,7 +29,7 @@ func enter(_data: Dictionary) -> void:
 	_top = LEVELS.size() if player.progression.has_move("iai_full") else 1
 	player.reset_combo()
 	face_direction(get_camera_forward(), 1.0)
-	player.body_model.play("iai_ready", 600.0)
+	player.body_model.hold("iai_ready")
 	Net.fx("sfx", ["whoosh", player.global_position, -12.0, 0.08, 0.75])
 
 

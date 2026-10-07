@@ -10,58 +10,51 @@ extends PlayerState
 ## (move, even jump) and the next click continues the combo instead of restarting.
 ## Pistols shoot instead (Shoot state).
 
+## Each anim's length and hitbox window (its strike frames) come from ActionSpecs.
+## "durations" is how long the state lasts before the next hit can chain.
 const STYLES := {
-	# (each hitbox opens as its cut comes through: the strike frames of the anims)
 	"sword": {"anims": ["slash_r", "slash_l", "spin_slash"], "trails": ["right", "left", "spin"],
-		"durations": [0.3, 0.3, 0.46], "lengths": [0.48, 0.48, 0.62], "impulses": [4.5, 4.5, 6.5],
+		"durations": [0.3, 0.3, 0.46], "impulses": [4.5, 4.5, 6.5],
 		"damages": [10.0, 12.0, 22.0], "hitstops": [0.05, 0.05, 0.09], "shakes": [0.09, 0.09, 0.18],
-		"starts": [0.11, 0.1, 0.13], "ends": [0.21, 0.2, 0.42],
-		"start": 0.11, "end": 0.21, "reach": "sword", "color": Color(0.45, 0.75, 1.0)},
+		"reach": "sword", "color": Color(0.45, 0.75, 1.0)},
 	# cutlass, attacked at a sprint: one low cut driving through the target,
 	# breaking its wind-up
 	"sword_dash": {"anims": ["dash_cut"], "trails": ["right"],
-		"durations": [0.5], "lengths": [0.62], "impulses": [12.0],
+		"durations": [0.5], "impulses": [12.0],
 		"damages": [14.0], "hitstops": [0.06], "shakes": [0.12],
-		"start": 0.17, "end": 0.3, "reach": "wide", "color": Color(0.45, 0.75, 1.0), "breaker": true},
+		"reach": "wide", "color": Color(0.45, 0.75, 1.0), "breaker": true},
 	# two-handed: slow, wide cuts with a held wind-up, hitting hard
 	"katana": {"anims": ["katana_r", "katana_l", "katana_stab"], "trails": ["kesa_r", "sweep_l", "thrust"],
-		"durations": [0.62, 0.62, 0.7], "lengths": [0.85, 0.85, 0.9], "impulses": [5.0, 5.0, 9.0],
+		"durations": [0.62, 0.62, 0.7], "impulses": [5.0, 5.0, 9.0],
 		"damages": [16.0, 18.0, 26.0], "hitstops": [0.06, 0.06, 0.1], "shakes": [0.1, 0.1, 0.18],
-		"starts": [0.33, 0.33, 0.36], "ends": [0.47, 0.47, 0.5],
-		"start": 0.33, "end": 0.47, "reach": "katana", "color": Color(0.85, 0.92, 1.0)},
+		"reach": "katana", "color": Color(0.85, 0.92, 1.0)},
 	# katana, attacked at a sprint: a quick cut straight out of the scabbard,
 	# stepping in a little; catches the target mid-move (breaks wind-ups, staggers)
 	# (the follow-through is held about a second before you can move on)
 	"katana_draw": {"anims": ["quick_draw"], "trails": ["iai"],
-		"durations": [0.95], "lengths": [1.3], "impulses": [9.0],
+		"durations": [0.95], "impulses": [9.0],
 		"damages": [14.0], "hitstops": [0.05], "shakes": [0.1],
-		"start": 0.05, "end": 0.2, "reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true},
+		"reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true},
 	# axe: heavy, deliberate hacks with the weight behind them; the finisher
 	# smashes down two-handed into the ground and knocks them flat
 	"axe": {"anims": ["axe_hack", "axe_hook", "axe_split"], "trails": ["kesa_r", "left", "overhead"],
-		"durations": [0.46, 0.46, 0.72], "lengths": [0.62, 0.62, 0.9], "impulses": [4.0, 4.5, 6.0],
+		"durations": [0.46, 0.46, 0.72], "impulses": [4.0, 4.5, 6.0],
 		"damages": [14.0, 15.0, 30.0], "hitstops": [0.065, 0.065, 0.13], "shakes": [0.11, 0.11, 0.28],
-		"starts": [0.24, 0.22, 0.38], "ends": [0.35, 0.33, 0.54],
-		"start": 0.24, "end": 0.35, "reach": "sword", "color": Color(1.0, 0.78, 0.5), "slam": true},
+		"reach": "sword", "color": Color(1.0, 0.78, 0.5), "slam": true},
 	"dual_sword": {"anims": ["dual_1", "dual_2", "dual_cross", "dual_spin"], "trails": ["right", "left", "cross", "spin"],
-		"durations": [0.24, 0.24, 0.32, 0.44], "lengths": [0.4, 0.4, 0.5, 0.6], "impulses": [4.0, 4.0, 5.0, 6.0],
+		"durations": [0.24, 0.24, 0.32, 0.44], "impulses": [4.0, 4.0, 5.0, 6.0],
 		"damages": [8.0, 8.0, 13.0, 20.0], "hitstops": [0.035, 0.035, 0.06, 0.09], "shakes": [0.07, 0.07, 0.12, 0.18],
-		"starts": [0.1, 0.1, 0.17, 0.1], "ends": [0.22, 0.22, 0.29, 0.42],
-		"start": 0.1, "end": 0.22, "reach": "wide", "color": Color(0.55, 0.85, 1.0)},
+		"reach": "wide", "color": Color(0.55, 0.85, 1.0)},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
-		"durations": [0.2, 0.22, 0.28, 0.42], "lengths": [0.34, 0.36, 0.42, 0.56], "impulses": [3.0, 3.5, 3.5, 4.5],
+		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
-		# per-hit hitbox timing (the fist/foot reaching full extension)
-		"starts": [0.07, 0.08, 0.12, 0.19], "ends": [0.17, 0.18, 0.24, 0.33],
-		"start": 0.07, "end": 0.17, "reach": "fist", "color": Color(1.0, 0.95, 0.8),
+		"reach": "fist", "color": Color(1.0, 0.95, 0.8),
 		# rush of air for each hit: [side (m, + = right), height, sideways slant, big]
 		"winds": [[-0.16, 1.32, 0.0, false], [0.16, 1.3, 0.0, false], [-0.5, 1.28, 0.55, false], [0.35, 1.0, -0.35, true]]},
 	"claw": {"anims": ["claw_r", "claw_l", "claw_double"], "trails": ["right", "left", "cross"],
-		"durations": [0.28, 0.28, 0.44], "lengths": [0.44, 0.44, 0.62], "impulses": [6.5, 6.5, 9.0],
+		"durations": [0.28, 0.28, 0.44], "impulses": [6.5, 6.5, 9.0],
 		"damages": [12.0, 12.0, 22.0], "hitstops": [0.05, 0.05, 0.09], "shakes": [0.1, 0.1, 0.2],
-		# the claws land at the end of the lunge
-		"starts": [0.12, 0.12, 0.2], "ends": [0.26, 0.26, 0.36],
-		"start": 0.12, "end": 0.26, "reach": "claw", "color": Color(1.0, 0.35, 0.3)},
+		"reach": "claw", "color": Color(1.0, 0.35, 0.3)},
 }
 
 var cfg: Dictionary = STYLES["sword"]
@@ -76,6 +69,7 @@ var combo_timer: float = 0.0
 var hitbox_activated: bool = false
 var hitbox_deactivated: bool = false
 var chained: bool = false
+var _window := Vector2.ZERO
 
 
 func enter(data: Dictionary) -> void:
@@ -104,7 +98,9 @@ func enter(data: Dictionary) -> void:
 	player.player_model.rotation.y = atan2(-forward.x, -forward.z)
 	player.velocity.x = forward.x * float(cfg["impulses"][combo_index])
 	player.velocity.z = forward.z * float(cfg["impulses"][combo_index])
-	player.body_model.play(str(cfg["anims"][combo_index]), float(cfg["lengths"][combo_index]))
+	var anim := str(cfg["anims"][combo_index])
+	_window = ActionSpecs.hit_seconds(anim)
+	player.body_model.play(anim, ActionSpecs.length(anim))
 	player.squash(-1.5 if combo_index < 2 else -2.5)
 
 
@@ -116,9 +112,7 @@ func physics_update(delta: float) -> void:
 
 	timer += delta
 
-	var t_start := float((cfg["starts"] as Array)[combo_index]) if cfg.has("starts") else float(cfg["start"])
-	var t_end := float((cfg["ends"] as Array)[combo_index]) if cfg.has("ends") else float(cfg["end"])
-	if timer >= t_start and not hitbox_activated:
+	if timer >= _window.x and not hitbox_activated:
 		hitbox_activated = true
 		var last := combo_index == combo_count - 1
 		var hit := player.melee_hit(float(cfg["damages"][combo_index]))
@@ -155,7 +149,7 @@ func physics_update(delta: float) -> void:
 		if last:
 			Net.fx("dust_ring", [player.global_position, 8, 0.6])
 
-	if timer >= t_end and not hitbox_deactivated:
+	if timer >= _window.y and not hitbox_deactivated:
 		hitbox_deactivated = true
 		player.sword_hitbox.deactivate()
 

@@ -16,7 +16,7 @@ func enter(_data: Dictionary) -> void:
 	t = 0.0
 	player.is_blocking = true
 	player.sprinting = false
-	player.body_model.play("guard_block", 600.0)
+	player.body_model.hold("guard_block")
 
 
 func physics_update(delta: float) -> void:
@@ -61,7 +61,7 @@ func absorb(hit: HitData, dir: Vector3) -> bool:
 	player.body_model.play("guard_block_hit", 0.2)
 	get_tree().create_timer(0.2).timeout.connect(func():
 		if player.is_blocking and player.current_state_name() == "Block":
-			player.body_model.play("guard_block", 600.0))
+			player.body_model.hold("guard_block"))
 	return true
 
 

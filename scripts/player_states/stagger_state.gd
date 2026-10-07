@@ -9,16 +9,16 @@ var stagger_duration: float = 0.4
 func enter(data: Dictionary) -> void:
 	timer = 0.0
 	stagger_duration = data.get("stagger_duration", default_stagger_duration)
-	# a light hit is a quick flinch (hitstun); a real stagger reels
-	if data.get("flinch", false):
-		player.body_model.play("hit", 0.32)
-		player.squash(-1.5)
-	else:
-		player.body_model.play("stagger", stagger_duration)
-
-	# Apply knockback if provided
 	var knockback_dir: Vector3 = data.get("knockback_dir", Vector3.ZERO)
 	var knockback_force: float = data.get("knockback_force", 0.0)
+	# a light hit is a quick flinch (hitstun); a real stagger reels, both away from the blow
+	if data.get("flinch", false):
+		player.body_model.react("hit", 0.32, knockback_dir)
+		player.squash(-1.5)
+	else:
+		player.body_model.react("stagger", stagger_duration, knockback_dir)
+
+	# Apply knockback if provided
 	if knockback_dir.length_squared() > 0.01:
 		player.velocity.x = knockback_dir.x * knockback_force
 		player.velocity.z = knockback_dir.z * knockback_force

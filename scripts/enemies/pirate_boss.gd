@@ -394,7 +394,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			_set_peril(false)
 			_special = ""
 			_stagger_len = 1.6
-			humanoid.play("stagger", 1.6)
+			humanoid.react("stagger", 1.6, dir)
 			Net.fx("sparkle", [global_position + Vector3(0, 1.6, 0), 14, Color(0.75, 0.45, 1.0)])
 			Net.fx("sfx", ["haki", global_position, -6.0, 0.05, 1.3])
 			_set_state(S.STAGGER)

@@ -56,7 +56,7 @@ Many are one-off probes from earlier rounds; the ones used most recently are wea
 wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot_real.
 
 - `airshot`: (no description)
-- `animsheet`: Contact sheets of every Humanoid action at the length its caller plays it, 8 frames each (u 0 -> 0.98), three actions to a sheet; in place (no root motion). Add a CAT entry for a new action. Args: <out_prefix> [only: action names or stances, comma separated] [yaw_deg = 125; 90 = side]
+- `animsheet`: Contact sheets of every action in ActionSpecs (scripts/npc/action_specs.gd) at its length, 8 frames each (u 0 -> 0.98), three rows to a sheet, a red bar under frames inside the hitbox window; holds via Humanoid.hold, reactions via react (one row per push variant); in place (no root motion). Args: <out_prefix> [only: action names or stances, comma separated] [yaw_deg = 125; 90 = side]
 - `bigtest`: (no description)
 - `bugshot`: Scuttlebug shots. Args: <out_prefix> <mode: pose|fight|down|die>
 - `cannonshot`: Cannons on the sloop: overview, manning pose, gun camera with the arc, a shot in flight. Args: <out_prefix>

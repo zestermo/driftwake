@@ -1146,7 +1146,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			get_node("/root/CombatManager").apply_hitstop(0.12, [_hit_by, self])
 			velocity = dir * 4.0
 			_stagger_len = 1.6
-			humanoid.play("stagger", 1.6)
+			humanoid.react("stagger", 1.6, dir)
 			_set_state(S.STAGGER)
 		else:
 			Net.fx("sparkle", [global_position + Vector3(0, 1.6, 0), 4, Color(1.0, 0.3, 0.2)])
@@ -1183,7 +1183,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		bark(BARK_HURT, 0.5)
 		Net.fx("sparkle", [global_position + Vector3(0, 1.5, 0), 10, Color(1.0, 0.8, 0.4)])
 		_release_token()
-		humanoid.play("stagger", 1.1)
+		humanoid.react("stagger", 1.1, dir)
 		velocity = dir * 3.0
 		_set_state(S.STAGGER)
 		return
@@ -1206,13 +1206,13 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		hitbox.deactivate()
 		velocity = dir * 2.5
 		_stagger_len = 1.0
-		humanoid.play("stagger", 1.0)
+		humanoid.react("stagger", 1.0, dir)
 		_set_state(S.STAGGER)
 		return
 	_stun_len = 0.28
 	_stun_vel = dir * minf(hit.knockback_force * 0.6, 5.0)
 	velocity = _stun_vel
-	humanoid.play("hit", 0.32)
+	humanoid.react("hit", 0.32, dir)
 	_set_state(S.HITSTUN)
 
 
@@ -1243,7 +1243,7 @@ func parried(by: Node) -> void:
 		dir = _flat(global_position - (by as Node3D).global_position).normalized()
 	velocity = dir * 3.5
 	_stagger_len = 1.5
-	humanoid.play("stagger", 1.5)
+	humanoid.react("stagger", 1.5, dir)
 	_set_state(S.STAGGER)
 
 
@@ -1399,7 +1399,7 @@ func vine_yank(to: Vector3, dmg: float = 4.0) -> void:
 	_yank_v = d.normalized() * (dist / secs) if d.length() > 0.01 else Vector3.ZERO
 	velocity.y = 3.5
 	_stagger_len = secs + 0.7
-	humanoid.play("stagger", _stagger_len)
+	humanoid.react("stagger", _stagger_len, d)
 	_set_state(S.STAGGER)
 	health.take_damage(dmg)
 	Net.fx("vine_wrap", [self, secs + 0.3, 0.32])

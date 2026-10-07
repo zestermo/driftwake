@@ -61,7 +61,7 @@ func enter(data: Dictionary) -> void:
 	if player.is_on_floor():
 		player.velocity.y = maxf(player.velocity.y, 4.0)
 	_prev_v = player.velocity
-	h.play("vine_hang", MAX_TIME + 1.0)
+	h.hold("vine_hang")
 	h.dangle = true
 	player.align_hold = true
 	player.align_up = (anchor - player.global_position).normalized()
@@ -81,7 +81,7 @@ func _enter_rope(h: Humanoid) -> void:
 	var fwd := get_camera_forward()
 	player.velocity = deck + Vector3(fwd.x, 0.0, fwd.z) * ROPE_KICK + Vector3.UP * 3.5
 	_prev_v = player.velocity
-	h.play("vine_hang", 600.0)
+	h.hold("vine_hang")
 	h.dangle = true
 	player.align_hold = true
 	player.align_up = (anchor - player.global_position).normalized()

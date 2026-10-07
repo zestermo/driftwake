@@ -196,6 +196,14 @@ var _land_strength: float = 0.0
 var _air_time: float = 0.0
 var _action: Dictionary = {}
 var _action_w: float = 0.0
+## The last reaction's shove in body space (x = to the right, y = backward) and its
+## random variant (0..1); see react().
+var _react_dir := Vector2(0, 1)
+var _react_var: float = 0.0
+## During actions the eyes look at most this far above level (pivot + torso + head
+## pitch), except in GAZE_FREE moves, which mean to look up.
+const GAZE_UP_MAX := 0.3
+const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup", "vine_hang", "vine_shoot", "vine_release", "drink"]
 var _freeze: float = 0.0
 var _base: Dictionary = {}
 ## Hip height from the body style (the legs' length); PIVOT_Y is the reference.
@@ -830,8 +838,8 @@ func freeze(duration: float) -> void:
 	_freeze = maxf(_freeze, duration)
 
 
-## Play a named action. Known names: draw, sheathe, slash_r, slash_l, slash_down,
-## heavy, roll, flip, parry, stagger, drink, wave, hit.
+## Play a named action over `duration` seconds (poses: _action_pose; lengths and
+## strike windows: ActionSpecs).
 func play(action_name: String, duration: float) -> void:
 	if net_sync:
 		var now := Time.get_ticks_msec()
@@ -841,9 +849,42 @@ func play(action_name: String, duration: float) -> void:
 			_net_last_dur = duration
 			_net_last_ms = now
 			_net_send("play", [action_name, duration])
+	_react_dir = Vector2(0, 1)
+	_begin_action(action_name, duration, false)
+
+
+## Ease into an action's pose over `blend_in` seconds (its ActionSpecs length when left
+## out) and stay there until stop_action() or another action: blocking, charging,
+## hanging from a rope. Holding what's already held keeps it.
+func hold(action_name: String, blend_in: float = -1.0) -> void:
+	if current_action() == action_name and _action["hold"]:
+		return
+	var b := ActionSpecs.length(action_name) if blend_in < 0.0 else blend_in
+	if net_sync:
+		_net_last_name = ""
+		_net_send("hold", [action_name, b])
+	_begin_action(action_name, b, true)
+
+
+## A hit reaction ("hit", "stagger") from a blow shoving the body along `push` (world,
+## flattened): it reels away from the blow, one of a few ways at random.
+func react(action_name: String, duration: float, push: Vector3 = Vector3.ZERO) -> void:
+	var l := global_basis.orthonormalized().inverse() * push
+	var d := Vector2(l.x, l.z)
+	d = d.normalized() if d.length() > 0.01 else Vector2(0, 1)
+	var v := randf()
+	if net_sync:
+		_net_last_name = ""
+		_net_send("react", [action_name, duration, d, v])
+	_react_dir = d
+	_react_var = v
+	_begin_action(action_name, duration, false)
+
+
+func _begin_action(action_name: String, duration: float, held: bool) -> void:
 	if not _action.is_empty() and _action["name"] != action_name:
 		_finish_action()
-	_action = {"name": action_name, "t": 0.0, "dur": maxf(duration, 0.01), "events": {}}
+	_action = {"name": action_name, "t": 0.0, "dur": maxf(duration, 0.01), "events": {}, "hold": held}
 	_action_w = 1.0 if action_name in SPIN_ACTIONS else 0.0
 
 
@@ -962,6 +1003,43 @@ func _keys(u: float, keys: Array) -> Dictionary:
 		var va: Vector3 = pa.get(j, _base.get(j, Vector3.ZERO))
 		var vb: Vector3 = pb.get(j, _base.get(j, Vector3.ZERO))
 		out[j] = va.lerp(vb, k)
+	return out
+
+
+## The same pose on the other side of the body (swap _l/_r, negate y and z; "_lift" kept).
+static func _mirror(p: Dictionary) -> Dictionary:
+	var out := {}
+	for j in p.keys():
+		var k: String = j
+		if k == "_lift":
+			out[k] = p[j]
+			continue
+		if k.ends_with("_l"):
+			k = k.trim_suffix("_l") + "_r"
+		elif k.ends_with("_r"):
+			k = k.trim_suffix("_r") + "_l"
+		var v: Vector3 = p[j]
+		out[k] = Vector3(v.x, -v.y, -v.z)
+	return out
+
+
+## A reaction blended by which way the blow shoved the body (_react_dir): `front` for a
+## blow from the front (shoved back), `back` from behind, `side` for a shove to the right
+## (mirrored for the left). All three key the same joints. The variant mirrors the
+## front/back poses and scales the whole thing a little.
+func _react_pose(front: Dictionary, back: Dictionary, side: Dictionary) -> Dictionary:
+	var d := _react_dir
+	var flip := _react_var > 0.5
+	var parts := [[_mirror(front) if flip else front, maxf(d.y, 0.0)], [_mirror(back) if flip else back, maxf(-d.y, 0.0)],
+		[side if d.x >= 0.0 else _mirror(side), absf(d.x)]]
+	var total := maxf(d.y, 0.0) + maxf(-d.y, 0.0) + absf(d.x)
+	var k := lerpf(0.85, 1.2, fmod(_react_var * 7.0, 1.0))
+	var out := {}
+	for part in parts:
+		var w: float = float(part[1]) / total * k
+		var p: Dictionary = part[0]
+		for j in p.keys():
+			out[j] = (out.get(j, Vector3.ZERO) as Vector3) + (p[j] as Vector3) * w
 	return out
 
 
@@ -1432,10 +1510,21 @@ func _action_pose(n: String, u: float) -> Array:
 			lift.y = -0.1 * sin(clampf(u, 0, 1) * PI)
 			return [_keys(u, [[0.0, GUARD.merged(crouch)], [0.12, block.merged(crouch)], [0.6, block.merged(crouch)], [1.0, GUARD.merged(crouch)]]), "full", lift]
 		"stagger":
-			var reel := {"torso": Vector3(0.45, 0.2, 0.1), "head": Vector3(0.35, 0, 0), "arm_l": Vector3(0.4, 0, -1.1), "fore_l": Vector3(0.5, 0, 0),
-				"arm_r": Vector3(0.6, 0, 1.0), "fore_r": Vector3(0.6, 0, 0), "leg_l": Vector3(-0.35, 0, 0), "shin_l": Vector3(-0.3, 0, 0), "leg_r": Vector3(0.2, 0, 0), "shin_r": Vector3(-0.5, 0, 0)}
-			lift.y = -0.1 * sin(clampf(u, 0, 1) * PI)
-			return [_keys(u, [[0.0, {}], [0.15, reel], [0.6, reel], [1.0, {}]]), "full", lift]
+			# reeling away from the blow (see react): shoved back from the front, stumbling
+			# forward from behind, or thrown sideways with a step out to catch it
+			var reel := _react_pose(
+				{"torso": Vector3(0.45, 0.2, 0.1), "head": Vector3(0.35, 0, 0), "arm_l": Vector3(0.4, 0, -1.1), "fore_l": Vector3(0.5, 0, 0),
+					"arm_r": Vector3(0.6, 0, 1.0), "fore_r": Vector3(0.6, 0, 0), "leg_l": Vector3(-0.35, 0, -0.06), "shin_l": Vector3(-0.3, 0, 0), "leg_r": Vector3(0.2, 0, 0.06), "shin_r": Vector3(-0.5, 0, 0)},
+				{"torso": Vector3(-0.5, -0.15, 0), "head": Vector3(0.3, 0, 0), "arm_l": Vector3(-0.7, 0, -0.6), "fore_l": Vector3(0.3, 0, 0),
+					"arm_r": Vector3(-0.6, 0, 0.7), "fore_r": Vector3(0.4, 0, 0), "leg_l": Vector3(0.7, 0, -0.08), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.45, 0, 0.08), "shin_r": Vector3(-0.25, 0, 0)},
+				{"torso": Vector3(0.1, -0.3, -0.4), "head": Vector3(0.1, 0.25, 0.3), "arm_l": Vector3(0.3, 0, -1.4), "fore_l": Vector3(0.4, 0, 0),
+					"arm_r": Vector3(0.2, 0, 0.6), "fore_r": Vector3(0.3, 0, 0), "leg_l": Vector3(0.05, 0, 0.05), "shin_l": Vector3(-0.2, 0, 0), "leg_r": Vector3(0.1, 0, 0.45), "shin_r": Vector3(-0.4, 0, 0)})
+			reel["_lift"] = Vector3(0, -0.12, 0)
+			# (then the upper body comes back a little over the planted feet)
+			var catch := {}
+			for j in reel.keys():
+				catch[j] = (reel[j] as Vector3) * (1.0 if str(j).begins_with("leg") or str(j).begins_with("shin") else 0.7)
+			return [_keys(u, [[0.0, {}], [0.15, reel, "out"], [0.55, catch], [1.0, {}]]), "full", lift]
 		"getup":
 			return _getup_pose(u)
 		# --- enemy swordsman: held wind-ups (the tell) and fast swings ---
@@ -1468,22 +1557,16 @@ func _action_pose(n: String, u: float) -> Array:
 			# then one overhead chop into a deep lunge (lands u 0.47 = the dust ring)
 			var sight := {"arm_r": Vector3(2.95, 0.15, 0.35), "fore_r": Vector3(0.75, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
 				"arm_l": Vector3(1.45, 0.1, -0.3), "fore_l": Vector3(0.2, 0, 0), "torso": Vector3(0.3, 0.45, 0.05), "head": Vector3(0.05, -0.4, 0),
-				"leg_l": Vector3(0.45, 0, -0.16), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.35, 0, 0.16), "shin_r": Vector3(-0.6, 0, 0)}
-			var held := sight.duplicate()
+				"leg_l": Vector3(0.45, 0, -0.16), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.35, 0, 0.16), "shin_r": Vector3(-0.6, 0, 0),
+				"_lift": Vector3(0, -0.12, 0)}
 			var tremble := sin(_t * 38.0) * 0.04 * _ease((u - 0.1) / 0.26)
-			held["arm_r"] = (sight["arm_r"] as Vector3) + Vector3(tremble, 0, tremble)
-			var peak := sight.merged({"arm_r": Vector3(3.2, 0.15, 0.3), "fore_r": Vector3(0.95, 0, 0), "hand_r": Vector3(0.0, 0, 0), "torso": Vector3(0.42, 0.5, 0.05)})
+			var held := sight.merged({"arm_r": (sight["arm_r"] as Vector3) + Vector3(tremble, 0, tremble), "_lift": Vector3(0, -0.18, 0)}, true)
+			var peak := sight.merged({"arm_r": Vector3(3.2, 0.15, 0.3), "fore_r": Vector3(0.95, 0, 0), "hand_r": Vector3(0.0, 0, 0),
+				"torso": Vector3(0.42, 0.5, 0.05), "_lift": Vector3(0, -0.08, 0)}, true)
 			var chop := {"arm_r": Vector3(1.2, 0, 0.05), "fore_r": Vector3(-0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
 				"arm_l": Vector3(-0.6, 0, -0.65), "fore_l": Vector3(0.4, 0, 0), "torso": Vector3(-0.85, -0.35, 0), "head": Vector3(-0.3, 0.3, 0),
-				"leg_l": Vector3(1.2, 0, -0.12), "shin_l": Vector3(-1.35, 0, 0), "leg_r": Vector3(-0.9, 0, 0.12), "shin_r": Vector3(-0.15, 0, 0)}
-			if u < 0.36:
-				lift.y = lerpf(-0.12 * _ease(u / 0.14), -0.18, _ease((u - 0.14) / 0.22))
-			elif u < 0.39:
-				lift.y = lerpf(-0.18, -0.08, _ease((u - 0.36) / 0.03))
-			elif u < 0.46:
-				lift.y = lerpf(-0.08, -0.42, pow((u - 0.39) / 0.07, 2.0))
-			else:
-				lift.y = -0.42 * (1.0 - _ease((u - 0.66) / 0.34))
+				"leg_l": Vector3(1.2, 0, -0.12), "shin_l": Vector3(-1.35, 0, 0), "leg_r": Vector3(-0.9, 0, 0.12), "shin_r": Vector3(-0.15, 0, 0),
+				"_lift": Vector3(0, -0.42, 0)}
 			return [_keys(u, [[0.0, GUARD], [0.14, sight, "out"], [0.36, held], [0.39, peak, "out"], [0.46, chop, "in"], [0.66, chop], [1.0, GUARD]]), "full", lift]
 		# --- jumping attack: sword raised, knees tucked, then the plunge ---
 		"plunge_air":
@@ -1596,7 +1679,7 @@ func _action_pose(n: String, u: float) -> Array:
 				rock["torso"] = (bp["torso"] as Vector3) + Vector3(0.22, 0, 0)
 				rock["head"] = (bp["head"] as Vector3) + Vector3(-0.15, 0, 0)
 				return [_keys(u, [[0.0, bp], [0.25, rock, "out"], [1.0, bp]]), "upper", lift]
-			return [_keys(u, [[0.0, {}], [0.0004, bp, "out"], [1.0, bp]]), "upper", lift]
+			return [_keys(u, [[0.0, {}], [1.0, bp, "out"]]), "upper", lift]
 		# --- unarmed: jab, cross, hook, roundhouse; heavy flying kick ---
 		"fists_up":
 			return [_keys(u, [[0.0, REST_ARMS], [1.0, _guard()]]), "upper", lift]
@@ -1905,12 +1988,13 @@ func _action_pose(n: String, u: float) -> Array:
 			# the hand drawn back a touch as it cracks
 			var cock := {"arm_r": Vector3(2.7, 0.5, 0.9), "fore_r": Vector3(1.5, 0, 0), "torso": Vector3(0.15, 0.75, 0.05), "head": Vector3(-0.08, -0.6, 0),
 				"hips": Vector3(0, 0.3, 0), "arm_l": Vector3(1.2, -0.2, -0.5), "fore_l": Vector3(0.5, 0, 0),
-				"leg_l": Vector3(0.5, 0, -0.14), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.4, 0, 0.14), "shin_r": Vector3(-0.45, 0, 0)}
+				"leg_l": Vector3(0.5, 0, -0.14), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.4, 0, 0.14), "shin_r": Vector3(-0.45, 0, 0),
+				"_lift": Vector3(0, -0.05, 0)}
 			var crack := {"arm_r": Vector3(1.1, -0.6, -0.5), "fore_r": Vector3(0.0, 0, 0), "torso": Vector3(-0.35, -0.7, -0.05), "head": Vector3(0.25, 0.55, 0),
 				"hips": Vector3(0, -0.25, 0), "arm_l": Vector3(-0.4, 0, -0.7), "fore_l": Vector3(0.6, 0, 0),
-				"leg_l": Vector3(0.95, 0, -0.12), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.65, 0, 0.12), "shin_r": Vector3(-0.25, 0, 0)}
+				"leg_l": Vector3(0.95, 0, -0.12), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.65, 0, 0.12), "shin_r": Vector3(-0.25, 0, 0),
+				"_lift": Vector3(0, -0.2, 0)}
 			var recoil := crack.merged({"arm_r": Vector3(1.45, -0.35, -0.3), "fore_r": Vector3(0.35, 0, 0)}, true)
-			lift.y = _strike_lift(u, 0.36, 0.48, 0.7, -0.05, -0.2)
 			return [_keys(u, [[0.0, {}], [0.3, cock, "out"], [0.38, cock], [0.48, crack, "out"], [0.58, recoil, "back"], [0.78, recoil], [1.0, {}]]), "full", lift]
 		"vine_throw":
 			var vt := {"arm_r": Vector3(2.8, 0.2, 0.6), "fore_r": Vector3(1.4, 0, 0), "torso": Vector3(0.2, 0.6, 0), "arm_l": Vector3(1.1, 0, -0.4), "fore_l": Vector3(0.6, 0, 0),
@@ -1961,8 +2045,12 @@ func _action_pose(n: String, u: float) -> Array:
 			lift.y = -0.1 * sin(clampf(u, 0, 1) * PI)
 			return [_keys(u, [[0.0, {}], [0.2, cast, "out"], [0.32, cast], [0.5, haul, "out"], [0.75, haul], [1.0, {}]]), "full", lift]
 		"hit":
-			var flinch := {"torso": Vector3(0.25, -0.15, 0), "head": Vector3(0.2, 0, 0)}
-			return [_keys(u, [[0.0, {}], [0.3, flinch], [1.0, {}]]), "upper", lift]
+			# a flinch away from the blow (see react)
+			var flinch := _react_pose(
+				{"torso": Vector3(0.3, -0.15, 0), "head": Vector3(0.3, 0, 0)},
+				{"torso": Vector3(-0.3, 0.1, 0), "head": Vector3(-0.2, 0, 0)},
+				{"torso": Vector3(0.08, -0.3, -0.3), "head": Vector3(0.1, 0.3, 0.25)})
+			return [_keys(u, [[0.0, {}], [0.22, flinch, "out"], [1.0, {}]]), "upper", lift]
 		"drink":
 			var sip := {"arm_l": Vector3(2.0, 0.6, 0.35), "fore_l": Vector3(2.3, 0, 0), "head": Vector3(0.45, 0, 0), "torso": Vector3(0.1, 0, 0)}
 			return [_keys(u, [[0.0, {}], [0.25, sip], [0.8, sip], [1.0, {}]]), "upper", lift]
@@ -2425,12 +2513,16 @@ func _process(delta: float) -> void:
 		var mask: String = res[1]
 		_action_w = minf(_action_w + delta / 0.06, 1.0)
 		for j in pose.keys():
-			if mask == "upper" and not (j in UPPER):
+			if j == "_lift" or (mask == "upper" and not (j in UPPER)):
 				continue
 			target[j] = (target[j] as Vector3).lerp(pose[j], _action_w)
-		lift = lift.lerp(res[2], _action_w) if mask == "full" else lift + res[2]
+		if pose.has("_lift"):
+			lift = lift.lerp(pose["_lift"], _action_w)
+		else:
+			lift = lift.lerp(res[2], _action_w) if mask == "full" else lift + res[2]
+		_keep_gaze(target)
 		sharp = 38.0
-		if u >= 1.0:
+		if u >= 1.0 and not _action["hold"]:
 			_finish_action()
 
 	if _soft_t > 0.0:
@@ -2479,6 +2571,16 @@ func _process(delta: float) -> void:
 	_katana_hands()
 	_axe_hands()
 	_update_physics(delta)
+
+
+## Eyes on the target: lean-back and head tilt add up, so a big overhead stared at the
+## sky; the head takes back whatever looks higher than GAZE_UP_MAX.
+func _keep_gaze(target: Dictionary) -> void:
+	if str(_action["name"]) in GAZE_FREE:
+		return
+	var up: float = (target["pivot"] as Vector3).x + (target["torso"] as Vector3).x + (target["head"] as Vector3).x
+	if up > GAZE_UP_MAX:
+		target["head"] = (target["head"] as Vector3) - Vector3(up - GAZE_UP_MAX, 0, 0)
 
 
 ## Foot IK. The animator poses legs for flat ground at the character's feet;
@@ -3085,6 +3187,12 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"play":
 			play(str(args[0]), float(args[1]))
+		"hold":
+			hold(str(args[0]), float(args[1]))
+		"react":
+			_react_dir = args[2]
+			_react_var = float(args[3])
+			_begin_action(str(args[0]), float(args[1]), false)
 		"stop":
 			stop_action()
 		"ragdoll":

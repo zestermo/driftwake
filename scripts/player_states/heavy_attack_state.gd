@@ -12,31 +12,32 @@ extends PlayerState
 ## * claws (Zoan hybrid): a pouncing maul
 ## * anything else: the leaping two-handed slam
 
-## Per-style timing / feel. windup -> active (hitbox on) -> recovery.
+## Per-style feel. Timing (windup -> active, hitbox on -> recovery) is the anim's
+## length and strike window in ActionSpecs.
 const STYLES := {
-	"thrust": {"anim": "thrust", "windup": 0.22, "active": 0.18, "recovery": 0.35, "impulse": 11.0,
+	"thrust": {"anim": "thrust", "impulse": 11.0,
 		"damage": 32.0, "hitstop": 0.08, "shake": 0.16, "knockback": 12.0, "stagger": 0.4,
 		"trail": "thrust", "trail_len": 0.22, "sfx": "whoosh", "pitch": 1.25, "impact_fx": false},
-	"whirl": {"anim": "axe_whirl", "windup": 0.22, "active": 0.72, "recovery": 0.3, "impulse": 2.5,
+	"whirl": {"anim": "axe_whirl", "impulse": 2.5,
 		"damage": 22.0, "hitstop": 0.06, "shake": 0.16, "knockback": 9.0, "stagger": 0.5,
 		"trail": "spin", "trail_len": 0.36, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false,
 		"reach": "whirl", "color": Color(1.0, 0.78, 0.5), "rehit": 0.36, "steer": 0.45},
-	"dual_heavy": {"anim": "dual_heavy", "windup": 0.32, "active": 0.18, "recovery": 0.38, "impulse": 6.0,
+	"dual_heavy": {"anim": "dual_heavy", "impulse": 6.0,
 		"damage": 42.0, "hitstop": 0.12, "shake": 0.28, "knockback": 11.0, "stagger": 0.6,
 		"trail": "overhead", "trail_len": 0.28, "sfx": "whoosh_big", "pitch": 0.95, "impact_fx": true, "reach": "wide", "double_trail": true},
-	"kick": {"anim": "flying_kick", "windup": 0.33, "active": 0.22, "recovery": 0.3, "impulse": 9.5, "wind": true,
+	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
 		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
-	"whip": {"anim": "pistol_whip", "windup": 0.2, "active": 0.12, "recovery": 0.3, "impulse": 5.0,
+	"whip": {"anim": "pistol_whip", "impulse": 5.0,
 		"damage": 18.0, "hitstop": 0.07, "shake": 0.14, "knockback": 10.0, "stagger": 0.4,
 		"trail": "left", "trail_len": 0.2, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "fist"},
-	"kata": {"anim": "gun_kata", "windup": 0.12, "active": 0.5, "recovery": 0.2, "impulse": 0.0,
+	"kata": {"anim": "gun_kata", "impulse": 0.0,
 		"damage": 0.0, "hitstop": 0.05, "shake": 0.12, "knockback": 4.0, "stagger": 0.3,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.3, "impact_fx": false, "reach": "fist", "kata": true},
-	"maul": {"anim": "maul", "windup": 0.3, "active": 0.2, "recovery": 0.32, "impulse": 10.0,
+	"maul": {"anim": "maul", "impulse": 10.0,
 		"damage": 36.0, "hitstop": 0.1, "shake": 0.24, "knockback": 11.0, "stagger": 0.5,
 		"trail": "overhead", "trail_len": 0.26, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": true, "reach": "claw", "color": Color(1.0, 0.35, 0.3)},
-	"slam": {"anim": "heavy", "windup": 0.3, "active": 0.2, "recovery": 0.3, "impulse": 5.0,
+	"slam": {"anim": "heavy", "impulse": 5.0,
 		"damage": 35.0, "hitstop": 0.1, "shake": 0.2, "knockback": 10.0, "stagger": 0.5,
 		"trail": "overhead", "trail_len": 0.3, "sfx": "whoosh_big", "pitch": 1.0, "impact_fx": true},
 }
@@ -54,6 +55,9 @@ var impact_fx: bool = false
 var cfg: Dictionary = {}
 var _kata_shots: int = 0
 var _rehit_done: bool = false
+var _windup: float = 0.0
+var _active: float = 0.0
+var _recovery: float = 0.0
 
 
 static func style_for(weapon_model: String) -> String:
@@ -92,7 +96,13 @@ func enter(_data: Dictionary) -> void:
 	# Snap to camera forward
 	var forward := get_camera_forward()
 	player.player_model.rotation.y = atan2(-forward.x, -forward.z)
-	player.body_model.play(str(cfg["anim"]), float(cfg["windup"]) + float(cfg["active"]) + float(cfg["recovery"]))
+	var anim := str(cfg["anim"])
+	var length := ActionSpecs.length(anim)
+	var w := ActionSpecs.hit_seconds(anim)
+	_windup = w.x
+	_active = w.y - w.x
+	_recovery = length - w.y
+	player.body_model.play(anim, length)
 
 
 func physics_update(delta: float) -> void:
@@ -110,7 +120,7 @@ func physics_update(delta: float) -> void:
 
 	match phase:
 		0:  # Windup
-			if timer >= float(cfg["windup"]):
+			if timer >= _windup:
 				phase = 1
 				timer = 0.0
 				var col: Color = cfg.get("color", Color(0.45, 0.75, 1.0))
@@ -153,16 +163,16 @@ func physics_update(delta: float) -> void:
 				Net.fx("dust_ring", [player.global_position, 10, 0.8])
 			# gun kata: spin and put a shot into everyone close
 			if cfg.get("kata", false):
-				var due := int(timer / float(cfg["active"]) * 4.0)
+				var due := int(timer / _active * 4.0)
 				while _kata_shots < mini(due + 1, 4):
 					_kata_shots += 1
 					_kata_volley()
-			if cfg["impact_fx"] and timer >= float(cfg["active"]) * 0.5 and not impact_fx:
+			if cfg["impact_fx"] and timer >= _active * 0.5 and not impact_fx:
 				impact_fx = true
 				var front := player.global_position - player.player_model.global_basis.z * 1.3
 				Net.fx("dust_ring", [front, 16, 1.0])
 				Net.fx("sparkle", [front + Vector3(0, 0.3, 0), 8, Color(1.0, 0.85, 0.5)])
-			if timer >= float(cfg["active"]):
+			if timer >= _active:
 				phase = 2
 				timer = 0.0
 				player.sword_hitbox.deactivate()
@@ -170,7 +180,7 @@ func physics_update(delta: float) -> void:
 					Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 5, 0.5])
 
 		2:  # Recovery
-			if timer >= float(cfg["recovery"]):
+			if timer >= _recovery:
 				transitioned.emit(self, "Idle", {})
 
 	# Allow dodge cancel during recovery

@@ -77,8 +77,14 @@ Add a branch to the `match n:` in `_action_pose()` (group it with its weapon/sty
   "whatever the body was doing", which is how upper-body actions ease in and out.
 - **Mask**: `"upper"` only applies `torso, head, arms, hands`; legs keep walking and `lift`
   is *added*. `"full"` takes legs too and `lift` *replaces* the gait's.
-- **Lift** is the hip offset (`Vector3`, y- = crouch). `_strike_lift(u, wind_end, hit, hold,
-  coil, deep)` gives the standard sink-through-a-strike curve.
+- **Lift** is the hip offset (`Vector3`, y- = crouch). Prefer keying it: put `"_lift":
+  Vector3(0, y, 0)` in the key dicts and it eases with the pose (see `peril_chop`,
+  `thorn_whip`; keys without it fall back to the gait's lift). Older moves still compute
+  `lift.y` by hand or with `_strike_lift(u, wind_end, hit, hold, coil, deep)`; a pose that
+  has `_lift` overrides the returned lift.
+- **Gaze is guarded for you**: during actions `_keep_gaze` caps pivot + torso + head pitch at
+  `GAZE_UP_MAX` by tilting the head down. A move that means to look up (howl, flips, being
+  hit) goes in `GAZE_FREE`.
 - **Spins**: write `pose["pivot"] = Vector3(0, -TAU * k, 0)` (or x for flips) and add the
   name to `SPIN_ACTIONS`. Pivot is then applied exactly (no smoothing across 2π) and reset
   in `_finish_action`.
@@ -98,24 +104,30 @@ Add a branch to the `match n:` in `_action_pose()` (group it with its weapon/sty
 
 ## Wiring it up
 
-- Play it: `body_model.play("name", length)` (player) or `humanoid.play(...)` (NPCs).
-  `u` maps over `length` seconds. `stop_action()`, `current_action()`, `is_busy()`,
-  signal `action_finished(name)`.
-- Player combos live in state configs, e.g. `scripts/player_states/light_attack_state.gd`
-  `STYLES`: `anims`, `lengths` (anim length), `durations` (how long the state lasts before
-  you can act), `starts`/`ends` (hitbox window, **seconds**), `trails` (FX.slash arc kind,
-  `scripts/game/fx.gd` `_slash_mesh`), impulses, hitstops, shakes. Heavy, skill, dodge and
-  air states follow the same idea.
-- **Match the hitbox to the keys**: open it near the end of the wind-up hold
-  (`wind_key_u × length`), close it a little after the strike key lands. slash_r: wind held
-  to u 0.26, hit at 0.38, length 0.48 → hitbox 0.11–0.21 s. Give each combo hit its own
-  `starts`/`ends`: a single `start`/`end` shared by hits of different lengths drifts off
-  them (dual_sword's 0.07–0.21 closes as `dual_cross` lands and covers a third of
-  `dual_spin`).
+- **Every action has an entry in `scripts/npc/action_specs.gd` (`ActionSpecs.SPECS`)**: its
+  length, its strike window `"hit": [u_open, u_close]` for attacks, and its preview setup
+  (stance, weapon, extras, variants). Add the entry with the pose; animsheet renders from it.
+- Three ways to play (`body_model` on the player, `humanoid` on NPCs):
+  - `play("name", length)`: a one-shot; `u` runs over `length` seconds.
+  - `hold("name")`: ease in over the spec's length and stay until `stop_action()` or another
+    action (block, iai charge, rope/vine hang). No more `play(..., 600.0)`.
+  - `react("hit" | "stagger", length, push)`: a hit reaction away from the blow; `push` is
+    the world direction it shoves the body (the knockback dir). The pose blends front/back/
+    side versions from `_react_pose(front, back, side)` and picks a mirrored/scaled variant.
+  - `stop_action()`, `current_action()`, `is_busy()`, signal `action_finished(name)`.
+- Light and heavy attacks read **length and hitbox window from ActionSpecs**
+  (`ActionSpecs.length(n)`, `ActionSpecs.hit_seconds(n)`); their `STYLES` only hold feel
+  (durations before the next hit, impulses, damage, hitstop, shake, trails). Heavy's
+  windup/active/recovery = open / open→close / close→end of that window. Skill, dodge,
+  plunge and enemy timings are still in their own states.
+- **Match the hit window to the keys**: open it near the end of the wind-up hold, close it a
+  little after the strike key lands (slash_r: wind held to u 0.26, hit at 0.38 → `[0.23,
+  0.44]`). animsheet draws a red bar under the frames inside the window: check the bar
+  sits under the strike.
 - Juice (hit-stop, shake, squash, wind puffs, sounds via `Net.fx`) belongs in the state, not
   the pose. See the game-feel skill.
-- **Co-op**: `play()`/`stop_action()` mirror to other screens automatically when the body has
-  `net_sync` (rate-limited: re-playing the same name/duration within 250 ms isn't resent).
+- **Co-op**: `play()`/`hold()`/`react()`/`stop_action()` mirror to other screens
+  automatically when the body has `net_sync` (`react` sends its direction and variant) (rate-limited: re-playing the same name/duration within 250 ms isn't resent).
   Per-frame inputs a pose reads (`dash_dir`, `aim_pitch`, `local_move`, flags like
   `swimming`) travel through `scripts/net/humanoid_sync.gd`; a new input the pose depends on
   must be added there or guests see a different pose.
@@ -137,10 +149,9 @@ wrist (an upper-arm twist plus wrist bend does that, see the slash_l note).
 
 Rules from the full review (each one was a visible problem in the renders):
 
-- **Eyes stay on the target.** Head x adds to torso x. A raised overhead with torso +0.45
-  and head +0.3 stares at the sky (`heavy`, `axe_split`, `slash_down`, `dual_heavy`): when the
-  torso leans back, give the head roughly the opposite pitch (head x ≈ -0.6 × torso x), and
-  counter torso y with head y the way the punches do.
+- **Eyes stay on the target.** Head x adds to torso x; `_keep_gaze` now stops the sky stare,
+  but still key a head that counters the chest (head x ≈ -0.6 × torso x, head y against
+  torso y the way the punches do) so the cap doesn't have to do the work.
 - **Blades need the wrist.** Key `hand_r` on every key of a blade move: cocked back (x+) in
   the wind-up, flung out along the arm (x-) through the strike. Without it the blade stays
   upright off the forearm and the cut doesn't read (the grunt `E_*` swings still lack it).
@@ -185,8 +196,8 @@ powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/a
 powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/posebench.gd -- res://tools/dev/out/axe sword cutlass guard,slash_r:0.26,slash_r:0.38,slash_r:0.6 side,front,three'
 ```
 
-- **A new action needs an entry in `animsheet.gd`'s `CAT`** (name, the length its caller
-  plays it at, stance, weapon, extras), or it won't be rendered.
+- animsheet renders every `ActionSpecs` entry (holds through `hold`, reactions through
+  `react` with each push variant as its own row). A red bar under a frame = hitbox open.
 - Moves render in place on flat ground: no root motion, jumps don't leave the floor.
 - Don't use `heavyshots` for timing or legs: it shows each pose a sample late and leaves the
   skinned legs stale (boots come loose from the shins in lunges). The legs are a skinned
