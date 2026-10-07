@@ -502,6 +502,35 @@ func _process(d: float) -> bool:
 			var wx = root.get_node("Weather")
 			print("   in a fog bank: fog %.2f" % wx.fog)
 			check("inside a fog bank the fog closes in", wx.fog > 0.8)
+			# --- wrecks, bottles, buried treasure
+			var sf = get_first_node_in_group("sea_features")
+			var gm = root.get_node("GameManager")
+			print("   %d wrecks, %d bottles, %d treasures" % [sf.wrecks.size(), sf.bottles.size(), sf.treasures.size()])
+			check("wrecks, bottles and buried treasure out there", sf.wrecks.size() >= 2 and sf.bottles.size() >= 2 and sf.treasures.size() >= 2)
+			var chest = sf.get_node("Wreck0/WreckChest0")
+			check("a wreck heeled over in the water, a chest still aboard", chest != null and absf(sf.get_node("Wreck0").rotation.z) > 0.2)
+			chest._on_interact(p)
+			check("...looted, and remembered", gm.opened.has("wreck_0"))
+			var bt: int = int(sf.bottles[0][1])
+			check("no X on the beach before the map's found", not sf._treasure_nodes[bt].visible)
+			sf._bottle_nodes[0].get_node("Grab").interacted.emit(p)
+			wait = 0.6
+			step = 33
+		33:
+			var sf = get_first_node_in_group("sea_features")
+			var gm = root.get_node("GameManager")
+			var bt: int = int(sf.bottles[0][1])
+			check("fishing out a bottle gives a treasure map", gm.maps.has(bt) and not sf._bottle_nodes[0].visible)
+			check("...and its X shows on the beach", sf._treasure_nodes[bt].visible)
+			var before: int = root.find_children("DugChest*", "", true, false).size()
+			sf._treasure_nodes[bt].get_node("Dig").interacted.emit(p)
+			check("digging there turns up a chest", root.find_children("DugChest*", "", true, false).size() == before + 1 and gm.opened.has("treasure_%d" % bt))
+			wait = 0.6
+			step = 34
+		34:
+			var sf = get_first_node_in_group("sea_features")
+			var bt: int = int(sf.bottles[0][1])
+			check("...once (the X is gone)", not sf._treasure_nodes[bt].visible)
 			finish()
 	return false
 func get_root_halves() -> Array:

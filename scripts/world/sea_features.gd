@@ -20,6 +20,17 @@ var fogs: Array = []
 var whirls: Array = []
 ## [home (x, z), wander phase]: where a cell is now comes from world time
 var storms: Array = []
+## [centre (x, z), yaw]: hulks to pick over, a chest aboard ("wreck_<i>")
+var wrecks: Array = []
+## [centre (x, z), treasure index]: a message in a bottle ("bottle_<i>"),
+## bobbing; reading it puts treasure <index> on your chart (GameManager.maps)
+var bottles: Array = []
+## [spot (world), island name]: an X on a beach, dug up ("treasure_<i>")
+var treasures: Array = []
+var _bottle_nodes: Array = []
+var _treasure_nodes: Array = []
+var _state_t: float = 0.0
+const BOTTLE_LOOT := [["gold", 40, 70], ["treasure", 3, 6]]
 var _spots: Array = []
 var _rng := RandomNumberGenerator.new()
 var _foam_t: float = 0.0
@@ -52,8 +63,21 @@ func _ready() -> void:
 		var c := _open_spot(80.0)
 		if c != Vector2.INF:
 			storms.append([c, _rng.randf() * TAU])
+	for i in range(3):
+		var c := _open_spot(20.0)
+		if c != Vector2.INF:
+			wrecks.append([c, _rng.randf() * TAU])
+			_build_wreck(wrecks.size() - 1)
+	_place_treasures()
+	for i in range(treasures.size()):
+		var c := _open_spot(10.0)
+		if c != Vector2.INF:
+			bottles.append([c, i])
+			_build_bottle(bottles.size() - 1)
 	for r in reefs:
 		EnemyShip.no_go.append([r[0], float(r[1]) + REEF_KEEP])
+	for wr in wrecks:
+		EnemyShip.no_go.append([wr[0], 16.0])
 	for w in whirls:
 		EnemyShip.no_go.append([w[0], float(w[1]) + 10.0])
 
@@ -150,6 +174,11 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_bob_bottles()
+	_state_t -= delta
+	if _state_t <= 0.0:
+		_state_t = 0.5
+		_apply_found()
 	# surf breaks on the reefs near the camera
 	_foam_t -= delta
 	if _foam_t > 0.0:
@@ -166,6 +195,193 @@ func _process(delta: float) -> void:
 		var at := Vector3(c.x + cos(a) * float(r[1]) * 0.5, 0.0, c.y + sin(a) * float(r[1]) * 0.5)
 		at.y = float(Ocean.get_wave_height(at)) + 0.1
 		FX.splash(at, 4, 0.9)
+
+
+# --------------------------------------------------------------------------
+# Wrecks, bottles and buried treasure
+# --------------------------------------------------------------------------
+## A sunken hulk heeled over in the water, her deck half awash: a chest
+## still aboard (each captain's own; remembered once emptied).
+func _build_wreck(i: int) -> void:
+	var c: Vector2 = wrecks[i][0]
+	var body := StaticBody3D.new()
+	body.name = "Wreck%d" % i
+	body.collision_layer = 1
+	body.collision_mask = 0
+	add_child(body)
+	body.global_transform = Transform3D(Basis.from_euler(Vector3(0.12, float(wrecks[i][1]), 0.32)), Vector3(c.x, -0.95, c.y))
+	var model := Node3D.new()
+	body.add_child(model)
+	HullBuilder.build(model, {"hull": Color(0.42, 0.45, 0.4), "deck": Color(0.55, 0.58, 0.5), "trim": Color(0.35, 0.36, 0.32), "wreck": true})
+	HullBuilder.collide(body)
+	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	var items: Array[ItemStack] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(gen.get("world_seed")) * 31 + i
+	var picks := [["gold", rng.randi_range(20, 40)], ["treasure", rng.randi_range(1, 3)], ["rum", rng.randi_range(1, 2)]]
+	if rng.randf() < 0.5:
+		picks.append([["pistol", "cutlass", "boarding_axe", "katana"][rng.randi() % 4], 1])
+	for e in picks:
+		var it := load("res://resources/items/%s.tres" % e[0]) as ItemData
+		if it:
+			var st := ItemStack.new()
+			st.item = it
+			st.quantity = int(e[1])
+			items.append(st)
+	bag.setup(items, false)
+	bag.save_id = "wreck_%d" % i
+	bag.name = "WreckChest%d" % i
+	body.add_child(bag)
+	bag.position = Vector3(-1.1, HullBuilder.DECK_Y, 1.4)
+
+
+## An X on an island's beach for each treasure (only shown, and diggable,
+## once its map's been found).
+func _place_treasures() -> void:
+	var infos: Array = gen.get("island_infos")
+	for i in range(mini(4, infos.size())):
+		var info: Dictionary = infos[i]
+		var ic: Vector2 = info["pos"]
+		var r: float = info["radius"]
+		for k in range(30):
+			var a := _rng.randf() * TAU
+			var q := ic + Vector2(cos(a), sin(a)) * r * _rng.randf_range(0.45, 0.7)
+			var h: float = gen.call("height_at", q.x, q.y)
+			if h > 1.2 and h < 7.0:
+				treasures.append([Vector3(q.x, h, q.y), str(info.get("name", "Island %d" % (i + 1)))])
+				_build_treasure(treasures.size() - 1)
+				break
+
+
+func _build_treasure(i: int) -> void:
+	var at: Vector3 = treasures[i][0]
+	var holder := Node3D.new()
+	holder.name = "Treasure%d" % i
+	add_child(holder)
+	holder.global_position = at
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("bark", Color(0.6, 0.45, 0.3))
+	for s in [-1.0, 1.0]:
+		mb.add_box(wood, Transform3D(Basis(Vector3.UP, s * PI * 0.25), Vector3(0, 0.04, 0)), Vector3(0.18, 0.08, 1.6), 1.0)
+	holder.add_child(mb.to_instance("X"))
+	var it := Interactable.new()
+	it.name = "Dig"
+	it.collision_layer = 512
+	it.collision_mask = 0
+	it.prompt_text = "Dig up the treasure"
+	var cs := CollisionShape3D.new()
+	var sph := SphereShape3D.new()
+	sph.radius = 1.4
+	cs.shape = sph
+	it.add_child(cs)
+	holder.add_child(it)
+	it.interacted.connect(func(player: Player): _dig(i, player))
+	holder.visible = false
+	it.enabled = false
+	_treasure_nodes.append(holder)
+
+
+func _dig(i: int, player: Player) -> void:
+	var gm := get_node("/root/GameManager")
+	var id := "treasure_%d" % i
+	if gm.opened.has(id) or not gm.maps.has(i):
+		return
+	gm.mark_opened(id)
+	var at: Vector3 = treasures[i][0]
+	FX.dust(at, 18, 1.0)
+	FX.sfx("thud", at, -2.0, 0.08, 0.8)
+	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	var items: Array[ItemStack] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(gen.get("world_seed")) * 53 + i
+	for e in BOTTLE_LOOT:
+		var item := load("res://resources/items/%s.tres" % e[0]) as ItemData
+		var st := ItemStack.new()
+		st.item = item
+		st.quantity = rng.randi_range(int(e[1]), int(e[2]))
+		items.append(st)
+	bag.setup(items, false)
+	bag.name = "DugChest%d" % i
+	get_tree().current_scene.add_child(bag)
+	bag.global_position = at + Vector3(0, 0.1, 0)
+	player.call("_toast", "X marks the spot!")
+	Net.award_xp(60, at, 30.0)
+
+
+## A green glass bottle with a paper rolled up inside, bobbing on the swell.
+func _build_bottle(i: int) -> void:
+	var c: Vector2 = bottles[i][0]
+	var holder := Node3D.new()
+	holder.name = "Bottle%d" % i
+	add_child(holder)
+	holder.global_position = Vector3(c.x, 0.0, c.y)
+	var mb := MeshBuilder.new()
+	var glass := PSXMat.lit("metal", Color(0.35, 0.7, 0.45))
+	mb.add_cylinder(glass, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(-0.22, 0, 0)), 0.11, 0.11, 0.34, 6, 1.0)
+	mb.add_cylinder(glass, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.12, 0, 0)), 0.05, 0.05, 0.16, 6, 1.0)
+	mb.add_box(PSXMat.lit("bark", Color(0.6, 0.45, 0.3)), Transform3D(Basis(), Vector3(0.3, 0, 0)), Vector3(0.05, 0.08, 0.08), 1.0)
+	holder.add_child(mb.to_instance("Glass"))
+	var it := Interactable.new()
+	it.name = "Grab"
+	it.collision_layer = 512
+	it.collision_mask = 0
+	it.usable_in_water = true
+	it.prompt_text = "Fish out the bottle"
+	var cs := CollisionShape3D.new()
+	var sph := SphereShape3D.new()
+	sph.radius = 1.6
+	cs.shape = sph
+	it.add_child(cs)
+	holder.add_child(it)
+	it.interacted.connect(func(player: Player): _read_bottle(i, player))
+	_bottle_nodes.append(holder)
+
+
+func _read_bottle(i: int, _player: Player) -> void:
+	var gm := get_node("/root/GameManager")
+	var id := "bottle_%d" % i
+	if gm.opened.has(id):
+		return
+	gm.mark_opened(id)
+	var t := int(bottles[i][1])
+	gm.maps[t] = true
+	FX.sfx("splash", (_bottle_nodes[i] as Node3D).global_position, -6.0, 0.1, 1.4)
+	get_tree().call_group("hud", "show_banner", "A message in a bottle", "A treasure map! X marks a spot on %s (on your sea chart)." % treasures[t][1], true)
+	_apply_found()
+
+
+## Bobbing on the swell; now and then the glass catches the light (a bottle
+## is small: the glint is how you spot one).
+func _bob_bottles() -> void:
+	var t := Time.get_ticks_msec() * 0.001
+	var glint := fmod(t, 1.4) < get_process_delta_time()
+	var cam := get_viewport().get_camera_3d()
+	for i in range(_bottle_nodes.size()):
+		var n := _bottle_nodes[i] as Node3D
+		if not n.visible:
+			continue
+		n.global_position.y = float(Ocean.get_wave_height(n.global_position)) + 0.02
+		n.rotation = Vector3(sin(t * 1.4 + i) * 0.25, t * 0.2 + i, cos(t * 1.1 + i) * 0.2)
+		if glint and cam and cam.global_position.distance_to(n.global_position) < 160.0:
+			FX.sparkle(n.global_position + Vector3.UP * 0.3, 4, Color(0.8, 1.0, 0.85))
+
+
+## Bottles already read are gone; treasures whose map you hold (and haven't
+## dug) show their X.
+func _apply_found() -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	if gm == null:
+		return
+	for i in range(_bottle_nodes.size()):
+		var gone: bool = gm.opened.has("bottle_%d" % i)
+		var n := _bottle_nodes[i] as Node3D
+		n.visible = not gone
+		(n.get_node("Grab") as Interactable).enabled = not gone
+	for i in range(_treasure_nodes.size()):
+		var live: bool = gm.maps.has(i) and not gm.opened.has("treasure_%d" % i)
+		var n := _treasure_nodes[i] as Node3D
+		n.visible = live
+		(n.get_node("Dig") as Interactable).enabled = live
 
 
 # --------------------------------------------------------------------------

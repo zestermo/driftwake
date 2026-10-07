@@ -10,6 +10,10 @@ var player: Player
 ## (node names).
 var opened: Dictionary = {}
 var burned: Dictionary = {}
+## Treasure maps found in bottles (treasure index -> true) and places put on
+## the sea chart ("island:<name>", "reef:<i>", ... -> true).
+var maps: Dictionary = {}
+var charted: Dictionary = {}
 ## Devil Fruits already found in this world (item id -> who found it).
 var fruit_claims: Dictionary = {}
 const AUTOSAVE_EVERY := 120.0
@@ -24,6 +28,8 @@ func reset_session() -> void:
 	banked_items.clear()
 	opened.clear()
 	burned.clear()
+	maps.clear()
+	charted.clear()
 	fruit_claims.clear()
 	play_time = 0.0
 	_autosave_t = 0.0

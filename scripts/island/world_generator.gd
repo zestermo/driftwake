@@ -127,7 +127,8 @@ func _generate_world() -> void:
 		# Track for other systems
 		var peak_y := _sample_height(pos.x, pos.y)
 		island_positions.append(Vector3(pos.x, peak_y, pos.y))
-		island_infos.append({"pos": Vector2(pos.x, pos.y), "type": island_type, "radius": radius})
+		island_infos.append({"pos": Vector2(pos.x, pos.y), "type": island_type, "radius": radius,
+			"name": "%s Island %d" % [str(island_type).capitalize(), i + 1]})
 
 		# Connect all docking areas to board the ship
 		var dock_area := island.get_node_or_null("DockingArea")

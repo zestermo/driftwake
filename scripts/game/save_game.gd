@@ -247,6 +247,8 @@ static func save(player: Player) -> bool:
 		"offhand": item_ref(player.offhand_weapon),
 		"banked": banked,
 		"opened": gm.opened.keys() if gm else [],
+		"maps": gm.maps.keys() if gm else [],
+		"charted": gm.charted.keys() if gm else [],
 		"burned": gm.burned.keys() if gm else [],
 		"fruit_claims": gm.fruit_claims.duplicate() if gm else {},
 		"player_pos": player.global_position if on_foot else Vector3.INF,
@@ -348,6 +350,12 @@ static func load_into(player: Player) -> bool:
 		gm.opened.clear()
 		for k in data.get("opened", []):
 			gm.opened[str(k)] = true
+		gm.maps.clear()
+		for k in data.get("maps", []):
+			gm.maps[int(k)] = true
+		gm.charted.clear()
+		for k in data.get("charted", []):
+			gm.charted[str(k)] = true
 		var guest := _guest(player)
 		if not guest:
 			gm.burned.clear()

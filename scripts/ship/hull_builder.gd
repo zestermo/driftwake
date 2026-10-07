@@ -34,7 +34,8 @@ static func half_width(z: float) -> float:
 
 ## Build the model under `parent`. opts: hull (Color), sail (Color),
 ## trim (Color), emblem ("jolly": skull and crossbones on the sail and flag,
-## "marine": the Marines' blue gull; the node is "Jolly" either way).
+## "marine": the Marines' blue gull; the node is "Jolly" either way), wreck
+## (bool: a broken hulk - mast snapped, no sail, flag or lights).
 static func build(parent: Node3D, opts: Dictionary = {}) -> Node3D:
 	var mb := MeshBuilder.new()
 	var hull := PSXMat.lit("planks_dark", opts.get("hull", Color.WHITE), {"affine": 0.6})
@@ -71,6 +72,15 @@ static func build(parent: Node3D, opts: Dictionary = {}) -> Node3D:
 	for z in [-4.0, -1.0, 2.0, 5.5]:
 		for sgn in [-1.0, 1.0]:
 			mb.add_box(trim, Transform3D(Basis(), Vector3(sgn * 2.8, 0.5, z)), Vector3(0.12, 0.4, 0.12), 1.0)
+	var wreck := bool(opts.get("wreck", false))
+	if wreck:
+		# a wreck: the mast snapped off short, no canvas, no colours
+		mb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, 0.25), Vector3(0, 0.3, -1.2)), 0.2, 0.15, 3.4, 6, 0.8)
+		mb.add_box(trim, Transform3D(Basis(), Vector3(0, DECK_Y + 0.75, 5.85)), Vector3(4.2, 1.5, 1.3), 0.6, Color.WHITE, true, false)
+		mb.add_box(deck, Transform3D(Basis(Vector3.RIGHT, 0.2), Vector3(0.6, 1.8, 5.85)), Vector3(3.0, 0.12, 1.6), 0.6, Color.WHITE, false, false)
+		var winst := mb.to_instance("PSXModel")
+		parent.add_child(winst)
+		return winst
 	# mast, yard, sail (two panels, both faces), flag, bowsprit
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, 0.3, -1.2)), 0.2, 0.13, 11.0, 6, 0.8)
 	mb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(3.0, 9.2, -1.2)), 0.08, 0.08, 6.0, 5, 0.8)
