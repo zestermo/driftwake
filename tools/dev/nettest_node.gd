@@ -182,7 +182,11 @@ func _run(name_: String, args: Array, from: int):
 			return true
 		"hull_hit":
 			n._ship().hull_hit(float(args[0]), n._ship().global_position)
+			# and a hole for certain, for the damage sync
+			n._ship().add_breach(1.0, -3.0)
 			return n._ship().hull
+		"breaches":
+			return n._ship().breaches.size()
 		"boss_aoe":
 			var b = get_tree().get_first_node_in_group("bosses")
 			b._aoe(args[0], 3.0, 10.0, false)

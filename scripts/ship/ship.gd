@@ -168,7 +168,8 @@ func _physics_process(delta: float) -> void:
 	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
-	var top := MAX_SPEED * (CRIPPLED_SPEED if crippled else 1.0)
+	# (water in her: low and sluggish)
+	var top := MAX_SPEED * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood)
 	var want := top * sail_shown * wind_effect()
 	if anchored:
 		# brought up short by the cable, and swinging to it no more
@@ -225,11 +226,11 @@ func _physics_process(delta: float) -> void:
 	var mean := (hb + hs + hp + hr + hc * 2.0) / 6.0
 	# (bow/stern/sides average most of the swell away; the midship sample
 	# keeps a slow, shallow rise and fall)
-	var target_y := lerpf(mean, hc, 0.5) * HEAVE_SCALE + FREEBOARD
+	var target_y := lerpf(mean, hc, 0.5) * HEAVE_SCALE + FREEBOARD - 0.6 * flood
 	var accel_f := (speed - _prev_speed) / maxf(delta, 0.0001)
 	_prev_speed = speed
 	var target_pitch := clampf(atan((hb - hs) / (STERN_Z - BOW_Z)) * 0.35, -0.045, 0.045) + clampf(accel_f * 0.008, -0.03, 0.03) + clampf(speed * 0.003, -0.01, 0.04)
-	var target_roll := clampf(atan((hr - hp) / (HALF_BEAM * 2.0)) * 0.3, -0.05, 0.05) + clampf(_yaw_rate * speed * 0.01, -0.06, 0.06)
+	var target_roll := clampf(atan((hr - hp) / (HALF_BEAM * 2.0)) * 0.3, -0.05, 0.05) + clampf(_yaw_rate * speed * 0.01, -0.06, 0.06) - 0.12 * flood * _list_side()
 	if not _init:
 		_init = true
 		_y = target_y
@@ -259,6 +260,8 @@ func _physics_process(delta: float) -> void:
 	_wake(delta, pos, fwd, right, mean)
 	if speed > top:
 		speed = move_toward(speed, top, 2.0 * delta)
+	if not Net.is_client():
+		_damage_tick(delta)
 
 
 ## The helmsman's hands (their machine, or the host's when nobody steers:
@@ -370,7 +373,8 @@ func broadside(side: float, target: Vector3, by: Node) -> int:
 	return n
 
 
-## Enemy cannon fire hit the ship (decided by the host).
+## Enemy cannon fire hit the ship (decided by the host): the hull takes it,
+## and a heavy hit may hole her near the waterline or set the deck alight.
 func hull_hit(dmg: float, at: Vector3) -> void:
 	if Net.is_client():
 		return
@@ -380,6 +384,13 @@ func hull_hit(dmg: float, at: Vector3) -> void:
 	if hull <= 0.0 and not crippled:
 		_set_crippled(true)
 	_send_hull(true)
+	if dmg >= 15.0:
+		var l := global_transform.affine_inverse() * at
+		var z := clampf(l.z, -5.2, 5.0)
+		if breaches.size() < MAX_BREACHES and _dmg_rng.randf() < BREACH_CHANCE:
+			add_breach(-1.0 if l.x < 0.0 else 1.0, z)
+		if fires.size() < MAX_FIRES and _dmg_rng.randf() < FIRE_CHANCE:
+			add_fire(Vector3(clampf(l.x, -1.9, 1.9), DECK_Y, z))
 
 
 func _set_crippled(on: bool) -> void:
@@ -412,12 +423,12 @@ func net_hull(v: float) -> void:
 func _hull_tick(delta: float) -> void:
 	_since_hit += delta
 	if not Net.is_client():
-		if _since_hit > REPAIR_DELAY and hull < MAX_HULL:
+		if _since_hit > REPAIR_DELAY and hull < MAX_HULL and fires.is_empty():
 			hull = minf(hull + REPAIR_RATE * delta, MAX_HULL)
 			_send_hull(false)
-			if crippled and hull >= MAX_HULL * 0.5:
-				_set_crippled(false)
-				_send_hull(true)
+		if crippled and hull >= MAX_HULL * 0.5 and flood < 0.5:
+			_set_crippled(false)
+			_send_hull(true)
 	# a crippled ship smokes and burns on deck
 	if crippled or hull < MAX_HULL * 0.3:
 		_burn_t -= delta
@@ -427,6 +438,239 @@ func _hull_tick(delta: float) -> void:
 			FX.smoke(spot, 2, 1.2, 2.0)
 			if crippled:
 				FX.flame(spot, 4, 0.5, 0.5, 0.3)
+
+
+# --------------------------------------------------------------------------
+# Holes, flooding, fires - and the crew's jobs
+# --------------------------------------------------------------------------
+## Host side: each hole lets in FLOOD_RATE of "awash" a second; pumping takes
+## out BAIL_RATE a second per captain at the pump. Each fire burns FIRE_BURN
+## of the hull a second and may catch next to itself after FIRE_SPREAD.
+## Every screen draws them from the host's word (net_damage) and its own
+## captain does the work (hold F): patch a hole from the rail above it, beat
+## out a fire, man the pump.
+const FLOOD_RATE := 0.012
+const BAIL_RATE := 0.035
+const FIRE_BURN := 1.5
+const FIRE_SPREAD := 14.0
+const MAX_FIRES := 5
+const MAX_BREACHES := 6
+const BREACH_CHANCE := 0.55
+const FIRE_CHANCE := 0.35
+const PATCH_TIME := 2.2
+const DOUSE_TIME := 1.4
+const WORK_REACH := 1.6
+const PUMP_AT := Vector3(0.75, DECK_Y, -0.1)
+
+## [id, deck spot above the hole (ship-local)]
+var breaches: Array = []
+## [id, deck spot, age]
+var fires: Array = []
+## 0 dry .. 1 awash (foundering: crippled)
+var flood: float = 0.0
+var _dmg_id: int = 0
+var _dmg_rng := RandomNumberGenerator.new()
+var _flood_sent: float = 0.0
+var _flood_send_t: float = 0.0
+var _holes: Dictionary = {}
+var _fx_t: float = 0.0
+var _burn_me_t: float = 0.0
+var _work_key: String = ""
+var _work_t: float = 0.0
+var _bail_t: float = 0.0
+
+
+## Which way she lists as she floods: toward her holes (-1 port .. 1 starboard).
+func _list_side() -> float:
+	if breaches.is_empty():
+		return 0.0
+	var s := 0.0
+	for b in breaches:
+		s += signf((b[1] as Vector3).x)
+	return s / breaches.size()
+
+
+## Host: hole her at `side` (-1 port, 1 starboard) abreast of `z`.
+func add_breach(side: float, z: float) -> void:
+	_dmg_id += 1
+	breaches.append([_dmg_id, Vector3(side * (HullBuilder.half_width(z) - 0.55), DECK_Y, z)])
+	FX.sfx("wood_crack", global_transform * Vector3(side * 2.6, 0.0, z), 4.0, 0.05, 0.75)
+	_send_damage()
+
+
+## Host: a fire on deck at `at` (ship-local).
+func add_fire(at: Vector3) -> void:
+	_dmg_id += 1
+	fires.append([_dmg_id, at, 0.0])
+	_send_damage()
+
+
+func _send_damage() -> void:
+	_flood_sent = flood
+	_rebuild_holes()
+	Net.ship_damage([breaches, fires, flood])
+
+
+## Not the host: what the host says is holed, burning and flooded.
+func net_damage(data: Array) -> void:
+	breaches = data[0]
+	fires = data[1]
+	flood = float(data[2])
+	_rebuild_holes()
+
+
+## Host: a captain did a job (on any screen).
+func do_work(kind: String, id: int, amount: float) -> void:
+	match kind:
+		"patch":
+			breaches = breaches.filter(func(b): return int(b[0]) != id)
+		"douse":
+			fires = fires.filter(func(f): return int(f[0]) != id)
+		"bail":
+			flood = maxf(flood - amount, 0.0)
+			if absf(flood - _flood_sent) < 0.02 and flood > 0.0:
+				return
+	_send_damage()
+
+
+## Host, every tick: water coming in, fires burning and spreading.
+func _damage_tick(delta: float) -> void:
+	if not breaches.is_empty():
+		flood = minf(flood + breaches.size() * FLOOD_RATE * delta, 1.0)
+		if flood >= 1.0 and not crippled:
+			_set_crippled(true)
+			_send_hull(true)
+	var spread: Array = []
+	for f in fires:
+		f[2] = float(f[2]) + delta
+		hull = maxf(hull - FIRE_BURN * delta, 1.0)
+		_since_hit = 0.0
+		if float(f[2]) > FIRE_SPREAD and fires.size() + spread.size() < MAX_FIRES:
+			f[2] = 0.0
+			var a := _dmg_rng.randf() * TAU
+			var p: Vector3 = f[1] + Vector3(cos(a), 0.0, sin(a)) * 1.6
+			spread.append(Vector3(clampf(p.x, -1.9, 1.9), DECK_Y, clampf(p.z, -5.2, 5.0)))
+	if not fires.is_empty():
+		_send_hull(false)
+	for p in spread:
+		add_fire(p)
+	_flood_send_t -= delta
+	if _flood_send_t <= 0.0 and absf(flood - _flood_sent) > 0.01:
+		_flood_send_t = 0.5
+		_send_damage()
+
+
+## The holes, drawn: a ragged dark gash in the planking at the waterline.
+func _rebuild_holes() -> void:
+	var keep := {}
+	for b in breaches:
+		var id := int(b[0])
+		keep[id] = true
+		if _holes.has(id):
+			continue
+		var spot: Vector3 = b[1]
+		var side := signf(spot.x)
+		var mi := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(0.9, 0.6)
+		mi.mesh = q
+		mi.material_override = PSXMat.lit("planks_dark", Color(0.08, 0.06, 0.05))
+		mi.position = Vector3(side * (HullBuilder.half_width(spot.z) + 0.03), -0.35, spot.z)
+		mi.rotation.y = side * PI * 0.5
+		ship_model.add_child(mi)
+		_holes[id] = mi
+	for id in _holes.keys():
+		if not keep.has(id):
+			(_holes[id] as Node).queue_free()
+			_holes.erase(id)
+
+
+## Every screen: water gushing in, flames and smoke, burns for our captain
+## standing in a fire, and our captain's jobs.
+func _damage_view(delta: float) -> void:
+	_fx_t -= delta
+	if _fx_t <= 0.0:
+		_fx_t = 0.15
+		for f in fires:
+			var at := global_transform * (f[1] as Vector3)
+			FX.flame(at, 5, 0.75, 0.55, 0.35)
+			if randf() < 0.4:
+				FX.smoke(at + Vector3.UP * 0.6, 2, 1.2, 1.8)
+		for b in breaches:
+			var spot: Vector3 = b[1]
+			var side := signf(spot.x)
+			var at := global_transform * Vector3(side * (HullBuilder.half_width(spot.z) + 0.2), -0.25, spot.z)
+			FX.splash(at, 3, 0.5)
+	var me := get_tree().get_first_node_in_group("player") as Player
+	if me == null or me.context != Player.Context.ON_FOOT or not aboard(me.global_position):
+		_set_work("", 0.0)
+		return
+	var local := global_transform.affine_inverse() * me.global_position
+	# standing in a fire
+	_burn_me_t -= delta
+	for f in fires:
+		if Vector2(local.x - f[1].x, local.z - f[1].z).length() < 0.9 and absf(local.y - DECK_Y) < 0.6 and _burn_me_t <= 0.0:
+			_burn_me_t = 0.5
+			var hd := HitData.new()
+			hd.dot = true
+			hd.damage = 4.0
+			me.hurtbox.take_hit(hd, self)
+	# the nearest job within reach
+	var job := ""
+	var id := 0
+	var best := WORK_REACH
+	for b in breaches:
+		var d := Vector2(local.x - b[1].x, local.z - b[1].z).length()
+		if d < best:
+			best = d; job = "patch"; id = int(b[0])
+	for f in fires:
+		var d := Vector2(local.x - f[1].x, local.z - f[1].z).length()
+		if d < best:
+			best = d; job = "douse"; id = int(f[0])
+	if flood > 0.0 and Vector2(local.x - PUMP_AT.x, local.z - PUMP_AT.z).length() < best:
+		job = "bail"; id = 0
+	if job == "":
+		_set_work("", 0.0)
+		return
+	var holding := Input.is_action_pressed("interact") and not me.input_locked
+	var key := "%s%d" % [job, id]
+	if key != _work_key:
+		_work_key = key
+		_work_t = 0.0
+	match job:
+		"bail":
+			if holding:
+				_bail_t += delta
+				if _bail_t >= 0.25:
+					Net.ship_work("bail", 0, BAIL_RATE * _bail_t)
+					_bail_t = 0.0
+			_set_work("Hold F: work the pump", flood)
+		_:
+			var need := PATCH_TIME if job == "patch" else DOUSE_TIME
+			_work_t = _work_t + delta if holding else 0.0
+			me.body_model.kneeling = holding
+			if _work_t >= need:
+				_work_t = 0.0
+				me.body_model.kneeling = false
+				Net.ship_work(job, id, 0.0)
+				FX.sfx("wood_crack" if job == "patch" else "splash", me.global_position, -6.0, 0.05, 1.3)
+			_set_work("Hold F: patch the hole" if job == "patch" else "Hold F: beat out the fire", _work_t / need)
+
+
+var _prompting: bool = false
+
+
+func _set_work(text: String, progress: float) -> void:
+	if text == "":
+		if _prompting:
+			_prompting = false
+			get_tree().call_group("hud", "show_prompt", "", -1.0)
+			var me := get_tree().get_first_node_in_group("player") as Player
+			if me:
+				me.body_model.kneeling = false
+		return
+	_prompting = true
+	get_tree().call_group("hud", "show_prompt", text, progress)
 
 
 ## Bow spray and wake (every machine makes its own from the ship's speed).
@@ -456,6 +700,7 @@ func _process(delta: float) -> void:
 	_hull_tick(delta)
 	_show_sail(delta)
 	_show_anchor(delta)
+	_damage_view(delta)
 	var xf := get_global_transform_interpolated()
 	var heading := xf.basis.get_euler().y
 	_cam_heading = lerp_angle(_cam_heading, heading, minf(4.0 * delta, 1.0))
@@ -594,6 +839,13 @@ func _build_psx_model() -> void:
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, 0.3, -1.2)), 0.2, 0.13, 11.0, 6, 0.8)
 	_build_rig(canvas, wood)
 	_build_anchor(wood)
+	# the bilge pump by the mast
+	var pmb := MeshBuilder.new()
+	pmb.add_box(wood, Transform3D(Basis(), PUMP_AT + Vector3(0, 0.35, 0)), Vector3(0.3, 0.7, 0.3), 1.0)
+	pmb.add_box(trim, Transform3D(Basis(), PUMP_AT + Vector3(0, 0.75, 0)), Vector3(0.12, 0.12, 0.7), 1.0)
+	pmb.add_box(trim, Transform3D(Basis(), PUMP_AT + Vector3(0.18, 0.55, 0)), Vector3(0.08, 0.08, 0.22), 1.0)
+	ship_model.add_child(pmb.to_instance("Pump"))
+	_dmg_rng.randomize()
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 11.0, -0.75)), 0.9, 0.5, Rect2(0, 0, 0.5, 0.5))
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 11.0, -0.75)), 0.9, 0.5, Rect2(0, 0, 0.5, 0.5))
 	# bowsprit

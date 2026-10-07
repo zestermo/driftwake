@@ -1524,6 +1524,38 @@ func _hull(v: float) -> void:
 		ship.net_hull(v)
 
 
+## Host: the crew's ship's holes, fires and flooding ([breaches, fires, flood]).
+func ship_damage(data: Array) -> void:
+	if hosting and world_ready:
+		_ship_dmg.rpc(data)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _ship_dmg(data: Array) -> void:
+	var ship := _ship()
+	if ship:
+		ship.net_damage(data)
+
+
+## Anyone: a job done aboard the crew's ship (a hole patched, a fire out,
+## water pumped out) - the host keeps the books.
+func ship_work(kind: String, id: int, amount: float) -> void:
+	if not active or hosting:
+		var ship := _ship()
+		if ship:
+			ship.do_work(kind, id, amount)
+	else:
+		_ship_work.rpc_id(1, kind, id, amount)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _ship_work(kind: String, id: int, amount: float) -> void:
+	if hosting:
+		var ship := _ship()
+		if ship:
+			ship.do_work(kind, id, amount)
+
+
 # ==========================================================================
 # Joining a running world
 # ==========================================================================

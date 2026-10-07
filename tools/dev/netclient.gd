@@ -444,6 +444,17 @@ func _process(d: float) -> bool:
 				return false
 			check("the host's seat freed when we left the gun", int(net.seats.get(data["cannon"], 0)) == 0)
 			check("hull damage reaches us (%.0f -> %.0f)" % [data["hull0"], net._ship().hull], net._ship().hull < float(data["hull0"]) - 40.0)
+			var sh = net._ship()
+			check("...and her holes (%d here)" % sh.breaches.size(), sh.breaches.size() >= 1 and sh._holes.size() == sh.breaches.size())
+			# we patch them all: the host hears
+			for b in sh.breaches.duplicate():
+				net.ship_work("patch", int(b[0]), 0.0)
+			tn.ask("breaches")
+			go(741)
+		741:
+			if not tn.got("breaches"):
+				return false
+			check("our patching reaches the host (%d holes left there)" % int(tn.replies["breaches"]), int(tn.replies["breaches"]) == 0)
 			data["php8"] = p.health_component.current_health
 			p.state_machine.force_state("Idle", {})
 			tn.ask("boss_aoe", [p.global_position])

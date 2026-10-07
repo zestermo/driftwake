@@ -16,6 +16,7 @@ var hp0 := 0.0
 var t0 := 0.0
 var cut_vel := Vector3.ZERO
 var fired_n := 0
+var ys: Array = []
 var halves: Array = []
 func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
@@ -334,6 +335,91 @@ func _process(d: float) -> bool:
 			check("caught at a tenth of her hull, she strikes her colours", sl.state == 7 and not sl._jolly.visible)
 			check("...her crew don't fight (still aboard, cutlasses away)", sl._crew.all(func(c): return c["node"].visible and not c["node"].armed))
 			check("...the Marines would never", not get_meta("by")["marine"].spec["yields"])
+			# --- holes, flooding, fires (pirates out of the way)
+			for s in get_nodes_in_group("enemy_ships"):
+				s.queue_free()
+			ship.place(get_meta("sea"), 0.0)
+			ship.hull = 400.0
+			ship.flood = 0.0
+			ship.breaches.clear()
+			ship.fires.clear()
+			for k in range(10):
+				ship.hull_hit(30.0, ship.global_transform * Vector3(2.9, 0.0, -3.0))
+			check("heavy hits hole her (%d holes) and can set her alight (%d fires)" % [ship.breaches.size(), ship.fires.size()], ship.breaches.size() > 0)
+			for b in ship.breaches.duplicate():
+				ship.do_work("patch", int(b[0]), 0.0)
+			for f in ship.fires.duplicate():
+				ship.do_work("douse", int(f[0]), 0.0)
+			ship.hull = 400.0
+			p.global_position = ship.global_transform * Vector3(-1.0, 0.8, 3.5)
+			p.reset_physics_interpolation()
+			p.state_machine.force_state("Idle", {})
+			wait = 1.5
+			step = 220
+		220:
+			# her height afloat, dry, then half full of water
+			ys.append(ship._y)
+			if ys.size() < 90:
+				return false
+			set_meta("dry", ys.reduce(func(a, b): return a + b) / ys.size())
+			ys.clear()
+			ship.flood = 0.6
+			wait = 2.0
+			step = 221
+		221:
+			ys.append(ship._y)
+			if ys.size() < 90:
+				return false
+			var wet: float = ys.reduce(func(a, b): return a + b) / ys.size()
+			print("   half full of water she sits %.2f m lower" % (float(get_meta("dry")) - wet))
+			check("water in her: she sits lower", wet < float(get_meta("dry")) - 0.2)
+			ship.flood = 0.0
+			ship.add_breach(1.0, -3.0)
+			wait = 6.0
+			step = 23
+		23:
+			print("   one hole, 6 s: water %.2f, a hole drawn %s" % [ship.flood, ship._holes.size() == 1])
+			check("a hole lets the water in", ship.flood > 0.05)
+			check("...the hull bar shows the water", get_first_node_in_group("hud")._flood_bar.visible)
+			var spot: Vector3 = ship.breaches[0][1]
+			p.global_position = ship.global_transform * (spot + Vector3(0, 0.5, 0))
+			p.reset_physics_interpolation()
+			Input.action_press("interact")
+			wait = ship.PATCH_TIME + 0.8
+			step = 24
+		24:
+			Input.action_release("interact")
+			check("holding F at the rail above it patches the hole", ship.breaches.is_empty() and ship._holes.is_empty())
+			set_meta("flood0", ship.flood)
+			p.global_position = ship.global_transform * (ship.PUMP_AT + Vector3(0.3, 0.5, 0.6))
+			p.reset_physics_interpolation()
+			Input.action_press("interact")
+			wait = 3.0
+			step = 25
+		25:
+			Input.action_release("interact")
+			print("   pumped 3 s: water %.3f -> %.3f" % [get_meta("flood0"), ship.flood])
+			check("working the pump bails her out", ship.flood < float(get_meta("flood0")) - 0.05)
+			ship.add_fire(Vector3(-1.0, ship.DECK_Y, 2.0))
+			hp0 = p.health_component.current_health
+			p.global_position = ship.global_transform * Vector3(-1.0, 0.8, 2.0)
+			p.reset_physics_interpolation()
+			wait = 1.6
+			step = 26
+		26:
+			check("standing in a fire burns", p.health_component.current_health < hp0)
+			Input.action_press("interact")
+			wait = ship.DOUSE_TIME + 0.8
+			step = 27
+		27:
+			Input.action_release("interact")
+			check("holding F beats the fire out", ship.fires.is_empty())
+			ship.add_breach(-1.0, 3.0)
+			ship.flood = 0.995
+			wait = 1.0
+			step = 28
+		28:
+			check("awash, she founders: crippled", ship.crippled)
 			finish()
 	return false
 func get_root_halves() -> Array:

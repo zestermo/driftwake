@@ -419,6 +419,7 @@ var _hull_bar: ProgressBar
 var _hull_label: Label
 const SAIL_GAUGE := preload("res://scripts/ui/sail_gauge.gd")
 var _sail_gauge: Control
+var _flood_bar: ProgressBar
 
 
 func _build_bars() -> void:
@@ -469,6 +470,13 @@ func _build_bars() -> void:
 	_hull_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_hull_bar.max_value = 1.0
 	_hull_box.add_child(_hull_bar)
+	# water in her (holed): fills up blue
+	_flood_bar = _bar(Color(0.3, 0.55, 0.95))
+	_flood_bar.custom_minimum_size = Vector2(40, 5)
+	_flood_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_flood_bar.max_value = 1.0
+	_flood_bar.visible = false
+	_hull_box.add_child(_flood_bar)
 	_sail_gauge = SAIL_GAUGE.new()
 	_sail_gauge.name = "SailGauge"
 	_sail_gauge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -512,9 +520,12 @@ func _update_hull() -> void:
 	var aboard := player.context != Player.Context.ON_FOOT or player.global_position.distance_to(ship.global_position) < 9.0
 	_sail_gauge.ship = ship
 	_sail_gauge.visible = (player.context == Player.Context.HELM or (ship as Ship).aboard(player.global_position)) and not _menu_open and not _in_dialogue
-	_hull_box.visible = aboard and not _menu_open and not _in_dialogue and (hull < mx - 0.5 or player.context != Player.Context.ON_FOOT)
+	var flood: float = float(ship.get("flood"))
+	_hull_box.visible = aboard and not _menu_open and not _in_dialogue and (hull < mx - 0.5 or flood > 0.0 or player.context != Player.Context.ON_FOOT)
 	if _hull_box.visible:
 		_hull_bar.value = hull / mx
+		_flood_bar.visible = flood > 0.005
+		_flood_bar.value = flood
 		var crippled: bool = bool(ship.get("crippled"))
 		_hull_label.text = "Hull!" if crippled else "Hull"
 		_hull_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3) if crippled else UIStyle.TEXT)

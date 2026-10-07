@@ -73,6 +73,9 @@ func _process(d: float) -> bool:
 			if e < 0.3: return false
 			shot("captain2")
 			Input.action_release("move_right")
+			# battle damage for the last shot: a hole on the near side, a fire on deck
+			ship.add_breach(1.0, -2.0)
+			ship.add_fire(Vector3(0.8, ship.DECK_Y, 1.2))
 			phase = 6; t0 = t
 		6:
 			cam.global_position = ship.global_transform * Vector3(16, 7, -10)
