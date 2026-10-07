@@ -48,7 +48,12 @@ func _physics_process(_delta: float) -> void:
 
 	var best: Interactable = null
 	var best_dist := 999.0
-	for inter in nearby_interactables:
+	# a ship's deck job in reach (patch, douse, pump, capstan) takes F: those
+	# are held, read straight off the key, and a cannon or ladder close by
+	# would otherwise grab every press
+	var ship := get_tree().get_first_node_in_group("ship")
+	var busy: bool = ship != null and str(ship.get("local_job")) != ""
+	for inter in ([] if busy else nearby_interactables):
 		if not is_instance_valid(inter) or not inter.enabled or inter.is_queued_for_deletion():
 			continue
 		if (player.is_swimming() or player.current_state_name() == "Climb") and not inter.usable_in_water:

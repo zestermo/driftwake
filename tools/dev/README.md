@@ -150,6 +150,8 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `qolshot`: Nessa's and Sela's stalls, the yard's live preview, the helm with the compass and chart marks, the chart, the capstan and anchor chain, a hull hit's number. Args: <out_prefix>
 - `polishshot`: Sea polish: the foam wake behind the ship (astern, from above), turquoise shallows round Brinehollow and an island, rain pooling on deck. Args: <out_prefix>
 - `yardshot`: The ship plain, then refitted in a few colour schemes (side, bow, masthead flag, each figurehead), Tackett at his timber, and the yard screen. Args: <out_prefix>
+- `seahourshot`: The sea from Brinehollow's dock at a run of hours in clear weather. Args: <out_prefix> [WxH window]
+- `seasoak`: The sea from the dock through F6's weathers and back to clear, printing what the sea and haze are fed. Args: <out_prefix>
 - `kingshot`: The Sea King fighting our ship at its lair: circling, rearing over the deck (bite ring), head down on deck, tail up. Args: <out_prefix>
 - `guestshot`: A rendered co-op guest: start `nethost.gd -- <port>` headless, then `guestshot.gd -- <port> <out_prefix>` joins it and shoots fixed views (dock, open sea) as a guest sees them; prints the guest's hour, sun and ocean state.
 - `wolfpose`: Standalone Zoan hybrid: front, 3/4 and side views. Args: <out_prefix>

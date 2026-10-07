@@ -187,6 +187,19 @@ func state_text() -> String:
 	if oc and p:
 		L.append("sea: amp_mult %.2f  wave height at player %.2f  clock %.2f" % [float(oc.amp_mult),
 			float(oc.get_wave_height(p.global_position)), float(oc.clock())])
+		var om := get_tree().get_nodes_in_group("ocean_mesh")
+		var mn = oc.get("_mesh_node")
+		var m = oc.get("ocean_material")
+		L.append("sea mesh: %d in group  followed %s  visible %s  pos %s  override is the sea's %s" % [om.size(),
+			str(mn.get_path()) if is_instance_valid(mn) else "<gone>", str(mn.is_visible_in_tree()) if is_instance_valid(mn) else "-",
+			_v(mn.global_position) if is_instance_valid(mn) else "-", str(is_instance_valid(mn) and mn.material_override == m)])
+		if m:
+			L.append("sea material: time %s  amp %s  deep %s  shallow %s  near_alpha %s" % [str(m.get_shader_parameter("time_val")),
+				str(m.get_shader_parameter("amp_mult")), str(m.get_shader_parameter("deep_color")), str(m.get_shader_parameter("shallow_color")), str(m.get_shader_parameter("near_alpha"))])
+			L.append("  storm_cells %s  whirls %s" % [str(m.get_shader_parameter("storm_cells")), str(m.get_shader_parameter("whirls"))])
+			L.append("  wake_box %s  shoal_rect %s  fine_rect %s" % [str(m.get_shader_parameter("wake_box")), str(m.get_shader_parameter("shoal_rect")), str(m.get_shader_parameter("fine_rect"))])
+		if w:
+			L.append("haze: fog %.0f..%.0f m  haze_height %.2f  colour %s" % [float(w.fog_begin), float(w.fog_end), float(w.haze_height), str(w.fog_color)])
 
 	# --- ship
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D

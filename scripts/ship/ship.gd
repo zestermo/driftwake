@@ -671,6 +671,7 @@ func _damage_view(delta: float) -> void:
 			FX.splash(at, 3, 0.5)
 	var me := get_tree().get_first_node_in_group("player") as Player
 	if me == null or me.context != Player.Context.ON_FOOT or not aboard(me.global_position):
+		local_job = ""
 		_set_work("", 0.0)
 		return
 	var local := global_transform.affine_inverse() * me.global_position
@@ -699,6 +700,7 @@ func _damage_view(delta: float) -> void:
 		job = "bail"; id = 0
 	elif job == "" and Vector2(local.x - CAPSTAN_AT.x, local.z - CAPSTAN_AT.z).length() < WORK_REACH:
 		job = "anchor"; id = 1 if anchored else 0
+	local_job = job
 	if job == "":
 		_set_work("", 0.0)
 		return
@@ -737,6 +739,9 @@ func _damage_view(delta: float) -> void:
 
 
 var _prompting: bool = false
+## The deck job our captain is in reach of ("" none): F is for it then, not
+## a cannon or ladder close by (InteractionComponent stands aside).
+var local_job: String = ""
 
 
 func _set_work(text: String, progress: float) -> void:

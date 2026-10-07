@@ -142,6 +142,9 @@ func _process(d: float) -> bool:
 			wait = 0.5
 			step = 3
 		3:
+			var ic = p.interaction_component
+			print("   in reach at the capstan: %s, job %s" % [str(ic.nearby_interactables.map(func(i): return i.prompt_text)), ship.local_job])
+			check("at the capstan F is the anchor's, not a gun's or the ladder's", ship.local_job == "anchor" and ic.current_interactable == null)
 			Input.action_press("interact")
 			t0 = t
 			step = 4
