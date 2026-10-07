@@ -155,6 +155,8 @@ func _process(d: float) -> bool:
 				ship.place(get_meta("sea"), heading_for(PI))
 				ship.sail = 1.0
 				p.state_machine.force_state("Helm", {})
+				# (re-taking the wheel left it a moment by Brinehollow's dock: the anchor went down)
+				ship.set_anchored(false)
 				wait = 6.0
 				step = 12
 			return false

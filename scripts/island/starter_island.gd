@@ -1136,7 +1136,7 @@ func _spawn_npcs() -> void:
 
 	# the other market vendors
 	_npc({
-		"name": "Marlo", "voice": 0.85,
+		"name": "Marlo", "voice": 0.85, "shop": "marlo",
 		"barks": [
 			"Fresh off the boat! Well. Fresh-ish. Off a boat.",
 			"Snapper, mackerel, something with too many teeth. Pick one.",
@@ -1150,7 +1150,7 @@ func _spawn_npcs() -> void:
 			"feet": "boots", "feet_color": CharacterLook.LEATHER[1], "belt": "belt", "belt_color": CharacterLook.LEATHER[1]},
 	}, _marker_point(_stall_fish, "Vendor"), _marker_face(_stall_fish, "Vendor"))
 	_npc({
-		"name": "Sela", "voice": 1.2,
+		"name": "Sela", "voice": 1.2, "shop": "sela",
 		"barks": [
 			"Sailcloth, silk, and wool from three islands over. Touch with your eyes, Captain.",
 			"That coat of yours has seen weather. I could patch it. For a price.",
@@ -1164,11 +1164,11 @@ func _spawn_npcs() -> void:
 			"belt": "sash", "sash_color": CharacterLook.CLOTH[15], "earring": true, "scarf": true, "scarf_color": CharacterLook.CLOTH[9]},
 	}, _marker_point(_stall_cloth, "Vendor"), _marker_face(_stall_cloth, "Vendor"))
 	_npc({
-		"name": "Old Ida", "voice": 1.05,
+		"name": "Old Ida", "voice": 1.05, "shop": "ida",
 		"barks": [
 			"Pots, jugs, jars. Everything here holds water except my patience.",
 			"Thrown on my own wheel, fired in my own kiln, dropped by my own nephew.",
-			"Buy a jar for your rum, Captain. Barrels are for people with crews.",
+			"Hardtack, Captain. Packed in my jars, it'll outlast your ship.",
 		],
 		"look": {"body": "fem", "build": "average", "height": 0.92, "skin": CharacterLook.SKIN_TONES[1],
 			"head": "round", "nose": "hooked", "eyes": 3, "brows": 4, "mouth": 0, "marks": "age_lines",

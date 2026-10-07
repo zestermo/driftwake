@@ -841,7 +841,9 @@ func _physics_process(delta: float) -> void:
 		_bleed_tick(delta)
 	elif Net.coop():
 		_revive_tick(delta)
-	elif body_model.kneeling:
+	elif _revive_target != null:
+		# (a revive cut short by the session ending)
+		_revive_target = null
 		body_model.kneeling = false
 	_ride_ship()
 	# swimming in a whirlpool: dragged round and in with the water
@@ -1884,11 +1886,12 @@ func _revive_tick(delta: float) -> void:
 				best = d
 				target = p
 	if target == null:
+		# (only our own kneel ends here: the ship's jobs kneel too)
 		if _revive_target != null:
 			get_tree().call_group("hud", "show_prompt", "", -1.0)
+			body_model.kneeling = false
 		_revive_target = null
 		_revive_t = 0.0
-		body_model.kneeling = false
 		return
 	if target != _revive_target:
 		_revive_t = 0.0

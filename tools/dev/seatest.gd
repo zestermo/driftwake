@@ -629,12 +629,15 @@ func _process(d: float) -> bool:
 			var sk = get_first_node_in_group("sea_kings")
 			if p.current_state_name() == "Downed":
 				set_meta("thrown", true)
+			if ship.find_child("Telegraph", true, false) != null and not bool(get_meta("thrown", false)):
+				set_meta("warned", true)
 			if t - t0 > 1.0:
 				set_meta("tail_y", maxf(float(get_meta("tail_y", -99.0)), (sk._seg_pos[sk.SEGS - 1] as Vector3).y))
 			if t - t0 < 3.0:
 				return false
 			print("   tail: tip rose to %.1f m, captain thrown %s" % [get_meta("tail_y"), get_meta("thrown")])
 			check("its tail rises out of the sea", float(get_meta("tail_y")) > 5.0)
+			check("...a roar and a ring on deck warn before it comes down", bool(get_meta("warned", false)))
 			check("...and slams down: our captain is thrown off their feet", bool(get_meta("thrown")))
 			# a cannonball from our side into it (held still, abeam)
 			p.state_machine.force_state("Idle", {})

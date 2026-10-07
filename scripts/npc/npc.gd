@@ -18,6 +18,8 @@ const INTERACT_LAYER := 512
 
 var npc_name: String = "Villager"
 var dialogue_id: String = ""
+## A trader's stall (Shops): talking opens it after their line.
+var shop_id: String = ""
 var barks: Array = []
 var voice: float = 1.0
 var waypoints: Array = []
@@ -40,6 +42,7 @@ func setup(cfg: Dictionary) -> NPC:
 	npc_name = str(cfg.get("name", "Villager"))
 	name = npc_name.validate_node_name().replace(" ", "")
 	dialogue_id = str(cfg.get("dialogue", ""))
+	shop_id = str(cfg.get("shop", ""))
 	barks = cfg.get("barks", [])
 	voice = float(cfg.get("voice", 1.0))
 	waypoints = cfg.get("waypoints", [])
@@ -71,7 +74,7 @@ func setup(cfg: Dictionary) -> NPC:
 	interactable.name = "Talk"
 	interactable.collision_layer = INTERACT_LAYER
 	interactable.collision_mask = 0
-	interactable.prompt_text = "Talk to %s" % _short_name()
+	interactable.prompt_text = ("Trade with %s" if shop_id != "" and dialogue_id == "" else "Talk to %s") % _short_name()
 	var ics := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
 	sph.radius = 1.6
@@ -120,6 +123,8 @@ func _on_interacted(_by: Node) -> void:
 	if dialogue_id != "":
 		dm.start(dialogue_id, self)
 	elif barks.size() > 0:
+		if shop_id != "":
+			get_node("/root/GameMenu").shop_after_talk(shop_id)
 		dm.say(npc_name, [barks[randi() % barks.size()]], self, voice)
 
 

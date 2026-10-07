@@ -707,12 +707,42 @@ def gen_icons():
         d.point([(3, 21), (5, 19), (7, 17)], fill=hexc("8a7a90") + (255,))
         d.point([(2, 22)], fill=brass)
 
+    def fish(d):
+        # a grilled fish on a skewer, char lines across it
+        d.line([(2, 20), (21, 4)], fill=hexc("8a6a40") + (255,), width=1)
+        d.ellipse([5, 8, 17, 16], fill=hexc("c08048") + (255,))
+        d.polygon([(16, 12), (22, 7), (22, 17)], fill=hexc("a86a38") + (255,))
+        d.ellipse([6, 9, 9, 12], fill=hexc("f0e0c0") + (255,))
+        d.point((7, 10), fill=hexc("201010") + (255,))
+        for x in (10, 12, 14):
+            d.line([(x, 9), (x - 1, 15)], fill=hexc("5a3018") + (255,))
+
+    def stew(d):
+        # a wooden bowl of stew, steam rising
+        d.chord([3, 8, 21, 22], 0, 180, fill=hexc("6a4628") + (255,))
+        d.ellipse([3, 9, 21, 15], fill=hexc("8a4a20") + (255,))
+        for (x, y) in ((8, 12), (13, 11), (16, 13)):
+            d.ellipse([x - 1, y - 1, x + 1, y + 1], fill=hexc("d8a040") + (255,))
+        d.point((11, 13), fill=hexc("60a040") + (255,))
+        for x in (8, 13):
+            d.line([(x, 7), (x + 1, 5), (x, 3)], fill=hexc("e8e8e8") + (200,))
+
+    def biscuit(d):
+        # a square of hardtack, docked with holes
+        d.rectangle([4, 5, 19, 20], fill=hexc("d8b878") + (255,))
+        d.rectangle([4, 5, 19, 7], fill=hexc("e8cc90") + (255,))
+        for (x, y) in ((8, 10), (12, 10), (16, 10), (8, 15), (12, 15), (16, 15)):
+            d.point((x, y), fill=hexc("8a6a38") + (255,))
+
     _icon("cutlass", cutlass)
     _icon("katana", katana)
     _icon("axe", axe)
     _icon("rum", rum)
     _icon("gold", gold)
     _icon("treasure", treasure)
+    _icon("fish", fish)
+    _icon("stew", stew)
+    _icon("biscuit", biscuit)
 
 
 # --------------------------------------------------------------------------
@@ -1217,6 +1247,9 @@ def gen_leather():
 
 
 def main():
+    if "icons" in sys.argv[1:]:
+        gen_icons()
+        return
     os.makedirs(OUT, exist_ok=True)
     print("Generating PSX textures ->", os.path.relpath(OUT, ROOT))
     gen_grass(); gen_sand(); gen_wet_sand(); gen_dirt(); gen_rock(); gen_seafloor(); gen_water()

@@ -20,13 +20,15 @@ const LOOKS := [
 
 func _init(menu: Node) -> void:
 	_menu = menu
-	custom_minimum_size = Vector2(540, 0)
-	set_anchors_preset(Control.PRESET_CENTER)
-	grow_horizontal = Control.GROW_DIRECTION_BOTH
+	# a column down the left: the ship turns slowly on the right (_preview)
+	custom_minimum_size = Vector2(272, 0)
+	set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	offset_left = 10
+	offset_right = 282
 	grow_vertical = Control.GROW_DIRECTION_BOTH
-	add_theme_stylebox_override("panel", UIStyle.box(UIStyle.BG, UIStyle.BORDER, 10, 2))
+	add_theme_stylebox_override("panel", UIStyle.box(UIStyle.BG, UIStyle.BORDER, 8, 2))
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 4)
+	vb.add_theme_constant_override("separation", 2)
 	add_child(vb)
 	var top := HBoxContainer.new()
 	top.add_child(UIStyle.title("Tackett's Yard"))
@@ -36,57 +38,50 @@ func _init(menu: Node) -> void:
 	_gold = UIStyle.label("", 12, UIStyle.ACCENT)
 	top.add_child(_gold)
 	vb.add_child(top)
-	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 14)
-	vb.add_child(cols)
-	# refits
-	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 3)
-	left.custom_minimum_size = Vector2(250, 0)
-	cols.add_child(left)
-	left.add_child(UIStyle.label("Refits", 14, UIStyle.ACCENT))
-	left.add_child(HSeparator.new())
+	vb.add_child(UIStyle.label("Refits", 14, UIStyle.ACCENT))
 	for r in ShipKit.REFITS:
 		var row := HBoxContainer.new()
 		var txt := VBoxContainer.new()
-		txt.add_theme_constant_override("separation", 0)
+		txt.add_theme_constant_override("separation", -2)
 		txt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		txt.add_child(UIStyle.label(r[1], 12))
 		txt.add_child(UIStyle.label(r[2], 8, UIStyle.TEXT_DIM))
 		row.add_child(txt)
-		var b := UIStyle.button("", 64)
+		var b := UIStyle.button("", 56)
 		var id: String = r[0]
 		b.pressed.connect(func(): buy(id))
 		row.add_child(b)
 		_buy[id] = b
-		left.add_child(row)
-	# looks
-	var right := VBoxContainer.new()
-	right.add_theme_constant_override("separation", 2)
-	cols.add_child(right)
-	right.add_child(UIStyle.label("Paint & colours", 14, UIStyle.ACCENT))
-	right.add_child(HSeparator.new())
+		vb.add_child(row)
+	vb.add_child(HSeparator.new())
+	var looks := HBoxContainer.new()
+	var lt := UIStyle.label("Paint & colours", 14, UIStyle.ACCENT)
+	lt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	looks.add_child(lt)
+	_flag = TextureRect.new()
+	_flag.custom_minimum_size = Vector2(ShipKit.FLAG_W, ShipKit.FLAG_H)
+	_flag.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_flag.stretch_mode = TextureRect.STRETCH_SCALE
+	looks.add_child(_flag)
+	vb.add_child(looks)
 	for l in LOOKS:
 		var row := HBoxContainer.new()
 		var name_l := UIStyle.label(l[1], 12)
-		name_l.custom_minimum_size = Vector2(92, 0)
+		name_l.custom_minimum_size = Vector2(96, 0)
 		row.add_child(name_l)
-		var b := UIStyle.button("", 150)
+		var b := UIStyle.button("", 160)
 		var key: String = l[0]
 		b.pressed.connect(func(): cycle(key))
+		b.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
+				cycle(key, -1))
 		row.add_child(b)
 		_cycles.append([key, b, l[2]])
-		right.add_child(row)
-	_flag = TextureRect.new()
-	_flag.custom_minimum_size = Vector2(ShipKit.FLAG_W * 2, ShipKit.FLAG_H * 2)
-	_flag.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_flag.stretch_mode = TextureRect.STRETCH_SCALE
-	_flag.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	right.add_child(_flag)
+		vb.add_child(row)
 	# the foot
 	_note = UIStyle.label("", 8, UIStyle.TEXT_DIM)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD
-	_note.custom_minimum_size = Vector2(500, 0)
+	_note.custom_minimum_size = Vector2(256, 0)
 	vb.add_child(_note)
 	var done := UIStyle.button("Done", 120)
 	done.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -96,12 +91,60 @@ func _init(menu: Node) -> void:
 
 func on_open() -> void:
 	_note.text = "This is the host's ship: only they can order work on her." if Net.is_client() \
-		else "Refits are for good. Paint and colours are free: change them whenever you like."
+		else "Refits are for good. Paint and colours are free (right-click goes back)."
 	_refresh()
+	_start_preview()
 	for c in find_children("*", "Button", true, false):
 		if not (c as Button).disabled:
 			(c as Button).call_deferred("grab_focus")
 			return
+
+
+# --------------------------------------------------------------------------
+# The ship on show: a camera circling her slowly, framed right of the panel
+# --------------------------------------------------------------------------
+var _cam: Camera3D
+var _was_cam: Camera3D
+var _orbit: float = 0.0
+
+
+func _start_preview() -> void:
+	var ship := get_tree().get_first_node_in_group("ship") as Node3D
+	if ship == null or _cam:
+		return
+	_was_cam = get_viewport().get_camera_3d()
+	_cam = Camera3D.new()
+	_cam.name = "YardCamera"
+	_cam.fov = 55.0
+	_cam.far = 1500.0
+	_cam.h_offset = -6.5
+	_cam.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	get_tree().root.add_child(_cam)
+	_cam.current = true
+	_orbit = 0.6
+	_pose_preview(ship)
+
+
+## (GameMenu, leaving the yard) back to the camera we had.
+func end_preview() -> void:
+	if _cam == null:
+		return
+	if _was_cam and is_instance_valid(_was_cam):
+		_was_cam.current = true
+	_cam.queue_free()
+	_cam = null
+
+
+func _pose_preview(ship: Node3D) -> void:
+	var xf := ship.global_transform
+	_cam.global_position = xf * Vector3(sin(_orbit) * 17.0, 6.5, cos(_orbit) * 17.0)
+	_cam.look_at(xf * Vector3(0, 3.0, 0), Vector3.UP)
+
+
+func _process(delta: float) -> void:
+	if _cam and visible:
+		_orbit += delta * 0.18
+		_pose_preview(get_tree().get_first_node_in_group("ship") as Node3D)
 
 
 func _kit() -> Dictionary:
@@ -138,7 +181,6 @@ func buy(id: String) -> void:
 	var cost := int(r[3])
 	if _gold_now() < cost:
 		_note.text = "\"%d gold, Captain, and not a copper less.\" (you have %d)" % [cost, _gold_now()]
-		FX.sfx("blip_low", Vector3.ZERO, -6.0)
 		return
 	var p = _menu.call("_player")
 	p.inventory_component.remove_item(ItemDB.get_item("gold"), cost)
@@ -150,13 +192,13 @@ func buy(id: String) -> void:
 	_refresh()
 
 
-func cycle(key: String) -> void:
+func cycle(key: String, step: int = 1) -> void:
 	if Net.is_client():
 		return
 	var kit := _kit()
 	for c in _cycles:
 		if c[0] == key:
-			kit[key] = (int(kit[key]) + 1) % (c[2] as Array).size()
+			kit[key] = posmod(int(kit[key]) + step, (c[2] as Array).size())
 	Net.set_ship_kit(kit)
 	_menu.call("_play")
 	_refresh()

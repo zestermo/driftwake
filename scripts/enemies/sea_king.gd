@@ -31,6 +31,8 @@ const DOWN_TIME := 1.7
 const TAIL_UP := 1.4
 const TAIL_SLAM := 1.75
 const TAIL_END := 2.6
+## The roar before the slam (seconds ahead): time to jump.
+const TAIL_WARN := 0.6
 const SINK_TIME := 6.0
 const RETURN_AFTER := 600.0
 const HEAD_K := 1.4
@@ -299,6 +301,10 @@ func _physics_process(delta: float) -> void:
 			_ang += _spin * delta * 0.15
 			_target = _ring(sp, _ang, 4.0)
 			_move_head(delta, 8.0, sp)
+			# a roar and a ring over the whole deck just before it comes down: jump!
+			if st_t >= TAIL_SLAM - TAIL_WARN and st_t - delta < TAIL_SLAM - TAIL_WARN:
+				Net.fx("sfx", ["roar", _tail_at, 10.0, 0.02, 0.45])
+				Net.fx("telegraph", [ship.global_transform * Vector3(0, Ship.DECK_Y, 0), 6.5, TAIL_WARN, Color(1.0, 0.8, 0.3), Net.key_of(ship)])
 			if st_t >= TAIL_SLAM and st_t - delta < TAIL_SLAM:
 				_slam(ship)
 			if st_t > TAIL_END:

@@ -15,9 +15,10 @@
 			"text": "What can I get you?",
 			"choices": [
 				{ "text": "Heard any rumors?", "next": "rumor" },
+				{ "text": "What's out in the deep water?", "next": "seaking" },
 				{ "text": "Who runs these waters?", "next": "redtide" },
 				{ "text": "Tell me about Brinehollow.", "next": "town" },
-				{ "text": "A drink.", "next": "drink" },
+				{ "text": "Something to eat and drink.", "next": "drink" },
 				{ "text": "Just passing through.", "next": "bye" }
 			]
 		},
@@ -56,12 +57,22 @@
 			],
 			"next": "menu"
 		},
+		"seaking": {
+			"text": [
+				"Deep water? You mean the Sea King. Don't laugh. Fella in that corner lost a whole sloop to it, and he wasn't drinking. Much.",
+				"A serpent big as a ship, rises when a crew sails over its water. Bites the deck clean through. Here, I'll mark where he says it happened.",
+				"Jump when the tail comes up. That's all the advice anyone's lived to give."
+			],
+			"event": "rumour_king",
+			"next": "menu"
+		},
 		"drink": {
 			"text": [
-				"Here. Brinehollow Black. Tastes like tar and regret.",
-				"First one's free. The second one's also free, we don't have a currency system yet. Don't tell Nessa."
+				"Rum, stew, and a seat out of the rain. Brinehollow Black tastes like tar and regret. The stew tastes like stew.",
+				"Pay up front. Nessa taught me that one."
 			],
-			"next": "menu"
+			"event": "shop:gus",
+			"next": "end"
 		},
 		"bye": {
 			"text": "Come back alive and I'll pour you something worth bragging about."

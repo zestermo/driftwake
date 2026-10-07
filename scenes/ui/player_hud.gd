@@ -58,6 +58,8 @@ func _ready() -> void:
 	_build_coop()
 	_build_feed()
 	_build_bars()
+	_build_gold()
+	_build_compass()
 	Dialogue.dialogue_started.connect(func(_id): _in_dialogue = true)
 	Dialogue.dialogue_ended.connect(func(_id): _in_dialogue = false)
 	await get_tree().process_frame
@@ -85,6 +87,8 @@ func _process(delta: float) -> void:
 	_update_party(delta)
 	_update_feed(delta)
 	_update_hull()
+	_update_gold(delta)
+	_update_compass()
 	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT
 	_skill_bar.visible = show_bar and not _menu_open
 	toast.visible = true
@@ -174,6 +178,94 @@ func _on_inventory_changed() -> void:
 	if player:
 		var count := player.inventory_component.get_loot_count()
 		inventory_label.text = "Loot: %d (bank it at the ship)" % count if count > 0 else ""
+		_gold_changed(player.inventory_component.count("gold"))
+
+
+# ---- Compass strip: at the helm, aboard, or with chart marks set ----
+const COMPASS := preload("res://scripts/ui/compass_strip.gd")
+## A chart mark this close (m, flat) is reached and cleared.
+const MARK_REACHED := 25.0
+var _compass: Control
+
+
+func _build_compass() -> void:
+	_compass = COMPASS.new()
+	_compass.name = "Compass"
+	_compass.visible = false
+	add_child(_compass)
+
+
+func _update_compass() -> void:
+	if player == null:
+		return
+	var aboard: bool = ship != null and (player.context == Player.Context.HELM or (ship as Ship).aboard(player.global_position))
+	_compass.visible = (aboard or not Net.waypoints.is_empty()) and not _menu_open and not _in_dialogue
+	# (below the boss bar while it's up)
+	_compass.offset_top = 34.0 if _boss_box.visible else 4.0
+	_compass.offset_bottom = _compass.offset_top + COMPASS.H
+	var mine: Array = Net.waypoints.get(Net.my_id(), [])
+	var here := Vector2(player.global_position.x, player.global_position.z)
+	for p in mine:
+		if here.distance_to(p) < MARK_REACHED:
+			Net.set_waypoints(mine.filter(func(q): return q != p))
+			show_toast("Reached your mark")
+			FX.sfx("blip_high", player.global_position, -6.0, 0.02, 1.1)
+			break
+
+
+# ---- Gold: shown for a few seconds whenever it changes ----
+const GOLD_SHOW := 4.0
+var _gold_box: HBoxContainer
+var _gold_label: Label
+var _gold_delta: Label
+var _gold_seen: int = -1
+var _gold_t: float = 0.0
+
+
+func _build_gold() -> void:
+	_gold_box = HBoxContainer.new()
+	_gold_box.name = "Gold"
+	_gold_box.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_gold_box.offset_left = -150; _gold_box.offset_top = 30; _gold_box.offset_bottom = 43; _gold_box.offset_right = -10
+	_gold_box.alignment = BoxContainer.ALIGNMENT_END
+	_gold_box.add_theme_constant_override("separation", 3)
+	_gold_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_gold_delta = _tiny_label()
+	_gold_delta.add_theme_font_size_override("font_size", 8)
+	_gold_box.add_child(_gold_delta)
+	var icon := TextureRect.new()
+	icon.texture = load("res://assets/textures/icons/gold.png")
+	icon.custom_minimum_size = Vector2(14, 14)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_gold_box.add_child(icon)
+	_gold_label = _tiny_label()
+	_gold_label.add_theme_font_size_override("font_size", 12)
+	_gold_label.add_theme_color_override("font_color", UIStyle.ACCENT)
+	_gold_box.add_child(_gold_label)
+	_gold_box.modulate.a = 0.0
+	add_child(_gold_box)
+
+
+func _gold_changed(n: int) -> void:
+	if _gold_box == null or n == _gold_seen:
+		return
+	if _gold_seen >= 0:
+		var d := n - _gold_seen
+		_gold_delta.text = "%+d" % d
+		_gold_delta.add_theme_color_override("font_color", Color(0.6, 1.0, 0.5) if d > 0 else Color(1.0, 0.5, 0.4))
+		_gold_t = GOLD_SHOW
+		_bump(_gold_label)
+	_gold_seen = n
+	_gold_label.text = str(n)
+
+
+func _update_gold(delta: float) -> void:
+	_gold_t = maxf(_gold_t - delta, 0.0)
+	# (always up with the inventory open)
+	var keep: bool = GameMenu._current == "inventory"
+	_gold_box.modulate.a = 1.0 if keep else clampf(_gold_t / 0.8, 0.0, 1.0)
+	_gold_delta.visible = _gold_t > 0.0
 
 
 # ---- Skill bar ----
@@ -232,7 +324,7 @@ func _build_feed() -> void:
 	_feed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_feed.offset_left = -150
 	_feed.offset_right = -8
-	_feed.offset_top = 44
+	_feed.offset_top = 47
 	_feed.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_feed.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_feed.add_theme_constant_override("separation", 1)
@@ -539,6 +631,11 @@ func add_marker(id: int, who: String, pos: Vector3, target: Node) -> void:
 	markers.add(id, who, pos, target, col)
 	FX.sparkle(pos, 10, col)
 	FX.sfx("blip_high", pos, -8.0, 0.02, 1.35)
+
+
+func remove_marker(id: int) -> void:
+	if markers:
+		markers.markers.erase(id)
 
 
 static func ping_color(ms: int) -> Color:

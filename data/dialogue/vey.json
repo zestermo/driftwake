@@ -18,6 +18,7 @@
 				{ "text": "Heavy attack", "next": "heavy" },
 				{ "text": "Dodging", "next": "dodge" },
 				{ "text": "Parrying", "next": "parry" },
+				{ "text": "I need a better blade.", "next": "arms" },
 				{ "text": "Why'd you leave the Marines?", "next": "story" },
 				{ "text": "Dismissed.", "next": "bye" }
 			]
@@ -49,6 +50,11 @@
 				"High risk. The best kind."
 			],
 			"next": "menu"
+		},
+		"arms": {
+			"text": "I keep a rack of good steel. Not cheap. Neither is a funeral.",
+			"event": "shop:vey",
+			"next": "end"
 		},
 		"story": {
 			"text": [

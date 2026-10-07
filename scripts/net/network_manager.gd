@@ -241,6 +241,7 @@ func leave() -> void:
 	roster.clear()
 	pings.clear()
 	seats.clear()
+	waypoints.clear()
 	_events.clear()
 	_buffers.clear()
 	_cache.clear()
@@ -436,6 +437,7 @@ func _despawn(id: int) -> void:
 		get_tree().call_group("hud", "show_toast", "%s left" % nm)
 		p.queue_free()
 	players.erase(id)
+	waypoints.erase(id)
 	roster.erase(id)
 	_buffers.erase("P%d" % id)
 	roster_changed.emit()
@@ -1019,6 +1021,21 @@ func _all_rammed(ship_key: String, at: Vector3, push: Vector3) -> void:
 		p.knock_down(push * 6.0 + Vector3.UP * 3.0)
 
 
+## Let go / weigh the anchor (the capstan, anyone aboard): it's whoever owns
+## the ship that says (the helmsman, or the host), so it goes to them.
+func ship_anchor(on: bool) -> void:
+	if not active or ship_owner == my_id():
+		_ship().set_anchored(on)
+	else:
+		_ship_anchor.rpc_id(ship_owner, on)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _ship_anchor(on: bool) -> void:
+	if ship_owner == my_id():
+		_ship().set_anchored(on)
+
+
 ## The shipwright's work on the ship (the host orders it; it's the host's ship).
 func set_ship_kit(kit: Dictionary) -> void:
 	everyone("_all_ship_kit", [kit])
@@ -1326,6 +1343,34 @@ func others_standing() -> bool:
 
 
 # ==========================================================================
+# Chart marks (click the sea chart): each captain's waypoints, seen by all
+# ==========================================================================
+## net id -> Array of Vector2 (world x, z)
+var waypoints: Dictionary = {}
+const MAX_WAYPOINTS := 6
+
+
+func set_waypoints(pts: Array) -> void:
+	everyone("_all_waypoints", [my_id(), pts])
+
+
+func _all_waypoints(id: int, pts: Array) -> void:
+	if pts.is_empty():
+		waypoints.erase(id)
+	else:
+		waypoints[id] = pts.duplicate()
+
+
+## Clear our G marker for everyone.
+func unmark() -> void:
+	everyone("_all_unmark", [my_id()])
+
+
+func _all_unmark(id: int) -> void:
+	get_tree().call_group("hud", "remove_marker", id)
+
+
+# ==========================================================================
 # Map markers (G / middle mouse): "look here" for the whole crew
 # ==========================================================================
 ## Mark a spot (or an enemy: `target` follows it) for everyone.
@@ -1590,7 +1635,7 @@ func _world_state() -> Dictionary:
 	return {"ents": ents, "spawners": spawners, "burned": gm.burned.keys() if gm else [], "ship_owner": ship_owner,
 		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
 		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state(),
-		"kit": gm.ship_kit.duplicate() if gm else {}}
+		"kit": gm.ship_kit.duplicate() if gm else {}, "waypoints": waypoints.duplicate()}
 
 
 func _weather_state() -> Array:
@@ -1613,6 +1658,7 @@ func _apply_world_sync(state: Dictionary) -> void:
 	var wn := get_node_or_null("/root/Weather")
 	if wn and wst.size() >= 3:
 		wn.net_apply(int(wst[0]), float(wst[1]), float(wst[2]))
+	waypoints.merge(state.get("waypoints", {}), true)
 	var ship := _ship()
 	if ship and state.has("kit"):
 		ship.apply_kit(state["kit"])

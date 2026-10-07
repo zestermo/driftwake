@@ -21,7 +21,7 @@ func _init() -> void:
 	offset_top = -SIZE.y * 0.5
 	offset_right = SIZE.x * 0.5
 	offset_bottom = SIZE.y * 0.5
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	_font = load("res://assets/fonts/Silkscreen-Regular.woff2")
 	_font_big = load("res://assets/fonts/PixelifySans-Regular.woff2")
 
@@ -141,7 +141,57 @@ func _draw() -> void:
 	draw_line(nc + Vector2(0, 12), nc + Vector2(0, -12), ink, 2.0)
 	draw_colored_polygon(PackedVector2Array([nc + Vector2(0, -14), nc + Vector2(4, -6), nc + Vector2(-4, -6)]), ink)
 	draw_string(_font, nc + Vector2(-3, -17), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
-	draw_string(_font, Vector2(14, SIZE.y - 10), "M: close", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	# the crew's marks: numbered flags in their colours
+	for id in Net.waypoints.keys():
+		var col: Color = Net.crew_color(id) if Net.active else Color(0.75, 0.1, 0.08)
+		var pts: Array = Net.waypoints[id]
+		for i in range(pts.size()):
+			var c := _to_chart(pts[i], centre, k)
+			draw_line(c, c + Vector2(0, -10), ink, 1.0)
+			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -10), c + Vector2(7, -7.5), c + Vector2(0, -5)]), col)
+			draw_string(_font, c + Vector2(3, 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	draw_string(_font, Vector2(14, SIZE.y - 10), "Click: set a mark   Right-click: remove   C: clear your marks   M: close", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+
+
+## Click: a mark there (up to Net.MAX_WAYPOINTS of ours); right-click near
+## one of ours: it's gone.
+func _gui_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton and event.pressed):
+		return
+	var w := _world()
+	if w == null:
+		return
+	var centre: Vector2 = w.get("starter_center")
+	var k := minf(SIZE.x, SIZE.y) * 0.5 / REACH
+	var mine: Array = (Net.waypoints.get(Net.my_id(), []) as Array).duplicate()
+	var at: Vector2 = event.position
+	if event.button_index == MOUSE_BUTTON_LEFT:
+		if at.y < 30.0 or at.y > SIZE.y - 22.0:
+			return
+		if mine.size() >= Net.MAX_WAYPOINTS:
+			mine.pop_front()
+		mine.append(centre + (at - SIZE * 0.5) / k)
+		Net.set_waypoints(mine)
+		get_node("/root/GameMenu").call("_play")
+		accept_event()
+	elif event.button_index == MOUSE_BUTTON_RIGHT:
+		var best := -1
+		var best_d := 12.0
+		for i in range(mine.size()):
+			var d := _to_chart(mine[i], centre, k).distance_to(at)
+			if d < best_d:
+				best_d = d
+				best = i
+		if best >= 0:
+			mine.remove_at(best)
+			Net.set_waypoints(mine)
+		accept_event()
+
+
+## C: our marks and our G marker, gone.
+func clear_marks() -> void:
+	Net.set_waypoints([])
+	Net.unmark()
 
 
 func _island(pos: Vector2, radius: float, nm: String, centre: Vector2, k: float, known: bool) -> void:

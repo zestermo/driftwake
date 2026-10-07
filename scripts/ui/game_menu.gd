@@ -23,7 +23,11 @@ var _chart: Control
 # the shipwright's yard (talk to Tackett)
 const YARD := preload("res://scripts/ui/shipwright_screen.gd")
 var _yard: Control
-var _yard_next: bool = false
+# traders' stalls (talk to a vendor)
+const SHOP := preload("res://scripts/ui/shop_screen.gd")
+var _shop: Control
+## A screen to open once the talking's done: [] or ["yard"] / ["shop", id].
+var _after_talk: Array = []
 
 # options widgets that need refreshing
 var _opt_refreshers: Array[Callable] = []
@@ -57,13 +61,18 @@ func _ready() -> void:
 	_screens["chart"] = _chart
 	_yard = YARD.new(self)
 	_screens["yard"] = _yard
-	# (the yard opens once the shipwright has finished talking)
+	_shop = SHOP.new(self)
+	_screens["shop"] = _shop
 	var dlg := get_node("/root/Dialogue")
-	dlg.dialogue_event.connect(func(ev: String): _yard_next = _yard_next or ev == "shipwright")
+	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
-		if _yard_next:
-			_yard_next = false
-			open.call_deferred("yard"))
+		if not _after_talk.is_empty():
+			var next := _after_talk
+			_after_talk = []
+			if next[0] == "shop":
+				open_shop.call_deferred(str(next[1]))
+			else:
+				open.call_deferred(str(next[0])))
 	_load = SaveSlotList.new()
 	_load.chosen.connect(_load_slot)
 	_load.cancelled.connect(func(): open("pause"))
@@ -131,6 +140,9 @@ func _input(event: InputEvent) -> void:
 		elif _current == "inventory":
 			close()
 		get_viewport().set_input_as_handled()
+	elif _current == "chart" and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_C:
+		_chart.clear_marks()
+		get_viewport().set_input_as_handled()
 	elif _current == "inventory" and event.is_action_pressed("interact") and _inventory.has_container():
 		# F in the loot window: take everything
 		_inventory.take_all()
@@ -146,6 +158,30 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
+## Dialogue events: "shipwright" and "shop:<id>" open their screen when the
+## talk ends; "rumour_king" puts the Sea King's waters on the chart.
+func _on_dialogue_event(ev: String) -> void:
+	if ev == "shipwright":
+		_after_talk = ["yard"]
+	elif ev.begins_with("shop:"):
+		_after_talk = ["shop", ev.substr(5)]
+	elif ev == "rumour_king":
+		var gm := get_node("/root/GameManager")
+		if not gm.charted.has("king"):
+			gm.charted["king"] = true
+			get_tree().call_group("hud", "show_toast", "The Sea King's waters are on your chart (M)")
+
+
+## A trader's stall, now or (talking) when the talk ends.
+func open_shop(id: String) -> void:
+	_shop.open_shop(id)
+	open("shop")
+
+
+func shop_after_talk(id: String) -> void:
+	_after_talk = ["shop", id]
+
+
 ## Open a chest / bag: the inventory with the container beside your bag.
 func open_container(bag: Node) -> void:
 	open("inventory")
@@ -157,10 +193,12 @@ func open(screen: String) -> void:
 		_play()
 	if _current == "inventory" and screen != "inventory":
 		_inventory.on_close()
+	if _current == "yard" and screen != "yard":
+		_yard.end_preview()
 	_current = screen
 	_root.visible = true
 	# the inventory sits on top of the game; other screens dim it
-	_dim.visible = screen != "inventory" and screen != "skills"
+	_dim.visible = screen not in ["inventory", "skills", "yard"]
 	for n in _screens.keys():
 		_screens[n].visible = (n == screen)
 	# (in co-op the world keeps running: your captain just stands still)
@@ -181,6 +219,8 @@ func open(screen: String) -> void:
 		_chart.on_open()
 	elif screen == "yard":
 		_yard.on_open()
+	elif screen == "shop":
+		_shop.on_open()
 	elif screen == "load":
 		_load.open("load", true)
 	else:
@@ -189,14 +229,18 @@ func open(screen: String) -> void:
 
 ## Shrink the open panel if it wouldn't fit (small or odd-shaped windows).
 func _fit_current() -> void:
-	if _current in ["pause", "options", "controls", "load", "yard"]:
+	if _current in ["pause", "options", "controls", "load", "shop"]:
 		UIStyle.fit_to_screen(_screens[_current] as Control)
 
 
 func close() -> void:
 	if _current == "inventory":
 		_inventory.on_close()
-	elif _current == "yard" and not Net.is_client():
+	elif _current == "yard":
+		_yard.end_preview()
+		if not Net.is_client():
+			SaveGame.save(_player())
+	elif _current == "shop":
 		SaveGame.save(_player())
 	_current = ""
 	_root.visible = false
@@ -445,7 +489,7 @@ const BINDINGS := [
 	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
 	["Dodge roll", "Left Ctrl"], ["Parry", "Q"], ["Interact / talk", "F"], ["Devil Fruit skills", "1 - 4"],
 	["Ultimate", "R"], ["Quick items (rum...)", "5 - 7"], ["Block (hold)", "Q"],
-	["Inventory", "Tab / I"], ["Skill map", "K"], ["Sea chart", "M"],["Zoan: shift form", "V"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
+	["Inventory", "Tab / I"], ["Skill map", "K"], ["Sea chart (click: mark)", "M"],["Zoan: shift form", "V"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
 ]
 

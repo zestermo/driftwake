@@ -14,23 +14,29 @@
 		"menu": {
 			"text": "What can Nessa do for you?",
 			"choices": [
+				{ "text": "Let's trade.", "next": "trade" },
 				{ "text": "What do you sell?", "next": "shop" },
 				{ "text": "What's loot worth?", "next": "loot" },
 				{ "text": "Any work?", "next": "work" },
 				{ "text": "Bye, Nessa.", "next": "bye" }
 			]
 		},
+		"trade": {
+			"text": "Let's see what you've dragged up from the deep!",
+			"event": "shop:nessa",
+			"next": "end"
+		},
 		"shop": {
 			"text": [
-				"Honestly? Not much yet. Supply ship's late. Again.",
-				"When the stalls fill up I'll trade you blades, charms, the works. Bring me banked treasure and we'll talk."
+				"Rope, salt, rum, and pretty things for pretty captains. Earrings! Eyepatches! Both, if you're bold.",
+				"And I buy. Treasure, plunder, anything that glitters. Full price for sea-gems, which is more than the Marines will give you."
 			],
 			"next": "menu"
 		},
 		"loot": {
 			"text": [
-				"Gold's gold. Treasure's better. But only what's banked on your ship counts. What's in your pockets is just a promise.",
-				"Last I heard you'd stowed {banked} pieces. Keep it up!"
+				"Gold's gold. Treasure's better: twenty-five gold a gem, from me. Sell it, then spend it at Tackett's yard. A better ship finds better treasure.",
+				"Last I heard you'd stowed {banked} pieces aboard. Keep it up!"
 			],
 			"next": "menu"
 		},

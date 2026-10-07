@@ -3,7 +3,8 @@ extends PlayerState
 ## hands on the spokes; W/S set the sails a step at a time (they stay set when
 ## you let go, or leave the wheel), A/D the rudder (the wheel turns and the
 ## body leans with it). The ship camera follows the hull's heading; the
-## mouse looks around. F steps away from the wheel (you stay on deck).
+## mouse looks around. F steps away from the wheel (you stay on deck; by a
+## dock the anchor goes down).
 
 var camera_rig: Node3D  # The player's CameraRig
 var ship_camera: Node3D  # The ship's ShipCamera
@@ -109,6 +110,10 @@ func exit() -> void:
 	if player.current_ship:
 		player.current_ship.is_player_steering = false
 		player.current_ship.cam_yaw = 0.0
+		# leaving her by a dock: the anchor goes down, so she can't wander off
+		if not player.current_ship.anchored and player.current_ship.in_port():
+			player.current_ship.set_anchored(true)
+			player.call("_toast", "Anchored in port")
 		Net.release_helm()
 		# step back from the wheel, onto the deck
 		player.global_position = player.current_ship.helm_position.global_position + Vector3.UP * 0.05

@@ -66,6 +66,11 @@ var _cable: Node3D
 var _anchor_drop: float = 0.0
 ## The anchor hangs from the cathead here (ship-model space), off the bow.
 const ANCHOR_AT := Vector3(1.35, 0.95, -6.2)
+const CAPSTAN_AT := Vector3(0.0, DECK_Y, -4.8)
+const CHAIN_STEP := 0.13
+const CHAIN_LINKS := 36
+const ANCHOR_TIME := 1.6
+const PORT_REACH := 40.0
 ## How the hull moved over the last tick (Player._ride_ship carries jumpers by it).
 var _deck_delta := Transform3D.IDENTITY
 ## Camera yaw offset from the heading while at the helm (mouse look).
@@ -423,6 +428,7 @@ func hull_hit(dmg: float, at: Vector3) -> void:
 	hull = maxf(hull - dmg, 0.0)
 	_since_hit = 0.0
 	FX.dust(at, 10, 0.8)
+	Net.fx("float_text", [at + Vector3(0, 1.4, 0), "-%d hull" % int(round(dmg)), Color(1.0, 0.62, 0.25), 30])
 	if hull <= 0.0 and not crippled:
 		_set_crippled(true)
 	_send_hull(true)
@@ -691,6 +697,8 @@ func _damage_view(delta: float) -> void:
 			best = d; job = "douse"; id = int(f[0])
 	if flood > 0.0 and Vector2(local.x - PUMP_AT.x, local.z - PUMP_AT.z).length() < best:
 		job = "bail"; id = 0
+	elif job == "" and Vector2(local.x - CAPSTAN_AT.x, local.z - CAPSTAN_AT.z).length() < WORK_REACH:
+		job = "anchor"; id = 1 if anchored else 0
 	if job == "":
 		_set_work("", 0.0)
 		return
@@ -707,6 +715,15 @@ func _damage_view(delta: float) -> void:
 					Net.ship_work("bail", 0, BAIL_RATE * _bail_t)
 					_bail_t = 0.0
 			_set_work("Hold F: work the pump", flood)
+		"anchor":
+			_work_t = _work_t + delta if holding else 0.0
+			me.body_model.kneeling = holding
+			if _work_t >= ANCHOR_TIME:
+				_work_t = 0.0
+				me.body_model.kneeling = false
+				Net.ship_anchor(not anchored)
+				FX.sfx("rope", global_transform * CAPSTAN_AT, -2.0, 0.05, 0.75)
+			_set_work("Hold F: weigh anchor" if anchored else "Hold F: let go the anchor", _work_t / ANCHOR_TIME)
 		_:
 			var need := PATCH_TIME if job == "patch" else DOUSE_TIME
 			_work_t = _work_t + delta if holding else 0.0
@@ -816,6 +833,10 @@ func _build_collision() -> void:
 	var chest := BoxShape3D.new()
 	chest.size = Vector3(0.6, 0.6, 1.0)
 	_shape(chest, Transform3D(Basis.IDENTITY, bank_position.position + Vector3(0, 0.12, 0)))
+	var capstan := CylinderShape3D.new()
+	capstan.radius = 0.32
+	capstan.height = 0.75
+	_shape(capstan, Transform3D(Basis.IDENTITY, CAPSTAN_AT + Vector3(0, 0.37, 0)))
 
 
 func _shape(shape: Shape3D, xf: Transform3D) -> void:
@@ -1190,8 +1211,10 @@ func wind_effect() -> float:
 # --------------------------------------------------------------------------
 # Anchor
 # --------------------------------------------------------------------------
-## An anchor at the bow on its cable: catted up under way, let go to hold
-## the ship where she is.
+## An anchor at the bow on its chain: catted up under way, let go to hold the
+## ship where she is. The chain runs from the capstan on the foredeck to the
+## rail and down; anyone on deck can work the capstan (hold F), and the
+## helmsman can let go with Space.
 func _build_anchor(wood: Material) -> void:
 	var iron := PSXMat.lit("metal", Color(0.22, 0.21, 0.2))
 	var amb := MeshBuilder.new()
@@ -1199,14 +1222,45 @@ func _build_anchor(wood: Material) -> void:
 	amb.add_box(wood, Transform3D(Basis(), Vector3(0, -0.05, 0)), Vector3(0.7, 0.09, 0.09), 1.0)
 	amb.add_box(iron, Transform3D(Basis(Vector3.BACK, 0.9), Vector3(0.2, -0.82, 0)), Vector3(0.08, 0.42, 0.08), 1.0)
 	amb.add_box(iron, Transform3D(Basis(Vector3.BACK, -0.9), Vector3(-0.2, -0.82, 0)), Vector3(0.08, 0.42, 0.08), 1.0)
+	amb.add_cylinder(iron, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.02, -0.04)), 0.07, 0.07, 0.08, 6, 1.0)
 	_anchor = amb.to_instance("Anchor")
 	_anchor.position = ANCHOR_AT
 	ship_model.add_child(_anchor)
-	var cmb := MeshBuilder.new()
-	cmb.add_box(PSXMat.lit("canvas", Color(0.7, 0.58, 0.38)), Transform3D(Basis(), Vector3(0, -0.5, 0)), Vector3(0.05, 1.0, 0.05), 1.0)
-	_cable = cmb.to_instance("Cable")
+	# the capstan: a drum with its bars, chain wound round it
+	var cap := MeshBuilder.new()
+	cap.add_cylinder(wood, Transform3D(Basis(), CAPSTAN_AT), 0.32, 0.26, 0.75, 8, 1.0)
+	cap.add_cylinder(iron, Transform3D(Basis(), CAPSTAN_AT + Vector3(0, 0.3, 0)), 0.29, 0.29, 0.14, 8, 1.0)
+	for k in range(4):
+		var b := Basis(Vector3.UP, PI * 0.25 * k)
+		cap.add_box(wood, Transform3D(b, CAPSTAN_AT + Vector3(0, 0.66, 0)), Vector3(1.3, 0.06, 0.06), 1.0)
+	ship_model.add_child(cap.to_instance("Capstan"))
+	# a link, two ways round (they alternate down the chain)
+	var lm := MeshBuilder.new()
+	lm.add_box(iron, Transform3D(Basis(), Vector3(0, 0, 0.045)), Vector3(0.03, CHAIN_STEP + 0.03, 0.025), 1.0)
+	lm.add_box(iron, Transform3D(Basis(), Vector3(0, 0, -0.045)), Vector3(0.03, CHAIN_STEP + 0.03, 0.025), 1.0)
+	var link := lm.commit()
+	# along the deck to the rail (it doesn't move)
+	var deck_chain := MeshBuilder.new()
+	var from := CAPSTAN_AT + Vector3(0, 0.3, 0)
+	var to := ANCHOR_AT + Vector3(-0.15, 0.1, 0.0)
+	var n := int(from.distance_to(to) / CHAIN_STEP)
+	var along := Basis.looking_at((to - from).normalized(), Vector3.UP) * Basis(Vector3.RIGHT, PI * 0.5)
+	for i in range(n):
+		var at := from.lerp(to, (i + 0.5) / n)
+		var b := along * Basis(Vector3.UP, PI * 0.5 * (i % 2))
+		deck_chain.add_box(iron, Transform3D(b, at), Vector3(0.1, CHAIN_STEP + 0.03, 0.03), 1.0)
+	ship_model.add_child(deck_chain.to_instance("DeckChain"))
+	# down to the anchor: links shown as far as it's let go
+	_cable = Node3D.new()
+	_cable.name = "Chain"
 	_cable.position = ANCHOR_AT
 	ship_model.add_child(_cable)
+	for i in range(CHAIN_LINKS):
+		var mi := MeshInstance3D.new()
+		mi.mesh = link
+		mi.position = Vector3(0, -(i + 0.5) * CHAIN_STEP, 0)
+		mi.rotation.y = PI * 0.5 * (i % 2)
+		_cable.add_child(mi)
 	_show_anchor(0.0)
 
 
@@ -1224,7 +1278,17 @@ func _show_anchor(delta: float) -> void:
 	_anchor_drop = move_toward(_anchor_drop, 1.0 if anchored else 0.0, delta * 0.8)
 	var depth := lerpf(0.0, 4.5, _anchor_drop)
 	_anchor.position = ANCHOR_AT + Vector3(0, -depth, 0)
-	_cable.scale = Vector3(1, maxf(depth, 0.05), 1)
+	for i in range(_cable.get_child_count()):
+		(_cable.get_child(i) as Node3D).visible = (i + 1) * CHAIN_STEP <= depth + 0.05
+
+
+## Near a dock (an island's DockingArea): her anchor goes down by itself when
+## the helmsman leaves the wheel there.
+func in_port() -> bool:
+	for d in get_tree().current_scene.find_children("DockingArea", "", true, false):
+		if (d as Node3D).global_position.distance_to(global_position) < PORT_REACH:
+			return true
+	return false
 
 
 # ==========================================================================
@@ -1250,6 +1314,7 @@ func net_take_over(state: Array) -> void:
 	if st.size() < PACK_SIZE:
 		return
 	sail = float(st[11])
+	set_anchored(bool(st[14]))
 	if _init:
 		return
 	_pos = st[0]
