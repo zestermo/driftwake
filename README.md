@@ -46,10 +46,6 @@ wobbly vertices, dithered colour and a chunky pixel grid.
     <td><img src="docs/media/whirlwind.jpg" alt="The captain spinning a Haki-coated axe in a purple arc"><br><b>The axe's whirlwind.</b> Right click spins the axe around you, catching everyone in reach and knocking them flat on the second turn.</td>
   </tr>
   <tr>
-    <td><img src="docs/media/skybreaker.jpg" alt="The captain somersaulting down with an axe over a pirate"><br><b>Skybreaker.</b> Attack in the air with an axe to somersault down and split the ground ahead.</td>
-    <td><img src="docs/media/air_slash.jpg" alt="The captain in the air with a Haki-black katana raised"><br><b>The katana's air slash</b> cuts a crescent under you mid-jump.</td>
-  </tr>
-  <tr>
     <td><img src="docs/media/seaking.jpg" alt="The Sea King coiling around the ship"><br><b>Face the Sea King.</b> A serpent lurks in deep water. Jump its tail slam, cut at its head when it bites the deck, and claim its hoard.</td>
     <td><img src="docs/media/fleet.jpg" alt="Four enemy ships: sloop, gunboat, brig and Marines"><br><b>Pirate fleets and Marines</b> that hunt you, fire broadsides, ram, flee and strike their colours. Board them and take their prize.</td>
   </tr>
