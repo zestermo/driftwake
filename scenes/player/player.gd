@@ -1234,7 +1234,7 @@ func equip_weapon(item: ItemData, draw: bool = true) -> void:
 	if item == null or not item.is_weapon():
 		return
 	equipped_weapon = item
-	body_model.set_weapon(Props.weapon_mesh(item.weapon_model))
+	body_model.set_weapon(Props.weapon_mesh(item.model()))
 	if offhand_weapon and not _offhand_valid(offhand_weapon):
 		set_offhand(null)
 	_reset_ammo()
@@ -1297,7 +1297,7 @@ func set_offhand(item: ItemData) -> bool:
 	if item != null and not _offhand_valid(item):
 		return false
 	offhand_weapon = item
-	body_model.set_offhand(Props.weapon_mesh(item.weapon_model) if item else null)
+	body_model.set_offhand(Props.weapon_mesh(item.model()) if item else null)
 	_reset_ammo()
 	weapon_changed.emit(equipped_weapon)
 	return true

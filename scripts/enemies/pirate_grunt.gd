@@ -100,6 +100,8 @@ var _col: CollisionShape3D
 var _bark: Label3D
 var _bark_t: float = 0.0
 var _rng := RandomNumberGenerator.new()
+var _blade_model: String = "cutlass"
+var _blade_id: String = "cutlass"
 var _player: Node3D
 var _yaw: float = 0.0
 var _strafe_dir: float = 1.0
@@ -249,7 +251,11 @@ func _ready() -> void:
 	humanoid.name = "Model"
 	humanoid.setup(look)
 	facing.add_child(humanoid)
-	humanoid.set_weapon(Props.weapon_mesh("rifle" if role == "rifle" else "cutlass"))
+	# every pirate's blade is their own (and it's the one they drop)
+	var d := WeaponDesigns.random_design("cutlass", _rng)
+	_blade_model = "cutlass:%s:0" % d
+	_blade_id = str(WeaponDesigns.DESIGNS["cutlass"][d]["id"]) if d != "" else "cutlass"
+	humanoid.set_weapon(Props.weapon_mesh("rifle" if role == "rifle" else _blade_model))
 	if role == "rifle":
 		humanoid._attach_weapon(true)
 		humanoid.carry = "rifle"
@@ -688,7 +694,7 @@ func _physics_process(delta: float) -> void:
 				_fire(p)
 			if st_t >= _aim_len + (0.35 if _gun == "pistol" else 0.3):
 				if _gun == "pistol":
-					humanoid.set_weapon(Props.weapon_mesh("cutlass"))
+					humanoid.set_weapon(Props.weapon_mesh(_blade_model))
 					_pistol_cd = PISTOL_COOLDOWN
 					_set_state(S.CHASE)
 				else:
@@ -1300,7 +1306,7 @@ func _drop_weapon() -> void:
 		if roll < 0.3:
 			id = "pistol"
 		elif roll < 0.45:
-			id = "cutlass"
+			id = _blade_id
 	elif roll < 0.4:
 		id = "pistol"
 	if id == "":
@@ -1716,7 +1722,7 @@ func _end_aim() -> void:
 func _drop_aim() -> void:
 	_aim_line.visible = false
 	if _gun == "pistol" and role == "sword":
-		humanoid.set_weapon(Props.weapon_mesh("cutlass"))
+		humanoid.set_weapon(Props.weapon_mesh(_blade_model))
 		humanoid._attach_weapon(true)
 		_pistol_cd = PISTOL_COOLDOWN * 0.5
 	_gun = ""

@@ -473,7 +473,7 @@ func _dead_fx() -> void:
 	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	var items: Array[ItemStack] = []
 	# (and a blade from something it swallowed: purple, or now and then gold)
-	var blade := "%s@%d" % [["cutlass", "katana", "boarding_axe"][randi() % 3], 4 if randf() < 0.25 else 3]
+	var blade := "%s@%d" % [WeaponDesigns.random_item(_rng), 4 if randf() < 0.25 else 3]
 	for e in [["gold", 90], ["treasure@2", 6], ["rum", 3], [blade, 1]]:
 		var st := ItemStack.new()
 		st.item = ItemDB.get_item(str(e[0]))

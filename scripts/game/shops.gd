@@ -50,8 +50,9 @@ const SHOPS := {
 	},
 	"vey": {
 		"name": "Vey's Armoury", "line": "Steel that's seen the Grand Patrol. I'll buy your spare blades, too.",
-		"stock": [["cutlass", 45], ["boarding_axe", 70], ["pistol", 90],
-			["cutlass@1", 110], ["boarding_axe@1", 150], ["katana", 180]],
+		"stock": [["cutlass", 45], ["hunting_hanger", 40], ["naval_sabre", 70], ["hatchet", 30], ["boarding_axe", 70],
+			["pistol", 90], ["duelling_pistol", 130], ["wakizashi", 120],
+			["scimitar@1", 140], ["bearded_axe@1", 160], ["cutlass@1", 110], ["katana", 180]],
 		"buys": {"weapon": 0.6},
 	},
 }

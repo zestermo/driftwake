@@ -1080,7 +1080,7 @@ func _all_drop(id: String, at: Vector3, yaw: float) -> void:
 	bag.global_position = at
 	var mi := bag.get_node_or_null("MeshInstance3D") as MeshInstance3D
 	if mi:
-		mi.mesh = Props.weapon_mesh(item.weapon_model)
+		mi.mesh = Props.weapon_mesh(item.model())
 		mi.rotation = Vector3(PI * 0.5, yaw, 0)
 		mi.position = Vector3(0, 0.06, 0)
 
@@ -1150,7 +1150,7 @@ func _make_drop(id: String, stacks: Array, at: Vector3, shared: bool) -> Node:
 	if mi:
 		var only: ItemData = items[0].item if items.size() == 1 else null
 		if only and only.is_weapon():
-			mi.mesh = Props.weapon_mesh(only.weapon_model)
+			mi.mesh = Props.weapon_mesh(only.model())
 			mi.rotation = Vector3(PI * 0.5, randf() * TAU, 0)
 			mi.position = Vector3(0, 0.06, 0)
 		elif only and only.devil_fruit != "":

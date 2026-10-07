@@ -25,6 +25,8 @@ const RARITY_VALUE := [1.0, 1.6, 2.6, 4.0, 7.0, 12.0, 20.0]
 @export_group("Weapon")
 ## Model name understood by Props.weapon_mesh() ("cutlass", "axe").
 @export var weapon_model: String = ""
+## Which look of it (WeaponDesigns.DESIGNS; "" the plain one).
+@export var design: String = ""
 @export var damage_mult: float = 1.0
 
 @export_group("Gear")
@@ -71,6 +73,11 @@ func rarity_color() -> Color:
 ## Text in the tier's colour needs this outline (Supreme is black: a pale edge).
 func rarity_outline() -> Color:
 	return Color(0.85, 0.85, 0.8) if rarity == Rarity.SUPREME else Color.BLACK
+
+
+## The weapon's mesh: kind, design and tier (Props.weapon_mesh).
+func model() -> String:
+	return "%s:%s:%d" % [weapon_model, design, int(rarity)]
 
 
 ## The weapon's damage multiplier with its tier.

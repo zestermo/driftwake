@@ -220,5 +220,31 @@ func _process(d: float) -> bool:
 				if l.text == "-20 hull":
 					shown = true
 			check("a hit on the hull floats its number", shown)
+			# --- weapon designs
+			var db = load("res://scripts/loot/item_db.gd")
+			var designs = load("res://scripts/props/weapon_designs.gd")
+			var n := 0
+			var iconless := 0
+			for k in designs.BASE_ITEM.keys():
+				for id in designs.item_ids(k):
+					var it = db.get_item(id)
+					n += 1
+					if it == null or not it.is_weapon() or it.icon == null:
+						iconless += 1
+			print("   %d weapon designs" % n)
+			check("every weapon design is an item with its own icon (%d designs)" % n, n >= 24 and iconless == 0)
+			var rap = db.get_item("rapier@4")
+			check("a legendary rapier: its model carries design and tier", rap.model() == "cutlass:rapier:4" and str(Props.weapon_mesh(rap.model()).get_meta("model")) == "cutlass:rapier:4")
+			p.state_machine.force_state("Idle", {})
+			p.inventory_component.add_item(db.get_item("nodachi"), 1)
+			p.equip_weapon(db.get_item("nodachi"))
+			var saya = p.body_model._katana_socket.get_node("Saya") if p.body_model._katana_socket else null
+			check("a nodachi is a katana (stance, scabbard) with a longer scabbard", p.style() == "katana" and p.body_model.is_katana() and saya != null and saya.scale.z > 1.2)
+			var blades := {}
+			for g in get_nodes_in_group("enemies"):
+				if g.get("_blade_model") != null:
+					blades[g._blade_model] = true
+			print("   pirate blades: %s" % ", ".join(blades.keys()))
+			check("pirates carry different blades", blades.size() >= 2)
 			finish()
 	return false

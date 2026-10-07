@@ -27,6 +27,8 @@ static func tiered(base_id: String, tier: int) -> ItemData:
 	var it := base.duplicate() as ItemData
 	it.id = id
 	it.rarity = tier as ItemData.Rarity
+	if it.is_weapon():
+		it.icon = WeaponDesigns.icon(it.model())
 	return register(it)
 
 
@@ -48,3 +50,4 @@ static func _load_all() -> void:
 		var item := load(DIR + f) as ItemData
 		if item and item.id != "":
 			_items[item.id] = item
+	WeaponDesigns.make_items(_items)

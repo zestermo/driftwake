@@ -808,55 +808,21 @@ static func signpost(arrows: Array) -> Node3D:
 # Hand-held items (grip at the origin, business end along -Z)
 # --------------------------------------------------------------------------
 static func weapon_mesh(kind: String) -> ArrayMesh:
+	# cutlasses, katanas, axes and pistols in all their designs and tiers
+	if kind.get_slice(":", 0) in WeaponDesigns.BASE_ITEM:
+		return WeaponDesigns.build(kind)
+	# the riflemen's long musket: grip at the origin, barrel 1.1 m forward,
+	# stock back to the shoulder
 	var mb := MeshBuilder.new()
 	var steel := PSXMat.lit("metal")
-	var grip := PSXMat.lit("planks_dark")
 	var brass := PSXMat.lit("metal", Color(1.0, 0.78, 0.4))
-	match kind:
-		"axe":
-			mb.add_box(grip, Transform3D(Basis(), Vector3(0, 0, -0.32)), Vector3(0.05, 0.05, 0.9), 2.0)
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0.1, -0.68)), Vector3(0.04, 0.26, 0.16), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, 0.22, -0.74)), Vector3(0.035, 0.14, 0.22), 2.0)
-			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0, 0.1)), Vector3(0.06, 0.06, 0.05), 2.0)
-		"pistol":
-			# flintlock: barrel forward (-Z) above the hand, curved wooden grip
-			var wood := PSXMat.lit("planks", Color(0.75, 0.5, 0.3))
-			mb.add_cylinder(steel, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0.06, -0.05)), 0.022, 0.02, 0.36, 6, 2.0)
-			mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.05, -0.1)), Vector3(0.045, 0.05, 0.22), 2.0)
-			mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, 0.5), Vector3(0, -0.03, 0.03)), Vector3(0.045, 0.16, 0.06), 2.0)
-			mb.add_box(brass, Transform3D(Basis(Vector3.RIGHT, 0.5), Vector3(0, -0.1, 0.07)), Vector3(0.055, 0.04, 0.07), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.4), Vector3(0, 0.1, 0.02)), Vector3(0.02, 0.05, 0.02), 2.0)
-			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0.0, -0.04)), Vector3(0.01, 0.04, 0.05), 2.0)
-		"katana":
-			# two-handed: the right hand at the origin just behind the round guard,
-			# a long wrapped hilt back to the pommel (the left hand's grip at +0.17),
-			# a long blade curving gently toward its spine (+Y) at the tip
-			var wrap := PSXMat.lit("fabric", Color(0.16, 0.13, 0.17))
-			var iron := PSXMat.lit("metal", Color(0.32, 0.3, 0.3))
-			mb.add_box(wrap, Transform3D(Basis(), Vector3(0, 0, 0.115)), Vector3(0.034, 0.04, 0.27), 2.0)
-			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0, 0.255)), Vector3(0.038, 0.044, 0.02), 2.0)
-			mb.add_cylinder(iron, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0, -0.03)), 0.046, 0.046, 0.012, 8, 2.0)
-			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0, -0.05)), Vector3(0.016, 0.04, 0.025), 2.0)
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0, -0.2)), Vector3(0.012, 0.034, 0.28), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.05), Vector3(0, 0.006, -0.46)), Vector3(0.012, 0.033, 0.26), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.11), Vector3(0, 0.025, -0.7)), Vector3(0.011, 0.03, 0.24), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.32), Vector3(0, 0.046, -0.835)), Vector3(0.01, 0.018, 0.05), 2.0)
-		"rifle":
-			# long musket: grip at the origin, barrel 1.1 m forward, stock back to the shoulder
-			var wood := PSXMat.lit("planks", Color(0.7, 0.45, 0.26))
-			mb.add_cylinder(steel, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0.06, -0.2)), 0.024, 0.022, 1.15, 6, 2.0)
-			mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.035, -0.45)), Vector3(0.06, 0.06, 0.75), 2.0)
-			mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, 0.18), Vector3(0, -0.01, 0.22)), Vector3(0.06, 0.11, 0.5), 2.0)
-			mb.add_box(brass, Transform3D(Basis(Vector3.RIGHT, 0.18), Vector3(0, -0.06, 0.47)), Vector3(0.065, 0.13, 0.04), 2.0)
-			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0.06, -0.62)), Vector3(0.05, 0.05, 0.03), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.4), Vector3(0, 0.1, 0.0)), Vector3(0.02, 0.05, 0.02), 2.0)
-		_:
-			# cutlass: slightly curved blade (two segments), knuckle guard, grip
-			mb.add_box(steel, Transform3D(Basis(), Vector3(0, 0, -0.38)), Vector3(0.025, 0.07, 0.56), 2.0)
-			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.18), Vector3(0, 0.03, -0.78)), Vector3(0.025, 0.06, 0.28), 2.0)
-			mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0, -0.08)), Vector3(0.05, 0.16, 0.05), 2.0)
-			mb.add_box(brass, Transform3D(Basis(), Vector3(0, -0.07, 0.03)), Vector3(0.04, 0.03, 0.2), 2.0)
-			mb.add_box(grip, Transform3D(Basis(), Vector3(0, 0, 0.04)), Vector3(0.045, 0.05, 0.16), 2.0)
+	var wood := PSXMat.lit("planks", Color(0.7, 0.45, 0.26))
+	mb.add_cylinder(steel, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0.06, -0.2)), 0.024, 0.022, 1.15, 6, 2.0)
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.035, -0.45)), Vector3(0.06, 0.06, 0.75), 2.0)
+	mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, 0.18), Vector3(0, -0.01, 0.22)), Vector3(0.06, 0.11, 0.5), 2.0)
+	mb.add_box(brass, Transform3D(Basis(Vector3.RIGHT, 0.18), Vector3(0, -0.06, 0.47)), Vector3(0.065, 0.13, 0.04), 2.0)
+	mb.add_box(brass, Transform3D(Basis(), Vector3(0, 0.06, -0.62)), Vector3(0.05, 0.05, 0.03), 2.0)
+	mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.4), Vector3(0, 0.1, 0.0)), Vector3(0.02, 0.05, 0.02), 2.0)
 	var m := mb.commit()
 	m.set_meta("model", kind)  # co-op: other players rebuild the same weapon by name
 	return m

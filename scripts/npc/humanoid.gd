@@ -308,7 +308,8 @@ func set_weapon(mesh: Mesh) -> void:
 
 
 func is_katana() -> bool:
-	return weapon != null and is_instance_valid(weapon) and weapon.mesh != null and str(weapon.mesh.get_meta("model", "")) == "katana"
+	# (the model is "katana:<design>:<tier>")
+	return weapon != null and is_instance_valid(weapon) and weapon.mesh != null and str(weapon.mesh.get_meta("model", "")).get_slice(":", 0) == "katana"
 
 
 ## The katana's scabbard on the left hip, worn edge-up with the mouth forward
@@ -329,6 +330,7 @@ func _build_saya() -> void:
 	var saya := MeshInstance3D.new()
 	saya.name = "Saya"
 	saya.mesh = Props.saya_mesh()
+	saya.scale = Vector3(1, 1, WeaponDesigns.sheath_scale(str(weapon.mesh.get_meta("model", ""))))
 	_katana_socket.add_child(saya)
 
 

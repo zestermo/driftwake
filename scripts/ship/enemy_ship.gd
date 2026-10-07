@@ -654,7 +654,7 @@ func _build_crew(model: Node3D) -> void:
 		model.add_child(h)
 		h.position = spot + Vector3(0, HullBuilder.DECK_Y, 0)
 		h.rotation.y = yaw
-		h.set_weapon(Props.weapon_mesh("cutlass"))
+		h.set_weapon(Props.weapon_mesh("cutlass:%s:0" % WeaponDesigns.random_design("cutlass", rng)))
 		h._attach_weapon(false)
 		_crew.append({"node": h, "look": look, "spot": spot, "yaw": yaw, "gone": false, "drawn": false})
 
@@ -1069,7 +1069,7 @@ func _prize() -> void:
 		# out at sea the steel's better than Brinehollow's: green, often blue, now and then purple
 		var r := rng.randf()
 		var tier := 3 if r < 0.06 else (2 if r < 0.45 else 1)
-		picks.append(["%s@%d" % [["pistol", "cutlass", "boarding_axe", "katana"][rng.randi() % 4], tier], 1])
+		picks.append(["%s@%d" % [WeaponDesigns.random_item(rng), tier], 1])
 	for e in picks:
 		var it := ItemDB.get_item(str(e[0]))
 		var stk := ItemStack.new()
