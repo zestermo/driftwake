@@ -1437,6 +1437,29 @@ func _action_pose(n: String, u: float) -> Array:
 		"block":
 			lift.y = -0.08 * sin(clampf(u, 0, 1) * PI)
 			return [_keys(u, [[0.0, GUARD], [0.15, E_BLOCK, "out"], [0.7, E_BLOCK], [1.0, GUARD]]), "full", lift]
+		"peril_chop":
+			# grunt peril (2.6 s spanning wind 1.0 s + swing + recover): blade raised high
+			# behind the head, off hand sighting the target, trembling; a last pop up,
+			# then one overhead chop into a deep lunge (lands u 0.47 = the dust ring)
+			var sight := {"arm_r": Vector3(2.95, 0.15, 0.35), "fore_r": Vector3(0.75, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
+				"arm_l": Vector3(1.45, 0.1, -0.3), "fore_l": Vector3(0.2, 0, 0), "torso": Vector3(0.3, 0.45, 0.05), "head": Vector3(0.05, -0.4, 0),
+				"leg_l": Vector3(0.45, 0, -0.16), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.35, 0, 0.16), "shin_r": Vector3(-0.6, 0, 0)}
+			var held := sight.duplicate()
+			var tremble := sin(_t * 38.0) * 0.04 * _ease((u - 0.1) / 0.26)
+			held["arm_r"] = (sight["arm_r"] as Vector3) + Vector3(tremble, 0, tremble)
+			var peak := sight.merged({"arm_r": Vector3(3.2, 0.15, 0.3), "fore_r": Vector3(0.95, 0, 0), "hand_r": Vector3(0.0, 0, 0), "torso": Vector3(0.42, 0.5, 0.05)})
+			var chop := {"arm_r": Vector3(1.2, 0, 0.05), "fore_r": Vector3(-0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+				"arm_l": Vector3(-0.6, 0, -0.65), "fore_l": Vector3(0.4, 0, 0), "torso": Vector3(-0.85, -0.35, 0), "head": Vector3(-0.3, 0.3, 0),
+				"leg_l": Vector3(1.2, 0, -0.12), "shin_l": Vector3(-1.35, 0, 0), "leg_r": Vector3(-0.9, 0, 0.12), "shin_r": Vector3(-0.15, 0, 0)}
+			if u < 0.36:
+				lift.y = lerpf(-0.12 * _ease(u / 0.14), -0.18, _ease((u - 0.14) / 0.22))
+			elif u < 0.39:
+				lift.y = lerpf(-0.18, -0.08, _ease((u - 0.36) / 0.03))
+			elif u < 0.46:
+				lift.y = lerpf(-0.08, -0.42, pow((u - 0.39) / 0.07, 2.0))
+			else:
+				lift.y = -0.42 * (1.0 - _ease((u - 0.66) / 0.34))
+			return [_keys(u, [[0.0, GUARD], [0.14, sight, "out"], [0.36, held], [0.39, peak, "out"], [0.46, chop, "in"], [0.66, chop], [1.0, GUARD]]), "full", lift]
 		# --- jumping attack: sword raised, knees tucked, then the plunge ---
 		"plunge_air":
 			var up := {"arm_r": Vector3(3.0, 0, 0.25), "fore_r": Vector3(1.0, 0, 0), "hand_r": Vector3(0.3, 0, 0),

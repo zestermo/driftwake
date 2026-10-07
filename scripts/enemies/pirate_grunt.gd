@@ -638,7 +638,7 @@ func _physics_process(delta: float) -> void:
 				_start_swing()
 		S.SWING:
 			if _attack == "peril":
-				# the chop lands ~0.22 s in (the axe_heavy pose started with the wind-up)
+				# the chop lands ~0.22 s in (the peril_chop pose started with the wind-up)
 				if st_t < 0.25:
 					want = _lunge_dir * 5.0
 					accel = 40.0
@@ -1013,7 +1013,7 @@ func _start_wind() -> void:
 	_set_state(S.WIND)
 	if _attack == "peril":
 		# one overhead chop spanning the wind-up and the swing
-		humanoid.play("axe_heavy", 2.6)
+		humanoid.play("peril_chop", 2.6)
 		hitbox.hit_data = _hit_peril
 		_set_peril(true)
 		Net.fx("sfx", ["peril", global_position, -1.0, 0.03, 1.0])
