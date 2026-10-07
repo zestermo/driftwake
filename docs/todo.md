@@ -63,6 +63,11 @@ distance culling/LOD anywhere).
   the player body, which stays on deck while the ragdoll goes on its own. Likely suspect, not
   checked: the ragdoll doesn't move with the ship (or the deck's motion flings it).
 
+- Stuck sprinting: in several different fights the character kept sprinting on its own.
+  Seen in the exported build. To find out: what clears it (tapping Shift, stopping,
+  rolling), and whether it starts after a particular move (a dodge, a knockdown, a menu or
+  dialogue opened mid-sprint, alt-tab).
+
 ## UI
 
 - Tooltips on item hover with the item's details (tier, stats, worth...).
