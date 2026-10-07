@@ -375,6 +375,22 @@ func _process(d: float) -> bool:
 			if st_t < 0.8:
 				return false
 			check("we picked up the host's fruit (traded)", p.inventory_component.count("wolf_fruit") == 1)
+			# the ship's storage chest is the crew's: we put 2 treasure in
+			var store = net._ship().storage
+			check("the ship's storage is shared", store.shared_id == "storage")
+			p.inventory_component.add_item(load("res://resources/items/treasure.tres"), 2)
+			store.store(p, p.inventory_component.find_index("treasure"), -1)
+			go(66)
+		66:
+			if st_t < 1.0:
+				return false
+			tn.ask("storage", ["treasure"])
+			go(67)
+		67:
+			if not tn.got("storage"):
+				return false
+			check("the host's storage has our treasure (%d)" % int(tn.replies["storage"]), int(tn.replies["storage"]) >= 2)
+			check("...and so does ours (%d)" % net._ship().storage.find_stack(load("res://resources/items/treasure.tres")), net._ship().storage.find_stack(load("res://resources/items/treasure.tres")) >= 0)
 			# --- round 8: pings, markers, cannons, hull, ships, the boss
 			p.place_marker()
 			go(70)

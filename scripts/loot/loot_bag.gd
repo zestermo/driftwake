@@ -26,18 +26,19 @@ var _bob_t: float = 0.0
 ## recovery bag stay). Floating plunder lasts FLOAT_LIFE.
 var lifetime: float = 0.0
 const FLOAT_LIFE := 600.0
+## A fixed container (the ship's storage): stays when emptied, always opens
+## the window. `label` names it in the window and the prompt.
+var persistent: bool = false
+var label: String = ""
 
 @onready var interactable: Interactable = $Interactable
 @onready var mesh: MeshInstance3D = $MeshInstance3D
 
-var _glow_tween: Tween
 
 
 func _ready() -> void:
 	interactable.interacted.connect(_on_interact)
 	interactable.prompt_text = _prompt()
-	if is_recovery_bag:
-		_start_glow()
 	if floating:
 		interactable.usable_in_water = true
 		set_physics_process(true)
@@ -76,8 +77,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _prompt() -> String:
+	if persistent:
+		return "Press F to open the %s" % label.to_lower()
 	if is_recovery_bag:
-		return "Recover lost loot"
+		return "Recover your belongings"
 	if save_id != "" or floating:
 		return "Open chest"
 	if contents.size() == 1 and contents[0].item:
@@ -87,8 +90,10 @@ func _prompt() -> String:
 
 ## What the loot window calls it.
 func title() -> String:
+	if label != "":
+		return label
 	if is_recovery_bag:
-		return "Your lost loot"
+		return "Your grave"
 	if save_id != "":
 		return "Chest"
 	if floating:
@@ -105,6 +110,10 @@ func _on_interact(player: Player) -> void:
 	# a single item (a dropped sword) is picked up straight away; anything
 	# more opens the loot window (headless test runs just take everything)
 	var gm := get_node_or_null("/root/GameMenu")
+	if persistent:
+		if gm and DisplayServer.get_name() != "headless":
+			gm.open_container(self)
+		return
 	if contents.size() > 1 and gm and gm.has_method("open_container") and DisplayServer.get_name() != "headless":
 		gm.open_container(self)
 	else:
@@ -210,7 +219,7 @@ func set_contents(refs: Array) -> void:
 			contents.append(st)
 	interactable.prompt_text = _prompt()
 	contents_changed.emit()
-	if contents.is_empty():
+	if contents.is_empty() and not persistent:
 		queue_free()
 
 
@@ -224,15 +233,11 @@ func refs() -> Array:
 func _changed() -> void:
 	interactable.prompt_text = _prompt()
 	contents_changed.emit()
-	if contents.is_empty():
+	if contents.is_empty() and not persistent:
 		var gm := get_node_or_null("/root/GameManager")
 		if gm and save_id != "":
 			gm.mark_opened(save_id)
+		if is_recovery_bag and gm:
+			gm.grave_recovered(self)
 		interactable.enabled = false
 		queue_free()
-
-
-func _start_glow() -> void:
-	_glow_tween = create_tween().set_loops()
-	_glow_tween.tween_property(mesh, "scale", Vector3(1.2, 1.2, 1.2), 0.5)
-	_glow_tween.tween_property(mesh, "scale", Vector3(1.0, 1.0, 1.0), 0.5)

@@ -579,6 +579,7 @@ func _process(delta: float) -> void:
 	if not is_local:
 		_puppet_process(delta)
 		return
+	_summon_tick(delta)
 	body_model.net_sync = Net.active
 	var hv := Vector3(velocity.x, 0, velocity.z)
 	var local := player_model.global_basis.inverse() * hv
@@ -1167,6 +1168,52 @@ func _input(event: InputEvent) -> void:
 			and Input.is_action_pressed("sprint") \
 			and not (event is InputEventKey and event.physical_keycode == KEY_SHIFT):
 		Input.action_release("sprint")
+
+
+## Summon the ship: hold B somewhere near water; a cooldown after.
+const SUMMON_HOLD := 1.0
+const SUMMON_COOLDOWN := 60.0
+var _summon_hold: float = 0.0
+var _summon_cd: float = 0.0
+
+
+func _summon_tick(delta: float) -> void:
+	_summon_cd = maxf(_summon_cd - delta, 0.0)
+	if input_locked or not Input.is_action_pressed("summon_ship"):
+		if _summon_hold != 0.0:
+			_summon_hold = 0.0
+			get_tree().call_group("hud", "show_prompt", "", -1.0)
+		return
+	if _summon_hold < 0.0:
+		return  # (done: let go of the key first)
+	_summon_hold += delta
+	get_tree().call_group("hud", "show_prompt", "Summoning your ship...", _summon_hold / SUMMON_HOLD)
+	if _summon_hold >= SUMMON_HOLD:
+		_summon_hold = -1.0
+		get_tree().call_group("hud", "show_prompt", "", -1.0)
+		_toast(try_summon())
+
+
+## Call the ship to the nearest water deep enough for her. Returns what to tell you.
+func try_summon() -> String:
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	if ship == null:
+		return "You have no ship"
+	if context != Context.ON_FOOT:
+		return "Not now"
+	if ship.aboard(global_position):
+		return "You're aboard her already"
+	if _summon_cd > 0.0:
+		return "The ship can't be called again yet (%d s)" % ceili(_summon_cd)
+	for c in Net.all_players():
+		if c != self and ship.aboard((c as Node3D).global_position):
+			return "Not with the crew aboard her"
+	var spot := ship.summon_spot(global_position)
+	if spot.is_empty():
+		return "Cannot summon ship: no water deep enough nearby"
+	_summon_cd = SUMMON_COOLDOWN
+	Net.summon_ship(spot[0], spot[1])
+	return "Your ship is coming"
 
 
 func _unhandled_input(event: InputEvent) -> void:

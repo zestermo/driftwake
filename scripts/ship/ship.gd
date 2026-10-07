@@ -135,11 +135,11 @@ var _cam_y: float = 0.0
 
 @onready var ship_model: Node3D = $ShipModel
 @onready var helm_position: Marker3D = $ShipModel/HelmPosition
-@onready var bank_position: Marker3D = $ShipModel/BankPosition
 @onready var disembark_position: Marker3D = $ShipModel/DisembarkPosition
 @onready var respawn_point: Marker3D = $RespawnPoint
 @onready var helm_zone: Interactable = $HelmZone
-@onready var bank_zone: Interactable = $BankZone
+## The storage chest in the cabin (a LootBag that never empties away).
+var storage: LootBag
 @onready var ship_camera: Node3D = $ShipCamera
 
 
@@ -152,7 +152,6 @@ func _ready() -> void:
 	_game_manager = get_node("/root/GameManager")
 	apply_kit(_game_manager.ship_kit)
 	helm_zone.interacted.connect(_on_helm_interacted)
-	bank_zone.interacted.connect(_on_bank_interacted)
 	var arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
 	arm.add_excluded_object(get_rid())
 	# moved every rendered frame from the hull's interpolated transform
@@ -207,6 +206,8 @@ func _physics_process(delta: float) -> void:
 	# (water in her: low and sluggish)
 	var top := MAX_SPEED * _top_k * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood)
 	var want := top * sail_shown * wind_effect()
+	if summoning():
+		want = _summon_drive(delta)
 	if anchored:
 		# brought up short by the cable, and swinging to it no more
 		speed = move_toward(speed, 0.0, 3.0 * delta)
@@ -311,6 +312,8 @@ func _read_helm() -> void:
 	_back_in = false
 	if not is_player_steering or _helm_locked():
 		return
+	# (someone took the wheel while she was sailing in by herself)
+	_summon_to = Vector3.INF
 	_turn_in = Input.get_axis("move_left", "move_right")
 	var was := sail
 	if Input.is_action_just_pressed("move_forward"):
@@ -798,6 +801,9 @@ func _wave(p: Vector3, t: float) -> float:
 ## Ship camera (used at the helm): follows the hull's position and heading
 ## but not its pitch/roll/heave jitter, so steering stays steady.
 func _process(delta: float) -> void:
+	# (shared through the host while there's a crew, local alone)
+	storage.shared_id = "storage" if Net.active else ""
+	_summon_view(delta)
 	_hull_tick(delta)
 	_show_sail(delta)
 	_show_anchor(delta)
@@ -830,6 +836,156 @@ func _build_collision() -> void:
 	_box_at(TABLE_AT + Vector3(0, 0.4, 0), Vector3(1.5, 0.8, 0.9))
 
 
+# ==========================================================================
+# Summoning (a captain ashore calls her: SummonShip on the player, Net)
+# ==========================================================================
+## She sails in at this speed, and is this deep-water clear all round.
+const SUMMON_SPEED := 5.0
+const SUMMON_DEPTH := 2.4
+const SUMMON_FADE := 2.5
+var _summon_to := Vector3.INF
+var _summon_t: float = 0.0
+var _fade_t: float = -1.0
+## [mesh, surface (-1: the override), the material it had]
+var _faded: Array = []
+static var _fade_shader: Shader
+
+
+## Where to bring her for a captain at `at`: [where she appears, where she
+## anchors] - the nearest water deep and wide enough, and out to sea from
+## it - or [] if there's none in reach.
+func summon_spot(at: Vector3) -> Array:
+	var best := Vector3.INF
+	for r in [14.0, 20.0, 27.0, 35.0, 45.0]:
+		for k in range(24):
+			var a := TAU * k / 24.0
+			var c := Vector3(at.x + cos(a) * r, 0.0, at.z + sin(a) * r)
+			if _fits(c) and (best == Vector3.INF or c.distance_to(at) < best.distance_to(at)):
+				best = c
+		if best != Vector3.INF:
+			break
+	if best == Vector3.INF:
+		return []
+	var out := Vector3(best.x - at.x, 0.0, best.z - at.z).normalized()
+	var from := best + out * 30.0
+	return [from if _fits(from) else best, best]
+
+
+## Deep water under her and round her (no land, docks or rocks). (Probed
+## from high up: from sea level the ray would start inside a hillside.)
+func _fits(c: Vector3) -> bool:
+	for k in range(9):
+		var p := c if k == 8 else c + Vector3(cos(TAU * k / 8.0), 0.0, sin(TAU * k / 8.0)) * 12.0
+		p.y = 80.0
+		if float(Ocean.depth_at(p, [get_rid()], true)) < SUMMON_DEPTH:
+			return false
+	return true
+
+
+## Every screen: she fades in out of nothing at `from` and sails slowly in to
+## `to`, where she lets go her anchor.
+func summon(from: Vector3, to: Vector3) -> void:
+	var d := to - from
+	place(from, atan2(-d.x, -d.z) if Vector2(d.x, d.z).length() > 0.5 else _heading)
+	set_anchored(false)
+	_summon_to = to
+	_summon_t = 0.0
+	_fade_in()
+	FX.sfx("bell", global_position + Vector3.UP * 4.0, 2.0, 0.02, 0.9)
+
+
+func summoning() -> bool:
+	return _summon_to != Vector3.INF
+
+
+## The autopilot while she sails in (instead of the helm): toward the spot,
+## slowing as she nears it, then the anchor.
+func _summon_drive(delta: float) -> float:
+	_summon_t += delta
+	var to := _summon_to - _pos
+	to.y = 0.0
+	var dist := to.length()
+	if dist < 2.5 or _summon_t > 30.0 or (_summon_t > 6.0 and absf(speed) < 0.3):
+		_summon_to = Vector3.INF
+		speed = 0.0
+		set_anchored(true)
+		return 0.0
+	var diff := wrapf(atan2(-to.x, -to.z) - _heading, -PI, PI)
+	_turn_in = clampf(-diff * 2.0, -1.0, 1.0)
+	return SUMMON_SPEED * clampf(dist / 12.0, 0.3, 1.0)
+
+
+## A PS1 dissolve: every lit surface of her swapped for a fading copy, which
+## comes in over SUMMON_FADE; then the real materials go back.
+func _fade_in() -> void:
+	_fade_restore()
+	if _fade_shader == null:
+		_fade_shader = load("res://shaders/psx/psx_lit_fade.gdshader")
+	for mi in ship_model.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if m.material_override:
+			var fo := _fade_copy(m.material_override)
+			if fo:
+				_faded.append([m, -1, m.material_override])
+				m.material_override = fo
+			continue
+		if m.mesh == null:
+			continue
+		for s in range(m.mesh.get_surface_count()):
+			var f := _fade_copy(m.get_active_material(s))
+			if f:
+				_faded.append([m, s, m.get_surface_override_material(s)])
+				m.set_surface_override_material(s, f)
+	_fade_t = 0.0
+	_set_fade(0.0)
+
+
+func _fade_copy(mat: Material) -> ShaderMaterial:
+	var sm := mat as ShaderMaterial
+	if sm == null or sm.shader != PSXMat.LIT_SHADER:
+		return null
+	var f := sm.duplicate() as ShaderMaterial
+	f.shader = _fade_shader
+	return f
+
+
+func _set_fade(k: float) -> void:
+	for e in _faded:
+		var m := e[0] as MeshInstance3D
+		if not is_instance_valid(m):
+			continue
+		var mat := (m.material_override if int(e[1]) < 0 else m.get_surface_override_material(int(e[1]))) as ShaderMaterial
+		if mat:
+			mat.set_shader_parameter("fade", k)
+
+
+func _fade_restore() -> void:
+	for e in _faded:
+		var m := e[0] as MeshInstance3D
+		if not is_instance_valid(m):
+			continue
+		if int(e[1]) < 0:
+			m.material_override = e[2]
+		else:
+			m.set_surface_override_material(int(e[1]), e[2])
+	_faded.clear()
+	_fade_t = -1.0
+
+
+## The fade's progress, and the sea mist she comes out of.
+func _summon_view(delta: float) -> void:
+	if _fade_t < 0.0:
+		return
+	_fade_t += delta
+	var k := clampf(_fade_t / SUMMON_FADE, 0.0, 1.0)
+	_set_fade(k * k * (3.0 - 2.0 * k))
+	if randf() < delta * 14.0 * (1.0 - k):
+		var p := global_transform * Vector3(randf_range(-4.5, 4.5), randf_range(0.5, 6.0), randf_range(-12.0, 10.0))
+		FX.smoke(p, 3, 3.0, 2.5)
+	if k >= 1.0:
+		_fade_restore()
+
+
 func _box_at(at: Vector3, size: Vector3) -> void:
 	var b := BoxShape3D.new()
 	b.size = size
@@ -856,14 +1012,6 @@ func _on_helm_interacted(player: Player) -> void:
 		var sm := player.state_machine
 		if sm.current_state:
 			sm.current_state.transitioned.emit(sm.current_state, "Helm", {})
-
-
-func _on_bank_interacted(_player: Player) -> void:
-	var count: int = _game_manager.bank_items()
-	if count > 0:
-		get_tree().call_group("hud", "show_toast", "Banked %d items. They're safe now." % count)
-	else:
-		get_tree().call_group("hud", "show_toast", "Nothing to bank.")
 
 
 ## Low-poly PSX sloop: tapered plank hull, deck, mast + sail, stern cabin,
@@ -977,12 +1125,25 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.55, HullBuilder.QD_BACK - 0.18)), Vector3(0.6, 0.45, 0.04), 1.0)
 	mb.add_box(glass, Transform3D(Basis(), Vector3(0.2, QD_Y - 0.65, 7.6)), Vector3(0.22, 0.3, 0.22), 1.0)
 	_line_mesh(mb, iron, Vector3(0.2, QD_Y - 0.5, 7.6), Vector3(0.2, QD_Y - 0.2, 7.6))
-	# the storage chest itself (the banking spot)
-	var chest := MeshInstance3D.new()
-	chest.name = "StorageChest"
-	chest.mesh = Props.treasure_chest_mesh()
-	chest.position = STORAGE_AT + Vector3(0, 0.0, 0)
-	ship_model.add_child(chest)
+	# the storage chest (the crew's bank: GameManager.storage, shared in co-op),
+	# the bunk (rest) and the galley (restock provisions)
+	storage = (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	storage.name = "Storage"
+	storage.persistent = true
+	storage.label = "Ship's storage"
+	storage.shared_id = "storage" if Net.active else ""
+	if not Net.is_client():
+		storage.contents = _game_manager_storage()
+	ship_model.add_child(storage)
+	storage.position = STORAGE_AT
+	(storage.get_node("MeshInstance3D") as MeshInstance3D).mesh = Props.treasure_chest_mesh()
+	(storage.get_node("MeshInstance3D") as MeshInstance3D).position = Vector3.ZERO
+	storage.get_node("CollisionShape3D").queue_free()
+	(storage.get_node("Interactable/CollisionShape3D").shape as SphereShape3D).radius = 1.2
+	var bunk := _cabin_zone("Bunk", "Press F to rest in the bunk", BED_AT + Vector3(1.0, 0.6, 0.0))
+	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
+	var galley := _cabin_zone("Galley", "Press F to restock provisions", COUNTER_AT + Vector3(-1.0, 0.6, 0.6))
+	galley.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").restock(p)))
 	var lamp := OmniLight3D.new()
 	lamp.name = "CabinLight"
 	lamp.light_color = Color(1.0, 0.75, 0.45)
@@ -991,6 +1152,31 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	lamp.shadow_enabled = false
 	lamp.position = Vector3(0.2, QD_Y - 0.8, 7.6)
 	ship_model.add_child(lamp)
+
+
+## (GameManager's storage array itself: the chest edits it in place, saves read it)
+func _game_manager_storage() -> Array[ItemStack]:
+	return get_node("/root/GameManager").storage
+
+
+func _cabin_zone(n: String, prompt: String, at: Vector3) -> Interactable:
+	var z := Interactable.new()
+	z.name = n
+	z.collision_layer = 512
+	z.collision_mask = 0
+	z.prompt_text = prompt
+	var cs := CollisionShape3D.new()
+	var sp := SphereShape3D.new()
+	sp.radius = 1.1
+	cs.shape = sp
+	z.add_child(cs)
+	z.position = at
+	ship_model.add_child(z)
+	return z
+
+
+func _toast(text: String) -> void:
+	get_tree().call_group("hud", "show_toast", text)
 
 
 func _line_mesh(mb: MeshBuilder, mat: Material, a: Vector3, b: Vector3) -> void:

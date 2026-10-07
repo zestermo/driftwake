@@ -1,8 +1,15 @@
 extends Node
 
-var banked_items: Array[ItemStack] = []
-var active_loot_bag: LootBag = null
+## The ship's storage (the chest in the crew cabin): what you've banked. It's
+## the only thing that survives a death; your bag goes on your grave. In
+## co-op the host's storage is the crew's (Net shares it as bag "storage").
+var storage: Array[ItemStack] = []
+## Your grave (where you last died, holding your bag) - one at a time.
+var grave: LootBag = null
 var loot_bag_scene: PackedScene
+## The galley tops each quick-slot consumable up to this many (and rum if
+## you've nothing on the quick slots).
+const RESTOCK_CAP := 3
 
 var ship: Ship
 var player: Player
@@ -27,7 +34,7 @@ var play_time: float = 0.0
 ## A fresh start for a new game or a load (the world scene is about to be
 ## rebuilt): forget everything from the previous session.
 func reset_session() -> void:
-	banked_items.clear()
+	storage.clear()
 	opened.clear()
 	burned.clear()
 	maps.clear()
@@ -36,7 +43,7 @@ func reset_session() -> void:
 	ship_kit = ShipKit.fresh()
 	play_time = 0.0
 	_autosave_t = 0.0
-	active_loot_bag = null
+	grave = null
 	ship = null
 	player = null
 
@@ -120,38 +127,62 @@ func _get_ship() -> Ship:
 	return ship
 
 
-func bank_items() -> int:
-	if not player:
-		return 0
-	var inventory := player.get_node("InventoryComponent") as InventoryComponent
-	if not inventory:
-		return 0
-
-	# Only loot is banked; weapons and consumables stay with the player.
-	var items := inventory.take_loot()
-	var count := 0
-	for stack in items:
-		_add_banked(stack)
-		count += stack.quantity
-	SaveGame.save(player)
-	return count
-
-
-func _add_banked(stack: ItemStack) -> void:
-	for b in banked_items:
-		if b.item == stack.item:
-			b.quantity += stack.quantity
-			return
-	banked_items.append(stack.duplicate())
-
-
-## Total banked quantity of an item id (or of everything when id is "").
-func banked_count(item_id: String = "") -> int:
+## Total stored quantity of an item id (or of everything when id is "").
+func stored_count(item_id: String = "") -> int:
 	var n := 0
-	for b in banked_items:
+	for b in _storage_contents():
 		if item_id == "" or (b.item and b.item.id == item_id):
 			n += b.quantity
 	return n
+
+
+## What's in the storage this machine sees (the host's in co-op).
+func _storage_contents() -> Array:
+	var s := _get_ship()
+	if s and s.storage and is_instance_valid(s.storage):
+		return s.storage.contents
+	return storage
+
+
+# --------------------------------------------------------------------------
+# The crew cabin: rest in the bunk, restock at the galley
+# --------------------------------------------------------------------------
+## A rest in the bunk: health, stamina and energy back to full. Not with
+## enemies about.
+func rest(p: Player) -> String:
+	for e in get_tree().get_nodes_in_group("enemies"):
+		var en := e as Node3D
+		if e.has_method("in_combat") and e.in_combat() and en.global_position.distance_to(p.global_position) < 40.0:
+			return "You can't rest with enemies about"
+	var hc := p.health_component
+	hc.heal(hc.max_health)
+	p.stamina = p.max_stamina
+	p.power.energy = p.power.max_energy()
+	SaveGame.save(p)
+	return "You rest a while. Fully recovered."
+
+
+## The galley tops up your quick-slot provisions (each to RESTOCK_CAP).
+func restock(p: Player) -> String:
+	var inv := p.inventory_component
+	var ids: Array = []
+	for id in inv.hotbar:
+		if str(id) != "" and not ids.has(str(id)):
+			ids.append(str(id))
+	if ids.is_empty():
+		ids = ["rum"]
+	var got: Array = []
+	for id in ids:
+		var it := ItemDB.get_item(id)
+		var have := inv.count(id)
+		if it == null or have >= RESTOCK_CAP:
+			continue
+		var n := mini(RESTOCK_CAP - have, inv.room_for(it))
+		if n > 0 and inv.add_item(it, n):
+			got.append("%d %s" % [n, it.display_name])
+	if got.is_empty():
+		return "Your provisions are full"
+	return "Restocked: " + ", ".join(got)
 
 
 func _on_player_died() -> void:
@@ -172,27 +203,86 @@ func bleed_out() -> void:
 func _die_for_real() -> void:
 	if not player:
 		return
-
-	var inventory := player.get_node("InventoryComponent") as InventoryComponent
-	if not inventory:
-		return
-
-	# Destroy old recovery bag if exists (permanent loss)
-	if active_loot_bag and is_instance_valid(active_loot_bag):
-		active_loot_bag.queue_free()
-		active_loot_bag = null
-
-	# Drop carried loot at the death location (gear is kept)
-	var items := inventory.take_loot()
-	if items.size() > 0 and loot_bag_scene:
-		var bag := loot_bag_scene.instantiate() as LootBag
-		bag.setup(items, true)
-		get_tree().current_scene.add_child(bag)
-		bag.global_position = player.global_position
-		active_loot_bag = bag
-
-	# Respawn after delay
+	# an old grave you never got back to: lost for good
+	if grave and is_instance_valid(grave):
+		_sink_grave(grave)
+	grave = null
+	# your bag goes on a grave where you fell (what you wear and hold stays on you)
+	var items := player.inventory_component.take_all_except([player.equipped_weapon, player.offhand_weapon])
+	if not items.is_empty():
+		grave = make_grave(items, player.global_position)
 	_respawn_player()
+
+
+## Your grave with `items` where you fell (`at`): a headstone on the ground
+## (or on a ship's deck, sailing with her); lost at sea, your sack floats.
+func make_grave(items: Array[ItemStack], at: Vector3) -> LootBag:
+	var s := _get_ship()
+	var deep := float(Ocean.depth_at(at, [player.get_rid()], true)) > 1.6
+	var aboard := s != null and s.aboard(at)
+	var bag := _grave_node(items, deep and not aboard, s.ship_model if aboard else get_tree().current_scene)
+	bag.global_position = at if bag.floating else _grave_spot(at)
+	return bag
+
+
+## A grave from a save: `pos` is ship-local when it's on her deck.
+func restore_grave(items: Array[ItemStack], pos: Vector3, on_ship: bool, floating: bool) -> LootBag:
+	var s := _get_ship()
+	var bag := _grave_node(items, floating, s.ship_model if on_ship and s else get_tree().current_scene)
+	if on_ship and s:
+		bag.position = pos
+	else:
+		bag.global_position = pos
+	return bag
+
+
+func _grave_node(items: Array[ItemStack], floating: bool, parent: Node) -> LootBag:
+	var bag := loot_bag_scene.instantiate() as LootBag
+	bag.setup(items, true)
+	bag.name = "Grave"
+	bag.floating = floating
+	parent.add_child(bag)
+	var mi := bag.get_node("MeshInstance3D") as MeshInstance3D
+	mi.position = Vector3.ZERO
+	if bag.floating:
+		mi.mesh = Props.sack_mesh()
+		return bag
+	mi.mesh = Props.grave_mesh()
+	var cs := bag.get_node("CollisionShape3D") as CollisionShape3D
+	cs.position = Vector3(0, 0.45, -0.35)
+	cs.shape = cs.shape.duplicate()
+	(cs.shape as BoxShape3D).size = Vector3(0.62, 0.9, 0.16)
+	return bag
+
+
+## Somewhere a grave can stand: the ground under where you fell (the sea
+## bed if you drowned; on a ship's deck, the deck).
+func _grave_spot(at: Vector3) -> Vector3:
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 1.0, at + Vector3.DOWN * 60.0, 1)
+	q.exclude = [player.get_rid()]
+	var hit: Dictionary = player.get_world_3d().direct_space_state.intersect_ray(q)
+	return hit["position"] if not hit.is_empty() else at
+
+
+## You died again before you got back: the old grave shakes, then sinks into
+## the ground and is gone (with what it held).
+func _sink_grave(g: LootBag) -> void:
+	g.interactable.enabled = false
+	var mi := g.get_node("MeshInstance3D") as Node3D
+	var tw := g.create_tween()
+	for k in range(10):
+		tw.tween_property(mi, "position", Vector3(randf_range(-0.06, 0.06), 0.0, randf_range(-0.06, 0.06)), 0.07)
+	tw.tween_callback(func(): FX.dust(g.global_position, 14, 0.9))
+	tw.tween_property(mi, "position", Vector3(0, -1.4, 0), 2.2).set_ease(Tween.EASE_IN)
+	tw.tween_callback(g.queue_free)
+	FX.sfx("thud", g.global_position, -6.0, 0.1, 0.6)
+
+
+## Your grave was emptied (everything taken back).
+func grave_recovered(g: LootBag) -> void:
+	if g == grave:
+		grave = null
+		get_tree().call_group("hud", "show_toast", "You've recovered your belongings")
 
 
 func _respawn_player() -> void:
@@ -201,6 +291,7 @@ func _respawn_player() -> void:
 	if not player or not _get_ship():
 		return
 
+	# you wake in the crew cabin, by the bunk
 	player.global_position = ship.respawn_point.global_position
 	player.reset_physics_interpolation()
 	player.sheathe_weapon(true)

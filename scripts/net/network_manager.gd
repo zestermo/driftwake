@@ -1023,6 +1023,18 @@ func _all_rammed(ship_key: String, at: Vector3, push: Vector3) -> void:
 
 ## Let go / weigh the anchor (the capstan, anyone aboard): it's whoever owns
 ## the ship that says (the helmsman, or the host), so it goes to them.
+## A captain ashore summons the ship: she appears at `from` and sails in to
+## `to` on every screen.
+func summon_ship(from: Vector3, to: Vector3) -> void:
+	everyone("_all_summon", [from, to])
+
+
+func _all_summon(from: Vector3, to: Vector3) -> void:
+	var s := _ship()
+	if s:
+		s.summon(from, to)
+
+
 func ship_anchor(on: bool) -> void:
 	if not active or ship_owner == my_id():
 		_ship().set_anchored(on)
@@ -1165,6 +1177,9 @@ func _make_drop(id: String, stacks: Array, at: Vector3, shared: bool) -> Node:
 
 
 func _shared_bag(id: String) -> LootBag:
+	if id == "storage":
+		var s := _ship()
+		return s.get("storage") as LootBag if s else null
 	var cs := get_tree().current_scene
 	return cs.get_node_or_null("Drop_" + id) as LootBag if cs else null
 
@@ -1646,7 +1661,8 @@ func _world_state() -> Dictionary:
 	return {"ents": ents, "spawners": spawners, "burned": gm.burned.keys() if gm else [], "ship_owner": ship_owner,
 		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
 		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state(),
-		"kit": gm.ship_kit.duplicate() if gm else {}, "waypoints": waypoints.duplicate()}
+		"kit": gm.ship_kit.duplicate() if gm else {}, "waypoints": waypoints.duplicate(),
+		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else []}
 
 
 func _weather_state() -> Array:
@@ -1675,6 +1691,13 @@ func _apply_world_sync(state: Dictionary) -> void:
 		ship.apply_kit(state["kit"])
 	if ship and ship.has_method("net_hull") and state.has("hull"):
 		ship.net_hull(float(state["hull"]))
+	# the crew's storage is the host's
+	var store := ship.get("storage") as LootBag if ship else null
+	if store and state.has("storage"):
+		# (our own storage stays in our save; this is a copy of the host's)
+		store.contents = []
+		store.shared_id = "storage"
+		store.set_contents(state["storage"])
 	var gm := get_node_or_null("/root/GameManager")
 	if gm:
 		gm.fruit_claims = (state.get("fruits", {}) as Dictionary).duplicate()

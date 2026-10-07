@@ -648,4 +648,4 @@ func _register_dialogue_tokens() -> void:
 		return redtide_phrase())
 	dm.register_token("banked", func() -> String:
 		var gm := get_node_or_null("/root/GameManager")
-		return str(gm.banked_count() if gm else 0))
+		return str(gm.stored_count() if gm else 0))

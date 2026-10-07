@@ -91,7 +91,7 @@ distance culling/LOD anywhere).
   and the like (they're emissive only now). Do it after the performance pass and budget it:
   few shadowed lights, distance fades, so it doesn't undo that work.
 
-## Gameplay loop (rethink)
+## Gameplay loop (done 2026-10-07, see dev_notes "Step 2b"; left: play it and tune the cooldown, the restock cap and the rest rules)
 
 - Re-evaluate respawning (where and how you come back).
 - A way to get back to your ship, or summon it.
@@ -111,7 +111,7 @@ distance culling/LOD anywhere).
     weapons stay on you.
   - Summon: hold a key near the shore, short cooldown, any captain in co-op.
 
-## Ships
+## Ships (done 2026-10-07 except "other improvements": cabin, 1.5x hulls, crow's nest, rigging, ropes)
 
 - A small crew cabin under the raised captain's deck at the stern, with stairs down on
   both sides. Inside:

@@ -489,7 +489,7 @@ const BINDINGS := [
 	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
 	["Dodge roll", "Left Ctrl"], ["Parry", "Q"], ["Interact / talk", "F"], ["Devil Fruit skills", "1 - 4"],
 	["Ultimate", "R"], ["Quick items (rum...)", "5 - 7"], ["Block (hold)", "Q"],
-	["Inventory", "Tab / I"], ["Skill map", "K"], ["Sea chart (click: mark)", "M"],["Zoan: shift form", "V"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
+	["Inventory", "Tab / I"], ["Skill map", "K"], ["Sea chart (click: mark)", "M"],["Zoan: shift form", "V"], ["Summon your ship (hold)", "B"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
 ]
 

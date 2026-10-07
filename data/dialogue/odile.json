@@ -14,9 +14,10 @@
 		},
 		"rules": {
 			"text": [
-				"One: your ship is the only safe ground you've got out there. Die on some rock and you wake up aboard.",
-				"Two: anything you carry is only borrowed until it's stowed. Bank your haul at the ship's chest, or lose it where you fall.",
-				"Fall twice before you get it back? The sea keeps it. She always does."
+				"One: your ship is the only safe ground you've got out there. Die on some rock and you wake up in her cabin, by your bunk.",
+				"Two: anything you carry is only borrowed until it's stowed. Put your haul in the storage chest in the cabin, or it's buried where you fall.",
+				"Fall twice before you dig it back up? The grave sinks and the earth keeps it. She always does.",
+				"And if you've left her moored round the far side of an island, hold B by the water. A good ship comes when she's called."
 			],
 			"next": "menu"
 		},

@@ -90,6 +90,11 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 - **Hazards and plunder:** reefs, fog banks, whirlpools, storm cells, wrecks, bottles and buried
   treasure.
 - **The sea chart (M)** fills in as you explore. Set your own marks to sail by.
+- **Your ship:** climb the rigging to the crow's nest, swing from ropes off the yard. Below the
+  quarterdeck is the crew cabin, with a bunk to rest in, a galley to restock provisions and the
+  crew's shared storage chest. Ashore, hold B and she fades in and sails up to the nearest shore.
+- **Death:** you wake in the cabin. Your bag waits on a grave where you fell. Die again before
+  you get back to it and the grave sinks into the ground, with everything in it.
 
 ### Brinehollow
 - Traders who buy and sell: Nessa (treasure), Gus (food and drink), Marlo, Clothier Sela,
@@ -124,7 +129,7 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 | Parry (tap) / block (hold) | Q | | Zoom camera | Mouse wheel |
 | Interact, talk, man a gun (hold for deck jobs) | F | | PSX resolution / dither | F2 / F3 |
 | Skills | 1 – 4 | | Fullscreen | F11 / Alt+Enter |
-| Quick items | 5 – 7 | | | |
+| Quick items | 5 – 7 | | Summon your ship (hold) | B |
 
 **At the helm:** W/S set the sail, A/D steer, left click fires a broadside, and F leaves the wheel.
 

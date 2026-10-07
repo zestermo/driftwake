@@ -152,6 +152,14 @@ func has_item(item_id: String) -> bool:
 	return count(item_id) > 0
 
 
+## The bag position of the first stack of `item_id` (-1: none).
+func find_index(item_id: String) -> int:
+	for i in range(items.size()):
+		if items[i].item and items[i].item.id == item_id:
+			return i
+	return -1
+
+
 func find_item(item_id: String) -> ItemData:
 	for stack in items:
 		if stack.item and stack.item.id == item_id:
@@ -186,6 +194,37 @@ func take_loot() -> Array[ItemStack]:
 		if items[i].item and items[i].item.is_loot():
 			out.append(items[i])
 			items.remove_at(i)
+	if not out.is_empty():
+		inventory_changed.emit()
+	return out
+
+
+## Remove and return everything in the bag except one of each item in `keep`
+## (the weapons in your hands): what goes on your grave.
+func take_all_except(keep: Array) -> Array[ItemStack]:
+	var held: Array = []
+	for k in keep:
+		if k != null:
+			held.append(SaveGame.item_ref(k))
+	var out: Array[ItemStack] = []
+	for i in range(items.size() - 1, -1, -1):
+		var st := items[i]
+		if st.item == null:
+			continue
+		var ref := SaveGame.item_ref(st.item)
+		var at := held.find(ref)
+		if at >= 0:
+			held.remove_at(at)
+			if st.quantity <= 1:
+				continue
+			var rest := ItemStack.new()
+			rest.item = st.item
+			rest.quantity = st.quantity - 1
+			st.quantity = 1
+			out.append(rest)
+			continue
+		out.append(st)
+		items.remove_at(i)
 	if not out.is_empty():
 		inventory_changed.emit()
 	return out

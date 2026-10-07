@@ -127,10 +127,11 @@ func _process(d: float) -> bool:
 			check("equipping the axe from the bag", p.equipped_weapon != null and p.equipped_weapon.id == "boarding_axe" and p.armed)
 			check("axe damage mult", is_equal_approx(p.damage_multiplier(), 1.4))
 			var gm = root.get_node("/root/GameManager")
-			var n: int = gm.bank_items()
-			print("   banked n=", n, " gm.player=", gm.player, " loot_after=", p.inventory_component.get_loot_count(), " banked=", gm.banked_items.size())
-			check("banking stores only loot", n == 1 and p.inventory_component.count("boarding_axe") == 1 and p.inventory_component.count("cutlass") == 1)
-			check("banked treasure", gm.banked_count("treasure") == 1)
+			var store = root.get_tree().get_first_node_in_group("ship").storage
+			var inv = p.inventory_component
+			store.store(p, inv.find_index("treasure"), -1)
+			check("the treasure goes into the ship's storage", inv.count("treasure") == 0 and gm.stored_count("treasure") == 1)
+			check("...the weapons stay in the bag", inv.count("boarding_axe") == 1 and inv.count("cutlass") == 1)
 			print("RESULT fails=", fails)
 			quit()
 	step += 1

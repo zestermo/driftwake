@@ -216,10 +216,17 @@ static func save(player: Player) -> bool:
 		var it: ItemData = player.equipment.slots[slot]
 		if it:
 			worn[slot] = item_ref(it)
-	var banked: Array = []
+	var stored: Array = []
 	if gm:
-		for st in gm.banked_items:
-			banked.append([item_ref(st.item), st.quantity])
+		for st in gm.storage:
+			stored.append([item_ref(st.item), st.quantity])
+	# your grave, if you've one: where, and what's in it (a grave on a ship's
+	# deck is kept by the deck spot, so it sails with her)
+	var grave: Array = []
+	var g: LootBag = gm.grave if gm and gm.grave and is_instance_valid(gm.grave) else null
+	if g:
+		var on_ship := g.get_parent() is Node3D and g.get_parent().get_parent() is Ship
+		grave = [g.position if on_ship else g.global_position, on_ship, g.floating, g.refs()]
 	var ship := player.get_tree().get_first_node_in_group("ship") as Node3D
 	var on_foot := player.context == Player.Context.ON_FOOT and not player.is_swimming() and player.current_state_name() != "Downed"
 	var dm := player.get_node_or_null("/root/Dialogue")
@@ -246,7 +253,8 @@ static func save(player: Player) -> bool:
 		"worn": worn,
 		"weapon": item_ref(player.equipped_weapon),
 		"offhand": item_ref(player.offhand_weapon),
-		"banked": banked,
+		"storage": stored,
+		"grave": grave,
 		"opened": gm.opened.keys() if gm else [],
 		"maps": gm.maps.keys() if gm else [],
 		"charted": gm.charted.keys() if gm else [],
@@ -263,7 +271,8 @@ static func save(player: Player) -> bool:
 	data["char_id"] = str(old.get("char_id", "%08x%08x" % [randi(), randi()]))
 	if _guest(player):
 		# keep our own world's state, not the host's
-		for k in ["burned", "fruit_claims", "ship_kit", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time"]:
+		# (and our own ship's storage and our grave, in our own world)
+		for k in ["burned", "fruit_claims", "ship_kit", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave"]:
 			if old.has(k):
 				data[k] = old[k]
 			else:
@@ -341,14 +350,6 @@ static func load_into(player: Player) -> bool:
 		dm._talked = (data.get("talked", {}) as Dictionary).duplicate()
 	if gm:
 		gm.play_time = float(data.get("play_time", 0.0))
-		gm.banked_items.clear()
-		for e in data.get("banked", []):
-			var it := item_from(e[0])
-			if it:
-				var st := ItemStack.new()
-				st.item = it
-				st.quantity = int(e[1])
-				gm.banked_items.append(st)
 		gm.opened.clear()
 		for k in data.get("opened", []):
 			gm.opened[str(k)] = true
@@ -365,6 +366,16 @@ static func load_into(player: Player) -> bool:
 				gm.burned[str(k)] = true
 			gm.fruit_claims = (data.get("fruit_claims", {}) as Dictionary).duplicate()
 			gm.ship_kit = ShipKit.merged(data.get("ship_kit", {}))
+			# the ship's storage (older saves: what was banked), in place: the
+			# chest in the cabin holds this very array
+			gm.storage.clear()
+			for e in data.get("storage", data.get("banked", [])):
+				var it := item_from(e[0])
+				if it:
+					var st := ItemStack.new()
+					st.item = it
+					st.quantity = int(e[1])
+					gm.storage.append(st)
 			var wn := player.get_node_or_null("/root/Weather")
 			if wn and data.has("world_time"):
 				wn.set_world_time(float(data["world_time"]))
@@ -378,6 +389,19 @@ static func load_into(player: Player) -> bool:
 	var sp: Vector3 = data.get("ship_pos", Vector3.INF)
 	if ship and sp != Vector3.INF and ship.has_method("place"):
 		ship.call("place", sp, float(data.get("ship_yaw", 0.0)))
+	# your grave, where you left it
+	var gd: Array = data.get("grave", [])
+	if gm and gd.size() >= 4 and (gm.grave == null or not is_instance_valid(gm.grave)):
+		var stacks: Array[ItemStack] = []
+		for e in gd[3]:
+			var it := item_from(e[0])
+			if it:
+				var st := ItemStack.new()
+				st.item = it
+				st.quantity = int(e[1])
+				stacks.append(st)
+		if not stacks.is_empty():
+			gm.grave = gm.restore_grave(stacks, gd[0], bool(gd[1]), bool(gd[2]))
 	var pp: Vector3 = data.get("player_pos", Vector3.INF)
 	if pp != Vector3.INF:
 		player.global_position = pp + Vector3.UP * 0.3

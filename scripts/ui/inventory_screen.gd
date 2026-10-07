@@ -393,9 +393,9 @@ func refresh() -> void:
 	_defense_label.text = "DEF %d" % int(pl.defense())
 	_name_label.text = str(pl.body_model.look.get("name", "Captain")) if pl.body_model else "Captain"
 	var gm := get_node_or_null("/root/GameManager")
-	var bg: int = gm.banked_count("gold") if gm else 0
-	var bt: int = gm.banked_count("treasure") if gm else 0
-	_footer.text = "Carrying %d loot (unbanked).  Banked: %d gold, %d treasure." % [inv.get_loot_count(), bg, bt]
+	var bg: int = gm.stored_count("gold") if gm else 0
+	var bt: int = gm.stored_count("treasure") if gm else 0
+	_footer.text = "Your bag goes on your grave if you fall.  In the ship's storage: %d gold, %d treasure." % [bg, bt]
 	if _tab == "character":
 		_fill_sheet()
 	_select(clampi(_selected, 0, 19) if _selected >= 0 else 0)

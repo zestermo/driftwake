@@ -357,6 +357,24 @@ static func treasure_chest_mesh() -> ArrayMesh:
 	return mb.commit()
 
 
+## Where you fell: a low mound of earth, a weathered headstone and a candle
+## (your belongings are buried here until you come back for them).
+static func grave_mesh() -> ArrayMesh:
+	var mb := MeshBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var earth := PSXMat.lit("dirt", Color(0.75, 0.62, 0.48))
+	var stone := PSXMat.lit("rock", Color(0.78, 0.78, 0.76))
+	var flame := PSXMat.glow(Color(1.0, 0.75, 0.35), 3.0)
+	mb.add_blob(earth, Transform3D(Basis.IDENTITY, Vector3(0, 0.05, 0.35)), Vector3(0.5, 0.16, 0.85), rng, 0.15, 5, 8, 1.5)
+	mb.add_box(stone, Transform3D(Basis(Vector3.RIGHT, -0.08), Vector3(0, 0.45, -0.35)), Vector3(0.62, 0.9, 0.14), 1.2)
+	mb.add_cylinder(stone, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.31, 0.88, -0.37)), 0.31, 0.31, 0.62, 8, 1.2, Color.WHITE, true, true)
+	mb.add_box(PSXMat.lit("planks_dark", Color(0.3, 0.25, 0.2)), Transform3D(Basis(Vector3.RIGHT, -0.08), Vector3(0, 0.62, -0.27)), Vector3(0.3, 0.06, 0.02), 1.0)
+	mb.add_cylinder(PSXMat.lit("", Color(0.92, 0.88, 0.75)), Transform3D(Basis.IDENTITY, Vector3(0.36, 0.0, -0.12)), 0.04, 0.04, 0.16, 6, 1.0)
+	mb.add_box(flame, Transform3D(Basis.IDENTITY, Vector3(0.36, 0.2, -0.12)), Vector3(0.04, 0.07, 0.04), 1.0)
+	return mb.commit()
+
+
 static func campfire() -> Node3D:
 	var n := Node3D.new()
 	n.name = "Campfire"

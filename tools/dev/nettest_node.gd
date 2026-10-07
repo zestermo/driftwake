@@ -154,6 +154,8 @@ func _run(name_: String, args: Array, from: int):
 				return false
 			b.take_all(lp)
 			return true
+		"storage":
+			return get_node("/root/GameManager").stored_count(str(args[0]))
 		"net8":
 			var hud = get_tree().get_first_node_in_group("hud")
 			var balls := 0
