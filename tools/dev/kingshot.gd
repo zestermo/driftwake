@@ -24,7 +24,9 @@ func _process(d: float) -> bool:
 	if t < 2.0: return false
 	match step:
 		0:
-			root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+			# ("psx": the game's sharper preset, for the README; not saved)
+			if OS.get_cmdline_user_args().has("psx"): root.get_node("Settings").set_value("video", "psx_preset", 4, false)
+			else: root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 			for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 			get_first_node_in_group("hud").visible = false
 			ship = get_first_node_in_group("ship")

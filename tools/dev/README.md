@@ -150,8 +150,9 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `qolshot`: Nessa's and Sela's stalls, the yard's live preview, the helm with the compass and chart marks, the chart, the capstan and anchor chain, a hull hit's number. Args: <out_prefix>
 - `polishshot`: Sea polish: the foam wake behind the ship (astern, from above), turquoise shallows round Brinehollow and an island, rain pooling on deck. Args: <out_prefix>
 - `yardshot`: The ship plain, then refitted in a few colour schemes (side, bow, masthead flag, each figurehead), Tackett at his timber, and the yard screen. Args: <out_prefix>
-- `readmeshot`: README screenshots: Brinehollow's street, the tavern inside, a katana fight at the smugglers' camp (a burst of frames). Args: <out_prefix> [fight]
-- `readme_media`: Copies the chosen renders from tools/dev/out into docs/media as JPGs for the README (headless; edit PICKS to change them).
+- `readmeshot`: README screenshots at the sharper PSX preset (not saved), captain in a red long coat. Sets: `scenes` (street, tavern, a katana brawl at the camp) and `steel` (Haki iai draw, air slash, axe whirlwind + Skybreaker, Gun Rain, Flying Slash), in frame bursts. Args: <out_prefix> <set>
+- `readme_media`: Copies the chosen renders from tools/dev/out into docs/media as JPGs for the README (headless; PICKS lists them and the commands that render them).
+- The `psx` arg on fleetshot, kingshot, yardshot, seashot and polishshot renders at the sharper preset instead of native resolution.
 - `seahourshot`: The sea from Brinehollow's dock at a run of hours in clear weather. Args: <out_prefix> [WxH window]
 - `seasoak`: The sea from the dock through F6's weathers and back to clear, printing what the sea and haze are fed. Args: <out_prefix>
 - `kingshot`: The Sea King fighting our ship at its lair: circling, rearing over the deck (bite ring), head down on deck, tail up. Args: <out_prefix>
