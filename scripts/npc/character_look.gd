@@ -40,14 +40,20 @@ const HAIR_MASC := ["bald", "crop", "short", "long", "ponytail", "wild", "swept"
 const HAIR_FEM := ["long", "ponytail", "bun", "braids", "short", "wild", "hime", "twintails", "bob", "side_pony", "swept",
 	"low_pony", "layered", "lob", "braid", "curtains", "shag"]
 const FACIAL_HAIR := ["none", "stubble", "moustache", "goatee", "chops", "beard", "long_beard"]
-const HATS := ["none", "tricorn", "bicorne", "bandana", "cap", "knit", "straw", "hood"]
+const HATS := ["none", "tricorn", "bicorne", "bandana", "cap", "knit", "straw", "hood", "cavalier", "morion", "turban"]
 const TOPS := ["shirt", "tunic", "blouse", "bare"]
 const SLEEVES := ["long", "short", "none"]
-const VESTS := ["none", "vest", "corset"]
-const COATS := ["none", "jacket", "longcoat", "captain"]
+const VESTS := ["none", "vest", "corset", "cuirass", "brigandine", "mail"]
+const COATS := ["none", "jacket", "longcoat", "captain", "greatcoat"]
 const LEGS := ["trousers", "breeches", "shorts", "skirt"]
-const FEET := ["tall_boots", "boots", "shoes", "barefoot"]
+const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves"]
 const BELTS := ["none", "belt", "sash", "belt_sash"]
+## What a new captain can start in (the character creator and its Randomize):
+## plain clothes. Hats of rank, coats of office and armour are bought or found.
+const CREATOR_HATS := ["none", "bandana", "cap", "knit", "straw", "hood"]
+const CREATOR_VESTS := ["none", "vest"]
+const CREATOR_COATS := ["none", "jacket"]
+const CREATOR_FEET := ["boots", "shoes", "barefoot"]
 
 const SKIN_TONES := [
 	Color(0.96, 0.82, 0.70), Color(0.92, 0.74, 0.60), Color(0.87, 0.67, 0.50), Color(0.80, 0.60, 0.44),
@@ -77,7 +83,7 @@ const COLOR_PALETTES := {
 	"skin": "SKIN_TONES", "hair_color": "HAIR_COLORS", "eye_color": "EYE_COLORS",
 	"hat_color": "CLOTH", "top_color": "CLOTH", "vest_color": "CLOTH", "coat_color": "CLOTH",
 	"trim_color": "TRIM", "legs_color": "CLOTH", "feet_color": "LEATHER", "belt_color": "LEATHER",
-	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH"}
+	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH", "cape_color": "CLOTH"}
 
 
 static func palette(key: String) -> Array:
@@ -105,10 +111,10 @@ static func base_look() -> Dictionary:
 		"legs": "trousers", "legs_color": CLOTH[3],
 		"feet": "boots", "feet_color": LEATHER[1],
 		"belt": "belt", "belt_color": LEATHER[1], "sash_color": CLOTH[13],
-		"gloves": false, "gloves_color": LEATHER[1],
+		"gloves": false, "gloves_color": LEATHER[1], "gauntlets": false,
 		"apron": false, "apron_color": CLOTH[0],
 		"earring": false, "eyepatch": false, "scarf": false, "scarf_color": CLOTH[13],
-		"pauldron": false, "pouch": false,
+		"pauldron": false, "pouch": false, "cape": false, "cape_color": CLOTH[13], "bandolier": false,
 	}
 
 
@@ -126,12 +132,12 @@ static func _captain() -> Dictionary:
 		"head": "round", "nose": "straight", "eyes": 0, "eye_color": EYE_COLORS[0], "brows": 0, "mouth": 0,
 		"marks": "scar",
 		"hair": "short", "hair_color": HAIR_COLORS[2], "facial_hair": "stubble",
-		"hat": "tricorn", "hat_color": CLOTH[5],
+		"hat": "bandana", "hat_color": CLOTH[13],
 		"top": "shirt", "top_color": CLOTH[0], "sleeves": "long",
 		"vest": "none", "vest_color": CLOTH[3],
-		"coat": "longcoat", "coat_color": CLOTH[8], "trim_color": TRIM[0],
+		"coat": "jacket", "coat_color": CLOTH[8], "trim_color": TRIM[0],
 		"legs": "trousers", "legs_color": CLOTH[4],
-		"feet": "tall_boots", "feet_color": LEATHER[0],
+		"feet": "boots", "feet_color": LEATHER[0],
 		"belt": "belt_sash", "belt_color": LEATHER[1], "sash_color": CLOTH[13],
 		"gloves": false, "gloves_color": LEATHER[1],
 		"apron": false, "apron_color": CLOTH[0],
@@ -195,19 +201,19 @@ static func random_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["hair"] = _pick(rng, HAIR_FEM if fem else HAIR_MASC)
 	lk["hair_color"] = _pick(rng, HAIR_COLORS)
 	lk["facial_hair"] = "none" if fem or rng.randf() < 0.3 else _pick(rng, FACIAL_HAIR)
-	lk["hat"] = _pick(rng, HATS)
+	lk["hat"] = _pick(rng, CREATOR_HATS)
 	lk["hat_color"] = _pick(rng, CLOTH)
 	lk["top"] = _pick(rng, ["shirt", "shirt", "tunic", "blouse", "bare"] if not fem else ["shirt", "tunic", "blouse"])
 	lk["top_color"] = _pick(rng, CLOTH)
 	lk["sleeves"] = _pick(rng, SLEEVES)
-	lk["vest"] = _pick(rng, VESTS)
+	lk["vest"] = _pick(rng, CREATOR_VESTS)
 	lk["vest_color"] = _pick(rng, CLOTH)
-	lk["coat"] = _pick(rng, COATS)
+	lk["coat"] = _pick(rng, CREATOR_COATS)
 	lk["coat_color"] = _pick(rng, CLOTH)
 	lk["trim_color"] = _pick(rng, TRIM)
 	lk["legs"] = _pick(rng, LEGS if fem else ["trousers", "trousers", "breeches", "shorts"])
 	lk["legs_color"] = _pick(rng, CLOTH)
-	lk["feet"] = _pick(rng, FEET)
+	lk["feet"] = _pick(rng, CREATOR_FEET)
 	lk["feet_color"] = _pick(rng, LEATHER)
 	lk["belt"] = _pick(rng, BELTS)
 	lk["belt_color"] = _pick(rng, LEATHER)
@@ -218,7 +224,7 @@ static func random_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["eyepatch"] = rng.randf() < 0.1
 	lk["scarf"] = rng.randf() < 0.25
 	lk["scarf_color"] = _pick(rng, CLOTH)
-	lk["pauldron"] = rng.randf() < 0.15
+	lk["pauldron"] = false
 	lk["pouch"] = rng.randf() < 0.3
 	return lk
 

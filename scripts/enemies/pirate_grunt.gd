@@ -226,6 +226,12 @@ static func crew_look(rng: RandomNumberGenerator) -> Dictionary:
 	lk["scarf_color"] = C[13]
 	lk["pauldron"] = rng.randf() < 0.15
 	lk["marks"] = ["none", "scar", "scar", "war_paint", "age_lines"][rng.randi() % 5]
+	# the odd one's kitted out: a mail shirt or brigandine, a morion, a bandolier
+	if rng.randf() < 0.15:
+		lk["vest"] = ["mail", "brigandine"][rng.randi() % 2]
+	if rng.randf() < 0.07:
+		lk["hat"] = "morion"
+	lk["bandolier"] = rng.randf() < 0.18
 	return lk
 
 

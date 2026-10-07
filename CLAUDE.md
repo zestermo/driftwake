@@ -56,7 +56,8 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 - Known flaky checks (rerun before digging in): swimtest "head still above water while
   swimming", vinetest "aiming at the big bug" on 4.7, grunttest can hang waiting for a
   circling grunt under heavy CPU load, grunttest "survivors return to their posts" (timing),
-  and fixtest under load. `-Jobs` > 1 makes these more
+  fixtest under load, and chartest's saved-look checks under `-Jobs` (other suites write the
+  same `user://character.cfg`). `-Jobs` > 1 makes these more
   likely.
 - Writing a test: copy the newest `tools/dev/rNtest.gd` pattern (step machine in `_process`,
   `check(name, cond)`, final `RESULT OK`/`RESULT FAILED (n)`). Don't statically type project

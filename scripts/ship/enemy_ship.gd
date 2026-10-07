@@ -1070,6 +1070,10 @@ func _prize() -> void:
 		var r := rng.randf()
 		var tier := 3 if r < 0.06 else (2 if r < 0.45 else 1)
 		picks.append(["%s@%d" % [WeaponDesigns.random_item(rng), tier], 1])
+	if rng.randf() < 0.4:
+		# and something to wear, at the same sort of tier
+		var r2 := rng.randf()
+		picks.append([Gear.random_piece(rng, 3 if r2 < 0.06 else (2 if r2 < 0.45 else 1)).id, 1])
 	for e in picks:
 		var it := ItemDB.get_item(str(e[0]))
 		var stk := ItemStack.new()

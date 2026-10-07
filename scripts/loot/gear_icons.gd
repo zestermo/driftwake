@@ -45,7 +45,9 @@ static func icon(it: ItemData) -> Texture2D:
 
 static func _main_color(it: ItemData) -> Color:
 	var lk := it.look
-	for k in ["hat_color", "top_color", "vest_color", "coat_color", "gloves_color", "legs_color", "feet_color", "scarf_color", "apron_color"]:
+	if it.icon_kind in Gear.STEEL_PIECES:
+		return STEEL
+	for k in ["hat_color", "top_color", "vest_color", "coat_color", "gloves_color", "legs_color", "feet_color", "scarf_color", "apron_color", "cape_color"]:
 		if lk.has(k) and lk[k] is Color:
 			return lk[k]
 	if lk.has("belt"):
@@ -54,7 +56,7 @@ static func _main_color(it: ItemData) -> Color:
 		"earring": return GOLD
 		"eyepatch": return Color(0.12, 0.1, 0.09)
 		"pauldron": return STEEL
-		"pouch": return LEATHER
+		"pouch", "bandolier": return LEATHER
 	return Color(0.7, 0.7, 0.7)
 
 
@@ -189,6 +191,66 @@ static func _shapes(kind: String, look: Dictionary) -> Array:
 		"apron":
 			return [["m", [Vector2(7, 4), Vector2(17, 4), Vector2(17, 10), Vector2(20, 11), Vector2(19, 22), Vector2(5, 22), Vector2(4, 11), Vector2(7, 10)]],
 				["d", [Vector2(9, 14), Vector2(15, 14), Vector2(15, 17), Vector2(9, 17)]]]
+		"cavalier":
+			return [["m", [Vector2(1, 15), Vector2(5, 12), Vector2(19, 12), Vector2(23, 15), Vector2(19, 17), Vector2(5, 17)]],
+				["m", [Vector2(7, 13), Vector2(8, 6), Vector2(16, 6), Vector2(17, 13)]],
+				["d", [Vector2(7, 11), Vector2(17, 11), Vector2(17, 13), Vector2(7, 13)]],
+				["l", [Vector2(14, 7), Vector2(19, 2), Vector2(22, 3), Vector2(17, 9)]]]
+		"morion":
+			return [["m", [Vector2(1, 15), Vector2(4, 11), Vector2(20, 11), Vector2(23, 15), Vector2(20, 13), Vector2(4, 13)]],
+				["m", [Vector2(6, 12), Vector2(7, 6), Vector2(12, 4), Vector2(17, 6), Vector2(18, 12)]],
+				["l", [Vector2(11, 1), Vector2(13, 1), Vector2(13, 6), Vector2(11, 6)]],
+				["g", [Vector2(17, 10), Vector2(19, 10), Vector2(19, 12), Vector2(17, 12)]]]
+		"turban":
+			return [["m", [Vector2(4, 16), Vector2(4, 9), Vector2(8, 4), Vector2(16, 4), Vector2(20, 9), Vector2(20, 16)]],
+				["d", [Vector2(4, 12), Vector2(20, 9), Vector2(20, 11), Vector2(4, 14)]],
+				["d", [Vector2(5, 7), Vector2(19, 11), Vector2(19, 13), Vector2(5, 9)]],
+				["g", [Vector2(11, 9), Vector2(13, 9), Vector2(13, 12), Vector2(11, 12)]]]
+		"cuirass", "brigandine":
+			var layers := [["m", [Vector2(6, 4), Vector2(18, 4), Vector2(19, 12), Vector2(17, 19), Vector2(7, 19), Vector2(5, 12)]],
+				["d", [Vector2(7, 19), Vector2(17, 19), Vector2(17, 22), Vector2(7, 22)]],
+				["d", [Vector2(9, 4), Vector2(12, 7), Vector2(15, 4)]]]
+			if kind == "cuirass":
+				layers.append(["l", [Vector2(11, 7), Vector2(13, 7), Vector2(13, 18), Vector2(11, 18)]])
+			else:
+				for y in [8, 12, 16]:
+					for x in [8, 12, 16]:
+						layers.append(["s", [Vector2(x, y), Vector2(x + 1, y), Vector2(x + 1, y + 1), Vector2(x, y + 1)]])
+			return layers
+		"mail":
+			var layers := [["m", [Vector2(7, 4), Vector2(17, 4), Vector2(21, 9), Vector2(19, 12), Vector2(19, 22), Vector2(5, 22), Vector2(5, 12), Vector2(3, 9)]],
+				["d", [Vector2(9, 4), Vector2(12, 7), Vector2(15, 4)]]]
+			for y in [10, 14, 18]:
+				layers.append(["d", [Vector2(6, y), Vector2(18, y), Vector2(18, y + 1), Vector2(6, y + 1)]])
+			return layers
+		"greatcoat":
+			return [["m", [Vector2(7, 4), Vector2(17, 4), Vector2(19, 22), Vector2(13, 22), Vector2(12, 9), Vector2(11, 22), Vector2(5, 22)]],
+				["m", [Vector2(7, 4), Vector2(2, 8), Vector2(1, 16), Vector2(5, 16), Vector2(7, 10)]],
+				["m", [Vector2(17, 4), Vector2(22, 8), Vector2(23, 16), Vector2(19, 16), Vector2(17, 10)]],
+				["d", [Vector2(5, 4), Vector2(19, 4), Vector2(23, 10), Vector2(1, 10)]],
+				["b", [Vector2(9, 4), Vector2(12, 8), Vector2(15, 4)]]]
+		"gauntlets":
+			return [["m", [Vector2(3, 21), Vector2(3, 8), Vector2(6, 5), Vector2(10, 5), Vector2(11, 11), Vector2(11, 21)]],
+				["m", [Vector2(13, 21), Vector2(13, 11), Vector2(14, 6), Vector2(18, 6), Vector2(21, 10), Vector2(21, 21)]],
+				["l", [Vector2(3, 14), Vector2(11, 14), Vector2(11, 16), Vector2(3, 16)]],
+				["l", [Vector2(13, 14), Vector2(21, 14), Vector2(21, 16), Vector2(13, 16)]]]
+		"greaves":
+			return [["w", [Vector2(4, 4), Vector2(10, 4), Vector2(10, 16), Vector2(13, 18), Vector2(13, 21), Vector2(3, 21), Vector2(4, 16)]],
+				["w", [Vector2(14, 5), Vector2(20, 5), Vector2(20, 16), Vector2(23, 18), Vector2(23, 21), Vector2(13, 21), Vector2(14, 16)]],
+				["m", [Vector2(4, 4), Vector2(9, 4), Vector2(9, 15), Vector2(4, 15)]],
+				["m", [Vector2(14, 5), Vector2(19, 5), Vector2(19, 15), Vector2(14, 15)]],
+				["l", [Vector2(5, 3), Vector2(8, 3), Vector2(8, 6), Vector2(5, 6)]],
+				["l", [Vector2(15, 4), Vector2(18, 4), Vector2(18, 7), Vector2(15, 7)]]]
+		"cape":
+			return [["m", [Vector2(7, 3), Vector2(17, 3), Vector2(21, 22), Vector2(3, 22)]],
+				["d", [Vector2(7, 3), Vector2(17, 3), Vector2(17, 5), Vector2(7, 5)]],
+				["g", [Vector2(6, 3), Vector2(8, 3), Vector2(8, 5), Vector2(6, 5)]],
+				["g", [Vector2(16, 3), Vector2(18, 3), Vector2(18, 5), Vector2(16, 5)]]]
+		"bandolier":
+			return [["m", [Vector2(4, 2), Vector2(8, 2), Vector2(21, 20), Vector2(17, 22)]],
+				["g", [Vector2(8, 7), Vector2(10, 7), Vector2(10, 9), Vector2(8, 9)]],
+				["g", [Vector2(11, 11), Vector2(13, 11), Vector2(13, 13), Vector2(11, 13)]],
+				["g", [Vector2(14, 15), Vector2(16, 15), Vector2(16, 17), Vector2(14, 17)]]]
 	return [["m", [Vector2(5, 5), Vector2(19, 5), Vector2(19, 19), Vector2(5, 19)]]]
 
 

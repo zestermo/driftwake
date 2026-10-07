@@ -246,5 +246,30 @@ func _process(d: float) -> bool:
 					blades[g._blade_model] = true
 			print("   pirate blades: %s" % ", ".join(blades.keys()))
 			check("pirates carry different blades", blades.size() >= 2)
+			# --- clothing and armour
+			var look = load("res://scripts/npc/character_look.gd")
+			check("the creator offers plain clothes only (no armour, coats of office or hats of rank)",
+				not "morion" in look.CREATOR_HATS and not "tricorn" in look.CREATOR_HATS and not "cuirass" in look.CREATOR_VESTS
+				and look.CREATOR_COATS == ["none", "jacket"] and not "greaves" in look.CREATOR_FEET)
+			var rng := RandomNumberGenerator.new()
+			var plain := true
+			for i in range(30):
+				rng.seed = i
+				var lk: Dictionary = look.random_look(rng)
+				if not (lk["hat"] in look.CREATOR_HATS and lk["coat"] in look.CREATOR_COATS and lk["vest"] in look.CREATOR_VESTS and not lk["pauldron"]):
+					plain = false
+			check("Randomize in the creator stays plain too", plain)
+			var gear = load("res://scripts/loot/gear.gd")
+			var built := 0
+			for e in gear.PLUNDER + [["accessory", "bandolier", {"bandolier": true}], ["head", "turban", {"hat": "turban"}], ["vest", "brigandine", {"vest": "brigandine"}]]:
+				var it = gear.make(str(e[0]), str(e[1]), e[2], "", 2)
+				p.equipment.clear()
+				p.equipment.equip(it)
+				p.refresh_look()
+				if it.icon != null and it.armor() > it.defense:
+					built += 1
+			check("every new piece wears, has an icon, and a blue one guards better than its base (%d)" % built, built == gear.PLUNDER.size() + 3)
+			var g = gear.make("hands", "gauntlets", {"gloves": true, "gauntlets": true}, "", 0)
+			check("gauntlets are plain-named steel", g.display_name == "Gauntlets" and g.defense >= 3.0)
 			finish()
 	return false
