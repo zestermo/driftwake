@@ -136,6 +136,7 @@ func _generate_world() -> void:
 			dock_area.interacted.connect(_on_dock_interacted)
 
 	_build_redtide()
+	bake_shallows()
 	var features := _sea_features.new()
 	features.name = "SeaFeatures"
 	features.gen = self
@@ -315,6 +316,38 @@ func height_at(wx: float, wz: float) -> float:
 	if u + v <= 1.0:
 		return h00 + (h10 - h00) * u + (h01 - h00) * v
 	return h11 + (h01 - h11) * (1.0 - u) + (h10 - h11) * (1.0 - v)
+
+
+## The seabed's depth for the ocean shader's turquoise shallows: the world
+## terrain (a texel per heightmap point) and Brinehollow's own, finer.
+func bake_shallows() -> void:
+	var n := terrain_resolution + 1
+	var img := Image.create(n, n, false, Image.FORMAT_L8)
+	for z in range(n):
+		var row: PackedFloat32Array = heightmap[z]
+		for x in range(n):
+			img.set_pixel(x, z, Color(_shoal(row[x]), 0, 0))
+	var cell := terrain_size / float(terrain_resolution)
+	Ocean.shoal_map = ImageTexture.create_from_image(img)
+	Ocean.shoal_rect = Vector4(-terrain_size * 0.5 - cell * 0.5, -terrain_size * 0.5 - cell * 0.5, terrain_size + cell, 1.0)
+	var fine := Image.create(StarterIsland.RES, StarterIsland.RES, false, Image.FORMAT_L8)
+	for z in range(StarterIsland.RES):
+		for x in range(StarterIsland.RES):
+			var lx := -StarterIsland.HALF + (x + 0.5) * StarterIsland.CELL
+			var lz := -StarterIsland.HALF + (z + 0.5) * StarterIsland.CELL
+			fine.set_pixel(x, z, Color(_shoal(starter_island.height_at(lx, lz)), 0, 0))
+	Ocean.shoal_fine = ImageTexture.create_from_image(fine)
+	Ocean.fine_rect = Vector4(starter_center.x - StarterIsland.HALF, starter_center.y - StarterIsland.HALF, StarterIsland.HALF * 2.0, 1.0)
+
+
+func _shoal(h: float) -> float:
+	return clampf(-h / Ocean.SHOAL_DEPTH, 0.0, 1.0)
+
+
+func _exit_tree() -> void:
+	# (the title screen's sea has no shoals)
+	Ocean.shoal_rect = Vector4.ZERO
+	Ocean.fine_rect = Vector4.ZERO
 
 
 # --------------------------------------------------------------------------

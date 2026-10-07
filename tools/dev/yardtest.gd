@@ -2,7 +2,8 @@ extends SceneTree
 ## The shipwright: Tackett by the dock opens his yard; refits cost gold (refused
 ## when short) and change the ship (iron straps + 40% hull, a third pair of guns,
 ## a bigger, faster sail, a sharper rudder); paint, sails, flag and figurehead
-## change her looks; the kit is saved and loaded back.
+## change her looks; the kit is saved and loaded back. Then the sea polish:
+## shallows baked, a wake laid under way, rain soaking and pooling on deck.
 var SG
 var KIT
 var t := 0.0
@@ -14,6 +15,7 @@ var menu
 var yard
 var gm
 var fails := 0
+var t_mark := 0.0
 func _initialize():
 	change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
@@ -100,5 +102,32 @@ func _process(d: float) -> bool:
 			SG.load_into(p)
 			check("the kit is saved and loaded back", gm.ship_kit["armour"] and gm.ship_kit["guns"] and gm.ship_kit["rudder"] and gm.ship_kit["figure"] == 1 and gm.ship_kit["emblem"] == 1)
 			check("...and on her after the load", ship.cannons.size() == 6 and ship.max_hull == 560.0)
+			# --- sea polish: shallows, wake, rain on deck
+			var oc = root.get_node("Ocean")
+			var fine: Image = oc.shoal_fine.get_image()
+			var coarse: Image = oc.shoal_map.get_image()
+			check("the shallows are baked: Brinehollow's middle is dry, the open sea deep", oc.fine_rect.w == 1.0 and oc.shoal_rect.w == 1.0
+				and fine.get_pixel(fine.get_width() / 2, fine.get_height() / 2).r < 0.05 and coarse.get_pixel(2, 2).r > 0.95)
+			var sc: Vector2 = root.get_node("World/Islands").starter_center
+			ship.place(Vector3(sc.x + 330.0, 0.0, sc.y + 120.0), 0.6)
+			p.global_position = ship.global_transform * Vector3(0, 0.8, 2.0)
+			p.reset_physics_interpolation()
+			root.get_node("Weather").force(2)
+			t_mark = t
+			step = 2
+		2:
+			ship.speed = 10.0
+			if t - t_mark < 2.5:
+				return false
+			var oc = root.get_node("Ocean")
+			var trail: Array = oc._wakes.get(ship.get_instance_id(), [])
+			check("under way she lays a wake (%d points)" % trail.size(), trail.size() >= 4)
+			check("rain soaks the deck (wet %.3f)" % ship.wet, ship.wet > 0.0)
+			check("...not yet pooled", not ship._puddles.get_child(0).visible)
+			ship.wet = 1.0
+			wait = 0.2
+			step = 3
+		3:
+			check("soaked through, the rain pools on deck", ship._puddles.get_child(0).visible and ship._puddles.get_child(5).visible)
 			finish()
 	return false

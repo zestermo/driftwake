@@ -48,6 +48,25 @@ const MAX_CELLS := 2
 ## sinks into a funnel toward each eye - here and in the shader.
 var whirls: Array = []
 const MAX_WHIRLS := 2
+## Foam wakes behind moving hulls (wake()): per hull a trail of points
+## Vector4(x, z, clock, strength), one every WAKE_EVERY s; the shader draws
+## foam along them, spreading and fading as they age. The two nearest trails
+## to the camera are sent (WAKE_SLOTS points, a zero point between them).
+const WAKE_PTS := 18
+const WAKE_EVERY := 0.45
+const WAKE_LIFE := 8.0
+const WAKE_SLOTS := 40
+var _wakes: Dictionary = {}
+## The newest end of each trail: the stern itself, this tick.
+var _wake_heads: Dictionary = {}
+## Turquoise shallows (WorldGenerator.bake_shallows): seabed depth maps,
+## r = depth below the sea / SHOAL_DEPTH. The world's terrain, and a finer map
+## over Brinehollow's own; rects are (x0, z0, size, on).
+const SHOAL_DEPTH := 14.0
+var shoal_map: Texture2D
+var shoal_rect := Vector4.ZERO
+var shoal_fine: Texture2D
+var fine_rect := Vector4.ZERO
 
 
 ## The sea mesh: 1 m cells near the camera so the surface you see is the
@@ -263,6 +282,11 @@ func _process(_delta: float) -> void:
 		for i in range(MAX_WHIRLS):
 			wh.append(whirls[i] if i < whirls.size() else Vector4(0, 0, 0, 0))
 		ocean_material.set_shader_parameter("whirls", wh)
+		_send_wakes(time)
+		ocean_material.set_shader_parameter("shoal_map", shoal_map)
+		ocean_material.set_shader_parameter("shoal_rect", shoal_rect)
+		ocean_material.set_shader_parameter("shoal_fine", shoal_fine)
+		ocean_material.set_shader_parameter("fine_rect", fine_rect)
 		if absf(amp_mult - _amp_sent) > 0.0005:
 			_amp_sent = amp_mult
 			_send_waves()
@@ -276,6 +300,58 @@ func _process(_delta: float) -> void:
 			ocean_mesh.global_position.x = snappedf(camera.global_position.x, SNAP)
 			ocean_mesh.global_position.z = snappedf(camera.global_position.z, SNAP)
 			ocean_mesh.global_position.y = 0.0
+
+
+## A hull under way leaves foam: call every tick with where its stern is.
+func wake(hull: Node, stern: Vector3, strength: float) -> void:
+	var now := clock()
+	var trail: Array = _wakes.get(hull.get_instance_id(), [])
+	if trail.is_empty() or now - float((trail[-1] as Vector4).z) >= WAKE_EVERY:
+		trail.append(Vector4(stern.x, stern.z, now, strength))
+		if trail.size() > WAKE_PTS:
+			trail.pop_front()
+	_wakes[hull.get_instance_id()] = trail
+	_wake_heads[hull.get_instance_id()] = Vector4(stern.x, stern.z, now, strength)
+
+
+func _send_wakes(now: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	var eye := Vector2(cam.global_position.x, cam.global_position.z) if cam else Vector2.ZERO
+	var live: Array = []
+	for id in _wakes.keys():
+		var trail: Array = _wakes[id]
+		while not trail.is_empty() and now - float((trail[0] as Vector4).z) > WAKE_LIFE:
+			trail.pop_front()
+		if trail.is_empty() or not is_instance_id_valid(id):
+			_wakes.erase(id)
+			_wake_heads.erase(id)
+			continue
+		var head: Vector4 = _wake_heads[id]
+		var pts: Array = trail.duplicate()
+		if now - head.z < 0.2:
+			pts.append(head)
+		live.append([Vector2(head.x, head.y).distance_to(eye), pts])
+	live.sort_custom(func(a, b): return a[0] < b[0])
+	var out := PackedVector4Array()
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for l in live:
+		var pts: Array = l[1]
+		if out.size() + pts.size() + 1 > WAKE_SLOTS:
+			break
+		for k in range(pts.size() - 1, -1, -1):
+			var p: Vector4 = pts[k]
+			out.append(Vector4(p.x, p.y, now - p.z, p.w))
+			lo = Vector2(minf(lo.x, p.x), minf(lo.y, p.y))
+			hi = Vector2(maxf(hi.x, p.x), maxf(hi.y, p.y))
+		out.append(Vector4.ZERO)
+	while out.size() < WAKE_SLOTS:
+		out.append(Vector4.ZERO)
+	ocean_material.set_shader_parameter("wake", out)
+	# (fragments outside the trails' box skip the loop; the V spreads ~9 m)
+	var pad := 12.0
+	ocean_material.set_shader_parameter("wake_box", Vector4(lo.x - pad, lo.y - pad, hi.x + pad, hi.y + pad) if not live.is_empty() else Vector4(1, 1, -1, -1))
+	ocean_material.set_shader_parameter("wake_life", WAKE_LIFE)
 
 
 func _send_waves() -> void:

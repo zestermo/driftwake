@@ -56,6 +56,73 @@ vec2 whirl_foam(vec2 p, float t) {
 	}
 	return vec2(foam, eye);
 }
+// Foam wakes (OceanManager._send_wakes): trails of (x, z, age, strength),
+// newest first, a zero point between hulls; wake_box bounds them all.
+uniform vec4 wake[40];
+uniform vec4 wake_box = vec4(1.0, 1.0, -1.0, -1.0);
+uniform float wake_life = 8.0;
+
+// A cell's worth of noise (0..1): foam breaks up in PSX-sized blocks.
+float cell_noise(vec2 c) {
+	return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+// Foam behind a hull under way: churned white water close astern and the
+// two arms of the V spreading out behind it, fading as they age. (Measured
+// from the nearest point of the whole trail, so its joints don't show.)
+float wake_foam(vec2 p, float t) {
+	if (p.x < wake_box.x || p.y < wake_box.y || p.x > wake_box.z || p.y > wake_box.w) {
+		return 0.0;
+	}
+	float d = 1e6;
+	float age = 0.0;
+	float str = 0.0;
+	for (int i = 0; i < 39; i++) {
+		vec4 a = wake[i];
+		vec4 b = wake[i + 1];
+		if (a.w <= 0.0 || b.w <= 0.0) {
+			continue;
+		}
+		vec2 ab = b.xy - a.xy;
+		float h = clamp(dot(p - a.xy, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
+		float di = length(p - a.xy - ab * h);
+		if (di < d) {
+			d = di;
+			age = mix(a.z, b.z, h);
+			str = mix(a.w, b.w, h);
+		}
+	}
+	float k = clamp(age / wake_life, 0.0, 1.0);
+	float half_w = 1.2 + age * 0.85;
+	if (str <= 0.0 || d > half_w + 1.5) {
+		return 0.0;
+	}
+	float arms = 1.0 - smoothstep(0.15, 0.55 + age * 0.1, abs(d - half_w));
+	float churn = (1.0 - smoothstep(0.0, half_w * 0.55, d)) * (1.0 - smoothstep(0.0, 0.3, k));
+	float n = cell_noise(floor(p * 2.0) + floor(t * 3.0) * 0.37);
+	float v = max(arms * 0.7, churn * 0.9) * (1.0 - k) * str;
+	return v * step(0.35 + k * 0.45, n);
+}
+
+// Turquoise shallows (WorldGenerator.bake_shallows): the seabed's depth here,
+// 0 at the waterline to 1 at OceanManager.SHOAL_DEPTH and below.
+uniform sampler2D shoal_map : filter_linear, repeat_disable, hint_default_white;
+uniform vec4 shoal_rect = vec4(0.0);
+uniform sampler2D shoal_fine : filter_linear, repeat_disable, hint_default_white;
+uniform vec4 fine_rect = vec4(0.0);
+uniform vec4 shoal_color : source_color = vec4(0.16, 0.72, 0.66, 1.0);
+
+float shoal_depth(vec2 p) {
+	vec2 fu = (p - fine_rect.xy) / max(fine_rect.z, 0.001);
+	if (fine_rect.w > 0.5 && fu.x > 0.0 && fu.y > 0.0 && fu.x < 1.0 && fu.y < 1.0) {
+		return texture(shoal_fine, fu).r;
+	}
+	vec2 u = (p - shoal_rect.xy) / max(shoal_rect.z, 0.001);
+	if (shoal_rect.w > 0.5 && u.x > 0.0 && u.y > 0.0 && u.x < 1.0 && u.y < 1.0) {
+		return texture(shoal_map, u).r;
+	}
+	return 1.0;
+}
 uniform float wave_total = 1.38;
 uniform vec2 crest = vec2(2.0, 0.75);
 uniform vec4 env_dirs = vec4(0.019, 0.011, -0.008, 0.016);
@@ -143,6 +210,15 @@ void fragment() {
 	vec2 wf = whirl_foam(wuv, time_val);
 	base_color = mix(base_color, foam_color.rgb, wf.x * 0.55);
 	base_color = mix(base_color, deep_color.rgb * 0.35, wf.y);
+	// over shoals the sea turns turquoise, lighter toward the beach, with a
+	// lacing of light on the sand and a line of surf at the very edge
+	float sd = shoal_depth(wuv);
+	float shoal = 1.0 - smoothstep(0.05, 0.85, sd);
+	float lace = smoothstep(0.55, 0.95, sin(wuv.x * 0.9 + sin(wuv.y * 0.7 + time_val * 0.6) * 1.8 + time_val * 0.4) * 0.5 + 0.5);
+	base_color = mix(base_color, shoal_color.rgb * (1.0 + lace * 0.25 * shoal), shoal * 0.7);
+	float surf = (1.0 - smoothstep(0.0, 0.08, sd)) * step(0.45, cell_noise(floor(wuv * 1.5) + floor(time_val * 2.0)));
+	base_color = mix(base_color, foam_color.rgb, surf * 0.6);
+	base_color = mix(base_color, foam_color.rgb, wake_foam(wuv, time_val) * 0.7);
 
 	// long-range haze: by how close to the horizon you look (the sky's own
 	// haze mirrored below it), only near the end of the scene fog: any nearer and
@@ -156,7 +232,8 @@ void fragment() {
 	vec3 haze_lin = mix(hc / 12.92, pow((hc + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), hc));
 	ALBEDO = base_color * cloud_shade(world_pos.xz) * (1.0 - hz);
 	EMISSION = haze_lin * hz;
-	ALPHA = mix(mix(near_alpha, 1.0, fresnel), 1.0, hz);
+	// (clearer over the shoals: the sand shows through)
+	ALPHA = mix(mix(near_alpha - shoal * 0.22, 1.0, fresnel), 1.0, hz);
 	// (rough 0.5 spread the sun's reflection into pale sand-coloured sheets over
 	// whole stretches of sea at some sun angles: a tighter glitter path instead)
 	ROUGHNESS = 0.2;

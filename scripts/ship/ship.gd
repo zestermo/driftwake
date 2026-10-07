@@ -85,6 +85,16 @@ var _canvas_mat: Material
 var _flag_node: MeshInstance3D
 var _figure_node: Node3D
 var _armour_node: Node3D
+## Rain on deck: how wet she is (0..1), the puddles it pools into.
+var wet: float = 0.0
+const WET_TIME := 50.0
+const DRY_TIME := 160.0
+## [x, z, radius] of the low spots on deck where the rain pools.
+const PUDDLES := [[-1.3, -2.8, 1.0], [1.3, 1.0, 0.85], [-0.9, 2.4, 0.9], [1.2, -4.3, 0.7], [-1.5, 0.4, 0.6], [0.4, 3.6, 0.55]]
+var _deck_mat: Material
+var _wet_deck: ShaderMaterial
+var _puddles: Node3D
+var _drip_t: float = 0.0
 ## Swivel guns on the rails (port and starboard).
 var cannons: Array = []
 var _since_hit: float = 99.0
@@ -727,6 +737,8 @@ func _set_work(text: String, progress: float) -> void:
 
 ## Bow spray and wake (every machine makes its own from the ship's speed).
 func _wake(delta: float, pos: Vector3, fwd: Vector3, right: Vector3, mean: float) -> void:
+	if absf(speed) > 1.0:
+		Ocean.wake(self, pos - fwd * STERN_Z, clampf(absf(speed) / 9.0, 0.0, 1.0))
 	_wake_t -= delta
 	if absf(speed) > 2.5 and _wake_t <= 0.0:
 		_wake_t = clampf(0.5 - absf(speed) * 0.03, 0.12, 0.4)
@@ -753,6 +765,7 @@ func _process(delta: float) -> void:
 	_show_sail(delta)
 	_show_anchor(delta)
 	_damage_view(delta)
+	_rain_on_deck(delta)
 	var xf := get_global_transform_interpolated()
 	var heading := xf.basis.get_euler().y
 	_cam_heading = lerp_angle(_cam_heading, heading, minf(4.0 * delta, 1.0))
@@ -847,6 +860,7 @@ func _build_psx_model() -> void:
 	var glass := PSXMat.glow(Color(1.0, 0.8, 0.4), 2.5)
 	_hull_mat = hull
 	_canvas_mat = canvas
+	_deck_mat = deck
 
 	# Hull cross-sections along Z (stern at +Z, bow at -Z): [z, top half-width, bottom half-width, top y, bottom y]
 	var rings := [
@@ -935,6 +949,7 @@ func _build_psx_model() -> void:
 	_psx_model = mb.to_instance("PSXModel")
 	ship_model.add_child(_psx_model)
 	_build_armour(rings)
+	_build_puddles()
 	# banking chest at the bank zone
 	var chest := MeshInstance3D.new()
 	chest.name = "BankChest"
@@ -977,6 +992,68 @@ func _build_armour(rings: Array) -> void:
 	_armour_node = mb.to_instance("Armour")
 	_armour_node.visible = false
 	ship_model.add_child(_armour_node)
+
+
+## Flat, ragged puddles in the deck's low spots (grown by `wet`), and a copy
+## of the deck planks to darken as they soak.
+func _build_puddles() -> void:
+	_wet_deck = (_deck_mat as ShaderMaterial).duplicate() as ShaderMaterial
+	for i in range(_psx_model.mesh.get_surface_count()):
+		if _psx_model.mesh.surface_get_material(i) == _deck_mat:
+			_psx_model.set_surface_override_material(i, _wet_deck)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.13, 0.17, 0.22, 0.7)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.roughness = 0.05
+	mat.metallic_specular = 1.0
+	_puddles = Node3D.new()
+	_puddles.name = "Puddles"
+	ship_model.add_child(_puddles)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	for p in PUDDLES:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		st.set_normal(Vector3.UP)
+		var pts: Array = []
+		for k in range(12):
+			var a := TAU * k / 12.0
+			pts.append(Vector3(cos(a), 0, sin(a) * 0.75) * rng.randf_range(0.65, 1.15))
+		for k in range(12):
+			st.add_vertex(Vector3.ZERO)
+			st.add_vertex(pts[k])
+			st.add_vertex(pts[(k + 1) % 12])
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position = Vector3(float(p[0]), DECK_Y + 0.012, float(p[1]))
+		mi.visible = false
+		_puddles.add_child(mi)
+
+
+## Rain soaks the planks and pools on deck (and they dry out after); the
+## puddles run to the low side as she rolls, and the drops ripple them.
+func _rain_on_deck(delta: float) -> void:
+	var rain: float = Weather.rain
+	if rain > 0.1:
+		wet = minf(wet + rain * delta / WET_TIME, 1.0)
+	else:
+		wet = maxf(wet - delta / DRY_TIME, 0.0)
+	_wet_deck.set_shader_parameter("albedo_color", Color.WHITE.lerp(Color(0.55, 0.53, 0.56), clampf(wet * 1.5, 0.0, 1.0)))
+	# (rolled to starboard-up, the water runs to port; bow up, it runs aft)
+	_puddles.position = Vector3(clampf(-_roll * 7.0, -0.45, 0.45), 0.0, clampf(_pitch * 9.0, -0.5, 0.5))
+	for i in range(_puddles.get_child_count()):
+		var mi := _puddles.get_child(i) as MeshInstance3D
+		var k := clampf((wet - 0.15 - i * 0.08) / 0.5, 0.0, 1.0)
+		mi.visible = k > 0.02
+		mi.scale = Vector3.ONE * float(PUDDLES[i][2]) * k
+	_drip_t -= delta
+	if rain > 0.2 and wet > 0.3 and _drip_t <= 0.0:
+		_drip_t = 0.25 / rain
+		var mi := _puddles.get_child(randi() % _puddles.get_child_count()) as MeshInstance3D
+		if mi.visible:
+			FX.splash(mi.global_transform * Vector3(randf_range(-0.5, 0.5), 0.0, randf_range(-0.4, 0.4)) + Vector3.UP * 0.03, 1, 0.12)
 
 
 ## The hull's cross-section at `z` ([z, top half-width, bottom half-width, top y, bottom y]).

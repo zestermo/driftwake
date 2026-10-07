@@ -902,6 +902,8 @@ func _swell(delta: float) -> void:
 
 
 func _wake(delta: float) -> void:
+	if absf(speed) > 1.0:
+		Ocean.wake(self, _pos - _fwd() * 5.8, clampf(absf(speed) / 9.0, 0.0, 1.0))
 	_wake_t -= delta
 	if absf(speed) > 2.5 and _wake_t <= 0.0:
 		_wake_t = clampf(0.5 - absf(speed) * 0.03, 0.14, 0.4)
