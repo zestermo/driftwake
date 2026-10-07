@@ -17,11 +17,14 @@ const PUMP := 4.0          # extra push along the swing when steering with it
 const MAX_TIME := 3.0
 const ZIP_SPEED := 24.0
 const ZIP_MAX := 1.4
+## A ship's rope: the push off the deck the way you're looking.
+const ROPE_KICK := 5.0
 
 var anchor := Vector3.ZERO
 var rope_len: float = 6.0
 var t: float = 0.0
 var _zip: Node3D = null
+var _rope: SwingRope = null
 var _vine: VineRope
 var _wraps: Array = []
 var _prev_v := Vector3.ZERO
@@ -34,8 +37,12 @@ func enter(data: Dictionary) -> void:
 	t = 0.0
 	_released = false
 	_zip = data.get("zip", null)
+	_rope = data.get("rope", null)
 	player.sprinting = false
 	var h := player.body_model
+	if _rope:
+		_enter_rope(h)
+		return
 	_wraps = Net.fx("arm_vines", [h, "r"])
 	if _zip:
 		anchor = _zip_target()
@@ -61,6 +68,25 @@ func enter(data: Dictionary) -> void:
 	_vine = VineRope.make(player.get_tree().current_scene, _hand(), anchor, 0.1)
 	Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.1, 0.8])
 	Net.fx("sparkle", [anchor, 8, Color(0.5, 0.95, 0.35)])
+
+
+## A ship's rope (SwingRope): a fixed length from the yard, no vine. You
+## carry the deck's speed into it and kick off the way the camera looks.
+func _enter_rope(h: Humanoid) -> void:
+	anchor = _rope.global_position
+	# (feet to the yard, less a little hop up: the bottom of the swing clears the deck)
+	rope_len = player.global_position.distance_to(anchor) - 0.6
+	_max_len = 99.0
+	var deck := player.get_platform_velocity()
+	var fwd := get_camera_forward()
+	player.velocity = deck + Vector3(fwd.x, 0.0, fwd.z) * ROPE_KICK + Vector3.UP * 3.5
+	_prev_v = player.velocity
+	h.play("vine_hang", 600.0)
+	h.dangle = true
+	player.align_hold = true
+	player.align_up = (anchor - player.global_position).normalized()
+	_rope.point_to(_hand())
+	Net.fx("sfx", ["rope", player.global_position, -6.0, 0.1, 1.0])
 
 
 ## How long the vine can be with the bottom of the arc still off the ground
@@ -94,7 +120,11 @@ func physics_update(delta: float) -> void:
 	if _zip != null:
 		_zip_update(delta)
 		return
-	rope_len = maxf(rope_len - REEL * delta, MIN_LEN)
+	if _rope:
+		# made fast to the yard: it moves with the ship (and the yard's brace)
+		anchor = _rope.global_position
+	else:
+		rope_len = maxf(rope_len - REEL * delta, MIN_LEN)
 	if rope_len > _max_len:
 		# a long vine reels in fast first, so you swing clear of the ground
 		rope_len = maxf(rope_len - 12.0 * delta, _max_len)
@@ -132,6 +162,8 @@ func physics_update(delta: float) -> void:
 	player.body_model.dangle_v = inv * player.velocity
 	if _vine:
 		_vine.set_ends(_hand(), anchor)
+	if _rope:
+		_rope.point_to(_hand())
 	# let go
 	if Input.is_action_just_pressed("jump"):
 		player.velocity.y = maxf(player.velocity.y, 0.0) + 5.0
@@ -139,7 +171,9 @@ func physics_update(delta: float) -> void:
 		_released = true
 		transitioned.emit(self, "Fall", {})
 		return
-	if t > MAX_TIME or (player.is_on_floor() and t > 0.6) or d < MIN_LEN * 0.8:
+	# (a rope holds you as long as you hang on: until you let go or touch down)
+	var too_long := t > MAX_TIME and _rope == null
+	if too_long or (player.is_on_floor() and t > 0.6) or (d < MIN_LEN * 0.8 and _rope == null):
 		_released = not player.is_on_floor()
 		transitioned.emit(self, "Fall" if not player.is_on_floor() else "Idle", {})
 
@@ -191,6 +225,15 @@ func exit() -> void:
 	var h := player.body_model
 	h.dangle = false
 	player.align_hold = false
+	if _rope:
+		_rope.hang()
+		_rope = null
+		if _released:
+			h.play("vine_release", 0.75)
+		else:
+			h.stop_action()
+			player.align_w = minf(player.align_w, 0.5)
+		return
 	if _released:
 		h.play("vine_release", 0.75)
 	else:

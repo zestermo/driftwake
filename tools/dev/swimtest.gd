@@ -97,7 +97,7 @@ func _process(d: float) -> bool:
 			if st() != "Climb" or t - t0 > 6.0:
 				var loc: Vector3 = ship.to_local(p.global_position)
 				print("   climbed in ", snappedf(t - t0, 0.01), " s, deck local ", loc)
-				check("climbed aboard (on deck)", st() == "Idle" and absf(loc.x) < 2.6 and absf(loc.y - 0.32) < 0.3)
+				check("climbed aboard (on deck)", st() == "Idle" and absf(loc.x) < HullBuilder.half_width(loc.z) - 0.4 and absf(loc.y - HullBuilder.DECK_Y) < 0.3)
 				wait = 0.5
 				step += 1
 			return false

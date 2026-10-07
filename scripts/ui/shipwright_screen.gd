@@ -117,7 +117,7 @@ func _start_preview() -> void:
 	_cam.name = "YardCamera"
 	_cam.fov = 55.0
 	_cam.far = 1500.0
-	_cam.h_offset = -6.5
+	_cam.h_offset = -9.5
 	_cam.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	get_tree().root.add_child(_cam)
 	_cam.current = true
@@ -137,8 +137,8 @@ func end_preview() -> void:
 
 func _pose_preview(ship: Node3D) -> void:
 	var xf := ship.global_transform
-	_cam.global_position = xf * Vector3(sin(_orbit) * 17.0, 6.5, cos(_orbit) * 17.0)
-	_cam.look_at(xf * Vector3(0, 3.0, 0), Vector3.UP)
+	_cam.global_position = xf * Vector3(sin(_orbit) * 26.0, 9.5, cos(_orbit) * 26.0)
+	_cam.look_at(xf * Vector3(0, 4.5, 0), Vector3.UP)
 
 
 func _process(delta: float) -> void:

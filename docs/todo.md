@@ -105,6 +105,11 @@ distance culling/LOD anywhere).
   - Die again before reaching your gravestone: the old one shakes, then slowly sinks into
     the ground and is gone (its loot with it).
   - The cabin storage is shared by the whole crew in co-op.
+  - Ships about 1.5x bigger (enemy ships too).
+  - Kitchen: a free refill of your quick-slot consumables up to a cap (raisable later).
+  - Gravestone holds your bag (gold, treasure, items, spare weapons); worn gear and equipped
+    weapons stay on you.
+  - Summon: hold a key near the shore, short cooldown, any captain in co-op.
 
 ## Ships
 

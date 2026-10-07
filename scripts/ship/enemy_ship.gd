@@ -31,24 +31,26 @@ enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE, RAM, FLEE }
 ## [near, far], aim scatter, and how it fights (boards / rams / a second
 ## broadside right after the first / surrenders when beaten).
 const KINDS := {
-	"sloop": {"speed": 10.0, "hull": 260.0, "guns": [-3.8, -1.6, 1.4], "crew": 6, "range": [24.0, 46.0], "scatter": 1.0,
+	"sloop": {"speed": 10.0, "hull": 260.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [24.0, 46.0], "scatter": 1.0,
 		"boards": true, "rams": false, "double": false, "yields": true,
 		"look": {"hull": Color(0.55, 0.45, 0.42), "deck": Color(0.75, 0.68, 0.6), "trim": Color(0.55, 0.12, 0.1), "sail": Color(0.22, 0.2, 0.2), "flag": Color(0.25, 0.22, 0.22), "emblem": "jolly"}},
-	"gunboat": {"speed": 13.0, "hull": 150.0, "guns": [-2.6, 0.6], "crew": 4, "range": [18.0, 34.0], "scatter": 1.25,
+	"gunboat": {"speed": 13.0, "hull": 150.0, "guns": [-4.2, 0.6], "crew": 4, "range": [18.0, 34.0], "scatter": 1.25,
 		"boards": true, "rams": true, "double": false, "yields": true,
 		"look": {"hull": Color(0.6, 0.4, 0.3), "deck": Color(0.8, 0.7, 0.55), "trim": Color(0.75, 0.55, 0.2), "sail": Color(0.62, 0.16, 0.12), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
-	"brig": {"speed": 8.0, "hull": 420.0, "guns": [-4.4, -2.2, 0.0, 2.2], "crew": 8, "range": [26.0, 50.0], "scatter": 1.0,
+	"brig": {"speed": 8.0, "hull": 420.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [26.0, 50.0], "scatter": 1.0,
 		"boards": true, "rams": true, "double": true, "yields": true,
 		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
-	"marine": {"speed": 11.0, "hull": 320.0, "guns": [-3.8, -1.6, 1.4], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
+	"marine": {"speed": 11.0, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
 		"boards": false, "rams": false, "double": false, "yields": false,
 		"look": {"hull": Color(1.7, 1.7, 1.65), "deck": Color(0.8, 0.74, 0.64), "trim": Color(0.2, 0.32, 0.62), "sail": Color(0.95, 0.95, 0.92), "flag": Color(0.92, 0.92, 0.9), "emblem": "marine"}},
 }
 
 const ACCEL := 2.2
 const MAX_TURN := 0.5
-const FREEBOARD := 0.85
-const HEAVE_SCALE := 0.45
+const FREEBOARD := HullBuilder.FREEBOARD
+const HEAVE_SCALE := 0.4
+## How far off her beam she lies when she's lashed alongside to board.
+const ALONGSIDE := 10.8
 const NOTICE := 150.0
 const LOSE := 240.0
 const FIRE_MAX := 64.0
@@ -74,15 +76,16 @@ const STANDOFF := 60.0
 const LOOK_AHEAD := 45.0
 ## The crew on deck: [spot (ship-local, on the deck), yaw]. The helmsman (0)
 ## stays aboard; the rest go over the side in this order when it boards.
+## (spot.y: height above the main deck; the helmsman is up on the quarterdeck)
 const CREW_SPOTS := [
-	[Vector3(0.0, 0.0, 4.0), 0.0],
-	[Vector3(0.7, 0.0, -0.3), 0.3],
-	[Vector3(1.9, 0.0, -2.7), -PI * 0.5],
-	[Vector3(-1.9, 0.0, -0.5), PI * 0.5],
-	[Vector3(-0.9, 0.0, 2.1), PI * 0.8],
-	[Vector3(0.4, 0.0, -5.2), 0.0],
-	[Vector3(-1.4, 0.0, -3.9), PI * 0.5],
-	[Vector3(1.7, 0.0, 3.1), -PI * 0.5],
+	[Vector3(0.0, HullBuilder.QD_Y - HullBuilder.DECK_Y, HullBuilder.HELM_Z), 0.0],
+	[Vector3(1.0, 0.0, -0.4), 0.3],
+	[Vector3(2.8, 0.0, -4.0), -PI * 0.5],
+	[Vector3(-2.8, 0.0, -0.8), PI * 0.5],
+	[Vector3(-1.3, 0.0, 3.1), PI * 0.8],
+	[Vector3(0.6, 0.0, -7.8), 0.0],
+	[Vector3(-2.1, 0.0, -5.9), PI * 0.5],
+	[Vector3(1.6, 0.0, 2.8), -PI * 0.5],
 ]
 ## The crew are only drawn this close to the camera (bodies, hair and cloth).
 const CREW_SHOW := 220.0
@@ -203,14 +206,14 @@ func _ready() -> void:
 			cannons.append(c)
 	_build_crew(model)
 	_jolly = model.get_node_or_null("Jolly")
-	# rope ladders amidships: climb aboard from the water
+	# rope ladders down both sides: climb aboard from the water
 	for sgn in [-1.0, 1.0]:
 		var lad := Ladder.new()
 		lad.name = "LadderStarboard" if sgn > 0.0 else "LadderPort"
-		lad.length = 2.15
-		lad.rail = 0.75
+		lad.length = HullBuilder.LADDER_LEN
+		lad.rail = 0.8
 		lad.deck_depth = 0.9
-		lad.position = Vector3(sgn * 3.0, HullBuilder.DECK_Y, 0.6)
+		lad.position = Vector3(sgn * (HullBuilder.half_width(HullBuilder.LADDER_Z) + 0.02), HullBuilder.DECK_Y, HullBuilder.LADDER_Z)
 		lad.rotation.y = sgn * PI * 0.5
 		model.add_child(lad)
 	# cannon fire finds the hull through this
@@ -220,9 +223,9 @@ func _ready() -> void:
 	hurtbox.collision_mask = 0
 	var hs := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(6.0, 3.4, 15.6)
+	box.size = Vector3(9.0, 5.2, 23.4)
 	hs.shape = box
-	hs.position = Vector3(0, -0.2, -0.9)
+	hs.position = Vector3(0, -0.1, -1.35)
 	hurtbox.add_child(hs)
 	add_child(hurtbox)
 	hurtbox.owner = self
@@ -236,7 +239,7 @@ func _ready() -> void:
 	_bark.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_bark.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	_bark.no_depth_test = true
-	_bark.position = Vector3(0, 4.0, 0)
+	_bark.position = Vector3(0, 5.5, 0)
 	_bark.visible = false
 	add_child(_bark)
 	_pos = Vector3(global_position.x, 0, global_position.z)
@@ -255,8 +258,7 @@ func in_combat() -> bool:
 
 ## Inside its bounds: on deck, in the rigging, on a ladder (same hull as ours).
 func aboard(p: Vector3) -> bool:
-	var l := global_transform.affine_inverse() * p
-	return absf(l.x) < 3.4 and l.z > -9.5 and l.z < 7.5 and l.y > -0.7 and l.y < 13.0
+	return HullBuilder.aboard_local(global_transform.affine_inverse() * p)
 
 
 ## How the hull moved over the last tick (Player._ride_ship carries jumpers by it).
@@ -413,7 +415,7 @@ func _physics_process(delta: float) -> void:
 				_set_state(S.PATROL)
 			else:
 				var side := 1.0 if (tgt.global_basis.x).dot(_pos - tgt.global_position) > 0.0 else -1.0
-				var spot := tgt.global_position + (tgt.global_basis.x) * side * 7.4 + _vel_of(tgt) * 1.0
+				var spot := tgt.global_position + (tgt.global_basis.x) * side * ALONGSIDE + _vel_of(tgt) * 1.0
 				var to_s := spot - _pos
 				to_s.y = 0.0
 				var th: float = tgt.global_rotation.y
@@ -431,7 +433,7 @@ func _physics_process(delta: float) -> void:
 			# lashed alongside while the boarders fight
 			if tgt:
 				var side := 1.0 if (tgt.global_basis.x).dot(_pos - tgt.global_position) > 0.0 else -1.0
-				var spot := tgt.global_position + (tgt.global_basis.x) * side * 7.4
+				var spot := tgt.global_position + (tgt.global_basis.x) * side * ALONGSIDE
 				var to_s := spot - _pos
 				to_s.y = 0.0
 				want_heading = lerp_angle(tgt.global_rotation.y, atan2(-to_s.x, -to_s.z), clampf(to_s.length() / 6.0, 0.0, 0.7))
@@ -636,7 +638,7 @@ func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 		g.reset_physics_interpolation()
 		boarders.append(g)
 		if not net_puppet and tgt:
-			var land_local := Vector3(rng.randf_range(-1.8, 1.8), Ship.DECK_Y + 0.2, rng.randf_range(-4.5, 3.5))
+			var land_local := Vector3(rng.randf_range(-2.6, 2.6), Ship.DECK_Y + 0.2, rng.randf_range(-7.0, 0.8))
 			var t := 1.0 + 0.12 * i
 			var land := tgt.global_transform * land_local + _vel_of(tgt) * t
 			g.leap(land, t)
@@ -736,12 +738,12 @@ func _crew_update(delta: float) -> void:
 			spot = Vector3(side * (HullBuilder.half_width(spot.z) - 0.75), 0.0, spot.z)
 			want_yaw = -PI * 0.5 * side
 		var at := Vector3(h.position.x, 0.0, h.position.z)
-		var to := spot - at
+		var to := Vector3(spot.x, 0.0, spot.z) - at
 		var step := minf(to.length(), CREW_WALK * delta)
 		if step > 0.001:
 			at += to.normalized() * step
 			want_yaw = atan2(-to.x, -to.z)
-		h.position = at + Vector3(0, HullBuilder.DECK_Y, 0)
+		h.position = at + Vector3(0, HullBuilder.DECK_Y + spot.y, 0)
 		h.rotation.y = lerp_angle(h.rotation.y, want_yaw, clampf(8.0 * delta, 0.0, 1.0))
 		h.ground_speed = CREW_WALK if step > 0.001 else 0.0
 		h.local_move = Vector2(0, 1)
@@ -904,15 +906,15 @@ func _swell(delta: float) -> void:
 		return
 	var fwd := _fwd()
 	var right := _right()
-	var hb := _wave(_pos + fwd * 5.8, t)
-	var hs := _wave(_pos - fwd * 5.8, t)
-	var hp := _wave(_pos - right * 2.7, t)
-	var hr := _wave(_pos + right * 2.7, t)
+	var hb := _wave(_pos + fwd * HullBuilder.STERN_Z, t)
+	var hs := _wave(_pos - fwd * HullBuilder.STERN_Z, t)
+	var hp := _wave(_pos - right * HullBuilder.HALF_BEAM, t)
+	var hr := _wave(_pos + right * HullBuilder.HALF_BEAM, t)
 	var hc := _wave(_pos, t)
 	var mean := (hb + hs + hp + hr + hc * 2.0) / 6.0
 	var ty := lerpf(mean, hc, 0.5) * HEAVE_SCALE + FREEBOARD
-	var tp := clampf(atan((hb - hs) / 11.6) * 0.35, -0.045, 0.045)
-	var tr := clampf(atan((hr - hp) / 5.4) * 0.3, -0.05, 0.05) + clampf(_yaw_rate * speed * 0.01, -0.06, 0.06)
+	var tp := clampf(atan((hb - hs) / (HullBuilder.STERN_Z * 2.0)) * 0.35, -0.045, 0.045)
+	var tr := clampf(atan((hr - hp) / (HullBuilder.HALF_BEAM * 2.0)) * 0.3, -0.05, 0.05) + clampf(_yaw_rate * speed * 0.01, -0.06, 0.06)
 	if not _swell_ready:
 		_swell_ready = true
 		_y = ty
@@ -932,7 +934,7 @@ func _wake(delta: float) -> void:
 	if _far:
 		return
 	if absf(speed) > 1.0:
-		Ocean.wake(self, _pos - _fwd() * 5.8, clampf(absf(speed) / 9.0, 0.0, 1.0))
+		Ocean.wake(self, _pos - _fwd() * HullBuilder.STERN_Z, clampf(absf(speed) / 9.0, 0.0, 1.0))
 	_wake_t -= delta
 	if absf(speed) > 2.5 and _wake_t <= 0.0:
 		_wake_t = clampf(0.5 - absf(speed) * 0.03, 0.14, 0.4)
@@ -949,7 +951,7 @@ func _process(delta: float) -> void:
 		_smoke_t -= delta
 		if _smoke_t <= 0.0:
 			_smoke_t = 0.35 if hull < max_hull * 0.25 else 0.7
-			var spot := global_transform * Vector3(randf_range(-1.8, 1.8), 0.6, randf_range(-5.0, 4.0))
+			var spot := global_transform * Vector3(randf_range(-2.6, 2.6), 0.6, randf_range(-7.5, 4.0))
 			FX.smoke(spot, 2, 1.3, 2.0)
 			if hull < max_hull * 0.25:
 				FX.flame(spot, 3, 0.5, 0.45, 0.3)
@@ -1115,4 +1117,4 @@ func _prize() -> void:
 	bag.setup(items, false)
 	bag.name = "Prize_%s" % name
 	get_node("Model").add_child(bag)
-	bag.position = Vector3(1.2, HullBuilder.DECK_Y, 4.6)
+	bag.position = Vector3(1.6, HullBuilder.DECK_Y, 3.2)

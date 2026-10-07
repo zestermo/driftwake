@@ -19,7 +19,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $all = @("feat", "feel", "dash", "chartest", "styletest", "stamtest", "invtest", "ragtest", "bugtest",
 	"shiptest", "swimtest", "grunttest", "guntest", "fixtest", "watertest", "powertest", "progtest",
-	"savetest", "vinetest", "r6test", "r7test", "r8test", "r9test", "r10test", "capturetest", "katanatest", "hairtest", "seatest", "yardtest", "qoltest", "axetest", "perftest", "decktest")
+	"savetest", "vinetest", "r6test", "r7test", "r8test", "r9test", "r10test", "capturetest", "katanatest", "hairtest", "seatest", "yardtest", "qoltest", "axetest", "perftest", "decktest", "riggingtest")
 if (-not $Tests -or $Tests.Count -eq 0) { $Tests = $all }
 
 if (-not $Godot) {

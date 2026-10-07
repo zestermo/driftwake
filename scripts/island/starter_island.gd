@@ -92,7 +92,7 @@ func build(world_seed: int) -> Dictionary:
 	var side := Vector3(-dock_dir.y, 0, dock_dir.x)
 	return {
 		"island": self,
-		"dock_world_pos": to_global(Vector3(dock_end.x, 0, dock_end.y) + side * 6.0),
+		"dock_world_pos": to_global(Vector3(dock_end.x, 0, dock_end.y) + side * 7.2),
 		"dock_outward": Vector3(dock_dir.x, 0, dock_dir.y),
 		"player_spawn": to_global(player_spawn_local),
 	}

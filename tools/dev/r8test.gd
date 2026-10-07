@@ -197,7 +197,9 @@ func _process(d: float) -> bool:
 			var on_board := 0
 			for c in es._crew:
 				var lp: Vector3 = es.to_local(c["node"].global_position)
-				if c["node"].visible and absf(lp.y - 0.32) < 0.1 and absf(lp.x) < 2.9 and lp.z > -8.0 and lp.z < 6.6:
+				# (the helmsman stands up on the quarterdeck)
+				var on_deck := absf(lp.y - HullBuilder.DECK_Y) < 0.1 or absf(lp.y - HullBuilder.QD_Y) < 0.1
+				if c["node"].visible and on_deck and absf(lp.x) < 4.3 and lp.z > -12.0 and lp.z < 9.8:
 					on_board += 1
 			check("the pirate ship's crew stand on its deck (%d of %d)" % [on_board, es._crew.size()], on_board == 6)
 			check("...cutlasses out for the fight (helmsman at the wheel)", es._crew.slice(1).all(func(c): return c["node"].armed) and not es._crew[0]["node"].armed)

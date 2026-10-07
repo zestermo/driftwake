@@ -21,7 +21,7 @@ enum S { LURK, RISE, CIRCLE, REAR, STRIKE, DOWN, TAIL, DIVE, DEAD }
 const HP := 1600.0
 const SEGS := 16
 const SPACING := 2.3
-const CIRCLE_R := 24.0
+const CIRCLE_R := 30.0
 const NOTICE := 220.0
 const BITE_R := 3.6
 const BITE_DMG := 34.0
@@ -304,7 +304,7 @@ func _physics_process(delta: float) -> void:
 			# a roar and a ring over the whole deck just before it comes down: jump!
 			if st_t >= TAIL_SLAM - TAIL_WARN and st_t - delta < TAIL_SLAM - TAIL_WARN:
 				Net.fx("sfx", ["roar", _tail_at, 10.0, 0.02, 0.45])
-				Net.fx("telegraph", [ship.global_transform * Vector3(0, Ship.DECK_Y, 0), 6.5, TAIL_WARN, Color(1.0, 0.8, 0.3), Net.key_of(ship)])
+				Net.fx("telegraph", [ship.global_transform * Vector3(0, Ship.DECK_Y, -1.5), 9.5, TAIL_WARN, Color(1.0, 0.8, 0.3), Net.key_of(ship)])
 			if st_t >= TAIL_SLAM and st_t - delta < TAIL_SLAM:
 				_slam(ship)
 			if st_t > TAIL_END:
@@ -358,7 +358,7 @@ func _move_head(delta: float, spd: float, look: Vector3) -> void:
 
 
 func _start_rear(ship: Node3D) -> void:
-	_bite_local = Vector3(_rng.randf_range(-1.6, 1.6), Ship.DECK_Y, _rng.randf_range(-4.5, 4.0))
+	_bite_local = Vector3(_rng.randf_range(-2.4, 2.4), Ship.DECK_Y, _rng.randf_range(-7.0, 3.5))
 	_go(S.REAR)
 	Net.fx("sfx", ["roar", _head.global_position, 6.0, 0.03, 0.75])
 	Net.fx("telegraph", [ship.global_transform * _bite_local, BITE_R, REAR_TIME + 0.4, Color(1.0, 0.18, 0.12), Net.key_of(ship)])
@@ -368,7 +368,7 @@ func _start_tail(ship: Node3D) -> void:
 	# the side its tail is on, just clear of her hull
 	var tail: Vector3 = _seg_pos[SEGS - 1]
 	var side := Vector3(tail.x - ship.global_position.x, 0, tail.z - ship.global_position.z).normalized()
-	_tail_at = ship.global_position + side * 9.0
+	_tail_at = ship.global_position + side * 12.0
 	_tail_at.y = 0.0
 	_go(S.TAIL)
 	Net.fx("splash", [_tail_at + Vector3(0, 0.5, 0), 16, 1.8])

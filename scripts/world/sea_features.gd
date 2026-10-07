@@ -224,7 +224,7 @@ func _build_wreck(i: int) -> void:
 	var model := Node3D.new()
 	body.add_child(model)
 	HullBuilder.build(model, {"hull": Color(0.42, 0.45, 0.4), "deck": Color(0.55, 0.58, 0.5), "trim": Color(0.35, 0.36, 0.32), "wreck": true})
-	HullBuilder.collide(body)
+	HullBuilder.collide(body, false)
 	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	var items: Array[ItemStack] = []
 	var rng := RandomNumberGenerator.new()
@@ -243,7 +243,7 @@ func _build_wreck(i: int) -> void:
 	bag.save_id = "wreck_%d" % i
 	bag.name = "WreckChest%d" % i
 	body.add_child(bag)
-	bag.position = Vector3(-1.1, HullBuilder.DECK_Y, 1.4)
+	bag.position = Vector3(-1.6, HullBuilder.DECK_Y, 2.1)
 
 
 ## An X on an island's beach for each treasure (only shown, and diggable,

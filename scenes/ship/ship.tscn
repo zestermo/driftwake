@@ -7,7 +7,7 @@
 radius = 1.5
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_bank_zone"]
-radius = 1.5
+radius = 1.2
 
 [node name="Ship" type="AnimatableBody3D" groups=["ship"]]
 collision_layer = 1
@@ -18,16 +18,16 @@ script = ExtResource("1")
 [node name="ShipModel" type="Node3D" parent="."]
 
 [node name="HelmPosition" type="Marker3D" parent="ShipModel"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.33, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.73, 7.4)
 
 [node name="BankPosition" type="Marker3D" parent="ShipModel"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.5, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, 0.5, 5.75)
 
 [node name="DisembarkPosition" type="Marker3D" parent="ShipModel"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -6)
 
 [node name="HelmZone" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 7.4)
 collision_layer = 512
 collision_mask = 0
 script = ExtResource("3")
@@ -37,7 +37,7 @@ prompt_text = "Press F to steer"
 shape = SubResource("SphereShape3D_helm_zone")
 
 [node name="BankZone" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.5, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, 0.8, 6.2)
 collision_layer = 512
 collision_mask = 0
 script = ExtResource("3")
@@ -53,11 +53,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
 [node name="SpringArm3D" type="SpringArm3D" parent="ShipCamera"]
 transform = Transform3D(1, 0, 0, 0, 0.94, 0.342, 0, -0.342, 0.94, 0, 0, 0)
 collision_mask = 1
-spring_length = 15.0
+spring_length = 21.0
 
 [node name="Camera3D" type="Camera3D" parent="ShipCamera/SpringArm3D"]
 current = false
 fov = 65.0
 
 [node name="RespawnPoint" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1, 0.55, 8.4)

@@ -153,6 +153,8 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `perfbench`: Frame/process/physics/render CPU/GPU ms, draws, prims, worst frame at five fixed views (1920x1080, vsync off, sharper preset). `probe` / `probe:<view>` instead times every script's _process/_physics_process. Args: [label|probe] [WxH]
 - `hitchprobe`: Times one-off jobs that can stall a frame (autosave, camp and ship respawns cold vs prebuilt, a rig, weapon meshes, navmesh parses).
 - `buildprobe`: Body build time by stage (headless).
+- `riggingtest`: The bigger ship's decks: stairs to the quarterdeck, the helm up there, the cabin door, storage chest, respawn by the bunk, up and down the rigging to the crow's nest, a rope swing, a ladder up from the sea.
+- `bigshipshot`: The bigger ship: outside (side, stern, bow), the main deck, inside the cabin, the quarterdeck, the crow's nest, the rigging, an enemy alongside. Args: <out_prefix> [psx]
 - `decktest`: Knocked down on a ship under way: the body keeps the ship's speed and stays aboard, the root never lags the body, thrown over the rail you come up in the sea where you landed.
 - `perftest`: Performance round checks: swimmers drown, boarders left behind go, drops expire, one boss crew per fight, stuck-sprint release, rig LOD, 3D render scale, prebuilt bodies, shared weapon meshes, far FX skipped, perf log, orb slivers, chunked terrain.
 - `readmeshot`: README screenshots at the sharper PSX preset (not saved), captain in a red long coat. Sets: `scenes` (street, tavern, a katana brawl at the camp) and `steel` (Haki iai draw, air slash, axe whirlwind + Skybreaker, Gun Rain, Flying Slash), in frame bursts. Args: <out_prefix> <set>

@@ -4,6 +4,8 @@ extends PlayerState
 ## kept in the frame of what you climb, so it works on a rocking ship.
 
 const LADDER_SPEED := 1.7
+## Up the rigging (hand over hand on the ratlines, ~14 m).
+const RIG_SPEED := 2.8
 
 var anchor: Node3D
 var keys: Array = []      # [[time, local_pos], ...]
@@ -39,6 +41,21 @@ func enter(data: Dictionary) -> void:
 		_yaw_local = 0.0  # face -Z of the ladder (toward the deck)
 		player.body_model.climbing = true
 		player.body_model.climb_phase = 0.0
+	elif kind == "rig":
+		# up (or down) the ratlines to the crow's nest, facing in toward the mast
+		var rig: ShipRigging = data["rig"]
+		anchor = rig
+		var start := rig.to_local(player.global_position)
+		var climb_t := rig.hold(0.0).distance_to(rig.hold(1.0)) / RIG_SPEED
+		if bool(data.get("up", true)):
+			keys = [[0.0, start], [0.3, rig.hold(0.0)], [0.3 + climb_t, rig.hold(1.0)], [0.75 + climb_t, rig.nest_spot()]]
+		else:
+			keys = [[0.0, start], [0.4, rig.hold(1.0)], [0.4 + climb_t, rig.hold(0.0)], [0.75 + climb_t, rig.deck_spot()]]
+		_climb_top = 99.0
+		total = keys[keys.size() - 1][0]
+		_yaw_local = rig.side * PI * 0.5
+		player.body_model.climbing = true
+		player.body_model.climb_phase = 0.0
 	else:
 		anchor = data.get("anchor") as Node3D
 		var edge: Vector3 = data["edge"]
@@ -56,7 +73,10 @@ func enter(data: Dictionary) -> void:
 		total = 0.78
 		player.body_model.play("mantle", total)
 		Net.fx("splash", [Vector3(player.global_position.x, player.water_surface(), player.global_position.z), 5, 0.6])
-	Net.fx("sfx", ["splash", player.global_position, -8.0, 0.1, 1.2])
+	if kind == "rig":
+		Net.fx("sfx", ["rope", player.global_position, -10.0, 0.1, 1.1])
+	else:
+		Net.fx("sfx", ["splash", player.global_position, -8.0, 0.1, 1.2])
 	player.sheathe_weapon(true)
 
 
@@ -83,6 +103,10 @@ func physics_update(delta: float) -> void:
 		# over the rail: let go of the climbing pose
 		if lp.y >= _climb_top - 0.01 and t > keys[2][0]:
 			player.body_model.climbing = false
+	elif kind == "rig":
+		player.body_model.climb_phase = lp.y
+		# on the ratlines between the first and last key; stepping on or off either end
+		player.body_model.climbing = t > float(keys[1][0]) * 0.5 and t < float(keys[2][0]) + 0.1
 	if t >= total:
 		transitioned.emit(self, "Idle", {})
 

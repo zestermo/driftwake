@@ -20,14 +20,23 @@ const ACCEL := 2.6
 const BRAKE := 4.0
 ## Turn rate (rad/s) at full rudder once there's flow over it (>= 4 m/s).
 const MAX_TURN := 0.55
-## Origin height above the (averaged) water surface: deck ~1.2 m above it.
-const FREEBOARD := 0.85
-## How much of the swell the hull follows (a 14 m hull rides over the 8 m waves).
-const HEAVE_SCALE := 0.45
-const BOW_Z := -5.8
-const STERN_Z := 5.8
-const HALF_BEAM := 2.7
-const DECK_Y := 0.32
+## The hull's layout (deck heights, the quarterdeck, mast, rigging) is
+## HullBuilder's, shared with the pirates' ships.
+const FREEBOARD := HullBuilder.FREEBOARD
+## How much of the swell the hull follows (a 23 m hull rides over the 8 m waves).
+const HEAVE_SCALE := 0.4
+const BOW_Z := HullBuilder.BOW_Z
+const STERN_Z := HullBuilder.STERN_Z
+const HALF_BEAM := HullBuilder.HALF_BEAM
+const DECK_Y := HullBuilder.DECK_Y
+const QD_Y := HullBuilder.QD_Y
+## The crew cabin's fittings (ship-local, on the cabin floor): the bed (and
+## where you wake beside it), the galley stove, the storage chest.
+const BED_AT := Vector3(-3.25, DECK_Y, 8.45)
+const STOVE_AT := Vector3(3.3, DECK_Y, 9.05)
+const STORAGE_AT := Vector3(-2.7, DECK_Y, 5.75)
+const COUNTER_AT := Vector3(3.35, DECK_Y, 7.55)
+const TABLE_AT := Vector3(0.2, DECK_Y, 8.7)
 ## Hull strength: enemy cannon fire wears it down. At zero the ship is
 ## crippled (barely makes way, smoke and flames) until it patches itself up.
 const MAX_HULL := 400.0
@@ -65,10 +74,10 @@ var _anchor: Node3D
 var _cable: Node3D
 var _anchor_drop: float = 0.0
 ## The anchor hangs from the cathead here (ship-model space), off the bow.
-const ANCHOR_AT := Vector3(1.35, 0.95, -6.2)
-const CAPSTAN_AT := Vector3(0.0, DECK_Y, -4.8)
+const ANCHOR_AT := Vector3(2.4, 1.3, -9.3)
+const CAPSTAN_AT := Vector3(0.0, DECK_Y, -7.0)
 const CHAIN_STEP := 0.13
-const CHAIN_LINKS := 36
+const CHAIN_LINKS := 46
 const ANCHOR_TIME := 1.6
 const PORT_REACH := 40.0
 ## How the hull moved over the last tick (Player._ride_ship carries jumpers by it).
@@ -95,7 +104,7 @@ var wet: float = 0.0
 const WET_TIME := 50.0
 const DRY_TIME := 160.0
 ## [x, z, radius] of the low spots on deck where the rain pools.
-const PUDDLES := [[-1.3, -2.8, 1.0], [1.3, 1.0, 0.85], [-0.9, 2.4, 0.9], [1.2, -4.3, 0.7], [-1.5, 0.4, 0.6], [0.4, 3.6, 0.55]]
+const PUDDLES := [[-1.9, -4.2, 1.3], [1.9, 1.0, 1.1], [-1.3, 3.2, 1.15], [1.8, -6.4, 0.95], [-2.3, 0.4, 0.8], [0.6, -9.2, 0.7]]
 var _deck_mat: Material
 var _wet_deck: ShaderMaterial
 var _puddles: Node3D
@@ -356,8 +365,7 @@ func jolt(push: Vector3) -> void:
 ## Inside the ship's bounds: on deck, in the rigging, on a ladder, jumping
 ## about over the deck (co-op positions are sent relative to the hull then).
 func aboard(p: Vector3) -> bool:
-	var l := global_transform.affine_inverse() * p
-	return absf(l.x) < 3.4 and l.z > -9.5 and l.z < 7.5 and l.y > -0.7 and l.y < 13.0
+	return HullBuilder.aboard_local(global_transform.affine_inverse() * p)
 
 
 ## The hull's own velocity (cannonballs fired from it carry it along).
@@ -368,9 +376,10 @@ func hull_velocity() -> Vector3:
 # ==========================================================================
 # Cannons and the hull
 # ==========================================================================
-## [z, x] of each pair of swivel guns: forward of the mast, amidships, and
-## (the shipwright's refit) aft by the helm.
-const GUN_SPOTS := [[-3.6, 2.28], [-0.6, 2.5], [2.2, 2.5]]
+## [z, x, deck height] of each pair of swivel guns: the foredeck, forward of
+## the mast (clear of the rigging), and (the shipwright's refit) up on the
+## quarterdeck.
+const GUN_SPOTS := [[-6.8, 3.0, DECK_Y], [-4.2, 3.65, DECK_Y], [8.0, 3.55, QD_Y]]
 
 
 func _build_cannons() -> void:
@@ -384,7 +393,7 @@ func _add_gun_pair(i: int) -> void:
 		c.name = "Cannon%s%d" % ["S" if sgn > 0.0 else "P", i]
 		c.ship = self
 		c.team = "crew"
-		c.position = Vector3(sgn * float(GUN_SPOTS[i][1]), DECK_Y, float(GUN_SPOTS[i][0]))
+		c.position = Vector3(sgn * float(GUN_SPOTS[i][1]), float(GUN_SPOTS[i][2]), float(GUN_SPOTS[i][0]))
 		c.rotation.y = -sgn * PI * 0.5
 		ship_model.add_child(c)
 		cannons.append(c)
@@ -434,11 +443,11 @@ func hull_hit(dmg: float, at: Vector3) -> void:
 	_send_hull(true)
 	if dmg >= 15.0:
 		var l := global_transform.affine_inverse() * at
-		var z := clampf(l.z, -5.2, 5.0)
+		var z := clampf(l.z, DECK_Z_MIN, DECK_Z_MAX)
 		if breaches.size() < MAX_BREACHES and _dmg_rng.randf() < BREACH_CHANCE:
 			add_breach(-1.0 if l.x < 0.0 else 1.0, z)
 		if fires.size() < MAX_FIRES and _dmg_rng.randf() < FIRE_CHANCE:
-			add_fire(Vector3(clampf(l.x, -1.9, 1.9), DECK_Y, z))
+			add_fire(Vector3(clampf(l.x, -DECK_X_MAX, DECK_X_MAX), DECK_Y, z))
 
 
 func _set_crippled(on: bool) -> void:
@@ -482,7 +491,7 @@ func _hull_tick(delta: float) -> void:
 		_burn_t -= delta
 		if _burn_t <= 0.0:
 			_burn_t = 0.25 if crippled else 0.6
-			var spot := global_transform * Vector3(randf_range(-1.8, 1.8), DECK_Y + 0.2, randf_range(-5.0, 4.0))
+			var spot := global_transform * Vector3(randf_range(-DECK_X_MAX, DECK_X_MAX), DECK_Y + 0.2, randf_range(DECK_Z_MIN, DECK_Z_MAX))
 			FX.smoke(spot, 2, 1.2, 2.0)
 			if crippled:
 				FX.flame(spot, 4, 0.5, 0.5, 0.3)
@@ -508,7 +517,13 @@ const FIRE_CHANCE := 0.35
 const PATCH_TIME := 2.2
 const DOUSE_TIME := 1.4
 const WORK_REACH := 1.6
-const PUMP_AT := Vector3(0.75, DECK_Y, -0.1)
+const PUMP_AT := Vector3(1.2, DECK_Y, -0.3)
+## Where holes and fires can be on the main deck (ship-local).
+const DECK_Z_MIN := -7.8
+const DECK_Z_MAX := 4.4
+const DECK_X_MAX := 2.6
+## The waterline on her side (ship-local y), where holes show.
+const WATERLINE_Y := -1.15
 
 ## [id, deck spot above the hole (ship-local)]
 var breaches: Array = []
@@ -543,7 +558,7 @@ func _list_side() -> float:
 func add_breach(side: float, z: float) -> void:
 	_dmg_id += 1
 	breaches.append([_dmg_id, Vector3(side * (HullBuilder.half_width(z) - 0.55), DECK_Y, z)])
-	FX.sfx("wood_crack", global_transform * Vector3(side * 2.6, 0.0, z), 4.0, 0.05, 0.75)
+	FX.sfx("wood_crack", global_transform * Vector3(side * HullBuilder.half_width(z), WATERLINE_Y, z), 4.0, 0.05, 0.75)
 	_send_damage()
 
 
@@ -602,7 +617,7 @@ func _damage_tick(delta: float) -> void:
 				Net.fx("dust", [global_position + Vector3(0, 0.2, 0), 12, 1.2])
 				CombatManager.apply_camera_shake(0.18)
 				if breaches.size() < MAX_BREACHES and _dmg_rng.randf() < 0.4:
-					add_breach(-1.0 if _dmg_rng.randf() < 0.5 else 1.0, _dmg_rng.randf_range(-4.5, 4.0))
+					add_breach(-1.0 if _dmg_rng.randf() < 0.5 else 1.0, _dmg_rng.randf_range(DECK_Z_MIN, DECK_Z_MAX))
 	if not breaches.is_empty():
 		flood = minf(flood + breaches.size() * FLOOD_RATE * delta, 1.0)
 		if flood >= 1.0 and not crippled:
@@ -617,7 +632,7 @@ func _damage_tick(delta: float) -> void:
 			f[2] = 0.0
 			var a := _dmg_rng.randf() * TAU
 			var p: Vector3 = f[1] + Vector3(cos(a), 0.0, sin(a)) * 1.6
-			spread.append(Vector3(clampf(p.x, -1.9, 1.9), DECK_Y, clampf(p.z, -5.2, 5.0)))
+			spread.append(Vector3(clampf(p.x, -DECK_X_MAX, DECK_X_MAX), DECK_Y, clampf(p.z, DECK_Z_MIN, DECK_Z_MAX)))
 	if not fires.is_empty():
 		_send_hull(false)
 	for p in spread:
@@ -643,7 +658,7 @@ func _rebuild_holes() -> void:
 		q.size = Vector2(0.9, 0.6)
 		mi.mesh = q
 		mi.material_override = PSXMat.lit("planks_dark", Color(0.08, 0.06, 0.05))
-		mi.position = Vector3(side * (HullBuilder.half_width(spot.z) + 0.03), -0.35, spot.z)
+		mi.position = Vector3(side * (_side_at(spot.z, WATERLINE_Y) + 0.03), WATERLINE_Y, spot.z)
 		mi.rotation.y = side * PI * 0.5
 		ship_model.add_child(mi)
 		_holes[id] = mi
@@ -667,7 +682,7 @@ func _damage_view(delta: float) -> void:
 		for b in breaches:
 			var spot: Vector3 = b[1]
 			var side := signf(spot.x)
-			var at := global_transform * Vector3(side * (HullBuilder.half_width(spot.z) + 0.2), -0.25, spot.z)
+			var at := global_transform * Vector3(side * (_side_at(spot.z, WATERLINE_Y) + 0.2), WATERLINE_Y + 0.1, spot.z)
 			FX.splash(at, 3, 0.5)
 	var me := get_tree().get_first_node_in_group("player") as Player
 	if me == null or me.context != Player.Context.ON_FOOT or not aboard(me.global_position):
@@ -792,7 +807,7 @@ func _process(delta: float) -> void:
 	var heading := xf.basis.get_euler().y
 	_cam_heading = lerp_angle(_cam_heading, heading, minf(4.0 * delta, 1.0))
 	_cam_y = lerpf(_cam_y, xf.origin.y, minf(1.5 * delta, 1.0))
-	ship_camera.global_position = Vector3(xf.origin.x, _cam_y + 3.0, xf.origin.z)
+	ship_camera.global_position = Vector3(xf.origin.x, _cam_y + 4.5, xf.origin.z)
 	ship_camera.global_rotation = Vector3(0.0, _cam_heading + cam_yaw, 0.0)
 
 
@@ -800,48 +815,25 @@ func _process(delta: float) -> void:
 # Deck collision: what you walk on matches what you see
 # ==========================================================================
 func _build_collision() -> void:
-	# hull volume: its top face is the deck
-	var rings := [[6.6, 2.7, 1.5, -1.6], [3.0, 2.95, 1.6, -1.9], [-2.0, 2.95, 1.5, -1.9], [-5.5, 2.4, 1.0, -1.7], [-8.4, 0.25, 0.1, -0.9]]
-	var pts := PackedVector3Array()
-	for r in rings:
-		for sgn in [-1.0, 1.0]:
-			pts.append(Vector3(sgn * float(r[1]), DECK_Y, float(r[0])))
-			pts.append(Vector3(sgn * float(r[2]), float(r[3]), float(r[0])))
-	var hull := ConvexPolygonShape3D.new()
-	hull.points = pts
-	_shape(hull, Transform3D.IDENTITY)
-	# bulwarks along the gunwales (waist high: jump to get over the side)
-	for i in range(rings.size() - 1):
-		var a: Array = rings[i]
-		var b: Array = rings[i + 1]
-		for sgn in [-1.0, 1.0]:
-			var p0 := Vector3(sgn * (float(a[1]) - 0.05), DECK_Y, float(a[0]))
-			var p1 := Vector3(sgn * (float(b[1]) - 0.05), DECK_Y, float(b[0]))
-			var dir := p1 - p0
-			var box := BoxShape3D.new()
-			box.size = Vector3(0.16, 0.75, dir.length() + 0.2)
-			_shape(box, Transform3D(Basis.looking_at(dir.normalized(), Vector3.UP), (p0 + p1) * 0.5 + Vector3(0, 0.37, 0)))
-	var transom := BoxShape3D.new()
-	transom.size = Vector3(5.4, 0.75, 0.16)
-	_shape(transom, Transform3D(Basis.IDENTITY, Vector3(0, DECK_Y + 0.37, 6.6)))
-	# stern cabin (and its roof you can stand on), mast, helm post, chest
-	var cabin := BoxShape3D.new()
-	cabin.size = Vector3(4.5, 1.62, 1.6)
-	_shape(cabin, Transform3D(Basis.IDENTITY, Vector3(0, DECK_Y + 0.83 + 0.0, 5.85)))
-	var mast := CylinderShape3D.new()
-	mast.radius = 0.22
-	mast.height = 11.0
-	_shape(mast, Transform3D(Basis.IDENTITY, Vector3(0, DECK_Y + 5.5, -1.2)))
-	var post := BoxShape3D.new()
-	post.size = Vector3(0.3, 1.2, 0.3)
-	_shape(post, Transform3D(Basis.IDENTITY, Vector3(0, DECK_Y + 0.6, 3.3)))
-	var chest := BoxShape3D.new()
-	chest.size = Vector3(0.6, 0.6, 1.0)
-	_shape(chest, Transform3D(Basis.IDENTITY, bank_position.position + Vector3(0, 0.12, 0)))
+	# the hull, decks, cabin, stairs, mast and crow's nest
+	HullBuilder.collide(self)
+	# the helm post, the capstan, and the cabin's furniture
+	_box_at(Vector3(0, QD_Y + 0.45, HullBuilder.WHEEL_Z + 0.1), Vector3(0.3, 0.9, 0.3))
 	var capstan := CylinderShape3D.new()
 	capstan.radius = 0.32
 	capstan.height = 0.75
 	_shape(capstan, Transform3D(Basis.IDENTITY, CAPSTAN_AT + Vector3(0, 0.37, 0)))
+	_box_at(BED_AT + Vector3(0, 0.26, 0), Vector3(1.15, 0.52, 2.15))
+	_box_at(STOVE_AT + Vector3(0, 0.45, 0), Vector3(0.95, 0.9, 0.95))
+	_box_at(COUNTER_AT + Vector3(0, 0.45, 0), Vector3(0.8, 0.9, 1.6))
+	_box_at(STORAGE_AT + Vector3(0, 0.3, 0), Vector3(1.0, 0.6, 0.65))
+	_box_at(TABLE_AT + Vector3(0, 0.4, 0), Vector3(1.5, 0.8, 0.9))
+
+
+func _box_at(at: Vector3, size: Vector3) -> void:
+	var b := BoxShape3D.new()
+	b.size = size
+	_shape(b, Transform3D(Basis.IDENTITY, at))
 
 
 func _shape(shape: Shape3D, xf: Transform3D) -> void:
@@ -888,49 +880,10 @@ func _build_psx_model() -> void:
 	_canvas_mat = canvas
 	_deck_mat = deck
 
-	# Hull cross-sections along Z (stern at +Z, bow at -Z): [z, top half-width, bottom half-width, top y, bottom y]
-	var rings := [
-		[6.6, 2.7, 1.5, 0.35, -1.6],
-		[3.0, 2.95, 1.6, 0.25, -1.9],
-		[-2.0, 2.95, 1.5, 0.25, -1.9],
-		[-5.5, 2.4, 1.0, 0.35, -1.7],
-		[-8.4, 0.25, 0.1, 0.8, -0.9],
-	]
-	for i in range(rings.size() - 1):
-		var a: Array = rings[i]
-		var b: Array = rings[i + 1]
-		var a_tl := Vector3(-a[1], a[3], a[0]); var a_bl := Vector3(-a[2], a[4], a[0])
-		var a_tr := Vector3(a[1], a[3], a[0]); var a_br := Vector3(a[2], a[4], a[0])
-		var b_tl := Vector3(-b[1], b[3], b[0]); var b_bl := Vector3(-b[2], b[4], b[0])
-		var b_tr := Vector3(b[1], b[3], b[0]); var b_br := Vector3(b[2], b[4], b[0])
-		var L: float = absf(float(a[0]) - float(b[0])) * 0.5
-		var Ha: float = (float(a[3]) - float(a[4])) * 0.5
-		mb.add_quad(hull, a_tl, a_bl, b_bl, b_tl, Vector2(0, 0), Vector2(0, Ha), Vector2(L, Ha), Vector2(L, 0), Color.WHITE, Vector3(-1, -0.3, 0).normalized())
-		mb.add_quad(hull, a_tr, b_tr, b_br, a_br, Vector2(0, 0), Vector2(L, 0), Vector2(L, Ha), Vector2(0, Ha), Color.WHITE, Vector3(1, -0.3, 0).normalized())
-		mb.add_quad(hull, a_bl, a_br, b_br, b_bl, Vector2(0, 0), Vector2(1, 0), Vector2(1, L), Vector2(0, L), Color(0.7, 0.7, 0.7), Vector3.DOWN)
-		# deck surface
-		var dy := 0.32
-		mb.add_quad(deck, Vector3(-a[1] + 0.1, dy, a[0]), Vector3(a[1] - 0.1, dy, a[0]), Vector3(b[1] - 0.1, dy, b[0]), Vector3(-b[1] + 0.1, dy, b[0]),
-			Vector2(0, 0), Vector2(a[1], 0), Vector2(b[1], L * 2.0), Vector2(0, L * 2.0), Color.WHITE, Vector3.UP)
-		# gunwale rails (visual only)
-		for sgn in [-1.0, 1.0]:
-			var p0 := Vector3(sgn * float(a[1]), float(a[3]) + 0.35, float(a[0]))
-			var p1 := Vector3(sgn * float(b[1]), float(b[3]) + 0.35, float(b[0]))
-			var mid := (p0 + p1) * 0.5
-			var dir := (p1 - p0)
-			var basis := Basis.looking_at(dir.normalized(), Vector3.UP)
-			mb.add_box(trim, Transform3D(basis, mid), Vector3(0.14, 0.12, dir.length() + 0.1), 1.0)
-	# stern transom
-	var st: Array = rings[0]
-	mb.add_quad(hull, Vector3(-st[1], st[3], st[0]), Vector3(st[1], st[3], st[0]), Vector3(st[2], st[4], st[0]), Vector3(-st[2], st[4], st[0]),
-		Vector2(0, 0), Vector2(2.7, 0), Vector2(2.0, 1.0), Vector2(0.7, 1.0), Color.WHITE, Vector3.BACK)
-	# rail posts
-	for z in [-4.0, -1.0, 2.0, 5.5]:
-		for sgn in [-1.0, 1.0]:
-			mb.add_box(trim, Transform3D(Basis(), Vector3(sgn * 2.8, 0.5, z)), Vector3(0.12, 0.4, 0.12), 1.0)
-	# mast, yard, sail, flag
-	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, 0.3, -1.2)), 0.2, 0.13, 11.0, 6, 0.8)
+	# hull, decks, quarterdeck over the cabin, stairs, mast, crow's nest, rigging
+	HullBuilder.hull(mb, {"hull": hull, "deck": deck, "trim": trim, "wood": wood, "rope": PSXMat.lit("rope")})
 	_build_rig(canvas, wood)
+	_build_climbing()
 	_build_anchor(wood)
 	# the bilge pump by the mast
 	var pmb := MeshBuilder.new()
@@ -942,64 +895,113 @@ func _build_psx_model() -> void:
 	# the flag at the masthead (painted from the kit: apply_kit)
 	var fmb := MeshBuilder.new()
 	var flag := PSXMat.lit("cloth_red")
-	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 10.9, -0.5)), 1.4, 0.85)
-	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 10.9, -0.5)), 1.4, 0.85, Rect2(1, 0, -1, 1))
+	var flag_at := Vector3(0, HullBuilder.MAST_TOP + 0.2, HullBuilder.MAST_Z + 0.45)
+	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), flag_at), 2.1, 1.25)
+	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), flag_at), 2.1, 1.25, Rect2(1, 0, -1, 1))
 	_flag_node = fmb.to_instance("Flag")
 	ship_model.add_child(_flag_node)
 	_figure_node = Node3D.new()
 	_figure_node.name = "Figurehead"
-	_figure_node.position = Vector3(0, 0.35, -8.45)
+	_figure_node.position = Vector3(0, 0.75, -12.6)
 	_figure_node.rotation.x = 0.45
-	_figure_node.scale = Vector3.ONE * 1.7
+	_figure_node.scale = Vector3.ONE * 2.5
 	ship_model.add_child(_figure_node)
-	# bowsprit
-	mb.add_cylinder(wood, Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-70)), Vector3(0, 0.7, -8.2)), 0.1, 0.06, 3.0, 5, 0.8)
-	# stern cabin
-	mb.add_box(trim, Transform3D(Basis(), Vector3(0, 0.32 + 0.75, 5.85)), Vector3(4.2, 1.5, 1.3), 0.6, Color.WHITE, true, false)
-	mb.add_box(deck, Transform3D(Basis(), Vector3(0, 1.9, 5.85)), Vector3(4.5, 0.12, 1.6), 0.6, Color.WHITE, false, false)
-	mb.add_box_unit_uv(PSXMat.lit("door", Color.WHITE, {"vertex_color": false}), Transform3D(Basis(), Vector3(0, 0.32 + 0.6, 5.18)), Vector3(0.7, 1.2, 0.05))
-	mb.add_box(glass, Transform3D(Basis(), Vector3(1.6, 1.4, 5.15)), Vector3(0.3, 0.3, 0.06), 1.0)
-	mb.add_box(glass, Transform3D(Basis(), Vector3(-1.6, 1.4, 5.15)), Vector3(0.3, 0.3, 0.06), 1.0)
-	# helm wheel in front of the helmsman (who stands at z = 4)
-	mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.75, 3.35)), Vector3(0.14, 0.9, 0.14), 1.0)
+	# windows either side of the cabin door, the stern lantern
+	mb.add_box(glass, Transform3D(Basis(), Vector3(2.0, DECK_Y + 1.5, HullBuilder.QD_FRONT - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
+	mb.add_box(glass, Transform3D(Basis(), Vector3(-2.0, DECK_Y + 1.5, HullBuilder.QD_FRONT - 0.02)), Vector3(0.4, 0.4, 0.06), 1.0)
+	mb.add_box(glass, Transform3D(Basis(), Vector3(0, QD_Y + 1.3, HullBuilder.QD_BACK + 0.15)), Vector3(0.3, 0.4, 0.3), 1.0, Color.WHITE, false)
+	# the helm on the quarterdeck: its post, and the wheel (its own node, it turns)
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, QD_Y + 0.45, HullBuilder.WHEEL_Z + 0.1)), Vector3(0.16, 0.9, 0.16), 1.0)
 	var wmb := MeshBuilder.new()
 	wmb.add_cylinder(trim, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, 0.03)), 0.42, 0.42, 0.06, 8, 1.0, Color.WHITE, true, true, false)
 	for k in range(4):
 		var b := Basis(Vector3.BACK, PI * k / 4.0)
 		wmb.add_box(wood, Transform3D(b, Vector3(0, 0, -0.05)), Vector3(0.05, 1.05, 0.05), 1.0)
 	wheel = wmb.to_instance("Wheel")
-	wheel.position = Vector3(0, 1.25, 3.25)
+	wheel.position = Vector3(0, QD_Y + 0.93, HullBuilder.WHEEL_Z)
 	ship_model.add_child(wheel)
-	# stern lantern
-	mb.add_box(glass, Transform3D(Basis(), Vector3(0, 2.25, 6.4)), Vector3(0.25, 0.32, 0.25), 1.0, Color.WHITE, false)
+	_build_cabin(mb, wood, trim, glass)
 	_psx_model = mb.to_instance("PSXModel")
 	ship_model.add_child(_psx_model)
-	_build_armour(rings)
+	_build_armour(HullBuilder.RINGS)
 	_build_puddles()
-	# banking chest at the bank zone
-	var chest := MeshInstance3D.new()
-	chest.name = "BankChest"
-	chest.mesh = Props.treasure_chest_mesh()
-	chest.position = bank_position.position + Vector3(0, -0.18, 0)
-	chest.rotation.y = PI * 0.5
-	ship_model.add_child(chest)
-	# rope ladders down both sides, amidships: climb back aboard from the water
+	# rope ladders down both sides: climb back aboard from the water
 	for sgn in [-1.0, 1.0]:
 		var lad := Ladder.new()
 		lad.name = "LadderStarboard" if sgn > 0.0 else "LadderPort"
-		lad.length = 2.15
-		lad.rail = 0.75
+		lad.length = HullBuilder.LADDER_LEN
+		lad.rail = 0.8
 		lad.deck_depth = 0.9
-		lad.position = Vector3(sgn * 3.0, DECK_Y, 0.6)
+		lad.position = Vector3(sgn * (HullBuilder.half_width(HullBuilder.LADDER_Z) + 0.02), DECK_Y, HullBuilder.LADDER_Z)
 		lad.rotation.y = sgn * PI * 0.5
 		ship_model.add_child(lad)
+
+
+## The crew cabin under the quarterdeck: a bunk at the back on the port side,
+## the galley (stove and counter) to starboard, the storage chest by the door,
+## a table, stern windows and a lantern (with a little warm light).
+func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Material) -> void:
+	var cloth := PSXMat.lit("fabric", Color(0.55, 0.12, 0.1))
+	var linen := PSXMat.lit("fabric", Color(0.9, 0.86, 0.75))
+	var iron := PSXMat.lit("metal", Color(0.25, 0.24, 0.23))
+	var fire := PSXMat.glow(Color(1.0, 0.45, 0.12), 3.0)
+	var crate := PSXMat.lit("planks", Color(0.8, 0.65, 0.45))
+	# the bunk: frame, mattress, a pillow and a red blanket
+	mb.add_box(wood, Transform3D(Basis(), BED_AT + Vector3(0, 0.2, 0)), Vector3(1.15, 0.4, 2.15), 1.0)
+	mb.add_box(linen, Transform3D(Basis(), BED_AT + Vector3(0, 0.46, 0)), Vector3(1.0, 0.14, 2.0), 1.0)
+	mb.add_box(linen, Transform3D(Basis(), BED_AT + Vector3(0, 0.6, 0.72)), Vector3(0.7, 0.14, 0.4), 1.0)
+	mb.add_box(cloth, Transform3D(Basis(), BED_AT + Vector3(0, 0.55, -0.3)), Vector3(1.04, 0.06, 1.3), 1.0)
+	mb.add_box(wood, Transform3D(Basis(), BED_AT + Vector3(0, 0.45, 1.05)), Vector3(1.15, 0.9, 0.08), 1.0)
+	# the galley: an iron stove with fire behind its door and a pipe up through
+	# the deck, a counter with pots, a water barrel
+	mb.add_box(iron, Transform3D(Basis(), STOVE_AT + Vector3(0, 0.45, 0)), Vector3(0.9, 0.9, 0.9), 1.0)
+	mb.add_box(fire, Transform3D(Basis(), STOVE_AT + Vector3(-0.46, 0.35, 0)), Vector3(0.04, 0.3, 0.45), 1.0)
+	mb.add_cylinder(iron, Transform3D(Basis(), STOVE_AT + Vector3(0.1, 0.9, 0.1)), 0.09, 0.09, QD_Y - DECK_Y - 0.9, 6, 1.0)
+	mb.add_box(trim, Transform3D(Basis(), COUNTER_AT + Vector3(0, 0.45, 0)), Vector3(0.75, 0.9, 1.55), 0.6)
+	mb.add_cylinder(iron, Transform3D(Basis(), COUNTER_AT + Vector3(0, 0.9, 0.35)), 0.2, 0.2, 0.25, 8, 1.0)
+	mb.add_cylinder(iron, Transform3D(Basis(), COUNTER_AT + Vector3(-0.05, 0.9, -0.35)), 0.14, 0.12, 0.18, 8, 1.0)
+	mb.add_cylinder(crate, Transform3D(Basis(), COUNTER_AT + Vector3(0.1, 0.0, -1.25)), 0.35, 0.35, 0.9, 8, 0.6)
+	# storage: the chest by the door, crates and a barrel round it
+	mb.add_box(crate, Transform3D(Basis(Vector3.UP, 0.2), STORAGE_AT + Vector3(-0.4, 0.3, 1.0)), Vector3(0.6, 0.6, 0.6), 1.0)
+	mb.add_box(crate, Transform3D(Basis(Vector3.UP, -0.3), STORAGE_AT + Vector3(-0.45, 0.85, 1.0)), Vector3(0.45, 0.45, 0.45), 1.0)
+	mb.add_cylinder(crate, Transform3D(Basis(), STORAGE_AT + Vector3(0.9, 0.0, -0.05)), 0.32, 0.32, 0.8, 8, 0.6)
+	# the table and two stools
+	mb.add_box(wood, Transform3D(Basis(), TABLE_AT + Vector3(0, 0.78, 0)), Vector3(1.5, 0.07, 0.9), 1.0)
+	for sx in [-0.6, 0.6]:
+		for sz in [-0.35, 0.35]:
+			mb.add_box(wood, Transform3D(Basis(), TABLE_AT + Vector3(sx, 0.38, sz)), Vector3(0.08, 0.76, 0.08), 1.0)
+	for sx in [-0.4, 0.5]:
+		mb.add_cylinder(wood, Transform3D(Basis(), TABLE_AT + Vector3(sx, 0.0, -0.75)), 0.2, 0.18, 0.45, 6, 1.0)
+	# stern windows, a lantern hung from a beam
+	for sx in [-1.6, 0.0, 1.6]:
+		mb.add_box(glass, Transform3D(Basis(), Vector3(sx, DECK_Y + 1.55, HullBuilder.QD_BACK - 0.18)), Vector3(0.6, 0.45, 0.04), 1.0)
+	mb.add_box(glass, Transform3D(Basis(), Vector3(0.2, QD_Y - 0.65, 7.6)), Vector3(0.22, 0.3, 0.22), 1.0)
+	_line_mesh(mb, iron, Vector3(0.2, QD_Y - 0.5, 7.6), Vector3(0.2, QD_Y - 0.2, 7.6))
+	# the storage chest itself (the banking spot)
+	var chest := MeshInstance3D.new()
+	chest.name = "StorageChest"
+	chest.mesh = Props.treasure_chest_mesh()
+	chest.position = STORAGE_AT + Vector3(0, 0.0, 0)
+	ship_model.add_child(chest)
+	var lamp := OmniLight3D.new()
+	lamp.name = "CabinLight"
+	lamp.light_color = Color(1.0, 0.75, 0.45)
+	lamp.light_energy = 1.4
+	lamp.omni_range = 6.5
+	lamp.shadow_enabled = false
+	lamp.position = Vector3(0.2, QD_Y - 0.8, 7.6)
+	ship_model.add_child(lamp)
+
+
+func _line_mesh(mb: MeshBuilder, mat: Material, a: Vector3, b: Vector3) -> void:
+	HullBuilder._line(mb, mat, a, b, 0.03)
 
 
 ## Iron straps down her sides and a rubbing band along them (the armour refit).
 func _build_armour(rings: Array) -> void:
 	var iron := PSXMat.lit("metal", Color(0.55, 0.55, 0.6))
 	var mb := MeshBuilder.new()
-	for z in [-5.0, -3.0, -1.0, 1.0, 3.0, 5.2]:
+	for z in [-8.0, -5.0, -2.0, 1.0, 4.0, 7.0, 9.4]:
 		var r := _ring_at(rings, z)
 		var top := Vector2(float(r[1]), float(r[3]))
 		var low := top.lerp(Vector2(float(r[2]), float(r[4])), 0.55)
@@ -1082,6 +1084,13 @@ func _rain_on_deck(delta: float) -> void:
 			FX.splash(mi.global_transform * Vector3(randf_range(-0.5, 0.5), 0.0, randf_range(-0.4, 0.4)) + Vector3.UP * 0.03, 1, 0.12)
 
 
+## The hull's half-width at (z, y): from the rail tapering down to the keel.
+func _side_at(z: float, y: float) -> float:
+	var r := _ring_at(HullBuilder.RINGS, z)
+	var k := clampf((float(r[3]) - y) / maxf(float(r[3]) - float(r[4]), 0.01), 0.0, 1.0)
+	return lerpf(float(r[1]), float(r[2]), k)
+
+
 ## The hull's cross-section at `z` ([z, top half-width, bottom half-width, top y, bottom y]).
 func _ring_at(rings: Array, z: float) -> Array:
 	for i in range(rings.size() - 1):
@@ -1135,20 +1144,23 @@ func apply_kit(k: Dictionary) -> void:
 ## sail hanging from it (its own node, origin on the yard, so it rolls up by
 ## scaling toward it and fills or flaps), and the furled canvas on the yard.
 func _build_rig(canvas: Material, wood: Material) -> void:
-	var pivot := Vector3(0, 9.2, -1.2)
+	var pivot := Vector3(0, HullBuilder.YARD_Y, HullBuilder.MAST_Z)
 	_rig = Node3D.new()
 	_rig.name = "Rig"
 	_rig.position = pivot
 	ship_model.add_child(_rig)
 	var ymb := MeshBuilder.new()
-	ymb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(3.0, 0, 0)), 0.08, 0.08, 6.0, 5, 0.8)
+	ymb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(4.5, 0, 0)), 0.12, 0.12, 9.0, 6, 0.8)
 	_rig.add_child(ymb.to_instance("Yard"))
-	var top := Vector3(0, 9.1, -1.05)
+	var sz := HullBuilder.MAST_Z + 0.25
+	var top := Vector3(0, HullBuilder.YARD_Y - 0.15, sz)
+	var mid_y := top.y - 4.35
+	var bot_y := mid_y - 4.2
 	var smb := MeshBuilder.new()
 	var n := Vector3(0, 0, 1)
 	var dim := Color(0.8, 0.8, 0.75)
-	var c := [Vector3(-2.8, 9.1, -1.05) - top, Vector3(2.8, 9.1, -1.05) - top, Vector3(2.6, 6.2, -0.75) - top,
-		Vector3(-2.6, 6.2, -0.75) - top, Vector3(2.4, 3.4, -1.0) - top, Vector3(-2.4, 3.4, -1.0) - top]
+	var c := [Vector3(-4.2, top.y, sz) - top, Vector3(4.2, top.y, sz) - top, Vector3(3.9, mid_y, sz + 0.45) - top,
+		Vector3(-3.9, mid_y, sz + 0.45) - top, Vector3(3.6, bot_y, sz + 0.1) - top, Vector3(-3.6, bot_y, sz + 0.1) - top]
 	smb.add_quad(canvas, c[0], c[1], c[2], c[3], Vector2(0, 0), Vector2(2.0, 0), Vector2(2.0, 1.0), Vector2(0, 1.0), Color.WHITE, n)
 	smb.add_quad(canvas, c[3], c[2], c[4], c[5], Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 2.0), Vector2(0, 2.0), Color.WHITE, n)
 	smb.add_quad(canvas, c[0], c[3], c[2], c[1], Vector2(0, 0), Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 0), dim, -n)
@@ -1157,11 +1169,27 @@ func _build_rig(canvas: Material, wood: Material) -> void:
 	_sail_node.position = top - pivot
 	_rig.add_child(_sail_node)
 	var fmb := MeshBuilder.new()
-	fmb.add_cylinder(canvas, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(2.7, 0, 0)), 0.2, 0.2, 5.4, 6, 0.8)
+	fmb.add_cylinder(canvas, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(4.05, 0, 0)), 0.28, 0.28, 8.1, 6, 0.8)
 	_furl_node = fmb.to_instance("FurledSail")
 	_furl_node.position = top + Vector3(0, -0.12, 0.05) - pivot
 	_rig.add_child(_furl_node)
 	_show_sail(0.0)
+
+
+## The rigging up to the crow's nest (both sides), and a rope to swing from at
+## each end of the yard (they turn with it as it's braced round).
+func _build_climbing() -> void:
+	for sgn in [-1.0, 1.0]:
+		var rig := ShipRigging.new()
+		rig.name = "RiggingS" if sgn > 0.0 else "RiggingP"
+		rig.side = sgn
+		ship_model.add_child(rig)
+		var rope := SwingRope.new()
+		rope.name = "RopeS" if sgn > 0.0 else "RopeP"
+		rope.length = HullBuilder.YARD_Y - DECK_Y - 2.2
+		# (inside the rail, even with the bigger sails' longer yard)
+		rope.position = Vector3(sgn * 3.6, -0.1, 0.0)
+		_rig.add_child(rope)
 
 
 ## Canvas let down as far as sail_shown (the rest bundled on the yard); the
@@ -1281,7 +1309,7 @@ func set_anchored(on: bool) -> void:
 
 func _show_anchor(delta: float) -> void:
 	_anchor_drop = move_toward(_anchor_drop, 1.0 if anchored else 0.0, delta * 0.8)
-	var depth := lerpf(0.0, 4.5, _anchor_drop)
+	var depth := lerpf(0.0, 5.6, _anchor_drop)
 	_anchor.position = ANCHOR_AT + Vector3(0, -depth, 0)
 	for i in range(_cable.get_child_count()):
 		(_cable.get_child(i) as Node3D).visible = (i + 1) * CHAIN_STEP <= depth + 0.05
