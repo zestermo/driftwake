@@ -16,6 +16,8 @@ var maps: Dictionary = {}
 var charted: Dictionary = {}
 ## Devil Fruits already found in this world (item id -> who found it).
 var fruit_claims: Dictionary = {}
+## The shipwright's work on our ship (ShipKit; the host's world in co-op).
+var ship_kit: Dictionary = ShipKit.fresh()
 const AUTOSAVE_EVERY := 120.0
 var _autosave_t: float = 0.0
 ## Seconds played in this save (counted while the game isn't paused).
@@ -31,6 +33,7 @@ func reset_session() -> void:
 	maps.clear()
 	charted.clear()
 	fruit_claims.clear()
+	ship_kit = ShipKit.fresh()
 	play_time = 0.0
 	_autosave_t = 0.0
 	active_loot_bag = null

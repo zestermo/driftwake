@@ -251,6 +251,7 @@ static func save(player: Player) -> bool:
 		"charted": gm.charted.keys() if gm else [],
 		"burned": gm.burned.keys() if gm else [],
 		"fruit_claims": gm.fruit_claims.duplicate() if gm else {},
+		"ship_kit": gm.ship_kit.duplicate() if gm else {},
 		"player_pos": player.global_position if on_foot else Vector3.INF,
 		"player_yaw": player.player_model.rotation.y,
 		"ship_pos": ship.global_position if ship else Vector3.INF,
@@ -261,7 +262,7 @@ static func save(player: Player) -> bool:
 	data["char_id"] = str(old.get("char_id", "%08x%08x" % [randi(), randi()]))
 	if _guest(player):
 		# keep our own world's state, not the host's
-		for k in ["burned", "fruit_claims", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time"]:
+		for k in ["burned", "fruit_claims", "ship_kit", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time"]:
 			if old.has(k):
 				data[k] = old[k]
 			else:
@@ -362,6 +363,7 @@ static func load_into(player: Player) -> bool:
 			for k in data.get("burned", []):
 				gm.burned[str(k)] = true
 			gm.fruit_claims = (data.get("fruit_claims", {}) as Dictionary).duplicate()
+			gm.ship_kit = ShipKit.merged(data.get("ship_kit", {}))
 			var wn := player.get_node_or_null("/root/Weather")
 			if wn and data.has("world_time"):
 				wn.set_world_time(float(data["world_time"]))
@@ -370,6 +372,8 @@ static func load_into(player: Player) -> bool:
 			_loading = false
 			return true  # the world (ship, where we stand) is the host's
 	var ship := player.get_tree().get_first_node_in_group("ship")
+	if ship and gm:
+		ship.apply_kit(gm.ship_kit)
 	var sp: Vector3 = data.get("ship_pos", Vector3.INF)
 	if ship and sp != Vector3.INF and ship.has_method("place"):
 		ship.call("place", sp, float(data.get("ship_yaw", 0.0)))

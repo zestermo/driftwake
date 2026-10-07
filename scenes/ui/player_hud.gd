@@ -516,7 +516,7 @@ func _update_hull() -> void:
 	var hull: float = float(ship.get("hull")) if ship.get("hull") != null else -1.0
 	if hull < 0.0:
 		return
-	var mx: float = Ship.MAX_HULL
+	var mx: float = (ship as Ship).max_hull
 	var aboard := player.context != Player.Context.ON_FOOT or player.global_position.distance_to(ship.global_position) < 9.0
 	_sail_gauge.ship = ship
 	_sail_gauge.visible = (player.context == Player.Context.HELM or (ship as Ship).aboard(player.global_position)) and not _menu_open and not _in_dialogue

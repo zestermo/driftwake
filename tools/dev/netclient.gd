@@ -455,6 +455,13 @@ func _process(d: float) -> bool:
 			if not tn.got("breaches"):
 				return false
 			check("our patching reaches the host (%d holes left there)" % int(tn.replies["breaches"]), int(tn.replies["breaches"]) == 0)
+			tn.ask("refit")
+			go(742)
+		742:
+			if st_t < 0.8:
+				return false
+			var sh = net._ship()
+			check("the host's refit reaches our ship (guns %d, figurehead)" % sh.cannons.size(), sh.cannons.size() == 6 and sh._figure_node.get_child_count() == 1)
 			data["php8"] = p.health_component.current_health
 			p.state_machine.force_state("Idle", {})
 			tn.ask("boss_aoe", [p.global_position])

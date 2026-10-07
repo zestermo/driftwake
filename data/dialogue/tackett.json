@@ -1,0 +1,48 @@
+{
+	"speaker": "Shipwright Tackett",
+	"voice": 0.78,
+	"start": "intro",
+	"return": "menu",
+	"nodes": {
+		"intro": {
+			"text": [
+				"That sloop at the end of Odile's dock yours, {captain}? She's sound. Plain, but sound.",
+				"I'm Tackett. I build 'em, I mend 'em, and for a fair price I make 'em into something the sea respects."
+			],
+			"next": "menu",
+			"set_flag": "met_tackett"
+		},
+		"menu": {
+			"text": "What'll it be?",
+			"choices": [
+				{
+					"text": "Let's see what you can do for her.",
+					"next": "yard"
+				},
+				{
+					"text": "What sort of work do you do?",
+					"next": "work"
+				},
+				{
+					"text": "Just looking. Fair winds.",
+					"next": "bye"
+				}
+			]
+		},
+		"yard": {
+			"text": "Right. Let's have a look at her.",
+			"event": "shipwright",
+			"next": "end"
+		},
+		"work": {
+			"text": [
+				"Iron straps on her planks, so a cannonball has to work for it. A third pair of guns aft. More canvas. A rudder that answers.",
+				"And paint, flags, a figurehead to scare the fish. Paint's free, mind. A captain should fly her own colours."
+			],
+			"next": "menu"
+		},
+		"bye": {
+			"text": "Bring me gold and I'll bring you a warship."
+		}
+	}
+}

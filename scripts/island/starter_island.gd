@@ -513,6 +513,17 @@ func _build_village() -> void:
 	place(Props.fish_rack(), dock_shore + Vector2(8, 6), face_yaw(Vector2(-1, 0)), 1.5)
 	place(Props.barrel(), dock_shore + Vector2(6, 9), 0.0)
 	place(Props.crate(), dock_shore + Vector2(7, 10.5), 0.5)
+	# Tackett's yard by the foot of the dock: timber stacked on trestles
+	var yard := dock_shore + Vector2(-7.0, 5.0)
+	var tmb := MeshBuilder.new()
+	var timber := PSXMat.lit("planks", Color(0.95, 0.85, 0.7))
+	for sx in [-1.2, 1.2]:
+		tmb.add_box(PSXMat.lit("bark"), Transform3D(Basis(), Vector3(sx, 0.35, 0)), Vector3(0.15, 0.7, 1.0), 1.0)
+	for i in range(4):
+		tmb.add_box(timber, Transform3D(Basis(Vector3.UP, 0.04 * i), Vector3(0, 0.76 + i * 0.1, -0.3 + i * 0.18)), Vector3(3.2, 0.09, 0.26), 1.0)
+	place(tmb.to_instance("Timber"), yard, 0.3, 1.8)
+	place(Props.crate(), yard + Vector2(2.2, 1.4), 0.2)
+	place(Props.barrel(), yard + Vector2(-2.2, 1.2), 0.0)
 
 	place(Props.signpost([PI, 0.0, PI * 0.75, PI * 0.25]), VILLAGE + Vector2(2.5, 17), 0.0, 0.6)
 
@@ -1065,6 +1076,17 @@ func _spawn_npcs() -> void:
 			"feet": "tall_boots", "feet_color": CharacterLook.LEATHER[0], "belt": "belt", "belt_color": CharacterLook.LEATHER[1],
 			"pouch": true},
 	}, odile_p, -dock_dir)
+
+	# the shipwright at his timber stack (talk: his yard, GameMenu "yard")
+	_npc({
+		"name": "Shipwright Tackett", "dialogue": "tackett", "voice": 0.78,
+		"look": {"body": "masc", "build": "broad", "height": 1.0, "skin": CharacterLook.SKIN_TONES[2],
+			"head": "square", "nose": "broad", "eyes": 2, "brows": 1, "mouth": 2,
+			"hair": "crop", "hair_color": CharacterLook.HAIR_COLORS[3], "facial_hair": "chops", "hat": "none",
+			"top": "shirt", "top_color": CharacterLook.CLOTH[2], "sleeves": "short", "apron": true, "apron_color": CharacterLook.LEATHER[1],
+			"legs": "trousers", "legs_color": CharacterLook.CLOTH[6], "feet": "boots", "feet_color": CharacterLook.LEATHER[0],
+			"belt": "belt", "belt_color": CharacterLook.LEATHER[2]},
+	}, dock_shore + Vector2(-5.0, 3.6), -dock_dir)
 
 	# Tavern keeper behind his bar, inside
 	var gus_p := _marker_point(_tavern, "Barkeep")

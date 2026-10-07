@@ -73,7 +73,18 @@ var cam_yaw: float = 0.0
 
 var wheel: Node3D
 var hull: float = MAX_HULL
+var max_hull: float = MAX_HULL
 var crippled: bool = false
+## The shipwright's work (ShipKit): refits and looks.
+var kit: Dictionary = {}
+var _top_k: float = 1.0
+var _turn_k: float = 1.0
+var _psx_model: MeshInstance3D
+var _hull_mat: Material
+var _canvas_mat: Material
+var _flag_node: MeshInstance3D
+var _figure_node: Node3D
+var _armour_node: Node3D
 ## Swivel guns on the rails (port and starboard).
 var cannons: Array = []
 var _since_hit: float = 99.0
@@ -115,6 +126,7 @@ func _ready() -> void:
 	_build_cannons()
 	_ocean = get_node_or_null("/root/Ocean")
 	_game_manager = get_node("/root/GameManager")
+	apply_kit(_game_manager.ship_kit)
 	helm_zone.interacted.connect(_on_helm_interacted)
 	bank_zone.interacted.connect(_on_bank_interacted)
 	var arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
@@ -169,7 +181,7 @@ func _physics_process(delta: float) -> void:
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
 	# (water in her: low and sluggish)
-	var top := MAX_SPEED * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood)
+	var top := MAX_SPEED * _top_k * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood)
 	var want := top * sail_shown * wind_effect()
 	if anchored:
 		# brought up short by the cable, and swinging to it no more
@@ -181,9 +193,9 @@ func _physics_process(delta: float) -> void:
 		speed = move_toward(speed, want, ACCEL * delta)
 	else:
 		speed = move_toward(speed, want, (0.35 + 0.012 * speed * speed) * delta)
-	rudder = move_toward(rudder, _turn_in, 2.2 * delta)
+	rudder = move_toward(rudder, _turn_in, 2.2 * _turn_k * delta)
 	var flow := clampf(absf(speed) / 4.0, 0.3, 1.0) * (0.0 if anchored else 1.0)
-	var target_rate := -rudder * MAX_TURN * flow * (-1.0 if speed < -0.3 else 1.0)
+	var target_rate := -rudder * MAX_TURN * _turn_k * flow * (-1.0 if speed < -0.3 else 1.0)
 	_yaw_rate = move_toward(_yaw_rate, target_rate, 1.1 * delta)
 	heading += _yaw_rate * delta
 
@@ -341,19 +353,26 @@ func hull_velocity() -> Vector3:
 # ==========================================================================
 # Cannons and the hull
 # ==========================================================================
+## [z, x] of each pair of swivel guns: forward of the mast, amidships, and
+## (the shipwright's refit) aft by the helm.
+const GUN_SPOTS := [[-3.6, 2.28], [-0.6, 2.5], [2.2, 2.5]]
+
+
 func _build_cannons() -> void:
-	# two swivel guns a side: forward of the mast and amidships
-	var spots := [[-3.6, 2.28], [-0.6, 2.5]]
+	for i in range(2):
+		_add_gun_pair(i)
+
+
+func _add_gun_pair(i: int) -> void:
 	for sgn in [-1.0, 1.0]:
-		for i in range(spots.size()):
-			var c := ShipCannon.new()
-			c.name = "Cannon%s%d" % ["S" if sgn > 0.0 else "P", i]
-			c.ship = self
-			c.team = "crew"
-			c.position = Vector3(sgn * float(spots[i][1]), DECK_Y, float(spots[i][0]))
-			c.rotation.y = -sgn * PI * 0.5
-			ship_model.add_child(c)
-			cannons.append(c)
+		var c := ShipCannon.new()
+		c.name = "Cannon%s%d" % ["S" if sgn > 0.0 else "P", i]
+		c.ship = self
+		c.team = "crew"
+		c.position = Vector3(sgn * float(GUN_SPOTS[i][1]), DECK_Y, float(GUN_SPOTS[i][0]))
+		c.rotation.y = -sgn * PI * 0.5
+		ship_model.add_child(c)
+		cannons.append(c)
 
 
 ## Cannons on one side: +1 starboard, -1 port.
@@ -430,20 +449,20 @@ func net_hull(v: float) -> void:
 	if v < hull - 0.5:
 		_since_hit = 0.0
 	hull = v
-	_set_crippled(hull <= 0.0 or (crippled and hull < MAX_HULL * 0.5))
+	_set_crippled(hull <= 0.0 or (crippled and hull < max_hull * 0.5))
 
 
 func _hull_tick(delta: float) -> void:
 	_since_hit += delta
 	if not Net.is_client():
-		if _since_hit > REPAIR_DELAY and hull < MAX_HULL and fires.is_empty():
-			hull = minf(hull + REPAIR_RATE * delta, MAX_HULL)
+		if _since_hit > REPAIR_DELAY and hull < max_hull and fires.is_empty():
+			hull = minf(hull + REPAIR_RATE * delta, max_hull)
 			_send_hull(false)
-		if crippled and hull >= MAX_HULL * 0.5 and flood < 0.5:
+		if crippled and hull >= max_hull * 0.5 and flood < 0.5:
 			_set_crippled(false)
 			_send_hull(true)
 	# a crippled ship smokes and burns on deck
-	if crippled or hull < MAX_HULL * 0.3:
+	if crippled or hull < max_hull * 0.3:
 		_burn_t -= delta
 		if _burn_t <= 0.0:
 			_burn_t = 0.25 if crippled else 0.6
@@ -825,8 +844,9 @@ func _build_psx_model() -> void:
 	var trim := PSXMat.lit("planks", Color(0.85, 0.65, 0.35))
 	var canvas := PSXMat.lit("canvas", Color(0.95, 0.92, 0.82), {"affine": 0.6})
 	var wood := PSXMat.lit("bark")
-	var flag := PSXMat.lit("cloth_red")
 	var glass := PSXMat.glow(Color(1.0, 0.8, 0.4), 2.5)
+	_hull_mat = hull
+	_canvas_mat = canvas
 
 	# Hull cross-sections along Z (stern at +Z, bow at -Z): [z, top half-width, bottom half-width, top y, bottom y]
 	var rings := [
@@ -879,8 +899,19 @@ func _build_psx_model() -> void:
 	pmb.add_box(trim, Transform3D(Basis(), PUMP_AT + Vector3(0.18, 0.55, 0)), Vector3(0.08, 0.08, 0.22), 1.0)
 	ship_model.add_child(pmb.to_instance("Pump"))
 	_dmg_rng.randomize()
-	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 11.0, -0.75)), 0.9, 0.5, Rect2(0, 0, 0.5, 0.5))
-	mb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 11.0, -0.75)), 0.9, 0.5, Rect2(0, 0, 0.5, 0.5))
+	# the flag at the masthead (painted from the kit: apply_kit)
+	var fmb := MeshBuilder.new()
+	var flag := PSXMat.lit("cloth_red")
+	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 10.9, -0.5)), 1.4, 0.85)
+	fmb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 10.9, -0.5)), 1.4, 0.85, Rect2(1, 0, -1, 1))
+	_flag_node = fmb.to_instance("Flag")
+	ship_model.add_child(_flag_node)
+	_figure_node = Node3D.new()
+	_figure_node.name = "Figurehead"
+	_figure_node.position = Vector3(0, 0.35, -8.45)
+	_figure_node.rotation.x = 0.45
+	_figure_node.scale = Vector3.ONE * 1.7
+	ship_model.add_child(_figure_node)
 	# bowsprit
 	mb.add_cylinder(wood, Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-70)), Vector3(0, 0.7, -8.2)), 0.1, 0.06, 3.0, 5, 0.8)
 	# stern cabin
@@ -901,7 +932,9 @@ func _build_psx_model() -> void:
 	ship_model.add_child(wheel)
 	# stern lantern
 	mb.add_box(glass, Transform3D(Basis(), Vector3(0, 2.25, 6.4)), Vector3(0.25, 0.32, 0.25), 1.0, Color.WHITE, false)
-	ship_model.add_child(mb.to_instance("PSXModel"))
+	_psx_model = mb.to_instance("PSXModel")
+	ship_model.add_child(_psx_model)
+	_build_armour(rings)
 	# banking chest at the bank zone
 	var chest := MeshInstance3D.new()
 	chest.name = "BankChest"
@@ -919,6 +952,80 @@ func _build_psx_model() -> void:
 		lad.position = Vector3(sgn * 3.0, DECK_Y, 0.6)
 		lad.rotation.y = sgn * PI * 0.5
 		ship_model.add_child(lad)
+
+
+## Iron straps down her sides and a rubbing band along them (the armour refit).
+func _build_armour(rings: Array) -> void:
+	var iron := PSXMat.lit("metal", Color(0.55, 0.55, 0.6))
+	var mb := MeshBuilder.new()
+	for z in [-5.0, -3.0, -1.0, 1.0, 3.0, 5.2]:
+		var r := _ring_at(rings, z)
+		var top := Vector2(float(r[1]), float(r[3]))
+		var low := top.lerp(Vector2(float(r[2]), float(r[4])), 0.55)
+		var along := top - low
+		for sgn in [-1.0, 1.0]:
+			var mid := (top + low) * 0.5
+			var b := Basis(Vector3.BACK, -sgn * asin(along.x / along.length()))
+			mb.add_box(iron, Transform3D(b, Vector3(sgn * (mid.x + 0.04), mid.y, z)), Vector3(0.07, along.length(), 0.22), 1.0)
+	for i in range(rings.size() - 2):
+		var a: Array = rings[i]
+		var c: Array = rings[i + 1]
+		for sgn in [-1.0, 1.0]:
+			var p0 := Vector3(sgn * (float(a[1]) - 0.05), float(a[3]) - 0.35, float(a[0]))
+			var p1 := Vector3(sgn * (float(c[1]) - 0.05), float(c[3]) - 0.35, float(c[0]))
+			mb.add_box(iron, Transform3D(Basis.looking_at((p1 - p0).normalized(), Vector3.UP), (p0 + p1) * 0.5), Vector3(0.08, 0.12, p0.distance_to(p1) + 0.05), 1.0)
+	_armour_node = mb.to_instance("Armour")
+	_armour_node.visible = false
+	ship_model.add_child(_armour_node)
+
+
+## The hull's cross-section at `z` ([z, top half-width, bottom half-width, top y, bottom y]).
+func _ring_at(rings: Array, z: float) -> Array:
+	for i in range(rings.size() - 1):
+		var a: Array = rings[i]
+		var b: Array = rings[i + 1]
+		if z <= float(a[0]) and z >= float(b[0]):
+			var k := (float(a[0]) - z) / (float(a[0]) - float(b[0]))
+			var out: Array = [z]
+			for j in range(1, 5):
+				out.append(lerpf(float(a[j]), float(b[j]), k))
+			return out
+	return rings[0]
+
+
+## Put the shipwright's work on her (every screen: the host's kit in co-op).
+func apply_kit(k: Dictionary) -> void:
+	kit = ShipKit.merged(k)
+	var was := max_hull
+	max_hull = MAX_HULL * (1.4 if kit["armour"] else 1.0)
+	hull = clampf(hull + maxf(max_hull - was, 0.0), 0.0, max_hull)
+	_top_k = 1.15 if kit["sails"] else 1.0
+	_turn_k = 1.3 if kit["rudder"] else 1.0
+	if kit["guns"] and cannons.size() < GUN_SPOTS.size() * 2:
+		_add_gun_pair(2)
+	_armour_node.visible = kit["armour"]
+	_rig.scale = Vector3(1.18, 1.12, 1.0) if kit["sails"] else Vector3.ONE
+	var paint := (_hull_mat as ShaderMaterial).duplicate() as ShaderMaterial
+	paint.set_shader_parameter("albedo_color", ShipKit.HULL_PAINT[int(kit["hull"])][1])
+	for i in range(_psx_model.mesh.get_surface_count()):
+		if _psx_model.mesh.surface_get_material(i) == _hull_mat:
+			_psx_model.set_surface_override_material(i, paint)
+	var sails := (_canvas_mat as ShaderMaterial).duplicate() as ShaderMaterial
+	sails.set_shader_parameter("albedo_color", ShipKit.SAILS[int(kit["sail"])][1])
+	_sail_node.material_override = sails
+	_furl_node.material_override = sails
+	var flag := ShaderMaterial.new()
+	flag.shader = PSXMat.LIT_SHADER
+	flag.set_shader_parameter("albedo_tex", ImageTexture.create_from_image(ShipKit.flag_image(kit)))
+	flag.set_shader_parameter("albedo_color", Color.WHITE)
+	flag.set_shader_parameter("affine_amount", 0.6)
+	flag.set_shader_parameter("use_vertex_color", true)
+	_flag_node.material_override = flag
+	for c in _figure_node.get_children():
+		c.free()
+	var fig := ShipKit.figurehead(int(kit["figure"]))
+	if fig:
+		_figure_node.add_child(fig)
 
 
 ## The rig: the yard on the mast (it swings round to trim to the wind), the

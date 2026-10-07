@@ -187,6 +187,12 @@ func _run(name_: String, args: Array, from: int):
 			return n._ship().hull
 		"breaches":
 			return n._ship().breaches.size()
+		"refit":
+			var k: Dictionary = get_node("/root/GameManager").ship_kit.duplicate()
+			k["guns"] = true
+			k["figure"] = 2
+			n.set_ship_kit(k)
+			return true
 		"boss_aoe":
 			var b = get_tree().get_first_node_in_group("bosses")
 			b._aoe(args[0], 3.0, 10.0, false)

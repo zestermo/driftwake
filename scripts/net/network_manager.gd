@@ -1019,6 +1019,19 @@ func _all_rammed(ship_key: String, at: Vector3, push: Vector3) -> void:
 		p.knock_down(push * 6.0 + Vector3.UP * 3.0)
 
 
+## The shipwright's work on the ship (the host orders it; it's the host's ship).
+func set_ship_kit(kit: Dictionary) -> void:
+	everyone("_all_ship_kit", [kit])
+
+
+func _all_ship_kit(kit: Dictionary) -> void:
+	var ship := _ship()
+	if ship:
+		ship.apply_kit(kit)
+	if not is_client():
+		get_node("/root/GameManager").ship_kit = kit.duplicate()
+
+
 ## A cannonball stopped in flight (cut, deflected or set off) on someone's screen.
 func _all_ball(ball_id: String, what: String, at: Vector3, vel: Vector3, by_id: int) -> void:
 	Cannonball.net_act(ball_id, what, at, vel, by_id)
@@ -1576,7 +1589,8 @@ func _world_state() -> Dictionary:
 	var ship := _ship()
 	return {"ents": ents, "spawners": spawners, "burned": gm.burned.keys() if gm else [], "ship_owner": ship_owner,
 		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
-		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state()}
+		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state(),
+		"kit": gm.ship_kit.duplicate() if gm else {}}
 
 
 func _weather_state() -> Array:
@@ -1600,6 +1614,8 @@ func _apply_world_sync(state: Dictionary) -> void:
 	if wn and wst.size() >= 3:
 		wn.net_apply(int(wst[0]), float(wst[1]), float(wst[2]))
 	var ship := _ship()
+	if ship and state.has("kit"):
+		ship.apply_kit(state["kit"])
 	if ship and ship.has_method("net_hull") and state.has("hull"):
 		ship.net_hull(float(state["hull"]))
 	var gm := get_node_or_null("/root/GameManager")

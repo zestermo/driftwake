@@ -20,6 +20,10 @@ var _load: SaveSlotList
 # sea chart (M)
 const SEA_CHART := preload("res://scripts/ui/sea_chart.gd")
 var _chart: Control
+# the shipwright's yard (talk to Tackett)
+const YARD := preload("res://scripts/ui/shipwright_screen.gd")
+var _yard: Control
+var _yard_next: bool = false
 
 # options widgets that need refreshing
 var _opt_refreshers: Array[Callable] = []
@@ -51,6 +55,15 @@ func _ready() -> void:
 	_screens["skills"] = _skills
 	_chart = SEA_CHART.new()
 	_screens["chart"] = _chart
+	_yard = YARD.new(self)
+	_screens["yard"] = _yard
+	# (the yard opens once the shipwright has finished talking)
+	var dlg := get_node("/root/Dialogue")
+	dlg.dialogue_event.connect(func(ev: String): _yard_next = _yard_next or ev == "shipwright")
+	dlg.dialogue_ended.connect(func(_id: String):
+		if _yard_next:
+			_yard_next = false
+			open.call_deferred("yard"))
 	_load = SaveSlotList.new()
 	_load.chosen.connect(_load_slot)
 	_load.cancelled.connect(func(): open("pause"))
@@ -166,6 +179,8 @@ func open(screen: String) -> void:
 		_skills.on_open()
 	elif screen == "chart":
 		_chart.on_open()
+	elif screen == "yard":
+		_yard.on_open()
 	elif screen == "load":
 		_load.open("load", true)
 	else:
@@ -174,13 +189,15 @@ func open(screen: String) -> void:
 
 ## Shrink the open panel if it wouldn't fit (small or odd-shaped windows).
 func _fit_current() -> void:
-	if _current in ["pause", "options", "controls", "load"]:
+	if _current in ["pause", "options", "controls", "load", "yard"]:
 		UIStyle.fit_to_screen(_screens[_current] as Control)
 
 
 func close() -> void:
 	if _current == "inventory":
 		_inventory.on_close()
+	elif _current == "yard" and not Net.is_client():
+		SaveGame.save(_player())
 	_current = ""
 	_root.visible = false
 	Net.set_paused(false)
