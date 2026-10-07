@@ -104,6 +104,14 @@ func set_world_time(t: float) -> void:
 	world_offset = t - _session()
 
 
+## Where the wind blows toward (unit, x/z), swinging slowly round through the
+## day (from world time: the same on every screen). Its strength is `wind`.
+func wind_dir() -> Vector2:
+	var t := world_time()
+	var a := 0.29 + 1.2 * sin(t / 950.0) + 0.45 * sin(t / 331.0 + 1.3)
+	return Vector2(cos(a), sin(a))
+
+
 ## 0..24
 func hour() -> float:
 	return fposmod(START_HOUR + world_time() / DAY_LEN * 24.0, 24.0)
@@ -419,7 +427,7 @@ func _update_env() -> void:
 		RenderingServer.global_shader_parameter_set("fog_range", Vector2(begin, end))
 	# cloud shadows (shaders/world/cloud_shadow.gdshaderinc): the global the
 	# terrain and ocean read
-	var wd := Vector2(1.0, 0.3).normalized() * (3.0 + wind * 9.0)
+	var wd := wind_dir() * (3.0 + wind * 9.0)
 	_shadow_drift += wd * get_process_delta_time()
 	var strength := 0.4 * (1.0 - night) * (1.0 - storm * 0.6) * (1.0 - in_cloud)
 	cloud_shadow = Vector4(clampf(coverage * 0.75, 0.0, 0.85), strength if _env else 0.0, _shadow_drift.x, _shadow_drift.y)
@@ -517,7 +525,8 @@ func _update_rain(delta: float) -> void:
 		var hit := cam.get_world_3d().direct_space_state.intersect_ray(q)
 		_shelter = 1.0 if not hit.is_empty() else 0.0
 	var amt := rain * (1.0 - _shelter * 0.9) * (1.0 - in_cloud)
-	var wv := Vector3(1.0, 0, 0.3).normalized() * wind * 4.0
+	var wd2 := wind_dir()
+	var wv := Vector3(wd2.x, 0, wd2.y) * wind * 4.0
 	_rain.global_position = cam.global_position + Vector3(0, 14.0, 0) - wv * 0.4 + (-cam.global_basis.z) * 6.0
 	(_rain.process_material as ParticleProcessMaterial).gravity = Vector3(wv.x, -6.0, wv.z)
 	_rain.amount_ratio = clampf(amt, 0.0, 1.0)

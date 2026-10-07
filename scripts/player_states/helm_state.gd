@@ -39,7 +39,7 @@ func enter(_data: Dictionary) -> void:
 		var ship_cam := ship_camera.get_node("SpringArm3D/Camera3D") as Camera3D
 		if ship_cam:
 			ship_cam.current = true
-	player.call("_toast", "W/S: set sails   A/D: rudder   Left click: broadside   F: leave the wheel")
+	player.call("_toast", "W/S: sails   A/D: rudder   Space: anchor   Left click: broadside   F: leave")
 
 
 ## Stand at the wheel, facing the bow.

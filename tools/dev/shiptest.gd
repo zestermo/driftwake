@@ -15,6 +15,11 @@ func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
 	if not cond: fails += 1
+## The heading that puts the wind `rel` radians off the bow (0 = running before it, PI = head to wind).
+func heading_for(rel: float) -> float:
+	var wd: Vector2 = root.get_node("Weather").wind_dir()
+	var f := wd.rotated(-rel)
+	return atan2(-f.x, -f.y)
 func act(a: String) -> void:
 	var e := InputEventAction.new(); e.action = a; e.pressed = true; Input.parse_input_event(e)
 	var e2 := InputEventAction.new(); e2.action = a; e2.pressed = false; Input.parse_input_event(e2)
@@ -43,6 +48,20 @@ func _process(d: float) -> bool:
 			var deck_y: float = ship.global_position.y + 0.32
 			check("deck sits ~1.2 m above sea", deck_y > 0.6 and deck_y < 1.8)
 			check("moored with the sail furled on the yard", ship.sail == 0.0 and ship._furl_node.visible and not ship._sail_node.visible)
+			set_meta("dock", ship.global_position)
+			# (no pirates: this is about sailing)
+			for s in get_nodes_in_group("enemy_ships"):
+				s.queue_free()
+			# out to open water, the wind on the beam
+			var wg = root.get_node("World/Islands")
+			var sc: Vector2 = wg.starter_center
+			for k in range(32):
+				var a := k * TAU / 32.0
+				var c := sc + Vector2(cos(a), sin(a)) * 380.0
+				if wg._deep_enough(c, 120.0):
+					set_meta("sea", Vector3(c.x, 0, c.y))
+					break
+			ship.place(get_meta("sea"), heading_for(PI * 0.5))
 			# board at the helm
 			p.current_ship = ship
 			p.state_machine.force_state("Helm", {})
@@ -117,8 +136,9 @@ func _process(d: float) -> bool:
 			p.state_machine.force_state("Helm", {})
 			var isl = root.get_node("World/Islands/Brinehollow")
 			var c: Vector3 = isl.global_position
-			var to: Vector3 = c - ship.global_position
-			ship.place(ship.global_position, atan2(-to.x, -to.z))
+			var dock: Vector3 = get_meta("dock")
+			var to: Vector3 = c - dock
+			ship.place(dock, atan2(-to.x, -to.z))
 			ship.sail = 1.0
 			t0 = t
 			step += 1
@@ -130,8 +150,43 @@ func _process(d: float) -> bool:
 				var ground: float = isl.height_at(lp.x, lp.z)
 				print("   stopped after ", snappedf(t - t0, 0.1), " s, ground under hull ", snappedf(ground, 0.1), " speed ", snappedf(ship.speed, 0.1))
 				check("runs aground instead of sailing through the island", ground < 3.0 and ship.speed < 2.0)
-				print("RESULT ", "OK" if fails == 0 else "%d FAILED" % fails)
-				return true
+				# --- the wind: head to wind, full sail, she won't go
+				ship.place(get_meta("sea"), heading_for(PI))
+				ship.sail = 1.0
+				p.state_machine.force_state("Helm", {})
+				wait = 6.0
+				step = 12
 			return false
+		12:
+			print("   head to wind: %.1f m/s, sail belly %.2f, wind effect %.2f" % [ship.speed, ship._sail_node.scale.z, ship.wind_effect()])
+			check("head to wind she's in irons: barely moves", ship.speed < 2.5 and ship.wind_effect() < 0.2)
+			check("...the sail flaps instead of drawing", ship._sail_node.scale.z < 0.65)
+			ship.place(get_meta("sea"), heading_for(PI * 0.5))
+			ship.sail = 1.0
+			wait = 7.0
+			step = 13
+			return false
+		13:
+			print("   beam reach: %.1f m/s, yard braced %.2f rad, effect %.2f, sail %.2f/%.2f, anchored %s, hull %.0f, at %s" % [ship.speed, ship._brace, ship.wind_effect(), ship.sail, ship.sail_shown, ship.anchored, ship.hull, ship.global_position])
+			check("wind on the beam she flies (a reach)", ship.speed > 9.0)
+			check("...the yard braced round to the wind", absf(ship._brace) > 0.5)
+			check("the sailing gauge shows at the helm", get_first_node_in_group("hud")._sail_gauge.visible)
+			# --- the anchor: Space at the wheel
+			act("jump")
+			wait = 6.0
+			step = 14
+			return false
+		14:
+			print("   anchored: %s, %.2f m/s, anchor %.2f m down" % [ship.anchored, ship.speed, -ship._anchor.position.y + ship.ANCHOR_AT.y])
+			check("Space lets go the anchor: she stops under full sail", ship.anchored and absf(ship.speed) < 0.6)
+			check("...the anchor's gone down on its cable", ship._anchor.position.y < ship.ANCHOR_AT.y - 3.0)
+			act("jump")
+			wait = 3.0
+			step = 15
+			return false
+		15:
+			check("Space again weighs it: under way", not ship.anchored and ship.speed > 2.0)
+			print("RESULT ", "OK" if fails == 0 else "%d FAILED" % fails)
+			return true
 	step += 1
 	return false

@@ -51,7 +51,14 @@ func _process(d: float) -> bool:
 		3:
 			if e < 1.2: return false
 			cam.current = false
+			var hud = root.get_tree().get_first_node_in_group("hud")
+			if hud: hud.visible = true
+			phase = 31; t0 = t
+		31:
+			if e < 0.15: return false
 			shot("helmcam")
+			var hud = root.get_tree().get_first_node_in_group("hud")
+			if hud: hud.visible = false
 			cam.current = true
 			phase = 4; t0 = t
 		4:

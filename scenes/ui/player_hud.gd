@@ -417,6 +417,8 @@ var _boss_shown: float = 0.0
 var _hull_box: HBoxContainer
 var _hull_bar: ProgressBar
 var _hull_label: Label
+const SAIL_GAUGE := preload("res://scripts/ui/sail_gauge.gd")
+var _sail_gauge: Control
 
 
 func _build_bars() -> void:
@@ -467,6 +469,15 @@ func _build_bars() -> void:
 	_hull_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_hull_bar.max_value = 1.0
 	_hull_box.add_child(_hull_bar)
+	_sail_gauge = SAIL_GAUGE.new()
+	_sail_gauge.name = "SailGauge"
+	_sail_gauge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_sail_gauge.offset_left = -76
+	_sail_gauge.offset_top = -150
+	_sail_gauge.offset_right = -12
+	_sail_gauge.offset_bottom = -76
+	_sail_gauge.visible = false
+	add_child(_sail_gauge)
 
 
 ## The boss's name and health across the top (phase marks on the bar).
@@ -499,6 +510,8 @@ func _update_hull() -> void:
 		return
 	var mx: float = Ship.MAX_HULL
 	var aboard := player.context != Player.Context.ON_FOOT or player.global_position.distance_to(ship.global_position) < 9.0
+	_sail_gauge.ship = ship
+	_sail_gauge.visible = (player.context == Player.Context.HELM or (ship as Ship).aboard(player.global_position)) and not _menu_open and not _in_dialogue
 	_hull_box.visible = aboard and not _menu_open and not _in_dialogue and (hull < mx - 0.5 or player.context != Player.Context.ON_FOOT)
 	if _hull_box.visible:
 		_hull_bar.value = hull / mx

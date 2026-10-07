@@ -42,7 +42,7 @@ const SAIL_RATE := 0.5
 ## how far off it may be before it just jumps there.
 const FIX_RATE := 2.5
 const FIX_SNAP := 6.0
-const PACK_SIZE := 14
+const PACK_SIZE := 15
 
 var is_player_steering: bool = false
 ## Current forward speed (m/s, negative = backing) and smoothed rudder (-1..1).
@@ -56,6 +56,16 @@ var _turn_in: float = 0.0
 var _back_in: bool = false
 var _sail_node: Node3D
 var _furl_node: Node3D
+var _rig: Node3D
+var _brace: float = 0.0
+var _flap_t: float = 0.0
+## Riding to her anchor: she stops and stays, sails or no sails.
+var anchored: bool = false
+var _anchor: Node3D
+var _cable: Node3D
+var _anchor_drop: float = 0.0
+## The anchor hangs from the cathead here (ship-model space), off the bow.
+const ANCHOR_AT := Vector3(1.35, 0.95, -6.2)
 ## How the hull moved over the last tick (Player._ride_ship carries jumpers by it).
 var _deck_delta := Transform3D.IDENTITY
 ## Camera yaw offset from the heading while at the helm (mouse look).
@@ -147,6 +157,7 @@ func _physics_process(delta: float) -> void:
 			sail = float(s[11])
 			_turn_in = float(s[12])
 			_back_in = bool(s[13])
+			set_anchored(bool(s[14]))
 		else:
 			snap = []
 	else:
@@ -158,15 +169,19 @@ func _physics_process(delta: float) -> void:
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
 	var top := MAX_SPEED * (CRIPPLED_SPEED if crippled else 1.0)
-	var want := top * sail_shown
-	if _back_in:
+	var want := top * sail_shown * wind_effect()
+	if anchored:
+		# brought up short by the cable, and swinging to it no more
+		speed = move_toward(speed, 0.0, 3.0 * delta)
+		_yaw_rate = move_toward(_yaw_rate, 0.0, 0.5 * delta)
+	elif _back_in:
 		speed = move_toward(speed, -MAX_REVERSE, BRAKE * delta)
 	elif speed < want:
 		speed = move_toward(speed, want, ACCEL * delta)
 	else:
 		speed = move_toward(speed, want, (0.35 + 0.012 * speed * speed) * delta)
 	rudder = move_toward(rudder, _turn_in, 2.2 * delta)
-	var flow := clampf(absf(speed) / 4.0, 0.3, 1.0)
+	var flow := clampf(absf(speed) / 4.0, 0.3, 1.0) * (0.0 if anchored else 1.0)
 	var target_rate := -rudder * MAX_TURN * flow * (-1.0 if speed < -0.3 else 1.0)
 	_yaw_rate = move_toward(_yaw_rate, target_rate, 1.1 * delta)
 	heading += _yaw_rate * delta
@@ -263,6 +278,9 @@ func _read_helm() -> void:
 		var names := ["Sails furled", "A third of sail", "Two thirds of sail", "Full sail"]
 		get_tree().call_group("hud", "show_toast", names[int(roundf(sail * SAIL_STEPS))])
 		FX.sfx("whoosh", global_position + Vector3.UP * 7.0, -8.0, 0.08, 0.6)
+	if Input.is_action_just_pressed("jump"):
+		set_anchored(not anchored)
+		get_tree().call_group("hud", "show_toast", "Let go the anchor!" if anchored else "Anchor's aweigh")
 	# furled and nearly stopped: hold S to back her
 	_back_in = Input.is_action_pressed("move_back") and sail <= 0.0 and speed < 1.5
 
@@ -436,7 +454,8 @@ func _wave(p: Vector3, t: float) -> float:
 ## but not its pitch/roll/heave jitter, so steering stays steady.
 func _process(delta: float) -> void:
 	_hull_tick(delta)
-	_show_sail()
+	_show_sail(delta)
+	_show_anchor(delta)
 	var xf := get_global_transform_interpolated()
 	var heading := xf.basis.get_euler().y
 	_cam_heading = lerp_angle(_cam_heading, heading, minf(4.0 * delta, 1.0))
@@ -573,8 +592,8 @@ func _build_psx_model() -> void:
 			mb.add_box(trim, Transform3D(Basis(), Vector3(sgn * 2.8, 0.5, z)), Vector3(0.12, 0.4, 0.12), 1.0)
 	# mast, yard, sail, flag
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, 0.3, -1.2)), 0.2, 0.13, 11.0, 6, 0.8)
-	mb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(3.0, 9.2, -1.2)), 0.08, 0.08, 6.0, 5, 0.8)
-	_build_sail(canvas)
+	_build_rig(canvas, wood)
+	_build_anchor(wood)
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 11.0, -0.75)), 0.9, 0.5, Rect2(0, 0, 0.5, 0.5))
 	mb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 11.0, -0.75)), 0.9, 0.5, Rect2(0, 0, 0.5, 0.5))
 	# bowsprit
@@ -617,9 +636,18 @@ func _build_psx_model() -> void:
 		ship_model.add_child(lad)
 
 
-## The sail hangs from the yard (its own node, origin on the yard, so it
-## rolls up by scaling toward it) and the furled canvas bundled on the yard.
-func _build_sail(canvas: Material) -> void:
+## The rig: the yard on the mast (it swings round to trim to the wind), the
+## sail hanging from it (its own node, origin on the yard, so it rolls up by
+## scaling toward it and fills or flaps), and the furled canvas on the yard.
+func _build_rig(canvas: Material, wood: Material) -> void:
+	var pivot := Vector3(0, 9.2, -1.2)
+	_rig = Node3D.new()
+	_rig.name = "Rig"
+	_rig.position = pivot
+	ship_model.add_child(_rig)
+	var ymb := MeshBuilder.new()
+	ymb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(3.0, 0, 0)), 0.08, 0.08, 6.0, 5, 0.8)
+	_rig.add_child(ymb.to_instance("Yard"))
 	var top := Vector3(0, 9.1, -1.05)
 	var smb := MeshBuilder.new()
 	var n := Vector3(0, 0, 1)
@@ -631,24 +659,103 @@ func _build_sail(canvas: Material) -> void:
 	smb.add_quad(canvas, c[0], c[3], c[2], c[1], Vector2(0, 0), Vector2(0, 1.0), Vector2(2.0, 1.0), Vector2(2.0, 0), dim, -n)
 	smb.add_quad(canvas, c[3], c[5], c[4], c[2], Vector2(0, 1.0), Vector2(0, 2.0), Vector2(2.0, 2.0), Vector2(2.0, 1.0), dim, -n)
 	_sail_node = smb.to_instance("Sail")
-	_sail_node.position = top
-	ship_model.add_child(_sail_node)
+	_sail_node.position = top - pivot
+	_rig.add_child(_sail_node)
 	var fmb := MeshBuilder.new()
 	fmb.add_cylinder(canvas, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(2.7, 0, 0)), 0.2, 0.2, 5.4, 6, 0.8)
 	_furl_node = fmb.to_instance("FurledSail")
-	_furl_node.position = top + Vector3(0, -0.12, 0.05)
-	ship_model.add_child(_furl_node)
-	_show_sail()
+	_furl_node.position = top + Vector3(0, -0.12, 0.05) - pivot
+	_rig.add_child(_furl_node)
+	_show_sail(0.0)
 
 
-## Canvas let down as far as sail_shown: the rest is bundled on the yard.
-func _show_sail() -> void:
+## Canvas let down as far as sail_shown (the rest bundled on the yard); the
+## yard braced round to the wind; a drawing sail bellies out, one that can't
+## (in irons, nearly no wind) flaps.
+func _show_sail(delta: float) -> void:
 	var k := clampf(sail_shown, 0.0, 1.0)
-	_sail_node.scale = Vector3(1.0, lerpf(0.03, 1.0, k), 1.0)
+	var rel := _wind_rel()
+	_brace = lerp_angle(_brace, clampf(rel * 0.5, -0.8, 0.8), clampf(1.5 * delta, 0.0, 1.0))
+	_rig.rotation.y = _brace
+	var eff := wind_effect()
+	var belly := lerpf(0.35, 1.25, clampf((eff - 0.15) / 0.85, 0.0, 1.0))
+	if eff < 0.3 and k > 0.05:
+		_flap_t += delta
+		belly = 0.3 + 0.25 * sin(_flap_t * 17.0) * sin(_flap_t * 5.3)
+	_sail_node.scale = Vector3(1.0, lerpf(0.03, 1.0, k), belly)
 	_sail_node.visible = k > 0.01
 	var r := lerpf(1.0, 0.35, k)
 	_furl_node.scale = Vector3(1.0, r, r)
 	_furl_node.visible = k < 0.98
+
+
+# --------------------------------------------------------------------------
+# Wind
+# --------------------------------------------------------------------------
+## Where the wind blows, relative to the bow (radians, -PI..PI; 0 = from
+## dead astern, running before it).
+func _wind_rel() -> float:
+	var wx := get_node_or_null("/root/Weather")
+	var wd: Vector2 = wx.wind_dir() if wx else Vector2(1, 0)
+	var fwd := Vector2(-sin(_heading), -cos(_heading))
+	return fwd.angle_to(wd)
+
+
+## How well the sails draw on this heading (x wind strength): a reach (wind
+## on the beam) best, running before it a little less, close-hauled slow,
+## head to wind barely at all (in irons: bear away or tack).
+func wind_effect() -> float:
+	var a := rad_to_deg(absf(_wind_rel()))
+	var pts := [[0.0, 0.85], [60.0, 1.0], [100.0, 1.0], [135.0, 0.6], [158.0, 0.12], [180.0, 0.08]]
+	var eff := 0.08
+	for i in range(pts.size() - 1):
+		if a <= float(pts[i + 1][0]):
+			var t := (a - float(pts[i][0])) / (float(pts[i + 1][0]) - float(pts[i][0]))
+			eff = lerpf(float(pts[i][1]), float(pts[i + 1][1]), t)
+			break
+	var wx := get_node_or_null("/root/Weather")
+	var w: float = float(wx.get("wind")) if wx else 0.3
+	return eff * lerpf(0.85, 1.25, clampf(w, 0.0, 1.0))
+
+
+# --------------------------------------------------------------------------
+# Anchor
+# --------------------------------------------------------------------------
+## An anchor at the bow on its cable: catted up under way, let go to hold
+## the ship where she is.
+func _build_anchor(wood: Material) -> void:
+	var iron := PSXMat.lit("metal", Color(0.22, 0.21, 0.2))
+	var amb := MeshBuilder.new()
+	amb.add_box(iron, Transform3D(Basis(), Vector3(0, -0.45, 0)), Vector3(0.09, 0.9, 0.09), 1.0)
+	amb.add_box(wood, Transform3D(Basis(), Vector3(0, -0.05, 0)), Vector3(0.7, 0.09, 0.09), 1.0)
+	amb.add_box(iron, Transform3D(Basis(Vector3.BACK, 0.9), Vector3(0.2, -0.82, 0)), Vector3(0.08, 0.42, 0.08), 1.0)
+	amb.add_box(iron, Transform3D(Basis(Vector3.BACK, -0.9), Vector3(-0.2, -0.82, 0)), Vector3(0.08, 0.42, 0.08), 1.0)
+	_anchor = amb.to_instance("Anchor")
+	_anchor.position = ANCHOR_AT
+	ship_model.add_child(_anchor)
+	var cmb := MeshBuilder.new()
+	cmb.add_box(PSXMat.lit("canvas", Color(0.7, 0.58, 0.38)), Transform3D(Basis(), Vector3(0, -0.5, 0)), Vector3(0.05, 1.0, 0.05), 1.0)
+	_cable = cmb.to_instance("Cable")
+	_cable.position = ANCHOR_AT
+	ship_model.add_child(_cable)
+	_show_anchor(0.0)
+
+
+## Let go / weigh (the helmsman's Space, or the host's copy following them).
+func set_anchored(on: bool) -> void:
+	if anchored == on:
+		return
+	anchored = on
+	FX.sfx("rope", global_transform * ANCHOR_AT, -2.0, 0.05, 0.7 if on else 0.9)
+	if on:
+		FX.splash(global_transform * (ANCHOR_AT + Vector3(0, -2.0, 0)), 8, 1.0)
+
+
+func _show_anchor(delta: float) -> void:
+	_anchor_drop = move_toward(_anchor_drop, 1.0 if anchored else 0.0, delta * 0.8)
+	var depth := lerpf(0.0, 4.5, _anchor_drop)
+	_anchor.position = ANCHOR_AT + Vector3(0, -depth, 0)
+	_cable.scale = Vector3(1, maxf(depth, 0.05), 1)
 
 
 # ==========================================================================
@@ -660,7 +767,7 @@ func _helm_locked() -> bool:
 
 
 func net_pack() -> Array:
-	return [_pos, _heading, _y, _pitch, _roll, speed, rudder, _yaw_rate, _vy, _vpitch, _vroll, sail, _turn_in, _back_in]
+	return [_pos, _heading, _y, _pitch, _roll, speed, rudder, _yaw_rate, _vy, _vpitch, _vroll, sail, _turn_in, _back_in, anchored]
 
 
 ## We now steer. Our copy has been following the helmsman all along, so it
