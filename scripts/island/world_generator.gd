@@ -15,6 +15,7 @@ extends Node3D
 const _terrain_shader = preload("res://scenes/island/terrain.gdshader")
 const _island_script = preload("res://scripts/island/island.gd")
 const _nav_baker = preload("res://scripts/world/nav_baker.gd")
+const _sea_features = preload("res://scripts/world/sea_features.gd")
 
 var heightmap: Array = []
 var island_positions: Array[Vector3] = []  # (x, peak_height, z)
@@ -134,6 +135,10 @@ func _generate_world() -> void:
 			dock_area.interacted.connect(_on_dock_interacted)
 
 	_build_redtide()
+	var features := _sea_features.new()
+	features.name = "SeaFeatures"
+	features.gen = self
+	add_child(features)
 	if not Net.is_client():
 		var baker := _nav_baker.new()
 		baker.name = "NavBaker"

@@ -40,6 +40,14 @@ var ocean_material: ShaderMaterial
 ## for the game and the shader alike.
 var amp_mult: float = 1.0
 var _amp_sent: float = -1.0
+## Storm cells at sea (SeaFeatures, from world time): Vector4(x, z, radius,
+## extra swell). The swell grows toward a cell's middle - here and in the shader.
+var storm_cells: Array = []
+const MAX_CELLS := 2
+## Whirlpools (SeaFeatures): Vector4(x, z, radius, funnel depth). The sea
+## sinks into a funnel toward each eye - here and in the shader.
+var whirls: Array = []
+const MAX_WHIRLS := 2
 
 
 ## The sea mesh: 1 m cells near the camera so the surface you see is the
@@ -206,7 +214,27 @@ func get_wave_height(world_pos: Vector3, time: float = -1.0) -> float:
 	h *= env
 	if h > CREST_KNEE:
 		h = CREST_KNEE + (h - CREST_KNEE) / (1.0 + (h - CREST_KNEE) / CREST_ROOM)
-	return h * amp_mult
+	return h * amp_mult * local_swell(x, z) + funnel(x, z)
+
+
+## How far a whirlpool's funnel has dragged the sea down at (x, z) (<= 0).
+func funnel(x: float, z: float) -> float:
+	var f := 0.0
+	for w in whirls:
+		var wv: Vector4 = w
+		var k := 1.0 - smoothstep(0.0, wv.z, Vector2(x - wv.x, z - wv.y).length())
+		f -= wv.w * k * k
+	return f
+
+
+## The extra swell under storm cells at (x, z) (1 = none). Same as the shader's.
+func local_swell(x: float, z: float) -> float:
+	var a := 1.0
+	for c in storm_cells:
+		var cv: Vector4 = c
+		var d := Vector2(x - cv.x, z - cv.y).length()
+		a += cv.w * (1.0 - smoothstep(cv.z * 0.35, cv.z, d))
+	return a
 
 
 func get_wave_normal(world_pos: Vector3, time: float = -1.0) -> Vector3:
@@ -227,6 +255,14 @@ func _process(_delta: float) -> void:
 	if ocean_material:
 		var time := clock()
 		ocean_material.set_shader_parameter("time_val", time)
+		var cells := PackedVector4Array()
+		for i in range(MAX_CELLS):
+			cells.append(storm_cells[i] if i < storm_cells.size() else Vector4(0, 0, 0, 0))
+		ocean_material.set_shader_parameter("storm_cells", cells)
+		var wh := PackedVector4Array()
+		for i in range(MAX_WHIRLS):
+			wh.append(whirls[i] if i < whirls.size() else Vector4(0, 0, 0, 0))
+		ocean_material.set_shader_parameter("whirls", wh)
 		if absf(amp_mult - _amp_sent) > 0.0005:
 			_amp_sent = amp_mult
 			_send_waves()

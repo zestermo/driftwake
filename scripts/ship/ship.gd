@@ -209,6 +209,10 @@ func _physics_process(delta: float) -> void:
 				speed *= lerpf(1.0, -0.15, head_on)
 				_yaw_rate *= 0.5
 	pos += motion
+	# a whirlpool drags her round and in (the same on every screen)
+	var sf := get_tree().get_first_node_in_group("sea_features")
+	if sf:
+		pos += sf.current_at(pos) * delta
 	if not snap.is_empty():
 		var fixed := _follow_helmsman(snap, pos, heading, delta)
 		pos = fixed[0]
@@ -478,6 +482,7 @@ var _burn_me_t: float = 0.0
 var _work_key: String = ""
 var _work_t: float = 0.0
 var _bail_t: float = 0.0
+var _scrape_t: float = 0.0
 
 
 ## Which way she lists as she floods: toward her holes (-1 port .. 1 starboard).
@@ -533,8 +538,27 @@ func do_work(kind: String, id: int, amount: float) -> void:
 	_send_damage()
 
 
-## Host, every tick: water coming in, fires burning and spreading.
+## Host, every tick: water coming in, fires burning and spreading, a reef
+## under her keel, a whirlpool's eye grinding her.
 func _damage_tick(delta: float) -> void:
+	var sf := get_tree().get_first_node_in_group("sea_features")
+	if sf:
+		var on_reef: bool = sf.reef_at(global_position) and absf(speed) > 1.5
+		var in_eye: bool = sf.in_eye(global_position)
+		if on_reef or in_eye:
+			hull = maxf(hull - (absf(speed) * 1.4 if on_reef else 6.0) * delta, 1.0)
+			_since_hit = 0.0
+			_send_hull(false)
+			if on_reef:
+				speed = move_toward(speed, 0.0, 2.5 * delta)
+			_scrape_t -= delta
+			if _scrape_t <= 0.0:
+				_scrape_t = 1.2
+				Net.fx("sfx", ["wood_crack", global_position, 2.0, 0.08, 0.6])
+				Net.fx("dust", [global_position + Vector3(0, 0.2, 0), 12, 1.2])
+				CombatManager.apply_camera_shake(0.18)
+				if breaches.size() < MAX_BREACHES and _dmg_rng.randf() < 0.4:
+					add_breach(-1.0 if _dmg_rng.randf() < 0.5 else 1.0, _dmg_rng.randf_range(-4.5, 4.0))
 	if not breaches.is_empty():
 		flood = minf(flood + breaches.size() * FLOOD_RATE * delta, 1.0)
 		if flood >= 1.0 and not crippled:

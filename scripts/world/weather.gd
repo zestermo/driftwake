@@ -282,6 +282,16 @@ func _process(delta: float) -> void:
 	wind = p[3]
 	waves = p[4]
 	fog = p[5]
+	# out at sea: inside a storm cell or a fog bank (SeaFeatures)
+	var sf := get_tree().get_first_node_in_group("sea_features")
+	var cam := get_viewport().get_camera_3d()
+	if sf and cam:
+		var lw: Vector2 = sf.local_weather(cam.global_position)
+		storm = maxf(storm, lw.x)
+		rain = maxf(rain, lw.x)
+		coverage = maxf(coverage, lw.x * 0.9)
+		wind = maxf(wind, lw.x * 0.85)
+		fog = maxf(fog, lw.y)
 	state = current_state()
 	if state != _prev_state:
 		_prev_state = state

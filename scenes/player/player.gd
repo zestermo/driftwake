@@ -844,6 +844,11 @@ func _physics_process(delta: float) -> void:
 	elif body_model.kneeling:
 		body_model.kneeling = false
 	_ride_ship()
+	# swimming in a whirlpool: dragged round and in with the water
+	if current_state_name() == "Swim":
+		var sf := get_tree().get_first_node_in_group("sea_features")
+		if sf:
+			global_position += sf.current_at(global_position) * delta * 0.7
 	var on_floor := is_on_floor()
 	if on_floor:
 		_coyote = coyote_time

@@ -49,19 +49,20 @@ func _process(d: float) -> bool:
 			check("deck sits ~1.2 m above sea", deck_y > 0.6 and deck_y < 1.8)
 			check("moored with the sail furled on the yard", ship.sail == 0.0 and ship._furl_node.visible and not ship._sail_node.visible)
 			set_meta("dock", ship.global_position)
-			# (no pirates: this is about sailing)
-			for s in get_nodes_in_group("enemy_ships"):
-				s.queue_free()
-			# out to open water, the wind on the beam
+			# out to open water (clear of land, reefs and whirlpools), the wind on the beam
+			var es0 = get_nodes_in_group("enemy_ships")[0]
 			var wg = root.get_node("World/Islands")
 			var sc: Vector2 = wg.starter_center
 			for k in range(32):
 				var a := k * TAU / 32.0
 				var c := sc + Vector2(cos(a), sin(a)) * 380.0
-				if wg._deep_enough(c, 120.0):
+				if wg._deep_enough(c, 120.0) and es0.huntable_at(Vector3(c.x, 0, c.y)):
 					set_meta("sea", Vector3(c.x, 0, c.y))
 					break
 			ship.place(get_meta("sea"), heading_for(PI * 0.5))
+			# (no pirates: this is about sailing)
+			for s in get_nodes_in_group("enemy_ships"):
+				s.queue_free()
 			# board at the helm
 			p.current_ship = ship
 			p.state_machine.force_state("Helm", {})

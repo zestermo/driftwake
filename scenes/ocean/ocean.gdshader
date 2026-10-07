@@ -18,6 +18,44 @@ uniform vec2 water_scroll = vec2(0.02, 0.012);
 uniform vec4 waves[6];
 uniform vec2 wave_amp_phase[6];
 uniform float amp_mult = 1.0;
+// Storm cells at sea (OceanManager.storm_cells): x, z, radius, extra swell.
+uniform vec4 storm_cells[2];
+// Whirlpools (OceanManager.whirls): x, z, radius, funnel depth.
+uniform vec4 whirls[2];
+
+// The funnel a whirlpool drags the sea down into (same as OceanManager.funnel).
+float funnel(vec2 p) {
+	float f = 0.0;
+	for (int i = 0; i < 2; i++) {
+		vec4 w = whirls[i];
+		float k = 1.0 - smoothstep(0.0, max(w.z, 0.001), distance(p, w.xy));
+		f -= w.w * k * k;
+	}
+	return f;
+}
+
+// Foam spiralling in toward the eye (0..1), and how near the eye (0..1).
+vec2 whirl_foam(vec2 p, float t) {
+	float foam = 0.0;
+	float eye = 0.0;
+	for (int i = 0; i < 2; i++) {
+		vec4 w = whirls[i];
+		if (w.z <= 0.0) {
+			continue;
+		}
+		vec2 d = p - w.xy;
+		float r = length(d) / w.z;
+		if (r >= 1.0) {
+			continue;
+		}
+		float a = atan(d.y, d.x);
+		float s = sin(a * 3.0 + log(max(r, 0.02)) * 9.0 + t * 2.4);
+		float k = 1.0 - smoothstep(0.45, 1.0, r);
+		foam = max(foam, smoothstep(0.35, 0.95, s) * k);
+		eye = max(eye, 1.0 - smoothstep(0.0, 0.22, r));
+	}
+	return vec2(foam, eye);
+}
 uniform float wave_total = 1.38;
 uniform vec2 crest = vec2(2.0, 0.75);
 uniform vec4 env_dirs = vec4(0.019, 0.011, -0.008, 0.016);
@@ -58,7 +96,12 @@ float wave_h(vec2 p, float t, float cell) {
 		float e = h - crest_cap.x;
 		h = crest_cap.x + e / (1.0 + e / crest_cap.y);
 	}
-	return h * amp_mult;
+	float swell = 1.0;
+	for (int i = 0; i < 2; i++) {
+		vec4 c = storm_cells[i];
+		swell += c.w * (1.0 - smoothstep(c.z * 0.35, max(c.z, 0.001), distance(p, c.xy)));
+	}
+	return h * amp_mult * swell;
 }
 
 void vertex() {
@@ -68,12 +111,13 @@ void vertex() {
 	float cell = d <= near_half ? 1.0 : 1.25 + growth * (d - near_half);
 
 	float h = wave_h(world_pos.xz, time_val, cell);
-	VERTEX.y += h;
+	float fu = funnel(world_pos.xz);
+	VERTEX.y += h + fu;
 	wave_height_val = h;
 
 	float eps = 0.25;
-	float dx = (wave_h(world_pos.xz + vec2(eps, 0.0), time_val, cell) - h) / eps;
-	float dz = (wave_h(world_pos.xz + vec2(0.0, eps), time_val, cell) - h) / eps;
+	float dx = (wave_h(world_pos.xz + vec2(eps, 0.0), time_val, cell) + funnel(world_pos.xz + vec2(eps, 0.0)) - h - fu) / eps;
+	float dz = (wave_h(world_pos.xz + vec2(0.0, eps), time_val, cell) + funnel(world_pos.xz + vec2(0.0, eps)) - h - fu) / eps;
 	NORMAL = normalize(vec3(-dx, 1.0, -dz));
 
 	vec4 clip = PROJECTION_MATRIX * (MODELVIEW_MATRIX * vec4(VERTEX, 1.0));
@@ -96,6 +140,9 @@ void fragment() {
 
 	float foam_factor = smoothstep(foam_threshold, foam_threshold + 0.3, wave_height_val / max(wave_total, 0.01));
 	base_color = mix(base_color, foam_color.rgb, foam_factor * 0.35);
+	vec2 wf = whirl_foam(wuv, time_val);
+	base_color = mix(base_color, foam_color.rgb, wf.x * 0.55);
+	base_color = mix(base_color, deep_color.rgb * 0.35, wf.y);
 
 	// long-range haze: by how close to the horizon you look (the sky's own
 	// haze mirrored below it), only near the end of the scene fog: any nearer and

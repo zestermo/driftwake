@@ -420,6 +420,88 @@ func _process(d: float) -> bool:
 			step = 28
 		28:
 			check("awash, she founders: crippled", ship.crippled)
+			ship.breaches.clear()
+			ship.flood = 0.0
+			ship.hull = 400.0
+			ship.crippled = false
+			ship._send_damage()
+			# --- out on the open sea: reefs, fog, whirlpools, storm cells
+			var sf = get_first_node_in_group("sea_features")
+			print("   sea features: %d reefs, %d fog banks, %d whirlpools, %d storm cells" % [sf.reefs.size(), sf.fogs.size(), sf.whirls.size(), sf.storms.size()])
+			check("the sea has reefs, fog banks, whirlpools and storm cells", sf.reefs.size() >= 2 and sf.fogs.size() >= 2 and sf.whirls.size() >= 1 and sf.storms.size() == 2)
+			# run her onto a reef's shoals at speed
+			var rf: Array = sf.reefs[0]
+			var rc := Vector3(rf[0].x, 0, rf[0].y)
+			var from := rc + Vector3(float(rf[1]) + 6.0, 0, 0)
+			ship.place(from, atan2(-(rc - from).x, -(rc - from).z))
+			ship.speed = 10.0
+			p.global_position = ship.global_transform * Vector3(0, 0.8, 1.0)
+			p.reset_physics_interpolation()
+			wait = 3.0
+			step = 29
+		29:
+			print("   on the reef: hull %.0f, speed %.1f, holes %d" % [ship.hull, ship.speed, ship.breaches.size()])
+			check("a reef grinds her hull and slows her", ship.hull < 395.0 and ship.speed < 8.0)
+			ship.breaches.clear()
+			ship.hull = 400.0
+			ship._send_damage()
+			# adrift by a whirlpool
+			var sf = get_first_node_in_group("sea_features")
+			var w: Array = sf.whirls[0]
+			var wc := Vector3(w[0].x, 0, w[0].y)
+			var start := wc + Vector3(float(w[1]) * 0.7, 0, 0)
+			ship.place(start, 0.0)
+			ship.sail = 0.0
+			p.state_machine.force_state("Idle", {})
+			p.global_position = ship.global_transform * Vector3(0, 0.8, 1.0)
+			p.reset_physics_interpolation()
+			set_meta("wstart", start)
+			set_meta("wc", wc)
+			wait = 4.0
+			step = 30
+		30:
+			var wc: Vector3 = get_meta("wc")
+			var st: Vector3 = get_meta("wstart")
+			var now: Vector3 = ship.global_position * Vector3(1, 0, 1)
+			var d0 := st.distance_to(wc)
+			var d1 := now.distance_to(wc)
+			var turned := Vector2(st.x - wc.x, st.z - wc.z).angle_to(Vector2(now.x - wc.x, now.z - wc.z))
+			print("   whirlpool: %.1f -> %.1f m from the eye, carried %.2f rad round" % [d0, d1, turned])
+			check("a whirlpool drags her round and in", d1 < d0 - 2.0 and absf(turned) > 0.15)
+			# a storm cell's middle: the swell and the weather
+			var sf = get_first_node_in_group("sea_features")
+			var sc: Vector2 = sf.storm_at(0)
+			print("   swell in the middle of a storm cell x%.2f, out of it x%.2f" % [root.get_node("Ocean").local_swell(sc.x, sc.y), root.get_node("Ocean").local_swell(sc.x + 400.0, sc.y)])
+			check("a storm cell's swell is bigger", root.get_node("Ocean").local_swell(sc.x, sc.y) > 1.9 and is_equal_approx(root.get_node("Ocean").local_swell(sc.x + 400.0, sc.y + 400.0), 1.0))
+			ship.place(Vector3(sc.x, 0, sc.y), 0.0)
+			wait = 0.2
+			step = 301
+		301:
+			# (a moved hull reports its new place after the next physics step)
+			p.state_machine.force_state("Idle", {})
+			p.global_position = ship.global_transform * Vector3(0, 0.8, 1.0)
+			p.reset_physics_interpolation()
+			wait = 1.0
+			step = 31
+		31:
+			var wx = root.get_node("Weather")
+			print("   in the storm cell: storm %.2f rain %.2f" % [wx.storm, wx.rain])
+			check("...and the weather closes in under it", wx.storm > 0.8 and wx.rain > 0.8)
+			var sf = get_first_node_in_group("sea_features")
+			var fb: Array = sf.fogs[0]
+			ship.place(Vector3(fb[0].x, 0, fb[0].y), 0.0)
+			wait = 0.2
+			step = 311
+		311:
+			p.state_machine.force_state("Idle", {})
+			p.global_position = ship.global_transform * Vector3(0, 0.8, 1.0)
+			p.reset_physics_interpolation()
+			wait = 1.0
+			step = 32
+		32:
+			var wx = root.get_node("Weather")
+			print("   in a fog bank: fog %.2f" % wx.fog)
+			check("inside a fog bank the fog closes in", wx.fog > 0.8)
 			finish()
 	return false
 func get_root_halves() -> Array:
