@@ -53,6 +53,11 @@ func _process(d: float) -> bool:
 			["nest", Vector3(-2.2, HB.NEST_Y + 2.2, HB.MAST_Z + 3.0), Vector3(0, HB.NEST_Y - 3.0, -8.0), Vector3(0.4, HB.NEST_Y + 0.1, HB.MAST_Z + 0.4)],
 			["rigging", Vector3(-9.0, 7.0, -6.0), Vector3(3.0, 8.0, -1.8), Vector3(0, 0.5, -4)],
 			["with_enemy", Vector3(-30, 12, 22), Vector3(6, 3, -2), Vector3(0, 0.5, -4)],
+			["bow_deck", Vector3(0.3, 2.6, -4.5), Vector3(0, 1.0, -12.6), Vector3(-1.5, 0.5, -3)],
+			["stairs", Vector3(-0.8, 2.2, -1.8), Vector3(3.3, 1.2, 3.6), Vector3(-1.5, 0.5, -3)],
+			["climb_ladder", Vector3(7.0, 0.6, -0.4), Vector3(4.4, -0.2, -2.9), Vector3(0, 0.5, -4), "ladder"],
+			["climb_rig", Vector3(9.0, 6.5, 2.6), Vector3(3.4, 4.6, -1.8), Vector3(0, 0.5, -4), "rig"],
+			["climb_armed", Vector3(9.0, 6.5, -6.0), Vector3(3.4, 4.6, -1.8), Vector3(0, 0.5, -4), "rig_armed"],
 		]
 		return false
 	if i < 0 or t - t0 > 1.3:
@@ -74,6 +79,23 @@ func _process(d: float) -> bool:
 			es._heading = ship.global_rotation.y
 			es.speed = 0.0
 			es.set_physics_process(false)
+		if s.size() > 4:
+			# hanging on part way up (the climb state placed at s metres)
+			var cs = p.state_machine.states["climb"]
+			if s[4] == "ladder":
+				var lad = ship.ship_model.get_node("LadderStarboard")
+				p.state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
+				p.global_position = lad.global_transform * Vector3(0, -2.6, 0.6)
+				p.start_climb({"kind": "ladder", "ladder": lad})
+				cs.keys.clear()
+				cs.s = 1.6
+			else:
+				if s[4] == "rig_armed":
+					p.equip_weapon(load("res://resources/items/cutlass.tres"), false)
+					p.draw_weapon(true)
+				p.start_climb({"kind": "rig", "rig": ship.ship_model.get_node("RiggingS"), "up": true})
+				cs.keys.clear()
+				cs.s = 4.5
 		cam.global_position = L(s[1])
 		cam.look_at(L(s[2]), Vector3.UP)
 		t0 = t

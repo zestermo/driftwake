@@ -78,7 +78,7 @@ func _physics_process(delta: float) -> void:
 
 func _prompt() -> String:
 	if persistent:
-		return "Press F to open the %s" % label.to_lower()
+		return "Open the %s" % label.to_lower()
 	if is_recovery_bag:
 		return "Recover your belongings"
 	if save_id != "" or floating:

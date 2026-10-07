@@ -1,7 +1,7 @@
 class_name Ladder
 extends Node3D
 ## Rope ladder hanging down a ship's side or a dock: swim up to it and press
-## F or Space to climb out.
+## F or Space to grab on, or F at its head on deck to climb down (ClimbState).
 ## Local frame: the origin is where you step off at the top (deck / dock
 ## surface, at the edge), the ladder hangs down along -Y, +Z faces the water
 ## (where the climber is) and -Z points onto the deck.
@@ -24,7 +24,8 @@ func _ready() -> void:
 	interactable.collision_layer = 512
 	interactable.collision_mask = 0
 	interactable.usable_in_water = true
-	interactable.prompt_text = "Press F to climb"
+	interactable.prompt_text = "Climb the ladder"
+	interactable.reach_test = func(feet: Vector3) -> bool: return in_reach(feet) or at_head(feet)
 	var cs := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = Vector3(1.6, length + 1.0, 1.6)
@@ -57,9 +58,15 @@ func _build_mesh() -> void:
 ## Close enough (in front of the rungs) to grab on?
 func in_reach(p: Vector3) -> bool:
 	var l := to_local(p)
-	return absf(l.x) < 0.9 and l.z > -0.2 and l.z < 1.5 and l.y < rail + 0.3 and l.y > -length - 2.2
+	return absf(l.x) < 0.9 and l.z > -0.2 and l.z < 1.5 and l.y < rail - 0.6 and l.y > -length - 2.2
+
+
+## On deck (or the dock) right at its head, inside the rail?
+func at_head(p: Vector3) -> bool:
+	var l := to_local(p)
+	return absf(l.x) < 0.7 and l.z < 0.05 and l.z > -1.0 and absf(l.y) < 0.5
 
 
 func _on_use(player: Player) -> void:
-	if player.is_swimming():
+	if player.is_swimming() or (player.is_free() and player.is_on_floor() and at_head(player.global_position)):
 		player.start_climb({"kind": "ladder", "ladder": self})

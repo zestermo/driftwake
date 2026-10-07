@@ -192,7 +192,7 @@ static func _add_dock(island: Node3D, local_shore_pos: Vector3, outward: Vector3
 	dock_area.collision_layer = 512
 	dock_area.collision_mask = 0
 	dock_area.set_script(_interactable_script)
-	dock_area.set("prompt_text", "Press F to board ship")
+	dock_area.set("prompt_text", "Board ship")
 	dock_area.position = dock_center + outward * 18.0
 	dock_area.position.y = water_level + 2.0
 	island.add_child(dock_area)

@@ -127,7 +127,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -35)
 collision_layer = 512
 collision_mask = 0
 script = ExtResource("4")
-prompt_text = "Press F to board ship"
+prompt_text = "Board ship"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="DockingArea"]
 shape = SubResource("SphereShape3D_dock")

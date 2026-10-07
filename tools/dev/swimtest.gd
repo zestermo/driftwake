@@ -89,12 +89,15 @@ func _process(d: float) -> bool:
 			tap("jump")
 			wait = 0.2
 		8:
-			check("Space at the ladder -> Climb", st() == "Climb")
+			check("Space at the ladder -> Climb (grabs on)", st() == "Climb")
+			# hand over hand: W climbs
+			Input.action_press("move_forward")
 			t0 = t
 			step += 1
 			return false
 		9:
 			if st() != "Climb" or t - t0 > 6.0:
+				Input.action_release("move_forward")
 				var loc: Vector3 = ship.to_local(p.global_position)
 				print("   climbed in ", snappedf(t - t0, 0.01), " s, deck local ", loc)
 				check("climbed aboard (on deck)", st() == "Idle" and absf(loc.x) < HullBuilder.half_width(loc.z) - 0.4 and absf(loc.y - HullBuilder.DECK_Y) < 0.3)

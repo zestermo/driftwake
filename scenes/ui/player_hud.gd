@@ -36,6 +36,18 @@ func _ready() -> void:
 	banner.modulate.a = 0.0
 	toast.modulate.a = 0.0
 	interact_panel.visible = false
+	# held jobs ("Hold F: ...") show in the same panel, with their progress under the words
+	var ivb := VBoxContainer.new()
+	ivb.add_theme_constant_override("separation", 1)
+	ivb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	interact_panel.remove_child(interact_label)
+	ivb.add_child(interact_label)
+	interact_panel.add_child(ivb)
+	_hold_bar = _bar(Color(0.95, 0.8, 0.35))
+	_hold_bar.custom_minimum_size = Vector2(0, 3)
+	_hold_bar.max_value = 1.0
+	_hold_bar.visible = false
+	ivb.add_child(_hold_bar)
 	_chime = AudioStreamPlayer.new()
 	_chime.stream = load("res://assets/audio/discover_chime.wav")
 	_chime.volume_db = -6.0
@@ -163,15 +175,35 @@ func _on_health_changed(current: float, maximum: float) -> void:
 	health_label.text = "%d/%d" % [int(current), int(maximum)]
 
 
+var _interact_text: String = ""
+var _hold_text: String = ""
+var _hold_bar: ProgressBar
+
+
 func _on_prompt_changed(text: String) -> void:
-	interact_label.text = "[F] " + text
-	interact_panel.visible = true
-	interact_panel.reset_size()
-	interact_panel.position.x = (get_viewport().get_visible_rect().size.x - interact_panel.size.x) * 0.5
+	_interact_text = text
+	_show_interact()
 
 
 func _on_prompt_hidden() -> void:
-	interact_panel.visible = false
+	_interact_text = ""
+	_show_interact()
+
+
+## One prompt panel for both: "[F] Man the cannon", "[Hold F] Patch the hole".
+func _show_interact() -> void:
+	var text := ""
+	if _hold_text != "":
+		text = "[Hold F] " + _hold_text
+	elif _interact_text != "":
+		text = "[F] " + _interact_text
+	interact_panel.visible = text != ""
+	_hold_bar.visible = _hold_text != ""
+	if text == "" or text == interact_label.text:
+		return
+	interact_label.text = text
+	interact_panel.reset_size()
+	interact_panel.position.x = (get_viewport().get_visible_rect().size.x - interact_panel.size.x) * 0.5
 
 
 func _on_inventory_changed() -> void:
@@ -654,6 +686,17 @@ static func ping_color(ms: int) -> Color:
 func show_prompt(text: String, progress: float = -1.0) -> void:
 	if _prompt == null:
 		return
+	if text.begins_with("Hold F: "):
+		var job := text.trim_prefix("Hold F: ")
+		_hold_text = job.substr(0, 1).to_upper() + job.substr(1)
+		_hold_bar.value = maxf(progress, 0.0)
+		_prompt.visible = false
+		_prompt_bar.visible = false
+		_show_interact()
+		return
+	if _hold_text != "":
+		_hold_text = ""
+		_show_interact()
 	_prompt.text = text
 	_prompt.visible = text != ""
 	_prompt_bar.visible = text != "" and progress >= 0.0

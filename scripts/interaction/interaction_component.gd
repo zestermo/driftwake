@@ -47,20 +47,27 @@ func _physics_process(_delta: float) -> void:
 		return
 
 	var best: Interactable = null
-	var best_dist := 999.0
+	var best_score := 999.0
 	# a ship's deck job in reach (patch, douse, pump, capstan) takes F: those
 	# are held, read straight off the key, and a cannon or ladder close by
-	# would otherwise grab every press
+	# would otherwise grab every press. On a ladder or the rigging F lets go.
 	var ship := get_tree().get_first_node_in_group("ship")
-	var busy: bool = ship != null and str(ship.get("local_job")) != ""
+	var busy: bool = (ship != null and str(ship.get("local_job")) != "") or player.current_state_name() == "Climb"
+	var fwd := -player.player_model.global_basis.z
 	for inter in ([] if busy else nearby_interactables):
 		if not is_instance_valid(inter) or not inter.enabled or inter.is_queued_for_deletion():
 			continue
-		if (player.is_swimming() or player.current_state_name() == "Climb") and not inter.usable_in_water:
+		if player.is_swimming() and not inter.usable_in_water:
 			continue
-		var dist := player.global_position.distance_to(inter.global_position)
-		if dist < best_dist:
-			best_dist = dist
+		if not inter.in_reach(player.global_position):
+			continue
+		# the nearest, and of two about as near, the one you're facing
+		var to: Vector3 = (inter as Interactable).global_position - player.global_position
+		var flat := Vector3(to.x, 0.0, to.z)
+		var facing := fwd.dot(flat.normalized()) if flat.length() > 0.05 else 1.0
+		var score: float = to.length() + (1.0 - facing) * 0.4
+		if score < best_score:
+			best_score = score
 			best = inter
 
 	if best != current_interactable or (best == null and _shown):

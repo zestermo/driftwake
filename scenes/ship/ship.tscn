@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scripts/interaction/interactable.gd" id="3"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_helm_zone"]
-radius = 1.5
+radius = 1.0
 
 [node name="Ship" type="AnimatableBody3D" groups=["ship"]]
 collision_layer = 1
@@ -25,7 +25,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 7.4)
 collision_layer = 512
 collision_mask = 0
 script = ExtResource("3")
-prompt_text = "Press F to steer"
+prompt_text = "Steer the ship"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="HelmZone"]
 shape = SubResource("SphereShape3D_helm_zone")

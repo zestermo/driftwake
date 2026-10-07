@@ -23,10 +23,11 @@ func _ready() -> void:
 	interactable.name = "Grab"
 	interactable.collision_layer = 512
 	interactable.collision_mask = 0
-	interactable.prompt_text = "Press F to grab the rope"
+	interactable.prompt_text = "Grab the rope"
+	interactable.reach = 0.75
 	var cs := CollisionShape3D.new()
 	var sp := SphereShape3D.new()
-	sp.radius = 1.1
+	sp.radius = 0.75
 	cs.shape = sp
 	interactable.add_child(cs)
 	# (down at the deck, where a captain standing under the rope's end is)

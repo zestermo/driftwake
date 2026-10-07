@@ -133,6 +133,9 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 
 **At the helm:** W/S set the sail, A/D steer, left click fires a broadside, and F leaves the wheel.
 
+**Climbing ladders and rigging:** F grabs on, W/S climb, Space jumps off, and F lets go. With a
+one-handed blade, Z draws it and left click chops while you hang on.
+
 ## Version history
 
 ### v1.5: The Open Sea (October 7, 2026)

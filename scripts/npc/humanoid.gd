@@ -105,6 +105,8 @@ var _ik_drop: float = 0.0
 var _ik_body: RID
 var _ik_body_found: bool = false
 var climb_phase: float = 0.0
+## Climbing one-handed ("l": the left hand holds on, the right has the weapon).
+var climb_hold: String = ""
 var _swim_phase: float = 0.0
 var _swim_move: float = 0.0
 var seat_y: float = 0.47
@@ -1173,6 +1175,14 @@ func _action_pose(n: String, u: float) -> Array:
 			var down := {"arm_r": Vector3(0.5, 0, 0.1), "fore_r": Vector3(-0.1, 0, 0), "arm_l": Vector3(0.7, 0, -0.1), "fore_l": Vector3(0.3, 0, 0), "torso": Vector3(-0.65, 0, 0), "head": Vector3(-0.3, 0, 0)}
 			lift.y = -0.18 * _ease(u * 2.0)
 			return [_keys(u, [[0.0, GUARD], [0.22, up.merged(legs3), "out"], [0.3, up.merged(legs3)], [0.48, down.merged(legs3), "out"], [0.65, down.merged(legs3)], [1.0, GUARD]]), "full", lift]
+		"climb_chop":
+			# hanging on one-handed: the blade raised over the head, then chopped
+			# down in front (the holding arm and the legs stay on the climb)
+			var raise := {"arm_r": Vector3(2.85, 0.0, 0.3), "fore_r": Vector3(1.1, 0, 0), "hand_r": Vector3(0.4, 0, 0),
+				"torso": Vector3(0.2, 0.35, 0.1), "head": Vector3(0.15, -0.2, 0)}
+			var chop := {"arm_r": Vector3(0.75, -0.15, 0.15), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.1, 0, 0),
+				"torso": Vector3(-0.35, 0.15, 0.05), "head": Vector3(0.25, -0.1, 0)}
+			return [_keys(u, [[0.0, {}], [0.3, raise, "out"], [0.38, raise], [0.55, chop, "out"], [0.75, chop], [1.0, {}]]), "upper", lift]
 		"heavy":
 			# windup 0..0.375, slam 0.375..0.625, recovery ..1 (matches 0.3/0.2/0.3 s)
 			# crouch + raise, hop up, crash down into a deep lunge
@@ -2287,20 +2297,33 @@ func _locomotion(delta: float) -> Dictionary:
 		_swim_pose(p, delta)
 		lift = Vector3.ZERO
 	elif climbing:
+		# hands on the rungs in front, about head height, hand over hand
 		var ph := climb_phase * TAU / 0.68
 		var cs := sin(ph)
 		p["pivot"] = Vector3.ZERO
 		p["hips"] = Vector3(0, 0, cs * 0.04)
-		p["torso"] = Vector3(-0.12, cs * 0.1, 0)
-		p["head"] = Vector3(0.25, 0, 0)
-		p["arm_l"] = Vector3(2.55 + cs * 0.35, 0, -0.18)
-		p["arm_r"] = Vector3(2.55 - cs * 0.35, 0, 0.18)
-		p["fore_l"] = Vector3(0.7 - cs * 0.4, 0, 0)
-		p["fore_r"] = Vector3(0.7 + cs * 0.4, 0, 0)
-		p["leg_l"] = Vector3(0.75 - cs * 0.55, 0, -0.08)
-		p["leg_r"] = Vector3(0.75 + cs * 0.55, 0, 0.08)
-		p["shin_l"] = Vector3(-1.1 + cs * 0.5, 0, 0)
-		p["shin_r"] = Vector3(-1.1 - cs * 0.5, 0, 0)
+		p["torso"] = Vector3(-0.1, cs * 0.08, 0)
+		p["head"] = Vector3(0.1, 0, 0)
+		p["arm_l"] = Vector3(1.85 + cs * 0.3, 0, -0.1)
+		p["arm_r"] = Vector3(1.85 - cs * 0.3, 0, 0.1)
+		p["fore_l"] = Vector3(0.95 - cs * 0.35, 0, 0)
+		p["fore_r"] = Vector3(0.95 + cs * 0.35, 0, 0)
+		p["leg_l"] = Vector3(0.75 - cs * 0.5, 0, -0.08)
+		p["leg_r"] = Vector3(0.75 + cs * 0.5, 0, 0.08)
+		p["shin_l"] = Vector3(-1.1 + cs * 0.45, 0, 0)
+		p["shin_r"] = Vector3(-1.1 - cs * 0.45, 0, 0)
+		if climb_hold == "l":
+			# one hand on (the left, the ladder at your left side), the right free:
+			# the blade held up and out, ready to cut
+			p["torso"] = Vector3(-0.05, 0.25, 0.08)
+			p["head"] = Vector3(0.05, -0.2, 0)
+			p["arm_l"] = Vector3(1.35 + cs * 0.12, 0, -1.25)
+			p["fore_l"] = Vector3(0.45, 0, 0)
+			p["arm_r"] = Vector3(0.85, 0.1, 0.35)
+			p["fore_r"] = Vector3(1.25, 0, 0)
+			p["hand_r"] = Vector3(0.35, 0, 0)
+			p["leg_l"] = Vector3(0.55 - cs * 0.25, 0, -0.12)
+			p["leg_r"] = Vector3(0.85 + cs * 0.25, 0, 0.12)
 		lift = Vector3.ZERO
 	if at_helm and grounded:
 		# wide sea-legs stance, leaning into the wheel; the hands work the

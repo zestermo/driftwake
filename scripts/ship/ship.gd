@@ -152,6 +152,7 @@ func _ready() -> void:
 	_game_manager = get_node("/root/GameManager")
 	apply_kit(_game_manager.ship_kit)
 	helm_zone.interacted.connect(_on_helm_interacted)
+	helm_zone.reach = 1.0
 	var arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
 	arm.add_excluded_object(get_rid())
 	# moved every rendered frame from the hull's interpolated transform
@@ -519,7 +520,7 @@ const BREACH_CHANCE := 0.55
 const FIRE_CHANCE := 0.35
 const PATCH_TIME := 2.2
 const DOUSE_TIME := 1.4
-const WORK_REACH := 1.6
+const WORK_REACH := 1.3
 const PUMP_AT := Vector3(1.2, DECK_Y, -0.3)
 ## Where holes and fires can be on the main deck (ship-local).
 const DECK_Z_MIN := -7.8
@@ -1139,10 +1140,13 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).mesh = Props.treasure_chest_mesh()
 	(storage.get_node("MeshInstance3D") as MeshInstance3D).position = Vector3.ZERO
 	storage.get_node("CollisionShape3D").queue_free()
-	(storage.get_node("Interactable/CollisionShape3D").shape as SphereShape3D).radius = 1.2
-	var bunk := _cabin_zone("Bunk", "Press F to rest in the bunk", BED_AT + Vector3(1.0, 0.6, 0.0))
+	var chest_cs := storage.get_node("Interactable/CollisionShape3D") as CollisionShape3D
+	chest_cs.shape = chest_cs.shape.duplicate()
+	(chest_cs.shape as SphereShape3D).radius = 1.1
+	storage.interactable.reach = 1.1
+	var bunk := _cabin_zone("Bunk", "Rest in the bunk", BED_AT + Vector3(0.85, 0.6, 0.0))
 	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
-	var galley := _cabin_zone("Galley", "Press F to restock provisions", COUNTER_AT + Vector3(-1.0, 0.6, 0.6))
+	var galley := _cabin_zone("Galley", "Restock provisions", COUNTER_AT + Vector3(-0.85, 0.6, 0.3))
 	galley.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").restock(p)))
 	var lamp := OmniLight3D.new()
 	lamp.name = "CabinLight"
@@ -1165,9 +1169,10 @@ func _cabin_zone(n: String, prompt: String, at: Vector3) -> Interactable:
 	z.collision_layer = 512
 	z.collision_mask = 0
 	z.prompt_text = prompt
+	z.reach = 0.9
 	var cs := CollisionShape3D.new()
 	var sp := SphereShape3D.new()
-	sp.radius = 1.1
+	sp.radius = 0.9
 	cs.shape = sp
 	z.add_child(cs)
 	z.position = at

@@ -46,11 +46,14 @@ const MAST_Z := -1.8
 const MAST_TOP := 16.8
 const YARD_Y := 13.8
 const NEST_Y := 15.0
-const NEST_R := 1.05
+## (room to walk round the mast: it's ~0.2 m thick up there)
+const NEST_R := 1.6
 ## Rigging: on each side the ratlines run from the rail (bottom) up to the
 ## nest's edge (top). +x side; the port side mirrors it.
 const RIG_BOTTOM := Vector3(3.75, DECK_Y + 0.85, MAST_Z)
-const RIG_TOP := Vector3(1.0, NEST_Y + 0.05, MAST_Z)
+const RIG_TOP := Vector3(1.5, NEST_Y + 0.05, MAST_Z)
+## The bulwark above the hull's top edge (rail height over the sheer).
+const LIP := 0.45
 ## Rope ladders down the hull from the water, amidships.
 const LADDER_Z := -2.9
 const LADDER_LEN := 3.0
@@ -93,41 +96,53 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true) -> void:
 	for i in range(RINGS.size() - 1):
 		var a: Array = RINGS[i]
 		var b: Array = RINGS[i + 1]
-		var a_tl := Vector3(-a[1], a[3], a[0]); var a_bl := Vector3(-a[2], a[4], a[0])
-		var a_tr := Vector3(a[1], a[3], a[0]); var a_br := Vector3(a[2], a[4], a[0])
-		var b_tl := Vector3(-b[1], b[3], b[0]); var b_bl := Vector3(-b[2], b[4], b[0])
-		var b_tr := Vector3(b[1], b[3], b[0]); var b_br := Vector3(b[2], b[4], b[0])
-		var L: float = absf(float(a[0]) - float(b[0])) * 0.5
-		var Ha: float = (float(a[3]) - float(a[4])) * 0.5
-		mb.add_quad(hull_m, a_tl, a_bl, b_bl, b_tl, Vector2(0, 0), Vector2(0, Ha), Vector2(L, Ha), Vector2(L, 0), Color.WHITE, Vector3(-1, -0.3, 0).normalized())
-		mb.add_quad(hull_m, a_tr, b_tr, b_br, a_br, Vector2(0, 0), Vector2(L, 0), Vector2(L, Ha), Vector2(0, Ha), Color.WHITE, Vector3(1, -0.3, 0).normalized())
-		mb.add_quad(hull_m, a_bl, a_br, b_br, b_bl, Vector2(0, 0), Vector2(1, 0), Vector2(1, L), Vector2(0, L), Color(0.7, 0.7, 0.7), Vector3.DOWN)
-		mb.add_quad(deck_m, Vector3(-a[1] + 0.1, DECK_Y, a[0]), Vector3(a[1] - 0.1, DECK_Y, a[0]), Vector3(b[1] - 0.1, DECK_Y, b[0]), Vector3(-b[1] + 0.1, DECK_Y, b[0]),
-			Vector2(0, 0), Vector2(a[1], 0), Vector2(b[1], L * 2.0), Vector2(0, L * 2.0), Color.WHITE, Vector3.UP)
+		# the outside runs on up past the deck to the rail (the stern castle has its own)
+		var lip := LIP if i > 0 else 0.0
+		var a_tl := Vector3(-a[1], a[3] + lip, a[0]); var a_bl := Vector3(-a[2], a[4], a[0])
+		var a_tr := Vector3(a[1], a[3] + lip, a[0]); var a_br := Vector3(a[2], a[4], a[0])
+		var b_tl := Vector3(-b[1], b[3] + lip, b[0]); var b_bl := Vector3(-b[2], b[4], b[0])
+		var b_tr := Vector3(b[1], b[3] + lip, b[0]); var b_br := Vector3(b[2], b[4], b[0])
+		mb.add_quad(hull_m, a_tl, a_bl, b_bl, b_tl, _side_uv(a_tl), _side_uv(a_bl), _side_uv(b_bl), _side_uv(b_tl), Color.WHITE, Vector3(-1, -0.3, 0).normalized())
+		mb.add_quad(hull_m, a_tr, b_tr, b_br, a_br, _side_uv(a_tr), _side_uv(b_tr), _side_uv(b_br), _side_uv(a_br), Color.WHITE, Vector3(1, -0.3, 0).normalized())
+		mb.add_quad(hull_m, a_bl, a_br, b_br, b_bl, _plank_uv(a_bl), _plank_uv(a_br), _plank_uv(b_br), _plank_uv(b_bl), Color(0.7, 0.7, 0.7), Vector3.DOWN)
+		_deck_quad(mb, deck_m, Vector3(-a[1] + 0.1, DECK_Y, a[0]), Vector3(a[1] - 0.1, DECK_Y, a[0]), Vector3(b[1] - 0.1, DECK_Y, b[0]), Vector3(-b[1] + 0.1, DECK_Y, b[0]), Color.WHITE, Vector3.UP)
 		if i == 0:
 			# the stern castle: the hull's sides carry on up to the quarterdeck
 			for sgn in [-1.0, 1.0]:
 				var p0 := Vector3(sgn * float(a[1]), float(a[3]), float(a[0]))
 				var p1 := Vector3(sgn * float(b[1]), float(b[3]), float(b[0]))
 				var up := Vector3(0, QD_Y + 0.1, 0)
-				mb.add_quad(hull_m, p0, p1, Vector3(p1.x, up.y, p1.z), Vector3(p0.x, up.y, p0.z),
-					Vector2(0, 0), Vector2(L, 0), Vector2(L, 1.2), Vector2(0, 1.2), Color.WHITE, Vector3(sgn, 0, 0))
+				var p2 := Vector3(p1.x, up.y, p1.z)
+				var p3 := Vector3(p0.x, up.y, p0.z)
+				mb.add_quad(hull_m, p0, p1, p2, p3, _side_uv(p0), _side_uv(p1), _side_uv(p2), _side_uv(p3), Color.WHITE, Vector3(sgn, 0, 0))
 			continue
 		# main deck rails (visual; the bulwarks are in collide())
 		for sgn in [-1.0, 1.0]:
-			var p0 := Vector3(sgn * float(a[1]), float(a[3]) + 0.45, float(a[0]))
-			var p1 := Vector3(sgn * float(b[1]), float(b[3]) + 0.45, float(b[0]))
+			var p0 := Vector3(sgn * float(a[1]), float(a[3]) + LIP, float(a[0]))
+			var p1 := Vector3(sgn * float(b[1]), float(b[3]) + LIP, float(b[0]))
 			var dir := p1 - p0
 			mb.add_box(trim, Transform3D(Basis.looking_at(dir.normalized(), Vector3.UP), (p0 + p1) * 0.5), Vector3(0.16, 0.14, dir.length() + 0.1), 1.0)
 			# solid bulwark planking under the rail
 			var q0 := Vector3(sgn * (float(a[1]) - 0.04), DECK_Y, float(a[0]))
 			var q1 := Vector3(sgn * (float(b[1]) - 0.04), DECK_Y, float(b[0]))
-			mb.add_quad(hull_m, q0, q1, q1 + Vector3(0, float(b[3]) + 0.4 - DECK_Y, 0), q0 + Vector3(0, float(a[3]) + 0.4 - DECK_Y, 0),
-				Vector2(0, 0), Vector2(L, 0), Vector2(L, 0.4), Vector2(0, 0.4), Color(0.8, 0.8, 0.8), Vector3(-sgn, 0, 0))
+			var q2 := q1 + Vector3(0, float(b[3]) + LIP - 0.05 - DECK_Y, 0)
+			var q3 := q0 + Vector3(0, float(a[3]) + LIP - 0.05 - DECK_Y, 0)
+			mb.add_quad(hull_m, q0, q1, q2, q3, _side_uv(q0), _side_uv(q1), _side_uv(q2), _side_uv(q3), Color(0.8, 0.8, 0.8), Vector3(-sgn, 0, 0))
 	# the transom, up to the quarterdeck rail
 	var st: Array = RINGS[0]
 	mb.add_quad(hull_m, Vector3(-st[1], QD_Y + 0.1, st[0]), Vector3(st[1], QD_Y + 0.1, st[0]), Vector3(st[2], st[4], st[0]), Vector3(-st[2], st[4], st[0]),
 		Vector2(0, 0), Vector2(4.0, 0), Vector2(3.0, 2.6), Vector2(1.0, 2.6), Color.WHITE, Vector3.BACK)
+	# the bow: the sides meet at a stem post (closed outside and in, the rail across)
+	var bw: Array = RINGS[RINGS.size() - 1]
+	var bz := float(bw[0])
+	var btop := float(bw[3]) + LIP
+	var f0 := Vector3(-bw[1], btop, bz); var f1 := Vector3(bw[1], btop, bz)
+	var f2 := Vector3(bw[2], bw[4], bz); var f3 := Vector3(-bw[2], bw[4], bz)
+	mb.add_quad(hull_m, f0, f1, f2, f3, Vector2(0, 0), Vector2(0.4, 0), Vector2(0.4, 1.4), Vector2(0, 1.4), Color.WHITE, Vector3.FORWARD)
+	mb.add_quad(hull_m, Vector3(-bw[1] + 0.04, DECK_Y, bz + 0.03), Vector3(bw[1] - 0.04, DECK_Y, bz + 0.03), Vector3(bw[1] - 0.04, btop - 0.05, bz + 0.03), Vector3(-bw[1] + 0.04, btop - 0.05, bz + 0.03),
+		Vector2(0, 0), Vector2(0.4, 0), Vector2(0.4, 0.5), Vector2(0, 0.5), Color(0.8, 0.8, 0.8), Vector3.BACK)
+	mb.add_box(trim, Transform3D(Basis(), Vector3(0, btop, bz - 0.02)), Vector3(float(bw[1]) * 2.0 + 0.2, 0.14, 0.2), 1.0)
+	mb.add_box(trim, Transform3D(Basis(), Vector3(0, (btop + 0.1 + float(bw[4])) * 0.5, bz - 0.08)), Vector3(0.26, btop + 0.1 - float(bw[4]), 0.16), 1.0)
 	for z in [-9.5, -6.0, -3.0, 0.0, 3.0]:
 		for sgn in [-1.0, 1.0]:
 			mb.add_box(trim, Transform3D(Basis(), Vector3(sgn * (half_width(z) - 0.02), DECK_Y + 0.3, z)), Vector3(0.14, 0.6, 0.14), 1.0)
@@ -139,7 +154,7 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true) -> void:
 		return
 	# the mast, the crow's nest at its head, and the rigging up to it
 	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, DECK_Y - 0.02, MAST_Z)), 0.3, 0.17, MAST_TOP - DECK_Y, 8, 0.8)
-	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, NEST_Y - 0.12, MAST_Z)), NEST_R, NEST_R, 0.14, 8, 1.0, Color.WHITE, true, true)
+	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, NEST_Y - 0.12, MAST_Z)), NEST_R, NEST_R, 0.14, 12, 1.0, Color.WHITE, true, true)
 	for k in nest_rail():
 		mb.add_box(trim, Transform3D(Basis(Vector3.UP, -float(k)), nest_rail_at(float(k))), Vector3(0.08, 0.9, NEST_R * 0.55), 1.0)
 	for sgn in [-1.0, 1.0]:
@@ -171,6 +186,20 @@ static func nest_rail() -> Array:
 
 static func nest_rail_at(a: float) -> Vector3:
 	return Vector3(cos(a) * (NEST_R - 0.05), NEST_Y + 0.45, MAST_Z + sin(a) * (NEST_R - 0.05))
+
+
+## Deck planking mapped by position: boards run fore and aft, 0.25 m wide.
+static func _plank_uv(p: Vector3) -> Vector2:
+	return Vector2(-p.z * 0.25, p.x * 0.5)
+
+
+## Side planking mapped by position: strakes run fore and aft, 0.25 m high.
+static func _side_uv(p: Vector3) -> Vector2:
+	return Vector2(p.z * 0.25, -p.y * 0.5)
+
+
+static func _deck_quad(mb: MeshBuilder, mat: Material, a: Vector3, b: Vector3, c: Vector3, d: Vector3, col: Color, n: Vector3) -> void:
+	mb.add_quad(mat, a, b, c, d, _plank_uv(a), _plank_uv(b), _plank_uv(c), _plank_uv(d), col, n)
 
 
 ## A rope (thin box) from a to b.
@@ -206,11 +235,8 @@ static func _quarterdeck(mb: MeshBuilder, m: Dictionary) -> void:
 	# the quarterdeck: its floor (hull-wide), a lip along its front edge, the ceiling under it
 	var hf := half_width(zf)
 	var hb := half_width(QD_BACK)
-	var L := QD_BACK - zf
-	mb.add_quad(deck_m, Vector3(-hf + 0.05, QD_Y, zf), Vector3(hf - 0.05, QD_Y, zf), Vector3(hb - 0.05, QD_Y, QD_BACK), Vector3(-hb + 0.05, QD_Y, QD_BACK),
-		Vector2(0, 0), Vector2(hf * 2.0, 0), Vector2(hb * 2.0, L), Vector2(0, L), Color.WHITE, Vector3.UP)
-	mb.add_quad(deck_m, Vector3(-CABIN_HW, QD_Y - 0.12, zf), Vector3(CABIN_HW, QD_Y - 0.12, zf), Vector3(CABIN_HW, QD_Y - 0.12, QD_BACK), Vector3(-CABIN_HW, QD_Y - 0.12, QD_BACK),
-		Vector2(0, 0), Vector2(CABIN_HW * 2.0, 0), Vector2(CABIN_HW * 2.0, L), Vector2(0, L), Color(0.6, 0.6, 0.6), Vector3.DOWN)
+	_deck_quad(mb, deck_m, Vector3(-hf + 0.05, QD_Y, zf), Vector3(hf - 0.05, QD_Y, zf), Vector3(hb - 0.05, QD_Y, QD_BACK), Vector3(-hb + 0.05, QD_Y, QD_BACK), Color.WHITE, Vector3.UP)
+	_deck_quad(mb, deck_m, Vector3(-CABIN_HW, QD_Y - 0.12, zf), Vector3(CABIN_HW, QD_Y - 0.12, zf), Vector3(CABIN_HW, QD_Y - 0.12, QD_BACK), Vector3(-CABIN_HW, QD_Y - 0.12, QD_BACK), Color(0.6, 0.6, 0.6), Vector3.DOWN)
 	mb.add_box(hull_m, Transform3D(Basis(), Vector3(0, QD_Y - 0.06, zf - 0.04)), Vector3(hf * 2.0, 0.16, 0.12), 1.0, Color.WHITE, false, false)
 	# beams under the ceiling
 	for z in [6.2, 7.6, 9.0]:
@@ -234,6 +260,7 @@ static func _quarterdeck(mb: MeshBuilder, m: Dictionary) -> void:
 
 ## Stairs up to the quarterdeck, port and starboard of the cabin door.
 static func _stairs(mb: MeshBuilder, m: Dictionary) -> void:
+	var hull_m: Material = m["hull"]
 	var deck_m: Material = m["deck"]
 	var trim: Material = m["trim"]
 	var run := QD_FRONT - STAIR_Z0
@@ -241,11 +268,28 @@ static func _stairs(mb: MeshBuilder, m: Dictionary) -> void:
 	var w := CABIN_HW - STAIR_X0
 	for sgn in [-1.0, 1.0]:
 		var cx: float = sgn * (STAIR_X0 + w * 0.5)
+		var x0: float = sgn * STAIR_X0
+		var x1: float = sgn * CABIN_HW
 		var tread := run / STAIR_STEPS
 		for i in range(STAIR_STEPS):
 			var z0 := STAIR_Z0 + tread * i
-			var h := rise * (i + 1) / STAIR_STEPS
-			mb.add_box(deck_m, Transform3D(Basis(), Vector3(cx, DECK_Y + h * 0.5, z0 + tread * 0.5)), Vector3(w, h, tread), 0.6)
+			var y0 := DECK_Y + rise * i / STAIR_STEPS
+			var y1 := DECK_Y + rise * (i + 1) / STAIR_STEPS
+			# a tread board (a little nosing over the riser) and the riser under it
+			mb.add_box(deck_m, Transform3D(Basis(), Vector3(cx, y1 - 0.04, z0 + tread * 0.5 - 0.03)), Vector3(w, 0.08, tread + 0.06), 0.5)
+			var r0 := Vector3(x0, y0, z0); var r1 := Vector3(x1, y0, z0)
+			var r2 := Vector3(x1, y1 - 0.08, z0); var r3 := Vector3(x0, y1 - 0.08, z0)
+			mb.add_quad(hull_m, r0, r1, r2, r3, Vector2(r0.x * 0.25, -r0.y * 0.5), Vector2(r1.x * 0.25, -r1.y * 0.5), Vector2(r2.x * 0.25, -r2.y * 0.5), Vector2(r3.x * 0.25, -r3.y * 0.5), Color(0.75, 0.75, 0.75), Vector3.FORWARD)
+			# the stringers' stepped edge either side
+			for x in [x0, x1]:
+				var o: float = signf(x - cx)
+				var s0 := Vector3(x, y0, z0); var s1 := Vector3(x, y1, z0); var s2 := Vector3(x, y1, z0 + tread)
+				mb.add_tri(hull_m, s0, s1, s2, Vector3(o, 0, 0), Vector3(o, 0, 0), Vector3(o, 0, 0), _side_uv(s0), _side_uv(s1), _side_uv(s2), Color(0.85, 0.85, 0.85), Vector3(o, 0, 0))
+		# the stringers: solid under the line of the steps
+		for x in [x0, x1]:
+			var o: float = signf(x - cx)
+			var s0 := Vector3(x, DECK_Y, STAIR_Z0); var s1 := Vector3(x, DECK_Y, QD_FRONT); var s2 := Vector3(x, QD_Y, QD_FRONT)
+			mb.add_tri(hull_m, s0, s1, s2, Vector3(o, 0, 0), Vector3(o, 0, 0), Vector3(o, 0, 0), _side_uv(s0), _side_uv(s1), _side_uv(s2), Color(0.85, 0.85, 0.85), Vector3(o, 0, 0))
 		# a hand rail up the inner side
 		var a := Vector3(sgn * (STAIR_X0 - 0.05), DECK_Y + 0.9, STAIR_Z0 + 0.2)
 		var b := Vector3(sgn * (STAIR_X0 - 0.05), QD_Y + 0.8, QD_FRONT)
@@ -434,6 +478,8 @@ static func collide(body: CollisionObject3D, rig: bool = true) -> void:
 		var b: Array = RINGS[i + 1]
 		for sgn in [-1.0, 1.0]:
 			_box(body, Vector3(sgn * (float(a[1]) - 0.05), DECK_Y + 0.4, float(a[0])), Vector3(sgn * (float(b[1]) - 0.05), DECK_Y + 0.4, float(b[0])), 0.18, 0.8)
+	var bw: Array = RINGS[RINGS.size() - 1]
+	_cbox(body, Vector3(0, DECK_Y + 0.4, float(bw[0])), Vector3(float(bw[1]) * 2.0 + 0.3, 0.8, 0.2))
 	var wall_h := QD_Y - DECK_Y
 	var wy := DECK_Y + wall_h * 0.5
 	var zf := QD_FRONT

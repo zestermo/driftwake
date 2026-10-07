@@ -59,10 +59,11 @@ func _ready() -> void:
 		interactable.name = "Seat"
 		interactable.collision_layer = 512
 		interactable.collision_mask = 0
-		interactable.prompt_text = "Press F to man the cannon"
+		interactable.prompt_text = "Man the cannon"
+		interactable.reach = 0.9
 		var cs := CollisionShape3D.new()
 		var sp := SphereShape3D.new()
-		sp.radius = 1.1
+		sp.radius = 0.9
 		cs.shape = sp
 		interactable.add_child(cs)
 		interactable.position = Vector3(0, 0.6, 0.9)

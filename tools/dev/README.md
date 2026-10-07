@@ -56,6 +56,7 @@ Many are one-off probes from earlier rounds; the ones used most recently are wea
 wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot_real.
 
 - `airshot`: (no description)
+- `animsheet`: Contact sheets of every Humanoid action at the length its caller plays it, 8 frames each (u 0 -> 0.98), three actions to a sheet; in place (no root motion). Add a CAT entry for a new action. Args: <out_prefix> [only: action names or stances, comma separated] [yaw_deg = 125; 90 = side]
 - `bigtest`: (no description)
 - `bugshot`: Scuttlebug shots. Args: <out_prefix> <mode: pose|fight|down|die>
 - `cannonshot`: Cannons on the sloop: overview, manning pose, gun camera with the arc, a shot in flight. Args: <out_prefix>
@@ -81,7 +82,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `gunshot_r`: Firearm / heavy glow shots. Args: <out_prefix>
 - `hairdist`: Hair at a distance (scalp poking through?). Args: <out_prefix>
 - `hairshots`: Close head shots of every hair style. Args: <out.png> <yaw_deg>
-- `heavyshots`: Strip of frames of an action with a weapon. Args: <out.png> <anim> <weapon> <dur> <yaw_deg>
+- `heavyshots`: Strip of frames of an action with a weapon. Args: <out.png> <anim> <weapon> <dur> <yaw_deg>. Superseded by animsheet: its frames show the pose a sample late and the skinned legs stale (boots come loose from the shins in lunges).
 - `heightshot`: The character creator at every Height option (what the player sees). Args: <out_prefix>
 - `helmshot`: Captain at the helm. Args: <out_prefix>
 - `hudshot`: (no description)
@@ -153,9 +154,9 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `perfbench`: Frame/process/physics/render CPU/GPU ms, draws, prims, worst frame at five fixed views (1920x1080, vsync off, sharper preset). `probe` / `probe:<view>` instead times every script's _process/_physics_process. Args: [label|probe] [WxH]
 - `hitchprobe`: Times one-off jobs that can stall a frame (autosave, camp and ship respawns cold vs prebuilt, a rig, weapon meshes, navmesh parses).
 - `buildprobe`: Body build time by stage (headless).
-- `riggingtest`: The bigger ship's decks: stairs to the quarterdeck, the helm up there, the cabin door, storage chest, respawn by the bunk, up and down the rigging to the crow's nest, a rope swing, a ladder up from the sea.
+- `riggingtest`: The bigger ship's decks: stairs to the quarterdeck, the helm up there, prompts only right next to things (wheel, cannon), the cabin door, storage chest, respawn by the bunk, climbing the rigging by hand (W up to the crow's nest, room round the mast, S down), jumping off, climbing armed with a chop, letting go, a rope swing, down a ladder from the deck into the sea and back up.
 - `looptest`: The gameplay loop: storing in and taking from the ship's storage chest, resting in the bunk, restocking at the galley, dying (your bag on a grave, weapon in hand and worn gear kept, waking in the cabin), the storage and grave saved and loaded, dying again (the old grave sinks), recovering your things, summoning the ship (refused inland; from the dock it fades in, sails up and anchors).
-- `bigshipshot`: The bigger ship: outside (side, stern, bow), the main deck, inside the cabin, the quarterdeck, the crow's nest, the rigging, an enemy alongside. Args: <out_prefix> [psx]
+- `bigshipshot`: The bigger ship: outside (side, stern, bow), the main deck, inside the cabin, the quarterdeck, the crow's nest, the rigging, an enemy alongside, the bow from the deck, the stairs, climbing a ladder, the rigging, and the rigging armed. Args: <out_prefix> [psx]
 - `decktest`: Knocked down on a ship under way: the body keeps the ship's speed and stays aboard, the root never lags the body, thrown over the rail you come up in the sea where you landed.
 - `perftest`: Performance round checks: swimmers drown, boarders left behind go, drops expire, one boss crew per fight, stuck-sprint release, rig LOD, 3D render scale, prebuilt bodies, shared weapon meshes, far FX skipped, perf log, orb slivers, chunked terrain.
 - `readmeshot`: README screenshots at the sharper PSX preset (not saved), captain in a red long coat. Sets: `scenes` (street, tavern, a katana brawl at the camp) and `steel` (Haki iai draw, air slash, axe whirlwind + Skybreaker, Gun Rain, Flying Slash), in frame bursts. Args: <out_prefix> <set>
