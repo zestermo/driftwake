@@ -1047,6 +1047,9 @@ func flame_emitter(parent: Node3D, radius: float = 0.3, amount: int = 16, size: 
 ## "overhead" (vertical chop). The trail is parented to `follow` (the player
 ## model) so it sweeps with the character.
 func slash(follow: Node3D, kind: String, duration: float = 0.25, color: Color = Color(0.45, 0.75, 1.0)) -> void:
+	# (the anim lab's clean view swaps these arcs for the blade's own trail)
+	if AnimLab.clean:
+		return
 	var mi := MeshInstance3D.new()
 	mi.mesh = _slash_mesh(kind)
 	mi.material_override = _slash_mat

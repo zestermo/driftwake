@@ -148,11 +148,20 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 		h.play(n, dur)
 	var ranges := {}
 	var imgs: Array = []
+	# (lab mode draws the blade's own trail: where the swing really goes)
+	var trail: BladeTrail = null
+	if _frames == N_LAB:
+		trail = BladeTrail.new()
+		trail.body = h
+		trail.manual = true
+		h.add_child(trail)
 	for i in _frames:
 		var target := dur * float(i) / float(_frames - 1) * 0.98
 		while h.is_busy() and float(h._action["t"]) < target:
 			h._process(1.0 / 120.0)
 			_track(h, ranges)
+			if trail:
+				trail.sample(1.0 / 120.0)
 		# (the skinned legs only follow on frames the rig posed itself: stepped by hand, skin them here)
 		h.hips.get_node("LowerBody")._pose()
 		# (the viewport image lags a frame behind: wait two draws for this pose)

@@ -1,28 +1,32 @@
 class_name AnimLab
-## Animation training lab: alternative versions of an action, compared in game (F5 in a
-## debug build cycles live -> a -> b -> c) and in tools/dev/animsheet.gd's lab mode.
-## Humanoid._action_pose asks pose() first while a variant is picked; ActionSpecs reads
-## spec() so a variant can bring its own length, hit window and feel settings ("lead",
-## "sharp", "step", see ActionSpecs). Rankings and takeaways: docs/anim_lab.md. Winners
-## move into humanoid.gd; this file then starts the next round.
+## Animation training lab: alternative versions of an action, compared in game and in
+## tools/dev/animsheet.gd's lab mode. Debug build keys (player.gd): F5 cycles live -> a ->
+## b -> c, Shift+F5 slow motion, Ctrl+F5 clean view (the arc effects hidden, the blade's
+## own trail drawn). Humanoid._action_pose asks pose() first while a variant is picked;
+## ActionSpecs reads spec() so a variant can bring its own length, hit window and feel
+## settings ("lead", "sharp", "step", see ActionSpecs). Rankings and takeaways:
+## docs/anim_lab.md. Winners move into humanoid.gd; this file then starts the next round.
 
 ## The action the current round is about (F5 cycles its variants).
 const FOCUS := "slash_r"
+const SLOW := 0.25
 
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
 	"slash_r": {
-		"a": {"note": "Whip: hips lead, hand trails, weight shift, all three axes",
-			"spec": {"lead": {"pivot": 0.03, "hips": 0.045, "torso": 0.022, "arm_l": 0.01, "fore_r": -0.012, "hand_r": -0.03}}},
-		"b": {"note": "Impact: whip + squash/stretch, blade smear, hard stop and hold",
-			"spec": {"sharp": 60.0, "lead": {"pivot": 0.02, "hips": 0.03, "torso": 0.015, "hand_r": -0.015}}},
-		"c": {"note": "On twos: stepped at 20 fps, snapped poses, smear drawing, big holds",
-			"spec": {"len": 0.5, "hit": [0.36, 0.6], "step": 20.0, "sharp": 400.0}},
+		"a": {"note": "Whip: big hip turn and body lean, blade trailing far behind the body",
+			"spec": {"hit": [0.27, 0.5], "lead": {"pivot": 0.05, "hips": 0.07, "torso": 0.035, "arm_l": 0.02, "fore_r": -0.02, "hand_r": -0.05}}},
+		"b": {"note": "Impact: deep squash, long stretch, blade smear, hard stop and hold",
+			"spec": {"sharp": 70.0, "lead": {"pivot": 0.02, "hips": 0.03, "torso": 0.015, "hand_r": -0.015}}},
+		"c": {"note": "Stepped: 15 fps drawings, snapped, one smear frame, long hold",
+			"spec": {"len": 0.53, "hit": [0.33, 0.62], "step": 15.0, "sharp": 400.0}},
 	},
 }
 
 ## The variant shown ("" = the live animation).
 static var pick: String = ""
+## Clean view: FX.slash arcs skipped, BladeTrail drawn on the local captain.
+static var clean: bool = false
 
 
 static func cycle() -> String:
@@ -35,6 +39,16 @@ static func label() -> String:
 	if pick == "":
 		return "Anim lab %s: live" % FOCUS
 	return "Anim lab %s: %s - %s" % [FOCUS, pick.to_upper(), VARIANTS[FOCUS][pick]["note"]]
+
+
+static func toggle_slow() -> String:
+	Engine.time_scale = SLOW if is_equal_approx(Engine.time_scale, 1.0) else 1.0
+	return "Anim lab: %s" % ("slow motion" if Engine.time_scale < 1.0 else "normal speed")
+
+
+static func toggle_clean() -> String:
+	clean = not clean
+	return "Anim lab: %s" % ("clean view (blade trail, no arcs)" if clean else "arcs back on")
 
 
 ## The ActionSpecs entry with the picked variant's overrides.
@@ -51,32 +65,32 @@ static func pose(h, n: String, u: float) -> Array:
 		return []
 	match n + "@" + pick:
 		"slash_r@a":
-			var p := _slash_r(h)
+			var p := _slash_r(h, 1.35)
 			return [h._keys(u, [[0.0, p["g"]], [0.2, p["load"], "out"], [0.27, p["cock"]], [0.38, p["cut"], "out"],
-				[0.46, p["through"], "out"], [0.62, p["cut"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
+				[0.5, p["through"], "out"], [0.68, p["cut"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
 		"slash_r@b":
 			var p := _slash_r(h)
-			var load := _with(p["load"], Vector3(1.04, 0.92, 1.04), 0.0)
-			var cock := _with(p["cock"], Vector3(1.05, 0.9, 1.05), 0.0)
-			var swing := _with(_mix(p["cock"], p["cut"], 0.55), Vector3(0.94, 1.07, 1.1), 0.45)
-			var hit := _with(p["cut"], Vector3(1.05, 0.94, 1.03), 0.1)
-			var held := _with(p["cut"], Vector3.ONE, 0.0)
+			var load := _with(p["load"], Vector3(1.08, 0.84, 1.08), 0.0)
+			var cock := _with(p["cock"], Vector3(1.1, 0.82, 1.1), 0.0)
+			var swing := _with(_mix(p["cock"], p["cut"], 0.55), Vector3(0.86, 1.12, 1.24), 0.9)
+			var hit := _with(p["cut"], Vector3(1.12, 0.86, 1.06), 0.15)
+			var held := _with(p["cut"], Vector3(1.04, 0.96, 1.0), 0.0)
 			return [h._keys(u, [[0.0, p["g"]], [0.18, load, "out"], [0.27, cock], [0.33, swing, "in"], [0.38, hit, "out"],
-				[0.5, held], [0.62, held], [1.0, p["g"]]]), "full", Vector3.ZERO]
+				[0.56, held], [0.66, _with(p["cut"], Vector3.ONE, 0.0)], [1.0, p["g"]]]), "full", Vector3.ZERO]
 		"slash_r@c":
-			# keyed on the 20 fps drawings (0.05 s each at the 0.5 s length)
-			var p := _slash_r(h, 1.2)
-			var load := _with(p["load"], Vector3(1.03, 0.94, 1.03), 0.0)
-			var cock := _with(p["cock"], Vector3(1.06, 0.88, 1.06), 0.0)
-			var smear := _with(_mix(p["cock"], p["through"], 0.5), Vector3(0.92, 1.08, 1.14), 0.7)
-			var hit := _with(p["through"], Vector3(1.06, 0.93, 1.04), 0.0)
+			# keyed on the 15 fps drawings (u steps of 0.126 at the 0.53 s length)
+			var p := _slash_r(h, 1.3)
+			var load := _with(p["load"], Vector3(1.05, 0.9, 1.05), 0.0)
+			var cock := _with(p["cock"], Vector3(1.08, 0.85, 1.08), 0.0)
+			var smear := _with(_mix(p["cock"], p["through"], 0.5), Vector3(0.88, 1.1, 1.2), 1.0)
+			var hit := _with(p["through"], Vector3(1.08, 0.9, 1.05), 0.0)
 			var held := _with(p["cut"], Vector3.ONE, 0.0)
-			return [h._keys(u, [[0.0, p["g"]], [0.2, load], [0.3, cock], [0.4, smear], [0.5, hit], [0.7, held],
-				[0.9, _mix(held, p["g"], 0.6)], [1.0, p["g"]]]), "full", Vector3.ZERO]
+			return [h._keys(u, [[0.0, p["g"]], [0.126, load], [0.252, cock], [0.377, smear], [0.503, hit], [0.755, held],
+				[0.881, _mix(held, p["g"], 0.6)], [1.0, p["g"]]]), "full", Vector3.ZERO]
 	return []
 
 
-## The diagonal forehand's key poses (`k` pushes the extremes further).
+## The diagonal forehand's key poses (`k` pushes the body's extremes further).
 static func _slash_r(h, k: float = 1.0) -> Dictionary:
 	var g: Dictionary = h._guard()
 	# wind-up: weight back on the right leg, chest turned away, the blade cocked high

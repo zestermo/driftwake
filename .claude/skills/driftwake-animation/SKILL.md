@@ -179,9 +179,13 @@ when they disagree.
 - Build variants in `scripts/npc/anim_lab.gd` (`VARIANTS` + `pose()`), point `FOCUS` at the
   action. Make each variant test **one** idea on shared poses (a helper like `_slash_r`), so
   the ranking says which idea won, not which pose happened to be nicer.
-- Render with animsheet's lab mode, read all four views, and fix anything that would
-  confuse the comparison (e.g. a variant over-rotating) before showing it.
-- Tell Zach: F5 cycles live/A/B/C in a debug build; what each tries; ask for a best-to-worst
+- Render with animsheet's lab mode (it draws the blade's real trail), read all four views,
+  and fix anything that would confuse the comparison (e.g. a variant over-rotating) before
+  showing it. Make the differences big: a variant that isn't obvious at game speed from the
+  game camera isn't a test (round 1's first try failed this). Check the blade path in the
+  trail: it should travel through the space in front where the target is.
+- Tell Zach: F5 cycles live/A/B/C in a debug build, Shift+F5 slow motion, Ctrl+F5 clean
+  view (blade trail instead of the arc effects, which aren't synced to the blade); what each tries; ask for a best-to-worst
   ranking with notes. Log the variants, ranges, ranking and takeaways in `docs/anim_lab.md`.
 - After a ranking: move the winner into humanoid.gd (or the technique file), fold the
   takeaway into the rules below, and set up the next round.

@@ -37,6 +37,16 @@ Variants (same poses underneath, so the ranking isolates each idea):
   bigger extremes (x1.2), one smear drawing between the cock and the cut (70%), a long held
   lunge. Lands a little later (hitbox 0.18-0.30 s instead of 0.11-0.21 s).
 
+First look (Zach): couldn't tell them apart in game. Two causes: the arc effect (a fixed
+shape on its own timer, not the blade's path) covers the swing, and the variants were too
+close (a 0.1 squash or a 0.03 s lag doesn't show at 0.48 s). Fixes: Ctrl+F5 clean view
+(BladeTrail: a ribbon from the real blade's base and tip, arcs hidden), Shift+F5 slow motion
+(0.25x), renders draw the blade trail, and the variants pushed much further (A: body x1.35,
+hips lead 0.07 s, hand trails 0.05 s; B: squash 0.82, stretch 1.24 forward, smear 90%; C: 15
+fps drawings, x1.3, a full-length smear frame). Lesson: **a variant has to be visible at game
+speed from the game camera, or it isn't a test.** The trails also showed the live blade loops
+over the head and finishes off to the side instead of cutting down through the space in front.
+
 Ranking: _waiting for Zach_
 
 Takeaways: _after the ranking_

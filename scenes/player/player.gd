@@ -1331,9 +1331,24 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_hybrid()
 		get_viewport().set_input_as_handled()
 		return
-	# debug builds: F5 cycles the animation lab's variants (AnimLab, docs/anim_lab.md)
+	# debug builds: the animation lab (AnimLab, docs/anim_lab.md): F5 cycles its variants,
+	# Shift+F5 slow motion, Ctrl+F5 clean view (blade trail instead of the arc effects)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
-		_toast(AnimLab.cycle())
+		var k := event as InputEventKey
+		if k.shift_pressed:
+			_toast(AnimLab.toggle_slow())
+		elif k.ctrl_pressed:
+			_toast(AnimLab.toggle_clean())
+			var trail := body_model.get_node_or_null("BladeTrail")
+			if AnimLab.clean and trail == null:
+				trail = BladeTrail.new()
+				trail.name = "BladeTrail"
+				trail.body = body_model
+				body_model.add_child(trail)
+			elif not AnimLab.clean and trail != null:
+				trail.queue_free()
+		else:
+			_toast(AnimLab.cycle())
 		get_viewport().set_input_as_handled()
 		return
 	# debug builds: F10 knocks you over (try the ragdoll + get-up)
