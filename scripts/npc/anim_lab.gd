@@ -48,22 +48,24 @@ const SLASH_BREAKS := [1.0, 1.1, 1.15, 1.3, 1.35, 0.7, 0.1, 0.3]
 ## 0.49 ~1.2. On the wind-up the chest faces ~85 deg right, so toward the target is its -X.
 const R7 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
 	"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02}}
-const OFF_GUARD := Vector3(-0.08, -0.18, -0.32)
-const OFF_PATHS := {
-	"a": [[0.06, OFF_GUARD], [0.32, Vector3(-0.58, 0.11, -0.17), "smooth"], [0.42, Vector3(-0.57, 0.15, -0.18)],
-		[0.5, Vector3(-0.22, -0.47, -0.17)], [0.62, Vector3(-0.34, -0.34, 0.39)], [0.78, Vector3(-0.31, -0.34, 0.37), "out"]],
-	"b": [[0.06, OFF_GUARD], [0.32, Vector3(-0.5, 0.34, -0.13), "smooth"], [0.42, Vector3(-0.49, 0.36, -0.15)],
-		[0.5, Vector3(-0.22, -0.47, -0.17)], [0.62, Vector3(-0.34, -0.34, 0.39)], [0.78, Vector3(-0.31, -0.34, 0.37), "out"]],
-	"c": [[0.06, OFF_GUARD], [0.32, Vector3(-0.58, 0.11, -0.17), "smooth"], [0.42, Vector3(-0.57, 0.15, -0.18)],
-		[0.5, Vector3(0.11, -0.45, -0.3)], [0.62, Vector3(0.0, -0.47, -0.28)], [0.78, Vector3(0.0, -0.47, -0.28), "out"]],
-}
+## The off hand in the (lowered) cutlass guard, as an offset from the left shoulder.
+const OFF_GUARD := Vector3(-0.26, -0.27, -0.32)
+## Round 8: round 7's B raise (above the eyes on the wind-up) with C's tuck to the chest
+## through the cut, the guard's off hand lowered. What differs is the timing.
+const OFF_PATH := [[0.06, OFF_GUARD], [0.32, Vector3(-0.5, 0.34, -0.13), "smooth"], [0.42, Vector3(-0.49, 0.36, -0.15)],
+	[0.5, Vector3(0.11, -0.45, -0.3)], [0.62, Vector3(0.0, -0.47, -0.28)], [0.78, Vector3(0.0, -0.47, -0.28), "out"]]
 
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
 	"slash_r": {
-		"a": {"note": "Off hand rises to chin height, pulled down to the side, swept back low"},
-		"b": {"note": "Off hand raised higher, above the eyes, on the wind-up"},
-		"c": {"note": "Off hand pulled in to the chest through the cut (tucked)"},
+		"a": {"note": "0.85 s, slowed evenly",
+			"spec": {"len": 0.85, "chain": 0.62}},
+		# (keys authored at 0.75 s: launch u 0.4 -> follow 0.62 is 0.165 s; kept at that speed,
+		# the rest of 0.95 s split over the wind-up and the follow-through)
+		"b": {"note": "0.95 s, the strike at the old speed, longer wind-up and follow-through",
+			"spec": {"len": 0.95, "chain": 0.69, "hit": [0.48, 0.6], "retime": [[0.0, 0.0], [0.442, 0.4], [0.616, 0.62], [1.0, 1.0]]}},
+		"c": {"note": "0.95 s, slowed evenly",
+			"spec": {"len": 0.95, "chain": 0.7}},
 	},
 }
 
@@ -105,7 +107,7 @@ static func spec(n: String) -> Dictionary:
 	var out := s.merged(R7, true).merged(VARIANTS[n][pick].get("spec", {}), true)
 	if n == "slash_r":
 		out["swing"] = _path(SLASH_PATH_WIDE, SLASH_BREAKS, 1.15, {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02, "plane_from": 2})
-		out["reach"] = _reach_path(OFF_PATHS[pick], {"hand": "l", "follow": 1.0, "from_shoulder": true, "lag": 0.04,
+		out["reach"] = _reach_path(OFF_PATH, {"hand": "l", "follow": 1.0, "from_shoulder": true, "lag": 0.04,
 			"pole": Vector3(-1.0, -0.35, 0.25)})
 	return out
 

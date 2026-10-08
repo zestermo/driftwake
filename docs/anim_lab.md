@@ -217,4 +217,23 @@ the off hand's path riding the chest. Off-hand offsets from the left shoulder:
 - **B:** A, raised higher (above the eyes) on the wind-up.
 - **C:** A, but pulled in to the chest through the cut and kept tucked.
 
+Ranking (Zach): **C best in slow motion, B a little better at full speed.** The whole move is
+"a little too fast right now". The off hand in the cutlass guard sits too high.
+
+Takeaways:
+- Judge at full speed and in slow motion both: they can disagree (detail reads slowed, the
+  silhouette reads at speed). Merge the two: B's raise, C's tuck.
+- **Live change:** SWORD_GUARD's off hand lowered (arm_l (0.55, 0.35, -0.4) / elbow 1.35 ->
+  (0.3, 0.25, -0.32) / 0.95): it rests low by the belly instead of up at the chest.
+- New tool: spec "retime" (a time map) slows chosen phases (wind-up, follow-through) while
+  the strike keeps its speed, without re-keying.
+
+## Round 8 (2026-10-08): slash_r timing
+
+All: round 7's B raise with C's tuck, the lowered guard. Timing (now 0.75 s, hit ~0.34 s):
+- **A:** 0.85 s, slowed evenly (hit ~0.38-0.51 s).
+- **B:** 0.95 s retimed: the strike at the old speed (launch to follow-through ~0.17 s), the
+  wind-up (~0.42 s) and follow-through longer (hit ~0.46-0.57 s).
+- **C:** 0.95 s, slowed evenly (hit ~0.43-0.57 s).
+
 Ranking: _waiting for Zach_

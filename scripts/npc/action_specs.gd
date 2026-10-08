@@ -13,6 +13,9 @@ class_name ActionSpecs
 ## "on twos": hold each drawing, 0 = smooth). Pose keys may carry "_scale" (body squash/
 ## stretch about the feet: x side, y up, z forward) and "_smear" (Vector3, x = blade stretch).
 ## "chain" (s): when the next light attack can follow (overrides the state's durations).
+## "retime": [[u played, u of the keys], ...] (0..1, rising): a piecewise-linear time map, to
+## slow parts of a move (wind-up, follow-through) and keep others (the strike) at speed
+## without re-keying; "hit" is in played time.
 ## "swing": the hand on a path instead of keyed arm angles (Humanoid._swing): {"hand": "r"|"l",
 ## "center": Vector3 in the root's space (feet, facing -Z), "follow": 0..1 how far the points
 ## turn with the chest, "anchor": 0..1 how far the points move with the shoulders (default 1),

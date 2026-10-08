@@ -159,9 +159,12 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
   head counters to stay on the target. Hips lead the chest, the chest leads the arm (`lead`).
 - **Keep momentum through the strike.** Don't put a stopping key mid-swing; ease into the
   cock (anticipation) and out of the follow-through only.
-- **Give it time to read.** A light hit needs a visible wind-up and follow-through (round 2
-  tests 0.6 s vs 0.75 s); give slower anims their own `"chain"` so the next click doesn't cut
-  off the hit.
+- **Give it time to read.** A light hit needs a visible wind-up and follow-through (0.75 s
+  beat 0.6 s; Zach still found 0.75 s "a little too fast": round 8 tests slower); give slower
+  anims their own `"chain"` so the next click doesn't cut off the hit. Slow the wind-up and
+  follow-through with `"retime"` rather than the strike itself.
+- **Judge at full speed and in slow motion**: they can disagree (detail reads slowed, the
+  silhouette reads at speed).
 - **Weapon orientation (the essential one):** the sword is an extension of the forearm,
   broken back at the wrist toward the trailing side of the cut. Key the wrist `"break"` per
   path point (~1.4 cocked on the wind-up, ~0.3-0.5 at the strike); the solver tilts it to
