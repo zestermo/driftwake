@@ -67,10 +67,13 @@ distance culling/LOD anywhere).
   Godot's own modifier state isn't stuck too, so it seems not to catch every case. Fix
   candidates: re-check Shift from the OS each tick while sprinting, or move dodge off Ctrl.
 
-- Sea goes pale grey and opaque after a while (capture cap_20261006_161506: Brinehollow's
-  dock, clear, 10:45). It looks like the sandy seabed with no sea drawn over it. Not
-  reproduced in renders (hours, weathers, small window, after manning a cannon). F12 now
-  records the sea mesh and its shader inputs: press it the moment it happens.
+- (fixed 2026-10-06 in 30fa68c: confirm in play) Sea goes pale grey (capture
+  cap_20261006_161506, taken before the fix). It was the sun's reflection at rough 0.5
+  spreading into pale sheets over the sea at morning sun angles; ROUGHNESS 0.2 fixed it
+  (dev_notes "sun glare on the sea"). The 7 Oct re-hunt worked from that old capture and
+  so couldn't reproduce it. No capture since shows it; seahourshot at the capture's spot
+  and window (657x357) is clean at every hour (2026-10-08). If it comes back, F12 records
+  the sea's render state.
 
 ## UI
 
