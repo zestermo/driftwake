@@ -205,8 +205,12 @@ var _react_var: float = 0.0
 var _scale := Vector3.ONE
 var _smear: float = 0.0
 var _smeared: bool = false
-## Which way the swing's hand last travelled (world): its blade's edge leads along it.
-var _swing_travel := Vector3.FORWARD
+## The swing's wrist (x bend back/forward, y sideways), smoothed; limits in radians.
+var _wrist := Vector2.ZERO
+var _swing_on: bool = false
+const WRIST_FLEX := Vector2(-1.5, 1.1)
+const WRIST_SIDE := 0.55
+const WRIST_SHARP := 24.0
 ## During actions the eyes look at most this far above level (pivot + torso + head
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
@@ -2608,7 +2612,7 @@ func _process(delta: float) -> void:
 		hand_r.rotation = _cur["hand_r"]
 	if hand_l:
 		hand_l.rotation = _cur["hand_l"]
-	_swing()
+	_swing(delta)
 	if _tail and is_instance_valid(_tail):
 		var wag := 1.0 + clampf(ground_speed * 0.15, 0.0, 1.0)
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
@@ -2625,12 +2629,14 @@ func _process(delta: float) -> void:
 ## places the shoulder and elbow, and the wrist lays the blade along the keyed direction
 ## with its edge (-Y) leading the travel. Blends in over 0.08 s before the first key and
 ## out over 0.1 s after the last, from and back to the posed arm.
-func _swing() -> void:
+func _swing(delta: float) -> void:
 	if _action.is_empty() or ragdoll != null or not is_inside_tree():
+		_swing_on = false
 		return
 	var sp: Dictionary = _action["spec"]
 	var sw: Dictionary = sp.get("swing", {})
 	if sw.is_empty():
+		_swing_on = false
 		return
 	var keys: Array = sw["keys"]
 	var dur := float(_action["dur"])
@@ -2639,27 +2645,41 @@ func _swing() -> void:
 	var t1 := float(keys[keys.size() - 1][0]) * dur
 	var w := clampf((t - t0) / 0.08 + 1.0, 0.0, 1.0) * clampf((t1 - t) / 0.1 + 1.0, 0.0, 1.0)
 	if w <= 0.0:
+		_swing_on = false
 		return
 	var right: bool = sw.get("hand", "r") == "r"
 	var hand := hand_r if right else hand_l
 	var arm := arm_r if right else arm_l
-	var frame := torso.global_transform if sw.get("space", "body") == "chest" else global_transform
+	var fore := fore_r if right else fore_l
+	var frame := _swing_frame(sw)
 	var s := _swing_at(sw, _sample_u(t, sp))
-	var ahead := _swing_at(sw, _sample_u(t + 0.02, sp))
-	var travel := frame.basis * ((ahead[0] as Vector3) - (s[0] as Vector3))
-	if travel.length() > 0.002:
-		_swing_travel = travel.normalized()
 	var blade := (frame.basis * (s[1] as Vector3)).normalized()
-	var posed_q := Quaternion(hand.global_basis.orthonormalized())
 	reach_hand(right, hand.global_position.lerp(frame * (s[0] as Vector3), w), (frame.basis * (s[2] as Vector3)).normalized())
 	# (IK writes the arm's global basis: keep its local scale plain, see Ragdoll.restore_rig)
 	arm.basis = arm.basis.orthonormalized()
-	var up := -_swing_travel
-	if absf(up.dot(blade)) > 0.97:
-		up = frame.basis.y.normalized()
-	var want := Quaternion(Basis.looking_at(blade, up))
-	var parent_q := Quaternion(hand.get_parent_node_3d().global_basis.orthonormalized())
-	hand.basis = Basis(parent_q.inverse() * posed_q.slerp(want, w)) * Basis.from_scale(hand.basis.get_scale())
+	# the wrist: only bent back/forward (x: toward the elbow / along the forearm) and a
+	# little sideways (y) from its rest (the blade straight out of the fist), never rolled,
+	# so the blade can't spin in the hand; the arm and elbow turn it the rest of the way
+	var d := (fore.global_basis.orthonormalized().inverse() * blade).normalized()
+	var want := Vector2(clampf(atan2(d.y, Vector2(d.x, d.z).length()), WRIST_FLEX.x, WRIST_FLEX.y),
+		clampf(atan2(-d.x, maxf(-d.z, 0.2)), -WRIST_SIDE, WRIST_SIDE))
+	var posed: Vector3 = hand.rotation
+	if not _swing_on:
+		_wrist = Vector2(posed.x, posed.y)
+	_swing_on = true
+	_wrist = _wrist.lerp(want, 1.0 - exp(-WRIST_SHARP * delta))
+	hand.rotation = Vector3(lerpf(posed.x, _wrist.x, w), lerpf(posed.y, _wrist.y, w), posed.z * (1.0 - w))
+
+
+## Where a swing's points live: the root (feet, facing -Z), turned with the chest by
+## `follow` (0 = the body's facing, 1 = the chest's: the cut rides the chest's turn).
+func _swing_frame(sw: Dictionary) -> Transform3D:
+	var follow := float(sw.get("follow", 0.0))
+	if follow <= 0.0:
+		return global_transform
+	var f := global_basis.orthonormalized().inverse() * -torso.global_basis.z
+	var yaw := atan2(-f.x, -f.z)
+	return Transform3D(global_basis * Basis(Vector3.UP, yaw * follow), global_position)
 
 
 ## [hand position, blade direction, elbow pole] in the swing's space at `u`: a Catmull-Rom

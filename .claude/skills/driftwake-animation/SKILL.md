@@ -162,6 +162,11 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
 - **Give it time to read.** A light hit needs a visible wind-up and follow-through (round 2
   tests 0.6 s vs 0.75 s); give slower anims their own `"chain"` so the next click doesn't cut
   off the hit.
+- **The blade never spins in the hand.** The swing solver's wrist only bends (WRIST_FLEX,
+  WRIST_SIDE, smoothed), never rolls; aim the blade with the path, the elbow pole and the
+  body. Don't add a roll to make the edge lead: it flips at every change of direction.
+- **The off arm answers the swing:** reaches toward the target on the wind-up, flings back
+  through the cut, ideally dragging a little behind the chest.
 - **Impact helps:** squash on the wind-up, stretch and blade smear through the swing.
   Stepped/on-twos timing was not liked.
 - **Check in slow motion from above and behind**, the game camera's side, not just the

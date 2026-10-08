@@ -83,4 +83,27 @@ variant. What differs is the timing and what drives the arc:
 Ranges (rad, x/y/z): live hips y 0.00, A 0.98, B 1.33, C 1.57; torso y live 1.96 (but the
 wrong way), A 1.36, B 1.84, C 2.17.
 
+Ranking (Zach): **B liked a lot, C pretty good** ("these are getting better"). B: the
+angle and wind-up are really good. C: its chest turn. The off arm moving in response to the
+swing helps sell it. Problem: the sword twists and rotates in the hand too much and breaks
+the swing.
+
+Takeaways:
+- **The wrist never rolls.** The solver aimed the blade freely and rolled it so the edge led
+  the travel; the travel flips at the cock and on every change of direction, so the sword
+  spun in the fist. Now the wrist only bends (back/forward, a little sideways, limited and
+  smoothed) and the arm and elbow turn the blade the rest of the way.
+- 0.75 s with a long wind-up and a wide path beats 0.6 s for this cut.
+- Big chest/hip turn (x1.6) wanted. The off arm reacting (reach forward, fling back) sells it.
+
+## Round 3 (2026-10-08): slash_r, B's path with C's turn and a steady wrist
+
+All three: round 2 B's path, timing (0.75 s) and wind-up, C's x1.6 chest and hip turn, the
+wrist limited to bending (no roll). What differs:
+- **A:** the path in the body's frame.
+- **B:** the path turning half way with the chest (`follow` 0.5): a flatter, rounder cut
+  that wraps round the body.
+- **C:** A with a big off-arm counter-swing (x1.6 reach and fling) that drags behind the
+  chest (lags 0.04-0.06 s).
+
 Ranking: _waiting for Zach_
