@@ -7,16 +7,17 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Out at sea", "Wind and sail trim, an anchor on a chain (hold F at the capstan), hulls that hole, burn and flood while the crew patches, pumps and douses."],
-	["Hazards and plunder", "Reefs, fog banks, whirlpools and storm cells. Wrecks to loot, messages in bottles, treasure to dig up."],
-	["The Sea King", "A serpent lurks in deep water. Jump its tail slam, cut at its head when it bites the deck."],
-	["Enemy ships", "Sloops, gunboats, brigs and Marines that ram, flee and surrender. Board them for their prize. Cut cannonballs in half with a katana or cutlass."],
-	["Sea chart and compass", "M opens a chart that fills in as you sail. Click to set marks, C to clear them."],
-	["Brinehollow's traders", "Buy and sell with Nessa, Gus, Marlo, Clothier Sela, Old Ida and Vey's Armoury. Tackett the shipwright refits and repaints your ship."],
-	["Item tiers", "Common, Uncommon, Rare, Epic, Legendary, Ultra and Supreme. Better tiers hit harder and guard better."],
-	["Weapons and armour", "27 weapon designs, and new armour and clothes: cuirass, mail, morion, greatcoat, gauntlets, greaves, capes."],
-	["New moves", "The axe gets its own combo, a whirlwind and the Skybreaker leap. The cutlass cuts cleaner and has a running cut."],
-	["And more", "Smoother co-op sailing, foam wakes, turquoise shallows, rain on deck. Levels now take twice the XP."],
+	["Skill trees", "Press K: a tab for every weapon, Base & Haki and your Devil Fruit. Weapon trees grow with mastery, earned by fighting with that weapon. Old saves get every skill point back."],
+	["New techniques", "26 of them, like Riposte, Wind Severer, Hatchet Throw, Blade Dance, Deadeye and Smoke Bomb, and an ultimate for every weapon. Put any one on R."],
+	["Grapples and martial arts", "Bare-handed, Suplex, Shoulder Throw or Giant Swing a pirate into his friends, or let loose Hundred Fists, Rising Dragon and the Sea King Fist."],
+	["Master your abilities", "Use a skill to open its next tier. Soru becomes Shadow Step, Foresight a stance that dodges for you, and Tekkai hardens you by itself."],
+	["Cut the bullets", "Learn your blade's parry upgrade to cut gunshots out of the air. Master it and shots are cut down on their own and fly back. Without it, a parry won't stop bullets."],
+	["Haki and more", "17 new passives, from Featherfall to Adrenaline, and Conqueror's Haki at level 20: the weak faint where they stand."],
+	["Bigger ships", "Ships are half again as big, with a raised quarterdeck over a crew cabin, a crow's nest, rigging to climb and ropes to swing from the yard."],
+	["Life aboard", "Rest in the bunk, restock your rum at the galley and keep loot in the crew's shared chest. If you fall, you wake in the cabin."],
+	["Your grave", "Die and your bag stays on a grave where you fell. Get back to it, because dying again sinks it for good."],
+	["Summon your ship", "Hold B near the water and she fades into view and sails to the shore nearest you."],
+	["And more", "Long sessions stay smooth, enemies reel away from your blows, weapons hang properly at the hip, and climbing is done by hand."],
 ]
 
 

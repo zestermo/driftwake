@@ -1,5 +1,5 @@
 extends SceneTree
-## The title screen's v1.5 ribbon and what's-new pop-up: first launch of the
+## The title screen's version ribbon and what's-new pop-up: first launch of the
 ## version (pops up by itself), then closed (the menu with the ribbon).
 ## Args: <out_prefix>
 var t := 0.0
