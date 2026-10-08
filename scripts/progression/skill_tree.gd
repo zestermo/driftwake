@@ -21,9 +21,9 @@ extends RefCounted
 ## the weapon in hand): dmg_ damage, stam_ attack stamina, flow_ energy per hit,
 ## crit_ chance of a x1.5 hit, heavy_ / finisher_ / skill_ damage of heavies,
 ## combo finishers and techniques, leech_ share of damage healed, exec_ extra
-## damage to targets left under 30% health, parry_ parry window (s), deflect_
-## cut shots out of the air (deflect_cd_ shortens its 4 s wait, return_ sends them
-## back), unblock_ heavies can't be blocked, armor_ no flinching mid-attack,
+## damage to targets left under 30% health, parry_ parry window (s), parryshot_
+## a parry also cuts gunshots, deflect_ cuts them by itself (deflect_cd_ shortens
+## its 4 s wait), return_ sends cut shots back, unblock_ heavies can't be blocked, armor_ no flinching mid-attack,
 ## def_ defense, cdr_ cooldown cut for that tree's skills.
 
 const TREES := {
@@ -287,13 +287,13 @@ static func _build_cutlass() -> void:
 	_add("s_light", "Light Blade", "passive", R, _g(2, 0), ["s_root"], {"stam_sword": 0.15},
 		"Cutlass attacks cost 15% less stamina.")
 	# defence
-	_add("s_duelist", "Duelist", "passive", R, _g(-3, 1), ["s_dash"], {"parry_sword": 0.06},
+	_add("s_deflect", "Arrow Cutting", "passive", R, _g(-3, 1), ["s_dash"], {"parryshot_sword": 1},
+		"Parry with a cutlass and you cut gunshots out of the air too (without it, a parry only stops blades).")
+	_add("s_riposte", "Riposte", "active", R, _g(-3, 2), ["s_deflect"], {}, "", {}, "riposte")
+	_add("s_duelist", "Duelist", "passive", R, _g(-3, 3), ["s_riposte"], {"parry_sword": 0.06},
 		"Your parry window with a cutlass is wider.")
-	_add("s_riposte", "Riposte", "active", R, _g(-3, 2), ["s_duelist"], {}, "", {}, "riposte")
-	_add("s_deflect", "Arrow Cutting", "passive", R, _g(-3, 4), ["s_riposte"], {"deflect_sword": 1},
-		"With a cutlass drawn, a shot coming at you from the front is cut out of the air (once every 4 s).", {"level": 4})
-	_add("s_return", "Return to Sender", "passive", R, _g(-3, 5), ["s_deflect"], {"return_sword": 1, "deflect_cd_sword": 1.5},
-		"Shots you cut down fly back at whoever fired them, twice as hard, and you can cut one every 2.5 s.", {"level": 8})
+	_add("s_return", "Return to Sender", "passive", R, _g(-3, 4), ["s_duelist"], {"deflect_sword": 1, "return_sword": 1, "deflect_cd_sword": 1.0},
+		"Mastered: with a cutlass drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.", {"level": 4})
 	# skills
 	_add("s_honed", "Honed Steel", "stat", R, _g(-1.5, 1), ["s_edge", "s_dash"], {"dmg_sword": 0.08}, "+8% cutlass damage.")
 	_add("s_flying", "Flying Slash", "active", R, _g(0, 2), ["s_edge"], {}, "", {}, "flying_slash")
@@ -331,15 +331,16 @@ static func _build_katana() -> void:
 		"Your iai charges to its second level: a gold glint, a longer dash, and everything you cut through crumples.", {}, "", 2)
 	_add("k_folded", "Folded Steel", "stat", R, _g(2, 0), ["k_root"], {"dmg_katana": 0.06}, "+6% katana damage.")
 	# movement and defence
-	_add("k_arc", "Crescent Arc", "move", R, _g(-3, 1), ["k_draw"], {"mv_air_slash": 1},
-		"Attack in the air: a little lift and one big arc swept down under you (once per jump).")
+	_add("k_deflect", "Cut the Shot", "passive", R, _g(-3, 1), ["k_draw"], {"parryshot_katana": 1},
+		"Parry with a katana and you cut gunshots out of the air too (without it, a parry only stops blades).")
 	_add("k_eye", "Mind's Eye", "passive", R, _g(-1.5, 1), ["k_draw", "k_full"], {"iai_speed": 0.3},
 		"Your iai charges 30% faster.")
-	_add("k_phantom", "Phantom Step", "active", R, _g(-3, 2), ["k_arc", "k_eye"], {}, "", {}, "phantom_step")
-	_add("k_deflect", "Cut the Shot", "passive", R, _g(-3, 4), ["k_phantom"], {"deflect_katana": 1},
-		"With a katana drawn, a shot coming at you from the front is cut out of the air (once every 4 s).", {"level": 4})
-	_add("k_return", "Bullet Return", "passive", R, _g(-3, 5), ["k_deflect"], {"return_katana": 1, "deflect_cd_katana": 1.5},
-		"Shots you cut down fly back at whoever fired them, twice as hard, and you can cut one every 2.5 s.", {"level": 8})
+	_add("k_counter", "Iai Counter", "active", R, _g(-3, 2), ["k_deflect"], {}, "", {}, "iai_counter")
+	_add("k_arc", "Crescent Arc", "move", R, _g(-3, 3), ["k_counter"], {"mv_air_slash": 1},
+		"Attack in the air: a little lift and one big arc swept down under you (once per jump).")
+	_add("k_phantom", "Phantom Step", "active", R, _g(-3, 4), ["k_arc"], {}, "", {}, "phantom_step")
+	_add("k_return", "Bullet Return", "passive", R, _g(-3, 5), ["k_phantom"], {"deflect_katana": 1, "return_katana": 1, "deflect_cd_katana": 1.0},
+		"Mastered: with a katana drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.", {"level": 4})
 	# skills
 	_add("k_tiger", "Tiger Rush", "active", R, _g(0, 2), ["k_full"], {}, "", {"level": 4}, "tiger_rush")
 	_add("k_wind", "Wind Severer", "active", R, _g(-1.5, 3), ["k_tiger", "k_eye"], {}, "", {}, "wind_sever")
@@ -408,13 +409,14 @@ static func _build_dual() -> void:
 	_add("d_hands", "Light Hands", "passive", R, _g(2, 0), ["d_root"], {"stam_dual": 0.15},
 		"Dual-wield attacks cost 15% less stamina.")
 	# guard
-	_add("d_fangs", "Crossed Fangs", "stat", R, _g(-3, 1), ["d_spin"], {"dmg_dual": 0.08}, "+8% damage while dual wielding.")
+	_add("d_deflect", "Twin Deflect", "passive", R, _g(-3, 1), ["d_spin"], {"parryshot_dual": 1},
+		"Parry with two blades and you cut gunshots out of the air too (without it, a parry only stops blades).")
 	_add("d_guard", "Crossed Guard", "passive", R, _g(-1.5, 1), ["d_twin", "d_spin"], {"parry_dual": 0.06},
 		"Your parry window with two blades is wider.")
-	_add("d_deflect", "Twin Deflect", "passive", R, _g(-3, 2), ["d_guard", "d_fangs"], {"deflect_dual": 1},
-		"With both blades drawn, a shot coming at you from the front is cut out of the air (once every 4 s).", {"level": 4})
-	_add("d_return", "Ricochet Steel", "passive", R, _g(-3, 3), ["d_deflect"], {"return_dual": 1, "deflect_cd_dual": 1.5},
-		"Shots you cut down fly back at whoever fired them, twice as hard, and you can cut one every 2.5 s.", {"level": 8})
+	_add("d_counter", "Crossed Counter", "active", R, _g(-3, 2), ["d_deflect"], {}, "", {}, "cross_counter")
+	_add("d_fangs", "Crossed Fangs", "stat", R, _g(-3, 3), ["d_counter"], {"dmg_dual": 0.08}, "+8% damage while dual wielding.")
+	_add("d_return", "Ricochet Steel", "passive", R, _g(-3, 4), ["d_fangs"], {"deflect_dual": 1, "return_dual": 1, "deflect_cd_dual": 1.0},
+		"Mastered: with both blades drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.", {"level": 4})
 	# dance
 	_add("d_dance", "Blade Dance", "active", R, _g(0, 2), ["d_twin"], {}, "", {}, "blade_dance")
 	_add("d_cross", "Cross Fang", "active", R, _g(-1.5, 3), ["d_dance", "d_guard"], {}, "", {}, "cross_fang")

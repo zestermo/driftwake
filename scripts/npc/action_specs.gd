@@ -100,6 +100,7 @@ const SPECS := {
 	"earthsplitter": {"len": 0.95, "hit": [0.45, 0.52], "stance": "axe", "weapon": "axe"},
 	"berserk_roar": {"len": 0.75, "stance": "axe", "weapon": "axe"},
 	"maelstrom": {"len": 3.0, "hit": [0.05, 0.95], "stance": "axe", "weapon": "axe"},
+	"cross_guard": {"len": 1.0, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
 	"blade_dance": {"len": 1.0, "hit": [0.1, 0.88], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
 	"cross_fang": {"len": 0.85, "hit": [0.44, 0.52], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
 	"steel_tempest": {"len": 2.2, "hit": [0.07, 0.9], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},

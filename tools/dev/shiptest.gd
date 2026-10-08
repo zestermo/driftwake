@@ -46,7 +46,7 @@ func _process(d: float) -> bool:
 			check("gentle heave at the dock (< 0.8 m)", hi - lo < 0.8)
 			check("gentle tilt (< 0.1 rad)", pitches.max() < 0.1)
 			var deck_y: float = ship.global_position.y + 0.32
-			check("deck sits ~1.2 m above sea", deck_y > 0.6 and deck_y < 1.8)
+			check("deck sits ~1.2 m above sea (%.2f)" % deck_y, deck_y > 0.6 and deck_y < 1.8)
 			check("moored with the sail furled on the yard", ship.sail == 0.0 and ship._furl_node.visible and not ship._sail_node.visible)
 			set_meta("dock", ship.global_position)
 			# out to open water (clear of land, reefs and whirlpools), the wind on the beam

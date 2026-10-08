@@ -6,9 +6,9 @@ extends PlayerState
 ## goes through Player.melee_hit(base, "skill"), so weapon bonuses and the tree's
 ## skill_ nodes apply.
 ##   cutlass  riposte (guard -> riposte_counter), swordfish, kraken_wake (ult)
-##   katana   wind_sever, phantom_step, petal_storm (ult)
+##   katana   iai_counter (guard), wind_sever, phantom_step, petal_storm (ult)
 ##   axe      axe_throw, earthsplitter, berserk, maelstrom (ult)
-##   dual     blade_dance, cross_fang, steel_tempest (ult)
+##   dual     cross_counter (guard), blade_dance, cross_fang, steel_tempest (ult)
 ##   pistol   deadeye, smoke_bomb, point_blank, deaths_waltz (ult)
 ##   unarmed  suplex, hip_toss, giant_swing (grapples), hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
@@ -17,6 +17,10 @@ extends PlayerState
 ## body; in co-op only the host moves it (a guest's grab throws it from where it stands).
 
 const GRAB_REACH := 2.3
+## The guard skills (Riposte, Iai Counter, Crossed Counter): the waiting pose, and
+## per fighting style the answer [pose, length, damage].
+const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard"}
+const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0]}
 
 var id: String = ""
 var t: float = 0.0
@@ -53,17 +57,20 @@ func enter(data: Dictionary) -> void:
 	face_direction(_dir, 1.0)
 	_from = player.global_position
 	match id:
-		"riposte":
+		"riposte", "iai_counter", "cross_counter":
+			# guard up for a second; the buff outlasts it a touch so exit() can tell a
+			# guard that timed out from one that was answered (the hit clears the buff)
 			dur = 1.0
-			_pc.add_buff("riposte", 1.0)
-			player.body_model.play("riposte_guard", dur)
+			_pc.add_buff("riposte", 1.05)
+			player.body_model.play(GUARD_POSE[id], dur)
 			Net.fx("sfx", ["blip_high", player.global_position, -10.0, 0.0, 1.2])
 		"riposte_counter":
-			dur = 0.5
+			var cp: Array = COUNTER_POSE[player.style()]
+			dur = float(cp[1])
 			if _target and is_instance_valid(_target):
 				_dir = _flat_to(_target)
 				face_direction(_dir, 1.0)
-			player.body_model.play("riposte_cut", dur)
+			player.body_model.play(str(cp[0]), dur)
 			Net.fx("sfx", ["parry", player.global_position, -2.0, 0.05, 1.1])
 			Net.fx("sparkle", [player.global_position + Vector3(0, 1.3, 0) + _dir * 0.6, 14, Color(1.0, 0.9, 0.6)])
 			CombatManager.apply_hitstop(0.08, [player])
@@ -176,7 +183,7 @@ func enter(data: Dictionary) -> void:
 func physics_update(delta: float) -> void:
 	t += delta
 	match id:
-		"riposte":
+		"riposte", "iai_counter", "cross_counter":
 			_rooted(delta, 0.15)
 		"riposte_counter":
 			_rooted(delta, 0.0)
@@ -513,15 +520,25 @@ func _finish() -> void:
 # Cutlass
 # --------------------------------------------------------------------------
 func _riposte_cut() -> void:
-	var hd := _hd(35.0, 9.0, false)
+	var st := player.style()
+	var base := float((COUNTER_POSE[st] as Array)[2])
+	var hd := _hd(base, 9.0, false)
 	hd.stagger_duration = 0.9
 	hd.unblockable = true
 	hd.sever = true
 	if _target and is_instance_valid(_target) and _target.get("hurtbox") is Hurtbox:
 		_strike(_target, hd)
 	else:
-		_cone(2.4, 0.5, 35.0, 9.0, false, true)
-	Net.fx("slash", [player.player_model, "right", 0.25, Color(1.0, 0.9, 0.6)])
+		_cone(2.4, 0.5, base, 9.0, false, true)
+	match st:
+		"katana":
+			Net.fx("slash", [player.player_model, "iai", 0.3, Color(0.85, 0.92, 1.0)])
+			Net.fx("afterimage", [player.body_model, Color(0.85, 0.92, 1.0), 0.25])
+		"dual_sword":
+			Net.fx("slash", [player.player_model, "right", 0.25, Color(0.55, 0.85, 1.0)])
+			Net.fx("slash", [player.player_model, "left", 0.25, Color(0.55, 0.85, 1.0)])
+		_:
+			Net.fx("slash", [player.player_model, "right", 0.25, Color(1.0, 0.9, 0.6)])
 	CombatManager.apply_camera_shake(0.15)
 
 
@@ -633,6 +650,12 @@ func _muzzle() -> Vector3:
 	return player.global_position + Vector3(0, 1.35, 0) + _dir * 0.7
 
 
+## The middle of an enemy's body: its hurtbox shape (the Hurtbox node itself sits
+## at the feet).
+func _body_center(e: Node) -> Vector3:
+	return ((e.get("hurtbox") as Node).get_child(0) as Node3D).global_position
+
+
 ## Where the reticle points, snapped onto an enemy's chest within a few degrees of it.
 func _reticle_target(reach: float) -> Vector3:
 	var ray: Array = player.reticle_ray()
@@ -641,13 +664,11 @@ func _reticle_target(reach: float) -> Vector3:
 	var best_a := 0.12
 	var best := Vector3.INF
 	for e in _pc.enemies_in(player.global_position, reach):
-		var hb := e.get("hurtbox") as Node3D
-		if hb == null:
-			continue
-		var a := cd.angle_to(hb.global_position - o)
+		var c := _body_center(e)
+		var a := cd.angle_to(c - o)
 		if a < best_a:
 			best_a = a
-			best = hb.global_position
+			best = c
 	if best != Vector3.INF:
 		return best
 	var q := PhysicsRayQueryParameters3D.create(o, o + cd * reach, 1 | 4)
@@ -667,11 +688,9 @@ func _deadeye() -> void:
 		end = wall["position"]
 	var length := from.distance_to(end)
 	for e in _pc.enemies_in(from.lerp(end, 0.5), length * 0.5 + 1.0):
-		var c: Vector3 = (e.get("hurtbox") as Node3D).global_position
+		var c := _body_center(e)
 		var along := (c - from).dot(cf)
-		# (a metre past where it meets the ground: aimed at a chest downhill, the
-		# line can graze the slope at their feet first)
-		if along < 0.0 or along > length + 1.0 or (c - (from + cf * along)).length() > 0.9:
+		if along < 0.0 or along > length or (c - (from + cf * along)).length() > 0.9:
 			continue
 		var hd := _hd(60.0, 8.0, false)
 		hd.ranged = true
@@ -914,5 +933,8 @@ func _conquer() -> void:
 
 func exit() -> void:
 	player.hurtbox.set_deferred("monitorable", true)
-	if id == "riposte":
+	if GUARD_POSE.has(id):
+		# Iai Counter sheathed the blade to wait: nobody came, so draw it again
+		if id == "iai_counter" and _pc.buff("riposte"):
+			player.body_model.play("draw", 0.3)
 		_pc.buffs["riposte"] = 0.0

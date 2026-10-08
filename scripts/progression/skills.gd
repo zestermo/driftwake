@@ -79,6 +79,10 @@ const ALL := {
 	# --- Cutlass ---
 	"riposte": {"name": "Riposte", "tree": "sword", "cost": 16.0, "cooldown": 6.0, "styles": ["sword"], "needs_text": "a cutlass", "state": "Technique",
 		"desc": "Raise your guard for a moment: the first melee blow aimed at you is turned aside and answered with a heavy cut that staggers."},
+	"iai_counter": {"name": "Iai Counter", "tree": "katana", "cost": 16.0, "cooldown": 6.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
+		"desc": "Slip the blade home and wait, hand on the hilt: the first melee blow aimed at you is met by a drawing cut before it lands."},
+	"cross_counter": {"name": "Crossed Counter", "tree": "dual", "cost": 16.0, "cooldown": 6.0, "styles": ["dual_sword"], "needs_text": "two blades", "state": "Technique",
+		"desc": "Cross both blades in front of you: the first melee blow aimed at you is caught in the X and answered with a scissoring cut."},
 	"swordfish": {"name": "Swordfish Flurry", "tree": "sword", "cost": 22.0, "cooldown": 8.0, "styles": ["sword"], "needs_text": "a cutlass", "state": "Technique",
 		"desc": "Five lightning thrusts driving forward; the last one throws them back."},
 	"kraken_wake": {"name": "Kraken's Wake", "tree": "sword", "cost": 0.0, "cooldown": 3.0, "styles": ["sword"], "needs_text": "a cutlass", "state": "Technique", "ult": true,

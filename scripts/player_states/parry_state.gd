@@ -59,7 +59,7 @@ func exit() -> void:
 
 
 func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
-	if parry_active and not _hit_data.unblockable:
+	if parry_active and not _hit_data.unblockable and (not _hit_data.ranged or player.parries_shots()):
 		parry_succeeded = true
 		var fwd := -player.player_model.global_basis.z
 		fwd.y = 0.0

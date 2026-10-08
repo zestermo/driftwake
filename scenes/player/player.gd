@@ -423,8 +423,11 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		dir = global_position - (attacker as Node3D).global_position
 		dir.y = 0.0
 	dir = dir.normalized() if dir.length() > 0.01 else player_model.global_basis.z
-	# an unblockable attack (the enemy flashed red) gets through parries and blocks
-	if is_parrying and not hit.unblockable:
+	# an unblockable attack (the enemy flashed red) gets through parries and blocks;
+	# a shot only if the blade's tree taught you to cut shots (parryshot_ nodes)
+	if is_parrying and not hit.unblockable and (not hit.ranged or parries_shots()):
+		if hit.ranged:
+			_cut_shot(hit, dir, attacker)
 		if attacker and attacker.has_method("parried"):
 			attacker.call("parried", self)
 		return
@@ -515,8 +518,13 @@ func _foresight_dodge(dir: Vector3, label: String = "Foresight!") -> void:
 	_toast(label)
 
 
-## A blade out and a shot coming from the front: cut it out of the air (weapon
-## tree "deflect" nodes; "return" nodes send it back at the shooter).
+## Parrying cuts shots out of the air (a blade tree's early parryshot_ node).
+func parries_shots() -> bool:
+	return progression.style_stat("parryshot", style()) > 0.0
+
+
+## Mastered deflection (the blade tree's deflect_ node): with the blade out, a shot
+## from the front is cut down by itself every few seconds, and sent back.
 var _deflect_cd: float = 0.0
 
 
@@ -530,12 +538,18 @@ func _try_deflect(hit: HitData, dir: Vector3, attacker: Node) -> bool:
 		return false
 	_deflect_cd = maxf(4.0 - progression.style_stat("deflect_cd", st), 1.0)
 	body_model.play("deflect", 0.35)
+	_cut_shot(hit, dir, attacker)
+	return true
+
+
+## A shot cut out of the air (and fired back with a "return" node).
+func _cut_shot(hit: HitData, dir: Vector3, attacker: Node) -> void:
 	var at := global_position + Vector3(0, 1.3, 0) - dir * 0.6
 	Net.fx("sparkle", [at, 12, Color(1.0, 0.85, 0.5)])
 	Net.fx("impact", [at, Color(1.0, 0.9, 0.6)])
 	Net.fx("sfx", ["parry", at, -4.0, 0.05, 1.6])
 	Net.fx("float_text", [at + Vector3.UP * 0.5, "Deflected!", Color(1.0, 0.9, 0.6)])
-	if progression.style_stat("return", st) > 0.0 and attacker is Node3D and attacker.get("hurtbox") is Hurtbox:
+	if progression.style_stat("return", style()) > 0.0 and attacker is Node3D and attacker.get("hurtbox") is Hurtbox:
 		var back := HitData.new()
 		back.ranged = true
 		back.damage = roundf(hit.damage * 2.0 * damage_multiplier())
@@ -543,7 +557,6 @@ func _try_deflect(hit: HitData, dir: Vector3, attacker: Node) -> bool:
 		back.stagger_duration = 0.4
 		(attacker.get("hurtbox") as Hurtbox).take_hit(back, self)
 		Net.fx("tracer", [at, (attacker.get("hurtbox") as Node3D).global_position])
-	return true
 
 
 ## Soru mastered (Shadow Step): gone from sight, and nothing lands on you.

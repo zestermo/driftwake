@@ -1032,6 +1032,23 @@ def gen_technique_icons():
             d.point((x, y), fill=GOLD)
         d.line([(15, 12), (21, 6)], fill=W_)
 
+    def iai_counter(d):
+        # a sheathed katana, the blade a hair out of the scabbard, a blow glancing off
+        d.line([(3, 20), (19, 6)], fill=hexc("2a2230") + (255,), width=3)
+        d.line([(16, 9), (21, 4)], fill=STEEL, width=1)
+        d.ellipse([14, 8, 18, 12], fill=GOLD)
+        d.line([(2, 6), (9, 9)], fill=STEEL_D, width=2)
+        for x, y in ((10, 6), (12, 4), (12, 9)):
+            d.point((x, y), fill=GOLD)
+
+    def cross_counter(d):
+        # two blades crossed upright, sparks where they meet
+        blade(d, (6, 21), (17, 3))
+        blade(d, (18, 21), (7, 3))
+        for x, y in ((12, 9), (10, 8), (14, 8), (12, 11)):
+            d.point((x, y), fill=GOLD)
+        d.line([(1, 12), (6, 12)], fill=STEEL_D, width=2)
+
     def swordfish(d):
         for i, y in enumerate((5, 9, 13, 17, 21)):
             d.line([(4 + i, y), (20 - abs(2 - i) * 2, y)], fill=STEEL if i == 2 else BLUE, width=1)
@@ -1195,7 +1212,8 @@ def gen_technique_icons():
             d.line([(12 + math.cos(a) * 7, 12 + math.sin(a) * 7), (12 + math.cos(a) * 11, 12 + math.sin(a) * 11)], fill=RED)
         d.ellipse([10, 10, 14, 14], fill=RED)
 
-    for name, fn in (("riposte", riposte), ("swordfish", swordfish), ("kraken_wake", kraken),
+    for name, fn in (("riposte", riposte), ("iai_counter", iai_counter), ("cross_counter", cross_counter),
+                     ("swordfish", swordfish), ("kraken_wake", kraken),
                      ("wind_sever", wind_sever), ("phantom_step", phantom), ("petal_storm", petals),
                      ("axe_throw", axe_throw), ("earthsplitter", earthsplitter), ("berserk", berserk), ("maelstrom", maelstrom),
                      ("blade_dance", blade_dance), ("cross_fang", cross_fang), ("steel_tempest", tempest),

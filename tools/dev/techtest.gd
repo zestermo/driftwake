@@ -18,6 +18,7 @@ var pos0 := Vector3.ZERO
 var gpos0 := Vector3.ZERO
 var moved := 0.0
 var went_down := false
+var guard := 0
 var idx := 0
 var phase := 0
 func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
@@ -205,7 +206,7 @@ func _process(d: float) -> bool:
 					wait = 0.3
 				1:
 					face(g.global_position)
-					aim_at(g.hurtbox.global_position)
+					aim_at(g.hurtbox.global_position + Vector3.UP * 0.95)
 					v0 = g.health.current_health
 					pos0 = p.global_position
 					gpos0 = g.global_position
@@ -262,31 +263,66 @@ func _process(d: float) -> bool:
 			shot.damage = 10.0
 			p._deflect_cd = 0.0
 			p.hurtbox.take_hit(shot, g)
-			check("a cutlass cuts a shot out of the air", p.health_component.current_health == hp0)
+			check("Return to Sender: a cutlass cuts a shot by itself", p.health_component.current_health == hp0)
 			check("...and sends it back at the shooter", g.health.current_health < v0)
 			var hp1: float = p.health_component.current_health
 			p.hurtbox.take_hit(shot, g)
 			check("the next shot right after isn't deflected", p.health_component.current_health < hp1)
-			# Riposte: the guard turns a blow aside and answers it
-			pc.equip("riposte", 0)
+			# the early upgrade: a parry cuts shots (Arrow Cutting); without it, it doesn't
+			p._deflect_cd = 99.0
+			p.is_parrying = true
+			var hp2: float = p.health_component.current_health
+			p._on_hit_received(shot, g)
+			check("Arrow Cutting: a cutlass parry cuts a shot", p.health_component.current_health == hp2)
+			pr.owned.erase("s_deflect")
+			p._on_hit_received(shot, g)
+			check("without Arrow Cutting a parry doesn't stop a shot", p.health_component.current_health < hp2)
+			pr.owned["s_deflect"] = true
+			p.is_parrying = false
+			p._deflect_cd = 0.0
+			guard = 0
+			step = 30
+		30:
+			# the guard skills (Riposte, Iai Counter, Crossed Counter) turn a blow aside and answer it
+			var gs: Array = [["riposte", "sword"], ["iai_counter", "katana"], ["cross_counter", "dual_sword"]][guard]
+			arm(str(gs[1]))
+			face(g.global_position)
+			pc.equip(str(gs[0]), 0)
 			pc.energy = pc.max_energy()
 			pc.cooldowns.clear()
-			check("cast Riposte", pc.try_cast(0))
+			check("cast %s" % gs[0], pc.try_cast(0))
 			wait = 0.25
-			step += 1
-		12:
+			step = 31
+		31:
 			v0 = g.health.current_health
 			var hp0: float = p.health_component.current_health
 			var blow := HitData.new()
 			blow.damage = 12.0
 			park(g, ground(p.global_position - p.player_model.global_basis.z * 1.5))
 			p.hurtbox.take_hit(blow, g)
-			check("Riposte turns the blow aside", p.health_component.current_health == hp0)
+			check("the guard turns the blow aside", p.health_component.current_health == hp0)
 			check("...into its counter", p.current_state_name() == "Technique" and p.state_machine.get_node("Technique").id == "riposte_counter")
-			wait = 0.5
-			step += 1
+			wait = 0.6
+			step = 32
+		32:
+			check("...which cuts them (%s)" % p.style(), g.health.current_health < v0)
+			if p.style() == "katana":
+				check("the katana is back in hand after the counter", p.body_model.weapon_in_hand)
+			guard += 1
+			step = 30 if guard < 3 else 33
+		33:
+			# a guard that nobody tests: Iai Counter draws the blade again
+			arm("katana")
+			pc.equip("iai_counter", 0)
+			pc.energy = pc.max_energy()
+			pc.cooldowns.clear()
+			pc.try_cast(0)
+			wait = 1.6
+			step = 34
+		34:
+			check("an unanswered Iai Counter draws the katana again", p.body_model.weapon_in_hand)
+			step = 13
 		13:
-			check("...which cuts them", g.health.current_health < v0)
 			# Berserk / Smoke Bomb buffs
 			arm("axe")
 			pc.equip("berserk", 0)

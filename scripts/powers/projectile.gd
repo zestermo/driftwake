@@ -175,6 +175,8 @@ func _cut(at: Vector3) -> void:
 		hd.camera_shake_intensity = 0.08
 		hd.knockdown = kind == "wave"
 		hd.sever = true
+		# a thrown axe is a missile: a sword guard doesn't stop it
+		hd.ranged = kind == "axe"
 		hb.take_hit(hd, source)
 		pc.add_ult(hd.damage)
 		pc.on_sword_hit(e, hd)

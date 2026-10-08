@@ -153,6 +153,15 @@ static func pose(h, n: String, u: float) -> Array:
 			p["pivot"] = Vector3(0, -TAU * 7.0 * _ease_io(clampf((s - 0.1) / 2.75, 0.0, 1.0)), 0)
 			return [p, "full", lift]
 		# --- dual swords ---
+		"cross_guard":
+			# both blades raised and crossed in an X in front of the face, elbows out,
+			# weight sunk, waiting
+			var gd := {"hips": Vector3.ZERO, "arm_r": Vector3(1.3, 0.55, -0.1), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3(-0.1, 0, 0),
+				"arm_l": Vector3(1.3, -0.55, 0.1), "fore_l": Vector3(1.2, 0, 0), "hand_l": Vector3(-0.1, 0, 0),
+				"torso": Vector3(-0.1, 0.0, 0.02 * sin(h._t * 6.0)), "head": Vector3(0.08, 0, 0),
+				"leg_l": Vector3(0.35, 0, -0.18), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.25, 0, 0.18), "shin_r": Vector3(-0.5, 0, 0),
+				"_lift": Vector3(0, -0.14, 0)}
+			return [h._keys(u, [[0.0, {}], [0.15, gd, "out"], [0.85, gd], [1.0, g]]), "full", lift]
 		"blade_dance":
 			# both blades out level, three turns while dancing forward, bobbing
 			var out := {"hips": Vector3.ZERO, "arm_r": Vector3(1.4, 0.0, 1.5), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.4, 0.0, -1.5), "fore_l": Vector3(0.05, 0, 0),
