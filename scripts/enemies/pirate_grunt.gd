@@ -1420,6 +1420,21 @@ func rooted(secs: float) -> void:
 	Net.fx("vine_wrap", [self, secs, 0.32])
 
 
+## Held in a captain's grapple (they carry the body; it just can't act).
+func grabbed(secs: float) -> void:
+	if Net.forward(self, "grabbed", [secs]):
+		return
+	if state in [S.DEAD, S.DOWN, S.GETUP, S.SWIM]:
+		return
+	hitbox.deactivate()
+	_drop_aim()
+	_release_token()
+	_stagger_len = secs
+	humanoid.play("stagger", secs)
+	velocity = Vector3.ZERO
+	_set_state(S.STAGGER)
+
+
 func _dead_update(delta: float) -> void:
 	_dead_t += delta
 	var rag := humanoid.ragdoll

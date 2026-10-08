@@ -97,8 +97,8 @@ func _frame_tab() -> void:
 			pts.append(SkillTree.nodes()[id]["pos"])
 	if _tab == "base" or pts.is_empty():
 		_pan = Vector2(0, -HEADER_H * 0.5)
-		# the base constellation reaches ~470 from the center (region labels)
-		_zoom = clampf(minf(mr.size.x, mr.size.y - HEADER_H) / 2.0 / 470.0, 0.22, 1.6)
+		# the base constellation reaches ~560 from the center (region labels)
+		_zoom = clampf(minf(mr.size.x, mr.size.y - HEADER_H) / 2.0 / 560.0, 0.22, 1.6)
 		return
 	var lo: Vector2 = pts[0]
 	var hi: Vector2 = pts[0]
@@ -348,15 +348,19 @@ func _draw() -> void:
 	var mr := _map_rect()
 	if _tab == "base":
 		# region labels
-		var labels := [["Mobility", "Mobility"], ["Survival", "Survival"],
-			["Armament", "Armament Haki"], ["Observation", "Observation Haki"]]
+		# [region, label, distance out, awakens at level]
+		var labels := [["Mobility", "Mobility", 550.0, 0], ["Survival", "Survival", 550.0, 0],
+			["Armament", "Armament Haki", 480.0, 10], ["Observation", "Observation Haki", 480.0, 10],
+			["Conqueror", "", 345.0, 18]]
 		for l in labels:
 			var a := deg_to_rad(SkillTree.REGION_ANGLE[l[0]])
-			var lp := _to_screen(Vector2(cos(a), sin(a)) * 470.0)
+			var lp := _to_screen(Vector2(cos(a), sin(a)) * float(l[2]))
 			var col: Color = SkillTree.REGION_COLORS[l[0]]
-			_text(lp + Vector2(-60, 0), str(l[1]).to_upper(), Color(col.r, col.g, col.b, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
-			if pr.level < 10 and l[0] in ["Armament", "Observation"]:
-				_text(lp + Vector2(-60, 10), "awakens at level 10", Color(0.7, 0.6, 0.8, 0.6), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
+			# (Conqueror's region is just its ultimate, which carries the name)
+			if str(l[1]) != "":
+				_text(lp + Vector2(-60, 0), str(l[1]).to_upper(), Color(col.r, col.g, col.b, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
+			if pr.level < int(l[3]):
+				_text(lp + Vector2(-60, 10), "awakens at level %d" % int(l[3]), Color(0.7, 0.6, 0.8, 0.6), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 	elif _tab != "fruit":
 		var m := pr.mastery_of(_tab)
 		if int(m["lv"]) == 1 and int(m["xp"]) == 0 and int(m["pts"]) == 0:
@@ -480,7 +484,7 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 			draw_circle(c, r * 0.45, region_col if owned else Color(0.3, 0.3, 0.35))
 	if id == _sel:
 		draw_arc(c, r + 4.0, 0, TAU, 24, Color.WHITE, 1.0)
-	if id == _hover or kind in ["active", "ult", "root", "move"] or (k >= 1.2 and kind != "stat"):
+	if id == _hover or kind in ["active", "ult", "root"] or (k >= 1.2 and kind != "stat"):
 		var nc := Color(1, 1, 1, 0.95) if (owned or avail or id == _hover) else Color(0.75, 0.75, 0.82, 0.7)
 		_text(c + Vector2(-60, r + (13.0 if kind in ["active", "ult"] else 9.0)), str(n["name"]), nc, 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 
@@ -514,10 +518,15 @@ func _draw_panel(pl: Player) -> void:
 		var line := "Cooldown %ss" % str(snappedf(float(sd["cooldown"]), 0.1))
 		if not Skills.is_ult(sk):
 			line = "%d energy   %s" % [int(sd["cost"]), line]
-		if str(sd.get("needs", "")) != "":
-			line += "   needs %s" % ("a sword" if sd["needs"] == "sword" else "a pistol")
 		_text(Vector2(x0 + 8, y), line, Color(0.6, 0.8, 1.0))
-		y += 12.0
+		y += 10.0
+		var needs := str(sd.get("needs_text", ""))
+		if needs == "" and str(sd.get("needs", "")) != "":
+			needs = "a sword" if sd["needs"] == "sword" else "a pistol"
+		if needs != "":
+			_text(Vector2(x0 + 8, y), "Needs %s" % needs, Color(0.6, 0.8, 1.0))
+			y += 10.0
+		y += 2.0
 	y = _wrap(x0 + 8, y, desc, PANEL_W - 16, UIStyle.TEXT) + 8.0
 	var why := pr.can_learn(id)
 	var cost := int(n["cost"])

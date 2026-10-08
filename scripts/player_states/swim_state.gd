@@ -101,7 +101,7 @@ func physics_update(delta: float) -> void:
 	var spd := TIRED_SPEED if tired else (FAST_SPEED if fast else SWIM_SPEED)
 	if _diving:
 		spd = SWIM_SPEED * 1.15
-	spd *= clampf(input.length(), 0.0, 1.0)
+	spd *= clampf(input.length(), 0.0, 1.0) * (1.0 + player.progression.stat("swim_pct"))
 	var hv := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	hv = hv.move_toward(dir * spd, ACCEL * delta)
 

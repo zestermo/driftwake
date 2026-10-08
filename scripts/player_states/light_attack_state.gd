@@ -115,7 +115,7 @@ func physics_update(delta: float) -> void:
 	if timer >= _window.x and not hitbox_activated:
 		hitbox_activated = true
 		var last := combo_index == combo_count - 1
-		var hit := player.melee_hit(float(cfg["damages"][combo_index]))
+		var hit := player.melee_hit(float(cfg["damages"][combo_index]), "finisher" if last else "")
 		hit.hitstop_duration = float(cfg["hitstops"][combo_index])
 		hit.camera_shake_intensity = float(cfg["shakes"][combo_index])
 		hit.knockback_force = 8.0 if last else 4.0

@@ -12,7 +12,8 @@ var _window: float = 0.26
 func enter(_data: Dictionary) -> void:
 	timer = 0.0
 	parry_active = true
-	_window = parry_window + (0.05 if player.progression.has_flag("observation") else 0.0)
+	var pr := player.progression
+	_window = parry_window + (0.05 if pr.has_flag("observation") else 0.0) + pr.stat("parry_all") + pr.style_stat("parry", player.style())
 	parry_succeeded = false
 	player.is_parrying = true
 	player.body_model.play("parry", parry_window + recovery_time)

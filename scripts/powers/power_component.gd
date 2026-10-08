@@ -172,6 +172,9 @@ func can_cast(slot: int) -> String:
 		return "Needs a sword"
 	if needs == "gun" and player.weapon_class() != "gun":
 		return "Needs a pistol"
+	var styles: Array = sk.get("styles", [])
+	if not styles.is_empty() and not (player.style() in styles):
+		return "Needs %s" % str(sk.get("needs_text", "the right weapon"))
 	var free := float(_free_recast.get(str(sk["id"]), 0.0)) > 0.0
 	var stance_off := str(sk["id"]) == "foresight" and foresight_stance
 	if cooldown_left(slot) > 0.0 and not free and not stance_off:
@@ -215,18 +218,21 @@ func try_cast(slot: int) -> bool:
 			_free_recast[id] = 1.0
 	player.progression.note_use(id)
 	var needs := str(sk.get("needs", ""))
-	if needs != "" and not player.armed:
+	if (needs != "" or not (sk.get("styles", []) as Array).is_empty()) and not player.armed:
 		player.draw_weapon(true)
-	player.state_machine.force_state("Skill", {"slot": slot, "id": id})
+	player.state_machine.force_state(str(sk.get("state", "Skill")), {"slot": slot, "id": id})
 	cast.emit(slot)
 	return true
 
 
 ## A skill's cooldown at a tier (a tier can set its own).
 func skill_cooldown(id: String, tier: int) -> float:
-	var cd := float(Skills.get_skill(id).get("cooldown", 1.0))
+	var sd := Skills.get_skill(id)
+	var cd := float(sd.get("cooldown", 1.0))
 	for t in range(2, tier + 1):
 		cd = float(Skills.tier_def(id, t).get("cooldown", cd))
+	if player:
+		cd *= 1.0 - player.progression.stat("cdr_" + str(sd.get("tree", "")))
 	return cd
 
 
@@ -343,10 +349,27 @@ func add_ult(damage: float) -> void:
 func on_sword_hit(target: Node, hit: HitData) -> void:
 	if target == null:
 		return
-	add_energy(ENERGY_PER_HIT * (1.0 + player.progression.style_stat("flow", player.style())))
+	var st := player.style()
+	var pr := player.progression
+	add_energy(ENERGY_PER_HIT * (1.0 + pr.style_stat("flow", st)))
 	add_ult(hit.damage)
 	if player.is_local:
-		player.progression.on_hit()
+		pr.on_hit()
+		var leech := pr.style_stat("leech", st)
+		if leech > 0.0:
+			player.health_component.heal(hit.damage * leech)
+		if hit.has_meta("crit") and target is Node3D:
+			Net.fx("float_text", [(target as Node3D).global_position + Vector3(0, 2.0, 0), "Crit!", Color(1.0, 0.85, 0.3)])
+		# finishing blows: a target left reeling takes extra
+		var ex := pr.style_stat("exec", st)
+		var hc = target.get("health")
+		if ex > 0.0 and hc is HealthComponent and hc.current_health > 0.0 and hc.current_health < hc.max_health * 0.3:
+			var hb := target.get("hurtbox") as Hurtbox
+			if hb:
+				var fin := HitData.new()
+				fin.dot = true
+				fin.damage = roundf(hit.damage * ex)
+				hb.take_hit(fin, player)
 	if hit.haki and buff("coat") and _ryuo_cd <= 0.0 and target is Node3D and player.is_local \
 			and player.current_state_name() in ["HeavyAttack", "Iai", "Plunge"] and player.progression.skill_tier("armament_coat") >= 3:
 		_ryuo(target as Node3D)

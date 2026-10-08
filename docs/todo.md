@@ -143,11 +143,13 @@ distance culling/LOD anywhere).
   sinking is built) and nobody can get them out. A captain should be able to dive in and haul
   them up (needs to work for a guest too).
 
-## Skills refactor (step 1 done 2026-10-07, see dev_notes: tabs per tree, weapon mastery, moveset unlocks, tiers for Soru/Tekkai/Coat/Foresight; left: bigger passive webs, tiers for weapon and fruit skills, unarmed abilities, more haki masteries)
+## Skills refactor (steps 1-2 done 2026-10-07, see dev_notes: tabs per tree, weapon mastery, moveset unlocks, tiers for Soru/Tekkai/Coat/Foresight; 19-22 node weapon trees with 26 new techniques and an ultimate each, grapples and martial arts, bullet deflection, 17 more base passives, Conqueror's Haki; left: tiers for the new techniques and fruit skills, co-op grab carry for guests)
 
 - Decided (2026-10-07): weapon trees are paid for with that weapon's mastery (earned by fighting
   with it); Base/Haki and Fruit use level skill points. A tier opens after enough uses, then
   costs points. One tab per tree. Old saves get every point refunded.
+- Decided (2026-10-07, step 2): one R slot holds any learned ultimate (weapon ults need their
+  weapon in hand); grapples are bar skills on a light enemy in front, upgraded by passives.
 
 - **Weapon skill trees:** each weapon (cutlass/sword, katana, axe, pistol, sword + pistol,
   dual swords...) gets its own tree.

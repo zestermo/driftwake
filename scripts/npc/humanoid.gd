@@ -26,7 +26,8 @@ signal footstep(strength: float)
 const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r", "hand_l"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
-const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "dual_spin", "gun_kata", "axe_whirl", "axe_flip"]
+const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "dual_spin", "gun_kata", "axe_whirl", "axe_flip",
+	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "giant_swing"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r", "hand_l"]
 
 var look: Dictionary = {}
@@ -203,7 +204,8 @@ var _react_var: float = 0.0
 ## During actions the eyes look at most this far above level (pivot + torso + head
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
-const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup", "vine_hang", "vine_shoot", "vine_release", "drink"]
+const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup", "vine_hang", "vine_shoot", "vine_release", "drink",
+	"berserk_roar", "suplex", "rising_dragon", "conqueror"]
 var _freeze: float = 0.0
 var _base: Dictionary = {}
 ## Hip height from the body style (the legs' length); PIVOT_Y is the reference.
@@ -687,7 +689,7 @@ func _katana_hands() -> void:
 	match current_action():
 		"iai_ready":
 			_hands_on_scabbard()
-		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash", "drink":
+		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash", "drink", "petal_storm":
 			pass
 		_:
 			if _run_sheath and not weapon_in_hand:
@@ -700,7 +702,7 @@ func _katana_hands() -> void:
 
 ## The axe's two-handed moves (the splitter, the whirlwind, Skybreaker): the
 ## left hand on the haft above the right.
-const AXE_TWO_HANDED := ["axe_split", "axe_whirl", "axe_flip", "axe_land"]
+const AXE_TWO_HANDED := ["axe_split", "axe_whirl", "axe_flip", "axe_land", "earthsplitter", "maelstrom"]
 
 
 func _axe_hands() -> void:
@@ -2057,6 +2059,10 @@ func _action_pose(n: String, u: float) -> Array:
 		"wave":
 			var wv := {"arm_r": Vector3(0.2, 0, 2.6 + sin(_t * 12.0) * 0.25), "fore_r": Vector3(0.4, 0, 0), "head": Vector3(0.1, -0.2, 0)}
 			return [_keys(u, [[0.0, {}], [0.2, wv], [0.85, wv], [1.0, {}]]), "upper", lift]
+	# weapon / unarmed techniques live in their own file
+	var tp := TechniquePoses.pose(self, n, u)
+	if not tp.is_empty():
+		return tp
 	if not _action["events"].has("unknown"):
 		_action["events"]["unknown"] = true
 		push_error("Humanoid.play: no pose for action \"%s\" (the body just keeps moving)" % n)

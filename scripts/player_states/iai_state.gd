@@ -44,7 +44,7 @@ func physics_update(delta: float) -> void:
 			player.velocity.z = move_toward(player.velocity.z, want.z, 30.0 * delta)
 			player.move_and_slide()
 			face_camera(delta)
-			while level < _top and timer >= float(LEVELS[level]):
+			while level < _top and timer >= float(LEVELS[level]) * (1.0 - player.progression.stat("iai_speed")):
 				level += 1
 				_charged()
 			if input_buffer.consume_action("light_attack"):
@@ -96,7 +96,7 @@ func _release() -> void:
 	player.set_collision_mask_value(12, false)   # the cut carries you through them
 	player.body_model.play("iai_slash", DASH_TIME + RECOVER)
 	player.set_reach("iai")
-	var hit := player.melee_hit(float(DAMAGE[level]))
+	var hit := player.melee_hit(float(DAMAGE[level]), "heavy")
 	hit.hitstop_duration = 0.06 + 0.03 * level
 	hit.camera_shake_intensity = 0.12 + 0.06 * level
 	hit.knockback_force = 8.0 + 3.0 * level

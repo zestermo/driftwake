@@ -94,6 +94,9 @@ func _fire(dual: bool) -> void:
 		var hb := hit["collider"] as Hurtbox
 		end = hit["position"]
 		var hd := player.melee_hit(DUAL_DAMAGE if dual else SINGLE_DAMAGE)
+		# Point Blank (pistol tree): close shots hit harder
+		if muzzle.distance_to(end) < 5.0:
+			hd.damage *= 1.0 + player.progression.stat("pointblank_pct")
 		hd.knockback_force = 3.0
 		hd.hitstop_duration = 0.0 if dual else 0.03   # (rapid dual fire: a freeze per hit reads as stutter)
 		hd.camera_shake_intensity = 0.0 if dual else 0.05
@@ -101,6 +104,8 @@ func _fire(dual: bool) -> void:
 		hb.take_hit(hd, player)
 		player.power.on_sword_hit(hb.owner, hd)
 		Net.fx("impact", [end, Color(1.0, 0.75, 0.45)])
+		if player.progression.has_flag("ricochet"):
+			_ricochet(end, hb.owner, hd.damage)
 	else:
 		Net.fx("dust", [end, 3, 0.35])
 	Net.fx("tracer", [muzzle, end])
@@ -110,6 +115,31 @@ func _fire(dual: bool) -> void:
 	# (a shake this small lasts one frame: with rapid dual fire it's a hitch, not a kick)
 	if not dual:
 		CombatManager.apply_camera_shake(0.04)
+
+
+## Ricochet (pistol tree): the ball glances off into the nearest other enemy.
+func _ricochet(at: Vector3, first: Node, dmg: float) -> void:
+	var best: Node3D = null
+	var bd := 9.0
+	for e in player.power.enemies_in(at, 9.0):
+		if e == first:
+			continue
+		var d := (e as Node3D).global_position.distance_to(at)
+		if d < bd:
+			bd = d
+			best = e
+	if best == null:
+		return
+	var hb := best.get("hurtbox") as Hurtbox
+	if hb == null:
+		return
+	var hd := HitData.new()
+	hd.ranged = true
+	hd.damage = roundf(dmg * 0.6)
+	hd.knockback_force = 2.0
+	hb.take_hit(hd, player)
+	Net.fx("tracer", [at, hb.global_position])
+	Net.fx("impact", [hb.global_position, Color(1.0, 0.75, 0.45)])
 
 
 func physics_update(delta: float) -> void:

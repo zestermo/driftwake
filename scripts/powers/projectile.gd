@@ -1,8 +1,12 @@
 class_name Projectile
 extends Node3D
-## Straight-flying skill projectiles other than the Fire Fist:
+## Flying skill projectiles other than the Fire Fist:
 ##   "slash"  Flying Slash: a crescent of wind that cuts through every enemy in
 ##            its path (pierces), stopped by walls.
+##   "wave"   Wind Severer: a tall crescent standing on its edge, bigger and
+##            slower, knocking down everything it passes.
+##   "axe"    Hatchet Throw: the thrower's axe spinning out and back to the hand,
+##            cutting everything on the way out and again on the way back.
 ##   "seed"   Vine Snare: a seed that bursts into grasping vines on the first
 ##            enemy or surface it hits, rooting everyone close.
 
@@ -11,28 +15,40 @@ var dir := Vector3.FORWARD
 var speed: float = 24.0
 var range_m: float = 22.0
 var damage: float = 26.0
+var model: String = ""
 var source: Node3D
 var _travel: float = 0.0
 var _done: bool = false
+var _back: bool = false
 var _hit: Array = []
 var _mesh: MeshInstance3D
 var _mat: StandardMaterial3D
 
+signal returned
 
-static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3, src: Node3D, dmg: float) -> Projectile:
+
+static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3, src: Node3D, dmg: float, weapon_model: String = "") -> Projectile:
 	var p := Projectile.new()
 	p.kind = k
 	p.dir = direction.normalized()
 	p.source = src
 	p.damage = dmg
-	if k == "seed":
-		p.speed = 20.0
-		p.range_m = 24.0
+	p.model = weapon_model
+	match k:
+		"seed":
+			p.speed = 20.0
+			p.range_m = 24.0
+		"wave":
+			p.speed = 19.0
+			p.range_m = 18.0
+		"axe":
+			p.speed = 20.0
+			p.range_m = 13.0
 	var root: Node = tree.current_scene if tree.current_scene else tree.root
 	root.add_child(p)
 	p.global_position = from
 	if src is Player:
-		(src as Player).net_power("projectile", [k, from, direction, dmg])
+		(src as Player).net_power("projectile", [k, from, direction, dmg, weapon_model])
 	return p
 
 
@@ -41,8 +57,8 @@ func _ready() -> void:
 	_mat = StandardMaterial3D.new()
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	if kind == "slash":
-		# a thin crescent lying across the flight path
+	if kind in ["slash", "wave"]:
+		# a thin crescent lying across the flight path (stood on its edge for the wave)
 		var mb := MeshBuilder.new()
 		_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
@@ -58,6 +74,12 @@ func _ready() -> void:
 			mb.add_quad(_mat, p0 + Vector3(0, 0, -w0), p1 + Vector3(0, 0, -w1), p1 + Vector3(0, 0, w1), p0 + Vector3(0, 0, w0), Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1))
 		_mesh.mesh = mb.commit()
 		_mesh.material_override = _mat
+		if kind == "wave":
+			_mesh.scale = Vector3(1.9, 1.9, 1.6)
+			_mesh.rotation.z = PI * 0.5
+			_mesh.position.y = 0.6
+	elif kind == "axe":
+		_mesh.mesh = Props.weapon_mesh(model)
 	else:
 		var sm := SphereMesh.new()
 		sm.radius = 0.13
@@ -75,6 +97,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _done:
 		return
+	if kind == "axe" and _back:
+		_return_update(delta)
+		return
 	var step := dir * speed * delta
 	var from := global_position
 	var to := from + step
@@ -85,43 +110,105 @@ func _physics_process(delta: float) -> void:
 	var wall := space.intersect_ray(q)
 	if not wall.is_empty():
 		global_position = (wall["position"] as Vector3) - dir * 0.1
+		if kind == "axe":
+			_turn_back()
+			return
 		_finish()
 		return
-	var pc := source.get("power") as PowerComponent if source and is_instance_valid(source) else null
-	if pc:
-		for e in pc.enemies_in(to, 1.3 if kind == "slash" else 0.5):
-			if e in _hit:
-				continue
-			_hit.append(e)
-			if kind == "slash":
-				var hb := (e as Node).get("hurtbox") as Hurtbox
-				if hb:
-					var hd := (source as Player).melee_hit(damage)
-					hd.knockback_force = 6.0
-					hd.stagger_duration = 0.35
-					hd.hitstop_duration = 0.05
-					hd.camera_shake_intensity = 0.08
-					hb.take_hit(hd, source)
-					pc.add_ult(hd.damage)
-					FX.impact((e as Node3D).global_position + Vector3(0, 1.0, 0), Color(0.8, 0.9, 1.0))
-			else:
-				global_position = to
-				_finish()
-				return
+	if kind == "seed":
+		var pc0 := _pc()
+		if pc0 and not pc0.enemies_in(to, 0.5).is_empty():
+			global_position = to
+			_finish()
+			return
+	else:
+		_cut_along(from, to)
 	global_position = to
 	_travel += step.length()
-	if kind == "seed":
-		_mesh.rotation += Vector3(9.0, 6.0, 0.0) * delta
-	elif int(_travel * 3.0) % 2 == 0:
-		FX.sparkle(global_position, 1, Color(0.8, 0.95, 1.0))
+	match kind:
+		"seed":
+			_mesh.rotation += Vector3(9.0, 6.0, 0.0) * delta
+		"axe":
+			_mesh.rotation.x -= 22.0 * delta
+		_:
+			if int(_travel * 3.0) % 2 == 0:
+				FX.sparkle(global_position + Vector3.UP * (0.8 if kind == "wave" else 0.0), 2 if kind == "wave" else 1, Color(0.8, 0.95, 1.0))
 	if _travel >= range_m:
-		_finish()
+		if kind == "axe":
+			_turn_back()
+		else:
+			_finish()
+
+
+func _pc() -> PowerComponent:
+	return source.get("power") as PowerComponent if source and is_instance_valid(source) else null
+
+
+## Cut along the whole step (a long frame mustn't skip over someone).
+func _cut_along(from: Vector3, to: Vector3) -> void:
+	var n := maxi(int(ceil(from.distance_to(to) / 0.8)), 1)
+	for i in range(1, n + 1):
+		_cut(from.lerp(to, float(i) / float(n)))
+
+
+## Everything the blade passes through gets cut (once per pass).
+func _cut(at: Vector3) -> void:
+	var pc := _pc()
+	if pc == null:
+		return
+	var r := 1.3
+	if kind == "wave":
+		r = 1.9
+	elif kind == "axe":
+		r = 1.1
+	for e in pc.enemies_in(at + Vector3.UP * (0.6 if kind == "wave" else 0.0), r):
+		if e in _hit:
+			continue
+		_hit.append(e)
+		var hb := (e as Node).get("hurtbox") as Hurtbox
+		if hb == null:
+			continue
+		var hd := (source as Player).melee_hit(damage, "skill")
+		hd.knockback_force = 9.0 if kind == "wave" else 6.0
+		hd.stagger_duration = 0.35
+		hd.hitstop_duration = 0.05
+		hd.camera_shake_intensity = 0.08
+		hd.knockdown = kind == "wave"
+		hd.sever = true
+		hb.take_hit(hd, source)
+		pc.add_ult(hd.damage)
+		pc.on_sword_hit(e, hd)
+		FX.impact((e as Node3D).global_position + Vector3(0, 1.0, 0), Color(0.8, 0.9, 1.0))
+
+
+func _turn_back() -> void:
+	_back = true
+	_hit.clear()
+	FX.sfx("whoosh", global_position, -6.0, 0.1, 0.9)
+
+
+## The axe flies back to the thrower's hand, cutting on the way.
+func _return_update(delta: float) -> void:
+	if source == null or not is_instance_valid(source):
+		queue_free()
+		return
+	var hand := source.global_position + Vector3.UP * 1.2
+	var to_hand := hand - global_position
+	if to_hand.length() < 0.8:
+		_done = true
+		returned.emit()
+		queue_free()
+		return
+	var step := to_hand.normalized() * minf(speed * 1.1 * delta, to_hand.length())
+	_cut_along(global_position, global_position + step)
+	global_position += step
+	_mesh.rotation.x -= 22.0 * delta
 
 
 func _finish() -> void:
 	_done = true
 	if kind == "seed":
-		var pc := source.get("power") as PowerComponent if source and is_instance_valid(source) else null
+		var pc := _pc()
 		var at := global_position
 		FX.sparkle(at, 14, Color(0.5, 0.95, 0.3))
 		FX.dust_ring(at, 10, 0.7)

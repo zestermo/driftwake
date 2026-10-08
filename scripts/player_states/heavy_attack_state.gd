@@ -189,7 +189,7 @@ func physics_update(delta: float) -> void:
 
 
 func _hit(knockdown: bool) -> HitData:
-	var hit := player.melee_hit(float(cfg["damage"]))
+	var hit := player.melee_hit(float(cfg["damage"]), "heavy")
 	# Armament Haki: heavy attacks can't be blocked
 	if player.progression.has_flag("armament"):
 		hit.unblockable = true

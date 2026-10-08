@@ -587,6 +587,17 @@ func rooted(secs: float) -> void:
 	Net.fx("vine_wrap", [self, secs, 0.45 * size_k])
 
 
+## Held in a captain's grapple.
+func grabbed(secs: float) -> void:
+	if Net.forward(self, "grabbed", [secs]):
+		return
+	if state in [S.DEAD, S.DOWN]:
+		return
+	_daze_len = secs
+	velocity = Vector3.ZERO
+	_set_state(S.DAZED)
+
+
 func _number(dmg: float) -> void:
 	Net.damage_number(dmg, global_position + Vector3(0, 0.6 * size_k, 0))
 

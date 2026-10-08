@@ -355,7 +355,7 @@ func attribute(name_: String) -> int:
 func defense() -> float:
 	var d := equipment.defense() if equipment else 0.0
 	if progression:
-		d += progression.stat("defense")
+		d += progression.stat("defense") + progression.style_stat("def", style())
 		if hybrid:
 			d += progression.stat("hybrid_defense")
 	return d
@@ -445,12 +445,24 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if not hit.dot and power.use_foresight():
 		_foresight_dodge(dir)
 		return
+	if not hit.dot and randf() < progression.stat("evade_chance"):
+		_foresight_dodge(dir, "Instinct!")
+		return
+	if hit.ranged and _try_deflect(hit, dir, attacker):
+		return
+	# Riposte: the guard is up - turn the blow aside and answer it
+	if power.buff("riposte") and not hit.ranged and not hit.dot and not hit.unblockable:
+		power.buffs["riposte"] = 0.0
+		state_machine.force_state("Technique", {"id": "riposte_counter", "target": attacker})
+		return
 	if hit.knockdown and power.iron_reflex():
 		_toast("Iron Reflex!")
 	_since_hit = 0.0
 	var dmg := hit.damage * (1.0 - damage_reduction())
 	if power.buff("tekkai"):
 		dmg *= 0.3
+	if power.buff("berserk"):
+		dmg *= 1.15
 	# Last Stand: once a minute, a killing blow leaves you at 1
 	if progression.has_flag("last_stand") and _last_stand_cd <= 0.0 and dmg >= health_component.current_health and health_component.current_health > 1.0:
 		dmg = health_component.current_health - 1.0
@@ -476,8 +488,11 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		return  # _on_died ragdolls the body
 	if context == Context.HELM or current_state_name() in ["Talk", "Helm"]:
 		return
-	if power.buff("tekkai"):
-		return  # Tekkai: nothing moves you
+	if power.buff("tekkai") or power.buff("berserk"):
+		return  # Tekkai / Berserk: nothing moves you
+	# Unstoppable (axe tree): swinging the axe, blows don't stop you
+	if progression.style_stat("armor", style()) > 0.0 and current_state_name() in ["LightAttack", "HeavyAttack", "Plunge", "Technique"]:
+		return
 	if hit.knockdown:
 		knock_down(_last_hit_velocity)
 		return
@@ -489,7 +504,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 
 ## Foresight: you saw it coming - an instant sidestep with an afterimage and
 ## a beat of slow motion.
-func _foresight_dodge(dir: Vector3) -> void:
+func _foresight_dodge(dir: Vector3, label: String = "Foresight!") -> void:
 	var side := Vector3.UP.cross(dir).normalized() * (1.0 if randf() < 0.5 else -1.0)
 	Net.fx("afterimage", [body_model, Color(0.95, 0.5, 0.8)])
 	global_position += side * 1.6
@@ -497,7 +512,38 @@ func _foresight_dodge(dir: Vector3) -> void:
 	reset_physics_interpolation()
 	Net.fx("sfx", ["whoosh", global_position, -4.0, 0.05, 1.5])
 	CombatManager.apply_hitstop(0.18, [self])
-	_toast("Foresight!")
+	_toast(label)
+
+
+## A blade out and a shot coming from the front: cut it out of the air (weapon
+## tree "deflect" nodes; "return" nodes send it back at the shooter).
+var _deflect_cd: float = 0.0
+
+
+func _try_deflect(hit: HitData, dir: Vector3, attacker: Node) -> bool:
+	var st := style()
+	if not armed or _deflect_cd > 0.0 or progression.style_stat("deflect", st) <= 0.0:
+		return false
+	var fwd := -player_model.global_basis.z
+	fwd.y = 0.0
+	if fwd.normalized().dot(-dir) < 0.2:
+		return false
+	_deflect_cd = maxf(4.0 - progression.style_stat("deflect_cd", st), 1.0)
+	body_model.play("deflect", 0.35)
+	var at := global_position + Vector3(0, 1.3, 0) - dir * 0.6
+	Net.fx("sparkle", [at, 12, Color(1.0, 0.85, 0.5)])
+	Net.fx("impact", [at, Color(1.0, 0.9, 0.6)])
+	Net.fx("sfx", ["parry", at, -4.0, 0.05, 1.6])
+	Net.fx("float_text", [at + Vector3.UP * 0.5, "Deflected!", Color(1.0, 0.9, 0.6)])
+	if progression.style_stat("return", st) > 0.0 and attacker is Node3D and attacker.get("hurtbox") is Hurtbox:
+		var back := HitData.new()
+		back.ranged = true
+		back.damage = roundf(hit.damage * 2.0 * damage_multiplier())
+		back.knockback_force = 4.0
+		back.stagger_duration = 0.4
+		(attacker.get("hurtbox") as Hurtbox).take_hit(back, self)
+		Net.fx("tracer", [at, (attacker.get("hurtbox") as Node3D).global_position])
+	return true
 
 
 ## Soru mastered (Shadow Step): gone from sight, and nothing lands on you.
@@ -619,6 +665,7 @@ func _process(delta: float) -> void:
 func _tick_body(delta: float) -> void:
 	_since_hit += delta
 	_last_stand_cd = maxf(_last_stand_cd - delta, 0.0)
+	_deflect_cd = maxf(_deflect_cd - delta, 0.0)
 	if _vanish_t > 0.0:
 		_vanish_t -= delta
 		if _vanish_t <= 0.0:
@@ -1023,7 +1070,7 @@ func can_sprint() -> bool:
 ## Called every physics tick while sprinting.
 func drain_sprint(delta: float) -> void:
 	_sprint_seen_ms = Time.get_ticks_msec()
-	stamina = maxf(stamina - SPRINT_DRAIN * delta, 0.0)
+	stamina = maxf(stamina - SPRINT_DRAIN * (1.0 - progression.stat("sprint_cost_pct")) * delta, 0.0)
 	_stamina_delay = STAMINA_REGEN_DELAY * 0.6
 	if stamina <= 0.0:
 		winded = true
@@ -1105,6 +1152,9 @@ func _fall_damage(speed: float) -> void:
 	var dmg := (speed - SAFE_FALL_SPEED) * FALL_DAMAGE_PER_MS
 	if power.buff("tekkai"):
 		dmg *= 0.3
+	if progression.has_flag("featherfall"):
+		dmg *= 0.25
+		speed = minf(speed, SAFE_FALL_SPEED + 4.0)
 	_since_hit = 0.0
 	health_component.take_damage(dmg)
 	Net.fx("sfx", ["thud", global_position, -2.0, 0.05, 0.8])
@@ -1499,10 +1549,20 @@ func can_attack() -> bool:
 	return armed and not (body_model.current_action() in ["draw", "sheathe", "drink"])
 
 
-## A melee hit for `base` damage with your bonuses (and Haki coating).
-func melee_hit(base: float) -> HitData:
+## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
+## ("heavy", "finisher", "skill") adds that weapon tree's bonus for it; any hit
+## can crit (x1.5).
+func melee_hit(base: float, kind: String = "") -> HitData:
 	var h := HitData.new()
-	h.damage = base * damage_multiplier()
+	var st := style()
+	var pr := progression
+	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0)
+	h.damage = base * damage_multiplier() * k
+	if randf() < pr.style_stat("crit", st) + pr.stat("crit_all"):
+		h.damage *= 1.5
+		h.set_meta("crit", true)
+	if kind == "heavy" and pr.style_stat("unblock", st) > 0.0:
+		h.unblockable = true
 	if power.buff("coat"):
 		# Armament: Coat - nothing can block it, and it breaks red wind-ups
 		h.unblockable = true
@@ -1541,6 +1601,11 @@ func damage_multiplier() -> float:
 	k += pr.style_stat("dmg", st)
 	if st == "claw":
 		k += 0.25
+	if power.buff("berserk"):
+		k += 0.25
+	# Adrenaline: hurt badly, you hit harder
+	if health_component.current_health < health_component.max_health * 0.35:
+		k += pr.stat("adrenaline")
 	if power.buff("coat"):
 		k += 0.3
 	if power.buff("howl"):
@@ -1616,8 +1681,9 @@ func _finish_use() -> void:
 		SaveGame.save(self)
 		return
 	if item.heal_amount > 0.0:
-		health_component.heal(item.heal_amount)
-		_toast("+%d health" % int(item.heal_amount))
+		var amt := item.heal_amount * (1.0 + progression.stat("potion_pct"))
+		health_component.heal(amt)
+		_toast("+%d health" % int(amt))
 
 
 func is_using_item() -> bool:
@@ -1852,7 +1918,7 @@ func net_event(what: String, args: Array) -> void:
 			var a: Array = args[1]
 			match str(args[0]):
 				"projectile":
-					Projectile.launch(get_tree(), str(a[0]), a[1], a[2], self, float(a[3]))
+					Projectile.launch(get_tree(), str(a[0]), a[1], a[2], self, float(a[3]), str(a[4]))
 				"fireball":
 					Fireball.launch(get_tree(), a[0], a[1], self)
 				"fire_zone":

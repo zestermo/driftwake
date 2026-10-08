@@ -67,6 +67,7 @@ static func mastery_to_next(lv: int) -> int:
 func add_xp(amount: int, at: Vector3 = Vector3.INF) -> void:
 	if amount <= 0:
 		return
+	amount = int(round(amount * (1.0 + stat("xp_pct"))))
 	if player:
 		add_mastery(SkillTree.style_tree(player.style()), int(round(amount * MASTERY_KILL_SHARE)))
 	if level >= MAX_LEVEL:

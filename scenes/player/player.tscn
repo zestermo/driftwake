@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3]
+[gd_scene load_steps=39 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/state_machine/state_machine.gd" id="2"]
@@ -29,6 +29,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/block_state.gd" id="block_state"]
 [ext_resource type="Script" path="res://scripts/player_states/cannon_state.gd" id="cannon_state"]
 [ext_resource type="Script" path="res://scripts/player_states/iai_state.gd" id="iai_state"]
+[ext_resource type="Script" path="res://scripts/player_states/technique_state.gd" id="technique_state"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -157,6 +158,9 @@ script = ExtResource("cannon_state")
 
 [node name="Iai" type="Node" parent="StateMachine"]
 script = ExtResource("iai_state")
+
+[node name="Technique" type="Node" parent="StateMachine"]
+script = ExtResource("technique_state")
 
 [node name="Hurtbox" type="Area3D" parent="."]
 collision_layer = 128
