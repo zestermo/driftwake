@@ -1085,7 +1085,7 @@ const GUARD := {
 ## hand up and out for balance.
 const SWORD_GUARD := {
 	"arm_r": Vector3(0.7, -0.2, 0.18), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3(-0.6, 0, 0),
-	"arm_l": Vector3(0.3, 0.25, -0.32), "fore_l": Vector3(0.95, 0, 0),
+	"arm_l": Vector3(0.15, 0.1, -0.58), "fore_l": Vector3(0.8, 0, 0),
 	"torso": Vector3(-0.1, 0.35, 0), "head": Vector3(0.05, -0.33, 0),
 }
 # Enemy swordsman poses (wind-up held as a readable tell, then the swing).

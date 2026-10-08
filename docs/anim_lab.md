@@ -228,6 +228,10 @@ Takeaways:
 - New tool: spec "retime" (a time map) slows chosen phases (wind-up, follow-through) while
   the strike keeps its speed, without re-keying.
 
+Follow-up (Zach): the guard's off hand should sit out to the side, not in front. SWORD_GUARD's
+off arm opened sideways ((0.15, 0.1, -0.58), elbow 0.8): the hand hangs at the left side by
+the hip, a little forward. The lab's off-hand path starts there (OFF_GUARD).
+
 ## Round 8 (2026-10-08): slash_r timing
 
 All: round 7's B raise with C's tuck, the lowered guard. Timing (now 0.75 s, hit ~0.34 s):

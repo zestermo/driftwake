@@ -48,8 +48,9 @@ const SLASH_BREAKS := [1.0, 1.1, 1.15, 1.3, 1.35, 0.7, 0.1, 0.3]
 ## 0.49 ~1.2. On the wind-up the chest faces ~85 deg right, so toward the target is its -X.
 const R7 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
 	"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02}}
-## The off hand in the (lowered) cutlass guard, as an offset from the left shoulder.
-const OFF_GUARD := Vector3(-0.26, -0.27, -0.32)
+## The off hand in the cutlass guard (low, out at the left side), as an offset from the left
+## shoulder.
+const OFF_GUARD := Vector3(-0.34, -0.33, -0.15)
 ## Round 8: round 7's B raise (above the eyes on the wind-up) with C's tuck to the chest
 ## through the cut, the guard's off hand lowered. What differs is the timing.
 const OFF_PATH := [[0.06, OFF_GUARD], [0.32, Vector3(-0.5, 0.34, -0.13), "smooth"], [0.42, Vector3(-0.49, 0.36, -0.15)],
