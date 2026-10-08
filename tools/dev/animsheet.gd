@@ -133,7 +133,7 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 	if ex.get("beast", false):
 		h.set_beast(true)
 	for k in ex.keys():
-		if not k in ["dual", "beast", "sheathed", "push"]:
+		if not k in ["dual", "beast", "sheathed", "push", "after"]:
 			h.set(k, ex[k])
 	# AS_MOVE="x,y": walking that way when the action starts (Humanoid.local_move: y+ forward)
 	if OS.get_environment("AS_MOVE") != "":
@@ -145,6 +145,12 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 	h.set_process(false)
 	for i in 60:
 		h._process(1.0 / 60.0)
+	# a combo hit is shown as it chains: the hit before it plays up to its chain time first
+	if ex.has("after"):
+		var prev := AnimLab.spec(str(ex["after"]))
+		h.play(str(ex["after"]), float(prev["len"]))
+		while h.is_busy() and float(h._action["t"]) < float(prev.get("chain", prev["len"])):
+			h._process(1.0 / 120.0)
 	var dur: float = s["len"]
 	if s.get("hold", false):
 		h.hold(n)

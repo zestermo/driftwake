@@ -70,6 +70,9 @@ var hitbox_activated: bool = false
 var hitbox_deactivated: bool = false
 var chained: bool = false
 var _window := Vector2.ZERO
+## When the blade's own trail is drawn (moves on a swing path), seconds; x < 0: arc effects.
+var _swoosh := Vector2(-1, -1)
+var _swooshed: bool = false
 
 
 func enter(data: Dictionary) -> void:
@@ -100,6 +103,8 @@ func enter(data: Dictionary) -> void:
 	player.velocity.z = forward.z * float(cfg["impulses"][combo_index])
 	var anim := str(cfg["anims"][combo_index])
 	_window = ActionSpecs.hit_seconds(anim)
+	_swoosh = ActionSpecs.swoosh_seconds(anim)
+	_swooshed = false
 	player.body_model.play(anim, ActionSpecs.length(anim))
 	player.squash(-1.5 if combo_index < 2 else -2.5)
 
@@ -111,6 +116,12 @@ func physics_update(delta: float) -> void:
 	player.move_and_slide()
 
 	timer += delta
+
+	# a swing path's trail comes off the blade itself, from just before the strike
+	if _swoosh.x >= 0.0 and timer >= _swoosh.x and not _swooshed:
+		_swooshed = true
+		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else cfg["color"]
+		Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc])
 
 	if timer >= _window.x and not hitbox_activated:
 		hitbox_activated = true
@@ -136,7 +147,9 @@ func physics_update(delta: float) -> void:
 		var col: Color = cfg["color"]
 		if player.power.buff("coat"):
 			col = Player.HAKI_TRAIL
-		if trail == "cross":
+		if _swoosh.x >= 0.0:
+			pass  # (the blade draws its own trail)
+		elif trail == "cross":
 			Net.fx("slash", [player.player_model, "right", trail_len, col])
 			Net.fx("slash", [player.player_model, "left", trail_len, col])
 		elif trail != "":

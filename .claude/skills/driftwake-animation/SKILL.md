@@ -224,6 +224,22 @@ Rules from the full review (each one was a visible problem in the renders):
   played at varied lengths, key the important beats in seconds (the `quick_draw` /
   `shoot_r` pattern: `k = t_seconds / _action["dur"]`).
 
+## The reference moves (start here for any swing)
+
+`scripts/npc/sword_moves.gd` holds the cutlass combo built the trained way; **slash_r (hit
+1) is the reference**: Zach signed it off after 8 lab rounds. Copy its structure for new swings:
+- three parts: a `SLASH_*_SWING` path for the sword hand (start at the guard hand, arc round
+  the shoulder, cock wide and high, ease into the cock ("smooth"), snap out of it ("in"),
+  cut at speed, wrap), a `SLASH_*_REACH` path for the free hand (offsets from its shoulder),
+  and a body function keying hips/chest/legs/lift/squash/smear only (the arms ride paths);
+- the ActionSpecs entry carries len, hit, chain, swoosh, sharp 55, lead (hips 0.04, chest
+  0.02), swing, reach. Hit 1: 0.85 s, wrist break 1.0 -> 1.35 cocked -> 0.7 strike -> 0.1;
+- **combo hits chain:** hit N's path starts on hit N-1's last point and its body starts on
+  hit N-1's follow-through pose (the chain point); swings blend in from the hand's real
+  position, so it's seamless. Set extras "after" to preview the chain in animsheet.
+- **Trails:** a move with a swing path gets the blade's own trail (FX.blade_swoosh over its
+  "swoosh" window) instead of the fixed arcs; never put an arc effect on a swing move.
+
 ## Training rounds (the anim lab)
 
 Zach is training this skill: rounds of 2-3 variants of one action, ranked by him. Read

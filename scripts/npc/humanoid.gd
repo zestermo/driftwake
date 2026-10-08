@@ -215,6 +215,17 @@ var _swing_rp := Vector3.FORWARD
 ## Where the shoulders were when each path started (see _swing_frame), per "swing"/"reach".
 var _anchors := {}
 var _reach_on: bool = false
+## Each hand at the end of last frame ("r"/"l": [global position, local rotation]), and
+## where the current swing/reach blends in from (body space) - so a chained hit picks up
+## where the last one really left the hand.
+var _hand_last := {}
+var _swing_from := Vector3.ZERO
+var _swing_wrist_from := Vector3.ZERO
+var _reach_from := Vector3.ZERO
+## Counts actions started; a swing/reach remembers which one it belongs to.
+var _action_id: int = 0
+var _swing_act: int = -1
+var _reach_act: int = -1
 var swing_check: Dictionary = {}
 const WRIST_FLEX := Vector2(-1.5, 0.5)
 const WRIST_ROLL := 1.3
@@ -911,6 +922,7 @@ func _begin_action(action_name: String, duration: float, held: bool) -> void:
 	if not _action.is_empty() and _action["name"] != action_name:
 		_finish_action()
 	_action = {"name": action_name, "t": 0.0, "dur": maxf(duration, 0.01), "events": {}, "hold": held, "spec": AnimLab.spec(action_name)}
+	_action_id += 1
 	_action_w = 1.0 if action_name in SPIN_ACTIONS else 0.0
 
 
@@ -1153,29 +1165,11 @@ func _action_pose(n: String, u: float) -> Array:
 				[1.0, REST_ARMS]]), "upper", lift]
 		# --- cutlass: the wrist does the cutting - the blade cocks back in each
 		# wind-up and is flung out along the arm into the cut ---
+		# combo 1 (diagonal forehand) and 2 (rising backhand): swing paths, see SwordMoves
 		"slash_r":
-			# combo 1: a diagonal forehand - the blade cocked back high over the
-			# right shoulder, then cut down across to the lower left through a lunge
-			var g := _guard()
-			var lunge := {"leg_l": Vector3(0.85, 0, -0.1), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(-0.65, 0, 0.1), "shin_r": Vector3(-0.3, 0, 0)}
-			var wind := {"arm_r": Vector3(2.2, 0.5, 1.35), "fore_r": Vector3(1.0, 0, 0), "hand_r": Vector3(0.7, 0, 0),
-				"torso": Vector3(0.1, 1.0, 0.1), "head": Vector3(0, -0.75, 0), "arm_l": Vector3(0.8, 0, -0.5), "fore_l": Vector3(1.2, 0, 0)}
-			var hit := {"arm_r": Vector3(1.0, -0.9, -1.0), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
-				"torso": Vector3(-0.4, -1.0, -0.1), "head": Vector3(-0.05, 0.8, 0), "arm_l": Vector3(0.55, 0, -0.95), "fore_l": Vector3(0.8, 0, 0)}
-			lift.y = _strike_lift(u, 0.24, 0.38, 0.6, -0.04, -0.2)
-			return [_keys(u, [[0.0, g], [0.2, wind.merged(lunge), "out"], [0.26, wind.merged(lunge)], [0.38, hit.merged(lunge), "out"], [0.6, hit.merged(lunge)], [1.0, g]]), "full", lift]
+			return SwordMoves.slash_r(self, u)
 		"slash_l":
-			# combo 2: a flat backhand - the blade drawn back past the left hip,
-			# then swept out level across to the right, stepping through
-			var g := _guard()
-			var lunge2 := {"leg_l": Vector3(-0.55, 0, -0.1), "shin_l": Vector3(-0.35, 0, 0), "leg_r": Vector3(0.9, 0, 0.1), "shin_r": Vector3(-0.85, 0, 0)}
-			var wind2 := {"arm_r": Vector3(1.3, -0.75, -1.05), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(0.5, 0, 0),
-				"torso": Vector3(0.0, -1.1, -0.1), "head": Vector3(0, 0.8, 0), "arm_l": Vector3(0.5, 0, -0.4), "fore_l": Vector3(1.4, 0, 0)}
-			# (no twist in the upper arm: twisted, the wrist bent the blade back up)
-			var hit2 := {"arm_r": Vector3(1.35, 0.0, 1.5), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.45, 0, 0),
-				"torso": Vector3(-0.25, 1.05, 0.1), "head": Vector3(-0.1, -0.8, 0), "arm_l": Vector3(0.6, 0, -0.9), "fore_l": Vector3(0.9, 0, 0)}
-			lift.y = _strike_lift(u, 0.22, 0.36, 0.58, -0.04, -0.2)
-			return [_keys(u, [[0.0, g], [0.18, wind2.merged(lunge2), "out"], [0.24, wind2.merged(lunge2)], [0.36, hit2.merged(lunge2), "out"], [0.58, hit2.merged(lunge2)], [1.0, g]]), "full", lift]
+			return SwordMoves.slash_l(self, u)
 		"dash_cut":
 			# cutlass, attacked at a sprint: low and fast past the target - the blade
 			# trailed back by the right hip, then whipped across to the left as the
@@ -2628,6 +2622,8 @@ func _process(delta: float) -> void:
 		hand_l.rotation = _cur["hand_l"]
 	_swing(delta)
 	_reach()
+	_hand_last["r"] = [hand_r.global_position, hand_r.rotation]
+	_hand_last["l"] = [hand_l.global_position, hand_l.rotation]
 	if _tail and is_instance_valid(_tail):
 		var wag := 1.0 + clampf(ground_speed * 0.15, 0.0, 1.0)
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
@@ -2671,7 +2667,9 @@ func _swing(delta: float) -> void:
 	var hand := hand_r if right else hand_l
 	var arm := arm_r if right else arm_l
 	var fore := fore_r if right else fore_l
-	var first := not _swing_on
+	# (a new action's swing starts afresh even when the last one was still running: a chain)
+	var first := not _swing_on or _swing_act != _action_id
+	_swing_act = _action_id
 	var frame := _swing_frame(sw, first)
 	var s := _swing_at(sw, _sample_u(t, sp))
 	var pos_l: Vector3 = s[0]
@@ -2686,9 +2684,18 @@ func _swing(delta: float) -> void:
 		_swing_rp = rp.normalized()
 	var ahead := (frame.basis * nrm.cross(_swing_rp)).normalized()
 	var brk := float(s[1])
+	var side := "r" if right else "l"
 	if first:
 		_clear_push = Vector3.ZERO
-	var target := hand.global_position.lerp(frame * pos_l, w) + _clear_push
+		# blend in from where the hand really was last frame (a chained hit leaves it on the
+		# last swing's path, not where the keyed arm would put it)
+		var last: Array = _hand_last.get(side, [hand.global_position, hand.rotation])
+		_swing_from = global_transform.affine_inverse() * (last[0] as Vector3)
+		_swing_wrist_from = last[1]
+	# (blending out after the last key goes back to the posed arm)
+	var ending := t > t1
+	var from := hand.global_position if ending else global_transform * _swing_from
+	var target := from.lerp(frame * pos_l, w) + _clear_push
 	var phi := _best_swivel(right, target, ahead, brk)
 	# (blending in from the posed arm the forearm turns fast: a lagging swivel left the wrist
 	# turned past its limit for a moment, a flick at the start of the wind-up)
@@ -2698,7 +2705,7 @@ func _swing(delta: float) -> void:
 	arm.basis = arm.basis.orthonormalized()
 	var sol := _wrist_for(fore.global_basis, ahead, brk)
 	var wr: Vector2 = sol[0]
-	var posed: Vector3 = hand.rotation
+	var posed: Vector3 = hand.rotation if ending else _swing_wrist_from
 	if first:
 		_wrist = Vector2(posed.x, posed.y)
 	_swing_on = true
@@ -2877,13 +2884,20 @@ func _reach() -> void:
 		return
 	var right: bool = rc.get("hand", "l") == "r"
 	var hand := hand_r if right else hand_l
-	var frame := _swing_frame(rc, not _reach_on, "reach")
+	var first := not _reach_on or _reach_act != _action_id
+	_reach_act = _action_id
+	var frame := _swing_frame(rc, first, "reach")
 	if rc.get("from_shoulder", false):
 		# (points are offsets from this arm's shoulder: their distance sets the elbow's bend)
 		frame.origin = (arm_r if right else arm_l).global_position
+	if first:
+		# (from where the hand really was last frame, as a swing does)
+		_reach_from = global_transform.affine_inverse() * (_hand_last.get("r" if right else "l", [hand.global_position])[0] as Vector3)
 	_reach_on = true
 	var s := _swing_at(rc, _sample_u(t, _action["spec"]))
-	var target := hand.global_position.lerp(frame * (s[0] as Vector3), w)
+	var ending := t > float(keys[keys.size() - 1][0]) * dur
+	var from := hand.global_position if ending else global_transform * _reach_from
+	var target := from.lerp(frame * (s[0] as Vector3), w)
 	var pole := (frame.basis * (s[2] as Vector3)).normalized()
 	# a pole along the reach leaves the elbow's side undefined (it flipped up when the hand
 	# swept down and back, the way the pole pointed): lean it out to the side then
@@ -2927,7 +2941,9 @@ func _swing_at(sw: Dictionary, u: float) -> Array:
 	var poles := []
 	for q in [maxi(i - 1, 0), i, j, mini(j + 1, n - 1)]:
 		var key: Dictionary = keys[q][1]
-		pts.append((sw.get("center", Vector3(0, 1.3, 0)) as Vector3) + (key["dir"] as Vector3).normalized() * float(key["r"]))
+		# (a key without "r" is the point itself, from the centre)
+		var d: Vector3 = key["dir"]
+		pts.append((sw.get("center", Vector3(0, 1.3, 0)) as Vector3) + (d.normalized() * float(key["r"]) if key.has("r") else d))
 		brks.append(float(key.get("break", sw.get("break", 0.6))))
 		poles.append(key.get("pole", sw.get("pole", Vector3(-0.7, -0.6, 0.4))))
 	var pos: Vector3 = (pts[1] as Vector3).cubic_interpolate(pts[2], pts[0], pts[3], x)

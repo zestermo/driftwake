@@ -13,6 +13,9 @@ class_name ActionSpecs
 ## "on twos": hold each drawing, 0 = smooth). Pose keys may carry "_scale" (body squash/
 ## stretch about the feet: x side, y up, z forward) and "_smear" (Vector3, x = blade stretch).
 ## "chain" (s): when the next light attack can follow (overrides the state's durations).
+## "swoosh": [u from, u to] when a swing's blade trail is drawn (default: the hit window).
+## extras "after": the action played before this one in the preview, up to its "chain" time
+## (a combo hit is checked as it chains).
 ## "retime": [[u played, u of the keys], ...] (0..1, rising): a piecewise-linear time map, to
 ## slow parts of a move (wind-up, follow-through) and keep others (the strike) at speed
 ## without re-keying; "hit" is in played time.
@@ -36,8 +39,15 @@ const SPECS := {
 	# --- cutlass ---
 	"draw": {"len": 0.35, "stance": "sword", "weapon": "cutlass", "extras": {"sheathed": true}},
 	"sheathe": {"len": 0.4, "stance": "sword", "weapon": "cutlass"},
-	"slash_r": {"len": 0.48, "hit": [0.23, 0.44], "stance": "sword", "weapon": "cutlass"},
-	"slash_l": {"len": 0.48, "hit": [0.21, 0.42], "stance": "sword", "weapon": "cutlass"},
+	# (the cutlass combo's first two hits ride swing paths: SwordMoves; slash_r is the
+	# reference swing, see the driftwake-animation skill)
+	"slash_r": {"len": 0.85, "hit": [0.45, 0.6], "chain": 0.62, "swoosh": [0.4, 0.66], "sharp": 55.0,
+		"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
+		"swing": SwordMoves.SLASH_R_SWING, "reach": SwordMoves.SLASH_R_REACH, "stance": "sword", "weapon": "cutlass"},
+	"slash_l": {"len": 0.8, "hit": [0.37, 0.52], "chain": 0.58, "swoosh": [0.3, 0.6], "sharp": 55.0,
+		"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
+		"swing": SwordMoves.SLASH_L_SWING, "reach": SwordMoves.SLASH_L_REACH, "stance": "sword", "weapon": "cutlass",
+		"extras": {"after": "slash_r"}},
 	"spin_slash": {"len": 0.62, "hit": [0.21, 0.68], "stance": "sword", "weapon": "cutlass"},
 	"dash_cut": {"len": 0.62, "hit": [0.27, 0.48], "stance": "sword", "weapon": "cutlass"},
 	"thrust": {"len": 0.75, "hit": [0.29, 0.53], "stance": "sword", "weapon": "cutlass"},
@@ -167,6 +177,17 @@ const SPECS := {
 	"aim_rifle": {"len": 1.3, "stance": "sword", "weapon": "rifle"},
 	"shove": {"len": 0.75, "stance": "sword", "weapon": "rifle"},
 }
+
+
+## When a swing's blade trail (FX.blade_swoosh) is drawn, seconds [from, to): its
+## "swoosh" (u), else its hit window; (-1, -1) for actions without a swing path (they keep
+## the fixed arc effects).
+static func swoosh_seconds(n: String) -> Vector2:
+	var s := AnimLab.spec(n)
+	if not s.has("swing"):
+		return Vector2(-1, -1)
+	var w: Array = s.get("swoosh", s["hit"])
+	return Vector2(float(w[0]), float(w[1])) * float(s["len"])
 
 
 static func length(n: String) -> float:

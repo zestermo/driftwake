@@ -232,6 +232,18 @@ Follow-up (Zach): the guard's off hand should sit out to the side, not in front.
 off arm opened sideways ((0.15, 0.1, -0.58), elbow 0.8): the hand hangs at the left side by
 the hip, a little forward. The lab's off-hand path starts there (OFF_GUARD).
 
+## Round 8 result and lock-in (2026-10-08)
+
+Ranking (Zach): **A (0.85 s, slowed evenly)**, "pretty satisfied with the looks of it": locked
+in as the live combo hit 1 and **the reference move** for every swing that follows
+(`scripts/npc/sword_moves.gd`: SLASH_R_SWING, SLASH_R_REACH, `slash_r()` body keys;
+ActionSpecs `slash_r`: 0.85 s, hit 0.45-0.6, chain 0.62 s, swoosh 0.4-0.66, sharp 55).
+
+Also: the slash effects never matched the weapon (a fixed arc on its own timer). Moves on a
+swing path now draw their trail off the real blade (`FX.blade_swoosh`: a BladeTrail ribbon in
+the attack's colour for the spec's "swoosh" window), mirrored in co-op on the other screens'
+copy of the body. Other moves keep the old arcs until they get a swing path.
+
 ## Round 8 (2026-10-08): slash_r timing
 
 All: round 7's B raise with C's tuck, the lowered guard. Timing (now 0.75 s, hit ~0.34 s):
@@ -239,5 +251,31 @@ All: round 7's B raise with C's tuck, the lowered guard. Timing (now 0.75 s, hit
 - **B:** 0.95 s retimed: the strike at the old speed (launch to follow-through ~0.17 s), the
   wind-up (~0.42 s) and follow-through longer (hit ~0.46-0.57 s).
 - **C:** 0.95 s, slowed evenly (hit ~0.43-0.57 s).
+
+Ranking: **A** (see "Round 8 result and lock-in" above).
+
+## Round 9 (2026-10-08): combo hit 2, slash_l (the rising backhand)
+
+Zach's brief: chain smoothly from hit 1; a left-to-right slash from the bottom left, the blade
+turning up and slicing up, the follow-through carrying the sword past the right side.
+
+Built from the reference (SwordMoves.SLASH_L_SWING / SLASH_L_REACH / `slash_l()`, 0.8 s, hit
+0.37-0.52, chain 0.58 s):
+- **Chaining:** its path starts on hit 1's last point (low left, the hand where hit 1's wrap
+  leaves it) and its body starts on hit 1's follow-through pose (the chain point: hit 1 chains
+  at 0.62 s, just before its wrap key), so hit 1's coil to the left is hit 2's wind-up. Swings
+  and reaches now blend in from where the hand really was last frame (a new action starts
+  them afresh even mid-swing), not from the keyed arm.
+- Body: dip and coil (lift -0.3, squash), step through on the right foot into the cut (chest
+  about square), turn right after it. Off hand: from hit 1's tuck forward as the body coils,
+  then flung out and back to the left against the cut.
+- animsheet shows it chained: ActionSpecs extras "after": "slash_r" plays hit 1 to its chain
+  time first.
+
+Checks (live): edge leads the cut avg 0.56 (hit 1: 0.3), no reverse grip, roll 0.37, head
+clear. Variants (rise angle; body live):
+- **A:** diagonal (live): low left up through the front to high right.
+- **B:** steep: nearly straight up the front, ending high.
+- **C:** flatter: a rising sweep ending at shoulder height.
 
 Ranking: _waiting for Zach_

@@ -1043,6 +1043,21 @@ func flame_emitter(parent: Node3D, radius: float = 0.3, amount: int = 16, size: 
 # --------------------------------------------------------------------------
 # Slash trails
 # --------------------------------------------------------------------------
+## A strike's trail traced by the real blade (moves with a swing path): the weapons in
+## `body`'s hands draw a fading ribbon for `secs`. Other screens replay it on their copy of
+## the body, which plays the same animation.
+func blade_swoosh(body: Node3D, secs: float, color: Color = Color(0.45, 0.75, 1.0)) -> void:
+	# (the anim lab's clean view already draws the blade's trail)
+	if AnimLab.clean or not body is Humanoid:
+		return
+	var t := BladeTrail.new()
+	t.body = body
+	t.emit = secs
+	t.color = color
+	t.life = 0.14
+	body.add_child(t)
+
+
 ## kind: "right" (right-to-left), "left" (backhand), "spin" (full circle),
 ## "overhead" (vertical chop). The trail is parented to `follow` (the player
 ## model) so it sweeps with the character.
