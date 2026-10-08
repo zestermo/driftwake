@@ -37,8 +37,12 @@ func _process(d: float) -> bool:
 				check("dump has " + sec, txt.find(sec) >= 0)
 			check("dump has the player's state and position", txt.find("state ") >= 0 and txt.find("pos (") >= 0)
 			check("dump has the recent movement history", txt.find("last 5 s") >= 0)
+			check("dump has the renderer and GPU", txt.find("renderer: ") >= 0)
 			if DisplayServer.get_name() != "headless":
 				check("screenshot saved", FileAccess.file_exists(base + ".png") and FileAccess.file_exists(dir.path_join("last.png")))
+				check("what the screen showed is saved too", FileAccess.file_exists(base + "_screen.png"))
+				check("dump has the display check (screen vs frame, frames in a row)", txt.find("## Display") >= 0 and txt.find("6 frames in a row") >= 0)
+				print(txt.substr(txt.find("## Display")))
 			print(txt.substr(0, 1400))
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()

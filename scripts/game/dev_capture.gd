@@ -75,12 +75,57 @@ func capture() -> String:
 		if img:
 			img.save_png(base + ".png")
 			img.save_png(dir.path_join("last.png"))
+			text += "\n" + await _display_check(img, base)
+			_write(base + ".txt", text)
+			_write(dir.path_join("last.txt"), text)
 	_busy = false
 	print("DevCapture: ", base, ".png/.txt")
 	var psx := get_node_or_null("/root/PSX")
 	if psx and psx.has_method("_show_toast"):
 		psx._show_toast("Captured " + base.get_file())
 	return base
+
+
+## What the drawn frame can't show: the screen's own pixels over the game
+## window (anything the driver or Windows' compositor changes after Godot hands
+## the frame over), saved as <base>_screen.png, and a few frames in a row (a
+## picture that flickers between frames looks washed out but captures fine).
+func _display_check(frame: Image, base: String) -> String:
+	var L: Array[String] = ["## Display", "(the .png is Godot's frame; _screen.png is what the screen showed over the window)"]
+	var screen := DisplayServer.window_get_current_screen()
+	var shot := DisplayServer.screen_get_image(screen)
+	if shot == null or shot.is_empty():
+		L.append("screen grab: not available on this platform")
+	else:
+		var rect := Rect2i(DisplayServer.window_get_position() - DisplayServer.screen_get_position(screen), DisplayServer.window_get_size())
+		rect = rect.intersection(Rect2i(Vector2i.ZERO, shot.get_size()))
+		var win := shot.get_region(rect)
+		win.save_png(base + "_screen.png")
+		var f := frame.duplicate() as Image
+		f.resize(win.get_width(), win.get_height(), Image.INTERPOLATE_NEAREST)
+		L.append("screen grab %s: brightness  whole %.3f vs frame %.3f   lower half %.3f vs frame %.3f" % [str(rect.size),
+			_brightness(win, 0.0), _brightness(f, 0.0), _brightness(win, 0.5), _brightness(f, 0.5)])
+	var frames: Array[String] = ["%.3f" % _brightness(frame, 0.5)]
+	for i in range(5):
+		await RenderingServer.frame_post_draw
+		frames.append("%.3f" % _brightness(get_viewport().get_texture().get_image(), 0.5))
+	L.append("lower-half brightness, 6 frames in a row: %s" % "  ".join(frames))
+	return "\n".join(L) + "\n"
+
+
+## Mean brightness (0..1) of an image from `top` (fraction of the height) down,
+## sampled on a coarse grid.
+func _brightness(img: Image, top: float) -> float:
+	var sum := 0.0
+	var n := 0
+	var w := img.get_width()
+	var h := img.get_height()
+	for gy in range(24):
+		for gx in range(48):
+			var c := img.get_pixel(int((gx + 0.5) / 48.0 * w), int(lerpf(top, 1.0, (gy + 0.5) / 24.0) * (h - 1)))
+			sum += c.get_luminance()
+			n += 1
+	return sum / float(n)
 
 
 func _write(path: String, text: String) -> void:
@@ -120,6 +165,12 @@ func state_text() -> String:
 	var vi := Engine.get_version_info()
 	L.append("godot %s  fps %d  window %s  scene %s" % [vi.get("string", "?"), Engine.get_frames_per_second(),
 		str(get_tree().root.size), get_tree().current_scene.scene_file_path if get_tree().current_scene else "-"])
+	var modes := {DisplayServer.WINDOW_MODE_WINDOWED: "windowed", DisplayServer.WINDOW_MODE_MAXIMIZED: "maximized",
+		DisplayServer.WINDOW_MODE_FULLSCREEN: "fullscreen", DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN: "exclusive fullscreen"}
+	L.append("renderer: %s / %s  gpu %s (%s)  %s  vsync %d" % [RenderingServer.get_current_rendering_driver_name(),
+		RenderingServer.get_current_rendering_method(), RenderingServer.get_video_adapter_name(),
+		RenderingServer.get_video_adapter_vendor(), modes.get(DisplayServer.window_get_mode(), "?"),
+		DisplayServer.window_get_vsync_mode()])
 	var settings := get_node_or_null("/root/Settings")
 	if settings and settings.has_method("get_value"):
 		L.append("video: preset %s  warp %s  wobble %s  dither %s" % [str(settings.get_value("video", "psx_preset")),

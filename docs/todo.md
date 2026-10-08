@@ -67,13 +67,16 @@ distance culling/LOD anywhere).
   Godot's own modifier state isn't stuck too, so it seems not to catch every case. Fix
   candidates: re-check Shift from the OS each tick while sprinting, or move dodge off Ctrl.
 
-- (fixed 2026-10-06 in 30fa68c: confirm in play) Sea goes pale grey (capture
-  cap_20261006_161506, taken before the fix). It was the sun's reflection at rough 0.5
-  spreading into pale sheets over the sea at morning sun angles; ROUGHNESS 0.2 fixed it
-  (dev_notes "sun glare on the sea"). The 7 Oct re-hunt worked from that old capture and
-  so couldn't reproduce it. No capture since shows it; seahourshot at the capture's spot
-  and window (657x357) is clean at every hour (2026-10-08). If it comes back, F12 records
-  the sea's render state.
+- Sea looks opaque and white/grey on screen, but the F12 images of those moments show a
+  normal sea (Zach, 2026-10-08, e.g. the 7 Oct 18:09-18:11 captures). The game's state
+  and the frame Godot drew are both normal, so it happens after the frame: the driver /
+  Windows compositor (D3D12, forced since the first commit, on an RTX 4060 Laptop GPU),
+  or a flicker between frames that one grabbed frame misses. F12 now also saves
+  <capture>_screen.png (the screen's own pixels over the window) and a "## Display"
+  section (screen vs frame brightness, 6 frames in a row). Next: F12 while it's
+  happening and compare; try the Vulkan driver (also a perf item above).
+  (Not the 6 Oct pale sheets: that capture did show it, the sun's reflection at rough
+  0.5, fixed in 30fa68c.)
 
 ## UI
 
