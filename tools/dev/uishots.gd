@@ -1,12 +1,13 @@
 extends SceneTree
-## Screenshots of every menu at the current window size.
-## Args: <out_prefix> [psx_preset_index]
+## Screenshots of every menu.
+## Args: <out_prefix> [psx_preset_index] [window WxH, e.g. 1280x1024]
 var t := 0.0
 var p
 var out := ""
 var step := 0
 var t0 := 0.0
-var screens := ["pause", "options", "controls", "inventory", "inventory_char", "skills", "skills_fruit", "load", "dialogue", "hud"]
+var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
+	"chart", "yard", "shop", "load", "dialogue", "hud"]
 var si := 0
 
 
@@ -15,7 +16,13 @@ func _initialize():
 	out = a[0]
 	if a.size() > 1:
 		root.get_node("Settings").set_value("video", "psx_preset", int(a[1]))
+	if a.size() > 2:
+		var wh := a[2].split("x")
+		win_size = Vector2i(int(wh[0]), int(wh[1]))
 	change_scene_to_file("res://scenes/world/world.tscn")
+
+
+var win_size := Vector2i.ZERO
 
 
 func gm():
@@ -27,6 +34,9 @@ func _process(d: float) -> bool:
 	match step:
 		0:
 			if t < 3.0: return false
+			if win_size != Vector2i.ZERO:
+				DisplayServer.window_set_size(win_size)
+				root.size = win_size
 			for n in root.find_children("*", "CharacterCreator", true, false): n._finish(true)
 			p = root.get_tree().get_first_node_in_group("player")
 			p.progression.level = 12
@@ -51,8 +61,14 @@ func _process(d: float) -> bool:
 						inv.show_tab("character")
 				"skills_fruit":
 					gm().open("skills")
-					if gm()._skills.has_method("set_tab"):
-						gm()._skills.set_tab(1)
+					gm()._skills.set_tab("fruit")
+				"skills_sword":
+					gm().open("skills")
+					gm()._skills.set_tab("sword")
+				"container":
+					gm().open_container(root.get_tree().get_first_node_in_group("ship").storage)
+				"shop":
+					gm().open_shop("nessa")
 				"dialogue":
 					root.get_node("Dialogue").say("Odile", ["Welcome to Brinehollow, captain. Mind the smugglers down at the cove, they've been bold of late and the lighthouse keeper swears he saw lights on the water."])
 				"hud":

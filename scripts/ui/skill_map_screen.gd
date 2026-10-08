@@ -351,7 +351,7 @@ func _draw() -> void:
 		# [region, label, distance out, awakens at level]
 		var labels := [["Mobility", "Mobility", 550.0, 0], ["Survival", "Survival", 550.0, 0],
 			["Armament", "Armament Haki", 480.0, 10], ["Observation", "Observation Haki", 480.0, 10],
-			["Conqueror", "", 345.0, 18]]
+			["Conqueror", "", 400.0, 18]]
 		for l in labels:
 			var a := deg_to_rad(SkillTree.REGION_ANGLE[l[0]])
 			var lp := _to_screen(Vector2(cos(a), sin(a)) * float(l[2]))
@@ -601,4 +601,6 @@ func _draw_bar(pl: Player) -> void:
 		var hl := sk != "" and sk == sel_sk
 		draw_rect(r, UIStyle.ACCENT if hl else UIStyle.BORDER_DIM, false, 2.0 if hl else 1.0)
 		_text(r.position + Vector2(2, 8), "R" if i == 4 else str(i + 1), UIStyle.ACCENT)
-	_text(Vector2(_bar_slot_rect(4).end.x + 8, y + 18), "select a skill, press 1-4 / R   right-click a slot to clear", UIStyle.TEXT_DIM)
+	var hx := _bar_slot_rect(4).end.x + 8
+	_text(Vector2(hx, y + 14), "select a skill, press 1-4 / R", UIStyle.TEXT_DIM)
+	_text(Vector2(hx, y + 25), "right-click a slot to clear", UIStyle.TEXT_DIM)

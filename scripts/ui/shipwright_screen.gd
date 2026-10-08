@@ -53,45 +53,55 @@ func _init(menu: Node) -> void:
 		row.add_child(b)
 		_buy[id] = b
 		vb.add_child(row)
-	vb.add_child(HSeparator.new())
 	var looks := HBoxContainer.new()
 	var lt := UIStyle.label("Paint & colours", 14, UIStyle.ACCENT)
 	lt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	looks.add_child(lt)
 	_flag = TextureRect.new()
-	_flag.custom_minimum_size = Vector2(ShipKit.FLAG_W, ShipKit.FLAG_H)
+	_flag.custom_minimum_size = Vector2(ShipKit.FLAG_W, ShipKit.FLAG_H) * 0.5
 	_flag.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_flag.stretch_mode = TextureRect.STRETCH_SCALE
 	looks.add_child(_flag)
 	vb.add_child(looks)
+	# two columns, each a name over its button (one per row was taller than the screen)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 1)
+	vb.add_child(grid)
 	for l in LOOKS:
-		var row := HBoxContainer.new()
-		var name_l := UIStyle.label(l[1], 12)
-		name_l.custom_minimum_size = Vector2(96, 0)
-		row.add_child(name_l)
-		var b := UIStyle.button("", 160)
+		var cell := VBoxContainer.new()
+		cell.add_theme_constant_override("separation", 0)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.add_child(UIStyle.label(l[1], 8, UIStyle.TEXT_DIM))
+		var b := UIStyle.button("")
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var key: String = l[0]
 		b.pressed.connect(func(): cycle(key))
 		b.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
 				cycle(key, -1))
-		row.add_child(b)
+		cell.add_child(b)
 		_cycles.append([key, b, l[2]])
-		vb.add_child(row)
-	# the foot
+		grid.add_child(cell)
+	# the foot: the note beside Done
+	var foot := HBoxContainer.new()
+	foot.add_theme_constant_override("separation", 6)
 	_note = UIStyle.label("", 8, UIStyle.TEXT_DIM)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD
-	_note.custom_minimum_size = Vector2(256, 0)
-	vb.add_child(_note)
-	var done := UIStyle.button("Done", 120)
-	done.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_note.custom_minimum_size = Vector2(160, 0)
+	foot.add_child(_note)
+	var done := UIStyle.button("Done", 80)
+	done.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	done.pressed.connect(func(): _menu.close())
-	vb.add_child(done)
+	foot.add_child(done)
+	vb.add_child(foot)
 
 
 func on_open() -> void:
 	_note.text = "This is the host's ship: only they can order work on her." if Net.is_client() \
-		else "Refits are for good. Paint and colours are free (right-click goes back)."
+		else "Refits are for good. Paint is free (right-click goes back)."
 	_refresh()
 	_start_preview()
 	for c in find_children("*", "Button", true, false):

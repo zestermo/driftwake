@@ -27,10 +27,11 @@ var _combat_blend: float = 0.0
 @export var combat_max_zoom: float = 3.8
 
 ## Showcase (inventory open): the camera swings around in front of the player
-## and frames them on the left of the screen, beside the inventory panel.
+## and frames them on the left of the screen, beside the inventory panel, at
+## _show_x of the screen's width (set by the inventory: between its gear slots).
 @export var showcase_zoom: float = 2.4
-@export var showcase_offset: float = 1.65
 @export var showcase_pitch: float = -0.06
+var _show_x: float = 0.25
 var _show: float = 0.0
 var _show_target: float = 0.0
 var _saved_yaw: float = 0.0
@@ -123,7 +124,8 @@ func _process(delta: float) -> void:
 			if cam_p.y < wy:
 				global_position.y += wy - cam_p.y
 
-	shoulder += showcase_offset * e
+	if e > 0.0:
+		shoulder = lerpf(shoulder, _showcase_offset(), e)
 	camera.h_offset = shoulder
 	camera.v_offset = 0.15 * _combat_blend - 0.3 * e
 	camera.rotation.z = 0.0
@@ -139,14 +141,25 @@ func _process(delta: float) -> void:
 		trauma = maxf(trauma - SHAKE_DECAY * rd, 0.0)
 
 
+## The sideways camera shift that puts the character (at the pivot, spring
+## length away) at _show_x of the screen. The FOV is vertical (keep height),
+## so how far a metre moves them on screen depends on the window's shape.
+func _showcase_offset() -> float:
+	var vis := get_viewport().get_visible_rect().size
+	var half_w := spring_arm.spring_length * tan(deg_to_rad(camera.fov) * 0.5) * vis.x / vis.y
+	return (1.0 - 2.0 * _show_x) * half_w
+
+
 ## Swing around to face the character (`facing_yaw` = their model's yaw) and
-## frame them to the left, or swing back to where the camera was.
-func set_showcase(on: bool, facing_yaw: float = 0.0) -> void:
+## frame them at `screen_x` of the screen's width, or swing back to where the
+## camera was.
+func set_showcase(on: bool, facing_yaw: float = 0.0, screen_x: float = 0.25) -> void:
 	if on:
 		if _show_target == 0.0 and _show == 0.0:
 			_saved_yaw = rotation.y
 			_saved_pitch = spring_arm.rotation.x
 		_show_yaw = facing_yaw + PI - 0.42
+		_show_x = screen_x
 		_show_target = 1.0
 		process_mode = Node.PROCESS_MODE_ALWAYS
 		# frame the character even if a post or palm is behind the camera

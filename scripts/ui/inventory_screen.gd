@@ -19,6 +19,8 @@ extends Control
 ## Sized for the game's 640x360 UI canvas (the window scales it up).
 const SLOT := 28
 const DOLL_SLOT := 30
+## The gear slot columns (screen-width anchors); the captain stands between them.
+const DOLL_COLS := [0.05, 0.33]
 const TINY_FONT := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 
 var menu: Node  # GameMenu (for close / blip / slot helpers)
@@ -101,7 +103,7 @@ func _build() -> void:
 func _build_doll() -> void:
 	var left := [["head", 0], ["torso", 1], ["vest", 2], ["coat", 3], ["belt", 4]]
 	var right := [["hands", 0], ["legs", 1], ["feet", 2], ["acc1", 3], ["acc2", 4]]
-	for col in [[left, 0.05], [right, 0.33]]:
+	for col in [[left, DOLL_COLS[0]], [right, DOLL_COLS[1]]]:
 		for e in col[0]:
 			var slot: String = e[0]
 			var label := ""
@@ -128,15 +130,17 @@ func _build_doll() -> void:
 	_defense_label = UIStyle.label("", 16, UIStyle.ACCENT)
 	_defense_label.add_theme_color_override("font_outline_color", Color(0.05, 0.03, 0.02))
 	_defense_label.add_theme_constant_override("outline_size", 4)
-	_defense_label.anchor_left = 0.33
+	_defense_label.anchor_left = DOLL_COLS[1]
 	_defense_label.anchor_top = 0.845
 	add_child(_defense_label)
 	_doll_nodes.append(_defense_label)
 	_name_label = UIStyle.title("")
 	_name_label.add_theme_font_size_override("font_size", 16)
 	_name_label.add_theme_constant_override("outline_size", 4)
-	_name_label.anchor_left = 0.0
-	_name_label.anchor_right = 0.5
+	# centred under the captain: from the left column to the right column's slot
+	_name_label.anchor_left = DOLL_COLS[0]
+	_name_label.anchor_right = DOLL_COLS[1]
+	_name_label.offset_right = DOLL_SLOT
 	_name_label.anchor_top = 0.86
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_name_label)
@@ -281,11 +285,13 @@ func _build_panel() -> void:
 
 	var bottom := HBoxContainer.new()
 	vb.add_child(bottom)
-	bottom.add_child(_tiny("Tab / I: close   Drag items to move, equip or drop\nX: drop (shift: one)   Drag your captain to turn", UIStyle.TEXT_DIM))
-	var sp := Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bottom.add_child(sp)
+	# (wraps: one unbroken line made the panel wider than its half of the screen)
+	var keys := _tiny("Tab / I: close   Drag items to move, equip or drop   X: drop (shift: one)   Drag your captain to turn", UIStyle.TEXT_DIM)
+	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom.add_child(keys)
 	var close_b := UIStyle.button("Close", 56)
+	close_b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	close_b.add_theme_font_size_override("font_size", 12)
 	close_b.pressed.connect(func(): menu.close())
 	bottom.add_child(close_b)
@@ -309,9 +315,15 @@ func on_open() -> void:
 		body.process_mode = Node.PROCESS_MODE_ALWAYS  # keeps breathing / looking while paused
 	var rig := _rig()
 	if rig:
-		rig.set_showcase(true, pl.player_model.global_rotation.y)
+		rig.set_showcase(true, pl.player_model.global_rotation.y, doll_center_x())
 	show_tab(_tab)
 	refresh()
+
+
+## Where the captain should stand, as a fraction of the screen's width: midway
+## between the left slot column and the right one's slot.
+func doll_center_x() -> float:
+	return (float(DOLL_COLS[0]) + float(DOLL_COLS[1])) * 0.5 + DOLL_SLOT * 0.5 / get_viewport_rect().size.x
 
 
 func focus_bag() -> void:
