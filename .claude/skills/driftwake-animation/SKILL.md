@@ -180,8 +180,8 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
   elbow folds in and the cocked blade crosses the head. The solver pushes a blade out of the
   head as a safety net, but a path that needs it reads as cramped.
 - **Check the BLADE line** animsheet prints for every lab variant: edge leading the cut
-  (avg > 0.3, min > 0), no REVERSE GRIP, forearm over-turn < 0.3, head clearance >= 0 (no
-  THROUGH THE HEAD). If it's off, run with `AS_DEBUG=<variant>` for the per-frame solve
+  (avg > 0.3, min > 0), no REVERSE GRIP, forearm over-turn < 0.3, body clearance >= 0 (no
+  THROUGH THE BODY: the solver keeps the blade 0.2 m off the head sphere and chest capsule). If it's off, run with `AS_DEBUG=<variant>` for the per-frame solve
   (hand, shoulder, forearm, blade, edge).
 - **The off arm answers the swing:** reaches toward the target on the wind-up, flings back
   through the cut, ideally dragging a little behind the chest.
@@ -192,6 +192,9 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
   over between keys). Author the points as offsets from the arm's own shoulder in the
   chest's frame (`from_shoulder`, `follow` 1): the distance sets the elbow (0.55 m ~0.7 rad,
   0.49 m ~1.2). Pole "out to the side" (a pole along the reach leaves the elbow undefined).
+  A hand swung from in front to behind needs a key on the arc out past the hip: the straight
+  chord runs by the shoulder and folds the elbow. A hand flung out to the side or back takes
+  a down-and-back pole. Print the bends (`AS_DEBUG`, REACH lines) and keep them 0.4-1.0.
 - **Paths start at the guard hand and arc round the shoulder**, never straight through it.
 - **Test from a walk:** `AS_MOVE=0,1` (and `0,-1`) starts the lab render mid-stride; the
   elbows went wrong only from there.

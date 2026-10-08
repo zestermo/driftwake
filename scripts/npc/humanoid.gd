@@ -234,6 +234,9 @@ const SWIVEL_SHARP := 18.0
 ## How close a swung blade may come to the head's centre (head 0.125 + hair/hat), and the
 ## most the hand is pushed out to keep it there.
 const HEAD_CLEAR := 0.2
+## The same for the chest's capsule (half its depth, a coat allowed for). The blade's first
+## quarter (by the hand) isn't checked against it: the hilt passes close to the body.
+const CHEST_CLEAR := 0.2
 const CLEAR_PUSH_MAX := 0.3
 var _clear_push := Vector3.ZERO
 ## During actions the eyes look at most this far above level (pivot + torso + head
@@ -2744,18 +2747,28 @@ func _swing(delta: float) -> void:
 		swing_check["edge"] = -hand.global_basis.y.normalized().dot(travel.normalized())
 
 
-## How far the weapon in `hand` (hilt to tip) stays clear of the head, hair and hat
-## allowed for (m, negative = through it), and the way out: from the head's centre to the
-## blade's nearest point.
+## How far the weapon in `hand` (hilt to tip) stays clear of the body (m, negative =
+## through it): the head (hair and hat allowed for) and the chest (a capsule from the hips
+## to the neck); whichever is closer, and the way out (from the body to the blade's nearest
+## point).
 func _blade_clear(hand: Node3D) -> Array:
 	var w: MeshInstance3D = weapon if hand == hand_r else offhand
 	if w == null or not is_instance_valid(w) or w.get_parent() != hand:
 		return [1.0, Vector3.ZERO]
 	var a := hand.global_position
-	var ab := w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z) - a
+	var b := w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z)
+	var ab := b - a
 	var c := head.global_transform * Vector3(0, 0.11, 0)
 	var off := a + ab * clampf((c - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0) - c
-	return [off.length() - HEAD_CLEAR, off.normalized() if off.length() > 0.001 else global_basis.x.normalized()]
+	var clear := off.length() - HEAD_CLEAR
+	var low := hips.global_position + global_basis.y.normalized() * 0.12
+	var high := (neck if neck else head).global_position
+	var pts := Geometry3D.get_closest_points_between_segments(a + ab * 0.25, b, low, high)
+	var off2 := pts[0] - pts[1]
+	if off2.length() - CHEST_CLEAR < clear:
+		clear = off2.length() - CHEST_CLEAR
+		off = off2
+	return [clear, off.normalized() if off.length() > 0.001 else global_basis.x.normalized()]
 
 
 ## The normal of the cut's plane (swing space): the spec's "plane", else the way the keys'
@@ -2901,8 +2914,11 @@ func _reach() -> void:
 	var pole := (frame.basis * (s[2] as Vector3)).normalized()
 	# a pole along the reach leaves the elbow's side undefined (it flipped up when the hand
 	# swept down and back, the way the pole pointed): lean it out to the side then
+	# (and a hand flung out to the side runs along "out to the side" too: then down)
 	var dir := (target - (arm_r if right else arm_l).global_position).normalized()
 	var side := (frame.basis * Vector3(1.0 if right else -1.0, 0.0, 0.0)).normalized()
+	if (side - dir * side.dot(dir)).length() < 0.6:
+		side = (-frame.basis.y).normalized()
 	var clear := (pole - dir * pole.dot(dir)).length()
 	if clear < 0.6:
 		pole = pole.lerp(side, (0.6 - clear) / 0.6).normalized()

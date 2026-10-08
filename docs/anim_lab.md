@@ -278,4 +278,15 @@ clear. Variants (rise angle; body live):
 - **B:** steep: nearly straight up the front, ending high.
 - **C:** flatter: a rising sweep ending at shoulder height.
 
+Zach's first note: the off elbow looked wonky in places and the sword tip came close to the
+body; he wanted the off arm straighter, popping out to the side and behind the chest in the
+follow-through to sell the momentum. Changes:
+- SLASH_L_REACH: an arc key at u 0.34 out past the hip (the straight chord from the front to
+  behind the shoulder folded the elbow to 1.5 rad), points further out (0.64-0.67 m), poles
+  down and back. Bends now 0.8 through the cut and 0.4-0.5 in the follow-through (was 1.5 / 0.9).
+- The reach's pole fallback: when "out to the side" also lies along the reach (a hand flung
+  out sideways), the elbow goes down.
+- Blade clearance now covers the chest (a capsule hips to neck, 0.2 m) as well as the head;
+  the BLADE line reports it as body clearance.
+
 Ranking: _waiting for Zach_

@@ -42,15 +42,19 @@ const SLASH_L_SWING := {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02, "keys
 	[0.44, {"dir": Vector3(0.25, 0.0, -1.0), "r": 0.71, "break": 0.6}],
 	[0.56, {"dir": Vector3(0.8, 0.45, -0.35), "r": 0.6, "break": 0.2}],
 	[0.74, {"dir": Vector3(0.75, 0.4, 0.5), "r": 0.52, "break": 0.35}, "out"]]}
-## The off hand from hit 1's tuck, coming forward as the body coils, then flung out and back
-## to the left against the cut.
+## The off hand from hit 1's tuck, coming forward as the body coils, then flung out to the
+## side and back behind the chest against the cut, the arm near straight (the arm is ~0.35 +
+## 0.35 m: 0.69 m from the shoulder bends ~0.4, 0.63 ~0.9), the elbow down and back so it
+## can't roll over while the hand flies out. The 0.34 key keeps the hand on an arc out past
+## the hip: a straight line from front to back runs through the shoulder and folds the elbow.
 const SLASH_L_REACH := {"hand": "l", "follow": 1.0, "from_shoulder": true, "lag": 0.04, "pole": Vector3(-1.0, -0.35, 0.25),
 	"center": Vector3.ZERO, "keys": [
 	[0.0, {"dir": Vector3(0.0, -0.47, -0.28)}],
-	[0.22, {"dir": Vector3(-0.15, -0.3, -0.35)}, "smooth"],
-	[0.44, {"dir": Vector3(-0.45, -0.2, 0.15)}],
-	[0.6, {"dir": Vector3(-0.5, -0.05, 0.25)}],
-	[0.8, {"dir": Vector3(-0.45, -0.15, 0.2)}, "out"]]}
+	[0.22, {"dir": Vector3(-0.2, -0.4, -0.45), "pole": Vector3(-0.3, -1.0, 0.3)}, "smooth"],
+	[0.34, {"dir": Vector3(-0.47, -0.41, -0.11), "pole": Vector3(-0.2, -0.6, 1.0)}],
+	[0.46, {"dir": Vector3(-0.53, -0.19, 0.29), "pole": Vector3(-0.3, -1.0, 0.3)}],
+	[0.6, {"dir": Vector3(-0.48, -0.15, 0.45), "pole": Vector3(-0.3, -1.0, 0.3)}],
+	[0.8, {"dir": Vector3(-0.47, -0.2, 0.42), "pole": Vector3(-0.3, -1.0, 0.3)}, "out"]]}
 
 
 ## Hit 1's body: [pose, mask, lift].

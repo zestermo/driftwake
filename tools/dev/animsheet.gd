@@ -222,10 +222,10 @@ func _print_ranges(n: String, p: String, ranges: Dictionary) -> void:
 	print("RANGE %s [%s] (x/y/z, rad) %s" % [n, "live" if p == "" else p.to_upper(), " | ".join(parts)])
 	if ranges.has("grip"):
 		var en := int(ranges.get("edge_n", 0))
-		print("BLADE %s [%s] edge leads the cut avg %.2f min %.2f (%d samples) | worst grip %.2f rad%s | worst roll in fist %.2f | head clearance min %.2f m%s" % [
+		print("BLADE %s [%s] edge leads the cut avg %.2f min %.2f (%d samples) | worst grip %.2f rad%s | worst roll in fist %.2f | body clearance (head/chest) min %.2f m%s" % [
 			n, "live" if p == "" else p.to_upper(), float(ranges.get("edge_sum", 0.0)) / maxi(en, 1), float(ranges.get("edge_min", 0.0)), en,
 			float(ranges["grip"]), " REVERSE GRIP x%d" % int(ranges["reverse"]) if ranges.has("reverse") else "", float(ranges["roll"]),
-			float(ranges["head_clear"]), " THROUGH THE HEAD x%d" % int(ranges["through"]) if ranges.has("through") else ""])
+			float(ranges["head_clear"]), " THROUGH THE BODY x%d" % int(ranges["through"]) if ranges.has("through") else ""])
 
 
 func _crop(im: Image) -> Image:
