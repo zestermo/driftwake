@@ -15,9 +15,12 @@ class_name ActionSpecs
 ## "chain" (s): when the next light attack can follow (overrides the state's durations).
 ## "swing": the hand on a path instead of keyed arm angles (Humanoid._swing): {"hand": "r"|"l",
 ## "center": Vector3 in the root's space (feet, facing -Z), "follow": 0..1 how far the points
-## turn with the chest, "pole": elbow direction, "lag": s behind the body, "keys": [[u,
-## {"dir": from the centre, "r": m, "blade": where the blade should point (the wrist gets as
-## close as it can bend, no roll), "pole"?}, mode?], ...]}; the posed arm is overridden.
+## turn with the chest, "anchor": 0..1 how far the points move with the shoulders (default 1),
+## "lag": s behind the body, "plane": the cut plane's normal (default from the path's sweep),
+## "cut": the overall direction (checks only), "break": default wrist break, "keys": [[u,
+## {"dir": from the centre, "r": m, "break": rad the blade is cocked back off the forearm's
+## line (~1.5 square, 0 in line)}, mode?], ...]}. The sword extends the forearm, broken toward
+## the trailing side of the cut so its edge leads (Humanoid._swing); the posed arm is overridden.
 ## AnimLab variants override any of this while picked.
 
 const SPECS := {

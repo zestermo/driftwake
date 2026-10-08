@@ -162,9 +162,20 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
 - **Give it time to read.** A light hit needs a visible wind-up and follow-through (round 2
   tests 0.6 s vs 0.75 s); give slower anims their own `"chain"` so the next click doesn't cut
   off the hit.
-- **The blade never spins in the hand.** The swing solver's wrist only bends (WRIST_FLEX,
-  WRIST_SIDE, smoothed), never rolls; aim the blade with the path, the elbow pole and the
-  body. Don't add a roll to make the edge lead: it flips at every change of direction.
+- **Weapon orientation (the essential one):** the sword is an extension of the forearm,
+  broken back at the wrist toward the trailing side of the cut. Key the wrist `"break"` per
+  path point (~1.4 cocked on the wind-up, ~0.3-0.5 at the strike); the solver tilts it to
+  the trailing side in the cut's plane, so the edge always leads and a reverse grip can't
+  happen. Never aim the blade independently of the forearm, and never derive "which way
+  the cut goes" from the hand's motion (it reverses at the cock); it comes from the cut's
+  plane, whose turning sense comes from the whole path.
+- **Author the path for the guard stance; it follows the shoulders** (`anchor`). Keep the
+  chest about square to the target at contact, the arm out in front: turned further, the
+  shoulder passes the hand and the blade points back. Big turns belong to the wind-up and
+  the follow-through.
+- **Check the BLADE line** animsheet prints for every lab variant: edge leading the cut
+  (avg > 0.3, min > 0), no REVERSE GRIP, forearm over-turn < 0.3. If it's off, run with
+  `AS_DEBUG=<variant>` for the per-frame solve (hand, shoulder, forearm, blade, edge).
 - **The off arm answers the swing:** reaches toward the target on the wind-up, flings back
   through the cut, ideally dragging a little behind the chest.
 - **Impact helps:** squash on the wind-up, stretch and blade smear through the swing.

@@ -70,6 +70,7 @@ func _lab(out: String, n: String) -> void:
 		var rows: Array = []
 		for p in picks:
 			AnimLab.pick = p
+			AnimLab.debug = view == "front3" and p != "" and OS.get_environment("AS_DEBUG") == p
 			var s := AnimLab.spec(n)
 			var row := await _strip(n, s, s.get("extras", {}), VIEWS[view])
 			row.append(TAGS[picks.find(p)])
@@ -183,6 +184,18 @@ func _track(h, ranges: Dictionary) -> void:
 			ranges[c] = [v, v]
 		else:
 			ranges[c] = [(ranges[c][0] as Vector3).min(v), (ranges[c][1] as Vector3).max(v)]
+	# swing checks: edge leading the cut (1 = straight ahead), worst grip angle (blade vs the
+	# forearm: > 2.1 rad = pointing back toward the elbow, a reverse grip), worst roll in the fist
+	var sc: Dictionary = h.swing_check
+	if not sc.is_empty():
+		ranges["grip"] = maxf(ranges.get("grip", 0.0), sc["grip"])
+		ranges["roll"] = maxf(ranges.get("roll", 0.0), sc["roll"])
+		if sc.has("edge"):
+			ranges["edge_n"] = ranges.get("edge_n", 0) + 1
+			ranges["edge_sum"] = ranges.get("edge_sum", 0.0) + float(sc["edge"])
+			ranges["edge_min"] = minf(ranges.get("edge_min", 1.0), sc["edge"])
+			if float(sc["grip"]) > 2.1:
+				ranges["reverse"] = ranges.get("reverse", 0) + 1
 
 
 func _print_ranges(n: String, p: String, ranges: Dictionary) -> void:
@@ -193,6 +206,11 @@ func _print_ranges(n: String, p: String, ranges: Dictionary) -> void:
 	var sc: Vector3 = ranges["scale"][1] - ranges["scale"][0]
 	parts.append("squash %.2f smear %.2f" % [maxf(sc.x, maxf(sc.y, sc.z)), (ranges["smear"][1] as Vector3).x])
 	print("RANGE %s [%s] (x/y/z, rad) %s" % [n, "live" if p == "" else p.to_upper(), " | ".join(parts)])
+	if ranges.has("grip"):
+		var en := int(ranges.get("edge_n", 0))
+		print("BLADE %s [%s] edge leads the cut avg %.2f min %.2f (%d samples) | worst grip %.2f rad%s | worst roll in fist %.2f" % [
+			n, "live" if p == "" else p.to_upper(), float(ranges.get("edge_sum", 0.0)) / maxi(en, 1), float(ranges.get("edge_min", 0.0)), en,
+			float(ranges["grip"]), " REVERSE GRIP x%d" % int(ranges["reverse"]) if ranges.has("reverse") else "", float(ranges["roll"])])
 
 
 func _crop(im: Image) -> Image:

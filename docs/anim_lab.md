@@ -106,4 +106,42 @@ wrist limited to bending (no roll). What differs:
 - **C:** A with a big off-arm counter-swing (x1.6 reach and fling) that drags behind the
   chest (lags 0.04-0.06 s).
 
+Ranking (Zach): **C's off-arm counter-swing and follow-through, A/B's beginning.** Big
+problem: the sword's tip and blade direction are wrong through the swing, at times it looks
+like a reverse-grip stab. "An essential detail to get right moving forward."
+
+Takeaways (each found with the solver's debug print, `AS_DEBUG=a`, and the new BLADE line):
+- **The sword is an extension of the forearm, broken back at the wrist toward the trailing
+  side of the cut.** With the hammer grip the rig uses (blade square out of the fist, edge
+  toward the fingers), the edge faces away from the side the blade tilts to, so tilting it
+  to the trailing side leaves the edge leading, always. Aiming the blade independently of
+  the forearm (radial from a centre) can't work: whenever the arm points elsewhere the edge
+  flips (that was the reverse-grip look). Key the wrist "break" instead: cocked ~80 deg on
+  the wind-up, near in line at the strike.
+- **"Which way the cut goes" comes from the cut's plane, never the hand's motion.** The
+  motion reverses at the cock and flipped everything. The plane's turning sense must come
+  from the whole path (first-to-last alone took the short way, behind the body).
+- **The path moves with the shoulders.** It's authored for the guard; crouching (hip drop,
+  squash) and leaning dropped the shoulder 0.3 m under a strike point drawn at chest
+  height, the arm reached up and the blade pointed back.
+- **At contact the chest is about square to the target**, the arm out in front; the big
+  turn happens in the wind-up and the follow-through. At x1.6 through the strike the
+  shoulder passed the hand and the blade pointed back across the body.
+- Euler angles lock up exactly where a blade lines up with the forearm: do grip maths
+  with vectors.
+- Checks now printed per variant (animsheet BLADE line): edge leading the cut (avg/min, 1
+  ideal), worst grip angle (> 2.1 rad = reverse grip), worst forearm over-turn.
+
+## Round 4 (2026-10-08): slash_r, the forearm-break solver
+
+A/B's start and wind-up, C's off-arm counter-swing and follow-through, the chest square at
+contact, the path anchored to the shoulders. Variants differ in the wrist break per key
+(wind start, cock, launch, strike, follow, wrap; rad off the forearm's line):
+- **A:** 1.2, 1.45, 1.3, 0.45, 0.25, 0.35: cocked on the wind-up, opening to near straight.
+- **B:** 1.3, 1.5, 1.45, 0.7, 0.1, 0.3: whippy, the wrist stays cocked late and snaps.
+- **C:** 0.8, 0.9, 0.85, 0.7, 0.6, 0.6: firm, half-cocked throughout.
+
+Checks: edge leads avg A 0.36 / B 0.23 / C 0.43 (was -0.7 in round 3), no reverse grip,
+forearm over-turn 0.24 (was ~3).
+
 Ranking: _waiting for Zach_

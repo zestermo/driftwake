@@ -205,12 +205,19 @@ var _react_var: float = 0.0
 var _scale := Vector3.ONE
 var _smear: float = 0.0
 var _smeared: bool = false
-## The swing's wrist (x bend back/forward, y sideways), smoothed; limits in radians.
+## The swing's wrist (x: bent along the forearm (-) / back toward the elbow (+, capped low:
+## no reverse grip); y: turned with the forearm), smoothed; the elbow's swivel; the cut
+## direction the edge faces (swing space); the last frame's checks (see _swing).
 var _wrist := Vector2.ZERO
 var _swing_on: bool = false
-const WRIST_FLEX := Vector2(-1.5, 1.1)
-const WRIST_SIDE := 0.55
+var _swivel: float = 0.0
+var _swing_rp := Vector3.FORWARD
+var _swing_anchor := Vector3.ZERO
+var swing_check: Dictionary = {}
+const WRIST_FLEX := Vector2(-1.5, 0.5)
+const WRIST_ROLL := 1.3
 const WRIST_SHARP := 24.0
+const SWIVEL_SHARP := 18.0
 ## During actions the eyes look at most this far above level (pivot + torso + head
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
@@ -2624,11 +2631,16 @@ func _process(delta: float) -> void:
 	_update_physics(delta)
 
 
-## Swing paths (spec "swing", see ActionSpecs): the hand runs a smooth curve through keyed
-## points around a centre, so a cut arcs and carries its speed through the keys; arm IK
-## places the shoulder and elbow, and the wrist lays the blade along the keyed direction
-## with its edge (-Y) leading the travel. Blends in over 0.08 s before the first key and
-## out over 0.1 s after the last, from and back to the posed arm.
+## Swing paths (spec "swing", see ActionSpecs):
+## * the hand runs a smooth curve through keyed points around a centre (an arc that keeps
+##   its speed through the keys);
+## * the sword is an extension of the forearm, broken back at the wrist by the keyed
+##   "break" angle toward the trailing side of the cut (the way the cut goes at the hand,
+##   round the cut's plane): cocked ~80 deg on the wind-up, nearly in line at the strike.
+##   So its edge (-Y) always faces the cut, and it can't end up in a reverse grip;
+## * the elbow swivels round the shoulder-hand line to keep the forearm's turn natural
+##   (within WRIST_ROLL), close to the rest and to last frame's angle.
+## Blends in over 0.08 s before the first key and out over 0.1 s after the last.
 func _swing(delta: float) -> void:
 	if _action.is_empty() or ragdoll != null or not is_inside_tree():
 		_swing_on = false
@@ -2651,40 +2663,154 @@ func _swing(delta: float) -> void:
 	var hand := hand_r if right else hand_l
 	var arm := arm_r if right else arm_l
 	var fore := fore_r if right else fore_l
-	var frame := _swing_frame(sw)
+	var first := not _swing_on
+	var frame := _swing_frame(sw, first)
 	var s := _swing_at(sw, _sample_u(t, sp))
-	var blade := (frame.basis * (s[1] as Vector3)).normalized()
-	reach_hand(right, hand.global_position.lerp(frame * (s[0] as Vector3), w), (frame.basis * (s[2] as Vector3)).normalized())
+	var pos_l: Vector3 = s[0]
+	var move := (_swing_at(sw, _sample_u(t + 0.02, sp))[0] as Vector3) - pos_l
+	var cut := _swing_cut(sw)
+	# which way the cut goes at the hand: round the cut's plane (fixed by the plane, so it
+	# doesn't flip when the hand turns round at the cock)
+	var nrm := _swing_normal(sw)
+	var r := pos_l - (sw.get("center", Vector3(0, 1.3, 0)) as Vector3)
+	var rp := r - nrm * r.dot(nrm)
+	if rp.length() > 0.01:
+		_swing_rp = rp.normalized()
+	var ahead := (frame.basis * nrm.cross(_swing_rp)).normalized()
+	var brk := float(s[1])
+	var target := hand.global_position.lerp(frame * pos_l, w)
+	var phi := _best_swivel(right, target, ahead, brk)
+	_swivel = phi if first else lerp_angle(_swivel, phi, 1.0 - exp(-SWIVEL_SHARP * delta))
+	reach_hand(right, target, _swivel_pole(right, target, _swivel))
 	# (IK writes the arm's global basis: keep its local scale plain, see Ragdoll.restore_rig)
 	arm.basis = arm.basis.orthonormalized()
-	# the wrist: only bent back/forward (x: toward the elbow / along the forearm) and a
-	# little sideways (y) from its rest (the blade straight out of the fist), never rolled,
-	# so the blade can't spin in the hand; the arm and elbow turn it the rest of the way
-	var d := (fore.global_basis.orthonormalized().inverse() * blade).normalized()
-	var want := Vector2(clampf(atan2(d.y, Vector2(d.x, d.z).length()), WRIST_FLEX.x, WRIST_FLEX.y),
-		clampf(atan2(-d.x, maxf(-d.z, 0.2)), -WRIST_SIDE, WRIST_SIDE))
+	var sol := _wrist_for(fore.global_basis, ahead, brk)
+	var wr: Vector2 = sol[0]
 	var posed: Vector3 = hand.rotation
-	if not _swing_on:
+	if first:
 		_wrist = Vector2(posed.x, posed.y)
 	_swing_on = true
-	_wrist = _wrist.lerp(want, 1.0 - exp(-WRIST_SHARP * delta))
+	_wrist = _wrist.lerp(wr, 1.0 - exp(-WRIST_SHARP * delta))
 	hand.rotation = Vector3(lerpf(posed.x, _wrist.x, w), lerpf(posed.y, _wrist.y, w), posed.z * (1.0 - w))
+	# (read by the lab's renders: is the edge leading, is the grip forward, is it rolled)
+	var real_blade := -hand.global_basis.z.normalized()
+	var fore_axis := (hand.global_position - fore.global_position).normalized()
+	var travel := frame.basis * move
+	swing_check = {"grip": real_blade.angle_to(fore_axis), "roll": float(sol[1])}
+	if AnimLab.debug:
+		var inv := global_basis.orthonormalized().inverse()
+		print("SWING u %.2f hand %s got %s shoulder %s forearm %s cut goes %s | blade %s edge %s | wrist %s over %.2f | swivel %.2f" % [
+			float(_action["t"]) / dur, pos_l.snapped(Vector3.ONE * 0.01), (global_transform.affine_inverse() * hand.global_position).snapped(Vector3.ONE * 0.01),
+			(global_transform.affine_inverse() * arm.global_position).snapped(Vector3.ONE * 0.01), (inv * fore_axis).snapped(Vector3.ONE * 0.01),
+			(inv * ahead).snapped(Vector3.ONE * 0.01),
+			(inv * real_blade).snapped(Vector3.ONE * 0.01), (inv * -hand.global_basis.y.normalized()).snapped(Vector3.ONE * 0.01),
+			wr.snapped(Vector2.ONE * 0.01), float(sol[1]), _swivel])
+	# (edge measured while the hand cuts at speed: > 1.5 m/s along the cut)
+	if travel.length() > 0.03 and travel.dot(frame.basis * cut) > 0.0 and w >= 1.0:
+		swing_check["edge"] = -hand.global_basis.y.normalized().dot(travel.normalized())
+
+
+## The normal of the cut's plane (swing space): the spec's "plane", else the way the keys'
+## directions actually sweep round, key to key (the cut turns anticlockwise about it; the
+## first and last alone can't say: the short way between them may run behind the body).
+func _swing_normal(sw: Dictionary) -> Vector3:
+	if sw.has("plane"):
+		return (sw["plane"] as Vector3).normalized()
+	var keys: Array = sw["keys"]
+	var n := Vector3.ZERO
+	for i in keys.size() - 1:
+		n += (keys[i][1]["dir"] as Vector3).normalized().cross((keys[i + 1][1]["dir"] as Vector3).normalized())
+	return n.normalized()
+
+
+## The cut's overall direction in the swing's space: the spec's "cut", else from the first
+## key's point to the last's.
+func _swing_cut(sw: Dictionary) -> Vector3:
+	if sw.has("cut"):
+		return (sw["cut"] as Vector3).normalized()
+	var keys: Array = sw["keys"]
+	var a: Dictionary = keys[0][1]
+	var b: Dictionary = keys[keys.size() - 1][1]
+	return ((b["dir"] as Vector3).normalized() * float(b["r"]) - (a["dir"] as Vector3).normalized() * float(a["r"])).normalized()
+
+
+## The elbow pole for a swivel angle `phi` round the shoulder-to-`target` line (0 = out and
+## down, the natural rest).
+func _swivel_pole(right: bool, target: Vector3, phi: float) -> Vector3:
+	var a := (target - (arm_r if right else arm_l).global_position).normalized()
+	var ref := global_basis.orthonormalized() * Vector3(0.5 if right else -0.5, -1.0, 0.2)
+	var u1 := (ref - a * ref.dot(a)).normalized()
+	return u1 * cos(phi) + a.cross(u1) * sin(phi)
+
+
+## The swivel that keeps the forearm's turn natural for the wanted wrist (within
+## WRIST_ROLL, near 0), the elbow near its rest and last frame's angle. Tries the arm at
+## each angle (reach_hand), coarse then fine.
+func _best_swivel(right: bool, target: Vector3, ahead: Vector3, brk: float) -> float:
+	var best := 0.0
+	var best_c := INF
+	for i in 24:
+		var phi := -PI + TAU * float(i) / 24.0
+		var c := _swivel_cost(right, target, ahead, brk, phi)
+		if c < best_c:
+			best_c = c
+			best = phi
+	var step := TAU / 48.0
+	for i in 3:
+		for phi in [best - step, best + step]:
+			var c := _swivel_cost(right, target, ahead, brk, phi)
+			if c < best_c:
+				best_c = c
+				best = phi
+		step *= 0.5
+	return best
+
+
+func _swivel_cost(right: bool, target: Vector3, ahead: Vector3, brk: float, phi: float) -> float:
+	reach_hand(right, target, _swivel_pole(right, target, phi))
+	var sol := _wrist_for((fore_r if right else fore_l).global_basis, ahead, brk)
+	var y := (sol[0] as Vector2).y
+	var c := 6.0 * pow(float(sol[1]), 2.0) + 0.3 * y * y + 0.15 * phi * phi
+	if _swing_on:
+		c += 0.6 * pow(angle_difference(_swivel, phi), 2.0)
+	return c
+
+
+## The wrist under the forearm `fb` that breaks the blade back from the forearm's line by
+## `brk` toward the trailing side (against `ahead`, the cut's way at the hand), as the hand's
+## rotation (x: bent along the forearm (-) / back toward the elbow (+); y: turned with the
+## forearm), and how far the turn had to be clamped (radians). The hand at rest holds the
+## blade square to the forearm (-Z) with its edge toward the fingers (-Y); bending x toward
+## -90 deg brings the blade in line, its edge then facing away from the side it tilts to,
+## so tilting it to the trailing side leaves the edge leading the cut.
+func _wrist_for(fb: Basis, ahead: Vector3, brk: float) -> Array:
+	var a := fb.orthonormalized().inverse() * ahead
+	var y := atan2(a.x, a.z) if Vector2(a.x, a.z).length() > 0.05 else _wrist.y
+	var yc := clampf(y, -WRIST_ROLL, WRIST_ROLL)
+	return [Vector2(clampf(-(PI * 0.5 - brk), WRIST_FLEX.x, WRIST_FLEX.y), yc), absf(y - yc)]
 
 
 ## Where a swing's points live: the root (feet, facing -Z), turned with the chest by
-## `follow` (0 = the body's facing, 1 = the chest's: the cut rides the chest's turn).
-func _swing_frame(sw: Dictionary) -> Transform3D:
+## `follow` (0 = the body's facing, 1 = the chest's: the cut rides the chest's turn), and
+## carried with the shoulders by `anchor` (default 1): the path is authored for the body
+## standing in its guard, so when it crouches, leans or steps into the cut the points go
+## with the shoulders (else a strike drawn at chest height ends up above a dropped
+## shoulder, the arm reaching up and the blade pointing back).
+func _swing_frame(sw: Dictionary, first: bool) -> Transform3D:
+	var b := global_basis
 	var follow := float(sw.get("follow", 0.0))
-	if follow <= 0.0:
-		return global_transform
-	var f := global_basis.orthonormalized().inverse() * -torso.global_basis.z
-	var yaw := atan2(-f.x, -f.z)
-	return Transform3D(global_basis * Basis(Vector3.UP, yaw * follow), global_position)
+	if follow > 0.0:
+		var f := global_basis.orthonormalized().inverse() * -torso.global_basis.z
+		b = global_basis * Basis(Vector3.UP, atan2(-f.x, -f.z) * follow)
+	var mid := global_transform.affine_inverse() * ((arm_l.global_position + arm_r.global_position) * 0.5)
+	if first:
+		_swing_anchor = mid
+	return Transform3D(b, global_position + global_basis * ((mid - _swing_anchor) * float(sw.get("anchor", 1.0))))
 
 
-## [hand position, blade direction, elbow pole] in the swing's space at `u`: a Catmull-Rom
-## curve through the keys' points (centre + dir * r), each segment's progress shaped by
-## its mode (default "linear": the hand keeps its speed through the key).
+## [hand position, wrist break] in the swing's space at `u`: a Catmull-Rom curve through
+## the keys' points (centre + dir * r), each segment's progress shaped by its mode
+## (default "linear": the hand keeps its speed through the key).
 func _swing_at(sw: Dictionary, u: float) -> Array:
 	var keys: Array = sw["keys"]
 	var n := keys.size()
@@ -2700,17 +2826,13 @@ func _swing_at(sw: Dictionary, u: float) -> Array:
 		x = _shape(clampf((u - a) / maxf(b - a, 0.0001), 0.0, 1.0), keys[i + 1][2] if (keys[i + 1] as Array).size() > 2 else "linear")
 	var j := mini(i + 1, n - 1)
 	var pts := []
-	var blades := []
-	var poles := []
+	var brks := []
 	for q in [maxi(i - 1, 0), i, j, mini(j + 1, n - 1)]:
 		var key: Dictionary = keys[q][1]
-		var d := (key["dir"] as Vector3).normalized()
-		pts.append(sw.get("center", Vector3(0, 1.3, 0)) + d * float(key["r"]))
-		blades.append((key.get("blade", d) as Vector3).normalized())
-		poles.append(key.get("pole", sw.get("pole", Vector3(0.7, -0.8, 0.3))))
+		pts.append((sw.get("center", Vector3(0, 1.3, 0)) as Vector3) + (key["dir"] as Vector3).normalized() * float(key["r"]))
+		brks.append(float(key.get("break", sw.get("break", 0.6))))
 	var pos: Vector3 = (pts[1] as Vector3).cubic_interpolate(pts[2], pts[0], pts[3], x)
-	var blade: Vector3 = (blades[1] as Vector3).cubic_interpolate(blades[2], blades[0], blades[3], x).normalized()
-	return [pos, blade, (poles[1] as Vector3).lerp(poles[2], x)]
+	return [pos, cubic_interpolate(brks[1], brks[2], brks[0], brks[3], x)]
 
 
 ## The action's pose time (0..1) at `t` seconds: held on the spec's drawings when it

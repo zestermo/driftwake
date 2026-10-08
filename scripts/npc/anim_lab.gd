@@ -11,35 +11,36 @@ class_name AnimLab
 const FOCUS := "slash_r"
 const SLOW := 0.25
 
-## Round 2: the hand on a swing path (arcs, IK arm, blade along the path), the body turning
-## with the cut (right on the wind-up, left through it), squash and smear from round 1's B.
-## Body-space swing points for the diagonal forehand: high behind the right shoulder ->
-## through the space in front -> wrapped low round the left side.
-const SLASH_SWING := [
-	[0.12, {"dir": Vector3(0.6, 0.55, 0.55), "r": 0.42, "blade": Vector3(0.1, 0.35, 1.0), "pole": Vector3(0.9, -0.2, 0.4)}],
-	[0.32, {"dir": Vector3(0.55, 0.75, 0.6), "r": 0.4, "blade": Vector3(-0.25, -0.1, 1.0), "pole": Vector3(0.9, 0.0, 0.5)}, "smooth"],
-	[0.4, {"dir": Vector3(0.75, 0.6, -0.1), "r": 0.5, "blade": Vector3(0.3, 0.9, 0.2), "pole": Vector3(0.8, -0.4, 0.3)}, "in"],
-	[0.5, {"dir": Vector3(0.05, -0.05, -1.0), "r": 0.62, "blade": Vector3(-0.45, -0.3, -0.85), "pole": Vector3(0.6, -0.9, 0.2)}],
-	[0.62, {"dir": Vector3(-0.7, -0.45, -0.45), "r": 0.52, "blade": Vector3(-0.55, -0.55, 0.6), "pole": Vector3(0.3, -1.0, 0.2)}],
-	[0.76, {"dir": Vector3(-0.65, -0.55, 0.0), "r": 0.42, "blade": Vector3(-0.3, -0.8, 0.5), "pole": Vector3(0.3, -1.0, 0.3)}, "out"],
+## Body-space hand points for the diagonal forehand (round 2's B path): high behind the
+## right shoulder -> through the space in front -> wrapped low round the left side.
+const SLASH_PATH := [
+	[0.12, Vector3(0.6, 0.55, 0.55), 0.42],
+	[0.32, Vector3(0.55, 0.75, 0.6), 0.4, "smooth"],
+	[0.4, Vector3(0.75, 0.6, -0.1), 0.5, "in"],
+	[0.5, Vector3(0.05, -0.05, -1.0), 0.62],
+	[0.62, Vector3(-0.7, -0.45, -0.45), 0.52],
+	[0.76, Vector3(-0.65, -0.55, 0.0), 0.42, "out"],
 ]
 
-## Round 3: round 2's B (0.75 s, its path, angle and wind-up) with C's bigger chest turn
-## (x1.6), and the wrist limited to bending (no roll) so the sword stops twisting in the
-## hand. What differs: how far the path turns with the chest, and the off arm.
-const R3 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
-	"lead": {"pivot": 0.04, "hips": 0.07, "torso": 0.035}}
+## Round 4: the sword as an extension of the forearm, broken back at the wrist toward the
+## trailing side of the cut (edge always facing the cut, no reverse grip), on round 3's
+## favourites: A/B's start and wind-up, C's off-arm counter-swing and follow-through.
+## What differs is the wrist break per key (radians off the forearm's line: ~1.5 square to
+## it, 0 in line): wind start, cock, launch, strike, follow, wrap.
+const R4 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
+	"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02, "arm_l": -0.04, "fore_l": -0.06}}
+const BREAKS := {
+	"a": [1.2, 1.45, 1.3, 0.45, 0.25, 0.35],
+	"b": [1.3, 1.5, 1.45, 0.7, 0.1, 0.3],
+	"c": [0.8, 0.9, 0.85, 0.7, 0.6, 0.6],
+}
 
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
 	"slash_r": {
-		"a": {"note": "B's path in the body's frame, C's chest turn, steady wrist",
-			"spec": {"swing": {"center": Vector3(0.08, 1.32, -0.05), "keys": SLASH_SWING, "lag": 0.02, "scale_r": 1.15}}},
-		"b": {"note": "Same, the path turning half way with the chest",
-			"spec": {"swing": {"center": Vector3(0.08, 1.32, -0.05), "keys": SLASH_SWING, "lag": 0.02, "scale_r": 1.15, "follow": 0.5}}},
-		"c": {"note": "A with a big off-arm counter-swing that drags behind the chest",
-			"spec": {"lead": {"pivot": 0.04, "hips": 0.07, "torso": 0.035, "arm_l": -0.04, "fore_l": -0.06},
-				"swing": {"center": Vector3(0.08, 1.32, -0.05), "keys": SLASH_SWING, "lag": 0.02, "scale_r": 1.15}}},
+		"a": {"note": "Wrist cocked on the wind-up, opens to near straight at the strike"},
+		"b": {"note": "Whippy: wrist stays cocked late, snaps straight through the strike"},
+		"c": {"note": "Firm: wrist held half-cocked the whole swing"},
 	},
 }
 
@@ -47,6 +48,8 @@ const VARIANTS := {
 static var pick: String = ""
 ## Clean view: FX.slash arcs skipped, BladeTrail drawn on the local captain.
 static var clean: bool = false
+## Humanoid._swing prints each frame's solve (animsheet: AS_DEBUG=<variant>).
+static var debug: bool = false
 
 
 static func cycle() -> String:
@@ -71,19 +74,27 @@ static func toggle_clean() -> String:
 	return "Anim lab: %s" % ("clean view (blade trail, no arcs)" if clean else "arcs back on")
 
 
-## The ActionSpecs entry with the picked variant's overrides (a swing's "scale_r" widens
-## its points).
+## The ActionSpecs entry with the picked variant's overrides and its swing.
 static func spec(n: String) -> Dictionary:
 	var s: Dictionary = ActionSpecs.SPECS.get(n, {})
 	if pick == "" or not VARIANTS.has(n) or not (VARIANTS[n] as Dictionary).has(pick):
 		return s
-	var out := s.merged(R3, true).merged(VARIANTS[n][pick].get("spec", {}), true)
-	if out.has("swing") and (out["swing"] as Dictionary).has("scale_r"):
-		var sw: Dictionary = (out["swing"] as Dictionary).duplicate(true)
-		for key in sw["keys"]:
-			key[1]["r"] = float(key[1]["r"]) * float(sw["scale_r"])
-		out["swing"] = sw
+	var out := s.merged(R4, true).merged(VARIANTS[n][pick].get("spec", {}), true)
+	if n == "slash_r":
+		out["swing"] = _path(SLASH_PATH, BREAKS[pick], 1.15, {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02})
 	return out
+
+
+## A swing from [u, dir, r, mode?] points, a wrist break per point and a radius scale.
+static func _path(points: Array, breaks: Array, scale_r: float, extra: Dictionary) -> Dictionary:
+	var keys := []
+	for i in points.size():
+		var p: Array = points[i]
+		var key := [p[0], {"dir": p[1], "r": float(p[2]) * scale_r, "break": breaks[i]}]
+		if p.size() > 3:
+			key.append(p[3])
+		keys.append(key)
+	return extra.merged({"keys": keys}, true)
 
 
 ## [pose, mask, lift] of the picked variant of `n`, or [] to use the live one.
@@ -92,7 +103,7 @@ static func pose(h, n: String, u: float) -> Array:
 		return []
 	match n + "@" + pick:
 		"slash_r@a", "slash_r@b", "slash_r@c":
-			var p := _slash_body(h, 1.6, 1.6 if pick == "c" else 1.0)
+			var p := _slash_body(h, 1.6, 1.6)
 			return [h._keys(u, [[0.0, p["g"]], [0.32, p["load"], "out"], [0.42, p["cock"]], [0.47, p["whoosh"], "in"],
 				[0.52, p["cut"], "out"], [0.66, p["follow"], "out"], [0.84, p["follow"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
 	return []
@@ -110,11 +121,13 @@ static func _slash_body(h, k: float, off: float = 1.0) -> Dictionary:
 		"leg_l": Vector3(0.35, 0, -0.14), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.15, 0, 0.12), "shin_r": Vector3(-0.65, 0, 0),
 		"_lift": Vector3(0, -0.1, 0) * k, "_scale": Vector3(1.05, 0.9, 1.05)}
 	var cock := load.merged({"torso": Vector3(0.12, -0.62, -0.12) * k, "hips": Vector3(0, -0.44, 0) * k, "_scale": Vector3(1.06, 0.88, 1.06)}, true)
-	var cut := {"pivot": Vector3(-0.12, 0, 0.06) * k, "hips": Vector3(0, 0.3, 0) * k,
-		"torso": Vector3(-0.3, 0.35, 0.12) * k, "head": Vector3(0.1, -0.45, 0) * k,
+	# (at the strike the chest is about square to the target, the arm out in front of it:
+	# turned further, the shoulder passes the hand and the blade points back across the body)
+	var cut := {"pivot": Vector3(-0.08, 0, 0.04), "hips": Vector3(0, 0.12, 0),
+		"torso": Vector3(-0.18, 0.12, 0.08), "head": Vector3(0.08, -0.15, 0),
 		"arm_l": Vector3(-0.4, 0, -0.9) * off, "fore_l": Vector3(0.9, 0, 0) * minf(off, 1.3),
 		"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.75, 0, 0.12), "shin_r": Vector3(-0.22, 0, 0),
-		"_lift": Vector3(0, -0.22, 0) * k, "_scale": Vector3(1.06, 0.93, 1.06)}
+		"_lift": Vector3(0, -0.24, 0), "_scale": Vector3(1.06, 0.93, 1.06)}
 	var whoosh := _with(_mix(cock, cut, 0.5), Vector3(0.92, 1.08, 1.15), 0.7)
 	var follow := cut.merged({"pivot": Vector3(-0.16, 0, 0.08) * k, "hips": Vector3(0, 0.55, 0) * k,
 		"torso": Vector3(-0.35, 0.75, 0.2) * k, "head": Vector3(0.1, -0.8, 0) * k, "_lift": Vector3(0, -0.25, 0) * k,
