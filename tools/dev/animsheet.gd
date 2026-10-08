@@ -190,6 +190,9 @@ func _track(h, ranges: Dictionary) -> void:
 	if not sc.is_empty():
 		ranges["grip"] = maxf(ranges.get("grip", 0.0), sc["grip"])
 		ranges["roll"] = maxf(ranges.get("roll", 0.0), sc["roll"])
+		ranges["head_clear"] = minf(ranges.get("head_clear", 1.0), sc["head"])
+		if float(sc["head"]) < -0.01:
+			ranges["through"] = ranges.get("through", 0) + 1
 		if sc.has("edge"):
 			ranges["edge_n"] = ranges.get("edge_n", 0) + 1
 			ranges["edge_sum"] = ranges.get("edge_sum", 0.0) + float(sc["edge"])
@@ -208,9 +211,10 @@ func _print_ranges(n: String, p: String, ranges: Dictionary) -> void:
 	print("RANGE %s [%s] (x/y/z, rad) %s" % [n, "live" if p == "" else p.to_upper(), " | ".join(parts)])
 	if ranges.has("grip"):
 		var en := int(ranges.get("edge_n", 0))
-		print("BLADE %s [%s] edge leads the cut avg %.2f min %.2f (%d samples) | worst grip %.2f rad%s | worst roll in fist %.2f" % [
+		print("BLADE %s [%s] edge leads the cut avg %.2f min %.2f (%d samples) | worst grip %.2f rad%s | worst roll in fist %.2f | head clearance min %.2f m%s" % [
 			n, "live" if p == "" else p.to_upper(), float(ranges.get("edge_sum", 0.0)) / maxi(en, 1), float(ranges.get("edge_min", 0.0)), en,
-			float(ranges["grip"]), " REVERSE GRIP x%d" % int(ranges["reverse"]) if ranges.has("reverse") else "", float(ranges["roll"])])
+			float(ranges["grip"]), " REVERSE GRIP x%d" % int(ranges["reverse"]) if ranges.has("reverse") else "", float(ranges["roll"]),
+			float(ranges["head_clear"]), " THROUGH THE HEAD x%d" % int(ranges["through"]) if ranges.has("through") else ""])
 
 
 func _crop(im: Image) -> Image:

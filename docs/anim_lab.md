@@ -144,4 +144,28 @@ contact, the path anchored to the shoulders. Variants differ in the wrist break 
 Checks: edge leads avg A 0.36 / B 0.23 / C 0.43 (was -0.7 in round 3), no reverse grip,
 forearm over-turn 0.24 (was ~3).
 
+Ranking (Zach): **B best** (whippy wrist). Problem: the wind-up/cock folds the arm in on
+itself and the sword passes slightly through the head.
+
+Takeaways:
+- The cock point sat ~0.3 m from the shoulder (elbow folded tight) and the cocked blade,
+  square to the forearm on the trailing side, ran straight through where the head is.
+- **The solver keeps blades out of the head** (`_blade_clear`: the blade segment vs a head
+  sphere of HEAD_CLEAR 0.2 m; any overlap pushes the hand and sword out from the head that
+  frame, the push easing off once clear). animsheet's BLADE line reports head clearance and
+  flags THROUGH THE HEAD.
+
+## Round 5 (2026-10-08): slash_r, round 4 B with head clearance
+
+All: round 4 B's whippy wrist (1.3, 1.5, 1.45, 0.7, 0.1, 0.3), the head clearance.
+- **A:** round 4 B's path; the solver alone keeps the blade off the head.
+- **B:** a wider, higher wind-up and cock (hand ~0.44 m from the shoulder instead of 0.32):
+  the arm opens out.
+- **C:** B's wide cock, the wrist eased there (1.15, 1.3, 1.35): the blade sits up over the
+  shoulder instead of square behind the head.
+
+Checks: no blade through the head in any (min clearance A 0.00, B 0.04, C 0.07 m). The wide
+cock costs some edge lead (A 0.25, B 0.10, C 0.17) and the forearm over-turns at the cock
+(1.17 vs A 0.17).
+
 Ranking: _waiting for Zach_

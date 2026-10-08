@@ -21,26 +21,37 @@ const SLASH_PATH := [
 	[0.62, Vector3(-0.7, -0.45, -0.45), 0.52],
 	[0.76, Vector3(-0.65, -0.55, 0.0), 0.42, "out"],
 ]
+## The same with the wind-up and cock held further out and higher, so the elbow opens
+## instead of folding the hand in by the head.
+const SLASH_PATH_WIDE := [
+	[0.12, Vector3(0.8, 0.55, 0.45), 0.5],
+	[0.32, Vector3(0.75, 0.8, 0.45), 0.52, "smooth"],
+	[0.4, Vector3(0.85, 0.6, -0.1), 0.55, "in"],
+	[0.5, Vector3(0.05, -0.05, -1.0), 0.62],
+	[0.62, Vector3(-0.7, -0.45, -0.45), 0.52],
+	[0.76, Vector3(-0.65, -0.55, 0.0), 0.42, "out"],
+]
 
-## Round 4: the sword as an extension of the forearm, broken back at the wrist toward the
-## trailing side of the cut (edge always facing the cut, no reverse grip), on round 3's
-## favourites: A/B's start and wind-up, C's off-arm counter-swing and follow-through.
-## What differs is the wrist break per key (radians off the forearm's line: ~1.5 square to
-## it, 0 in line): wind start, cock, launch, strike, follow, wrap.
-const R4 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
+## Round 5: round 4's B (whippy wrist: cocked late, snapping through) on round 3's
+## favourites, with the solver now keeping the blade clear of the head. What differs:
+## the path's wind-up and how hard the wrist is cocked there. Wrist break per key (radians
+## off the forearm's line, ~1.5 square to it, 0 in line): wind start, cock, launch,
+## strike, follow, wrap.
+const R5 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
 	"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02, "arm_l": -0.04, "fore_l": -0.06}}
+const PATHS := {"a": SLASH_PATH, "b": SLASH_PATH_WIDE, "c": SLASH_PATH_WIDE}
 const BREAKS := {
-	"a": [1.2, 1.45, 1.3, 0.45, 0.25, 0.35],
+	"a": [1.3, 1.5, 1.45, 0.7, 0.1, 0.3],
 	"b": [1.3, 1.5, 1.45, 0.7, 0.1, 0.3],
-	"c": [0.8, 0.9, 0.85, 0.7, 0.6, 0.6],
+	"c": [1.15, 1.3, 1.35, 0.7, 0.1, 0.3],
 }
 
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
 	"slash_r": {
-		"a": {"note": "Wrist cocked on the wind-up, opens to near straight at the strike"},
-		"b": {"note": "Whippy: wrist stays cocked late, snaps straight through the strike"},
-		"c": {"note": "Firm: wrist held half-cocked the whole swing"},
+		"a": {"note": "Round 4 B, the solver pushing the blade clear of the head"},
+		"b": {"note": "B with a wider, higher cock: the arm opens out by the head"},
+		"c": {"note": "Wider cock, the wrist eased: blade up over the shoulder"},
 	},
 }
 
@@ -79,9 +90,9 @@ static func spec(n: String) -> Dictionary:
 	var s: Dictionary = ActionSpecs.SPECS.get(n, {})
 	if pick == "" or not VARIANTS.has(n) or not (VARIANTS[n] as Dictionary).has(pick):
 		return s
-	var out := s.merged(R4, true).merged(VARIANTS[n][pick].get("spec", {}), true)
+	var out := s.merged(R5, true).merged(VARIANTS[n][pick].get("spec", {}), true)
 	if n == "slash_r":
-		out["swing"] = _path(SLASH_PATH, BREAKS[pick], 1.15, {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02})
+		out["swing"] = _path(PATHS[pick], BREAKS[pick], 1.15, {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02})
 	return out
 
 

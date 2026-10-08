@@ -173,9 +173,13 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
   chest about square to the target at contact, the arm out in front: turned further, the
   shoulder passes the hand and the blade points back. Big turns belong to the wind-up and
   the follow-through.
+- **Keep the cock point out from the body** (hand ~0.45 m+ from the shoulder): closer, the
+  elbow folds in and the cocked blade crosses the head. The solver pushes a blade out of the
+  head as a safety net, but a path that needs it reads as cramped.
 - **Check the BLADE line** animsheet prints for every lab variant: edge leading the cut
-  (avg > 0.3, min > 0), no REVERSE GRIP, forearm over-turn < 0.3. If it's off, run with
-  `AS_DEBUG=<variant>` for the per-frame solve (hand, shoulder, forearm, blade, edge).
+  (avg > 0.3, min > 0), no REVERSE GRIP, forearm over-turn < 0.3, head clearance >= 0 (no
+  THROUGH THE HEAD). If it's off, run with `AS_DEBUG=<variant>` for the per-frame solve
+  (hand, shoulder, forearm, blade, edge).
 - **The off arm answers the swing:** reaches toward the target on the wind-up, flings back
   through the cut, ideally dragging a little behind the chest.
 - **Impact helps:** squash on the wind-up, stretch and blade smear through the swing.

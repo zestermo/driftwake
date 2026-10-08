@@ -218,6 +218,11 @@ const WRIST_FLEX := Vector2(-1.5, 0.5)
 const WRIST_ROLL := 1.3
 const WRIST_SHARP := 24.0
 const SWIVEL_SHARP := 18.0
+## How close a swung blade may come to the head's centre (head 0.125 + hair/hat), and the
+## most the hand is pushed out to keep it there.
+const HEAD_CLEAR := 0.2
+const CLEAR_PUSH_MAX := 0.3
+var _clear_push := Vector3.ZERO
 ## During actions the eyes look at most this far above level (pivot + torso + head
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
@@ -2678,7 +2683,9 @@ func _swing(delta: float) -> void:
 		_swing_rp = rp.normalized()
 	var ahead := (frame.basis * nrm.cross(_swing_rp)).normalized()
 	var brk := float(s[1])
-	var target := hand.global_position.lerp(frame * pos_l, w)
+	if first:
+		_clear_push = Vector3.ZERO
+	var target := hand.global_position.lerp(frame * pos_l, w) + _clear_push
 	var phi := _best_swivel(right, target, ahead, brk)
 	_swivel = phi if first else lerp_angle(_swivel, phi, 1.0 - exp(-SWIVEL_SHARP * delta))
 	reach_hand(right, target, _swivel_pole(right, target, _swivel))
@@ -2692,11 +2699,23 @@ func _swing(delta: float) -> void:
 	_swing_on = true
 	_wrist = _wrist.lerp(wr, 1.0 - exp(-WRIST_SHARP * delta))
 	hand.rotation = Vector3(lerpf(posed.x, _wrist.x, w), lerpf(posed.y, _wrist.y, w), posed.z * (1.0 - w))
-	# (read by the lab's renders: is the edge leading, is the grip forward, is it rolled)
+	# clearance: a blade through the head pushes the hand (and the sword with it) straight
+	# out from the head, this frame, and the push stays while it's needed, easing off after
+	var cl := _blade_clear(hand)
+	if float(cl[0]) < 0.0:
+		var push: Vector3 = (cl[1] as Vector3) * (0.02 - float(cl[0]))
+		_clear_push = (_clear_push + push).limit_length(CLEAR_PUSH_MAX)
+		reach_hand(right, target + push, _swivel_pole(right, target + push, _swivel))
+		arm.basis = arm.basis.orthonormalized()
+		cl = _blade_clear(hand)
+	else:
+		_clear_push = _clear_push.lerp(Vector3.ZERO, 1.0 - exp(-6.0 * delta))
+	# (read by the lab's renders: is the edge leading, is the grip forward, is it rolled,
+	# is the blade clear of the head)
 	var real_blade := -hand.global_basis.z.normalized()
 	var fore_axis := (hand.global_position - fore.global_position).normalized()
 	var travel := frame.basis * move
-	swing_check = {"grip": real_blade.angle_to(fore_axis), "roll": float(sol[1])}
+	swing_check = {"grip": real_blade.angle_to(fore_axis), "roll": float(sol[1]), "head": float(cl[0])}
 	if AnimLab.debug:
 		var inv := global_basis.orthonormalized().inverse()
 		print("SWING u %.2f hand %s got %s shoulder %s forearm %s cut goes %s | blade %s edge %s | wrist %s over %.2f | swivel %.2f" % [
@@ -2708,6 +2727,20 @@ func _swing(delta: float) -> void:
 	# (edge measured while the hand cuts at speed: > 1.5 m/s along the cut)
 	if travel.length() > 0.03 and travel.dot(frame.basis * cut) > 0.0 and w >= 1.0:
 		swing_check["edge"] = -hand.global_basis.y.normalized().dot(travel.normalized())
+
+
+## How far the weapon in `hand` (hilt to tip) stays clear of the head, hair and hat
+## allowed for (m, negative = through it), and the way out: from the head's centre to the
+## blade's nearest point.
+func _blade_clear(hand: Node3D) -> Array:
+	var w: MeshInstance3D = weapon if hand == hand_r else offhand
+	if w == null or not is_instance_valid(w) or w.get_parent() != hand:
+		return [1.0, Vector3.ZERO]
+	var a := hand.global_position
+	var ab := w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z) - a
+	var c := head.global_transform * Vector3(0, 0.11, 0)
+	var off := a + ab * clampf((c - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0) - c
+	return [off.length() - HEAD_CLEAR, off.normalized() if off.length() > 0.001 else global_basis.x.normalized()]
 
 
 ## The normal of the cut's plane (swing space): the spec's "plane", else the way the keys'
