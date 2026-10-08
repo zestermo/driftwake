@@ -2687,7 +2687,9 @@ func _swing(delta: float) -> void:
 		_clear_push = Vector3.ZERO
 	var target := hand.global_position.lerp(frame * pos_l, w) + _clear_push
 	var phi := _best_swivel(right, target, ahead, brk)
-	_swivel = phi if first else lerp_angle(_swivel, phi, 1.0 - exp(-SWIVEL_SHARP * delta))
+	# (blending in from the posed arm the forearm turns fast: a lagging swivel left the wrist
+	# turned past its limit for a moment, a flick at the start of the wind-up)
+	_swivel = phi if first else lerp_angle(_swivel, phi, 1.0 - exp(-(SWIVEL_SHARP if w >= 1.0 else 60.0) * delta))
 	reach_hand(right, target, _swivel_pole(right, target, _swivel))
 	# (IK writes the arm's global basis: keep its local scale plain, see Ragdoll.restore_rig)
 	arm.basis = arm.basis.orthonormalized()
@@ -2819,6 +2821,10 @@ func _swivel_cost(right: bool, target: Vector3, ahead: Vector3, brk: float, phi:
 func _wrist_for(fb: Basis, ahead: Vector3, brk: float) -> Array:
 	var a := fb.orthonormalized().inverse() * ahead
 	var y := atan2(a.x, a.z) if Vector2(a.x, a.z).length() > 0.05 else _wrist.y
+	# (the turn nearest last frame's: where the wanted turn passes behind the forearm it wraps
+	# from +pi to -pi, and clamping each side flicked the wrist from one limit to the other)
+	if _swing_on:
+		y = _wrist.y + angle_difference(_wrist.y, y)
 	var yc := clampf(y, -WRIST_ROLL, WRIST_ROLL)
 	return [Vector2(clampf(-(PI * 0.5 - brk), WRIST_FLEX.x, WRIST_FLEX.y), yc), absf(y - yc)]
 

@@ -168,4 +168,25 @@ Checks: no blade through the head in any (min clearance A 0.00, B 0.04, C 0.07 m
 cock costs some edge lead (A 0.25, B 0.10, C 0.17) and the forearm over-turns at the cock
 (1.17 vs A 0.17).
 
+Ranking (Zach): **C > B > A.** The wide, high cock with the eased wrist wins. Problem: the
+off arm is almost straight the whole wind-up and follow-through; a real arm keeps some bend.
+
+Takeaways:
+- **No limb held straight.** The off arm reached at 0.3 rad elbow on the wind-up and
+  copied the cut's arm into the follow-through. Rule: an elbow or knee only straightens at
+  the instant of full extension (a punch, a thrust); held or reaching it keeps 0.6+ rad.
+- The 1.17 over-turn wasn't at the cock: it was a blip in the first frames, blending from the
+  guard into the path (the forearm swings fast and the swivel lagged). Fixed most of it: the
+  swivel follows fast while blending in, and the wrist's turn is taken nearest last frame's
+  (no flip across +-pi). A 0.39 blip remains in those first frames (known).
+
+## Round 6 (2026-10-08): slash_r, round 5 C with the off arm's elbow bent
+
+All: round 5 C (wide high cock, eased wrist, whippy through the strike), the off arm with its
+own follow-through pose. Off-arm elbow (rad) on the wind-up reach / the cut / the
+follow-through:
+- **A:** 0.6 / 1.2 / 0.9 (a little)
+- **B:** 0.9 / 1.4 / 1.2 (more)
+- **C:** 1.2 / 1.6 / 1.5 (a lot: the fist up by the face on the wind-up)
+
 Ranking: _waiting for Zach_

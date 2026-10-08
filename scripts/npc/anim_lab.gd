@@ -32,26 +32,22 @@ const SLASH_PATH_WIDE := [
 	[0.76, Vector3(-0.65, -0.55, 0.0), 0.42, "out"],
 ]
 
-## Round 5: round 4's B (whippy wrist: cocked late, snapping through) on round 3's
-## favourites, with the solver now keeping the blade clear of the head. What differs:
-## the path's wind-up and how hard the wrist is cocked there. Wrist break per key (radians
-## off the forearm's line, ~1.5 square to it, 0 in line): wind start, cock, launch,
-## strike, follow, wrap.
-const R5 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
+## Round 6: round 5's C (wide, high cock, the wrist eased there, whippy through the strike)
+## with the off arm's elbow bent: it was near straight reaching on the wind-up and flung
+## out through the follow-through. Wrist break per key (radians off the forearm's line,
+## ~1.5 square to it, 0 in line): wind start, cock, launch, strike, follow, wrap.
+const R6 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
 	"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02, "arm_l": -0.04, "fore_l": -0.06}}
-const PATHS := {"a": SLASH_PATH, "b": SLASH_PATH_WIDE, "c": SLASH_PATH_WIDE}
-const BREAKS := {
-	"a": [1.3, 1.5, 1.45, 0.7, 0.1, 0.3],
-	"b": [1.3, 1.5, 1.45, 0.7, 0.1, 0.3],
-	"c": [1.15, 1.3, 1.35, 0.7, 0.1, 0.3],
-}
+const SLASH_BREAKS := [1.15, 1.3, 1.35, 0.7, 0.1, 0.3]
+## Off-arm elbow (fore_l, rad) on the wind-up reach, through the cut, in the follow-through.
+const ELBOWS := {"a": [0.6, 1.2, 0.9], "b": [0.9, 1.4, 1.2], "c": [1.2, 1.6, 1.5]}
 
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
 	"slash_r": {
-		"a": {"note": "Round 4 B, the solver pushing the blade clear of the head"},
-		"b": {"note": "B with a wider, higher cock: the arm opens out by the head"},
-		"c": {"note": "Wider cock, the wrist eased: blade up over the shoulder"},
+		"a": {"note": "Round 5 C, the off arm's elbow bent a little"},
+		"b": {"note": "Round 5 C, the off arm's elbow bent more"},
+		"c": {"note": "Round 5 C, the off arm's elbow bent a lot"},
 	},
 }
 
@@ -90,9 +86,9 @@ static func spec(n: String) -> Dictionary:
 	var s: Dictionary = ActionSpecs.SPECS.get(n, {})
 	if pick == "" or not VARIANTS.has(n) or not (VARIANTS[n] as Dictionary).has(pick):
 		return s
-	var out := s.merged(R5, true).merged(VARIANTS[n][pick].get("spec", {}), true)
+	var out := s.merged(R6, true).merged(VARIANTS[n][pick].get("spec", {}), true)
 	if n == "slash_r":
-		out["swing"] = _path(PATHS[pick], BREAKS[pick], 1.15, {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02})
+		out["swing"] = _path(SLASH_PATH_WIDE, SLASH_BREAKS, 1.15, {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02})
 	return out
 
 
@@ -114,21 +110,23 @@ static func pose(h, n: String, u: float) -> Array:
 		return []
 	match n + "@" + pick:
 		"slash_r@a", "slash_r@b", "slash_r@c":
-			var p := _slash_body(h, 1.6, 1.6)
+			var p := _slash_body(h, 1.6, 1.6, ELBOWS[pick])
 			return [h._keys(u, [[0.0, p["g"]], [0.32, p["load"], "out"], [0.42, p["cock"]], [0.47, p["whoosh"], "in"],
 				[0.52, p["cut"], "out"], [0.66, p["follow"], "out"], [0.84, p["follow"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
 	return []
 
 
 ## The forehand's body (the arm rides the swing path): `k` scales the turn and lean, `off`
-## the off arm's reach forward on the wind-up and fling back through the cut.
+## the off arm's reach forward on the wind-up and fling back through the cut, `elbow` its
+## elbow bend [wind-up reach, cut, follow-through] (a limb is never quite straight).
 ## Turns: y- faces right (the wind-up loads away from the cut), y+ left (through it); the
 ## head counters the chest to stay on the target.
-static func _slash_body(h, k: float, off: float = 1.0) -> Dictionary:
+static func _slash_body(h, k: float, off: float = 1.0, elbow: Array = [0.3, 0.9, 0.9]) -> Dictionary:
 	var g: Dictionary = h._guard()
+	# (the more the elbow bends, the higher the upper arm lifts to keep the hand out front)
 	var load := {"pivot": Vector3(0.05, 0, -0.05) * k, "hips": Vector3(0, -0.4, 0) * k,
 		"torso": Vector3(0.1, -0.55, -0.1) * k, "head": Vector3(-0.05, 0.75, 0.05) * k,
-		"arm_l": Vector3(1.35, -0.2, -0.3) * Vector3(1.0, off, off), "fore_l": Vector3(0.3, 0, 0),
+		"arm_l": Vector3(1.35 + float(elbow[0]) * 0.25, -0.2 * off, -0.3 * off), "fore_l": Vector3(float(elbow[0]), 0, 0),
 		"leg_l": Vector3(0.35, 0, -0.14), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.15, 0, 0.12), "shin_r": Vector3(-0.65, 0, 0),
 		"_lift": Vector3(0, -0.1, 0) * k, "_scale": Vector3(1.05, 0.9, 1.05)}
 	var cock := load.merged({"torso": Vector3(0.12, -0.62, -0.12) * k, "hips": Vector3(0, -0.44, 0) * k, "_scale": Vector3(1.06, 0.88, 1.06)}, true)
@@ -136,12 +134,13 @@ static func _slash_body(h, k: float, off: float = 1.0) -> Dictionary:
 	# turned further, the shoulder passes the hand and the blade points back across the body)
 	var cut := {"pivot": Vector3(-0.08, 0, 0.04), "hips": Vector3(0, 0.12, 0),
 		"torso": Vector3(-0.18, 0.12, 0.08), "head": Vector3(0.08, -0.15, 0),
-		"arm_l": Vector3(-0.4, 0, -0.9) * off, "fore_l": Vector3(0.9, 0, 0) * minf(off, 1.3),
+		"arm_l": Vector3(-0.4, 0, -0.9) * off, "fore_l": Vector3(float(elbow[1]), 0, 0),
 		"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.75, 0, 0.12), "shin_r": Vector3(-0.22, 0, 0),
 		"_lift": Vector3(0, -0.24, 0), "_scale": Vector3(1.06, 0.93, 1.06)}
 	var whoosh := _with(_mix(cock, cut, 0.5), Vector3(0.92, 1.08, 1.15), 0.7)
 	var follow := cut.merged({"pivot": Vector3(-0.16, 0, 0.08) * k, "hips": Vector3(0, 0.55, 0) * k,
 		"torso": Vector3(-0.35, 0.75, 0.2) * k, "head": Vector3(0.1, -0.8, 0) * k, "_lift": Vector3(0, -0.25, 0) * k,
+		"arm_l": Vector3(-0.5, 0.15, -1.25) * Vector3(1.0, 1.0, off / 1.6), "fore_l": Vector3(float(elbow[2]), 0, 0),
 		"_scale": Vector3.ONE, "_smear": Vector3.ZERO}, true)
 	return {"g": g, "load": load, "cock": cock, "whoosh": whoosh, "cut": cut, "follow": follow}
 
