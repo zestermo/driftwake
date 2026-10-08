@@ -47,6 +47,40 @@ fps drawings, x1.3, a full-length smear frame). Lesson: **a variant has to be vi
 speed from the game camera, or it isn't a test.** The trails also showed the live blade loops
 over the head and finishes off to the side instead of cutting down through the space in front.
 
-Ranking: _waiting for Zach_
+Ranking (Zach): **A and B liked** (whip/rotation, impact squash and smear); C (stepped)
+not picked. Slow motion showed the real problems in almost every animation: "the wind-ups
+and follow-throughs don't make sense, the character should rotate more, the sword swing
+needs momentum and to arc through, the animations are too fast, and the shoulder, elbow and
+wrist don't make sense from above or behind."
 
-Takeaways: _after the ranking_
+Takeaways:
+- **Keyed arm angles can't make a swing.** Each joint interpolates on its own, so the blade's
+  path is whatever falls out (the live cut loops over the head) and the arm only looks right
+  from the angle it was posed from. Swings need the hand/blade path authored and the arm
+  solved from it: `swing` in ActionSpecs (Humanoid._swing: a curve through keyed hand
+  points, arm IK, the wrist laying the blade along the keyed direction, edge leading).
+- **The body turns with the cut, loaded away from it first.** The live forehand turns the
+  chest left on the wind-up and right on the cut while the arm goes right to left: backwards.
+  Torso/hips y- faces right, y+ left. Audit every move for this.
+- **Momentum: keys must not stop the blade.** Per-key smoothstep stops at every key; swing
+  paths run through their keys at speed (Catmull-Rom, "linear"); ease only into the cock and
+  out of the follow-through.
+- Rotation, whip and impact (squash, stretch, smear) are wanted; stepped timing isn't.
+- Light hits are too fast to read: the wind-up and follow-through need time.
+
+## Round 2 (2026-10-08): slash_r on a swing path
+
+Same diagonal forehand, now with the hand on a swing path (high behind the right shoulder ->
+through the space in front -> wrapped low round the left side), the body turning the right
+way (right on the wind-up, left through the cut), round 1's squash and smear on every
+variant. What differs is the timing and what drives the arc:
+- **A, Arc 0.6 s:** body turn x1, hips lead 0.05 s, hit 0.26-0.36 s, chains at 0.42 s.
+- **B, Big arc 0.75 s:** longer wind-up, x1.35 turn, a 15% wider path, a longer wrap; hit
+  0.34-0.45 s, chains at 0.55 s.
+- **C, Body-driven 0.6 s:** the hand path rides the chest (it stays in front of the chest)
+  and the hips and chest turn x1.6, swinging it round.
+
+Ranges (rad, x/y/z): live hips y 0.00, A 0.98, B 1.33, C 1.57; torso y live 1.96 (but the
+wrong way), A 1.36, B 1.84, C 2.17.
+
+Ranking: _waiting for Zach_

@@ -205,6 +205,8 @@ var _react_var: float = 0.0
 var _scale := Vector3.ONE
 var _smear: float = 0.0
 var _smeared: bool = false
+## Which way the swing's hand last travelled (world): its blade's edge leads along it.
+var _swing_travel := Vector3.FORWARD
 ## During actions the eyes look at most this far above level (pivot + torso + head
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
@@ -986,17 +988,7 @@ func _keys(u: float, keys: Array) -> Dictionary:
 				a = keys[i]
 				b = keys[i + 1]
 				var x := clampf((u - a[0]) / maxf(b[0] - a[0], 0.0001), 0.0, 1.0)
-				var mode: String = b[2] if b.size() > 2 else "smooth"
-				match mode:
-					"out":  # fast start, soft stop (strikes)
-						k = 1.0 - pow(1.0 - x, 3.0)
-					"in":   # slow start, fast end (wind-ups snapping)
-						k = x * x * x
-					"back": # overshoot then settle
-						var c1 := 1.9
-						k = 1.0 + (c1 + 1.0) * pow(x - 1.0, 3.0) + c1 * pow(x - 1.0, 2.0)
-					_:
-						k = _ease(x)
+				k = _shape(x, b[2] if b.size() > 2 else "smooth")
 				break
 	var pa: Dictionary = a[1]
 	var pb: Dictionary = b[1]
@@ -1010,6 +1002,22 @@ func _keys(u: float, keys: Array) -> Dictionary:
 		var vb: Vector3 = pb.get(j, _base.get(j, Vector3.ZERO))
 		out[j] = va.lerp(vb, k)
 	return out
+
+
+## A key segment's easing: "out" fast start, soft stop (strikes); "in" slow start, fast
+## end (wind-ups snapping); "back" overshoot then settle; "linear"; default smoothstep.
+static func _shape(x: float, mode: String) -> float:
+	match mode:
+		"out":
+			return 1.0 - pow(1.0 - x, 3.0)
+		"in":
+			return x * x * x
+		"back":
+			var c1 := 1.9
+			return 1.0 + (c1 + 1.0) * pow(x - 1.0, 3.0) + c1 * pow(x - 1.0, 2.0)
+		"linear":
+			return x
+	return _ease(x)
 
 
 ## The same pose on the other side of the body (swap _l/_r, negate y and z; "_lift" kept).
@@ -2600,6 +2608,7 @@ func _process(delta: float) -> void:
 		hand_r.rotation = _cur["hand_r"]
 	if hand_l:
 		hand_l.rotation = _cur["hand_l"]
+	_swing()
 	if _tail and is_instance_valid(_tail):
 		var wag := 1.0 + clampf(ground_speed * 0.15, 0.0, 1.0)
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
@@ -2609,6 +2618,79 @@ func _process(delta: float) -> void:
 	_katana_hands()
 	_axe_hands()
 	_update_physics(delta)
+
+
+## Swing paths (spec "swing", see ActionSpecs): the hand runs a smooth curve through keyed
+## points around a centre, so a cut arcs and carries its speed through the keys; arm IK
+## places the shoulder and elbow, and the wrist lays the blade along the keyed direction
+## with its edge (-Y) leading the travel. Blends in over 0.08 s before the first key and
+## out over 0.1 s after the last, from and back to the posed arm.
+func _swing() -> void:
+	if _action.is_empty() or ragdoll != null or not is_inside_tree():
+		return
+	var sp: Dictionary = _action["spec"]
+	var sw: Dictionary = sp.get("swing", {})
+	if sw.is_empty():
+		return
+	var keys: Array = sw["keys"]
+	var dur := float(_action["dur"])
+	var t := float(_action["t"]) - float(sw.get("lag", 0.0))
+	var t0 := float(keys[0][0]) * dur
+	var t1 := float(keys[keys.size() - 1][0]) * dur
+	var w := clampf((t - t0) / 0.08 + 1.0, 0.0, 1.0) * clampf((t1 - t) / 0.1 + 1.0, 0.0, 1.0)
+	if w <= 0.0:
+		return
+	var right: bool = sw.get("hand", "r") == "r"
+	var hand := hand_r if right else hand_l
+	var arm := arm_r if right else arm_l
+	var frame := torso.global_transform if sw.get("space", "body") == "chest" else global_transform
+	var s := _swing_at(sw, _sample_u(t, sp))
+	var ahead := _swing_at(sw, _sample_u(t + 0.02, sp))
+	var travel := frame.basis * ((ahead[0] as Vector3) - (s[0] as Vector3))
+	if travel.length() > 0.002:
+		_swing_travel = travel.normalized()
+	var blade := (frame.basis * (s[1] as Vector3)).normalized()
+	var posed_q := Quaternion(hand.global_basis.orthonormalized())
+	reach_hand(right, hand.global_position.lerp(frame * (s[0] as Vector3), w), (frame.basis * (s[2] as Vector3)).normalized())
+	# (IK writes the arm's global basis: keep its local scale plain, see Ragdoll.restore_rig)
+	arm.basis = arm.basis.orthonormalized()
+	var up := -_swing_travel
+	if absf(up.dot(blade)) > 0.97:
+		up = frame.basis.y.normalized()
+	var want := Quaternion(Basis.looking_at(blade, up))
+	var parent_q := Quaternion(hand.get_parent_node_3d().global_basis.orthonormalized())
+	hand.basis = Basis(parent_q.inverse() * posed_q.slerp(want, w)) * Basis.from_scale(hand.basis.get_scale())
+
+
+## [hand position, blade direction, elbow pole] in the swing's space at `u`: a Catmull-Rom
+## curve through the keys' points (centre + dir * r), each segment's progress shaped by
+## its mode (default "linear": the hand keeps its speed through the key).
+func _swing_at(sw: Dictionary, u: float) -> Array:
+	var keys: Array = sw["keys"]
+	var n := keys.size()
+	var i := 0
+	var x := 0.0
+	if u >= float(keys[n - 1][0]):
+		i = n - 1
+	elif u > float(keys[0][0]):
+		while i < n - 2 and u > float(keys[i + 1][0]):
+			i += 1
+		var a := float(keys[i][0])
+		var b := float(keys[i + 1][0])
+		x = _shape(clampf((u - a) / maxf(b - a, 0.0001), 0.0, 1.0), keys[i + 1][2] if (keys[i + 1] as Array).size() > 2 else "linear")
+	var j := mini(i + 1, n - 1)
+	var pts := []
+	var blades := []
+	var poles := []
+	for q in [maxi(i - 1, 0), i, j, mini(j + 1, n - 1)]:
+		var key: Dictionary = keys[q][1]
+		var d := (key["dir"] as Vector3).normalized()
+		pts.append(sw.get("center", Vector3(0, 1.3, 0)) + d * float(key["r"]))
+		blades.append((key.get("blade", d) as Vector3).normalized())
+		poles.append(key.get("pole", sw.get("pole", Vector3(0.7, -0.8, 0.3))))
+	var pos: Vector3 = (pts[1] as Vector3).cubic_interpolate(pts[2], pts[0], pts[3], x)
+	var blade: Vector3 = (blades[1] as Vector3).cubic_interpolate(blades[2], blades[0], blades[3], x).normalized()
+	return [pos, blade, (poles[1] as Vector3).lerp(poles[2], x)]
 
 
 ## The action's pose time (0..1) at `t` seconds: held on the spec's drawings when it

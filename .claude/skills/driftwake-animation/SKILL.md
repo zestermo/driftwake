@@ -147,6 +147,26 @@ Big arcs, both sides of the body working (the free arm counters), head leading t
 Check that limbs don't pass through the torso and that the blade doesn't bend back at the
 wrist (an upper-arm twist plus wrist bend does that, see the slash_l note).
 
+Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
+
+- **Swings are authored as paths, not arm angles.** Give a blade swing a `"swing"` spec
+  (hand points around a centre, the blade direction at each, elbow pole): the hand arcs and
+  keeps its speed, IK keeps shoulder/elbow/wrist anatomical from every side. Keyed arm angles
+  interpolate joint by joint, so the blade loops wherever and the arm only reads from one
+  view. Key the body (hips, chest, legs, lift, squash) as poses; the arm rides the path.
+- **The body turns with the cut and loads away from it first.** A right-handed cut going
+  right to left: wind-up turns hips and chest right (y-), the cut turns them left (y+), the
+  head counters to stay on the target. Hips lead the chest, the chest leads the arm (`lead`).
+- **Keep momentum through the strike.** Don't put a stopping key mid-swing; ease into the
+  cock (anticipation) and out of the follow-through only.
+- **Give it time to read.** A light hit needs a visible wind-up and follow-through (round 2
+  tests 0.6 s vs 0.75 s); give slower anims their own `"chain"` so the next click doesn't cut
+  off the hit.
+- **Impact helps:** squash on the wind-up, stretch and blade smear through the swing.
+  Stepped/on-twos timing was not liked.
+- **Check in slow motion from above and behind**, the game camera's side, not just the
+  front three-quarter.
+
 Rules from the full review (each one was a visible problem in the renders):
 
 - **Eyes stay on the target.** Head x adds to torso x; `_keep_gaze` now stops the sky stare,

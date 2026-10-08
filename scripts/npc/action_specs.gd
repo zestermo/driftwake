@@ -12,6 +12,11 @@ class_name ActionSpecs
 ## chase their keys (default 38; higher snaps); "step" fps the pose is sampled at (anime
 ## "on twos": hold each drawing, 0 = smooth). Pose keys may carry "_scale" (body squash/
 ## stretch about the feet: x side, y up, z forward) and "_smear" (Vector3, x = blade stretch).
+## "chain" (s): when the next light attack can follow (overrides the state's durations).
+## "swing": the hand on a path instead of keyed arm angles (Humanoid._swing): {"hand": "r"|"l",
+## "space": "body" (the root: feet, facing -Z) | "chest" (the torso), "center": Vector3,
+## "pole": elbow direction, "lag": s behind the body, "keys": [[u, {"dir": from the centre,
+## "r": m, "blade": direction, "pole"?}, mode?], ...]}; the posed arm is overridden.
 ## AnimLab variants override any of this while picked.
 
 const SPECS := {

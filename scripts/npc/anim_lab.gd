@@ -3,23 +3,47 @@ class_name AnimLab
 ## tools/dev/animsheet.gd's lab mode. Debug build keys (player.gd): F5 cycles live -> a ->
 ## b -> c, Shift+F5 slow motion, Ctrl+F5 clean view (the arc effects hidden, the blade's
 ## own trail drawn). Humanoid._action_pose asks pose() first while a variant is picked;
-## ActionSpecs reads spec() so a variant can bring its own length, hit window and feel
-## settings ("lead", "sharp", "step", see ActionSpecs). Rankings and takeaways:
-## docs/anim_lab.md. Winners move into humanoid.gd; this file then starts the next round.
+## ActionSpecs reads spec() so a variant can bring its own length, hit window, swing path
+## and feel settings (see ActionSpecs). Rankings and takeaways: docs/anim_lab.md. Winners
+## move into humanoid.gd; this file then starts the next round.
 
 ## The action the current round is about (F5 cycles its variants).
 const FOCUS := "slash_r"
 const SLOW := 0.25
 
+## Round 2: the hand on a swing path (arcs, IK arm, blade along the path), the body turning
+## with the cut (right on the wind-up, left through it), squash and smear from round 1's B.
+## Body-space swing points for the diagonal forehand: high behind the right shoulder ->
+## through the space in front -> wrapped low round the left side.
+const SLASH_SWING := [
+	[0.12, {"dir": Vector3(0.6, 0.55, 0.55), "r": 0.42, "blade": Vector3(0.1, 0.35, 1.0), "pole": Vector3(0.9, -0.2, 0.4)}],
+	[0.32, {"dir": Vector3(0.55, 0.75, 0.6), "r": 0.4, "blade": Vector3(-0.25, -0.1, 1.0), "pole": Vector3(0.9, 0.0, 0.5)}, "smooth"],
+	[0.4, {"dir": Vector3(0.75, 0.6, -0.1), "r": 0.5, "blade": Vector3(0.3, 0.9, 0.2), "pole": Vector3(0.8, -0.4, 0.3)}, "in"],
+	[0.5, {"dir": Vector3(0.05, -0.05, -1.0), "r": 0.62, "blade": Vector3(-0.45, -0.3, -0.85), "pole": Vector3(0.6, -0.9, 0.2)}],
+	[0.62, {"dir": Vector3(-0.7, -0.45, -0.45), "r": 0.52, "blade": Vector3(-0.55, -0.55, 0.6), "pole": Vector3(0.3, -1.0, 0.2)}],
+	[0.76, {"dir": Vector3(-0.65, -0.55, 0.0), "r": 0.42, "blade": Vector3(-0.3, -0.8, 0.5), "pole": Vector3(0.3, -1.0, 0.3)}, "out"],
+]
+
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
 	"slash_r": {
-		"a": {"note": "Whip: big hip turn and body lean, blade trailing far behind the body",
-			"spec": {"hit": [0.27, 0.5], "lead": {"pivot": 0.05, "hips": 0.07, "torso": 0.035, "arm_l": 0.02, "fore_r": -0.02, "hand_r": -0.05}}},
-		"b": {"note": "Impact: deep squash, long stretch, blade smear, hard stop and hold",
-			"spec": {"sharp": 70.0, "lead": {"pivot": 0.02, "hips": 0.03, "torso": 0.015, "hand_r": -0.015}}},
-		"c": {"note": "Stepped: 15 fps drawings, snapped, one smear frame, long hold",
-			"spec": {"len": 0.53, "hit": [0.33, 0.62], "step": 15.0, "sharp": 400.0}},
+		"a": {"note": "Arc, 0.6 s: the hand on a path, body turning with the cut",
+			"spec": {"len": 0.6, "hit": [0.43, 0.6], "chain": 0.42, "sharp": 55.0,
+				"lead": {"pivot": 0.03, "hips": 0.05, "torso": 0.025},
+				"swing": {"center": Vector3(0.08, 1.3, -0.05), "keys": SLASH_SWING, "lag": 0.015}}},
+		"b": {"note": "Big arc, 0.75 s: longer wind-up, more turn, wraps round the body",
+			"spec": {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
+				"lead": {"pivot": 0.04, "hips": 0.07, "torso": 0.035},
+				"swing": {"center": Vector3(0.08, 1.32, -0.05), "keys": SLASH_SWING, "lag": 0.02, "scale_r": 1.15}}},
+		"c": {"note": "Body-driven, 0.6 s: hand stays before the chest, hips and chest swing it",
+			"spec": {"len": 0.6, "hit": [0.43, 0.6], "chain": 0.42, "sharp": 55.0,
+				"lead": {"pivot": 0.03, "hips": 0.06, "torso": 0.03},
+				"swing": {"space": "chest", "center": Vector3(0.1, 0.45, -0.08), "keys": [
+					[0.12, {"dir": Vector3(0.7, 0.6, 0.3), "r": 0.42, "blade": Vector3(0.0, 0.4, 1.0), "pole": Vector3(0.9, -0.3, 0.3)}],
+					[0.36, {"dir": Vector3(0.75, 0.65, 0.2), "r": 0.42, "blade": Vector3(-0.2, 0.1, 1.0), "pole": Vector3(0.9, 0.0, 0.4)}, "smooth"],
+					[0.5, {"dir": Vector3(0.2, -0.15, -1.0), "r": 0.58, "blade": Vector3(-0.4, -0.3, -0.85), "pole": Vector3(0.6, -0.9, 0.2)}, "in"],
+					[0.66, {"dir": Vector3(-0.35, -0.45, -0.8), "r": 0.52, "blade": Vector3(-0.6, -0.55, -0.1), "pole": Vector3(0.4, -1.0, 0.2)}],
+					[0.78, {"dir": Vector3(-0.3, -0.5, -0.7), "r": 0.48, "blade": Vector3(-0.5, -0.7, 0.2), "pole": Vector3(0.4, -1.0, 0.3)}, "out"]]}}},
 	},
 }
 
@@ -51,12 +75,19 @@ static func toggle_clean() -> String:
 	return "Anim lab: %s" % ("clean view (blade trail, no arcs)" if clean else "arcs back on")
 
 
-## The ActionSpecs entry with the picked variant's overrides.
+## The ActionSpecs entry with the picked variant's overrides (a swing's "scale_r" widens
+## its points).
 static func spec(n: String) -> Dictionary:
 	var s: Dictionary = ActionSpecs.SPECS.get(n, {})
-	if pick != "" and VARIANTS.has(n) and (VARIANTS[n] as Dictionary).has(pick):
-		return s.merged(VARIANTS[n][pick].get("spec", {}), true)
-	return s
+	if pick == "" or not VARIANTS.has(n) or not (VARIANTS[n] as Dictionary).has(pick):
+		return s
+	var out := s.merged(VARIANTS[n][pick].get("spec", {}), true)
+	if out.has("swing") and (out["swing"] as Dictionary).has("scale_r"):
+		var sw: Dictionary = (out["swing"] as Dictionary).duplicate(true)
+		for key in sw["keys"]:
+			key[1]["r"] = float(key[1]["r"]) * float(sw["scale_r"])
+		out["swing"] = sw
+	return out
 
 
 ## [pose, mask, lift] of the picked variant of `n`, or [] to use the live one.
@@ -65,57 +96,41 @@ static func pose(h, n: String, u: float) -> Array:
 		return []
 	match n + "@" + pick:
 		"slash_r@a":
-			var p := _slash_r(h, 1.35)
-			return [h._keys(u, [[0.0, p["g"]], [0.2, p["load"], "out"], [0.27, p["cock"]], [0.38, p["cut"], "out"],
-				[0.5, p["through"], "out"], [0.68, p["cut"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
+			var p := _slash_body(h, 1.0)
+			return [h._keys(u, [[0.0, p["g"]], [0.3, p["load"], "out"], [0.4, p["cock"]], [0.46, p["whoosh"], "in"],
+				[0.5, p["cut"], "out"], [0.62, p["follow"], "out"], [0.78, p["follow"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
 		"slash_r@b":
-			var p := _slash_r(h)
-			var load := _with(p["load"], Vector3(1.08, 0.84, 1.08), 0.0)
-			var cock := _with(p["cock"], Vector3(1.1, 0.82, 1.1), 0.0)
-			var swing := _with(_mix(p["cock"], p["cut"], 0.55), Vector3(0.86, 1.12, 1.24), 0.9)
-			var hit := _with(p["cut"], Vector3(1.12, 0.86, 1.06), 0.15)
-			var held := _with(p["cut"], Vector3(1.04, 0.96, 1.0), 0.0)
-			return [h._keys(u, [[0.0, p["g"]], [0.18, load, "out"], [0.27, cock], [0.33, swing, "in"], [0.38, hit, "out"],
-				[0.56, held], [0.66, _with(p["cut"], Vector3.ONE, 0.0)], [1.0, p["g"]]]), "full", Vector3.ZERO]
+			var p := _slash_body(h, 1.35)
+			return [h._keys(u, [[0.0, p["g"]], [0.32, p["load"], "out"], [0.42, p["cock"]], [0.47, p["whoosh"], "in"],
+				[0.52, p["cut"], "out"], [0.66, p["follow"], "out"], [0.84, p["follow"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
 		"slash_r@c":
-			# keyed on the 15 fps drawings (u steps of 0.126 at the 0.53 s length)
-			var p := _slash_r(h, 1.3)
-			var load := _with(p["load"], Vector3(1.05, 0.9, 1.05), 0.0)
-			var cock := _with(p["cock"], Vector3(1.08, 0.85, 1.08), 0.0)
-			var smear := _with(_mix(p["cock"], p["through"], 0.5), Vector3(0.88, 1.1, 1.2), 1.0)
-			var hit := _with(p["through"], Vector3(1.08, 0.9, 1.05), 0.0)
-			var held := _with(p["cut"], Vector3.ONE, 0.0)
-			return [h._keys(u, [[0.0, p["g"]], [0.126, load], [0.252, cock], [0.377, smear], [0.503, hit], [0.755, held],
-				[0.881, _mix(held, p["g"], 0.6)], [1.0, p["g"]]]), "full", Vector3.ZERO]
+			var p := _slash_body(h, 1.6)
+			return [h._keys(u, [[0.0, p["g"]], [0.3, p["load"], "out"], [0.4, p["cock"]], [0.46, p["whoosh"], "in"],
+				[0.5, p["cut"], "out"], [0.66, p["follow"], "out"], [0.8, p["follow"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
 	return []
 
 
-## The diagonal forehand's key poses (`k` pushes the body's extremes further).
-static func _slash_r(h, k: float = 1.0) -> Dictionary:
+## The forehand's body (the arm rides the swing path): `k` scales the turn and lean.
+## Turns: y- faces right (the wind-up loads away from the cut), y+ left (through it); the
+## head counters the chest to stay on the target.
+static func _slash_body(h, k: float) -> Dictionary:
 	var g: Dictionary = h._guard()
-	# wind-up: weight back on the right leg, chest turned away, the blade cocked high
-	# over the right shoulder, the off hand out sighting the target
-	var load := {"pivot": Vector3(0.06, 0, 0.07) * k, "hips": Vector3(0, 0.4, 0) * k,
-		"torso": Vector3(0.12, 0.75, 0.16) * k, "head": Vector3(-0.06, -0.85, -0.1) * k,
-		"arm_r": Vector3(2.3, 0.55, 1.4), "fore_r": Vector3(1.05, 0, 0), "hand_r": Vector3(0.85, 0, 0) * k,
-		"arm_l": Vector3(1.35, 0.25, -0.25), "fore_l": Vector3(0.25, 0, 0),
-		"leg_l": Vector3(0.4, 0, -0.14), "shin_l": Vector3(-0.55, 0, 0), "leg_r": Vector3(-0.15, 0, 0.12), "shin_r": Vector3(-0.6, 0, 0),
-		"_lift": Vector3(0, -0.1, 0) * k}
-	# (still drifting back through the hold: never quite still)
-	var cock := load.merged({"arm_r": Vector3(2.4, 0.6, 1.45), "hand_r": Vector3(0.95, 0, 0) * k, "torso": Vector3(0.14, 0.85, 0.18) * k}, true)
-	# the cut: stepped through on the left foot, hips and chest whipped round, the blade
-	# flung down and across, the off arm thrown back against it, head on the target
-	# (hips + chest turn about as far as the live cut's chest alone: further shows the back)
-	var cut := {"pivot": Vector3(-0.14, 0, -0.08) * k, "hips": Vector3(0, -0.35, 0) * k,
-		"torso": Vector3(-0.38, -0.7, -0.2) * k, "head": Vector3(0.12, 0.7, 0.14) * k,
-		"arm_r": Vector3(1.0, -0.9, -1.0), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
-		"arm_l": Vector3(-0.35, 0, -0.95), "fore_l": Vector3(0.95, 0, 0),
+	var load := {"pivot": Vector3(0.05, 0, -0.05) * k, "hips": Vector3(0, -0.4, 0) * k,
+		"torso": Vector3(0.1, -0.55, -0.1) * k, "head": Vector3(-0.05, 0.75, 0.05) * k,
+		"arm_l": Vector3(1.35, -0.2, -0.3), "fore_l": Vector3(0.3, 0, 0),
+		"leg_l": Vector3(0.35, 0, -0.14), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.15, 0, 0.12), "shin_r": Vector3(-0.65, 0, 0),
+		"_lift": Vector3(0, -0.1, 0) * k, "_scale": Vector3(1.05, 0.9, 1.05)}
+	var cock := load.merged({"torso": Vector3(0.12, -0.62, -0.12) * k, "hips": Vector3(0, -0.44, 0) * k, "_scale": Vector3(1.06, 0.88, 1.06)}, true)
+	var cut := {"pivot": Vector3(-0.12, 0, 0.06) * k, "hips": Vector3(0, 0.3, 0) * k,
+		"torso": Vector3(-0.3, 0.35, 0.12) * k, "head": Vector3(0.1, -0.45, 0) * k,
+		"arm_l": Vector3(-0.4, 0, -0.9), "fore_l": Vector3(0.9, 0, 0),
 		"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.75, 0, 0.12), "shin_r": Vector3(-0.22, 0, 0),
-		"_lift": Vector3(0, -0.22, 0) * k}
-	# follow-through: the chest and blade carry on past the cut
-	var through := cut.merged({"torso": Vector3(-0.42, -0.88, -0.24) * k, "arm_r": Vector3(0.75, -1.0, -1.15),
-		"hand_r": Vector3(-1.55, 0, 0), "head": Vector3(0.12, 0.85, 0.15) * k}, true)
-	return {"g": g, "load": load, "cock": cock, "cut": cut, "through": through}
+		"_lift": Vector3(0, -0.22, 0) * k, "_scale": Vector3(1.06, 0.93, 1.06)}
+	var whoosh := _with(_mix(cock, cut, 0.5), Vector3(0.92, 1.08, 1.15), 0.7)
+	var follow := cut.merged({"pivot": Vector3(-0.16, 0, 0.08) * k, "hips": Vector3(0, 0.55, 0) * k,
+		"torso": Vector3(-0.35, 0.75, 0.2) * k, "head": Vector3(0.1, -0.8, 0) * k, "_lift": Vector3(0, -0.25, 0) * k,
+		"_scale": Vector3.ONE, "_smear": Vector3.ZERO}, true)
+	return {"g": g, "load": load, "cock": cock, "whoosh": whoosh, "cut": cut, "follow": follow}
 
 
 ## `p` with squash/stretch (body scale: x side, y up, z forward) and blade smear.

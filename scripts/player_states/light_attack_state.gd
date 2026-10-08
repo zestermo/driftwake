@@ -153,7 +153,7 @@ func physics_update(delta: float) -> void:
 		hitbox_deactivated = true
 		player.sword_hitbox.deactivate()
 
-	var duration := float(cfg["durations"][combo_index])
+	var duration := float(AnimLab.spec(str(cfg["anims"][combo_index])).get("chain", cfg["durations"][combo_index]))
 	if timer >= duration and not can_combo:
 		can_combo = true
 		combo_timer = combo_window
