@@ -1331,6 +1331,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_hybrid()
 		get_viewport().set_input_as_handled()
 		return
+	# debug builds: F5 cycles the animation lab's variants (AnimLab, docs/anim_lab.md)
+	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
+		_toast(AnimLab.cycle())
+		get_viewport().set_input_as_handled()
+		return
 	# debug builds: F10 knocks you over (try the ragdoll + get-up)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:
 		if is_free():

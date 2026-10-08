@@ -7,6 +7,12 @@ class_name ActionSpecs
 ## Humanoid.react (preview "push" = which way the blow shoves the body, local).
 ## extras: "dual" (same weapon in the off hand), "beast", "sheathed", any Humanoid property;
 ## "variants" = more extras dicts, each rendered as another row.
+## Feel (optional): "lead" {joint: s} samples that joint's keys ahead (+, leads) or behind
+## (-, trails) in time, for overlap (hips lead, hands whip after); "sharp" how hard joints
+## chase their keys (default 38; higher snaps); "step" fps the pose is sampled at (anime
+## "on twos": hold each drawing, 0 = smooth). Pose keys may carry "_scale" (body squash/
+## stretch about the feet: x side, y up, z forward) and "_smear" (Vector3, x = blade stretch).
+## AnimLab variants override any of this while picked.
 
 const SPECS := {
 	# --- cutlass ---
@@ -146,11 +152,11 @@ const SPECS := {
 
 
 static func length(n: String) -> float:
-	return float(SPECS[n]["len"])
+	return float(AnimLab.spec(n)["len"])
 
 
 ## The hitbox window in seconds at the spec's length (x = opens, y = closes).
 static func hit_seconds(n: String) -> Vector2:
-	var s: Dictionary = SPECS[n]
+	var s: Dictionary = AnimLab.spec(n)
 	var h: Array = s["hit"]
 	return Vector2(float(h[0]), float(h[1])) * float(s["len"])

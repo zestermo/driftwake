@@ -201,6 +201,10 @@ var _action_w: float = 0.0
 ## random variant (0..1); see react().
 var _react_dir := Vector2(0, 1)
 var _react_var: float = 0.0
+## Squash/stretch of the body (pivot scale) and blade smear, smoothed like the joints.
+var _scale := Vector3.ONE
+var _smear: float = 0.0
+var _smeared: bool = false
 ## During actions the eyes look at most this far above level (pivot + torso + head
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
@@ -886,7 +890,7 @@ func react(action_name: String, duration: float, push: Vector3 = Vector3.ZERO) -
 func _begin_action(action_name: String, duration: float, held: bool) -> void:
 	if not _action.is_empty() and _action["name"] != action_name:
 		_finish_action()
-	_action = {"name": action_name, "t": 0.0, "dur": maxf(duration, 0.01), "events": {}, "hold": held}
+	_action = {"name": action_name, "t": 0.0, "dur": maxf(duration, 0.01), "events": {}, "hold": held, "spec": AnimLab.spec(action_name)}
 	_action_w = 1.0 if action_name in SPIN_ACTIONS else 0.0
 
 
@@ -1099,6 +1103,10 @@ const KATANA_HANG := {"arm_r": Vector3(1.55, 0.3, 0.05), "fore_r": Vector3(0.65,
 
 ## Returns [pose_dict, mask("upper"/"full"), extra_lift]
 func _action_pose(n: String, u: float) -> Array:
+	if AnimLab.pick != "":
+		var lab := AnimLab.pose(self, n, u)
+		if not lab.is_empty():
+			return lab
 	var lift := Vector3.ZERO
 	match n:
 		"draw":
@@ -2508,27 +2516,46 @@ func _process(delta: float) -> void:
 	_update_run_sheath()
 	var target := _locomotion(delta)
 	var lift: Vector3 = target["_lift"]
+	target["_scale"] = Vector3.ONE
+	target["_smear"] = Vector3.ZERO
 	var sharp := 22.0
 
 	if not _action.is_empty():
 		_action["t"] += delta
-		var u: float = _action["t"] / _action["dur"]
+		var n := str(_action["name"])
+		var sp: Dictionary = _action["spec"]
+		var u := _sample_u(float(_action["t"]), sp)
 		_base = target
-		var res := _action_pose(str(_action["name"]), clampf(u, 0.0, 1.0))
+		var res := _action_pose(n, u)
 		var pose: Dictionary = res[0]
 		var mask: String = res[1]
+		var lead: Dictionary = sp.get("lead", {})
+		if not lead.is_empty():
+			# overlap: each listed joint takes its keys from a little ahead or behind
+			pose = pose.duplicate()
+			var at := {}
+			for j in lead.keys():
+				var off: float = lead[j]
+				if not at.has(off):
+					at[off] = _action_pose(n, _sample_u(float(_action["t"]) + off, sp))[0]
+				if (at[off] as Dictionary).has(j):
+					pose[j] = at[off][j]
 		_action_w = minf(_action_w + delta / 0.06, 1.0)
 		for j in pose.keys():
-			if j == "_lift" or (mask == "upper" and not (j in UPPER)):
+			if str(j).begins_with("_") or (mask == "upper" and not (j in UPPER)):
 				continue
 			target[j] = (target[j] as Vector3).lerp(pose[j], _action_w)
 		if pose.has("_lift"):
 			lift = lift.lerp(pose["_lift"], _action_w)
 		else:
 			lift = lift.lerp(res[2], _action_w) if mask == "full" else lift + res[2]
+		if pose.has("_scale"):
+			target["_scale"] = Vector3.ONE.lerp(pose["_scale"], _action_w)
+		if pose.has("_smear"):
+			target["_smear"] = (pose["_smear"] as Vector3) * _action_w
 		_keep_gaze(target)
-		sharp = 38.0
-		if u >= 1.0 and not _action["hold"]:
+		sharp = float(sp.get("sharp", 38.0))
+		if float(_action["t"]) >= float(_action["dur"]) and not _action["hold"]:
 			_finish_action()
 
 	if _soft_t > 0.0:
@@ -2542,9 +2569,13 @@ func _process(delta: float) -> void:
 		else:
 			_cur[j] = (_cur[j] as Vector3).lerp(tv, k)
 	_lift = _lift.lerp(lift, k)
+	_scale = _scale.lerp(target["_scale"], k)
+	_smear = lerpf(_smear, (target["_smear"] as Vector3).x, k)
 
 	pivot.rotation = _cur["pivot"]
-	pivot.position = Vector3(0, hip_y, 0) + _lift * (hip_y / PIVOT_Y)
+	# (squash/stretch about the feet: the hips ride down with the shortened legs)
+	pivot.scale = _scale
+	pivot.position = Vector3(0, hip_y * _scale.y, 0) + _lift * (hip_y / PIVOT_Y)
 	hips.rotation = _cur["hips"]
 	torso.rotation = _cur["torso"]
 	_update_look(delta)
@@ -2574,9 +2605,29 @@ func _process(delta: float) -> void:
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
 	if auto_point_guns:
 		point_guns()
+	_apply_smear()
 	_katana_hands()
 	_axe_hands()
 	_update_physics(delta)
+
+
+## The action's pose time (0..1) at `t` seconds: held on the spec's drawings when it
+## steps ("step" fps).
+func _sample_u(t: float, sp: Dictionary) -> float:
+	var step := float(sp.get("step", 0.0))
+	if step > 0.0:
+		t = floorf(t * step + 0.0001) / step
+	return clampf(t / float(_action["dur"]), 0.0, 1.0)
+
+
+## Blade smear: weapons in hand stretched along their length (they point down -Z).
+func _apply_smear() -> void:
+	if absf(_smear) < 0.002 and not _smeared:
+		return
+	_smeared = absf(_smear) >= 0.002
+	for w in [weapon, offhand]:
+		if w != null and is_instance_valid(w) and (w as Node3D).get_parent() in [hand_r, hand_l] and not _guns_out():
+			(w as Node3D).scale = Vector3(1, 1, 1.0 + maxf(_smear, 0.0))
 
 
 ## Eyes on the target: lean-back and head tilt add up, so a big overhead stared at the
@@ -2917,6 +2968,7 @@ func start_ragdoll(velocity: Vector3, spin: Vector3 = Vector3.ZERO, alive: bool 
 	end_ragdoll()
 	if not _action.is_empty():
 		_finish_action()
+	_clear_squash()
 	var r := Ragdoll.create(get_tree())
 	var hw := absf(leg_l.position.x) + 0.03
 	var neck_y := neck.position.y if neck else 0.5
@@ -2989,9 +3041,19 @@ func reset_pose() -> void:
 	for j in JOINTS:
 		_cur[j] = Vector3.ZERO
 	_lift = Vector3.ZERO
+	_clear_squash()
 	pivot.rotation = Vector3.ZERO
 	pivot.position = Vector3(0, hip_y, 0)
 	hips.transform = Transform3D.IDENTITY
+
+
+## Body scale and blade smear back to rest (ragdolls and snaps read plain joints).
+func _clear_squash() -> void:
+	_scale = Vector3.ONE
+	pivot.scale = Vector3.ONE
+	_smear = 0.0
+	_smeared = true
+	_apply_smear()
 
 
 ## Start the get-up animation from wherever the ragdoll left the body.

@@ -5,14 +5,25 @@ extends SceneTree
 ## (another dash direction, another way a blow shoves) is a row of its own.
 ## Args: <out_prefix> [only: names or stances, comma separated] [yaw_deg = 125: front
 ## three-quarter, sword side; 90 = side]. Moves that travel play in place.
+## Lab mode, `lab:<action>` as the second arg: the live animation and each AnimLab variant
+## as rows (tag colours: live white, A red, B green, C blue, D yellow), 12 frames, one sheet
+## per view (front3, side, back3, top) saved as <out_prefix>_<action>_<view>.png, and each
+## row's range of motion per axis printed (pivot, hips, torso, head, lift, squash, smear).
 const N := 8
+const N_LAB := 12
 const ROWS := 3
 const FW := 230
 const FH := 300
 const GAP := 4
 const BAR := 6
+const TAG := 16
+const TAGS := [Color(1, 1, 1), Color(0.95, 0.2, 0.15), Color(0.2, 0.85, 0.3), Color(0.25, 0.5, 1.0), Color(1.0, 0.85, 0.15)]
+const VIEWS := {"front3": 125.0, "side": 90.0, "back3": 305.0, "top": 180.0}
+const AXES := ["pivot", "hips", "torso", "head"]
 
 var _world: Node3D
+var _cam: Camera3D
+var _frames := N
 
 
 func _initialize() -> void:
@@ -22,10 +33,14 @@ func _initialize() -> void:
 func _run() -> void:
 	var a := OS.get_cmdline_user_args()
 	var out: String = a[0]
-	var only: Array = Array(a[1].split(",", false)) if a.size() > 1 else []
-	var yaw := float(a[2]) if a.size() > 2 else 125.0
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	_build_stage()
+	if a.size() > 1 and a[1].begins_with("lab:"):
+		await _lab(out, a[1].trim_prefix("lab:"))
+		quit()
+		return
+	var only: Array = Array(a[1].split(",", false)) if a.size() > 1 else []
+	var yaw := float(a[2]) if a.size() > 2 else 125.0
 	var rows: Array = []
 	var names: Array = []
 	var sheet := 0
@@ -38,13 +53,31 @@ func _run() -> void:
 			rows.append(await _strip(n, s, base.merged(ex, true), yaw))
 			names.append(n)
 			if rows.size() == ROWS:
-				_save(out, sheet, rows, names)
+				_save("%s_%02d_%s.png" % [out, sheet, "+".join(names)], rows)
 				sheet += 1
 				rows = []
 				names = []
 	if not rows.is_empty():
-		_save(out, sheet, rows, names)
+		_save("%s_%02d_%s.png" % [out, sheet, "+".join(names)], rows)
 	quit()
+
+
+func _lab(out: String, n: String) -> void:
+	_frames = N_LAB
+	var picks: Array = [""] + (AnimLab.VARIANTS.get(n, {}) as Dictionary).keys()
+	for view in VIEWS.keys():
+		_aim(view)
+		var rows: Array = []
+		for p in picks:
+			AnimLab.pick = p
+			var s := AnimLab.spec(n)
+			var row := await _strip(n, s, s.get("extras", {}), VIEWS[view])
+			row.append(TAGS[picks.find(p)])
+			rows.append(row)
+			if view == "front3":
+				_print_ranges(n, p, row[2])
+		_save("%s_%s_%s.png" % [out, n, view], rows)
+	AnimLab.pick = ""
 
 
 func _build_stage() -> void:
@@ -67,14 +100,21 @@ func _build_stage() -> void:
 	pm.size = Vector2(30, 30)
 	floor_.mesh = pm
 	_world.add_child(floor_)
-	var cam := Camera3D.new()
-	_world.add_child(cam)
-	cam.current = true
-	cam.fov = 40
-	cam.look_at_from_position(Vector3(0, 1.2, 4.6), Vector3(0, 0.95, 0))
+	_cam = Camera3D.new()
+	_world.add_child(_cam)
+	_cam.current = true
+	_cam.fov = 40
+	_aim("front3")
 
 
-## [frames, hit window (u) or null]
+func _aim(view: String) -> void:
+	if view == "top":
+		_cam.look_at_from_position(Vector3(0, 4.4, 0.01), Vector3(0, 0.9, 0), Vector3.FORWARD)
+	else:
+		_cam.look_at_from_position(Vector3(0, 1.2, 4.6), Vector3(0, 0.95, 0))
+
+
+## [frames, hit window (u) or null, ranges {channel: [min Vector3, max Vector3]}]
 func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 	var h = Humanoid.new()
 	h.setup(CharacterLook.default_look())
@@ -106,11 +146,13 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 		h.react(n, dur, h.global_basis * (ex["push"] as Vector3))
 	else:
 		h.play(n, dur)
+	var ranges := {}
 	var imgs: Array = []
-	for i in N:
-		var target := dur * float(i) / float(N - 1) * 0.98
+	for i in _frames:
+		var target := dur * float(i) / float(_frames - 1) * 0.98
 		while h.is_busy() and float(h._action["t"]) < target:
 			h._process(1.0 / 120.0)
+			_track(h, ranges)
 		# (the skinned legs only follow on frames the rig posed itself: stepped by hand, skin them here)
 		h.hips.get_node("LowerBody")._pose()
 		# (the viewport image lags a frame behind: wait two draws for this pose)
@@ -119,7 +161,29 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 		imgs.append(_crop(root.get_texture().get_image()))
 	h.queue_free()
 	await process_frame
-	return [imgs, s.get("hit", null)]
+	return [imgs, s.get("hit", null), ranges]
+
+
+func _track(h, ranges: Dictionary) -> void:
+	var vals := {"lift": h._lift, "scale": h._scale, "smear": Vector3(h._smear, 0, 0)}
+	for j in AXES:
+		vals[j] = h._cur[j]
+	for c in vals.keys():
+		var v: Vector3 = vals[c]
+		if not ranges.has(c):
+			ranges[c] = [v, v]
+		else:
+			ranges[c] = [(ranges[c][0] as Vector3).min(v), (ranges[c][1] as Vector3).max(v)]
+
+
+func _print_ranges(n: String, p: String, ranges: Dictionary) -> void:
+	var parts: Array = []
+	for c in AXES + ["lift"]:
+		var d: Vector3 = ranges[c][1] - ranges[c][0]
+		parts.append("%s %.2f/%.2f/%.2f" % [c, d.x, d.y, d.z])
+	var sc: Vector3 = ranges["scale"][1] - ranges["scale"][0]
+	parts.append("squash %.2f smear %.2f" % [maxf(sc.x, maxf(sc.y, sc.z)), (ranges["smear"][1] as Vector3).x])
+	print("RANGE %s [%s] (x/y/z, rad) %s" % [n, "live" if p == "" else p.to_upper(), " | ".join(parts)])
 
 
 func _crop(im: Image) -> Image:
@@ -132,19 +196,20 @@ func _crop(im: Image) -> Image:
 	return c
 
 
-func _save(out: String, i: int, rows: Array, names: Array) -> void:
+func _save(path: String, rows: Array) -> void:
 	var f0: Image = rows[0][0][0]
-	var sheet := Image.create(N * (FW + GAP), rows.size() * (FH + GAP), false, f0.get_format())
+	var sheet := Image.create(_frames * (FW + GAP), rows.size() * (FH + GAP), false, f0.get_format())
 	sheet.fill(Color(0.1, 0.1, 0.12))
 	for r in rows.size():
 		var frames: Array = rows[r][0]
 		var hit = rows[r][1]
-		for c in N:
+		for c in _frames:
 			var at := Vector2i(c * (FW + GAP), r * (FH + GAP))
 			sheet.blit_rect(frames[c], Rect2i(0, 0, FW, FH), at)
-			var u := float(c) / float(N - 1) * 0.98
+			var u := float(c) / float(_frames - 1) * 0.98
 			if hit != null and u >= float(hit[0]) and u <= float(hit[1]):
 				sheet.fill_rect(Rect2i(at.x, at.y + FH - BAR, FW, BAR), Color(0.9, 0.15, 0.1))
-	var path := "%s_%02d_%s.png" % [out, i, "+".join(names)]
+		if rows[r].size() > 3:
+			sheet.fill_rect(Rect2i(r * 0 + 4, r * (FH + GAP) + 4, TAG, TAG), rows[r][3])
 	sheet.save_png(path)
 	print("SAVED ", path)

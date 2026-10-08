@@ -171,6 +171,24 @@ Rules from the full review (each one was a visible problem in the renders):
   played at varied lengths, key the important beats in seconds (the `quick_draw` /
   `shoot_r` pattern: `k = t_seconds / _action["dur"]`).
 
+## Training rounds (the anim lab)
+
+Zach is training this skill: rounds of 2-3 variants of one action, ranked by him. Read
+`docs/anim_lab.md` first: past rankings and takeaways outrank anything else in this file
+when they disagree.
+- Build variants in `scripts/npc/anim_lab.gd` (`VARIANTS` + `pose()`), point `FOCUS` at the
+  action. Make each variant test **one** idea on shared poses (a helper like `_slash_r`), so
+  the ranking says which idea won, not which pose happened to be nicer.
+- Render with animsheet's lab mode, read all four views, and fix anything that would
+  confuse the comparison (e.g. a variant over-rotating) before showing it.
+- Tell Zach: F5 cycles live/A/B/C in a debug build; what each tries; ask for a best-to-worst
+  ranking with notes. Log the variants, ranges, ranking and takeaways in `docs/anim_lab.md`.
+- After a ranking: move the winner into humanoid.gd (or the technique file), fold the
+  takeaway into the rules below, and set up the next round.
+- Rig features for variants (any action can use them via its ActionSpecs entry or pose
+  keys): `"_scale"` squash/stretch, `"_smear"` blade stretch, spec `"lead"` overlap,
+  `"sharp"`, `"step"` (stepped/on-twos). See the ActionSpecs header.
+
 ## Rig gotchas
 
 - Anything that writes joint *global* transforms (ragdoll, IK, hand placement) must keep
