@@ -16,11 +16,17 @@ class_name ActionSpecs
 ## "swing": the hand on a path instead of keyed arm angles (Humanoid._swing): {"hand": "r"|"l",
 ## "center": Vector3 in the root's space (feet, facing -Z), "follow": 0..1 how far the points
 ## turn with the chest, "anchor": 0..1 how far the points move with the shoulders (default 1),
-## "lag": s behind the body, "plane": the cut plane's normal (default from the path's sweep),
+## "lag": s behind the body, "plane": the cut plane's normal (default from the path's sweep from
+## key "plane_from" on: skip wind-up keys that travel the other way),
 ## "cut": the overall direction (checks only), "break": default wrist break, "keys": [[u,
 ## {"dir": from the centre, "r": m, "break": rad the blade is cocked back off the forearm's
 ## line (~1.5 square, 0 in line)}, mode?], ...]}. The sword extends the forearm, broken toward
 ## the trailing side of the cut so its edge leads (Humanoid._swing); the posed arm is overridden.
+## Start the keys at the guard hand and arc the wind-up round the shoulder, never across it.
+## "reach": the free hand on a path the same way (Humanoid._reach): {"hand": "l"|"r", "center",
+## "follow", "anchor", "lag", "from_shoulder": the points are offsets from the arm's shoulder
+## (their distance sets the elbow bend), "pole": elbow direction (default out, down and back), "keys": [[u,
+## {"dir", "r", "pole"?}, mode?], ...]}; arm IK, the wrist as posed.
 ## AnimLab variants override any of this while picked.
 
 const SPECS := {

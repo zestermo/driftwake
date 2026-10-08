@@ -185,6 +185,13 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
 - **No limb held straight.** Elbows and knees only straighten at the instant of full
   extension (a punch, a thrust); reaching or held, they keep 0.6+ rad of bend. Give each
   limb its own pose per phase instead of copying the previous phase's.
+- **Free arms go on a "reach" path too**, not keyed shoulder angles (those roll the upper arm
+  over between keys). Author the points as offsets from the arm's own shoulder in the
+  chest's frame (`from_shoulder`, `follow` 1): the distance sets the elbow (0.55 m ~0.7 rad,
+  0.49 m ~1.2). Pole "out to the side" (a pole along the reach leaves the elbow undefined).
+- **Paths start at the guard hand and arc round the shoulder**, never straight through it.
+- **Test from a walk:** `AS_MOVE=0,1` (and `0,-1`) starts the lab render mid-stride; the
+  elbows went wrong only from there.
 - **Impact helps:** squash on the wind-up, stretch and blade smear through the swing.
   Stepped/on-twos timing was not liked.
 - **Check in slow motion from above and behind**, the game camera's side, not just the

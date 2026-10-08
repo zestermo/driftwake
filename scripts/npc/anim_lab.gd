@@ -22,32 +22,48 @@ const SLASH_PATH := [
 	[0.76, Vector3(-0.65, -0.55, 0.0), 0.42, "out"],
 ]
 ## The same with the wind-up and cock held further out and higher, so the elbow opens
-## instead of folding the hand in by the head.
+## instead of folding the hand in by the head; it starts at the guard hand and arcs out to
+## the side and up round the shoulder (a straight blend from the guard to behind the
+## shoulder ran the hand through it, folding the arm and swinging the elbow across).
 const SLASH_PATH_WIDE := [
-	[0.12, Vector3(0.8, 0.55, 0.45), 0.5],
+	[0.06, Vector3(0.36, -0.24, -0.38), 0.5],
+	[0.1, Vector3(0.54, -0.02, -0.1), 0.48],
+	[0.16, Vector3(0.8, 0.55, 0.45), 0.5],
 	[0.32, Vector3(0.75, 0.8, 0.45), 0.52, "smooth"],
 	[0.4, Vector3(0.85, 0.6, -0.1), 0.55, "in"],
 	[0.5, Vector3(0.05, -0.05, -1.0), 0.62],
 	[0.62, Vector3(-0.7, -0.45, -0.45), 0.52],
 	[0.76, Vector3(-0.65, -0.55, 0.0), 0.42, "out"],
 ]
+## Wrist break per key (radians off the forearm's line, ~1.5 square to it, 0 in line):
+## guard, out to the side, wind start, cock, launch, strike, follow, wrap.
+const SLASH_BREAKS := [1.0, 1.1, 1.15, 1.3, 1.35, 0.7, 0.1, 0.3]
 
-## Round 6: round 5's C (wide, high cock, the wrist eased there, whippy through the strike)
-## with the off arm's elbow bent: it was near straight reaching on the wind-up and flung
-## out through the follow-through. Wrist break per key (radians off the forearm's line,
-## ~1.5 square to it, 0 in line): wind start, cock, launch, strike, follow, wrap.
-const R6 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
-	"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02, "arm_l": -0.04, "fore_l": -0.06}}
-const SLASH_BREAKS := [1.15, 1.3, 1.35, 0.7, 0.1, 0.3]
-## Off-arm elbow (fore_l, rad) on the wind-up reach, through the cut, in the follow-through.
-const ELBOWS := {"a": [0.6, 1.2, 0.9], "b": [0.9, 1.4, 1.2], "c": [1.2, 1.6, 1.5]}
+## Round 7: round 6's A (round 5 C, the off arm's elbow bent a little) with the elbow
+## solver kept to anatomical angles (it flipped across the body after a walk), the wind-up
+## arcing out from the guard, and the off hand on its own path (rising and falling on an
+## arc) instead of keyed shoulder angles. What differs: the off hand's path, as offsets from
+## the left shoulder in the chest's frame (it rides the chest's turn: x- out to the left, y
+## up, z+ back). The distance sets the elbow (arm 0.3 + 0.3 m): 0.55 m bends ~0.7, 0.53 ~0.9,
+## 0.49 ~1.2. On the wind-up the chest faces ~85 deg right, so toward the target is its -X.
+const R7 := {"len": 0.75, "hit": [0.45, 0.6], "chain": 0.55, "sharp": 55.0,
+	"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02}}
+const OFF_GUARD := Vector3(-0.08, -0.18, -0.32)
+const OFF_PATHS := {
+	"a": [[0.06, OFF_GUARD], [0.32, Vector3(-0.58, 0.11, -0.17), "smooth"], [0.42, Vector3(-0.57, 0.15, -0.18)],
+		[0.5, Vector3(-0.22, -0.47, -0.17)], [0.62, Vector3(-0.34, -0.34, 0.39)], [0.78, Vector3(-0.31, -0.34, 0.37), "out"]],
+	"b": [[0.06, OFF_GUARD], [0.32, Vector3(-0.5, 0.34, -0.13), "smooth"], [0.42, Vector3(-0.49, 0.36, -0.15)],
+		[0.5, Vector3(-0.22, -0.47, -0.17)], [0.62, Vector3(-0.34, -0.34, 0.39)], [0.78, Vector3(-0.31, -0.34, 0.37), "out"]],
+	"c": [[0.06, OFF_GUARD], [0.32, Vector3(-0.58, 0.11, -0.17), "smooth"], [0.42, Vector3(-0.57, 0.15, -0.18)],
+		[0.5, Vector3(0.11, -0.45, -0.3)], [0.62, Vector3(0.0, -0.47, -0.28)], [0.78, Vector3(0.0, -0.47, -0.28), "out"]],
+}
 
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
 	"slash_r": {
-		"a": {"note": "Round 5 C, the off arm's elbow bent a little"},
-		"b": {"note": "Round 5 C, the off arm's elbow bent more"},
-		"c": {"note": "Round 5 C, the off arm's elbow bent a lot"},
+		"a": {"note": "Off hand rises to chin height, pulled down to the side, swept back low"},
+		"b": {"note": "Off hand raised higher, above the eyes, on the wind-up"},
+		"c": {"note": "Off hand pulled in to the chest through the cut (tucked)"},
 	},
 }
 
@@ -86,10 +102,23 @@ static func spec(n: String) -> Dictionary:
 	var s: Dictionary = ActionSpecs.SPECS.get(n, {})
 	if pick == "" or not VARIANTS.has(n) or not (VARIANTS[n] as Dictionary).has(pick):
 		return s
-	var out := s.merged(R6, true).merged(VARIANTS[n][pick].get("spec", {}), true)
+	var out := s.merged(R7, true).merged(VARIANTS[n][pick].get("spec", {}), true)
 	if n == "slash_r":
-		out["swing"] = _path(SLASH_PATH_WIDE, SLASH_BREAKS, 1.15, {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02})
+		out["swing"] = _path(SLASH_PATH_WIDE, SLASH_BREAKS, 1.15, {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02, "plane_from": 2})
+		out["reach"] = _reach_path(OFF_PATHS[pick], {"hand": "l", "follow": 1.0, "from_shoulder": true, "lag": 0.04,
+			"pole": Vector3(-1.0, -0.35, 0.25)})
 	return out
+
+
+## A free hand's path from [u, point (body space), mode?] keys.
+static func _reach_path(points: Array, extra: Dictionary) -> Dictionary:
+	var keys := []
+	for p in points:
+		var key := [p[0], {"dir": p[1], "r": (p[1] as Vector3).length()}]
+		if (p as Array).size() > 2:
+			key.append(p[2])
+		keys.append(key)
+	return extra.merged({"center": Vector3.ZERO, "keys": keys}, true)
 
 
 ## A swing from [u, dir, r, mode?] points, a wrist break per point and a radius scale.
@@ -110,7 +139,7 @@ static func pose(h, n: String, u: float) -> Array:
 		return []
 	match n + "@" + pick:
 		"slash_r@a", "slash_r@b", "slash_r@c":
-			var p := _slash_body(h, 1.6, 1.6, ELBOWS[pick])
+			var p := _slash_body(h, 1.6, 1.6, [0.6, 1.2, 0.9])
 			return [h._keys(u, [[0.0, p["g"]], [0.32, p["load"], "out"], [0.42, p["cock"]], [0.47, p["whoosh"], "in"],
 				[0.52, p["cut"], "out"], [0.66, p["follow"], "out"], [0.84, p["follow"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
 	return []

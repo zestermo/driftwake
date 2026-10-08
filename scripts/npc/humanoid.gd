@@ -212,7 +212,9 @@ var _wrist := Vector2.ZERO
 var _swing_on: bool = false
 var _swivel: float = 0.0
 var _swing_rp := Vector3.FORWARD
-var _swing_anchor := Vector3.ZERO
+## Where the shoulders were when each path started (see _swing_frame), per "swing"/"reach".
+var _anchors := {}
+var _reach_on: bool = false
 var swing_check: Dictionary = {}
 const WRIST_FLEX := Vector2(-1.5, 0.5)
 const WRIST_ROLL := 1.3
@@ -2625,6 +2627,7 @@ func _process(delta: float) -> void:
 	if hand_l:
 		hand_l.rotation = _cur["hand_l"]
 	_swing(delta)
+	_reach()
 	if _tail and is_instance_valid(_tail):
 		var wag := 1.0 + clampf(ground_speed * 0.15, 0.0, 1.0)
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
@@ -2720,6 +2723,9 @@ func _swing(delta: float) -> void:
 	swing_check = {"grip": real_blade.angle_to(fore_axis), "roll": float(sol[1]), "head": float(cl[0])}
 	if AnimLab.debug:
 		var inv := global_basis.orthonormalized().inverse()
+		# (where each elbow's point sticks out (the arm's +Z), body space; forward is -Z)
+		print("ELBOW u %.2f sword arm points %s bend %.2f" % [float(_action["t"]) / dur,
+			(inv * arm_r.global_basis.z.normalized()).snapped(Vector3.ONE * 0.01), fore_r.rotation.x])
 		print("SWING u %.2f hand %s got %s shoulder %s forearm %s cut goes %s | blade %s edge %s | wrist %s over %.2f | swivel %.2f" % [
 			float(_action["t"]) / dur, pos_l.snapped(Vector3.ONE * 0.01), (global_transform.affine_inverse() * hand.global_position).snapped(Vector3.ONE * 0.01),
 			(global_transform.affine_inverse() * arm.global_position).snapped(Vector3.ONE * 0.01), (inv * fore_axis).snapped(Vector3.ONE * 0.01),
@@ -2753,7 +2759,7 @@ func _swing_normal(sw: Dictionary) -> Vector3:
 		return (sw["plane"] as Vector3).normalized()
 	var keys: Array = sw["keys"]
 	var n := Vector3.ZERO
-	for i in keys.size() - 1:
+	for i in range(int(sw.get("plane_from", 0)), keys.size() - 1):
 		n += (keys[i][1]["dir"] as Vector3).normalized().cross((keys[i + 1][1]["dir"] as Vector3).normalized())
 	return n.normalized()
 
@@ -2764,7 +2770,7 @@ func _swing_cut(sw: Dictionary) -> Vector3:
 	if sw.has("cut"):
 		return (sw["cut"] as Vector3).normalized()
 	var keys: Array = sw["keys"]
-	var a: Dictionary = keys[0][1]
+	var a: Dictionary = keys[int(sw.get("plane_from", 0))][1]
 	var b: Dictionary = keys[keys.size() - 1][1]
 	return ((b["dir"] as Vector3).normalized() * float(b["r"]) - (a["dir"] as Vector3).normalized() * float(a["r"])).normalized()
 
@@ -2806,6 +2812,11 @@ func _swivel_cost(right: bool, target: Vector3, ahead: Vector3, brk: float, phi:
 	var sol := _wrist_for((fore_r if right else fore_l).global_basis, ahead, brk)
 	var y := (sol[0] as Vector2).y
 	var c := 6.0 * pow(float(sol[1]), 2.0) + 0.3 * y * y + 0.15 * phi * phi
+	# anatomy: the elbow's point (the arm's +Z) never turns in across the body or far
+	# forward (from a walk the search settled there: the arm read as bent backwards)
+	var ep := global_basis.orthonormalized().inverse() * (arm_r if right else arm_l).global_basis.z.normalized()
+	var outward := ep.x if right else -ep.x
+	c += 8.0 * pow(maxf(0.0, 0.1 - outward), 2.0) + 6.0 * pow(maxf(0.0, -ep.z - 0.4), 2.0)
 	if _swing_on:
 		c += 0.6 * pow(angle_difference(_swivel, phi), 2.0)
 	return c
@@ -2835,7 +2846,7 @@ func _wrist_for(fb: Basis, ahead: Vector3, brk: float) -> Array:
 ## standing in its guard, so when it crouches, leans or steps into the cut the points go
 ## with the shoulders (else a strike drawn at chest height ends up above a dropped
 ## shoulder, the arm reaching up and the blade pointing back).
-func _swing_frame(sw: Dictionary, first: bool) -> Transform3D:
+func _swing_frame(sw: Dictionary, first: bool, slot: String = "swing") -> Transform3D:
 	var b := global_basis
 	var follow := float(sw.get("follow", 0.0))
 	if follow > 0.0:
@@ -2843,13 +2854,60 @@ func _swing_frame(sw: Dictionary, first: bool) -> Transform3D:
 		b = global_basis * Basis(Vector3.UP, atan2(-f.x, -f.z) * follow)
 	var mid := global_transform.affine_inverse() * ((arm_l.global_position + arm_r.global_position) * 0.5)
 	if first:
-		_swing_anchor = mid
-	return Transform3D(b, global_position + global_basis * ((mid - _swing_anchor) * float(sw.get("anchor", 1.0))))
+		_anchors[slot] = mid
+	return Transform3D(b, global_position + global_basis * ((mid - (_anchors[slot] as Vector3)) * float(sw.get("anchor", 1.0))))
 
 
-## [hand position, wrist break] in the swing's space at `u`: a Catmull-Rom curve through
-## the keys' points (centre + dir * r), each segment's progress shaped by its mode
-## (default "linear": the hand keeps its speed through the key).
+## The free hand on a path (spec "reach", see ActionSpecs): the same smooth curve through
+## keyed points and the same frame as a swing, the arm solved by IK with its elbow toward
+## the keyed pole (out, down and back by default), the wrist left as posed. So the hand
+## rises and falls on a real arc and the elbow can't roll over the way keyed shoulder
+## angles did. Blends in and out like a swing.
+func _reach() -> void:
+	var rc: Dictionary = {} if _action.is_empty() else (_action["spec"] as Dictionary).get("reach", {})
+	if rc.is_empty() or ragdoll != null or not is_inside_tree():
+		_reach_on = false
+		return
+	var keys: Array = rc["keys"]
+	var dur := float(_action["dur"])
+	var t := float(_action["t"]) - float(rc.get("lag", 0.0))
+	var w := clampf((t - float(keys[0][0]) * dur) / 0.08 + 1.0, 0.0, 1.0) * clampf((float(keys[keys.size() - 1][0]) * dur - t) / 0.1 + 1.0, 0.0, 1.0)
+	if w <= 0.0:
+		_reach_on = false
+		return
+	var right: bool = rc.get("hand", "l") == "r"
+	var hand := hand_r if right else hand_l
+	var frame := _swing_frame(rc, not _reach_on, "reach")
+	if rc.get("from_shoulder", false):
+		# (points are offsets from this arm's shoulder: their distance sets the elbow's bend)
+		frame.origin = (arm_r if right else arm_l).global_position
+	_reach_on = true
+	var s := _swing_at(rc, _sample_u(t, _action["spec"]))
+	var target := hand.global_position.lerp(frame * (s[0] as Vector3), w)
+	var pole := (frame.basis * (s[2] as Vector3)).normalized()
+	# a pole along the reach leaves the elbow's side undefined (it flipped up when the hand
+	# swept down and back, the way the pole pointed): lean it out to the side then
+	var dir := (target - (arm_r if right else arm_l).global_position).normalized()
+	var side := (frame.basis * Vector3(1.0 if right else -1.0, 0.0, 0.0)).normalized()
+	var clear := (pole - dir * pole.dot(dir)).length()
+	if clear < 0.6:
+		pole = pole.lerp(side, (0.6 - clear) / 0.6).normalized()
+	reach_hand(right, target, pole)
+	var arm := arm_r if right else arm_l
+	arm.basis = arm.basis.orthonormalized()
+	if AnimLab.debug:
+		var inv := global_transform.affine_inverse()
+		print("REACH u %.2f w %.2f target %s shoulder %s pole %s | hand %s elbow points %s bend %.2f" % [float(_action["t"]) / float(_action["dur"]), w,
+			(inv * target).snapped(Vector3.ONE * 0.01), (inv * arm.global_position).snapped(Vector3.ONE * 0.01),
+			(global_basis.orthonormalized().inverse() * pole).snapped(Vector3.ONE * 0.01),
+			(inv * hand.global_position).snapped(Vector3.ONE * 0.01),
+			(global_basis.orthonormalized().inverse() * arm.global_basis.z.normalized()).snapped(Vector3.ONE * 0.01),
+			(fore_r if right else fore_l).rotation.x])
+
+
+## [hand position, wrist break, elbow pole] in the swing's space at `u`: a Catmull-Rom
+## curve through the keys' points (centre + dir * r), each segment's progress shaped by its
+## mode (default "linear": the hand keeps its speed through the key).
 func _swing_at(sw: Dictionary, u: float) -> Array:
 	var keys: Array = sw["keys"]
 	var n := keys.size()
@@ -2866,12 +2924,14 @@ func _swing_at(sw: Dictionary, u: float) -> Array:
 	var j := mini(i + 1, n - 1)
 	var pts := []
 	var brks := []
+	var poles := []
 	for q in [maxi(i - 1, 0), i, j, mini(j + 1, n - 1)]:
 		var key: Dictionary = keys[q][1]
 		pts.append((sw.get("center", Vector3(0, 1.3, 0)) as Vector3) + (key["dir"] as Vector3).normalized() * float(key["r"]))
 		brks.append(float(key.get("break", sw.get("break", 0.6))))
+		poles.append(key.get("pole", sw.get("pole", Vector3(-0.7, -0.6, 0.4))))
 	var pos: Vector3 = (pts[1] as Vector3).cubic_interpolate(pts[2], pts[0], pts[3], x)
-	return [pos, cubic_interpolate(brks[1], brks[2], brks[0], brks[3], x)]
+	return [pos, cubic_interpolate(brks[1], brks[2], brks[0], brks[3], x), (poles[1] as Vector3).lerp(poles[2], x)]
 
 
 ## The action's pose time (0..1) at `t` seconds: held on the spec's drawings when it

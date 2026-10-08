@@ -189,4 +189,32 @@ follow-through:
 - **B:** 0.9 / 1.4 / 1.2 (more)
 - **C:** 1.2 / 1.6 / 1.5 (a lot: the fist up by the face on the wind-up)
 
+Ranking (Zach): **A** (a little bend). Bugs: "the elbow will flips and the arm bends
+backwards", mainly after walking forward/back. Wants the off arm to raise and lower
+smoothly, as well as turning toward and away from the chest.
+
+Takeaways (reproduced with animsheet `AS_MOVE=0,1`: start the action from a walk):
+- **Sword arm:** from a walk the elbow search settled with the elbow turned in across the
+  chest for the whole wind-up. The elbow solver now has anatomy: an elbow pointing in across
+  the body or far forward costs heavily.
+- **Off arm:** keyed shoulder angles blending one by one rolled the upper arm over mid-cut.
+  It's now on a hand path too ("reach": IK, points as offsets from its own shoulder in the
+  chest's frame, so distance sets the elbow bend: 0.55 m ~0.7, 0.49 m ~1.2).
+- **A pole along the reach leaves the elbow undefined**: the follow-through swept the hand
+  down and back, exactly where the pole (out, down, back) pointed, and the elbow flipped up.
+  A free arm's pole is "out to the side", and the solver leans any pole that lines up with
+  the reach out to the side.
+- **Paths start at the guard hand and arc round the shoulder.** A straight blend from the
+  guard to behind the shoulder ran the hand through it, folding the arm and swinging the
+  elbow across for a moment.
+
+## Round 7 (2026-10-08): slash_r, the off hand on a path
+
+All: round 6 A, the anatomical elbow, the wind-up arcing out from the guard (two new keys),
+the off hand's path riding the chest. Off-hand offsets from the left shoulder:
+- **A:** rises to chin height reaching toward the target, pulled down to the side through
+  the cut, swept back low behind.
+- **B:** A, raised higher (above the eyes) on the wind-up.
+- **C:** A, but pulled in to the chest through the cut and kept tucked.
+
 Ranking: _waiting for Zach_

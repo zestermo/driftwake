@@ -135,6 +135,11 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 	for k in ex.keys():
 		if not k in ["dual", "beast", "sheathed", "push"]:
 			h.set(k, ex[k])
+	# AS_MOVE="x,y": walking that way when the action starts (Humanoid.local_move: y+ forward)
+	if OS.get_environment("AS_MOVE") != "":
+		var mv := OS.get_environment("AS_MOVE").split(",")
+		h.local_move = Vector2(float(mv[0]), float(mv[1]))
+		h.ground_speed = 4.0
 	# (switched off after ready: ready turns processing back on; the tool steps it)
 	await process_frame
 	h.set_process(false)
