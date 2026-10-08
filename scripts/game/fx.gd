@@ -280,6 +280,34 @@ func dust(pos: Vector3, amount: int = 5, size: float = 0.5) -> void:
 		"radius": 0.15, "spread": 70.0, "vel_min": 0.5, "vel_max": 1.4, "gravity": Vector3(0, 0.4, 0), "damping": 3.0})
 
 
+## A chimney's thin smoke, rising and drifting for good (under `parent`).
+func chimney_smoke(parent: Node3D, pos: Vector3) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.name = "Smoke"
+	p.amount = 10
+	p.lifetime = 4.5
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.15
+	p.direction = Vector3.UP
+	p.spread = 12.0
+	p.gravity = Vector3(0.25, 0.35, 0.1)
+	p.initial_velocity_min = 0.5
+	p.initial_velocity_max = 0.8
+	p.damping_min = 0.1
+	p.damping_max = 0.2
+	p.scale_amount_min = 0.8
+	p.scale_amount_max = 1.2
+	p.scale_amount_curve = _curve("grow")
+	p.color_ramp = _fade_to_clear(Color(0.72, 0.7, 0.68, 0.45))
+	p.mesh = _quad(0.9, _dust_mat)
+	p.visibility_range_end = 140.0
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(p)
+	p.position = pos
+	p.emitting = true
+	return p
+
+
 ## Green venom bubbles (poisoned targets, spit trails and splashes).
 func poison(pos: Vector3, amount: int = 4, size: float = 0.35) -> void:
 	_burst(pos, amount, _dust_mat, size, 0.6, {

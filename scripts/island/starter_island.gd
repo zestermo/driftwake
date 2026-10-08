@@ -492,6 +492,7 @@ func _local_point(node: Node3D, local: Vector3) -> Vector2:
 # ==========================================================================
 var _tavern: Node3D
 var _harbor: Node3D
+var _smithy: Node3D
 var _stall_a: Node3D
 var _stall_b: Node3D
 var _keeper_hut: Node3D
@@ -569,7 +570,7 @@ func _build_village() -> void:
 	_house({"w": 4.5, "d": 4.0, "h": 2.4, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch",
 		"lean_to": "right", "chimney": true}, VILLAGE + Vector2(-17, -25), Vector2(1, 0.3))
 	_harbor = _house({"w": 9.0, "d": 5.5, "h": 3.0, "roof": "shed", "wall": "planks_weathered", "roof_tex": "roof_tiles",
-		"porch": 1.6, "sign": "sign_fish", "door_x": 2.0, "name": "Harbor"}, VILLAGE + Vector2(15, -28), Vector2(-1, 0))
+		"porch": 1.6, "sign": "sign_fish", "door_x": 2.0, "name": "Harbor", "lamp_light": true}, VILLAGE + Vector2(15, -28), Vector2(-1, 0))
 	_house({"w": 4.0, "d": 4.5, "floors": 2, "wall": "stone_brick", "wall2": "planks", "roof": "gable",
 		"roof_tex": "thatch", "pitch": 0.75, "jetty": 0.3}, VILLAGE + Vector2(-9, -31), Vector2(1, 0.2))
 	_house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "hip", "wall": "plaster", "roof_tex": "thatch", "lean_to": "left", "pitch": 0.5},
@@ -597,6 +598,22 @@ func _build_village() -> void:
 	place(Props.barrel(), yard + Vector2(-2.2, 1.2), 0.0)
 
 	place(Props.signpost([PI, 0.0, PI * 0.75, PI * 0.25]), VILLAGE + Vector2(2.5, 17), 0.0, 0.6)
+
+	# the smithy, the sea chapel, the harbour warehouse and two more houses
+	_smithy = place(Buildings.smithy(), Vector2(-38, -78), face_yaw(Vector2(1, 0.25)), 4.6)
+	place(Buildings.chapel(), Vector2(42, -82), face_yaw(Vector2(-1, 0.35)), 6.2)
+	var wh := _house({"w": 9.0, "d": 6.0, "h": 3.6, "roof": "gable", "wall": "planks_weathered", "roof_tex": "roof_tiles", "door_x": -2.2,
+		"name": "Warehouse", "flowers": false, "trim": Color(0.55, 0.5, 0.45), "lamp_light": true, "pitch": 0.38}, Vector2(20, -106), Vector2(-1, 0))
+	for k in range(4):
+		var cp := _local_point(wh, Vector3(1.0 + (k % 2) * 1.0, 0, 4.0 + (k / 2) * 0.9))
+		place(Props.crate(0.75 + 0.1 * (k % 2)), cp, 0.3 * k, 0.0)
+	place(Props.barrel(), _local_point(wh, Vector3(3.6, 0, 3.6)))
+	place(Props.barrel(), _local_point(wh, Vector3(4.1, 0, 4.2)))
+	_house({"w": 5.5, "d": 4.5, "floors": 2, "wall": "plaster", "wall2": "planks", "roof": "gable", "roof_tex": "thatch",
+		"chimney": true, "jetty": 0.3, "trim": Buildings.TRIM_COLORS[0]}, Vector2(-30, -100), Vector2(1, 0.4))
+	_house({"w": 6.0, "d": 4.5, "h": 2.5, "roof": "hip", "wall": "stone_brick", "roof_tex": "roof_tiles", "porch": 1.5,
+		"chimney": true}, Vector2(-30, -24), Vector2(0.7, -1))
+	_dress_village()
 
 	# lantern posts along the main road
 	var main: PackedVector2Array = paths[0]
@@ -669,6 +686,32 @@ func _build_market() -> void:
 	place(Buildings.planter(0.7), MARKET, 0.0, 0.8)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 51
+	# wares laid out on rugs between the stalls, sacks and baskets heaped by them
+	var gmb := MeshBuilder.new()
+	var rugs := [PSXMat.lit("cloth_red", Color(0.9, 0.8, 0.75), {"affine": 0.6}), PSXMat.lit("cloth_blue", Color(0.9, 0.9, 0.85), {"affine": 0.6})]
+	var basket := PSXMat.lit("straw")
+	var sack := PSXMat.lit("canvas", Color(0.82, 0.74, 0.56))
+	var goods := [Color(0.9, 0.55, 0.1), Color(0.85, 0.15, 0.12), Color(0.95, 0.85, 0.2), Color(0.45, 0.7, 0.2), Color(0.55, 0.35, 0.2)]
+	for i in range(4):
+		var a := base + deg_to_rad(106.0 + i * 73.0)
+		var gp := MARKET + Vector2(cos(a), sin(a)) * 5.4
+		if i < 3:
+			var gy := hv(gp) + 0.06
+			var r: Material = rugs[i % 2]
+			var e1 := Vector2(cos(a), sin(a)) * 0.7
+			var e2 := Vector2(-sin(a), cos(a)) * 1.0
+			var v := func(q: Vector2) -> Vector3: return Vector3(q.x, gy, q.y)
+			gmb.add_quad(r, v.call(gp - e1 - e2), v.call(gp + e1 - e2), v.call(gp + e1 + e2), v.call(gp - e1 + e2), Vector2.ZERO, Vector2(1, 0), Vector2(1, 1.4), Vector2(0, 1.4), Color.WHITE, Vector3.UP)
+			for k in range(3):
+				var bp := gp + e2 * (k - 1) * 0.6
+				gmb.add_cylinder(basket, Transform3D(Basis(), Vector3(bp.x, gy, bp.y)), 0.2, 0.24, 0.2, 7, 1.0)
+				var fm := PSXMat.flat(goods[(i + k) % goods.size()])
+				for f in range(4):
+					gmb.add_blob(fm, Transform3D(Basis(), Vector3(bp.x + rng.randf_range(-0.1, 0.1), gy + 0.24 + (f / 2) * 0.06, bp.y + rng.randf_range(-0.1, 0.1))), Vector3.ONE * 0.07, rng, 0.15, 2, 4, 1.0)
+		var sp := MARKET + Vector2(cos(a + 0.25), sin(a + 0.25)) * 8.2
+		for k in range(2):
+			gmb.add_blob(sack, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(sp.x + k * 0.5, hv(sp) + 0.28, sp.y + (k % 2) * 0.3)), Vector3(0.3, 0.32, 0.26), rng, 0.2, 3, 6)
+	add_child(gmb.to_instance("Wares"))
 	for i in range(6):
 		var a := rng.randf() * TAU
 		var q := MARKET + Vector2(cos(a), sin(a)) * rng.randf_range(8.0, 9.5)
@@ -676,6 +719,263 @@ func _build_market() -> void:
 			continue
 		place(Props.crate(rng.randf_range(0.55, 0.8)) if i % 2 == 0 else Props.barrel(), q, rng.randf() * TAU, 0.6)
 	reserve(MARKET, 9.0)
+
+
+# ==========================================================================
+# Village dressing: cobbles, bunting, lamps, benches, washing, a garden
+# ==========================================================================
+func _dress_village() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2626
+	var cob := MeshBuilder.new()
+	var cobbles := PSXMat.lit("cobbles", Color.WHITE, {"affine": 0.6})
+	_pave_disk(cob, cobbles, VILLAGE, 12.5, rng)
+	_pave_disk(cob, cobbles, MARKET, 7.0, rng)
+	_pave_path(cob, cobbles, paths[0], 1.7)
+	var paving := cob.to_instance("Cobbles")
+	paving.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(paving)
+	# a bucket and rope at the well, benches round it
+	for k in range(4):
+		var a := PI * 0.25 + k * PI * 0.5
+		var bp := VILLAGE + Vector2(cos(a), sin(a)) * 5.5
+		if _path_dist(bp) < 1.5:
+			continue
+		place(Props.bench(), bp, face_yaw(VILLAGE - bp) + PI * 0.5, 1.0)
+	place(Buildings.planter(0.75), VILLAGE + Vector2(-8.5, 7.0), 0.0, 0.9)
+	place(Buildings.planter(0.6), VILLAGE + Vector2(8.0, -8.0), 0.0, 0.8)
+	# lamps round the plaza (real light after dark) and one in the market
+	for q in [VILLAGE + Vector2(-9.5, -6.0), VILLAGE + Vector2(9.0, 5.5), VILLAGE + Vector2(-3.0, 11.5), MARKET + Vector2(-5.5, 6.5)]:
+		var post := place(Props.lantern_post(), q, face_yaw(VILLAGE - q) - PI * 0.5, 0.4)
+		var nl := NightLight.make(Color(1.0, 0.75, 0.42), 1.8, 10.0)
+		nl.position = Vector3(0.55, 2.0, 0.0)
+		post.add_child(nl)
+	# bunting strung between poles round the plaza
+	var poles: Array = []
+	for k in range(10):
+		var a := TAU * k / 10.0 + 0.15
+		var q := VILLAGE + Vector2(cos(a), sin(a)) * 13.2
+		var clear := _path_dist(q) > 1.2
+		for e in exclusions:
+			if float(e[1]) < 12.0 and q.distance_to(e[0]) < float(e[1]) + 0.2:
+				clear = false
+		if clear:
+			poles.append([a, q])
+	var bmb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks_dark")
+	for pq in poles:
+		var q: Vector2 = pq[1]
+		bmb.add_box(wood, Transform3D(Basis(), Vector3(q.x, hv(q) + 2.1, q.y)), Vector3(0.12, 4.2, 0.12), 1.0)
+		reserve(q, 0.8)
+	for i in range(poles.size()):
+		var a0: Array = poles[i]
+		var a1: Array = poles[(i + 1) % poles.size()]
+		if wrapf(float(a1[0]) - float(a0[0]), 0.0, TAU) > PI * 0.45:
+			continue
+		var p0: Vector2 = a0[1]
+		var p1: Vector2 = a1[1]
+		_bunting(bmb, Vector3(p0.x, hv(p0) + 4.0, p0.y), Vector3(p1.x, hv(p1) + 4.0, p1.y), rng)
+	# and across the market between two stalls' poles
+	_bunting(bmb, Vector3(MARKET.x - 6.5, hv(MARKET) + 3.4, MARKET.y - 3.0), Vector3(MARKET.x + 6.0, hv(MARKET) + 3.4, MARKET.y + 3.5), rng)
+	for q in [MARKET + Vector2(-6.5, -3.0), MARKET + Vector2(6.0, 3.5)]:
+		bmb.add_box(wood, Transform3D(Basis(), Vector3(q.x, hv(q) + 1.75, q.y)), Vector3(0.12, 3.5, 0.12), 1.0)
+		reserve(q, 0.8)
+	add_child(bmb.to_instance("Bunting"))
+	# the notice board by the tavern
+	var nb := VILLAGE + Vector2(-12.5, 9.0)
+	place(_notice_board(rng), nb, face_yaw(VILLAGE - nb), 1.0)
+	# washing lines behind the houses, a fenced vegetable plot
+	_laundry(Vector2(-24.0, -98.0), Vector2(-23.0, -104.5), rng)
+	_laundry(Vector2(33.0, -45.0), Vector2(37.0, -40.0), rng)
+	_laundry(Vector2(-34.5, -20.0), Vector2(-38.5, -25.0), rng)
+	_garden(Vector2(-25.0, -33.0), 5.0, 4.0, face_yaw(Vector2(1, -0.5)), rng)
+	# the harbour: crates and nets along the foot of the dock, a cart
+	place(Props.net_pile(), dock_shore + Vector2(9.5, 1.0), 0.4)
+	place(Props.crate(0.7), dock_shore + Vector2(-3.0, 7.0), 0.6, 0.0)
+	place(_handcart(), VILLAGE + Vector2(6.5, -30.0), face_yaw(Vector2(0.3, -1)), 1.4)
+
+
+## Cobbles over a ragged disk of ground, following it.
+func _pave_disk(mb: MeshBuilder, mat: Material, c: Vector2, r: float, rng: RandomNumberGenerator) -> void:
+	var s := 1.5
+	var n := int(ceil(r / s))
+	for ix in range(-n, n):
+		for iz in range(-n, n):
+			var a := c + Vector2(ix, iz) * s
+			var mid := a + Vector2(s, s) * 0.5
+			if mid.distance_to(c) > r - 0.8 + rng.randf() * 1.6:
+				continue
+			_pave_quad(mb, mat, a, a + Vector2(s, 0), a + Vector2(s, s), a + Vector2(0, s))
+
+
+## Cobbles along a path (its half-width `hw`).
+func _pave_path(mb: MeshBuilder, mat: Material, pts: PackedVector2Array, hw: float) -> void:
+	var line := PackedVector2Array()
+	for i in range(pts.size() - 1):
+		var a := pts[i]
+		var b := pts[i + 1]
+		var steps := maxi(int(ceil(a.distance_to(b) / 1.5)), 1)
+		for k in range(steps):
+			line.append(a.lerp(b, float(k) / steps))
+	line.append(pts[pts.size() - 1])
+	var sides: Array = []
+	for i in range(line.size()):
+		var t := (line[mini(i + 1, line.size() - 1)] - line[maxi(i - 1, 0)]).normalized()
+		sides.append(Vector2(-t.y, t.x) * hw)
+	for i in range(line.size() - 1):
+		var s0: Vector2 = sides[i]
+		var s1: Vector2 = sides[i + 1]
+		_pave_quad(mb, mat, line[i] - s0, line[i] + s0, line[i + 1] + s1, line[i + 1] - s1)
+
+
+func _pave_quad(mb: MeshBuilder, mat: Material, a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> void:
+	var v := func(q: Vector2) -> Vector3: return Vector3(q.x, hv(q) + 0.05, q.y)
+	var uv := func(q: Vector2) -> Vector2: return q * 0.4
+	var na: Vector3 = v.call(a)
+	var nb: Vector3 = v.call(b)
+	var nc: Vector3 = v.call(c)
+	var nd: Vector3 = v.call(d)
+	mb.add_tri(mat, na, nb, nc, Vector3.UP, Vector3.UP, Vector3.UP, uv.call(a), uv.call(b), uv.call(c), Color.WHITE, Vector3.UP)
+	mb.add_tri(mat, na, nc, nd, Vector3.UP, Vector3.UP, Vector3.UP, uv.call(a), uv.call(c), uv.call(d), Color.WHITE, Vector3.UP)
+
+
+const PENNANTS := [Color(0.8, 0.18, 0.15), Color(0.95, 0.8, 0.25), Color(0.2, 0.42, 0.7), Color(0.92, 0.9, 0.84), Color(0.25, 0.55, 0.35)]
+
+
+## A sagging line between a and b hung with little triangular flags.
+func _bunting(mb: MeshBuilder, a: Vector3, b: Vector3, rng: RandomNumberGenerator) -> void:
+	var rope := PSXMat.lit("rope")
+	var n := maxi(int(a.distance_to(b) / 0.55), 2)
+	var sag := a.distance_to(b) * 0.08
+	var prev := a
+	var dir := (b - a).normalized()
+	var side := Vector3(-dir.z, 0, dir.x)
+	for k in range(1, n + 1):
+		var t := float(k) / n
+		var p := a.lerp(b, t) - Vector3.UP * sag * 4.0 * t * (1.0 - t)
+		Buildings.beam_between(mb, rope, prev, p, 0.025)
+		if k < n:
+			var col := PSXMat.flat(PENNANTS[rng.randi() % PENNANTS.size()])
+			var l := p - dir * 0.2
+			var r := p + dir * 0.2
+			var tip := p + Vector3.DOWN * 0.38 + side * rng.randf_range(-0.03, 0.03)
+			mb.add_tri(col, l, r, tip, side, side, side, Vector2.ZERO, Vector2(1, 0), Vector2(0.5, 1), Color.WHITE, side)
+			mb.add_tri(col, l, tip, r, -side, -side, -side, Vector2.ZERO, Vector2(0.5, 1), Vector2(1, 0), Color(0.8, 0.8, 0.8), -side)
+		prev = p
+
+
+## Two posts, a line, and the washing out on it.
+func _laundry(a: Vector2, b: Vector2, rng: RandomNumberGenerator) -> void:
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks_weathered")
+	var ya := hv(a)
+	var yb := hv(b)
+	for q in [Vector3(a.x, ya, a.y), Vector3(b.x, yb, b.y)]:
+		mb.add_box(wood, Transform3D(Basis(), q + Vector3(0, 1.1, 0)), Vector3(0.1, 2.2, 0.1), 1.0)
+	var pa := Vector3(a.x, ya + 2.05, a.y)
+	var pb := Vector3(b.x, yb + 2.05, b.y)
+	Buildings.beam_between(mb, PSXMat.lit("rope"), pa, pb, 0.02)
+	var dir := (pb - pa).normalized()
+	var side := Vector3(-dir.z, 0, dir.x)
+	var cloths := [Color(0.92, 0.9, 0.85), Color(0.6, 0.72, 0.85), Color(0.8, 0.4, 0.32), Color(0.85, 0.8, 0.55), Color(0.55, 0.65, 0.5)]
+	var x := 0.4
+	var len := pa.distance_to(pb)
+	while x < len - 0.6:
+		var cw := rng.randf_range(0.4, 0.8)
+		var ch := rng.randf_range(0.45, 0.9)
+		var p0 := pa + dir * x - Vector3.UP * 0.05
+		var p1 := pa + dir * (x + cw) - Vector3.UP * 0.05
+		var col := PSXMat.lit("fabric", cloths[rng.randi() % cloths.size()])
+		var lean := side * rng.randf_range(-0.08, 0.08)
+		mb.add_quad(col, p0, p1, p1 + Vector3.DOWN * ch + lean, p0 + Vector3.DOWN * ch + lean, Vector2.ZERO, Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Color.WHITE, side)
+		mb.add_quad(col, p0, p0 + Vector3.DOWN * ch + lean, p1 + Vector3.DOWN * ch + lean, p1, Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Color(0.8, 0.8, 0.8), -side)
+		x += cw + rng.randf_range(0.15, 0.4)
+	add_child(mb.to_instance("Washing"))
+	reserve(a, 0.8)
+	reserve(b, 0.8)
+
+
+## A fenced vegetable plot: rows of crops on tilled earth.
+func _garden(c: Vector2, w: float, d: float, yaw: float, rng: RandomNumberGenerator) -> void:
+	var node := Node3D.new()
+	node.name = "Garden"
+	var mb := MeshBuilder.new()
+	var soil := PSXMat.lit("dirt", Color(0.75, 0.62, 0.5))
+	var leaf := PSXMat.lit("leaves", Color(0.75, 1.0, 0.7))
+	var veg := [PSXMat.flat(Color(0.95, 0.55, 0.15)), PSXMat.flat(Color(0.75, 0.15, 0.2)), PSXMat.flat(Color(0.85, 0.85, 0.4))]
+	var rows := int(d / 0.8)
+	for r in range(rows):
+		var z := -d * 0.5 + 0.4 + r * 0.8
+		mb.add_box(soil, Transform3D(Basis(), Vector3(0, 0.06, z)), Vector3(w - 0.6, 0.18, 0.45), 1.0)
+		var vm: Material = veg[r % veg.size()]
+		for k in range(int((w - 0.8) / 0.45)):
+			var x := -w * 0.5 + 0.6 + k * 0.45
+			mb.add_blob(leaf, Transform3D(Basis(), Vector3(x, 0.24, z)), Vector3(0.16, 0.13, 0.16), rng, 0.3, 2, 5, 1.0)
+			if (k + r) % 3 == 0:
+				mb.add_blob(vm, Transform3D(Basis(), Vector3(x + 0.05, 0.2, z + 0.1)), Vector3.ONE * 0.07, rng, 0.2, 2, 4, 1.0)
+	node.add_child(mb.to_instance())
+	place(node, c, yaw, maxf(w, d) * 0.5)
+	# the fence round it, a gap at the front for the gate
+	for seg in [[Vector2(-w * 0.5, -d * 0.5), 0.0, d], [Vector2(w * 0.5, -d * 0.5), 0.0, d], [Vector2(-w * 0.5, -d * 0.5), PI * 0.5, w],
+			[Vector2(-w * 0.5, d * 0.5), PI * 0.5, w * 0.4], [Vector2(w * 0.1, d * 0.5), PI * 0.5, w * 0.4]]:
+		var local: Vector2 = seg[0]
+		var wp := c + local.rotated(-yaw)
+		var f := Props.fence_segment(float(seg[2]), 0.8)
+		f.position = Vector3(wp.x, hv(wp), wp.y)
+		f.rotation.y = yaw + float(seg[1])
+		add_child(f)
+
+
+## A notice board: two posts, a little roof, papers pinned up.
+func _notice_board(rng: RandomNumberGenerator) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.name = "NoticeBoard"
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks_dark")
+	for x in [-0.8, 0.8]:
+		mb.add_box(wood, Transform3D(Basis(), Vector3(x, 1.1, 0)), Vector3(0.12, 2.2, 0.12), 1.0)
+	mb.add_box(PSXMat.lit("planks"), Transform3D(Basis(), Vector3(0, 1.45, 0.02)), Vector3(1.5, 1.0, 0.06), 1.0)
+	mb.add_gable_roof(PSXMat.lit("thatch"), Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 2.2, 0)), 0.6, 1.9, 0.35, 0.1)
+	var papers := [Color(0.9, 0.86, 0.72), Color(0.95, 0.93, 0.85), Color(0.85, 0.78, 0.6)]
+	for k in range(6):
+		var pp := Vector3(-0.55 + (k % 3) * 0.55 + rng.randf_range(-0.08, 0.08), 1.7 - (k / 3) * 0.48, 0.06)
+		mb.add_box(PSXMat.flat(papers[k % 3]), Transform3D(Basis(Vector3.BACK, rng.randf_range(-0.12, 0.12)), pp), Vector3(0.36, 0.42, 0.01), 1.0)
+		mb.add_box(PSXMat.flat(Color(0.3, 0.25, 0.2)), Transform3D(Basis(), pp + Vector3(0, 0.08, 0.008)), Vector3(0.24, 0.03, 0.005), 1.0)
+		mb.add_box(PSXMat.flat(Color(0.75, 0.15, 0.12)), Transform3D(Basis(), pp + Vector3(0, 0.19, 0.01)), Vector3(0.03, 0.03, 0.01), 1.0)
+	body.add_child(mb.to_instance())
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.8, 2.2, 0.3)
+	cs.shape = box
+	cs.position = Vector3(0, 1.1, 0)
+	body.add_child(cs)
+	return body
+
+
+## A hand cart with sacks in it.
+func _handcart() -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.name = "Handcart"
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks")
+	var dark := PSXMat.lit("planks_dark")
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.6, 0)), Vector3(1.2, 0.1, 1.6), 1.0)
+	for s in [-1.0, 1.0]:
+		mb.add_box(wood, Transform3D(Basis(), Vector3(s * 0.6, 0.8, 0)), Vector3(0.06, 0.35, 1.6), 1.0)
+		mb.add_cylinder(dark, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(s * 0.72, 0.42, 0.2)), 0.42, 0.42, 0.07, 10, 1.0, Color.WHITE, true, true)
+		Buildings.beam_between(mb, dark, Vector3(s * 0.45, 0.6, 0.8), Vector3(s * 0.45, 0.15, 2.0), 0.07)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 31
+	for k in range(3):
+		mb.add_blob(PSXMat.lit("canvas", Color(0.8, 0.72, 0.55)), Transform3D(Basis(), Vector3(-0.3 + k * 0.3, 0.88, -0.3 + (k % 2) * 0.5)), Vector3(0.28, 0.22, 0.32), rng, 0.2, 3, 6)
+	body.add_child(mb.to_instance())
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.4, 1.0, 1.7)
+	cs.shape = box
+	cs.position = Vector3(0, 0.5, 0)
+	body.add_child(cs)
+	return body
 
 
 func _build_training_yard() -> void:
@@ -979,14 +1279,16 @@ func _build_den() -> void:
 
 	# shacks: the captain's (biggest, set back), two crew shacks, a net shed on stilts
 	var cap_p: Vector2 = at.call(-11.0, -5.0)
+	# (no flower boxes for pirates; tarred grey shutters)
+	var rough := {"flowers": false, "trim": Color(0.36, 0.34, 0.32)}
 	_house({"w": 7.5, "d": 5.5, "h": 2.8, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch",
-		"porch": 1.8, "lean_to": "left", "name": "CaptainsShack"}, cap_p, f)
+		"porch": 1.8, "lean_to": "left", "name": "CaptainsShack"}.merged(rough), cap_p, f)
 	var shack_a: Vector2 = at.call(-6.0, 10.0)
-	_house({"w": 5.0, "d": 4.0, "h": 2.3, "roof": "shed", "wall": "planks_weathered", "roof_tex": "thatch"}, shack_a, c - shack_a)
+	_house({"w": 5.0, "d": 4.0, "h": 2.3, "roof": "shed", "wall": "planks_weathered", "roof_tex": "thatch"}.merged(rough), shack_a, c - shack_a)
 	var shack_b: Vector2 = at.call(2.0, -14.0)
-	_house({"w": 4.5, "d": 4.0, "h": 2.3, "roof": "gable", "wall": "planks", "roof_tex": "thatch", "chimney": true}, shack_b, c - shack_b)
+	_house({"w": 4.5, "d": 4.0, "h": 2.3, "roof": "gable", "wall": "planks", "roof_tex": "thatch", "chimney": true}.merged(rough), shack_b, c - shack_b)
 	var shed: Vector2 = shore + s * 13.0 - f * 2.0
-	_house({"w": 4.5, "d": 3.5, "h": 2.2, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.2}, shed, f, true)
+	_house({"w": 4.5, "d": 3.5, "h": 2.2, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.2}.merged(rough), shed, f, true)
 
 	# the lookout tower by the shore, its ladder on the landward side
 	var tower_p: Vector2 = shore - f * 7.0 - s * 9.0
@@ -1596,6 +1898,23 @@ func _spawn_npcs() -> void:
 		cfg["seated"] = true
 		var mk := "Patron%d" % (i + 1)
 		_npc(cfg, _marker_point(_tavern, mk), _marker_face(_tavern, mk), _marker_y(_tavern, mk))
+
+	# the smith at his anvil
+	_npc({
+		"name": "Haldor the Smith", "voice": 0.7,
+		"barks": [
+			"Every blade on this island's been through my fire. Twice, if the owner was careless.",
+			"Bring me something to mend and gold to mend it with. Not in that order.",
+			"Bug chitin? Takes an edge better than iron, I'll grant. Smells worse.",
+			"Hear that hammer? That's the sound of Brinehollow not being robbed.",
+		],
+		"look": {"body": "masc", "build": "broad", "height": 1.06, "skin": CharacterLook.SKIN_TONES[4],
+			"head": "square", "nose": "broad", "eyes": 1, "brows": 1, "mouth": 3, "marks": "scar",
+			"hair": "bald", "hair_color": CharacterLook.HAIR_COLORS[1], "facial_hair": "beard", "hat": "none",
+			"top": "bare", "apron": true, "apron_color": CharacterLook.LEATHER[0],
+			"legs": "trousers", "legs_color": CharacterLook.CLOTH[6], "feet": "boots", "feet_color": CharacterLook.LEATHER[0],
+			"belt": "belt", "belt_color": CharacterLook.LEATHER[1], "gloves": true, "gloves_color": CharacterLook.LEATHER[2]},
+	}, _marker_point(_smithy, "Smith"), _marker_face(_smithy, "Smith"), _marker_y(_smithy, "Smith"))
 
 	# Lighthouse keeper on the hill
 	_npc({

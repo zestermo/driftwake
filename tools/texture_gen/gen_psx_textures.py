@@ -266,6 +266,50 @@ def gen_stone_brick():
     save(to_img(rgb), "stone_brick")
 
 
+def gen_cobbles():
+    """Rounded paving stones in loose rows, dark joints (the village plaza)."""
+    rng = np.random.default_rng(912)
+    n = fbm(64, 4, 3, rng)
+    rgb = np.zeros((64, 64, 3), dtype=np.uint8)
+    rgb[:] = hexc("3a362f")
+    palette = pal("5c574e", "6a645a", "777065", "847c70", "90887b")
+    rows = 6
+    for r in range(rows):
+        y0 = r * 64 // rows
+        y1 = (r + 1) * 64 // rows
+        x = int(rng.integers(0, 8))
+        while x < 64 + 8:
+            w = int(rng.integers(8, 13))
+            shade = rng.uniform(0.0, 1.0)
+            for y in range(y0 + 1, y1):
+                for xx in range(x + 1, x + w - 1):
+                    ly = (y - y0) / (y1 - y0)
+                    lx = (xx - x) / w
+                    # round the corners
+                    if (lx < 0.14 or lx > 0.86) and (ly < 0.2 or ly > 0.8):
+                        continue
+                    v = shade * 0.55 + n[y % 64, xx % 64] * 0.35 + (1.0 - ly) * 0.1
+                    rgb[y % 64, xx % 64] = palette[min(len(palette) - 1, int(v * len(palette)))]
+            x += w
+    for _ in range(30):
+        x, y = rng.integers(0, 64, 2)
+        rgb[y, x] = hexc("4d5a3a")
+    save(to_img(rgb), "cobbles")
+
+
+def gen_sign_smithy():
+    """Smithy sign: an anvil on dark wood."""
+    W, H = 32, 16
+    img = Image.new("RGB", (W, H), hexc("3a2a1c"))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, W - 1, H - 1], outline=hexc("1e140c"))
+    d.polygon([(7, 5), (24, 5), (24, 7), (19, 9), (19, 11), (22, 12), (10, 12), (13, 11), (13, 9), (9, 7)], fill=hexc("8c9096"))
+    d.line([(7, 5), (24, 5)], fill=hexc("c8ccd2"))
+    d.point((4, 4), fill=hexc("e89a40"))
+    d.point((27, 11), fill=hexc("e89a40"))
+    save(img, "sign_smithy")
+
+
 def gen_plaster():
     rng = np.random.default_rng(1001)
     n = fbm(64, 4, 4, rng)
@@ -1483,6 +1527,9 @@ def main():
     if "techniques" in sys.argv[1:]:
         gen_technique_icons()
         return
+    if "village" in sys.argv[1:]:
+        gen_cobbles(); gen_sign_smithy()
+        return
     os.makedirs(OUT, exist_ok=True)
     print("Generating PSX textures ->", os.path.relpath(OUT, ROOT))
     gen_grass(); gen_sand(); gen_wet_sand(); gen_dirt(); gen_rock(); gen_seafloor(); gen_water()
@@ -1490,6 +1537,7 @@ def main():
     planks(3102, pal("3e2a1a", "4a3220", "563a26", "62442c", "6e4d32"), "planks_dark")
     planks(3103, pal("7a7466", "878070", "948c7c", "a19888", "aea494"), "planks_weathered", plank_h=8, gap="3a3630")
     gen_bark(); gen_palm_bark(); gen_thatch(); gen_stone_brick(); gen_plaster(); gen_roof_tiles()
+    gen_cobbles(); gen_sign_smithy()
     gen_cloth(1210, hexc("b03a2e"), hexc("e8e0cc"), "cloth_red")
     gen_cloth(1211, hexc("2e5a8a"), hexc("e8e0cc"), "cloth_blue")
     gen_cloth(1212, hexc("d8d0b8"), hexc("d8d0b8"), "canvas", stripes=False)

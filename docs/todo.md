@@ -91,7 +91,7 @@ distance culling/LOD anywhere).
 
 - Rework how healing and consumable items work (design to be decided).
 
-## Lighting
+## Lighting (Brinehollow's village done 2026-10-08: NightLight, 9 lights; left: ships, the den, other islands)
 
 - Real lights on the things that glow today: ship lanterns, town and window lights, torches
   and the like (they're emissive only now). Do it after the performance pass and budget it:

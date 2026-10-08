@@ -92,7 +92,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `iktest`: (no description)
 - `invshot`: Inventory overlay screenshots. Args: <out_prefix>
 - `invshot_real`: Inventory overlay screenshots. Args: <out_prefix>
-- `islandshot`: Shots of the starter island from given local (island-space) camera positions. Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz" (a y of "~3" is 3 m above the ground there)
+- `islandshot`: Shots of the starter island from given local (island-space) camera positions. Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz" (a y of "~3" is 3 m above the ground there). Env ISHOT_HOUR=21 renders at that hour.
 - `jumpshot`: Running jump, side view: lean frames. Args: <out_prefix>
 - `kneelshot`: The kneel pose and a crew marker on the HUD. Args: <out_prefix>
 - `lineup`: Renders a lineup of character looks. Args: <out.png> <mode: full|heads|back> [seed]

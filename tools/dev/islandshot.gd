@@ -1,6 +1,7 @@
 extends SceneTree
 ## Shots of the starter island from given local (island-space) camera positions.
-## Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz"
+## Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz" (y "~3": 3 m above the
+## ground there). Env ISHOT_HOUR=21: at that hour of the day.
 var t := 0.0
 var shots: Array = []
 var idx := 0
@@ -26,6 +27,13 @@ func _process(d: float) -> bool:
 		if hud: hud.visible = false
 		cam = Camera3D.new(); cam.fov = 60; cam.far = 2000
 		root.add_child(cam); cam.current = true
+		# ISHOT_HOUR=21 renders at that hour
+		if OS.get_environment("ISHOT_HOUR") != "":
+			var wx = root.get_node("Weather")
+			var k: Dictionary = (wx.get_script() as GDScript).get_script_constant_map()
+			var want := float(OS.get_environment("ISHOT_HOUR"))
+			wx.set_world_time(fposmod(want - float(k["START_HOUR"]), 24.0) / 24.0 * float(k["DAY_LEN"]))
+			settle = -120  # (lamps check the hour once a second)
 		_aim()
 		return false
 	settle += 1
