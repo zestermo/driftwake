@@ -43,7 +43,7 @@ func _process(d: float) -> bool:
 		ship = get_first_node_in_group("ship")
 		es = get_nodes_in_group("enemy_ships")[0]
 		fort = root.find_children("*", "RedtideFort", true, false)[0]
-		boss = get_first_node_in_group("bosses")
+		boss = fort.boss
 		hud = get_first_node_in_group("hud")
 		cam = Camera3D.new()
 		cam.fov = 55

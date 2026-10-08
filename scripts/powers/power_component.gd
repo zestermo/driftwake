@@ -375,6 +375,13 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 		_ryuo(target as Node3D)
 	if fruit == "ember" and player.progression.has_flag("kindled_blade") and target is Node3D and not suppressed():
 		BurnStatus.apply(target as Node3D, 1.6, 5.0, player)
+	if player.is_local and player.armed and target is Node3D:
+		var venom := 0.0
+		for w in [player.equipped_weapon, player.offhand_weapon]:
+			if w:
+				venom = maxf(venom, (w as ItemData).poison)
+		if venom > 0.0:
+			PoisonStatus.apply(target as Node3D, 4.0, venom, player)
 
 
 func to_dict() -> Dictionary:

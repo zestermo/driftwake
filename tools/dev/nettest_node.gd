@@ -166,7 +166,8 @@ func _run(name_: String, args: Array, from: int):
 				ships[n.key_of(s)] = s.global_position
 			var bosses := {}
 			for b in get_tree().get_nodes_in_group("bosses"):
-				bosses[n.key_of(b)] = b.global_position
+				if str(b.name).begins_with("Morrow"):
+					bosses[n.key_of(b)] = b.global_position
 			return {"pings": n.pings.duplicate(), "markers": hud.markers.markers.keys() if hud and hud.markers else [],
 				"seats": n.seats.duplicate(), "balls": balls, "hull": n._ship().hull, "ships": ships, "bosses": bosses,
 				"weather": [get_node("/root/Weather").world_time(), get_node("/root/Weather").current_state(), get_node("/root/Weather").forced]}
@@ -196,8 +197,9 @@ func _run(name_: String, args: Array, from: int):
 			n.set_ship_kit(k)
 			return true
 		"boss_aoe":
-			var b = get_tree().get_first_node_in_group("bosses")
-			b._aoe(args[0], 3.0, 10.0, false)
+			for b in get_tree().get_nodes_in_group("bosses"):
+				if str(b.name).begins_with("Morrow"):
+					b._aoe(args[0], 3.0, 10.0, false)
 			return true
 		"seat_try":
 			return n.request_seat(n.node_of(str(args[0])))

@@ -13,8 +13,9 @@ extends CharacterBody3D
 
 signal died(bug: Scuttlebug)
 
-## (HIDE..FALL: the canopy spitter's tree states, CanopySpitter)
-enum S { WANDER, NOTICE, APPROACH, REAR, RAM, RECOVER, DAZED, HITSTUN, DOWN, DEAD, HIDE, DROP, DANGLE, CLIMB, FALL }
+## (HIDE..FALL: the canopy spitter's tree states, CanopySpitter; SPECIAL: the
+## brood queen's attacks, BroodQueen)
+enum S { WANDER, NOTICE, APPROACH, REAR, RAM, RECOVER, DAZED, HITSTUN, DOWN, DEAD, HIDE, DROP, DANGLE, CLIMB, FALL, SPECIAL }
 
 const GRAVITY := 20.0
 const NOTICE_RANGE := 8.5

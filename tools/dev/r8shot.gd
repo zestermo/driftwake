@@ -49,7 +49,7 @@ func _process(d: float) -> bool:
 		2:
 			if e < 0.6: return false
 			shot("arena")
-			boss = root.get_tree().get_first_node_in_group("bosses")
+			boss = root.find_children("*", "RedtideFort", true, false)[0].boss
 			cam.global_position = boss.global_position + boss.facing.global_basis * Vector3(1.2, 2.0, -3.6)
 			cam.look_at(boss.global_position + Vector3(0, 1.6, 0), Vector3.UP)
 			phase = 3; t0 = t

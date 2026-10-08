@@ -28,6 +28,8 @@ const RARITY_VALUE := [1.0, 1.6, 2.6, 4.0, 7.0, 12.0, 20.0]
 ## Which look of it (WeaponDesigns.DESIGNS; "" the plain one).
 @export var design: String = ""
 @export var damage_mult: float = 1.0
+## Venom on the blade: each hit poisons for 4 s at this much damage a second.
+@export var poison: float = 0.0
 
 @export_group("Gear")
 ## Equipment slot kind: head, torso, vest, coat, hands, legs, feet, belt, accessory.

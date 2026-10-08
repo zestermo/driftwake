@@ -96,7 +96,7 @@ func build(world_seed: int) -> Dictionary:
 	_build_scuttlebugs()
 	_build_smugglers_camp()
 	_build_den()
-	reserve(CAVE, 32.0)
+	_build_cave()
 	_scatter_vegetation()
 	_build_spitters()
 	_spawn_npcs()
@@ -1068,6 +1068,17 @@ func _build_den() -> void:
 	var cap_post: Vector2 = cap_p + f * 5.0 - s * 1.0
 	den.add_grunt({"post": v3.call(cap_post), "yaw": g_yaw.call(cap_post, cap_post + f), "mode": "stand", "seed": 97,
 		"look": lk, "captain": true, "title": "Captain Grell"})
+
+
+## The brood queen's cave on its clearing in the deep forest (BroodCave).
+var cave: BroodCave
+
+func _build_cave() -> void:
+	reserve(CAVE, 32.0)
+	cave = BroodCave.new()
+	cave.name = "BroodCave"
+	cave.position = Vector3(CAVE.x, hv(CAVE), CAVE.y)
+	add_child(cave)
 
 
 ## A strongbox (a LootBag with the treasure-chest model). `items`: [id or ItemData, count].

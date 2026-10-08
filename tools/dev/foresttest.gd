@@ -2,7 +2,9 @@ extends SceneTree
 ## Brinehollow's west: the island reaches the deep forest and the north-west beach;
 ## the pirate den (crew, Captain Grell's overhead name and bar, strongbox, sloop);
 ## canopy spitters (hidden in a crown, drop on a thread when you walk under,
-## spit venom that poisons, fall when hit and fight on the ground, climb back up).
+## spit venom that poisons, fall when hit and fight on the ground, climb back up);
+## the brood cave (the queen wakes, boss bar, no throws but a stagger, brood,
+## slam, venom fan, reset, death, hoard) and the Queen's Fang poisoning.
 var t := 0.0
 var wait := 0.0
 var step := 0
@@ -12,7 +14,14 @@ var isl
 var bug
 var hp0 := 0.0
 var seen := {}
+var cave
+var q
 # Scuttlebug.S (not named here: the class touches autoloads)
+const WANDER := 0
+const NOTICE := 1
+const DAZED := 6
+const DOWN := 8
+const DEAD := 9
 const HIDE := 10
 const DROP := 11
 const DANGLE := 12
@@ -30,7 +39,12 @@ func check(name: String, cond: bool) -> void:
 		fails += 1
 
 
+func hud():
+	return root.get_tree().get_first_node_in_group("hud")
+
+
 func _put(at: Vector3) -> void:
+	p.health_component.heal(9999.0)
 	p.global_position = at
 	p.velocity = Vector3.ZERO
 	p.reset_physics_interpolation()
@@ -121,6 +135,78 @@ func _process(d: float) -> bool:
 		5:
 			check("lost you: climbed back up its thread", seen.has(CLIMB) and bug.state == HIDE)
 			check("back in its crown", bug.global_position.distance_to(bug.anchor) < 0.1)
+			# --- the brood cave
+			cave = isl.get_node("BroodCave")
+			q = cave.queen
+			check("the queen sleeps on her nest", q.state == WANDER and cave.inside(q.global_position))
+			check("she's big", q.size_k >= 4.0)
+			_put(cave.to_global(Vector3(15.0, 0.6, 0.0)))
+			hp0 = p.health_component.current_health
+			bug = q
+			seen.clear()
+			wait = 2.0
+		6:
+			check("walk in: she wakes", seen.has(NOTICE) and q.in_combat())
+			check("her name and health across the top", hud()._boss_box.visible and hud()._boss_name.text == "The Brood Queen")
+			_put(cave.to_global(Vector3(-14.0, 0.6, 9.0)))
+			var hit := HitData.new()
+			hit.damage = 40.0
+			hit.knockback_force = 9.0
+			hit.knockdown = true
+			q.hurtbox.take_hit(hit, p)
+			check("a heavy blow doesn't throw her", q.state != DOWN and q._rag == null)
+			for k in range(3):
+				q.hurtbox.take_hit(hit, p)
+			check("enough of them stagger her", q.state == DAZED)
+			wait = 2.6
+		7:
+			q._begin("brood")
+			wait = 1.2
+		8:
+			check("she shrieks and the brood hatches", cave.brood_alive() == 3)
+			_put(q.global_position - q.model.global_basis.z * 3.0 + Vector3.UP * 0.3)
+			hp0 = p.health_component.current_health
+			q._begin("slam")
+			wait = 1.3
+		9:
+			check("the slam lands on whoever stands in its ring", p.health_component.current_health < hp0)
+			wait = 3.0
+		10:
+			_put(q.global_position + Vector3(0.0, 0.3, 10.0))
+			hp0 = p.health_component.current_health
+			q._begin("volley")
+			wait = 2.6
+		11:
+			check("her venom fan hits from range", p.health_component.current_health < hp0)
+			_put(cave.to_global(Vector3(60.0, 2.0, 0.0)))
+			wait = 8.0
+		12:
+			check("everyone left: she settles back on her eggs, healed", q.state == WANDER and q.health_frac() > 0.99)
+			check("the boss bar goes away", not hud()._boss_box.visible)
+			_put(cave.to_global(Vector3(12.0, 0.6, 0.0)))
+			wait = 1.0
+		13:
+			var hit := HitData.new()
+			hit.damage = 5000.0
+			q.hurtbox.take_hit(hit, p)
+			check("she dies", q.state == DEAD)
+			wait = 0.5
+		14:
+			var hoard = cave.get_node_or_null("Hoard")
+			check("her hoard on the nest", hoard != null)
+			var fang = null
+			if hoard:
+				for st in hoard.contents:
+					if st.item.id.begins_with("queens_fang"):
+						fang = st.item
+			check("with the Queen's Fang (epic, venomous)", fang != null and int(fang.rarity) == 3 and fang.poison > 0.0)
+			# the Fang poisons what it cuts
+			p.equip_weapon(fang)
+			var victim = isl.get_node("ScuttlebugNest").spots[1]["bug"]
+			var hit := HitData.new()
+			hit.damage = 1.0
+			p.power.on_sword_hit(victim, hit)
+			check("a cut with the Fang poisons", victim.get_node_or_null("Poison") != null)
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 			return true

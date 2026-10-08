@@ -18,6 +18,7 @@ Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fail
 - `invtest`: Gear / paper doll / character sheet / abilities.
 - `ragtest`: Player ragdoll: knockdown -> get up, death -> stays down -> respawn.
 - `bugtest`: Scuttlebugs: spawned in the jungle, notice -> rear -> ram, hitstun, knockdown, death + gold.
+- `foresttest`: Brinehollow's west: the bigger island, the pirate den (crew, Captain Grell's overhead name and bar, strongbox, sloop), canopy spitters (drop, spit poison, fall, climb back), the brood cave (the queen wakes, boss bar, stagger, brood, slam, venom fan, reset, death, hoard) and the Queen's Fang.
 - `shiptest`: Ship: gentle swell, helm (visible captain), sails set in steps that stay set (furled canvas rolls down), turning, riding the deck, keeps sailing with nobody at the wheel, shore collision.
 - `swimtest`: Swimming: fall in, float, swim, stamina, dive, exhaustion, ladder, ledge, wade out.
 - `grunttest`: Pirate grunts: camp, alert, attack turns, guard/guard break, hitstun, parry stagger, knockdown, death, return home.
@@ -91,7 +92,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `iktest`: (no description)
 - `invshot`: Inventory overlay screenshots. Args: <out_prefix>
 - `invshot_real`: Inventory overlay screenshots. Args: <out_prefix>
-- `islandshot`: Shots of the starter island from given local (island-space) camera positions. Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz"
+- `islandshot`: Shots of the starter island from given local (island-space) camera positions. Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz" (a y of "~3" is 3 m above the ground there)
 - `jumpshot`: Running jump, side view: lean frames. Args: <out_prefix>
 - `kneelshot`: The kneel pose and a crew marker on the HUD. Args: <out_prefix>
 - `lineup`: Renders a lineup of character looks. Args: <out.png> <mode: full|heads|back> [seed]

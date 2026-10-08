@@ -19,9 +19,30 @@ func add_spitter(anchor: Vector3, ground: Vector3) -> void:
 	spots.append({"pos": ground, "anchor": anchor, "big": false, "bug": null, "timer": 0.0, "gen": 0})
 
 
+## Nobody home until call_out() (the brood queen's egg sacs).
+var start_empty := false
+
+
 func _ready() -> void:
 	add_to_group("net_spawner")
-	_spawn_all.call_deferred()
+	if not start_empty:
+		_spawn_all.call_deferred()
+
+
+## Host: every empty spot hatches now.
+func call_out() -> void:
+	if Net.is_client():
+		return
+	var any := false
+	for s in spots:
+		var bug = s["bug"]
+		if bug != null and is_instance_valid(bug) and (bug as Scuttlebug).state != Scuttlebug.S.DEAD:
+			continue
+		s["gen"] = int(s["gen"]) + 1
+		_spawn(s)
+		any = true
+	if any:
+		Net.spawned(self, net_gen())
 
 
 func _spawn_all() -> void:

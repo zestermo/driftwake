@@ -36,6 +36,11 @@ const DESIGNS := {
 		"dao": {"id": "dao", "name": "Dao", "desc": "A broad single-edged sabre from far-off waters, a red tassel at the ring.",
 			"dmg": 1.05, "worth": 1.6, "len": 0.46, "tip": 0.24, "w": 0.07, "taper": 1.3, "curve": 0.3, "guard": "disc",
 			"fit": Color(1.0, 0.78, 0.4), "grip": Color(0.14, 0.12, 0.12), "grip_tex": "fabric", "pommel": "ring", "tassel": Color(0.8, 0.12, 0.1)},
+		# (unique: only the brood queen's hoard has it)
+		"chitin": {"id": "queens_fang", "name": "Queen's Fang", "desc": "A blade of the brood queen's own chitin, its edge still weeping venom. Every cut poisons.",
+			"dmg": 1.15, "worth": 3.0, "len": 0.5, "tip": 0.34, "w": 0.08, "taper": 1.25, "curve": 0.45, "guard": "cross", "guard_size": 0.17,
+			"blade": Color(0.45, 0.32, 0.55), "venom": Color(0.5, 1.0, 0.25), "fit": Color(0.3, 0.2, 0.35), "grip": Color(0.2, 0.32, 0.18),
+			"grip_tex": "leather", "pommel": "ball", "unique": true, "poison": 5.0},
 	},
 	"katana": {
 		"uchigatana": {"id": "uchigatana", "name": "Uchigatana", "desc": "A fighting katana in red cord, a square guard edged in brass.",
@@ -88,8 +93,10 @@ const TIER_BLADE := [Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE, Color.W
 static var _icons: Dictionary = {}
 
 
+## The designs anyone might carry, find or buy (unique ones left out).
 static func designs_of(kind: String) -> Array:
-	return (DESIGNS.get(kind, {}) as Dictionary).keys()
+	var d: Dictionary = DESIGNS.get(kind, {})
+	return d.keys().filter(func(k): return not bool((d[k] as Dictionary).get("unique", false)))
 
 
 ## A design of `kind` picked at random (the base included: key "").
@@ -148,7 +155,7 @@ static func make_items(items: Dictionary) -> void:
 	for kind in DESIGNS.keys():
 		var base: ItemData = items[BASE_ITEM[kind]]
 		base.icon = icon(base.model())
-		for d in designs_of(kind):
+		for d in (DESIGNS[kind] as Dictionary).keys():
 			var spec: Dictionary = DESIGNS[kind][d]
 			var it := base.duplicate() as ItemData
 			it.id = str(spec["id"])
@@ -157,6 +164,7 @@ static func make_items(items: Dictionary) -> void:
 			it.design = d
 			it.damage_mult = base.damage_mult * float(spec["dmg"])
 			it.value = maxi(int(round(base.value * float(spec["worth"]))), 1)
+			it.poison = float(spec.get("poison", 0.0))
 			it.icon = icon(it.model())
 			items[it.id] = it
 
@@ -179,6 +187,8 @@ static func _mats(p: Dictionary, tier: int, fit_def: Color, grip_def: Color, gri
 	var edge: Material
 	if tier >= 5:
 		edge = PSXMat.glow(TIER_GEM[tier], 2.5)
+	elif p.has("venom"):
+		edge = PSXMat.glow(p["venom"], 1.8)
 	else:
 		edge = PSXMat.lit("metal", blade_tint.lightened(0.35) * 1.15)
 	return {

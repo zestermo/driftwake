@@ -63,7 +63,7 @@ func _process(d: float) -> bool:
 			ship = get_first_node_in_group("ship")
 			fort = root.find_children("*", "RedtideFort", true, false)[0]
 			es = get_nodes_in_group("enemy_ships")[0]
-			boss = get_first_node_in_group("bosses")
+			boss = fort.boss
 			check("Redtide Rock is out at sea, north of Brinehollow", fort.global_position.distance_to(Vector3(150, 0, 150)) > 330.0)
 			check("a pirate ship patrols", es != null and es.state == 0)
 			check("Captain Morrow waits in his fort", boss != null and boss.health.max_health >= 900.0 and boss.state == 0)
