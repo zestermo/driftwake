@@ -425,7 +425,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	dir = dir.normalized() if dir.length() > 0.01 else player_model.global_basis.z
 	# an unblockable attack (the enemy flashed red) gets through parries and blocks;
 	# a shot only if the blade's tree taught you to cut shots (parryshot_ nodes)
-	if is_parrying and not hit.unblockable and (not hit.ranged or parries_shots()):
+	if is_parrying and not hit.unblockable and not hit.dot and (not hit.ranged or parries_shots()):
 		if hit.ranged:
 			_cut_shot(hit, dir, attacker)
 		if attacker and attacker.has_method("parried"):
@@ -489,7 +489,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	get_node("/root/CombatManager").apply_hit_effects(hit, [self, attacker])
 	if health_component.current_health <= 0.0:
 		return  # _on_died ragdolls the body
-	if context == Context.HELM or current_state_name() in ["Talk", "Helm"]:
+	if hit.dot or context == Context.HELM or current_state_name() in ["Talk", "Helm"]:
 		return
 	if power.buff("tekkai") or power.buff("berserk"):
 		return  # Tekkai / Berserk: nothing moves you

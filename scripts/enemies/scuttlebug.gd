@@ -13,7 +13,8 @@ extends CharacterBody3D
 
 signal died(bug: Scuttlebug)
 
-enum S { WANDER, NOTICE, APPROACH, REAR, RAM, RECOVER, DAZED, HITSTUN, DOWN, DEAD }
+## (HIDE..FALL: the canopy spitter's tree states, CanopySpitter)
+enum S { WANDER, NOTICE, APPROACH, REAR, RAM, RECOVER, DAZED, HITSTUN, DOWN, DEAD, HIDE, DROP, DANGLE, CLIMB, FALL }
 
 const GRAVITY := 20.0
 const NOTICE_RANGE := 8.5
@@ -133,12 +134,20 @@ func _mat(c: Color, glow: bool = false) -> ShaderMaterial:
 	return m
 
 
+## Shell, spots, thorax plate, legs, eyes.
+func _colors() -> Array:
+	if big:
+		return [Color(0.55, 0.19, 0.1), Color(0.1, 0.07, 0.05), Color(0.36, 0.12, 0.07), Color(0.15, 0.1, 0.08), Color(1.0, 0.25, 0.12)]
+	return [Color(0.16, 0.44, 0.41), Color(0.96, 0.78, 0.3), Color(0.11, 0.31, 0.29), Color(0.15, 0.1, 0.08), Color(1.0, 0.62, 0.16)]
+
+
 func _build_model() -> void:
-	var shell_c := Color(0.55, 0.19, 0.1) if big else Color(0.16, 0.44, 0.41)
-	var spot_c := Color(0.1, 0.07, 0.05) if big else Color(0.96, 0.78, 0.3)
-	var plate_c := Color(0.36, 0.12, 0.07) if big else Color(0.11, 0.31, 0.29)
-	var dark_c := Color(0.15, 0.1, 0.08)
-	var eye_c := Color(1.0, 0.25, 0.12) if big else Color(1.0, 0.62, 0.16)
+	var cols := _colors()
+	var shell_c: Color = cols[0]
+	var spot_c: Color = cols[1]
+	var plate_c: Color = cols[2]
+	var dark_c: Color = cols[3]
+	var eye_c: Color = cols[4]
 	var m_shell := _mat(shell_c)
 	var m_spot := _mat(spot_c)
 	var m_plate := _mat(plate_c)
@@ -964,3 +973,5 @@ func net_event(what: String, args: Array) -> void:
 			_net_die(args[0])
 		"burn_fx":
 			BurnStatus.apply(self, float(args[0]), 0.0, null)
+		"poison_fx":
+			PoisonStatus.apply(self, float(args[0]), 0.0, null)

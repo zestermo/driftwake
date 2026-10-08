@@ -150,7 +150,7 @@ func _generate_world() -> void:
 		var baker := _nav_baker.new()
 		baker.name = "NavBaker"
 		baker.gen = self
-		baker.add_zone(starter_island, StarterIsland.HALF, false)
+		baker.add_zone(starter_island, StarterIsland.LAND_R, false)
 		baker.add_zone(redtide, 70.0, false)
 		for z in nav_islands:
 			baker.add_zone(z[0], z[1], true)
@@ -218,7 +218,7 @@ func _generate_heightmap(centers: Array[Dictionary], _rng: RandomNumberGenerator
 				if c.get("starter", false):
 					# Hand-built island sits here: keep the seafloor below its chunk
 					var sp: Vector2 = c["pos"]
-					if absf(wx - sp.x) < 215.0 and absf(wz - sp.y) < 215.0:
+					if absf(wx - sp.x) < StarterIsland.HALF + 5.0 and absf(wz - sp.y) < StarterIsland.HALF + 5.0:
 						h = minf(h, seafloor_depth - 3.0)
 					continue
 				var cp: Vector2 = c["pos"]
@@ -442,7 +442,10 @@ func _build_redtide() -> void:
 	redtide.rotation.y = atan2(to_home.x, to_home.y)
 	add_child(redtide)
 	EnemyShip.safe_center = Vector3(starter_center.x, 0.0, starter_center.y)
-	EnemyShip.no_go = [[starter_center, StarterIsland.HALF + 5.0], [spot, 45.0]]
+	EnemyShip.no_go = []
+	for z in StarterIsland.NO_GO:
+		EnemyShip.no_go.append([starter_center + (z[0] as Vector2), z[1]])
+	EnemyShip.no_go.append([spot, 45.0])
 	for info in island_infos:
 		EnemyShip.no_go.append([info["pos"], float(info["radius"]) + 30.0])
 	fleet = EnemyFleet.new()

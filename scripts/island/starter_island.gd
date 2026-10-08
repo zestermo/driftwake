@@ -3,8 +3,9 @@ extends Island
 ## Brinehollow — the hand-designed starter island.
 ##
 ## Everything is generated from code so it is easy to tweak:
-##   * terrain: a 420 m chunk at 3 m resolution with a designed height function
-##     (village plateau, lighthouse hill, jungle highlands, a sheltered cove)
+##   * terrain: a 630 m chunk at 3 m resolution with a designed height function
+##     (village plateau, lighthouse hill, jungle highlands, a sheltered cove,
+##     the deep forest to the west, a broad beach to the north-west)
 ##   * per-vertex splat painting for dirt paths / sand / grass
 ##   * buildings, props, vegetation (MultiMesh), NPCs, loot and ambience
 ##
@@ -12,11 +13,18 @@ extends Island
 ##   Village square  (0, -62)      Training yard (-58, -38)
 ##   Lighthouse hill (78, -30)     Jungle ruins  (-62, 58)
 ##   Castaway cove   (78, 92)      Dock: north shore, straight out from the village
+##   Deep forest   (-125, 70)      Bug queen's cave (-150, 45)
+##   Pirate den   (-112, -112) on the north-west beach
 
-const EXTENT := 420.0
+const EXTENT := 630.0
 const CELL := 3.0
-const RES := 140
+const RES := 210
 const HALF := EXTENT * 0.5
+## Ships keep out of these circles ([centre, radius], island space): the old
+## island, the western lobes and the two long points.
+const NO_GO := [[Vector2(0, 0), 225.0], [Vector2(-100, 5), 225.0], [Vector2(-120, 220), 75.0], [Vector2(-100, -215), 70.0]]
+## The land fits inside this far from the centre (navmesh bake).
+const LAND_R := 305.0
 const WATER := 0.0
 const SEAFLOOR := -26.0
 
@@ -30,6 +38,9 @@ const JUNGLE_HIGH := Vector2(-48, 40)
 const JUNGLE_STASH := Vector2(-92, 14)
 ## Smugglers' camp on the low shore south-west of the cove.
 const SMUGGLERS := Vector2(46, 110)
+const FOREST := Vector2(-125, 70)
+const CAVE := Vector2(-150, 45)
+const DEN := Vector2(-112, -112)
 
 const DOCK_LENGTH := 34.0
 const DOCK_DECK_Y := 1.7
@@ -47,6 +58,8 @@ var player_spawn_local := Vector3.ZERO
 var _coast_noise := FastNoiseLite.new()
 var _roll_noise := FastNoiseLite.new()
 var _detail_noise := FastNoiseLite.new()
+## Bays and headlands: shifts the coast in and out across the map.
+var _shape_noise := FastNoiseLite.new()
 var _flat_zones: Array = []  # [Vector2 center, float target, float r_in, float r_out]
 var _rng := RandomNumberGenerator.new()
 var _tree_colliders: StaticBody3D
@@ -82,7 +95,10 @@ func build(world_seed: int) -> Dictionary:
 	_build_beach_camp()
 	_build_scuttlebugs()
 	_build_smugglers_camp()
+	_build_den()
+	reserve(CAVE, 32.0)
 	_scatter_vegetation()
+	_build_spitters()
 	_spawn_npcs()
 	_spawn_loot()
 	_add_arrival_zone()
@@ -110,6 +126,10 @@ func _setup_noise(world_seed: int) -> void:
 	_roll_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	_roll_noise.frequency = 0.018
 	_roll_noise.fractal_octaves = 3
+	_shape_noise.seed = world_seed + 53
+	_shape_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	_shape_noise.frequency = 0.0065
+	_shape_noise.fractal_octaves = 3
 	_detail_noise.seed = world_seed + 37
 	_detail_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	_detail_noise.frequency = 0.09
@@ -125,23 +145,68 @@ static func _smooth(e0: float, e1: float, x: float) -> float:
 	return t * t * (3.0 - 2.0 * t)
 
 
+## Extra coast by bearing: x = the forest lobe (west/south-west), y = the beach
+## lobe (north-west). The old coast (dock, cliffs, cove) gets none.
+static func _coast_extra(ang: float) -> Vector2:
+	var forest := 1.0 - _smooth(30.0, 70.0, _bearing_off(ang, 160.0))
+	var beach := 1.0 - _smooth(18.0, 42.0, _bearing_off(ang, -138.0))
+	return Vector2(85.0 * forest, 62.0 * beach)
+
+
+## How freely the coast wanders by bearing: held still by the dock and along
+## the cove and the smugglers' shore.
+static func _wild(ang: float) -> float:
+	return _smooth(10.0, 30.0, _bearing_off(ang, -90.0)) * _smooth(12.0, 32.0, _bearing_off(ang, 57.0))
+
+
+## Degrees between bearing `ang` (radians) and `deg`.
+static func _bearing_off(ang: float, deg: float) -> float:
+	return absf(rad_to_deg(angle_difference(ang, deg_to_rad(deg))))
+
+
+## Points and bays by bearing (metres added to the coast): the forest point to
+## the south-west, a spit sheltering the den's beach, a rocky spit past the
+## lighthouse, bays biting into the west and south coasts.
+static func _capes(ang: float) -> float:
+	return 70.0 * (1.0 - _smooth(2.0, 15.0, _bearing_off(ang, 118.0))) \
+		+ 42.0 * (1.0 - _smooth(2.0, 11.0, _bearing_off(ang, -114.0))) \
+		+ 34.0 * (1.0 - _smooth(2.0, 10.0, _bearing_off(ang, -52.0))) \
+		- 48.0 * (1.0 - _smooth(4.0, 16.0, _bearing_off(ang, 190.0))) \
+		- 34.0 * (1.0 - _smooth(4.0, 15.0, _bearing_off(ang, 96.0)))
+
+
+## Land kept round these places whatever the bays do: [centre, radius].
+const LAND_KEEP := [[VILLAGE, 52.0], [TRAINING, 30.0], [HILL, 22.0], [RUINS, 30.0], [JUNGLE_STASH, 16.0],
+	[CAVE, 52.0], [DEN, 26.0], [FOREST, 40.0]]
+
+
+## How much of the broad north-west beach `p` is on (0..1).
+func _beach_lobe(p: Vector2) -> float:
+	return _coast_extra(atan2(p.y, p.x)).y / 62.0
+
+
 ## Natural terrain before flattening.
 func _height_natural(x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	var d := p.length()
 	var ang := atan2(z, x)
-	var r := 126.0 + _coast_noise.get_noise_2d(cos(ang) * 50.0, sin(ang) * 50.0) * 16.0
-	var t := d - r
+	var ext := _coast_extra(ang)
+	var r := 126.0 + _coast_noise.get_noise_2d(cos(ang) * 50.0, sin(ang) * 50.0) * 16.0 + maxf(ext.x, ext.y) + _capes(ang)
+	var t := d - r + _shape_noise.get_noise_2d(x, z) * 34.0 * _wild(ang)
+	for k in LAND_KEEP:
+		t = minf(t, p.distance_to(k[0]) - float(k[1]))
+	var bw := ext.y / 62.0
 	var h: float
 	if t < 0.0:
-		h = lerpf(0.5, 4.3, pow(clampf(-t / 44.0, 0.0, 1.0), 0.85))
+		h = lerpf(0.5, 4.3, pow(clampf(-t / (44.0 + 46.0 * bw), 0.0, 1.0), 0.85))
 	else:
 		h = lerpf(0.5, SEAFLOOR, _smooth(0.0, 60.0, t))
 	var inland := clampf(-t / 35.0 - 0.15, 0.0, 1.0)
-	h += _roll_noise.get_noise_2d(x, z) * 2.6 * inland
+	h += _roll_noise.get_noise_2d(x, z) * 2.6 * inland * (1.0 - 0.6 * bw)
 	h += _detail_noise.get_noise_2d(x, z) * 0.45 * inland
-	# jungle highlands to the south-west
+	# jungle highlands to the south-west, rolling forest hills past them
 	h += 5.5 * _gauss(p, JUNGLE_HIGH, 38.0) * inland
+	h += 4.0 * _gauss(p, FOREST, 42.0) * inland
 	# lighthouse hill (falls into the sea as a cliff on the east side)
 	h += 19.0 * _gauss(p, HILL, 23.0)
 	return h
@@ -172,6 +237,8 @@ func _setup_flat_zones() -> void:
 		[HILL, _height_natural(HILL.x, HILL.y), 11.0, 17.0],
 		[RUINS, _height_natural(RUINS.x, RUINS.y), 10.0, 18.0],
 		[SMUGGLERS, maxf(_height_natural(SMUGGLERS.x, SMUGGLERS.y), 1.5), 11.0, 18.0],
+		[CAVE, _height_natural(CAVE.x, CAVE.y), 30.0, 44.0],
+		[DEN, 1.8, 24.0, 38.0],
 	]
 
 
@@ -283,6 +350,9 @@ func _define_paths() -> void:
 	_add_path([VILLAGE + Vector2(-3, 14), Vector2(-10, -24), Vector2(-20, 2), Vector2(-34, 28), Vector2(-48, 46), RUINS + Vector2(6, -5)], 1.3)
 	_add_path([VILLAGE + Vector2(4, 14), Vector2(16, -18), Vector2(32, 16), Vector2(46, 44), CAMP + Vector2(-2, -4)], 1.3)
 	_add_path([VILLAGE + Vector2(0, 12), VILLAGE + Vector2(0, 16)], 1.6)
+	# into the deep forest to the cave, and off the training path to the den
+	_add_path([RUINS + Vector2(-9, 5), Vector2(-84, 64), Vector2(-104, 56), Vector2(-118, 47), CAVE + Vector2(29, 0)], 1.2)
+	_add_path([Vector2(-44, -41), Vector2(-52, -56), Vector2(-72, -74), Vector2(-90, -92), DEN + Vector2(11, 11)], 1.3)
 
 
 func _path_dist(p: Vector2) -> float:
@@ -346,6 +416,7 @@ func _build_terrain() -> void:
 				dirt = maxf(dirt, _disk(p, TRAINING, 10.0, 13.0))
 				dirt = maxf(dirt, _disk(p, RUINS, 8.0, 11.0))
 				dirt = maxf(dirt, _disk(p, HILL, 5.0, 8.0))
+				dirt = maxf(dirt, _disk(p, CAVE, 20.0, 25.0))
 				dirt = maxf(dirt, _disk(p, dock_root, 3.0, 6.0) * 0.6)
 				sand = 1.0 - _smooth(1.7, 2.8, h)
 				sand = maxf(sand, _disk(p, CAMP, 4.0, 9.0))
@@ -844,6 +915,248 @@ func _build_smugglers_camp() -> void:
 
 
 # ==========================================================================
+# The pirate den: a hostile crew's harbour on the north-west beach. A pier
+# with their sloop tied up, shacks, a lookout tower, the captain and his
+# strongbox. The crew comes back a while after it's beaten (GruntCamp).
+# ==========================================================================
+var den: GruntCamp
+const DEN_PIER := 26.0
+
+func _build_den() -> void:
+	var c := DEN
+	# the pier runs out the shortest way to the sea
+	var f := Vector2(-1, -1).normalized()
+	var best := INF
+	for k in range(32):
+		var dir := Vector2(cos(k * TAU / 32.0), sin(k * TAU / 32.0))
+		for d in range(10, 120, 2):
+			if hv(c + dir * d) < 0.0:
+				if d < best:
+					best = d
+					f = dir
+				break
+	var s := Vector2(-f.y, f.x)
+	var shore := c
+	for i in range(160):
+		shore += f
+		if _height_fn(shore.x, shore.y) < 0.8:
+			break
+	var root := shore - f * 4.0
+	var at := func(fw: float, sd: float) -> Vector2: return c + f * fw + s * sd
+	var pier_pt := func(d: float) -> Vector2: return root + f * d
+	reserve(c, 20.0)
+
+	var pier := Props.dock(DEN_PIER, 3.2, DOCK_DECK_Y, SEAFLOOR * 0.5)
+	pier.position = _v3(root)
+	pier.rotation.y = face_yaw(f)
+	add_child(pier)
+	var lad := Ladder.new()
+	lad.length = DOCK_DECK_Y + 1.0
+	lad.deck_depth = 0.9
+	lad.position = Vector3(0, DOCK_DECK_Y, DEN_PIER)
+	pier.add_child(lad)
+	for d in range(0, int(DEN_PIER) + 6, 4):
+		reserve(pier_pt.call(float(d)), 3.0)
+
+	# their sloop, tied up alongside, bow out to sea
+	var hull := MooredHull.new()
+	hull.name = "DenSloop"
+	hull.collision_layer = 1
+	hull.collision_mask = 0
+	var sloop_p: Vector2 = pier_pt.call(DEN_PIER - 10.0) + s * (1.6 + HullBuilder.HALF_BEAM + 0.6)
+	hull.position = Vector3(sloop_p.x, HullBuilder.FREEBOARD, sloop_p.y)
+	hull.rotation.y = face_yaw(-f)
+	add_child(hull)
+	var model := Node3D.new()
+	hull.add_child(model)
+	HullBuilder.build(model, {"hull": Color(0.55, 0.45, 0.4), "sail": Color(0.62, 0.56, 0.48), "trim": Color(0.5, 0.2, 0.18), "emblem": "jolly"})
+	HullBuilder.collide(hull)
+	for k in range(3):
+		var bollard := Props.barrel() if k == 1 else Props.rope_coil()
+		bollard.position = Vector3(0, DOCK_DECK_Y, 0) + _v3(pier_pt.call(DEN_PIER - 4.0 - k * 6.0) + s * 1.1)
+		add_child(bollard)
+	place(Props.crate(0.8), pier_pt.call(3.0) - s * 1.0, 0.4, 0.0, DOCK_DECK_Y - hv(pier_pt.call(3.0) - s * 1.0))
+
+	# shacks: the captain's (biggest, set back), two crew shacks, a net shed on stilts
+	var cap_p: Vector2 = at.call(-11.0, -5.0)
+	_house({"w": 7.5, "d": 5.5, "h": 2.8, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch",
+		"porch": 1.8, "lean_to": "left", "name": "CaptainsShack"}, cap_p, f)
+	var shack_a: Vector2 = at.call(-6.0, 10.0)
+	_house({"w": 5.0, "d": 4.0, "h": 2.3, "roof": "shed", "wall": "planks_weathered", "roof_tex": "thatch"}, shack_a, c - shack_a)
+	var shack_b: Vector2 = at.call(2.0, -14.0)
+	_house({"w": 4.5, "d": 4.0, "h": 2.3, "roof": "gable", "wall": "planks", "roof_tex": "thatch", "chimney": true}, shack_b, c - shack_b)
+	var shed: Vector2 = shore + s * 13.0 - f * 2.0
+	_house({"w": 4.5, "d": 3.5, "h": 2.2, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.2}, shed, f, true)
+
+	# the lookout tower by the shore, its ladder on the landward side
+	var tower_p: Vector2 = shore - f * 7.0 - s * 9.0
+	place(_lookout_tower(), tower_p, face_yaw(-f), 2.6)
+
+	# campfire with log seats, contraband, the crew's colours
+	var fire := Props.campfire()
+	place(fire, c, 0.0, 1.5)
+	var snd := AudioStreamPlayer3D.new()
+	snd.stream = load("res://assets/audio/campfire_loop.wav")
+	snd.unit_size = 4.0
+	snd.max_distance = 30.0
+	snd.volume_db = -4.0
+	snd.autoplay = true
+	snd.bus = "Ambience"
+	fire.add_child(snd)
+	var log_a: Vector2 = at.call(0.0, 2.4)
+	var log_b: Vector2 = at.call(-2.4, -0.4)
+	place(_log(), log_a, face_yaw(c - log_a) + PI * 0.5)
+	place(_log(), log_b, face_yaw(c - log_b) + PI * 0.5)
+	var stash: Vector2 = at.call(5.0, 5.0)
+	place(Props.crate(0.9), stash, 0.3, 1.0)
+	place(Props.crate(0.7), stash, 0.9, 0.0, 0.9)
+	place(Props.crate(0.8), stash + s * 1.2, -0.2, 1.0)
+	for k in range(4):
+		place(Props.barrel(), at.call(6.5 + (k % 2) * 0.9, 2.0 - k * 0.8))
+	place(Props.weapon_rack(), at.call(-3.0, 6.0), face_yaw(c - at.call(-3.0, 6.0)))
+	place(Props.fish_rack(), shore + s * 6.0 - f * 3.0, face_yaw(s), 1.5)
+	place(Props.net_pile(), shore + s * 8.5 - f * 1.0)
+	place(Props.rowboat(), shore - s * 6.0 + f * 1.0, face_yaw(f) + 0.3, 1.5)
+	for lp in [at.call(3.0, -3.0), at.call(-7.0, 4.0), root - s * 2.2]:
+		place(Props.lantern_post(2.4), lp)
+	var pole := MeshBuilder.new()
+	pole.add_cylinder(PSXMat.lit("bark"), Transform3D.IDENTITY, 0.08, 0.06, 6.0, 5, 1.0)
+	var flag_mat := PSXMat.lit("cloth_red", Color(0.18, 0.16, 0.16))
+	pole.add_card(flag_mat, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 5.5, 0.6)), 1.2, 0.75, Rect2(0, 0, 0.5, 0.5))
+	pole.add_card(flag_mat, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 5.5, 0.6)), 1.2, 0.75, Rect2(0, 0, 0.5, 0.5))
+	var jolly := HullBuilder.jolly_material()
+	pole.add_card(jolly, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.01, 5.5, 0.6)), 0.9, 0.55, Rect2(0, 0, 1, 1))
+	pole.add_card(jolly, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(-0.01, 5.5, 0.6)), 0.9, 0.55, Rect2(0, 0, 1, 1))
+	place(pole.to_instance("DenFlag"), at.call(4.0, -6.0), 0.3)
+
+	# the captain's strongbox on his porch
+	var box_p: Vector2 = cap_p + f * 4.6 + s * 2.2
+	var C := CharacterLook.CLOTH
+	_strongbox(box_p, face_yaw(f), "den_strongbox", [["treasure", 4], ["gold", 15], ["rum", 2],
+		[Gear.make("coat", "longcoat", {"coat": "longcoat", "coat_color": C[5], "trim_color": CharacterLook.TRIM[4]}, "Harbor Captain's Longcoat", 2), 1],
+		[ItemDB.tiered("pistol", 2), 1]])
+
+	# the crew
+	den = GruntCamp.new()
+	den.name = "PirateDen"
+	den.respawn_time = 180.0
+	den.respawn_clearance = 60.0
+	den.position = Vector3(c.x, 0.0, c.y)
+	add_child(den)
+	var g_yaw := func(from: Vector2, look_at: Vector2) -> float:
+		var d := look_at - from
+		return atan2(-d.x, -d.y)
+	var v3 := func(q: Vector2, y: float = INF) -> Vector3: return Vector3(q.x - c.x, hv(q) if y == INF else y, q.y - c.y)
+	var sit_a: Vector2 = log_a + (c - log_a).normalized() * 0.15
+	var sit_b: Vector2 = log_b + (c - log_b).normalized() * 0.15
+	den.add_grunt({"post": v3.call(sit_a), "yaw": g_yaw.call(sit_a, c), "mode": "sit", "seat_y": 0.42, "seed": 61})
+	den.add_grunt({"post": v3.call(sit_b), "yaw": g_yaw.call(sit_b, c), "mode": "sit", "seat_y": 0.42, "seed": 67})
+	var route := [v3.call(at.call(-4.0, 7.0)), v3.call(at.call(4.0, 8.0)), v3.call(at.call(6.0, -8.0)), v3.call(at.call(-5.0, -9.0))]
+	den.add_grunt({"post": route[0], "yaw": 0.0, "mode": "patrol", "patrol": route, "seed": 71})
+	var pier_guard: Vector2 = root + s * 2.6 - f * 1.5
+	den.add_grunt({"post": v3.call(pier_guard), "yaw": g_yaw.call(pier_guard, pier_guard - f), "mode": "stand", "seed": 79})
+	var tower_guard: Vector2 = tower_p - f * 3.0
+	den.add_grunt({"post": v3.call(tower_guard), "yaw": g_yaw.call(tower_guard, tower_guard - f), "mode": "stand", "seed": 83, "role": "rifle"})
+	var pier_end: Vector2 = pier_pt.call(DEN_PIER - 3.0)
+	den.add_grunt({"post": v3.call(pier_end, DOCK_DECK_Y), "yaw": g_yaw.call(pier_end, pier_end - f), "mode": "stand", "seed": 89, "role": "rifle"})
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 97
+	var lk := PirateGrunt.crew_look(rng)
+	lk.merge({"name": "Captain Grell", "body": "masc", "build": "broad", "height": 1.12, "hat": "tricorn", "hat_color": C[5],
+		"coat": "longcoat", "coat_color": C[13], "trim_color": CharacterLook.TRIM[4], "facial_hair": "beard",
+		"vest": "brigandine", "eyepatch": true, "marks": "scar"}, true)
+	var cap_post: Vector2 = cap_p + f * 5.0 - s * 1.0
+	den.add_grunt({"post": v3.call(cap_post), "yaw": g_yaw.call(cap_post, cap_post + f), "mode": "stand", "seed": 97,
+		"look": lk, "captain": true, "title": "Captain Grell"})
+
+
+## A strongbox (a LootBag with the treasure-chest model). `items`: [id or ItemData, count].
+func _strongbox(p: Vector2, yaw: float, save_id: String, items: Array, size: float = 1.15) -> LootBag:
+	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	var stacks: Array[ItemStack] = []
+	for e in items:
+		var st := ItemStack.new()
+		st.item = e[0] if e[0] is ItemData else ItemDB.get_item(str(e[0]))
+		st.quantity = int(e[1])
+		stacks.append(st)
+	bag.setup(stacks)
+	bag.save_id = save_id
+	place(bag, p, yaw)
+	var chest_mesh := bag.get_node_or_null("MeshInstance3D") as MeshInstance3D
+	chest_mesh.mesh = Props.treasure_chest_mesh()
+	chest_mesh.position = Vector3.ZERO
+	chest_mesh.scale = Vector3.ONE * size
+	return bag
+
+
+## A lookout tower: four posts, a railed platform at 6 m, a ladder up the
+## +Z side.
+func _lookout_tower() -> StaticBody3D:
+	const H := 6.0
+	const W := 1.4
+	var body := StaticBody3D.new()
+	body.name = "LookoutTower"
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("bark")
+	var planks := PSXMat.lit("planks_dark")
+	for sx in [-W, W]:
+		for sz in [-W, W]:
+			mb.add_cylinder(wood, Transform3D(Basis(), Vector3(sx, -0.6, sz)), 0.14, 0.12, H + 1.8, 5, 1.0)
+			_cyl_col(body, 0.14, H + 1.8, Vector3(sx, H * 0.5 + 0.3, sz))
+	# cross bracing on the sides
+	for side in range(4):
+		var b := Basis(Vector3.UP, side * PI * 0.5)
+		mb.add_box(wood, Transform3D(b * Basis(Vector3.BACK, atan2(W * 2.0, 4.5)), b * Vector3(0, 2.8, W)), Vector3(0.1, Vector2(W * 2.0, 4.5).length(), 0.1), 1.0)
+	mb.add_box(planks, Transform3D(Basis(), Vector3(0, H, 0)), Vector3(W * 2 + 0.6, 0.18, W * 2 + 0.6), 0.6)
+	_box_col(body, Vector3(W * 2 + 0.6, 0.2, W * 2 + 0.6), Vector3(0, H, 0))
+	# rail on three sides, the ladder side open above the rungs
+	var e := W + 0.3
+	for k in range(4):
+		var b := Basis(Vector3.UP, k * PI * 0.5)
+		var top := b * Vector3(0, H + 1.0, e)
+		if k == 0:
+			for x in [-e, e]:
+				mb.add_box(wood, Transform3D(Basis(), Vector3(x, H + 0.5, e)), Vector3(0.1, 1.0, 0.1), 1.0)
+			mb.add_box(wood, Transform3D(Basis(), Vector3(0, H + 1.0, e)), Vector3(e * 2, 0.08, 0.08), 1.0)
+			continue
+		mb.add_box(planks, Transform3D(b, b * Vector3(0, H + 0.5, e)), Vector3(e * 2, 1.0, 0.08), 0.6)
+		_box_col(body, (b * Vector3(e * 2, 1.0, 0.1)).abs(), b * Vector3(0, H + 0.5, e))
+		mb.add_box(wood, Transform3D(b, top), Vector3(e * 2 + 0.1, 0.1, 0.14), 1.0)
+	# a little roof against the sun
+	mb.add_pyramid_roof(PSXMat.lit("thatch"), Transform3D(Basis(), Vector3(0, H + 2.3, 0)), e * 2 + 0.5, e * 2 + 0.5, 1.1)
+	for x in [-e, e]:
+		for z in [-e, e]:
+			mb.add_box(wood, Transform3D(Basis(), Vector3(x, H + 1.65, z)), Vector3(0.08, 1.3, 0.08), 1.0)
+	body.add_child(mb.to_instance("TowerMesh"))
+	var lad := Ladder.new()
+	lad.length = H
+	lad.rail = 1.0
+	lad.deck_depth = 1.0
+	lad.position = Vector3(0, H + 0.09, e)
+	body.add_child(lad)
+	return body
+
+
+func _cyl_col(body: Node3D, r: float, h: float, at: Vector3) -> void:
+	var cs := CollisionShape3D.new()
+	var shape := CylinderShape3D.new()
+	shape.radius = r
+	shape.height = h
+	cs.shape = shape
+	cs.position = at
+	body.add_child(cs)
+
+
+func _box_col(body: Node3D, size: Vector3, at: Vector3) -> void:
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	cs.shape = shape
+	cs.position = at
+	body.add_child(cs)
+
+
+# ==========================================================================
 # Scuttlebugs: a few knee-high beetles around burrows in the jungle along
 # the ruins path (the tavern regulars warn you about them).
 # ==========================================================================
@@ -853,8 +1166,11 @@ func _build_scuttlebugs() -> void:
 	bug_nest = ScuttlebugNest.new()
 	bug_nest.name = "ScuttlebugNest"
 	add_child(bug_nest)
-	# rough spots: off the ruins path, each nudged to clear, gentle ground
-	var wanted := [[Vector2(-27, 18), false], [Vector2(-40, 31), false], [Vector2(-37, 48), false], [Vector2(-56, 37), true]]
+	# rough spots: off the ruins path and through the deep forest, each nudged
+	# to clear, gentle ground
+	var wanted := [[Vector2(-27, 18), false], [Vector2(-40, 31), false], [Vector2(-37, 48), false], [Vector2(-56, 37), true],
+		[Vector2(-88, 78), false], [Vector2(-102, 38), false], [Vector2(-118, 90), true], [Vector2(-94, 106), false],
+		[Vector2(-142, 100), false], [Vector2(-126, 16), false], [Vector2(-160, 80), true]]
 	for w in wanted:
 		var p := _find_burrow_spot(w[0])
 		var yaw := face_yaw(-_nearest_path_dir(p))  # hole (-Z) faces the path
@@ -880,6 +1196,47 @@ func _find_burrow_spot(c: Vector2) -> Vector2:
 			best_score = score
 			best = p
 	return best
+
+
+## Spitters hiding up in the big deep-forest trees, well apart, clear of the
+## cave mouth and the burrows.
+var spitters: ScuttlebugNest
+const SPITTERS := 9
+
+func _build_spitters() -> void:
+	spitters = ScuttlebugNest.new()
+	spitters.name = "SpitterRoosts"
+	spitters.respawn_time = 60.0
+	add_child(spitters)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7171
+	var taken: Array = []
+	for s in bug_nest.spots:
+		taken.append(Vector2((s["pos"] as Vector3).x, (s["pos"] as Vector3).z))
+	var order := range(forest_crowns.size())
+	for i in range(order.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var tmp = order[i]
+		order[i] = order[j]
+		order[j] = tmp
+	for i in order:
+		if spitters.spots.size() >= SPITTERS:
+			break
+		var crown: Vector3 = forest_crowns[i]
+		var a := rng.randf() * TAU
+		var anchor := crown + Vector3(cos(a) * 1.4, -1.3, sin(a) * 1.4)
+		var g := Vector2(anchor.x, anchor.z)
+		if g.distance_to(FOREST) > 72.0 or g.distance_to(CAVE) < 36.0 or _slope_at(g) > 0.3 or anchor.y - hv(g) < 6.0:
+			continue
+		var clear := true
+		for q in taken:
+			if g.distance_to(q) < 16.0:
+				clear = false
+				break
+		if not clear:
+			continue
+		taken.append(g)
+		spitters.add_spitter(anchor, Vector3(g.x, hv(g), g.y))
 
 
 ## Direction from p toward the nearest path (the burrow's hole faces it).
@@ -936,17 +1293,21 @@ func _scatter_vegetation() -> void:
 			if pd < 3.0:
 				continue
 			var beach := 1.0 - _smooth(2.0, 3.8, h)
-			var jung := 1.0 - _smooth(50.0, 80.0, p.distance_to(JUNGLE_HIGH))
+			var jung := _jungle(p)
+			var deep := 1.0 - _smooth(30.0, 75.0, p.distance_to(FOREST))
 			var vill := 1.0 - _smooth(28.0, 45.0, p.distance_to(VILLAGE))
 			var hill := 1.0 - _smooth(18.0, 40.0, p.distance_to(HILL))
 			var cove := 1.0 - _smooth(20.0, 40.0, p.distance_to(COVE))
-			var p_palm := (0.32 * beach + 0.05 * (1.0 - beach) * (1.0 - jung) + 0.06 * jung + 0.15 * cove) * (1.0 - 0.75 * vill) * (1.0 - hill)
-			var p_jungle := 0.6 * jung * (1.0 - beach) * (1.0 - vill)
+			# the broad north-west beach stays mostly open sand
+			var p_palm := (0.32 * beach * (1.0 - 0.75 * _beach_lobe(p)) + 0.05 * (1.0 - beach) * (1.0 - jung) + 0.06 * jung + 0.15 * cove) * (1.0 - 0.75 * vill) * (1.0 - hill)
+			var p_jungle := (0.6 + 0.2 * deep) * jung * (1.0 - beach) * (1.0 - vill)
 			var p_rock := 0.02 + 0.1 * hill
 			if roll < p_palm:
 				_add_tree(buckets, palms, p, h, rng, 0.35, 3.0)
 			elif roll < p_palm + p_jungle:
-				_add_tree(buckets, jungle, p, h, rng, 0.45, 3.5, rng.randf_range(0.85, 1.25))
+				var tree := _add_tree(buckets, jungle, p, h, rng, 0.45, 3.5, rng.randf_range(0.85, 1.25) + 0.3 * deep)
+				if deep > 0.3:
+					forest_crowns.append(tree)
 			elif roll < p_palm + p_jungle + p_rock:
 				_add_rock(buckets, rocks, p, rng.randf_range(0.5, 1.8), rng)
 		x += step
@@ -972,7 +1333,7 @@ func _scatter_vegetation() -> void:
 			if p.distance_to(VILLAGE) < 15.0 or p.distance_to(TRAINING) < 11.0 or p.distance_to(RUINS) < 9.0:
 				continue
 			var beach := 1.0 - _smooth(2.2, 3.6, h)
-			var jung := 1.0 - _smooth(50.0, 80.0, p.distance_to(JUNGLE_HIGH))
+			var jung := _jungle(p)
 			var roll := rng.randf()
 			var p_fern := 0.32 * jung * (1.0 - beach)
 			var p_bush := (0.05 + 0.14 * jung) * (1.0 - beach * 0.7)
@@ -1018,6 +1379,13 @@ func _scatter_vegetation() -> void:
 
 const VEG_CELL := 70.0
 
+## Island-space crowns of the big deep-forest trees (where the spitters hide).
+var forest_crowns: Array = []
+
+
+func _jungle(p: Vector2) -> float:
+	return maxf(1.0 - _smooth(50.0, 80.0, p.distance_to(JUNGLE_HIGH)), 1.0 - _smooth(72.0, 112.0, p.distance_to(FOREST)))
+
 
 func _bucket(buckets: Dictionary, mesh: Mesh, xf: Transform3D) -> void:
 	var key := [mesh, floori(xf.origin.x / VEG_CELL), floori(xf.origin.z / VEG_CELL)]
@@ -1027,7 +1395,7 @@ func _bucket(buckets: Dictionary, mesh: Mesh, xf: Transform3D) -> void:
 
 
 func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: RandomNumberGenerator,
-		col_r: float, col_h: float, s: float = -1.0) -> void:
+		col_r: float, col_h: float, s: float = -1.0) -> Vector3:
 	if s < 0.0:
 		s = rng.randf_range(0.85, 1.15)
 	var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s)
@@ -1035,7 +1403,8 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: Ra
 	var xf := Transform3D(basis, Vector3(p.x, h - 0.15, p.y))
 	_bucket(buckets, tree_mesh, xf)
 	# the crown is something a vine can latch onto
-	GrapplePoints.add(self, xf * GrapplePoints.crown_of(tree_mesh))
+	var crown := xf * GrapplePoints.crown_of(tree_mesh)
+	GrapplePoints.add(self, crown)
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = col_r * s
@@ -1044,6 +1413,7 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: Ra
 	cs.position = Vector3(p.x, h + col_h * 0.5, p.y)
 	_tree_colliders.add_child(cs)
 	reserve(p, 1.2)
+	return crown
 
 
 func _add_rock(buckets: Dictionary, meshes: Array, p: Vector2, s: float, rng: RandomNumberGenerator) -> void:
@@ -1252,6 +1622,7 @@ func _spawn_npcs() -> void:
 			"Gus waters the rum, but don't tell him I said so.",
 			"If you're heading into the jungle, take a lantern. Or a braver friend.",
 			"The lighthouse keeper talks to the sea. Sometimes I think it answers.",
+			"Something up in the big trees out west spits. Mind your head in the deep woods.",
 		],
 		"look": {"body": "fem", "build": "average", "height": 0.93, "skin": CharacterLook.SKIN_TONES[0],
 			"head": "round", "nose": "small", "eyes": 2, "brows": 2, "mouth": 1, "marks": "freckles", "eye_color": CharacterLook.EYE_COLORS[2],
@@ -1371,7 +1742,7 @@ func _add_arrival_zone() -> void:
 	area.collision_mask = 2  # PlayerBody
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
-	sph.radius = 150.0
+	sph.radius = 200.0
 	cs.shape = sph
 	area.add_child(cs)
 	add_child(area)

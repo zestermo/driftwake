@@ -197,9 +197,11 @@ func _process(d: float) -> bool:
 			check("nobody aboard: no target (an empty ship isn't worth a shot)", es._crew_ship() == null)
 			var sc: Vector2 = root.get_node("World/Islands").starter_center
 			check("in Brinehollow's harbour, by its dock: not huntable", not es.huntable_at(Vector3(sc.x, 0, sc.y - 200.0)))
-			check("...nor just off another island's shore", not es.huntable_at(Vector3(es.no_go[2][0].x + float(es.no_go[2][1]) + 20.0, 0, es.no_go[2][0].y)))
+			# (no_go: Brinehollow's circles, Redtide, then the other islands)
+			var starter_circles: int = ((root.get_node("World/Islands/Brinehollow").get_script() as GDScript).get_script_constant_map()["NO_GO"] as Array).size()
+			var z: Array = es.no_go[starter_circles + 1]
+			check("...nor just off another island's shore", not es.huntable_at(Vector3(z[0].x + float(z[1]) + 20.0, 0, z[0].y)))
 			# --- steering round land: a patrol whose waypoints lie on an island
-			var z: Array = es.no_go[2]
 			var c := Vector3(z[0].x, 0, z[0].y)
 			var r := float(z[1])
 			var from := c + Vector3(r + 120.0, 0, 0)

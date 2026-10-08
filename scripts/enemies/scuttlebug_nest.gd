@@ -14,6 +14,11 @@ func add_spot(local_pos: Vector3, big: bool = false) -> void:
 	spots.append({"pos": local_pos, "big": big, "bug": null, "timer": 0.0, "gen": 0})
 
 
+## A spitter's tree: its thread hangs from `anchor`, over `ground` (both local).
+func add_spitter(anchor: Vector3, ground: Vector3) -> void:
+	spots.append({"pos": ground, "anchor": anchor, "big": false, "bug": null, "timer": 0.0, "gen": 0})
+
+
 func _ready() -> void:
 	add_to_group("net_spawner")
 	_spawn_all.call_deferred()
@@ -26,11 +31,16 @@ func _spawn_all() -> void:
 
 func _spawn(s: Dictionary) -> void:
 	var gp := to_global(s["pos"] as Vector3)
-	var bug := Scuttlebug.new()
+	var bug: Scuttlebug
+	var start := gp + Vector3.UP * 0.3
+	if s.has("anchor"):
+		start = to_global(s["anchor"] as Vector3)
+		bug = CanopySpitter.new().roost(start, gp)
+	else:
+		bug = Scuttlebug.new().setup(bool(s["big"]), gp)
 	bug.name = "B%d_%d" % [spots.find(s), int(s["gen"])]
-	bug.setup(bool(s["big"]), gp)
 	add_child(bug)
-	bug.global_position = gp + Vector3.UP * 0.3
+	bug.global_position = start
 	bug.reset_physics_interpolation()
 	s["bug"] = bug
 	s["timer"] = 0.0

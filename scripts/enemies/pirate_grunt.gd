@@ -88,6 +88,13 @@ var look: Dictionary = {}
 var seat_y: float = 0.45
 ## "sword" (cutlass + pistol) or "rifle" (rifle only).
 var role: String = "sword"
+## A crew's captain (a miniboss): tougher, hits harder, its name over its head
+## and a health bar there after each hit.
+var captain: bool = false
+var title: String = ""
+var _overhead: OverheadBar
+const CAPTAIN_HP := 3.2
+const CAPTAIN_DMG := 1.35
 ## Came over the side from a pirate ship: no post to go back to, fights on
 ## wherever it lands.
 var boarder: bool = false
@@ -203,6 +210,8 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 	patrol = cfg.get("patrol", [])
 	seat_y = float(cfg.get("seat_y", 0.45))
 	role = str(cfg.get("role", "sword"))
+	captain = bool(cfg.get("captain", false))
+	title = str(cfg.get("title", ""))
 	look = PirateGrunt.look_for(cfg)
 	_body = cfg.get("body")
 	return self
@@ -311,7 +320,7 @@ func _ready() -> void:
 
 	health = HealthComponent.new()
 	health.name = "HealthComponent"
-	health.max_health = MAX_HP
+	health.max_health = _max_hp()
 	add_child(health)
 	health.died.connect(_on_died)
 
@@ -362,6 +371,9 @@ func _ready() -> void:
 	_hit_peril.camera_shake_intensity = 0.3
 	_hit_peril.knockdown = true
 	_hit_peril.unblockable = true
+	if captain:
+		for h in [_hit_light, _hit_heavy, _hit_peril]:
+			(h as HitData).damage *= CAPTAIN_DMG
 	_peril_cd = _rng.randf_range(4.0, 9.0)
 	_pistol_cd = _rng.randf_range(2.0, 6.0)
 	_shot_cd = _rng.randf_range(1.0, 2.5)
@@ -395,6 +407,10 @@ func _ready() -> void:
 	_bark.position = Vector3(0, 2.35 * float(look.get("height", 1.0)), 0)
 	_bark.visible = false
 	add_child(_bark)
+	if captain:
+		_overhead = OverheadBar.new().setup(title, 2.6 * float(look.get("height", 1.0)))
+		add_child(_overhead)
+		_bark.position.y += 0.45
 
 	_enter_idle()
 	if Net.hosting:
@@ -816,7 +832,7 @@ func _physics_process(delta: float) -> void:
 				global_position.z = post.z
 				if role != "rifle":
 					humanoid.play("sheathe", 0.5)
-				health.heal(MAX_HP)
+				health.heal(health.max_health)
 				_enter_idle()
 
 	# walked into something (tent, crate, rock): sidestep around it for a bit
@@ -1348,8 +1364,12 @@ func _on_died() -> void:
 	_set_state(S.DEAD)
 	_dead_t = 0.0
 	Net.event(self, "die", [])
-	Net.coins(global_position + Vector3(0, 1.0, 0), _rng.randi_range(3, 6))
-	Net.award_xp(55 if role == "rifle" else 45, global_position + Vector3(0, 2.0, 0))
+	if captain:
+		Net.coins(global_position + Vector3(0, 1.0, 0), _rng.randi_range(14, 22))
+		Net.award_xp(220, global_position + Vector3(0, 2.0, 0))
+	else:
+		Net.coins(global_position + Vector3(0, 1.0, 0), _rng.randi_range(3, 6))
+		Net.award_xp(55 if role == "rifle" else 45, global_position + Vector3(0, 2.0, 0))
 	_drop_weapon()
 	died.emit(self)
 
@@ -1884,9 +1904,16 @@ func _set_glow(on: bool) -> void:
 		humanoid.weapon.material_override = null
 
 
+func _max_hp() -> float:
+	return MAX_HP * (CAPTAIN_HP if captain else 1.0)
+
+
 func _process(delta: float) -> void:
 	if net_puppet:
 		_net_update(delta)
+	if _overhead:
+		_overhead.visible = state != S.DEAD
+		_overhead.track(health.current_health, health.max_health)
 	if _peril_on and _peril_mat:
 		_peril_mat.albedo_color.a = 0.18 + 0.4 * absf(sin(Time.get_ticks_msec() * 0.012))
 	if _glow_t > 0.0:
@@ -1950,7 +1977,7 @@ func hit_freeze(duration: float) -> void:
 ## More captains, more health (keeps the share of health it has left).
 func net_rescale(k: float) -> void:
 	var frac := health.current_health / maxf(health.max_health, 1.0)
-	health.max_health = MAX_HP * k
+	health.max_health = _max_hp() * k
 	if state != S.DEAD:
 		health.current_health = maxf(frac * health.max_health, 1.0)
 
@@ -2111,3 +2138,5 @@ func net_event(what: String, args: Array) -> void:
 				_sense_fx()
 		"burn_fx":
 			BurnStatus.apply(self, float(args[0]), 0.0, null)
+		"poison_fx":
+			PoisonStatus.apply(self, float(args[0]), 0.0, null)

@@ -27,10 +27,10 @@ func _process(d: float) -> bool:
 			var isl = root.get_node("World/Islands/Brinehollow")
 			nest = isl.get_node("ScuttlebugNest")
 			check("nest exists", nest != null)
-			check("4 bugs spawned", nest.alive_count() == 4)
+			check("a bug at every burrow (%d)" % nest.spots.size(), nest.spots.size() >= 10 and nest.alive_count() == nest.spots.size())
 			var bigs := 0
 			for s in nest.spots: if s["big"]: bigs += 1
-			check("one big one", bigs == 1)
+			check("a few big ones (%d)" % bigs, bigs == 3)
 			for s in nest.spots:
 				if not s["big"]: bug = s["bug"]; break
 			check("small bug hp 30", is_equal_approx(bug.health.max_health, 30.0))
@@ -87,13 +87,13 @@ func _process(d: float) -> bool:
 			wait = 2.5
 		7:
 			check("dead bug sinks away", not is_instance_valid(bug))
-			check("3 left alive", nest.alive_count() == 3)
+			check("the rest still alive", nest.alive_count() == nest.spots.size() - 1)
 			# respawn once far away
 			nest.respawn_time = 0.5
 			p.global_position = p.global_position + Vector3(60, 5, 0)
 			wait = 1.5
 		8:
-			check("respawns when you're away", nest.alive_count() == 4)
+			check("respawns when you're away", nest.alive_count() == nest.spots.size())
 			print("RESULT ", "OK" if fails == 0 else "%d FAILED" % fails)
 			return true
 	step += 1

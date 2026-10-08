@@ -280,6 +280,25 @@ func dust(pos: Vector3, amount: int = 5, size: float = 0.5) -> void:
 		"radius": 0.15, "spread": 70.0, "vel_min": 0.5, "vel_max": 1.4, "gravity": Vector3(0, 0.4, 0), "damping": 3.0})
 
 
+## Green venom bubbles (poisoned targets, spit trails and splashes).
+func poison(pos: Vector3, amount: int = 4, size: float = 0.35) -> void:
+	_burst(pos, amount, _dust_mat, size, 0.6, {
+		"radius": 0.2, "spread": 50.0, "vel_min": 0.4, "vel_max": 1.2, "gravity": Vector3(0, 1.2, 0), "damping": 2.5,
+		"color": Color(0.45, 0.95, 0.25, 0.85), "grow": false})
+
+
+## A blob of venom lobbed from `from` at velocity `vel` (PoisonGlob).
+func spit(from: Vector3, vel: Vector3, damage: float, size: float = 1.0, poison_secs: float = 4.0, poison_dps: float = 3.0) -> void:
+	var g := PoisonGlob.new()
+	g.vel = vel
+	g.damage = damage
+	g.size = size
+	g.poison_secs = poison_secs
+	g.poison_dps = poison_dps
+	_scene_root().add_child(g)
+	g.global_position = from
+
+
 ## Expanding ring of dust (landings, heavy slam).
 func dust_ring(pos: Vector3, amount: int = 12, size: float = 0.7) -> void:
 	_burst(pos + Vector3(0, 0.08, 0), amount, _dust_mat, size, 0.6, {

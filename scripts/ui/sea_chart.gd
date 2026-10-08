@@ -8,8 +8,9 @@ extends Control
 const SIZE := Vector2(560, 320)
 ## World metres from Brinehollow shown to each edge (the chart is square-ish).
 const REACH := 1400.0
-## Brinehollow's land, about (its chunk is StarterIsland.HALF across each way).
-const BRINEHOLLOW_R := 168.0
+## Brinehollow's land, about: its forest and beach reach further west.
+const BRINEHOLLOW_R := 200.0
+const BRINEHOLLOW_OFFSET := Vector2(-45, 0)
 
 var _font: Font
 var _font_big: Font
@@ -68,7 +69,7 @@ func _draw() -> void:
 			draw_line(Vector2(6, y), Vector2(SIZE.x - 6, y), sea_ink, 1.0)
 	draw_string(_font_big, Vector2(14, 22), "Sea Chart", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ink)
 	# islands
-	_island(Vector2(centre), BRINEHOLLOW_R, "Brinehollow", centre, k, true)
+	_island(centre + BRINEHOLLOW_OFFSET, BRINEHOLLOW_R, "Brinehollow", centre, k, true)
 	for info in w.get("island_infos"):
 		var nm := str(info.get("name", "?"))
 		_island(info["pos"], float(info["radius"]), nm, centre, k, gm.charted.has("island:" + nm))
