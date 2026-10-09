@@ -173,6 +173,9 @@ func _boss_hud(me: Node3D, alive: bool) -> void:
 ## Beaten: banner and fanfare for whoever's here, the flag, its hoard once per character.
 func _victory(me: Node3D) -> void:
 	Dialogue.set_flag(_beaten_flag())
+	# (the host's word goes) its fall sets the log pose on the next island(s)
+	if not Net.is_client() and GameManager.chain_at == int(isl.node["id"]) and not GameManager.chain_set:
+		GameManager.chain_settle()
 	if me and me.global_position.distance_to(global_position) < RESET_R + 20.0:
 		get_tree().call_group("hud", "show_banner", "%s falls!" % boss.boss_name, "The jungle goes quiet.", true)
 		var music := get_node_or_null("/root/Music")

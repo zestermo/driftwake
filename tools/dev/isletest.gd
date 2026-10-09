@@ -148,23 +148,23 @@ func _process(d: float) -> bool:
 			p.health_component.current_health = 10.0
 			isl.find_child("Rest", true, false).interacted.emit(p)
 			check("a rest at the inn heals", p.health_component.current_health == p.health_component.max_health)
-			# moving on: at the first island, the next layer is built and the other side of a fork freed
+			# arriving: a captain on the island - the crew's there now
 			var c = world.chain()
 			var at: int = c.start_next[0]
-			set_meta("left", c.start_next.filter(func(id): return id != at))
-			gm.chain_at = at
-			world.sync_chain_islands()
-			wait = 0.2
+			check("standing on the island, the crew is there now (the chain moves on)", gm.chain_at == at)
+			check("...the fork's other side let go", c.start_next.filter(func(id): return id != at).all(func(id): return not world.chain_islands.has(id)))
+			check("...and the log pose hasn't set: nothing ahead yet", gm.log_pose_targets().is_empty() and c.next_of(at).all(func(id): return not world.chain_islands.has(id)))
+			check("...the HUD says how long (%.0f s)" % gm.log_pose_wait(), gm.log_pose_wait() > gm.LOG_SET_TIME - 10.0)
+			# 15 minutes later it sets by itself and the next island(s) are built
+			gm.chain_since = root.get_node("Weather").world_time() - gm.LOG_SET_TIME - 1.0
 			step = 2
 		2:
 			var c = world.chain()
 			var at: int = gm.chain_at
-			if world.chain_islands.size() < c.next_of(at).size() + 1:
-				world.sync_chain_islands()
+			if not world.chain_ready():
 				return false
-			var left: Array = get_meta("left")
-			check("moving on frees the island not taken", left.all(func(id): return not world.chain_islands.has(id)))
-			check("...keeps the one we're at and builds the next", world.chain_islands.has(at) and c.next_of(at).all(func(id): return world.chain_islands.has(id)))
+			check("15 minutes on, the log pose sets on the next island(s)", gm.log_pose_targets().size() == c.next_of(at).size())
+			check("...which are built ahead, the one we're at kept", world.chain_islands.has(at) and c.next_of(at).all(func(id): return world.chain_islands.has(id)))
 			check("...and the chart's list follows", world.island_infos.size() == world.chain_islands.size())
 			# a chest opened stays gone when its island is built again
 			var isl = world.chain_islands[at]
@@ -184,6 +184,24 @@ func _process(d: float) -> bool:
 			var isl = world.chain_islands[at]
 			check("a chest opened before is gone when its island is built again", not isl.find_children("*", "LootBag", true, false).any(func(b): return b.save_id == get_meta("box") and not b.is_queued_for_deletion()))
 			gm.opened.erase(get_meta("box"))
-			gm.chain_at = -1
+			# freshly arrived again; its beast falls: the log pose sets at once
+			gm.apply_chain(at, false, root.get_node("Weather").world_time())
+			check("(arrived afresh: unset again)", not gm.log_pose_set())
+			isl.get_node("Site_boss/Arena").boss.health.take_damage(999999.0)
+			wait = 1.0
+			step = 4
+		4:
+			check("its beast slain, the log pose sets", gm.chain_set and gm.log_pose_set())
+			# saved and loaded back
+			var SG = load("res://scripts/game/save_game.gd")
+			SG.use_test_dir("user://isletest")
+			SG.slot = 1
+			SG.save(p)
+			var since: float = gm.chain_since
+			gm.chain_set = false
+			gm.chain_since = 0.0
+			SG.load_into(p)
+			check("...kept in the save", gm.chain_set and is_equal_approx(gm.chain_since, since))
+			gm.apply_chain(-1, false, 0.0)
 			finish()
 	return false

@@ -265,6 +265,8 @@ static func save(player: Player) -> bool:
 		"ship_kit": gm.ship_kit.duplicate() if gm else {},
 		"chain_seed": gm.chain_seed if gm else 0,
 		"chain_at": gm.chain_at if gm else -1,
+		"chain_set": gm.chain_set if gm else false,
+		"chain_since": gm.chain_since if gm else 0.0,
 		"player_pos": player.global_position if on_foot else Vector3.INF,
 		"player_yaw": player.player_model.rotation.y,
 		"ship_pos": ship.global_position if ship else Vector3.INF,
@@ -276,7 +278,7 @@ static func save(player: Player) -> bool:
 	if _guest(player):
 		# keep our own world's state, not the host's
 		# (and our own ship's storage and our grave, in our own world)
-		for k in ["burned", "fruit_claims", "ship_kit", "chain_seed", "chain_at", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave"]:
+		for k in ["burned", "fruit_claims", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave"]:
 			if old.has(k):
 				data[k] = old[k]
 			else:
@@ -377,6 +379,10 @@ static func load_into(player: Player) -> bool:
 			if data.has("chain_seed"):
 				gm.chain_seed = int(data["chain_seed"])
 				gm.chain_at = int(data["chain_at"])
+			# (saves from before the log pose's set rule: as just arrived)
+			if data.has("chain_set"):
+				gm.chain_set = bool(data["chain_set"])
+				gm.chain_since = float(data["chain_since"])
 			# the ship's storage (older saves: what was banked), in place: the
 			# chest in the cabin holds this very array
 			gm.storage.clear()
