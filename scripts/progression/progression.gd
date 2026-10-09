@@ -186,6 +186,8 @@ func can_learn(id: String) -> String:
 		return "Needs the %s" % str(DevilFruits.get_fruit(str(req["fruit"])).get("name", "fruit"))
 	if req.has("level") and level < int(req["level"]):
 		return "Needs level %d" % int(req["level"])
+	if req.has("node") and not owns(str(req["node"])):
+		return "Needs %s" % str(SkillTree.get_node_def(str(req["node"]))["name"])
 	var linked := false
 	for l in SkillTree.neighbors(id):
 		if owns(l):
@@ -254,6 +256,12 @@ func has_flag(key: String) -> bool:
 
 
 ## A part of a weapon's moveset unlocked on its tree ("move" nodes).
+## The weapon's element awakened (its tree's mastery passives): tier 1 shows
+## it on the tree's skills and ultimate, tier 2 on every blow as well.
+func elemental(tree: String, tier: int = 1) -> bool:
+	return has_flag(("elem_" if tier == 1 else "elem2_") + tree)
+
+
 func has_move(move: String) -> bool:
 	return has_flag("mv_" + move)
 

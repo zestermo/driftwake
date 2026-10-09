@@ -4,7 +4,8 @@ extends SceneTree
 ## game time, so hit-stop and slow motion show as held frames).
 ## Args: <out_prefix> <skill_id> [style: sword|katana|axe|dual_sword|pistol|fist]
 ##       [views: game,side,front3,top] [frames=8] [span s=1.2] [start s=0.0]
-## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night.
+## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night; AB_TIER=0/1/2
+## with no weapon element awakened / on skills only / on every blow (default 2).
 const STAGGER := 9
 var t := 0.0
 var step := 0
@@ -103,6 +104,11 @@ func _process(d: float) -> bool:
 						pr.learn(k)
 						grew = true
 			pr.owned.erase("h_instinct")
+			# AB_TIER=0: no weapon's element awakened; 1: on skills only; 2 (default): on every blow
+			var tier := int(OS.get_environment("AB_TIER")) if OS.get_environment("AB_TIER") != "" else 2
+			for k in pr.owned.keys():
+				if (tier < 1 and str(k).ends_with("_elem")) or (tier < 2 and str(k).ends_with("_elem2")):
+					pr.owned.erase(k)
 			for id in ["cutlass", "cutlass", "katana", "boarding_axe", "pistol"]:
 				p.inventory_component.add_item(item(id), 1)
 			var hud = root.get_tree().get_first_node_in_group("hud")

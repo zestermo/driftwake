@@ -120,7 +120,7 @@ func physics_update(delta: float) -> void:
 	# a swing path's trail comes off the blade itself, from just before the strike
 	if _swoosh.x >= 0.0 and timer >= _swoosh.x and not _swooshed:
 		_swooshed = true
-		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else cfg["color"]
+		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col()
 		Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc])
 
 	if timer >= _window.x and not hitbox_activated:
@@ -144,7 +144,7 @@ func physics_update(delta: float) -> void:
 		# swoosh!
 		var trail_len := 0.4 if last else 0.26
 		var trail := str(cfg["trails"][combo_index])
-		var col: Color = cfg["color"]
+		var col: Color = _trail_col()
 		if player.power.buff("coat"):
 			col = Player.HAKI_TRAIL
 		if _swoosh.x >= 0.0:
@@ -193,6 +193,15 @@ func physics_update(delta: float) -> void:
 
 
 ## The straight streak of air in front of a punch or kick.
+## The combo's trail: the style's own colour, or its tree's once the element
+## follows every blow (the tree's second mastery passive).
+func _trail_col() -> Color:
+	var tree := SkillTree.style_tree(player.style())
+	if tree != "" and player.progression.elemental(tree, 2):
+		return FX.tree_col(tree, FX.EDGE)
+	return cfg["color"]
+
+
 func _punch_wind(w: Array, col: Color) -> void:
 	var b := player.player_model.global_basis
 	var fwd := -b.z

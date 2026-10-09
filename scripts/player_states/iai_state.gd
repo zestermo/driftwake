@@ -11,6 +11,9 @@ const DAMAGE := [20.0, 34.0, 55.0]
 const DASH_SPEED := [11.0, 15.0, 20.0]
 const DASH_TIME := 0.18
 const RECOVER := 0.42
+## A full draw: its extra stamina at the release, and its longer recovery.
+const FULL_COST := 20.0
+const FULL_RECOVER := 0.6
 const CREEP := 0.2          # x move speed while charging
 const COLORS := [Color(0.85, 0.92, 1.0), Color(0.55, 0.8, 1.0), Color(1.0, 0.82, 0.35)]
 
@@ -69,9 +72,10 @@ func physics_update(delta: float) -> void:
 			player.move_and_slide()
 			if phase == 2 and timer >= 0.06:
 				player.sword_hitbox.deactivate()
-			if timer >= (RECOVER if phase == 2 else 0.3):
+			var rec := FULL_RECOVER if level == LEVELS.size() else RECOVER
+			if timer >= (rec if phase == 2 else 0.3):
 				transitioned.emit(self, "Idle", {})
-			elif phase == 2 and timer > RECOVER * 0.5 and wants_dodge():
+			elif phase == 2 and timer > rec * 0.5 and wants_dodge():
 				transitioned.emit(self, "Dodge", {})
 
 
@@ -94,9 +98,16 @@ func _release() -> void:
 	_dir = get_camera_forward()
 	player.player_model.rotation.y = atan2(-_dir.x, -_dir.z)
 	player.set_collision_mask_value(12, false)   # the cut carries you through them
-	player.body_model.play("iai_slash", DASH_TIME + RECOVER)
+	var full := level == LEVELS.size()
+	if full:
+		# a full draw spends itself: what's left of the stamina, up to FULL_COST
+		player.stamina = maxf(player.stamina - FULL_COST * player.attack_cost_k(), 0.0)
+		player._stamina_delay = maxf(player._stamina_delay, player.STAMINA_REGEN_DELAY * 1.5)
+		player.stamina_changed.emit(player.stamina, player.max_stamina)
+	player.body_model.play("iai_slash", DASH_TIME + (FULL_RECOVER if full else RECOVER))
 	player.set_reach("iai")
 	var hit := player.melee_hit(float(DAMAGE[level]), "heavy")
+	hit.predictable = read_chance()
 	hit.hitstop_duration = 0.06 + 0.03 * level
 	hit.camera_shake_intensity = 0.12 + 0.06 * level
 	hit.knockback_force = 8.0 + 3.0 * level

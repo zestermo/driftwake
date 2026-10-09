@@ -18,7 +18,7 @@ const STYLES := {
 	"thrust": {"anim": "thrust", "impulse": 11.0,
 		"damage": 32.0, "hitstop": 0.08, "shake": 0.16, "knockback": 12.0, "stagger": 0.4,
 		"trail": "thrust", "trail_len": 0.22, "sfx": "whoosh", "pitch": 1.25, "impact_fx": false,
-		"tree": "sword", "color": Color(0.3, 0.72, 1.0)},
+		"tree": "sword"},
 	"whirl": {"anim": "axe_whirl", "impulse": 2.5,
 		"damage": 22.0, "hitstop": 0.06, "shake": 0.16, "knockback": 9.0, "stagger": 0.5,
 		"trail": "spin", "trail_len": 0.36, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false,
@@ -128,11 +128,13 @@ func physics_update(delta: float) -> void:
 				_glinted = true
 				var w: MeshInstance3D = player.body_model.weapon
 				if w and w.mesh:
-					Net.fx("glint", [w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z * 0.85), FX.tree_col(str(cfg["tree"]), FX.CORE), 0.7])
+					Net.fx("glint", [w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z * 0.85), Color.WHITE, 0.7])
 			if timer >= _windup:
 				phase = 1
 				timer = 0.0
 				var col: Color = cfg.get("color", Color(0.45, 0.75, 1.0))
+				if cfg.has("tree") and player.progression.elemental(str(cfg["tree"]), 2):
+					col = FX.tree_col(str(cfg["tree"]), FX.EDGE)
 				if player.power.buff("coat"):
 					col = Player.HAKI_TRAIL
 				if str(cfg["trail"]) != "":
@@ -199,16 +201,19 @@ func physics_update(delta: float) -> void:
 		transitioned.emit(self, "Dodge", {})
 
 
-## The strike's effects in its tree's colours: a ring of air round the point,
-## spray off it, dust kicked up by the lunge.
+## The strike's effects: a ring of air round the point and dust kicked up by the
+## lunge; with the element on every blow (the tree's second mastery passive)
+## they take its colours and throw its material.
 func _strike_fx() -> void:
-	var tree := str(cfg["tree"])
+	var elem := player.progression.elemental(str(cfg["tree"]), 2)
+	var tree := str(cfg["tree"]) if elem else "plain"
 	var f := get_camera_forward()
 	f.y = 0.0
 	f = f.normalized()
 	var tip := player.global_position + Vector3(0, 1.2, 0) + f * 1.5
 	Net.fx("ring", [tip, f, 1.3, FX.tree_col(tree, FX.EDGE), 0.22, 0.16])
-	Net.fx("spray", [tip, f + Vector3.UP * 0.2, 10, FX.tree_col(tree, FX.ACCENT), 6.5])
+	if elem:
+		Net.fx("spray", [tip, f + Vector3.UP * 0.2, 10, FX.tree_col(tree, FX.ACCENT), 6.5])
 	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0) - f * 0.4, 6, 0.6])
 	CombatManager.apply_camera_kick(0.12, 0.3)
 
@@ -219,6 +224,7 @@ func _hit(knockdown: bool) -> HitData:
 	if player.progression.has_flag("armament"):
 		hit.unblockable = true
 		hit.haki = true
+	hit.predictable = read_chance()
 	hit.hitstop_duration = float(cfg["hitstop"])
 	hit.camera_shake_intensity = float(cfg["shake"])
 	hit.knockback_force = float(cfg["knockback"])
@@ -252,15 +258,26 @@ func _kata_move(delta: float) -> void:
 	player.align_w = move_toward(player.align_w, 1.0, 8.0 * delta)
 
 
+## One turn of the kata: a shot into each of its targets still within 6 m, the
+## KATA_TARGETS nearest when it began.
+const KATA_TARGETS := 3
+var _kata_targets: Array = []
+
 func _kata_volley() -> void:
 	var c := player.global_position + Vector3(0, 1.1, 0)
 	var pc := player.power
 	var hit_any := false
-	for e in pc.enemies_in(c, 6.0):
+	var near: Array = pc.enemies_in(c, 6.0)
+	if _kata_shots == 1:
+		near.sort_custom(func(a, b): return (a as Node3D).global_position.distance_to(c) < (b as Node3D).global_position.distance_to(c))
+		_kata_targets = near.slice(0, KATA_TARGETS)
+	for e in _kata_targets:
+		if not (e in near):
+			continue
 		var hb := (e as Node).get("hurtbox") as Hurtbox
 		if hb == null:
 			continue
-		var hd := player.melee_hit(9.0)
+		var hd := player.melee_hit(7.0)
 		hd.knockback_force = 4.0
 		hd.ranged = true
 		hb.take_hit(hd, player)
@@ -275,6 +292,11 @@ func _kata_volley() -> void:
 
 
 func exit() -> void:
+	if cfg.get("kata", false):
+		# both guns emptied: a reload before they fire again
+		reload_until = now_s() + KATA_RELOAD
+		player.call("_toast", "Reloading...")
+		Net.fx("sfx", ["blip_low", player.global_position, -8.0, 0.05, 1.4])
 	player.align_hold = false
 	player.sword_hitbox.deactivate()
 	player.sword_pivot.rotation_degrees.z = 0.0

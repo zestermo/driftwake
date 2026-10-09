@@ -7,9 +7,10 @@
 scenes/player/*                         feat feel dash stamtest swimtest
 scenes/player/camera_rig.gd             stamtest feel
 scripts/player_states/*                 feat feel dash
+scripts/player_states/player_state.gd   stamtest balancetest
 scripts/player_states/light_attack*     feel axetest katanatest stamtest techtest
-scripts/player_states/heavy_attack*     stamtest axetest techtest
-scripts/player_states/iai*              katanatest
+scripts/player_states/heavy_attack*     stamtest axetest techtest balancetest
+scripts/player_states/iai*              katanatest balancetest
 scripts/player_states/plunge*           fixtest katanatest
 scripts/player_states/dodge*            dash
 scripts/player_states/block*            r6test
@@ -44,14 +45,14 @@ scripts/net/humanoid_sync.gd            net
 scenes/combat/*                         grunttest feel techtest
 scripts/combat/*                        grunttest ragtest feel
 scripts/combat/ragdoll.gd               ragtest watertest r10test decktest
-scripts/enemies/pirate_grunt.gd         grunttest guntest fixtest watertest perftest
+scripts/enemies/pirate_grunt.gd         grunttest guntest fixtest watertest perftest balancetest
 scripts/enemies/grunt_camp.gd           grunttest perftest
 scripts/enemies/pirate_boss.gd          r8test
 scripts/enemies/scuttlebug*             bugtest
 scripts/enemies/sea_king.gd             seatest
 scripts/enemies/*                       grunttest foresttest
 scripts/powers/*                        powertest vinetest r6test techtest
-scripts/progression/*                   progtest techtest r6test
+scripts/progression/*                   progtest techtest r6test balancetest
 scripts/ui/skill_map*                   progtest r6test techtest
 
 # --- items, inventory, saves, game ---

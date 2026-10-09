@@ -47,6 +47,16 @@ riposte answer takes the style's). Core = the hot centre (white-ish): glints, fl
 inside of a streak. Edge = the tree's colour: rings, trails, crescents. Accent = the material
 (spray, petals, embers). Keep the Haki override: a coated blow trails `Player.HAKI_TRAIL`.
 
+**The element is earned (mastery).** Until the tree's tier-1 mastery passive
+(`Progression.elemental(tree)`, flag `elem_<tree>`) its skills are clean and physical: the
+"plain" palette (white, steel, dust), rings, dust, streaks, glints; no spray, petals, embers,
+tentacles or other signature material. `_col()` already falls back to "plain"; gate the
+material with `_elem()` (or `_spray()` for the cutlass) and give the plain version its own
+weight (Kraken's Wake: a dust gather and rings instead of tentacles). Tier 2
+(`elemental(tree, 2)`) puts the element on the basics: the trail of lights and heavies in the
+tree's edge colour, `FX.elem_hit` on each light/heavy/plunge hit (PowerComponent.on_sword_hit).
+Projectiles carry it as model `"elem"`. Film both: `AB_TIER=0` and the default 2.
+
 ## Primitives (FX.*; all callable through Net.fx)
 
 | Call | What | Use for |
@@ -118,6 +128,7 @@ all five. Repeated hits (flurries) get small per-hit accents and one bigger one 
 # "riposte_counter"), style, views (game,side,front3,top), frames, span s, start s
 & $env:GODOT --path . --script res://tools/dev/abilityshot.gd -- res://tools/dev/out/abil/x kraken_wake sword game,side 10 2.2
 $env:AB_HOUR='21'   # at night: does it glow?
+$env:AB_TIER='0'    # mastery tier 0/1/2 (default 2): the plain version before the element
 ```
 
 Read every sheet: does each layer appear when it should, is the tree colour right, is the

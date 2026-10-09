@@ -139,7 +139,7 @@ func _physics_process(delta: float) -> void:
 			_mesh.rotation.x -= 22.0 * delta
 		_:
 			# a wake of spray behind it
-			if int(_travel / 1.4) != int((_travel - step.length()) / 1.4):
+			if _elemental() and int(_travel / 1.4) != int((_travel - step.length()) / 1.4):
 				var at := global_position + Vector3.UP * (0.8 if kind == "wave" else 0.0)
 				FX.spray(at, -dir + Vector3.UP * 0.4, 3 if kind == "slash" else 5, FX.tree_col(_tree(), FX.ACCENT), 2.5)
 	if _travel >= range_m:
@@ -192,7 +192,8 @@ func _cut(at: Vector3) -> void:
 		var hit_at := (e as Node3D).global_position + Vector3(0, 1.0, 0)
 		FX.impact(hit_at, FX.tree_col(_tree(), FX.ACCENT))
 		if kind != "axe":
-			FX.spray(hit_at, dir + Vector3.UP * 0.3, 10, FX.tree_col(_tree(), FX.ACCENT), 5.0)
+			if _elemental():
+				FX.spray(hit_at, dir + Vector3.UP * 0.3, 10, FX.tree_col(_tree(), FX.ACCENT), 5.0)
 			FX.ring(hit_at, dir, 1.1, FX.tree_col(_tree(), FX.EDGE), 0.22, 0.2)
 
 
@@ -246,6 +247,13 @@ func _finish() -> void:
 	tw.tween_callback(queue_free)
 
 
-## Whose colours it flies in (FX.TREE_FX).
+## Whose colours it flies in (FX.TREE_FX): a slash or a wave wears its tree's
+## only when launched with model "elem" (the element awakened), plain steel otherwise.
 func _tree() -> String:
+	if kind in ["slash", "wave"] and model != "elem":
+		return "plain"
 	return {"slash": "sword", "wave": "katana", "axe": "axe"}.get(kind, "unarmed")
+
+
+func _elemental() -> bool:
+	return _tree() != "plain"

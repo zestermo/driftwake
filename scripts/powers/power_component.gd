@@ -373,6 +373,14 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	if hit.haki and buff("coat") and _ryuo_cd <= 0.0 and target is Node3D and player.is_local \
 			and player.current_state_name() in ["HeavyAttack", "Iai", "Plunge"] and player.progression.skill_tier("armament_coat") >= 3:
 		_ryuo(target as Node3D)
+	# the element on every blow (the tree's second mastery passive): combo and heavy hits throw it
+	var tree := SkillTree.style_tree(st)
+	if player.is_local and tree != "" and target is Node3D and player.progression.elemental(tree, 2) \
+			and player.current_state_name() in ["LightAttack", "HeavyAttack", "Plunge"]:
+		var hit_at := (target as Node3D).global_position + Vector3(0, 1.0, 0)
+		var away := hit_at - player.global_position
+		away.y = 0.0
+		Net.fx("elem_hit", [tree, hit_at, away.normalized() if away.length() > 0.05 else Vector3.FORWARD])
 	if fruit == "ember" and player.progression.has_flag("kindled_blade") and target is Node3D and not suppressed():
 		BurnStatus.apply(target as Node3D, 1.6, 5.0, player)
 	if player.is_local and player.armed and target is Node3D:

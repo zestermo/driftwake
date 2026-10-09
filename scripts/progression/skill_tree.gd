@@ -124,6 +124,7 @@ static func _build() -> void:
 	_build_axe()
 	_build_dual()
 	_build_pistol()
+	_build_mastery()
 	_build_fruits()
 
 
@@ -274,6 +275,31 @@ static func _build_unarmed() -> void:
 		"The last hit of your combo lands 40% harder.")
 	_add("u_tempo", "Fighting Rhythm", "passive", R, _g(3, 4), ["u_chi"], {"cdr_unarmed": 0.2},
 		"Unarmed techniques come back 20% sooner.")
+
+
+## Each weapon's element, awakened by two mastery passives: the first shows it
+## on the tree's skills and ultimate, the second on every blow. Placed the same
+## on every grid: the first beside the middle skill, the second under the top stat.
+## tree: [prefix, region, link 1, link 2, name 1, name 2, element (for the text)]
+const MASTERY := {
+	"sword": ["s", "Cutlass", "s_flying", "s_captain", "Call of the Tide", "Tidewalker", "the sea: spray and foam, and Kraken's Wake raises the deep under your foes"],
+	"katana": ["k", "Katana", "k_tiger", "k_saint", "Falling Petals", "Blossom Path", "pale steel light and falling petals"],
+	"axe": ["a", "Axe", "a_overhead", "a_warlord", "Ember Heart", "Living Fire", "embers and splintered stone"],
+	"dual": ["d", "Dual Wield", "d_dance", "d_master", "Twin Currents", "Crossing Storm", "twin currents of light, cyan and violet"],
+	"pistol": ["g", "Pistol", "g_storm", "g_legend", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
+	"unarmed": ["u", "Unarmed", "u_palm", "u_thousand", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
+}
+
+static func _build_mastery() -> void:
+	for tr in MASTERY.keys():
+		var m: Array = MASTERY[tr]
+		_tree = tr
+		var p: String = m[0]
+		_add(p + "_elem", m[4], "passive", m[1], _g(-1.5, 2), [m[2]], {"elem_" + tr: 1},
+			"Mastery. Your %s skills awaken: %s." % [str(m[1]).to_lower(), m[6]], {"level": 8}, "", 2)
+		_add(p + "_elem2", m[5], "passive", m[1], _g(-1.5, 5), [m[3]], {"elem2_" + tr: 1},
+			"Mastery. The element follows every blow: your %s combo and heavy attack carry it too." % str(m[1]).to_lower(),
+			{"level": 16, "node": p + "_elem"}, "", 3)
 
 
 static func _build_cutlass() -> void:

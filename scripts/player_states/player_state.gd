@@ -4,6 +4,50 @@ class_name PlayerState
 var player: Player
 var input_buffer: InputBuffer
 
+## Right-click fatigue: each heavy within FATIGUE_WINDOW s of the last costs
+## FATIGUE_STEP more stamina (and stamina waits longer to come back); a light
+## attack or a pause resets it. The same heavy again within READ_WINDOW s grows
+## predictable: READ_CHANCE[repeats] that a grunt reads it (HitData.predictable).
+const FATIGUE_WINDOW := 3.0
+const FATIGUE_STEP := 0.5
+const READ_WINDOW := 4.0
+const READ_CHANCE := [0.0, 0.35, 0.6, 0.8]
+## The guns reload after a gun kata.
+const KATA_RELOAD := 1.2
+static var _heavy_chain := 0
+static var _heavy_at := -100.0
+static var _repeat := 0
+static var _repeat_move := ""
+static var _repeat_at := -100.0
+static var reload_until := -100.0
+
+
+static func now_s() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
+## A heavy started (`move`: which one): fatigue and repetition.
+func _heavy_used(move: String) -> void:
+	var t := now_s()
+	var chain := _heavy_chain if t - _heavy_at < FATIGUE_WINDOW else 0
+	_heavy_chain = chain + 1
+	_heavy_at = t
+	player._stamina_delay = player.STAMINA_REGEN_DELAY * (1.0 + 0.5 * chain)
+	_repeat = mini(_repeat + 1, READ_CHANCE.size() - 1) if move == _repeat_move and t - _repeat_at < READ_WINDOW else 0
+	_repeat_move = move
+	_repeat_at = t
+
+
+## How likely a grunt reads the heavy being thrown now.
+static func read_chance() -> float:
+	return float(READ_CHANCE[_repeat])
+
+
+## What a right-click costs now (more each time in a row).
+func heavy_cost() -> float:
+	var chain := _heavy_chain if now_s() - _heavy_at < FATIGUE_WINDOW else 0
+	return player.HEAVY_COST * player.attack_cost_k() * pow(1.0 + FATIGUE_STEP, chain)
+
 
 func _ready() -> void:
 	await owner.ready
@@ -59,9 +103,10 @@ func combat_input() -> String:
 	if input_buffer.consume_action("light_attack"):
 		if player.can_attack():
 			if player.weapon_class() == "gun":
-				return "Shoot"
+				return "Shoot" if now_s() >= reload_until else ""
 			if not player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()):
 				return ""
+			_heavy_chain = 0
 			# (out of a sprint: the katana's quick draw, the cutlass's running cut)
 			var st := player.style()
 			player.quick_draw = player.sprinting and ((st == "katana" and player.progression.has_move("quick_draw"))
@@ -71,9 +116,13 @@ func combat_input() -> String:
 		return ""
 	if input_buffer.consume_action("heavy_attack"):
 		if player.can_attack():
-			if not player.spend_stamina(player.HEAVY_COST * player.attack_cost_k()):
+			if player.style() == "dual_pistol" and now_s() < reload_until:
 				return ""
-			return "Iai" if player.style() == "katana" else "HeavyAttack"
+			if not player.spend_stamina(heavy_cost()):
+				return ""
+			var next := "Iai" if player.style() == "katana" else "HeavyAttack"
+			_heavy_used(next + ":" + player.style())
+			return next
 		player.draw_weapon()
 		return ""
 	if input_buffer.consume_action("parry"):

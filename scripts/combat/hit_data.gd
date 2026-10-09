@@ -28,3 +28,6 @@ class_name HitData
 @export var breaker: bool = false
 ## Cannon fire: the only thing that damages a ship's hull.
 @export var siege: bool = false
+## A heavy the player keeps repeating (0..1): the chance a grunt who saw it
+## coming reads it and steps out of it or guards (PlayerState.heavy_used).
+@export var predictable: float = 0.0

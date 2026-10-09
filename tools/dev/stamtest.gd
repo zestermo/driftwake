@@ -34,7 +34,7 @@ func _process(d: float) -> bool:
 			check("sprint speed is 9", is_equal_approx(p.sprint_speed, 9.0))
 			act("ready_weapon"); wait = 0.7; step = 1
 		1:
-			# spam heavy: 100 stamina / 30 = 4 attacks, the 5th is refused
+			# spam heavy: 30, then 45 (fatigue), and the third (67.5) is refused
 			if p.current_state_name() == "HeavyAttack":
 				return false
 			if heavies < 6:
@@ -43,7 +43,10 @@ func _process(d: float) -> bool:
 			step = 2
 		2:
 			check("cutlass heavy is a thrust", seen_anims.has("thrust") and not seen_anims.has("heavy"))
-			check("stamina ran out (%.1f)" % p.stamina, p.stamina < p.HEAVY_COST)
+			var cost: float = p.state_machine.current_state.heavy_cost()
+			check("stamina ran out (%.1f, a heavy costs %.1f now)" % [p.stamina, cost], p.stamina < cost)
+			# (regen may have crept back to half the cost, which is enough to try)
+			p.stamina = minf(p.stamina, cost * 0.4)
 			var before: float = p.stamina
 			act("heavy_attack"); wait = 0.1; step = 3
 			set_meta("before", before)

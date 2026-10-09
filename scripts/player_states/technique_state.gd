@@ -89,7 +89,10 @@ func enter(data: Dictionary) -> void:
 			player.hurtbox.set_deferred("monitorable", false)
 			player.body_model.play("kraken_cut", dur)
 			Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 0.6])
-			Net.fx("gather", [player.global_position + Vector3(0, 0.9, 0), 2.6, _col(FX.ACCENT), 0.4, 26])
+			if _elem():
+				Net.fx("gather", [player.global_position + Vector3(0, 0.9, 0), 2.6, _col(FX.ACCENT), 0.4, 26])
+			else:
+				Net.fx("dust_ring", [player.global_position, 12, 0.9])
 			Net.fx("ring", [player.global_position, Vector3.UP, 3.5, _col(), 0.45, 0.08])
 			_moment(0.4, 0.25, 0.45, 0.2)
 		"wind_sever":
@@ -212,7 +215,7 @@ func physics_update(delta: float) -> void:
 				var tip := _chest() + _dir * (1.5 if last else 1.2)
 				Net.fx("slash", [player.player_model, "thrust", 0.14, _col(FX.ACCENT)])
 				Net.fx("ring", [tip, _dir, 1.5 if last else 0.6, _col(), 0.24 if last else 0.14, 0.18])
-				Net.fx("spray", [tip, _dir + Vector3.UP * 0.25, 14 if last else 4, _col(FX.ACCENT), 7.0 if last else 4.5])
+				_spray(tip, _dir + Vector3.UP * 0.25, 14 if last else 4, 7.0 if last else 4.5)
 				Net.fx("sfx", ["whoosh", player.global_position, -7.0, 0.1, 1.3 + _hits * 0.06])
 				if last:
 					Net.fx("streak", [_chest() + _dir * 0.4, _chest() + _dir * 3.6, _col(), 0.12, 0.22])
@@ -362,8 +365,20 @@ func _tree() -> String:
 	return tr if FX.TREE_FX.has(tr) else "haki"
 
 
+## The tree's element awakened (its first mastery passive): until then the
+## technique shows plain steel, no element.
+func _elem() -> bool:
+	return player.progression.elemental(_tree())
+
+
 func _col(which: int = 1) -> Color:
-	return FX.tree_col(_tree(), which)
+	return FX.tree_col(_tree() if _elem() else "plain", which)
+
+
+## The element thrown along `dir` (sea spray for the cutlass), if it's awakened.
+func _spray(at: Vector3, dir: Vector3, amount: int, speed: float) -> void:
+	if _elem():
+		Net.fx("spray", [at, dir, amount, _col(FX.ACCENT), speed])
 
 
 ## Where the held blade's point is (FX at the tip).
@@ -594,7 +609,7 @@ func _riposte_cut() -> void:
 			# the backhand answer: the real blade's trail, spray thrown off its edge
 			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
 			var right := _dir.cross(Vector3.UP)
-			Net.fx("spray", [_chest() + _dir * 0.8, right * 0.8 + _dir * 0.6 + Vector3.UP * 0.2, 12, _col(FX.ACCENT), 6.0])
+			_spray(_chest() + _dir * 0.8, right * 0.8 + _dir * 0.6 + Vector3.UP * 0.2, 12, 6.0)
 	CombatManager.apply_camera_shake(0.15)
 
 
@@ -619,14 +634,14 @@ func _kraken(delta: float) -> void:
 			var at := e.global_position + Vector3(0, 1.0, 0)
 			Net.fx("streak", [from, _chest(), _col(), 0.16, 0.35])
 			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
-			Net.fx("spray", [at, through + Vector3.UP * 0.4, 12, _col(FX.ACCENT), 6.0])
+			_spray(at, through + Vector3.UP * 0.4, 12, 6.0)
 			Net.fx("glint", [at, _col(FX.CORE), 1.0])
 			Net.fx("sfx", ["whoosh", player.global_position, -4.0, 0.1, 1.5])
 	else:
 		_rooted(delta, 0.0)
 	# the sea draws up round you while you gather
 	if t < KRAKEN_GATHER and int(t * 12.0) != int((t - delta) * 12.0):
-		Net.fx("spray", [player.global_position + Vector3(randf_range(-1.6, 1.6), 0.1, randf_range(-1.6, 1.6)), Vector3.UP, 4, _col(FX.ACCENT), 3.0])
+		_spray(player.global_position + Vector3(randf_range(-1.6, 1.6), 0.1, randf_range(-1.6, 1.6)), Vector3.UP, 4, 3.0)
 	# a held breath with your back to them, then it all tears open
 	if _once("still", dur - 0.75):
 		Net.fx("glint", [_blade_tip(), _col(FX.CORE), 1.3])
@@ -641,11 +656,16 @@ func _kraken(delta: float) -> void:
 				hd.sever = true
 				_strike(e, hd)
 				var at := (e as Node3D).global_position
-				Net.fx("water_tentacles", [at, 3.2, _col(), 4, k * 17 + 3])
+				if _elem():
+					Net.fx("water_tentacles", [at, 3.2, _col(), 4, k * 17 + 3])
+				else:
+					Net.fx("ring", [at, Vector3.UP, 2.2, _col(), 0.35, 0.12])
+					Net.fx("dust_ring", [at, 12, 1.0])
 				Net.fx("impact", [at + Vector3(0, 1.0, 0), _col(FX.ACCENT)])
 				k += 1
 		Net.fx("ring", [player.global_position, Vector3.UP, 9.0, _col(), 0.6, 0.06])
-		Net.fx("sfx", ["splash_big", player.global_position, 2.0, 0.05, 0.8])
+		if _elem():
+			Net.fx("sfx", ["splash_big", player.global_position, 2.0, 0.05, 0.8])
 		Net.fx("sfx", ["whoosh_big", player.global_position, 3.0, 0.05, 0.6])
 		CombatManager.apply_camera_shake(0.5)
 		CombatManager.apply_hitstop(0.1, [player])

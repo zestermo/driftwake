@@ -1099,6 +1099,29 @@ func _glint() -> void:
 	Net.fx("sfx", ["blip_high", tip, -14.0, 0.05, 1.6])
 
 
+const BARK_READ := ["Saw that coming!", "Same trick twice?", "Not again!", "Too slow!"]
+
+## Read a heavy the player keeps repeating: a swordsman turns it on his guard,
+## a rifleman steps out of the way. No damage either way.
+func _read_heavy(dir: Vector3) -> void:
+	var at := global_position + Vector3(0, 1.25, 0) - dir * 0.5
+	bark(BARK_READ, 0.7)
+	Net.fx("float_text", [global_position + Vector3(0, 2.3, 0), "Read!", Color(1.0, 0.82, 0.4), 24])
+	if role == "sword":
+		Net.fx("impact", [at, Color(1.0, 0.95, 0.7)])
+		Net.fx("sparkle", [at, 8, Color(1.0, 0.9, 0.5)])
+		Net.fx("sfx", ["block", at, -2.0, 0.05, 1.2])
+		humanoid.play("block", 0.4)
+		velocity = dir * 3.0
+		_riposte = true
+		_set_state(S.BLOCK)
+	else:
+		var side := dir.cross(Vector3.UP).normalized() * (1.0 if _rng.randf() < 0.5 else -1.0)
+		velocity = side * 7.0 + Vector3.UP * 1.5
+		Net.fx("dust", [global_position, 5, 0.5])
+		Net.fx("sfx", ["whoosh", global_position, -6.0, 0.1, 1.3])
+
+
 # ==========================================================================
 # Getting hit
 # ==========================================================================
@@ -1172,6 +1195,11 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.IDLE or state == S.RETURN:
 		alert()
 		guarding = false
+	# the same heavy again: it saw that coming (HitData.predictable)
+	if hit.predictable > 0.0 and from_front and state in [S.CIRCLE, S.CHASE, S.ALERT, S.BLOCK, S.CLOSE, S.KEEP, S.REPOSITION] \
+			and _rng.randf() < hit.predictable:
+		_read_heavy(dir)
+		return
 
 	# blocked: sparks, no damage (until the guard breaks)
 	# (a cutlass can't stop a bullet)

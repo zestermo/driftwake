@@ -1053,6 +1053,8 @@ const TREE_FX := {
 	"pistol": [Color(1.0, 0.95, 0.75), Color(1.0, 0.75, 0.25), Color(0.7, 0.7, 0.68)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
+	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
+	"plain": [Color(1.0, 1.0, 1.0), Color(0.88, 0.9, 0.95), Color(0.8, 0.76, 0.68)],
 }
 const CORE := 0
 const EDGE := 1
@@ -1200,6 +1202,20 @@ func water_tentacles(pos: Vector3, height: float = 3.0, color: Color = Color(0.3
 	tw.tween_callback(holder.queue_free)
 	spray(pos + Vector3.UP * 0.2, Vector3.UP, 18, color.lerp(Color.WHITE, 0.6), 7.0)
 	ring(pos, Vector3.UP, 2.4, color.lerp(Color.WHITE, 0.4), 0.4)
+
+
+## A blow landing with the weapon's element awakened (its tree's second mastery
+## passive): the tree's material thrown off the hit along `dir`.
+func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
+	var edge := tree_col(tree, EDGE)
+	var accent := tree_col(tree, ACCENT)
+	match tree:
+		"sword":
+			spray(pos, dir + Vector3.UP * 0.3, 8, accent, 5.0)
+			ring(pos, dir, 0.9, edge, 0.18, 0.2)
+		_:
+			sparkle(pos, 6, accent)
+			ring(pos, dir, 0.8, edge, 0.18, 0.2)
 
 
 ## A flash over the whole screen (an ultimate's moment), for a camera near `at`.

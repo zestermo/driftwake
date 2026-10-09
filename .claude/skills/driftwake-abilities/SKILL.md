@@ -57,7 +57,9 @@ timeline with one-shots `_once("key", t_seconds)`; `t >= dur` finishes. Helpers:
 - hits: `_cone(reach, cos, base, knock, down, unblock)`, `_ring(...)`, `_spin_hits(...)`,
   `_hd(base, knock, down)` (through `player.melee_hit(base, "skill")`), `_strike(e, hd)`,
   `_strike_toward(e, hd, push)` (knockback along `push`), `_split(...)` (a line).
-- show: `_tree()`, `_col(FX.EDGE)`, `_blade_tip()`, `_chest()`, `_moment(slow, secs, kick, flash)`.
+- show: `_tree()`, `_col(FX.EDGE)` ("plain" until mastered), `_elem()` (the tree's tier-1
+  mastery), `_spray(at, dir, amount, speed)` (only with it), `_blade_tip()`, `_chest()`,
+  `_moment(slow, secs, kick, flash)`.
 - `_refund(why)` when there's nothing to use it on (gives energy/ult and the cooldown back).
 
 ## The beat sheet (write this first)
@@ -98,6 +100,21 @@ Every ability gets: its tree colours (`_col`), a glint before blade strikes, the
 (blade_swoosh / projectile / ring), impacts in the accent colour. Ultimates add the moment and
 one effect only they have. Effects go through `Net.fx`; slow motion, hit-stop, camera kick and
 shake stay local.
+
+The element is locked behind the tree's mastery passives (`SkillTree.MASTERY`: tier 1 at level 8
+after the mid-tree skill, tier 2 at level 16 after the late one and tier 1). Write both versions:
+a clean physical one (plain palette, rings, dust) that still reads, and the elemental layer
+behind `_elem()`. Tier 2 colours the basics (light/heavy trails, `FX.elem_hit`).
+
+## Spam limits (balance)
+
+Right-click heavies chained within 3 s cost x1.5 each (`PlayerState.heavy_cost`, the chain
+reset by a light attack) and delay stamina regen; the same heavy (`state:style`) again within
+4 s grows predictable (`read_chance` 0.35/0.6/0.8 on `HitData.predictable`) and a grunt facing
+it may read it (blocks or sidesteps, no damage). A new strong heavy should fit this: call
+`_heavy_used`, set `hit.predictable = read_chance()`, and cap what one press can do (the gun kata
+locks 3 targets then reloads; the full iai draw costs 20 extra; a hit breaks a charge).
+`balancetest` covers these.
 
 ## Co-op
 

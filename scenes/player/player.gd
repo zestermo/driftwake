@@ -519,6 +519,12 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if hit.knockdown:
 		knock_down(_last_hit_velocity)
 		return
+	# a hit while you're charging the iai breaks the charge, steadfast or not
+	if current_state_name() == "Iai" and int(state_machine.current_state.get("phase")) == 0:
+		_toast("Charge broken!")
+		state_machine.force_state("Stagger", {"stagger_duration": 0.45, "knockback_dir": dir,
+			"knockback_force": minf(hit.knockback_force * 0.6, 4.0), "flinch": false})
+		return
 	if progression.has_flag("steadfast"):
 		return  # Steadfast: light hits don't make you flinch
 	state_machine.force_state("Stagger", {"stagger_duration": clampf(hit.stagger_duration * 0.5, 0.12, 0.22),
