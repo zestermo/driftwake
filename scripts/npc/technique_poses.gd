@@ -118,12 +118,14 @@ static func pose(h, n: String, u: float) -> Array:
 			var low := {"hips": Vector3(0, 0.25, 0), "arm_r": Vector3(-0.2, 0.3, 0.5), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(0.3, 0, 0),
 				"torso": Vector3(-0.4, 0.8, 0.1), "head": Vector3(0.3, -0.6, 0),
 				"leg_l": Vector3(0.5, 0, -0.14), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.4, 0, 0.14), "shin_r": Vector3(-0.8, 0, 0),
-				"_lift": Vector3(0, -0.22, 0)}
+				"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.04, 0.94, 1.0)}
 			var rise := {"hips": Vector3(0, -0.2, 0), "arm_r": Vector3(2.7, -0.3, -0.4), "fore_r": Vector3(0.3, 0, 0), "hand_r": Vector3(-0.6, 0, 0),
 				"torso": Vector3(0.15, -0.6, -0.1), "head": Vector3(-0.1, 0.4, 0),
 				"leg_l": Vector3(1.0, 0, -0.14), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.8, 0, 0.14), "shin_r": Vector3(-0.2, 0, 0),
 				"_lift": Vector3(0, -0.06, 0)}
-			return [h._keys(u, [[0.0, g], [0.28, low, "out"], [0.36, low], [0.46, rise, "out"], [0.72, rise], [1.0, g]]), "full", lift]
+			# (stretched up along the cut, the blade smeared, on the one fast key)
+			var whip := rise.merged({"_scale": Vector3(0.97, 1.07, 1.0), "_smear": Vector3(0.7, 0, 0)}, true)
+			return [h._keys(u, [[0.0, g], [0.28, low, "out"], [0.36, low], [0.46, whip, "out"], [0.52, rise], [0.72, rise], [1.0, g]]), "full", lift]
 		"phantom_cut":
 			# arriving crouched behind them, then one flat cut round to the right
 			var arrive := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.4, -0.6, 0), "head": Vector3(0.3, 0.5, 0),
@@ -136,21 +138,39 @@ static func pose(h, n: String, u: float) -> Array:
 				"arm_l": Vector3(-0.4, 0, -0.8), "fore_l": Vector3(0.3, 0, 0),
 				"leg_l": Vector3(1.1, 0, -0.14), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.85, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0),
 				"_lift": Vector3(0, -0.26, 0)}
-			return [h._keys(u, [[0.0, arrive], [0.12, arrive], [0.27, cut, "out"], [0.65, cut], [1.0, g]]), "full", lift]
+			var whip := cut.merged({"_scale": Vector3(1.07, 0.97, 1.0), "_smear": Vector3(0.7, 0, 0)}, true)
+			var low := arrive.merged({"_scale": Vector3(1.04, 0.94, 1.02)}, true)
+			return [h._keys(u, [[0.0, low], [0.12, low], [0.27, whip, "out"], [0.33, cut], [0.65, cut], [1.0, g]]), "full", lift]
 		"petal_storm":
-			# one wide drawing cut, held, then slowly straightening to stand with the blade
-			# held low and back at your side, head bowed, as everything round you falls
-			# (it lands at 1.08 s)
+			# the blade slipped home, crouched low with the hand on the hilt while it
+			# gathers, one wide drawing cut round to the right (0.46 s), held, then
+			# slowly straightening as the blade slides home (sheathed with a click at
+			# 1.4 s), head bowed, hand resting on the hilt as everything round you falls
+			var ev: Dictionary = h._action["events"]
+			if s >= 0.06 and h.weapon_in_hand and not ev.has("saya"):
+				ev["saya"] = true
+				h._attach_weapon(false)
+			if s >= 0.44 and not ev.has("draw"):
+				ev["draw"] = true
+				h._attach_weapon(true)
+			if s >= 1.38 and h.weapon_in_hand and not ev.has("home"):
+				ev["home"] = true
+				h._attach_weapon(false)
+			var crouch: Dictionary = h._iai_pose().merged({"hips": Vector3(0, -0.35, 0),
+				"leg_l": Vector3(0.95, 0, -0.16), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(-0.45, 0, 0.18), "shin_r": Vector3(-1.05, 0, 0),
+				"_lift": Vector3(0, -0.36, 0), "_scale": Vector3(1.04, 0.94, 1.02)}, true)
 			var flick := {"hips": Vector3(0, 0.3, 0), "arm_r": Vector3(1.45, -0.55, 1.3), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
 				"torso": Vector3(-0.3, 0.9, 0.1), "head": Vector3(0.25, -0.7, 0), "arm_l": Vector3(-0.5, 0, -0.9), "fore_l": Vector3(0.35, 0, 0),
 				"leg_l": Vector3(1.2, 0, -0.14), "shin_l": Vector3(-1.45, 0, 0), "leg_r": Vector3(-0.95, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0),
 				"_lift": Vector3(0, -0.32, 0)}
-			var home := {"hips": Vector3(0, -0.2, 0), "arm_r": Vector3(0.3, 0.0, 0.5), "fore_r": Vector3(0.2, 0, 0), "hand_r": Vector3(1.0, 0, 0),
+			var whip := flick.merged({"_scale": Vector3(1.08, 0.97, 1.0), "_smear": Vector3(0.8, 0, 0)}, true)
+			var home := {"hips": Vector3(0, -0.15, 0), "arm_r": Vector3(0.7, 0.9, -0.45), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3.ZERO,
 				"arm_l": Vector3(0.25, -0.2, -0.15), "fore_l": Vector3(1.0, 0, 0),
-				"torso": Vector3(-0.08, -0.3, 0), "head": Vector3(-0.3, 0.2, 0),
+				"torso": Vector3(-0.12, -0.25, 0.02), "head": Vector3(-0.35, 0.15, 0),
 				"leg_l": Vector3(0.35, 0, -0.14), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.3, 0, 0.14), "shin_r": Vector3(-0.4, 0, 0),
-				"_lift": Vector3(0, -0.12, 0)}
-			return [h._keys(u, [[0.0, g], [0.08, flick, "out"], [0.25, flick], [1.08 / T, home, "in"], [0.88, home], [1.0, g]]), "full", lift]
+				"_lift": Vector3(0, -0.1, 0)}
+			return [h._keys(u, [[0.0, g], [0.12 / T, crouch, "out"], [0.42 / T, crouch], [0.48 / T, whip, "out"], [0.56 / T, flick], [0.75 / T, flick],
+				[1.38 / T, home, "in"], [1.0 - 0.15 / T, home], [1.0, g]]), "full", lift]
 		# --- axe ---
 		"axe_throw":
 			# the axe drawn back over the shoulder, the off hand pointing, then hurled

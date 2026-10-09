@@ -41,6 +41,7 @@ const SOUNDS := {
 var _dust_mat: StandardMaterial3D
 var _spark_mat: StandardMaterial3D
 var _impact_mat: StandardMaterial3D
+var _petal_mat: StandardMaterial3D
 var _flame_mat: StandardMaterial3D
 var _flame_ramp: Gradient
 var _slash_mat: ShaderMaterial
@@ -62,6 +63,8 @@ func _ready() -> void:
 	_dust_mat = _billboard_mat("res://assets/textures/fx/dust.png", false)
 	_spark_mat = _billboard_mat("res://assets/textures/fx/sparkle.png", true)
 	_impact_mat = _billboard_mat("res://assets/textures/fx/impact.png", true)
+	_petal_mat = _billboard_mat("res://assets/textures/fx/dust.png", false)
+	_petal_mat.albedo_texture = _petal_texture()
 	_flame_mat = _billboard_mat("res://assets/textures/fx/dust.png", true)
 	_flame_ramp = Gradient.new()
 	_flame_ramp.offsets = PackedFloat32Array([0.0, 0.25, 0.6, 1.0])
@@ -104,6 +107,20 @@ func _billboard_mat(tex_path: String, additive: bool) -> StandardMaterial3D:
 		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	m.no_depth_test = false
 	return m
+
+
+## A petal: a pointed oval, a shade paler toward its tip (8x8, tinted per burst).
+static func _petal_texture() -> ImageTexture:
+	var img := Image.create(8, 8, false, Image.FORMAT_RGBA8)
+	for y in range(8):
+		for x in range(8):
+			var u := (x - 3.5) / 3.5
+			var v := (y - 3.5) / 3.9
+			var w := 1.0 - (v + 1.0) * 0.3
+			if u * u / maxf(w * w, 0.01) + v * v <= 1.0:
+				var shade := 0.8 + 0.2 * (1.0 - y / 7.0)
+				img.set_pixel(x, y, Color(shade, shade, shade, 1.0))
+	return ImageTexture.create_from_image(img)
 
 
 func _scene_root() -> Node:
@@ -1119,6 +1136,39 @@ func spray(pos: Vector3, dir: Vector3, amount: int = 12, color: Color = Color(0.
 		"vel_min": 0.6, "vel_max": 1.6, "gravity": Vector3(0, 0.3, 0), "damping": 2.0, "color": Color(color.r, color.g, color.b, 0.45)})
 
 
+## Petals thrown along `dir` that tumble and drift down slowly (the katana's
+## element, as spray is the cutlass's).
+func petals(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1.0, 0.62, 0.8), speed: float = 4.0) -> void:
+	var p := _burst(pos, amount, _petal_mat, 0.14, 1.6, {"radius": 0.3, "direction": dir.normalized(), "spread": 50.0,
+		"vel_min": speed * 0.35, "vel_max": speed, "gravity": Vector3(0, -1.3, 0), "damping": 2.4, "hold": true,
+		"scale_min": 0.6, "scale_max": 1.15, "explosiveness": 0.85, "color": Color(color.r, color.g, color.b, 1.0)})
+	if p:
+		p.angle_max = 360.0
+		p.angular_velocity_min = -420.0
+		p.angular_velocity_max = 420.0
+
+
+## Cuts flashing through a body one after another (Thousand Petals): `count`
+## thin lines at random angles across the space round `pos` over `secs`. Seeded,
+## so every screen draws the same cuts.
+func cut_lines(pos: Vector3, count: int = 10, color: Color = Color.WHITE, secs: float = 0.7, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	var tw := holder.create_tween()
+	for i in range(count):
+		var c := pos + Vector3(rng.randf_range(-0.3, 0.3), rng.randf_range(0.5, 1.6), rng.randf_range(-0.3, 0.3))
+		var d := Vector3(rng.randf_range(-1.0, 1.0), rng.randf_range(-0.7, 0.7), rng.randf_range(-1.0, 1.0)).normalized()
+		var half := rng.randf_range(0.7, 1.25)
+		tw.tween_interval(secs / count)
+		tw.tween_callback(streak.bind(c - d * half, c + d * half, color, 0.07, 0.18))
+	tw.tween_callback(holder.queue_free)
+
+
 ## Power drawn in to `pos` from all round (a wind-up, a charge): motes on a
 ## sphere of `radius` rushing to the middle over `secs`.
 func gather(pos: Vector3, radius: float = 1.2, color: Color = Color.WHITE, secs: float = 0.4, amount: int = 16) -> void:
@@ -1213,6 +1263,9 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"sword":
 			spray(pos, dir + Vector3.UP * 0.3, 8, accent, 5.0)
 			ring(pos, dir, 0.9, edge, 0.18, 0.2)
+		"katana":
+			petals(pos, dir + Vector3.UP * 0.4, 7, accent, 3.5)
+			ring(pos, dir, 0.9, edge, 0.16, 0.12)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

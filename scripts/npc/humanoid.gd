@@ -732,7 +732,10 @@ func _katana_hands() -> void:
 	match current_action():
 		"iai_ready":
 			_hands_on_scabbard()
-		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash", "drink", "petal_storm":
+		"petal_storm":
+			if not weapon_in_hand:
+				_hands_on_scabbard()
+		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash", "drink":
 			pass
 		_:
 			if _run_sheath and not weapon_in_hand:

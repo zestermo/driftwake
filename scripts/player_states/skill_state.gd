@@ -127,6 +127,9 @@ func enter(data: Dictionary) -> void:
 			player.hurtbox.set_deferred("monitorable", false)
 			player.body_model.play("thrust", dur)
 			Net.fx("sfx", ["whoosh_big", player.global_position, -3.0, 0.05, 1.2])
+			_last_pos = player.global_position + Vector3(0, 1.1, 0)
+			Net.fx("glint", [_last_pos + _dir * 0.6, FX.tree_col("katana", FX.CORE), 0.8])
+			Net.fx("blade_swoosh", [player.body_model, 0.38, _tiger_col()])
 		"bullet_storm":
 			dur = 0.75
 			_dir = get_camera_forward()
@@ -485,8 +488,17 @@ func _tiger(delta: float) -> void:
 	player.velocity.x = _dir.x * spd
 	player.velocity.z = _dir.z * spd
 	player.move_and_slide()
-	if t >= 0.38 and not player.hurtbox.monitorable:
+	var col := _tiger_col()
+	var elem := player.progression.elemental("katana")
+	if t >= 0.38 and not _fired:
+		_fired = true
 		player.hurtbox.set_deferred("monitorable", true)
+		# the line you cut along, the air closing where you stop
+		var to := player.global_position + Vector3(0, 1.1, 0)
+		Net.fx("streak", [_last_pos, to, col, 0.12, 0.35])
+		Net.fx("ring", [to + _dir * 0.4, _dir, 1.4, col, 0.25, 0.14])
+		if elem:
+			Net.fx("petals", [to, -_dir + Vector3.UP * 0.5, 12, FX.tree_col("katana", FX.ACCENT), 3.0])
 	if t < 0.42:
 		for e in _pc.enemies_in(player.global_position + Vector3(0, 0.9, 0), 1.5):
 			if e in _hit:
@@ -502,9 +514,17 @@ func _tiger(delta: float) -> void:
 				hd.camera_shake_intensity = 0.15
 				hb.take_hit(hd, player)
 				_pc.add_ult(hd.damage)
-				Net.fx("slash", [player.player_model, "right", 0.2])
+				var at := (e as Node3D).global_position + Vector3(0, 1.1, 0)
+				Net.fx("impact", [at, FX.tree_col("katana" if elem else "plain", FX.ACCENT)])
+				if elem:
+					Net.fx("petals", [at, _dir + Vector3.UP * 0.3, 8, FX.tree_col("katana", FX.ACCENT), 3.5])
 		if int(t * 30.0) % 2 == 0:
-			Net.fx("afterimage", [player.body_model, Color(0.75, 0.9, 1.0), 0.18])
+			Net.fx("afterimage", [player.body_model, col, 0.18])
+
+
+## Tiger Rush wears the katana tree's colours (plain steel until its element wakes).
+func _tiger_col() -> Color:
+	return FX.tree_col("katana" if player.progression.elemental("katana") else "plain", FX.EDGE)
 
 
 func _fang(delta: float) -> void:

@@ -26,7 +26,7 @@ const STYLES := {
 	# two-handed: slow, wide cuts with a held wind-up, hitting hard
 	"katana": {"anims": ["katana_r", "katana_l", "katana_stab"], "trails": ["kesa_r", "sweep_l", "thrust"],
 		"durations": [0.62, 0.62, 0.7], "impulses": [5.0, 5.0, 9.0],
-		"damages": [16.0, 18.0, 26.0], "hitstops": [0.06, 0.06, 0.1], "shakes": [0.1, 0.1, 0.18],
+		"damages": [18.0, 20.0, 30.0], "hitstops": [0.06, 0.06, 0.1], "shakes": [0.1, 0.1, 0.18],
 		"reach": "katana", "color": Color(0.85, 0.92, 1.0)},
 	# katana, attacked at a sprint: a quick cut straight out of the scabbard,
 	# stepping in a little; catches the target mid-move (breaks wind-ups, staggers)

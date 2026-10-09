@@ -15,13 +15,13 @@ const RECOVER := 0.42
 const FULL_COST := 20.0
 const FULL_RECOVER := 0.6
 const CREEP := 0.2          # x move speed while charging
-const COLORS := [Color(0.85, 0.92, 1.0), Color(0.55, 0.8, 1.0), Color(1.0, 0.82, 0.35)]
 
 var phase: int = 0   # 0 charging, 1 dashing cut, 2 recovering, 3 standing down
 var timer: float = 0.0
 var level: int = 0
 var _top: int = 2
 var _dir := Vector3.ZERO
+var _from := Vector3.ZERO
 
 
 func enter(_data: Dictionary) -> void:
@@ -66,6 +66,10 @@ func physics_update(delta: float) -> void:
 				phase = 2
 				timer = 0.0
 				player.set_collision_mask_value(12, true)
+				# the line you cut along, and the air closing behind you
+				var to := player.global_position + Vector3.UP * 1.1
+				Net.fx("streak", [_from, to, _col(), 0.08 + 0.03 * level, 0.25 + 0.08 * level])
+				Net.fx("ring", [to + _dir * 0.4, _dir, 0.9 + 0.4 * level, _col(), 0.22, 0.14])
 		2, 3:
 			player.velocity.x = move_toward(player.velocity.x, 0.0, 40.0 * delta)
 			player.velocity.z = move_toward(player.velocity.z, 0.0, 40.0 * delta)
@@ -79,16 +83,24 @@ func physics_update(delta: float) -> void:
 				transitioned.emit(self, "Dodge", {})
 
 
-## A charge level reached: a glint off the guard and a rising ring.
+## The charge's colour: plain steel, the katana's pale steel-blue, white-hot at a
+## full draw (the tree's colours once its element is awakened).
+func _col(l: int = -1) -> Color:
+	var tr := "katana" if player.progression.elemental("katana") else "plain"
+	return [FX.tree_col(tr, FX.EDGE), FX.tree_col("katana", FX.EDGE), FX.tree_col("katana", FX.CORE)][level if l < 0 else l]
+
+
+## A charge level reached: power drawn in to the hilt, a glint off it; at the top
+## a ring round your feet.
 func _charged() -> void:
-	var at := player.global_position + Vector3.UP * 0.95
-	var w: Node3D = player.body_model.weapon
-	if w and is_instance_valid(w) and w.is_inside_tree():
-		at = w.global_position
-	Net.fx("sparkle", [at, 8 + 6 * level, COLORS[level]])
+	var at := (player.body_model.weapon as Node3D).global_position
+	Net.fx("gather", [at, 0.9 + 0.4 * level, _col(), 0.22, 8 + 6 * level])
+	Net.fx("glint", [at, _col(), 0.6 + 0.25 * level])
 	Net.fx("sfx", ["blip_high", at, -8.0, 0.0, 0.9 + 0.25 * level])
 	if level == _top:
-		Net.fx("impact", [at, COLORS[level]])
+		Net.fx("ring", [player.global_position, Vector3.UP, 1.6 + 0.6 * level, _col(), 0.35, 0.1])
+		if player.progression.elemental("katana"):
+			Net.fx("petals", [at, Vector3.UP, 6 + 4 * level, FX.tree_col("katana", FX.ACCENT), 1.5])
 
 
 ## Out of the scabbard in one cut, driving forward.
@@ -120,15 +132,20 @@ func _release() -> void:
 		hit.unblockable = true
 		hit.haki = true
 	player.sword_hitbox.activate(hit)
-	var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else COLORS[level]
-	Net.fx("slash", [player.player_model, "iai", 0.3 + 0.06 * level, col])
+	var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _col()
+	_from = player.global_position + Vector3.UP * 1.1
+	Net.fx("blade_swoosh", [player.body_model, 0.16, col])
 	Net.fx("sfx", ["whoosh_big", player.global_position, -3.0, 0.05, 1.35])
 	Net.fx("sfx", ["parry", player.global_position, -10.0 + 3.0 * level, 0.05, 1.5])
 	if level > 0:
 		Net.fx("afterimage", [player.body_model, col, 0.2 + 0.08 * level])
 	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 6 + 3 * level, 0.6])
+	if player.progression.elemental("katana"):
+		Net.fx("petals", [_from, -_dir + Vector3.UP * 0.5, 4 + 6 * level, FX.tree_col("katana", FX.ACCENT), 3.0])
 	player.squash(-2.0 - level)
 	CombatManager.apply_camera_shake(0.06 + 0.04 * level)
+	if full:
+		CombatManager.apply_camera_kick(0.25, 0.4)
 
 
 func exit() -> void:

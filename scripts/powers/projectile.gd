@@ -138,10 +138,13 @@ func _physics_process(delta: float) -> void:
 		"axe":
 			_mesh.rotation.x -= 22.0 * delta
 		_:
-			# a wake of spray behind it
-			if _elemental() and int(_travel / 1.4) != int((_travel - step.length()) / 1.4):
-				var at := global_position + Vector3.UP * (0.8 if kind == "wave" else 0.0)
-				FX.spray(at, -dir + Vector3.UP * 0.4, 3 if kind == "slash" else 5, FX.tree_col(_tree(), FX.ACCENT), 2.5)
+			# a wake behind it (the wave tears the ground up as it goes)
+			if int(_travel / 1.4) != int((_travel - step.length()) / 1.4):
+				if kind == "wave":
+					FX.dust(global_position, 4, 0.7)
+				if _elemental():
+					var at := global_position + Vector3.UP * (0.8 if kind == "wave" else 0.0)
+					_element(at, -dir + Vector3.UP * 0.4, 3 if kind == "slash" else 5, 2.5)
 	if _travel >= range_m:
 		if kind == "axe":
 			_turn_back()
@@ -193,8 +196,16 @@ func _cut(at: Vector3) -> void:
 		FX.impact(hit_at, FX.tree_col(_tree(), FX.ACCENT))
 		if kind != "axe":
 			if _elemental():
-				FX.spray(hit_at, dir + Vector3.UP * 0.3, 10, FX.tree_col(_tree(), FX.ACCENT), 5.0)
+				_element(hit_at, dir + Vector3.UP * 0.3, 10, 5.0)
 			FX.ring(hit_at, dir, 1.1, FX.tree_col(_tree(), FX.EDGE), 0.22, 0.2)
+
+
+## Its element thrown along `d`: sea spray off the cutlass's slash, petals off the katana's wave.
+func _element(at: Vector3, d: Vector3, amount: int, spd: float) -> void:
+	if kind == "wave":
+		FX.petals(at, d, amount, FX.tree_col(_tree(), FX.ACCENT), spd * 0.8)
+	else:
+		FX.spray(at, d, amount, FX.tree_col(_tree(), FX.ACCENT), spd)
 
 
 func _turn_back() -> void:

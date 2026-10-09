@@ -91,7 +91,7 @@ const ALL := {
 	"wind_sever": {"name": "Wind Severer", "tree": "katana", "cost": 20.0, "cooldown": 7.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
 		"desc": "A rising two-handed cut that sends a towering blade of wind tearing along the ground, knocking down everything it passes."},
 	"phantom_step": {"name": "Phantom Step", "tree": "katana", "cost": 18.0, "cooldown": 6.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
-		"desc": "Blink behind the nearest enemy (up to 9 m) and cut them down from behind before they can turn."},
+		"desc": "Blink behind the nearest enemy (up to 9 m) and cut them down from behind before they can turn. It can't be blocked."},
 	"petal_storm": {"name": "Thousand Petals", "tree": "katana", "cost": 0.0, "cooldown": 3.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Draw and sheathe in a single motion. A heartbeat later every enemy within 9 m is cut a dozen times at once, and falls."},
 	# --- Axe ---
