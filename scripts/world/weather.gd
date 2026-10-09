@@ -234,9 +234,6 @@ func _attach(scene: Node) -> void:
 	_ocean_mat = null
 	if om:
 		_ocean_mat = (om.material_override if om.material_override else om.mesh.surface_get_material(0)) as ShaderMaterial
-		if _ocean_mat:
-			_base_deep = _ocean_mat.get_shader_parameter("deep_color")
-			_base_shallow = _ocean_mat.get_shader_parameter("shallow_color")
 	_build_rain()
 	_build_rays()
 	_build_overlay()

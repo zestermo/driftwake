@@ -71,6 +71,7 @@ var shoal_fine: Texture2D
 var fine_rect := Vector4.ZERO
 ## The chain's islands built now ([texture, rect] each, GenIsland.shallows; two at most).
 const MAX_ISLES := 2
+const WATER_TEX := preload("res://assets/textures/psx/water.png")
 var isle_shoals: Array = []
 var _shoals_sent: Array = []
 
@@ -122,6 +123,8 @@ func _adopt_mesh() -> void:
 	var m := graded_mesh()
 	ocean_mesh.mesh = m
 	if ocean_material:
+		# (exported builds dropped the parameters saved in ocean.tscn: the colours are the shader's defaults)
+		ocean_material.set_shader_parameter("water_tex", WATER_TEX)
 		ocean_mesh.material_override = ocean_material
 	# (it covers far more than it seems: don't let culling drop it)
 	ocean_mesh.extra_cull_margin = 16.0

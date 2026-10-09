@@ -6,11 +6,11 @@ render_mode blend_mix, depth_draw_always, cull_back, diffuse_lambert, specular_s
 #include "res://shaders/psx/psx_common.gdshaderinc"
 #include "res://shaders/world/cloud_shadow.gdshaderinc"
 
-uniform vec4 deep_color : source_color = vec4(0.02, 0.08, 0.22, 0.95);
-uniform vec4 shallow_color : source_color = vec4(0.08, 0.35, 0.45, 0.8);
+uniform vec4 deep_color : source_color = vec4(0.05, 0.16, 0.3, 0.95);
+uniform vec4 shallow_color : source_color = vec4(0.2, 0.5, 0.6, 0.8);
 uniform vec4 foam_color : source_color = vec4(0.9, 0.95, 1.0, 1.0);
 uniform sampler2D water_tex : source_color, filter_nearest_mipmap, repeat_enable, hint_default_white;
-uniform float water_tex_scale = 0.08;
+uniform float water_tex_scale = 0.14;
 uniform vec2 water_scroll = vec2(0.02, 0.012);
 
 // The swell (pushed by OceanManager._send_waves from its WAVES table):
