@@ -98,6 +98,8 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `lineup`: Renders a lineup of character looks. Args: <out.png> <mode: full|heads|back> [seed]
 - `mapshot`: (no description)
 - `mockup`: Style mockup: same cast in a given style. Args: <style> <mode: full|heads|back> <out.png>
+- `modelshot`: Any procedural model (a GDScript expression returning a Node3D, Mesh or MeshBuilder; several split by " | " stand in a row) auto-framed from a few views in the game's light, a contact sheet (`<out>_sheet.png`) and "MS" lines: size, tris, surfaces (draw calls), triangles per material, colliders, lights. Views front/front3/side/back/back3/top/low/far/eye/wire or "yaw:pitch:zoom". Env MS_GROUND (texture or none), MS_HOUR, MS_PSX (preset), MS_ZOOM, MS_FOCUS (a point in the model's coordinates), MS_ROW (y/z). `S.` is model_samples.gd, `S.body()` the captain for scale. Args: <out_prefix> "<expr>[ | <expr>]" [views]
+- `model_samples`: Not a tool: worked examples for the modeling skill (anchor, ship's lantern, naval cannon) built with add_extrude, add_tube, lathed lofts; `body()` for scale in modelshot rows.
 - `moveshot`: Player: neck portrait, dash off-hand, plunge attack frames. Args: <out_prefix>
 - `npcs`: (no description)
 - `perf`: (no description)

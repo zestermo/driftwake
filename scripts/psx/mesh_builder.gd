@@ -638,6 +638,145 @@ static func _fold(t1: Array, w1: Vector3, t2: Array, w2: Vector3) -> float:
 	return n1.dot(n2)
 
 
+## Unit circle cross-section: add_loft with rings [y, r, r] and this profile is
+## a lathe (barrels, bells, pots, lamp glass, cannon barrels, columns). Start
+## and end on a ring with r > 0 (u is measured round the first ring).
+static func profile_circle(sides: int = 8) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(sides):
+		var a := TAU * float(i) / sides
+		pts.append(Vector2(cos(a), sin(a)))
+	return pts
+
+
+## A flat shape cut from a plank: `outline` (local x, y; either winding, may be
+## concave, no holes) extruded `depth` along local Z, centred on z = 0. Flat
+## shaded; the faces map the texture by position, the sides by perimeter.
+## For silhouettes boxes can't make: axe heads, anchors, shaped signs, arches.
+func add_extrude(mat: Material, xf: Transform3D, outline: PackedVector2Array, depth: float,
+		uv_scale: float = 1.0, col: Color = Color.WHITE, side_mat: Material = null) -> void:
+	var tris := Geometry2D.triangulate_polygon(outline)
+	if tris.is_empty():
+		push_error("MeshBuilder.add_extrude: the outline doesn't triangulate (self-crossing, or under 3 points)")
+		return
+	var bn := xf.basis.inverse().transposed()
+	var h := depth * 0.5
+	for zs in [1.0, -1.0]:
+		var n := (bn * Vector3(0, 0, zs)).normalized()
+		for k in range(0, tris.size(), 3):
+			var q0 := outline[tris[k]]
+			var q1 := outline[tris[k + 1]]
+			var q2 := outline[tris[k + 2]]
+			add_tri(mat, xf * Vector3(q0.x, q0.y, zs * h), xf * Vector3(q1.x, q1.y, zs * h), xf * Vector3(q2.x, q2.y, zs * h),
+				n, n, n, Vector2(q0.x, -q0.y) * uv_scale, Vector2(q1.x, -q1.y) * uv_scale, Vector2(q2.x, -q2.y) * uv_scale, col, n)
+	var sm := side_mat if side_mat else mat
+	var area := 0.0
+	for i in range(outline.size()):
+		area += outline[i].cross(outline[(i + 1) % outline.size()])
+	var u := 0.0
+	var dv := depth * uv_scale
+	for i in range(outline.size()):
+		var a := outline[i]
+		var b := outline[(i + 1) % outline.size()]
+		var e := b - a
+		var out := Vector2(e.y, -e.x) if area > 0.0 else Vector2(-e.y, e.x)
+		var n := (bn * Vector3(out.x, out.y, 0)).normalized()
+		var du := e.length() * uv_scale
+		add_quad(sm, xf * Vector3(a.x, a.y, h), xf * Vector3(b.x, b.y, h), xf * Vector3(b.x, b.y, -h), xf * Vector3(a.x, a.y, -h),
+			Vector2(u, 0), Vector2(u + du, 0), Vector2(u + du, dv), Vector2(u, dv), col, n)
+		u += du
+
+
+## A round tube through `points` (builder space): rope and rigging with sag,
+## branches, vines, tentacles, a serpent's body, curved rails. Tapers from r0
+## at the first point to r1 at the last (r1 < 0: no taper). The rings are
+## carried along the path without twisting. Smooth shaded unless `flat`.
+func add_tube(mat: Material, points: PackedVector3Array, r0: float, r1: float = -1.0, sides: int = 5,
+		uv_scale: float = 1.0, col: Color = Color.WHITE, cap_start: bool = false, cap_end: bool = false,
+		flat: bool = false) -> void:
+	var np := points.size()
+	if np < 2:
+		push_error("MeshBuilder.add_tube: needs at least 2 points")
+		return
+	if r1 < 0.0:
+		r1 = r0
+	var lens := PackedFloat32Array([0.0])
+	for i in range(1, np):
+		lens.append(lens[i - 1] + points[i].distance_to(points[i - 1]))
+	var total := maxf(lens[np - 1], 0.0001)
+	var tans := PackedVector3Array()
+	for i in range(np):
+		tans.append((points[mini(i + 1, np - 1)] - points[maxi(i - 1, 0)]).normalized())
+	var side := tans[0].cross(Vector3.UP if absf(tans[0].y) < 0.9 else Vector3.RIGHT).normalized()
+	var rings: Array = []
+	var dirs: Array = []
+	for i in range(np):
+		if i > 0:
+			var axis := tans[i - 1].cross(tans[i])
+			if axis.length_squared() > 1e-10:
+				side = side.rotated(axis.normalized(), tans[i - 1].angle_to(tans[i]))
+			side = (side - tans[i] * side.dot(tans[i])).normalized()
+		var up := tans[i].cross(side).normalized()
+		var r := lerpf(r0, r1, lens[i] / total)
+		var ring := PackedVector3Array()
+		var dr := PackedVector3Array()
+		for s in range(sides):
+			var a := TAU * float(s) / sides
+			var d := side * cos(a) + up * sin(a)
+			dr.append(d)
+			ring.append(points[i] + d * r)
+		rings.append(ring)
+		dirs.append(dr)
+	var circ := TAU * maxf(r0, r1) * uv_scale
+	for i in range(np - 1):
+		var v0 := lens[i] * uv_scale
+		var v1 := lens[i + 1] * uv_scale
+		for s in range(sides):
+			var s1 := (s + 1) % sides
+			var pa: Vector3 = rings[i][s]
+			var pb: Vector3 = rings[i][s1]
+			var pc: Vector3 = rings[i + 1][s1]
+			var pd: Vector3 = rings[i + 1][s]
+			var na: Vector3 = dirs[i][s]
+			var nb: Vector3 = dirs[i][s1]
+			var nc: Vector3 = dirs[i + 1][s1]
+			var nd: Vector3 = dirs[i + 1][s]
+			if flat:
+				na = (na + nb + nc + nd).normalized()
+				nb = na; nc = na; nd = na
+			var u0 := float(s) / sides * circ
+			var u1 := float(s + 1) / sides * circ
+			add_tri(mat, pa, pb, pc, na, nb, nc, Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), col, na + nb + nc)
+			add_tri(mat, pa, pc, pd, na, nc, nd, Vector2(u0, v0), Vector2(u1, v1), Vector2(u0, v1), col, na + nc + nd)
+	for cap in [[cap_start, 0, -tans[0]], [cap_end, np - 1, tans[np - 1]]]:
+		if not cap[0]:
+			continue
+		var ring: PackedVector3Array = rings[cap[1]]
+		var c: Vector3 = points[cap[1]]
+		var cn: Vector3 = cap[2]
+		for s in range(sides):
+			add_tri(mat, c, ring[s], ring[(s + 1) % sides], cn, cn, cn, Vector2.ZERO, Vector2(uv_scale * 0.1, 0), Vector2(0, uv_scale * 0.1), col, cn)
+
+
+## Points along a rope hung from a to b, sagging `droop` m at the middle (for add_tube).
+static func sag_points(a: Vector3, b: Vector3, droop: float, n: int = 8) -> PackedVector3Array:
+	var pts := PackedVector3Array()
+	for i in range(n + 1):
+		var t := float(i) / n
+		pts.append(a.lerp(b, t) + Vector3.DOWN * droop * 4.0 * t * (1.0 - t))
+	return pts
+
+
+## Points along a curve from a to b pulled toward `ctrl` (quadratic Bezier):
+## horns, branches, tails, ribs, arches (for add_tube, or as loft centres).
+static func curve_points(a: Vector3, ctrl: Vector3, b: Vector3, n: int = 8) -> PackedVector3Array:
+	var pts := PackedVector3Array()
+	for i in range(n + 1):
+		var t := float(i) / n
+		pts.append(a.lerp(ctrl, t).lerp(ctrl.lerp(b, t), t))
+	return pts
+
+
 ## Average the normals of vertices that share a position (within `eps`) and
 ## face roughly the same way (dot > `min_dot`), across every surface, so two
 ## tubes that meet ring to ring shade as one surface.

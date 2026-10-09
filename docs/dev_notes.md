@@ -657,6 +657,25 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   swing, timing, a symptom -> cause table, the tools and check targets.
 - Tests: fixtest, feat, stamtest. Renders: animsheet lab:slash_r, lab:slash_l with AS_TRACE.
 
+## 2026-10-08: modeling skill, modelshot, new MeshBuilder primitives
+- .claude/skills/driftwake-modeling/SKILL.md: how models are built here (builders, conventions,
+  scale table from the player capsule/jump/slope, materials and draw calls, texel density, a
+  primitive cheat sheet with its gotchas, a build recipe, measured budgets, recipes per kind of
+  model, tools, a symptom -> cause table), from the village, ship and weapon rounds.
+- MeshBuilder: `add_extrude` (a 2D outline, concave fine, extruded along local Z: axe heads,
+  guards, flukes, stepped carriage cheeks), `add_tube` (round tube through points, tapering,
+  parallel-transported rings: rope, branches, tails, rings), `profile_circle` (add_loft with
+  rings [y, r, r] = a lathe), `sag_points` (hanging rope), `curve_points` (quadratic Bezier).
+  Nothing existing uses them yet.
+- tools/dev/modelshot.gd: renders any builder expression (or a row of them, or statements
+  ending in return) high over the sea on a ground slab, framed to fit the bounds' corners, the
+  views of your choice plus a contact sheet, and prints size, tris, surfaces, tris per material,
+  colliders, lights. tools/dev/model_samples.gd: anchor, lantern, cannon as worked examples,
+  `body()` for scale. Measured: lantern 304 tris / 2 surfaces, anchor 671 / 3, cannon 976 / 4,
+  smithy 731 / 14, enemy sloop 2066 / 11 (888 of it rope boxes), war axe 120 / 4.
+- Renders: modelshot of the samples, the smithy (front3, eye, wire, back3, a night close-up
+  of the anvil), the jolly sloop, weapons stacked along y at MS_PSX=0, a body beside a house.
+
 ## 2026-10-08: cutlass combo hit 3 on a swing path (slash_spin)
 - The cutlass light combo's finisher is now `slash_spin` (SwordMoves, ActionSpecs; the boss
   still plays the keyed `spin_slash`). It chains from hit 2's coil: dip, unwind, hop into a
