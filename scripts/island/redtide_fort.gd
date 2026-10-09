@@ -1,11 +1,11 @@
 extends Node3D
 class_name RedtideFort
 ## Redtide Rock: a sea stack north of Brinehollow with a palisade fort on
-## top - Captain Morrow "Red Tide"'s hideout. A jetty to tie up at, a ramp
-## up the cliff, a gate with guards, and the captain himself waiting in front
-## of his tent. Two guns on the south wall shoot at the crew's ship while
-## the captain still holds the rock. Pirate ships patrol these waters (see
-## EnemyFleet).
+## top - Captain Morrow "Red Tide"'s hideout. A jetty to tie up at, a stone
+## stair cut into a rubble spur curling up the cliff, a gate with guards, and
+## the captain himself waiting in front of his tent; sea stacks round the
+## rock and crags rearing up behind the arena. Pirate ships patrol these
+## waters (see EnemyFleet).
 ##
 ## The fight (host decides, everyone sees): step inside the walls and Morrow
 ## comes for you. Phase two calls his crew over the walls. If every captain
@@ -31,12 +31,10 @@ var boss_gen: int = 0
 var crew_gen: int = 0
 var crew: Array = []
 var guards: GruntCamp
-var guns: Array = []
 var _empty_t: float = 0.0
 var _dead_t: float = 0.0
 var _celebrated: bool = false
 var _arrived: bool = false
-var _gun_t: float = 6.0
 var _boss_ui: bool = false
 
 
@@ -51,98 +49,419 @@ func _ready() -> void:
 # The rock and the fort
 # ==========================================================================
 func _build() -> void:
+	_noise.seed = 4242
+	_noise.frequency = 0.09
+	_wave.seed = 4243
+	_wave.frequency = 0.35
+	_rock_m = PSXMat.lit("rock", Color(0.78, 0.74, 0.7), {"affine": 0.5})
+	_top_m = PSXMat.lit("dirt", Color(0.9, 0.85, 0.78), {"affine": 0.5})
+	_grass_m = PSXMat.lit("grass", Color(0.78, 0.82, 0.62), {"affine": 0.5})
 	var body := StaticBody3D.new()
 	body.name = "Rock"
 	body.collision_layer = 1
 	body.collision_mask = 0
 	add_child(body)
-	var rock := PSXMat.lit("rock", Color(0.78, 0.74, 0.7), {"affine": 0.5})
-	var top := PSXMat.lit("dirt", Color(0.9, 0.85, 0.78), {"affine": 0.5})
-	var rings := [[-26.0, 31.0], [-6.0, 26.0], [0.3, 23.5], [2.5, 22.4], [5.3, 21.4], [TOP, 20.6]]
-	var n := 18
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 4242
-	var pts: Array = []
-	for r in rings:
-		var row: Array = []
-		for k in range(n):
-			var a := TAU * k / n
-			var j := 1.0 if r[0] >= TOP else rng.randf_range(0.9, 1.1)
-			row.append(Vector3(cos(a) * float(r[1]) * j, float(r[0]) + (0.0 if r[0] >= TOP else rng.randf_range(-0.4, 0.4)), sin(a) * float(r[1]) * j))
-		pts.append(row)
 	var mb := MeshBuilder.new()
-	for i in range(pts.size() - 1):
-		for k in range(n):
-			var a: Vector3 = pts[i][k]
-			var b: Vector3 = pts[i][(k + 1) % n]
-			var c: Vector3 = pts[i + 1][(k + 1) % n]
-			var d: Vector3 = pts[i + 1][k]
-			var nrm := ((a + b + c + d) * 0.25 * Vector3(1, 0, 1)).normalized()
-			var u0 := float(k) * 2.0
-			mb.add_quad(rock, a, b, c, d, Vector2(u0, a.y * 0.25), Vector2(u0 + 2.0, b.y * 0.25), Vector2(u0 + 2.0, c.y * 0.25), Vector2(u0, d.y * 0.25), Color.WHITE, nrm)
-	var top_row: Array = pts[pts.size() - 1]
-	for k in range(n):
-		var a: Vector3 = top_row[k]
-		var b: Vector3 = top_row[(k + 1) % n]
-		mb.add_tri(top, Vector3(0, TOP, 0), b, a, Vector3.UP, Vector3.UP, Vector3.UP, Vector2(0, 0), Vector2(b.x, b.z) * 0.2, Vector2(a.x, a.z) * 0.2, Color.WHITE, Vector3.UP)
+	_build_stack(mb)
+	_build_spur(mb)
 	var rock_mi := mb.to_instance("RockMesh")
 	body.add_child(rock_mi)
 	var cs := CollisionShape3D.new()
 	cs.shape = rock_mi.mesh.create_trimesh_shape()
 	body.add_child(cs)
-	# a few boulders at the waterline
+	# a few boulders at the waterline (clear of the stair and the jetty)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
 	for k in range(9):
 		var a := TAU * (k + 0.37) / 9.0
-		var rr := Props.rock_mesh(900 + k, rng.randf_range(1.6, 3.2))
+		if a > 1.0 and a < 2.05:
+			continue
 		var mi := MeshInstance3D.new()
-		mi.mesh = rr
-		mi.position = Vector3(cos(a) * 24.5, rng.randf_range(-0.6, 0.6), sin(a) * 24.5)
+		mi.mesh = Props.rock_mesh(900 + k, rng.randf_range(1.6, 3.2))
+		mi.position = Vector3(cos(a) * (_stack_r(a, 0.0) + 0.8), rng.randf_range(-0.6, 0.6), sin(a) * (_stack_r(a, 0.0) + 0.8))
 		add_child(mi)
-
-	# the jetty and the ramp up the cliff (south, toward Brinehollow)
+	# the jetty (south, toward Brinehollow) and the stone stair up to the gate
 	var jetty := Props.dock(16.0, 3.6, 1.7, -8.0)
 	jetty.position = Vector3(0, 0, 34.0)
 	add_child(jetty)
-	var planks := PSXMat.lit("planks_weathered", Color.WHITE, {"affine": 0.5})
-	var dark := PSXMat.lit("planks_dark")
-	var r0 := Vector3(0, 1.7, 34.2)
-	var r1 := Vector3(0, TOP, 19.8)
-	var dir := r1 - r0
-	var ramp_b := Basis.looking_at(dir.normalized(), Vector3.UP)
-	var ramp := MeshBuilder.new()
-	ramp.add_box(planks, Transform3D(ramp_b, (r0 + r1) * 0.5 + Vector3(0, -0.12, 0)), Vector3(3.2, 0.24, dir.length()), 0.5)
-	var steps := 12
-	for s in range(steps):
-		var p := r0.lerp(r1, (s + 0.5) / steps)
-		ramp.add_box(dark, Transform3D(ramp_b, p + Vector3(0, 0.02, 0)), Vector3(3.3, 0.06, 0.12), 1.0)
-	for s in range(5):
-		for sx in [-1.7, 1.7]:
-			var p := r0.lerp(r1, s / 4.0)
-			ramp.add_box(dark, Transform3D(Basis(), p + Vector3(sx, -1.2, 0)), Vector3(0.18, 3.0, 0.18), 1.0)
-			ramp.add_box(dark, Transform3D(Basis(), p + Vector3(sx, 0.5, 0)), Vector3(0.12, 1.0, 0.12), 1.0)
-	for sx in [-1.7, 1.7]:
-		ramp.add_box(dark, Transform3D(ramp_b, (r0 + r1) * 0.5 + Vector3(sx, 0.95, 0)), Vector3(0.08, 0.1, dir.length()), 1.0)
-	var ramp_body := StaticBody3D.new()
-	ramp_body.name = "Ramp"
-	ramp_body.collision_layer = 1
-	add_child(ramp_body)
-	ramp_body.add_child(ramp.to_instance("RampMesh"))
-	var rc := CollisionShape3D.new()
-	var rbox := BoxShape3D.new()
-	rbox.size = Vector3(3.2, 0.3, dir.length() + 0.6)
-	rc.shape = rbox
-	rc.transform = Transform3D(ramp_b, (r0 + r1) * 0.5 + Vector3(0, -0.15, 0))
-	ramp_body.add_child(rc)
-	for sx in [-1.75, 1.75]:
-		var railc := CollisionShape3D.new()
-		var rb := BoxShape3D.new()
-		rb.size = Vector3(0.15, 1.1, dir.length())
-		railc.shape = rb
-		railc.transform = Transform3D(ramp_b, (r0 + r1) * 0.5 + Vector3(sx, 0.5, 0))
-		ramp_body.add_child(railc)
-
+	_build_path()
+	_build_crags()
 	_build_palisade()
 	_build_camp()
+
+
+# --------------------------------------------------------------------------
+# The rock: a faceted stack, buttresses down its cliffs, grass on its ledges
+# --------------------------------------------------------------------------
+## The cliff's mean radius by height (fort-local y), before noise and buttresses.
+const PROFILE := [[-14.0, 31.0], [-8.0, 28.0], [-3.0, 25.4], [0.0, 23.9], [1.5, 23.1], [3.0, 22.4], [4.3, 21.8], [5.3, 21.2], [TOP, 20.6]]
+const RINGS_Y := [-14.0, -9.0, -5.0, -2.0, 0.0, 1.2, 2.4, 3.4, 4.3, 5.2, TOP]
+const BEARINGS := 56
+## Rock buttresses bulging out of the cliff: [bearing, how far out (m)].
+const BUTTRESS := [[-0.4, 3.2], [-1.3, 4.0], [-2.2, 2.6], [2.6, 3.4], [0.45, 2.4], [3.4, 2.8]]
+## Where the stair runs up the east side (bearing, half-width): the cliff is kept clear there.
+const PATH_BEARING := 1.41
+const PATH_HALF := 0.3
+
+var _noise := FastNoiseLite.new()
+var _wave := FastNoiseLite.new()
+var _rock_m: Material
+var _top_m: Material
+var _grass_m: Material
+
+
+func _round(a: float, k: int) -> float:
+	return _wave.get_noise_2d(cos(a) * 3.0 + k * 50.0, sin(a) * 3.0)
+
+
+func _peak(a: float, at: float, width: float) -> float:
+	return exp(-pow(angle_difference(a, at) / width, 2.0))
+
+
+## 1 on the stair's side of the rock, 0 elsewhere.
+func _path_mask(a: float) -> float:
+	return 1.0 - smoothstep(PATH_HALF, PATH_HALF + 0.25, absf(angle_difference(a, PATH_BEARING)))
+
+
+## The cliff's radius at bearing `a`, height `y`.
+func _stack_r(a: float, y: float) -> float:
+	if y >= TOP - 0.01:
+		return maxf(20.6 + 0.9 * _round(a, 1), 20.1)
+	var base := float(PROFILE[0][1])
+	for i in range(PROFILE.size() - 1):
+		if y <= float(PROFILE[i + 1][0]):
+			var t := (y - float(PROFILE[i][0])) / (float(PROFILE[i + 1][0]) - float(PROFILE[i][0]))
+			base = lerpf(float(PROFILE[i][1]), float(PROFILE[i + 1][1]), t)
+			break
+	var n := 2.0 * _round(a, 0) + 1.2 * _noise.get_noise_3d(cos(a) * 25.0, y * 1.3, sin(a) * 25.0)
+	for b in BUTTRESS:
+		n += float(b[1]) * _peak(a, float(b[0]), 0.16) * clampf((TOP - y) / 8.0, 0.0, 1.0)
+	var m := _path_mask(a)
+	return base + n * (1.0 - 0.8 * m) - 1.2 * m * clampf((TOP - 0.5 - y) / 3.0, 0.0, 1.0)
+
+
+func _stack_pick(n: Vector3, m: Vector3) -> Material:
+	return _grass_m if n.y > 0.82 and m.y < TOP - 0.3 and m.y > 0.6 else _rock_m
+
+
+func _build_stack(mb: MeshBuilder) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4244
+	var pts: Array = []
+	for y in RINGS_Y:
+		var row: Array = []
+		for k in range(BEARINGS):
+			var a := TAU * k / BEARINGS
+			var r := _stack_r(a, float(y))
+			var jy := 0.0 if (y == RINGS_Y[0] or y >= TOP) else rng.randf_range(-0.3, 0.3)
+			row.append(Vector3(cos(a) * r, float(y) + jy, sin(a) * r))
+		pts.append(row)
+	for i in range(pts.size() - 1):
+		for k in range(BEARINGS):
+			var k2 := (k + 1) % BEARINGS
+			var a := TAU * (k + 0.5) / BEARINGS
+			_cell(mb, pts[i][k], pts[i][k2], pts[i + 1][k2], pts[i + 1][k], Vector3(cos(a), 0.0, sin(a)), _stack_pick, (i + k) % 2 == 0)
+	# the flat top (the fort stands on it): an inner disc and the ring out to the rim
+	var top_row: Array = pts[pts.size() - 1]
+	var c := Vector3(0, TOP, 0)
+	for k in range(BEARINGS):
+		var k2 := (k + 1) % BEARINGS
+		var a0 := TAU * k / BEARINGS
+		var a1 := TAU * k2 / BEARINGS
+		var i0 := Vector3(cos(a0) * 11.0, TOP, sin(a0) * 11.0)
+		var i1 := Vector3(cos(a1) * 11.0, TOP, sin(a1) * 11.0)
+		var r0: Vector3 = top_row[k]
+		var r1: Vector3 = top_row[k2]
+		mb.add_tri(_top_m, c, i1, i0, Vector3.UP, Vector3.UP, Vector3.UP, Vector2(c.x, c.z) * 0.25, Vector2(i1.x, i1.z) * 0.25, Vector2(i0.x, i0.z) * 0.25, Color.WHITE, Vector3.UP)
+		mb.add_quad(_top_m, i0, i1, r1, r0, Vector2(i0.x, i0.z) * 0.25, Vector2(i1.x, i1.z) * 0.25, Vector2(r1.x, r1.z) * 0.25, Vector2(r0.x, r0.z) * 0.25, Color(0.92, 0.92, 0.92), Vector3.UP)
+
+
+## Texture coordinates projected along the facet's main axis, offset per facet
+## (the rock texture's cracks don't line up into a grid).
+func _tuv(p: Vector3, n: Vector3, off: Vector2) -> Vector2:
+	var an := n.abs()
+	if an.y >= an.x and an.y >= an.z:
+		return Vector2(p.x, p.z) * 0.3 + off
+	if an.x >= an.z:
+		return Vector2(p.z, -p.y) * 0.3 + off
+	return Vector2(p.x, -p.y) * 0.3 + off
+
+
+## One flat facet facing the `hint` side, its material from `pick`, shaded in strata.
+func _facet(mb: MeshBuilder, a: Vector3, b: Vector3, c: Vector3, hint: Vector3, pick: Callable) -> void:
+	var n := (b - a).cross(c - a)
+	if n.length_squared() < 1e-8:
+		return
+	n = n.normalized()
+	if n.dot(hint) < 0.0:
+		n = -n
+	var m := (a + b + c) / 3.0
+	var band := 0.5 + 0.5 * sin(m.y * 1.7 + 2.0 * _noise.get_noise_2d(m.x * 3.0, m.z * 3.0))
+	var col := Color(1, 1, 1) * (0.74 + 0.26 * band)
+	col.a = 1.0
+	var off := Vector2(fposmod(m.x * 7.31 + m.z * 3.17, 1.0), fposmod(m.y * 5.13 + m.x * 2.71, 1.0))
+	mb.add_tri(pick.call(n, m), a, b, c, n, n, n, _tuv(a, n, off), _tuv(b, n, off), _tuv(c, n, off), col, n)
+
+
+func _cell(mb: MeshBuilder, a: Vector3, b: Vector3, c: Vector3, d: Vector3, hint: Vector3, pick: Callable, flip: bool) -> void:
+	if flip:
+		_facet(mb, a, b, c, hint, pick)
+		_facet(mb, a, c, d, hint, pick)
+	else:
+		_facet(mb, a, b, d, hint, pick)
+		_facet(mb, b, c, d, hint, pick)
+
+
+# --------------------------------------------------------------------------
+# The way up: stone steps on a rubble spur from the jetty round to the gate
+# --------------------------------------------------------------------------
+## The stair's line (fort-local, feet height): off the jetty's head, out east
+## round a buttress and back in to the gate.
+const PATH := [Vector3(0.0, 1.72, 33.9), Vector3(6.2, 2.9, 29.6), Vector3(8.2, 4.2, 24.8), Vector3(4.6, TOP - 0.03, 21.6), Vector3(0.0, TOP, 19.2)]
+const PATH_W := 3.0
+const STEP_RUN := 0.95
+
+
+## The stair's line as a smooth curve through PATH (sharp corners left a lip
+## on the inside of each bend), every ~0.25 m: [points], [distance along].
+var _curve: Array = []
+var _curve_s: PackedFloat32Array
+
+
+func _curve_pts() -> Array:
+	if not _curve.is_empty():
+		return _curve
+	var ctl: Array = [PATH[0]] + PATH + [PATH[PATH.size() - 1]]
+	for i in range(1, ctl.size() - 2):
+		var p0: Vector3 = ctl[i - 1]
+		var p1: Vector3 = ctl[i]
+		var p2: Vector3 = ctl[i + 1]
+		var p3: Vector3 = ctl[i + 2]
+		var n := int(p1.distance_to(p2) / 0.25) + 1
+		for k in range(n):
+			var t := float(k) / n
+			# Catmull-Rom
+			var t2 := t * t
+			var t3 := t2 * t
+			_curve.append(0.5 * ((2.0 * p1) + (p2 - p0) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2 + (3.0 * p1 - p0 - 3.0 * p2 + p3) * t3))
+	_curve.append(PATH[PATH.size() - 1])
+	_curve_s = PackedFloat32Array([0.0])
+	for i in range(1, _curve.size()):
+		_curve_s.append(_curve_s[i - 1] + (_curve[i] as Vector3).distance_to(_curve[i - 1]))
+	return _curve
+
+
+func _path_len() -> float:
+	_curve_pts()
+	return _curve_s[_curve_s.size() - 1]
+
+
+## [point, flat direction] at `s` metres along the stair.
+func _path_at(s: float) -> Array:
+	var pts := _curve_pts()
+	var i := clampi(_curve_s.bsearch(s) - 1, 0, pts.size() - 2)
+	var a: Vector3 = pts[i]
+	var b: Vector3 = pts[i + 1]
+	var t := clampf((s - _curve_s[i]) / maxf(_curve_s[i + 1] - _curve_s[i], 0.0001), 0.0, 1.0)
+	var d := b - a
+	d.y = 0.0
+	return [a.lerp(b, t), d.normalized()]
+
+
+## Flat distance from `p` to the stair's line.
+func _path_dist(p: Vector3) -> float:
+	var pts := _curve_pts()
+	var best := INF
+	var q := Vector2(p.x, p.z)
+	for i in range(pts.size() - 1):
+		var a := Vector2((pts[i] as Vector3).x, (pts[i] as Vector3).z)
+		var b := Vector2((pts[i + 1] as Vector3).x, (pts[i + 1] as Vector3).z)
+		best = minf(best, q.distance_to(Geometry2D.get_closest_point_to_segment(q, a, b)))
+	return best
+
+
+## The rubble mass the steps are cut into, from the stair's edges down into the sea.
+func _build_spur(mb: MeshBuilder) -> void:
+	var L := _path_len()
+	var n := int(L / 1.2) + 1
+	var rows: Array = []
+	for i in range(n + 1):
+		var at := _path_at(L * i / n)
+		var c: Vector3 = at[0]
+		var side := (at[1] as Vector3).cross(Vector3.UP).normalized()
+		var j := _noise.get_noise_2d(c.x * 2.0, c.z * 2.0)
+		var top_y := c.y - 0.42
+		rows.append([
+			c - side * (PATH_W * 0.5 + 3.4 + 1.2 * j) + Vector3(0, -6.0 - c.y, 0),
+			c - side * (PATH_W * 0.5 + 0.9 + 0.3 * j) + Vector3(0, top_y - c.y - 0.9, 0),
+			c - side * (PATH_W * 0.5 + 0.2) + Vector3(0, top_y - c.y, 0),
+			c + side * (PATH_W * 0.5 + 0.2) + Vector3(0, top_y - c.y, 0),
+			c + side * (PATH_W * 0.5 + 0.9 - 0.3 * j) + Vector3(0, top_y - c.y - 0.9, 0),
+			c + side * (PATH_W * 0.5 + 3.4 - 1.2 * j) + Vector3(0, -6.0 - c.y, 0),
+		])
+	for i in range(rows.size() - 1):
+		var r0: Array = rows[i]
+		var r1: Array = rows[i + 1]
+		for k in range(r0.size() - 1):
+			var mid: Vector3 = ((r0[k] as Vector3) + (r0[k + 1] as Vector3)) * 0.5
+			var c0: Vector3 = _path_at(_path_len() * i / (rows.size() - 1))[0]
+			var hint := (mid - c0 + Vector3(0, 0.5, 0)).normalized()
+			_cell(mb, r0[k], r0[k + 1], r1[k + 1], r1[k], hint, _stack_pick, (i + k) % 2 == 0)
+	# the foot of the spur by the jetty: closed off
+	var e: Array = rows[0]
+	var back := -(_path_at(0.0)[1] as Vector3)
+	for k in range(1, e.size() - 1):
+		_facet(mb, e[0], e[k], e[k + 1], back, _stack_pick)
+
+
+## The stone steps (flagstones, two to a step), boulders along the edges, and
+## a smooth ramp underneath to walk on (no step-up on stairs).
+func _build_path() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4245
+	var stone := PSXMat.lit("rock", Color(0.86, 0.82, 0.76), {"affine": 0.5})
+	var mb := MeshBuilder.new()
+	var L := _path_len()
+	var steps := int(L / STEP_RUN)
+	for i in range(steps):
+		var at := _path_at((i + 0.5) * L / steps)
+		var c: Vector3 = at[0]
+		var d: Vector3 = at[1]
+		var side := d.cross(Vector3.UP).normalized()
+		var yaw := atan2(-d.x, -d.z) + rng.randf_range(-0.05, 0.05)
+		var w1 := PATH_W * rng.randf_range(0.38, 0.62)
+		for half in [[-(PATH_W - w1) * 0.5, w1], [w1 * 0.5, PATH_W - w1]]:
+			var w: float = half[1] - 0.05
+			var x: float = half[0]
+			var top := c.y + rng.randf_range(-0.03, 0.03)
+			var shade := Color(1, 1, 1) * rng.randf_range(0.82, 1.0)
+			mb.add_box(stone, Transform3D(Basis(Vector3.UP, yaw), c + side * x + Vector3(0, top - c.y - 0.2, 0)), Vector3(w, 0.4, L / steps + 0.08), 0.5, shade)
+	# boulders along both edges, bigger ones at the turns
+	var body := StaticBody3D.new()
+	body.name = "Stair"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	add_child(body)
+	var s := 0.6
+	while s < L - 1.5:
+		var at := _path_at(s)
+		var c: Vector3 = at[0]
+		var side := (at[1] as Vector3).cross(Vector3.UP).normalized()
+		for sgn in [-1.0, 1.0]:
+			if rng.randf() < 0.3:
+				continue
+			var r := rng.randf_range(0.3, 0.75)
+			var p: Vector3 = c + side * float(sgn) * (PATH_W * 0.5 + 0.25 + r * 0.6) + Vector3(0, -0.35, 0)
+			# (on the inside of a bend it would sit on the next flight)
+			if _path_dist(p) < PATH_W * 0.5 + r * 0.85 + 0.05:
+				continue
+			mb.add_blob(_rock_m, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), p), Vector3(r * 1.2, r, r), rng, 0.25, 3, 6, 0.5, Color(1, 1, 1) * rng.randf_range(0.75, 0.95), 0.0)
+			if r > 0.55:
+				var bc := CollisionShape3D.new()
+				var sp := SphereShape3D.new()
+				sp.radius = r * 0.85
+				bc.shape = sp
+				bc.position = p + Vector3(0, r * 0.3, 0)
+				body.add_child(bc)
+		s += rng.randf_range(1.2, 2.0)
+	body.add_child(mb.to_instance("StairMesh"))
+	# what you walk on: one smooth ribbon along the stair's line (steps you
+	# can't step up; a smooth slope under them)
+	var faces := PackedVector3Array()
+	var prev_l := Vector3.ZERO
+	var prev_r := Vector3.ZERO
+	var n := int(L / 0.5) + 1
+	for i in range(n + 1):
+		var at := _path_at(L * i / n)
+		var c: Vector3 = at[0]
+		var side := (at[1] as Vector3).cross(Vector3.UP).normalized() * (PATH_W * 0.5 + 0.2)
+		var l := c - side
+		var r := c + side
+		if i > 0:
+			faces.append_array([prev_l, prev_r, r, prev_l, r, l])
+		prev_l = l
+		prev_r = r
+	# (and past the ends: onto the jetty's planks and over the rim)
+	var first := _path_at(0.0)
+	var last := _path_at(L)
+	for e in [[first[0], -(first[1] as Vector3)], [last[0], last[1]]]:
+		var c: Vector3 = e[0]
+		var d: Vector3 = e[1]
+		var side := d.cross(Vector3.UP).normalized() * (PATH_W * 0.5 + 0.2)
+		faces.append_array([c - side, c + side, c + side + d * 0.8, c - side, c + side + d * 0.8, c - side + d * 0.8])
+	var walk := ConcavePolygonShape3D.new()
+	walk.set_faces(faces)
+	walk.backface_collision = true
+	var wc := CollisionShape3D.new()
+	wc.shape = walk
+	body.add_child(wc)
+
+
+# --------------------------------------------------------------------------
+# Crags: sea stacks round the rock, rocks rearing up behind the arena
+# --------------------------------------------------------------------------
+## [bearing, distance, base radius, height above the sea, base y]
+const CRAGS := [
+	[-0.35, 34.0, 3.2, 12.0, -6.0], [-1.15, 38.5, 4.2, 16.0, -6.0], [-1.8, 31.5, 2.6, 8.0, -6.0],
+	[-2.5, 36.0, 3.6, 13.0, -6.0], [2.75, 33.5, 3.0, 9.5, -6.0], [0.4, 38.0, 2.4, 7.0, -6.0],
+	# behind the tent, out past the palisade, bedded in the rim
+	[-1.62, 21.8, 2.3, TOP + 8.5, TOP - 3.0], [-1.95, 21.2, 1.7, TOP + 5.5, TOP - 3.0],
+	[-1.28, 21.0, 1.5, TOP + 4.5, TOP - 3.0], [-2.35, 21.4, 1.9, TOP + 6.5, TOP - 3.0],
+]
+
+
+func _build_crags() -> void:
+	var body := StaticBody3D.new()
+	body.name = "Crags"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	add_child(body)
+	var mb := MeshBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4246
+	for cg in CRAGS:
+		var a: float = cg[0]
+		var at := Vector3(cos(a) * float(cg[1]), float(cg[4]), sin(a) * float(cg[1]))
+		var pts := _spire(mb, at, float(cg[2]), float(cg[3]) - float(cg[4]), rng)
+		var cs := CollisionShape3D.new()
+		var shape := ConvexPolygonShape3D.new()
+		shape.points = pts
+		cs.shape = shape
+		body.add_child(cs)
+	body.add_child(mb.to_instance("CragMesh"))
+
+
+## A jagged spire from `base` up `h` m: a faceted, leaning, tapering column.
+## Returns its points (for a convex collider).
+func _spire(mb: MeshBuilder, base: Vector3, r0: float, h: float, rng: RandomNumberGenerator) -> PackedVector3Array:
+	var sides := 7
+	var ts := [0.0, 0.3, 0.55, 0.75, 0.9]
+	var lean := Vector3(rng.randf_range(-0.12, 0.12), 0.0, rng.randf_range(-0.12, 0.12))
+	var rows: Array = []
+	var all := PackedVector3Array()
+	for t in ts:
+		var row: Array = []
+		var r := r0 * (1.0 - 0.78 * pow(float(t), 1.15))
+		for k in range(sides):
+			var a := TAU * (k + rng.randf_range(-0.2, 0.2)) / sides
+			var rr := r * rng.randf_range(0.75, 1.2)
+			var p := base + Vector3(cos(a) * rr, h * float(t) + rng.randf_range(-0.3, 0.3), sin(a) * rr) + lean * h * float(t)
+			row.append(p)
+			all.append(p)
+		rows.append(row)
+	var tip := base + Vector3(rng.randf_range(-0.3, 0.3), h, rng.randf_range(-0.3, 0.3)) + lean * h
+	all.append(tip)
+	for i in range(rows.size() - 1):
+		for k in range(sides):
+			var k2 := (k + 1) % sides
+			var a: Vector3 = rows[i][k]
+			var hint := Vector3(a.x - base.x, 0.0, a.z - base.z).normalized()
+			_cell(mb, rows[i][k], rows[i][k2], rows[i + 1][k2], rows[i + 1][k], hint, _stack_pick, (i + k) % 2 == 0)
+	var last: Array = rows[rows.size() - 1]
+	for k in range(sides):
+		var a: Vector3 = last[k]
+		_facet(mb, a, last[(k + 1) % sides], tip, Vector3(a.x - base.x, 0.4, a.z - base.z).normalized(), _stack_pick)
+	return all
 
 
 func _build_palisade() -> void:
@@ -265,35 +584,6 @@ func _build_camp() -> void:
 		_place(pr, p, rng.randf() * TAU)
 	_place(Props.weapon_rack(), Vector3(-8.0, TOP, -4.0), PI * 0.5)
 	_place(Props.weapon_rack(), Vector3(8.0, TOP, -4.0), -PI * 0.5)
-	# the fort's guns: on the south wall, covering the jetty
-	for sx in [-1.0, 1.0]:
-		var a: float = PI * 0.5 + float(sx) * 0.55
-		var gp := Vector3(cos(a) * (WALL_R - 0.6), TOP + 1.1, sin(a) * (WALL_R - 0.6))
-		var plat := MeshBuilder.new()
-		plat.add_box(PSXMat.lit("planks_dark"), Transform3D(Basis(), gp + Vector3(0, -0.6, 0)), Vector3(2.0, 1.2, 2.0), 1.0)
-		var pb := StaticBody3D.new()
-		pb.collision_layer = 1
-		add_child(pb)
-		pb.add_child(plat.to_instance("GunPlatform"))
-		var pcs := CollisionShape3D.new()
-		var pbx := BoxShape3D.new()
-		pbx.size = Vector3(2.0, 1.2, 2.0)
-		pcs.shape = pbx
-		pcs.position = gp + Vector3(0, -0.6, 0)
-		pb.add_child(pcs)
-		var g := ShipCannon.new()
-		g.name = "FortGun%d" % guns.size()
-		g.team = "enemy"
-		g.mannable = false
-		g.reload_time = 9.0
-		g.hull_damage = 22.0
-		g.splash_damage = 16.0
-		g.ship = pb
-		add_child(g)
-		g.position = gp
-		var out := Vector3(cos(a), 0, sin(a))
-		g.rotation.y = atan2(-out.x, -out.z)
-		guns.append(g)
 	# the gate guards
 	guards = GruntCamp.new()
 	guards.name = "Guards"
@@ -404,9 +694,6 @@ func _process(delta: float) -> void:
 		_victory()
 	if Net.is_client():
 		return
-	# the walls' guns at the crew's ship (only while a captain's aboard)
-	if alive:
-		_fort_guns(delta)
 	# step inside the walls and he comes for you
 	if alive and boss.state == PirateGrunt.S.IDLE:
 		for p in Net.all_players():
@@ -491,34 +778,3 @@ func _victory() -> void:
 		cm.position = Vector3.ZERO
 		cm.scale = Vector3.ONE * 1.3
 	FX.sparkle(bag.global_position + Vector3(0, 0.8, 0), 20, Color(1.0, 0.85, 0.4))
-
-
-func _fort_guns(delta: float) -> void:
-	_gun_t -= delta
-	if _gun_t > 0.0:
-		return
-	_gun_t = 4.5
-	var ship := get_tree().get_first_node_in_group("ship") as Node3D
-	if ship == null:
-		return
-	var aboard := false
-	for p in Net.all_players():
-		if (p as Node3D).global_position.distance_to(ship.global_position) < 9.0:
-			aboard = true
-	if not aboard:
-		return
-	for g in guns:
-		var c := g as ShipCannon
-		var d := c.global_position.distance_to(ship.global_position)
-		if d > 85.0 or d < 12.0 or not c.loaded():
-			continue
-		var spot := ship.global_position + (ship.call("hull_velocity") as Vector3) * (d / ShipCannon.MUZZLE_SPEED)
-		spot += Vector3(randf_range(-4.0, 4.0), 0.0, randf_range(-4.0, 4.0))
-		spot.y = 1.0
-		if c.aim_at(spot):
-			Net.fx("sparkle", [c.muzzle(), 6, Color(1.0, 0.5, 0.2)])
-			var gun := c
-			get_tree().create_timer(0.9).timeout.connect(func():
-				if is_instance_valid(gun):
-					gun.fire(self))
-			return  # one gun at a time

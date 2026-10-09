@@ -31,17 +31,17 @@ enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE, RAM, FLEE }
 ## [near, far], aim scatter, and how it fights (boards / rams / a second
 ## broadside right after the first / surrenders when beaten).
 const KINDS := {
-	"sloop": {"speed": 10.0, "hull": 260.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [24.0, 46.0], "scatter": 1.0,
-		"boards": true, "rams": false, "double": false, "yields": true,
+	"sloop": {"speed": 10.0, "hull": 260.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [30.0, 50.0], "scatter": 1.0,
+		"boards": true, "rams": true, "double": false, "yields": true,
 		"look": {"hull": Color(0.55, 0.45, 0.42), "deck": Color(0.75, 0.68, 0.6), "trim": Color(0.55, 0.12, 0.1), "sail": Color(0.22, 0.2, 0.2), "flag": Color(0.25, 0.22, 0.22), "emblem": "jolly"}},
-	"gunboat": {"speed": 13.0, "hull": 150.0, "guns": [-4.2, 0.6], "crew": 4, "range": [18.0, 34.0], "scatter": 1.25,
+	"gunboat": {"speed": 13.0, "hull": 150.0, "guns": [-4.2, 0.6], "crew": 4, "range": [28.0, 42.0], "scatter": 1.25,
 		"boards": true, "rams": true, "double": false, "yields": true,
 		"look": {"hull": Color(0.6, 0.4, 0.3), "deck": Color(0.8, 0.7, 0.55), "trim": Color(0.75, 0.55, 0.2), "sail": Color(0.62, 0.16, 0.12), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
-	"brig": {"speed": 8.0, "hull": 420.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [26.0, 50.0], "scatter": 1.0,
+	"brig": {"speed": 8.0, "hull": 420.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [32.0, 54.0], "scatter": 1.0,
 		"boards": true, "rams": true, "double": true, "yields": true,
 		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
 	"marine": {"speed": 11.0, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
-		"boards": false, "rams": false, "double": false, "yields": false,
+		"boards": false, "rams": true, "double": false, "yields": false,
 		"look": {"hull": Color(1.7, 1.7, 1.65), "deck": Color(0.8, 0.74, 0.64), "trim": Color(0.2, 0.32, 0.62), "sail": Color(0.95, 0.95, 0.92), "flag": Color(0.92, 0.92, 0.9), "emblem": "marine"}},
 }
 
@@ -54,11 +54,20 @@ const ALONGSIDE := 10.8
 const NOTICE := 150.0
 const LOSE := 240.0
 const FIRE_MAX := 64.0
-const VOLLEY_EVERY := 7.5
-const WARN := 1.0
-## Ramming: closing speed, hull damage dealt (x the rammer's speed share),
-## and how long before it tries again.
-const RAM_DAMAGE := 45.0
+const VOLLEY_EVERY := 10.0
+const WARN := 1.6
+## Closer than this they don't fire (the guns won't bear): they ram or board.
+const CLOSE := 24.0
+## A ship that's just started the chase waits this long before its first volley.
+const FIRST_VOLLEY := 6.0
+## No more than this many ships fight the crew at once (the rest keep patrolling).
+const MAX_ATTACKERS := 2
+## What a ball does to the crew's hull and to men near where it lands.
+const BALL_HULL := 14.0
+const BALL_SPLASH := 14.0
+## Ramming: hull damage dealt (x the rammer's speed share), and how long
+## before it tries again.
+const RAM_DAMAGE := 30.0
 const RAM_EVERY := 25.0
 ## Fleeing at this share of hull; striking its colours at this share (if it
 ## would), once you've caught it.
@@ -134,6 +143,7 @@ var _wake_t: float = 0.0
 var _smoke_t: float = 0.0
 var _bark: Label3D
 var _bark_t: float = 0.0
+var _bar: OverheadBar
 var _rng := RandomNumberGenerator.new()
 var _ocean: Node
 var _tokens: Array = []
@@ -198,8 +208,8 @@ func _ready() -> void:
 			c.mannable = false
 			# (a double broadside reloads for the second straight away)
 			c.reload_time = 1.2 if spec["double"] else VOLLEY_EVERY - 1.0
-			c.hull_damage = 26.0
-			c.splash_damage = 18.0
+			c.hull_damage = BALL_HULL
+			c.splash_damage = BALL_SPLASH
 			c.position = Vector3(sgn * (HullBuilder.half_width(z) - 0.45), HullBuilder.DECK_Y, z)
 			c.rotation.y = -sgn * PI * 0.5
 			model.add_child(c)
@@ -242,6 +252,11 @@ func _ready() -> void:
 	_bark.position = Vector3(0, 5.5, 0)
 	_bark.visible = false
 	add_child(_bark)
+	# her name and hull over the masthead, up for the whole fight
+	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Marine Cutter"}.get(kind, "Pirate Ship")
+	_bar = OverheadBar.new().setup(title, HullBuilder.MAST_TOP + 2.6, 5.5, 320.0)
+	_bar.visible = false
+	add_child(_bar)
 	_pos = Vector3(global_position.x, 0, global_position.z)
 	_heading = global_rotation.y
 	if Net.hosting:
@@ -347,8 +362,9 @@ func _physics_process(delta: float) -> void:
 			# patched up at sea after a beating (enough to fight again)
 			if hull < max_hull * 0.6:
 				hull = minf(hull + 1.5 * delta, max_hull * 0.6)
-			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4:
+			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4 and _attackers() < MAX_ATTACKERS:
 				_set_state(S.HUNT)
+				_volley_cd = maxf(_volley_cd, FIRST_VOLLEY)
 				bark("A ship! Run out the guns!", 2.5)
 				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
 		S.HUNT, S.BROADSIDE:
@@ -384,13 +400,16 @@ func _physics_process(delta: float) -> void:
 					_set_state(S.HUNT)
 				_try_volley(tgt, to_t, dist)
 				_ram_cd -= delta
-				# ram them: hull sound, they're slow and not too far
-				if spec["rams"] and _ram_cd <= 0.0 and _volleys >= 1 and _warn_t < 0.0 and hull > max_hull * 0.5 and _speed_of(tgt) < 6.0 and dist < 45.0:
+				# up close the guns won't bear: they ram you or board you
+				var close := dist < CLOSE + 6.0
+				# ram them: close, or slow and in reach after a volley
+				if spec["rams"] and _ram_cd <= 0.0 and _warn_t < 0.0 and hull > max_hull * 0.35 and dist < 45.0 \
+						and (close or (_volleys >= 1 and _speed_of(tgt) < 6.0)):
 					_set_state(S.RAM)
 					bark(["Ramming speed!", "Brace! We're going in!", "Run 'em down!"][_rng.randi() % 3], 2.0)
 					Net.fx("sfx", ["horn", global_position, 4.0, 0.03, 0.8])
-				# board them: after a couple of volleys, when they're slow or close
-				elif spec["boards"] and not _boarded and _volleys >= 2 and _warn_t < 0.0 and (_speed_of(tgt) < 6.0 or dist < 30.0):
+				# board them: close, or after a couple of volleys when they're slow
+				elif spec["boards"] and not _boarded and _warn_t < 0.0 and (close or (_volleys >= 2 and _speed_of(tgt) < 6.0)):
 					_set_state(S.BOARD)
 					bark("Grapples! Prepare to board!", 2.5)
 		S.RAM:
@@ -452,6 +471,15 @@ func _physics_process(delta: float) -> void:
 func _set_state(s: S) -> void:
 	state = s
 	st_t = 0.0
+
+
+## How many other ships are fighting the crew right now.
+func _attackers() -> int:
+	var n := 0
+	for s in get_tree().get_nodes_in_group("enemy_ships"):
+		if s != self and (s as EnemyShip).state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]:
+			n += 1
+	return n
 
 
 ## The crew's ship, if a captain is aboard (an empty ship isn't worth a shot).
@@ -519,7 +547,7 @@ func _side_guns(side: float) -> Array:
 
 
 func _try_volley(tgt: Node3D, to_t: Vector3, dist: float) -> void:
-	if _volley_cd > 0.0 or _warn_t >= 0.0 or dist > FIRE_MAX or dist < 10.0:
+	if _volley_cd > 0.0 or _warn_t >= 0.0 or dist > FIRE_MAX or dist < CLOSE:
 		return
 	var side := 1.0 if _right().dot(to_t) > 0.0 else -1.0
 	var beam := _right() * side
@@ -946,6 +974,10 @@ func _wake(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_crew_update(delta)
+	# (puppets read hull and state from the host's snapshots, so this shows on every screen)
+	_bar.visible = state != S.SINK and state != S.PRIZE and (in_combat() or hull < max_hull - 0.5)
+	_bar.always = in_combat()
+	_bar.track(hull, max_hull)
 	# a battered hull smokes
 	if state != S.SINK and hull < max_hull * 0.5:
 		_smoke_t -= delta

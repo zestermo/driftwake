@@ -162,8 +162,8 @@ func _process(d: float) -> bool:
 			return false
 		12:
 			print("   head to wind: %.1f m/s, sail belly %.2f, wind effect %.2f" % [ship.speed, ship._sail_node.scale.z, ship.wind_effect()])
-			check("head to wind she's in irons: barely moves", ship.speed < 2.5 and ship.wind_effect() < 0.2)
-			check("...the sail flaps instead of drawing", ship._sail_node.scale.z < 0.65)
+			check("head to wind she still sails at her own speed (the wind never holds her back)", ship.speed > 6.0 and is_equal_approx(ship.wind_effect(), 1.0))
+			check("...the sail draws", ship._sail_node.scale.z >= 0.75)
 			ship.place(get_meta("sea"), heading_for(PI * 0.5))
 			ship.sail = 1.0
 			wait = 7.0
@@ -172,6 +172,7 @@ func _process(d: float) -> bool:
 		13:
 			print("   beam reach: %.1f m/s, yard braced %.2f rad, effect %.2f, sail %.2f/%.2f, anchored %s, hull %.0f, at %s" % [ship.speed, ship._brace, ship.wind_effect(), ship.sail, ship.sail_shown, ship.anchored, ship.hull, ship.global_position])
 			check("wind on the beam she flies (a reach)", ship.speed > 9.0)
+			check("...a fair wind: faster than her own top speed", ship.wind_effect() > 1.05 and ship.speed > ship.MAX_SPEED * 0.85)
 			check("...the yard braced round to the wind", absf(ship._brace) > 0.5)
 			check("the sailing gauge shows at the helm", get_first_node_in_group("hud")._sail_gauge.visible)
 			# --- the anchor: Space at the wheel

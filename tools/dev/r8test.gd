@@ -67,6 +67,23 @@ func _process(d: float) -> bool:
 			check("Redtide Rock is out at sea, north of Brinehollow", fort.global_position.distance_to(Vector3(150, 0, 150)) > 330.0)
 			check("a pirate ship patrols", es != null and es.state == 0)
 			check("Captain Morrow waits in his fort", boss != null and boss.health.max_health >= 900.0 and boss.state == 0)
+			check("the fort has no guns to shell your ship", fort.find_children("*", "ShipCannon", true, false).is_empty())
+			# the stone stair from the jetty to the gate: what's underfoot all the way
+			# up is its walking surface (no rock poking through, no gap)
+			var worst := 0.0
+			var L: float = fort._path_len()
+			var space: PhysicsDirectSpaceState3D = fort.get_world_3d().direct_space_state
+			for k in range(int(L / 0.5) + 1):
+				for off in [-1.1, 0.0, 1.1]:
+					var at: Array = fort._path_at(k * 0.5)
+					var side: Vector3 = (at[1] as Vector3).cross(Vector3.UP).normalized()
+					var gp: Vector3 = fort.to_global((at[0] as Vector3) + side * off)
+					var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(gp + Vector3.UP * 3.0, gp + Vector3.DOWN * 3.0, 1))
+					var dy: float = 9.0 if hit.is_empty() else absf((hit["position"] as Vector3).y - gp.y)
+					if dy > worst:
+						worst = dy
+						set_meta("worst_at", "s %.1f off %.1f (%s)" % [k * 0.5, off, str(hit.get("collider", null))])
+			check("the stone stair is walkable from the jetty to the gate (worst step %.2f m at %s)" % [worst, get_meta("worst_at", "")], worst < 0.35)
 			check("the crew's ship has four cannons", ship.cannons.size() == 4)
 			check("music: island tune at the dock", music().current == "island")
 			# --- markers
@@ -208,10 +225,13 @@ func _process(d: float) -> bool:
 			es._pos = Vector3(bp.x, 0, bp.z)
 			es._heading = ship.global_rotation.y
 			es._set_state(4)
+			# (this close she'd board on her own meanwhile: hold her AI for the setup)
+			es.set_physics_process(false)
 			wait = 0.3
 			step = 90
 		90:
 			set_meta("crew_at", es._crew[1]["node"].global_position)
+			es.set_physics_process(true)
 			es._board(ship)
 			check("boarders come over the side", es.boarders.size() >= 3)
 			check("...leaping", es.boarders.all(func(g): return g.state == 20))

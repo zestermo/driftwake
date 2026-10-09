@@ -1,8 +1,8 @@
 extends Control
 ## Aboard the crew's ship: a little compass rose with the bow up (north
-## marked), the wind as an arrow coloured by how well the sails draw on this
-## heading (green: a reach, red: in irons), the speed in knots, the sails as
-## set and the anchor if she's riding to it.
+## marked), the wind as an arrow (pale: sailing normally, green: a fair wind
+## giving her extra speed), the speed in knots, the sails as set and the
+## anchor if she's riding to it.
 
 const R := 22.0
 
@@ -44,7 +44,7 @@ func _draw() -> void:
 		var wd: Vector2 = wx.wind_dir()
 		var d := _dial(wd, heading).normalized()
 		var eff: float = ship.call("wind_effect")
-		var col := Color(1.0, 0.3, 0.25).lerp(Color(0.45, 1.0, 0.45), clampf((eff - 0.1) / 0.9, 0.0, 1.0))
+		var col := Color(0.8, 0.82, 0.85).lerp(Color(0.45, 1.0, 0.45), clampf((eff - 1.0) / Ship.FAIR_BOOST, 0.0, 1.0))
 		var tail := c - d * (R - 4.0)
 		var tip := c + d * (R - 4.0)
 		draw_line(tail, tip, col, 2.0)

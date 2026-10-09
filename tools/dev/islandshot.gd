@@ -1,7 +1,8 @@
 extends SceneTree
 ## Shots of the starter island from given local (island-space) camera positions.
 ## Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz" (y "~3": 3 m above the
-## ground there). Env ISHOT_HOUR=21: at that hour of the day.
+## ground there). Env ISHOT_HOUR=21: at that hour of the day. Env ISHOT_AT=<node
+## name> (e.g. RedtideRock): positions are in that node's space instead.
 var t := 0.0
 var shots: Array = []
 var idx := 0
@@ -23,6 +24,8 @@ func _process(d: float) -> bool:
 		root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 		for n in root.find_children("*", "CharacterCreator", true, false): n._finish(true)
 		isl = root.get_node("World/Islands/Brinehollow")
+		if OS.get_environment("ISHOT_AT") != "":
+			isl = root.find_children(OS.get_environment("ISHOT_AT"), "", true, false)[0]
 		var hud = root.get_tree().get_first_node_in_group("hud")
 		if hud: hud.visible = false
 		cam = Camera3D.new(); cam.fov = 60; cam.far = 2000
@@ -47,7 +50,8 @@ func _process(d: float) -> bool:
 func _v(c: PackedStringArray) -> Vector3:
 	var x := float(c[0]); var z := float(c[2])
 	var ys := c[1]
-	var y: float = (float(ys.substr(1)) + float(isl.height_at(x, z))) if ys.begins_with("~") else float(ys)
+	var ground: float = float(isl.height_at(x, z)) if isl.has_method("height_at") else 0.0
+	var y: float = (float(ys.substr(1)) + ground) if ys.begins_with("~") else float(ys)
 	return Vector3(x, y, z)
 func _aim():
 	var s: Array = shots[idx]

@@ -363,9 +363,12 @@ func _process(d: float) -> bool:
 			ship.flood = 0.0
 			ship.breaches.clear()
 			ship.fires.clear()
-			for k in range(10):
-				ship.hull_hit(30.0, ship.global_transform * Vector3(2.9, 0.0, -3.0))
-			check("heavy hits hole her (%d holes) and can set her alight (%d fires)" % [ship.breaches.size(), ship.fires.size()], ship.breaches.size() > 0)
+			# (a hole is a 15% chance a hit now: 30 hits all but surely make one)
+			for k in range(30):
+				ship.hull_hit(14.0, ship.global_transform * Vector3(2.9, 0.0, -3.0))
+				ship.hull = 400.0
+			check("hits hole her now and then (%d holes) and can set her alight (%d fires)" % [ship.breaches.size(), ship.fires.size()], ship.breaches.size() > 0)
+			check("...never more than %d holes and %d fires at once" % [ship.MAX_BREACHES, ship.MAX_FIRES], ship.breaches.size() <= ship.MAX_BREACHES and ship.fires.size() <= ship.MAX_FIRES)
 			for b in ship.breaches.duplicate():
 				ship.do_work("patch", int(b[0]), 0.0)
 			for f in ship.fires.duplicate():
@@ -399,7 +402,7 @@ func _process(d: float) -> bool:
 			step = 23
 		23:
 			print("   one hole, 6 s: water %.2f, a hole drawn %s" % [ship.flood, ship._holes.size() == 1])
-			check("a hole lets the water in", ship.flood > 0.05)
+			check("a hole lets the water in (slowly)", ship.flood > 0.02 and ship.flood < 0.06)
 			check("...the hull bar shows the water", get_first_node_in_group("hud")._flood_bar.visible)
 			var spot: Vector3 = ship.breaches[0][1]
 			p.global_position = ship.global_transform * (spot + Vector3(0, 0.5, 0))
@@ -410,6 +413,8 @@ func _process(d: float) -> bool:
 		24:
 			Input.action_release("interact")
 			check("holding F at the rail above it patches the hole", ship.breaches.is_empty() and ship._holes.is_empty())
+			# (half full: what a long fight leaves in her)
+			ship.flood = 0.5
 			set_meta("flood0", ship.flood)
 			p.global_position = ship.global_transform * (ship.PUMP_AT + Vector3(0.3, 0.5, 0.6))
 			p.reset_physics_interpolation()
@@ -419,7 +424,7 @@ func _process(d: float) -> bool:
 		25:
 			Input.action_release("interact")
 			print("   pumped 3 s: water %.3f -> %.3f" % [get_meta("flood0"), ship.flood])
-			check("working the pump bails her out", ship.flood < float(get_meta("flood0")) - 0.05)
+			check("working the pump bails her out fast (half full, 3 s: %.2f)" % ship.flood, ship.flood < float(get_meta("flood0")) - 0.25)
 			ship.add_fire(Vector3(-1.0, ship.DECK_Y, 2.0))
 			hp0 = p.health_component.current_health
 			p.global_position = ship.global_transform * Vector3(-1.0, 0.8, 2.0)

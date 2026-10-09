@@ -84,7 +84,10 @@ wobbly vertices, dithered colour and a chunky pixel grid.
   dodges the next hit for you.
 
 ### The sea
-- **Wind and sailing:** points of sail, a braced yard, foam wakes and a swell that rolls the hull.
+- **Wind and sailing:** sail where you like; a fair wind gives you extra speed. A braced yard,
+  foam wakes and a swell that rolls the hull.
+- **Naval fights:** enemy ships show their hull over the masthead; up close their guns won't
+  bear, so they ram you or come alongside to board.
 - **Ship damage:** cannon hits hole the hull, set fires and flood the ship. The crew patch,
   douse and pump to keep her afloat.
 - **Hazards and plunder:** reefs, fog banks, whirlpools, storm cells, wrecks, bottles and buried

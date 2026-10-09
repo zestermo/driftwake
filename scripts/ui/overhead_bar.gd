@@ -1,11 +1,14 @@
 class_name OverheadBar
 extends Node3D
 ## A miniboss's name over its head, with its health bar showing there for a
-## while after each hit.
+## while after each hit. A ship's is bigger, seen from further and can stay
+## up the whole fight (`always`).
 
 const SHOW_FOR := 5.0
 const FADE := 0.6
 
+## Show the bar all the time, not just after a hit.
+var always: bool = false
 var _label: Label3D
 var _bar: MeshInstance3D
 var _mat: ShaderMaterial
@@ -16,20 +19,21 @@ var _flash := 0.0
 static var _shader: Shader
 
 
-func setup(display_name: String, height: float) -> OverheadBar:
+## `size` scales the name and bar (1 = a person's); `far` is how far off they show.
+func setup(display_name: String, height: float, size: float = 1.0, far: float = 45.0) -> OverheadBar:
 	name = "OverheadBar"
 	position = Vector3(0, height, 0)
 	_label = Label3D.new()
 	_label.font = load("res://assets/fonts/PixelifySans-Regular.woff2")
 	_label.font_size = 30
-	_label.pixel_size = 0.007
+	_label.pixel_size = 0.007 * size
 	_label.outline_size = 10
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_label.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	_label.modulate = Color(1.0, 0.72, 0.45)
 	_label.text = display_name
-	_label.position = Vector3(0, 0.2, 0)
-	_label.visibility_range_end = 45.0
+	_label.position = Vector3(0, 0.2 * size, 0)
+	_label.visibility_range_end = far
 	add_child(_label)
 	if _shader == null:
 		_shader = Shader.new()
@@ -58,11 +62,13 @@ void fragment() {
 	_mat.shader = _shader
 	_mat.render_priority = 1
 	var q := QuadMesh.new()
-	q.size = Vector2(1.2, 0.11)
+	# (the bar's shader billboards it and drops the node's scale: size it here)
+	q.size = Vector2(1.2, 0.11) * size
 	_bar = MeshInstance3D.new()
 	_bar.mesh = q
 	_bar.material_override = _mat
 	_bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_bar.visibility_range_end = far
 	_bar.visible = false
 	add_child(_bar)
 	return self
@@ -81,5 +87,5 @@ func _process(delta: float) -> void:
 	_flash = maxf(_flash - delta * 4.0, 0.0)
 	_mat.set_shader_parameter("flash", _flash)
 	_t -= delta
-	_bar.visible = _t > 0.0
-	_mat.set_shader_parameter("alpha", clampf(_t / FADE, 0.0, 1.0))
+	_bar.visible = always or _t > 0.0
+	_mat.set_shader_parameter("alpha", 1.0 if always else clampf(_t / FADE, 0.0, 1.0))

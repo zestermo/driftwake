@@ -67,7 +67,6 @@ var _sail_node: Node3D
 var _furl_node: Node3D
 var _rig: Node3D
 var _brace: float = 0.0
-var _flap_t: float = 0.0
 ## Riding to her anchor: she stops and stays, sails or no sails.
 var anchored: bool = false
 var _anchor: Node3D
@@ -204,9 +203,10 @@ func _physics_process(delta: float) -> void:
 	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
-	# (water in her: low and sluggish)
-	var top := MAX_SPEED * _top_k * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood)
-	var want := top * sail_shown * wind_effect()
+	# (water in her: low and sluggish; a fair wind: a little faster)
+	var top := MAX_SPEED * _top_k * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood) * wind_effect()
+	var want := top * sail_shown
+	_fair_wind_note()
 	if summoning():
 		want = _summon_drive(delta)
 	if anchored:
@@ -445,7 +445,7 @@ func hull_hit(dmg: float, at: Vector3) -> void:
 	if hull <= 0.0 and not crippled:
 		_set_crippled(true)
 	_send_hull(true)
-	if dmg >= 15.0:
+	if dmg >= BREACH_MIN_DMG:
 		var l := global_transform.affine_inverse() * at
 		var z := clampf(l.z, DECK_Z_MIN, DECK_Z_MAX)
 		if breaches.size() < MAX_BREACHES and _dmg_rng.randf() < BREACH_CHANCE:
@@ -510,14 +510,16 @@ func _hull_tick(delta: float) -> void:
 ## Every screen draws them from the host's word (net_damage) and its own
 ## captain does the work (hold F): patch a hole from the rail above it, beat
 ## out a fire, man the pump.
-const FLOOD_RATE := 0.012
-const BAIL_RATE := 0.035
-const FIRE_BURN := 1.5
-const FIRE_SPREAD := 14.0
-const MAX_FIRES := 5
-const MAX_BREACHES := 6
-const BREACH_CHANCE := 0.55
-const FIRE_CHANCE := 0.35
+const FLOOD_RATE := 0.006
+const BAIL_RATE := 0.12
+const FIRE_BURN := 1.0
+const FIRE_SPREAD := 24.0
+const MAX_FIRES := 3
+const MAX_BREACHES := 3
+## Per cannonball hit of at least BREACH_MIN_DMG.
+const BREACH_CHANCE := 0.15
+const FIRE_CHANCE := 0.1
+const BREACH_MIN_DMG := 10.0
 const PATCH_TIME := 2.2
 const DOUSE_TIME := 1.4
 const WORK_REACH := 1.3
@@ -1384,18 +1386,13 @@ func _build_climbing() -> void:
 
 
 ## Canvas let down as far as sail_shown (the rest bundled on the yard); the
-## yard braced round to the wind; a drawing sail bellies out, one that can't
-## (in irons, nearly no wind) flaps.
+## yard braced round to the wind; the sail bellies out, fuller in a fair wind.
 func _show_sail(delta: float) -> void:
 	var k := clampf(sail_shown, 0.0, 1.0)
 	var rel := _wind_rel()
 	_brace = lerp_angle(_brace, clampf(rel * 0.5, -0.8, 0.8), clampf(1.5 * delta, 0.0, 1.0))
 	_rig.rotation.y = _brace
-	var eff := wind_effect()
-	var belly := lerpf(0.35, 1.25, clampf((eff - 0.15) / 0.85, 0.0, 1.0))
-	if eff < 0.3 and k > 0.05:
-		_flap_t += delta
-		belly = 0.3 + 0.25 * sin(_flap_t * 17.0) * sin(_flap_t * 5.3)
+	var belly := lerpf(0.8, 1.25, clampf((wind_effect() - 1.0) / FAIR_BOOST, 0.0, 1.0))
 	_sail_node.scale = Vector3(1.0, lerpf(0.03, 1.0, k), belly)
 	_sail_node.visible = k > 0.01
 	var r := lerpf(1.0, 0.35, k)
@@ -1415,21 +1412,38 @@ func _wind_rel() -> float:
 	return fwd.angle_to(wd)
 
 
-## How well the sails draw on this heading (x wind strength): a reach (wind
-## on the beam) best, running before it a little less, close-hauled slow,
-## head to wind barely at all (in irons: bear away or tack).
+## The wind never holds her back: she sails at her own speed on any heading,
+## and a fair wind (on the beam, or behind her) adds up to FAIR_BOOST on top,
+## more the stronger it blows. 1.0 = sailing normally.
+const FAIR_BOOST := 0.3
+var _fair_on: bool = false
+
+
 func wind_effect() -> float:
 	var a := rad_to_deg(absf(_wind_rel()))
-	var pts := [[0.0, 0.85], [60.0, 1.0], [100.0, 1.0], [135.0, 0.6], [158.0, 0.12], [180.0, 0.08]]
-	var eff := 0.08
+	var pts := [[0.0, 0.8], [60.0, 1.0], [110.0, 1.0], [140.0, 0.0], [180.0, 0.0]]
+	var fair := 0.0
 	for i in range(pts.size() - 1):
 		if a <= float(pts[i + 1][0]):
 			var t := (a - float(pts[i][0])) / (float(pts[i + 1][0]) - float(pts[i][0]))
-			eff = lerpf(float(pts[i][1]), float(pts[i + 1][1]), t)
+			fair = lerpf(float(pts[i][1]), float(pts[i + 1][1]), t)
 			break
 	var wx := get_node_or_null("/root/Weather")
 	var w: float = float(wx.get("wind")) if wx else 0.3
-	return eff * lerpf(0.85, 1.25, clampf(w, 0.0, 1.0))
+	return 1.0 + FAIR_BOOST * fair * lerpf(0.4, 1.0, clampf(w, 0.0, 1.0))
+
+
+## The helmsman hears when a fair wind fills the sails.
+func _fair_wind_note() -> void:
+	if not is_player_steering or sail <= 0.0:
+		_fair_on = false
+		return
+	var boost := wind_effect() - 1.0
+	if not _fair_on and boost > FAIR_BOOST * 0.5:
+		_fair_on = true
+		get_tree().call_group("hud", "show_toast", "A fair wind! (+%d%% speed)" % int(roundf(boost * 100.0)))
+	elif _fair_on and boost < FAIR_BOOST * 0.25:
+		_fair_on = false
 
 
 # --------------------------------------------------------------------------
