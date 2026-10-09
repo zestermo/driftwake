@@ -107,7 +107,6 @@ func build(world_seed: int) -> Dictionary:
 	_spawn_npcs()
 	_spawn_loot()
 	_add_arrival_zone()
-	_add_ambience()
 
 	# the ship lies alongside the pier's head, against its fender
 	var dock_end := _dock_point(DOCK_LENGTH - 4.0)
@@ -2643,11 +2642,3 @@ func _on_dialogue_event(event_name: String) -> void:
 		get_tree().call_group("hud", "show_banner", "Driftstone", "The first of many?", true)
 
 
-func _add_ambience() -> void:
-	var ocean := AudioStreamPlayer.new()
-	ocean.name = "OceanAmbience"
-	ocean.stream = load("res://assets/audio/ocean_loop.wav")
-	ocean.volume_db = -14.0
-	ocean.autoplay = true
-	ocean.bus = "Ambience"
-	add_child(ocean)

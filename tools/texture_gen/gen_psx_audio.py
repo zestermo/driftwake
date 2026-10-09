@@ -753,22 +753,175 @@ def rain_loop_sound(seconds=8.0):
     write_wav("rain_loop", out * 0.7)
 
 
-def wind_loop_sound(seconds=10.0):
-    """Gusting sea wind: band-limited noise whose loudness and pitch swell (loops)."""
+# --------------------------------------------------------------------------
+# Ambience loops (Ambience mixes them by where you are). Built in the
+# frequency domain and placed circularly, so each loops with no seam.
+# --------------------------------------------------------------------------
+
+def _norm(x):
+    x = x - np.mean(x)
+    return x / (np.max(np.abs(x)) + 1e-9)
+
+
+def _cband(n, rng, lo, hi, tilt=0.0):
+    """Band-limited noise that loops (shaped in the frequency domain)."""
+    X = np.fft.rfft(rng.standard_normal(n))
+    f = np.fft.rfftfreq(n, 1.0 / SR)
+    g = 1.0 / (1 + (lo / np.maximum(f, 1e-3)) ** 4) / (1 + (f / hi) ** 4)
+    if tilt:
+        g *= (np.maximum(f, 20.0) / 1000.0) ** (-tilt)
+    return _norm(np.fft.irfft(X * g, n))
+
+
+def _cenv(n, rng, rate):
+    """A smooth random 0..1 envelope that loops (changing about `rate` times a second)."""
+    X = np.fft.rfft(rng.standard_normal(n))
+    f = np.fft.rfftfreq(n, 1.0 / SR)
+    g = np.exp(-(f / rate) ** 2)
+    g[0] = 0.0
+    e = np.fft.irfft(X * g, n)
+    return (e - e.min()) / (e.max() - e.min() + 1e-9)
+
+
+def _place(buf, ev, at):
+    """Add an event at sample `at`, wrapping round the loop's end."""
+    idx = (int(at) + np.arange(len(ev))) % len(buf)
+    np.add.at(buf, idx, ev)
+
+
+def _burst(rng, secs, lo, hi):
+    """A short band of noise for an event (not looped)."""
+    n = max(int(secs * SR), 32)
+    return _cband(n, rng, lo, hi)
+
+
+def shore_surf_loop(seconds=30.0):
+    """Waves breaking on a beach: each builds, crashes and washes back up the
+    sand fizzing; five to a loop at uneven gaps, over a low far-off wash."""
+    rng = np.random.default_rng(311)
+    n = int(SR * seconds)
+    out = _cband(n, rng, 50, 600, tilt=0.5) * 0.22 * (0.7 + 0.3 * _cenv(n, rng, 0.15))
+    for i in range(5):
+        at = int((i * seconds / 5 + rng.uniform(-1.0, 1.0)) * SR) % n
+        size = rng.uniform(0.6, 1.0)
+        tb = np.linspace(0, 1, int(1.4 * SR))
+        build = _burst(rng, 1.4, 80, 900) * tb ** 2 * 0.55 * size
+        tc = np.arange(int(0.7 * SR)) / SR
+        crash = _burst(rng, 0.7, 150, 5000) * np.exp(-tc * 6) * np.minimum(1, tc / 0.02) * size
+        tw = np.arange(int(4.5 * SR)) / SR
+        wash = (_burst(rng, 4.5, 1200, 7000) * 0.5 * np.exp(-tw * 0.9)
+                + _burst(rng, 4.5, 200, 1500) * 0.45 * np.exp(-tw * 1.4)) * (1 - np.exp(-tw * 6)) * size
+        fizz = np.zeros(len(tw))
+        for _ in range(int(160 * size)):
+            p = int(rng.uniform(0.2, 3.5) * SR)
+            L = int(rng.uniform(0.004, 0.02) * SR)
+            if p + L < len(fizz):
+                fizz[p:p + L] += rng.standard_normal(L) * np.exp(-np.arange(L) / (L / 4)) * rng.uniform(0.1, 0.4)
+        _place(out, build, at)
+        _place(out, crash, at + len(build))
+        _place(out, wash + hpf(fizz, 0.3) * 0.35 * np.exp(-tw * 0.6), at + len(build) + int(0.1 * SR))
+    write_wav("shore_surf_loop", _norm(out) * 0.8)
+
+
+def sea_swell_loop(seconds=24.0):
+    """The open sea: a deep slow roll, four swells to a loop, foam hissing on
+    each crest and the odd lap of water."""
+    rng = np.random.default_rng(313)
+    n = int(SR * seconds)
+    t = np.arange(n) / n
+    sw = 0.45 + 0.55 * (0.5 - 0.5 * np.cos(2 * np.pi * 4 * t)) ** 1.5
+    sw *= 0.75 + 0.25 * _cenv(n, rng, 0.08)
+    out = _cband(n, rng, 30, 420, tilt=0.8) * sw
+    out += _cband(n, rng, 1000, 5000) * 0.28 * sw ** 4
+    for _ in range(9):
+        tl = np.arange(int(0.35 * SR)) / SR
+        lap = _burst(rng, 0.35, 200, 1600) * np.exp(-tl * 10) * np.minimum(1, tl / 0.03) * rng.uniform(0.15, 0.35)
+        _place(out, lap, rng.integers(0, n))
+    write_wav("sea_swell_loop", _norm(out) * 0.8)
+
+
+def hull_wash_loop(seconds=8.0):
+    """Water rushing along a hull under way: a gurgling rush and bubbles
+    (Ambience raises its volume and pitch with the ship's speed)."""
+    rng = np.random.default_rng(317)
+    n = int(SR * seconds)
+    out = _cband(n, rng, 250, 3000, tilt=0.3) * (0.7 + 0.3 * _cenv(n, rng, 6.0))
+    out += _cband(n, rng, 40, 250) * 0.5 * (0.6 + 0.4 * _cenv(n, rng, 0.5))
+    for _ in range(140):
+        L = int(rng.uniform(0.015, 0.04) * SR)
+        tt = np.arange(L) / SR
+        f0 = rng.uniform(500, 1100)
+        ph = 2 * np.pi * np.cumsum(f0 * (1 + 1.2 * tt / tt[-1])) / SR
+        _place(out, np.sin(ph) * np.exp(-tt * 90) * rng.uniform(0.05, 0.2), rng.integers(0, n))
+    write_wav("hull_wash_loop", _norm(out) * 0.8)
+
+
+def hull_slap_loop(seconds=12.0):
+    """Waves knocking at a hull at rest: hollow slaps and little splashes."""
+    rng = np.random.default_rng(319)
+    n = int(SR * seconds)
+    out = _cband(n, rng, 80, 1200) * 0.15 * (0.6 + 0.4 * _cenv(n, rng, 0.3))
+    for _ in range(14):
+        L = int(rng.uniform(0.12, 0.25) * SR)
+        tt = np.arange(L) / SR
+        clop = resonate(rng.standard_normal(L), rng.uniform(280, 600), 6.0) * np.exp(-tt * 25)
+        splash = _burst(rng, L / SR, 1200, 6000) * np.exp(-tt * 14) * 0.3
+        _place(out, (_norm(clop) * 0.8 + splash) * rng.uniform(0.4, 1.0), rng.integers(0, n))
+    write_wav("hull_slap_loop", _norm(out) * 0.8)
+
+
+def _stick_slip(rng, secs, rate_lo, rate_hi, bodies):
+    """A creak: friction pulses at a wandering rate through wood resonances."""
+    L = int(secs * SR)
+    tt = np.arange(L) / SR
+    rate = rate_lo + (rate_hi - rate_lo) * (0.5 + 0.5 * np.sin(2 * np.pi * tt / secs * rng.uniform(0.5, 1.5) + rng.uniform(0, 6)))
+    ph = np.cumsum(rate) / SR
+    pulses = np.diff(np.floor(ph), prepend=0.0) * rng.uniform(0.6, 1.0, L)
+    out = np.zeros(L)
+    for fr, q, g in bodies:
+        out += resonate(pulses, fr, q) * g
+    env = np.sin(np.pi * tt / secs) ** 0.7
+    return _norm(out) * env
+
+
+def ship_creak_loop(seconds=16.0):
+    """A wooden ship's timbers working and her ropes straining (sparse)."""
+    rng = np.random.default_rng(331)
+    n = int(SR * seconds)
+    out = _cband(n, rng, 60, 300) * 0.02
+    for _ in range(6):
+        c = _stick_slip(rng, rng.uniform(0.4, 1.2), 25, 80, [(240, 6, 1.0), (700, 8, 0.6), (1400, 10, 0.25)])
+        _place(out, c * rng.uniform(0.4, 0.9), rng.integers(0, n))
+    for _ in range(3):
+        c = _stick_slip(rng, rng.uniform(0.3, 0.7), 120, 260, [(900, 9, 1.0), (2000, 12, 0.4)])
+        _place(out, c * rng.uniform(0.2, 0.45), rng.integers(0, n))
+    write_wav("ship_creak_loop", _norm(out) * 0.8)
+
+
+def wind_loop_sound(seconds=20.0):
+    """Sea wind in gusts that come and go at random (they still loop): a low
+    roar, a breathy middle rising with each gust, a faint whistle on the peaks."""
     rng = np.random.default_rng(223)
-    n = int(SR * (seconds + 1.0))
-    t = np.arange(n) / SR
-    w = rng.standard_normal(n)
-    gust = 0.55 + 0.45 * np.sin(2 * np.pi * t * (2 / (seconds + 1.0))) ** 2
-    gust *= 0.8 + 0.2 * np.sin(2 * np.pi * t * (5 / (seconds + 1.0)) + 1.3)
-    low = lpf(w, 0.02)
-    mid = resonate(w, 420.0, 1.5) * 0.04
-    whistle = resonate(w, 1150.0, 12.0) * 0.012 * gust ** 3
-    out = (low * 4.0 + mid) * gust + whistle
-    out = _loop_xfade(out, 1.0)
-    out = out - np.mean(out)
-    out /= np.max(np.abs(out)) + 1e-9
-    write_wav("wind_loop", out * 0.7)
+    n = int(SR * seconds)
+    gust = 0.3 + 0.7 * _cenv(n, rng, 0.12) ** 1.5
+    fast = 0.85 + 0.15 * _cenv(n, rng, 2.0)
+    out = (_cband(n, rng, 40, 350, tilt=1.0) + _cband(n, rng, 300, 1600) * 0.5 * gust) * gust * fast
+    out += _cband(n, rng, 1500, 5000) * 0.12 * gust ** 2
+    out += (_cband(n, rng, 690, 740) + 0.6 * _cband(n, rng, 1030, 1090)) * 0.18 * gust ** 3
+    write_wav("wind_loop", _norm(out) * 0.75)
+
+
+def rigging_wind_loop(seconds=16.0):
+    """Wind through a ship's rigging: shrouds moaning and whistling on
+    their own slow swells, and a flutter of loose canvas."""
+    rng = np.random.default_rng(337)
+    n = int(SR * seconds)
+    out = np.zeros(n)
+    for fr in (520, 780, 1170, 1560):
+        out += _cband(n, rng, fr * 0.97, fr * 1.03) * _cenv(n, rng, 0.2) ** 3 * (600.0 / fr)
+    flap = 0.5 + 0.5 * np.sin(2 * np.pi * np.cumsum(7.0 + 2.0 * _cenv(n, rng, 0.3)) / SR)
+    out += _cband(n, rng, 90, 400) * 0.35 * flap ** 4 * _cenv(n, rng, 0.15)
+    write_wav("rigging_wind_loop", _norm(out) * 0.75)
 
 
 def thunder_sound(name="thunder", seed=231, dur=4.5, crack=1.0):
@@ -830,6 +983,12 @@ SOUNDS = [
     ("rope", rope_sound),
     ("rain_loop", rain_loop_sound),
     ("wind_loop", wind_loop_sound),
+    ("rigging_wind_loop", rigging_wind_loop),
+    ("shore_surf_loop", shore_surf_loop),
+    ("sea_swell_loop", sea_swell_loop),
+    ("hull_wash_loop", hull_wash_loop),
+    ("hull_slap_loop", hull_slap_loop),
+    ("ship_creak_loop", ship_creak_loop),
     ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),
     ("thunder_far", lambda: thunder_sound("thunder_far", 237, 5.0, 0.15)),
     ("gull", gull_sound),

@@ -69,7 +69,8 @@ var _rain: GPUParticles3D
 var _rays: MultiMeshInstance3D
 var _ray_mat: ShaderMaterial
 var _rain_snd: AudioStreamPlayer
-var _wind_snd: AudioStreamPlayer
+## The surf, sea, ship and wind sounds (they follow the weather's wind too).
+var _ambience: Ambience
 var _overlay: ColorRect
 var _layer: CanvasLayer
 var _bolt: MeshInstance3D
@@ -253,8 +254,9 @@ func _detach() -> void:
 	_layer = null
 	if _rain_snd and is_instance_valid(_rain_snd):
 		_rain_snd.stop()
-	if _wind_snd and is_instance_valid(_wind_snd):
-		_wind_snd.stop()
+	if _ambience and is_instance_valid(_ambience):
+		_ambience.queue_free()
+	_ambience = null
 
 
 func _is_world(n: Node) -> bool:
@@ -697,7 +699,10 @@ func FX_sfx(name_: String, db: float) -> void:
 func _build_audio() -> void:
 	if _rain_snd == null:
 		_rain_snd = _loop_player("res://assets/audio/rain_loop.wav")
-		_wind_snd = _loop_player("res://assets/audio/wind_loop.wav")
+	if _ambience == null:
+		_ambience = Ambience.new()
+		_ambience.name = "Ambience"
+		add_child(_ambience)
 
 
 func _loop_player(path: String) -> AudioStreamPlayer:
@@ -718,7 +723,6 @@ func _loop_player(path: String) -> AudioStreamPlayer:
 func _update_audio(delta: float) -> void:
 	var rv := rain * (1.0 - _shelter * 0.5)
 	_set_loop(_rain_snd, rv, -10.0, delta)
-	_set_loop(_wind_snd, clampf((wind - 0.3) * 1.4 + storm * 0.4 + in_cloud * 0.5, 0.0, 1.0), -12.0, delta)
 
 
 func _set_loop(p: AudioStreamPlayer, k: float, top_db: float, delta: float) -> void:

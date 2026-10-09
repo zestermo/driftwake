@@ -391,6 +391,18 @@ def inst_harp(m, n):
     return normpeak(y) * 0.85
 
 
+def inst_harp_dark(m, n):
+    """Harp, played softly: a darker, rounder pluck (less chime)."""
+    f = mtof(m)
+    rng = seeded("harp_dark", m)
+    L = max(n, int(1.8 * SR))
+    y = _ks(f, L, 0.36, 2.2, rng, pick=0.42)
+    y[:40] *= np.linspace(0, 1, 40)
+    fade = int(0.12 * SR)
+    y[-fade:] *= np.linspace(1, 0, fade)
+    return normpeak(y) * 0.8
+
+
 def inst_pizz(m, n):
     """Pizzicato strings: a short dark pluck."""
     f = mtof(m)
@@ -479,7 +491,7 @@ INSTRUMENTS = {
     "timpani": inst_timpani, "kick": inst_kick, "frame": inst_frame, "snare": inst_snare,
     "tom": inst_tom, "conga": inst_conga, "hat": inst_hat, "shaker": inst_shaker,
     "crash": inst_crash, "marimba": inst_marimba,
-    "horn": inst_horn, "harp": inst_harp, "pizz": inst_pizz, "strings": inst_strings,
+    "horn": inst_horn, "harp": inst_harp, "harp_dark": inst_harp_dark, "pizz": inst_pizz, "strings": inst_strings,
     "oboe": inst_oboe, "choir": inst_choir, "taiko": inst_taiko, "glock": inst_glock,
     "swell": inst_swell,
 }
@@ -1289,8 +1301,105 @@ def sample_storm():
     return s, dict(verb_t60=1.5, echo_sec=60 / 144 * 0.75)
 
 
+# (Zach's picks, round 1: Corsair's sound, Waters' tunes; the harbour calmer)
+WATERS_A = ("B4/2 E5/2 G5/2  G5/3 F#5/1 E5/2  D5/2 G5/2 B5/2  A5/4 F#5/2  "
+            "G5/2 F#5/1 E5/1 B4/2  C5/2 E5/2 G5/2  A5/3 G5/1 F#5/1 E5/1  D#5/4 B4/2")
+WATERS_B = ("D5/2 G5/2 B5/2  A5/3 G5/1 F#5/2  G5/2 E5/2 B4/2  C5/4 E5/2  "
+            "D5/2 G5/2 B5/2  D6/3 C6/1 B5/1 A5/1  G5/2 E5/2 C5/2  D5/4 F#5/2")
+
+
+def sample_corsair_waters():
+    # Corsair's band (6/8 gallop, horns, timpani, choir) playing Waters' tunes:
+    # a 3/4 bar of Waters is six eighths, the same as a 6/8 bar here.
+    # Eighth = 216 (dotted quarter 72), E minor lifting to G major.
+    s = Song("sample5_corsair_waters", 60 / 216, 6, 32,
+             "6/8, dotted quarter = 72, E minor / G major: Corsair's gallop and horns with Waters' tunes")
+    s.bus("ost", 0.5, verb=0.1)
+    s.bus("horn", 0.5, verb=0.32)
+    s.bus("horn2", 0.32, verb=0.32)
+    s.bus("str", 0.34, verb=0.32)
+    s.bus("strlead", 0.46, verb=0.28)
+    s.bus("harp", 0.3, verb=0.3)
+    s.bus("choir", 0.2, verb=0.42)
+    s.bus("timp", 0.5, verb=0.22)
+    s.bus("drum", 0.38, verb=0.15)
+    s.bus("crash", 0.13, verb=0.25)
+    s.bus("swell", 0.12, verb=0.2)
+    intro = ["Em", "Em", "C", "D"]
+    A = ["Em", "C", "G", "D", "Em", "C", "Am", "B"]
+    B = ["G", "D", "Em", "C", "G", "D", "C", "D"]
+    turn = ["C", "D", "B", "B"]
+    ch = split_chords(intro + A + B + A + turn)
+    allb = range(32)
+    for b in allb:
+        r = _timp_root(ch, b, "E2", "B2")
+        for i in range(6):
+            v = 0.95 if i in (0, 3) else 0.5
+            s.note("ost", "stacc", r, b * 6 + i, 1, v, 0.6)
+            s.note("ost", "stacc", r + 12, b * 6 + i, 1, v * 0.7, 0.6)
+    _pads(s, "str", "strings", ch, range(4, 32), 55, 0.38)
+    arpeggio(s, "harp", "harp", ch, range(12, 20), [0, 1, 2, 3, 2, 1], 1, low=52, vel=0.45, dur=2)
+    s.line("horn", "horn", WATERS_A, 4, vel=0.9)
+    s.line("strlead", "strings", WATERS_B, 12, vel=0.85, transpose=12)
+    s.line("horn2", "horn", WATERS_B, 12, vel=0.6)
+    s.line("horn", "horn", WATERS_A, 20, vel=0.95)
+    s.line("strlead", "strings", WATERS_A, 20, vel=0.65, transpose=12)
+    s.line("horn2", "horn", WATERS_A, 20, vel=0.55, harmonize=(scale("E", "harmonic"), -2), transpose=-12)
+    _pads(s, "choir", "choir", ch, range(20, 28), 59, 0.5)
+    s.line("horn", "horn", "E5/3 G5/3  F#5/3 A5/3  D#5/6  F#5/3 B5/3", 28, vel=0.9)
+    s.line("horn2", "horn", "C5/3 E5/3  D5/3 F#5/3  B4/6  D#5/3 F#5/3", 28, vel=0.6)
+    for b in range(4, 32):
+        r = _timp_root(ch, b, "E2", "B2")
+        s.note("timp", "timpani", r, b * 6, 3, 0.9, 1.0)
+        s.note("timp", "timpani", r, b * 6 + 3, 3, 0.55, 1.0)
+        if b in (11, 19, 27, 31):
+            for i in range(3):
+                s.note("timp", "timpani", r, b * 6 + 3 + i, 1, 0.45 + 0.15 * i, 0.9)
+    s.drums("drum", "tom", "X..x..", range(4, 32), midi=nn("B2"), vel=0.7)
+    s.drums("drum", "snare", "...X..", range(12, 32), vel=0.55)
+    s.drums("crash", "crash", "X.....", [4, 12, 20, 28])
+    for b in (3, 19, 27):
+        s.note("swell", "swell", 0, b * 6, 6, 1.0, 1.0)
+    return s, dict(verb_t60=1.8)
+
+
+def sample_harbour_calm():
+    # The harbour theme, calmer and warmer for a town: slower (80 bpm), the
+    # tune on low strings (viola/cello range) and a soft oboe, a darker harp
+    # in long rolls, pizzicato bass, horn pads; no flute, no glockenspiel.
+    s = Song("sample6_harbour_calm", 60 / 80 / 2, 8, 24,
+             "4/4, 80 bpm, A dorian: calm warm town (low strings, oboe, soft harp, horn pads)")
+    s.bus("harp", 0.4, verb=0.34)
+    s.bus("pizz", 0.42, verb=0.18)
+    s.bus("lead", 0.5, verb=0.32)
+    s.bus("lead2", 0.34, verb=0.32)
+    s.bus("str", 0.3, verb=0.38)
+    s.bus("horn", 0.24, verb=0.38)
+    s.bus("perc", 0.2, verb=0.15)
+    A = ["Am", "D", "Am", "D", "C", "G", "Am", "E"]
+    B = ["F", "G", "Am", "Am", "F", "G", "E", "E"]
+    ch = split_chords(A + B + A)
+    allb = range(24)
+    A_mel = ("A4/2 C5/1 E5/1 D5/2 C5/1 B4/1  A4/3 F#4/1 A4/2 D5/2  E5/2 G5/1 E5/1 D5/2 C5/1 D5/1  "
+             "E5/3 D5/1 F#5/4  G5/2 E5/1 C5/1 E5/2 G5/2  D5/3 B4/1 G4/2 B4/2  "
+             "C5/2 E5/2 A5/2 G5/1 E5/1  B4/4 -/2 E4/1 G#4/1")
+    B_mel = ("C6/4 A5/2 F5/2  B5/4 G5/2 D5/2  C6/2 B5/1 A5/1 E5/4  A5/4 G5/2 E5/2  "
+             "F5/2 A5/2 C6/2 A5/2  G5/2 B5/2 D6/2 B5/2  G#5/3 A5/1 B5/2 E5/2  B5/4 G#5/2 E5/2")
+    s.line("lead", "strings", A_mel, 0, vel=0.85, transpose=-12)
+    s.line("lead", "oboe", B_mel, 8, vel=0.7, transpose=-12)
+    s.line("lead2", "strings", B_mel, 8, vel=0.4, harmonize=(scale("A", "dorian"), -2), transpose=-24)
+    s.line("lead", "strings", A_mel, 16, vel=0.8, transpose=-12)
+    s.line("lead2", "oboe", A_mel, 16, vel=0.5, harmonize=(scale("A", "dorian"), 2))
+    arpeggio(s, "harp", "harp_dark", ch, allb, [0, 2, 3, 2], 2, low=45, vel=0.5, dur=4)
+    bassline(s, "pizz", "pizz", ch, allb, [(0, 3, "R"), (4, 3, "5")], octave_low=nn("A2"), vel=0.7)
+    _pads(s, "str", "strings", ch, allb, 50, 0.32)
+    _pads(s, "horn", "horn", ch, range(8, 24), 48, 0.35)
+    s.drums("perc", "frame", "X.......", allb, midi=nn("D2"), vel=0.6)
+    return s, dict(verb_t60=2.0)
+
+
 SAMPLES = {"corsair": sample_corsair, "harbour": sample_harbour, "waters": sample_waters,
-           "storm": sample_storm}
+           "storm": sample_storm, "corsair_waters": sample_corsair_waters, "harbour_calm": sample_harbour_calm}
 SAMPLE_OUT = os.path.join(ROOT, "tools", "dev", "out", "music_samples")
 
 

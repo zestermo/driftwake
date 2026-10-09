@@ -81,7 +81,9 @@ scripts/ship/*                          shiptest
 scripts/ocean/*                         swimtest shiptest r9test r10test watertest
 scenes/ocean/*                          r9test r10test
 scripts/world/sea_features.gd           seatest
-scripts/world/weather.gd                r9test r10test
+scripts/world/weather.gd                r9test r10test ambiencetest
+scripts/world/ambience.gd               ambiencetest
+assets/audio/*_loop.wav                 ambiencetest
 scripts/world/cloud_spawner.gd          r9test r10test
 scripts/world/grapple_points.gd         vinetest
 scripts/world/burnable.gd               powertest
