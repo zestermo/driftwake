@@ -107,6 +107,9 @@ scripts/npc/ape_poses.gd                apetest
 scripts/island/island_theme.gd          isletest chaintest
 scripts/npc/log_pose.gd                 chaintest
 scripts/ui/log_pose_icon.gd             chaintest
+scripts/ui/chain_marks.gd               chaintest
+scripts/ui/compass_strip.gd             chaintest qoltest
+scripts/ui/sea_chart.gd                 chaintest qoltest seatest
 scripts/island/*                        foresttest
 data/dialogue/*                         qoltest
 

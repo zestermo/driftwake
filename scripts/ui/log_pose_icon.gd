@@ -2,19 +2,22 @@ extends Control
 ## The log pose, drawn big while L is held (Player.log_pose_up): the glass
 ## ball in its brass cradle on a leather strap, a needle for each island it
 ## has set on, turning with the camera (up = the way you face), and under it
-## what each island is (theme, level coloured by how it compares to yours,
-## distance). Unset, the needle wanders and says why.
+## what each island is (theme icon and name, level, distance, and how
+## dangerous for you: easy / even / hard / deadly). Unset, the needle wanders
+## and says why; the moment it sets, it swings round and settles.
 
 const W := 150.0
 const H := 150.0
 const BALL := 26.0
 const C := Vector2(W - 44.0, 44.0)
-const NEEDLE_COLORS := [Color(0.92, 0.18, 0.14), Color(0.3, 0.55, 1.0)]
+const MARKS := preload("res://scripts/ui/chain_marks.gd")
 
 var _font: Font
 var _small: Font
 var _k: float = 0.0
 var _t: float = 0.0
+## Each needle's angle on screen, easing toward where it points.
+var _ang: Array[float] = [0.0, 0.0]
 
 
 func _init() -> void:
@@ -36,7 +39,27 @@ func _process(delta: float) -> void:
 	visible = _k > 0.0
 	modulate.a = clampf(_k * 1.6, 0.0, 1.0)
 	if visible:
+		_swing(delta, me)
 		queue_redraw()
+
+
+func _swing(delta: float, me: Node3D) -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	var targets: Array = MARKS.targets(gm) if gm else []
+	var cam := get_viewport().get_camera_3d()
+	var heading := 0.0
+	if cam:
+		var f := -cam.global_basis.z
+		heading = atan2(f.x, -f.z)
+	for i in range(2):
+		var a: float
+		if targets.is_empty():
+			a = _t * 0.7 + sin(_t * 1.9) * 1.4 + i * PI
+		else:
+			var p: Vector2 = targets[mini(i, targets.size() - 1)]["pos"]
+			var to := p - Vector2(me.global_position.x, me.global_position.z)
+			a = atan2(to.x, -to.y) - heading + sin(_t * 7.0 + i * 2.0) * 0.04
+		_ang[i] = lerp_angle(_ang[i], a, clampf(delta * 8.0, 0.0, 1.0))
 
 
 func _draw() -> void:
@@ -45,7 +68,7 @@ func _draw() -> void:
 	var s := e * (1.0 + 0.12 * sin(e * PI))
 	draw_set_transform(C + Vector2(0, BALL * 2.0) * (1.0 - s), 0.0, Vector2.ONE * maxf(s, 0.01))
 	var gm := get_node_or_null("/root/GameManager")
-	var targets: Array = gm.log_pose_targets() if gm else []
+	var targets: Array = MARKS.targets(gm) if gm else []
 	_draw_pose(targets)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels(targets, gm)
@@ -82,25 +105,10 @@ func _draw_pose(targets: Array) -> void:
 	draw_circle(Vector2.ZERO, BALL, Color(0.62, 0.84, 0.95, 0.55))
 	draw_circle(Vector2(0, BALL * 0.35), BALL * 0.7, Color(0.4, 0.66, 0.85, 0.35))
 	# the needles, floating flat in the ball (seen from above at a slant)
-	var cam := get_viewport().get_camera_3d()
-	var heading := 0.0
-	if cam:
-		var f := -cam.global_basis.z
-		heading = atan2(f.x, -f.z)
-	var me := get_tree().get_first_node_in_group("player") as Node3D
-	var n := maxi(targets.size(), 1)
-	for i in range(n):
-		var a: float
-		if targets.is_empty():
-			a = _t * 0.7 + sin(_t * 1.9) * 1.4
-		else:
-			var p: Vector2 = targets[i]["pos"]
-			var to := p - Vector2(me.global_position.x, me.global_position.z)
-			a = atan2(to.x, -to.y) - heading + sin(_t * 7.0 + i * 2.0) * 0.04
-		var d := Vector2(sin(a), -cos(a) * 0.62) * (BALL - 5.0)
+	for i in range(maxi(targets.size(), 1)):
+		var d := Vector2(sin(_ang[i]), -cos(_ang[i]) * 0.62) * (BALL - 5.0)
 		var side := Vector2(-d.y, d.x).normalized() * 2.5
-		var col: Color = NEEDLE_COLORS[i] if not targets.is_empty() else NEEDLE_COLORS[0]
-		draw_colored_polygon(PackedVector2Array([d, side, -side]), col)
+		draw_colored_polygon(PackedVector2Array([d, side, -side]), MARKS.NEEDLE_COLORS[i])
 		draw_colored_polygon(PackedVector2Array([-d * 0.8, side, -side]), Color(0.15, 0.15, 0.18))
 	draw_circle(Vector2.ZERO, 2.5, brass)
 	# light on the glass
@@ -116,25 +124,34 @@ func _draw_labels(targets: Array, gm: Node) -> void:
 		var why := "The needle won't settle"
 		if gm and me and gm.chain_at < 0 and me.progression.level < gm.LOG_POSE_LEVEL:
 			why += " (Lv %d)" % gm.LOG_POSE_LEVEL
-		_text(why, top, 12, Color(0.95, 0.9, 0.8), _font)
+		_text([[why, Color(0.95, 0.9, 0.8)]], top, 12, _font)
 		if gm and gm.chain_at >= 0 and not gm.log_pose_set():
-			_text("%d min more here, or slay its beast" % ceili(gm.log_pose_wait() / 60.0), top + 13.0, 8, Color(0.85, 0.8, 0.7), _small)
+			_text([["%d min more here, or slay its beast" % ceili(gm.log_pose_wait() / 60.0), Color(0.85, 0.8, 0.7)]], top + 13.0, 8, _small)
 		return
 	var lvl: int = me.progression.level
+	var here := Vector2((me as Node3D).global_position.x, (me as Node3D).global_position.z)
 	for i in range(targets.size()):
 		var t: Dictionary = targets[i]
 		var y := top + i * 26.0
-		var p: Vector2 = t["pos"]
-		var dist := Vector2((me as Node3D).global_position.x, (me as Node3D).global_position.z).distance_to(p)
-		_text(str(t["name"]), y, 12, NEEDLE_COLORS[i].lightened(0.35), _font)
-		var gap := int(t["level"]) - lvl
-		var danger := Color(0.55, 0.9, 0.45) if gap <= 0 else (Color(1.0, 0.85, 0.3) if gap <= 3 else Color(1.0, 0.4, 0.3))
-		_text("%s  %.1f km" % [Chain.describe(t), dist / 1000.0], y + 12.0, 8, danger, _small)
+		var nm := str(t["name"])
+		_text([[nm, MARKS.NEEDLE_COLORS[i].lightened(0.35)]], y, 12, _font)
+		var nw := _font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+		var theme := str(t["theme"])
+		MARKS.icon(self, Vector2(W - 4.0 - nw - 8.0, y - 4.0), theme, 4.0, MARKS.theme_color(theme))
+		var dz: Array = MARKS.danger(int(t["level"]), lvl)
+		var dist := here.distance_to(t["pos"])
+		_text([["%s  %.1f km  " % [Chain.describe(t), dist / 1000.0], Color(0.88, 0.85, 0.78)], [dz[0], dz[1]]], y + 12.0, 8, _small)
+	if targets.size() > 1:
+		_text([["A fork: sail to the one you'd take", Color(0.85, 0.8, 0.7)]], top + targets.size() * 26.0, 8, _small)
 
 
-## Right-aligned to the strap's right end.
-func _text(s: String, y: float, size: int, col: Color, f: Font) -> void:
-	var w := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+## Coloured pieces [text, colour] on one line, right-aligned to the strap's right end.
+func _text(parts: Array, y: float, size: int, f: Font) -> void:
+	var w := 0.0
+	for pt in parts:
+		w += f.get_string_size(pt[0], HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var at := Vector2(W - 4.0 - w, y)
-	draw_string_outline(f, at, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 3, Color.BLACK)
-	draw_string(f, at, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+	for pt in parts:
+		draw_string_outline(f, at, pt[0], HORIZONTAL_ALIGNMENT_LEFT, -1, size, 3, Color.BLACK)
+		draw_string(f, at, pt[0], HORIZONTAL_ALIGNMENT_LEFT, -1, size, pt[1])
+		at.x += f.get_string_size(pt[0], HORIZONTAL_ALIGNMENT_LEFT, -1, size).x

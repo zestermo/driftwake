@@ -51,7 +51,7 @@ the **log pose**. Past that, every new game generates a chain of islands from it
 
 1. Strip the 6 placeholder islands. The Redtide victory gives the log pose, gated to level 5 (was 10). **Done.**
 2. Chain graph and save: seas, nodes, forks, levels, roles. **Done.**
-3. Log pose: the item, compass needles, the set rule (time or boss), the fork pick with theme and danger, and co-op sync.
+3. Log pose: the item, compass needles, the set rule (time or boss), the fork pick with theme and danger, and co-op sync. **Done (needles on the compass strip, danger by level, the chart fitted to the chain).**
 4. Generic island builder plus ThemeDef, ported from StarterIsland's terrain, splat, paths and vegetation code. Jungle theme first. **Done (GenIsland, IslandTheme; built on a worker thread).**
 5. Streaming: build ahead, free behind, shallows, navmesh, no-go areas and the origin shift. **Done (built a step a frame; freed behind on arriving; no origin shift: the chain keeps within 7.5 km of Brinehollow; a guest catches up on an island's waves and kills).**
 6. Jungle island content: **Done (6a sites, 6b village, 6c the silverback, 6d the log pose's set rule + arriving + the fork pick by sailing).**

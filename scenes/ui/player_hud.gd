@@ -230,11 +230,12 @@ func _on_inventory_changed() -> void:
 		_gold_changed(player.inventory_component.count("gold"))
 
 
-# ---- Compass strip: at the helm, aboard, or with chart marks set ----
+# ---- Compass strip: at the helm, aboard, reading the log pose, or with chart marks set ----
 const COMPASS := preload("res://scripts/ui/compass_strip.gd")
 ## A chart mark this close (m, flat) is reached and cleared.
 const MARK_REACHED := 25.0
 var _compass: Control
+var _log_pose: Control
 
 
 func _build_compass() -> void:
@@ -242,19 +243,22 @@ func _build_compass() -> void:
 	_compass.name = "Compass"
 	_compass.visible = false
 	add_child(_compass)
-	var lp: Control = preload("res://scripts/ui/log_pose_icon.gd").new()
-	lp.name = "LogPose"
-	add_child(lp)
+	_log_pose = preload("res://scripts/ui/log_pose_icon.gd").new()
+	_log_pose.name = "LogPose"
+	add_child(_log_pose)
 
 
 func _update_compass() -> void:
 	if player == null:
 		return
 	var aboard: bool = ship != null and (player.context == Player.Context.HELM or (ship as Ship).aboard(player.global_position))
-	_compass.visible = (aboard or not Net.waypoints.is_empty()) and not _menu_open and not _in_dialogue
+	_compass.visible = (aboard or player.log_pose_up or not Net.waypoints.is_empty()) and not _menu_open and not _in_dialogue
 	# (below the boss bar while it's up)
 	_compass.offset_top = 34.0 if _boss_box.visible else 4.0
 	_compass.offset_bottom = _compass.offset_top + COMPASS.H
+	# (the log pose's readout above the sail gauge while it's up)
+	_log_pose.offset_bottom = -182.0 if _sail_gauge.visible else -70.0
+	_log_pose.offset_top = _log_pose.offset_bottom - _log_pose.H
 	var mine: Array = Net.waypoints.get(Net.my_id(), [])
 	var here := Vector2(player.global_position.x, player.global_position.z)
 	for p in mine:

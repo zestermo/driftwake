@@ -7,7 +7,9 @@ extends SceneTree
 ## The log pose: none to start, given on the wrist, unset under level 5, then
 ## pointing at the first layer; hold L raises it and shows the HUD icon, the
 ## needle turns to the island; the seed, where we are and the log pose survive
-## a save and load; Gus's rumour talks of the chain.
+## a save and load; Gus's rumour talks of the chain. The compass strip shows
+## its needles while L is held, danger reads by level, and the sea chart stays
+## on Brinehollow there but fits the chain island and where it points out there.
 var SG
 var t := 0.0
 var step := 0
@@ -144,6 +146,10 @@ func _process(d: float) -> bool:
 			var off := absf(Vector2(nd.x, nd.z).angle_to(to))
 			check("the needle points at the island (off by %.2f rad)" % off, off < 0.1)
 			check("one needle per island", lp.needles[1].visible == (tg.size() > 1))
+			check("...and the compass strip is up with its needles", hud._compass.visible)
+			var MK = load("res://scripts/ui/chain_marks.gd")
+			check("danger by level: easy / even / hard / deadly", MK.danger(5, 9)[0] == "easy" and MK.danger(7, 7)[0] == "even"
+				and MK.danger(11, 7)[0] == "hard" and MK.danger(14, 5)[0] == "deadly")
 			Input.action_release("log_pose")
 			wait = 0.5
 			step = 2
@@ -161,6 +167,22 @@ func _process(d: float) -> bool:
 			check("the chain's seed and where we are are saved", gm.chain_seed == seed_was and gm.chain_at == 2)
 			check("...and so is the log pose (still on the wrist)", p.has_log_pose() and p.body_model.fore_l.get_node_or_null("LogPose") != null)
 			gm.chain_at = -1
+			# the sea chart: Brinehollow's sea as ever; on the chain, fitted round where we are and where it points
+			var menu = root.get_node("GameMenu")
+			menu.open("chart")
+			var ch = menu._chart
+			var c = world.chain()
+			ch._view(world, gm)
+			check("in Brinehollow's sea the chart is centred on Brinehollow", ch._centre == world.starter_center and ch._pin)
+			var at: int = c.start_next[0]
+			gm.chain_at = at
+			gm.chain_set = true
+			ch._view(world, gm)
+			check("on the chain it shows the island we're at and where the log pose points",
+				ch._inside(c.node(at)["pos"]) and c.next_of(at).all(func(id): return ch._inside(c.node(id)["pos"])) and not ch._pin)
+			menu.close()
+			gm.chain_at = -1
+			gm.chain_set = false
 			var rumor: String = root.get_node("Dialogue")._tokens["rumor"].call()
 			print("   rumour: ", rumor)
 			check("Gus's rumours tell of the chain", rumor != "" and not rumor.contains("{"))

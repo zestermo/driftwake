@@ -170,7 +170,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `qolshot`: Nessa's and Sela's stalls, the yard's live preview, the helm with the compass and chart marks, the chart, the capstan and anchor chain, a hull hit's number. Args: <out_prefix>
 - `polishshot`: Sea polish: the foam wake behind the ship (astern, from above), turquoise shallows round Brinehollow, rain pooling on deck. Args: <out_prefix>
 - `genshot`: A generated chain island: from high above (fog off), from the sea off its dock, on the pier, at the village's, the boss's ground and the summit; prints its build times. Env GSHOT_SEED (the chain), GSHOT_ID (a node). Args: <out_prefix>
-- `logposeshot`: The log pose held up (L) in the game view: unset under level 10, then set on the first island(s) with the HUD icon's needles and labels. Args: <out_prefix>
+- `logposeshot`: The log pose held up (L): unset under level 5 (icon and compass strip), set in Brinehollow's sea (icon, strip, the chart with the first island pinned at its edge), then at a forking city on a found seed: unset (the wait), set at the helm (two needles, theme, danger) and the chart fitted round the fork. Args: <out_prefix>
 - `yardshot`: The ship plain, then refitted in a few colour schemes (side, bow, masthead flag, each figurehead), Tackett at his timber, and the yard screen. Args: <out_prefix>
 - `perfbench`: Frame/process/physics/render CPU/GPU ms, draws, prims, worst frame at five fixed views (1920x1080, vsync off, sharper preset). `probe` / `probe:<view>` instead times every script's _process/_physics_process. Args: [label|probe] [WxH]
 - `hitchprobe`: Times one-off jobs that can stall a frame (autosave, camp and ship respawns cold vs prebuilt, a rig, weapon meshes, navmesh parses).
