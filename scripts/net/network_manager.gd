@@ -27,7 +27,7 @@ signal roster_changed
 
 const DEFAULT_PORT := 24680
 const MAX_CLIENTS := 3
-const PROTOCOL := 2
+const PROTOCOL := 3
 const SNAP_RATE := 20.0
 ## Puppets are shown this far in the past (seconds), between two snapshots.
 const INTERP := 0.1
@@ -259,6 +259,7 @@ func leave() -> void:
 
 
 func _on_connected() -> void:
+	_patient(1)
 	_connect_t = 0.0
 	status_changed.emit("Connected - waiting for the host...")
 	_hello.rpc_id(1, PROTOCOL, my_info)
@@ -292,8 +293,18 @@ func _back_to_title() -> void:
 		tree.change_scene_to_file(SaveGame.TITLE_SCENE)
 
 
-func _on_peer_connected(_id: int) -> void:
-	pass  # the newcomer introduces itself with _hello
+func _on_peer_connected(id: int) -> void:
+	# (the newcomer introduces itself with _hello)
+	if hosting:
+		_patient(id)
+
+
+## A joiner's game freezes while it builds the world (longer on a first run, compiling
+## shaders); ENet's default ~5 s timeout dropped them mid-load. Allow 30 s.
+func _patient(id: int) -> void:
+	var pp := _peer.get_peer(id) if _peer else null
+	if pp:
+		pp.set_timeout(32, 30000, 60000)
 
 
 func _on_peer_disconnected(id: int) -> void:
