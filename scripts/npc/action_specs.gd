@@ -44,7 +44,7 @@ const SPECS := {
 	"slash_r": {"len": 0.85, "hit": [0.45, 0.6], "chain": 0.62, "swoosh": [0.4, 0.66], "sharp": 55.0,
 		"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
 		"swing": SwordMoves.SLASH_R_SWING, "reach": SwordMoves.SLASH_R_REACH, "stance": "sword", "weapon": "cutlass"},
-	"slash_l": {"len": 0.8, "hit": [0.37, 0.52], "chain": 0.58, "swoosh": [0.3, 0.6], "sharp": 55.0,
+	"slash_l": {"len": 0.7, "hit": [0.37, 0.52], "chain": 0.56, "swoosh": [0.3, 0.72], "sharp": 55.0,
 		"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
 		"swing": SwordMoves.SLASH_L_SWING, "reach": SwordMoves.SLASH_L_REACH, "stance": "sword", "weapon": "cutlass",
 		"extras": {"after": "slash_r"}},

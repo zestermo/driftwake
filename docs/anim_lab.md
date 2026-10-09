@@ -306,3 +306,11 @@ little more elbow bend. What it really was:
   sword arm's upper arm against the head sphere; `AS_DEBUG=live` now debugs the live row.
 
 Checks (live): edge avg 0.32, body clearance 0.25 m, upper arm clear of head 0.04 m.
+
+Zach's next note: more follow-through (the sword swinging further past the body, the arm
+extended) and slightly faster. Now 0.7 s (was 0.8; chain 0.56 s, trail to u 0.72): after
+contact the hand sweeps out to the right (0.54, 0.66) and on behind the right side (0.8), the
+arm extended (bend 0.5-0.7, not locked) with the blade pointing out past the right side;
+the body holds its follow-through to u 0.84. Edge avg 0.56, body clearance 0.3 m.
+Path radii in the follow-through needed the frame's offset (the anchor carried from hit 1
+sits ~0.16 m right of the body there): read the ELBOW target vs shoulder, not the key's r.
