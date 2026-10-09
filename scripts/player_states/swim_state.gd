@@ -168,7 +168,7 @@ func physics_update(delta: float) -> void:
 	_stroke_t -= delta
 	if hv.length() > 0.8 and _stroke_t <= 0.0 and not _diving:
 		_stroke_t = 0.6 if fast else 0.9
-		Net.fx("sfx", ["splash", player.global_position, -20.0, 0.2, 1.5])
+		Net.fx("sfx", ["swim_stroke", player.global_position, -8.0 if fast else -11.0, 0.08])
 
 	# walked out of the water
 	if not _diving and player.is_on_floor() and player.water_depth() < Player.SWIM_EXIT_DEPTH:

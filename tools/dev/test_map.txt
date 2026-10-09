@@ -88,6 +88,9 @@ scripts/world/sea_legs.gd               legtest seatest net
 scripts/world/weather.gd                r9test r10test ambiencetest
 scripts/world/ambience.gd               ambiencetest
 assets/audio/*_loop.wav                 ambiencetest
+scripts/game/footsteps.gd               ambiencetest
+scripts/game/fx.gd                      powertest r6test
+scripts/game/music.gd                   r8test
 scripts/world/cloud_spawner.gd          r9test r10test
 scripts/world/grapple_points.gd         vinetest
 scripts/world/burnable.gd               powertest

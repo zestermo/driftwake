@@ -1190,6 +1190,7 @@ func _on_landed(impact_vy: float) -> void:
 	squash(-2.0 - 5.0 * k)
 	Net.fx("dust_ring", [global_position, int(6 + 14 * k), 0.6 + 0.6 * k])
 	Net.fx("sfx", ["land", global_position, -8.0 + 6.0 * k])
+	Net.fx("sfx", ["step_" + ground_surface(), global_position, -6.0 + 6.0 * k, 0.05, 0.85])
 
 
 func _fall_damage(speed: float) -> void:
@@ -1209,17 +1210,24 @@ func _fall_damage(speed: float) -> void:
 		state_machine.force_state("Stagger", {"stagger_duration": 0.55, "knockback_dir": Vector3.ZERO, "knockback_force": 0.0, "flinch": false})
 
 
+const Footsteps := preload("res://scripts/game/footsteps.gd")
+
+
+## What's underfoot ("water" when wading): sand, grass, dirt, stone, wood.
+func ground_surface() -> String:
+	return "water" if water_depth() > 0.08 else Footsteps.surface_under(self)
+
+
 func _on_footstep(strength: float) -> void:
 	# (a puppet isn't moved by physics here: its owner says if it's grounded)
 	if not (is_on_floor() if is_local else bool(_net_flags & NF_FLOOR)):
 		return
 	_step_count += 1
-	FX.sfx("step", global_position, -20.0 + 10.0 * strength, 0.15)
+	FX.sfx("step_" + ground_surface(), global_position, -16.0 + 16.0 * strength, 0.06)
 	var wet := water_depth()
 	if wet > 0.08:
 		# wading: splashes instead of dust
 		FX.splash(Vector3(global_position.x, global_position.y + wet, global_position.z), 2 + int(strength * 3.0), 0.45)
-		FX.sfx("splash", global_position, -16.0 + 6.0 * strength, 0.15, 1.3)
 		return
 	if sprinting or (not is_local and body_model.sprinting):
 		squash(-0.9)
