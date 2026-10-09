@@ -69,6 +69,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `airshot`: (no description)
 - `animsheet`: Contact sheets of every action in ActionSpecs (scripts/npc/action_specs.gd) at its length, 8 frames each (u 0 -> 0.98), three rows to a sheet, a red bar under frames inside the hitbox window; holds via Humanoid.hold, reactions via react (one row per push variant); in place (no root motion). Lab mode (`lab:<action>` as the 2nd arg): live + each AnimLab variant as tagged rows, 12 frames, a sheet per view (front3/side/back3/top) and each row's range of motion per axis printed, plus a BLADE line of swing checks; env AS_TRACE=<live|a|b|c> prints that row frame by frame (sword hand and blade tip height and speed, elbow bend: wobbles and pops), AS_DEBUG=<live|a|b|c> the swing/reach solver per frame, AS_MOVE="x,y" starts it mid-walk; see docs/anim_lab.md. Args: <out_prefix> [only: action names or stances, comma separated] [yaw_deg = 125; 90 = side]
 - `bigtest`: (no description)
+- `abilityshot`: A skill filmed on a clean stage against three staggered grunts, effects and all: one row per view, frames along game time. Args: <out_prefix> <skill_id | heavy | riposte_counter> [style] [views: game,side,front3,top] [frames] [span s] [start s]. Env AB_HOUR=21 at night.
 - `bugshot`: Scuttlebug shots. Args: <out_prefix> <mode: pose|fight|down|die>
 - `cannonshot`: Cannons on the sloop: overview, manning pose, gun camera with the arc, a shot in flight. Args: <out_prefix>
 - `cloudshot`: Close look at the 3D clouds at a pixelated PSX preset. Args: <out_png> [preset]
@@ -187,4 +188,3 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `guestshot`: A rendered co-op guest: start `nethost.gd -- <port>` headless, then `guestshot.gd -- <port> <out_prefix>` joins it and shoots fixed views (dock, open sea) as a guest sees them; prints the guest's hour, sun and ocean state.
 - `wolfpose`: Standalone Zoan hybrid: front, 3/4 and side views. Args: <out_prefix>
 - `zigzag`: (no description)
-- `abilityshot`: A skill filmed on a clean stage against three staggered grunts, effects and all: one row per view, frames along game time. Args: <out_prefix> <skill_id | heavy | riposte_counter> [style] [views: game,side,front3,top] [frames] [span s] [start s]. Env AB_HOUR=21 at night.
