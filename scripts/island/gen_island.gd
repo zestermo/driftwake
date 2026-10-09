@@ -108,6 +108,13 @@ func prepare(n: Dictionary) -> void:
 	build_ms["arrays"] = _lap(t0)
 	_plan_dock()
 	_scatter_vegetation()
+	# the villagers' bodies, ready for their NPCs (Humanoid.make picks them up)
+	t0 = Time.get_ticks_usec()
+	for lk in IslandVillage.looks(self):
+		var h := Humanoid.new()
+		h.setup(lk)
+		Humanoid.stock(h, lk)
+	build_ms["bodies"] = _lap(t0)
 
 
 ## The nodes, meshes and colliders from what prepare worked out (main thread).
@@ -298,13 +305,21 @@ func _plan_sites() -> void:
 	sites["boss"] = _settle(-dock_dir * radius * _rng.randf_range(0.5, 0.62), 26.0)
 	var peak: Vector2 = _bumps[0][0]
 	sites["summit"] = peak
+	# the others round about: the try furthest from every site so far (SITE_GAP is enough)
 	for site in ["camp", "lair", "ruins"]:
-		var at := Vector2.ZERO
+		var pick := Vector2.ZERO
+		var pick_gap := -1.0
 		for k in range(40):
-			at = Vector2.from_angle(_rng.randf() * TAU) * radius * _rng.randf_range(0.3, 0.68)
-			if sites.values().all(func(q): return at.distance_to(q) > SITE_GAP):
+			var at := _settle(Vector2.from_angle(_rng.randf() * TAU) * radius * _rng.randf_range(0.3, 0.68), 18.0)
+			var gap := INF
+			for q in sites.values():
+				gap = minf(gap, at.distance_to(q))
+			if gap > pick_gap:
+				pick_gap = gap
+				pick = at
+			if gap > SITE_GAP:
 				break
-		sites[site] = _settle(at, 18.0)
+		sites[site] = pick
 	for site in sites.keys():
 		if site != "dock" and site != "summit":
 			_keep.append([sites[site], 30.0])

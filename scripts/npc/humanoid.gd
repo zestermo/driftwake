@@ -382,6 +382,16 @@ static func prebuild(looks: Array) -> void:
 			Humanoid._pool_lock.unlock(), false, "prebuild bodies"))
 
 
+## A body built for `lk` elsewhere off the main thread (GenIsland.prepare) waits for make(lk).
+static func stock(h: Humanoid, lk: Dictionary) -> void:
+	var k := _look_key(lk)
+	_pool_lock.lock()
+	if not _ready_bodies.has(k):
+		_ready_bodies[k] = []
+	_ready_bodies[k].append(h)
+	_pool_lock.unlock()
+
+
 ## True once a body for every look in `looks` (repeats counted) is waiting.
 static func prebuilt_for(looks: Array) -> bool:
 	_reap()

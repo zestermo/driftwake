@@ -78,6 +78,12 @@ func has_flag(flag: String) -> bool:
 	return bool(flags.get(flag, false))
 
 
+## A conversation made in play (a chain island's villagers: IslandVillage),
+## shaped like a JSON file's and started the same way.
+func define(id: String, data: Dictionary) -> void:
+	_cache[id] = data
+
+
 ## Start a conversation from a JSON file.
 func start(id: String, npc: Node = null) -> void:
 	if is_blocking():

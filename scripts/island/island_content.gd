@@ -22,6 +22,8 @@ static func populate(isl: GenIsland) -> void:
 	_lair(isl, rng)
 	_ruins(isl, rng)
 	_summit(isl)
+	# (after the camp and the lair: its jobs watch them)
+	IslandVillage.build(isl, rng)
 
 
 ## The island's loot tier (ItemData.Rarity) by its level.

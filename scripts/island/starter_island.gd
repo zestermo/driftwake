@@ -1486,7 +1486,7 @@ func _garden(c: Vector2, w: float, d: float, yaw: float, rng: RandomNumberGenera
 
 
 ## A notice board: two posts, a little roof, papers pinned up.
-func _notice_board(rng: RandomNumberGenerator) -> StaticBody3D:
+static func _notice_board(rng: RandomNumberGenerator) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = "NoticeBoard"
 	var mb := MeshBuilder.new()
