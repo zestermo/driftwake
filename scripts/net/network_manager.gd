@@ -1068,6 +1068,11 @@ func set_ship_kit(kit: Dictionary) -> void:
 	everyone("_all_ship_kit", [kit])
 
 
+## The chain's state (GameManager.chain_arrive / chain_settle, the host's).
+func _all_chain(at: int, is_set: bool, since: float) -> void:
+	get_node("/root/GameManager").apply_chain(at, is_set, since)
+
+
 func _all_ship_kit(kit: Dictionary) -> void:
 	var ship := _ship()
 	if ship:
@@ -1677,7 +1682,7 @@ func _world_state() -> Dictionary:
 		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
 		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state(),
 		"kit": gm.ship_kit.duplicate() if gm else {}, "waypoints": waypoints.duplicate(),
-		"chain": [gm.chain_seed, gm.chain_at] if gm else [],
+		"chain": [gm.chain_seed, gm.chain_at, gm.chain_set, gm.chain_since] if gm else [],
 		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else []}
 
 
@@ -1720,6 +1725,8 @@ func _apply_world_sync(state: Dictionary) -> void:
 		var ch: Array = state["chain"]
 		gm.chain_seed = int(ch[0])
 		gm.chain_at = int(ch[1])
+		gm.chain_set = bool(ch[2])
+		gm.chain_since = float(ch[3])
 		world_synced = true
 	var sp: Dictionary = state.get("spawners", {})
 	for k in sp.keys():

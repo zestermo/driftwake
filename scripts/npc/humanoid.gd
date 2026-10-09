@@ -1040,6 +1040,37 @@ func _feral(p: Dictionary, walk: float, run: float, s: float) -> float:
 	return lerpf(-0.44, lerpf(-0.3, -0.36, run), w) + br * 0.015 * (1.0 - w)
 
 
+## The ape's knuckle-walk (stance "ape"): pitched forward from the hips, long
+## arms reaching to the ground on straight-ish elbows, swinging opposite the
+## legs as it moves; a heavy breathing sway at rest. Returns the hip drop.
+func _ape(p: Dictionary, walk: float, run: float, s: float) -> float:
+	var br := sin(_t * 2.6)
+	var w := clampf(walk, 0.0, 1.0)
+	var lean := lerpf(0.42, 0.55, run)
+	var idle := {
+		"pivot": Vector3(-0.42, 0, 0), "hips": Vector3.ZERO,
+		"torso": Vector3(-0.4 + br * 0.04, 0, br * 0.02), "head": Vector3(0.75 - br * 0.03, 0, 0),
+		# (the arms are forward of the pitched torso by about its pitch, so they hang to the ground ahead)
+		"arm_l": Vector3(1.15, 0.1, -0.28), "fore_l": Vector3(0.18, 0, 0), "hand_l": Vector3(0.6, 0, 0),
+		"arm_r": Vector3(1.15, -0.1, 0.28), "fore_r": Vector3(0.18, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+		"leg_l": Vector3(0.95, 0, -0.22), "shin_l": Vector3(-1.25, 0, 0),
+		"leg_r": Vector3(0.95, 0, 0.22), "shin_r": Vector3(-1.25, 0, 0)}
+	var swing := s * lerpf(0.5, 0.8, run)
+	var move := {
+		"pivot": Vector3(-lean, 0, 0), "hips": p["hips"],
+		"torso": Vector3(-0.42, s * 0.12, 0), "head": Vector3(0.8, -s * 0.08, 0),
+		"arm_l": Vector3(1.15 - swing, 0.1, -0.3), "fore_l": Vector3(0.2 + maxf(swing, 0.0) * 0.5, 0, 0), "hand_l": Vector3(0.6, 0, 0),
+		"arm_r": Vector3(1.15 + swing, -0.1, 0.3), "fore_r": Vector3(0.2 + maxf(-swing, 0.0) * 0.5, 0, 0), "hand_r": Vector3(0.6, 0, 0)}
+	for leg in ["leg_l", "leg_r"]:
+		var g: Vector3 = p[leg]
+		move[leg] = Vector3(g.x * 1.1 + 0.75, 0, g.z + (-0.2 if leg == "leg_l" else 0.2))
+	for shin in ["shin_l", "shin_r"]:
+		move[shin] = (p[shin] as Vector3) * 1.1 + Vector3(-0.9, 0, 0)
+	for j in idle.keys():
+		p[j] = (idle[j] as Vector3).lerp(move[j], w)
+	return lerpf(-0.3, -0.26, w) + br * 0.02 * (1.0 - w)
+
+
 ## Interpolate between key poses. keys = [[t, {joint: Vector3}], ...]
 ## Joints missing from a key fall back to the current locomotion pose (_base),
 ## so actions blend in and out of whatever the legs/arms were doing.
@@ -2130,6 +2161,8 @@ func _action_pose(n: String, u: float) -> Array:
 		"wave":
 			var wv := {"arm_r": Vector3(0.2, 0, 2.6 + sin(_t * 12.0) * 0.25), "fore_r": Vector3(0.4, 0, 0), "head": Vector3(0.1, -0.2, 0)}
 			return [_keys(u, [[0.0, {}], [0.2, wv], [0.85, wv], [1.0, {}]]), "upper", lift]
+	if n.begins_with("ape_"):
+		return ApePoses.pose(self, n, u)
 	# weapon / unarmed techniques live in their own file
 	var tp := TechniquePoses.pose(self, n, u)
 	if not tp.is_empty():
@@ -2291,9 +2324,12 @@ func _locomotion(delta: float) -> Dictionary:
 				p["hips"] += Vector3(0, 0.05 * ro, -0.07 * ro) * ws
 				p["torso"] += Vector3(0, -0.04 * ro, 0.06 * ro) * ws
 				lift.x += -0.03 * ro * ws
+		# a great ape (JungleApe): pitched forward on its knuckles, armed or not
+		if stance == "ape":
+			lift.y += _ape(p, walk, maxf(jog * 0.6, run), s)
 		# Zoan hybrid: a low feral crouch, claws out at the sides, and a
 		# forward-pitched, bounding run
-		if armed and stance == "claw":
+		elif armed and stance == "claw":
 			lift.y += _feral(p, walk, maxf(jog * 0.6, run), s)
 		# combat stance: guard arms, wide knees, boxer-style hop
 		elif armed and not sprinting:

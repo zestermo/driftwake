@@ -1444,8 +1444,10 @@ func give_log_pose() -> void:
 func _debug_to_next_island() -> void:
 	var w := get_tree().get_first_node_in_group("world_gen")
 	var ids: Array = w.chain().next_of(int(GameManager.chain_at))
+	if not GameManager.log_pose_set() and not Net.is_client():
+		GameManager.chain_settle()
 	if ids.is_empty() or not w.chain_islands.has(ids[0]):
-		_toast("Debug: the next island isn't built yet")
+		_toast("Debug: the log pose is set; the next island's being built - again in a moment")
 		return
 	var isl: GenIsland = w.chain_islands[ids[0]]
 	var moor: Array = isl.mooring()

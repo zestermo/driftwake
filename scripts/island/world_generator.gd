@@ -61,6 +61,8 @@ func sync_chain_islands() -> void:
 			WorkerThreadPool.wait_for_task_completion(e[1])
 			(e[0] as Node).free()
 		_pending.clear()
+	if not Net.is_client():
+		_check_arrival()
 	for id in chain_islands.keys():
 		if not _wanted().has(id):
 			_free_chain_island(id)
@@ -80,12 +82,29 @@ func chain_ready() -> bool:
 	return true
 
 
+## The island we're at, and (once the log pose has set) the ones it points to.
 func _wanted() -> Array:
-	var at := int(get_node("/root/GameManager").chain_at)
-	var want: Array = chain().next_of(at).duplicate()
+	var gm := get_node("/root/GameManager")
+	var at := int(gm.chain_at)
+	var want: Array = chain().next_of(at).duplicate() if gm.log_pose_set() else []
 	if at >= 0:
 		want.append(at)
 	return want
+
+
+## Host: a captain well onto one of the islands ahead - the crew is there now.
+func _check_arrival() -> void:
+	var gm := get_node("/root/GameManager")
+	for id in chain().next_of(int(gm.chain_at)):
+		if not chain_islands.has(id):
+			continue
+		var isl: GenIsland = chain_islands[id]
+		var c := Vector2(isl.position.x, isl.position.z)
+		for p in Net.all_players():
+			var pp := p as Node3D
+			if Vector2(pp.global_position.x, pp.global_position.z).distance_to(c) < isl.radius * 0.8:
+				gm.chain_arrive(id)
+				return
 
 
 func _start_chain_island(n: Dictionary) -> void:

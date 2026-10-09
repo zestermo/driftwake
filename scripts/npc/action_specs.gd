@@ -110,6 +110,15 @@ const SPECS := {
 	"gun_kata": {"len": 0.82, "hit": [0.15, 0.76], "stance": "dual_pistol", "weapon": "pistol", "extras": {"dual": true}},
 	"gun_rain": {"len": 0.6, "stance": "dual_pistol", "weapon": "pistol", "extras": {"dual": true}},
 	# --- Zoan hybrid ---
+	# the silverback (JungleApe, ApePoses)
+	"ape_beat": {"len": 2.0, "stance": "ape", "weapon": ""},
+	"ape_swipe": {"len": 0.9, "hit": [0.42, 0.6], "stance": "ape", "weapon": ""},
+	"ape_slam_wind": {"len": 0.6, "stance": "ape", "weapon": ""},
+	"ape_slam": {"len": 0.7, "stance": "ape", "weapon": ""},
+	"ape_crouch": {"len": 0.45, "stance": "ape", "weapon": ""},
+	"ape_air": {"len": 0.2, "stance": "ape", "weapon": ""},
+	"ape_lift": {"len": 0.9, "stance": "ape", "weapon": ""},
+	"ape_hurl": {"len": 0.6, "stance": "ape", "weapon": ""},
 	"claw_r": {"len": 0.44, "hit": [0.27, 0.59], "stance": "claw", "weapon": "", "extras": {"beast": true}},
 	"claw_l": {"len": 0.44, "hit": [0.27, 0.59], "stance": "claw", "weapon": "", "extras": {"beast": true}},
 	"claw_double": {"len": 0.62, "hit": [0.32, 0.58], "stance": "claw", "weapon": "", "extras": {"beast": true}},

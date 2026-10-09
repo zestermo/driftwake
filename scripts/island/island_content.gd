@@ -8,7 +8,8 @@ extends RefCounted
 ##            trees about, the hoard they sit on
 ##   ruins  - a ring of old pillars, slabs and a chest in the middle
 ##   summit - a lookout tower with a chest on its platform and the view
-## (village and boss: the next rounds.)
+##   boss   - the beast's ground (BeastArena: the silverback)
+##   village - IslandVillage
 
 const FIRST := ["Ned", "Sal", "Mags", "Bram", "Corvin", "Ysolde", "Rook", "Tamsin", "Hask", "Vel", "Odo", "Fen"]
 const EPITHET := ["Bloody", "One-Eye", "Iron", "Black", "Mad", "Saltjaw", "Red", "Grinning", "Lucky", "Bonesaw", "Quiet", "Hook"]
@@ -22,7 +23,8 @@ static func populate(isl: GenIsland) -> void:
 	_lair(isl, rng)
 	_ruins(isl, rng)
 	_summit(isl)
-	# (after the camp and the lair: its jobs watch them)
+	BeastArena.build(isl, rng)
+	# (after the camp, the lair and the beast: its jobs watch them)
 	IslandVillage.build(isl, rng)
 
 

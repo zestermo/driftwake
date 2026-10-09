@@ -117,6 +117,8 @@ func _draw_labels(targets: Array, gm: Node) -> void:
 		if gm and me and gm.chain_at < 0 and me.progression.level < gm.LOG_POSE_LEVEL:
 			why += " (Lv %d)" % gm.LOG_POSE_LEVEL
 		_text(why, top, 12, Color(0.95, 0.9, 0.8), _font)
+		if gm and gm.chain_at >= 0 and not gm.log_pose_set():
+			_text("%d min more here, or slay its beast" % ceili(gm.log_pose_wait() / 60.0), top + 13.0, 8, Color(0.85, 0.8, 0.7), _small)
 		return
 	var lvl: int = me.progression.level
 	for i in range(targets.size()):

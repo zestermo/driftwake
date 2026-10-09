@@ -29,8 +29,14 @@ var ship_kit: Dictionary = ShipKit.fresh()
 ## game (the host's in co-op), and the island the crew is at (-1 = Brinehollow's sea).
 var chain_seed: int = randi()
 var chain_at: int = -1
+## On a chain island the log pose sets once its beast falls (chain_set) or
+## LOG_SET_TIME of world time after the crew arrived (chain_since).
+var chain_set: bool = false
+var chain_since: float = 0.0
+const LOG_SET_TIME := 900.0
 ## A captain needs this level before the log pose sets on the first island.
 const LOG_POSE_LEVEL := 5
+var _was_set: bool = false
 const AUTOSAVE_EVERY := 120.0
 var _autosave_t: float = 0.0
 ## Seconds played in this save (counted while the game isn't paused).
@@ -49,6 +55,9 @@ func reset_session() -> void:
 	ship_kit = ShipKit.fresh()
 	chain_seed = randi()
 	chain_at = -1
+	chain_set = false
+	chain_since = 0.0
+	_was_set = false
 	play_time = 0.0
 	_autosave_t = 0.0
 	grave = null
@@ -92,6 +101,11 @@ func _process(delta: float) -> void:
 		return
 	play_time += delta
 	_autosave_t += delta
+	# the moment the log pose sets on the next island(s)
+	var now_set := log_pose_set()
+	if now_set and not _was_set and chain_at >= 0 and player.has_log_pose():
+		get_tree().call_group("hud", "show_banner", "The log pose has set", "Its needle points on, past this island. Hold L.", true)
+	_was_set = now_set
 	if _autosave_t >= AUTOSAVE_EVERY:
 		_autosave_t = 0.0
 		if player.health_component.current_health > 0.0 and not CharacterCreator.active:
@@ -143,7 +157,44 @@ func log_pose_targets() -> Array:
 		return []
 	if chain_at < 0 and player.progression.level < LOG_POSE_LEVEL:
 		return []
+	if not log_pose_set():
+		return []
 	return c.next_of(chain_at).map(func(id): return c.node(id))
+
+
+## Has the log pose set on where we go next? (In Brinehollow's sea it always
+## has; the level gate is the captain's own, see log_pose_targets.)
+func log_pose_set() -> bool:
+	return chain_at < 0 or chain_set or Weather.world_time() - chain_since >= LOG_SET_TIME
+
+
+## Seconds until the log pose sets by itself here (0 once it has).
+func log_pose_wait() -> float:
+	return 0.0 if log_pose_set() else LOG_SET_TIME - (Weather.world_time() - chain_since)
+
+
+## Host: the crew has come to chain island `id` (the one left behind, and a
+## fork's other side, are let go).
+func chain_arrive(id: int) -> void:
+	Net.everyone("_all_chain", [id, false, Weather.world_time()])
+
+
+## Host: this island's beast is down - the log pose sets now.
+func chain_settle() -> void:
+	Net.everyone("_all_chain", [chain_at, true, chain_since])
+
+
+## (every machine) the chain's state from the host.
+func apply_chain(at: int, is_set: bool, since: float) -> void:
+	var moved := at != chain_at
+	chain_at = at
+	chain_set = is_set
+	chain_since = since
+	if moved:
+		_was_set = log_pose_set()
+		var c := chain()
+		if c and at >= 0:
+			get_tree().call_group("hud", "show_toast", "Arrived at %s. The log pose will set in time." % c.node(at)["name"])
 
 
 func _get_ship() -> Ship:
