@@ -158,7 +158,9 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
   right to left: wind-up turns hips and chest right (y-), the cut turns them left (y+), the
   head counters to stay on the target. Hips lead the chest, the chest leads the arm (`lead`).
 - **Keep momentum through the strike.** Don't put a stopping key mid-swing; ease into the
-  cock (anticipation) and out of the follow-through only.
+  cock (anticipation) and out of the follow-through only. Carry the follow-through fast and
+  then hold it: a long eased-out sweep after contact reads as slow motion (hit 2's sweep
+  past the body felt slow over 0.18 s; ~0.1 s was right).
 - **Give it time to read.** A light hit needs a visible wind-up and follow-through (0.75 s
   beat 0.6 s; Zach still found 0.75 s "a little too fast": round 8 tests slower); give slower
   anims their own `"chain"` so the next click doesn't cut off the hit. Slow the wind-up and
