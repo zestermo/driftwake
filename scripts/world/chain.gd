@@ -162,9 +162,21 @@ func _pick_theme(rng: RandomNumberGenerator, avoid: Array) -> String:
 	return pool[rng.randi() % pool.size()]
 
 
+## (a name not given yet in this sea; once a theme's run out, one not on the
+## islands of this layer or the two before, so a fork's two never match)
 func _name(rng: RandomNumberGenerator, n: Dictionary) -> String:
 	var names: Array = THEMES[n["theme"]]["names"]
-	var base: String = names[rng.randi() % names.size()]
+	var given := {}
+	var near := {}
+	for o in nodes:
+		given[o["base"]] = true
+		if int(o["layer"]) >= int(n["layer"]) - 2:
+			near[o["base"]] = true
+	var pool: Array = names.filter(func(b): return not given.has(b))
+	if pool.is_empty():
+		pool = names.filter(func(b): return not near.has(b))
+	var base: String = pool[rng.randi() % pool.size()]
+	n["base"] = base
 	if n["role"] == "city":
 		var w: String = CITY_WORDS[rng.randi() % CITY_WORDS.size()]
 		return "Port " + base if w == "Port" else "%s %s" % [base, w]
