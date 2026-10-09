@@ -32,6 +32,10 @@ var _after_talk: Array = []
 # options widgets that need refreshing
 var _opt_refreshers: Array[Callable] = []
 
+# web: the pointer lock last frame, and when losing it opened the pause menu
+var _was_captured: bool = false
+var _lock_lost_ms: int = -1000
+
 
 func _ready() -> void:
 	layer = 30
@@ -83,6 +87,19 @@ func _ready() -> void:
 	get_tree().root.size_changed.connect(func():
 		if _current != "":
 			_fit_current())
+	set_process(OS.has_feature("web"))
+
+
+## Web only: a browser's Esc releases the pointer lock and may never reach the
+## game, so losing the lock while playing opens the pause menu.
+func _process(_delta: float) -> void:
+	var cap := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	var dialogue := get_node_or_null("/root/Dialogue")
+	if _was_captured and not cap and _current == "" and not _on_title() and not CharacterCreator.active \
+			and not (dialogue and dialogue.active):
+		open("pause")
+		_lock_lost_ms = Time.get_ticks_msec()
+	_was_captured = cap
 
 
 func is_open() -> bool:
@@ -119,6 +136,8 @@ func _input(event: InputEvent) -> void:
 			open("pause")
 		elif _current in ["options", "controls", "load"]:
 			open("pause")
+		elif _current == "pause" and Time.get_ticks_msec() - _lock_lost_ms < 300:
+			pass   # (web: the same Esc that released the pointer lock)
 		else:
 			close()
 		get_viewport().set_input_as_handled()
@@ -316,6 +335,8 @@ func _build_pause() -> Control:
 			get_tree().quit()],
 	]
 	for it in items:
+		if OS.has_feature("web") and it[0] in ["Host Co-op", "Quit Game"]:
+			continue
 		var b := UIStyle.button(it[0], 160)
 		b.pressed.connect(it[1])
 		b.pressed.connect(_play)
@@ -515,8 +536,11 @@ func _build_controls() -> Control:
 	for i in range(half):
 		for j in [i, i + half]:
 			if j < BINDINGS.size():
+				var key: String = BINDINGS[j][1]
+				if OS.has_feature("web") and key == "Left Ctrl":
+					key = "C"   # (Settings: Ctrl+W would close the browser tab)
 				grid.add_child(UIStyle.label(BINDINGS[j][0], 12))
-				grid.add_child(UIStyle.label(BINDINGS[j][1], 12, UIStyle.ACCENT))
+				grid.add_child(UIStyle.label(key, 12, UIStyle.ACCENT))
 	var back := UIStyle.button("Back", 120)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(_back)

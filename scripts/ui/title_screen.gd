@@ -88,10 +88,14 @@ func _build_menu() -> void:
 	_continue = _item("Continue", func(): _start(_continue_slot, false))
 	_item("New Game", func(): _open_slots("new"))
 	_item("Load Game", func(): _open_slots("load"))
-	_item("Co-op", func(): _open_coop())
+	var coop := _item("Co-op", func(): _open_coop())
 	_item("What's New", func(): _open_whats_new())
 	_item("Options", func(): GameMenu.open("options"))
-	_item("Quit", func(): get_tree().quit())
+	if OS.has_feature("web"):
+		coop.text = "Co-op (desktop only)"
+		coop.disabled = true
+	else:
+		_item("Quit", func(): get_tree().quit())
 
 
 func _item(text: String, cb: Callable) -> Button:

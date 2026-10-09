@@ -65,8 +65,17 @@ func reset_session() -> void:
 	player = null
 
 
+## Web: closing the tab sends no close request, so the game saves when the page is hidden.
+var _on_page_hidden: JavaScriptObject
+
+
 func _ready() -> void:
 	loot_bag_scene = load("res://scenes/loot/loot_bag.tscn")
+	if OS.has_feature("web"):
+		_on_page_hidden = JavaScriptBridge.create_callback(func(_args: Array):
+			if str(JavaScriptBridge.eval("document.visibilityState")) == "hidden":
+				_save_on_exit())
+		JavaScriptBridge.get_interface("document").addEventListener("visibilitychange", _on_page_hidden)
 
 
 ## Called by the player when it enters the scene (works however the scene was loaded).
@@ -113,7 +122,12 @@ func _process(delta: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST and player and is_instance_valid(player):
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_save_on_exit()
+
+
+func _save_on_exit() -> void:
+	if player and is_instance_valid(player):
 		SaveGame.save(player)
 
 

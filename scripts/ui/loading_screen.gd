@@ -40,6 +40,8 @@ func _ready() -> void:
 	layer = 100
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_tip = TIPS[randi() % TIPS.size()]
+	if OS.has_feature("web"):
+		_tip = _tip.replace("(Ctrl)", "(C)")
 	_card = Control.new()
 	_card.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP

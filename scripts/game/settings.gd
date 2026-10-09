@@ -47,6 +47,12 @@ func _ready() -> void:
 	_load()
 	_ensure_buses()
 	_apply_audio()
+	# web: Ctrl+W closes the browser tab (no page can stop it), so dodge is C there
+	if OS.has_feature("web"):
+		var c := InputEventKey.new()
+		c.physical_keycode = KEY_C
+		InputMap.action_erase_events("dodge")
+		InputMap.action_add_event("dodge", c)
 
 
 func get_value(section: String, key: String) -> Variant:

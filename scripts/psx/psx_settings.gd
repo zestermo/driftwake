@@ -36,7 +36,11 @@ func _ready() -> void:
 	Settings.changed.connect(_on_setting_changed)
 	_apply_preset()
 	if Settings.get_value("video", "fullscreen"):
-		_apply_window_mode()
+		if OS.has_feature("web"):
+			# (a browser only goes fullscreen from a click or key press)
+			Settings.set_value("video", "fullscreen", false)
+		else:
+			_apply_window_mode()
 
 
 func _exit_tree() -> void:
