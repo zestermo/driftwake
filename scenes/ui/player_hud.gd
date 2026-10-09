@@ -28,6 +28,8 @@ var _reticle: Reticle
 const SHOOT_STATE := preload("res://scripts/player_states/shoot_state.gd")
 var _fps: Label
 var _in_dialogue: bool = false
+const OBJECTIVE := preload("res://scripts/ui/objective_hud.gd")
+var _objective: Control
 
 
 func _ready() -> void:
@@ -72,6 +74,9 @@ func _ready() -> void:
 	_build_bars()
 	_build_gold()
 	_build_compass()
+	_objective = OBJECTIVE.new()
+	_objective.name = "Objective"
+	add_child(_objective)
 	Dialogue.dialogue_started.connect(func(_id): _in_dialogue = true)
 	Dialogue.dialogue_ended.connect(func(_id): _in_dialogue = false)
 	await get_tree().process_frame
@@ -101,7 +106,11 @@ func _process(delta: float) -> void:
 	_update_hull()
 	_update_gold(delta)
 	_update_compass()
-	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT
+	# the loot line and the crew list sit under the objective
+	var oh: float = _objective.tracker_height()
+	$Top.offset_top = 8.0 + oh
+	_party.position.y = 46.0 + oh
+	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT and player.current_state_name() != "Wake"
 	_skill_bar.visible = show_bar and not _menu_open
 	toast.visible = true
 	_fps.visible = true
@@ -115,6 +124,8 @@ func _process(delta: float) -> void:
 	if state_label.visible and player and player.state_machine and player.state_machine.current_state:
 		state_label.text = player.state_machine.current_state.name
 
+	# (no pointer to a ship that isn't yours yet)
+	$CompassContainer.visible = ship != null and (ship as Ship).owned()
 	if player and ship:
 		var to_ship := ship.global_position - player.global_position
 		var dist := Vector2(to_ship.x, to_ship.z).length()
@@ -156,6 +167,12 @@ func show_banner(title: String, subtitle: String = "", chime: bool = false) -> v
 	_banner_tween.tween_property(banner, "modulate:a", 0.0, 1.2)
 	if chime:
 		_chime.play()
+
+
+## The story moved on (Story): the objective flashes, a chime.
+func show_objective_banner(_goal: String) -> void:
+	_objective.flash()
+	_chime.play()
 
 
 ## Small message bottom-left (loot picked up, banking...).
@@ -458,6 +475,8 @@ func set_menu_open(open: bool) -> void:
 		_skill_bar.visible = not open
 	toast.visible = not open
 	banner.visible = not open
+	if _objective:
+		_objective.hidden_by_menu = open
 	if _feed:
 		_feed.visible = not open
 

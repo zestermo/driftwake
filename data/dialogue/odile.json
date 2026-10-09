@@ -3,7 +3,17 @@
 	"voice": 1.15,
 	"start": "intro",
 	"return": "menu",
+	"story": { "see_odile": "story_odile" },
 	"nodes": {
+		"story_odile": {
+			"text": [
+				"Grell? Dead? Ha! You've done more for this harbour in a week than the Marines did in ten years, {captain}.",
+				"But you can't be a beachcomber forever. A captain needs a ship, and this town hasn't one to spare.",
+				"Except one. Tackett's been rebuilding an old sloop at the end of my dock for a year. Go and talk to him. Tell him I said you've earned her."
+			],
+			"event": "story:see_odile",
+			"next": "menu"
+		},
 		"intro": {
 			"text": [
 				"Another captain washed in on the tide. {captain}, is it? Welcome to Brinehollow.",

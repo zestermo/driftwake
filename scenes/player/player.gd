@@ -268,6 +268,10 @@ func open_creator(first_time: bool = false) -> void:
 			# the outfit you designed becomes your starting gear
 			appearance = lk
 			_wear_outfit_of(lk)
+			# a new game plays the story: you wake on the beach by the quay
+			if SaveGame.enabled():
+				Story.begin()
+				wake_on_beach()
 			# the new captain's slot exists from here on
 			SaveGame.save(self)
 		elif ok:
@@ -276,6 +280,20 @@ func open_creator(first_time: bool = false) -> void:
 				if not Gear.is_outfit_key(k):
 					appearance[k] = lk[k]
 			refresh_look())
+
+
+## The story's start: lying on the sand past the quay's west end (WakeState).
+func wake_on_beach() -> void:
+	var isl := Story.island()
+	if isl == null:
+		return
+	var spot: Array = isl.wake_spot()
+	global_position = (spot[0] as Vector3) + Vector3.UP * 0.05
+	player_model.rotation.y = float(spot[1])
+	reset_lean()
+	velocity = Vector3.ZERO
+	reset_physics_interpolation()
+	state_machine.force_state("Wake", {})
 
 
 func _give_starting_items() -> void:
@@ -1284,7 +1302,7 @@ func _summon_tick(delta: float) -> void:
 ## Call the ship to the nearest water deep enough for her. Returns what to tell you.
 func try_summon() -> String:
 	var ship := get_tree().get_first_node_in_group("ship") as Ship
-	if ship == null:
+	if ship == null or not ship.owned():
 		return "You have no ship"
 	if context != Context.ON_FOOT:
 		return "Not now"

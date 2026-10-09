@@ -3,7 +3,27 @@
 	"voice": 0.72,
 	"start": "intro",
 	"return": "menu",
+	"story": { "see_gus": "story_gus", "see_gus_redtide": "story_redtide" },
 	"nodes": {
+		"story_gus": {
+			"text": [
+				"Pell sent you? Course he did. Sit, sit. You look like you've been dragged up a beach. Literally, I'd guess.",
+				"No memory at all? Can't say I know your face, and I know every face that's ever drunk here. You're new, {captain}. That's either very good or very bad.",
+				"Here's what I'd do. Nessa at the market buys whatever the tide brings in. If anything of yours washed up, she's already got a price on it. She's in the square."
+			],
+			"event": "story:see_gus",
+			"next": "menu"
+		},
+		"story_redtide": {
+			"text": [
+				"Heard Tackett handed you the tiller. A captain again, eh? Or for the first time. Hard to say, with you.",
+				"Then you'll want to know who rules these waters. Captain Morrow. Red Tide, they call him. Holds a rock {redtide}, a fort on top, guns on the walls, black sails circling it like gulls.",
+				"Grell was his dog and that queen was his moat. Everything rotten on this sea runs back to Morrow. Somebody's going to have to sail out there and end it.",
+				"Somebody with a ship. I'm just saying."
+			],
+			"event": "story:see_gus_redtide",
+			"next": "menu"
+		},
 		"intro": {
 			"text": [
 				"Welcome to the Salted Gull! Best rum on the island. Only rum on the island, but still.",

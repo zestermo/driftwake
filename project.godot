@@ -31,6 +31,7 @@ Music="*res://scripts/game/music.gd"
 Weather="*res://scripts/world/weather.gd"
 DevCapture="*res://scripts/game/dev_capture.gd"
 Perf="*res://scripts/game/perf_monitor.gd"
+Story="*res://scripts/game/story.gd"
 
 [display]
 

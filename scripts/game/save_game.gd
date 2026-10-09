@@ -145,6 +145,7 @@ static func begin(i: int, fresh: bool, tree: SceneTree = null) -> void:
 		if dm:
 			dm.flags.clear()
 			dm._talked.clear()
+		Story.reset()
 
 
 ## The world was started without the title screen: continue the latest save
@@ -244,6 +245,7 @@ static func save(player: Player) -> bool:
 		"play_time": play_time,
 		"flags": dm.flags.duplicate() if dm else {},
 		"talked": dm._talked.duplicate() if dm else {},
+		"story": Story.to_dict(),
 		"progression": player.progression.to_dict(),
 		"power": player.power.to_dict(),
 		"hybrid": player.hybrid,
@@ -349,6 +351,7 @@ static func load_into(player: Player) -> bool:
 	if dm:
 		dm.flags = (data.get("flags", {}) as Dictionary).duplicate()
 		dm._talked = (data.get("talked", {}) as Dictionary).duplicate()
+	Story.from_dict(data.get("story", {}))
 	if gm:
 		gm.play_time = float(data.get("play_time", 0.0))
 		gm.opened.clear()

@@ -189,6 +189,11 @@ func open_container(bag: Node) -> void:
 
 
 func open(screen: String) -> void:
+	if screen == "skills" and not Story.skills_open():
+		var pl := _player()
+		if pl:
+			pl.call("_toast", "You don't know how to train yet. Sergeant Vey will show you.")
+		return
 	if _current == "":
 		_play()
 	if _current == "inventory" and screen != "inventory":
@@ -347,7 +352,7 @@ func _quit_to_title() -> void:
 func _load_slot(slot: int) -> void:
 	close()
 	SaveGame.begin(slot, false, get_tree())
-	get_tree().change_scene_to_file(SaveGame.WORLD_SCENE)
+	LoadingScreen.go(get_tree(), SaveGame.WORLD_SCENE)
 
 
 func _open_appearance() -> void:

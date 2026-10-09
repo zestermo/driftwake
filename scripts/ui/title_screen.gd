@@ -158,7 +158,7 @@ func _start(slot: int, fresh: bool) -> void:
 	SaveGame.begin(slot, fresh, get_tree())
 	var tw := create_tween()
 	tw.tween_property(_fade, "color:a", 1.0, 0.5)
-	tw.tween_callback(func(): get_tree().change_scene_to_file(SaveGame.WORLD_SCENE))
+	tw.tween_callback(func(): LoadingScreen.go(get_tree(), SaveGame.WORLD_SCENE))
 
 
 func _unhandled_input(event: InputEvent) -> void:

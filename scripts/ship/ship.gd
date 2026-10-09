@@ -1005,7 +1005,15 @@ func _shape(shape: Shape3D, xf: Transform3D) -> void:
 # ==========================================================================
 # Interactions
 # ==========================================================================
+## Yours to sail (the story hands her over at Tackett's; until then she's moored).
+func owned() -> bool:
+	return bool(kit.get("owned", true))
+
+
 func _on_helm_interacted(player: Player) -> void:
+	if not owned():
+		player.call("_toast", "She isn't yours to sail. Tackett's still working on her.")
+		return
 	if player.is_free():
 		# co-op: one captain at the wheel (clients ask the host first; the
 		# answer puts them at the helm - Player.take_helm)

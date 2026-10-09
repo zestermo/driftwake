@@ -299,6 +299,24 @@ func walk_height(x: float, z: float) -> float:
 	return hv(Vector2(x, z))
 
 
+## The story's fights on this island, in world space ("smugglers", "den", "cave").
+func place_of(place: String) -> Vector3:
+	var p: Vector2 = {"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE}[place]
+	return to_global(Vector3(p.x, hv(p) + 1.5, p.y))
+
+
+## Where a new captain wakes: on the sand just past the quay's west end, a
+## couple of metres up from the waterline, head to the sea, facing the town.
+## [world position, model yaw].
+func wake_spot() -> Array:
+	var x := port_x0 - 9.0
+	var z := -96.0
+	while z > -200.0 and height_at(x, z) > 0.9:
+		z -= 0.5
+	var p := Vector2(x, z + 2.5)
+	return [to_global(Vector3(p.x, hv(p), p.y)), atan2(-0.45, -1.0)]
+
+
 func _slope_at(p: Vector2) -> float:
 	var e := 1.5
 	var dx := height_at(p.x + e, p.y) - height_at(p.x - e, p.y)

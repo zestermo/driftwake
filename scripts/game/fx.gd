@@ -35,6 +35,7 @@ const SOUNDS := {
 	"rope": "res://assets/audio/rope.wav",
 	"splash_big": "res://assets/audio/splash_big.wav",
 	"wood_crack": "res://assets/audio/wood_crack.wav",
+	"gull": "res://assets/audio/gull.wav",
 }
 
 var _dust_mat: StandardMaterial3D

@@ -41,6 +41,7 @@ var _home_yaw: float = 0.0
 func setup(cfg: Dictionary) -> NPC:
 	npc_name = str(cfg.get("name", "Villager"))
 	name = npc_name.validate_node_name().replace(" ", "")
+	add_to_group("npcs")
 	dialogue_id = str(cfg.get("dialogue", ""))
 	shop_id = str(cfg.get("shop", ""))
 	barks = cfg.get("barks", [])

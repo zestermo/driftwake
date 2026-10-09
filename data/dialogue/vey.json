@@ -3,7 +3,37 @@
 	"voice": 0.9,
 	"start": "intro",
 	"return": "menu",
+	"story": { "see_vey": "story_vey", "smugglers": "story_smugglers", "vey_skills": "story_skills", "grell": "story_grell" },
 	"nodes": {
+		"story_vey": {
+			"text": [
+				"Nessa sent you. Of course she did. Stand up straight. Hm. Arms like a deckhand, eyes like you've lost your own name.",
+				"You have? Doesn't matter. A blade doesn't care who you were. Left click cuts, right click lunges, Ctrl rolls, Q parries. Ask me for a lesson any time.",
+				"Now. There's a crew of smugglers camped on the beach south of the cove. They've been robbing the fishing boats blind, and the castaway girl down there won't stop complaining about them.",
+				"Clear them out. Come back in one piece and I'll teach you something worth knowing."
+			],
+			"event": "story:see_vey",
+			"next": "menu"
+		},
+		"story_smugglers": {
+			"text": "The smugglers are still on the south beach, past the cove. They won't clear out on their own. Off you go.",
+			"next": "menu"
+		},
+		"story_skills": {
+			"text": [
+				"Back already, and bleeding about the right amount. The smugglers are done? Good.",
+				"Listen. Every fight you live through teaches you something, whether you like it or not. That's experience. Enough of it and you grow: a level, and a skill point to spend.",
+				"Open your skill map with K. Put points into what suits your hand: the blade, the axe, the pistols, your own two fists. Here, a head start: one point, on the house.",
+				"Next lesson's a hard one. Captain Grell's crew holds the old harbour on the north-west beach. A real pirate captain, not some smuggler. He's been bleeding this town for years.",
+				"Train up. Then go and put him down."
+			],
+			"event": "story:vey_skills",
+			"next": "menu"
+		},
+		"story_grell": {
+			"text": "Grell's at the old harbour on the north-west beach. He won't come to you, and he won't go easy. Spend your points first.",
+			"next": "menu"
+		},
 		"intro": {
 			"text": [
 				"You. Captain {captain}. You walk like someone who's never been hit properly.",

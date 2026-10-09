@@ -3,7 +3,18 @@
 	"voice": 0.82,
 	"start": "intro",
 	"return": "menu",
+	"story": { "find_town": "story_wake" },
 	"nodes": {
+		"story_wake": {
+			"text": [
+				"Easy, easy. Sit down before you fall down. You look like the sea chewed on you and spat out the gristle.",
+				"Washed up on the west sand, were you? {captain}, you say. And that's all you've got? No ship, no crew, no notion how you got here?",
+				"Then you want Gus. Up the street from the quay, the Salted Gull, the sign with the fat gull on it. Every soul who comes ashore drinks there sooner or later.",
+				"If anyone's seen your face before, it's Gus. Go on, now. Tides keep you."
+			],
+			"event": "story:find_town",
+			"next": "end"
+		},
 		"intro": {
 			"text": [
 				"Mm? Oh, a visitor. Sit, sit. Mind the nets, they've more holes than sense.",

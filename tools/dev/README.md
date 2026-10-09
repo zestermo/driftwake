@@ -25,6 +25,7 @@ Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fail
 - `invtest`: Gear / paper doll / character sheet / abilities.
 - `ragtest`: Player ragdoll: knockdown -> get up, death -> stays down -> respawn.
 - `bugtest`: Scuttlebugs: spawned in the jungle, notice -> rear -> ram, hitstun, knockdown, death + gold.
+- `storytest`: The story: off outside a new game; begin() locks the ship and the skill map; waking on the beach (lying, the gull lands, caws and flies off, standing, the objective on the HUD and its marker); each talk step starts at the NPC's story line and moves on (Tackett busy before his turn); the smugglers, Grell, the queen and Morrow count when beaten near you; Vey's free point opens the skill map, Tackett's keel gives you the ship; the end; restored mid-story.
 - `foresttest`: Brinehollow's west: the bigger island, the pirate den (crew, Captain Grell's overhead name and bar, strongbox, sloop), canopy spitters (drop, spit poison, fall, climb back), the brood cave (the queen wakes, boss bar, stagger, brood, slam, venom fan, reset, death, hoard) and the Queen's Fang.
 - `shiptest`: Ship: gentle swell, helm (visible captain), sails set in steps that stay set (furled canvas rolls down), turning, riding the deck, keeps sailing with nobody at the wheel, shore collision.
 - `swimtest`: Swimming: fall in, float, swim, stamina, dive, exhaustion, ladder, ledge, wade out.
@@ -106,6 +107,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `mapshot`: (no description)
 - `mockup`: Style mockup: same cast in a given style. Args: <style> <mode: full|heads|back> <out.png>
 - `modelshot`: Any procedural model (a GDScript expression returning a Node3D, Mesh or MeshBuilder; several split by " | " stand in a row) auto-framed from a few views in the game's light, a contact sheet (`<out>_sheet.png`) and "MS" lines: size, tris, surfaces (draw calls), triangles per material, colliders, lights. Views front/front3/side/back/back3/top/low/far/eye/wire or "yaw:pitch:zoom". Env MS_GROUND (texture or none), MS_HOUR, MS_PSX (preset), MS_ZOOM, MS_FOCUS (a point in the model's coordinates), MS_ROW (y/z). `S.` is model_samples.gd, `S.body()` the captain for scale. Args: <out_prefix> "<expr>[ | <expr>]" [views]
+- `storyshot`: The story's start through the real loading screen: the loading card, waking on the beach (eyelids, the gull, the get-up), the first objective and marker, Old Pell's line, the next objective. Args: <out_prefix>
 - `model_samples`: Not a tool: worked examples for the modeling skill (anchor, ship's lantern, naval cannon) built with add_extrude, add_tube, lathed lofts; `body()` for scale in modelshot rows.
 - `moveshot`: Player: neck portrait, dash off-hand, plunge attack frames. Args: <out_prefix>
 - `npcs`: (no description)

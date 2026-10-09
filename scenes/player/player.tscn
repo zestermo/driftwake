@@ -30,6 +30,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/cannon_state.gd" id="cannon_state"]
 [ext_resource type="Script" path="res://scripts/player_states/iai_state.gd" id="iai_state"]
 [ext_resource type="Script" path="res://scripts/player_states/technique_state.gd" id="technique_state"]
+[ext_resource type="Script" path="res://scripts/player_states/wake_state.gd" id="wake_state"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -128,6 +129,9 @@ script = ExtResource("16")
 
 [node name="Talk" type="Node" parent="StateMachine"]
 script = ExtResource("19")
+
+[node name="Wake" type="Node" parent="StateMachine"]
+script = ExtResource("wake_state")
 
 [node name="Downed" type="Node" parent="StateMachine"]
 script = ExtResource("20")

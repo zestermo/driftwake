@@ -630,6 +630,33 @@ def roar_sound():
     finish("roar", out, 0.85, fade=0.08)
 
 
+def gull_sound():
+    """Herring gull: a harsh, nasal 'kyow!' then two shorter 'kyow kyow'. A rough
+    saw sliding up then down, rasp locked to the pitch, through nasal formants."""
+    rng = np.random.default_rng(271)
+    calls = [(0.0, 0.42, 1.0), (0.55, 0.22, 0.8), (0.82, 0.2, 0.7)]
+    n = int(SR * 1.15)
+    out = np.zeros(n)
+    for t0, dur, amp in calls:
+        m = int(SR * dur)
+        t = np.arange(m) / SR
+        x = t / dur
+        f0 = np.interp(x, [0, 0.15, 0.4, 1.0], [900, 1500, 1350, 760])
+        f0 = f0 * (1 + 0.02 * np.sin(2 * np.pi * 38 * t))
+        ph = np.cumsum(f0 / SR)
+        src = np.zeros(m)
+        for k in range(1, 9):
+            src += np.sin(2 * np.pi * k * ph) / k
+        rasp = rng.standard_normal(m) * (0.3 + 0.4 * (np.sin(2 * np.pi * ph) > 0.5))
+        v = np.tanh(src * 2.2) + rasp * 0.35
+        y = resonate(v, 2600, 4) + resonate(v, 1400, 5) * 0.7 + resonate(v, 4200, 8) * 0.3
+        env = np.minimum(1, t / 0.012) * np.clip((dur - t) / 0.08, 0, 1) * (1 - 0.3 * x)
+        i0 = int(SR * t0)
+        out[i0:i0 + m] += y * env * amp
+    out = hpf(out, 0.08)
+    finish("gull", out, 0.8, fade=0.03)
+
+
 def bell_sound():
     """Ship's bell, two quick strikes ('ding-ding'), inharmonic bell partials."""
     rng = np.random.default_rng(191)
@@ -805,6 +832,7 @@ SOUNDS = [
     ("wind_loop", wind_loop_sound),
     ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),
     ("thunder_far", lambda: thunder_sound("thunder_far", 237, 5.0, 0.15)),
+    ("gull", gull_sound),
 ]
 
 

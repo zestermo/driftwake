@@ -163,6 +163,9 @@ func _on_dock_interacted(player: Player) -> void:
 	var ship := get_tree().get_first_node_in_group("ship") as Ship
 	if not ship or player.context != Player.Context.ON_FOOT:
 		return
+	if not ship.owned():
+		player.call("_toast", "She isn't yours to sail. Tackett's still working on her.")
+		return
 	# Teleport player to ship and enter helm
 	player.current_ship = ship
 	player.global_position = ship.helm_position.global_position

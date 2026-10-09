@@ -18,6 +18,8 @@ extends Node
 ## }
 ## Text may contain {tokens} filled by providers registered with register_token().
 ## "event": "<name>" on a node emits dialogue_event(name) when the node is shown.
+## "story": {"<step id>": "<node>"} starts the talk at that node while the
+## story is on that step (Story); its "event": "story:<step id>" finishes it.
 
 signal dialogue_started(id: String)
 signal dialogue_ended(id: String)
@@ -91,6 +93,9 @@ func start(id: String, npc: Node = null) -> void:
 	var entry := str(data.get("start", "start"))
 	if _talked.has(id) and data.has("return"):
 		entry = str(data["return"])
+	var told: String = Story.dialogue_entry(id, data)
+	if told != "":
+		entry = told
 	_talked[id] = true
 	_open()
 	_goto(entry)

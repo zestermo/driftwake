@@ -247,7 +247,7 @@ var _clear_push := Vector3.ZERO
 ## During actions the eyes look at most this far above level (pivot + torso + head
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
-const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup", "vine_hang", "vine_shoot", "vine_release", "drink",
+const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup", "wake", "vine_hang", "vine_shoot", "vine_release", "drink",
 	"berserk_roar", "suplex", "rising_dragon", "conqueror"]
 var _freeze: float = 0.0
 var _base: Dictionary = {}
@@ -1572,6 +1572,8 @@ func _action_pose(n: String, u: float) -> Array:
 			return [_keys(u, [[0.0, {}], [0.15, reel, "out"], [0.55, catch], [1.0, {}]]), "full", lift]
 		"getup":
 			return _getup_pose(u)
+		"wake":
+			return _wake_pose(u)
 		# --- enemy swordsman: held wind-ups (the tell) and fast swings ---
 		"wind_r", "wind_l":
 			var w: Dictionary = (E_WIND_R if n == "wind_r" else E_WIND_L).merged(E_LUNGE_L if n == "wind_r" else E_LUNGE_R)
@@ -3034,7 +3036,7 @@ func _keep_gaze(target: Dictionary) -> void:
 ## changes.
 func _foot_ik(delta: float) -> void:
 	var want := foot_ik and grounded and not swimming and not climbing and not seated and not at_helm and not kneeling and not manning \
-		and ragdoll == null and current_action() != "getup" and is_inside_tree()
+		and ragdoll == null and current_action() not in ["getup", "wake"] and is_inside_tree()
 	_ik_w = move_toward(_ik_w, 1.0 if want else 0.0, delta * 6.0)
 	if _ik_w <= 0.0:
 		_ik_h = Vector2.ZERO
@@ -3534,6 +3536,43 @@ func _getup_pose(u: float) -> Array:
 			lift = (lifts[i][1] as Vector3).lerp(lifts[i + 1][1], _ease(x))
 			break
 	return [pose, "full", lift]
+
+
+## Waking on the beach (a new game's start, WakeState). The root faces where
+## you'll stand; lying face up, the head is behind it. Sprawled and breathing
+## (u < 0.4), a jolt with the head snapping right at the gull's caw, then a slow
+## get-up: flat, a sit with a hand to your sore head, a crouch, standing.
+const WAKE_CAW := 0.4
+
+func _wake_pose(u: float) -> Array:
+	var breath := sin(_t * 1.7) * 0.04
+	var sprawl := {"pivot": Vector3(PI * 0.5, 0, 0), "hips": Vector3(0, 0, 0.05), "torso": Vector3(-0.1 + breath, 0, 0.05), "head": Vector3(-0.3, 0.45, 0.1),
+		"arm_l": Vector3(-0.2, 0, -1.15), "fore_l": Vector3(0.45, 0, 0), "arm_r": Vector3(0.15, 0, 0.55), "fore_r": Vector3(1.0, 0, 0),
+		"leg_l": Vector3(0.1, 0, -0.2), "shin_l": Vector3(-0.15, 0, 0), "leg_r": Vector3(0.5, 0, 0.14), "shin_r": Vector3(-0.8, 0, 0),
+		"hand_r": Vector3.ZERO, "hand_l": Vector3.ZERO}
+	var jolt := sprawl.merged({"torso": Vector3(-0.35, -0.15, 0), "head": Vector3(-0.05, -0.85, 0), "arm_r": Vector3(0.6, 0, 0.45), "fore_r": Vector3(1.3, 0, 0),
+		"arm_l": Vector3(0.1, 0, -0.9), "leg_r": Vector3(0.8, 0, 0.14), "shin_r": Vector3(-1.3, 0, 0), "leg_l": Vector3(0.35, 0, -0.16), "shin_l": Vector3(-0.5, 0, 0)}, true)
+	var flat := {"pivot": Vector3(PI * 0.5, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.2, 0, 0), "head": Vector3(-0.3, -0.3, 0),
+		"arm_l": Vector3(-0.3, 0, -0.45), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(-0.3, 0, 0.45), "fore_r": Vector3(0.3, 0, 0),
+		"leg_l": Vector3(1.0, 0, -0.08), "shin_l": Vector3(-1.75, 0, 0), "leg_r": Vector3(0.8, 0, 0.08), "shin_r": Vector3(-1.5, 0, 0),
+		"hand_r": Vector3.ZERO, "hand_l": Vector3.ZERO}
+	var daze := {"pivot": Vector3(0.3, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.6, 0.1, 0.05), "head": Vector3(0.35, -0.15, 0),
+		"arm_l": Vector3(-0.75, 0, -0.35), "fore_l": Vector3(0.15, 0, 0), "arm_r": Vector3(2.35, 0.2, 0.25), "fore_r": Vector3(2.2, 0, 0),
+		"leg_l": Vector3(1.6, 0, -0.1), "shin_l": Vector3(-2.25, 0, 0), "leg_r": Vector3(1.25, 0, 0.12), "shin_r": Vector3(-1.4, 0, 0),
+		"hand_r": Vector3.ZERO, "hand_l": Vector3.ZERO}
+	var crouch := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(-0.55, 0, 0), "head": Vector3(0.3, 0, 0),
+		"arm_l": Vector3(0.65, 0, -0.2), "fore_l": Vector3(0.7, 0, 0), "arm_r": Vector3(0.55, 0, 0.2), "fore_r": Vector3(0.7, 0, 0),
+		"leg_l": Vector3(1.5, 0, -0.12), "shin_l": Vector3(-2.1, 0, 0), "leg_r": Vector3(1.35, 0, 0.12), "shin_r": Vector3(-1.95, 0, 0),
+		"hand_r": Vector3.ZERO, "hand_l": Vector3.ZERO}
+	var keys := [[0.0, sprawl], [WAKE_CAW, sprawl], [WAKE_CAW + 0.03, jolt, "out"], [0.5, jolt], [0.6, flat], [0.72, daze], [0.8, daze], [0.9, crouch], [1.0, {}]]
+	var lifts := [[0.0, _lift_for(0.13)], [0.6, _lift_for(0.13)], [0.72, _lift_for(0.16)], [0.8, _lift_for(0.16)], [0.9, _lift_for(0.5)], [1.0, 0.0]]
+	var lift := 0.0
+	for i in range(lifts.size() - 1):
+		if u <= float(lifts[i + 1][0]) or i == lifts.size() - 2:
+			var x := clampf((u - float(lifts[i][0])) / maxf(float(lifts[i + 1][0]) - float(lifts[i][0]), 0.0001), 0.0, 1.0)
+			lift = lerpf(float(lifts[i][1]), float(lifts[i + 1][1]), _ease(x))
+			break
+	return [_keys(u, keys), "full", Vector3(0, lift, 0)]
 
 
 ## Swimming poses. Moving: breaststroke with the body tipped forward (arms
