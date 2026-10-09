@@ -101,6 +101,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `iktest`: (no description)
 - `invshot`: Inventory overlay screenshots. Args: <out_prefix>
 - `invshot_real`: Inventory overlay screenshots. Args: <out_prefix>
+- `seafxshot`: Sea and wind effects: Brinehollow's beach in calm and in a storm (surf rolling in, swash, surf bursts), and at sea in a storm under full sail from astern and from the deck (whitecaps, wind streaks, crest and bow spray); three frames a shot. Args: <out_prefix> [psx]
 - `islandshot`: Shots of the starter island from given local (island-space) camera positions. Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz" (a y of "~3" is 3 m above the ground there). Env ISHOT_HOUR=21 renders at that hour; ISHOT_AT=<node name> (e.g. RedtideRock) frames another place, positions in its space.
 - `jumpshot`: Running jump, side view: lean frames. Args: <out_prefix>
 - `kneelshot`: The kneel pose and a crew marker on the HUD. Args: <out_prefix>

@@ -69,8 +69,10 @@ var _rain: GPUParticles3D
 var _rays: MultiMeshInstance3D
 var _ray_mat: ShaderMaterial
 var _rain_snd: AudioStreamPlayer
-## The surf, sea, ship and wind sounds (they follow the weather's wind too).
+## The surf, sea, ship and wind sounds (they follow the weather's wind too),
+## and what you see of them (wind streaks, crest spray, surf bursts).
 var _ambience: Ambience
+var _spray: SeaSpray
 var _overlay: ColorRect
 var _layer: CanvasLayer
 var _bolt: MeshInstance3D
@@ -107,6 +109,12 @@ func set_world_time(t: float) -> void:
 
 ## Where the wind blows toward (unit, x/z), swinging slowly round through the
 ## day (from world time: the same on every screen). Its strength is `wind`.
+## How much of the sea is whitecapped (0 calm .. 1 a gale): the ocean's crest
+## foam, and SeaSpray's spray off the crests and wind streaks.
+func whitecaps() -> float:
+	return clampf((wind - 0.3) * 1.3 + storm * 0.8, 0.0, 1.0)
+
+
 func wind_dir() -> Vector2:
 	var t := world_time()
 	var a := 0.29 + 1.2 * sin(t / 950.0) + 0.45 * sin(t / 331.0 + 1.3)
@@ -257,6 +265,9 @@ func _detach() -> void:
 	if _ambience and is_instance_valid(_ambience):
 		_ambience.queue_free()
 	_ambience = null
+	if _spray and is_instance_valid(_spray):
+		_spray.queue_free()
+	_spray = null
 
 
 func _is_world(n: Node) -> bool:
@@ -450,6 +461,8 @@ func _update_env() -> void:
 		var sc := _base_shallow.lerp(Color(0.25, 0.32, 0.36, _base_shallow.a), storm * 0.5)
 		_ocean_mat.set_shader_parameter("deep_color", dc)
 		_ocean_mat.set_shader_parameter("shallow_color", sc)
+		_ocean_mat.set_shader_parameter("whitecaps", whitecaps())
+		_ocean_mat.set_shader_parameter("wind_dir", wind_dir())
 	if _overlay:
 		_overlay.color = Color(0.9, 0.92, 0.95, in_cloud * 0.55)
 		_overlay.visible = in_cloud > 0.01
@@ -703,6 +716,10 @@ func _build_audio() -> void:
 		_ambience = Ambience.new()
 		_ambience.name = "Ambience"
 		add_child(_ambience)
+	if _spray == null:
+		_spray = SeaSpray.new()
+		_spray.name = "SeaSpray"
+		add_child(_spray)
 
 
 func _loop_player(path: String) -> AudioStreamPlayer:

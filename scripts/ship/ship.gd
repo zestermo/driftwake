@@ -129,6 +129,7 @@ var _pos := Vector3.ZERO
 var _heading: float = 0.0
 var _prev_speed: float = 0.0
 var _wake_t: float = 0.0
+var _bow_t: float = 0.0
 var _cam_heading: float = 0.0
 var _cam_y: float = 0.0
 
@@ -793,6 +794,16 @@ func _wake(delta: float, pos: Vector3, fwd: Vector3, right: Vector3, mean: float
 			FX.splash(Vector3(side.x, water + 0.1, side.z), 2, 0.5)
 		var stern := pos - fwd * (STERN_Z + 0.8)
 		FX.splash(Vector3(stern.x, water + 0.05, stern.z), 3, 0.8)
+		# driving into a swell: a sheet of spray thrown up over the bow and blown aft
+		# (more the faster she goes and the higher the sea runs)
+		_bow_t -= _wake_t
+		var wx := get_node_or_null("/root/Weather")
+		var caps: float = float(wx.call("whitecaps")) if wx else 0.0
+		if _bow_t <= 0.0 and randf() < clampf((absf(speed) - 5.0) / 10.0, 0.0, 1.0) * 0.4 + caps * 0.3:
+			_bow_t = randf_range(0.8, 1.6)
+			var up_and_aft := (Vector3.UP * 0.9 - fwd * 0.5 + right * randf_range(-0.4, 0.4)).normalized()
+			FX.spray(Vector3(bow.x, water + 1.2, bow.z), up_and_aft, int(10 + caps * 8), Color(0.93, 0.97, 1.0), 6.0 + absf(speed) * 0.3)
+			FX.splash(Vector3(bow.x, water + 0.6, bow.z), 6, 0.9)
 
 
 func _wave(p: Vector3, t: float) -> float:

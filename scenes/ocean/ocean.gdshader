@@ -133,6 +133,9 @@ uniform float growth = 0.08;
 
 uniform float fresnel_power = 3.0;
 uniform float foam_threshold = 0.6;
+// Whitecaps (Weather: with the wind and storms, 0..1) streaked along the wind.
+uniform float whitecaps = 0.0;
+uniform vec2 wind_dir = vec2(1.0, 0.0);
 uniform float time_val = 0.0;
 uniform float near_alpha = 0.82;
 // The horizon haze (Weather): rgb = the fog colour (sRGB), a = how far up the
@@ -205,8 +208,15 @@ void fragment() {
 	vec3 base_color = mix(deep_color.rgb, shallow_color.rgb, fresnel);
 	base_color = mix(base_color, tex, 0.35);
 
-	float foam_factor = smoothstep(foam_threshold, foam_threshold + 0.3, wave_height_val / max(wave_total, 0.01));
-	base_color = mix(base_color, foam_color.rgb, foam_factor * 0.35);
+	float crest_k = wave_height_val / max(wave_total, 0.01);
+	float foam_factor = smoothstep(foam_threshold, foam_threshold + 0.3, crest_k);
+	// whitecaps: broken patches on the crests, drawn out along the wind and
+	// blown downwind, more of them (and lower down the waves) as it blows harder
+	vec2 wd = normalize(wind_dir + vec2(0.0001));
+	vec2 along = vec2(dot(wuv, wd), dot(wuv, vec2(-wd.y, wd.x)));
+	float streaks = cell_noise(floor(vec2(along.x * 0.3 - time_val * 0.9, along.y * 1.3)));
+	float caps = whitecaps * smoothstep(0.62 - whitecaps * 0.12, 0.92, crest_k) * step(0.72 - whitecaps * 0.22, streaks);
+	base_color = mix(base_color, foam_color.rgb, max(foam_factor * 0.35, caps * 0.65));
 	vec2 wf = whirl_foam(wuv, time_val);
 	base_color = mix(base_color, foam_color.rgb, wf.x * 0.55);
 	base_color = mix(base_color, deep_color.rgb * 0.35, wf.y);
@@ -216,8 +226,17 @@ void fragment() {
 	float shoal = 1.0 - smoothstep(0.05, 0.85, sd);
 	float lace = smoothstep(0.55, 0.95, sin(wuv.x * 0.9 + sin(wuv.y * 0.7 + time_val * 0.6) * 1.8 + time_val * 0.4) * 0.5 + 0.5);
 	base_color = mix(base_color, shoal_color.rgb * (1.0 + lace * 0.25 * shoal), shoal * 0.7);
-	float surf = (1.0 - smoothstep(0.0, 0.08, sd)) * step(0.45, cell_noise(floor(wuv * 1.5) + floor(time_val * 2.0)));
-	base_color = mix(base_color, foam_color.rgb, surf * 0.6);
+	// surf rolling in: bands of foam riding in over the shallows toward the
+	// beach (a bright leading edge, a short tail), and at the waterline a
+	// sheet of swash running up the sand and draining back, in PSX blocks
+	float near_shore = smoothstep(0.0, 0.03, sd) * (1.0 - smoothstep(0.12, 0.35, sd));
+	float roll = fract(sd * 7.0 + time_val * 0.22);
+	float band = smoothstep(0.0, 0.03, roll) * (1.0 - smoothstep(0.03, 0.11, roll));
+	band *= near_shore * step(0.45, cell_noise(floor(wuv * 2.0) + floor(time_val * 1.5)));
+	float reach = 0.009 + 0.016 * (0.5 + 0.5 * sin(time_val * 0.9 + wuv.x * 0.05 + wuv.y * 0.04));
+	float swash = (1.0 - smoothstep(reach * 0.5, reach, sd)) * step(0.4, cell_noise(floor(wuv * 3.0) + floor(time_val * 3.0)));
+	float surf = max(band * 0.7, swash * 0.85);
+	base_color = mix(base_color, foam_color.rgb, surf * 0.7);
 	base_color = mix(base_color, foam_color.rgb, wake_foam(wuv, time_val) * 0.7);
 
 	// long-range haze: by how close to the horizon you look (the sky's own
@@ -233,7 +252,8 @@ void fragment() {
 	ALBEDO = base_color * cloud_shade(world_pos.xz) * (1.0 - hz);
 	EMISSION = haze_lin * hz;
 	// (clearer over the shoals: the sand shows through)
-	ALPHA = mix(mix(near_alpha - shoal * 0.22, 1.0, fresnel), 1.0, hz);
+	// (foam is opaque white water)
+	ALPHA = mix(mix(near_alpha - shoal * 0.22, 1.0, fresnel), 1.0, max(hz, max(surf, caps) * 0.7));
 	// (rough 0.5 spread the sun's reflection into pale sand-coloured sheets over
 	// whole stretches of sea at some sun angles: a tighter glitter path instead)
 	ROUGHNESS = 0.2;
