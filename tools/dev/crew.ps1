@@ -63,9 +63,10 @@ if ($Brief) {
 	Write-Output "Parallel sessions on this repo right now (tools/dev/crew.ps1; this one is $me):"
 	foreach ($r in $active) {
 		$task = if ($r.Claim) { $r.Claim.task } else { "(no claim)" }
-		$areas = if ($r.Claim -and @($r.Claim.areas).Count) { " areas: " + (@($r.Claim.areas) -join ", ") } else { "" }
+		# (not $areas: PowerShell names ignore case, and that's the [string[]] -Areas param)
+		$claimed = if ($r.Claim -and @($r.Claim.areas).Count) { " areas: " + (@($r.Claim.areas) -join ", ") } else { "" }
 		$top = @($r.Files | ForEach-Object { $_ -replace "/[^/]+$", "" } | Group-Object | Sort-Object Count -Descending | Select-Object -First 4 | ForEach-Object { $_.Name })
-		Write-Output ("- {0}{1}: {2}; {3} files changing (in {4}){5}" -f $r.Branch, $(if ($r.Branch -eq $me) { " [this session]" } else { "" }), $task, $r.Files.Count, ($top -join ", "), $areas)
+		Write-Output ("- {0}{1}: {2}; {3} files changing (in {4}){5}" -f $r.Branch, $(if ($r.Branch -eq $me) { " [this session]" } else { "" }), $task, $r.Files.Count, ($top -join ", "), $claimed)
 	}
 	Write-Output "Before editing a file another session is changing, keep the edit small and local (it merges when that branch lands). A test that fails in your worktree is your code or main's, never another session's uncommitted work."
 	exit 0
