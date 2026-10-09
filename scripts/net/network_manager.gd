@@ -27,7 +27,7 @@ signal roster_changed
 
 const DEFAULT_PORT := 24680
 const MAX_CLIENTS := 3
-const PROTOCOL := 4
+const PROTOCOL := 5
 const SNAP_RATE := 20.0
 ## Puppets are shown this far in the past (seconds), between two snapshots.
 const INTERP := 0.1

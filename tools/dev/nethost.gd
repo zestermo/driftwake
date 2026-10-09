@@ -7,6 +7,7 @@ var port := 24690
 var tn
 ## "late": start in single player, then host from the pause menu
 var mode := ""
+var board_t := -1.0
 
 
 func _initialize():
@@ -47,7 +48,23 @@ func _process(d: float) -> bool:
 			print("HOST listening late ", net.active, " ", net.world_ready, " ", net.local_player.name)
 			step = 1
 		1:
+			if mode == "board":
+				_board_early()
 			if t > 300.0:
 				print("HOST timeout")
 				quit()
 	return false
+
+
+## "board": a pirate ship boards the crew's ship before the client joins
+## (the client checks it gets the boarders already on deck).
+func _board_early() -> void:
+	if board_t == INF:
+		return
+	if board_t < 0.0:
+		if root.get_node("Net").world_ready and t > 4.0:
+			print("HOST board setup ", tn._run("board_setup", [], 0))
+			board_t = t
+	elif t > board_t + 0.6:
+		print("HOST boarded ", tn._run("board_now", [], 0))
+		board_t = INF

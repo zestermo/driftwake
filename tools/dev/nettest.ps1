@@ -1,5 +1,5 @@
 # Co-op test: a headless host and client (and a third watcher for "three") on
-# localhost. Modes: "" (default), late, three, hostquit, water.
+# localhost. Modes: "" (default), late, three, hostquit, water, board.
 #
 #   .\tools\dev\nettest.ps1            # default
 #   .\tools\dev\nettest.ps1 water
@@ -36,6 +36,8 @@ $slots = Wait-Slots $crew $(if ($Mode -eq "three") { 3 } else { 2 }) "$me $key"
 $port = 24700 + (Get-Random -Maximum 250)
 $delay = "2.5"
 if ($Mode -eq "late") { $port = 24680; $delay = "7" }
+# (the host is boarded before we join)
+if ($Mode -eq "board") { $delay = "10" }
 
 function Start-Godot([string]$script, [string]$extra, [string]$log) {
 	$psi = New-Object System.Diagnostics.ProcessStartInfo

@@ -90,6 +90,7 @@ func _process(d: float) -> bool:
 				check("clock synced (rtt %.0f ms)" % (net.rtt * 1000.0), net.rtt < 0.5)
 				p.health_component.max_health = 500.0
 				p.health_component.current_health = 500.0
+				data["joined_t"] = net.time()
 				tn.ask("calm")
 				go(3)
 			elif st_t > 20.0:
@@ -147,6 +148,13 @@ func _process(d: float) -> bool:
 			if mode == "hostquit":
 				tn.ask("quit")
 				go(40)
+				return false
+			if mode == "board":
+				var ship = net._ship()
+				p.global_position = ship.global_transform * Vector3(-1.5, 1.2, 3.5)
+				p.velocity = Vector3.ZERO
+				p.reset_physics_interpolation()
+				go(80)
 				return false
 			# move the host: the puppet follows
 			data["host_to"] = r["host_pos"] + Vector3(3.0, 0.5, 0.0)
@@ -589,6 +597,122 @@ func _process(d: float) -> bool:
 				return false
 			net.leave()
 			go(29)
+		80:
+			# --- "board": a pirate ship boarded the host before we joined
+			if st_t < 1.5:
+				return false
+			tn.ask("boarders")
+			go(81)
+		81:
+			if not tn.got("boarders"):
+				return false
+			var r = tn.replies["boarders"]
+			data["es"] = r["es"]
+			check("the host was boarded before we joined (%.1f s before)" % (float(data["joined_t"]) - float(r["boarded_t"])), float(r["boarded_t"]) < float(data["joined_t"]))
+			var m := men_here(r, "BD_", str(r["ship"]))
+			check("joined late: the boarders already on deck are here (%d of %d)" % [m["found"], m["n"]], m["n"] >= 3 and m["found"] == m["n"])
+			check("...where the host has them on our deck (worst %.2f m, on deck %s)" % [m["worst"], m["on_deck"]], m["worst"] < 1.5 and m["on_deck"])
+			check("...in the crewmen's own bodies, shown", m["bodies"])
+			var es = net.node_of(r["es"])
+			var shown: Array = []
+			for i in range(es._crew.size()):
+				if not es._crew[i]["gone"] and es._crew[i]["node"].visible:
+					shown.append(i)
+			check("the men still aboard her are the host's (%s / %s)" % [shown, r["shown"]], shown == r["shown"] and shown.size() > 0)
+			# we cut one: the host applies it
+			for k in r["men"].keys():
+				if str(k).get_file().begins_with("BD_"):
+					data["bkey"] = k
+					data["bhp"] = float(r["men"][k][2])
+					break
+			var hd := HitData.new()
+			hd.damage = 20.0
+			hd.knockback_force = 0.0
+			hd.unblockable = true
+			net.node_of(data["bkey"]).hurtbox.take_hit(hd, p)
+			go(82)
+		82:
+			if st_t < 0.6:
+				return false
+			tn.ask("boarders")
+			go(83)
+		83:
+			if not tn.got("boarders"):
+				return false
+			var now := float(tn.replies["boarders"]["men"][data["bkey"]][2])
+			check("our cut lands on the host's boarder (%.0f -> %.0f)" % [data["bhp"], now], now < float(data["bhp"]) - 10.0)
+			# it swings at us: our machine decides
+			data["php"] = p.health_component.current_health
+			var fwd: Vector3 = -p.player_model.global_basis.z
+			fwd.y = 0.0
+			tn.ask("attack", [data["bkey"], p.global_position, fwd.normalized()])
+			go(84)
+		84:
+			if p.health_component.current_health < float(data["php"]):
+				check("the boarder's swing hits us here (%.0f -> %.0f)" % [data["php"], p.health_component.current_health], true)
+				go(85)
+			elif st_t > 4.0:
+				check("the boarder's swing hits us here", false)
+				go(85)
+		85:
+			if st_t < 1.0:
+				return false
+			var hd := HitData.new()
+			hd.damage = 9999.0
+			hd.knockback_force = 0.0
+			hd.unblockable = true
+			net.node_of(data["bkey"]).hurtbox.take_hit(hd, p)
+			go(86)
+		86:
+			if st_t < 1.2:
+				return false
+			check("the boarder we killed dies here", net.node_of(data["bkey"]).state == 14)
+			# we take the wheel, and she sends the rest of her men across
+			p.state_machine.force_state("Idle", {})
+			net.request_helm()
+			go(87)
+		87:
+			if st_t < 1.0:
+				return false
+			check("we have the wheel (owner %d)" % net.ship_owner, net.ship_owner == net.my_id() and p.current_state_name() == "Helm")
+			tn.ask("board_now")
+			go(88)
+		88:
+			if not tn.got("board_now") or st_t < 2.5:
+				return false
+			data["party2"] = tn.replies["board_now"]
+			tn.ask("boarders")
+			go(89)
+		89:
+			if not tn.got("boarders"):
+				return false
+			var r = tn.replies["boarders"]
+			var m := men_here(r, "BD_", str(r["ship"]))
+			var fresh := 0
+			for k in data["party2"]:
+				if net.node_of(str(k)) != null:
+					fresh += 1
+			check("a boarding while we're here: every boarder shows (%d of %d; party of %d, %d here)" % [m["found"], m["n"], data["party2"].size(), fresh], m["found"] == m["n"] and fresh == data["party2"].size() and data["party2"].size() >= 2)
+			check("...on our deck where the host has them, with us at the helm (worst %.2f m, on deck %s)" % [m["worst"], m["on_deck"]], m["worst"] < 1.5 and m["on_deck"])
+			check("...in the crewmen's own bodies, shown", m["bodies"])
+			p.state_machine.force_state("Idle", {})
+			tn.ask("deck_fight")
+			go(90)
+		90:
+			if not tn.got("deck_fight") or st_t < 1.5:
+				return false
+			tn.ask("boarders")
+			go(91)
+		91:
+			if not tn.got("boarders"):
+				return false
+			var r = tn.replies["boarders"]
+			var m := men_here(r, "DK_", str(r["es"]))
+			check("her deck crew turn to fight here too (%d of %d)" % [m["found"], m["n"]], m["n"] >= 1 and m["found"] == m["n"])
+			check("...on her deck where the host has them (worst %.2f m, on deck %s)" % [m["worst"], m["on_deck"]], m["worst"] < 1.5 and m["on_deck"])
+			check("...in the crewmen's own bodies, shown", m["bodies"])
+			tn.ask("quit")
+			finish()
 		40:
 			_hostquit_step()
 		50:
@@ -643,6 +767,31 @@ func _process(d: float) -> bool:
 			check("left: single player again", not net.active and net.players.is_empty())
 			finish()
 	return false
+
+
+## The host's turned crewmen named `tag`* (from its "boarders" reply) still up,
+## as puppets here: how many, how far off the host's deck spot, all on `deck`,
+## each in his own (shown) body.
+func men_here(r: Dictionary, tag: String, deck: String) -> Dictionary:
+	var out := {"n": 0, "found": 0, "worst": 0.0, "on_deck": true, "bodies": true}
+	var es = net.node_of(str(r["es"]))
+	for k in r["men"].keys():
+		var mm: Array = r["men"][k]
+		if not str(k).get_file().begins_with(tag) or int(mm[1]) == 14:
+			continue
+		out["n"] += 1
+		if str(mm[0][1]) != deck:
+			out["on_deck"] = false
+		var g = net.node_of(str(k))
+		if g == null or not g.net_puppet:
+			continue
+		out["found"] += 1
+		var here: Array = net.deck_pack(g.global_position)
+		var off: float = (here[0] as Vector3).distance_to(mm[0][0]) if str(here[1]) == str(mm[0][1]) else 99.0
+		out["worst"] = maxf(out["worst"], off)
+		if g.humanoid != es._crew[int(mm[3])]["node"] or not g.humanoid.is_visible_in_tree():
+			out["bodies"] = false
+	return out
 
 
 func _hostquit_step() -> void:

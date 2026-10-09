@@ -82,15 +82,69 @@ func _run(name_: String, args: Array, from: int):
 			for e in get_tree().get_nodes_in_group("enemies"):
 				var en = e
 				e.health.health_changed.connect(func(c, _m): en.set_meta("min_hp", minf(float(en.get_meta("min_hp", 99999.0)), c)))
-				if e.get("_pistol_cd") != null:
-					e._cooldown = 999.0
-					e._pistol_cd = 999.0
-					e._shot_cd = 999.0
-					e._shove_cd = 999.0
-					e._peril_cd = 999.0
-				else:
-					e._cooldown = 999.0
+				_calm(e)
 			return true
+		"board_setup":
+			# the crew's ship out in open sea, the host aboard, a pirate ship lashed
+			# alongside to starboard (every pirate's AI held: they're placed by hand)
+			var ship = n._ship()
+			var es = null
+			for s in get_tree().get_nodes_in_group("enemy_ships"):
+				s.set_physics_process(false)
+				if es == null and s._crew.size() >= 6:
+					es = s
+			set_meta("es", n.key_of(es))
+			var sc: Vector2 = _world().get_node("Islands").starter_center
+			var c := Vector3(sc.x + 420.0, 0, sc.y)
+			for k in range(32):
+				var a := k * TAU / 32.0
+				c = Vector3(sc.x + cos(a) * 420.0, 0, sc.y + sin(a) * 420.0)
+				if es.huntable_at(c) and es.huntable_at(c + Vector3(30, 0, 0)) and es.huntable_at(c - Vector3(30, 0, 0)):
+					break
+			ship.place(Vector3(c.x, 0.5, c.z), 0.0)
+			# (her node keeps its old transform until the next physics step: sync_to_physics)
+			var xf := Transform3D(Basis.IDENTITY, Vector3(c.x, ship.global_position.y, c.z))
+			var bp: Vector3 = xf * Vector3(EnemyShip.ALONGSIDE, 0, 0)
+			es._pos = Vector3(bp.x, 0, bp.z)
+			es._heading = 0.0
+			es.speed = 0.0
+			es.global_transform = Transform3D(Basis(Vector3.UP, es._heading), Vector3(bp.x, 0.85, bp.z))
+			es.reset_physics_interpolation()
+			lp.global_position = xf * Vector3(0, 1.2, 3.0)
+			lp.velocity = Vector3.ZERO
+			lp.reset_physics_interpolation()
+			return n.key_of(es)
+		"board_now":
+			var es = n.node_of(str(get_meta("es")))
+			var before: Array = es.boarders.duplicate()
+			es._board(n._ship())
+			var keys: Array = []
+			for g in es.boarders:
+				if g not in before:
+					_calm(g)
+					keys.append(n.key_of(g))
+			set_meta("boarded_t", n.time())
+			return keys
+		"deck_fight":
+			var es = n.node_of(str(get_meta("es")))
+			es._start_deck_fight()
+			for g in es.deck_crew:
+				_calm(g)
+			return es.deck_crew.size()
+		"boarders":
+			# every crewman turned grunt: [deck-relative spot, state, hp, crew index]
+			var es = n.node_of(str(get_meta("es")))
+			var men := {}
+			var shown: Array = []
+			for i in range(es._crew.size()):
+				var c: Dictionary = es._crew[i]
+				var g = c.get("grunt")
+				if is_instance_valid(g):
+					men[n.key_of(g)] = [n.deck_pack(g.global_position), int(g.state), g.health.current_health, i]
+				elif not c["gone"] and c["node"].visible:
+					shown.append(i)
+			return {"men": men, "shown": shown, "es": n.key_of(es), "ship": n.key_of(n._ship()),
+				"boarded_t": float(get_meta("boarded_t", INF)), "crew_gone": es._crew_gone}
 		"attack":
 			var g = n.node_of(str(args[0]))
 			var at: Vector3 = args[1]
@@ -218,6 +272,16 @@ func _run(name_: String, args: Array, from: int):
 				_quit_when_alone(60.0))
 			return true
 	return null
+
+
+## Keep an enemy from swinging or shooting on its own.
+func _calm(e: Node) -> void:
+	e._cooldown = 999.0
+	if e.get("_pistol_cd") != null:
+		e._pistol_cd = 999.0
+		e._shot_cd = 999.0
+		e._shove_cd = 999.0
+		e._peril_cd = 999.0
 
 
 func _quit_when_alone(left: float) -> void:

@@ -21,7 +21,7 @@ class_name EnemyShip
 ## Co-op: the host sails it (group net_sync); every other screen runs the
 ## same sailing from the host's latest state (smooth under whoever stands on
 ## its deck). Its guns send their shots to every screen; boarders and deck
-## crews are ordinary grunts.
+## crews are ordinary grunts (other screens turn the men her snapshot says are up).
 
 signal sunk(ship: EnemyShip)
 
@@ -664,48 +664,69 @@ func _board(tgt: Node3D) -> void:
 	var n := 3 + clampi(Net.crew_size() - 2, 0, 2)
 	var seed_value := _rng.randi()
 	_spawn_boarders(n, seed_value, tgt)
-	Net.event(self, "board", [n, seed_value])
 	Net.fx("sfx", ["rope", global_position, 2.0, 0.05])
 
 
-## The boarders are the crew who were on deck: each one is swapped for a
-## grunt with the same look, where he stood, facing the way he faced.
+## (host) The boarders are the crew who were on deck: the next men still
+## aboard (a second boarding takes the rest) leap across in their own bodies.
 func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	var parent: Node = fleet if fleet else get_parent()
-	# (the next men still aboard: a second boarding takes the rest)
 	var first := _crew_gone + 1
 	n = mini(n, _crew.size() - first)
 	for i in range(n):
 		var ci := first + i
-		var c: Dictionary = _crew[ci]
-		var man := c["node"] as Humanoid
-		c["gone"] = true
-		man.visible = false
 		_crew_gone = maxi(_crew_gone, ci)
-		var g := PirateGrunt.new()
-		g.name = "BD_%s_%d" % [name, ci]
-		var start := man.global_position + Vector3.UP * 0.05
-		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": rng.randi(), "look": c["look"], "body": man})
-		g.boarder = true
-		g.camp = self
-		g.xp_k = xp_k
-		g.level = level
-		parent.add_child(g)
-		g.global_position = start
-		g.reset_physics_interpolation()
-		boarders.append(g)
-		if not net_puppet and tgt:
-			var land_local := Vector3(rng.randf_range(-2.6, 2.6), Ship.DECK_Y + 0.2, rng.randf_range(-7.0, 0.8))
-			var t := 1.0 + 0.12 * i
-			var land := tgt.global_transform * land_local + _vel_of(tgt) * t
-			g.leap(land, t)
-	if net_puppet:
-		return
+		var g := _turn_grunt(ci, "BD", rng.randi())
+		var land_local := Vector3(rng.randf_range(-2.6, 2.6), Ship.DECK_Y + 0.2, rng.randf_range(-7.0, 0.8))
+		var t := 1.0 + 0.12 * i
+		var land := tgt.global_transform * land_local + _vel_of(tgt) * t
+		g.leap(land, t)
 	for g in boarders:
 		if is_instance_valid(g):
-			Net.fx("tracer", [g.global_position + Vector3(0, 1.4, 0), tgt.global_position + Vector3(0, 1.0, 0) if tgt else g.global_position, Color(0.75, 0.6, 0.4)])
+			Net.fx("tracer", [g.global_position + Vector3(0, 1.4, 0), tgt.global_position + Vector3(0, 1.0, 0), Color(0.75, 0.6, 0.4)])
+
+
+## A crewman turns grunt where he stood, facing the way he faced, in his own
+## body: a boarder ("BD") or one of the deck crew ("DK", you boarded her).
+func _turn_grunt(ci: int, tag: String, seed_value: int) -> PirateGrunt:
+	var c: Dictionary = _crew[ci]
+	var man := c["node"] as Humanoid
+	c["gone"] = true
+	man.visible = false
+	var g := PirateGrunt.new()
+	g.name = "%s_%s_%d" % [tag, name, ci]
+	var start := man.global_position + Vector3.UP * 0.05
+	g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": seed_value, "look": c["look"], "body": man})
+	g.boarder = true
+	g.camp = self
+	g.xp_k = xp_k
+	g.level = level
+	(fleet if fleet else get_parent()).add_child(g)
+	g.global_position = start
+	g.reset_physics_interpolation()
+	c["grunt"] = g
+	(boarders if tag == "BD" else deck_crew).append(g)
+	return g
+
+
+## (host) The crew indices whose grunt is still up, for the snapshot.
+func _men_mask() -> int:
+	var m := 0
+	for i in range(_crew.size()):
+		var g = _crew[i].get("grunt")
+		if is_instance_valid(g) and not g.is_dead():
+			m |= 1 << i
+	return m
+
+
+## (puppet) Turn each man the host has up who isn't turned here yet. From the
+## snapshot, not an event (an event plays after the snapshot has moved
+## _crew_gone on), and a captain who joins mid-fight gets the men already across.
+func _net_men(mask: int) -> void:
+	for i in range(_crew.size()):
+		if mask & (1 << i) and not _crew[i].has("grunt"):
+			_turn_grunt(i, "BD" if i >= 1 and i <= _crew_gone else "DK", look_seed + i)
 
 
 ## The crew, the same men on every screen (seeded from the ship).
@@ -1039,7 +1060,7 @@ func net_rescale(k: float) -> void:
 
 
 func net_pack() -> Array:
-	return [_pos, _heading, _y, _pitch, _roll, speed, int(state), hull, max_hull, _bark.text if _bark.visible else "", _crew_gone, _yaw_rate]
+	return [_pos, _heading, _y, _pitch, _roll, speed, int(state), hull, max_hull, _bark.text if _bark.visible else "", _crew_gone, _yaw_rate, _men_mask()]
 
 
 ## Not the host: sail our own copy (so the deck under a boarder moves
@@ -1050,7 +1071,7 @@ func _puppet(delta: float) -> void:
 		_sink_update(delta)
 		return
 	var last := Net.latest(self)
-	if last.size() != 2 or (last[1] as Array).size() < 12:
+	if last.size() != 2 or (last[1] as Array).size() < 13:
 		return
 	var s: Array = last[1]
 	var st := int(s[6])
@@ -1067,6 +1088,7 @@ func _puppet(delta: float) -> void:
 			var man = _crew[i]["node"]
 			if is_instance_valid(man) and man.get_parent() and not (man.get_parent().get_parent() is PirateGrunt):
 				man.visible = false
+	_net_men(int(s[12]))
 	var txt := str(s[9])
 	if txt != "" and (txt != _bark.text or not _bark.visible):
 		_bark.text = txt
@@ -1099,10 +1121,6 @@ func _puppet(delta: float) -> void:
 
 func net_event(what: String, args: Array) -> void:
 	match what:
-		"board":
-			_spawn_boarders(int(args[0]), int(args[1]), null)
-		"deck":
-			_crew_to_deck()
 		"prize":
 			_prize()
 		"sink":
@@ -1122,33 +1140,13 @@ func _start_deck_fight() -> void:
 	bark(["Repel boarders!", "They're on our deck!", "All hands! Cut 'em down!"][_rng.randi() % 3], 2.5)
 	Net.fx("sfx", ["horn", global_position, 2.0, 0.03, 1.2])
 	_crew_to_deck()
-	Net.event(self, "deck", [])
 
 
-## Whoever's still aboard (helmsman too) turns to fight, where he stood.
+## (host) Whoever's still aboard (helmsman too) turns to fight, where he stood.
 func _crew_to_deck() -> void:
-	var parent: Node = fleet if fleet else get_parent()
 	for i in range(_crew.size()):
-		var c: Dictionary = _crew[i]
-		if c["gone"]:
-			continue
-		var man := c["node"] as Humanoid
-		c["gone"] = true
-		man.visible = false
-		var g := PirateGrunt.new()
-		g.name = "DK_%s_%d" % [name, i]
-		var start := man.global_position + Vector3.UP * 0.05
-		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": look_seed + i, "look": c["look"], "body": man})
-		g.boarder = true
-		g.camp = self
-		g.xp_k = xp_k
-		g.level = level
-		parent.add_child(g)
-		g.global_position = start
-		g.reset_physics_interpolation()
-		deck_crew.append(g)
-		if not net_puppet:
-			g.alert(0.1 + 0.15 * i)
+		if not _crew[i]["gone"]:
+			_turn_grunt(i, "DK", look_seed + i).alert(0.1 + 0.15 * i)
 
 
 ## The deck is cleared: colours struck, the captain's chest by the cabin.

@@ -61,7 +61,7 @@ Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fail
 ## Co-op (nettest.ps1)
 
 - `nethost`: Co-op test, host side: hosts a world and runs the client's commands (see nettest_node.gd). Args: <port>
-- `netclient`: Co-op test, client side: joins the host (nethost.gd, same port) and checks the session: puppets both ways, enemies in sync, hits each way (client hits an enemy, an enemy hits the client), gunshots, kills (coins + XP), knocked out + revive, actions mirrored, fruit claims, the helm, spawner waves, burning brush, leaving. Args: <port>
+- `netclient`: Co-op test, client side: joins the host (nethost.gd, same port) and checks the session: puppets both ways, enemies in sync, hits each way (client hits an enemy, an enemy hits the client), gunshots, kills (coins + XP), knocked out + revive, actions mirrored, fruit claims, the helm, spawner waves, burning brush, leaving. Mode `board` (`nettest.ps1 board`): a pirate ship boards the host before the client joins, then again with the client at the helm, then her deck crew turn: the client checks the boarders and deck crew are puppets on the right deck, in the crewmen's bodies, hits both ways and a kill. Args: <port>
 - `netwatch`: Co-op test, a second client: joins alongside netclient.gd and checks it sees the host AND the other client (snapshots relayed by the host). Args: <port> <start_delay>
 - `nettest_node`: Co-op test helper: the same node (/root/NetTest) on the host and the client. The client sends commands, the host runs them and replies.
 
