@@ -1,2 +1,7 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
+
+# Files parallel sessions only add lines to: a rebase keeps both sides' lines instead of conflicting.
+docs/dev_notes.md merge=union
+tools/dev/suites.txt merge=union
+tools/dev/test_map.txt merge=union

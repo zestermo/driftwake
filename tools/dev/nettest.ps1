@@ -5,10 +5,14 @@
 #   .\tools\dev\nettest.ps1 water
 #
 # Godot: $env:GODOT = the 4.7 *console* exe (or -Godot). Logs: tools\dev\out\logs\net*.log
+#
+# Like run_tests.ps1 it takes machine-wide test slots (one per Godot it starts) and skips a
+# mode that already passed on exactly this code (-Force reruns).
 param(
 	[Parameter(Position = 0)][string]$Mode = "",
 	[string]$Godot = $env:GODOT,
-	[int]$Timeout = 300
+	[int]$Timeout = 300,
+	[switch]$Force
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -16,6 +20,18 @@ if (-not $Godot) { $cmd = Get-Command godot -ErrorAction SilentlyContinue; if ($
 if (-not $Godot -or -not (Test-Path $Godot)) { Write-Error "Set `$env:GODOT to the Godot 4.7 console exe"; exit 99 }
 $logs = [System.IO.Path]::Combine($root, "tools", "dev", "out", "logs")
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
+
+. (Join-Path $PSScriptRoot "crew_lib.ps1")
+$crew = Get-CrewDir $root
+$me = Get-CrewBranch $root
+$tree = Get-TreeKey $root
+$key = if ($Mode) { "net-$Mode" } else { "net" }
+$hit = Get-CachedPass $crew $tree $key
+if ($hit -and -not $Force) {
+	Write-Host "CO-OP TEST OK (already passed on this exact code: $hit; -Force reruns)" -ForegroundColor Green
+	exit 0
+}
+$slots = Wait-Slots $crew $(if ($Mode -eq "three") { 3 } else { 2 }) "$me $key"
 
 $port = 24700 + (Get-Random -Maximum 250)
 $delay = "2.5"
@@ -61,6 +77,8 @@ if ($watch) {
 	$wt -split "`r?`n" | Where-Object { $_ -cmatch "PASS|FAIL|RESULT|SCRIPT ERROR" } | ForEach-Object { Write-Host $_ }
 	if (-not ($wt -cmatch "RESULT OK")) { $bad = $true }
 }
+foreach ($s in $slots) { Exit-Slot $s }
 if ($bad) { Write-Host "CO-OP TEST FAILED" -ForegroundColor Red; exit 1 }
+Set-CachedPass $crew $tree $key $me
 Write-Host "CO-OP TEST OK" -ForegroundColor Green
 exit 0

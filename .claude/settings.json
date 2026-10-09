@@ -3,6 +3,17 @@
     "baseRef": "head"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/tools/dev/crew.ps1\" -Hook",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
@@ -11,6 +22,11 @@
             "type": "command",
             "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/tools/dev/hooks/gdcheck.ps1\"",
             "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/tools/dev/hooks/crewcheck.ps1\"",
+            "timeout": 30
           }
         ]
       }

@@ -51,6 +51,16 @@ if (git -C $wt status --porcelain) { Fail "$Branch has uncommitted changes in ${
 $n = (git -C $here rev-list --count "$Onto..$Branch").Trim()
 if ($n -eq "0") { Write-Host "$Branch has nothing $Onto doesn't." -ForegroundColor Yellow; exit 0 }
 
+# who else is in the same files: they'll be merging with this once it's landed
+. (Join-Path $PSScriptRoot "crew_lib.ps1")
+$board = Get-CrewBoard $here $Onto
+$o = Get-Overlaps $board $Branch @(($board.Rows | Where-Object { $_.Branch -eq $Branch }).Files)
+$o = @($o | Where-Object { $_ -notlike "${Onto}:*" -and $_ -notlike "$Onto *" })
+if ($o) {
+	Write-Host "Other sessions are changing some of the same files (they'll rebase onto this):" -ForegroundColor Yellow
+	$o | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+}
+
 # onto the newest target
 Write-Host "Rebasing $Branch ($n commits) onto $Onto..." -ForegroundColor Cyan
 $ErrorActionPreference = "Continue"
@@ -74,5 +84,6 @@ if ($NoTests) {
 # the target moves forward to it (git refuses rather than overwrite anything)
 git -C $target merge --ff-only $Branch 2>&1 | ForEach-Object { "$_" } | Write-Host
 if ($LASTEXITCODE -ne 0) { Fail "$Onto couldn't fast-forward (uncommitted changes in $target touch the same files?). Nothing landed." }
+Remove-Item (Join-Path (Get-CrewDir $here) ("claims\" + ($Branch -replace "[\\/]", "_") + ".json")) -Force -ErrorAction SilentlyContinue
 Write-Host "Landed $n commits from $Branch on $Onto. Remove the worktree when its session is closed: git worktree remove `"$wt`"" -ForegroundColor Green
 exit 0

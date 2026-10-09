@@ -91,6 +91,28 @@ so half-finished edits never break another session's tests or end up in its comm
   `git add -A`, and if a test fails in a file you didn't touch, it's probably another
   session's work in progress.
 
+### Coordinating with the other sessions (tools/dev/crew.ps1)
+
+- Every session starts with the **crew board** in its context (a SessionStart hook): each
+  worktree's branch, its claimed task and areas, and the files it's changing. `crew.ps1`
+  prints it any time; `crew.ps1 overlap` shows who else is in the files you're changing.
+- **Claim your task** when you start one in a worktree:
+  `.\tools\dev\crew.ps1 claim "sea legs" -Areas scripts/ship/enemy_fleet.gd,scripts/world/sea_legs.gd`.
+  Landing releases it. After an edit to a file another session is changing or has claimed, a
+  hook tells you who; keep that edit small and local, and tell Zach if the overlap is big.
+- **Tests are shared machine-wide:** run_tests.ps1 and nettest.ps1 take one of
+  `DRIFTWAKE_TEST_SLOTS` (default 3) Godot slots and wait for a free one (they print who holds
+  them), so parallel sessions stop starving each other into flaky failures. A suite that
+  already passed on exactly this code, in any session, is skipped (`-Force` reruns). So don't
+  rerun a suite "to be sure" and don't run the full suite unless asked.
+- In a worktree, a failing test is this tree's code (or main's), never another session's
+  uncommitted work. If it's in a file someone else is changing on main, say so.
+- run_tests.ps1 re-imports by itself when a `class_name` is missing from the import cache
+  (a new script, or another branch's landed in).
+- New suites go on their own line in `tools/dev/suites.txt`. That file, `test_map.txt` and
+  `docs/dev_notes.md` merge by union (`.gitattributes`), so parallel branches adding lines
+  don't conflict when they land.
+
 ## Python (asset generators only)
 
 Python is only needed for `tools/texture_gen/*.py` (textures, SFX, music; numpy, scipy,
