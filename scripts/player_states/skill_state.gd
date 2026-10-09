@@ -249,14 +249,28 @@ func physics_update(delta: float) -> void:
 			_rooted(delta, 0.0)
 		"flying_slash":
 			_rooted(delta, 0.0)
+			var edge := FX.tree_col("sword", FX.EDGE)
+			var foam := FX.tree_col("sword", FX.ACCENT)
+			# the sea drawn to the blade as it winds back, a glint as it turns
+			if not _slammed and t >= 0.04:
+				_slammed = true
+				var hr: Node3D = player.body_model.hand_r
+				Net.fx("gather", [hr.global_position if hr else player.global_position + Vector3(0, 1.2, 0), 1.1, foam, 0.16, 12])
+			if not _airborne and t >= dur * 0.36:
+				_airborne = true
+				var hr2: Node3D = player.body_model.hand_r
+				Net.fx("glint", [(hr2.global_position if hr2 else player.global_position + Vector3(0, 1.2, 0)), FX.tree_col("sword", FX.CORE), 0.8])
 			if not _fired and t >= dur * 0.42:
 				_fired = true
 				var from := player.global_position + Vector3(0, 1.1, 0) + _dir * 0.6
 				var d := _dir
 				d.y = 0.0
 				Projectile.launch(player.get_tree(), "slash", from, d.normalized(), player, 26.0)
-				Net.fx("slash", [player.player_model, "spin", 0.3, Color(0.75, 0.9, 1.0)])
+				Net.fx("blade_swoosh", [player.body_model, 0.09, edge])
+				Net.fx("ring", [from + d.normalized() * 0.5, d.normalized(), 1.4, edge, 0.22, 0.14])
+				Net.fx("spray", [from, d.normalized() + player.player_model.global_basis.x * -0.6, 10, foam, 6.0])
 				Net.fx("sfx", ["whoosh_big", from, -2.0, 0.05, 1.3])
+				CombatManager.apply_camera_kick(0.12, 0.3)
 		"tiger_rush":
 			_tiger(delta)
 		"bullet_storm":

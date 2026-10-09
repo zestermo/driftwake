@@ -39,8 +39,10 @@ static func label() -> String:
 
 
 static func toggle_slow() -> String:
-	Engine.time_scale = SLOW if is_equal_approx(Engine.time_scale, 1.0) else 1.0
-	return "Anim lab: %s" % ("slow motion" if Engine.time_scale < 1.0 else "normal speed")
+	# (through CombatManager, so a hit-stop returns to slow motion, not full speed)
+	var cm = Engine.get_main_loop().root.get_node("CombatManager")
+	cm._set_base(SLOW if is_equal_approx(cm._base_scale, 1.0) else 1.0)
+	return "Anim lab: %s" % ("slow motion" if cm._base_scale < 1.0 else "normal speed")
 
 
 static func toggle_clean() -> String:

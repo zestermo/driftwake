@@ -39,35 +39,78 @@ static func pose(h, n: String, u: float) -> Array:
 				"torso": Vector3(-0.3, 1.05, 0.1), "head": Vector3(0.1, -0.8, 0), "arm_l": Vector3(0.6, 0, -0.9), "fore_l": Vector3(0.9, 0, 0),
 				"leg_l": Vector3(-0.55, 0, -0.1), "shin_l": Vector3(-0.35, 0, 0), "leg_r": Vector3(0.9, 0, 0.1), "shin_r": Vector3(-0.85, 0, 0),
 				"_lift": Vector3(0, -0.2, 0)}
-			return [h._keys(u, [[0.0, g], [0.12, turn, "out"], [0.18, turn], [0.3, answer, "out"], [0.62, answer], [1.0, g]]), "full", lift]
+			# the whip of the answer: stretched along the cut, the blade smeared
+			var whip := answer.merged({"_scale": Vector3(1.07, 0.97, 1.0), "_smear": Vector3(0.7, 0, 0)}, true)
+			var turn_sq := turn.merged({"_scale": Vector3(1.03, 0.95, 1.02)}, true)
+			return [h._keys(u, [[0.0, g], [0.12, turn_sq, "out"], [0.18, turn_sq], [0.3, whip, "out"], [0.38, answer], [0.62, answer], [1.0, g]]), "full", lift]
 		"swordfish":
-			# a fencer's lunge held while the blade drives out five times (peaks at 0.12 s + 0.12 s each)
+			# a fencer's lunge held while the blade drives out five times (peaks at
+			# 0.12 s + 0.12 s each), the body driving behind every thrust; the fifth
+			# goes deepest
 			var ext := 0.0
 			if s > 0.06 and s < 0.7:
 				var x := (s - 0.12) / 0.12
 				ext = clampf(1.0 - absf(x - roundf(x)) * 2.2, 0.0, 1.0)
-			var coil := {"arm_r": Vector3(0.4, 0.3, 0.4), "fore_r": Vector3(1.7, 0, 0), "hand_r": Vector3(-1.6, 0, 0)}
-			var drive := {"arm_r": Vector3(1.65, 0.1, 0.05), "fore_r": Vector3(0.0, 0, 0), "hand_r": Vector3(-1.55, 0, 0)}
-			var body := {"hips": Vector3(0, 0.15, 0), "torso": Vector3(-0.35, 0.15, 0), "head": Vector3(0.25, -0.15, 0),
-				"arm_l": Vector3(-0.5, 0, -0.7), "fore_l": Vector3(0.4, 0, 0),
+			var last := clampf((s - 0.5) / 0.08, 0.0, 1.0) * (1.0 - clampf((s - 0.66) / 0.08, 0.0, 1.0))
+			var coil := {"arm_r": Vector3(0.4, 0.3, 0.4), "fore_r": Vector3(1.7, 0, 0), "hand_r": Vector3(-1.6, 0, 0),
+				"hips": Vector3(0, 0.05, 0), "torso": Vector3(-0.25, 0.3, 0), "head": Vector3(0.18, -0.25, 0),
+				"_scale": Vector3(1.02, 0.97, 0.97)}
+			var drive := {"arm_r": Vector3(1.65, 0.1, 0.05), "fore_r": Vector3(0.0, 0, 0), "hand_r": Vector3(-1.55, 0, 0),
+				"hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.45, -0.05, 0), "head": Vector3(0.3, 0.02, 0),
+				"_scale": Vector3(0.97, 1.0, 1.06)}
+			var body := {"arm_l": Vector3(-0.5, 0, -0.7), "fore_l": Vector3(0.4, 0, 0),
 				"leg_r": Vector3(1.0, 0, 0.06), "shin_r": Vector3(-1.1, 0, 0), "leg_l": Vector3(-0.8, 0, -0.08), "shin_l": Vector3(-0.15, 0, 0),
-				"_lift": Vector3(0, -0.25, 0)}
+				"_lift": Vector3(0, -0.25 - 0.12 * last, 0)}
 			for j in coil.keys():
 				body[j] = (coil[j] as Vector3).lerp(drive[j], ext)
+			body["torso"] = (body["torso"] as Vector3) + Vector3(-0.15, 0, 0) * last
+			body["leg_r"] = (body["leg_r"] as Vector3) + Vector3(0.25, 0, 0) * last
+			body["shin_r"] = (body["shin_r"] as Vector3) + Vector3(-0.3, 0, 0) * last
+			body["_scale"] = (body["_scale"] as Vector3) + Vector3(-0.02, 0, 0.06) * last * ext
+			body["_smear"] = Vector3(0.6 * ext * last, 0, 0)
 			return [h._keys(u, [[0.0, g], [0.07 / T, body, "out"], [0.72 / T, body], [1.0, g]]), "full", lift]
 		"kraken_cut":
-			# low and driving between the victims, then upright with the blade flung
-			# wide as they're all torn open, and back to guard
+			# coiled low gathering the sea (blade drawn back by the hip, the off hand
+			# out), driving low between the victims, then a flick of the blade and
+			# upright, back to them, as they're all torn open
+			var k_go := 0.45 / T
+			var gather := {"hips": Vector3(0, -0.5, 0), "torso": Vector3(-0.45, -0.75, -0.05), "head": Vector3(0.3, 0.65, 0),
+				"arm_r": Vector3(-0.35, 0.3, 0.45), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+				"arm_l": Vector3(1.35, 0.5, -0.2), "fore_l": Vector3(0.35, 0, 0),
+				"leg_l": Vector3(1.0, 0, -0.2), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(-0.7, 0, 0.2), "shin_r": Vector3(-0.6, 0, 0),
+				"_lift": Vector3(0, -0.42, 0), "_scale": Vector3(1.05, 0.93, 1.03)}
 			var low := {"hips": Vector3(0, -0.2, 0), "arm_r": Vector3(1.35, -0.9, -1.15), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.45, 0, 0),
 				"arm_l": Vector3(-0.5, 0, -0.8), "fore_l": Vector3(0.3, 0, 0), "torso": Vector3(-0.5, -0.9, -0.08), "head": Vector3(0.35, 0.7, 0),
 				"leg_l": Vector3(1.3, 0, -0.12), "shin_l": Vector3(-1.45, 0, 0), "leg_r": Vector3(-1.0, 0, 0.12), "shin_r": Vector3(-0.15, 0, 0),
-				"_lift": Vector3(0, -0.35, 0)}
+				"_lift": Vector3(0, -0.35, 0), "_scale": Vector3(0.98, 0.98, 1.06)}
+			var flick := {"hips": Vector3(0, -0.1, 0), "arm_r": Vector3(1.1, -0.2, 0.3), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.7, 0, 0),
+				"torso": Vector3(-0.15, -0.6, 0), "head": Vector3(0.05, 0.5, 0), "arm_l": Vector3(0.3, 0, -0.4), "fore_l": Vector3(0.5, 0, 0),
+				"leg_l": Vector3(0.3, 0, -0.15), "shin_l": Vector3(-0.4, 0, 0), "leg_r": Vector3(-0.2, 0, 0.15), "shin_r": Vector3(-0.35, 0, 0),
+				"_lift": Vector3(0, -0.1, 0)}
 			var flourish := {"hips": Vector3(0, 0.2, 0), "arm_r": Vector3(0.9, 0.3, 1.2), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-1.4, 0, 0),
 				"torso": Vector3(-0.05, -0.4, 0), "head": Vector3(0.0, 0.35, 0), "arm_l": Vector3(0.2, 0, -0.35), "fore_l": Vector3(0.3, 0, 0),
 				"leg_l": Vector3(0.15, 0, -0.15), "shin_l": Vector3(-0.2, 0, 0), "leg_r": Vector3(-0.1, 0, 0.15), "shin_r": Vector3(-0.2, 0, 0),
-				"_lift": Vector3(0, -0.03, 0)}
-			var k_tear := maxf((T - 0.55) / T, 0.1)
-			return [h._keys(u, [[0.0, g], [0.08, low, "out"], [k_tear, low], [k_tear + 0.08, flourish, "out"], [1.0 - 0.12 / T, flourish], [1.0, g]]), "full", lift]
+				"_lift": Vector3(0, -0.03, 0), "_scale": Vector3(1.0, 1.03, 1.0)}
+			var k_still := maxf((T - 0.75) / T, k_go + 0.05)
+			var k_tear := maxf((T - 0.55) / T, k_still + 0.05)
+			return [h._keys(u, [[0.0, g], [0.1, gather, "out"], [k_go - 0.02, gather], [k_go + 0.03, low, "out"], [k_still - 0.06, low],
+				[k_still, flick, "out"], [k_tear - 0.02, flick], [k_tear + 0.05, flourish, "out"], [1.0 - 0.12 / T, flourish], [1.0, g]]), "full", lift]
+		"flying_slash":
+			# wound right with the blade drawn far back, a beat, then one huge flat
+			# cut right to left that flings the crescent off the edge (u 0.42),
+			# stepping through onto the left foot
+			var wind := {"hips": Vector3(0, -0.55, 0), "torso": Vector3(-0.1, -1.1, -0.06), "head": Vector3(0.1, 0.85, 0),
+				"arm_r": Vector3(0.75, 0.6, 1.35), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.85, 0, 0),
+				"arm_l": Vector3(1.25, -0.2, -0.3), "fore_l": Vector3(0.7, 0, 0),
+				"leg_l": Vector3(0.45, 0, -0.2), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.3, 0, 0.2), "shin_r": Vector3(-0.75, 0, 0),
+				"_lift": Vector3(0, -0.2, 0), "_scale": Vector3(1.04, 0.94, 1.0)}
+			var cut := {"hips": Vector3(0, 0.5, 0), "torso": Vector3(-0.3, 1.0, 0.08), "head": Vector3(0.18, -0.7, 0),
+				"arm_r": Vector3(1.5, -0.95, -1.1), "fore_r": Vector3(0.08, 0, 0), "hand_r": Vector3(-1.4, 0, 0),
+				"arm_l": Vector3(0.3, 0.2, -1.3), "fore_l": Vector3(0.45, 0, 0),
+				"leg_l": Vector3(1.05, 0, -0.15), "shin_l": Vector3(-1.05, 0, 0), "leg_r": Vector3(-0.8, 0, 0.1), "shin_r": Vector3(-0.2, 0, 0),
+				"_lift": Vector3(0, -0.26, 0)}
+			var whip := cut.merged({"_scale": Vector3(1.08, 0.97, 1.0), "_smear": Vector3(0.8, 0, 0)}, true)
+			return [h._keys(u, [[0.0, g], [0.3, wind, "out"], [0.37, wind], [0.46, whip, "out"], [0.52, cut], [0.74, cut], [1.0, g]]), "full", lift]
 		# --- katana ---
 		"wind_sever":
 			# blade low behind the right foot, chest wound round, then a rising cut

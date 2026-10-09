@@ -180,3 +180,4 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `guestshot`: A rendered co-op guest: start `nethost.gd -- <port>` headless, then `guestshot.gd -- <port> <out_prefix>` joins it and shoots fixed views (dock, open sea) as a guest sees them; prints the guest's hour, sun and ocean state.
 - `wolfpose`: Standalone Zoan hybrid: front, 3/4 and side views. Args: <out_prefix>
 - `zigzag`: (no description)
+- `abilityshot`: A skill filmed on a clean stage against three staggered grunts, effects and all: one row per view, frames along game time. Args: <out_prefix> <skill_id | heavy | riposte_counter> [style] [views: game,side,front3,top] [frames] [span s] [start s]. Env AB_HOUR=21 at night.

@@ -17,7 +17,8 @@ extends PlayerState
 const STYLES := {
 	"thrust": {"anim": "thrust", "impulse": 11.0,
 		"damage": 32.0, "hitstop": 0.08, "shake": 0.16, "knockback": 12.0, "stagger": 0.4,
-		"trail": "thrust", "trail_len": 0.22, "sfx": "whoosh", "pitch": 1.25, "impact_fx": false},
+		"trail": "thrust", "trail_len": 0.22, "sfx": "whoosh", "pitch": 1.25, "impact_fx": false,
+		"tree": "sword", "color": Color(0.3, 0.72, 1.0)},
 	"whirl": {"anim": "axe_whirl", "impulse": 2.5,
 		"damage": 22.0, "hitstop": 0.06, "shake": 0.16, "knockback": 9.0, "stagger": 0.5,
 		"trail": "spin", "trail_len": 0.36, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false,
@@ -55,6 +56,7 @@ var impact_fx: bool = false
 var cfg: Dictionary = {}
 var _kata_shots: int = 0
 var _rehit_done: bool = false
+var _glinted: bool = false
 var _windup: float = 0.0
 var _active: float = 0.0
 var _recovery: float = 0.0
@@ -92,6 +94,7 @@ func enter(_data: Dictionary) -> void:
 	player.set_reach(str(cfg.get("reach", "sword")))
 	_kata_shots = 0
 	_rehit_done = false
+	_glinted = false
 
 	# Snap to camera forward
 	var forward := get_camera_forward()
@@ -120,6 +123,12 @@ func physics_update(delta: float) -> void:
 
 	match phase:
 		0:  # Windup
+			# the point catches the light just before it goes
+			if cfg.has("tree") and not _glinted and timer >= _windup - 0.07:
+				_glinted = true
+				var w: MeshInstance3D = player.body_model.weapon
+				if w and w.mesh:
+					Net.fx("glint", [w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z * 0.85), FX.tree_col(str(cfg["tree"]), FX.CORE), 0.7])
 			if timer >= _windup:
 				phase = 1
 				timer = 0.0
@@ -136,6 +145,8 @@ func physics_update(delta: float) -> void:
 					Net.fx("punch_wind", [player.global_position + Vector3.UP * 1.05 + b.x * 0.15 - b.z * 0.3, -b.z, 1.7,
 						col if player.power.buff("coat") else Color(1.0, 0.97, 0.9), true])
 				player.squash(-3.0)
+				if cfg.has("tree"):
+					_strike_fx()
 				if cfg.get("kata", false):
 					if player.is_on_floor():
 						player.velocity.y = KATA_HOP   # spins in the air, not planted on the ground
@@ -186,6 +197,20 @@ func physics_update(delta: float) -> void:
 	# Allow dodge cancel during recovery
 	if phase == 2 and wants_dodge():
 		transitioned.emit(self, "Dodge", {})
+
+
+## The strike's effects in its tree's colours: a ring of air round the point,
+## spray off it, dust kicked up by the lunge.
+func _strike_fx() -> void:
+	var tree := str(cfg["tree"])
+	var f := get_camera_forward()
+	f.y = 0.0
+	f = f.normalized()
+	var tip := player.global_position + Vector3(0, 1.2, 0) + f * 1.5
+	Net.fx("ring", [tip, f, 1.3, FX.tree_col(tree, FX.EDGE), 0.22, 0.16])
+	Net.fx("spray", [tip, f + Vector3.UP * 0.2, 10, FX.tree_col(tree, FX.ACCENT), 6.5])
+	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0) - f * 0.4, 6, 0.6])
+	CombatManager.apply_camera_kick(0.12, 0.3)
 
 
 func _hit(knockdown: bool) -> HitData:

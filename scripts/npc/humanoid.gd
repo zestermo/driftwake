@@ -1341,19 +1341,21 @@ func _action_pose(n: String, u: float) -> Array:
 			# lined up along the arm. windup ..0.29, strike ..0.51, recovery.
 			var coil := {"arm_r": Vector3(0.15, 0.0, 0.5), "fore_r": Vector3(1.85, 0, 0), "hand_r": Vector3(-2.0, 0, 0),
 				"arm_l": Vector3(1.0, 0.2, -0.35), "fore_l": Vector3(0.7, 0, 0),
-				"torso": Vector3(0.05, -0.55, 0.05), "head": Vector3(0.05, 0.5, 0),
-				"leg_r": Vector3(0.3, 0, 0.05), "shin_r": Vector3(-0.55, 0, 0), "leg_l": Vector3(-0.35, 0, -0.08), "shin_l": Vector3(-0.7, 0, 0)}
+				"hips": Vector3(0, -0.4, 0), "torso": Vector3(0.05, -0.55, 0.05), "head": Vector3(0.05, 0.5, 0),
+				"leg_r": Vector3(0.3, 0, 0.05), "shin_r": Vector3(-0.55, 0, 0), "leg_l": Vector3(-0.35, 0, -0.08), "shin_l": Vector3(-0.7, 0, 0),
+				"_scale": Vector3(1.03, 0.95, 0.96)}
 			var reach := {"arm_r": Vector3(1.5, 0.05, 0.12), "fore_r": Vector3(0.02, 0, 0), "hand_r": Vector3(-1.52, 0, 0),
 				"arm_l": Vector3(-0.75, 0, -0.55), "fore_l": Vector3(0.35, 0, 0),
-				"torso": Vector3(-0.32, 0.5, -0.05), "head": Vector3(0.3, -0.45, 0),
+				"hips": Vector3(0, 0.35, 0), "torso": Vector3(-0.32, 0.5, -0.05), "head": Vector3(0.3, -0.45, 0),
 				"leg_r": Vector3(1.2, 0, 0.04), "shin_r": Vector3(-1.3, 0, 0), "leg_l": Vector3(-0.95, 0, -0.06), "shin_l": Vector3(-0.08, 0, 0)}
+			var lunge := reach.merged({"_scale": Vector3(0.96, 0.99, 1.1), "_smear": Vector3(0.8, 0, 0)}, true)
 			if u < 0.27:
 				lift.y = -0.14 * _ease(u / 0.27)
 			elif u < 0.4:
 				lift.y = lerpf(-0.14, -0.32, 1.0 - pow(1.0 - (u - 0.27) / 0.13, 3.0))
 			else:
 				lift.y = -0.32 * (1.0 - _ease(clampf((u - 0.58) / 0.42, 0.0, 1.0)))
-			return [_keys(u, [[0.0, _guard()], [0.27, coil, "out"], [0.31, coil], [0.4, reach, "out"], [0.58, reach], [1.0, _guard()]]), "full", lift]
+			return [_keys(u, [[0.0, _guard()], [0.27, coil, "out"], [0.31, coil], [0.4, lunge, "out"], [0.47, reach], [0.58, reach], [1.0, _guard()]]), "full", lift]
 		# --- axe: heavy hacks with the body behind them ---
 		"axe_hack":
 			# combo 1: the axe hauled up over the right shoulder, then hacked down
@@ -2002,14 +2004,6 @@ func _action_pose(n: String, u: float) -> Array:
 				"leg_r": Vector3(0.45, 0, 0.35), "shin_r": Vector3(-0.8, 0, 0)}
 			lift.y = -0.18 * _ease(u / 0.15) * (1.0 - _ease((u - 0.9) / 0.1))
 			return [_keys(u, [[0.0, {}], [0.12, tk, "out"], [0.9, tk], [1.0, {}]]), "full", lift]
-		"flying_slash":
-			var gf := _guard()
-			var wf := {"arm_r": Vector3(0.6, 0.9, 1.9), "fore_r": Vector3(0.6, 0, 0), "torso": Vector3(0.1, 1.3, 0.1), "arm_l": Vector3(0.9, 0, -0.6), "fore_l": Vector3(1.2, 0, 0),
-				"leg_l": Vector3(0.5, 0, -0.2), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.3, 0, 0.2), "shin_r": Vector3(-0.8, 0, 0)}
-			var sf := {"arm_r": Vector3(1.5, -1.0, -1.3), "fore_r": Vector3(0.0, 0, 0), "torso": Vector3(-0.3, -1.2, -0.1), "arm_l": Vector3(0.2, 0, -1.4), "fore_l": Vector3(0.4, 0, 0),
-				"leg_l": Vector3(1.0, 0, -0.15), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.75, 0, 0.1), "shin_r": Vector3(-0.2, 0, 0)}
-			lift.y = -0.22 * sin(clampf(u, 0, 1) * PI)
-			return [_keys(u, [[0.0, gf], [0.3, wf, "out"], [0.45, sf, "out"], [0.7, sf], [1.0, gf]]), "full", lift]
 		"bullet_storm":
 			var gb := _guard()
 			var fan := sin(_t * 30.0) * 0.08

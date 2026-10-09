@@ -1041,6 +1041,185 @@ func flame_emitter(parent: Node3D, radius: float = 0.3, amount: int = 16, size: 
 
 
 # --------------------------------------------------------------------------
+# Ability effects (the driftwake-fx skill: palettes, layering, budgets)
+# --------------------------------------------------------------------------
+## Each tree's colours: [core (the hot centre), edge (its own colour), accent].
+const TREE_FX := {
+	"sword": [Color(0.92, 0.98, 1.0), Color(0.3, 0.72, 1.0), Color(0.78, 0.95, 1.0)],
+	"katana": [Color(1.0, 1.0, 1.0), Color(0.78, 0.86, 1.0), Color(1.0, 0.62, 0.8)],
+	"axe": [Color(1.0, 0.9, 0.6), Color(1.0, 0.5, 0.15), Color(0.55, 0.42, 0.3)],
+	"dual": [Color(0.95, 0.98, 1.0), Color(0.35, 0.9, 0.95), Color(0.75, 0.45, 1.0)],
+	"pistol": [Color(1.0, 0.95, 0.75), Color(1.0, 0.75, 0.25), Color(0.7, 0.7, 0.68)],
+	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
+	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
+}
+const CORE := 0
+const EDGE := 1
+const ACCENT := 2
+
+static var _bands: Dictionary = {}
+
+
+static func tree_col(tree: String, which: int = EDGE) -> Color:
+	return (TREE_FX[tree] as Array)[which]
+
+
+## An additive glow material of its own (so its fade doesn't touch anyone else's).
+func _glow_mat(color: Color, alpha: float = 0.85) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.albedo_color = Color(color.r, color.g, color.b, alpha)
+	return m
+
+
+func _band(width: float) -> ArrayMesh:
+	var key := snappedf(width, 0.01)
+	if not _bands.has(key):
+		_bands[key] = _annulus(1.0 - width, 1.0)
+	return _bands[key]
+
+
+## A ring racing out from `pos` and fading, flat to `normal` (UP: along the
+## ground; a direction: a ring of air round a thrust or a punch).
+func ring(pos: Vector3, normal: Vector3 = Vector3.UP, radius: float = 3.0, color: Color = Color.WHITE, life: float = 0.35, width: float = 0.12) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = _band(width)
+	var mat := _glow_mat(color)
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	var n := normal.normalized()
+	var side := Vector3.RIGHT if absf(n.dot(Vector3.RIGHT)) < 0.9 else Vector3.FORWARD
+	var x := n.cross(side).normalized()
+	holder.global_transform = Transform3D(Basis(x, n, x.cross(n)), pos + (Vector3(0, 0.08, 0) if n.y > 0.9 else Vector3.ZERO))
+	holder.add_child(mi)
+	mi.scale = Vector3(radius * 0.12, 1.0, radius * 0.12)
+	var tw := holder.create_tween()
+	tw.tween_property(mi, "scale", Vector3(radius, 1.0, radius), life).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.parallel().tween_property(mat, "albedo_color:a", 0.0, life * 0.7).set_delay(life * 0.3)
+	tw.tween_callback(holder.queue_free)
+
+
+## Sea spray thrown along `dir`: droplets in an arc that fall back, and a mist.
+func spray(pos: Vector3, dir: Vector3, amount: int = 12, color: Color = Color(0.85, 0.95, 1.0), speed: float = 6.0) -> void:
+	_burst(pos, amount, _dust_mat, 0.16, 0.6, {"radius": 0.12, "direction": dir.normalized(), "spread": 30.0,
+		"vel_min": speed * 0.55, "vel_max": speed, "gravity": Vector3(0, -12.0, 0), "damping": 0.8, "grow": false,
+		"hold": true, "color": Color(color.r, color.g, color.b, 0.95)})
+	_burst(pos, maxi(amount / 3, 2), _dust_mat, 0.55, 0.55, {"radius": 0.2, "direction": dir.normalized(), "spread": 40.0,
+		"vel_min": 0.6, "vel_max": 1.6, "gravity": Vector3(0, 0.3, 0), "damping": 2.0, "color": Color(color.r, color.g, color.b, 0.45)})
+
+
+## Power drawn in to `pos` from all round (a wind-up, a charge): motes on a
+## sphere of `radius` rushing to the middle over `secs`.
+func gather(pos: Vector3, radius: float = 1.2, color: Color = Color.WHITE, secs: float = 0.4, amount: int = 16) -> void:
+	_burst(pos, amount, _spark_mat, 0.15, secs, {"shape": CPUParticles3D.EMISSION_SHAPE_SPHERE_SURFACE, "radius": radius,
+		"vel_min": 0.0, "vel_max": 0.0, "radial": -2.0 * radius / (secs * secs), "gravity": Vector3.ZERO, "damping": 0.0,
+		"grow": false, "explosiveness": 0.7, "color": Color(color.r, color.g, color.b, 1.0)})
+
+
+## A dash's line through the air (a blink, a lunge): a hot core in a coloured
+## sheath, thinning and fading.
+func streak(from: Vector3, to: Vector3, color: Color = Color(0.4, 0.8, 1.0), width: float = 0.14, life: float = 0.3) -> void:
+	var seg := to - from
+	var l := seg.length()
+	if l < 0.1:
+		return
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_transform = Transform3D(Basis.looking_at(seg / l, Vector3.UP if absf(seg.normalized().y) < 0.95 else Vector3.FORWARD), from + seg * 0.5)
+	var box := BoxMesh.new()
+	box.size = Vector3.ONE
+	var tw := holder.create_tween().set_parallel(true)
+	for layer in [[width, color, 0.55], [width * 0.35, color.lerp(Color.WHITE, 0.7), 0.95]]:
+		var mi := MeshInstance3D.new()
+		mi.mesh = box
+		var mat := _glow_mat(layer[1], layer[2])
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.scale = Vector3(layer[0], layer[0], l)
+		holder.add_child(mi)
+		tw.tween_property(mi, "scale", Vector3(float(layer[0]) * 0.15, float(layer[0]) * 0.15, l), life).set_ease(Tween.EASE_IN)
+		tw.tween_property(mat, "albedo_color:a", 0.0, life).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(holder.queue_free)
+
+
+## A star of light (a blade's edge catching it before a strike, a hit landing).
+func glint(pos: Vector3, color: Color = Color.WHITE, size: float = 0.8) -> void:
+	_burst(pos, 1, _spark_mat, size, 0.2, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+		"grow": true, "color": Color(color.r, color.g, color.b, 1.0)})
+	_burst(pos, 1, _impact_mat, size * 0.6, 0.12, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+		"grow": true, "color": Color(1, 1, 1, 0.9)})
+
+
+## Water heaving up out of the ground in curling tentacles (the Kraken's Wake):
+## they lash up, hang a beat, and fall back as spray.
+func water_tentacles(pos: Vector3, height: float = 3.0, color: Color = Color(0.3, 0.7, 1.0), count: int = 4, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(color.r, color.g, color.b, 0.8)
+	var foam := _glow_mat(color.lerp(Color.WHITE, 0.75), 0.7)
+	var mb := MeshBuilder.new()
+	for k in range(count):
+		var a := TAU * k / count + rng.randf_range(-0.4, 0.4)
+		var out := Vector3(cos(a), 0, sin(a))
+		var side := out.cross(Vector3.UP)
+		var h := height * rng.randf_range(0.75, 1.15)
+		var base := out * rng.randf_range(0.3, 0.7)
+		var ctrl := out * rng.randf_range(1.2, 1.8) + Vector3.UP * h * 0.75
+		var tip := out * rng.randf_range(0.2, 0.8) + side * rng.randf_range(-0.8, 0.8) + Vector3.UP * h
+		var pts := MeshBuilder.curve_points(base, ctrl, tip, 10)
+		mb.add_tube(mat, pts, 0.34, 0.05, 6, 1.0)
+		mb.add_tube(foam, pts, 0.14, 0.02, 4, 1.0)
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = pos
+	var inst := mb.to_instance("Tentacles")
+	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	holder.add_child(inst)
+	holder.scale = Vector3(1.0, 0.05, 1.0)
+	var tw := holder.create_tween()
+	tw.tween_property(holder, "scale", Vector3.ONE, 0.16).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.tween_interval(0.22)
+	tw.tween_property(holder, "scale", Vector3(1.15, 0.15, 1.15), 0.32).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(mat, "albedo_color:a", 0.0, 0.32)
+	tw.parallel().tween_property(foam, "albedo_color:a", 0.0, 0.32)
+	tw.tween_callback(holder.queue_free)
+	spray(pos + Vector3.UP * 0.2, Vector3.UP, 18, color.lerp(Color.WHITE, 0.6), 7.0)
+	ring(pos, Vector3.UP, 2.4, color.lerp(Color.WHITE, 0.4), 0.4)
+
+
+## A flash over the whole screen (an ultimate's moment), for a camera near `at`.
+func screen_flash(at: Vector3, color: Color = Color(1, 1, 1, 0.5), secs: float = 0.25) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or cam.global_position.distance_to(at) > 35.0:
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 60
+	var r := ColorRect.new()
+	r.color = color
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(r)
+	_scene_root().add_child(layer)
+	var tw := layer.create_tween().set_ignore_time_scale(true)
+	tw.tween_property(r, "color:a", 0.0, secs).set_ease(Tween.EASE_IN)
+	tw.tween_callback(layer.queue_free)
+
+
+# --------------------------------------------------------------------------
 # Slash trails
 # --------------------------------------------------------------------------
 ## A strike's trail traced by the real blade (moves with a swing path): the weapons in

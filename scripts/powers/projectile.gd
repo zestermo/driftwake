@@ -23,6 +23,7 @@ var _back: bool = false
 var _hit: Array = []
 var _mesh: MeshInstance3D
 var _mat: StandardMaterial3D
+var _core: StandardMaterial3D
 
 signal returned
 
@@ -58,20 +59,26 @@ func _ready() -> void:
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	if kind in ["slash", "wave"]:
-		# a thin crescent lying across the flight path (stood on its edge for the wave)
+		# a thin crescent lying across the flight path (stood on its edge for the
+		# wave): a coloured sheath round a hot white core
 		var mb := MeshBuilder.new()
 		_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		_mat.albedo_color = Color(0.75, 0.9, 1.0, 0.85)
-		var pts := 9
-		for i in range(pts - 1):
-			var a0 := lerpf(-1.1, 1.1, float(i) / float(pts - 1))
-			var a1 := lerpf(-1.1, 1.1, float(i + 1) / float(pts - 1))
-			var w0 := 0.12 * cos(a0 * 1.3)
-			var w1 := 0.12 * cos(a1 * 1.3)
-			var p0 := Vector3(sin(a0) * 1.1, 0, -cos(a0) * 0.5)
-			var p1 := Vector3(sin(a1) * 1.1, 0, -cos(a1) * 0.5)
-			mb.add_quad(_mat, p0 + Vector3(0, 0, -w0), p1 + Vector3(0, 0, -w1), p1 + Vector3(0, 0, w1), p0 + Vector3(0, 0, w0), Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1))
+		var edge := FX.tree_col(_tree(), FX.EDGE)
+		_mat.albedo_color = Color(edge.r, edge.g, edge.b, 0.75)
+		_core = _mat.duplicate() as StandardMaterial3D
+		_core.albedo_color = Color(1, 1, 1, 0.95)
+		var pts := 11
+		for layer in [[_mat, 0.17, 0.0], [_core, 0.05, -0.04]]:
+			var m: Material = layer[0]
+			for i in range(pts - 1):
+				var a0 := lerpf(-1.15, 1.15, float(i) / float(pts - 1))
+				var a1 := lerpf(-1.15, 1.15, float(i + 1) / float(pts - 1))
+				var w0 := float(layer[1]) * cos(a0 * 1.25)
+				var w1 := float(layer[1]) * cos(a1 * 1.25)
+				var p0 := Vector3(sin(a0) * 1.15, float(layer[2]) * -1.0, -cos(a0) * 0.55 + float(layer[2]))
+				var p1 := Vector3(sin(a1) * 1.15, float(layer[2]) * -1.0, -cos(a1) * 0.55 + float(layer[2]))
+				mb.add_quad(m, p0 + Vector3(0, 0, -w0), p1 + Vector3(0, 0, -w1), p1 + Vector3(0, 0, w1), p0 + Vector3(0, 0, w0), Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1))
 		_mesh.mesh = mb.commit()
 		_mesh.material_override = _mat
 		if kind == "wave":
@@ -131,8 +138,10 @@ func _physics_process(delta: float) -> void:
 		"axe":
 			_mesh.rotation.x -= 22.0 * delta
 		_:
-			if int(_travel * 3.0) % 2 == 0:
-				FX.sparkle(global_position + Vector3.UP * (0.8 if kind == "wave" else 0.0), 2 if kind == "wave" else 1, Color(0.8, 0.95, 1.0))
+			# a wake of spray behind it
+			if int(_travel / 1.4) != int((_travel - step.length()) / 1.4):
+				var at := global_position + Vector3.UP * (0.8 if kind == "wave" else 0.0)
+				FX.spray(at, -dir + Vector3.UP * 0.4, 3 if kind == "slash" else 5, FX.tree_col(_tree(), FX.ACCENT), 2.5)
 	if _travel >= range_m:
 		if kind == "axe":
 			_turn_back()
@@ -180,7 +189,11 @@ func _cut(at: Vector3) -> void:
 		hb.take_hit(hd, source)
 		pc.add_ult(hd.damage)
 		pc.on_sword_hit(e, hd)
-		FX.impact((e as Node3D).global_position + Vector3(0, 1.0, 0), Color(0.8, 0.9, 1.0))
+		var hit_at := (e as Node3D).global_position + Vector3(0, 1.0, 0)
+		FX.impact(hit_at, FX.tree_col(_tree(), FX.ACCENT))
+		if kind != "axe":
+			FX.spray(hit_at, dir + Vector3.UP * 0.3, 10, FX.tree_col(_tree(), FX.ACCENT), 5.0)
+			FX.ring(hit_at, dir, 1.1, FX.tree_col(_tree(), FX.EDGE), 0.22, 0.2)
 
 
 func _turn_back() -> void:
@@ -228,4 +241,11 @@ func _finish() -> void:
 		return
 	var tw := create_tween()
 	tw.tween_property(_mat, "albedo_color:a", 0.0, 0.15)
+	if _core:
+		tw.parallel().tween_property(_core, "albedo_color:a", 0.0, 0.15)
 	tw.tween_callback(queue_free)
+
+
+## Whose colours it flies in (FX.TREE_FX).
+func _tree() -> String:
+	return {"slash": "sword", "wave": "katana", "axe": "axe"}.get(kind, "unarmed")

@@ -71,18 +71,27 @@ func enter(data: Dictionary) -> void:
 				_dir = _flat_to(_target)
 				face_direction(_dir, 1.0)
 			player.body_model.play(str(cp[0]), dur)
+			# the blow caught: sparks off the blade, a beat of slow time to answer in
+			var clash := _chest() + Vector3(0, 0.15, 0) + _dir * 0.55
 			Net.fx("sfx", ["parry", player.global_position, -2.0, 0.05, 1.1])
-			Net.fx("sparkle", [player.global_position + Vector3(0, 1.3, 0) + _dir * 0.6, 14, Color(1.0, 0.9, 0.6)])
+			Net.fx("parry_sparks", [clash, _dir])
+			Net.fx("ring", [clash, _dir, 1.3, _col(), 0.2, 0.18])
+			Net.fx("glint", [clash, _col(FX.CORE), 1.1])
 			CombatManager.apply_hitstop(0.08, [player])
+			CombatManager.apply_slowmo(0.35, 0.12, 0.12)
+			CombatManager.apply_camera_kick(0.25, 0.4)
 		"swordfish":
 			dur = 0.95
 			player.body_model.play("swordfish", dur)
 		"kraken_wake":
 			_victims = _closest(12.0, 6)
-			dur = 0.25 + 0.14 * _victims.size() + 0.75
+			dur = KRAKEN_GATHER + 0.14 * _victims.size() + 0.95
 			player.hurtbox.set_deferred("monitorable", false)
 			player.body_model.play("kraken_cut", dur)
-			Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 1.5])
+			Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 0.6])
+			Net.fx("gather", [player.global_position + Vector3(0, 0.9, 0), 2.6, _col(FX.ACCENT), 0.4, 26])
+			Net.fx("ring", [player.global_position, Vector3.UP, 3.5, _col(), 0.45, 0.08])
+			_moment(0.4, 0.25, 0.45, 0.2)
 		"wind_sever":
 			dur = 0.75
 			player.body_model.play("wind_sever", dur)
@@ -185,18 +194,31 @@ func physics_update(delta: float) -> void:
 	match id:
 		"riposte", "iai_counter", "cross_counter":
 			_rooted(delta, 0.15)
+			# the waiting blade catches the light
+			if _once("glint", 0.12) or _once("glint2", 0.55):
+				Net.fx("glint", [_blade_tip(), _col(FX.CORE), 0.7])
 		"riposte_counter":
 			_rooted(delta, 0.0)
-			if _once("cut", 0.08):
+			if _once("cut", 0.11):
 				_riposte_cut()
 		"swordfish":
 			_drift(delta, 3.0)
+			if _once("ready", 0.04):
+				Net.fx("glint", [_blade_tip(), _col(FX.CORE), 0.8])
 			if _hits < 5 and t >= 0.12 + _hits * 0.12:
 				_hits += 1
 				var last := _hits == 5
 				_cone(2.7, 0.6, 16.0 if last else 9.0, 10.0 if last else 3.0, last, false)
-				Net.fx("slash", [player.player_model, "thrust", 0.14, Color(0.75, 0.9, 1.0)])
+				var tip := _chest() + _dir * (1.5 if last else 1.2)
+				Net.fx("slash", [player.player_model, "thrust", 0.14, _col(FX.ACCENT)])
+				Net.fx("ring", [tip, _dir, 1.5 if last else 0.6, _col(), 0.24 if last else 0.14, 0.18])
+				Net.fx("spray", [tip, _dir + Vector3.UP * 0.25, 14 if last else 4, _col(FX.ACCENT), 7.0 if last else 4.5])
 				Net.fx("sfx", ["whoosh", player.global_position, -7.0, 0.1, 1.3 + _hits * 0.06])
+				if last:
+					Net.fx("streak", [_chest() + _dir * 0.4, _chest() + _dir * 3.6, _col(), 0.12, 0.22])
+					Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.05, 1.3])
+					CombatManager.apply_camera_kick(0.2, 0.35)
+					player.squash(-2.0)
 		"kraken_wake":
 			_kraken(delta)
 		"wind_sever":
@@ -332,6 +354,34 @@ func physics_update(delta: float) -> void:
 # --------------------------------------------------------------------------
 # Helpers
 # --------------------------------------------------------------------------
+## The tree whose colours this technique wears (FX.TREE_FX).
+func _tree() -> String:
+	if id == "riposte_counter":
+		return {"katana": "katana", "dual_sword": "dual"}.get(player.style(), "sword")
+	var tr := str(Skills.get_skill(id).get("tree", "base"))
+	return tr if FX.TREE_FX.has(tr) else "haki"
+
+
+func _col(which: int = 1) -> Color:
+	return FX.tree_col(_tree(), which)
+
+
+## Where the held blade's point is (FX at the tip).
+func _blade_tip() -> Vector3:
+	var w: MeshInstance3D = player.body_model.weapon
+	if w == null or not is_instance_valid(w) or w.mesh == null:
+		return _chest() + _dir * 0.7
+	return w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z * 0.85)
+
+
+## An ultimate's moment: time slows, the camera punches in, a flash.
+func _moment(slow: float, secs: float, kick: float, flash: float = 0.3) -> void:
+	CombatManager.apply_slowmo(slow, secs)
+	CombatManager.apply_camera_kick(kick, secs + 0.45)
+	var c := _col(FX.CORE)
+	Net.fx("screen_flash", [player.global_position, Color(c.r, c.g, c.b, flash), 0.3])
+
+
 ## True the first frame t passes `at` (one-shot events).
 func _once(key: String, at: float) -> bool:
 	if _done.has(key) or t < at:
@@ -528,49 +578,78 @@ func _riposte_cut() -> void:
 	hd.sever = true
 	if _target and is_instance_valid(_target) and _target.get("hurtbox") is Hurtbox:
 		_strike(_target, hd)
+		var at := _target.global_position + Vector3(0, 1.0, 0)
+		Net.fx("impact", [at, _col(FX.ACCENT)])
+		Net.fx("ring", [at, _dir, 1.2, _col(), 0.22, 0.2])
 	else:
 		_cone(2.4, 0.5, base, 9.0, false, true)
 	match st:
 		"katana":
-			Net.fx("slash", [player.player_model, "iai", 0.3, Color(0.85, 0.92, 1.0)])
-			Net.fx("afterimage", [player.body_model, Color(0.85, 0.92, 1.0), 0.25])
+			Net.fx("slash", [player.player_model, "iai", 0.3, _col()])
+			Net.fx("afterimage", [player.body_model, _col(), 0.25])
 		"dual_sword":
-			Net.fx("slash", [player.player_model, "right", 0.25, Color(0.55, 0.85, 1.0)])
-			Net.fx("slash", [player.player_model, "left", 0.25, Color(0.55, 0.85, 1.0)])
+			Net.fx("slash", [player.player_model, "right", 0.25, _col()])
+			Net.fx("slash", [player.player_model, "left", 0.25, _col(FX.ACCENT)])
 		_:
-			Net.fx("slash", [player.player_model, "right", 0.25, Color(1.0, 0.9, 0.6)])
+			# the backhand answer: the real blade's trail, spray thrown off its edge
+			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
+			var right := _dir.cross(Vector3.UP)
+			Net.fx("spray", [_chest() + _dir * 0.8, right * 0.8 + _dir * 0.6 + Vector3.UP * 0.2, 12, _col(FX.ACCENT), 6.0])
 	CombatManager.apply_camera_shake(0.15)
 
 
+## Kraken's Wake: the sea gathers round you, you blink from one victim to the
+## next leaving a wake of light, then stand with your back to them as the sea
+## tears up under every one of them.
+const KRAKEN_GATHER := 0.45
+
 func _kraken(delta: float) -> void:
-	var i := int((t - 0.25) / 0.14)
-	if t >= 0.25 and i < _victims.size() and not _done.has("v%d" % i):
+	var i := int((t - KRAKEN_GATHER) / 0.14)
+	if t >= KRAKEN_GATHER and i < _victims.size() and not _done.has("v%d" % i):
 		_done["v%d" % i] = true
 		var e: Node3D = _victims[i]
 		if is_instance_valid(e):
-			Net.fx("afterimage", [player.body_model, Color(0.75, 0.9, 1.0), 0.25])
+			Net.fx("afterimage", [player.body_model, _col(), 0.3])
+			var from := _chest()
 			var through := _flat_to(e)
 			_place(e.global_position + through * 1.4)
 			_dir = through
 			face_direction(_dir, 1.0)
 			_strike(e, _hd(10.0, 0.0, false))
-			Net.fx("slash", [player.player_model, "right" if i % 2 == 0 else "left", 0.18, Color(0.75, 0.9, 1.0)])
+			var at := e.global_position + Vector3(0, 1.0, 0)
+			Net.fx("streak", [from, _chest(), _col(), 0.16, 0.35])
+			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
+			Net.fx("spray", [at, through + Vector3.UP * 0.4, 12, _col(FX.ACCENT), 6.0])
+			Net.fx("glint", [at, _col(FX.CORE), 1.0])
 			Net.fx("sfx", ["whoosh", player.global_position, -4.0, 0.1, 1.5])
 	else:
 		_rooted(delta, 0.0)
+	# the sea draws up round you while you gather
+	if t < KRAKEN_GATHER and int(t * 12.0) != int((t - delta) * 12.0):
+		Net.fx("spray", [player.global_position + Vector3(randf_range(-1.6, 1.6), 0.1, randf_range(-1.6, 1.6)), Vector3.UP, 4, _col(FX.ACCENT), 3.0])
+	# a held breath with your back to them, then it all tears open
+	if _once("still", dur - 0.75):
+		Net.fx("glint", [_blade_tip(), _col(FX.CORE), 1.3])
+		Net.fx("sfx", ["parry", player.global_position, -6.0, 0.0, 1.9])
 	if _once("tear", dur - 0.55):
 		player.hurtbox.set_deferred("monitorable", true)
+		var k := 0
 		for e in _victims:
 			if is_instance_valid(e) and BurnStatus.alive(e):
 				var hd := _hd(45.0, 10.0, true)
 				hd.unblockable = true
 				hd.sever = true
 				_strike(e, hd)
-				Net.fx("slash", [e, "spin", 0.3, Color(0.75, 0.9, 1.0)])
-				Net.fx("impact", [(e as Node3D).global_position + Vector3(0, 1.0, 0), Color(0.8, 0.95, 1.0)])
-		Net.fx("sfx", ["whoosh_big", player.global_position, 3.0, 0.05, 0.7])
-		CombatManager.apply_camera_shake(0.45)
+				var at := (e as Node3D).global_position
+				Net.fx("water_tentacles", [at, 3.2, _col(), 4, k * 17 + 3])
+				Net.fx("impact", [at + Vector3(0, 1.0, 0), _col(FX.ACCENT)])
+				k += 1
+		Net.fx("ring", [player.global_position, Vector3.UP, 9.0, _col(), 0.6, 0.06])
+		Net.fx("sfx", ["splash_big", player.global_position, 2.0, 0.05, 0.8])
+		Net.fx("sfx", ["whoosh_big", player.global_position, 3.0, 0.05, 0.6])
+		CombatManager.apply_camera_shake(0.5)
 		CombatManager.apply_hitstop(0.1, [player])
+		_moment(0.3, 0.35, 0.7, 0.45)
 
 
 # --------------------------------------------------------------------------

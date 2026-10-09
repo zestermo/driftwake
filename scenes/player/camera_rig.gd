@@ -38,6 +38,10 @@ var _saved_yaw: float = 0.0
 var _saved_pitch: float = 0.0
 var _show_yaw: float = 0.0
 var _saved_mask: int = -1
+var _base_fov := 75.0
+var _kick := 0.0
+var _kick_t := 0.0
+var _kick_len := 0.5
 
 @onready var spring_arm: SpringArm3D = $SpringArm3D
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
@@ -52,10 +56,12 @@ func _ready() -> void:
 	spring_arm.spring_length = current_zoom
 	camera.add_to_group("player_camera")
 	camera.make_current()
-	camera.fov = float(Settings.get_value("video", "fov"))
+	_base_fov = float(Settings.get_value("video", "fov"))
+	camera.fov = _base_fov
 	Settings.changed.connect(func(section: String, key: String, value: Variant):
 		if section == "video" and key == "fov":
-			camera.fov = float(value))
+			_base_fov = float(value)
+			camera.fov = _base_fov)
 	await get_tree().process_frame
 	target = get_tree().get_first_node_in_group("player")
 	if target:
@@ -106,6 +112,13 @@ func _process(delta: float) -> void:
 		if _saved_mask >= 0:
 			spring_arm.collision_mask = _saved_mask
 			_saved_mask = -1
+	# an ability's punch-in: the view narrows and the arm draws in, then eases back (real time)
+	var rd0 := delta / maxf(Engine.time_scale, 0.01)
+	if _kick_t > 0.0:
+		_kick_t = maxf(_kick_t - rd0, 0.0)
+	var punch := _kick * smoothstep(0.0, 1.0, _kick_t / maxf(_kick_len, 0.01))
+	camera.fov = _base_fov - punch * 14.0
+	zoom *= 1.0 - punch * 0.25
 	spring_arm.spring_length = lerpf(spring_arm.spring_length, zoom, 1.0 - exp(-11.0 * delta))
 	var shoulder := combat_shoulder * _combat_blend
 
@@ -172,6 +185,14 @@ func set_showcase(on: bool, facing_yaw: float = 0.0, screen_x: float = 0.25) -> 
 
 func is_showcasing() -> bool:
 	return _show_target > 0.0
+
+
+## Punch in on the action: `amount` 0..1 (1 = 14 degrees narrower and a quarter
+## closer), easing back out over `secs`.
+func kick(amount: float, secs: float = 0.5) -> void:
+	_kick = maxf(_kick * smoothstep(0.0, 1.0, _kick_t / maxf(_kick_len, 0.01)), amount)
+	_kick_len = secs
+	_kick_t = secs
 
 
 func shake(intensity: float, _duration: float = 0.2) -> void:
