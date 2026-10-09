@@ -4,24 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Driftwake</title>
-<meta name="description" content="Driftwake: a PS1-style pirate action RPG. Sail your own sloop, fight with blades, guns and Devil Fruit powers, and chart a chain of islands.">
-<meta property="og:title" content="Driftwake">
-<meta property="og:description" content="A PS1-style pirate action RPG. Sail, fight, eat a Devil Fruit, chart the sea.">
-<meta property="og:image" content="img/sailing.jpg">
+<meta name="description" content="Driftwake: a PS1-style pirate action RPG. Win a sloop, follow the log pose down a chain of islands built from your world's seed, and fight your way across with blades, guns and Haki. Co-op for up to four.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://driftwake.fun/">
+<meta property="og:title" content="Driftwake: a PS1-style pirate action RPG">
+<meta property="og:description" content="Wake on a beach. Take a ship. Follow the needle. A chain of islands built from your seed, a sea full of pirates, and up to four captains on one deck.">
+<meta property="og:image" content="https://driftwake.fun/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The crew's sloop under full sail at sunset, a jungle island on the horizon">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Driftwake: a PS1-style pirate action RPG">
+<meta name="twitter:description" content="Wake on a beach. Take a ship. Follow the needle. A chain of islands built from your seed, a sea full of pirates, and up to four captains on one deck.">
+<meta name="twitter:image" content="https://driftwake.fun/img/og.jpg">
 <meta name="theme-color" content="#0d0f29">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preload" href="fonts/PixelifySans-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="img/hero.jpg" as="image">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="hero">
-	<img class="hero-bg" src="img/dusk.svg" alt="" width="800" height="450">
+	<img class="hero-bg" src="img/hero.jpg" alt="" width="1600" height="900">
 	<div class="hero-in">
+		<a class="badge" href="/releases">v1.8: The Chain</a>
 		<h1 class="logo">DRIFTWAKE</h1>
 		<p class="tag">THE SEA REMEMBERS EVERY WAKE</p>
-		<p class="pitch">A pirate action RPG with a PS1 heart. Wake on a beach with nothing, learn to fight,
-			win a sloop, then sail a chain of islands with blades, pistols and the Devil Fruit you dared to eat.</p>
+		<p class="hook">Wake on a beach. Take a ship. Follow the needle.</p>
+		<p class="pitch">A pirate action RPG with a PS1 heart. Learn the blade on Brinehollow, win a sloop,
+			then follow the log pose down a chain of islands built from your world's seed. Every isle is
+			tougher than the last, and something big waits on each one.</p>
 		<div class="cta">
 			<a class="btn" href="play/">Play in browser</a>
 			<a class="btn btn-alt" href="#download">Download for Windows</a>
@@ -32,36 +45,43 @@
 
 <main>
 	<section class="shots" aria-label="Screenshots">
-		<figure><img src="img/sailing.jpg" alt="The crew's sloop under sail, leaving a wake toward an island with a lighthouse" loading="lazy" width="1280" height="720"><figcaption>Your own sloop, your own wake.</figcaption></figure>
-		<figure><img src="img/fight.jpg" alt="A cutlass fight with smugglers around a beach campfire" loading="lazy" width="1280" height="720"><figcaption>Blades, parries and a camp of smugglers.</figcaption></figure>
-		<figure><img src="img/village.jpg" alt="The fishing village of Brinehollow at dusk, a captain in a red coat on the path" loading="lazy" width="1280" height="720"><figcaption>Brinehollow, where it starts.</figcaption></figure>
-		<figure><img src="img/seaking.jpg" alt="A green Sea King rising beside the sloop on open water" loading="lazy" width="1280" height="720"><figcaption>Some waters are spoken for.</figcaption></figure>
+		<figure><img src="img/isle.jpg" alt="A jungle island at golden hour, sunbeams through the trees, the sloop moored at its pier and the sun glittering on the sea" loading="lazy" width="1600" height="900"><figcaption>A chain island at golden hour. Yours will be different.</figcaption></figure>
+		<figure><img src="img/fight.jpg" alt="A captain in a red coat cutting through pirates on a beach at dusk, blue streaks of water flying from the cutlass" loading="lazy" width="1600" height="900"><figcaption>Kraken's Wake, the cutlass ultimate, on the smugglers' beach.</figcaption></figure>
+		<figure><img src="img/silverback.jpg" alt="The Silverback, a huge ape, holding a boulder over its head against the sunset while the captain stands below it" loading="lazy" width="1600" height="900"><figcaption>The Silverback. Don't be where the rock lands.</figcaption></figure>
+		<figure><img src="img/seaking.jpg" alt="A green Sea King rearing over the sloop in a storm, rain sheeting across the waves" loading="lazy" width="1600" height="900"><figcaption>Some waters are spoken for.</figcaption></figure>
+		<figure><img src="img/village.jpg" alt="An outpost village at night: thatched huts on stilts with lit windows, lanterns and villagers round a fire pit" loading="lazy" width="1600" height="900"><figcaption>An outpost village after dark. The inn's lamp is lit.</figcaption></figure>
+		<figure><img src="img/coop.jpg" alt="Three captains with swords drawn on the deck of their sloop at sunset" loading="lazy" width="1600" height="900"><figcaption>Three captains, one deck.</figcaption></figure>
 	</section>
 
 	<section class="panel features">
 		<h2>What's out there</h2>
-		<ul>
-			<li><b>Fight like a shonen hero.</b> Cutlass, katana, boarding axe, pistols or fists, each with its own combos, techniques and ultimate.</li>
-			<li><b>Eat a Devil Fruit.</b> Ember, Vine or Wolf: fire fists, grapples and swings, or a beast form. You can't swim once you do.</li>
-			<li><b>Sail your ship.</b> Trim the sails, man the cannons, board a pirate brig and take her prize. Patch the hull when it goes wrong.</li>
-			<li><b>Follow the log pose.</b> An island chain built from your world's seed: camps, caves, villages, a beast on each island and the sea between.</li>
-			<li><b>All of it made in code.</b> Bodies, islands, ships, textures, music and sound, drawn the way a PS1 would: wobbly vertices, dithered colour, a low pixel grid.</li>
-		</ul>
+		<div class="grid">
+			<div><h3>An island chain from your seed</h3><p>Past Redtide Rock the log pose leads to jungle isles made for your world. Each has a pirate camp under a named captain, a bug lair, old ruins and a summit lookout, and every one is tougher than the last.</p></div>
+			<div><h3>Outposts at the edge of the map</h3><p>Every isle has a village: an inn to rest at, a trader, a cook, a job board and an elder who pays for the work and knows the way on.</p></div>
+			<div><h3>A beast on every isle</h3><p>The Silverback rules the far side of each jungle isle. It roars, leaps and throws boulders. Bring it down for its hoard and its pelt.</p></div>
+			<div><h3>Read the log pose</h3><p>Hold L. Needles point to the islands ahead, with their kind and how dangerous they are. Where the chain forks, you choose by sailing. The needle settles after a while ashore, or the moment the beast falls.</p></div>
+			<div><h3>The sea between</h3><p>Every leg has pirate fleets at the next island's level, hazards like reefs, fog banks and whirlpools, and wrecks, bottles and islets to loot. On some, a Sea King.</p></div>
+			<div><h3>Fight like a shonen hero</h3><p>Cutlass, katana, axe, twin blades, pistols or fists, each with its own combos, techniques, ultimate and jumping attack. Parry, dodge, and break red wind-ups with Armament Haki.</p></div>
+			<div><h3>Your ship, your problem</h3><p>Trim the sail to the wind, run out the guns, board a brig and take her prize. When she's holed, patch, pump and douse before she goes down.</p></div>
+			<div><h3>Up to four captains</h3><p>Co-op on the Windows build: one hosts, friends join by address, and you share one ship. Revive each other when it goes wrong.</p></div>
+			<div><h3>All of it made in code</h3><p>Bodies, islands, ships, textures, music and sound, drawn the way a PS1 would: wobbly vertices, dithered colour, a low pixel grid.</p></div>
+		</div>
 	</section>
 
 	<section class="panel controls" id="controls">
 		<h2>Controls</h2>
 		<table>
 			<tr><th>Move</th><td>W A S D</td><th>Look</th><td>Mouse</td></tr>
-			<tr><th>Sprint</th><td>Shift</td><th>Jump</th><td>Space</td></tr>
+			<tr><th>Sprint</th><td>Shift</td><th>Jump / double jump</th><td>Space</td></tr>
 			<tr><th>Light / heavy attack</th><td>Left / right click</td><th>Dodge roll</th><td>C <span class="dim">(Left Ctrl on desktop)</span></td></tr>
 			<tr><th>Parry / block</th><td>Q</td><th>Interact, talk</th><td>F</td></tr>
 			<tr><th>Ready weapon</th><td>Z</td><th>Skills / ultimate</th><td>1 - 4 / R</td></tr>
 			<tr><th>Quick items</th><td>5 - 7</td><th>Inventory</th><td>Tab / I</td></tr>
 			<tr><th>Skill map</th><td>K</td><th>Sea chart</th><td>M</td></tr>
 			<tr><th>Log pose (hold)</th><td>L</td><th>Summon ship (hold)</th><td>B</td></tr>
-			<tr><th>Menu</th><td>Esc</td><th>Fullscreen</th><td>Alt+Enter</td></tr>
+			<tr><th>Menu</th><td>Esc</td><th>Fullscreen</th><td>F11 / Alt+Enter</td></tr>
 		</table>
+		<p class="small">At the helm: W / S set the sail, A / D steer, left click fires a broadside, F leaves the wheel.</p>
 	</section>
 
 	<section class="panel two" id="download">

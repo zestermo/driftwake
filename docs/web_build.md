@@ -246,10 +246,11 @@ pauses), the sloop under sail (watch fps with F8), the log pose setting on the f
 
 Plain HTML/CSS, no build step:
 
-- `index.html` + `style.css`: logo, pitch, a "Play in browser" button (`play/`), a disabled
-  "Download for Windows" placeholder (`#download`), four screenshots from `docs/media`
-  (`img/*.jpg`, ~1.1 MB total), features, controls, the desktop/browser notes. The hero backdrop
-  `img/dusk.svg` redraws the title screen's dusk (`title_screen.gd` `_draw`).
+- `index.html` + `style.css`: a version badge, logo, hook and pitch, "Play in browser" (`play/`)
+  and "Download for Windows" (`/download`), six screenshots, features, controls, the
+  desktop/browser notes. The hero backdrop (`img/hero.jpg`), the screenshots and the link-preview
+  crop (`img/og.jpg`, 1200x630, absolute in `og:image`/`twitter:image`) are 1600x900 JPEGs from
+  `tools/dev/siteshot.gd` (~1.6 MB in all).
 - `play/`: the export, copied in by `build_web.ps1`.
 - `fonts/`: Pixelify Sans and Silkscreen (OFL, licences alongside), self-hosted.
 - `favicon.svg`, `_headers` (Netlify and Cloudflare Pages both read it): `.wasm` as

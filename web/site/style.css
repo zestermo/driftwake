@@ -39,23 +39,36 @@ h2 {
 	color: var(--accent);
 }
 
-/* hero: the title screen's dusk behind the logo */
+/* hero: the sloop at sunset (tools/dev/siteshot.gd), set to the right of the text */
 .hero {
 	position: relative;
-	min-height: min(88vh, 720px);
+	min-height: min(88vh, 760px);
 	display: flex;
 	align-items: center;
 	overflow: hidden;
 	border-bottom: 2px solid var(--border-dim);
+	background: var(--night);
 }
 .hero-bg {
 	position: absolute; inset: 0;
 	width: 100%; height: 100%;
-	object-fit: cover; object-position: 60% 50%;
+	object-fit: cover; object-position: 50% 50%;
+	image-rendering: pixelated;
 }
 .hero::after {
 	content: ""; position: absolute; inset: 0;
-	background: linear-gradient(90deg, #0d0f29e6 0%, #0d0f2999 45%, transparent 75%);
+	background:
+		linear-gradient(90deg, #0d0f29e6 0%, #0d0f29b3 32%, #0d0f2926 58%, transparent 75%),
+		linear-gradient(0deg, #0a0c17cc 0%, transparent 30%);
+}
+@media (min-width: 641px) {
+	/* the frame starts a fifth in and fades into the night, so the ship sits clear of the text */
+	.hero-bg {
+		left: 22%; width: 78%;
+		object-position: 0% 50%;
+		-webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 16%);
+		mask-image: linear-gradient(90deg, transparent 0%, #000 16%);
+	}
 }
 .hero-in {
 	position: relative; z-index: 1;
@@ -73,12 +86,34 @@ h2 {
 	text-shadow: 0 4px 0 var(--rust), 4px 4px 0 #140805, -3px 0 0 #140805, 3px 0 0 #140805, 0 -3px 0 #140805, 0 7px 0 #140805;
 }
 .tag {
-	margin: 12px 0 24px 4px;
+	margin: 12px 0 22px 4px;
 	font: 400 11px "Silkscreen", monospace;
 	letter-spacing: 1px;
 	color: #ffe6bfcc;
 }
-.pitch { max-width: 520px; margin: 0 0 24px; font-size: 19px; }
+.badge {
+	display: inline-block;
+	margin: 0 0 14px 2px;
+	padding: 3px 9px;
+	font: 400 11px "Silkscreen", monospace;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	text-decoration: none;
+	color: var(--ink);
+	background: var(--sun);
+	box-shadow: 0 0 0 2px var(--ink), 3px 3px 0 2px #000a;
+}
+.badge:hover, .badge:focus-visible { background: var(--accent); outline: none; }
+.hook {
+	max-width: 560px;
+	margin: 0 0 12px;
+	font-weight: 600;
+	font-size: clamp(22px, 3.4vw, 30px);
+	line-height: 1.2;
+	color: var(--text);
+	text-shadow: 2px 2px 0 #000c;
+}
+.pitch { max-width: 520px; margin: 0 0 24px; font-size: 19px; text-shadow: 1px 1px 0 #000a; }
 .small { margin: 14px 0 0; font-size: 14px; color: var(--dim); }
 
 .cta { display: flex; flex-wrap: wrap; gap: 14px; }
@@ -122,9 +157,10 @@ main { width: min(1100px, 100%); margin: 0 auto; padding: 32px 16px 8px; }
 	border: 2px solid var(--border);
 	box-shadow: 0 0 0 2px var(--ink), 6px 6px 0 2px #0008;
 }
-.features ul { margin: 0; padding: 0; list-style: none; }
-.features li { position: relative; margin: 0 0 10px; padding-left: 22px; }
-.features li::before { content: ""; position: absolute; left: 2px; top: 0.6em; width: 8px; height: 8px; background: var(--accent); box-shadow: 2px 2px 0 var(--rust); }
+.features .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px 28px; }
+.features h3 { position: relative; margin: 0 0 4px; padding-left: 18px; font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--text); }
+.features h3::before { content: ""; position: absolute; left: 1px; top: 0.45em; width: 8px; height: 8px; background: var(--accent); box-shadow: 2px 2px 0 var(--rust); }
+.features p { margin: 0; padding-left: 18px; color: #d9d3c3; }
 
 .controls { overflow-x: auto; }
 .controls table { width: 100%; border-collapse: collapse; font-size: 15px; }
@@ -137,9 +173,19 @@ main { width: min(1100px, 100%); margin: 0 auto; padding: 32px 16px 8px; }
 
 footer { padding: 16px 16px 32px; text-align: center; font-size: 13px; color: var(--dim); }
 
+.controls .small { margin-top: 12px; }
+
 @media (max-width: 640px) {
 	.controls table, .controls tbody, .controls tr { display: block; }
-	.controls tr { display: grid; grid-template-columns: 1fr auto; }
+	.controls tr { display: grid; grid-template-columns: 1fr 1fr; }
+	.controls td { padding-right: 0; text-align: right; white-space: normal; }
 	.controls tr + tr th, .controls tr + tr td { border-top: 0; }
 	.pitch { font-size: 17px; }
+	/* text runs the full width here: the whole frame on top, fading into the night under the text */
+	.hero { display: block; min-height: 0; background: var(--night); }
+	.hero-bg { bottom: auto; height: 56.25vw; object-position: 50% 50%; }
+	.hero-in { padding-top: calc(56.25vw - 36px); padding-bottom: 36px; }
+	.hero::after {
+		background: linear-gradient(180deg, transparent 0, transparent calc(56.25vw - 110px), var(--night) calc(56.25vw - 10px));
+	}
 }
