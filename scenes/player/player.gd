@@ -1383,7 +1383,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	# debug builds: F10 knocks you over (try the ragdoll + get-up)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:
-		if is_free():
+		if (event as InputEventKey).ctrl_pressed:
+			# Ctrl+F10: the ship alongside the next chain island's pier, you on the pier
+			_debug_to_next_island()
+		elif is_free():
 			knock_down(player_model.global_basis.z * 6.0 + Vector3.UP * 3.5)
 		get_viewport().set_input_as_handled()
 		return
@@ -1432,6 +1435,23 @@ func give_log_pose() -> void:
 	Dialogue.set_flag("log_pose")
 	refresh_look()
 	get_tree().call_group("hud", "show_banner", "A Log Pose!", "Hold L to read it. It points the way past Redtide Rock.", true)
+
+
+func _debug_to_next_island() -> void:
+	var w := get_tree().get_first_node_in_group("world_gen")
+	var ids: Array = w.chain().next_of(int(GameManager.chain_at))
+	if ids.is_empty() or not w.chain_islands.has(ids[0]):
+		_toast("Debug: the next island isn't built yet")
+		return
+	var isl: GenIsland = w.chain_islands[ids[0]]
+	var moor: Array = isl.mooring()
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	ship.place(moor[0], moor[1])
+	var de: Vector2 = isl.sites["dock_end"] - isl.dock_dir * 3.0
+	state_machine.force_state("Idle", {})
+	global_position = isl.to_global(Vector3(de.x, GenIsland.DOCK_DECK_Y + 0.5, de.y))
+	reset_physics_interpolation()
+	_toast("Debug: at %s" % isl.island_name)
 
 
 func _log_pose_tick() -> void:

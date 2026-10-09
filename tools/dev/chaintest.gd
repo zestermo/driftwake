@@ -67,9 +67,14 @@ func _process(d: float) -> bool:
 						links_ok = false
 					if int(c.node(id)["level"]) <= int(n["level"]):
 						rising = false
+			# (different themes once there's more than one the islands can be built in)
+			var themes_ready: int = CH.FIRST_SEA_THEMES.filter(func(th): return load("res://scripts/island/island_theme.gd").has(th)).size()
 			for l in by_layer.keys():
-				if by_layer[l].size() == 2 and by_layer[l][0]["theme"] == by_layer[l][1]["theme"]:
-					forks_differ = false
+				if by_layer[l].size() == 2:
+					var a: Dictionary = by_layer[l][0]
+					var b: Dictionary = by_layer[l][1]
+					if a["seed"] == b["seed"] or a["pos"] == b["pos"] or (themes_ready > 1 and a["theme"] == b["theme"]):
+						forks_differ = false
 			check("every island leads on to the next layer (the last to none)", links_ok and (by_layer[9][0]["next"] as Array).is_empty())
 			check("the two sides of a fork are different islands", forks_differ)
 			check("levels rise island to island (from Lv 12)", rising and int(by_layer[1][0]["level"]) >= 12)
@@ -94,7 +99,7 @@ func _process(d: float) -> bool:
 						same = false
 			check("another seed makes another chain", not same)
 			# the old placeholder islands are gone; the bottle treasures are on Brinehollow
-			check("no placeholder islands in the world", world.island_infos.is_empty() and world.find_children("*Island*", "", false, false).is_empty())
+			check("no placeholder islands in the world (only the chain's)", world.island_infos.all(func(i): return i.has("id")) and world.find_children("*Island*", "", false, false).is_empty())
 			var sf = get_first_node_in_group("sea_features")
 			var on_brine: bool = sf.treasures.size() == 4
 			for tr in sf.treasures:

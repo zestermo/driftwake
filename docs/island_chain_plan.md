@@ -49,10 +49,10 @@ the **log pose**. Past that, every new game generates a chain of islands from it
 
 ## Milestone 1: chain + one theme (jungle) end to end
 
-1. Strip the 6 placeholder islands. The Redtide victory gives the log pose, gated to level 10.
-2. Chain graph and save: seas, nodes, forks, levels, roles.
+1. Strip the 6 placeholder islands. The Redtide victory gives the log pose, gated to level 10. **Done.**
+2. Chain graph and save: seas, nodes, forks, levels, roles. **Done.**
 3. Log pose: the item, compass needles, the set rule (time or boss), the fork pick with theme and danger, and co-op sync.
-4. Generic island builder plus ThemeDef, ported from StarterIsland's terrain, splat, paths and vegetation code. Jungle theme first.
+4. Generic island builder plus ThemeDef, ported from StarterIsland's terrain, splat, paths and vegetation code. Jungle theme first. **Done (GenIsland, IslandTheme; built on a worker thread).**
 5. Streaming: build ahead, free behind, shallows, navmesh, no-go areas and the origin shift.
 6. Jungle island content:
    - Layout planner: dock, village, 2-3 encounter sites, POIs, boss arena, paths between them.

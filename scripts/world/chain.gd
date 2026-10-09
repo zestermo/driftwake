@@ -118,10 +118,12 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 		prev = ids
 
 
+## (only themes IslandTheme can build; the rest join as they're made)
 func _pick_theme(rng: RandomNumberGenerator, avoid: Array) -> String:
-	var pool: Array = FIRST_SEA_THEMES.filter(func(t): return not avoid.has(t))
+	var ready: Array = FIRST_SEA_THEMES.filter(func(t): return IslandTheme.has(t))
+	var pool: Array = ready.filter(func(t): return not avoid.has(t))
 	if pool.is_empty():
-		pool = FIRST_SEA_THEMES.duplicate()
+		pool = ready
 	return pool[rng.randi() % pool.size()]
 
 

@@ -21,12 +21,103 @@ var starter_center := Vector2.ZERO
 var redtide: RedtideFort
 var fleet: EnemyFleet
 var _chain: Chain
+## The chain's islands standing in the world now: node id -> GenIsland.
+var chain_islands := {}
+## ...and those still being worked out on a worker thread: node id -> [GenIsland, task, started usec]
+var _pending := {}
+var _sync_t := 0.0
 
 
 func _ready() -> void:
 	add_to_group("world_gen")
 	GrapplePoints.clear()
 	_generate_world()
+
+
+func _process(delta: float) -> void:
+	_finish_ready()
+	_sync_t -= delta
+	if _sync_t <= 0.0:
+		_sync_t = 0.5
+		sync_chain_islands()
+
+
+## The islands the log pose points at (and the one the crew is at) stand in
+## the world; the rest are freed. Each is worked out on a worker thread
+## (GenIsland.prepare), then put in the world in a frame (finish).
+func sync_chain_islands() -> void:
+	for id in chain_islands.keys():
+		if not _wanted().has(id):
+			_free_chain_island(id)
+	var c := chain()
+	for id in _wanted():
+		if not chain_islands.has(id) and not _pending.has(id):
+			_start_chain_island(c.node(id))
+
+
+func _wanted() -> Array:
+	var at := int(get_node("/root/GameManager").chain_at)
+	var want: Array = chain().next_of(at).duplicate()
+	if at >= 0:
+		want.append(at)
+	return want
+
+
+func _start_chain_island(n: Dictionary) -> void:
+	# (the theme's meshes are made here: prepare only reads them)
+	IslandTheme.meshes(str(n["theme"]))
+	var isl := GenIsland.new()
+	isl.name = "Isle%d" % int(n["id"])
+	var p: Vector2 = n["pos"]
+	isl.position = Vector3(p.x, 0.0, p.y)
+	_pending[int(n["id"])] = [isl, WorkerThreadPool.add_task(isl.prepare.bind(n)), Time.get_ticks_usec()]
+
+
+func _finish_ready() -> void:
+	for id in _pending.keys():
+		var e: Array = _pending[id]
+		if not WorkerThreadPool.is_task_completed(e[1]):
+			continue
+		WorkerThreadPool.wait_for_task_completion(e[1])
+		_pending.erase(id)
+		if _wanted().has(id):
+			_finish_chain_island(e[0], int(e[2]))
+		else:
+			(e[0] as Node).free()
+
+
+func _finish_chain_island(isl: GenIsland, t0: int) -> void:
+	var n := isl.node
+	var p: Vector2 = n["pos"]
+	var t1 := Time.get_ticks_usec()
+	add_child(isl)
+	isl.finish()
+	chain_islands[int(n["id"])] = isl
+	island_infos.append({"pos": p, "type": n["theme"], "radius": isl.radius, "name": n["name"], "id": int(n["id"])})
+	EnemyShip.no_go.append([p, isl.radius + 30.0])
+	(isl.find_child("DockingArea", true, false) as Interactable).interacted.connect(_on_dock_interacted)
+	isl.set_meta("shoals", isl.shallows())
+	_send_isle_shoals()
+	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms, %d ms of it on the main thread %s" % [n["name"], n["theme"], isl.radius, isl.res,
+		(Time.get_ticks_usec() - t0) / 1000, (Time.get_ticks_usec() - t1) / 1000, isl.build_ms])
+
+
+func _free_chain_island(id: int) -> void:
+	var isl: GenIsland = chain_islands[id]
+	chain_islands.erase(id)
+	var p := Vector2(isl.position.x, isl.position.z)
+	island_infos = island_infos.filter(func(info): return int(info.get("id", -1)) != id)
+	EnemyShip.no_go = EnemyShip.no_go.filter(func(z): return (z[0] as Vector2) != p)
+	isl.queue_free()
+	_send_isle_shoals()
+
+
+func _send_isle_shoals() -> void:
+	var list: Array = []
+	for isl in chain_islands.values():
+		if list.size() < Ocean.MAX_ISLES:
+			list.append(isl.get_meta("shoals"))
+	Ocean.isle_shoals = list
 
 
 ## The island chain from GameManager.chain_seed (remade when a load or a host's world changes it).
@@ -302,6 +393,11 @@ func _exit_tree() -> void:
 	# (the title screen's sea has no shoals)
 	Ocean.shoal_rect = Vector4.ZERO
 	Ocean.fine_rect = Vector4.ZERO
+	Ocean.isle_shoals = []
+	for e in _pending.values():
+		WorkerThreadPool.wait_for_task_completion(e[1])
+		(e[0] as Node).free()
+	_pending.clear()
 	Humanoid.clear_prebuilt()
 
 

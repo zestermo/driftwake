@@ -45,7 +45,8 @@ func _process(d: float) -> bool:
 			print("   moored heave range ", snappedf(hi - lo, 0.01), " max tilt ", snappedf(pitches.max(), 0.001))
 			check("gentle heave at the dock (< 0.8 m)", hi - lo < 0.8)
 			check("gentle tilt (< 0.1 rad)", pitches.max() < 0.1)
-			var deck_y: float = ship.global_position.y + 0.32
+			# (over the swell, not wherever a crest or trough happens to be at this frame)
+			var deck_y: float = ys.reduce(func(a, b): return a + b, 0.0) / ys.size() + 0.32
 			check("deck sits ~1.8 m above sea, level with the dock (%.2f)" % deck_y, deck_y > 1.4 and deck_y < 2.2)
 			check("moored with the sail furled on the yard", ship.sail == 0.0 and ship._furl_node.visible and not ship._sail_node.visible)
 			set_meta("dock", ship.global_position)

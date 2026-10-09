@@ -69,6 +69,9 @@ var shoal_map: Texture2D
 var shoal_rect := Vector4.ZERO
 var shoal_fine: Texture2D
 var fine_rect := Vector4.ZERO
+## The chain's islands built now ([texture, rect] each, GenIsland.shallows; two at most).
+const MAX_ISLES := 2
+var isle_shoals: Array = []
 var _shoals_sent: Array = []
 
 
@@ -286,13 +289,17 @@ func _process(_delta: float) -> void:
 			wh.append(whirls[i] if i < whirls.size() else Vector4(0, 0, 0, 0))
 		ocean_material.set_shader_parameter("whirls", wh)
 		_send_wakes(time)
-		var shoals := [shoal_map, shoal_rect, shoal_fine, fine_rect, ocean_material]
+		var shoals := [shoal_map, shoal_rect, shoal_fine, fine_rect, ocean_material, isle_shoals.duplicate()]
 		if shoals != _shoals_sent:
 			_shoals_sent = shoals
 			ocean_material.set_shader_parameter("shoal_map", shoal_map)
 			ocean_material.set_shader_parameter("shoal_rect", shoal_rect)
 			ocean_material.set_shader_parameter("shoal_fine", shoal_fine)
 			ocean_material.set_shader_parameter("fine_rect", fine_rect)
+			for i in range(MAX_ISLES):
+				var s: Array = isle_shoals[i] if i < isle_shoals.size() else [null, Vector4.ZERO]
+				ocean_material.set_shader_parameter("shoal_isle%d" % i, s[0])
+				ocean_material.set_shader_parameter("isle_rect%d" % i, s[1])
 		if absf(amp_mult - _amp_sent) > 0.0005:
 			_amp_sent = amp_mult
 			_send_waves()

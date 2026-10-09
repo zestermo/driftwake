@@ -110,12 +110,25 @@ uniform sampler2D shoal_map : filter_linear, repeat_disable, hint_default_white;
 uniform vec4 shoal_rect = vec4(0.0);
 uniform sampler2D shoal_fine : filter_linear, repeat_disable, hint_default_white;
 uniform vec4 fine_rect = vec4(0.0);
+// the chain's islands built just now (OceanManager.isle_shoals, two at most)
+uniform sampler2D shoal_isle0 : filter_linear, repeat_disable, hint_default_white;
+uniform vec4 isle_rect0 = vec4(0.0);
+uniform sampler2D shoal_isle1 : filter_linear, repeat_disable, hint_default_white;
+uniform vec4 isle_rect1 = vec4(0.0);
 uniform vec4 shoal_color : source_color = vec4(0.16, 0.72, 0.66, 1.0);
 
 float shoal_depth(vec2 p) {
 	vec2 fu = (p - fine_rect.xy) / max(fine_rect.z, 0.001);
 	if (fine_rect.w > 0.5 && fu.x > 0.0 && fu.y > 0.0 && fu.x < 1.0 && fu.y < 1.0) {
 		return texture(shoal_fine, fu).r;
+	}
+	vec2 iu = (p - isle_rect0.xy) / max(isle_rect0.z, 0.001);
+	if (isle_rect0.w > 0.5 && iu.x > 0.0 && iu.y > 0.0 && iu.x < 1.0 && iu.y < 1.0) {
+		return texture(shoal_isle0, iu).r;
+	}
+	iu = (p - isle_rect1.xy) / max(isle_rect1.z, 0.001);
+	if (isle_rect1.w > 0.5 && iu.x > 0.0 && iu.y > 0.0 && iu.x < 1.0 && iu.y < 1.0) {
+		return texture(shoal_isle1, iu).r;
 	}
 	vec2 u = (p - shoal_rect.xy) / max(shoal_rect.z, 0.001);
 	if (shoal_rect.w > 0.5 && u.x > 0.0 && u.y > 0.0 && u.x < 1.0 && u.y < 1.0) {
