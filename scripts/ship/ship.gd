@@ -804,6 +804,7 @@ func _wake(delta: float, pos: Vector3, fwd: Vector3, right: Vector3, mean: float
 			var up_and_aft := (Vector3.UP * 0.9 - fwd * 0.5 + right * randf_range(-0.4, 0.4)).normalized()
 			FX.spray(Vector3(bow.x, water + 1.2, bow.z), up_and_aft, int(10 + caps * 8), Color(0.93, 0.97, 1.0), 6.0 + absf(speed) * 0.3)
 			FX.splash(Vector3(bow.x, water + 0.6, bow.z), 6, 0.9)
+			FX.sfx("bow_spray", Vector3(bow.x, water + 1.2, bow.z), -6.0 + 4.0 * clampf((absf(speed) - 5.0) / 6.0, 0.0, 1.0) + caps * 3.0, 0.1)
 
 
 func _wave(p: Vector3, t: float) -> float:

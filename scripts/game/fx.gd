@@ -4,39 +4,15 @@ extends Node
 ## Everything is spawned on demand and frees itself.
 
 const SLASH_SHADER := preload("res://shaders/psx/slash_trail.gdshader")
-const SOUNDS := {
-	"whoosh": "res://assets/audio/whoosh.wav",
-	"whoosh_big": "res://assets/audio/whoosh_big.wav",
-	"hit": "res://assets/audio/hit.wav",
-	"step": "res://assets/audio/step.wav",
-	"jump": "res://assets/audio/jump.wav",
-	"land": "res://assets/audio/land.wav",
-	"chitter": "res://assets/audio/chitter.wav",
-	"bug_hiss": "res://assets/audio/bug_hiss.wav",
-	"thud": "res://assets/audio/thud.wav",
-	"coin": "res://assets/audio/coin.wav",
-	"splash": "res://assets/audio/splash.wav",
-	"blip_high": "res://assets/audio/blip_high.wav",
-	"blip_low": "res://assets/audio/blip_low.wav",
-	"gunshot": "res://assets/audio/gunshot.wav",
-	"parry": "res://assets/audio/parry.wav",
-	"fire_burst": "res://assets/audio/fire_burst.wav",
-	"fire_blast": "res://assets/audio/fire_blast.wav",
-	"crunch": "res://assets/audio/crunch.wav",
-	"howl": "res://assets/audio/howl.wav",
-	"haki": "res://assets/audio/haki.wav",
-	"block": "res://assets/audio/block.wav",
-	"peril": "res://assets/audio/peril.wav",
-	"bell": "res://assets/audio/bell.wav",
-	"cannon": "res://assets/audio/cannon.wav",
-	"cannon_hit": "res://assets/audio/cannon_hit.wav",
-	"horn": "res://assets/audio/horn.wav",
-	"roar": "res://assets/audio/roar.wav",
-	"rope": "res://assets/audio/rope.wav",
-	"splash_big": "res://assets/audio/splash_big.wav",
-	"wood_crack": "res://assets/audio/wood_crack.wav",
-	"gull": "res://assets/audio/gull.wav",
-}
+## Sounds in res://assets/audio: name.wav, or takes name_1.wav, name_2.wav...
+## played at random (never the same take twice running).
+const SOUNDS := [
+	"whoosh", "whoosh_big", "hit", "jump", "land", "chitter", "bug_hiss", "thud", "coin",
+	"splash", "blip", "blip_high", "blip_low", "gunshot", "parry", "fire_burst", "fire_blast", "crunch",
+	"howl", "haki", "block", "peril", "bell", "cannon", "cannon_hit", "horn", "roar", "rope",
+	"splash_big", "wood_crack", "gull", "bow_spray", "swim_stroke",
+	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water",
+]
 
 var _dust_mat: StandardMaterial3D
 var _spark_mat: StandardMaterial3D
@@ -91,8 +67,23 @@ func _ready() -> void:
 	_splat_mat.vertex_color_use_as_albedo = true
 	_splat_mat.roughness = 0.25
 	_splat_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	for k in SOUNDS.keys():
-		_streams[k] = load(SOUNDS[k])
+	for k in SOUNDS:
+		_streams[k] = _sound_set(k)
+
+
+func _sound_set(sound_name: String) -> AudioStream:
+	var takes: Array = []
+	while ResourceLoader.exists("res://assets/audio/%s_%d.wav" % [sound_name, takes.size() + 1]):
+		takes.append(load("res://assets/audio/%s_%d.wav" % [sound_name, takes.size() + 1]))
+	if takes.is_empty():
+		return load("res://assets/audio/%s.wav" % sound_name)
+	var r := AudioStreamRandomizer.new()
+	r.playback_mode = AudioStreamRandomizer.PLAYBACK_RANDOM_NO_REPEATS
+	r.random_pitch = 1.0
+	r.random_volume_offset_db = 0.0
+	for s in takes:
+		r.add_stream(-1, s)
+	return r
 
 
 func _billboard_mat(tex_path: String, additive: bool) -> StandardMaterial3D:

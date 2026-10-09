@@ -726,7 +726,8 @@ func _loop_player(path: String) -> AudioStreamPlayer:
 		s = s.duplicate() as AudioStreamWAV
 		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		s.loop_begin = 0
-		s.loop_end = int(s.data.size() / 2)
+		# (in frames: the imported data is QOA-compressed, so its byte count says nothing)
+		s.loop_end = int(round(s.get_length() * s.mix_rate))
 	p.stream = s
 	p.bus = "Ambience" if AudioServer.get_bus_index("Ambience") >= 0 else "Master"
 	p.volume_db = -60.0
@@ -736,7 +737,7 @@ func _loop_player(path: String) -> AudioStreamPlayer:
 
 func _update_audio(delta: float) -> void:
 	var rv := rain * (1.0 - _shelter * 0.5)
-	_set_loop(_rain_snd, rv, -10.0, delta)
+	_set_loop(_rain_snd, rv, -6.0, delta)
 
 
 func _set_loop(p: AudioStreamPlayer, k: float, top_db: float, delta: float) -> void:
@@ -745,7 +746,7 @@ func _set_loop(p: AudioStreamPlayer, k: float, top_db: float, delta: float) -> v
 	var want := -60.0 if k < 0.02 else linear_to_db(k) + top_db
 	p.volume_db = move_toward(p.volume_db, want, 30.0 * delta)
 	if p.volume_db > -55.0 and not p.playing:
-		p.play()
+		p.play(randf() * p.stream.get_length())
 	elif p.volume_db <= -59.0 and p.playing:
 		p.stop()
 
