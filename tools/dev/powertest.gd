@@ -71,12 +71,12 @@ func _process(d: float) -> bool:
 			# bindings
 			check("skills on 1-4, ultimate on R", key_of("skill_1") == KEY_1 and key_of("skill_4") == KEY_4 and key_of("ultimate") == KEY_R)
 			check("quick items on 5-7, ready weapon on Z", key_of("hotbar_1") == KEY_5 and key_of("hotbar_3") == KEY_7 and not InputMap.has_action("hotbar_4") and key_of("ready_weapon") == KEY_Z)
-			# the fruit is in the smugglers' strongbox
+			# fruits are in the world's chests only while DevilFruits.IN_WORLD is on (off for now)
 			var found := false
 			for b in root.find_children("*", "LootBag", true, false):
 				for st in b.contents:
-					if st.item and st.item.id == "ember_fruit": found = true
-			check("Ember Fruit is in the smugglers' strongbox", found)
+					if st.item and st.item.devil_fruit != "": found = true
+			check("Devil Fruits in chests only when IN_WORLD is on (%s)" % DevilFruits.IN_WORLD, found == DevilFruits.IN_WORLD)
 			var hud = root.get_tree().get_first_node_in_group("hud")
 			var bar = hud.get_node_or_null("SkillBar")
 			check("skill bar on the HUD", bar != null and bar.visible)

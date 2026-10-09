@@ -1730,10 +1730,11 @@ func _build_smugglers_camp() -> void:
 	var chest_p: Vector2 = at.call(-8.5, 0.5)
 	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	var items: Array[ItemStack] = []
-	var fruit := ItemStack.new()
-	fruit.item = load("res://resources/items/ember_fruit.tres")
-	fruit.quantity = 1
-	items.append(fruit)
+	if DevilFruits.IN_WORLD:
+		var fruit := ItemStack.new()
+		fruit.item = load("res://resources/items/ember_fruit.tres")
+		fruit.quantity = 1
+		items.append(fruit)
 	for it in [[load("res://resources/items/treasure.tres"), 2], [load("res://resources/items/gold.tres"), 6]]:
 		var st := ItemStack.new()
 		st.item = it[0]
@@ -2606,9 +2607,9 @@ func _spawn_loot() -> void:
 		var extra := ""
 		if s[0] == CAMP + Vector2(-6.0, -4.0):
 			extra = "pistol"
-		elif s[0] == RUINS + Vector2(-1.5, 2.2):
+		elif s[0] == RUINS + Vector2(-1.5, 2.2) and DevilFruits.IN_WORLD:
 			extra = "wolf_fruit"
-		elif s[0] == HILL + Vector2(4.0, 3.5):
+		elif s[0] == HILL + Vector2(4.0, 3.5) and DevilFruits.IN_WORLD:
 			extra = "vine_fruit"
 		elif s[0] == COVE + Vector2(9, -21):
 			extra = "katana"

@@ -27,6 +27,10 @@ const FRUITS := {
 
 const CURSE := ["The Sea's Curse", "You can never swim again: deep water drags you under. Fruit powers fizzle waist-deep in the sea."]
 
+## Off for now: no fruit is placed in the world's chests until the powers are as polished as the
+## rest (Zach, 2026-10-09). The system stays; a captain who already ate one keeps it.
+const IN_WORLD := false
+
 
 static func get_fruit(id: String) -> Dictionary:
 	return FRUITS.get(id, {})
