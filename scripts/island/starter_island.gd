@@ -76,6 +76,7 @@ func build(world_seed: int) -> Dictionary:
 	_setup_noise(world_seed)
 	_setup_flat_zones()
 	_find_dock()
+	_setup_port()
 	_define_paths()
 	_generate_heights()
 	_build_terrain()
@@ -88,6 +89,7 @@ func build(world_seed: int) -> Dictionary:
 
 	_build_dock()
 	_build_village()
+	_build_port()
 	_build_training_yard()
 	_build_lighthouse()
 	_build_ruins()
@@ -227,6 +229,16 @@ func _height_fn(x: float, z: float) -> float:
 	var cw := 1.0 - _smooth(4.0, 9.0, p.distance_to(CAMP))
 	if cw > 0.0:
 		h = lerpf(h, 1.5, cw)
+	# the harbour: ground under the quay kept low (the quay is built over it),
+	# the waterfront behind it levelled to the quay's top
+	if _port_ready:
+		var pw := _port_x_weight(x)
+		if pw > 0.0:
+			var dz := z - _quay_z(x)
+			if dz > -6.0 and dz < PLAT_D:
+				h = lerpf(h, minf(h, QUAY_Y - 0.6), pw)
+			elif dz >= PLAT_D:
+				h = lerpf(h, QUAY_Y - 0.2, pw * (1.0 - _smooth(28.0, 38.0, dz)))
 	return h
 
 
@@ -272,8 +284,15 @@ func height_at(x: float, z: float) -> float:
 	return h11 + (h01 - h11) * (1.0 - u) + (h10 - h11) * (1.0 - v)
 
 
+## Where you stand at p: the terrain, or the quay's paving over it.
 func hv(p: Vector2) -> float:
+	if _port_ready and _on_platform(p):
+		return QUAY_Y
 	return height_at(p.x, p.y)
+
+
+func walk_height(x: float, z: float) -> float:
+	return hv(Vector2(x, z))
 
 
 func _slope_at(p: Vector2) -> float:
@@ -417,6 +436,10 @@ func _build_terrain() -> void:
 				dirt = maxf(dirt, _disk(p, RUINS, 8.0, 11.0))
 				dirt = maxf(dirt, _disk(p, HILL, 5.0, 8.0))
 				dirt = maxf(dirt, _disk(p, CAVE, 20.0, 25.0))
+				# packed earth behind the quay, among the waterfront houses
+				var pw := _port_x_weight(x)
+				if pw > 0.0 and z - _quay_z(x) > PLAT_D - 1.0:
+					dirt = maxf(dirt, pw * (1.0 - _smooth(22.0, 32.0, z - _quay_z(x))))
 				dirt = maxf(dirt, _disk(p, dock_root, 3.0, 6.0) * 0.6)
 				sand = 1.0 - _smooth(1.7, 2.8, h)
 				sand = maxf(sand, _disk(p, CAMP, 4.0, 9.0))
@@ -585,6 +608,7 @@ func _build_village() -> void:
 	place(Props.fish_rack(), dock_shore + Vector2(8, 6), face_yaw(Vector2(-1, 0)), 1.5)
 	place(Props.barrel(), dock_shore + Vector2(6, 9), 0.0)
 	place(Props.crate(), dock_shore + Vector2(7, 10.5), 0.5)
+	reserve(dock_shore + Vector2(6.5, 9.7), 1.6)
 	# Tackett's yard by the foot of the dock: timber stacked on trestles
 	var yard := dock_shore + Vector2(-7.0, 5.0)
 	var tmb := MeshBuilder.new()
@@ -722,6 +746,328 @@ func _build_market() -> void:
 
 
 # ==========================================================================
+# The harbour: a stone quay along the shore either side of the dock, piers
+# with trading ships tied up, waterfront houses and shops, the harbour tower
+# ==========================================================================
+## The quay's top, its depth from the sea wall inland, the town street behind.
+const QUAY_Y := 1.62
+const QUAY_W := 11.0
+const STREET_W := 4.5
+## The paved platform's whole depth (quay and street), a curb at its back.
+const PLAT_D := QUAY_W + STREET_W
+var _port_ready := false
+var _quay_x := PackedFloat32Array()
+var _quay_zs := PackedFloat32Array()
+var port_x0 := 0.0
+var port_x1 := 0.0
+
+
+## Where the quay runs: the shoreline either side of the dock, as far as it
+## stays fairly straight (it stops where the coast turns away), smoothed.
+func _setup_port() -> void:
+	var step := 2.0
+	var xs: Array = []
+	var zs: Array = []
+	for i in range(-34, 37):
+		var x := i * step
+		var z := -96.0
+		while z > -200.0 and _height_fn(x, z) > 0.6:
+			z -= 0.5
+		xs.append(x)
+		zs.append(z)
+	var mid := 34
+	var lo := mid
+	var hi := mid
+	while lo > 0 and absf(float(zs[lo - 1]) - float(zs[lo])) < 5.0 and absf(float(zs[lo - 1]) - float(zs[mid])) < 40.0:
+		lo -= 1
+	while hi < xs.size() - 1 and absf(float(zs[hi + 1]) - float(zs[hi])) < 5.0 and absf(float(zs[hi + 1]) - float(zs[mid])) < 40.0:
+		hi += 1
+	# a few metres in from the turn
+	lo = mini(lo + 2, mid)
+	hi = maxi(hi - 2, mid)
+	for pass_i in range(3):
+		var sm: Array = zs.duplicate()
+		for i in range(lo, hi + 1):
+			sm[i] = (float(zs[maxi(i - 1, lo)]) + float(zs[i]) * 2.0 + float(zs[mini(i + 1, hi)])) * 0.25
+		zs = sm
+	for i in range(lo, hi + 1):
+		_quay_x.append(float(xs[i]))
+		_quay_zs.append(float(zs[i]) - 2.0)
+	port_x0 = _quay_x[0]
+	port_x1 = _quay_x[_quay_x.size() - 1]
+	_port_ready = true
+
+
+## The sea wall's line at x (island space).
+func _quay_z(x: float) -> float:
+	var f := clampf((x - _quay_x[0]) / 2.0, 0.0, float(_quay_x.size() - 1))
+	var i := mini(int(f), _quay_x.size() - 2)
+	return lerpf(_quay_zs[i], _quay_zs[i + 1], f - i)
+
+
+## On the quay's paving (quay and street)?
+func _on_platform(p: Vector2) -> bool:
+	if p.x < port_x0 or p.x > port_x1:
+		return false
+	var dz := p.y - _quay_z(p.x)
+	return dz >= 0.0 and dz <= PLAT_D
+
+
+func _port_x_weight(x: float) -> float:
+	return _smooth(port_x0 - 6.0, port_x0, x) * (1.0 - _smooth(port_x1, port_x1 + 6.0, x))
+
+
+## The point `inland` metres in from the sea wall at x.
+func _quay_pt(x: float, inland: float) -> Vector2:
+	return Vector2(x, _quay_z(x) + inland)
+
+
+func _build_port() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7007
+	_build_quay(rng)
+	# piers, each with its ship (x, length, ship kind, ship on the +x side?)
+	var piers := [[-32.0, 24.0, "junk", false], [30.0, 26.0, "merchant", true], [46.0, 20.0, "sloop", true]]
+	for pr in piers:
+		var px: float = pr[0]
+		if px < port_x0 + 4.0 or px > port_x1 - 2.0:
+			continue
+		var root := _quay_pt(px, 1.0)
+		var out := Vector2(0, -1)
+		var pier := Props.dock(float(pr[1]), 3.0, DOCK_DECK_Y, SEAFLOOR * 0.5)
+		pier.position = Vector3(root.x, 0.0, root.y)
+		pier.rotation.y = face_yaw(out)
+		add_child(pier)
+		var lad := Ladder.new()
+		lad.length = DOCK_DECK_Y + 1.0
+		lad.deck_depth = 0.9
+		lad.position = Vector3(0, DOCK_DECK_Y, float(pr[1]))
+		pier.add_child(lad)
+		var side := 1.0 if pr[3] else -1.0
+		var sp := root + out * (float(pr[1]) - 10.0) + Vector2(side * (1.5 + HullBuilder.HALF_BEAM + 0.7), 0)
+		var hull := MooredHull.new()
+		hull.name = "Moored_" + str(pr[2])
+		hull.collision_layer = 1
+		hull.collision_mask = 0
+		hull.position = Vector3(sp.x, HullBuilder.FREEBOARD, sp.y)
+		hull.rotation.y = face_yaw(-out)
+		add_child(hull)
+		match str(pr[2]):
+			"junk":
+				TraderShips.junk(hull)
+			"merchant":
+				TraderShips.merchantman(hull)
+			_:
+				TraderShips.sloop(hull)
+		for k in range(3):
+			var rc := Props.rope_coil() if k != 1 else Props.barrel()
+			rc.position = Vector3(0, DOCK_DECK_Y, 0) + _v3(root + out * (6.0 + k * 6.0) + Vector2(side * 1.0, 0))
+			add_child(rc)
+	# longboats tied along the quay west of the dock
+	for lx in [-13.0, -21.0]:
+		if lx < port_x0 + 3.0:
+			continue
+		var q := _quay_pt(lx, -2.4)
+		var boat := MooredHull.new()
+		boat.name = "Longboat"
+		boat.freeboard = 0.15
+		boat.half_len = 2.4
+		boat.collision_layer = 1
+		boat.collision_mask = 0
+		boat.position = Vector3(q.x, 0.15, q.y)
+		boat.rotation.y = face_yaw(Vector2(1, 0.05))
+		add_child(boat)
+		TraderShips.longboat(boat)
+	# the harbour tower at the east end, a crane at the merchantman's pier
+	var tp := _quay_pt(port_x1 - 4.0, 8.0)
+	place(Buildings.harbor_tower(), tp, face_yaw(Vector2(-0.6, 1)), 3.4)
+	if port_x1 > 34.0:
+		place(Buildings.dock_crane(), _quay_pt(25.5, 3.0), face_yaw(Vector2(0, -1)), 1.2)
+	_build_waterfront(rng)
+	_dress_quay(rng)
+
+
+## The quay: a paved platform on a stone sea wall with coping, bollards and
+## swimmers' ladders, closed at both ends; collision boxes under its top.
+func _build_quay(rng: RandomNumberGenerator) -> void:
+	var mb := MeshBuilder.new()
+	var cob := PSXMat.lit("cobbles", Color.WHITE, {"affine": 0.6})
+	var wall := PSXMat.lit("stone_brick", Color(0.85, 0.82, 0.76), {"affine": 0.6})
+	var cope := PSXMat.lit("stone_brick", Color(0.7, 0.68, 0.64))
+	var iron := PSXMat.lit("metal", Color(0.22, 0.22, 0.24))
+	var body := StaticBody3D.new()
+	body.name = "Quay"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var n := _quay_x.size()
+	var bottom := -4.0
+	# the platform's shell (paving, sea wall, curb, ends) is also its collision
+	var shell := MeshBuilder.new()
+	var y := QUAY_Y
+	var v := func(q: Vector2, yy: float) -> Vector3: return Vector3(q.x, yy, q.y)
+	# (every point's inland offset is the same, so neighbouring strips share edges)
+	var mid_off := Vector2(0, QUAY_W)
+	var in_off := Vector2(0, PLAT_D)
+	for i in range(n - 1):
+		var a := Vector2(_quay_x[i], _quay_zs[i])
+		var b := Vector2(_quay_x[i + 1], _quay_zs[i + 1])
+		var t := (b - a).normalized()
+		var sea := Vector2(t.y, -t.x)
+		if sea.y > 0.0:
+			sea = -sea
+		var nrm := Vector3(sea.x, 0, sea.y)
+		var a_m := a + mid_off
+		var b_m := b + mid_off
+		var a_in := a + in_off
+		var b_in := b + in_off
+		# paving (two strips so the texture warp stays small), the curb at the back
+		shell.add_quad(cob, v.call(a, y), v.call(b, y), v.call(b_m, y), v.call(a_m, y), a * 0.4, b * 0.4, b_m * 0.4, a_m * 0.4, Color.WHITE, Vector3.UP)
+		shell.add_quad(cob, v.call(a_m, y), v.call(b_m, y), v.call(b_in, y), v.call(a_in, y), a_m * 0.4, b_m * 0.4, b_in * 0.4, a_in * 0.4, Color(0.92, 0.92, 0.92), Vector3.UP)
+		shell.add_quad(cope, v.call(a_in, y), v.call(b_in, y), v.call(b_in, y - 0.8), v.call(a_in, y - 0.8), Vector2(a.x, 0) * 0.5, Vector2(b.x, 0) * 0.5, Vector2(b.x, 0.4), Vector2(a.x, 0.4), Color(0.8, 0.8, 0.8), -nrm)
+		# the sea wall (wet and dark below the tide line)
+		var uva := Vector2(a.x + a.y, 0) * 0.4
+		var uvb := Vector2(b.x + b.y, 0) * 0.4
+		shell.add_quad(wall, v.call(a, y), v.call(b, y), v.call(b, 0.4), v.call(a, 0.4), uva, uvb, uvb + Vector2(0, 0.5), uva + Vector2(0, 0.5), Color.WHITE, nrm)
+		shell.add_quad(wall, v.call(a, 0.4), v.call(b, 0.4), v.call(b, bottom), v.call(a, bottom), uva + Vector2(0, 0.5), uvb + Vector2(0, 0.5), uvb + Vector2(0, 2.2), uva + Vector2(0, 2.2), Color(0.55, 0.6, 0.55), nrm)
+		# coping along the edge
+		var mid := (a + b) * 0.5 + sea * 0.12
+		mb.add_box(cope, Transform3D(Basis(Vector3.UP, face_yaw(t)), Vector3(mid.x, y + 0.06, mid.y)), Vector3(0.62, 0.18, a.distance_to(b) + 0.04), 0.8, Color(0.85 + rng.randf() * 0.15, 0.85, 0.85), false)
+	# the two ends, closed with a wall and a stone pier-head
+	for e in [[0, -1.0], [n - 1, 1.0]]:
+		var q := Vector2(_quay_x[e[0]], _quay_zs[e[0]])
+		var q_in := q + in_off
+		var nx := Vector3(float(e[1]), 0, 0)
+		shell.add_quad(wall, Vector3(q.x, QUAY_Y, q.y), Vector3(q_in.x, QUAY_Y, q_in.y), Vector3(q_in.x, bottom, q_in.y), Vector3(q.x, bottom, q.y),
+			Vector2(q.y, 0) * 0.4, Vector2(q_in.y, 0) * 0.4, Vector2(q_in.y, 2.2) * 0.4, Vector2(q.y, 2.2) * 0.4, Color(0.8, 0.8, 0.8), nx)
+		mb.add_box(cope, Transform3D(Basis(), Vector3(q.x, QUAY_Y + 0.45, q.y + 0.4)), Vector3(1.0, 0.9, 1.0), 0.8, Color.WHITE, true)
+	var shell_mesh := shell.commit()
+	var shell_i := MeshInstance3D.new()
+	shell_i.name = "QuayShell"
+	shell_i.mesh = shell_mesh
+	shell_i.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(shell_i)
+	var cs := CollisionShape3D.new()
+	cs.shape = shell_mesh.create_trimesh_shape()
+	body.add_child(cs)
+	# bollards and ladders along the edge, clear of the piers and the dock
+	var gaps := [0.0, -32.0, 30.0, 46.0]
+	var x := port_x0 + 3.0
+	var k := 0
+	while x < port_x1 - 2.0:
+		var clear := true
+		for g in gaps:
+			if absf(x - float(g)) < 3.2:
+				clear = false
+		if clear:
+			var q := _quay_pt(x, 0.45)
+			mb.add_cylinder(iron, Transform3D(Basis(), Vector3(q.x, QUAY_Y + 0.1, q.y)), 0.16, 0.2, 0.42, 7, 1.0)
+			mb.add_cylinder(iron, Transform3D(Basis(), Vector3(q.x, QUAY_Y + 0.52, q.y)), 0.24, 0.24, 0.07, 7, 1.0)
+			if k % 3 == 1:
+				var lp := _quay_pt(x + 1.6, 0.0)
+				var lad := Ladder.new()
+				lad.length = QUAY_Y + 1.2
+				lad.deck_depth = 0.9
+				lad.position = Vector3(lp.x, QUAY_Y, lp.y)
+				lad.rotation.y = face_yaw(Vector2(0, -1))
+				add_child(lad)
+			k += 1
+		x += 7.0
+	var mesh_i := mb.to_instance("QuayMesh")
+	mesh_i.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(mesh_i)
+	add_child(body)
+	for i in range(0, n, 3):
+		reserve(Vector2(_quay_x[i], _quay_zs[i] + PLAT_D * 0.5), PLAT_D * 0.5)
+
+
+## Waterfront houses and shops packed shoulder to shoulder facing the harbour,
+## a second row behind where there's room.
+func _build_waterfront(rng: RandomNumberGenerator) -> void:
+	var walls := ["plaster", "planks", "planks_weathered", "stone_brick", "plaster"]
+	var roofs := ["gable_front", "gable_front", "gable", "hip", "gable_front"]
+	var awnings := ["red", "blue", "green", "", "red", "", "blue"]
+	var front := PLAT_D + 0.15
+	for row in range(2):
+		var x := port_x0 + 2.5
+		var i := 0
+		while x < port_x1 - 6.0:
+			var w := rng.randf_range(4.5, 6.5)
+			var d := rng.randf_range(4.5, 5.5)
+			var cx := x + w * 0.5
+			x += w + rng.randf_range(0.6, 1.4)
+			# keep the road up from the dock open, and away from the tower
+			if absf(cx) < 6.5 + w * 0.5 or cx > port_x1 - 9.0:
+				continue
+			var inland := front + d * 0.5 + 0.4 + row * (d + 4.0)
+			var p := _quay_pt(cx, inland)
+			if _excluded(p, maxf(w, d) * 0.55) or _path_dist(p) < maxf(w, d) * 0.55:
+				continue
+			var spec := {"w": w, "d": d, "h": rng.randf_range(2.5, 2.9), "floors": 2 if rng.randf() < 0.7 else 1,
+				"wall": walls[(i + row) % walls.size()], "wall2": ["plaster", "planks", "planks_weathered"][rng.randi() % 3],
+				"roof": roofs[rng.randi() % roofs.size()], "roof_tex": "roof_tiles" if rng.randf() < 0.6 else "thatch",
+				"pitch": rng.randf_range(0.5, 0.75), "chimney": rng.randf() < 0.6, "jetty": rng.randf_range(0.2, 0.45),
+				"seed": 900 + i + row * 50, "door_x": rng.randf_range(-0.8, 0.8)}
+			if row == 0:
+				spec["awning"] = awnings[i % awnings.size()]
+			_house(spec, p, Vector2(0, -1))
+			i += 1
+
+
+## Cargo, nets, carts and lamps along the quay; dockhands about their work.
+func _dress_quay(rng: RandomNumberGenerator) -> void:
+	var spots := [-40.0, -26.0, -8.0, 14.0, 22.0, 37.0, 52.0]
+	for sx in spots:
+		if sx < port_x0 + 3.0 or sx > port_x1 - 3.0:
+			continue
+		var q := _quay_pt(sx, 6.5)
+		if _excluded(q, 1.0):
+			continue
+		match int(absf(sx)) % 3:
+			0:
+				place(Props.crate(0.9), q, rng.randf() * TAU, 0.8)
+				place(Props.crate(0.7), q + Vector2(1.0, 0.3), rng.randf() * TAU, 0.6)
+				var top := Props.crate(0.6)
+				place(top, q, rng.randf() * TAU, 0.0, 0.9)
+			1:
+				place(Props.barrel(), q, 0.0, 0.5)
+				place(Props.barrel(), q + Vector2(0.8, 0.2), 0.0, 0.5)
+				place(Props.net_pile(), q + Vector2(-1.2, 0.5), rng.randf() * TAU)
+			_:
+				place(_handcart(), q, face_yaw(Vector2(rng.randf_range(-1, 1), 1)), 1.2)
+	for lx in [-24.0, 18.0, 40.0]:
+		if lx < port_x0 + 2.0 or lx > port_x1 - 2.0:
+			continue
+		var lq := _quay_pt(lx, QUAY_W - 0.8)
+		var post := place(Props.lantern_post(), lq, face_yaw(Vector2(0, -1)) - PI * 0.5, 0.4)
+		var nl := NightLight.make(Color(1.0, 0.75, 0.42), 1.6, 10.0)
+		nl.position = Vector3(0.55, 2.0, 0.0)
+		post.add_child(nl)
+	# stalls on the street where the fish comes in
+	for st in [["fish", -9.5], ["fruit", 24.5]]:
+		var sp := _quay_pt(float(st[1]), QUAY_W - 2.0)
+		if not _excluded(sp, 1.5):
+			place(Buildings.stall(st[0]), sp, face_yaw(Vector2(0, -1)), 1.8)
+	# dockhands walking the quay
+	var a := _quay_pt(maxf(port_x0 + 4.0, -30.0), 4.0)
+	var b := _quay_pt(-6.0, 4.0)
+	var c := _quay_pt(minf(port_x1 - 6.0, 38.0), 4.5)
+	var d := _quay_pt(22.0, 4.5)
+	for spec in [[[a, b], "Dockhand Rook", ["Mind your feet, Captain. Rope everywhere, and half of it's attached to something.",
+			"That junk's out of the far east. Smells of tea and gunpowder.", "Odile's got us hauling cargo since dawn. I've forgotten what my hands are for."], 0.85],
+			[[c, d], "Merchant Ysolde", ["Silk, spice, and nothing the harbourmaster needs to see. Kidding. Mostly.",
+			"The merchantman's mine. Well. The bank's. Well. Mine on Tuesdays.", "Pirates past the reef again. Bad for trade. Good for the price of rum."], 1.15]]:
+		var route: Array = []
+		for q in spec[0]:
+			route.append(Vector3(q.x, QUAY_Y, q.y))
+		var nrng := RandomNumberGenerator.new()
+		nrng.seed = hash(spec[1])
+		var lk := CharacterLook.random_look(nrng)
+		lk["name"] = spec[1]
+		_npc({"name": spec[1], "voice": spec[3], "barks": spec[2], "look": lk, "waypoints": route},
+			Vector2(route[0].x, route[0].z), Vector2(1, 0), QUAY_Y)
+
+
+# ==========================================================================
 # Village dressing: cobbles, bunting, lamps, benches, washing, a garden
 # ==========================================================================
 func _dress_village() -> void:
@@ -829,6 +1175,8 @@ func _pave_path(mb: MeshBuilder, mat: Material, pts: PackedVector2Array, hw: flo
 
 
 func _pave_quad(mb: MeshBuilder, mat: Material, a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> void:
+	if _port_ready and _on_platform(a) and _on_platform(c):
+		return  # (the quay is paved already)
 	var v := func(q: Vector2) -> Vector3: return Vector3(q.x, hv(q) + 0.05, q.y)
 	var uv := func(q: Vector2) -> Vector2: return q * 0.4
 	var na: Vector3 = v.call(a)
@@ -1751,7 +2099,7 @@ func _npc(cfg: Dictionary, p: Vector2, face: Vector2, y: float = INF) -> NPC:
 	var npc := NPC.new()
 	cfg["yaw"] = atan2(-face.x, -face.y)
 	npc.setup(cfg)
-	npc.ground_func = height_at
+	npc.ground_func = walk_height
 	npc.position = Vector3(p.x, hv(p) if y == INF else y, p.y)
 	add_child(npc)
 	return npc

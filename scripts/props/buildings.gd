@@ -402,6 +402,32 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		mb.add_box(stone, _xf(Vector3(lx, (0.3 - found) * 0.5 + stilts * 0.5, 0)), Vector3(lw + 0.2, 0.3 + found + stilts, d * 0.8 + 0.2), 0.5, Color.WHITE, true, false)
 		_box_col(body, Vector3(lw, lh + 0.3, d * 0.8), Vector3(lx, (fl + lh) * 0.5, 0))
 
+	# a shopfront awning: striped cloth on two poles, a scalloped edge
+	var awn: String = spec.get("awning", "")
+	if awn != "" and porch <= 0.0:
+		var cloth := PSXMat.lit("cloth_blue" if awn == "blue" else "cloth_red", Color(0.55, 1.15, 0.65) if awn == "green" else Color.WHITE, {"affine": 0.6})
+		var aw := minf(w - 0.6, 4.2)
+		var ay := fl + 2.45
+		var ad := 1.7
+		var z0 := d * 0.5 + 0.05
+		var a0 := Vector3(-aw * 0.5, ay, z0); var a1 := Vector3(aw * 0.5, ay, z0)
+		var a2 := Vector3(aw * 0.5, ay - 0.55, z0 + ad); var a3 := Vector3(-aw * 0.5, ay - 0.55, z0 + ad)
+		var an := Vector3(0, ad, 0.55).normalized()
+		mb.add_quad(cloth, a0, a1, a2, a3, Vector2.ZERO, Vector2(aw * 0.5, 0), Vector2(aw * 0.5, 0.9), Vector2(0, 0.9), Color.WHITE, an)
+		mb.add_quad(cloth, a0, a3, a2, a1, Vector2.ZERO, Vector2(0, 0.9), Vector2(aw * 0.5, 0.9), Vector2(aw * 0.5, 0), Color(0.6, 0.6, 0.6), -an)
+		var nsc := int(aw / 0.5)
+		for k in range(nsc):
+			var x0 := -aw * 0.5 + k * aw / nsc
+			var x1 := x0 + aw / nsc
+			var tip := Vector3((x0 + x1) * 0.5, ay - 0.85, z0 + ad + 0.01)
+			mb.add_tri(cloth, Vector3(x0, ay - 0.55, z0 + ad + 0.01), Vector3(x1, ay - 0.55, z0 + ad + 0.01), tip, Vector3.BACK, Vector3.BACK, Vector3.BACK, Vector2(0, 0.9), Vector2(0.25, 0.9), Vector2(0.12, 1.0), Color.WHITE, Vector3.BACK)
+			mb.add_tri(cloth, Vector3(x0, ay - 0.55, z0 + ad), tip - Vector3(0, 0, 0.02), Vector3(x1, ay - 0.55, z0 + ad), Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2(0, 0.9), Vector2(0.12, 1.0), Vector2(0.25, 0.9), Color(0.6, 0.6, 0.6), Vector3.FORWARD)
+		for s in [-1.0, 1.0]:
+			mb.add_box(beam, _xf(Vector3(s * aw * 0.5, (fl + ay - 0.55) * 0.5, z0 + ad)), Vector3(0.08, ay - 0.55, 0.08), 1.0)
+		# goods out front: a crate and a basket
+		mb.add_box(PSXMat.lit("planks", Color(0.9, 0.85, 0.75)), _xf(Vector3(-aw * 0.3, fl + 0.3, z0 + 0.7)), Vector3(0.7, 0.6, 0.6), 1.2)
+		mb.add_cylinder(PSXMat.lit("straw"), _xf(Vector3(aw * 0.32, fl, z0 + 0.8)), 0.26, 0.3, 0.32, 7, 1.0)
+
 	var sign_tex: String = spec.get("sign", "")
 	if sign_tex != "":
 		var sign_m := PSXMat.lit(sign_tex, Color.WHITE, {"vertex_color": false})
@@ -926,6 +952,113 @@ static func chapel() -> Node3D:
 	var lamp := NightLight.make(Color(0.95, 0.85, 0.65), 1.0, 7.0)
 	lamp.position = Vector3(0, 3.0, fz + 1.4)
 	body.add_child(lamp)
+	return body
+
+
+# ==========================================================================
+# Harbour: the harbourmaster's tower, a dockside crane
+# ==========================================================================
+## An eight-sided stone tower by the quay: a battered base, three storeys of
+## arched windows, a corbelled gallery with a rail, a tall tiled cap and a flag.
+static func harbor_tower() -> Node3D:
+	var body := StaticBody3D.new()
+	body.name = "HarbourTower"
+	body.collision_layer = WORLD_LAYER
+	body.collision_mask = 0
+	var mb := MeshBuilder.new()
+	var stone := PSXMat.lit("stone_brick", Color(0.92, 0.86, 0.78))
+	var band := PSXMat.lit("stone_brick", Color(0.7, 0.66, 0.6))
+	var roof := PSXMat.lit("roof_tiles", Color.WHITE, {"affine": 0.8})
+	var wood := PSXMat.lit("planks_dark")
+	var window := PSXMat.lit("window", Color.WHITE, {"emission": Color(1.0, 0.75, 0.38), "emission_energy": 0.8, "emission_tex": "window"})
+	var r := 2.6
+	var h := 13.0
+	var n := 8
+	# the base flares out into the ground; the shaft; band courses
+	mb.add_cylinder(band, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, -1.5, 0)), r + 0.7, r + 0.15, 3.0, n, 0.5)
+	mb.add_cylinder(stone, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, 1.5, 0)), r + 0.1, r, h - 1.5, n, 0.5, Color.WHITE, false)
+	for y in [1.5, 5.3, 9.1]:
+		mb.add_cylinder(band, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, y, 0)), r + 0.18, r + 0.18, 0.22, n, 0.5)
+	# windows on alternate faces, the door at the front (+Z)
+	for lvl in range(3):
+		var wy := 3.3 + lvl * 3.8
+		for k in range(n):
+			if (k + lvl) % 2 == 1:
+				continue
+			var a := TAU * k / n
+			var out := Vector3(sin(a), 0, cos(a))
+			if lvl == 0 and k == 0:
+				continue
+			var wxf := Transform3D(Basis(Vector3.UP, a), out * (r * cos(PI / n) + 0.03) + Vector3(0, wy, 0))
+			mb.add_box_unit_uv(window, wxf, Vector3(0.6, 1.0, 0.06))
+			mb.add_cylinder(band, wxf * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.5, -0.02)), 0.36, 0.36, 0.1, 6, 1.0)
+			mb.add_box(band, wxf * Transform3D(Basis(), Vector3(0, -0.56, 0.06)), Vector3(0.8, 0.1, 0.16), 1.0)
+	var dz := r * cos(PI / n) + 0.04
+	mb.add_box_unit_uv(PSXMat.lit("door", Color.WHITE, {"vertex_color": false}), Transform3D(Basis(), Vector3(0, 1.0 + 0.1, dz)), Vector3(1.1, 2.2, 0.06))
+	mb.add_box(band, Transform3D(Basis(), Vector3(0, 2.35, dz + 0.05)), Vector3(1.5, 0.25, 0.14), 1.0)
+	# the gallery on corbels, its rail, the cap
+	var gy := h
+	for k in range(n * 2):
+		var a := TAU * k / (n * 2)
+		mb.add_box(band, Transform3D(Basis(Vector3.UP, a), Vector3(sin(a), 0, cos(a)) * (r + 0.25) + Vector3(0, gy - 0.35, 0)), Vector3(0.25, 0.5, 0.5), 1.0, Color.WHITE, false)
+	mb.add_cylinder(band, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, gy, 0)), r + 0.75, r + 0.75, 0.25, n, 0.5, Color.WHITE, true, true)
+	for k in range(n * 3):
+		var a := TAU * k / (n * 3)
+		mb.add_box(wood, Transform3D(Basis(), Vector3(sin(a), 0, cos(a)) * (r + 0.62) + Vector3(0, gy + 0.55, 0)), Vector3(0.08, 0.85, 0.08), 1.0)
+	mb.add_cylinder(wood, Transform3D(Basis(Vector3.UP, PI / (n * 3)), Vector3(0, gy + 0.95, 0)), r + 0.62, r + 0.62, 0.08, n * 3, 1.0, Color.WHITE, true, true)
+	mb.add_cylinder(stone, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, gy, 0)), r - 0.4, r - 0.4, 2.6, n, 0.5, Color.WHITE, false)
+	for k in range(4):
+		var a := TAU * k / 4.0 + PI / 4.0
+		mb.add_box_unit_uv(window, Transform3D(Basis(Vector3.UP, a), Vector3(sin(a), 0, cos(a)) * ((r - 0.4) * cos(PI / n) + 0.03) + Vector3(0, gy + 1.3, 0)), Vector3(0.55, 0.9, 0.06))
+	mb.add_cone(roof, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, gy + 2.6, 0)), r + 0.3, 4.2, n)
+	mb.add_cylinder(roof, Transform3D(Basis(Vector3.UP, PI / n), Vector3(0, gy + 2.45, 0)), r + 0.32, r + 0.32, 0.15, n, 0.6, Color(0.6, 0.6, 0.6), false, true)
+	mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, gy + 6.6, 0)), 0.05, 0.04, 2.2, 5, 1.0)
+	var flag := PSXMat.lit("cloth_blue")
+	mb.add_card(flag, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, gy + 8.1, 0.06)), 1.2, 0.7, Rect2(0, 0, 0.5, 0.5))
+	mb.add_card(flag, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, gy + 8.1, 0.06)), 1.2, 0.7, Rect2(0, 0, 0.5, 0.5))
+	body.add_child(mb.to_instance())
+	var cs := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = r + 0.15
+	cyl.height = h + 1.0
+	cs.shape = cyl
+	cs.position = Vector3(0, (h + 1.0) * 0.5 - 1.0, 0)
+	body.add_child(cs)
+	var lamp := NightLight.make(Color(1.0, 0.78, 0.45), 1.6, 14.0)
+	lamp.position = Vector3(0, gy + 1.4, 0)
+	body.add_child(lamp)
+	return body
+
+
+## A wooden jib crane on the quay (jib swung out toward +Z, over the water),
+## a crate hanging off its hook.
+static func dock_crane() -> Node3D:
+	var body := StaticBody3D.new()
+	body.name = "DockCrane"
+	body.collision_layer = WORLD_LAYER
+	body.collision_mask = 0
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks_dark")
+	var iron := PSXMat.lit("metal", Color(0.3, 0.3, 0.32))
+	var rope := PSXMat.lit("rope")
+	mb.add_box(PSXMat.lit("stone_brick"), _xf(Vector3(0, 0.15, 0)), Vector3(1.6, 0.3, 1.6), 0.6)
+	mb.add_box(wood, _xf(Vector3(0, 2.9, 0)), Vector3(0.36, 5.5, 0.36), 0.6)
+	for s in [-1.0, 1.0]:
+		beam_between(mb, wood, Vector3(s * 0.7, 0.3, -0.5), Vector3(0, 2.4, 0), 0.16)
+	# the jib and its brace
+	beam_between(mb, wood, Vector3(0, 5.2, -0.6), Vector3(0, 5.6, 4.2), 0.24)
+	beam_between(mb, wood, Vector3(0, 3.2, 0.15), Vector3(0, 5.5, 2.4), 0.18)
+	# treadwheel drum, rope over the sheave and down to the hook
+	mb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.6, 1.2, -0.7)), 0.55, 0.55, 1.2, 10, 1.0, Color.WHITE, true, true)
+	mb.add_cylinder(iron, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.1, 5.45, 4.1)), 0.18, 0.18, 0.2, 8, 1.0, Color.WHITE, true, true)
+	mb.add_tube(rope, PackedVector3Array([Vector3(0, 1.2, -0.7), Vector3(0, 5.3, -0.4), Vector3(0, 5.6, 4.1), Vector3(0, 2.6, 4.1)]), 0.03, -1.0, 4)
+	mb.add_box(iron, _xf(Vector3(0, 2.5, 4.1)), Vector3(0.18, 0.2, 0.06), 1.0, Color.WHITE, false)
+	for s in [-1.0, 1.0]:
+		mb.add_tube(rope, PackedVector3Array([Vector3(0, 2.45, 4.1), Vector3(s * 0.35, 1.9, 4.1)]), 0.02, -1.0, 4)
+	mb.add_box(PSXMat.lit("planks", Color(0.9, 0.85, 0.75)), _xf(Vector3(0, 1.45, 4.1)), Vector3(0.9, 0.9, 0.9), 1.1, Color.WHITE, false)
+	body.add_child(mb.to_instance())
+	_box_col(body, Vector3(1.6, 5.8, 1.6), Vector3(0, 2.9, 0))
+	_marker(body, "Hook", Vector3(0, 1.0, 4.1))
 	return body
 
 

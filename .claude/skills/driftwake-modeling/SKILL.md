@@ -268,6 +268,8 @@ $env:MS_GROUND='none'; $env:MS_ROW='y'; $env:MS_PSX='0'; & $env:GODOT --path . -
 | can't get up / through / round | scale off; stepped stair collision; collider bigger than the mesh | the scale table; a ramp under stairs; trim colliders |
 | looks different for a guest | unseeded randomness | seeded rng |
 | hard edge looks soft / blob looks faceted | smooth vs flat normals | `flat` for made things, smooth for organic |
+| terrain stripes through paving or a floor | ground only a few cm under it: the vertex snap makes them fight | keep the ground >= 0.5 m below anything laid over it (the harbour quay) |
+| wedge-shaped gaps along a curved strip | each segment offset along its own normal | offset every point by the same vector (or per-point averaged normals) so neighbours share edges |
 
 ## Finishing
 
