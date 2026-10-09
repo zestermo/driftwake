@@ -51,6 +51,14 @@ if (-not $Godot -or -not (Test-Path $Godot)) {
 $logs = [System.IO.Path]::Combine($root, "tools", "dev", "out", "logs")
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
+# a fresh checkout (a new worktree without the cache copied in) imports once first
+if (-not (Test-Path (Join-Path $root ".godot\imported"))) {
+	Write-Host "No .godot import cache here: importing once (a minute or two)..." -ForegroundColor Yellow
+	$ErrorActionPreference = "Continue"
+	& $Godot --headless --path "$root" --import 2>&1 | Out-Null
+	$ErrorActionPreference = "Stop"
+}
+
 # every script compiles first (~6 s): one broken script otherwise fails every suite with noise
 if (-not $NoCompileCheck) {
 	# (Windows PowerShell turns a native program's stderr into errors under "Stop")

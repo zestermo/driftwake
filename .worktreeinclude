@@ -1,0 +1,3 @@
+# Gitignored files Claude Code copies into a new worktree (claude -w <name>):
+# Godot's import cache, so tests and the editor don't re-import everything.
+.godot/

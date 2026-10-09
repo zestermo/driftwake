@@ -9,6 +9,7 @@ so Godot does not import the PNGs).
 
 - `compilecheck`: Compiles every project script (or just the ones named) with the autoloads loaded (Godot's own `--check-only` doesn't know Net, FX...) and prints `COMPILE OK (n scripts)` or `COMPILE FAILED <path>` under Godot's errors. Exit code = failures. `run_tests.ps1` runs it first (~6 s) and runs no suites if anything is broken (`-NoCompileCheck` skips it). Args: [paths...]
 - `affected.ps1` + `test_map.txt`: which suites cover what changed (uncommitted files, or `-Base main` for a whole branch); `-Explain` shows which file pulled in which suites and lists changed scripts no map line covers. `run_tests.ps1 -Changed [-Base ref]` runs just those, and says when co-op code changed (run nettest.ps1). Add a map line with a new suite or system.
+- `land.ps1`: Lands a finished parallel session's worktree branch on main: rebase onto main, compile + the covering tests (`-NoTests`: compile only), fast-forward main; a conflict backs out and changes nothing. `-List` shows every worktree and how far ahead it is. See CLAUDE.md "Parallel sessions". Args: <branch> [-Onto main] [-NoTests] [-List]
 - `hooks/gdcheck.ps1`: Claude Code hook (`.claude/settings.json`, PostToolUse on Edit/Write): after Claude edits a .gd file it compiles that file (~2 s) and hands any errors straight back to Claude.
 
 ## Test suites (run_tests.ps1)

@@ -14,7 +14,7 @@ textures (tools/texture_gen/*.py), music and SFX. There are very few hand-made a
 - Zach plays the build himself to judge feel. Tell him what to try in-game (keys, places)
   so he can check it in the editor.
 - Keep replies short: what changed, how to try it, anything left open.
-- Commit when a request is done (clear message). Push to `multiplayer` when asked
+- Commit when a request is done (clear message). Push to `main` when asked
   or when Zach says he's done testing.
 - **Feel/style:** precise, responsive movement (velocity = input x speed every tick;
   walk 6, sprint 9, combat stance x0.8; turn_speed 20). Shonen look and animation:
@@ -43,12 +43,18 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev/run_tests.ps1 r10test`.
 
 ```powershell
-.\tools\dev\run_tests.ps1 r10test swimtest        # specific suites (normal use)
-.\tools\dev\run_tests.ps1 -Jobs 4                 # all 27 suites, 4 at a time (faster, a bit flakier)
+.\tools\dev\run_tests.ps1 -Changed               # the suites covering uncommitted changes (normal use)
+.\tools\dev\run_tests.ps1 r10test swimtest        # specific suites
+.\tools\dev\run_tests.ps1 -Jobs 4                 # every suite, 4 at a time (faster, a bit flakier)
 .\tools\dev\nettest.ps1                           # co-op: host + client on localhost (also: water, three, late, hostquit)
 & $env:GODOT --path . --script res://tools/dev/weathershot.gd -- res://tools/dev/out/wx   # renders (GPU, opens a window)
 ```
 
+- run_tests.ps1 compiles every script first (`tools/dev/compilecheck.gd`, ~6 s) and runs
+  nothing if one is broken. `-Changed` picks suites from `tools/dev/test_map.txt` (add a line
+  for a new suite or system; `affected.ps1 -Explain` shows the picks and unmapped scripts).
+- A hook (`.claude/settings.json`) compiles every .gd you edit and hands errors back right away;
+  if you're mid-way through a multi-edit change, finish it before reacting.
 - A new `class_name` script needs `& $env:GODOT --headless --import` once before tests see it.
 - Logs: `tools/dev/out/logs/<suite>.log`. Screenshots: `tools/dev/out/` (gitignored and
   `.gdignore`d). Read the PNGs to check visuals.
@@ -64,6 +70,26 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
   classes that touch autoloads; nodes added in `_initialize()` aren't in the tree yet.
   Clamp `lerp(a, b, k * delta)` weights (frame times vary).
 - Exports: exclude `tools/*` and `docs/*` in the export preset.
+
+## Parallel sessions (one worktree each)
+
+Zach often runs several Claude sessions at once. Each should work in its own git worktree
+so half-finished edits never break another session's tests or end up in its commits:
+
+- Start one with `claude -w <name>` (from the repo root). It gets `.claude/worktrees/<name>/`
+  on branch `worktree-<name>`, branched from local `main` (settings: `worktree.baseRef`
+  "head"), with the Godot import cache copied in (`.worktreeinclude`). run_tests.ps1
+  imports once by itself if a checkout has no cache.
+- Commit on that branch as usual. When it's done, land it from the main checkout:
+  `.\tools\dev\land.ps1 worktree-<name>` (rebase onto main, compile + covering tests,
+  fast-forward main; a conflict backs out and changes nothing). `-List` shows every
+  worktree and how far it is ahead of main.
+- In a worktree session, Zach's F12 captures are still in the main checkout:
+  `C:\Users\ZachStermon\Documents\driftwake\tools\dev\out\captures\`. Zach plays main in the
+  editor, so he sees a session's work once it's landed (or by opening its worktree folder).
+- Sharing the main checkout instead: commit only your own files (`git add -- <paths>`), never
+  `git add -A`, and if a test fails in a file you didn't touch, it's probably another
+  session's work in progress.
 
 ## Python (asset generators only)
 
