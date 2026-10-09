@@ -22,6 +22,8 @@ var _arrow: Label
 var _blip: AudioStreamPlayer
 
 var _typing: bool = false
+## The page is out and there's nothing to pick: F goes on (the arrow blinks).
+var _waiting: bool = false
 var _shown_chars: float = 0.0
 var _choices: Array = []
 var _choice_labels: Array[Label] = []
@@ -53,29 +55,34 @@ func _style(bg: Color, border: Color, pad: int) -> StyleBoxFlat:
 	return sb
 
 
+## The window's width on the UI canvas (PSX.UI_SIZE), centred at the bottom.
+const WIDTH := 460.0
+
+
 func _build() -> void:
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.theme = UIStyle.get_theme()
 	add_child(_root)
 
 	_panel = PanelContainer.new()
-	_panel.add_theme_stylebox_override("panel", _style(BG, BORDER, 10))
-	_panel.anchor_left = 0.0
-	_panel.anchor_right = 1.0
+	_panel.add_theme_stylebox_override("panel", _style(BG, BORDER, 9))
+	_panel.anchor_left = 0.5
+	_panel.anchor_right = 0.5
 	_panel.anchor_top = 1.0
 	_panel.anchor_bottom = 1.0
-	_panel.offset_left = 24
-	_panel.offset_right = -24
-	_panel.offset_top = -104
-	_panel.offset_bottom = -12
+	_panel.offset_left = -WIDTH * 0.5
+	_panel.offset_right = WIDTH * 0.5
+	_panel.offset_top = -78
+	_panel.offset_bottom = -14
 	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_panel.custom_minimum_size = Vector2(0, 92)
+	_panel.custom_minimum_size = Vector2(WIDTH, 64)
 	_root.add_child(_panel)
 	_panel.resized.connect(_layout)
 
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
+	vb.add_theme_constant_override("separation", 3)
 	_panel.add_child(vb)
 
 	_text = Label.new()
@@ -86,34 +93,34 @@ func _build() -> void:
 	_text.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	_text.add_theme_constant_override("shadow_offset_x", 1)
 	_text.add_theme_constant_override("shadow_offset_y", 1)
-	_text.add_theme_constant_override("line_spacing", -2)
+	_text.add_theme_constant_override("line_spacing", 1)
 	vb.add_child(_text)
 
 	_choice_box = VBoxContainer.new()
-	_choice_box.add_theme_constant_override("separation", -2)
+	_choice_box.add_theme_constant_override("separation", 0)
 	vb.add_child(_choice_box)
 
+	# the footer: how to leave, and (waiting on you) how to go on
+	var foot := HBoxContainer.new()
+	vb.add_child(foot)
+	var leave := Label.new()
+	leave.text = "Esc  leave"
+	leave.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+	leave.add_theme_font_size_override("font_size", 8)
+	leave.add_theme_color_override("font_color", Color(0.55, 0.52, 0.46))
+	leave.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	foot.add_child(leave)
 	_arrow = Label.new()
-	_arrow.text = "F >"
+	_arrow.text = "F  >"
+	_arrow.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+	_arrow.add_theme_font_size_override("font_size", 8)
 	_arrow.add_theme_color_override("font_color", BORDER)
-	_arrow.anchor_left = 1.0
-	_arrow.anchor_right = 1.0
-	_arrow.anchor_top = 1.0
-	_arrow.anchor_bottom = 1.0
-	_arrow.offset_left = -64
-	_arrow.offset_right = -34
-	_arrow.offset_top = -34
-	_arrow.offset_bottom = -14
-	_arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_root.add_child(_arrow)
+	foot.add_child(_arrow)
 
 	_name_panel = PanelContainer.new()
-	_name_panel.add_theme_stylebox_override("panel", _style(Color(0.18, 0.1, 0.06, 0.95), BORDER, 6))
+	_name_panel.add_theme_stylebox_override("panel", _style(Color(0.18, 0.1, 0.06, 0.95), BORDER, 5))
 	_name_panel.anchor_top = 1.0
 	_name_panel.anchor_bottom = 1.0
-	_name_panel.offset_left = 34
-	_name_panel.offset_top = -124
-	_name_panel.offset_bottom = -100
 	_root.add_child(_name_panel)
 	_name_label = Label.new()
 	_name_label.add_theme_color_override("font_color", CHOICE_SEL_COLOR)
@@ -128,8 +135,8 @@ func _build() -> void:
 
 
 func _layout() -> void:
-	# keep the name tag sitting on the panel's top edge as it grows
-	_name_panel.position.y = _panel.position.y - _name_panel.size.y + 4
+	# keep the name tag sitting on the panel's top edge (inset from its left) as it grows
+	_name_panel.position = Vector2(_panel.position.x + 10, _panel.position.y - _name_panel.size.y + 4)
 
 
 func open() -> void:
@@ -143,6 +150,7 @@ func open() -> void:
 func close() -> void:
 	_root.visible = false
 	_typing = false
+	_waiting = false
 	_clear_choices()
 
 
@@ -151,13 +159,14 @@ func show_line(speaker: String, text: String, choices: Array, voice: float) -> v
 	_name_panel.visible = speaker != ""
 	_name_label.text = speaker
 	_name_panel.reset_size()
+	_layout.call_deferred()
 	_text.text = text
 	_text.visible_characters = 0
 	_shown_chars = 0.0
 	_typing = true
 	_choices = choices
 	_clear_choices()
-	_arrow.visible = false
+	_waiting = false
 
 
 func is_typing() -> bool:
@@ -236,7 +245,7 @@ func _clear_choices() -> void:
 
 func _on_typing_done() -> void:
 	if _choices.is_empty():
-		_arrow.visible = true
+		_waiting = true
 		return
 	for c in _choices:
 		var lbl := Label.new()
@@ -252,8 +261,7 @@ func _play_select() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	if _arrow.visible:
-		_arrow.modulate.a = 1.0 if fmod(_t, 0.8) < 0.5 else 0.2
+	_arrow.modulate.a = (1.0 if fmod(_t, 0.8) < 0.5 else 0.2) if _waiting else 0.0
 	if not _typing:
 		return
 	var prev := int(_shown_chars)

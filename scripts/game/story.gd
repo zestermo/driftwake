@@ -63,6 +63,16 @@ func passed(id: String) -> bool:
 	return index_of(step) > index_of(id)
 
 
+## Whether a line, choice or bark gated on the story is on: {"after": step}
+## once that step's done (or with no story), {"before": step} only until then.
+func allows(d: Dictionary) -> bool:
+	if d.has("after") and not passed(str(d["after"])):
+		return false
+	if d.has("before") and passed(str(d["before"])):
+		return false
+	return true
+
+
 func skills_open() -> bool:
 	return passed("vey_skills")
 

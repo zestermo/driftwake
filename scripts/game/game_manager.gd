@@ -316,8 +316,10 @@ func _respawn_player() -> void:
 	if not player or not _get_ship():
 		return
 
-	# you wake in the crew cabin, by the bunk
-	player.global_position = ship.respawn_point.global_position
+	# you wake in the crew cabin, by the bunk (before she's yours: on the sand
+	# where you first came to)
+	var isl := Story.island()
+	player.global_position = ship.respawn_point.global_position if ship.owned() or isl == null else isl.wake_spot()[0] + Vector3.UP * 0.1
 	player.reset_physics_interpolation()
 	player.sheathe_weapon(true)
 	player.velocity = Vector3.ZERO

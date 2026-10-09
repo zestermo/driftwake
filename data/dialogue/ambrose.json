@@ -16,7 +16,7 @@
 			"choices": [
 				{ "text": "What's out there?", "next": "horizon" },
 				{ "text": "Why keep a light at all?", "next": "light" },
-				{ "text": "Nessa says there's something shiny up here.", "next": "shiny" },
+				{ "text": "Nessa says there's something shiny up here.", "next": "shiny", "requires": "heard_shiny" },
 				{ "text": "Just enjoying the view.", "next": "bye" }
 			]
 		},

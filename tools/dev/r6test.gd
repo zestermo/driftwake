@@ -133,7 +133,7 @@ func _process(d: float) -> bool:
 			check("1 reaches the skill bar after closing the map", int(saw["casts"]) > 0)
 			# --- menus fit
 			root.get_node("Settings").set_value("video", "psx_preset", 2)
-			check("320x180 preset keeps a 640x360 UI canvas", root.content_scale_size == Vector2i(640, 360))
+			check("320x180 preset keeps the 800x450 UI canvas", root.content_scale_size == Vector2i(800, 450))
 			check("...and pixelates the 3D in the post pass", root.get_node("PSX")._post_rect.material.get_shader_parameter("pixelate") == true)
 			root.get_node("Settings").set_value("video", "psx_preset", 0)
 			saw["scr_i"] = 0

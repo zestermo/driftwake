@@ -1267,9 +1267,13 @@ func _dress_quay(rng: RandomNumberGenerator) -> void:
 	var c := _quay_pt(minf(port_x1 - 6.0, 38.0), 13.5)
 	var d := _quay_pt(22.0, 13.5)
 	for spec in [[[a, b], "Dockhand Rook", ["Mind your feet, Captain. Rope everywhere, and half of it's attached to something.",
-			"That junk's out of the far east. Smells of tea and gunpowder.", "Odile's got us hauling cargo since dawn. I've forgotten what my hands are for."], 0.85],
+			"That junk's out of the far east. Smells of tea and gunpowder.", "Odile's got us hauling cargo since dawn. I've forgotten what my hands are for.",
+			{"text": "You're the one Pell found on the west sand? You look better. Not good. Better.", "before": "see_vey"},
+			{"text": "Tackett finally let that sloop go? To you? Bold. I like it.", "after": "tackett_ship"}], 0.85],
 			[[c, d], "Merchant Ysolde", ["Silk, spice, and nothing the harbourmaster needs to see. Kidding. Mostly.",
-			"The merchantman's mine. Well. The bank's. Well. Mine on Tuesdays.", "Pirates past the reef again. Bad for trade. Good for the price of rum."], 1.15]]:
+			"The merchantman's mine. Well. The bank's. Well. Mine on Tuesdays.",
+			{"text": "Pirates past the reef again. Bad for trade. Good for the price of rum.", "before": "morrow"},
+			{"text": "Trade's picking up since Morrow fell. I might even pay the bank.", "after": "morrow"}], 1.15]]:
 		var route: Array = []
 		for q in spec[0]:
 			route.append(Vector3(q.x, QUAY_Y, q.y))
@@ -2389,6 +2393,7 @@ func _spawn_npcs() -> void:
 			"Fresh off the boat! Well. Fresh-ish. Off a boat.",
 			"Snapper, mackerel, something with too many teeth. Pick one.",
 			"Gus buys my fish for his stew. Don't ask him what else goes in it.",
+			{"text": "Smugglers gone off the south beach, and the boats come home full. Coincidence? Marlo thinks not.", "after": "smugglers"},
 		],
 		"look": {"body": "masc", "build": "stout", "skin": CharacterLook.SKIN_TONES[2],
 			"head": "square", "nose": "broad", "eyes": 0, "brows": 1, "mouth": 2,
@@ -2437,7 +2442,8 @@ func _spawn_npcs() -> void:
 		{"name": "Moira", "voice": 1.15, "barks": [
 			"Gus says the rum's aged. Aged a week, maybe.",
 			"You've the look of someone who's going to do something foolish. I like it.",
-			"The scuttlebugs come out under the jungle trees. Hit 'em when they're dizzy from charging."],
+			"The scuttlebugs come out under the jungle trees. Hit 'em when they're dizzy from charging.",
+			{"text": "Grell's lot used to drink here and never pay. You've done Gus a favour, and Gus doesn't forget those.", "after": "grell"}],
 		 "look": {"body": "fem", "build": "average", "skin": CharacterLook.SKIN_TONES[0], "hair": "ponytail",
 			"hair_color": CharacterLook.HAIR_COLORS[5], "top": "blouse", "top_color": CharacterLook.CLOTH[9],
 			"vest": "corset", "vest_color": CharacterLook.CLOTH[14], "legs": "skirt", "legs_color": CharacterLook.CLOTH[5], "hat": "none"}},
@@ -2459,7 +2465,8 @@ func _spawn_npcs() -> void:
 		"barks": [
 			"Every blade on this island's been through my fire. Twice, if the owner was careless.",
 			"Bring me something to mend and gold to mend it with. Not in that order.",
-			"Bug chitin? Takes an edge better than iron, I'll grant. Smells worse.",
+			{"text": "Bug chitin? Takes an edge better than iron, I'll grant. Smells worse.", "before": "queen"},
+			{"text": "That's queen chitin on Tackett's keel, I hear. I'd have made a fine blade of it. Typical.", "after": "queen"},
 			"Hear that hammer? That's the sound of Brinehollow not being robbed.",
 		],
 		"look": {"body": "masc", "build": "broad", "height": 1.06, "skin": CharacterLook.SKIN_TONES[4],
@@ -2507,6 +2514,8 @@ func _spawn_npcs() -> void:
 			"If you're heading into the jungle, take a lantern. Or a braver friend.",
 			"The lighthouse keeper talks to the sea. Sometimes I think it answers.",
 			"Something up in the big trees out west spits. Mind your head in the deep woods.",
+			{"text": "Is it true you can't remember anything? Not even your birthday? I'd pick a new one. Something in summer.", "before": "smugglers"},
+			{"text": "They say you put Captain Grell in the sand! Mum says you're a hero. Dad says you're trouble.", "after": "grell"},
 		],
 		"look": {"body": "fem", "build": "average", "height": 0.93, "skin": CharacterLook.SKIN_TONES[0],
 			"head": "round", "nose": "small", "eyes": 2, "brows": 2, "mouth": 1, "marks": "freckles", "eye_color": CharacterLook.EYE_COLORS[2],
@@ -2523,7 +2532,8 @@ func _spawn_npcs() -> void:
 	_npc({
 		"name": "Bram", "voice": 0.95,
 		"barks": [
-			"Nets came up empty again. Fish are skittish this season.",
+			{"text": "Nets came up empty again. The smugglers on the south beach scare the fish. And me.", "before": "smugglers"},
+			{"text": "Boats are safe off the south beach again. Drinks are on me. Well. On Gus.", "after": "smugglers"},
 			"Saw lights out past the reef last night. Not lanterns. Something else.",
 			"Odile won't let me tie up past sundown. Says the tide gets hungry.",
 		],

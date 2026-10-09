@@ -17,7 +17,7 @@
 		},
 		"intro": {
 			"text": [
-				"Ooh, a captain! A real one, with a real ship? Welcome, welcome!",
+				"Ooh, a new face! Welcome, welcome!",
 				"Nessa's Notions: rope, salt, citrus, and things I promise are not stolen."
 			],
 			"next": "menu"
@@ -27,7 +27,8 @@
 			"choices": [
 				{ "text": "Let's trade.", "next": "trade" },
 				{ "text": "What do you sell?", "next": "shop" },
-				{ "text": "What's loot worth?", "next": "loot" },
+				{ "text": "What's loot worth?", "next": "loot_early", "before": "tackett_ship" },
+				{ "text": "What's loot worth?", "next": "loot", "after": "tackett_ship" },
 				{ "text": "Any work?", "next": "work" },
 				{ "text": "Bye, Nessa.", "next": "bye" }
 			]
@@ -51,7 +52,15 @@
 			],
 			"next": "menu"
 		},
+		"loot_early": {
+			"text": [
+				"Gold's gold. Treasure's better: a good twenty-odd gold a gem, from me, more for the rare ones.",
+				"Pirates carry plenty of both, and they're not using it properly. Bring me whatever you take off them."
+			],
+			"next": "menu"
+		},
 		"work": {
+			"set_flag": "heard_shiny",
 			"text": [
 				"Wren swears there's a stash hidden in the jungle west of the ruins. Wren also swears the moon owes her money.",
 				"There's supposed to be something shiny up by the lighthouse, too. Ambrose won't say what."

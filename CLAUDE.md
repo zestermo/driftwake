@@ -134,7 +134,10 @@ GameMenu, Net, Music, Weather, DevCapture.
 - PSX vertex snap must skip the shadow pass (`if (!IN_SHADOW_PASS)`).
 - Physics interpolation is on. Teleports call `reset_physics_interpolation()`. CPUParticles3D
   bursts need `local_coords = true`.
-- **UI canvas is 640x360.** Size UI for that (Pixelify 12-16, Silkscreen 8).
+- **UI canvas is 800x450** (`PSX.UI_SIZE`, canvas_items stretch): laid out on 800x450 and drawn
+  at the window's resolution, so the pixel fonts stay hard-edged but fine. The 3D's pixel grid is
+  the PSX preset's (640x360 by default), laid on by the post pass. Size UI for 800x450
+  (Pixelify 12, Silkscreen 8).
 - Humanoid joint conventions: arm/leg x+ = forward/up, shin x- = knee bend, `*_l` z- = out
   left, `*_r` z+ = out right, pivot x- = lean forward. The animator sets only rotations
   each frame, so anything that writes joint *global* transforms (ragdolls, IK) must restore

@@ -8,6 +8,11 @@ extends Node
 
 signal preset_changed(preset_name: String)
 
+## The UI's canvas: menus and the HUD are laid out on this many pixels and
+## drawn at the window's own resolution (the pixel fonts stay hard-edged, just
+## finer); the 3D's pixel grid is the preset's, laid on by the post pass.
+const UI_SIZE := Vector2i(800, 450)
+
 const PRESETS := [
 	{"name": "640x360", "size": Vector2i(640, 360)},
 	{"name": "480x270", "size": Vector2i(480, 270)},
@@ -89,18 +94,9 @@ func _is_lowres() -> bool:
 func _apply_preset() -> void:
 	var preset: Dictionary = PRESETS[preset_index()]
 	var win := get_tree().root
-	var sz: Vector2i = preset["size"]
-	if _is_lowres() and sz.x <= 640:
-		# The canvas (and so every menu) is always 640x360; smaller presets
-		# pixelate the 3D view in the post pass instead of shrinking the canvas,
-		# so the UI never ends up laid out on a 320x180 screen.
-		win.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
-		win.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-		win.content_scale_size = Vector2i(640, 360)
-	else:
-		win.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
-		win.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-		win.content_scale_size = Vector2i(640, 360)
+	win.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	win.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	win.content_scale_size = UI_SIZE
 	_post_rect.material.set_shader_parameter("enabled", bool(Settings.get_value("video", "dither")) and _is_lowres())
 	_update_pixelate()
 	var warp := float(Settings.get_value("video", "warp"))
@@ -109,29 +105,26 @@ func _apply_preset() -> void:
 	preset_changed.emit(preset["name"])
 
 
-## The 3D pixel grid for the preset (the canvas is wider than 640 on wide
-## windows, so the grid scales with it).
+## The 3D pixel grid for the preset (wider windows widen the canvas, and the
+## grid with it).
 func pixel_res() -> Vector2:
 	var preset: Vector2i = PRESETS[preset_index()]["size"]
 	var vis: Vector2 = get_tree().root.get_visible_rect().size
 	if preset == Vector2i.ZERO:
 		return vis
-	return (vis * (float(preset.x) / 640.0)).round()
+	return (vis * (float(preset.x) / float(UI_SIZE.x))).round()
 
 
 func _update_pixelate() -> void:
 	if _post_rect == null:
 		return
-	var preset: Vector2i = PRESETS[preset_index()]["size"]
-	# 640x360 renders the 3D at that size; the others render finer (or the
-	# window size, for 960x540) and the post pass lays the pixel grid on it
-	_post_rect.material.set_shader_parameter("pixelate", _is_lowres() and preset.x != 640)
+	# the post pass lays the preset's pixel grid on the 3D
+	_post_rect.material.set_shader_parameter("pixelate", _is_lowres())
 	_post_rect.material.set_shader_parameter("pixel_res", pixel_res())
 	# render the 3D at the grid's own size: the post pass samples one texel
 	# per cell, so every pixel past that was drawn and thrown away
 	var win := get_tree().root
-	var render_h := float(win.size.y) if win.content_scale_mode == Window.CONTENT_SCALE_MODE_CANVAS_ITEMS else win.get_visible_rect().size.y
-	win.scaling_3d_scale = clampf(pixel_res().y / maxf(render_h, 1.0), 0.25, 1.0) if _is_lowres() else 1.0
+	win.scaling_3d_scale = clampf(pixel_res().y / maxf(float(win.size.y), 1.0), 0.25, 1.0) if _is_lowres() else 1.0
 
 
 func _update_snap() -> void:

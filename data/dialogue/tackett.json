@@ -27,6 +27,7 @@
 			"text": [
 				"Is that... that's her shell. You actually did it.",
 				"Give me a moment. There. Keel's laid, she's caulked and tarred. She's yours, {captain}. Board her at the end of Odile's dock and take the helm with F.",
+				"Before you cast off, have a word with Odile. She has rules about ships, and she enforces them.",
 				"And when you've some gold, come back. Iron, guns, canvas, paint. I'll make her into something the sea respects."
 			],
 			"event": "story:tackett_ship",

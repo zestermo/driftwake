@@ -35,8 +35,8 @@
 			"text": "What can I get you?",
 			"choices": [
 				{ "text": "Heard any rumors?", "next": "rumor" },
-				{ "text": "What's out in the deep water?", "next": "seaking" },
-				{ "text": "Who runs these waters?", "next": "redtide" },
+				{ "text": "What's out in the deep water?", "next": "seaking", "after": "tackett_ship" },
+				{ "text": "Who runs these waters?", "next": "redtide", "after": "see_gus_redtide" },
 				{ "text": "Tell me about Brinehollow.", "next": "town" },
 				{ "text": "Something to eat and drink.", "next": "drink" },
 				{ "text": "Just passing through.", "next": "bye" }

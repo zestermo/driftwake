@@ -7,7 +7,7 @@
 		"intro": {
 			"text": [
 				"Shh! Don't step on the crabs, they're in conference.",
-				"Oh. You're not a crab. You're a captain. Even better, captains have boats."
+				"Oh. You're not a crab. Pity, crabs are better listeners. Still, Wren's not fussy."
 			],
 			"next": "menu"
 		},
@@ -15,6 +15,8 @@
 			"text": "Wren's listening. Mostly.",
 			"choices": [
 				{ "text": "Who are you?", "next": "who" },
+				{ "text": "Who's camped down the beach?", "next": "smugglers", "before": "smugglers" },
+				{ "text": "The smugglers are gone.", "next": "smugglers_gone", "after": "smugglers" },
 				{ "text": "What are Driftstones?", "next": "stones" },
 				{ "text": "Know any secrets?", "next": "secret" },
 				{ "text": "I should go.", "next": "bye" }
@@ -24,6 +26,20 @@
 			"text": [
 				"Castaway. Professional. My ship went down chasing a Driftstone three islands west of here. Or east. Islands move.",
 				"Washed up in this cove with an eyepatch I definitely didn't have before. Lovely place."
+			],
+			"next": "menu"
+		},
+		"smugglers": {
+			"text": [
+				"Smugglers. Five of them, south along the sand, with a rowboat and a lot of opinions about who owns this beach.",
+				"They took my good bucket. And my second-best bucket. Two of them carry rifles, so don't stroll up waving."
+			],
+			"next": "menu"
+		},
+		"smugglers_gone": {
+			"text": [
+				"You did that? The crabs held a parade. You missed it. It was very sideways.",
+				"I got my buckets back, too. Both of them. You're welcome to visit them any time."
 			],
 			"next": "menu"
 		},

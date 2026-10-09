@@ -70,6 +70,18 @@ func _talk(id: String, who: String) -> String:
 	return first
 
 
+## The choices dialogue `id` offers at `node` right now.
+func _choices(id: String, node: String) -> Array:
+	var data: Dictionary = dm._load(id)
+	var out: Array = []
+	for c in data["nodes"][node].get("choices", []):
+		if c.has("requires") and not dm.has_flag(str(c["requires"])):
+			continue
+		if story().allows(c):
+			out.append(str(c["text"]))
+	return out
+
+
 func _kill(e) -> void:
 	e.health.take_damage(999999.0)
 
@@ -132,6 +144,26 @@ func _process(d: float) -> bool:
 			check("  you can move", not p.input_locked)
 			check("the objective is on the HUD", hud()._objective._box.visible and hud()._objective._goal.text == story().goal())
 			check("  and points at Old Pell", story().target_pos().distance_to(_npc("Old Pell").global_position) < 3.0)
+			# Esc walks away from a conversation
+			dm._cooldown = 0.0
+			dm.start("wren", _npc("Wren"))
+			var esc := InputEventAction.new()
+			esc.action = "pause"
+			esc.pressed = true
+			dm._input(esc)
+			check("Esc leaves a conversation", not dm.active and p.current_state_name() != "Talk")
+			check("  without opening the pause menu", not root.get_node("GameMenu").is_open())
+			# choices gated on the story
+			check("Odile before the ship: whose sloop, no sailing", _choices("odile", "menu").has("Whose sloop is that at the end of the dock?")
+				and not _choices("odile", "menu").has("How do I sail?"))
+			check("Gus has no Morrow or Sea King yet", not _choices("gus", "menu").has("Who runs these waters?") and not _choices("gus", "menu").has("What's out in the deep water?"))
+			check("Ambrose's shiny thing needs Nessa's tip first", not _choices("ambrose", "menu").has("Nessa says there's something shiny up here."))
+			# dying before the ship is yours: you come to on the beach again
+			root.get_node("GameManager")._respawn_player()
+			wait = 3.5
+			step = 40
+		40:
+			check("before the ship: you wake on the sand again", p.global_position.distance_to(isl.wake_spot()[0]) < 2.0)
 			check("Tackett's busy before his turn", _talk("tackett", "Shipwright Tackett").begins_with("Busy."))
 			check("  and has no yard to offer", dm.has_flag("ship_not_owned"))
 			check("Pell: the story line", _talk("pell", "Old Pell").begins_with("Easy, easy"))
@@ -181,6 +213,8 @@ func _process(d: float) -> bool:
 			check("Tackett: the keel", _talk("tackett", "Shipwright Tackett").begins_with("Is that"))
 			check("  she's yours", ship.owned())
 			check("  and so is his yard", not dm.has_flag("ship_not_owned"))
+			check("Odile now has rules and sailing, no sloop question", _choices("odile", "menu").has("How do I sail?")
+				and not _choices("odile", "menu").has("Whose sloop is that at the end of the dock?"))
 			_put(ship.helm_position.global_position + Vector3(0, 0.3, 0))
 			ship._on_helm_interacted(p)
 			check("  the helm takes you", p.current_state_name() == "Helm")

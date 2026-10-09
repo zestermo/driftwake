@@ -16,11 +16,18 @@
 		},
 		"intro": {
 			"text": [
-				"Another captain washed in on the tide. {captain}, is it? Welcome to Brinehollow.",
-				"I keep the dock, the ledger and the peace, in that order. You'll be wanting to know the rules."
+				"Washed in on the tide, did you? {captain}, is it? Welcome to Brinehollow.",
+				"I keep the dock, the ledger and the peace, in that order."
 			],
-			"next": "rules",
+			"next": "menu",
 			"set_flag": "met_odile"
+		},
+		"sloop": {
+			"text": [
+				"Tackett's. He's been rebuilding her for a year, plank by plank, and talking to her more than to any of us.",
+				"She's not for sale and she's not for hire. Not yet, anyway. Tackett decides who sails her."
+			],
+			"next": "menu"
 		},
 		"rules": {
 			"text": [
@@ -35,8 +42,19 @@
 			"text": "What else?",
 			"choices": [
 				{
+					"text": "Whose sloop is that at the end of the dock?",
+					"next": "sloop",
+					"before": "tackett_ship"
+				},
+				{
+					"text": "What are the rules here?",
+					"next": "rules",
+					"after": "tackett_ship"
+				},
+				{
 					"text": "How do I sail?",
-					"next": "sail"
+					"next": "sail",
+					"after": "tackett_ship"
 				},
 				{
 					"text": "What's on this island?",

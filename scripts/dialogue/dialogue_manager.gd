@@ -20,6 +20,9 @@ extends Node
 ## "event": "<name>" on a node emits dialogue_event(name) when the node is shown.
 ## "story": {"<step id>": "<node>"} starts the talk at that node while the
 ## story is on that step (Story); its "event": "story:<step id>" finishes it.
+## A choice with "after": "<step>" shows once that step is done (or with no
+## story); "before": "<step>" only while it isn't (Story.allows).
+## Esc leaves any conversation.
 
 signal dialogue_started(id: String)
 signal dialogue_ended(id: String)
@@ -177,6 +180,8 @@ func _show_page() -> void:
 				continue
 			if c.has("hide_if") and has_flag(str(c["hide_if"])):
 				continue
+			if not Story.allows(c):
+				continue
 			choices.append(c)
 	var voice := _voice if speaker != PLAYER_SPEAKER else 1.25
 	_box.show_line(speaker, line, choices, voice)
@@ -200,6 +205,11 @@ func _input(event: InputEvent) -> void:
 		return
 	# Leave function keys (F2/F3/F11...) and Alt+Enter to the global handlers.
 	if event is InputEventKey and ((event.keycode >= KEY_F1 and event.keycode <= KEY_F12) or event.alt_pressed):
+		return
+	# Esc walks away from any conversation
+	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_close()
 		return
 	if _box.handle_input(event):
 		get_viewport().set_input_as_handled()

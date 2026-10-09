@@ -8,7 +8,8 @@ extends Node3D
 ##       "name": "Harbormaster Odile",
 ##       "dialogue": "odile",            # res://data/dialogue/odile.json
 ##       "look": {...},                  # see Humanoid
-##       "barks": ["Fine day."],         # used when there is no dialogue file
+##       "barks": ["Fine day."],         # used when there is no dialogue file;
+##                                       # an entry may be {"text", "after"/"before": story step}
 ##       "waypoints": [Vector3...],      # local positions (same space as the NPC's parent)
 ##       "voice": 1.0,                   # blip pitch
 ##   })
@@ -127,7 +128,10 @@ func _on_interacted(_by: Node) -> void:
 	elif barks.size() > 0:
 		if shop_id != "":
 			get_node("/root/GameMenu").shop_after_talk(shop_id)
-		dm.say(npc_name, [barks[randi() % barks.size()]], self, voice)
+		# a bark may be {"text", "after"/"before": story step} (Story.allows)
+		var pool := barks.filter(func(b) -> bool: return not (b is Dictionary) or Story.allows(b))
+		var b = pool[randi() % pool.size()]
+		dm.say(npc_name, [str(b["text"]) if b is Dictionary else str(b)], self, voice)
 
 
 func _on_dialogue_ended(_id: String) -> void:
