@@ -117,6 +117,10 @@ scripts/ui/chain_marks.gd               chaintest
 scripts/ui/compass_strip.gd             chaintest qoltest
 scripts/ui/sea_chart.gd                 chaintest qoltest seatest
 scripts/island/*                        foresttest
+scripts/island/*                        fidelitytest
+scripts/props/props.gd                  fidelitytest
+scripts/props/buildings.gd              fidelitytest
+tools/dev/fidelity.gd                   fidelitytest
 data/dialogue/*                         qoltest
 
 # --- UI ---
