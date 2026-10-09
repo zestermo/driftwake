@@ -98,6 +98,9 @@ func _process(d: float) -> bool:
 		3:
 			if st_t < 1.0:
 				return false
+			# (the chain's islands are built after the host's world state arrives: wait for them)
+			if not current_scene.get_node("Islands").chain_ready() and st_t < 20.0:
+				return false
 			tn.ask("report")
 			go(4)
 		4:

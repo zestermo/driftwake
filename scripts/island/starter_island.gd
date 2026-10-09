@@ -1642,7 +1642,7 @@ func _build_beach_camp() -> void:
 
 
 ## Canvas A-frame tent (opening toward +Z) with a collider.
-func _tent(tint: Color = Color(0.9, 0.85, 0.7)) -> StaticBody3D:
+static func _tent(tint: Color = Color(0.9, 0.85, 0.7)) -> StaticBody3D:
 	var tent := StaticBody3D.new()
 	tent.name = "Tent"
 	var mb := MeshBuilder.new()
@@ -1665,7 +1665,7 @@ func _tent(tint: Color = Color(0.9, 0.85, 0.7)) -> StaticBody3D:
 
 
 ## A log seat (along local X, top at 0.4).
-func _log() -> MeshInstance3D:
+static func _log() -> MeshInstance3D:
 	var log_mb := MeshBuilder.new()
 	log_mb.add_cylinder(PSXMat.lit("bark"), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.9, 0.2, 0)), 0.2, 0.2, 1.8, 6, 1.0, Color.WHITE, true, true)
 	return log_mb.to_instance("Log")
@@ -1959,7 +1959,7 @@ func _strongbox(p: Vector2, yaw: float, save_id: String, items: Array, size: flo
 
 ## A lookout tower: four posts, a railed platform at 6 m, a ladder up the
 ## +Z side.
-func _lookout_tower() -> StaticBody3D:
+static func _lookout_tower() -> StaticBody3D:
 	const H := 6.0
 	const W := 1.4
 	var body := StaticBody3D.new()
@@ -2005,7 +2005,7 @@ func _lookout_tower() -> StaticBody3D:
 	return body
 
 
-func _cyl_col(body: Node3D, r: float, h: float, at: Vector3) -> void:
+static func _cyl_col(body: Node3D, r: float, h: float, at: Vector3) -> void:
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = r
@@ -2015,7 +2015,7 @@ func _cyl_col(body: Node3D, r: float, h: float, at: Vector3) -> void:
 	body.add_child(cs)
 
 
-func _box_col(body: Node3D, size: Vector3, at: Vector3) -> void:
+static func _box_col(body: Node3D, size: Vector3, at: Vector3) -> void:
 	var cs := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = size

@@ -23,6 +23,8 @@ const DOCK_DECK_Y := 1.7
 const PIER_LEN := 30.0
 const BERTH_DEPTH := 4.5
 const SITE_GAP := 90.0
+## Ground kept clear at each site's middle (m, reserve_area).
+const SITE_CLEAR := {"village": 30.0, "boss": 24.0, "camp": 18.0, "lair": 14.0, "ruins": 11.0, "summit": 8.0}
 const VEG_CELL := 70.0
 
 var node: Dictionary
@@ -119,6 +121,9 @@ func finish() -> void:
 	_vegetation_nodes()
 	_add_arrival_zone()
 	build_ms["nodes"] = _lap(t0)
+	t0 = Time.get_ticks_usec()
+	IslandContent.populate(self)
+	build_ms["content"] = _lap(t0)
 
 
 func _lap(t0: int) -> int:
@@ -303,6 +308,9 @@ func _plan_sites() -> void:
 	for site in sites.keys():
 		if site != "dock" and site != "summit":
 			_keep.append([sites[site], 30.0])
+	# the sites' cores stay clear of trees and rocks (what's built there comes later)
+	for site in SITE_CLEAR.keys():
+		reserve_area(sites[site], SITE_CLEAR[site])
 	# levelled ground for each (the summit keeps its top)
 	_flat.append([sites["village"], _height_natural(sites["village"]), 26.0, 44.0])
 	_flat.append([sites["boss"], _height_natural(sites["boss"]), 22.0, 36.0])
@@ -369,6 +377,19 @@ func reserve(p: Vector2, r: float) -> void:
 	if not exclusions.has(k):
 		exclusions[k] = []
 	exclusions[k].append([p, r])
+
+
+## A big round area kept clear: small disks over it (a single big one would
+## sit in one cell, out of reach of checks a few cells away).
+func reserve_area(c: Vector2, r: float) -> void:
+	var x := -r
+	while x <= r:
+		var z := -r
+		while z <= r:
+			if Vector2(x, z).length() <= r:
+				reserve(c + Vector2(x, z), 3.5)
+			z += 5.0
+		x += 5.0
 
 
 func _excluded(p: Vector2, pad: float) -> bool:
@@ -710,6 +731,96 @@ func _add_rock(buckets: Dictionary, meshes: Array, p: Vector2, s: float) -> void
 	if s > 0.7:
 		_shapes.append([s * 0.85, 0.0, Vector3(p.x, h + s * 0.1, p.y)])
 	reserve(p, s)
+
+
+# ==========================================================================
+# Putting things on the land (IslandContent; main thread)
+# ==========================================================================
+## A node at a site's middle on the ground, holding what's built there (its
+## nav zone parses just this).
+func site_node(site: String) -> Node3D:
+	var n := get_node_or_null("Site_" + site) as Node3D
+	if n == null:
+		n = Node3D.new()
+		n.name = "Site_" + site
+		var p: Vector2 = sites[site]
+		n.position = Vector3(p.x, hv(p), p.y)
+		add_child(n)
+	return n
+
+
+## Put `node` on the ground at island point `p` under `parent` (a site node or
+## the island). `footprint` > 0 stands it on the highest ground under it.
+func place(node: Node3D, parent: Node3D, p: Vector2, yaw: float = 0.0, footprint: float = 0.0, y_offset: float = 0.0) -> Node3D:
+	var y := _ground_max(p, footprint) if footprint > 0.0 else hv(p)
+	parent.add_child(node)
+	node.global_position = to_global(Vector3(p.x, y + y_offset, p.y))
+	node.global_rotation.y = yaw
+	return node
+
+
+func _ground_max(c: Vector2, r: float) -> float:
+	var m := hv(c)
+	for i in range(8):
+		m = maxf(m, hv(c + Vector2.from_angle(TAU * i / 8.0) * r))
+	return m
+
+
+## A Buildings.house whose footing reaches the lowest ground under it (or on stilts).
+func house(spec: Dictionary, parent: Node3D, p: Vector2, face: Vector2, on_stilts: bool = false) -> Node3D:
+	var r := maxf(float(spec.get("w", 6.0)), float(spec.get("d", 5.0))) * 0.6
+	var top := _ground_max(p, r)
+	var low := _ground_min(p, r)
+	if on_stilts:
+		spec["stilts"] = maxf(top - low + 0.6, 1.0)
+		spec["foundation"] = 0.6
+		return place(Buildings.house(spec), parent, p, StarterIsland.face_yaw(face), r, low - top)
+	spec["foundation"] = top - low + 0.8
+	return place(Buildings.house(spec), parent, p, StarterIsland.face_yaw(face), r)
+
+
+## A treasure chest (LootBag) with `items` ([id or ItemData, count]); `key` names it in the save.
+func strongbox(parent: Node3D, p: Vector2, yaw: float, key: String, items: Array, size: float = 1.15, y_offset: float = 0.0) -> LootBag:
+	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	var stacks: Array[ItemStack] = []
+	for e in items:
+		var st := ItemStack.new()
+		st.item = e[0] if e[0] is ItemData else ItemDB.get_item(str(e[0]))
+		st.quantity = int(e[1])
+		stacks.append(st)
+	bag.setup(stacks)
+	bag.save_id = save_key(key)
+	place(bag, parent, p, yaw, 0.0, y_offset)
+	var chest_mesh := bag.get_node_or_null("MeshInstance3D") as MeshInstance3D
+	chest_mesh.mesh = Props.treasure_chest_mesh()
+	chest_mesh.position = Vector3.ZERO
+	chest_mesh.scale = Vector3.ONE * size
+	return bag
+
+
+## A name for something of this island in the save (chests opened, ...).
+func save_key(key: String) -> String:
+	return "isle%d_%s" % [int(node["id"]), key]
+
+
+## World faces of the ground within `r` of world point `c` (the nav baker's ground for a site).
+func terrain_faces(c: Vector3, r: float) -> PackedVector3Array:
+	var faces := PackedVector3Array()
+	var lc := c - global_position
+	var o := global_position
+	var x0 := clampi(int(floor((lc.x - r + half) / CELL)), 0, res - 1)
+	var x1 := clampi(int(ceil((lc.x + r + half) / CELL)), 0, res - 1)
+	var z0 := clampi(int(floor((lc.z - r + half) / CELL)), 0, res - 1)
+	var z1 := clampi(int(ceil((lc.z + r + half) / CELL)), 0, res - 1)
+	for iz in range(z0, z1):
+		for ix in range(x0, x1):
+			var tl := o + Vector3(-half + ix * CELL, _h(ix, iz), -half + iz * CELL)
+			var tr := o + Vector3(-half + (ix + 1) * CELL, _h(ix + 1, iz), -half + iz * CELL)
+			var bl := o + Vector3(-half + ix * CELL, _h(ix, iz + 1), -half + (iz + 1) * CELL)
+			var br := o + Vector3(-half + (ix + 1) * CELL, _h(ix + 1, iz + 1), -half + (iz + 1) * CELL)
+			faces.append(tl); faces.append(tr); faces.append(bl)
+			faces.append(tr); faces.append(br); faces.append(bl)
+	return faces
 
 
 # ==========================================================================

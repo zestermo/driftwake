@@ -382,6 +382,22 @@ static func prebuild(looks: Array) -> void:
 			Humanoid._pool_lock.unlock(), false, "prebuild bodies"))
 
 
+## True once a body for every look in `looks` (repeats counted) is waiting.
+static func prebuilt_for(looks: Array) -> bool:
+	_reap()
+	var need := {}
+	for lk in looks:
+		var k := _look_key(lk)
+		need[k] = int(need.get(k, 0)) + 1
+	_pool_lock.lock()
+	var ok := true
+	for k in need.keys():
+		if (_ready_bodies.get(k, []) as Array).size() < int(need[k]):
+			ok = false
+	_pool_lock.unlock()
+	return ok
+
+
 ## A body for `lk`: one built ahead if there is one, else built now.
 static func make(lk: Dictionary) -> Humanoid:
 	_reap()
