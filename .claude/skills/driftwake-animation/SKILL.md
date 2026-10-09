@@ -161,6 +161,13 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
   cock (anticipation) and out of the follow-through only. Carry the follow-through fast and
   then hold it: a long eased-out sweep after contact reads as slow motion (hit 2's sweep
   past the body felt slow over 0.18 s; ~0.1 s was right).
+- **A sweep must not surge or bob.** Space swing keys by path distance: each segment's speed
+  is its distance over its time, "in" ends at 3x its average and "out" starts at 3x, so make
+  neighbouring segments meet at about the same speed (speed up once into contact, only slow
+  after). Never put a "smooth" key mid-strike (it stops the hand dead). Keep squash/stretch
+  off the vertical under a sweeping cut (the path rides the shoulders), and keep the path's
+  height monotonic. Check it: the SWING lines' hand and blade per frame give hand/tip height
+  and speed; a dip-and-recover in either is the wobble Zach sees.
 - **Give it time to read.** A light hit needs a visible wind-up and follow-through (0.75 s
   beat 0.6 s; Zach still found 0.75 s "a little too fast": round 8 tests slower); give slower
   anims their own `"chain"` so the next click doesn't cut off the hit. Slow the wind-up and

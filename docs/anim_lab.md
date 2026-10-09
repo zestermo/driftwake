@@ -316,5 +316,19 @@ Then "still too slow at the end compared to hits 1 and 3": the post-contact swee
 (keys 0.52 / 0.6 / 0.7, was 0.54 / 0.66 / 0.8), body follow at 0.58 held to 0.76, off arm to
 match, chain 0.5 s, trail to u 0.64. Takeaway: a follow-through reads as momentum only while
 it's fast; a long eased-out sweep reads as slow motion. Carry it quickly, then hold.
+Then "it wobbles up and down, it should be a smooth sweep". Traced hand and tip height and
+speed per frame (AS_DEBUG=live SWING lines); four causes, all fixed:
+- the path stopped dead mid-rise: a "smooth" key (zero speed at both ends) followed by an
+  "in" key. Keys respaced by path distance so the hand speeds up once into contact and only
+  slows after it (contact 0.4, settle 0.665; body, off arm and hit window [0.34, 0.5] moved);
+- the body bobbed (whoosh stretch y 1.08, cut squash 0.95) and the path rides the shoulders:
+  stretch now along the cut only (y 1.0), cut squash 0.98;
+- the path's height peaked after contact and sank: now it rises all the way;
+- points just out of reach locked the arm, stalling the hand then lurching it on; and a point
+  further from the shoulder than its neighbours straightened then re-bent the elbow, dipping
+  the tip. Radii trimmed until the bend changes smoothly.
+Takeaways (skill): space keys by distance (speed = distance / time per segment; "in" ends at
+3x its average speed, "out" starts at 3x); never a "smooth" key in the middle of a strike;
+keep squash/stretch off the vertical under a sweeping cut.
 Path radii in the follow-through needed the frame's offset (the anchor carried from hit 1
 sits ~0.16 m right of the body there): read the ELBOW target vs shoulder, not the key's r.
