@@ -3,6 +3,8 @@
 #   .\tools\dev\run_tests.ps1                      # every suite, one at a time
 #   .\tools\dev\run_tests.ps1 r10test swimtest     # just these
 #   .\tools\dev\run_tests.ps1 -Jobs 4              # every suite, 4 at once (faster, a bit flakier)
+#   .\tools\dev\run_tests.ps1 -Changed             # the suites that cover uncommitted changes (test_map.txt)
+#   .\tools\dev\run_tests.ps1 -Changed -Base main  # ...and everything this branch changed since main
 #
 # Godot: set $env:GODOT to the *console* build (Godot_v4.7-..._win64_console.exe),
 # or pass -Godot. The non-console exe doesn't print to the terminal on Windows.
@@ -13,7 +15,9 @@ param(
 	[string]$Godot = $env:GODOT,
 	[int]$Timeout = 330,
 	[int]$Jobs = 1,
-	[switch]$NoCompileCheck
+	[switch]$NoCompileCheck,
+	[switch]$Changed,
+	[string]$Base = "HEAD"
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,6 +25,18 @@ $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $all = @("feat", "feel", "dash", "chartest", "styletest", "stamtest", "invtest", "ragtest", "bugtest",
 	"shiptest", "swimtest", "grunttest", "guntest", "fixtest", "watertest", "powertest", "progtest",
 	"savetest", "vinetest", "r6test", "r7test", "r8test", "r9test", "r10test", "capturetest", "katanatest", "hairtest", "seatest", "yardtest", "qoltest", "axetest", "perftest", "decktest", "riggingtest", "looptest", "techtest", "foresttest")
+$wantNet = $false
+if ($Changed) {
+	$picked = @((& (Join-Path $PSScriptRoot "affected.ps1") -Base $Base -Explain) -split "\s+" | Where-Object { $_ })
+	$wantNet = $picked -contains "net"
+	$Tests = @($picked | Where-Object { $_ -ne "net" -and $all -contains $_ })
+	if ($Tests.Count -eq 0) {
+		Write-Host "No suites cover what changed." -ForegroundColor Yellow
+		if ($wantNet) { Write-Host "Co-op code changed: run .\tools\dev\nettest.ps1" -ForegroundColor Yellow }
+		exit 0
+	}
+	Write-Host ("Suites: " + ($Tests -join " ")) -ForegroundColor Cyan
+}
 if (-not $Tests -or $Tests.Count -eq 0) { $Tests = $all }
 
 if (-not $Godot) {
@@ -103,4 +119,5 @@ if ($failed.Count -gt 0) {
 } else {
 	Write-Host "ALL OK ($($Tests.Count) suites)" -ForegroundColor Green
 }
+if ($wantNet) { Write-Host "Co-op code changed: run .\tools\dev\nettest.ps1 too" -ForegroundColor Yellow }
 exit $failed.Count

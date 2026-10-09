@@ -1,0 +1,111 @@
+# Which test suites cover which files: used by affected.ps1 / run_tests.ps1 -Changed.
+# <path pattern (PowerShell -like, from the repo root)>   <suites...>
+# Every line a changed file matches adds its suites. "net" = also run nettest.ps1.
+# A changed tools/dev/<suite>.gd runs that suite. Add a line when you add a suite or a system.
+
+# --- player ---
+scenes/player/*                         feat feel dash stamtest swimtest
+scenes/player/camera_rig.gd             stamtest feel
+scripts/player_states/*                 feat feel dash
+scripts/player_states/light_attack*     feel axetest katanatest stamtest techtest
+scripts/player_states/heavy_attack*     stamtest axetest techtest
+scripts/player_states/iai*              katanatest
+scripts/player_states/plunge*           fixtest katanatest
+scripts/player_states/dodge*            dash
+scripts/player_states/block*            r6test
+scripts/player_states/parry*            grunttest
+scripts/player_states/stagger*          grunttest
+scripts/player_states/downed*           ragtest decktest net
+scripts/player_states/swim*             swimtest watertest
+scripts/player_states/climb*            riggingtest swimtest
+scripts/player_states/swing*            vinetest riggingtest
+scripts/player_states/cannon*           r8test
+scripts/player_states/helm*             shiptest r8test
+scripts/player_states/skill*            powertest vinetest techtest
+scripts/player_states/shoot*            techtest
+scripts/state_machine/*                 feat feel
+scripts/input/*                         feel dash
+
+# --- bodies and animation ---
+scripts/npc/humanoid.gd                 chartest styletest ragtest r10test katanatest axetest feel techtest
+scripts/npc/body_builder.gd             chartest styletest hairtest katanatest qoltest
+scripts/npc/character_look.gd           chartest styletest savetest
+scripts/npc/face_painter.gd             chartest
+scripts/npc/spring_chains.gd            hairtest chartest
+scripts/npc/arm_body.gd                 chartest styletest perftest
+scripts/npc/lower_body.gd               chartest styletest perftest
+scripts/npc/npc.gd                      qoltest
+scripts/npc/action_specs.gd             feel axetest katanatest techtest
+scripts/npc/sword_moves.gd              feel axetest katanatest techtest
+scripts/npc/anim_lab.gd                 feel
+scripts/net/humanoid_sync.gd            net
+
+# --- combat, enemies, powers, progression ---
+scenes/combat/*                         grunttest feel techtest
+scripts/combat/*                        grunttest ragtest feel
+scripts/combat/ragdoll.gd               ragtest watertest r10test decktest
+scripts/enemies/pirate_grunt.gd         grunttest guntest fixtest watertest perftest
+scripts/enemies/grunt_camp.gd           grunttest perftest
+scripts/enemies/pirate_boss.gd          r8test
+scripts/enemies/scuttlebug*             bugtest
+scripts/enemies/sea_king.gd             seatest
+scripts/enemies/*                       grunttest foresttest
+scripts/powers/*                        powertest vinetest r6test techtest
+scripts/progression/*                   progtest techtest r6test
+scripts/ui/skill_map*                   progtest r6test techtest
+
+# --- items, inventory, saves, game ---
+scripts/loot/*                          r7test invtest feat looptest
+scripts/loot/gear*                      invtest qoltest
+scripts/loot/equipment*                 invtest
+scripts/game/save_game.gd               savetest progtest looptest yardtest r9test
+scripts/game/game_manager.gd            looptest ragtest savetest
+scripts/game/dev_capture.gd             capturetest
+scripts/game/perf_monitor.gd            perftest
+scripts/game/settings.gd                savetest r6test
+scripts/game/shops.gd                   qoltest
+scripts/game/*                          feat
+scripts/props/weapon_designs.gd         qoltest katanatest axetest
+scripts/props/*                         qoltest
+
+# --- ship and sea ---
+scripts/ship/hull_builder.gd            shiptest seatest riggingtest r8test swimtest decktest looptest
+scripts/ship/ship.gd                    shiptest seatest riggingtest qoltest yardtest looptest decktest r8test net
+scripts/ship/ship_kit.gd                yardtest
+scripts/ship/enemy_ship.gd              seatest r8test perftest
+scripts/ship/enemy_fleet.gd             seatest perftest
+scripts/ship/cannon*                    r8test seatest
+scripts/ship/ship_rigging.gd            riggingtest
+scripts/ship/swing_rope.gd              riggingtest
+scripts/ship/*                          shiptest
+scripts/ocean/*                         swimtest shiptest r9test r10test watertest
+scenes/ocean/*                          r9test r10test
+scripts/world/sea_features.gd           seatest
+scripts/world/weather.gd                r9test r10test
+scripts/world/cloud_spawner.gd          r9test r10test
+scripts/world/grapple_points.gd         vinetest
+scripts/world/burnable.gd               powertest
+scripts/world/nav_baker.gd              grunttest
+scripts/interaction/*                   r7test riggingtest swimtest qoltest
+scripts/interaction/ladder.gd           swimtest riggingtest
+
+# --- world ---
+scripts/island/starter_island.gd        qoltest foresttest grunttest yardtest looptest
+scripts/island/world_generator.gd       foresttest r9test perftest
+scripts/island/redtide_fort.gd          r8test perftest
+scripts/island/*                        foresttest
+data/dialogue/*                         qoltest
+
+# --- UI ---
+scenes/ui/*                             r6test r7test r8test
+scripts/ui/inventory*                   invtest r7test looptest
+scripts/ui/shop*                        qoltest
+scripts/ui/title*                       savetest
+scripts/ui/game_menu.gd                 savetest r6test
+scripts/ui/character_creator.gd         chartest
+scripts/ui/*                            r6test
+
+# --- rendering ---
+scripts/psx/*                           r9test hairtest
+shaders/*                               r9test r10test
+project.godot                           feat r6test
