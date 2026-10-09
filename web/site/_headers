@@ -1,0 +1,27 @@
+# Read by both Netlify and Cloudflare Pages (same format). See docs/web_build.md.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# The export's file names never change (index.wasm, index.pck), so browsers
+# revalidate them each visit (a cheap 304 when the build is unchanged).
+/play/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=0, must-revalidate
+
+/play/*.pck
+  Content-Type: application/octet-stream
+  Cache-Control: public, max-age=0, must-revalidate
+
+/fonts/*
+  Cache-Control: public, max-age=604800
+
+/img/*
+  Cache-Control: public, max-age=86400
+
+# Only for a threaded export (variant/thread_support=true): uncomment so the
+# game page gets SharedArrayBuffer. The thread-less build needs neither.
+# /play/*
+#   Cross-Origin-Opener-Policy: same-origin
+#   Cross-Origin-Embedder-Policy: require-corp

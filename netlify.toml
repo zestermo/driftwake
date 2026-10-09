@@ -1,0 +1,8 @@
+# Netlify serves the static site in web/site (headers: web/site/_headers).
+# No build command: Netlify's builders don't have Godot or its web templates.
+# Run tools/dev/build_web.ps1 locally (it puts the export in web/site/play/),
+# then deploy web/site with the Netlify CLI or by dragging the folder in.
+# See docs/web_build.md.
+[build]
+  publish = "web/site"
+  command = ""

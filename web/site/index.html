@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driftwake</title>
+<meta name="description" content="Driftwake: a PS1-style pirate action RPG. Sail your own sloop, fight with blades, guns and Devil Fruit powers, and chart a chain of islands.">
+<meta property="og:title" content="Driftwake">
+<meta property="og:description" content="A PS1-style pirate action RPG. Sail, fight, eat a Devil Fruit, chart the sea.">
+<meta property="og:image" content="img/sailing.jpg">
+<meta name="theme-color" content="#0d0f29">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/PixelifySans-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="hero">
+	<img class="hero-bg" src="img/dusk.svg" alt="" width="800" height="450">
+	<div class="hero-in">
+		<h1 class="logo">DRIFTWAKE</h1>
+		<p class="tag">THE SEA REMEMBERS EVERY WAKE</p>
+		<p class="pitch">A pirate action RPG with a PS1 heart. Wake on a beach with nothing, learn to fight,
+			win a sloop, then sail a chain of islands with blades, pistols and the Devil Fruit you dared to eat.</p>
+		<div class="cta">
+			<a class="btn" href="play/">Play in browser</a>
+			<a class="btn btn-alt" href="#download" aria-disabled="true">Download for Windows</a>
+		</div>
+		<p class="small">Free. Plays in Chrome, Edge or Firefox on a computer with a keyboard and mouse.</p>
+	</div>
+</header>
+
+<main>
+	<section class="shots" aria-label="Screenshots">
+		<figure><img src="img/sailing.jpg" alt="The crew's sloop under sail, leaving a wake toward an island with a lighthouse" loading="lazy" width="1280" height="720"><figcaption>Your own sloop, your own wake.</figcaption></figure>
+		<figure><img src="img/fight.jpg" alt="A cutlass fight with smugglers around a beach campfire" loading="lazy" width="1280" height="720"><figcaption>Blades, parries and a camp of smugglers.</figcaption></figure>
+		<figure><img src="img/village.jpg" alt="The fishing village of Brinehollow at dusk, a captain in a red coat on the path" loading="lazy" width="1280" height="720"><figcaption>Brinehollow, where it starts.</figcaption></figure>
+		<figure><img src="img/seaking.jpg" alt="A green Sea King rising beside the sloop on open water" loading="lazy" width="1280" height="720"><figcaption>Some waters are spoken for.</figcaption></figure>
+	</section>
+
+	<section class="panel features">
+		<h2>What's out there</h2>
+		<ul>
+			<li><b>Fight like a shonen hero.</b> Cutlass, katana, boarding axe, pistols or fists, each with its own combos, techniques and ultimate.</li>
+			<li><b>Eat a Devil Fruit.</b> Ember, Vine or Wolf: fire fists, grapples and swings, or a beast form. You can't swim once you do.</li>
+			<li><b>Sail your ship.</b> Trim the sails, man the cannons, board a pirate brig and take her prize. Patch the hull when it goes wrong.</li>
+			<li><b>Follow the log pose.</b> An island chain built from your world's seed: camps, caves, villages, a beast on each island and the sea between.</li>
+			<li><b>All of it made in code.</b> Bodies, islands, ships, textures, music and sound, drawn the way a PS1 would: wobbly vertices, dithered colour, a low pixel grid.</li>
+		</ul>
+	</section>
+
+	<section class="panel controls" id="controls">
+		<h2>Controls</h2>
+		<table>
+			<tr><th>Move</th><td>W A S D</td><th>Look</th><td>Mouse</td></tr>
+			<tr><th>Sprint</th><td>Shift</td><th>Jump</th><td>Space</td></tr>
+			<tr><th>Light / heavy attack</th><td>Left / right click</td><th>Dodge roll</th><td>C <span class="dim">(Left Ctrl on desktop)</span></td></tr>
+			<tr><th>Parry / block</th><td>Q</td><th>Interact, talk</th><td>F</td></tr>
+			<tr><th>Ready weapon</th><td>Z</td><th>Skills / ultimate</th><td>1 - 4 / R</td></tr>
+			<tr><th>Quick items</th><td>5 - 7</td><th>Inventory</th><td>Tab / I</td></tr>
+			<tr><th>Skill map</th><td>K</td><th>Sea chart</th><td>M</td></tr>
+			<tr><th>Log pose (hold)</th><td>L</td><th>Summon ship (hold)</th><td>B</td></tr>
+			<tr><th>Menu</th><td>Esc</td><th>Fullscreen</th><td>Alt+Enter</td></tr>
+		</table>
+	</section>
+
+	<section class="panel two" id="download">
+		<div>
+			<h2>Desktop build</h2>
+			<p>The Windows build runs the full renderer and has <b>co-op for up to four captains</b> (one hosts, friends join by address).</p>
+			<p><a class="btn btn-alt" aria-disabled="true">Download for Windows (soon)</a></p>
+		</div>
+		<div>
+			<h2>About the browser build</h2>
+			<p>Same game, drawn with the browser's WebGL renderer. Co-op is desktop-only for now. Your saves live in this browser, so clearing site data clears them. The first visit downloads the whole game; later ones start quicker.</p>
+		</div>
+	</section>
+</main>
+
+<footer>
+	<p>Driftwake is made by Zach. Fonts: Pixelify Sans and Silkscreen (SIL Open Font License). Built with Godot.</p>
+</footer>
+
+</body>
+</html>
