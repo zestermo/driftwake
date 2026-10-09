@@ -234,6 +234,8 @@ const SWIVEL_SHARP := 18.0
 ## How close a swung blade may come to the head's centre (head 0.125 + hair/hat), and the
 ## most the hand is pushed out to keep it there.
 const HEAD_CLEAR := 0.2
+## Head (with hair) plus upper-arm radius: the sword arm's upper arm closer than this clips.
+const ARM_HEAD_CLEAR := 0.19
 ## The same for the chest's capsule (half its depth, a coat allowed for). The blade's first
 ## quarter (by the hand) isn't checked against it: the hilt passes close to the body.
 const CHEST_CLEAR := 0.2
@@ -2672,8 +2674,11 @@ func _swing(delta: float) -> void:
 	var fore := fore_r if right else fore_l
 	# (a new action's swing starts afresh even when the last one was still running: a chain)
 	var first := not _swing_on or _swing_act != _action_id
+	# (a chained hit keeps the last swing's anchor: its body starts coiled, not at the guard
+	# its path is authored for, and re-anchoring there slid the path out of reach)
+	var chained := _swing_on and _swing_act != _action_id
 	_swing_act = _action_id
-	var frame := _swing_frame(sw, first)
+	var frame := _swing_frame(sw, first and not chained)
 	var s := _swing_at(sw, _sample_u(t, sp))
 	var pos_l: Vector3 = s[0]
 	var move := (_swing_at(sw, _sample_u(t + 0.02, sp))[0] as Vector3) - pos_l
@@ -2730,12 +2735,16 @@ func _swing(delta: float) -> void:
 	var real_blade := -hand.global_basis.z.normalized()
 	var fore_axis := (hand.global_position - fore.global_position).normalized()
 	var travel := frame.basis * move
-	swing_check = {"grip": real_blade.angle_to(fore_axis), "roll": float(sol[1]), "head": float(cl[0])}
+	var c := head.global_transform * Vector3(0, 0.11, 0)
+	var upper := Geometry3D.get_closest_point_to_segment(c, arm.global_position, fore.global_position)
+	swing_check = {"grip": real_blade.angle_to(fore_axis), "roll": float(sol[1]), "head": float(cl[0]),
+		"arm_head": c.distance_to(upper) - ARM_HEAD_CLEAR}
 	if AnimLab.debug:
 		var inv := global_basis.orthonormalized().inverse()
 		# (where each elbow's point sticks out (the arm's +Z), body space; forward is -Z)
-		print("ELBOW u %.2f sword arm points %s bend %.2f" % [float(_action["t"]) / dur,
-			(inv * arm_r.global_basis.z.normalized()).snapped(Vector3.ONE * 0.01), fore_r.rotation.x])
+		print("ELBOW u %.2f sword arm points %s bend %.2f arm clear of head %.2f | clearance push %s target %s" % [float(_action["t"]) / dur,
+			(inv * arm_r.global_basis.z.normalized()).snapped(Vector3.ONE * 0.01), fore_r.rotation.x, float(swing_check["arm_head"]),
+			(inv * _clear_push).snapped(Vector3.ONE * 0.01), (global_transform.affine_inverse() * target).snapped(Vector3.ONE * 0.01)])
 		print("SWING u %.2f hand %s got %s shoulder %s forearm %s cut goes %s | blade %s edge %s | wrist %s over %.2f | swivel %.2f" % [
 			float(_action["t"]) / dur, pos_l.snapped(Vector3.ONE * 0.01), (global_transform.affine_inverse() * hand.global_position).snapped(Vector3.ONE * 0.01),
 			(global_transform.affine_inverse() * arm.global_position).snapped(Vector3.ONE * 0.01), (inv * fore_axis).snapped(Vector3.ONE * 0.01),

@@ -70,7 +70,7 @@ func _lab(out: String, n: String) -> void:
 		var rows: Array = []
 		for p in picks:
 			AnimLab.pick = p
-			AnimLab.debug = view == "front3" and p != "" and OS.get_environment("AS_DEBUG") == p
+			AnimLab.debug = view == "front3" and OS.get_environment("AS_DEBUG") == (p if p != "" else "live")
 			var s := AnimLab.spec(n)
 			var row := await _strip(n, s, s.get("extras", {}), VIEWS[view])
 			row.append(TAGS[picks.find(p)])
@@ -202,6 +202,9 @@ func _track(h, ranges: Dictionary) -> void:
 		ranges["grip"] = maxf(ranges.get("grip", 0.0), sc["grip"])
 		ranges["roll"] = maxf(ranges.get("roll", 0.0), sc["roll"])
 		ranges["head_clear"] = minf(ranges.get("head_clear", 1.0), sc["head"])
+		ranges["arm_head"] = minf(ranges.get("arm_head", 1.0), sc["arm_head"])
+		if float(sc["arm_head"]) < 0.0:
+			ranges["arm_clip"] = ranges.get("arm_clip", 0) + 1
 		if float(sc["head"]) < -0.01:
 			ranges["through"] = ranges.get("through", 0) + 1
 		if sc.has("edge"):
@@ -222,10 +225,11 @@ func _print_ranges(n: String, p: String, ranges: Dictionary) -> void:
 	print("RANGE %s [%s] (x/y/z, rad) %s" % [n, "live" if p == "" else p.to_upper(), " | ".join(parts)])
 	if ranges.has("grip"):
 		var en := int(ranges.get("edge_n", 0))
-		print("BLADE %s [%s] edge leads the cut avg %.2f min %.2f (%d samples) | worst grip %.2f rad%s | worst roll in fist %.2f | body clearance (head/chest) min %.2f m%s" % [
+		print("BLADE %s [%s] edge leads the cut avg %.2f min %.2f (%d samples) | worst grip %.2f rad%s | worst roll in fist %.2f | body clearance (head/chest) min %.2f m%s | upper arm clear of head min %.2f m%s" % [
 			n, "live" if p == "" else p.to_upper(), float(ranges.get("edge_sum", 0.0)) / maxi(en, 1), float(ranges.get("edge_min", 0.0)), en,
 			float(ranges["grip"]), " REVERSE GRIP x%d" % int(ranges["reverse"]) if ranges.has("reverse") else "", float(ranges["roll"]),
-			float(ranges["head_clear"]), " THROUGH THE BODY x%d" % int(ranges["through"]) if ranges.has("through") else ""])
+			float(ranges["head_clear"]), " THROUGH THE BODY x%d" % int(ranges["through"]) if ranges.has("through") else "",
+			float(ranges["arm_head"]), " ARM IN THE HEAD x%d" % int(ranges["arm_clip"]) if ranges.has("arm_clip") else ""])
 
 
 func _crop(im: Image) -> Image:

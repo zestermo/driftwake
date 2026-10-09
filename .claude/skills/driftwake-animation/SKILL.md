@@ -181,7 +181,12 @@ Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
   head as a safety net, but a path that needs it reads as cramped.
 - **Check the BLADE line** animsheet prints for every lab variant: edge leading the cut
   (avg > 0.3, min > 0), no REVERSE GRIP, forearm over-turn < 0.3, body clearance >= 0 (no
-  THROUGH THE BODY: the solver keeps the blade 0.2 m off the head sphere and chest capsule). If it's off, run with `AS_DEBUG=<variant>` for the per-frame solve
+  THROUGH THE BODY: the solver keeps the blade 0.2 m off the head sphere and chest capsule),
+  upper arm clear of head >= 0 (no ARM IN THE HEAD). `AS_DEBUG=live` debugs the live row;
+  its ELBOW lines give bend, arm-to-head and the target per frame. A sword arm at bend 0.09
+  means the target is out of reach: the path, not the pose, is wrong.
+- **A chained hit shares the previous swing's frame** (its anchor carries over), so author
+  its first key on the last hit's final point, in the guard's frame like every other path. If it's off, run with `AS_DEBUG=<variant>` for the per-frame solve
   (hand, shoulder, forearm, blade, edge).
 - **The off arm answers the swing:** reaches toward the target on the wind-up, flings back
   through the cut, ideally dragging a little behind the chest.

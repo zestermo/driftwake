@@ -289,4 +289,20 @@ follow-through to sell the momentum. Changes:
 - Blade clearance now covers the chest (a capsule hips to neck, 0.2 m) as well as the head;
   the BLADE line reports it as body clearance.
 
-Ranking: _waiting for Zach_
+Ranking: **C > others** (the flatter rise, now live). Zach's note on C: in the follow-through
+the arm is up with the chest turned and the upper arm clips the head; less chest turn, a
+little more elbow bend. What it really was:
+- **The chained hit re-anchored its path on a coiled body.** The swing frame follows the
+  shoulders from where they were on the action's first frame, and paths are authored for the
+  guard. Hit 2 starts with the shoulders still coiled left from hit 1, so as the body turned
+  back the path slid ~0.4 m right and up, out of reach: the arm locked straight (bend 0.09)
+  from contact through the follow-through and the upper arm rode up by the head. Fix: a hit
+  chained from a running swing keeps that swing's anchor (one frame for the whole combo).
+- Then retuned on the true frame: cut points nearer (r 0.58/0.53/0.5, the arm straight only
+  for an instant at contact), the follow point further out (0.66, bend ~1.4), the cock eased
+  (break 0.9/0.4, so the blade comes round into the cut sooner), and the follow-through
+  turn cut from hips -0.45 / chest -0.6 to -0.3 / -0.33 (x1.6).
+- New check: "upper arm clear of head" in the BLADE line (ARM IN THE HEAD when < 0), the
+  sword arm's upper arm against the head sphere; `AS_DEBUG=live` now debugs the live row.
+
+Checks (live): edge avg 0.32, body clearance 0.25 m, upper arm clear of head 0.04 m.

@@ -12,32 +12,10 @@ class_name AnimLab
 const FOCUS := "slash_l"
 const SLOW := 0.25
 
-## Round 9: combo hit 2 (slash_l, the rising backhand chained from hit 1, see SwordMoves).
-## Live is the diagonal rise; what differs is how steep the cut climbs (the body is live).
-const SLASH_L_STEEP := {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02, "keys": [
-	[0.0, {"dir": Vector3(-0.65, -0.55, 0.0), "r": 0.483, "break": 0.3}],
-	[0.2, {"dir": Vector3(-0.55, -0.75, -0.3), "r": 0.56, "break": 1.0}, "smooth"],
-	[0.32, {"dir": Vector3(-0.2, -0.75, -0.6), "r": 0.66, "break": 1.2}, "in"],
-	[0.44, {"dir": Vector3(0.15, 0.2, -1.0), "r": 0.71, "break": 0.6}],
-	[0.56, {"dir": Vector3(0.55, 0.85, -0.15), "r": 0.6, "break": 0.2}],
-	[0.74, {"dir": Vector3(0.6, 0.7, 0.35), "r": 0.52, "break": 0.35}, "out"]]}
-const SLASH_L_FLAT := {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02, "keys": [
-	[0.0, {"dir": Vector3(-0.65, -0.55, 0.0), "r": 0.483, "break": 0.3}],
-	[0.2, {"dir": Vector3(-0.75, -0.4, -0.3), "r": 0.56, "break": 1.0}, "smooth"],
-	[0.32, {"dir": Vector3(-0.5, -0.25, -0.8), "r": 0.66, "break": 1.2}, "in"],
-	[0.44, {"dir": Vector3(0.3, -0.1, -1.0), "r": 0.71, "break": 0.6}],
-	[0.56, {"dir": Vector3(0.9, 0.1, -0.35), "r": 0.6, "break": 0.2}],
-	[0.74, {"dir": Vector3(0.8, 0.1, 0.55), "r": 0.52, "break": 0.35}, "out"]]}
-
+## Round 9 picked (C, the flatter rise, now live in SwordMoves): no variants until the next round.
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
-	"slash_l": {
-		"a": {"note": "Diagonal rise (as live): low left up to high right"},
-		"b": {"note": "Steep rise: nearly straight up the front, ending high",
-			"spec": {"swing": SLASH_L_STEEP}},
-		"c": {"note": "Flatter rise: a rising sweep, ending at shoulder height",
-			"spec": {"swing": SLASH_L_FLAT}},
-	},
+	"slash_l": {},
 }
 
 ## The variant shown ("" = the live animation).
