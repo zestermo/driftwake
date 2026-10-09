@@ -2649,7 +2649,8 @@ func _process(delta: float) -> void:
 ##   So its edge (-Y) always faces the cut, and it can't end up in a reverse grip;
 ## * the elbow swivels round the shoulder-hand line to keep the forearm's turn natural
 ##   (within WRIST_ROLL), close to the rest and to last frame's angle.
-## Blends in over 0.08 s before the first key and out over 0.1 s after the last.
+## Blends in over 0.08 s before the first key and out over 0.1 s after the last (joint by
+## joint back to the posed arm: end the path near the guard hand so that's a short turn).
 func _swing(delta: float) -> void:
 	if _action.is_empty() or ragdoll != null or not is_inside_tree():
 		_swing_on = false
@@ -2700,11 +2701,15 @@ func _swing(delta: float) -> void:
 		var last: Array = _hand_last.get(side, [hand.global_position, hand.rotation])
 		_swing_from = global_transform.affine_inverse() * (last[0] as Vector3)
 		_swing_wrist_from = last[1]
-	# (blending out after the last key goes back to the posed arm)
+	# released after the last key: the arm stays solved on the path's end (swivel and wrist
+	# held) and each joint turns back to its posed rotation; IK toward the posed hand found
+	# another elbow there and the arm and blade snapped over
 	var ending := t > t1
-	var from := hand.global_position if ending else global_transform * _swing_from
-	var target := from.lerp(frame * pos_l, w) + _clear_push
-	var phi := _best_swivel(right, target, ahead, brk)
+	var posed_arm := arm.quaternion
+	var posed_fore := fore.quaternion
+	var from := global_transform * _swing_from
+	var target := frame * pos_l + _clear_push if ending else from.lerp(frame * pos_l, w) + _clear_push
+	var phi := _swivel if ending else _best_swivel(right, target, ahead, brk)
 	# (blending in from the posed arm the forearm turns fast: a lagging swivel left the wrist
 	# turned past its limit for a moment, a flick at the start of the wind-up)
 	_swivel = phi if first else lerp_angle(_swivel, phi, 1.0 - exp(-(SWIVEL_SHARP if w >= 1.0 else 60.0) * delta))
@@ -2717,12 +2722,18 @@ func _swing(delta: float) -> void:
 	if first:
 		_wrist = Vector2(posed.x, posed.y)
 	_swing_on = true
-	_wrist = _wrist.lerp(wr, 1.0 - exp(-WRIST_SHARP * delta))
+	# (released, the arm leaves the path and the solve can jump to the other wrist turn: the
+	# blade flipped over on the way back to the guard)
+	if not ending:
+		_wrist = _wrist.lerp(wr, 1.0 - exp(-WRIST_SHARP * delta))
 	hand.rotation = Vector3(lerpf(posed.x, _wrist.x, w), lerpf(posed.y, _wrist.y, w), posed.z * (1.0 - w))
+	if ending:
+		arm.quaternion = posed_arm.slerp(arm.quaternion, w)
+		fore.quaternion = posed_fore.slerp(fore.quaternion, w)
 	# clearance: a blade through the head pushes the hand (and the sword with it) straight
 	# out from the head, this frame, and the push stays while it's needed, easing off after
 	var cl := _blade_clear(hand)
-	if float(cl[0]) < 0.0:
+	if float(cl[0]) < 0.0 and not ending:
 		var push: Vector3 = (cl[1] as Vector3) * (0.02 - float(cl[0]))
 		_clear_push = (_clear_push + push).limit_length(CLEAR_PUSH_MAX)
 		reach_hand(right, target + push, _swivel_pole(right, target + push, _swivel))

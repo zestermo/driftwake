@@ -24,6 +24,7 @@ const AXES := ["pivot", "hips", "torso", "head"]
 var _world: Node3D
 var _cam: Camera3D
 var _frames := N
+var _tracing := false
 
 
 func _initialize() -> void:
@@ -71,8 +72,12 @@ func _lab(out: String, n: String) -> void:
 		for p in picks:
 			AnimLab.pick = p
 			AnimLab.debug = view == "front3" and OS.get_environment("AS_DEBUG") == (p if p != "" else "live")
+			_tracing = view == "front3" and OS.get_environment("AS_TRACE") == (p if p != "" else "live")
+			if _tracing:
+				print("TRACE %s [%s]: u | sword hand height, speed | blade tip height, speed | elbow bend (body space, m, m/s, rad)" % [n, "live" if p == "" else p.to_upper()])
 			var s := AnimLab.spec(n)
 			var row := await _strip(n, s, s.get("extras", {}), VIEWS[view])
+			_tracing = false
 			row.append(TAGS[picks.find(p)])
 			rows.append(row)
 			if view == "front3":
@@ -162,6 +167,7 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 	var imgs: Array = []
 	# (lab mode draws the blade's own trail: where the swing really goes)
 	var trail: BladeTrail = null
+	var tr := {}
 	if _frames == N_LAB:
 		trail = BladeTrail.new()
 		trail.body = h
@@ -172,6 +178,8 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 		while h.is_busy() and float(h._action["t"]) < target:
 			h._process(1.0 / 120.0)
 			_track(h, ranges)
+			if _tracing and h.weapon != null:
+				_trace(h, tr)
 			if trail:
 				trail.sample(1.0 / 120.0)
 		# (the skinned legs only follow on frames the rig posed itself: stepped by hand, skin them here)
@@ -213,6 +221,21 @@ func _track(h, ranges: Dictionary) -> void:
 			ranges["edge_min"] = minf(ranges.get("edge_min", 1.0), sc["edge"])
 			if float(sc["grip"]) > 2.1:
 				ranges["reverse"] = ranges.get("reverse", 0) + 1
+
+
+## AS_TRACE=<variant|live> (lab mode): the swing frame by frame at 60 fps. A height that dips
+## and recovers, or a speed that stalls and surges, is the wobble that reads in game.
+func _trace(h, st: Dictionary) -> void:
+	var inv: Transform3D = h.global_transform.affine_inverse()
+	var w: MeshInstance3D = h.weapon
+	var hand: Vector3 = inv * (h.hand_r as Node3D).global_position
+	var tip: Vector3 = inv * (w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z))
+	st["n"] = int(st.get("n", 0)) + 1
+	if st.has("hand") and int(st["n"]) % 2 == 0:
+		print("TRACE u %.3f | hand %.2f %4.1f | tip %.2f %4.1f | elbow %.2f" % [float(h._action["t"]) / float(h._action["dur"]),
+			hand.y, hand.distance_to(st["hand"]) * 120.0, tip.y, tip.distance_to(st["tip"]) * 120.0, (h.fore_r as Node3D).rotation.x])
+	st["hand"] = hand
+	st["tip"] = tip
 
 
 func _print_ranges(n: String, p: String, ranges: Dictionary) -> void:

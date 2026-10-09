@@ -332,3 +332,17 @@ Takeaways (skill): space keys by distance (speed = distance / time per segment; 
 keep squash/stretch off the vertical under a sweeping cut.
 Path radii in the follow-through needed the frame's offset (the anchor carried from hit 1
 sits ~0.16 m right of the body there): read the ELBOW target vs shoulder, not the key's r.
+
+## Sign-off and reflection (2026-10-08)
+
+Zach: happy with hits 1 and 2 as they are. The skill was rewritten from everything above
+(see the driftwake-animation skill's recipe, diagnosing table and tools). While re-checking
+both hits with the new per-frame trace (animsheet `AS_TRACE=live`), a pop showed in the
+recovery of both: one frame with the tip moving ~120 m/s as the swing handed the arm back to
+the guard (IK toward the posed hand found another elbow). The release now slerps each arm
+joint back to its posed rotation; the moves are otherwise unchanged (BLADE lines identical).
+Lessons that cut across the rounds:
+- Zach's notes name symptoms; the causes were elsewhere (a frame anchor, key spacing, an
+  out-of-reach point, an IK handoff). Trace before tuning.
+- Numbers over eyeballing: BLADE checks and the trace caught what renders hid.
+- Check the whole move, recovery included, not just the strike.

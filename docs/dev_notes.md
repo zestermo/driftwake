@@ -640,3 +640,19 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - NightLight (scripts/world/night_light.gd): an OmniLight on from 18:30 to 6:00 (or always), no shadows, distance fade 45-60 m, checks Weather.hour() once a second. Budget: 4 lamps, tavern door, harbour office, warehouse, chapel, forge = 9.
 - islandshot takes ISHOT_HOUR (e.g. 21) to render at an hour.
 - Tests: qoltest, yardtest, r7test, savetest, feat, r6test, perftest, foresttest, looptest. Renders: islandshot aerial, plaza, tavern outside and in, market, houses, smithy, chapel; the plaza, tavern and smithy at 21:00.
+
+## 2026-10-08: cutlass combo hits 1-2 signed off; animation skill rewritten
+- Hits 1 and 2 (SwordMoves, swing paths) are what Zach likes now; the anim lab log
+  (docs/anim_lab.md, rounds 1-9) has every ranking and takeaway.
+- Swing release (Humanoid._swing): after a path's last key the arm now turns back to its
+  posed rotation joint by joint (quaternion slerp, swivel and wrist held at the path's end)
+  instead of IK toward the posed hand, which picked another elbow solution and popped the
+  blade over in one frame at the end of both hits (tip ~120 m/s). Clearance pushes are off
+  while releasing.
+- animsheet AS_TRACE=<live|a|b|c> (lab mode): the swing frame by frame (hand and tip height
+  and speed, elbow bend). It found the pop above; it's how wobbles get diagnosed.
+- .claude/skills/driftwake-animation/SKILL.md rewritten around what training taught: how Zach
+  judges a move, keyed poses vs paths, the swing authoring recipe (spacing by distance,
+  reach/bend, monotonic height, the anchor across chains, ending the path), body keys for a
+  swing, timing, a symptom -> cause table, the tools and check targets.
+- Tests: fixtest, feat, stamtest. Renders: animsheet lab:slash_r, lab:slash_l with AS_TRACE.

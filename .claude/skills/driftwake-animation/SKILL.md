@@ -3,38 +3,70 @@ name: driftwake-animation
 description: >
   Make or tune character animations in Driftwake: the procedural keyframe animator in
   scripts/npc/humanoid.gd (actions played with Humanoid.play, poses as joint-rotation
-  dictionaries, the `_keys` easing modes, upper/full masks, hip lift, spins), wiring an
-  action to a player state or enemy (hitbox start/end timing, durations vs lengths, slash
-  trails), co-op mirroring, and checking the result with the animsheet / posebench render
-  tools. Use when Zach asks for a new attack, move, emote, idle/locomotion tweak, pose fix,
-  "the swing looks wrong", wind-up/follow-through timing, or anything about how a body moves.
+  dictionaries, the `_keys` easing modes, upper/full masks, hip lift, spins), weapon swings
+  on hand paths (ActionSpecs "swing"/"reach", SwordMoves), wiring an action to a player
+  state or enemy (hitbox timing, chains, blade trails), co-op mirroring, the anim lab
+  (ranked variant rounds) and the animsheet / posebench render and trace tools. Use when
+  Zach asks for a new attack, move, emote, idle/locomotion tweak, pose fix, "the swing looks
+  wrong", wind-up/follow-through timing, or anything about how a body moves.
 ---
 
 # Driftwake animation
 
 There are no AnimationPlayer clips. Every body (player, crew, grunts, bosses) is a
 `Humanoid` (`scripts/npc/humanoid.gd`) of plain `Node3D` joints, posed in code each frame.
-An "animation" is a list of key poses in `_action_pose()`, played by name.
+An "animation" is an action played by name: key poses in `_action_pose()`, plus (for weapon
+swings) hand paths solved by IK.
 
-Before changing a move, grep `docs/dev_notes.md` for its name (and the system around it):
-most moves have tuning notes and past bugs recorded there.
+**Read first:** `docs/anim_lab.md` (every training round, Zach's rankings and what each
+taught; it outranks this file where they disagree) and grep `docs/dev_notes.md` for the
+move and its system.
+
+## How Zach judges an animation
+
+- He plays it in the editor, at full speed **and** in slow motion (Shift+F5), and turns the
+  camera to look **from behind and above** (the game camera's side). Something that only
+  reads from the front three-quarter isn't done. Full speed and slow motion can disagree:
+  the silhouette reads at speed, the detail slowed.
+- What he has asked for, consistently: rotation and momentum (the body drives the weapon,
+  the blade arcs through, nothing stops mid-swing), a wind-up and a follow-through that make
+  physical sense, squash/stretch and smear for impact, the free arm answering the swing,
+  bent (never locked) limbs, a sword that sits right in the hand (edge leading, no twisting,
+  no reverse grip), nothing clipping the body, and a smooth path (no wobble).
+- His notes name the symptom, not the cause ("the upper arm clips the head", "it wobbles").
+  Trace before tuning: the cause has usually been somewhere else (see **Diagnosing**).
+- Small asks get a direct fix, not a variant round. Rounds are for "which of these is
+  better" questions. Keep the change he didn't ask about as it was.
+
+## Two ways to animate, and when
+
+| | Keyed poses | Paths (swing / reach) |
+|---|---|---|
+| What you write | joint Euler angles per key (`_action_pose`) | hand points around a centre, wrist break, elbow pole (ActionSpecs `"swing"` / `"reach"`) |
+| Use for | body (pivot, hips, torso, head, legs, lift, squash), emotes, non-weapon moves, punches/kicks | **every weapon swing** (the sword hand) and the free hand during one |
+| Why | cheap, fine for joints that rotate about one axis | keyed arm angles interpolate joint by joint: the blade loops wherever and the arm only reads from one view |
+
+A swing move is always three parts: the body keyed as poses, the sword hand on a `"swing"`
+path, the free hand on a `"reach"` path. `scripts/npc/sword_moves.gd` (SwordMoves) holds the
+cutlass combo built this way; copy it.
 
 ## How a frame is built (`Humanoid._process`)
 
 1. `_locomotion(delta)`: the gait/idle/air/swim/stance pose for every joint, plus `_lift`.
-2. If an action is playing: `u = t / dur` (0..1), `_base = locomotion pose`, then
-   `_action_pose(name, u)` returns `[pose, mask, lift]`, blended in over 0.06 s.
-3. Every joint is low-passed toward its target: `k = 1 - exp(-sharp * delta)`, sharp 22
-   normally, **38 during actions** (time constant ~26 ms). Keys closer together than about
-   0.03 s never fully land; a pose meant to read needs a held key.
-4. Rotations are written to the joints. Head turn is split 40/60 over neck/head, then the
-   look-at layer (`_update_look`) goes on top.
-5. Foot IK (`_foot_ik`) re-solves the legs on uneven ground (off for getup/seated/swim/etc).
-6. Hand IK: `_katana_hands()` / `_axe_hands()` put the left hand on a two-handed grip. For
-   those, the `arm_l`/`fore_l` values in your pose only seed the IK.
-7. `_update_physics`: hair/cloth spring chains.
+2. If an action is playing: `u = t / dur` (through the spec's `"retime"`), `_base` =
+   locomotion, then `_action_pose(name, u)` returns `[pose, mask, lift]`, blended in 0.06 s.
+3. Joints low-pass toward their targets: `k = 1 - exp(-sharp * delta)`, sharp 22 normally,
+   38 during actions, or the spec's `"sharp"` (swings use 55). Keys closer than ~0.03 s
+   never fully land; a pose meant to read needs a held key.
+4. Rotations are written. Head turn splits 40/60 over neck/head; `_update_look` on top;
+   `_keep_gaze` caps upward gaze during actions (moves that look up go in `GAZE_FREE`).
+5. Foot IK on uneven ground.
+6. **Swing and reach solvers** (`_swing`, `_reach`): the hand on its path by arm IK,
+   overriding the posed arm; the wrist solved so the blade extends the forearm. Then the
+   katana/axe two-handed grips (`_katana_hands`, `_axe_hands`).
+7. Hair/cloth spring chains.
 
-`freeze(t)` holds the pose (per-body hit-stop). LOD bodies far away pose every Nth frame.
+`freeze(t)` holds the pose (hit-stop). LOD bodies pose every Nth frame.
 
 ## Joints and sign conventions (radians, Euler `Vector3(x, y, z)`)
 
@@ -42,285 +74,249 @@ most moves have tuning notes and past bugs recorded there.
 
 | Joint | Meaning |
 |---|---|
-| `pivot` | whole body at hip height. x- = pitch forward (lean, roll), y = spin about up |
-| `hips` | pelvis. y = turn the hips (boxing guard -0.5 = left side leads) |
-| `torso` | x- = lean/bend forward, y+ = chest turns left, z = side bend |
-| `head` | x- = look down, y = turn (split over neck + head) |
-| `arm_l` / `arm_r` | shoulder. x+ = swing forward/up (1.57 ≈ straight ahead, 2.7 ≈ overhead). `arm_r` z+ = raise sideways (out right), `arm_l` z- = raise sideways (out left). y = twist |
-| `fore_l` / `fore_r` | elbow. x+ = bend (0 = straight, 2.3 = fully folded) |
-| `leg_l` / `leg_r` | thigh. x+ = forward/knee up, x- = trail behind. z: `leg_l` z- / `leg_r` z+ = out to the side. Never let a leg cross the midline (gait clamps leg_l z ≤ 0.08, leg_r z ≥ -0.08) |
-| `shin_l` / `shin_r` | knee. **x- = bend** (-0.3 slight, -1.4 deep lunge, -2.2 full tuck) |
-| `hand_r` / `hand_l` | wrists / weapon sockets. x- = blade tips forward along the arm (thrusts ~-1.5), x+ = cocked back; same sign both sides. `hand_l` holds the off-hand weapon and props (bottle, food) |
+| `pivot` | whole body at hip height. x- = pitch forward, y = spin about up |
+| `hips` | pelvis. y = turn the hips (y- faces right, y+ left) |
+| `torso` | x- = lean forward, y+ = chest turns left, z = side bend |
+| `head` | x- = look down, y = turn |
+| `arm_l` / `arm_r` | shoulder. x+ = forward/up (1.57 ahead, 2.7 overhead). `arm_r` z+ / `arm_l` z- = raise sideways. y = twist |
+| `fore_l` / `fore_r` | elbow. x+ = bend (0 straight, 2.3 folded) |
+| `leg_l` / `leg_r` | thigh. x+ = forward. `leg_l` z- / `leg_r` z+ = out. Never cross the midline |
+| `shin_l` / `shin_r` | knee. **x- = bend** (-0.3 slight, -1.4 lunge, -2.2 tuck) |
+| `hand_r` / `hand_l` | wrist / weapon socket. x- = blade tips forward along the arm, x+ = cocked back |
 
-Left/right mirror rule: to mirror a pose, swap `_l`/`_r` and negate y and z on every joint
-(keep x). Facing is -Z; feet at y 0; `PIVOT_Y` 0.9 m.
+Mirror a pose: swap `_l`/`_r`, negate y and z (keep x). Facing -Z, feet at y 0, `PIVOT_Y` 0.9.
+Body space for paths: x+ right, y up, z+ behind; the sword hand's full reach is ~0.64 m from
+its shoulder joint.
 
-## Writing an action
+## Writing a keyed action
 
-Add a branch to the `match n:` in `_action_pose()` (group it with its weapon/style):
+Add a branch to `match n:` in `_action_pose()` (or a static function in a technique file like
+SwordMoves, called from there):
 
 ```gdscript
 "axe_upper":
-	# rising cut from the right hip up across the chest, stepping in on the left foot
 	var g := _guard()
 	var step := {"leg_l": Vector3(0.9, 0, -0.1), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.6, 0, 0.1), "shin_r": Vector3(-0.35, 0, 0)}
-	var low := {"arm_r": Vector3(-0.4, 0.3, 0.5), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3(0.6, 0, 0), "torso": Vector3(0.1, -0.8, 0)}
-	var up := {"arm_r": Vector3(2.4, -0.4, -0.3), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0), "torso": Vector3(-0.2, 0.7, 0)}
-	lift.y = _strike_lift(u, 0.3, 0.42, 0.65, -0.08, -0.22)
-	return [_keys(u, [[0.0, g], [0.25, low.merged(step), "out"], [0.3, low.merged(step)], [0.42, up.merged(step), "out"], [0.65, up.merged(step)], [1.0, g]]), "full", lift]
+	var low := {"torso": Vector3(0.1, -0.8, 0), "_lift": Vector3(0, -0.12, 0)}.merged(step)
+	var up := {"torso": Vector3(-0.2, 0.7, 0), "_lift": Vector3(0, -0.2, 0)}.merged(step)
+	return [_keys(u, [[0.0, g], [0.25, low, "out"], [0.3, low], [0.42, up, "out"], [0.65, up], [1.0, g]]), "full", Vector3.ZERO]
 ```
 
-- **Keys**: `[[u, pose_dict, mode?], ...]`, `u` ascending 0..1. The mode on key *b* shapes
-  the segment a→b: `"out"` fast start/soft stop (strikes, snapping into a wind-up), `"in"`
-  slow start/fast end, `"back"` overshoot and settle, default smoothstep.
-- **Missing joints fall back to the locomotion pose** (`_base`), per key. `{}` as a key means
-  "whatever the body was doing", which is how upper-body actions ease in and out.
-- **Mask**: `"upper"` only applies `torso, head, arms, hands`; legs keep walking and `lift`
-  is *added*. `"full"` takes legs too and `lift` *replaces* the gait's.
-- **Lift** is the hip offset (`Vector3`, y- = crouch). Prefer keying it: put `"_lift":
-  Vector3(0, y, 0)` in the key dicts and it eases with the pose (see `peril_chop`,
-  `thorn_whip`; keys without it fall back to the gait's lift). Older moves still compute
-  `lift.y` by hand or with `_strike_lift(u, wind_end, hit, hold, coil, deep)`; a pose that
-  has `_lift` overrides the returned lift.
-- **Gaze is guarded for you**: during actions `_keep_gaze` caps pivot + torso + head pitch at
-  `GAZE_UP_MAX` by tilting the head down. A move that means to look up (howl, flips, being
-  hit) goes in `GAZE_FREE`.
-- **Spins**: write `pose["pivot"] = Vector3(0, -TAU * k, 0)` (or x for flips) and add the
-  name to `SPIN_ACTIONS`. Pivot is then applied exactly (no smoothing across 2π) and reset
-  in `_finish_action`.
-- **One-shot events** inside the pose (attach weapon, show a prop): guard with
-  `_action["events"]`; if it must also happen when interrupted, add it to `_finish_action`.
-- **Stance-aware**: start/end on `_guard()` so it returns to the right guard for the
-  stance. `_guns_out()` + `_gun_tuck(pose, k)` keep pistols tucked in body moves.
-- **Reuse** the pose consts above `_action_pose` (`GUARD`, `SWORD_GUARD`, `KATANA_*`,
-  `FIST_GUARD`, `REST_ARMS`, the enemy `E_*` set) and `dict.merged()` to combine upper and
-  lower halves.
-- Time-based wiggle (`sin(_t * f)`) is fine inside a pose; it keeps working during holds.
-- Two-handed weapons: if the left hand should leave the grip during the move, add the name
-  to the skip list in `_katana_hands()` / `AXE_TWO_HANDED` handling in `_axe_hands()`.
-- **An unknown name does nothing but log an error** ("Humanoid.play: no pose for action",
-  once per play). When renaming or removing an action, grep every caller (`play("name"`) in
-  `scripts/`, and watch the log after rendering.
+- **Keys** `[[u, pose, mode?], ...]`, u rising 0..1. The mode on key *b* shapes a→b: default
+  smoothstep (stops at both ends), `"out"` (starts at 3x its average speed, eases in),
+  `"in"` (eases out, ends at 3x), `"back"` (overshoot), `"linear"`.
+- Missing joints fall back to the locomotion pose; `{}` = "whatever the body was doing".
+- **Mask** `"upper"` (torso, head, arms, hands; legs keep walking, lift *added*) or
+  `"full"` (lift *replaces* the gait's).
+- **Pose channels** in key dicts: `"_lift"` (hip offset, y- = crouch), `"_scale"` (squash/
+  stretch about the feet: x side, y up, z forward), `"_smear"` (x = blade stretch).
+- A full-body move keys every joint on its main keys, `hips` included (a joint left out
+  takes the stance's pose: the boxing guard's turned hips leak into everything).
+- Start and end on `_guard()`. Pistols: `_guns_out()` + `_gun_tuck()`; never key the player's
+  `hand_r` with guns out (the grip is fixed, the arm aims).
+- Spins: `pivot` y = `-TAU * k` and add the name to `SPIN_ACTIONS`.
+- One-shot events: guard with `_action["events"]`; if they must happen when interrupted too,
+  add them to `_finish_action`.
+- An unknown name logs "Humanoid.play: no pose for action". Grep callers when renaming.
+- Moves played at several lengths: keys are in u, so check the shortest; key key beats in
+  seconds (`t_seconds / _action["dur"]`) if needed.
 
-## Wiring it up
+## Swing paths (weapon swings)
 
-- **Every action has an entry in `scripts/npc/action_specs.gd` (`ActionSpecs.SPECS`)**: its
-  length, its strike window `"hit": [u_open, u_close]` for attacks, and its preview setup
-  (stance, weapon, extras, variants). Add the entry with the pose; animsheet renders from it.
-- Three ways to play (`body_model` on the player, `humanoid` on NPCs):
-  - `play("name", length)`: a one-shot; `u` runs over `length` seconds.
-  - `hold("name")`: ease in over the spec's length and stay until `stop_action()` or another
-    action (block, iai charge, rope/vine hang). No more `play(..., 600.0)`.
-  - `react("hit" | "stagger", length, push)`: a hit reaction away from the blow; `push` is
-    the world direction it shoves the body (the knockback dir). The pose blends front/back/
-    side versions from `_react_pose(front, back, side)` and picks a mirrored/scaled variant.
-  - `stop_action()`, `current_action()`, `is_busy()`, signal `action_finished(name)`.
-- Light and heavy attacks read **length and hitbox window from ActionSpecs**
-  (`ActionSpecs.length(n)`, `ActionSpecs.hit_seconds(n)`); their `STYLES` only hold feel
-  (durations before the next hit, impulses, damage, hitstop, shake, trails). Heavy's
-  windup/active/recovery = open / open→close / close→end of that window. Skill, dodge,
-  plunge and enemy timings are still in their own states.
-- **Match the hit window to the keys**: open it near the end of the wind-up hold, close it a
-  little after the strike key lands (slash_r: wind held to u 0.26, hit at 0.38 → `[0.23,
-  0.44]`). animsheet draws a red bar under the frames inside the window: check the bar
-  sits under the strike.
-- Juice (hit-stop, shake, squash, wind puffs, sounds via `Net.fx`) belongs in the state, not
-  the pose. See the game-feel skill.
-- **Co-op**: `play()`/`hold()`/`react()`/`stop_action()` mirror to other screens
-  automatically when the body has `net_sync` (`react` sends its direction and variant) (rate-limited: re-playing the same name/duration within 250 ms isn't resent).
-  Per-frame inputs a pose reads (`dash_dir`, `aim_pitch`, `local_move`, flags like
-  `swimming`) travel through `scripts/net/humanoid_sync.gd`; a new input the pose depends on
-  must be added there or guests see a different pose.
+The spec's `"swing"` (`ActionSpecs` header documents every field). The hand runs a
+Catmull-Rom curve through key points (`center + dir.normalized() * r`, body space at the
+guard), the arm by IK with an anatomical elbow search, the sword as an **extension of the
+forearm broken back at the wrist** by the key's `"break"` toward the trailing side of the
+cut's plane, so the edge always leads. Nothing else may aim the blade.
 
-## Feel (what Zach wants)
+**Authoring recipe** (the reference is hit 1, `SLASH_R_SWING`; hit 2 `SLASH_L_SWING` shows a
+chained hit):
+1. **First key at the guard hand** (or, for a chained hit, the last hit's final point). The
+   wind-up arcs out round the shoulder, never across it.
+2. **Wind-up/cock wide and high** (hand ≥ 0.45 m from the shoulder, break ~1.0-1.35): a
+   close cock folds the elbow and puts the cocked blade through the head.
+3. **Contact in the space in front of the chest**, the chest about square to the target,
+   break ~0.4-0.7.
+4. **Follow-through past the body**, arm extended but not locked (break ~0.1-0.3), then hold.
+5. **Stop the path at the end of the follow-through.** After the last key the solver turns
+   each arm joint back to its posed (guard) rotation over 0.1 s, swivel and wrist held, so
+   the recovery needs no keys. Don't add return keys: squeezed into the move's tail they
+   whip back faster than the strike. Make sure last key + lag + 0.1 s ends before the
+   action does (or the arm snaps to the guard on the last frame).
+6. `"plane_from"` skips wind-up keys that travel against the cut.
 
-Shonen, punchy and readable; not cartoony. The pattern every good move here follows:
+**Spacing: the hand's speed is set by key spacing, not by the keys' positions.** Each
+segment's speed = its path length / its time. Make neighbouring segments meet at about the
+same speed: one acceleration into contact (an `"in"` key ending at contact, or linear keys
+spaced wider and wider), peak speed through contact, only slowing after it, then a short
+`"out"` settle. Never a smoothstep (default) key mid-strike: it stops the hand dead, which
+reads as a wobble. Compute the distances (`center + dir.normalized() * r`) when placing keys.
 
-1. **Anticipation**: a wind-up that sinks the hips and turns the chest away (torso y ±1.0),
-   held a beat (enemies hold it longer as a readable tell).
-2. **Strike**: one short `"out"` segment, ~0.1–0.15 of u, driving through a lunge (front
-   shin ≈ -1.4, back leg extended), the weapon flung out along the arm (`hand_r` x-).
-3. **Follow-through hold** to u ≈ 0.6–0.75 so the shape reads.
-4. **Recover** smoothly to `_guard()`.
+**Reach and bend.** The bend comes from distance to the shoulder, and the path's frame isn't
+centred on the shoulder, so read the result, don't compute it: `AS_DEBUG` ELBOW lines give
+bend and target. Bend ~0.09 = **locked, the target is out of reach** (the hand stalls, then
+lurches when the path comes back in range); trim `r`. A point further from the shoulder
+than its neighbours straightens then re-bends the elbow, dipping the tip. Aim for 0.4-1.2
+through the swing, straight only for an instant at contact if at all.
 
-Big arcs, both sides of the body working (the free arm counters), head leading the turn.
-Check that limbs don't pass through the torso and that the blade doesn't bend back at the
-wrist (an upper-arm twist plus wrist bend does that, see the slash_l note).
+**Height.** A sweep's height must change monotonically (rising cut: rises the whole way). The
+path rides the shoulders (`anchor`), so the body's vertical bob adds to it: keep squash/
+stretch off the vertical under a sweeping cut (stretch along the cut, z).
 
-Rules from training (docs/anim_lab.md; Zach's rankings, strongest first):
+**Frame.** The path is authored for the guard and follows the shoulders' offset from where
+they were when the swing started (`anchor`), optionally the chest's turn (`follow`). A hit
+chained from a running swing keeps that swing's anchor (one frame for the whole combo), so
+author its keys in the guard's frame too.
 
-- **Swings are authored as paths, not arm angles.** Give a blade swing a `"swing"` spec
-  (hand points around a centre, the blade direction at each, elbow pole): the hand arcs and
-  keeps its speed, IK keeps shoulder/elbow/wrist anatomical from every side. Keyed arm angles
-  interpolate joint by joint, so the blade loops wherever and the arm only reads from one
-  view. Key the body (hips, chest, legs, lift, squash) as poses; the arm rides the path.
-- **The body turns with the cut and loads away from it first.** A right-handed cut going
-  right to left: wind-up turns hips and chest right (y-), the cut turns them left (y+), the
-  head counters to stay on the target. Hips lead the chest, the chest leads the arm (`lead`).
-- **Keep momentum through the strike.** Don't put a stopping key mid-swing; ease into the
-  cock (anticipation) and out of the follow-through only. Carry the follow-through fast and
-  then hold it: a long eased-out sweep after contact reads as slow motion (hit 2's sweep
-  past the body felt slow over 0.18 s; ~0.1 s was right).
-- **A sweep must not surge or bob.** Space swing keys by path distance: each segment's speed
-  is its distance over its time, "in" ends at 3x its average and "out" starts at 3x, so make
-  neighbouring segments meet at about the same speed (speed up once into contact, only slow
-  after). Never put a "smooth" key mid-strike (it stops the hand dead). Keep squash/stretch
-  off the vertical under a sweeping cut (the path rides the shoulders), and keep the path's
-  height monotonic. Check it: the SWING lines' hand and blade per frame give hand/tip height
-  and speed; a dip-and-recover in either is the wobble Zach sees.
-- **Give it time to read.** A light hit needs a visible wind-up and follow-through (0.75 s
-  beat 0.6 s; Zach still found 0.75 s "a little too fast": round 8 tests slower); give slower
-  anims their own `"chain"` so the next click doesn't cut off the hit. Slow the wind-up and
-  follow-through with `"retime"` rather than the strike itself.
-- **Judge at full speed and in slow motion**: they can disagree (detail reads slowed, the
-  silhouette reads at speed).
-- **Weapon orientation (the essential one):** the sword is an extension of the forearm,
-  broken back at the wrist toward the trailing side of the cut. Key the wrist `"break"` per
-  path point (~1.4 cocked on the wind-up, ~0.3-0.5 at the strike); the solver tilts it to
-  the trailing side in the cut's plane, so the edge always leads and a reverse grip can't
-  happen. Never aim the blade independently of the forearm, and never derive "which way
-  the cut goes" from the hand's motion (it reverses at the cock); it comes from the cut's
-  plane, whose turning sense comes from the whole path.
-- **Author the path for the guard stance; it follows the shoulders** (`anchor`). Keep the
-  chest about square to the target at contact, the arm out in front: turned further, the
-  shoulder passes the hand and the blade points back. Big turns belong to the wind-up and
-  the follow-through.
-- **Keep the cock point out from the body** (hand ~0.45 m+ from the shoulder): closer, the
-  elbow folds in and the cocked blade crosses the head. The solver pushes a blade out of the
-  head as a safety net, but a path that needs it reads as cramped.
-- **Check the BLADE line** animsheet prints for every lab variant: edge leading the cut
-  (avg > 0.3, min > 0), no REVERSE GRIP, forearm over-turn < 0.3, body clearance >= 0 (no
-  THROUGH THE BODY: the solver keeps the blade 0.2 m off the head sphere and chest capsule),
-  upper arm clear of head >= 0 (no ARM IN THE HEAD). `AS_DEBUG=live` debugs the live row;
-  its ELBOW lines give bend, arm-to-head and the target per frame. A sword arm at bend 0.09
-  means the target is out of reach: the path, not the pose, is wrong.
-- **A chained hit shares the previous swing's frame** (its anchor carries over), so author
-  its first key on the last hit's final point, in the guard's frame like every other path. If it's off, run with `AS_DEBUG=<variant>` for the per-frame solve
-  (hand, shoulder, forearm, blade, edge).
-- **The off arm answers the swing:** reaches toward the target on the wind-up, flings back
-  through the cut, ideally dragging a little behind the chest.
-- **No limb held straight.** Elbows and knees only straighten at the instant of full
-  extension (a punch, a thrust); reaching or held, they keep 0.6+ rad of bend. Give each
-  limb its own pose per phase instead of copying the previous phase's.
-- **Free arms go on a "reach" path too**, not keyed shoulder angles (those roll the upper arm
-  over between keys). Author the points as offsets from the arm's own shoulder in the
-  chest's frame (`from_shoulder`, `follow` 1): the distance sets the elbow (0.55 m ~0.7 rad,
-  0.49 m ~1.2). Pole "out to the side" (a pole along the reach leaves the elbow undefined).
-  A hand swung from in front to behind needs a key on the arc out past the hip: the straight
-  chord runs by the shoulder and folds the elbow. A hand flung out to the side or back takes
-  a down-and-back pole. Print the bends (`AS_DEBUG`, REACH lines) and keep them 0.4-1.0.
-- **Paths start at the guard hand and arc round the shoulder**, never straight through it.
-- **Test from a walk:** `AS_MOVE=0,1` (and `0,-1`) starts the lab render mid-stride; the
-  elbows went wrong only from there.
-- **Impact helps:** squash on the wind-up, stretch and blade smear through the swing.
-  Stepped/on-twos timing was not liked.
-- **Check in slow motion from above and behind**, the game camera's side, not just the
-  front three-quarter.
+**Clearance.** The solver pushes the blade 0.2 m off the head sphere and chest capsule
+(`_blade_clear`). That's a safety net; a path that needs it looks cramped.
 
-Rules from the full review (each one was a visible problem in the renders):
+## Reach paths (the free hand)
 
-- **Eyes stay on the target.** Head x adds to torso x; `_keep_gaze` now stops the sky stare,
-  but still key a head that counters the chest (head x ≈ -0.6 × torso x, head y against
-  torso y the way the punches do) so the cap doesn't have to do the work.
-- **Blades need the wrist.** Key `hand_r` on every key of a blade move: cocked back (x+) in
-  the wind-up, flung out along the arm (x-) through the strike. Without it the blade stays
-  upright off the forearm and the cut doesn't read (the grunt `E_*` swings still lack it).
-  The off-hand blade works the same with `hand_l` (the dual-sword moves are the example).
-- **Player pistols: leave `hand_r` alone.** The player's guns sit in a fixed grip
-  (`auto_point_guns`, `GUN_GRIP`), so the arm does the aiming. A wrist key bends the barrel
-  off the arm (`bullet_storm`'s -1.55 points the gun at the ground). Only grunts, who aim
-  their own guns, use the wrist for aiming.
-- **A full-body move keys every joint on its main keys, `hips` included.** A joint left out
-  falls back to the stance pose, so the same skill looks different per stance: from the
-  boxing guard the hips stay turned (-0.5) and the hands stay up by the face, and
-  `foresight`, `coat` and `tekkai` barely change.
-- **Give every distinct move its own pose.** Two names on one branch play identically (e.g.
-  `vine_throw` / `thorn_whip`).
-- **Played at several lengths?** Check the shortest. Keys are in u, so `spin_slash` at the
-  boss's 0.32 s puts its crouch key 0.05 s in, below what the smoothing can show. For moves
-  played at varied lengths, key the important beats in seconds (the `quick_draw` /
-  `shoot_r` pattern: `k = t_seconds / _action["dur"]`).
+The spec's `"reach"`: the same curve, arm IK, wrist as posed. Use `from_shoulder: true`,
+`follow: 1.0`: points are offsets from that arm's shoulder in the chest's frame, so their
+length sets the bend (~0.64 m locked, ~0.6 ≈ 0.6 rad, ~0.55 ≈ 0.9, ~0.49 ≈ 1.2; check the
+REACH lines). Poles: "out to the side" by default; a hand flung out sideways or back takes a
+down-and-back pole (the solver leans a pole that lines up with the reach toward the side,
+then down). A hand going from in front to behind needs a key on the arc out past the hip (the
+chord runs past the shoulder and folds the elbow). The free arm's job: reach toward the
+target on the wind-up, fling out and back against the cut (behind the chest in the follow-
+through), arm near straight but never locked.
 
-## The reference moves (start here for any swing)
+## Body keys for a swing
 
-`scripts/npc/sword_moves.gd` holds the cutlass combo built the trained way; **slash_r (hit
-1) is the reference**: Zach signed it off after 8 lab rounds. Copy its structure for new swings:
-- three parts: a `SLASH_*_SWING` path for the sword hand (start at the guard hand, arc round
-  the shoulder, cock wide and high, ease into the cock ("smooth"), snap out of it ("in"),
-  cut at speed, wrap), a `SLASH_*_REACH` path for the free hand (offsets from its shoulder),
-  and a body function keying hips/chest/legs/lift/squash/smear only (the arms ride paths);
-- the ActionSpecs entry carries len, hit, chain, swoosh, sharp 55, lead (hips 0.04, chest
-  0.02), swing, reach. Hit 1: 0.85 s, wrist break 1.0 -> 1.35 cocked -> 0.7 strike -> 0.1;
-- **combo hits chain:** hit N's path starts on hit N-1's last point and its body starts on
-  hit N-1's follow-through pose (the chain point); swings blend in from the hand's real
-  position, so it's seamless. Set extras "after" to preview the chain in animsheet.
-- **Trails:** a move with a swing path gets the blade's own trail (FX.blade_swoosh over its
-  "swoosh" window) instead of the fixed arcs; never put an arc effect on a swing move.
+- **Load away, then turn with the cut.** A right-to-left forehand: hips and chest turn right
+  (y-) on the wind-up, left through the cut; the head counters to stay on the target. Big
+  turns (x1.6 of a first guess) in the wind-up and follow-through; **the chest about square
+  at contact** (turned further, the shoulder passes the hand and the blade points back).
+- Overlap via the spec's `"lead"` (hips 0.04 s ahead, chest 0.02): hips lead chest, chest
+  leads arm, the blade whips last.
+- Squash on the gather/wind-up, stretch along the cut and blade smear on the whoosh key, a
+  firm landing key with a slight squash. Not stepped/on-twos timing (Zach didn't like it).
+- Step through on the front foot into the cut (front shin ~-1.0, back leg extended).
+- Too much follow-through turn lifts the sword arm by the head: keep the chest turn after
+  contact moderate (hit 2: hips -0.3, chest -0.33, x1.6).
+- The body function keys only the body; arm keys there merely seed the blend.
+
+## Timing
+
+- Lengths that worked: hit 1 0.85 s (the opener: a long readable wind-up), hit 2 0.7 s (a
+  chained hit gets its wind-up from the hit before, so it's quicker), hit 3 0.62 s. The
+  *motion* of every hit should feel equally quick; Zach compares hits within a combo.
+- **Carry the follow-through fast, then hold.** A long eased-out sweep after contact reads as
+  slow motion (~0.1 s from contact to the end of the sweep was right for hit 2).
+- `"retime"` slows a phase (wind-up, follow-through) without touching the strike's speed.
+- `"chain"` (s): when the next light attack can follow; put it after the follow-through key
+  so the shape is seen, before the recovery.
+- `"hit"` [u, u]: open just before contact, close after the blade passes the target; the
+  red bar in animsheet should sit under the strike frames.
+- `"swoosh"` [u, u]: the blade trail window (FX.blade_swoosh): from the launch to the end
+  of the follow-through sweep.
+
+## Diagnosing (symptom → what it was)
+
+| Zach says | Cause found | Fix |
+|---|---|---|
+| "can't tell the variants apart" | arc FX hid the blade; differences too small | Ctrl+F5 clean view; make variants obvious at game speed |
+| "sword twists in the hand" | wrist rolled to make the edge lead the motion | wrist only bends (2 DOF); arm turns the blade |
+| "reverse grip / stab look" | blade aimed independently of the forearm | blade = forearm + break toward the trailing side |
+| "blade through the head" | cock point too close to the shoulder | cock wide and high; clearance push as backup |
+| "elbow flips / arm bends backwards" | elbow search unanatomical after a walk; keyed shoulder angles rolling; pole along the reach | anatomy penalty; reach paths; side/down pole fallback. Test with `AS_MOVE=0,1` |
+| "upper arm clips the head" | chained hit re-anchored on a coiled body: path slid out of reach, arm locked straight and rode up | keep the anchor across a chain; trim radii; less follow-through turn |
+| "wonky off elbow" | off hand's path ran a chord past the shoulder | a key on the arc out past the hip |
+| "too slow at the end" | long eased-out follow-through sweep | compress the sweep, then hold |
+| "wobbles up and down" | smooth key stopping the hand mid-rise; body bob under the path; height peaking then sinking; locked arm stalling and lurching | space keys by distance; stretch along the cut; monotonic height; trim radii |
+| (found by trace) blade pops on recovery, hits 1 and 2 | the release re-ran IK toward the posed hand; the elbow search found another solution | release in joint space (slerp each joint to its posed rotation) |
+
+## Tools
+
+All from bash wrapped in PowerShell (`$env:GODOT`). Renders open a window (GPU). Output dirs
+must exist (`tools/dev/out/`).
+
+```bash
+# lab mode: live + each AnimLab variant as rows, 4 views (front3, side, back3, top), the real
+# blade trail drawn, RANGE and BLADE lines printed per row
+powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/animsheet.gd -- res://tools/dev/out/lab lab:slash_l'
+# per-frame trace of one row (live or a variant letter): hand/tip height and speed, elbow bend
+powershell -NoProfile -Command "\$env:AS_TRACE='live'; & \$env:GODOT --path . --script res://tools/dev/animsheet.gd -- res://tools/dev/out/lab lab:slash_l 2>&1 | Select-String '^TRACE'"
+# whole moves at game length, 8 frames, 3 per sheet: names or stances, then yaw (125 front 3/4, 90 side)
+powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/animsheet.gd -- res://tools/dev/out/anim slash_r,slash_l'
+# frozen key poses from several angles
+powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/posebench.gd -- res://tools/dev/out/pb sword cutlass guard,slash_r:0.4 side,front,three'
+```
+
+- **BLADE line targets:** edge leads the cut avg > 0.3 and min ≥ 0; no REVERSE GRIP (grip
+  > 2.1 rad); roll in fist < 0.5; body clearance ≥ 0 (no THROUGH THE BODY); upper arm clear
+  of head ≥ 0 (no ARM IN THE HEAD). Hits 1/2: edge 0.31/0.42, roll 0.20/0.23, clearances
+  0.27/0.28 and 0.07 m.
+- **AS_TRACE** (lab mode): a height that dips and recovers, or a speed that stalls and
+  surges or spikes (a one-frame tip speed of 50+ m/s is a flip), is what Zach sees as a
+  wobble or pop. Read it for every swing change, including the recovery after the last key.
+- **AS_DEBUG=<live|a|b|c>**: the solver per frame. SWING (path point vs where the hand got,
+  shoulder, forearm, cut direction, blade, edge, wrist, swivel), ELBOW (sword elbow
+  direction, bend, arm-to-head clearance, clearance push, IK target), REACH (free hand
+  target, pole, elbow, bend). With extras "after" the earlier hit prints first; take the
+  second run of u.
+- **AS_MOVE="x,y"**: start the render mid-walk (y+ forward). Elbow bugs showed only there.
+- Combo hits: extras `"after": "<previous hit>"` plays it up to its chain time first.
+- animsheet steps `_process` by hand: skinned legs need `LowerBody._pose()` and two
+  `frame_post_draw`s per capture (done). Don't use heavyshots (stale legs, late frames).
+- A parse error anywhere in the project can stop posebench from saving; animsheet tolerates
+  autoload errors.
+
+In game (debug build): **F5** cycles live → A → B → C for `AnimLab.FOCUS`, **Shift+F5** slow
+motion (0.25x), **Ctrl+F5** clean view (blade trail, arc effects hidden), F12 capture.
 
 ## Training rounds (the anim lab)
 
-Zach is training this skill: rounds of 2-3 variants of one action, ranked by him. Read
-`docs/anim_lab.md` first: past rankings and takeaways outrank anything else in this file
-when they disagree.
-- Build variants in `scripts/npc/anim_lab.gd` (`VARIANTS` + `pose()`), point `FOCUS` at the
-  action. Make each variant test **one** idea on shared poses (a helper like `_slash_r`), so
-  the ranking says which idea won, not which pose happened to be nicer.
-- Render with animsheet's lab mode (it draws the blade's real trail), read all four views,
-  and fix anything that would confuse the comparison (e.g. a variant over-rotating) before
-  showing it. Make the differences big: a variant that isn't obvious at game speed from the
-  game camera isn't a test (round 1's first try failed this). Check the blade path in the
-  trail: it should travel through the space in front where the target is.
-- Tell Zach: F5 cycles live/A/B/C in a debug build, Shift+F5 slow motion, Ctrl+F5 clean
-  view (blade trail instead of the arc effects, which aren't synced to the blade); what each tries; ask for a best-to-worst
-  ranking with notes. Log the variants, ranges, ranking and takeaways in `docs/anim_lab.md`.
-- After a ranking: move the winner into humanoid.gd (or the technique file), fold the
-  takeaway into the rules below, and set up the next round.
-- Rig features for variants (any action can use them via its ActionSpecs entry or pose
-  keys): `"_scale"` squash/stretch, `"_smear"` blade stretch, spec `"lead"` overlap,
-  `"sharp"`, `"step"` (stepped/on-twos). See the ActionSpecs header.
+For "which is better" questions: 2-3 variants of one action, ranked by Zach.
+- Variants in `scripts/npc/anim_lab.gd`: `VARIANTS[action][letter] = {"note", "spec"}`
+  (spec overrides: a different swing path, length, retime...) and, for body changes,
+  `pose()`; point `FOCUS` at the action. Each variant tests **one** idea on shared poses.
+- Differences must be obvious at game speed from the game camera, or it isn't a test.
+- Before showing: render all four views, read the BLADE lines and the trace, fix anything
+  that would confuse the comparison.
+- Tell Zach the keys, what each variant tries, and ask for a best-to-worst ranking with notes.
+- After the ranking: move the winner into the live move (SwordMoves for swings), empty the
+  variants, log variants, ranking and takeaways in `docs/anim_lab.md`, fold the takeaway in
+  here.
+
+## Wiring
+
+- **Every action has an `ActionSpecs.SPECS` entry** (`scripts/npc/action_specs.gd`): len,
+  hit, chain, swoosh, sharp, lead, retime, swing, reach, stance/weapon/extras for previews.
+  Light and heavy attack states read length, hit window, chain and swoosh from it.
+- Play: `play(name, len)`; `hold(name)` (until stopped: block, charge, hang); `react("hit" |
+  "stagger", len, push)` (blends front/back/side `_react_pose`); `stop_action()`,
+  `is_busy()`, signal `action_finished`.
+- **Trails:** swing-path moves draw the real blade's trail (`FX.blade_swoosh` via `Net.fx`
+  over the swoosh window); never give them the fixed arc effect.
+- Juice (hit-stop, shake, sounds) lives in the state, not the pose.
+- **Co-op:** play/hold/react/stop mirror automatically with `net_sync`. Per-frame inputs a pose
+  reads (`dash_dir`, `aim_pitch`, `local_move`, flags) go through `humanoid_sync.gd`. The swing
+  solver runs on every screen from the same spec, so paths need no sync.
+
+## Older keyed-move rules (from the full review)
+
+- Key the wrist on every blade key of a keyed (non-path) move: cocked back in the wind-up,
+  flung out along the arm through the strike (the grunt `E_*` swings still lack it).
+- Head counters the chest (head x ≈ -0.6 × torso x, head y against torso y).
+- Every distinct move gets its own pose (two names on one branch play identically).
+- No limb held straight: elbows and knees only straighten at the instant of full extension.
 
 ## Rig gotchas
 
-- Anything that writes joint *global* transforms (ragdoll, IK, hand placement) must keep
-  local origin/scale: write `basis = rotation × own local scale` or restore afterwards
-  (`Ragdoll.restore_rig`). A katana once grew every parry from this.
-- Physics interpolation is on: things following a joint should read
-  `get_global_transform_interpolated()`.
-- Locomotion tweaks live in `_locomotion()` (gait, start/stop/skid, jump `_jside`/`_jv`,
-  fall pose), `_feral()` (claw stance), `_swim_pose()`, `_getup_pose()`; read the
-  dev_notes entry before touching them, the numbers were tuned against Zach's feedback.
+- Anything writing joint *global* transforms (ragdoll, IK) must keep local origin/scale
+  (`basis.orthonormalized()` after IK, `Ragdoll.restore_rig`).
+- Physics interpolation is on: follow joints with `get_global_transform_interpolated()`.
+- Euler angles lock where a blade lines up with the forearm: do grip maths with vectors.
+- Locomotion lives in `_locomotion()`, `_feral()`, `_swim_pose()`, `_getup_pose()`: tuned
+  against Zach's feedback, read the dev_notes entry first.
 
-## Checking it
+## Finishing
 
-Render, then read the PNGs. From bash, wrap in PowerShell so `$env:GODOT` resolves. Output
-goes straight into `tools/dev/out/` (subfolders must already exist or the save fails).
-
-```bash
-# whole moves at the length the game plays them, 8 frames each, 3 moves per sheet
-# (args: out prefix, then names or stances to render, then yaw: 125 front 3/4, 90 side)
-powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/animsheet.gd -- res://tools/dev/out/anim slash_r,slash_l'
-powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/animsheet.gd -- res://tools/dev/out/side katana 90'
-# frozen key poses from several angles (u values = the keys you care about)
-powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/posebench.gd -- res://tools/dev/out/axe sword cutlass guard,slash_r:0.26,slash_r:0.38,slash_r:0.6 side,front,three'
-```
-
-- animsheet renders every `ActionSpecs` entry (holds through `hold`, reactions through
-  `react` with each push variant as its own row). A red bar under a frame = hitbox open.
-- Moves render in place on flat ground: no root motion, jumps don't leave the floor.
-- Don't use `heavyshots` for timing or legs: it shows each pose a sample late and leaves the
-  skinned legs stale (boots come loose from the shins in lunges). The legs are a skinned
-  `LowerBody` that only follows on frames the rig posed itself, so a tool that steps
-  `_process` by hand must call `hips.get_node("LowerBody")._pose()` before capturing.
-- posebench and animsheet load the whole project: a parse error anywhere (even in unrelated
-  work in progress) can stop posebench from saving.
-
-posebench views: `side, right, front, back, three, top, chest, chestf, chests, hipsb, hipss,
-hips3, hipsf, hipsu`. Env: `PB_SPEED=6` (mid-stride, `PB_SPRINT=1`), `PB_AIR=-6`
-(airborne), `PB_FEM=1`, `PB_BEAST=1`, `PB_DUAL=1`, `PB_REST=1`, `PB_KV="build=broad"`.
-Weapon names come from `Props.weapon_mesh`; stance `katana` for the katana. Both tools open
-a window (GPU).
-
-Then run the suites that cover the move (`axetest`, `katanatest`, `stamtest`, `progtest`,
-`vinetest`, `fixtest`, `r7test` reference actions by name), plus `nettest.ps1` if you
-touched sync. Finish by telling Zach what to try in game (which weapon/style, which button,
-where), add a short dated entry to `docs/dev_notes.md` for anything substantial, and commit.
+Run the suites that cover the move (`fixtest`, `feat`, `stamtest` for the cutlass combo;
+`axetest`, `katanatest`, `progtest`, `vinetest`, `r7test` reference actions by name), plus
+`nettest.ps1` if sync changed. Tell Zach what to try in game (weapon, clicks, slow motion,
+which camera side), log rounds in `docs/anim_lab.md` and substantial changes in
+`docs/dev_notes.md`, commit.
