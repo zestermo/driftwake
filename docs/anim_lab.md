@@ -312,5 +312,9 @@ extended) and slightly faster. Now 0.7 s (was 0.8; chain 0.56 s, trail to u 0.72
 contact the hand sweeps out to the right (0.54, 0.66) and on behind the right side (0.8), the
 arm extended (bend 0.5-0.7, not locked) with the blade pointing out past the right side;
 the body holds its follow-through to u 0.84. Edge avg 0.56, body clearance 0.3 m.
+Then "still too slow at the end compared to hits 1 and 3": the post-contact sweep compressed
+(keys 0.52 / 0.6 / 0.7, was 0.54 / 0.66 / 0.8), body follow at 0.58 held to 0.76, off arm to
+match, chain 0.5 s, trail to u 0.64. Takeaway: a follow-through reads as momentum only while
+it's fast; a long eased-out sweep reads as slow motion. Carry it quickly, then hold.
 Path radii in the follow-through needed the frame's offset (the anchor carried from hit 1
 sits ~0.16 m right of the body there): read the ELBOW target vs shoulder, not the key's r.
