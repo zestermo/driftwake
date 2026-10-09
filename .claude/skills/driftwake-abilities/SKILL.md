@@ -43,6 +43,7 @@ skill for poses, driftwake-fx for effects, driftwake-coop for anything new a gue
 | Skills/powers | `scripts/player_states/skill_state.gd` | Soru, Tekkai, Flying Slash, Tiger Rush, Bullet Storm, Haki, Wolf/Vine/Ember fruits |
 | Heavies | `scripts/player_states/heavy_attack_state.gd` | `STYLES` per weapon: anim, impulse, damage, trail, `"tree"` for effects |
 | Projectiles | `scripts/powers/projectile.gd` | slash, wave, axe, seed; run on every screen |
+| Air attacks | `scripts/player_states/plunge_state.gd` | one `_mode` per style (`PlayerState.AIR_MOVES` style -> learned move, else the plain plunge); per-jump limits in `air_attack_input` + `Player.air_uses`; `airtest` |
 | Poses | `scripts/npc/technique_poses.gd` (`TechniquePoses.pose`) | reached from `Humanoid._action_pose` for names it doesn't know |
 | Specs | `scripts/npc/action_specs.gd` | every action: len, hit window, stance/weapon for previews |
 | Icons | `tools/texture_gen/gen_psx_textures.py` `gen_technique_icons` | `py ... techniques` |

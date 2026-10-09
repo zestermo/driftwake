@@ -241,6 +241,8 @@ static func _build_unarmed() -> void:
 	var R := "Unarmed"
 	_add("u_root", "Unarmed", "root", R, _g(0, 0), [], {},
 		"Bare-handed brawling: jab, cross, hook and a flying kick. Fight with your fists to build unarmed mastery.")
+	_add("u_meteor", "Meteor Kick", "move", R, _g(3, 0), ["u_breath"], {"mv_meteor_kick": 1},
+		"Attack in the air: a dive kick at the enemy you're looking at that knocks them flat and bounces you back up for another (three in a row); a miss slams the ground.", {"level": 3})
 	_add("u_round", "Roundhouse", "move", R, _g(-2, 0), ["u_root"], {"mv_roundhouse": 1},
 		"Adds a fourth hit to your punch combo: a spinning roundhouse kick.")
 	_add("u_knuckles", "Iron Knuckles", "stat", R, _g(0, 1), ["u_root"], {"dmg_unarmed": 0.08}, "+8% unarmed damage.")
@@ -307,6 +309,8 @@ static func _build_cutlass() -> void:
 	var R := "Cutlass"
 	_add("s_root", "Cutlass", "root", R, _g(0, 0), [], {},
 		"The pirate's blade: quick cuts and a lunging thrust. Fight with a cutlass to build its mastery.")
+	_add("s_dive", "Boarding Dive", "move", R, _g(3, 0), ["s_light"], {"mv_boarding_dive": 1},
+		"Attack in the air: the blade drawn back, then a point-first dive at the enemy you're looking at and a backflip off them (once per jump).", {"level": 3})
 	_add("s_dash", "Running Cut", "move", R, _g(-2, 0), ["s_root"], {"mv_dash_cut": 1},
 		"Attack at a sprint: one low cut driving through the target, breaking its wind-up.")
 	_add("s_edge", "Keen Edge", "stat", R, _g(0, 1), ["s_root"], {"dmg_sword": 0.06}, "+6% cutlass damage.")
@@ -429,6 +433,8 @@ static func _build_dual() -> void:
 	var R := "Dual Wield"
 	_add("d_root", "Dual Wield", "root", R, _g(0, 0), [], {},
 		"A blade in each hand: fast chained cuts and a crashing double overhead. Fight with two blades to build dual-wield mastery.")
+	_add("d_cyclone", "Twin Cyclone", "move", R, _g(3, 0), ["d_hands"], {"mv_twin_cyclone": 1},
+		"Attack in the air: blades crossed, then a drill of turns down and forward cutting everyone close on every turn, and a burst on landing that knocks them flat.", {"level": 3})
 	_add("d_spin", "Twin Spin", "move", R, _g(-2, 0), ["d_root"], {"mv_twin_spin": 1},
 		"Adds a fourth hit to your combo: both blades whirled round in a spin.")
 	_add("d_twin", "Twin Blades", "stat", R, _g(0, 1), ["d_root"], {"dmg_dual": 0.12}, "+12% damage while dual wielding.")
@@ -471,6 +477,8 @@ static func _build_pistol() -> void:
 	var R := "Pistol"
 	_add("g_root", "Pistol", "root", R, _g(0, 0), [], {},
 		"Two shots, then reload. A second pistol in the off hand alternates them. Shoot to build pistol mastery.")
+	_add("g_hangshot", "Hang Shot", "move", R, _g(3, 0), ["g_hands"], {"mv_hang_shot": 1},
+		"One pistol in the air: hang a beat drawing a bead, then one heavy shot at the reticle that knocks them flat, the recoil throwing you back (once per jump, uses a shot).", {"level": 3})
 	_add("g_kata", "Gun Kata", "move", R, _g(-2, 0), ["g_root"], {"mv_gun_kata": 1},
 		"Dual pistols' heavy: a hop into a double spin, arms crossed, shooting everyone close. (Without it: a pistol-whip.)")
 	_add("g_marks", "Marksman", "stat", R, _g(0, 1), ["g_root"], {"dmg_pistol": 0.1}, "+10% damage with pistols.")

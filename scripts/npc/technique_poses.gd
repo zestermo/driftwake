@@ -410,6 +410,99 @@ static func pose(h, n: String, u: float) -> Array:
 				"_lift": Vector3(0, -0.42, 0)}
 			var k_p := 0.78 / T
 			return [h._keys(u, [[0.0, g], [0.25, gather, "out"], [k_p - 0.03, gather], [k_p, punch, "out"], [0.85, punch], [1.0, g]]), "full", lift]
+		# --- learned air attacks (PlungeState) ---
+		"twin_cyclone":
+			# dual swords: knees up, blades crossed at the chest (0.14 s), then flung
+			# out wide and the body drills round three turns, tipped into the dive
+			var k_out := 0.14 / T
+			var crossed := {"arm_r": Vector3(1.1, 0.9, -0.35), "fore_r": Vector3(1.0, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+				"arm_l": Vector3(1.15, -0.9, 0.35), "fore_l": Vector3(1.0, 0, 0), "hand_l": Vector3(0.6, 0, 0),
+				"hips": Vector3.ZERO, "torso": Vector3(-0.3, 0, 0), "head": Vector3(0.15, 0, 0),
+				"leg_l": Vector3(1.5, 0, -0.12), "shin_l": Vector3(-2.1, 0, 0), "leg_r": Vector3(1.2, 0, 0.12), "shin_r": Vector3(-1.9, 0, 0),
+				"_scale": Vector3(1.04, 0.94, 1.04)}
+			var wide := {"arm_r": Vector3(1.45, 0.0, 1.45), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.5, 0, 0),
+				"arm_l": Vector3(1.45, 0.0, -1.45), "fore_l": Vector3(0.05, 0, 0), "hand_l": Vector3(-1.5, 0, 0),
+				"hips": Vector3.ZERO, "torso": Vector3(-0.35, 0, 0), "head": Vector3(-0.2, 0, 0),
+				"leg_l": Vector3(0.9, 0, -0.2), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(0.3, 0, 0.2), "shin_r": Vector3(-0.6, 0, 0),
+				"_scale": Vector3(0.96, 1.05, 0.96)}
+			var whirl := wide.merged({"_smear": Vector3(0.5, 0, 0)}, true)
+			var pose: Dictionary = h._keys(u, [[0.0, {}], [k_out * 0.8, crossed, "out"], [k_out, crossed], [k_out + 0.06, whirl, "out"], [0.85, wide], [1.0, wide]])
+			var spin := 1.0 - pow(1.0 - clampf((s - 0.14) / (T * 0.85 - 0.14), 0.0, 1.0), 1.6)
+			pose["pivot"] = Vector3(-0.35 * clampf((s - 0.14) / 0.1, 0.0, 1.0), -TAU * 3.0 * spin, 0)
+			return [pose, "full", lift]
+		"cyclone_land":
+			# down low, both blades out wide by the ground, then up to guard
+			var low := {"arm_r": Vector3(0.5, 0.0, 1.3), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-1.4, 0, 0),
+				"arm_l": Vector3(0.5, 0.0, -1.3), "fore_l": Vector3(0.1, 0, 0), "hand_l": Vector3(-1.4, 0, 0),
+				"hips": Vector3.ZERO, "torso": Vector3(-0.6, 0, 0), "head": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(1.3, 0, -0.3), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(-0.3, 0, 0.3), "shin_r": Vector3(-1.4, 0, 0),
+				"_scale": Vector3(1.06, 0.92, 1.04)}
+			lift.y = -0.45 * (1.0 - h._ease(clampf((u - 0.4) / 0.6, 0.0, 1.0)))
+			return [h._keys(u, [[0.0, low], [0.4, low], [1.0, g]]), "full", lift]
+		"meteor_kick":
+			# unarmed: the right knee chambered to the chest (0.12 s), then the leg
+			# shot out straight down the dive, leaning back behind it, arms flung back
+			var k_go := 0.12 / T
+			var chamber := {"hips": Vector3.ZERO, "torso": Vector3(-0.25, 0, 0), "head": Vector3(0.1, 0, 0),
+				"leg_r": Vector3(1.7, 0, 0.1), "shin_r": Vector3(-2.3, 0, 0), "leg_l": Vector3(1.2, 0, -0.12), "shin_l": Vector3(-2.0, 0, 0),
+				"arm_l": Vector3(1.1, 0, -0.4), "fore_l": Vector3(1.6, 0, 0), "arm_r": Vector3(0.9, 0, 0.4), "fore_r": Vector3(1.7, 0, 0),
+				"_scale": Vector3(1.04, 0.94, 1.02)}
+			var kick := {"pivot": Vector3(0.25, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.25, 0, 0), "head": Vector3(-0.45, 0, 0),
+				"leg_r": Vector3(0.75, 0, 0.04), "shin_r": Vector3(-0.02, 0, 0), "leg_l": Vector3(1.3, 0, -0.12), "shin_l": Vector3(-2.2, 0, 0),
+				"arm_l": Vector3(0.9, 0.3, -0.7), "fore_l": Vector3(1.2, 0, 0), "arm_r": Vector3(-0.8, 0, 0.6), "fore_r": Vector3(0.4, 0, 0),
+				"_scale": Vector3(0.96, 1.0, 1.06)}
+			return [h._keys(u, [[0.0, {}], [k_go * 0.85, chamber, "out"], [k_go, chamber], [k_go + 0.08, kick, "out"], [1.0, kick]]), "full", lift]
+		"meteor_land":
+			# the heel driven into the ground: crouched deep, a fist down by it
+			var plant := {"hips": Vector3.ZERO, "torso": Vector3(-0.8, 0, 0), "head": Vector3(0.45, 0, 0),
+				"arm_r": Vector3(0.75, 0, 0.25), "fore_r": Vector3(0.15, 0, 0), "arm_l": Vector3(-0.5, 0, -0.6), "fore_l": Vector3(0.6, 0, 0),
+				"leg_l": Vector3(1.3, 0, -0.18), "shin_l": Vector3(-1.9, 0, 0), "leg_r": Vector3(-0.35, 0, 0.18), "shin_r": Vector3(-1.5, 0, 0),
+				"_scale": Vector3(1.05, 0.93, 1.03)}
+			lift.y = -0.5 * (1.0 - h._ease(clampf((u - 0.35) / 0.65, 0.0, 1.0)))
+			return [h._keys(u, [[0.0, plant], [0.35, plant], [1.0, g]]), "full", lift]
+		"boarding_dive":
+			# cutlass: the blade drawn back by the ear, the off hand pointing at the
+			# target, knees up (0.16 s); then point-first down the dive, legs trailing
+			var k_go := 0.16 / T
+			var draw := {"hips": Vector3(0, -0.35, 0), "torso": Vector3(-0.1, -0.6, 0), "head": Vector3(0.0, 0.5, 0),
+				"arm_r": Vector3(2.3, 0.3, 0.7), "fore_r": Vector3(1.5, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+				"arm_l": Vector3(1.5, 0.4, -0.15), "fore_l": Vector3(0.15, 0, 0),
+				"leg_l": Vector3(1.4, 0, -0.12), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(0.9, 0, 0.12), "shin_r": Vector3(-1.6, 0, 0),
+				"_scale": Vector3(1.03, 0.95, 1.02)}
+			var lunge := {"pivot": Vector3(-0.45, 0, 0), "hips": Vector3(0, 0.2, 0), "torso": Vector3(-0.3, 0.25, 0), "head": Vector3(0.35, -0.2, 0),
+				"arm_r": Vector3(1.4, 0.05, 0.1), "fore_r": Vector3(0.0, 0, 0), "hand_r": Vector3(-1.5, 0, 0),
+				"arm_l": Vector3(-0.7, 0, -0.7), "fore_l": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(-0.5, 0, -0.1), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(0.35, 0, 0.1), "shin_r": Vector3(-0.5, 0, 0)}
+			var thrust := lunge.merged({"_scale": Vector3(0.95, 1.0, 1.1), "_smear": Vector3(0.6, 0, 0)}, true)
+			return [h._keys(u, [[0.0, {}], [k_go * 0.8, draw, "out"], [k_go, draw], [k_go + 0.07, thrust, "out"], [k_go + 0.16, lunge], [1.0, lunge]]), "full", lift]
+		"vault_back":
+			# off the one you hit: a tucked backflip
+			var tuck := {"leg_l": Vector3(1.6, 0, -0.1), "shin_l": Vector3(-2.1, 0, 0), "leg_r": Vector3(1.5, 0, 0.1), "shin_r": Vector3(-2.0, 0, 0),
+				"arm_l": Vector3(0.8, 0, -0.6), "fore_l": Vector3(1.2, 0, 0), "arm_r": Vector3(1.0, 0, 0.5), "fore_r": Vector3(0.9, 0, 0),
+				"hips": Vector3.ZERO, "torso": Vector3(-0.4, 0, 0), "head": Vector3(-0.2, 0, 0)}
+			var tw := sin(clampf(u, 0.0, 1.0) * PI)
+			var pose := {}
+			for j in tuck.keys():
+				pose[j] = (tuck[j] as Vector3) * tw
+			if h._guns_out():
+				h._gun_tuck(pose, tw)
+			pose["pivot"] = Vector3(TAU * h._ease(u), 0, 0)
+			return [pose, "full", lift]
+		"hang_shot":
+			# one pistol: hanging side-on, one knee up, drawing a bead along the arm;
+			# the shot (0.3 s) kicks the arm and the body back, legs dropping
+			var k_f := 0.3 / T
+			var ap: float = h.aim_pitch
+			var bead := {"hips": Vector3(0, -0.4, 0), "torso": Vector3(ap * 0.3 - 0.1, -0.4, 0.08), "head": Vector3(-ap * 0.3, 0.35, 0),
+				"arm_r": Vector3(1.5 + ap, 0.4, 0.05), "fore_r": Vector3.ZERO,
+				"arm_l": Vector3(0.4, 0, -1.1), "fore_l": Vector3(0.6, 0, 0),
+				"leg_l": Vector3(1.5, 0, -0.15), "shin_l": Vector3(-2.1, 0, 0), "leg_r": Vector3(0.6, 0, 0.18), "shin_r": Vector3(-1.2, 0, 0)}
+			var recoil := bead.merged({"arm_r": Vector3(1.95 + ap, 0.4, 0.15), "fore_r": Vector3(0.35, 0, 0),
+				"torso": Vector3(ap * 0.3 + 0.25, -0.3, 0.05), "head": Vector3(0.2, 0.3, 0),
+				"leg_l": Vector3(0.8, 0, -0.1), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.2, 0, 0.12), "shin_r": Vector3(-0.6, 0, 0)}, true)
+			# (the kick is short: the arm comes back down to the line, then away)
+			var after := recoil.merged({"arm_r": Vector3(1.6 + ap, 0.4, 0.1), "fore_r": Vector3(0.15, 0, 0), "torso": Vector3(ap * 0.3 + 0.1, -0.35, 0.05)}, true)
+			return [h._keys(u, [[0.0, {}], [0.12 / T, bead, "out"], [k_f, bead], [k_f + 0.04, recoil, "out"], [k_f + 0.16, after], [0.85, after], [1.0, g]]), "full", lift]
 		# --- Conqueror's Haki ---
 		"conqueror":
 			# standing tall, fists clenched at the sides, chin up; the will lands (0.38 s)

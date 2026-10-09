@@ -85,6 +85,9 @@ var jumps_remaining: int = 1
 var gun_rains: int = 0
 ## Katana air slashes since leaving the ground (one per jump).
 var air_slashes: int = 0
+## The other styles' air attacks since leaving the ground: {move: uses}, and
+## "bounce" for Meteor Kicks that connected (each one earns another).
+var air_uses: Dictionary = {}
 ## The next light attack is the katana's running draw (attacked while sprinting).
 var quick_draw: bool = false
 var body_model: Humanoid
@@ -968,6 +971,7 @@ func _physics_process(delta: float) -> void:
 		_coyote = coyote_time
 		gun_rains = 0
 		air_slashes = 0
+		air_uses.clear()
 		if not _was_on_floor:
 			_on_landed(_last_air_vy)
 	else:

@@ -7,11 +7,11 @@
 scenes/player/*                         feat feel dash stamtest swimtest
 scenes/player/camera_rig.gd             stamtest feel
 scripts/player_states/*                 feat feel dash
-scripts/player_states/player_state.gd   stamtest balancetest
+scripts/player_states/player_state.gd   stamtest balancetest airtest
 scripts/player_states/light_attack*     feel axetest katanatest stamtest techtest
 scripts/player_states/heavy_attack*     stamtest axetest techtest balancetest
 scripts/player_states/iai*              katanatest balancetest
-scripts/player_states/plunge*           fixtest katanatest
+scripts/player_states/plunge*           fixtest katanatest axetest airtest
 scripts/player_states/dodge*            dash
 scripts/player_states/block*            r6test
 scripts/player_states/parry*            grunttest
@@ -37,6 +37,7 @@ scripts/npc/arm_body.gd                 chartest styletest perftest
 scripts/npc/lower_body.gd               chartest styletest perftest
 scripts/npc/npc.gd                      qoltest
 scripts/npc/action_specs.gd             feel axetest katanatest techtest
+scripts/npc/technique_poses.gd          techtest airtest
 scripts/npc/sword_moves.gd              feel axetest katanatest techtest
 scripts/npc/anim_lab.gd                 feel
 scripts/net/humanoid_sync.gd            net

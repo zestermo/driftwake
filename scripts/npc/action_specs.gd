@@ -64,6 +64,14 @@ const SPECS := {
 	"guard_block_hit": {"len": 0.2, "stance": "sword", "weapon": "cutlass"},
 	"plunge_air": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
 	"plunge_land": {"len": 0.48, "stance": "sword", "weapon": "cutlass"},
+	# the learned air attacks (PlungeState)
+	"twin_cyclone": {"len": 0.8, "hit": [0.18, 0.85], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"cyclone_land": {"len": 0.48, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"meteor_kick": {"len": 0.6, "hit": [0.2, 0.6], "stance": "fist", "weapon": ""},
+	"meteor_land": {"len": 0.44, "stance": "fist", "weapon": ""},
+	"boarding_dive": {"len": 0.6, "hit": [0.27, 0.6], "stance": "sword", "weapon": "cutlass"},
+	"vault_back": {"len": 0.45, "stance": "sword", "weapon": "cutlass"},
+	"hang_shot": {"len": 0.62, "hit": [0.48, 0.52], "stance": "pistol", "weapon": "pistol"},
 	"climb_chop": {"len": 0.5, "stance": "sword", "weapon": "cutlass"},
 	# --- katana ---
 	"katana_r": {"len": 0.85, "hit": [0.39, 0.55], "stance": "katana", "weapon": "katana"},
