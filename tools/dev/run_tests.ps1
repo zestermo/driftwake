@@ -12,7 +12,8 @@ param(
 	[string[]]$Tests,
 	[string]$Godot = $env:GODOT,
 	[int]$Timeout = 330,
-	[int]$Jobs = 1
+	[int]$Jobs = 1,
+	[switch]$NoCompileCheck
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,6 +34,20 @@ if (-not $Godot -or -not (Test-Path $Godot)) {
 
 $logs = [System.IO.Path]::Combine($root, "tools", "dev", "out", "logs")
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
+
+# every script compiles first (~6 s): one broken script otherwise fails every suite with noise
+if (-not $NoCompileCheck) {
+	# (Windows PowerShell turns a native program's stderr into errors under "Stop")
+	$ErrorActionPreference = "Continue"
+	$cc = & $Godot --headless --path "$root" --script res://tools/dev/compilecheck.gd 2>&1 | ForEach-Object { "$_" }
+	$ErrorActionPreference = "Stop"
+	if ($LASTEXITCODE -ne 0) {
+		$cc | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED" } | Select-Object -Unique | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+		Write-Host "Scripts don't compile: no suites run (-NoCompileCheck to run anyway)" -ForegroundColor Red
+		exit 100
+	}
+	Write-Host ($cc | Where-Object { $_ -match "COMPILE OK" } | Select-Object -First 1) -ForegroundColor DarkGray
+}
 
 function Start-Suite([string]$t) {
 	$psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -55,7 +70,7 @@ function Finish-Suite($r) {
 	if ($timedOut) { try { $r.Proc.Kill() } catch {} ; $r.Proc.WaitForExit() }
 	$text = $r.Out.Result + "`n" + $r.Err.Result
 	Set-Content -Path (Join-Path $logs "$($r.Name).log") -Value $text -Encoding UTF8
-	$lines = $text -split "`r?`n" | Where-Object { $_ -cmatch "FAIL|RESULT|SCRIPT ERROR" }
+	$lines = $text -split "`r?`n" | Where-Object { $_ -cmatch "FAIL|RESULT|SCRIPT ERROR" } | Select-Object -Unique | Select-Object -First 12
 	$secs = [int]((Get-Date) - $r.Started).TotalSeconds
 	$ok = (-not $timedOut) -and ($lines -cmatch "RESULT (OK|fails=0)") -and -not ($lines -cmatch "FAIL|SCRIPT ERROR")
 	$summary = if ($timedOut) { "TIMEOUT after $Timeout s" } elseif ($lines) { ($lines -join " | ") } else { "no RESULT line (crashed?)" }

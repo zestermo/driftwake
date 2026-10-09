@@ -5,6 +5,11 @@ Headless tests, co-op tests and screenshot/render tools for Driftwake. All are
 root for how to run them on Windows. Output goes to `tools/dev/out/` (gitignored, has a `.gdignore`
 so Godot does not import the PNGs).
 
+## Checks
+
+- `compilecheck`: Compiles every project script (or just the ones named) with the autoloads loaded (Godot's own `--check-only` doesn't know Net, FX...) and prints `COMPILE OK (n scripts)` or `COMPILE FAILED <path>` under Godot's errors. Exit code = failures. `run_tests.ps1` runs it first (~6 s) and runs no suites if anything is broken (`-NoCompileCheck` skips it). Args: [paths...]
+- `hooks/gdcheck.ps1`: Claude Code hook (`.claude/settings.json`, PostToolUse on Edit/Write): after Claude edits a .gd file it compiles that file (~2 s) and hands any errors straight back to Claude.
+
 ## Test suites (run_tests.ps1)
 
 Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fails=0` / `RESULT FAILED (n)`.

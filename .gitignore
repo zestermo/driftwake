@@ -6,4 +6,10 @@ __pycache__/
 # dev tool output (screenshots, test logs)
 /tools/dev/out/*
 !/tools/dev/out/.gdignore
-builds/**.exe
+
+# exported builds, wherever they're saved (GitHub refuses files over 100 MB)
+*.exe
+*.pck
+
+# Claude Code worktrees (one per parallel session)
+/.claude/worktrees/
