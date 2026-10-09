@@ -1,8 +1,9 @@
 # Netlify serves the static site in web/site (headers: web/site/_headers).
-# No build command: Netlify's builders don't have Godot or its web templates.
-# Run tools/dev/build_web.ps1 locally (it puts the export in web/site/play/),
-# then deploy web/site with the Netlify CLI or by dragging the folder in.
-# See docs/web_build.md.
+# GitHub Actions builds and deploys it (.github/workflows/deploy-web.yml): Netlify's
+# builders have no Godot, so a Git-triggered Netlify build would publish the site
+# without the game. `ignore` makes Netlify skip every one of those; CLI deploys
+# (the workflow's, or tools/dev/build_web.ps1 then `netlify deploy`) aren't affected.
 [build]
   publish = "web/site"
   command = ""
+  ignore = "exit 0"
