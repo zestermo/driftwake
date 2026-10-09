@@ -129,6 +129,8 @@ func _process(d: float) -> bool:
 			pr.level = 6
 			check("learn Soru (active)", pr.learn("m_soru"))
 			check("Soru goes on the bar", pc.loadout[0] == "soru")
+			# (the level's XP put a share into the cutlass's mastery: none of it spent here)
+			pr.mastery_of("sword")["pts"] = 0
 			check("weapon trees spend mastery points, not skill points", pr.can_learn("s_edge") == "Needs 1 mastery point")
 			pr.mastery_of("sword")["pts"] = 10
 			pr.mastery_of("pistol")["pts"] = 10

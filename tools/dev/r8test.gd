@@ -206,6 +206,9 @@ func _process(d: float) -> bool:
 			check("a pirate ship spots the crew's ship and gives chase", saw.has("hunt"))
 			check("...and fires a broadside", int(saw["balls_enemy"]) > 0)
 			check("music: combat while a ship hunts you", music().current == "combat")
+			# (no ram or boarding of her own while the crew checks set up: she'd do both by now)
+			es._ram_cd = 999.0
+			es._board_cd = 999.0
 			wait = 4.0
 			step = 9
 		9:
@@ -224,6 +227,11 @@ func _process(d: float) -> bool:
 			var bp: Vector3 = ship.global_position + ship.global_basis.x * 8.0
 			es._pos = Vector3(bp.x, 0, bp.z)
 			es._heading = ship.global_rotation.y
+			# (matching her speed, as she would alongside: not still circling at full tilt)
+			es.speed = ship.speed
+			# (the hull and her crew too: her AI's held, so _sail won't move them there)
+			es.global_transform = Transform3D(Basis(Vector3.UP, es._heading), Vector3(bp.x, 0.85, bp.z))
+			es.reset_physics_interpolation()
 			es._set_state(4)
 			# (this close she'd board on her own meanwhile: hold her AI for the setup)
 			es.set_physics_process(false)
@@ -248,7 +256,11 @@ func _process(d: float) -> bool:
 			for g in es.boarders:
 				if is_instance_valid(g) and g.global_position.distance_to(ship.global_position) < 8.0 and g.global_position.y > 0.8:
 					on_deck += 1
-			check("...and land on the crew's deck", on_deck >= 2)
+			var where := []
+			for g in es.boarders:
+				if is_instance_valid(g):
+					where.append("%.1f m, y %.1f, state %d" % [g.global_position.distance_to(ship.global_position), g.global_position.y, g.state])
+			check("...and land on the crew's deck (%s; you %.1f m off)" % [", ".join(where), p.global_position.distance_to(ship.global_position)], on_deck >= 2)
 			for g in es.boarders:
 				if is_instance_valid(g):
 					g.health.take_damage(9999.0)

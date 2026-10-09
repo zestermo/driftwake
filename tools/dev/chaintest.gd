@@ -4,7 +4,7 @@ extends SceneTree
 ## with cities at 3 and 6 and the sea boss last, forks that split and rejoin,
 ## levels rising, the first island well past Redtide; the old placeholder
 ## islands are gone and the bottle treasures lie on Brinehollow's beaches.
-## The log pose: none to start, given on the wrist, unset under level 10, then
+## The log pose: none to start, given on the wrist, unset under level 5, then
 ## pointing at the first layer; hold L raises it and shows the HUD icon, the
 ## needle turns to the island; the seed, where we are and the log pose survive
 ## a save and load; Gus's rumour talks of the chain.
@@ -77,7 +77,7 @@ func _process(d: float) -> bool:
 						forks_differ = false
 			check("every island leads on to the next layer (the last to none)", links_ok and (by_layer[9][0]["next"] as Array).is_empty())
 			check("the two sides of a fork are different islands", forks_differ)
-			check("levels rise island to island (from Lv 12)", rising and int(by_layer[1][0]["level"]) >= 12)
+			check("levels rise island to island (from Lv 6, past Brinehollow's 5)", rising and int(by_layer[1][0]["level"]) >= 6)
 			var seen := {}
 			var todo: Array = c.start_next.duplicate()
 			while not todo.is_empty():
@@ -111,12 +111,12 @@ func _process(d: float) -> bool:
 			check("a new captain has no log pose", not p.has_log_pose() and p.body_model.fore_l.get_node_or_null("LogPose") == null)
 			p.give_log_pose()
 			check("given, it's on the left wrist", p.has_log_pose() and p.body_model.fore_l.get_node_or_null("LogPose") != null)
-			check("under level 10 it hasn't set", gm.log_pose_targets().is_empty())
+			check("under level %d it hasn't set" % gm.LOG_POSE_LEVEL, gm.log_pose_targets().is_empty())
 			var PR = load("res://scripts/progression/progression.gd")
-			while p.progression.level < 10:
+			while p.progression.level < gm.LOG_POSE_LEVEL:
 				p.progression.add_xp(PR.xp_to_next(p.progression.level) - p.progression.xp)
 			var tg: Array = gm.log_pose_targets()
-			check("at level 10 it points at the first island(s) (%d)" % tg.size(), tg.size() == c.start_next.size() and tg[0]["id"] == c.start_next[0])
+			check("at level %d it points at the first island(s) (%d)" % [gm.LOG_POSE_LEVEL, tg.size()], tg.size() == c.start_next.size() and tg[0]["id"] == c.start_next[0])
 			p.state_machine.force_state("Idle", {})
 			Input.action_press("log_pose")
 			wait = 0.5

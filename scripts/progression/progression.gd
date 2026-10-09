@@ -54,10 +54,10 @@ func _reset_owned() -> void:
 	_stat_n = -1
 
 
-## Experience needed to go from `lv` to the next level (100 x lv^1.3: was 50,
-## which levelled twice as fast as it should).
+## Experience needed to go from `lv` to the next level (200 x lv^1.5): level 5,
+## where the log pose wakes, takes ~3,400, about all Brinehollow and Redtide give.
 static func xp_to_next(lv: int) -> int:
-	return int(round(100.0 * pow(float(lv), 1.3)))
+	return int(round(200.0 * pow(float(lv), 1.5)))
 
 
 static func mastery_to_next(lv: int) -> int:

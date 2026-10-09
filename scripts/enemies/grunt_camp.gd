@@ -43,6 +43,7 @@ func _spawn_all() -> void:
 		i += 1
 		g.setup(c)
 		g.camp = self
+		g.xp_k = 0.5 if gen > 0 else 1.0
 		add_child(g)
 		g.global_position = c["post"] + Vector3.UP * 0.2
 		g.reset_physics_interpolation()

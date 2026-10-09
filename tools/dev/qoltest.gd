@@ -65,7 +65,7 @@ func _process(d: float) -> bool:
 				for e in shops.SHOPS[sid]["stock"]:
 					top = maxi(top, int(shops.item_of(e).rarity))
 			check("everything for sale on Brinehollow is white or green", top <= 1)
-			check("a level takes twice the XP it did (100 for the first)", p.progression.xp_to_next(1) == 100)
+			check("the first level takes 200 XP", p.progression.xp_to_next(1) == 200)
 			p.inventory_component.remove_item(item("gold"), gold())
 			p.inventory_component.add_item(item("treasure"), 10)
 			var dlg = root.get_node("Dialogue")

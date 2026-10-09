@@ -31,21 +31,21 @@ enum S { PATROL, HUNT, BROADSIDE, BOARD, HOLD, SINK, DECK, PRIZE, RAM, FLEE }
 ## [near, far], aim scatter, and how it fights (boards / rams / a second
 ## broadside right after the first / surrenders when beaten).
 const KINDS := {
-	"sloop": {"speed": 10.0, "hull": 260.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [30.0, 50.0], "scatter": 1.0,
+	"sloop": {"speed": 12.5, "hull": 260.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [30.0, 50.0], "scatter": 1.0,
 		"boards": true, "rams": true, "double": false, "yields": true,
 		"look": {"hull": Color(0.55, 0.45, 0.42), "deck": Color(0.75, 0.68, 0.6), "trim": Color(0.55, 0.12, 0.1), "sail": Color(0.22, 0.2, 0.2), "flag": Color(0.25, 0.22, 0.22), "emblem": "jolly"}},
-	"gunboat": {"speed": 13.0, "hull": 150.0, "guns": [-4.2, 0.6], "crew": 4, "range": [28.0, 42.0], "scatter": 1.25,
+	"gunboat": {"speed": 15.0, "hull": 150.0, "guns": [-4.2, 0.6], "crew": 4, "range": [28.0, 42.0], "scatter": 1.25,
 		"boards": true, "rams": true, "double": false, "yields": true,
 		"look": {"hull": Color(0.6, 0.4, 0.3), "deck": Color(0.8, 0.7, 0.55), "trim": Color(0.75, 0.55, 0.2), "sail": Color(0.62, 0.16, 0.12), "flag": Color(0.2, 0.18, 0.18), "emblem": "jolly"}},
-	"brig": {"speed": 8.0, "hull": 420.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [32.0, 54.0], "scatter": 1.0,
+	"brig": {"speed": 10.5, "hull": 420.0, "guns": [-7.2, -4.6, -0.6, 0.9], "crew": 8, "range": [32.0, 54.0], "scatter": 1.0,
 		"boards": true, "rams": true, "double": true, "yields": true,
 		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
-	"marine": {"speed": 11.0, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
+	"marine": {"speed": 13.5, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
 		"boards": false, "rams": true, "double": false, "yields": false,
 		"look": {"hull": Color(1.7, 1.7, 1.65), "deck": Color(0.8, 0.74, 0.64), "trim": Color(0.2, 0.32, 0.62), "sail": Color(0.95, 0.95, 0.92), "flag": Color(0.92, 0.92, 0.9), "emblem": "marine"}},
 }
 
-const ACCEL := 2.2
+const ACCEL := 2.6
 const MAX_TURN := 0.5
 const FREEBOARD := HullBuilder.FREEBOARD
 const HEAVE_SCALE := 0.4
@@ -53,13 +53,18 @@ const HEAVE_SCALE := 0.4
 const ALONGSIDE := 10.8
 const NOTICE := 150.0
 const LOSE := 240.0
-const FIRE_MAX := 64.0
-const VOLLEY_EVERY := 10.0
-const WARN := 1.6
+const FIRE_MAX := 72.0
+const VOLLEY_EVERY := 6.5
+const WARN := 1.4
+## How far off the beam the guns still bear (degrees).
+const FIRE_ARC := 50.0
 ## Closer than this they don't fire (the guns won't bear): they ram or board.
-const CLOSE := 24.0
+const CLOSE := 20.0
 ## A ship that's just started the chase waits this long before its first volley.
-const FIRST_VOLLEY := 6.0
+const FIRST_VOLLEY := 3.5
+## After a boarding party's done (or couldn't get alongside), this long before
+## the rest of her crew try it.
+const BOARD_AGAIN := 20.0
 ## No more than this many ships fight the crew at once (the rest keep patrolling).
 const MAX_ATTACKERS := 2
 ## What a ball does to the crew's hull and to men near where it lands.
@@ -135,7 +140,9 @@ var _volley_cd: float = 3.0
 var _volleys: int = 0
 var _warn_t: float = -1.0
 var _volley_side: float = 1.0
-var _boarded: bool = false
+var _board_cd: float = 0.0
+## A replacement ship (and her crew) is worth half the experience.
+var xp_k: float = 1.0
 var _orbit: float = 1.0
 var _sink_t: float = 0.0
 var _chest_done: bool = false
@@ -179,7 +186,7 @@ func setup(center: Vector3, radius: float, start_angle: float, seed_value: int, 
 
 
 func _max_speed() -> float:
-	return float(spec["speed"])
+	return float(spec["speed"]) * Ship.wind_boost(_heading, get_node_or_null("/root/Weather"))
 
 
 func _ready() -> void:
@@ -381,6 +388,8 @@ func _physics_process(delta: float) -> void:
 				var lead := tgt.global_position + _vel_of(tgt) * 2.5 - _pos
 				want_heading = atan2(-lead.x, -lead.z)
 				want_speed = _max_speed()
+				# (a beam coming to bear on the way in is a chance not to waste)
+				_try_volley(tgt, to_t, dist)
 				if dist < far_r + 15.0:
 					_set_state(S.BROADSIDE)
 					_orbit = 1.0 if _right().dot(to_t) > 0.0 else -1.0
@@ -395,21 +404,25 @@ func _physics_process(delta: float) -> void:
 					radial = -0.7
 				var d := (tangent + b * radial).normalized()
 				want_heading = atan2(-d.x, -d.z)
-				want_speed = _max_speed() * 0.75
+				# (keep pace with a ship under way, not just circle a sitting one)
+				want_speed = clampf(_speed_of(tgt) + 1.5, _max_speed() * 0.75, _max_speed())
 				if dist > far_r + 30.0:
 					_set_state(S.HUNT)
 				_try_volley(tgt, to_t, dist)
 				_ram_cd -= delta
+				_board_cd -= delta
 				# up close the guns won't bear: they ram you or board you
 				var close := dist < CLOSE + 6.0
+				# they can run you down: anything slower than them, or nearly stopped
+				var catchable := _speed_of(tgt) < maxf(_max_speed() - 0.5, 7.0)
 				# ram them: close, or slow and in reach after a volley
 				if spec["rams"] and _ram_cd <= 0.0 and _warn_t < 0.0 and hull > max_hull * 0.35 and dist < 45.0 \
-						and (close or (_volleys >= 1 and _speed_of(tgt) < 6.0)):
+						and (close or (_volleys >= 1 and _speed_of(tgt) < 8.0)):
 					_set_state(S.RAM)
 					bark(["Ramming speed!", "Brace! We're going in!", "Run 'em down!"][_rng.randi() % 3], 2.0)
 					Net.fx("sfx", ["horn", global_position, 4.0, 0.03, 0.8])
-				# board them: close, or after a couple of volleys when they're slow
-				elif spec["boards"] and not _boarded and _warn_t < 0.0 and (close or (_volleys >= 2 and _speed_of(tgt) < 6.0)):
+				# board them: close, or after a volley if they can catch you
+				elif spec["boards"] and _can_board() and _warn_t < 0.0 and (close or (_volleys >= 1 and catchable)):
 					_set_state(S.BOARD)
 					bark("Grapples! Prepare to board!", 2.5)
 		S.RAM:
@@ -443,10 +456,11 @@ func _physics_process(delta: float) -> void:
 				else:
 					want_heading = lerp_angle(th, atan2(-to_s.x, -to_s.z), clampf(to_s.length() / 8.0, 0.0, 1.0) * 0.6)
 				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.6, 2.0, _max_speed())
-				if to_s.length() < 4.5 and dist < 10.5:
+				# (near enough to leap: grapples bridge the last few metres)
+				if to_s.length() < 6.5 and dist < 13.5:
 					_board(tgt)
 				elif st_t > 25.0:
-					_boarded = true  # couldn't catch them: back to the guns
+					_board_cd = BOARD_AGAIN  # couldn't catch them: back to the guns
 					_set_state(S.BROADSIDE)
 		S.HOLD:
 			# lashed alongside while the boarders fight
@@ -461,6 +475,7 @@ func _physics_process(delta: float) -> void:
 			if boarders.is_empty() or st_t > 30.0 or tgt == null:
 				_set_state(S.BROADSIDE if tgt and _huntable(tgt) else S.PATROL)
 				_volley_cd = 4.0
+				_board_cd = BOARD_AGAIN
 		S.SINK:
 			_sink_update(delta)
 			return
@@ -551,7 +566,7 @@ func _try_volley(tgt: Node3D, to_t: Vector3, dist: float) -> void:
 		return
 	var side := 1.0 if _right().dot(to_t) > 0.0 else -1.0
 	var beam := _right() * side
-	if beam.dot(to_t.normalized()) < cos(deg_to_rad(38.0)):
+	if beam.dot(to_t.normalized()) < cos(deg_to_rad(FIRE_ARC)):
 		return
 	for c in _side_guns(side):
 		if not (c as ShipCannon).loaded():
@@ -567,6 +582,11 @@ func _try_volley(tgt: Node3D, to_t: Vector3, dist: float) -> void:
 
 func _warn_update(tgt: Node3D, _to_t: Vector3, dist: float) -> void:
 	if _warn_t < 0.0:
+		return
+	# alongside to board (or ramming): a volley still on its way would land on her own men
+	if state not in [S.HUNT, S.BROADSIDE]:
+		_warn_t = -1.0
+		_second = false
 		return
 	var prev := _warn_t
 	_warn_t += get_physics_process_delta_time()
@@ -624,7 +644,7 @@ func _surrender() -> void:
 	bark(["We yield! Don't shoot!", "Quarter! We strike!", "Enough! She's yours!"][_rng.randi() % 3], 3.0)
 	_set_state(S.PRIZE)
 	_empty_t = 0.0
-	Net.award_xp(120, global_position, 160.0)
+	Net.award_xp(roundi(90 * xp_k), global_position, 160.0)
 	_prize()
 	Net.event(self, "prize", [])
 
@@ -632,8 +652,12 @@ func _surrender() -> void:
 # --------------------------------------------------------------------------
 # Boarding
 # --------------------------------------------------------------------------
+## Another boarding party: off cooldown, and two men to spare besides the helmsman.
+func _can_board() -> bool:
+	return _board_cd <= 0.0 and _crew.size() - 1 - _crew_gone >= 2
+
+
 func _board(tgt: Node3D) -> void:
-	_boarded = true
 	_set_state(S.HOLD)
 	var n := 3 + clampi(Net.crew_size() - 2, 0, 2)
 	var seed_value := _rng.randi()
@@ -648,19 +672,23 @@ func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var parent: Node = fleet if fleet else get_parent()
-	n = mini(n, _crew.size() - 1)
+	# (the next men still aboard: a second boarding takes the rest)
+	var first := _crew_gone + 1
+	n = mini(n, _crew.size() - first)
 	for i in range(n):
-		var c: Dictionary = _crew[i + 1]
+		var ci := first + i
+		var c: Dictionary = _crew[ci]
 		var man := c["node"] as Humanoid
 		c["gone"] = true
 		man.visible = false
-		_crew_gone = maxi(_crew_gone, i + 1)
+		_crew_gone = maxi(_crew_gone, ci)
 		var g := PirateGrunt.new()
-		g.name = "BD_%s_%d" % [name, i]
+		g.name = "BD_%s_%d" % [name, ci]
 		var start := man.global_position + Vector3.UP * 0.05
 		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": rng.randi(), "look": c["look"], "body": man})
 		g.boarder = true
 		g.camp = self
+		g.xp_k = xp_k
 		parent.add_child(g)
 		g.global_position = start
 		g.reset_physics_interpolation()
@@ -741,7 +769,7 @@ static func marine_look(lk: Dictionary, rng: RandomNumberGenerator, officer: boo
 func _crew_update(delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	var near := cam != null and cam.global_position.distance_to(global_position) < CREW_SHOW
-	var fighting := state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD]
+	var fighting := state in [S.HUNT, S.BROADSIDE, S.BOARD, S.HOLD, S.RAM]
 	var side := 0.0
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
 	if state == S.BOARD and ship:
@@ -825,7 +853,7 @@ func _start_sink(fought: bool = true) -> void:
 	if fought:
 		bark("Abandon ship!", 3.0)
 		Net.fx("sfx", ["bell", global_position, 2.0, 0.02, 0.8])
-		Net.award_xp(150, global_position, 160.0)
+		Net.award_xp(roundi(100 * xp_k), global_position, 160.0)
 	sunk.emit(self)
 
 
@@ -1102,6 +1130,7 @@ func _crew_to_deck() -> void:
 		g.setup({"post": start, "yaw": man.global_rotation.y, "mode": "stand", "role": "sword", "seed": look_seed + i, "look": c["look"], "body": man})
 		g.boarder = true
 		g.camp = self
+		g.xp_k = xp_k
 		parent.add_child(g)
 		g.global_position = start
 		g.reset_physics_interpolation()
@@ -1114,7 +1143,7 @@ func _crew_to_deck() -> void:
 func _strike() -> void:
 	_set_state(S.PRIZE)
 	_empty_t = 0.0
-	Net.award_xp(200, global_position, 60.0)
+	Net.award_xp(roundi(150 * xp_k), global_position, 60.0)
 	_prize()
 	Net.event(self, "prize", [])
 

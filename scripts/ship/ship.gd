@@ -14,7 +14,7 @@ class_name Ship
 ## smoothly whatever the network does) from the helmsman's sails and rudder,
 ## and eases toward the helmsman's latest state, projected to now.
 
-const MAX_SPEED := 13.0
+const MAX_SPEED := 11.0
 const MAX_REVERSE := 3.0
 const ACCEL := 2.6
 const BRAKE := 4.0
@@ -1434,12 +1434,18 @@ func _wind_rel() -> float:
 ## The wind never holds her back: she sails at her own speed on any heading,
 ## and a fair wind (on the beam, or behind her) adds up to FAIR_BOOST on top,
 ## more the stronger it blows. 1.0 = sailing normally.
-const FAIR_BOOST := 0.3
+const FAIR_BOOST := 0.2
 var _fair_on: bool = false
 
 
 func wind_effect() -> float:
-	var a := rad_to_deg(absf(_wind_rel()))
+	return wind_boost(_heading, get_node_or_null("/root/Weather"))
+
+
+## The same for any ship on `heading` (the pirates sail by it too).
+static func wind_boost(heading: float, wx: Node) -> float:
+	var wd: Vector2 = wx.wind_dir() if wx else Vector2(1, 0)
+	var a := rad_to_deg(absf(Vector2(-sin(heading), -cos(heading)).angle_to(wd)))
 	var pts := [[0.0, 0.8], [60.0, 1.0], [110.0, 1.0], [140.0, 0.0], [180.0, 0.0]]
 	var fair := 0.0
 	for i in range(pts.size() - 1):
@@ -1447,7 +1453,6 @@ func wind_effect() -> float:
 			var t := (a - float(pts[i][0])) / (float(pts[i + 1][0]) - float(pts[i][0]))
 			fair = lerpf(float(pts[i][1]), float(pts[i + 1][1]), t)
 			break
-	var wx := get_node_or_null("/root/Weather")
 	var w: float = float(wx.get("wind")) if wx else 0.3
 	return 1.0 + FAIR_BOOST * fair * lerpf(0.4, 1.0, clampf(w, 0.0, 1.0))
 

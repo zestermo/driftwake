@@ -1,5 +1,5 @@
 extends SceneTree
-## The log pose held up (L) in the game view: unset under level 10 (the
+## The log pose held up (L) in the game view: unset under level 5 (the
 ## needle wandering), then set on the first island(s). The wrist itself:
 ## posebench with PB_KV="log_pose=1" (guard, log_pose:0.98).
 ## Args: <out_prefix>
@@ -29,7 +29,7 @@ func _process(d: float) -> bool:
 		1:
 			snap("unset")
 			var PR = load("res://scripts/progression/progression.gd")
-			while p.progression.level < 10:
+			while p.progression.level < root.get_node("GameManager").LOG_POSE_LEVEL:
 				p.progression.add_xp(PR.xp_to_next(p.progression.level) - p.progression.xp)
 		2:
 			snap("set_game_view")

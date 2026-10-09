@@ -1,6 +1,6 @@
 # Island chain plan (roguelike hybrid)
 
-Brinehollow is fixed: reach level 10, get the ship, beat Captain Morrow at Redtide Rock and get
+Brinehollow is fixed: reach level 5, get the ship, beat Captain Morrow at Redtide Rock and get
 the **log pose**. Past that, every new game generates a chain of islands from its seed.
 
 ## Decisions (Q&A, 2026-10-08)
@@ -21,7 +21,7 @@ the **log pose**. Past that, every new game generates a chain of islands from it
 
 **Islands**
 - Regular islands are 600-900 m across. Cities are bigger, about 900-1200 m.
-- Each island has a level: Brinehollow is 1-10, and each island adds about 2-3. Enemies, bosses and loot tiers scale with it.
+- Each island has a level: Brinehollow (with Redtide) is 1-5, the first chain island 6-7, and each island adds about 2-3. Enemies, bosses and loot tiers scale with it.
 - First-sea themes: **jungle, snow/ice, desert, temperate forest**. Later: swamp, rocky sky-cliffs, volcanic, ancient ruins, haunted.
 - Enemies: humans everywhere (pirates, Marines, bandits, dressed for the theme) plus 1-2 native beasts per theme.
 - A regular island has:
@@ -49,7 +49,7 @@ the **log pose**. Past that, every new game generates a chain of islands from it
 
 ## Milestone 1: chain + one theme (jungle) end to end
 
-1. Strip the 6 placeholder islands. The Redtide victory gives the log pose, gated to level 10. **Done.**
+1. Strip the 6 placeholder islands. The Redtide victory gives the log pose, gated to level 5 (was 10). **Done.**
 2. Chain graph and save: seas, nodes, forks, levels, roles. **Done.**
 3. Log pose: the item, compass needles, the set rule (time or boss), the fork pick with theme and danger, and co-op sync.
 4. Generic island builder plus ThemeDef, ported from StarterIsland's terrain, splat, paths and vegetation code. Jungle theme first. **Done (GenIsland, IslandTheme; built on a worker thread).**

@@ -24,6 +24,8 @@ const RAM_RANGE := 5.8
 const LEASH := 16.0
 
 var big: bool = false
+## A respawned bug is worth half the experience.
+var xp_k: float = 1.0
 var home := Vector3.ZERO
 var size_k: float = 1.0
 var max_hp: float = 30.0
@@ -753,7 +755,7 @@ func _on_died() -> void:
 	Net.event(self, "die", [dir])
 	Net.fx("sfx", ["chitter", global_position, 0.0, 0.05, 0.6])
 	Net.coins(global_position + Vector3(0, 0.4, 0), _rng.randi_range(3, 5) if big else _rng.randi_range(1, 2))
-	Net.award_xp(120 if big else 25, global_position + Vector3(0, 1.2 * size_k, 0))
+	Net.award_xp(roundi((120 if big else 25) * xp_k), global_position + Vector3(0, 1.2 * size_k, 0))
 	died.emit(self)
 
 

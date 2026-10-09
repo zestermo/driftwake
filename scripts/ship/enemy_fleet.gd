@@ -40,6 +40,7 @@ func _spawn(i: int) -> void:
 	s.name = "ES%d_%d" % [i, int(z["gen"])]
 	s.setup(c, r, a + 0.6, _seed_of(i, int(z["gen"])), _kind_of(i, int(z["gen"])))
 	s.fleet = self
+	s.xp_k = 0.5 if int(z["gen"]) > 0 else 1.0
 	add_child(s)
 	var tangent := Vector3(-sin(a), 0.0, cos(a))
 	s.global_transform = Transform3D(Basis(Vector3.UP, atan2(-tangent.x, -tangent.z)), Vector3(pos.x, 0.85, pos.z))

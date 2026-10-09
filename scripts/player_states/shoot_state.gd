@@ -7,7 +7,10 @@ extends PlayerState
 
 const RANGE := 45.0
 const SINGLE_DAMAGE := 14.0
-const DUAL_DAMAGE := 11.0
+const DUAL_DAMAGE := 10.0
+## Full damage out to FALLOFF_NEAR m, down to FALLOFF_MIN of it at RANGE.
+const FALLOFF_NEAR := 12.0
+const FALLOFF_MIN := 0.55
 ## The arms stay up this long after the shot before lowering.
 const LINGER := 1.0
 
@@ -20,7 +23,7 @@ static var _next_hand: int = 0
 func enter(_data: Dictionary) -> void:
 	timer = 0.0
 	var dual := player.style() == "dual_pistol"
-	dur = 0.22 if dual else 0.34
+	dur = 0.28 if dual else 0.34
 	face_direction(get_camera_forward(), 1.0)
 	if player.reloading():
 		return
@@ -94,8 +97,10 @@ func _fire(dual: bool) -> void:
 		var hb := hit["collider"] as Hurtbox
 		end = hit["position"]
 		var hd := player.melee_hit(DUAL_DAMAGE if dual else SINGLE_DAMAGE)
+		var far := muzzle.distance_to(end)
+		hd.damage *= lerpf(1.0, FALLOFF_MIN, clampf((far - FALLOFF_NEAR) / (RANGE - FALLOFF_NEAR), 0.0, 1.0))
 		# Point Blank (pistol tree): close shots hit harder
-		if muzzle.distance_to(end) < 5.0:
+		if far < 5.0:
 			hd.damage *= 1.0 + player.progression.stat("pointblank_pct")
 		hd.knockback_force = 3.0
 		hd.hitstop_duration = 0.0 if dual else 0.03   # (rapid dual fire: a freeze per hit reads as stutter)

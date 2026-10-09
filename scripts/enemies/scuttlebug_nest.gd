@@ -60,6 +60,8 @@ func _spawn(s: Dictionary) -> void:
 	else:
 		bug = Scuttlebug.new().setup(bool(s["big"]), gp)
 	bug.name = "B%d_%d" % [spots.find(s), int(s["gen"])]
+	# (an empty nest's first hatching is gen 1)
+	bug.xp_k = 0.5 if int(s["gen"]) > (1 if start_empty else 0) else 1.0
 	add_child(bug)
 	bug.global_position = start
 	bug.reset_physics_interpolation()

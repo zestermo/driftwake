@@ -80,6 +80,8 @@ const BARK_PARRIED := ["Wha-?!", "Huh?!"]
 const BARK_DIE := ["Ugh...", "Tell... the cap'n...", "Nngh..."]
 
 var camp: Node  # GruntCamp
+## A respawned crew (or a respawned ship's) is worth half the experience.
+var xp_k: float = 1.0
 var post := Vector3.ZERO
 var post_yaw: float = 0.0
 var idle_mode: String = "stand"  # stand | sit | patrol
@@ -133,6 +135,9 @@ static var _peril_blade: StandardMaterial3D
 const PERIL_WIND := 1.0
 var _guard_hits: int = 0
 var _guard_t: float = 0.0
+## A bullet flinches it at most once this often (rapid fire can't hold it in hitstun).
+const SHOT_FLINCH_EVERY := 1.0
+var _shot_flinch_t: float = 0.0
 var _stun_len: float = 0.25
 var _stun_vel := Vector3.ZERO
 var _stagger_len: float = 1.3
@@ -540,6 +545,7 @@ func _physics_process(delta: float) -> void:
 	_cooldown -= delta
 	_peril_cd -= delta
 	_guard_t -= delta
+	_shot_flinch_t -= delta
 	if _guard_t <= 0.0:
 		_guard_hits = 0
 	_bark_t -= delta
@@ -1236,6 +1242,10 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	if state == S.DEAD:
 		return
 	bark(BARK_HURT, 0.3)
+	if hit.ranged and not hit.breaker and not hit.knockdown and state != S.STAGGER:
+		if _shot_flinch_t > 0.0:
+			return  # it takes the ball and keeps coming
+		_shot_flinch_t = SHOT_FLINCH_EVERY
 	_release_token()
 	if hit.knockdown and hit.crumple:
 		_crumple()
@@ -1394,10 +1404,10 @@ func _on_died() -> void:
 	Net.event(self, "die", [])
 	if captain:
 		Net.coins(global_position + Vector3(0, 1.0, 0), _rng.randi_range(14, 22))
-		Net.award_xp(220, global_position + Vector3(0, 2.0, 0))
+		Net.award_xp(roundi(220 * xp_k), global_position + Vector3(0, 2.0, 0))
 	else:
 		Net.coins(global_position + Vector3(0, 1.0, 0), _rng.randi_range(3, 6))
-		Net.award_xp(55 if role == "rifle" else 45, global_position + Vector3(0, 2.0, 0))
+		Net.award_xp(roundi((55 if role == "rifle" else 45) * xp_k), global_position + Vector3(0, 2.0, 0))
 	_drop_weapon()
 	died.emit(self)
 

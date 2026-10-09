@@ -30,7 +30,7 @@ var ship_kit: Dictionary = ShipKit.fresh()
 var chain_seed: int = randi()
 var chain_at: int = -1
 ## A captain needs this level before the log pose sets on the first island.
-const LOG_POSE_LEVEL := 10
+const LOG_POSE_LEVEL := 5
 const AUTOSAVE_EVERY := 120.0
 var _autosave_t: float = 0.0
 ## Seconds played in this save (counted while the game isn't paused).

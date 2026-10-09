@@ -95,7 +95,7 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 			used.append(theme)
 			var n := {
 				"id": nodes.size(), "sea": 1, "layer": layer, "branch": b, "theme": theme, "role": role,
-				"level": 10 + layer * 2 + rng.randi_range(0, 1), "seed": rng.randi(),
+				"level": 4 + layer * 2 + rng.randi_range(0, 1), "seed": rng.randi(),
 				"pos": at + side * off, "next": [],
 			}
 			n["name"] = _name(rng, n)
