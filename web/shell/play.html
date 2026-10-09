@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+<title>Play Driftwake</title>
+<meta name="description" content="Driftwake in your browser: a PS1-style pirate action RPG.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+@font-face { font-family: "Pixelify"; src: url("../fonts/PixelifySans-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Pixelify"; src: url("../fonts/PixelifySans-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Silkscreen"; src: url("../fonts/Silkscreen-Regular.woff2") format("woff2"); font-display: swap; }
+:root {
+	--ink: #0a0c17;
+	--panel: rgba(10, 13, 23, 0.92);
+	--border: #dbbd73;
+	--border-dim: #736647;
+	--text: #f2ede0;
+	--dim: #9e998c;
+	--accent: #ffd959;
+	--red: #9e1a14;
+}
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--text); }
+body { font-family: "Pixelify", ui-monospace, monospace; touch-action: none; }
+#canvas { display: block; width: 100vw; height: 100vh; outline: none; }
+#canvas:focus { outline: none; }
+
+#boot {
+	position: fixed; inset: 0; z-index: 10;
+	display: flex; align-items: center; justify-content: center;
+	background:
+		radial-gradient(1px 1px at 12% 18%, #fff8 50%, transparent 51%),
+		radial-gradient(1px 1px at 38% 9%, #fff6 50%, transparent 51%),
+		radial-gradient(1px 1px at 64% 22%, #fff8 50%, transparent 51%),
+		radial-gradient(1px 1px at 82% 12%, #fff6 50%, transparent 51%),
+		radial-gradient(1px 1px at 91% 31%, #fff5 50%, transparent 51%),
+		linear-gradient(#0d0f29 0%, #46264a 45%, #f2804022 62%, #f28040 62.2%, #3a2236 62.6%, #0a0d22 100%);
+	image-rendering: pixelated;
+}
+#boot.hidden { display: none; }
+.card {
+	width: min(440px, calc(100vw - 32px));
+	padding: 22px 24px 18px;
+	background: var(--panel);
+	border: 2px solid var(--border);
+	box-shadow: 0 0 0 2px var(--ink), 6px 6px 0 2px #0008;
+	text-align: center;
+}
+.logo {
+	margin: 0; font-weight: 600; font-size: 52px; line-height: 1; letter-spacing: 2px;
+	color: var(--accent);
+	text-shadow: 0 3px 0 #8c4019, 3px 3px 0 #140805, -2px 0 0 #140805, 2px 0 0 #140805, 0 -2px 0 #140805, 0 5px 0 #140805;
+}
+.tag { margin: 8px 0 18px; font-family: "Silkscreen", monospace; font-size: 10px; letter-spacing: 1px; color: #ffe6bfcc; }
+.bar { height: 14px; border: 2px solid var(--border-dim); background: #05060c; padding: 2px; }
+.bar > div { height: 100%; width: 0%; background: repeating-linear-gradient(90deg, var(--accent) 0 6px, #e6b93a 6px 8px); transition: width 0.15s steps(4); }
+.bar.indeterminate > div { width: 30%; animation: drift 1.2s steps(12) infinite; }
+@keyframes drift { from { margin-left: 0%; } to { margin-left: 70%; } }
+#status { margin: 10px 0 0; min-height: 1.3em; font-size: 14px; color: var(--dim); }
+#start {
+	display: none; margin: 16px auto 4px; padding: 10px 26px;
+	font: 600 20px "Pixelify", monospace; color: var(--ink); background: var(--accent);
+	border: 2px solid var(--ink); box-shadow: 0 0 0 2px var(--border), 4px 4px 0 2px #000a;
+	cursor: pointer;
+}
+#start:hover, #start:focus-visible { background: #fff0a8; outline: none; }
+#start:active { transform: translate(2px, 2px); box-shadow: 0 0 0 2px var(--border), 2px 2px 0 2px #000a; }
+.opt { display: none; margin: 8px 0 0; font-size: 13px; color: var(--dim); }
+.opt input { accent-color: var(--accent); vertical-align: middle; }
+.notes { margin: 16px 0 0; padding: 10px 0 0; border-top: 1px solid var(--border-dim); font-size: 13px; line-height: 1.45; color: var(--dim); text-align: left; }
+.notes b { color: var(--text); font-weight: 400; }
+.notes kbd { font-family: "Silkscreen", monospace; font-size: 10px; color: var(--accent); }
+.err { color: #ff8a70; }
+a { color: var(--accent); }
+.back { position: fixed; left: 12px; top: 10px; z-index: 11; font-size: 13px; color: var(--dim); text-decoration: none; }
+.back:hover { color: var(--accent); }
+</style>
+$GODOT_HEAD_INCLUDE
+</head>
+<body>
+<canvas id="canvas">Your browser can't draw this game (no canvas support).</canvas>
+<noscript>Driftwake needs JavaScript to run in the browser.</noscript>
+
+<a class="back" id="back" href="../">&larr; Driftwake</a>
+<div id="boot">
+	<div class="card">
+		<h1 class="logo">DRIFTWAKE</h1>
+		<p class="tag">THE SEA REMEMBERS EVERY WAKE</p>
+		<div class="bar indeterminate" id="bar"><div></div></div>
+		<p id="status">Hoisting the sails...</p>
+		<button id="start" type="button">Set sail</button>
+		<label class="opt" id="fsopt"><input type="checkbox" id="fs" checked> Fullscreen</label>
+		<div class="notes">
+			<b>Keyboard and mouse.</b> Click the game to steer the camera, <kbd>Esc</kbd> for the menu.
+			In the browser, dodge is <kbd>C</kbd> (Ctrl+W would close the tab).<br>
+			<b>Co-op is desktop-only.</b> Saves stay in this browser.
+		</div>
+	</div>
+</div>
+
+<script src="$GODOT_URL"></script>
+<script>
+const GODOT_CONFIG = $GODOT_CONFIG;
+const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
+(function () {
+	const boot = document.getElementById('boot');
+	const bar = document.getElementById('bar');
+	const fill = bar.firstElementChild;
+	const status = document.getElementById('status');
+	const start = document.getElementById('start');
+	const fsopt = document.getElementById('fsopt');
+	const fs = document.getElementById('fs');
+	const MB = 1024 * 1024;
+
+	function fail(msg) {
+		bar.style.display = 'none';
+		start.style.display = 'none';
+		fsopt.style.display = 'none';
+		status.className = 'err';
+		status.textContent = msg;
+	}
+
+	const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+	if (missing.length !== 0) {
+		fail('This browser is missing what the game needs: ' + missing.join(', ') + '. Try a current Chrome, Edge or Firefox.');
+		return;
+	}
+
+	const engine = new Engine(Object.assign({}, GODOT_CONFIG, {
+		onProgress: function (current, total) {
+			if (current > 0 && total > 0) {
+				bar.classList.remove('indeterminate');
+				fill.style.width = Math.min(100, (current / total) * 100).toFixed(1) + '%';
+				status.textContent = 'Hoisting the sails... ' + (current / MB).toFixed(1) + ' / ' + (total / MB).toFixed(1) + ' MB';
+			}
+		},
+	}));
+	const pack = GODOT_CONFIG.mainPack || (GODOT_CONFIG.executable + '.pck');
+
+	// download everything first; the click that starts the game also unlocks its audio
+	Promise.all([engine.init(GODOT_CONFIG.executable), engine.preloadFile(pack, pack)]).then(function () {
+		bar.classList.remove('indeterminate');
+		fill.style.width = '100%';
+		status.textContent = 'Ready.';
+		start.style.display = 'block';
+		fsopt.style.display = document.fullscreenEnabled ? 'block' : 'none';
+		start.focus();
+	}, function (err) {
+		fail('Loading failed: ' + (err && err.message ? err.message : err));
+	});
+
+	start.addEventListener('click', function () {
+		if (fs.checked && document.fullscreenEnabled) {
+			document.documentElement.requestFullscreen().catch(function () {});
+		}
+		boot.classList.add('hidden');
+		document.getElementById('back').style.display = 'none';
+		engine.start({ args: ['--main-pack', pack].concat(GODOT_CONFIG.args || []) }).catch(function (err) {
+			boot.classList.remove('hidden');
+			fail('The game stopped: ' + (err && err.message ? err.message : err));
+		});
+	});
+})();
+</script>
+</body>
+</html>

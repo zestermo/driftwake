@@ -11,5 +11,9 @@ __pycache__/
 *.exe
 *.pck
 
+# the web export, and its copy in the site (tools/dev/build_web.ps1)
+/web/build/
+/web/site/play/
+
 # Claude Code worktrees (one per parallel session)
 /.claude/worktrees/
