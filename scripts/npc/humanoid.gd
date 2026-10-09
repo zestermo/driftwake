@@ -211,6 +211,9 @@ var _smeared: bool = false
 var _wrist := Vector2.ZERO
 var _swing_on: bool = false
 var _swivel: float = 0.0
+## The swing's frame (turns with the chest when the path follows it): the elbow search reads
+## "out to the side" in it, so a spin doesn't turn the elbow in across the chest.
+var _swing_b := Basis()
 var _swing_rp := Vector3.FORWARD
 ## Where the shoulders were when each path started (see _swing_frame), per "swing"/"reach".
 var _anchors := {}
@@ -960,6 +963,9 @@ func _finish_action() -> void:
 		hide_left_prop()
 	if n in SPIN_ACTIONS:
 		_cur["pivot"] = Vector3.ZERO
+	else:
+		# (a keyed full turn ends a turn round: the gait's smoothing would unwind it backwards)
+		_cur["pivot"].y = wrapf(_cur["pivot"].y, -PI, PI)
 	_action = {}
 	action_finished.emit(n)
 
@@ -1175,6 +1181,8 @@ func _action_pose(n: String, u: float) -> Array:
 			return SwordMoves.slash_r(self, u)
 		"slash_l":
 			return SwordMoves.slash_l(self, u)
+		"slash_spin":
+			return SwordMoves.slash_spin(self, u)
 		"dash_cut":
 			# cutlass, attacked at a sprint: low and fast past the target - the blade
 			# trailed back by the right hip, then whipped across to the left as the
@@ -2680,6 +2688,9 @@ func _swing(delta: float) -> void:
 	var chained := _swing_on and _swing_act != _action_id
 	_swing_act = _action_id
 	var frame := _swing_frame(sw, first and not chained)
+	if sw.get("from_shoulder", false):
+		frame.origin = arm.global_position
+	_swing_b = frame.basis.orthonormalized()
 	var s := _swing_at(sw, _sample_u(t, sp))
 	var pos_l: Vector3 = s[0]
 	var move := (_swing_at(sw, _sample_u(t + 0.02, sp))[0] as Vector3) - pos_l
@@ -2819,7 +2830,7 @@ func _swing_cut(sw: Dictionary) -> Vector3:
 ## down, the natural rest).
 func _swivel_pole(right: bool, target: Vector3, phi: float) -> Vector3:
 	var a := (target - (arm_r if right else arm_l).global_position).normalized()
-	var ref := global_basis.orthonormalized() * Vector3(0.5 if right else -0.5, -1.0, 0.2)
+	var ref := _swing_b * Vector3(0.5 if right else -0.5, -1.0, 0.2)
 	var u1 := (ref - a * ref.dot(a)).normalized()
 	return u1 * cos(phi) + a.cross(u1) * sin(phi)
 
@@ -2854,7 +2865,7 @@ func _swivel_cost(right: bool, target: Vector3, ahead: Vector3, brk: float, phi:
 	var c := 6.0 * pow(float(sol[1]), 2.0) + 0.3 * y * y + 0.15 * phi * phi
 	# anatomy: the elbow's point (the arm's +Z) never turns in across the body or far
 	# forward (from a walk the search settled there: the arm read as bent backwards)
-	var ep := global_basis.orthonormalized().inverse() * (arm_r if right else arm_l).global_basis.z.normalized()
+	var ep := _swing_b.inverse() * (arm_r if right else arm_l).global_basis.z.normalized()
 	var outward := ep.x if right else -ep.x
 	c += 8.0 * pow(maxf(0.0, 0.1 - outward), 2.0) + 6.0 * pow(maxf(0.0, -ep.z - 0.4), 2.0)
 	if _swing_on:

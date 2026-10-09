@@ -150,10 +150,15 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 	h.set_process(false)
 	for i in 60:
 		h._process(1.0 / 60.0)
-	# a combo hit is shown as it chains: the hit before it plays up to its chain time first
-	if ex.has("after"):
-		var prev := AnimLab.spec(str(ex["after"]))
-		h.play(str(ex["after"]), float(prev["len"]))
+	# a combo hit is shown as it chains: the hits before it play up to their chain times first
+	var before: Array = []
+	var a := str(ex.get("after", ""))
+	while a != "":
+		before.push_front(a)
+		a = str((AnimLab.spec(a).get("extras", {}) as Dictionary).get("after", ""))
+	for b in before:
+		var prev := AnimLab.spec(b)
+		h.play(b, float(prev["len"]))
 		while h.is_busy() and float(h._action["t"]) < float(prev.get("chain", prev["len"])):
 			h._process(1.0 / 120.0)
 	var dur: float = s["len"]
@@ -229,7 +234,8 @@ func _trace(h, st: Dictionary) -> void:
 	var inv: Transform3D = h.global_transform.affine_inverse()
 	var w: MeshInstance3D = h.weapon
 	var hand: Vector3 = inv * (h.hand_r as Node3D).global_position
-	var tip: Vector3 = inv * (w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z))
+	# (the blade as modelled: the smear stretch would read as tip speed)
+	var tip: Vector3 = inv * (w.global_position + w.global_basis.orthonormalized() * Vector3(0, 0, w.mesh.get_aabb().position.z))
 	st["n"] = int(st.get("n", 0)) + 1
 	if st.has("hand") and int(st["n"]) % 2 == 0:
 		print("TRACE u %.3f | hand %.2f %4.1f | tip %.2f %4.1f | elbow %.2f" % [float(h._action["t"]) / float(h._action["dur"]),

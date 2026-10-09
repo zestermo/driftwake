@@ -346,3 +346,26 @@ Lessons that cut across the rounds:
   out-of-reach point, an IK handoff). Trace before tuning.
 - Numbers over eyeballing: BLADE checks and the trace caught what renders hid.
 - Check the whole move, recovery included, not just the strike.
+
+## Hit 3 (2026-10-08): slash_spin, the spinning finisher
+
+Built from the recipe (SwordMoves SLASH_SPIN_SWING / SLASH_SPIN_REACH / `slash_spin()`; 0.8 s,
+hit 0.26-0.78, chain 0.68 s, trail 0.2-0.84). The boss keeps the old `spin_slash`.
+- Chains from hit 2: its follow-through (chest coiled right, sword out behind the right
+  shoulder) is the wind-up. Dip, unwind through the front (hips lead, chest square at
+  contact), hop into a full turn left (pivot y, smoothstep over u 0.22-0.66) with the arm out
+  and the blade level, the off hand tucked to the chest; land, sweep across the front into a
+  low-left wrap, the off arm flung out for balance.
+- The path turns with the chest (`follow` 1) and is placed from the sword shoulder (new
+  `from_shoulder` for swings), the cut plane given (level).
+- Found on the way (each by AS_TRACE / AS_DEBUG): the path centre drifted off the shoulder
+  when it turned with the chest (fixed by `from_shoulder`); a 47-degree gap between keys cut a
+  chord and folded the elbow (an arc key); the elbow search judged "out to the side" in the
+  feet's frame, so after the turn it flipped the elbow up into the head (it reads the swing's
+  frame now); eased unwind keys peaked the chest's turn (linear); the hand at shoulder height
+  angled the blade up (hand a little lower); the trace counted the blade smear as tip speed
+  (now the modelled blade).
+- Checks: edge avg 0.73 min 0.44, roll 0.41, body clearance 0.16 m, upper arm 0.10 m. Hits
+  1 and 2 unchanged (BLADE lines identical).
+
+Waiting for Zach's notes.

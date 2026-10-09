@@ -22,7 +22,8 @@ class_name ActionSpecs
 ## "swing": the hand on a path instead of keyed arm angles (Humanoid._swing): {"hand": "r"|"l",
 ## "center": Vector3 in the root's space (feet, facing -Z), "follow": 0..1 how far the points
 ## turn with the chest, "anchor": 0..1 how far the points move with the shoulders (default 1),
-## "lag": s behind the body, "plane": the cut plane's normal (default from the path's sweep from
+## "lag": s behind the body, "from_shoulder": the points are offsets from the sword shoulder
+## (use with "follow" 1 when the body turns a lot: "r" is then the reach), "plane": the cut plane's normal (default from the path's sweep from
 ## key "plane_from" on: skip wind-up keys that travel the other way),
 ## "cut": the overall direction (checks only), "break": default wrist break, "keys": [[u,
 ## {"dir": from the centre, "r": m, "break": rad the blade is cocked back off the forearm's
@@ -48,6 +49,11 @@ const SPECS := {
 		"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
 		"swing": SwordMoves.SLASH_L_SWING, "reach": SwordMoves.SLASH_L_REACH, "stance": "sword", "weapon": "cutlass",
 		"extras": {"after": "slash_r"}},
+	"slash_spin": {"len": 0.8, "hit": [0.26, 0.78], "chain": 0.68, "swoosh": [0.2, 0.84], "sharp": 55.0,
+		"lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
+		"swing": SwordMoves.SLASH_SPIN_SWING, "reach": SwordMoves.SLASH_SPIN_REACH, "stance": "sword", "weapon": "cutlass",
+		"extras": {"after": "slash_l"}},
+	# (the boss's quick spin; the player's combo finisher is slash_spin)
 	"spin_slash": {"len": 0.62, "hit": [0.21, 0.68], "stance": "sword", "weapon": "cutlass"},
 	"dash_cut": {"len": 0.62, "hit": [0.27, 0.48], "stance": "sword", "weapon": "cutlass"},
 	"thrust": {"len": 0.75, "hit": [0.29, 0.53], "stance": "sword", "weapon": "cutlass"},

@@ -171,6 +171,18 @@ author its keys in the guard's frame too.
 **Clearance.** The solver pushes the blade 0.2 m off the head sphere and chest capsule
 (`_blade_clear`). That's a safety net; a path that needs it looks cramped.
 
+**Swings that turn the body (spins; hit 3 `SLASH_SPIN_SWING` is the example).** Use
+`"follow": 1.0` with `"from_shoulder": true` (points are offsets from the sword shoulder in
+the chest's frame, so `r` is the reach: ~0.62-0.64 arm out, ~0.6 a little bent) and give
+`"plane"` (and `"cut"`) explicitly: in the chest's frame the hand barely moves while the body
+carries it round, so the keys can't say which way the cut goes. Put the spin in `pivot` y
+on top of the keyed body (a full turn ends wrapped, `_finish_action`), not in
+`SPIN_ACTIONS` (those skip the blend in). Let the body do the sweeping: the arm's own sweep
+on top of the turn doubles the blade's speed. Hand slightly below the shoulder (dir y ~-0.3)
+keeps the forearm and blade level (the elbow sits low, so a hand at shoulder height angles
+the blade up). Unwind the coil into the turn at a steady rate (`"linear"` body keys): eased
+keys peak the chest's turn for a frame and the blade flicks.
+
 ## Reach paths (the free hand)
 
 The spec's `"reach"`: the same curve, arm IK, wrist as posed. Use `from_shoulder: true`,
@@ -201,7 +213,8 @@ through), arm near straight but never locked.
 ## Timing
 
 - Lengths that worked: hit 1 0.85 s (the opener: a long readable wind-up), hit 2 0.7 s (a
-  chained hit gets its wind-up from the hit before, so it's quicker), hit 3 0.62 s. The
+  chained hit gets its wind-up from the hit before, so it's quicker), hit 3 0.8 s (a full
+  turn and a landing; not yet judged by Zach). The
   *motion* of every hit should feel equally quick; Zach compares hits within a combo.
 - **Carry the follow-through fast, then hold.** A long eased-out sweep after contact reads as
   slow motion (~0.1 s from contact to the end of the sweep was right for hit 2).
@@ -226,6 +239,9 @@ through), arm near straight but never locked.
 | "wonky off elbow" | off hand's path ran a chord past the shoulder | a key on the arc out past the hip |
 | "too slow at the end" | long eased-out follow-through sweep | compress the sweep, then hold |
 | "wobbles up and down" | smooth key stopping the hand mid-rise; body bob under the path; height peaking then sinking; locked arm stalling and lurching | space keys by distance; stretch along the cut; monotonic height; trim radii |
+| (hit 3) elbow bent 1.2-1.9 though the keys reach 0.6 | two keys far apart round the shoulder: the curve cuts a chord inside them | a key on the arc between them |
+| (hit 3) elbow flipped up after the spin, upper arm in the head | the elbow search judged "out to the side" in the feet's frame | it reads the swing's frame now (`_swing_b`) |
+| (hit 3) tip 100 m/s at contact | eased body keys (in/out) peaked the chest's turn; the arm swept on top of the turn | linear unwind; smaller arm sweep, the body carries it |
 | (found by trace) blade pops on recovery, hits 1 and 2 | the release re-ran IK toward the posed hand; the elbow search found another solution | release in joint space (slerp each joint to its posed rotation) |
 
 ## Tools
@@ -252,13 +268,16 @@ powershell -NoProfile -Command '& $env:GODOT --path . --script res://tools/dev/p
 - **AS_TRACE** (lab mode): a height that dips and recovers, or a speed that stalls and
   surges or spikes (a one-frame tip speed of 50+ m/s is a flip), is what Zach sees as a
   wobble or pop. Read it for every swing change, including the recovery after the last key.
+  The tip is the blade as modelled (smear excluded). Speeds are in the root's space, so a
+  spin's turn counts. References: hits 1/2 hand peaks ~12-19 m/s, tip ~45; hit 3 tip ~40-60.
 - **AS_DEBUG=<live|a|b|c>**: the solver per frame. SWING (path point vs where the hand got,
   shoulder, forearm, cut direction, blade, edge, wrist, swivel), ELBOW (sword elbow
   direction, bend, arm-to-head clearance, clearance push, IK target), REACH (free hand
   target, pole, elbow, bend). With extras "after" the earlier hit prints first; take the
   second run of u.
 - **AS_MOVE="x,y"**: start the render mid-walk (y+ forward). Elbow bugs showed only there.
-- Combo hits: extras `"after": "<previous hit>"` plays it up to its chain time first.
+- Combo hits: extras `"after": "<previous hit>"` plays it (and its own "after", back to the
+  opener) up to each chain time first.
 - animsheet steps `_process` by hand: skinned legs need `LowerBody._pose()` and two
   `frame_post_draw`s per capture (done). Don't use heavyshots (stale legs, late frames).
 - A parse error anywhere in the project can stop posebench from saving; animsheet tolerates

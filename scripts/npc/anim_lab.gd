@@ -9,13 +9,13 @@ class_name AnimLab
 ## next round.
 
 ## The action the current round is about (F5 cycles its variants).
-const FOCUS := "slash_l"
+const FOCUS := "slash_spin"
 const SLOW := 0.25
 
-## Round 9 picked (C, the flatter rise, now live in SwordMoves): no variants until the next round.
+## No round running (hits 1-3 live in SwordMoves).
 ## action -> variant -> {"note": what it tries, "spec": overrides of the ActionSpecs entry}
 const VARIANTS := {
-	"slash_l": {},
+	"slash_spin": {},
 }
 
 ## The variant shown ("" = the live animation).

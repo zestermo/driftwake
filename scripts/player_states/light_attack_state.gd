@@ -13,7 +13,7 @@ extends PlayerState
 ## Each anim's length and hitbox window (its strike frames) come from ActionSpecs.
 ## "durations" is how long the state lasts before the next hit can chain.
 const STYLES := {
-	"sword": {"anims": ["slash_r", "slash_l", "spin_slash"], "trails": ["right", "left", "spin"],
+	"sword": {"anims": ["slash_r", "slash_l", "slash_spin"], "trails": ["right", "left", "spin"],
 		"durations": [0.3, 0.3, 0.46], "impulses": [4.5, 4.5, 6.5],
 		"damages": [10.0, 12.0, 22.0], "hitstops": [0.05, 0.05, 0.09], "shakes": [0.09, 0.09, 0.18],
 		"reach": "sword", "color": Color(0.45, 0.75, 1.0)},

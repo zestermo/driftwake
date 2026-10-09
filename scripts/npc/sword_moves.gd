@@ -62,6 +62,68 @@ const SLASH_L_REACH := {"hand": "l", "follow": 1.0, "from_shoulder": true, "lag"
 	[0.7, {"dir": Vector3(-0.47, -0.2, 0.42), "pole": Vector3(-0.3, -1.0, 0.3)}, "out"]]}
 
 
+## Hit 3, the spinning finisher: chains from hit 2's follow-through (chest coiled right, the
+## sword out behind the right shoulder: the wind-up), dips, unwinds through the front and hops
+## into a full turn to the left with the arm out and the blade level, lands and sweeps across
+## the front once more into a low wrap at the left. The points turn with the chest ("follow"),
+## so in them the hand mostly stays out at the right side while the body carries it round;
+## the plane is given (level, turning left) since the points alone sweep back and forth.
+## Points are offsets from the sword shoulder in the chest's frame, so "r" is the reach (0.62
+## ~ arm out, bent a little).
+const SLASH_SPIN_SWING := {"from_shoulder": true, "center": Vector3.ZERO, "lag": 0.02, "follow": 1.0,
+	"plane": Vector3.UP, "cut": Vector3.FORWARD, "keys": [
+	[0.0, {"dir": Vector3(1.0, 0.05, 0.0), "r": 0.62, "break": 0.1}],
+	[0.18, {"dir": Vector3(0.9, -0.05, 0.3), "r": 0.6, "break": 0.6}, "smooth"],
+	[0.24, {"dir": Vector3(1.0, -0.2, -0.08), "r": 0.625, "break": 0.45}],
+	[0.3, {"dir": Vector3(0.85, -0.25, -0.45), "r": 0.63, "break": 0.3}],
+	[0.38, {"dir": Vector3(1.0, -0.3, -0.25), "r": 0.635, "break": 0.1}],
+	[0.62, {"dir": Vector3(1.0, -0.3, -0.25), "r": 0.635, "break": 0.1}],
+	[0.67, {"dir": Vector3(0.95, -0.28, -0.45), "r": 0.61, "break": 0.15}, "in"],
+	[0.72, {"dir": Vector3(0.2, -0.25, -1.0), "r": 0.58, "break": 0.25}],
+	[0.79, {"dir": Vector3(-0.7, -0.2, -0.55), "r": 0.56, "break": 0.2}],
+	[0.84, {"dir": Vector3(-0.8, -0.2, -0.4), "r": 0.56, "break": 0.2}, "out"]]}
+## The off hand: from hit 2's fling, pulled in to the chest for the spin (a tight turn), then
+## flung out at the left for balance on the landing.
+const SLASH_SPIN_REACH := {"hand": "l", "follow": 1.0, "from_shoulder": true, "lag": 0.04, "pole": Vector3(-1.0, -0.35, 0.25),
+	"center": Vector3.ZERO, "keys": [
+	[0.0, {"dir": Vector3(-0.47, -0.2, 0.42), "pole": Vector3(-0.3, -1.0, 0.3)}],
+	[0.2, {"dir": Vector3(-0.4, -0.35, 0.1), "pole": Vector3(-0.3, -1.0, 0.3)}, "smooth"],
+	[0.34, {"dir": Vector3(0.05, -0.42, -0.3)}],
+	[0.6, {"dir": Vector3(0.05, -0.42, -0.3)}],
+	[0.78, {"dir": Vector3(-0.5, -0.3, -0.1)}, "out"]]}
+
+
+## Hit 3's body: [pose, mask, lift]. The turn itself is the pivot (a full turn left, eased in
+## and out) on top of the keys; the hips and chest unwind hit 2's coil into it.
+static func slash_spin(h, u: float) -> Array:
+	var k := 1.6
+	var p1 := _forehand(h)
+	var p2 := _backhand(h)
+	var gather := {"pivot": Vector3(0.04, 0, 0.04), "hips": Vector3(0, -0.38, 0) * k,
+		"torso": Vector3(0.05, -0.42, 0.1) * k, "head": Vector3(0, 0.65, 0) * k,
+		"leg_l": Vector3(0.55, 0, -0.16), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.35, 0, 0.16), "shin_r": Vector3(-1.0, 0, 0),
+		"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.05, 0.93, 1.05), "_smear": Vector3.ZERO}
+	var unwound := {"pivot": Vector3(-0.06, 0, 0), "hips": Vector3(0, 0.1, 0), "torso": Vector3(-0.12, 0.08, 0), "head": Vector3(0.05, -0.1, 0),
+		"leg_l": Vector3(0.6, 0, -0.1), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.2, 0, 0.1), "shin_r": Vector3(-0.5, 0, 0),
+		"_lift": Vector3(0, -0.12, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}
+	var whoosh := _with(_mix(gather, unwound, 0.5), Vector3(0.94, 1.0, 1.15), 0.7)
+	# (in the air the legs tuck and the body leans into the turn)
+	var air := unwound.merged({"pivot": Vector3(-0.1, 0, 0.08), "hips": Vector3.ZERO, "torso": Vector3(-0.12, 0.12, 0.05), "head": Vector3(0, -0.05, 0),
+		"leg_l": Vector3(1.0, 0, -0.1), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.5, 0, 0.1), "shin_r": Vector3(-1.6, 0, 0),
+		"_lift": Vector3(0, 0.1, 0), "_smear": Vector3(0.5, 0, 0)}, true)
+	var drop := air.merged({"leg_l": Vector3(0.7, 0, -0.12), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.3, 0, 0.12), "shin_r": Vector3(-0.7, 0, 0),
+		"_lift": Vector3(0, 0.05, 0), "_smear": Vector3.ZERO}, true)
+	var land: Dictionary = p1["cut"].merged({"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.06, 0.92, 1.05)}, true)
+	var finish := _mix(p1["cut"], p1["follow"], 0.6).merged({"_scale": Vector3.ONE}, true)
+	# (the coil unwinds at a steady rate into the turn: eased keys peaked the chest at ~70 rad/s
+	# for a frame and the blade flicked)
+	var pose: Dictionary = h._keys(u, [[0.0, p2["follow"]], [0.18, gather, "out"], [0.26, whoosh, "linear"], [0.34, unwound, "linear"],
+		[0.44, air, "out"], [0.58, drop], [0.68, land, "in"], [0.82, finish, "out"], [0.9, finish], [1.0, p1["g"]]])
+	var s := smoothstep(0.22, 0.66, u)
+	pose["pivot"] = (pose.get("pivot", Vector3.ZERO) as Vector3) + Vector3(0, TAU * s, 0)
+	return [pose, "full", Vector3.ZERO]
+
+
 ## Hit 1's body: [pose, mask, lift].
 static func slash_r(h, u: float) -> Array:
 	var p := _forehand(h)
@@ -72,9 +134,15 @@ static func slash_r(h, u: float) -> Array:
 ## Hit 2's body: [pose, mask, lift]. Starts on hit 1's follow-through pose (its chain point),
 ## dips and coils, steps through on the right foot into the cut, turns right after it.
 static func slash_l(h, u: float) -> Array:
+	var p := _backhand(h)
+	return [h._keys(u, [[0.0, p["start"]], [0.22, p["gather"], "out"], [0.33, p["whoosh"], "in"], [0.41, p["cut"], "out"],
+		[0.55, p["follow"], "out"], [0.74, p["follow"]], [1.0, p["g"]]]), "full", Vector3.ZERO]
+
+
+## Hit 2's body poses.
+static func _backhand(h) -> Dictionary:
 	var k := 1.6
 	var p := _forehand(h)
-	var start: Dictionary = p["follow"]
 	var gather := {"pivot": Vector3(0.0, 0, 0.06) * k, "hips": Vector3(0, 0.45, 0) * k,
 		"torso": Vector3(0.05, 0.5, 0.12) * k, "head": Vector3(0.0, -0.75, -0.05) * k,
 		"leg_l": Vector3(0.8, 0, -0.14), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.5, 0, 0.14), "shin_r": Vector3(-0.5, 0, 0),
@@ -89,8 +157,7 @@ static func slash_l(h, u: float) -> Array:
 	var follow := cut.merged({"pivot": Vector3(-0.1, 0, -0.06) * k, "hips": Vector3(0, -0.3, 0) * k,
 		"torso": Vector3(-0.25, -0.33, -0.15) * k, "head": Vector3(0.1, 0.45, 0) * k, "_lift": Vector3(0, -0.15, 0),
 		"_scale": Vector3.ONE}, true)
-	return [h._keys(u, [[0.0, start], [0.22, gather, "out"], [0.33, whoosh, "in"], [0.41, cut, "out"],
-		[0.55, follow, "out"], [0.74, follow], [1.0, p["g"]]]), "full", Vector3.ZERO]
+	return {"g": p["g"], "start": p["follow"], "gather": gather, "whoosh": whoosh, "cut": cut, "follow": follow}
 
 
 ## Hit 1's body poses (the arms ride paths: arm keys here only seed the blend).

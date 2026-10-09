@@ -656,3 +656,17 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   reach/bend, monotonic height, the anchor across chains, ending the path), body keys for a
   swing, timing, a symptom -> cause table, the tools and check targets.
 - Tests: fixtest, feat, stamtest. Renders: animsheet lab:slash_r, lab:slash_l with AS_TRACE.
+
+## 2026-10-08: cutlass combo hit 3 on a swing path (slash_spin)
+- The cutlass light combo's finisher is now `slash_spin` (SwordMoves, ActionSpecs; the boss
+  still plays the keyed `spin_slash`). It chains from hit 2's coil: dip, unwind, hop into a
+  full turn left with the blade level, land and sweep into a low wrap. Blade trail off the
+  real blade (no arc FX).
+- Humanoid: swings take `from_shoulder` (points from the sword shoulder, for paths that turn
+  with the chest); the elbow search reads its side and rest direction in the swing's frame
+  (`_swing_b`, same as before for paths that don't turn); a keyed full turn's pivot is
+  wrapped when the action ends (not unwound).
+- animsheet: "after" follows the chain back to the opener; AS_TRACE measures the blade as
+  modelled (smear excluded).
+- Tests: fixtest, feat, stamtest, r7test. Renders: animsheet lab:slash_spin (+ AS_TRACE),
+  lab:slash_r and lab:slash_l unchanged.
