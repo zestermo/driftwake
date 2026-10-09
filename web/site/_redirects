@@ -1,0 +1,5 @@
+# driftwake.fun/download -> the newest GitHub Release's Windows build (.github/workflows/build-windows.yml
+# publishes Driftwake-windows.zip on every v* tag; GitHub serves the file).
+/download           https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-windows.zip  302
+/download/windows   https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-windows.zip  302
+/releases           https://github.com/zestermo/driftwake/releases  302
