@@ -1065,7 +1065,7 @@ func flame_emitter(parent: Node3D, radius: float = 0.3, amount: int = 16, size: 
 const TREE_FX := {
 	"sword": [Color(0.92, 0.98, 1.0), Color(0.3, 0.72, 1.0), Color(0.78, 0.95, 1.0)],
 	"katana": [Color(1.0, 1.0, 1.0), Color(0.78, 0.86, 1.0), Color(1.0, 0.62, 0.8)],
-	"axe": [Color(1.0, 0.9, 0.6), Color(1.0, 0.5, 0.15), Color(0.55, 0.42, 0.3)],
+	"axe": [Color(1.0, 0.9, 0.6), Color(1.0, 0.5, 0.15), Color(1.0, 0.32, 0.08)],
 	"dual": [Color(0.95, 0.98, 1.0), Color(0.35, 0.9, 0.95), Color(0.75, 0.45, 1.0)],
 	"pistol": [Color(1.0, 0.95, 0.75), Color(1.0, 0.75, 0.25), Color(0.7, 0.7, 0.68)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
@@ -1146,6 +1146,166 @@ func petals(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1
 		p.angle_max = 360.0
 		p.angular_velocity_min = -420.0
 		p.angular_velocity_max = 420.0
+
+
+## A tree's element thrown along `dir`: sea spray (cutlass), petals (katana),
+## embers (axe).
+func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	var c := tree_col(tree, ACCENT)
+	match tree:
+		"katana":
+			petals(pos, dir, amount, c, speed)
+		"axe":
+			embers(pos, dir, amount, c, speed)
+		_:
+			spray(pos, dir, amount, c, speed)
+
+
+static var _ember_ramps: Dictionary = {}
+static var _debris_mesh: BoxMesh
+static var _unit_box: BoxMesh
+
+
+## Hot embers thrown along `dir`: sparks that fly, slow, and drift up as they cool
+## from white-yellow through `color` to a dull red (the axe's element), and a
+## puff of flame.
+func embers(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1.0, 0.32, 0.08), speed: float = 4.0) -> void:
+	if not _ember_ramps.has(color):
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.3, 1.0])
+		g.colors = PackedColorArray([Color(1.0, 0.92, 0.6, 1.0), Color(color.r, color.g, color.b, 1.0), Color(0.45, 0.06, 0.02, 0.0)])
+		_ember_ramps[color] = g
+	_burst(pos, amount, _spark_mat, 0.12, 0.9, {"radius": 0.15, "direction": dir.normalized(), "spread": 40.0,
+		"vel_min": speed * 0.5, "vel_max": speed, "gravity": Vector3(0, 1.6, 0), "damping": 3.0, "grow": false,
+		"ramp": _ember_ramps[color]})
+	flame(pos, maxi(amount / 4, 2), 0.45, 0.4, 0.15)
+
+
+## Rock chips knocked loose (axe blows into the ground): dark chunks thrown
+## along `dir` that fall hard.
+func debris(pos: Vector3, dir: Vector3 = Vector3.UP, amount: int = 8, color: Color = Color(0.42, 0.36, 0.3), speed: float = 5.0) -> void:
+	if _debris_mesh == null:
+		_debris_mesh = BoxMesh.new()
+		_debris_mesh.size = Vector3(0.09, 0.07, 0.08)
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.vertex_color_use_as_albedo = true
+		m.vertex_color_is_srgb = true
+		_debris_mesh.material = m
+	_burst(pos, amount, null, 0.1, 0.8, {"radius": 0.25, "direction": dir.normalized(), "spread": 35.0,
+		"vel_min": speed * 0.5, "vel_max": speed, "gravity": Vector3(0, -16.0, 0), "damping": 0.5, "hold": true,
+		"scale_min": 0.6, "scale_max": 1.6, "mesh": _debris_mesh, "color": Color(color.r, color.g, color.b, 1.0)})
+
+
+static func _box() -> BoxMesh:
+	if _unit_box == null:
+		_unit_box = BoxMesh.new()
+		_unit_box.size = Vector3.ONE
+	return _unit_box
+
+
+## A crack torn along the ground from `from` along `dir` (axe blows that split the
+## earth): a jagged dark line zipping out over `secs` with a branch here and
+## there, lingering, then gone. A `glow` with alpha puts molten light in it (the
+## axe's element). Seeded, so every screen draws the same crack.
+func ground_crack(from: Vector3, dir: Vector3, length: float = 6.0, glow: Color = Color(0, 0, 0, 0), seed_v: int = 0, secs: float = 0.18) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(from) > BURST_RANGE:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var d := Vector3(dir.x, 0.0, dir.z).normalized()
+	var side := d.cross(Vector3.UP)
+	var dark := StandardMaterial3D.new()
+	dark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dark.albedo_color = Color(0.09, 0.06, 0.04)
+	var hot: StandardMaterial3D = _glow_mat(glow, 0.95) if glow.a > 0.0 else null
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	var n := maxi(int(length / 0.55), 2)
+	var pts: Array = []
+	for i in range(n + 1):
+		var p := from + d * (length * float(i) / n) + side * (rng.randf_range(-0.22, 0.22) if i > 0 else 0.0)
+		pts.append(_ground_at(p))
+	var tw := holder.create_tween()
+	for i in range(n):
+		var w := 0.28 * (1.0 - 0.6 * float(i) / n) + 0.05
+		tw.tween_interval(secs / n)
+		tw.tween_callback(_crack_seg.bind(holder, pts[i], pts[i + 1], w, dark, hot))
+		if rng.randf() < 0.35:
+			var bd := (d + side * rng.randf_range(-1.6, 1.6)).normalized()
+			tw.tween_callback(_crack_seg.bind(holder, pts[i], _ground_at(pts[i] + bd * rng.randf_range(0.5, 1.1)), w * 0.6, dark, hot))
+	# (it closes up: every piece narrows to nothing, the glow goes out first)
+	tw.tween_interval(0.9)
+	if hot:
+		tw.tween_property(hot, "albedo_color:a", 0.0, 0.35)
+	tw.tween_method(func(k: float):
+		for c in holder.get_children():
+			(c as Node3D).scale = Vector3(k, 1.0, 1.0), 1.0, 0.0, 0.5)
+	tw.tween_callback(holder.queue_free)
+
+
+func _ground_at(p: Vector3) -> Vector3:
+	var h := _ray(p + Vector3.UP * 2.0, p + Vector3.DOWN * 3.0)
+	return (h["position"] as Vector3) + Vector3(0, 0.03, 0) if not h.is_empty() else p
+
+
+func _crack_seg(holder: Node3D, a: Vector3, b: Vector3, w: float, dark: Material, hot: Material) -> void:
+	var seg := b - a
+	var l := seg.length()
+	if l < 0.05 or not is_instance_valid(holder):
+		return
+	var layers := [[dark, w, 0.0]]
+	if hot:
+		layers.append([hot, w * 0.4, 0.012])
+	for layer in layers:
+		# (each piece is a pivot carrying the box, so closing it up is one scale on x)
+		var piece := Node3D.new()
+		holder.add_child(piece)
+		piece.global_transform = Transform3D(Basis.looking_at(seg / l, Vector3.UP), (a + b) * 0.5 + Vector3(0, layer[2], 0))
+		var mi := MeshInstance3D.new()
+		mi.mesh = _box()
+		mi.material_override = layer[0]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.scale = Vector3(layer[1], 0.03, l)
+		piece.add_child(mi)
+
+
+## A whirlwind round `follow` for `secs` (the Maelstrom): curved lines of wind on
+## a funnel `radius` across at the top and `height` tall, spinning, fading in
+## and out. Seeded, so every screen draws the same funnel.
+func vortex(follow: Node3D, secs: float = 2.4, radius: float = 3.0, height: float = 3.0, color: Color = Color(0.9, 0.85, 0.75), seed_v: int = 0) -> void:
+	if follow == null or not is_instance_valid(follow):
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var mat := _glow_mat(color, 0.0)
+	var holder := Node3D.new()
+	follow.add_child(holder)
+	for i in range(18):
+		var h := rng.randf_range(0.1, height)
+		var r := radius * (0.45 + 0.55 * h / height)
+		var a := rng.randf() * TAU
+		var arc := rng.randf_range(0.5, 1.1)
+		for k in range(3):
+			var a0 := a + arc * k / 3.0
+			var a1 := a + arc * (k + 1) / 3.0
+			var p0 := Vector3(cos(a0) * r, h + k * 0.06, sin(a0) * r)
+			var p1 := Vector3(cos(a1) * r, h + (k + 1) * 0.06, sin(a1) * r)
+			var mi := MeshInstance3D.new()
+			mi.mesh = _box()
+			mi.material_override = mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			holder.add_child(mi)
+			var seg := p1 - p0
+			mi.transform = Transform3D(Basis.looking_at(seg.normalized(), Vector3.UP) * Basis.from_scale(Vector3(0.06, 0.06, seg.length())), (p0 + p1) * 0.5)
+	var spin := holder.create_tween()
+	spin.tween_property(holder, "rotation:y", -TAU * secs * 2.2, secs)
+	var fade := holder.create_tween()
+	fade.tween_property(mat, "albedo_color:a", 0.75, 0.2)
+	fade.tween_interval(maxf(secs - 0.5, 0.0))
+	fade.tween_property(mat, "albedo_color:a", 0.0, 0.3)
+	fade.tween_callback(holder.queue_free)
 
 
 ## Cuts flashing through a body one after another (Thousand Petals): `count`
@@ -1266,6 +1426,9 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"katana":
 			petals(pos, dir + Vector3.UP * 0.4, 7, accent, 3.5)
 			ring(pos, dir, 0.9, edge, 0.16, 0.12)
+		"axe":
+			embers(pos, dir + Vector3.UP * 0.4, 9, accent, 4.0)
+			ring(pos, dir, 0.9, edge, 0.18, 0.2)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

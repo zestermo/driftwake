@@ -86,7 +86,7 @@ func _ready() -> void:
 			_mesh.rotation.z = PI * 0.5
 			_mesh.position.y = 0.6
 	elif kind == "axe":
-		_mesh.mesh = Props.weapon_mesh(model)
+		_mesh.mesh = Props.weapon_mesh(model.trim_prefix("elem|"))
 	else:
 		var sm := SphereMesh.new()
 		sm.radius = 0.13
@@ -137,6 +137,7 @@ func _physics_process(delta: float) -> void:
 			_mesh.rotation += Vector3(9.0, 6.0, 0.0) * delta
 		"axe":
 			_mesh.rotation.x -= 22.0 * delta
+			_axe_wake(step.length())
 		_:
 			# a wake behind it (the wave tears the ground up as it goes)
 			if int(_travel / 1.4) != int((_travel - step.length()) / 1.4):
@@ -193,19 +194,26 @@ func _cut(at: Vector3) -> void:
 		pc.add_ult(hd.damage)
 		pc.on_sword_hit(e, hd)
 		var hit_at := (e as Node3D).global_position + Vector3(0, 1.0, 0)
+		var through := (dir if not _back else (source.global_position - global_position)).normalized()
 		FX.impact(hit_at, FX.tree_col(_tree(), FX.ACCENT))
-		if kind != "axe":
-			if _elemental():
-				_element(hit_at, dir + Vector3.UP * 0.3, 10, 5.0)
-			FX.ring(hit_at, dir, 1.1, FX.tree_col(_tree(), FX.EDGE), 0.22, 0.2)
+		if _elemental():
+			_element(hit_at, through + Vector3.UP * 0.3, 10, 5.0)
+		FX.ring(hit_at, through, 1.1, FX.tree_col(_tree(), FX.EDGE), 0.22, 0.2)
 
 
-## Its element thrown along `d`: sea spray off the cutlass's slash, petals off the katana's wave.
+## Its element thrown along `d`: sea spray off the cutlass's slash, petals off the
+## katana's wave, embers off the axe.
 func _element(at: Vector3, d: Vector3, amount: int, spd: float) -> void:
-	if kind == "wave":
-		FX.petals(at, d, amount, FX.tree_col(_tree(), FX.ACCENT), spd * 0.8)
-	else:
-		FX.spray(at, d, amount, FX.tree_col(_tree(), FX.ACCENT), spd)
+	FX.element(_tree(), at, d, amount, spd * (0.8 if kind == "wave" else 1.0))
+
+
+## The thrown axe's wake: a ring of air every turn or so, embers once its element is awakened.
+func _axe_wake(moved: float) -> void:
+	if int(_travel / 2.0) == int((_travel - moved) / 2.0):
+		return
+	FX.ring(global_position, dir if not _back else Vector3.UP, 0.7, FX.tree_col(_tree(), FX.EDGE), 0.18, 0.12)
+	if _elemental():
+		_element(global_position, -dir + Vector3.UP * 0.5, 4, 2.0)
 
 
 func _turn_back() -> void:
@@ -229,7 +237,9 @@ func _return_update(delta: float) -> void:
 	var step := to_hand.normalized() * minf(speed * 1.1 * delta, to_hand.length())
 	_cut_along(global_position, global_position + step)
 	global_position += step
+	_travel += step.length()
 	_mesh.rotation.x -= 22.0 * delta
+	_axe_wake(step.length())
 
 
 func _finish() -> void:
@@ -259,9 +269,12 @@ func _finish() -> void:
 
 
 ## Whose colours it flies in (FX.TREE_FX): a slash or a wave wears its tree's
-## only when launched with model "elem" (the element awakened), plain steel otherwise.
+## only when launched with model "elem" (the element awakened), a thrown axe when
+## its model starts "elem|"; plain steel otherwise.
 func _tree() -> String:
 	if kind in ["slash", "wave"] and model != "elem":
+		return "plain"
+	if kind == "axe" and not model.begins_with("elem|"):
 		return "plain"
 	return {"slash": "sword", "wave": "katana", "axe": "axe"}.get(kind, "unarmed")
 

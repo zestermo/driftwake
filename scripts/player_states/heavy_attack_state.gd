@@ -22,7 +22,7 @@ const STYLES := {
 	"whirl": {"anim": "axe_whirl", "impulse": 2.5,
 		"damage": 22.0, "hitstop": 0.06, "shake": 0.16, "knockback": 9.0, "stagger": 0.5,
 		"trail": "spin", "trail_len": 0.36, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false,
-		"reach": "whirl", "color": Color(1.0, 0.78, 0.5), "rehit": 0.36, "steer": 0.45},
+		"reach": "whirl", "color": Color(1.0, 0.78, 0.5), "rehit": 0.36, "steer": 0.45, "tree": "axe"},
 	"dual_heavy": {"anim": "dual_heavy", "impulse": 6.0,
 		"damage": 42.0, "hitstop": 0.12, "shake": 0.28, "knockback": 11.0, "stagger": 0.6,
 		"trail": "overhead", "trail_len": 0.28, "sfx": "whoosh_big", "pitch": 0.95, "impact_fx": true, "reach": "wide", "double_trail": true},
@@ -132,11 +132,7 @@ func physics_update(delta: float) -> void:
 			if timer >= _windup:
 				phase = 1
 				timer = 0.0
-				var col: Color = cfg.get("color", Color(0.45, 0.75, 1.0))
-				if cfg.has("tree") and player.progression.elemental(str(cfg["tree"]), 2):
-					col = FX.tree_col(str(cfg["tree"]), FX.EDGE)
-				if player.power.buff("coat"):
-					col = Player.HAKI_TRAIL
+				var col := _trail_col()
 				if str(cfg["trail"]) != "":
 					Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), col])
 				if cfg.get("double_trail", false):
@@ -170,10 +166,10 @@ func physics_update(delta: float) -> void:
 			if cfg.has("rehit") and not _rehit_done and timer >= float(cfg["rehit"]):
 				_rehit_done = true
 				player.sword_hitbox.activate(_hit(true))
-				var col2: Color = Player.HAKI_TRAIL if player.power.buff("coat") else cfg.get("color", Color(0.45, 0.75, 1.0))
-				Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), col2])
+				Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), _trail_col()])
 				Net.fx("sfx", [str(cfg["sfx"]), player.global_position, -4.0, 0.08, float(cfg["pitch"]) * 1.1])
 				Net.fx("dust_ring", [player.global_position, 10, 0.8])
+				_strike_fx()
 			# gun kata: spin and put a shot into everyone close
 			if cfg.get("kata", false):
 				var due := int(timer / _active * 4.0)
@@ -201,19 +197,39 @@ func physics_update(delta: float) -> void:
 		transitioned.emit(self, "Dodge", {})
 
 
+## The trail's colour: the style's own, its tree's once the element follows every
+## blow (the tree's second mastery passive), black with a Haki coat.
+func _trail_col() -> Color:
+	if player.power.buff("coat"):
+		return Player.HAKI_TRAIL
+	if cfg.has("tree") and player.progression.elemental(str(cfg["tree"]), 2):
+		return FX.tree_col(str(cfg["tree"]), FX.EDGE)
+	return cfg.get("color", Color(0.45, 0.75, 1.0))
+
+
 ## The strike's effects: a ring of air round the point and dust kicked up by the
-## lunge; with the element on every blow (the tree's second mastery passive)
-## they take its colours and throw its material.
+## lunge (the whirlwind: a ring round you and rock kicked up); with the element on
+## every blow (the tree's second mastery passive) they take its colours and throw
+## its material.
 func _strike_fx() -> void:
 	var elem := player.progression.elemental(str(cfg["tree"]), 2)
 	var tree := str(cfg["tree"]) if elem else "plain"
+	if cfg.has("rehit"):
+		var c := player.global_position
+		Net.fx("ring", [c + Vector3(0, 1.0, 0), Vector3.UP, 2.8, FX.tree_col(tree, FX.EDGE), 0.24, 0.1])
+		var a := randf() * TAU
+		Net.fx("debris", [c + Vector3(cos(a), 0.1, sin(a)) * 1.6, Vector3(cos(a), 1.3, sin(a)), 4, Color(0.35, 0.3, 0.25), 4.0])
+		if elem:
+			Net.fx("element", [tree, c + Vector3(0, 1.0, 0) + Vector3(cos(a), 0, sin(a)) * 1.8, Vector3(cos(a), 0.4, sin(a)), 8, 4.0])
+		CombatManager.apply_camera_kick(0.08, 0.25)
+		return
 	var f := get_camera_forward()
 	f.y = 0.0
 	f = f.normalized()
 	var tip := player.global_position + Vector3(0, 1.2, 0) + f * 1.5
 	Net.fx("ring", [tip, f, 1.3, FX.tree_col(tree, FX.EDGE), 0.22, 0.16])
 	if elem:
-		Net.fx("spray", [tip, f + Vector3.UP * 0.2, 10, FX.tree_col(tree, FX.ACCENT), 6.5])
+		Net.fx("element", [tree, tip, f + Vector3.UP * 0.2, 10, 6.5])
 	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0) - f * 0.4, 6, 0.6])
 	CombatManager.apply_camera_kick(0.12, 0.3)
 

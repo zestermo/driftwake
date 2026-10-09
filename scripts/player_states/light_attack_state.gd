@@ -136,11 +136,19 @@ func physics_update(delta: float) -> void:
 		hit.knockdown = last and cfg.get("slam", false)
 		player.sword_hitbox.activate(hit)
 		if last and cfg.get("slam", false):
-			var at := player.global_position - player.player_model.global_basis.z * 1.2
+			var fwd := -player.player_model.global_basis.z
+			var at := player.global_position + fwd * 1.2
+			# a short crack where it bites, rock thrown up (molten, with embers, at the tree's tier 2)
+			var hot := player.progression.elemental("axe", 2)
+			Net.fx("ground_crack", [at - fwd * 0.3, fwd, 1.8, FX.tree_col("axe", FX.ACCENT) if hot else Color(0, 0, 0, 0), randi() % 10000, 0.08])
+			Net.fx("debris", [at + Vector3(0, 0.1, 0), Vector3.UP + fwd * 0.2, 6, Color(0.35, 0.3, 0.25), 4.5])
+			if hot:
+				Net.fx("embers", [at + Vector3(0, 0.2, 0), Vector3.UP, 8, FX.tree_col("axe", FX.ACCENT), 3.5])
 			Net.fx("dust_ring", [at, 16, 1.1])
 			Net.fx("impact", [at + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
 			Net.fx("sfx", ["thud", at, -2.0, 0.05, 0.75])
 			CombatManager.apply_camera_shake(0.18)
+			CombatManager.apply_camera_kick(0.12, 0.25)
 		# swoosh!
 		var trail_len := 0.4 if last else 0.26
 		var trail := str(cfg["trails"][combo_index])

@@ -206,14 +206,21 @@ static func pose(h, n: String, u: float) -> Array:
 				"_lift": Vector3(0, -0.16, 0)}
 			return [h._keys(u, [[0.0, g], [0.3, roar, "out"], [0.85, roar], [1.0, g]]), "full", lift]
 		"maelstrom":
-			# two hands on the haft, the axe out at arm's length, spinning seven times
+			# the axe drawn back two-handed over the right shoulder, wound round and
+			# sunk while the power gathers (0.38 s), then out at arm's length,
+			# spinning seven times
+			var wind := {"hips": Vector3(0, 0.5, 0), "arm_r": Vector3(2.4, 0.4, 0.7), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3(0.5, 0, 0),
+				"arm_l": Vector3(2.0, 0.2, 0.3), "fore_l": Vector3(1.4, 0, 0),
+				"torso": Vector3(-0.15, 0.9, 0.08), "head": Vector3(0.15, -0.7, 0),
+				"leg_l": Vector3(0.55, 0, -0.3), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.1, 0, 0.3), "shin_r": Vector3(-0.95, 0, 0),
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.05, 0.93, 1.02)}
 			var out := {"hips": Vector3.ZERO, "arm_r": Vector3(1.4, 0, 1.3), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-1.5, 0, 0),
 				"arm_l": Vector3(1.3, 0.7, 0.4), "fore_l": Vector3(0.5, 0, 0),
 				"torso": Vector3(-0.2, 0, 0.12), "head": Vector3(0.12, 0, 0),
 				"leg_l": Vector3(0.4, 0, -0.3), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(0.1, 0, 0.3), "shin_r": Vector3(-0.7, 0, 0),
 				"_lift": Vector3(0, -0.18, 0)}
-			var p: Dictionary = h._keys(u, [[0.0, g], [0.05, out, "out"], [0.95, out], [1.0, g]])
-			p["pivot"] = Vector3(0, -TAU * 7.0 * _ease_io(clampf((s - 0.1) / 2.75, 0.0, 1.0)), 0)
+			var p: Dictionary = h._keys(u, [[0.0, g], [0.12 / T, wind, "out"], [0.36 / T, wind], [0.44 / T, out, "out"], [0.95, out], [1.0, g]])
+			p["pivot"] = Vector3(0, -TAU * 7.0 * _ease_io(clampf((s - 0.38) / 2.4, 0.0, 1.0)), 0)
 			return [p, "full", lift]
 		# --- dual swords ---
 		"cross_guard":

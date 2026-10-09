@@ -132,8 +132,13 @@ func enter(data: Dictionary) -> void:
 			player.body_model.play("berserk_roar", dur)
 		"maelstrom":
 			dur = 3.0
+			player.hurtbox.set_deferred("monitorable", false)
 			player.body_model.play("maelstrom", dur)
 			Net.fx("sfx", ["whoosh_big", player.global_position, 0.0, 0.05, 0.7])
+			Net.fx("gather", [player.global_position + Vector3(0, 0.9, 0), 2.8, _col(FX.ACCENT) if _elem() else _col(), 0.34, 22])
+			Net.fx("dust_ring", [player.global_position, 12, 0.9])
+			Net.fx("ring", [player.global_position, Vector3.UP, 3.5, _col(), 0.4, 0.08])
+			_moment(0.4, 0.25, 0.45, 0.2)
 		"blade_dance":
 			dur = 1.0
 			player.body_model.play("blade_dance", dur)
@@ -284,6 +289,8 @@ func physics_update(delta: float) -> void:
 			_petals(delta)
 		"axe_throw":
 			_rooted(delta, 0.0)
+			if _once("glint", 0.16):
+				Net.fx("glint", [_blade_tip(), _col(FX.CORE), 0.8])
 			if _once("throw", 0.24):
 				_throw_axe()
 		"earthsplitter":
@@ -291,21 +298,35 @@ func physics_update(delta: float) -> void:
 			player.velocity.x = move_toward(player.velocity.x, 0.0, 6.0 * delta)
 			player.velocity.z = move_toward(player.velocity.z, 0.0, 6.0 * delta)
 			player.move_and_slide()
+			# the axe raised at the top of the leap catches the light
+			if _once("glint", 0.28):
+				Net.fx("glint", [_blade_tip(), _col(FX.CORE), 0.9])
 			if not _done.has("slam") and t > 0.3 and (player.is_on_floor() or t > 0.7):
 				_done["slam"] = true
 				player.velocity = Vector3.ZERO
-				_split(9.0, 1.9, 26.0)
+				_split(9.0, 1.9, 32.0)
 		"berserk":
 			_rooted(delta, 0.0)
+			if _once("gather", 0.02):
+				Net.fx("gather", [_chest(), 1.6, _col(FX.ACCENT) if _elem() else Color(1.0, 0.3, 0.22), 0.22, 16])
 			if _once("roar", 0.25):
 				_pc.add_buff("berserk", 8.0)
-				Net.fx("sparkle", [player.global_position + Vector3(0, 1.3, 0), 20, Color(1.0, 0.25, 0.2)])
-				Net.fx("dust_ring", [player.global_position, 16, 1.1])
-				Net.fx("sfx", ["thud", player.global_position, 2.0, 0.05, 0.6])
-				CombatManager.apply_camera_shake(0.2)
+				var c := player.global_position
+				Net.fx("sparkle", [c + Vector3(0, 1.3, 0), 20, Color(1.0, 0.25, 0.2)])
+				Net.fx("dust_ring", [c, 16, 1.1])
+				Net.fx("ring", [c, Vector3.UP, 4.5, Color(1.0, 0.3, 0.2), 0.4, 0.1])
+				Net.fx("punch_wind", [c + Vector3.UP * 1.3, Vector3.UP, 1.2, Color(1.0, 0.6, 0.5), true])
+				for k in range(4):
+					var a := TAU * k / 4.0 + randf() * 0.6
+					Net.fx("debris", [c + Vector3(cos(a), 0.1, sin(a)) * 1.2, Vector3(cos(a), 1.6, sin(a)), 4, Color(0.35, 0.3, 0.25), 4.5])
+				_spray(c + Vector3(0, 1.0, 0), Vector3.UP, 16, 4.0)
+				if _elem():
+					Net.fx("power_aura", [player.body_model, "ember", 8.0])
+				Net.fx("sfx", ["thud", c, 2.0, 0.05, 0.6])
+				CombatManager.apply_camera_shake(0.25)
+				CombatManager.apply_camera_kick(0.2, 0.4)
 		"maelstrom":
-			_rooted(delta, 0.6)
-			_spin_hits(3.2, 0.25, 9.0, 2.8, 30.0)
+			_maelstrom(delta)
 		"blade_dance":
 			_drift(delta, 7.0)
 			if _hits < 6 and t >= 0.1 + _hits * 0.13:
@@ -414,10 +435,10 @@ func _col(which: int = 1) -> Color:
 
 
 ## The element thrown along `dir` (sea spray for the cutlass, petals for the
-## katana), if it's awakened.
+## katana, embers for the axe), if it's awakened.
 func _spray(at: Vector3, dir: Vector3, amount: int, speed: float) -> void:
 	if _elem():
-		Net.fx("petals" if _tree() == "katana" else "spray", [at, dir, amount, _col(FX.ACCENT), speed])
+		Net.fx("element", [_tree(), at, dir, amount, speed])
 
 
 ## Where the held blade's point is (FX at the tip).
@@ -562,13 +583,13 @@ func _ring(reach: float, base: float, knock: float, down: bool, inward: bool) ->
 			_strike(e, hd)
 
 
-## Spinning ultimates: a hit all round every `every` s (dragging them in), then
-## a last burst at `end_t` that throws them out.
-func _spin_hits(reach: float, every: float, base: float, end_t: float, final: float) -> void:
-	if t < end_t and t >= 0.15 + _hits * every:
+## Spinning ultimates: a hit all round every `every` s from `start` (dragging them
+## in), then a last burst at `end_t` that throws them out.
+func _spin_hits(reach: float, every: float, base: float, end_t: float, final: float, start: float = 0.15) -> void:
+	if t < end_t and t >= start + _hits * every:
 		_hits += 1
 		_ring(reach, base, 2.5, false, true)
-		Net.fx("slash", [player.player_model, "spin", 0.18, Color(0.85, 0.92, 1.0)])
+		Net.fx("slash", [player.player_model, "spin", 0.18, _col()])
 		Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.1, 1.0 + 0.04 * (_hits % 5)])
 	if _once("burst", end_t):
 		_ring(reach + 0.5, final, 11.0, true, false)
@@ -782,7 +803,10 @@ func _throw_axe() -> void:
 	# thrown where you aim (snapping onto an enemy near the reticle), never steeply
 	var d := (_reticle_target(14.0) - from).normalized()
 	d.y = clampf(d.y, -0.4, 0.3)
-	_axe = Projectile.launch(player.get_tree(), "axe", from, d.normalized(), player, 24.0, player.equipped_weapon.model())
+	_axe = Projectile.launch(player.get_tree(), "axe", from, d.normalized(), player, 24.0, ("elem|" if _elem() else "") + player.equipped_weapon.model())
+	Net.fx("ring", [from + d.normalized() * 0.4, d.normalized(), 1.1, _col(), 0.2, 0.14])
+	CombatManager.apply_camera_kick(0.1, 0.25)
+	player.squash(-2.0)
 	var held: Node3D = player.body_model.weapon
 	if held:
 		held.visible = false
@@ -796,14 +820,20 @@ func _throw_axe() -> void:
 ## A crack splitting the ground ahead: everyone on the line is knocked flat.
 func _split(length: float, width: float, base: float) -> void:
 	var start := player.global_position + _dir * 0.8
-	for i in range(8):
-		var p := start + _dir * (i * length / 7.0)
+	# the crack tears out ahead (molten once the element's awake), rock thrown up along it
+	Net.fx("ground_crack", [start, _dir, length, _col(FX.ACCENT) if _elem() else Color(0, 0, 0, 0), randi() % 10000, 0.2])
+	for i in range(6):
+		var p := start + _dir * (i * length / 5.0)
 		Net.fx("dust", [p + Vector3(0, 0.05, 0), 6, 0.6 + i * 0.06])
+		Net.fx("debris", [p + Vector3(0, 0.1, 0), Vector3.UP + _dir * 0.3, 5, FX.tree_col("plain", FX.ACCENT).darkened(0.45), 5.5])
+		_spray(p + Vector3(0, 0.2, 0), Vector3.UP, 5, 3.0)
 	Net.fx("dust_ring", [start, 14, 1.0])
-	Net.fx("impact", [start + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
+	Net.fx("ring", [start, Vector3.UP, 2.4, _col(), 0.3, 0.12])
+	Net.fx("impact", [start + Vector3(0, 0.2, 0), _col(FX.ACCENT) if _elem() else Color(1.0, 0.85, 0.55)])
 	Net.fx("sfx", ["thud", start, 3.0, 0.05, 0.65])
 	Net.fx("sfx", ["crunch", start + _dir * 3.0, -1.0, 0.05, 0.55])
 	CombatManager.apply_camera_shake(0.35)
+	CombatManager.apply_camera_kick(0.22, 0.35)
 	player.squash(-4.5)
 	for e in _pc.enemies_in(start + _dir * length * 0.5 + Vector3(0, 0.8, 0), length * 0.6):
 		var rel := (e as Node3D).global_position - start
@@ -814,6 +844,43 @@ func _split(length: float, width: float, base: float) -> void:
 		var hd := _hd(base, 9.0, true)
 		hd.unblockable = true
 		_strike(e, hd)
+
+
+## Maelstrom: the axe drawn back while the power gathers, then seven turns inside
+## a whirlwind (it moves with you), dust and rock (fire once awakened) thrown off
+## it, and a last turn that throws everyone down.
+const MAEL_GATHER := 0.38
+const MAEL_BURST := 2.8
+
+func _maelstrom(delta: float) -> void:
+	_rooted(delta, 0.6 if t >= MAEL_GATHER else 0.0)
+	if _once("go", MAEL_GATHER):
+		Net.fx("vortex", [player.player_model, MAEL_BURST - MAEL_GATHER, 2.8, 2.6, _col(), randi() % 10000])
+		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 0.9])
+		CombatManager.apply_camera_kick(0.2, 0.4)
+	if t < MAEL_GATHER:
+		return
+	var before := _hits
+	_spin_hits(3.2, 0.25, 9.0, MAEL_BURST, 30.0, MAEL_GATHER)
+	if _hits != before and _hits % 2 == 0:
+		var a := randf() * TAU
+		var out := Vector3(cos(a), 0.0, sin(a))
+		var at := player.global_position + out * 2.6 + Vector3(0, 0.3, 0)
+		Net.fx("dust", [at, 4, 0.7])
+		Net.fx("debris", [at, out + Vector3.UP * 1.2, 4, Color(0.35, 0.3, 0.25), 4.0])
+		if _elem():
+			Net.fx("flame", [at + Vector3.UP * 0.5, 6, 0.7, 0.5, 0.3])
+	if _once("burst_fx", MAEL_BURST):
+		player.hurtbox.set_deferred("monitorable", true)
+		var c := player.global_position
+		Net.fx("ring", [c, Vector3.UP, 7.0, _col(), 0.5, 0.08])
+		for k in range(6):
+			var b := TAU * k / 6.0
+			Net.fx("debris", [c + Vector3(cos(b), 0.2, sin(b)) * 1.5, Vector3(cos(b), 1.0, sin(b)), 6, Color(0.35, 0.3, 0.25), 7.0])
+		if _elem():
+			Net.fx("fire_ring", [c, 6.0, 50])
+		CombatManager.apply_hitstop(0.1, [player])
+		_moment(0.3, 0.35, 0.7, 0.45)
 
 
 # --------------------------------------------------------------------------

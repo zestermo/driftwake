@@ -98,7 +98,7 @@ const ALL := {
 	"axe_throw": {"name": "Hatchet Throw", "tree": "axe", "cost": 16.0, "cooldown": 5.0, "styles": ["axe"], "needs_text": "an axe", "state": "Technique",
 		"desc": "Hurl your axe spinning ahead: it cuts through everything in its path and comes back to your hand."},
 	"earthsplitter": {"name": "Earthsplitter", "tree": "axe", "cost": 26.0, "cooldown": 9.0, "styles": ["axe"], "needs_text": "an axe", "state": "Technique",
-		"desc": "Leap and drive the axe into the ground: a crack runs 9 m ahead and everyone on it is knocked flat."},
+		"desc": "Leap and drive the axe into the ground: a crack tears 9 m ahead and everyone on it is knocked flat."},
 	"berserk": {"name": "Berserk", "tree": "axe", "cost": 24.0, "cooldown": 22.0, "styles": ["axe"], "needs_text": "an axe", "state": "Technique",
 		"desc": "Roar: for 8 s you hit 25% harder and nothing makes you flinch or falls you, but you take 15% more damage."},
 	"maelstrom": {"name": "Maelstrom", "tree": "axe", "cost": 0.0, "cooldown": 3.0, "styles": ["axe"], "needs_text": "an axe", "state": "Technique", "ult": true,

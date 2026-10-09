@@ -99,7 +99,10 @@ func physics_update(delta: float) -> void:
 				phase = 1
 				timer = 0.0
 				player.velocity = _dir * 3.5 + Vector3.DOWN * DIVE_SPEED
-				Net.fx("slash", [player.player_model, "overhead", 0.3])
+				if _axe:
+					Net.fx("slash", [player.player_model, "overhead", 0.3, _axe_col()])
+				else:
+					Net.fx("slash", [player.player_model, "overhead", 0.3])
 				Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 1.1])
 				var hit := HitData.new()
 				hit.sever = player.weapon_class() == "sword"
@@ -164,6 +167,13 @@ func _land() -> void:
 			area.take_hit(wave, player)
 
 
+## Skybreaker's colour: the axe's own, its tree's once the element is on every blow.
+func _axe_col() -> Color:
+	if player.power.buff("coat"):
+		return Player.HAKI_TRAIL
+	return FX.tree_col("axe", FX.EDGE) if player.progression.elemental("axe", 2) else Color(1.0, 0.78, 0.5)
+
+
 ## Skybreaker's landing: the axe bites into the ground and splits it in a line
 ## ahead; everyone along the line (not already struck on the way down) is
 ## knocked flat.
@@ -174,14 +184,23 @@ func _split_ground() -> void:
 	f.y = 0.0
 	f = f.normalized()
 	var start := player.global_position + f * 0.8
+	# (molten, with embers, once the axe's element is on every blow)
+	var elem := player.progression.elemental("axe", 2)
+	Net.fx("ground_crack", [start, f, AXE_LINE, FX.tree_col("axe", FX.ACCENT) if elem else Color(0, 0, 0, 0), randi() % 10000, 0.15])
 	for i in range(6):
 		var p := start + f * (i * AXE_LINE / 5.0)
 		Net.fx("dust", [p + Vector3(0, 0.05, 0), 6, 0.6 + i * 0.08])
+		if i % 2 == 0:
+			Net.fx("debris", [p + Vector3(0, 0.1, 0), Vector3.UP + f * 0.3, 4, Color(0.35, 0.3, 0.25), 5.0])
+		if elem:
+			Net.fx("embers", [p + Vector3(0, 0.2, 0), Vector3.UP, 4, FX.tree_col("axe", FX.ACCENT), 3.0])
 	Net.fx("dust_ring", [start, 14, 0.9])
+	Net.fx("ring", [start, Vector3.UP, 2.2, _axe_col(), 0.28, 0.12])
 	Net.fx("impact", [start + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
 	Net.fx("sfx", ["thud", start, 2.0, 0.05, 0.7])
 	Net.fx("sfx", ["crunch", start + f * 2.0, -2.0, 0.05, 0.6])
 	CombatManager.apply_camera_shake(0.3)
+	CombatManager.apply_camera_kick(0.18, 0.3)
 	var wave := player.melee_hit(AXE_LINE_DAMAGE)
 	wave.knockdown = true
 	wave.knockback_force = 9.0
