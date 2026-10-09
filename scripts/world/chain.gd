@@ -20,6 +20,10 @@ const FORK_SPREAD := [520.0, 820.0]
 const WOBBLE := 260.0
 ## The line turns this much at most from one layer to the next (rad).
 const BEND := 0.22
+## Every island stays this far from Brinehollow (m): the line turns to keep
+## inside the ring, wandering round it instead of heading off (the islands
+## behind are gone anyway, and 7.5 km out floats are still about 1 mm fine).
+const RING := [2000.0, 7500.0]
 
 const THEMES := {
 	"jungle": {"name": "Jungle", "blurb": "a steaming jungle isle",
@@ -71,6 +75,8 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 	for layer in range(1, SEA_LAYERS + 1):
 		var leg := rng.randf_range(FIRST_LEG[0], FIRST_LEG[1]) if layer == 1 else rng.randf_range(LEG[0], LEG[1])
 		dir = dir.rotated(rng.randf_range(-BEND, BEND))
+		if layer > 1:
+			dir = _keep_in_ring(at - origin, dir, leg)
 		at += dir * leg
 		var role := "regular"
 		if layer in CITY_LAYERS:
@@ -116,6 +122,21 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 		for id in ids:
 			prev_theme[int(nodes[id]["branch"])] = nodes[id]["theme"]
 		prev = ids
+
+
+## `dir` turned (a little at a time, whichever way helps) until a leg from `rel`
+## (from Brinehollow) ends inside RING.
+static func _keep_in_ring(rel: Vector2, dir: Vector2, leg: float) -> Vector2:
+	var d := dir
+	for i in range(32):
+		var r := (rel + d * leg).length()
+		if r >= RING[0] and r <= RING[1]:
+			return d
+		var ra := (rel + d.rotated(0.15) * leg).length()
+		var rb := (rel + d.rotated(-0.15) * leg).length()
+		var want_out := r < RING[0]
+		d = d.rotated(0.15 if (ra > rb) == want_out else -0.15)
+	return d
 
 
 ## (only themes IslandTheme can build; the rest join as they're made)

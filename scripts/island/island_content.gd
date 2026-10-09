@@ -16,16 +16,20 @@ const EPITHET := ["Bloody", "One-Eye", "Iron", "Black", "Mad", "Saltjaw", "Red",
 const LOOT_WEAPONS := ["cutlass", "boarding_axe", "katana", "pistol"]
 
 
-static func populate(isl: GenIsland) -> void:
+## The sites as GenIsland.finish_steps, in order: one random stream through
+## them all, so it's the same island however many frames they take.
+static func steps(isl: GenIsland) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(isl.node["seed"]) + 4049
-	_camp(isl, rng)
-	_lair(isl, rng)
-	_ruins(isl, rng)
-	_summit(isl)
-	BeastArena.build(isl, rng)
-	# (after the camp, the lair and the beast: its jobs watch them)
-	IslandVillage.build(isl, rng)
+	return [
+		["camp", func(): _camp(isl, rng)],
+		["lair", func(): _lair(isl, rng)],
+		["ruins", func(): _ruins(isl, rng)],
+		["summit", func(): _summit(isl)],
+		["boss", func(): BeastArena.build(isl, rng)],
+		# (after the camp, the lair and the beast: its jobs watch them)
+		["village", func(): IslandVillage.build(isl, rng)],
+	]
 
 
 ## The island's loot tier (ItemData.Rarity) by its level.

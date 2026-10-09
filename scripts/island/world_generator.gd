@@ -25,6 +25,8 @@ var _chain: Chain
 var chain_islands := {}
 ## ...and those still being worked out on a worker thread: node id -> [GenIsland, task, started usec]
 var _pending := {}
+## ...and those being put in the world a step a frame: node id -> [GenIsland, steps, next step, started usec, main-thread usec]
+var _finishing := {}
 var _sync_t := 0.0
 ## The chain seed the islands standing now were built from.
 var _built_seed := 0
@@ -38,6 +40,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_finish_ready()
+	_finish_step()
 	_sync_t -= delta
 	if _sync_t <= 0.0:
 		_sync_t = 0.5
@@ -46,7 +49,7 @@ func _process(delta: float) -> void:
 
 ## The islands the log pose points at (and the one the crew is at) stand in
 ## the world; the rest are freed. Each is worked out on a worker thread
-## (GenIsland.prepare), then put in the world in a frame (finish).
+## (GenIsland.prepare), then put in the world a step a frame (finish_steps).
 func sync_chain_islands() -> void:
 	# (a guest builds the host's chain: nothing until the host's world state is here)
 	if Net.is_client() and not Net.world_synced:
@@ -61,19 +64,26 @@ func sync_chain_islands() -> void:
 			WorkerThreadPool.wait_for_task_completion(e[1])
 			(e[0] as Node).free()
 		_pending.clear()
+		for e in _finishing.values():
+			(e[0] as Node).queue_free()
+		_finishing.clear()
 	if not Net.is_client():
 		_check_arrival()
 	for id in chain_islands.keys():
 		if not _wanted().has(id):
 			_free_chain_island(id)
+	for id in _finishing.keys():
+		if not _wanted().has(id):
+			(_finishing[id][0] as Node).queue_free()
+			_finishing.erase(id)
 	for id in _wanted():
-		if not chain_islands.has(id) and not _pending.has(id):
+		if not chain_islands.has(id) and not _pending.has(id) and not _finishing.has(id):
 			_start_chain_island(c.node(id))
 
 
 ## Every island wanted is built and its crews have turned up (tests, co-op).
 func chain_ready() -> bool:
-	if not _pending.is_empty() or chain_islands.size() < _wanted().size():
+	if not _pending.is_empty() or not _finishing.is_empty() or chain_islands.size() < _wanted().size():
 		return false
 	for isl in chain_islands.values():
 		for camp in (isl as Node).find_children("*", "GruntCamp", true, false):
@@ -125,17 +135,33 @@ func _finish_ready() -> void:
 		WorkerThreadPool.wait_for_task_completion(e[1])
 		_pending.erase(id)
 		if _wanted().has(id):
-			_finish_chain_island(e[0], int(e[2]))
+			var isl: GenIsland = e[0]
+			add_child(isl)
+			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0]
 		else:
 			(e[0] as Node).free()
 
 
-func _finish_chain_island(isl: GenIsland, t0: int) -> void:
+## One step of the first island being put in the world (a frame each: no big hitch).
+func _finish_step() -> void:
+	if _finishing.is_empty():
+		return
+	var id: int = _finishing.keys()[0]
+	var e: Array = _finishing[id]
+	var isl: GenIsland = e[0]
+	var t := Time.get_ticks_usec()
+	isl.run_step(e[1][e[2]])
+	e[4] = int(e[4]) + Time.get_ticks_usec() - t
+	e[2] = int(e[2]) + 1
+	if int(e[2]) >= (e[1] as Array).size():
+		_finishing.erase(id)
+		_register_chain_island(isl, int(e[3]), int(e[4]), (e[1] as Array).size())
+
+
+func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int) -> void:
 	var n := isl.node
 	var p: Vector2 = n["pos"]
 	var t1 := Time.get_ticks_usec()
-	add_child(isl)
-	isl.finish()
 	chain_islands[int(n["id"])] = isl
 	island_infos.append({"pos": p, "type": n["theme"], "radius": isl.radius, "name": n["name"], "id": int(n["id"])})
 	EnemyShip.no_go.append([p, isl.radius + 30.0])
@@ -147,8 +173,15 @@ func _finish_chain_island(isl: GenIsland, t0: int) -> void:
 	for bag in isl.find_children("*", "LootBag", true, false):
 		if (bag as LootBag).save_id != "" and gm.opened.has((bag as LootBag).save_id):
 			bag.queue_free()
-	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms, %d ms of it on the main thread %s" % [n["name"], n["theme"], isl.radius, isl.res,
-		(Time.get_ticks_usec() - t0) / 1000, (Time.get_ticks_usec() - t1) / 1000, isl.build_ms])
+	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms; on the main thread %d ms over %d frames, the most %d ms %s" % [n["name"], n["theme"], isl.radius, isl.res,
+		(Time.get_ticks_usec() - t0) / 1000, (main_us + Time.get_ticks_usec() - t1) / 1000, frames, _worst_step(isl), isl.build_ms])
+
+
+func _worst_step(isl: GenIsland) -> int:
+	var worst := 0
+	for k in ["terrain", "dock", "plants", "colliders", "camp", "lair", "ruins", "summit", "boss", "village"]:
+		worst = maxi(worst, int(isl.build_ms.get(k, 0)))
+	return worst
 
 
 func _free_chain_island(id: int) -> void:

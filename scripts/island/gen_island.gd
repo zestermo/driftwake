@@ -117,20 +117,32 @@ func prepare(n: Dictionary) -> void:
 	build_ms["bodies"] = _lap(t0)
 
 
-## The nodes, meshes and colliders from what prepare worked out (main thread).
+## The nodes, meshes and colliders from what prepare worked out, all at once
+## (tests and tools; the world runs finish_steps a frame at a time).
 func finish() -> void:
+	for s in finish_steps():
+		run_step(s)
+
+
+## finish's work in pieces ([name, Callable]), in order (main thread, in the tree).
+func finish_steps() -> Array:
 	island_name = str(node["name"])
 	island_type = theme
 	is_generated = true
+	var steps: Array = [
+		["terrain", _terrain_node],
+		["dock", func(): _build_dock(); _add_arrival_zone()],
+		["plants", _vegetation_meshes],
+		["colliders", _vegetation_colliders],
+	]
+	steps.append_array(IslandContent.steps(self))
+	return steps
+
+
+func run_step(s: Array) -> void:
 	var t0 := Time.get_ticks_usec()
-	_terrain_node()
-	_build_dock()
-	_vegetation_nodes()
-	_add_arrival_zone()
-	build_ms["nodes"] = _lap(t0)
-	t0 = Time.get_ticks_usec()
-	IslandContent.populate(self)
-	build_ms["content"] = _lap(t0)
+	(s[1] as Callable).call()
+	build_ms[s[0]] = _lap(t0)
 
 
 func _lap(t0: int) -> int:
@@ -590,7 +602,7 @@ func _cover(p: Vector2) -> float:
 	return c
 
 
-## Where every plant and rock goes (prepare: data only; _vegetation_nodes makes them).
+## Where every plant and rock goes (prepare: data only; _vegetation_meshes and _colliders make them).
 func _scatter_vegetation() -> void:
 	var m := IslandTheme.meshes(theme)
 	var buckets := _buckets
@@ -673,9 +685,8 @@ func _scatter_vegetation() -> void:
 	build_ms["undergrowth"] = _lap(t_veg)
 
 
-## One MultiMesh per mesh per VEG_CELL square (only the squares in view are
-## drawn), the tree and rock colliders, the grapple crowns.
-func _vegetation_nodes() -> void:
+## One MultiMesh per mesh per VEG_CELL square (only the squares in view are drawn).
+func _vegetation_meshes() -> void:
 	var veg := Node3D.new()
 	veg.name = "Vegetation"
 	add_child(veg)
@@ -697,6 +708,10 @@ func _vegetation_nodes() -> void:
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				mmi.visibility_range_end = 160.0
 		veg.add_child(mmi)
+
+
+## The tree and rock colliders, the grapple crowns.
+func _vegetation_colliders() -> void:
 	var body := StaticBody3D.new()
 	body.name = "VegetationColliders"
 	body.collision_layer = 1

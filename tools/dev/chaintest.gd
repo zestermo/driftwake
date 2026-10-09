@@ -88,6 +88,15 @@ func _process(d: float) -> bool:
 			check("every island can be reached from Brinehollow", seen.size() == c.nodes.size())
 			var first: Vector2 = c.node(c.start_next[0])["pos"]
 			check("the first island lies well past Redtide (%.0f m out)" % first.distance_to(world.starter_center), first.distance_to(world.starter_center) > 1700.0)
+			var far := 0.0
+			var close := INF
+			for a in c.nodes:
+				far = maxf(far, (a["pos"] as Vector2).distance_to(world.starter_center))
+				for b in c.nodes:
+					if a != b and absi(int(a["layer"]) - int(b["layer"])) <= 1:
+						close = minf(close, (a["pos"] as Vector2).distance_to(b["pos"]))
+			check("the line wanders round, never more than 8.5 km from Brinehollow (%.0f m)" % far, far < 8500.0)
+			check("...islands a layer apart (and a fork's two) stay over 1 km apart (%.0f m)" % close, close > 1000.0)
 			var again = CH.make(c.seed_value, world.starter_center, Vector2(0, -1))
 			var c2 = world.chain()
 			check("the same seed makes the same chain", c2.nodes.size() == c.nodes.size() and c2.nodes[4]["name"] == c.nodes[4]["name"] and c2.nodes[4]["pos"] == c.nodes[4]["pos"])
