@@ -50,7 +50,7 @@ own world); this skill covers everything else.
 | Ship looks | `ShipKit` | paint, sails, `flag_image`, `figurehead(kind)` |
 | Weapons | `WeaponDesigns` | numbers per design in `DESIGNS` -> `build("<kind>:<design>:<tier>")`; `Props.weapon_mesh` caches by that string; icons drawn from the mesh |
 | Creatures | `scripts/enemies/scuttlebug.gd`, `sea_king.gd` | blobs and segments on rigs |
-| Big shells | `scripts/island/brood_cave.gd` | noise-displaced inner/outer dome, trimesh collision |
+| Terrain-scale rock | `scripts/island/brood_cave.gd` | crag outside + chamber inside on one polar grid, mouth arch, dripstone, puddles and drips, lichen; trimesh collision |
 | Placing | `StarterIsland.place()`, `_house()`, `_dress_village`, `_scatter_vegetation` | ground height, footprints, exclusions, MultiMesh cells |
 | Textures | `tools/texture_gen/gen_psx_textures.py` | 64x64 tileable, palette-quantized, fixed seeds |
 | Worked examples | `tools/dev/model_samples.gd` | anchor, ship's lantern, naval cannon (the recipe below in code) |
@@ -116,7 +116,7 @@ Put a body next to the model in the render to check: `S.body() | Buildings.smith
 - Map by **real size**: planks at board width (`HullBuilder._plank_uv`: 0.25 m boards
   running fore and aft). Planks running across at 12 cm shimmered at distance.
 - Big continuous surfaces (hulls, caves, terrain) map UVs from **position**, so the seams
-  between parts line up (`_side_uv`, `brood_cave._uv`).
+  between parts line up (`_side_uv`; rock: `brood_cave._tuv`).
 - One-picture things (door, window, sign, crate face) use `add_box_unit_uv` or a card.
 - Split big walls into pieces with `Buildings.tiled_box` (<= 2.4-3.2 m): it keeps the texture
   warp small for players who turn that setting on.
@@ -212,9 +212,35 @@ thing: build the mesh once and reuse it (`Props.weapon_mesh` caches by model str
   icons are drawn from the mesh (`weaponshot`).
 - **Organic** (rocks, trees, creatures, figureheads): `add_blob` for lumps, `add_loft` for
   bodies and trunks, `add_tube` on `curve_points` for tails, tentacles, horns, branches,
-  vines and roots, noise-displaced shells for cliffs and caves (`brood_cave._pt` with
-  FastNoiseLite). The figureheads (`ShipKit.figurehead`) are still box-built: a good
+  vines and roots. The figureheads (`ShipKit.figurehead`) are still box-built: a good
   candidate.
+- **Rock outcrops, cliffs, caves** (`BroodCave` is the reference):
+  - A polar grid (bearing x ring) whose radius and height per bearing come from smooth noise
+    sampled round a circle (`_round`: seamless), shoved out by 3D noise per vertex. Inside
+    and outside on the same columns, so an opening is cells skipped plus jamb, lintel and
+    throat faces joining them.
+  - **Every triangle its own true normal** (`_facet`): smooth or one-normal-per-quad rock
+    looks like a blob; real facets catch the light like stone. Split cells on alternating
+    diagonals.
+  - Material by facet normal: grass on flats (n.y > 0.86), moss on gentler slopes, bare rock
+    on steep, gated by a noise patch so it doesn't make rings. Strata as horizontal bands in
+    `col`.
+  - Texture projected along the facet's main axis, **offset per facet**, or the rock
+    texture's cracks line up into a grid of tiles across the whole face.
+  - What made it read as natural, not a dome or a cake: the cliff band's height and
+    steepness varying round the compass; concave upper slopes rearing into a crest; several
+    peaks of different heights; an irregular footprint; boulders and scree at the foot;
+    plants and a few trees on the flat facets; a ragged arch (edge columns leaning in, the
+    lintel lifted mid-span) instead of a door-shaped hole.
+  - Keep every outer point clear of the inner one (clamp the foot to the chamber's wall + 2.5 m)
+    and keep the footprint inside the island's `reserve()` radius.
+- **Cave interiors:** dripstone as lathes (flared root buried 0.8 m in the rock, lumpy
+  rings, a point); stalactite tips kept above the fight, stalagmites and columns kept off
+  the nest, the spawn spots and the way in, with cylinder colliders on the big ones. Puddles
+  (an extruded outline over a darker stain) under the drips, drips and ripples as
+  one-particle `CPUParticles3D` timed by `preprocess`. Glow lichen in colonies (patches of
+  flattened blobs, low on the walls), not scattered evenly; a couple of small lights.
+  Interiors render with `MS_FOCUS` at the room's middle and a `yaw:pitch:0.1` zoom.
 - **Vegetation:** returns an `ArrayMesh` for MultiMesh; cutout cards with wind for leaves;
   keep it tiny.
 - **Locations:** `place(node, p, yaw, footprint)` puts it on the ground and reserves its
