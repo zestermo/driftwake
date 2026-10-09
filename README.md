@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7-e0b040" alt="Version 1.7">
+  <img src="https://img.shields.io/badge/version-1.8-e0b040" alt="Version 1.8">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,25 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.8: The Chain (October 9, 2026)
+- **The island chain:** past Redtide, the log pose leads to islands generated from your world's
+  seed. Jungle isles have a pirate camp and its named captain, a bug lair, ruins and a summit lookout,
+  and each one is tougher than the last (enemies scale with the island's level).
+- **Outpost villages:** an inn, a trader and a cook, a job board and an elder on every island.
+- **The Silverback:** each jungle isle's beast, with its hoard and the Silverback Pelt.
+- **Reading the log pose:** needles on the compass, each island's theme and danger, forks you
+  pick by sailing, and a chart that follows you along the chain. The needle settles after 15
+  minutes on an island, or as soon as its beast falls.
+- **The sea between:** pirate fleets of the next island's level, hazards, Sea Kings, wrecks,
+  bottles and islets on every leg.
+- **Combat:** the katana and the axe reworked (Thousand Petals, Maelstrom, Earthsplitter), and
+  jumping attacks for every weapon.
+- **Sound:** layered hull wash that follows your speed (no more short loop), footsteps by surface,
+  varied hits and shots, and island music that resumes after a fight.
+- **Pacing:** slower levelling, weaker long-range pistols, faster and fiercer pirate ships.
+- **Co-op:** guests see boarders, and late-built islands catch up on fights.
+- **In the browser** at [driftwake.fun](https://driftwake.fun) (co-op stays on desktop).
 
 ### v1.7: Wind and Story (October 8, 2026)
 - **A story to start:** wake on the beach past the quay and follow Old Pell's lead through

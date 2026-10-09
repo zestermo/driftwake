@@ -7,17 +7,17 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["A story to start", "A new captain wakes on the sand past the quay. Follow Old Pell's lead through Brinehollow to Captain Morrow, with your next goal on screen and a marker to follow."],
-	["Brinehollow grows", "A deep forest to the west, a pirate den under Captain Grell, spitters in the canopy, and the Brood Queen's cave."],
-	["The harbour town", "A stone quay with piers, trading ships, waterfront houses and a harbour tower. The village has dressed houses, a furnished tavern, a cobbled plaza, a smithy and a sea chapel, lit at night."],
-	["Morrow's log pose", "Beat Captain Morrow and wear his log pose. Hold L to raise it and see where the islands of the chain lie."],
-	["The cutlass reborn", "A new three-hit combo, polished techniques with sea-spray effects, and a Kraken's Wake worth waiting for."],
-	["Mastery wakes the elements", "Techniques start clean and physical; master a weapon's tree to wake its element. Spamming heavy attacks now tires you and makes you predictable."],
-	["Fairer sea fights", "Enemy ships show their hull over the masthead, hole you far less, and won't fire up close: there they ram or board. The pump works three times faster."],
-	["Sail anywhere", "The wind never holds you back. A fair wind gives you extra speed."],
-	["Redtide Rock", "The fort's guns are gone. A stone stair climbs the cliff, and sea stacks and crags guard the rock."],
-	["Hear the sea", "Surf on the shore, the open swell, water rushing past your hull, creaking timbers, gusting wind and whistling rigging."],
-	["See the wind", "Surf rolls in over the shallows, whitecaps streak the crests in a blow, wind lines race past and spray flies over the bow."],
+	["The island chain", "Past Redtide the log pose leads to islands built from your world's seed: jungle isles with a pirate camp and its captain, a bug lair, ruins and a lookout on the summit. Each grows tougher than the last."],
+	["Outpost villages", "Every island has a village: an inn to rest at, a trader and a cook, a job board, and an elder who pays for work done and tells of the way on."],
+	["The Silverback", "Each jungle isle's beast waits on the far side: roars, slams, leaps and hurled boulders. Fell it for its hoard and the Silverback Pelt."],
+	["Reading the log pose", "Its needles sit on your compass. Each island ahead shows its theme and how dangerous it is for you. At a fork, sail to the side you choose. The needle settles after a while on an island, or as soon as its beast falls."],
+	["The sea between", "Every leg to the next island has pirate fleets of its level, reefs, fog, whirlpools and storms, a Sea King now and then, and wrecks, bottles and islets with a chest."],
+	["Katana and axe", "Thousand Petals and Maelstrom rebuilt, with petals for the katana and embers, rock and fire for the axe. Earthsplitter tears the ground."],
+	["Jumping attacks", "Twin Cyclone, Meteor Kick, Hang Shot and Boarding Dive, learned in each weapon's tree."],
+	["A better sounding sea", "No more short hull-wash loop: long layered water that changes with your speed, footsteps for sand, grass, stone, wood and shallows, varied hits and shots, and island music that picks up where it left off."],
+	["Steadier pacing", "Levels come slower, pistols lose punch at range, and pirate ships sail faster, fire more and board."],
+	["Co-op fixes", "Guests see the pirates who board your ship, and a guest whose island builds late catches up on its fights."],
+	["Play in the browser", "Driftwake runs at driftwake.fun too (co-op stays on desktop)."],
 ]
 
 
