@@ -24,6 +24,8 @@ if (-not $env:GODOT -or -not (Test-Path $env:GODOT)) {
 $dir = Split-Path (Resolve-Path $paths[0]).Path -Parent
 while ($dir -and -not (Test-Path (Join-Path $dir "project.godot"))) { $dir = Split-Path $dir -Parent }
 if (-not $dir) { exit 0 }
+# a checkout with no import cache (a fresh worktree) knows no class names yet: nothing to learn here
+if (-not (Test-Path (Join-Path $dir ".godot\global_script_class_cache.cfg"))) { exit 0 }
 
 $rel = @($paths | ForEach-Object { "res://" + ((Resolve-Path $_).Path.Substring($dir.Length).TrimStart("\", "/") -replace "\\", "/") })
 # (Windows PowerShell turns a native program's stderr into errors under "Stop")
