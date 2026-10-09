@@ -45,8 +45,17 @@ func _process(d: float) -> bool:
 		0:
 			if t < 1.0: return false
 			p = root.get_tree().get_first_node_in_group("player")
+			# (flat ground: the village square)
+			var isl = root.get_node("World/Islands/Brinehollow")
+			var v = isl.VILLAGE + Vector2(0, 6)
+			p.global_position = Vector3(150 + v.x, isl.hv(v) + 0.3, 150 + v.y)
+			p.reset_physics_interpolation()
+			wait = 0.5
+			step = 99
+		100:
 			p.knock_down(Vector3(0, 3.5, 6))
 			wait = 0.05
+			step = 0
 		1:
 			check("knockdown enters Downed", st() == "Downed")
 			check("ragdoll exists", p.body_model.ragdoll != null)

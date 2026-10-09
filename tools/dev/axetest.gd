@@ -171,18 +171,18 @@ func _process(d: float) -> bool:
 			target_grunt(1.6)
 			saw = {}
 			attack("light_attack")
-			wait = 0.4
+			wait = 0.75
 			step += 1
 		12:
 			attack("light_attack")
-			wait = 0.4
+			wait = 0.75
 			step += 1
 		13:
 			attack("light_attack")
 			wait = 0.8
 			step += 1
 		14:
-			check("cutlass combo: forehand, backhand, spin (%s)" % str(saw.keys()), saw.has("slash_r") and saw.has("slash_l") and saw.has("spin_slash"))
+			check("cutlass combo: forehand, backhand, spin (%s)" % str(saw.keys()), saw.has("slash_r") and saw.has("slash_l") and saw.has("slash_spin"))
 			check("...its cuts land (%.0f -> %.0f)" % [hp0, g.health.current_health], g.health.current_health < hp0)
 			check("the cutlass guards side on, blade angled forward", p.body_model._guard().get("hand_r", Vector3.ZERO).x < -0.3)
 			p.state_machine.force_state("Idle", {})

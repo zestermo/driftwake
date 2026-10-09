@@ -53,19 +53,16 @@ func _process(d: float) -> bool:
 			wait = 0.05
 		6:
 			check("after moving, next click continues combo (hit 2 = slash_l)", p.body_model.current_action() == "slash_l")
-			wait = 0.4
+			wait = 0.55
 		7:
 			tap("light_attack"); wait = 0.08
 		8:
-			check("hit 3 = spin finisher", p.body_model.current_action() == "spin_slash")
-			var trails := 0
-			for c in p.player_model.get_children():
-				if c is MeshInstance3D and c.material_override is ShaderMaterial: trails += 1
-			wait = 0.05
+			check("hit 3 = spin finisher", p.body_model.current_action() == "slash_spin")
+			wait = 0.2
 		9:
 			var trails := 0
-			for c in p.player_model.get_children():
-				if c is MeshInstance3D and c.material_override is ShaderMaterial: trails += 1
+			for c in p.body_model.get_children():
+				if c is MeshInstance3D and c.mesh is ImmediateMesh: trails += 1
 			check("slash trail spawned", trails >= 1)
 			wait = 1.2
 		10:
