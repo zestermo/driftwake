@@ -99,7 +99,7 @@ func gold() -> int:
 
 
 func _refresh() -> void:
-	var shop: Dictionary = SHOPS.SHOPS[shop_id]
+	var shop: Dictionary = SHOPS.shop(shop_id)
 	_title.text = str(shop["name"])
 	_line.text = str(shop["line"])
 	_gold.text = "%d gold" % gold()

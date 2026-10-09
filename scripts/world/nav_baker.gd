@@ -23,8 +23,11 @@ func _ready() -> void:
 
 ## `terrain`: the island stands on the shared world terrain (its faces come
 ## from the heightmap; hand-built islands carry their own ground).
-func add_zone(node: Node3D, radius: float, terrain: bool) -> void:
-	_zones.append({"node": node, "r": radius, "terrain": terrain, "baked": false})
+## `faces` (world faces round a centre and radius): ground handed over instead
+## of parsed (a generated island's site: its whole terrain is too big to parse).
+func add_zone(node: Node3D, radius: float, terrain: bool, faces: Callable = Callable()) -> void:
+	_zones.append({"node": node, "r": radius, "terrain": terrain, "faces": faces, "baked": false})
+	set_process(true)
 
 
 ## Parsing an island's colliders has to happen on the main thread (a frame
@@ -40,6 +43,8 @@ func _process(delta: float) -> void:
 	if _check > 0.0:
 		return
 	_check = 1.0
+	# (a chain island's zones go with it)
+	_zones = _zones.filter(func(z): return is_instance_valid(z["node"]))
 	for z in _zones:
 		if z["baked"]:
 			continue
@@ -78,6 +83,8 @@ func _bake(z: Dictionary) -> void:
 	NavigationServer3D.parse_source_geometry_data(nm, data, node)
 	if z["terrain"]:
 		data.add_faces(_terrain_faces(node.global_position, r), Transform3D.IDENTITY)
+	if (z["faces"] as Callable).is_valid():
+		data.add_faces(z["faces"].call(node.global_position, r), Transform3D.IDENTITY)
 	var region := NavigationRegion3D.new()
 	region.name = "NavRegion"
 	node.add_child(region)

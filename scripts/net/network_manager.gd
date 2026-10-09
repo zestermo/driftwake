@@ -46,6 +46,8 @@ var players: Dictionary = {}
 var roster: Dictionary = {}
 var local_player: Node = null
 var world_ready: bool = false
+## A guest has the host's world state (its chain: the islands to build are the host's).
+var world_synced: bool = false
 ## Who simulates the ship (peer id).
 var ship_owner: int = 1
 ## Our captain, as sent to the others when joining (name, look).
@@ -248,6 +250,7 @@ func leave() -> void:
 	_waiting_hello.clear()
 	_pending_spawns.clear()
 	_pending_sync = {}
+	world_synced = false
 	_pending_place = Vector3.INF
 	ship_owner = 1
 	_connect_t = 0.0
@@ -1717,6 +1720,7 @@ func _apply_world_sync(state: Dictionary) -> void:
 		var ch: Array = state["chain"]
 		gm.chain_seed = int(ch[0])
 		gm.chain_at = int(ch[1])
+		world_synced = true
 	var sp: Dictionary = state.get("spawners", {})
 	for k in sp.keys():
 		var s := node_of(str(k))

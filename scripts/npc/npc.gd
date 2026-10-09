@@ -52,10 +52,10 @@ func setup(cfg: Dictionary) -> NPC:
 	_facing = float(cfg.get("yaw", 0.0))
 	_home_yaw = _facing
 
-	humanoid = Humanoid.new()
+	# (one built ahead on a worker thread if there is one: a chain island's villagers)
+	humanoid = Humanoid.make(cfg.get("look", {}))
 	humanoid.name = "Model"
 	humanoid.lod = true
-	humanoid.setup(cfg.get("look", {}))
 	humanoid.seated = bool(cfg.get("seated", false))
 	add_child(humanoid)
 	humanoid.rotation.y = _facing

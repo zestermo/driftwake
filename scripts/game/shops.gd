@@ -70,6 +70,13 @@ const SHOPS := {
 
 const KINDS := ["loot", "weapon", "consumable", "gear"]
 
+## Traders made in play (a chain island's village: IslandVillage), the same shape as SHOPS.
+static var extra := {}
+
+
+static func shop(id: String) -> Dictionary:
+	return SHOPS[id] if SHOPS.has(id) else extra[id]
+
 
 ## What a shop's stock entry is as an item (gear is made to order).
 static func item_of(entry: Array) -> ItemData:
@@ -86,5 +93,5 @@ static func price_of(entry: Array) -> int:
 static func offer(shop_id: String, item: ItemData) -> int:
 	if item == null or item.id == "gold" or item.value <= 0:
 		return 0
-	var rate: float = float((SHOPS[shop_id]["buys"] as Dictionary).get(KINDS[int(item.item_type)], 0.0))
+	var rate: float = float((shop(shop_id)["buys"] as Dictionary).get(KINDS[int(item.item_type)], 0.0))
 	return maxi(int(floor(item.worth() * rate)), 1) if rate > 0.0 else 0

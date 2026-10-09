@@ -44,6 +44,10 @@ func _process(d: float) -> bool:
 			["village", _g(s["village"] + dd * 30.0, 4.0), _g(s["village"] - dd * 40.0, 2.0), false],
 			["boss", _g(s["boss"] + dd * 30.0, 5.0), _g(s["boss"], 1.0), false],
 			["summit", _g(s["summit"] + dd * 6.0, 4.0), _g(s["dock"], 0.0), false],
+			["camp", _g(s["camp"] + (s["village"] - s["camp"]).normalized() * 22.0, 6.0), _g(s["camp"], 1.0), false],
+			["lair", _g(s["lair"] + dd * 18.0 + side * 6.0, 6.0), _g(s["lair"], 0.5), false],
+			["ruins", _g(s["ruins"] + dd * 14.0, 4.0), _g(s["ruins"], 1.0), false],
+			["tower", _g(s["summit"] - dd * 12.0 + side * 6.0, 16.0), _g(s["summit"], 6.0), false],
 		]
 		_aim()
 		return false

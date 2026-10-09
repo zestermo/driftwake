@@ -22,9 +22,19 @@ func add_grunt(cfg: Dictionary) -> void:
 	specs.append(cfg)
 
 
+## The first crew turns up once its bodies are built on a worker thread (a chain
+## island's camp, put in the world mid-game: no hitch).
+var warm_start := false
+var _warming: Array = []
+
+
 func _ready() -> void:
 	add_to_group("net_spawner")
-	_spawn_all.call_deferred()
+	if warm_start:
+		_warming = specs.map(func(c): return PirateGrunt.look_for(c))
+		Humanoid.prebuild(_warming)
+	else:
+		_spawn_all.call_deferred()
 
 
 func _spawn_all() -> void:
@@ -87,6 +97,11 @@ func alive_count() -> int:
 
 
 func _process(delta: float) -> void:
+	if not _warming.is_empty():
+		if Humanoid.prebuilt_for(_warming):
+			_warming = []
+			_spawn_all()
+		return
 	if specs.is_empty() or alive_count() > 0:
 		_empty_t = 0.0
 		return

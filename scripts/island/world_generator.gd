@@ -26,6 +26,8 @@ var chain_islands := {}
 ## ...and those still being worked out on a worker thread: node id -> [GenIsland, task, started usec]
 var _pending := {}
 var _sync_t := 0.0
+## The chain seed the islands standing now were built from.
+var _built_seed := 0
 
 
 func _ready() -> void:
@@ -46,13 +48,36 @@ func _process(delta: float) -> void:
 ## the world; the rest are freed. Each is worked out on a worker thread
 ## (GenIsland.prepare), then put in the world in a frame (finish).
 func sync_chain_islands() -> void:
+	# (a guest builds the host's chain: nothing until the host's world state is here)
+	if Net.is_client() and not Net.world_synced:
+		return
+	var c := chain()
+	# a load or the host's world gave us another chain: all of this one goes
+	if c.seed_value != _built_seed:
+		_built_seed = c.seed_value
+		for id in chain_islands.keys():
+			_free_chain_island(id)
+		for e in _pending.values():
+			WorkerThreadPool.wait_for_task_completion(e[1])
+			(e[0] as Node).free()
+		_pending.clear()
 	for id in chain_islands.keys():
 		if not _wanted().has(id):
 			_free_chain_island(id)
-	var c := chain()
 	for id in _wanted():
 		if not chain_islands.has(id) and not _pending.has(id):
 			_start_chain_island(c.node(id))
+
+
+## Every island wanted is built and its crews have turned up (tests, co-op).
+func chain_ready() -> bool:
+	if not _pending.is_empty() or chain_islands.size() < _wanted().size():
+		return false
+	for isl in chain_islands.values():
+		for camp in (isl as Node).find_children("*", "GruntCamp", true, false):
+			if not (camp as GruntCamp)._warming.is_empty():
+				return false
+	return true
 
 
 func _wanted() -> Array:
@@ -98,6 +123,11 @@ func _finish_chain_island(isl: GenIsland, t0: int) -> void:
 	(isl.find_child("DockingArea", true, false) as Interactable).interacted.connect(_on_dock_interacted)
 	isl.set_meta("shoals", isl.shallows())
 	_send_isle_shoals()
+	# (built after the save was applied: its chests opened before are gone)
+	var gm := get_node("/root/GameManager")
+	for bag in isl.find_children("*", "LootBag", true, false):
+		if (bag as LootBag).save_id != "" and gm.opened.has((bag as LootBag).save_id):
+			bag.queue_free()
 	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms, %d ms of it on the main thread %s" % [n["name"], n["theme"], isl.radius, isl.res,
 		(Time.get_ticks_usec() - t0) / 1000, (Time.get_ticks_usec() - t1) / 1000, isl.build_ms])
 
