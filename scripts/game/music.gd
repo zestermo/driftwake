@@ -22,6 +22,9 @@ const FADE := 1.8
 const FAST_FADE := 0.7
 ## Fighting keeps the combat track on for a while after the last enemy.
 const COMBAT_HOLD := 6.0
+## Back to a calm track this soon after leaving it: it carries on where it was
+## (a fight doesn't restart the island theme); the fight tracks always start over.
+const RESUME_WITHIN := 120.0
 
 var current: String = ""
 ## Force a track (tests, cutscenes); "" = automatic.
@@ -36,6 +39,7 @@ var _check_t: float = 0.0
 var _combat_hold: float = 0.0
 var _duck: float = 0.0
 var _fade_rate: float = 1.0 / FADE
+var _left: Dictionary = {}
 
 
 func _ready() -> void:
@@ -75,6 +79,9 @@ func _stream(track: String) -> AudioStream:
 func play(track: String, fast: bool = false) -> void:
 	if track == current:
 		return
+	var now := Time.get_ticks_msec() * 0.001
+	if current != "" and _active.playing:
+		_left[current] = [_active.get_playback_position(), now]
 	current = track
 	_fade_rate = 1.0 / (FAST_FADE if fast else FADE)
 	var s := _stream(track)
@@ -83,7 +90,8 @@ func play(track: String, fast: bool = false) -> void:
 	if s:
 		next.stream = s
 		next.volume_db = -60.0
-		next.play()
+		var left: Array = _left.get(track, [0.0, -INF])
+		next.play(float(left[0]) if track not in ["combat", "boss"] and now - float(left[1]) < RESUME_WITHIN else 0.0)
 	_active = next
 
 

@@ -123,6 +123,12 @@ func _ensure_buses() -> void:
 			var idx := AudioServer.bus_count - 1
 			AudioServer.set_bus_name(idx, bus_name)
 			AudioServer.set_bus_send(idx, "Master")
+	# a broadside, a boss roar and the music together mustn't clip
+	if AudioServer.get_bus_effect_count(0) == 0:
+		var lim := AudioEffectHardLimiter.new()
+		lim.ceiling_db = -0.5
+		lim.release = 0.12
+		AudioServer.add_bus_effect(0, lim)
 
 
 func _apply_audio() -> void:
