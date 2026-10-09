@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5-e0b040" alt="Version 1.5">
+  <img src="https://img.shields.io/badge/version-1.7-e0b040" alt="Version 1.7">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -22,10 +22,10 @@
 
 ## About the game
 
-You're a new pirate captain on Brinehollow, a sleepy fishing island at the edge of dangerous
+You wake on the sand of Brinehollow, a sleepy fishing island at the edge of dangerous
 waters. Make a captain, pick up a cutlass and earn your way off the island. Then take your
-sloop out to sea, where pirate fleets, Marines, reefs, whirlpools, storms and something
-very large in the deep are waiting.
+sloop out to sea and follow the log pose down a chain of islands, past pirate fleets, Marines,
+reefs, whirlpools, storms and something very large in the deep.
 
 Driftwake is inspired by shonen pirate adventures. Combat is fast and readable, and you build
 a fighting style from your weapons, a web of skills and Haki.
@@ -73,11 +73,15 @@ wobbly vertices, dithered colour and a chunky pixel grid.
   blocked, only dodged, or broken with Armament Haki.
 - **Physics ragdolls, blood and dismemberment.** Heavy hits knock people flying, and a katana
   can cut a cannonball in half.
-- **Enemies:** pirate grunts who circle, feint, shoot and raise the alarm; riflemen; scuttlebugs;
-  Captain Morrow, a three-phase boss at Redtide Rock; and the Sea King.
+- **Skill trees (K):** a tree for every weapon, Base & Haki and your Devil Fruit. Weapon trees
+  grow with mastery, and mastering a tree wakes its techniques' element. Put an ultimate on R.
+- **Grapples and martial arts:** suplex, throw or giant-swing a pirate into his friends.
+- **Enemies:** pirate grunts who circle, feint, shoot and raise the alarm; riflemen; scuttlebugs
+  and canopy spitters; Captain Grell's den in the forest; the Brood Queen in her cave; Captain
+  Morrow, a three-phase boss at Redtide Rock; and the Sea King.
 
 ### Haki
-- **Armament and Observation Haki** awaken at level 10.
+- **Armament and Observation Haki** awaken at level 10, Conqueror's Haki at level 20.
 - **Armament: Coat** turns your weapon arm and blade glossy black: nothing can block you, and
   every hit breaks red wind-ups.
 - **Observation** makes enemy wind-ups flash, widens your parry window, and with Foresight
@@ -90,6 +94,10 @@ wobbly vertices, dithered colour and a chunky pixel grid.
   bear, so they ram you or come alongside to board.
 - **Ship damage:** cannon hits hole the hull, set fires and flood the ship. The crew patch,
   douse and pump to keep her afloat.
+- **A sea you can hear and see:** surf on the shore, the open swell, the hull's wash and
+  creaking timbers, gusting wind in the rigging; surf rolling over the shallows, whitecaps
+  in a blow, wind streaks and spray over the bow.
+- **The log pose (hold L):** Captain Morrow's glass points to the next islands of the chain.
 - **Hazards and plunder:** reefs, fog banks, whirlpools, storm cells, wrecks, bottles and buried
   treasure.
 - **The sea chart (M)** fills in as you explore. Set your own marks to sail by.
@@ -100,6 +108,11 @@ wobbly vertices, dithered colour and a chunky pixel grid.
   you get back to it and the grave sinks into the ground, with everything in it.
 
 ### Brinehollow
+- **A story to start:** wake on the beach and follow Old Pell's lead to Captain Morrow, with
+  your next goal on screen.
+- **The island:** a harbour town with a stone quay, a village with a tavern, smithy and sea
+  chapel, a lighthouse, jungle ruins, the smugglers' camp, a deep western forest and the
+  brood cave.
 - Traders who buy and sell: Nessa (treasure), Gus (food and drink), Marlo, Clothier Sela,
   Old Ida, Vey's Armoury, and Tackett the shipwright.
 - **Item tiers:** Common, Uncommon, Rare, Epic, Legendary, Ultra and Supreme.
@@ -109,8 +122,7 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 ### Your captain
 - A character creator with body, face, hair, hats and outfits. Hair, coats, capes and skirts
   move with physics.
-- **Levels and a skill map:** a constellation of skills for mobility, survival, swords,
-  guns and Haki.
+- **Levels and skill trees,** with abilities that grow into new tiers the more you use them.
 
 ### World and co-op
 - **A day/night cycle and weather:** sun and moon, clear skies, rain, storms with lightning,
@@ -124,7 +136,7 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 | Action | Key | | Action | Key |
 |---|---|---|---|---|
 | Move | W A S D | | Inventory | Tab / I |
-| Sprint | Shift | | Skill map | K |
+| Sprint | Shift | | Skill trees | K |
 | Jump / double jump | Space | | Sea chart (click to mark, C to clear) | M |
 | Dodge | Left Ctrl | | Ping a marker | G / middle mouse |
 | Light attack | Left click | | Ready / sheathe weapon | Z |
@@ -132,7 +144,9 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 | Parry (tap) / block (hold) | Q | | Zoom camera | Mouse wheel |
 | Interact, talk, man a gun (hold for deck jobs) | F | | PSX resolution / dither | F2 / F3 |
 | Skills | 1 – 4 | | Fullscreen | F11 / Alt+Enter |
-| Quick items | 5 – 7 | | Summon your ship (hold) | B |
+| Ultimate | R | | Summon your ship (hold) | B |
+| Quick items | 5 – 7 | | Read the log pose (hold) | L |
+| Zoan fruit: shift form | V | | | |
 
 **At the helm:** W/S set the sail, A/D steer, left click fires a broadside, and F leaves the wheel.
 
@@ -140,6 +154,40 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.7: Wind and Story (October 8, 2026)
+- **A story to start:** wake on the beach past the quay and follow Old Pell's lead through
+  Brinehollow to Captain Morrow, with your next goal on screen and a marker to follow.
+- **Brinehollow grows:** a deep western forest, Captain Grell's pirate den, spitters in the
+  canopy and the Brood Queen's cave.
+- **The harbour town:** a stone quay with piers, trading ships and a harbour tower; the village
+  gets dressed houses, a furnished tavern, a cobbled plaza, a smithy and a sea chapel.
+- **Morrow's log pose:** hold L to see where the islands of the chain lie.
+- **Combat:** a new cutlass combo and polished techniques (the Kraken's Wake), elements woken
+  by weapon mastery, and heavy attacks that tire you when spammed.
+- **Fairer sea fights:** enemy hull bars, far fewer holes, faster pumping, and ships that ram or
+  board up close instead of firing. The wind only ever helps.
+- **Redtide Rock:** the fort's guns are gone; a stone stair, sea stacks and crags instead.
+- **Sound and sight of the sea:** surf, swell, hull wash, creaking timbers, gusting wind and
+  whistling rigging; surf rolling in, whitecaps, wind streaks and spray.
+- **Climbing by hand** and interaction prompts only when you're right next to things.
+
+### v1.6: Trees and Timbers (October 7, 2026)
+- **Skill trees (K):** a tree for every weapon, Base & Haki and your Devil Fruit, grown with
+  weapon mastery. Old saves get every skill point back.
+- **26 new techniques** (Riposte, Wind Severer, Blade Dance, Deadeye, Smoke Bomb...) and an
+  ultimate for every weapon, on R.
+- **Grapples and martial arts:** Suplex, Shoulder Throw, Giant Swing, Hundred Fists, Rising
+  Dragon and the Sea King Fist.
+- **Ability tiers:** Soru becomes Shadow Step, Foresight a stance that dodges for you, Tekkai
+  hardens you by itself.
+- **Cut the bullets:** a parry upgrade that cuts gunshots out of the air, and sends them back
+  once mastered.
+- **Haki:** 17 new passives and Conqueror's Haki at level 20.
+- **Bigger ships** with a quarterdeck over a crew cabin, a crow's nest, rigging and swing ropes.
+- **Life aboard:** a bunk, a galley and the crew's shared chest; you wake in the cabin when
+  you fall, and your bag waits on a grave.
+- **Summon your ship:** hold B near the water.
 
 ### v1.5: The Open Sea (October 7, 2026)
 - **Sailing:** wind and sail trim, an anchor on a chain worked at the capstan, and hulls that
@@ -211,17 +259,15 @@ one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Coming next
 
-- **Weapon skill trees and mastering abilities:**
-  - Every weapon gets its own tree, plus unarmed martial arts.
-  - Ability tiers go all the way to automatic: Observation Haki that dodges for you, and a
-    shadow-step dodge.
+- **The island chain:** nine layers of islands to sail down by the log pose, with cities,
+  forks and a sea boss at the end.
 - **New movesets:**
   - sword and pistol;
   - dual wield (sword with a sword, axe or dagger);
   - daggers;
   - dual axes;
   - a two-handed hammer.
-- **Bigger ships** with a crow's nest, climbable rigging and ropes to swing from.
+- **New music:** a more adventurous score.
 - **A new UI:** detailed pixel-art menus and item tooltips.
 - **Real lights** on lanterns, windows and torches, and a performance pass.
 

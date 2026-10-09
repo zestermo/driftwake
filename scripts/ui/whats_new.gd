@@ -7,17 +7,17 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Skill trees", "Press K: a tab for every weapon, Base & Haki and your Devil Fruit. Weapon trees grow with mastery, earned by fighting with that weapon. Old saves get every skill point back."],
-	["New techniques", "26 of them, like Riposte, Wind Severer, Hatchet Throw, Blade Dance, Deadeye and Smoke Bomb, and an ultimate for every weapon. Put any one on R."],
-	["Grapples and martial arts", "Bare-handed, Suplex, Shoulder Throw or Giant Swing a pirate into his friends, or let loose Hundred Fists, Rising Dragon and the Sea King Fist."],
-	["Master your abilities", "Use a skill to open its next tier. Soru becomes Shadow Step, Foresight a stance that dodges for you, and Tekkai hardens you by itself."],
-	["Cut the bullets", "Learn your blade's parry upgrade to cut gunshots out of the air. Master it and shots are cut down on their own and fly back. Without it, a parry won't stop bullets."],
-	["Haki and more", "17 new passives, from Featherfall to Adrenaline, and Conqueror's Haki at level 20: the weak faint where they stand."],
-	["Bigger ships", "Ships are half again as big, with a raised quarterdeck over a crew cabin, a crow's nest, rigging to climb and ropes to swing from the yard."],
-	["Life aboard", "Rest in the bunk, restock your rum at the galley and keep loot in the crew's shared chest. If you fall, you wake in the cabin."],
-	["Your grave", "Die and your bag stays on a grave where you fell. Get back to it, because dying again sinks it for good."],
-	["Summon your ship", "Hold B near the water and she fades into view and sails to the shore nearest you."],
-	["And more", "Long sessions stay smooth, enemies reel away from your blows, weapons hang properly at the hip, and climbing is done by hand."],
+	["A story to start", "A new captain wakes on the sand past the quay. Follow Old Pell's lead through Brinehollow to Captain Morrow, with your next goal on screen and a marker to follow."],
+	["Brinehollow grows", "A deep forest to the west, a pirate den under Captain Grell, spitters in the canopy, and the Brood Queen's cave."],
+	["The harbour town", "A stone quay with piers, trading ships, waterfront houses and a harbour tower. The village has dressed houses, a furnished tavern, a cobbled plaza, a smithy and a sea chapel, lit at night."],
+	["Morrow's log pose", "Beat Captain Morrow and wear his log pose. Hold L to raise it and see where the islands of the chain lie."],
+	["The cutlass reborn", "A new three-hit combo, polished techniques with sea-spray effects, and a Kraken's Wake worth waiting for."],
+	["Mastery wakes the elements", "Techniques start clean and physical; master a weapon's tree to wake its element. Spamming heavy attacks now tires you and makes you predictable."],
+	["Fairer sea fights", "Enemy ships show their hull over the masthead, hole you far less, and won't fire up close: there they ram or board. The pump works three times faster."],
+	["Sail anywhere", "The wind never holds you back. A fair wind gives you extra speed."],
+	["Redtide Rock", "The fort's guns are gone. A stone stair climbs the cliff, and sea stacks and crags guard the rock."],
+	["Hear the sea", "Surf on the shore, the open swell, water rushing past your hull, creaking timbers, gusting wind and whistling rigging."],
+	["See the wind", "Surf rolls in over the shallows, whitecaps streak the crests in a blow, wind lines race past and spray flies over the bow."],
 ]
 
 
