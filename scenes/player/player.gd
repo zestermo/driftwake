@@ -328,7 +328,9 @@ func _wear_outfit_of(lk: Dictionary) -> void:
 func refresh_look() -> void:
 	if body_model == null:
 		return
-	body_model.apply_look(Gear.compose(appearance, equipment.slots))
+	var lk := Gear.compose(appearance, equipment.slots)
+	lk["log_pose"] = has_log_pose()
+	body_model.apply_look(lk)
 	CharacterLook.save_look(body_model.look)
 	if hybrid:
 		hybrid = false
@@ -686,6 +688,7 @@ func _process(delta: float) -> void:
 	body_model.stance = style()
 	_update_head_look()
 	_tick_body(delta)
+	_log_pose_tick()
 	if _using_item:
 		_use_timer -= delta
 		if _use_timer <= 0.0:
@@ -1328,7 +1331,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		buffer_jump()
 	# debug builds: F9 grants a level (try the skill map)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F9:
-		if (event as InputEventKey).shift_pressed:
+		if (event as InputEventKey).ctrl_pressed:
+			# Ctrl+F9: Morrow's log pose without the fight
+			give_log_pose()
+		elif (event as InputEventKey).shift_pressed:
 			# every known skill gets the uses its next tier asks for
 			for sk in progression.known_skills():
 				var nt := Skills.tier_def(sk, progression.skill_tier(sk) + 1)
@@ -1380,6 +1386,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_weapon()
 		get_viewport().set_input_as_handled()
 		return
+	if event.is_action_pressed("log_pose") and not has_log_pose():
+		_toast("You've no log pose")
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ping_marker"):
 		place_marker()
 		get_viewport().set_input_as_handled()
@@ -1397,6 +1407,35 @@ func _unhandled_input(event: InputEvent) -> void:
 			activate_hotbar(i)
 			get_viewport().set_input_as_handled()
 			return
+
+
+# --------------------------------------------------------------------------
+# The log pose (Morrow's, worn on the left wrist; hold L to read it)
+# --------------------------------------------------------------------------
+## True while L is held (the HUD shows the log pose then).
+var log_pose_up: bool = false
+
+
+func has_log_pose() -> bool:
+	return Dialogue.has_flag("log_pose")
+
+
+func give_log_pose() -> void:
+	if has_log_pose():
+		return
+	Dialogue.set_flag("log_pose")
+	refresh_look()
+	get_tree().call_group("hud", "show_banner", "A Log Pose!", "Hold L to read it. It points the way past Redtide Rock.", true)
+
+
+func _log_pose_tick() -> void:
+	log_pose_up = has_log_pose() and not input_locked and Input.is_action_pressed("log_pose")
+	# on foot it's raised to the eye; at the helm or in a fight the HUD shows it all the same
+	var raise := log_pose_up and is_free()
+	if raise and (not body_model.is_busy() or body_model.current_action() == "log_pose"):
+		body_model.hold("log_pose")
+	elif not raise and body_model.current_action() == "log_pose":
+		body_model.stop_action()
 
 
 func activate_hotbar(slot: int) -> void:

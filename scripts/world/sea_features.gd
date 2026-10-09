@@ -246,22 +246,31 @@ func _build_wreck(i: int) -> void:
 	bag.position = Vector3(-1.6, HullBuilder.DECK_Y, 2.1)
 
 
-## An X on an island's beach for each treasure (only shown, and diggable,
-## once its map's been found).
+## An X on one of Brinehollow's beaches for each treasure (only shown, and
+## diggable, once its map's been found), clear of its places and each other.
 func _place_treasures() -> void:
-	var infos: Array = gen.get("island_infos")
-	for i in range(mini(4, infos.size())):
-		var info: Dictionary = infos[i]
-		var ic: Vector2 = info["pos"]
-		var r: float = info["radius"]
-		for k in range(30):
-			var a := _rng.randf() * TAU
-			var q := ic + Vector2(cos(a), sin(a)) * r * _rng.randf_range(0.45, 0.7)
-			var h: float = gen.call("height_at", q.x, q.y)
-			if h > 1.2 and h < 7.0:
-				treasures.append([Vector3(q.x, h, q.y), str(info.get("name", "Island %d" % (i + 1)))])
-				_build_treasure(treasures.size() - 1)
-				break
+	var si: StarterIsland = gen.get("starter_island")
+	var keep := [StarterIsland.VILLAGE, StarterIsland.TRAINING, StarterIsland.HILL, StarterIsland.RUINS, StarterIsland.COVE,
+		StarterIsland.CAMP, StarterIsland.SMUGGLERS, StarterIsland.CAVE, StarterIsland.DEN, si.dock_shore]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(gen.get("world_seed")) * 53 + 7
+	var picked: Array = []
+	for k in range(600):
+		if picked.size() >= TREASURES:
+			break
+		var a := rng.randf() * TAU
+		var q := Vector2(cos(a), sin(a)) * rng.randf_range(90.0, StarterIsland.LAND_R)
+		var h := si.height_at(q.x, q.y)
+		if h < 1.2 or h > 4.0:
+			continue
+		if keep.any(func(p): return q.distance_to(p) < 45.0) or picked.any(func(p): return q.distance_to(p) < 120.0):
+			continue
+		picked.append(q)
+		treasures.append([si.to_global(Vector3(q.x, h, q.y)), "Brinehollow"])
+		_build_treasure(treasures.size() - 1)
+
+
+const TREASURES := 4
 
 
 func _build_treasure(i: int) -> void:

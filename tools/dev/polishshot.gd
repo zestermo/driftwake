@@ -73,16 +73,8 @@ func _process(d: float) -> bool:
 		3:
 			if t - t0 < 2.0: return false
 			snap("shallows_brinehollow")
-			var info: Dictionary = root.get_node("World/Islands").island_infos[0]
-			var c: Vector2 = info["pos"]
-			var r := float(info["radius"])
-			cam.global_position = Vector3(c.x + r * 1.5, 50.0, c.y + r * 1.1)
-			cam.look_at(Vector3(c.x + r * 0.5, 0.0, c.y + r * 0.3), Vector3.UP)
-			p.global_position = cam.global_position + Vector3(0, 20, 0)
 			t0 = t; step = 4
 		4:
-			if t - t0 < 2.0: return false
-			snap("shallows_island")
 			# rain on deck (soaked through), seen from the stern cabin roof
 			var sc: Vector2 = root.get_node("World/Islands").starter_center
 			ship.place(Vector3(sc.x + 330.0, 0.0, sc.y + 120.0), 0.6)

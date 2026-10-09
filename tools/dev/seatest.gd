@@ -568,15 +568,15 @@ func _process(d: float) -> bool:
 		35:
 			var gm = root.get_node("GameManager")
 			check("passing near a reef charts it", gm.charted.has("reef:1") and not get_meta("had_reef"))
-			var info: Dictionary = root.get_node("World/Islands").island_infos[0]
-			p.global_position = Vector3(info["pos"].x + float(info["radius"]) + 150.0, 2.0, info["pos"].y)
+			var rt: Node3D = root.get_node("World/Islands").redtide
+			gm.charted.erase("island:Redtide Rock")
+			p.global_position = rt.global_position + Vector3(200.0, 2.0, 0.0)
 			p.reset_physics_interpolation()
 			wait = 1.2
 			step = 36
 		36:
 			var gm = root.get_node("GameManager")
-			var info: Dictionary = root.get_node("World/Islands").island_infos[0]
-			check("coming near an island charts it (%s)" % info["name"], gm.charted.has("island:" + str(info["name"])))
+			check("coming near Redtide Rock charts it", gm.charted.has("island:Redtide Rock"))
 			var menu = root.get_node("GameMenu")
 			menu.open("chart")
 			check("M opens the sea chart", menu._current == "chart" and menu._chart.visible)

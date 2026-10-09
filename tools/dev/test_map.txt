@@ -80,7 +80,7 @@ scripts/ship/swing_rope.gd              riggingtest
 scripts/ship/*                          shiptest
 scripts/ocean/*                         swimtest shiptest r9test r10test watertest
 scenes/ocean/*                          r9test r10test
-scripts/world/sea_features.gd           seatest
+scripts/world/sea_features.gd           seatest chaintest
 scripts/world/weather.gd                r9test r10test ambiencetest
 scripts/world/ambience.gd               ambiencetest
 assets/audio/*_loop.wav                 ambiencetest
@@ -93,8 +93,11 @@ scripts/interaction/ladder.gd           swimtest riggingtest
 
 # --- world ---
 scripts/island/starter_island.gd        qoltest foresttest grunttest yardtest looptest
-scripts/island/world_generator.gd       foresttest r9test perftest
+scripts/island/world_generator.gd       foresttest r9test perftest chaintest seatest
 scripts/island/redtide_fort.gd          r8test perftest
+scripts/world/chain.gd                  chaintest
+scripts/npc/log_pose.gd                 chaintest
+scripts/ui/log_pose_icon.gd             chaintest
 scripts/island/*                        foresttest
 data/dialogue/*                         qoltest
 

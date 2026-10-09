@@ -2256,6 +2256,12 @@ func _accessories() -> void:
 		var r := _at(tr, tu(0.5))
 		mb.add_tri(m, Vector3(-0.08, tu(0.62), -0.085 - g), Vector3(0.08, tu(0.62), -0.085 - g), Vector3(0.0, tu(0.45), _front_z(r) - 0.02 - g),
 			Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2(0, 0), Vector2(1, 0), Vector2(0.5, 1), Color.WHITE, Vector3.FORWARD)
+	if lk.get("log_pose", false):
+		# over the sleeve (or a coat's turned-back cuff)
+		var L := limb * (1.0 + (sh - 1.0) * 0.4)
+		var long := str(lk.get("sleeves", "long")) == "long" and str(lk.get("top", "shirt")) != "bare"
+		var band := (0.09 if coated else (0.056 if long else 0.05)) * L
+		LogPose.attach(h.fore_l, -0.23 * A + 0.05, band)
 	if lk.get("pouch", false):
 		var r2 := _at(tr, 0.02)
 		if coated:

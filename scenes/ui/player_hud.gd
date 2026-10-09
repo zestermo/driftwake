@@ -242,6 +242,9 @@ func _build_compass() -> void:
 	_compass.name = "Compass"
 	_compass.visible = false
 	add_child(_compass)
+	var lp: Control = preload("res://scripts/ui/log_pose_icon.gd").new()
+	lp.name = "LogPose"
+	add_child(lp)
 
 
 func _update_compass() -> void:

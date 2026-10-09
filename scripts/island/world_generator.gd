@@ -2,9 +2,6 @@ class_name WorldGenerator
 extends Node3D
 
 @export var world_seed: int = 42
-@export var island_count: int = 6
-@export var min_island_distance: float = 500.0
-@export var world_radius: float = 2000.0
 @export var terrain_size: float = 5000.0
 @export var terrain_resolution: int = 256
 @export var water_level: float = 0.0
@@ -13,61 +10,42 @@ extends Node3D
 @export var enemy_scene: PackedScene
 
 const _terrain_shader = preload("res://scenes/island/terrain.gdshader")
-const _island_script = preload("res://scripts/island/island.gd")
 const _nav_baker = preload("res://scripts/world/nav_baker.gd")
 const _sea_features = preload("res://scripts/world/sea_features.gd")
 
 var heightmap: Array = []
-var island_positions: Array[Vector3] = []  # (x, peak_height, z)
-var island_infos: Array[Dictionary] = []   # procedural islands: {pos, type, radius}
+## The chain's islands built in this world ({pos, type, radius, name}; the sea chart and charting read it).
+var island_infos: Array[Dictionary] = []
 var starter_island: StarterIsland
 var starter_center := Vector2.ZERO
 var redtide: RedtideFort
 var fleet: EnemyFleet
-
-var _decor := {}  # name -> Array[Mesh]
+var _chain: Chain
 
 
 func _ready() -> void:
+	add_to_group("world_gen")
 	GrapplePoints.clear()
 	_generate_world()
+
+
+## The island chain from GameManager.chain_seed (remade when a load or a host's world changes it).
+## It runs from Brinehollow out past Redtide Rock.
+func chain() -> Chain:
+	var gm := get_node("/root/GameManager")
+	if _chain == null or _chain.seed_value != int(gm.chain_seed):
+		var rp := Vector2(redtide.position.x, redtide.position.z)
+		_chain = Chain.make(int(gm.chain_seed), starter_center, rp - starter_center)
+	return _chain
 
 
 func _generate_world() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = world_seed
 
-	# Step 1: Determine island center positions
+	# Step 1: Brinehollow (the chain's islands are built as the crew sails to them)
 	var centers: Array[Dictionary] = []
-
-	# First island near player spawn
 	centers.append({"pos": Vector2(150.0, 150.0), "radius": 160.0, "peak": 4.0, "type": "town", "starter": true})
-
-	var type_pool: Array[String] = ["wild", "pirate", "military", "town"]
-	var attempts := 0
-	while centers.size() < island_count and attempts < island_count * 100:
-		attempts += 1
-		var angle := rng.randf_range(0.0, TAU)
-		var dist := rng.randf_range(min_island_distance * 0.8, world_radius)
-		var pos := Vector2(cos(angle) * dist, sin(angle) * dist)
-
-		var valid := true
-		for c in centers:
-			var cp: Vector2 = c["pos"]
-			if pos.distance_to(cp) < min_island_distance:
-				valid = false
-				break
-		if not valid:
-			continue
-
-		var island_type: String = type_pool[rng.randi_range(0, type_pool.size() - 1)]
-		var config: Dictionary = IslandGenerator.TYPE_CONFIGS.get(island_type, IslandGenerator.TYPE_CONFIGS["wild"])
-		centers.append({
-			"pos": pos,
-			"radius": rng.randf_range(float(config["size_min"]), float(config["size_max"])),
-			"peak": rng.randf_range(float(config["height_min"]), float(config["height_max"])),
-			"type": island_type,
-		})
 
 	# Step 2: Generate continuous heightmap
 	heightmap = _generate_heightmap(centers, rng)
@@ -98,48 +76,7 @@ func _generate_world() -> void:
 
 	add_child(terrain_body)
 
-	# Step 4: Furnish each island (spawn points, dock, enemies)
-	_build_decor_meshes()
-	var nav_islands: Array = []
-	for i in range(centers.size()):
-		var c: Dictionary = centers[i]
-		if c.get("starter", false):
-			_build_starter_island(c)
-			continue
-		var pos: Vector2 = c["pos"]
-		var island_type: String = c["type"]
-		var peak: float = c["peak"]
-		var radius: float = c["radius"]
-
-		var result: Dictionary = IslandGenerator.furnish_island({
-			"seed": world_seed + i * 7919,
-			"center": Vector3(pos.x, 0.0, pos.y),
-			"island_type": island_type,
-			"island_name": "%s Island %d" % [str(island_type).capitalize(), i + 1],
-			"peak_height": peak,
-			"radius": radius,
-			"enemy_scene": enemy_scene,
-			"heightmap": heightmap,
-			"terrain_size": terrain_size,
-			"terrain_resolution": terrain_resolution,
-			"water_level": water_level,
-		})
-		var island: Node3D = result["island"]
-		add_child(island)
-		nav_islands.append([island, radius])
-		_decorate_island(island, Vector2(pos.x, pos.y), radius, island_type, world_seed + i * 131, result["dock_world_pos"])
-
-		# Track for other systems
-		var peak_y := _sample_height(pos.x, pos.y)
-		island_positions.append(Vector3(pos.x, peak_y, pos.y))
-		island_infos.append({"pos": Vector2(pos.x, pos.y), "type": island_type, "radius": radius,
-			"name": "%s Island %d" % [str(island_type).capitalize(), i + 1]})
-
-		# Connect all docking areas to board the ship
-		var dock_area := island.get_node_or_null("DockingArea")
-		if dock_area and dock_area is Interactable:
-			dock_area.interacted.connect(_on_dock_interacted)
-
+	_build_starter_island(centers[0])
 	_build_redtide()
 	bake_shallows()
 	var features := _sea_features.new()
@@ -152,8 +89,6 @@ func _generate_world() -> void:
 		baker.gen = self
 		baker.add_zone(starter_island, StarterIsland.LAND_R, false)
 		baker.add_zone(redtide, 70.0, false)
-		for z in nav_islands:
-			baker.add_zone(z[0], z[1], true)
 		add_child(baker)
 	_register_dialogue_tokens()
 	print("WorldGenerator: Generated terrain with %d islands (seed: %d)" % [centers.size(), world_seed])
@@ -381,7 +316,6 @@ func _build_starter_island(c: Dictionary) -> void:
 	starter_island.position = Vector3(pos.x, 0.0, pos.y)
 	add_child(starter_island)
 	var result: Dictionary = starter_island.build(world_seed)
-	island_positions.append(Vector3(pos.x, 4.0, pos.y))
 
 	var dock_area := starter_island.get_node_or_null("DockingArea")
 	if dock_area and dock_area is Interactable:
@@ -449,29 +383,17 @@ func _build_redtide() -> void:
 	for z in StarterIsland.NO_GO:
 		EnemyShip.no_go.append([starter_center + (z[0] as Vector2), z[1]])
 	EnemyShip.no_go.append([spot, 45.0])
-	for info in island_infos:
-		EnemyShip.no_go.append([info["pos"], float(info["radius"]) + 30.0])
 	fleet = EnemyFleet.new()
 	fleet.name = "PirateFleet"
 	add_child(fleet)
 	fleet.add_zone(Vector3(spot.x, 0.0, spot.y), 115.0, ["sloop", "brig"])
-	# a second patrol on the way out to the nearest island
-	var near := Vector2.ZERO
-	var best := INF
-	for info in island_infos:
-		var d := starter_center.distance_to(info["pos"])
-		if d < best:
-			best = d
-			near = info["pos"]
 	var lanes: Array = [Vector3(spot.x, 0.0, spot.y)]
-	if best < INF:
-		var dir := (near - starter_center).normalized()
-		var z2 := starter_center + dir * (EnemyShip.SAFE_RADIUS + 240.0)
-		if z2.distance_to(spot) > 220.0:
-			fleet.add_zone(Vector3(z2.x, 0.0, z2.y), 110.0, ["gunboat", "sloop"])
-			lanes.append(Vector3(z2.x, 0.0, z2.y))
-	# further out: a Marine patrol and a heavy brig's hunting ground, on open
-	# water between the far islands
+	# gunboats on the way out past Redtide, where the log pose points
+	var z2 := spot + (spot - starter_center).normalized() * 320.0
+	if _deep_enough(z2, 110.0):
+		fleet.add_zone(Vector3(z2.x, 0.0, z2.y), 110.0, ["gunboat", "sloop"])
+		lanes.append(Vector3(z2.x, 0.0, z2.y))
+	# further out: a Marine patrol and a heavy brig's hunting ground, on open water
 	var picks := [["marine"], ["brig", "gunboat"]]
 	for pi in range(picks.size()):
 		var c := _open_sea(lanes, 600.0 + 250.0 * pi, pi * 1.7)
@@ -507,118 +429,8 @@ func redtide_phrase() -> String:
 
 
 # --------------------------------------------------------------------------
-# Procedural island decoration (palms, jungle trees, bushes, rocks)
+# Dialogue tokens (NPCs can mention real places of this world)
 # --------------------------------------------------------------------------
-func _build_decor_meshes() -> void:
-	_decor["palm"] = [Props.palm_mesh(101), Props.palm_mesh(102), Props.palm_mesh(103)]
-	_decor["jungle"] = [Props.jungle_tree_mesh(201), Props.jungle_tree_mesh(202)]
-	_decor["bush"] = [Props.bush_mesh(301), Props.bush_mesh(302)]
-	_decor["rock"] = [Props.rock_mesh(401, 1.0), Props.rock_mesh(402, 1.0, true)]
-	_decor["grass"] = [Props.grass_mesh()]
-
-
-func _decorate_island(island: Node3D, center: Vector2, radius: float, island_type: String, seed_value: int, dock_world: Vector3) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value
-	var buckets := {}
-	var colliders := StaticBody3D.new()
-	colliders.name = "DecorColliders"
-	colliders.collision_layer = 1
-	colliders.collision_mask = 0
-	island.add_child(colliders)
-	var jungle_bias := 0.45 if island_type == "wild" else (0.15 if island_type == "pirate" else 0.05)
-	var dock2 := Vector2(dock_world.x, dock_world.z)
-	var step := 6.0
-	var x := -radius
-	while x <= radius:
-		var z := -radius
-		while z <= radius:
-			var p := center + Vector2(x + rng.randf_range(-2.5, 2.5), z + rng.randf_range(-2.5, 2.5))
-			z += step
-			if p.distance_to(center) > radius * 1.05:
-				continue
-			if p.distance_to(dock2) < 60.0:
-				continue
-			var h := height_at(p.x, p.y)
-			if h < 0.8:
-				continue
-			var e := 2.0
-			var nrm := Vector3(height_at(p.x - e, p.y) - height_at(p.x + e, p.y), 2.0 * e, height_at(p.x, p.y - e) - height_at(p.x, p.y + e)).normalized()
-			var slope := 1.0 - nrm.y
-			var roll := rng.randf()
-			var beach := 1.0 - smoothstep(2.0, 4.0, h)
-			var kind := ""
-			if slope > 0.5:
-				kind = "rock" if roll < 0.25 else ""
-			elif roll < 0.25 * beach + 0.04:
-				kind = "palm"
-			elif roll < 0.25 * beach + 0.04 + jungle_bias * (1.0 - beach):
-				kind = "jungle"
-			elif roll < 0.25 * beach + 0.1 + jungle_bias * (1.0 - beach):
-				kind = "bush"
-			elif roll < 0.25 * beach + 0.13 + jungle_bias * (1.0 - beach):
-				kind = "rock"
-			elif roll < 0.6:
-				kind = "grass"
-			if kind == "":
-				continue
-			var meshes: Array = _decor[kind]
-			var mesh: Mesh = meshes[rng.randi() % meshes.size()]
-			var s := rng.randf_range(0.8, 1.3) * (rng.randf_range(0.6, 2.0) if kind == "rock" else 1.0)
-			var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s)
-			var local := Vector3(p.x, h - 0.15, p.y) - island.position
-			var key := [mesh, kind, floori(local.x / DECOR_CELL), floori(local.z / DECOR_CELL)]
-			if not buckets.has(key):
-				buckets[key] = []
-			buckets[key].append(Transform3D(basis, local))
-			if kind == "palm" or kind == "jungle":
-				GrapplePoints.add(island, local + basis * GrapplePoints.crown_of(mesh))
-			if kind == "palm" or kind == "jungle" or (kind == "rock" and s > 0.9):
-				var cs := CollisionShape3D.new()
-				var cyl := CylinderShape3D.new()
-				cyl.radius = 0.4 * s if kind != "rock" else 0.8 * s
-				cyl.height = 3.0
-				cs.shape = cyl
-				cs.position = local + Vector3(0, 1.5, 0)
-				colliders.add_child(cs)
-		x += step
-	# one MultiMesh per mesh per DECOR_CELL square (culled square by square);
-	# grass and bushes cast no shadow and stop drawing a little way off, the
-	# rest past the fog
-	for key in buckets.keys():
-		var xforms: Array = buckets[key]
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = key[0]
-		mm.instance_count = xforms.size()
-		for i in range(xforms.size()):
-			mm.set_instance_transform(i, xforms[i])
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		match str(key[1]):
-			"grass":
-				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				mmi.visibility_range_end = 90.0
-			"bush":
-				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				mmi.visibility_range_end = 160.0
-			_:
-				mmi.visibility_range_end = 1000.0
-		island.add_child(mmi)
-
-
-const DECOR_CELL := 70.0
-
-
-# --------------------------------------------------------------------------
-# Dialogue tokens (NPCs can mention real islands of this world)
-# --------------------------------------------------------------------------
-const _TYPE_DESC := {
-	"wild": "an untamed jungle isle",
-	"pirate": "a pirate haven",
-	"military": "a Marine fort",
-	"town": "a trading town",
-}
 const _COMPASS := ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"]
 
 
@@ -631,25 +443,26 @@ func _compass(from: Vector2, to: Vector2) -> String:
 	return _COMPASS[idx]
 
 
-func _island_phrase(info: Dictionary) -> String:
-	var pos: Vector2 = info["pos"]
-	var dist := int(round(starter_center.distance_to(pos) / 50.0) * 50.0)
-	return "%s to the %s, some %d meters out" % [_TYPE_DESC.get(info["type"], "an island"), _compass(starter_center, pos), dist]
+## Gus's rumours: the chain's first islands (they're out there whether or not
+## anyone's log pose has found them yet).
+func _rumor() -> String:
+	var c := chain()
+	var first: Dictionary = c.node(c.start_next[randi() % c.start_next.size()])
+	var picks := [
+		"%s past Redtide Rock, %s" % [Chain.THEMES[first["theme"]]["blurb"], "if you've a log pose to find it by"],
+		"a fort on a sea stack %s. Captain Morrow's. Keeps a log pose, they say" % redtide_phrase(),
+		"a whole chain of islands out past Redtide, one after the next, and cities on it bigger than any you've seen",
+	]
+	return picks[randi() % picks.size()]
 
 
 func _register_dialogue_tokens() -> void:
 	var dm := get_node_or_null("/root/Dialogue")
-	if dm == null or island_infos.is_empty():
+	if dm == null:
 		return
-	dm.register_token("rumor", func() -> String:
-		var info: Dictionary = island_infos[randi() % island_infos.size()]
-		return _island_phrase(info))
+	dm.register_token("rumor", _rumor)
 	dm.register_token("nearest_island", func() -> String:
-		var best: Dictionary = island_infos[0]
-		for info in island_infos:
-			if starter_center.distance_to(info["pos"]) < starter_center.distance_to(best["pos"]):
-				best = info
-		return _island_phrase(best))
+		return "Redtide Rock, " + redtide_phrase())
 	dm.register_token("redtide", func() -> String:
 		return redtide_phrase())
 	dm.register_token("banked", func() -> String:

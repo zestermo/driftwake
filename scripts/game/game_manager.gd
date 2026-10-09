@@ -25,6 +25,12 @@ var charted: Dictionary = {}
 var fruit_claims: Dictionary = {}
 ## The shipwright's work on our ship (ShipKit; the host's world in co-op).
 var ship_kit: Dictionary = ShipKit.fresh()
+## The island chain past Brinehollow (Chain): its seed, rolled for each new
+## game (the host's in co-op), and the island the crew is at (-1 = Brinehollow's sea).
+var chain_seed: int = randi()
+var chain_at: int = -1
+## A captain needs this level before the log pose sets on the first island.
+const LOG_POSE_LEVEL := 10
 const AUTOSAVE_EVERY := 120.0
 var _autosave_t: float = 0.0
 ## Seconds played in this save (counted while the game isn't paused).
@@ -41,6 +47,8 @@ func reset_session() -> void:
 	charted.clear()
 	fruit_claims.clear()
 	ship_kit = ShipKit.fresh()
+	chain_seed = randi()
+	chain_at = -1
 	play_time = 0.0
 	_autosave_t = 0.0
 	grave = null
@@ -119,6 +127,23 @@ func apply_world_state() -> void:
 func award_xp(amount: int, at: Vector3 = Vector3.INF) -> void:
 	if player and is_instance_valid(player) and player.progression:
 		player.progression.add_xp(amount, at)
+
+
+## The world's chain (built from chain_seed; null outside the world scene).
+func chain() -> Chain:
+	var w := get_tree().get_first_node_in_group("world_gen")
+	return w.chain() if w else null
+
+
+## The islands the log pose points at (chain nodes), [] while it hasn't set.
+## (Every wrist on this screen shows what our captain's would.)
+func log_pose_targets() -> Array:
+	var c := chain()
+	if c == null or player == null or not is_instance_valid(player):
+		return []
+	if chain_at < 0 and player.progression.level < LOG_POSE_LEVEL:
+		return []
+	return c.next_of(chain_at).map(func(id): return c.node(id))
 
 
 func _get_ship() -> Ship:

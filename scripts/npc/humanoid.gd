@@ -2093,6 +2093,11 @@ func _action_pose(n: String, u: float) -> Array:
 		"drink":
 			var sip := {"arm_l": Vector3(2.0, 0.6, 0.35), "fore_l": Vector3(2.3, 0, 0), "head": Vector3(0.45, 0, 0), "torso": Vector3(0.1, 0, 0)}
 			return [_keys(u, [[0.0, {}], [0.25, sip], [0.8, sip], [1.0, {}]]), "upper", lift]
+		"log_pose":
+			# (held) the left wrist brought up across the chest, a glance down at the ball
+			var check := {"arm_l": Vector3(0.45, -1.4, -0.35), "fore_l": Vector3(1.75, 0, 0), "hand_l": Vector3(0.25, 0, 0),
+				"head": Vector3(-0.4, 0.15, 0), "torso": Vector3(-0.05, 0.08, 0)}
+			return [_keys(u, [[0.0, {}], [1.0, check]]), "upper", lift]
 		"wave":
 			var wv := {"arm_r": Vector3(0.2, 0, 2.6 + sin(_t * 12.0) * 0.25), "fore_r": Vector3(0.4, 0, 0), "head": Vector3(0.1, -0.2, 0)}
 			return [_keys(u, [[0.0, {}], [0.2, wv], [0.85, wv], [1.0, {}]]), "upper", lift]

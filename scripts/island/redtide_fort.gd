@@ -748,6 +748,11 @@ func _victory() -> void:
 		var music := get_node_or_null("/root/Music")
 		if music:
 			music.victory()
+		# his log pose, off his wrist (after the victory banner has had its moment)
+		if me.has_method("give_log_pose") and not me.has_log_pose():
+			get_tree().create_timer(4.5).timeout.connect(func():
+				if is_instance_valid(me):
+					me.give_log_pose())
 	var gm := get_node_or_null("/root/GameManager")
 	if gm and gm.get("opened") != null and (gm.opened as Dictionary).has(HOARD_ID):
 		return

@@ -1662,6 +1662,7 @@ func _world_state() -> Dictionary:
 		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
 		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state(),
 		"kit": gm.ship_kit.duplicate() if gm else {}, "waypoints": waypoints.duplicate(),
+		"chain": [gm.chain_seed, gm.chain_at] if gm else [],
 		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else []}
 
 
@@ -1701,6 +1702,9 @@ func _apply_world_sync(state: Dictionary) -> void:
 	var gm := get_node_or_null("/root/GameManager")
 	if gm:
 		gm.fruit_claims = (state.get("fruits", {}) as Dictionary).duplicate()
+		var ch: Array = state["chain"]
+		gm.chain_seed = int(ch[0])
+		gm.chain_at = int(ch[1])
 	var sp: Dictionary = state.get("spawners", {})
 	for k in sp.keys():
 		var s := node_of(str(k))
