@@ -42,7 +42,10 @@ const FOREST := Vector2(-125, 70)
 const CAVE := Vector2(-150, 45)
 const DEN := Vector2(-112, -112)
 
-const DOCK_LENGTH := 34.0
+## The harbour pier: from the sea wall out to its head (the ship lies alongside).
+const DOCK_LENGTH := 28.0
+const PIER_HW := 3.0
+## Wooden piers' deck height (the den's, the harbour's side piers).
 const DOCK_DECK_Y := 1.7
 
 var heights := PackedFloat32Array()
@@ -75,8 +78,8 @@ func build(world_seed: int) -> Dictionary:
 	_rng.seed = world_seed + 1337
 	_setup_noise(world_seed)
 	_setup_flat_zones()
-	_find_dock()
 	_setup_port()
+	dock_shore = _quay_pt(0.0, 0.0)
 	_define_paths()
 	_generate_heights()
 	_build_terrain()
@@ -106,11 +109,12 @@ func build(world_seed: int) -> Dictionary:
 	_add_arrival_zone()
 	_add_ambience()
 
-	var dock_end := _dock_point(DOCK_LENGTH)
+	# the ship lies alongside the pier's head, against its fender
+	var dock_end := _dock_point(DOCK_LENGTH - 4.0)
 	var side := Vector3(-dock_dir.y, 0, dock_dir.x)
 	return {
 		"island": self,
-		"dock_world_pos": to_global(Vector3(dock_end.x, 0, dock_end.y) + side * 7.2),
+		"dock_world_pos": to_global(Vector3(dock_end.x, 0, dock_end.y) + side * (PIER_HW + 4.4 + 0.5)),
 		"dock_outward": Vector3(dock_dir.x, 0, dock_dir.y),
 		"player_spawn": to_global(player_spawn_local),
 	}
@@ -322,15 +326,7 @@ func _ground_min(c: Vector2, r: float) -> float:
 # ==========================================================================
 # Dock + paths
 # ==========================================================================
-func _find_dock() -> void:
-	var p := VILLAGE
-	for i in range(200):
-		p += dock_dir
-		if _height_fn(p.x, p.y) < 0.8:
-			break
-	dock_shore = p - dock_dir * 5.0  # start the dock on the beach
-
-
+## Along the harbour pier from its root at the sea wall (dock_shore).
 func _dock_point(dist: float) -> Vector2:
 	return dock_shore + dock_dir * dist
 
@@ -520,35 +516,96 @@ var _stall_a: Node3D
 var _stall_b: Node3D
 var _keeper_hut: Node3D
 
+## The harbour pier: a stone jetty out from the sea wall, flush with the quay.
+## Coping and bollards along both sides, a timber fender down the east side
+## where the ship lies, ladders at the head, a lamp at the end.
 func _build_dock() -> void:
-	var dock := Props.dock(DOCK_LENGTH, 3.6, DOCK_DECK_Y, SEAFLOOR * 0.5)
-	dock.position = Vector3(dock_shore.x, 0.0, dock_shore.y)
-	dock.rotation.y = face_yaw(dock_dir)
-	add_child(dock)
-	# ladders at the end of the dock for swimmers (end + both sides)
-	for spec in [[Vector3(0, DOCK_DECK_Y, DOCK_LENGTH), 0.0], [Vector3(1.8, DOCK_DECK_Y, DOCK_LENGTH - 3.0), PI * 0.5],
-			[Vector3(-1.8, DOCK_DECK_Y, DOCK_LENGTH - 3.0), -PI * 0.5]]:
+	var body := StaticBody3D.new()
+	body.name = "HarbourPier"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var shell := MeshBuilder.new()
+	var mb := MeshBuilder.new()
+	var cob := PSXMat.lit("cobbles", Color.WHITE, {"affine": 0.6})
+	var wall := PSXMat.lit("stone_brick", Color(0.85, 0.82, 0.76), {"affine": 0.6})
+	var cope := PSXMat.lit("stone_brick", Color(0.7, 0.68, 0.64))
+	var iron := PSXMat.lit("metal", Color(0.22, 0.22, 0.24))
+	var wood := PSXMat.lit("planks_dark")
+	var y := QUAY_Y
+	var bottom := -5.0
+	var x0 := dock_shore.x - PIER_HW
+	var x1 := dock_shore.x + PIER_HW
+	var z0 := dock_shore.y + 0.5
+	var z1 := dock_shore.y - DOCK_LENGTH
+	# the top in four lengths (small texture warp), the sides and the head
+	for k in range(4):
+		var za := lerpf(z0, z1, k / 4.0)
+		var zb := lerpf(z0, z1, (k + 1) / 4.0)
+		shell.add_quad(cob, Vector3(x0, y, za), Vector3(x1, y, za), Vector3(x1, y, zb), Vector3(x0, y, zb),
+			Vector2(x0, za) * 0.4, Vector2(x1, za) * 0.4, Vector2(x1, zb) * 0.4, Vector2(x0, zb) * 0.4, Color.WHITE, Vector3.UP)
+		for s in [-1.0, 1.0]:
+			var x: float = dock_shore.x + s * PIER_HW
+			shell.add_quad(wall, Vector3(x, y, za), Vector3(x, y, zb), Vector3(x, 0.4, zb), Vector3(x, 0.4, za),
+				Vector2(za, 0) * 0.4, Vector2(zb, 0) * 0.4, Vector2(zb, 0.5), Vector2(za, 0.5), Color.WHITE, Vector3(s, 0, 0))
+			shell.add_quad(wall, Vector3(x, 0.4, za), Vector3(x, 0.4, zb), Vector3(x, bottom, zb), Vector3(x, bottom, za),
+				Vector2(za, 0.5), Vector2(zb, 0.5), Vector2(zb, 2.6), Vector2(za, 2.6), Color(0.55, 0.6, 0.55), Vector3(s, 0, 0))
+	shell.add_quad(wall, Vector3(x0, y, z1), Vector3(x1, y, z1), Vector3(x1, bottom, z1), Vector3(x0, bottom, z1),
+		Vector2(x0, 0) * 0.4, Vector2(x1, 0) * 0.4, Vector2(x1, 2.6), Vector2(x0, 2.6), Color(0.85, 0.85, 0.85), Vector3.FORWARD)
+	var shell_mesh := shell.commit()
+	var shell_i := MeshInstance3D.new()
+	shell_i.name = "PierShell"
+	shell_i.mesh = shell_mesh
+	shell_i.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(shell_i)
+	var cs_shell := CollisionShape3D.new()
+	cs_shell.shape = shell_mesh.create_trimesh_shape()
+	body.add_child(cs_shell)
+	# coping down both sides and across the head
+	for s in [-1.0, 1.0]:
+		var cx: float = dock_shore.x + s * (PIER_HW - 0.25)
+		mb.add_box(cope, Transform3D(Basis(), Vector3(cx, y + 0.06, (z0 + z1) * 0.5)), Vector3(0.62, 0.18, z0 - z1), 0.8, Color.WHITE, false)
+	mb.add_box(cope, Transform3D(Basis(), Vector3(dock_shore.x, y + 0.06, z1 + 0.25)), Vector3(PIER_HW * 2.0, 0.18, 0.62), 0.8, Color.WHITE, false)
+	# bollards, both sides
+	for d in [5.0, 12.0, 19.0, DOCK_LENGTH - 1.2]:
+		for s in [-1.0, 1.0]:
+			var q := _dock_point(d) + Vector2(s * (PIER_HW - 0.5), 0)
+			mb.add_cylinder(iron, Transform3D(Basis(), Vector3(q.x, y + 0.1, q.y)), 0.16, 0.2, 0.42, 7, 1.0)
+			mb.add_cylinder(iron, Transform3D(Basis(), Vector3(q.x, y + 0.52, q.y)), 0.24, 0.24, 0.07, 7, 1.0)
+	# the timber fender where the ship lies (east side), a rubbing strake along it
+	var fx := x1 + 0.12
+	var fz := z1 + 1.0
+	while fz < dock_shore.y - 6.0:
+		mb.add_box(wood, Transform3D(Basis(), Vector3(fx, (y - 0.6) * 0.5 + 0.1, fz)), Vector3(0.24, y + 0.6, 0.26), 1.0)
+		fz += 1.6
+	mb.add_box(wood, Transform3D(Basis(), Vector3(fx + 0.1, y - 0.25, (z1 + dock_shore.y - 6.0) * 0.5)), Vector3(0.16, 0.22, dock_shore.y - 6.0 - z1), 1.0, Color.WHITE, false)
+	var dressing := mb.to_instance("PierDressing")
+	body.add_child(dressing)
+	add_child(body)
+	# ladders for swimmers: at the head and down the west side
+	for spec in [[_dock_point(DOCK_LENGTH), Vector2(0, -1)], [_dock_point(DOCK_LENGTH - 4.0) - Vector2(PIER_HW, 0), Vector2(-1, 0)],
+			[_dock_point(9.0) - Vector2(PIER_HW, 0), Vector2(-1, 0)]]:
+		var at: Vector2 = spec[0]
 		var lad := Ladder.new()
-		lad.length = DOCK_DECK_Y + 1.0
+		lad.length = QUAY_Y + 1.2
 		lad.rail = 0.0
 		lad.deck_depth = 0.9
-		lad.position = spec[0]
-		lad.rotation.y = spec[1]
-		dock.add_child(lad)
-	for d in range(0, int(DOCK_LENGTH) + 6, 4):
-		reserve(_dock_point(d), 3.5)
-	# props on the dock
-	var side := Vector2(-dock_dir.y, dock_dir.x)
-	var b := Props.barrel()
-	b.position = Vector3(0, DOCK_DECK_Y, 0) + _v3(_dock_point(10.0) + side * 1.2)
-	add_child(b)
-	var c := Props.crate(0.8)
-	c.position = Vector3(0, DOCK_DECK_Y, 0) + _v3(_dock_point(11.2) + side * 1.1)
-	c.rotation.y = 0.3
-	add_child(c)
-	var rope := Props.rope_coil()
-	rope.position = Vector3(0, DOCK_DECK_Y, 0) + _v3(_dock_point(24.0) - side * 1.1)
-	add_child(rope)
+		lad.position = Vector3(at.x, QUAY_Y, at.y)
+		lad.rotation.y = face_yaw(spec[1])
+		add_child(lad)
+	for d in range(0, int(DOCK_LENGTH) + 4, 4):
+		reserve(_dock_point(d), PIER_HW + 0.5)
+	# lamps at the head and halfway, cargo waiting to go aboard
+	for lp in [[_dock_point(DOCK_LENGTH - 0.9) - Vector2(PIER_HW - 0.6, 0), true], [_dock_point(13.0) - Vector2(PIER_HW - 0.6, 0), false]]:
+		var post := place(Props.lantern_post(), lp[0], face_yaw(Vector2(1, 0)) - PI * 0.5)
+		if lp[1]:
+			var nl := NightLight.make(Color(1.0, 0.75, 0.42), 1.6, 10.0)
+			nl.position = Vector3(0.55, 2.0, 0.0)
+			post.add_child(nl)
+	place(Props.barrel(), _dock_point(15.0) + Vector2(-1.6, 0.2), 0.0)
+	place(Props.barrel(), _dock_point(15.6) + Vector2(-1.9, -0.5), 0.0)
+	place(Props.crate(0.8), _dock_point(16.6) + Vector2(-1.5, 0), 0.3)
+	place(Props.rope_coil(), _dock_point(DOCK_LENGTH - 2.5) + Vector2(1.8, 0))
+	place(Props.rope_coil(), _dock_point(10.0) + Vector2(1.9, 0))
 	# docking area (board the ship) at the end of the dock
 	var area := Interactable.new()
 	area.name = "DockingArea"
@@ -560,7 +617,7 @@ func _build_dock() -> void:
 	sph.radius = 4.0
 	cs.shape = sph
 	area.add_child(cs)
-	area.position = _v3(_dock_point(DOCK_LENGTH - 2.0)) + Vector3(0, DOCK_DECK_Y + 1.0, 0)
+	area.position = _v3(_dock_point(DOCK_LENGTH - 2.0)) + Vector3(0, QUAY_Y + 1.0, 0)
 	add_child(area)
 	player_spawn_local = _v3(dock_shore - dock_dir * 4.0) + Vector3(0, hv(dock_shore - dock_dir * 4.0) + 1.0, 0)
 
@@ -598,28 +655,7 @@ func _build_village() -> void:
 		"roof_tex": "thatch", "pitch": 0.75, "jetty": 0.3}, VILLAGE + Vector2(-9, -31), Vector2(1, 0.2))
 	_house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "hip", "wall": "plaster", "roof_tex": "thatch", "lean_to": "left", "pitch": 0.5},
 		VILLAGE + Vector2(27, 12), Vector2(-1, -0.4))
-	# a fisher's shack up on stilts along the beach
-	var beach := dock_shore - dock_dir * 3.0 + Vector2(-dock_dir.y, dock_dir.x) * 17.0
-	_house({"w": 5.0, "d": 4.0, "h": 2.3, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4},
-		beach, -dock_dir, true)
-
 	_build_market()
-
-	place(Props.fish_rack(), dock_shore + Vector2(8, 6), face_yaw(Vector2(-1, 0)), 1.5)
-	place(Props.barrel(), dock_shore + Vector2(6, 9), 0.0)
-	place(Props.crate(), dock_shore + Vector2(7, 10.5), 0.5)
-	reserve(dock_shore + Vector2(6.5, 9.7), 1.6)
-	# Tackett's yard by the foot of the dock: timber stacked on trestles
-	var yard := dock_shore + Vector2(-7.0, 5.0)
-	var tmb := MeshBuilder.new()
-	var timber := PSXMat.lit("planks", Color(0.95, 0.85, 0.7))
-	for sx in [-1.2, 1.2]:
-		tmb.add_box(PSXMat.lit("bark"), Transform3D(Basis(), Vector3(sx, 0.35, 0)), Vector3(0.15, 0.7, 1.0), 1.0)
-	for i in range(4):
-		tmb.add_box(timber, Transform3D(Basis(Vector3.UP, 0.04 * i), Vector3(0, 0.76 + i * 0.1, -0.3 + i * 0.18)), Vector3(3.2, 0.09, 0.26), 1.0)
-	place(tmb.to_instance("Timber"), yard, 0.3, 1.8)
-	place(Props.crate(), yard + Vector2(2.2, 1.4), 0.2)
-	place(Props.barrel(), yard + Vector2(-2.2, 1.2), 0.0)
 
 	place(Props.signpost([PI, 0.0, PI * 0.75, PI * 0.25]), VILLAGE + Vector2(2.5, 17), 0.0, 0.6)
 
@@ -805,8 +841,10 @@ func _quay_z(x: float) -> float:
 	return lerpf(_quay_zs[i], _quay_zs[i + 1], f - i)
 
 
-## On the quay's paving (quay and street)?
+## On the quay's paving (quay and street), or out on the harbour pier?
 func _on_platform(p: Vector2) -> bool:
+	if absf(p.x - dock_shore.x) <= PIER_HW and p.y <= dock_shore.y + 0.5 and p.y >= dock_shore.y - DOCK_LENGTH:
+		return true
 	if p.x < port_x0 or p.x > port_x1:
 		return false
 	var dz := p.y - _quay_z(p.x)
@@ -826,6 +864,7 @@ func _build_port() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7007
 	_build_quay(rng)
+	_build_harbour_front(rng)
 	# piers, each with its ship (x, length, ship kind, ship on the +x side?)
 	var piers := [[-32.0, 24.0, "junk", false], [30.0, 26.0, "merchant", true], [46.0, 20.0, "sloop", true]]
 	for pr in piers:
@@ -885,6 +924,161 @@ func _build_port() -> void:
 		place(Buildings.dock_crane(), _quay_pt(25.5, 3.0), face_yaw(Vector2(0, -1)), 1.2)
 	_build_waterfront(rng)
 	_dress_quay(rng)
+
+
+## Where the harbour's people work, set out round the pier's root: Odile's
+## booth beside it, Tackett's yard (a boat on the stocks) to the east, old
+## Pell mending nets on the quay edge to the west by his net loft.
+var odile_at := Vector2.ZERO
+var odile_face := Vector2.ZERO
+var tackett_at := Vector2.ZERO
+var pell_at := Vector2.ZERO
+
+func _build_harbour_front(rng: RandomNumberGenerator) -> void:
+	var r := dock_shore
+	# the harbourmaster's booth, facing the pier
+	var booth := place(_harbour_booth(), r + Vector2(-5.2, 4.0), face_yaw(Vector2(1, 0)), 1.6)
+	odile_at = _marker_point(booth, "Keeper")
+	odile_face = Vector2(1, 0)
+	place(Props.crate(0.7), r + Vector2(-5.0, 6.4), 0.4, 0.6)
+	place(Props.barrel(), r + Vector2(-6.2, 6.6), 0.0, 0.5)
+	# Tackett's yard: a boat on the stocks, timber, sawhorses, his bench
+	place(_boat_on_stocks(), r + Vector2(11.0, 7.5), face_yaw(Vector2(1, 0)), 4.6)
+	var tmb := MeshBuilder.new()
+	var timber := PSXMat.lit("planks", Color(0.95, 0.85, 0.7))
+	var bark := PSXMat.lit("bark")
+	for sx in [-1.2, 1.2]:
+		tmb.add_box(bark, Transform3D(Basis(), Vector3(sx, 0.35, 0)), Vector3(0.15, 0.7, 1.0), 1.0)
+	for i in range(5):
+		tmb.add_box(timber, Transform3D(Basis(Vector3.UP, 0.04 * i), Vector3(0, 0.76 + i * 0.1, -0.3 + (i % 3) * 0.18)), Vector3(3.4, 0.09, 0.26), 1.0)
+	place(tmb.to_instance("Timber"), r + Vector2(12.0, 12.6), 0.0, 1.9)
+	var saw := MeshBuilder.new()
+	for sx in [-0.8, 0.8]:
+		for sz in [-1.0, 1.0]:
+			Buildings.beam_between(saw, bark, Vector3(sx, 0.0, sz * 0.3), Vector3(sx, 0.7, 0.0), 0.07)
+		saw.add_box(bark, Transform3D(Basis(), Vector3(sx, 0.72, 0)), Vector3(0.12, 0.1, 0.8), 1.0)
+	saw.add_box(timber, Transform3D(Basis(Vector3.UP, 0.1), Vector3(0, 0.82, 0)), Vector3(2.6, 0.07, 0.3), 1.0, Color.WHITE, false)
+	place(saw.to_instance("Sawhorses"), r + Vector2(6.8, 11.4), 0.2, 1.4)
+	var bench := MeshBuilder.new()
+	bench.add_box(timber, Transform3D(Basis(), Vector3(0, 0.85, 0)), Vector3(1.8, 0.1, 0.7), 1.0, Color.WHITE, false)
+	for sx in [-0.8, 0.8]:
+		for sz in [-0.28, 0.28]:
+			bench.add_box(bark, Transform3D(Basis(), Vector3(sx, 0.42, sz)), Vector3(0.1, 0.85, 0.1), 1.0)
+	var iron := PSXMat.lit("metal", Color(0.4, 0.4, 0.42))
+	bench.add_box(iron, Transform3D(Basis(Vector3.UP, 0.3), Vector3(-0.4, 0.92, 0.05)), Vector3(0.55, 0.02, 0.14), 1.0)
+	bench.add_box(bark, Transform3D(Basis(Vector3.UP, 0.3), Vector3(-0.12, 0.93, 0.13)), Vector3(0.14, 0.05, 0.06), 1.0)
+	bench.add_box(bark, Transform3D(Basis(Vector3.UP, -0.5), Vector3(0.45, 0.93, -0.1)), Vector3(0.08, 0.05, 0.35), 1.0)
+	bench.add_box(iron, Transform3D(Basis(Vector3.UP, -0.5), Vector3(0.52, 0.95, -0.25)), Vector3(0.16, 0.07, 0.07), 1.0)
+	place(bench.to_instance("Workbench"), r + Vector2(17.4, 6.5), face_yaw(Vector2(-1, 0)), 1.2)
+	tackett_at = r + Vector2(5.6, 5.0)
+	# Pell's corner: his bench at the quay edge, nets, the upturned boat, the loft
+	pell_at = r + Vector2(-12.5, 1.8)
+	place(Props.bench(), pell_at, 0.0, 1.0)
+	place(Props.net_pile(), pell_at + Vector2(1.6, 0.6), 0.0)
+	place(Props.net_pile(), pell_at + Vector2(-1.4, 1.0), 1.1)
+	place(Props.upturned_boat(), r + Vector2(-17.0, 6.0), 0.3, 2.0)
+	place(Props.fish_rack(), r + Vector2(-9.5, 7.0), face_yaw(Vector2(1, 0)), 1.5)
+	_house({"w": 5.0, "d": 4.0, "h": 2.4, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4,
+		"flowers": false, "name": "NetLoft"}, r + Vector2(-23.0, 10.5), Vector2(0, -1))
+	for k in range(5):
+		var fp := r + Vector2(-20.5 + k * 0.5, 7.9)
+		var mb := MeshBuilder.new()
+		mb.add_blob(PSXMat.flat(Color(0.9, 0.55, 0.2) if k % 2 == 0 else Color(0.85, 0.85, 0.8)), Transform3D(), Vector3.ONE * 0.12, rng, 0.1, 2, 5)
+		place(mb.to_instance("Float"), fp, 0.0, 0.0, 0.1)
+
+
+## Odile's booth: a counter under a canvas awning, the harbour ledger and a
+## slate of ships in port. Front +Z; "Keeper" stands behind the counter.
+func _harbour_booth() -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.name = "HarbourBooth"
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks")
+	var dark := PSXMat.lit("planks_dark")
+	mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.55, 0.35)), Vector3(2.2, 1.1, 0.55), 1.0, Color.WHITE, true)
+	mb.add_box(dark, Transform3D(Basis(), Vector3(0, 1.13, 0.38)), Vector3(2.4, 0.07, 0.75), 1.0, Color.WHITE, false)
+	for x in [-1.15, 1.15]:
+		for z in [-1.0, 0.65]:
+			mb.add_box(dark, Transform3D(Basis(), Vector3(x, 1.2, z)), Vector3(0.1, 2.4, 0.1), 1.0)
+	var canvas := PSXMat.lit("cloth_blue", Color.WHITE, {"affine": 0.6})
+	mb.add_quad(canvas, Vector3(-1.35, 2.55, -1.15), Vector3(1.35, 2.55, -1.15), Vector3(1.35, 2.25, 0.95), Vector3(-1.35, 2.25, 0.95), Vector2.ZERO, Vector2(1.4, 0), Vector2(1.4, 1), Vector2(0, 1), Color.WHITE, Vector3(0, 1, 0.15).normalized())
+	mb.add_quad(canvas, Vector3(-1.35, 2.55, -1.15), Vector3(-1.35, 2.25, 0.95), Vector3(1.35, 2.25, 0.95), Vector3(1.35, 2.55, -1.15), Vector2.ZERO, Vector2(0, 1), Vector2(1.4, 1), Vector2(1.4, 0), Color(0.6, 0.6, 0.6), Vector3(0, -1, -0.15).normalized())
+	# the ledger, an inkpot, the slate of ships behind
+	mb.add_box(PSXMat.lit("leather", Color(0.45, 0.22, 0.15)), Transform3D(Basis(Vector3.UP, 0.2), Vector3(-0.3, 1.19, 0.4)), Vector3(0.5, 0.06, 0.36), 1.0)
+	mb.add_box(PSXMat.flat(Color(0.9, 0.86, 0.72)), Transform3D(Basis(Vector3.UP, 0.2), Vector3(-0.3, 1.225, 0.4)), Vector3(0.44, 0.015, 0.3), 1.0)
+	mb.add_cylinder(PSXMat.flat(Color(0.1, 0.1, 0.12)), Transform3D(Basis(), Vector3(0.35, 1.165, 0.45)), 0.06, 0.05, 0.1, 6, 1.0)
+	mb.add_box(dark, Transform3D(Basis(), Vector3(0, 1.75, -1.02)), Vector3(1.7, 1.0, 0.06), 1.0)
+	mb.add_box(PSXMat.flat(Color(0.14, 0.16, 0.15)), Transform3D(Basis(), Vector3(0, 1.75, -0.98)), Vector3(1.5, 0.85, 0.02), 1.0)
+	var chalk := PSXMat.flat(Color(0.88, 0.88, 0.84))
+	for k in range(5):
+		mb.add_box(chalk, Transform3D(Basis(), Vector3(-0.2 + (k % 2) * 0.1, 2.05 - k * 0.15, -0.965)), Vector3(0.9 - (k % 3) * 0.2, 0.03, 0.01), 1.0)
+	Buildings.wall_lantern(mb, Vector3(1.15, 1.9, 0.65), dark)
+	body.add_child(mb.to_instance())
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2.4, 1.15, 0.8)
+	cs.shape = box
+	cs.position = Vector3(0, 0.58, 0.35)
+	body.add_child(cs)
+	var m := Marker3D.new()
+	m.name = "Keeper"
+	m.position = Vector3(0, 0, -0.4)
+	body.add_child(m)
+	return body
+
+
+## A boat being built on the stocks (bow -Z): keel on blocks, stem and
+## sternpost, the frames up, the lower strakes planked, shores holding her.
+func _boat_on_stocks() -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.name = "BoatOnStocks"
+	var mb := MeshBuilder.new()
+	var oak := PSXMat.lit("planks", Color(0.98, 0.88, 0.72))
+	var dark := PSXMat.lit("planks_dark")
+	var keel_y := 0.95
+	var top_y := 2.35
+	var half := 4.2
+	var hw := func(z: float) -> float: return 1.35 * sqrt(maxf(1.0 - pow(z / (half + 0.5), 2.0), 0.05))
+	var frame := func(z: float, t: float) -> Vector3:
+		var w: float = hw.call(z)
+		var a := Vector3(-w, top_y, z)
+		var c := Vector3(0, keel_y * 2.0 - top_y, z)
+		var b := Vector3(w, top_y, z)
+		return a * (1.0 - t) * (1.0 - t) + c * 2.0 * (1.0 - t) * t + b * t * t
+	mb.add_box(dark, Transform3D(Basis(), Vector3(0, keel_y - 0.1, 0)), Vector3(0.2, 0.25, half * 2.0 + 0.3), 1.0, Color.WHITE, false)
+	mb.add_tube(dark, MeshBuilder.curve_points(Vector3(0, keel_y, -half), Vector3(0, keel_y + 0.4, -half - 0.9), Vector3(0, top_y + 0.35, -half - 0.6), 6), 0.11, -1.0, 5)
+	mb.add_tube(dark, PackedVector3Array([Vector3(0, keel_y, half), Vector3(0, top_y + 0.2, half + 0.35)]), 0.11, -1.0, 5)
+	var zs: Array = []
+	var z := -half + 0.6
+	while z < half - 0.4:
+		zs.append(z)
+		var pts := PackedVector3Array()
+		for k in range(9):
+			pts.append(frame.call(z, k / 8.0))
+		mb.add_tube(oak, pts, 0.06, -1.0, 4)
+		z += 0.75
+	# the lower strakes are on: planks between the frames either side
+	for t in [0.3, 0.36, 0.42, 0.58, 0.64, 0.7]:
+		for i in range(zs.size() - 1):
+			Buildings.beam_between(mb, oak, frame.call(zs[i], t), frame.call(zs[i + 1], t), 0.04, 0.2)
+	# gunwale lath along the frame heads
+	for t in [0.0, 1.0]:
+		for i in range(zs.size() - 1):
+			Buildings.beam_between(mb, oak, frame.call(zs[i], t), frame.call(zs[i + 1], t), 0.07)
+	# keel blocks and shores
+	for bz in [-3.0, 0.0, 3.0]:
+		mb.add_box(dark, Transform3D(Basis(), Vector3(0, (keel_y - 0.22) * 0.5, bz)), Vector3(0.6, keel_y - 0.22, 0.5), 1.0)
+	for sz in [-2.0, 1.6]:
+		for s in [-1.0, 1.0]:
+			Buildings.beam_between(mb, dark, Vector3(s * 2.3, 0.0, sz), Vector3(s * float(hw.call(sz)) * 0.9, 1.75, sz), 0.1)
+	body.add_child(mb.to_instance())
+	var cs := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(3.0, top_y, half * 2.0 + 1.0)
+	cs.shape = box
+	cs.position = Vector3(0, top_y * 0.5, 0)
+	body.add_child(cs)
+	return body
 
 
 ## The quay: a paved platform on a stone sea wall with coping, bollards and
@@ -1038,6 +1232,8 @@ func _dress_quay(rng: RandomNumberGenerator) -> void:
 		if lx < port_x0 + 2.0 or lx > port_x1 - 2.0:
 			continue
 		var lq := _quay_pt(lx, QUAY_W - 0.8)
+		if _excluded(lq, 0.5):
+			continue
 		var post := place(Props.lantern_post(), lq, face_yaw(Vector2(0, -1)) - PI * 0.5, 0.4)
 		var nl := NightLight.make(Color(1.0, 0.75, 0.42), 1.6, 10.0)
 		nl.position = Vector3(0.55, 2.0, 0.0)
@@ -1048,10 +1244,11 @@ func _dress_quay(rng: RandomNumberGenerator) -> void:
 		if not _excluded(sp, 1.5):
 			place(Buildings.stall(st[0]), sp, face_yaw(Vector2(0, -1)), 1.8)
 	# dockhands walking the quay
-	var a := _quay_pt(maxf(port_x0 + 4.0, -30.0), 4.0)
-	var b := _quay_pt(-6.0, 4.0)
-	var c := _quay_pt(minf(port_x1 - 6.0, 38.0), 4.5)
-	var d := _quay_pt(22.0, 4.5)
+	# (along the back of the quay, clear of the booth, the yard and the crane)
+	var a := _quay_pt(maxf(port_x0 + 4.0, -30.0), 14.0)
+	var b := _quay_pt(-11.0, 14.0)
+	var c := _quay_pt(minf(port_x1 - 6.0, 38.0), 13.5)
+	var d := _quay_pt(22.0, 13.5)
 	for spec in [[[a, b], "Dockhand Rook", ["Mind your feet, Captain. Rope everywhere, and half of it's attached to something.",
 			"That junk's out of the far east. Smells of tea and gunpowder.", "Odile's got us hauling cargo since dawn. I've forgotten what my hands are for."], 0.85],
 			[[c, d], "Merchant Ysolde", ["Silk, spice, and nothing the harbourmaster needs to see. Kidding. Mostly.",
@@ -1135,9 +1332,6 @@ func _dress_village() -> void:
 	_laundry(Vector2(33.0, -45.0), Vector2(37.0, -40.0), rng)
 	_laundry(Vector2(-34.5, -20.0), Vector2(-38.5, -25.0), rng)
 	_garden(Vector2(-25.0, -33.0), 5.0, 4.0, face_yaw(Vector2(1, -0.5)), rng)
-	# the harbour: crates and nets along the foot of the dock, a cart
-	place(Props.net_pile(), dock_shore + Vector2(9.5, 1.0), 0.4)
-	place(Props.crate(0.7), dock_shore + Vector2(-3.0, 7.0), 0.6, 0.0)
 	place(_handcart(), VILLAGE + Vector2(6.5, -30.0), face_yaw(Vector2(0.3, -1)), 1.4)
 
 
@@ -1428,10 +1622,6 @@ func _build_beach_camp() -> void:
 	var tent_p := CAMP + Vector2(-3.8, -2.2)
 	place(_tent(), tent_p, face_yaw(CAMP - tent_p), 2.0)
 	place(_log(), CAMP + Vector2(0, 2.2), 0.2)
-	# the old sailor's beach spot near the dock
-	var pell_spot := dock_shore + Vector2(-13, 3)
-	place(Props.upturned_boat(), pell_spot + Vector2(-2.5, 0), 0.3, 2.0)
-	place(Props.net_pile(), pell_spot + Vector2(1.2, 1.5), 0.0)
 
 
 ## Canvas A-frame tent (opening toward +Z) with a collider.
@@ -2106,8 +2296,7 @@ func _npc(cfg: Dictionary, p: Vector2, face: Vector2, y: float = INF) -> NPC:
 
 
 func _spawn_npcs() -> void:
-	# Harbormaster at the foot of the dock
-	var odile_p := dock_shore + Vector2(3.2, 2.5)
+	# Harbormaster at her booth by the pier
 	_npc({
 		"name": "Harbormaster Odile", "dialogue": "odile", "voice": 1.15,
 		"look": {"body": "fem", "build": "average", "height": 1.02, "skin": CharacterLook.SKIN_TONES[4],
@@ -2117,9 +2306,9 @@ func _spawn_npcs() -> void:
 			"trim_color": CharacterLook.TRIM[0], "legs": "trousers", "legs_color": CharacterLook.CLOTH[6],
 			"feet": "tall_boots", "feet_color": CharacterLook.LEATHER[0], "belt": "belt", "belt_color": CharacterLook.LEATHER[1],
 			"pouch": true},
-	}, odile_p, -dock_dir)
+	}, odile_at, odile_face)
 
-	# the shipwright at his timber stack (talk: his yard, GameMenu "yard")
+	# the shipwright by the boat he's building (talk: his yard, GameMenu "yard")
 	_npc({
 		"name": "Shipwright Tackett", "dialogue": "tackett", "voice": 0.78,
 		"look": {"body": "masc", "build": "broad", "height": 1.0, "skin": CharacterLook.SKIN_TONES[2],
@@ -2128,7 +2317,7 @@ func _spawn_npcs() -> void:
 			"top": "shirt", "top_color": CharacterLook.CLOTH[2], "sleeves": "short", "apron": true, "apron_color": CharacterLook.LEATHER[1],
 			"legs": "trousers", "legs_color": CharacterLook.CLOTH[6], "feet": "boots", "feet_color": CharacterLook.LEATHER[0],
 			"belt": "belt", "belt_color": CharacterLook.LEATHER[2]},
-	}, dock_shore + Vector2(-5.0, 3.6), -dock_dir)
+	}, tackett_at, Vector2(-1, 0.25))
 
 	# Tavern keeper behind his bar, inside
 	var gus_p := _marker_point(_tavern, "Barkeep")
@@ -2142,16 +2331,16 @@ func _spawn_npcs() -> void:
 			"belt": "belt", "belt_color": CharacterLook.LEATHER[2]},
 	}, gus_p, _marker_face(_tavern, "Barkeep"), _marker_y(_tavern, "Barkeep"))
 
-	# Old net-mender on the beach
+	# the old net-mender on his bench at the quay's edge, looking out to sea
 	_npc({
-		"name": "Old Pell", "dialogue": "pell", "voice": 0.82,
+		"name": "Old Pell", "dialogue": "pell", "voice": 0.82, "seated": true,
 		"look": {"body": "masc", "build": "slim", "height": 0.96, "skin": CharacterLook.SKIN_TONES[3],
 			"head": "long", "nose": "hooked", "eyes": 3, "brows": 4, "mouth": 0, "marks": "age_lines",
 			"hair": "crop", "hair_color": CharacterLook.HAIR_COLORS[8], "facial_hair": "long_beard", "hat": "straw",
 			"hat_color": CharacterLook.CLOTH[13], "top": "tunic", "top_color": CharacterLook.CLOTH[10], "sleeves": "short",
 			"legs": "breeches", "legs_color": CharacterLook.CLOTH[2], "feet": "barefoot", "belt": "sash",
 			"sash_color": CharacterLook.CLOTH[1], "scarf": true, "scarf_color": CharacterLook.CLOTH[13]},
-	}, dock_shore + Vector2(-11.5, 4.5), dock_dir)
+	}, pell_at, dock_dir, QUAY_Y)
 
 	# Retired marine in the training yard
 	_npc({
@@ -2312,7 +2501,7 @@ func _spawn_npcs() -> void:
 	}, Vector2(ring[0].x, ring[0].z), Vector2(0, 1))
 
 	var fish_route: Array = []
-	for q in [dock_shore + Vector2(4, 3), dock_shore + Vector2(8, 4.5), VILLAGE + Vector2(8, -26), VILLAGE + Vector2(3, -14)]:
+	for q in [dock_shore + Vector2(-8.0, 9.0), dock_shore + Vector2(3.0, 12.0), VILLAGE + Vector2(8, -26), VILLAGE + Vector2(3, -14)]:
 		fish_route.append(Vector3(q.x, hv(q), q.y))
 	_npc({
 		"name": "Bram", "voice": 0.95,
