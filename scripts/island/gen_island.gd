@@ -68,6 +68,9 @@ var _path_bounds: Array = []
 var _path_widths: Array = []
 ## prepare's results for finish
 var _arrays: Array = []
+## The terrain's triangles for its colliders, a GROUND x GROUND grid of them (worked out in prepare).
+var _faces: Array = []
+const GROUND := 4
 var _shoal_img: Image
 ## [mesh, kind, cell x, cell z] -> [Transform3D]
 var _buckets := {}
@@ -100,7 +103,7 @@ func prepare(n: Dictionary) -> void:
 	_setup_shape()
 	_plan_sites()
 	_generate_heights()
-	build_ms["terrain"] = _lap(t0)
+	build_ms["land"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
 	_define_paths()
 	_terrain_arrays()
@@ -129,8 +132,10 @@ func finish_steps() -> Array:
 	island_name = str(node["name"])
 	island_type = theme
 	is_generated = true
-	var steps: Array = [
-		["terrain", _terrain_node],
+	var steps: Array = [["terrain", _terrain_node]]
+	for i in range(GROUND * GROUND):
+		steps.append(["ground", _terrain_collider.bind(i)])
+	steps += [
 		["dock", func(): _build_dock(); _add_arrival_zone()],
 		["plants", _vegetation_meshes],
 		["colliders", _vegetation_colliders],
@@ -139,10 +144,13 @@ func finish_steps() -> Array:
 	return steps
 
 
-func run_step(s: Array) -> void:
+## Runs one of finish_steps; its ms (steps of the same name add up in build_ms).
+func run_step(s: Array) -> int:
 	var t0 := Time.get_ticks_usec()
 	(s[1] as Callable).call()
-	build_ms[s[0]] = _lap(t0)
+	var ms := _lap(t0)
+	build_ms[s[0]] = int(build_ms.get(s[0], 0)) + ms
+	return ms
 
 
 func _lap(t0: int) -> int:
@@ -473,6 +481,16 @@ func _terrain_arrays() -> void:
 			idx[k] = tl; idx[k + 1] = tl + 1; idx[k + 2] = bl
 			idx[k + 3] = tl + 1; idx[k + 4] = bl + 1; idx[k + 5] = bl
 			k += 6
+	_faces = []
+	for gz in range(GROUND):
+		for gx in range(GROUND):
+			var f := PackedVector3Array()
+			for iz in range(gz * res / GROUND, (gz + 1) * res / GROUND):
+				for ix in range(gx * res / GROUND, (gx + 1) * res / GROUND):
+					var q := (iz * res + ix) * 6
+					for j in range(6):
+						f.append(verts[idx[q + j]])
+			_faces.append(f)
 	_arrays.resize(Mesh.ARRAY_MAX)
 	_arrays[Mesh.ARRAY_VERTEX] = verts
 	_arrays[Mesh.ARRAY_NORMAL] = norms
@@ -491,9 +509,21 @@ func _terrain_node() -> void:
 	mi.name = "MeshInstance3D"
 	mi.mesh = mesh
 	body.add_child(mi)
+	add_child(body)
+
+
+## One square of the ground's collider, a body each (a frame each: the physics
+## engine builds a mesh shape as it joins, ~150 ms for the whole island at once).
+func _terrain_collider(i: int) -> void:
+	var body := StaticBody3D.new()
+	body.name = "Ground%d" % i
+	body.collision_layer = 1
+	var shape := ConcavePolygonShape3D.new()
+	shape.set_faces(_faces[i])
+	_faces[i] = PackedVector3Array()
 	var cs := CollisionShape3D.new()
 	cs.name = "CollisionShape3D"
-	cs.shape = mesh.create_trimesh_shape()
+	cs.shape = shape
 	body.add_child(cs)
 	add_child(body)
 

@@ -25,8 +25,10 @@ var _chain: Chain
 var chain_islands := {}
 ## ...and those still being worked out on a worker thread: node id -> [GenIsland, task, started usec]
 var _pending := {}
-## ...and those being put in the world a step a frame: node id -> [GenIsland, steps, next step, started usec, main-thread usec]
+## ...and those being put in the world a step a frame: node id -> [GenIsland, steps, next step, started usec, main-thread usec, worst step ms]
 var _finishing := {}
+## Guest: islands built here that still need the host's waves and kills (once their crews are manned).
+var _catch_up: Array = []
 var _sync_t := 0.0
 ## The chain seed the islands standing now were built from.
 var _built_seed := 0
@@ -41,6 +43,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_finish_ready()
 	_finish_step()
+	_send_catch_up()
 	_sync_t -= delta
 	if _sync_t <= 0.0:
 		_sync_t = 0.5
@@ -83,13 +86,28 @@ func sync_chain_islands() -> void:
 
 ## Every island wanted is built and its crews have turned up (tests, co-op).
 func chain_ready() -> bool:
-	if not _pending.is_empty() or not _finishing.is_empty() or chain_islands.size() < _wanted().size():
+	if not _pending.is_empty() or not _finishing.is_empty() or not _catch_up.is_empty() or chain_islands.size() < _wanted().size():
 		return false
 	for isl in chain_islands.values():
-		for camp in (isl as Node).find_children("*", "GruntCamp", true, false):
-			if not (camp as GruntCamp)._warming.is_empty():
-				return false
+		if not _manned(isl):
+			return false
 	return true
+
+
+func _manned(isl: Node) -> bool:
+	for camp in isl.find_children("*", "GruntCamp", true, false):
+		if not (camp as GruntCamp)._warming.is_empty():
+			return false
+	return true
+
+
+func _send_catch_up() -> void:
+	for isl in _catch_up.duplicate():
+		if not is_instance_valid(isl):
+			_catch_up.erase(isl)
+		elif _manned(isl):
+			_catch_up.erase(isl)
+			Net.isle_catch_up(isl)
 
 
 ## The island we're at, and (once the log pose has set) the ones it points to.
@@ -137,7 +155,7 @@ func _finish_ready() -> void:
 		if _wanted().has(id):
 			var isl: GenIsland = e[0]
 			add_child(isl)
-			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0]
+			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0, 0]
 		else:
 			(e[0] as Node).free()
 
@@ -150,15 +168,15 @@ func _finish_step() -> void:
 	var e: Array = _finishing[id]
 	var isl: GenIsland = e[0]
 	var t := Time.get_ticks_usec()
-	isl.run_step(e[1][e[2]])
+	e[5] = maxi(int(e[5]), isl.run_step(e[1][e[2]]))
 	e[4] = int(e[4]) + Time.get_ticks_usec() - t
 	e[2] = int(e[2]) + 1
 	if int(e[2]) >= (e[1] as Array).size():
 		_finishing.erase(id)
-		_register_chain_island(isl, int(e[3]), int(e[4]), (e[1] as Array).size())
+		_register_chain_island(isl, int(e[3]), int(e[4]), (e[1] as Array).size(), int(e[5]))
 
 
-func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int) -> void:
+func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int, worst_ms: int) -> void:
 	var n := isl.node
 	var p: Vector2 = n["pos"]
 	var t1 := Time.get_ticks_usec()
@@ -173,15 +191,10 @@ func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int) 
 	for bag in isl.find_children("*", "LootBag", true, false):
 		if (bag as LootBag).save_id != "" and gm.opened.has((bag as LootBag).save_id):
 			bag.queue_free()
+	if Net.is_client():
+		_catch_up.append(isl)
 	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms; on the main thread %d ms over %d frames, the most %d ms %s" % [n["name"], n["theme"], isl.radius, isl.res,
-		(Time.get_ticks_usec() - t0) / 1000, (main_us + Time.get_ticks_usec() - t1) / 1000, frames, _worst_step(isl), isl.build_ms])
-
-
-func _worst_step(isl: GenIsland) -> int:
-	var worst := 0
-	for k in ["terrain", "dock", "plants", "colliders", "camp", "lair", "ruins", "summit", "boss", "village"]:
-		worst = maxi(worst, int(isl.build_ms.get(k, 0)))
-	return worst
+		(Time.get_ticks_usec() - t0) / 1000, (main_us + Time.get_ticks_usec() - t1) / 1000, frames, worst_ms, isl.build_ms])
 
 
 func _free_chain_island(id: int) -> void:

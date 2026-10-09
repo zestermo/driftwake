@@ -53,7 +53,7 @@ the **log pose**. Past that, every new game generates a chain of islands from it
 2. Chain graph and save: seas, nodes, forks, levels, roles. **Done.**
 3. Log pose: the item, compass needles, the set rule (time or boss), the fork pick with theme and danger, and co-op sync.
 4. Generic island builder plus ThemeDef, ported from StarterIsland's terrain, splat, paths and vegetation code. Jungle theme first. **Done (GenIsland, IslandTheme; built on a worker thread).**
-5. Streaming: build ahead, free behind, shallows, navmesh, no-go areas and the origin shift.
+5. Streaming: build ahead, free behind, shallows, navmesh, no-go areas and the origin shift. **Done (built a step a frame; freed behind on arriving; no origin shift: the chain keeps within 7.5 km of Brinehollow; a guest catches up on an island's waves and kills).**
 6. Jungle island content: **Done (6a sites, 6b village, 6c the silverback, 6d the log pose's set rule + arriving + the fork pick by sailing).**
    - Layout planner: dock, village, 2-3 encounter sites, POIs, boss arena, paths between them.
    - Village: themed huts, trader, inn, quest giver.

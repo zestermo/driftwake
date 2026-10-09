@@ -27,7 +27,7 @@ signal roster_changed
 
 const DEFAULT_PORT := 24680
 const MAX_CLIENTS := 3
-const PROTOCOL := 3
+const PROTOCOL := 4
 const SNAP_RATE := 20.0
 ## Puppets are shown this far in the past (seconds), between two snapshots.
 const INTERP := 0.1
@@ -1766,6 +1766,47 @@ func _spawner_gen(key: String, gen) -> void:
 	var s := node_of(key)
 	if s and s.has_method("net_set_gen"):
 		s.net_set_gen(gen)
+
+
+## Client: a chain island just stood up here (its crews manned). The host's waves
+## and kills there went by while we had nothing to apply them to; ask for them.
+func isle_catch_up(isl: Node) -> void:
+	if is_client():
+		_isle_state_req.rpc_id(1, key_of(isl))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _isle_state_req(key: String) -> void:
+	var isl := node_of(key)
+	# (not built on the host yet: nothing has happened there, and its waves will come as events)
+	if not hosting or isl == null:
+		return
+	var spawners := {}
+	for s in get_tree().get_nodes_in_group("net_spawner"):
+		if isl.is_ancestor_of(s):
+			spawners[key_of(s)] = s.net_gen()
+	var ents: Array = []
+	for n in get_tree().get_nodes_in_group("net_sync"):
+		if isl.is_ancestor_of(n):
+			ents.append(key_of(n))
+	_isle_state.rpc_id(multiplayer.get_remote_sender_id(), key, spawners, ents)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _isle_state(key: String, spawners: Dictionary, ents: Array) -> void:
+	var isl := node_of(key)
+	if isl == null:
+		return
+	for k in spawners.keys():
+		var s := node_of(str(k))
+		if s and s.has_method("net_set_gen"):
+			s.net_set_gen(spawners[k])
+	var alive := {}
+	for k in ents:
+		alive[str(k)] = true
+	for n in get_tree().get_nodes_in_group("net_sync"):
+		if isl.is_ancestor_of(n) and not alive.has(key_of(n)):
+			(n as Node).queue_free()
 
 
 # ==========================================================================

@@ -90,12 +90,14 @@ func _process(d: float) -> bool:
 			check("the first island lies well past Redtide (%.0f m out)" % first.distance_to(world.starter_center), first.distance_to(world.starter_center) > 1700.0)
 			var far := 0.0
 			var close := INF
-			for a in c.nodes:
-				far = maxf(far, (a["pos"] as Vector2).distance_to(world.starter_center))
-				for b in c.nodes:
-					if a != b and absi(int(a["layer"]) - int(b["layer"])) <= 1:
-						close = minf(close, (a["pos"] as Vector2).distance_to(b["pos"]))
-			check("the line wanders round, never more than 8.5 km from Brinehollow (%.0f m)" % far, far < 8500.0)
+			for s in range(300):
+				var cs = c if s == 0 else CH.make(c.seed_value + s * 7919, world.starter_center, Vector2(0, -1))
+				for a in cs.nodes:
+					far = maxf(far, (a["pos"] as Vector2).distance_to(world.starter_center))
+					for b in cs.nodes:
+						if a["id"] != b["id"] and absi(int(a["layer"]) - int(b["layer"])) <= 1:
+							close = minf(close, (a["pos"] as Vector2).distance_to(b["pos"]))
+			check("over 300 chains the line wanders round, never more than 8.5 km from Brinehollow (%.0f m)" % far, far < 8500.0)
 			check("...islands a layer apart (and a fork's two) stay over 1 km apart (%.0f m)" % close, close > 1000.0)
 			var again = CH.make(c.seed_value, world.starter_center, Vector2(0, -1))
 			var c2 = world.chain()

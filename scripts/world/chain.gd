@@ -24,6 +24,8 @@ const BEND := 0.22
 ## inside the ring, wandering round it instead of heading off (the islands
 ## behind are gone anyway, and 7.5 km out floats are still about 1 mm fine).
 const RING := [2000.0, 7500.0]
+## A layer's islands keep this far from the layer before's (m).
+const APART := 1150.0
 
 const THEMES := {
 	"jungle": {"name": "Jungle", "blurb": "a steaming jungle isle",
@@ -75,9 +77,6 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 	for layer in range(1, SEA_LAYERS + 1):
 		var leg := rng.randf_range(FIRST_LEG[0], FIRST_LEG[1]) if layer == 1 else rng.randf_range(LEG[0], LEG[1])
 		dir = dir.rotated(rng.randf_range(-BEND, BEND))
-		if layer > 1:
-			dir = _keep_in_ring(at - origin, dir, leg)
-		at += dir * leg
 		var role := "regular"
 		if layer in CITY_LAYERS:
 			role = "city"
@@ -88,15 +87,20 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 		if pair_start:
 			forked = role == "regular" and rng.randf() < FORK_CHANCE
 		var two := forked and role == "regular"
+		var offs: Array = []
+		for b in range(2 if two else 1):
+			if two:
+				offs.append(rng.randf_range(FORK_SPREAD[0], FORK_SPREAD[1]) * (-1.0 if b == 0 else 1.0))
+			else:
+				offs.append(rng.randf_range(-WOBBLE, WOBBLE))
+		if layer > 1:
+			dir = _steer(at, origin, dir, leg, offs, prev.map(func(pid): return nodes[pid]["pos"]))
+		at += dir * leg
 		var side := Vector2(-dir.y, dir.x)
 		var ids: Array = []
 		var used: Array = []
-		for b in range(2 if two else 1):
-			var off := 0.0
-			if two:
-				off = rng.randf_range(FORK_SPREAD[0], FORK_SPREAD[1]) * (-1.0 if b == 0 else 1.0)
-			else:
-				off = rng.randf_range(-WOBBLE, WOBBLE)
+		for b in range(offs.size()):
+			var off: float = offs[b]
 			var theme := _pick_theme(rng, [prev_theme.get(b, ""), prev_theme.get(0, "")] + used)
 			used.append(theme)
 			var n := {
@@ -124,19 +128,29 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 		prev = ids
 
 
-## `dir` turned (a little at a time, whichever way helps) until a leg from `rel`
-## (from Brinehollow) ends inside RING.
-static func _keep_in_ring(rel: Vector2, dir: Vector2, leg: float) -> Vector2:
-	var d := dir
-	for i in range(32):
-		var r := (rel + d * leg).length()
-		if r >= RING[0] and r <= RING[1]:
+## `dir` turned as little as it takes for a leg from `at` to end inside RING with
+## the layer's islands (`offs` either side) all APART from the layer before's
+## (or, if no turn manages both, the in-ring one that keeps them furthest).
+static func _steer(at: Vector2, origin: Vector2, dir: Vector2, leg: float, offs: Array, before: Array) -> Vector2:
+	var best := dir
+	var best_gap := -INF
+	for i in range(43):
+		var d := dir.rotated(0.15 * float((i + 1) / 2) * (1.0 if i % 2 == 1 else -1.0))
+		var p := at + d * leg
+		var r := p.distance_to(origin)
+		if r < RING[0] or r > RING[1]:
+			continue
+		var side := Vector2(-d.y, d.x)
+		var gap := INF
+		for o in offs:
+			for q in before:
+				gap = minf(gap, (p + side * float(o)).distance_to(q))
+		if gap >= APART:
 			return d
-		var ra := (rel + d.rotated(0.15) * leg).length()
-		var rb := (rel + d.rotated(-0.15) * leg).length()
-		var want_out := r < RING[0]
-		d = d.rotated(0.15 if (ra > rb) == want_out else -0.15)
-	return d
+		if gap > best_gap:
+			best_gap = gap
+			best = d
+	return best
 
 
 ## (only themes IslandTheme can build; the rest join as they're made)

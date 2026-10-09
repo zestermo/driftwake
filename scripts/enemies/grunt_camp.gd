@@ -132,6 +132,7 @@ func net_set_gen(g) -> void:
 	if int(g) == gen:
 		return
 	gen = int(g)
+	_warming = []
 	for old in grunts:
 		if is_instance_valid(old) and (old as PirateGrunt).state != PirateGrunt.S.DEAD:
 			(old as Node).queue_free()
