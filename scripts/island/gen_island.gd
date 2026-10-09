@@ -110,7 +110,7 @@ func prepare(n: Dictionary) -> void:
 	_scatter_vegetation()
 	# the villagers' bodies, ready for their NPCs (Humanoid.make picks them up)
 	t0 = Time.get_ticks_usec()
-	for lk in IslandVillage.looks(self):
+	for lk in IslandVillage.looks(self) + [JungleApe.ape_look()]:
 		var h := Humanoid.new()
 		h.setup(lk)
 		Humanoid.stock(h, lk)

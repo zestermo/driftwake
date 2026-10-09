@@ -97,7 +97,12 @@ scripts/island/starter_island.gd        qoltest foresttest grunttest yardtest lo
 scripts/island/world_generator.gd       foresttest r9test perftest chaintest seatest
 scripts/island/redtide_fort.gd          r8test perftest
 scripts/world/chain.gd                  chaintest isletest
-scripts/island/gen_island.gd            isletest
+scripts/island/gen_island.gd            isletest apetest
+scripts/island/island_content.gd        isletest apetest
+scripts/island/island_village.gd        isletest
+scripts/island/beast_arena.gd           apetest
+scripts/enemies/jungle_ape.gd           apetest net
+scripts/npc/ape_poses.gd                apetest
 scripts/island/island_theme.gd          isletest chaintest
 scripts/npc/log_pose.gd                 chaintest
 scripts/ui/log_pose_icon.gd             chaintest

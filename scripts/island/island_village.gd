@@ -150,6 +150,10 @@ func _build(rng: RandomNumberGenerator) -> void:
 	jobs["lair"] = {"title": "Clear the bug lair", "gold": 30 + t * 15,
 		"line": "The burrows inland have spilled into the gardens. Clear every bug from the lair and see %s." % elder_name,
 		"check": func() -> bool: return burrows.alive_count() == 0}
+	var arena = isl.get_node("Site_boss/Arena")
+	jobs["beast"] = {"title": "Slay the beast", "gold": 80 + t * 35,
+		"line": "Something huge has torn up the far side of the island. It took two of our hunters. Kill it, and %s will see you paid in full." % elder_name,
+		"check": func() -> bool: return Dialogue.has_flag(arena._beaten_flag())}
 	_define_board()
 	_define_elder(lvl)
 	Dialogue.dialogue_event.connect(_on_event)
