@@ -1,0 +1,42 @@
+name: Set up Godot
+description: Godot (Linux, headless) at ~/godot/godot and the named export templates, cached per version and template set
+inputs:
+  version:
+    description: Godot version, e.g. 4.7.2 (must match the editor exactly; the templates are tied to it)
+    required: true
+  templates:
+    description: Template files to keep from the export templates .tpz, space-separated (e.g. web_nothreads_release.zip)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Cache Godot and its templates
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/godot
+          ~/.local/share/godot/export_templates
+        key: godot-${{ inputs.version }}-${{ inputs.templates }}
+
+    - name: Install Godot and the templates
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        GODOT_VERSION: ${{ inputs.version }}
+        TEMPLATES: ${{ inputs.templates }}
+      run: |
+        set -euo pipefail
+        base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+        mkdir -p ~/godot
+        curl -fsSL -o /tmp/godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+        unzip -q /tmp/godot.zip -d ~/godot
+        mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+        # (the .tpz holds every platform's templates, ~1 GB: only the ones named are kept)
+        curl -fsSL -o /tmp/templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+        dir=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+        mkdir -p "$dir"
+        files=(templates/version.txt)
+        for t in $TEMPLATES; do files+=("templates/$t"); done
+        unzip -q -j /tmp/templates.tpz "${files[@]}" -d "$dir"
+        rm /tmp/templates.tpz
