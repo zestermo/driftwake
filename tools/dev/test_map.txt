@@ -46,10 +46,11 @@ scripts/net/humanoid_sync.gd            net
 scenes/combat/*                         grunttest feel techtest
 scripts/combat/*                        grunttest ragtest feel
 scripts/combat/ragdoll.gd               ragtest watertest r10test decktest
-scripts/enemies/pirate_grunt.gd         grunttest guntest fixtest watertest perftest balancetest
-scripts/enemies/grunt_camp.gd           grunttest perftest
+scripts/enemies/pirate_grunt.gd         grunttest guntest fixtest watertest perftest balancetest leveltest
+scripts/enemies/grunt_camp.gd           grunttest perftest leveltest
+scripts/enemies/levels.gd               leveltest isletest apetest
 scripts/enemies/pirate_boss.gd          r8test
-scripts/enemies/scuttlebug*             bugtest
+scripts/enemies/scuttlebug*             bugtest leveltest
 scripts/enemies/sea_king.gd             seatest
 scripts/enemies/*                       grunttest foresttest
 scripts/powers/*                        powertest vinetest r6test techtest
@@ -74,7 +75,7 @@ scripts/props/*                         qoltest
 scripts/ship/hull_builder.gd            shiptest seatest riggingtest r8test swimtest decktest looptest
 scripts/ship/ship.gd                    shiptest seatest riggingtest qoltest yardtest looptest decktest r8test net
 scripts/ship/ship_kit.gd                yardtest
-scripts/ship/enemy_ship.gd              seatest r8test perftest
+scripts/ship/enemy_ship.gd              seatest r8test perftest leveltest
 scripts/ship/enemy_fleet.gd             seatest perftest
 scripts/ship/cannon*                    r8test seatest
 scripts/ship/ship_rigging.gd            riggingtest
@@ -102,7 +103,7 @@ scripts/island/gen_island.gd            isletest apetest
 scripts/island/island_content.gd        isletest apetest
 scripts/island/island_village.gd        isletest
 scripts/island/beast_arena.gd           apetest
-scripts/enemies/jungle_ape.gd           apetest net
+scripts/enemies/jungle_ape.gd           apetest leveltest net
 scripts/npc/ape_poses.gd                apetest
 scripts/island/island_theme.gd          isletest chaintest
 scripts/npc/log_pose.gd                 chaintest

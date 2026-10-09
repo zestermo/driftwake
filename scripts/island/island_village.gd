@@ -245,7 +245,7 @@ func _on_event(ev: String) -> void:
 			"pay":
 				var me := get_tree().get_first_node_in_group("player") as Player
 				me.inventory_component.add_item(ItemDB.get_item("gold"), int(jobs[job]["gold"]))
-				GameManager.award_xp(60 + IslandContent.tier(isl) * 30, me.global_position)
+				GameManager.award_xp(roundi((60 + IslandContent.tier(isl) * 30) * Levels.xp_k(IslandContent.level(isl))), me.global_position)
 
 
 ## Twice a second: a deed done is remembered; a job taken and done says so.

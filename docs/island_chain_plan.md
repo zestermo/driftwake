@@ -61,7 +61,7 @@ the **log pose**. Past that, every new game generates a chain of islands from it
    - POIs: ruins with a chest, a cave, a vista.
    - A new handmade jungle boss.
 7. Sea legs: a scaled fleet zone and hazards along each leg.
-8. Level scaling: enemy HP and damage, XP and loot tier by island level.
+8. Level scaling: enemy HP and damage, XP and loot tier by island level. **Done (Levels; the island's camp, lair and beast; EnemyShip.level for the sea legs' zones to set).**
 9. Tests (chaintest: graph, save, log pose, streaming; a co-op nettest step) and a render tool (islandshot for generated islands).
 
 **Later milestones:** snow, desert and forest themes (terrain, weather, beasts, village style, bosses), city islands (first one themed), the sea-boss island, ambush and rival encounters, NPC stops and quests, crew recruits, more seas.

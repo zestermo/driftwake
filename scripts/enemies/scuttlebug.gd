@@ -26,6 +26,8 @@ const LEASH := 16.0
 var big: bool = false
 ## A respawned bug is worth half the experience.
 var xp_k: float = 1.0
+## The island's level: health, damage, XP and coins by Levels. 0: unscaled (Brinehollow).
+var level: int = 0
 var home := Vector3.ZERO
 var size_k: float = 1.0
 var max_hp: float = 30.0
@@ -253,7 +255,7 @@ func _build_physics() -> void:
 
 	health = HealthComponent.new()
 	health.name = "HealthComponent"
-	health.max_health = max_hp
+	health.max_health = _max_hp()
 	add_child(health)
 	health.died.connect(_on_died)
 
@@ -284,7 +286,7 @@ func _build_physics() -> void:
 	model.add_child(hitbox)
 	hitbox.owner = self
 	var hd := HitData.new()
-	hd.damage = 18.0 if big else 10.0
+	hd.damage = _dmg(18.0 if big else 10.0)
 	hd.knockback_force = 5.0 if big else 4.5
 	hd.stagger_duration = 0.35
 	hd.hitstop_duration = 0.07 if big else 0.05
@@ -754,8 +756,8 @@ func _on_died() -> void:
 	_dead_t = 0.0
 	Net.event(self, "die", [dir])
 	Net.fx("sfx", ["chitter", global_position, 0.0, 0.05, 0.6])
-	Net.coins(global_position + Vector3(0, 0.4, 0), _rng.randi_range(3, 5) if big else _rng.randi_range(1, 2))
-	Net.award_xp(roundi((120 if big else 25) * xp_k), global_position + Vector3(0, 1.2 * size_k, 0))
+	Net.coins(global_position + Vector3(0, 0.4, 0), roundi((_rng.randi_range(3, 5) if big else _rng.randi_range(1, 2)) * Levels.coins_k(level)))
+	Net.award_xp(roundi((120 if big else 25) * xp_k * Levels.xp_k(level)), global_position + Vector3(0, 1.2 * size_k, 0))
 	died.emit(self)
 
 
@@ -889,9 +891,18 @@ func _process(delta: float) -> void:
 # ==========================================================================
 # Co-op
 # ==========================================================================
+func _max_hp() -> float:
+	return max_hp * Levels.hp_k(level)
+
+
+## Every blow (and blob) it deals to a captain goes through here.
+func _dmg(base: float) -> float:
+	return base * Levels.dmg_k(level)
+
+
 func net_rescale(k: float) -> void:
 	var frac := health.current_health / maxf(health.max_health, 1.0)
-	health.max_health = max_hp * k
+	health.max_health = _max_hp() * k
 	if state != S.DEAD:
 		health.current_health = maxf(frac * health.max_health, 1.0)
 

@@ -103,6 +103,7 @@ func _spawn_boss() -> void:
 	var away: Vector2 = (isl.sites["village"] - isl.sites["boss"]).normalized()
 	boss.setup({"post": global_position, "yaw": atan2(-away.x, -away.y), "mode": "stand", "seed": int(isl.node["seed"]) + boss_gen})
 	boss.arena = self
+	boss.level = IslandContent.level(isl)
 	add_child(boss)
 	boss.global_position = global_position + Vector3.UP * 0.3
 	boss.reset_physics_interpolation()

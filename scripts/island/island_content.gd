@@ -32,9 +32,14 @@ static func steps(isl: GenIsland) -> Array:
 	]
 
 
+## The island's level (chain.gd): its enemies' (Levels) and its loot's.
+static func level(isl: GenIsland) -> int:
+	return int(isl.node["level"])
+
+
 ## The island's loot tier (ItemData.Rarity) by its level.
 static func tier(isl: GenIsland) -> int:
-	return clampi((int(isl.node["level"]) - 8) / 4, 1, 4)
+	return Levels.tier(level(isl))
 
 
 static func _yaw_to(from: Vector2, to: Vector2) -> float:
@@ -106,6 +111,7 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 	crew.respawn_time = 300.0
 	crew.respawn_clearance = 70.0
 	crew.warm_start = true
+	crew.level = level(isl)
 	# (posts in the site's space: the crew sits at its origin, and joins the tree once it's manned)
 	var v3 := func(q: Vector2) -> Vector3: return _local(isl, site, q)
 	var seed0 := rng.randi() % 100000
@@ -149,6 +155,7 @@ static func _lair(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 		[ItemDB.tiered(LOOT_WEAPONS[rng.randi() % LOOT_WEAPONS.size()], t), 1]], 1.0)
 	var nest := ScuttlebugNest.new()
 	nest.name = "Burrows"
+	nest.level = level(isl)
 	site.add_child(nest)
 	for i in range(7):
 		var a := TAU * i / 7.0 + rng.randf_range(-0.3, 0.3)
@@ -161,6 +168,7 @@ static func _lair(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 	var roosts := ScuttlebugNest.new()
 	roosts.name = "Roosts"
 	roosts.respawn_time = 60.0
+	roosts.level = level(isl)
 	site.add_child(roosts)
 	var taken: Array = []
 	for crown in isl.forest_crowns:

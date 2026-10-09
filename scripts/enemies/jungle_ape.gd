@@ -66,8 +66,6 @@ func _ready() -> void:
 	add_to_group("bosses")
 	humanoid.set_weapon(null)
 	humanoid.stance = "ape"
-	health.max_health = APE_HP
-	health.current_health = APE_HP
 	# a body to match (the grunt's were made for a man)
 	var cap := _col.shape as CapsuleShape3D
 	cap.radius = 0.85
@@ -81,7 +79,7 @@ func _ready() -> void:
 	(bs.shape as BoxShape3D).size = Vector3(4.6, 2.6, 3.8)
 	bs.position = Vector3(0, 1.3, -2.4)
 	_hit_swipe = HitData.new()
-	_hit_swipe.damage = 22.0
+	_hit_swipe.damage = _dmg(22.0)
 	_hit_swipe.knockback_force = 10.0
 	_hit_swipe.stagger_duration = 0.5
 	_hit_swipe.hitstop_duration = 0.1
@@ -89,8 +87,6 @@ func _ready() -> void:
 	hitbox.hit_data = _hit_swipe
 	_bark.position.y = 4.6
 	_dress()
-	if Net.hosting:
-		net_rescale(Net.hp_scale())
 
 
 ## Brow, muzzle, the silver saddle down its back.
@@ -377,6 +373,7 @@ func _end_special(recover: float) -> void:
 
 ## A shockwave: every machine checks its own captain (jump it or dodge through).
 func _aoe(center: Vector3, radius: float, dmg: float, knock: bool) -> void:
+	dmg = _dmg(dmg)
 	_aoe_local(center, radius, dmg, knock)
 	Net.event(self, "aoe", [center, radius, dmg, knock])
 
@@ -517,19 +514,21 @@ func _on_died() -> void:
 		_rock.queue_free()
 		_rock = null
 	super._on_died()
-	Net.coins(global_position + Vector3(0, 1.5, 0), 24)
-	Net.award_xp(600, global_position + Vector3(0, 3.0, 0), 70.0)
+	Net.coins(global_position + Vector3(0, 1.5, 0), _coins(24))
+	Net.award_xp(_xp(600), global_position + Vector3(0, 3.0, 0), 70.0)
 
 
 func _drop_weapon() -> void:
 	pass
 
 
-func net_rescale(k: float) -> void:
-	var frac := health.current_health / maxf(health.max_health, 1.0)
-	health.max_health = APE_HP * k
-	if state != S.DEAD:
-		health.current_health = maxf(frac * health.max_health, 1.0)
+func _max_hp() -> float:
+	return APE_HP * Levels.hp_k(level, _lv_ref())
+
+
+## Its health and blows were tuned on the first chain island (its XP and coins are Brinehollow's sort).
+func _lv_ref() -> int:
+	return 6
 
 
 ## Everyone left (or fell): back to its post, healed, asleep, from the top.

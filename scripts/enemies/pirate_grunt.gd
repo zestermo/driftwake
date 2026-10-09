@@ -82,6 +82,8 @@ const BARK_DIE := ["Ugh...", "Tell... the cap'n...", "Nngh..."]
 var camp: Node  # GruntCamp
 ## A respawned crew (or a respawned ship's) is worth half the experience.
 var xp_k: float = 1.0
+## The island's (or the sea leg's) level: health, damage, XP and coins by Levels. 0: unscaled (Brinehollow).
+var level: int = 0
 var post := Vector3.ZERO
 var post_yaw: float = 0.0
 var idle_mode: String = "stand"  # stand | sit | patrol
@@ -357,7 +359,7 @@ func _ready() -> void:
 	facing.add_child(hitbox)
 	hitbox.owner = self
 	var hd := HitData.new()
-	hd.damage = 12.0
+	hd.damage = _dmg(12.0)
 	hd.knockback_force = 4.5
 	hd.stagger_duration = 0.3
 	hd.hitstop_duration = 0.06
@@ -365,12 +367,12 @@ func _ready() -> void:
 	hitbox.hit_data = hd
 	_hit_light = hd
 	_hit_heavy = hd.duplicate() as HitData
-	_hit_heavy.damage = 16.0
+	_hit_heavy.damage = _dmg(16.0)
 	_hit_heavy.knockback_force = 6.0
 	_hit_heavy.hitstop_duration = 0.08
 	_hit_heavy.camera_shake_intensity = 0.2
 	_hit_peril = hd.duplicate() as HitData
-	_hit_peril.damage = 24.0
+	_hit_peril.damage = _dmg(24.0)
 	_hit_peril.knockback_force = 9.0
 	_hit_peril.hitstop_duration = 0.12
 	_hit_peril.camera_shake_intensity = 0.3
@@ -815,7 +817,7 @@ func _physics_process(delta: float) -> void:
 					var hb := p.get_node("Hurtbox") as Hurtbox
 					if hb.monitorable:
 						var hd := HitData.new()
-						hd.damage = 6.0
+						hd.damage = _dmg(6.0)
 						hd.knockback_force = 7.0
 						hd.knockdown = true  # the rifle butt puts you on the ground
 						hd.stagger_duration = 0.4
@@ -1403,11 +1405,11 @@ func _on_died() -> void:
 	_dead_t = 0.0
 	Net.event(self, "die", [])
 	if captain:
-		Net.coins(global_position + Vector3(0, 1.0, 0), _rng.randi_range(14, 22))
-		Net.award_xp(roundi(220 * xp_k), global_position + Vector3(0, 2.0, 0))
+		Net.coins(global_position + Vector3(0, 1.0, 0), _coins(_rng.randi_range(14, 22)))
+		Net.award_xp(_xp(220), global_position + Vector3(0, 2.0, 0))
 	else:
-		Net.coins(global_position + Vector3(0, 1.0, 0), _rng.randi_range(3, 6))
-		Net.award_xp(roundi((55 if role == "rifle" else 45) * xp_k), global_position + Vector3(0, 2.0, 0))
+		Net.coins(global_position + Vector3(0, 1.0, 0), _coins(_rng.randi_range(3, 6)))
+		Net.award_xp(_xp(55 if role == "rifle" else 45), global_position + Vector3(0, 2.0, 0))
 	_drop_weapon()
 	died.emit(self)
 
@@ -1837,7 +1839,7 @@ func _fire(p: Node3D) -> void:
 	# through); in co-op each captain checks the line on their own screen
 	var hd := HitData.new()
 	hd.ranged = true
-	hd.damage = 10.0 if _gun == "pistol" else 15.0
+	hd.damage = _dmg(10.0 if _gun == "pistol" else 15.0)
 	hd.knockback_force = 3.0 if _gun == "pistol" else 4.0
 	hd.stagger_duration = 0.3
 	hd.hitstop_duration = 0.05
@@ -1943,7 +1945,25 @@ func _set_glow(on: bool) -> void:
 
 
 func _max_hp() -> float:
-	return MAX_HP * (CAPTAIN_HP if captain else 1.0)
+	return MAX_HP * (CAPTAIN_HP if captain else 1.0) * Levels.hp_k(level, _lv_ref())
+
+
+## The level its own numbers were tuned for (the JungleApe's: the first chain island).
+func _lv_ref() -> int:
+	return Levels.REF
+
+
+## Every blow it deals to a captain goes through here.
+func _dmg(base: float) -> float:
+	return base * Levels.dmg_k(level, _lv_ref())
+
+
+func _xp(base: float) -> int:
+	return roundi(base * xp_k * Levels.xp_k(level))
+
+
+func _coins(n: int) -> int:
+	return roundi(n * Levels.coins_k(level))
 
 
 func _process(delta: float) -> void:

@@ -149,7 +149,7 @@ func _spit(p: Node3D) -> void:
 	var tgt := p.global_position + Vector3(0, 1.1, 0) + _flat((p as CharacterBody3D).velocity if p is CharacterBody3D else Vector3.ZERO) * 0.25
 	var t := clampf(from.distance_to(tgt) / 10.0, 0.45, 1.1)
 	var vel := (tgt - from) / t + Vector3(0, 0.5 * PoisonGlob.GRAVITY * t, 0)
-	Net.fx("spit", [from, vel, SPIT_DAMAGE, 1.0, 4.0, 3.0])
+	Net.fx("spit", [from, vel, _dmg(SPIT_DAMAGE), 1.0, 4.0, _dmg(3.0)])
 
 
 func _on_hit(hit: HitData, attacker: Node) -> void:

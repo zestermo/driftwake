@@ -143,6 +143,8 @@ var _volley_side: float = 1.0
 var _board_cd: float = 0.0
 ## A replacement ship (and her crew) is worth half the experience.
 var xp_k: float = 1.0
+## The sea leg's level, set before she's added (Levels: hull, guns, rewards, prize; her men too). 0: unscaled.
+var level: int = 0
 var _orbit: float = 1.0
 var _sink_t: float = 0.0
 var _chest_done: bool = false
@@ -180,8 +182,6 @@ func setup(center: Vector3, radius: float, start_angle: float, seed_value: int, 
 	look_seed = seed_value
 	kind = kind_name
 	spec = KINDS[kind]
-	max_hull = float(spec["hull"])
-	hull = max_hull
 	return self
 
 
@@ -195,6 +195,8 @@ func _ready() -> void:
 	add_to_group("decks")
 	net_puppet = Net.is_client()
 	_rng.seed = look_seed
+	max_hull = _base_hull()
+	hull = max_hull
 	collision_layer = 1
 	collision_mask = 1
 	sync_to_physics = true
@@ -215,8 +217,8 @@ func _ready() -> void:
 			c.mannable = false
 			# (a double broadside reloads for the second straight away)
 			c.reload_time = 1.2 if spec["double"] else VOLLEY_EVERY - 1.0
-			c.hull_damage = BALL_HULL
-			c.splash_damage = BALL_SPLASH
+			c.hull_damage = BALL_HULL * Levels.hull_k(level)
+			c.splash_damage = BALL_SPLASH * Levels.dmg_k(level)
 			c.position = Vector3(sgn * (HullBuilder.half_width(z) - 0.45), HullBuilder.DECK_Y, z)
 			c.rotation.y = -sgn * PI * 0.5
 			model.add_child(c)
@@ -631,7 +633,7 @@ func _ram(tgt: Node3D) -> void:
 	Net.fx("dust", [at, 16, 1.4])
 	Net.fx("splash", [Vector3(at.x, 0.3, at.z), 14, 1.4])
 	if tgt is Ship:
-		(tgt as Ship).hull_hit(RAM_DAMAGE * k * (1.4 if kind == "brig" else 1.0), at)
+		(tgt as Ship).hull_hit(RAM_DAMAGE * k * (1.4 if kind == "brig" else 1.0) * Levels.hull_k(level), at)
 	hull = maxf(hull - max_hull * 0.06, 1.0)
 	Net.everyone("_all_rammed", [Net.key_of(tgt), at, _fwd() * k])
 	speed = -3.0
@@ -644,7 +646,7 @@ func _surrender() -> void:
 	bark(["We yield! Don't shoot!", "Quarter! We strike!", "Enough! She's yours!"][_rng.randi() % 3], 3.0)
 	_set_state(S.PRIZE)
 	_empty_t = 0.0
-	Net.award_xp(roundi(90 * xp_k), global_position, 160.0)
+	Net.award_xp(_xp(90), global_position, 160.0)
 	_prize()
 	Net.event(self, "prize", [])
 
@@ -689,6 +691,7 @@ func _spawn_boarders(n: int, seed_value: int, tgt: Node3D) -> void:
 		g.boarder = true
 		g.camp = self
 		g.xp_k = xp_k
+		g.level = level
 		parent.add_child(g)
 		g.global_position = start
 		g.reset_physics_interpolation()
@@ -853,7 +856,7 @@ func _start_sink(fought: bool = true) -> void:
 	if fought:
 		bark("Abandon ship!", 3.0)
 		Net.fx("sfx", ["bell", global_position, 2.0, 0.02, 0.8])
-		Net.award_xp(roundi(100 * xp_k), global_position, 160.0)
+		Net.award_xp(_xp(100), global_position, 160.0)
 	sunk.emit(self)
 
 
@@ -1020,9 +1023,17 @@ func _process(delta: float) -> void:
 # ==========================================================================
 # Co-op
 # ==========================================================================
+func _base_hull() -> float:
+	return float(spec["hull"]) * Levels.hull_k(level)
+
+
+func _xp(base: float) -> int:
+	return roundi(base * xp_k * Levels.xp_k(level))
+
+
 func net_rescale(k: float) -> void:
 	var frac := hull / maxf(max_hull, 1.0)
-	max_hull = float(spec["hull"]) * k
+	max_hull = _base_hull() * k
 	if state != S.SINK:
 		hull = maxf(frac * max_hull, 1.0)
 
@@ -1131,6 +1142,7 @@ func _crew_to_deck() -> void:
 		g.boarder = true
 		g.camp = self
 		g.xp_k = xp_k
+		g.level = level
 		parent.add_child(g)
 		g.global_position = start
 		g.reset_physics_interpolation()
@@ -1143,7 +1155,7 @@ func _crew_to_deck() -> void:
 func _strike() -> void:
 	_set_state(S.PRIZE)
 	_empty_t = 0.0
-	Net.award_xp(roundi(150 * xp_k), global_position, 60.0)
+	Net.award_xp(_xp(150), global_position, 60.0)
 	_prize()
 	Net.event(self, "prize", [])
 
@@ -1159,16 +1171,17 @@ func _prize() -> void:
 	var items: Array[ItemStack] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(name + "prize")
-	var picks := [["gold", rng.randi_range(30, 50)], ["treasure", rng.randi_range(2, 4)], ["rum", rng.randi_range(1, 3)]]
+	var picks := [["gold", roundi(rng.randi_range(30, 50) * Levels.coins_k(level))], ["treasure", rng.randi_range(2, 4)], ["rum", rng.randi_range(1, 3)]]
+	# out at sea the steel's better than Brinehollow's: the leg's tier (green before the chain), often one up, now and then two
+	var t0 := Levels.tier(level)
 	if rng.randf() < 0.6:
-		# out at sea the steel's better than Brinehollow's: green, often blue, now and then purple
 		var r := rng.randf()
-		var tier := 3 if r < 0.06 else (2 if r < 0.45 else 1)
+		var tier := mini(t0 + (2 if r < 0.06 else (1 if r < 0.45 else 0)), 4)
 		picks.append(["%s@%d" % [WeaponDesigns.random_item(rng), tier], 1])
 	if rng.randf() < 0.4:
 		# and something to wear, at the same sort of tier
 		var r2 := rng.randf()
-		picks.append([Gear.random_piece(rng, 3 if r2 < 0.06 else (2 if r2 < 0.45 else 1)).id, 1])
+		picks.append([Gear.random_piece(rng, mini(t0 + (2 if r2 < 0.06 else (1 if r2 < 0.45 else 0)), 4)).id, 1])
 	for e in picks:
 		var it := ItemDB.get_item(str(e[0]))
 		var stk := ItemStack.new()

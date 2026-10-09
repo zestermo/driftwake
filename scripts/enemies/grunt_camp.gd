@@ -15,6 +15,8 @@ var _tokens: Array = []
 var _empty_t: float = 0.0
 ## Which wave this is (co-op: names the grunts the same on every machine).
 var gen: int = 0
+## Every crew it musters is this level (Levels; 0: unscaled).
+var level: int = 0
 var _prebuilt: int = -1
 
 
@@ -54,6 +56,7 @@ func _spawn_all() -> void:
 		g.setup(c)
 		g.camp = self
 		g.xp_k = 0.5 if gen > 0 else 1.0
+		g.level = level
 		add_child(g)
 		g.global_position = c["post"] + Vector3.UP * 0.2
 		g.reset_physics_interpolation()

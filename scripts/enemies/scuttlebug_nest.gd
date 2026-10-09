@@ -8,6 +8,8 @@ extends Node3D
 @export var respawn_clearance: float = 24.0
 
 var spots: Array = []  # {pos: Vector3 (local), big: bool, bug: Scuttlebug, timer: float}
+## Every bug it hatches is this level (Levels; 0: unscaled).
+var level: int = 0
 
 
 func add_spot(local_pos: Vector3, big: bool = false) -> void:
@@ -62,6 +64,7 @@ func _spawn(s: Dictionary) -> void:
 	bug.name = "B%d_%d" % [spots.find(s), int(s["gen"])]
 	# (an empty nest's first hatching is gen 1)
 	bug.xp_k = 0.5 if int(s["gen"]) > (1 if start_empty else 0) else 1.0
+	bug.level = level
 	add_child(bug)
 	bug.global_position = start
 	bug.reset_physics_interpolation()
