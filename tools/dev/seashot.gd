@@ -36,6 +36,11 @@ func _process(d: float) -> bool:
 			if arr != null and arr.size() > 0:
 				var e = arr[0]
 				shots.append([extra.trim_suffix("s"), Vector3(e[0].x, 0, e[0].y), 22.0, 7.0])
+		# a sea leg's islet (the chain is new each run: there may be none)
+		for leg in sf.legs.built.values():
+			for e in leg.get_meta("plan")["islets"]:
+				if not shots.any(func(s): return s[0] == "leg_islet"):
+					shots.append(["leg_islet", Vector3(e.x, 0, e.y), 26.0, 8.0])
 		t0 = t
 		return false
 	if i < 0 or t - t0 > 2.5:

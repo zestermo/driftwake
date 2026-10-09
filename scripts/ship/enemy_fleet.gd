@@ -8,13 +8,19 @@ class_name EnemyFleet
 
 @export var respawn_time: float = 150.0
 @export var respawn_clearance: float = 220.0
+## Crews are seeded from this (a fleet on a sea leg has its own, so its men differ).
+var seed_base: int = 7000
+## The first ships wait for their crews' bodies, built on a worker thread (no hitch
+## when a sea leg's fleet appears mid-voyage).
+var warm: bool = false
 
-var zones: Array = []   # {center: Vector3, radius: float, kinds: Array, ship: EnemyShip, gen: int, timer: float}
+var zones: Array = []   # {center: Vector3, radius: float, kinds: Array, level: int, ship: EnemyShip, gen: int, timer: float}
 
 
 ## `kinds` (EnemyShip.KINDS): what sails this stretch, in turn as ships are sunk and replaced.
-func add_zone(center: Vector3, radius: float, kinds: Array = ["sloop"]) -> void:
-	zones.append({"center": center, "radius": radius, "kinds": kinds, "ship": null, "gen": 0, "timer": 0.0})
+## `level`: the island it lies before (a sea leg's; 0 = Brinehollow's sea).
+func add_zone(center: Vector3, radius: float, kinds: Array = ["sloop"], level: int = 0) -> void:
+	zones.append({"center": center, "radius": radius, "kinds": kinds, "level": level, "ship": null, "gen": 0, "timer": 0.0})
 
 
 func _ready() -> void:
@@ -24,11 +30,20 @@ func _ready() -> void:
 
 func _spawn_all() -> void:
 	for i in range(zones.size()):
-		_spawn(i)
+		if warm:
+			zones[i]["warming"] = true
+			Humanoid.prebuild(_looks(i, 0))
+		else:
+			_spawn(i)
+
+
+func _looks(i: int, gen: int) -> Array:
+	return EnemyShip.crew_plan(_seed_of(i, gen), _kind_of(i, gen)).map(func(e): return e[0])
 
 
 func _spawn(i: int) -> void:
 	var z: Dictionary = zones[i]
+	z["warming"] = false
 	var old = z["ship"]
 	if old != null and is_instance_valid(old) and not (old as EnemyShip).is_dead():
 		(old as Node).queue_free()
@@ -41,6 +56,7 @@ func _spawn(i: int) -> void:
 	s.setup(c, r, a + 0.6, _seed_of(i, int(z["gen"])), _kind_of(i, int(z["gen"])))
 	s.fleet = self
 	s.xp_k = 0.5 if int(z["gen"]) > 0 else 1.0
+	s.level = int(z["level"])
 	add_child(s)
 	var tangent := Vector3(-sin(a), 0.0, cos(a))
 	s.global_transform = Transform3D(Basis(Vector3.UP, atan2(-tangent.x, -tangent.z)), Vector3(pos.x, 0.85, pos.z))
@@ -54,14 +70,17 @@ func _spawn(i: int) -> void:
 func _process(delta: float) -> void:
 	for i in range(zones.size()):
 		var z: Dictionary = zones[i]
+		if z.get("warming", false):
+			if Humanoid.prebuilt_for(_looks(i, int(z["gen"]))):
+				_spawn(i)
+			continue
 		var s = z["ship"]
 		if s != null and is_instance_valid(s) and not (s as EnemyShip).is_dead():
 			continue
 		# the next ship's crew, built on a worker thread while she's away
 		if int(z.get("prebuilt", -1)) != int(z["gen"]) + 1:
 			z["prebuilt"] = int(z["gen"]) + 1
-			var plan := EnemyShip.crew_plan(_seed_of(i, int(z["gen"]) + 1), _kind_of(i, int(z["gen"]) + 1))
-			Humanoid.prebuild(plan.map(func(e): return e[0]))
+			Humanoid.prebuild(_looks(i, int(z["gen"]) + 1))
 		if Net.is_client():
 			continue  # (the host decides when she comes back)
 		z["timer"] = float(z["timer"]) + delta
@@ -80,7 +99,7 @@ func _process(delta: float) -> void:
 
 
 func _seed_of(i: int, gen: int) -> int:
-	return 7000 + i * 31 + gen
+	return seed_base + i * 31 + gen
 
 
 func _kind_of(i: int, gen: int) -> String:

@@ -51,7 +51,7 @@ scripts/enemies/grunt_camp.gd           grunttest perftest leveltest
 scripts/enemies/levels.gd               leveltest isletest apetest
 scripts/enemies/pirate_boss.gd          r8test
 scripts/enemies/scuttlebug*             bugtest leveltest
-scripts/enemies/sea_king.gd             seatest
+scripts/enemies/sea_king.gd             seatest legtest
 scripts/enemies/*                       grunttest foresttest
 scripts/powers/*                        powertest vinetest r6test techtest
 scripts/progression/*                   progtest techtest r6test balancetest
@@ -75,15 +75,16 @@ scripts/props/*                         qoltest
 scripts/ship/hull_builder.gd            shiptest seatest riggingtest r8test swimtest decktest looptest
 scripts/ship/ship.gd                    shiptest seatest riggingtest qoltest yardtest looptest decktest r8test net
 scripts/ship/ship_kit.gd                yardtest
-scripts/ship/enemy_ship.gd              seatest r8test perftest leveltest
-scripts/ship/enemy_fleet.gd             seatest perftest
+scripts/ship/enemy_ship.gd              seatest r8test perftest leveltest legtest
+scripts/ship/enemy_fleet.gd             seatest perftest legtest leveltest net
 scripts/ship/cannon*                    r8test seatest
 scripts/ship/ship_rigging.gd            riggingtest
 scripts/ship/swing_rope.gd              riggingtest
 scripts/ship/*                          shiptest
 scripts/ocean/*                         swimtest shiptest r9test r10test watertest
 scenes/ocean/*                          r9test r10test
-scripts/world/sea_features.gd           seatest chaintest
+scripts/world/sea_features.gd           seatest chaintest legtest
+scripts/world/sea_legs.gd               legtest seatest net
 scripts/world/weather.gd                r9test r10test ambiencetest
 scripts/world/ambience.gd               ambiencetest
 assets/audio/*_loop.wav                 ambiencetest
@@ -98,7 +99,7 @@ scripts/interaction/ladder.gd           swimtest riggingtest
 scripts/island/starter_island.gd        qoltest foresttest grunttest yardtest looptest
 scripts/island/world_generator.gd       foresttest r9test perftest chaintest seatest
 scripts/island/redtide_fort.gd          r8test perftest
-scripts/world/chain.gd                  chaintest isletest
+scripts/world/chain.gd                  chaintest isletest legtest
 scripts/island/gen_island.gd            isletest apetest
 scripts/island/island_content.gd        isletest apetest
 scripts/island/island_village.gd        isletest

@@ -36,8 +36,11 @@ var _rng := RandomNumberGenerator.new()
 var _foam_t: float = 0.0
 const WHIRL_DEPTH := 2.6
 const SEA_KING := preload("res://scripts/enemies/sea_king.gd")
+const SEA_LEGS := preload("res://scripts/world/sea_legs.gd")
 ## Lurks at its lair (SeaKing.lair), rising for a manned ship that comes near.
 var sea_king: Node3D
+## The sea between the chain's islands (its hazards count in every query here).
+var legs: SEA_LEGS
 
 
 func _ready() -> void:
@@ -47,21 +50,16 @@ func _ready() -> void:
 		var c := _open_spot(26.0)
 		if c != Vector2.INF:
 			reefs.append([c, _rng.randf_range(18.0, 26.0)])
-			_build_reef(c, float(reefs[-1][1]))
+			build_reef(self, c, float(reefs[-1][1]), _rng, reefs.size() - 1)
 	for i in range(3):
 		var c := _open_spot(FOG_RADIUS * 0.6)
 		if c != Vector2.INF:
 			fogs.append([c, FOG_RADIUS * _rng.randf_range(0.8, 1.2)])
-			_build_fog(c, float(fogs[-1][1]))
+			build_fog(self, c, float(fogs[-1][1]), _rng, fogs.size() - 1)
 	for i in range(2):
 		var c := _open_spot(60.0)
 		if c != Vector2.INF:
 			whirls.append([c, _rng.randf_range(38.0, 48.0)])
-	# (the sea itself sinks into the funnel and spins the foam: the ocean shader)
-	var wv: Array = []
-	for w in whirls:
-		wv.append(Vector4(w[0].x, w[0].y, float(w[1]), WHIRL_DEPTH))
-	Ocean.whirls = wv
 	for i in range(2):
 		var c := _open_spot(80.0)
 		if c != Vector2.INF:
@@ -90,6 +88,10 @@ func _ready() -> void:
 		sea_king.name = "SeaKing"
 		sea_king.lair = lc
 		add_child(sea_king)
+	legs = SEA_LEGS.new()
+	legs.name = "SeaLegs"
+	legs.sf = self
+	add_child(legs)
 
 
 func _exit_tree() -> void:
@@ -122,7 +124,11 @@ func _open_spot(r: float) -> Vector2:
 # --------------------------------------------------------------------------
 ## Where storm cell `i` is now: wandering slowly about its home.
 func storm_at(i: int) -> Vector2:
-	var s: Array = storms[i]
+	return storm_pos(storms[i])
+
+
+## Where a storm cell ([home, phase]) is now.
+static func storm_pos(s: Array) -> Vector2:
 	var t: float = Weather.world_time()
 	var ph: float = s[1]
 	return (s[0] as Vector2) + Vector2(sin(t / 700.0 + ph), cos(t / 910.0 + ph * 1.7)) * 180.0
@@ -132,10 +138,10 @@ func storm_at(i: int) -> Vector2:
 func local_weather(p: Vector3) -> Vector2:
 	var q := Vector2(p.x, p.z)
 	var s := 0.0
-	for i in range(storms.size()):
-		s = maxf(s, 1.0 - smoothstep(STORM_RADIUS * 0.4, STORM_RADIUS, q.distance_to(storm_at(i))))
+	for st in storms + legs.storms:
+		s = maxf(s, 1.0 - smoothstep(STORM_RADIUS * 0.4, STORM_RADIUS, q.distance_to(storm_pos(st))))
 	var f := 0.0
-	for fb in fogs:
+	for fb in fogs + legs.fogs:
 		f = maxf(f, (1.0 - smoothstep(float(fb[1]) * 0.45, float(fb[1]), q.distance_to(fb[0]))) * 0.95)
 	return Vector2(s, f)
 
@@ -143,7 +149,7 @@ func local_weather(p: Vector3) -> Vector2:
 ## The pull of any whirlpool at `p` (m/s, x/z): round and in, harder near the eye.
 func current_at(p: Vector3) -> Vector3:
 	var out := Vector3.ZERO
-	for w in whirls:
+	for w in whirls + legs.whirls:
 		var c: Vector2 = w[0]
 		var r: float = w[1]
 		var d := Vector2(c.x - p.x, c.y - p.z)
@@ -160,7 +166,7 @@ func current_at(p: Vector3) -> Vector3:
 
 ## Within a whirlpool's eye (it grinds a hull).
 func in_eye(p: Vector3) -> bool:
-	for w in whirls:
+	for w in whirls + legs.whirls:
 		if Vector2(p.x, p.z).distance_to(w[0]) < WHIRL_EYE:
 			return true
 	return false
@@ -168,19 +174,33 @@ func in_eye(p: Vector3) -> bool:
 
 ## Over a reef's shoals (the rocks show; the shallows around them don't).
 func reef_at(p: Vector3) -> bool:
-	for r in reefs:
+	for r in reefs + legs.reefs:
 		if Vector2(p.x, p.z).distance_to(r[0]) < float(r[1]):
 			return true
 	return false
 
 
 func _physics_process(_delta: float) -> void:
-	# the storm cells' swell goes to the sea (shader and floating things alike)
+	# the storm cells' swell and the whirlpools' funnels go to the sea (shader and
+	# floating things alike): the ones nearest the camera, as many as the shader takes
+	var cam := get_viewport().get_camera_3d()
+	var at := Vector2(cam.global_position.x, cam.global_position.z) if cam else Vector2.ZERO
 	var cells: Array = []
-	for i in range(storms.size()):
-		var c := storm_at(i)
+	for s in storms + legs.storms:
+		var c := storm_pos(s)
 		cells.append(Vector4(c.x, c.y, STORM_RADIUS, STORM_SWELL))
-	Ocean.storm_cells = cells
+	Ocean.storm_cells = _nearest(cells, at, Ocean.MAX_CELLS)
+	var wv: Array = []
+	for w in whirls + legs.whirls:
+		wv.append(Vector4(w[0].x, w[0].y, float(w[1]), WHIRL_DEPTH))
+	Ocean.whirls = _nearest(wv, at, Ocean.MAX_WHIRLS)
+
+
+static func _nearest(list: Array, at: Vector2, n: int) -> Array:
+	if list.size() <= n:
+		return list
+	list.sort_custom(func(a, b): return Vector2(a.x, a.y).distance_squared_to(at) < Vector2(b.x, b.y).distance_squared_to(at))
+	return list.slice(0, n)
 
 
 func _process(delta: float) -> void:
@@ -214,36 +234,44 @@ func _process(delta: float) -> void:
 ## A sunken hulk heeled over in the water, her deck half awash: a chest
 ## still aboard (each captain's own; remembered once emptied).
 func _build_wreck(i: int) -> void:
-	var c: Vector2 = wrecks[i][0]
-	var body := StaticBody3D.new()
-	body.name = "Wreck%d" % i
-	body.collision_layer = 1
-	body.collision_mask = 0
-	add_child(body)
-	body.global_transform = Transform3D(Basis.from_euler(Vector3(0.12, float(wrecks[i][1]), 0.32)), Vector3(c.x, -0.95, c.y))
-	var model := Node3D.new()
-	body.add_child(model)
-	HullBuilder.build(model, {"hull": Color(0.42, 0.45, 0.4), "deck": Color(0.55, 0.58, 0.5), "trim": Color(0.35, 0.36, 0.32), "wreck": true})
-	HullBuilder.collide(body, false)
-	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
-	var items: Array[ItemStack] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(gen.get("world_seed")) * 31 + i
 	var picks := [["gold", rng.randi_range(20, 40)], ["treasure", rng.randi_range(1, 3)], ["rum", rng.randi_range(1, 2)]]
 	if rng.randf() < 0.5:
 		picks.append([["pistol", "cutlass", "boarding_axe", "katana"][rng.randi() % 4], 1])
-	for e in picks:
-		var it := load("res://resources/items/%s.tres" % e[0]) as ItemData
-		if it:
-			var st := ItemStack.new()
-			st.item = it
-			st.quantity = int(e[1])
-			items.append(st)
-	bag.setup(items, false)
-	bag.save_id = "wreck_%d" % i
+	build_wreck(self, i, wrecks[i][0], float(wrecks[i][1]), "wreck_%d" % i, picks)
+
+
+## A wreck at `c` under `parent` ("Wreck<i>"), her chest `save_id` holding
+## `picks` ([item id or ItemData, quantity]).
+static func build_wreck(parent: Node3D, i: int, c: Vector2, yaw: float, save_id: String, picks: Array) -> void:
+	var body := StaticBody3D.new()
+	body.name = "Wreck%d" % i
+	body.collision_layer = 1
+	body.collision_mask = 0
+	parent.add_child(body)
+	body.global_transform = Transform3D(Basis.from_euler(Vector3(0.12, yaw, 0.32)), Vector3(c.x, -0.95, c.y))
+	var model := Node3D.new()
+	body.add_child(model)
+	HullBuilder.build(model, {"hull": Color(0.42, 0.45, 0.4), "deck": Color(0.55, 0.58, 0.5), "trim": Color(0.35, 0.36, 0.32), "wreck": true})
+	HullBuilder.collide(body, false)
+	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
+	bag.setup(stacks(picks), false)
+	bag.save_id = save_id
 	bag.name = "WreckChest%d" % i
 	body.add_child(bag)
 	bag.position = Vector3(-1.6, HullBuilder.DECK_Y, 2.1)
+
+
+## [item id or ItemData, quantity] -> stacks.
+static func stacks(picks: Array) -> Array[ItemStack]:
+	var items: Array[ItemStack] = []
+	for e in picks:
+		var st := ItemStack.new()
+		st.item = e[0] if e[0] is ItemData else ItemDB.get_item(str(e[0]))
+		st.quantity = int(e[1])
+		items.append(st)
+	return items
 
 
 ## An X on one of Brinehollow's beaches for each treasure (only shown, and
@@ -335,12 +363,7 @@ func _build_bottle(i: int) -> void:
 	holder.name = "Bottle%d" % i
 	add_child(holder)
 	holder.global_position = Vector3(c.x, 0.0, c.y)
-	var mb := MeshBuilder.new()
-	var glass := PSXMat.lit("metal", Color(0.35, 0.7, 0.45))
-	mb.add_cylinder(glass, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(-0.22, 0, 0)), 0.11, 0.11, 0.34, 6, 1.0)
-	mb.add_cylinder(glass, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.12, 0, 0)), 0.05, 0.05, 0.16, 6, 1.0)
-	mb.add_box(PSXMat.lit("bark", Color(0.6, 0.45, 0.3)), Transform3D(Basis(), Vector3(0.3, 0, 0)), Vector3(0.05, 0.08, 0.08), 1.0)
-	holder.add_child(mb.to_instance("Glass"))
+	holder.add_child(bottle_glass())
 	var it := Interactable.new()
 	it.name = "Grab"
 	it.collision_layer = 512
@@ -370,16 +393,32 @@ func _read_bottle(i: int, _player: Player) -> void:
 	_apply_found()
 
 
+## Green glass with a paper rolled up inside (lying along x).
+static func bottle_glass() -> MeshInstance3D:
+	var mb := MeshBuilder.new()
+	var glass := PSXMat.lit("metal", Color(0.35, 0.7, 0.45))
+	mb.add_cylinder(glass, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(-0.22, 0, 0)), 0.11, 0.11, 0.34, 6, 1.0)
+	mb.add_cylinder(glass, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.12, 0, 0)), 0.05, 0.05, 0.16, 6, 1.0)
+	mb.add_box(PSXMat.lit("bark", Color(0.6, 0.45, 0.3)), Transform3D(Basis(), Vector3(0.3, 0, 0)), Vector3(0.05, 0.08, 0.08), 1.0)
+	return mb.to_instance("Glass")
+
+
 ## Bobbing on the swell; now and then the glass catches the light (a bottle
 ## is small: the glint is how you spot one).
 func _bob_bottles() -> void:
+	bob_bottles(_bottle_nodes, get_process_delta_time())
+
+
+static func bob_bottles(nodes: Array, delta: float) -> void:
 	var t := Time.get_ticks_msec() * 0.001
-	var glint := fmod(t, 1.4) < get_process_delta_time()
-	var cam := get_viewport().get_camera_3d()
-	for i in range(_bottle_nodes.size()):
-		var n := _bottle_nodes[i] as Node3D
+	var glint := fmod(t, 1.4) < delta
+	var cam: Camera3D = null
+	for i in range(nodes.size()):
+		var n := nodes[i] as Node3D
 		if not n.visible:
 			continue
+		if cam == null:
+			cam = n.get_viewport().get_camera_3d()
 		n.global_position.y = float(Ocean.get_wave_height(n.global_position)) + 0.02
 		n.rotation = Vector3(sin(t * 1.4 + i) * 0.25, t * 0.2 + i, cos(t * 1.1 + i) * 0.2)
 		if glint and cam and cam.global_position.distance_to(n.global_position) < 160.0:
@@ -434,26 +473,26 @@ func _apply_found() -> void:
 # Building them
 # --------------------------------------------------------------------------
 ## Jagged black rocks breaking the surface; the big ones stop a hull.
-func _build_reef(c: Vector2, r: float) -> void:
+static func build_reef(parent: Node3D, c: Vector2, r: float, rng: RandomNumberGenerator, idx: int) -> void:
 	var holder := Node3D.new()
-	holder.name = "Reef%d" % reefs.size()
-	add_child(holder)
+	holder.name = "Reef%d" % idx
+	parent.add_child(holder)
 	holder.global_position = Vector3(c.x, 0.0, c.y)
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
 	holder.add_child(body)
-	var mesh: Mesh = Props.rock_mesh(900 + reefs.size(), 1.0, true)
+	var mesh: Mesh = Props.rock_mesh(900 + idx, 1.0, true)
 	for i in range(9):
-		var a := _rng.randf() * TAU
-		var d := _rng.randf_range(0.0, r * 0.75)
-		var s := _rng.randf_range(1.2, 3.4)
+		var a := rng.randf() * TAU
+		var d := rng.randf_range(0.0, r * 0.75)
+		var s := rng.randf_range(1.2, 3.4)
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
 		mi.material_override = PSXMat.lit("rock", Color(0.32, 0.31, 0.3))
 		mi.visibility_range_end = 1000.0
 		mi.position = Vector3(cos(a) * d, -1.2 + s * 0.35, sin(a) * d)
-		mi.rotation = Vector3(_rng.randf_range(-0.3, 0.3), _rng.randf() * TAU, _rng.randf_range(-0.3, 0.3))
+		mi.rotation = Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3))
 		mi.scale = Vector3.ONE * s
 		holder.add_child(mi)
 		if s > 2.0:
@@ -468,10 +507,10 @@ func _build_reef(c: Vector2, r: float) -> void:
 
 ## A bank of low cloud sitting on the water: soft grey puffs (inside it, the
 ## weather closes in - Weather reads local_weather).
-func _build_fog(c: Vector2, r: float) -> void:
+static func build_fog(parent: Node3D, c: Vector2, r: float, rng: RandomNumberGenerator, idx: int) -> void:
 	var holder := Node3D.new()
-	holder.name = "FogBank%d" % fogs.size()
-	add_child(holder)
+	holder.name = "FogBank%d" % idx
+	parent.add_child(holder)
 	holder.global_position = Vector3(c.x, 0.0, c.y)
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -484,13 +523,13 @@ func _build_fog(c: Vector2, r: float) -> void:
 	q.size = Vector2(80, 40)
 	q.material = mat
 	for i in range(60):
-		var a := _rng.randf() * TAU
-		var d := sqrt(_rng.randf()) * r * 0.9
+		var a := rng.randf() * TAU
+		var d := sqrt(rng.randf()) * r * 0.9
 		var mi := MeshInstance3D.new()
 		mi.mesh = q
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.visibility_range_end = 1000.0
-		mi.position = Vector3(cos(a) * d, _rng.randf_range(6.0, 26.0), sin(a) * d)
-		mi.scale = Vector3.ONE * _rng.randf_range(0.9, 1.8)
+		mi.position = Vector3(cos(a) * d, rng.randf_range(6.0, 26.0), sin(a) * d)
+		mi.scale = Vector3.ONE * rng.randf_range(0.9, 1.8)
 		holder.add_child(mi)
 

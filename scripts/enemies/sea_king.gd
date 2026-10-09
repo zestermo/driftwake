@@ -79,6 +79,12 @@ func _ready() -> void:
 		net_rescale(Net.hp_scale())
 
 
+func _exit_tree() -> void:
+	# (its sea leg let go while it was up)
+	if _boss_shown:
+		get_tree().call_group("hud", "hide_boss")
+
+
 func net_rescale(k: float) -> void:
 	var frac := hp / maxf(max_hp, 1.0)
 	max_hp = HP * k
