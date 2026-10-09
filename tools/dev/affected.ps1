@@ -4,7 +4,7 @@
 #   .\tools\dev\affected.ps1 -Base main      # everything this branch changed since main, plus uncommitted
 #   .\tools\dev\affected.ps1 -Explain        # which file pulled in which suites
 #
-# Prints the suites on one line (or nothing). "net" means run nettest.ps1 as well.
+# Prints the suites on one line (or nothing). "net" means run nettest.ps1 as well, "netchain" nettest.ps1 chain.
 # Changed .gd files no line covers are listed as unmapped (consider a map line).
 param(
 	[string]$Base = "HEAD",
@@ -38,7 +38,7 @@ try {
 		if ($f -match "^tools/dev/([a-z0-9_]+)\.gd$" -and (Test-Path (Join-Path $PSScriptRoot "$($Matches[1]).gd"))) {
 			$name = $Matches[1]
 			if ($name -match "test$|^feat$|^feel$|^dash$") { $hit += $name }
-			if ($name -match "^net") { $hit += "net" }
+			if ($name -match "^net") { $hit += "net"; $hit += "netchain" }
 		}
 		foreach ($m in $map) {
 			if ($f -like $m[0]) { $hit += $m[1] }

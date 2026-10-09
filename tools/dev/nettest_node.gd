@@ -34,6 +34,40 @@ func _world() -> Node:
 	return get_tree().current_scene
 
 
+## The chain as this machine has it: its state and every chain island standing
+## (the host's and the guest's are compared).
+func chain_report() -> Dictionary:
+	var n := net()
+	var gm := get_node("/root/GameManager")
+	var w := get_tree().get_first_node_in_group("world_gen")
+	var isles := {}
+	for id in w.chain_islands.keys():
+		var isl = w.chain_islands[id]
+		var crew: Array = []
+		for g in isl.get_node("Site_camp/Camp").grunts:
+			if is_instance_valid(g) and int(g.state) != 14:
+				crew.append([n.key_of(g), str(g.title)])
+		crew.sort()
+		var people: Array = []
+		for c in isl.get_children():
+			if c.is_in_group("npcs"):
+				people.append([c.npc_name, c.dialogue_id, c.shop_id])
+		people.sort()
+		var chests: Array = []
+		for b in isl.find_children("*", "LootBag", true, false):
+			if not b.is_queued_for_deletion() and b.save_id != "":
+				chests.append(b.save_id)
+		chests.sort()
+		var arena = isl.get_node("Site_boss/Arena")
+		isles[int(id)] = {"name": isl.island_name, "pos": isl.position, "radius": isl.radius, "sites": isl.sites,
+			"crew": crew, "people": people, "chests": chests,
+			"ape": n.key_of(arena.boss) if is_instance_valid(arena.boss) else ""}
+	var ids: Array = isles.keys()
+	ids.sort()
+	return {"seed": gm.chain_seed, "at": gm.chain_at, "set": gm.chain_set, "since": gm.chain_since,
+		"is_set": gm.log_pose_set(), "ready": w.chain_ready(), "ids": ids, "isles": isles, "opened": gm.opened.keys()}
+
+
 func _run(name_: String, args: Array, from: int):
 	var n := net()
 	var lp = n.local_player
@@ -259,6 +293,19 @@ func _run(name_: String, args: Array, from: int):
 			return n.request_seat(n.node_of(str(args[0])))
 		"fx_count":
 			return _world().find_children("*", "CPUParticles3D", true, false).size()
+		"chain":
+			return chain_report()
+		"chain_skip":
+			# F7's way: the host moves the world clock on for everyone
+			var wx = get_node("/root/Weather")
+			n.everyone("_all_weather", [wx.forced, wx.forced_at, wx.world_offset + float(args[0])])
+			return true
+		"chest_take":
+			for b in _world().find_children("*", "LootBag", true, false):
+				if b.save_id == str(args[0]) and not b.is_queued_for_deletion():
+					b.take_all(lp)
+					return true
+			return false
 		"quit":
 			get_tree().create_timer(0.5).timeout.connect(func(): get_tree().quit())
 			return true

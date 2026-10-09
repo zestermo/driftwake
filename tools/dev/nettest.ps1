@@ -1,8 +1,10 @@
 # Co-op test: a headless host and client (and a third watcher for "three") on
-# localhost. Modes: "" (default), late, three, hostquit, water, board.
+# localhost. Modes: "" (default), late, three, hostquit, water, board, chain (the
+# island chain: the host lands on the first island, then the guest joins late).
 #
 #   .\tools\dev\nettest.ps1            # default
 #   .\tools\dev\nettest.ps1 water
+#   .\tools\dev\nettest.ps1 chain
 #
 # Godot: $env:GODOT = the 4.7 *console* exe (or -Godot). Logs: tools\dev\out\logs\net*.log
 #
@@ -38,6 +40,7 @@ $delay = "2.5"
 if ($Mode -eq "late") { $port = 24680; $delay = "7" }
 # (the host is boarded before we join)
 if ($Mode -eq "board") { $delay = "10" }
+if ($Mode -eq "chain") { $delay = "6"; $Timeout = [Math]::Max($Timeout, 500) }
 
 function Start-Godot([string]$script, [string]$extra, [string]$log) {
 	$psi = New-Object System.Diagnostics.ProcessStartInfo

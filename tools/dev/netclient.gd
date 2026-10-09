@@ -3,7 +3,8 @@ extends SceneTree
 ## the session: puppets both ways, enemies in sync, hits each way (client
 ## hits an enemy, an enemy hits the client), gunshots, kills (coins + XP),
 ## knocked out + revive, actions mirrored, fruit claims, the helm, spawner
-## waves, burning brush, leaving. Args: <port>
+## waves, burning brush, leaving. Mode "chain": the island chain instead (see
+## _chain_step). Args: <port> <start_delay> [mode]
 var t := 0.0
 var st_t := 0.0
 var step := 0
@@ -14,6 +15,7 @@ var p
 var fails := 0
 var data := {}
 var accepted := false
+var join_failed := false
 var start_delay := 2.5
 ## "hostquit": after the first checks the host quits; we should land on the title
 var mode := ""
@@ -54,10 +56,13 @@ func flat(v: Vector3) -> Vector3:
 func _process(d: float) -> bool:
 	t += d
 	st_t += d
-	if t > 280.0:
+	if t > (450.0 if mode == "chain" else 280.0):
 		print("FAIL timeout at step %d" % step)
 		fails += 1
 		finish()
+		return false
+	if mode == "chain" and step >= 100:
+		_chain_step()
 		return false
 	match step:
 		0:
@@ -66,7 +71,7 @@ func _process(d: float) -> bool:
 			net = root.get_node("Net")
 			net.my_info = {"name": "Clienty"}
 			net.accepted.connect(func(): accepted = true)
-			net.failed.connect(func(r): print("join failed: ", r))
+			net.failed.connect(func(r): print("join failed: ", r); join_failed = true)
 			var err = net.join_game("127.0.0.1", port)
 			check("join_game starts", err == OK)
 			go(1)
@@ -75,7 +80,11 @@ func _process(d: float) -> bool:
 				check("host accepted us", net.roster.size() >= 1)
 				change_scene_to_file("res://scenes/world/world.tscn")
 				go(2)
-			elif st_t > 20.0:
+			elif join_failed and mode == "chain" and st_t < 120.0:
+				# (the host lands on its island before it hosts: knock again)
+				join_failed = false
+				net.join_game("127.0.0.1", port)
+			elif st_t > (120.0 if mode == "chain" else 20.0):
 				check("host accepted us", false)
 				finish()
 		2:
@@ -92,7 +101,7 @@ func _process(d: float) -> bool:
 				p.health_component.current_health = 500.0
 				data["joined_t"] = net.time()
 				tn.ask("calm")
-				go(3)
+				go(100 if mode == "chain" else 3)
 			elif st_t > 20.0:
 				check("host's captain appeared", false)
 				finish()
@@ -792,6 +801,222 @@ func men_here(r: Dictionary, tag: String, deck: String) -> Dictionary:
 		if g.humanoid != es._crew[int(mm[3])]["node"] or not g.humanoid.is_visible_in_tree():
 			out["bodies"] = false
 	return out
+
+
+func world():
+	return current_scene.get_node("Islands")
+
+
+## Chain island `id`'s site, `up` m above its ground, in world space.
+func isle_point(id: int, site: String, up: float) -> Vector3:
+	var isl = world().chain_islands[id]
+	var q: Vector2 = isl.sites[site]
+	return isl.to_global(Vector3(q.x, isl.height_at(q.x, q.y) + up, q.y))
+
+
+func put(at: Vector3) -> void:
+	p.state_machine.force_state("Idle", {})
+	p.global_position = at
+	p.velocity = Vector3.ZERO
+	p.reset_physics_interpolation()
+
+
+func find_bag(save_id: String):
+	for b in current_scene.find_children("*", "LootBag", true, false):
+		if b.save_id == save_id and not b.is_queued_for_deletion():
+			return b
+	return null
+
+
+## The chain islands standing here are the host's: the same names, places,
+## sizes, sites, camp crews, village people and beast.
+func same_isles(mine: Dictionary, theirs: Dictionary, what: String) -> void:
+	check("%s: the same islands stand here as on the host (%s / %s)" % [what, mine["ids"], theirs["ids"]], mine["ids"] == theirs["ids"])
+	for id in theirs["ids"]:
+		if not mine["isles"].has(id):
+			continue
+		var a: Dictionary = mine["isles"][id]
+		var b: Dictionary = theirs["isles"][id]
+		var tag := "%s: %s" % [what, b["name"]]
+		check(tag + " - the same name, place and size", a["name"] == b["name"] and a["pos"] == b["pos"] and a["radius"] == b["radius"])
+		check(tag + " - the same sites", a["sites"] == b["sites"])
+		check(tag + " - the camp's crew as on the host (%d / %d)" % [a["crew"].size(), b["crew"].size()], a["crew"] == b["crew"])
+		check(tag + " - the village's people (%d)" % b["people"].size(), a["people"] == b["people"] and b["people"].size() >= 6)
+		check(tag + " - its beast (%s)" % b["ape"], a["ape"] == b["ape"] and b["ape"] != "" and net.node_of(b["ape"]) != null and net.node_of(b["ape"]).net_puppet)
+
+
+## Mode "chain": joining late a host already on the chain's first island (its
+## camp's captain felled), the islands match, chests are each captain's own,
+## the host's clock sets the log pose here, the guest's arrival and the host's
+## move the crew on, the guest felling a beast sets the log pose for everyone,
+## and a guest's save keeps its own world's chain.
+func _chain_step() -> void:
+	var gm = root.get_node("GameManager")
+	var c = world().chain()
+	match step:
+		100:
+			if not (net.world_synced and world().chain_ready()):
+				if st_t > 120.0:
+					check("the host's chain island is built here", false)
+					finish()
+				return
+			tn.ask("chain")
+			go(101)
+		101:
+			if not tn.got("chain"):
+				return
+			var h: Dictionary = tn.replies["chain"]
+			var m: Dictionary = tn.chain_report()
+			var at := int(h["at"])
+			data["A"] = at
+			check("the host is on the chain's first island (%d)" % at, at >= 0 and c.start_next.has(at))
+			check("joining late, we have the host's chain: seed, where the crew is, unset, since when", m["seed"] == h["seed"] and m["at"] == at and m["set"] == h["set"] and is_equal_approx(float(m["since"]), float(h["since"])))
+			check("...the log pose hasn't set here either", not m["is_set"] and not h["is_set"])
+			check("...the island the crew's at is built here, and only it (%s)" % [m["ids"]], m["ids"] == [at])
+			same_isles(m, h, "joined")
+			if not m["isles"].has(at):
+				finish()
+				return
+			check("the camp's captain the host felled before we came isn't standing here", not m["isles"][at]["crew"].any(func(e): return str(e[1]).begins_with("Captain ")))
+			var key := "isle%d_ruins_chest" % at
+			data["key"] = key
+			check("the same chests here as on the host (%d)" % h["isles"][at]["chests"].size(), m["isles"][at]["chests"] == h["isles"][at]["chests"] and key in m["isles"][at]["chests"])
+			data["gold"] = p.inventory_component.count("gold")
+			find_bag(key).take_all(p)
+			go(102)
+		102:
+			if st_t < 0.6:
+				return
+			var key: String = data["key"]
+			check("we empty the ruins' chest: gone here, kept as opened", find_bag(key) == null and gm.opened.has(key) and p.inventory_component.count("gold") > int(data["gold"]))
+			tn.ask("chain")
+			go(103)
+		103:
+			if not tn.got("chain"):
+				return
+			var h: Dictionary = tn.replies["chain"]
+			var key: String = data["key"]
+			check("...the host's own copy is still there (every captain loots each chest once)", key in h["isles"][data["A"]]["chests"] and not key in h["opened"])
+			tn.ask("chest_take", [key])
+			go(104)
+		104:
+			if not tn.got("chest_take"):
+				return
+			check("the host empties its copy", bool(tn.replies["chest_take"]))
+			tn.ask("chain")
+			go(105)
+		105:
+			if not tn.got("chain"):
+				return
+			var h: Dictionary = tn.replies["chain"]
+			var key: String = data["key"]
+			check("...opened there too, and ours stays gone", not key in h["isles"][data["A"]]["chests"] and key in h["opened"] and find_bag(key) == null)
+			tn.ask("chain_skip", [gm.LOG_SET_TIME + 5.0])
+			go(106)
+		106:
+			if not gm.log_pose_set() and st_t < 8.0:
+				return
+			check("15 minutes on the host's clock: the log pose sets here too", gm.log_pose_set() and not gm.chain_set)
+			go(107)
+		107:
+			var want: Array = c.next_of(int(data["A"]))
+			if not (world().chain_ready() and want.all(func(id): return world().chain_islands.has(id))):
+				if st_t > 120.0:
+					check("...the next island(s) are built here", false)
+					finish()
+				return
+			tn.ask("chain")
+			go(108)
+		108:
+			if not tn.got("chain"):
+				return
+			var h: Dictionary = tn.replies["chain"]
+			if not h["ready"] and st_t < 60.0:
+				tn.ask("chain")
+				return
+			var m: Dictionary = tn.chain_report()
+			var want: Array = c.next_of(int(data["A"])) + [int(data["A"])]
+			want.sort()
+			check("...the next island(s) are built here (%s)" % [m["ids"]], m["ids"] == want)
+			same_isles(m, h, "set")
+			data["B"] = int(c.next_of(int(data["A"]))[0])
+			put(isle_point(int(data["B"]), "village", 1.5))
+			go(109)
+		109:
+			if gm.chain_at != int(data["B"]) and st_t < 15.0:
+				return
+			check("we land on the island ahead: the host moves the crew there, and so do we (%d)" % gm.chain_at, gm.chain_at == int(data["B"]))
+			check("...arrived afresh, the log pose hasn't set", not gm.log_pose_set())
+			go(110)
+		110:
+			if (not world().chain_ready() or world().chain_islands.size() > 1) and st_t < 30.0:
+				return
+			check("...the island behind (and a fork's other side) let go here (%s)" % [world().chain_islands.keys()], world().chain_islands.keys() == [int(data["B"])])
+			tn.ask("tp", [isle_point(int(data["B"]), "village", 1.5) + Vector3(2.0, 0.0, 0.0)])
+			tn.ask("chain")
+			go(111)
+		111:
+			if not tn.got("chain"):
+				return
+			var h: Dictionary = tn.replies["chain"]
+			var b := int(data["B"])
+			check("...and on the host (%d, %s)" % [int(h["at"]), h["ids"]], int(h["at"]) == b and h["ids"] == [b])
+			var ape = net.node_of(str(h["isles"][b]["ape"])) if h["isles"].has(b) else null
+			if ape == null:
+				check("the island's beast is here", false)
+				finish()
+				return
+			var hd := HitData.new()
+			hd.damage = 999999.0
+			hd.unblockable = true
+			hd.knockback_force = 0.0
+			ape.hurtbox.take_hit(hd, p)
+			data["ape"] = ape
+			go(112)
+		112:
+			if not gm.chain_set and st_t < 10.0:
+				return
+			check("we fell the beast: the host sets the log pose for everyone", gm.chain_set and gm.log_pose_set())
+			check("...it's dead here", is_instance_valid(data["ape"]) and int(data["ape"].state) == 14)
+			go(113)
+		113:
+			var want: Array = c.next_of(int(data["B"]))
+			if not (world().chain_ready() and want.all(func(id): return world().chain_islands.has(id))):
+				if st_t > 120.0:
+					check("...the islands past it are built here", false)
+					finish()
+				return
+			tn.ask("chain")
+			go(114)
+		114:
+			if not tn.got("chain"):
+				return
+			# (the host's crews turn up when their bodies are ready, maybe after ours)
+			if not tn.replies["chain"]["ready"] and st_t < 60.0:
+				tn.ask("chain")
+				return
+			same_isles(tn.chain_report(), tn.replies["chain"], "beast")
+			data["C"] = int(c.next_of(int(data["B"]))[0])
+			tn.ask("tp", [isle_point(int(data["C"]), "village", 1.5)])
+			go(115)
+		115:
+			if gm.chain_at != int(data["C"]) and st_t < 15.0:
+				return
+			check("the host lands on the next island: the crew's there for us too (%d)" % gm.chain_at, gm.chain_at == int(data["C"]))
+			# a guest's save keeps its own world's chain, not the host's
+			var SG = load("res://scripts/game/save_game.gd")
+			SG.use_test_dir("user://nettest_chain")
+			SG.slot = 1
+			var f := FileAccess.open(SG.slot_path(1), FileAccess.WRITE)
+			f.store_var({"version": 2, "chain_seed": 4242, "chain_at": 0, "chain_set": true, "chain_since": 5.0, "char_id": "abc"})
+			f.close()
+			check("guest save writes", SG.save(p))
+			var sd: Dictionary = SG._read(SG.slot_path(1))
+			check("...keeping our own world's chain, not the host's", int(sd.get("chain_seed", 0)) == 4242 and int(sd.get("chain_at", -1)) == 0 and bool(sd.get("chain_set", false)) and gm.chain_seed != 4242)
+			SG.delete_slot(1)
+			SG._test_dir = ""
+			tn.ask("quit")
+			finish()
 
 
 func _hostquit_step() -> void:

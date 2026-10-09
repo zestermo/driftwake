@@ -6,10 +6,14 @@ extends SceneTree
 ## islands are gone and the bottle treasures lie on Brinehollow's beaches.
 ## The log pose: none to start, given on the wrist, unset under level 5, then
 ## pointing at the first layer; hold L raises it and shows the HUD icon, the
-## needle turns to the island; the seed, where we are and the log pose survive
-## a save and load; Gus's rumour talks of the chain. The compass strip shows
-## its needles while L is held, danger reads by level, and the sea chart stays
-## on Brinehollow there but fits the chain island and where it points out there.
+## needle turns to the island; the seed, where we are, the set rule's state and
+## the log pose survive a save and load; Gus's rumour talks of the chain. The
+## compass strip shows its needles while L is held, danger reads by level, and
+## the sea chart stays on Brinehollow there but fits the chain island and where
+## it points out there.
+## Streaming: an island is put in the world a step a frame and listed only
+## once whole; one let go part way through (or still on its thread) leaves
+## nothing behind; a new chain seed frees every island of the old one.
 var SG
 var t := 0.0
 var step := 0
@@ -29,7 +33,8 @@ func finish() -> void:
 	quit()
 func _process(d: float) -> bool:
 	t += d
-	if t > 60.0:
+	_watch()
+	if t > 180.0:
 		check("timed out at step %d" % step, false)
 		finish()
 		return true
@@ -163,12 +168,17 @@ func _process(d: float) -> bool:
 			# saved and loaded back
 			var seed_was: int = gm.chain_seed
 			gm.chain_at = 2
+			gm.chain_set = true
+			gm.chain_since = 1234.5
 			SG.save(p)
 			gm.chain_seed = seed_was + 99
 			gm.chain_at = -1
+			gm.chain_set = false
+			gm.chain_since = 0.0
 			root.get_node("Dialogue").flags.erase("log_pose")
 			SG.load_into(p)
 			check("the chain's seed and where we are are saved", gm.chain_seed == seed_was and gm.chain_at == 2)
+			check("...whether the log pose has set there, and since when", gm.chain_set and is_equal_approx(gm.chain_since, 1234.5))
 			check("...and so is the log pose (still on the wrist)", p.has_log_pose() and p.body_model.fore_l.get_node_or_null("LogPose") != null)
 			gm.chain_at = -1
 			# the sea chart: Brinehollow's sea as ever; on the chain, fitted round where we are and where it points
@@ -185,10 +195,122 @@ func _process(d: float) -> bool:
 			check("on the chain it shows the island we're at and where the log pose points",
 				ch._inside(c.node(at)["pos"]) and c.next_of(at).all(func(id): return ch._inside(c.node(id)["pos"])) and not ch._pin)
 			menu.close()
-			gm.chain_at = -1
-			gm.chain_set = false
+			gm.apply_chain(-1, false, 0.0)
 			var rumor: String = root.get_node("Dialogue")._tokens["rumor"].call()
 			print("   rumour: ", rumor)
 			check("Gus's rumours tell of the chain", rumor != "" and not rumor.contains("{"))
+			step = 3
+		3:
+			# --- streaming
+			if not world.chain_ready():
+				return false
+			var c = world.chain()
+			var first: int = c.start_next[0]
+			var seen: Dictionary = steps_seen.get(first, {})
+			print("   %s built in %d steps, seen at %s; %s" % [world.chain_islands[first].island_name, int(steps_of.get(first, 0)), seen.keys(), world.chain_islands[first].build_ms])
+			check("a chain island is put in the world a step a frame (%d of %d steps seen)" % [seen.size(), int(steps_of.get(first, 0))], int(steps_of.get(first, 0)) >= 8 and seen.size() >= int(steps_of.get(first, 0)) - 1)
+			check("...and only charted, kept clear and given its shallows once it's whole", not listed_early)
+			# an island further on, wanted while the crew's at it, unwanted part way through
+			var far: Array = c.nodes.filter(func(n): return int(n["layer"]) >= 4).map(func(n): return int(n["id"]))
+			set_meta("x", far[0])
+			set_meta("y", far[1])
+			set_meta("z", far[2])
+			gm.apply_chain(far[0], false, root.get_node("Weather").world_time())
+			world.sync_chain_islands()
+			check("moving on: the islands behind go, the one we're at is started", world.chain_islands.is_empty() and world._pending.has(far[0]))
+			step = 4
+		4:
+			var x: int = get_meta("x")
+			# (after its camp is made, before its beast and village)
+			var past_camp := false
+			if world._finishing.has(x):
+				var names: Array = (world._finishing[x][1] as Array).map(func(s): return s[0])
+				past_camp = int(world._finishing[x][2]) > names.find("camp") and int(world._finishing[x][2]) < names.find("boss")
+			if not past_camp:
+				if world.chain_islands.has(x):
+					check("caught the island part way through its build", false)
+					finish()
+				return false
+			var half = world._finishing[x][0]
+			set_meta("half", half)
+			set_meta("half_pos", Vector2(half.position.x, half.position.z))
+			var H = load("res://scripts/npc/humanoid.gd")
+			var keys: Array = load("res://scripts/island/island_village.gd").looks(half).map(func(lk): return H._look_key(lk))
+			set_meta("look_keys", keys)
+			print("   %s let go after %d of %d steps" % [half.island_name, int(world._finishing[x][2]), (world._finishing[x][1] as Array).size()])
+			gm.apply_chain(get_meta("y"), false, root.get_node("Weather").world_time())
+			world.sync_chain_islands()
+			check("let go part way through its build: dropped at once", not world._finishing.has(x) and not world.chain_islands.has(x) and half.is_queued_for_deletion())
+			wait = 1.2
+			step = 5
+		5:
+			var x: int = get_meta("x")
+			var at: Vector2 = get_meta("half_pos")
+			check("...nothing of it left in the world", not is_instance_valid(get_meta("half")) and world.get_node_or_null("Isle%d" % x) == null)
+			check("...nor on the chart, in the ships' no-go list or the sea's shallows", not world.island_infos.any(func(i): return int(i["id"]) == x)
+				and not load("res://scripts/ship/enemy_ship.gd").no_go.any(func(z): return z[0] == at) and root.get_node("Ocean").isle_shoals.size() == mini(world.chain_islands.size(), 2))
+			check("...nor among the navmesh zones", world.get_node("NavBaker")._zones.all(func(z): return is_instance_valid(z["node"])))
+			var H = load("res://scripts/npc/humanoid.gd")
+			var left := 0
+			for k in get_meta("look_keys"):
+				left += (H._ready_bodies.get(k, []) as Array).size()
+			check("...nor its villagers' bodies, built ahead for it (%d left waiting)" % left, left == 0)
+			# one let go while it's still being worked out on its thread: dropped when that's done
+			var z: int = get_meta("z")
+			gm.apply_chain(z, false, root.get_node("Weather").world_time())
+			world.sync_chain_islands()
+			set_meta("z_started", world._pending.has(z))
+			gm.apply_chain(get_meta("y"), false, root.get_node("Weather").world_time())
+			world.sync_chain_islands()
+			step = 6
+		6:
+			var z: int = get_meta("z")
+			if world._pending.has(z):
+				return false
+			check("let go while still worked out on its thread: never put in the world", get_meta("z_started") and not world.chain_islands.has(z) and not world._finishing.has(z) and world.get_node_or_null("Isle%d" % z) == null)
+			step = 7
+		7:
+			# a load (or a host's world) brings another chain: every island of this one goes, built or not
+			var y: int = get_meta("y")
+			if not world._finishing.has(y):
+				# (already whole: build it again to catch it part way)
+				if world.chain_islands.has(y):
+					world._free_chain_island(y)
+					world.sync_chain_islands()
+				return false
+			set_meta("old_name", world._finishing[y][0].island_name)
+			set_meta("old", world._finishing[y][0])
+			set_meta("seed0", gm.chain_seed)
+			gm.chain_seed += 1
+			world.sync_chain_islands()
+			check("a new chain (a load): the old chain's islands all go, half-built ones too", world.chain_islands.is_empty() and world._finishing.is_empty()
+				and (get_meta("old") as Node).is_queued_for_deletion() and world._pending.has(y))
+			step = 8
+		8:
+			var y: int = get_meta("y")
+			if not world.chain_ready():
+				return false
+			var isl = world.chain_islands[y]
+			check("...and the island we're at is built from the new chain (%s, was %s)" % [isl.island_name, get_meta("old_name")], isl.island_name == world.chain().node(y)["name"] and isl.node["seed"] == world.chain().node(y)["seed"])
+			gm.chain_seed = get_meta("seed0")
+			gm.apply_chain(-1, false, 0.0)
 			finish()
 	return false
+
+
+## Every frame: the steps each chain island is seen at while it's put in the world.
+var steps_seen := {}
+var steps_of := {}
+var listed_early := false
+func _watch() -> void:
+	var w = root.get_node_or_null("World/Islands")
+	if w == null:
+		return
+	for id in w._finishing.keys():
+		var e: Array = w._finishing[id]
+		if not steps_seen.has(id):
+			steps_seen[id] = {}
+		steps_seen[id][int(e[2])] = true
+		steps_of[id] = (e[1] as Array).size()
+		if w.chain_islands.has(id) or w.island_infos.any(func(i): return int(i["id"]) == int(id)):
+			listed_early = true

@@ -1,6 +1,6 @@
 # Which test suites cover which files: used by affected.ps1 / run_tests.ps1 -Changed.
 # <path pattern (PowerShell -like, from the repo root)>   <suites...>
-# Every line a changed file matches adds its suites. "net" = also run nettest.ps1.
+# Every line a changed file matches adds its suites. "net" = also run nettest.ps1, "netchain" = nettest.ps1 chain.
 # A changed tools/dev/<suite>.gd runs that suite. Add a line when you add a suite or a system.
 
 # --- player ---
@@ -28,7 +28,7 @@ scripts/state_machine/*                 feat feel
 scripts/input/*                         feel dash
 
 # --- bodies and animation ---
-scripts/npc/humanoid.gd                 chartest styletest ragtest r10test katanatest axetest feel techtest
+scripts/npc/humanoid.gd                 chartest styletest ragtest r10test katanatest axetest feel techtest chaintest
 scripts/npc/body_builder.gd             chartest styletest hairtest katanatest qoltest
 scripts/npc/character_look.gd           chartest styletest savetest
 scripts/npc/face_painter.gd             chartest
@@ -41,6 +41,7 @@ scripts/npc/technique_poses.gd          techtest airtest
 scripts/npc/sword_moves.gd              feel axetest katanatest techtest
 scripts/npc/anim_lab.gd                 feel
 scripts/net/humanoid_sync.gd            net
+scripts/net/network_manager.gd          net netchain
 
 # --- combat, enemies, powers, progression ---
 scenes/combat/*                         grunttest feel techtest
@@ -62,7 +63,7 @@ scripts/loot/*                          r7test invtest feat looptest
 scripts/loot/gear*                      invtest qoltest
 scripts/loot/equipment*                 invtest
 scripts/game/save_game.gd               savetest progtest looptest yardtest r9test
-scripts/game/game_manager.gd            looptest ragtest savetest
+scripts/game/game_manager.gd            looptest ragtest savetest chaintest isletest netchain
 scripts/game/dev_capture.gd             capturetest
 scripts/game/perf_monitor.gd            perftest
 scripts/game/settings.gd                savetest r6test
@@ -100,14 +101,14 @@ scripts/interaction/ladder.gd           swimtest riggingtest
 
 # --- world ---
 scripts/island/starter_island.gd        qoltest foresttest grunttest yardtest looptest
-scripts/island/world_generator.gd       foresttest r9test perftest chaintest seatest
+scripts/island/world_generator.gd       foresttest r9test perftest chaintest seatest isletest netchain
 scripts/island/redtide_fort.gd          r8test perftest
 scripts/world/chain.gd                  chaintest isletest legtest
-scripts/island/gen_island.gd            isletest apetest
-scripts/island/island_content.gd        isletest apetest
-scripts/island/island_village.gd        isletest
-scripts/island/beast_arena.gd           apetest
-scripts/enemies/jungle_ape.gd           apetest leveltest net
+scripts/island/gen_island.gd            isletest apetest chaintest netchain
+scripts/island/island_content.gd        isletest apetest netchain
+scripts/island/island_village.gd        isletest netchain
+scripts/island/beast_arena.gd           apetest isletest netchain
+scripts/enemies/jungle_ape.gd           apetest leveltest net netchain
 scripts/npc/ape_poses.gd                apetest
 scripts/island/island_theme.gd          isletest chaintest
 scripts/npc/log_pose.gd                 chaintest

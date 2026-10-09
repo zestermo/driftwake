@@ -157,6 +157,16 @@ func _lap(t0: int) -> int:
 	return int((Time.get_ticks_usec() - t0) / 1000)
 
 
+func _notification(what: int) -> void:
+	# (let go before its beast or village was made: the bodies prepare built for them would wait forever)
+	if what == NOTIFICATION_PREDELETE and build_ms.has("bodies"):
+		if not build_ms.has("boss"):
+			Humanoid.unstock(JungleApe.ape_look())
+		if not build_ms.has("village"):
+			for lk in IslandVillage.looks(self):
+				Humanoid.unstock(lk)
+
+
 # ==========================================================================
 # The land's shape
 # ==========================================================================

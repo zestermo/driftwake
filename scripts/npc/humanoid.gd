@@ -392,6 +392,17 @@ static func stock(h: Humanoid, lk: Dictionary) -> void:
 	_pool_lock.unlock()
 
 
+## A stocked body nothing will take now (its island went before its people were made): freed.
+static func unstock(lk: Dictionary) -> void:
+	var k := _look_key(lk)
+	_pool_lock.lock()
+	var list: Array = _ready_bodies.get(k, [])
+	var h: Humanoid = list.pop_back() if not list.is_empty() else null
+	_pool_lock.unlock()
+	if h:
+		h.free()
+
+
 ## True once a body for every look in `looks` (repeats counted) is waiting.
 static func prebuilt_for(looks: Array) -> bool:
 	_reap()

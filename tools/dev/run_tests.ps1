@@ -31,14 +31,17 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 . (Join-Path $PSScriptRoot "crew_lib.ps1")
 $all = @(Get-Content (Join-Path $PSScriptRoot "suites.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })
-$wantNet = $false
+$netHint = ""
 if ($Changed) {
 	$picked = @((& (Join-Path $PSScriptRoot "affected.ps1") -Base $Base -Explain) -split "\s+" | Where-Object { $_ })
-	$wantNet = $picked -contains "net"
-	$Tests = @($picked | Where-Object { $_ -ne "net" -and $all -contains $_ })
+	$modes = @()
+	if ($picked -contains "net") { $modes += ".\tools\dev\nettest.ps1" }
+	if ($picked -contains "netchain") { $modes += ".\tools\dev\nettest.ps1 chain" }
+	if ($modes.Count -gt 0) { $netHint = "Co-op code changed: run " + ($modes -join " and ") }
+	$Tests = @($picked | Where-Object { $all -contains $_ })
 	if ($Tests.Count -eq 0) {
 		Write-Host "No suites cover what changed." -ForegroundColor Yellow
-		if ($wantNet) { Write-Host "Co-op code changed: run .\tools\dev\nettest.ps1" -ForegroundColor Yellow }
+		if ($netHint) { Write-Host $netHint -ForegroundColor Yellow }
 		exit 0
 	}
 	Write-Host ("Suites: " + ($Tests -join " ")) -ForegroundColor Cyan
@@ -183,5 +186,5 @@ if ($failed.Count -gt 0) {
 	$cachedNote = if ($cachedCount) { ", $cachedCount already passed" } else { "" }
 	Write-Host "ALL OK ($($Tests.Count) suites run$cachedNote)" -ForegroundColor Green
 }
-if ($wantNet) { Write-Host "Co-op code changed: run .\tools\dev\nettest.ps1 too" -ForegroundColor Yellow }
+if ($netHint) { Write-Host "$netHint too" -ForegroundColor Yellow }
 exit $failed.Count
