@@ -2,8 +2,9 @@
 # (driftwake.fun). Netlify's own Git builds are off (netlify.toml `ignore`): its builders
 # have no Godot, so they'd publish the site without the game.
 #
-# Repo secrets: NETLIFY_AUTH_TOKEN (Netlify > User settings > Applications > Personal
-# access tokens) and NETLIFY_SITE_ID (Site configuration > Site details > Site ID).
+# Secrets in the repo's "live" environment: NETLIFY_AUTH_TOKEN (Netlify > User settings >
+# Applications > Personal access tokens) and NETLIFY_SITE_ID (Site configuration > Site
+# details > Site ID).
 name: Deploy web build
 
 on:
@@ -24,6 +25,10 @@ jobs:
   web:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # (the Netlify secrets are environment secrets: a job only sees them when it names the environment)
+    environment:
+      name: live
+      url: https://driftwake.fun
     steps:
       - uses: actions/checkout@v4
 
