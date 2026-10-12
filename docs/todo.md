@@ -31,10 +31,11 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
   look slightly: Zach's call); `Props.straw_dummy_mesh` is unseeded (differs per build and per co-op screen).
 
 **Phase 2: build out** (parallel agents)
-- [ ] **Harbours that vary by island:** each island rolls one type (stilt fishing port with
+- [x] **Harbours that vary by island:** each island rolls one type (stilt fishing port with
   boardwalks, boats and net racks; smugglers' cove; timber trading wharf with warehouses and a moored
   merchant ship; ruined jetty). Gap today: a bare plank pier against Brinehollow's harbour
-  district of 13 buildings and 33 props.
+  district of 13 buildings and 33 props. (Done 2026-10-12: GenHarbour, see dev_notes; harbour
+  people still to come: `GenHarbour.spots` says where they'd work.)
 - [ ] **Village streets and dressing:** lanes off the plaza with houses along them; dressing passes
   (laundry, gardens, handcarts, crates, planters, signs) to Brinehollow's ~47 props/ha and ~3 props
   per 50 m of lane (today 8.5/ha); more building kinds (workshop, shrine or chapel, storehouse,

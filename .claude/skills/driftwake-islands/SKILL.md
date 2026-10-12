@@ -62,6 +62,8 @@ The island side is `Island`'s interface: `hv`, `walk_height`, `reserve`, `exclud
 | `kit_style.gd` | KitStyle | `BRINEHOLLOW` (timber and stone), `JUNGLE` (overrides); lamp colour/range, paving, quay stone, waterfront walls/roofs/awnings, pennants, washing, rugs, goods, tents, pirates' houses and flags |
 | `kit_lights.gd` | KitLights | `post` (a lantern post, lit from the budget), `light` (a NightLight on any node) |
 | `kit_harbour.gd` | KitHarbour | `plan` (the quay line, data, in a frame: `out` to sea, `along`, `inland`), `shape`/`earth`/`on_platform` (height, splat and walk hooks), `build_pier`, `build_quay`, `build_piers`, `build_longboats`, `plan_waterfront`/`build_waterfront`, `plan_dressing` (cargo, carts, lamps, stalls), `build_front` (booth, boat on the stocks, yard, net-mender's corner; `mirror`), models `booth_model`, `boat_on_stocks`, `workbench` |
+| `kit_harbour_gen.gd` | GenHarbour | a generated island's harbour district at its pier: `plan(gi)` (data, in GenIsland.prepare before the vegetation; the kind rolled from the style's `harbour_kinds` (stilts / cove / wharf / ruins) or, with the village inland, `harbour_wild_kinds` (adds a bare landing); `force` for tools), `steps()` (GenIsland.finish_steps), `at(s, d)` (s along the shore, d in from the waterline), `waterfront()`, `spots` (where harbour people would work) |
+| `kit_harbour_models.gd` | HarbourModels | `deck_strip` (a walkway deck along a polyline, mitred, boards across, its top into a collider builder), `piles`, `rope_rail`, `bollard`; models `canoe`, `net_rack`, `fish_traps`, `sacks`, `timber`, `contraband`, `warehouse`, `boathouse`, `ruined_hut`, `tower_stump` |
 | `kit_village.gd` | KitVillage | `table_set`, `benches_round`, `pole`, `bunting_ring`, `bunting`, `laundry`, `garden`, `road_lamps`, models `notice_board`, `handcart`; `dress_houses` (the generic pass for any island's houses); `dress_generated_village` (phase 1's proof, tools only) |
 | `kit_market.gd` | KitMarket | `build` (stalls in a horseshoe, planter, wares mesh, cargo) |
 | `kit_paving.gd` | KitPaving | `plan_disk`, `plan_path` (quads, data), `build` (one mesh, no shadow) |
@@ -104,6 +106,32 @@ Brinehollow's cast is data in `scripts/island/brinehollow_cast.gd` (`dockhands`,
 10. **Nav zones:** a fight area on a generated island bakes its own zone (`NavBaker.add_zone(site, r)`,
     IslandContent._camp); Brinehollow's whole island is one zone (world_generator).
 11. **Timing:** wrap each piece in `ctx.timed("piece", ...)`; the build ms land in `build_ms`.
+
+## A district on a generated coast (GenHarbour's patterns)
+
+- **Plan before the vegetation, adapt to the land rather than reshape it.** GenHarbour plans in
+  `GenIsland._plan_dock` (after the heights, before `_scatter_vegetation`), so its reserves keep trees
+  and rocks off; it needs no height hook: walkways stand on pilings over the beach and the shallows,
+  houses go on stilts, and a deck that meets the rising beach just runs into it (terrain through a
+  deck plane is a seamless step-off; a deck ending above sand needs a ramp: `_landing`).
+- **A frame from the dock** (a bare `KitHarbour` filled by `_frame`: the waterline scanned per 2 m
+  station, smoothed, s0/s1 where it stays straight) and `at(s, d)`: everything is laid out in shore
+  coordinates, so one plan fits any coast. Validate every spot (`_ok_land`: ground, slope, reserves,
+  path; `_ok_water`: depth) and try more candidates than you need; plan the big things first (their
+  reserves push the small ones off, not the other way round: the cove's rocks ate its shacks).
+- **Walkways as data**: `{"pts", "hw", "ys", "rails", ...}` dicts built into one body per ~60 m (one
+  mesh, a trimesh of the deck tops). The deck strip shares its edges between segments (mitred), so a
+  curved boardwalk has no wedge gaps; `ys` per point makes ramps.
+- **Keep the ship's berth clear**: the ship lies at `GenIsland.mooring()` (pier side +along, 6 m off
+  the axis, 17 m long); anything moored or built over the water goes on the other side or past s 16
+  (harbourtest checks the hull's box).
+- **Props in batches** (`_flush`: build_list chunks of 8 a step, visibility range 220 m); deck props
+  keep their own spacing list (the walkway's reserve covers them).
+- **Nothing guaranteed, big seeded pools** (Zach, 2026-10-12): a piece rolls its kind from a style
+  pool (`harbour_kinds`, `harbour_wild_kinds` when the village is far from the dock: a bare `landing`
+  is in it), so two islands in one sea can differ completely; what must always work (the berth, the
+  pier, Board ship) is the same in every kind.
+- Render with `tools/dev/harbourshot.gd` (each kind forced on several seeds: sea, above, pier, beach).
 
 ## Brinehollow stays identical (the check)
 
