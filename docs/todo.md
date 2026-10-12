@@ -2,6 +2,90 @@
 
 Zach's list of planned work. Nothing here is started unless it says so.
 
+## Island fidelity: generated islands at Brinehollow's level (planned 2026-10-09)
+
+From the phase-0 fidelity report (`docs/island_fidelity_baseline.md`, `tools/dev/fidelity.gd`) and
+Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (measure) is done.
+
+**Decisions**
+- **Size:** keep 600-900 m islands; pack Brinehollow-level detail into districts (harbour,
+  village, POIs) with real wilderness between. Don't spread it evenly: generated islands have 2-4×
+  Brinehollow's land (20-40 ha vs 8.8).
+- **Town style:** the theme's own look (jungle: stilts, thatch, rope) at Brinehollow's density.
+- **Performance target:** Zach's PC (RTX 4060 laptop) at 60 fps. The browser build may drop detail.
+- **Order after phase 1:** parallel. Settlement, adventure and life agents at once, each in its own
+  worktree with crew claims.
+
+**Phase 1: the kit** (one agent, serial)
+- [ ] Extract Brinehollow's builders into `scripts/island/kit/` modules (harbour/quay/waterfront,
+  village houses + dressing passes, market, paving, landmarks, camps/den/training yard, cave +
+  interior, NPCs + life, night lights). Each takes an island context instead of Brinehollow's
+  constants and fixed seeds. The grouping and what each depends on are in the baseline doc.
+- [ ] Rebuild Brinehollow from the kit: same look (islandshot before/after), same play (its suites),
+  the same fidelity numbers, and the same save ids and story node names.
+- [ ] Each kit module reports its own build ms. Brinehollow's 6.6-7 s single-frame build gets a breakdown.
+- [ ] Write the `driftwake-islands` skill: how to author a kit piece, the island context API,
+  seeding, performance rules and the fidelity check.
+
+**Phase 2: build out** (parallel agents)
+- [ ] **Harbours that vary by island:** each island rolls one type (stilt fishing port with
+  boardwalks, boats and net racks; smugglers' cove; timber trading wharf with warehouses and a moored
+  merchant ship; ruined jetty). Gap today: a bare plank pier against Brinehollow's harbour
+  district of 13 buildings and 33 props.
+- [ ] **Village streets and dressing:** lanes off the plaza with houses along them; dressing passes
+  (laundry, gardens, handcarts, crates, planters, signs) to Brinehollow's ~47 props/ha and ~3 props
+  per 50 m of lane (today 8.5/ha); more building kinds (workshop, shrine or chapel, storehouse,
+  two-storey house; today all huts); lit windows and NightLights to Brinehollow's levels (today
+  3 lights vs 11, ~40 lit windows vs 180); worn or paved paths.
+- [ ] **Interiors:** caves and small dungeons from a pool (bug tunnels, smugglers' grotto,
+  flooded ruin) with a reward at the end; enterable shops and a few houses; a multi-room ruined
+  temple as a bigger set piece on some islands. (The inn interior isn't a priority.)
+- [ ] **Landmarks** (rolled per island, visible from the sea): waterfall with a swimmable pool;
+  beached wreck to explore, with loot; a climbable giant tree with platforms and rope bridges; a
+  stone idol or stepped temple top above the canopy. Fix the summit tower being buried in
+  trees (clear round it or raise it).
+- [ ] **A signature set piece per island:** one unique piece (sunken village, volcano vent, giant
+  skeleton...) from a pool that never repeats within a sea.
+- [ ] **People:** 15-20 villagers per island with routines (work spots, market, inn at night).
+  Today there are 6 and none walk a route.
+- [ ] **Named characters:** a few per island with real dialogue trees and rumours about the chain
+  and the beast. Today: 1 dialogue tree vs Brinehollow's 8.
+- [ ] **Island quests:** 2-3 small quests per island drawn from its POIs (lost item in the ruins,
+  clear the lair, escort...), beyond the job board.
+- [ ] **Jungle theme style table:** materials, prop set, NPC looks, barks, ambience and music.
+
+**Phase 3: assemble and gate**
+- [ ] District planner: harbour, village core, outskirts and wilds (4-6 POIs + the beast's ground +
+  the signature piece), all seeded so co-op guests build the same island (`nettest.ps1 chain`).
+- [ ] Far-LOD for the islands ahead (props culled, NPCs asleep, visibility ranges). Three islands
+  at Brinehollow's density would be ~300 MB.
+- [ ] Turn fidelitytest into a gate: >= 80% of Brinehollow on every metric over 10 seeds, within the
+  build-time and draw-call budgets.
+
+**Phase 4: polish loop**
+- [ ] Zach plays seeds and sends F12 captures; agents fill what reads as sparse.
+
+## Open from the 2026-10-09 session (not yet prioritised)
+- **Save keys repeat across worlds:** chest, job and beast flags (`isle<id>_*`, `leg<x>_<y>_*`) are
+  keyed by island number, which repeats across chain seeds, so a guest's opened chest counts on the
+  host's same-numbered island. Fix: put the chain seed in the key, with a save migration.
+- **Web build:** a 2-5 s freeze when the next islands build (single-threaded, so the island prep
+  needs slicing); the sea is brighter and more cyan in the web renderer; no limiter (loud moments
+  clip).
+- **Audio proposals** (`docs/audio_audit.md`): style samples into the sea and town themes, longer
+  tracks, layered combat music, day/night themes, ducking music under big sounds, per-island
+  motifs, impact sounds by weapon type, a full UI sound set.
+- **Devil Fruits:** polish them to the rest of the game's level, then switch
+  `DevilFruits.IN_WORLD` back on. Off since 2026-10-09.
+- **Clothing pass (shelved):** branch `shelved/clothing-pass` (cloth sheets for capes, coats and
+  skirts, the hair sheet, fit and detail, the outfits skill). Its outfittest failed after the rebase
+  ("cloth never settles standing still", dodge/ship depth); the fix is half done.
+- **Browser co-op:** WebRTC plus a small signalling server (`docs/web_build.md`).
+- **Code signing** for the Windows build (SmartScreen warns today).
+- **Next themes:** snow, desert and forest islands, once the kit exists.
+- **A one-off crash** in co-op (signal 11, "wrong RID" building the silverback's body on a guest),
+  seen once in ~5 chain runs.
+
 ## Performance (done 2026-10-07, see dev_notes; left: measure on the other PC with F8 / user://perf.log)
 
 Late-session slowdown: ~35 fps and stutters about 50 min into an exported build on another
