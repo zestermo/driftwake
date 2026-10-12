@@ -6,7 +6,7 @@
 # Writes .git\crew\status.json and prints a summary. Reads only git and small files: a few seconds.
 #
 #   .\tools\dev\test_status.ps1          # summary
-#   .\tools\dev\test_status.ps1 -Stale   # just the names that need to run, on one line
+#   .\tools\dev\test_status.ps1 -Stale   # just the names that need to run (stale or failing), on one line
 param([switch]$Stale)
 $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -106,7 +106,7 @@ $status = [ordered]@{ at = (Get-Date).ToString("o"); root = $root; branch = (Get
 Move-Item -Force (Join-Path $crew "status.json.tmp") (Join-Path $crew "status.json")
 
 if ($Stale) {
-	($rows | Where-Object { $_.state -ne "ok" } | ForEach-Object { $_.name }) -join " "
+	($rows | Where-Object { $_.state -eq "stale" -or $_.state -eq "failing" } | ForEach-Object { $_.name }) -join " "
 	exit 0
 }
 Write-Host ("{0} ok, {1} need to run, {2} failing, {3} never run   ({4}, {5})" -f $counts.ok, $counts.stale, $counts.failing, $counts.never, $status.branch, $tree.Substring(0, 8))
