@@ -59,12 +59,26 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 - Logs: `tools/dev/out/logs/<suite>.log`. Screenshots: `tools/dev/out/` (gitignored and
   `.gdignore`d). Read the PNGs to check visuals.
 - `tools/dev/README.md` lists every test and tool with a one-line description.
-- Known flaky checks (rerun before digging in): swimtest "head still above water while
-  swimming", vinetest "aiming at the big bug" on 4.7, grunttest can hang waiting for a
-  circling grunt under heavy CPU load, grunttest "survivors return to their posts" (timing),
-  fixtest under load, and chartest's saved-look checks under `-Jobs` (other suites write the
-  same `user://character.cfg`). `-Jobs` > 1 makes these more
-  likely.
+- Known flaky checks live in `tools/dev/flaky.txt` (suite | FAIL text). A failure made only of
+  those is **retried once automatically**, so don't rerun by hand. Add a line only for a check
+  that's proven to flake on timing or load, never to hide a real failure.
+
+### Testing strategy (every session and agent)
+
+- **Only through the runners:** run_tests.ps1 and nettest.ps1, never a raw `godot --script` for
+  a test. The runners share the machine's test slots, skip what already passed on the same code,
+  wait for a run of the same suite already in flight, and show up live in Zach's **Tests** pane
+  (`/tests`; it reads `.git/crew/live`).
+- **Run what covers your change:** `run_tests.ps1 -Changed -Base main` in a worktree, nothing more.
+  Run the full suite only when Zach asks.
+- **nettest only when co-op code changed** (the runner prints the hint), one mode at a time.
+- **Don't rerun a suite "to be sure":** a pass is cached against the exact code.
+- **Landing re-tests only what the rebase could change** (land.ps1 carries passes from the
+  branch's own tree over to the rebased one when nothing new touches the suite).
+- **The runners stop a suite early** when it stalls (no output for 150 s), its scripts don't parse
+  (it reports the first error), it floods script errors, or its log passes 25 MB. A stopped suite
+  is a real problem to look at, not one to rerun.
+- **Long runs go in the background** (Bash `run_in_background`); don't sit in a blocking wait loop.
 - Writing a test: copy the newest `tools/dev/rNtest.gd` pattern (step machine in `_process`,
   `check(name, cond)`, final `RESULT OK`/`RESULT FAILED (n)`). Don't statically type project
   classes that touch autoloads; nodes added in `_initialize()` aren't in the tree yet.
@@ -100,11 +114,9 @@ so half-finished edits never break another session's tests or end up in its comm
   `.\tools\dev\crew.ps1 claim "sea legs" -Areas scripts/ship/enemy_fleet.gd,scripts/world/sea_legs.gd`.
   Landing releases it. After an edit to a file another session is changing or has claimed, a
   hook tells you who; keep that edit small and local, and tell Zach if the overlap is big.
-- **Tests are shared machine-wide:** run_tests.ps1 and nettest.ps1 take one of
-  `DRIFTWAKE_TEST_SLOTS` (default 3) Godot slots and wait for a free one (they print who holds
-  them), so parallel sessions stop starving each other into flaky failures. A suite that
-  already passed on exactly this code, in any session, is skipped (`-Force` reruns). So don't
-  rerun a suite "to be sure" and don't run the full suite unless asked.
+- **Tests are shared machine-wide:** see "Testing strategy" above. There are `DRIFTWAKE_TEST_SLOTS`
+  (default 3) Godot slots across all sessions. Passes are cached by exact code (`-Force` reruns),
+  and runs in flight are shared.
 - In a worktree, a failing test is this tree's code (or main's), never another session's
   uncommitted work. If it's in a file someone else is changing on main, say so.
 - run_tests.ps1 re-imports by itself when a `class_name` is missing from the import cache

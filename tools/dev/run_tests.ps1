@@ -9,11 +9,17 @@
 #
 # Godot: set $env:GODOT to the *console* build (Godot_v4.7-..._win64_console.exe),
 # or pass -Godot. The non-console exe doesn't print to the terminal on Windows.
-# Full logs land in tools\dev\out\logs\<suite>.log. Exit code = number of failed suites.
+# Logs land in tools\dev\out\logs\<suite>.log as the suite runs. Exit code = number of failed suites.
 #
 # Parallel sessions (tools\dev\crew_lib.ps1): every runner on the machine shares
-# $env:DRIFTWAKE_TEST_SLOTS (default 3) Godot test slots and waits for a free one, and a
-# suite that already passed on exactly this code (any session, any worktree) is skipped.
+# $env:DRIFTWAKE_TEST_SLOTS (default 3) Godot test slots and waits for a free one; a suite
+# that already passed on exactly this code (any session, any worktree) is skipped, and one
+# another runner is running on exactly this code right now is waited for, not run twice.
+# A suite is stopped early when it stalls (no output for DRIFTWAKE_TEST_STALL s, default 150),
+# its scripts don't parse, or it floods errors; a failure whose every FAIL line is a known
+# flake (tools\dev\flaky.txt) is retried once. Live status for the Tests pane: .git\crew\live.
+# -CarryFrom <tree>: a suite that passed on that tree and that nothing changed since touches
+# (test_map.txt) counts as passed here too (land.ps1 passes the branch's tree before its rebase).
 # The suite list is tools\dev\suites.txt.
 param(
 	[Parameter(Position = 0, ValueFromRemainingArguments = $true)]
@@ -24,7 +30,8 @@ param(
 	[switch]$NoCompileCheck,
 	[switch]$Changed,
 	[switch]$Force,
-	[string]$Base = "HEAD"
+	[string]$Base = "HEAD",
+	[string]$CarryFrom = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -62,97 +69,154 @@ New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
 Update-ImportCache $root $Godot
 
-# skip what already passed on exactly this code (this tree, uncommitted changes included)
 $crew = Get-CrewDir $root
 $me = Get-CrewBranch $root
 $tree = Get-TreeKey $root
 Clear-OldResults $crew
+$run = New-LiveRun $crew $root $me "tests" $Tests
+
+# skip what already passed on exactly this code (this tree, uncommitted changes included), or on
+# the tree we're carrying from when nothing since touches the suite
+$carryHit = @()
+if ($CarryFrom -and -not $Force) {
+	$carryHit = @((& (Join-Path $PSScriptRoot "affected.ps1") -Since $CarryFrom -To $tree) -split "\s+" | Where-Object { $_ })
+}
+$cachedCount = 0
 if (-not $Force) {
 	$todo = @()
 	foreach ($t in $Tests) {
 		$hit = Get-CachedPass $crew $tree $t
-		if ($hit) { Write-Host ("{0,-10}       already passed on this exact code ({1}; -Force reruns)" -f $t, $hit) -ForegroundColor DarkGreen }
-		else { $todo += $t }
+		if (-not $hit -and $CarryFrom -and $carryHit -notcontains $t) {
+			$was = Get-CachedPass $crew $CarryFrom $t
+			if ($was) {
+				Set-CachedPass $crew $tree $t "$me (carried: nothing since touches it)"
+				$hit = "$was, carried over the rebase"
+			}
+		}
+		if ($hit) {
+			Write-Host ("{0,-10}       already passed on this exact code ({1}; -Force reruns)" -f $t, $hit) -ForegroundColor DarkGreen
+			Set-LiveSuite $run $t @{ state = "cached"; why = $hit }
+			$cachedCount++
+		} else { $todo += $t }
 	}
-	$cachedCount = $Tests.Count - $todo.Count
 	$Tests = $todo
 }
+Save-LiveRun $run $true
 
 # every script compiles first (~6 s): one broken script otherwise fails every suite with noise
 if (-not $NoCompileCheck -and $Tests.Count -gt 0) {
+	$run.Data.state = "compiling"
+	Save-LiveRun $run $true
 	# (Windows PowerShell turns a native program's stderr into errors under "Stop")
 	$ErrorActionPreference = "Continue"
 	$cc = & $Godot --headless --path "$root" --script res://tools/dev/compilecheck.gd 2>&1 | ForEach-Object { "$_" }
 	$ErrorActionPreference = "Stop"
 	if ($LASTEXITCODE -ne 0) {
-		$cc | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED" } | Select-Object -Unique | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+		$errs = @($cc | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED" } | Select-Object -Unique)
+		$errs | ForEach-Object { Write-Host $_ -ForegroundColor Red }
 		Write-Host "Scripts don't compile: no suites run (-NoCompileCheck to run anyway)" -ForegroundColor Red
+		foreach ($t in $Tests) { Set-LiveSuite $run $t @{ state = "skipped"; why = "scripts don't compile"; last = @($errs | Select-Object -First 6) } }
+		$run.Data.state = "failed"; $run.Data.ended = (Get-Date).ToString("o")
+		Save-LiveRun $run $true
 		exit 100
 	}
 	Write-Host ($cc | Where-Object { $_ -match "COMPILE OK" } | Select-Object -First 1) -ForegroundColor DarkGray
+	$run.Data.state = "running"
 }
 
 function Start-Suite([string]$t, $slot) {
-	$psi = New-Object System.Diagnostics.ProcessStartInfo
-	$psi.FileName = $Godot
-	$psi.Arguments = "--headless --path `"$root`" --script res://tools/dev/$t.gd"
-	$psi.WorkingDirectory = $root
-	$psi.RedirectStandardOutput = $true
-	$psi.RedirectStandardError = $true
-	$psi.UseShellExecute = $false
-	$psi.CreateNoWindow = $true
-	$p = [System.Diagnostics.Process]::Start($psi)
-	return [pscustomobject]@{
-		Name = $t; Proc = $p; Started = Get-Date; Slot = $slot
-		Out = $p.StandardOutput.ReadToEndAsync(); Err = $p.StandardError.ReadToEndAsync()
-	}
+	$job = Start-GodotJob $Godot $root "$t.gd" "" (Join-Path $logs "$t.log")
+	$job | Add-Member -NotePropertyName Name -NotePropertyValue $t
+	$job | Add-Member -NotePropertyName Slot -NotePropertyValue $slot
+	Set-InFlight $crew $tree $t "$me $($run.Data.id)" $true
+	Set-LiveSuite $run $t @{ state = "running"; log = $job.Log; pid = $job.Proc.Id; secs = 0; why = "" }
+	return $job
 }
 
-function Finish-Suite($r) {
-	$timedOut = -not $r.Proc.HasExited
-	if ($timedOut) { try { $r.Proc.Kill() } catch {} ; $r.Proc.WaitForExit() }
-	Exit-Slot $r.Slot
-	$text = $r.Out.Result + "`n" + $r.Err.Result
-	Set-Content -Path (Join-Path $logs "$($r.Name).log") -Value $text -Encoding UTF8
-	$lines = $text -split "`r?`n" | Where-Object { $_ -cmatch "FAIL|RESULT|SCRIPT ERROR" } | Select-Object -Unique | Select-Object -First 12
-	$secs = [int]((Get-Date) - $r.Started).TotalSeconds
-	$ok = (-not $timedOut) -and ($lines -cmatch "RESULT (OK|fails=0)") -and -not ($lines -cmatch "FAIL|SCRIPT ERROR")
-	$summary = if ($timedOut) { "TIMEOUT after $Timeout s" } elseif ($lines) { ($lines -join " | ") } else { "no RESULT line (crashed?)" }
-	$color = if ($ok) { "Green" } else { "Red" }
-	Write-Host ("{0,-10} {1,4}s  {2}" -f $r.Name, $secs, $summary) -ForegroundColor $color
-	if ($ok) { Set-CachedPass $crew $tree $r.Name $me }
-	return $ok
+## Done (exited, or `trouble` says why it was stopped): its verdict; true if it passed.
+function Finish-Suite($job, [string]$trouble) {
+	if ($trouble) { Stop-GodotJob $job }
+	Update-GodotJob $job
+	Exit-Slot $job.Slot
+	Set-InFlight $crew $tree $job.Name "" $false
+	$lines = Get-JobSummary $job
+	$secs = [int]((Get-Date) - $job.Started).TotalSeconds
+	$ok = (-not $trouble) -and ($lines -cmatch "RESULT (OK|fails=0)") -and -not ($lines -cmatch "FAIL|SCRIPT ERROR")
+	$summary = if ($trouble) { $trouble.ToUpper().Substring(0, 1) + $trouble.Substring(1) } elseif ($lines) { ($lines -join " | ") } else { "no RESULT line (crashed?)" }
+	Write-Host ("{0,-10} {1,4}s  {2}" -f $job.Name, $secs, $summary) -ForegroundColor $(if ($ok) { "Green" } else { "Red" })
+	$fails = @($lines | Where-Object { $_ -cmatch "^FAIL" })
+	Set-LiveSuite $run $job.Name @{ state = $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }); secs = $secs; pid = 0
+		why = $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary }); last = @($job.Tail) }
+	if ($ok) { Set-CachedPass $crew $tree $job.Name $me }
+	return [pscustomobject]@{ Ok = $ok; Fails = $fails; Trouble = $trouble }
 }
 
-$queue = New-Object System.Collections.Queue
-$Tests | ForEach-Object { $queue.Enqueue($_) }
+$queue = New-Object System.Collections.Generic.List[string]
+$Tests | ForEach-Object { $queue.Add($_) }
 $running = @()
 $failed = @()
+$retried = @{}
 $told = $false
 while ($queue.Count -gt 0 -or $running.Count -gt 0) {
-	while ($queue.Count -gt 0 -and $running.Count -lt [Math]::Max(1, $Jobs)) {
-		$slot = Enter-Slot $crew "$me $($queue.Peek())"
+	# a suite another runner is running on this exact code: wait for its verdict instead
+	for ($i = $queue.Count - 1; $i -ge 0; $i--) {
+		$t = $queue[$i]
+		$other = Get-InFlight $crew $tree $t
+		$hit = Get-CachedPass $crew $tree $t
+		if ($hit) {
+			Write-Host ("{0,-10}       passed in another run of this exact code ({1})" -f $t, $hit) -ForegroundColor DarkGreen
+			Set-LiveSuite $run $t @{ state = "cached"; why = "passed in $hit" }
+			$cachedCount++
+			$queue.RemoveAt($i)
+		} elseif ($other) {
+			Set-LiveSuite $run $t @{ state = "shared"; why = "running in $other" }
+		} elseif ($run.Data.suites[$t].state -eq "shared") {
+			Set-LiveSuite $run $t @{ state = "queued"; why = "" }
+		}
+	}
+	while ($running.Count -lt [Math]::Max(1, $Jobs)) {
+		$next = $queue | Where-Object { $run.Data.suites[$_].state -ne "shared" } | Select-Object -First 1
+		if (-not $next) { break }
+		$slot = Enter-Slot $crew "$me $next"
 		if (-not $slot) {
 			if (-not $told) {
 				Write-Host ("Waiting for a test slot ({0} in use: {1})" -f (Get-SlotCount), ((Get-SlotHolders $crew) -join "; ")) -ForegroundColor DarkYellow
 				$told = $true
 			}
+			foreach ($q in $queue) { if ($run.Data.suites[$q].state -eq "queued") { Set-LiveSuite $run $q @{ state = "waiting"; why = "for a test slot" } } }
 			break
 		}
 		$told = $false
-		$running += Start-Suite $queue.Dequeue() $slot
+		$queue.Remove($next) | Out-Null
+		$running += Start-Suite $next $slot
 	}
 	Start-Sleep -Milliseconds 250
 	$still = @()
-	foreach ($r in $running) {
-		$elapsed = ((Get-Date) - $r.Started).TotalSeconds
-		if ($r.Proc.HasExited -or $elapsed -gt $Timeout) {
-			if (-not (Finish-Suite $r)) { $failed += $r.Name }
-		} else { $still += $r }
+	foreach ($j in $running) {
+		Update-GodotJob $j
+		$trouble = if ($j.Proc.HasExited) { "" } else { Get-JobTrouble $j $Timeout }
+		if ($j.Proc.HasExited -or $trouble) {
+			$v = Finish-Suite $j $trouble
+			if (-not $v.Ok) {
+				if (-not $v.Trouble -and -not $retried.ContainsKey($j.Name) -and (Test-AllFlaky $j.Name $v.Fails)) {
+					Write-Host ("{0,-10}       known flaky check: retrying once" -f $j.Name) -ForegroundColor DarkYellow
+					$retried[$j.Name] = $true
+					Set-LiveSuite $run $j.Name @{ state = "queued"; why = "retry: known flaky" }
+					$queue.Add($j.Name)
+				} else { $failed += $j.Name }
+			}
+		} else {
+			Set-LiveSuite $run $j.Name @{ secs = [int]((Get-Date) - $j.Started).TotalSeconds; last = @($j.Tail | Select-Object -Last 4) }
+			$still += $j
+		}
 	}
 	$running = $still
+	Save-LiveRun $run
 }
 
+$run.Data.state = $(if ($failed.Count -gt 0) { "failed" } else { "passed" })
+$run.Data.ended = (Get-Date).ToString("o")
+Save-LiveRun $run $true
 if ($failed.Count -gt 0) {
 	Write-Host ("FAILED: " + ($failed -join ", ") + "   (logs in tools\dev\out\logs)") -ForegroundColor Red
 	# (in a worktree only this tree's code runs: another session's uncommitted work can't fail it,

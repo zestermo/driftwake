@@ -61,6 +61,9 @@ if ($o) {
 	$o | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
 }
 
+# (the suites that passed on the branch as it is now, and that the rebase brings nothing in for, aren't rerun)
+$carry = (git -C $here rev-parse "$Branch^{tree}").Trim()
+
 # onto the newest target
 Write-Host "Rebasing $Branch ($n commits) onto $Onto..." -ForegroundColor Cyan
 $ErrorActionPreference = "Continue"
@@ -77,7 +80,7 @@ if ($NoTests) {
 	& $Godot --headless --path "$wt" --script res://tools/dev/compilecheck.gd 2>&1 | Out-Null
 	if ($LASTEXITCODE -ne 0) { Fail "$Branch doesn't compile on top of $Onto (run tools/dev/compilecheck.gd there)." }
 } else {
-	& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") -Changed -Base $Onto -Jobs 2
+	& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") -Changed -Base $Onto -Jobs 2 -CarryFrom $carry
 	if ($LASTEXITCODE -ne 0) { Fail "Tests failed on top of ${Onto}: not landed (logs in $wt\tools\dev\out\logs)." }
 }
 

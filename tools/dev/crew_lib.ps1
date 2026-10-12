@@ -4,12 +4,14 @@
 #   slots\     machine-wide test slots (an exclusively opened file each; the OS frees it if a runner dies)
 #   results\   suites that passed, by the exact code they ran on (a tree hash of the working tree)
 #   claims\    what each session says it's working on (crew.ps1 claim)
+#   live\      every test run's live status (<run id>.json; the Tests pane reads them)
+#   inflight\  suites running right now, by tree (a second runner of the same code waits for it)
 #   board.json the last board, for the edit hook (refreshed when older than a minute)
 
 function Get-CrewDir([string]$root) {
 	$common = (git -C $root rev-parse --path-format=absolute --git-common-dir).Trim()
 	$dir = Join-Path $common "crew"
-	foreach ($d in @("slots", "results", "claims")) { New-Item -ItemType Directory -Force -Path (Join-Path $dir $d) | Out-Null }
+	foreach ($d in @("slots", "results", "claims", "live", "inflight")) { New-Item -ItemType Directory -Force -Path (Join-Path $dir $d) | Out-Null }
 	return $dir
 }
 
@@ -200,4 +202,142 @@ function Get-Overlaps($board, [string]$me, [string[]]$files) {
 		}
 	}
 	return $out
+}
+
+# ---------------------------------------------------------------------------
+# Live test runs: every Godot a runner starts writes straight to its log file
+# (cmd's redirect, so nothing waits on a pipe), and the runner tails that file
+# each tick for the Tests pane, for stalls and for error floods.
+# ---------------------------------------------------------------------------
+
+## Quiet this long with no new output (s) and a suite is called stalled and stopped.
+function Get-StallSeconds() { if ($env:DRIFTWAKE_TEST_STALL) { return [int]$env:DRIFTWAKE_TEST_STALL }; return 150 }
+## Script errors past this, or a log past MAX_LOG_MB, and the suite is stopped as a flood.
+$script:FLOOD_ERRORS = 400
+$script:MAX_LOG_MB = 25
+
+function New-LiveRun([string]$crew, [string]$root, [string]$branch, [string]$kind, [string[]]$names) {
+	# runs older than a day go
+	Get-ChildItem (Join-Path $crew "live") -Filter "*.json" -ErrorAction SilentlyContinue |
+		Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } | Remove-Item -Force -ErrorAction SilentlyContinue
+	$id = "{0:yyyyMMdd-HHmmss}-{1}" -f (Get-Date), $PID
+	$suites = [ordered]@{}
+	foreach ($n in $names) { $suites[$n] = [ordered]@{ name = $n; state = "queued"; secs = 0; log = ""; pid = 0; last = @(); why = "" } }
+	$run = [pscustomobject]@{
+		Data = [ordered]@{ id = $id; branch = $branch; root = $root; kind = $kind; pid = $PID; started = (Get-Date).ToString("o"); ended = ""; state = "running"; suites = $suites }
+		File = Join-Path $crew "live\$id.json"
+		Saved = [datetime]::MinValue
+	}
+	Save-LiveRun $run $true
+	return $run
+}
+
+## Write the run's status (at most twice a second unless forced: the pane polls once a second).
+function Save-LiveRun($run, [bool]$force = $false) {
+	if (-not $force -and ((Get-Date) - $run.Saved).TotalMilliseconds -lt 500) { return }
+	$run.Saved = Get-Date
+	$tmp = "$($run.File).tmp"
+	[System.IO.File]::WriteAllText($tmp, ($run.Data | ConvertTo-Json -Depth 6 -Compress))
+	Move-Item -Force $tmp $run.File
+}
+
+function Set-LiveSuite($run, [string]$name, [hashtable]$fields) {
+	$s = $run.Data.suites[$name]
+	foreach ($k in $fields.Keys) { $s[$k] = $fields[$k] }
+}
+
+## A headless Godot running res://tools/dev/<script>, its stdout and stderr redirected to `log` by cmd.
+function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]$extra, [string]$log) {
+	Remove-Item $log -Force -ErrorAction SilentlyContinue
+	$gargs = "--headless --path `"$root`" --script res://tools/dev/$script" + $(if ($extra) { " -- $extra" } else { "" })
+	$psi = New-Object System.Diagnostics.ProcessStartInfo
+	$psi.FileName = "cmd.exe"
+	$psi.Arguments = "/d /c `"`"$godot`" $gargs > `"$log`" 2>&1`""
+	$psi.WorkingDirectory = $root
+	$psi.UseShellExecute = $false
+	$psi.CreateNoWindow = $true
+	$p = [System.Diagnostics.Process]::Start($psi)
+	return [pscustomobject]@{ Proc = $p; Log = $log; Started = Get-Date; Grew = Get-Date; Offset = [long]0; Carry = ""
+		Errors = 0; FirstErrors = @(); Tail = New-Object System.Collections.Generic.List[string]; Parse = $false }
+}
+
+## Read what the job wrote since last time (at most 1 MB a tick): the tail, the error count, growth.
+function Update-GodotJob($job) {
+	if (-not (Test-Path $job.Log)) { return }
+	$fs = [System.IO.File]::Open($job.Log, "Open", "Read", "ReadWrite")
+	try {
+		if ($fs.Length -le $job.Offset) { return }
+		$fs.Seek($job.Offset, "Begin") | Out-Null
+		$n = [int][Math]::Min($fs.Length - $job.Offset, 1MB)
+		$buf = New-Object byte[] $n
+		$got = $fs.Read($buf, 0, $n)
+		$job.Offset += $got
+		$job.Grew = Get-Date
+		$text = $job.Carry + [System.Text.Encoding]::UTF8.GetString($buf, 0, $got)
+		$lines = @($text -split "`r?`n")
+		$job.Carry = $lines[-1]
+		# (0..-1 counts down in PowerShell: one piece means no whole line yet)
+		$whole = if ($lines.Count -gt 1) { $lines[0..($lines.Count - 2)] } else { @() }
+		foreach ($l in $whole) {
+			if (-not $l.Trim()) { continue }
+			if ($l -match "SCRIPT ERROR") {
+				$job.Errors++
+				if ($job.FirstErrors.Count -lt 4) { $job.FirstErrors += $l.Trim() }
+				if ($l -match "Parse Error") { $job.Parse = $true }
+			}
+			$job.Tail.Add($l)
+			if ($job.Tail.Count -gt 12) { $job.Tail.RemoveAt(0) }
+		}
+	} finally { $fs.Dispose() }
+}
+
+## Why a still-running job should be stopped now ("" = let it run).
+function Get-JobTrouble($job, [int]$timeout) {
+	$age = ((Get-Date) - $job.Started).TotalSeconds
+	if ($job.Parse -and $age -gt 3) { return "scripts don't parse: " + ($job.FirstErrors | Select-Object -First 1) }
+	if ($job.Errors -gt $script:FLOOD_ERRORS) { return "error flood ($($job.Errors) script errors), first: " + ($job.FirstErrors | Select-Object -First 1) }
+	if ($job.Offset -gt $script:MAX_LOG_MB * 1MB) { return "log flood (over $($script:MAX_LOG_MB) MB)" }
+	if (((Get-Date) - $job.Grew).TotalSeconds -gt (Get-StallSeconds)) { return "stalled (no output for $(Get-StallSeconds) s)" }
+	if ($age -gt $timeout) { return "timeout after $timeout s" }
+	return ""
+}
+
+function Stop-GodotJob($job) {
+	if (-not $job.Proc.HasExited) { & taskkill /T /F /PID $job.Proc.Id 2>&1 | Out-Null }
+	$job.Proc.WaitForExit(5000) | Out-Null
+}
+
+## The log's verdict lines (FAIL, RESULT, SCRIPT ERROR; streamed, not read whole), unique, first `n`.
+function Get-JobSummary($job, [int]$n = 12) {
+	if (-not (Test-Path $job.Log)) { return @() }
+	return @(Select-String -Path $job.Log -Pattern "FAIL|RESULT|SCRIPT ERROR" -CaseSensitive |
+		ForEach-Object { $_.Line.Trim() } | Select-Object -Unique | Select-Object -First $n)
+}
+
+## Known flaky checks (tools/dev/flaky.txt: "suite | text in the FAIL line"): every FAIL known -> one retry.
+function Test-AllFlaky([string]$suite, [string[]]$fails) {
+	$f = Join-Path $PSScriptRoot "flaky.txt"
+	if (-not (Test-Path $f) -or $fails.Count -eq 0) { return $false }
+	$known = @(Get-Content $f | Where-Object { $_ -match "^\s*[^#\s]" } | ForEach-Object { $p = $_ -split "\|", 2; if ($p.Count -eq 2) { , @($p[0].Trim(), $p[1].Trim()) } })
+	foreach ($l in $fails) {
+		$ok = $false
+		foreach ($k in $known) { if ($k[0] -eq $suite -and $l.Contains($k[1])) { $ok = $true } }
+		if (-not $ok) { return $false }
+	}
+	return $true
+}
+
+## Someone else running this exact suite on this exact code right now: their run id, or "".
+function Get-InFlight([string]$crew, [string]$tree, [string]$suite) {
+	$f = Join-Path $crew "inflight\$tree-$suite.txt"
+	if (-not (Test-Path $f)) { return "" }
+	$p = (Get-Content $f -Raw).Trim() -split " ", 2
+	if (Get-Process -Id ([int]$p[0]) -ErrorAction SilentlyContinue) { return $p[1] }
+	Remove-Item $f -Force -ErrorAction SilentlyContinue
+	return ""
+}
+
+function Set-InFlight([string]$crew, [string]$tree, [string]$suite, [string]$label, [bool]$on) {
+	$f = Join-Path $crew "inflight\$tree-$suite.txt"
+	if ($on) { Set-Content -Path $f -Value "$PID $label" -Encoding UTF8 } else { Remove-Item $f -Force -ErrorAction SilentlyContinue }
 }

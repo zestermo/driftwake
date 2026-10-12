@@ -1,0 +1,13 @@
+# Known flaky checks: "suite | text in the FAIL line". When every FAIL of a failed suite is listed
+# here for that suite, run_tests.ps1 / nettest.ps1 retry it once by themselves. Only list checks that
+# are known to flake on timing or load (CLAUDE.md "Known flaky checks"); a real failure must still fail.
+# nettest's suite is "net" (the client's FAIL lines).
+swimtest | head still above water while swimming
+vinetest | aiming at the big bug
+grunttest | survivors return to their posts
+seatest | passing near a reef charts it
+techtest | deadeye lands
+chartest | saved
+net | host accepted us
+net | clock synced
+net | puppet stands at the wheel

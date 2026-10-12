@@ -3,24 +3,31 @@
 #   .\tools\dev\affected.ps1                 # uncommitted changes (and new files) vs HEAD
 #   .\tools\dev\affected.ps1 -Base main      # everything this branch changed since main, plus uncommitted
 #   .\tools\dev\affected.ps1 -Explain        # which file pulled in which suites
+#   .\tools\dev\affected.ps1 -Since <tree> -To <tree>   # what changed between two trees (run_tests -CarryFrom)
 #
 # Prints the suites on one line (or nothing). "net" means run nettest.ps1 as well, "netchain" nettest.ps1 chain.
 # Changed .gd files no line covers are listed as unmapped (consider a map line).
 param(
 	[string]$Base = "HEAD",
-	[switch]$Explain
+	[switch]$Explain,
+	[string]$Since = "",
+	[string]$To = ""
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 Push-Location $root
 try {
 	$files = @()
-	if ($Base -ne "HEAD") {
-		$mb = (git merge-base $Base HEAD).Trim()
-		$files += git diff --name-only $mb HEAD
+	if ($Since) {
+		$files += git diff --name-only $Since $To
+	} else {
+		if ($Base -ne "HEAD") {
+			$mb = (git merge-base $Base HEAD).Trim()
+			$files += git diff --name-only $mb HEAD
+		}
+		$files += git diff --name-only HEAD
+		$files += git ls-files --others --exclude-standard
 	}
-	$files += git diff --name-only HEAD
-	$files += git ls-files --others --exclude-standard
 	$files = @($files | Where-Object { $_ } | ForEach-Object { $_ -replace "\\", "/" } | Select-Object -Unique)
 
 	$map = @()

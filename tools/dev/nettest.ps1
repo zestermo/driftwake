@@ -6,10 +6,13 @@
 #   .\tools\dev\nettest.ps1 water
 #   .\tools\dev\nettest.ps1 chain
 #
-# Godot: $env:GODOT = the 4.7 *console* exe (or -Godot). Logs: tools\dev\out\logs\net*.log
+# Godot: $env:GODOT = the 4.7 *console* exe (or -Godot). Logs: tools\dev\out\logs\net*.log, written
+# as they run (the Tests pane shows them live).
 #
-# Like run_tests.ps1 it takes machine-wide test slots (one per Godot it starts) and skips a
-# mode that already passed on exactly this code (-Force reruns).
+# Like run_tests.ps1 it takes machine-wide test slots (one per Godot it starts), skips a mode that
+# already passed on exactly this code (-Force reruns), waits for a run of the same mode on the same
+# code instead of starting a second, stops a Godot that stalls, can't parse its scripts or floods
+# errors, and retries once when every failure is a known flake (tools\dev\flaky.txt, suite "net").
 param(
 	[Parameter(Position = 0)][string]$Mode = "",
 	[string]$Godot = $env:GODOT,
@@ -29,12 +32,29 @@ $me = Get-CrewBranch $root
 Update-ImportCache $root $Godot
 $tree = Get-TreeKey $root
 $key = if ($Mode) { "net-$Mode" } else { "net" }
-$hit = Get-CachedPass $crew $tree $key
-if ($hit -and -not $Force) {
-	Write-Host "CO-OP TEST OK (already passed on this exact code: $hit; -Force reruns)" -ForegroundColor Green
-	exit 0
+
+function Test-Done() {
+	$hit = Get-CachedPass $crew $tree $key
+	if ($hit -and -not $Force) {
+		Write-Host "CO-OP TEST OK (already passed on this exact code: $hit; -Force reruns)" -ForegroundColor Green
+		exit 0
+	}
 }
-$slots = Wait-Slots $crew $(if ($Mode -eq "three") { 3 } else { 2 }) "$me $key"
+Test-Done
+# the same mode on the same code already running somewhere: wait for its verdict
+$told = $false
+while ($other = Get-InFlight $crew $tree $key) {
+	if (-not $told) { Write-Host "Waiting for the same co-op test already running ($other)..." -ForegroundColor DarkYellow; $told = $true }
+	Start-Sleep -Seconds 2
+}
+Test-Done
+
+$names = @("host", "client") + $(if ($Mode -eq "three") { @("watch") } else { @() })
+$run = New-LiveRun $crew $root $me $key $names
+Set-InFlight $crew $tree $key "$me $($run.Data.id)" $true
+foreach ($n in $names) { Set-LiveSuite $run $n @{ state = "waiting"; why = "for test slots" } }
+Save-LiveRun $run $true
+$slots = Wait-Slots $crew $names.Count "$me $key"
 
 $port = 24700 + (Get-Random -Maximum 250)
 $delay = "2.5"
@@ -42,49 +62,69 @@ if ($Mode -eq "late") { $port = 24680; $delay = "7" }
 # (the host is boarded before we join)
 if ($Mode -eq "board") { $delay = "10" }
 if ($Mode -eq "chain") { $delay = "6"; $Timeout = [Math]::Max($Timeout, 500) }
-
-function Start-Godot([string]$script, [string]$extra, [string]$log) {
-	$psi = New-Object System.Diagnostics.ProcessStartInfo
-	$psi.FileName = $Godot
-	$psi.Arguments = "--headless --path `"$root`" --script res://tools/dev/$script -- $extra"
-	$psi.WorkingDirectory = $root
-	$psi.RedirectStandardOutput = $true
-	$psi.RedirectStandardError = $true
-	$psi.UseShellExecute = $false
-	$psi.CreateNoWindow = $true
-	$p = [System.Diagnostics.Process]::Start($psi)
-	return [pscustomobject]@{ Proc = $p; Log = $log; Out = $p.StandardOutput.ReadToEndAsync(); Err = $p.StandardError.ReadToEndAsync() }
-}
-
-function Wait-Godot($g) {
-	if (-not $g.Proc.WaitForExit($Timeout * 1000)) { try { $g.Proc.Kill() } catch {}; $g.Proc.WaitForExit() }
-	$text = $g.Out.Result + "`n" + $g.Err.Result
-	Set-Content -Path (Join-Path $logs $g.Log) -Value $text -Encoding UTF8
-	return $text
-}
-
 $modeArg = if ($Mode) { $Mode } else { "" }
-$host_ = Start-Godot "nethost.gd" "$port $modeArg" "nethost.log"
-$watch = $null
-if ($Mode -eq "three") { $watch = Start-Godot "netwatch.gd" "$port 10" "netwatch.log" }
-Start-Sleep -Milliseconds 300
-$client = Start-Godot "netclient.gd" "$port $delay $modeArg" "netclient.log"
 
-$ct = Wait-Godot $client
-$ht = Wait-Godot $host_
-Write-Host "--- client" -ForegroundColor Cyan
-$ct -split "`r?`n" | Where-Object { $_ -cmatch "PASS|FAIL|RESULT|SCRIPT ERROR|^  " } | ForEach-Object { Write-Host $_ }
-Write-Host "--- host" -ForegroundColor Cyan
-$ht -split "`r?`n" | Where-Object { $_ -cmatch "SCRIPT ERROR|HOST|PASS|FAIL" } | Select-Object -First 20 | ForEach-Object { Write-Host $_ }
-$bad = -not ($ct -cmatch "RESULT OK")
-if ($watch) {
-	$wt = Wait-Godot $watch
-	Write-Host "--- watcher" -ForegroundColor Cyan
-	$wt -split "`r?`n" | Where-Object { $_ -cmatch "PASS|FAIL|RESULT|SCRIPT ERROR" } | ForEach-Object { Write-Host $_ }
-	if (-not ($wt -cmatch "RESULT OK")) { $bad = $true }
+## One go: host, client (and watcher) until the client and host are done. True if it passed.
+function Invoke-Once() {
+	$jobs = [ordered]@{}
+	$jobs["host"] = Start-GodotJob $Godot $root "nethost.gd" "$port $modeArg" (Join-Path $logs "nethost.log")
+	if ($Mode -eq "three") { $jobs["watch"] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10" (Join-Path $logs "netwatch.log") }
+	Start-Sleep -Milliseconds 300
+	$jobs["client"] = Start-GodotJob $Godot $root "netclient.gd" "$port $delay $modeArg" (Join-Path $logs "netclient.log")
+	foreach ($n in $jobs.Keys) { Set-LiveSuite $run $n @{ state = "running"; log = $jobs[$n].Log; pid = $jobs[$n].Proc.Id; why = "" } }
+	$trouble = @{}
+	while ($true) {
+		$open = 0
+		foreach ($n in $jobs.Keys) {
+			$j = $jobs[$n]
+			Update-GodotJob $j
+			if (-not $j.Proc.HasExited) {
+				$t = Get-JobTrouble $j $Timeout
+				if ($t) {
+					Stop-GodotJob $j
+					$trouble[$n] = $t
+				} else { $open++ }
+			}
+			Set-LiveSuite $run $n @{ secs = [int]((Get-Date) - $j.Started).TotalSeconds; last = @($j.Tail | Select-Object -Last 4) }
+		}
+		Save-LiveRun $run
+		# (a stopped host takes the client with it, and the other way round)
+		if ($trouble.Count -gt 0) { foreach ($n in $jobs.Keys) { if (-not $jobs[$n].Proc.HasExited) { Stop-GodotJob $jobs[$n]; if (-not $trouble[$n]) { $trouble[$n] = "stopped with the others" } } } }
+		if ($open -eq 0 -or $trouble.Count -gt 0) { break }
+		Start-Sleep -Milliseconds 250
+	}
+	$ok = $true
+	foreach ($n in $jobs.Keys) {
+		$j = $jobs[$n]
+		Update-GodotJob $j
+		$lines = Get-JobSummary $j 40
+		$fails = @($lines | Where-Object { $_ -cmatch "^FAIL|SCRIPT ERROR" })
+		$good = if ($n -eq "host") { -not $trouble[$n] -and -not ($lines -cmatch "SCRIPT ERROR") } else { -not $trouble[$n] -and ($lines -cmatch "RESULT OK") }
+		if (-not $good) { $ok = $false }
+		Write-Host "--- $n" -ForegroundColor Cyan
+		if ($trouble[$n]) { Write-Host $trouble[$n] -ForegroundColor Red }
+		$lines | Where-Object { $_ -cmatch "FAIL|RESULT|SCRIPT ERROR" } | Select-Object -First 20 | ForEach-Object { Write-Host $_ }
+		Set-LiveSuite $run $n @{ state = $(if ($good) { "passed" } elseif ($trouble[$n]) { "stopped" } else { "failed" }); pid = 0; last = @($j.Tail)
+			why = $(if ($trouble[$n]) { $trouble[$n] } elseif ($fails) { $fails[0] } elseif (-not $good) { "no RESULT OK" } else { "" }) }
+	}
+	Save-LiveRun $run $true
+	$script:lastFails = @(Get-JobSummary $jobs["client"] 40 | Where-Object { $_ -cmatch "^FAIL" })
+	$script:lastTrouble = $trouble.Count -gt 0
+	return $ok
+}
+
+$ok = Invoke-Once
+if (-not $ok -and -not $script:lastTrouble -and (Test-AllFlaky "net" $script:lastFails)) {
+	Write-Host "Known flaky co-op check: retrying once" -ForegroundColor DarkYellow
+	foreach ($n in $names) { Set-LiveSuite $run $n @{ state = "running"; why = "retry: known flaky" } }
+	$ok = Invoke-Once
 }
 foreach ($s in $slots) { Exit-Slot $s }
-if ($bad) { Write-Host "CO-OP TEST FAILED" -ForegroundColor Red; exit 1 }
+Set-InFlight $crew $tree $key "" $false
+$run.Data.state = $(if ($ok) { "passed" } else { "failed" })
+$run.Data.ended = (Get-Date).ToString("o")
+Save-LiveRun $run $true
+if (-not $ok) { Write-Host "CO-OP TEST FAILED" -ForegroundColor Red; exit 1 }
 Set-CachedPass $crew $tree $key $me
 Write-Host "CO-OP TEST OK" -ForegroundColor Green
 exit 0
