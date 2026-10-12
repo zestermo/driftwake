@@ -64,10 +64,21 @@ Each phase lands before the next starts. Inside a phase, agents claim disjoint a
 | Phase | Agents (parallel) | Lands when |
 |---|---|---|
 | 0. Measure | 1: fidelity metrics tool + matched-camera render sheet + fidelitytest (report only at first) + Brinehollow's baseline numbers | the baseline numbers and sheets are in `docs/island_fidelity_baseline.md` |
-| 1. Extract the kit | 1 (serial: it rewrites starter_island.gd): kit modules + Brinehollow rebuilt from them | Brinehollow's suites pass, islandshot before/after match, metrics unchanged |
+| 1. Extract the kit (**done 2026-10-11**) | 1 (serial: it rewrites starter_island.gd): kit modules + Brinehollow rebuilt from them | Brinehollow's suites pass, islandshot before/after match, metrics unchanged |
 | 2. Build the kits out | 3-4 at once, each owning kit files: **harbour + waterfront**, **village + market + dressing passes**, **wilds POIs + caves/interiors**, **life (NPC routines, barks, quests)**; plus **theme** (jungle style table) | each kit has its own render sheet; a generated island using it scores higher |
 | 3. District planner | 1: the planner assembling the kits, the performance budget, co-op determinism (nettest chain) | fidelitytest passes at >= 80% on 10 seeds; the build-time and draw-call budgets hold |
 | 4. Polish loop | rounds of: Zach plays a seed, F12 captures, agents fix what reads as sparse | Zach signs off |
+
+**Phase 2 claims** (from phase 1's kit; each agent claims these with `crew.ps1 claim`):
+- harbour + waterfront: `scripts/island/kit/kit_harbour.gd` (a GenIsland harbour: KitHarbour.plan on a
+  generated coast, the frame from `dock_dir`), new harbour models;
+- village + market + dressing: `kit_village.gd`, `kit_market.gd`, `kit_paving.gd`, `island_village.gd`;
+- wilds POIs + caves/interiors: `kit_camps.gd`, `kit_landmarks.gd`, `kit_cave.gd`, `brood_cave.gd`,
+  `island_content.gd`, `beast_arena.gd`;
+- life: `kit_life.gd`, a new routines/barks file; `brinehollow_cast.gd` only if Brinehollow's people change;
+- theme: `kit_style.gd` (the JUNGLE table), `island_theme.gd`.
+Shared and small: `kit_context.gd`, `kit_lights.gd` and `island.gd` (additions only, tell the others);
+`starter_island.gd` only through the islanddump check (Brinehollow must stay identical).
 
 Skill: a `driftwake-islands` skill (written in phase 1, grown in 2-3): how to author a kit piece,
 the island context API, seeding, the performance rules, and the fidelity check, so every later

@@ -16,16 +16,19 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
 - **Order after phase 1:** parallel. Settlement, adventure and life agents at once, each in its own
   worktree with crew claims.
 
-**Phase 1: the kit** (one agent, serial)
-- [ ] Extract Brinehollow's builders into `scripts/island/kit/` modules (harbour/quay/waterfront,
+**Phase 1: the kit** (one agent, serial; done 2026-10-11, see dev_notes)
+- [x] Extract Brinehollow's builders into `scripts/island/kit/` modules (harbour/quay/waterfront,
   village houses + dressing passes, market, paving, landmarks, camps/den/training yard, cave +
   interior, NPCs + life, night lights). Each takes an island context instead of Brinehollow's
   constants and fixed seeds. The grouping and what each depends on are in the baseline doc.
-- [ ] Rebuild Brinehollow from the kit: same look (islandshot before/after), same play (its suites),
-  the same fidelity numbers, and the same save ids and story node names.
-- [ ] Each kit module reports its own build ms. Brinehollow's 6.6-7 s single-frame build gets a breakdown.
-- [ ] Write the `driftwake-islands` skill: how to author a kit piece, the island context API,
+- [x] Rebuild Brinehollow from the kit: same look (islandshot before/after), same play (its suites),
+  the same fidelity numbers, and the same save ids and story node names (islanddump: identical).
+- [x] Each kit module reports its own build ms. Brinehollow's 6.6-7 s single-frame build gets a breakdown.
+- [x] Write the `driftwake-islands` skill: how to author a kit piece, the island context API,
   seeding, performance rules and the fidelity check.
+- [ ] Left for phase 2-3: per-item seeds for the pieces whose rng is drawn while meshing (bunting,
+  laundry, garden, wares, quay coping) so they can split into a worker plan (changes Brinehollow's
+  look slightly: Zach's call); `Props.straw_dummy_mesh` is unseeded (differs per build and per co-op screen).
 
 **Phase 2: build out** (parallel agents)
 - [ ] **Harbours that vary by island:** each island rolls one type (stilt fishing port with

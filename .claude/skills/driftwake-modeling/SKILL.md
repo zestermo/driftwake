@@ -51,7 +51,7 @@ own world); this skill covers everything else.
 | Weapons | `WeaponDesigns` | numbers per design in `DESIGNS` -> `build("<kind>:<design>:<tier>")`; `Props.weapon_mesh` caches by that string; icons drawn from the mesh |
 | Creatures | `scripts/enemies/scuttlebug.gd`, `sea_king.gd` | blobs and segments on rigs |
 | Terrain-scale rock | `scripts/island/brood_cave.gd` | crag outside + chamber inside on one polar grid, mouth arch, dripstone, puddles and drips, lichen; trimesh collision |
-| Placing | `StarterIsland.place()`, `_house()`, `_dress_village`, `_scatter_vegetation` | ground height, footprints, exclusions, MultiMesh cells |
+| Placing | the island kit (`scripts/island/kit/`, skill `driftwake-islands`): `KitContext.place/house`, `KitVillage` dressing; `StarterIsland._scatter_vegetation` | ground height, footprints, exclusions, MultiMesh cells |
 | Textures | `tools/texture_gen/gen_psx_textures.py` | 64x64 tileable, palette-quantized, fixed seeds |
 | Worked examples | `tools/dev/model_samples.gd` | anchor, ship's lantern, naval cannon (the recipe below in code) |
 
@@ -198,7 +198,7 @@ thing: build the mesh once and reuse it (`Props.weapon_mesh` caches by model str
 ## Kinds of model
 
 - **Buildings:** copy `Buildings.house`. A stone footing reaching below the origin (the
-  island's `_house()` sets `foundation` from the ground under it so nothing floats on a
+  island's `KitContext.house()` sets `foundation` from the ground under it so nothing floats on a
   slope). Lit windows with the window texture as their emission mask. Interiors: walls
   0.3 thick, markers for NPCs, `tiled_box` walls, the doorway wide enough to fight in.
 - **Ships:** `HullBuilder.RINGS` are the cross-sections `[z, top half-width, bottom
@@ -244,7 +244,7 @@ thing: build the mesh once and reuse it (`Props.weapon_mesh` caches by model str
 - **Vegetation:** returns an `ArrayMesh` for MultiMesh; cutout cards with wind for leaves;
   keep it tiny.
 - **Locations:** `place(node, p, yaw, footprint)` puts it on the ground and reserves its
-  footprint; dress with paths (`_pave_path`), clutter, lights from the budget; never move an
+  footprint; dress with paths (`KitPaving`), clutter, lights from the budget; never move an
   existing place or NPC spot without asking.
 
 ## Tools
