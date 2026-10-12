@@ -387,13 +387,14 @@ func _draw_xp() -> void:
 
 ## Pistols: loaded shots per gun over the middle of the plate.
 func _draw_ammo() -> void:
-	if player.weapon_class() != "gun":
+	var blade_gun := player.style() == "sword_pistol"
+	if player.weapon_class() != "gun" and not blade_gun:
 		return
 	var c := Vector2(W * 0.5, PLATE_Y - 6.0)
 	if player.reloading():
 		_text(c + Vector2(-40, 3), "RELOADING", Color(1.0, 0.85, 0.5, 0.6 + 0.4 * sin(_t * 10.0)), 8, HORIZONTAL_ALIGNMENT_CENTER, 80)
 		return
-	var guns := 2 if player.offhand_weapon else 1
+	var guns := 2 if player.offhand_weapon and not blade_gun else 1
 	var mx := player.max_ammo()
 	var x := c.x - float(guns * mx) * 3.5 - (4.0 if guns == 2 else 0.0)
 	for g in range(guns):

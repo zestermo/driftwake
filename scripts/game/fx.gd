@@ -505,17 +505,17 @@ func splash(pos: Vector3, amount: int = 4, size: float = 0.6) -> void:
 
 
 ## Powder smoke: soft grey puffs that swell, drift up and linger.
-func smoke(pos: Vector3, amount: int = 6, size: float = 0.8, life: float = 1.6) -> void:
+func smoke(pos: Vector3, amount: int = 6, size: float = 0.8, life: float = 1.6, color: Color = Color(0.72, 0.72, 0.7, 0.75)) -> void:
 	_burst(pos, amount, _dust_mat, size, life, {
 		"radius": 0.15, "spread": 70.0, "vel_min": 0.2, "vel_max": 0.8, "gravity": Vector3(0, 0.45, 0),
-		"damping": 1.2, "explosiveness": 0.9, "color": Color(0.72, 0.72, 0.7, 0.75)})
+		"damping": 1.2, "explosiveness": 0.9, "color": color})
 
 
 ## Gunshot sparks: a hot spray out of the muzzle along `dir`.
-func muzzle_sparks(pos: Vector3, dir: Vector3, amount: int = 10) -> void:
+func muzzle_sparks(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1.0, 0.75, 0.35)) -> void:
 	_burst(pos, amount, _spark_mat, 0.16, 0.3, {
 		"radius": 0.04, "direction": dir, "spread": 16.0, "vel_min": 5.0, "vel_max": 10.0,
-		"gravity": Vector3(0, -4.0, 0), "damping": 6.0, "grow": false, "color": Color(1.0, 0.75, 0.35)})
+		"gravity": Vector3(0, -4.0, 0), "damping": 6.0, "grow": false, "color": color})
 
 
 ## Hit impact: a flash plus a spray of sparks.
@@ -1059,6 +1059,8 @@ const TREE_FX := {
 	"axe": [Color(1.0, 0.9, 0.6), Color(1.0, 0.5, 0.15), Color(1.0, 0.32, 0.08)],
 	"dual": [Color(0.95, 0.98, 1.0), Color(0.35, 0.9, 0.95), Color(0.75, 0.45, 1.0)],
 	"pistol": [Color(1.0, 0.95, 0.75), Color(1.0, 0.75, 0.25), Color(0.7, 0.7, 0.68)],
+	# sword + pistol: black powder - scarlet flash, gold sparks (dark smoke with them)
+	"corsair": [Color(1.0, 0.95, 0.82), Color(1.0, 0.34, 0.26), Color(1.0, 0.8, 0.34)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1148,8 +1150,73 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			petals(pos, dir, amount, c, speed)
 		"axe":
 			embers(pos, dir, amount, c, speed)
+		"dual":
+			motes(pos, dir, maxi(amount / 2, 2), tree_col(tree, EDGE), speed)
+			motes(pos, dir, maxi(amount / 2, 2), c, speed * 0.8)
+		"corsair":
+			muzzle_sparks(pos, dir, amount, c)
+			smoke(pos, maxi(amount / 4, 2), 0.6, 1.1, POWDER_SMOKE)
 		_:
 			spray(pos, dir, amount, c, speed)
+
+
+## Black powder smoke (the Corsair's element: darker than a plain gunshot's).
+const POWDER_SMOKE := Color(0.24, 0.22, 0.24, 0.8)
+
+
+## Bright motes thrown along `dir` that slow and hang a moment (the dual blades'
+## twin currents).
+func motes(pos: Vector3, dir: Vector3, amount: int = 8, color: Color = Color.WHITE, speed: float = 4.0) -> void:
+	_burst(pos, amount, _spark_mat, 0.14, 0.5, {"radius": 0.12, "direction": dir.normalized(), "spread": 45.0,
+		"vel_min": speed * 0.4, "vel_max": speed, "gravity": Vector3.ZERO, "damping": 6.0, "grow": false,
+		"color": Color(color.r, color.g, color.b, 1.0)})
+
+
+## Black powder going off (the Corsair's shots and blasts): a flash, sparks
+## thrown along `dir`, a ring of air and a puff of dark smoke. `size` scales it
+## (a combo shot ~0.7, a cannon-blast ~2).
+func powder_burst(pos: Vector3, dir: Vector3, size: float = 1.0, color: Color = Color(1.0, 0.34, 0.26)) -> void:
+	var d := dir.normalized() if dir.length() > 0.01 else Vector3.UP
+	_burst(pos, 1, _impact_mat, 0.9 * size, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+		"grow": true, "color": Color(1, 1, 1, 1)})
+	_burst(pos, int(8 * size) + 4, _spark_mat, 0.15, 0.4, {"radius": 0.08, "direction": d, "spread": 50.0,
+		"vel_min": 3.0 * size, "vel_max": 7.0 * size, "gravity": Vector3(0, -7.0, 0), "damping": 3.0, "grow": false,
+		"color": tree_col("corsair", ACCENT)})
+	ring(pos, d, 0.8 * size, color, 0.2, 0.18)
+	smoke(pos, int(3 * size) + 2, 0.55 * size + 0.2, 1.0 + 0.3 * size, POWDER_SMOKE)
+
+
+## A cannonball landing (Broadside, the sword-and-pistol ultimate): a flash, rock
+## and dirt thrown up, a ring racing out and a column of smoke. With a `glow`
+## colour (the element) it burns: a ring of it, sparks, flame and black smoke.
+func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 0)) -> void:
+	var hot := glow.a > 0.0
+	_burst(pos + Vector3(0, 0.5, 0), 1, _impact_mat, 2.0 * size, 0.14, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+		"grow": true, "color": Color(1, 1, 1, 1)})
+	debris(pos + Vector3(0, 0.1, 0), Vector3.UP, 12, Color(0.35, 0.3, 0.25), 6.5)
+	dust_ring(pos, 18, 1.1 * size)
+	ring(pos, Vector3.UP, 2.6 * size, glow if hot else Color(1.0, 0.95, 0.85), 0.4, 0.14)
+	smoke(pos + Vector3(0, 0.6, 0), 9, 0.9 * size, 2.0, POWDER_SMOKE if hot else Color(0.62, 0.6, 0.58, 0.8))
+	if hot:
+		_burst(pos + Vector3(0, 0.3, 0), 20, _spark_mat, 0.16, 0.6, {"radius": 0.3, "direction": Vector3.UP, "spread": 55.0,
+			"vel_min": 4.0, "vel_max": 9.0, "gravity": Vector3(0, -9.0, 0), "damping": 1.5, "grow": false,
+			"color": tree_col("corsair", ACCENT)})
+		flame(pos + Vector3(0, 0.3, 0), 10, 0.8, 0.5, 0.6)
+		ring(pos + Vector3(0, 0.6, 0), Vector3.UP, 1.6 * size, tree_col("corsair", ACCENT), 0.3, 0.2)
+	else:
+		dust(pos + Vector3(0, 0.1, 0), 8, 1.0)
+
+
+## An X of two light-streaks through `pos` (the dual blades' mark): upright,
+## facing along `dir`, or `flat` on the ground; one stroke in each colour.
+func twin_cross(pos: Vector3, dir: Vector3, size: float = 1.0, a: Color = Color(0.35, 0.9, 0.95), b: Color = Color(0.75, 0.45, 1.0), life: float = 0.3, flat: bool = false) -> void:
+	var f := Vector3(dir.x, 0.0, dir.z)
+	f = f.normalized() if f.length() > 0.01 else Vector3.FORWARD
+	var right := f.cross(Vector3.UP).normalized()
+	var up := f if flat else Vector3.UP
+	var w := 0.08 + 0.04 * size
+	streak(pos - right * size + up * size, pos + right * size - up * size, a, w, life)
+	streak(pos + right * size + up * size, pos - right * size - up * size, b, w, life)
 
 
 static var _ember_ramps: Dictionary = {}
@@ -1420,6 +1487,11 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"axe":
 			embers(pos, dir + Vector3.UP * 0.4, 9, accent, 4.0)
 			ring(pos, dir, 0.9, edge, 0.18, 0.2)
+		"dual":
+			twin_cross(pos, dir, 0.45, edge, accent, 0.2)
+			motes(pos, dir + Vector3.UP * 0.3, 6, accent, 3.5)
+		"corsair":
+			powder_burst(pos, dir, 0.6, edge)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)
@@ -1447,9 +1519,10 @@ func screen_flash(at: Vector3, color: Color = Color(1, 1, 1, 0.5), secs: float =
 # Slash trails
 # --------------------------------------------------------------------------
 ## A strike's trail traced by the real blade (moves with a swing path): the weapons in
-## `body`'s hands draw a fading ribbon for `secs`. Other screens replay it on their copy of
-## the body, which plays the same animation.
-func blade_swoosh(body: Node3D, secs: float, color: Color = Color(0.45, 0.75, 1.0)) -> void:
+## `body`'s hands draw a fading ribbon for `secs` (the off hand's in `color_l` if given:
+## the dual blades' paired trails). Other screens replay it on their copy of the body,
+## which plays the same animation.
+func blade_swoosh(body: Node3D, secs: float, color: Color = Color(0.45, 0.75, 1.0), color_l: Color = Color(0, 0, 0, 0)) -> void:
 	# (the anim lab's clean view already draws the blade's trail)
 	if AnimLab.clean or not body is Humanoid:
 		return
@@ -1457,6 +1530,7 @@ func blade_swoosh(body: Node3D, secs: float, color: Color = Color(0.45, 0.75, 1.
 	t.body = body
 	t.emit = secs
 	t.color = color
+	t.color_l = color_l if color_l.a > 0.0 else color
 	t.life = 0.14
 	body.add_child(t)
 

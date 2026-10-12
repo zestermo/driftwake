@@ -86,6 +86,9 @@ func arm(style: String) -> void:
 		"dual_sword":
 			p.equip_weapon(item("cutlass"), false)
 			p.set_offhand(item("cutlass"))
+		"sword_pistol":
+			p.equip_weapon(item("cutlass"), false)
+			p.set_offhand(item("pistol"))
 		"pistol":
 			p.equip_weapon(item("pistol"), false)
 	p.sheathe_weapon(true)
@@ -104,6 +107,9 @@ const CASES := [
 	["blade_dance", "dual_sword", 3.0, ""],
 	["cross_fang", "dual_sword", 3.5, ""],
 	["steel_tempest", "dual_sword", 2.0, ""],
+	["grapeshot", "sword_pistol", 3.5, ""],
+	["crossfire", "sword_pistol", 5.0, "down"],
+	["broadside", "sword_pistol", 6.0, "down"],
 	["deadeye", "pistol", 10.0, ""],
 	["point_blank", "pistol", 2.5, ""],
 	["deaths_waltz", "pistol", 8.0, ""],
@@ -155,7 +161,7 @@ func _process(d: float) -> bool:
 					missing.append(k)
 			check("every node in every tree can be learned (missing: %s)" % str(missing), missing.is_empty())
 			var trees_ok := true
-			for tr in ["unarmed", "sword", "katana", "axe", "dual", "pistol"]:
+			for tr in ["unarmed", "sword", "katana", "axe", "dual", "corsair", "pistol"]:
 				var n := 0
 				var ults := 0
 				for k in SkillTree.nodes().keys():
@@ -220,7 +226,7 @@ func _process(d: float) -> bool:
 					pc.cooldowns.clear()
 					check("cast %s" % c[0], pc.try_cast(slot))
 					phase = 2
-					wait = 3.4 if str(c[0]) in ["maelstrom", "steel_tempest", "deaths_waltz", "giant_swing"] else 1.8
+					wait = 3.4 if str(c[0]) in ["maelstrom", "steel_tempest", "deaths_waltz", "giant_swing", "broadside"] else 1.8
 				2:
 					var hurt: bool = not is_instance_valid(g) or g.health.current_health < v0
 					check("%s lands (%.0f -> %.0f)" % [c[0], v0, g.health.current_health if is_instance_valid(g) else 0.0], hurt)
@@ -284,7 +290,7 @@ func _process(d: float) -> bool:
 			step = 30
 		30:
 			# the guard skills (Riposte, Iai Counter, Crossed Counter) turn a blow aside and answer it
-			var gs: Array = [["riposte", "sword"], ["iai_counter", "katana"], ["cross_counter", "dual_sword"]][guard]
+			var gs: Array = [["riposte", "sword"], ["iai_counter", "katana"], ["cross_counter", "dual_sword"], ["parley", "sword_pistol"]][guard]
 			arm(str(gs[1]))
 			face(g.global_position)
 			pc.equip(str(gs[0]), 0)
@@ -309,7 +315,7 @@ func _process(d: float) -> bool:
 			if p.style() == "katana":
 				check("the katana is back in hand after the counter", p.body_model.weapon_in_hand)
 			guard += 1
-			step = 30 if guard < 3 else 33
+			step = 30 if guard < 4 else 33
 		33:
 			# a guard that nobody tests: Iai Counter draws the blade again
 			arm("katana")

@@ -47,3 +47,4 @@ airtest
 leveltest
 legtest
 fidelitytest
+wieldtest

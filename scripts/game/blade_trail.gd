@@ -12,6 +12,8 @@ const LIFE := 0.16
 var body: Humanoid
 var manual := false
 var color := Color(1, 1, 1)
+## The off hand's blade (defaults to `color`).
+var color_l := Color(1, 1, 1)
 var life := LIFE
 ## Seconds left to sample (-1: for good); when it runs out the trail fades and frees itself.
 var emit := -1.0
@@ -55,7 +57,9 @@ func sample(delta: float) -> void:
 	for i in 2:
 		var w: MeshInstance3D = blades[i]
 		var pts: Array = _pts[i]
-		if emitting and w != null and is_instance_valid(w) and w.get_parent() in [body.hand_r, body.hand_l] and not body._guns_out():
+		var col := color if i == 0 else color_l
+		if emitting and w != null and is_instance_valid(w) and w.get_parent() in [body.hand_r, body.hand_l] and not body._guns_out() \
+				and not str(w.mesh.get_meta("model", "")).begins_with("pistol"):
 			var tip_z := w.mesh.get_aabb().position.z
 			pts.append([_clock, w.global_transform * Vector3(0, 0, tip_z * 0.3), w.global_transform * Vector3(0, 0, tip_z)])
 		while not pts.is_empty() and _clock - float(pts[0][0]) > life:
@@ -66,9 +70,9 @@ func sample(delta: float) -> void:
 		_im.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP, _mat)
 		for p in pts:
 			var a := 1.0 - (_clock - float(p[0])) / life
-			_im.surface_set_color(Color(color.r, color.g, color.b, 0.2 * a))
+			_im.surface_set_color(Color(col.r, col.g, col.b, 0.2 * a))
 			_im.surface_add_vertex(p[1])
-			var tip := color.lerp(Color.WHITE, 0.5)
+			var tip := col.lerp(Color.WHITE, 0.5)
 			_im.surface_set_color(Color(tip.r, tip.g, tip.b, 0.9 * a))
 			_im.surface_add_vertex(p[2])
 		_im.surface_end()

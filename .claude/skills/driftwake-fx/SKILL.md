@@ -37,7 +37,8 @@ on that tree (`TechniqueState`, `SkillState`, `HeavyAttackState`, `Projectile`).
 | sword (cutlass) | sea spray, blue and white | spray, water tentacles, rings of foam |
 | katana | pale steel and white, petals | thin long arcs, petals, afterimages |
 | axe | ember orange, rock and dust | dust, sparks, cracks, debris |
-| dual | twin colours: cyan and violet crossing | paired trails, X shapes |
+| dual | twin colours: cyan and violet crossing | paired trails (`blade_swoosh` color_l), X shapes (`twin_cross`), `motes` |
+| corsair (sword + pistol) | black powder: scarlet flash, gold sparks | `powder_burst`, dark smoke (`POWDER_SMOKE`), Broadside's `cannon_blast` |
 | pistol | gold flashes, grey powder smoke | muzzle sparks, tracers, smoke |
 | unarmed | white wind, warm dust | punch_wind, rings of air, dust rings |
 | haki | crimson and black | dark rings, red sparks, a weight on the screen |

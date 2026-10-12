@@ -150,7 +150,7 @@ func air_attack_input() -> String:
 			return ""
 		var mv := air_move()
 		var used := int(player.air_uses.get(mv, 0))
-		if mv in ["twin_cyclone", "hang_shot", "boarding_dive"] and used >= 1:
+		if mv in ["twin_cyclone", "hang_shot", "boarding_dive", "deadmans_drop"] and used >= 1:
 			return ""
 		# (a Meteor Kick that connects bounces you up for another, a few in a row)
 		if mv == "meteor_kick" and (used > int(player.air_uses.get("bounce", 0)) or used >= METEOR_CHAIN):
@@ -164,7 +164,7 @@ func air_attack_input() -> String:
 ## Each style's own air attack once its move is learned ("" = the plain plunge;
 ## dual pistols' Gun Rain is handled on its own).
 const AIR_MOVES := {"katana": "air_slash", "axe": "skybreaker", "dual_sword": "twin_cyclone",
-	"fist": "meteor_kick", "pistol": "hang_shot", "sword": "boarding_dive"}
+	"fist": "meteor_kick", "pistol": "hang_shot", "sword": "boarding_dive", "sword_pistol": "deadmans_drop"}
 const METEOR_CHAIN := 3
 
 func air_move() -> String:

@@ -34,6 +34,13 @@ func _world() -> Node:
 	return get_tree().current_scene
 
 
+## How well a held gun lines up with its forearm (1 = along it; 0 with none in hand).
+func _grip(w) -> float:
+	if w == null or not is_instance_valid(w) or not ((w as Node3D).get_parent() is Node3D):
+		return 0.0
+	return (-(w as Node3D).global_basis.z.normalized()).dot(-((w as Node3D).get_parent() as Node3D).global_basis.y.normalized())
+
+
 ## The chain as this machine has it: its state and every chain island standing
 ## (the host's and the guest's are compared).
 func chain_report() -> Dictionary:
@@ -88,6 +95,8 @@ func _run(name_: String, args: Array, from: int):
 				"puppet_state": pup.current_state_name() if pup else "",
 				"puppet_bleeding": pup.is_bleeding() if pup else false,
 				"puppet_action": pup.body_model.current_action() if pup else "",
+				"puppet_stance": pup.body_model.stance if pup else "",
+				"puppet_off_grip": _grip(pup.body_model.offhand) if pup else 0.0,
 				"puppet_head": pup.body_model.head.global_position if pup else Vector3.INF,
 				"puppet_hips": pup.body_model.hips.global_position if pup else Vector3.INF,
 				"puppet_swim": pup.body_model.swimming if pup else false,

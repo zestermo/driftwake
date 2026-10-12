@@ -26,7 +26,7 @@ signal footstep(strength: float)
 const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r", "hand_l"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
-const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "dual_spin", "gun_kata", "axe_whirl", "axe_flip",
+const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "gun_kata", "axe_whirl", "axe_flip",
 	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "giant_swing", "twin_cyclone", "vault_back"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r", "hand_l"]
 
@@ -610,7 +610,13 @@ static var GUN_GRIP := Basis.looking_at(Vector3(0, -cos(GUN_GRIP_TILT), -sin(GUN
 ## with the arm (the arm poses do the aiming). Weapon meshes otherwise point
 ## along -Z of the hand (a sword grip), which for a raised arm is straight up.
 func point_guns() -> void:
-	if stance not in ["pistol", "dual_pistol"] or not weapon_in_hand:
+	if not weapon_in_hand:
+		return
+	if stance == "sword_pistol":
+		if offhand != null and is_instance_valid(offhand) and offhand.get_parent() == hand_l:
+			offhand.basis = GUN_GRIP
+		return
+	if stance not in ["pistol", "dual_pistol"]:
 		return
 	for w in [weapon, offhand]:
 		if w != null and is_instance_valid(w):
@@ -691,9 +697,9 @@ func _left_hip() -> Node3D:
 func _guard() -> Dictionary:
 	match stance:
 		"dual_sword":
-			return {"arm_r": Vector3(0.75, -0.2, 0.35), "fore_r": Vector3(0.5, 0, 0), "hand_r": Vector3(-0.5, 0, 0),
-				"arm_l": Vector3(0.75, 0.2, -0.35), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3(-0.5, 0, 0),
-				"torso": Vector3(-0.12, 0.1, 0), "head": Vector3(0.08, -0.1, 0)}
+			return WieldMoves.dual_guard(WieldMoves.offhand_kind(self))
+		"sword_pistol":
+			return WieldMoves.SP_GUARD
 		"fist":
 			return FIST_GUARD
 		"claw":
@@ -1882,44 +1888,7 @@ func _action_pose(n: String, u: float) -> Array:
 			elif u < 0.72:
 				lift.y = lerpf(-0.26, 0.0, _ease((u - 0.25) / 0.1)) + 0.38 * sin(clampf((u - 0.25) / 0.47, 0, 1) * PI)
 			return [_keys(u, [[0.0, g3], [0.24, crouch, "out"], [0.34, tuck, "out"], [0.44, fly, "out"], [0.68, fly], [1.0, g3]]), "full", lift]
-		# --- dual swords ---
-		"dual_1", "dual_2":
-			var gd := _guard()
-			var r1 := n == "dual_1"
-			# (the cutting blade cocks back on its wrist, then is flung out along the arm)
-			var wind_d := {"arm_r": Vector3(0.9, 0.7, 1.6) if r1 else Vector3(0.6, 0.2, 0.4), "fore_r": Vector3(0.7, 0, 0),
-				"arm_l": Vector3(0.6, -0.2, -0.4) if r1 else Vector3(0.9, -0.7, -1.6), "fore_l": Vector3(0.7, 0, 0),
-				"hand_r": Vector3(0.6 if r1 else -0.5, 0, 0), "hand_l": Vector3(-0.5 if r1 else 0.6, 0, 0),
-				"torso": Vector3(0.05, 0.9 if r1 else -0.9, 0)}
-			var hit_d := {"arm_r": Vector3(1.4, -0.9, -1.0) if r1 else Vector3(0.7, 0.3, 0.6), "fore_r": Vector3(0.05, 0, 0),
-				"arm_l": Vector3(0.7, -0.3, -0.6) if r1 else Vector3(1.4, 0.9, 1.0), "fore_l": Vector3(0.05, 0, 0),
-				"hand_r": Vector3(-1.4 if r1 else -0.5, 0, 0), "hand_l": Vector3(-0.5 if r1 else -1.4, 0, 0),
-				"torso": Vector3(-0.25, -0.9 if r1 else 0.9, 0),
-				"leg_l": Vector3(0.75, 0, -0.1) if r1 else Vector3(-0.5, 0, -0.1), "shin_l": Vector3(-0.7, 0, 0),
-				"leg_r": Vector3(-0.5, 0, 0.1) if r1 else Vector3(0.75, 0, 0.1), "shin_r": Vector3(-0.4, 0, 0)}
-			lift.y = -0.12 * sin(clampf(u * 1.3, 0.0, 1.0) * PI)
-			return [_keys(u, [[0.0, gd], [0.2, wind_d, "out"], [0.42, hit_d, "out"], [0.62, hit_d], [1.0, gd]]), "full", lift]
-		"dual_cross":
-			var gc := _guard()
-			var open_x := {"arm_r": Vector3(2.4, 0.3, 0.9), "fore_r": Vector3(0.4, 0, 0), "arm_l": Vector3(2.4, -0.3, -0.9), "fore_l": Vector3(0.4, 0, 0),
-				"hand_r": Vector3(0.6, 0, 0), "hand_l": Vector3(0.6, 0, 0),
-				"torso": Vector3(0.3, 0, 0), "head": Vector3(0.2, 0, 0)}
-			var cross_x := {"arm_r": Vector3(1.2, -0.9, -0.6), "fore_r": Vector3(0.1, 0, 0), "arm_l": Vector3(1.2, 0.9, 0.6), "fore_l": Vector3(0.1, 0, 0),
-				"hand_r": Vector3(-1.3, 0, 0), "hand_l": Vector3(-1.3, 0, 0),
-				"torso": Vector3(-0.45, 0, 0), "head": Vector3(-0.1, 0, 0),
-				"leg_l": Vector3(0.85, 0, -0.12), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.55, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0)}
-			lift.y = -0.2 * sin(clampf((u - 0.25) / 0.6, 0.0, 1.0) * PI)
-			return [_keys(u, [[0.0, gc], [0.24, open_x, "out"], [0.42, cross_x, "in"], [0.65, cross_x], [1.0, gc]]), "full", lift]
-		"dual_spin":
-			var gs := _guard()
-			var out2 := {"arm_r": Vector3(1.4, 0.0, 1.5), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.4, 0.0, -1.5), "fore_l": Vector3(0.05, 0, 0),
-				"hand_r": Vector3(-1.5, 0, 0), "hand_l": Vector3(-1.5, 0, 0),
-				"torso": Vector3(-0.2, 0, 0), "leg_l": Vector3(0.5, 0, -0.25), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(0.5, 0, 0.25), "shin_r": Vector3(-0.8, 0, 0)}
-			var spin2 := 1.0 - pow(1.0 - clampf((u - 0.15) / 0.6, 0.0, 1.0), 2.2)
-			var pose2 := _keys(u, [[0.0, gs], [0.15, out2, "out"], [0.78, out2], [1.0, gs]])
-			pose2["pivot"] = Vector3(0, -TAU * spin2, 0)
-			lift.y = 0.18 * sin(clampf((u - 0.15) / 0.6, 0.0, 1.0) * PI) - 0.1
-			return [pose2, "full", lift]
+		# (the dual-wield and sword-and-pistol moves live in WieldMoves)
 		"gun_kata":
 			# crouch, hop up into a double spin with the arms crossed, each gun
 			# pointing out to the opposite side, land
@@ -1959,16 +1928,6 @@ func _action_pose(n: String, u: float) -> Array:
 			if u > 0.5:
 				_gun_tuck(pose, _ease(clampf((u - 0.5) / 0.4, 0.0, 1.0)))
 			return [pose, "full", lift]
-		"dual_heavy":
-			var gh := _guard()
-			var up2 := {"arm_r": Vector3(3.1, 0.2, 0.45), "fore_r": Vector3(0.6, 0, 0), "arm_l": Vector3(3.1, -0.2, -0.45), "fore_l": Vector3(0.6, 0, 0),
-				"hand_r": Vector3(0.5, 0, 0), "hand_l": Vector3(0.5, 0, 0),
-				"torso": Vector3(0.4, 0, 0), "head": Vector3(0.3, 0, 0), "leg_l": Vector3(0.6, 0, -0.15), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.3, 0, 0.15), "shin_r": Vector3(-1.0, 0, 0)}
-			var down2 := {"arm_r": Vector3(0.6, -0.4, 0.2), "fore_r": Vector3(0.0, 0, 0), "arm_l": Vector3(0.6, 0.4, -0.2), "fore_l": Vector3(0.0, 0, 0),
-				"hand_r": Vector3(-0.9, 0, 0), "hand_l": Vector3(-0.9, 0, 0),
-				"torso": Vector3(-0.85, 0, 0), "head": Vector3(-0.3, 0, 0), "leg_l": Vector3(1.1, 0, -0.1), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(-0.85, 0, 0.1), "shin_r": Vector3(-0.15, 0, 0)}
-			lift.y = (-0.2 * _ease(u / 0.35)) if u < 0.35 else (-0.4 * (1.0 - _ease((u - 0.6) / 0.4)) if u > 0.6 else -0.4)
-			return [_keys(u, [[0.0, gh], [0.32, up2, "out"], [0.45, down2, "in"], [0.68, down2], [1.0, gh]]), "full", lift]
 		# --- pistols ---
 		"shoot_r", "shoot_l":
 			var gp := _guard()

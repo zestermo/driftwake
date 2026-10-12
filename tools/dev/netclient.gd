@@ -246,6 +246,50 @@ func _process(d: float) -> bool:
 				return false
 			var now := float(rep()["enemies"][data["gkey"]][4])
 			check("our hit landed on the host's grunt (%.0f -> %.0f)" % [data["ghp"], now], now < data["ghp"] - 10.0)
+			data["ghp"] = now
+			go(120)
+		120:
+			# --- sword and pistol: our point-blank shot lands on the host's grunt, the host's
+			# puppet of us holds the pistol along its forearm and plays the shot
+			var cut: ItemData = load("res://resources/items/cutlass.tres")
+			var pistol: ItemData = load("res://resources/items/pistol.tres")
+			p.inventory_component.add_item(cut, 1)
+			p.inventory_component.add_item(pistol, 1)
+			p.equip_weapon(cut, false)
+			p.set_offhand(pistol)
+			p.sheathe_weapon(true)
+			p.draw_weapon(true)
+			check("sword and pistol here (%s)" % p.style(), p.style() == "sword_pistol")
+			var g: Node3D = data["g"]
+			var side := Vector3(2.2, 0.0, 0.0)
+			p.global_position = g.global_position + side + Vector3(0, 0.3, 0)
+			p.velocity = Vector3.ZERO
+			p.reset_physics_interpolation()
+			p.player_model.rotation.y = atan2(side.x, side.z)
+			go(121)
+		121:
+			if st_t < 0.6:
+				return false
+			var to: Vector3 = (data["g"] as Node3D).global_position - p.global_position
+			to.y = 0.0
+			p.body_model.play("sp_shot", 0.62)
+			# (loaded, not named: it touches autoloads, which a --script can't see at compile time)
+			load("res://scripts/player_states/corsair_gun.gd").fire(p, to.normalized(), 30.0, "", {"ball": false, "unblock": true}, data["g"])
+			go(122)
+		122:
+			if st_t < 0.25:
+				return false
+			tn.ask("report")
+			go(123)
+		123:
+			if not tn.got("report"):
+				return false
+			var now2 := float(rep()["enemies"][data["gkey"]][4])
+			check("our pistol shot landed on the host's grunt (%.0f -> %.0f)" % [data["ghp"], now2], now2 < data["ghp"] - 10.0)
+			check("the host's puppet of us: sword and pistol, the shot playing (%s, %s)" % [rep()["puppet_stance"], rep()["puppet_action"]],
+				rep()["puppet_stance"] == "sword_pistol" and rep()["puppet_action"] == "sp_shot")
+			check("...the pistol along its forearm (%.2f)" % float(rep()["puppet_off_grip"]), float(rep()["puppet_off_grip"]) > 0.95)
+			p.set_offhand(null)
 			# --- a grunt swings at us: our machine decides
 			data["php"] = p.health_component.current_health
 			var fwd: Vector3 = -p.player_model.global_basis.z

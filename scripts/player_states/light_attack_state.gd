@@ -3,7 +3,10 @@ extends PlayerState
 ##   sword       diagonal forehand -> flat backhand -> spinning finisher; at a sprint, a running cut
 ##   katana      high right diagonal -> wide left-to-right cut -> lunging stab (slow, two-handed)
 ##   axe         diagonal hack -> rising backhand hook -> two-handed overhead smash (knocks down)
-##   dual_sword  forehand -> backhand -> X-cross with both blades -> twin spin
+##   dual_sword  right forehand -> off-hand cut (an axe hacks, a dagger stabs) -> X-cross with
+##               both blades -> twin spin (Twin Spin)
+##   sword_pistol diagonal cut -> point-blank shot -> rising cut -> a spin cut and a shot
+##               that knocks them flat (Powder Finale); no ball loaded, a shot is a butt-strike
 ##   fist        jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
@@ -41,10 +44,19 @@ const STYLES := {
 		"durations": [0.46, 0.46, 0.72], "impulses": [4.0, 4.5, 6.0],
 		"damages": [14.0, 15.0, 30.0], "hitstops": [0.065, 0.065, 0.13], "shakes": [0.11, 0.11, 0.28],
 		"reach": "sword", "color": Color(1.0, 0.78, 0.5), "slam": true},
-	"dual_sword": {"anims": ["dual_1", "dual_2", "dual_cross", "dual_spin"], "trails": ["right", "left", "cross", "spin"],
-		"durations": [0.24, 0.24, 0.32, 0.44], "impulses": [4.0, 4.0, 5.0, 6.0],
-		"damages": [8.0, 8.0, 13.0, 20.0], "hitstops": [0.035, 0.035, 0.06, 0.09], "shakes": [0.07, 0.07, 0.12, 0.18],
-		"reach": "wide", "color": Color(0.55, 0.85, 1.0)},
+	# two blades, quick and alternating: the blades draw their own paired trails;
+	# "hands": which hand cuts ("l": the off hand's weapon changes it, OFFHAND)
+	"dual_sword": {"anims": ["dual_1", "dual_2", "dual_cross", "dual_spin"], "trails": ["", "", "", ""],
+		"durations": [0.34, 0.34, 0.42, 0.56], "impulses": [4.0, 4.0, 5.0, 6.0],
+		"damages": [9.0, 9.0, 15.0, 22.0], "hitstops": [0.045, 0.045, 0.07, 0.1], "shakes": [0.08, 0.08, 0.14, 0.2],
+		"reach": "wide", "reaches": ["wide", "wide", "wide", "spin"], "hands": ["r", "l", "x", "x"],
+		"color": Color(0.55, 0.85, 1.0), "color_l": Color(0.75, 0.65, 1.0), "tree": "dual"},
+	# a cutlass and a pistol: cuts and point-blank shots ("kinds"); "shots": a ball's damage
+	"sword_pistol": {"anims": ["sp_cut", "sp_shot", "sp_rise", "sp_finale"], "trails": ["", "", "", ""],
+		"kinds": ["cut", "shot", "cut", "cut_shot"], "durations": [0.46, 0.4, 0.48, 0.86], "impulses": [4.5, 3.0, 4.5, 5.0],
+		"damages": [10.0, 0.0, 12.0, 11.0], "shots": [0.0, 14.0, 0.0, 20.0],
+		"hitstops": [0.05, 0.05, 0.06, 0.08], "shakes": [0.09, 0.1, 0.11, 0.16],
+		"reach": "sword", "reaches": ["sword", "sword", "sword", "spin"], "color": Color(1.0, 0.85, 0.7), "tree": "corsair"},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -56,6 +68,10 @@ const STYLES := {
 		"damages": [12.0, 12.0, 22.0], "hitstops": [0.05, 0.05, 0.09], "shakes": [0.1, 0.1, 0.2],
 		"reach": "claw", "color": Color(1.0, 0.35, 0.3)},
 }
+
+## A dual-wield cut with the off hand, by what's in it: [damage, knockback, hit-stop,
+## chain shift (s)]: an axe hits harder and recovers later, a dagger lighter and sooner.
+const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], "dagger": [0.85, 0.8, 0.8, -0.06]}
 
 var cfg: Dictionary = STYLES["sword"]
 var combo_count: int = 3
@@ -73,6 +89,12 @@ var _window := Vector2.ZERO
 ## When the blade's own trail is drawn (moves on a swing path), seconds; x < 0: arc effects.
 var _swoosh := Vector2(-1, -1)
 var _swooshed: bool = false
+## This hit: "cut", "shot" (the sword-and-pistol's point-blank shot, no blade) or
+## "cut_shot"; when its shot fires (s); the off hand's weapon numbers (OFFHAND).
+var _kind := "cut"
+var _shot_t := -1.0
+var _shot_done := false
+var _off: Array = OFFHAND["sword"]
 
 
 func enter(data: Dictionary) -> void:
@@ -82,13 +104,19 @@ func enter(data: Dictionary) -> void:
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
-	# the fourth hit is a skill-tree unlock (Roundhouse / Twin Spin)
-	if (st == "fist" and not player.progression.has_move("roundhouse")) or (st == "dual_sword" and not player.progression.has_move("twin_spin")):
+	# the fourth hit is a skill-tree unlock (Roundhouse / Twin Spin / Powder Finale)
+	if (st == "fist" and not player.progression.has_move("roundhouse")) or (st == "dual_sword" and not player.progression.has_move("twin_spin")) \
+			or (st == "sword_pistol" and not player.progression.has_move("powder_finale")):
 		combo_count -= 1
-	player.set_reach(str(cfg["reach"]))
 	# Continue the remembered chain unless this attack came straight from a chain.
 	combo_index = int(data.get("combo_index", 0)) if data.get("chain", false) else player.next_combo_index()
 	combo_index = clampi(combo_index, 0, combo_count - 1)
+	player.set_reach(str((cfg["reaches"] as Array)[combo_index]) if cfg.has("reaches") else str(cfg["reach"]))
+	_kind = str((cfg["kinds"] as Array)[combo_index]) if cfg.has("kinds") else "cut"
+	_shot_done = false
+	_off = OFFHAND["sword"]
+	if cfg.has("hands") and str((cfg["hands"] as Array)[combo_index]) == "l":
+		_off = OFFHAND.get(player.offhand_kind(), OFFHAND["sword"])
 	player.reset_combo()
 	timer = 0.0
 	can_combo = false
@@ -105,6 +133,7 @@ func enter(data: Dictionary) -> void:
 	_window = ActionSpecs.hit_seconds(anim)
 	_swoosh = ActionSpecs.swoosh_seconds(anim)
 	_swooshed = false
+	_shot_t = ActionSpecs.shot_seconds(anim) if _kind != "cut" else -1.0
 	player.body_model.play(anim, ActionSpecs.length(anim))
 	player.squash(-1.5 if combo_index < 2 else -2.5)
 
@@ -121,15 +150,22 @@ func physics_update(delta: float) -> void:
 	if _swoosh.x >= 0.0 and timer >= _swoosh.x and not _swooshed:
 		_swooshed = true
 		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col()
-		Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc])
+		var sl: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col(true)
+		Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc, sl])
 
+	if _shot_t >= 0.0 and timer >= _shot_t and not _shot_done:
+		_shot_done = true
+		_shot()
+
+	if timer >= _window.x and not hitbox_activated and _kind == "shot":
+		hitbox_activated = true
 	if timer >= _window.x and not hitbox_activated:
 		hitbox_activated = true
 		var last := combo_index == combo_count - 1
-		var hit := player.melee_hit(float(cfg["damages"][combo_index]), "finisher" if last else "")
-		hit.hitstop_duration = float(cfg["hitstops"][combo_index])
-		hit.camera_shake_intensity = float(cfg["shakes"][combo_index])
-		hit.knockback_force = 8.0 if last else 4.0
+		var hit := player.melee_hit(float(cfg["damages"][combo_index]) * float(_off[0]), "finisher" if last else "")
+		hit.hitstop_duration = float(cfg["hitstops"][combo_index]) * float(_off[2])
+		hit.camera_shake_intensity = float(cfg["shakes"][combo_index]) * float(_off[2])
+		hit.knockback_force = (8.0 if last else 4.0) * float(_off[1])
 		hit.breaker = cfg.get("breaker", false)
 		hit.sever = str(cfg["reach"]) != "fist"
 		# (the axe's finisher puts them on the ground)
@@ -174,7 +210,7 @@ func physics_update(delta: float) -> void:
 		hitbox_deactivated = true
 		player.sword_hitbox.deactivate()
 
-	var duration := float(AnimLab.spec(str(cfg["anims"][combo_index])).get("chain", cfg["durations"][combo_index]))
+	var duration := float(AnimLab.spec(str(cfg["anims"][combo_index])).get("chain", cfg["durations"][combo_index])) + float(_off[3])
 	if timer >= duration and not can_combo:
 		can_combo = true
 		combo_timer = combo_window
@@ -200,14 +236,30 @@ func physics_update(delta: float) -> void:
 			return
 
 
-## The straight streak of air in front of a punch or kick.
 ## The combo's trail: the style's own colour, or its tree's once the element
-## follows every blow (the tree's second mastery passive).
-func _trail_col() -> Color:
+## follows every blow (the tree's second mastery passive). `left`: the off hand's
+## blade (the dual blades' second colour).
+func _trail_col(left: bool = false) -> Color:
 	var tree := SkillTree.style_tree(player.style())
 	if tree != "" and player.progression.elemental(tree, 2):
-		return FX.tree_col(tree, FX.EDGE)
-	return cfg["color"]
+		return FX.tree_col(tree, FX.ACCENT if left and tree == "dual" else FX.EDGE)
+	return cfg.get("color_l", cfg["color"]) if left else cfg["color"]
+
+
+## The sword-and-pistol's shot: a ball point-blank into whoever's in front (the
+## finisher's knocks them flat), or the pistol's butt with nothing loaded.
+func _shot() -> void:
+	var last := combo_index == combo_count - 1
+	var fwd := -player.player_model.global_basis.z
+	var elem := player.progression.elemental("corsair", 2)
+	CorsairGun.shoot_or_butt(player, fwd, float(cfg["shots"][combo_index]), "finisher" if last else "",
+		{"knock": 10.0 if last else 5.0, "stagger": 0.6 if last else 0.4, "down": last, "stop": 0.09 if last else 0.05,
+		"shake": 0.2 if last else 0.1, "elem": elem, "size": 1.4 if last else 1.0})
+	CombatManager.apply_camera_kick(0.14 if last else 0.06, 0.22)
+	player.squash(-1.5 if last else -1.0)
+
+
+## The straight streak of air in front of a punch or kick.
 
 
 func _punch_wind(w: Array, col: Color) -> void:

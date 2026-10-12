@@ -252,20 +252,36 @@ static func pose(h, n: String, u: float) -> Array:
 				"hand_r": Vector3(-1.3, 0, 0), "hand_l": Vector3(-1.3, 0, 0), "torso": Vector3(-0.55, 0, 0), "head": Vector3(0.35, 0, 0),
 				"leg_l": Vector3(1.1, 0, -0.12), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.8, 0, 0.12), "shin_r": Vector3(-0.25, 0, 0),
 				"_lift": Vector3(0, -0.36, 0)}
-			return [h._keys(u, [[0.0, g], [0.15, up, "out"], [0.36, up], [0.46, down, "in"], [0.75, down], [1.0, g]]), "full", lift]
+			# (the crash squashes into the landing, the blades smeared on the fast key)
+			var crash := down.merged({"_scale": Vector3(1.07, 0.92, 1.03), "_smear": Vector3(0.6, 0, 0)}, true)
+			var rise := up.merged({"_scale": Vector3(0.97, 1.05, 1.0)}, true)
+			return [h._keys(u, [[0.0, g], [0.15, rise, "out"], [0.36, up], [0.46, crash, "in"], [0.52, down], [0.75, down], [1.0, g]]), "full", lift]
 		"steel_tempest":
-			# eight fast turns with both blades out, then both crossed and flung out
+			# both blades crossed high overhead, sunk low while it gathers (0.4 s), then
+			# eight fast turns with both out, then both crossed down and flung out (2.0 s)
+			var gather := {"hips": Vector3.ZERO, "arm_r": Vector3(2.75, 0.55, 0.2), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
+				"arm_l": Vector3(2.75, -0.55, -0.2), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(-0.3, 0, 0),
+				"torso": Vector3(0.1, 0, 0), "head": Vector3(-0.05, 0, 0),
+				"leg_l": Vector3(0.6, 0, -0.3), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.1, 0, 0.3), "shin_r": Vector3(-1.0, 0, 0),
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.05, 0.93, 1.02)}
 			var out := {"hips": Vector3.ZERO, "arm_r": Vector3(1.4, 0.0, 1.5), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.4, 0.0, -1.5), "fore_l": Vector3(0.05, 0, 0),
 				"hand_r": Vector3(-1.5, 0, 0), "hand_l": Vector3(-1.5, 0, 0), "torso": Vector3(-0.15, 0, 0), "head": Vector3(0.1, 0, 0),
 				"leg_l": Vector3(0.5, 0, -0.25), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(0.5, 0, 0.25), "shin_r": Vector3(-0.8, 0, 0),
 				"_lift": Vector3(0, -0.12, 0)}
+			var fling := out.merged({"_smear": Vector3(0.5, 0, 0), "_scale": Vector3(1.03, 0.98, 1.03)}, true)
 			var burst := {"hips": Vector3.ZERO, "arm_r": Vector3(1.5, 0.3, 1.2), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.5, -0.3, -1.2), "fore_l": Vector3(0.05, 0, 0),
 				"hand_r": Vector3(-1.4, 0, 0), "hand_l": Vector3(-1.4, 0, 0), "torso": Vector3(-0.4, 0, 0), "head": Vector3(0.3, 0, 0),
 				"leg_l": Vector3(1.0, 0, -0.15), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(-0.7, 0, 0.15), "shin_r": Vector3(-0.3, 0, 0),
-				"_lift": Vector3(0, -0.3, 0)}
-			var k_burst := 1.9 / T
-			var p: Dictionary = h._keys(u, [[0.0, g], [0.06, out, "out"], [k_burst - 0.03, out], [k_burst, burst, "out"], [0.95, burst], [1.0, g]])
-			p["pivot"] = Vector3(0, -TAU * 8.0 * _ease_io(clampf((s - 0.1) / 1.8, 0.0, 1.0)), 0)
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.06, 0.93, 1.03)}
+			var crossed := {"hips": Vector3.ZERO, "arm_r": Vector3(1.15, -0.85, -0.6), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
+				"arm_l": Vector3(1.15, 0.85, 0.6), "fore_l": Vector3(0.1, 0, 0), "hand_l": Vector3(-1.3, 0, 0),
+				"torso": Vector3(-0.35, 0, 0), "head": Vector3(0.22, 0, 0),
+				"leg_l": Vector3(0.8, 0, -0.15), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.5, 0, 0.15), "shin_r": Vector3(-0.4, 0, 0),
+				"_lift": Vector3(0, -0.24, 0)}
+			var k_burst := 2.0 / T
+			var p: Dictionary = h._keys(u, [[0.0, g], [0.12 / T, gather, "out"], [0.38 / T, gather], [0.46 / T, fling, "out"], [k_burst - 0.08, out],
+				[k_burst - 0.03, crossed, "out"], [k_burst, burst, "out"], [0.95, burst], [1.0, g]])
+			p["pivot"] = Vector3(0, -TAU * 8.0 * _ease_io(clampf((s - 0.4) / 1.55, 0.0, 1.0)), 0)
 			return [p, "full", lift]
 		# --- pistols (the arm aims; the wrist stays in its grip) ---
 		"deadeye":
@@ -515,7 +531,7 @@ static func pose(h, n: String, u: float) -> Array:
 				"_lift": Vector3(0, -0.06, 0)}, true)
 			var k_j := 0.38 / T
 			return [h._keys(u, [[0.0, g], [k_j - 0.1, stand], [k_j, jolt, "out"], [0.8, jolt], [1.0, g]]), "full", lift]
-	return []
+	return WieldMoves.pose(h, n, u)
 
 
 static func _ease_io(x: float) -> float:

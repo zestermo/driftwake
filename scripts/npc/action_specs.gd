@@ -88,12 +88,29 @@ const SPECS := {
 	"axe_whirl": {"len": 1.24, "hit": [0.18, 0.76], "stance": "axe", "weapon": "axe"},
 	"axe_flip": {"len": 0.58, "stance": "axe", "weapon": "axe"},
 	"axe_land": {"len": 0.53, "stance": "axe", "weapon": "axe"},
-	# --- dual swords ---
-	"dual_1": {"len": 0.4, "hit": [0.25, 0.55], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
-	"dual_2": {"len": 0.4, "hit": [0.25, 0.55], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
-	"dual_cross": {"len": 0.5, "hit": [0.34, 0.58], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
-	"dual_spin": {"len": 0.6, "hit": [0.17, 0.7], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
-	"dual_heavy": {"len": 0.88, "hit": [0.36, 0.57], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	# --- dual wield (WieldMoves; dual_2 changes with an axe or a dagger in the off hand) ---
+	"dual_1": {"len": 0.5, "hit": [0.32, 0.48], "chain": 0.34, "swoosh": [0.26, 0.52], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"dual_2": {"len": 0.5, "hit": [0.32, 0.48], "chain": 0.34, "swoosh": [0.26, 0.52], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true, "after": "dual_1"}},
+	"dual_cross": {"len": 0.58, "hit": [0.36, 0.54], "chain": 0.42, "swoosh": [0.3, 0.56], "stance": "dual_sword", "weapon": "cutlass",
+		"extras": {"dual": true, "after": "dual_2"}},
+	"dual_spin": {"len": 0.7, "hit": [0.24, 0.74], "chain": 0.56, "swoosh": [0.24, 0.76], "stance": "dual_sword", "weapon": "cutlass",
+		"extras": {"dual": true, "after": "dual_cross"}},
+	"dual_heavy": {"len": 0.88, "hit": [0.42, 0.6], "swoosh": [0.4, 0.62], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	# --- sword + pistol (WieldMoves; "shot": u when the pistol fires) ---
+	"sp_cut": {"len": 0.7, "hit": [0.38, 0.54], "chain": 0.46, "swoosh": [0.32, 0.6], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol"}},
+	"sp_shot": {"len": 0.62, "hit": [0.3, 0.36], "shot": 0.32, "chain": 0.4, "stance": "sword_pistol", "weapon": "cutlass",
+		"extras": {"offhand": "pistol", "after": "sp_cut"}},
+	"sp_rise": {"len": 0.72, "hit": [0.36, 0.52], "chain": 0.48, "swoosh": [0.3, 0.58], "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol", "after": "sp_shot"}},
+	"sp_finale": {"len": 1.05, "hit": [0.2, 0.44], "shot": 0.59, "chain": 0.86, "swoosh": [0.18, 0.46],
+		"stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol", "after": "sp_rise"}},
+	"sp_lunge": {"len": 0.95, "hit": [0.31, 0.47], "shot": 0.6, "swoosh": [0.3, 0.46], "stance": "sword_pistol", "weapon": "cutlass",
+		"extras": {"offhand": "pistol"}},
+	"sp_drop": {"len": 0.7, "hit": [0.2, 0.22], "stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol"}},
+	"sp_drop_land": {"len": 0.5, "stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol"}},
 	# --- unarmed ---
 	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
 	"jab": {"len": 0.34, "hit": [0.21, 0.5], "stance": "fist", "weapon": ""},
@@ -160,7 +177,11 @@ const SPECS := {
 	"cross_guard": {"len": 1.0, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
 	"blade_dance": {"len": 1.0, "hit": [0.1, 0.88], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
 	"cross_fang": {"len": 0.85, "hit": [0.44, 0.52], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
-	"steel_tempest": {"len": 2.2, "hit": [0.07, 0.9], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"steel_tempest": {"len": 2.4, "hit": [0.2, 0.9], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"parley_shot": {"len": 0.6, "hit": [0.18, 0.5], "stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol"}},
+	"grapeshot": {"len": 0.7, "hit": [0.37, 0.4], "stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol"}},
+	"crossfire": {"len": 0.95, "hit": [0.17, 0.53], "stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol"}},
+	"broadside": {"len": 2.4, "hit": [0.25, 0.73], "stance": "sword_pistol", "weapon": "cutlass", "extras": {"offhand": "pistol"}},
 	"deadeye": {"len": 1.0, "hit": [0.55, 0.58], "stance": "pistol", "weapon": "pistol"},
 	"smoke_throw": {"len": 0.5, "hit": [0.34, 0.4], "stance": "pistol", "weapon": "pistol"},
 	"point_blank": {"len": 0.6, "hit": [0.32, 0.38], "stance": "pistol", "weapon": "pistol"},
@@ -204,11 +225,11 @@ const SPECS := {
 
 
 ## When a swing's blade trail (FX.blade_swoosh) is drawn, seconds [from, to): its
-## "swoosh" (u), else its hit window; (-1, -1) for actions without a swing path (they keep
-## the fixed arc effects).
+## "swoosh" (u), else its hit window; (-1, -1) for actions with neither a swing path nor a
+## "swoosh" (they keep the fixed arc effects).
 static func swoosh_seconds(n: String) -> Vector2:
 	var s := AnimLab.spec(n)
-	if not s.has("swing"):
+	if not s.has("swing") and not s.has("swoosh"):
 		return Vector2(-1, -1)
 	var w: Array = s.get("swoosh", s["hit"])
 	return Vector2(float(w[0]), float(w[1])) * float(s["len"])
@@ -216,6 +237,12 @@ static func swoosh_seconds(n: String) -> Vector2:
 
 static func length(n: String) -> float:
 	return float(AnimLab.spec(n)["len"])
+
+
+## When the pistol fires in a sword-and-pistol move (its "shot", seconds), or -1.
+static func shot_seconds(n: String) -> float:
+	var s: Dictionary = AnimLab.spec(n)
+	return float(s["shot"]) * float(s["len"]) if s.has("shot") else -1.0
 
 
 ## The hitbox window in seconds at the spec's length (x = opens, y = closes).

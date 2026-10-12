@@ -21,6 +21,10 @@ extends PlayerState
 ##   the reticle that knocks them flat, and the recoil throws you back.
 ## * Boarding Dive (cutlass): the blade drawn back, then a point-first dive at
 ##   the aimed enemy and a backflip off them; a miss lands like the plunge.
+## * Dead Man's Drop (sword and pistol): leaning over them, a ball fired down into
+##   the aimed enemy (it pins them; the kick lifts you a little), then a
+##   point-first dive through them into a crouching landing cut that knocks
+##   everyone close flat (no ball loaded: just the dive).
 
 const HANG := 0.16
 const DIVE_SPEED := 22.0
@@ -74,8 +78,17 @@ const DIVE_DAMAGE := 26.0
 const DIVE_VAULT := Vector2(4.5, 7.5)
 const DIVE_MAX := 1.0
 
+const DROP_LEN := 0.7
+const DROP_FIRE := 0.14                  # s: the shot
+const DROP_GO := 0.26                    # s: the dive
+const DROP_SPEED := 18.0
+const DROP_SHOT := 14.0
+const DROP_DAMAGE := 20.0
+const DROP_LAND_R := 2.6
+const DROP_LAND_DAMAGE := 12.0
+
 ## Which: "" (the plain plunge), "rain", "air_slash", "skybreaker",
-## "twin_cyclone", "meteor_kick", "hang_shot", "boarding_dive".
+## "twin_cyclone", "meteor_kick", "hang_shot", "boarding_dive", "deadmans_drop".
 var _mode := ""
 var phase: int = 0   # 0 hang/wind-up, 1 dive, 2 land, 3 off (bounced / vaulted / fired)
 var timer: float = 0.0
@@ -99,7 +112,7 @@ func enter(_data: Dictionary) -> void:
 	_struck = []
 	_target = null
 	_mode = "rain" if player.style() == "dual_pistol" else air_move()
-	if _mode in ["twin_cyclone", "meteor_kick", "hang_shot", "boarding_dive"]:
+	if _mode in ["twin_cyclone", "meteor_kick", "hang_shot", "boarding_dive", "deadmans_drop"]:
 		player.air_uses[_mode] = int(player.air_uses.get(_mode, 0)) + 1
 	match _mode:
 		"rain":
@@ -144,6 +157,17 @@ func enter(_data: Dictionary) -> void:
 				player.body_model.aim_pitch = clampf(asin(clampf(-cam.global_basis.z.y, -1.0, 1.0)), -0.9, 0.6)
 			player.body_model.play("hang_shot", HANGSHOT_LEN)
 			Net.fx("sfx", ["blip", player.global_position, -10.0, 0.05, 0.6])
+		"deadmans_drop":
+			player.variable_jump_active = false
+			player.velocity = Vector3(player.velocity.x * 0.25, maxf(player.velocity.y, 0.0) * 0.2, player.velocity.z * 0.25)
+			_target = _aimed(METEOR_REACH)
+			if _target:
+				var to := _target.global_position - player.global_position
+				player.player_model.rotation.y = atan2(-to.x, -to.z)
+				_dir = Vector3(to.x, 0.0, to.z).normalized()
+			player.body_model.play("sp_drop", DROP_LEN)
+			player.squash(1.5)
+			Net.fx("sfx", ["blip", player.global_position, -12.0, 0.05, 0.9])
 		_:
 			player.velocity = Vector3(player.velocity.x * 0.3, 2.5, player.velocity.z * 0.3)
 			player.body_model.play("plunge_air", 0.6)
@@ -168,6 +192,9 @@ func physics_update(delta: float) -> void:
 			return
 		"hang_shot":
 			_hang_update(delta)
+			return
+		"deadmans_drop":
+			_drop_update(delta)
 			return
 	var axe := _mode == "skybreaker"
 	match phase:
@@ -717,7 +744,103 @@ func _hang_fire() -> void:
 	player.squash(-2.0)
 
 
+## Dead Man's Drop: hang leaning over them, a ball fired down into the aimed enemy,
+## then point-first down through them into a crouching cut on landing.
+func _drop_update(delta: float) -> void:
+	match phase:
+		0:
+			player.velocity.y = move_toward(player.velocity.y, 0.0, 40.0 * delta) if not _fired else player.velocity.y - player.gravity * delta
+			player.velocity.x = move_toward(player.velocity.x, 0.0, 20.0 * delta)
+			player.velocity.z = move_toward(player.velocity.z, 0.0, 20.0 * delta)
+			player.move_and_slide()
+			if not has_meta("glinted") and timer >= DROP_FIRE - 0.06:
+				set_meta("glinted", true)
+				Net.fx("glint", [CorsairGun.muzzle(player), _look("corsair", FX.CORE), 0.5])
+			if not _fired and timer >= DROP_FIRE:
+				_fired = true
+				var from := CorsairGun.muzzle(player)
+				var d := (_dir * cos(0.8) + Vector3.DOWN * sin(0.8)).normalized()
+				if _target and is_instance_valid(_target):
+					d = (CorsairGun.body_center(_target.owner if _target is Hurtbox else _target) - from).normalized()
+				if CorsairGun.loaded(player):
+					var hit_e := CorsairGun.fire(player, d, DROP_SHOT, "", {"knock": 2.0, "stagger": 0.8, "stop": 0.05, "shake": 0.1,
+						"elem": player.progression.elemental("corsair", 2), "size": 1.2}, _target.owner if _target is Hurtbox else _target)
+					if hit_e:
+						_struck.append(hit_e)
+					player.velocity.y = 3.0
+					CombatManager.apply_camera_shake(0.08)
+				else:
+					Net.fx("sfx", ["blip_low", from, -10.0, 0.05, 1.5])
+			if timer >= DROP_GO:
+				phase = 1
+				timer = 0.0
+				var from := player.global_position + Vector3(0, 0.6, 0)
+				_line = (_dir * cos(0.8) + Vector3.DOWN * sin(0.8)).normalized()
+				if _target and is_instance_valid(_target):
+					_line = (_target.global_position - from).normalized()
+					if _line.y > -0.35:
+						_line = (Vector3(_line.x, 0.0, _line.z).normalized() * 0.94 + Vector3.DOWN * 0.35).normalized()
+				player.velocity = _line * DROP_SPEED
+				player.squash(3.0)
+				Net.fx("ring", [from, _line, 0.9, _look("corsair", FX.EDGE), 0.22, 0.1])
+				Net.fx("blade_swoosh", [player.body_model, 0.4, _trail("corsair")])
+				Net.fx("sfx", ["whoosh_big", from, -4.0, 0.06, 1.05])
+				set_meta("from", from)
+		1:
+			player.velocity = _line * DROP_SPEED
+			player.move_and_slide()
+			var front := player.global_position + Vector3(0, 0.7, 0) + _line * 0.9
+			for e in player.power.enemies_in(front, 1.4):
+				var hb := (e as Node).get("hurtbox") as Hurtbox
+				if hb == null or (hb.owner in _struck and get_meta("cut", false)):
+					continue
+				set_meta("cut", true)
+				var hd := player.melee_hit(DROP_DAMAGE)
+				hd.sever = true
+				hd.knockback_force = 4.0
+				hd.stagger_duration = 0.6
+				hd.hitstop_duration = 0.08
+				hd.camera_shake_intensity = 0.18
+				if not (hb.owner in _struck):
+					_struck.append(hb.owner)
+				hb.take_hit(hd, player)
+				player.power.on_sword_hit(hb.owner, hd)
+				Net.fx("impact", [hb.global_position + Vector3(0, 1.0, 0), _look("corsair", FX.ACCENT)])
+			if player.is_on_floor() or timer > DIVE_MAX or player.is_on_wall():
+				_drop_land()
+		2:
+			_recover(delta, 0.4)
+
+
+func _drop_land() -> void:
+	phase = 2
+	timer = 0.0
+	player.velocity = Vector3.ZERO
+	var at := player.global_position
+	player.body_model.play("sp_drop_land", 0.5)
+	player.squash(-4.0)
+	Net.fx("streak", [get_meta("from"), at + Vector3(0, 0.6, 0), _look("corsair", FX.EDGE), 0.12, 0.25])
+	Net.fx("ring", [at + Vector3(0, 0.12, 0), Vector3.UP, DROP_LAND_R, _look("corsair", FX.EDGE), 0.3, 0.14])
+	Net.fx("dust_ring", [at, 16, 1.0])
+	if player.progression.elemental("corsair", 2):
+		Net.fx("powder_burst", [at + Vector3(0, 0.3, 0), Vector3.UP, 1.4, FX.tree_col("corsair", FX.EDGE)])
+	Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.85])
+	CombatManager.apply_camera_shake(0.2)
+	CombatManager.apply_camera_kick(0.14, 0.25)
+	var wave := player.melee_hit(DROP_LAND_DAMAGE)
+	wave.knockdown = true
+	wave.knockback_force = 8.0
+	wave.stagger_duration = 0.5
+	wave.hitstop_duration = 0.06
+	wave.camera_shake_intensity = 0.0
+	wave.sever = true
+	# (whoever the dive drove through goes down with the rest)
+	_burst(at, DROP_LAND_R, wave, [])
+
+
 func exit() -> void:
+	remove_meta("glinted")
+	remove_meta("cut")
 	if _mode == "rain":
 		player.align_hold = false
 		player.align_w = 0.0

@@ -5,7 +5,10 @@ extends PlayerState
 ## * axe: the whirlwind - the axe swung out two-handed and round twice,
 ##   hitting everything about you on each turn (the second knocks them flat);
 ##   you can steer it, slowly
-## * dual swords: both blades raised, then crashing down together
+## * dual wield: both blades raised, then crashing down together in an X
+## * sword and pistol (Powder Lunge): the lunging thrust, then a ball fired into
+##   whoever's on the point as it comes out (knocks them flat; the butt with
+##   nothing loaded)
 ## * fists: a flying kick
 ## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
 ##   spin, arms crossed, shooting everyone close)
@@ -25,7 +28,13 @@ const STYLES := {
 		"reach": "whirl", "color": Color(1.0, 0.78, 0.5), "rehit": 0.36, "steer": 0.45, "tree": "axe"},
 	"dual_heavy": {"anim": "dual_heavy", "impulse": 6.0,
 		"damage": 42.0, "hitstop": 0.12, "shake": 0.28, "knockback": 11.0, "stagger": 0.6,
-		"trail": "overhead", "trail_len": 0.28, "sfx": "whoosh_big", "pitch": 0.95, "impact_fx": true, "reach": "wide", "double_trail": true},
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.95, "impact_fx": true, "reach": "wide",
+		"color": Color(0.55, 0.85, 1.0), "color_l": Color(0.75, 0.65, 1.0), "tree": "dual"},
+	# sword + pistol: the thrust, then a ball fired into them as the blade comes out
+	"powder_lunge": {"anim": "sp_lunge", "impulse": 10.0,
+		"damage": 22.0, "hitstop": 0.08, "shake": 0.14, "knockback": 4.0, "stagger": 0.7,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.2, "impact_fx": false,
+		"shot": 20.0, "color": Color(1.0, 0.85, 0.7), "tree": "corsair"},
 	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
 		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
@@ -60,6 +69,11 @@ var _glinted: bool = false
 var _windup: float = 0.0
 var _active: float = 0.0
 var _recovery: float = 0.0
+## Time since it began (the phases reset `timer`), and when its pistol fires (s, -1: none).
+var _t_all: float = 0.0
+var _shot_t: float = -1.0
+var _shot_done := false
+var _swooshed := false
 
 
 static func style_for(weapon_model: String) -> String:
@@ -81,6 +95,8 @@ func enter(_data: Dictionary) -> void:
 	match player.style():
 		"dual_sword":
 			cfg = STYLES["dual_heavy"]
+		"sword_pistol":
+			cfg = STYLES["powder_lunge"]
 		"fist":
 			cfg = STYLES["kick"]
 		"pistol":
@@ -105,6 +121,10 @@ func enter(_data: Dictionary) -> void:
 	_windup = w.x
 	_active = w.y - w.x
 	_recovery = length - w.y
+	_t_all = 0.0
+	_shot_t = ActionSpecs.shot_seconds(anim) if cfg.has("shot") else -1.0
+	_shot_done = false
+	_swooshed = false
 	player.body_model.play(anim, length)
 
 
@@ -120,6 +140,15 @@ func physics_update(delta: float) -> void:
 	player.move_and_slide()
 
 	timer += delta
+	_t_all += delta
+	# (moves keyed with a "swoosh" draw the real blades' trails, both hands' for two blades)
+	var sw := ActionSpecs.swoosh_seconds(str(cfg["anim"]))
+	if sw.x >= 0.0 and _t_all >= sw.x and not _swooshed:
+		_swooshed = true
+		Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, _trail_col(), _trail_col(true)])
+	if _shot_t >= 0.0 and _t_all >= _shot_t and not _shot_done:
+		_shot_done = true
+		_powder_shot()
 
 	match phase:
 		0:  # Windup
@@ -135,8 +164,6 @@ func physics_update(delta: float) -> void:
 				var col := _trail_col()
 				if str(cfg["trail"]) != "":
 					Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), col])
-				if cfg.get("double_trail", false):
-					Net.fx("slash", [player.player_model, "spin", float(cfg["trail_len"]), col])
 				Net.fx("sfx", [str(cfg["sfx"]), player.global_position, -4.0, 0.08, float(cfg["pitch"])])
 				if cfg.get("wind", false):
 					var b := player.player_model.global_basis
@@ -152,8 +179,9 @@ func physics_update(delta: float) -> void:
 					var face_dir := get_camera_forward()
 					player.velocity.x = face_dir.x * float(cfg["impulse"])
 					player.velocity.z = face_dir.z * float(cfg["impulse"])
-				# (the whirlwind's first turn only staggers: the second knocks them flat)
-				var hit := _hit(not cfg.has("rehit"))
+				# (the whirlwind's first turn only staggers: the second knocks them flat;
+				# Powder Lunge's thrust holds them up for the shot)
+				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot"))
 				if not cfg.get("kata", false):
 					player.sword_hitbox.activate(hit)
 				hitbox_activated = true
@@ -198,13 +226,31 @@ func physics_update(delta: float) -> void:
 
 
 ## The trail's colour: the style's own, its tree's once the element follows every
-## blow (the tree's second mastery passive), black with a Haki coat.
-func _trail_col() -> Color:
+## blow (the tree's second mastery passive), black with a Haki coat. `left`: the off
+## hand's blade.
+func _trail_col(left: bool = false) -> Color:
 	if player.power.buff("coat"):
 		return Player.HAKI_TRAIL
 	if cfg.has("tree") and player.progression.elemental(str(cfg["tree"]), 2):
-		return FX.tree_col(str(cfg["tree"]), FX.EDGE)
+		return FX.tree_col(str(cfg["tree"]), FX.ACCENT if left and cfg["tree"] == "dual" else FX.EDGE)
+	if left:
+		return cfg.get("color_l", cfg.get("color", Color(0.45, 0.75, 1.0)))
 	return cfg.get("color", Color(0.45, 0.75, 1.0))
+
+
+## Powder Lunge's shot: a ball into whoever's on the point as the blade comes out.
+func _powder_shot() -> void:
+	var fwd := -player.player_model.global_basis.z
+	var on: Node3D = null
+	for e in player.sword_hitbox.hit_targets:
+		if is_instance_valid(e) and e is Node3D:
+			on = e
+			break
+	var elem := player.progression.elemental("corsair", 2)
+	CorsairGun.shoot_or_butt(player, fwd, float(cfg["shot"]), "heavy",
+		{"knock": 11.0, "stagger": 0.6, "down": true, "stop": 0.1, "shake": 0.22, "elem": elem, "size": 1.5}, on)
+	CombatManager.apply_camera_kick(0.16, 0.3)
+	player.squash(-2.0)
 
 
 ## The strike's effects: a ring of air round the point and dust kicked up by the
@@ -226,6 +272,15 @@ func _strike_fx() -> void:
 	var f := get_camera_forward()
 	f.y = 0.0
 	f = f.normalized()
+	if cfg["tree"] == "dual":
+		# the two blades bite the ground in an X
+		var at := player.global_position + f * 1.4
+		Net.fx("twin_cross", [at + Vector3(0, 0.12, 0), f, 1.0, FX.tree_col(tree, FX.EDGE), FX.tree_col(tree, FX.ACCENT if elem else FX.CORE), 0.35, true])
+		Net.fx("ring", [at, Vector3.UP, 2.2, FX.tree_col(tree, FX.EDGE), 0.28, 0.12])
+		if elem:
+			Net.fx("element", [tree, at + Vector3(0, 0.4, 0), Vector3.UP + f * 0.3, 12, 4.5])
+		CombatManager.apply_camera_kick(0.16, 0.3)
+		return
 	var tip := player.global_position + Vector3(0, 1.2, 0) + f * 1.5
 	Net.fx("ring", [tip, f, 1.3, FX.tree_col(tree, FX.EDGE), 0.22, 0.16])
 	if elem:

@@ -1529,7 +1529,9 @@ func weapon_class() -> String:
 	return class_of(equipped_weapon)
 
 
-## Fighting style: fist, sword, axe, katana, dual_sword, pistol, dual_pistol or claw.
+## Fighting style: fist, sword, axe, katana, dual_sword (two blades: sword + sword,
+## axe or dagger), sword_pistol (a one-handed blade and a pistol in the off hand),
+## pistol, dual_pistol or claw.
 func style() -> String:
 	var c := weapon_class()
 	var dual := offhand_weapon != null and not hybrid
@@ -1538,17 +1540,32 @@ func style() -> String:
 			if equipped_weapon.weapon_model == "katana":
 				return "katana"
 			if dual:
-				return "dual_sword"
+				return "sword_pistol" if class_of(offhand_weapon) == "gun" else "dual_sword"
 			return "axe" if equipped_weapon.weapon_model == "axe" else "sword"
 		"gun":
 			return "dual_pistol" if dual else "pistol"
 	return c
 
 
+## What's in the off hand: "" (nothing), "sword", "axe", "dagger" or "pistol".
+func offhand_kind() -> String:
+	if offhand_weapon == null:
+		return ""
+	match offhand_weapon.weapon_model:
+		"pistol":
+			return "pistol"
+		"axe", "dagger":
+			return offhand_weapon.weapon_model
+	return "sword"
+
+
 func _offhand_valid(item: ItemData) -> bool:
 	if item == null or equipped_weapon == null:
 		return false
-	if class_of(item) != class_of(equipped_weapon):
+	# a pistol beside a one-handed blade (not an axe) is the sword-and-pistol style
+	var blade_gun := class_of(equipped_weapon) == "sword" and class_of(item) == "gun" and item.weapon_model == "pistol" \
+		and equipped_weapon.weapon_model != "axe"
+	if class_of(item) != class_of(equipped_weapon) and not blade_gun:
 		return false
 	# (the katana takes both hands)
 	if "katana" in [item.weapon_model, equipped_weapon.weapon_model]:
@@ -1601,7 +1618,8 @@ func drop_from_bag(idx: int, qty: int = -1) -> bool:
 	return true
 
 
-## Picking up a second sword or pistol: dual wield it right away.
+## Picking up a second sword or pistol: dual wield it right away (a pistol beside
+## a sword waits to be put in the off hand by hand).
 func _on_item_added(item: ItemData, _qty: int) -> void:
 	if not item.is_weapon() or equipped_weapon == null or offhand_weapon != null:
 		return
@@ -1614,7 +1632,7 @@ func _on_item_added(item: ItemData, _qty: int) -> void:
 # Pistols
 # --------------------------------------------------------------------------
 func max_ammo() -> int:
-	return 2 + int(progression.stat("extra_shots"))
+	return 2 + int(progression.stat("extra_shots")) + int(progression.style_stat("shots", style()))
 
 
 func _reset_ammo() -> void:
@@ -1627,15 +1645,18 @@ func reloading() -> bool:
 
 
 func reload_time() -> float:
-	var t := 1.5 if offhand_weapon else 1.1
-	return t * (1.0 - progression.stat("reload_pct"))
+	var st := style()
+	var t := 1.4 if st == "sword_pistol" else (1.5 if offhand_weapon else 1.1)
+	return t * (1.0 - progression.stat("reload_pct") - progression.style_stat("reload", st))
 
 
 func start_reload() -> void:
 	if _reload_t > 0.0:
 		return
 	_reload_t = reload_time()
-	body_model.play("reload", _reload_t)
+	# (the sword-and-pistol reloads one-handed as you fight: no stopping for it mid-attack)
+	if style() != "sword_pistol" or not body_model.is_busy():
+		body_model.play("reload", _reload_t)
 	Net.fx("sfx", ["blip_low", global_position, -12.0, 0.05, 1.1])
 
 
@@ -1711,6 +1732,8 @@ const REACH := {
 	"under": [Vector3(3.2, 3.6, 3.4), Vector3(-0.3, -1.3, -0.9)],
 	# the axe's whirlwind: all the way round
 	"whirl": [Vector3(4.4, 1.5, 4.4), Vector3(0.0, 0.2, 0.0)],
+	# a combo finisher's full turn with a blade out (dual wield, sword and pistol)
+	"spin": [Vector3(3.6, 1.3, 3.6), Vector3(0.0, 0.2, -0.2)],
 }
 
 

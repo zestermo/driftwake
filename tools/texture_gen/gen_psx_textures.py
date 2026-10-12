@@ -1200,6 +1200,43 @@ def gen_technique_icons():
         d.arc([3, 3, 21, 21], 200, 340, fill=GOLD, width=1)
         d.arc([3, 3, 21, 21], 20, 160, fill=GOLD, width=1)
 
+    SCAR = hexc("ff5a42") + (255,)
+
+    def parley(d):
+        # a blade held across, a blow glancing off it, the pistol's muzzle flash below
+        blade(d, (3, 6), (17, 10))
+        d.line([(2, 2), (8, 6)], fill=STEEL_D, width=2)
+        for x, y in ((9, 5), (11, 4), (10, 8)):
+            d.point((x, y), fill=GOLD)
+        gun(d, 6, 15)
+        d.ellipse([16, 13, 21, 18], fill=SCAR)
+        d.ellipse([17, 14, 20, 17], fill=W_)
+
+    def grapeshot(d):
+        # a pistol and a wide fan of shot
+        gun(d, 1, 10)
+        for a in (-0.7, -0.35, 0.0, 0.35, 0.7):
+            d.line([(11, 11), (11 + math.cos(a) * 12, 11 + math.sin(a) * 12)], fill=GOLD if a else W_)
+        d.ellipse([9, 9, 13, 13], fill=SCAR)
+
+    def crossfire(d):
+        # a dash line through a figure, a shot back into it
+        d.line([(1, 16), (22, 16)], fill=SMOKE_L, width=1)
+        body(d, 9, 6, hexc("3a5a8a") + (255,))
+        blade(d, (14, 18), (22, 13))
+        d.line([(3, 9), (9, 10)], fill=GOLD)
+        d.ellipse([1, 7, 4, 10], fill=SCAR)
+
+    def broadside(d):
+        # a raised cutlass and cannon blasts bursting below it
+        for x, y, r in ((5, 18, 4), (12, 20, 3), (19, 17, 4)):
+            d.ellipse([x - r, y - r, x + r, y + r], fill=SCAR)
+            d.ellipse([x - r + 2, y - r + 2, x + r - 2, y + r - 2], fill=GOLD)
+        blade(d, (12, 13), (12, 1))
+        d.line([(9, 13), (15, 13)], fill=GOLD, width=1)
+        for x in (3, 21):
+            d.line([(x, 4), (x, 9)], fill=SMOKE_L)
+
     def body(d, x, y, col):
         d.ellipse([x, y, x + 4, y + 4], fill=SKIN)
         d.rectangle([x, y + 4, x + 4, y + 11], fill=col)
@@ -1261,6 +1298,7 @@ def gen_technique_icons():
                      ("wind_sever", wind_sever), ("phantom_step", phantom), ("petal_storm", petals),
                      ("axe_throw", axe_throw), ("earthsplitter", earthsplitter), ("berserk", berserk), ("maelstrom", maelstrom),
                      ("blade_dance", blade_dance), ("cross_fang", cross_fang), ("steel_tempest", tempest),
+                     ("parley", parley), ("grapeshot", grapeshot), ("crossfire", crossfire), ("broadside", broadside),
                      ("deadeye", deadeye), ("smoke_bomb", smoke_bomb), ("point_blank", point_blank), ("deaths_waltz", waltz),
                      ("suplex", suplex), ("hip_toss", hip_toss), ("giant_swing", giant_swing),
                      ("hundred_fists", hundred), ("rising_dragon", rising_dragon), ("palm_strike", palm),

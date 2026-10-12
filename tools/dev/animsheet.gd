@@ -132,13 +132,15 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 		h.set_weapon(Props.weapon_mesh(weapon))
 		if ex.get("dual", false):
 			h.set_offhand(Props.weapon_mesh(weapon))
+		elif ex.has("offhand"):
+			h.set_offhand(Props.weapon_mesh(str(ex["offhand"])))
 		h._attach_weapon(not ex.get("sheathed", false))
 		h.auto_point_guns = true
 	h.armed = true
 	if ex.get("beast", false):
 		h.set_beast(true)
 	for k in ex.keys():
-		if not k in ["dual", "beast", "sheathed", "push", "after"]:
+		if not k in ["dual", "beast", "sheathed", "push", "after", "offhand"]:
 			h.set(k, ex[k])
 	# AS_MOVE="x,y": walking that way when the action starts (Humanoid.local_move: y+ forward)
 	if OS.get_environment("AS_MOVE") != "":

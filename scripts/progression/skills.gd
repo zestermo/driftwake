@@ -109,7 +109,16 @@ const ALL := {
 	"cross_fang": {"name": "Cross Fang", "tree": "dual", "cost": 18.0, "cooldown": 6.0, "styles": ["dual_sword"], "needs_text": "two blades", "state": "Technique",
 		"desc": "Leap forward and crash down with both blades crossed, knocking down everything in front of you."},
 	"steel_tempest": {"name": "Tempest of Steel", "tree": "dual", "cost": 0.0, "cooldown": 3.0, "styles": ["dual_sword"], "needs_text": "two blades", "state": "Technique", "ult": true,
-		"desc": "Ultimate. Spin in place with both blades out: a storm of cuts drags in everything around you, then a crossed burst hurls them away."},
+		"desc": "Ultimate. Cross both blades overhead, then spin in place with them out: a storm of cuts drags in everything around you, then a crossed burst hurls them away."},
+	# --- Sword and pistol (Corsair); its techniques fire free shots (they don't use the pistol's load) ---
+	"parley": {"name": "Parley", "tree": "corsair", "cost": 16.0, "cooldown": 6.0, "styles": ["sword_pistol"], "needs_text": "a cutlass and a pistol", "state": "Technique",
+		"desc": "Raise the cutlass for a moment: the first melee blow aimed at you is turned aside on the blade, and the pistol is put to their chest and fired."},
+	"grapeshot": {"name": "Grapeshot", "tree": "corsair", "cost": 20.0, "cooldown": 7.0, "styles": ["sword_pistol"], "needs_text": "a cutlass and a pistol", "state": "Technique",
+		"desc": "A pistol packed with shot: one blast tears across everything in a wide cone in front of you and throws them back reeling."},
+	"crossfire": {"name": "Crossfire", "tree": "corsair", "cost": 22.0, "cooldown": 8.0, "styles": ["sword_pistol"], "needs_text": "a cutlass and a pistol", "state": "Technique",
+		"desc": "Dash through the enemy you're facing (up to 9 m) with a cut that breaks their guard, turn, and shoot them in the back. The shot can't be blocked and knocks them flat."},
+	"broadside": {"name": "Broadside", "tree": "corsair", "cost": 0.0, "cooldown": 3.0, "styles": ["sword_pistol"], "needs_text": "a cutlass and a pistol", "state": "Technique", "ult": true,
+		"desc": "Ultimate. Raise your cutlass and call the broadside: a shot into each of up to six enemies around you, then cannon fire lands on every one of them and throws them down."},
 	# --- Pistol ---
 	"deadeye": {"name": "Deadeye", "tree": "pistol", "cost": 20.0, "cooldown": 7.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique",
 		"desc": "A breath, a steady aim, and one shot that punches through every enemy in a line."},

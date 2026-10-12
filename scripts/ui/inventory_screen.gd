@@ -491,7 +491,10 @@ func _show_weapon(off: bool = false) -> void:
 	else:
 		_clear_info()
 		_info_name.text = "Off hand: empty" if off else "Fists"
-		_info_hint.text = "Right-click a second sword or pistol in your bag to dual wield." if off else "Unarmed: punches and kicks. Click a weapon in your bag to arm yourself."
+		_info_hint.text = "Right-click a second blade or pistol in your bag to dual wield (a pistol beside a cutlass: sword and pistol)." if off else "Unarmed: punches and kicks. Click a weapon in your bag to arm yourself."
+
+
+const OFFHAND_RULE := "The off hand takes a second blade, a second pistol, or a pistol beside a cutlass (not beside an axe or katana)."
 
 
 ## Right-click a weapon in the bag: hold it in the off hand (dual wielding).
@@ -505,7 +508,7 @@ func _offhand_from_bag(idx: int) -> void:
 	if pl.offhand_weapon == it:
 		pl.set_offhand(null)
 	elif not pl.set_offhand(it):
-		_info_hint.text = "The off hand needs the same kind of weapon as your main hand (two swords or two pistols)."
+		_info_hint.text = OFFHAND_RULE
 		return
 	menu._play()
 	refresh()
@@ -841,7 +844,7 @@ func _drop_on(target: Dictionary, d) -> void:
 			pl.equip_weapon(it, false)
 		"offhand":
 			if not pl.set_offhand(it):
-				_info_hint.text = "The off hand needs the same kind of weapon as your main hand (two swords or two pistols)."
+				_info_hint.text = OFFHAND_RULE
 		"quick":
 			var tq := int(target["idx"])
 			if src == "quick":

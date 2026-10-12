@@ -9,6 +9,8 @@ extends PlayerState
 ##   katana   iai_counter (guard), wind_sever, phantom_step, petal_storm (ult)
 ##   axe      axe_throw, earthsplitter, berserk, maelstrom (ult)
 ##   dual     cross_counter (guard), blade_dance, cross_fang, steel_tempest (ult)
+##   corsair  parley (guard), grapeshot, crossfire, broadside (ult): sword and pistol;
+##            their shots are free (CorsairGun with ball false)
 ##   pistol   deadeye, smoke_bomb, point_blank, deaths_waltz (ult)
 ##   unarmed  suplex, hip_toss, giant_swing (grapples), hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
@@ -19,8 +21,11 @@ extends PlayerState
 const GRAB_REACH := 2.3
 ## The guard skills (Riposte, Iai Counter, Crossed Counter): the waiting pose, and
 ## per fighting style the answer [pose, length, damage].
-const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard"}
-const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0]}
+const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard", "parley": "riposte_guard"}
+## (Parley's answer is a turning cut and then a shot: PARLEY_SHOT more at 0.3 s)
+const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0],
+	"sword_pistol": ["parley_shot", 0.6, 16.0]}
+const PARLEY_SHOT := 28.0
 
 var id: String = ""
 var t: float = 0.0
@@ -57,7 +62,7 @@ func enter(data: Dictionary) -> void:
 	face_direction(_dir, 1.0)
 	_from = player.global_position
 	match id:
-		"riposte", "iai_counter", "cross_counter":
+		"riposte", "iai_counter", "cross_counter", "parley":
 			# guard up for a second; the buff outlasts it a touch so exit() can tell a
 			# guard that timed out from one that was answered (the hit clears the buff)
 			dur = 1.0
@@ -142,6 +147,7 @@ func enter(data: Dictionary) -> void:
 		"blade_dance":
 			dur = 1.0
 			player.body_model.play("blade_dance", dur)
+			Net.fx("sfx", ["whoosh", player.global_position, -8.0, 0.05, 1.1])
 		"cross_fang":
 			dur = 0.85
 			# leap to land just in front of whoever you're facing (or 5 m on)
@@ -155,8 +161,42 @@ func enter(data: Dictionary) -> void:
 			player.body_model.play("cross_fang", dur)
 			Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 1.2])
 		"steel_tempest":
-			dur = 2.2
+			dur = 2.4
+			_victims = _closest(4.0, 99)
+			player.hurtbox.set_deferred("monitorable", false)
 			player.body_model.play("steel_tempest", dur)
+			Net.fx("sfx", ["parry", player.global_position, -6.0, 0.0, 1.6])
+			Net.fx("gather", [player.global_position + Vector3(0, 1.8, 0), 2.4, _col(), 0.36, 14])
+			Net.fx("gather", [player.global_position + Vector3(0, 1.8, 0), 2.4, _col(FX.ACCENT) if _elem() else _col(FX.CORE), 0.36, 14])
+			Net.fx("ring", [player.global_position, Vector3.UP, 3.5, _col(), 0.4, 0.08])
+			_moment(0.4, 0.25, 0.45, 0.2)
+		"grapeshot":
+			dur = 0.7
+			player.body_model.play("grapeshot", dur)
+			Net.fx("sfx", ["blip_low", player.global_position, -10.0, 0.0, 0.9])
+		"crossfire":
+			dur = 0.95
+			_target = _aimed(9.0)
+			if _target == null:
+				_refund("Nobody close enough")
+				return
+			_dir = _flat_to(_target)
+			face_direction(_dir, 1.0)
+			player.body_model.play("crossfire", dur)
+			Net.fx("sfx", ["whoosh", player.global_position, -8.0, 0.05, 1.2])
+		"broadside":
+			dur = 2.4
+			_victims = _closest(14.0, 6)
+			# (shot left to right as the pistol fans across)
+			var right := _dir.cross(Vector3.UP)
+			_victims.sort_custom(func(a, b): return _flat_to(a).dot(right) < _flat_to(b).dot(right))
+			player.hurtbox.set_deferred("monitorable", false)
+			player.body_model.play("broadside", dur)
+			Net.fx("sfx", ["whoosh_big", player.global_position, -3.0, 0.05, 0.55])
+			Net.fx("gather", [player.global_position + Vector3(0, 2.2, 0), 2.6, _col(FX.ACCENT) if _elem() else _col(), 0.45, 22])
+			Net.fx("ring", [player.global_position, Vector3.UP, 3.5, _col(), 0.45, 0.08])
+			Net.fx("dust_ring", [player.global_position, 12, 0.9])
+			_moment(0.4, 0.25, 0.45, 0.2)
 		"deadeye":
 			dur = 1.0
 			player.body_model.play("deadeye", dur)
@@ -209,7 +249,7 @@ func enter(data: Dictionary) -> void:
 func physics_update(delta: float) -> void:
 	t += delta
 	match id:
-		"riposte", "iai_counter", "cross_counter":
+		"riposte", "iai_counter", "cross_counter", "parley":
 			_rooted(delta, 0.15)
 			# the waiting blade catches the light (the katana's waits in its scabbard: the hilt)
 			if _once("glint", 0.12) or _once("glint2", 0.55):
@@ -218,6 +258,11 @@ func physics_update(delta: float) -> void:
 			_rooted(delta, 0.0)
 			if _once("cut", 0.11):
 				_riposte_cut()
+			# Parley: the pistol put to their chest while the blade still holds them off
+			if player.style() == "sword_pistol" and _once("glint", 0.24):
+				Net.fx("glint", [CorsairGun.muzzle(player), _col(FX.CORE), 0.6])
+			if player.style() == "sword_pistol" and _once("shot", 0.3):
+				_corsair_shot(PARLEY_SHOT, _target, {"knock": 10.0, "down": true, "stagger": 0.6, "unblock": true, "stop": 0.1, "shake": 0.2}, 1.4)
 			# the katana's answer: a beat later the blade is flicked clean
 			if player.style() == "katana" and _once("flick", 0.4):
 				Net.fx("glint", [_blade_tip(), _col(FX.CORE), 1.0])
@@ -328,27 +373,32 @@ func physics_update(delta: float) -> void:
 		"maelstrom":
 			_maelstrom(delta)
 		"blade_dance":
-			_drift(delta, 7.0)
-			if _hits < 6 and t >= 0.1 + _hits * 0.13:
-				_hits += 1
-				_ring(2.2, 9.0 if _hits < 6 else 14.0, 4.0, _hits == 6, false)
-				Net.fx("slash", [player.player_model, "spin", 0.16, Color(0.55, 0.85, 1.0)])
-				Net.fx("sfx", ["whoosh", player.global_position, -7.0, 0.1, 1.2 + _hits * 0.05])
+			_dance(delta)
 		"cross_fang":
 			apply_gravity(delta)
 			player.move_and_slide()
+			# both blades high at the top of the leap catch the light
+			if _once("glint", 0.3):
+				Net.fx("glint", [_blade_tip(), _col(FX.CORE), 0.9])
+				Net.fx("glint", [_blade_tip(true), _col(FX.CORE), 0.9])
+			if _once("swoosh", 0.34):
+				Net.fx("blade_swoosh", [player.body_model, 0.16, _col(), _col(FX.ACCENT)])
 			if not _done.has("land") and t > 0.25 and (player.is_on_floor() or t > 0.7):
 				_done["land"] = true
 				player.velocity = Vector3.ZERO
-				_cone(3.2, 0.75, 30.0, 9.0, true, true)
-				Net.fx("slash", [player.player_model, "right", 0.3, Color(0.55, 0.85, 1.0)])
-				Net.fx("slash", [player.player_model, "left", 0.3, Color(0.55, 0.85, 1.0)])
-				Net.fx("dust_ring", [player.global_position, 14, 1.0])
-				Net.fx("sfx", ["thud", player.global_position, 0.0, 0.05, 1.0])
-				CombatManager.apply_camera_shake(0.2)
+				_fang_land()
 		"steel_tempest":
+			_tempest(delta)
+		"grapeshot":
 			_rooted(delta, 0.0)
-			_spin_hits(3.5, 0.18, 8.0, 1.9, 40.0)
+			if _once("glint", 0.18):
+				Net.fx("glint", [CorsairGun.muzzle(player), _col(FX.CORE), 0.7])
+			if _once("fire", 0.26):
+				_grapeshot()
+		"crossfire":
+			_crossfire(delta)
+		"broadside":
+			_broadside(delta)
 		"deadeye":
 			_rooted(delta, 0.0)
 			face_camera(delta)
@@ -419,7 +469,7 @@ func physics_update(delta: float) -> void:
 ## The tree whose colours this technique wears (FX.TREE_FX).
 func _tree() -> String:
 	if id == "riposte_counter":
-		return {"katana": "katana", "dual_sword": "dual"}.get(player.style(), "sword")
+		return {"katana": "katana", "dual_sword": "dual", "sword_pistol": "corsair"}.get(player.style(), "sword")
 	var tr := str(Skills.get_skill(id).get("tree", "base"))
 	return tr if FX.TREE_FX.has(tr) else "haki"
 
@@ -441,9 +491,9 @@ func _spray(at: Vector3, dir: Vector3, amount: int, speed: float) -> void:
 		Net.fx("element", [_tree(), at, dir, amount, speed])
 
 
-## Where the held blade's point is (FX at the tip).
-func _blade_tip() -> Vector3:
-	var w: MeshInstance3D = player.body_model.weapon
+## Where the held blade's point is (FX at the tip; `left`: the off hand's).
+func _blade_tip(left: bool = false) -> Vector3:
+	var w: MeshInstance3D = player.body_model.offhand if left else player.body_model.weapon
 	if w == null or not is_instance_valid(w) or w.mesh == null:
 		return _chest() + _dir * 0.7
 	return w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z * 0.85)
@@ -668,8 +718,14 @@ func _riposte_cut() -> void:
 			var right := _dir.cross(Vector3.UP)
 			Net.fx("streak", [_chest() + _dir * 0.6 - right * 1.2, _chest() + _dir * 0.9 + right * 1.6, _col(), 0.08, 0.25])
 		"dual_sword":
-			Net.fx("slash", [player.player_model, "right", 0.25, _col()])
-			Net.fx("slash", [player.player_model, "left", 0.25, _col(FX.ACCENT)])
+			# the scissoring answer: both blades' trails, an X through them
+			Net.fx("blade_swoosh", [player.body_model, 0.14, _col(), _col(FX.ACCENT)])
+			if _target and is_instance_valid(_target):
+				Net.fx("twin_cross", [_target.global_position + Vector3(0, 1.1, 0), _dir, 0.7, _col(), _col(FX.ACCENT), 0.28])
+			_spray(_chest() + _dir * 0.8, _dir + Vector3.UP * 0.2, 10, 4.5)
+		"sword_pistol":
+			# the blow turned aside on the blade (the shot follows)
+			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
 		_:
 			# the backhand answer: the real blade's trail, spray thrown off its edge
 			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
@@ -989,6 +1045,253 @@ func _waltz() -> void:
 		Net.fx("tracer", [from, c])
 		Net.fx("muzzle_sparks", [from, (c - from).normalized(), 6])
 		Net.fx("sfx", ["gunshot", from, -5.0, 0.1, 1.2])
+
+
+# --------------------------------------------------------------------------
+# Dual wield
+# --------------------------------------------------------------------------
+## Blade Dance: six spinning cuts dancing forward, both blades' trails crossing; a
+## ring each turn (the two colours turn about), an X through them on the last.
+func _dance(delta: float) -> void:
+	_drift(delta, 7.0)
+	if _once("glint", 0.04):
+		Net.fx("glint", [_blade_tip(), _col(FX.CORE), 0.7])
+	if _once("swoosh", 0.08):
+		Net.fx("blade_swoosh", [player.body_model, 0.82, _col(), _col(FX.ACCENT)])
+	if _hits < 6 and t >= 0.1 + _hits * 0.13:
+		_hits += 1
+		var last := _hits == 6
+		_ring(2.2, 14.0 if last else 9.0, 4.0, last, false)
+		Net.fx("ring", [_chest(), Vector3.UP, 2.0 if last else 1.5, _col(FX.EDGE if _hits % 2 == 0 else FX.ACCENT), 0.18, 0.1])
+		Net.fx("sfx", ["whoosh", player.global_position, -7.0, 0.1, 1.2 + _hits * 0.05])
+		if _hits % 2 == 0:
+			_spray(_chest(), _dir + Vector3.UP * 0.3, 6, 3.5)
+		if last:
+			Net.fx("twin_cross", [_chest() + _dir * 1.4, _dir, 0.9, _col(), _col(FX.ACCENT), 0.3])
+			CombatManager.apply_camera_kick(0.15, 0.3)
+			player.squash(-2.0)
+
+
+## Cross Fang's landing: both blades crash down crossed, an X torn in the ground
+## ahead and through everyone caught; they're knocked flat.
+func _fang_land() -> void:
+	var hits := _cone(3.2, 0.75, 30.0, 9.0, true, true)
+	var at := player.global_position + _dir * 1.2
+	Net.fx("twin_cross", [at + Vector3(0, 0.12, 0), _dir, 1.5, _col(), _col(FX.ACCENT), 0.4, true])
+	Net.fx("ring", [at, Vector3.UP, 2.6, _col(), 0.3, 0.12])
+	for e in hits:
+		var c := (e as Node3D).global_position + Vector3(0, 1.1, 0)
+		Net.fx("twin_cross", [c, _dir, 0.6, _col(), _col(FX.ACCENT), 0.25])
+		Net.fx("impact", [c, _col(FX.ACCENT)])
+	_spray(at + Vector3(0, 0.3, 0), Vector3.UP + _dir * 0.3, 12, 4.0)
+	Net.fx("dust_ring", [player.global_position, 14, 1.0])
+	Net.fx("sfx", ["thud", player.global_position, 0.0, 0.05, 1.0])
+	Net.fx("sfx", ["parry", player.global_position, -8.0, 0.05, 1.4])
+	CombatManager.apply_camera_shake(0.2)
+	CombatManager.apply_camera_kick(0.18, 0.3)
+	player.squash(-4.0)
+
+
+## Tempest of Steel: both blades crossed overhead while it gathers (untouchable
+## until the burst), then a storm of turns inside two whirlwinds, one in each of
+## the twin colours, dragging them in; then a great X torn across the ground and
+## through everyone, and they're thrown away.
+const TEMPEST_GATHER := 0.4
+const TEMPEST_BURST := 2.0
+
+func _tempest(delta: float) -> void:
+	_rooted(delta, 0.0)
+	if _once("glint", TEMPEST_GATHER - 0.1):
+		Net.fx("glint", [_blade_tip(), _col(FX.CORE), 1.1])
+		Net.fx("glint", [_blade_tip(true), _col(FX.CORE), 1.1])
+	if _once("go", TEMPEST_GATHER):
+		var secs := TEMPEST_BURST - TEMPEST_GATHER
+		Net.fx("vortex", [player.player_model, secs, 2.6, 2.4, _col(), randi() % 10000])
+		Net.fx("vortex", [player.player_model, secs, 3.1, 2.0, _col(FX.ACCENT) if _elem() else _col(FX.CORE), randi() % 10000])
+		Net.fx("blade_swoosh", [player.body_model, secs, _col(), _col(FX.ACCENT)])
+		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 1.1])
+		CombatManager.apply_camera_kick(0.2, 0.4)
+	if t < TEMPEST_GATHER:
+		return
+	var before := _hits
+	_spin_hits(3.5, 0.18, 8.0, TEMPEST_BURST, 40.0, TEMPEST_GATHER)
+	if _hits != before and _hits % 2 == 0:
+		var a := randf() * TAU
+		_spray(_chest() + Vector3(cos(a), 0.0, sin(a)) * 1.6, Vector3(cos(a), 0.3, sin(a)), 6, 4.0)
+	if _once("burst_fx", TEMPEST_BURST):
+		player.hurtbox.set_deferred("monitorable", true)
+		Net.fx("twin_cross", [player.global_position + Vector3(0, 0.12, 0), _dir, 3.6, _col(), _col(FX.ACCENT), 0.5, true])
+		for e in _pc.enemies_in(_chest(), 4.5):
+			Net.fx("twin_cross", [(e as Node3D).global_position + Vector3(0, 1.1, 0), _flat_to(e), 0.8, _col(), _col(FX.ACCENT), 0.35])
+		Net.fx("ring", [player.global_position, Vector3.UP, 7.0, _col(), 0.5, 0.08])
+		Net.fx("ring", [player.global_position + Vector3(0, 1.0, 0), Vector3.UP, 5.0, _col(FX.ACCENT) if _elem() else _col(FX.CORE), 0.4, 0.06])
+		_spray(_chest(), Vector3.UP, 20, 5.0)
+		Net.fx("sfx", ["parry", player.global_position, 0.0, 0.0, 1.3])
+		CombatManager.apply_hitstop(0.1, [player])
+		_moment(0.3, 0.35, 0.7, 0.45)
+
+
+# --------------------------------------------------------------------------
+# Sword and pistol (Corsair)
+# --------------------------------------------------------------------------
+## A free shot from the off-hand pistol (techniques don't use its load) at `target`
+## or whoever's in front: the element's colours and a powder burst once awakened.
+func _corsair_shot(base: float, target: Node3D, opts: Dictionary, size: float) -> Node3D:
+	var o := opts.merged({"elem": _elem(), "burst": _elem(), "ball": false, "size": size}, true)
+	var hit := CorsairGun.fire(player, _dir, base, "skill", o, target)
+	CombatManager.apply_camera_kick(0.18, 0.3)
+	player.squash(-1.5)
+	return hit
+
+
+## Grapeshot: one blast across a wide cone; everyone in it is hit (less further
+## out) and thrown back reeling, and the recoil rocks you back.
+const GRAPE_REACH := 7.0
+const GRAPE_COS := 0.45
+
+func _grapeshot() -> void:
+	var from := CorsairGun.muzzle(player)
+	for e in _pc.enemies_in(player.global_position + Vector3(0, 0.9, 0) + _dir * GRAPE_REACH * 0.5, GRAPE_REACH):
+		var d := (e as Node3D).global_position - player.global_position
+		d.y = 0.0
+		if d.length() > GRAPE_REACH or (d.length() > 0.6 and d.normalized().dot(_dir) < GRAPE_COS):
+			continue
+		var c := CorsairGun.body_center(e)
+		var hd := _hd(22.0 * lerpf(1.0, 0.6, clampf((d.length() - 3.0) / 4.0, 0.0, 1.0)), 10.0, false)
+		hd.ranged = true
+		hd.stagger_duration = 0.8
+		_strike_toward(e, hd, _flat_to(e))
+		Net.fx("tracer", [from, c, _col(FX.CORE)])
+		Net.fx("impact", [c, _col(FX.ACCENT)])
+		if _elem():
+			Net.fx("powder_burst", [c, _flat_to(e), 0.5, _col()])
+	# the shot spreading across the cone
+	for i in range(7):
+		var a := lerpf(-0.95, 0.95, float(i) / 6.0) + randf_range(-0.08, 0.08)
+		var end := from + _dir.rotated(Vector3.UP, a) * randf_range(5.0, 7.5) + Vector3(0, randf_range(-0.7, 0.1), 0)
+		Net.fx("tracer", [from, end, _col(FX.CORE)])
+	Net.fx("muzzle_sparks", [from, _dir, 26, _col(FX.ACCENT) if _elem() else Color(1.0, 0.75, 0.35)])
+	Net.fx("ring", [from + _dir * 0.4, _dir, 1.8, _col(), 0.25, 0.16])
+	if _elem():
+		Net.fx("powder_burst", [from + _dir * 0.5, _dir, 1.6, _col()])
+	else:
+		Net.fx("smoke", [from + _dir * 0.5, 10, 1.0, 1.8])
+	Net.fx("dust", [player.global_position + _dir * 2.0, 10, 0.8])
+	Net.fx("sfx", ["gunshot", from, 3.0, 0.05, 0.6])
+	Net.fx("sfx", ["whoosh_big", from, -4.0, 0.05, 0.8])
+	CombatManager.apply_camera_shake(0.25)
+	CombatManager.apply_camera_kick(0.22, 0.3)
+	player.velocity = -_dir * 4.0
+	player.squash(-2.5)
+
+
+## Crossfire: a dash through them with a guard-breaking cut, a turn round behind
+## them, and a shot into their back that can't be blocked and knocks them flat.
+func _crossfire(delta: float) -> void:
+	_rooted(delta, 0.0)
+	if _target == null or not is_instance_valid(_target):
+		return
+	if _once("dash", 0.12):
+		var d := _flat_to(_target)
+		var from := _chest()
+		Net.fx("afterimage", [player.body_model, _col(), 0.3])
+		Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 6, 0.5])
+		_place(_target.global_position + d * 1.8)
+		_dir = d
+		face_direction(_dir, 1.0)
+		Net.fx("streak", [from, _chest(), _col(), 0.12, 0.28])
+		Net.fx("blade_swoosh", [player.body_model, 0.16, _col()])
+		Net.fx("sfx", ["whoosh_big", player.global_position, -3.0, 0.05, 1.4])
+	if _once("cut", 0.16):
+		var hd := player.melee_hit(24.0, "skill")
+		hd.stagger_duration = 1.0
+		hd.knockback_force = 2.0
+		hd.breaker = true
+		hd.sever = true
+		hd.hitstop_duration = 0.07
+		hd.camera_shake_intensity = 0.12
+		_strike(_target, hd)
+		var at := _target.global_position + Vector3(0, 1.1, 0)
+		Net.fx("impact", [at, _col(FX.ACCENT)])
+		Net.fx("ring", [at, _dir, 1.1, _col(), 0.2, 0.14])
+		_spray(at, _dir + Vector3.UP * 0.3, 8, 4.0)
+		CombatManager.apply_camera_kick(0.12, 0.25)
+	# turning round behind them
+	if t >= 0.28 and t <= 0.46:
+		var k := Humanoid._ease((t - 0.28) / 0.16)
+		player.player_model.rotation.y = lerp_angle(atan2(-_dir.x, -_dir.z), atan2(_dir.x, _dir.z), k)
+	if _once("turned", 0.46):
+		_dir = _flat_to(_target)
+		face_direction(_dir, 1.0)
+		Net.fx("glint", [CorsairGun.muzzle(player), _col(FX.CORE), 0.6])
+	if _once("shot", 0.5):
+		_corsair_shot(26.0, _target, {"knock": 11.0, "down": true, "stagger": 0.6, "unblock": true, "stop": 0.09, "shake": 0.2}, 1.3)
+
+
+## Broadside: the blade raised high to call it (untouchable until it lands), swept
+## down to point at them as the pistol fans across, a shot into each, left to
+## right; a held beat with the blade raised again while cannonballs whistle in,
+## then the broadside lands on every one of them and throws them down.
+const BROAD_SHOTS := 0.62
+const BROAD_EVERY := 0.14
+const BROAD_LAND := 1.75
+
+func _broadside(delta: float) -> void:
+	_rooted(delta, 0.0)
+	if t < 0.5 and int(t * 12.0) != int((t - delta) * 12.0):
+		var p := player.global_position + Vector3(randf_range(-1.6, 1.6), 0.1, randf_range(-1.6, 1.6))
+		if _elem():
+			Net.fx("element", ["corsair", p, Vector3.UP, 4, 2.5])
+		else:
+			Net.fx("dust", [p, 2, 0.4])
+	if _once("glint", 0.42):
+		Net.fx("glint", [_blade_tip(), _col(FX.CORE), 1.3])
+		Net.fx("sfx", ["parry", player.global_position, -6.0, 0.0, 1.9])
+	if _once("order", 0.56):
+		Net.fx("blade_swoosh", [player.body_model, 0.12, _col()])
+		Net.fx("sfx", ["whoosh", player.global_position, -5.0, 0.05, 1.0])
+		CombatManager.apply_camera_kick(0.15, 0.3)
+	while _hits < _victims.size() and t >= BROAD_SHOTS + _hits * BROAD_EVERY:
+		var e: Node3D = _victims[_hits]
+		_hits += 1
+		if not is_instance_valid(e) or not BurnStatus.alive(e):
+			continue
+		var from := CorsairGun.muzzle(player)
+		var c := CorsairGun.body_center(e)
+		var hd := _hd(10.0, 1.0, false)
+		hd.ranged = true
+		hd.stagger_duration = 1.3
+		hd.hitstop_duration = 0.02
+		_strike(e, hd)
+		Net.fx("tracer", [from, c, _col(FX.CORE)])
+		Net.fx("muzzle_sparks", [from, (c - from).normalized(), 10, _col(FX.ACCENT) if _elem() else Color(1.0, 0.75, 0.35)])
+		Net.fx("smoke", [from, 3, 0.5, 1.2, FX.POWDER_SMOKE if _elem() else Color(0.72, 0.72, 0.7, 0.75)])
+		Net.fx("impact", [c, _col(FX.ACCENT)])
+		if _elem():
+			Net.fx("powder_burst", [c, (c - from).normalized(), 0.45, _col()])
+		Net.fx("sfx", ["gunshot", from, -4.0, 0.1, 1.15])
+	# the cannonballs coming in
+	if _once("whistle", BROAD_LAND - 0.3):
+		Net.fx("sfx", ["whoosh_big", player.global_position, 0.0, 0.05, 0.45])
+		for e in _victims:
+			if is_instance_valid(e):
+				var at := (e as Node3D).global_position
+				var a := randf() * TAU
+				Net.fx("streak", [at + Vector3(cos(a) * 5.0, 14.0, sin(a) * 5.0), at + Vector3(0, 0.5, 0), _col(FX.CORE), 0.18, 0.32])
+	if _once("land", BROAD_LAND):
+		player.hurtbox.set_deferred("monitorable", true)
+		for e in _victims:
+			if is_instance_valid(e) and BurnStatus.alive(e):
+				var hd := _hd(40.0, 10.0, true)
+				hd.unblockable = true
+				_strike_toward(e, hd, _flat_to(e))
+				Net.fx("cannon_blast", [(e as Node3D).global_position, 1.5, _col() if _elem() else Color(0, 0, 0, 0)])
+		Net.fx("ring", [player.global_position, Vector3.UP, 10.0, _col(), 0.6, 0.06])
+		Net.fx("sfx", ["thud", player.global_position, 4.0, 0.03, 0.5])
+		Net.fx("sfx", ["gunshot", player.global_position, 4.0, 0.05, 0.45])
+		CombatManager.apply_camera_shake(0.5)
+		CombatManager.apply_hitstop(0.1, [player])
+		_moment(0.3, 0.35, 0.7, 0.45)
 
 
 # --------------------------------------------------------------------------

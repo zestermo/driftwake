@@ -2,8 +2,10 @@ extends SceneTree
 ## An ability in action: casts a skill on three grunts by the smugglers' camp and
 ## films it, effects and all, as a contact sheet (one row per view, frames along
 ## game time, so hit-stop and slow motion show as held frames).
-## Args: <out_prefix> <skill_id> [style: sword|katana|axe|dual_sword|pistol|fist]
+## Args: <out_prefix> <skill_id> [style: sword|katana|axe|dual_sword|sword_axe|sword_pistol|pistol|fist]
 ##       [views: game,side,front3,top] [frames=8] [span s=1.2] [start s=0.0]
+## skill_id may also be "heavy" (the right-click), "combo" (the light combo, clicked
+## through every 0.2 s), "air" (the jump attack from 2.5 m up) or "riposte_counter".
 ## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night; AB_TIER=0/1/2
 ## with no weapon element awakened / on skills only / on every blow (default 2).
 const STAGGER := 9
@@ -68,6 +70,12 @@ func arm() -> void:
 		"dual_sword":
 			p.equip_weapon(item("cutlass"), false)
 			p.set_offhand(item("cutlass"))
+		"sword_axe":
+			p.equip_weapon(item("cutlass"), false)
+			p.set_offhand(item("boarding_axe"))
+		"sword_pistol":
+			p.equip_weapon(item("cutlass"), false)
+			p.set_offhand(item("pistol"))
 		"pistol":
 			p.equip_weapon(item("pistol"), false)
 	if style != "fist":
@@ -174,6 +182,14 @@ func _process(d: float) -> bool:
 			if skill == "heavy":
 				p.state_machine.force_state("HeavyAttack", {})
 				print("cast heavy: true")
+			elif skill == "combo":
+				p.state_machine.force_state("LightAttack", {"combo_index": 0, "chain": true})
+				print("cast combo: true")
+			elif skill == "air":
+				p.global_position += Vector3.UP * 2.5
+				p.reset_physics_interpolation()
+				p.state_machine.force_state("Plunge", {})
+				print("cast air: true (%s)" % p.state_machine.current_state.get("_mode"))
 			elif skill == "riposte_counter":
 				p.state_machine.force_state("Technique", {"id": "riposte_counter", "target": camp.grunts[0]})
 				print("cast riposte_counter: true")
@@ -190,6 +206,10 @@ func _process(d: float) -> bool:
 			step = 3
 		3:
 			since += d
+			# (the combo: a click buffered every 0.2 s, so each hit chains as soon as it can)
+			if skill == "combo" and int(since / 0.2) != int((since - d) / 0.2):
+				p.stamina = p.max_stamina
+				p.input_buffer.buffer_action("light_attack")
 			if not busy and shot_i < frames and since >= start + span * float(shot_i) / maxf(frames - 1, 1):
 				busy = true
 				_grab()
@@ -253,6 +273,6 @@ func _sheet() -> void:
 			var img: Image = images[i][j]
 			img.convert(Image.FORMAT_RGBA8)
 			sheet.blit_rect(img, Rect2i(0, 0, w, h), Vector2i(i * w, j * h))
-	var path := "%s_%s.png" % [args[0], skill]
+	var path := "%s_%s.png" % [args[0], skill if not skill in ["heavy", "combo", "air"] else style + "_" + skill]
 	sheet.save_png(path)
 	print("SAVED ", path)

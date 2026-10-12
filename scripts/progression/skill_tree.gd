@@ -4,7 +4,7 @@ extends RefCounted
 ##   base     Base & Haki: core stats in the middle; Mobility, Survival,
 ##            Armament and Observation Haki (level 10+) and Conqueror's Haki
 ##            (level 18+) grow out of it
-##   unarmed, sword (cutlass), katana, axe, dual, pistol
+##   unarmed, sword (cutlass), katana, axe, dual, corsair (sword and pistol), pistol
 ##            weapon trees, paid for with that weapon's mastery points (earned
 ##            by fighting with it); they hold its passives, its skills, its
 ##            ultimate and the parts of its moveset you have to unlock ("move" nodes)
@@ -33,20 +33,21 @@ const TREES := {
 	"katana": {"name": "Katana", "tab": "KATANA", "mastery": true},
 	"axe": {"name": "Axe", "tab": "AXE", "mastery": true},
 	"dual": {"name": "Dual Wield", "tab": "DUAL", "mastery": true},
+	"corsair": {"name": "Corsair", "tab": "CORSAIR", "mastery": true},
 	"pistol": {"name": "Pistol", "tab": "PISTOL", "mastery": true},
 	"fruit": {"name": "Devil Fruit", "tab": "FRUIT", "mastery": false},
 }
-const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dual", "pistol", "fruit"]
+const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dual", "corsair", "pistol", "fruit"]
 
 ## Fighting style (Player.style()) -> the weapon tree it builds mastery in.
 const STYLE_TREE := {"fist": "unarmed", "sword": "sword", "katana": "katana", "axe": "axe",
-	"dual_sword": "dual", "pistol": "pistol", "dual_pistol": "pistol"}
+	"dual_sword": "dual", "sword_pistol": "corsair", "pistol": "pistol", "dual_pistol": "pistol"}
 
 const REGION_COLORS := {
 	"Core": Color(0.85, 0.78, 0.6), "Mobility": Color(0.45, 0.85, 0.95), "Survival": Color(0.5, 0.9, 0.45),
 	"Armament": Color(0.6, 0.45, 0.85), "Observation": Color(0.95, 0.5, 0.75), "Conqueror": Color(0.95, 0.3, 0.3),
 	"Unarmed": Color(1.0, 0.85, 0.6), "Cutlass": Color(0.85, 0.85, 0.95), "Katana": Color(0.7, 0.85, 1.0),
-	"Axe": Color(1.0, 0.7, 0.45), "Dual Wield": Color(0.55, 0.85, 1.0), "Pistol": Color(0.95, 0.75, 0.4),
+	"Axe": Color(1.0, 0.7, 0.45), "Dual Wield": Color(0.55, 0.85, 1.0), "Corsair": Color(1.0, 0.5, 0.42), "Pistol": Color(0.95, 0.75, 0.4),
 	"Ember": Color(1.0, 0.5, 0.15), "Wolf": Color(0.7, 0.62, 0.5), "Vine": Color(0.45, 0.85, 0.3),
 }
 
@@ -123,6 +124,7 @@ static func _build() -> void:
 	_build_katana()
 	_build_axe()
 	_build_dual()
+	_build_corsair()
 	_build_pistol()
 	_build_mastery()
 	_build_fruits()
@@ -287,7 +289,8 @@ const MASTERY := {
 	"sword": ["s", "Cutlass", "s_flying", "s_captain", "Call of the Tide", "Tidewalker", "the sea: spray and foam, and Kraken's Wake raises the deep under your foes"],
 	"katana": ["k", "Katana", "k_tiger", "k_saint", "Falling Petals", "Blossom Path", "pale steel light and falling petals"],
 	"axe": ["a", "Axe", "a_overhead", "a_warlord", "Ember Heart", "Living Fire", "embers and splintered stone"],
-	"dual": ["d", "Dual Wield", "d_dance", "d_master", "Twin Currents", "Crossing Storm", "twin currents of light, cyan and violet"],
+	"dual": ["d", "Dual Wield", "d_dance", "d_master", "Twin Currents", "Crossing Storm", "twin currents of light, cyan and violet, crossing in an X"],
+	"corsair": ["cs", "Corsair", "cs_grape", "cs_captain", "Black Powder", "Powder Keg", "black powder: scarlet flashes, gold sparks and dark smoke, and Broadside's cannon fire burns"],
 	"pistol": ["g", "Pistol", "g_storm", "g_legend", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"unarmed": ["u", "Unarmed", "u_palm", "u_thousand", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 }
@@ -432,7 +435,7 @@ static func _build_dual() -> void:
 	_tree = "dual"
 	var R := "Dual Wield"
 	_add("d_root", "Dual Wield", "root", R, _g(0, 0), [], {},
-		"A blade in each hand: fast chained cuts and a crashing double overhead. Fight with two blades to build dual-wield mastery.")
+		"A blade in each hand: fast cuts trading hands and a crashing double overhead. A cutlass with a second sword, an axe or a dagger: an off-hand axe hacks harder but slower, a dagger stabs lighter and quicker. Fight with two blades to build dual-wield mastery.")
 	_add("d_cyclone", "Twin Cyclone", "move", R, _g(3, 0), ["d_hands"], {"mv_twin_cyclone": 1},
 		"Attack in the air: blades crossed, then a drill of turns down and forward cutting everyone close on every turn, and a burst on landing that knocks them flat.", {"level": 3})
 	_add("d_spin", "Twin Spin", "move", R, _g(-2, 0), ["d_root"], {"mv_twin_spin": 1},
@@ -470,6 +473,53 @@ static func _build_dual() -> void:
 		"Dual-wield techniques come back 20% sooner.")
 	_add("d_exec", "Thousand Cuts", "passive", R, _g(2, 4), ["d_tech", "d_leech"], {"exec_dual": 0.4},
 		"A cut that leaves them under 30% health deals 40% more on top.")
+
+
+static func _build_corsair() -> void:
+	_tree = "corsair"
+	var R := "Corsair"
+	_add("cs_root", "Corsair", "root", R, _g(0, 0), [], {},
+		"A cutlass in your hand and a pistol in the other: cuts and point-blank shots, a lunge that ends in a shot on right-click. The pistol holds two balls and reloads itself as you fight. Fight this way to build Corsair mastery.")
+	_add("cs_drop", "Dead Man's Drop", "move", R, _g(3, 0), ["cs_dry"], {"mv_deadmans_drop": 1},
+		"Attack in the air: lean over the enemy you're looking at and fire down into them (it pins them), then dive through them point first; the landing knocks everyone close flat (once per jump).", {"level": 3})
+	_add("cs_finale", "Powder Finale", "move", R, _g(-2, 0), ["cs_root"], {"mv_powder_finale": 1},
+		"Adds a fourth hit to your combo: a full turn with the blade out, then a shot point-blank that knocks them flat.")
+	_add("cs_steel", "Boarding Steel", "stat", R, _g(0, 1), ["cs_root"], {"dmg_corsair": 0.06}, "+6% damage with sword and pistol.")
+	_add("cs_dry", "Dry Powder", "passive", R, _g(2, 0), ["cs_root"], {"stam_corsair": 0.15},
+		"Sword-and-pistol attacks cost 15% less stamina.")
+	# guard
+	_add("cs_deflect", "Steel and Shot", "passive", R, _g(-3, 1), ["cs_finale"], {"parryshot_corsair": 1},
+		"Parry with the cutlass and you cut gunshots out of the air too (without it, a parry only stops blades).")
+	_add("cs_parley", "Parley", "active", R, _g(-3, 2), ["cs_deflect"], {}, "", {}, "parley")
+	_add("cs_cool", "Cool Head", "passive", R, _g(-3, 3), ["cs_parley"], {"parry_corsair": 0.06},
+		"Your parry window with sword and pistol is wider.")
+	_add("cs_return", "Return Fire", "passive", R, _g(-3, 4), ["cs_cool"], {"deflect_corsair": 1, "return_corsair": 1, "deflect_cd_corsair": 1.0},
+		"Mastered: with the cutlass drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.", {"level": 4})
+	# skills
+	_add("cs_bandolier", "Bandolier", "passive", R, _g(-1.5, 1), ["cs_steel", "cs_finale"], {"shots_corsair": 1},
+		"The off-hand pistol holds one more ball.")
+	_add("cs_grape", "Grapeshot", "active", R, _g(0, 2), ["cs_steel"], {}, "", {}, "grapeshot")
+	_add("cs_cross", "Crossfire", "active", R, _g(-1.5, 3), ["cs_grape", "cs_bandolier"], {}, "", {"level": 4}, "crossfire")
+	_add("cs_monkey", "Powder Monkey", "stat", R, _g(0, 4), ["cs_cross", "cs_noquarter"], {"dmg_corsair": 0.1},
+		"+10% damage with sword and pistol.", {"level": 6})
+	_add("cs_captain", "Dread Captain", "stat", R, _g(0, 5), ["cs_monkey", "cs_smoke"], {"dmg_corsair": 0.12},
+		"+12% damage with sword and pistol.", {"level": 10})
+	_add("cs_broadside", "Broadside", "ult", R, _g(0, 6), ["cs_captain"], {}, "", {"level": 12}, "broadside")
+	# powder
+	_add("cs_rhythm", "Smoke and Steel", "passive", R, _g(1.5, 1), ["cs_steel", "cs_dry"], {"flow_corsair": 0.4},
+		"Sword-and-pistol hits give 40% more energy.")
+	_add("cs_loader", "Quick Loader", "passive", R, _g(3, 1), ["cs_rhythm"], {"reload_corsair": 0.35},
+		"The off-hand pistol reloads 35% faster.")
+	_add("cs_luck", "Lucky Ball", "passive", R, _g(1.5, 2), ["cs_rhythm"], {"crit_corsair": 0.1},
+		"10% of your sword-and-pistol hits land 50% harder.")
+	_add("cs_charge", "Double Charge", "passive", R, _g(3, 2), ["cs_loader"], {"heavy_corsair": 0.3},
+		"Your Powder Lunge (right-click) hits 30% harder, the shot too.")
+	_add("cs_plunder", "Plunderer", "passive", R, _g(1.5, 3), ["cs_luck"], {"leech_corsair": 0.06},
+		"Sword-and-pistol hits heal you for 6% of their damage.")
+	_add("cs_smoke", "Gunsmoke", "passive", R, _g(3, 3), ["cs_charge"], {"cdr_corsair": 0.2},
+		"Sword-and-pistol techniques come back 20% sooner.")
+	_add("cs_noquarter", "No Quarter", "passive", R, _g(2, 4), ["cs_plunder", "cs_smoke"], {"exec_corsair": 0.5},
+		"A hit that leaves them under 30% health deals 50% more on top.")
 
 
 static func _build_pistol() -> void:
