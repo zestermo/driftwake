@@ -102,8 +102,43 @@ function Wait-Slots([string]$crew, [int]$n, [string]$label) {
 	}
 }
 
+## Who holds the slots now: a .who whose lock is still open (a killed runner leaves its .who behind).
 function Get-SlotHolders([string]$crew) {
-	return @(Get-ChildItem (Join-Path $crew "slots") -Filter "*.who" -ErrorAction SilentlyContinue | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() })
+	$out = @()
+	foreach ($w in @(Get-ChildItem (Join-Path $crew "slots") -Filter "*.who" -ErrorAction SilentlyContinue)) {
+		$lock = $w.FullName -replace "\.who$", ".lock"
+		try {
+			([System.IO.File]::Open($lock, "OpenOrCreate", "ReadWrite", "None")).Dispose()
+			Remove-Item $w.FullName -Force -ErrorAction SilentlyContinue
+		} catch {
+			$out += (Get-Content $w.FullName -Raw).Trim()
+		}
+	}
+	return $out
+}
+
+## Import once if this checkout has no import cache, or is missing a class_name (a new script,
+## or another branch's merged or landed in): without it every script naming that class fails to parse.
+function Update-ImportCache([string]$root, [string]$godot) {
+	$classCache = Join-Path $root ".godot\global_script_class_cache.cfg"
+	$need = -not (Test-Path (Join-Path $root ".godot\imported"))
+	if (-not $need) {
+		$known = if (Test-Path $classCache) { Get-Content $classCache -Raw } else { "" }
+		$missing = @(Get-ChildItem (Join-Path $root "scripts"), (Join-Path $root "scenes") -Recurse -Filter "*.gd" |
+			Select-String -Pattern "^class_name\s+(\w+)" -List |
+			ForEach-Object { $_.Matches[0].Groups[1].Value } |
+			Where-Object { $known -notmatch "&`"$_`"" })
+		$need = $missing.Count -gt 0
+		if ($need) { Write-Host ("New class names (" + ($missing -join ", ") + "): importing once...") -ForegroundColor Yellow }
+	} else {
+		Write-Host "No .godot import cache here: importing once (a minute or two)..." -ForegroundColor Yellow
+	}
+	if ($need) {
+		$old = $ErrorActionPreference
+		$ErrorActionPreference = "Continue"
+		& $godot --headless --path "$root" --import 2>&1 | Out-Null
+		$ErrorActionPreference = $old
+	}
 }
 
 ## Every checkout's session: branch, path, its claim, how far ahead of main, and

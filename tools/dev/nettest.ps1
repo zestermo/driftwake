@@ -26,6 +26,7 @@ New-Item -ItemType Directory -Force -Path $logs | Out-Null
 . (Join-Path $PSScriptRoot "crew_lib.ps1")
 $crew = Get-CrewDir $root
 $me = Get-CrewBranch $root
+Update-ImportCache $root $Godot
 $tree = Get-TreeKey $root
 $key = if ($Mode) { "net-$Mode" } else { "net" }
 $hit = Get-CachedPass $crew $tree $key

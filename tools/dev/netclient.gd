@@ -80,11 +80,12 @@ func _process(d: float) -> bool:
 				check("host accepted us", net.roster.size() >= 1)
 				change_scene_to_file("res://scenes/world/world.tscn")
 				go(2)
-			elif join_failed and mode == "chain" and st_t < 120.0:
-				# (the host lands on its island before it hosts: knock again)
+			elif join_failed and st_t < (120.0 if mode == "chain" else 60.0):
+				# (the host is still loading its world, or landing on its island first, so its
+				# main thread can't answer the handshake before our timeout: knock again)
 				join_failed = false
 				net.join_game("127.0.0.1", port)
-			elif st_t > (120.0 if mode == "chain" else 20.0):
+			elif st_t > (120.0 if mode == "chain" else 60.0):
 				check("host accepted us", false)
 				finish()
 		2:

@@ -60,26 +60,7 @@ if (-not $Godot -or -not (Test-Path $Godot)) {
 $logs = [System.IO.Path]::Combine($root, "tools", "dev", "out", "logs")
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
-# a fresh checkout (a new worktree without the cache copied in) imports once first, and so
-# does one that's missing a class_name (a new script, or another branch's merged or landed in)
-$classCache = Join-Path $root ".godot\global_script_class_cache.cfg"
-$needImport = -not (Test-Path (Join-Path $root ".godot\imported"))
-if (-not $needImport) {
-	$known = if (Test-Path $classCache) { Get-Content $classCache -Raw } else { "" }
-	$missing = @(Get-ChildItem (Join-Path $root "scripts"), (Join-Path $root "scenes") -Recurse -Filter "*.gd" |
-		Select-String -Pattern "^class_name\s+(\w+)" -List |
-		ForEach-Object { $_.Matches[0].Groups[1].Value } |
-		Where-Object { $known -notmatch "&`"$_`"" })
-	$needImport = $missing.Count -gt 0
-	if ($needImport) { Write-Host ("New class names (" + ($missing -join ", ") + "): importing once...") -ForegroundColor Yellow }
-} else {
-	Write-Host "No .godot import cache here: importing once (a minute or two)..." -ForegroundColor Yellow
-}
-if ($needImport) {
-	$ErrorActionPreference = "Continue"
-	& $Godot --headless --path "$root" --import 2>&1 | Out-Null
-	$ErrorActionPreference = "Stop"
-}
+Update-ImportCache $root $Godot
 
 # skip what already passed on exactly this code (this tree, uncommitted changes included)
 $crew = Get-CrewDir $root
