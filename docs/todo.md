@@ -50,12 +50,13 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
   trees (clear round it or raise it).
 - [ ] **A signature set piece per island:** one unique piece (sunken village, volcano vent, giant
   skeleton...) from a pool that never repeats within a sea.
-- [ ] **People:** 15-20 villagers per island with routines (work spots, market, inn at night).
-  Today there are 6 and none walk a route.
-- [ ] **Named characters:** a few per island with real dialogue trees and rumours about the chain
-  and the beast. Today: 1 dialogue tree vs Brinehollow's 8.
-- [ ] **Island quests:** 2-3 small quests per island drawn from its POIs (lost item in the ruins,
-  clear the lair, escort...), beyond the job board.
+- [x] **People:** 15-20 villagers per island with routines (work spots, market, inn at night).
+  (2026-10-12: IslandLife + Villager, 18-19 people, 12-13 on routines; see dev_notes.) Left: people
+  on the harbour's decks (walk_height doesn't know them), escort quests.
+- [x] **Named characters:** a few per island with real dialogue trees and rumours about the chain
+  and the beast. (3 per island, 4 trees with the elder's.)
+- [x] **Island quests:** 2-3 small quests per island drawn from its POIs (lost item in the ruins,
+  clear the lair, escort...), beyond the job board. (lost, scout, deliver, fetch, clear.)
 - [ ] **Jungle theme style table:** materials, prop set, NPC looks, barks, ambience and music.
 
 **Phase 3: assemble and gate**

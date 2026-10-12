@@ -12,7 +12,7 @@ const POOLS := {
 		"where": {"nets": "at the nets down by the pier", "market": "at the market stalls", "forage": "out along the jungle paths",
 			"home": "outside their hut", "plaza": "by the fire in the plaza", "inn": "at the inn", "workshop": "at the workshop",
 			"field": "out in the gardens", "shrine": "at the shrine", "well": "by the well", "boats": "down by the boats",
-			"dock": "on the dock", "storehouse": "at the storehouse"},
+			"dock": "down at the harbour", "storehouse": "at the storehouse", "stall": "at the stalls by the harbour"},
 		"where_else": "about the village",
 		"roles": {
 			"netmender": {"title": "Net-mender", "work": "nets",
@@ -52,6 +52,9 @@ const POOLS := {
 				"Shh. If you can hear it, it can hear you."],
 			"nets": ["Fish are running deep. The beast's got them scared too.", "Hand me that float. No, the other float.", "Every knot's a prayer. Most of them hold."],
 			"forage": ["Mushrooms here. Don't eat the blue ones.", "Bug tracks. Fresh. Keep your voice down.", "Good roots under this one. Help me dig, or move on."],
+			"dock": ["Tide's turning. Everything's late when the tide turns.", "Mind the ropes. Mind the planks. Mind yourself, mostly.", "Your ship? She sits low. Carrying something heavy, or just tired?"],
+			"boats": ["Every canoe here came off this beach. Most of them came back to it.", "Hand me that adze. No, the sharp one. They're all sharp. That one."],
+			"stall": ["Fresh this morning. Well. This morning somewhere.", "Fish, rope, rum. The three things a sailor can't do without, in no order."],
 			"market": ["Shells, fruit, a fish that only smells a bit. What d'you need?", "Prices go up when ships come in. That's you. Sorry.", "Haggle all you like. I'm deaf on that side."],
 			"home": ["Roof's leaking again. The roof's always leaking.", "The little ones are down at the beach. I hope.", "If you see a pig with one ear, it's mine."],
 			"plaza": ["Gather round, gather round. No? Fine.", "The fire's never gone out. Not once. Not since my grandmother's grandmother.", "Elder's in a mood. Elder's always in a mood."],

@@ -66,8 +66,11 @@ func chain_report() -> Dictionary:
 				chests.append(b.save_id)
 		chests.sort()
 		var arena = isl.get_node("Site_boss/Arena")
+		# (where each villager's routine has them at 10:00 and 21:00, and the quests given)
+		var life: Array = isl.life.people.map(func(v): return [v.npc_name, v.spot_at(10.0)[0], v.spot_at(21.0)[0]])
+		life.append_array(isl.life.given.map(func(q): return [q["id"], q["kind"], q["title"]]))
 		isles[int(id)] = {"name": isl.island_name, "pos": isl.position, "radius": isl.radius, "sites": isl.sites,
-			"crew": crew, "people": people, "chests": chests,
+			"crew": crew, "people": people, "chests": chests, "life": life,
 			"ape": n.key_of(arena.boss) if is_instance_valid(arena.boss) else ""}
 	var ids: Array = isles.keys()
 	ids.sort()

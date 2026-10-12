@@ -17,7 +17,8 @@ const JOBS := ["nets", "forage", "market", "home", "plaza"]
 const ACT := {"nets": "kneel", "forage": "kneel", "home": "kneel", "field": "kneel", "market": "talk", "plaza": "talk", "inn": "talk", "well": "talk"}
 ## People at these stand round the spot this far out, facing in.
 const GROUP := {"plaza": 3.8, "inn": 1.9, "well": 2.2}
-const SITE_KIND := {"camp": "camp", "lair": "lair", "ruins": "ruins", "summit": "lookout", "boss": "beast"}
+const HARBOUR_KIND := {"net mender": "nets", "fisher": "nets", "boatwright": "boats", "fishmonger": "stall", "trader": "stall"}
+const SITE_KIND :={"camp": "camp", "lair": "lair", "ruins": "ruins", "summit": "lookout", "boss": "beast"}
 ## POI kind -> [a lost thing: m out toward the village, a scout's point: m out, its radius] (others go by the spot's "r")
 const POI := {"ruins": [3.5, 0.0, 8.0], "lookout": [4.5, 0.0, 5.0], "camp": [17.0, 26.0, 9.0], "lair": [16.0, 22.0, 8.0], "beast": [30.0, 34.0, 10.0]}
 
@@ -175,7 +176,7 @@ func _gather() -> void:
 			s["lane"] = KitLife.lane_in(s["hub"], s["at"], _blockers)
 
 
-## What today's IslandVillage gives: its plaza, the stalls' customers, the inn's door, the huts' fronts, the beach by the pier, the paths out.
+## What today's IslandVillage gives: its plaza, the stalls' customers, the inn's door, the huts' fronts, the harbour's work (GenHarbour.spots), the paths out.
 func _village_spots(v: IslandVillage) -> Array:
 	var c: Vector2 = isl.sites["village"]
 	var to_dock: Vector2 = (isl.sites["dock"] - c).normalized()
@@ -189,12 +190,11 @@ func _village_spots(v: IslandVillage) -> Array:
 	for h in v.huts:
 		var f: Vector2 = (h[2] as Vector2).normalized()
 		out.append({"kind": "home", "at": h[1] + f * 4.4, "face": f})
-	var dd := isl.dock_dir
-	var side := Vector2(-dd.y, dd.x)
-	for off in [-8.0, -5.0, 5.0, 8.0]:
-		var p: Vector2 = isl.dock_shore - dd * 6.0 + side * off
-		if isl.hv(p) > 0.5:
-			out.append({"kind": "nets", "at": p, "face": dd, "lane": KitLife.lane_along(c, p, isl.paths[0], 14.0, _blockers)})
+	# the harbour's work on dry land (its decks are walked by no one yet: walk_height doesn't know them)
+	for e in isl.harbour.spots:
+		var p: Vector2 = e[0]
+		if isl.hv(p) > 0.6:
+			out.append({"kind": HARBOUR_KIND.get(e[2], "dock"), "at": p, "face": e[1], "lane": KitLife.lane_along(c, p, isl.paths[0], 14.0, _blockers)})
 	for site in ["ruins", "summit"]:
 		var path := _path_to(isl.sites[site])
 		var cum := KitLife.measure(path)

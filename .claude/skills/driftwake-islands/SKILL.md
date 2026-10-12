@@ -74,6 +74,20 @@ The island side is `Island`'s interface: `hv`, `walk_height`, `reserve`, `exclud
 
 Brinehollow's cast is data in `scripts/island/brinehollow_cast.gd` (`dockhands`, `people`).
 
+## Life on a generated island (IslandLife, Villager, KitQuests, LifePools)
+
+A piece that gives people somewhere to be, or adventurers somewhere to go, **feeds `isl.life_spots`** as it
+builds (before the "life" step, which runs after every site):
+- work and gathering: `{"kind", "at": Vector2, "face": Vector2, "hub": the hamlet's plaza middle, "lane": island
+  points from the spot to the hub's ring (KitLife.HUB_R), "y": a floor}` (lane and y optional; a missing lane is
+  straight in to the ring). Kinds: plaza, inn, home, market, nets, forage, dock, boats, stall, or any new one (add
+  its `where` and barks to LifePools). Any fed village spot replaces everything derived from today's IslandVillage.
+- places for quests: `{"kind", "at", "poi": true, "name": "the bat roost", "r": its size, "clear": Callable (true once
+  cleared: a "clear" quest), "verb": "Hunt"}`. A fed POI kind replaces the derived one (camp, lair, ruins, lookout, beast).
+Nothing is guaranteed: no village spots means no people and no quests; quests take the seeded kinds the island
+can give. Positions are a function of `Weather.hour()`, so guests see the same without messages. Bodies are
+built on the worker in `IslandLife.plan`; anything unused is unstocked. Quest flags carry the island's seed.
+
 ## Authoring a kit piece
 
 1. **Signature:** `static func thing(ctx: KitContext, at: Vector2, <its own parameters>, rng)`. Positions,
