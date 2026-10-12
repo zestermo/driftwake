@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.8-e0b040" alt="Version 1.8">
+  <img src="https://img.shields.io/badge/version-1.9-e0b040" alt="Version 1.9">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,20 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.9: Beasts and Blades (October 12, 2026)
+- **The beasts rebuilt:** the Silverback is a real gorilla, and the Sea King a long serpent that
+  circles your ship, rears over the deck and bites.
+- **Sword and pistol:** the Corsair style. Blade and pistol in one combo, Powder Lunge, Dead Man's
+  Drop and Powder Finale, a butt-strike while reloading, and its own skill tree with an ultimate.
+- **Dual wield:** fixed and polished. A sword with a second sword, an axe or a dagger, the off hand
+  changing the weight of each hit, and Twin Spin in the tree.
+- **Devil Fruits rest for now:** chests no longer hold them while their powers are reworked. Fruits
+  already eaten stay yours.
+- **Co-op:** a pistol shot fired across your own body no longer vanishes, and a guest reaching an
+  island that's still building keeps its fights.
+- **Brinehollow as a kit:** the starter island is built from reusable pieces, the first step to
+  giving every chain island its level of detail.
 
 ### v1.8: The Chain (October 9, 2026)
 - **The island chain:** past Redtide, the log pose leads to islands generated from your world's

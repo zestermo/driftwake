@@ -7,17 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["The island chain", "Past Redtide the log pose leads to islands built from your world's seed: jungle isles with a pirate camp and its captain, a bug lair, ruins and a lookout on the summit. Each grows tougher than the last."],
-	["Outpost villages", "Every island has a village: an inn to rest at, a trader and a cook, a job board, and an elder who pays for work done and tells of the way on."],
-	["The Silverback", "Each jungle isle's beast waits on the far side: roars, slams, leaps and hurled boulders. Fell it for its hoard and the Silverback Pelt."],
-	["Reading the log pose", "Its needles sit on your compass. Each island ahead shows its theme and how dangerous it is for you. At a fork, sail to the side you choose. The needle settles after a while on an island, or as soon as its beast falls."],
-	["The sea between", "Every leg to the next island has pirate fleets of its level, reefs, fog, whirlpools and storms, a Sea King now and then, and wrecks, bottles and islets with a chest."],
-	["Katana and axe", "Thousand Petals and Maelstrom rebuilt, with petals for the katana and embers, rock and fire for the axe. Earthsplitter tears the ground."],
-	["Jumping attacks", "Twin Cyclone, Meteor Kick, Hang Shot and Boarding Dive, learned in each weapon's tree."],
-	["A better sounding sea", "No more short hull-wash loop: long layered water that changes with your speed, footsteps for sand, grass, stone, wood and shallows, varied hits and shots, and island music that picks up where it left off."],
-	["Steadier pacing", "Levels come slower, pistols lose punch at range, and pirate ships sail faster, fire more and board."],
-	["Co-op fixes", "Guests see the pirates who board your ship, and a guest whose island builds late catches up on its fights."],
-	["Play in the browser", "Driftwake runs at driftwake.fun too (co-op stays on desktop)."],
+	["The beasts, rebuilt", "The Silverback is a real gorilla now, and the Sea King a long serpent that circles your ship, rears over the deck and bites."],
+	["Sword and pistol", "The Corsair style: blade and pistol in one combo, Powder Lunge, Dead Man's Drop and Powder Finale, a butt-strike while you reload, and its own skill tree with an ultimate (K)."],
+	["Two blades", "Dual wield fixed and polished: a sword with a second sword, an axe or a dagger. The off hand changes the weight of every hit, and Twin Spin is learned in the tree."],
+	["Devil Fruits rest for now", "Chests no longer hold Devil Fruits while their powers are reworked. Fruits you already ate stay yours."],
+	["Co-op fixes", "A pistol shot fired across your own body no longer vanishes, and a guest reaching an island that's still building keeps its fights."],
+	["Brinehollow, as a kit", "The starter island is now built from a set of reusable pieces, the first step to giving every chain island its level of detail."],
 ]
 
 

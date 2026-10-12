@@ -162,6 +162,11 @@ main { width: min(1100px, 100%); margin: 0 auto; padding: 32px 16px 8px; }
 .features h3::before { content: ""; position: absolute; left: 1px; top: 0.45em; width: 8px; height: 8px; background: var(--accent); box-shadow: 2px 2px 0 var(--rust); }
 .features p { margin: 0; padding-left: 18px; color: #d9d3c3; }
 
+.notes .date { margin: -6px 0 12px; font-size: 14px; color: var(--dim); }
+.notes ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.notes li { position: relative; padding-left: 18px; color: #d9d3c3; }
+.notes li::before { content: ""; position: absolute; left: 1px; top: 0.6em; width: 8px; height: 8px; background: var(--sun); box-shadow: 2px 2px 0 var(--rust); }
+
 .controls { overflow-x: auto; }
 .controls table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .controls th { padding: 4px 12px 4px 0; text-align: left; font-weight: 400; color: var(--dim); white-space: nowrap; }
