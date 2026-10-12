@@ -85,7 +85,7 @@ func _run(name_: String, args: Array, from: int):
 				if e.get("health") == null:
 					continue
 				enemies[n.key_of(e)] = [e.global_position, int(e.state), e.health.current_health, e.health.max_health,
-					float(e.get_meta("min_hp", e.health.max_health))]
+					float(e.get_meta("min_hp", e.health.max_health)), float(e.get_meta("dmg_taken", 0.0))]
 			var pup = n.players.get(from)
 			var camp = _world().find_children("SmugglersCamp", "", true, false)
 			var burned: Array = get_node("/root/GameManager").burned.keys()
@@ -120,13 +120,19 @@ func _run(name_: String, args: Array, from: int):
 			lp.reset_physics_interpolation()
 			return true
 		"calm":
-			# keep the enemies from swinging on their own (and note the
-			# lowest health each one reaches)
+			# keep the enemies from swinging on their own (and note the lowest health
+			# each one reaches and all the damage it takes: a grunt back at its post heals)
 			for e in get_tree().get_nodes_in_group("enemies"):
 				var en = e
-				e.health.health_changed.connect(func(c, _m): en.set_meta("min_hp", minf(float(en.get_meta("min_hp", 99999.0)), c)))
+				en.set_meta("last_hp", en.health.current_health)
+				e.health.health_changed.connect(func(c, _m):
+					en.set_meta("min_hp", minf(float(en.get_meta("min_hp", 99999.0)), c))
+					en.set_meta("dmg_taken", float(en.get_meta("dmg_taken", 0.0)) + maxf(float(en.get_meta("last_hp", c)) - c, 0.0))
+					en.set_meta("last_hp", c))
 				_calm(e)
 			return true
+		"clock":
+			return n.time()
 		"board_setup":
 			# the crew's ship out in open sea, the host aboard, a pirate ship lashed
 			# alongside to starboard (every pirate's AI held: they're placed by hand)

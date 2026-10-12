@@ -61,6 +61,7 @@ func _process(d: float) -> bool:
 		fails += 1
 		finish()
 		return false
+	_clock_step()
 	if mode == "chain" and step >= 100:
 		_chain_step()
 		return false
@@ -97,10 +98,11 @@ func _process(d: float) -> bool:
 				check("host's captain is a puppet here", not host_p.is_local and str(host_p.name) == "P1")
 				check("puppets aren't in the 'player' group", get_first_node_in_group("player") == p)
 				check("roster has both captains", net.roster.size() >= 2)
-				check("clock synced (rtt %.0f ms)" % (net.rtt * 1000.0), net.rtt < 0.5)
 				p.health_component.max_health = 500.0
 				p.health_component.current_health = 500.0
 				data["joined_t"] = net.time()
+				data["clock_rtt"] = []
+				data["clock_err"] = []
 				tn.ask("calm")
 				go(100 if mode == "chain" else 3)
 			elif st_t > 20.0:
@@ -271,22 +273,40 @@ func _process(d: float) -> bool:
 		121:
 			if st_t < 0.6:
 				return false
+			tn.ask("report")
+			go(124)
+		124:
+			if not tn.got("report"):
+				return false
+			# (the damage it has taken so far: our first hit sent it home to its post, where it healed)
+			data["gdmg"] = float(rep()["enemies"][data["gkey"]][5])
+			p.body_model.play("sp_shot", 0.62)
+			go(125)
+		125:
+			# fired on the pose's shot key, as the combo does (the gun's out in front by then)
+			if st_t < load("res://scripts/npc/action_specs.gd").shot_seconds("sp_shot"):
+				return false
 			var to: Vector3 = (data["g"] as Node3D).global_position - p.global_position
 			to.y = 0.0
-			p.body_model.play("sp_shot", 0.62)
 			# (loaded, not named: it touches autoloads, which a --script can't see at compile time)
-			load("res://scripts/player_states/corsair_gun.gd").fire(p, to.normalized(), 30.0, "", {"ball": false, "unblock": true}, data["g"])
+			var cg = load("res://scripts/player_states/corsair_gun.gd")
+			var far: float = cg.muzzle(p).distance_to(cg.body_center(data["g"]))
+			# what fire() deals: melee_hit(30) (no crit here), then the range falloff past NEAR
+			data["shot_want"] = 30.0 * p.damage_multiplier() * lerpf(1.0, cg.FAR_MIN, clampf((far - cg.NEAR) / (cg.RANGE - cg.NEAR), 0.0, 1.0))
+			data["shot_far"] = far
+			var struck = cg.fire(p, to.normalized(), 30.0, "", {"ball": false, "unblock": true}, data["g"])
+			check("our point-blank shot strikes the grunt here (%.1f m)" % far, struck == data["g"] and far < cg.NEAR)
 			go(122)
 		122:
-			if st_t < 0.25:
+			if st_t < 0.15:
 				return false
 			tn.ask("report")
 			go(123)
 		123:
 			if not tn.got("report"):
 				return false
-			var now2 := float(rep()["enemies"][data["gkey"]][4])
-			check("our pistol shot landed on the host's grunt (%.0f -> %.0f)" % [data["ghp"], now2], now2 < data["ghp"] - 10.0)
+			var dealt: float = float(rep()["enemies"][data["gkey"]][5]) - data["gdmg"]
+			check("our pistol shot landed on the host's grunt (%.1f damage, want %.1f)" % [dealt, data["shot_want"]], absf(dealt - data["shot_want"]) < 0.5)
 			check("the host's puppet of us: sword and pistol, the shot playing (%s, %s)" % [rep()["puppet_stance"], rep()["puppet_action"]],
 				rep()["puppet_stance"] == "sword_pistol" and rep()["puppet_action"] == "sp_shot")
 			check("...the pistol along its forearm (%.2f)" % float(rep()["puppet_off_grip"]), float(rep()["puppet_off_grip"]) > 0.95)
@@ -1075,6 +1095,39 @@ func _hostquit_step() -> void:
 		finish()
 
 
+## The clock, judged a few seconds after joining (the host can still be loading or
+## building the chain right then): the host's clock read against ours over several asks.
+func _clock_step() -> void:
+	if not data.has("joined_t") or data.has("clock_done"):
+		return
+	var now: float = net.time()
+	if data.has("clock_ask"):
+		if not tn.got("clock"):
+			return
+		var ask: Array = data["clock_ask"]
+		var ht := float(tn.replies["clock"])
+		data["clock_rtt"].append((Time.get_ticks_usec() - int(ask[0])) * 0.000001)
+		# (the host read its clock between our ask and its reply arriving)
+		data["clock_err"].append(maxf(maxf(float(ask[1]) - ht, ht - now), 0.0))
+		data.erase("clock_ask")
+		data["clock_next"] = now + 0.4
+		if data["clock_rtt"].size() >= 7:
+			data["clock_done"] = true
+			var rtts: Array = data["clock_rtt"].duplicate()
+			var errs: Array = data["clock_err"].duplicate()
+			rtts.sort()
+			errs.sort()
+			check("clock synced: the host's clock lands in our ask-to-reply window (median %.0f ms off, worst %.0f)" % [errs[3] * 1000.0, errs[6] * 1000.0], errs[3] < 0.05)
+			check("round trip on localhost once settled (median %.0f ms of 7, worst %.0f; Net's %.0f)" % [rtts[3] * 1000.0, rtts[6] * 1000.0, net.rtt * 1000.0], rtts[3] < 0.25)
+		return
+	if now < float(data.get("clock_next", float(data["joined_t"]) + 3.0)):
+		return
+	data["clock_ask"] = [Time.get_ticks_usec(), now]
+	tn.ask("clock")
+
+
 func finish() -> void:
+	if data.has("joined_t") and not data.has("clock_done") and mode != "hostquit":
+		check("the clock was sampled after joining", false)
 	print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 	quit()

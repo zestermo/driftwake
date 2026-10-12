@@ -94,6 +94,11 @@ func chain_ready() -> bool:
 	return true
 
 
+## This chain island is fully in the world here and its crews have turned up.
+func standing(isl: Node) -> bool:
+	return chain_islands.values().has(isl) and _manned(isl)
+
+
 func _manned(isl: Node) -> bool:
 	for camp in isl.find_children("*", "GruntCamp", true, false):
 		if not (camp as GruntCamp)._warming.is_empty():

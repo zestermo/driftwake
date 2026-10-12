@@ -1789,6 +1789,9 @@ func _isle_state_req(key: String) -> void:
 	# (not built on the host yet: nothing has happened there, and its waves will come as events)
 	if not hosting or isl == null:
 		return
+	# (still being put in the world here, or its crews not mustered: our list would leave them out and the guest would free theirs)
+	if not get_tree().get_first_node_in_group("world_gen").standing(isl):
+		return
 	var spawners := {}
 	for s in get_tree().get_nodes_in_group("net_spawner"):
 		if isl.is_ancestor_of(s):
