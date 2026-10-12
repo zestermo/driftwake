@@ -41,9 +41,10 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
   per 50 m of lane (today 8.5/ha); more building kinds (workshop, shrine or chapel, storehouse,
   two-storey house; today all huts); lit windows and NightLights to Brinehollow's levels (today
   3 lights vs 11, ~40 lit windows vs 180); worn or paved paths.
-- [ ] **Interiors:** caves and small dungeons from a pool (bug tunnels, smugglers' grotto,
-  flooded ruin) with a reward at the end; enterable shops and a few houses; a multi-room ruined
-  temple as a bigger set piece on some islands. (The inn interior isn't a priority.)
+- [x] **Interiors:** caves and small dungeons from a pool (bug tunnels, smugglers' grotto,
+  flooded ruin, root cavern, bat roost, sunken shrine, beast den; 1-3 per island) with a reward at the
+  end; a multi-room ruined temple (levers, a gated sanctum, its warden) on ~40% of islands
+  (2026-10-12, KitDungeons/KitTemple). Enterable shops and houses: the village agent's.
 - [ ] **Landmarks** (rolled per island, visible from the sea): waterfall with a swimmable pool;
   beached wreck to explore, with loot; a climbable giant tree with platforms and rope bridges; a
   stone idol or stepped temple top above the canopy. Fix the summit tower being buried in
