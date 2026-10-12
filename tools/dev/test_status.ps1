@@ -20,6 +20,18 @@ $net = @("net", "net-chain", "net-board")
 foreach ($l in Get-ChildItem (Join-Path $crew "ledger") -Filter "net*.json" -ErrorAction SilentlyContinue) { $n = $l.BaseName; if ($net -notcontains $n) { $net += $n } }
 $all = $suites + $net
 
+$groups = @()
+$groupOf = @{}
+foreach ($line in Get-Content (Join-Path $PSScriptRoot "suite_groups.txt")) {
+	$l = $line.Trim()
+	if (-not $l -or $l.StartsWith("#")) { continue }
+	$g, $names = $l -split ":", 2
+	$g = $g.Trim()
+	if ($groups -notcontains $g) { $groups += $g }
+	foreach ($n in $names -split "\s+" | Where-Object { $_ }) { $groupOf[$n] = $g }
+}
+if (@($all | Where-Object { -not $groupOf.ContainsKey($_) }).Count -gt 0) { $groups += "Other" }
+
 $map = @()
 foreach ($line in Get-Content (Join-Path $PSScriptRoot "test_map.txt")) {
 	$l = $line.Trim()
@@ -66,7 +78,7 @@ foreach ($s in $all) {
 	$ledger = $null
 	$lf = Join-Path $crew "ledger\$s.json"
 	if (Test-Path $lf) { $ledger = Get-Content $lf -Raw | ConvertFrom-Json }
-	$row = [ordered]@{ name = $s; state = "never"; why = ""; files = @(); last = $ledger; passedOn = "" }
+	$row = [ordered]@{ name = $s; group = $(if ($groupOf.ContainsKey($s)) { $groupOf[$s] } else { "Other" }); state = "never"; why = ""; files = @(); last = $ledger; passedOn = "" }
 	$mine = @($passes[$s] | Sort-Object At -Descending | Select-Object -First 10)
 	$exact = $mine | Where-Object { $_.Tree -eq $tree } | Select-Object -First 1
 	if ($exact) {
@@ -101,7 +113,7 @@ foreach ($s in $all) {
 
 $counts = [ordered]@{}
 foreach ($k in @("ok", "stale", "failing", "never")) { $counts[$k] = @($rows | Where-Object { $_.state -eq $k }).Count }
-$status = [ordered]@{ at = (Get-Date).ToString("o"); root = $root; branch = (Get-CrewBranch $root); tree = $tree; counts = $counts; suites = $rows }
+$status = [ordered]@{ at = (Get-Date).ToString("o"); root = $root; branch = (Get-CrewBranch $root); tree = $tree; counts = $counts; groups = $groups; suites = $rows }
 [System.IO.File]::WriteAllText((Join-Path $crew "status.json.tmp"), ($status | ConvertTo-Json -Depth 6 -Compress))
 Move-Item -Force (Join-Path $crew "status.json.tmp") (Join-Path $crew "status.json")
 

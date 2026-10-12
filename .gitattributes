@@ -5,3 +5,4 @@
 docs/dev_notes.md merge=union
 tools/dev/suites.txt merge=union
 tools/dev/test_map.txt merge=union
+tools/dev/suite_groups.txt merge=union

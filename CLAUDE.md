@@ -121,7 +121,8 @@ so half-finished edits never break another session's tests or end up in its comm
   uncommitted work. If it's in a file someone else is changing on main, say so.
 - run_tests.ps1 re-imports by itself when a `class_name` is missing from the import cache
   (a new script, or another branch's landed in).
-- New suites go on their own line in `tools/dev/suites.txt`. That file, `test_map.txt` and
+- New suites go on their own line in `tools/dev/suites.txt`, and on their group's line in
+  `tools/dev/suite_groups.txt` (the Tests pane's groups). Those, `test_map.txt` and
   `docs/dev_notes.md` merge by union (`.gitattributes`), so parallel branches adding lines
   don't conflict when they land.
 
