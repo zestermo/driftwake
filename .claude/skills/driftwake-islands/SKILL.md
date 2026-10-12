@@ -70,6 +70,9 @@ The island side is `Island`'s interface: `hv`, `walk_height`, `reserve`, `exclud
 | `kit_landmarks.gd` | KitLandmarks | `lighthouse` (+ keeper's cottage), `ruins` (+ standing stone and its dialogue), `harbour_tower`, `crane`, `chapel`, model `lookout_tower`, `cyl_col`, `box_col` |
 | `kit_camps.gd` | KitCamps | `campfire` (with its crackle), models `tent`, `log_seat`, `flag`; `log_by`, `seat_on`, `look_yaw`, `strongbox`, `castaway`, `pirate_camp` (GruntCamp), `den` (pier, sloop, shacks, tower, captain; GruntCamp), `training_yard` |
 | `kit_cave.gd` | KitCave | `cave` (BroodCave: `shape_seed`, `hoard_id`, `title`), `inn` (Buildings.tavern_hall + its door kept clear) |
+| `kit_dungeons.gd` | KitDungeons | a generated island's caves (pool of 7 kinds): `plan` (worker), `steps`, `poi`, `site_clear`, `land_clear`, `top`, `path_to`, `spots`, `room_of`, `loc` |
+| `kit_temple.gd` | KitTemple | the ruined temple: `plan`, `build`, `populate` (hall, two lever shrines, a gated sanctum) |
+| `cave_mesher.gd` | CaveMesher | rooms + tunnels as distance fields, meshed by surface nets (data only) |
 | `kit_life.gd` | KitLife | `spawn(ctx, cast)` (cast = data: `{"cfg", "at", "face", "y"}`), `npc`, `at_marker`, `route`, `ring`, `look_for(name)` |
 
 Brinehollow's cast is data in `scripts/island/brinehollow_cast.gd` (`dockhands`, `people`).
@@ -87,6 +90,25 @@ builds (before the "life" step, which runs after every site):
 Nothing is guaranteed: no village spots means no people and no quests; quests take the seeded kinds the island
 can give. Positions are a function of `Weather.hour()`, so guests see the same without messages. Bodies are
 built on the worker in `IslandLife.plan`; anything unused is unstocked. Quest flags carry the island's seed.
+
+### Interiors on generated islands (KitDungeons, KitTemple, CaveMesher, Dungeon)
+
+- `KitDungeons.plan(isl)` runs in `GenIsland.prepare` (after the paths, before the terrain's paint and the
+  vegetation): 1-3 caves from `POOL` (no kind twice) plus the temple on ~40%, each in a spot `site_clear`
+  of the sites (`KEEP`) and `land_clear` (on land, off paths); it reserves the footprint and adds a path to
+  the mouth (`path_to`). The result is `isl.interiors`; `KitDungeons.poi(e)` is what a planner, quest or
+  creature placer reads (chambers with free `slots` {floor, roof}, `boss_slot`, `boss`, the `enemies` node path).
+- `KitDungeons.steps(isl)` (appended to IslandContent.steps): shell (mesh + trimesh), dressing, population, a
+  step each; the temple two. A `Dungeon` node runs it in the world (sleep, banner, boss, the temple's gate).
+- **A cave of any shape:** `CaveMesher.make(rooms, segs, seed).mesh(cell, y_min)`: rooms (domes with flat
+  floors) and tunnel segments as distance fields, hollowed out of a hull that follows them and runs down into
+  the ground, meshed by surface nets (flat facets, projected UVs; surfaces floor/wall inside, turf/moss/rock
+  outside), collider faces and flat ledges for plants. Pure data: build it on the worker. `ceiling` and `wall`
+  find the rock for things hung from the roof or fixed to the walls. A floor must sit over every bit of ground
+  under it (`KitDungeons.top`), or the terrain shows through.
+- New cave kind: a `SHAPES` entry (rooms in order, side room, tunnels), `TITLES`, `LOOK`, `BOSS`, a dressing
+  case in `_dress`/`_walls`/`_outside` and a population case in `_populate`.
+- Tools that touch these: load the scripts once the world is up (`dungeonshot.gd`), never name the classes.
 
 ## Authoring a kit piece
 

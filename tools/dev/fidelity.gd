@@ -45,13 +45,13 @@ const PROPS := {
 }
 const LANDMARKS := {"Lighthouse": "lighthouse", "HarbourTower": "harbour tower", "Chapel": "chapel", "DockCrane": "crane",
 	"LookoutTower": "lookout tower", "Pillar": "ruins", "FallenPillar": "ruins", "Slabs": "ruins", "Driftstone": "standing stone",
-	"BroodCave": "cave", "Well": "well", "Boulders": "beast's ground"}
+	"BroodCave": "cave", "Well": "well", "Boulders": "beast's ground", "Dungeon": "cave", "Temple": "temple"}
 ## Walked into for the props on them (a pier's lantern), their own meshes not counted.
 const INFRA := ["HarbourPier", "Quay", "Dock", "Pier", "Cobbles", "Ladder", "Boardwalk", "PierFender", "CoveRocks"]
-const INTERIORS := ["Tavern", "BroodCave"]
+const INTERIORS := ["Tavern", "BroodCave", "Dungeon", "Temple"]
 const SKIP := ["Terrain", "Ground", "Vegetation", "VegetationColliders", "ShotMarks"]
 ## GenIsland.build_ms keys worked out in prepare (a worker thread in the game).
-const PREP_KEYS := ["land", "arrays", "trees", "undergrowth", "bodies", "harbour plan"]
+const PREP_KEYS := ["land", "arrays", "trees", "undergrowth", "bodies", "harbour plan", "dungeon_plan"]
 
 ## [key, label, gated]: gated ones are what phase 3 holds at >= 80% of Brinehollow.
 const METRICS := [
@@ -446,6 +446,8 @@ static func anchors(isl: Node3D) -> Dictionary:
 		var pois := {}
 		for p in ["village", "camp", "lair", "ruins", "summit", "boss"]:
 			pois[p] = s[p]
+		for e in isl.interiors:
+			pois[e["name"]] = e["mouth"]
 		a["pois"] = pois
 		a["paths"] = isl.paths
 		a["widths"] = isl._path_widths

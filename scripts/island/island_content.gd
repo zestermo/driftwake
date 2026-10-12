@@ -29,7 +29,7 @@ static func steps(isl: GenIsland) -> Array:
 		["boss", func(): BeastArena.build(isl, rng)],
 		# (after the camp, the lair and the beast: its jobs watch them)
 		["village", func(): IslandVillage.build(isl, rng)],
-	]
+	] + KitDungeons.steps(isl)
 
 
 ## The island's level (chain.gd): its enemies' (Levels) and its loot's.

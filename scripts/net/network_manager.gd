@@ -37,7 +37,7 @@ const XP_RANGE := 40.0
 const CONNECT_TIMEOUT := 10.0
 const WEB_NO_COOP := "Co-op needs the desktop build"
 ## What clients may ask the host to do to an enemy (see ask_host).
-const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push"]
+const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull"]
 
 var active: bool = false
 var hosting: bool = false

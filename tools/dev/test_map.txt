@@ -126,6 +126,12 @@ scripts/ui/compass_strip.gd             chaintest qoltest
 scripts/ui/sea_chart.gd                 chaintest qoltest seatest
 scripts/island/*                        foresttest
 scripts/island/*                        fidelitytest
+scripts/island/kit/kit_dungeons.gd      dungeontest isletest netchain
+scripts/island/kit/kit_temple.gd        dungeontest netchain
+scripts/island/kit/cave_mesher.gd       dungeontest
+scripts/island/dungeon.gd               dungeontest netchain
+scripts/island/gen_island.gd            dungeontest
+scripts/island/island_content.gd        dungeontest
 scripts/props/props.gd                  fidelitytest
 scripts/props/buildings.gd              fidelitytest
 tools/dev/fidelity.gd                   fidelitytest

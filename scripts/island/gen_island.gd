@@ -45,6 +45,8 @@ var exclusions := {}
 var forest_crowns: Array = []
 ## The harbour district at the dock (planned in prepare, built in finish_steps).
 var harbour: GenHarbour
+## Caves, dungeons and the temple (KitDungeons.plan): each its plan, also the POI data.
+var interiors: Array = []
 var build_ms := {}
 ## Its villagers, named characters and quests (planned in prepare).
 var life: IslandLife
@@ -110,6 +112,7 @@ func prepare(n: Dictionary) -> void:
 	build_ms["land"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
 	_define_paths()
+	interiors = KitDungeons.plan(self)
 	_terrain_arrays()
 	_shoal_image()
 	build_ms["arrays"] = _lap(t0)

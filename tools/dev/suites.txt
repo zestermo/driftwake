@@ -50,3 +50,4 @@ fidelitytest
 harbourtest
 wieldtest
 lifetest
+dungeontest
