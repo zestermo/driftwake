@@ -49,3 +49,4 @@ legtest
 fidelitytest
 harbourtest
 wieldtest
+lifetest

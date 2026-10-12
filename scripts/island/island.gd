@@ -8,6 +8,9 @@ var is_generated: bool = false
 var dock_position: Vector3 = Vector3.ZERO
 var spawn_points: Array[Marker3D] = []
 var loot_spawns: Array[Marker3D] = []
+## Where its people work and what's worth visiting, fed by the kit pieces as they build and read by
+## IslandLife (routines, quests): {"kind", "at": Vector2, "face": Vector2, optional "lane", "y", "poi": true}.
+var life_spots: Array = []
 
 
 ## The ground and its bookkeeping, as the island kit (KitContext) sees it. Island

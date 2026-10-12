@@ -46,6 +46,8 @@ var forest_crowns: Array = []
 ## The harbour district at the dock (planned in prepare, built in finish_steps).
 var harbour: GenHarbour
 var build_ms := {}
+## Its villagers, named characters and quests (planned in prepare).
+var life: IslandLife
 
 var _def: Dictionary
 var _rng := RandomNumberGenerator.new()
@@ -120,6 +122,7 @@ func prepare(n: Dictionary) -> void:
 		h.setup(lk)
 		Humanoid.stock(h, lk)
 	build_ms["bodies"] = _lap(t0)
+	life = IslandLife.plan(self)
 
 
 ## The nodes, meshes and colliders from what prepare worked out, all at once
@@ -144,6 +147,7 @@ func finish_steps() -> Array:
 		["colliders", _vegetation_colliders],
 	]
 	steps.append_array(IslandContent.steps(self))
+	steps.append_array(life.steps())
 	return steps
 
 

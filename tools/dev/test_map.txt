@@ -130,6 +130,15 @@ scripts/props/props.gd                  fidelitytest
 scripts/props/buildings.gd              fidelitytest
 tools/dev/fidelity.gd                   fidelitytest
 data/dialogue/*                         qoltest
+scripts/island/island_life.gd           lifetest isletest netchain
+scripts/island/kit/kit_life.gd          lifetest storytest qoltest
+scripts/island/kit/villager.gd          lifetest netchain
+scripts/island/kit/kit_quests.gd        lifetest
+scripts/island/kit/life_pools.gd        lifetest
+scripts/island/gen_island.gd            lifetest
+scripts/island/island_village.gd        lifetest
+scripts/npc/npc.gd                      lifetest
+scripts/dialogue/dialogue_manager.gd    lifetest
 
 # --- UI ---
 scenes/ui/*                             r6test r7test r8test

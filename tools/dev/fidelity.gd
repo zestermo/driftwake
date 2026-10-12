@@ -358,7 +358,7 @@ static func measure(isl: Node3D) -> Dictionary:
 			dlg += 1
 		if has_dlg or str(n.shop_id) != "" or not (n.barks as Array).is_empty():
 			talk += 1
-		if not (n.waypoints as Array).is_empty():
+		if not (n.waypoints as Array).is_empty() or n.get("stays") != null:
 			routes += 1
 		var np := _pos(isl, n)
 		districts[_district(np, settled, a)]["npcs"] += 1
