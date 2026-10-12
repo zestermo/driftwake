@@ -57,7 +57,7 @@ func _dress(rng: RandomNumberGenerator) -> void:
 		mi.rotation.y = rng.randf() * TAU
 		mi.scale = Vector3(s, s * rng.randf_range(0.7, 1.1), s)
 		body.add_child(mi)
-		StarterIsland._cyl_col(body, s * 0.9, s * 1.6, mi.position + Vector3(0, s * 0.6, 0))
+		KitLandmarks.cyl_col(body, s * 0.9, s * 1.6, mi.position + Vector3(0, s * 0.6, 0))
 	var bark := PSXMat.lit("bark")
 	var wood := PSXMat.lit("planks_dark", Color(0.7, 0.6, 0.5))
 	for i in range(5):

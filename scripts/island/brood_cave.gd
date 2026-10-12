@@ -32,6 +32,10 @@ const RESET_AFTER := 6.0
 const RESPAWN := 900.0
 const HOARD_ID := "brood_hoard"
 
+## Set before it joins the tree (KitCave): the rock's noise seed, the hoard's save id, the banner.
+var shape_seed := 4711
+var hoard_id := HOARD_ID
+var title := "The Brood Cave"
 var queen: BroodQueen
 var queen_gen: int = 0
 var brood: ScuttlebugNest
@@ -52,9 +56,9 @@ var _ring_mat: StandardMaterial3D
 
 func _ready() -> void:
 	add_to_group("net_spawner")
-	_noise.seed = 4711
+	_noise.seed = shape_seed
 	_noise.frequency = 0.05
-	_wave.seed = 1907
+	_wave.seed = shape_seed - 2804
 	_wave.frequency = 0.35
 	_build_rock()
 	_build_dripstone()
@@ -794,7 +798,7 @@ func _process(delta: float) -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me and not _arrived and me.global_position.distance_to(global_position) < 40.0:
 		_arrived = true
-		get_tree().call_group("hud", "show_banner", "The Brood Cave", "Something big nests in the dark", true)
+		get_tree().call_group("hud", "show_banner", title, "Something big nests in the dark", true)
 	var alive := queen != null and is_instance_valid(queen) and queen.state != Scuttlebug.S.DEAD
 	_boss_hud(me, alive)
 	if queen != null and is_instance_valid(queen) and not alive and not _celebrated:
@@ -844,7 +848,7 @@ func _victory(me: Node3D) -> void:
 		if music:
 			music.victory()
 	var gm := get_node_or_null("/root/GameManager")
-	if gm and gm.get("opened") != null and (gm.opened as Dictionary).has(HOARD_ID):
+	if gm and gm.get("opened") != null and (gm.opened as Dictionary).has(hoard_id):
 		return
 	if get_node_or_null("Hoard"):
 		return
@@ -857,7 +861,7 @@ func _victory(me: Node3D) -> void:
 		st.quantity = e[1]
 		items.append(st)
 	bag.setup(items)
-	bag.save_id = HOARD_ID
+	bag.save_id = hoard_id
 	bag.name = "Hoard"
 	add_child(bag)
 	bag.position = Vector3(NEST.x, 0.0, NEST.y)

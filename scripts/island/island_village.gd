@@ -30,6 +30,10 @@ var isl: GenIsland
 ## job id -> {"title", "line", "gold", "check": Callable}
 var jobs := {}
 var elder_name := ""
+## The huts ([node, point, the way the door faces]) and what's built round the
+## plaza ([centre, radius]), for a dressing pass (KitVillage.dress_houses).
+var huts: Array = []
+var taken: Array = []
 var _t := 0.0
 
 
@@ -69,9 +73,11 @@ func _build(rng: RandomNumberGenerator) -> void:
 	for i in range(n_huts):
 		var a := atan2(to_dock.y, to_dock.x) + PI * 0.3 + i * (TAU - PI * 0.6) / float(n_huts - 1)
 		var p := c + Vector2.from_angle(a) * rng.randf_range(16.0, 21.0)
-		isl.house({"w": rng.randf_range(4.0, 5.5), "d": rng.randf_range(3.5, 4.5), "h": 2.3, "roof": roofs[rng.randi() % roofs.size()],
+		var spec := {"w": rng.randf_range(4.0, 5.5), "d": rng.randf_range(3.5, 4.5), "h": 2.3, "roof": roofs[rng.randi() % roofs.size()],
 			"wall": walls[rng.randi() % walls.size()], "roof_tex": "thatch", "porch": 1.2 if rng.randf() < 0.5 else 0.0,
-			"flowers": rng.randf() < 0.4, "trim": Color(0.42, 0.3, 0.2), "seed": rng.randi()}, site, p, c - p, true)
+			"flowers": rng.randf() < 0.4, "trim": Color(0.42, 0.3, 0.2), "seed": rng.randi()}
+		huts.append([isl.house(spec, site, p, c - p, true), p, c - p])
+		taken.append([p, maxf(spec["w"], spec["d"]) * 0.6 + 1.5])
 	# the inn: the biggest, across the plaza from the dock path
 	var inn_p: Vector2 = at.call(-24.0, 0.0)
 	var inn := isl.house({"w": 8.0, "d": 6.0, "h": 2.8, "roof": "hip", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 2.0,
@@ -108,7 +114,8 @@ func _build(rng: RandomNumberGenerator) -> void:
 	var s2 := isl.place(Props.market_stall("canvas", Color(0.85, 0.5, 0.25)), site, stall_b, StarterIsland.face_yaw(c - stall_b), 1.6)
 	# the job board by the path in
 	var board_p: Vector2 = at.call(11.0, 0.0)
-	var board := isl.place(StarterIsland._notice_board(rng), site, board_p, StarterIsland.face_yaw(c - board_p))
+	var board := isl.place(KitVillage.notice_board(rng), site, board_p, StarterIsland.face_yaw(c - board_p))
+	taken.append_array([[c, 2.5], [at.call(5.0, 5.5), 0.6], [at.call(-5.0, -5.5), 0.6], [inn_p, 6.3], [stall_a, 2.6], [stall_b, 2.6], [board_p, 1.2]])
 	var read := Interactable.new()
 	read.name = "Read"
 	read.collision_layer = 512

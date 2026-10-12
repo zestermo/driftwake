@@ -77,10 +77,10 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 	_fire(isl, site, c)
 	var log_a: Vector2 = at.call(0.0, 2.4)
 	var log_b: Vector2 = at.call(-2.4, -0.4)
-	isl.place(StarterIsland._log(), site, log_a, StarterIsland.face_yaw(c - log_a) + PI * 0.5)
-	isl.place(StarterIsland._log(), site, log_b, StarterIsland.face_yaw(c - log_b) + PI * 0.5)
+	isl.place(KitCamps.log_seat(), site, log_a, StarterIsland.face_yaw(c - log_a) + PI * 0.5)
+	isl.place(KitCamps.log_seat(), site, log_b, StarterIsland.face_yaw(c - log_b) + PI * 0.5)
 	for tp in [at.call(-6.0, -3.5), at.call(-5.5, 4.0), at.call(-1.5, -6.5)]:
-		isl.place(StarterIsland._tent(Color(0.62, 0.55, 0.45)), site, tp, StarterIsland.face_yaw(c - tp), 2.0)
+		isl.place(KitCamps.tent(Color(0.62, 0.55, 0.45)), site, tp, StarterIsland.face_yaw(c - tp), 2.0)
 	var rough := {"flowers": false, "trim": Color(0.36, 0.34, 0.32)}
 	var shack_p: Vector2 = at.call(-11.0, 0.0)
 	isl.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4}.merged(rough), site, shack_p, f)
@@ -93,7 +93,7 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 	for lp in [at.call(3.0, -3.0), at.call(-7.0, 4.5)]:
 		isl.place(Props.lantern_post(2.4), site, lp)
 	var tower_p: Vector2 = at.call(8.0, -9.0)
-	isl.place(StarterIsland._lookout_tower(), site, tower_p, StarterIsland.face_yaw(f), 2.6)
+	isl.place(KitLandmarks.lookout_tower(), site, tower_p, StarterIsland.face_yaw(f), 2.6)
 	var pole := MeshBuilder.new()
 	pole.add_cylinder(PSXMat.lit("bark"), Transform3D.IDENTITY, 0.08, 0.06, 6.0, 5, 1.0)
 	var jolly := HullBuilder.jolly_material()
@@ -221,7 +221,7 @@ static func _summit(isl: GenIsland) -> void:
 	var c: Vector2 = isl.sites["summit"]
 	var site := isl.site_node("summit")
 	var face: Vector2 = isl.dock_dir
-	var tower := isl.place(StarterIsland._lookout_tower(), site, c, StarterIsland.face_yaw(face), 2.6)
+	var tower := isl.place(KitLandmarks.lookout_tower(), site, c, StarterIsland.face_yaw(face), 2.6)
 	# a small chest up on the platform, and the view
 	var t := tier(isl)
 	var bag := isl.strongbox(site, c, tower.global_rotation.y, "summit_chest", [["gold", 8 + t * 4], ["treasure", 1]], 0.8)
