@@ -6,12 +6,14 @@
 #   claims\    what each session says it's working on (crew.ps1 claim)
 #   live\      every test run's live status (<run id>.json; the Tests pane reads them)
 #   inflight\  suites running right now, by tree (a second runner of the same code waits for it)
+#   ledger\    each suite's last result (<suite>.json: passed/failed/stopped, the tree, branch, when, why)
+#   status.json every suite's state against the main checkout's code (tools/dev/test_status.ps1)
 #   board.json the last board, for the edit hook (refreshed when older than a minute)
 
 function Get-CrewDir([string]$root) {
 	$common = (git -C $root rev-parse --path-format=absolute --git-common-dir).Trim()
 	$dir = Join-Path $common "crew"
-	foreach ($d in @("slots", "results", "claims", "live", "inflight")) { New-Item -ItemType Directory -Force -Path (Join-Path $dir $d) | Out-Null }
+	foreach ($d in @("slots", "results", "claims", "live", "inflight", "ledger")) { New-Item -ItemType Directory -Force -Path (Join-Path $dir $d) | Out-Null }
 	return $dir
 }
 
@@ -335,6 +337,14 @@ function Get-InFlight([string]$crew, [string]$tree, [string]$suite) {
 	if (Get-Process -Id ([int]$p[0]) -ErrorAction SilentlyContinue) { return $p[1] }
 	Remove-Item $f -Force -ErrorAction SilentlyContinue
 	return ""
+}
+
+## A suite's latest result, whoever ran it (test_status.ps1 and the Tests pane read these).
+function Write-Ledger([string]$crew, [string]$suite, [string]$state, [string]$tree, [string]$branch, [int]$secs, [string]$why) {
+	$f = Join-Path $crew "ledger\$suite.json"
+	$rec = [ordered]@{ suite = $suite; state = $state; tree = $tree; branch = $branch; at = (Get-Date).ToString("o"); secs = $secs; why = $why }
+	[System.IO.File]::WriteAllText("$f.tmp", ($rec | ConvertTo-Json -Compress))
+	Move-Item -Force "$f.tmp" $f
 }
 
 function Set-InFlight([string]$crew, [string]$tree, [string]$suite, [string]$label, [bool]$on) {

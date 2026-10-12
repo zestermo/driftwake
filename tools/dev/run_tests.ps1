@@ -148,6 +148,7 @@ function Finish-Suite($job, [string]$trouble) {
 	Set-LiveSuite $run $job.Name @{ state = $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }); secs = $secs; pid = 0
 		why = $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary }); last = @($job.Tail) }
 	if ($ok) { Set-CachedPass $crew $tree $job.Name $me }
+	Write-Ledger $crew $job.Name $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }) $tree $me $secs $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary })
 	return [pscustomobject]@{ Ok = $ok; Fails = $fails; Trouble = $trouble }
 }
 

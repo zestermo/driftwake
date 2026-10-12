@@ -121,6 +121,8 @@ if (-not $ok -and -not $script:lastTrouble -and (Test-AllFlaky "net" $script:las
 }
 foreach ($s in $slots) { Exit-Slot $s }
 Set-InFlight $crew $tree $key "" $false
+$secsAll = [int]((Get-Date) - [datetime]$run.Data.started).TotalSeconds
+Write-Ledger $crew $key $(if ($ok) { "passed" } elseif ($script:lastTrouble) { "stopped" } else { "failed" }) $tree $me $secsAll $(if ($ok) { "" } elseif ($script:lastFails) { $script:lastFails[0] } else { "see the Tests pane" })
 $run.Data.state = $(if ($ok) { "passed" } else { "failed" })
 $run.Data.ended = (Get-Date).ToString("o")
 Save-LiveRun $run $true
