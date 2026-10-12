@@ -43,6 +43,8 @@ var paths: Array = []
 var exclusions := {}
 ## Island-space crowns of the trees in the thick of the cover (step 6's spitters).
 var forest_crowns: Array = []
+## The harbour district at the dock (planned in prepare, built in finish_steps).
+var harbour: GenHarbour
 var build_ms := {}
 
 var _def: Dictionary
@@ -135,8 +137,9 @@ func finish_steps() -> Array:
 	var steps: Array = [["terrain", _terrain_node]]
 	for i in range(GROUND * GROUND):
 		steps.append(["ground", _terrain_collider.bind(i)])
+	steps.append(["dock", _add_arrival_zone])
+	steps.append_array(harbour.steps())
 	steps += [
-		["dock", func(): _build_dock(); _add_arrival_zone()],
 		["plants", _vegetation_meshes],
 		["colliders", _vegetation_colliders],
 	]
@@ -562,7 +565,7 @@ func shallows() -> Array:
 
 
 # ==========================================================================
-# The dock: a timber pier out from the shore to deep enough water
+# The dock: a pier out from the shore to deep enough water, the harbour round it
 # ==========================================================================
 const PIER_HW := 2.0
 ## (the pier's local +z runs out to sea; it starts this far up the beach)
@@ -575,60 +578,9 @@ func _plan_dock() -> void:
 		reserve(dock_shore + dock_dir * d, PIER_HW + 1.5)
 		d += 4.0
 	sites["dock_end"] = dock_shore + dock_dir * PIER_LEN
-
-
-func _build_dock() -> void:
-	var length := PIER_LEN
-	var hw := PIER_HW
-	var z0 := PIER_Z0
-	var body := StaticBody3D.new()
-	body.name = "Pier"
-	body.collision_layer = 1
-	body.collision_mask = 0
-	body.position = Vector3(dock_shore.x, 0.0, dock_shore.y)
-	body.rotation.y = StarterIsland.face_yaw(dock_dir)
-	add_child(body)
-	var deck := PSXMat.lit("planks_weathered", Color.WHITE, {"affine": 0.5})
-	var dark := PSXMat.lit("planks_dark")
-	var mb := MeshBuilder.new()
-	mb.add_box(deck, Transform3D(Basis(), Vector3(0, DOCK_DECK_Y - 0.15, (z0 + length) * 0.5)), Vector3(hw * 2.0, 0.3, length - z0), 0.5, Color.WHITE, false)
-	var z := z0 + 1.0
-	while z < length:
-		for s in [-1.0, 1.0]:
-			var post_at := Vector3(s * (hw - 0.2), 0, z)
-			var ground := hv(dock_shore + dock_dir * z)
-			mb.add_cylinder(dark, Transform3D(Basis(), post_at + Vector3(0, ground - 0.5, 0)), 0.17, 0.15, DOCK_DECK_Y + 0.9 - ground, 6, 0.6)
-		z += 4.0
-	for s in [-1.0, 1.0]:
-		mb.add_box(dark, Transform3D(Basis(), Vector3(s * (hw - 0.1), DOCK_DECK_Y + 0.05, (z0 + length) * 0.5)), Vector3(0.2, 0.12, length - z0), 0.6)
-	body.add_child(mb.to_instance("PierMesh"))
-	var cs := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(hw * 2.0, 0.3, length - z0)
-	cs.shape = box
-	cs.position = Vector3(0, DOCK_DECK_Y - 0.15, (z0 + length) * 0.5)
-	body.add_child(cs)
-	var lad := Ladder.new()
-	lad.length = DOCK_DECK_Y + 1.2
-	lad.rail = 0.0
-	lad.deck_depth = 0.9
-	lad.position = Vector3(0, DOCK_DECK_Y, length)
-	body.add_child(lad)
-	var post := Props.lantern_post()
-	post.position = Vector3(-hw + 0.5, DOCK_DECK_Y, length - 1.0)
-	body.add_child(post)
-	var area := Interactable.new()
-	area.name = "DockingArea"
-	area.collision_layer = 512
-	area.collision_mask = 0
-	area.prompt_text = "Board ship"
-	var acs := CollisionShape3D.new()
-	var sph := SphereShape3D.new()
-	sph.radius = 4.0
-	acs.shape = sph
-	area.add_child(acs)
-	area.position = Vector3(0, DOCK_DECK_Y + 1.0, length - 2.0)
-	body.add_child(area)
+	var t0 := Time.get_ticks_usec()
+	harbour = GenHarbour.plan(self)
+	build_ms["harbour plan"] = _lap(t0)
 
 
 ## Where a ship lies alongside the pier's head (world), and her heading out.

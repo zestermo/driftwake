@@ -27,7 +27,7 @@ const CAM_FOV := 70.0
 
 const BUILDINGS := {"House": "house", "Harbor": "house", "Warehouse": "house", "NetLoft": "house", "CaptainsShack": "house",
 	"Hut": "house", "Inn": "inn", "Tavern": "inn", "Smithy": "workshop", "HarbourBooth": "workshop", "Chapel": "civic",
-	"MarketStall": "stall"}
+	"MarketStall": "stall", "Boathouse": "house", "RuinedHut": "house"}
 const PROPS := {
 	"Crate": "cargo", "Barrel": "cargo", "RopeCoil": "cargo", "Nets": "cargo", "Timber": "cargo", "Float": "cargo", "Wares": "cargo",
 	"Handcart": "carts",
@@ -41,16 +41,17 @@ const PROPS := {
 	"FishRack": "work", "WeaponRack": "work", "DockCrane": "work", "DummyTarget": "work",
 	"Tent": "camp", "LootBag": "chests",
 	"Burrow": "wild", "Boulders": "wild", "Thornbrush": "wild",
+	"Canoe": "boats", "Wreck": "boats", "NetRack": "work", "FishTrap": "cargo", "Contraband": "cargo",
 }
 const LANDMARKS := {"Lighthouse": "lighthouse", "HarbourTower": "harbour tower", "Chapel": "chapel", "DockCrane": "crane",
 	"LookoutTower": "lookout tower", "Pillar": "ruins", "FallenPillar": "ruins", "Slabs": "ruins", "Driftstone": "standing stone",
 	"BroodCave": "cave", "Well": "well", "Boulders": "beast's ground"}
 ## Walked into for the props on them (a pier's lantern), their own meshes not counted.
-const INFRA := ["HarbourPier", "Quay", "Dock", "Pier", "Cobbles", "Ladder"]
+const INFRA := ["HarbourPier", "Quay", "Dock", "Pier", "Cobbles", "Ladder", "Boardwalk", "PierFender", "CoveRocks"]
 const INTERIORS := ["Tavern", "BroodCave"]
 const SKIP := ["Terrain", "Ground", "Vegetation", "VegetationColliders", "ShotMarks"]
 ## GenIsland.build_ms keys worked out in prepare (a worker thread in the game).
-const PREP_KEYS := ["land", "arrays", "trees", "undergrowth", "bodies"]
+const PREP_KEYS := ["land", "arrays", "trees", "undergrowth", "bodies", "harbour plan"]
 
 ## [key, label, gated]: gated ones are what phase 3 holds at >= 80% of Brinehollow.
 const METRICS := [
@@ -449,7 +450,7 @@ static func anchors(isl: Node3D) -> Dictionary:
 		a["paths"] = isl.paths
 		a["widths"] = isl._path_widths
 		a["half"] = float(isl.half)
-		a["harbour"] = [s["dock"] - isl.dock_dir * 6.0, s["dock_end"]]
+		a["harbour"] = isl.harbour.waterfront()
 	else:
 		a["dock"] = isl.dock_shore
 		a["dock_dir"] = isl.dock_dir

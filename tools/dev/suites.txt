@@ -47,4 +47,5 @@ airtest
 leveltest
 legtest
 fidelitytest
+harbourtest
 wieldtest

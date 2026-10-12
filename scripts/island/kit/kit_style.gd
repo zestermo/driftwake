@@ -41,6 +41,16 @@ const JUNGLE := {
 	"row_roof_tex": ["thatch", 1.0, "thatch"],
 	"lamp": Color(1.0, 0.72, 0.4),
 	"lamp_range": 12.0,
+	# generated harbours (GenHarbour): the kinds this theme's roll from; pilings, decks, roofs and walls; tarps, net floats, the smugglers' signal lamp
+	"harbour_kinds": ["stilts", "cove", "wharf", "ruins"],
+	"harbour_wild_kinds": ["landing", "landing", "cove", "ruins", "stilts"],
+	"harbour_pile": "palm_bark",
+	"harbour_deck": "planks_weathered",
+	"harbour_roof": "thatch",
+	"harbour_walls": ["planks", "planks_weathered", "planks"],
+	"harbour_tarp": Color(0.52, 0.48, 0.38),
+	"harbour_floats": [Color(0.9, 0.55, 0.2), Color(0.88, 0.86, 0.8), Color(0.75, 0.25, 0.18)],
+	"harbour_signal": Color(1.0, 0.32, 0.22),
 }
 
 

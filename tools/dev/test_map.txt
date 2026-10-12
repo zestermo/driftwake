@@ -116,6 +116,9 @@ scripts/enemies/jungle_ape.gd           apetest leveltest net netchain
 scripts/npc/ape_poses.gd                apetest
 scripts/npc/ape_builder.gd              apetest leveltest
 scripts/island/island_theme.gd          isletest chaintest
+scripts/island/kit/kit_harbour*         harbourtest isletest netchain
+scripts/island/kit/kit_style.gd         harbourtest
+scripts/island/gen_island.gd            harbourtest
 scripts/npc/log_pose.gd                 chaintest
 scripts/ui/log_pose_icon.gd             chaintest
 scripts/ui/chain_marks.gd               chaintest
