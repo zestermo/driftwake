@@ -80,9 +80,6 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
   motifs, impact sounds by weapon type, a full UI sound set.
 - **Devil Fruits:** polish them to the rest of the game's level, then switch
   `DevilFruits.IN_WORLD` back on. Off since 2026-10-09.
-- **Clothing pass (shelved):** branch `shelved/clothing-pass` (cloth sheets for capes, coats and
-  skirts, the hair sheet, fit and detail, the outfits skill). Its outfittest failed after the rebase
-  ("cloth never settles standing still", dodge/ship depth); the fix is half done.
 - **Browser co-op:** WebRTC plus a small signalling server (`docs/web_build.md`).
 - **Code signing** for the Windows build (SmartScreen warns today).
 - **Next themes:** snow, desert and forest islands, once the kit exists.
