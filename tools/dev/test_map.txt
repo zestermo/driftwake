@@ -110,6 +110,7 @@ scripts/island/island_village.gd        isletest netchain
 scripts/island/beast_arena.gd           apetest isletest netchain
 scripts/enemies/jungle_ape.gd           apetest leveltest net netchain
 scripts/npc/ape_poses.gd                apetest
+scripts/npc/ape_builder.gd              apetest leveltest
 scripts/island/island_theme.gd          isletest chaintest
 scripts/npc/log_pose.gd                 chaintest
 scripts/ui/log_pose_icon.gd             chaintest

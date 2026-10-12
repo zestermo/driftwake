@@ -318,7 +318,10 @@ func _build() -> void:
 	_sims.clear()
 	var s: float = float(look.get("height", 1.0))
 	scale = Vector3(s, s, s)
-	BodyBuilder.build(self, look)
+	if str(look.get("beast", "")) == "ape":
+		ApeBuilder.build(self, look)
+	else:
+		BodyBuilder.build(self, look)
 
 
 ## Rebuild the body with a new look (character creator), keeping the weapon

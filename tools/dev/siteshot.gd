@@ -414,8 +414,9 @@ func _shot_ape() -> void:
 	# the roar: low and off to the side, the captain at the frame's edge
 	aim = func():
 		var a: Vector3 = ape.global_position
-		cam.global_position = me.lerp(a, 0.3) + r * 4.0 + Vector3.UP * 0.35
-		cam.look_at(a.lerp(me, 0.2) + Vector3.UP * 1.7, Vector3.UP)
+		var back := (me - a).normalized()
+		cam.global_position = me + back * 1.5 - r * 3.2 + Vector3.UP * 0.45
+		cam.look_at(a.lerp(me, 0.3) + Vector3.UP * 2.2, Vector3.UP)
 	await _wait(0.6)
 	await _burst("ape_roar", 4, 0.35)
 	await _wait(1.0)

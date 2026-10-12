@@ -39,6 +39,10 @@ var _saved_pitch: float = 0.0
 var _show_yaw: float = 0.0
 var _saved_mask: int = -1
 var _base_fov := 75.0
+## A big beast fighting near (a boss's camera_room(), 0..1): the arm draws back to fit it and the view lifts.
+var _room := 0.0
+const ROOM_ZOOM := 6.8
+const ROOM_LIFT := 0.7
 var _kick := 0.0
 var _kick_t := 0.0
 var _kick_len := 0.5
@@ -101,6 +105,13 @@ func _process(delta: float) -> void:
 	var in_combat := target is Player and (target as Player).armed and not (target as Player).sprinting
 	_combat_blend = move_toward(_combat_blend, 1.0 if in_combat else 0.0, delta * 3.0)
 	var zoom := lerpf(current_zoom, minf(current_zoom, combat_max_zoom), _combat_blend)
+	var room := 0.0
+	if target:
+		for b in get_tree().get_nodes_in_group("bosses"):
+			if b.has_method("camera_room"):
+				room = maxf(room, float(b.camera_room(target.global_position)))
+	_room = move_toward(_room, room, delta * 1.2)
+	zoom = lerpf(zoom, maxf(zoom, ROOM_ZOOM), _room)
 	_show = move_toward(_show, _show_target, delta * 2.6)
 	var e := smoothstep(0.0, 1.0, _show)
 	if _show > 0.0 or _show_target > 0.0:
@@ -126,7 +137,7 @@ func _process(delta: float) -> void:
 		# Use the interpolated transform: the player moves at the physics rate
 		# (60 Hz), the camera at the display rate. Reading the raw position here
 		# makes everything judder on high-refresh monitors.
-		var target_pos := target.get_global_transform_interpolated().origin + Vector3(0, lerpf(1.2, 0.88, e), 0)
+		var target_pos := target.get_global_transform_interpolated().origin + Vector3(0, lerpf(1.2, 0.88, e) + ROOM_LIFT * _room * (1.0 - e), 0)
 		# exponential weight: the same follow at 30 fps and at 165 fps
 		global_position = global_position.lerp(target_pos, 1.0 - exp(-follow_speed * delta))
 		# keep the camera above the waves (swimming, diving, falling in)

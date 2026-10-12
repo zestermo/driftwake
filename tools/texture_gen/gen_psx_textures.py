@@ -1520,7 +1520,66 @@ def gen_leather():
     save(to_img(np.dstack([g, g, g])), "leather")
 
 
+def gen_scales():
+    """Overlapping serpent scales in rows (grayscale, coloured in game by vertex colour)."""
+    rng = np.random.default_rng(1401)
+    size, cw, rh, rad = 64, 8, 8, 6.2
+    v = np.full((size, size), 0.5)
+    n = fbm(size, 4, 2, rng)
+    ys, xs = np.mgrid[0:size, 0:size]
+    # rows drawn from the bottom up: each row's scales lie over the row below's tops
+    for r in range(size // rh - 1, -1, -1):
+        cy = r * rh
+        for c in range(size // cw):
+            cx = c * cw + (cw // 2 if r % 2 else 0)
+            dx = (xs - cx + size // 2) % size - size // 2
+            dy = (ys - cy + size // 2) % size - size // 2
+            d = np.sqrt(dx * dx + (dy * 0.9) ** 2)
+            m = (d < rad) & (dy >= -1)
+            shade = 0.92 - d / rad * 0.38 - np.clip(dy, 0, None) / rad * 0.12
+            shade = np.where(d > rad - 1.2, 0.36, shade)
+            v = np.where(m, shade, v)
+    v = v * (0.88 + n * 0.24)
+    pal_g = [0.34, 0.46, 0.58, 0.7, 0.82, 0.94]
+    q = np.array(pal_g)[np.clip((norm(v) * len(pal_g)).astype(int), 0, len(pal_g) - 1)]
+    g = (q * 255).astype(np.uint8)
+    save(to_img(np.dstack([g, g, g])), "scales")
+
+
+def gen_fur():
+    """Coarse shaggy fur in clumps running down the texture (grayscale, tinted in game)."""
+    rng = np.random.default_rng(1402)
+    size = 64
+    v = np.full((size, size), 0.5)
+    for _ in range(55):
+        x0 = rng.uniform(0, size)
+        y0 = rng.uniform(0, size)
+        length = rng.integers(10, 20)
+        w = rng.uniform(1.2, 2.6)
+        lean = rng.uniform(-0.25, 0.25)
+        lit = rng.uniform(0.62, 0.82)
+        for i in range(length):
+            k = i / length
+            x = x0 + lean * i + math.sin(i * 0.35 + x0) * 0.6
+            y = int(y0 + i) % size
+            half = w * (1.0 - k * 0.7)
+            for xx in range(int(x - half - 1), int(x + half + 2)):
+                d = abs(xx - x) / max(half, 0.5)
+                if d < 1.0:
+                    v[y, xx % size] = max(v[y, xx % size], lit * (1.0 - d * 0.45) * (1.0 - k * 0.35))
+                elif d < 1.6:
+                    v[y, xx % size] = min(v[y, xx % size], 0.4)
+    v += (rng.random((size, size)) - 0.5) * 0.06
+    pal_g = [0.46, 0.55, 0.64, 0.73, 0.82]
+    q = np.array(pal_g)[np.clip((norm(v) * len(pal_g)).astype(int), 0, len(pal_g) - 1)]
+    g = (q * 255).astype(np.uint8)
+    save(to_img(np.dstack([g, g, g])), "fur")
+
+
 def main():
+    if "beasts" in sys.argv[1:]:
+        gen_scales(); gen_fur()
+        return
     if "icons" in sys.argv[1:]:
         gen_icons()
         return
@@ -1546,6 +1605,7 @@ def main():
     gen_driftstone(); gen_rope(); gen_sign_tavern(); gen_sign_fish(); gen_window(); gen_door()
     gen_faces()
     gen_face_parts(); gen_hair(); gen_leather()
+    gen_scales(); gen_fur()
     gen_icons()
     gen_power_icons()
     gen_skill_icons()

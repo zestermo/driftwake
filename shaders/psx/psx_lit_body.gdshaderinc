@@ -22,6 +22,11 @@ uniform vec4 tint_mul : source_color = vec4(1.0);
 // sits a couple of centimetres off the scalp, and far away vertex snapping +
 // depth precision let the scalp poke through without this.
 uniform float depth_pull = 0.0;
+#ifdef PSX_WET
+uniform float wet_rough : hint_range(0.0, 1.0) = 0.3;
+uniform vec4 rim_color : source_color = vec4(0.55, 0.75, 0.8, 1.0);
+uniform float rim_energy = 0.25;
+#endif
 #ifdef PSX_FADE
 // 0 = gone .. 1 = solid.
 uniform float fade : hint_range(0.0, 1.0) = 1.0;
@@ -75,4 +80,10 @@ void fragment() {
 	vec3 em = texture(emission_tex, uv).rgb * emission_color.rgb;
 	float pulse = 1.0 + sin(TIME * 2.0) * emission_pulse;
 	EMISSION = em * emission_energy * pulse;
+#ifdef PSX_WET
+	ROUGHNESS = wet_rough;
+	SPECULAR = 0.5;
+	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
+	EMISSION += rim_color.rgb * rim * rim_energy * tint_mul.rgb;
+#endif
 }

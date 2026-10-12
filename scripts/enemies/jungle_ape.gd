@@ -1,9 +1,10 @@
 extends PirateGrunt
 class_name JungleApe
-## The jungle's beast boss (BeastArena): a silverback twice a man's height,
-## built on the same rig as everyone (Humanoid, look height APE_H, stance "ape":
-## the knuckle-walk; ApePoses for its moves). Its own brain, the grunt's body:
-## death, ragdoll and co-op puppets come from PirateGrunt.
+## The jungle's beast boss (BeastArena): a silverback nearly twice a man's height
+## reared up, on the same rig as everyone (Humanoid, look "beast": "ape" builds
+## ApeBuilder's gorilla body, height APE_H, stance "ape": the knuckle-walk;
+## ApePoses for its moves). Its own brain, the grunt's body: death, ragdoll and
+## co-op puppets come from PirateGrunt.
 ##
 ## Asleep at its post until the arena wakes it: a chest-beating roar (a
 ## shockwave: jump or dodge it), then it knuckle-runs you down and picks by
@@ -19,14 +20,19 @@ class_name JungleApe
 signal phase_changed(phase: int)
 
 const APE_HP := 1500.0
-const APE_H := 2.15
+## Look height: the rig's scale (ApeBuilder's unit body): ~3.5 m reared up, ~2.3 m on its knuckles.
+const APE_H := 2.4
+const HURT_FWD := 0.45
 const RUN := 6.2
-const SWIPE_RANGE := 4.4
+const SWIPE_RANGE := 4.9
+const SLAM_R := 4.8
+const LEAP_R := 5.4
+const ROAR_R := 7.5
+const ROCK_R := 3.6
 const POISE := 220.0
 const POISE_DECAY := 30.0
 const FUR := Color(0.21, 0.19, 0.18)
 const SILVER := Color(0.7, 0.7, 0.68)
-const FACE := Color(0.36, 0.31, 0.29)
 const ROAR_LEN := 2.0
 const SLAM_WIND := 0.6
 const LEAP_WIND := 0.45
@@ -51,7 +57,7 @@ var _rocks: Array = []   # [node, from, to, t, dur] flying
 
 static func ape_look() -> Dictionary:
 	var lk := CharacterLook.base_look()
-	lk.merge({"name": "Silverback", "body": "masc", "build": "broad", "height": APE_H, "skin": FUR,
+	lk.merge({"name": "Silverback", "beast": "ape", "body": "masc", "build": "broad", "height": APE_H, "skin": FUR,
 		"head": "square", "nose": "broad", "eyes": 1, "brows": 3, "mouth": 3, "eye_color": Color(0.55, 0.3, 0.1), "marks": "none",
 		"hair": "bald", "facial_hair": "none", "hat": "none", "top": "bare", "sleeves": "none", "vest": "none", "coat": "none",
 		"legs": "shorts", "legs_color": FUR, "feet": "barefoot", "belt": "none", "gloves": false, "scarf": false, "earring": false,
@@ -68,16 +74,16 @@ func _ready() -> void:
 	humanoid.stance = "ape"
 	# a body to match (the grunt's were made for a man)
 	var cap := _col.shape as CapsuleShape3D
-	cap.radius = 0.85
+	cap.radius = 1.05
 	cap.height = 3.0
 	_col.position = Vector3(0, 1.5, 0)
 	var hcap := (hurtbox.get_child(0) as CollisionShape3D).shape as CapsuleShape3D
-	hcap.radius = 1.25
-	hcap.height = 3.4
-	(hurtbox.get_child(0) as CollisionShape3D).position = Vector3(0, 1.7, 0)
+	hcap.radius = 1.45
+	hcap.height = 3.8
+	_hurt_follow()
 	var bs := hitbox.get_child(0) as CollisionShape3D
-	(bs.shape as BoxShape3D).size = Vector3(4.6, 2.6, 3.8)
-	bs.position = Vector3(0, 1.3, -2.4)
+	(bs.shape as BoxShape3D).size = Vector3(5.2, 2.8, 4.2)
+	bs.position = Vector3(0, 1.4, -2.7)
 	_hit_swipe = HitData.new()
 	_hit_swipe.damage = _dmg(22.0)
 	_hit_swipe.knockback_force = 10.0
@@ -85,25 +91,19 @@ func _ready() -> void:
 	_hit_swipe.hitstop_duration = 0.1
 	_hit_swipe.camera_shake_intensity = 0.3
 	hitbox.hit_data = _hit_swipe
-	_bark.position.y = 4.6
-	_dress()
+	_bark.position.y = 5.0
 
 
-## Brow, muzzle, the silver saddle down its back.
-func _dress() -> void:
-	var fur := PSXMat.lit("hair", FUR)
-	var face := PSXMat.flat(FACE)
-	var silver := PSXMat.lit("hair", SILVER)
-	var hb := MeshBuilder.new()
-	hb.add_box(fur, Transform3D(Basis(Vector3.RIGHT, -0.15), Vector3(0, 0.155, -0.115)), Vector3(0.22, 0.05, 0.07), 1.0)
-	hb.add_box(face, Transform3D(Basis(Vector3.RIGHT, 0.1), Vector3(0, 0.06, -0.13)), Vector3(0.17, 0.1, 0.1), 1.0)
-	hb.add_box(PSXMat.flat(Color(0.08, 0.07, 0.07)), Transform3D(Basis(), Vector3(0, 0.09, -0.185)), Vector3(0.08, 0.025, 0.01), 1.0)
-	hb.add_blob(fur, Transform3D(Basis(), Vector3(0, 0.19, 0.03)), Vector3(0.13, 0.08, 0.13), RandomNumberGenerator.new(), 0.0, 3, 6)
-	humanoid.head.add_child(hb.to_instance("ApeHead"))
-	var tb := MeshBuilder.new()
-	tb.add_box(silver, Transform3D(Basis(Vector3.RIGHT, 0.12), Vector3(0, 0.32, 0.14)), Vector3(0.36, 0.34, 0.05), 1.0)
-	tb.add_box(silver, Transform3D(Basis(Vector3.RIGHT, -0.08), Vector3(0, 0.08, 0.15)), Vector3(0.3, 0.18, 0.05), 1.0)
-	humanoid.torso.add_child(tb.to_instance("SilverBack"))
+## The hurtbox rides forward over the chest and arms (it knuckle-walks ahead of its feet).
+func _hurt_follow() -> void:
+	(hurtbox.get_child(0) as CollisionShape3D).position = facing.basis * Vector3(0, 1.9, -HURT_FWD)
+
+
+## The camera draws back for this fight (CameraRig): 1 while it fights within reach of us.
+func camera_room(from: Vector3) -> float:
+	if state == S.DEAD or not in_combat():
+		return 0.0
+	return 1.0 - smoothstep(26.0, 34.0, from.distance_to(global_position))
 
 
 func is_fighting() -> bool:
@@ -127,6 +127,7 @@ func alert(_delay: float = 0.0) -> void:
 # ==========================================================================
 func _physics_process(delta: float) -> void:
 	_fly_rocks(delta)
+	_hurt_follow()
 	if net_puppet or state in [S.DEAD, S.DOWN] or humanoid.ragdoll != null:
 		super._physics_process(delta)
 		_rock_follow()
@@ -239,15 +240,15 @@ func _begin_special(what: String) -> void:
 			Net.fx("sfx", ["whoosh_big", global_position, -2.0, 0.05, 0.7])
 		"slam":
 			humanoid.hold("ape_slam_wind", SLAM_WIND)
-			_sp_target = _ground_at(global_position + _fwd() * 3.0)
-			Net.fx("telegraph", [_sp_target, 4.5, SLAM_WIND + 0.18, Color(1.0, 0.18, 0.12)])
+			_sp_target = _ground_at(global_position + _fwd() * 3.2)
+			Net.fx("telegraph", [_sp_target, SLAM_R, SLAM_WIND + 0.18, Color(1.0, 0.18, 0.12)])
 			Net.fx("sfx", ["peril", global_position, -1.0, 0.03, 0.7])
 		"leap":
 			_sp_from = global_position
 			_sp_target = _ground_at(p.global_position if p else global_position + _fwd() * 10.0)
 			_face(_flat(_sp_target - global_position))
 			humanoid.hold("ape_crouch", LEAP_WIND)
-			Net.fx("telegraph", [_sp_target, 5.0, LEAP_WIND + LEAP_AIR, Color(1.0, 0.18, 0.12)])
+			Net.fx("telegraph", [_sp_target, LEAP_R, LEAP_WIND + LEAP_AIR, Color(1.0, 0.18, 0.12)])
 			Net.fx("sfx", ["peril", global_position, -1.0, 0.03, 0.65])
 		"throw":
 			humanoid.hold("ape_lift", LIFT_LEN)
@@ -270,7 +271,7 @@ func _special_update(delta: float) -> void:
 		"roar":
 			if _sp_t > ROAR_LEN * 0.8 and not _sp_hit:
 				_sp_hit = true
-				_aoe(global_position, 7.0, 10.0, true)
+				_aoe(global_position, ROAR_R, 10.0, true)
 				Net.fx("dust_ring", [global_position, 30, 2.2])
 				get_node("/root/CombatManager").apply_camera_shake(0.35)
 			if _sp_t > ROAR_LEN:
@@ -296,7 +297,7 @@ func _special_update(delta: float) -> void:
 				humanoid.play("ape_slam", ActionSpecs.length("ape_slam"))
 			if _sp_t > SLAM_WIND + 0.18 and not _sp_hit:
 				_sp_hit = true
-				_aoe(_sp_target, 4.5, 26.0, true)
+				_aoe(_sp_target, SLAM_R, 26.0, true)
 				Net.fx("dust_ring", [_sp_target, 28, 1.8])
 				Net.fx("impact", [_sp_target + Vector3(0, 0.4, 0), Color(1.0, 0.55, 0.3)])
 				Net.fx("sfx", ["thud", _sp_target, 6.0, 0.05, 0.5])
@@ -318,7 +319,7 @@ func _special_update(delta: float) -> void:
 				if u >= 1.0:
 					_sp_hit = true
 					humanoid.play("ape_slam", ActionSpecs.length("ape_slam"))
-					_aoe(global_position, 5.0, 30.0, true)
+					_aoe(global_position, LEAP_R, 30.0, true)
 					Net.fx("dust_ring", [global_position, 32, 2.0])
 					Net.fx("impact", [global_position + Vector3(0, 0.5, 0), Color(1.0, 0.5, 0.3)])
 					Net.fx("sfx", ["thud", global_position, 7.0, 0.05, 0.45])
@@ -339,12 +340,12 @@ func _special_update(delta: float) -> void:
 				var from := _rock.global_position
 				var to := _ground_at((p.global_position + _flat((p as CharacterBody3D).velocity) * 0.4) if p else global_position + _fwd() * 12.0)
 				var dur := clampf(from.distance_to(to) / 20.0, 0.55, 1.4)
-				Net.fx("telegraph", [to, 3.4, dur, Color(1.0, 0.18, 0.12)])
+				Net.fx("telegraph", [to, ROCK_R, dur, Color(1.0, 0.18, 0.12)])
 				_throw_rock(from, to, dur)
 				Net.event(self, "rock", ["throw", from, to, dur])
 				get_tree().create_timer(dur).timeout.connect(func():
 					if is_instance_valid(self):
-						_aoe(to, 3.4, 24.0, true))
+						_aoe(to, ROCK_R, 24.0, true))
 			if _sp_t > LIFT_LEN + HURL_LEN:
 				remove_meta("hurling")
 				_end_special(0.6)
@@ -407,7 +408,7 @@ func _grab_rock() -> void:
 	_rock = MeshInstance3D.new()
 	_rock.name = "Boulder"
 	_rock.mesh = Props.rock_mesh(9911, 1.0, true)
-	_rock.scale = Vector3.ONE * 0.75
+	_rock.scale = Vector3.ONE * 0.95
 	_rock.top_level = true
 	add_child(_rock)
 	Net.fx("dust", [global_position + _fwd() * 1.5, 10, 1.0])

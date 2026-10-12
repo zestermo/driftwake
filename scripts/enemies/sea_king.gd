@@ -19,8 +19,16 @@ extends Node3D
 enum S { LURK, RISE, CIRCLE, REAR, STRIKE, DOWN, TAIL, DIVE, DEAD }
 
 const HP := 1600.0
-const SEGS := 16
-const SPACING := 2.3
+const SEGS := 20
+const SPACING := 3.0
+const BODY_LEN := SEGS * SPACING
+## Past the neck the body rides the swell in humps rolling back along it: coils breaking the surface.
+const NECK := 4
+const HUMP_H := 3.0
+const HUMP_SPEED := 1.6
+const SKIN := Color(0.16, 0.42, 0.3)
+const BELLY := Color(0.9, 0.78, 0.52)
+const WET_SHADER := preload("res://shaders/psx/psx_wet.gdshader")
 const CIRCLE_R := 30.0
 const NOTICE := 220.0
 const BITE_R := 3.6
@@ -36,6 +44,8 @@ const TAIL_WARN := 0.6
 const SINK_TIME := 6.0
 const RETURN_AFTER := 600.0
 const HEAD_K := 1.4
+## The jaw's swing at full gape (radians, down).
+const JAW_OPEN := 0.75
 const HEAD_C := Vector3(0, 0.3 * HEAD_K, -1.6 * HEAD_K)
 ## How high its head lies over the deck after a bite (jaw resting on the planks).
 const DOWN_Y := 1.3
@@ -51,8 +61,10 @@ var hurtbox: Hurtbox
 
 var _head: Node3D
 var _jaw: Node3D
-var _segs: Array = []
+var _skel: Skeleton3D
+var _body_mi: MeshInstance3D
 var _seg_pos: Array = []
+var _coil_t: float = 0.0
 var _target := Vector3.ZERO
 var _ang: float = 0.0
 var _spin: float = 1.0
@@ -104,49 +116,14 @@ func head_position() -> Vector3:
 # The body
 # --------------------------------------------------------------------------
 func _build() -> void:
-	_mat = PSXMat.lit("roof_tiles", Color(0.5, 1.45, 1.3)).duplicate() as ShaderMaterial
-	var belly := PSXMat.lit("leather", Color(1.6, 1.45, 1.0))
-	var fin := PSXMat.lit("leather", Color(1.5, 0.4, 0.35))
-	var along := Basis(Vector3.RIGHT, PI * 0.5)
-	for i in range(SEGS):
-		var r := _seg_r(i)
-		var mb := MeshBuilder.new()
-		# each piece runs from its joint (origin) back along +z to the next
-		mb.add_cylinder(_mat, Transform3D(along, Vector3(0, 0, -SPACING * 0.15)), r, r * 0.92, SPACING * 1.3, 8, 1.0)
-		mb.add_box(belly, Transform3D(Basis(), Vector3(0, -r * 0.72, SPACING * 0.5)), Vector3(r * 1.2, r * 0.4, SPACING * 1.1), 1.0)
-		if i % 2 == 0 and i > 1 and i < SEGS - 2:
-			mb.add_card(fin, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, r * 0.8, SPACING * 0.5)), SPACING, 1.1 * r + 0.4)
-		var seg := mb.to_instance("Seg%d" % i)
-		add_child(seg)
-		_segs.append(seg)
-		_seg_pos.append(Vector3.ZERO)
-	# the head: a long snout, horns, a jaw that opens, yellow eyes
-	_head = Node3D.new()
-	_head.name = "Head"
-	add_child(_head)
-	var hb := MeshBuilder.new()
-	hb.add_box(_mat, Transform3D(Basis(), Vector3(0, 0.3, -1.4)), Vector3(2.4, 1.5, 3.6), 1.0)
-	hb.add_box(_mat, Transform3D(Basis(), Vector3(0, 0.55, -3.6)), Vector3(1.6, 0.9, 1.4), 1.0)
-	var eye := PSXMat.glow(Color(1.0, 0.85, 0.2), 3.0)
-	for s in [-1.0, 1.0]:
-		hb.add_box(belly, Transform3D(Basis(Vector3.RIGHT, -0.6), Vector3(s * 0.8, 1.4, 0.2)), Vector3(0.25, 1.6, 0.25), 1.0)
-		hb.add_box(eye, Transform3D(Basis(), Vector3(s * 1.05, 0.75, -2.3)), Vector3(0.3, 0.3, 0.3), 1.0)
-	# (scaled on a child: _head's basis is set outright every tick)
-	var big := Node3D.new()
-	big.scale = Vector3.ONE * HEAD_K
-	_head.add_child(big)
-	big.add_child(hb.to_instance("Skull"))
-	_jaw = Node3D.new()
-	_jaw.name = "Jaw"
-	_jaw.position = Vector3(0, -0.3, 0.0)
-	big.add_child(_jaw)
-	var jb := MeshBuilder.new()
-	jb.add_box(belly, Transform3D(Basis(), Vector3(0, -0.3, -1.8)), Vector3(2.0, 0.6, 3.6), 1.0)
-	var tooth := PSXMat.lit("canvas", Color(0.95, 0.92, 0.85))
-	for t in range(5):
-		for s in [-1.0, 1.0]:
-			jb.add_box(tooth, Transform3D(Basis(), Vector3(s * 0.75, 0.1, -0.6 - t * 0.7)), Vector3(0.15, 0.45, 0.15), 1.0)
-	_jaw.add_child(jb.to_instance("JawMesh"))
+	# its own copy: hits flash it (tint_mul)
+	_mat = ShaderMaterial.new()
+	_mat.shader = WET_SHADER
+	_mat.set_shader_parameter("albedo_tex", PSXMat.tex("scales"))
+	_mat.set_shader_parameter("albedo_color", Color(1.05, 1.05, 1.05))
+	_mat.set_shader_parameter("wet_rough", 0.42)
+	_build_body()
+	_build_head()
 	# what hits it: the head (blades, shots, powers; cannonballs via struck())
 	hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
@@ -163,8 +140,192 @@ func _build() -> void:
 	hurtbox.hit_received.connect(_on_hit)
 
 
+## The body: one skinned loft down a chain of SEGS bones (bone i from joint i back along +z),
+## round in section with a pale flat belly, a scalloped dorsal sail, pectoral fins and a tail fin.
+func _build_body() -> void:
+	_skel = Skeleton3D.new()
+	_skel.name = "Body"
+	add_child(_skel)
+	for i in range(SEGS):
+		_skel.add_bone("seg%d" % i)
+		_skel.set_bone_rest(i, Transform3D(Basis(), Vector3(0, 0, i * SPACING)))
+		_seg_pos.append(Vector3.ZERO)
+	_skel.reset_bone_poses()
+	var fin := PSXMat.lit("leather", Color(1.45, 0.62, 0.38))
+	var mb := MeshBuilder.new()
+	mb.skinned = true
+	mb.weight_fn = _weights
+	var prof := PackedVector2Array()
+	for k in range(12):
+		var a := TAU * k / 12.0
+		# (profile -y is the back, +y the belly: flattened a little)
+		prof.append(Vector2(cos(a), sin(a) * (0.82 if sin(a) > 0.0 else 1.0)))
+	var rings := []
+	var z := -1.8
+	while z < BODY_LEN - 0.5:
+		rings.append([z, _r_at(z), _r_at(z) * 0.94, 0.0])
+		z += 1.0
+	rings.append([BODY_LEN - 0.3, 0.12, 0.1, 0.0])
+	# (local +y runs along the body (+z), local +z down)
+	var along := Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO)
+	mb.add_loft(_mat, along, rings, prof, 0.7, Color.WHITE, true, true)
+	# the dorsal sail: spines every 2.5 m, the membrane scalloped between them, swept back
+	var sp := 2.5
+	z = 2.0
+	while z < BODY_LEN - 8.0:
+		var z1 := z + 0.5
+		var a0 := _sail(z, sp)
+		var a1 := _sail(z1, sp)
+		var b0 := Vector3(0, _r_at(z) * 0.86, z)
+		var b1 := Vector3(0, _r_at(z1) * 0.86, z1)
+		_two_sided(mb, fin, b0, b1, b1 + a1, b0 + a0, Color(0.95, 0.95, 0.95))
+		if fmod(z, sp) < 0.01:
+			mb.add_cylinder(fin, Transform3D(ApeBuilder._yb(a0), b0), 0.14, 0.0, a0.length() * 1.06, 4, 1.0, Color(0.55, 0.4, 0.35), false, false, false)
+		z = z1
+	# the pectoral fins behind the neck
+	for s in [-1.0, 1.0]:
+		var r := _r_at(4.5)
+		var root0 := Vector3(s * r * 0.8, -r * 0.35, 3.2)
+		var root1 := Vector3(s * r * 0.8, -r * 0.35, 6.4)
+		var tip := Vector3(s * (r + 3.6), -r * 1.1, 9.2)
+		var mid := Vector3(s * (r + 2.6), -r * 0.55, 5.4)
+		_two_sided(mb, fin, root0, mid, tip, root1, Color.WHITE)
+	# the tail fin: a tall paddle
+	var t0 := BODY_LEN - 7.0
+	_two_sided(mb, fin, Vector3(0, 0.3, t0), Vector3(0, 2.8, BODY_LEN + 1.2), Vector3(0, 0.0, BODY_LEN - 0.8), Vector3(0, -2.2, BODY_LEN + 0.8), Color.WHITE)
+	_paint_hide(mb, func(p: Vector3): return _r_at(p.z))
+	var skin := Skin.new()
+	for b in range(SEGS):
+		skin.add_bind(b, _skel.get_bone_global_rest(b).affine_inverse())
+	_body_mi = MeshInstance3D.new()
+	_body_mi.name = "Mesh"
+	_body_mi.mesh = mb.commit()
+	_body_mi.skin = skin
+	_skel.add_child(_body_mi)
+	_body_mi.skeleton = NodePath("..")
+
+
+## The sail's top edge above the back at z: tall at each spine, dipping between, leaning back.
+func _sail(z: float, sp: float) -> Vector3:
+	var k := clampf(z / (BODY_LEN - 8.0), 0.0, 1.0)
+	var h := lerpf(2.1, 0.5, k) * (0.5 + 0.5 * pow(1.0 - fmod(z, sp) / sp, 1.6))
+	return Vector3(0, h, h * 0.45)
+
+
+func _two_sided(mb: MeshBuilder, m: Material, a: Vector3, b: Vector3, c: Vector3, d: Vector3, col: Color) -> void:
+	var n := (b - a).cross(d - a).normalized()
+	mb.add_quad(m, a, b, c, d, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0), col, n)
+	mb.add_quad(m, a, b, c, d, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0), col * 0.8, -n)
+
+
+## Skinning: each vertex between the two bones whose middles it lies between (a pure function of
+## position, so the seams of every part move together).
+func _weights(p: Vector3) -> Array:
+	var f := p.z / SPACING - 0.5
+	var i0 := clampi(floori(f), 0, SEGS - 1)
+	var i1 := mini(i0 + 1, SEGS - 1)
+	var t := clampf(f - i0, 0.0, 1.0) if f > 0.0 else 0.0
+	return [PackedInt32Array([i0, i1, 0, 0]), PackedFloat32Array([1.0 - t, t, 0.0, 0.0])]
+
+
+## The hide's colours on the scales: dark green back with a darker dorsal stripe and bands, the belly pale.
+func _paint_hide(mb: MeshBuilder, radius: Callable) -> void:
+	var v: PackedVector3Array = mb._surfaces[_mat]["v"]
+	var c: PackedColorArray = mb._surfaces[_mat]["c"]
+	for i in range(v.size()):
+		var p := v[i]
+		var up := p.y / maxf(float(radius.call(p)), 0.1)
+		var band := 0.86 + 0.14 * sin(p.z * 0.55 + sin(p.z * 0.17) * 2.0)
+		var col := SKIN * band * (1.0 - smoothstep(0.55, 0.95, up) * 0.35)
+		c[i] = col.lerp(BELLY, smoothstep(-0.3, -0.62, up)) * c[i].r
+	mb._surfaces[_mat]["c"] = c
+
+
+func _r_at(z: float) -> float:
+	var k := z / BODY_LEN
+	if k < 0.14:
+		return lerpf(1.5, 2.05, smoothstep(-0.03, 0.14, k))
+	return lerpf(2.05, 0.2, pow((k - 0.14) / 0.86, 1.15))
+
+
 func _seg_r(i: int) -> float:
-	return lerpf(1.55, 0.45, float(i) / (SEGS - 1))
+	return _r_at((i + 0.5) * SPACING)
+
+
+## The head (model units, x HEAD_K on a child): a long skull with brow ridges over slit eyes,
+## swept horns, a jagged frill each side, whiskers off the snout, fangs in both jaws; the lower
+## jaw hinged at the back.
+func _build_head() -> void:
+	_head = Node3D.new()
+	_head.name = "Head"
+	add_child(_head)
+	# (scaled on a child: _head's basis is set outright every tick)
+	var big := Node3D.new()
+	big.scale = Vector3.ONE * HEAD_K
+	_head.add_child(big)
+	var mouth := PSXMat.lit("leather", Color(0.62, 0.16, 0.16))
+	var fin := PSXMat.lit("leather", Color(1.45, 0.62, 0.38))
+	var bone := PSXMat.flat(Color.WHITE)
+	var eye := PSXMat.glow(Color(1.0, 0.82, 0.18), 3.0)
+	var hb := MeshBuilder.new()
+	# (lofted forward: local +y runs to -z, local +z up)
+	var fwd := Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3.ZERO)
+	var top := MeshBuilder.profile_mirror(PackedVector2Array([Vector2(0, 1.0), Vector2(0.32, 0.97), Vector2(0.7, 0.75),
+		Vector2(0.96, 0.35), Vector2(1.0, -0.12), Vector2(0.72, -0.5), Vector2(0, -0.55)]))
+	var skull := [[-1.0, 1.05, 0.95, 0.15], [-0.1, 1.25, 0.95, 0.18], [0.9, 1.2, 0.85, 0.12], [2.1, 0.92, 0.62, 0.0],
+		[3.3, 0.72, 0.5, -0.07], [4.1, 0.56, 0.42, -0.1], [4.55, 0.3, 0.24, -0.16]]
+	hb.add_loft(_mat, fwd, skull, top, 0.7, Color.WHITE, true, true, true, false, false, PackedInt32Array(), mouth, Callable(),
+		func(p: Vector3): return mouth if p.z < -0.22 and p.y > -0.2 else false)
+	for s in [-1.0, 1.0]:
+		# brow ridge and the slit eye under it
+		hb.add_box(_mat, Transform3D(Basis(Vector3.UP, s * 0.12) * Basis(Vector3.FORWARD, s * 0.35), Vector3(s * 0.88, 0.86, -1.05)), Vector3(0.42, 0.22, 1.1), 0.7, Color(0.8, 0.8, 0.8), false)
+		hb.add_box(eye, Transform3D(Basis(Vector3.UP, s * 0.18), Vector3(s * 1.08, 0.55, -1.1)), Vector3(0.1, 0.2, 0.5), 1.0)
+		hb.add_box(bone, Transform3D(Basis(Vector3.UP, s * 0.18), Vector3(s * 1.1, 0.55, -1.1)), Vector3(0.06, 0.26, 0.12), 1.0, Color(0.05, 0.03, 0.02), false)
+		# nostrils
+		hb.add_box(bone, Transform3D(Basis(), Vector3(s * 0.24, 0.33, -4.2)), Vector3(0.16, 0.06, 0.22), 1.0, Color(0.06, 0.05, 0.05))
+		# horns swept back over the neck
+		hb.add_tube(bone, MeshBuilder.curve_points(Vector3(s * 0.55, 0.95, 0.1), Vector3(s * 1.0, 1.9, 1.0), Vector3(s * 0.8, 2.2, 2.7), 7),
+			0.24, 0.02, 5, 1.0, Color(0.62, 0.56, 0.44), true)
+		# the frill: a jagged fan of spines behind the jaw, flaring out
+		var frill := PackedVector2Array([Vector2(0, 0.7), Vector2(1.3, 1.6), Vector2(1.05, 0.95), Vector2(2.0, 1.15), Vector2(1.45, 0.45),
+			Vector2(2.2, 0.15), Vector2(1.35, -0.2), Vector2(1.7, -0.8), Vector2(0.85, -0.6), Vector2(0.1, -0.55)])
+		hb.add_extrude(fin, Transform3D(Basis(Vector3.UP, -PI * 0.5 + s * 0.4), Vector3(s * 1.12, 0.25, -0.1)), frill, 0.08, 1.0)
+		# whiskers trailing from the snout
+		var w0 := Vector3(s * 0.5, -0.05, -3.9)
+		hb.add_tube(fin, MeshBuilder.curve_points(w0, w0 + Vector3(s * 1.4, -0.4, 0.9), w0 + Vector3(s * 2.1, -1.9, 2.9), 8),
+			0.1, 0.02, 4, 1.0, Color(0.7, 0.6, 0.55))
+		# upper fangs along the jaw line, the big ones forward
+		for k in range(7):
+			var y := lerpf(1.1, 4.0, k / 6.0)
+			var r: Array = ApeBuilder._ring_at(skull, y)
+			var l := 0.62 if k == 5 else 0.34
+			hb.add_cylinder(bone, Transform3D(Basis(Vector3.RIGHT, PI), Vector3(s * float(r[1]) * 0.8, -0.3, -y)), 0.1 if k == 5 else 0.07, 0.0, l, 4, 1.0, Color(0.95, 0.92, 0.8), false, false, false)
+	# the crest of spines running back off the skull into the sail
+	var crest := PackedVector2Array([Vector2(-0.8, 0.0), Vector2(-0.5, 0.95), Vector2(0.0, 0.45), Vector2(0.35, 1.2), Vector2(0.8, 0.6),
+		Vector2(1.2, 1.35), Vector2(1.8, 0.0)])
+	hb.add_extrude(fin, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 0.95, 0.2)), crest, 0.1, 1.0)
+	_paint_hide(hb, func(p: Vector3): return 1.1)
+	big.add_child(hb.to_instance("Skull"))
+	_jaw = Node3D.new()
+	_jaw.name = "Jaw"
+	_jaw.position = Vector3(0, -0.28, 0.3)
+	big.add_child(_jaw)
+	var jb := MeshBuilder.new()
+	var low := MeshBuilder.profile_mirror(PackedVector2Array([Vector2(0, 0.25), Vector2(0.7, 0.22), Vector2(1.0, 0.0),
+		Vector2(0.9, -0.5), Vector2(0.6, -0.88), Vector2(0, -1.0)]))
+	var jaw := []
+	for e in [[-0.85, 0.98, 0.5], [0.6, 1.0, 0.5], [1.9, 0.8, 0.42], [3.1, 0.62, 0.34], [4.0, 0.48, 0.27], [4.35, 0.26, 0.18]]:
+		jaw.append([e[0], e[1], e[2], -0.02 - 0.25 * float(e[2])])
+	jb.add_loft(_mat, fwd, jaw, low, 0.7, Color.WHITE, true, true, true, false, false, PackedInt32Array(), mouth, Callable(),
+		func(p: Vector3): return mouth if p.z > -0.04 and p.y > -0.4 else false)
+	for s in [-1.0, 1.0]:
+		for k in range(6):
+			var y := lerpf(1.0, 3.8, k / 5.0)
+			var r: Array = ApeBuilder._ring_at(jaw, y)
+			var l := 0.5 if k == 4 else 0.28
+			jb.add_cylinder(bone, Transform3D(Basis(), Vector3(s * float(r[1]) * 0.74, -0.04, -y)), 0.08 if k == 4 else 0.06, 0.0, l, 4, 1.0, Color(0.95, 0.92, 0.8), false, false, false)
+	_paint_hide(jb, func(p: Vector3): return 0.5)
+	_jaw.add_child(jb.to_instance("JawMesh"))
 
 
 func _set_hidden(h: bool) -> void:
@@ -178,33 +339,47 @@ func _look(dir: Vector3) -> Basis:
 	return Basis.looking_at(d, Vector3.UP if absf(d.y) < 0.97 else Vector3.FORWARD)
 
 
-## The body follows the head like a rope, the far end sinking back into the sea.
+## The body follows the head like a rope: the neck hangs from it into the sea, the rest
+## rides the swell in coils, humps rolling back along it that break the surface.
 func _drag_body(delta: float) -> void:
+	_coil_t += delta
 	var prev := _head.global_position + _head.global_basis.z * 1.2
+	var clock := Ocean.clock()
 	for i in range(SEGS):
 		var p: Vector3 = _seg_pos[i]
 		var d := p - prev
 		if d.length() < 0.01:
 			d = _head.global_basis.z
 		p = prev + d.normalized() * SPACING
-		var want_y: float = Ocean.get_wave_height(p, Ocean.clock()) - lerpf(0.3, 4.0, float(i) / SEGS)
-		if p.y > want_y:
-			p.y = lerpf(p.y, want_y, clampf(delta * (0.6 + i * 0.12), 0.0, 1.0))
+		var sea: float = Ocean.get_wave_height(p, clock)
+		if i < NECK:
+			var want_y := sea - lerpf(0.3, 2.0, float(i) / NECK)
+			if p.y > want_y:
+				p.y = lerpf(p.y, want_y, clampf(delta * (0.6 + i * 0.12), 0.0, 1.0))
+		else:
+			var k := float(i - NECK) / (SEGS - NECK)
+			var hump := sin(i * 1.2 - _coil_t * HUMP_SPEED)
+			var want_y := sea - 0.6 - k * 1.0 + hump * HUMP_H * (1.0 - k * 0.4)
+			p.y = lerpf(p.y, want_y, clampf(delta * 2.5, 0.0, 1.0))
 		_seg_pos[i] = p
 		prev = p
 
 
 func _pose_segs() -> void:
+	var inv := _skel.global_transform.affine_inverse()
 	var prev := _head.global_position + _head.global_basis.z * 1.2
+	var box := AABB(inv * prev, Vector3.ZERO)
 	for i in range(SEGS):
 		var p: Vector3 = _seg_pos[i]
-		var seg := _segs[i] as Node3D
 		var dir := p - prev
 		if dir.length() > 0.01:
 			# (stretched when the tail is flung out further than the rope allows)
 			var b := _look(-dir) * Basis.from_scale(Vector3(1, 1, maxf(dir.length() / SPACING, 1.0)))
-			seg.global_transform = Transform3D(b, prev)
+			_skel.set_bone_global_pose(i, inv * Transform3D(b, prev))
+		box = box.expand(inv * p)
 		prev = p
+	# (the skinned bounds stay where the body was built: cull it by where it is)
+	_body_mi.custom_aabb = box.grow(5.0)
 
 
 ## The tail end rises out of the sea beside her, then comes down.
@@ -260,6 +435,8 @@ func _physics_process(delta: float) -> void:
 		S.RISE:
 			_target = _ring(sp, _ang, 7.0)
 			_move_head(delta, 9.0, sp + Vector3(0, 6, 0))
+			# (it comes up roaring)
+			_jaw_open = sin(clampf(st_t / 2.2, 0.0, 1.0) * PI)
 			if st_t > 2.2:
 				Net.fx("splash", [Vector3(_head.global_position.x, 0.5, _head.global_position.z), 30, 2.5])
 				_go(S.CIRCLE)
@@ -270,6 +447,7 @@ func _physics_process(delta: float) -> void:
 				_ang += _spin * delta * 0.32
 				_target = _ring(sp, _ang, 6.0 + sin(st_t * 1.3) * 1.5)
 				_move_head(delta, 11.0, sp + Vector3(0, 4, 0))
+				_jaw_open = move_toward(_jaw_open, 0.12 + 0.1 * sin(st_t * 1.7), delta * 2.0)
 				_next -= delta
 				if _next <= 0.0:
 					var roll := _rng.randf()
@@ -292,12 +470,14 @@ func _physics_process(delta: float) -> void:
 			var deck: Vector3 = ship.global_transform * _bite_local
 			_target = deck + Vector3(0, DOWN_Y, 0)
 			_move_head(delta, 40.0, deck + _strike_dir * 6.0 + Vector3(0, -2.0, 0))
+			_jaw_open = 1.0
 			if _head.global_position.distance_to(_target) < 1.0 or st_t > 0.5:
 				_bite(ship)
 				_go(S.DOWN)
 		S.DOWN:
 			# its head lies on the deck: the moment to cut at it
-			_jaw_open = maxf(_jaw_open - delta * 2.0, 0.2)
+			# (snapped shut on the bite, then a growl)
+			_jaw_open = move_toward(_jaw_open, 0.25, delta * 0.6)
 			_head.global_position = ship.global_transform * _bite_local + Vector3(0, DOWN_Y, 0)
 			_head.global_basis = _head.global_basis.slerp(_look(_strike_dir), clampf(delta * 6.0, 0.0, 1.0))
 			if st_t > DOWN_TIME:
@@ -307,6 +487,8 @@ func _physics_process(delta: float) -> void:
 			_ang += _spin * delta * 0.15
 			_target = _ring(sp, _ang, 4.0)
 			_move_head(delta, 8.0, sp)
+			var roaring := st_t > TAIL_SLAM - TAIL_WARN - 0.15 and st_t < TAIL_SLAM + 0.3
+			_jaw_open = move_toward(_jaw_open, 1.0 if roaring else 0.15, delta * 5.0)
 			# a roar and a ring over the whole deck just before it comes down: jump!
 			if st_t >= TAIL_SLAM - TAIL_WARN and st_t - delta < TAIL_SLAM - TAIL_WARN:
 				Net.fx("sfx", ["roar", _tail_at, 10.0, 0.02, 0.45])
@@ -319,6 +501,7 @@ func _physics_process(delta: float) -> void:
 		S.DIVE:
 			_target = _head.global_position + Vector3(0, -14.0, 0)
 			_move_head(delta, 8.0, _head.global_position - _head.global_basis.z * 5.0 + Vector3(0, -6, 0))
+			_jaw_open = move_toward(_jaw_open, 0.0, delta * 2.0)
 			if st_t > 2.5:
 				if near:
 					_ang += PI * _rng.randf_range(0.7, 1.3)
@@ -342,7 +525,7 @@ func _physics_process(delta: float) -> void:
 		if state == S.TAIL:
 			_lift_tail()
 		_pose_segs()
-	_jaw.rotation.x = _jaw_open * 0.7
+	_jaw.rotation.x = -_jaw_open * JAW_OPEN
 
 
 func _go(s: S) -> void:
@@ -382,6 +565,7 @@ func _start_tail(ship: Node3D) -> void:
 
 func _bite(ship: Node3D) -> void:
 	var at: Vector3 = ship.global_transform * _bite_local
+	_jaw_open = 0.0
 	Net.fx("dust", [at, 20, 1.5])
 	Net.fx("sfx", ["wood_crack", at, 8.0, 0.05, 0.55])
 	Net.fx("sfx", ["thud", at, 6.0, 0.05, 0.5])
@@ -531,7 +715,7 @@ func _puppet() -> void:
 	hurtbox.monitorable = visible and state != S.DEAD
 	_head.global_position = (a[3] as Vector3).lerp(b[3], f)
 	_head.global_basis = Basis((a[4] as Quaternion).slerp(b[4], f))
-	_jaw.rotation.x = lerpf(float(a[5]), float(b[5]), f) * 0.7
+	_jaw.rotation.x = -lerpf(float(a[5]), float(b[5]), f) * JAW_OPEN
 	var sa: PackedVector3Array = a[6]
 	var sb: PackedVector3Array = b[6]
 	for i in range(SEGS):
