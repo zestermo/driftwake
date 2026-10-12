@@ -134,6 +134,15 @@ function Update-ImportCache([string]$root, [string]$godot) {
 			Where-Object { $known -notmatch "&`"$_`"" })
 		$need = $missing.Count -gt 0
 		if ($need) { Write-Host ("New class names (" + ($missing -join ", ") + "): importing once...") -ForegroundColor Yellow }
+		# ...or an asset whose imported copy isn't there (a texture, sound or shader another branch landed)
+		if (-not $need) {
+			$stale = @(Get-ChildItem (Join-Path $root "assets"), (Join-Path $root "resources") -Recurse -Filter "*.import" -ErrorAction SilentlyContinue |
+				Select-String -Pattern '^dest_files=\["res://([^"]+)"' -List |
+				Where-Object { -not (Test-Path (Join-Path $root $_.Matches[0].Groups[1].Value)) } |
+				ForEach-Object { $_.Path -replace '\.import$', '' | Split-Path -Leaf })
+			$need = $stale.Count -gt 0
+			if ($need) { Write-Host ("Assets not imported here (" + (($stale | Select-Object -First 5) -join ", ") + $(if ($stale.Count -gt 5) { ", ..." } else { "" }) + "): importing once...") -ForegroundColor Yellow }
+		}
 	} else {
 		Write-Host "No .godot import cache here: importing once (a minute or two)..." -ForegroundColor Yellow
 	}
