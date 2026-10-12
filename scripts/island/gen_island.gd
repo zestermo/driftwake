@@ -437,12 +437,20 @@ func reserve_area(c: Vector2, r: float) -> void:
 		x += 5.0
 
 
-func _excluded(p: Vector2, pad: float) -> bool:
+func excluded(p: Vector2, pad: float, under := INF) -> bool:
+	return _excluded(p, pad, under)
+
+
+func path_dist(p: Vector2) -> float:
+	return _path_dist(p)
+
+
+func _excluded(p: Vector2, pad: float, under := INF) -> bool:
 	var c := Vector2i(floori(p.x / EXCL_CELL), floori(p.y / EXCL_CELL))
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
 			for e in exclusions.get(c + Vector2i(dx, dz), []):
-				if p.distance_to(e[0]) < float(e[1]) + pad:
+				if float(e[1]) < under and p.distance_to(e[0]) < float(e[1]) + pad:
 					return true
 	return false
 
