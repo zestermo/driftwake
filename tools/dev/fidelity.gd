@@ -171,8 +171,9 @@ func _brinehollow(w) -> Dictionary:
 	r["m"]["build_ms"] = ms
 	r["m"]["build_main_ms"] = ms
 	r["m"]["mem_mb"] = (OS.get_static_memory_usage() - m0) / 1048576.0
+	r["d"]["build_steps"] = copy.build_ms.duplicate()
 	copy.queue_free()
-	print("measured Brinehollow (built again in %d ms)" % ms)
+	print("measured Brinehollow (built again in %d ms) %s" % [ms, JSON.stringify(r["d"]["build_steps"])])
 	return r
 
 
@@ -191,6 +192,8 @@ func _generated(w, s: int) -> Dictionary:
 	var m0 := OS.get_static_memory_usage()
 	var t0 := Time.get_ticks_usec()
 	g.build(n)
+	if OS.get_environment("FID_KIT") != "":
+		load("res://scripts/island/kit/kit_village.gd").dress_generated_village(g)
 	var ms := (Time.get_ticks_usec() - t0) / 1000.0
 	var mem := (OS.get_static_memory_usage() - m0) / 1048576.0
 	var r := measure(g)
