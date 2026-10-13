@@ -66,22 +66,33 @@ func _get_up() -> void:
 	p.hurtbox.monitorable = true
 
 
-## Grell on his beach, the captain 10 m inland of him, and his charge begun.
+## Grell back at his post, the captain 10 m off across open, level ground in his den, and his charge begun.
 func _grell_setup() -> void:
 	_get_up()
-	var den = isl.get_node("PirateDen")
-	var c: Vector3 = den.global_position
-	var inland: Vector3 = (isl.global_position - c)
-	inland.y = 0.0
-	inland = inland.normalized()
-	var gp := c + inland * 4.0
-	var pp := c + inland * 14.0
-	var gl: Vector3 = isl.to_local(gp)
-	var pl: Vector3 = isl.to_local(pp)
-	grell.global_position = isl.to_global(Vector3(gl.x, isl.height_at(gl.x, gl.z) + 0.3, gl.z))
+	var space = grell.get_world_3d().direct_space_state
+	var g0: Vector3 = grell.post
+	var spot := g0
+	for i in range(24):
+		var a := TAU * i / 24.0
+		var d := Vector3(sin(a), 0.0, cos(a))
+		var blocked := false
+		for h in [0.4, 1.0]:
+			for side in [-0.4, 0.0, 0.4]:
+				var o: Vector3 = Vector3(0, h, 0) + d.cross(Vector3.UP) * side
+				var los := PhysicsRayQueryParameters3D.create(g0 + o, g0 + d * 12.5 + o, 1)
+				los.exclude = [grell.get_rid()]
+				blocked = blocked or not space.intersect_ray(los).is_empty()
+		if blocked:
+			continue
+		var down := PhysicsRayQueryParameters3D.create(g0 + d * 10.0 + Vector3(0, 4.0, 0), g0 + d * 10.0 - Vector3(0, 6.0, 0), 1)
+		var hit: Dictionary = space.intersect_ray(down)
+		if not hit.is_empty() and absf((hit["position"] as Vector3).y - g0.y) < 0.8:
+			spot = hit["position"]
+			break
+	grell.global_position = g0 + Vector3.UP * 0.2
 	grell.velocity = Vector3.ZERO
 	grell.reset_physics_interpolation()
-	_put(isl.to_global(Vector3(pl.x, isl.height_at(pl.x, pl.z) + 0.3, pl.z)))
+	_put(spot + Vector3.UP * 0.3)
 	hp0 = p.health_component.current_health
 	grell._start_rush()
 	t0 = t
@@ -224,7 +235,9 @@ func _process(d: float) -> bool:
 			wait = 2.6
 		11:
 			check("her venom fan hits from range", p.health_component.current_health < hp0)
-			# keep away and she burrows at you
+			# keep away and she burrows at you (the fan's puddles mopped up first)
+			for pp in load("res://scripts/combat/poison_puddle.gd").live():
+				pp.queue_free()
 			_get_up()
 			_put(q.global_position + Vector3(0.0, 0.3, 10.0))
 			_cure()

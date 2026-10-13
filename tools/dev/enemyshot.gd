@@ -45,11 +45,6 @@ func _put(at: Vector3, face: Vector3) -> void:
 	p.player_model.rotation.y = atan2(-face.x, -face.z)
 
 
-func _ground(x: float, z: float) -> Vector3:
-	var l: Vector3 = isl.to_local(Vector3(x, 0, z))
-	return isl.to_global(Vector3(l.x, isl.height_at(l.x, l.z) + 0.3, l.z))
-
-
 func _quiet(camp) -> void:
 	for x in camp.grunts:
 		if is_instance_valid(x) and x != foe:
@@ -105,13 +100,30 @@ func _begin(n: String) -> void:
 				if g.captain:
 					foe = g
 			_quiet(den)
-			var c: Vector3 = den.global_position
-			var inland: Vector3 = isl.global_position - c
-			inland.y = 0.0
-			inland = inland.normalized()
-			foe.global_position = _ground(c.x + inland.x * 4.0, c.z + inland.z * 4.0)
+			# (the captain 10 m off his post across open, level ground)
+			var g0: Vector3 = foe.post
+			var space = foe.get_world_3d().direct_space_state
+			var spot := g0
+			var dir := Vector3.FORWARD
+			for i in range(24):
+				var dd := Vector3(sin(TAU * i / 24.0), 0.0, cos(TAU * i / 24.0))
+				var blocked := false
+				for h in [0.4, 1.0]:
+					for side in [-0.4, 0.0, 0.4]:
+						var o: Vector3 = Vector3(0, h, 0) + dd.cross(Vector3.UP) * side
+						var los := PhysicsRayQueryParameters3D.create(g0 + o, g0 + dd * 12.5 + o, 1)
+						los.exclude = [foe.get_rid()]
+						blocked = blocked or not space.intersect_ray(los).is_empty()
+				if blocked:
+					continue
+				var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(g0 + dd * 10.0 + Vector3(0, 4.0, 0), g0 + dd * 10.0 - Vector3(0, 6.0, 0), 1))
+				if not hit.is_empty() and absf((hit["position"] as Vector3).y - g0.y) < 0.8:
+					spot = hit["position"]
+					dir = dd
+					break
+			foe.global_position = g0 + Vector3.UP * 0.2
 			foe.reset_physics_interpolation()
-			_put(_ground(c.x + inland.x * 14.0, c.z + inland.z * 14.0), -inland)
+			_put(spot + Vector3.UP * 0.3, -dir)
 			foe.alert()
 			foe._start_rush()
 			times = [0.2, 0.5, 0.8, 1.0, 1.25, 1.6]
@@ -186,7 +198,7 @@ func _process(d: float) -> bool:
 	if shots < times.size() and t - t0 >= float(times[shots]):
 		var path := ProjectSettings.globalize_path("%s/%s_%d.png" % [out, name_, shots])
 		root.get_texture().get_image().save_png(path)
-		print("shot %s_%d at %.2f s (foe state %s)" % [name_, shots, t - t0, str(foe.get("state")) if foe else "-"])
+		print("shot %s_%d at %.2f s (foe state %s, %.1f m from the captain)" % [name_, shots, t - t0, str(foe.get("state")) if foe else "-", foe.global_position.distance_to(p.global_position) if foe else 0.0])
 		shots += 1
 		if shots >= times.size():
 			name_ = ""

@@ -764,7 +764,7 @@ func _physics_process(delta: float) -> void:
 					_rush_went += _flat(get_real_velocity()).length() * delta if st_t > 0.05 else _rush_speed() * delta
 					if int(st_t / 0.07) != int((st_t - delta) / 0.07):
 						Net.fx("dust", [global_position + Vector3(0, 0.1, 0), 3, 0.6])
-					if st_t > 0.12 and _rushed_into_wall():
+					if st_t > 0.12 and (_rushed_into_wall() or (st_t > 0.2 and _flat(get_real_velocity()).length() < _rush_speed() * 0.35)):
 						_rush_bonk()
 					elif _rush_went >= _rush_len or st_t > _rush_len / _rush_speed() + 0.3:
 						_rush_stop = st_t
@@ -1319,6 +1319,11 @@ func _want_rush(p: Node3D, dist: float) -> bool:
 	if not _can_rush() or _rush_cd > 0.0 or dist < RUSH_MIN or dist > RUSH_MAX or not _player_ok(p):
 		return false
 	if absf(p.global_position.y - global_position.y) > 1.5 or not _los(p):
+		return false
+	# (knee height too: a rail or a crate would stop the run dead)
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3(0, 0.5, 0), p.global_position + Vector3(0, 0.5, 0), 1)
+	q.exclude = [get_rid()]
+	if not get_world_3d().direct_space_state.intersect_ray(q).is_empty():
 		return false
 	return _get_token()
 
