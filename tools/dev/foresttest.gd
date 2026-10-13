@@ -29,8 +29,13 @@ const CLIMB := 13
 const FALL := 14
 
 
+const TK = preload("res://tools/dev/test_kit.gd")
+var until := 0
+var puddle
+
+
 func _initialize():
-	load("res://tools/dev/test_kit.gd").seed_of(self)
+	TK.seed_of(self)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -51,10 +56,19 @@ func _put(at: Vector3) -> void:
 	p.reset_physics_interpolation()
 
 
+func _cure() -> void:
+	var ps = p.get_node_or_null("Poison")
+	if ps:
+		p.remove_child(ps)
+		ps.queue_free()
+
+
 func _process(d: float) -> bool:
 	t += d
 	if wait > 0.0:
-		wait -= d
+		until = TK.wait_secs(wait)
+		wait = 0.0
+	if TK.ticking(until):
 		if bug and is_instance_valid(bug):
 			seen[bug.state] = true
 		return false
@@ -208,6 +222,30 @@ func _process(d: float) -> bool:
 			hit.damage = 1.0
 			p.power.on_sword_hit(victim, hit)
 			check("a cut with the Fang poisons", victim.get_node_or_null("Poison") != null)
+			# --- poison puddles: a blob that lands on the ground leaves one
+			_put(cave.to_global(Vector3(10.0, 0.6, 0.0)))
+			_cure()
+			var at: Vector3 = p.global_position + Vector3(0.0, 0.0, 3.0)
+			root.get_node("FX").spit(at + Vector3(0.0, 2.0, 0.0), Vector3(0.0, -6.0, 0.0), 6.0, 1.0, 4.0, 3.0)
+			wait = 0.6
+		15:
+			var near: Array = load("res://scripts/combat/poison_puddle.gd").live()
+			puddle = near[0] if near.size() > 0 else null
+			check("a glob landing on the ground leaves a poison puddle", puddle != null)
+			check("standing beside it: not poisoned", p.get_node_or_null("Poison") == null)
+			_put(puddle.global_position + Vector3(0.0, 0.3, 0.0))
+			hp0 = p.health_component.current_health
+			wait = 1.2
+		16:
+			check("stepping in it poisons you", p.get_node_or_null("Poison") != null and p.health_component.current_health < hp0)
+			check("...a tick, not a stun-lock", p.current_state_name() in ["Idle", "Move", "Fall"])
+			_put(puddle.global_position + Vector3(4.0, 0.3, 0.0))
+			wait = 2.0
+		17:
+			check("out of it: the poison wears off", p.get_node_or_null("Poison") == null)
+			wait = 2.0
+		18:
+			check("the puddle dries up after a few seconds", not is_instance_valid(puddle))
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 			return true

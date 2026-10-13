@@ -1,8 +1,9 @@
 class_name PoisonGlob
 extends Node3D
 ## A blob of venom lobbed in an arc (spitter bugs, the brood queen). It
-## splashes on whatever it hits and poisons a captain it lands on. Every
-## screen flies its own copy (FX.spit); each captain only checks their own.
+## splashes on whatever it hits, poisons a captain it lands on and leaves a
+## poison puddle where it hits the ground (PoisonPuddle). Every screen flies
+## its own copy (FX.spit); each captain only checks their own.
 
 const GRAVITY := 14.0
 const RADIUS := 0.5
@@ -44,14 +45,13 @@ func _physics_process(delta: float) -> void:
 		_trail = 0.05
 		FX.poison(from, 1, 0.22 * size)
 	var p: Node3D = Net.local_player if Net.active else GameManager.player
-	if p and is_instance_valid(p) and _hits(p, from, to):
-		_hit_player(p)
-		_splash(to)
+	if p and is_instance_valid(p) and _hits(p, from, to) and _hit_player(p):
+		_splash(to, Vector3.ZERO)
 		return
 	var q := PhysicsRayQueryParameters3D.create(from, to, 1)
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	if not hit.is_empty():
-		_splash(hit["position"])
+		_splash(hit["position"], hit["normal"])
 		return
 	global_position = to
 	_life -= delta
@@ -66,10 +66,11 @@ func _hits(p: Node3D, from: Vector3, to: Vector3) -> bool:
 	return (pts[0] as Vector3).distance_to(pts[1] as Vector3) < RADIUS * size
 
 
-func _hit_player(p: Node3D) -> void:
+## False when the captain is dodging: the blob flies on through and lands behind.
+func _hit_player(p: Node3D) -> bool:
 	var hb := p.get_node_or_null("Hurtbox") as Hurtbox
 	if hb == null or not hb.monitorable:
-		return
+		return false
 	var hc := p.get_node_or_null("HealthComponent") as HealthComponent
 	var before := hc.current_health if hc else 0.0
 	var hd := HitData.new()
@@ -83,9 +84,13 @@ func _hit_player(p: Node3D) -> void:
 	# only a blob that landed poisons (not one dodged, parried or cut)
 	if hc and hc.current_health < before:
 		PoisonStatus.apply(p, poison_secs, poison_dps, null)
+	return true
 
 
-func _splash(at: Vector3) -> void:
+## Splashes; on the ground (`normal` pointing up) it leaves a puddle.
+func _splash(at: Vector3, normal: Vector3) -> void:
 	FX.poison(at, 8, 0.4 * size)
 	FX.sfx("splash", at, -8.0, 0.1, 1.6)
+	if normal.y > 0.55:
+		PoisonPuddle.spawn(get_parent(), at, normal, size, poison_dps)
 	queue_free()

@@ -20,6 +20,9 @@ var _spit_cd: float = 1.0
 var _winding := false
 var _far_t: float = 0.0
 var _thread: MeshInstance3D
+## Swung out from under the anchor for a clear shot past a trunk.
+var _sway := Vector3.ZERO
+var _sway_to := Vector3.ZERO
 
 static var _thread_mat: StandardMaterial3D
 
@@ -108,24 +111,31 @@ func _physics_process(delta: float) -> void:
 				_winding = false
 		S.DANGLE:
 			_face(to_p)
-			global_position = Vector3(anchor.x + sin(_t * 1.3) * 0.15, _ground_y + DANGLE_Y + sin(_t * 2.1) * 0.12, anchor.z + cos(_t * 1.1) * 0.15)
+			_sway = _sway.move_toward(_sway_to, 2.5 * delta)
+			global_position = Vector3(anchor.x + _sway.x + sin(_t * 1.3) * 0.15, _ground_y + DANGLE_Y + sin(_t * 2.1) * 0.12, anchor.z + _sway.z + cos(_t * 1.1) * 0.15)
 			var in_reach := _player_ok(p) and dist < LOSE_RANGE
 			_far_t = 0.0 if in_reach else _far_t + delta
 			if _far_t > 4.0:
 				_set_state(S.CLIMB)
 			_spit_cd -= delta
 			if not _winding and _spit_cd <= 0.0 and in_reach:
-				_winding = true
-				_spit_cd = SPIT_WIND
-				_shake = 1.0
-				Net.fx("sfx", ["bug_hiss", global_position, -3.0, 0.08, 1.35])
+				if _clear(p, head_node.global_position):
+					_winding = true
+					_spit_cd = SPIT_WIND
+					_shake = 1.0
+					Net.fx("sfx", ["bug_hiss", global_position, -3.0, 0.08, 1.35])
+				else:
+					_swing_clear(p)
+					_spit_cd = 0.5
 			elif _winding and _spit_cd <= 0.0:
 				_winding = false
 				_spit_cd = SPIT_EVERY + _rng.randf_range(-0.3, 0.4)
 				if in_reach:
 					_spit(p)
 		S.CLIMB:
-			global_position = Vector3(anchor.x, move_toward(global_position.y, anchor.y, 4.0 * delta), anchor.z)
+			_sway = _sway.move_toward(Vector3.ZERO, 2.5 * delta)
+			_sway_to = Vector3.ZERO
+			global_position = Vector3(anchor.x + _sway.x, move_toward(global_position.y, anchor.y, 4.0 * delta), anchor.z + _sway.z)
 			if global_position.y >= anchor.y - 0.01:
 				health.heal(health.max_health)
 				_set_state(S.HIDE)
@@ -142,6 +152,26 @@ func _wander_home() -> void:
 		return
 	_wander_target = home
 	_wander_wait = 0.0
+
+
+## Nothing solid (its own trunk, a neighbour's) between `from` and the captain's chest.
+func _clear(p: Node3D, from: Vector3) -> bool:
+	var q := PhysicsRayQueryParameters3D.create(from, p.global_position + Vector3(0, 1.1, 0), 1)
+	q.exclude = [get_rid()]
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+
+
+## Blocked: swing out on the thread to a spot with a clear shot (as the thread allows).
+func _swing_clear(p: Node3D) -> void:
+	var head := head_node.global_position - global_position
+	for r in [0.6, 1.0]:
+		for i in range(8):
+			var a := TAU * i / 8.0
+			var off := Vector3(cos(a), 0, sin(a)) * float(r)
+			var at := Vector3(anchor.x, _ground_y + DANGLE_Y, anchor.z) + off + head
+			if _clear(p, at) and _clear(p, at + Vector3.UP * 0.3):
+				_sway_to = off
+				return
 
 
 func _spit(p: Node3D) -> void:
@@ -177,5 +207,8 @@ func _process(delta: float) -> void:
 	_thread.visible = hanging
 	if hanging:
 		var bottom := global_position + Vector3(0, 0.25 * size_k, 0)
-		var len := maxf(anchor.y - bottom.y, 0.05)
-		_thread.global_transform = Transform3D(Basis().scaled(Vector3(1, len, 1)), Vector3(bottom.x, bottom.y + len * 0.5, bottom.z))
+		var up := anchor - bottom
+		var len := maxf(up.length(), 0.05)
+		var y := up / len if up.length() > 0.05 else Vector3.UP
+		var x := y.cross(Vector3.FORWARD if absf(y.z) < 0.9 else Vector3.RIGHT).normalized()
+		_thread.global_transform = Transform3D(Basis(x, y * len, x.cross(y)), bottom + up * 0.5)
