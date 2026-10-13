@@ -1803,8 +1803,10 @@ func _action_pose(n: String, u: float) -> Array:
 			var ram := {"torso": Vector3(-0.35, -0.35, 0), "arm_r": Vector3(1.2, -0.2, 0.2), "fore_r": Vector3(0.6, 0, 0),
 				"arm_l": Vector3(1.35, 0.2, -0.1), "fore_l": Vector3(0.4, 0, 0), "leg_l": Vector3(0.85, 0, -0.1), "shin_l": Vector3(-0.8, 0, 0),
 				"leg_r": Vector3(-0.6, 0, 0.1), "shin_r": Vector3(-0.2, 0, 0)}
+			# (the tell: drawn back and held, trembling, a beat before the drive at u 0.59)
+			var coiled := cock.merged({"torso": (cock["torso"] as Vector3) + Vector3(0, sin(_t * 38.0) * 0.03, 0), "fore_r": Vector3(1.75, 0, 0)}, true)
 			lift.y = -0.12 * sin(clampf(u, 0, 1) * PI)
-			return [_keys(u, [[0.0, {}], [0.45, cock, "out"], [0.6, ram, "out"], [0.8, ram], [1.0, {}]]), "full", lift]
+			return [_keys(u, [[0.0, {}], [0.28, cock, "out"], [0.54, coiled], [0.62, ram, "out"], [0.82, ram], [1.0, {}]]), "full", lift]
 		"mantle":
 			# hands on the edge, haul up, knee onto the ledge, stand
 			var hang := {"pivot": Vector3.ZERO, "torso": Vector3(-0.2, 0, 0), "head": Vector3(0.35, 0, 0),

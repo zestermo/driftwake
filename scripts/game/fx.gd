@@ -224,15 +224,7 @@ static var _disc_mesh: ArrayMesh
 ## over `secs` (then it's gone). `follow` (a node key) carries it along on
 ## that node (a ship's deck under way).
 func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.0, 0.18, 0.12), follow: String = "") -> void:
-	if _tele_mat == null:
-		_tele_mat = StandardMaterial3D.new()
-		_tele_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_tele_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_tele_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		_tele_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-		_tele_mat.vertex_color_use_as_albedo = true
-		_ring_mesh = _annulus(0.88, 1.0)
-		_disc_mesh = _annulus(0.0, 1.0)
+	_tele_init()
 	var holder := Node3D.new()
 	holder.name = "Telegraph"
 	var net := get_node_or_null("/root/Net")
@@ -261,6 +253,68 @@ func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.
 	var tw := holder.create_tween()
 	tw.tween_property(disc, "scale", Vector3(radius, 1.0, radius), maxf(secs, 0.05))
 	tw.tween_callback(holder.queue_free)
+
+
+static var _arc_meshes: Dictionary = {}
+
+
+func _tele_init() -> void:
+	if _tele_mat != null:
+		return
+	_tele_mat = StandardMaterial3D.new()
+	_tele_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_tele_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_tele_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_tele_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_tele_mat.vertex_color_use_as_albedo = true
+	_ring_mesh = _annulus(0.88, 1.0)
+	_disc_mesh = _annulus(0.0, 1.0)
+
+
+## A small fan on the ground in front of an attacker, `radius` m out over
+## `angle` rad about `dir`: the rim shows at once and the fill sweeps out to
+## it over `secs` (a close blow on its way: the rifle butt, a low sweep).
+func arc_warn(pos: Vector3, dir: Vector3, radius: float, angle: float, secs: float, color: Color = Color(1.0, 0.9, 0.6)) -> void:
+	_tele_init()
+	var key := snappedf(angle, 0.05)
+	if not _arc_meshes.has(key):
+		_arc_meshes[key] = [_fan(0.86, 1.0, key), _fan(0.0, 1.0, key)]
+	var d := Vector3(dir.x, 0.0, dir.z).normalized()
+	var holder := Node3D.new()
+	holder.name = "ArcWarn"
+	_scene_root().add_child(holder)
+	holder.global_transform = Transform3D(Basis.looking_at(d, Vector3.UP), pos + Vector3(0, 0.07, 0))
+	var rim := MeshInstance3D.new()
+	rim.mesh = _arc_meshes[key][0]
+	rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rim.scale = Vector3(radius, 1.0, radius)
+	holder.add_child(rim)
+	var fill := MeshInstance3D.new()
+	fill.mesh = _arc_meshes[key][1]
+	fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	fill.scale = Vector3(0.05, 1.0, 0.05)
+	holder.add_child(fill)
+	_tint(rim, Color(color.r, color.g, color.b, 0.85))
+	_tint(fill, Color(color.r, color.g, color.b, 0.35))
+	var tw := holder.create_tween()
+	tw.tween_property(fill, "scale", Vector3(radius, 1.0, radius), maxf(secs, 0.05))
+	tw.tween_callback(holder.queue_free)
+
+
+## A flat fan (-Z forward) between radii `inner` and `outer`, `angle` rad wide.
+func _fan(inner: float, outer: float, angle: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 12
+	for i in range(n):
+		var a0 := -angle * 0.5 + angle * i / n
+		var a1 := -angle * 0.5 + angle * (i + 1) / n
+		var o0 := Vector3(sin(a0), 0, -cos(a0))
+		var o1 := Vector3(sin(a1), 0, -cos(a1))
+		for v in [o0 * inner, o0 * outer, o1 * outer, o0 * inner, o1 * outer, o1 * inner]:
+			st.set_color(Color.WHITE)
+			st.add_vertex(v)
+	return st.commit()
 
 
 ## A strip on the ground where a charge or a dash will run (BeastFX.lane, sendable through Net.fx).

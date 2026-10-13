@@ -53,6 +53,11 @@ const RIFLE_NEAR := 10.0
 const RIFLE_FAR := 16.0
 const SHOVE_RANGE := 3.0
 const SHOVE_COOLDOWN := 5.0
+## The rifle butt's tell: drawn back with a glint on the stock and a pale arc on
+## the ground ahead (not red: it can be blocked or parried), the blow at SHOVE_HIT.
+const SHOVE_HIT := 0.56
+const SHOVE_LEN := 0.95
+const SHOVE_TELL := Color(1.0, 0.9, 0.6)
 const GUN_RANGE := 45.0
 const HEAVY_GLOW := 1.0
 # water: same depths as the player (feet this far under the surface: swim)
@@ -855,7 +860,14 @@ func _physics_process(delta: float) -> void:
 			_face(dir_p)
 			turn = 6.0 if st_t < 0.25 else 1.0
 			accel = 12.0
-			if st_t > 0.33 and not _shoved:
+			if st_t > 0.28 and not _glinted:
+				_glinted = true
+				var butt := global_position + Vector3(0, 1.1, 0) - _fwd() * 0.2
+				if humanoid.weapon and humanoid.weapon.is_inside_tree():
+					butt = humanoid.weapon.global_transform * Vector3(0, 0, 0.45)
+				Net.fx("sparkle", [butt, 5, Color(1.0, 1.0, 0.95)])
+				Net.fx("sfx", ["blip_high", butt, -12.0, 0.05, 1.3])
+			if st_t > SHOVE_HIT and not _shoved:
 				_shoved = true
 				velocity += _fwd() * 3.0
 				Net.fx("sfx", ["whoosh", global_position, -6.0, 0.08, 1.3])
@@ -870,7 +882,7 @@ func _physics_process(delta: float) -> void:
 						hd.hitstop_duration = 0.05
 						hd.camera_shake_intensity = 0.12
 						hb.take_hit(hd, self)
-			if st_t > 0.75:
+			if st_t > SHOVE_LEN:
 				_shove_cd = SHOVE_COOLDOWN
 				_set_state(S.KEEP)
 		S.RETURN:
@@ -2065,9 +2077,16 @@ func _start_reposition(p: Node3D) -> void:
 
 func _start_shove() -> void:
 	_shoved = false
+	_glinted = false
 	_set_state(S.SHOVE)
-	humanoid.play("shove", 0.75)
+	humanoid.play("shove", SHOVE_LEN)
 	bark(["Back off!", "Get away!", "Too close!"], 0.5)
+	var p := _target()
+	if p:
+		_face(_flat(p.global_position - global_position))
+	var d := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
+	Net.fx("arc_warn", [global_position, d, SHOVE_RANGE, 1.7, SHOVE_HIT, SHOVE_TELL])
+	Net.fx("sfx", ["clack", global_position, -6.0, 0.05, 1.2])
 
 
 ## Flash red all over (and a red-hot blade) for the unblockable attack.

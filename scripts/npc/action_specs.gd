@@ -255,7 +255,7 @@ const SPECS := {
 	"slash_down": {"len": 0.5, "stance": "sword", "weapon": "cutlass"},
 	"aim_pistol": {"len": 1.3, "stance": "pistol", "weapon": "pistol", "extras": {"auto_point_guns": false}},
 	"aim_rifle": {"len": 1.3, "stance": "sword", "weapon": "rifle"},
-	"shove": {"len": 0.75, "stance": "sword", "weapon": "rifle"},
+	"shove": {"len": 0.95, "stance": "sword", "weapon": "rifle"},
 }
 
 
