@@ -17,6 +17,7 @@ const NOTES := [
 	["Fights with more bite", "Bosses close the gap if you hang back, bug poison lingers on the ground, riflemen telegraph their shove, and tougher pirates dodge like you do."],
 	["A harder road to Grell", "His den now sits on a clifftop out of sight of the beach. Climb the pillars or take the rope ladder from his pier."],
 	["New drip", "23 new pieces of clothing and armour: a fez, a kimono, brass goggles, a frock coat, sabatons, a crown you'll have to steal... Sela sells cloth and leather, Vey the steel."],
+	["A fresh coat of paint", "New colours everywhere: cream, teal, coral and sunflower, with rounded, gilded frames on every menu, the shipyard and the character builder."],
 	["A cleaner inventory", "What you hold isn't in your bag, tooltips compare against what you use, and the text is crisp. Option arrows go back as well as forward."],
 ]
 
