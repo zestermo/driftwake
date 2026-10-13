@@ -392,6 +392,7 @@ func _process(d: float) -> bool:
 			wait = 6.5
 			step = 18
 		18:
+			print("   Morrow after everyone left: state %d phase %d hp %.0f/%.0f special '%s' at %.1f m from the captain" % [boss.state, boss.phase, boss.health.current_health, boss.health.max_health, boss._special, boss.global_position.distance_to(p.global_position)])
 			check("everyone left: he heals and goes back", boss.phase == 1 and boss.health.current_health >= boss.health.max_health - 1.0)
 			check("...the boss bar goes away", not hud()._boss_box.visible)
 			p.global_position = fort.to_global(Vector3(0, 6.4, 2.0))

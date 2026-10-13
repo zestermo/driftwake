@@ -1719,6 +1719,23 @@ func _action_pose(n: String, u: float) -> Array:
 		"block":
 			lift.y = -0.08 * sin(clampf(u, 0, 1) * PI)
 			return [_keys(u, [[0.0, GUARD], [0.15, E_BLOCK, "out"], [0.7, E_BLOCK], [1.0, GUARD]]), "full", lift]
+		# --- grunt's low sweep: dropped onto the back knee, blade cocked low behind the
+		# right hip, then cut flat across at the shins ---
+		"sweep_wind", "sweep":
+			var crouch := {"pivot": Vector3(-0.15, 0, 0), "hips": Vector3(0, 0.35, 0),
+				"leg_l": Vector3(1.2, 0, -0.28), "shin_l": Vector3(-1.6, 0, 0), "leg_r": Vector3(-0.15, 0, 0.32), "shin_r": Vector3(-1.75, 0, 0)}
+			var cocked := crouch.merged({"torso": Vector3(-0.3, 0.95, 0.1), "head": Vector3(0.35, -0.75, 0),
+				"arm_r": Vector3(0.25, 0.6, 1.35), "fore_r": Vector3(0.55, 0, 0), "hand_r": Vector3(0.5, 0, 0),
+				"arm_l": Vector3(0.7, 0, -0.75), "fore_l": Vector3(0.9, 0, 0)})
+			if n == "sweep_wind":
+				var held := cocked.merged({"arm_r": (cocked["arm_r"] as Vector3) + Vector3(sin(_t * 38.0) * 0.03 * _ease((u - 0.4) * 2.0), 0, 0)}, true)
+				lift.y = -0.42 * _ease(u * 2.5)
+				return [_keys(u, [[0.0, GUARD], [0.4, cocked, "out"], [1.0, held]]), "full", lift]
+			var cut := crouch.merged({"torso": Vector3(-0.5, -1.0, -0.1), "head": Vector3(0.35, 0.75, 0),
+				"arm_r": Vector3(0.75, -0.95, -1.05), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.2, 0, 0),
+				"arm_l": Vector3(0.2, 0, -1.25), "fore_l": Vector3(0.4, 0, 0)})
+			lift.y = -0.45 * (1.0 - _ease((u - 0.55) / 0.45))
+			return [_keys(u, [[0.0, cocked], [0.28, cut, "out"], [0.6, cut], [1.0, GUARD]]), "full", lift]
 		# --- captains' gap closers ---
 		"shoulder_wind":
 			# a bull's crouch: left shoulder dropped toward the target, blade held low behind, trembling

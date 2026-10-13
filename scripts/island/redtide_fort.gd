@@ -591,9 +591,9 @@ func _build_camp() -> void:
 	add_child(guards)
 	# (yaws are world-space: facing out of the gate is the fort's +Z)
 	var out_yaw := global_rotation.y + PI
-	guards.add_grunt({"post": Vector3(-2.4, TOP, 14.0), "yaw": out_yaw, "mode": "stand", "seed": 301})
-	guards.add_grunt({"post": Vector3(2.4, TOP, 14.0), "yaw": out_yaw, "mode": "stand", "seed": 302})
-	guards.add_grunt({"post": Vector3(-9.0, TOP, -6.0), "yaw": out_yaw - 0.6, "mode": "stand", "role": "rifle", "seed": 303})
+	guards.add_grunt({"post": Vector3(-2.4, TOP, 14.0), "yaw": out_yaw, "mode": "stand", "seed": 301, "elite": true})
+	guards.add_grunt({"post": Vector3(2.4, TOP, 14.0), "yaw": out_yaw, "mode": "stand", "seed": 302, "elite": true})
+	guards.add_grunt({"post": Vector3(-9.0, TOP, -6.0), "yaw": out_yaw - 0.6, "mode": "stand", "role": "rifle", "seed": 303, "elite": true})
 
 
 # ==========================================================================
@@ -655,7 +655,7 @@ func _spawn_crew(leap: bool) -> void:
 		var land := Vector3(cos(a) * 10.0, TOP + 0.1, sin(a) * 10.0)
 		var g := PirateGrunt.new()
 		g.name = "MC%d_%d" % [crew_gen, i]
-		g.setup({"post": to_global(land), "yaw": 0.0, "mode": "stand", "role": "sword", "seed": rng.randi()})
+		g.setup({"post": to_global(land), "yaw": 0.0, "mode": "stand", "role": "sword", "seed": rng.randi(), "elite": true})
 		g.boarder = true
 		add_child(g)
 		g.global_position = to_global(wall)

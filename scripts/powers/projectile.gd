@@ -54,6 +54,7 @@ static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3
 
 
 func _ready() -> void:
+	add_to_group("projectiles")
 	_mesh = MeshInstance3D.new()
 	_mat = StandardMaterial3D.new()
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED

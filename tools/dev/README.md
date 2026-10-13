@@ -130,6 +130,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `gaitpose`: Armed gait frames for a given local_move. Args: <out_prefix> <mx> <my> [armed 1/0]
 - `gaitview`: Treadmill gait viewer: three bodies at walk (1.3), jog (6) and sprint (12) seen from the side (or 3/4). Saves frames. Args: <outdir> <view: side|three>
 - `gruntshot`: Smugglers' camp shots. Args: <out_prefix>
+- `enemyshot`: The enemies' tells as strips from behind the captain (rifleman's shove, a grunt's sweep and feint, an elite's dash, Grell's charge, Morrow's Tide Rush, the Brood Queen's burrow, a poison puddle) into tools/dev/out/enemies/. Args: [out_dir] [scenes, comma-separated]
 - `gunshot_r`: Firearm / heavy glow shots. Args: <out_prefix>
 - `hairdist`: Hair at a distance (scalp poking through?). Args: <out_prefix>
 - `hairshots`: Close head shots of every hair style. Args: <out.png> <yaw_deg>

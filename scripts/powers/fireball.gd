@@ -31,6 +31,7 @@ static func launch(tree: SceneTree, from: Vector3, direction: Vector3, src: Node
 
 
 func _ready() -> void:
+	add_to_group("projectiles")
 	_core = MeshInstance3D.new()
 	var sm := SphereMesh.new()
 	sm.radius = 0.24

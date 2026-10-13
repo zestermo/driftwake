@@ -248,6 +248,8 @@ const SPECS := {
 	"lunge_wind": {"len": 0.8, "stance": "sword", "weapon": "cutlass"},
 	"lunge": {"len": 0.8, "stance": "sword", "weapon": "cutlass"},
 	"block": {"len": 0.4, "stance": "sword", "weapon": "cutlass"},
+	"sweep_wind": {"len": 0.62, "stance": "sword", "weapon": "cutlass"},
+	"sweep": {"len": 0.55, "stance": "sword", "weapon": "cutlass"},
 	"shoulder_wind": {"len": 0.95, "stance": "sword", "weapon": "cutlass"},
 	"shoulder_rush": {"len": 1.4, "stance": "sword", "weapon": "cutlass"},
 	"dash_wind": {"len": 0.85, "stance": "sword", "weapon": "cutlass"},

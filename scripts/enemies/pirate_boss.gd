@@ -219,6 +219,10 @@ func _can_rush() -> bool:
 	return true
 
 
+func elite() -> bool:
+	return true
+
+
 func _rush_wind() -> float:
 	return 0.75
 
