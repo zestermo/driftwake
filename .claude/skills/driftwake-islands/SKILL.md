@@ -69,7 +69,7 @@ The island side is `Island`'s interface: `hv`, `walk_height`, `reserve`, `exclud
 | `kit_market.gd` | KitMarket | `build` (stalls in a horseshoe, planter, wares mesh, cargo) |
 | `kit_paving.gd` | KitPaving | `plan_disk`, `plan_path` (quads, data), `build` (one mesh, no shadow; `tex`/`tint` for trodden earth) |
 | `kit_landmarks.gd` | KitLandmarks | `lighthouse` (+ keeper's cottage), `ruins` (+ standing stone and its dialogue), `harbour_tower`, `crane`, `chapel`, model `lookout_tower`, `cyl_col`, `box_col` |
-| `kit_camps.gd` | KitCamps | `campfire` (with its crackle), models `tent`, `log_seat`, `flag`; `log_by`, `seat_on`, `look_yaw`, `strongbox`, `castaway`, `pirate_camp` (GruntCamp), `den` (pier, sloop, shacks, tower, captain; GruntCamp), `training_yard` |
+| `kit_camps.gd` | KitCamps | `campfire` (with its crackle), models `tent`, `log_seat`, `flag`; `log_by`, `seat_on`, `look_yaw`, `strongbox`, `castaway`, `pirate_camp` (GruntCamp), `den` (a clifftop hold: hoist and rope ladder down to its pier, sloop, shacks, tower, captain; GruntCamp), `hoist` (a timber deck out over a drop with a Ladder), `den_climb` (rock slabs, a knife edge, a hoist, the warning at its foot), `training_yard` |
 | `kit_cave.gd` | KitCave | `cave` (BroodCave: `shape_seed`, `hoard_id`, `title`), `inn` (Buildings.tavern_hall + its door kept clear) |
 | `kit_dungeons.gd` | KitDungeons | a generated island's caves (pool of 7 kinds): `plan` (worker), `steps`, `poi`, `site_clear`, `land_clear`, `top`, `path_to`, `spots`, `room_of`, `loc` |
 | `kit_temple.gd` | KitTemple | the ruined temple: `plan`, `build`, `populate` (hall, two lever shrines, a gated sanctum) |

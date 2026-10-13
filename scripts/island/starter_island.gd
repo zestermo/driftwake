@@ -15,7 +15,8 @@ extends Island
 ##   Lighthouse hill (78, -30)     Jungle ruins  (-62, 58)
 ##   Castaway cove   (78, 92)      Dock: north shore, straight out from the village
 ##   Deep forest   (-125, 70)      Bug queen's cave (-150, 45)
-##   Pirate den   (-112, -112) on the north-west beach
+##   Pirate den   (-160, -152) on a clifftop plateau off the north-west beach,
+##                behind the rocky ridge down the point west of the harbour
 
 const EXTENT := 630.0
 const CELL := 3.0
@@ -41,7 +42,25 @@ const JUNGLE_STASH := Vector2(-92, 14)
 const SMUGGLERS := Vector2(46, 110)
 const FOREST := Vector2(-125, 70)
 const CAVE := Vector2(-150, 45)
-const DEN := Vector2(-112, -112)
+## Grell's den on a plateau off the north-west beach: flat to DEN_IN, its cliffs at
+## DEN_OUT, its hoist and pier out toward DEN_SEA.
+const DEN := Vector2(-160, -152)
+const DEN_TOP := 17.0
+const DEN_IN := 24.0
+const DEN_OUT := 30.0
+const DEN_SEA := Vector2(0.301, -0.954)
+## The climb up the plateau's landward face, on a circle CLIMB_R round DEN from
+## CLIMB_FROM degrees: slabs [radius, top, gap to the next], the knife edge
+## ["edge", length, its far end's top]; a rope ladder from the last slab (LADDER_Y).
+const CLIMB_R := 33.0
+const CLIMB_FROM := 46.0
+const LADDER_Y := 7.6
+const CLIMB := [[1.5, 2.95, 1.3], [1.35, 3.7, 1.6], [1.45, 4.45, 1.4], [1.3, 5.2, 1.7], [1.4, 5.95, 1.5], [1.35, 6.7, 0.0],
+	["edge", 8.0, 7.1], [1.25, 7.1, 2.0], [1.45, LADDER_Y, 0.0]]
+## The rocky spine down the point between the harbour's beach and the den's
+## (x, height added, z): it hides the den from the beach you wake on.
+const RIDGE := [Vector3(-83, 7, -199), Vector3(-81, 11, -182), Vector3(-80, 13, -166), Vector3(-77, 9.5, -152),
+	Vector3(-78, 13, -138), Vector3(-81, 10, -120), Vector3(-83, 6, -104), Vector3(-80, 0, -92)]
 const MARKET := Vector2(13, -49)  # = VILLAGE + (13, 13)
 
 ## The harbour (KitHarbour's defaults are Brinehollow's): the quay's top, its
@@ -58,7 +77,7 @@ const DEN_PIER := 26.0
 const SPITTERS := 9
 const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
-const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131}
+const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151}
 ## NightLights the kit may light (lamps, lit doorways).
 const LIGHTS := 12
 
@@ -111,6 +130,9 @@ var forest_crowns: Array = []
 ## The cliffs' rock wall (Coast.cliffs) and the clifftop splat.
 var coast_cols: Array = []
 var _coast_rock := PackedFloat32Array()
+## The den's hoists and its climb (_plan_den): sea_hoist and hoist [root, tip], climb
+## (the pieces from the foot up), start and face (the warning at its foot), top, ladder_y, guard.
+var den_plan := {}
 
 
 # ==========================================================================
@@ -130,6 +152,7 @@ func build(world_seed: int) -> Dictionary:
 	dock_shore = harbour.dock
 	_define_paths()
 	_generate_heights()
+	_plan_den()
 	build_ms["land"] = int((Time.get_ticks_usec() - t0) / 1000)
 	kit = KitContext.make(self, world_seed, "brinehollow", LIGHTS, build_ms)
 	kit.paved = harbour.on_platform
@@ -237,7 +260,14 @@ static func _capes(ang: float) -> float:
 
 ## Land kept round these places whatever the bays do: [centre, radius].
 const LAND_KEEP := [[VILLAGE, 52.0], [TRAINING, 30.0], [HILL, 22.0], [RUINS, 30.0], [JUNGLE_STASH, 16.0],
-	[CAVE, 52.0], [DEN, 26.0], [FOREST, 40.0]]
+	[CAVE, 52.0], [FOREST, 40.0]]
+
+
+## The den plateau's top edge from DEN on bearing `ang` (its face falls to DEN_OUT -
+## DEN_IN further out): round on the climb's side, bitten in and out toward the sea.
+static func _den_r(ang: float) -> float:
+	var sea := _smooth(50.0, 72.0, _bearing_off(ang, 77.0))
+	return DEN_IN + sea * (2.0 + 3.0 * sin(ang * 3.0 + 0.7) + 1.5 * sin(ang * 5.0 + 2.1))
 
 
 ## How much of the broad north-west beach `p` is on (0..1).
@@ -260,9 +290,33 @@ func _shelf_room(p: Vector2) -> float:
 		* (1.0 - _harbour_band(p, 20.0))
 
 
-## 0..1: where a cliff may stand (not at the harbour, the castaway's camp or the den).
+## 0..1: where a cliff may stand (not at the harbour or the castaway's camp).
 func _cliff_allow(p: Vector2) -> float:
-	return (1.0 - _harbour_band(p, 25.0)) * _smooth(25.0, 40.0, p.distance_to(CAMP)) * _smooth(40.0, 60.0, p.distance_to(DEN))
+	return (1.0 - _harbour_band(p, 25.0)) * _smooth(25.0, 40.0, p.distance_to(CAMP))
+
+
+## The ridge down the point: [distance to its line, its height there].
+static func _ridge_at(p: Vector2) -> Vector2:
+	var best := Vector2(INF, 0.0)
+	if p.x < -110.0 or p.x > -45.0 or p.y > -75.0:
+		return best
+	for i in range(RIDGE.size() - 1):
+		var a := Vector2(RIDGE[i].x, RIDGE[i].z)
+		var b := Vector2(RIDGE[i + 1].x, RIDGE[i + 1].z)
+		var ab := b - a
+		var t := clampf((p - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+		var d := p.distance_to(a + ab * t)
+		if d < best.x:
+			best = Vector2(d, lerpf(RIDGE[i].y, RIDGE[i + 1].y, t))
+	return best
+
+
+## 0..1: bare rock in the splat (the ridge, the plateau's face).
+func _crag(p: Vector2) -> float:
+	var rg := _ridge_at(p)
+	var dd := p.distance_to(DEN) - _den_r((p - DEN).angle()) + DEN_IN
+	return maxf((1.0 - _smooth(3.0, 9.0, rg.x)) * _smooth(3.0, 7.0, rg.y),
+		_smooth(DEN_IN - 1.5, DEN_IN + 0.5, dd) * (1.0 - _smooth(DEN_OUT - 0.5, DEN_OUT + 1.5, dd)))
 
 
 ## Natural terrain before flattening.
@@ -275,6 +329,7 @@ func _height_natural(x: float, z: float, shelf := 1.0) -> float:
 	var t := d - r + _shape_noise.get_noise_2d(x, z) * 34.0 * _wild(ang)
 	for k in LAND_KEEP:
 		t = minf(t, p.distance_to(k[0]) - float(k[1]))
+	t = minf(t, p.distance_to(DEN) - _den_r((p - DEN).angle()) - DEN_OUT + DEN_IN)
 	var bw := ext.y / 62.0
 	var h: float
 	if t < 0.0:
@@ -299,6 +354,18 @@ func _height_fn(x: float, z: float, shelf := 1.0) -> float:
 		var w := 1.0 - _smooth(zone[2], zone[3], p.distance_to(zone[0]))
 		if w > 0.0:
 			h = lerpf(h, zone[1], w)
+	# a dry beach under the den's climb whatever the coast does, the den's plateau (its
+	# sea sides become cliffs in Coast.cliffs), the rocky ridge on dry land
+	var dd := p.distance_to(DEN)
+	if absf(dd - CLIMB_R) < 10.0:
+		var cw := (1.0 - _smooth(5.0, 10.0, absf(dd - CLIMB_R))) * (1.0 - _smooth(36.0, 50.0, _bearing_off((p - DEN).angle(), CLIMB_FROM + 30.0)))
+		h = lerpf(h, 2.0, cw)
+	if dd < DEN_OUT + 8.0:
+		var dr := _den_r((p - DEN).angle())
+		h = lerpf(h, DEN_TOP, 1.0 - _smooth(dr, dr + DEN_OUT - DEN_IN, dd))
+	var rg := _ridge_at(p)
+	if rg.x < 10.0:
+		h += rg.y * (1.0 - _smooth(2.0, 10.0, rg.x)) * _smooth(0.0, 1.5, h)
 	# carve the cove (a sheltered bay opening to the south-east)
 	var g := 1.0 - _smooth(10.0, 32.0, p.distance_to(COVE))
 	if g > 0.0:
@@ -321,7 +388,7 @@ func _setup_flat_zones() -> void:
 		[RUINS, _height_natural(RUINS.x, RUINS.y), 10.0, 18.0],
 		[SMUGGLERS, maxf(_height_natural(SMUGGLERS.x, SMUGGLERS.y), 1.5), 11.0, 18.0],
 		[CAVE, _height_natural(CAVE.x, CAVE.y), 30.0, 44.0],
-		[DEN, 1.8, 24.0, 38.0],
+		[climb_start()[0], 2.0, 5.0, 11.0],
 	]
 
 
@@ -334,6 +401,109 @@ func _generate_heights() -> void:
 	heights = coast["heights"]
 	_coast_rock = coast["rock"]
 	coast_cols = coast["cols"]
+
+
+## A point on the climb's circle `sig` m along it from its foot (`r` from DEN).
+static func _climb_at(sig: float, r := CLIMB_R) -> Vector2:
+	return DEN + Vector2.from_angle(deg_to_rad(CLIMB_FROM) + sig / r) * r
+
+
+## The climb's pieces from the foot up: slabs {"k": "slab", "at", "y", "r", "out" (off the cliff)} and the
+## knife edge {"k": "edge", "line" (its top's middle), "w", "at", "r" (half its length), "y"}.
+static func climb_pieces() -> Array:
+	var out: Array = []
+	var sig := 0.0
+	var last := 0.0
+	var joined := false
+	for e in CLIMB:
+		if e[0] is String:
+			var y0: float = out[out.size() - 1]["y"]
+			var line: Array = []
+			for k in range(9):
+				var q := _climb_at(last + float(e[1]) * k / 8.0)
+				line.append(Vector3(q.x, lerpf(y0, e[2], k / 8.0), q.y))
+			out.append({"k": "edge", "line": line, "w": 0.8, "at": _climb_at(last + float(e[1]) * 0.5), "r": float(e[1]) * 0.5, "y": float(e[2])})
+			sig = last + float(e[1])
+			joined = true
+			continue
+		var at_sig := sig if joined or out.is_empty() else sig + float(e[0])
+		joined = false
+		var q := _climb_at(at_sig)
+		out.append({"k": "slab", "at": q, "y": float(e[1]), "r": float(e[0]), "out": (q - DEN).normalized()})
+		last = at_sig
+		sig = at_sig + float(e[0]) + float(e[2])
+	return out
+
+
+## Where the climb starts (the crew's warning) and the way on to its first slab.
+static func climb_start() -> Array:
+	var p := _climb_at(-4.0, CLIMB_R + 1.0)
+	return [p, (_climb_at(0.0) - p).normalized()]
+
+
+## The den's hoists (each from the rim out over its drop), the climb and the guard at
+## its top; rock along the ridge and round the plateau's landward rim, and none
+## where the hoist and the pier come down the sea cliff.
+func _plan_den() -> void:
+	var sea := _rim_out(DEN_SEA)
+	var d := DEN.distance_to(sea) + 1.0
+	while height_at(DEN.x + DEN_SEA.x * d, DEN.y + DEN_SEA.y * d) > -1.5:
+		d += 0.5
+	var sea_tip := DEN + DEN_SEA * (d + 1.5)
+	var pieces := climb_pieces()
+	var u := ((pieces[pieces.size() - 1]["at"] as Vector2) - DEN).normalized()
+	var root := _rim_out(u)
+	var tip := DEN + u * (CLIMB_R - 0.9)
+	var start := climb_start()
+	den_plan = {"sea_hoist": [sea, sea_tip], "hoist": [root, tip], "climb": pieces, "start": start[0], "face": start[1],
+		"top": DEN_TOP, "ladder_y": LADDER_Y, "guard": [root - u * 2.5, root + u * 4.0]}
+	coast_cols = coast_cols.filter(func(c: Array) -> bool:
+		return Geometry2D.get_closest_point_to_segment(c[0], sea, sea_tip + DEN_SEA * 4.0).distance_to(c[0]) > 6.5)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = SEEDS["coast"] + 1
+	var n := 0
+	var steps := int(TAU * (DEN_IN + 0.8) / 3.2)
+	for k in range(steps):
+		var dir := Vector2.from_angle(TAU * k / steps)
+		var at := DEN + dir * (DEN_IN + rng.randf_range(0.6, 2.4))
+		var lift := rng.randf_range(-2.5, 1.5)
+		if rng.randf() < 0.35 or height_at(DEN.x + dir.x * (DEN_OUT + 3.0), DEN.y + dir.y * (DEN_OUT + 3.0)) < 0.5:
+			continue
+		if Geometry2D.get_closest_point_to_segment(at, root, tip).distance_to(at) < 5.5:
+			continue
+		coast_cols.append([at, DEN_TOP + lift, -dir, 0.45, 20000 + n, 1])
+		reserve(at, 2.5)
+		n += 1
+	for i in range(RIDGE.size() - 1):
+		var a := Vector2(RIDGE[i].x, RIDGE[i].z)
+		var b := Vector2(RIDGE[i + 1].x, RIDGE[i + 1].z)
+		var side := (b - a).normalized().orthogonal()
+		var count := int(a.distance_to(b) / 3.0)
+		for k in range(count):
+			var t := float(k) / count
+			var lift := lerpf(RIDGE[i].y, RIDGE[i + 1].y, t)
+			if lift < 4.0:
+				continue
+			var spots := [[a.lerp(b, t) + side * rng.randf_range(-2.0, 2.0), rng.randf_range(-0.5, 4.0), side * (1.0 if rng.randf() < 0.5 else -1.0)]]
+			if lift > 6.0 and k % 2 == 0:
+				for sg in [-1.0, 1.0]:
+					spots.append([a.lerp(b, t) + side * sg * rng.randf_range(4.5, 6.5), rng.randf_range(0.3, 1.5), side * sg])
+			for sp in spots:
+				var q: Vector2 = sp[0]
+				var g := height_at(q.x, q.y)
+				if g < 1.0:
+					continue
+				coast_cols.append([q, g + float(sp[1]), sp[2], 0.45, 20000 + n, 2])
+				reserve(q, 2.5)
+				n += 1
+
+
+## The last point out along `dir` from DEN still on the plateau's top.
+func _rim_out(dir: Vector2) -> Vector2:
+	var d := 10.0
+	while height_at(DEN.x + dir.x * d, DEN.y + dir.y * d) > DEN_TOP - 0.4:
+		d += 0.5
+	return DEN + dir * (d - 1.0)
 
 
 func _h(ix: int, iz: int) -> float:
@@ -374,6 +544,25 @@ func walk_height(x: float, z: float) -> float:
 func place_of(place: String) -> Vector3:
 	var p: Vector2 = {"smugglers": SMUGGLERS, "den": DEN, "cave": CAVE}[place]
 	return to_global(Vector3(p.x, hv(p) + 1.5, p.y))
+
+
+## Where the story's marker leads for `place` from `from` (world): for the den, the
+## foot of its climb, then the top of the climb once you're on it, then the den.
+func guide_to(place: String, from: Vector3) -> Vector3:
+	if place != "den":
+		return place_of(place)
+	var l := to_local(from)
+	var at := Vector2(l.x, l.z)
+	if at.distance_to(DEN) < DEN_OUT + 4.0 and l.y > DEN_TOP - 3.0:
+		return place_of("den")
+	var start: Vector2 = den_plan["start"]
+	var on := at.distance_to(start) < 10.0
+	for e in den_plan["climb"]:
+		on = on or at.distance_to(e["at"]) < float(e["r"]) + 2.5
+	if on:
+		var top: Vector2 = den_plan["hoist"][0]
+		return to_global(Vector3(top.x, DEN_TOP + 1.5, top.y))
+	return to_global(Vector3(start.x, hv(start) + 2.5, start.y))
 
 
 ## Where a new captain wakes: on the sand just past the quay's west end, a
@@ -467,9 +656,9 @@ func _define_paths() -> void:
 	_add_path([VILLAGE + Vector2(-3, 14), Vector2(-10, -24), Vector2(-20, 2), Vector2(-34, 28), Vector2(-48, 46), RUINS + Vector2(6, -5)], 1.3)
 	_add_path([VILLAGE + Vector2(4, 14), Vector2(16, -18), Vector2(32, 16), Vector2(46, 44), CAMP + Vector2(-2, -4)], 1.3)
 	_add_path([VILLAGE + Vector2(0, 12), VILLAGE + Vector2(0, 16)], 1.6)
-	# into the deep forest to the cave, and off the training path to the den
+	# into the deep forest to the cave, and off the training path round the ridge to the den's climb
 	_add_path([RUINS + Vector2(-9, 5), Vector2(-84, 64), Vector2(-104, 56), Vector2(-118, 47), CAVE + Vector2(29, 0)], 1.2)
-	_add_path([Vector2(-44, -41), Vector2(-52, -56), Vector2(-72, -74), Vector2(-90, -92), DEN + Vector2(11, 11)], 1.3)
+	_add_path([Vector2(-44, -41), Vector2(-60, -62), Vector2(-90, -80), Vector2(-112, -100), Vector2(-128, -120), climb_start()[0]], 1.3)
 
 
 func _path_dist(p: Vector2) -> float:
@@ -541,13 +730,14 @@ func _build_terrain() -> void:
 			var p := Vector2(x, z)
 			var dirt := 0.0
 			var sand := 0.0
-			var rock := _coast_rock[i]
+			var rock := maxf(_coast_rock[i], _crag(p))
 			if h > -1.0:
 				dirt = maxf(_path_weight(p), _disk(p, VILLAGE, 12.0, 17.0))
 				dirt = maxf(dirt, _disk(p, TRAINING, 10.0, 13.0))
 				dirt = maxf(dirt, _disk(p, RUINS, 8.0, 11.0))
 				dirt = maxf(dirt, _disk(p, HILL, 5.0, 8.0))
 				dirt = maxf(dirt, _disk(p, CAVE, 20.0, 25.0))
+				dirt = maxf(dirt, _disk(p, DEN, 13.0, 19.0) * 0.8)
 				# packed earth behind the quay, among the waterfront houses
 				dirt = maxf(dirt, harbour.earth(x, z))
 				dirt = maxf(dirt, _disk(p, dock_root, 3.0, 6.0) * 0.6)
@@ -750,19 +940,21 @@ func _build_smugglers_camp() -> void:
 	smugglers = KitCamps.pirate_camp(kit, SMUGGLERS, Vector2(1, 0.15).normalized(), CAMP, ["smugglers_strongbox", items], [11, 23, 37, 41, 53], "SmugglersCamp")
 
 
-## Captain Grell's den on the north-west beach (comes back 3 minutes after it's beaten).
+## Captain Grell's den on its clifftop (comes back 3 minutes after it's beaten), and the climb up to it.
 func _build_den() -> void:
 	var C := CharacterLook.CLOTH
 	var lk := PirateGrunt.crew_look(kit.rng(0, SEEDS["grell"]))
 	lk.merge({"name": "Captain Grell", "body": "masc", "build": "broad", "height": 1.12, "hat": "tricorn", "hat_color": C[5],
 		"coat": "longcoat", "coat_color": C[13], "trim_color": CharacterLook.TRIM[4], "facial_hair": "beard",
 		"vest": "brigandine", "eyepatch": true, "marks": "scar"}, true)
-	den = KitCamps.den(kit, DEN, _height_fn, {"pier": DEN_PIER, "deck_y": DOCK_DECK_Y, "floor_y": SEAFLOOR * 0.5,
+	den = KitCamps.den(kit, DEN, {"to_sea": DEN_SEA, "hoist": den_plan["sea_hoist"], "top": DEN_TOP, "guard": den_plan["guard"],
+		"pier": DEN_PIER, "deck_y": DOCK_DECK_Y, "floor_y": SEAFLOOR * 0.5,
 		"hull": {"hull": Color(0.55, 0.45, 0.4), "sail": Color(0.62, 0.56, 0.48), "trim": Color(0.5, 0.2, 0.18), "emblem": "jolly"},
 		"chest": ["den_strongbox", [["treasure", 4], ["gold", 15], ["rum", 2],
 			[Gear.make("coat", "longcoat", {"coat": "longcoat", "coat_color": C[5], "trim_color": CharacterLook.TRIM[4]}, "Harbor Captain's Longcoat", 2), 1],
 			[ItemDB.tiered("pistol", 2), 1]]],
 		"seeds": [61, 67, 71, 79, 83, 89, 97], "captain": lk, "title": "Captain Grell"}, "PirateDen")
+	KitCamps.den_climb(kit, den_plan, kit.rng(0, SEEDS["climb"]))
 
 
 # ==========================================================================

@@ -1,7 +1,9 @@
 extends SceneTree
 ## The story (Story): off in a session that isn't a new game; begin() locks the
 ## ship and the skill map; waking on the beach (lying, the gull lands, caws and
-## flies off, standing up, the first objective on the HUD); every talk step
+## flies off, standing up, the first objective on the HUD); Grell's den out of
+## sight from there and from Pell, the marker leading to its climb, up it and on
+## to the den, and the climb driven (slabs, knife edge, gap, rope ladder); every talk step
 ## starts at the NPC's story line and moves on (Tackett busy before his turn);
 ## the smugglers, Grell, the queen and Morrow count when beaten near you;
 ## Vey's free point opens the skill map, Tackett's keel gives you the ship;
@@ -16,6 +18,14 @@ var ship
 var dm
 var gull
 var points0 := 0
+# the climb to the den, driven: [island point, "hop"/"walk", radius, gap before it]
+var route: Array = []
+var ri := 0
+var climb_t := 0.0
+var jump_t := -1.0
+var last_top := 0.0
+var after_route := 0
+var plateau_t := 0.0
 
 
 func _initialize():
@@ -87,6 +97,67 @@ func _kill(e) -> void:
 	e.health.take_damage(999999.0)
 
 
+## Points on the den a look from the beach would catch: the tower's top and deck, the
+## colours, the captain's roof, the sloop's masthead.
+func _den_marks() -> Array:
+	var tower: Node3D = isl.get_node("DenTower")
+	return [tower.global_position + Vector3.UP * 8.0, tower.global_position + Vector3.UP * 5.0,
+		(isl.get_node("DenFlag") as Node3D).global_position + Vector3.UP * 5.5,
+		(isl.get_node("CaptainsShack") as Node3D).global_position + Vector3.UP * 3.5,
+		(isl.get_node("DenSloop") as Node3D).global_position + Vector3.UP * 10.0]
+
+
+## Something solid between a and b (more than 3 m short of b)?
+func _blocked(a: Vector3, b: Vector3) -> bool:
+	var h: Dictionary = p.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(a, b, 1))
+	return not h.is_empty() and (h["position"] as Vector3).distance_to(b) > 3.0
+
+
+func _flat(v: Vector3) -> Vector2:
+	var l: Vector3 = isl.to_local(v)
+	return Vector2(l.x, l.z)
+
+
+func _rig() -> Node3D:
+	return p.get_viewport().get_camera_3d().get_parent().get_parent() as Node3D
+
+
+## One frame of driving the captain along `route` (face the next point, hold W, jump
+## near the edge before a "hop"); true once it's done or has failed.
+func _drive(d: float) -> bool:
+	climb_t += d
+	var e: Array = route[ri]
+	var at: Vector3 = isl.to_global(e[0])
+	var to: Vector3 = at - p.global_position
+	var flat := Vector2(to.x, to.z).length()
+	if flat > 0.05:
+		_rig().global_rotation.y = atan2(-to.x, -to.z)
+	if jump_t >= 0.0:
+		jump_t += d
+		if jump_t > 0.35:
+			Input.action_release("jump")
+			jump_t = -1.0
+	var y: float = isl.to_local(p.global_position).y
+	if flat < 0.7 and absf(to.y) < 0.45 and p.is_on_floor():
+		last_top = (e[0] as Vector3).y
+		ri += 1
+		if ri >= route.size():
+			Input.action_release("move_forward")
+			return true
+		return false
+	if (p.is_on_floor() and y < last_top - 1.2) or climb_t > 45.0:
+		check("  the climb: stuck or fell going for piece %d (%s, at %.1f m)" % [ri, str(e[0]), y], false)
+		Input.action_release("move_forward")
+		Input.action_release("jump")
+		ri = -1
+		return true
+	Input.action_press("move_forward")
+	if e[1] == "hop" and p.is_on_floor() and jump_t < 0.0 and to.y > 0.3 and flat < float(e[2]) + float(e[3]) + 0.8:
+		Input.action_press("jump")
+		jump_t = 0.0
+	return false
+
+
 func _process(d: float) -> bool:
 	t += d
 	if wait > 0.0:
@@ -117,6 +188,11 @@ func _process(d: float) -> bool:
 			var sp: Vector3 = isl.to_local(spot[0])
 			check("the wake spot is on the sand by the sea (%.1f m up)" % sp.y, sp.y > 0.3 and sp.y < 3.0)
 			check("  west of the quay", sp.x < isl.port_x0)
+			# the den is out of sight from where you wake and from Old Pell on the quay
+			for from in [["the wake spot", spot[0]], ["Old Pell", _npc("Old Pell").global_position]]:
+				var marks := _den_marks()
+				var hidden := marks.filter(func(m): return _blocked(from[1] + Vector3.UP * 1.6, m)).size()
+				check("the den is hidden from %s (%d of %d sight lines blocked)" % [from[0], hidden, marks.size()], hidden == marks.size())
 			p.wake_on_beach()
 			check("waking: the Wake state", p.current_state_name() == "Wake")
 			wait = 1.2
@@ -193,6 +269,14 @@ func _process(d: float) -> bool:
 			check("  (K works)", root.get_node("GameMenu")._current == "skills")
 			root.get_node("GameMenu").close()
 			check("  next: Grell", story().step == "grell")
+			var plan: Dictionary = isl.den_plan
+			var foot: Vector2 = plan["start"]
+			var top: Vector2 = plan["hoist"][0]
+			check("  the marker leads from Vey to the foot of the den's climb", _flat(story().target_pos()).distance_to(foot) < 1.0)
+			_put(isl.to_global(Vector3(foot.x, isl.hv(foot) + 0.2, foot.y)))
+			check("  from its foot, up the climb", _flat(story().target_pos()).distance_to(top) < 1.0)
+			_put(isl.to_global(Vector3(top.x, isl.DEN_TOP + 0.2, top.y)))
+			check("  up top, to the den", story().target_pos().distance_to(isl.place_of("den")) < 0.1)
 			_put(isl.place_of("den") + Vector3(0, 1, 8))
 			for g in isl.den.grunts:
 				if g.captain:
@@ -201,6 +285,88 @@ func _process(d: float) -> bool:
 			step = 6
 		6:
 			check("Grell beaten: tell Odile", story().step == "see_odile")
+			# the land way up to the den, driven: hop the slabs, the knife edge, the gap, the rope ladder
+			for g in isl.den.grunts:
+				if is_instance_valid(g):
+					_kill(g)
+			var plan: Dictionary = isl.den_plan
+			var foot: Vector2 = plan["start"]
+			route = []
+			var prev = null
+			for e in plan["climb"]:
+				if e["k"] == "edge":
+					for q in e["line"]:
+						route.append([q, "walk", 0.0, 0.0])
+					continue
+				var gap: float = 1.0 if prev == null else (e["at"] as Vector2).distance_to(prev["at"]) - float(prev["r"]) - float(e["r"])
+				route.append([Vector3(e["at"].x, e["y"], e["at"].y), "hop", e["r"], gap])
+				prev = e
+			_put(isl.to_global(Vector3(foot.x, isl.hv(foot) + 0.2, foot.y)))
+			last_top = isl.hv(foot)
+			ri = 0
+			climb_t = 0.0
+			after_route = 61
+			step = 60
+		60:
+			if _drive(d):
+				if ri < 0:
+					step = 66
+					return false
+				if after_route == 61:
+					check("the climb: every slab, the knife edge and the gap made (%.0f s)" % climb_t, true)
+				step = after_route
+		61:
+			var lad = isl.get_node("ClimbHoist").find_children("*", "Ladder", true, false)[0]
+			lad.interactable.interacted.emit(p)
+			check("  the rope ladder: grabbed from the last slab", p.current_state_name() == "Climb")
+			var inward: Vector3 = isl.to_global(Vector3(isl.DEN.x, 0, isl.DEN.y)) - p.global_position
+			_rig().global_rotation.y = atan2(-inward.x, -inward.z)
+			Input.action_press("move_forward")
+			plateau_t = 0.0
+			step = 62
+		62:
+			plateau_t += d
+			if p.current_state_name() == "Climb" and plateau_t < 9.0:
+				return false
+			Input.action_release("move_forward")
+			var y: float = isl.to_local(p.global_position).y
+			check("  and up it onto the hoist (%.1f m, the top %.1f m)" % [y, isl.DEN_TOP], p.current_state_name() != "Climb" and absf(y - isl.DEN_TOP) < 0.6)
+			var u: Vector2 = ((isl.den_plan["hoist"][0] as Vector2) - isl.DEN).normalized()
+			var s := Vector2(-isl.DEN_SEA.y, isl.DEN_SEA.x)
+			route = []
+			for q in [isl.DEN + u * 17.0 + s * 3.0, isl.DEN + u * 4.0 + s * 6.5]:
+				route.append([Vector3(q.x, isl.hv(q), q.y), "walk", 0.0, 0.0])
+			last_top = isl.DEN_TOP
+			ri = 0
+			climb_t = 0.0
+			after_route = 63
+			step = 60
+		63:
+			check("  then on into the den", _flat(p.global_position).distance_to(isl.DEN) < 9.0)
+			# from the sea: their pier at the cliff's foot, the ladder up from it
+			var lad = isl.get_node("DenHoist").find_children("*", "Ladder", true, false)[0]
+			set_meta("lad", lad)
+			_put(lad.to_global(Vector3(0, -lad.length + 0.4, 0.8)))
+			wait = 0.6
+			step = 64
+		64:
+			var lad = get_meta("lad")
+			check("the den's pier at the cliff's foot: standing at the hoist's ladder", p.is_on_floor() and absf(isl.to_local(p.global_position).y - isl.DOCK_DECK_Y) < 0.3)
+			lad.interactable.interacted.emit(p)
+			var inward: Vector3 = isl.to_global(Vector3(isl.DEN.x, 0, isl.DEN.y)) - p.global_position
+			_rig().global_rotation.y = atan2(-inward.x, -inward.z)
+			Input.action_press("move_forward")
+			plateau_t = 0.0
+			step = 65
+		65:
+			plateau_t += d
+			if p.current_state_name() == "Climb" and plateau_t < 14.0:
+				return false
+			Input.action_release("move_forward")
+			var y: float = isl.to_local(p.global_position).y
+			check("  up the ladder onto the clifftop (%.1f m)" % y, plateau_t > 2.0 and p.current_state_name() != "Climb" and y > isl.DEN_TOP - 0.6)
+			step = 66
+		66:
 			check("Odile: the story line", _talk("odile", "Harbormaster Odile").begins_with("Grell? Dead?"))
 			check("Tackett: the story line", _talk("tackett", "Shipwright Tackett").begins_with("Odile sent you"))
 			check("  next: the queen", story().step == "queen")

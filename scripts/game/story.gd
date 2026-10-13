@@ -212,6 +212,10 @@ func target_pos() -> Vector3:
 				return (n as Node3D).global_position + Vector3.UP * 2.2
 		return Vector3.INF
 	if c.has("place"):
+		var isl := island()
+		var p := _player()
+		if isl and p and str(c["place"]) != "redtide":
+			return isl.guide_to(str(c["place"]), p.global_position)
 		return place_pos(str(c["place"]))
 	return Vector3.INF
 
