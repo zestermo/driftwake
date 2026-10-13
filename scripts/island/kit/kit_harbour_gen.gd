@@ -681,7 +681,7 @@ func _ruins() -> void:
 			break
 	# roofless huts, squatters' shacks still standing among them
 	var ruined := 0
-	for t in range(24):
+	for t in range(60):
 		if ruined >= 6:
 			break
 		var big := ruined < 2

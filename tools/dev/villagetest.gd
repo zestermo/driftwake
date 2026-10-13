@@ -88,7 +88,7 @@ func _check_layout(kind: String) -> void:
 	var b: Array = vil.buildings
 	var kinds: Array = b.map(func(x): return x["kind"])
 	print("   %s: %d buildings %s, %d streets, %d lanes, %d hamlets, %d work spots, %d seats, %d NightLights" % [kind, b.size(), kinds,
-		vil.streets.size(), vil.lanes.size(), vil.hamlets.size(), vil.work_spots.size(), vil.seats.size(), isl.find_children("*", "NightLight", true, false).size()])
+		vil.streets.size(), vil.lanes.size(), vil.hamlets.size(), vil.work_spots.size(), vil.seats.size(), isl.get_node("Site_village").find_children("*", "NightLight", true, false).size()])
 	check("%s: the layout asked for" % kind, vil.layout == kind)
 	check("%s: the inn, the store, the cookhouse and the elder's house" % kind, ["inn", "trade", "cook", "elder"].all(func(k): return kinds.has(k)))
 	check("%s: a rest at the inn and a job board" % kind, isl.find_child("Rest", true, false) != null and isl.get_node("Site_village").find_children("NoticeBoard*", "", true, false).size() >= 1)
