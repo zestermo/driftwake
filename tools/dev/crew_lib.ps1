@@ -227,10 +227,26 @@ function Get-StallSeconds() { if ($env:DRIFTWAKE_TEST_STALL) { return [int]$env:
 $script:FLOOD_ERRORS = 400
 $script:MAX_LOG_MB = 25
 
+## A run whose runner died (killed, its session stopped) still says "running": mark it stopped so the pane stops counting its suites.
+function Close-DeadRuns([string]$crew) {
+	foreach ($f in Get-ChildItem (Join-Path $crew "live") -Filter "*.json" -ErrorAction SilentlyContinue) {
+		$r = Get-Content $f.FullName -Raw | ConvertFrom-Json
+		if (($r.state -ne "running" -and $r.state -ne "compiling") -or (Get-Process -Id $r.pid -ErrorAction SilentlyContinue)) { continue }
+		$r.state = "stopped"
+		$r.ended = (Get-Date).ToString("o")
+		foreach ($s in $r.suites.PSObject.Properties.Value) {
+			if (@("running", "queued", "waiting", "shared") -contains $s.state) { $s.state = "stopped"; $s.why = "runner gone" }
+		}
+		[System.IO.File]::WriteAllText("$($f.FullName).tmp", ($r | ConvertTo-Json -Depth 6 -Compress))
+		Move-Item -Force "$($f.FullName).tmp" $f.FullName
+	}
+}
+
 function New-LiveRun([string]$crew, [string]$root, [string]$branch, [string]$kind, [string[]]$names) {
 	# runs older than a day go
 	Get-ChildItem (Join-Path $crew "live") -Filter "*.json" -ErrorAction SilentlyContinue |
 		Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } | Remove-Item -Force -ErrorAction SilentlyContinue
+	Close-DeadRuns $crew
 	$id = "{0:yyyyMMdd-HHmmss}-{1}" -f (Get-Date), $PID
 	$suites = [ordered]@{}
 	foreach ($n in $names) { $suites[$n] = [ordered]@{ name = $n; state = "queued"; secs = 0; log = ""; pid = 0; last = @(); why = "" } }

@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 . (Join-Path $PSScriptRoot "crew_lib.ps1")
 $crew = Get-CrewDir $root
+Close-DeadRuns $crew
 $tree = Get-TreeKey $root
 
 $suites = @(Get-Content (Join-Path $PSScriptRoot "suites.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })
@@ -79,8 +80,8 @@ foreach ($s in $all) {
 	$lf = Join-Path $crew "ledger\$s.json"
 	if (Test-Path $lf) { $ledger = Get-Content $lf -Raw | ConvertFrom-Json }
 	$row = [ordered]@{ name = $s; group = $(if ($groupOf.ContainsKey($s)) { $groupOf[$s] } else { "Other" }); state = "never"; why = ""; files = @(); last = $ledger; passedOn = "" }
+	$exact = $passes[$s] | Where-Object { $_.Tree -eq $tree } | Select-Object -First 1
 	$mine = @($passes[$s] | Sort-Object At -Descending | Select-Object -First 10)
-	$exact = $mine | Where-Object { $_.Tree -eq $tree } | Select-Object -First 1
 	if ($exact) {
 		$row.state = "ok"; $row.passedOn = $exact.By
 	} else {

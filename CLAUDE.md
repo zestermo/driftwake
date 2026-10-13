@@ -71,6 +71,9 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
   (`/tests`; it reads `.git/crew/live`).
 - **Run what covers your change:** `run_tests.ps1 -Changed -Base main` in a worktree, nothing more.
   Run the full suite only when Zach asks.
+- **While you're still building, run only your own suites by name** (`run_tests.ps1 daggertest wieldtest`).
+  `-Changed` runs once, when the branch is done. A change to a core file (player.gd, humanoid.gd,
+  fx.gd, pirate_grunt.gd, gen_island.gd...) pulls in 20-30 suites, so it's a once-per-branch cost.
 - **nettest only when co-op code changed** (the runner prints the hint), one mode at a time.
 - **Don't rerun a suite "to be sure":** a pass is cached against the exact code.
 - **Landing re-tests only what the rebase could change** (land.ps1 carries passes from the
