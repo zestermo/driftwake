@@ -9,19 +9,30 @@ extends RefCounted
 ##            its way round its range's middle, the ruins, the lair and the summit
 
 
-static func build(isl: GenIsland) -> void:
-	var lv := IslandContent.level(isl)
+## IslandContent's "beasts" steps: each miniboss, then the roamer (a body each: a frame each).
+static func steps(isl: GenIsland) -> Array:
+	var out: Array = []
 	for m in isl.node["minis"]:
-		match str(m):
-			"boar":
-				var c: Vector2 = isl.sites["ruins"]
-				var at: Vector2 = c + ((isl.sites["village"] as Vector2) - c).normalized().rotated(1.2) * 9.0
-				var b: JungleBeast = load(BeastPool.SCRIPTS["boar"]).new()
-				b.setup({"post": _ground(isl, at), "yaw": IslandContent._yaw_to(at, c), "level": lv, "name": BeastPool.mini_name(isl, "boar")})
-				b.name = "Boar"
-				isl.site_node("ruins").add_child(b)
-				b.global_position = b.post
-				b.reset_physics_interpolation()
+		out.append(["beasts", func(): _mini(isl, str(m))])
+	out.append(["beasts", func(): _roamer(isl)])
+	return out
+
+
+static func _mini(isl: GenIsland, kind: String) -> void:
+	match kind:
+		"boar":
+			var c: Vector2 = isl.sites["ruins"]
+			var at: Vector2 = c + ((isl.sites["village"] as Vector2) - c).normalized().rotated(1.2) * 9.0
+			var b: JungleBeast = load(BeastPool.SCRIPTS["boar"]).new()
+			b.setup({"post": _ground(isl, at), "yaw": IslandContent._yaw_to(at, c), "level": IslandContent.level(isl), "name": BeastPool.mini_name(isl, "boar")})
+			b.name = "Boar"
+			isl.site_node("ruins").add_child(b)
+			b.global_position = b.post
+			b.reset_physics_interpolation()
+
+
+static func _roamer(isl: GenIsland) -> void:
+	var lv := IslandContent.level(isl)
 	var home := BeastPool.roam_home(isl)
 	var r: JungleBeast = load(BeastPool.SCRIPTS[str(isl.node["roamer"])]).new()
 	r.setup({"post": _ground(isl, home), "yaw": 0.0, "level": lv, "name": BeastPool.roamer_name(isl)})

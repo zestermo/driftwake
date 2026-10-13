@@ -868,24 +868,45 @@ static func deck(ctx: KitContext, c: Vector2, r: float, y: float, gaps: Array) -
 
 ## A palisade of sharpened logs round c at radius r along `arcs` ([from, to] bearings,
 ## increasing), two rails inside; a collider per few metres. Island space.
-static func palisade(ctx: KitContext, c: Vector2, r: float, arcs: Array, rng: RandomNumberGenerator) -> StaticBody3D:
-	var body := _body("Palisade")
-	var mb := MeshBuilder.new()
-	var bark := PSXMat.lit("palm_bark", Color(0.85, 0.8, 0.75), {"affine": 0.6})
-	var tip := PSXMat.lit("planks", Color(0.8, 0.7, 0.55))
-	var dark := PSXMat.lit("planks_dark")
+## A palisade of sharpened logs along `arcs` of the circle (c, r), built in pieces (a frame
+## each): palisade_body, then palisade_logs over palisade_angles in order (they share `rng`), then palisade_rails.
+static func palisade_angles(r: float, arcs: Array) -> Array:
+	var out: Array = []
 	for arc in arcs:
 		var a0: float = arc[0]
 		var a1: float = arc[1]
 		var n := maxi(int((a1 - a0) * r / 0.36), 1)
 		for i in range(n + 1):
-			var a := a0 + (a1 - a0) * i / n
-			var q := c + Vector2(cos(a), sin(a)) * r
-			var g := ctx.hv(q)
-			var h := rng.randf_range(3.0, 3.7)
-			var lean := Basis(Vector3(-sin(a), 0, cos(a)), rng.randf_range(-0.04, 0.04))
-			mb.add_cylinder(bark, Transform3D(lean, Vector3(q.x, g - 0.4, q.y)), 0.17, 0.15, h + 0.4, 6, 0.6)
-			mb.add_cone(tip, Transform3D(lean, Vector3(q.x, g - 0.4, q.y) + lean * Vector3(0, h + 0.4, 0)), 0.15, 0.42, 6, 1.0)
+			out.append(a0 + (a1 - a0) * i / n)
+	return out
+
+
+static func palisade_body(ctx: KitContext) -> StaticBody3D:
+	var body := _body("Palisade")
+	ctx.add(body)
+	return body
+
+
+static func palisade_logs(ctx: KitContext, body: StaticBody3D, c: Vector2, r: float, angles: Array, rng: RandomNumberGenerator) -> void:
+	var mb := MeshBuilder.new()
+	var bark := PSXMat.lit("palm_bark", Color(0.85, 0.8, 0.75), {"affine": 0.6})
+	var tip := PSXMat.lit("planks", Color(0.8, 0.7, 0.55))
+	for a in angles:
+		var q := c + Vector2(cos(a), sin(a)) * r
+		var g := ctx.hv(q)
+		var h := rng.randf_range(3.0, 3.7)
+		var lean := Basis(Vector3(-sin(a), 0, cos(a)), rng.randf_range(-0.04, 0.04))
+		mb.add_cylinder(bark, Transform3D(lean, Vector3(q.x, g - 0.4, q.y)), 0.17, 0.15, h + 0.4, 6, 0.6)
+		mb.add_cone(tip, Transform3D(lean, Vector3(q.x, g - 0.4, q.y) + lean * Vector3(0, h + 0.4, 0)), 0.15, 0.42, 6, 1.0)
+	body.add_child(mb.to_instance())
+
+
+static func palisade_rails(ctx: KitContext, body: StaticBody3D, c: Vector2, r: float, arcs: Array) -> void:
+	var mb := MeshBuilder.new()
+	var dark := PSXMat.lit("planks_dark")
+	for arc in arcs:
+		var a0: float = arc[0]
+		var a1: float = arc[1]
 		var chunks := maxi(int((a1 - a0) * r / 3.0), 1)
 		for k in range(chunks):
 			var b0 := a0 + (a1 - a0) * k / chunks
@@ -898,8 +919,6 @@ static func palisade(ctx: KitContext, c: Vector2, r: float, arcs: Array, rng: Ra
 			var qm := c + Vector2(cos(bm), sin(bm)) * r
 			_box(body, Vector3((b1 - b0) * r + 0.35, 3.8, 0.45), Vector3(qm.x, ctx.hv(qm) + 1.5, qm.y), Basis(Vector3.UP, KitContext.face_yaw(qm - c)))
 	body.add_child(mb.to_instance())
-	ctx.add(body)
-	return body
 
 
 ## A gate in a palisade (the way through along local z): two great posts, lintels, a

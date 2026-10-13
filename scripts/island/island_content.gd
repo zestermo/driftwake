@@ -27,12 +27,12 @@ static func steps(isl: GenIsland) -> Array:
 		["ruins", func(): _ruins(isl, rng)],
 		["summit", func(): _summit(isl)],
 		["boss", func(): BeastArena.build(isl, rng)],
-		["beasts", func(): BeastDens.build(isl)],
+		["boss", func(): BeastArena.of(isl).spawn_boss()],
+	] + BeastDens.steps(isl) + [
 		# (after the camp, the lair and the beast: its jobs watch them)
 		["village", func(): IslandVillage.build(isl, rng)],
 		# (its own seeded stream: the sites above roll the same as before)
-		["fauna", func(): FaunaSpawner.build(isl)],
-	] + KitLandmarks.steps(isl) + KitDungeons.steps(isl)
+	] + FaunaSpawner.steps(isl) + KitLandmarks.steps(isl) + KitDungeons.steps(isl)
 
 
 ## The island's level (chain.gd): its enemies' (Levels) and its loot's.

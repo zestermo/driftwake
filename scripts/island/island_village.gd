@@ -32,6 +32,8 @@ const LIGHTS := 12
 ## Built with the people in the village step, then the shops (and their keepers); the other buildings come after.
 const CORE := ["inn"]
 const SHOPS := ["trade", "cook"]
+## Palisade logs built a step.
+const PALISADE_LOGS := 120
 const ROOMS := ["trade", "cook", "home", "elder"]
 
 var isl: GenIsland
@@ -69,6 +71,8 @@ var decks: Array = []
 var walkways: Array = []
 var _keepers := {}
 var _names := {}
+var _wall: StaticBody3D
+var _wall_rng: RandomNumberGenerator
 
 
 static func plan(gi: GenIsland) -> Dictionary:
@@ -95,14 +99,22 @@ static func build(gi: GenIsland, rng: RandomNumberGenerator) -> IslandVillage:
 static func steps(gi: GenIsland) -> Array:
 	var p: Dictionary = gi.village_plan
 	var shops: Array = p["buildings"].filter(func(b): return SHOPS.has(b["kind"]))
-	var out: Array = [["village shops", func(): _of(gi)._shops(shops)]]
+	var out: Array = []
+	for b in shops:
+		out.append(["village shops", func(): _of(gi)._shops([b])])
 	var rest: Array = p["buildings"].filter(func(b): return not CORE.has(b["kind"]) and not SHOPS.has(b["kind"]))
-	for i in range(0, rest.size(), 3):
-		var chunk := rest.slice(i, i + 3)
-		out.append(["village houses", func(): _of(gi)._houses(chunk)])
+	for b in rest:
+		out.append(["village houses", func(): _of(gi)._make(b)])
 	var ex: Dictionary = p["extra"]
 	if ex.has("palisade"):
-		out.append(["village walls", func(): _of(gi)._walls()])
+		var logs := KitHouses.palisade_angles(ex["palisade"]["r"], ex["palisade"]["arcs"])
+		for i in range(0, logs.size(), PALISADE_LOGS):
+			var part := logs.slice(i, i + PALISADE_LOGS)
+			out.append(["village walls", func(): _of(gi)._palisade(part)])
+		out.append(["village walls", func(): _of(gi)._palisade_rails()])
+		out.append(["village walls", func(): _of(gi)._gates()])
+		for i in range(ex["towers"].size()):
+			out.append(["village walls", func(): _of(gi)._tower(i)])
 	if ex.has("deck"):
 		out.append(["village walks", func(): _of(gi)._walks()])
 	if ex.has("nest"):
@@ -338,11 +350,6 @@ func _house(spec: Dictionary, p: Vector2, face: Vector2, y: float) -> Node3D:
 	return n
 
 
-func _houses(list: Array) -> void:
-	for b in list:
-		_make(b)
-
-
 ## The trader's store and the cookhouse, each keeper behind the counter.
 func _shops(list: Array) -> void:
 	for b in list:
@@ -359,19 +366,32 @@ func _uniq(base: String) -> String:
 	return base if _names[base] == 1 else "%s%d" % [base, _names[base]]
 
 
-## The trading post's palisade, its gates and watchtowers.
-func _walls() -> void:
-	var ex: Dictionary = isl.village_plan["extra"]
-	var pal: Dictionary = ex["palisade"]
-	KitHouses.palisade(ctx, isl.village_plan["c"], pal["r"], pal["arcs"], KitVillage._seeded(int(pal["seed"])))
-	for g in ex["gates"]:
+## The trading post's palisade, its gates and watchtowers (a step each: the wall, the gates, every tower).
+func _palisade(logs: Array) -> void:
+	var pal: Dictionary = isl.village_plan["extra"]["palisade"]
+	if _wall == null:
+		_wall = KitHouses.palisade_body(ctx)
+		_wall_rng = KitVillage._seeded(int(pal["seed"]))
+	KitHouses.palisade_logs(ctx, _wall, isl.village_plan["c"], pal["r"], logs, _wall_rng)
+
+
+func _palisade_rails() -> void:
+	var pal: Dictionary = isl.village_plan["extra"]["palisade"]
+	KitHouses.palisade_rails(ctx, _wall, isl.village_plan["c"], pal["r"], pal["arcs"])
+
+
+func _gates() -> void:
+	for g in isl.village_plan["extra"]["gates"]:
 		var gate := KitHouses.gate()
 		gate.name = _uniq("Gate")
 		ctx.place(gate, g["p"], KitContext.face_yaw(g["t"]))
-	for tw in ex["towers"]:
-		var tower := KitLandmarks.lookout_tower()
-		tower.name = _uniq("LookoutTower")
-		ctx.place(tower, tw["p"], KitContext.face_yaw(tw["face"]), 2.6, 0.0, false)
+
+
+func _tower(i: int) -> void:
+	var tw: Dictionary = isl.village_plan["extra"]["towers"][i]
+	var tower := KitLandmarks.lookout_tower()
+	tower.name = _uniq("LookoutTower")
+	ctx.place(tower, tw["p"], KitContext.face_yaw(tw["face"]), 2.6, 0.0, false)
 
 
 ## The raised village's deck, its ramps down and the walkways out to the houses.

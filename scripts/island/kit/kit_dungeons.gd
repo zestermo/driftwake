@@ -418,8 +418,14 @@ static func steps(isl: GenIsland) -> Array:
 			out.append(["temple", func(): KitTemple.build(isl, e)])
 			out.append(["temple", func(): KitTemple.populate(isl, e)])
 		else:
+			# (a frame each; the dressing's passes share one rng and mesh, in the order one call made them)
+			var w := {}
 			out.append(["dungeons", func(): _shell(isl, e)])
-			out.append(["dungeons", func(): _dress(isl, e)])
+			out.append(["dungeons", func(): _rock_collider(isl, e)])
+			out.append(["dungeons", func(): _dress_start(isl, e, w)])
+			out.append(["dungeons", func(): _dress_kind(e, w)])
+			out.append(["dungeons", func(): _dress_walls(e, w)])
+			out.append(["dungeons", func(): _dress_outside(isl, e, w)])
 			out.append(["dungeons", func(): _populate(isl, e)])
 	return out
 
@@ -451,13 +457,17 @@ static func _shell(isl: GenIsland, e: Dictionary) -> void:
 	inside.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	inside.visibility_range_end = float(e["radius"]) + 90.0
 	body.add_child(inside)
+	d.add_child(body)
+	isl.add_child(d)
+
+
+static func _rock_collider(isl: GenIsland, e: Dictionary) -> void:
+	var m: Dictionary = e["mesh"]
 	var cs := CollisionShape3D.new()
 	var shape := ConcavePolygonShape3D.new()
 	shape.set_faces(m["faces"])
 	cs.shape = shape
-	body.add_child(cs)
-	d.add_child(body)
-	isl.add_child(d)
+	isl.get_node(str(e["name"])).get_node("Rock").add_child(cs)
 	# (the mesh is in the world now; the plan keeps only what's needed to find things)
 	e["ledges"] = m["ledges"]
 	e.erase("mesh")
@@ -519,11 +529,10 @@ static func inward(e: Dictionary, room: Dictionary, p: Vector3) -> Vector3:
 	return Vector3(c.x - p.x, 0.0, c.z - p.z).normalized()
 
 
-static func _dress(isl: GenIsland, e: Dictionary) -> void:
-	var d: Dungeon = isl.get_node(str(e["name"]))
+## The dressing in four steps sharing `w` (d, rng, mb, clutter, used): dripstone, the kind's own, the walls, outside and lights.
+static func _dress_start(isl: GenIsland, e: Dictionary, w: Dictionary) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(e["seed"]) + 101
-	var mb := MeshBuilder.new()
 	var clutter := StaticBody3D.new()
 	clutter.name = "Clutter"
 	clutter.collision_layer = 1
@@ -531,7 +540,18 @@ static func _dress(isl: GenIsland, e: Dictionary) -> void:
 	var used: Array = []
 	for r in e["rooms"]:
 		used.append(loc(e, r["c"], r["y"]))
-	_dripstone_pass(e, mb, clutter, rng, used)
+	var d: Dungeon = isl.get_node(str(e["name"]))
+	d.add_child(clutter)
+	w.merge({"d": d, "rng": rng, "mb": MeshBuilder.new(), "clutter": clutter, "used": used})
+	_dripstone_pass(e, w["mb"], clutter, rng, used)
+
+
+static func _dress_kind(e: Dictionary, w: Dictionary) -> void:
+	var d: Dungeon = w["d"]
+	var mb: MeshBuilder = w["mb"]
+	var clutter: StaticBody3D = w["clutter"]
+	var rng: RandomNumberGenerator = w["rng"]
+	var used: Array = w["used"]
 	match str(e["kind"]):
 		"bug_tunnels":
 			_dress_bugs(e, d, mb, rng, used, true)
@@ -546,14 +566,21 @@ static func _dress(isl: GenIsland, e: Dictionary) -> void:
 			_dress_grotto(e, d, mb, clutter, rng, used)
 		"flooded_ruin", "sunken_shrine":
 			_dress_ruin(e, d, mb, clutter, rng, used)
-	_walls(e, mb, rng)
+
+
+static func _dress_walls(e: Dictionary, w: Dictionary) -> void:
+	var mb: MeshBuilder = w["mb"]
+	_walls(e, mb, w["rng"])
 	var inside := mb.to_instance("Dressing")
 	inside.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	inside.visibility_range_end = float(e["radius"]) + 70.0
-	d.add_child(inside)
-	d.add_child(clutter)
-	_outside(isl, e, d, rng)
-	_lights(isl, e, d)
+	(w["d"] as Dungeon).add_child(inside)
+
+
+static func _dress_outside(isl: GenIsland, e: Dictionary, w: Dictionary) -> void:
+	_outside(isl, e, w["d"], w["rng"])
+	_lights(isl, e, w["d"])
+	w.clear()
 
 
 ## Stalactites under the roof, stalagmites and rubble along the walls.

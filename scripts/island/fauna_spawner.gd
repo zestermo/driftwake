@@ -28,6 +28,8 @@ static func make(k: String) -> Creature:
 	return null
 
 
+## The creatures are put on the island over this many build steps.
+const SPAWN_STEPS := 3
 ## Each kind: its zones, how likely an island has it, how many groups (dens) when it does.
 const ROSTER := {
 	"boar": {"zones": ["floor"], "p": 0.6, "dens": [2, 5]},
@@ -93,20 +95,31 @@ static func roll(seed_v: int) -> Dictionary:
 
 
 ## Plans and fills a GenIsland's wildlife (IslandContent's "fauna" step).
-static func build(island: Node3D) -> FaunaSpawner:
+## The island's fauna as build steps: the zones and spots, the creatures in SPAWN_STEPS parts, the ambient life (one rng through them, in order).
+static func steps(island: Node3D) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(island.node["seed"]) + 9091
+	var out: Array = [["fauna", func(): _plan_on(island, rng)], ["fauna", func(): (island.get_node("Fauna") as FaunaSpawner)._place(rng)]]
+	for part in range(SPAWN_STEPS):
+		out.append(["fauna", func(): (island.get_node("Fauna") as FaunaSpawner)._spawn_part(part)])
+	out.append(["fauna", func(): FaunaAmbient.build(island.get_node("Fauna"), rng)])
+	return out
+
+
+static func _plan_on(island: Node3D, rng: RandomNumberGenerator) -> void:
 	var f := FaunaSpawner.new()
 	f.name = "Fauna"
 	f.isl = island
 	f.level = int(island.node["level"])
 	f.pool = roll(int(island.node["seed"]))
 	island.add_child(f)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = int(island.node["seed"]) + 9091
 	f._zones(rng)
-	f._place(rng)
-	f._spawn_all()
-	FaunaAmbient.build(f, rng)
-	return f
+
+
+func _spawn_part(part: int) -> void:
+	var n := ceili(spots.size() / float(SPAWN_STEPS))
+	for i in range(part * n, mini((part + 1) * n, spots.size())):
+		_spawn(spots[i])
 
 
 # ==========================================================================

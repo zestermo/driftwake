@@ -65,7 +65,13 @@ static func rebuild(gi: GenIsland, kind: String, variant: int = 0) -> BeastArena
 	var site := gi.site_node("boss")
 	for c in site.get_children():
 		c.free()
-	return build(gi, null)
+	var a := build(gi, null)
+	a.spawn_boss()
+	return a
+
+
+static func of(gi: GenIsland) -> BeastArena:
+	return gi.site_node("boss").get_node("Arena")
 
 
 ## The fight's ground: its middle (island space), the floor's radius, the ring of
@@ -297,10 +303,10 @@ func centre() -> Vector3:
 # ==========================================================================
 func _ready() -> void:
 	add_to_group("net_spawner")
-	_spawn_boss()
 
 
-func _spawn_boss() -> void:
+## The beast, asleep in the middle (its own build step after the ground's: a body each is a frame's work).
+func spawn_boss() -> void:
 	if boss and is_instance_valid(boss):
 		boss.queue_free()
 	_celebrated = false
@@ -332,7 +338,7 @@ func net_gen():
 func net_set_gen(g) -> void:
 	if int(g) != boss_gen:
 		boss_gen = int(g)
-		_spawn_boss()
+		spawn_boss()
 
 
 func _beaten_flag() -> String:
@@ -374,7 +380,7 @@ func _process(delta: float) -> void:
 				if (p as Node3D).global_position.distance_to(global_position) < 70.0:
 					return
 			boss_gen += 1
-			_spawn_boss()
+			spawn_boss()
 			Net.spawned(self, net_gen())
 
 
