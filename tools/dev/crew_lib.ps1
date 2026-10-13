@@ -265,7 +265,11 @@ function Save-LiveRun($run, [bool]$force = $false) {
 	$run.Saved = Get-Date
 	$tmp = "$($run.File).tmp"
 	[System.IO.File]::WriteAllText($tmp, ($run.Data | ConvertTo-Json -Depth 6 -Compress))
-	Move-Item -Force $tmp $run.File
+	# the Tests pane may be reading the file this instant (Windows then refuses the replace): try again shortly
+	for ($i = 0; ; $i++) {
+		try { Move-Item -Force $tmp $run.File -ErrorAction Stop; return }
+		catch [System.IO.IOException] { if ($i -ge 20) { throw }; Start-Sleep -Milliseconds 50 }
+	}
 }
 
 function Set-LiveSuite($run, [string]$name, [hashtable]$fields) {
