@@ -122,9 +122,10 @@ func _process(d: float) -> bool:
 			p.health_component.take_damage(99999.0)
 			next()
 		3:
-			if not wait(0.5): return false
+			# (the death resolves over a few frames: on a loaded machine that's past a fixed half second)
+			if not wait(0.5) or (gm.grave == null and not wait(5.0)): return false
 			var g = gm.grave
-			check("dying leaves a grave where you fell", g != null and is_instance_valid(g) and g.global_position.distance_to(death_at) < 2.5)
+			check("dying leaves a grave where you fell (grave %s, %s m off, the bag held %d stacks, the captain %s)" % [g != null, str(snappedf(g.global_position.distance_to(death_at), 0.1)) if g != null else "-", p.inventory_component.items.filter(func(s): return s != null).size(), p.state_machine.current_state.name if p.state_machine.current_state else "-"], g != null and is_instance_valid(g) and g.global_position.distance_to(death_at) < 2.5)
 			var held: bool = p.equipped_weapon != null and p.inventory_component.count(p.equipped_weapon.id) == 1
 			check("...your bag on it (gold, rum, the spare pistol)", g != null and g.find_stack(load("res://resources/items/pistol.tres")) >= 0 and g.find_stack(load("res://resources/items/gold.tres")) >= 0)
 			check("...the weapon in your hand stays with you", held)
