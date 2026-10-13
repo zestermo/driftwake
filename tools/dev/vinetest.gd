@@ -6,6 +6,8 @@ extends SceneTree
 var t := 0.0
 var step := 0
 var wait := 0.0
+var until := 0
+const TK = preload("res://tools/dev/test_kit.gd")
 var p
 var pc
 var camp
@@ -19,6 +21,7 @@ var GP
 
 
 func _initialize():
+	TK.seed_of(self)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -90,8 +93,11 @@ func _process(d: float) -> bool:
 			saw["arm_vines"] = true
 	if bug and p and saw.has("bug_start"):
 		saw["bug_min"] = minf(float(saw.get("bug_min", 99.0)), bug.global_position.distance_to(p.global_position))
+	# (waits are game time, in physics ticks: under load frames run fewer ticks than seconds pass)
 	if wait > 0.0:
-		wait -= d
+		until = TK.wait_secs(wait)
+		wait = 0.0
+	if TK.ticking(until):
 		return false
 	match step:
 		0:

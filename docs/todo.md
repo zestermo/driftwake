@@ -74,11 +74,9 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
 - **Island build hitches** (split 2026-10-13, every step ~10-55 ms headless; dev_notes "housekeeping"):
   left the temple's build step and the vegetation colliders (~50 ms); in a running world the beast
   and boss steps still read 150-200 ms, competing with the next islands' prepare on the workers.
-- **Seed-dependent checks** (the suites build the run's random chain seed): lifetest's "they work at
-  the market..." fails on a layout with no market (ruins), and "at nine in the evening" wants all but
-  one at the inn or plaza (11 of 13 on Mosswater Atoll); isletest's new "sea cliffs ...along the
-  land's edge" and "a canopy arena: nothing standing on its floor (1)" each failed once; faunatest's
-  "ambient life" failed on chain seed 2749453084.
+- [x] **Seed-dependent checks** (2026-10-13: fixed seeds, `-Seed`, each fixed; dev_notes "smoke test,
+  fixed seeds"). Still open: lifetest's "at nine in the evening" 11 of 13 on a Mosswater Atoll wasn't
+  reproduced (chain 37's passes 13/13); the check now prints who's late, with their walk.
 
 ## Open from the 2026-10-09 session (not yet prioritised)
 - **Save keys repeat across worlds:** chest, job and beast flags (`isle<id>_*`, `leg<x>_<y>_*`) are

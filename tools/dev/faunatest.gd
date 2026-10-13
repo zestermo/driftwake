@@ -45,6 +45,7 @@ const CASES := [
 
 
 func _initialize():
+	load("res://tools/dev/test_kit.gd").seed_of(self)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -134,6 +135,13 @@ func _process(d: float) -> bool:
 			check("different seeds, different islands", rolls.size() >= 4)
 			check("data for others: groups with roles", fauna.groups.all(func(g): return g.has("role") and g.has("at")))
 			check("ambient life", isl.find_children("Swarm", "MultiMeshInstance3D", true, false).size() + isl.find_children("Flock", "MultiMeshInstance3D", true, false).size() > 0)
+			# (an island's seed, not the chain's: 2749453084's island once had none)
+			var bare: Array = []
+			for s in [2749453084] + range(3000):
+				var amb: Dictionary = FS.roll(s)["ambient"]
+				if not (amb["butterflies"] or amb["fireflies"]) and int(amb["flocks"]) == 0:
+					bare.append(s)
+			check("every island's roll has ambient life, swarms by day or night or flocks (bare: %s)" % [bare.slice(0, 6)], bare.is_empty())
 			wait = 0.6
 			step = 1
 		1:

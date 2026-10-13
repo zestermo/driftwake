@@ -20,6 +20,7 @@ var hp0 := 0.0
 
 
 func _initialize():
+	load("res://tools/dev/test_kit.gd").seed_of(self)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 

@@ -5,7 +5,7 @@ var wait := 0.0
 var p
 var log_lines: Array = []
 var fails := 0
-func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
+func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func act(a: String) -> void:
 	var e := InputEventAction.new(); e.action = a; e.pressed = true; Input.parse_input_event(e)
 	var e2 := InputEventAction.new(); e2.action = a; e2.pressed = false; Input.parse_input_event(e2)

@@ -6,6 +6,10 @@ extends SceneTree
 ## sent to the ocean, the island charted and kept clear by enemy ships; the
 ## same node builds the same island twice; moving on along the chain frees the
 ## islands left behind and builds the next.
+## The world builds the first one's island; the land, coast and canopy-arena checks (prepare's data)
+## run on every one's first island, prepared side by side at the end.
+const SEEDS := [4242, 1, 12, 36, 37, 9, 2749453084]
+const TK = preload("res://tools/dev/test_kit.gd")
 var t := 0.0
 var step := 0
 var wait := 0.0
@@ -13,7 +17,11 @@ var p
 var gm
 var world
 var fails := 0
+var seeds: Array = []
+var preps: Array = []
 func _initialize():
+	seeds = TK.seeds_of(SEEDS)
+	TK.use_seed(self, int(seeds[0]))
 	change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
@@ -23,7 +31,7 @@ func finish() -> void:
 	quit()
 func _process(d: float) -> bool:
 	t += d
-	if t > 90.0:
+	if t > 240.0:
 		check("timed out at step %d" % step, false)
 		finish()
 		return true
@@ -44,21 +52,6 @@ func _process(d: float) -> bool:
 			var n: Dictionary = c.node(c.start_next[0])
 			print("   %s: r %.0f, built %s" % [isl.island_name, isl.radius, isl.build_ms])
 			check("at its chain spot", Vector2(isl.position.x, isl.position.z) == n["pos"] and isl.island_name == n["name"])
-			check("600-900 m across", isl.radius >= 300.0 and isl.radius <= 450.0)
-			var mid_land := false
-			for k in range(12):
-				var q := Vector2.from_angle(k * TAU / 12.0) * 40.0
-				if isl.height_at(q.x, q.y) > 2.0:
-					mid_land = true
-			check("land above the sea in the middle", mid_land)
-			var sea_round := true
-			for k in range(16):
-				var q: Vector2 = Vector2.from_angle(k * TAU / 16.0) * (isl.radius + 30.0)
-				if isl.height_at(q.x, q.y) > -2.0:
-					sea_round = false
-			check("sea all round past its radius", sea_round)
-			var de: Vector2 = isl.sites["dock_end"]
-			check("deep water off the pier's head (%.1f m)" % isl.height_at(de.x, de.y), isl.height_at(de.x, de.y) < -3.5)
 			check("a pier to board from", isl.find_child("DockingArea", true, false) != null)
 			var rocks = isl.get_node_or_null("CoastRocks")
 			var rock_faces := 0
@@ -67,12 +60,7 @@ func _process(d: float) -> bool:
 					rock_faces += cs.shape.get_faces().size()
 			check("sea cliffs: a rock wall along them with a collider (%d columns, %d faces)" % [isl.coast_cols.size(), rock_faces / 3],
 				isl.coast_cols.size() > 10 and rocks != null and rocks.find_children("*", "MeshInstance3D", false, false).size() > 0 and rock_faces > 0)
-			var cliff_ok := true
-			for col in isl.coast_cols:
-				var land: Vector2 = col[0] - col[2] * 3.0
-				if isl.height_at(land.x, land.y) < 1.0:
-					cliff_ok = false
-			check("...along the land's edge", cliff_ok)
+			_land(isl, "")
 			var shelves := 0
 			var wade := 0
 			var dd: Vector2 = isl.dock_dir
@@ -94,18 +82,6 @@ func _process(d: float) -> bool:
 				else:
 					print("   no shelf at %.0f deg: %.2f m 9 m out (a set piece, a cliff's end?)" % [rad_to_deg(a), h9])
 			check("a sandy shelf to wade out on off the beaches (%d of %d bearings knee deep 9 m out)" % [wade, shelves], shelves > 3 and wade >= shelves * 0.7)
-			var on_land := true
-			var apart := true
-			for s in ["village", "boss", "camp", "lair", "ruins", "summit"]:
-				var sp: Vector2 = isl.sites[s]
-				if isl.height_at(sp.x, sp.y) < 1.5:
-					on_land = false
-					print("   %s at %s, h %.1f" % [s, sp, isl.height_at(sp.x, sp.y)])
-				for s2 in ["village", "boss", "camp", "lair", "ruins"]:
-					if s2 != s and sp.distance_to(isl.sites[s2]) < 50.0:
-						apart = false
-			check("its sites (village, boss, camp, lair, ruins, summit) are on land", on_land)
-			check("...and well apart", apart)
 			check("paths from the village to each (its lanes, on to the interiors and its landmarks)", isl.paths.size() >= 6)
 			var trees: int = isl.get_node("VegetationColliders").get_child_count()
 			check("trees and rocks with colliders (%d)" % trees, trees > 500)
@@ -188,23 +164,9 @@ func _process(d: float) -> bool:
 			check("thick undergrowth in the jungle (%.2f), none in the village or on the dock road" % thick, thick > 0.5
 				and gi.thicket(self, isl.to_global(Vector3(vg.x, 0, vg.y))) == 0.0 and gi.thicket(self, isl.to_global(Vector3(dock_road.x, 0, dock_road.y))) == 0.0)
 			# a canopy arena: a clear floor, giants ringing it, the canopy closed over it
-			var ac: Vector2 = Vector2(isl.forest_crowns[0].x, isl.forest_crowns[0].z)
-			var ar := 12.0
-			var arena = gi.new()
-			arena.position = isl.position
-			arena.canopy_arena(ac, ar)
+			var arena = _with_arena(isl)
 			arena.prepare(n)
-			var inside := 0
-			var ring := 0
-			for s in arena._shapes:
-				var sd := Vector2(s[2].x, s[2].z).distance_to(ac)
-				if sd < ar:
-					inside += 1
-				elif sd < ar + 8.0 and float(s[0]) > 0.9:
-					ring += 1
-			var roof: int = arena._crowns.filter(func(c): return Vector2(c.x, c.z).distance_to(ac) < ar and c.y - arena.hv(Vector2(c.x, c.z)) > 10.0).size()
-			check("a canopy arena: nothing standing on its floor (%d), giants ringing it (%d), canopy over it (%d), no undergrowth (%.2f)" % [inside, ring, roof, arena.undergrowth_at(arena.position + Vector3(ac.x, 0, ac.y))],
-				inside == 0 and ring >= 6 and roof >= 1 and arena.undergrowth_at(arena.position + Vector3(ac.x, 0, ac.y)) == 0.0)
+			_arena(arena, "")
 			arena.free()
 			# take the captain's bounty, then he falls
 			dlg.set_flag(vil._flag("camp", "taken"))
@@ -295,5 +257,100 @@ func _process(d: float) -> bool:
 			SG.load_into(p)
 			check("...kept in the save", gm.chain_set and is_equal_approx(gm.chain_since, since))
 			gm.apply_chain(-1, false, 0.0)
+			# the other seeds' first islands, prepared side by side (the world builds no more)
+			world.set_process(false)
+			for s in seeds.slice(1):
+				gm.chain_seed = int(s)
+				var c = world.chain()
+				var n: Dictionary = c.node(int(c.start_next[0]))
+				load("res://scripts/island/island_theme.gd").meshes(str(n["theme"]))
+				var g = load("res://scripts/island/gen_island.gd").new()
+				g.position = Vector3(n["pos"].x, 0.0, n["pos"].y)
+				preps.append({"seed": int(s), "n": n, "isl": g, "task": WorkerThreadPool.add_task(g.prepare.bind(n))})
+			step = 5
+		5:
+			if not preps.all(func(e): return WorkerThreadPool.is_task_completed(e["task"])):
+				return false
+			for e in preps:
+				WorkerThreadPool.wait_for_task_completion(e["task"])
+				TK.use_seed(self, e["seed"])
+				_land(e["isl"], "[%s] " % e["n"]["name"])
+				e["arena"] = _with_arena(e["isl"])
+				e["task"] = WorkerThreadPool.add_task(e["arena"].prepare.bind(e["n"]))
+			step = 6
+		6:
+			if not preps.all(func(e): return WorkerThreadPool.is_task_completed(e["task"])):
+				return false
+			for e in preps:
+				WorkerThreadPool.wait_for_task_completion(e["task"])
+				TK.use_seed(self, e["seed"])
+				_arena(e["arena"], "[%s] " % e["n"]["name"])
+				e["isl"].free()
+				e["arena"].free()
 			finish()
 	return false
+
+
+## What prepare alone decides: the land, the sea round it, the berth, the cliffs, the sites.
+func _land(isl, tag: String) -> void:
+	check(tag + "600-900 m across", isl.radius >= 300.0 and isl.radius <= 450.0)
+	var mid_land := false
+	for k in range(12):
+		var q := Vector2.from_angle(k * TAU / 12.0) * 40.0
+		if isl.height_at(q.x, q.y) > 2.0:
+			mid_land = true
+	check(tag + "land above the sea in the middle", mid_land)
+	var sea_round := true
+	for k in range(16):
+		var q: Vector2 = Vector2.from_angle(k * TAU / 16.0) * (isl.radius + 30.0)
+		if isl.height_at(q.x, q.y) > -2.0:
+			sea_round = false
+	check(tag + "sea all round past its radius", sea_round)
+	var de: Vector2 = isl.sites["dock_end"]
+	check(tag + "deep water off the pier's head (%.1f m)" % isl.height_at(de.x, de.y), isl.height_at(de.x, de.y) < -3.5)
+	var off_edge: Array = []
+	for col in isl.coast_cols:
+		var land: Vector2 = col[0] - col[2] * 3.0
+		# (where a cliff fades into a beach its wall tapers onto the low shore: its top there is under 1 m)
+		if isl.height_at(land.x, land.y) < minf(1.0, float(col[1]) - 0.25):
+			var v: Vector2 = col[0] - col[2] * 1.5
+			off_edge.append("%s (%.1f m; top %.1f k %.2f, now %.1f at its vertex; dock %.0f m)" % [col[0].round(), isl.height_at(land.x, land.y), col[1], col[3],
+				isl.height_at(v.x, v.y), col[0].distance_to(isl.sites["dock"])])
+	check(tag + "sea cliffs' rock along the land's edge (%d columns) %s" % [isl.coast_cols.size(), off_edge.slice(0, 4)], off_edge.is_empty())
+	var on_land := true
+	var apart := true
+	for s in ["village", "boss", "camp", "lair", "ruins", "summit"]:
+		var sp: Vector2 = isl.sites[s]
+		if isl.height_at(sp.x, sp.y) < 1.5:
+			on_land = false
+			print("   %s at %s, h %.1f" % [s, sp, isl.height_at(sp.x, sp.y)])
+		for s2 in ["village", "boss", "camp", "lair", "ruins"]:
+			if s2 != s and sp.distance_to(isl.sites[s2]) < 50.0:
+				apart = false
+	check(tag + "its sites (village, boss, camp, lair, ruins, summit) are on land", on_land)
+	check(tag + "...and well apart", apart)
+
+
+## The same island to prepare again with a canopy arena in the thick of its forest.
+func _with_arena(isl):
+	var a = load("res://scripts/island/gen_island.gd").new()
+	a.position = isl.position
+	a.canopy_arena(Vector2(isl.forest_crowns[0].x, isl.forest_crowns[0].z), 12.0)
+	return a
+
+
+func _arena(a, tag: String) -> void:
+	var ac: Vector2 = a.canopy_arenas[0][0]
+	var ar: float = a.canopy_arenas[0][1]
+	var inside: Array = []
+	var ring := 0
+	for s in a._shapes:
+		var sd := Vector2(s[2].x, s[2].z).distance_to(ac)
+		if sd < ar:
+			inside.append("r %.1f h %.1f at %s, %.1f m in" % [s[0], s[1], Vector2(s[2].x, s[2].z).round(), sd])
+		elif sd < ar + 8.0 and float(s[0]) > 0.9:
+			ring += 1
+	var roof: int = a._crowns.filter(func(c): return Vector2(c.x, c.z).distance_to(ac) < ar and c.y - a.hv(Vector2(c.x, c.z)) > 10.0).size()
+	var under: float = a.undergrowth_at(a.position + Vector3(ac.x, 0, ac.y))
+	check(tag + "a canopy arena: nothing standing on its floor %s, giants ringing it (%d), canopy over it (%d), no undergrowth (%.2f)" % [inside, ring, roof, under],
+		inside.is_empty() and ring >= 6 and roof >= 1 and under == 0.0)

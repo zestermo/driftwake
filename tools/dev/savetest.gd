@@ -7,6 +7,8 @@ var t0 := 0.0
 var fails := 0
 var SG
 var lv_saved := 0
+var was = null
+var seen_at := -1
 
 
 func check(c: bool, msg: String) -> void:
@@ -16,6 +18,7 @@ func check(c: bool, msg: String) -> void:
 
 
 func _initialize():
+	load("res://tools/dev/test_kit.gd").seed_of(self)
 	SG = load("res://scripts/game/save_game.gd")
 	SG.use_test_dir("user://test_slots")
 	for i in range(1, 4):
@@ -38,6 +41,19 @@ func wait(secs: float) -> bool:
 func next() -> void:
 	step += 1
 	t0 = t
+	was = player()
+	seen_at = -1
+
+
+## A load's world is up (however long that takes under load): a captain who wasn't there before
+## the step began, a few frames in (GameManager applies the save two frames after he registers).
+func world_ready() -> bool:
+	var p = player()
+	if p == null or p == was:
+		return wait(60.0)
+	if seen_at < 0:
+		seen_at = Engine.get_process_frames()
+	return Engine.get_process_frames() - seen_at >= 5
 
 
 func _process(d: float) -> bool:
@@ -54,9 +70,9 @@ func _process(d: float) -> bool:
 			ts._start(1, true)
 			next()
 		1:
-			if not wait(3.0): return false
+			if not world_ready(): return false
 			var p = player()
-			check(p != null, "world loaded from the title")
+			check(p != null and p != was, "world loaded from the title (%.1f s)" % (t - t0))
 			check(SG.slot == 1 and SG.new_game, "slot 1, new game")
 			check(p.progression.level == 1, "new captain is level 1")
 			p.progression.add_xp(500)
@@ -78,9 +94,9 @@ func _process(d: float) -> bool:
 			ts._start(2, true)
 			next()
 		3:
-			if not wait(3.0): return false
+			if not world_ready(): return false
 			var p = player()
-			check(p != null and SG.slot == 2, "new game in slot 2")
+			check(p != null and p != was and SG.slot == 2, "new game in slot 2")
 			check(p.progression.level == 1, "slot 2 starts at level 1")
 			check(root.get_node("GameManager").opened.is_empty(), "world state reset for the new game")
 			SG.save(p)
@@ -90,9 +106,9 @@ func _process(d: float) -> bool:
 			root.get_node("GameMenu")._load_slot(1)
 			next()
 		4:
-			if not wait(3.0): return false
+			if not world_ready(): return false
 			var p = player()
-			check(p != null and SG.slot == 1, "loaded slot 1 from the pause menu")
+			check(p != null and p != was and SG.slot == 1, "loaded slot 1 from the pause menu")
 			check(p.progression.level == lv_saved, "slot 1 level restored (%d)" % p.progression.level)
 			check(root.get_node("GameManager").opened.has("test_chest"), "slot 1 world state restored")
 			check(not root.get_tree().paused, "game unpaused after loading")

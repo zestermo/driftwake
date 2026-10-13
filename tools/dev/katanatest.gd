@@ -19,7 +19,7 @@ var gpos0 := Vector3.ZERO
 var air_vy := -99.0
 var plunges := 0
 var last_state := ""
-func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
+func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
 	if not cond: fails += 1

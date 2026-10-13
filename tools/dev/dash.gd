@@ -5,7 +5,7 @@ var p
 var start: Vector3
 var yaw0 := 0.0
 var fails := 0
-func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
+func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func press(a: String, on := true) -> void:
 	var e := InputEventAction.new(); e.action = a; e.pressed = on; Input.parse_input_event(e)
 func check(n: String, c: bool) -> void:

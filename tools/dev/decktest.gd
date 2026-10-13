@@ -10,7 +10,7 @@ var p
 var ship
 var fails := 0
 var max_gap := 0.0
-func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
+func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
 	if not cond: fails += 1

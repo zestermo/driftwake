@@ -6,6 +6,8 @@ extends SceneTree
 var t := 0.0
 var step := 0
 var wait := 0.0
+var until := 0
+const TK = preload("res://tools/dev/test_kit.gd")
 var p
 var ship
 var es
@@ -19,7 +21,7 @@ var cut_vel := Vector3.ZERO
 var fired_n := 0
 var ys: Array = []
 var halves: Array = []
-func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
+func _initialize(): TK.seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
 	if not cond: fails += 1
@@ -61,8 +63,11 @@ func _process(d: float) -> bool:
 		check("timed out at step %d" % step, false)
 		finish()
 		return true
+	# (waits are game time, in physics ticks: under load frames run fewer ticks than seconds pass)
 	if wait > 0.0:
-		wait -= d
+		until = TK.wait_secs(wait)
+		wait = 0.0
+	if TK.ticking(until):
 		return false
 	match step:
 		0:

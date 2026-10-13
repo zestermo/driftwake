@@ -7,6 +7,7 @@
 #   .\tools\dev\run_tests.ps1 -Changed -Base main  # ...and everything this branch changed since main
 #   .\tools\dev\run_tests.ps1 -Force chaintest     # run it even if this exact code already passed it
 #   .\tools\dev\run_tests.ps1 -Changed -Light      # ...minus the slow suites in heavy.txt and co-op (prepush.ps1 runs those)
+#   .\tools\dev\run_tests.ps1 isletest -Seed 1234  # on that seed instead of the suite's own (DRIFTWAKE_SEED; never cached)
 #
 # Godot: set $env:GODOT to the *console* build (Godot_v4.7-..._win64_console.exe),
 # or pass -Godot. The non-console exe doesn't print to the terminal on Windows.
@@ -33,10 +34,13 @@ param(
 	[switch]$Force,
 	[switch]$Light,
 	[string]$Base = "HEAD",
-	[string]$CarryFrom = ""
+	[string]$CarryFrom = "",
+	[string]$Seed = $env:DRIFTWAKE_SEED
 )
 
 $ErrorActionPreference = "Stop"
+# (a pass on another seed says nothing about the suite's own: no cache either way, no sharing a run)
+if ($Seed) { $Force = $true; $CarryFrom = "" }
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 . (Join-Path $PSScriptRoot "crew_lib.ps1")
 $all = @(Get-Content (Join-Path $PSScriptRoot "suites.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })
@@ -133,11 +137,11 @@ if (-not $NoCompileCheck -and $Tests.Count -gt 0) {
 }
 
 function Start-Suite([string]$t, $slot) {
-	$job = Start-GodotJob $Godot $root "$t.gd" "" (Join-Path $logs "$t.log")
+	$job = Start-GodotJob $Godot $root "$t.gd" "" (Join-Path $logs "$t.log") $Seed
 	$job | Add-Member -NotePropertyName Name -NotePropertyValue $t
 	$job | Add-Member -NotePropertyName Slot -NotePropertyValue $slot
-	Set-InFlight $crew $tree $t "$me $($run.Data.id)" $true
-	Set-LiveSuite $run $t @{ state = "running"; log = $job.Log; pid = $job.Proc.Id; secs = 0; why = "" }
+	if (-not $Seed) { Set-InFlight $crew $tree $t "$me $($run.Data.id)" $true }
+	Set-LiveSuite $run $t @{ state = "running"; log = $job.Log; pid = $job.Proc.Id; secs = 0; why = ""; seed = $Seed }
 	return $job
 }
 
@@ -146,7 +150,7 @@ function Finish-Suite($job, [string]$trouble, [bool]$failed = $false) {
 	if ($trouble -or $failed) { Stop-GodotJob $job }
 	Update-GodotJob $job
 	Exit-Slot $job.Slot
-	Set-InFlight $crew $tree $job.Name "" $false
+	if (-not $Seed) { Set-InFlight $crew $tree $job.Name "" $false }
 	$lines = Get-JobSummary $job
 	$secs = [int]((Get-Date) - $job.Started).TotalSeconds
 	$ok = (-not $trouble) -and (-not $failed) -and ($lines -cmatch "RESULT (OK|fails=0)") -and -not ($lines -cmatch "FAIL|SCRIPT ERROR")
@@ -159,12 +163,13 @@ function Finish-Suite($job, [string]$trouble, [bool]$failed = $false) {
 	} else {
 		Write-Host ("{0,-10} {1,4}s  {2}" -f $job.Name, $secs, $summary) -ForegroundColor Red
 	}
+	if (-not $ok -and $job.Seed) { Write-Host ("    on seed {0}: .\tools\dev\run_tests.ps1 {1} -Seed {0}" -f $job.Seed, $job.Name) -ForegroundColor Red }
 	$fails = @($lines | Where-Object { $_ -cmatch "^FAIL" })
 	Set-LiveSuite $run $job.Name @{ state = $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }); secs = $secs; pid = 0
 		why = $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($job.Fail.Count -gt 0) { $job.Fail[0] } elseif ($fails) { $fails[0] } else { $summary })
-		fail = @($job.Fail); last = @($job.Tail) }
-	if ($ok) { Set-CachedPass $crew $tree $job.Name $me }
-	Write-Ledger $crew $job.Name $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }) $tree $me $secs $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary })
+		fail = @($job.Fail); last = @($job.Tail); seed = $job.Seed }
+	if ($ok -and -not $Seed) { Set-CachedPass $crew $tree $job.Name $me }
+	if (-not $Seed) { Write-Ledger $crew $job.Name $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }) $tree $me $secs $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary }) }
 	return [pscustomobject]@{ Ok = $ok; Fails = $fails; Trouble = $trouble }
 }
 
@@ -176,7 +181,7 @@ $retried = @{}
 $told = $false
 while ($queue.Count -gt 0 -or $running.Count -gt 0) {
 	# a suite another runner is running on this exact code: wait for its verdict instead
-	for ($i = $queue.Count - 1; $i -ge 0; $i--) {
+	for ($i = $queue.Count - 1; $i -ge 0 -and -not $Seed; $i--) {
 		$t = $queue[$i]
 		$other = Get-InFlight $crew $tree $t
 		$hit = Get-CachedPass $crew $tree $t
@@ -224,7 +229,7 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
 				} else { $failed += $j.Name }
 			}
 		} else {
-			Set-LiveSuite $run $j.Name @{ secs = [int]((Get-Date) - $j.Started).TotalSeconds; last = @($j.Tail | Select-Object -Last 4) }
+			Set-LiveSuite $run $j.Name @{ secs = [int]((Get-Date) - $j.Started).TotalSeconds; last = @($j.Tail | Select-Object -Last 4); seed = $j.Seed }
 			$still += $j
 		}
 	}

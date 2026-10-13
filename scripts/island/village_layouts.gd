@@ -93,6 +93,9 @@ func _pick() -> String:
 			# (the ruins' survivors need a flat spot out along a path)
 			if k == "ruins" and _survivors_at() == Vector2.INF:
 				return "town"
+			# (...and the hamlets two spots out along the paths: without them it's a hub on its own)
+			if k == "hamlets" and _hamlet_picks(_hamlet_spots(), 0).size() < 2:
+				return "town"
 			return k
 	return POOL.keys()[0]
 
@@ -145,11 +148,7 @@ func _hamlets() -> void:
 	_market_dressing()
 	hamlets.append({"c": c, "kind": "hub"})
 	# two or three hamlets out along the paths
-	var spots: Array = []
-	for i in range(gi.paths.size()):
-		var st := _stretch(gi.paths[i], site, 170.0)
-		for e in KitVillage.along(st, 5.0, 70.0, 150.0):
-			spots.append(e[0])
+	var spots := _hamlet_spots()
 	var kinds := ["fishers", "farmers", "woodcutters"]
 	for i in range(kinds.size() - 1, 0, -1):
 		var j := rng.randi_range(0, i)
@@ -157,12 +156,7 @@ func _hamlets() -> void:
 		kinds[i] = kinds[j]
 		kinds[j] = tmp
 	var k0 := rng.randi() % maxi(spots.size(), 1)
-	for k in range(spots.size()):
-		if hamlets.size() >= 4:
-			break
-		var hc: Vector2 = spots[(k + k0) % spots.size()]
-		if hc.distance_to(c) < 62.0 or hamlets.any(func(h): return hc.distance_to(h["c"]) < 55.0) or not _open_ground(hc) or kc.ground_max(hc, 11.0) - kc.ground_min(hc, 11.0) > 4.5:
-			continue
+	for hc in _hamlet_picks(spots, k0):
 		_hamlet(hc, kinds[hamlets.size() - 1])
 	_dress_buildings()
 	_dress_streets(10.0)
@@ -170,6 +164,29 @@ func _hamlets() -> void:
 	KitPaving.plan_disk(kc, quads, c, 7.5, prng)
 	KitPaving.plan_disk(kc, quads, market["c"], 5.6, prng)
 	_worn_fronts(prng)
+
+
+## Points along the paths 70-150 m out from the site, where hamlets may go.
+func _hamlet_spots() -> Array:
+	var spots: Array = []
+	for i in range(gi.paths.size()):
+		var st := _stretch(gi.paths[i], site, 170.0)
+		for e in KitVillage.along(st, 5.0, 70.0, 150.0):
+			spots.append(e[0])
+	return spots
+
+
+## Up to three of `spots` (from the k0-th on) on open, gentle ground, apart from the heart and each other.
+func _hamlet_picks(spots: Array, k0: int) -> Array:
+	var out: Array = []
+	for k in range(spots.size()):
+		if out.size() >= 3:
+			break
+		var hc: Vector2 = spots[(k + k0) % spots.size()]
+		if hc.distance_to(c) < 62.0 or out.any(func(h): return hc.distance_to(h) < 55.0) or not _open_ground(hc) or kc.ground_max(hc, 11.0) - kc.ground_min(hc, 11.0) > 4.5:
+			continue
+		out.append(hc)
+	return out
 
 
 ## One hamlet at hc (on a path): a fire, three to five houses round it facing in, and

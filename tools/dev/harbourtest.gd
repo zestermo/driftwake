@@ -8,6 +8,8 @@ extends SceneTree
 ## different kinds. Each kind on fixed chain seeds (their coasts differ), not the run's random one.
 const KINDS := ["stilts", "cove", "wharf", "ruins", "landing"]
 const SEEDS := [4242, 777]
+const TK = preload("res://tools/dev/test_kit.gd")
+var seeds: Array = []
 ## Each kind's least: [buildings, props] in fidelity's harbour district (a bare landing has next to nothing).
 const LEAST := {"stilts": [7, 20], "cove": [7, 20], "wharf": [7, 20], "ruins": [7, 20], "landing": [0, 4]}
 var t := 0.0
@@ -22,6 +24,8 @@ var fails := 0
 
 
 func _initialize():
+	seeds = TK.seeds_of(SEEDS)
+	TK.use_seed(self, int(seeds[0]))
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -32,7 +36,7 @@ func check(name: String, cond: bool) -> void:
 
 
 func _tag() -> String:
-	return "%s/%d" % [KINDS[job / SEEDS.size()], SEEDS[job % SEEDS.size()]]
+	return "%s/%d" % [KINDS[job / seeds.size()], seeds[job % seeds.size()]]
 
 
 func finish() -> void:
@@ -61,11 +65,11 @@ func _process(d: float) -> bool:
 			gh = load("res://scripts/island/kit/kit_harbour_gen.gd")
 			step = 1
 		1:
-			root.get_node("GameManager").chain_seed = int(SEEDS[job % SEEDS.size()])
+			TK.use_seed(self, int(seeds[job % seeds.size()]))
 			var c = w.chain()
 			var n: Dictionary = c.node(int(c.start_next[0]))
 			var kind := _tag()
-			gh.force = KINDS[job / SEEDS.size()]
+			gh.force = KINDS[job / seeds.size()]
 			isl = load("res://scripts/island/gen_island.gd").new()
 			isl.name = "HarbourTestIsle"
 			isl.position = Vector3(40000.0, 0.0, 40000.0 + job * 3000.0)
@@ -128,7 +132,7 @@ func _process(d: float) -> bool:
 			isl.queue_free()
 			isl = null
 			job += 1
-			step = 1 if job < KINDS.size() * SEEDS.size() else 4
+			step = 1 if job < KINDS.size() * seeds.size() else 4
 			wait = 0.2
 		4:
 			# the same node plans the same harbour; the seeds roll their own kinds

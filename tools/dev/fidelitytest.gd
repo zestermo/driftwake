@@ -7,6 +7,8 @@ extends "res://tools/dev/fidelity.gd"
 
 func _initialize():
 	test_mode = true
-	seeds = [777, 31337, 4242]
+	var tk = load("res://tools/dev/test_kit.gd")
+	seeds = tk.seeds_of([777, 31337, 4242])
+	tk.seed_of(self, int(seeds[0]))
 	out_dir = "res://tools/dev/out/fidelity/test"
 	change_scene_to_file("res://scenes/world/world.tscn")

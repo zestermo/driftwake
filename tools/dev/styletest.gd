@@ -10,7 +10,7 @@ var tor_dev := 0.0
 var head_dev := 0.0
 func check(n: String, c: bool) -> void:
 	print(("PASS " if c else "FAIL ") + n); if not c: fails += 1
-func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
+func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func _yaw_dev(n: Node3D, ref: Node3D) -> float:
 	var f: Vector3 = -n.global_basis.z; var r: Vector3 = -ref.global_basis.z
 	return absf(wrapf(atan2(f.x, f.z) - atan2(r.x, r.z), -PI, PI))

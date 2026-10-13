@@ -1,7 +1,7 @@
 # Land a finished parallel session (a Claude Code worktree branch) on main.
 #
 #   .\tools\dev\land.ps1 worktree-ships          # rebase onto main, compile + covering tests, fast-forward main
-#   .\tools\dev\land.ps1 worktree-ships -NoTests # skip the tests (the compile check still runs)
+#   .\tools\dev\land.ps1 worktree-ships -NoTests # skip the tests (the compile check and smoketest still run)
 #   .\tools\dev\land.ps1 -List                   # the worktrees and how far ahead of main each is
 #
 # The branch's worktree must have everything committed. If the rebase hits a
@@ -75,13 +75,15 @@ if (-not $ok) {
 	Fail "Conflicts with $Onto in: $($conflicts -join ', '). Nothing landed. Resolve them in $wt (git rebase $Onto there), then run this again."
 }
 
-# it still compiles and its tests pass, with the target underneath
-if ($NoTests) {
-	Update-ImportCache $wt $Godot
-	& $Godot --headless --path "$wt" --script res://tools/dev/compilecheck.gd 2>&1 | Out-Null
-	if ($LASTEXITCODE -ne 0) { Fail "$Branch doesn't compile on top of $Onto (run tools/dev/compilecheck.gd there)." }
-} else {
-	& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") -Changed -Light -Base $Onto -CarryFrom $carry
+# it still compiles, the islands still build (smoketest, -NoTests or not) and its tests pass, with the target underneath
+Update-ImportCache $wt $Godot
+& $Godot --headless --path "$wt" --script res://tools/dev/compilecheck.gd 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) { Fail "$Branch doesn't compile on top of $Onto (run tools/dev/compilecheck.gd there)." }
+# (never carried over the rebase: it's there for what the two sides do together)
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") smoketest -NoCompileCheck
+if ($LASTEXITCODE -ne 0) { Fail "The island smoke test failed on top of ${Onto}: not landed (log: $wt\tools\dev\out\logs\smoketest.log)." }
+if (-not $NoTests) {
+	& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") -Changed -Light -Base $Onto -CarryFrom $carry -NoCompileCheck
 	if ($LASTEXITCODE -ne 0) { Fail "Tests failed on top of ${Onto}: not landed (logs in $wt\tools\dev\out\logs)." }
 }
 

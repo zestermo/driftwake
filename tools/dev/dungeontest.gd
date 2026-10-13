@@ -33,7 +33,8 @@ var info: Dictionary
 
 
 func _initialize():
-	root.get_node("GameManager").chain_seed = 5
+	# (its checks are for these seeds' rolls: no -Seed)
+	load("res://tools/dev/test_kit.gd").use_seed(self, 5)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -276,7 +277,7 @@ func _process(d: float) -> bool:
 				# (every chain's first island is isle0: the next seed's chests have the same keys)
 				gm.opened.clear()
 				KD.force_temple = false
-				gm.chain_seed = 1
+				load("res://tools/dev/test_kit.gd").use_seed(self, 1)
 				step = 12
 		12:
 			# seed 1: the bug tunnels and the brood mother
@@ -315,7 +316,7 @@ func _process(d: float) -> bool:
 			cave._victory(p)
 			check("her hoard comes once per character (none the second time)", gm.opened.has(str(info["reward"])) and cave.get_node_or_null("Hoard") == null)
 			gm.opened.clear()
-			gm.chain_seed = 2
+			load("res://tools/dev/test_kit.gd").use_seed(self, 2)
 			step = 17
 		17:
 			# seed 2: a root cavern, its end room held by a nest of big bugs

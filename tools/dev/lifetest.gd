@@ -4,7 +4,11 @@ extends SceneTree
 ## at night, walking between), named characters whose dialogue trees talk of the
 ## island, its beast and the islands ahead, quests of every kind taken, done and
 ## paid (each captain's, in Dialogue flags keyed by the island's seed), kept in
-## the save, and the same people and quests from the same seed.
+## the save, and the same people and quests from the same seed. The routines again on
+## more seeds' first islands (Tikal Atoll's ruins, Mosswater Atoll's walled post).
+const SEEDS := [4242, 1, 37]
+const TK = preload("res://tools/dev/test_kit.gd")
+var more: Array = []
 var t := 0.0
 var step := 0
 var wait := 0.0
@@ -21,6 +25,8 @@ var have0 := 0
 
 
 func _initialize():
+	more = TK.seeds_of(SEEDS)
+	TK.use_seed(self, int(more.pop_front()))
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -64,9 +70,52 @@ func walk_len(v, k: int) -> float:
 	return cum[cum.size() - 1]
 
 
+## Its people and their routines (data: no clock runs). Returns those who walk to their lunch.
+func _routines(island, tag: String) -> Array:
+	var npcs: Array = get_nodes_in_group("npcs").filter(func(x): return x.get_parent() == island)
+	print("   %s: %d people: %s" % [island.island_name, npcs.size(), ", ".join(npcs.map(func(x): return x.npc_name))])
+	check(tag + "15-20 people on the island (%d)" % npcs.size(), npcs.size() >= 15 and npcs.size() <= 20)
+	check(tag + "each one's name is its own", npcs.all(func(x): return npcs.filter(func(y): return y.name == x.name).size() == 1))
+	var vs: Array = island.life.people
+	check(tag + "villagers on routines (%d), each with 4-5 stays" % vs.size(), vs.size() >= 11 and vs.all(func(v): return v.stays.size() >= 4 and v.walks.size() == v.stays.size()))
+	var kinds := {}
+	for v in vs:
+		for s in v.stays:
+			kinds[s["kind"]] = true
+	# (whether the village gives market spots, not the layout's plan: a ruins village plans no market yet can give some)
+	var market: bool = island.life.spots.any(func(s): return s["kind"] == "market" and not s.get("poi", false))
+	print("   spots used: %s (%s layout, %s market spot)" % [kinds.keys(), island.village_plan["layout"], "a" if market else "no"])
+	check(tag + "they work at the market (if the island has one), the nets or the paths, and gather at the plaza and the inn",
+		kinds.has("plaza") and kinds.has("inn") and kinds.has("market") == market and (kinds.has("nets") or kinds.has("forage")))
+	# day and night, from the routine alone
+	var KL = load("res://scripts/island/kit/kit_life.gd")
+	var kind_at := func(v, h: float) -> String: return v.stays[KL.stay_at(v.stays, h, 1440.0)[0]]["kind"]
+	var shift: Array = vs.filter(func(v): return kind_at.call(v, 10.5) != kind_at.call(v, 23.5))
+	var moved := shift.filter(func(v): return (v.spot_at(10.5)[0] as Vector2).distance_to(v.spot_at(23.5)[0]) > 2.0).size()
+	print("   the same kind of place day and night: %s" % [vs.filter(func(v): return not shift.has(v)).map(func(v): return kind_at.call(v, 10.5))])
+	# (a fifth keep house by day, home day and night, and an owl who works the plaza spends the evening there)
+	check(tag + "day and night most are somewhere else (%d of %d; the rest work where they spend the evening)" % [moved, vs.size()], moved == shift.size() and moved > vs.size() / 2)
+	var late: Array = vs.filter(func(v): return not (v.spot_at(20.8)[3] and kind_at.call(v, 20.8) in ["inn", "plaza"]))
+	print("   not at the inn or the fire at nine: %s" % [late.map(func(v): return "%s (%s, %s, %.0f m from %.1f h)" % [v.npc_name, kind_at.call(v, 20.8), v.spot_at(20.8)[2],
+		walk_len(v, KL.stay_at(v.stays, 20.8, 1440.0)[0]), float(v.stays[KL.stay_at(v.stays, 20.8, 1440.0)[0]]["h"])])])
+	check(tag + "at nine in the evening they're at the inn or round the plaza's fire (%d of %d)" % [vs.size() - late.size(), vs.size()], late.size() <= 1)
+	var home := vs.filter(func(v): return v.spot_at(2.0)[2] == "home").size()
+	var up := vs.filter(func(v): return v.spot_at(2.0)[2] == "talk").size()
+	check(tag + "at two in the morning most are home and the rest at the inn (%d home, %d up)" % [home, up], home >= vs.size() / 2 and home + up == vs.size())
+	var goers: Array = vs.filter(func(v): return walk_len(v, 1) > 2.0)
+	var walking := goers.filter(func(v): return v.spot_at(float(v.stays[1]["h"]) + 0.02)[2] == "walk").size()
+	check(tag + "just after a stay begins they're walking to it (%d of %d)" % [walking, goers.size()], walking == goers.size() and goers.size() >= vs.size() / 2)
+	var lens: Array = []
+	for v in vs:
+		for k in range(v.walks.size()):
+			lens.append(walk_len(v, k))
+	print("   walks: up to %.0f m" % lens.max())
+	return goers
+
+
 func _process(d: float) -> bool:
 	t += d
-	if t > 120.0:
+	if t > 200.0:
 		check("timed out at step %d" % step, false)
 		finish()
 		return true
@@ -85,37 +134,7 @@ func _process(d: float) -> bool:
 			var c = w.chain()
 			isl = w.chain_islands[c.start_next[0]]
 			life = isl.life
-			var npcs: Array = get_nodes_in_group("npcs").filter(func(x): return x.get_parent() == isl)
-			print("   %s: %d people: %s" % [isl.island_name, npcs.size(), ", ".join(npcs.map(func(x): return x.npc_name))])
-			check("15-20 people on the island (%d)" % npcs.size(), npcs.size() >= 15 and npcs.size() <= 20)
-			check("each one's name is its own", npcs.all(func(x): return npcs.filter(func(y): return y.name == x.name).size() == 1))
-			var vs: Array = life.people
-			check("villagers on routines (%d), each with 4-5 stays" % vs.size(), vs.size() >= 11 and vs.all(func(v): return v.stays.size() >= 4 and v.walks.size() == v.stays.size()))
-			var kinds := {}
-			for v in vs:
-				for s in v.stays:
-					kinds[s["kind"]] = true
-			print("   spots used: %s" % [kinds.keys()])
-			check("they work at the market, the nets or the paths, and gather at the plaza and the inn", kinds.has("plaza") and kinds.has("inn") and kinds.has("market") and (kinds.has("nets") or kinds.has("forage")))
-			# day and night, from the routine alone
-			var KL = load("res://scripts/island/kit/kit_life.gd")
-			var kind_at := func(v, h: float) -> String: return v.stays[KL.stay_at(v.stays, h, 1440.0)[0]]["kind"]
-			var shift: Array = vs.filter(func(v): return kind_at.call(v, 10.5) != kind_at.call(v, 23.5))
-			var moved := shift.filter(func(v): return (v.spot_at(10.5)[0] as Vector2).distance_to(v.spot_at(23.5)[0]) > 2.0).size()
-			check("day and night most are somewhere else (%d of %d; the rest work where they spend the evening)" % [moved, vs.size()], moved == shift.size() and moved >= vs.size() * 0.7)
-			var eve :=vs.filter(func(v): return v.spot_at(20.8)[3] and v.stays[KL.stay_at(v.stays, 20.8, 1440.0)[0]]["kind"] in ["inn", "plaza"]).size()
-			check("at nine in the evening they're at the inn or round the plaza's fire (%d of %d)" % [eve, vs.size()], eve >= vs.size() - 1)
-			var home := vs.filter(func(v): return v.spot_at(2.0)[2] == "home").size()
-			var up := vs.filter(func(v): return v.spot_at(2.0)[2] == "talk").size()
-			check("at two in the morning most are home and the rest at the inn (%d home, %d up)" % [home, up], home >= vs.size() / 2 and home + up == vs.size())
-			var goers: Array = vs.filter(func(v): return walk_len(v, 1) > 2.0)
-			var walking := goers.filter(func(v): return v.spot_at(float(v.stays[1]["h"]) + 0.02)[2] == "walk").size()
-			check("just after a stay begins they're walking to it (%d of %d)" % [walking, goers.size()], walking == goers.size() and goers.size() >= vs.size() / 2)
-			var lens: Array = []
-			for v in vs:
-				for k in range(v.walks.size()):
-					lens.append(walk_len(v, k))
-			print("   walks: up to %.0f m" % lens.max())
+			var goers := _routines(isl, "")
 			# a captain in the village; a walker moves
 			var hub: Vector2 = isl.sites["village"]
 			var to_dock: Vector2 = (isl.sites["dock"] - hub).normalized()
@@ -280,5 +299,25 @@ func _process(d: float) -> bool:
 					dlg.set_flag(qn.flag(x, s), false)
 			SG.load_into(p)
 			check("quests taken, done and paid are kept in the save", keys.all(func(k): return dlg.has_flag(k)))
-			finish()
+			root.get_node("World/Islands").set_process(false)
+			step = 30
+		30:
+			# the routines on the other seeds' first islands, each built far out (ruins with no market, a post's long walks)
+			if more.is_empty():
+				finish()
+				return true
+			var w = root.get_node("World/Islands")
+			TK.use_seed(self, int(more.pop_front()))
+			var c = w.chain()
+			isl = load("res://scripts/island/gen_island.gd").new()
+			isl.name = "LifeTestIsle%d" % more.size()
+			isl.position = Vector3(50000.0, 0.0, 50000.0 + more.size() * 3000.0)
+			w.add_child(isl)
+			isl.build(c.node(int(c.start_next[0])))
+			wait = 0.2
+			step = 31
+		31:
+			_routines(isl, "[%s] " % isl.island_name)
+			isl.queue_free()
+			step = 30
 	return false

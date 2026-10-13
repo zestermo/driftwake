@@ -9,6 +9,8 @@ extends SceneTree
 var t := 0.0
 var step := 0
 var wait := 0
+var until := 0
+const TK = preload("res://tools/dev/test_kit.gd")
 var fails := 0
 var world
 var n: Dictionary
@@ -19,6 +21,8 @@ const L := "res://scripts/island/village_layouts.gd"
 
 
 func _initialize():
+	# (an island with room for every layout: 4242's has none for the hamlets, and the game doesn't roll them there)
+	TK.seed_of(self, 1)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -40,8 +44,11 @@ func _process(d: float) -> bool:
 		check("timed out at step %d (%s)" % [step, layouts[li] if li < layouts.size() else "-"], false)
 		finish()
 		return true
+	# (a wait is physics ticks: a frame can pass with none, and the new colliders want one)
 	if wait > 0:
-		wait -= 1
+		until = TK.wait_ticks(wait)
+		wait = 0
+	if TK.ticking(until):
 		return false
 	match step:
 		0:

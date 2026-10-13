@@ -25,6 +25,7 @@ func check(msg: String, c: bool) -> void:
 
 
 func _initialize():
+	load("res://tools/dev/test_kit.gd").seed_of(self)
 	SG = load("res://scripts/game/save_game.gd")
 	HB = load("res://scripts/ship/hull_builder.gd")
 	SG.use_test_dir("user://test_loop")

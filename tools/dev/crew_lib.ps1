@@ -249,7 +249,7 @@ function New-LiveRun([string]$crew, [string]$root, [string]$branch, [string]$kin
 	Close-DeadRuns $crew
 	$id = "{0:yyyyMMdd-HHmmss}-{1}" -f (Get-Date), $PID
 	$suites = [ordered]@{}
-	foreach ($n in $names) { $suites[$n] = [ordered]@{ name = $n; state = "queued"; secs = 0; log = ""; pid = 0; last = @(); why = "" } }
+	foreach ($n in $names) { $suites[$n] = [ordered]@{ name = $n; state = "queued"; secs = 0; log = ""; pid = 0; last = @(); why = ""; seed = "" } }
 	$run = [pscustomobject]@{
 		Data = [ordered]@{ id = $id; branch = $branch; root = $root; kind = $kind; pid = $PID; started = (Get-Date).ToString("o"); ended = ""; state = "running"; suites = $suites }
 		File = Join-Path $crew "live\$id.json"
@@ -278,7 +278,8 @@ function Set-LiveSuite($run, [string]$name, [hashtable]$fields) {
 }
 
 ## A headless Godot running res://tools/dev/<script>, its stdout and stderr redirected to `log` by cmd.
-function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]$extra, [string]$log) {
+## `seed` (if any) goes to it as DRIFTWAKE_SEED (tools/dev/test_kit.gd).
+function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]$extra, [string]$log, [string]$seed = "") {
 	Remove-Item $log -Force -ErrorAction SilentlyContinue
 	$gargs = "--headless --path `"$root`" --script res://tools/dev/$script" + $(if ($extra) { " -- $extra" } else { "" })
 	$psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -287,10 +288,12 @@ function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]
 	$psi.WorkingDirectory = $root
 	$psi.UseShellExecute = $false
 	$psi.CreateNoWindow = $true
+	$psi.EnvironmentVariables.Remove("DRIFTWAKE_SEED")
+	if ($seed) { $psi.EnvironmentVariables["DRIFTWAKE_SEED"] = $seed }
 	$p = [System.Diagnostics.Process]::Start($psi)
 	return [pscustomobject]@{ Proc = $p; Log = $log; Started = Get-Date; Grew = Get-Date; Offset = [long]0; Carry = ""
 		Errors = 0; FirstErrors = @(); Tail = New-Object System.Collections.Generic.List[string]; Parse = $false
-		Fail = New-Object System.Collections.Generic.List[string]; FailAt = [datetime]::MinValue; FailDone = $false }
+		Fail = New-Object System.Collections.Generic.List[string]; FailAt = [datetime]::MinValue; FailDone = $false; Seed = "" }
 }
 
 ## Read what the job wrote since last time (at most 1 MB a tick): the tail, the error count, growth.
@@ -312,6 +315,8 @@ function Update-GodotJob($job) {
 		$whole = if ($lines.Count -gt 1) { $lines[0..($lines.Count - 2)] } else { @() }
 		foreach ($l in $whole) {
 			if (-not $l.Trim()) { continue }
+			# (the seed in use: a suite looping over seeds prints each; the failure ran on the latest)
+			if ($job.Fail.Count -eq 0 -and $l -cmatch "^SEED (-?\d+)") { $job.Seed = $Matches[1] }
 			# the first failure and the stack lines under it, whole
 			if ($job.Fail.Count -gt 0 -and -not $job.FailDone) {
 				if ($l -match "^\s*(at:|GDScript backtrace|\[\d+\])" -and $job.Fail.Count -lt 24) { $job.Fail.Add($l.TrimEnd()) } else { $job.FailDone = $true }

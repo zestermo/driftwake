@@ -46,6 +46,7 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 .\tools\dev\run_tests.ps1 -Changed               # the suites covering uncommitted changes (normal use)
 .\tools\dev\run_tests.ps1 r10test swimtest        # specific suites
 .\tools\dev\run_tests.ps1                         # every suite, 5 at a time (-Jobs 1: one at a time)
+.\tools\dev\run_tests.ps1 isletest -Seed 1234     # on that seed instead of the suite's own (a failure prints this line)
 .\tools\dev\nettest.ps1                           # co-op: host + client on localhost (also: water, three, late, hostquit)
 & $env:GODOT --path . --script res://tools/dev/weathershot.gd -- res://tools/dev/out/wx   # renders (GPU, opens a window)
 ```
@@ -72,8 +73,10 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 - **Three tiers, so a feature in progress never pays for the whole game's tests:**
   1. **While building (any agent, any worktree):** only the suites that test what you built, by name
      (`run_tests.ps1 daggertest wieldtest`). No `-Changed`, no nettest. The edit hook compiles each file.
-  2. **Landing a branch** (`land.ps1`): the covering suites minus the slow whole-world ones in
-     `tools/dev/heavy.txt` and minus co-op (`run_tests -Changed -Light`). Passes carry over the rebase.
+  2. **Landing a branch** (`land.ps1`): the compile check and `smoketest` (the first islands of four
+     fixed chain seeds built and run: script errors, non-finite transforms, missing services; even with
+     `-NoTests`, never carried over the rebase), then the covering suites minus the slow whole-world ones
+     in `tools/dev/heavy.txt` and minus co-op (`run_tests -Changed -Light`). Passes carry over the rebase.
   3. **Before a push** (a finished set of features or a version): `tools/dev/prepush.ps1` runs every
      suite test_status calls stale or failing, the heavy ones and the co-op modes included, and pushes
      only if nothing is left. This is the only place nettest and the chain/fidelity/perf suites run.
@@ -87,17 +90,24 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
   (it reports the first error), it floods script errors, or its log passes 25 MB. A stopped suite
   is a real problem to look at, not one to rerun.
 - **Long runs go in the background** (Bash `run_in_background`); don't sit in a blocking wait loop.
+- **Fixed seeds:** every suite picks its seed in `_initialize` (`tools/dev/test_kit.gd`: `seed_of(self)`
+  seeds the global rng and the chain, default 4242; island suites loop a small fixed list with `seeds_of`).
+  "SEED n" in the log names the seed in use; a failure prints it with the rerun line, and the live suite
+  has a `seed` field. `-Seed N` runs (env `DRIFTWAKE_SEED`) are never cached or shared.
 - Writing a test: copy the newest `tools/dev/rNtest.gd` pattern (step machine in `_process`,
-  `check(name, cond)`, final `RESULT OK`/`RESULT FAILED (n)`). Don't statically type project
-  classes that touch autoloads; nodes added in `_initialize()` aren't in the tree yet.
-  Clamp `lerp(a, b, k * delta)` weights (frame times vary).
+  `check(name, cond)`, final `RESULT OK`/`RESULT FAILED (n)`), plus `TK.seed_of(self)` in `_initialize`.
+  Wait in physics ticks, not frames or process seconds, where a check depends on timing
+  (`until = TK.wait_ticks(n)` / `TK.wait_secs(s)`, then `if TK.ticking(until): return false`; frames
+  under load run fewer ticks than seconds pass). Don't statically type project classes that touch
+  autoloads; nodes added in `_initialize()` aren't in the tree yet. Clamp `lerp(a, b, k * delta)`
+  weights (frame times vary). A check's name mustn't say "script error": the runner stops on that.
 - Exports: exclude `tools/*` and `docs/*` in the export preset.
 
 ## Parallel sessions (one worktree each)
 
 **At most 3 agents/sessions at a time** (Zach, 2026-10-12): more burned usage, caused constant conflicts in
 the shared files and took longer overall. Finish and merge before starting more. For a batch of features:
-build them (each agent runs only its own suites), merge them all with a compile check (`land.ps1 -NoTests`),
+build them (each agent runs only its own suites), merge them all with a compile check and the smoke test (`land.ps1 -NoTests`),
 then one full test run and one bug-fix pass on main, with known bugs from the agents' reports listed first.
 
 Zach often runs several Claude sessions at once. Each should work in its own git worktree
@@ -108,7 +118,7 @@ so half-finished edits never break another session's tests or end up in its comm
   "head"), with the Godot import cache copied in (`.worktreeinclude`). run_tests.ps1
   imports once by itself if a checkout has no cache.
 - Commit on that branch as usual. When it's done, land it from the main checkout:
-  `.\tools\dev\land.ps1 worktree-<name>` (rebase onto main, compile + covering tests,
+  `.\tools\dev\land.ps1 worktree-<name>` (rebase onto main, compile + smoketest + covering tests,
   fast-forward main; a conflict backs out and changes nothing). `-List` shows every
   worktree and how far it is ahead of main.
 - In a worktree session, Zach's F12 captures are still in the main checkout:

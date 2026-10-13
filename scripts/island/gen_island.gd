@@ -487,6 +487,10 @@ func reserve_area(c: Vector2, r: float) -> void:
 				reserve(c + Vector2(x, z), 3.5)
 			z += 5.0
 		x += 5.0
+	# (the grid's outer nodes fall past r on some bearings, leaving gaps at the rim a rock could stand in: a ring closes them)
+	var k := maxi(ceili(TAU * r / 5.0), 6)
+	for i in range(k):
+		reserve(c + Vector2.from_angle(TAU * i / k) * maxf(r - 1.5, 0.0), 3.5)
 
 
 func excluded(p: Vector2, pad: float, under := INF) -> bool:

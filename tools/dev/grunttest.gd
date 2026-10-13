@@ -5,6 +5,8 @@ const RECOVER := 7; const BLOCK := 8; const STAGGER := 9; const HITSTUN := 10; c
 var t := 0.0
 var step := 0
 var wait := 0.0
+var until := 0
+const TK = preload("res://tools/dev/test_kit.gd")
 var p
 var camp
 var fails := 0
@@ -13,7 +15,7 @@ var max_att := 0
 var hp0 := 0.0
 var g
 var t0 := 0.0
-func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
+func _initialize(): TK.seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
 	if not cond: fails += 1
@@ -53,8 +55,11 @@ func _process(d: float) -> bool:
 				seen[x.state] = true
 				if x.state in [WIND, SWING, CLOSE]: att += 1
 		max_att = maxi(max_att, att)
+	# (waits are game time, in physics ticks: under load frames run fewer ticks than seconds pass)
 	if wait > 0.0:
-		wait -= d
+		until = TK.wait_secs(wait)
+		wait = 0.0
+	if TK.ticking(until):
 		return false
 	match step:
 		0:

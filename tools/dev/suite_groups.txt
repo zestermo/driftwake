@@ -6,5 +6,5 @@ Character & UI: chartest hairtest invtest r6test r7test savetest capturetest qol
 Powers & progression: powertest vinetest progtest leveltest
 Enemies: bugtest grunttest apetest bosstest watertest faunatest
 Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest
-Islands & world: chaintest isletest villagetest harbourtest lifetest dungeontest landmarktest fidelitytest foresttest storytest ambiencetest r9test r10test perftest
+Islands & world: smoketest chaintest isletest villagetest harbourtest lifetest dungeontest landmarktest fidelitytest foresttest storytest ambiencetest r9test r10test perftest
 Co-op: net net-chain net-board

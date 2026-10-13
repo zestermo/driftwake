@@ -172,6 +172,7 @@ func joint_keep(sk: Skeleton3D, bone: int, side_x: float, band: float) -> float:
 
 
 func _initialize():
+	load("res://tools/dev/test_kit.gd").seed_of(self)
 	# 1. every option value builds
 	var opts := {"body": CharacterLook.BODIES, "build": CharacterLook.BUILDS, "height": CharacterLook.HEIGHTS,
 		"head": CharacterLook.HEADS, "nose": CharacterLook.NOSES, "eyes": range(6), "brows": range(5), "mouth": range(6),

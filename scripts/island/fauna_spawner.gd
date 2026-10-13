@@ -90,7 +90,11 @@ static func roll(seed_v: int) -> Dictionary:
 		var n := roundi(rng.randi_range(d[0], d[1]) * rng.randf_range(0.6, 1.5) * (2.0 if k == plague else 1.0))
 		out[k] = maxi(n, 1)
 		out["morph"][k] = rng.randi() % 3
-	out["ambient"] = {"swarms": rng.randi_range(3, 10), "flocks": rng.randi_range(0, 4), "fireflies": rng.randf() < 0.8, "butterflies": rng.randf() < 0.8}
+	var amb := {"swarms": rng.randi_range(3, 10), "flocks": rng.randi_range(0, 4), "fireflies": rng.randf() < 0.8, "butterflies": rng.randf() < 0.8}
+	# (one in 125 rolled no swarm and no flock: a bare island. Those get a flock; no other roll changes)
+	if not (amb["fireflies"] or amb["butterflies"]):
+		amb["flocks"] = maxi(int(amb["flocks"]), 1)
+	out["ambient"] = amb
 	return out
 
 

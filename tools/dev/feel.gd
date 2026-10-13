@@ -9,7 +9,7 @@ var base_y := 0.0
 var peaks := []
 var turn_t := 0.0
 var buffered := false
-func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
+func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func press(a: String) -> void:
 	var e := InputEventAction.new(); e.action = a; e.pressed = true; Input.parse_input_event(e)
 func release(a: String) -> void:

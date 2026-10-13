@@ -56,3 +56,4 @@ landmarktest
 bosstest
 faunatest
 daggertest
+smoketest

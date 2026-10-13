@@ -187,8 +187,7 @@ func _brinehollow(w) -> Dictionary:
 ## Chain `s`'s island (node want_id, or the first the log pose points at), built here
 ## all at once (GenIsland.build), measured, freed.
 func _generated(w, s: int) -> Dictionary:
-	var gm = root.get_node("GameManager")
-	gm.chain_seed = s
+	load("res://tools/dev/test_kit.gd").use_seed(self, s)
 	var c = w.chain()
 	var id: int = clampi(want_id, 0, c.nodes.size() - 1) if want_id >= 0 else int(c.start_next[0])
 	var n: Dictionary = c.node(id)
