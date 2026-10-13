@@ -16,7 +16,7 @@ const NOTES := [
 	["Daggers", "One or two: quick, close, bleeding wounds and backstabs. Shadow Lunge, Red Eclipse and Hundred Fangs. An off-hand dagger is held reversed."],
 	["Fights with more bite", "Bosses close the gap if you hang back, bug poison lingers on the ground, riflemen telegraph their shove, and tougher pirates dodge like you do."],
 	["A harder road to Grell", "His den now sits on a clifftop out of sight of the beach. Climb the pillars or take the rope ladder from his pier."],
-	["The second wardrobe", "23 new pieces of clothing and armour, from a fez and a kimono to a frock coat, sabatons and a crown. Sela sells cloth and leather, Vey the steel."],
+	["New drip", "23 new pieces of clothing and armour: a fez, a kimono, brass goggles, a frock coat, sabatons, a crown you'll have to steal... Sela sells cloth and leather, Vey the steel."],
 	["A cleaner inventory", "What you hold isn't in your bag, tooltips compare against what you use, and the text is crisp. Option arrows go back as well as forward."],
 ]
 
