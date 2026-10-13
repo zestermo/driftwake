@@ -10,7 +10,7 @@ $suites = @($need | Where-Object { $_ -notlike "net*" })
 $nets = @($need | Where-Object { $_ -like "net*" } | ForEach-Object { if ($_ -eq "net") { "" } else { $_.Substring(4) } })
 Write-Host ("Needs running: " + $(if ($need) { $need -join " " } else { "nothing" })) -ForegroundColor Cyan
 if ($List -or $need.Count -eq 0) { exit 0 }
-if ($suites.Count -gt 0) { & (Join-Path $PSScriptRoot "run_tests.ps1") @suites -Jobs 3 }
+if ($suites.Count -gt 0) { & (Join-Path $PSScriptRoot "run_tests.ps1") @suites -Jobs 5 }
 foreach ($m in $nets) {
 	if ($m) { & (Join-Path $PSScriptRoot "nettest.ps1") $m } else { & (Join-Path $PSScriptRoot "nettest.ps1") }
 }

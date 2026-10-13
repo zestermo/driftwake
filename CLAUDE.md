@@ -126,7 +126,7 @@ so half-finished edits never break another session's tests or end up in its comm
   Landing releases it. After an edit to a file another session is changing or has claimed, a
   hook tells you who; keep that edit small and local, and tell Zach if the overlap is big.
 - **Tests are shared machine-wide:** see "Testing strategy" above. There are `DRIFTWAKE_TEST_SLOTS`
-  (default 3) Godot slots across all sessions. Passes are cached by exact code (`-Force` reruns),
+  (default 5; the i7-14700HX and 32 GB take it) Godot slots across all sessions. Passes are cached by exact code (`-Force` reruns),
   and runs in flight are shared.
 - In a worktree, a failing test is this tree's code (or main's), never another session's
   uncommitted work. If it's in a file someone else is changing on main, say so.

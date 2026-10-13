@@ -60,7 +60,7 @@ function Clear-OldResults([string]$crew) {
 
 function Get-SlotCount() {
 	if ($env:DRIFTWAKE_TEST_SLOTS) { return [int]$env:DRIFTWAKE_TEST_SLOTS }
-	return 3
+	return 5
 }
 
 ## A free test slot, or $null: [stream, who-file]. Hold it while Godot runs, then Exit-Slot.

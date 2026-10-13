@@ -13,7 +13,7 @@
 # Logs land in tools\dev\out\logs\<suite>.log as the suite runs. Exit code = number of failed suites.
 #
 # Parallel sessions (tools\dev\crew_lib.ps1): every runner on the machine shares
-# $env:DRIFTWAKE_TEST_SLOTS (default 3) Godot test slots and waits for a free one; a suite
+# $env:DRIFTWAKE_TEST_SLOTS (default 5) Godot test slots and waits for a free one; a suite
 # that already passed on exactly this code (any session, any worktree) is skipped, and one
 # another runner is running on exactly this code right now is waited for, not run twice.
 # A suite is stopped early when it stalls (no output for DRIFTWAKE_TEST_STALL s, default 150),
