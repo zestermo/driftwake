@@ -724,7 +724,7 @@ func _reward() -> void:
 	var stacks: Array = []
 	for d in drops:
 		if _rng.randf() < float(d[1]):
-			stacks.append([str(d[0]), int(d[2])])
+			stacks.append([["id", str(d[0])], int(d[2])])
 	if not stacks.is_empty():
 		Net.drop_items(stacks, global_position + Vector3(0, 0.3, 0))
 

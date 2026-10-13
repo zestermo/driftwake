@@ -23,6 +23,10 @@ var cur: Array = []
 var start := Vector3.ZERO
 var acc := {}
 var frames := 0
+## (loaded once the world is up, not named: a --script compiles before the autoloads Creature and FaunaSpawner use exist)
+var FS
+var CR
+var PS
 
 ## [kind, args, offset from the captain (x along, y up for anchors), seconds, states wanted (any of), label]
 const CASES := [
@@ -65,17 +69,17 @@ func heal() -> void:
 	p.health_component.max_health = 9000.0
 	p.health_component.current_health = 9000.0
 	for n in p.get_children():
-		if n is PoisonStatus:
+		if is_instance_of(n, PS):
 			n.queue_free()
 
 
-func spawn(k: String, args: Dictionary, off: Vector3) -> Creature:
+func spawn(k: String, args: Dictionary, off: Vector3):
 	var base: Vector3 = p.global_position
 	var a := args.duplicate()
 	if a.has("anchor"):
 		a["anchor"] = ground(base + Vector3((a["anchor"] as Vector3).x, 0, 0)) + Vector3.UP * (a["anchor"] as Vector3).y
 	var home := ground(base + Vector3(off.x, 0, off.z))
-	var cr := FaunaSpawner.make(k)
+	var cr = FS.make(k)
 	cr.setup(home, a)
 	cr.name = "T_%s_%d" % [k, step]
 	cr.position = holder.to_local(home) + Vector3.UP * 0.2
@@ -105,8 +109,11 @@ func _process(d: float) -> bool:
 			world = root.get_node("World/Islands")
 			if not world.chain_ready():
 				return false
+			FS = load("res://scripts/island/fauna_spawner.gd")
+			CR = load("res://scripts/enemies/fauna/creature.gd")
+			PS = load("res://scripts/combat/poison_status.gd")
 			isl = world.chain_islands[world.chain().start_next[0]]
-			fauna = FaunaSpawner.of(isl)
+			fauna = FS.of(isl)
 			start = p.global_position
 			check("the island has its fauna", fauna != null)
 			var kinds: Array = fauna.pool.keys().filter(func(k): return k != "morph" and k != "ambient")
@@ -115,13 +122,13 @@ func _process(d: float) -> bool:
 				counts[s["kind"]] = int(counts.get(s["kind"], 0)) + 1
 			print("   %s (seed %d): %d creatures in %d groups %s, zones floor %d canopy %d shore %d, built in %d ms" % [isl.island_name, int(isl.node["seed"]),
 				fauna.spots.size(), fauna.groups.size(), counts, fauna.zones["floor"].size(), fauna.zones["canopy"].size(), fauna.zones["shore"].size(), int(isl.build_ms.get("fauna", -1))])
-			check("a pool of several kinds (%d)" % kinds.size(), kinds.size() >= FaunaSpawner.MIN_KINDS and kinds.size() <= FaunaSpawner.MAX_KINDS)
-			check("a good number of creatures (%d)" % fauna.spots.size(), fauna.spots.size() >= 15 and fauna.spots.size() <= FaunaSpawner.CAP + 10)
+			check("a pool of several kinds (%d)" % kinds.size(), kinds.size() >= FS.MIN_KINDS and kinds.size() <= FS.MAX_KINDS)
+			check("a good number of creatures (%d)" % fauna.spots.size(), fauna.spots.size() >= 15 and fauna.spots.size() <= FS.CAP + 10)
 			check("they all stood up", fauna.alive_count() == fauna.spots.size())
-			check("same seed, same pool", JSON.stringify(FaunaSpawner.roll(1234)) == JSON.stringify(FaunaSpawner.roll(1234)))
+			check("same seed, same pool", JSON.stringify(FS.roll(1234)) == JSON.stringify(FS.roll(1234)))
 			var rolls := {}
 			for s in range(8):
-				var r := FaunaSpawner.roll(1000 + s * 77)
+				var r: Dictionary = FS.roll(1000 + s * 77)
 				rolls[JSON.stringify(r.keys().filter(func(k): return k != "morph" and k != "ambient"))] = true
 			print("   8 seeds, %d different line-ups of kinds" % rolls.size())
 			check("different seeds, different islands", rolls.size() >= 4)
@@ -173,7 +180,7 @@ func _process(d: float) -> bool:
 		4:
 			var on: float = acc["frame"] / maxf(frames, 1)
 			for s in fauna.spots:
-				s["node"].set_lod(Creature.LOD_SLEEP)
+				s["node"].set_lod(CR.LOD_SLEEP)
 			fauna.process_mode = Node.PROCESS_MODE_DISABLED
 			acc["on"] = on
 			acc["frame"] = 0.0
@@ -234,7 +241,7 @@ func _process(d: float) -> bool:
 			hit.damage = 99999.0
 			hit.knockback_force = 6.0
 			c.hurtbox.take_hit(hit, p)
-			check("%s dies" % cur[0], c.state == Creature.S.DEAD)
+			check("%s dies" % cur[0], c.is_dead())
 			check("%s drops its loot" % cur[0], current_scene.find_children("Drop_*", "", false, false).size() > drops0)
 			if cur[0] == "boar" and not cur[1].has("young"):
 				check("coins", current_scene.find_children("Coin*", "", false, false).size() > coins0)
@@ -242,16 +249,16 @@ func _process(d: float) -> bool:
 			step = 6
 		9:
 			# levels scale it
-			var lo := FaunaSpawner.make("boar")
+			var lo = FS.make("boar")
 			lo.setup(p.global_position + Vector3(50, 0, 0), {})
 			lo.level = 3
-			var hi := FaunaSpawner.make("boar")
+			var hi = FS.make("boar")
 			hi.setup(p.global_position + Vector3(52, 0, 0), {})
 			hi.level = 18
 			holder.add_child(lo)
 			holder.add_child(hi)
 			check("a level 18 boar is tougher than a level 3 (%d vs %d)" % [hi.health.max_health, lo.health.max_health], hi.health.max_health > lo.health.max_health * 1.5)
-			check("dead ones sink away", holder.get_children().filter(func(n): return n is Creature and n.is_dead()).size() < CASES.size())
+			check("dead ones sink away", holder.get_children().filter(func(n): return is_instance_of(n, CR) and n.is_dead()).size() < CASES.size())
 			finish()
 			return true
 	return false
