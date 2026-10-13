@@ -36,7 +36,8 @@ const HP_COL := Color(0.78, 0.1, 0.08)
 const HP_HI := Color(1.0, 0.42, 0.32)
 const ST_COL := Color(0.36, 0.78, 0.32)
 const ST_EMPTY := Color(0.85, 0.62, 0.18)
-const PLATE := Color(0.05, 0.05, 0.08, 0.9)
+const PLATE := Color("1d5e66e0")
+const EMPTY_RIM := Color("5e7470")
 
 var player: Player
 var _hp_shown: float = 1.0      # fraction, eases toward the real value
@@ -149,9 +150,7 @@ func _draw() -> void:
 	var fruit_col: Color = pc.fruit_data().get("color", Color(0.35, 0.6, 1.0))
 	# the plate the slots sit on
 	var plate := Rect2(ORB_R, PLATE_Y, W - ORB_R * 2.0, H - PLATE_Y - 2.0)
-	draw_rect(plate, PLATE)
-	draw_rect(plate, UIStyle.BORDER_DIM, false, 1.0)
-	draw_line(plate.position + Vector2(1, 1), Vector2(plate.end.x - 1, plate.position.y + 1), Color(1, 1, 1, 0.06))
+	draw_style_box(UIStyle.frame(PLATE, UIStyle.BORDER_DIM, 0, "plank"), plate)
 	# stamina along the top of the plate
 	var x0 := ORB_R * 2.0 + 8.0
 	_draw_stamina(Rect2(x0, PLATE_Y + 3.0, W - x0 * 2.0, 4.0))
@@ -255,8 +254,7 @@ static func _drawable(piece: PackedVector2Array) -> bool:
 
 
 func _slot_frame(r: Rect2, border: Color, bw: float = 1.0) -> void:
-	draw_rect(r, Color(0.02, 0.02, 0.04, 0.95))
-	draw_rect(r, border, false, bw)
+	draw_style_box(UIStyle.frame(Color(UIStyle.OUTLINE, 0.95), border, 0, "well", bw > 1.0), r)
 
 
 ## Dark pie over the icon for the remaining cooldown (clockwise from 12).
@@ -282,8 +280,8 @@ func _draw_skill(r: Rect2, i: int, fruit_col: Color) -> void:
 	var sk := pc.skill(i)
 	var key := str(i + 1)
 	if sk.is_empty():
-		_slot_frame(r, Color(0.25, 0.24, 0.22))
-		_text(r.position + Vector2(2, 8), key, Color(0.5, 0.5, 0.5))
+		_slot_frame(r, EMPTY_RIM)
+		_text(r.position + Vector2(2, 8), key, EMPTY_RIM)
 		return
 	var doused := pc.suppressed() and str(sk.get("fruit", "")) != ""
 	var cost := float(sk.get("cost", 0.0))
@@ -323,8 +321,8 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 	# charge ring
 	draw_arc(c, rad, 0.0, TAU, 32, Color(0, 0, 0, 0.8), 4.0)
 	if sk.is_empty():
-		_slot_frame(r, Color(0.25, 0.24, 0.22))
-		_text(r.position + Vector2(2, 9), "R", Color(0.5, 0.5, 0.5))
+		_slot_frame(r, EMPTY_RIM)
+		_text(r.position + Vector2(2, 9), "R", EMPTY_RIM)
 		return
 	var frac := pc.ult / PowerComponent.ULT_MAX
 	var full := frac >= 1.0
@@ -361,7 +359,7 @@ func _draw_item(r: Rect2, i: int) -> void:
 		if item.icon:
 			draw_texture_rect(item.icon, r.grow(-1.0), false, Color(1, 1, 1, 1.0 if qty > 0 else 0.3))
 		_text(Vector2(r.position.x, r.end.y - 1.0), str(qty), Color.WHITE if qty > 0 else Color(1, 0.4, 0.35), 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)
-	_text(r.position + Vector2(2, 8), str(i + 5), Color(0.75, 0.72, 0.65))
+	_text(r.position + Vector2(2, 8), str(i + 5), UIStyle.TEXT_DIM)
 
 
 ## Level badge (over the health orb) and the experience bar along the bottom
@@ -377,7 +375,7 @@ func _draw_xp() -> void:
 	draw_rect(Rect2(r.position, Vector2(r.size.x * frac, r.size.y)), Color(0.55, 0.45, 1.0))
 	draw_rect(Rect2(r.position, Vector2(r.size.x * frac, 1.0)), Color(0.8, 0.75, 1.0))
 	var badge := Vector2(ORB_R + 2.0, 6.0)
-	draw_circle(badge, 8.0, Color(0.06, 0.05, 0.1, 0.95))
+	draw_circle(badge, 8.0, UIStyle.BG_DARK)
 	draw_arc(badge, 8.0, 0.0, TAU, 20, UIStyle.BORDER, 1.0)
 	_text(badge + Vector2(-10.0, 3.0), str(pr.level), UIStyle.ACCENT, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
 	if pr.skill_points > 0:

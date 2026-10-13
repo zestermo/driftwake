@@ -6,11 +6,9 @@ extends CanvasLayer
 signal choice_made(choice: Dictionary)
 
 const CHARS_PER_SEC := 42.0
-const BORDER := Color(0.86, 0.74, 0.45)
-const BG := Color(0.04, 0.05, 0.09, 0.9)
-const TEXT_COLOR := Color(0.95, 0.93, 0.86)
-const CHOICE_COLOR := Color(0.7, 0.7, 0.66)
-const CHOICE_SEL_COLOR := Color(1.0, 0.85, 0.35)
+const TEXT_COLOR := UIStyle.INK
+const CHOICE_COLOR := UIStyle.INK_DIM
+const CHOICE_SEL_COLOR := Color("1d5e66")
 
 var _root: Control
 var _panel: PanelContainer
@@ -39,22 +37,6 @@ func _ready() -> void:
 	_root.visible = false
 
 
-func _style(bg: Color, border: Color, pad: int) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(0)
-	sb.content_margin_left = pad
-	sb.content_margin_right = pad
-	sb.content_margin_top = pad - 2
-	sb.content_margin_bottom = pad - 2
-	sb.shadow_color = Color(0, 0, 0, 0.6)
-	sb.shadow_size = 0
-	sb.shadow_offset = Vector2(3, 3)
-	return sb
-
-
 ## The window's width on the UI canvas (PSX.UI_SIZE), centred at the bottom.
 const WIDTH := 460.0
 
@@ -67,7 +49,7 @@ func _build() -> void:
 	add_child(_root)
 
 	_panel = PanelContainer.new()
-	_panel.add_theme_stylebox_override("panel", _style(BG, BORDER, 9))
+	_panel.add_theme_stylebox_override("panel", UIStyle.panel(Color(UIStyle.CREAM, 0.97), UIStyle.BORDER, 9))
 	_panel.anchor_left = 0.5
 	_panel.anchor_right = 0.5
 	_panel.anchor_top = 1.0
@@ -90,9 +72,6 @@ func _build() -> void:
 	_text.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_text.add_theme_color_override("font_color", TEXT_COLOR)
-	_text.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-	_text.add_theme_constant_override("shadow_offset_x", 1)
-	_text.add_theme_constant_override("shadow_offset_y", 1)
 	_text.add_theme_constant_override("line_spacing", 1)
 	vb.add_child(_text)
 
@@ -107,23 +86,25 @@ func _build() -> void:
 	leave.text = "Esc  leave"
 	leave.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
 	leave.add_theme_font_size_override("font_size", 8)
-	leave.add_theme_color_override("font_color", Color(0.55, 0.52, 0.46))
+	leave.add_theme_color_override("font_color", UIStyle.INK_DIM)
 	leave.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(leave)
 	_arrow = Label.new()
 	_arrow.text = "F  >"
 	_arrow.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
 	_arrow.add_theme_font_size_override("font_size", 8)
-	_arrow.add_theme_color_override("font_color", BORDER)
+	_arrow.add_theme_color_override("font_color", CHOICE_SEL_COLOR)
 	foot.add_child(_arrow)
 
 	_name_panel = PanelContainer.new()
-	_name_panel.add_theme_stylebox_override("panel", _style(Color(0.18, 0.1, 0.06, 0.95), BORDER, 5))
+	_name_panel.add_theme_stylebox_override("panel", UIStyle.frame(Color(UIStyle.TEAL, 1.0), UIStyle.BORDER, 6, "plank"))
 	_name_panel.anchor_top = 1.0
 	_name_panel.anchor_bottom = 1.0
 	_root.add_child(_name_panel)
 	_name_label = Label.new()
-	_name_label.add_theme_color_override("font_color", CHOICE_SEL_COLOR)
+	_name_label.add_theme_color_override("font_color", UIStyle.SUN)
+	_name_label.add_theme_color_override("font_outline_color", UIStyle.OUTLINE)
+	_name_label.add_theme_constant_override("outline_size", 3)
 	_name_label.add_theme_font_override("font", load("res://assets/fonts/PixelifySans-SemiBold.woff2"))
 	_name_panel.add_child(_name_label)
 

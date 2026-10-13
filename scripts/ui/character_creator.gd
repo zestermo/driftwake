@@ -12,6 +12,7 @@ static var active: bool = false
 
 const TABS := ["Body", "Face", "Hair", "Outfit", "Extras"]
 const ROW_FONT := 12
+const STAGE := Color("2a6f78")
 
 var look: Dictionary = {}
 var first_time := false
@@ -72,7 +73,7 @@ func _build_ui() -> void:
 	root.theme = UIStyle.get_theme()
 	add_child(root)
 	var bg := ColorRect.new()
-	bg.color = Color(0.03, 0.04, 0.07, 1.0 if first_time else 0.86)
+	bg.color = Color(Color("0f3238"), 1.0 if first_time else 0.86)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_child(bg)
 
@@ -96,7 +97,7 @@ func _build_ui() -> void:
 	# ---- preview
 	var pv_panel := PanelContainer.new()
 	pv_panel.custom_minimum_size = Vector2(250, 0)
-	pv_panel.add_theme_stylebox_override("panel", UIStyle.box(Color(0.12, 0.16, 0.22, 1.0), UIStyle.BORDER_DIM, 0, 2))
+	pv_panel.add_theme_stylebox_override("panel", UIStyle.panel(STAGE, UIStyle.BORDER, 0))
 	hb.add_child(pv_panel)
 	var pv_box := VBoxContainer.new()
 	pv_panel.add_child(pv_box)
@@ -147,7 +148,7 @@ func _build_ui() -> void:
 		_tab_buttons[t] = b
 	var panel := PanelContainer.new()
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", UIStyle.box(UIStyle.BG, UIStyle.BORDER_DIM, 6, 1))
+	panel.add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.BG, UIStyle.BORDER, 6))
 	right.add_child(panel)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -167,8 +168,6 @@ func _build_ui() -> void:
 	_name_edit.max_length = 18
 	_name_edit.custom_minimum_size = Vector2(130, 0)
 	_name_edit.add_theme_font_size_override("font_size", ROW_FONT + 1)
-	_name_edit.add_theme_stylebox_override("normal", UIStyle.box(UIStyle.BG_LIGHT, UIStyle.BORDER_DIM, 4, 1))
-	_name_edit.add_theme_stylebox_override("focus", UIStyle.box(UIStyle.BG_LIGHT, UIStyle.ACCENT, 4, 1))
 	_name_edit.text_changed.connect(func(t: String): look["name"] = t.strip_edges() if t.strip_edges() != "" else "Captain")
 	bar.add_child(_name_edit)
 	var spacer := Control.new()
@@ -193,7 +192,7 @@ func _build_stage(sv: SubViewport) -> void:
 	var env := WorldEnvironment.new()
 	var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR
-	e.background_color = Color(0.13, 0.17, 0.24)
+	e.background_color = STAGE
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	e.ambient_light_color = Color(0.62, 0.64, 0.72)
 	e.ambient_light_energy = 0.8
@@ -386,9 +385,9 @@ func _colors(text: String, key: String) -> void:
 		for i in range(swatches.size()):
 			var c: Color = pal[i]
 			var sel := c.is_equal_approx(cur)
-			var sb := UIStyle.box(c, UIStyle.ACCENT if sel else Color(0, 0, 0, 0.6), 0, 2 if sel else 1)
+			var sb := UIStyle.frame(c, UIStyle.ACCENT, 0, "chip", true) if sel else UIStyle.frame(c, c.darkened(0.45), 0, "chip")
 			for st in ["normal", "hover", "pressed", "focus"]:
-				(swatches[i] as Button).add_theme_stylebox_override(st, sb if st != "hover" else UIStyle.box(c, UIStyle.TEXT, 0, 2))
+				(swatches[i] as Button).add_theme_stylebox_override(st, sb if st != "hover" else UIStyle.frame(c, UIStyle.CREAM, 0, "chip", true))
 	for i in range(pal.size()):
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(13, 13)

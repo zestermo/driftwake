@@ -97,15 +97,15 @@ func _draw_card() -> void:
 	var w := c.size.x
 	var h := c.size.y
 	var horizon := h * 0.6
-	var top := Color(0.04, 0.05, 0.12)
-	var mid := Color(0.24, 0.13, 0.24)
-	var low := Color(0.78, 0.4, 0.22)
+	var top := Color("0f3238")
+	var mid := UIStyle.TEAL.darkened(0.15)
+	var low := UIStyle.CORAL.darkened(0.1)
 	c.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, horizon * 0.65), Vector2(0, horizon * 0.65)]),
 		PackedColorArray([top, top, mid, mid]))
 	c.draw_polygon(PackedVector2Array([Vector2(0, horizon * 0.65), Vector2(w, horizon * 0.65), Vector2(w, horizon), Vector2(0, horizon)]),
 		PackedColorArray([mid, mid, low, low]))
-	var sea_far := Color(0.42, 0.22, 0.26)
-	var sea_near := Color(0.03, 0.04, 0.1)
+	var sea_far := UIStyle.TEAL.darkened(0.1)
+	var sea_near := Color("0a252a")
 	c.draw_polygon(PackedVector2Array([Vector2(0, horizon), Vector2(w, horizon), Vector2(w, h), Vector2(0, h)]),
 		PackedColorArray([sea_far, sea_far, sea_near, sea_near]))
 	# swell lines drifting by
@@ -121,19 +121,20 @@ func _draw_card() -> void:
 	# a far island on the horizon
 	var isl := PackedVector2Array([Vector2(w * 0.58, horizon), Vector2(w * 0.63, horizon - 10), Vector2(w * 0.67, horizon - 19),
 		Vector2(w * 0.7, horizon - 15), Vector2(w * 0.76, horizon - 6), Vector2(w * 0.8, horizon)])
-	c.draw_colored_polygon(isl, Color(0.16, 0.09, 0.16))
+	c.draw_colored_polygon(isl, Color("1d4f55"))
 	# logo
 	var lp := Vector2(44, horizon * 0.5)
-	c.draw_string_outline(LOGO_FONT, lp + Vector2(0, 3), "DRIFTWAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, 9, Color(0.08, 0.03, 0.02))
-	c.draw_string(LOGO_FONT, lp + Vector2(0, 3), "DRIFTWAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.55, 0.25, 0.1))
+	c.draw_string_outline(LOGO_FONT, lp + Vector2(0, 3), "DRIFTWAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, 9, UIStyle.OUTLINE)
+	c.draw_string(LOGO_FONT, lp + Vector2(0, 3), "DRIFTWAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, UIStyle.CORAL.darkened(0.35))
 	c.draw_string(LOGO_FONT, lp, "DRIFTWAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, UIStyle.ACCENT)
 	# the bar and what's happening
 	var status := "Charting the waters" if _stage == "load" else ("Raising Brinehollow" if _stage == "build" else "Making landfall")
 	status += ".".repeat(int(_t * 2.5) % 4)
-	var bar := Rect2(44, h - 46, w - 88, 5)
-	c.draw_rect(bar.grow(1), Color(0, 0, 0, 0.7))
-	c.draw_rect(Rect2(bar.position, Vector2(bar.size.x * _shown, bar.size.y)), UIStyle.ACCENT)
-	c.draw_string_outline(SMALL_FONT, Vector2(44, h - 52), status.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color.BLACK)
-	c.draw_string(SMALL_FONT, Vector2(44, h - 52), status.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 0.9, 0.75))
-	c.draw_string_outline(SMALL_FONT, Vector2(44, h - 26), _tip, HORIZONTAL_ALIGNMENT_LEFT, w - 88, 8, 3, Color.BLACK)
-	c.draw_string(SMALL_FONT, Vector2(44, h - 26), _tip, HORIZONTAL_ALIGNMENT_LEFT, w - 88, 8, Color(0.85, 0.82, 0.78))
+	var bar := Rect2(44, h - 47, w - 88, 7)
+	c.draw_style_box(UIStyle.frame(UIStyle.BG_DARK, UIStyle.BORDER_DIM, 0, "chip"), bar)
+	if _shown > 0.02:
+		c.draw_style_box(UIStyle.frame(UIStyle.SUN, UIStyle.CREAM, 0, "chip"), Rect2(bar.position, Vector2(maxf(bar.size.x * _shown, 6.0), bar.size.y)))
+	c.draw_string_outline(SMALL_FONT, Vector2(44, h - 52), status.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, UIStyle.OUTLINE)
+	c.draw_string(SMALL_FONT, Vector2(44, h - 52), status.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.CREAM)
+	c.draw_string_outline(SMALL_FONT, Vector2(44, h - 26), _tip, HORIZONTAL_ALIGNMENT_LEFT, w - 88, 8, 3, UIStyle.OUTLINE)
+	c.draw_string(SMALL_FONT, Vector2(44, h - 26), _tip, HORIZONTAL_ALIGNMENT_LEFT, w - 88, 8, UIStyle.TEXT_DIM)

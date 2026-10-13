@@ -28,7 +28,7 @@ func _init(menu: Node) -> void:
 	set_anchors_preset(Control.PRESET_CENTER)
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BOTH
-	add_theme_stylebox_override("panel", UIStyle.box(UIStyle.BG, UIStyle.BORDER, 10, 2))
+	add_theme_stylebox_override("panel", UIStyle.panel())
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 4)
 	add_child(vb)

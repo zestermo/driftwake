@@ -38,6 +38,7 @@ func _ready() -> void:
 	banner.modulate.a = 0.0
 	toast.modulate.a = 0.0
 	interact_panel.visible = false
+	interact_panel.add_theme_stylebox_override("panel", UIStyle.framed(Color(UIStyle.BG, 0.9), UIStyle.BORDER, "plank", 8, 3))
 	# held jobs ("Hold F: ...") show in the same panel, with their progress under the words
 	var ivb := VBoxContainer.new()
 	ivb.add_theme_constant_override("separation", 1)
@@ -402,15 +403,7 @@ func _feed_add(item: ItemData, quantity: int) -> void:
 		_bump(e[0])
 		return
 	var row := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.04, 0.03, 0.05, 0.62)
-	sb.border_color = Color(UIStyle.ACCENT.r, UIStyle.ACCENT.g, UIStyle.ACCENT.b, 0.5)
-	sb.border_width_left = 2
-	sb.content_margin_left = 4
-	sb.content_margin_right = 5
-	sb.content_margin_top = 1
-	sb.content_margin_bottom = 1
-	row.add_theme_stylebox_override("panel", sb)
+	row.add_theme_stylebox_override("panel", UIStyle.framed(Color(UIStyle.BG, 0.7), UIStyle.BORDER_DIM, "chip", 5, 1))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var hb := HBoxContainer.new()
@@ -537,8 +530,8 @@ func _bar(fill: Color) -> ProgressBar:
 	var bar := ProgressBar.new()
 	bar.show_percentage = false
 	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0.05, 0.04, 0.04, 0.8)
-	bg.border_color = Color(0, 0, 0, 0.9)
+	bg.bg_color = Color(UIStyle.BG_DARK, 0.85)
+	bg.border_color = UIStyle.OUTLINE
 	bg.set_border_width_all(1)
 	var fg := StyleBoxFlat.new()
 	fg.bg_color = fill

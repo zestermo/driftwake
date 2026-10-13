@@ -331,8 +331,8 @@ func _say(m: String) -> void:
 # --------------------------------------------------------------------------
 # Drawing
 # --------------------------------------------------------------------------
-func _text(pos: Vector2, s: String, col: Color = UIStyle.TEXT, sz: int = 8, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
-	draw_string_outline(FONT, pos, s, align, w, sz, 3, Color(0, 0, 0, 0.9))
+func _text(pos: Vector2, s: String, col: Color = UIStyle.TEXT, sz: int = 8, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0, outline := Color(UIStyle.OUTLINE, 0.9)) -> void:
+	draw_string_outline(FONT, pos, s, align, w, sz, 3, outline)
 	draw_string(FONT, pos, s, align, w, sz, col)
 
 
@@ -341,11 +341,11 @@ func _draw() -> void:
 	if pl == null:
 		return
 	var pr := pl.progression
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.03, 0.07, 1.0))
+	draw_rect(Rect2(Vector2.ZERO, size), Color("0c2a2f"))
 	for st in _stars:
 		var sp := Vector2(st.x * size.x, st.y * size.y) - _pan * 0.05 * _zoom
 		sp = Vector2(fposmod(sp.x, size.x), fposmod(sp.y, size.y))
-		draw_rect(Rect2(sp, Vector2(1, 1)), Color(0.6, 0.65, 0.9, 0.35 + 0.25 * sin(_t * 1.3 + st.x * 40.0)))
+		draw_rect(Rect2(sp, Vector2(1, 1)), Color(UIStyle.CREAM, 0.3 + 0.25 * sin(_t * 1.3 + st.x * 40.0)))
 	var mr := _map_rect()
 	if _tab == "base":
 		# region labels
@@ -361,20 +361,20 @@ func _draw() -> void:
 			if str(l[1]) != "":
 				_text(lp + Vector2(-60, 0), str(l[1]).to_upper(), Color(col.r, col.g, col.b, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 			if pr.level < int(l[3]):
-				_text(lp + Vector2(-60, 10), "awakens at level %d" % int(l[3]), Color(0.7, 0.6, 0.8, 0.6), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
+				_text(lp + Vector2(-60, 10), "awakens at level %d" % int(l[3]), Color(UIStyle.TEXT_DIM, 0.7), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 	elif _tab != "fruit":
 		var m := pr.mastery_of(_tab)
 		if int(m["lv"]) == 1 and int(m["xp"]) == 0 and int(m["pts"]) == 0:
-			_text(Vector2(0, HEADER_H + 12), "Fight with it to build mastery: every mastery level is a point for this tree.", Color(0.85, 0.85, 0.95, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+			_text(Vector2(0, HEADER_H + 12), "Fight with it to build mastery: every mastery level is a point for this tree.", Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	elif pl.power.has_fruit():
 		var fd := pl.power.fruit_data()
 		var fc: Color = fd["color"]
 		_text(Vector2(0, HEADER_H + 12), ("%s (%s)" % [fd["name"], DevilFruits.type_name(pl.power.fruit)]).to_upper(), Color(fc.r, fc.g, fc.b, 0.9), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 		var passive: Array = fd.get("passive", ["", ""])
-		_text(Vector2(0, HEADER_H + 22), "Passive: %s" % passive[0], Color(0.8, 0.8, 0.9, 0.7), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+		_text(Vector2(0, HEADER_H + 22), "Passive: %s" % passive[0], Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	else:
-		_text(Vector2(0, mr.size.y * 0.45), "NO DEVIL FRUIT YET", Color(0.75, 0.65, 0.8, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
-		_text(Vector2(0, mr.size.y * 0.45 + 12), "Eat one and its powers grow here. Three are hidden on Brinehollow.", Color(0.6, 0.55, 0.65, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+		_text(Vector2(0, mr.size.y * 0.45), "NO DEVIL FRUIT YET", UIStyle.TEXT, 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+		_text(Vector2(0, mr.size.y * 0.45 + 12), "Eat one and its powers grow here. Three are hidden on Brinehollow.", Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	# links
 	for id in SkillTree.nodes().keys():
 		if not _shown(id):
@@ -387,7 +387,7 @@ func _draw() -> void:
 			var b2 := _to_screen(SkillTree.get_node_def(l)["pos"])
 			var both := pr.owns(id) and pr.owns(l)
 			var one := pr.owns(id) or pr.owns(l)
-			var col2 := UIStyle.ACCENT if both else (Color(0.55, 0.55, 0.65, 0.7) if one else Color(0.25, 0.25, 0.32, 0.6))
+			var col2 := UIStyle.ACCENT if both else (Color(UIStyle.TEAL_LIGHT, 0.6) if one else Color(UIStyle.TEAL, 0.45))
 			draw_line(a2, b2, col2, 2.0 if both else 1.0)
 	# nodes
 	var k := clampf(_zoom * 2.0, 0.6, 1.6)
@@ -396,16 +396,16 @@ func _draw() -> void:
 			continue
 		_draw_node(id, SkillTree.nodes()[id], k, pr)
 	# header: a tab per tree (a dot = points to spend there), then this tree's points
-	draw_rect(Rect2(0, 0, mr.size.x, HEADER_H), Color(0, 0, 0, 0.6))
+	draw_rect(Rect2(0, 0, mr.size.x, HEADER_H), Color(UIStyle.OUTLINE, 0.7))
 	for i in range(SkillTree.TAB_ORDER.size()):
 		var tree: String = SkillTree.TAB_ORDER[i]
 		var tr := _tab_rect(i)
 		var on := tree == _tab
-		draw_rect(tr, Color(0.25, 0.2, 0.1, 0.95) if on else Color(0.06, 0.06, 0.09, 0.95))
-		draw_rect(tr, UIStyle.ACCENT if on else UIStyle.BORDER_DIM, false, 1.0)
-		_text(tr.position + Vector2(0, 10), str(SkillTree.TREES[tree]["tab"]), UIStyle.ACCENT if on else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_CENTER, tr.size.x)
+		draw_style_box(UIStyle.frame(UIStyle.SUN, UIStyle.CREAM, 0, "plank") if on else UIStyle.frame(UIStyle.BG_DARK, UIStyle.BORDER_DIM, 0, "plank"), tr)
+		_text(tr.position + Vector2(0, 10), str(SkillTree.TREES[tree]["tab"]), UIStyle.INK if on else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_CENTER, tr.size.x,
+			Color(0, 0, 0, 0) if on else Color(UIStyle.OUTLINE, 0.9))
 		if pr.points(tree) > 0 and (tree != "fruit" or pl.power.has_fruit()):
-			draw_rect(Rect2(tr.end.x - 4, tr.position.y + 1, 3, 3), Color(0.75, 0.95, 0.55))
+			draw_rect(Rect2(tr.end.x - 5, tr.position.y + 2, 3, 3), UIStyle.CORAL)
 	var info := ""
 	if SkillTree.is_mastery_tree(_tab):
 		var m := pr.mastery_of(_tab)
@@ -417,14 +417,14 @@ func _draw() -> void:
 	_text(Vector2(6, 26), info, UIStyle.TEXT)
 	var pts := pr.points(_tab)
 	var pts_name := "Points" if SkillTree.is_mastery_tree(_tab) else "SP"
-	_text(Vector2(230, 26), "%s %d" % [pts_name, pts], Color(0.75, 0.95, 0.55) if pts > 0 else UIStyle.TEXT_DIM)
+	_text(Vector2(230, 26), "%s %d" % [pts_name, pts], UIStyle.GOOD if pts > 0 else UIStyle.TEXT_DIM)
 	_text(Vector2(mr.size.x - 136, 26), "Tab: next tree  K: close", UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_RIGHT, 130)
 	if _tab == "base" and pr.level == 1 and pr.skill_points == 0:
-		_text(Vector2(0, HEADER_H + 12), "Win fights to earn XP. Every level gives 2 skill points.", Color(0.85, 0.85, 0.95, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+		_text(Vector2(0, HEADER_H + 12), "Win fights to earn XP. Every level gives 2 skill points.", Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	_draw_panel(pl)
 	_draw_bar(pl)
 	if _msg_t > 0.0:
-		_text(Vector2(mr.size.x * 0.5 - 150, mr.size.y - 8), _msg, Color(1.0, 0.9, 0.6, clampf(_msg_t, 0.0, 1.0)), 8, HORIZONTAL_ALIGNMENT_CENTER, 300)
+		_text(Vector2(mr.size.x * 0.5 - 150, mr.size.y - 8), _msg, Color(UIStyle.CREAM, clampf(_msg_t, 0.0, 1.0)), 8, HORIZONTAL_ALIGNMENT_CENTER, 300)
 
 
 func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
@@ -438,8 +438,8 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 	var region_col: Color = SkillTree.REGION_COLORS.get(str(n["region"]), Color.WHITE)
 	var kind := str(n["kind"])
 	var sk := str(n["skill"])
-	var fill := Color(0.07, 0.07, 0.1)
-	var ring := Color(0.3, 0.3, 0.36)
+	var fill := Color(UIStyle.BG_DARK, 1.0)
+	var ring := Color("4c7477")
 	if owned:
 		fill = region_col.darkened(0.35)
 		ring = UIStyle.ACCENT
@@ -450,7 +450,7 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 	elif avail:
 		ring = region_col.lerp(Color.WHITE, 0.3 + 0.3 * sin(_t * 5.0))
 	elif why.begins_with("Needs") and not why.ends_with("point") and not why.ends_with("points"):
-		ring = Color(0.35, 0.25, 0.25)
+		ring = UIStyle.CORAL.darkened(0.5)
 	if kind in ["active", "ult"]:
 		var rr := Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0)
 		draw_rect(rr, fill)
@@ -465,7 +465,7 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 		if owned and mt > 1:
 			for i in range(mt):
 				var px := c.x + (float(i) - float(mt - 1) * 0.5) * 4.0 - 1.0
-				draw_rect(Rect2(px, rr.end.y + 1.5, 2.5, 2.5), UIStyle.ACCENT if i < pr.skill_tier(sk) else Color(0.3, 0.3, 0.36))
+				draw_rect(Rect2(px, rr.end.y + 1.5, 2.5, 2.5), UIStyle.ACCENT if i < pr.skill_tier(sk) else Color("4c7477"))
 	elif kind == "move":
 		var hex := PackedVector2Array()
 		for i in range(6):
@@ -482,25 +482,24 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 		draw_circle(c, r, fill)
 		draw_arc(c, r, 0, TAU, 20, ring, 2.0 if (owned or avail) else 1.0)
 		if kind in ["origin", "root"]:
-			draw_circle(c, r * 0.45, region_col if owned else Color(0.3, 0.3, 0.35))
+			draw_circle(c, r * 0.45, region_col if owned else Color("4c7477"))
 	if id == _sel:
-		draw_arc(c, r + 4.0, 0, TAU, 24, Color.WHITE, 1.0)
+		draw_arc(c, r + 4.0, 0, TAU, 24, UIStyle.CREAM, 1.0)
 	if id == _hover or kind in ["active", "ult", "root"] or (k >= 1.2 and kind != "stat"):
-		var nc := Color(1, 1, 1, 0.95) if (owned or avail or id == _hover) else Color(0.75, 0.75, 0.82, 0.7)
+		var nc := UIStyle.CREAM if (owned or avail or id == _hover) else Color(UIStyle.TEXT_DIM, 0.75)
 		_text(c + Vector2(-60, r + (13.0 if kind in ["active", "ult"] else 9.0)), str(n["name"]), nc, 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 
 
 func _draw_panel(pl: Player) -> void:
 	var x0 := size.x - PANEL_W
-	draw_rect(Rect2(x0, 0, PANEL_W, size.y), Color(0.04, 0.05, 0.09, 0.97))
-	draw_line(Vector2(x0, 0), Vector2(x0, size.y), UIStyle.BORDER_DIM, 1.0)
+	draw_style_box(UIStyle.panel(Color(UIStyle.BG, 0.97), UIStyle.BORDER, 0), Rect2(x0, 0, PANEL_W, size.y))
 	var id := _hover if _hover != "" else _sel
 	var n := SkillTree.get_node_def(id)
 	if n.is_empty():
 		return
 	var pr := pl.progression
 	var region_col: Color = SkillTree.REGION_COLORS.get(str(n["region"]), Color.WHITE)
-	var y := 16.0
+	var y := 20.0
 	var title := str(n["name"])
 	var tsz := 16 if FONT.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x <= PANEL_W - 14.0 else 8
 	_text(Vector2(x0 + 8, y), title, UIStyle.ACCENT, tsz)
@@ -519,13 +518,13 @@ func _draw_panel(pl: Player) -> void:
 		var line := "Cooldown %ss" % str(snappedf(float(sd["cooldown"]), 0.1))
 		if not Skills.is_ult(sk):
 			line = "%d energy   %s" % [int(sd["cost"]), line]
-		_text(Vector2(x0 + 8, y), line, Color(0.6, 0.8, 1.0))
+		_text(Vector2(x0 + 8, y), line, UIStyle.TEAL_LIGHT)
 		y += 10.0
 		var needs := str(sd.get("needs_text", ""))
 		if needs == "" and str(sd.get("needs", "")) != "":
 			needs = "a sword" if sd["needs"] == "sword" else "a pistol"
 		if needs != "":
-			_text(Vector2(x0 + 8, y), "Needs %s" % needs, Color(0.6, 0.8, 1.0))
+			_text(Vector2(x0 + 8, y), "Needs %s" % needs, UIStyle.TEAL_LIGHT)
 			y += 10.0
 		y += 2.0
 	y = _wrap(x0 + 8, y, desc, PANEL_W - 16, UIStyle.TEXT) + 8.0
@@ -535,14 +534,14 @@ func _draw_panel(pl: Player) -> void:
 		var mt := Skills.max_tier(sk) if sk != "" else 1
 		var tier := pr.skill_tier(sk) if sk != "" else 1
 		var learned := "LEARNED" if mt <= 1 else ("MASTERED" if tier >= mt else "TIER %d / %d" % [tier, mt])
-		_text(Vector2(x0 + 8, y), learned, Color(0.6, 0.95, 0.5))
+		_text(Vector2(x0 + 8, y), learned, UIStyle.GOOD)
 		y += 12.0
 		if sk != "":
 			var slot := pl.power.loadout.find(sk)
 			if slot >= 0:
 				_text(Vector2(x0 + 8, y), "On the bar: %s" % ("R" if slot == 4 else str(slot + 1)), UIStyle.TEXT_DIM)
 			else:
-				_text(Vector2(x0 + 8, y), "Press %s to put it on the bar" % ("R" if Skills.is_ult(sk) else "1-4"), Color(0.75, 0.95, 0.55))
+				_text(Vector2(x0 + 8, y), "Press %s to put it on the bar" % ("R" if Skills.is_ult(sk) else "1-4"), UIStyle.GOOD)
 			y += 14.0
 		if tier > 1:
 			var td := Skills.tier_def(sk, tier)
@@ -553,22 +552,22 @@ func _draw_panel(pl: Player) -> void:
 			_text(Vector2(x0 + 8, y), "Next - %s" % nt["name"], UIStyle.ACCENT)
 			y = _wrap(x0 + 8, y + 10.0, str(nt["desc"]), PANEL_W - 16, UIStyle.TEXT) + 2.0
 			var tree := str(n["tree"])
-			_text(Vector2(x0 + 8, y), "Uses %d/%d" % [mini(pr.uses_of(sk), int(nt["uses"])), int(nt["uses"])], Color(0.6, 0.8, 1.0))
+			_text(Vector2(x0 + 8, y), "Uses %d/%d" % [mini(pr.uses_of(sk), int(nt["uses"])), int(nt["uses"])], UIStyle.TEAL_LIGHT)
 			y += 10.0
-			_text(Vector2(x0 + 8, y), "Cost: %s" % pr.points_word(tree, int(nt["cost"])), Color(0.6, 0.8, 1.0))
+			_text(Vector2(x0 + 8, y), "Cost: %s" % pr.points_word(tree, int(nt["cost"])), UIStyle.TEAL_LIGHT)
 			y += 12.0
 			var rwhy := pr.can_rank_up(sk)
 			if rwhy == "":
-				_text(Vector2(x0 + 8, y), "Click again to rank up", Color(0.75, 0.95, 0.55, 0.7 + 0.3 * sin(_t * 5.0)))
+				_text(Vector2(x0 + 8, y), "Click again to rank up", Color(UIStyle.GOOD, 0.7 + 0.3 * sin(_t * 5.0)))
 			else:
-				_wrap(x0 + 8, y, rwhy, PANEL_W - 16, Color(1.0, 0.55, 0.45))
+				_wrap(x0 + 8, y, rwhy, PANEL_W - 16, UIStyle.DANGER_TEXT)
 	else:
 		_text(Vector2(x0 + 8, y), "Cost: %s" % pr.points_word(str(n["tree"]), cost), UIStyle.TEXT)
 		y += 12.0
 		if why == "":
-			_text(Vector2(x0 + 8, y), "Click again / Enter to learn", Color(0.75, 0.95, 0.55, 0.7 + 0.3 * sin(_t * 5.0)))
+			_text(Vector2(x0 + 8, y), "Click again / Enter to learn", Color(UIStyle.GOOD, 0.7 + 0.3 * sin(_t * 5.0)))
 		else:
-			_wrap(x0 + 8, y, why, PANEL_W - 16, Color(1.0, 0.55, 0.45))
+			_wrap(x0 + 8, y, why, PANEL_W - 16, UIStyle.DANGER_TEXT)
 
 
 func _wrap(x: float, y: float, text: String, w: float, col: Color) -> float:
@@ -590,17 +589,16 @@ func _wrap(x: float, y: float, text: String, w: float, col: Color) -> float:
 
 func _draw_bar(pl: Player) -> void:
 	var y := size.y - 34.0
-	draw_rect(Rect2(0, y, size.x - PANEL_W, 34), Color(0, 0, 0, 0.6))
-	_text(Vector2(6, y + 18), "SKILL BAR", UIStyle.TEXT_DIM)
+	draw_style_box(UIStyle.frame(UIStyle.BG_DARK, UIStyle.BORDER_DIM, 0, "plank"), Rect2(2, y, size.x - PANEL_W - 4, 32))
+	_text(Vector2(8, y + 18), "SKILL BAR", UIStyle.TEXT_DIM)
 	for i in range(5):
 		var r := _bar_slot_rect(i)
-		draw_rect(r, Color(0.02, 0.02, 0.04, 0.95))
 		var sk := pl.power.loadout[i]
-		if sk != "" and _icons.get(sk):
-			draw_texture_rect(_icons[sk], r.grow(-1.0), false)
 		var sel_sk := str(SkillTree.get_node_def(_sel).get("skill", ""))
 		var hl := sk != "" and sk == sel_sk
-		draw_rect(r, UIStyle.ACCENT if hl else UIStyle.BORDER_DIM, false, 2.0 if hl else 1.0)
+		draw_style_box(UIStyle.frame(Color(UIStyle.OUTLINE, 0.95), UIStyle.ACCENT if hl else UIStyle.BORDER_DIM, 0, "well", hl), r)
+		if sk != "" and _icons.get(sk):
+			draw_texture_rect(_icons[sk], r.grow(-2.0), false)
 		_text(r.position + Vector2(2, 8), "R" if i == 4 else str(i + 1), UIStyle.ACCENT)
 	var hx := _bar_slot_rect(4).end.x + 8
 	_text(Vector2(hx, y + 14), "select a skill, press 1-4 / R", UIStyle.TEXT_DIM)

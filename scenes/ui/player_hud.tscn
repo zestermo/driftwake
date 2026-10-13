@@ -34,9 +34,9 @@ outline_color = Color(0, 0, 0, 1)
 [sub_resource type="LabelSettings" id="LabelSettings_title"]
 font = ExtResource("2")
 font_size = 32
-font_color = Color(1, 0.88, 0.55, 1)
+font_color = Color(0.949, 0.769, 0.369, 1)
 outline_size = 6
-outline_color = Color(0.1, 0.05, 0.02, 1)
+outline_color = Color(0.047, 0.141, 0.153, 1)
 shadow_size = 0
 shadow_color = Color(0, 0, 0, 0.6)
 shadow_offset = Vector2(2, 2)

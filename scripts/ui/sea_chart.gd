@@ -104,9 +104,8 @@ func _shown(p: Vector2) -> bool:
 
 
 func _draw() -> void:
-	var paper := Color(0.86, 0.78, 0.6)
-	draw_rect(Rect2(Vector2.ZERO, SIZE), paper)
-	draw_rect(Rect2(Vector2(3, 3), SIZE - Vector2(6, 6)), Color(0.45, 0.33, 0.2), false, 2.0)
+	draw_style_box(UIStyle.panel(UIStyle.CREAM.darkened(0.05), UIStyle.BORDER, 0), Rect2(Vector2.ZERO, SIZE))
+	draw_rect(Rect2(Vector2(9, 9), SIZE - Vector2(18, 18)), Color(UIStyle.TEAL, 0.55), false, 1.0)
 	var ink := Color(0.3, 0.2, 0.12)
 	var sea_ink := Color(0.55, 0.62, 0.62, 0.5)
 	var w := _world()

@@ -23,7 +23,6 @@ const TAGS := {"head": "HEAD", "torso": "BODY", "vest": "VEST", "coat": "COAT", 
 const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam"}
 const UP := Color(0.45, 0.95, 0.4)
 const DOWN := Color(1.0, 0.4, 0.33)
-const PANEL_BG := Color(0.035, 0.045, 0.08, 0.94)
 
 
 class Slot extends Button:
@@ -40,9 +39,9 @@ class Slot extends Button:
 		size = custom_minimum_size
 		pivot_offset = custom_minimum_size * 0.5
 		focus_mode = Control.FOCUS_ALL
-		add_theme_stylebox_override("hover", InventoryScreen.slot_box(Color(0.16, 0.12, 0.06, 0.96), UIStyle.ACCENT, true))
-		add_theme_stylebox_override("pressed", InventoryScreen.slot_box(Color(0.26, 0.2, 0.09, 0.96), UIStyle.ACCENT, true))
-		add_theme_stylebox_override("focus", InventoryScreen.slot_box(Color(0, 0, 0, 0), UIStyle.ACCENT, false))
+		add_theme_stylebox_override("hover", InventoryScreen.slot_box(UIStyle.BG_LIGHT, UIStyle.ACCENT, true))
+		add_theme_stylebox_override("pressed", InventoryScreen.slot_box(UIStyle.TEAL, UIStyle.CREAM, true))
+		add_theme_stylebox_override("focus", InventoryScreen.slot_box(Color(0, 0, 0, 0), UIStyle.ACCENT, true))
 		tag = InventoryScreen.small(tag_text, Color(UIStyle.BORDER_DIM, 0.8))
 		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -81,10 +80,10 @@ class Slot extends Button:
 		count.text = str(qty) if it and (qty > 1 or (it.stackable and qty != 1)) else ""
 		key.text = key_text
 		tag.visible = it == null
-		var bg := Color(0.03, 0.03, 0.05, 0.92)
+		var bg := UIStyle.BG_DARK
 		var border := UIStyle.BORDER_DIM
 		if lit:
-			bg = Color(0.12, 0.09, 0.04, 0.95)
+			bg = UIStyle.SUN.darkened(0.55)
 			border = UIStyle.ACCENT
 		elif it and it.rarity == ItemData.Rarity.SUPREME:
 			# (black on black: a pale slot behind it)
@@ -92,7 +91,7 @@ class Slot extends Button:
 			border = Color(0.02, 0.02, 0.02)
 		elif it and it.rarity > ItemData.Rarity.COMMON:
 			var rc := it.rarity_color()
-			bg = Color(rc.r * 0.14, rc.g * 0.14, rc.b * 0.14, 0.94)
+			bg = UIStyle.BG_DARK.lerp(rc.darkened(0.3), 0.3)
 			border = rc.darkened(0.15)
 		add_theme_stylebox_override("normal", InventoryScreen.slot_box(bg, border, false))
 
@@ -127,7 +126,6 @@ var _name_label: Label
 var _stats_label: Label
 var _gold_label: Label
 var _panel: PanelContainer
-var _panel_shadow: ColorRect
 var _details: VBoxContainer
 var _tip: PanelContainer
 var _tip_box: VBoxContainer
@@ -187,12 +185,8 @@ func _player() -> Player:
 	return get_tree().get_first_node_in_group("player") as Player if is_inside_tree() else null
 
 
-static func slot_box(bg: Color, border: Color, glow: bool) -> StyleBoxFlat:
-	var sb := UIStyle.box(bg, border, 0, 1)
-	if glow:
-		sb.shadow_color = Color(UIStyle.ACCENT, 0.3)
-		sb.shadow_size = 4
-	return sb
+static func slot_box(bg: Color, border: Color, glow: bool) -> StyleBoxTexture:
+	return UIStyle.frame(bg, border, 0, "well", glow)
 
 
 static func small(text: String, color: Color = UIStyle.TEXT) -> Label:
@@ -299,12 +293,8 @@ func _build_doll() -> void:
 
 
 func _build_panel() -> void:
-	_panel_shadow = ColorRect.new()
-	_panel_shadow.color = Color(0, 0, 0, 0.4)
-	_panel_shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui.add_child(_panel_shadow)
 	_panel = PanelContainer.new()
-	_panel.add_theme_stylebox_override("panel", UIStyle.box(PANEL_BG, UIStyle.BORDER, 6, 1))
+	_panel.add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.BG, UIStyle.BORDER, 6))
 	_ui.add_child(_panel)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 5)
@@ -436,8 +426,6 @@ func _layout() -> void:
 	var pp := Vector2(w - PANEL_W - 10, roundf((h - 18 - ph) * 0.5))
 	_par.clear()
 	_park(_panel, pp, -3.0, true)
-	_panel_shadow.size = Vector2(PANEL_W, ph)
-	_park(_panel_shadow, pp + Vector2(4, 4), -1.0, true)
 	_cx = roundf((w - PANEL_W - 10) * 0.5)
 	var dx := roundf(h * 0.235)
 	var y0 := roundf(h * 0.17)
@@ -684,7 +672,7 @@ func _show_slot(s: Slot) -> void:
 	var src := str(d["src"])
 	_fill_info(_tip_box, it, _qty_of(d), src, TIP_W)
 	var border := it.rarity_color() if it.rarity != ItemData.Rarity.SUPREME else Color(0.85, 0.85, 0.8)
-	_tip.add_theme_stylebox_override("panel", UIStyle.box(Color(0.03, 0.035, 0.06, 0.97), border, 5, 1))
+	_tip.add_theme_stylebox_override("panel", UIStyle.frame(UIStyle.BG_DARK, border, 5, "plank"))
 	if _flash_t <= 0.0:
 		_set_hints(_hints_for(src, it))
 
@@ -906,14 +894,13 @@ func _set_hints(pairs: Array) -> void:
 		var hb := HBoxContainer.new()
 		hb.add_theme_constant_override("separation", 3)
 		var chip := PanelContainer.new()
-		var sb := UIStyle.box(UIStyle.BG_LIGHT, UIStyle.BORDER_DIM, 2, 1)
+		var sb := UIStyle.framed(UIStyle.CREAM, UIStyle.BORDER_DIM, "chip", 2, 0)
 		sb.content_margin_top = 1
-		sb.content_margin_bottom = 0
 		chip.add_theme_stylebox_override("panel", sb)
-		chip.add_child(small(str(p[0]), UIStyle.TEXT))
+		chip.add_child(small(str(p[0]), UIStyle.INK))
 		hb.add_child(chip)
-		var l := small(str(p[1]), UIStyle.TEXT_DIM)
-		l.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.03))
+		var l := small(str(p[1]), UIStyle.TEXT)
+		l.add_theme_color_override("font_outline_color", UIStyle.OUTLINE)
 		l.add_theme_constant_override("outline_size", 2)
 		hb.add_child(l)
 		_hints.add_child(hb)
@@ -922,8 +909,8 @@ func _set_hints(pairs: Array) -> void:
 ## A short note in place of the hints for a moment (why that didn't work).
 func _flash(text: String) -> void:
 	_clear(_hints)
-	var l := small(text.to_upper(), Color(1.0, 0.7, 0.4))
-	l.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.03))
+	var l := small(text.to_upper(), UIStyle.DANGER_TEXT)
+	l.add_theme_color_override("font_outline_color", UIStyle.OUTLINE)
 	l.add_theme_constant_override("outline_size", 2)
 	_hints.add_child(l)
 	_flash_t = 2.5
@@ -1020,14 +1007,14 @@ func _confirm_fruit(it: ItemData) -> void:
 		_confirm.queue_free()
 	var pl := _player()
 	_confirm = PanelContainer.new()
-	_confirm.add_theme_stylebox_override("panel", UIStyle.box(Color(0.06, 0.03, 0.02, 0.97), Color(1.0, 0.55, 0.2), 8, 1))
+	_confirm.add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.BG_DARK, UIStyle.CORAL, 8))
 	_confirm.set_anchors_preset(Control.PRESET_CENTER)
 	_confirm.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_confirm.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
 	_confirm.add_child(v)
-	var t := _text("Eat the %s?" % it.display_name, Color(1.0, 0.7, 0.35), BOLD)
+	var t := _text("Eat the %s?" % it.display_name, UIStyle.DANGER_TEXT, BOLD)
 	t.add_theme_font_size_override("font_size", 16)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
@@ -1048,7 +1035,7 @@ func _confirm_fruit(it: ItemData) -> void:
 		_confirm.queue_free()
 		_confirm = null)
 	if not (pl and pl.power.has_fruit()):
-		var yes := UIStyle.button("Eat it", 80)
+		var yes := UIStyle.danger(UIStyle.button("Eat it", 80))
 		yes.pressed.connect(func():
 			_confirm.queue_free()
 			_confirm = null
@@ -1361,7 +1348,7 @@ func _select(idx: int) -> void:
 # ==========================================================================
 func _build_loot() -> void:
 	_loot_panel = PanelContainer.new()
-	_loot_panel.add_theme_stylebox_override("panel", UIStyle.box(PANEL_BG, UIStyle.ACCENT, 6, 1))
+	_loot_panel.add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.BG, UIStyle.ACCENT, 6))
 	_loot_panel.visible = false
 	_ui.add_child(_loot_panel)
 	_loot_panel.set_drag_forwarding(Callable(), func(_at: Vector2, d) -> bool: return _can_drop_on({"src": "loot"}, d),

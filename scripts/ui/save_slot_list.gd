@@ -22,7 +22,7 @@ func _init() -> void:
 	set_anchors_preset(Control.PRESET_CENTER)
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BOTH
-	add_theme_stylebox_override("panel", UIStyle.box(UIStyle.BG, UIStyle.BORDER, 10, 2))
+	add_theme_stylebox_override("panel", UIStyle.panel())
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 6)
 	add_child(vb)
@@ -75,7 +75,7 @@ func refresh() -> void:
 		if first == null and not b.disabled:
 			first = b
 		if not info.is_empty():
-			var del := UIStyle.button("Delete", 0)
+			var del := UIStyle.danger(UIStyle.button("Delete", 0))
 			del.add_theme_font_size_override("font_size", 12)
 			del.pressed.connect(func(): _ask_delete(slot, info))
 			row.add_child(del)
@@ -137,6 +137,8 @@ func _confirm(question: String, yes_text: String, on_yes: Callable) -> void:
 	row.add_theme_constant_override("separation", 10)
 	_body.add_child(row)
 	var yes := UIStyle.button(yes_text, 110)
+	if yes_text != "Load":
+		UIStyle.danger(yes)
 	yes.pressed.connect(func():
 		_blip.play()
 		on_yes.call())

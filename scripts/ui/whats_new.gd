@@ -48,26 +48,29 @@ func _init() -> void:
 	set_anchors_preset(Control.PRESET_CENTER)
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BOTH
-	add_theme_stylebox_override("panel", UIStyle.box(UIStyle.BG, UIStyle.BORDER, 10, 2))
+	add_theme_stylebox_override("panel", UIStyle.panel())
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 4)
 	add_child(vb)
 	var t := UIStyle.title("What's new in v%s" % version())
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(t)
+	var page := PanelContainer.new()
+	page.add_theme_stylebox_override("panel", UIStyle.frame(UIStyle.CREAM, UIStyle.BORDER_DIM, 6, "well"))
+	vb.add_child(page)
 	var sc := ScrollContainer.new()
-	sc.custom_minimum_size = Vector2(380, 230)
+	sc.custom_minimum_size = Vector2(368, 226)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	vb.add_child(sc)
+	page.add_child(sc)
 	var list := VBoxContainer.new()
 	list.add_theme_constant_override("separation", 3)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(list)
 	for n in NOTES:
-		list.add_child(UIStyle.label(str(n[0]), 12, UIStyle.ACCENT))
-		var l := UIStyle.label(str(n[1]), 8, UIStyle.TEXT)
+		list.add_child(UIStyle.label(str(n[0]), 12, Color(UIStyle.BG, 1.0)))
+		var l := UIStyle.label(str(n[1]), 8, UIStyle.INK)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD
-		l.custom_minimum_size = Vector2(360, 0)
+		l.custom_minimum_size = Vector2(348, 0)
 		list.add_child(l)
 	_close = UIStyle.button("Set sail", 120)
 	_close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

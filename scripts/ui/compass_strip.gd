@@ -49,7 +49,7 @@ func _draw() -> void:
 		return
 	var f := -cam.global_basis.z
 	var heading := bearing(Vector2(f.x, f.z))
-	draw_rect(Rect2(0, 0, W, 12), Color(0.03, 0.03, 0.05, 0.55))
+	draw_rect(Rect2(0, 0, W, 12), Color(UIStyle.BG_DARK, 0.55))
 	var ink := Color(0.95, 0.92, 0.85)
 	for d in range(0, 360, 15):
 		var x := _x(float(d), heading)

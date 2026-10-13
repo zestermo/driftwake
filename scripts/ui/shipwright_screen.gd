@@ -26,7 +26,7 @@ func _init(menu: Node) -> void:
 	offset_left = 10
 	offset_right = 282
 	grow_vertical = Control.GROW_DIRECTION_BOTH
-	add_theme_stylebox_override("panel", UIStyle.box(UIStyle.BG, UIStyle.BORDER, 8, 2))
+	add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.BG, UIStyle.BORDER, 8))
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 2)
 	add_child(vb)

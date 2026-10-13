@@ -194,7 +194,7 @@ func _build_coop() -> void:
 	_coop.set_anchors_preset(Control.PRESET_CENTER)
 	_coop.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_coop.grow_vertical = Control.GROW_DIRECTION_BOTH
-	_coop.add_theme_stylebox_override("panel", UIStyle.box(UIStyle.BG, UIStyle.BORDER, 10, 2))
+	_coop.add_theme_stylebox_override("panel", UIStyle.panel())
 	_coop.visible = false
 	add_child(_coop)
 	var vb := VBoxContainer.new()
@@ -316,30 +316,30 @@ func _draw() -> void:
 	var h := size.y
 	var horizon := h * 0.62
 	# sky
-	var sky_top := Color(0.05, 0.06, 0.16)
-	var sky_mid := Color(0.32, 0.17, 0.3)
-	var sky_low := Color(0.95, 0.5, 0.25)
+	var sky_top := Color("0f3238")
+	var sky_mid := UIStyle.TEAL
+	var sky_low := UIStyle.CORAL
 	draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, horizon * 0.6), Vector2(0, horizon * 0.6)]),
 		PackedColorArray([sky_top, sky_top, sky_mid, sky_mid]))
 	draw_polygon(PackedVector2Array([Vector2(0, horizon * 0.6), Vector2(w, horizon * 0.6), Vector2(w, horizon), Vector2(0, horizon)]),
 		PackedColorArray([sky_mid, sky_mid, sky_low, sky_low]))
 	for st in _stars:
 		var a := 0.35 + 0.3 * sin(_t * 1.7 + st.x * 50.0)
-		draw_rect(Rect2(Vector2(st.x * w, st.y * h), Vector2(1, 1)), Color(1, 0.95, 0.85, a))
+		draw_rect(Rect2(Vector2(st.x * w, st.y * h), Vector2(1, 1)), Color(UIStyle.CREAM, a))
 	# sun, sliced by dusk haze bands
 	var sun := Vector2(w * 0.68, horizon - 10.0)
-	draw_circle(sun, 34.0, Color(1.0, 0.72, 0.35))
-	draw_circle(sun, 27.0, Color(1.0, 0.85, 0.55))
+	draw_circle(sun, 34.0, UIStyle.SUN)
+	draw_circle(sun, 27.0, UIStyle.CREAM)
 	for i in range(4):
 		var y := sun.y + 2.0 + i * 6.0
 		draw_rect(Rect2(sun.x - 40, y, 80, 1.0 + i * 0.6), sky_low.lerp(sky_mid, 0.15))
 	# a far island, hazy
 	var isl := PackedVector2Array([Vector2(w * 0.04, horizon), Vector2(w * 0.1, horizon - 14), Vector2(w * 0.16, horizon - 22),
 		Vector2(w * 0.2, horizon - 18), Vector2(w * 0.26, horizon - 8), Vector2(w * 0.31, horizon)])
-	draw_colored_polygon(isl, Color(0.22, 0.12, 0.2))
+	draw_colored_polygon(isl, Color("1d4f55"))
 	# sea: bands getting darker toward the viewer, with moving crests
-	var sea_far := Color(0.55, 0.3, 0.32)
-	var sea_near := Color(0.04, 0.06, 0.14)
+	var sea_far := UIStyle.TEAL
+	var sea_near := Color("0c2a2f")
 	draw_polygon(PackedVector2Array([Vector2(0, horizon), Vector2(w, horizon), Vector2(w, h), Vector2(0, h)]),
 		PackedColorArray([sea_far, sea_far, sea_near, sea_near]))
 	# sun glitter
@@ -348,7 +348,7 @@ func _draw() -> void:
 		var spread := 6.0 + float(i) * 3.0
 		var x := sun.x + sin(_t * 2.0 + i * 1.3) * spread * 0.4
 		var a := (1.0 - float(i) / 18.0) * (0.5 + 0.5 * sin(_t * 3.0 + i))
-		draw_rect(Rect2(x - spread * 0.5, y, spread, 1.0), Color(1.0, 0.8, 0.5, a * 0.7))
+		draw_rect(Rect2(x - spread * 0.5, y, spread, 1.0), Color(UIStyle.SUN, a * 0.7))
 	for row in range(9):
 		var k := float(row) / 8.0
 		var y := horizon + 6.0 + pow(k, 1.6) * (h - horizon - 4.0)
@@ -364,15 +364,15 @@ func _draw() -> void:
 	# logo
 	var logo := "DRIFTWAKE"
 	var lp := Vector2(44, 98)
-	draw_string_outline(LOGO_FONT, lp + Vector2(0, 3), logo, HORIZONTAL_ALIGNMENT_LEFT, -1, 48, 10, Color(0.08, 0.03, 0.02))
-	draw_string(LOGO_FONT, lp + Vector2(0, 3), logo, HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color(0.55, 0.25, 0.1))
+	draw_string_outline(LOGO_FONT, lp + Vector2(0, 3), logo, HORIZONTAL_ALIGNMENT_LEFT, -1, 48, 10, UIStyle.OUTLINE)
+	draw_string(LOGO_FONT, lp + Vector2(0, 3), logo, HORIZONTAL_ALIGNMENT_LEFT, -1, 48, UIStyle.CORAL.darkened(0.35))
 	draw_string(LOGO_FONT, lp, logo, HORIZONTAL_ALIGNMENT_LEFT, -1, 48, UIStyle.ACCENT)
-	draw_string_outline(SMALL_FONT, lp + Vector2(2, 18), "THE SEA REMEMBERS EVERY WAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(0, 0, 0, 0.8))
-	draw_string(SMALL_FONT, lp + Vector2(2, 18), "THE SEA REMEMBERS EVERY WAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.9, 0.75, 0.8))
+	draw_string_outline(SMALL_FONT, lp + Vector2(2, 18), "THE SEA REMEMBERS EVERY WAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(UIStyle.OUTLINE, 0.85))
+	draw_string(SMALL_FONT, lp + Vector2(2, 18), "THE SEA REMEMBERS EVERY WAKE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.CREAM)
 	_draw_ribbon()
 	if _loading:
 		var a := clampf(_fade.color.a * 2.0, 0.0, 1.0)
-		draw_string(SMALL_FONT, Vector2(w - 90, h - 12), "SETTING SAIL...", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 0.9, 0.7, a))
+		draw_string(SMALL_FONT, Vector2(w - 90, h - 12), "SETTING SAIL...", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(UIStyle.CREAM, a))
 
 
 ## The version on a red ribbon with forked tails, beside the logo, glinting now
@@ -380,7 +380,7 @@ func _draw() -> void:
 func _draw_ribbon() -> void:
 	var r := RIBBON
 	var hot := r.has_point(get_local_mouse_position()) and _menu.visible
-	var red := Color(0.62, 0.1, 0.08) if not hot else Color(0.78, 0.16, 0.1)
+	var red := UIStyle.CORAL.darkened(0.12) if not hot else UIStyle.CORAL.lightened(0.12)
 	var dark := red.darkened(0.45)
 	var y0 := r.position.y
 	var y1 := r.end.y
@@ -391,8 +391,8 @@ func _draw_ribbon() -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 6, y0 + 4), Vector2(r.end.x + 9, y0 + 4),
 		Vector2(r.end.x + 4, ym + 4), Vector2(r.end.x + 9, y1 + 4), Vector2(r.end.x - 6, y1 + 4)]), dark)
 	draw_rect(r, red)
-	draw_rect(Rect2(r.position + Vector2(0, 2), Vector2(r.size.x, 1)), Color(1.0, 0.8, 0.45, 0.6))
-	draw_rect(Rect2(r.position + Vector2(0, r.size.y - 3), Vector2(r.size.x, 1)), Color(1.0, 0.8, 0.45, 0.6))
+	draw_rect(Rect2(r.position + Vector2(0, 2), Vector2(r.size.x, 1)), Color(UIStyle.SUN, 0.8))
+	draw_rect(Rect2(r.position + Vector2(0, r.size.y - 3), Vector2(r.size.x, 1)), Color(UIStyle.SUN, 0.8))
 	# a glint sweeping across every few seconds (under the lettering)
 	var g := fposmod(_t * 0.4, 1.6)
 	if g < 1.0:
@@ -401,7 +401,7 @@ func _draw_ribbon() -> void:
 	var txt := "v%s" % WHATS_NEW.version()
 	var tw := LOGO_FONT.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
 	var tp := Vector2(r.position.x + (r.size.x - tw) * 0.5, y1 - 7)
-	draw_string_outline(LOGO_FONT, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 5, Color(0.15, 0.02, 0.02))
+	draw_string_outline(LOGO_FONT, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 5, UIStyle.OUTLINE)
 	draw_string(LOGO_FONT, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, UIStyle.ACCENT)
 
 
@@ -410,8 +410,8 @@ func _draw_ship(base: Vector2) -> void:
 	var bob := sin(_t * 1.1) * 2.0
 	var roll := sin(_t * 0.8 + 0.6) * 0.05
 	var xf := Transform2D(roll, base + Vector2(0, bob))
-	var col := Color(0.07, 0.04, 0.07)
-	var sail := Color(0.2, 0.12, 0.16)
+	var col := UIStyle.OUTLINE
+	var sail := Color("1d3f44")
 	var hull := PackedVector2Array([Vector2(-46, -8), Vector2(40, -8), Vector2(52, -16), Vector2(48, -6), Vector2(34, 6), Vector2(-38, 6), Vector2(-50, -12)])
 	draw_colored_polygon(xf * hull, col)
 	draw_line(xf * Vector2(-6, -8), xf * Vector2(-6, -70), col, 2.0)
