@@ -77,6 +77,7 @@ if (-not $ok) {
 
 # it still compiles and its tests pass, with the target underneath
 if ($NoTests) {
+	Update-ImportCache $wt $Godot
 	& $Godot --headless --path "$wt" --script res://tools/dev/compilecheck.gd 2>&1 | Out-Null
 	if ($LASTEXITCODE -ne 0) { Fail "$Branch doesn't compile on top of $Onto (run tools/dev/compilecheck.gd there)." }
 } else {
