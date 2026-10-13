@@ -32,6 +32,7 @@ const DECK_H := 2.6
 const DECK_R := 8.5
 
 var gi: GenIsland
+var layout := ""
 var kc: KitContext
 var rng: RandomNumberGenerator
 ## The village site, and the heart (where the services, the fire and the elder are; the site but for ruins).
@@ -73,6 +74,7 @@ static func plan(isl: GenIsland) -> Dictionary:
 	L.to_dock = (L.dock - L.c).normalized()
 	L.dock_a = L.to_dock.angle()
 	var kind := force if force != "" else L._pick()
+	L.layout = kind
 	L.call("_" + kind)
 	L._reserve()
 	return {"layout": kind, "c": L.c, "heart_y": L.heart_y, "plaza_r": L.plaza_r, "to_dock": (L.dock - L.c).normalized(), "lanes": L.lanes,
@@ -159,7 +161,7 @@ func _hamlets() -> void:
 		if hamlets.size() >= 4:
 			break
 		var hc: Vector2 = spots[(k + k0) % spots.size()]
-		if hamlets.any(func(h): return hc.distance_to(h["c"]) < 55.0) or not _open_ground(hc) or kc.ground_max(hc, 11.0) - kc.ground_min(hc, 11.0) > 4.5:
+		if hc.distance_to(c) < 62.0 or hamlets.any(func(h): return hc.distance_to(h["c"]) < 55.0) or not _open_ground(hc) or kc.ground_max(hc, 11.0) - kc.ground_min(hc, 11.0) > 4.5:
 			continue
 		_hamlet(hc, kinds[hamlets.size() - 1])
 	_dress_buildings()
@@ -623,7 +625,7 @@ func _services(r: float) -> void:
 		while not _ring(e[0], e[1], float(e[2]) + k * 2.5, PI):
 			k += 1
 			if k > 10:
-				push_error("VillageLayouts: no room for the %s round %s" % [e[0], c])
+				push_error("VillageLayouts: no room for the %s round %s (island seed %d, %s)" % [e[0], c, int(gi.node["seed"]), layout])
 				break
 
 
@@ -682,22 +684,28 @@ func _street_houses(queue: Array, start: float, per := PER_STREET) -> void:
 					nexts[side] = e[2] + 1.0
 
 
-## The job board beside the way in at q (whichever side of the road has room).
+## The job board beside the way in at q (whichever side of the road has room), or
+## further out round q until it fits.
 func _board_near(q: Vector2) -> void:
 	var t := (q - c).normalized()
 	var s := Vector2(-t.y, t.x)
+	var cands: Array = []
 	for i in range(24):
 		var sd := -1.0 if i % 2 == 0 else 1.0
 		var k := (i / 2) % 4
 		var along: float = [0.0, 2.5, -2.5][i / 8]
-		var bq: Vector2 = q + t * along + s * sd * (3.0 + k * 0.8)
+		cands.append(q + t * along + s * sd * (3.0 + k * 0.8))
+	for ring in range(1, 13):
+		for k in range(16):
+			cands.append(q + Vector2.from_angle(t.angle() + PI * 0.5 + k * TAU / 16.0) * (3.0 + ring * 1.2))
+	for bq in cands:
 		if KitVillage._spot(kc, occ, bq, 1.2, 0.5):
 			board = {"p": bq, "face": c - bq}
 			if heart_y != INF and bq.distance_to(c) < DECK_R - 1.0:
 				board["y"] = heart_y
 			occ.append([bq, 1.2])
 			return
-	push_error("VillageLayouts: no room for the job board near %s" % q)
+	push_error("VillageLayouts: no room for the job board near %s (island seed %d, %s)" % [q, int(gi.node["seed"]), layout])
 
 
 ## Round the heart: benches round the fire, a well, lamps, planters, a signpost and the

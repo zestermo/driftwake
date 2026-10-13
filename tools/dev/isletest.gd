@@ -140,7 +140,9 @@ func _process(d: float) -> bool:
 					if prop:
 						prop.free()
 			check("every theme's style has every key and prop the kits read %s" % [missing], missing.is_empty())
-			check("its lamps (village, pier, camp) are its style's %s" % ks.of(isl.theme)["props"]["lamp"], isl.find_children("Flame", "Marker3D", true, false).size() >= 5)
+			var lamps: int = 2 + isl.village_plan["items"].filter(func(it): return it["k"] == "lamp").size()
+			var flames: int = isl.find_children("Flame", "Marker3D", true, false).size()
+			check("its lamps (the camp's two, the village's %d) are its style's %s (%d flames)" % [lamps - 2, ks.of(isl.theme)["props"]["lamp"], flames], flames >= lamps)
 			# the jungle floor: thick undergrowth that slows you, clear on the dock road and in the village
 			var thick := 0.0
 			for crown in isl.forest_crowns:

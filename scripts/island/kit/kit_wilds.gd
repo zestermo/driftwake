@@ -54,7 +54,7 @@ static func _spot(isl: GenIsland, rng: RandomNumberGenerator, avoid: Array, r: f
 		var p := KitLandmarks.rand_inland(isl, rng, 0.15, 0.75)
 		var h := isl.hv(p)
 		var s := KitLandmarks.grad(isl, p, r * 0.6).length()
-		if h < min_h or s > max_s or not KitLandmarks.clear_of(p, r, avoid) or isl.path_dist(p) < path_gap:
+		if h < min_h or s > max_s or not KitLandmarks.clear_of(isl, p, r, avoid) or isl.path_dist(p) < path_gap:
 			continue
 		var score := h if high else -s
 		if score > best_s:
@@ -510,7 +510,7 @@ static func _plan_mine(isl: GenIsland, rng: RandomNumberGenerator, avoid: Array)
 		if h < 4.0 or s < 0.08 or s > 0.55:
 			continue
 		var u := g / s
-		if not KitLandmarks.clear_of(p + u * 4.0, 14.0, avoid) or isl.path_dist(p) < 6.0 or isl.path_dist(p + u * MINE_OFF) < 7.0:
+		if not KitLandmarks.clear_of(isl, p + u * 4.0, 14.0, avoid) or isl.path_dist(p) < 6.0 or isl.path_dist(p + u * MINE_OFF) < 7.0:
 			continue
 		if s > best_s:
 			best_s = s
@@ -651,7 +651,7 @@ static func _plan_aqueduct(isl: GenIsland, rng: RandomNumberGenerator, avoid: Ar
 		var p := KitLandmarks.rand_inland(isl, rng, 0.15, 0.7)
 		var d := Vector2.from_angle(rng.randf() * TAU)
 		var length := rng.randf_range(44.0, 60.0)
-		if not KitLandmarks.clear_of(p, length * 0.5 + 3.0, avoid):
+		if not KitLandmarks.clear_of(isl, p, length * 0.5 + 3.0, avoid):
 			continue
 		var lo := INF
 		var hi := -INF
@@ -756,7 +756,7 @@ static func _plan_gorge(isl: GenIsland, rng: RandomNumberGenerator, avoid: Array
 	for k in range(50):
 		var p := KitLandmarks.rand_inland(isl, rng, 0.2, 0.6)
 		var along := Vector2.from_angle(rng.randf() * TAU)
-		if not KitLandmarks.clear_of(p, GORGE_LEN * 0.5 + 4.0, avoid):
+		if not KitLandmarks.clear_of(isl, p, GORGE_LEN * 0.5 + 4.0, avoid):
 			continue
 		var ok := true
 		for i in range(11):

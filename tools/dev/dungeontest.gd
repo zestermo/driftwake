@@ -133,6 +133,9 @@ func _process(d: float) -> bool:
 			world = root.get_node("World/Islands")
 			KD = load("res://scripts/island/kit/kit_dungeons.gd")
 			_plans()
+			# (seed 5's temple is a 40% roll that shifts with every change to the island: forced, the islands rebuilt)
+			KD.force_temple = true
+			world._built_seed = -1
 			step = 1
 		1:
 			if gm.chain_seed != 5:
@@ -272,6 +275,7 @@ func _process(d: float) -> bool:
 				check("the temple's hoard opens, remembered", gm.opened.has(str(info["reward"])))
 				# (every chain's first island is isle0: the next seed's chests have the same keys)
 				gm.opened.clear()
+				KD.force_temple = false
 				gm.chain_seed = 1
 				step = 12
 		12:

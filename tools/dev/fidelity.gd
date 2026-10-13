@@ -49,7 +49,7 @@ const LANDMARKS := {"Lighthouse": "lighthouse", "HarbourTower": "harbour tower",
 	"Shrine": "shrine",
 	"LookoutTower": "lookout tower", "Pillar": "ruins", "FallenPillar": "ruins", "Slabs": "ruins", "Driftstone": "standing stone",
 	"BroodCave": "cave", "Well": "well", "Boulders": "beast's ground", "Dungeon": "cave",
-	"Crag": "waterfall", "WreckHull": "wreck", "GreatTree": "great tree", "Temple": "temple", "SunkenHut": "sunken village",
+	"Crag": "waterfall", "WreckHull": "wreck", "GreatTree": "great tree", "StepPyramid": "step pyramid", "Temple": "ruined temple", "SunkenHut": "sunken village",
 	"Volcano": "volcano vent", "Skeleton": "giant skeleton", "Colossus": "fallen colossus", "SeaArch": "sea arch",
 	"Springs": "hot springs", "Cenote": "cenote", "Spire": "giant nest", "Crystals": "crystal grove", "Fort": "old fort"}
 ## Walked into for the props on them (a pier's lantern), their own meshes not counted.

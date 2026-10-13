@@ -27,6 +27,8 @@ const POOL := ["bug_tunnels", "smugglers_grotto", "flooded_ruin", "root_cavern",
 ## How many caves an island gets: 1, 2 or 3 (the extras only where they fit).
 const COUNT_WEIGHTS := [0.5, 0.38, 0.12]
 const TEMPLE_CHANCE := 0.4
+## Tools and tests set this to plan the temple on every island built after (where it fits).
+static var force_temple := false
 ## Who holds the end room: the brood mother, a named captain and his crew, or a nest of big bugs.
 const BOSS := {"bug_tunnels": "queen", "smugglers_grotto": "captain", "flooded_ruin": "captain", "sunken_shrine": "captain",
 	"root_cavern": "nest", "bat_roost": "nest", "beast_den": "nest"}
@@ -114,7 +116,7 @@ static func plan(isl: GenIsland) -> Array:
 			out.append(cave)
 	if out.is_empty():
 		push_error("KitDungeons: no room for a cave on %s (seed %d)" % [isl.node["name"], int(isl.node["seed"])])
-	if rng.randf() < TEMPLE_CHANCE:
+	if force_temple or rng.randf() < TEMPLE_CHANCE:
 		var tp := KitTemple.plan(isl, rng, out)
 		if not tp.is_empty():
 			out.append(tp)

@@ -253,7 +253,9 @@ palm fringe, strangler figs), picked from its seed on a separate stream.
   `keep` (footprint discs, given place-local, stored island space, reserved from plants), `door` (where its
   trail arrives), `y`, `face`/`yaw`, `seed`. Build it under `KitLandmarks.place_node` in place-local
   coordinates (+Z = face; `lp`/`gy` for island points and ground), one or two steps, then `overgrow`.
-- Size against the theme's canopy (`KitLandmarks.canopy(theme)`, read from its meshes), not a number.
+- Size against the theme's canopy (`KitLandmarks.canopy(theme)`, read from its meshes: the canopy giants, not the
+  emergents and kapoks over them), not a number. `clear_of` keeps a place off sites, other places and anything
+  reserved (the village's houses, hamlets and streets).
 - Variety is the chain's: `KitSetPieces.assign` gives each node `setpiece`, `landmarks` (order) and
   `landmark_count` from its own rng; a new kind goes in `KitLandmarks.KINDS` / `KitSetPieces.POOL` with a
   plan and steps, a chest key of its own, and a name in fidelity.gd's LANDMARKS.
@@ -304,6 +306,6 @@ qoltest, foresttest, r6-r10, savetest, swimtest, grunttest, yardtest, looptest, 
 - A new `class_name` needs `& $env:GODOT --headless --import` before tests see it.
 - **Beasts per island come from the chain, not the island's rng.** BeastPool.assign (end of
   Chain._build, its own rng) writes "beast", "beast_look", "minis", "roamer" into each node; the
-  boss's ground is BeastArena (its `_ground()` is the one swap point for a canopy-arena request:
-  centre, floor radius, ring spots), minibosses and the roamer are BeastDens (IslandContent step
+  boss's ground is BeastArena on the canopy arena GenIsland._plan_sites asks for (its giants from
+  `isl.arena_ring(c)`: perches, trunks), minibosses and the roamer are BeastDens (IslandContent step
   "beasts"). Quest/marker code reads BeastPool.pois(isl) and roamer_of(isl).

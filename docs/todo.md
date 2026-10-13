@@ -96,17 +96,14 @@ vegetation, landmarks and set pieces, jungle bosses, jungle fauna, daggers. Know
 - **Suites seen failing on branches:** apetest ("hurls it, and it comes down on you": village and landmarks
   branches), legtest (a sea leg with no pirate fleet), feel (buffered jump), shiptest (crash, no RESULT): all from
   the landmarks branch, which touched player.gd, camera_rig.gd, ragdoll.gd, ocean_manager.gd (surface_at),
-  climb_state.gd, ladder.gd. isletest's "its lamps ... Flame >= 5" may fail (the pier lamp is gone, village lamps
-  depend on the layout).
-- **Landmarks:** `KitLandmarks.canopy()` now counts the theme's 26-32 m giants, so `canopy_k`/`summit_h` may scale
-  landmarks and the summit tower up a lot (look at it); placement keeps off sites but not reserves (could land on
-  far hamlets, lanes or houses); "Temple" names both the landmark and KitTemple's dungeon.
-- **Bosses:** BeastArena builds its own ring of giants; the theme's `canopy_arena` should replace `_ground()`.
-  The bosses' AlphaBoar and the fauna boar overlap.
-- **Fauna:** drop items (`boar_haunch`, `tusk`, `chitin_shard`, `plume`, `jungle_fruit`, `snakeskin`, `crab_meat`)
-  aren't in ItemDB, so a kill that rolls one will error.
-- **Life:** its spot derivation reads the old IslandVillage fields; feed it from the village layouts' `work_spots`,
-  `seats`, `hamlets` (and keep deck/room y). Nobody stands on harbour decks (walk_height ignores them).
+  climb_state.gd, ladder.gd.
+- Fixed (islands bug pass): the village board/services always placed, the skeleton's broken ribs, isletest's lamp
+  count, the canopy the landmarks size against (canopy giants, not the emergents), landmarks off reserves, the
+  landmark temple renamed StepPyramid, the boss arena on the canopy arena, IslandLife on the village's data. The
+  fauna drop items were already in ItemDB.
+- **Bosses:** the bosses' AlphaBoar and the fauna boar overlap. The arena giants' crowns no longer sway when a beast
+  shakes them (they're the vegetation's MultiMesh now): leaves and the rustle only.
+- **Life:** nobody stands on harbour decks (walk_height ignores them).
 - **Theme styling not carried into the new village:** stalls (`stall` style), the pier style (GenHarbour reads
   `harbour_*`; `harbour_roof` is still "thatch"), workshop/shrine/storehouse/ruin/palisade/decks, IslandLife's
   villagers (use `_villager_look`, not the style's folk looks); the village ctx is hardwired to "jungle".

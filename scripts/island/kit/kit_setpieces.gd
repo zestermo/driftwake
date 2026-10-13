@@ -116,7 +116,7 @@ static func _plan_inland(isl: GenIsland, rng: RandomNumberGenerator, avoid: Arra
 		var p := KitLandmarks.rand_inland(isl, rng, 0.15, 0.72)
 		var h := isl.hv(p)
 		var s := KitLandmarks.grad(isl, p, r * 0.6).length()
-		if h < min_h or s > max_s or not KitLandmarks.clear_of(p, r, avoid) or isl.path_dist(p) < path_gap:
+		if h < min_h or s > max_s or not KitLandmarks.clear_of(isl, p, r, avoid) or isl.path_dist(p) < path_gap:
 			continue
 		var score := h if high else -s
 		if score > best_s:
@@ -158,7 +158,7 @@ static func _beach(isl: GenIsland, rng: RandomNumberGenerator, avoid: Array, r: 
 		var inland := isl.hv(s - out * back)
 		if s.distance_to(isl.dock_shore) < 70.0 or inland < inland_lo or inland > inland_hi or isl.hv(s + out * 16.0) > -1.0:
 			continue
-		if not KitLandmarks.clear_of(s, r, avoid):
+		if not KitLandmarks.clear_of(isl, s, r, avoid):
 			continue
 		return c
 	return {}
@@ -566,7 +566,7 @@ static func _skeleton(isl: GenIsland, ctx: KitContext, pl: Dictionary, node: Nod
 				if pts.size() == 10:
 					KitLandmarks.cyl_col(b, 0.35, 3.0, foot + Vector3(0, 1.2, 0))
 				if rng.randf() < 0.3:
-					KitLandmarks.vine(mb, moss, pts[4], rng.randf_range(2.0, 4.5), bs.x * sd, rng)
+					KitLandmarks.vine(mb, moss, pts[mini(4, pts.size() - 1)], rng.randf_range(2.0, 4.5), bs.x * sd, rng)
 	var fr := spine[12] + Vector3(7.0, 0, 2.0)
 	fr.y = KitLandmarks.gy(ctx, pl, fr.x, fr.z) + 0.2
 	mb.add_tube(old, MeshBuilder.curve_points(fr, fr + Vector3(2.5, 0.8, 1.5), fr + Vector3(5.5, 0.0, 0.5), 7), 0.3, 0.15, 6, 0.6)
@@ -772,7 +772,7 @@ static func _plan_springs(isl: GenIsland, rng: RandomNumberGenerator, avoid: Arr
 		var h := isl.hv(p)
 		var g := KitLandmarks.grad(isl, p, 8.0)
 		var s := g.length()
-		if h < 4.0 or s < 0.08 or s > 0.4 or not KitLandmarks.clear_of(p, 18.0, avoid) or isl.path_dist(p) < 10.0:
+		if h < 4.0 or s < 0.08 or s > 0.4 or not KitLandmarks.clear_of(isl, p, 18.0, avoid) or isl.path_dist(p) < 10.0:
 			continue
 		if s > best_s:
 			best_s = s

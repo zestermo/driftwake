@@ -384,6 +384,7 @@ func _plan_sites() -> void:
 	# the sites' cores stay clear of trees and rocks (what's built there comes later)
 	for site in SITE_CLEAR.keys():
 		reserve_area(sites[site], SITE_CLEAR[site])
+	canopy_arena(sites["boss"], BeastArena.FLOOR_R)
 	# levelled ground for each (the summit keeps its top)
 	_flat.append([sites["village"], _height_natural(sites["village"]), 26.0, 44.0])
 	_flat.append([sites["boss"], _height_natural(sites["boss"]), 22.0, 36.0])
@@ -467,6 +468,16 @@ func reserve_area(c: Vector2, r: float) -> void:
 
 func excluded(p: Vector2, pad: float, under := INF) -> bool:
 	return _excluded(p, pad, under)
+
+
+## Does anything reserved reach within r of c (`excluded` only looks a cell round a point)?
+func reserved_in(c: Vector2, r: float) -> bool:
+	for z in range(floori((c.y - r) / EXCL_CELL) - 1, floori((c.y + r) / EXCL_CELL) + 2):
+		for x in range(floori((c.x - r) / EXCL_CELL) - 1, floori((c.x + r) / EXCL_CELL) + 2):
+			for e in exclusions.get(Vector2i(x, z), []):
+				if c.distance_to(e[0]) < r + float(e[1]):
+					return true
+	return false
 
 
 func path_dist(p: Vector2) -> float:
@@ -650,8 +661,13 @@ const THICKET_SLOW := 0.3
 ## overhead. Paths still reach it as they're planned. Its centre's ground is levelled
 ## only if the caller adds it to the flats.
 func canopy_arena(c: Vector2, r: float) -> void:
-	canopy_arenas.append([c, r])
+	canopy_arenas.append([c, r, []])
 	reserve_area(c, r)
+
+
+## The giants ringing the canopy arena at c, once scattered: [{"xf" (island space), "body": Mesh}].
+func arena_ring(c: Vector2) -> Array:
+	return canopy_arenas.filter(func(a): return a[0] == c)[0][2]
 
 
 ## How thick the undergrowth is at world point `at` (0 open ground, paths kept
@@ -726,8 +742,8 @@ func _scatter_vegetation() -> void:
 		var n := maxi(int(TAU * (ar + 4.6) / 8.0), 6)
 		for k in range(n):
 			var q := ac + Vector2.from_angle(TAU * k / n + _rng.randf_range(-0.15, 0.15)) * (ar + 4.6)
-			if hv(q) > 1.0:
-				_add_giant(buckets, m["giant"], q, hv(q), _rng.randf_range(0.95, 1.15), ac - q)
+			if hv(q) > 1.0 and _path_dist(q) > 2.5:
+				a[2].append(_add_giant(buckets, m["giant"], q, hv(q), _rng.randf_range(0.95, 1.15), ac - q))
 		var y0 := hv(ac)
 		var gq := -ar + 2.0
 		while gq <= ar - 2.0:
@@ -959,7 +975,8 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, col_r: 
 
 ## A big tree from `trees` ([body, detail, lean]): its trunk's collider and a grapple
 ## crown up top. `lean_to` (if not zero): turned so its crown leans that way.
-func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: float, lean_to := Vector2.ZERO) -> void:
+## Returns {"xf", "body"}.
+func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: float, lean_to := Vector2.ZERO) -> Dictionary:
 	var pick: Array = trees[_rng.randi() % trees.size()]
 	var yaw := _rng.randf() * TAU
 	var lean: Vector3 = pick[2]
@@ -971,6 +988,7 @@ func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: floa
 	_crowns.append(xf * GrapplePoints.crown_of(pick[0]))
 	_shapes.append([1.1 * s, 8.0, Vector3(p.x, h + 4.0, p.y)])
 	reserve(p, 3.5)
+	return {"xf": xf, "body": pick[0]}
 
 
 func _add_rock(buckets: Dictionary, meshes: Array, p: Vector2, s: float) -> void:

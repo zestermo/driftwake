@@ -111,7 +111,7 @@ func _check_layout(kind: String) -> void:
 	check("%s: houses enough (%d)" % [kind, b.size()], b.size() >= (10 if kind == "post" or kind == "hamlets" else 14))
 	check("%s: its streets, work spots and seats for villagers" % kind, vil.streets.size() >= 2 and vil.work_spots.size() >= 8 and vil.seats.size() >= 2
 		and vil.work_spots.all(func(s): return s.has_all(["kind", "at", "face", "y", "taken"])))
-	check("%s: NightLights within the budget" % kind, isl.find_children("*", "NightLight", true, false).size() <= vil.LIGHTS)
+	check("%s: NightLights within the budget" % kind, isl.get_node("Site_village").find_children("*", "NightLight", true, false).size() <= vil.LIGHTS)
 	check("%s: dressed (cargo instanced, washing, gardens, lamps or torches)" % kind, isl.get_node("Site_village").find_children("Cargo", "", true, false).size() == 1
 		and isl.find_children("Torch*", "", true, false).size() + isl.find_children("LanternPost*", "", true, false).size() >= 3)
 	match kind:

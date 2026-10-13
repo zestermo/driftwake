@@ -14,10 +14,13 @@ const AMBIENT := [8, 10]
 const NAMED := 3
 const PER_STEP := 4
 const JOBS := ["nets", "forage", "market", "home", "plaza"]
-const ACT := {"nets": "kneel", "forage": "kneel", "home": "kneel", "field": "kneel", "market": "talk", "plaza": "talk", "inn": "talk", "well": "talk"}
+const ACT := {"nets": "kneel", "forage": "kneel", "home": "kneel", "field": "kneel", "market": "talk", "plaza": "talk", "inn": "talk", "well": "talk", "bench": "talk"}
 ## People at these stand round the spot this far out, facing in.
 const GROUP := {"plaza": 3.8, "inn": 1.9, "well": 2.2}
 const HARBOUR_KIND := {"net mender": "nets", "fisher": "nets", "boatwright": "boats", "fishmonger": "stall", "trader": "stall"}
+## IslandVillage.work_spots' kinds as the routines' (the shopkeepers' own and the rest left out).
+const VILLAGE_KIND := {"market": "market", "customer": "market", "workshop": "workshop", "woodpile": "workshop", "shrine": "shrine", "pray": "shrine",
+	"home": "home", "well": "well", "garden": "field", "laundry": "field", "fishrack": "nets"}
 const SITE_KIND :={"camp": "camp", "lair": "lair", "ruins": "ruins", "summit": "lookout", "boss": "beast"}
 ## POI kind -> [a lost thing: m out toward the village, a scout's point: m out, its radius] (others go by the spot's "r")
 const POI := {"ruins": [3.5, 0.0, 8.0], "lookout": [4.5, 0.0, 5.0], "camp": [17.0, 26.0, 9.0], "lair": [16.0, 22.0, 8.0], "beast": [30.0, 34.0, 10.0]}
@@ -176,20 +179,36 @@ func _gather() -> void:
 			s["lane"] = KitLife.lane_in(s["hub"], s["at"], _blockers)
 
 
-## What today's IslandVillage gives: its plaza, the stalls' customers, the inn's door, the huts' fronts, the harbour's work (GenHarbour.spots), the paths out.
+## What the village gives (IslandVillage's layout data): a plaza at its heart and at each hamlet's fire, its work
+## spots (rooms and decks keep their floor's y), its benches, the inn, the houses' doors, the harbour's work
+## (GenHarbour.spots), the paths out. Each spot's hub is the nearest hamlet's (or the heart's).
 func _village_spots(v: IslandVillage) -> Array:
-	var c: Vector2 = isl.sites["village"]
+	var c: Vector2 = v.plaza["c"]
 	var to_dock: Vector2 = (isl.sites["dock"] - c).normalized()
-	var out: Array = [{"kind": "plaza", "at": c, "face": to_dock}]
-	for n in isl.get_children():
-		if n is NPC and n.shop_id != "":
-			var f := Vector2(-sin(n._home_yaw), -cos(n._home_yaw))
-			out.append({"kind": "market", "at": Vector2(n.position.x, n.position.z) + f * 1.8, "face": -f})
-	var door := isl.to_local((isl.get_node("Site_village/Rest") as Node3D).global_position)
-	out.append({"kind": "inn", "at": Vector2(door.x, door.z) + to_dock * 3.4, "face": to_dock})
-	for h in v.huts:
-		var f: Vector2 = (h[2] as Vector2).normalized()
-		out.append({"kind": "home", "at": h[1] + f * 4.4, "face": f})
+	var out: Array = [_at_y({"kind": "plaza", "at": c, "face": to_dock}, v.plaza["y"])]
+	var hubs_at: Array = [c]
+	for h in v.hamlets:
+		if not hubs_at.has(h["c"]):
+			hubs_at.append(h["c"])
+			out.append({"kind": "plaza", "at": h["c"], "face": to_dock})
+	for s in v.work_spots:
+		if not s["taken"] and VILLAGE_KIND.has(s["kind"]):
+			out.append(_at_y({"kind": VILLAGE_KIND[s["kind"]], "at": s["at"], "face": s["face"]}, s["y"]))
+	for s in v.seats:
+		var f: Vector2 = s["face"]
+		out.append(_at_y({"kind": "bench", "at": s["at"] + f * 0.9, "face": -f}, s["y"]))
+	for b in v.buildings:
+		var f: Vector2 = b["face"]
+		match str(b["kind"]):
+			"inn":
+				if b.has("floor_y"):
+					# (raised: they gather on the deck by the walkway over)
+					var dk: Dictionary = v.decks[0]
+					out.append({"kind": "inn", "at": dk["c"] + (b["door"] - dk["c"]).normalized() * (float(dk["r"]) - 2.5), "face": f, "y": dk["y"]})
+				else:
+					out.append({"kind": "inn", "at": b["door"] + f * 1.5, "face": f})
+			"hut", "tall":
+				out.append(_at_y({"kind": "home", "at": b["door"], "face": -f}, b.get("floor_y", INF)))
 	# the harbour's work on dry land (its decks are walked by no one yet: walk_height doesn't know them)
 	for e in isl.harbour.spots:
 		var p: Vector2 = e[0]
@@ -204,8 +223,19 @@ func _village_spots(v: IslandVillage) -> Array:
 			var p: Vector2 = smp[0] + off * 3.0
 			out.append({"kind": "forage", "at": p, "face": -off, "lane": KitLife.lane_along(c, p, path, 14.0, _blockers)})
 	for s in out:
-		s["hub"] = c
+		var hub: Vector2 = c
+		for h in hubs_at:
+			if (s["at"] as Vector2).distance_to(h) < (s["at"] as Vector2).distance_to(hub):
+				hub = h
+		s["hub"] = hub
 	return out
+
+
+## A spot with its floor's height (INF: on the ground, no "y").
+static func _at_y(s: Dictionary, y: float) -> Dictionary:
+	if y != INF:
+		s["y"] = y
+	return s
 
 
 func _site_name(site: String) -> String:
@@ -250,7 +280,7 @@ func _work_kind(f: Dictionary, hub: Vector2) -> String:
 		return f["pref"]
 	var work: Array = []
 	for s in spots:
-		if not s.get("poi", false) and s["hub"] == hub and not s["kind"] in ["plaza", "inn", "home"] and not work.has(s["kind"]):
+		if not s.get("poi", false) and s["hub"] == hub and not s["kind"] in ["plaza", "inn", "home", "bench"] and not work.has(s["kind"]):
 			work.append(s["kind"])
 	return work[int(f["wpick"] * work.size())] if not work.is_empty() else "plaza"
 
@@ -272,7 +302,7 @@ func _routine(i: int) -> void:
 	var hub: Vector2 = hubs[i % hubs.size()]
 	var work := _spot(hub, [_work_kind(f, hub), "plaza"], i)
 	var plan := [[5.9 + j[0], work, ACT.get(work["kind"], "stand")],
-		[12.0 + j[1] * 0.6, _spot(hub, ["plaza", "market"] if i % 2 == 0 else ["market", "plaza"], i), "talk"],
+		[12.0 + j[1] * 0.6, _spot(hub, ["bench", "plaza", "market"] if i % 2 == 0 else ["market", "plaza"], i), "talk"],
 		[13.4 + j[2] * 0.6, work, ACT.get(work["kind"], "stand")], [18.0 + j[3], _spot(hub, [f["eve"], "inn", "plaza"], i), "talk"]]
 	if not f["owl"] and _has(hub, "home"):
 		plan.append([22.2 + j[4] * 1.5, _spot(hub, ["home"], i), "home"])

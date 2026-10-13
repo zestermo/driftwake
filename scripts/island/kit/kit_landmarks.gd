@@ -206,21 +206,29 @@ const SUMMIT_CLEAR := 18.0
 const SUMMIT_TOWER := 12.0
 ## The biggest a tree is scattered (GenIsland._scatter_vegetation's scale at the thickest cover).
 const TREE_SCALE_MAX := 1.55
+## The biggest a canopy giant is scattered (GenIsland._add_giant's scale).
+const GIANT_SCALE_MAX := 1.15
+## Big trees that tower over the canopy by design (emergents, kapoks): a landmark needn't top them.
+const OVER_CANOPY := ["emergent", "kapok"]
 ## Today's jungle canopy: what the landmarks' sizes were drawn against.
 const CANOPY_REF := 15.0
 
 
-## How high the theme's tallest plant can stand (m): its meshes' tops at their biggest scale.
-## The theme's meshes must be made (IslandTheme.meshes), as for GenIsland.prepare.
+## How high the theme's canopy stands (m): its plants' tops at their biggest scale, but
+## for the few that tower over it. The theme's meshes must be made (IslandTheme.meshes).
 static func canopy(theme: String) -> float:
 	var top := 0.0
 	var m := IslandTheme.meshes(theme)
 	for k in m.keys():
+		if OVER_CANOPY.has(k):
+			continue
 		for e in m[k]:
 			# (the big trees are [body, detail, lean])
-			var mesh: Mesh = e[0] if e is Array else e
-			top = maxf(top, mesh.get_aabb().end.y)
-	return top * TREE_SCALE_MAX
+			if e is Array:
+				top = maxf(top, (e[0] as Mesh).get_aabb().end.y * GIANT_SCALE_MAX)
+			else:
+				top = maxf(top, (e as Mesh).get_aabb().end.y * TREE_SCALE_MAX)
+	return top
 
 
 ## How much bigger than drawn a landmark is made to stand over the theme's canopy (1 = today's jungle).
@@ -307,12 +315,13 @@ static func _trail(isl: GenIsland, door: Vector2, rng: RandomNumberGenerator) ->
 	isl._add_path([best, mid, door], 1.1)
 
 
-## Is a place of radius `r` at p clear of every [centre, radius] in `avoid`?
-static func clear_of(p: Vector2, r: float, avoid: Array) -> bool:
+## Is a place of radius `r` at p clear of every [centre, radius] in `avoid` and of
+## everything reserved so far (the village's houses, hamlets and streets)?
+static func clear_of(isl: GenIsland, p: Vector2, r: float, avoid: Array) -> bool:
 	for e in avoid:
 		if p.distance_to(e[0]) < r + float(e[1]):
 			return false
-	return true
+	return not isl.reserved_in(p, r)
 
 
 ## A random point inland, `lo`..`hi` of the island's radius out.
@@ -701,7 +710,7 @@ static func _plan_waterfall(isl: GenIsland, rng: RandomNumberGenerator, avoid: A
 			continue
 		var u := g / s
 		var crag := p + u * CRAG_OFF
-		if not clear_of(p + u * 3.0, 16.0, avoid) or isl.path_dist(p) < 9.0 or isl.path_dist(crag) < 7.0:
+		if not clear_of(isl, p + u * 3.0, 16.0, avoid) or isl.path_dist(p) < 9.0 or isl.path_dist(crag) < 7.0:
 			continue
 		# steep, and its face turned out to sea so it shows from a ship
 		var score := s + 0.004 * h + 0.25 * (-u).dot(p.normalized())
@@ -872,7 +881,7 @@ static func _plan_wreck(isl: GenIsland, rng: RandomNumberGenerator, avoid: Array
 		if s.distance_to(isl.dock_shore) < 70.0 or inland < 0.8 or inland > 4.2 or isl.hv(s + out * 14.0) > -1.0:
 			continue
 		var at := s - out * 1.5
-		if not clear_of(at, 14.0, avoid):
+		if not clear_of(isl, at, 14.0, avoid):
 			continue
 		var stern := out.rotated(rng.randf_range(-0.6, 0.6))
 		return {"kind": "wreck", "role": "landmark", "at": at, "y": isl.hv(at), "face": stern, "r": 14.0, "keep": [[Vector2(0, -1.0), 12.5]],
@@ -1047,7 +1056,7 @@ static func _plan_tree(isl: GenIsland, rng: RandomNumberGenerator, avoid: Array)
 		var b1 := b0 + rng.randf_range(1.8, 2.5)
 		var d0 := rng.randf_range(15.0, 17.5)
 		var d1 := rng.randf_range(15.0, 17.5)
-		if h < 4.0 or s > 0.16 or not clear_of(p, 18.0, avoid) or isl.path_dist(p) < 10.0:
+		if h < 4.0 or s > 0.16 or not clear_of(isl, p, 18.0, avoid) or isl.path_dist(p) < 10.0:
 			continue
 		var sats := [[p + Vector2.from_angle(b0) * d0, b0, d0], [p + Vector2.from_angle(b1) * d1, b1, d1]]
 		var ok := true
@@ -1355,7 +1364,7 @@ static func _plan_temple(isl: GenIsland, rng: RandomNumberGenerator, avoid: Arra
 		var p := rand_inland(isl, rng, 0.15, 0.72)
 		var h := isl.hv(p)
 		var s := grad(isl, p, 14.0 * ck).length()
-		if h < 4.0 or s > 0.2 or not clear_of(p, 24.0 * ck, avoid) or isl.path_dist(p) < 18.0 * ck:
+		if h < 4.0 or s > 0.2 or not clear_of(isl, p, 24.0 * ck, avoid) or isl.path_dist(p) < 18.0 * ck:
 			continue
 		if s < best_s:
 			best_s = s
@@ -1394,7 +1403,7 @@ static func _temple(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 	var vine_m := PSXMat.lit("leaves", Color(0.5, 0.72, 0.38))
 	# (over a taller canopy the whole temple is drawn bigger: the node's scale)
 	node.scale = Vector3.ONE * float(pl["k"])
-	var b := body("Temple")
+	var b := body("StepPyramid")
 	var mb := MeshBuilder.new()
 	var top_y := TIERS * TIER_H
 	for k in range(TIERS):

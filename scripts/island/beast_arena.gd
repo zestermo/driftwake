@@ -17,10 +17,8 @@ class_name BeastArena
 const WAKE_R := 24.0
 const RESET_R := 48.0
 const RESPAWN := 900.0
-## The fighting floor (clear) and where the ring of giants stands.
+## The fighting floor (clear; the canopy arena's giants ring it).
 const FLOOR_R := 19.0
-const RING_R := 25.0
-const TREES := 9
 const BANNERS := {
 	"ape": ["The Beast's Ground", "Smashed trees, gnawed bones. Something huge sleeps here."],
 	"serpent": ["The Strangler's Hollow", "Shed skins as long as a ship. Something coils in the dark."],
@@ -32,7 +30,7 @@ var isl: GenIsland
 var kind: String = "ape"
 var boss: Node3D
 var boss_gen: int = 0
-## The ring's giants: {base, top, r, perch (on the inward limb), crown (Node3D), ang} (world).
+## The ring's giants: {base, top, r, perch (under the crown, on the floor's side), ang} (world).
 var trees: Array = []
 ## Thick brush round the floor's edge (world): the stalker hides in it.
 var brush: Array = []
@@ -41,7 +39,6 @@ var _dead_t: float = 0.0
 var _celebrated: bool = false
 var _arrived: bool = false
 var _boss_ui: bool = false
-var _shakes := {}
 
 
 static func build(gi: GenIsland, _rng: RandomNumberGenerator) -> BeastArena:
@@ -68,61 +65,42 @@ static func rebuild(gi: GenIsland, kind: String, variant: int = 0) -> BeastArena
 	var site := gi.site_node("boss")
 	for c in site.get_children():
 		c.free()
-	var a := build(gi, null)
-	# (the village's job held the old one)
-	var vil := gi.get_node_or_null("Site_village/Village")
-	if vil:
-		vil.jobs["beast"]["check"] = func() -> bool: return Dialogue.has_flag(a._beaten_flag())
-	return a
+	return build(gi, null)
 
 
-## The fight's ground: its middle (island space), the floor's radius, the spots
-## for the ring of giants and the way in. The jungle theme's canopy-arena request
-## takes this over (the one place to swap).
-func _ground(rng: RandomNumberGenerator) -> Dictionary:
+## The fight's ground: its middle (island space), the floor's radius, the ring of
+## giants (the theme's canopy arena, GenIsland.arena_ring) and the way in.
+func _ground() -> Dictionary:
 	var c: Vector2 = isl.sites["boss"]
 	var entry: Vector2 = (isl.sites["village"] - c).normalized()
 	for path in isl.paths:
 		var pts: PackedVector2Array = path
 		if pts[pts.size() - 1].distance_to(c) < 3.0:
 			entry = (pts[maxi(pts.size() - 6, 0)] - c).normalized()
-	var ring: Array = []
-	var a0 := entry.angle()
-	for i in range(TREES):
-		var a := a0 + TAU * (i + 0.5) / TREES + rng.randf_range(-0.12, 0.12)
-		if absf(angle_difference(a, a0)) < 0.42:
-			continue
-		ring.append(c + Vector2.from_angle(a) * (RING_R + rng.randf_range(-1.5, 2.5)))
-	return {"c": c, "floor": FLOOR_R, "ring": ring, "entry": entry}
+	return {"c": c, "floor": FLOOR_R, "ring": isl.arena_ring(c), "entry": entry}
 
 
 # ==========================================================================
 # The ground
 # ==========================================================================
 func _dress(rng: RandomNumberGenerator, site: Node3D) -> void:
-	var g := _ground(rng)
+	var g := _ground()
 	var c: Vector2 = g["c"]
 	var y0 := isl.hv(c)
 	var body := StaticBody3D.new()
 	body.name = "Giants"
 	var bark := PSXMat.lit("bark", Color(0.82, 0.78, 0.72))
-	var moss := PSXMat.lit("bark", Color(0.55, 0.75, 0.42))
 	var mb := MeshBuilder.new()
-	var crowns := [_crown_mesh(1), _crown_mesh(2), _crown_mesh(3)]
-	for i in range((g["ring"] as Array).size()):
-		var p: Vector2 = g["ring"][i]
-		var at := Vector3(p.x - c.x, isl.hv(p) - y0, p.y - c.y)
+	var off := Vector3(c.x, y0, c.y)
+	for gt in g["ring"]:
+		var xf: Transform3D = gt["xf"]
+		var at := xf.origin - off
 		var inward := Vector3(-at.x, 0.0, -at.z).normalized()
-		var t := _giant(mb, bark, moss, rng, at, inward)
-		KitLandmarks.cyl_col(body, float(t["r"]) * 1.05, float(t["h"]), at + Vector3(0, float(t["h"]) * 0.5, 0))
-		var crown := MeshInstance3D.new()
-		crown.name = "Crown%d" % i
-		crown.mesh = crowns[i % crowns.size()]
-		crown.position = t["top"]
-		crown.rotation.y = atan2(-inward.x, -inward.z)
-		add_child(crown)
-		GrapplePoints.add(self, t["perch"] + Vector3(0, 1.2, 0))
-		trees.append({"base": at, "top": t["top"], "r": t["r"], "perch": t["perch"], "crown": crown, "ang": atan2(at.z, at.x)})
+		var top: Vector3 = xf * GrapplePoints.crown_of(gt["body"]) - off
+		# (on the inward side, in the crown's lower tiers: JunglePlants._crown)
+		var perch := at + Vector3(0, (top.y - at.y) * 0.7, 0) + inward * 2.2
+		GrapplePoints.add(self, perch + Vector3(0, 1.2, 0))
+		trees.append({"base": at, "top": top, "r": 1.1 * xf.basis.get_scale().x, "perch": perch, "ang": atan2(at.z, at.x)})
 	_brush(rng, g)
 	_floor(mb, bark, rng, g)
 	match kind:
@@ -142,71 +120,6 @@ func _dress(rng: RandomNumberGenerator, site: Node3D) -> void:
 			t[k] = site.to_global(t[k])
 	for i in range(brush.size()):
 		brush[i] = site.to_global(brush[i])
-
-
-## One of the ring's giants at `at` (local), leaning a touch over the floor:
-## buttress roots, a mossy foot, big limbs (one reaching in level enough to
-## crouch on: the perch), vines hanging off them. Returns its h, r, top, perch.
-func _giant(mb: MeshBuilder, bark: Material, moss: Material, rng: RandomNumberGenerator, at: Vector3, inward: Vector3) -> Dictionary:
-	var h := rng.randf_range(23.0, 29.0)
-	var r := rng.randf_range(1.25, 1.6)
-	var lean := Basis(inward.cross(Vector3.UP).normalized(), -rng.randf_range(0.03, 0.07))
-	mb.add_cylinder(bark, Transform3D(lean, at + Vector3(0, -0.4, 0)), r, r * 0.5, h, 9, 0.35, Color.WHITE, true, false, true)
-	mb.add_cylinder(moss, Transform3D(lean, at + Vector3(0, -0.4, 0)), r * 1.06, r * 0.98, 2.2, 9, 0.35, Color.WHITE, false, false, true)
-	var top := at + lean * Vector3(0, h - 0.4, 0)
-	# buttress roots: fins flaring out from the foot
-	for k in range(6):
-		var a := TAU * k / 6.0 + rng.randf_range(-0.25, 0.25)
-		var out := Vector3(cos(a), 0, sin(a))
-		var fh := rng.randf_range(2.4, 3.6)
-		var fl := rng.randf_range(2.2, 3.4)
-		var fin := PackedVector2Array([Vector2(0, -0.3), Vector2(fl, -0.3), Vector2(fl * 0.55, fh * 0.18), Vector2(fl * 0.2, fh * 0.55), Vector2(0, fh)])
-		var b := Basis(Vector3.UP, -a)
-		mb.add_extrude(bark, Transform3D(b, at + out * r * 0.7 + b * Vector3(0, 0, -0.18)), fin, 0.36, 0.5, Color(0.85, 0.85, 0.8))
-	# limbs: the perch reaching in, two more up and out
-	var side := inward.cross(Vector3.UP).normalized() * (1.0 if rng.randf() < 0.5 else -1.0)
-	var py := rng.randf_range(12.5, 14.5)
-	var root := at + lean * Vector3(0, py, 0)
-	var tip := root + inward * 6.5 + side * 1.2 + Vector3(0, 1.4, 0)
-	mb.add_tube(bark, MeshBuilder.curve_points(root, root + inward * 3.2 + Vector3(0, -0.4, 0), tip, 8), 0.55, 0.2, 6, 0.6)
-	var perch := root + inward * 3.0 + side * 0.3 + Vector3(0, 0.15, 0)
-	for k in range(2):
-		var ly := rng.randf_range(0.62, 0.82) * h
-		var l0 := at + lean * Vector3(0, ly, 0)
-		var dir := (inward * rng.randf_range(0.2, 0.9) - side * (1.0 if k == 0 else -1.0)).normalized()
-		var l1 := l0 + dir * rng.randf_range(5.0, 8.0) + Vector3(0, rng.randf_range(2.5, 4.5), 0)
-		mb.add_tube(bark, MeshBuilder.curve_points(l0, l0 + dir * 2.5 + Vector3(0, 0.3, 0), l1, 7), 0.45, 0.14, 6, 0.6)
-	# vines hanging off the perch limb and the trunk
-	var vine := PSXMat.lit("bark", Color(0.42, 0.6, 0.3))
-	for k in range(3):
-		var v0 := root.lerp(tip, rng.randf_range(0.25, 0.95)) + Vector3(0, -0.3, 0)
-		var v1 := v0 + Vector3(rng.randf_range(-0.6, 0.6), -rng.randf_range(6.0, 10.0), rng.randf_range(-0.6, 0.6))
-		mb.add_tube(vine, MeshBuilder.sag_points(v0, v1, 0.4, 6), 0.07, 0.05, 4, 1.0)
-	return {"h": h, "r": r, "top": top, "perch": perch}
-
-
-## A giant's crown (its own space: -z toward the floor's middle): a broad roof of
-## leaf masses reaching in over the floor, vines and fringe hanging under it.
-func _crown_mesh(seed_v: int) -> ArrayMesh:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 5150 + seed_v
-	var mb := MeshBuilder.new()
-	var leaves := PSXMat.lit("leaves", Color(0.82, 0.92, 0.8), {"affine": 0.5})
-	var fringe := PSXMat.cutout("bush", Color(0.8, 0.92, 0.78), 0.05, 1.0)
-	var vine := PSXMat.lit("bark", Color(0.42, 0.6, 0.3))
-	var blobs := [Vector3(0, 0.5, 0), Vector3(-3.0, 1.0, 1.5), Vector3(3.2, 0.6, 1.0), Vector3(0, -0.6, -4.5), Vector3(-3.5, -1.4, -7.5),
-		Vector3(2.8, -1.0, -8.0), Vector3(0, -1.8, -11.0), Vector3(-1.5, 1.6, -2.5)]
-	for b: Vector3 in blobs:
-		var r := rng.randf_range(3.6, 5.2)
-		var col := Color.WHITE.darkened(rng.randf_range(0.0, 0.25))
-		mb.add_blob(leaves, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), b), Vector3(r, r * rng.randf_range(0.45, 0.6), r), rng, 0.25, 3, 7, 0.4, col)
-		# fringe drooping under each mass, vines below
-		for k in range(2):
-			var f := b + Vector3(rng.randf_range(-r, r) * 0.6, -r * 0.45, rng.randf_range(-r, r) * 0.6)
-			mb.add_cross_cards(fringe, Transform3D(Basis(Vector3.RIGHT, PI).rotated(Vector3.UP, rng.randf() * PI), f + Vector3(0, 0.2, 0)), 2.4, 1.8, 2)
-		var v0 := b + Vector3(rng.randf_range(-1.5, 1.5), -r * 0.4, rng.randf_range(-1.5, 1.5))
-		mb.add_tube(vine, MeshBuilder.sag_points(v0, v0 + Vector3(rng.randf_range(-0.4, 0.4), -rng.randf_range(4.0, 8.0), 0), 0.3, 5), 0.06, 0.04, 4, 1.0)
-	return mb.commit()
 
 
 ## Thick brush in clumps round the floor's edge (between the giants), kept off the way in.
@@ -367,10 +280,9 @@ func _bones(mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float, 
 # ==========================================================================
 # What the beasts ask of it
 # ==========================================================================
-## Shake giant `i`'s crown (`k` 0..1: a rustle .. a branch nearly torn off): every screen runs its own.
+## Giant `i`'s crown shaken (`k` 0..1: a rustle .. a branch nearly torn off): leaves and their rustle, every screen its own.
 func shake(i: int, k: float) -> void:
 	var t: Dictionary = trees[i]
-	_shakes[i] = [maxf(float(_shakes.get(i, [0.0])[0]), k), 0.0]
 	BeastFX.leaves((t["perch"] as Vector3) + Vector3(0, 2.0, 0), int(10 + 20 * k), 2.5)
 	BeastFX.sfx("leaves", t["perch"], -4.0 + 6.0 * k, 1.0, 70.0)
 
@@ -378,20 +290,6 @@ func shake(i: int, k: float) -> void:
 ## The floor's middle (world).
 func centre() -> Vector3:
 	return global_position
-
-
-func _tick_shakes(delta: float) -> void:
-	for i in _shakes.keys():
-		var s: Array = _shakes[i]
-		s[1] = float(s[1]) + delta
-		var k: float = float(s[0]) * exp(-float(s[1]) * 2.2)
-		var crown: Node3D = trees[i]["crown"]
-		crown.rotation.x = sin(float(s[1]) * 23.0) * 0.035 * k
-		crown.rotation.z = sin(float(s[1]) * 17.0 + 1.0) * 0.03 * k
-		if float(s[1]) > 2.5:
-			crown.rotation.x = 0.0
-			crown.rotation.z = 0.0
-			_shakes.erase(i)
 
 
 # ==========================================================================
@@ -442,7 +340,6 @@ func _beaten_flag() -> String:
 
 
 func _process(delta: float) -> void:
-	_tick_shakes(delta)
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me and not _arrived and me.global_position.distance_to(global_position) < 60.0:
 		_arrived = true
