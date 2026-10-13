@@ -87,6 +87,35 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
 - [ ] Minibosses and the roamer respawn (they stay dead until the island is rebuilt).
 - [ ] Render review: bossshot sheets for the serpent, stalker and mantis (models built, not yet looked at).
 
+## Bug pass after the 2026-10-12 merge (next: one full test run, then fix)
+Merged compile-only: harbours, villagers and quests, caves and dungeons, village layouts, jungle theme and
+vegetation, landmarks and set pieces, jungle bosses, jungle fauna, daggers. Known before testing:
+- **Co-op:** nettest chain floods the host with non-finite transforms (`instance_set_transform`) from the moment it
+  hosts mid-game and the guest misses the island's beast (seen on the theme branch; suspects: the thicket slow in
+  move_state/pirate_grunt, Weather's style blend with Net up, the new villager looks).
+- **Suites seen failing on branches:** apetest ("hurls it, and it comes down on you": village and landmarks
+  branches), legtest (a sea leg with no pirate fleet), feel (buffered jump), shiptest (crash, no RESULT): all from
+  the landmarks branch, which touched player.gd, camera_rig.gd, ragdoll.gd, ocean_manager.gd (surface_at),
+  climb_state.gd, ladder.gd. isletest's "its lamps ... Flame >= 5" may fail (the pier lamp is gone, village lamps
+  depend on the layout).
+- **Landmarks:** `KitLandmarks.canopy()` now counts the theme's 26-32 m giants, so `canopy_k`/`summit_h` may scale
+  landmarks and the summit tower up a lot (look at it); placement keeps off sites but not reserves (could land on
+  far hamlets, lanes or houses); "Temple" names both the landmark and KitTemple's dungeon.
+- **Bosses:** BeastArena builds its own ring of giants; the theme's `canopy_arena` should replace `_ground()`.
+  The bosses' AlphaBoar and the fauna boar overlap.
+- **Fauna:** drop items (`boar_haunch`, `tusk`, `chitin_shard`, `plume`, `jungle_fruit`, `snakeskin`, `crab_meat`)
+  aren't in ItemDB, so a kill that rolls one will error.
+- **Life:** its spot derivation reads the old IslandVillage fields; feed it from the village layouts' `work_spots`,
+  `seats`, `hamlets` (and keep deck/room y). Nobody stands on harbour decks (walk_height ignores them).
+- **Theme styling not carried into the new village:** stalls (`stall` style), the pier style (GenHarbour reads
+  `harbour_*`; `harbour_roof` is still "thatch"), workshop/shrine/storehouse/ruin/palisade/decks, IslandLife's
+  villagers (use `_villager_look`, not the style's folk looks); the village ctx is hardwired to "jungle".
+- Theme overrides replace nested keys whole: every override must carry all sub-keys.
+- villagetest numbers may shift (a roof-pitch roll was added); daggers in `LOOT_WEAPONS` change every island's
+  loot and shop rolls (seeded tests that count loot may move).
+- Not started: coastlines (branch `worktree-agent-acf7ce1eb84825da1`, part done; plan in its commits), dual axes,
+  hammer, ability tiers.
+
 ## Open from the 2026-10-09 session (not yet prioritised)
 - **Save keys repeat across worlds:** chest, job and beast flags (`isle<id>_*`, `leg<x>_<y>_*`) are
   keyed by island number, which repeats across chain seeds, so a guest's opened chest counts on the
