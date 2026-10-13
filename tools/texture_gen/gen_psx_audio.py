@@ -485,6 +485,108 @@ def gull_sound():
     finish("gull", out, 0.8, fade=0.03)
 
 
+def _voice(rng, dur, f0_pts, formants, harm=12, rasp=0.3, gain=2.0):
+    """A pitched animal call: a saw on a pitch contour, rasp locked to it, through formants."""
+    n = int(SR * dur)
+    t = np.arange(n) / SR
+    f0 = np.interp(t / dur, np.linspace(0, 1, len(f0_pts)), f0_pts)
+    f0 = f0 * (1 + 0.04 * lpf(rng.standard_normal(n), 0.01) / 0.1)
+    ph = np.cumsum(f0 / SR)
+    src = np.zeros(n)
+    for k in range(1, harm + 1):
+        src += np.sin(2 * np.pi * k * ph) / k
+    v = np.tanh(src * gain) + rng.standard_normal(n) * rasp * (np.sin(2 * np.pi * ph) > 0.3)
+    y = np.zeros(n)
+    for f, q, g in formants:
+        y += resonate(v, f, q) * g
+    env = np.minimum(1, t / 0.015) * np.clip((dur - t) / 0.06, 0, 1)
+    return y * env
+
+
+def grunt_sound():
+    """Boar: two low snuffling grunts."""
+    rng = np.random.default_rng(301)
+    out = np.zeros(int(SR * 0.7))
+    for t0, d in ((0.0, 0.22), (0.3, 0.3)):
+        g = _voice(rng, d, [95, 120, 80], ((350, 4, 1.0), (900, 6, 0.4)), rasp=0.8)
+        i = int(SR * t0)
+        out[i:i + len(g)] += g
+    finish("grunt", lpf(out, 0.4), 0.8, fade=0.03)
+
+
+def squeal_sound():
+    """Boar/piglet: a shrill rising squeal."""
+    rng = np.random.default_rng(307)
+    out = _voice(rng, 0.55, [500, 900, 1100, 800], ((1200, 5, 1.0), (2600, 8, 0.5)), rasp=0.4)
+    finish("squeal", out, 0.75, fade=0.05)
+
+
+def screech_sound():
+    """Bat: a thin, high, fluttering screech."""
+    rng = np.random.default_rng(311)
+    out = _voice(rng, 0.35, [2200, 3200, 2600], ((3000, 4, 1.0), (5000, 6, 0.4)), harm=6, rasp=0.2)
+    t = np.arange(len(out)) / SR
+    out *= 0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 45 * t))
+    finish("screech", out, 0.6, fade=0.03)
+
+
+def squawk_sound():
+    """Toucan: a harsh croaking squawk, twice."""
+    rng = np.random.default_rng(313)
+    out = np.zeros(int(SR * 0.6))
+    for t0 in (0.0, 0.28):
+        g = _voice(rng, 0.22, [700, 950, 600], ((1100, 5, 1.0), (2200, 7, 0.6)), rasp=0.6, gain=3.0)
+        i = int(SR * t0)
+        out[i:i + len(g)] += g
+    finish("squawk", out, 0.75, fade=0.03)
+
+
+def flap_sound():
+    """Wings beating: soft whumps of air."""
+    rng = np.random.default_rng(317)
+    n = int(SR * 0.4)
+    t = np.arange(n) / SR
+    w = lpf(rng.standard_normal(n), 0.15)
+    env = np.maximum(0, np.sin(2 * np.pi * 9 * t)) ** 3 * np.exp(-t * 4)
+    finish("flap", w * env, 0.6, fade=0.03)
+
+
+def hiss_sound():
+    """Snake: a long breathy hiss with a rattle under it."""
+    rng = np.random.default_rng(331)
+    n = int(SR * 0.7)
+    t = np.arange(n) / SR
+    w = hpf(rng.standard_normal(n), 0.25)
+    rattle = 0.65 + 0.35 * np.sign(np.sin(2 * np.pi * 55 * t))
+    env = np.minimum(1, t / 0.08) * np.clip((0.7 - t) / 0.2, 0, 1)
+    finish("hiss", w * rattle * env, 0.5, fade=0.04)
+
+
+def monkey_sound():
+    """Monkey: a run of chattering 'ook-ook-eek' calls."""
+    rng = np.random.default_rng(337)
+    out = np.zeros(int(SR * 0.75))
+    for k, t0 in enumerate((0.0, 0.12, 0.24, 0.4)):
+        hi = k == 3
+        g = _voice(rng, 0.1 if not hi else 0.25, [500, 700, 450] if not hi else [900, 1500, 1200], ((800 if not hi else 1600, 5, 1.0), (1800, 7, 0.4)), rasp=0.3)
+        i = int(SR * t0)
+        out[i:i + len(g)] += g
+    finish("monkey", out, 0.75, fade=0.03)
+
+
+def clack_sound():
+    """Crab: claws clacking, a few hard clicks."""
+    rng = np.random.default_rng(347)
+    n = int(SR * 0.3)
+    out = np.zeros(n)
+    for t0 in (0.0, 0.07, 0.15):
+        L = int(SR * 0.02)
+        tt = np.arange(L) / SR
+        i = int(SR * t0)
+        out[i:i + L] += resonate(rng.standard_normal(L), rng.uniform(1800, 2600), 8) * np.exp(-tt * 300)
+    finish("clack", out, 0.7)
+
+
 def bell_sound():
     """Ship's bell, two quick strikes ('ding-ding'), inharmonic bell partials."""
     rng = np.random.default_rng(191)
@@ -1290,6 +1392,14 @@ SOUNDS = [
     ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),
     ("thunder_far", lambda: thunder_sound("thunder_far", 237, 5.0, 0.15)),
     ("gull", gull_sound),
+    ("grunt", grunt_sound),
+    ("squeal", squeal_sound),
+    ("screech", screech_sound),
+    ("squawk", squawk_sound),
+    ("flap", flap_sound),
+    ("hiss", hiss_sound),
+    ("monkey", monkey_sound),
+    ("clack", clack_sound),
 ]
 
 

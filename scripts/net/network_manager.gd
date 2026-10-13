@@ -37,7 +37,7 @@ const XP_RANGE := 40.0
 const CONNECT_TIMEOUT := 10.0
 const WEB_NO_COOP := "Co-op needs the desktop build"
 ## What clients may ask the host to do to an enemy (see ask_host).
-const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull"]
+const HOST_CALLS := ["parried", "vine_yank", "rooted", "grabbed", "burn", "alert", "net_knock", "net_push", "net_pull", "stole"]
 
 var active: bool = false
 var hosting: bool = false
@@ -615,7 +615,8 @@ func _send_snapshots() -> void:
 		items.append(ship.net_pack())
 	if hosting:
 		for n in get_tree().get_nodes_in_group("net_sync"):
-			if n.has_method("net_pack") and (n as Node).is_inside_tree():
+			# (wildlife asleep far from everyone isn't moving: no need to send it)
+			if n.has_method("net_pack") and (n as Node).is_inside_tree() and not n.get("net_idle"):
 				items.append(key_of(n))
 				items.append(n.net_pack())
 	# sent in packets that fit the network's MTU (a fragmented unreliable

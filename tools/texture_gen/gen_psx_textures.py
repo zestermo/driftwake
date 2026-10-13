@@ -929,6 +929,50 @@ def gen_icons():
         for (x, y) in ((8, 10), (12, 10), (16, 10), (8, 15), (12, 15), (16, 15)):
             d.point((x, y), fill=hexc("8a6a38") + (255,))
 
+    def boar_haunch(d):
+        # a roast haunch, bone sticking out
+        d.ellipse([3, 7, 17, 20], fill=hexc("8a4a20") + (255,))
+        d.ellipse([5, 8, 14, 14], fill=hexc("b8743a") + (255,))
+        d.line([(15, 9), (21, 4)], fill=hexc("eee4cc") + (255,), width=2)
+        d.ellipse([19, 2, 23, 6], fill=hexc("eee4cc") + (255,))
+
+    def tusk(d):
+        d.arc([4, 3, 22, 25], 180, 280, fill=hexc("eee4cc") + (255,), width=3)
+        d.line([(4, 15), (6, 17)], fill=hexc("8a6a40") + (255,), width=2)
+
+    def chitin_shard(d):
+        d.polygon([(5, 18), (11, 3), (19, 8), (16, 21)], fill=hexc("2e6a62") + (255,))
+        d.polygon([(11, 3), (19, 8), (14, 10)], fill=hexc("5aa89a") + (255,))
+        d.line([(9, 14), (15, 12)], fill=hexc("f0c850") + (255,))
+
+    def plume(d):
+        d.line([(5, 21), (18, 4)], fill=hexc("e8e0d0") + (255,))
+        d.polygon([(18, 4), (14, 6), (8, 15), (6, 19), (10, 16), (16, 10)], fill=hexc("f08a18") + (255,))
+        d.polygon([(18, 4), (19, 9), (13, 15), (10, 16)], fill=hexc("2a60d8") + (255,))
+
+    def jungle_fruit(d):
+        d.ellipse([5, 7, 19, 21], fill=hexc("f0a020") + (255,))
+        d.ellipse([7, 9, 12, 13], fill=hexc("ffd870") + (255,))
+        d.polygon([(12, 7), (17, 2), (19, 5)], fill=hexc("4a9a30") + (255,))
+
+    def snakeskin(d):
+        for k in range(5):
+            y = 4 + k * 4
+            d.line([(3 + k, y), (20 - k, y + 2)], fill=hexc("4a8a2a") + (255,), width=3)
+            d.point((11, y + 1), fill=hexc("d8e070") + (255,))
+
+    def crab_meat(d):
+        d.ellipse([3, 9, 13, 19], fill=hexc("d0401a") + (255,))
+        d.polygon([(11, 10), (21, 4), (19, 10)], fill=hexc("d0401a") + (255,))
+        d.polygon([(12, 14), (21, 15), (18, 10)], fill=hexc("f08a5a") + (255,))
+
+    _icon("boar_haunch", boar_haunch)
+    _icon("tusk", tusk)
+    _icon("chitin_shard", chitin_shard)
+    _icon("plume", plume)
+    _icon("jungle_fruit", jungle_fruit)
+    _icon("snakeskin", snakeskin)
+    _icon("crab_meat", crab_meat)
     _icon("cutlass", cutlass)
     _icon("katana", katana)
     _icon("axe", axe)

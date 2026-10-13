@@ -178,3 +178,6 @@ scripts/ui/*                            r6test
 scripts/psx/*                           r9test hairtest
 shaders/*                               r9test r10test
 project.godot                           feat r6test
+scripts/enemies/fauna/*                 faunatest netchain
+scripts/island/fauna_spawner.gd         faunatest netchain
+shaders/fauna_swarm.gdshader            faunatest

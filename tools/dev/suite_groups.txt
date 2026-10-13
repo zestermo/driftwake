@@ -4,7 +4,7 @@ Combat: feel katanatest axetest airtest wieldtest techtest balancetest guntest f
 Player: feat dash stamtest swimtest ragtest looptest styletest
 Character & UI: chartest hairtest invtest r6test r7test savetest capturetest qoltest
 Powers & progression: powertest vinetest progtest leveltest
-Enemies: bugtest grunttest apetest watertest
+Enemies: bugtest grunttest apetest watertest faunatest
 Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest
 Islands & world: chaintest isletest fidelitytest foresttest storytest ambiencetest r9test r10test perftest lifetest
 Islands & world: chaintest isletest villagetest fidelitytest foresttest storytest ambiencetest r9test r10test perftest

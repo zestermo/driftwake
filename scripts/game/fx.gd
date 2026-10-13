@@ -12,6 +12,7 @@ const SOUNDS := [
 	"howl", "haki", "block", "peril", "bell", "cannon", "cannon_hit", "horn", "roar", "rope",
 	"splash_big", "wood_crack", "gull", "bow_spray", "swim_stroke",
 	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water",
+	"grunt", "squeal", "screech", "squawk", "flap", "hiss", "monkey", "clack",
 ]
 
 var _dust_mat: StandardMaterial3D

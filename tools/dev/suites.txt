@@ -54,3 +54,4 @@ dungeontest
 villagetest
 landmarktest
 bosstest
+faunatest

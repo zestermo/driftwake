@@ -30,6 +30,8 @@ static func steps(isl: GenIsland) -> Array:
 		["beasts", func(): BeastDens.build(isl)],
 		# (after the camp, the lair and the beast: its jobs watch them)
 		["village", func(): IslandVillage.build(isl, rng)],
+		# (its own seeded stream: the sites above roll the same as before)
+		["fauna", func(): FaunaSpawner.build(isl)],
 	] + KitLandmarks.steps(isl) + KitDungeons.steps(isl)
 
 
