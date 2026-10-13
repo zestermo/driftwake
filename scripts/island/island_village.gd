@@ -1,14 +1,16 @@
 class_name IslandVillage
 extends Node3D
-## A generated island's outpost village (GenIsland.sites["village"]), from its
-## seed: stilt huts round a plaza, an inn to rest in, a trader and a cook
-## (Shops.extra at the island's tier), a job board, the village elder and a few
-## villagers. Its own dialogues are made here (Dialogue.define).
+## A generated island's village (GenIsland.sites["village"]), from its seed: one of the
+## layouts in VillageLayouts' pool (a town, hamlets, a walled trading post, a raised
+## village on stilts, an abandoned one with its survivors nearby), each with the inn, a
+## walk-in trader's store and cookhouse, the elder, a job board and villagers where its
+## people are. `plan` lays it out as data in GenIsland.prepare (a worker thread); `build`
+## (IslandContent's village step) makes the inn and the people; `steps` the rest a piece
+## a frame.
 ##
-## Jobs (the board offers, the elder pays): the camp's captain, the bug lair,
-## (the beast: 6c). Per captain, kept in Dialogue flags "isle<id>_<job>_taken /
-## _done / _paid". A deed done before the job was taken counts once it's taken
-## ("isle<id>_<job>_beaten" is set whenever it happens).
+## Jobs (the board offers, the elder pays): the camp's captain, the bug lair, the beast.
+## Per captain, kept in Dialogue flags "isle<id>_<job>_taken / _done / _paid". A deed done
+## before the job was taken counts once it's taken ("isle<id>_<job>_beaten").
 
 const ELDERS := ["Elder Mako", "Elder Tavi", "Old Kesi", "Elder Rua", "Grandmother Ilo", "Headman Pakua"]
 const COOKS := ["Nalu", "Ama", "Big Teo", "Siri"]
@@ -25,25 +27,96 @@ const VILLAGER_BARKS := [
 ]
 const JOB_STEPS := 0.5
 const Shops := preload("res://scripts/game/shops.gd")
+## NightLights for the whole village (inn door, the shops' rooms, the shrine, lamps, torches).
+const LIGHTS := 12
+## Built with the people in the village step, then the shops (and their keepers); the other buildings come after.
+const CORE := ["inn"]
+const SHOPS := ["trade", "cook"]
+const ROOMS := ["trade", "cook", "home", "elder"]
 
 var isl: GenIsland
+var ctx: KitContext
 ## job id -> {"title", "line", "gold", "check": Callable}
 var jobs := {}
 var elder_name := ""
-## The huts ([node, point, the way the door faces]) and what's built round the
-## plaza ([centre, radius]), for a dressing pass (KitVillage.dress_houses).
-var huts: Array = []
-var taken: Array = []
 var _t := 0.0
 
+# For villagers' routines (island space; filled as the village is built):
+## Which of VillageLayouts.POOL this is.
+var layout := ""
+## The heart, where the services are: {"c": Vector2, "r": float, "y": float (INF: on the ground; the deck's height when raised)}
+var plaza := {}
+## The lanes the village cut (PackedVector2Array each, also in isl.paths).
+var lanes: Array = []
+## Every street through the village: the lanes and the paths' stretches near its houses.
+var streets: Array = []
+## {"c": Vector2, "kind": "hub" / "fishers" / "farmers" / "woodcutters" / "survivors"}: hamlets and survivors.
+var hamlets: Array = []
+## {"kind", "node", "p", "face", "door": Vector2 (outside the way in), "enterable": bool,
+## "floor_y" (rooms and raised houses), "inside": Vector2 (rooms)}. Kinds: VillageLayouts.SIZE's keys.
+var buildings: Array = []
+## Where someone works or idles: {"kind", "at", "face", "y" (INF: on the ground), "taken": bool}.
+## Kinds: market, shop, customer, workshop, shrine, pray, home, well, laundry, garden, woodpile, fishrack.
+var work_spots: Array = []
+## Benches: {"at", "face", "y"}.
+var seats: Array = []
+## {"c": Vector2, "stalls": [Node3D]} (empty without a market)
+var market := {}
+## Raised walking surfaces: {"c", "r", "y"} (the deck), and walkways {"a", "b", "y"} (stilts layout).
+var decks: Array = []
+var walkways: Array = []
+var _keepers := {}
+var _names := {}
 
+
+static func plan(gi: GenIsland) -> Dictionary:
+	return VillageLayouts.plan(gi)
+
+
+# ==========================================================================
+# Building it (main thread)
+# ==========================================================================
 static func build(gi: GenIsland, rng: RandomNumberGenerator) -> IslandVillage:
 	var v := IslandVillage.new()
 	v.name = "Village"
 	v.isl = gi
-	gi.site_node("village").add_child(v)
+	var site := gi.site_node("village")
+	site.add_child(v)
+	v.ctx = KitContext.make(gi, int(gi.node["seed"]), "jungle", LIGHTS, gi.build_ms).under(site)
 	v._build(rng)
 	return v
+
+
+## The rest of the village after the inn and the people, as GenIsland finish steps
+## ([name, Callable]): the shops, the other buildings a few at a time, the layout's
+## own structures, the market and bunting, the dressing in batches, the cargo, the ground.
+static func steps(gi: GenIsland) -> Array:
+	var p: Dictionary = gi.village_plan
+	var shops: Array = p["buildings"].filter(func(b): return SHOPS.has(b["kind"]))
+	var out: Array = [["village shops", func(): _of(gi)._shops(shops)]]
+	var rest: Array = p["buildings"].filter(func(b): return not CORE.has(b["kind"]) and not SHOPS.has(b["kind"]))
+	for i in range(0, rest.size(), 3):
+		var chunk := rest.slice(i, i + 3)
+		out.append(["village houses", func(): _of(gi)._houses(chunk)])
+	var ex: Dictionary = p["extra"]
+	if ex.has("palisade"):
+		out.append(["village walls", func(): _of(gi)._walls()])
+	if ex.has("deck"):
+		out.append(["village walks", func(): _of(gi)._walks()])
+	if ex.has("nest"):
+		out.append(["village ruins", func(): _of(gi)._ruins()])
+	out.append(["village market", func(): _of(gi)._market()])
+	var items: Array = p["items"].filter(func(it): return it["k"] != "cargo")
+	for i in range(0, items.size(), 20):
+		var chunk := items.slice(i, i + 20)
+		out.append(["village dressing", func(): _of(gi)._dress(chunk)])
+	out.append(["village cargo", func(): KitVillage.build_cargo(_of(gi).ctx, p["items"])])
+	out.append(["village paving", func(): _of(gi)._pave()])
+	return out
+
+
+static func _of(gi: GenIsland) -> IslandVillage:
+	return gi.get_node("Site_village/Village")
 
 
 func _key(s: String) -> String:
@@ -51,37 +124,26 @@ func _key(s: String) -> String:
 
 
 func _build(rng: RandomNumberGenerator) -> void:
-	var c: Vector2 = isl.sites["village"]
+	var p: Dictionary = isl.village_plan
+	var c: Vector2 = p["c"]
+	var hy: float = p["heart_y"]
 	var site := isl.site_node("village")
-	var to_dock: Vector2 = (isl.sites["dock"] - c).normalized()
+	var to_dock: Vector2 = p["to_dock"]
 	var side := Vector2(-to_dock.y, to_dock.x)
-	var at := func(fw: float, sd: float) -> Vector2: return c + to_dock * fw + side * sd
 	var t := IslandContent.tier(isl)
 	var lvl := int(isl.node["level"])
-	# the plaza: a fire pit, lanterns, a light
-	IslandContent._fire(isl, site, c)
-	for lp in [at.call(5.0, 5.5), at.call(-5.0, -5.5)]:
-		var post := Props.lantern_post(2.4)
-		isl.place(post, site, lp)
-		var nl := NightLight.make(Color(1.0, 0.72, 0.4), 1.4, 12.0)
-		nl.position = Vector3(0.55, 2.2, 0)
-		post.add_child(nl)
-	# huts on stilts round it, doors to the plaza (a gap toward the dock path)
-	var roofs := ["gable", "gable", "hip", "gable_front"]
-	var walls := ["planks", "planks_weathered", "planks"]
-	var n_huts := rng.randi_range(5, 7)
-	for i in range(n_huts):
-		var a := atan2(to_dock.y, to_dock.x) + PI * 0.3 + i * (TAU - PI * 0.6) / float(n_huts - 1)
-		var p := c + Vector2.from_angle(a) * rng.randf_range(16.0, 21.0)
-		var spec := {"w": rng.randf_range(4.0, 5.5), "d": rng.randf_range(3.5, 4.5), "h": 2.3, "roof": roofs[rng.randi() % roofs.size()],
-			"wall": walls[rng.randi() % walls.size()], "roof_tex": "thatch", "porch": 1.2 if rng.randf() < 0.5 else 0.0,
-			"flowers": rng.randf() < 0.4, "trim": Color(0.42, 0.3, 0.2), "seed": rng.randi()}
-		huts.append([isl.house(spec, site, p, c - p, true), p, c - p])
-		taken.append([p, maxf(spec["w"], spec["d"]) * 0.6 + 1.5])
-	# the inn: the biggest, across the plaza from the dock path
-	var inn_p: Vector2 = at.call(-24.0, 0.0)
-	var inn := isl.house({"w": 8.0, "d": 6.0, "h": 2.8, "roof": "hip", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 2.0,
-		"lantern": true, "lamp_light": true, "trim": Color(0.42, 0.3, 0.2), "seed": rng.randi(), "name": "Inn"}, site, inn_p, to_dock, true)
+	layout = p["layout"]
+	plaza = {"c": c, "r": p["plaza_r"], "y": hy}
+	lanes = p["lanes"]
+	streets = p["streets"]
+	hamlets = p["hamlets"]
+	for f in p["fires"]:
+		_fire(f[0], f[1])
+	var inn := {}
+	for b in p["buildings"]:
+		if CORE.has(b["kind"]):
+			inn = _make(b)
+	# resting at the inn: at its door
 	var rest := Interactable.new()
 	rest.name = "Rest"
 	rest.collision_layer = 512
@@ -93,10 +155,11 @@ func _build(rng: RandomNumberGenerator) -> void:
 	cs.shape = sph
 	rest.add_child(cs)
 	site.add_child(rest)
-	var door: Vector2 = inn_p + to_dock * 4.4
-	rest.global_position = isl.to_global(Vector3(door.x, isl._ground_max(inn_p, 4.8) + 1.0, door.y))
+	var inn_door: Vector2 = inn["door"]
+	var door_y: float = inn.get("floor_y", isl.hv(inn_door))
+	rest.global_position = isl.to_global(Vector3(inn_door.x, door_y + 1.4, inn_door.y))
 	rest.interacted.connect(func(player: Player): player.call("_toast", GameManager.rest(player)))
-	# stalls: the trader's and the cook's, facing the plaza
+	# the trader's store and the cookhouse
 	var trade_id := _key("trader")
 	var food_id := _key("cook")
 	var w := IslandContent.LOOT_WEAPONS
@@ -108,14 +171,11 @@ func _build(rng: RandomNumberGenerator) -> void:
 	Shops.extra[food_id] = {"name": "%s's Cookpot" % COOKS[rng.randi() % COOKS.size()],
 		"line": "Fish from the reef, fruit from the trees, something in the pot. Eat.",
 		"stock": [["fish", 5], ["stew", 16], ["rum", 8]], "buys": {"consumable": 0.4}}
-	var stall_a: Vector2 = at.call(9.0, -8.0)
-	var stall_b: Vector2 = at.call(9.0, 8.0)
-	var s1 := isl.place(Props.market_stall("cloth_red", Color(0.7, 0.55, 0.3)), site, stall_a, StarterIsland.face_yaw(c - stall_a), 1.6)
-	var s2 := isl.place(Props.market_stall("canvas", Color(0.85, 0.5, 0.25)), site, stall_b, StarterIsland.face_yaw(c - stall_b), 1.6)
-	# the job board by the path in
-	var board_p: Vector2 = at.call(11.0, 0.0)
-	var board := isl.place(KitVillage.notice_board(rng), site, board_p, StarterIsland.face_yaw(c - board_p))
-	taken.append_array([[c, 2.5], [at.call(5.0, 5.5), 0.6], [at.call(-5.0, -5.5), 0.6], [inn_p, 6.3], [stall_a, 2.6], [stall_b, 2.6], [board_p, 1.2]])
+	# the job board by the way in
+	var bd: Dictionary = p["board"]
+	var board := ctx.place(KitVillage.notice_board(rng), bd["p"], KitContext.face_yaw(bd["face"]), 1.0, 0.0, false)
+	if bd.has("y"):
+		board.global_position.y = isl.global_position.y + float(bd["y"])
 	var read := Interactable.new()
 	read.name = "Read"
 	read.collision_layer = 512
@@ -132,21 +192,20 @@ func _build(rng: RandomNumberGenerator) -> void:
 	# the people
 	var lks := looks(isl)
 	elder_name = ELDERS[rng.randi() % ELDERS.size()]
-	_npc({"name": elder_name, "dialogue": _key("elder"), "voice": 0.8, "look": lks[0]}, at.call(-3.0, 3.0), to_dock)
+	_npc({"name": elder_name, "dialogue": _key("elder"), "voice": 0.8, "look": lks[0]}, c - to_dock * 3.0 + side * 3.0, to_dock, hy)
 	_npc({"name": "Innkeeper " + INNKEEPERS[rng.randi() % INNKEEPERS.size()], "voice": 1.1, "look": lks[1],
 		"barks": ["A hammock, a roof and a dry night. Rest when you like.", "We don't get many ships. We get fewer that leave."]},
-		inn_p + to_dock * 5.5 + side * 2.0, to_dock)
-	_npc({"name": str(Shops.extra[trade_id]["name"]).trim_suffix("'s Trade Goods"), "voice": 0.95, "shop": trade_id, "look": lks[2],
+		inn_door + Vector2(-inn["face"].y, inn["face"].x) * 1.2, inn["face"], inn.get("floor_y", INF))
+	_keepers = {"trade": {"name": str(Shops.extra[trade_id]["name"]).trim_suffix("'s Trade Goods"), "voice": 0.95, "shop": trade_id, "look": lks[2],
 		"barks": ["Have a look. Everything's for sale, and most of it's for sale cheap."]},
-		_stall_front(s1), c - stall_a)
-	_npc({"name": str(Shops.extra[food_id]["name"]).trim_suffix("'s Cookpot"), "voice": 1.15, "shop": food_id, "look": lks[3],
-		"barks": ["Sit, eat. You look like a ship's biscuit with legs."]},
-		_stall_front(s2), c - stall_b)
+		"cook": {"name": str(Shops.extra[food_id]["name"]).trim_suffix("'s Cookpot"), "voice": 1.15, "shop": food_id, "look": lks[3],
+		"barks": ["Sit, eat. You look like a ship's biscuit with legs."]}}
+	var pr: float = p["plaza_r"]
 	for i in range(4, lks.size()):
-		var p := c + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(6.0, 11.0)
+		var q := c + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(pr * 0.4, pr * 0.85)
 		_npc({"name": "Villager", "voice": rng.randf_range(0.85, 1.2), "look": lks[i],
 			"barks": [VILLAGER_BARKS[rng.randi() % VILLAGER_BARKS.size()], VILLAGER_BARKS[rng.randi() % VILLAGER_BARKS.size()]]},
-			p, c - p)
+			q, c - q, hy)
 	# the jobs and the talk
 	var camp = isl.get_node("Site_camp/Camp")
 	var cap_title := str(camp.specs.filter(func(s): return s.get("captain", false))[0]["title"])
@@ -166,9 +225,215 @@ func _build(rng: RandomNumberGenerator) -> void:
 	Dialogue.dialogue_event.connect(_on_event)
 
 
-func _stall_front(stall: Node3D) -> Vector2:
-	var p := isl.to_local(stall.to_global(Vector3(0, 0, -0.5)))
-	return Vector2(p.x, p.z)
+## A fire pit at p (on the ground, or on a deck at height y), crackling.
+func _fire(p: Vector2, y: float) -> void:
+	if y == INF:
+		IslandContent._fire(isl, isl.site_node("village"), p)
+		return
+	var fire := Props.campfire()
+	ctx.put(fire, Vector3(p.x, y, p.y))
+	var snd := AudioStreamPlayer3D.new()
+	snd.stream = load("res://assets/audio/campfire_loop.wav")
+	snd.unit_size = 4.0
+	snd.max_distance = 30.0
+	snd.volume_db = -4.0
+	snd.autoplay = true
+	snd.bus = "Ambience"
+	fire.add_child(snd)
+
+
+## One planned building, made and placed (it stands on the highest ground under it, its
+## posts or footing down to the lowest; a raised one's floor at its "raised" height);
+## recorded in `buildings` with its work spots.
+func _make(b: Dictionary) -> Dictionary:
+	var p: Vector2 = b["p"]
+	var face: Vector2 = b["face"]
+	var kind: String = b["kind"]
+	var w: float = b["w"]
+	var d: float = b["d"]
+	var r := maxf(w, d) * 0.6
+	var top := ctx.ground_max(p, r)
+	var low := ctx.ground_min(p, r)
+	var found := top - low + 0.4
+	var raised: float = b.get("raised", INF)
+	var rng := KitVillage._seeded(int(b["seed"]))
+	var yaw := KitContext.face_yaw(face)
+	var trim := Color(0.42, 0.3, 0.2)
+	var n: Node3D
+	match kind:
+		"inn":
+			n = _house({"w": w, "d": d, "h": 2.7, "floors": 2, "h2": 2.3, "roof": "hip", "wall": "planks_weathered", "wall2": "straw", "roof_tex": "thatch",
+				"porch": 2.0, "lantern": true, "lamp_light": true, "trim": trim, "sign": "sign_tavern", "seed": rng.randi(), "name": "Inn"}, p, face, raised)
+		"trade", "cook", "home", "elder":
+			var spec := {"kind": "home" if kind == "elder" else kind, "w": w, "d": d, "found": found, "seed": rng.randi(),
+				"roof": ["hip", "gable"][rng.randi() % 2], "wall": ["planks_weathered", "planks"][rng.randi() % 2], "name": _uniq("Shop" if SHOPS.has(kind) else "Home")}
+			if raised != INF:
+				spec.merge({"fl": raised - top, "steps": false}, true)
+			n = ctx.place(KitHouses.room(spec), p, yaw, r, 0.0, false)
+			if SHOPS.has(kind):
+				var nl := KitLights.light(ctx, n, Vector3(0, float(spec.get("fl", 0.6)) + 1.7, 0.0), 0.9, 6.5)
+				if nl:
+					nl.always = true
+		"workshop":
+			n = ctx.place(KitHouses.workshop({"seed": rng.randi(), "found": found}), p, yaw, r, 0.0, false)
+		"shrine":
+			n = ctx.place(KitHouses.shrine({"seed": rng.randi(), "found": found}), p, yaw, r, 0.0, false)
+			KitLights.light(ctx, n, Vector3(0, 2.4, 2.0), 1.2, 9.0)
+		"storehouse":
+			n = ctx.place(KitHouses.storehouse({"seed": rng.randi(), "found": found}), p, yaw, r, 0.0, false)
+		"ruin":
+			n = ctx.place(KitHouses.ruin({"w": w, "d": d, "seed": rng.randi(), "found": found, "name": _uniq("Ruin")}), p, yaw, r, 0.0, false)
+		"tall":
+			n = _house({"w": w, "d": d, "h": 2.4, "floors": 2, "h2": 2.2, "jetty": 0.3, "roof": ["hip", "gable", "gable_front"][rng.randi() % 3],
+				"wall": ["planks", "planks_weathered"][rng.randi() % 2], "wall2": ["straw", "planks_weathered"][rng.randi() % 2], "roof_tex": "thatch",
+				"pitch": 0.6, "flowers": rng.randf() < 0.5, "trim": trim, "seed": rng.randi(), "name": _uniq("House"),
+				"porch": 1.2 if raised != INF else 0.0}, p, face, raised)
+		_:
+			n = _house({"w": w, "d": d, "h": 2.3, "roof": ["gable", "gable", "hip", "gable_front"][rng.randi() % 4],
+				"wall": ["planks", "planks_weathered", "planks", "straw"][rng.randi() % 4], "roof_tex": "thatch",
+				"porch": 1.2 if raised != INF or rng.randf() < 0.5 else 0.0, "lean_to": ["", "", "left", "right"][rng.randi() % 4],
+				"flowers": rng.randf() < 0.4, "trim": trim, "seed": rng.randi(), "name": _uniq("House")}, p, face, raised)
+	var info := {"kind": kind, "node": n, "p": p, "face": face, "enterable": ROOMS.has(kind), "door": p + face * (d * 0.5 + float(b["ext"]))}
+	if raised != INF:
+		info["door"] = p + face * (d * 0.5 + VillageLayouts._deck_ext(kind))
+		info["floor_y"] = raised
+	if ROOMS.has(kind):
+		info["door"] = ctx.marker_point(n, "Door")
+		info["inside"] = ctx.marker_point(n, "Inside")
+		info["floor_y"] = ctx.marker_y(n, "Inside")
+	buildings.append(info)
+	var spots := {"trade": [["Vendor", "shop"], ["Customer", "customer"]], "cook": [["Vendor", "shop"], ["Customer", "customer"]],
+		"home": [["Hearth", "home"], ["Table", "home"], ["Bed", "home"]], "elder": [["Hearth", "home"], ["Table", "home"]],
+		"workshop": [["Worker", "workshop"], ["Bench", "workshop"]], "shrine": [["Keeper", "shrine"], ["Pray", "pray"]]}
+	for e in spots.get(kind, []):
+		work_spots.append({"kind": e[1], "at": ctx.marker_point(n, e[0]), "face": ctx.marker_face(n, e[0]),
+			"y": ctx.marker_y(n, e[0]) if ROOMS.has(kind) else INF, "taken": false})
+	return info
+
+
+## A Buildings.house on stilts: on its posts as the ground allows, or (raised) with its
+## floor at y and no steps (a walkway meets its porch).
+func _house(spec: Dictionary, p: Vector2, face: Vector2, y: float) -> Node3D:
+	if y == INF:
+		return ctx.house(spec, p, face, true, false)
+	var r := maxf(float(spec["w"]), float(spec["d"])) * 0.6
+	var low := ctx.ground_min(p, r)
+	spec.merge({"stilts": y - low - 0.3, "foundation": 0.6, "steps": false}, true)
+	if spec.get("lamp_light", false) and not ctx.take_light():
+		spec["lamp_light"] = false
+	var n := Buildings.house(spec)
+	ctx.put(n, Vector3(p.x, low, p.y), KitContext.face_yaw(face))
+	return n
+
+
+func _houses(list: Array) -> void:
+	for b in list:
+		_make(b)
+
+
+## The trader's store and the cookhouse, each keeper behind the counter.
+func _shops(list: Array) -> void:
+	for b in list:
+		var n: Node3D = _make(b)["node"]
+		_npc(_keepers[b["kind"]], ctx.marker_point(n, "Vendor"), ctx.marker_face(n, "Vendor"), ctx.marker_y(n, "Vendor"))
+	for s in work_spots:
+		if s["kind"] == "shop":
+			s["taken"] = true
+
+
+## "House", then "House2", "House3"... (a node's name is how co-op and the tools find it).
+func _uniq(base: String) -> String:
+	_names[base] = int(_names.get(base, 0)) + 1
+	return base if _names[base] == 1 else "%s%d" % [base, _names[base]]
+
+
+## The trading post's palisade, its gates and watchtowers.
+func _walls() -> void:
+	var ex: Dictionary = isl.village_plan["extra"]
+	var pal: Dictionary = ex["palisade"]
+	KitHouses.palisade(ctx, isl.village_plan["c"], pal["r"], pal["arcs"], KitVillage._seeded(int(pal["seed"])))
+	for g in ex["gates"]:
+		var gate := KitHouses.gate()
+		gate.name = _uniq("Gate")
+		ctx.place(gate, g["p"], KitContext.face_yaw(g["t"]))
+	for tw in ex["towers"]:
+		var tower := KitLandmarks.lookout_tower()
+		tower.name = _uniq("LookoutTower")
+		ctx.place(tower, tw["p"], KitContext.face_yaw(tw["face"]), 2.6, 0.0, false)
+
+
+## The raised village's deck, its ramps down and the walkways out to the houses.
+func _walks() -> void:
+	var ex: Dictionary = isl.village_plan["extra"]
+	var dk: Dictionary = ex["deck"]
+	KitHouses.deck(ctx, dk["c"], dk["r"], dk["y"], dk["gaps"])
+	decks.append({"c": dk["c"], "r": dk["r"], "y": dk["y"]})
+	for rp in ex["ramps"]:
+		KitHouses.ramp(ctx, rp["a"], rp["b"], rp["y"])
+	for wk in ex["walks"]:
+		KitHouses.walkway(ctx, wk["a"], wk["b"], wk["y"])
+		walkways.append(wk)
+
+
+## The abandoned village's bugs (burrows round its plaza) and the caches in its houses.
+func _ruins() -> void:
+	var ex: Dictionary = isl.village_plan["extra"]
+	var site := isl.site_node("village")
+	var nest_plan: Dictionary = ex["nest"]
+	var c: Vector2 = nest_plan["c"]
+	var nest := ScuttlebugNest.new()
+	nest.name = "Burrows"
+	nest.level = IslandContent.level(isl)
+	site.add_child(nest)
+	for e in nest_plan["burrows"]:
+		var bp: Vector2 = e[0]
+		var burrow := Props.burrow(int(absf(bp.x * 13.0 + bp.y * 7.0)))
+		ctx.place(burrow, bp, KitContext.face_yaw(c - bp) + PI, 0.0, -0.08)
+		nest.add_spot(IslandContent._local(isl, nest, bp + (c - bp).normalized() * 1.8), bool(e[1]))
+	var t := IslandContent.tier(isl)
+	for k in range(ex["caches"].size()):
+		var ch: Dictionary = ex["caches"][k]
+		var cp: Vector2 = ch["p"]
+		var crng := KitVillage._seeded(hash([int(isl.node["seed"]), str(ch["key"])]))
+		var r := 3.0
+		isl.strongbox(site, cp, KitContext.face_yaw(ch["face"]), ch["key"], [["gold", crng.randi_range(8, 18) + t * 5], ["treasure", crng.randi_range(1, 2)],
+			[ItemDB.tiered(IslandContent.LOOT_WEAPONS[crng.randi() % IslandContent.LOOT_WEAPONS.size()], t), 1]], 0.9, ctx.ground_max(cp, r) - isl.hv(cp) + 0.37)
+
+
+func _market() -> void:
+	var m: Dictionary = isl.village_plan["market"]
+	var rng := KitVillage._seeded(int(isl.village_plan["bunting"]["seed"]))
+	var mb := MeshBuilder.new()
+	KitVillage.build_bunting(ctx, mb, isl.village_plan["bunting"]["poles"], 4.0, rng)
+	if not m.is_empty():
+		var stalls := KitMarket.build(ctx, m["c"], m["toward"], m["kinds"], KitVillage._seeded(int(m["seed"])))
+		market = {"c": m["c"], "stalls": stalls}
+		for s in stalls:
+			work_spots.append({"kind": "market", "at": ctx.marker_point(s, "Vendor"), "face": ctx.marker_face(s, "Vendor"), "y": INF, "taken": false})
+		var poles: Array = m.get("poles", [])
+		if poles.size() == 2:
+			for q in poles:
+				KitVillage.pole(ctx, mb, q, 3.6)
+			KitVillage.bunting(ctx, mb, KitContext.v3(poles[0], ctx.hv(poles[0]) + 3.4), KitContext.v3(poles[1], ctx.hv(poles[1]) + 3.4), rng)
+	if not mb.is_empty():
+		ctx.add(mb.to_instance("Bunting"))
+
+
+## The cobbles, and the trodden earth a little under them (where they'd meet).
+func _pave() -> void:
+	if not isl.village_plan["quads"].is_empty():
+		KitPaving.build(ctx, isl.village_plan["quads"])
+	var worn := KitPaving.build(ctx, isl.village_plan["worn"], "Worn", "dirt", Color(0.92, 0.85, 0.78))
+	worn.position.y -= 0.02
+
+
+func _dress(list: Array) -> void:
+	for e in KitVillage.build_items(ctx, list):
+		var it: Dictionary = e[0]
+		if it["k"] == "bench":
+			seats.append({"at": it["p"], "face": Vector2(sin(float(it["yaw"])), cos(float(it["yaw"]))), "y": it.get("y", INF)})
+		if it.has("spot"):
+			work_spots.append({"kind": it["k"], "at": it["spot"]["at"], "face": it["spot"]["face"], "y": INF, "taken": false})
 
 
 ## Everyone's looks, from their own seed (GenIsland.prepare builds the bodies
@@ -190,13 +455,13 @@ static func _villager_look(rng: RandomNumberGenerator) -> Dictionary:
 	return lk
 
 
-func _npc(cfg: Dictionary, p: Vector2, face: Vector2) -> NPC:
+func _npc(cfg: Dictionary, p: Vector2, face: Vector2, y := INF) -> NPC:
 	var npc := NPC.new()
 	cfg["yaw"] = atan2(-face.x, -face.y)
 	npc.setup(cfg)
 	npc.ground_func = isl.walk_height
 	isl.add_child(npc)
-	npc.position = Vector3(p.x, isl.hv(p), p.y)
+	npc.position = Vector3(p.x, isl.hv(p) if y == INF else y, p.y)
 	return npc
 
 

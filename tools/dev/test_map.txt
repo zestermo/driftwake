@@ -112,6 +112,12 @@ scripts/island/gen_island.gd            isletest apetest chaintest netchain
 scripts/island/island_content.gd        isletest apetest netchain
 scripts/island/island_village.gd        isletest netchain
 scripts/island/beast_arena.gd           apetest isletest netchain
+scripts/island/island_village.gd        villagetest
+scripts/island/village_layouts.gd       villagetest isletest netchain
+scripts/island/kit/kit_houses.gd        villagetest isletest
+scripts/island/kit/kit_village.gd       villagetest qoltest
+scripts/island/kit/kit_paving.gd        villagetest qoltest
+tools/dev/villagetest.gd                villagetest
 scripts/enemies/jungle_ape.gd           apetest leveltest net netchain
 scripts/npc/ape_poses.gd                apetest
 scripts/npc/ape_builder.gd              apetest leveltest

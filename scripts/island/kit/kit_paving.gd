@@ -48,9 +48,10 @@ static func _quad(ctx: KitContext, quads: Array, a: Vector2, b: Vector2, c: Vect
 
 
 ## The cobbles' mesh (no shadow: it lies on the ground), added under the context's parent.
-static func build(ctx: KitContext, quads: Array, node_name := "Cobbles") -> MeshInstance3D:
+## `tex` (the style's paving by default) and `tint` make other ground: trodden earth.
+static func build(ctx: KitContext, quads: Array, node_name := "Cobbles", tex := "", tint := Color.WHITE) -> MeshInstance3D:
 	var mb := MeshBuilder.new()
-	var mat := PSXMat.lit(ctx.style["paving"], Color.WHITE, {"affine": 0.6})
+	var mat := PSXMat.lit(ctx.style["paving"] if tex == "" else tex, tint, {"affine": 0.6})
 	for q in quads:
 		mb.add_tri(mat, q[0], q[1], q[2], Vector3.UP, Vector3.UP, Vector3.UP, q[4], q[5], q[6], Color.WHITE, Vector3.UP)
 		mb.add_tri(mat, q[0], q[2], q[3], Vector3.UP, Vector3.UP, Vector3.UP, q[4], q[6], q[7], Color.WHITE, Vector3.UP)

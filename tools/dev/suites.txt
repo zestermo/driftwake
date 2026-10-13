@@ -51,3 +51,4 @@ harbourtest
 wieldtest
 lifetest
 dungeontest
+villagetest

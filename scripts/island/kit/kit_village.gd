@@ -199,64 +199,335 @@ static func handcart() -> StaticBody3D:
 	return body
 
 
-## The generic dressing pass for any island's houses (`houses`: [node, point,
-## the way its door faces]): round each, where the ground is clear, one of a
-## washing line across the back yard, a vegetable plot beside it, cargo by the
-## wall (barrels, a crate), a handcart by the door; at the door a lit lamp (every
-## other house, while the budget lasts) or a bench, and a planter.
-static func dress_houses(ctx: KitContext, houses: Array, rng: RandomNumberGenerator) -> void:
-	for i in range(houses.size()):
-		var p: Vector2 = houses[i][1]
-		var f: Vector2 = (houses[i][2] as Vector2).normalized()
-		var s := Vector2(-f.y, f.x)
-		var r := 3.6
-		var back := p - f * (r + 1.6)
-		var beside := p + s * (r + 1.8) * (1.0 if i % 2 == 0 else -1.0)
-		var door := p + f * (r + 0.6)
-		match i % 4:
-			0:
-				if not ctx.excluded(back, 0.4):
-					laundry(ctx, back - s * 2.0, back + s * 2.0, rng)
-			1:
-				if not ctx.excluded(beside, 0.5):
-					garden(ctx, beside, 3.2, 2.6, KitContext.face_yaw(f), rng)
-			2:
-				if not ctx.excluded(beside, 0.3):
-					ctx.place(Props.barrel(), beside, 0.0, 0.5)
-					ctx.place(Props.barrel(), beside + f * 0.8, 0.0, 0.5)
-					ctx.place(Props.crate(0.7), beside - f * 0.9, rng.randf() * TAU, 0.6)
-			_:
-				if not ctx.excluded(beside, 0.6):
-					ctx.place(handcart(), beside, KitContext.face_yaw(f), 1.2)
-		if i % 2 == 0:
-			var lp := door + s * 2.2 + f * 0.4
-			if not ctx.excluded(lp, 0.2):
-				KitLights.post(ctx, lp, KitContext.face_yaw(-s) - PI * 0.5, 0.4, 1.4, 2.4)
-		var bench_p := door + s * 1.6
-		if not ctx.excluded(bench_p, 0.2):
-			ctx.place(Props.bench(), bench_p, KitContext.face_yaw(s), 0.8)
-		var pl := door - s * 1.6
-		if not ctx.excluded(pl, 0.2):
-			ctx.place(Buildings.planter(0.5), pl, 0.0, 0.6)
-
-
-## Phase 1's proof that the kit isn't Brinehollow-only (not in the game: the
-## fidelity tools run it with FID_KIT=1): a built generated island's village
-## dressed by `dress_houses` round its huts, benches and bunting round its plaza,
-## in the jungle style, lamps from a budget of 4. Its pieces go under Site_village.
-static func dress_generated_village(gi: GenIsland) -> void:
-	var v: IslandVillage = gi.get_node("Site_village/Village")
-	var ctx := KitContext.make(gi, int(gi.node["seed"]), "jungle", 4, gi.build_ms).under(gi.site_node("village"))
-	ctx.own_reserves = true
-	ctx.taken.append_array(v.taken)
-	ctx.timed("kit dressing", func():
-		var c: Vector2 = gi.sites["village"]
-		dress_houses(ctx, v.huts, ctx.rng(1))
-		benches_round(ctx, c, 6.5, 4, PI * 0.25)
-		var mb := MeshBuilder.new()
-		bunting_ring(ctx, mb, c, 12.5, ctx.rng(2), 10, 0.15, 4.0)
-		ctx.add(mb.to_instance("Bunting")))
-
-
 static func _rot(v: Vector2, yaw: float) -> Vector2:
 	return v if yaw == 0.0 else v.rotated(-yaw)
+
+
+# --------------------------------------------------------------------------
+# Streets and dressing planned as data (a worker's prepare may run these), each
+# item with its own seed, then made by build_items / build_cargo / build_bunting.
+# `occ` is the plan's own occupancy ([centre, radius]); an item is a dictionary
+# {"k": kind, "p": Vector2, "yaw", ...}.
+# --------------------------------------------------------------------------
+## Points every `step` m along a polyline, from `from` to `to` m along it: [point, unit tangent, distance].
+static func along(pts: PackedVector2Array, step: float, from := 0.0, to := INF) -> Array:
+	var out: Array = []
+	var walked := 0.0
+	var next := from
+	for i in range(pts.size() - 1):
+		var seg := pts[i].distance_to(pts[i + 1])
+		if seg < 0.0001:
+			continue
+		var t := (pts[i + 1] - pts[i]) / seg
+		while next <= walked + seg and next <= to:
+			out.append([pts[i] + t * (next - walked), t, next])
+			next += step
+		walked += seg
+	return out
+
+
+## The stretch of a polyline from `from` to `to` m along it (points every 1.5 m).
+static func cut(pts: PackedVector2Array, from: float, to: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for e in along(pts, 1.5, from, to):
+		out.append(e[0])
+	return out
+
+
+static func occ_free(occ: Array, p: Vector2, r: float) -> bool:
+	for e in occ:
+		if p.distance_to(e[0]) < r + float(e[1]):
+			return false
+	return true
+
+
+## A building's two circles in `occ`: its body, and the apron in front (porch, steps, the way in).
+static func plot_circles(p: Vector2, face: Vector2, w: float, d: float, ext: float) -> Array:
+	return [[p, maxf(w, d) * 0.52], [p + face.normalized() * (d * 0.5 + ext * 0.5), maxf(ext * 0.5, 0.6) + 0.7]]
+
+
+## Can a w x d building (plus `ext` of porch and steps in front, toward `face`) stand at
+## p: clear of `occ` by `gap`, its outline `pad` off every path, on land above `min_h`,
+## the ground under it rising less than `max_rise`.
+static func plot_clear(ctx: KitContext, occ: Array, p: Vector2, face: Vector2, w: float, d: float, ext: float,
+		pad := 0.6, gap := 1.0, min_h := 1.8, max_rise := 2.4) -> bool:
+	for e in plot_circles(p, face, w, d, ext):
+		if not occ_free(occ, e[0], float(e[1]) + gap):
+			return false
+	var f := face.normalized()
+	var s := Vector2(-f.y, f.x)
+	var lo := INF
+	var hi := -INF
+	for u in [-0.5, 0.0, 0.5]:
+		for v in [-0.5, 0.0, 0.5]:
+			var q: Vector2 = p + s * w * float(u) + f * ((d + ext) * float(v) + ext * 0.5)
+			var hq := ctx.hv(q)
+			lo = minf(lo, hq)
+			hi = maxf(hi, hq)
+			if ctx.path_dist(q) < pad:
+				return false
+	return lo > min_h and hi - lo < max_rise
+
+
+static func _spot(ctx: KitContext, occ: Array, q: Vector2, r: float, pad := 0.3) -> bool:
+	return occ_free(occ, q, r) and ctx.path_dist(q) > pad and ctx.hv(q) > 1.2
+
+
+## Item `k` at q if there's room (taking it in `occ`).
+static func plan_put(ctx: KitContext, items: Array, occ: Array, k: String, q: Vector2, yaw: float, r: float, extra := {}) -> bool:
+	if not _spot(ctx, occ, q, r):
+		return false
+	var it := {"k": k, "p": q, "yaw": yaw}
+	it.merge(extra)
+	items.append(it)
+	occ.append([q, r])
+	return true
+
+
+## A heap of cargo at p (kind, or one at random): crates with one stacked, a pair of
+## barrels and a third, jars in a group, sacks, baskets by a jar. Each piece is an
+## item {"k": "cargo", "kind", "p", "y", "yaw", "s"} (build_cargo instances them).
+static func plan_cargo(ctx: KitContext, items: Array, p: Vector2, yaw: float, rng: RandomNumberGenerator, kind := "") -> void:
+	var k: String = kind if kind != "" else ["crate", "barrel", "jar", "sack", "basket"][rng.randi() % 5]
+	var fw := Vector2(sin(yaw), cos(yaw))
+	var rt := Vector2(fw.y, -fw.x)
+	var parts: Array = []
+	match k:
+		"crate":
+			parts = [["crate", Vector2.ZERO, 0.0, 1.0], ["crate", rt * 0.78, 0.0, 0.9], ["crate", rt * 0.35, 0.7, 0.8]]
+			if rng.randf() < 0.5:
+				parts.append(["barrel", -rt * 0.75 + fw * 0.2, 0.0, 1.0])
+		"barrel":
+			parts = [["barrel", Vector2.ZERO, 0.0, 1.0], ["barrel", rt * 0.8, 0.0, 1.0], ["barrel", rt * 0.4 + fw * 0.7, 0.0, 0.95]]
+		"jar":
+			parts = [["jar", Vector2.ZERO, 0.0, 1.0], ["jar", rt * 0.5 + fw * 0.15, 0.0, 0.8], ["jar", -rt * 0.45 + fw * 0.2, 0.0, 0.9], ["jar", fw * 0.5, 0.0, 0.7]]
+		"sack":
+			parts = [["sack", Vector2.ZERO, 0.0, 1.0], ["sack", rt * 0.55, 0.0, 0.95], ["sack", rt * 0.25 + fw * 0.45, 0.0, 0.9], ["basket", -rt * 0.6, 0.0, 1.0]]
+		_:
+			parts = [["basket", Vector2.ZERO, 0.0, 1.0], ["basket", rt * 0.6, 0.0, 0.9], ["jar", -rt * 0.55 + fw * 0.1, 0.0, 1.0]]
+	for e in parts:
+		var q: Vector2 = p + e[1]
+		items.append({"k": "cargo", "kind": e[0], "p": q, "y": ctx.hv(q) + float(e[2]), "yaw": yaw + rng.randf_range(-0.5, 0.5), "s": float(e[3])})
+
+
+## Round a building at p (its door toward `face`, `front` m from p to the foot of its
+## steps), where there's room: behind it a washing line, a vegetable plot, a woodpile,
+## a fish rack or an upturned canoe; by a side wall cargo or a handcart; at the door
+## a bench or jars, and a planter. Things someone works at carry a "spot" {"at", "face"}.
+static func plan_yard(ctx: KitContext, items: Array, occ: Array, p: Vector2, face: Vector2, w: float, d: float, front: float, rng: RandomNumberGenerator) -> void:
+	var f := face.normalized()
+	var s := Vector2(-f.y, f.x)
+	var side := 1.0 if rng.randf() < 0.5 else -1.0
+	var back := p - f * (d * 0.5 + 1.9)
+	match rng.randi() % 5:
+		0:
+			var a := back - s * 2.1
+			var b := back + s * 2.1
+			if _spot(ctx, occ, a, 0.4) and _spot(ctx, occ, b, 0.4) and _spot(ctx, occ, back, 0.9):
+				items.append({"k": "laundry", "p": back, "a": a, "b": b, "seed": rng.randi(), "spot": {"at": back + f * 0.9, "face": -f}})
+				occ.append_array([[a, 0.4], [b, 0.4], [back, 1.0]])
+		1:
+			var g := back - f * 0.4
+			plan_put(ctx, items, occ, "garden", g, KitContext.face_yaw(f), 2.2, {"w": 3.6, "d": 2.6, "seed": rng.randi(), "spot": {"at": g + f * 1.8, "face": -f}})
+		2:
+			var q := back + s * side * 0.8
+			plan_put(ctx, items, occ, "woodpile", q, KitContext.face_yaw(-f), 1.0, {"spot": {"at": q - f * 1.5, "face": f}})
+		3:
+			plan_put(ctx, items, occ, "fishrack", back, KitContext.face_yaw(f), 1.2, {"spot": {"at": back + f * 0.9, "face": -f}})
+		_:
+			plan_put(ctx, items, occ, "canoe", back, KitContext.face_yaw(s), 1.8)
+	var bes := p + s * side * (w * 0.5 + 1.2) - f * (d * 0.15)
+	if rng.randf() < 0.25:
+		plan_put(ctx, items, occ, "cart", bes, KitContext.face_yaw(f), 1.2)
+	elif _spot(ctx, occ, bes, 1.0):
+		plan_cargo(ctx, items, bes, KitContext.face_yaw(s * side), rng)
+		occ.append([bes, 1.1])
+	var door := p + f * front
+	if rng.randf() < 0.6:
+		plan_put(ctx, items, occ, "bench", door - s * side * 2.1 - f * 0.4, KitContext.face_yaw(f), 1.0)
+	else:
+		var jp := door - s * side * 1.9 - f * 0.3
+		if _spot(ctx, occ, jp, 0.8):
+			plan_cargo(ctx, items, jp, 0.0, rng, "jar")
+			occ.append([jp, 0.8])
+	plan_put(ctx, items, occ, "planter", door + s * side * 2.0 - f * 0.3, 0.0, 0.7, {"r": 0.5})
+
+
+## Along a street (half width hw), every `every` m on alternate sides just past its
+## edge, where there's room: torches (every other one lit), planters, cargo, benches
+## facing the street, a run of fence.
+static func plan_lane(ctx: KitContext, items: Array, occ: Array, pts: PackedVector2Array, hw: float, rng: RandomNumberGenerator,
+		every := 8.0, from := 4.0, to := INF) -> void:
+	var pick := rng.randi() % 6
+	var side := 1.0
+	var torches := 0
+	for e in along(pts, every, from, to):
+		var q: Vector2 = e[0]
+		var t: Vector2 = e[1]
+		var n := Vector2(-t.y, t.x) * side
+		side = -side
+		var at := q + n * (hw + 0.9)
+		var ok := false
+		match pick % 6:
+			0, 3:
+				ok = plan_put(ctx, items, occ, "torch", at, 0.0, 0.5, {"lit": torches % 2 == 0})
+				if ok:
+					torches += 1
+			1:
+				ok = plan_put(ctx, items, occ, "planter", at + n * 0.2, 0.0, 0.8, {"r": 0.55})
+			2:
+				if _spot(ctx, occ, at + n * 0.4, 1.0):
+					plan_cargo(ctx, items, at + n * 0.4, KitContext.face_yaw(t), rng)
+					occ.append([at + n * 0.4, 1.0])
+					ok = true
+			4:
+				ok = plan_put(ctx, items, occ, "bench", at + n * 0.2, KitContext.face_yaw(-n), 1.0)
+			_:
+				var a := at + n * 0.2 - t * 2.2
+				if _spot(ctx, occ, a, 0.4) and _spot(ctx, occ, at + n * 0.2, 0.4) and _spot(ctx, occ, at + n * 0.2 + t * 2.2, 0.4):
+					items.append({"k": "fence", "p": a, "yaw": KitContext.face_yaw(t), "len": 4.4})
+					occ.append_array([[a, 0.4], [at + n * 0.2, 0.4], [at + n * 0.2 + t * 2.2, 0.4]])
+					ok = true
+		if ok:
+			pick += 1
+
+
+## Bunting poles on a ring (data): `n` spots where they're clear of the paths and `occ`, [angle, point].
+static func plan_bunting_ring(ctx: KitContext, occ: Array, c: Vector2, r: float, n := 10, phase := 0.15) -> Array:
+	var poles: Array = []
+	for k in range(n):
+		var a := TAU * k / n + phase
+		var q := c + Vector2(cos(a), sin(a)) * r
+		if ctx.path_dist(q) > 1.2 and occ_free(occ, q, 0.3):
+			poles.append([a, q])
+			occ.append([q, 0.4])
+	return poles
+
+
+## Poles from plan_bunting_ring with lines `h` up between neighbours (none across a
+## gap wider than `max_gap`), into mb (island space).
+static func build_bunting(ctx: KitContext, mb: MeshBuilder, poles: Array, h: float, rng: RandomNumberGenerator, max_gap := PI * 0.45) -> void:
+	for pq in poles:
+		pole(ctx, mb, pq[1], h + 0.2)
+	for i in range(poles.size()):
+		var a0: Array = poles[i]
+		var a1: Array = poles[(i + 1) % poles.size()]
+		if wrapf(float(a1[0]) - float(a0[0]), 0.0, TAU) > max_gap:
+			continue
+		var p0: Vector2 = a0[1]
+		var p1: Vector2 = a1[1]
+		bunting(ctx, mb, Vector3(p0.x, ctx.hv(p0) + h, p0.y), Vector3(p1.x, ctx.hv(p1) + h, p1.y), rng)
+
+
+static func _seeded(s: int) -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new()
+	r.seed = s
+	return r
+
+
+## Makes planned items (all but cargo), in order; their meshes drawn out to `range_end` m.
+## Torches marked lit take a light from the budget; an item with a "y" stands at that
+## height (on a deck) instead of the ground. Returns [item, node] for the ones
+## that are places to be (the caller's work spots and seats).
+static func build_items(ctx: KitContext, items: Array, range_end := 130.0) -> Array:
+	var out: Array = []
+	for it in items:
+		var p: Vector2 = it["p"]
+		var yaw: float = it.get("yaw", 0.0)
+		var n: Node3D = null
+		match str(it["k"]):
+			"laundry":
+				laundry(ctx, it["a"], it["b"], _seeded(int(it["seed"])))
+			"garden":
+				garden(ctx, p, it["w"], it["d"], yaw, _seeded(int(it["seed"])))
+			"cart":
+				n = ctx.place(handcart(), p, yaw, 1.2, 0.0, false)
+			"bench":
+				n = ctx.place(Props.bench(), p, yaw, 0.8, 0.0, false)
+			"table":
+				table_set(ctx, p, yaw)
+			"planter":
+				n = ctx.place(Buildings.planter(float(it["r"])), p, 0.0, float(it["r"]) + 0.2, 0.0, false)
+			"lamp":
+				n = KitLights.post(ctx, p, yaw, 0.4, 1.6 if it["lit"] else 0.0, 2.4)
+			"torch":
+				n = ctx.place(KitHouses.torch(), p, yaw)
+				if it["lit"]:
+					KitLights.light(ctx, n, Vector3(0, 2.45, 0), 1.3, 9.0)
+			"fishrack":
+				n = ctx.place(Props.fish_rack(), p, yaw, 1.0, 0.0, false)
+			"canoe":
+				n = ctx.place(Props.upturned_boat(), p, yaw, 1.6, 0.0, false)
+			"woodpile":
+				n = ctx.place(KitHouses.woodpile(), p, yaw, 0.8, 0.0, false)
+			"sign":
+				n = ctx.place(Props.signpost(it["arrows"]), p, 0.0, 0.0)
+			"fence":
+				n = Props.fence_segment(float(it["len"]), 0.9)
+				ctx.put(n, Vector3(p.x, ctx.hv(p), p.y), yaw)
+			"well":
+				n = ctx.place(KitHouses.well(), p, yaw, 1.2, 0.0, false)
+			"rubble":
+				n = ctx.place(KitHouses.rubble(int(it["seed"])), p, yaw, 0.8, 0.0, false)
+		if n and it.has("y"):
+			n.global_position.y = ctx.isl.global_position.y + float(it["y"])
+		if n:
+			for gi in n.find_children("*", "GeometryInstance3D", true, false):
+				if (gi as GeometryInstance3D).visibility_range_end == 0.0:
+					(gi as GeometryInstance3D).visibility_range_end = range_end
+		out.append([it, n])
+	return out
+
+
+## The planned cargo as one MultiMesh per kind (KitHouses.CARGO) and one body with a
+## collider per crate, barrel and jar, under a "Cargo" node; drawn out to `range_end` m.
+static func build_cargo(ctx: KitContext, items: Array, range_end := 130.0) -> void:
+	var by_kind := {}
+	var holder := Node3D.new()
+	holder.name = "Cargo"
+	var body := StaticBody3D.new()
+	body.name = "CargoColliders"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	for it in items:
+		if str(it["k"]) != "cargo":
+			continue
+		var kind: String = it["kind"]
+		var s: float = it["s"]
+		var at := Vector3(it["p"].x, it["y"], it["p"].y)
+		var xf := Transform3D(Basis(Vector3.UP, float(it["yaw"])).scaled(Vector3.ONE * s), at)
+		if not by_kind.has(kind):
+			by_kind[kind] = []
+		by_kind[kind].append(xf)
+		var col: Array = KitHouses.CARGO[kind]
+		if col.is_empty():
+			continue
+		var cs := CollisionShape3D.new()
+		if col[0] == "box":
+			var b := BoxShape3D.new()
+			b.size = Vector3.ONE * float(col[1]) * s
+			cs.shape = b
+			cs.transform = Transform3D(Basis(Vector3.UP, float(it["yaw"])), at + Vector3(0, float(col[1]) * s * 0.5, 0))
+		else:
+			var c := CylinderShape3D.new()
+			c.radius = float(col[1]) * s
+			c.height = float(col[2]) * s
+			cs.shape = c
+			cs.position = at + Vector3(0, c.height * 0.5, 0)
+		body.add_child(cs)
+	for kind in by_kind.keys():
+		var xfs: Array = by_kind[kind]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = KitHouses.cargo_mesh(kind)
+		mm.instance_count = xfs.size()
+		for i in range(xfs.size()):
+			mm.set_instance_transform(i, xfs[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = str(kind).capitalize()
+		mmi.multimesh = mm
+		mmi.visibility_range_end = range_end
+		holder.add_child(mmi)
+	# (filled before it joins the tree: each shape added to a body in the tree rebuilds its whole compound)
+	holder.add_child(body)
+	ctx.add(holder)

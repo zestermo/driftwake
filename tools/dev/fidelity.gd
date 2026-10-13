@@ -26,9 +26,11 @@ const CAM_FAR := 1200.0
 const CAM_FOV := 70.0
 
 const BUILDINGS := {"House": "house", "Harbor": "house", "Warehouse": "house", "NetLoft": "house", "CaptainsShack": "house",
+	"Home": "house", "Shop": "workshop", "Workshop": "workshop", "Shrine": "civic", "Storehouse": "house", "Ruin": "ruin",
 	"Hut": "house", "Inn": "inn", "Tavern": "inn", "Smithy": "workshop", "HarbourBooth": "workshop", "Chapel": "civic",
 	"MarketStall": "stall", "Boathouse": "house", "RuinedHut": "house"}
 const PROPS := {
+	"Torch": "lights", "Woodpile": "cargo", "Jar": "cargo", "Basket": "cargo", "Sack": "cargo", "Rubble": "wild",
 	"Crate": "cargo", "Barrel": "cargo", "RopeCoil": "cargo", "Nets": "cargo", "Timber": "cargo", "Float": "cargo", "Wares": "cargo",
 	"Handcart": "carts",
 	"Bench": "furniture", "Table": "furniture", "Workbench": "furniture", "Sawhorses": "furniture", "Log": "furniture", "Well": "furniture",
@@ -44,12 +46,13 @@ const PROPS := {
 	"Canoe": "boats", "Wreck": "boats", "NetRack": "work", "FishTrap": "cargo", "Contraband": "cargo",
 }
 const LANDMARKS := {"Lighthouse": "lighthouse", "HarbourTower": "harbour tower", "Chapel": "chapel", "DockCrane": "crane",
+	"Shrine": "shrine",
 	"LookoutTower": "lookout tower", "Pillar": "ruins", "FallenPillar": "ruins", "Slabs": "ruins", "Driftstone": "standing stone",
 	"BroodCave": "cave", "Well": "well", "Boulders": "beast's ground", "Dungeon": "cave", "Temple": "temple"}
 ## Walked into for the props on them (a pier's lantern), their own meshes not counted.
-const INFRA := ["HarbourPier", "Quay", "Dock", "Pier", "Cobbles", "Ladder", "Boardwalk", "PierFender", "CoveRocks"]
-const INTERIORS := ["Tavern", "BroodCave", "Dungeon", "Temple"]
-const SKIP := ["Terrain", "Ground", "Vegetation", "VegetationColliders", "ShotMarks"]
+const INFRA := ["HarbourPier", "Quay", "Dock", "Pier", "Cobbles", "Ladder", "Boardwalk", "PierFender", "CoveRocks", "Walkway", "Ramp", "Deck", "Palisade", "Gate"]
+const INTERIORS := ["Tavern", "BroodCave", "Dungeon", "Temple", "Home", "Shop"]
+const SKIP := ["Terrain", "Ground", "Vegetation", "VegetationColliders", "ShotMarks", "CargoColliders", "Worn"]
 ## GenIsland.build_ms keys worked out in prepare (a worker thread in the game).
 const PREP_KEYS := ["land", "arrays", "trees", "undergrowth", "bodies", "harbour plan", "dungeon_plan"]
 
@@ -193,8 +196,6 @@ func _generated(w, s: int) -> Dictionary:
 	var m0 := OS.get_static_memory_usage()
 	var t0 := Time.get_ticks_usec()
 	g.build(n)
-	if OS.get_environment("FID_KIT") != "":
-		load("res://scripts/island/kit/kit_village.gd").dress_generated_village(g)
 	var ms := (Time.get_ticks_usec() - t0) / 1000.0
 	var mem := (OS.get_static_memory_usage() - m0) / 1048576.0
 	var r := measure(g)
@@ -630,6 +631,13 @@ static func _walk(n: Node, isl: Node3D, w: Dictionary, quiet: bool) -> void:
 			w["buildings"].append({"kind": bk, "name": base, "p": p, "r": maxf(box.size.x, box.size.z) * 0.5, "front": _front(isl, c), "clutter": clutter})
 			continue
 		var pk: String = PROPS.get(base, "boats" if base.begins_with("Moored") else "")
+		if pk != "" and c is MultiMeshInstance3D:
+			# (instanced cargo: each copy is a prop)
+			var mm: MultiMesh = (c as MultiMeshInstance3D).multimesh
+			for i in range(mm.instance_count):
+				var o := isl.to_local((c as Node3D).global_transform * mm.get_instance_transform(i).origin)
+				w["props"].append({"cat": pk, "kind": base, "p": Vector2(o.x, o.z)})
+			continue
 		if pk != "":
 			w["props"].append({"cat": pk, "kind": base, "p": p})
 			continue

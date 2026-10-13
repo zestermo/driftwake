@@ -64,9 +64,10 @@ The island side is `Island`'s interface: `hv`, `walk_height`, `reserve`, `exclud
 | `kit_harbour.gd` | KitHarbour | `plan` (the quay line, data, in a frame: `out` to sea, `along`, `inland`), `shape`/`earth`/`on_platform` (height, splat and walk hooks), `build_pier`, `build_quay`, `build_piers`, `build_longboats`, `plan_waterfront`/`build_waterfront`, `plan_dressing` (cargo, carts, lamps, stalls), `build_front` (booth, boat on the stocks, yard, net-mender's corner; `mirror`), models `booth_model`, `boat_on_stocks`, `workbench` |
 | `kit_harbour_gen.gd` | GenHarbour | a generated island's harbour district at its pier: `plan(gi)` (data, in GenIsland.prepare before the vegetation; the kind rolled from the style's `harbour_kinds` (stilts / cove / wharf / ruins) or, with the village inland, `harbour_wild_kinds` (adds a bare landing); `force` for tools), `steps()` (GenIsland.finish_steps), `at(s, d)` (s along the shore, d in from the waterline), `waterfront()`, `spots` (where harbour people would work) |
 | `kit_harbour_models.gd` | HarbourModels | `deck_strip` (a walkway deck along a polyline, mitred, boards across, its top into a collider builder), `piles`, `rope_rail`, `bollard`; models `canoe`, `net_rack`, `fish_traps`, `sacks`, `timber`, `contraband`, `warehouse`, `boathouse`, `ruined_hut`, `tower_stump` |
-| `kit_village.gd` | KitVillage | `table_set`, `benches_round`, `pole`, `bunting_ring`, `bunting`, `laundry`, `garden`, `road_lamps`, models `notice_board`, `handcart`; `dress_houses` (the generic pass for any island's houses); `dress_generated_village` (phase 1's proof, tools only) |
+| `kit_village.gd` | KitVillage | Brinehollow's: `table_set`, `benches_round`, `pole`, `bunting_ring`, `bunting`, `laundry`, `garden`, `road_lamps`, models `notice_board`, `handcart`. Planned as data (worker-safe, each item its own seed): `along`, `cut`, `occ_free`, `plot_circles`, `plot_clear`, `plan_put`, `plan_cargo`, `plan_yard`, `plan_lane`, `plan_bunting_ring`; built by `build_items` (items `{"k", "p", "yaw", ...}`, optional `"y"` for decks), `build_cargo` (one MultiMesh per kind under "Cargo"), `build_bunting` |
+| `kit_houses.gd` | KitHouses | jungle buildings: `room` (raised walk-in home / store / cookhouse with interiors, markers Door, Inside, Vendor, Customer, Bed, Table, Hearth), `workshop`, `shrine`, `storehouse`, `well`, `torch`, `woodpile`, `ruin`, `rubble`; structures in island space: `walkway`, `ramp`, `deck`, `palisade`, `gate`; `cargo_mesh` + `CARGO` (the MultiMesh cargo and its colliders) |
 | `kit_market.gd` | KitMarket | `build` (stalls in a horseshoe, planter, wares mesh, cargo) |
-| `kit_paving.gd` | KitPaving | `plan_disk`, `plan_path` (quads, data), `build` (one mesh, no shadow) |
+| `kit_paving.gd` | KitPaving | `plan_disk`, `plan_path` (quads, data), `build` (one mesh, no shadow; `tex`/`tint` for trodden earth) |
 | `kit_landmarks.gd` | KitLandmarks | `lighthouse` (+ keeper's cottage), `ruins` (+ standing stone and its dialogue), `harbour_tower`, `crane`, `chapel`, model `lookout_tower`, `cyl_col`, `box_col` |
 | `kit_camps.gd` | KitCamps | `campfire` (with its crackle), models `tent`, `log_seat`, `flag`; `log_by`, `seat_on`, `look_yaw`, `strongbox`, `castaway`, `pirate_camp` (GruntCamp), `den` (pier, sloop, shacks, tower, captain; GruntCamp), `training_yard` |
 | `kit_cave.gd` | KitCave | `cave` (BroodCave: `shape_seed`, `hoard_id`, `title`), `inn` (Buildings.tavern_hall + its door kept clear) |
@@ -109,6 +110,23 @@ built on the worker in `IslandLife.plan`; anything unused is unstocked. Quest fl
 - New cave kind: a `SHAPES` entry (rooms in order, side room, tunnels), `TITLES`, `LOOK`, `BOSS`, a dressing
   case in `_dress`/`_walls`/`_outside` and a population case in `_populate`.
 - Tools that touch these: load the scripts once the world is up (`dungeonshot.gd`), never name the classes.
+
+### Generated villages
+
+**Generated villages** (`scripts/island/village_layouts.gd`, VillageLayouts): a seeded pool (`POOL`:
+town, hamlets, post, stilts, ruins; `VillageLayouts.force = "post"` in a tool or test builds one).
+`IslandVillage.plan` runs it in GenIsland.prepare (after the paths, before the terrain arrays: its lanes
+go into `paths` so they're worn and the plants keep off), `IslandVillage.build` makes the inn and the
+people, `IslandVillage.steps` the rest (GenIsland.finish_steps). Every layout keeps inn, store, cookhouse,
+elder and board where its people are. Villagers' data on IslandVillage: `layout`, `plaza` {c, r, y},
+`streets`, `lanes`, `hamlets`, `buildings` (door, enterable, floor_y, inside), `work_spots`, `seats`,
+`decks`, `walkways`. Render: `villageshot.gd`; test: `villagetest`.
+
+Patterns that worked: plan everything against the plan's own occupancy `occ` (circles; a building is two:
+body and apron), then reserve it all from the plants at the end; give every planned item its own seed
+(the plan can then run on the worker); name repeated buildings yourself (`House2`...) or a second one
+loses its name and the fidelity tool and co-op can't tell it apart; a node holding a marker must not have a
+mesh child of the same name; services go further out until they fit (never silently missing).
 
 ## Authoring a kit piece
 
@@ -189,8 +207,8 @@ qoltest, foresttest, r6-r10, savetest, swimtest, grunttest, yardtest, looptest, 
 ## The fidelity loop
 
 - `tools/dev/fidelity.gd` (headless): the metrics for Brinehollow and chain seeds, with each island's
-  build steps in ms. `FID_KIT=1` runs `KitVillage.dress_generated_village` on the generated islands first.
-- `tools/dev/fidelityshot.gd` (GPU): the matched-camera sheet, Brinehollow left (`FID_KIT=1` too).
+  build steps in ms. A MultiMesh named after a prop counts each instance.
+- `tools/dev/fidelityshot.gd` (GPU): the matched-camera sheet, Brinehollow left.
 - `fidelitytest` (suite): report only until phase 3 makes it the >= 0.8 gate.
 - Render your piece in place: `islandshot.gd` (island-local cameras, `ISHOT_HOUR=21`), and modelshot for
   its models.

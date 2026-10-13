@@ -101,8 +101,6 @@ func _setup(w) -> void:
 			n.visible = false
 	var b = w.get_node("Brinehollow")
 	var g = w.chain_islands[want]
-	if OS.get_environment("FID_KIT") != "":
-		load("res://scripts/island/kit/kit_village.gd").dress_generated_village(g)
 	isles = [b, g]
 	labels = ["Brinehollow", "%s (seed %d, node %d)" % [g.island_name, int(root.get_node("GameManager").chain_seed), want]]
 	var recipes: Array = []

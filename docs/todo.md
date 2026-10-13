@@ -36,7 +36,7 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
   merchant ship; ruined jetty). Gap today: a bare plank pier against Brinehollow's harbour
   district of 13 buildings and 33 props. (Done 2026-10-12: GenHarbour, see dev_notes; harbour
   people still to come: `GenHarbour.spots` says where they'd work.)
-- [ ] **Village streets and dressing:** lanes off the plaza with houses along them; dressing passes
+- [x] (2026-10-12, a pool of layouts: town, hamlets, walled post, raised stilt village, ruins + survivors; see dev_notes) **Village streets and dressing:** lanes off the plaza with houses along them; dressing passes
   (laundry, gardens, handcarts, crates, planters, signs) to Brinehollow's ~47 props/ha and ~3 props
   per 50 m of lane (today 8.5/ha); more building kinds (workshop, shrine or chapel, storehouse,
   two-storey house; today all huts); lit windows and NightLights to Brinehollow's levels (today

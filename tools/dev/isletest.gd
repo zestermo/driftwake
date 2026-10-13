@@ -72,7 +72,7 @@ func _process(d: float) -> bool:
 						apart = false
 			check("its sites (village, boss, camp, lair, ruins, summit) are on land", on_land)
 			check("...and well apart", apart)
-			check("paths from the village to each (and on to the interiors)", isl.paths.size() >= 6)
+			check("paths from the village to each (its lanes, on to the interiors)", isl.paths.size() >= 6)
 			var trees: int = isl.get_node("VegetationColliders").get_child_count()
 			check("trees and rocks with colliders (%d)" % trees, trees > 500)
 			check("grapple crowns in the trees", load("res://scripts/world/grapple_points.gd").count() > 1000)
@@ -111,8 +111,8 @@ func _process(d: float) -> bool:
 			# the village
 			var vil = isl.get_node("Site_village/Village")
 			var npcs: Array = get_nodes_in_group("npcs").filter(func(x): return x.get_parent() == isl)
-			print("   village: %s, %d people, jobs %s" % [vil.elder_name, npcs.size(), vil.jobs.keys()])
-			check("a village of stilt huts round a plaza, an inn among them", isl.get_node("Site_village").find_children("*", "StaticBody3D", true, false).size() >= 6 and isl.find_child("Inn", true, false) != null)
+			print("   village (%s): %s, %d people, %d buildings, jobs %s" % [vil.layout, vil.elder_name, npcs.size(), vil.buildings.size(), vil.jobs.keys()])
+			check("a village of a layout from the pool, an inn among its houses", vil.buildings.size() >= 10 and isl.find_child("Inn", true, false) != null and load("res://scripts/island/village_layouts.gd").POOL.has(vil.layout))
 			check("its elder, innkeeper, trader, cook and a few villagers", npcs.size() >= 6 and npcs.any(func(x): return x.dialogue_id == isl.save_key("elder")))
 			var shops = load("res://scripts/game/shops.gd")
 			check("a trader and a cook to buy from (at the island's tier)", shops.extra.has(isl.save_key("trader")) and shops.extra.has(isl.save_key("cook"))
@@ -126,8 +126,14 @@ func _process(d: float) -> bool:
 			capt.health.take_damage(999999.0)
 			set_meta("gold0", p.inventory_component.count("gold"))
 			set_meta("vil", vil)
-			# a captain on the ground at the village
-			var v: Vector2 = isl.sites["village"]
+			# a captain on the ground at the village (on the road in: the heart may be a deck or a market)
+			var road: PackedVector2Array = vil.streets[0]
+			var v: Vector2 = road[road.size() - 1]
+			for q in road:
+				if q.distance_to(isl.sites["village"]) > 22.0:
+					v = q
+					break
+			set_meta("v", v)
 			p.state_machine.force_state("Idle", {})
 			p.global_position = isl.to_global(Vector3(v.x, isl.height_at(v.x, v.y) + 1.5, v.y))
 			p.reset_physics_interpolation()
@@ -136,7 +142,7 @@ func _process(d: float) -> bool:
 			step = 1
 		1:
 			var isl = get_meta("isl")
-			var v: Vector2 = isl.sites["village"]
+			var v: Vector2 = get_meta("v")
 			var ground: float = isl.to_global(Vector3(v.x, isl.height_at(v.x, v.y), v.y)).y
 			check("a captain stands on its ground (%.2f m over)" % (p.global_position.y - ground), p.is_on_floor() and absf(p.global_position.y - ground) < 0.6)
 			var vil = get_meta("vil")

@@ -193,7 +193,7 @@ static func wall_lantern(mb: MeshBuilder, at: Vector3, beam: Material) -> void:
 ##                    street), "hip", "shed"; roof_tex; pitch (rise / span)
 ##   porch            covered porch depth along the front (0 = none)
 ##   lean_to          side shed: "left" / "right"
-##   chimney          true / false; stilts height (raised on posts + steps)
+##   chimney          true / false; stilts height (raised on posts + steps; steps false: none)
 ##   door_x           door offset along the front; sign texture name
 ##   foundation       how far the stone base reaches below ground (slopes)
 static func house(spec: Dictionary = {}) -> Node3D:
@@ -232,8 +232,8 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			for z in [-d * 0.5 + 0.25, d * 0.5 - 0.25]:
 				mb.add_box(beam, _xf(Vector3(x, (fl - found) * 0.5, z)), Vector3(0.24, fl + found, 0.24), 0.6)
 		mb.add_box(PSXMat.lit("planks"), _xf(Vector3(0, fl - 0.1, 0)), Vector3(w + 0.3, 0.2, d + 0.3), 0.5, Color.WHITE, false, false)
-		# steps up to the door
-		var n_steps := int(ceil(fl / 0.3))
+		# steps up to the door (none when a walkway meets the porch)
+		var n_steps := int(ceil(fl / 0.3)) if spec.get("steps", true) else 0
 		for i in range(n_steps):
 			var sy := fl - (i + 1) * (fl / n_steps)
 			mb.add_box(beam, _xf(Vector3(door_x, sy + 0.05, d * 0.5 + 0.35 + i * 0.32)), Vector3(1.2, 0.1, 0.32), 0.6, Color.WHITE, false)

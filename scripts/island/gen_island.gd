@@ -50,6 +50,8 @@ var interiors: Array = []
 var build_ms := {}
 ## Its villagers, named characters and quests (planned in prepare).
 var life: IslandLife
+## The village laid out in prepare (IslandVillage.plan), built in its finish steps.
+var village_plan := {}
 
 var _def: Dictionary
 var _rng := RandomNumberGenerator.new()
@@ -112,6 +114,7 @@ func prepare(n: Dictionary) -> void:
 	build_ms["land"] = _lap(t0)
 	t0 = Time.get_ticks_usec()
 	_define_paths()
+	village_plan = IslandVillage.plan(self)
 	interiors = KitDungeons.plan(self)
 	_terrain_arrays()
 	_shoal_image()
@@ -150,6 +153,7 @@ func finish_steps() -> Array:
 		["colliders", _vegetation_colliders],
 	]
 	steps.append_array(IslandContent.steps(self))
+	steps.append_array(IslandVillage.steps(self))
 	steps.append_array(life.steps())
 	return steps
 
