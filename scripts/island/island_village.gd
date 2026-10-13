@@ -58,6 +58,8 @@ var buildings: Array = []
 ## Where someone works or idles: {"kind", "at", "face", "y" (INF: on the ground), "taken": bool}.
 ## Kinds: market, shop, customer, workshop, shrine, pray, home, well, laundry, garden, woodpile, fishrack.
 var work_spots: Array = []
+## Every building's footprint as [centre, radius]: what villagers' lanes turn aside from (IslandLife).
+var taken: Array = []
 ## Benches: {"at", "face", "y"}.
 var seats: Array = []
 ## {"c": Vector2, "stalls": [Node3D]} (empty without a market)
@@ -310,6 +312,7 @@ func _make(b: Dictionary) -> Dictionary:
 		info["inside"] = ctx.marker_point(n, "Inside")
 		info["floor_y"] = ctx.marker_y(n, "Inside")
 	buildings.append(info)
+	taken.append([p, maxf(w, d) * 0.5 + 0.5])
 	var spots := {"trade": [["Vendor", "shop"], ["Customer", "customer"]], "cook": [["Vendor", "shop"], ["Customer", "customer"]],
 		"home": [["Hearth", "home"], ["Table", "home"], ["Bed", "home"]], "elder": [["Hearth", "home"], ["Table", "home"]],
 		"workshop": [["Worker", "workshop"], ["Bench", "workshop"]], "shrine": [["Keeper", "shrine"], ["Pray", "pray"]]}
