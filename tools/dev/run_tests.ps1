@@ -141,20 +141,28 @@ function Start-Suite([string]$t, $slot) {
 	return $job
 }
 
-## Done (exited, or `trouble` says why it was stopped): its verdict; true if it passed.
-function Finish-Suite($job, [string]$trouble) {
-	if ($trouble) { Stop-GodotJob $job }
+## Done (exited, stopped on its first failure, or `trouble` says why it was stopped): its verdict; true if it passed.
+function Finish-Suite($job, [string]$trouble, [bool]$failed = $false) {
+	if ($trouble -or $failed) { Stop-GodotJob $job }
 	Update-GodotJob $job
 	Exit-Slot $job.Slot
 	Set-InFlight $crew $tree $job.Name "" $false
 	$lines = Get-JobSummary $job
 	$secs = [int]((Get-Date) - $job.Started).TotalSeconds
-	$ok = (-not $trouble) -and ($lines -cmatch "RESULT (OK|fails=0)") -and -not ($lines -cmatch "FAIL|SCRIPT ERROR")
+	$ok = (-not $trouble) -and (-not $failed) -and ($lines -cmatch "RESULT (OK|fails=0)") -and -not ($lines -cmatch "FAIL|SCRIPT ERROR")
 	$summary = if ($trouble) { $trouble.ToUpper().Substring(0, 1) + $trouble.Substring(1) } elseif ($lines) { ($lines -join " | ") } else { "no RESULT line (crashed?)" }
-	Write-Host ("{0,-10} {1,4}s  {2}" -f $job.Name, $secs, $summary) -ForegroundColor $(if ($ok) { "Green" } else { "Red" })
+	if ($ok) {
+		Write-Host ("{0,-10} {1,4}s  PASSED" -f $job.Name, $secs) -ForegroundColor Green
+	} elseif ($job.Fail.Count -gt 0) {
+		Write-Host ("{0,-10} {1,4}s  FAILED{2}" -f $job.Name, $secs, $(if ($failed) { " (stopped on it)" } else { "" })) -ForegroundColor Red
+		foreach ($l in $job.Fail) { Write-Host "    $l" -ForegroundColor Red }
+	} else {
+		Write-Host ("{0,-10} {1,4}s  {2}" -f $job.Name, $secs, $summary) -ForegroundColor Red
+	}
 	$fails = @($lines | Where-Object { $_ -cmatch "^FAIL" })
 	Set-LiveSuite $run $job.Name @{ state = $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }); secs = $secs; pid = 0
-		why = $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary }); last = @($job.Tail) }
+		why = $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($job.Fail.Count -gt 0) { $job.Fail[0] } elseif ($fails) { $fails[0] } else { $summary })
+		fail = @($job.Fail); last = @($job.Tail) }
 	if ($ok) { Set-CachedPass $crew $tree $job.Name $me }
 	Write-Ledger $crew $job.Name $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }) $tree $me $secs $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary })
 	return [pscustomobject]@{ Ok = $ok; Fails = $fails; Trouble = $trouble }
@@ -203,9 +211,10 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
 	$still = @()
 	foreach ($j in $running) {
 		Update-GodotJob $j
-		$trouble = if ($j.Proc.HasExited) { "" } else { Get-JobTrouble $j $Timeout }
-		if ($j.Proc.HasExited -or $trouble) {
-			$v = Finish-Suite $j $trouble
+		$fail = if ($j.Proc.HasExited) { @() } else { @(Get-JobFailure $j) }
+		$trouble = if ($j.Proc.HasExited -or $fail.Count -gt 0) { "" } else { Get-JobTrouble $j $Timeout }
+		if ($j.Proc.HasExited -or $trouble -or $fail.Count -gt 0) {
+			$v = Finish-Suite $j $trouble ($fail.Count -gt 0)
 			if (-not $v.Ok) {
 				if (-not $v.Trouble -and -not $retried.ContainsKey($j.Name) -and (Test-AllFlaky $j.Name $v.Fails)) {
 					Write-Host ("{0,-10}       known flaky check: retrying once" -f $j.Name) -ForegroundColor DarkYellow

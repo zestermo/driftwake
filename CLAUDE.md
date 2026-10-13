@@ -81,7 +81,9 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 - **Don't rerun a suite "to be sure":** a pass is cached against the exact code.
 - **Landing re-tests only what the rebase could change** (land.ps1 carries passes from the
   branch's own tree over to the rebased one when nothing new touches the suite).
-- **The runners stop a suite early** when it stalls (no output for 150 s), its scripts don't parse
+- **A suite stops at its first failure** (a FAIL line or a script error): the runner prints that failure
+  whole, stack included, and the Tests pane shows it in red. Fix it and rerun that suite.
+- **The runners also stop a suite early** when it stalls (no output for 150 s), its scripts don't parse
   (it reports the first error), it floods script errors, or its log passes 25 MB. A stopped suite
   is a real problem to look at, not one to rerun.
 - **Long runs go in the background** (Bash `run_in_background`); don't sit in a blocking wait loop.

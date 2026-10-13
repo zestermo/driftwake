@@ -289,7 +289,8 @@ function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]
 	$psi.CreateNoWindow = $true
 	$p = [System.Diagnostics.Process]::Start($psi)
 	return [pscustomobject]@{ Proc = $p; Log = $log; Started = Get-Date; Grew = Get-Date; Offset = [long]0; Carry = ""
-		Errors = 0; FirstErrors = @(); Tail = New-Object System.Collections.Generic.List[string]; Parse = $false }
+		Errors = 0; FirstErrors = @(); Tail = New-Object System.Collections.Generic.List[string]; Parse = $false
+		Fail = New-Object System.Collections.Generic.List[string]; FailAt = [datetime]::MinValue; FailDone = $false }
 }
 
 ## Read what the job wrote since last time (at most 1 MB a tick): the tail, the error count, growth.
@@ -311,6 +312,14 @@ function Update-GodotJob($job) {
 		$whole = if ($lines.Count -gt 1) { $lines[0..($lines.Count - 2)] } else { @() }
 		foreach ($l in $whole) {
 			if (-not $l.Trim()) { continue }
+			# the first failure and the stack lines under it, whole
+			if ($job.Fail.Count -gt 0 -and -not $job.FailDone) {
+				if ($l -match "^\s*(at:|GDScript backtrace|\[\d+\])" -and $job.Fail.Count -lt 24) { $job.Fail.Add($l.TrimEnd()) } else { $job.FailDone = $true }
+			}
+			if ($job.Fail.Count -eq 0 -and ($l -cmatch "^\s*FAIL" -or $l -match "SCRIPT ERROR")) {
+				$job.Fail.Add($l.Trim())
+				$job.FailAt = Get-Date
+			}
 			if ($l -match "SCRIPT ERROR") {
 				$job.Errors++
 				if ($job.FirstErrors.Count -lt 4) { $job.FirstErrors += $l.Trim() }
@@ -331,6 +340,13 @@ function Get-JobTrouble($job, [int]$timeout) {
 	if (((Get-Date) - $job.Grew).TotalSeconds -gt (Get-StallSeconds)) { return "stalled (no output for $(Get-StallSeconds) s)" }
 	if ($age -gt $timeout) { return "timeout after $timeout s" }
 	return ""
+}
+
+## The first failure, once its stack lines are in (or a second has passed): the suite stops on it.
+function Get-JobFailure($job) {
+	if ($job.Fail.Count -eq 0) { return @() }
+	if (-not $job.FailDone -and ((Get-Date) - $job.FailAt).TotalSeconds -lt 1.0) { return @() }
+	return @($job.Fail)
 }
 
 function Stop-GodotJob($job) {
