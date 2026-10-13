@@ -7,7 +7,10 @@ extends Scuttlebug
 ##     left reeling);
 ##   * rears up and sprays a fan of venom blobs (they poison);
 ##   * rears high and slams the ground: a red ring shows where (jump or dodge);
-##   * shrieks, and her brood crawls out of the egg sacs.
+##   * shrieks, and her brood crawls out of the egg sacs;
+##   * keep away and she burrows: she dives into the floor, a green-lit crack
+##     races at you under the ground, a red ring marks where she'll come up
+##     (move, roll or jump), and she bursts out there, wide open for a moment.
 ## Blows don't throw her; enough of them in a short while stagger her, wide
 ## open. Below half health she roars, moves faster, sprays wider and calls
 ## the brood again. Co-op: host-run; the slam is judged on every screen.
@@ -16,6 +19,12 @@ const SIZE := 4.2
 const HP := 1100.0
 const POISE := 150.0
 const SLAM_R := 5.5
+const BURROW_DIG := 0.8
+const BURROW_MAX := 1.8
+const BURROW_RANGE := 9.0
+const ERUPT_R := 3.4
+const ERUPT_DMG := 26.0
+const VENOM := Color(0.5, 1.0, 0.25, 0.8)
 
 var cave: Node
 var phase: int = 1
@@ -27,6 +36,11 @@ var _poise: float = 0.0
 var _fired: int = 0
 var _slam_at := Vector3.ZERO
 var _qrear: float = 0.0
+var _burrow_cd: float = 7.0
+var _erupt_at := Vector3.ZERO
+var _lock_t: float = 0.0
+var _trail_t: float = 0.0
+var _sunk: float = 0.0
 
 
 ## Call before adding to the tree.
@@ -74,6 +88,7 @@ func reset_fight() -> void:
 	health.heal(health.max_health)
 	phase = 1
 	_poise = 0.0
+	_burrow_cd = 7.0
 	global_position = home + Vector3.UP * 0.3
 	reset_physics_interpolation()
 	velocity = Vector3.ZERO
@@ -93,6 +108,7 @@ func _physics_process(delta: float) -> void:
 	_volley_cd -= delta
 	_slam_cd -= delta
 	_brood_cd -= delta
+	_burrow_cd -= delta
 	_poise = maxf(_poise - 25.0 * delta, 0.0)
 	var p := _target()
 	var to_p := _flat(p.global_position - global_position) if p else Vector3.ZERO
@@ -115,6 +131,8 @@ func _physics_process(delta: float) -> void:
 				_begin("roar")
 			elif _brood_cd <= 0.0 and cave and cave.call("brood_alive") < 2:
 				_begin("brood")
+			elif _burrow_cd <= 0.0 and dist > BURROW_RANGE and dist < 28.0 and _player_ok(p):
+				_begin("burrow")
 			elif _slam_cd <= 0.0 and dist < SLAM_R + 1.0:
 				_begin("slam")
 			elif _volley_cd <= 0.0 and dist > 5.0 and dist < 18.0:
@@ -128,6 +146,10 @@ func _physics_process(delta: float) -> void:
 				want = -to_p.normalized() * 1.5
 		S.SPECIAL:
 			_special_tick(p, to_p, dist)
+	if _special == "burrow" and _fired > 0:
+		# under the floor: moved by hand, no physics
+		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
+		return
 	if is_on_floor() and velocity.y < 0.0:
 		velocity.y = -0.5
 	else:
@@ -156,6 +178,71 @@ func _begin(what: String) -> void:
 			_slam_at = global_position - model.global_basis.z * 2.6
 			_slam_at.y = global_position.y
 			Net.fx("telegraph", [_slam_at, SLAM_R, 1.0])
+		"burrow":
+			_trail_t = 0.0
+			Net.fx("sfx", ["bug_hiss", global_position, 3.0, 0.05, 0.45])
+			Net.fx("sfx", ["chitter", global_position, 1.0, 0.05, 0.6])
+		"erupt":
+			global_position = _erupt_at + Vector3.UP * 0.3
+			reset_physics_interpolation()
+			velocity = Vector3.ZERO
+			_aoe(_erupt_at, ERUPT_R, ERUPT_DMG)
+			Net.fx("dust_ring", [_erupt_at, 26, 1.8])
+			Net.fx("debris", [_erupt_at + Vector3.UP * 0.3, Vector3.UP, 16, Color(0.36, 0.3, 0.24), 8.0])
+			Net.fx("poison", [_erupt_at + Vector3.UP * 0.6, 10, 0.8])
+			Net.fx("sfx", ["thud", _erupt_at, 5.0, 0.05, 0.55])
+			Net.fx("sfx", ["roar", _erupt_at, 1.0, 0.05, 1.6])
+			get_node("/root/CombatManager").apply_camera_shake(0.45)
+
+
+## Ground under `at` (the cave floor), ignoring herself.
+func _floor_at(at: Vector3) -> Vector3:
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 8.0, 1)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return hit["position"] if not hit.is_empty() else at
+
+
+## Under the floor: a crack races at the captain, then the red ring where she'll burst out.
+func _burrow_tick(p: Node3D, to_p: Vector3) -> void:
+	var delta := get_physics_process_delta_time()
+	if _fired == 0:
+		_shake = 1.0
+		_face(to_p)
+		_trail_t -= delta
+		if _trail_t <= 0.0:
+			_trail_t = 0.15
+			Net.fx("dust", [global_position, 6, 0.4 * size_k])
+		if st_t >= BURROW_DIG:
+			_fired = 1
+			Net.fx("dust_ring", [global_position, 20, 1.5])
+			Net.fx("debris", [global_position + Vector3.UP * 0.3, Vector3.UP, 10, Color(0.36, 0.3, 0.24), 5.0])
+			Net.fx("sfx", ["thud", global_position, 2.0, 0.05, 0.5])
+		return
+	var speed := 8.0 if phase == 1 else 10.0
+	var warn := 0.85 if phase == 1 else 0.75
+	var goal := _erupt_at if _fired == 2 else (p.global_position if p else global_position)
+	var flat := _flat(goal - global_position)
+	var step := flat.limit_length(speed * delta * (2.0 if _fired == 2 else 1.0))
+	var from := global_position
+	global_position = _floor_at(global_position + step)
+	if step.length() > 0.001:
+		_face(step)
+	_trail_t -= delta
+	if _trail_t <= 0.0:
+		_trail_t = 0.2
+		var d := _flat(global_position - from)
+		Net.fx("ground_crack", [global_position - d.normalized() * 1.6, d if d.length() > 0.01 else Vector3.FORWARD, 1.9, VENOM, _rng.randi(), 0.18])
+		Net.fx("dust", [global_position, 4, 0.9])
+		Net.fx("sfx", ["thud", global_position, -6.0, 0.15, 0.45])
+	if _fired == 1 and (flat.length() < 0.8 or st_t > BURROW_DIG + BURROW_MAX or not _player_ok(p)):
+		_fired = 2
+		_lock_t = st_t
+		_erupt_at = _floor_at(p.global_position if flat.length() < 2.5 and _player_ok(p) else global_position)
+		Net.fx("telegraph", [_erupt_at, ERUPT_R, warn, Color(1.0, 0.18, 0.12)])
+		Net.fx("sfx", ["bug_hiss", _erupt_at, 2.0, 0.05, 0.5])
+	elif _fired == 2 and st_t >= _lock_t + warn:
+		_begin("erupt")
 
 
 func _special_tick(p: Node3D, to_p: Vector3, dist: float) -> void:
@@ -198,6 +285,14 @@ func _special_tick(p: Node3D, to_p: Vector3, dist: float) -> void:
 			if st_t > 1.7:
 				_slam_cd = 8.0 if phase == 1 else 6.0
 				_end_special(0.6)
+		"burrow":
+			_burrow_tick(p, to_p)
+		"erupt":
+			# out of the ground and wide open
+			if st_t > 1.5:
+				_burrow_cd = (14.0 if phase == 1 else 10.0) + _rng.randf_range(0.0, 3.0)
+				_slam_cd = maxf(_slam_cd, 1.5)
+				_end_special(0.8)
 
 
 func _end_special(rest: float) -> void:
@@ -295,6 +390,8 @@ func parried(by: Node) -> void:
 
 
 func rooted(secs: float) -> void:
+	if _special == "burrow":
+		return
 	super.rooted(minf(secs, 1.0))
 
 
@@ -314,11 +411,22 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	if net_puppet:
 		st_t += delta
+	# burrowing: she sinks out of sight (hurtbox and all) and bursts back up
+	var sink := 1.0 if _special == "burrow" and st_t > BURROW_DIG * 0.35 and state == S.SPECIAL else 0.0
+	_sunk = move_toward(_sunk, sink, delta / (BURROW_DIG * 0.6 if sink > _sunk else 0.2))
+	model.position.y = -_sunk * 0.85 * size_k
+	model.visible = _sunk < 0.97
+	if state != S.DEAD and hurtbox.monitorable != (_sunk < 0.5):
+		hurtbox.set_deferred("monitorable", _sunk < 0.5)
 	if _rag != null or state == S.DEAD:
 		return
 	var target := 0.0
 	if state == S.SPECIAL:
 		match _special:
+			"burrow":
+				target = 1.2 if st_t < BURROW_DIG * 0.35 else -0.5
+			"erupt":
+				target = 1.6 if st_t < 0.6 else 0.3
 			"volley":
 				target = 1.0
 			"slam":

@@ -1719,6 +1719,27 @@ func _action_pose(n: String, u: float) -> Array:
 		"block":
 			lift.y = -0.08 * sin(clampf(u, 0, 1) * PI)
 			return [_keys(u, [[0.0, GUARD], [0.15, E_BLOCK, "out"], [0.7, E_BLOCK], [1.0, GUARD]]), "full", lift]
+		# --- captains' gap closers ---
+		"shoulder_wind":
+			# a bull's crouch: left shoulder dropped toward the target, blade held low behind, trembling
+			var sh := {"pivot": Vector3(-0.2, 0, 0), "hips": Vector3(0, -0.45, 0), "torso": Vector3(-0.3, -0.55, 0.05), "head": Vector3(0.25, 0.85, 0),
+				"arm_l": Vector3(0.65, 0.35, -0.3), "fore_l": Vector3(1.9, 0, 0), "arm_r": Vector3(-0.45, 0, 0.4), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3(0.5, 0, 0),
+				"leg_l": Vector3(0.75, 0, -0.18), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.55, 0, 0.18), "shin_r": Vector3(-0.55, 0, 0)}
+			var shake := sh.merged({"torso": (sh["torso"] as Vector3) + Vector3(sin(_t * 38.0) * 0.03 * _ease((u - 0.4) * 2.0), 0, 0)}, true)
+			lift.y = -0.2 * _ease(u * 2.5)
+			return [_keys(u, [[0.0, GUARD], [0.35, sh, "out"], [1.0, shake]]), "full", lift]
+		"shoulder_rush":
+			var ram := {"torso": Vector3(-0.5, -0.65, 0.05), "head": Vector3(0.4, 0.75, 0),
+				"arm_l": Vector3(0.75, 0.35, -0.35), "fore_l": Vector3(1.95, 0, 0), "arm_r": Vector3(-0.5, 0, 0.4), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3(0.5, 0, 0)}
+			return [_keys(u, [[0.0, ram], [0.85, ram], [1.0, GUARD]]), "upper", lift]
+		"dash_wind":
+			# Morrow's draw: sunk into a long stance, the blade trailed back by the hip, the point trembling
+			var low := {"arm_r": Vector3(0.1, 0.4, 0.55), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+				"arm_l": Vector3(1.0, 0, -0.6), "fore_l": Vector3(0.6, 0, 0), "torso": Vector3(-0.4, 0.75, 0.05), "head": Vector3(0.35, -0.6, 0),
+				"leg_l": Vector3(0.95, 0, -0.12), "shin_l": Vector3(-1.35, 0, 0), "leg_r": Vector3(-0.65, 0, 0.12), "shin_r": Vector3(-0.5, 0, 0)}
+			var held := low.merged({"arm_r": (low["arm_r"] as Vector3) + Vector3(sin(_t * 38.0) * 0.03 * _ease((u - 0.4) * 2.0), 0, 0)}, true)
+			lift.y = -0.26 * _ease(u * 2.5)
+			return [_keys(u, [[0.0, GUARD], [0.4, low, "out"], [1.0, held]]), "full", lift]
 		"peril_chop":
 			# grunt peril (2.6 s spanning wind 1.0 s + swing + recover): blade raised high
 			# behind the head, off hand sighting the target, trembling; a last pop up,

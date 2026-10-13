@@ -32,6 +32,8 @@ const FALL := 14
 const TK = preload("res://tools/dev/test_kit.gd")
 var until := 0
 var puddle
+var t0 := 0.0
+var grell
 
 
 func _initialize():
@@ -54,6 +56,35 @@ func _put(at: Vector3) -> void:
 	p.global_position = at
 	p.velocity = Vector3.ZERO
 	p.reset_physics_interpolation()
+
+
+func _get_up() -> void:
+	if p.current_state_name() == "Downed":
+		p.body_model.end_ragdoll()
+		p.body_model.reset_pose()
+	p.state_machine.force_state("Idle", {})
+	p.hurtbox.monitorable = true
+
+
+## Grell on his beach, the captain 10 m inland of him, and his charge begun.
+func _grell_setup() -> void:
+	_get_up()
+	var den = isl.get_node("PirateDen")
+	var c: Vector3 = den.global_position
+	var inland: Vector3 = (isl.global_position - c)
+	inland.y = 0.0
+	inland = inland.normalized()
+	var gp := c + inland * 4.0
+	var pp := c + inland * 14.0
+	var gl: Vector3 = isl.to_local(gp)
+	var pl: Vector3 = isl.to_local(pp)
+	grell.global_position = isl.to_global(Vector3(gl.x, isl.height_at(gl.x, gl.z) + 0.3, gl.z))
+	grell.velocity = Vector3.ZERO
+	grell.reset_physics_interpolation()
+	_put(isl.to_global(Vector3(pl.x, isl.height_at(pl.x, pl.z) + 0.3, pl.z)))
+	hp0 = p.health_component.current_health
+	grell._start_rush()
+	t0 = t
 
 
 func _cure() -> void:
@@ -193,8 +224,50 @@ func _process(d: float) -> bool:
 			wait = 2.6
 		11:
 			check("her venom fan hits from range", p.health_component.current_health < hp0)
+			# keep away and she burrows at you
+			_get_up()
+			_put(q.global_position + Vector3(0.0, 0.3, 10.0))
+			_cure()
+			hp0 = p.health_component.current_health
+			q._begin("burrow")
+			t0 = t
+			step = 30
+			return false
+		30:
+			if not (q._special == "burrow" and q._fired == 2) and t - t0 < 6.0:
+				return false
+			check("she dives under the floor, out of sight", q._special == "burrow" and q._sunk > 0.9 and not q.model.visible)
+			check("a red ring marks where she'll burst out: under you", Vector2(q._erupt_at.x - p.global_position.x, q._erupt_at.z - p.global_position.z).length() < 1.2)
+			check("...it shows before she comes up", p.health_component.current_health >= hp0 - 0.01)
+			wait = 1.2
+		31:
+			check("she bursts out under whoever stayed in it", p.health_component.current_health < hp0)
+			check("...back in sight", q._special == "erupt" and q.model.visible)
+			wait = 3.0
+		32:
+			_get_up()
+			var back: Vector3 = q.home - q.global_position
+			back.y = 0.0
+			_put(q.global_position + back.normalized() * 10.0 + Vector3.UP * 0.3)
+			_cure()
+			hp0 = p.health_component.current_health
+			q._begin("burrow")
+			t0 = t
+		33:
+			if not (q._special == "burrow" and q._fired == 2) and t - t0 < 6.0:
+				return false
+			var mouth: Vector3 = cave.to_global(Vector3(1.0, 0.0, 0.0)) - cave.to_global(Vector3.ZERO)
+			mouth.y = 0.0
+			_put(p.global_position + mouth.normalized() * 5.5)
+			_cure()
+			hp0 = p.health_component.current_health
+			wait = 1.3
+		34:
+			check("step out of the ring once it shows: she comes up empty", p.health_component.current_health >= hp0 - 0.01)
 			_put(cave.to_global(Vector3(60.0, 2.0, 0.0)))
 			wait = 8.0
+			step = 12
+			return false
 		12:
 			check("everyone left: she settles back on her eggs, healed", q.state == WANDER and q.health_frac() > 0.99)
 			check("the boss bar goes away", not hud()._boss_box.visible)
@@ -246,6 +319,37 @@ func _process(d: float) -> bool:
 			wait = 2.0
 		18:
 			check("the puddle dries up after a few seconds", not is_instance_valid(puddle))
+			# --- Captain Grell's gap closer: the shoulder charge
+			var den = isl.get_node("PirateDen")
+			for g in den.grunts:
+				if g.captain:
+					grell = g
+				else:
+					g.process_mode = Node.PROCESS_MODE_DISABLED
+			grell.alert()
+			_grell_setup()
+			step = 50
+			return false
+		50:
+			if grell._rush_dir == Vector3.ZERO and t - t0 < 3.0:
+				return false
+			check("Grell lowers his shoulder and an amber lane shows where he'll charge", grell.state == 5 and root.find_children("Lane", "", true, false).size() > 0)
+			check("...before he goes", p.health_component.current_health >= hp0 - 0.01)
+			wait = 1.5
+		51:
+			check("...the charge floors whoever stays in the lane", p.health_component.current_health < hp0 and p.current_state_name() == "Downed")
+			wait = 2.0
+		52:
+			_grell_setup()
+		53:
+			if grell._rush_dir == Vector3.ZERO and t - t0 < 3.0:
+				return false
+			_put(p.global_position + grell._rush_dir.cross(Vector3.UP) * 4.5 + Vector3.UP * 0.3)
+			hp0 = p.health_component.current_health
+			wait = 1.6
+		54:
+			check("...sidestep out of it once it shows: he charges past", p.health_component.current_health >= hp0 - 0.01)
+			check("...and he's open after it", grell.state in [6, 7, 9])
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 			return true

@@ -79,6 +79,10 @@ func _ready() -> void:
 	_hit_heavy.knockdown = true
 	_hit_heavy.knockback_force = 8.0
 	_hit_peril.damage = 34.0
+	_hit_rush.damage = 22.0
+	_hit_rush.knockdown = false
+	_hit_rush.knockback_force = 7.0
+	_hit_rush.stagger_duration = 0.5
 	_peril_cd = 6.0
 	_pistol_cd = 4.0
 	_bark.position.y = 2.9
@@ -207,6 +211,36 @@ func _start_aim(gun: String) -> void:
 	if gun == "pistol":
 		_aim_len = 0.62 if _volley_left < 2 else 0.85
 		_lock_len = 0.26
+
+
+## His gap closer: Tide Rush, a dashing cut down the lane at whoever keeps away
+## (quicker and more often as the fight goes on).
+func _can_rush() -> bool:
+	return true
+
+
+func _rush_wind() -> float:
+	return 0.75
+
+
+func _rush_speed() -> float:
+	return 24.0
+
+
+func _rush_cooldown() -> float:
+	return _rng.randf_range(9.0, 12.0) if phase == 1 else (_rng.randf_range(7.0, 9.0) if phase == 2 else _rng.randf_range(5.5, 7.0))
+
+
+func _rush_pose(wind: bool) -> String:
+	return "dash_wind" if wind else "dash_cut"
+
+
+func _rush_width() -> float:
+	return 1.6
+
+
+func _rush_barks() -> Array:
+	return ["Running won't save you!", "Too slow!", "The tide comes in!"]
 
 
 ## No more random pistol pulls between volleys than a grunt would.
@@ -400,7 +434,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			_set_state(S.STAGGER)
 		return
 	# winding up a normal attack: armour against light hits
-	if state in [S.WIND, S.SWING] and _attack in ["combo", "lunge"] and not h.haki and not h.breaker and h.damage < 20.0 and not h.dot:
+	if state in [S.WIND, S.SWING] and _attack in ["combo", "lunge", "rush"] and not h.haki and not h.breaker and h.damage < 20.0 and not h.dot:
 		var dir2 := _flat(global_position - (attacker as Node3D).global_position).normalized() if attacker is Node3D else -_fwd()
 		_take_damage(h, dir2)
 		return

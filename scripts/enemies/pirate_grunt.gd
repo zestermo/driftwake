@@ -135,6 +135,20 @@ var _hit_peril: HitData
 static var _peril_mat: StandardMaterial3D
 static var _peril_blade: StandardMaterial3D
 const PERIL_WIND := 1.0
+## The gap closer (captains, Morrow): a charge at a captain who keeps their
+## distance, down an amber lane that shows where it will run (sidestep, roll or
+## parry it). Ends wide open; into a wall or a tree, it stuns him.
+const RUSH_MIN := 6.5
+const RUSH_MAX := 15.0
+const RUSH_LOCK := 0.35
+const RUSH_OVER := 2.5
+const RUSH_COLOR := Color(1.0, 0.72, 0.2)
+var _rush_cd: float = 0.0
+var _rush_dir := Vector3.ZERO
+var _rush_len: float = 0.0
+var _rush_went: float = 0.0
+var _rush_stop: float = -1.0
+var _hit_rush: HitData
 var _guard_hits: int = 0
 var _guard_t: float = 0.0
 ## A bullet flinches it at most once this often (rapid fire can't hold it in hitstun).
@@ -378,10 +392,18 @@ func _ready() -> void:
 	_hit_peril.camera_shake_intensity = 0.3
 	_hit_peril.knockdown = true
 	_hit_peril.unblockable = true
+	_hit_rush = hd.duplicate() as HitData
+	_hit_rush.damage = _dmg(18.0)
+	_hit_rush.knockback_force = 9.0
+	_hit_rush.knockdown = true
+	_hit_rush.stagger_duration = 0.4
+	_hit_rush.hitstop_duration = 0.1
+	_hit_rush.camera_shake_intensity = 0.28
 	if captain:
-		for h in [_hit_light, _hit_heavy, _hit_peril]:
+		for h in [_hit_light, _hit_heavy, _hit_peril, _hit_rush]:
 			(h as HitData).damage *= CAPTAIN_DMG
 	_peril_cd = _rng.randf_range(4.0, 9.0)
+	_rush_cd = _rng.randf_range(2.5, 4.5)
 	_pistol_cd = _rng.randf_range(2.0, 6.0)
 	_shot_cd = _rng.randf_range(1.0, 2.5)
 
@@ -556,6 +578,7 @@ func _physics_process(delta: float) -> void:
 	_pistol_cd -= delta
 	_shot_cd -= delta
 	_shove_cd -= delta
+	_rush_cd -= delta
 	if state == S.DEAD:
 		_dead_update(delta)
 		return
@@ -607,7 +630,9 @@ func _physics_process(delta: float) -> void:
 			else:
 				var nd := _nav_dir(p.global_position, delta)
 				_face(nd)
-				if _want_pistol(p, dist, delta):
+				if _want_rush(p, dist):
+					_start_rush()
+				elif _want_pistol(p, dist, delta):
 					_start_aim("pistol")
 				elif dist > CIRCLE_RANGE + 0.6:
 					want = nd * RUN_SPEED + _separation()
@@ -646,7 +671,10 @@ func _physics_process(delta: float) -> void:
 				_set_state(S.CIRCLE)
 		S.WIND:
 			var dur := _wind_len()
-			if st_t < dur * 0.65:
+			if _attack == "rush":
+				_rush_aim(p, dir_p, dist, dur)
+				turn = 14.0
+			elif st_t < dur * 0.65:
 				_face(dir_p)
 				turn = 10.0
 			else:
@@ -655,7 +683,7 @@ func _physics_process(delta: float) -> void:
 				want = dir_p * 2.0
 			if _attack == "peril" and dist > COMBO_RANGE + 0.6 and st_t < dur * 0.7:
 				want = dir_p * 2.4
-			if not _glinted and st_t > dur * 0.55 and _attack != "peril":
+			if not _glinted and st_t > dur * 0.55 and _attack not in ["peril", "rush"]:
 				_glinted = true
 				_glint()
 			if st_t >= dur:
@@ -680,6 +708,24 @@ func _physics_process(delta: float) -> void:
 					Net.fx("sfx", ["thud", front, -3.0, 0.05, 0.8])
 				if st_t > 0.8:
 					_end_attack(1.0)
+			elif _attack == "rush":
+				if _rush_stop < 0.0:
+					want = _rush_dir * _rush_speed()
+					accel = 200.0
+					turn = 14.0
+					_rush_went += _flat(get_real_velocity()).length() * delta if st_t > 0.05 else _rush_speed() * delta
+					if int(st_t / 0.07) != int((st_t - delta) / 0.07):
+						Net.fx("dust", [global_position + Vector3(0, 0.1, 0), 3, 0.6])
+					if st_t > 0.12 and _rushed_into_wall():
+						_rush_bonk()
+					elif _rush_went >= _rush_len or st_t > _rush_len / _rush_speed() + 0.3:
+						_rush_stop = st_t
+						hitbox.deactivate()
+						Net.fx("dust", [global_position + _rush_dir * 0.6, 8, 0.8])
+				else:
+					accel = 14.0
+					if st_t > _rush_stop + 0.5:
+						_end_attack(0.8)
 			elif _attack == "lunge":
 				var lt := 0.32
 				if st_t < lt:
@@ -852,7 +898,7 @@ func _physics_process(delta: float) -> void:
 	if state not in [S.HITSTUN, S.STAGGER, S.LEAP]:
 		want = _avoid_water(want)
 		want *= 1.0 - GenIsland.THICKET_SLOW * GenIsland.thicket(get_tree(), global_position)
-	if state == S.SWING and _attack == "lunge" and st_t < 0.32:
+	if state == S.SWING and ((_attack == "lunge" and st_t < 0.32) or (_attack == "rush" and _rush_stop < 0.0)):
 		hv = want
 	else:
 		hv = hv.move_toward(want, accel * delta)
@@ -1028,6 +1074,8 @@ func _guard_max() -> int:
 func _wind_len() -> float:
 	if _attack == "peril":
 		return PERIL_WIND
+	if _attack == "rush":
+		return _rush_wind()
 	if _attack == "lunge":
 		return 0.8
 	return 0.6 if _swing_i == 0 else 0.32
@@ -1045,7 +1093,19 @@ func _start_wind() -> void:
 		Net.fx("impact", [global_position + Vector3(0, 2.0, 0), Color(1.0, 0.15, 0.1)])
 		Net.fx("sparkle", [global_position + Vector3(0, 2.1, 0), 8, Color(1.0, 0.2, 0.15)])
 		return
-	var anim := "lunge_wind" if _attack == "lunge" else ("wind_r" if _swing_i == 0 else "wind_l")
+	if _attack == "rush":
+		_rush_dir = Vector3.ZERO
+		_rush_stop = -1.0
+		humanoid.play(_rush_pose(true), _wind_len() + 0.1)
+		hitbox.hit_data = _hit_rush
+		_set_glow(true)
+		_glow_t = _wind_len() + 0.8
+		bark(_rush_barks(), 0.6)
+		Net.fx("dust", [global_position, 6, 0.6])
+		Net.fx("sfx", ["clack", global_position, -2.0, 0.05, 0.8])
+		_sense(_target())
+		return
+	var anim :="lunge_wind" if _attack == "lunge" else ("wind_r" if _swing_i == 0 else "wind_l")
 	humanoid.play(anim, _wind_len())
 	# the heavy attack (lunge) announces itself: the blade glows yellow
 	hitbox.hit_data = _hit_heavy if _attack == "lunge" else _hit_light
@@ -1083,6 +1143,17 @@ func _start_swing() -> void:
 	if _attack == "peril":
 		_lunge_dir = _fwd()
 		Net.fx("sfx", ["whoosh_big", global_position, -2.0, 0.05, 0.8])
+	elif _attack == "rush":
+		_lunge_dir = _rush_dir
+		_rush_went = 0.0
+		_face(_rush_dir)
+		humanoid.play(_rush_pose(false), _rush_len / _rush_speed() + 0.4)
+		hitbox.activate()
+		# (straight through whoever's in the lane; _set_state puts the mask back)
+		set_collision_mask_value(2, false)
+		velocity = _rush_dir * _rush_speed() + Vector3.UP * velocity.y
+		Net.fx("dust_ring", [global_position, 12, 0.8])
+		Net.fx("sfx", ["whoosh_big", global_position, -1.0, 0.05, 1.1])
 	elif _attack == "lunge":
 		_lunge_dir = _fwd()
 		humanoid.play("lunge", 0.8)
@@ -1097,6 +1168,93 @@ func _end_attack(recover: float) -> void:
 	hitbox.deactivate()
 	set_meta("recover", recover)
 	_set_state(S.RECOVER)
+
+
+# --------------------------------------------------------------------------
+# The gap closer (captains; Morrow's is a dashing cut)
+# --------------------------------------------------------------------------
+func _can_rush() -> bool:
+	return captain
+
+
+func _rush_wind() -> float:
+	return 0.85
+
+
+func _rush_speed() -> float:
+	return 13.0
+
+
+func _rush_cooldown() -> float:
+	return _rng.randf_range(9.0, 13.0)
+
+
+## A lowered shoulder (the wind-up), then the charge.
+func _rush_pose(wind: bool) -> String:
+	return "shoulder_wind" if wind else "shoulder_rush"
+
+
+func _rush_barks() -> Array:
+	return ["Out of my way!", "Stand still, rat!", "Haaargh!"]
+
+
+## A captain staying out of reach with a clear run at them.
+func _want_rush(p: Node3D, dist: float) -> bool:
+	if not _can_rush() or _rush_cd > 0.0 or dist < RUSH_MIN or dist > RUSH_MAX or not _player_ok(p):
+		return false
+	if absf(p.global_position.y - global_position.y) > 1.5 or not _los(p):
+		return false
+	return _get_token()
+
+
+func _start_rush() -> void:
+	_attack = "rush"
+	_swing_i = 0
+	_rush_cd = _rush_cooldown()
+	_start_wind()
+
+
+## Tracks the captain early in the wind-up, then sets the lane (shown on the
+## ground for the rest of it) and stops turning.
+func _rush_aim(p: Node3D, dir_p: Vector3, dist: float, dur: float) -> void:
+	if _rush_dir == Vector3.ZERO:
+		_face(dir_p)
+		if st_t < RUSH_LOCK:
+			return
+		_rush_dir = dir_p
+		_rush_len = clampf((dist if p else RUSH_MIN) + RUSH_OVER, 4.0, RUSH_MAX + RUSH_OVER)
+		var from := global_position
+		Net.fx("lane", [from, from + _rush_dir * _rush_len, _rush_width(), dur - st_t, RUSH_COLOR])
+		_glint()
+	_face(_rush_dir)
+
+
+func _rush_width() -> float:
+	return 2.0
+
+
+## Head-on into something solid (not a body: crewmates and captains don't stop it).
+func _rushed_into_wall() -> bool:
+	for i in range(get_slide_collision_count()):
+		var c := get_slide_collision(i)
+		if absf(c.get_normal().y) < 0.5 and not (c.get_collider() is CharacterBody3D) and _rush_dir.dot(c.get_normal()) < -0.5:
+			return true
+	return false
+
+
+## Ran into a wall or a tree: stunned, wide open.
+func _rush_bonk() -> void:
+	hitbox.deactivate()
+	_release_token()
+	velocity = -_rush_dir * 3.0 + Vector3.UP * 2.0
+	var at := global_position + Vector3(0, 1.6, 0)
+	Net.fx("sfx", ["thud", global_position, 0.0, 0.05, 0.8])
+	Net.fx("sparkle", [at, 10, Color(1.0, 0.95, 0.6)])
+	Net.fx("dust_ring", [global_position, 12, 0.8])
+	bark(BARK_HURT, 0.8)
+	_stagger_len = 1.6
+	humanoid.react("stagger", 1.6, -_rush_dir)
+	_set_state(S.STAGGER)
 
 
 ## The tell: a flash on the blade just before it swings.
@@ -2041,10 +2199,13 @@ func net_rescale(k: float) -> void:
 		health.current_health = maxf(frac * health.max_health, 1.0)
 
 
+## Every blow its swing hitbox can carry (co-op: a puppet arms the same one by index).
+func _hit_set() -> Array:
+	return [_hit_light, _hit_heavy, _hit_peril, _hit_rush]
+
+
 func _hit_kind() -> int:
-	if hitbox.hit_data == _hit_peril:
-		return 2
-	return 1 if hitbox.hit_data == _hit_heavy else 0
+	return maxi(_hit_set().find(hitbox.hit_data), 0)
 
 
 ## Host: what the puppets need, ~20 times a second.
@@ -2100,7 +2261,7 @@ func _net_update(delta: float) -> void:
 		_net_serial = serial
 		if not first:
 			# (a quick swing can start and end between two snapshots)
-			hitbox.activate(_hit_peril if kind == 2 else (_hit_heavy if kind == 1 else _hit_light))
+			hitbox.activate(_hit_set()[kind])
 			_net_hb_t = 0.1
 	if hitbox.active and not bool(a[7]) and _net_hb_t <= 0.0:
 		hitbox.deactivate()

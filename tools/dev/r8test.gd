@@ -15,10 +15,13 @@ var fails := 0
 var saw := {}
 var t0 := 0.0
 var c
+var until := 0
+var hp0 := 0.0
+const TK = preload("res://tools/dev/test_kit.gd")
 
 
 func _initialize():
-	load("res://tools/dev/test_kit.gd").seed_of(self)
+	TK.seed_of(self)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -30,6 +33,29 @@ func check(name: String, cond: bool) -> void:
 
 func hud():
 	return get_first_node_in_group("hud")
+
+
+func _up() -> void:
+	if p.current_state_name() == "Downed":
+		p.body_model.end_ragdoll()
+		p.body_model.reset_pose()
+	p.state_machine.force_state("Idle", {})
+	p.hurtbox.monitorable = true
+
+
+## Morrow 10 m off down the fort, the captain at its middle, and his dash begun.
+func _dash_setup() -> void:
+	_up()
+	p.global_position = fort.to_global(Vector3(0, 6.4, 2.0))
+	p.velocity = Vector3.ZERO
+	p.reset_physics_interpolation()
+	boss._special = ""
+	boss.global_position = fort.to_global(Vector3(0, 6.4, -8.0))
+	boss.velocity = Vector3.ZERO
+	boss.reset_physics_interpolation()
+	hp0 = p.health_component.current_health
+	boss._start_rush()
+	t0 = t
 
 
 func music():
@@ -50,7 +76,9 @@ func _process(d: float) -> bool:
 	if boss and is_instance_valid(boss) and boss.get("_special") != null and str(boss._special) != "":
 		saw["special_" + str(boss._special)] = true
 	if wait > 0.0:
-		wait -= d
+		until = TK.wait_secs(wait)
+		wait = 0.0
+	if TK.ticking(until):
 		return false
 	match step:
 		0:
@@ -325,6 +353,34 @@ func _process(d: float) -> bool:
 		16:
 			check("he leaps and slams down where the ring was", saw.has("special_slam"))
 			check("...the shockwave catches you", p.health_component.current_health < float(saw["hp_slam"]) or p.current_state_name() == "Downed")
+			# his gap closer: Tide Rush
+			_dash_setup()
+			step = 40
+		40:
+			if boss._rush_dir == Vector3.ZERO and t - t0 < 3.0:
+				return false
+			check("Tide Rush: he sinks into his draw and an amber lane shows where he'll dash", boss.state == 5 and root.find_children("Lane", "", true, false).size() > 0)
+			check("...before the cut", p.health_component.current_health >= hp0 - 0.01)
+			wait = 1.0
+			step = 41
+		41:
+			check("...the dashing cut lands on whoever stays in the lane", p.health_component.current_health < hp0)
+			wait = 1.5
+			step = 42
+		42:
+			_dash_setup()
+			step = 43
+		43:
+			if boss._rush_dir == Vector3.ZERO and t - t0 < 3.0:
+				return false
+			p.global_position = fort.to_global(Vector3(4.0, 6.4, 2.0))
+			p.reset_physics_interpolation()
+			hp0 = p.health_component.current_health
+			wait = 1.3
+			step = 44
+		44:
+			check("...step out of the lane once it shows: he dashes past", p.health_component.current_health >= hp0 - 0.01)
+			check("...and is left open after it", boss.state in [7, 9] or (boss.state == 6 and boss._rush_stop >= 0.0))
 			boss.health.current_health = boss.health.max_health * 0.25
 			wait = 2.4
 			step = 17

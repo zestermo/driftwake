@@ -263,6 +263,11 @@ func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.
 	tw.tween_callback(holder.queue_free)
 
 
+## A strip on the ground where a charge or a dash will run (BeastFX.lane, sendable through Net.fx).
+func lane(from: Vector3, to: Vector3, width: float, secs: float, color: Color = Color(1.0, 0.18, 0.12)) -> void:
+	BeastFX.lane(from, to, width, secs, color)
+
+
 func _tint(mi: MeshInstance3D, c: Color) -> void:
 	var m := _tele_mat.duplicate() as StandardMaterial3D
 	m.albedo_color = c
