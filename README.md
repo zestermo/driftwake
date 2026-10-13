@@ -292,17 +292,14 @@ one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Coming next
 
-- **The island chain:** nine layers of islands to sail down by the log pose, with cities,
-  forks and a sea boss at the end.
-- **New movesets:**
-  - sword and pistol;
-  - dual wield (sword with a sword, axe or dagger);
-  - daggers;
-  - dual axes;
-  - a two-handed hammer.
+- **Chain islands at Brinehollow's level** (built, in testing): harbours and village layouts
+  that vary by island, villagers with routines and quests, caves, dungeons and a ruined temple,
+  landmarks and set pieces, new jungle beasts and fauna, and new coastlines.
+- **New movesets:** daggers (built, in testing), dual axes and a two-handed hammer.
+- **New island themes:** snow, desert and forest.
 - **New music:** a more adventurous score.
 - **A new UI:** detailed pixel-art menus and item tooltips.
-- **Real lights** on lanterns, windows and torches, and a performance pass.
+- **Real lights** on the ships' lanterns.
 
 The working list is in [docs/todo.md](docs/todo.md).
 

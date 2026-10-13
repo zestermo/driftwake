@@ -165,6 +165,15 @@ scripts/island/gen_island.gd            lifetest
 scripts/island/island_village.gd        lifetest
 scripts/npc/npc.gd                      lifetest
 scripts/dialogue/dialogue_manager.gd    lifetest
+scripts/island/gen_island.gd            villagetest landmarktest bosstest
+scripts/island/kit/kit_style.gd         villagetest
+scripts/island/kit/kit_context.gd       harbourtest villagetest dungeontest isletest qoltest
+scripts/island/kit/kit_lights.gd        harbourtest villagetest isletest
+scripts/island/kit/kit_camps.gd         isletest foresttest
+scripts/island/kit/kit_market.gd        villagetest qoltest
+scripts/island/island.gd                isletest qoltest
+scripts/props/jungle_plants.gd          isletest fidelitytest
+scripts/props/jungle_props.gd           villagetest
 
 # --- UI ---
 scenes/ui/*                             r6test r7test r8test
