@@ -91,6 +91,11 @@ func arm(style: String) -> void:
 			p.set_offhand(item("pistol"))
 		"pistol":
 			p.equip_weapon(item("pistol"), false)
+		"dagger":
+			p.equip_weapon(item("dagger"), false)
+		"dual_dagger":
+			p.equip_weapon(item("dagger"), false)
+			p.set_offhand(item("dagger"))
 	p.sheathe_weapon(true)
 	p.draw_weapon(true)
 
@@ -120,7 +125,14 @@ const CASES := [
 	["rising_dragon", "fist", 1.4, ""],
 	["palm_strike", "fist", 2.5, ""],
 	["sea_king_fist", "fist", 6.0, "down"],
+	["cutthroat", "dagger", 5.0, "blink"],
+	["knife_fan", "dagger", 5.0, ""],
+	["red_eclipse", "dagger", 5.0, "down"],
+	["viper_flurry", "dual_dagger", 1.8, ""],
+	["scissor_leap", "dual_dagger", 5.0, ""],
+	["hundred_fangs", "dual_dagger", 3.0, "down"],
 ]
+const GUARDS := [["riposte", "sword"], ["iai_counter", "katana"], ["cross_counter", "dual_sword"], ["parley", "sword_pistol"], ["slip", "dagger"]]
 func _process(d: float) -> bool:
 	t += d
 	if camp:
@@ -161,7 +173,7 @@ func _process(d: float) -> bool:
 					missing.append(k)
 			check("every node in every tree can be learned (missing: %s)" % str(missing), missing.is_empty())
 			var trees_ok := true
-			for tr in ["unarmed", "sword", "katana", "axe", "dual", "corsair", "pistol"]:
+			for tr in SkillTree.TREES.keys().filter(func(k): return SkillTree.is_mastery_tree(k)):
 				var n := 0
 				var ults := 0
 				for k in SkillTree.nodes().keys():
@@ -179,7 +191,7 @@ func _process(d: float) -> bool:
 			check("an ultimate from a weapon tree goes on R", pc.equip("kraken_wake", 4) and not pc.equip("kraken_wake", 0))
 			# (Instinct's random sidestep would make the hits below flaky)
 			pr.owned.erase("h_instinct")
-			for id in ["cutlass", "cutlass", "katana", "boarding_axe", "pistol"]:
+			for id in ["cutlass", "cutlass", "katana", "boarding_axe", "pistol", "dagger", "dagger"]:
 				p.inventory_component.add_item(item(id), 1)
 			var land: Vector3 = ground(camp.grunts[0].global_position + Vector3(14, 0, 0))
 			set_meta("land", land)
@@ -226,7 +238,7 @@ func _process(d: float) -> bool:
 					pc.cooldowns.clear()
 					check("cast %s" % c[0], pc.try_cast(slot))
 					phase = 2
-					wait = 3.4 if str(c[0]) in ["maelstrom", "steel_tempest", "deaths_waltz", "giant_swing", "broadside"] else 1.8
+					wait = 3.4 if str(c[0]) in ["maelstrom", "steel_tempest", "deaths_waltz", "giant_swing", "broadside", "red_eclipse", "hundred_fangs"] else 1.8
 				2:
 					var hurt: bool = not is_instance_valid(g) or g.health.current_health < v0
 					check("%s lands (%.0f -> %.0f)" % [c[0], v0, g.health.current_health if is_instance_valid(g) else 0.0], hurt)
@@ -290,7 +302,14 @@ func _process(d: float) -> bool:
 			step = 30
 		30:
 			# the guard skills (Riposte, Iai Counter, Crossed Counter) turn a blow aside and answer it
-			var gs: Array = [["riposte", "sword"], ["iai_counter", "katana"], ["cross_counter", "dual_sword"], ["parley", "sword_pistol"]][guard]
+			var gs: Array = GUARDS[guard]
+			# (a fresh grunt for each: five answers would kill the first)
+			g = fresh()
+			if g == null:
+				wait = 0.5
+				return false
+			clear_others(g)
+			g.health.current_health = 400.0
 			arm(str(gs[1]))
 			face(g.global_position)
 			pc.equip(str(gs[0]), 0)
@@ -311,11 +330,11 @@ func _process(d: float) -> bool:
 			wait = 0.6
 			step = 32
 		32:
-			check("...which cuts them (%s)" % p.style(), g.health.current_health < v0)
+			check("...which cuts them (%s: %.0f -> %.0f)" % [p.style(), v0, g.health.current_health], g.health.current_health < v0)
 			if p.style() == "katana":
 				check("the katana is back in hand after the counter", p.body_model.weapon_in_hand)
 			guard += 1
-			step = 30 if guard < 4 else 33
+			step = 30 if guard < GUARDS.size() else 33
 		33:
 			# a guard that nobody tests: Iai Counter draws the blade again
 			arm("katana")

@@ -130,7 +130,7 @@ var _katana_socket: Node3D
 ## Sprinting with the katana out: it rides in its scabbard, hands on it, ready to draw.
 var _run_sheath: bool = false
 ## Fighting stance for the guard pose: sword, dual_sword, fist, pistol,
-## dual_pistol, claw, katana.
+## dual_pistol, claw, katana, dagger, dual_dagger.
 var stance: String = "sword"
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
@@ -338,7 +338,8 @@ func apply_look(look_dict: Dictionary) -> void:
 	_build()
 	_beast.clear()
 	_tail = null
-	_build_saya()
+	_sheaths.clear()
+	_build_sockets()
 	_attach_weapon(weapon_in_hand)
 	_apply_fists()
 
@@ -521,13 +522,44 @@ func set_weapon(mesh: Mesh) -> void:
 		weapon.queue_free()
 		weapon = null
 	if mesh == null:
-		_build_saya()
+		_build_sockets()
 		return
 	weapon = MeshInstance3D.new()
 	weapon.name = "Weapon"
 	weapon.mesh = mesh
-	_build_saya()
+	_build_sockets()
 	_attach_weapon(weapon_in_hand)
+
+
+## What a held weapon is ("dagger", "axe"...; "" for none): the first part of its model.
+static func kind_of(w: MeshInstance3D) -> String:
+	if w == null or not is_instance_valid(w) or w.mesh == null:
+		return ""
+	return str(w.mesh.get_meta("model", "")).get_slice(":", 0)
+
+
+## The scabbard and sheaths that live on the body: the katana's on the left hip, a
+## dagger's on the hip it's worn on (they stay there when the blade's drawn).
+func _build_sockets() -> void:
+	_build_saya()
+	for s in _sheaths:
+		if is_instance_valid(s):
+			(s as Node).queue_free()
+	_sheaths.clear()
+	if hip_socket == null:
+		return
+	for pair in [[weapon, hip_socket], [offhand, null]]:
+		var w: MeshInstance3D = pair[0]
+		if kind_of(w) != "dagger":
+			continue
+		var sh := MeshInstance3D.new()
+		sh.name = "DaggerSheath"
+		sh.mesh = WeaponDesigns.dagger_sheath(str(w.mesh.get_meta("model", "")))
+		(pair[1] if pair[1] != null else _left_hip()).add_child(sh)
+		_sheaths.append(sh)
+
+
+var _sheaths: Array = []
 
 
 func is_katana() -> bool:
@@ -559,6 +591,10 @@ func _build_saya() -> void:
 
 ## A sheathed katana (and its scabbard) in the katana socket: guard just outside the mouth.
 const KATANA_SHEATHED := Vector3(0, 0, 0.04)
+## A dagger in the off hand is held reversed: the blade out of the bottom of the fist,
+## edge out. Its poses key hand_l for that: at hand_l x ~-1.5 the blade lies back along
+## the forearm; a stab's wrist is worked out from where the point should go (DaggerMoves.rev).
+static var REVERSE_GRIP := Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO)
 
 
 func _attach_weapon(in_hand: bool) -> void:
@@ -569,7 +605,7 @@ func _attach_weapon(in_hand: bool) -> void:
 			if offhand.get_parent():
 				offhand.get_parent().remove_child(offhand)
 			t2.add_child(offhand)
-		offhand.transform = Transform3D.IDENTITY if in_hand else _on_hip(offhand)
+		offhand.transform = (REVERSE_GRIP if kind_of(offhand) == "dagger" else Transform3D.IDENTITY) if in_hand else _on_hip(offhand)
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
@@ -629,10 +665,12 @@ func set_offhand(mesh: Mesh) -> void:
 		offhand.queue_free()
 		offhand = null
 	if mesh == null:
+		_build_sockets()
 		return
 	offhand = MeshInstance3D.new()
 	offhand.name = "Offhand"
 	offhand.mesh = mesh
+	_build_sockets()
 	_attach_weapon(weapon_in_hand)
 
 
@@ -700,6 +738,10 @@ func _guard() -> Dictionary:
 			return WieldMoves.dual_guard(WieldMoves.offhand_kind(self))
 		"sword_pistol":
 			return WieldMoves.SP_GUARD
+		"dagger":
+			return DaggerMoves.GUARD
+		"dual_dagger":
+			return DaggerMoves.DUAL_GUARD
 		"fist":
 			return FIST_GUARD
 		"claw":
@@ -880,7 +922,7 @@ func _block_pose() -> Dictionary:
 			return {"torso": Vector3(-0.2, 0.45, 0), "head": Vector3(0.28, 0.05, 0),
 				"arm_l": Vector3(1.3, -0.32, -0.05), "fore_l": Vector3(2.2, 0, 0),
 				"arm_r": Vector3(1.3, 0.32, 0.05), "fore_r": Vector3(2.2, 0, 0), "hand_r": Vector3(-0.3, 0, 0)}
-		"dual_sword":
+		"dual_sword", "dual_dagger":
 			# both blades crossed in front
 			return {"torso": Vector3(-0.12, 0.0, 0), "head": Vector3(0.12, 0, 0),
 				"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),

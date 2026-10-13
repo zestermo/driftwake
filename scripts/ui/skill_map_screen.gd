@@ -1,7 +1,7 @@
 class_name SkillMapScreen
 extends Control
 ## The skill trees (K), one tab each (click them, or Tab / Shift+Tab):
-## Base & Haki, Unarmed, Cutlass, Katana, Axe, Dual Wield, Pistol, Devil Fruit
+## Base & Haki, Unarmed, Cutlass, Katana, Axe, the daggers, Dual Wield, Corsair, Pistol, Devil Fruit
 ## (SkillTree.TAB_ORDER). It opens on the tree of the weapon in your hand and
 ## frames that tree's whole cluster. Weapon trees spend that weapon's mastery
 ## points; the others spend skill points.
@@ -186,7 +186,8 @@ func _node_at(sp: Vector2) -> String:
 
 
 func _tab_rect(i: int) -> Rect2:
-	return Rect2(4.0 + i * 59.0, 2.0, 57.0, 14.0)
+	var w := minf(59.0, (size.x - 8.0) / SkillTree.TAB_ORDER.size())
+	return Rect2(4.0 + i * w, 2.0, w - 2.0, 14.0)
 
 
 func _tab_at(sp: Vector2) -> int:

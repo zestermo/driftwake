@@ -181,3 +181,15 @@ project.godot                           feat r6test
 scripts/enemies/fauna/*                 faunatest netchain
 scripts/island/fauna_spawner.gd         faunatest netchain
 shaders/fauna_swarm.gdshader            faunatest
+# --- daggers (2026-10-12) ---
+scripts/player_states/dagger_arts.gd    techtest daggertest
+scripts/npc/dagger_moves.gd             daggertest techtest wieldtest
+scripts/combat/bleed_status.gd          daggertest
+scripts/props/weapon_designs.gd         daggertest
+scripts/player_states/light_attack*     daggertest
+scripts/player_states/heavy_attack*     daggertest
+scripts/player_states/plunge*           daggertest
+scripts/powers/power_component.gd       daggertest
+scripts/progression/*                   daggertest
+scripts/npc/humanoid.gd                 daggertest wieldtest
+resources/items/dagger.tres             daggertest

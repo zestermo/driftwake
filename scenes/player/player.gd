@@ -471,7 +471,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if not hit.dot and power.use_foresight():
 		_foresight_dodge(dir)
 		return
-	if not hit.dot and randf() < progression.stat("evade_chance"):
+	if not hit.dot and randf() < progression.stat("evade_chance") + progression.style_stat("evade", style()):
 		_foresight_dodge(dir, "Instinct!")
 		return
 	if hit.ranged and _try_deflect(hit, dir, attacker):
@@ -1529,19 +1529,22 @@ func weapon_class() -> String:
 	return class_of(equipped_weapon)
 
 
-## Fighting style: fist, sword, axe, katana, dual_sword (two blades: sword + sword,
-## axe or dagger), sword_pistol (a one-handed blade and a pistol in the off hand),
-## pistol, dual_pistol or claw.
+## Fighting style: fist, sword, axe, katana, dagger, dual_sword (two blades: sword +
+## sword, axe or dagger), dual_dagger (dagger + dagger), sword_pistol (a one-handed
+## blade and a pistol in the off hand), pistol, dual_pistol or claw.
 func style() -> String:
 	var c := weapon_class()
 	var dual := offhand_weapon != null and not hybrid
 	match c:
 		"sword":
-			if equipped_weapon.weapon_model == "katana":
+			var main := equipped_weapon.weapon_model
+			if main == "katana":
 				return "katana"
 			if dual:
-				return "sword_pistol" if class_of(offhand_weapon) == "gun" else "dual_sword"
-			return "axe" if equipped_weapon.weapon_model == "axe" else "sword"
+				if class_of(offhand_weapon) == "gun":
+					return "sword_pistol"
+				return "dual_dagger" if main == "dagger" and offhand_weapon.weapon_model == "dagger" else "dual_sword"
+			return main if main in ["axe", "dagger"] else "sword"
 		"gun":
 			return "dual_pistol" if dual else "pistol"
 	return c
@@ -1709,7 +1712,7 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 	var pr := progression
 	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0)
 	h.damage = base * damage_multiplier() * k
-	if randf() < pr.style_stat("crit", st) + pr.stat("crit_all"):
+	if randf() < pr.style_stat("crit", st) + pr.stat("crit_all") + (0.2 if power.buff("bleeding_edge") else 0.0):
 		h.damage *= 1.5
 		h.set_meta("crit", true)
 	if kind == "heavy" and pr.style_stat("unblock", st) > 0.0:
@@ -1726,6 +1729,7 @@ const REACH := {
 	"sword": [Vector3(1.8, 1.2, 1.6), Vector3(-0.3, 0.2, -0.9)],
 	"wide": [Vector3(2.4, 1.2, 1.7), Vector3(-0.3, 0.2, -0.95)],
 	"fist": [Vector3(1.3, 1.2, 1.15), Vector3(-0.3, 0.2, -0.7)],
+	"dagger": [Vector3(1.5, 1.2, 1.35), Vector3(-0.25, 0.2, -0.8)],
 	"claw": [Vector3(1.7, 1.2, 1.35), Vector3(-0.3, 0.2, -0.78)],
 	"katana": [Vector3(2.5, 1.3, 2.2), Vector3(-0.3, 0.2, -1.2)],
 	"iai": [Vector3(3.0, 1.3, 2.4), Vector3(-0.3, 0.2, -1.1)],

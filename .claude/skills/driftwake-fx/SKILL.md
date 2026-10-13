@@ -40,6 +40,8 @@ on that tree (`TechniqueState`, `SkillState`, `HeavyAttackState`, `Projectile`).
 | dual | twin colours: cyan and violet crossing | paired trails (`blade_swoosh` color_l), X shapes (`twin_cross`), `motes` |
 | corsair (sword + pistol) | black powder: scarlet flash, gold sparks | `powder_burst`, dark smoke (`POWDER_SMOKE`), Broadside's `cannon_blast` |
 | pistol | gold flashes, grey powder smoke | muzzle sparks, tracers, smoke |
+| dagger | crimson night: crimson edge, wine-dark accent | `shadow_wisps` (black smoke `SHADOW_SMOKE` + crimson motes), glints as wound marks, `blood` |
+| dual_dagger | venom: viper green, yellow-green | `poison` bubbles, green motes, star of streaks (Hundred Fangs), small X's |
 | unarmed | white wind, warm dust | punch_wind, rings of air, dust rings |
 | haki | crimson and black | dark rings, red sparks, a weight on the screen |
 

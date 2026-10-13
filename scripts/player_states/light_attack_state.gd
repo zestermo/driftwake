@@ -7,6 +7,8 @@ extends PlayerState
 ##               both blades -> twin spin (Twin Spin)
 ##   sword_pistol diagonal cut -> point-blank shot -> rising cut -> a spin cut and a shot
 ##               that knocks them flat (Powder Finale); no ball loaded, a shot is a butt-strike
+##   dagger      stab -> flat slash -> rising cut -> a turn into a low stab that bleeds (Gutting Strike)
+##   dual_dagger slash -> off-hand stab -> scissor across -> whirl into both driven in (Fang Whirl)
 ##   fist        jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
@@ -57,6 +59,19 @@ const STYLES := {
 		"damages": [10.0, 0.0, 12.0, 11.0], "shots": [0.0, 14.0, 0.0, 20.0],
 		"hitstops": [0.05, 0.05, 0.06, 0.08], "shakes": [0.09, 0.1, 0.11, 0.16],
 		"reach": "sword", "reaches": ["sword", "sword", "sword", "spin"], "color": Color(1.0, 0.85, 0.7), "tree": "corsair"},
+	# one dagger: quick and close - a stab, a slash, a rising cut, and (Gutting Strike)
+	# a turn into a low stab that bleeds them; "bleeds": seconds a hit makes them bleed
+	"dagger": {"anims": ["dg_stab", "dg_slash", "dg_rise", "dg_gut"], "trails": ["", "", "", ""],
+		"durations": [0.26, 0.28, 0.3, 0.5], "impulses": [4.5, 4.0, 4.5, 6.0],
+		"damages": [7.0, 7.0, 9.0, 15.0], "hitstops": [0.035, 0.035, 0.045, 0.08], "shakes": [0.06, 0.06, 0.08, 0.16],
+		"reach": "dagger", "color": Color(1.0, 0.78, 0.82), "tree": "dagger", "bleeds": [0.0, 0.0, 0.0, 4.0]},
+	# two daggers: a slash, a stab with the other, a scissor across, and (Fang Whirl) a
+	# whirl into both driven in
+	"dual_dagger": {"anims": ["dd_1", "dd_2", "dd_3", "dd_4"], "trails": ["", "", "", ""],
+		"durations": [0.24, 0.24, 0.32, 0.52], "impulses": [4.0, 4.0, 5.0, 5.5],
+		"damages": [6.0, 6.0, 11.0, 17.0], "hitstops": [0.03, 0.03, 0.05, 0.08], "shakes": [0.05, 0.05, 0.1, 0.16],
+		"reach": "dagger", "reaches": ["dagger", "dagger", "wide", "spin"], "color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7),
+		"tree": "dual_dagger", "bleeds": [0.0, 0.0, 0.0, 4.0]},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -72,6 +87,9 @@ const STYLES := {
 ## A dual-wield cut with the off hand, by what's in it: [damage, knockback, hit-stop,
 ## chain shift (s)]: an axe hits harder and recovers later, a dagger lighter and sooner.
 const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], "dagger": [0.85, 0.8, 0.8, -0.06]}
+## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
+const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
+	"dagger": "gut_strike", "dual_dagger": "fang_whirl"}
 
 var cfg: Dictionary = STYLES["sword"]
 var combo_count: int = 3
@@ -104,9 +122,7 @@ func enter(data: Dictionary) -> void:
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
-	# the fourth hit is a skill-tree unlock (Roundhouse / Twin Spin / Powder Finale)
-	if (st == "fist" and not player.progression.has_move("roundhouse")) or (st == "dual_sword" and not player.progression.has_move("twin_spin")) \
-			or (st == "sword_pistol" and not player.progression.has_move("powder_finale")):
+	if FOURTH.has(st) and not player.progression.has_move(str(FOURTH[st])):
 		combo_count -= 1
 	# Continue the remembered chain unless this attack came straight from a chain.
 	combo_index = int(data.get("combo_index", 0)) if data.get("chain", false) else player.next_combo_index()
@@ -168,6 +184,8 @@ func physics_update(delta: float) -> void:
 		hit.knockback_force = (8.0 if last else 4.0) * float(_off[1])
 		hit.breaker = cfg.get("breaker", false)
 		hit.sever = str(cfg["reach"]) != "fist"
+		if cfg.has("bleeds") and float(cfg["bleeds"][combo_index]) > 0.0:
+			hit.set_meta("bleed", float(cfg["bleeds"][combo_index]))
 		# (the axe's finisher puts them on the ground)
 		hit.knockdown = last and cfg.get("slam", false)
 		player.sword_hitbox.activate(hit)
@@ -242,7 +260,7 @@ func physics_update(delta: float) -> void:
 func _trail_col(left: bool = false) -> Color:
 	var tree := SkillTree.style_tree(player.style())
 	if tree != "" and player.progression.elemental(tree, 2):
-		return FX.tree_col(tree, FX.ACCENT if left and tree == "dual" else FX.EDGE)
+		return FX.tree_col(tree, FX.ACCENT if left and FX.TWIN_TREES.has(tree) else FX.EDGE)
 	return cfg.get("color_l", cfg["color"]) if left else cfg["color"]
 
 

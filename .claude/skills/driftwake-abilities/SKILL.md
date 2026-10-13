@@ -40,6 +40,8 @@ skill for poses, driftwake-fx for effects, driftwake-coop for anything new a gue
 | Tree nodes | `scripts/progression/skill_tree.gd` | `_add(id, name, kind, region, _g(col,row), links, effects, desc, req, skill)`; weapon trees paid with mastery |
 | Casting | `scripts/powers/power_component.gd` | `equip(id, slot)` (slot 4 = R ult), `can_cast`, `try_cast` -> the state; energy, ult meter, cooldowns, buffs, `enemies_in`, `blast` |
 | Techniques | `scripts/player_states/technique_state.gd` | weapon/unarmed techniques, ults, grapples, guards; helpers below |
+| A weapon's own techniques | `scripts/player_states/dagger_arts.gd` (DaggerArts) | static `enter(s, id)` / `update(s, delta)` returning false for ids not theirs, listed in TechniqueState `_arts`; `s` is the state (all its helpers). New weapons go in a file like this, not in technique_state.gd |
+| Wounds | `scripts/combat/bleed_status.gd`, PowerComponent `_wounds` | HitData meta `"bleed"` (seconds) opens a bleeding wound (stacks deeper, x3 cap); tree stats `bleed_` (chance), `backstab_` (extra share from behind, `PowerComponent.behind`), `evade_` (slips a blow); a sure crit: `damage *= 1.5` + meta `"crit"` |
 | Skills/powers | `scripts/player_states/skill_state.gd` | Soru, Tekkai, Flying Slash, Tiger Rush, Bullet Storm, Haki, Wolf/Vine/Ember fruits |
 | Heavies | `scripts/player_states/heavy_attack_state.gd` | `STYLES` per weapon: anim, impulse, damage, trail, `"tree"` for effects |
 | Projectiles | `scripts/powers/projectile.gd` | slash, wave, axe, seed; run on every screen |

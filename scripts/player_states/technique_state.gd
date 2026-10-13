@@ -12,6 +12,8 @@ extends PlayerState
 ##   corsair  parley (guard), grapeshot, crossfire, broadside (ult): sword and pistol;
 ##            their shots are free (CorsairGun with ball false)
 ##   pistol   deadeye, smoke_bomb, point_blank, deaths_waltz (ult)
+##   dagger   slip (guard); cutthroat, knife_fan, red_eclipse (ult) in DaggerArts
+##   dual_dagger  viper_flurry, scissor_leap, bleeding_edge, hundred_fangs (ult) in DaggerArts
 ##   unarmed  suplex, hip_toss, giant_swing (grapples), hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
 ##   haki     conquerors_haki (ult)
@@ -21,10 +23,14 @@ extends PlayerState
 const GRAB_REACH := 2.3
 ## The guard skills (Riposte, Iai Counter, Crossed Counter): the waiting pose, and
 ## per fighting style the answer [pose, length, damage].
-const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard", "parley": "riposte_guard"}
-## (Parley's answer is a turning cut and then a shot: PARLEY_SHOT more at 0.3 s)
+const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard", "parley": "riposte_guard",
+	"slip": "dg_slip_guard"}
+## (Parley's answer is a turning cut and then a shot: PARLEY_SHOT more at 0.3 s; Slip's
+## is out from behind them, a sure crit that bleeds)
 const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0],
-	"sword_pistol": ["parley_shot", 0.6, 16.0]}
+	"sword_pistol": ["parley_shot", 0.6, 16.0], "dagger": ["dg_slip", 0.55, 28.0]}
+## Techniques that live in their own files (enter/update return false for ids not theirs).
+var _arts: Array = [DaggerArts]
 const PARLEY_SHOT := 28.0
 
 var id: String = ""
@@ -61,8 +67,11 @@ func enter(data: Dictionary) -> void:
 	_dir = _dir.normalized() if _dir.length() > 0.01 else -player.player_model.global_basis.z
 	face_direction(_dir, 1.0)
 	_from = player.global_position
+	for a in _arts:
+		if a.enter(self, id):
+			return
 	match id:
-		"riposte", "iai_counter", "cross_counter", "parley":
+		"riposte", "iai_counter", "cross_counter", "parley", "slip":
 			# guard up for a second; the buff outlasts it a touch so exit() can tell a
 			# guard that timed out from one that was answered (the hit clears the buff)
 			dur = 1.0
@@ -75,6 +84,8 @@ func enter(data: Dictionary) -> void:
 			if _target and is_instance_valid(_target):
 				_dir = _flat_to(_target)
 				face_direction(_dir, 1.0)
+				if player.style() == "dagger":
+					_blink_behind(_target)
 			player.body_model.play(str(cp[0]), dur)
 			# the blow caught: sparks off the blade, a beat of slow time to answer in
 			var clash := _chest() + Vector3(0, 0.15, 0) + _dir * 0.55
@@ -248,8 +259,17 @@ func enter(data: Dictionary) -> void:
 
 func physics_update(delta: float) -> void:
 	t += delta
+	var art := false
+	for a in _arts:
+		if a.update(self, delta):
+			art = true
+			break
+	if art:
+		if t >= dur:
+			_finish()
+		return
 	match id:
-		"riposte", "iai_counter", "cross_counter", "parley":
+		"riposte", "iai_counter", "cross_counter", "parley", "slip":
 			_rooted(delta, 0.15)
 			# the waiting blade catches the light (the katana's waits in its scabbard: the hilt)
 			if _once("glint", 0.12) or _once("glint2", 0.55):
@@ -469,7 +489,7 @@ func physics_update(delta: float) -> void:
 ## The tree whose colours this technique wears (FX.TREE_FX).
 func _tree() -> String:
 	if id == "riposte_counter":
-		return {"katana": "katana", "dual_sword": "dual", "sword_pistol": "corsair"}.get(player.style(), "sword")
+		return {"katana": "katana", "dual_sword": "dual", "sword_pistol": "corsair", "dagger": "dagger"}.get(player.style(), "sword")
 	var tr := str(Skills.get_skill(id).get("tree", "base"))
 	return tr if FX.TREE_FX.has(tr) else "haki"
 
@@ -703,6 +723,13 @@ func _riposte_cut() -> void:
 	hd.stagger_duration = 0.9
 	hd.unblockable = true
 	hd.sever = true
+	if st == "dagger":
+		# Slip: out from behind them, the blade in their back - a sure crit, and it bleeds
+		if not hd.has_meta("crit"):
+			hd.damage *= 1.5
+			hd.set_meta("crit", true)
+		hd.set_meta("bleed", 4.0)
+		hd.knockback_force = 3.0
 	if _target and is_instance_valid(_target) and _target.get("hurtbox") is Hurtbox:
 		_strike(_target, hd)
 		var at := _target.global_position + Vector3(0, 1.0, 0)
@@ -726,6 +753,10 @@ func _riposte_cut() -> void:
 		"sword_pistol":
 			# the blow turned aside on the blade (the shot follows)
 			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
+		"dagger":
+			Net.fx("blade_swoosh", [player.body_model, 0.12, _col()])
+			Net.fx("streak", [_from + Vector3(0, 1.0, 0), _chest(), _col(), 0.08, 0.25])
+			_spray(_chest() + _dir * 0.8, _dir + Vector3.UP * 0.3, 10, 3.0)
 		_:
 			# the backhand answer: the real blade's trail, spray thrown off its edge
 			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])

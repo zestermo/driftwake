@@ -9,6 +9,9 @@ extends PlayerState
 ## * sword and pistol (Powder Lunge): the lunging thrust, then a ball fired into
 ##   whoever's on the point as it comes out (knocks them flat; the butt with
 ##   nothing loaded)
+## * one dagger (Shadow Lunge): sunk low, then out from behind the one in front with
+##   the blade in their back, untouchable on the way; the wound bleeds
+## * two daggers (Scissor Rip): both driven in side by side, then ripped apart
 ## * fists: a flying kick
 ## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
 ##   spin, arms crossed, shooting everyone close)
@@ -35,6 +38,17 @@ const STYLES := {
 		"damage": 22.0, "hitstop": 0.08, "shake": 0.14, "knockback": 4.0, "stagger": 0.7,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.2, "impact_fx": false,
 		"shot": 20.0, "color": Color(1.0, 0.85, 0.7), "tree": "corsair"},
+	# one dagger (Shadow Lunge): sunk low, then gone - out from behind the one in front
+	# (within "blink" m) with the blade in their back; untouchable until you're there
+	"shadow_lunge": {"anim": "dg_shadow", "impulse": 0.0, "blink": 5.5,
+		"damage": 26.0, "hitstop": 0.08, "shake": 0.14, "knockback": 3.0, "stagger": 0.9,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.45, "impact_fx": false, "reach": "dagger",
+		"color": Color(1.0, 0.78, 0.82), "tree": "dagger", "bleed": 4.0},
+	# two daggers (Scissor Rip): both driven in side by side, then ripped apart outward
+	"scissor_rip": {"anim": "dd_heavy", "impulse": 7.5, "rehit": 0.243, "rehit_damage": 22.0, "rehit_down": false,
+		"damage": 14.0, "hitstop": 0.06, "shake": 0.12, "knockback": 8.0, "stagger": 0.8,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.3, "impact_fx": false, "reach": "dagger",
+		"color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7), "tree": "dual_dagger", "bleed": 4.0},
 	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
 		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
@@ -74,6 +88,10 @@ var _t_all: float = 0.0
 var _shot_t: float = -1.0
 var _shot_done := false
 var _swooshed := false
+## Shadow Lunge: out from behind them (and untouchable until _seen).
+var _blinked := false
+var _seen := false
+var _blink_from := Vector3.ZERO
 
 
 static func style_for(weapon_model: String) -> String:
@@ -97,6 +115,10 @@ func enter(_data: Dictionary) -> void:
 			cfg = STYLES["dual_heavy"]
 		"sword_pistol":
 			cfg = STYLES["powder_lunge"]
+		"dagger":
+			cfg = STYLES["shadow_lunge"]
+		"dual_dagger":
+			cfg = STYLES["scissor_rip"]
 		"fist":
 			cfg = STYLES["kick"]
 		"pistol":
@@ -125,6 +147,10 @@ func enter(_data: Dictionary) -> void:
 	_shot_t = ActionSpecs.shot_seconds(anim) if cfg.has("shot") else -1.0
 	_shot_done = false
 	_swooshed = false
+	_blinked = false
+	_seen = not cfg.has("blink")
+	if cfg.has("blink"):
+		player.hurtbox.set_deferred("monitorable", false)
 	player.body_model.play(anim, length)
 
 
@@ -161,6 +187,8 @@ func physics_update(delta: float) -> void:
 			if timer >= _windup:
 				phase = 1
 				timer = 0.0
+				if cfg.has("blink"):
+					_blink(float(cfg["blink"]))
 				var col := _trail_col()
 				if str(cfg["trail"]) != "":
 					Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), col])
@@ -175,6 +203,8 @@ func physics_update(delta: float) -> void:
 				if cfg.get("kata", false):
 					if player.is_on_floor():
 						player.velocity.y = KATA_HOP   # spins in the air, not planted on the ground
+				elif cfg.has("blink"):
+					pass
 				else:
 					var face_dir := get_camera_forward()
 					player.velocity.x = face_dir.x * float(cfg["impulse"])
@@ -193,11 +223,14 @@ func physics_update(delta: float) -> void:
 				player.sword_hitbox.deactivate()
 			if cfg.has("rehit") and not _rehit_done and timer >= float(cfg["rehit"]):
 				_rehit_done = true
-				player.sword_hitbox.activate(_hit(true))
-				Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), _trail_col()])
+				player.sword_hitbox.activate(_hit(cfg.get("rehit_down", true), float(cfg.get("rehit_damage", cfg["damage"]))))
+				if str(cfg["trail"]) != "":
+					Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), _trail_col()])
 				Net.fx("sfx", [str(cfg["sfx"]), player.global_position, -4.0, 0.08, float(cfg["pitch"]) * 1.1])
-				Net.fx("dust_ring", [player.global_position, 10, 0.8])
-				_strike_fx()
+				_strike_fx(true)
+			if _blinked and timer >= 0.15 and not _seen:
+				_seen = true
+				player.hurtbox.set_deferred("monitorable", true)
 			# gun kata: spin and put a shot into everyone close
 			if cfg.get("kata", false):
 				var due := int(timer / _active * 4.0)
@@ -253,15 +286,71 @@ func _powder_shot() -> void:
 	player.squash(-2.0)
 
 
+## Shadow Lunge: out from behind the enemy in front within `reach` (on their far
+## side, facing them), leaving an afterimage and a streak where you were; nobody
+## there: a short dash on.
+func _blink(reach: float) -> void:
+	var fwd := get_camera_forward()
+	var best: Node3D = null
+	var best_d := reach
+	for e in player.power.enemies_in(player.global_position + Vector3(0, 0.9, 0) + fwd * reach * 0.5, reach):
+		var to: Vector3 = (e as Node3D).global_position - player.global_position
+		to.y = 0.0
+		if to.length() < best_d and (to.length() < 0.6 or to.normalized().dot(fwd) > 0.3):
+			best_d = to.length()
+			best = e
+	_blink_from = player.global_position + Vector3(0, 1.0, 0)
+	_blinked = true
+	var col := _trail_col()
+	Net.fx("afterimage", [player.body_model, col, 0.35])
+	if best == null:
+		player.velocity.x = fwd.x * 10.0
+		player.velocity.z = fwd.z * 10.0
+		return
+	var through := best.global_position - player.global_position
+	through.y = 0.0
+	through = through.normalized() if through.length() > 0.05 else fwd
+	player.global_position = best.global_position + through * 1.1
+	player.velocity = Vector3.ZERO
+	player.reset_physics_interpolation()
+	player.player_model.rotation.y = atan2(through.x, through.z)
+	Net.fx("streak", [_blink_from, player.global_position + Vector3(0, 1.0, 0), col, 0.1, 0.3])
+	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 5, 0.5])
+
+
 ## The strike's effects: a ring of air round the point and dust kicked up by the
 ## lunge (the whirlwind: a ring round you and rock kicked up); with the element on
 ## every blow (the tree's second mastery passive) they take its colours and throw
-## its material.
-func _strike_fx() -> void:
+## its material. `second`: a heavy's second blow (the whirlwind's turn, the rip).
+func _strike_fx(second: bool = false) -> void:
 	var elem := player.progression.elemental(str(cfg["tree"]), 2)
 	var tree := str(cfg["tree"]) if elem else "plain"
+	var face := -player.player_model.global_basis.z
+	face.y = 0.0
+	face = face.normalized()
+	if cfg["tree"] == "dagger":
+		var at := player.global_position + Vector3(0, 1.1, 0) + face * 0.9
+		Net.fx("ring", [at, face, 0.9, FX.tree_col(tree, FX.EDGE), 0.2, 0.16])
+		Net.fx("glint", [at, FX.tree_col(tree, FX.CORE), 0.7])
+		if elem:
+			Net.fx("element", [tree, at, face + Vector3.UP * 0.3, 10, 3.5])
+		CombatManager.apply_camera_kick(0.14, 0.28)
+		return
+	if cfg["tree"] == "dual_dagger":
+		var at := player.global_position + Vector3(0, 1.1, 0) + face * 1.0
+		if second:
+			Net.fx("twin_cross", [at, face, 0.65, FX.tree_col(tree, FX.EDGE), FX.tree_col(tree, FX.ACCENT if elem else FX.CORE), 0.25])
+			Net.fx("ring", [at, face, 1.2, FX.tree_col(tree, FX.EDGE), 0.22, 0.14])
+			if elem:
+				Net.fx("element", [tree, at, face + Vector3.UP * 0.3, 10, 4.0])
+			CombatManager.apply_camera_kick(0.16, 0.3)
+		else:
+			Net.fx("ring", [at, face, 0.7, FX.tree_col(tree, FX.EDGE), 0.16, 0.18])
+		return
 	if cfg.has("rehit"):
 		var c := player.global_position
+		if second:
+			Net.fx("dust_ring", [c, 10, 0.8])
 		Net.fx("ring", [c + Vector3(0, 1.0, 0), Vector3.UP, 2.8, FX.tree_col(tree, FX.EDGE), 0.24, 0.1])
 		var a := randf() * TAU
 		Net.fx("debris", [c + Vector3(cos(a), 0.1, sin(a)) * 1.6, Vector3(cos(a), 1.3, sin(a)), 4, Color(0.35, 0.3, 0.25), 4.0])
@@ -289,8 +378,10 @@ func _strike_fx() -> void:
 	CombatManager.apply_camera_kick(0.12, 0.3)
 
 
-func _hit(knockdown: bool) -> HitData:
-	var hit := player.melee_hit(float(cfg["damage"]), "heavy")
+func _hit(knockdown: bool, base: float = -1.0) -> HitData:
+	var hit := player.melee_hit(float(cfg["damage"]) if base < 0.0 else base, "heavy")
+	if cfg.has("bleed"):
+		hit.set_meta("bleed", float(cfg["bleed"]))
 	# Armament Haki: heavy attacks can't be blocked
 	if player.progression.has_flag("armament"):
 		hit.unblockable = true
@@ -363,6 +454,8 @@ func _kata_volley() -> void:
 
 
 func exit() -> void:
+	if not _seen:
+		player.hurtbox.set_deferred("monitorable", true)
 	if cfg.get("kata", false):
 		# both guns emptied: a reload before they fire again
 		reload_until = now_s() + KATA_RELOAD

@@ -55,3 +55,4 @@ villagetest
 landmarktest
 bosstest
 faunatest
+daggertest

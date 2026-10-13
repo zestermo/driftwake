@@ -238,7 +238,7 @@ func _build_wreck(i: int) -> void:
 	rng.seed = int(gen.get("world_seed")) * 31 + i
 	var picks := [["gold", rng.randi_range(20, 40)], ["treasure", rng.randi_range(1, 3)], ["rum", rng.randi_range(1, 2)]]
 	if rng.randf() < 0.5:
-		picks.append([["pistol", "cutlass", "boarding_axe", "katana"][rng.randi() % 4], 1])
+		picks.append([["pistol", "cutlass", "boarding_axe", "katana", "dagger"][rng.randi() % 5], 1])
 	build_wreck(self, i, wrecks[i][0], float(wrecks[i][1]), "wreck_%d" % i, picks)
 
 

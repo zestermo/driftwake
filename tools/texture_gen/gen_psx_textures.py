@@ -1436,6 +1436,73 @@ def gen_technique_icons():
         d.ellipse([x, y, x + 4, y + 4], fill=SKIN)
         d.rectangle([x, y + 4, x + 4, y + 11], fill=col)
 
+    CRIM = hexc("f02a5c") + (255,)
+    CRIM_D = hexc("6a1030") + (255,)
+    VENOM = hexc("74f04c") + (255,)
+    VENOM_L = hexc("d0ff5a") + (255,)
+
+    def dagger(d, grip, tip, guard_col=GOLD):
+        # a short blade from `grip` to `tip`, a cross guard and a dark grip behind it
+        gx, gy = grip
+        tx, ty = tip
+        dx, dy = tx - gx, ty - gy
+        n = max(math.hypot(dx, dy), 1.0)
+        ux, uy = dx / n, dy / n
+        d.line([(gx, gy), (tx, ty)], fill=STEEL, width=2)
+        d.line([(gx - uy * 3, gy + ux * 3), (gx + uy * 3, gy - ux * 3)], fill=guard_col, width=1)
+        d.line([(gx, gy), (gx - ux * 4, gy - uy * 4)], fill=WOOD, width=2)
+
+    def slip(d):
+        # a fading afterimage where the blow fell, you behind it with the blade in
+        d.ellipse([3, 4, 7, 8], fill=(240, 60, 100, 90))
+        d.rectangle([3, 8, 7, 18], fill=(240, 60, 100, 90))
+        d.line([(1, 12), (9, 12)], fill=STEEL_D, width=2)
+        body(d, 14, 5, hexc("3a2a4a") + (255,))
+        dagger(d, (14, 13), (8, 11))
+
+    def cutthroat(d):
+        # a dagger drawn across a crimson line
+        d.line([(3, 12), (21, 10)], fill=CRIM, width=2)
+        for x, y in ((6, 14), (10, 15), (15, 14)):
+            d.point((x, y), fill=CRIM_D)
+        dagger(d, (18, 19), (8, 6))
+
+    def knife_fan(d):
+        for a in (-1.0, -0.5, 0.0, 0.5, 1.0):
+            ang = -math.pi / 4 + a * 0.55
+            x2, y2 = 3 + math.cos(ang) * 19, 21 + math.sin(ang) * 19
+            dagger(d, (3 + math.cos(ang) * 9, 21 + math.sin(ang) * 9), (x2, y2), CRIM)
+
+    def red_eclipse(d):
+        d.ellipse([2, 2, 22, 22], fill=CRIM)
+        d.ellipse([4, 3, 22, 21], fill=BLACK)
+        dagger(d, (7, 17), (17, 7), CRIM)
+
+    def viper_flurry(d):
+        for i, y in enumerate((4, 8, 12, 16, 20)):
+            x0 = 2 + (i % 2) * 3
+            d.line([(x0, y), (16 + (i % 2) * 4, y)], fill=VENOM if i % 2 else STEEL, width=1)
+            d.point((x0 - 1, y), fill=WOOD)
+        d.ellipse([18, 9, 22, 15], fill=VENOM_L)
+
+    def scissor_leap(d):
+        d.arc([1, 4, 17, 26], 200, 330, fill=SMOKE_L, width=1)
+        dagger(d, (12, 20), (22, 10), VENOM)
+        dagger(d, (22, 20), (12, 10), VENOM)
+
+    def bleeding_edge(d):
+        dagger(d, (5, 19), (17, 5))
+        dagger(d, (19, 19), (7, 5))
+        for x, y in ((11, 15), (13, 18), (9, 20)):
+            d.ellipse([x - 1, y - 1, x + 1, y + 1], fill=CRIM)
+        d.point((12, 9), fill=W_)
+
+    def hundred_fangs(d):
+        pts = [(12 + math.cos(k * 3 * math.pi / 4 - math.pi / 2) * 10, 12 + math.sin(k * 3 * math.pi / 4 - math.pi / 2) * 10) for k in range(9)]
+        for k in range(8):
+            d.line([pts[k], pts[k + 1]], fill=VENOM if k % 2 else VENOM_L, width=1)
+        d.ellipse([10, 10, 14, 14], fill=W_)
+
     def suplex(d):
         d.arc([3, 2, 21, 22], 180, 360, fill=W_, width=1)
         body(d, 3, 10, hexc("3a5a8a") + (255,))
@@ -1497,7 +1564,10 @@ def gen_technique_icons():
                      ("deadeye", deadeye), ("smoke_bomb", smoke_bomb), ("point_blank", point_blank), ("deaths_waltz", waltz),
                      ("suplex", suplex), ("hip_toss", hip_toss), ("giant_swing", giant_swing),
                      ("hundred_fists", hundred), ("rising_dragon", rising_dragon), ("palm_strike", palm),
-                     ("sea_king_fist", sea_king), ("conquerors_haki", conqueror)):
+                     ("sea_king_fist", sea_king), ("conquerors_haki", conqueror),
+                     ("slip", slip), ("cutthroat", cutthroat), ("knife_fan", knife_fan), ("red_eclipse", red_eclipse),
+                     ("viper_flurry", viper_flurry), ("scissor_leap", scissor_leap), ("bleeding_edge", bleeding_edge),
+                     ("hundred_fangs", hundred_fangs)):
         _icon("skill_" + name, fn)
 
 

@@ -1,6 +1,6 @@
 class_name WeaponDesigns
 extends RefCounted
-## Every look a cutlass, katana, axe or pistol comes in, built from a handful of
+## Every look a cutlass, katana, axe, pistol or dagger comes in, built from a handful of
 ## numbers (blade length and curve, guard, head, barrels, colours), and its
 ## tier worn on it: blued fittings at rare, a purple gem at epic, gold at
 ## legendary, a crimson blade at ultra, an obsidian one at supreme.
@@ -10,7 +10,7 @@ extends RefCounted
 ## item of its own (id DESIGNS[kind][design]["id"]: ItemDB makes them from
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
-const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol"}
+const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -80,6 +80,24 @@ const DESIGNS := {
 			"dmg": 1.0, "worth": 1.6, "barrel": 0.2, "r": 0.011, "barrels": 5, "wood": Color(0.3, 0.2, 0.14)},
 		"dragon": {"id": "dragon_pistol", "name": "Dragon Pistol", "desc": "Brass from lock to muzzle, the muzzle a dragon's open jaws.",
 			"dmg": 1.1, "worth": 2.0, "barrel": 0.32, "r": 0.022, "brass_barrel": true, "dragon": true, "wood": Color(0.25, 0.14, 0.1), "fit": Color(1.15, 0.9, 0.4)},
+	},
+	# (the base is a plain sailor's dirk: len 0.21, a small cross guard)
+	"dagger": {
+		"stiletto": {"id": "stiletto", "name": "Stiletto", "desc": "A needle of steel behind a ring guard. It finds the gap between ribs.",
+			"dmg": 1.0, "worth": 1.4, "len": 0.22, "tip": 0.08, "w": 0.018, "th": 0.014, "taper": 0.55, "guard": "ring",
+			"fit": Color(0.8, 0.82, 0.88), "grip": Color(0.16, 0.12, 0.12), "grip_tex": "leather", "pommel": "ball"},
+		"kris": {"id": "kris", "name": "Kris", "desc": "A wavy blade from the spice islands, its edge rippling like a sea snake.",
+			"dmg": 1.05, "worth": 1.7, "len": 0.25, "tip": 0.07, "w": 0.042, "taper": 0.7, "wave": 0.22, "guard": "flare",
+			"fit": Color(1.0, 0.78, 0.4), "grip": Color(0.42, 0.24, 0.12), "grip_tex": "planks_dark", "pommel": "hook"},
+		"kukri": {"id": "kukri", "name": "Kukri", "desc": "Bent forward like a broken wing and heavy at the tip. It chops like a little axe.",
+			"dmg": 1.1, "worth": 1.5, "len": 0.24, "tip": 0.09, "w": 0.05, "taper": 1.5, "curve": -0.4, "guard": "bolster",
+			"fit": Color(0.55, 0.5, 0.45), "grip": Color(0.3, 0.2, 0.14), "grip_tex": "planks_dark", "pommel": "cap"},
+		"main_gauche": {"id": "main_gauche", "name": "Main Gauche", "desc": "A duellist's left-hand dagger, a broad shell to catch the other man's blade.",
+			"dmg": 0.95, "worth": 1.6, "len": 0.27, "tip": 0.08, "w": 0.032, "taper": 0.8, "guard": "shell",
+			"fit": Color(0.82, 0.84, 0.9), "grip": Color(0.2, 0.15, 0.12), "grip_tex": "leather", "pommel": "ball"},
+		"sharktooth": {"id": "sharktooth_knife", "name": "Sharktooth Knife", "desc": "A bone grip and a blade set with shark's teeth. It doesn't cut, it tears.",
+			"dmg": 1.08, "worth": 1.3, "len": 0.2, "tip": 0.07, "w": 0.046, "taper": 0.85, "teeth": true, "guard": "none",
+			"fit": Color(0.9, 0.86, 0.74), "grip": Color(0.95, 0.9, 0.78), "grip_tex": "bark", "pommel": "cap"},
 	},
 }
 
@@ -215,6 +233,8 @@ static func build(model: String) -> ArrayMesh:
 			_axe(mb, p, tier)
 		"pistol":
 			_pistol(mb, p, tier)
+		"dagger":
+			_dagger(mb, p, tier)
 		_:
 			_sword(mb, p, tier)
 	var m := mb.commit()
@@ -225,13 +245,14 @@ static func build(model: String) -> ArrayMesh:
 ## A blade as a chain of segments from `start` along -Z, curving toward +Y
 ## (the spine) as it goes, its edge strip along -Y. Returns the tip point.
 static func _blade(mb: MeshBuilder, m: Dictionary, start: Vector3, length: float, w: float, th: float, curve: float,
-		taper: float, segs: int, clip: bool) -> Vector3:
+		taper: float, segs: int, clip: bool, wave: float = 0.0) -> Vector3:
 	var at := start
 	var seg := length / segs
 	var a := 0.0
 	for i in range(segs):
 		var k := (i + 0.5) / segs
-		a = curve * pow(k, 1.6)
+		# (a wavy blade zigzags segment to segment: ripples, not a bend)
+		a = curve * pow(k, 1.6) + wave * (1.0 if i % 2 == 0 else -1.0)
 		var b := Basis(Vector3.RIGHT, a)
 		var dir := b * Vector3(0, 0, -1)
 		var bw := w * lerpf(1.0, taper, k)
@@ -334,6 +355,78 @@ static func _katana(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 	_blade(mb, m, Vector3(0, 0, -0.06), _f(p, "len", 0.82), _f(p, "w", 0.033), 0.012, _f(p, "curve", 0.32), 0.92, 5, false)
 	if m["gem"]:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, 0.268)), Vector3(0.02, 0.024, 0.012), 2.0)
+
+
+## Daggers and knives: one-handed, the grip at the origin, a short blade along
+## -Z with its edge toward -Y (the knuckle side, as a cutlass's).
+static func _dagger(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := _mats(p, tier, Color(0.62, 0.6, 0.56), Color(0.36, 0.25, 0.16), "leather")
+	var w := _f(p, "w", 0.038)
+	var th := _f(p, "th", 0.016)
+	_blade(mb, m, Vector3(0, 0, -0.058), _f(p, "len", 0.21) + _f(p, "tip", 0.07), w, th, _f(p, "curve", 0.0), _f(p, "taper", 0.75),
+		7 if p.has("wave") else 4, false, _f(p, "wave", 0.0))
+	if bool(p.get("teeth", false)):
+		var tooth := PSXMat.lit("metal", Color(1.05, 1.0, 0.9))
+		for i in range(5):
+			var z := -0.085 - i * 0.038
+			mb.add_box(tooth, Transform3D(Basis(Vector3.RIGHT, 0.45), Vector3(0, -w * 0.5 - 0.006, z)), Vector3(th * 0.9, 0.02, 0.014), 2.0)
+	var fit: Material = m["fit"]
+	match str(p.get("guard", "cross")):
+		"ring":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, -0.05)), Vector3(0.022, 0.08, 0.018), 2.0)
+			mb.add_cylinder(fit, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0, -0.055, -0.045)), 0.02, 0.02, 0.01, 8, 2.0)
+		"flare":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, -0.012, -0.052)), Vector3(0.03, 0.085, 0.022), 2.0)
+			mb.add_box(fit, Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, -0.05, -0.068)), Vector3(0.024, 0.02, 0.04), 2.0)
+		"bolster":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, -0.048)), Vector3(0.042, 0.056, 0.03), 2.0)
+		"shell":
+			mb.add_cylinder(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, -0.01, -0.056)), 0.06, 0.06, 0.012, 8, 2.0)
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, -0.05)), Vector3(0.024, 0.22, 0.02), 2.0)
+			for s in [-1.0, 1.0]:
+				mb.add_box(fit, Transform3D(Basis(Vector3.RIGHT, s * 0.5), Vector3(0, s * 0.11, -0.065)), Vector3(0.024, 0.02, 0.04), 2.0)
+		"none":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, -0.05)), Vector3(0.036, 0.046, 0.016), 2.0)
+		_:
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, -0.05)), Vector3(0.028, 0.11, 0.022), 2.0)
+			for s in [-1.0, 1.0]:
+				mb.add_box(fit, Transform3D(Basis(), Vector3(0, s * 0.055, -0.056)), Vector3(0.034, 0.022, 0.03), 2.0)
+	mb.add_box(m["grip"], Transform3D(Basis(), Vector3(0, 0, 0.012)), Vector3(0.032, 0.036, 0.11), 2.0)
+	var end := Vector3(0, 0, 0.075)
+	match str(p.get("pommel", "cap")):
+		"ball":
+			mb.add_cylinder(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), end), 0.022, 0.022, 0.032, 6, 2.0)
+		"hook":
+			mb.add_box(fit, Transform3D(Basis(Vector3.RIGHT, 0.7), end + Vector3(0, -0.015, 0.008)), Vector3(0.034, 0.03, 0.05), 2.0)
+		_:
+			mb.add_box(fit, Transform3D(Basis(), end), Vector3(0.04, 0.044, 0.02), 2.0)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0.0, 0, -0.05)), Vector3(0.04, 0.024, 0.024), 2.0)
+
+
+## A dagger's sheath in the blade's own frame: leather along the same curve, a
+## throat band and a chape at the tip (it stays on the hip when the dagger's drawn).
+static func dagger_sheath(model: String) -> ArrayMesh:
+	var p: Dictionary = (DESIGNS["dagger"] as Dictionary).get(model.get_slice(":", 1), {})
+	var tier := clampi(int(model.get_slice(":", 2)), 0, 6) if model.get_slice_count(":") > 2 else 0
+	var leather := PSXMat.lit("leather", Color(0.32, 0.22, 0.15))
+	var metal := PSXMat.lit("metal", TIER_FIT[tier] if tier >= 2 else _c(p, "fit", Color(0.62, 0.6, 0.56)))
+	var mb := MeshBuilder.new()
+	var segs := 4
+	# (the blade's point runs 0.09 past its length: _blade's two narrowing steps)
+	var seg := (_f(p, "len", 0.21) + _f(p, "tip", 0.07) + 0.11) / segs
+	var h := _f(p, "w", 0.038) * maxf(_f(p, "taper", 0.75), 1.0) + 0.02 + absf(_f(p, "wave", 0.0)) * 0.12 + (0.025 if p.has("teeth") else 0.0)
+	var t := _f(p, "th", 0.016) + 0.02
+	var curve := _f(p, "curve", 0.0)
+	var at := Vector3(0, 0, -0.06)
+	var b := Basis()
+	for i in range(segs):
+		b = Basis(Vector3.RIGHT, curve * pow((i + 0.5) / segs, 1.6))
+		mb.add_box(leather, Transform3D(b, at + b * Vector3(0, 0, -seg * 0.5)), Vector3(t, h * lerpf(1.0, 0.75, float(i) / segs), seg + 0.01), 2.0)
+		at += b * Vector3(0, 0, -seg)
+	mb.add_box(metal, Transform3D(b, at + b * Vector3(0, 0, 0.012)), Vector3(t + 0.004, h * 0.72, 0.03), 2.0)
+	mb.add_box(metal, Transform3D(Basis(), Vector3(0, 0, -0.068)), Vector3(t + 0.006, h + 0.006, 0.016), 2.0)
+	return mb.commit()
 
 
 ## Axes: the haft back past the hand, the head out toward -Y (the knuckle

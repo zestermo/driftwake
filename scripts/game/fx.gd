@@ -1062,6 +1062,10 @@ const TREE_FX := {
 	"pistol": [Color(1.0, 0.95, 0.75), Color(1.0, 0.75, 0.25), Color(0.7, 0.7, 0.68)],
 	# sword + pistol: black powder - scarlet flash, gold sparks (dark smoke with them)
 	"corsair": [Color(1.0, 0.95, 0.82), Color(1.0, 0.34, 0.26), Color(1.0, 0.8, 0.34)],
+	# one dagger: crimson night - a crimson edge, wine-dark shadow (and black wisps with it)
+	"dagger": [Color(1.0, 0.92, 0.95), Color(0.95, 0.15, 0.38), Color(0.55, 0.12, 0.45)],
+	# two daggers: venom - viper green, a sickly yellow-green, poison bubbling off the wounds
+	"dual_dagger": [Color(0.95, 1.0, 0.9), Color(0.45, 0.95, 0.3), Color(0.82, 1.0, 0.35)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1070,6 +1074,10 @@ const TREE_FX := {
 const CORE := 0
 const EDGE := 1
 const ACCENT := 2
+## Two-weapon trees: the off hand's blade trails in the accent colour.
+const TWIN_TREES := ["dual", "dual_dagger"]
+## The dagger's shadow (dark wisps: alpha-blended, so they read against light ground).
+const SHADOW_SMOKE := Color(0.1, 0.03, 0.09, 0.85)
 
 static var _bands: Dictionary = {}
 
@@ -1157,8 +1165,20 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 		"corsair":
 			muzzle_sparks(pos, dir, amount, c)
 			smoke(pos, maxi(amount / 4, 2), 0.6, 1.1, POWDER_SMOKE)
+		"dagger":
+			shadow_wisps(pos, dir, amount, tree_col(tree, EDGE), speed)
+		"dual_dagger":
+			poison(pos, maxi(amount / 3, 2), 0.32)
+			motes(pos, dir, maxi(amount / 2, 2), c, speed)
 		_:
 			spray(pos, dir, amount, c, speed)
+
+
+## Shadow coming off a blade (the dagger's element): black wisps that rise and thin,
+## and crimson motes thrown along `dir`.
+func shadow_wisps(pos: Vector3, dir: Vector3, amount: int = 8, color: Color = Color(0.95, 0.15, 0.38), speed: float = 3.0) -> void:
+	smoke(pos, maxi(amount / 2, 2), 0.45, 0.8, SHADOW_SMOKE)
+	motes(pos, dir, maxi(amount / 2, 2), color, speed)
 
 
 ## Black powder smoke (the Corsair's element: darker than a plain gunshot's).
@@ -1493,6 +1513,13 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 			motes(pos, dir + Vector3.UP * 0.3, 6, accent, 3.5)
 		"corsair":
 			powder_burst(pos, dir, 0.6, edge)
+		"dagger":
+			shadow_wisps(pos, dir + Vector3.UP * 0.3, 6, edge, 3.0)
+			ring(pos, dir, 0.8, edge, 0.16, 0.14)
+		"dual_dagger":
+			poison(pos, 3, 0.3)
+			motes(pos, dir + Vector3.UP * 0.3, 5, accent, 3.5)
+			ring(pos, dir, 0.8, edge, 0.16, 0.14)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

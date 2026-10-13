@@ -1,17 +1,21 @@
 extends SceneTree
 ## Weapons put away on the captain's hip (sheathed): left side, back, front and
 ## a close front-left quarter per weapon ("front"/"back" are the model's +Z/-Z,
-## so "back" shows the face). Args: <out_prefix>
+## so "back" shows the face). Args: <out_prefix>. Env SS_WORN=dagger+kris,kukri: only
+## those ("a+b": a in the main hand, b in the off hand, on the left hip).
 var t := 0.0
 var out := ""
 var step := 0
 var t0 := 0.0
 var p
 var cam: Camera3D
-const WORN := ["cutlass", "scimitar", "rapier", "katana", "tachi", "nodachi", "wakizashi", "boarding_axe", "war_axe", "hatchet", "pistol"]
+var WORN: Array = ["cutlass", "scimitar", "rapier", "katana", "tachi", "nodachi", "wakizashi", "boarding_axe", "war_axe", "hatchet", "pistol",
+	"dagger", "kris", "kukri", "main_gauche", "dagger+sharktooth_knife"]
 const VIEWS := ["side", "front", "back", "quarter"]
 func _initialize():
 	out = OS.get_cmdline_user_args()[0]
+	if OS.get_environment("SS_WORN") != "":
+		WORN = Array(OS.get_environment("SS_WORN").split(","))
 	change_scene_to_file("res://scenes/world/world.tscn")
 func _process(d: float) -> bool:
 	t += d
@@ -30,10 +34,16 @@ func _process(d: float) -> bool:
 	if step >= WORN.size() * VIEWS.size():
 		quit()
 		return false
-	var it = ItemDB.get_item(WORN[step / VIEWS.size()])
+	var ids: PackedStringArray = str(WORN[step / VIEWS.size()]).split("+")
 	if step % VIEWS.size() == 0:
+		var it = ItemDB.get_item(ids[0])
 		p.inventory_component.add_item(it, 1)
+		p.set_offhand(null)
 		p.equip_weapon(it, false)
+		if ids.size() > 1:
+			var off = ItemDB.get_item(ids[1])
+			p.inventory_component.add_item(off, 1)
+			p.set_offhand(off)
 	var f: Vector3 = p.player_model.global_basis.z
 	var r: Vector3 = p.player_model.global_basis.x
 	match VIEWS[step % VIEWS.size()]:

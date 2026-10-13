@@ -4,7 +4,7 @@ extends RefCounted
 ##   base     Base & Haki: core stats in the middle; Mobility, Survival,
 ##            Armament and Observation Haki (level 10+) and Conqueror's Haki
 ##            (level 18+) grow out of it
-##   unarmed, sword (cutlass), katana, axe, dual, corsair (sword and pistol), pistol
+##   unarmed, sword (cutlass), katana, axe, dagger, dual, dual_dagger, corsair (sword and pistol), pistol
 ##            weapon trees, paid for with that weapon's mastery points (earned
 ##            by fighting with it); they hold its passives, its skills, its
 ##            ultimate and the parts of its moveset you have to unlock ("move" nodes)
@@ -24,7 +24,9 @@ extends RefCounted
 ## damage to targets left under 30% health, parry_ parry window (s), parryshot_
 ## a parry also cuts gunshots, deflect_ cuts them by itself (deflect_cd_ shortens
 ## its 4 s wait), return_ sends cut shots back, unblock_ heavies can't be blocked, armor_ no flinching mid-attack,
-## def_ defense, cdr_ cooldown cut for that tree's skills.
+## def_ defense, cdr_ cooldown cut for that tree's skills, bleed_ chance a hit opens a
+## bleeding wound, backstab_ extra share of a hit landed from behind, evade_ chance a blow
+## is slipped (the daggers).
 
 const TREES := {
 	"base": {"name": "Base & Haki", "tab": "BASE", "mastery": false},
@@ -32,22 +34,24 @@ const TREES := {
 	"sword": {"name": "Cutlass", "tab": "CUTLASS", "mastery": true},
 	"katana": {"name": "Katana", "tab": "KATANA", "mastery": true},
 	"axe": {"name": "Axe", "tab": "AXE", "mastery": true},
+	"dagger": {"name": "Dagger", "tab": "DAGGER", "mastery": true},
 	"dual": {"name": "Dual Wield", "tab": "DUAL", "mastery": true},
+	"dual_dagger": {"name": "Twin Daggers", "tab": "2 DAGGERS", "mastery": true},
 	"corsair": {"name": "Corsair", "tab": "CORSAIR", "mastery": true},
 	"pistol": {"name": "Pistol", "tab": "PISTOL", "mastery": true},
 	"fruit": {"name": "Devil Fruit", "tab": "FRUIT", "mastery": false},
 }
-const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dual", "corsair", "pistol", "fruit"]
+const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "corsair", "pistol", "fruit"]
 
 ## Fighting style (Player.style()) -> the weapon tree it builds mastery in.
-const STYLE_TREE := {"fist": "unarmed", "sword": "sword", "katana": "katana", "axe": "axe",
-	"dual_sword": "dual", "sword_pistol": "corsair", "pistol": "pistol", "dual_pistol": "pistol"}
+const STYLE_TREE := {"fist": "unarmed", "sword": "sword", "katana": "katana", "axe": "axe", "dagger": "dagger",
+	"dual_sword": "dual", "dual_dagger": "dual_dagger", "sword_pistol": "corsair", "pistol": "pistol", "dual_pistol": "pistol"}
 
 const REGION_COLORS := {
 	"Core": Color(0.85, 0.78, 0.6), "Mobility": Color(0.45, 0.85, 0.95), "Survival": Color(0.5, 0.9, 0.45),
 	"Armament": Color(0.6, 0.45, 0.85), "Observation": Color(0.95, 0.5, 0.75), "Conqueror": Color(0.95, 0.3, 0.3),
 	"Unarmed": Color(1.0, 0.85, 0.6), "Cutlass": Color(0.85, 0.85, 0.95), "Katana": Color(0.7, 0.85, 1.0),
-	"Axe": Color(1.0, 0.7, 0.45), "Dual Wield": Color(0.55, 0.85, 1.0), "Corsair": Color(1.0, 0.5, 0.42), "Pistol": Color(0.95, 0.75, 0.4),
+	"Axe": Color(1.0, 0.7, 0.45), "Dual Wield": Color(0.55, 0.85, 1.0), "Dagger": Color(1.0, 0.45, 0.58), "Twin Daggers": Color(0.6, 1.0, 0.45), "Corsair": Color(1.0, 0.5, 0.42), "Pistol": Color(0.95, 0.75, 0.4),
 	"Ember": Color(1.0, 0.5, 0.15), "Wolf": Color(0.7, 0.62, 0.5), "Vine": Color(0.45, 0.85, 0.3),
 }
 
@@ -124,6 +128,8 @@ static func _build() -> void:
 	_build_katana()
 	_build_axe()
 	_build_dual()
+	_build_dagger()
+	_build_dual_dagger()
 	_build_corsair()
 	_build_pistol()
 	_build_mastery()
@@ -291,6 +297,8 @@ const MASTERY := {
 	"axe": ["a", "Axe", "a_overhead", "a_warlord", "Ember Heart", "Living Fire", "embers and splintered stone"],
 	"dual": ["d", "Dual Wield", "d_dance", "d_master", "Twin Currents", "Crossing Storm", "twin currents of light, cyan and violet, crossing in an X"],
 	"corsair": ["cs", "Corsair", "cs_grape", "cs_captain", "Black Powder", "Powder Keg", "black powder: scarlet flashes, gold sparks and dark smoke, and Broadside's cannon fire burns"],
+	"dagger": ["dg", "Dagger", "dg_fan", "dg_night", "Nightfall", "Blood Moon", "shadow: black wisps off the blade and crimson sparks, and Red Eclipse's wounds open in the dark"],
+	"dual_dagger": ["dd", "Twin Daggers", "dd_viper", "dd_master", "Viper's Kiss", "Serpent's Coil", "venom: green motes and poison bubbling off every wound"],
 	"pistol": ["g", "Pistol", "g_storm", "g_legend", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"unarmed": ["u", "Unarmed", "u_palm", "u_thousand", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 }
@@ -473,6 +481,84 @@ static func _build_dual() -> void:
 		"Dual-wield techniques come back 20% sooner.")
 	_add("d_exec", "Thousand Cuts", "passive", R, _g(2, 4), ["d_tech", "d_leech"], {"exec_dual": 0.4},
 		"A cut that leaves them under 30% health deals 40% more on top.")
+
+
+## One dagger: the root brings its nature (crits, wounds that bleed, a blade in the back).
+static func _build_dagger() -> void:
+	_tree = "dagger"
+	var R := "Dagger"
+	_add("dg_root", "Dagger", "root", R, _g(0, 0), [], {"crit_dagger": 0.1, "bleed_dagger": 0.15, "backstab_dagger": 0.5},
+		"A short blade for close work: quick stabs and cuts, and on right-click you're gone and out from behind the one in front. 10% of your hits are crits, 15% open a wound that bleeds, and a blade in the back deals half again. Fight with a dagger to build its mastery.")
+	_add("dg_fang", "Fang Dive", "move", R, _g(3, 0), ["dg_light"], {"mv_fang_dive": 1},
+		"Attack in the air: knees tucked and the blade drawn back, then a dive at the enemy you're looking at that always finds the gap (a sure crit that bleeds) and a backflip off them (once per jump).", {"level": 3})
+	_add("dg_gut", "Gutting Strike", "move", R, _g(-2, 0), ["dg_root"], {"mv_gut_strike": 1},
+		"Adds a fourth hit to your combo: a turn on the heel, the off hand seizes them and the blade goes in low. It bleeds.")
+	_add("dg_edge", "Whetstone", "stat", R, _g(0, 1), ["dg_root"], {"dmg_dagger": 0.06}, "+6% dagger damage.")
+	_add("dg_light", "Light Step", "passive", R, _g(2, 0), ["dg_root"], {"stam_dagger": 0.15}, "Dagger attacks cost 15% less stamina.")
+	# guard
+	_add("dg_deflect", "Flick the Shot", "passive", R, _g(-3, 1), ["dg_gut"], {"parryshot_dagger": 1},
+		"Parry with a dagger and you flick gunshots aside too (without it, a parry only stops blades).")
+	_add("dg_slip", "Slip", "active", R, _g(-3, 2), ["dg_deflect"], {}, "", {}, "slip")
+	_add("dg_grace", "Shadow's Grace", "passive", R, _g(-3, 3), ["dg_slip"], {"evade_dagger": 0.08},
+		"With a dagger in hand, 8% of the blows that would hit you are slipped by instinct.")
+	_add("dg_return", "Knife in the Dark", "passive", R, _g(-3, 4), ["dg_grace"], {"deflect_dagger": 1, "return_dagger": 1, "deflect_cd_dagger": 1.0},
+		"Mastered: with a dagger drawn, a shot from the front is flicked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.", {"level": 4})
+	# skills
+	_add("dg_honed", "Honed Point", "stat", R, _g(-1.5, 1), ["dg_edge", "dg_gut"], {"dmg_dagger": 0.08}, "+8% dagger damage.")
+	_add("dg_fan", "Knife Fan", "active", R, _g(0, 2), ["dg_edge"], {}, "", {}, "knife_fan")
+	_add("dg_cut", "Cutthroat", "active", R, _g(-1.5, 3), ["dg_fan", "dg_honed"], {}, "", {"level": 4}, "cutthroat")
+	_add("dg_assassin", "Assassin", "stat", R, _g(0, 4), ["dg_cut", "dg_open"], {"dmg_dagger": 0.1}, "+10% dagger damage.", {"level": 6})
+	_add("dg_night", "Night Blade", "stat", R, _g(0, 5), ["dg_assassin", "dg_sleight"], {"dmg_dagger": 0.12}, "+12% dagger damage.", {"level": 10})
+	_add("dg_eclipse", "Red Eclipse", "ult", R, _g(0, 6), ["dg_night"], {}, "", {"level": 12}, "red_eclipse")
+	# blood
+	_add("dg_rhythm", "Cutpurse's Rhythm", "passive", R, _g(1.5, 1), ["dg_edge", "dg_light"], {"flow_dagger": 0.4}, "Dagger hits give 40% more energy.")
+	_add("dg_vital", "Vital Points", "passive", R, _g(3, 1), ["dg_rhythm"], {"crit_dagger": 0.1}, "Another 10% of your dagger hits land 50% harder.")
+	_add("dg_deep", "Deep Cuts", "passive", R, _g(1.5, 2), ["dg_rhythm"], {"bleed_dagger": 0.15}, "Another 15% of your dagger hits open a wound that bleeds.")
+	_add("dg_back", "In the Back", "passive", R, _g(3, 2), ["dg_vital"], {"backstab_dagger": 0.3}, "A blade in the back deals another 30% on top.")
+	_add("dg_long", "Long Shadow", "passive", R, _g(1.5, 3), ["dg_deep"], {"heavy_dagger": 0.3}, "Your Shadow Lunge (right-click) hits 30% harder.")
+	_add("dg_leech", "Blood Price", "passive", R, _g(3, 3), ["dg_back"], {"leech_dagger": 0.06}, "Dagger hits heal you for 6% of their damage.")
+	_add("dg_open", "Open Vein", "passive", R, _g(2, 4), ["dg_long", "dg_leech"], {"exec_dagger": 0.5},
+		"A hit that leaves them under 30% health deals 50% more on top.")
+	_add("dg_sleight", "Sleight of Hand", "passive", R, _g(2, 5), ["dg_open"], {"cdr_dagger": 0.2}, "Dagger techniques come back 20% sooner.")
+
+
+## Two daggers: a set of their own (not the dual-wield tree), venom and speed.
+static func _build_dual_dagger() -> void:
+	_tree = "dual_dagger"
+	var R := "Twin Daggers"
+	_add("dd_root", "Twin Daggers", "root", R, _g(0, 0), [], {"crit_dual_dagger": 0.08, "bleed_dual_dagger": 0.2, "backstab_dual_dagger": 0.35},
+		"A dagger in each hand: the fastest blows you can throw, a scissor rip on right-click. 8% of your hits are crits, 20% open a wound that bleeds, and a blade in the back deals a third again. Fight with two daggers to build their mastery.")
+	_add("dd_knives", "Knife Rain", "move", R, _g(3, 0), ["dd_light"], {"mv_knife_rain": 1},
+		"Attack in the air: hang a beat and fling a fistful of knives down at up to four enemies below and ahead; every one cut bleeds (once per jump).", {"level": 3})
+	_add("dd_whirl", "Fang Whirl", "move", R, _g(-2, 0), ["dd_root"], {"mv_fang_whirl": 1},
+		"Adds a fourth hit to your combo: a whirl with both blades out, then both driven in together. It bleeds.")
+	_add("dd_twin", "Paired Fangs", "stat", R, _g(0, 1), ["dd_root"], {"dmg_dual_dagger": 0.08}, "+8% damage with two daggers.")
+	_add("dd_light", "Featherweight", "passive", R, _g(2, 0), ["dd_root"], {"stam_dual_dagger": 0.15}, "Twin-dagger attacks cost 15% less stamina.")
+	# guard and tricks
+	_add("dd_deflect", "Crossed Knives", "passive", R, _g(-3, 1), ["dd_whirl"], {"parryshot_dual_dagger": 1},
+		"Parry with two daggers and you knock gunshots aside too (without it, a parry only stops blades).")
+	_add("dd_edge", "Bleeding Edge", "active", R, _g(-3, 2), ["dd_deflect"], {}, "", {}, "bleeding_edge")
+	_add("dd_step", "Serpent Step", "passive", R, _g(-3, 3), ["dd_edge"], {"evade_dual_dagger": 0.08},
+		"With two daggers in hand, 8% of the blows that would hit you are slipped by instinct.")
+	_add("dd_return", "Knives Back", "passive", R, _g(-3, 4), ["dd_step"], {"deflect_dual_dagger": 1, "return_dual_dagger": 1, "deflect_cd_dual_dagger": 1.0},
+		"Mastered: with both daggers drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.", {"level": 4})
+	# fangs
+	_add("dd_honed", "Venom Steel", "stat", R, _g(-1.5, 1), ["dd_twin", "dd_whirl"], {"dmg_dual_dagger": 0.08}, "+8% damage with two daggers.")
+	_add("dd_viper", "Viper Flurry", "active", R, _g(0, 2), ["dd_twin"], {}, "", {}, "viper_flurry")
+	_add("dd_leap", "Scissor Leap", "active", R, _g(-1.5, 3), ["dd_viper", "dd_honed"], {}, "", {"level": 4}, "scissor_leap")
+	_add("dd_storm", "Fang Storm", "stat", R, _g(0, 4), ["dd_leap", "dd_exec"], {"dmg_dual_dagger": 0.1}, "+10% damage with two daggers.", {"level": 6})
+	_add("dd_master", "Viper King", "stat", R, _g(0, 5), ["dd_storm", "dd_quick"], {"dmg_dual_dagger": 0.12}, "+12% damage with two daggers.", {"level": 10})
+	_add("dd_fangs", "Hundred Fangs", "ult", R, _g(0, 6), ["dd_master"], {}, "", {"level": 12}, "hundred_fangs")
+	# venom
+	_add("dd_rhythm", "Viper's Rhythm", "passive", R, _g(1.5, 1), ["dd_twin", "dd_light"], {"flow_dual_dagger": 0.4}, "Twin-dagger hits give 40% more energy.")
+	_add("dd_crit", "Fangs Bared", "passive", R, _g(3, 1), ["dd_rhythm"], {"crit_dual_dagger": 0.1}, "Another 10% of your twin-dagger hits land 50% harder.")
+	_add("dd_deep", "Open Wounds", "passive", R, _g(1.5, 2), ["dd_rhythm"], {"bleed_dual_dagger": 0.15}, "Another 15% of your twin-dagger hits open a wound that bleeds.")
+	_add("dd_back", "Two in the Back", "passive", R, _g(3, 2), ["dd_crit"], {"backstab_dual_dagger": 0.25}, "A blade in the back deals another 25% on top.")
+	_add("dd_rip", "Ripping Scissors", "passive", R, _g(1.5, 3), ["dd_deep"], {"heavy_dual_dagger": 0.3}, "Your Scissor Rip (right-click) hits 30% harder.")
+	_add("dd_leech", "Blood Drinker", "passive", R, _g(3, 3), ["dd_back"], {"leech_dual_dagger": 0.06}, "Twin-dagger hits heal you for 6% of their damage.")
+	_add("dd_exec", "Death by Cuts", "passive", R, _g(2, 4), ["dd_rip", "dd_leech"], {"exec_dual_dagger": 0.4},
+		"A hit that leaves them under 30% health deals 40% more on top.")
+	_add("dd_quick", "Quicksilver", "passive", R, _g(2, 5), ["dd_exec"], {"cdr_dual_dagger": 0.2}, "Twin-dagger techniques come back 20% sooner.")
 
 
 static func _build_corsair() -> void:

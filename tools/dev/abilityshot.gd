@@ -2,7 +2,8 @@ extends SceneTree
 ## An ability in action: casts a skill on three grunts by the smugglers' camp and
 ## films it, effects and all, as a contact sheet (one row per view, frames along
 ## game time, so hit-stop and slow motion show as held frames).
-## Args: <out_prefix> <skill_id> [style: sword|katana|axe|dual_sword|sword_axe|sword_pistol|pistol|fist]
+## Args: <out_prefix> <skill_id> [style: sword|katana|axe|dual_sword|sword_axe|sword_pistol|pistol|fist|
+##       dagger|dual_dagger|sword_dagger]
 ##       [views: game,side,front3,top] [frames=8] [span s=1.2] [start s=0.0]
 ## skill_id may also be "heavy" (the right-click), "combo" (the light combo, clicked
 ## through every 0.2 s), "air" (the jump attack from 2.5 m up) or "riposte_counter".
@@ -78,6 +79,14 @@ func arm() -> void:
 			p.set_offhand(item("pistol"))
 		"pistol":
 			p.equip_weapon(item("pistol"), false)
+		"dagger":
+			p.equip_weapon(item("dagger"), false)
+		"dual_dagger":
+			p.equip_weapon(item("dagger"), false)
+			p.set_offhand(item("dagger"))
+		"sword_dagger":
+			p.equip_weapon(item("cutlass"), false)
+			p.set_offhand(item("dagger"))
 	if style != "fist":
 		p.sheathe_weapon(true)
 		p.draw_weapon(true)
@@ -117,7 +126,7 @@ func _process(d: float) -> bool:
 			for k in pr.owned.keys():
 				if (tier < 1 and str(k).ends_with("_elem")) or (tier < 2 and str(k).ends_with("_elem2")):
 					pr.owned.erase(k)
-			for id in ["cutlass", "cutlass", "katana", "boarding_axe", "pistol"]:
+			for id in ["cutlass", "cutlass", "katana", "boarding_axe", "pistol", "dagger", "dagger"]:
 				p.inventory_component.add_item(item(id), 1)
 			var hud = root.get_tree().get_first_node_in_group("hud")
 			if hud:

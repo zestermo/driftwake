@@ -1,16 +1,18 @@
 extends SceneTree
 ## Weapon designs: every design of each kind laid out in a rack (one shot per
-## kind), the cutlass, katana, axe and pistol across all seven tiers, and a
-## sheet of every icon. Args: <out_prefix>
+## kind), each kind across all seven tiers, and a sheet of every icon.
+## Args: <out_prefix>. Env WS_KINDS=dagger,axe: only those kinds.
 var t := 0.0
 var out := ""
 var step := 0
 var t0 := 0.0
 var cam: Camera3D
 var rack: Node3D
-const KINDS := ["cutlass", "katana", "axe", "pistol"]
+var KINDS: Array = WeaponDesigns.BASE_ITEM.keys()
 func _initialize():
 	out = OS.get_cmdline_user_args()[0]
+	if OS.get_environment("WS_KINDS") != "":
+		KINDS = Array(OS.get_environment("WS_KINDS").split(","))
 	change_scene_to_file("res://scenes/world/world.tscn")
 func snap(n: String) -> void:
 	root.get_texture().get_image().save_png("%s_%s.png" % [out, n])
@@ -53,12 +55,11 @@ func _process(d: float) -> bool:
 		for dz in WeaponDesigns.designs_of(k):
 			ms.append("%s:%s:0" % [k, dz])
 		shots.append(["designs_" + k, ms])
-	var tiers := []
 	for k in KINDS:
+		var tiers := []
 		for tr in range(7):
 			tiers.append("%s::%d" % [k, tr])
-	shots.append(["tiers_blades", tiers.slice(0, 14)])
-	shots.append(["tiers_axes_guns", tiers.slice(14, 28)])
+		shots.append(["tiers_" + k, tiers])
 	if step > 0:
 		snap(shots[step - 1][0])
 	if step < shots.size():
@@ -68,7 +69,7 @@ func _process(d: float) -> bool:
 		var ids: Array = []
 		for k in KINDS:
 			ids.append_array(WeaponDesigns.item_ids(k))
-		var sheet := Image.create(10 * 52, 6 * 52, false, Image.FORMAT_RGBA8)
+		var sheet := Image.create(10 * 52, ceili(ids.size() * 2 / 10.0) * 52, false, Image.FORMAT_RGBA8)
 		sheet.fill(Color(0.06, 0.06, 0.09))
 		var n := 0
 		for id in ids:

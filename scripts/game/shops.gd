@@ -57,6 +57,7 @@ const SHOPS := {
 		"name": "Vey's Armoury", "line": "Steel to carry and steel to wear. I'll buy your spares, too.",
 		"stock": [["cutlass", 45], ["hunting_hanger", 40], ["naval_sabre", 70], ["hatchet", 30], ["boarding_axe", 70],
 			["pistol", 90], ["duelling_pistol", 130], ["wakizashi", 120],
+			["dagger", 28], ["stiletto", 45], ["main_gauche", 60], ["kukri@1", 110],
 			["scimitar@1", 140], ["bearded_axe@1", 160], ["cutlass@1", 110], ["katana", 180],
 			["head", "morion", {"hat": "morion"}, 0, 90],
 			["vest", "brigandine", {"vest": "brigandine", "vest_color": Color(0.4, 0.26, 0.14)}, 0, 110],

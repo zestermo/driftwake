@@ -241,10 +241,11 @@ distance culling/LOD anywhere).
   pistol moveset: cutlass in the main hand, pistol in the off hand, with its own combo,
   right click and jump attack, and its own Corsair tree.
 - (Built 2026-10-11, waiting for Zach's play-through; dev_notes "dual wield, fixed and
-  polished") The dual-wield moveset for sword + sword, sword + axe and sword + dagger. Left:
-  there's no dagger item yet (the off-hand dagger's stab and numbers are keyed on a
-  "dagger" model, ready for the dagger round).
-- Dagger and dual-dagger movesets (dagger + dagger keeps its own set).
+  polished") The dual-wield moveset for sword + sword, sword + axe and sword + dagger.
+- (Built 2026-10-12, waiting for Zach's play-through; dev_notes "the daggers") Daggers: the
+  item in six designs at every tier, sheathed on the hip, the one-dagger and two-dagger
+  movesets and trees (Dagger, Twin Daggers), bleeding wounds and backstabs; an off-hand
+  dagger is held reversed (Zach's pick), the main hand's in the normal grip.
 - Dual-axe moveset (axe + axe gets its own set), with its own dual-axe skill tree.
 - Two-handed hammer moveset.
 - Each new weapon gets its own skill tree (see the skills refactor).

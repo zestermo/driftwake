@@ -381,6 +381,8 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 		var away := hit_at - player.global_position
 		away.y = 0.0
 		Net.fx("elem_hit", [tree, hit_at, away.normalized() if away.length() > 0.05 else Vector3.FORWARD])
+	if player.is_local and target is Node3D and not hit.dot:
+		_wounds(target as Node3D, hit, st)
 	if fruit == "ember" and player.progression.has_flag("kindled_blade") and target is Node3D and not suppressed():
 		BurnStatus.apply(target as Node3D, 1.6, 5.0, player)
 	if player.is_local and player.armed and target is Node3D:
@@ -390,6 +392,38 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 				venom = maxf(venom, (w as ItemData).poison)
 		if venom > 0.0:
 			PoisonStatus.apply(target as Node3D, 4.0, venom, player)
+
+
+## The daggers' wounds: a hit that opens one (HitData meta "bleed": seconds), or by
+## chance (the tree's bleed_ nodes; always under Bleeding Edge), makes them bleed;
+## a blade in the back (backstab_) deals that share again on top.
+func _wounds(target: Node3D, hit: HitData, st: String) -> void:
+	var pr := player.progression
+	var secs := float(hit.get_meta("bleed", 0.0))
+	if secs <= 0.0 and (buff("bleeding_edge") or randf() < pr.style_stat("bleed", st)):
+		secs = 3.0
+	if secs > 0.0:
+		BleedStatus.apply(target, secs, 2.5 + hit.damage * 0.15, player)
+	var bs := pr.style_stat("backstab", st)
+	if bs > 0.0 and behind(target):
+		var hb := target.get("hurtbox") as Hurtbox
+		if hb:
+			var extra := HitData.new()
+			extra.dot = true
+			extra.damage = roundf(hit.damage * bs)
+			hb.take_hit(extra, player)
+			Net.fx("float_text", [target.global_position + Vector3(0, 2.3, 0), "Backstab!", FX.tree_col("dagger", FX.EDGE)])
+
+
+## Are you behind `t` (it's facing away from you)?
+func behind(t: Node3D) -> bool:
+	var fc = t.get("facing")
+	if not (fc is Node3D):
+		return false
+	var yaw := (fc as Node3D).global_rotation.y
+	var to_me := player.global_position - t.global_position
+	to_me.y = 0.0
+	return to_me.length() > 0.01 and Vector3(-sin(yaw), 0.0, -cos(yaw)).dot(to_me.normalized()) < -0.25
 
 
 func to_dict() -> Dictionary:

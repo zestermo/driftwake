@@ -25,6 +25,10 @@ extends PlayerState
 ##   the aimed enemy (it pins them; the kick lifts you a little), then a
 ##   point-first dive through them into a crouching landing cut that knocks
 ##   everyone close flat (no ball loaded: just the dive).
+## * Fang Dive (one dagger): the Boarding Dive's flight, but the stab is a sure crit
+##   and it bleeds.
+## * Knife Rain (two daggers): hang a beat, then a fistful of knives flung down at up
+##   to four enemies below and ahead; every wound bleeds.
 
 const HANG := 0.16
 const DIVE_SPEED := 22.0
@@ -87,8 +91,20 @@ const DROP_DAMAGE := 20.0
 const DROP_LAND_R := 2.6
 const DROP_LAND_DAMAGE := 12.0
 
-## Which: "" (the plain plunge), "rain", "air_slash", "skybreaker",
-## "twin_cyclone", "meteor_kick", "hang_shot", "boarding_dive", "deadmans_drop".
+const FANG_COCK := 0.14
+const FANG_DAMAGE := 22.0
+
+const KNIVES_LEN := 0.7
+const KNIVES_AT := 0.22
+const KNIVES_REACH := 11.0
+const KNIVES_MAX := 4
+const KNIVES_DAMAGE := 12.0
+
+## Which tree's colours each dive wears.
+const DIVE_TREE := {"meteor_kick": "unarmed", "boarding_dive": "sword", "fang_dive": "dagger"}
+
+## Which: "" (the plain plunge), "rain", "air_slash", "skybreaker", "twin_cyclone",
+## "meteor_kick", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain".
 var _mode := ""
 var phase: int = 0   # 0 hang/wind-up, 1 dive, 2 land, 3 off (bounced / vaulted / fired)
 var timer: float = 0.0
@@ -112,7 +128,7 @@ func enter(_data: Dictionary) -> void:
 	_struck = []
 	_target = null
 	_mode = "rain" if player.style() == "dual_pistol" else air_move()
-	if _mode in ["twin_cyclone", "meteor_kick", "hang_shot", "boarding_dive", "deadmans_drop"]:
+	if _mode in ONCE_PER_JUMP or _mode == "meteor_kick":
 		player.air_uses[_mode] = int(player.air_uses.get(_mode, 0)) + 1
 	match _mode:
 		"rain":
@@ -138,7 +154,7 @@ func enter(_data: Dictionary) -> void:
 			player.body_model.play("twin_cyclone", CYCLONE_LEN)
 			player.squash(1.5)
 			Net.fx("sfx", ["whoosh", player.global_position, -8.0, 0.06, 0.8])
-		"meteor_kick", "boarding_dive":
+		"meteor_kick", "boarding_dive", "fang_dive":
 			player.variable_jump_active = false
 			player.velocity = Vector3(player.velocity.x * 0.2, maxf(player.velocity.y, 0.0) * 0.2, player.velocity.z * 0.2)
 			_target = _aimed(METEOR_REACH)
@@ -147,8 +163,14 @@ func enter(_data: Dictionary) -> void:
 				player.player_model.rotation.y = atan2(-to.x, -to.z)
 			player.body_model.play(_mode, 0.6)
 			player.squash(1.5)
-			if _mode == "boarding_dive":
-				Net.fx("sfx", ["parry", player.global_position, -14.0, 0.05, 1.4])
+			if _mode != "meteor_kick":
+				Net.fx("sfx", ["parry", player.global_position, -14.0, 0.05, 1.4 if _mode == "boarding_dive" else 1.8])
+		"knife_rain":
+			player.variable_jump_active = false
+			player.velocity = Vector3(player.velocity.x * 0.3, maxf(player.velocity.y, 0.0) * 0.2, player.velocity.z * 0.3)
+			player.body_model.play("knife_rain", KNIVES_LEN)
+			player.squash(1.5)
+			Net.fx("sfx", ["blip", player.global_position, -12.0, 0.05, 1.3])
 		"hang_shot":
 			player.variable_jump_active = false
 			player.velocity = Vector3(player.velocity.x * 0.3, maxf(player.velocity.y, 0.0) * 0.2, player.velocity.z * 0.3)
@@ -187,8 +209,11 @@ func physics_update(delta: float) -> void:
 		"twin_cyclone":
 			_cyclone_update(delta)
 			return
-		"meteor_kick", "boarding_dive":
+		"meteor_kick", "boarding_dive", "fang_dive":
 			_dive_update(delta)
+			return
+		"knife_rain":
+			_knives_update(delta)
 			return
 		"hang_shot":
 			_hang_update(delta)
@@ -544,14 +569,14 @@ func _cyclone_update(delta: float) -> void:
 ## enemy (or down ahead), off them on contact.
 func _dive_update(delta: float) -> void:
 	var kick := _mode == "meteor_kick"
-	var tree := "unarmed" if kick else "sword"
+	var tree: String = DIVE_TREE[_mode]
 	match phase:
 		0:
 			player.velocity.y = move_toward(player.velocity.y, 0.0, 40.0 * delta)
 			player.velocity.x = move_toward(player.velocity.x, 0.0, 20.0 * delta)
 			player.velocity.z = move_toward(player.velocity.z, 0.0, 20.0 * delta)
 			player.move_and_slide()
-			var cock := METEOR_COCK if kick else DIVE_COCK
+			var cock := METEOR_COCK if kick else (FANG_COCK if _mode == "fang_dive" else DIVE_COCK)
 			if not kick and not _fired and timer >= cock - 0.06:
 				_fired = true
 				var w: MeshInstance3D = player.body_model.weapon
@@ -602,22 +627,29 @@ func _dive_update(delta: float) -> void:
 
 func _dive_hit(hb: Hurtbox, kick: bool, tree: String) -> void:
 	var at := hb.global_position
-	var hd := player.melee_hit(METEOR_DAMAGE if kick else DIVE_DAMAGE)
+	var fang := _mode == "fang_dive"
+	var hd := player.melee_hit(METEOR_DAMAGE if kick else (FANG_DAMAGE if fang else DIVE_DAMAGE))
 	hd.knockback_force = 9.0 if kick else 7.5
 	hd.stagger_duration = 0.6
 	hd.hitstop_duration = 0.09
 	hd.camera_shake_intensity = 0.2
 	hd.knockdown = kick
 	hd.sever = not kick
+	if fang:
+		# (from above it always finds the gap: a sure crit, and the wound bleeds)
+		if not hd.has_meta("crit"):
+			hd.damage *= 1.5
+			hd.set_meta("crit", true)
+		hd.set_meta("bleed", 4.0)
 	_hit_one(hb, hd)
 	Net.fx("streak", [get_meta("from"), at, _look(tree, FX.EDGE), 0.14, 0.28])
-	Net.fx("impact", [at, _look(tree, FX.ACCENT)])
+	Net.fx("impact", [at, _look(tree, FX.CORE if fang else FX.ACCENT)])
 	Net.fx("ring", [at, _line, 1.4, _look(tree, FX.EDGE), 0.25, 0.14])
 	if player.progression.elemental(tree):
 		if kick:
 			Net.fx("punch_wind", [at, _line, 1.6, _look(tree, FX.CORE), true])
 		else:
-			Net.fx("spray", [at, _line + Vector3.UP * 0.3, 12, _look(tree, FX.ACCENT), 6.0])
+			Net.fx("element", [tree, at, _line + Vector3.UP * 0.3, 12, 6.0])
 	Net.fx("sfx", ["hit", at, 0.0, 0.05, 0.65 if kick else 0.85])
 	CombatManager.apply_camera_kick(0.2, 0.25)
 	if kick:
@@ -651,6 +683,75 @@ func _dive_land(kick: bool, tree: String) -> void:
 		_burst(at, 2.2, wave, _struck.duplicate())
 	else:
 		player.body_model.play("plunge_land", 0.44)
+
+
+## Knife Rain (two daggers): hanging a beat, both hands go up for a fistful of
+## knives and fling them down at up to KNIVES_MAX enemies below and ahead (each
+## wound bleeds), the throw lifting you a little; then a fall.
+func _knives_update(delta: float) -> void:
+	if not _fired:
+		player.velocity.y = move_toward(player.velocity.y, 0.0, 30.0 * delta)
+		player.velocity.x = move_toward(player.velocity.x, 0.0, 10.0 * delta)
+		player.velocity.z = move_toward(player.velocity.z, 0.0, 10.0 * delta)
+		if phase == 0 and timer >= KNIVES_AT - 0.07:
+			phase = 1
+			for gun in [player.body_model.weapon, player.body_model.offhand]:
+				if gun != null and is_instance_valid(gun):
+					Net.fx("glint", [(gun as Node3D).global_position, _look("dual_dagger", FX.CORE), 0.45])
+		if timer >= KNIVES_AT:
+			_fired = true
+			_throw_knives()
+	else:
+		apply_gravity(delta)
+	player.move_and_slide()
+	if _fired and player.is_on_floor() and timer > KNIVES_AT + 0.1:
+		transitioned.emit(self, "Idle", {})
+	elif timer >= KNIVES_LEN:
+		transitioned.emit(self, "Fall", {})
+
+
+func _throw_knives() -> void:
+	var from := player.global_position + Vector3(0, 1.3, 0) + _dir * 0.3
+	var list: Array = []
+	for e in player.power.enemies_in(player.global_position + _dir * KNIVES_REACH * 0.4, KNIVES_REACH):
+		var hb := (e as Node).get("hurtbox") as Hurtbox
+		if hb == null or hb.global_position.y > player.global_position.y + 0.5:
+			continue
+		var to := hb.global_position - player.global_position
+		to.y = 0.0
+		if to.length() > 1.0 and to.normalized().dot(_dir) < 0.2:
+			continue
+		list.append(e)
+	list.sort_custom(func(a, b): return (a as Node3D).global_position.distance_to(from) < (b as Node3D).global_position.distance_to(from))
+	var edge := _look("dual_dagger", FX.EDGE)
+	var n := 0
+	for e in list.slice(0, KNIVES_MAX):
+		var hb := (e as Node).get("hurtbox") as Hurtbox
+		var c: Vector3 = ((hb as Node).get_child(0) as Node3D).global_position
+		var hd := player.melee_hit(KNIVES_DAMAGE)
+		hd.ranged = true
+		hd.knockback_force = 3.0
+		hd.stagger_duration = 0.5
+		hd.hitstop_duration = 0.04
+		hd.camera_shake_intensity = 0.0
+		hd.set_meta("bleed", 3.0)
+		_hit_one(hb, hd)
+		Net.fx("streak", [from, c, edge, 0.06, 0.22])
+		Net.fx("impact", [c, _look("dual_dagger", FX.CORE)])
+		if player.progression.elemental("dual_dagger"):
+			Net.fx("element", ["dual_dagger", c, Vector3.UP, 6, 2.5])
+		n += 1
+	# (the rest of the fistful strikes the ground ahead)
+	for i in range(KNIVES_MAX - n):
+		var a := lerpf(-0.5, 0.5, (i + 0.5) / float(maxi(KNIVES_MAX - n, 1)))
+		var end := player.global_position + _dir.rotated(Vector3.UP, a) * (3.0 + i) + Vector3(0, -player.height_above_ground(), 0)
+		Net.fx("streak", [from, end, edge, 0.05, 0.2])
+		Net.fx("dust", [end + Vector3(0, 0.05, 0), 2, 0.3])
+	Net.fx("ring", [from, (Vector3.DOWN + _dir).normalized(), 0.9, edge, 0.2, 0.1])
+	Net.fx("sfx", ["whoosh", from, -4.0, 0.06, 1.6])
+	player.velocity = Vector3(player.velocity.x, 2.5, player.velocity.z) - _dir * 1.5
+	player.squash(-2.0)
+	CombatManager.apply_camera_kick(0.12, 0.25)
 
 
 ## Hang Shot: hang drawing a bead, one heavy ball at the reticle, the recoil

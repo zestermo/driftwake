@@ -28,9 +28,10 @@ static func dual_guard(kind: String) -> Dictionary:
 			g["fore_l"] = Vector3(0.55, 0, 0)
 			g["hand_l"] = Vector3(-0.95, 0, 0)
 		"dagger":
+			# (held reversed: the blade down out of the bottom of the fist, DaggerMoves.rev)
 			g["arm_l"] = Vector3(0.95, 0.35, -0.2)
 			g["fore_l"] = Vector3(1.45, 0, 0)
-			g["hand_l"] = Vector3(-0.95, 0, 0)
+			g["hand_l"] = Vector3(DaggerMoves.rev(0.95, 1.45, 0.3), 0, 0)
 	return g
 
 
@@ -317,14 +318,14 @@ static func pose(h, n: String, u: float) -> Array:
 				"_lift": Vector3(0, -0.4, 0)}
 			var crash := _with(down, {"_scale": Vector3(1.07, 0.92, 1.03), "_smear": Vector3(0.6, 0, 0)})
 			return [h._keys(u, [[0.0, g], [0.3, raise, "out"], [0.36, raise], [0.42, air], [0.48, crash, "in"], [0.54, down], [0.74, down], [1.0, g]]), "full", lift]
-	return []
+	return DaggerMoves.pose(h, n, u)
 
 
 ## The dual combo's single-blade cuts. Hit 1: the right blade hauled high over the
 ## right shoulder, then a diagonal forehand down to the lower left, the left blade
 ## held up on guard. Hit 2 is its mirror with the off hand, unless that's an axe
-## (a higher, heavier hack down in front) or a dagger (drawn back by the hip and
-## driven straight out in a stab).
+## (a higher, heavier hack down in front) or a dagger (held reversed: a backhand
+## slash swept out to the left, the blade along the forearm).
 static func _dual_keys(g: Dictionary, left: bool, kind: String) -> Array:
 	var wind := {"hips": Vector3(0, -0.35, 0), "torso": Vector3(0.05, -0.7, 0.06), "head": Vector3(0.0, 0.55, 0),
 		"arm_r": Vector3(2.3, 0.45, 1.2), "fore_r": Vector3(1.0, 0, 0), "hand_r": Vector3(0.7, 0, 0),
@@ -355,16 +356,18 @@ static func _dual_keys(g: Dictionary, left: bool, kind: String) -> Array:
 				cut["_lift"] = Vector3(0, -0.28, 0)
 				hold = 0.72
 			"dagger":
-				# drawn back by the left hip, point forward, then driven straight out
-				wind["arm_l"] = Vector3(0.1, 0.3, -0.35)
-				wind["fore_l"] = Vector3(1.6, 0, 0)
-				wind["hand_l"] = Vector3(-1.4, 0, 0)
-				wind["torso"] = Vector3(-0.1, 0.55, -0.04)
-				cut["arm_l"] = Vector3(1.55, -0.2, 0.05)
-				cut["fore_l"] = Vector3(0.02, 0, 0)
+				# held reversed, the blade along the forearm: the fist carried across to the
+				# right shoulder, then a backhand slash swept out to the left, edge first
+				wind["arm_l"] = Vector3(1.45, -0.55, 0.5)
+				wind["fore_l"] = Vector3(1.7, 0, 0)
+				wind["hand_l"] = Vector3(-1.5, 0, 0)
+				wind["torso"] = Vector3(0.05, -0.6, 0.06)
+				wind["head"] = Vector3(0.0, 0.5, 0)
+				cut["arm_l"] = Vector3(1.35, 0.45, -1.3)
+				cut["fore_l"] = Vector3(0.3, 0, 0)
 				cut["hand_l"] = Vector3(-1.5, 0, 0)
-				cut["torso"] = Vector3(-0.3, -0.45, 0.0)
-				cut["head"] = Vector3(0.18, 0.35, 0)
+				cut["torso"] = Vector3(-0.3, 0.5, -0.06)
+				cut["head"] = Vector3(0.2, -0.4, 0)
 	var sq := Vector3(1.03, 0.95, 1.0) if kind != "axe" else Vector3(1.05, 0.93, 1.0)
 	wind["_scale"] = sq
 	var whip := cut.merged({"_scale": Vector3(0.97, 1.0, 1.08) if kind == "dagger" else Vector3(1.05, 0.97, 1.03),

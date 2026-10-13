@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dagger"
+display_name = "Sailor's Dirk"
+description = "A short blade for close work. Quick, quiet, and nastiest from behind. Two of them make a set of their own; one beside a cutlass stabs from the off hand."
+value = 8
+stackable = false
+max_stack = 1
+item_type = 1
+weapon_model = "dagger"
+damage_mult = 0.9

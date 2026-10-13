@@ -919,7 +919,7 @@ func _drop_chest() -> void:
 	if rng.randf() < 0.6:
 		picks.append(["rum", rng.randi_range(1, 2)])
 	if rng.randf() < 0.35:
-		picks.append([["pistol", "cutlass", "boarding_axe"][rng.randi() % 3], 1])
+		picks.append([["pistol", "cutlass", "boarding_axe", "dagger"][rng.randi() % 4], 1])
 	for e in picks:
 		var it := load("res://resources/items/%s.tres" % e[0]) as ItemData
 		if it == null:

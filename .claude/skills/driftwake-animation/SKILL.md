@@ -315,6 +315,17 @@ For "which is better" questions: 2-3 variants of one action, ranked by Zach.
   reads (`dash_dir`, `aim_pitch`, `local_move`, flags) go through `humanoid_sync.gd`. The swing
   solver runs on every screen from the same spec, so paths need no sync.
 
+## Keyed blades: where the blade points (sagittal plane, radians from straight down)
+
+- Normal grip: blade angle ≈ `arm.x + fore.x + 1.57 + hand.x`; a thrust along the forearm
+  is hand.x ≈ -1.5. The arm is keyed in the **chest's** frame: a chest leaning forward
+  (torso x -0.4) points every arm 0.4 lower, so a level thrust from a lean needs arm.x ≈
+  1.57 + the lean (the dagger stabs at 1.78-1.85; at 1.5 they stabbed the ground).
+- Reverse grip (an off-hand dagger, `Humanoid.REVERSE_GRIP`): the blade is the opposite
+  way, so hand.x ≈ -1.5 lays it back along the forearm (backhand slashes, spins) and a
+  stab's wrist comes from `DaggerMoves.rev(arm, fore, theta)` (theta: where the point goes).
+- Moves in their own files chain: TechniquePoses -> WieldMoves -> DaggerMoves -> ... -> [].
+
 ## Older keyed-move rules (from the full review)
 
 - Key the wrist on every blade key of a keyed (non-path) move: cocked back in the wind-up,
