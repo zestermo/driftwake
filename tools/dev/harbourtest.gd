@@ -5,8 +5,9 @@ extends SceneTree
 ## deep water off the pier's head and the "Board ship" area, the ship's berth
 ## clear of everything built, a captain stands on the pier's head and on the
 ## harbour's walkways; the same node plans the same harbour twice; the seeds roll
-## different kinds.
+## different kinds. Each kind on fixed chain seeds (their coasts differ), not the run's random one.
 const KINDS := ["stilts", "cove", "wharf", "ruins", "landing"]
+const SEEDS := [4242, 777]
 ## Each kind's least: [buildings, props] in fidelity's harbour district (a bare landing has next to nothing).
 const LEAST := {"stilts": [7, 20], "cove": [7, 20], "wharf": [7, 20], "ruins": [7, 20], "landing": [0, 4]}
 var t := 0.0
@@ -30,6 +31,10 @@ func check(name: String, cond: bool) -> void:
 		fails += 1
 
 
+func _tag() -> String:
+	return "%s/%d" % [KINDS[job / SEEDS.size()], SEEDS[job % SEEDS.size()]]
+
+
 func finish() -> void:
 	print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 	quit()
@@ -37,7 +42,7 @@ func finish() -> void:
 
 func _process(d: float) -> bool:
 	t += d
-	if t > 240.0:
+	if t > 300.0:
 		check("timed out at step %d" % step, false)
 		finish()
 		return true
@@ -56,24 +61,26 @@ func _process(d: float) -> bool:
 			gh = load("res://scripts/island/kit/kit_harbour_gen.gd")
 			step = 1
 		1:
+			root.get_node("GameManager").chain_seed = int(SEEDS[job % SEEDS.size()])
 			var c = w.chain()
 			var n: Dictionary = c.node(int(c.start_next[0]))
-			var kind: String = KINDS[job]
-			gh.force = kind
+			var kind := _tag()
+			gh.force = KINDS[job / SEEDS.size()]
 			isl = load("res://scripts/island/gen_island.gd").new()
 			isl.name = "HarbourTestIsle"
 			isl.position = Vector3(40000.0, 0.0, 40000.0 + job * 3000.0)
 			w.add_child(isl)
 			isl.build(n)
+			var want: String = gh.force
 			gh.force = ""
 			var hb = isl.harbour
-			check("[%s] the harbour is the kind asked for" % kind, hb.kind == kind)
+			check("[%s] the harbour is the kind asked for" % kind, hb.kind == want)
 			var site: Node3D = isl.get_node("Site_harbour")
 			var r: Dictionary = load("res://tools/dev/fidelity.gd").measure(isl)
 			var dh: Dictionary = r["d"]["districts"]["harbour"]
-			print("   %s: harbour district %s, shore %.0f..%.0f, %d steps, build %s ms" % [kind, dh, hb.f.s0, hb.f.s1, hb.steps().size(), isl.build_ms.get("harbour", 0)])
-			check("[%s] a harbour district: %d+ buildings (%d)" % [kind, LEAST[kind][0], int(dh["buildings"])], int(dh["buildings"]) >= int(LEAST[kind][0]))
-			check("[%s] ...and %d+ props (%d)" % [kind, LEAST[kind][1], int(dh["props"])], int(dh["props"]) >= int(LEAST[kind][1]))
+			print("   %s (%s): harbour district %s, shore %.0f..%.0f, %d steps, build %s ms" % [kind, n["name"], dh, hb.f.s0, hb.f.s1, hb.steps().size(), isl.build_ms.get("harbour", 0)])
+			check("[%s] a harbour district: %d+ buildings (%d)" % [kind, LEAST[want][0], int(dh["buildings"])], int(dh["buildings"]) >= int(LEAST[want][0]))
+			check("[%s] ...and %d+ props (%d)" % [kind, LEAST[want][1], int(dh["props"])], int(dh["props"]) >= int(LEAST[want][1]))
 			var lights := site.find_children("*", "NightLight", true, false).size()
 			check("[%s] lamps lit from the budget: 2-%d NightLights (%d)" % [kind, hb.LIGHTS, lights], lights >= 2 and lights <= hb.LIGHTS)
 			var de: Vector2 = isl.sites["dock_end"]
@@ -86,7 +93,7 @@ func _process(d: float) -> bool:
 			step = 2
 		2:
 			var ground: float = isl.to_global(Vector3(0, isl.DOCK_DECK_Y, 0)).y
-			check("[%s] a captain stands on the pier's head (%.2f m over the deck)" % [KINDS[job], p.global_position.y - ground], p.is_on_floor() and absf(p.global_position.y - ground) < 0.3)
+			check("[%s] a captain stands on the pier's head (%.2f m over the deck)" % [_tag(),p.global_position.y - ground], p.is_on_floor() and absf(p.global_position.y - ground) < 0.3)
 			# the berth: a hull's box where the ship lies alongside touches nothing of the harbour's
 			var moor: Array = isl.mooring()
 			var q := PhysicsShapeQueryParameters3D.new()
@@ -99,7 +106,7 @@ func _process(d: float) -> bool:
 			for h in root.get_world_3d().direct_space_state.intersect_shape(q, 16):
 				if isl.is_ancestor_of(h["collider"]):
 					hits.append(str(h["collider"].name))
-			check("[%s] the ship's berth is clear %s" % [KINDS[job], hits], hits.is_empty())
+			check("[%s] the ship's berth is clear %s" % [_tag(), hits], hits.is_empty())
 			# the harbour's longest level walkway, halfway along its first stretch
 			var best := 0.0
 			var wp: Vector2 = isl.dock_shore + isl.dock_dir * 8.0
@@ -117,11 +124,11 @@ func _process(d: float) -> bool:
 			step = 3
 		3:
 			var y: float = get_meta("walk_y")
-			check("[%s] ...and on its walkways (%.2f m over the deck)" % [KINDS[job], p.global_position.y - y], p.is_on_floor() and absf(p.global_position.y - y) < 0.3)
+			check("[%s] ...and on its walkways (%.2f m over the deck)" % [_tag(), p.global_position.y - y], p.is_on_floor() and absf(p.global_position.y - y) < 0.3)
 			isl.queue_free()
 			isl = null
 			job += 1
-			step = 1 if job < KINDS.size() else 4
+			step = 1 if job < KINDS.size() * SEEDS.size() else 4
 			wait = 0.2
 		4:
 			# the same node plans the same harbour; the seeds roll their own kinds

@@ -555,10 +555,18 @@ func _wharf() -> void:
 	for c in [-27.0, -14.0, 14.0, 27.0]:
 		var spec := {"w": _rng.randf_range(8.5, 10.5), "d": _rng.randf_range(6.0, 7.0), "h": _rng.randf_range(3.4, 4.0),
 			"wall": ["planks", "planks_weathered"][_rng.randi() % 2], "roof": st["harbour_roof"], "seed": _rng.randi(), "pitch": _rng.randf_range(0.38, 0.46)}
-		var s: float = c + _rng.randf_range(-1.5, 1.5)
-		var p := at(s, float(spec["d"]) * 0.5 + _rng.randf_range(6.0, 7.5))
 		var r := maxf(spec["w"], spec["d"]) * 0.55
-		if s < sa + 3.0 or s > sb - 3.0 or not _ok_land(p, r):
+		# (a few spots from its slot toward the pier and up the beach: a short, steep or bitten shore loses the first)
+		var s := INF
+		var p := Vector2.ZERO
+		for k in range(5):
+			var ts: float = c * (1.0 - 0.12 * k) + _rng.randf_range(-1.5, 1.5)
+			var tp := at(ts, float(spec["d"]) * 0.5 + _rng.randf_range(6.0, 7.5) + k * 2.0)
+			if ts >= sa + 3.0 and ts <= sb - 3.0 and _ok_land(tp, r):
+				s = ts
+				p = tp
+				break
+		if s == INF:
 			continue
 		ctx.reserve(p, r + 1.5)
 		doors.append(s)
@@ -681,13 +689,15 @@ func _ruins() -> void:
 			break
 	# roofless huts, squatters' shacks still standing among them
 	var ruined := 0
-	for t in range(60):
+	for t in range(100):
 		if ruined >= 6:
 			break
-		var big := ruined < 2
+		# (the two big ones first, but not forever: a shore with no room for them still gets the small ones)
+		var big := ruined < 2 and t < 30
 		var w := _rng.randf_range(7.5, 9.0) if big else _rng.randf_range(4.0, 5.6)
 		var d := _rng.randf_range(5.5, 6.5) if big else _rng.randf_range(3.4, 4.4)
-		var p := at(_rng.randf_range(-38.0, 38.0), _rng.randf_range(6.0, 16.0))
+		# (higher up the beach as the tries go: a steep or bitten shore has no room low down)
+		var p := at(_rng.randf_range(-38.0, 38.0), _rng.randf_range(6.0, 16.0 + t * 0.08))
 		if absf(f.s_of(p)) < 7.0 or not _ok_land(p, maxf(w, d) * 0.6):
 			continue
 		_prop(HarbourModels.ruined_hut.bind(_rng.randi(), w, d, _rng.randf_range(0.4, 0.9)), p, KitContext.face_yaw(f.out.rotated(_rng.randf_range(-0.4, 0.4))), maxf(w, d) * 0.6)
@@ -732,11 +742,20 @@ func _wild() -> void:
 		var hut := _hut_row(1, 8.0, 14.0, true)
 		if not hut.is_empty():
 			spots.append([hut[0] + f.out * 3.0, f.out, "fisher"])
-	for k in range(3):
-		_ground_prop(HarbourModels.canoe.bind(_rng.randi(), _rng.randf() < 0.6), at(_rng.randf_range(-20.0, 20.0), _rng.randf_range(0.8, 3.0)), KitContext.face_yaw(f.inland.rotated(_rng.randf_range(-0.5, 0.5))), 1.6)
-	_ground_prop(Props.upturned_boat, at(_rng.randf_range(-24.0, 24.0), _rng.randf_range(2.0, 5.0)), _rng.randf() * TAU, 2.0)
-	for k in range(5):
-		_ground_prop(_small(), at(_rng.randf_range(-16.0, 16.0), _rng.randf_range(1.0, 6.0)), _rng.randf() * TAU)
+	# (by the jetty's root, retried until on dry sand: the shore by the pier drops into the dredged fairway)
+	var put := 0
+	for k in range(16):
+		var side := 1.0 if k % 2 == 0 else -1.0
+		if put < 3 and _ground_prop(HarbourModels.canoe.bind(_rng.randi(), _rng.randf() < 0.6), at(side * _rng.randf_range(5.2, 6.0), _rng.randf_range(1.0, 3.0 + k * 0.4)), KitContext.face_yaw(f.inland.rotated(_rng.randf_range(-0.5, 0.5))), 1.6):
+			put += 1
+	for k in range(8):
+		if _ground_prop(Props.upturned_boat, at(_rng.randf_range(-24.0, 24.0), _rng.randf_range(2.0, 5.0 + k * 0.5)), _rng.randf() * TAU, 2.0):
+			break
+	put = 0
+	for k in range(20):
+		var side := 1.0 if k % 2 == 0 else -1.0
+		if put < 5 and _ground_prop(_small(), at(side * _rng.randf_range(4.2, 5.6), _rng.randf_range(1.0, 5.0 + k * 0.2)), _rng.randf() * TAU):
+			put += 1
 	_deck_prop(Props.rope_coil, _dock(GenIsland.PIER_LEN - 3.0) - f.along * 1.2, 0.0)
 
 
