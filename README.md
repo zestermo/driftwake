@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.9-e0b040" alt="Version 1.9">
+  <img src="https://img.shields.io/badge/version-1.10-e0b040" alt="Version 1.10">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,25 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.10: The Living Isles (October 13, 2026)
+The biggest update yet, and a milestone: every island is now its own adventure, with enough out there
+for a properly fun, replayable game.
+- **Harbours:** stilt ports, smugglers' coves, wharves, old harbours and bare landings.
+- **Villages:** towns, hamlets, walled trading posts, stilt villages and ruins, with shops and homes
+  to walk into.
+- **Villagers with routines** (work, lunch, the inn, home), named locals with rumours and quests.
+- **Caves and dungeons** (seven kinds, one to three per island) and a ruined temple on some islands.
+- **The jungle grown up:** six forest kinds, giant canopy trees, thick undergrowth, landmarks and a set
+  piece per island; **new coastlines** with sea cliffs and wadeable sandy shelves on every island.
+- **Jungle bosses:** the Silverback in the canopy, the Strangler, the Shade, the Mantis Queen, an alpha
+  boar and the roaming Thornback; **creatures:** boars, crabs, snakes, monkeys, toucans, bats, bugs.
+- **Daggers:** one or two, bleeds and backstabs, three ultimates; the off hand holds one reversed.
+- **Tougher fights:** gap closers for the brood queen, Grell and Morrow, lingering poison, the
+  rifleman's shove telegraphed, smarter pirates and elites that dodge.
+- **Brinehollow:** Grell's den moved to a clifftop out of sight of the beach, with a climb to reach it.
+- **Inventory refresh:** held items leave the bag, tooltips with comparisons, crisp text; option arrows
+  step back too.
 
 ### v1.9: Beasts and Blades (October 12, 2026)
 - **The beasts rebuilt:** the Silverback is a real gorilla, and the Sea King a long serpent that

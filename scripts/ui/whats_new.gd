@@ -7,12 +7,16 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["The beasts, rebuilt", "The Silverback is a real gorilla now, and the Sea King a long serpent that circles your ship, rears over the deck and bites."],
-	["Sword and pistol", "The Corsair style: blade and pistol in one combo, Powder Lunge, Dead Man's Drop and Powder Finale, a butt-strike while you reload, and its own skill tree with an ultimate (K)."],
-	["Two blades", "Dual wield fixed and polished: a sword with a second sword, an axe or a dagger. The off hand changes the weight of every hit, and Twin Spin is learned in the tree."],
-	["Devil Fruits rest for now", "Chests no longer hold Devil Fruits while their powers are reworked. Fruits you already ate stay yours."],
-	["Co-op fixes", "A pistol shot fired across your own body no longer vanishes, and a guest reaching an island that's still building keeps its fights."],
-	["Brinehollow, as a kit", "The starter island is now built from a set of reusable pieces, the first step to giving every chain island its level of detail."],
+	["The biggest update yet", "Every island down the chain is now its own adventure, different each time you sail. A real milestone: enough out there to play and play again."],
+	["Harbours and villages", "Five kinds of harbour and five kinds of village (towns, hamlets, walled posts, stilt villages, ruins), with shops and homes you can walk into."],
+	["People with lives", "Villagers work, eat, drink at the inn and go home at night. Named locals gossip about the chain and hand out quests."],
+	["Caves and the temple", "One to three caves on every island, each with a boss and a reward, and a ruined temple with levers, a gate and its Warden on some."],
+	["The jungle grew up", "Six kinds of forest, giant canopy trees, thick undergrowth, landmarks, a set piece on every island, and new coastlines with cliffs and wadeable shallows."],
+	["New beasts", "The Silverback fights from the canopy, with rivals: the Strangler, the Shade and the Mantis Queen. Boars, crabs, snakes, monkeys, toucans and bats move in."],
+	["Daggers", "One or two: quick, close, bleeding wounds and backstabs. Shadow Lunge, Red Eclipse and Hundred Fangs. An off-hand dagger is held reversed."],
+	["Fights with more bite", "Bosses close the gap if you hang back, bug poison lingers on the ground, riflemen telegraph their shove, and tougher pirates dodge like you do."],
+	["A harder road to Grell", "His den now sits on a clifftop out of sight of the beach. Climb the pillars or take the rope ladder from his pier."],
+	["A cleaner inventory", "What you hold isn't in your bag, tooltips compare against what you use, and the text is crisp. Option arrows go back as well as forward."],
 ]
 
 
