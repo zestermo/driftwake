@@ -88,5 +88,29 @@ func _process(d: float) -> bool:
 			p._on_hit_received(hd, null)
 			var taken: float = h0 - p.health_component.current_health
 			check("armor soaks damage (took %.1f of 40)" % taken, taken < 40.0 and taken > 20.0)
+			gm.open("options")
+			wait = 0.3; step = 7
+		7:
+			var st: Button = gm._screens["options"].find_child("psx_preset", true, false)
+			var settings = root.get_node("Settings")
+			var n: int = root.get_node("PSX").PRESETS.size()
+			var v0 := int(settings.get_value("video", "psx_preset"))
+			var click := InputEventMouseButton.new()
+			click.button_index = MOUSE_BUTTON_LEFT
+			click.pressed = true
+			click.position = Vector2(2, st.size.y * 0.5)
+			st.gui_input.emit(click)
+			check("selector's left half steps back (%d -> %d of %d)" % [v0, int(settings.get_value("video", "psx_preset")), n],
+				int(settings.get_value("video", "psx_preset")) == posmod(v0 - 1, n))
+			var left := InputEventAction.new()
+			left.action = "ui_left"
+			left.pressed = true
+			st.gui_input.emit(left)
+			check("left on a keyboard / pad steps back again", int(settings.get_value("video", "psx_preset")) == posmod(v0 - 2, n))
+			click.position.x = st.size.x - 2.0
+			st.gui_input.emit(click)
+			st.gui_input.emit(click)
+			check("right half steps forward to where it was (%s)" % st.text, int(settings.get_value("video", "psx_preset")) == v0)
+			gm.close()
 			print("RESULT fails=", fails); quit()
 	return false

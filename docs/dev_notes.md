@@ -1141,3 +1141,8 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - IslandLife: `_village_spots` reads the village's layout data (plaza with its y, a plaza per hamlet as hubs, work_spots mapped to routine kinds, benches, the inn (on the deck when raised), houses' doors); a lunch break by the benches.
 - isletest's lamp check counts the camp's two and the village's planned lamps.
 - Tests: isletest villagetest lifetest dungeontest landmarktest bosstest harbourtest watertest r8test progtest chaintest fidelitytest foresttest apetest.
+
+## 2026-10-13: arrow selectors step back
+- Zach: the `< value >` selectors only ever went forward. The options' cycle rows (PSX resolution) and the yard's paint rows were one Button whose press always stepped +1 (the yard had a hidden right-click back); the creator had separate `<` `>` buttons that left / right on a keyboard or pad never reached.
+- `UIStyle.stepper(min_width)`: one button with a "stepped"(d) user signal: its left half, right-click or ui_left step -1, its right half, ui_right or ui_accept +1 (it accepts the event, so left / right don't move focus). The listener wraps with posmod. `UIStyle.stepper_text(v)` draws `<  v  >`. Used by GameMenu._cycle_row (button named after its settings key), the yard's looks and the creator's `_cycle` rows (named after the look key).
+- invtest: the PSX resolution selector clicked on its left half and sent ui_left steps back twice (wrapping at 0), then its right half returns it.

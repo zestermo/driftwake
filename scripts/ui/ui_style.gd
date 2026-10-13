@@ -120,3 +120,29 @@ static func button(text: String, min_width: float = 0.0) -> Button:
 	b.custom_minimum_size = Vector2(min_width, 0)
 	b.focus_mode = Control.FOCUS_ALL
 	return b
+
+
+## A "< value >" selector that emits "stepped"(-1) from its left half, a right-click or left
+## on a keyboard / pad, and "stepped"(1) from its right half, right or accept. The listener wraps.
+static func stepper(min_width: float = 0.0) -> Button:
+	var b := button("", min_width)
+	b.add_user_signal("stepped", [{"name": "d", "type": TYPE_INT}])
+	b.gui_input.connect(func(ev: InputEvent):
+		var d := 0
+		if ev is InputEventMouseButton and ev.pressed:
+			if ev.button_index == MOUSE_BUTTON_LEFT:
+				d = -1 if ev.position.x < b.size.x * 0.5 else 1
+			elif ev.button_index == MOUSE_BUTTON_RIGHT:
+				d = -1
+		elif ev.is_action_pressed("ui_left", true):
+			d = -1
+		elif ev.is_action_pressed("ui_right", true) or ev.is_action_pressed("ui_accept"):
+			d = 1
+		if d != 0 and not b.disabled:
+			b.accept_event()
+			b.emit_signal("stepped", d))
+	return b
+
+
+static func stepper_text(value: String) -> String:
+	return "<  %s  >" % value

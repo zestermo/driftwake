@@ -343,30 +343,18 @@ func _row(text: String) -> HBoxContainer:
 
 func _cycle(text: String, key: String, values: Array, names: Array = []) -> void:
 	var r := _row(text)
-	var left := UIStyle.button("<", 20)
-	var right := UIStyle.button(">", 20)
-	var val := UIStyle.label("", ROW_FONT, UIStyle.TEXT)
-	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	val.custom_minimum_size = Vector2(118, 0)
-	for b in [left, right]:
-		(b as Button).add_theme_font_size_override("font_size", ROW_FONT)
+	var b := UIStyle.stepper(166)
+	b.name = key
+	b.add_theme_font_size_override("font_size", ROW_FONT)
 	var refresh := func():
-		var i := values.find(look.get(key))
-		if i < 0:
-			i = 0
-		val.text = names[i] if i < names.size() else pretty(values[i])
-	var step := func(d: int):
-		var i := values.find(look.get(key))
-		i = (maxi(i, 0) + d + values.size()) % values.size()
-		look[key] = values[i]
+		var i := maxi(values.find(look.get(key)), 0)
+		b.text = UIStyle.stepper_text(names[i] if i < names.size() else pretty(values[i]))
+	b.connect("stepped", func(d: int):
+		look[key] = values[posmod(maxi(values.find(look.get(key)), 0) + d, values.size())]
 		refresh.call()
 		_play()
-		_rebuild()
-	left.pressed.connect(func(): step.call(-1))
-	right.pressed.connect(func(): step.call(1))
-	r.add_child(left)
-	r.add_child(val)
-	r.add_child(right)
+		_rebuild())
+	r.add_child(b)
 	refresh.call()
 
 

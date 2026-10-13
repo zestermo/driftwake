@@ -472,11 +472,12 @@ func _toggle_row(list: VBoxContainer, text: String, section: String, key: String
 
 func _cycle_row(list: VBoxContainer, text: String, section: String, key: String, names: Array) -> void:
 	var row := _row(list, text)
-	var b := UIStyle.button("", 150)
+	var b := UIStyle.stepper(150)
+	b.name = key
 	row.add_child(b)
-	var refresh := func(): b.text = "< %s >" % names[clampi(int(Settings.get_value(section, key)), 0, names.size() - 1)]
-	b.pressed.connect(func():
-		Settings.set_value(section, key, (int(Settings.get_value(section, key)) + 1) % names.size())
+	var refresh := func(): b.text = UIStyle.stepper_text(names[clampi(int(Settings.get_value(section, key)), 0, names.size() - 1)])
+	b.connect("stepped", func(d: int):
+		Settings.set_value(section, key, posmod(int(Settings.get_value(section, key)) + d, names.size()))
 		refresh.call()
 		_play())
 	_opt_refreshers.append(refresh)

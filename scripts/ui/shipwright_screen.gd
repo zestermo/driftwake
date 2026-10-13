@@ -74,13 +74,10 @@ func _init(menu: Node) -> void:
 		cell.add_theme_constant_override("separation", 0)
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cell.add_child(UIStyle.label(l[1], 8, UIStyle.TEXT_DIM))
-		var b := UIStyle.button("")
+		var b := UIStyle.stepper()
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var key: String = l[0]
-		b.pressed.connect(func(): cycle(key))
-		b.gui_input.connect(func(ev: InputEvent):
-			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
-				cycle(key, -1))
+		b.connect("stepped", func(d: int): cycle(key, d))
 		cell.add_child(b)
 		_cycles.append([key, b, l[2]])
 		grid.add_child(cell)
@@ -101,7 +98,7 @@ func _init(menu: Node) -> void:
 
 func on_open() -> void:
 	_note.text = "This is the host's ship: only they can order work on her." if Net.is_client() \
-		else "Refits are for good. Paint is free (right-click goes back)."
+		else "Refits are for good. Paint is free."
 	_refresh()
 	_start_preview()
 	for c in find_children("*", "Button", true, false):
@@ -177,7 +174,7 @@ func _refresh() -> void:
 	for c in _cycles:
 		var names: Array = c[2]
 		var v: Variant = names[int(kit[c[0]])]
-		(c[1] as Button).text = "< %s >" % (v[0] if v is Array else v)
+		(c[1] as Button).text = UIStyle.stepper_text(v[0] if v is Array else v)
 		(c[1] as Button).disabled = guest
 	_flag.texture = ImageTexture.create_from_image(ShipKit.flag_image(kit))
 
