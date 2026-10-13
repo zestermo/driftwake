@@ -100,6 +100,13 @@ eat/drink animation you can be hit out of; the ship's galley refills them as now
 - **Real lights:** ship lanterns, the den and the rest that only glow today, on the light budget (few shadowed
   lights, distance fades). Brinehollow's village and generated villages, harbours and caves are done.
 
+## Code signing (planned 2026-10-13)
+- Sign the Windows build so a browser download opens on double-click with no SmartScreen block or "Unblock"
+  step (today Windows silently refuses the unsigned exe from a download: its Zone.Identifier). Compare Azure
+  Trusted Signing (~$10/month, needs eligibility) with an OV/EV certificate (~$100-400/yr); sign
+  Driftwake.exe and Driftwake.console.exe in `.github/workflows/build-windows.yml` (secrets in the `live`
+  environment). Then drop the unblock steps from the site and READ ME FIRST.txt.
+
 ## Open technical items
 - **Save keys repeat across worlds:** chest, job and beast flags (`isle<id>_*`, `leg<x>_<y>_*`) are keyed by
   island number, which repeats across chain seeds, so a guest's opened chest counts on the host's
@@ -114,7 +121,7 @@ eat/drink animation you can be hit out of; the ship's galley refills them as now
 - Performance: measure on the other PC (F8 / `user://perf.log`), the 120 s autosave, Vulkan vs D3D12.
 
 ## Ideas, not planned
-- Browser co-op (WebRTC + signalling), code signing the Windows build, a Steam / itch.io page, the web
+- Browser co-op (WebRTC + signalling), a Steam / itch.io page, the web
   build's island freeze / brighter sea / audio limiter: the desktop download is enough for now.
 
 ## Waiting for Zach's play-through
