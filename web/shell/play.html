@@ -11,14 +11,12 @@
 @font-face { font-family: "Pixelify"; src: url("../fonts/PixelifySans-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Silkscreen"; src: url("../fonts/Silkscreen-Regular.woff2") format("woff2"); font-display: swap; }
 :root {
-	--ink: #0a0c17;
-	--panel: rgba(10, 13, 23, 0.92);
-	--border: #dbbd73;
-	--border-dim: #736647;
-	--text: #f2ede0;
-	--dim: #9e998c;
-	--accent: #ffd959;
-	--red: #9e1a14;
+	--ink: #0c2427;
+	--border-dim: #b88a3a;
+	--text: #f5e8c8;
+	--dim: #d6cdb2;
+	--accent: #f2c45e;
+	--rust: #853f32;
 }
 html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--text); }
 body { font-family: "Pixelify", ui-monospace, monospace; touch-action: none; }
@@ -34,43 +32,44 @@ body { font-family: "Pixelify", ui-monospace, monospace; touch-action: none; }
 		radial-gradient(1px 1px at 64% 22%, #fff8 50%, transparent 51%),
 		radial-gradient(1px 1px at 82% 12%, #fff6 50%, transparent 51%),
 		radial-gradient(1px 1px at 91% 31%, #fff5 50%, transparent 51%),
-		linear-gradient(#0d0f29 0%, #46264a 45%, #f2804022 62%, #f28040 62.2%, #3a2236 62.6%, #0a0d22 100%);
+		linear-gradient(#0f3238 0%, #277f89 45%, #f17c6222 62%, #f17c62 62.2%, #277f89 62.6%, #0c2a2f 100%);
 	image-rendering: pixelated;
 }
 #boot.hidden { display: none; }
 .card {
 	width: min(440px, calc(100vw - 32px));
-	padding: 22px 24px 18px;
-	background: var(--panel);
-	border: 2px solid var(--border);
-	box-shadow: 0 0 0 2px var(--ink), 6px 6px 0 2px #0008;
+	padding: 10px 12px 6px;
+	border: 12px solid transparent;
+	border-image: url("../img/ui/panel.png") 21 fill / 42px / 2px stretch;
+	image-rendering: pixelated;
 	text-align: center;
 }
 .logo {
 	margin: 0; font-weight: 600; font-size: 52px; line-height: 1; letter-spacing: 2px;
 	color: var(--accent);
-	text-shadow: 0 3px 0 #8c4019, 3px 3px 0 #140805, -2px 0 0 #140805, 2px 0 0 #140805, 0 -2px 0 #140805, 0 5px 0 #140805;
+	text-shadow: 0 3px 0 var(--rust), 3px 3px 0 var(--ink), -2px 0 0 var(--ink), 2px 0 0 var(--ink), 0 -2px 0 var(--ink), 0 5px 0 var(--ink);
 }
-.tag { margin: 8px 0 18px; font-family: "Silkscreen", monospace; font-size: 10px; letter-spacing: 1px; color: #ffe6bfcc; }
-.bar { height: 14px; border: 2px solid var(--border-dim); background: #05060c; padding: 2px; }
-.bar > div { height: 100%; width: 0%; background: repeating-linear-gradient(90deg, var(--accent) 0 6px, #e6b93a 6px 8px); transition: width 0.15s steps(4); }
+.tag { margin: 8px 0 18px; font-family: "Silkscreen", monospace; font-size: 10px; letter-spacing: 1px; color: var(--text); }
+.bar { height: 14px; border: 2px solid var(--border-dim); border-radius: 4px; background: var(--ink); padding: 2px; }
+.bar > div { height: 100%; width: 0%; border-radius: 2px; background: repeating-linear-gradient(90deg, var(--accent) 0 6px, #d9a93f 6px 8px); transition: width 0.15s steps(4); }
 .bar.indeterminate > div { width: 30%; animation: drift 1.2s steps(12) infinite; }
 @keyframes drift { from { margin-left: 0%; } to { margin-left: 70%; } }
 #status { margin: 10px 0 0; min-height: 1.3em; font-size: 14px; color: var(--dim); }
 #start {
 	display: none; margin: 16px auto 4px; padding: 10px 26px;
-	font: 600 20px "Pixelify", monospace; color: var(--ink); background: var(--accent);
-	border: 2px solid var(--ink); box-shadow: 0 0 0 2px var(--border), 4px 4px 0 2px #000a;
+	font: 600 20px "Pixelify", monospace; color: var(--ink); background: none;
+	border: 4px solid transparent; border-image: url("../img/ui/btn.png") 5 fill / 10px stretch;
+	image-rendering: pixelated;
 	cursor: pointer;
 }
-#start:hover, #start:focus-visible { background: #fff0a8; outline: none; }
-#start:active { transform: translate(2px, 2px); box-shadow: 0 0 0 2px var(--border), 2px 2px 0 2px #000a; }
+#start:hover, #start:focus-visible { border-image-source: url("../img/ui/btn-hover.png"); outline: none; }
+#start:active { transform: translate(1px, 2px); border-image-source: url("../img/ui/btn-down.png"); }
 .opt { display: none; margin: 8px 0 0; font-size: 13px; color: var(--dim); }
 .opt input { accent-color: var(--accent); vertical-align: middle; }
 .notes { margin: 16px 0 0; padding: 10px 0 0; border-top: 1px solid var(--border-dim); font-size: 13px; line-height: 1.45; color: var(--dim); text-align: left; }
 .notes b { color: var(--text); font-weight: 400; }
 .notes kbd { font-family: "Silkscreen", monospace; font-size: 10px; color: var(--accent); }
-.err { color: #ff8a70; }
+.err { color: #ffb39e; }
 a { color: var(--accent); }
 .back { position: fixed; left: 12px; top: 10px; z-index: 11; font-size: 13px; color: var(--dim); text-decoration: none; }
 .back:hover { color: var(--accent); }

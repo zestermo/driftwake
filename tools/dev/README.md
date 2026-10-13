@@ -221,6 +221,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `seashot`: The open sea's features from a passing ship: a reef, a whirlpool, a fog bank, a storm cell. Args: <out_prefix> [psx]
 - `islanddump`: Brinehollow node by node (transforms, vertex hashes, materials, colliders, lights, NPCs, loot, save ids, exclusions) for diffing two builds: the island kit's "same island" check (headless). Args: <out.txt>; then `git diff --no-index a.txt b.txt`
 - `yardshot`: The ship plain, then refitted in a few colour schemes (side, bow, masthead flag, each figurehead), Tackett at his timber, and the yard screen. Args: <out_prefix>
+- `webframes`: Writes the game's gilt UI frames (UIStyle.frame_image) to web/site/img/ui/*.png for the site's border-image rules, plus an 8x contact sheet at out/palette/frames_x8.png (headless). Rerun after changing UIStyle's frames or palette.
 - `perfbench`: Frame/process/physics/render CPU/GPU ms, draws, prims, worst frame at five fixed views (1920x1080, vsync off, sharper preset). `probe` / `probe:<view>` instead times every script's _process/_physics_process. Args: [label|probe] [WxH]
 - `hitchprobe`: Times one-off jobs that can stall a frame (autosave, camp and ship respawns cold vs prebuilt, a rig, weapon meshes, navmesh parses).
 - `buildprobe`: Body build time by stage (headless).
