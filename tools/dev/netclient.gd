@@ -910,7 +910,8 @@ func same_isles(mine: Dictionary, theirs: Dictionary, what: String) -> void:
 		check(tag + " - the villagers' routines and the quests as on the host (%d)" % b["life"].size(), a["life"] == b["life"])
 		# (at "beast" the island we felled it on may have let its body go on both machines by now)
 		var gone: bool = what == "beast" and a["ape"] == "" and b["ape"] == ""
-		check(tag + " - its beast (%s)" % (b["ape"] if not gone else "felled, gone on both"), gone or (a["ape"] == b["ape"] and b["ape"] != "" and net.node_of(b["ape"]) != null and net.node_of(b["ape"]).net_puppet))
+		check(tag + " - its beast (%s, %s)" % [b["beast"], b["ape"] if not gone else "felled, gone on both"], a["beast"] == b["beast"]
+			and (gone or (a["ape"] == b["ape"] and b["ape"] != "" and net.node_of(b["ape"]) != null and net.node_of(b["ape"]).net_puppet)))
 
 
 ## Mode "chain": joining late a host already on the chain's first island (its
@@ -1045,7 +1046,7 @@ func _chain_step() -> void:
 			if not gm.chain_set and st_t < 10.0:
 				return
 			check("we fell the beast: the host sets the log pose for everyone", gm.chain_set and gm.log_pose_set())
-			check("...it's dead here", is_instance_valid(data["ape"]) and int(data["ape"].state) == 14)
+			check("...it's dead here", is_instance_valid(data["ape"]) and data["ape"].is_dead())
 			go(113)
 		113:
 			var want: Array = c.next_of(int(data["B"]))

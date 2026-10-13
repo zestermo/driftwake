@@ -71,7 +71,7 @@ func chain_report() -> Dictionary:
 		life.append_array(isl.life.given.map(func(q): return [q["id"], q["kind"], q["title"]]))
 		isles[int(id)] = {"name": isl.island_name, "pos": isl.position, "radius": isl.radius, "sites": isl.sites,
 			"crew": crew, "people": people, "chests": chests, "life": life,
-			"ape": n.key_of(arena.boss) if is_instance_valid(arena.boss) else ""}
+			"ape": n.key_of(arena.boss) if is_instance_valid(arena.boss) else "", "beast": arena.kind}
 	var ids: Array = isles.keys()
 	ids.sort()
 	return {"seed": gm.chain_seed, "at": gm.chain_at, "set": gm.chain_set, "since": gm.chain_since,

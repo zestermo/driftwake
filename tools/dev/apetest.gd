@@ -16,6 +16,7 @@ var arena
 var ape
 var hp0 := 0.0
 var fails := 0
+var rebuilt := false
 func _initialize():
 	change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
@@ -40,7 +41,7 @@ func heal() -> void:
 	hp0 = 9000.0
 func _process(d: float) -> bool:
 	t += d
-	if t > 120.0:
+	if t > 150.0:
 		check("timed out at step %d" % step, false)
 		finish()
 		return true
@@ -56,7 +57,9 @@ func _process(d: float) -> bool:
 			if not world.chain_ready():
 				return false
 			isl = world.chain_islands[world.chain().start_next[0]]
-			arena = isl.get_node("Site_boss/Arena")
+			# (an island the pool gave another beast gets the ape swapped in: its village job then points at the old one)
+			rebuilt = str(isl.node["beast"]) != "ape"
+			arena = load("res://scripts/island/beast_arena.gd").rebuild(isl, "ape") if rebuilt else isl.get_node("Site_boss/Arena")
 			ape = arena.boss
 			check("a silverback sleeps on the beast's ground", ape != null and ape.state == 0 and ape.humanoid.stance == "ape")
 			check("...twice a man's height", ape.humanoid.scale.y > 2.0)
@@ -79,7 +82,7 @@ func _process(d: float) -> bool:
 			check("then it comes for you", ape.state in [2, 5, 7] and ape._special in ["", "swipe", "slam", "leap", "throw"])
 			# the slam: stand in front of it
 			heal()
-			ape._cd = {"swipe": 99.0, "slam": 99.0, "leap": 99.0, "throw": 99.0}
+			ape._cd = {"swipe": 99.0, "slam": 99.0, "leap": 99.0, "throw": 99.0, "canopy": 99.0}
 			put(ape.global_position + ape._fwd() * 3.0)
 			ape._special = ""
 			ape._begin_special("slam")
@@ -110,9 +113,10 @@ func _process(d: float) -> bool:
 			step = 8
 		8:
 			heal()
-			# (inland, toward the village: the far side's coast is close)
-			var inland: Vector2 = (isl.sites["village"] - isl.sites["boss"]).normalized()
-			put(ape.global_position + Vector3(inland.x, 0, inland.y) * 15.0)
+			# (from the middle of the floor toward the way in: past the floor stand the giants)
+			ape.global_position = arena.global_position + Vector3.UP * 0.3
+			ape.reset_physics_interpolation()
+			put(near(15.0))
 			ape._special = ""
 			ape._begin_special("throw")
 			wait = 0.7
@@ -142,7 +146,35 @@ func _process(d: float) -> bool:
 			ape._begin_special("swipe")
 			ape.parried(p)
 			check("a parried swipe staggers it", ape.state == 9 and ape._special == "")
+			wait = 2.5
+			step = 20
+		20:
+			# the canopy: up a giant, round the ring, a boulder down, then down onto you
+			heal()
+			ape.global_position = arena.global_position + Vector3.UP * 0.3
+			ape.reset_physics_interpolation()
+			put(near(8.0))
+			ape._special = ""
+			ape._set_state(2)
+			ape._begin_special("climb")
+			ape._throws = 1
+			wait = 2.2
+			step = 21
+		21:
+			check("it bounds up into the canopy (%.1f m up, on limb %d)" % [ape.global_position.y - arena.global_position.y, ape._perch],
+				ape.up and ape.global_position.y > arena.global_position.y + 9.0)
+			check("...and is gone into the leaves (or showing itself on a limb)", ape._special in ["prowl", "tree_throw", "drop"])
+			step = 22
+		22:
+			if ape.up and t < 110.0:
+				return false
+			check("...a boulder down from the trees, then it crashes down onto you (hp %.0f / %.0f)" % [p.health_component.current_health, hp0],
+				not ape.up and p.health_component.current_health < hp0)
+			wait = 2.0
+			step = 23
+		23:
 			ape.health.current_health = ape.health.max_health * 0.55
+			ape._cd["canopy"] = 99.0
 			wait = 0.3
 			step = 13
 		13:
@@ -163,7 +195,8 @@ func _process(d: float) -> bool:
 			check("killed: the victory", arena._celebrated)
 			check("...the flag the village and the log pose read", root.get_node("Dialogue").has_flag(isl.save_key("boss_beaten")))
 			check("...its hoard (with the Silverback Pelt)", arena.get_node_or_null("Hoard") != null and arena.get_node("Hoard").contents.any(func(s): return s.item.display_name == "Silverback Pelt"))
-			var vil = isl.get_node("Site_village/Village")
-			check("...and the village's job on it is done", vil.jobs["beast"]["check"].call())
+			if not rebuilt:
+				var vil = isl.get_node("Site_village/Village")
+				check("...and the village's job on it is done", vil.jobs["beast"]["check"].call())
 			finish()
 	return false

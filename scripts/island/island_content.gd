@@ -27,6 +27,7 @@ static func steps(isl: GenIsland) -> Array:
 		["ruins", func(): _ruins(isl, rng)],
 		["summit", func(): _summit(isl)],
 		["boss", func(): BeastArena.build(isl, rng)],
+		["beasts", func(): BeastDens.build(isl)],
 		# (after the camp, the lair and the beast: its jobs watch them)
 		["village", func(): IslandVillage.build(isl, rng)],
 	] + KitLandmarks.steps(isl) + KitDungeons.steps(isl)

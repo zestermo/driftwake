@@ -127,6 +127,7 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 			prev_theme[int(nodes[id]["branch"])] = nodes[id]["theme"]
 		prev = ids
 	KitSetPieces.assign(self)
+	BeastPool.assign(self)
 
 
 ## `dir` turned as little as it takes for a leg from `at` to end inside RING with

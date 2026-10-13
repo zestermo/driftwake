@@ -165,6 +165,19 @@ graphs) is in `references/pathfinding.md`.
 - `references/behavior-trees.md` — node taxonomy, leaf/decorator implementations,
   blackboard, and FSM-vs-BT selection.
 
+## Driftwake: big beasts (JungleBeast)
+
+- Host brain, puppet playback: state + `move` + `mv_t` in the snapshot, so a guest animates the
+  same move from the same clock; never sync poses joint by joint.
+- Every move is tell -> commit -> opening: a ring/strip on the ground (warn_ring/warn_lane) for at
+  least ~0.6 s, the blow as a shape judged on each captain's own machine (strike()), then
+  `end_move(recover)`; mv_t < 0 is the opening where the brain picks nothing.
+- Hiding beasts (the Silverback in the canopy, the Shade in the brush, the Strangler under it) keep
+  telling where they are (leaves, rustle sounds moving with them, eyes, glimpses) and always show
+  themselves before the blow; a hit while they show themselves pays off (knocked out of the tree).
+- Away from an arena a beast watches for captains itself (wake_r / leash_r) and sleeps (skipped)
+  with nobody within 110 m.
+
 ## Related skills
 
 - `unity-navmesh`, `unreal-behavior-trees` — concrete engine AI/navigation APIs.

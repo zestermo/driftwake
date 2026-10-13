@@ -134,7 +134,7 @@ func prepare(n: Dictionary) -> void:
 	_scatter_vegetation()
 	# the villagers' bodies, ready for their NPCs (Humanoid.make picks them up)
 	t0 = Time.get_ticks_usec()
-	for lk in IslandVillage.looks(self) + [JungleApe.ape_look()]:
+	for lk in IslandVillage.looks(self) + BeastPool.stock_looks(n):
 		var h := Humanoid.new()
 		h.setup(lk)
 		Humanoid.stock(h, lk)
@@ -188,7 +188,8 @@ func _notification(what: int) -> void:
 	# (let go before its beast or village was made: the bodies prepare built for them would wait forever)
 	if what == NOTIFICATION_PREDELETE and build_ms.has("bodies"):
 		if not build_ms.has("boss"):
-			Humanoid.unstock(JungleApe.ape_look())
+			for lk in BeastPool.stock_looks(node):
+				Humanoid.unstock(lk)
 		if not build_ms.has("village"):
 			for lk in IslandVillage.looks(self):
 				Humanoid.unstock(lk)

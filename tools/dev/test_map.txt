@@ -121,6 +121,11 @@ tools/dev/villagetest.gd                villagetest
 scripts/enemies/jungle_ape.gd           apetest leveltest net netchain
 scripts/npc/ape_poses.gd                apetest
 scripts/npc/ape_builder.gd              apetest leveltest
+scripts/enemies/beasts/*                bosstest apetest netchain
+scripts/island/beast_arena.gd           bosstest
+scripts/island/island_content.gd        bosstest
+scripts/world/chain.gd                  bosstest
+tools/dev/bosstest.gd                   bosstest
 scripts/island/island_theme.gd          isletest chaintest
 scripts/island/kit/kit_harbour*         harbourtest isletest netchain
 scripts/island/kit/kit_style.gd         harbourtest

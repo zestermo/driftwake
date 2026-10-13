@@ -12,3 +12,4 @@ Islands & world: chaintest isletest fidelitytest foresttest storytest ambiencete
 Co-op: net net-chain net-board
 Islands & world: harbourtest
 Islands & world: dungeontest
+Enemies: bosstest

@@ -11,11 +11,20 @@ class_name JungleApe
 ## range: the backhand swipe up close (parry it), the two-fist slam (a red
 ## ring in front of it), a leap onto you from afar (a ring where it lands), or
 ## it rips up a boulder and hurls it (a ring where it'll come down).
-## Below 60% it roars again; below 30% it roars and is enraged: quicker, the
-## cooldowns shorter. No knockdowns: poise built up by hits staggers it, and
-## Armament Haki (or a guard-breaker) knocks it out of a slam's or a leap's wind-up.
+## Below 60% it roars and takes to the trees: it bounds up onto a limb of the
+## arena's ring of giants and is gone into the canopy. Up there it runs the
+## ring from limb to limb (crowns shake, leaves come down, its grunts and the
+## rustle move round you, now and then a glimpse of it crouched on a branch),
+## hurls boulders down from wherever it is (it shows itself to throw: the
+## branch thrashes, a ring where it lands), then rears up on a limb roaring and
+## crashes down onto you (a wide ring). Shoot or strike it while it shows
+## itself and it's knocked out of the tree, stunned where it lands. Below 30%
+## it's enraged: quicker, the cooldowns shorter, more boulders, back up sooner.
+## No knockdowns: poise built up by hits staggers it, and Armament Haki (or a
+## guard-breaker) knocks it out of a slam's or a leap's wind-up.
 ## Co-op: host-run; the shockwaves are judged on each captain's own machine
-## (event "aoe"), the boulder flies on every screen (event "rock").
+## (event "aoe"), the boulder flies on every screen (event "rock"), the crowns
+## shake on every screen (event "shake"), up or showing itself rides the snapshot.
 
 signal phase_changed(phase: int)
 
@@ -39,6 +48,20 @@ const LEAP_WIND := 0.45
 const LEAP_AIR := 0.9
 const LIFT_LEN := 0.9
 const HURL_LEN := 0.6
+## The canopy: up a limb, round the ring, boulders down, then down onto you.
+const CLIMB_WIND := 0.5
+const CLIMB_AIR := 1.0
+const HOP := [1.5, 1.1]
+const THROWS := [3, 4]
+const CANOPY_CD := [30.0, 22.0]
+const GLIMPSE := 0.6
+const TREE_WIND := 0.75
+const DROP_WARN := 1.3
+const DROP_AIR := 0.7
+const DROP_R := 6.2
+## Taking this share of its health while it shows itself up there knocks it out of the tree.
+const KNOCK_DOWN := 0.035
+const FALL_STUN := 3.0
 
 var phase: int = 1
 var arena: Node = null
@@ -48,11 +71,21 @@ var _sp_t: float = 0.0
 var _sp_from := Vector3.ZERO
 var _sp_target := Vector3.ZERO
 var _sp_hit: bool = false
-var _cd := {"swipe": 0.0, "slam": 3.0, "leap": 6.0, "throw": 5.0}
+var _cd := {"swipe": 0.0, "slam": 3.0, "leap": 6.0, "throw": 5.0, "canopy": 0.0}
 var _poise: float = 0.0
 var _hit_swipe: HitData
 var _rock: MeshInstance3D
 var _rocks: Array = []   # [node, from, to, t, dur] flying
+## Up in the canopy: the limb it's on (index into arena.trees), or -1 on the ground.
+var up: bool = false
+var _perch: int = -1
+var _hop_to: int = -1
+var _hop_len: float = 1.3
+var _hop_dir: int = 1
+var _throws: int = 0
+var _rustle_t: float = 0.0
+var _show_t: float = 0.0
+var _tree_hits: float = 0.0
 
 
 static func ape_look() -> Dictionary:
@@ -110,8 +143,16 @@ func is_fighting() -> bool:
 	return in_combat()
 
 
+func asleep() -> bool:
+	return state == S.IDLE
+
+
 func health_frac() -> float:
 	return health.current_health / maxf(health.max_health, 1.0)
+
+
+func trophy(t: int) -> ItemData:
+	return Gear.make("accessory", "cape", {"cape": true, "cape_color": SILVER}, "Silverback Pelt", t)
 
 
 ## Woken (the arena, or a hit): it rears up and roars first.
@@ -193,6 +234,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _choose(dist: float) -> String:
+	if phase >= 2 and _cd["canopy"] <= 0.0 and arena != null and not (arena.trees as Array).is_empty():
+		return "climb"
 	if dist < SWIPE_RANGE and _cd["swipe"] <= 0.0:
 		if dist < 5.5 and _cd["slam"] <= 0.0 and _rng.randf() < 0.35:
 			_cd["slam"] = _rng.randf_range(5.0, 7.0)
@@ -212,11 +255,14 @@ func _phase_check() -> void:
 	var f := health_frac()
 	if phase == 1 and f < 0.6:
 		phase = 2
-		_begin_special("roar")
+		_cd["canopy"] = 0.0
+		if not up:
+			_begin_special("roar")
 		phase_changed.emit(2)
 	elif phase == 2 and f < 0.3:
 		phase = 3
-		_begin_special("roar")
+		if not up:
+			_begin_special("roar")
 		phase_changed.emit(3)
 
 
@@ -252,6 +298,16 @@ func _begin_special(what: String) -> void:
 			Net.fx("sfx", ["peril", global_position, -1.0, 0.03, 0.65])
 		"throw":
 			humanoid.hold("ape_lift", LIFT_LEN)
+		"climb":
+			_cd["canopy"] = CANOPY_CD[0 if phase < 3 else 1] + _rng.randf_range(-3.0, 3.0)
+			_throws = THROWS[0 if phase < 3 else 1]
+			_perch = _nearest_perch()
+			_hop_dir = 1 if _rng.randf() < 0.5 else -1
+			_sp_from = global_position
+			_sp_target = _perch_at(_perch)
+			_face(_flat(_sp_target - global_position))
+			humanoid.hold("ape_crouch", CLIMB_WIND)
+			_say("grunt", global_position, 4.0, 0.9)
 
 
 func _ground_at(p: Vector3) -> Vector3:
@@ -337,18 +393,25 @@ func _special_update(delta: float) -> void:
 				humanoid.play("ape_hurl", HURL_LEN)
 			if _sp_t > LIFT_LEN + HURL_LEN * 0.25 and not _sp_hit and _rock:
 				_sp_hit = true
-				var from := _rock.global_position
-				var to := _ground_at((p.global_position + _flat((p as CharacterBody3D).velocity) * 0.4) if p else global_position + _fwd() * 12.0)
-				var dur := clampf(from.distance_to(to) / 20.0, 0.55, 1.4)
-				Net.fx("telegraph", [to, ROCK_R, dur, Color(1.0, 0.18, 0.12)])
-				_throw_rock(from, to, dur)
-				Net.event(self, "rock", ["throw", from, to, dur])
-				get_tree().create_timer(dur).timeout.connect(func():
-					if is_instance_valid(self):
-						_aoe(to, ROCK_R, 24.0, true))
+				_hurl_at(p, 20.0, 0.55)
 			if _sp_t > LIFT_LEN + HURL_LEN:
 				remove_meta("hurling")
 				_end_special(0.6)
+		"climb":
+			grounded = false
+			_climb_update()
+		"prowl":
+			grounded = false
+			_prowl_update(delta)
+		"tree_throw":
+			grounded = false
+			_tree_throw_update(p)
+		"drop":
+			grounded = false
+			_drop_update()
+		"fall":
+			grounded = false
+			_fall_update(delta)
 	if grounded:
 		if is_on_floor() and velocity.y < 0.0:
 			velocity.y = -0.5
@@ -361,8 +424,22 @@ func _special_update(delta: float) -> void:
 		facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
 		_feed_body(hv, false)
 	else:
+		facing.rotation.y = lerp_angle(facing.rotation.y, _yaw, minf(8.0 * delta, 1.0))
 		_feed_body(Vector3.ZERO, false)
 		humanoid.grounded = false
+
+
+## The boulder in its fists flies at `p` (where it's heading), a ring where it'll come down.
+func _hurl_at(p: Node3D, speed: float, min_t: float) -> void:
+	var from := _rock.global_position
+	var to := _ground_at((p.global_position + _flat((p as CharacterBody3D).velocity) * 0.4) if p else global_position + _fwd() * 12.0)
+	var dur := clampf(from.distance_to(to) / speed, min_t, 1.5)
+	Net.fx("telegraph", [to, ROCK_R, dur, Color(1.0, 0.18, 0.12)])
+	_throw_rock(from, to, dur)
+	Net.event(self, "rock", ["throw", from, to, dur])
+	get_tree().create_timer(dur).timeout.connect(func():
+		if is_instance_valid(self):
+			_aoe(to, ROCK_R, 24.0, true))
 
 
 func _end_special(recover: float) -> void:
@@ -370,6 +447,245 @@ func _end_special(recover: float) -> void:
 	_special = ""
 	set_meta("recover", recover)
 	_set_state(S.RECOVER)
+
+
+# ==========================================================================
+# The canopy
+# ==========================================================================
+func _perch_at(i: int) -> Vector3:
+	return arena.trees[i]["perch"]
+
+
+func _nearest_perch() -> int:
+	var best := 0
+	var bd := INF
+	for i in range((arena.trees as Array).size()):
+		var d := _flat(_perch_at(i) - global_position).length()
+		if d < bd:
+			bd = d
+			best = i
+	return best
+
+
+## Facing the floor's middle from up on limb `i`.
+func _face_in() -> void:
+	_face(_flat(arena.centre() - global_position))
+
+
+func _shake(i: int, k: float) -> void:
+	arena.shake(i, k)
+	Net.event(self, "shake", [i, k])
+
+
+func _say(n: String, at: Vector3, vol: float, pitch: float) -> void:
+	BeastFX.sfx(n, at, vol, pitch, 90.0)
+	Net.event(self, "say", [n, at, vol, pitch])
+
+
+## Hidden in the leaves (`on` false) or showing itself on its limb.
+func _show(on: bool) -> void:
+	humanoid.visible = on
+	hurtbox.monitorable = on
+
+
+func _go_up(on: bool) -> void:
+	up = on
+	_col.disabled = on
+	_tree_hits = 0.0
+	if not on:
+		_perch = -1
+		_show(true)
+
+
+## A crouch, then one great bound up onto the limb; into the leaves.
+func _climb_update() -> void:
+	if _sp_t < CLIMB_WIND:
+		_face(_flat(_sp_target - global_position))
+		return
+	var u := clampf((_sp_t - CLIMB_WIND) / CLIMB_AIR, 0.0, 1.0)
+	if humanoid.current_action() != "ape_air":
+		humanoid.hold("ape_air", 0.2)
+		_go_up(true)
+		_show(true)
+		Net.fx("dust_ring", [_sp_from, 20, 1.4])
+		Net.fx("sfx", ["whoosh_big", _sp_from, 2.0, 0.05, 0.6])
+	var flat := _sp_from.lerp(_sp_target, u)
+	global_position = Vector3(flat.x, lerpf(_sp_from.y, _sp_target.y, u * u * (3.0 - 2.0 * u)) + sin(u * PI) * 3.0, flat.z)
+	velocity = Vector3.ZERO
+	if u >= 1.0:
+		_shake(_perch, 1.0)
+		_say("branch", global_position, 2.0, 0.9)
+		_show(false)
+		_next_hop()
+		_special = "prowl"
+		_sp_t = 0.0
+
+
+## Off along the ring to another limb (on round the way it's going, now and then doubling back).
+func _next_hop() -> void:
+	var n: int = (arena.trees as Array).size()
+	if _rng.randf() < 0.25:
+		_hop_dir = -_hop_dir
+	_hop_to = posmod(_perch + _hop_dir * (1 + (1 if _rng.randf() < 0.35 else 0)), n)
+	_hop_len = HOP[0 if phase < 3 else 1] * _rng.randf_range(0.85, 1.2)
+	_sp_from = global_position
+	_sp_target = _perch_at(_hop_to)
+	_show_t = 0.0
+
+
+## Running the canopy: limb to limb along the ring, the leaves thrashing where it goes.
+func _prowl_update(delta: float) -> void:
+	var u := clampf(_sp_t / _hop_len, 0.0, 1.0)
+	var c: Vector3 = arena.centre()
+	var a0 := atan2(_sp_from.z - c.z, _sp_from.x - c.x)
+	var a1 := atan2(_sp_target.z - c.z, _sp_target.x - c.x)
+	var a := a0 + angle_difference(a0, a1) * u
+	var r := lerpf(_flat(_sp_from - c).length(), _flat(_sp_target - c).length(), u) + sin(u * PI) * 2.5
+	global_position = Vector3(c.x + cos(a) * r, lerpf(_sp_from.y, _sp_target.y, u) + sin(u * PI) * 1.6, c.z + sin(a) * r)
+	_face(Vector3(-sin(a), 0.0, cos(a)) * float(signf(angle_difference(a0, a1))))
+	velocity = Vector3.ZERO
+	_rustle_t -= delta
+	if _rustle_t <= 0.0 and u < 0.95:
+		_rustle_t = 0.42
+		BeastFX.leaves(global_position + Vector3(0, 3.0, 0), 8, 2.0)
+		BeastFX.sfx("leaves", global_position, -6.0, 1.1, 80.0)
+		Net.event(self, "rustle", [global_position])
+	if _show_t > 0.0:
+		_show_t -= delta
+		if _show_t <= 0.0:
+			_show(false)
+	if u < 1.0:
+		return
+	_perch = _hop_to
+	_shake(_perch, 0.55)
+	_face_in()
+	if _rng.randf() < 0.3:
+		_say("grunt", global_position, 2.0, _rng.randf_range(0.85, 1.05))
+	if _throws > 0 and _rng.randf() < 0.6:
+		_throws -= 1
+		_special = "tree_throw"
+		_sp_t = 0.0
+		_sp_hit = false
+		_show(true)
+		humanoid.hold("ape_lift", TREE_WIND * 0.6)
+		_shake(_perch, 1.0)
+		_say("grunt", global_position, 4.0, 0.95)
+		return
+	if _throws <= 0:
+		_special = "drop"
+		_sp_t = 0.0
+		_sp_hit = false
+		var p := _target()
+		_sp_from = global_position
+		_sp_target = _ground_at(p.global_position if p else arena.centre())
+		_show(true)
+		humanoid.play("ape_beat", DROP_WARN)
+		Net.fx("telegraph", [_sp_target, DROP_R, DROP_WARN + DROP_AIR, Color(1.0, 0.18, 0.12)])
+		Net.fx("sfx", ["roar", global_position, 8.0, 0.03, 0.62])
+		_shake(_perch, 1.0)
+		return
+	_next_hop()
+	_sp_t = 0.0
+	# a glimpse now and then: crouched on the limb, eyes in the dark
+	if _rng.randf() < 0.35:
+		_show(true)
+		humanoid.hold("ape_perch", 0.15)
+		_show_t = GLIMPSE
+
+
+## Showing itself on the limb, a boulder hauled up and hurled down.
+func _tree_throw_update(p: Node3D) -> void:
+	if p:
+		_face(_flat(p.global_position - global_position))
+	if _sp_t > TREE_WIND * 0.4 and _rock == null and not _sp_hit:
+		_grab_rock()
+		Net.event(self, "rock", ["grab"])
+	if _sp_t > TREE_WIND and not has_meta("hurling"):
+		set_meta("hurling", true)
+		humanoid.play("ape_hurl", HURL_LEN)
+	if _sp_t > TREE_WIND + HURL_LEN * 0.25 and not _sp_hit and _rock:
+		_sp_hit = true
+		_hurl_at(p, 22.0, 0.8)
+	if _sp_t > TREE_WIND + HURL_LEN + 0.15:
+		remove_meta("hurling")
+		_show(false)
+		_special = "prowl"
+		_next_hop()
+		_sp_t = 0.0
+
+
+## Reared up on the limb roaring, then down out of the canopy onto you.
+func _drop_update() -> void:
+	if _sp_t < DROP_WARN:
+		_face(_flat(_sp_target - global_position))
+		return
+	var u := clampf((_sp_t - DROP_WARN) / DROP_AIR, 0.0, 1.0)
+	if humanoid.current_action() != "ape_dive":
+		humanoid.hold("ape_dive", 0.15)
+		_hurt_off_for_dive()
+		BeastFX.leaves(global_position + Vector3(0, 2.0, 0), 30, 3.0)
+		Net.event(self, "rustle", [global_position])
+		Net.fx("sfx", ["whoosh_big", global_position, 4.0, 0.05, 0.55])
+	var flat := _sp_from.lerp(_sp_target, u)
+	global_position = Vector3(flat.x, lerpf(_sp_from.y, _sp_target.y, u * u) + sin(u * PI) * 2.0, flat.z)
+	velocity = Vector3.ZERO
+	if u >= 1.0 and not _sp_hit:
+		_sp_hit = true
+		_go_up(false)
+		humanoid.play("ape_slam", ActionSpecs.length("ape_slam"))
+		_aoe(global_position, DROP_R, 34.0, true)
+		Net.fx("dust_ring", [global_position, 40, 2.6])
+		Net.fx("impact", [global_position + Vector3(0, 0.5, 0), Color(1.0, 0.5, 0.3)])
+		Net.fx("sfx", ["thud", global_position, 8.0, 0.05, 0.4])
+		get_node("/root/CombatManager").apply_camera_shake(0.55)
+		_end_special(1.4)
+
+
+## (it can't be struck mid-dive: the blow lands as it does)
+func _hurt_off_for_dive() -> void:
+	hurtbox.monitorable = false
+
+
+## Knocked out of the tree: down it comes, stunned where it lands.
+func _fall_update(delta: float) -> void:
+	velocity.y -= GRAVITY * delta
+	global_position += velocity * delta
+	if _sp_t > 0.2 and global_position.y <= _sp_target.y:
+		global_position.y = _sp_target.y
+		_go_up(false)
+		Net.fx("dust_ring", [global_position, 30, 2.0])
+		Net.fx("sfx", ["thud", global_position, 6.0, 0.05, 0.5])
+		Net.fx("float_text", [global_position + Vector3(0, 4.0, 0), "Knocked down!", Color(1.0, 0.85, 0.4), 30])
+		get_node("/root/CombatManager").apply_camera_shake(0.35)
+		_special = ""
+		_stagger_len = FALL_STUN
+		humanoid.react("stagger", FALL_STUN, -_fwd())
+		_set_state(S.STAGGER)
+
+
+func _knock_out_of_tree() -> void:
+	if _rock:
+		_rock.queue_free()
+		_rock = null
+		Net.event(self, "rock", ["drop"])
+	remove_meta("hurling")
+	_special = "fall"
+	_sp_t = 0.0
+	_sp_target = _ground_at(global_position)
+	velocity = _flat(arena.centre() - global_position).normalized() * 3.0
+	_show(true)
+	humanoid.hold("ape_air", 0.15)
+	_shake(_perch, 1.0)
+	Net.fx("sfx", ["roar", global_position, 4.0, 0.05, 1.15])
+
+
+## Everyone left while it was up: down it comes, back to its post.
+func _come_down() -> void:
+	if not up:
+		return
+	_go_up(false)
+	global_position = post + Vector3.UP * 0.3
+	reset_physics_interpolation()
 
 
 ## A shockwave: every machine checks its own captain (jump it or dodge through).
@@ -411,7 +727,8 @@ func _grab_rock() -> void:
 	_rock.scale = Vector3.ONE * 0.95
 	_rock.top_level = true
 	add_child(_rock)
-	Net.fx("dust", [global_position + _fwd() * 1.5, 10, 1.0])
+	if not up:
+		Net.fx("dust", [global_position + _fwd() * 1.5, 10, 1.0])
 	_rock_follow()
 
 
@@ -437,7 +754,9 @@ func _fly_rocks(delta: float) -> void:
 		var u := clampf(float(r[3]) / float(r[4]), 0.0, 1.0)
 		var from: Vector3 = r[1]
 		var to: Vector3 = r[2]
-		n.global_position = from.lerp(to, u) + Vector3.UP * sin(u * PI) * from.distance_to(to) * 0.22
+		# (thrown down from the canopy it barely arcs)
+		var arc := 0.22 if from.y - to.y < 5.0 else 0.06
+		n.global_position = from.lerp(to, u) + Vector3.UP * sin(u * PI) * from.distance_to(to) * arc
 		n.rotation += Vector3(4.0, 2.5, 0) * delta
 		if u >= 1.0:
 			FX.dust_ring(to, 22, 1.6)
@@ -464,6 +783,11 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		return
 	if state == S.IDLE:
 		alert()
+		return
+	if up:
+		_tree_hits += hit.damage
+		if (_tree_hits >= health.max_health * KNOCK_DOWN or hit.haki) and _special in ["prowl", "tree_throw", "drop"] and not (_special == "drop" and _sp_t >= DROP_WARN):
+			_knock_out_of_tree()
 		return
 	# Haki (or a guard-breaker) knocks it out of a slam's or a leap's wind-up
 	if (_special == "slam" and _sp_t < SLAM_WIND) or (_special == "leap" and _sp_t < LEAP_WIND):
@@ -511,6 +835,8 @@ func _on_died() -> void:
 		return
 	_special = ""
 	_set_peril(false)
+	if up:
+		_go_up(false)
 	if _rock:
 		_rock.queue_free()
 		_rock = null
@@ -536,11 +862,13 @@ func _lv_ref() -> int:
 func reset_fight() -> void:
 	if state == S.DEAD:
 		return
+	_come_down()
 	_special = ""
 	hitbox.deactivate()
 	_set_peril(false)
 	phase = 1
 	_poise = 0.0
+	_cd["canopy"] = 0.0
 	health.current_health = health.max_health
 	humanoid.stop_action()
 	_set_state(S.RETURN)
@@ -552,6 +880,8 @@ func reset_fight() -> void:
 func net_pack() -> Array:
 	var a := super.net_pack()
 	a.append(phase)
+	a.append(up)
+	a.append(humanoid.visible)
 	return a
 
 
@@ -560,10 +890,15 @@ func _net_update(delta: float) -> void:
 	var smp := Net.sample(self)
 	if smp.is_empty():
 		return
+	var a: Array = smp[0]
 	var b: Array = smp[1]
 	if b.size() >= 22 and int(b[21]) != phase:
 		phase = int(b[21])
 		phase_changed.emit(phase)
+	if a.size() >= 24 and state != S.DEAD:
+		up = bool(a[22])
+		humanoid.visible = bool(a[23])
+		hurtbox.monitorable = bool(a[23])
 
 
 func net_event(what: String, args: Array) -> void:
@@ -581,5 +916,15 @@ func net_event(what: String, args: Array) -> void:
 					if _rock:
 						_rock.queue_free()
 						_rock = null
+			return
+		"shake":
+			arena.shake(int(args[0]), float(args[1]))
+			return
+		"say":
+			BeastFX.sfx(str(args[0]), args[1], float(args[2]), float(args[3]), 90.0)
+			return
+		"rustle":
+			BeastFX.leaves(args[0] + Vector3(0, 3.0, 0), 8, 2.0)
+			BeastFX.sfx("leaves", args[0], -6.0, 1.1, 80.0)
 			return
 	super.net_event(what, args)

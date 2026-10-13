@@ -80,4 +80,20 @@ static func pose(h, n: String, u: float) -> Array:
 				"arm_l": Vector3(1.15, 0, -0.2), "fore_l": Vector3(0.2, 0, 0), "arm_r": Vector3(1.15, 0, 0.2), "fore_r": Vector3(0.2, 0, 0),
 				"_lift": Vector3(0, -0.25, 0), "leg_l": Vector3(0.9, 0, -0.25), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.1, 0, 0.25), "shin_r": Vector3(-0.7, 0, 0)}
 			return [h._keys(u, [[0.0, over], [0.28, thrown, "out"], [0.55, thrown], [1.0, {}]]), "full", Vector3.ZERO]
+		"ape_perch":
+			# (held) crouched on a limb up in the canopy: one fist gripping a branch
+			# overhead, the other knuckles down on the limb, head low and forward
+			var perch := {"pivot": Vector3(-0.45, 0, 0), "hips": Vector3(0, 0.15, 0), "torso": Vector3(-0.3, -0.15, 0), "head": Vector3(0.75, 0.2, 0),
+				"arm_l": Vector3(2.7, 0, -0.45), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3(0.5, 0, 0),
+				"arm_r": Vector3(1.35, 0, 0.3), "fore_r": Vector3(0.2, 0, 0), "_lift": Vector3(0, -0.5, 0)}.merged(DEEP_LEGS)
+			return [h._keys(u, [[0.0, {}], [1.0, perch, "out"]]), "full", Vector3.ZERO]
+		"ape_dive":
+			# (held) flung down out of the canopy: arms spread wide, then both fists drawn up for the landing
+			var spread := {"pivot": Vector3(-0.5, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.25, 0, 0), "head": Vector3(0.6, 0, 0),
+				"arm_l": Vector3(1.6, 0, -1.4), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(1.6, 0, 1.4), "fore_r": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(0.7, 0, -0.35), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.7, 0, 0.35), "shin_r": Vector3(-1.1, 0, 0),
+				"_scale": Vector3(1.04, 0.98, 1.0)}
+			var fists := spread.merged({"pivot": Vector3(-0.2, 0, 0), "arm_l": Vector3(2.8, 0, -0.25), "fore_l": Vector3(0.7, 0, 0),
+				"arm_r": Vector3(2.8, 0, 0.25), "fore_r": Vector3(0.7, 0, 0)})
+			return [h._keys(u, [[0.0, {}], [0.45, spread, "out"], [1.0, fists, "in"]]), "full", Vector3.ZERO]
 	return []

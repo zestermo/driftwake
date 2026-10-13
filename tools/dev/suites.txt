@@ -53,3 +53,4 @@ lifetest
 dungeontest
 villagetest
 landmarktest
+bosstest

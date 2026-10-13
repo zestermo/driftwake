@@ -76,6 +76,17 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
 **Phase 4: polish loop**
 - [ ] Zach plays seeds and sends F12 captures; agents fill what reads as sparse.
 
+## Jungle bosses (2026-10-12; see dev_notes "jungle bosses")
+- [x] The Silverback takes to the trees (phase 2+): canopy run, boulders down, the crash down; shot out of the tree.
+- [x] Boss pool per island from the chain (BeastPool): ape, serpent (Strangler), stalker (Shade), mantis (Mantis Queen); never the one before.
+- [x] Arena under a closed canopy ringed by giant trees, brush to hide in, dressed per beast; `_ground()` is the swap point for the theme's canopy-arena request.
+- [x] Miniboss: the alpha boar at the ruins. Roaming beast: the Thornback grazing the island. POIs for quests (BeastPool.pois).
+- [ ] Swap BeastArena._ground() for the jungle theme's canopy-arena request when it lands.
+- [ ] More minibosses: pirate warlord at the camp (needs a PirateGrunt hook), bat swarm-mother in the lair.
+- [ ] Carnivorous plant titan in a swamp (needs a swamp site).
+- [ ] Minibosses and the roamer respawn (they stay dead until the island is rebuilt).
+- [ ] Render review: bossshot sheets for the serpent, stalker and mantis (models built, not yet looked at).
+
 ## Open from the 2026-10-09 session (not yet prioritised)
 - **Save keys repeat across worlds:** chest, job and beast flags (`isle<id>_*`, `leg<x>_<y>_*`) are
   keyed by island number, which repeats across chain seeds, so a guest's opened chest counts on the

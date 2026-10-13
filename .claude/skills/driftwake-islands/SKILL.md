@@ -302,3 +302,8 @@ qoltest, foresttest, r6-r10, savetest, swimtest, grunttest, yardtest, looptest, 
 - Tools are SceneTree scripts: call kit statics through `load("res://scripts/island/kit/...").fn(...)`;
   naming Kit classes (or NPC, LootBag) statically there compiles before the autoloads exist.
 - A new `class_name` needs `& $env:GODOT --headless --import` before tests see it.
+- **Beasts per island come from the chain, not the island's rng.** BeastPool.assign (end of
+  Chain._build, its own rng) writes "beast", "beast_look", "minis", "roamer" into each node; the
+  boss's ground is BeastArena (its `_ground()` is the one swap point for a canopy-arena request:
+  centre, floor radius, ring spots), minibosses and the roamer are BeastDens (IslandContent step
+  "beasts"). Quest/marker code reads BeastPool.pois(isl) and roamer_of(isl).
