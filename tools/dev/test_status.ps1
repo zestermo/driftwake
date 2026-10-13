@@ -81,7 +81,7 @@ foreach ($s in $all) {
 	if (Test-Path $lf) { $ledger = Get-Content $lf -Raw | ConvertFrom-Json }
 	$row = [ordered]@{ name = $s; group = $(if ($groupOf.ContainsKey($s)) { $groupOf[$s] } else { "Other" }); state = "never"; why = ""; files = @(); last = $ledger; passedOn = "" }
 	$exact = $passes[$s] | Where-Object { $_.Tree -eq $tree } | Select-Object -First 1
-	$mine = @($passes[$s] | Sort-Object At -Descending | Select-Object -First 10)
+	$mine = @($passes[$s] | Sort-Object At -Descending)
 	if ($exact) {
 		$row.state = "ok"; $row.passedOn = $exact.By
 	} else {
