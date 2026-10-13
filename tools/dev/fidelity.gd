@@ -198,7 +198,12 @@ func _generated(w, s: int) -> Dictionary:
 	w.add_child(g)
 	var m0 := OS.get_static_memory_usage()
 	var t0 := Time.get_ticks_usec()
-	g.build(n)
+	# GenIsland.build step by step, keeping each step name's slowest (the world runs one a frame)
+	load("res://scripts/island/island_theme.gd").meshes(str(n["theme"]))
+	g.prepare(n)
+	var worst := {}
+	for st in g.finish_steps():
+		worst[st[0]] = maxi(int(worst.get(st[0], 0)), g.run_step(st))
 	var ms := (Time.get_ticks_usec() - t0) / 1000.0
 	var mem := (OS.get_static_memory_usage() - m0) / 1048576.0
 	var r := measure(g)
@@ -214,8 +219,10 @@ func _generated(w, s: int) -> Dictionary:
 	r["m"]["build_main_ms"] = main
 	r["m"]["mem_mb"] = mem
 	r["d"]["build_steps"] = g.build_ms.duplicate()
+	r["d"]["build_worst_step"] = worst
 	g.queue_free()
 	print("measured %s: r %.0f, built in %d ms (main thread %d) %s" % [r["name"], g.radius, ms, main, g.build_ms])
+	print("   slowest step of each name (ms): %s" % [worst])
 	return r
 
 
