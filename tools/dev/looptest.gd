@@ -79,8 +79,10 @@ func _process(d: float) -> bool:
 			ts._start(1, true)
 			next()
 		1:
+			# (the world takes longer than a fixed wait to come up now: wait for the captain, then the save applies)
 			if not wait(3.0): return false
 			grab()
+			if p == null or p.health_component == null: return false
 			for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 			p.health_component.max_health = 500.0
 			p.health_component.current_health = 500.0
