@@ -908,7 +908,9 @@ func same_isles(mine: Dictionary, theirs: Dictionary, what: String) -> void:
 		check(tag + " - the camp's crew as on the host (%d / %d)" % [a["crew"].size(), b["crew"].size()], a["crew"] == b["crew"])
 		check(tag + " - the village's people (%d)" % b["people"].size(), a["people"] == b["people"] and b["people"].size() >= 6)
 		check(tag + " - the villagers' routines and the quests as on the host (%d)" % b["life"].size(), a["life"] == b["life"])
-		check(tag + " - its beast (%s)" % b["ape"], a["ape"] == b["ape"] and b["ape"] != "" and net.node_of(b["ape"]) != null and net.node_of(b["ape"]).net_puppet)
+		# (at "beast" the island we felled it on may have let its body go on both machines by now)
+		var gone: bool = what == "beast" and a["ape"] == "" and b["ape"] == ""
+		check(tag + " - its beast (%s)" % (b["ape"] if not gone else "felled, gone on both"), gone or (a["ape"] == b["ape"] and b["ape"] != "" and net.node_of(b["ape"]) != null and net.node_of(b["ape"]).net_puppet))
 
 
 ## Mode "chain": joining late a host already on the chain's first island (its
