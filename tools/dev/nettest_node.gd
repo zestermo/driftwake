@@ -118,6 +118,8 @@ func _run(name_: String, args: Array, from: int):
 				"burned": burned, "time": n.time(),
 			}
 		"tp":
+			# (a knocked-down captain's root follows its ragdoll straight back: stand them up first)
+			lp.state_machine.force_state("Idle", {})
 			lp.global_position = args[0]
 			lp.velocity = Vector3.ZERO
 			lp.reset_physics_interpolation()
