@@ -8,6 +8,7 @@ var peak := -999.0
 var base_y := 0.0
 var peaks := []
 var turn_t := 0.0
+var buffered := false
 func _initialize(): change_scene_to_file("res://scenes/world/world.tscn")
 func press(a: String) -> void:
 	var e := InputEventAction.new(); e.action = a; e.pressed = true; Input.parse_input_event(e)
@@ -22,6 +23,12 @@ func st() -> String: return p.current_state_name()
 func _physics_process(_d):
 	if p and step in [21, 22, 24, 25]:
 		peak = maxf(peak, p.global_position.y - base_y)
+	# (the camera sweep and the buffered jump are judged per physics tick: frame times vary with load)
+	if p and step in [18, 19] and wait <= 0.0:
+		root.get_node("World/CameraRig").rotation.y += 2.2 * _d
+		turn_t += _d
+	if p and step in [28, 29] and st() == "Jump":
+		buffered = true
 	return false
 func _process(d: float) -> bool:
 	t += d
@@ -90,11 +97,7 @@ func _process(d: float) -> bool:
 			# lean into turns: run in a circle
 			press("move_forward"); press("sprint"); wait = 0.4
 		18:
-			# sweep the camera while sprinting = a sustained curve
-			root.get_node("World/CameraRig").rotation.y += 2.2 * d
-			if t > 0.0 and wait <= 0.0:
-				pass
-			turn_t += d
+			# sweep the camera while sprinting = a sustained curve (in _physics_process)
 			if turn_t < 0.7: return false
 		19:
 			var roll: float = Basis(p.lean.basis.orthonormalized()).get_euler().z
@@ -135,7 +138,7 @@ func _process(d: float) -> bool:
 		28:
 			wait = 0.15
 		29:
-			check("buffered jump fires on landing", st() == "Jump" or p.velocity.y > 2.0)
+			check("buffered jump fires on landing", buffered)
 			print("RESULT fails=", fails)
 			quit()
 	step += 1

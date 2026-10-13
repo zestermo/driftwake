@@ -22,6 +22,9 @@ var bounced := false
 var plunges := 0
 var last_state := ""
 var y0 := 0.0
+var hang_t := 1.0
+var hang_drop := 0.0
+var press_in_air := false
 var case_i := 0
 const CASES := [
 	{"name": "Twin Cyclone", "node": "d_cyclone", "items": ["cutlass", "cutlass"], "style": "dual_sword", "anim": "twin_cyclone", "off": 2.2, "up": 2.0},
@@ -108,8 +111,19 @@ func _physics_process(_d: float) -> bool:
 		if int(p.air_uses.get("bounce", 0)) > 0:
 			bounced = true
 		var st: String = p.current_state_name()
+		# (the attack goes in on the first tick of the fall, whatever the frame times)
+		if press_in_air and st == "Fall":
+			press_in_air = false
+			p.input_buffer.buffer_action("light_attack")
 		if st == "Plunge" and last_state != "Plunge":
 			plunges += 1
+			y0 = p.global_position.y
+			hang_t = 0.0
+			hang_drop = 0.0
+		# (the drop over the hang itself, in physics time: the frames before it starts vary with load)
+		if st == "Plunge" and hang_t < 0.3:
+			hang_t += _d
+			hang_drop = maxf(hang_drop, y0 - p.global_position.y)
 		last_state = st
 	if g and is_instance_valid(g):
 		if g.state == DOWN:
@@ -158,10 +172,11 @@ func _process(d: float) -> bool:
 			p.reset_physics_interpolation()
 			p.stamina = p.max_stamina
 			saw = {}
-			wait = 0.12
+			press_in_air = true
 			step = 2
 		2:
-			p.input_buffer.buffer_action("light_attack")
+			if press_in_air:
+				return false
 			wait = 0.15
 			step = 3
 		3:
@@ -191,16 +206,16 @@ func _process(d: float) -> bool:
 			saw = {}
 			bounced = false
 			plunges = 0
-			y0 = p.global_position.y
-			wait = 0.12
-			step = 12
-		12:
-			if CASES[case_i]["anim"] == "hang_shot":
+			if c["anim"] == "hang_shot":
 				# (the reticle on the grunt, as you'd aim it)
 				var arm: Node3D = root.get_viewport().get_camera_3d().get_parent()
 				var to: Vector3 = g.hurtbox.global_position - arm.global_position
 				arm.rotation.x = atan2(to.y, Vector2(to.x, to.z).length())
-			p.input_buffer.buffer_action("light_attack")
+			press_in_air = true
+			step = 12
+		12:
+			if press_in_air:
+				return false
 			wait = 0.15
 			step = 13
 		13:
@@ -208,7 +223,7 @@ func _process(d: float) -> bool:
 			check("%s: played (%s / %s)" % [c["name"], p.current_state_name(), p.body_model.current_action()],
 				p.current_state_name() == "Plunge" and p.body_model.current_action() == c["anim"])
 			if c["anim"] == "hang_shot":
-				check("...hanging, not falling (%.2f m dropped)" % (y0 - p.global_position.y), y0 - p.global_position.y < 0.6)
+				check("...hanging, not falling (%.2f m dropped)" % hang_drop, hang_drop < 0.3)
 			wait = 0.5 if c["anim"] == "meteor_kick" else 1.3
 			step = 14
 		14:

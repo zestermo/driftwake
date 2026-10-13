@@ -73,6 +73,8 @@ func _physics_process(_d: float) -> bool:
 		kata_hv = maxf(kata_hv, Vector2(p.velocity.x, p.velocity.z).length())
 		kata_tilt = maxf(kata_tilt, p.lean.global_basis.y.normalized().angle_to(Vector3.UP))
 	if p and p.current_state_name() == "Plunge":
+		if not rain.get("in", false):
+			rain["entries"] = int(rain.get("entries", 0)) + 1
 		var fwd: Vector3 = -p.player_model.global_basis.z
 		var up: Vector3 = p.lean.global_basis.y.normalized()
 		rain["vy"] = maxf(rain.get("vy", -99.0), p.velocity.y)
@@ -347,15 +349,18 @@ func _process(d: float) -> bool:
 			step = 183
 		183:
 			check("dual pistols' air attack is Gun Rain (%s / %s)" % [p.current_state_name(), p.body_model.current_action()], p.current_state_name() == "Plunge" and p.body_model.current_action() == "gun_rain")
-			wait = 0.55
 			step = 186
 		186:
+			# (the second press as soon as the Gun Rain ends, still in the air; Plunge entries counted per physics tick)
+			if p.current_state_name() == "Plunge":
+				return false
+			rain["second_air"] = not p.is_on_floor()
 			attack("light_attack")
 			wait = 0.1
 			step = 187
 		187:
-			check("one Gun Rain per jump (%s, %s, used %d)" % [p.current_state_name(), "air" if not p.is_on_floor() else "landed", p.gun_rains],
-				p.current_state_name() != "Plunge" and p.gun_rains == 1)
+			check("one Gun Rain per jump (%s, pressed in the %s, %d Gun Rains)" % [p.current_state_name(), "air" if rain.get("second_air", false) else "landed", rain.get("entries", 0)],
+				p.current_state_name() != "Plunge" and rain.get("second_air", false) and rain.get("entries", 0) == 1)
 			wait = 0.6
 			step = 184
 		184:
