@@ -30,40 +30,21 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
   laundry, garden, wares, quay coping) so they can split into a worker plan (changes Brinehollow's
   look slightly: Zach's call); `Props.straw_dummy_mesh` is unseeded (differs per build and per co-op screen).
 
-**Phase 2: build out** (parallel agents)
-- [x] **Harbours that vary by island:** each island rolls one type (stilt fishing port with
-  boardwalks, boats and net racks; smugglers' cove; timber trading wharf with warehouses and a moored
-  merchant ship; ruined jetty). Gap today: a bare plank pier against Brinehollow's harbour
-  district of 13 buildings and 33 props. (Done 2026-10-12: GenHarbour, see dev_notes; harbour
-  people still to come: `GenHarbour.spots` says where they'd work.)
-- [x] (2026-10-12, a pool of layouts: town, hamlets, walled post, raised stilt village, ruins + survivors; see dev_notes) **Village streets and dressing:** lanes off the plaza with houses along them; dressing passes
-  (laundry, gardens, handcarts, crates, planters, signs) to Brinehollow's ~47 props/ha and ~3 props
-  per 50 m of lane (today 8.5/ha); more building kinds (workshop, shrine or chapel, storehouse,
-  two-storey house; today all huts); lit windows and NightLights to Brinehollow's levels (today
-  3 lights vs 11, ~40 lit windows vs 180); worn or paved paths.
-- [x] **Interiors:** caves and small dungeons from a pool (bug tunnels, smugglers' grotto,
-  flooded ruin, root cavern, bat roost, sunken shrine, beast den; 1-3 per island) with a reward at the
-  end; a multi-room ruined temple (levers, a gated sanctum, its warden) on ~40% of islands
-  (2026-10-12, KitDungeons/KitTemple). Enterable shops and houses: the village agent's.
-- [x] **Landmarks** (rolled per island, visible from the sea; done 2026-10-12, 11 in the pool, see dev_notes): waterfall with a swimmable pool;
-  beached wreck to explore, with loot; a climbable giant tree with platforms and rope bridges; a
-  stone idol or stepped temple top above the canopy. Fix the summit tower being buried in
-  trees (clear round it or raise it).
-- [x] **A signature set piece per island** (done 2026-10-12, 10 in the pool): one unique piece (sunken village, volcano vent, giant
-  skeleton...) from a pool that never repeats within a sea.
-- [x] **People:** 15-20 villagers per island with routines (work spots, market, inn at night).
-  (2026-10-12: IslandLife + Villager, 18-19 people, 12-13 on routines; see dev_notes.) Left: people
-  on the harbour's decks (walk_height doesn't know them), escort quests.
-- [x] **Named characters:** a few per island with real dialogue trees and rumours about the chain
-  and the beast. (3 per island, 4 trees with the elder's.)
-- [x] **Island quests:** 2-3 small quests per island drawn from its POIs (lost item in the ruins,
-  clear the lair, escort...), beyond the job board. (lost, scout, deliver, fetch, clear.)
-- [x] **Jungle theme style table:** materials, prop set, NPC looks, ambience, music and weather
-  (KitStyle.JUNGLE; barks are the life agent's). Done 2026-10-12. Left: the layouts' market stalls,
-  the workshop/shrine/storehouse and IslandLife's villagers don't read the style yet.
-- [x] **Tropical jungle vegetation:** canopy giants, strangler figs, kapoks, emergents, mangroves,
-  bamboo, understory shrubs, broad leaves, overgrown trails that slow you, canopy arenas for fights
-  under the trees, a forest makeup per island. Done 2026-10-12.
+**Phase 2: build out** (done 2026-10-12, merged and bug-passed 2026-10-13; see dev_notes)
+- [x] Harbours that vary by island (GenHarbour: stilts, cove, wharf, ruins, landing).
+- [x] Village layouts, streets and dressing (town, hamlets, walled post, stilt village, ruins + survivors).
+- [x] Interiors: caves and small dungeons from a pool of 7, the ruined temple on ~40% of islands.
+- [x] Landmarks (11 in the pool) and a signature set piece per island (10, never twice down a route).
+- [x] People, named characters and island quests (IslandLife, Villager, KitQuests).
+- [x] Jungle theme style table and tropical jungle vegetation (canopy giants, thickets, canopy arenas).
+- [ ] Left from phase 2:
+  - Coastlines (in progress in its own worktree).
+  - People on the harbour's decks (walk_height doesn't know them; `GenHarbour.spots` says where
+    they'd work) and escort quests.
+  - Theme styling not carried into the new village: the layouts' stalls (`stall` style), the
+    workshop/shrine/storehouse/ruin/palisade/decks, GenHarbour's `harbour_roof` (still "thatch"),
+    IslandLife's villagers (`IslandVillage._villager_look`, not the style's folk looks); the
+    village ctx is hardwired to "jungle".
 
 **Phase 3: assemble and gate**
 - [ ] District planner: harbour, village core, outskirts and wilds (4-6 POIs + the beast's ground +
@@ -81,37 +62,19 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
 - [x] Boss pool per island from the chain (BeastPool): ape, serpent (Strangler), stalker (Shade), mantis (Mantis Queen); never the one before.
 - [x] Arena under a closed canopy ringed by giant trees, brush to hide in, dressed per beast; `_ground()` is the swap point for the theme's canopy-arena request.
 - [x] Miniboss: the alpha boar at the ruins. Roaming beast: the Thornback grazing the island. POIs for quests (BeastPool.pois).
-- [ ] Swap BeastArena._ground() for the jungle theme's canopy-arena request when it lands.
+- [x] BeastArena takes its ring from the boss site's canopy arena (GenIsland.arena_ring; 2026-10-13).
+- [ ] The bosses' AlphaBoar and the fauna Boar overlap (two boars). The arena giants' crowns no longer
+  sway when a beast shakes them (they're the vegetation's MultiMesh): leaves and the rustle only.
 - [ ] More minibosses: pirate warlord at the camp (needs a PirateGrunt hook), bat swarm-mother in the lair.
 - [ ] Carnivorous plant titan in a swamp (needs a swamp site).
 - [ ] Minibosses and the roamer respawn (they stay dead until the island is rebuilt).
 - [ ] Render review: bossshot sheets for the serpent, stalker and mantis (models built, not yet looked at).
 
-## Bug pass after the 2026-10-12 merge (next: one full test run, then fix)
-Merged compile-only: harbours, villagers and quests, caves and dungeons, village layouts, jungle theme and
-vegetation, landmarks and set pieces, jungle bosses, jungle fauna, daggers. Known before testing:
-- **Co-op:** nettest chain floods the host with non-finite transforms (`instance_set_transform`) from the moment it
-  hosts mid-game and the guest misses the island's beast (seen on the theme branch; suspects: the thicket slow in
-  move_state/pirate_grunt, Weather's style blend with Net up, the new villager looks).
-- **Suites seen failing on branches:** apetest ("hurls it, and it comes down on you": village and landmarks
-  branches), legtest (a sea leg with no pirate fleet), feel (buffered jump), shiptest (crash, no RESULT): all from
-  the landmarks branch, which touched player.gd, camera_rig.gd, ragdoll.gd, ocean_manager.gd (surface_at),
-  climb_state.gd, ladder.gd.
-- Fixed (islands bug pass): the village board/services always placed, the skeleton's broken ribs, isletest's lamp
-  count, the canopy the landmarks size against (canopy giants, not the emergents), landmarks off reserves, the
-  landmark temple renamed StepPyramid, the boss arena on the canopy arena, IslandLife on the village's data. The
-  fauna drop items were already in ItemDB.
-- **Bosses:** the bosses' AlphaBoar and the fauna boar overlap. The arena giants' crowns no longer sway when a beast
-  shakes them (they're the vegetation's MultiMesh now): leaves and the rustle only.
-- **Life:** nobody stands on harbour decks (walk_height ignores them).
-- **Theme styling not carried into the new village:** stalls (`stall` style), the pier style (GenHarbour reads
-  `harbour_*`; `harbour_roof` is still "thatch"), workshop/shrine/storehouse/ruin/palisade/decks, IslandLife's
-  villagers (use `_villager_look`, not the style's folk looks); the village ctx is hardwired to "jungle".
-- Theme overrides replace nested keys whole: every override must carry all sub-keys.
-- villagetest numbers may shift (a roof-pitch roll was added); daggers in `LOOT_WEAPONS` change every island's
-  loot and shop rolls (seeded tests that count loot may move).
-- Not started: coastlines (branch `worktree-agent-acf7ce1eb84825da1`, part done; plan in its commits), dual axes,
-  hammer, ability tiers.
+## Left after the 2026-10-12 merge's bug pass
+- **Island build hitches:** finish steps on the main thread measured at 100-270 ms: village houses
+  (3 a step), beasts (~160 ms, one step), dungeons (100-190 ms a step).
+- **harbourtest:** a "Lambda capture at index 0 was freed" error in its log (a callable outliving a
+  freed island).
 
 ## Open from the 2026-10-09 session (not yet prioritised)
 - **Save keys repeat across worlds:** chest, job and beast flags (`isle<id>_*`, `leg<x>_<y>_*`) are
@@ -127,61 +90,12 @@ vegetation, landmarks and set pieces, jungle bosses, jungle fauna, daggers. Know
   `DevilFruits.IN_WORLD` back on. Off since 2026-10-09.
 - **Browser co-op:** WebRTC plus a small signalling server (`docs/web_build.md`).
 - **Code signing** for the Windows build (SmartScreen warns today).
-- **Next themes:** snow, desert and forest islands, once the kit exists.
+- **Next themes:** snow, desert and forest islands (a KitStyle table each; jungle is the model).
 - **A one-off crash** in co-op (signal 11, "wrong RID" building the silverback's body on a guest),
   seen once in ~5 chain runs.
 
-## Performance (done 2026-10-07, see dev_notes; left: measure on the other PC with F8 / user://perf.log)
-
-Late-session slowdown: ~35 fps and stutters about 50 min into an exported build on another
-machine, after returning to Brinehollow. From a code audit (nothing measured yet): some
-things pile up over a session, and the base cost is already high (full-resolution 3D, no
-distance culling/LOD anywhere).
-
-**Phase 0: measure (do first)**
-- A perf readout that works in exported builds (toggle key + setting): fps, frame/process/
-  physics ms, draw calls, node count, enemies alive, swimmers. Write a line to
-  `user://perf.log` every 30 s, so a long session leaves a record.
-- A soak tool that runs fights, boardings and the boss reset loop, logging the same numbers.
-- Note the test machine: GPU, window resolution, PSX preset.
-
-**Phase 1: things that grow over a session (the "50 minutes in" part)**
-- Pirates in open water swim forever: `pirate_grunt.gd` `_swim_update`/`_find_shore` (no
-  timeout; 112 down-rays + line rays every 1.5 s; `_bad_shores` only grows and is scanned per
-  ray). Boarders and deck crew are parented to the fleet, so they outlive their sunk ship
-  (`enemy_ship.gd:610`). Fix: drown/despawn after a while far from land, free crew with the ship.
-- Boarders whose home point was the deck of a moving ship walk "home" into the sea forever
-  (`pirate_grunt.gd:850`, `_avoid_water` ~19 rays/tick). Fix: give up and despawn.
-- Redtide boss: each reset + re-engage calls 3–5 more phase-2 crew; old ones never cleaned
-  (`pirate_boss.gd:129`, `redtide_fort.gd:329`). Fix: free the crew on reset, call once per fight.
-- Loot bags never expire (camp respawns every 120 s keep dropping them; floating ones process
-  forever). Fix: lifetime (a few minutes), cache weapon meshes.
-- Coins skip their lifetime while pulled toward a full bag; burned thornbrush keeps its light.
-
-**Phase 2: big steady wins**
-- 3D renders at full window size, then is pixelated to 960x540 (preset 4, `psx_settings.gd:100`).
-  Set `scaling_3d_scale` to match the preset: about 4x fewer pixels at 1080p. Highest leverage.
-- Ocean wake foam: 39-point loop for most of the visible sea because far enemy-ship trails
-  widen `wake_box`. Fix: only trails within ~150 m, one box per trail.
-- Distance LOD for humanoids (~50 rigs, all posed every frame, `lower_body`/`arm_body` even
-  when hidden): hide beyond ~100 m, pose at a lower rate past ~30 m.
-- Far AI sleep: grunts, scuttlebugs and enemy ships far from every captain stop thinking;
-  enemy-ship splashes and wakes only near the camera.
-- Visibility ranges and a shorter camera far plane (~1200 m; fog ends at 820 m): islands,
-  fog banks, reef rocks, Redtide. Shadows off for bushes, distant islands, chain links.
-
-**Phase 3: CPU trims**
-- Grunt `_separation`/`_guns_free` scan the whole enemies group per grunt per tick (O(N²)).
-- Clouds: sort + rebuild of ~670 puffs' buffer every frame; throttle or sort less often.
-- FX: each burst makes a new particles node + Curve + Gradient + QuadMesh; share/pool them.
-- HUD: skill bar redraws every frame (polygon clipping, skill dict copies, `progression.stat()`
-  rescans every owned skill several times a frame).
-- Ocean/sky: send unchanged shader params only on change; sky radiance re-renders each frame
-  though reflections are off (`AT_CUBEMAP_PASS` early-out).
-
-**Phase 4: hitches**
-- Navmesh parse on the main thread when first nearing each island (`nav_baker.gd:64`).
-- Respawns build whole crews/camps in one frame (`grunt_camp`, `enemy_fleet`); spread them out.
+## Performance (pass done 2026-10-07, see dev_notes "performance pass")
+- Measure on the other PC (where the late-session slowdown was seen) with F8 / `user://perf.log`.
 - Autosave every 120 s: measure; move work off the frame if it shows.
 - Try Vulkan vs the forced D3D12 driver on the test machine.
 
@@ -214,13 +128,13 @@ distance culling/LOD anywhere).
   - better scaling;
   - higher-fidelity, detailed pixel art;
   - opaque panel backgrounds with ornate borders.
-  (The canvas is 640x360; check what scale the new art needs.)
+  (The canvas is 800x450, `PSX.UI_SIZE`; check what scale the new art needs.)
 
 ## Items
 
 - Rework how healing and consumable items work (design to be decided).
 
-## Lighting (Brinehollow's village done 2026-10-08: NightLight, 9 lights; left: ships, the den, other islands)
+## Lighting (Brinehollow's village done 2026-10-08, generated villages/harbours/caves on budgets 2026-10-12; left: ships, the den)
 
 - Real lights on the things that glow today: ship lanterns, town and window lights, torches
   and the like (they're emissive only now). Do it after the performance pass and budget it:
