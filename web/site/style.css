@@ -264,6 +264,7 @@ figcaption b { color: var(--text); }
 .article li { margin-bottom: 6px; }
 .signoff { margin-top: 26px; font-style: normal; color: var(--text); display: flex; align-items: center; gap: 14px; }
 .avatar { image-rendering: pixelated; border-radius: 50%; border: 2px solid var(--border); background: #fff; object-fit: cover; flex: none; }
+footer .credit { margin-top: 6px; font-size: 12px; opacity: 0.85; }
 .avatar-sm { vertical-align: middle; border-width: 1px; margin: 0 2px; }
 
 .version { scroll-margin-top: 16px; }

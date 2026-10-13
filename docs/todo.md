@@ -91,6 +91,10 @@ eat/drink animation you can be hit out of; the ship's galley refills them as now
 - **Devil Fruits back:** polish them to the rest of the game's level, switch `DevilFruits.IN_WORLD` back on
   (off since 2026-10-09); a captain can dive in and haul up a fruit-user crewmate who falls in the sea (works
   for a guest).
+- **Marines, bounties and pursuit** (on the public roadmap since 2026-10-13): a bounty that grows with what
+  you sink, raid and beat, wanted posters in towns, Marine patrol ships in busier waters that come about when
+  they spot a wanted captain, and past a bounty threshold named Marine captains who hunt you personally
+  (tracking your ship down the chain, waiting at harbours), tougher hunters as the bounty climbs.
 - **New island themes:** snow, desert and forest islands to the jungle's standard (a KitStyle table,
   vegetation, villages, creatures and bosses each), after Phase 3.
 - **Real lights:** ship lanterns, the den and the rest that only glow today, on the light budget (few shadowed
