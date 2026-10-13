@@ -171,6 +171,8 @@ for a properly fun, replayable game.
 - **Tougher fights:** gap closers for the brood queen, Grell and Morrow, lingering poison, the
   rifleman's shove telegraphed, smarter pirates and elites that dodge.
 - **Brinehollow:** Grell's den moved to a clifftop out of sight of the beach, with a climb to reach it.
+- **The second wardrobe:** 23 new pieces of clothing and armour (hats, tops, vests, coats, gloves, legs,
+  feet, belts, accessories), sold by Sela and Vey or found as plunder.
 - **Inventory refresh:** held items leave the bag, tooltips with comparisons, crisp text; option arrows
   step back too.
 
