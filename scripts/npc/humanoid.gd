@@ -664,12 +664,11 @@ func set_offhand(mesh: Mesh) -> void:
 	if offhand:
 		offhand.queue_free()
 		offhand = null
-	if mesh == null:
-		_build_sockets()
-		return
-	offhand = MeshInstance3D.new()
-	offhand.name = "Offhand"
-	offhand.mesh = mesh
+	if mesh != null:
+		offhand = MeshInstance3D.new()
+		offhand.name = "Offhand"
+		offhand.mesh = mesh
+	# (rebuilding the sockets takes a sheathed katana out of its scabbard: always re-attach)
 	_build_sockets()
 	_attach_weapon(weapon_in_hand)
 
