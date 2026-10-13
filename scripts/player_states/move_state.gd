@@ -23,6 +23,7 @@ func physics_update(delta: float) -> void:
 	if player.is_using_item():
 		speed *= 0.5
 	speed *= player.wade_mult()
+	speed *= 1.0 - GenIsland.THICKET_SLOW * GenIsland.thicket(player.get_tree(), player.global_position)
 
 	player.velocity.x = direction.x * speed
 	player.velocity.z = direction.z * speed

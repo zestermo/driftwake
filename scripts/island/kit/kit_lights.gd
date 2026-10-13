@@ -8,6 +8,11 @@ extends RefCounted
 ## A lantern post at p (its lamp arm along local +X: `yaw` is the island yaw
 ## the arm points at minus PI/2). `energy` 0 = never lit.
 static func post(ctx: KitContext, p: Vector2, yaw: float, footprint := 0.0, energy := 1.6, height := 2.6) -> Node3D:
+	if ctx.style["props"]["lamp"] != "lantern_post":
+		var sp := ctx.place(KitStyle.prop(ctx.style, "lamp", ctx.rng(int(p.x * 31.0 + p.y * 17.0)), height / 2.4), p, yaw, footprint)
+		if energy > 0.0:
+			light(ctx, sp, sp.get_node("Flame").position, energy)
+		return sp
 	var lp := ctx.place(Props.lantern_post(height), p, yaw, footprint)
 	if energy > 0.0:
 		light(ctx, lp, Vector3(0.55, 2.0, 0.0), energy)

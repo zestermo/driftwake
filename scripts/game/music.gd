@@ -2,7 +2,7 @@ extends Node
 ## Background music (autoload "Music"). Picks a track from what's going on
 ## around your captain and crossfades to it:
 ##   title   - the title screen
-##   island  - on foot, nothing hostile around
+##   island  - on foot, nothing hostile around (on a chain island: its KitStyle "music")
 ##   sea     - at the helm / a cannon, or out on the open sea
 ##   combat  - enemies fighting you (or a pirate ship hunting you) nearby
 ##   boss    - a boss fight close by
@@ -163,6 +163,10 @@ func _pick(dt: float) -> String:
 	# out on the open water, far from the home island
 	if me.has_method("is_swimming") and me.is_swimming():
 		return "sea" if current == "sea" else (current if current != "" else "island")
+	# ashore on a chain island: its style's track
+	var zone := KitStyle.around(tree, pos)
+	if float(zone[1]) > 0.5:
+		return KitStyle.of(zone[0])["music"]
 	var ec := EnemyShip.safe_center
 	if Vector2(pos.x - ec.x, pos.z - ec.z).length() > EnemyShip.SAFE_RADIUS + 40.0:
 		var near_fort := false

@@ -58,7 +58,12 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
   and the beast. (3 per island, 4 trees with the elder's.)
 - [x] **Island quests:** 2-3 small quests per island drawn from its POIs (lost item in the ruins,
   clear the lair, escort...), beyond the job board. (lost, scout, deliver, fetch, clear.)
-- [ ] **Jungle theme style table:** materials, prop set, NPC looks, barks, ambience and music.
+- [x] **Jungle theme style table:** materials, prop set, NPC looks, ambience, music and weather
+  (KitStyle.JUNGLE; barks are the life agent's). Done 2026-10-12. Left: the layouts' market stalls,
+  the workshop/shrine/storehouse and IslandLife's villagers don't read the style yet.
+- [x] **Tropical jungle vegetation:** canopy giants, strangler figs, kapoks, emergents, mangroves,
+  bamboo, understory shrubs, broad leaves, overgrown trails that slow you, canopy arenas for fights
+  under the trees, a forest makeup per island. Done 2026-10-12.
 
 **Phase 3: assemble and gate**
 - [ ] District planner: harbour, village core, outskirts and wilds (4-6 POIs + the beast's ground +

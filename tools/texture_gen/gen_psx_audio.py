@@ -898,6 +898,62 @@ def rigging_wind_loop(seconds=31.0):
     _write_loop("rigging_wind_loop", out)
 
 
+def _bird_call(rng, kind):
+    """One tropical bird: a rising whistle run, a two-note hoot, or a squawk."""
+    if kind == "whistle":
+        out = np.zeros(0)
+        f0 = rng.uniform(1700, 2600)
+        for _ in range(int(rng.integers(2, 5))):
+            L = rng.uniform(0.08, 0.16)
+            t = np.arange(int(L * SR)) / SR
+            f = f0 * (1 + 0.35 * t / L)
+            note = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * t / L) ** 2
+            out = np.concatenate([out, note, np.zeros(int(rng.uniform(0.04, 0.1) * SR))])
+            f0 *= rng.uniform(0.95, 1.12)
+        return out
+    if kind == "hoot":
+        out = np.zeros(0)
+        for f in (rng.uniform(520, 640), rng.uniform(430, 520)):
+            L = rng.uniform(0.22, 0.32)
+            t = np.arange(int(L * SR)) / SR
+            note = (np.sin(2 * np.pi * f * t) + 0.25 * np.sin(4 * np.pi * f * t)) * np.sin(np.pi * t / L) ** 1.5
+            out = np.concatenate([out, note, np.zeros(int(0.12 * SR))])
+        return out
+    L = rng.uniform(0.18, 0.3)
+    t = np.arange(int(L * SR)) / SR
+    f = rng.uniform(900, 1300) * (1 - 0.3 * t / L)
+    tone = np.sign(np.sin(2 * np.pi * np.cumsum(f) / SR)) * 0.4 + np.sin(2 * np.pi * np.cumsum(f * 2) / SR) * 0.3
+    return (tone + _burst(rng, L, 800, 4000) * 0.5) * np.exp(-t * 6) * np.minimum(1, t / 0.01)
+
+
+def jungle_loop(seconds=43.0):
+    """Inland on a jungle island: a humid hum of leaves, two cicadas swelling
+    and fading on their own, crickets' chirp trains, and birds calling now and
+    then from different distances."""
+    rng = np.random.default_rng(347)
+    n = int(SR * seconds)
+    t = np.arange(n) / SR
+    out = _cband(n, rng, 120, 2200, tilt=0.6) * 0.16 * (0.6 + 0.4 * _cenv(n, rng, 0.1))
+    for fc, rate, g in ((4300, 46.0, 0.22), (5600, 61.0, 0.14)):
+        pulse = (0.5 + 0.5 * np.sin(2 * np.pi * rate * t)) ** 3
+        out += _cband(n, rng, fc * 0.9, fc * 1.1) * pulse * _cenv(n, rng, 0.07) ** 2.5 * g
+    chirp = np.zeros(n)
+    for _ in range(40):
+        at = int(rng.integers(0, n))
+        f = rng.uniform(3400, 4100)
+        for k in range(int(rng.integers(3, 6))):
+            L = int(0.03 * SR)
+            tt = np.arange(L) / SR
+            _place(chirp, np.sin(2 * np.pi * f * tt) * np.sin(np.pi * tt / 0.03) ** 2 * rng.uniform(0.3, 0.6), at + k * int(0.07 * SR))
+    out += chirp * 0.12
+    for kind, count in (("whistle", 7), ("hoot", 3), ("squawk", 3)):
+        for _ in range(count):
+            call = _bird_call(rng, kind)
+            far = rng.uniform(0.15, 0.5)
+            _place(out, lpf(call, 0.35 + 0.5 * far) * far, rng.integers(0, n))
+    _write_loop("jungle_loop", out)
+
+
 def thunder_sound(name="thunder", seed=231, dur=4.5, crack=1.0):
     """Thunder: a sharp crack (close strikes) rolling into long low rumbles."""
     rng = np.random.default_rng(seed)
@@ -1230,6 +1286,7 @@ SOUNDS = [
     ("hull_foam_loop", hull_foam_loop),
     ("hull_slap_loop", hull_slap_loop),
     ("ship_creak_loop", ship_creak_loop),
+    ("jungle_loop", jungle_loop),
     ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),
     ("thunder_far", lambda: thunder_sound("thunder_far", 237, 5.0, 0.15)),
     ("gull", gull_sound),

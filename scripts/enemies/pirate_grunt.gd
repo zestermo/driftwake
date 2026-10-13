@@ -851,6 +851,7 @@ func _physics_process(delta: float) -> void:
 	# stay out of the sea (a knockback can still put you in it)
 	if state not in [S.HITSTUN, S.STAGGER, S.LEAP]:
 		want = _avoid_water(want)
+		want *= 1.0 - GenIsland.THICKET_SLOW * GenIsland.thicket(get_tree(), global_position)
 	if state == S.SWING and _attack == "lunge" and st_t < 0.32:
 		hv = want
 	else:

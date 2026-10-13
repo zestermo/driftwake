@@ -141,6 +141,8 @@ scripts/island/island_content.gd        dungeontest
 scripts/props/props.gd                  fidelitytest
 scripts/props/buildings.gd              fidelitytest
 tools/dev/fidelity.gd                   fidelitytest
+scripts/island/kit/kit_style.gd         isletest ambiencetest netchain
+scripts/props/jungle_props.gd           isletest
 data/dialogue/*                         qoltest
 scripts/island/island_life.gd           lifetest isletest netchain
 scripts/island/kit/kit_life.gd          lifetest storytest qoltest

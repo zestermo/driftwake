@@ -3214,7 +3214,8 @@ func _update_look(delta: float) -> void:
 	var force := -body_a * 0.12 + Vector3(-lay * 0.32, 0.0, 0.0)
 	force *= free
 	var steps := clampi(ceili(delta / (1.0 / 120.0)), 1, 12)
-	var h := delta / steps
+	# (capped: past ~1.8 s in one frame, a hitch, the springs blew up to NaN and stayed there)
+	var h := minf(delta / steps, 1.0 / 60.0)
 	for i in range(steps):
 		var w1 := 9.5
 		_look_v += ((tgt - _look) * w1 * w1 - _look_v * 2.0 * 0.62 * w1) * h

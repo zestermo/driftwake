@@ -120,6 +120,56 @@ func _process(d: float) -> bool:
 			var dlg = root.get_node("Dialogue")
 			check("a job board: the camp's captain and the bug lair", dlg._load(isl.save_key("board"))["nodes"].has("camp") and dlg._load(isl.save_key("board"))["nodes"].has("lair"))
 			check("the elder's talk: the island, the way on, pay for jobs done", dlg._load(isl.save_key("elder"))["nodes"].has("beyond") and dlg._load(isl.save_key("elder"))["nodes"].has("pay_camp"))
+			# the style tables: every theme has every key the kits read (nested tables too), and its props build
+			var ks = load("res://scripts/island/kit/kit_style.gd")
+			var missing: Array = []
+			var rng := RandomNumberGenerator.new()
+			for sn in ks.STYLES.keys():
+				var st: Dictionary = ks.of(sn)
+				for k in ks.BRINEHOLLOW.keys():
+					if not st.has(k):
+						missing.append("%s.%s" % [sn, k])
+					elif ks.BRINEHOLLOW[k] is Dictionary and k != "rough":
+						for k2 in ks.BRINEHOLLOW[k].keys():
+							if not st[k].has(k2):
+								missing.append("%s.%s.%s" % [sn, k, k2])
+				for slot in ks.BRINEHOLLOW["props"].keys():
+					var prop: Node3D = ks.prop(st, slot, rng)
+					if prop == null or (slot == "lamp" and prop.get_node_or_null("Flame") == null):
+						missing.append("%s prop %s" % [sn, slot])
+					if prop:
+						prop.free()
+			check("every theme's style has every key and prop the kits read %s" % [missing], missing.is_empty())
+			check("its lamps (village, pier, camp) are its style's %s" % ks.of(isl.theme)["props"]["lamp"], isl.find_children("Flame", "Marker3D", true, false).size() >= 5)
+			# the jungle floor: thick undergrowth that slows you, clear on the dock road and in the village
+			var thick := 0.0
+			for crown in isl.forest_crowns:
+				thick = maxf(thick, isl.undergrowth_at(isl.to_global(crown)))
+			var vg: Vector2 = isl.sites["village"]
+			var dock_road: Vector2 = isl.paths[0][isl.paths[0].size() / 2]
+			var gi = load("res://scripts/island/gen_island.gd")
+			print("   forest: %s, undergrowth up to %.2f" % [isl.forest, thick])
+			check("thick undergrowth in the jungle (%.2f), none in the village or on the dock road" % thick, thick > 0.5
+				and gi.thicket(self, isl.to_global(Vector3(vg.x, 0, vg.y))) == 0.0 and gi.thicket(self, isl.to_global(Vector3(dock_road.x, 0, dock_road.y))) == 0.0)
+			# a canopy arena: a clear floor, giants ringing it, the canopy closed over it
+			var ac: Vector2 = Vector2(isl.forest_crowns[0].x, isl.forest_crowns[0].z)
+			var ar := 12.0
+			var arena = gi.new()
+			arena.position = isl.position
+			arena.canopy_arena(ac, ar)
+			arena.prepare(n)
+			var inside := 0
+			var ring := 0
+			for s in arena._shapes:
+				var sd := Vector2(s[2].x, s[2].z).distance_to(ac)
+				if sd < ar:
+					inside += 1
+				elif sd < ar + 8.0 and float(s[0]) > 0.9:
+					ring += 1
+			var roof: int = arena._crowns.filter(func(c): return Vector2(c.x, c.z).distance_to(ac) < ar and c.y - arena.hv(Vector2(c.x, c.z)) > 10.0).size()
+			check("a canopy arena: nothing standing on its floor (%d), giants ringing it (%d), canopy over it (%d), no undergrowth (%.2f)" % [inside, ring, roof, arena.undergrowth_at(arena.position + Vector3(ac.x, 0, ac.y))],
+				inside == 0 and ring >= 6 and roof >= 1 and arena.undergrowth_at(arena.position + Vector3(ac.x, 0, ac.y)) == 0.0)
+			arena.free()
 			# take the captain's bounty, then he falls
 			dlg.set_flag(vil._flag("camp", "taken"))
 			var capt = isl.get_node("Site_camp/Camp").grunts.filter(func(g): return g.captain)[0]

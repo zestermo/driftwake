@@ -47,6 +47,8 @@ var forest_crowns: Array = []
 var harbour: GenHarbour
 ## Caves, dungeons and the temple (KitDungeons.plan): each its plan, also the POI data.
 var interiors: Array = []
+## Which of the theme's forests grows here (IslandTheme "forests": "old growth", "bamboo thicket"...).
+var forest := ""
 var build_ms := {}
 ## Its villagers, named characters and quests (planned in prepare).
 var life: IslandLife
@@ -103,6 +105,13 @@ func prepare(n: Dictionary) -> void:
 	theme = str(n["theme"])
 	_def = IslandTheme.def(theme)
 	_rng.seed = int(n["seed"])
+	# the island's own forest (IslandTheme "forests"), from its own stream so the land stays the same
+	var frng := RandomNumberGenerator.new()
+	frng.seed = int(n["seed"]) + 611
+	var forests: Array = _def["forests"]
+	var pick: Array = forests[frng.randi() % forests.size()]
+	forest = pick[0]
+	_def = _def.merged(pick[1], true)
 	radius = _rng.randf_range(RADIUS[0], RADIUS[1])
 	extent = ceilf((radius + MARGIN) * 2.0 / CELL) * CELL
 	half = extent * 0.5
@@ -149,7 +158,9 @@ func finish_steps() -> Array:
 	steps.append(["dock", _add_arrival_zone])
 	steps.append_array(harbour.steps())
 	steps += [
-		["plants", _vegetation_meshes],
+		["plants", _vegetation_meshes.bind(0, 3)],
+		["plants", _vegetation_meshes.bind(1, 3)],
+		["plants", _vegetation_meshes.bind(2, 3)],
 		["colliders", _vegetation_colliders],
 	]
 	steps.append_array(IslandContent.steps(self))
@@ -610,7 +621,93 @@ func _cover(p: Vector2) -> float:
 	var c := _smooth(-0.15, 0.2, _cover_noise.get_noise_2d(p.x, p.y) + float(_def["cover"]) - 0.5)
 	for site in ["village", "boss", "camp", "lair", "ruins"]:
 		c *= _smooth(20.0, 42.0, p.distance_to(sites[site]))
+	for a in canopy_arenas:
+		c *= _smooth(a[1], float(a[1]) + 6.0, p.distance_to(a[0]))
 	return c
+
+
+# ==========================================================================
+# The jungle floor: canopy arenas, the undergrowth's density (it slows you)
+# ==========================================================================
+## Canopy arenas: [centre, radius] floors kept clear to fight on under a closed canopy.
+var canopy_arenas: Array = []
+## The undergrowth's density on a THICK_CELL grid (0..255), worked out in prepare.
+var _thick := PackedByteArray()
+var _thick_n := 0
+const THICK_CELL := 4.0
+## How much the thickest undergrowth slows a walker (THICKET_SLOW of their speed).
+const THICKET_SLOW := 0.3
+
+
+## A fight's floor under the canopy (a bosses' or encounters' arena): call it in
+## prepare before the vegetation is scattered (after _plan_sites). Nothing grows
+## within `r` of `c` (no trunks, brush or rocks: the floor is clear and walkable,
+## undergrowth_at is 0), giants ring it at r + 4.6 with their crowns leaning in,
+## and trunkless canopy pieces close the roof over it, so it stays dark and green
+## overhead. Paths still reach it as they're planned. Its centre's ground is levelled
+## only if the caller adds it to the flats.
+func canopy_arena(c: Vector2, r: float) -> void:
+	canopy_arenas.append([c, r])
+	reserve_area(c, r)
+
+
+## How thick the undergrowth is at world point `at` (0 open ground, paths kept
+## clear, sites, arenas .. 1 the thick of the jungle): the same on every screen.
+func undergrowth_at(at: Vector3) -> float:
+	var ix := clampi(int((at.x - position.x + half) / THICK_CELL), 0, _thick_n - 1)
+	var iz := clampi(int((at.z - position.z + half) / THICK_CELL), 0, _thick_n - 1)
+	return _thick[iz * _thick_n + ix] / 255.0
+
+
+## The undergrowth under a walker at world `at`, on whichever chain island it's on (0 off them).
+static func thicket(tree: SceneTree, at: Vector3) -> float:
+	for isl in tree.get_first_node_in_group("world_gen").chain_islands.values():
+		if Vector2(at.x - isl.position.x, at.z - isl.position.z).length() < isl.radius:
+			return isl.undergrowth_at(at)
+	return 0.0
+
+
+func _thicket_grid() -> void:
+	_thick_n = int(extent / THICK_CELL) + 1
+	_thick.resize(_thick_n * _thick_n)
+	for iz in range(_thick_n):
+		for ix in range(_thick_n):
+			var p := Vector2(-half + (ix + 0.5) * THICK_CELL, -half + (iz + 0.5) * THICK_CELL)
+			var h := hv(p)
+			var d := 0.0
+			if h > 1.4:
+				d = _cover(p) * _smooth(2.2, 3.6, h)
+				var pd := _path_dist(p)
+				if pd < 1.5:
+					d *= 0.0 if _road_dist(p) < 2.5 else float(_def["overgrown"])
+			_thick[iz * _thick_n + ix] = int(clampf(d, 0.0, 1.0) * 255.0)
+
+
+## Distance to the dock road's edge (paths[0], kept clear of brush).
+func _road_dist(p: Vector2) -> float:
+	if not (_path_bounds[0] as Rect2).has_point(p):
+		return 9999.0
+	var pts: PackedVector2Array = paths[0]
+	var best := 9999.0
+	for j in range(pts.size() - 1):
+		var a := pts[j]
+		var ab := pts[j + 1] - a
+		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+		best = minf(best, p.distance_to(a + ab * t) - float(_path_widths[0]))
+	return best
+
+
+## A weighted pick from {name: weight}.
+func _weighted(w: Dictionary) -> String:
+	var total := 0.0
+	for k in w:
+		total += float(w[k])
+	var roll := _rng.randf() * total
+	for k in w:
+		roll -= float(w[k])
+		if roll <= 0.0:
+			return k
+	return w.keys()[-1]
 
 
 ## Where every plant and rock goes (prepare: data only; _vegetation_meshes and _colliders make them).
@@ -619,6 +716,45 @@ func _scatter_vegetation() -> void:
 	var buckets := _buckets
 	var reach := minf(half - 3.0, radius + 20.0)
 	var t_veg := Time.get_ticks_usec()
+	# canopy arenas: giants ring each, leaning in, and canopy pieces roof it over
+	for a in canopy_arenas:
+		var ac: Vector2 = a[0]
+		var ar: float = a[1]
+		var n := maxi(int(TAU * (ar + 4.6) / 8.0), 6)
+		for k in range(n):
+			var q := ac + Vector2.from_angle(TAU * k / n + _rng.randf_range(-0.15, 0.15)) * (ar + 4.6)
+			if hv(q) > 1.0:
+				_add_giant(buckets, m["giant"], q, hv(q), _rng.randf_range(0.95, 1.15), ac - q)
+		var y0 := hv(ac)
+		var gq := -ar + 2.0
+		while gq <= ar - 2.0:
+			var hq := -ar + 2.0
+			while hq <= ar - 2.0:
+				var q := ac + Vector2(gq, hq) + Vector2(_rng.randf_range(-2.0, 2.0), _rng.randf_range(-2.0, 2.0))
+				if q.distance_to(ac) < ar - 1.0:
+					var roof: Array = m["roof"][_rng.randi() % m["roof"].size()]
+					var xf := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU), Vector3(q.x, y0, q.y))
+					_bucket(buckets, roof[0], "giant", xf)
+					_bucket(buckets, roof[1], "giant_detail", xf)
+					_crowns.append(xf * GrapplePoints.crown_of(roof[0]))
+				hq += 8.0
+			gq += 8.0
+	# the canopy giants on a 10 m grid in the thick of the cover, off the paths and sites:
+	# canopy trees, strangler figs, kapoks and emergents, mixed by the island's forest
+	var gx := -reach
+	while gx < reach:
+		var gz := -reach
+		while gz < reach:
+			var p := Vector2(gx + _rng.randf_range(-3.5, 3.5), gz + _rng.randf_range(-3.5, 3.5))
+			gz += 10.0
+			var cov := _cover(p)
+			if cov < 0.35 or _rng.randf() >= float(_def["canopy"]) * cov:
+				continue
+			var h := hv(p)
+			if h < 3.0 or _excluded(p, 5.0) or _path_dist(p) < 7.0 or _slope_at(p) > 0.4:
+				continue
+			_add_giant(buckets, m[_weighted(_def["giants"])], p, h, _rng.randf_range(0.9, 1.15))
+		gx += 10.0
 	# trees and rocks on a 5 m jittered grid
 	var x := -reach
 	while x < reach:
@@ -631,7 +767,9 @@ func _scatter_vegetation() -> void:
 				continue
 			var roll := _rng.randf()
 			if h < 0.7:
-				if h > -1.4 and roll < 0.05:
+				if h > -1.2 and roll < float(_def["mangrove"]):
+					_add_tree(buckets, m["mangrove"], p, h, 0.25, 2.5, _rng.randf_range(0.85, 1.2))
+				elif h > -1.4 and roll < 0.05 + float(_def["mangrove"]):
 					_add_rock(buckets, m["rock"], p, _rng.randf_range(0.6, 1.6))
 				continue
 			var slope := _slope_at(p)
@@ -643,16 +781,26 @@ func _scatter_vegetation() -> void:
 				continue
 			var beach := 1.0 - _smooth(2.0, 3.8, h)
 			var cov := _cover(p) * (1.0 - beach)
-			var p_beach := float(_def["beach_tree"]) * beach
+			var p_mangrove := float(_def["mangrove"]) * beach * 0.6
+			var p_beach := float(_def["beach_tree"]) * beach + float(_def["palm_inland"]) * cov
 			var p_tree := float(_def["tree"]) * cov + float(_def["edge"]) * (1.0 - cov) * (1.0 - beach)
 			var p_rock := float(_def["rock"])
+			var p_bamboo := float(_def["bamboo"]) * cov
+			if roll < p_mangrove:
+				_add_tree(buckets, m["mangrove"], p, h, 0.25, 2.5, _rng.randf_range(0.85, 1.2))
+				continue
+			roll -= p_mangrove
 			if roll < p_beach:
 				_add_tree(buckets, m["beach_tree"], p, h, 0.35, 3.0, _rng.randf_range(0.85, 1.15))
 			elif roll < p_beach + p_tree:
 				var crown := _add_tree(buckets, m["tree"], p, h, 0.45, 3.5, _rng.randf_range(0.85, 1.25) + 0.3 * cov)
 				if cov > 0.7:
 					forest_crowns.append(crown)
-			elif roll < p_beach + p_tree + p_rock:
+			elif roll < p_beach + p_tree + p_bamboo:
+				var list: Array = m["bamboo"]
+				_bucket(buckets, list[_rng.randi() % list.size()], "bamboo", Transform3D(Basis(Vector3.UP, _rng.randf() * TAU), Vector3(p.x, h - 0.1, p.y)))
+				reserve(p, 1.5)
+			elif roll < p_beach + p_tree + p_bamboo + p_rock:
 				_add_rock(buckets, m["rock"], p, _rng.randf_range(0.5, 1.8))
 		x += 5.0
 	build_ms["trees"] = _lap(t_veg)
@@ -668,17 +816,24 @@ func _scatter_vegetation() -> void:
 			if h < 1.4 or _excluded(p, -0.5) or _slope_at(p) > 0.45:
 				continue
 			var pd := _path_dist(p)
-			if pd < 0.6:
+			# the dock road stays clear; the trails inland are overgrown (the theme's "overgrown")
+			var road := pd < 2.0 and _road_dist(p) < 2.5
+			if road and pd < 0.6:
 				continue
 			var beach := 1.0 - _smooth(2.2, 3.6, h)
 			var cov := _cover(p)
 			var p_fern := float(_def["fern"]) * cov * (1.0 - beach)
 			var p_bush := (0.05 + float(_def["bush"]) * cov) * (1.0 - beach * 0.7)
+			var p_broad := float(_def["broadleaf"]) * cov * (1.0 - beach)
+			var p_shrub := float(_def["shrub"]) * cov * (1.0 - beach)
 			var p_grass := (float(_def["grass"]) * (1.0 - cov * 0.5) + 0.05) * (1.0 - beach * 0.8)
 			if pd < 2.0:
-				p_fern = 0.0
-				p_bush = 0.0
-				p_grass *= 0.5
+				var k := 0.0 if road else float(_def["overgrown"])
+				p_fern *= k
+				p_bush *= k * (0.3 if pd < 0.8 else 0.7)
+				p_broad *= k
+				p_shrub = 0.0
+				p_grass *= 0.5 + k
 			var roll := _rng.randf()
 			var b := Basis(Vector3.UP, _rng.randf() * TAU)
 			var kind := ""
@@ -686,22 +841,41 @@ func _scatter_vegetation() -> void:
 				kind = "fern"
 			elif roll < p_fern + p_bush:
 				kind = "bush"
-			elif roll < p_fern + p_bush + p_grass:
+			elif roll < p_fern + p_bush + p_broad:
+				kind = "broadleaf"
+			elif roll < p_fern + p_bush + p_broad + p_shrub:
+				kind = "shrub"
+			elif roll < p_fern + p_bush + p_broad + p_shrub + p_grass:
 				kind = "grass"
 			if kind != "":
 				var list: Array = m[kind]
 				var s := _rng.randf_range(0.8, 1.4)
 				_bucket(buckets, list[_rng.randi() % list.size()], kind, Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, h - (0.1 if kind == "bush" else 0.05), p.y)))
+			# under thick cover a second layer of ground cover between the rest
+			var floor_k := 1.0 if pd >= 2.0 else (0.0 if road else float(_def["overgrown"]))
+			var q := p + Vector2(1.25, 1.25)
+			if cov > 0.5 and _rng.randf() < float(_def["floor"]) * cov * (1.0 - beach) * floor_k and not _excluded(q, -0.5):
+				var fk := "fern" if _rng.randf() < 0.6 else "grass"
+				var fl: Array = m[fk]
+				_bucket(buckets, fl[_rng.randi() % fl.size()], fk, Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.7, 1.2)), Vector3(q.x, hv(q) - 0.05, q.y)))
 		x += 2.5
 	build_ms["undergrowth"] = _lap(t_veg)
+	t_veg = Time.get_ticks_usec()
+	_thicket_grid()
+	build_ms["thicket"] = _lap(t_veg)
 
 
-## One MultiMesh per mesh per VEG_CELL square (only the squares in view are drawn).
-func _vegetation_meshes() -> void:
-	var veg := Node3D.new()
-	veg.name = "Vegetation"
-	add_child(veg)
-	for key in _buckets.keys():
+## One MultiMesh per mesh per VEG_CELL square (only the squares in view are drawn);
+## `part` of `parts` of them a step (a frame each).
+func _vegetation_meshes(part: int, parts: int) -> void:
+	if part == 0:
+		var v := Node3D.new()
+		v.name = "Vegetation"
+		add_child(v)
+	var veg := get_node("Vegetation")
+	var keys := _buckets.keys()
+	for ki in range(part, keys.size(), parts):
+		var key: Array = keys[ki]
 		var xforms: Array = _buckets[key]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -718,6 +892,19 @@ func _vegetation_meshes() -> void:
 			"bush":
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				mmi.visibility_range_end = 160.0
+			"broadleaf", "shrub":
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mmi.visibility_range_end = 120.0
+			"bamboo":
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mmi.visibility_range_end = 260.0
+			"giant_detail":
+				# (buttresses, lianas: up close only; the body carries the island's skyline)
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mmi.visibility_range_end = 130.0
+			"giant", "tree":
+				# (past this the fog has swallowed them)
+				mmi.visibility_range_end = 1100.0
 		veg.add_child(mmi)
 
 
@@ -747,7 +934,9 @@ func _vegetation_colliders() -> void:
 
 
 func _bucket(buckets: Dictionary, mesh: Mesh, kind: String, xf: Transform3D) -> void:
-	var key := [mesh, kind, floori(xf.origin.x / VEG_CELL), floori(xf.origin.z / VEG_CELL)]
+	# (the big trees are seen from afar: bigger squares, fewer draw calls)
+	var cell := VEG_CELL * (2.0 if kind == "giant" or kind == "tree" else 1.0)
+	var key := [mesh, kind, floori(xf.origin.x / cell), floori(xf.origin.z / cell)]
 	if not buckets.has(key):
 		buckets[key] = []
 	buckets[key].append(xf)
@@ -763,6 +952,22 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, col_r: 
 	_shapes.append([col_r * s, col_h, Vector3(p.x, h + col_h * 0.5, p.y)])
 	reserve(p, 1.2)
 	return crown
+
+
+## A big tree from `trees` ([body, detail, lean]): its trunk's collider and a grapple
+## crown up top. `lean_to` (if not zero): turned so its crown leans that way.
+func _add_giant(buckets: Dictionary, trees: Array, p: Vector2, h: float, s: float, lean_to := Vector2.ZERO) -> void:
+	var pick: Array = trees[_rng.randi() % trees.size()]
+	var yaw := _rng.randf() * TAU
+	var lean: Vector3 = pick[2]
+	if lean_to != Vector2.ZERO:
+		yaw = atan2(lean_to.x, lean_to.y) - atan2(lean.x, lean.z)
+	var xf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), Vector3(p.x, h - 0.3, p.y))
+	_bucket(buckets, pick[0], "giant", xf)
+	_bucket(buckets, pick[1], "giant_detail", xf)
+	_crowns.append(xf * GrapplePoints.crown_of(pick[0]))
+	_shapes.append([1.1 * s, 8.0, Vector3(p.x, h + 4.0, p.y)])
+	reserve(p, 3.5)
 
 
 func _add_rock(buckets: Dictionary, meshes: Array, p: Vector2, s: float) -> void:

@@ -86,6 +86,10 @@ var _ocean_mat: ShaderMaterial
 var _prev_state: int = -1
 var _thunder_q: Array = []   # [time, far]
 var _sky_t: float = 0.0
+## The style round the camera ([name, weight], KitStyle.around), looked up twice a second.
+var _zone: Array = ["brinehollow", 0.0]
+var _zone_style: Dictionary = KitStyle.of("brinehollow")
+var _zone_t: float = 0.0
 
 
 # --------------------------------------------------------------------------
@@ -135,50 +139,46 @@ func clock_text() -> String:
 	return "Day %d, %02d:%02d" % [day(), int(h), int(fmod(h, 1.0) * 60.0)]
 
 
-func _slot_state(slot: int) -> int:
+## The weather's odds by place (KitStyle "weather"): where clear, cloudy and rain
+## end on a slot's 0..1 roll, the rest storm. Home waters are Brinehollow's.
+const HOME_ODDS: Array = KitStyle.BRINEHOLLOW["weather"]
+
+
+func _slot_state(slot: int, odds: Array = HOME_ODDS) -> int:
 	# a new game starts with ten minutes of fair weather
 	if slot < 2:
 		return W.CLEAR
-	var r := absf(fmod(sin(float(slot) * 12.9898 + 78.233) * 43758.5453, 1.0))
-	var s := W.CLEAR
-	if r < 0.36:
-		s = W.CLEAR
-	elif r < 0.66:
-		s = W.CLOUDY
-	elif r < 0.86:
-		s = W.RAIN
-	else:
-		s = W.STORM
+	var s := _slot_raw(slot, odds)
 	# no back-to-back storms; the first slot of a session is never a storm
-	if s == W.STORM and (slot <= 0 or _slot_raw(slot - 1) == W.STORM):
+	if s == W.STORM and (slot <= 0 or _slot_raw(slot - 1, odds) == W.STORM):
 		s = W.RAIN
 	return s
 
 
-func _slot_raw(slot: int) -> int:
+func _slot_raw(slot: int, odds: Array = HOME_ODDS) -> int:
 	var r := absf(fmod(sin(float(slot) * 12.9898 + 78.233) * 43758.5453, 1.0))
-	return W.CLEAR if r < 0.36 else (W.CLOUDY if r < 0.66 else (W.RAIN if r < 0.86 else W.STORM))
+	return W.CLEAR if r < odds[0] else (W.CLOUDY if r < odds[1] else (W.RAIN if r < odds[2] else W.STORM))
 
 
-func _params_at(t: float) -> Array:
+func _params_at(t: float, odds: Array = HOME_ODDS) -> Array:
 	if forced >= 0:
 		var k := clampf((t - forced_at) / 8.0, 0.0, 1.0)
-		var from: Array = _natural(forced_at)
+		var from: Array = _natural(forced_at, odds)
 		var to: Array = PARAMS[forced]
 		var out: Array = []
 		for i in range(6):
 			out.append(lerpf(float(from[i]), float(to[i]), k))
 		return out
-	return _natural(t)
+	return _natural(t, odds)
 
 
-func _natural(t: float) -> Array:
+func _natural(t: float, odds: Array = HOME_ODDS) -> Array:
 	var slot := int(floor(t / SLOT))
 	var into := t - slot * SLOT
-	var a: Array = PARAMS[_slot_state(slot)]
+	var a: Array = PARAMS[_slot_state(slot, odds)]
 	if into < SLOT - BLEND:
 		return a
-	var b: Array = PARAMS[_slot_state(slot + 1)]
+	var b: Array = PARAMS[_slot_state(slot + 1, odds)]
 	var k := smoothstep(SLOT - BLEND, SLOT, into)
 	var out: Array = []
 	for i in range(6):
@@ -186,10 +186,27 @@ func _natural(t: float) -> Array:
 	return out
 
 
+## The weather where the camera is: home's, blended into a themed island's
+## odds and haze over its reach (KitStyle.around).
+func _params_here(t: float) -> Array:
+	var p := _params_at(t)
+	var k := float(_zone[1])
+	if k <= 0.0:
+		return p
+	# (a slot's params are PARAMS' own read-only row)
+	p = p.duplicate()
+	var q := _params_at(t, _zone_style["weather"])
+	for i in range(6):
+		p[i] = lerpf(float(p[i]), float(q[i]), k)
+	p[5] = minf(float(p[5]) + float(_zone_style["haze"]) * k, 1.0)
+	return p
+
+
 func current_state() -> int:
 	if forced >= 0:
 		return forced
-	return _slot_state(int(floor(world_time() / SLOT)))
+	var odds: Array = _zone_style["weather"] if float(_zone[1]) > 0.5 else HOME_ODDS
+	return _slot_state(int(floor(world_time() / SLOT)), odds)
 
 
 ## Debug / host: force a weather (-1 = back to the natural cycle).
@@ -285,7 +302,13 @@ func _process(delta: float) -> void:
 		return
 	_sky_t += delta
 	var t := world_time()
-	var p := _params_at(t)
+	var cam := get_viewport().get_camera_3d()
+	_zone_t -= delta
+	if cam and _zone_t <= 0.0:
+		_zone_t = 0.5
+		_zone = KitStyle.around(get_tree(), cam.global_position)
+		_zone_style = KitStyle.of(_zone[0])
+	var p := _params_here(t)
 	coverage = p[0]
 	rain = p[1]
 	storm = p[2]
@@ -294,7 +317,6 @@ func _process(delta: float) -> void:
 	fog = p[5]
 	# out at sea: inside a storm cell or a fog bank (SeaFeatures)
 	var sf := get_tree().get_first_node_in_group("sea_features")
-	var cam := get_viewport().get_camera_3d()
 	if sf and cam:
 		var lw: Vector2 = sf.local_weather(cam.global_position)
 		storm = maxf(storm, lw.x)

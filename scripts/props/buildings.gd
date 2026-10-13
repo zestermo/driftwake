@@ -132,6 +132,11 @@ static func beam_between(mb: MeshBuilder, mat: Material, a: Vector3, b: Vector3,
 	mb.add_box(mat, Transform3D(basis, (a + b) * 0.5), Vector3(t, t if t2 < 0.0 else t2, dvec.length()), 0.6)
 
 
+## Rope wound round a post of radius `r`, centred on `at`.
+static func _lash(mb: MeshBuilder, at: Vector3, r: float) -> void:
+	mb.add_cylinder(PSXMat.lit("rope"), _xf(at - Vector3(0, 0.07, 0)), r + 0.03, r + 0.03, 0.14, 6, 2.0)
+
+
 ## Shutters either side, a sill below and (maybe) a box of flowers, on a
 ## window whose frame is `xf` (outward +Z) and size `sz`.
 static func dress_window(mb: MeshBuilder, xf: Transform3D, sz: float, trim: Material, sill: Material, flowers: bool, rng: RandomNumberGenerator) -> void:
@@ -196,6 +201,9 @@ static func wall_lantern(mb: MeshBuilder, at: Vector3, beam: Material) -> void:
 ##   chimney          true / false; stilts height (raised on posts + steps; steps false: none)
 ##   door_x           door offset along the front; sign texture name
 ##   foundation       how far the stone base reaches below ground (slopes)
+##   beam, floor      textures of the posts and beams / the raised floor and porch
+##   poles            round posts (bamboo, palm) instead of square timbers; lashings rope at their joints
+##   eaves            how far the roof overhangs (0.5, a hip 0.45)
 static func house(spec: Dictionary = {}) -> Node3D:
 	var w: float = spec.get("w", 6.0)
 	var d: float = spec.get("d", 5.0)
@@ -210,7 +218,10 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	var wall := PSXMat.lit(spec.get("wall", "planks"))
 	var wall2 := PSXMat.lit(spec.get("wall2", spec.get("wall", "planks")))
 	var roof := PSXMat.lit(spec.get("roof_tex", "thatch"), Color.WHITE, {"affine": 0.8})
-	var beam := PSXMat.lit("planks_dark")
+	var beam := PSXMat.lit(spec.get("beam", "planks_dark"))
+	var floor_m := PSXMat.lit(spec.get("floor", "planks"))
+	var poles: bool = spec.get("poles", false)
+	var lashings: bool = spec.get("lashings", false)
 	var stone := PSXMat.lit("stone_brick")
 	var door := PSXMat.lit("door", Color.WHITE, {"vertex_color": false})
 	var window := PSXMat.lit("window", Color.WHITE, {"emission": Color(0.9, 0.7, 0.35), "emission_energy": 0.6, "emission_tex": "window"})
@@ -230,8 +241,18 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	if stilts > 0.0:
 		for x in [-w * 0.5 + 0.25, 0.0, w * 0.5 - 0.25]:
 			for z in [-d * 0.5 + 0.25, d * 0.5 - 0.25]:
-				mb.add_box(beam, _xf(Vector3(x, (fl - found) * 0.5, z)), Vector3(0.24, fl + found, 0.24), 0.6)
-		mb.add_box(PSXMat.lit("planks"), _xf(Vector3(0, fl - 0.1, 0)), Vector3(w + 0.3, 0.2, d + 0.3), 0.5, Color.WHITE, false, false)
+				if poles:
+					mb.add_cylinder(beam, _xf(Vector3(x, -found, z)), 0.14, 0.12, fl + found, 6, 0.6)
+				else:
+					mb.add_box(beam, _xf(Vector3(x, (fl - found) * 0.5, z)), Vector3(0.24, fl + found, 0.24), 0.6)
+				if lashings:
+					_lash(mb, Vector3(x, fl - 0.3, z), 0.13)
+		if poles and fl > 1.1:
+			# cross braces between the stilts, front and back
+			for z in [-d * 0.5 + 0.25, d * 0.5 - 0.25]:
+				for s in [-1.0, 1.0]:
+					beam_between(mb, beam, Vector3(s * (w * 0.5 - 0.25), 0.15, z), Vector3(0, fl - 0.35, z), 0.08)
+		mb.add_box(floor_m, _xf(Vector3(0, fl - 0.1, 0)), Vector3(w + 0.3, 0.2, d + 0.3), 0.5, Color.WHITE, false, false)
 		# steps up to the door (none when a walkway meets the porch)
 		var n_steps := int(ceil(fl / 0.3)) if spec.get("steps", true) else 0
 		for i in range(n_steps):
@@ -245,7 +266,12 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	tiled_box(mb, wall, Vector3(0, fl + h * 0.5, 0), Vector3(w, h, d), 3.2, 0.5, true, floors == 1 and roof_kind == "shed")
 	for x in [-1, 1]:
 		for z in [-1, 1]:
-			mb.add_box(beam, _xf(Vector3(x * w * 0.5, fl + h * 0.5, z * d * 0.5)), Vector3(0.22, h, 0.22), 0.6)
+			if poles:
+				mb.add_cylinder(beam, _xf(Vector3(x * w * 0.5, fl, z * d * 0.5)), 0.13, 0.12, h, 6, 0.6)
+			else:
+				mb.add_box(beam, _xf(Vector3(x * w * 0.5, fl + h * 0.5, z * d * 0.5)), Vector3(0.22, h, 0.22), 0.6)
+			if lashings:
+				_lash(mb, Vector3(x * w * 0.5, fl + h - 0.2, z * d * 0.5), 0.13)
 	mb.add_box(beam, _xf(Vector3(0, fl + h, 0)), Vector3(w + 0.1, 0.18, d + 0.1), 0.6)
 	mb.add_box_unit_uv(door, _xf(Vector3(door_x, fl + 1.0, d * 0.5 + 0.03)), Vector3(1.0, 2.0, 0.06))
 	dress_door(mb, Vector3(door_x, fl, d * 0.5), trim, beam, roof, porch <= 0.0 and stilts <= 0.0)
@@ -304,21 +330,22 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	var pitch: float = spec.get("pitch", 0.45)
 	var cap := PSXMat.lit(spec.get("roof_tex", "thatch"), Color(0.7, 0.66, 0.62), {"affine": 0.8})
 	var y0 := top + 0.09
+	var ev: float = spec.get("eaves", 0.45 if roof_kind == "hip" else 0.5)
 	match roof_kind:
 		"gable_front":
-			mb.add_gable_roof(roof, _xf(Vector3(0, y0, 0)), uw, ud, uw * pitch, 0.5, 0.5, Color.WHITE, wall2)
+			mb.add_gable_roof(roof, _xf(Vector3(0, y0, 0)), uw, ud, uw * pitch, ev, 0.5, Color.WHITE, wall2)
 			var ry := y0 + uw * pitch
-			mb.add_box(cap, _xf(Vector3(0, ry + 0.03, 0)), Vector3(0.26, 0.16, ud + 1.1), 0.8)
-			for z in [-(ud * 0.5 + 0.5), ud * 0.5 + 0.5]:
+			mb.add_box(cap, _xf(Vector3(0, ry + 0.03, 0)), Vector3(0.26, 0.16, ud + ev * 2.0 + 0.1), 0.8)
+			for z in [-(ud * 0.5 + ev), ud * 0.5 + ev]:
 				for s in [-1.0, 1.0]:
-					beam_between(mb, beam, Vector3(s * (uw * 0.5 + 0.5), y0 - pitch, z), Vector3(0, ry, z), 0.16, 0.06)
+					beam_between(mb, beam, Vector3(s * (uw * 0.5 + ev), y0 - pitch, z), Vector3(0, ry, z), 0.16, 0.06)
 			for s in [-1.0, 1.0]:
-				mb.add_box(beam, _xf(Vector3(s * (uw * 0.5 + 0.52), y0 - pitch - 0.05, 0)), Vector3(0.06, 0.18, ud + 1.0), 0.8)
+				mb.add_box(beam, _xf(Vector3(s * (uw * 0.5 + ev + 0.02), y0 - pitch - 0.05, 0)), Vector3(0.06, 0.18, ud + ev * 2.0), 0.8)
 		"hip":
 			var hh := minf(uw, ud) * pitch
-			add_hip_roof(mb, roof, _xf(Vector3(0, y0, 0)), uw, ud, hh)
-			var hw := uw * 0.5 + 0.45
-			var hd := ud * 0.5 + 0.45
+			add_hip_roof(mb, roof, _xf(Vector3(0, y0, 0)), uw, ud, hh, ev)
+			var hw := uw * 0.5 + ev
+			var hd := ud * 0.5 + ev
 			var r := absf(hw - hd)
 			var ra := Vector3(-r, y0 + hh, 0) if uw >= ud else Vector3(0, y0 + hh, -r)
 			var rb := Vector3(r, y0 + hh, 0) if uw >= ud else Vector3(0, y0 + hh, r)
@@ -330,14 +357,14 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		"shed":
 			add_shed_roof(mb, roof, wall2, _xf(Vector3(0, top, 0)), uw, ud, ud * pitch * 0.6)
 		_:
-			mb.add_gable_roof(roof, _xf(Vector3(0, y0, 0), PI * 0.5), ud, uw, ud * pitch, 0.5, 0.5, Color.WHITE, wall2)
+			mb.add_gable_roof(roof, _xf(Vector3(0, y0, 0), PI * 0.5), ud, uw, ud * pitch, ev, 0.5, Color.WHITE, wall2)
 			var ry := y0 + ud * pitch
-			mb.add_box(cap, _xf(Vector3(0, ry + 0.03, 0)), Vector3(uw + 1.1, 0.16, 0.26), 0.8)
-			for x in [-(uw * 0.5 + 0.5), uw * 0.5 + 0.5]:
+			mb.add_box(cap, _xf(Vector3(0, ry + 0.03, 0)), Vector3(uw + ev * 2.0 + 0.1, 0.16, 0.26), 0.8)
+			for x in [-(uw * 0.5 + ev), uw * 0.5 + ev]:
 				for s in [-1.0, 1.0]:
-					beam_between(mb, beam, Vector3(x, y0 - pitch, s * (ud * 0.5 + 0.5)), Vector3(x, ry, 0), 0.06, 0.16)
+					beam_between(mb, beam, Vector3(x, y0 - pitch, s * (ud * 0.5 + ev)), Vector3(x, ry, 0), 0.06, 0.16)
 			for s in [-1.0, 1.0]:
-				mb.add_box(beam, _xf(Vector3(0, y0 - pitch - 0.05, s * (ud * 0.5 + 0.52))), Vector3(uw + 1.0, 0.18, 0.06), 0.8)
+				mb.add_box(beam, _xf(Vector3(0, y0 - pitch - 0.05, s * (ud * 0.5 + ev + 0.02))), Vector3(uw + ev * 2.0, 0.18, 0.06), 0.8)
 
 	if spec.get("chimney", false):
 		var cx := -uw * 0.3
@@ -378,9 +405,14 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	# covered porch along the front
 	if porch > 0.0:
 		var pz := d * 0.5 + porch
-		mb.add_box(PSXMat.lit("planks"), _xf(Vector3(0, fl - 0.08, d * 0.5 + porch * 0.5)), Vector3(w, 0.16, porch), 0.5, Color.WHITE, false, false)
+		mb.add_box(floor_m, _xf(Vector3(0, fl - 0.08, d * 0.5 + porch * 0.5)), Vector3(w, 0.16, porch), 0.5, Color.WHITE, false, false)
 		for x in [-w * 0.5 + 0.15, w * 0.5 - 0.15]:
-			mb.add_box(beam, _xf(Vector3(x, fl + h * 0.45 - (0.3 + stilts) * 0.5, pz - 0.1)), Vector3(0.16, h * 0.9 + 0.3 + stilts, 0.16), 0.6)
+			if poles:
+				mb.add_cylinder(beam, _xf(Vector3(x, 0.0, pz - 0.1)), 0.1, 0.09, h * 0.9 + 0.3 + stilts, 6, 0.6)
+			else:
+				mb.add_box(beam, _xf(Vector3(x, fl + h * 0.45 - (0.3 + stilts) * 0.5, pz - 0.1)), Vector3(0.16, h * 0.9 + 0.3 + stilts, 0.16), 0.6)
+			if lashings:
+				_lash(mb, Vector3(x, fl - 0.25, pz - 0.1), 0.1)
 		var porch_roof_y := fl + h * 0.9
 		mb.add_quad(roof, Vector3(-w * 0.5 - 0.2, fl + h - 0.05, d * 0.5), Vector3(w * 0.5 + 0.2, fl + h - 0.05, d * 0.5),
 			Vector3(w * 0.5 + 0.2, porch_roof_y - 0.2, pz + 0.3), Vector3(-w * 0.5 - 0.2, porch_roof_y - 0.2, pz + 0.3),

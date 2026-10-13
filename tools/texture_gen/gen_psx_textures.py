@@ -244,6 +244,157 @@ def gen_thatch():
     save(to_img(rgb), "thatch")
 
 
+# --------------------------------------------------------------------------
+# Jungle building textures (KitStyle.JUNGLE)
+# --------------------------------------------------------------------------
+def gen_bamboo():
+    """Vertical bamboo culms side by side, rounded by shading, dark node rings."""
+    rng = np.random.default_rng(2101)
+    palette = pal("4c4424", "5d542b", "706433", "82743b", "938343", "a2904c")
+    rgb = np.zeros((64, 64, 3), dtype=np.uint8)
+    x = 0
+    while x < 64:
+        w = int(rng.integers(7, 10)) if 64 - x > 12 else 64 - x
+        across = np.abs(np.linspace(-1, 1, w))
+        streak = fbm(64, 4, 2, rng)[:, :1]
+        v = np.clip((1 - across[None, :] ** 2) * 0.75 + streak * 0.35 - 0.05, 0, 0.999)
+        rgb[:, x:x + w] = ramp(v, palette)
+        rgb[:, x] = hexc("3a3518")
+        y0 = int(rng.integers(0, 64))
+        gap = int(rng.integers(18, 26))
+        for y in range(y0, y0 + 64, gap):
+            rgb[y % 64, x:x + w] = hexc("4a4420")
+            rgb[(y + 1) % 64, x + 1:x + w - 1] = hexc("ae9e5a")
+        x += w
+    for _ in range(40):
+        px, py = rng.integers(0, 64, 2)
+        rgb[py, px] = hexc("4f4a22")
+    save(to_img(rgb), "bamboo")
+
+
+def gen_woven():
+    """Woven palm-strip matting for hut walls: a basket weave of tan strips."""
+    rng = np.random.default_rng(2102)
+    palette = pal("5e4826", "735a30", "88703c", "9d8448", "b09754", "c2a862")
+    rgb = np.zeros((64, 64, 3), dtype=np.uint8)
+    cell = 8
+    for cy in range(0, 64, cell):
+        for cx in range(0, 64, cell):
+            horiz = ((cx // cell) + (cy // cell)) % 2 == 0
+            tone = rng.random() * 0.25
+            for k in range(2):
+                for t in range(4):
+                    edge = 1 - abs(t - 1.5) / 1.5
+                    for s in range(cell):
+                        along = 1 - abs(s - (cell - 1) / 2) / ((cell - 1) / 2)
+                        v = np.clip(0.25 + edge * 0.35 + along * 0.25 + tone + rng.random() * 0.12, 0, 0.999)
+                        c = palette[int(v * len(palette))]
+                        if horiz:
+                            rgb[cy + k * 4 + t, cx + s] = c
+                        else:
+                            rgb[cy + s, cx + k * 4 + t] = c
+            if horiz:
+                rgb[cy + 3:cy + 5, cx] = hexc("3a2a14")
+            else:
+                rgb[cy, cx + 3:cx + 5] = hexc("3a2a14")
+    save(to_img(rgb), "woven")
+
+
+def gen_palm_thatch():
+    """Palm-leaf thatch: overlapping rows of dried fronds, leaflets hanging in chevrons."""
+    rng = np.random.default_rng(2103)
+    palette = pal("4a3a1c", "5e4a24", "74602e", "8a7238", "9e8442", "8a8a3c", "6e7a30")
+    rgb = np.zeros((64, 64, 3), dtype=np.uint8)
+    rgb[:] = ramp(norm(fbm(64, 4, 3, rng)) * 0.4, palette)
+    for row in range(0, 64, 16):
+        for x in range(0, 64, 2):
+            c = palette[rng.integers(1, len(palette))]
+            L = int(rng.integers(10, 17))
+            lean = 1 if (x // 6) % 2 == 0 else -1
+            for k in range(L):
+                rgb[(row + k) % 64, (x + lean * (k // 5)) % 64] = c
+        rgb[(row + 15) % 64] = (rgb[(row + 15) % 64] * 0.5).astype(np.uint8)
+        rgb[row % 64] = (rgb[row % 64] * 0.75).astype(np.uint8)
+        for x in range(0, 64, 4):
+            rgb[(row + 14 - int(rng.integers(0, 3))) % 64, x] = hexc("2e2410")
+    save(to_img(rgb), "palm_thatch")
+
+
+def gen_flagstones():
+    """Irregular stone slabs with mossy joints (jungle paving and plazas)."""
+    rng = np.random.default_rng(2104)
+    pts = rng.random((14, 2)) * 64
+    yy, xx = np.mgrid[0:64, 0:64]
+    d1 = np.full((64, 64), 1e9)
+    d2 = np.full((64, 64), 1e9)
+    owner = np.zeros((64, 64), dtype=int)
+    for i, (px, py) in enumerate(pts):
+        for ox in (-64, 0, 64):
+            for oy in (-64, 0, 64):
+                d = np.hypot(xx - (px + ox), yy - (py + oy))
+                closer = d < d1
+                d2 = np.where(closer, d1, np.minimum(d2, d))
+                owner = np.where(closer, i, owner)
+                d1 = np.where(closer, d, d1)
+    shade = rng.random(len(pts)) * 0.35
+    n = fbm(64, 4, 3, rng)
+    v = np.clip(shade[owner] + norm(n) * 0.5 + 0.1, 0, 0.999)
+    rgb = ramp(v, pal("575a4e", "63675a", "6f7366", "7b7f70", "878a7a"))
+    joint = (d2 - d1) < 1.6
+    moss = ramp(norm(fbm(64, 8, 2, rng)), pal("27361a", "2f4220", "3a5026"))
+    rgb[joint] = moss[joint]
+    for _ in range(50):
+        x, y = rng.integers(0, 64, 2)
+        rgb[y, x] = hexc("4a5e2c")
+    save(to_img(rgb), "flagstones")
+
+
+def gen_vines():
+    """32x128 hanging lianas: two or three wavy strands with leaves along them. Alpha-cut."""
+    W, H = 32, 128
+    rng = np.random.default_rng(2105)
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    greens = pal("1f3d14", "28501a", "32621f", "3f7426", "4f8a2e")
+    for k in range(3):
+        x0 = 6 + k * 10 + rng.integers(-2, 3)
+        phase = rng.uniform(0, 6.28)
+        amp = rng.uniform(1.0, 2.5)
+        top = int(rng.integers(0, 10))
+        end = H - int(rng.integers(0, 40))
+        prev = None
+        for y in range(top, end):
+            x = int(x0 + amp * math.sin(y / 9.0 + phase))
+            if prev is not None:
+                d.line([prev, (x, y)], fill=hexc("4a3a20") + (255,))
+            prev = (x, y)
+            if y % 5 == 0:
+                c = greens[rng.integers(0, len(greens))]
+                side = 1 if (y // 5) % 2 == 0 else -1
+                d.polygon([(x, y), (x + side * 4, y - 2), (x + side * 5, y + 1), (x + side * 2, y + 2)], fill=c + (255,))
+    save(img, "vines")
+
+
+def gen_broadleaf():
+    """A big glossy tropical leaf (elephant ear / banana), midrib along y. Alpha-cut."""
+    S = 64
+    rng = np.random.default_rng(2106)
+    yy, xx = np.mgrid[0:S, 0:S]
+    t = yy / (S - 1)
+    half = np.sin(np.clip(t, 0, 1) * math.pi) ** 0.8 * 0.46 * S * (1 - 0.15 * t)
+    dx = xx - S / 2 + 0.5
+    inside = np.abs(dx) < half
+    n = fbm(S, 4, 2, rng)
+    v = np.clip(0.35 + norm(n) * 0.3 + (1 - np.abs(dx) / (half + 1e-3)) * 0.25, 0, 0.999)
+    rgb = ramp(v, pal("1e4416", "275a1b", "317022", "3d842a", "4c9834", "5daa3e"))
+    veins = (np.abs(((yy - np.abs(dx) * 0.6) % 7)) < 1.0) & inside
+    rgb[veins] = (rgb[veins] * 0.8).astype(np.uint8)
+    rib = np.abs(dx) < 1.0
+    rgb[rib] = hexc("8aa858")
+    alpha = inside.astype(float)
+    save(to_img(rgb, alpha), "broadleaf")
+
+
 def gen_stone_brick():
     rng = np.random.default_rng(909)
     rgb = np.zeros((64, 64, 3), dtype=np.uint8)
@@ -1627,6 +1778,9 @@ def main():
     if "village" in sys.argv[1:]:
         gen_cobbles(); gen_sign_smithy()
         return
+    if "jungle" in sys.argv[1:]:
+        gen_bamboo(); gen_woven(); gen_palm_thatch(); gen_flagstones(); gen_vines(); gen_broadleaf()
+        return
     os.makedirs(OUT, exist_ok=True)
     print("Generating PSX textures ->", os.path.relpath(OUT, ROOT))
     gen_grass(); gen_sand(); gen_wet_sand(); gen_dirt(); gen_rock(); gen_seafloor(); gen_water()
@@ -1635,6 +1789,7 @@ def main():
     planks(3103, pal("7a7466", "878070", "948c7c", "a19888", "aea494"), "planks_weathered", plank_h=8, gap="3a3630")
     gen_bark(); gen_palm_bark(); gen_thatch(); gen_stone_brick(); gen_plaster(); gen_roof_tiles()
     gen_cobbles(); gen_sign_smithy()
+    gen_bamboo(); gen_woven(); gen_palm_thatch(); gen_flagstones(); gen_vines(); gen_broadleaf()
     gen_cloth(1210, hexc("b03a2e"), hexc("e8e0cc"), "cloth_red")
     gen_cloth(1211, hexc("2e5a8a"), hexc("e8e0cc"), "cloth_blue")
     gen_cloth(1212, hexc("d8d0b8"), hexc("d8d0b8"), "canvas", stripes=False)

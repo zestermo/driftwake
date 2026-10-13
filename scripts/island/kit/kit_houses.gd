@@ -89,7 +89,7 @@ static func _wall_window(mb: MeshBuilder, xf: Transform3D, t: float, frame: Mate
 
 ## A raised room on a timber deck with a veranda and steps up to it (a ramp under them).
 ## spec: kind "home" / "trade" / "cook", w, d, h, fl (the floor over the origin),
-## found, veranda, roof "hip" / "gable", wall, seed, name, steps (false: a walkway meets
+## found, veranda, roof "hip" / "gable", wall, roof_tex, seed, name, steps (false: a walkway meets
 ## the veranda instead). Markers: Door (at the foot
 ## of the steps, facing out), Inside, and the kind's own: Bed, Table, Hearth (home);
 ## Vendor (behind the counter, facing the door) and Customer (trade, cook).
@@ -109,7 +109,7 @@ static func room(spec: Dictionary) -> StaticBody3D:
 	var deck := PSXMat.lit("planks")
 	var beam := PSXMat.lit("planks_dark")
 	var palm := _palm()
-	var thatch := PSXMat.lit("thatch", Color.WHITE, {"affine": 0.8})
+	var thatch := PSXMat.lit(str(spec.get("roof_tex", "thatch")), Color.WHITE, {"affine": 0.8})
 	var weave := PSXMat.lit("straw")
 	var rope := PSXMat.lit("rope")
 	var t := WALL_T

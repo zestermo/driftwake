@@ -5,7 +5,8 @@ extends SceneTree
 ## and its tower, the beast's ground and the beast; each captioned, then a
 ## contact sheet of them all (<out>_sheet.png). Prints its build times.
 ## Args: <out_prefix> [chain seed | -] [node id | -] [psx]
-## (env GSHOT_SEED / GSHOT_ID still work; GSHOT_HOUR=21 renders at that hour, 11 by default)
+## (env GSHOT_SEED / GSHOT_ID still work; GSHOT_HOUR=21 renders at that hour, 11 by default;
+## GSHOT_ONLY=sea,pier,jungle,aerial renders just those shots)
 const SITE_COLS := {"dock": Color(1, 1, 1), "village": Color(1.0, 0.85, 0.2), "boss": Color(1.0, 0.25, 0.2), "camp": Color(1.0, 0.55, 0.15),
 	"lair": Color(0.75, 0.4, 1.0), "ruins": Color(0.6, 0.75, 0.9), "summit": Color(0.3, 0.95, 1.0)}
 var t := 0.0
@@ -129,6 +130,16 @@ func _setup(island) -> void:
 		["boss", "the beast's ground", _g(s["boss"] + dd * 30.0, 9.0), _g(s["boss"], 1.0), false, 0.0],
 		["ape", "the beast", _g(s["boss"] + (s["village"] - s["boss"]).normalized() * 8.0 + side * 3.0, 2.2), _g(s["boss"], 1.6), false, 0.0],
 	]
+	# inside the jungle at eye height, in the thick of the cover
+	var fc: Vector3 = isl.forest_crowns[isl.forest_crowns.size() / 3]
+	var inside := Vector2(fc.x, fc.z) + dd * 2.0
+	shots.insert(5, ["jungle", "inside the jungle", _g(inside, 1.7), _g(inside - side * 20.0, 3.0), false, 0.0])
+	var only := OS.get_environment("GSHOT_ONLY")
+	if only != "":
+		shots = shots.filter(func(e): return e[0] in only.split(","))
+		if not "map" in only.split(","):
+			marks.free()
+			marks = null
 	_aim()
 
 

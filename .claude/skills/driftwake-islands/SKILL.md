@@ -59,7 +59,7 @@ The island side is `Island`'s interface: `hv`, `walk_height`, `reserve`, `exclud
 | File | Class | Pieces |
 |---|---|---|
 | `kit_context.gd` | KitContext | the context above |
-| `kit_style.gd` | KitStyle | `BRINEHOLLOW` (timber and stone), `JUNGLE` (overrides); lamp colour/range, paving, quay stone, waterfront walls/roofs/awnings, pennants, washing, rugs, goods, tents, pirates' houses and flags |
+| `kit_style.gd` | KitStyle | the style table (below): `of(name)`, `house_spec`, `prop`, `folk_look`, `around` |
 | `kit_lights.gd` | KitLights | `post` (a lantern post, lit from the budget), `light` (a NightLight on any node) |
 | `kit_harbour.gd` | KitHarbour | `plan` (the quay line, data, in a frame: `out` to sea, `along`, `inland`), `shape`/`earth`/`on_platform` (height, splat and walk hooks), `build_pier`, `build_quay`, `build_piers`, `build_longboats`, `plan_waterfront`/`build_waterfront`, `plan_dressing` (cargo, carts, lamps, stalls), `build_front` (booth, boat on the stocks, yard, net-mender's corner; `mirror`), models `booth_model`, `boat_on_stocks`, `workbench` |
 | `kit_harbour_gen.gd` | GenHarbour | a generated island's harbour district at its pier: `plan(gi)` (data, in GenIsland.prepare before the vegetation; the kind rolled from the style's `harbour_kinds` (stilts / cove / wharf / ruins) or, with the village inland, `harbour_wild_kinds` (adds a bare landing); `force` for tools), `steps()` (GenIsland.finish_steps), `at(s, d)` (s along the shore, d in from the waterline), `waterfront()`, `spots` (where harbour people would work) |
@@ -127,6 +127,62 @@ body and apron), then reserve it all from the plants at the end; give every plan
 (the plan can then run on the worker); name repeated buildings yourself (`House2`...) or a second one
 loses its name and the fidelity tool and co-op can't tell it apart; a node holding a marker must not have a
 mesh child of the same name; services go further out until they fit (never silently missing).
+
+## The style table (KitStyle)
+
+`KitStyle.of(name)` (= `ctx.style`) is `BRINEHOLLOW` merged with the theme's table (`STYLES[name]`),
+read-only. BRINEHOLLOW has **every** key; a theme replaces **whole keys** (a nested table is replaced,
+not merged), so a theme's nested tables carry all their sub-keys. isletest fails if a theme misses a
+key, a nested key or a prop slot.
+
+| Key | What | Read by |
+|---|---|---|
+| `lamp`, `lamp_range` | the flame's colour and reach | KitLights, IslandVillage |
+| `paving`, `quay_wall`, `quay_cope`, `iron` | paving texture, quay stone tints, ironwork | KitPaving, KitHarbour |
+| `row_walls`, `row_upper`, `row_roofs`, `row_awnings`, `row_roof_tex` | a waterfront row by position | KitHarbour |
+| `pennants`, `washing`, `rugs`, `goods` | textile and wares palettes | KitVillage, KitMarket, stalls |
+| `tent`, `camp_tent`, `rough`, `crew_flag`, `pirate_flag` | camps (`rough` is merged into a shack's spec) | KitCamps, IslandContent |
+| `mat` | the palette: texture per part (`wall beam floor deck post rail roof thatch rope stone cloth weave`) | new pieces |
+| `house` | a settlement house: pools (`walls roofs roof_tex trims`), ranges (`w d h pitch`), chances (`flowers chimney`, `porch` = [chance, lo, hi]), fixed (`eaves beam floor poles lashings stilts`) | `KitStyle.house_spec(st, rng)`; IslandVillage._make (walls, roofs, pitch, frame, first trim) |
+| `inn` | what the inn changes from a rolled house | IslandVillage._make (`wall`) |
+| `stall` | `canopies` (textures), `post` | nothing yet (the layouts' market is KitMarket's Buildings.stall) |
+| `pier` | `deck post rail` textures, `lashings`, `rope_rail` | nothing yet (GenHarbour builds the dock from the `harbour_*` keys) |
+| `harbour_*` | GenHarbour's kinds, pilings, decks, roofs, walls, tarps, floats, signal lamp (JUNGLE only) | KitHarbourGen |
+| `props` | slot -> model: `crate barrel lamp marker` (jungle: basket, pot, torch_post, totem) | `KitStyle.prop(st, slot, rng, size)`; a lamp has a "Flame" marker for its light; KitLights.post uses the lamp slot |
+| `folk` | `pick` pools (any CharacterLook key, `<key>_fem` for women), `set` fixed values | `KitStyle.folk_look(st, rng)` |
+| `music`, `ambience` | Music.TRACKS key ashore; Ambience.LOOPS bed ("" none) | Music, Ambience |
+| `weather`, `haze` | where clear/cloudy/rain end on a slot's roll (rest storm); fog added | Weather |
+
+`KitStyle.around(tree, pos)` -> `[style, weight]`: a chain island's style, 1 on it, fading out over
+`REACH` (140 m) past its coast; home waters are Brinehollow's (Music, Ambience, Weather look it up
+twice a second). Buildings.house takes `beam`, `floor`, `poles` (round posts), `lashings` (rope at
+the joints) and `eaves` (defaults are Brinehollow's look). Jungle models: `JungleProps` (basket, pot,
+torch_post, totem); textures bamboo, woven, palm_thatch, flagstones (gen_psx_textures.py `jungle`).
+
+**Adding a theme** (snow, desert, forest): a const table like `JUNGLE` with the keys that differ
+(whole nested tables), a line in `STYLES`, new prop slot values in `KitStyle.prop` if it has its own
+models, an `IslandTheme.DEFS` entry and `meshes` for its land and plants. Phase 2 agents add their
+own keys as one block at the end of BRINEHOLLOW (today's value) and of JUNGLE.
+
+## Jungle vegetation (IslandTheme, GenIsland._scatter_vegetation)
+
+Layers, all MultiMeshes per 70 m square (big trees 140 m): canopy giants on a 10 m grid (`canopy`,
+the kind by `giants` weights: canopy tree, strangler fig, kapok, emergent; JunglePlants returns each
+as [body, detail, lean]: the body casts shadows and is seen to 1100 m, the detail - buttresses,
+lianas, ferns in the limbs - only to 130 m), mid trees, palms, mangroves at the waterline, bamboo
+(5 m grid), then ferns, bushes, broad leaves, understory shrubs and a second layer of ground cover
+(2.5 m grid, no shadows, 90-160 m). Colliders only on trunks; grapple crowns on every big tree.
+Each island grows one of the theme's `forests` (mixed, old growth, bamboo thicket, mangrove coast,
+palm fringe, strangler figs), picked from its seed on a separate stream.
+
+- **Undergrowth density:** `isl.undergrowth_at(world_pos)` (0..1, a 4 m grid worked out in prepare)
+  and `GenIsland.thicket(tree, pos)` (whichever chain island you're on). The move code slows by
+  `THICKET_SLOW` (30%) at full density (player MoveState, PirateGrunt). Trails inland are
+  overgrown (`overgrown`); the dock road, the sites and arenas are 0.
+- **Canopy arenas:** `isl.canopy_arena(c, r)` in prepare before the scatter (e.g. from `_plan_sites`):
+  the floor within r stays clear (reserve_area: no trunks, brush or rocks; undergrowth 0), giants
+  ring it at r + 4.6 with their crowns turned to lean in, and trunkless canopy pieces (JunglePlants
+  `canopy_roof`, 14-17 m) close the roof over it on an 8 m grid. Level its ground yourself (`_flat`).
 
 ## Authoring a kit piece
 

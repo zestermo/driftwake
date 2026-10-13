@@ -258,15 +258,20 @@ func _make(b: Dictionary) -> Dictionary:
 	var raised: float = b.get("raised", INF)
 	var rng := KitVillage._seeded(int(b["seed"]))
 	var yaw := KitContext.face_yaw(face)
-	var trim := Color(0.42, 0.3, 0.2)
+	var hs: Dictionary = ctx.style["house"]
+	var mat: Dictionary = ctx.style["mat"]
+	var walls: Array = hs["walls"]
+	var frame := {"beam": hs["beam"], "floor": hs["floor"], "poles": hs["poles"], "lashings": hs["lashings"], "eaves": hs["eaves"]}
+	var trim: Color = hs["trims"][0]
 	var n: Node3D
 	match kind:
 		"inn":
-			n = _house({"w": w, "d": d, "h": 2.7, "floors": 2, "h2": 2.3, "roof": "hip", "wall": "planks_weathered", "wall2": "straw", "roof_tex": "thatch",
-				"porch": 2.0, "lantern": true, "lamp_light": true, "trim": trim, "sign": "sign_tavern", "seed": rng.randi(), "name": "Inn"}, p, face, raised)
+			n = _house({"w": w, "d": d, "h": 2.7, "floors": 2, "h2": 2.3, "roof": "hip", "wall": ctx.style["inn"]["wall"], "wall2": mat["weave"], "roof_tex": mat["thatch"],
+				"porch": 2.0, "lantern": true, "lamp_light": true, "trim": trim, "sign": "sign_tavern", "seed": rng.randi(), "name": "Inn"}.merged(frame), p, face, raised)
 		"trade", "cook", "home", "elder":
 			var spec := {"kind": "home" if kind == "elder" else kind, "w": w, "d": d, "found": found, "seed": rng.randi(),
-				"roof": ["hip", "gable"][rng.randi() % 2], "wall": ["planks_weathered", "planks"][rng.randi() % 2], "name": _uniq("Shop" if SHOPS.has(kind) else "Home")}
+				"roof": ["hip", "gable"][rng.randi() % 2], "wall": walls[rng.randi() % walls.size()], "roof_tex": mat["thatch"],
+				"name": _uniq("Shop" if SHOPS.has(kind) else "Home")}
 			if raised != INF:
 				spec.merge({"fl": raised - top, "steps": false}, true)
 			n = ctx.place(KitHouses.room(spec), p, yaw, r, 0.0, false)
@@ -284,15 +289,18 @@ func _make(b: Dictionary) -> Dictionary:
 		"ruin":
 			n = ctx.place(KitHouses.ruin({"w": w, "d": d, "seed": rng.randi(), "found": found, "name": _uniq("Ruin")}), p, yaw, r, 0.0, false)
 		"tall":
+			var upper: Array = ctx.style["row_upper"]
 			n = _house({"w": w, "d": d, "h": 2.4, "floors": 2, "h2": 2.2, "jetty": 0.3, "roof": ["hip", "gable", "gable_front"][rng.randi() % 3],
-				"wall": ["planks", "planks_weathered"][rng.randi() % 2], "wall2": ["straw", "planks_weathered"][rng.randi() % 2], "roof_tex": "thatch",
-				"pitch": 0.6, "flowers": rng.randf() < 0.5, "trim": trim, "seed": rng.randi(), "name": _uniq("House"),
-				"porch": 1.2 if raised != INF else 0.0}, p, face, raised)
+				"wall": walls[rng.randi() % walls.size()], "wall2": upper[rng.randi() % upper.size()], "roof_tex": mat["thatch"],
+				"pitch": hs["pitch"][0], "flowers": rng.randf() < 0.5, "trim": trim, "seed": rng.randi(), "name": _uniq("House"),
+				"porch": 1.2 if raised != INF else 0.0}.merged(frame), p, face, raised)
 		_:
-			n = _house({"w": w, "d": d, "h": 2.3, "roof": ["gable", "gable", "hip", "gable_front"][rng.randi() % 4],
-				"wall": ["planks", "planks_weathered", "planks", "straw"][rng.randi() % 4], "roof_tex": "thatch",
+			var roofs: Array = hs["roofs"]
+			n = _house({"w": w, "d": d, "h": 2.3, "roof": roofs[rng.randi() % roofs.size()],
+				"wall": walls[rng.randi() % walls.size()], "roof_tex": mat["thatch"],
 				"porch": 1.2 if raised != INF or rng.randf() < 0.5 else 0.0, "lean_to": ["", "", "left", "right"][rng.randi() % 4],
-				"flowers": rng.randf() < 0.4, "trim": trim, "seed": rng.randi(), "name": _uniq("House")}, p, face, raised)
+				"flowers": rng.randf() < 0.4, "trim": trim, "seed": rng.randi(), "name": _uniq("House"),
+				"pitch": rng.randf_range(hs["pitch"][0], hs["pitch"][1])}.merged(frame), p, face, raised)
 	var info := {"kind": kind, "node": n, "p": p, "face": face, "enterable": ROOMS.has(kind), "door": p + face * (d * 0.5 + float(b["ext"]))}
 	if raised != INF:
 		info["door"] = p + face * (d * 0.5 + VillageLayouts._deck_ext(kind))
@@ -442,8 +450,9 @@ static func looks(gi: GenIsland) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(gi.node["seed"]) + 77
 	var out: Array = []
+	var st := KitStyle.of(gi.theme)
 	for i in range(4 + rng.randi_range(2, 3)):
-		out.append(_villager_look(rng))
+		out.append(KitStyle.folk_look(st, rng))
 	out[0].merge({"marks": "age_lines", "hair_color": CharacterLook.HAIR_COLORS[8], "height": 0.95, "hat": "none"}, true)
 	return out
 

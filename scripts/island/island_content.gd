@@ -79,19 +79,19 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 	var log_b: Vector2 = at.call(-2.4, -0.4)
 	isl.place(KitCamps.log_seat(), site, log_a, StarterIsland.face_yaw(c - log_a) + PI * 0.5)
 	isl.place(KitCamps.log_seat(), site, log_b, StarterIsland.face_yaw(c - log_b) + PI * 0.5)
+	var st := KitStyle.of(isl.theme)
 	for tp in [at.call(-6.0, -3.5), at.call(-5.5, 4.0), at.call(-1.5, -6.5)]:
-		isl.place(KitCamps.tent(Color(0.62, 0.55, 0.45)), site, tp, StarterIsland.face_yaw(c - tp), 2.0)
-	var rough := {"flowers": false, "trim": Color(0.36, 0.34, 0.32)}
+		isl.place(KitCamps.tent(st["camp_tent"]), site, tp, StarterIsland.face_yaw(c - tp), 2.0)
 	var shack_p: Vector2 = at.call(-11.0, 0.0)
-	isl.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4}.merged(rough), site, shack_p, f)
+	isl.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4}.merged(st["rough"]), site, shack_p, f)
 	var stash: Vector2 = at.call(4.5, 5.0)
-	isl.place(Props.crate(0.9), site, stash, 0.3, 1.0)
-	isl.place(Props.crate(0.7), site, stash, 0.9, 0.0, 0.9)
+	isl.place(KitStyle.prop(st, "crate", rng, 1.1), site, stash, 0.3, 1.0)
+	isl.place(KitStyle.prop(st, "crate", rng, 0.9), site, stash + s * 1.0, 0.9, 1.0)
 	for k in range(3):
-		isl.place(Props.barrel(), site, at.call(6.0 + (k % 2) * 0.9, 2.0 - k * 0.8))
+		isl.place(KitStyle.prop(st, "barrel", rng), site, at.call(6.0 + (k % 2) * 0.9, 2.0 - k * 0.8))
 	isl.place(Props.weapon_rack(), site, at.call(-3.0, 6.0), StarterIsland.face_yaw(c - at.call(-3.0, 6.0)))
 	for lp in [at.call(3.0, -3.0), at.call(-7.0, 4.5)]:
-		isl.place(Props.lantern_post(2.4), site, lp)
+		isl.place(KitStyle.prop(st, "lamp", rng), site, lp)
 	var tower_p: Vector2 = at.call(8.0, -9.0)
 	isl.place(KitLandmarks.lookout_tower(), site, tower_p, StarterIsland.face_yaw(f), 2.6)
 	var pole := MeshBuilder.new()

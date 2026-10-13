@@ -546,11 +546,11 @@ static func tavern() -> Node3D:
 
 
 ## Market stall with striped cloth awning. Customer side faces +Z.
-static func market_stall(cloth: String = "cloth_red", goods: Color = Color(0.85, 0.55, 0.2)) -> Node3D:
+static func market_stall(cloth: String = "cloth_red", goods: Color = Color(0.85, 0.55, 0.2), post_tex: String = "planks_dark") -> Node3D:
 	var body := _body("MarketStall")
 	var mb := MeshBuilder.new()
 	var wood := PSXMat.lit("planks")
-	var post := PSXMat.lit("planks_dark")
+	var post := PSXMat.lit(post_tex)
 	var aw := PSXMat.lit(cloth, Color.WHITE, {"affine": 0.6})
 	var g := PSXMat.flat(goods)
 	var g2 := PSXMat.flat(goods.lightened(0.25))

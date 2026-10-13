@@ -16,20 +16,26 @@ class_name Ambience
 ## Where the shore is: twice a second the sea depth is probed at eight points
 ## 30 m round you and eight at 90 m. Land and water mixed = a shore; all water
 ## = open sea; all land = inland (quiet).
+##
+## A themed island has its own bed (KitStyle "ambience": the jungle's insects and
+## birds), strongest ashore and fading out to sea with the island's style.
 
 const LOOPS := {
 	"shore": "shore_surf_loop", "sea": "sea_swell_loop", "wash": "hull_rush_loop", "gurgle": "hull_gurgle_loop",
 	"foam": "hull_foam_loop", "slap": "hull_slap_loop", "creak": "ship_creak_loop", "wind": "wind_loop",
-	"rig": "rigging_wind_loop",
+	"rig": "rigging_wind_loop", "jungle": "jungle_loop",
 }
 ## Each loop's level at full strength (the loops are all made about as loud as each other).
 const TOP_DB := {"shore": -8.5, "sea": -11.0, "wash": -9.0, "gurgle": -13.0, "foam": -17.0, "slap": -16.0,
-	"creak": -15.0, "wind": -12.5, "rig": -12.5}
+	"creak": -15.0, "wind": -12.5, "rig": -12.5, "jungle": -13.0}
 const PROBE_EVERY := 0.5
 
 var _players := {}
 var _land_near := 0.0
 var _land_far := 0.0
+## [style, weight] round you (KitStyle.around)
+var _zone: Array = ["brinehollow", 0.0]
+var _bed := ""
 var _probe_t := 0.0
 var _bow_y := INF
 var _surge := 0.0
@@ -85,6 +91,8 @@ func _probe(at: Vector3) -> void:
 			far += 1
 	_land_near = near / 8.0
 	_land_far = far / 8.0
+	_zone = KitStyle.around(get_tree(), at)
+	_bed = KitStyle.of(_zone[0])["ambience"]
 
 
 func _mix(me: Node3D, want: Dictionary, delta: float) -> void:
@@ -114,6 +122,9 @@ func _mix(me: Node3D, want: Dictionary, delta: float) -> void:
 	if aboard:
 		want["rig"] = clampf((wind - 0.25) * 1.4 + storm * 0.6 + spd / 22.0 + high * 0.5, 0.0, 1.0)
 	(_players["wind"] as AudioStreamPlayer).pitch_scale = lerpf(0.9, 1.15, clampf(wind + storm * 0.5, 0.0, 1.0)) * (1.0 + 0.02 * _drift(5))
+	if _bed != "":
+		var night: float = float(wx.get("night")) if wx else 0.0
+		want[_bed] = clampf(float(_zone[1]) * (0.3 + 0.7 * _land_near) * (1.0 - 0.6 * storm) * (0.85 + 0.3 * night), 0.0, 1.0)
 
 
 ## The water along the hull: rush, gurgle and foam by speed, each drifting on
