@@ -289,7 +289,7 @@ func fill_slots(parent: Node3D, slots: Array, salt: int = 0) -> void:
 		groups.append({"kind": k, "zone": "cave", "role": "roost" if ceiling else "lone", "at": at, "spots": []})
 		if ceiling:
 			for i in range(rng.randi_range(2, 5)):
-				var anchor := to_global(at + Vector3(rng.randf_range(-1.5, 1.5), 0, rng.randf_range(-1.5, 1.5)))
+				var anchor := at + Vector3(rng.randf_range(-1.5, 1.5), 0, rng.randf_range(-1.5, 1.5))
 				_add_spot(gi, k, at + Vector3.DOWN * 3.0, {"morph": 2 if rng.randf() < 0.6 else morph, "anchor": anchor, "colony": gi})
 		else:
 			_add_spot(gi, k, at, {"morph": morph})
@@ -327,6 +327,9 @@ func _spawn_all() -> void:
 
 func _spawn(s: Dictionary) -> void:
 	var args: Dictionary = (s["args"] as Dictionary).duplicate()
+	# spots keep anchors island-local like "at"; Flyer and Monkey want the world position
+	if args.has("anchor"):
+		args["anchor"] = to_global(args["anchor"] as Vector3)
 	var home := to_global(s["at"] as Vector3)
 	var c := make(str(s["kind"]))
 	c.setup(home, args)
