@@ -18,7 +18,7 @@ $Dir = (Resolve-Path $Dir).Path
 $types = @{
 	".html" = "text/html; charset=utf-8"; ".js" = "text/javascript"; ".css" = "text/css"
 	".wasm" = "application/wasm"; ".pck" = "application/octet-stream"; ".json" = "application/json"
-	".png" = "image/png"; ".jpg" = "image/jpeg"; ".svg" = "image/svg+xml"; ".ico" = "image/x-icon"
+	".png" = "image/png"; ".jpg" = "image/jpeg"; ".gif" = "image/gif"; ".svg" = "image/svg+xml"; ".ico" = "image/x-icon"
 	".woff2" = "font/woff2"; ".txt" = "text/plain; charset=utf-8"
 }
 

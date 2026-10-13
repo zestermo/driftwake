@@ -244,13 +244,23 @@ pauses), the sloop under sail (watch fps with F8), the log pose setting on the f
 
 ## The site (`web/site/`)
 
-Plain HTML/CSS, no build step:
+Plain hand-written HTML sharing `style.css` (and `clips.js`), no build step; each page carries
+the same top bar (Download, News, Releases) and footer, and paths are absolute (`/style.css`):
 
-- `index.html` + `style.css`: a version badge, logo, hook and pitch, "Play in browser" (`play/`)
-  and "Download for Windows" (`/download`), six screenshots, features, controls, the
-  desktop/browser notes. The hero backdrop (`img/hero.jpg`), the screenshots and the link-preview
-  crop (`img/og.jpg`, 1200x630, absolute in `og:image`/`twitter:image`) are 1600x900 JPEGs from
-  `tools/dev/siteshot.gd` (~1.6 MB in all).
+- `index.html`: the version badge (links to the release notes), logo, hook and pitch, the Windows
+  download as the main button (`/download`) with "try it in your browser" (`/play/`) as a small
+  link, the version's GIF clips, screenshots, features, the download panel (what the desktop build
+  has, the browser build's limits), controls.
+- `news/index.html` lists the posts; each post is `news/<slug>/index.html`. A new post: copy the
+  last one's page, add a card to the list.
+- `releases/index.html`: every version's notes, newest first (from README's version history),
+  linking the GitHub releases list. `_redirects` keeps only `/download`.
+- Images: 1600x900 JPEGs from `tools/dev/siteshot.gd` plus `-640.jpg` copies for phones (ffmpeg,
+  nearest, the game's own 640x360 grid), lazy-loaded with `srcset`; `img/og.jpg` (1200x630) is the
+  link preview. GIFs in `img/clips/` come from siteshot's `clip_*` frames through
+  `tools/dev/site_gifs.ps1` (640x360, one palette each, under ~3 MB). `clips.js` shows each
+  clip's poster (`<name>.jpg`) and swaps in the GIF once it's on screen, never with
+  prefers-reduced-motion; a Play/Pause button on each.
 - `play/`: the export, copied in by `build_web.ps1`.
 - `fonts/`: Pixelify Sans and Silkscreen (OFL, licences alongside), self-hosted.
 - `favicon.svg`, `_headers` (Netlify and Cloudflare Pages both read it): `.wasm` as
