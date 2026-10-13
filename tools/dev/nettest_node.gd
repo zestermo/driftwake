@@ -4,6 +4,7 @@ extends Node
 
 var replies: Dictionary = {}
 
+
 func net() -> Node:
 	return get_node("/root/Net")
 
