@@ -1,0 +1,8 @@
+# Slow whole-world suites: skipped while building and when landing a branch (run_tests -Light, land.ps1),
+# and run once before a push by prepush.ps1 (with the co-op modes). One per line.
+chaintest
+legtest
+fidelitytest
+perftest
+seatest
+storytest

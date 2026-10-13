@@ -6,6 +6,7 @@
 #   .\tools\dev\run_tests.ps1 -Changed             # the suites that cover uncommitted changes (test_map.txt)
 #   .\tools\dev\run_tests.ps1 -Changed -Base main  # ...and everything this branch changed since main
 #   .\tools\dev\run_tests.ps1 -Force chaintest     # run it even if this exact code already passed it
+#   .\tools\dev\run_tests.ps1 -Changed -Light      # ...minus the slow suites in heavy.txt and co-op (prepush.ps1 runs those)
 #
 # Godot: set $env:GODOT to the *console* build (Godot_v4.7-..._win64_console.exe),
 # or pass -Godot. The non-console exe doesn't print to the terminal on Windows.
@@ -30,6 +31,7 @@ param(
 	[switch]$NoCompileCheck,
 	[switch]$Changed,
 	[switch]$Force,
+	[switch]$Light,
 	[string]$Base = "HEAD",
 	[string]$CarryFrom = ""
 )
@@ -46,6 +48,12 @@ if ($Changed) {
 	if ($picked -contains "netchain") { $modes += ".\tools\dev\nettest.ps1 chain" }
 	if ($modes.Count -gt 0) { $netHint = "Co-op code changed: run " + ($modes -join " and ") }
 	$Tests = @($picked | Where-Object { $all -contains $_ })
+	if ($Light) {
+		$heavy = @(Get-Content (Join-Path $PSScriptRoot "heavy.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })
+		$deferred = @($Tests | Where-Object { $heavy -contains $_ })
+		$Tests = @($Tests | Where-Object { $heavy -notcontains $_ })
+		if ($deferred.Count -gt 0 -or $netHint) { $netHint = "Left for prepush.ps1: " + (@($deferred) + @($(if ($netHint) { "co-op" })) -join " ") }
+	}
 	if ($Tests.Count -eq 0) {
 		Write-Host "No suites cover what changed." -ForegroundColor Yellow
 		if ($netHint) { Write-Host $netHint -ForegroundColor Yellow }

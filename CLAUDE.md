@@ -69,12 +69,15 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
   a test. The runners share the machine's test slots, skip what already passed on the same code,
   wait for a run of the same suite already in flight, and show up live in Zach's **Tests** pane
   (`/tests`; it reads `.git/crew/live`).
-- **Run what covers your change:** `run_tests.ps1 -Changed -Base main` in a worktree, nothing more.
+- **Three tiers, so a feature in progress never pays for the whole game's tests:**
+  1. **While building (any agent, any worktree):** only the suites that test what you built, by name
+     (`run_tests.ps1 daggertest wieldtest`). No `-Changed`, no nettest. The edit hook compiles each file.
+  2. **Landing a branch** (`land.ps1`): the covering suites minus the slow whole-world ones in
+     `tools/dev/heavy.txt` and minus co-op (`run_tests -Changed -Light`). Passes carry over the rebase.
+  3. **Before a push** (a finished set of features or a version): `tools/dev/prepush.ps1` runs every
+     suite test_status calls stale or failing, the heavy ones and the co-op modes included, and pushes
+     only if nothing is left. This is the only place nettest and the chain/fidelity/perf suites run.
   Run the full suite only when Zach asks.
-- **While you're still building, run only your own suites by name** (`run_tests.ps1 daggertest wieldtest`).
-  `-Changed` runs once, when the branch is done. A change to a core file (player.gd, humanoid.gd,
-  fx.gd, pirate_grunt.gd, gen_island.gd...) pulls in 20-30 suites, so it's a once-per-branch cost.
-- **nettest only when co-op code changed** (the runner prints the hint), one mode at a time.
 - **Don't rerun a suite "to be sure":** a pass is cached against the exact code.
 - **Landing re-tests only what the rebase could change** (land.ps1 carries passes from the
   branch's own tree over to the rebased one when nothing new touches the suite).
@@ -166,7 +169,7 @@ GameMenu, Net, Music, Weather, DevCapture.
   Node identity is `Net.key_of/node_of` (path from the world scene). Effects and sounds go
   through `Net.fx(...)`. "Everyone does it" calls use `Net.everyone("_all_*")`. The local
   player is `get_first_node_in_group("player")`; all captains are in group "players".
-  Anything that changes world state must work for a guest. Run `nettest.ps1`.
+  Anything that changes world state must work for a guest (prepush.ps1 runs nettest before a push).
 - **psx_lit has no instance uniforms** (they cap at ~256 instances in compatibility).
   Use per-object material copies (`tint_mul`) for flashes.
 - PSX vertex snap must skip the shadow pass (`if (!IN_SHADOW_PASS)`).
