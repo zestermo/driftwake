@@ -122,6 +122,7 @@ func _process(d: float) -> bool:
 			wait = 2.7
 			step = 10
 		10:
+			print("   DBG p %s pools %s places %s boss %s wave %.2f surf %.2f" % [isl.to_local(p.global_position), root.get_node("Ocean").pools.values(), isl.places.map(func(q): return [q["kind"], q["at"]]), isl.sites["boss"], root.get_node("Ocean").get_wave_height(p.global_position), root.get_node("Ocean").surface_at(p.global_position)])
 			print("   rock held %s, flying %d, hp %.0f / %.0f, special '%s', state %s, hurtbox %s" % [ape._rock != null, ape._rocks.size(), p.health_component.current_health, hp0, ape._special, p.current_state_name(), p.get_node("Hurtbox").monitorable])
 			check("...hurls it, and it comes down on you", ape._rock == null and ape._rocks.is_empty() and p.health_component.current_health < hp0)
 			wait = 2.5

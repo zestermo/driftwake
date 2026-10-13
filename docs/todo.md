@@ -45,11 +45,11 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
   flooded ruin, root cavern, bat roost, sunken shrine, beast den; 1-3 per island) with a reward at the
   end; a multi-room ruined temple (levers, a gated sanctum, its warden) on ~40% of islands
   (2026-10-12, KitDungeons/KitTemple). Enterable shops and houses: the village agent's.
-- [ ] **Landmarks** (rolled per island, visible from the sea): waterfall with a swimmable pool;
+- [x] **Landmarks** (rolled per island, visible from the sea; done 2026-10-12, 11 in the pool, see dev_notes): waterfall with a swimmable pool;
   beached wreck to explore, with loot; a climbable giant tree with platforms and rope bridges; a
   stone idol or stepped temple top above the canopy. Fix the summit tower being buried in
   trees (clear round it or raise it).
-- [ ] **A signature set piece per island:** one unique piece (sunken village, volcano vent, giant
+- [x] **A signature set piece per island** (done 2026-10-12, 10 in the pool): one unique piece (sunken village, volcano vent, giant
   skeleton...) from a pool that never repeats within a sea.
 - [x] **People:** 15-20 villagers per island with routines (work spots, market, inn at night).
   (2026-10-12: IslandLife + Villager, 18-19 people, 12-13 on routines; see dev_notes.) Left: people

@@ -435,7 +435,7 @@ func _physics_process(delta: float) -> void:
 		if b.freeze:
 			continue
 		var p := b.global_position
-		var depth := float(_ocean.call("get_wave_height", p)) - p.y
+		var depth := float(_ocean.call("surface_at", p)) - p.y
 		if depth <= -0.15:
 			continue
 		if i == 0:
@@ -450,7 +450,7 @@ func _physics_process(delta: float) -> void:
 	if root_wet and not in_water and not _splashed:
 		_splashed = true
 		var rb: RigidBody3D = parts[0]["body"]
-		var at := Vector3(rb.global_position.x, float(_ocean.call("get_wave_height", rb.global_position)), rb.global_position.z)
+		var at := Vector3(rb.global_position.x, float(_ocean.call("surface_at", rb.global_position)), rb.global_position.z)
 		var fx := get_node_or_null("/root/FX")
 		if fx:
 			fx.call("splash", at, 12, 1.0)
@@ -467,7 +467,7 @@ func root_depth() -> float:
 	if _ocean == null:
 		return -INF
 	var p: Vector3 = (parts[0]["body"] as RigidBody3D).global_position
-	return float(_ocean.call("get_wave_height", p)) - p.y
+	return float(_ocean.call("surface_at", p)) - p.y
 
 
 ## Co-op: the bodies' transforms for a snapshot ([pos, rotation] per part).

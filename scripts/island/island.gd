@@ -11,6 +11,10 @@ var loot_spawns: Array[Marker3D] = []
 ## Where its people work and what's worth visiting, fed by the kit pieces as they build and read by
 ## IslandLife (routines, quests): {"kind", "at": Vector2, "face": Vector2, optional "lane", "y", "poi": true}.
 var life_spots: Array = []
+## Points of interest as data, for planners, quests and tools: {"kind", "role"
+## ("landmark", "setpiece"), "at" (island-space Vector2), "r" (m kept clear),
+## "door" (where its trail arrives)} plus the piece's own numbers.
+var places: Array = []
 
 
 ## The ground and its bookkeeping, as the island kit (KitContext) sees it. Island

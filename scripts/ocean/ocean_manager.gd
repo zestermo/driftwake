@@ -74,6 +74,10 @@ const MAX_ISLES := 2
 const WATER_TEX := preload("res://assets/textures/psx/water.png")
 var isle_shoals: Array = []
 var _shoals_sent: Array = []
+## Still water inland (InlandPool: waterfall pools, springs, sinkholes):
+## instance id -> Vector4(x, z, radius, surface y). Swimmers, ragdolls and the
+## camera read surface_at, which counts them; the sea's own waves don't.
+var pools: Dictionary = {}
 
 
 ## The sea mesh: 1 m cells near the camera so the surface you see is the
@@ -245,6 +249,17 @@ func get_wave_height(world_pos: Vector3, time: float = -1.0) -> float:
 	return h * amp_mult * local_swell(x, z) + funnel(x, z)
 
 
+## The water's surface at a spot: the sea's waves, or an inland pool's still
+## surface where one lies (what swimmers float on).
+func surface_at(world_pos: Vector3, time: float = -1.0) -> float:
+	var h := get_wave_height(world_pos, time)
+	for p in pools.values():
+		var pv: Vector4 = p
+		if Vector2(world_pos.x - pv.x, world_pos.z - pv.y).length() < pv.z:
+			h = maxf(h, pv.w)
+	return h
+
+
 ## How far a whirlpool's funnel has dragged the sea down at (x, z) (<= 0).
 func funnel(x: float, z: float) -> float:
 	var f := 0.0
@@ -395,7 +410,7 @@ func depth_at(world_pos: Vector3, exclude: Array = [], calm: bool = false) -> fl
 	var vp := get_viewport()
 	if vp == null or vp.world_3d == null:
 		return -INF
-	var surf := 0.0 if calm else get_wave_height(world_pos)
+	var surf := 0.0 if calm else surface_at(world_pos)
 	var top := maxf(world_pos.y, surf) + 1.5
 	var q := PhysicsRayQueryParameters3D.create(Vector3(world_pos.x, top, world_pos.z), Vector3(world_pos.x, surf - 40.0, world_pos.z), 1)
 	q.exclude = exclude

@@ -8,6 +8,7 @@ Enemies: bugtest grunttest apetest watertest
 Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest
 Islands & world: chaintest isletest fidelitytest foresttest storytest ambiencetest r9test r10test perftest lifetest
 Islands & world: chaintest isletest villagetest fidelitytest foresttest storytest ambiencetest r9test r10test perftest
+Islands & world: chaintest isletest fidelitytest foresttest storytest ambiencetest r9test r10test perftest landmarktest
 Co-op: net net-chain net-board
 Islands & world: harbourtest
 Islands & world: dungeontest

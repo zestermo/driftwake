@@ -130,6 +130,21 @@ const JUNGLE := {
 	"ambience": "jungle",
 	"weather": [0.3, 0.56, 0.88],
 	"haze": 0.15,
+	# landmarks and set pieces (KitLandmarks, KitSetPieces): rock, carved stone, water, bone, lava, crystal
+	"rock_tint": Color(0.62, 0.62, 0.55),
+	"moss_tint": Color(0.5, 0.64, 0.4),
+	"temple_stone": Color(0.74, 0.76, 0.66),
+	"fort_stone": Color(0.8, 0.78, 0.72),
+	"water_tint": Color(0.3, 0.58, 0.55, 0.82),
+	"falls_tint": Color(0.78, 0.9, 0.95, 0.85),
+	"spring_tint": Color(0.55, 0.85, 0.82, 0.85),
+	"travertine": Color(0.93, 0.88, 0.76),
+	"wreck_hull": Color(0.55, 0.52, 0.46),
+	"bone": Color(0.9, 0.86, 0.74),
+	"basalt": Color(0.3, 0.29, 0.3),
+	"lava": Color(1.0, 0.45, 0.12),
+	"crystal": Color(0.4, 0.95, 0.85),
+	"rust": Color(0.42, 0.32, 0.26),
 }
 
 const STYLES := {"brinehollow": BRINEHOLLOW, "jungle": JUNGLE}

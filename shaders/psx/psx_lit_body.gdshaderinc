@@ -27,6 +27,10 @@ uniform float wet_rough : hint_range(0.0, 1.0) = 0.3;
 uniform vec4 rim_color : source_color = vec4(0.55, 0.75, 0.8, 1.0);
 uniform float rim_energy = 0.25;
 #endif
+#ifdef PSX_FLOW
+// Running water: the texture slides `flow` tiles a second; albedo_color.a is its opacity.
+uniform vec2 flow = vec2(0.0, 1.0);
+#endif
 #ifdef PSX_FADE
 // 0 = gone .. 1 = solid.
 uniform float fade : hint_range(0.0, 1.0) = 1.0;
@@ -61,6 +65,9 @@ void fragment() {
 	vec2 uv_persp = UV * uv_scale;
 	vec2 uv_aff = affine_uv.xy / affine_uv.z;
 	vec2 uv = mix(uv_persp, uv_aff, affine_amount * psx_affine_at(affine_uv.z));
+#ifdef PSX_FLOW
+	uv += flow * TIME;
+#endif
 
 	vec4 tex = texture(albedo_tex, uv);
 	vec3 tint = albedo_color.rgb;
@@ -80,6 +87,9 @@ void fragment() {
 	vec3 em = texture(emission_tex, uv).rgb * emission_color.rgb;
 	float pulse = 1.0 + sin(TIME * 2.0) * emission_pulse;
 	EMISSION = em * emission_energy * pulse;
+#ifdef PSX_FLOW
+	ALPHA = albedo_color.a;
+#endif
 #ifdef PSX_WET
 	ROUGHNESS = wet_rough;
 	SPECULAR = 0.5;

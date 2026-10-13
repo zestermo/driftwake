@@ -124,6 +124,8 @@ func prepare(n: Dictionary) -> void:
 	t0 = Time.get_ticks_usec()
 	_define_paths()
 	village_plan = IslandVillage.plan(self)
+	# landmarks and the set piece: their ground shaped, their trails, Island.places (before the caves: it digs)
+	KitLandmarks.plan_gen(self)
 	interiors = KitDungeons.plan(self)
 	_terrain_arrays()
 	_shoal_image()

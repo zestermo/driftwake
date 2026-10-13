@@ -144,7 +144,7 @@ func _process(delta: float) -> void:
 		var ocean := get_node_or_null("/root/Ocean")
 		if ocean and camera:
 			var cam_p := camera.global_position
-			var wy := float(ocean.call("get_wave_height", cam_p)) + 0.35
+			var wy := float(ocean.call("surface_at", cam_p)) + 0.35
 			if cam_p.y < wy:
 				global_position.y += wy - cam_p.y
 

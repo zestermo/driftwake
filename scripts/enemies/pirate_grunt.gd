@@ -1527,7 +1527,7 @@ func _surface(at: Vector3 = Vector3.INF) -> float:
 		_ocean = get_node_or_null("/root/Ocean")
 		if _ocean == null:
 			return -INF
-	return float(_ocean.call("get_wave_height", global_position if at == Vector3.INF else at))
+	return float(_ocean.call("surface_at", global_position if at == Vector3.INF else at))
 
 
 ## How far the feet are under the waves (negative on dry land).

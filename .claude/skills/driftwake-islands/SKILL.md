@@ -243,6 +243,24 @@ palm fringe, strangler figs), picked from its seed on a separate stream.
   pier, Board ship) is the same in every kind.
 - Render with `tools/dev/harbourshot.gd` (each kind forced on several seeds: sea, above, pier, beach).
 
+## Places on generated islands (landmarks, set pieces, wild POIs)
+
+- Plan in `KitLandmarks.plan_gen` (worker, after the paths and the village plan, before the caves'
+  plan and the terrain's arrays): reshape ground by
+  editing `isl.heights` (`KitLandmarks.level` / `shape`), never `_flat` (the heights already exist). Append
+  trails after the main paths (`_trail`), never before (`paths[0]` is the road).
+- A place is data in `Island.places`: `kind`, `role`, `at`, `r` (kept apart from sites and other places),
+  `keep` (footprint discs, given place-local, stored island space, reserved from plants), `door` (where its
+  trail arrives), `y`, `face`/`yaw`, `seed`. Build it under `KitLandmarks.place_node` in place-local
+  coordinates (+Z = face; `lp`/`gy` for island points and ground), one or two steps, then `overgrow`.
+- Size against the theme's canopy (`KitLandmarks.canopy(theme)`, read from its meshes), not a number.
+- Variety is the chain's: `KitSetPieces.assign` gives each node `setpiece`, `landmarks` (order) and
+  `landmark_count` from its own rng; a new kind goes in `KitLandmarks.KINDS` / `KitSetPieces.POOL` with a
+  plan and steps, a chest key of its own, and a name in fidelity.gd's LANDMARKS.
+- Water inland: an `InlandPool` node (radius, at its surface) makes `Ocean.surface_at` count it; swimmers,
+  grunts, ragdolls and the camera then treat it as the sea.
+- Render: `tools/dev/landmarkshot.gd` (LSHOT_PIECE / LSHOT_MARKS force kinds); test: landmarktest.
+
 ## Brinehollow stays identical (the check)
 
 Any change to a kit piece Brinehollow uses must leave Brinehollow the same:

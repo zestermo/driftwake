@@ -107,7 +107,7 @@ scripts/interaction/ladder.gd           swimtest riggingtest
 scripts/island/starter_island.gd        qoltest foresttest grunttest yardtest looptest
 scripts/island/world_generator.gd       foresttest r9test perftest chaintest seatest isletest netchain
 scripts/island/redtide_fort.gd          r8test perftest
-scripts/world/chain.gd                  chaintest isletest legtest
+scripts/world/chain.gd                  chaintest isletest legtest landmarktest
 scripts/island/gen_island.gd            isletest apetest chaintest netchain
 scripts/island/island_content.gd        isletest apetest netchain
 scripts/island/island_village.gd        isletest netchain
@@ -125,6 +125,12 @@ scripts/island/island_theme.gd          isletest chaintest
 scripts/island/kit/kit_harbour*         harbourtest isletest netchain
 scripts/island/kit/kit_style.gd         harbourtest
 scripts/island/gen_island.gd            harbourtest
+scripts/island/island_theme.gd          isletest chaintest landmarktest
+scripts/island/kit/kit_landmarks.gd     landmarktest isletest netchain
+scripts/island/kit/kit_setpieces.gd     landmarktest isletest chaintest netchain
+scripts/island/kit/kit_wilds.gd         landmarktest isletest netchain
+scripts/world/inland_pool.gd            landmarktest swimtest
+shaders/psx/psx_flow.gdshader           landmarktest
 scripts/npc/log_pose.gd                 chaintest
 scripts/ui/log_pose_icon.gd             chaintest
 scripts/ui/chain_marks.gd               chaintest

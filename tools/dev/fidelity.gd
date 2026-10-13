@@ -48,13 +48,16 @@ const PROPS := {
 const LANDMARKS := {"Lighthouse": "lighthouse", "HarbourTower": "harbour tower", "Chapel": "chapel", "DockCrane": "crane",
 	"Shrine": "shrine",
 	"LookoutTower": "lookout tower", "Pillar": "ruins", "FallenPillar": "ruins", "Slabs": "ruins", "Driftstone": "standing stone",
-	"BroodCave": "cave", "Well": "well", "Boulders": "beast's ground", "Dungeon": "cave", "Temple": "temple"}
+	"BroodCave": "cave", "Well": "well", "Boulders": "beast's ground", "Dungeon": "cave",
+	"Crag": "waterfall", "WreckHull": "wreck", "GreatTree": "great tree", "Temple": "temple", "SunkenHut": "sunken village",
+	"Volcano": "volcano vent", "Skeleton": "giant skeleton", "Colossus": "fallen colossus", "SeaArch": "sea arch",
+	"Springs": "hot springs", "Cenote": "cenote", "Spire": "giant nest", "Crystals": "crystal grove", "Fort": "old fort"}
 ## Walked into for the props on them (a pier's lantern), their own meshes not counted.
 const INFRA := ["HarbourPier", "Quay", "Dock", "Pier", "Cobbles", "Ladder", "Boardwalk", "PierFender", "CoveRocks", "Walkway", "Ramp", "Deck", "Palisade", "Gate"]
 const INTERIORS := ["Tavern", "BroodCave", "Dungeon", "Temple", "Home", "Shop"]
 const SKIP := ["Terrain", "Ground", "Vegetation", "VegetationColliders", "ShotMarks", "CargoColliders", "Worn"]
 ## GenIsland.build_ms keys worked out in prepare (a worker thread in the game).
-const PREP_KEYS := ["land", "arrays", "trees", "undergrowth", "bodies", "harbour plan", "dungeon_plan"]
+const PREP_KEYS := ["land", "places", "arrays", "trees", "undergrowth", "thicket", "bodies", "harbour plan", "dungeon_plan"]
 
 ## [key, label, gated]: gated ones are what phase 3 holds at >= 80% of Brinehollow.
 const METRICS := [
@@ -449,6 +452,8 @@ static func anchors(isl: Node3D) -> Dictionary:
 			pois[p] = s[p]
 		for e in isl.interiors:
 			pois[e["name"]] = e["mouth"]
+		for pl in isl.places:
+			pois[str(pl["kind"])] = pl["at"]
 		a["pois"] = pois
 		a["paths"] = isl.paths
 		a["widths"] = isl._path_widths

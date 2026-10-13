@@ -29,7 +29,7 @@ static func steps(isl: GenIsland) -> Array:
 		["boss", func(): BeastArena.build(isl, rng)],
 		# (after the camp, the lair and the beast: its jobs watch them)
 		["village", func(): IslandVillage.build(isl, rng)],
-	] + KitDungeons.steps(isl)
+	] + KitLandmarks.steps(isl) + KitDungeons.steps(isl)
 
 
 ## The island's level (chain.gd): its enemies' (Levels) and its loot's.
@@ -221,11 +221,12 @@ static func _summit(isl: GenIsland) -> void:
 	var c: Vector2 = isl.sites["summit"]
 	var site := isl.site_node("summit")
 	var face: Vector2 = isl.dock_dir
-	var tower := isl.place(KitLandmarks.lookout_tower(), site, c, StarterIsland.face_yaw(face), 2.6)
+	var th := KitLandmarks.summit_h(isl.theme)
+	var tower := isl.place(KitLandmarks.lookout_tower(th), site, c, StarterIsland.face_yaw(face), 2.6)
 	# a small chest up on the platform, and the view
 	var t := tier(isl)
 	var bag := isl.strongbox(site, c, tower.global_rotation.y, "summit_chest", [["gold", 8 + t * 4], ["treasure", 1]], 0.8)
-	bag.global_position = tower.to_global(Vector3(0, 6.1, -0.6))
+	bag.global_position = tower.to_global(Vector3(0, th + 0.1, -0.6))
 	var view := Area3D.new()
 	view.name = "View"
 	view.collision_layer = 0
@@ -236,7 +237,7 @@ static func _summit(isl: GenIsland) -> void:
 	cs.shape = box
 	view.add_child(cs)
 	tower.add_child(view)
-	view.position = Vector3(0, 7.0, 0)
+	view.position = Vector3(0, th + 1.0, 0)
 	var shown := [false]
 	view.body_entered.connect(func(b: Node3D):
 		if not shown[0] and b.is_in_group("player") and b.get("is_local"):

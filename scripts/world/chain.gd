@@ -126,6 +126,7 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 		for id in ids:
 			prev_theme[int(nodes[id]["branch"])] = nodes[id]["theme"]
 		prev = ids
+	KitSetPieces.assign(self)
 
 
 ## `dir` turned as little as it takes for a leg from `at` to end inside RING with

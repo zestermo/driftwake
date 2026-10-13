@@ -1,7 +1,8 @@
 class_name Ladder
 extends Node3D
-## Rope ladder hanging down a ship's side or a dock: swim up to it and press
-## F or Space to grab on, or F at its head on deck to climb down (ClimbState).
+## Rope ladder hanging down a ship's side, a dock or a tower: swim up to it (or
+## stand at its foot) and press F or Space to grab on, or F at its head on deck
+## to climb down (ClimbState).
 ## Local frame: the origin is where you step off at the top (deck / dock
 ## surface, at the edge), the ladder hangs down along -Y, +Z faces the water
 ## (where the climber is) and -Z points onto the deck.
@@ -68,5 +69,5 @@ func at_head(p: Vector3) -> bool:
 
 
 func _on_use(player: Player) -> void:
-	if player.is_swimming() or (player.is_free() and player.is_on_floor() and at_head(player.global_position)):
+	if player.is_swimming() or (player.is_free() and player.is_on_floor() and (at_head(player.global_position) or in_reach(player.global_position))):
 		player.start_climb({"kind": "ladder", "ladder": self})

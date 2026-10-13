@@ -72,7 +72,7 @@ func _process(d: float) -> bool:
 						apart = false
 			check("its sites (village, boss, camp, lair, ruins, summit) are on land", on_land)
 			check("...and well apart", apart)
-			check("paths from the village to each (its lanes, on to the interiors)", isl.paths.size() >= 6)
+			check("paths from the village to each (its lanes, on to the interiors and its landmarks)", isl.paths.size() >= 6)
 			var trees: int = isl.get_node("VegetationColliders").get_child_count()
 			check("trees and rocks with colliders (%d)" % trees, trees > 500)
 			check("grapple crowns in the trees", load("res://scripts/world/grapple_points.gd").count() > 1000)

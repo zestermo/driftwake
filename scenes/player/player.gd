@@ -1016,13 +1016,13 @@ func height_above_ground() -> float:
 	return INF if hit.is_empty() else global_position.y - (hit["position"] as Vector3).y
 
 
-## Height of the ocean surface (with the waves) at a point (default: here).
+## Height of the water's surface (the sea with its waves, or an inland pool) at a point (default: here).
 func water_surface(at: Vector3 = Vector3.INF) -> float:
 	var p := global_position if at == Vector3.INF else at
 	var ocean := get_node_or_null("/root/Ocean")
 	if ocean == null:
 		return -INF
-	return float(ocean.call("get_wave_height", p))
+	return float(ocean.call("surface_at", p))
 
 
 ## How far the water surface is above your feet (negative = dry).

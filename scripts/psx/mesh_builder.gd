@@ -824,6 +824,41 @@ func map_vertices(mat: Material, fn: Callable) -> void:
 	_surfaces[mat]["v"] = v
 
 
+## Drop every triangle whose centre `drop`(centre) says to (a breach in a hull).
+func cut(drop: Callable) -> void:
+	for mat in _order:
+		var s: Dictionary = _surfaces[mat]
+		var keep := {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(), "c": PackedColorArray(),
+			"b": PackedInt32Array(), "w": PackedFloat32Array()}
+		var v: PackedVector3Array = s["v"]
+		for i in range(0, v.size(), 3):
+			if drop.call((v[i] + v[i + 1] + v[i + 2]) / 3.0):
+				continue
+			for k in range(3):
+				keep["v"].append(v[i + k])
+				keep["n"].append(s["n"][i + k])
+				keep["uv"].append(s["uv"][i + k])
+				keep["c"].append(s["c"][i + k])
+			if not (s["b"] as PackedInt32Array).is_empty():
+				keep["b"].append_array((s["b"] as PackedInt32Array).slice(i * 4, i * 4 + 12))
+				keep["w"].append_array((s["w"] as PackedFloat32Array).slice(i * 4, i * 4 + 12))
+		_surfaces[mat] = keep
+
+
+## A shaded inside face behind every triangle of `mat` (a shell seen through a hole).
+func add_backfaces(mat: Material, shade: float = 0.6) -> void:
+	if not _surfaces.has(mat):
+		return
+	var s: Dictionary = _surfaces[mat]
+	var v: PackedVector3Array = (s["v"] as PackedVector3Array).duplicate()
+	var n: PackedVector3Array = (s["n"] as PackedVector3Array).duplicate()
+	var uv: PackedVector2Array = (s["uv"] as PackedVector2Array).duplicate()
+	var c: PackedColorArray = (s["c"] as PackedColorArray).duplicate()
+	for i in range(0, v.size(), 3):
+		var fn := -(n[i] + n[i + 1] + n[i + 2]).normalized()
+		add_tri(mat, v[i] + fn * 0.04, v[i + 1] + fn * 0.04, v[i + 2] + fn * 0.04, fn, fn, fn, uv[i], uv[i + 1], uv[i + 2], Color(c[i].r * shade, c[i].g * shade, c[i].b * shade, c[i].a), fn)
+
+
 ## Append another builder's triangles (so several parts share one mesh).
 func merge(other: MeshBuilder) -> void:
 	for mat in other._order:

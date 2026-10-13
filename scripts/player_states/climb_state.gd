@@ -67,7 +67,10 @@ func enter(data: Dictionary) -> void:
 		else:
 			s = clampf(start.y - _bottom_y(), 0.0, _len * 0.5)
 			_play([[0.0, start], [0.25, _line(s)]], "line")
-			Net.fx("sfx", ["splash", player.global_position, -8.0, 0.1, 1.2])
+			if player.water_depth() > 0.2:
+				Net.fx("sfx", ["splash", player.global_position, -8.0, 0.1, 1.2])
+			else:
+				Net.fx("sfx", ["rope", player.global_position, -10.0, 0.1, 1.1])
 	elif kind == "rig":
 		_rig = data["rig"]
 		anchor = _rig
