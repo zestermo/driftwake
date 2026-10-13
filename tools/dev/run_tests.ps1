@@ -1,8 +1,8 @@
 # Driftwake headless test runner (Windows PowerShell 5+ / PowerShell 7).
 #
-#   .\tools\dev\run_tests.ps1                      # every suite, one at a time
+#   .\tools\dev\run_tests.ps1                      # every suite, 5 at once (the machine's test slots)
 #   .\tools\dev\run_tests.ps1 r10test swimtest     # just these
-#   .\tools\dev\run_tests.ps1 -Jobs 4              # every suite, 4 at once (faster, a bit flakier)
+#   .\tools\dev\run_tests.ps1 -Jobs 1              # one at a time
 #   .\tools\dev\run_tests.ps1 -Changed             # the suites that cover uncommitted changes (test_map.txt)
 #   .\tools\dev\run_tests.ps1 -Changed -Base main  # ...and everything this branch changed since main
 #   .\tools\dev\run_tests.ps1 -Force chaintest     # run it even if this exact code already passed it
@@ -27,7 +27,7 @@ param(
 	[string[]]$Tests,
 	[string]$Godot = $env:GODOT,
 	[int]$Timeout = 330,
-	[int]$Jobs = 1,
+	[int]$Jobs = 5,
 	[switch]$NoCompileCheck,
 	[switch]$Changed,
 	[switch]$Force,
