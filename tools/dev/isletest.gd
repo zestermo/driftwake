@@ -60,6 +60,40 @@ func _process(d: float) -> bool:
 			var de: Vector2 = isl.sites["dock_end"]
 			check("deep water off the pier's head (%.1f m)" % isl.height_at(de.x, de.y), isl.height_at(de.x, de.y) < -3.5)
 			check("a pier to board from", isl.find_child("DockingArea", true, false) != null)
+			var rocks = isl.get_node_or_null("CoastRocks")
+			var rock_faces := 0
+			if rocks:
+				for cs in rocks.find_children("*", "CollisionShape3D", false, false):
+					rock_faces += cs.shape.get_faces().size()
+			check("sea cliffs: a rock wall along them with a collider (%d columns, %d faces)" % [isl.coast_cols.size(), rock_faces / 3],
+				isl.coast_cols.size() > 10 and rocks != null and rocks.find_children("*", "MeshInstance3D", false, false).size() > 0 and rock_faces > 0)
+			var cliff_ok := true
+			for col in isl.coast_cols:
+				var land: Vector2 = col[0] - col[2] * 3.0
+				if isl.height_at(land.x, land.y) < 1.0:
+					cliff_ok = false
+			check("...along the land's edge", cliff_ok)
+			var shelves := 0
+			var wade := 0
+			var dd: Vector2 = isl.dock_dir
+			for k in range(36):
+				var a := k * TAU / 36.0
+				var dir := Vector2.from_angle(a)
+				var q: Vector2 = dir * isl.radius * 0.5 - isl.sites["dock"]
+				if isl._cliff(a) > 0.0 or (q.dot(dd) > -30.0 and absf(q.dot(Vector2(-dd.y, dd.x))) < 90.0):
+					continue
+				var wl: float = isl.radius * 0.5
+				while wl < isl.radius and isl.height_at(dir.x * wl, dir.y * wl) > 0.0:
+					wl += 1.0
+				if wl > isl.radius - 40.0:
+					continue
+				shelves += 1
+				var h9: float = isl.height_at(dir.x * (wl + 9.0), dir.y * (wl + 9.0))
+				if h9 > -0.7 and h9 < 0.0:
+					wade += 1
+				else:
+					print("   no shelf at %.0f deg: %.2f m 9 m out (a set piece, a cliff's end?)" % [rad_to_deg(a), h9])
+			check("a sandy shelf to wade out on off the beaches (%d of %d bearings knee deep 9 m out)" % [wade, shelves], shelves > 3 and wade >= shelves * 0.7)
 			var on_land := true
 			var apart := true
 			for s in ["village", "boss", "camp", "lair", "ruins", "summit"]:
@@ -82,7 +116,7 @@ func _process(d: float) -> bool:
 			# the same node builds the same island
 			var again = load("res://scripts/island/gen_island.gd").new()
 			again.prepare(n)
-			check("the same node builds the same island", again.heights == isl.heights and again.sites == isl.sites)
+			check("the same node builds the same island", again.heights == isl.heights and again.sites == isl.sites and again.coast_cols == isl.coast_cols)
 			again.free()
 			# the sites' content
 			var crew = isl.get_node("Site_camp/Camp")

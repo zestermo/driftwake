@@ -109,6 +109,7 @@ scripts/island/world_generator.gd       foresttest r9test perftest chaintest sea
 scripts/island/redtide_fort.gd          r8test perftest
 scripts/world/chain.gd                  chaintest isletest legtest landmarktest
 scripts/island/gen_island.gd            isletest apetest chaintest netchain
+scripts/island/coast.gd                 isletest swimtest shiptest storytest harbourtest
 scripts/island/island_content.gd        isletest apetest netchain
 scripts/island/island_village.gd        isletest netchain
 scripts/island/beast_arena.gd           apetest isletest netchain

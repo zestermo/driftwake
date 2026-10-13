@@ -878,7 +878,7 @@ static func _plan_wreck(isl: GenIsland, rng: RandomNumberGenerator, avoid: Array
 		var s: Vector2 = c["shore"]
 		var out: Vector2 = c["out"]
 		var inland := isl.hv(s - out * 12.0)
-		if s.distance_to(isl.dock_shore) < 70.0 or inland < 0.8 or inland > 4.2 or isl.hv(s + out * 14.0) > -1.0:
+		if s.distance_to(isl.dock_shore) < 70.0 or inland < 0.8 or inland > 4.2 or isl.hv(s + out * 14.0) > -0.3:
 			continue
 		var at := s - out * 1.5
 		if not clear_of(isl, at, 14.0, avoid):

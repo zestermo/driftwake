@@ -58,7 +58,7 @@ const DEN_PIER := 26.0
 const SPITTERS := 9
 const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
-const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97}
+const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131}
 ## NightLights the kit may light (lamps, lit doorways).
 const LIGHTS := 12
 
@@ -108,6 +108,9 @@ var bug_nest: ScuttlebugNest
 var spitters: ScuttlebugNest
 ## Island-space crowns of the big deep-forest trees (where the spitters hide).
 var forest_crowns: Array = []
+## The cliffs' rock wall (Coast.cliffs) and the clifftop splat.
+var coast_cols: Array = []
+var _coast_rock := PackedFloat32Array()
 
 
 # ==========================================================================
@@ -242,8 +245,28 @@ func _beach_lobe(p: Vector2) -> float:
 	return _coast_extra(atan2(p.y, p.x)).y / 62.0
 
 
+## 0..1: how far p is into the harbour's sea front (its quay and `pad` m past each end).
+func _harbour_band(p: Vector2, pad: float) -> float:
+	if harbour == null:
+		return 0.0
+	var s := harbour.s_of(p)
+	return _smooth(harbour.s0 - pad - 20.0, harbour.s0 - pad, s) * (1.0 - _smooth(harbour.s1 + pad, harbour.s1 + pad + 20.0, s)) \
+		* (1.0 - _smooth(30.0, 60.0, harbour.t_of(p) - harbour.wall(s)))
+
+
+## 0..1: room for the shelf at p (none off the harbour, round the den or near the terrain's edge).
+func _shelf_room(p: Vector2) -> float:
+	return (1.0 - _smooth(HALF - 75.0, HALF - 35.0, maxf(absf(p.x), absf(p.y)))) * _smooth(60.0, 90.0, p.distance_to(DEN)) \
+		* (1.0 - _harbour_band(p, 20.0))
+
+
+## 0..1: where a cliff may stand (not at the harbour, the castaway's camp or the den).
+func _cliff_allow(p: Vector2) -> float:
+	return (1.0 - _harbour_band(p, 25.0)) * _smooth(25.0, 40.0, p.distance_to(CAMP)) * _smooth(40.0, 60.0, p.distance_to(DEN))
+
+
 ## Natural terrain before flattening.
-func _height_natural(x: float, z: float) -> float:
+func _height_natural(x: float, z: float, shelf := 1.0) -> float:
 	var p := Vector2(x, z)
 	var d := p.length()
 	var ang := atan2(z, x)
@@ -257,7 +280,7 @@ func _height_natural(x: float, z: float) -> float:
 	if t < 0.0:
 		h = lerpf(0.5, 4.3, pow(clampf(-t / (44.0 + 46.0 * bw), 0.0, 1.0), 0.85))
 	else:
-		h = lerpf(0.5, SEAFLOOR, _smooth(0.0, 60.0, t))
+		h = Coast.shelf(lerpf(0.5, SEAFLOOR, _smooth(0.0, 60.0, t)), t, shelf * _shelf_room(p), SEAFLOOR)
 	var inland := clampf(-t / 35.0 - 0.15, 0.0, 1.0)
 	h += _roll_noise.get_noise_2d(x, z) * 2.6 * inland * (1.0 - 0.6 * bw)
 	h += _detail_noise.get_noise_2d(x, z) * 0.45 * inland
@@ -269,9 +292,9 @@ func _height_natural(x: float, z: float) -> float:
 	return h
 
 
-func _height_fn(x: float, z: float) -> float:
+func _height_fn(x: float, z: float, shelf := 1.0) -> float:
 	var p := Vector2(x, z)
-	var h := _height_natural(x, z)
+	var h := _height_natural(x, z, shelf)
 	for zone in _flat_zones:
 		var w := 1.0 - _smooth(zone[2], zone[3], p.distance_to(zone[0]))
 		if w > 0.0:
@@ -307,6 +330,10 @@ func _generate_heights() -> void:
 	for iz in range(RES + 1):
 		for ix in range(RES + 1):
 			heights[iz * (RES + 1) + ix] = _height_fn(-HALF + ix * CELL, -HALF + iz * CELL)
+	var coast := Coast.cliffs(heights, RES, CELL, HALF, _cliff_allow, func(p: Vector2) -> float: return _height_fn(p.x, p.y, 0.0))
+	heights = coast["heights"]
+	_coast_rock = coast["rock"]
+	coast_cols = coast["cols"]
 
 
 func _h(ix: int, iz: int) -> float:
@@ -514,6 +541,7 @@ func _build_terrain() -> void:
 			var p := Vector2(x, z)
 			var dirt := 0.0
 			var sand := 0.0
+			var rock := _coast_rock[i]
 			if h > -1.0:
 				dirt = maxf(_path_weight(p), _disk(p, VILLAGE, 12.0, 17.0))
 				dirt = maxf(dirt, _disk(p, TRAINING, 10.0, 13.0))
@@ -525,9 +553,9 @@ func _build_terrain() -> void:
 				dirt = maxf(dirt, _disk(p, dock_root, 3.0, 6.0) * 0.6)
 				sand = 1.0 - _smooth(1.7, 2.8, h)
 				sand = maxf(sand, _disk(p, CAMP, 4.0, 9.0))
-				dirt *= 1.0 - _disk(p, CAMP, 0.0, 9.0)
-				sand *= 1.0 - dirt
-			cols[i] = Color(dirt, 0.0, sand, 1.0)
+				dirt *= (1.0 - _disk(p, CAMP, 0.0, 9.0)) * (1.0 - rock)
+				sand *= (1.0 - dirt) * (1.0 - rock)
+			cols[i] = Color(dirt, rock, sand, 1.0)
 	var idx := PackedInt32Array()
 	idx.resize(RES * RES * 6)
 	var k := 0
@@ -562,6 +590,7 @@ func _build_terrain() -> void:
 	cs.shape = mesh.create_trimesh_shape()
 	body.add_child(cs)
 	add_child(body)
+	Coast.build(self, Coast.rocks(coast_cols, SEEDS["coast"], func(p: Vector2) -> float: return height_at(p.x, p.y)))
 
 
 # ==========================================================================

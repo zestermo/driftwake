@@ -156,7 +156,7 @@ static func _beach(isl: GenIsland, rng: RandomNumberGenerator, avoid: Array, r: 
 		var s: Vector2 = c["shore"]
 		var out: Vector2 = c["out"]
 		var inland := isl.hv(s - out * back)
-		if s.distance_to(isl.dock_shore) < 70.0 or inland < inland_lo or inland > inland_hi or isl.hv(s + out * 16.0) > -1.0:
+		if s.distance_to(isl.dock_shore) < 70.0 or inland < inland_lo or inland > inland_hi or isl.hv(s + out * 16.0) > -0.3:
 			continue
 		if not KitLandmarks.clear_of(isl, s, r, avoid):
 			continue
@@ -234,11 +234,11 @@ static func _plan_sunken(isl: GenIsland, rng: RandomNumberGenerator, avoid: Arra
 	var s: Vector2 = c["shore"]
 	var out: Vector2 = c["out"]
 	var mid := s + out * 15.0
-	# (only the seabed rises to the lagoon: the land and the surf stay as they were)
+	# (only the seabed goes to the lagoon, dug out of a shelf or raised from the deep: the land and the surf stay as they were)
 	KitLandmarks.shape(isl, mid, 24.0, func(h: float, d: float, _p: Vector2) -> float:
 		if h > -0.4:
 			return h
-		return maxf(h, lerpf(h, LAGOON, 1.0 - GenIsland._smooth(15.0, 24.0, d))))
+		return lerpf(h, LAGOON, 1.0 - GenIsland._smooth(15.0, 24.0, d)))
 	var huts: Array = []
 	for k in range(6):
 		var a := TAU * k / 6.0 + rng.randf_range(-0.35, 0.35)

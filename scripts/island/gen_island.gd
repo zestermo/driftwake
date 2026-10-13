@@ -82,6 +82,10 @@ var _arrays: Array = []
 var _faces: Array = []
 const GROUND := 4
 var _shoal_img: Image
+## The cliffs' rock wall (Coast.cliffs): its columns, the clifftop splat, its meshes by square.
+var coast_cols: Array = []
+var _coast_rock := PackedFloat32Array()
+var _rocks := {}
 ## [mesh, kind, cell x, cell z] -> [Transform3D]
 var _buckets := {}
 ## [radius, height (0 = a sphere), centre]
@@ -246,7 +250,7 @@ func _coast_t(p: Vector2) -> float:
 	return t
 
 
-func _height_natural(p: Vector2) -> float:
+func _height_natural(p: Vector2, shelf := 1.0) -> float:
 	var t := _coast_t(p)
 	var cl := _cliff(atan2(p.y, p.x))
 	var base := lerpf(float(_def["base"]), _cliff_h, cl)
@@ -256,6 +260,7 @@ func _height_natural(p: Vector2) -> float:
 		h = lerpf(lerpf(0.5, _cliff_h * 0.6, cl), base, pow(clampf(-t / ramp, 0.0, 1.0), 0.85))
 	else:
 		h = lerpf(lerpf(0.5, -2.0, cl), SEAFLOOR, _smooth(0.0, lerpf(60.0, 22.0, cl), t))
+		h = Coast.shelf(h, t, shelf * (1.0 - cl) * _shelf_room(p), SEAFLOOR)
 	var inland := clampf(-t / 40.0 - 0.1, 0.0, 1.0)
 	h += _roll_noise.get_noise_2d(p.x, p.y) * float(_def["roll"]) * inland
 	h += _detail_noise.get_noise_2d(p.x, p.y) * 0.45 * inland
@@ -264,8 +269,17 @@ func _height_natural(p: Vector2) -> float:
 	return h
 
 
-func _height_fn(p: Vector2) -> float:
-	var h := _height_natural(p)
+## 0..1: room for the shelf at p (none in the dock's fairway or near the radius: the sea is deep there).
+func _shelf_room(p: Vector2) -> float:
+	var q := p - dock_shore
+	var w := 1.0 - _smooth(radius - 30.0, radius, p.length())
+	if q.dot(dock_dir) > -30.0:
+		w *= _smooth(45.0, 70.0, absf(q.dot(Vector2(-dock_dir.y, dock_dir.x))))
+	return w
+
+
+func _height_fn(p: Vector2, shelf := 1.0) -> float:
+	var h := _height_natural(p, shelf)
 	for z in _flat:
 		var w := 1.0 - _smooth(z[2], z[3], p.distance_to(z[0]))
 		if w > 0.0:
@@ -282,6 +296,15 @@ func _generate_heights() -> void:
 	for iz in range(res + 1):
 		for ix in range(res + 1):
 			heights[iz * (res + 1) + ix] = _height_fn(Vector2(-half + ix * CELL, -half + iz * CELL))
+	var dock := dock_shore
+	var coast := Coast.cliffs(heights, res, CELL, half, func(p: Vector2) -> float: return _smooth(60.0, 80.0, p.distance_to(dock)),
+		func(p: Vector2) -> float: return _height_fn(p, 0.0))
+	heights = coast["heights"]
+	_coast_rock = coast["rock"]
+	coast_cols = coast["cols"]
+	for c in coast_cols:
+		reserve(c[0], 2.0)
+	_rocks = Coast.rocks(coast_cols, int(node["seed"]), hv)
 
 
 static func _gauss(p: Vector2, c: Vector2, sigma: float) -> float:
@@ -521,13 +544,15 @@ func _terrain_arrays() -> void:
 			norms[i] = Vector3(_h(ix - 1, iz) - _h(ix + 1, iz), 2.0 * CELL, _h(ix, iz - 1) - _h(ix, iz + 1)).normalized()
 			var dirt := 0.0
 			var sand := 0.0
+			var rock := _coast_rock[i]
 			if h > -1.0:
 				# (wide enough to always catch a vertex: paths are narrower than a cell)
 				dirt = 1.0 - _smooth(0.4, 2.2, _path_dist(p))
 				for d in disks:
 					dirt = maxf(dirt, 1.0 - _smooth(d[1], float(d[1]) + 5.0, p.distance_to(d[0])))
-				sand = (1.0 - _smooth(1.7, 2.8, h)) * (1.0 - dirt)
-			cols[i] = Color(dirt, 0.0, sand, 1.0)
+				dirt *= 1.0 - rock
+				sand = (1.0 - _smooth(1.7, 2.8, h)) * (1.0 - dirt) * (1.0 - rock)
+			cols[i] = Color(dirt, rock, sand, 1.0)
 	var idx := PackedInt32Array()
 	idx.resize(res * res * 6)
 	var k := 0
@@ -567,6 +592,8 @@ func _terrain_node() -> void:
 	mi.mesh = mesh
 	body.add_child(mi)
 	add_child(body)
+	Coast.build(self, _rocks)
+	_rocks = {}
 
 
 ## One square of the ground's collider, a body each (a frame each: the physics

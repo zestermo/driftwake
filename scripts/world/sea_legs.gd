@@ -302,6 +302,19 @@ static func _weapon(rng: RandomNumberGenerator, tier: int) -> ItemData:
 	return ItemDB.tiered(IslandContent.LOOT_WEAPONS[rng.randi() % IslandContent.LOOT_WEAPONS.size()], tier)
 
 
+## The islet's profile from the seabed up, [radius, height]: a sandy shelf to wade on round its beach.
+const ISLET_SHELF := [Vector2(28.0, -5.5), Vector2(22.0, -0.8), Vector2(13.0, -0.4), Vector2(9.0, 0.05), Vector2(6.0, ISLET_TOP)]
+
+
+static func _islet_ground(d: float) -> float:
+	for s in range(ISLET_SHELF.size() - 1):
+		var lo: Vector2 = ISLET_SHELF[s]
+		var hi: Vector2 = ISLET_SHELF[s + 1]
+		if d >= hi.x:
+			return lerpf(hi.y, lo.y, (d - hi.x) / (lo.x - hi.x))
+	return ISLET_TOP
+
+
 ## A rock of sand and stone breaking the sea, a palm on it and a chest under the palm.
 func _build_islet(leg: Node3D, i: int, c: Vector2, rng: RandomNumberGenerator, save_id: String, picks: Array) -> void:
 	var body := StaticBody3D.new()
@@ -310,22 +323,16 @@ func _build_islet(leg: Node3D, i: int, c: Vector2, rng: RandomNumberGenerator, s
 	body.collision_mask = 0
 	leg.add_child(body)
 	body.global_position = Vector3(c.x, 0.0, c.y)
-	var base := -4.5
-	var top_r := 6.0
 	var mb := MeshBuilder.new()
-	mb.add_cylinder(PSXMat.lit("sand"), Transform3D(Basis(), Vector3(0, base, 0)), ISLET_R, top_r, ISLET_TOP - base, 10, 0.5)
+	for s in range(ISLET_SHELF.size() - 1):
+		var lo: Vector2 = ISLET_SHELF[s]
+		var hi: Vector2 = ISLET_SHELF[s + 1]
+		mb.add_cylinder(PSXMat.lit("sand"), Transform3D(Basis(), Vector3(0, lo.y, 0)), lo.x, hi.x, hi.y - lo.y, 12, 0.5, Color.WHITE, s == ISLET_SHELF.size() - 2)
 	var sand := mb.to_instance("Sand")
 	sand.visibility_range_end = 1000.0
 	body.add_child(sand)
-	var pts := PackedVector3Array()
-	for k in range(10):
-		var d := Vector3.FORWARD.rotated(Vector3.UP, k * TAU / 10.0)
-		pts.append(d * ISLET_R + Vector3(0, base, 0))
-		pts.append(d * top_r + Vector3(0, ISLET_TOP, 0))
-	var shape := ConvexPolygonShape3D.new()
-	shape.points = pts
 	var cs := CollisionShape3D.new()
-	cs.shape = shape
+	cs.shape = sand.mesh.create_trimesh_shape()
 	body.add_child(cs)
 	for k in range(5):
 		var a := k * TAU / 5.0 + rng.randf_range(-0.4, 0.4)
@@ -333,7 +340,7 @@ func _build_islet(leg: Node3D, i: int, c: Vector2, rng: RandomNumberGenerator, s
 		var mi := MeshInstance3D.new()
 		mi.mesh = Props.rock_mesh(1300 + i * 7 + k, 1.0, true)
 		mi.visibility_range_end = 1000.0
-		mi.position = Vector3(cos(a) * d, ISLET_TOP - (d - top_r) / (ISLET_R - top_r) * (ISLET_TOP - base) - 0.4, sin(a) * d)
+		mi.position = Vector3(cos(a) * d, _islet_ground(d) - 0.4, sin(a) * d)
 		mi.rotation = Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3))
 		mi.scale = Vector3.ONE * rng.randf_range(1.2, 2.4)
 		body.add_child(mi)

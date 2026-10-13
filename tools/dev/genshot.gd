@@ -6,7 +6,7 @@ extends SceneTree
 ## contact sheet of them all (<out>_sheet.png). Prints its build times.
 ## Args: <out_prefix> [chain seed | -] [node id | -] [psx]
 ## (env GSHOT_SEED / GSHOT_ID still work; GSHOT_HOUR=21 renders at that hour, 11 by default;
-## GSHOT_ONLY=sea,pier,jungle,aerial renders just those shots)
+## GSHOT_ONLY=sea,pier,jungle,aerial renders just those shots; the coast's are cliff, cliff_foot, shelf, shelf_out)
 const SITE_COLS := {"dock": Color(1, 1, 1), "village": Color(1.0, 0.85, 0.2), "boss": Color(1.0, 0.25, 0.2), "camp": Color(1.0, 0.55, 0.15),
 	"lair": Color(0.75, 0.4, 1.0), "ruins": Color(0.6, 0.75, 0.9), "summit": Color(0.3, 0.95, 1.0)}
 var t := 0.0
@@ -134,6 +134,26 @@ func _setup(island) -> void:
 	var fc: Vector3 = isl.forest_crowns[isl.forest_crowns.size() / 3]
 	var inside := Vector2(fc.x, fc.z) + dd * 2.0
 	shots.insert(5, ["jungle", "inside the jungle", _g(inside, 1.7), _g(inside - side * 20.0, 3.0), false, 0.0])
+	if not isl.coast_cols.is_empty():
+		var c: Array = isl.coast_cols[isl.coast_cols.size() / 2]
+		var at: Vector2 = c[0]
+		var out: Vector2 = c[2]
+		var along := Vector2(-out.y, out.x)
+		shots.append(["cliff", "a sea cliff from the water", _g(at + out * 45.0 + along * 20.0, 5.0), Vector3(at.x, float(c[1]) * 0.5, at.y), false, 0.0])
+		shots.append(["cliff_foot", "at the cliff's foot", _g(at + out * 9.0 + along * 7.0, 1.2), Vector3(at.x, 1.5, at.y), false, 0.0])
+	for k in range(36):
+		var a := k * TAU / 36.0
+		var dir := Vector2.from_angle(a)
+		var q: Vector2 = dir * r * 0.5 - s["dock"]
+		if isl._cliff(a) > 0.02 or (q.dot(dd) > -30.0 and absf(q.dot(side)) < 90.0):
+			continue
+		var wl := r * 0.5
+		while wl < r + 40.0 and isl.height_at(dir.x * wl, dir.y * wl) > 0.0:
+			wl += 1.0
+		if wl < r - 80.0:
+			shots.append(["shelf", "wading on the shelf, 12 m out", _g(dir * (wl + 12.0), 1.6), _g(dir * (wl - 30.0), 1.0), false, 0.0])
+			shots.append(["shelf_out", "the shelf from the sea", _g(dir * (wl + 70.0) + Vector2(-dir.y, dir.x) * 30.0, 8.0), _g(dir * (wl + 10.0), 0.0), false, 0.0])
+			break
 	var only := OS.get_environment("GSHOT_ONLY")
 	if only != "":
 		shots = shots.filter(func(e): return e[0] in only.split(","))
