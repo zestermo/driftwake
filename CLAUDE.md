@@ -93,6 +93,11 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 
 ## Parallel sessions (one worktree each)
 
+**At most 3 agents/sessions at a time** (Zach, 2026-10-12): more burned usage, caused constant conflicts in
+the shared files and took longer overall. Finish and merge before starting more. For a batch of features:
+build them (each agent runs only its own suites), merge them all with a compile check (`land.ps1 -NoTests`),
+then one full test run and one bug-fix pass on main, with known bugs from the agents' reports listed first.
+
 Zach often runs several Claude sessions at once. Each should work in its own git worktree
 so half-finished edits never break another session's tests or end up in its commits:
 
