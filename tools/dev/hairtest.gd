@@ -58,7 +58,7 @@ func _process(_d: float) -> bool:
 	var worst := ""
 	var worst_r := 0.0
 	for hat in CharacterLook.HATS:
-		if hat == "none":
+		if hat == "none" or hat in CharacterLook.OVER_HAIR:
 			continue
 		for hs in styles:
 			var lk := CharacterLook.base_look()

@@ -201,6 +201,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `fleetshot`: The enemy ship kinds side by side at sea (sloop, gunboat, brig, Marines). Args: <out_prefix>
 - `newsshot`: The title screen's version ribbon and what's-new pop-up (as on the version's first launch), then the menu. Args: <out_prefix>
 - `armorshot`: The new clothing and armour on a lineup of bodies, front and back; `close <a> <b>` frames two of them up close. Args: <out_prefix> [close a b]
+- `wardrobeshot`: The second wardrobe batch (kettle helm, coif, fez, headband, crown, doublet, kimono, jerkin, padded jack, scale vest, haori, duster, frock, bracers, long gloves, hakama, leathers, sandals, sabatons, wide belt, necklace, goggles, mantle) on eight bodies, front and back. Args: <out_prefix> [close a b]
 - `capeshot`: Two outfits of the new pieces worn by the captain through the equipment slots in the world, front and back. Args: <out_prefix>
 - `weaponshot`: Every weapon design laid out per kind, the four kinds across all seven tiers, and a sheet of every weapon icon. Args: <out_prefix>
 - `handshot`: A few weapon designs held by the captain (nodachi, broadsword, war axe, dragon pistol, rapier). Args: <out_prefix>

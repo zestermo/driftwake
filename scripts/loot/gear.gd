@@ -21,16 +21,16 @@ const SLOT_KEYS := {
 	"torso": ["top", "sleeves", "top_color"],
 	"vest": ["vest", "vest_color"],
 	"coat": ["coat", "coat_color", "trim_color"],
-	"hands": ["gloves", "gloves_color", "gauntlets"],
+	"hands": ["gloves", "gloves_color", "gauntlets", "bracers", "long_gloves"],
 	"legs": ["legs", "legs_color"],
 	"feet": ["feet", "feet_color"],
 	"belt": ["belt", "belt_color", "sash_color"],
 }
 ## Accessories are on/off look flags (+ a color for some).
-const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apron", "cape", "bandolier"]
-const ACC_COLOR := {"scarf": "scarf_color", "apron": "apron_color", "cape": "cape_color"}
-## Steel pieces are named plainly ("Morion", not "Grey Morion").
-const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron"]
+const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apron", "cape", "bandolier", "necklace", "goggles", "mantle"]
+const ACC_COLOR := {"scarf": "scarf_color", "apron": "apron_color", "cape": "cape_color", "mantle": "mantle_color"}
+## Steel (and gold) pieces are named plainly ("Morion", not "Grey Morion").
+const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons"]
 
 const NAMES := {
 	"tricorn": "Tricorn", "bicorne": "Bicorne", "bandana": "Bandana", "cap": "Sailor's Cap",
@@ -48,6 +48,15 @@ const NAMES := {
 	"cuirass": "Cuirass", "brigandine": "Brigandine", "mail": "Mail Shirt",
 	"greatcoat": "Greatcoat", "gauntlets": "Gauntlets", "greaves": "Greaves",
 	"cape": "Cape", "bandolier": "Bandolier",
+	"kettle": "Kettle Helm", "fez": "Fez", "headband": "Headband", "crown": "Crown", "coif": "Mail Coif",
+	"doublet": "Doublet", "kimono": "Kimono",
+	"jerkin": "Leather Jerkin", "padded": "Padded Jack", "scale": "Scale Vest",
+	"haori": "Haori", "duster": "Duster", "frock": "Frock Coat",
+	"bracers": "Leather Bracers", "long_gloves": "Long Gloves",
+	"hakama": "Hakama", "leathers": "Leather Trousers",
+	"sandals": "Sandals", "sabatons": "Sabatons",
+	"wide_belt": "Wide Belt",
+	"necklace": "Tooth Necklace", "goggles": "Brass Goggles", "mantle": "Fur Mantle",
 }
 const DESCRIPTIONS := {
 	"tricorn": "A three-cornered hat. Keeps the sun and the spray off.",
@@ -93,6 +102,29 @@ const DESCRIPTIONS := {
 	"greaves": "Tall boots with steel down the shins and a cop over each knee.",
 	"cape": "A cloak from the shoulders to the knees. Mostly for the look of it.",
 	"bandolier": "A strap across the chest, cartridges along it.",
+	"kettle": "A steel skullcap under a wide brim. Rain, sun and falling spars all run off it.",
+	"fez": "A tall felt cap with a tassel. Worn by men who have been somewhere.",
+	"headband": "A strip of cloth tied round the brow. Keeps the sweat out of your eyes in a long fight.",
+	"crown": "A gold circlet with a stone at the brow. Someone, somewhere, is missing it.",
+	"coif": "A hood of riveted rings that falls to the shoulders. Turns a cut to the neck.",
+	"doublet": "A fitted jacket buttoned to the throat, with a short skirt. Townsman's wear.",
+	"kimono": "A wrapped robe with crossed lapels and wide sleeves, from the far side of the sea.",
+	"jerkin": "A sleeveless leather jerkin laced up the front. Takes a knife better than linen does.",
+	"padded": "A jack of thick quilted cloth. Soft armour, and warmer than it looks.",
+	"scale": "Leather hung with rows of steel scales, front and back. Heavy, and nothing gets through.",
+	"haori": "A straight half-coat worn open over the kimono, tied with two cords. A swordsman's coat.",
+	"duster": "A long oilskin coat with a high collar, split for riding or climbing. Sheds a squall.",
+	"frock": "A long coat buttoned closed in two rows of brass, its skirts to the knee. Dressed for town.",
+	"bracers": "Laced leather guards over the forearms. Catches a blade that gets past the hilt.",
+	"long_gloves": "Leather gloves cuffed to the elbow. Hauling anchor chain, or holding a hawk.",
+	"hakama": "Wide pleated trousers that hide the feet. Nobody sees your stance coming.",
+	"leathers": "Trousers of soft leather. Wear through canvas and these are still going.",
+	"sandals": "A leather sole and two straps. All a deck needs in the heat.",
+	"sabatons": "Boots under steel: a toe cap and plates over the instep and ankle. Kick a door in.",
+	"wide_belt": "A broad belt in two straps with a buckle on each. Holds everything up and takes a blow.",
+	"necklace": "A cord strung with the teeth of something big. You'd rather not say what.",
+	"goggles": "Brass goggles with sea-green glass, pushed up on the brow. For spray, sand and looking the part.",
+	"mantle": "A fur mantle over the shoulders, clasped at the throat. Warm on the night watch.",
 }
 const DEFENSE := {
 	"tricorn": 2.0, "bicorne": 2.0, "bandana": 1.0, "cap": 1.0, "knit": 1.0, "straw": 0.0, "hood": 1.0,
@@ -108,6 +140,15 @@ const DEFENSE := {
 	"cuirass": 7.0, "brigandine": 5.0, "mail": 5.0,
 	"greatcoat": 5.0, "gauntlets": 3.0, "greaves": 4.0,
 	"cape": 1.0, "bandolier": 1.0,
+	"kettle": 4.0, "fez": 1.0, "headband": 0.0, "crown": 2.0, "coif": 4.0,
+	"doublet": 2.0, "kimono": 1.0,
+	"jerkin": 3.0, "padded": 4.0, "scale": 6.0,
+	"haori": 2.0, "duster": 4.0, "frock": 4.0,
+	"bracers": 2.0, "long_gloves": 2.0,
+	"hakama": 2.0, "leathers": 3.0,
+	"sandals": 0.0, "sabatons": 3.0,
+	"wide_belt": 1.0,
+	"necklace": 0.0, "goggles": 0.0, "mantle": 2.0,
 }
 
 ## Rough color names for item names ("Navy Long Coat").
@@ -135,6 +176,14 @@ const PLUNDER := [
 	["feet", "greaves", {"feet": "greaves", "feet_color": Color(0.1, 0.08, 0.07)}],
 	["accessory", "pauldron", {"pauldron": true}],
 	["accessory", "cape", {"cape": true, "cape_color": Color(0.4, 0.1, 0.12)}],
+	["head", "kettle", {"hat": "kettle"}],
+	["head", "coif", {"hat": "coif"}],
+	["head", "crown", {"hat": "crown"}],
+	["vest", "scale", {"vest": "scale", "vest_color": Color(0.24, 0.15, 0.09)}],
+	["coat", "duster", {"coat": "duster", "coat_color": Color(0.24, 0.17, 0.12), "trim_color": Color(0.1, 0.09, 0.09)}],
+	["coat", "frock", {"coat": "frock", "coat_color": Color(0.14, 0.18, 0.34), "trim_color": Color(0.85, 0.68, 0.24)}],
+	["feet", "sabatons", {"feet": "sabatons", "feet_color": Color(0.1, 0.08, 0.07)}],
+	["accessory", "mantle", {"mantle": true, "mantle_color": Color(0.9, 0.88, 0.8)}],
 ]
 
 
@@ -228,6 +277,10 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 		out["coat"] = make("coat", coat, {"coat": coat, "coat_color": lk.get("coat_color"), "trim_color": lk.get("trim_color")})
 	if lk.get("gauntlets", false):
 		out["hands"] = make("hands", "gauntlets", {"gloves": true, "gloves_color": lk.get("gloves_color"), "gauntlets": true})
+	elif lk.get("long_gloves", false):
+		out["hands"] = make("hands", "long_gloves", {"gloves": true, "gloves_color": lk.get("gloves_color"), "long_gloves": true})
+	elif lk.get("bracers", false):
+		out["hands"] = make("hands", "bracers", {"gloves": false, "gloves_color": lk.get("gloves_color"), "bracers": true})
 	elif lk.get("gloves", false):
 		out["hands"] = make("hands", "gloves", {"gloves": true, "gloves_color": lk.get("gloves_color")})
 	var legs := str(lk.get("legs", "trousers"))
@@ -265,7 +318,7 @@ static func bare(kind: String, fem: bool) -> Dictionary:
 			return {"top": "shirt", "sleeves": "none", "top_color": CharacterLook.CLOTH[1]} if fem else {"top": "bare"}
 		"vest": return {"vest": "none"}
 		"coat": return {"coat": "none"}
-		"hands": return {"gloves": false, "gauntlets": false}
+		"hands": return {"gloves": false, "gauntlets": false, "bracers": false, "long_gloves": false}
 		"legs": return {"legs": "shorts", "legs_color": CharacterLook.CLOTH[1]}
 		"feet": return {"feet": "barefoot"}
 		"belt": return {"belt": "none"}

@@ -36,6 +36,8 @@ static func icon(it: ItemData) -> Texture2D:
 			"s": col = STEEL
 			"k": col = Color(0.08, 0.07, 0.07)
 			"w": col = LEATHER
+			"r": col = Color(0.78, 0.16, 0.18)
+			"i": col = Color(0.92, 0.88, 0.76)
 		_fill(img, layer[1], col)
 	_outline(img)
 	var tex := ImageTexture.create_from_image(img)
@@ -45,6 +47,8 @@ static func icon(it: ItemData) -> Texture2D:
 
 static func _main_color(it: ItemData) -> Color:
 	var lk := it.look
+	if it.icon_kind == "crown":
+		return GOLD
 	if it.icon_kind in Gear.STEEL_PIECES:
 		return STEEL
 	for k in ["hat_color", "top_color", "vest_color", "coat_color", "gloves_color", "legs_color", "feet_color", "scarf_color", "apron_color", "cape_color"]:
@@ -56,7 +60,8 @@ static func _main_color(it: ItemData) -> Color:
 		"earring": return GOLD
 		"eyepatch": return Color(0.12, 0.1, 0.09)
 		"pauldron": return STEEL
-		"pouch", "bandolier": return LEATHER
+		"pouch", "bandolier", "goggles": return LEATHER
+		"necklace": return Color(0.92, 0.88, 0.76)
 	return Color(0.7, 0.7, 0.7)
 
 
@@ -70,9 +75,158 @@ static func _second_color(it: ItemData) -> Color:
 
 
 ## Layers of [color code, polygon]. Codes: m main, d dark, l light, b second
-## (trim / sash), g gold, s steel, k black, w leather.
+## (trim / sash), g gold, s steel, k black, w leather, r red, i ivory.
 static func _shapes(kind: String, look: Dictionary) -> Array:
 	match kind:
+		"kettle":
+			return [["m", [Vector2(6, 12), Vector2(7, 6), Vector2(12, 3), Vector2(17, 6), Vector2(18, 12)]],
+				["m", [Vector2(3, 12), Vector2(21, 12), Vector2(23, 17), Vector2(1, 17)]],
+				["d", [Vector2(4, 13), Vector2(20, 13), Vector2(20, 14), Vector2(4, 14)]],
+				["l", [Vector2(10, 5), Vector2(12, 4), Vector2(12, 9), Vector2(10, 9)]]]
+		"fez":
+			return [["m", [Vector2(7, 17), Vector2(8, 5), Vector2(16, 5), Vector2(17, 17)]],
+				["d", [Vector2(7, 15), Vector2(17, 15), Vector2(17, 17), Vector2(7, 17)]],
+				["k", [Vector2(15, 5), Vector2(17, 5), Vector2(19, 12), Vector2(17, 12)]],
+				["k", [Vector2(16, 11), Vector2(20, 11), Vector2(20, 16), Vector2(16, 16)]]]
+		"headband":
+			return [["m", [Vector2(3, 9), Vector2(21, 9), Vector2(21, 14), Vector2(3, 14)]],
+				["d", [Vector2(18, 12), Vector2(23, 15), Vector2(21, 19), Vector2(17, 15)]],
+				["l", [Vector2(5, 10), Vector2(19, 10), Vector2(19, 11), Vector2(5, 11)]]]
+		"crown":
+			return [["m", [Vector2(4, 20), Vector2(4, 12), Vector2(20, 12), Vector2(20, 20)]],
+				["m", [Vector2(4, 12), Vector2(4, 4), Vector2(8, 9), Vector2(12, 3), Vector2(16, 9), Vector2(20, 4), Vector2(20, 12)]],
+				["d", [Vector2(4, 18), Vector2(20, 18), Vector2(20, 20), Vector2(4, 20)]],
+				["r", [Vector2(10, 14), Vector2(14, 14), Vector2(14, 17), Vector2(10, 17)]]]
+		"coif":
+			var layers := [["m", [Vector2(4, 21), Vector2(5, 8), Vector2(12, 3), Vector2(19, 8), Vector2(20, 21)]],
+				["k", [Vector2(8, 20), Vector2(8, 11), Vector2(12, 8), Vector2(16, 11), Vector2(16, 20)]]]
+			for y in [7, 11, 15, 19]:
+				layers.append(["d", [Vector2(4, y), Vector2(20, y), Vector2(20, y + 1), Vector2(4, y + 1)]])
+			return layers
+		"doublet":
+			var layers := [["m", [Vector2(7, 4), Vector2(17, 4), Vector2(18, 15), Vector2(20, 20), Vector2(4, 20), Vector2(6, 15)]],
+				["m", [Vector2(7, 4), Vector2(3, 8), Vector2(2, 16), Vector2(6, 16), Vector2(7, 10)]],
+				["m", [Vector2(17, 4), Vector2(21, 8), Vector2(22, 16), Vector2(18, 16), Vector2(17, 10)]],
+				["d", [Vector2(6, 15), Vector2(18, 15), Vector2(18, 16), Vector2(6, 16)]]]
+			for y in [6, 9, 12]:
+				layers.append(["g", [Vector2(11, y), Vector2(13, y), Vector2(13, y + 2), Vector2(11, y + 2)]])
+			return layers
+		"kimono":
+			return [["m", [Vector2(6, 4), Vector2(18, 4), Vector2(19, 22), Vector2(5, 22)]],
+				["m", [Vector2(6, 4), Vector2(1, 9), Vector2(1, 17), Vector2(7, 16), Vector2(7, 10)]],
+				["m", [Vector2(18, 4), Vector2(23, 9), Vector2(23, 17), Vector2(17, 16), Vector2(17, 10)]],
+				["d", [Vector2(14, 4), Vector2(18, 4), Vector2(11, 14), Vector2(9, 14)]],
+				["d", [Vector2(6, 4), Vector2(10, 4), Vector2(16, 14), Vector2(13, 14)]]]
+		"jerkin":
+			var layers := [["m", [Vector2(6, 4), Vector2(18, 4), Vector2(19, 12), Vector2(18, 20), Vector2(6, 20), Vector2(5, 12)]],
+				["d", [Vector2(9, 4), Vector2(12, 7), Vector2(15, 4)]]]
+			for y in [8, 11, 14, 17]:
+				layers.append(["i", [Vector2(10, y), Vector2(14, y + 1), Vector2(14, y + 2), Vector2(10, y + 1)]])
+			return layers
+		"padded":
+			var layers := [["m", [Vector2(6, 4), Vector2(18, 4), Vector2(19, 12), Vector2(19, 21), Vector2(5, 21), Vector2(5, 12)]],
+				["d", [Vector2(9, 4), Vector2(12, 7), Vector2(15, 4)]],
+				["d", [Vector2(11, 7), Vector2(13, 7), Vector2(13, 21), Vector2(11, 21)]]]
+			for y in [9, 13, 17]:
+				layers.append(["d", [Vector2(6, y), Vector2(18, y), Vector2(18, y + 1), Vector2(6, y + 1)]])
+			return layers
+		"scale":
+			var layers := [["w", [Vector2(6, 4), Vector2(18, 4), Vector2(19, 12), Vector2(17, 20), Vector2(7, 20), Vector2(5, 12)]],
+				["k", [Vector2(9, 4), Vector2(12, 7), Vector2(15, 4)]]]
+			for row in range(4):
+				var y := 7 + row * 3
+				for x in ([7, 11, 15] if row % 2 == 0 else [9, 13]):
+					layers.append(["m", [Vector2(x, y), Vector2(x + 3, y), Vector2(x + 3, y + 3), Vector2(x, y + 3)]])
+			return layers
+		"haori":
+			return [["m", [Vector2(7, 4), Vector2(17, 4), Vector2(18, 17), Vector2(13, 17), Vector2(12, 8), Vector2(11, 17), Vector2(6, 17)]],
+				["m", [Vector2(7, 4), Vector2(1, 8), Vector2(1, 16), Vector2(7, 16), Vector2(7, 10)]],
+				["m", [Vector2(17, 4), Vector2(23, 8), Vector2(23, 16), Vector2(17, 16), Vector2(17, 10)]],
+				["d", [Vector2(9, 4), Vector2(11, 4), Vector2(11, 17), Vector2(9, 17)]],
+				["d", [Vector2(13, 4), Vector2(15, 4), Vector2(15, 17), Vector2(13, 17)]],
+				["b", [Vector2(8, 10), Vector2(16, 10), Vector2(16, 11), Vector2(8, 11)]]]
+		"duster":
+			return [["m", [Vector2(7, 4), Vector2(17, 4), Vector2(19, 23), Vector2(13, 23), Vector2(12, 9), Vector2(11, 23), Vector2(5, 23)]],
+				["m", [Vector2(7, 4), Vector2(2, 8), Vector2(1, 16), Vector2(5, 16), Vector2(7, 10)]],
+				["m", [Vector2(17, 4), Vector2(22, 8), Vector2(23, 16), Vector2(19, 16), Vector2(17, 10)]],
+				["d", [Vector2(7, 1), Vector2(17, 1), Vector2(17, 5), Vector2(12, 8), Vector2(7, 5)]]]
+		"frock":
+			var layers := [["m", [Vector2(7, 4), Vector2(17, 4), Vector2(19, 22), Vector2(5, 22)]],
+				["m", [Vector2(7, 4), Vector2(2, 8), Vector2(1, 16), Vector2(5, 16), Vector2(7, 10)]],
+				["m", [Vector2(17, 4), Vector2(22, 8), Vector2(23, 16), Vector2(19, 16), Vector2(17, 10)]],
+				["d", [Vector2(9, 4), Vector2(12, 7), Vector2(15, 4)]],
+				["b", [Vector2(1, 14), Vector2(5, 14), Vector2(5, 16), Vector2(1, 16)]],
+				["b", [Vector2(19, 14), Vector2(23, 14), Vector2(23, 16), Vector2(19, 16)]]]
+			for y in [8, 12, 16]:
+				for x in [9, 13]:
+					layers.append(["g", [Vector2(x, y), Vector2(x + 2, y), Vector2(x + 2, y + 2), Vector2(x, y + 2)]])
+			return layers
+		"bracers":
+			var layers := [["m", [Vector2(3, 5), Vector2(10, 5), Vector2(11, 19), Vector2(2, 19)]],
+				["m", [Vector2(14, 5), Vector2(21, 5), Vector2(22, 19), Vector2(13, 19)]]]
+			for y in [7, 11, 15]:
+				layers.append(["d", [Vector2(3, y), Vector2(10, y), Vector2(10, y + 1), Vector2(3, y + 1)]])
+				layers.append(["d", [Vector2(14, y), Vector2(21, y), Vector2(21, y + 1), Vector2(14, y + 1)]])
+			return layers
+		"long_gloves":
+			return [["m", [Vector2(3, 21), Vector2(3, 3), Vector2(10, 3), Vector2(11, 12), Vector2(12, 14), Vector2(11, 21)]],
+				["m", [Vector2(13, 21), Vector2(13, 12), Vector2(14, 3), Vector2(21, 3), Vector2(21, 21)]],
+				["d", [Vector2(3, 3), Vector2(10, 3), Vector2(10, 6), Vector2(3, 6)]],
+				["d", [Vector2(14, 3), Vector2(21, 3), Vector2(21, 6), Vector2(14, 6)]],
+				["d", [Vector2(3, 17), Vector2(11, 17), Vector2(11, 21), Vector2(3, 21)]],
+				["d", [Vector2(13, 17), Vector2(21, 17), Vector2(21, 21), Vector2(13, 21)]]]
+		"hakama":
+			return [["m", [Vector2(6, 3), Vector2(18, 3), Vector2(23, 21), Vector2(13, 21), Vector2(12, 12), Vector2(11, 21), Vector2(1, 21)]],
+				["d", [Vector2(6, 3), Vector2(18, 3), Vector2(18, 5), Vector2(6, 5)]],
+				["d", [Vector2(7, 6), Vector2(8, 6), Vector2(5, 21), Vector2(4, 21)]],
+				["d", [Vector2(16, 6), Vector2(17, 6), Vector2(20, 21), Vector2(19, 21)]]]
+		"leathers":
+			return [["m", [Vector2(6, 3), Vector2(18, 3), Vector2(19, 21), Vector2(13, 21), Vector2(12, 9), Vector2(11, 21), Vector2(5, 21)]],
+				["d", [Vector2(6, 3), Vector2(18, 3), Vector2(18, 5), Vector2(6, 5)]],
+				["l", [Vector2(6, 13), Vector2(11, 13), Vector2(11, 16), Vector2(6, 16)]],
+				["l", [Vector2(13, 13), Vector2(18, 13), Vector2(18, 16), Vector2(13, 16)]]]
+		"sandals":
+			return [["m", [Vector2(3, 10), Vector2(10, 10), Vector2(11, 21), Vector2(2, 21)]],
+				["m", [Vector2(14, 10), Vector2(21, 10), Vector2(22, 21), Vector2(13, 21)]],
+				["d", [Vector2(3, 13), Vector2(10, 13), Vector2(10, 15), Vector2(3, 15)]],
+				["d", [Vector2(14, 13), Vector2(21, 13), Vector2(21, 15), Vector2(14, 15)]],
+				["d", [Vector2(6, 10), Vector2(8, 10), Vector2(8, 13), Vector2(6, 13)]],
+				["d", [Vector2(17, 10), Vector2(19, 10), Vector2(19, 13), Vector2(17, 13)]]]
+		"sabatons":
+			return [["w", [Vector2(4, 8), Vector2(10, 8), Vector2(10, 16), Vector2(13, 18), Vector2(13, 21), Vector2(3, 21), Vector2(4, 16)]],
+				["w", [Vector2(14, 9), Vector2(20, 9), Vector2(20, 16), Vector2(23, 18), Vector2(23, 21), Vector2(13, 21), Vector2(14, 16)]],
+				["m", [Vector2(4, 15), Vector2(10, 15), Vector2(13, 18), Vector2(13, 21), Vector2(3, 21)]],
+				["m", [Vector2(14, 16), Vector2(20, 16), Vector2(23, 18), Vector2(23, 21), Vector2(13, 21)]],
+				["l", [Vector2(4, 10), Vector2(10, 10), Vector2(10, 12), Vector2(4, 12)]],
+				["l", [Vector2(14, 11), Vector2(20, 11), Vector2(20, 13), Vector2(14, 13)]]]
+		"wide_belt":
+			return [["m", [Vector2(1, 6), Vector2(23, 6), Vector2(23, 17), Vector2(1, 17)]],
+				["d", [Vector2(1, 11), Vector2(23, 11), Vector2(23, 12), Vector2(1, 12)]],
+				["g", [Vector2(8, 6), Vector2(16, 6), Vector2(16, 11), Vector2(8, 11)]],
+				["g", [Vector2(8, 12), Vector2(16, 12), Vector2(16, 17), Vector2(8, 17)]],
+				["d", [Vector2(10, 7), Vector2(14, 7), Vector2(14, 10), Vector2(10, 10)]],
+				["d", [Vector2(10, 13), Vector2(14, 13), Vector2(14, 16), Vector2(10, 16)]]]
+		"necklace":
+			var layers := [["k", [Vector2(2, 4), Vector2(4, 4), Vector2(12, 12), Vector2(20, 4), Vector2(22, 4), Vector2(12, 14)]]]
+			for i in range(5):
+				var x := 6 + i * 3
+				var y := 8 + (2 if i in [1, 3] else (4 if i == 2 else 0))
+				layers.append(["m", [Vector2(x, y), Vector2(x + 2, y), Vector2(x + 1, y + 6)]])
+			return layers
+		"goggles":
+			return [["m", [Vector2(1, 9), Vector2(23, 9), Vector2(23, 13), Vector2(1, 13)]],
+				["g", [Vector2(3, 7), Vector2(11, 7), Vector2(11, 15), Vector2(3, 15)]],
+				["g", [Vector2(13, 7), Vector2(21, 7), Vector2(21, 15), Vector2(13, 15)]],
+				["s", [Vector2(5, 9), Vector2(9, 9), Vector2(9, 13), Vector2(5, 13)]],
+				["s", [Vector2(15, 9), Vector2(19, 9), Vector2(19, 13), Vector2(15, 13)]]]
+		"mantle":
+			var layers := [["m", [Vector2(5, 5), Vector2(19, 5), Vector2(23, 16), Vector2(1, 16)]]]
+			for i in range(6):
+				var x := 1 + i * 4
+				layers.append(["m", [Vector2(x, 16), Vector2(x + 4, 16), Vector2(x + 2, 20)]])
+			layers.append(["d", [Vector2(5, 5), Vector2(19, 5), Vector2(19, 7), Vector2(5, 7)]])
+			layers.append(["g", [Vector2(10, 5), Vector2(14, 5), Vector2(14, 8), Vector2(10, 8)]])
+			return layers
 		"tricorn":
 			return [["m", [Vector2(2, 14), Vector2(7, 10), Vector2(12, 6), Vector2(17, 10), Vector2(22, 14), Vector2(17, 16), Vector2(12, 14), Vector2(7, 16)]],
 				["d", [Vector2(8, 13), Vector2(12, 8), Vector2(16, 13), Vector2(12, 12)]]]

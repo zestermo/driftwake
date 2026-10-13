@@ -11,14 +11,16 @@ extends RefCounted
 ##   eyes int, eye_color Color, brows int, mouth int, marks "none"|"freckles"|...
 ##   hair (see HAIR), hair_color, facial_hair (see FACIAL_HAIR)
 ##   hat (see HATS), hat_color
-##   top "shirt"|"tunic"|"blouse"|"bare", top_color, sleeves "long"|"short"|"none"
-##   vest "none"|"vest"|"corset", vest_color
-##   coat "none"|"jacket"|"longcoat"|"captain", coat_color, trim_color
-##   legs "trousers"|"breeches"|"shorts"|"skirt", legs_color
-##   feet "tall_boots"|"boots"|"shoes"|"barefoot", feet_color
-##   belt "none"|"belt"|"sash"|"belt_sash", belt_color, sash_color
-##   gloves bool, gloves_color, apron bool, apron_color
-##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool
+##   top (see TOPS), top_color, sleeves "long"|"short"|"none"
+##   vest (see VESTS), vest_color
+##   coat (see COATS), coat_color, trim_color
+##   legs (see LEGS), legs_color
+##   feet (see FEET), feet_color
+##   belt (see BELTS), belt_color, sash_color
+##   gloves bool, gloves_color, gauntlets bool, bracers bool, long_gloves bool
+##   apron bool, apron_color, cape bool, cape_color, mantle bool, mantle_color
+##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool,
+##   bandolier bool, necklace bool, goggles bool
 
 const SAVE_PATH := "user://character.cfg"
 
@@ -40,14 +42,17 @@ const HAIR_MASC := ["bald", "crop", "short", "long", "ponytail", "wild", "swept"
 const HAIR_FEM := ["long", "ponytail", "bun", "braids", "short", "wild", "hime", "twintails", "bob", "side_pony", "swept",
 	"low_pony", "layered", "lob", "braid", "curtains", "shag"]
 const FACIAL_HAIR := ["none", "stubble", "moustache", "goatee", "chops", "beard", "long_beard"]
-const HATS := ["none", "tricorn", "bicorne", "bandana", "cap", "knit", "straw", "hood", "cavalier", "morion", "turban"]
-const TOPS := ["shirt", "tunic", "blouse", "bare"]
+const HATS := ["none", "tricorn", "bicorne", "bandana", "cap", "knit", "straw", "hood", "cavalier", "morion", "turban",
+	"kettle", "fez", "headband", "crown", "coif"]
+## Hats worn over the hair rather than covering it (the hair isn't pressed flat under them).
+const OVER_HAIR := ["headband", "crown"]
+const TOPS := ["shirt", "tunic", "blouse", "doublet", "kimono", "bare"]
 const SLEEVES := ["long", "short", "none"]
-const VESTS := ["none", "vest", "corset", "cuirass", "brigandine", "mail"]
-const COATS := ["none", "jacket", "longcoat", "captain", "greatcoat"]
-const LEGS := ["trousers", "breeches", "shorts", "skirt"]
-const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves"]
-const BELTS := ["none", "belt", "sash", "belt_sash"]
+const VESTS := ["none", "vest", "corset", "cuirass", "brigandine", "mail", "jerkin", "padded", "scale"]
+const COATS := ["none", "jacket", "longcoat", "captain", "greatcoat", "haori", "duster", "frock"]
+const LEGS := ["trousers", "breeches", "shorts", "skirt", "hakama", "leathers"]
+const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves", "sandals", "sabatons"]
+const BELTS := ["none", "belt", "sash", "belt_sash", "wide_belt"]
 ## What a new captain can start in (the character creator and its Randomize):
 ## plain clothes. Hats of rank, coats of office and armour are bought or found.
 const CREATOR_HATS := ["none", "bandana", "cap", "knit", "straw", "hood"]
@@ -83,7 +88,8 @@ const COLOR_PALETTES := {
 	"skin": "SKIN_TONES", "hair_color": "HAIR_COLORS", "eye_color": "EYE_COLORS",
 	"hat_color": "CLOTH", "top_color": "CLOTH", "vest_color": "CLOTH", "coat_color": "CLOTH",
 	"trim_color": "TRIM", "legs_color": "CLOTH", "feet_color": "LEATHER", "belt_color": "LEATHER",
-	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH", "cape_color": "CLOTH"}
+	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH", "cape_color": "CLOTH",
+	"mantle_color": "CLOTH"}
 
 
 static func palette(key: String) -> Array:
@@ -111,10 +117,11 @@ static func base_look() -> Dictionary:
 		"legs": "trousers", "legs_color": CLOTH[3],
 		"feet": "boots", "feet_color": LEATHER[1],
 		"belt": "belt", "belt_color": LEATHER[1], "sash_color": CLOTH[13],
-		"gloves": false, "gloves_color": LEATHER[1], "gauntlets": false,
+		"gloves": false, "gloves_color": LEATHER[1], "gauntlets": false, "bracers": false, "long_gloves": false,
 		"apron": false, "apron_color": CLOTH[0],
 		"earring": false, "eyepatch": false, "scarf": false, "scarf_color": CLOTH[13],
 		"pauldron": false, "pouch": false, "cape": false, "cape_color": CLOTH[13], "bandolier": false,
+		"necklace": false, "goggles": false, "mantle": false, "mantle_color": CLOTH[3],
 	}
 
 

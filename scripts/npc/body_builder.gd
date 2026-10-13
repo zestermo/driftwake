@@ -275,6 +275,25 @@ static func _front_z(r: Array) -> float:
 	return float(r[3]) + f * float(r[2])
 
 
+## Surface z of a ring at a lateral offset x along its profile, on the front
+## (default) or the back: where to lay something flat on the body off centre
+## (a bust or pec profile bulges past the centre line).
+static func _surf_z(r: Array, x: float, back: bool = false) -> float:
+	var prof: PackedVector2Array = r[5] if r.size() > 5 and r[5] is PackedVector2Array else P_BODY()
+	var u := clampf(x / maxf(float(r[1]), 1e-4), -0.999, 0.999)
+	var best := INF
+	for i in range(prof.size()):
+		var a := prof[i]
+		var b := prof[(i + 1) % prof.size()]
+		if a.x == b.x or (u - a.x) * (u - b.x) > 0.0:
+			continue
+		var y := lerpf(a.y, b.y, (u - a.x) / (b.x - a.x))
+		best = minf(best, -y if back else y)
+	if best == INF:
+		best = -1.0
+	return float(r[3]) + (-best if back else best) * float(r[2])
+
+
 ## Torso-shaped open-front shell profile (vests, coats): same outline as
 ## P_BODY so the body never pokes through, with a gap at the front.
 static func open_body(gap: float) -> PackedVector2Array:
@@ -447,7 +466,7 @@ func _shin_rings() -> Array:
 func _legs() -> void:
 	var legs := str(lk.get("legs", "trousers"))
 	var feet := str(lk.get("feet", "boots"))
-	var m_legs := _cloth("legs_color")
+	var m_legs := _leather("legs_color") if legs == "leathers" else _cloth("legs_color")
 	var prof := MeshBuilder.profile_oct(0.5)
 	# (thighs, knees and shins are the skinned lower body, see _lower_body; only
 	# the cuffs and footwear ride the shin joint)
@@ -471,11 +490,26 @@ func _feet(mb: MeshBuilder, sr: Array, feet: String) -> void:
 		[0.08 * F, 0.062 * L, 0.04 * F, 0.042 * F], [0.15 * F, 0.05 * L, 0.028 * F, 0.03 * F], [0.178 * F, 0.03 * L, 0.018 * F, 0.022 * F]]
 	var fprof := MeshBuilder.profile_oct(0.6)
 	var sp := MeshBuilder.profile_oct(0.5)
+	var bare := [[-0.075 * F, 0.042 * L, 0.035 * F, 0.04 * F], [-0.05 * F, 0.05 * L, 0.05 * F, 0.055 * F], [0.0, 0.054 * L, 0.05 * F, 0.05 * F],
+		[0.07 * F, 0.054 * L, 0.03 * F, 0.032 * F], [0.13 * F, 0.046 * L, 0.022 * F, 0.022 * F], [0.15 * F, 0.03 * L, 0.014 * F, 0.016 * F]]
 	match feet:
 		"barefoot":
-			var bare := [[-0.075 * F, 0.042 * L, 0.035 * F, 0.04 * F], [-0.05 * F, 0.05 * L, 0.05 * F, 0.055 * F], [0.0, 0.054 * L, 0.05 * F, 0.05 * F],
-				[0.07 * F, 0.054 * L, 0.03 * F, 0.032 * F], [0.13 * F, 0.046 * L, 0.022 * F, 0.022 * F], [0.15 * F, 0.03 * L, 0.014 * F, 0.016 * F]]
 			mb.add_loft(m_skin, fx, bare, fprof, 3.0, Color.WHITE, true, true)
+		"sandals":
+			# bare feet on a leather sole, a strap over the instep and one round the ankle
+			mb.add_loft(m_skin, fx, bare, fprof, 3.0, Color.WHITE, true, true)
+			mb.add_box(m_feet, Transform3D(Basis(), Vector3(0, sole, -0.04 * F)), Vector3(0.07 * F, 0.012, 0.24 * F), 3.0, Color.WHITE, false)
+			mb.add_box(m_feet, Transform3D(Basis(Vector3.RIGHT, -0.4), Vector3(0, sole + 0.055 * F, -0.07 * F)), Vector3(0.075 * F, 0.01, 0.025), 3.0, Color.WHITE, false)
+			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.05, sole + 0.065), 0.006), sp, 3.0, Color.WHITE, false, false, true, false, true)
+		"sabatons":
+			# boots under steel: a toe cap, two lames over the instep, a plate round the ankle
+			mb.add_loft(m_feet, fx, foot, fprof, 3.0, Color.WHITE, true, true)
+			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.04, sole + 0.19 * F), 0.016), sp, 3.0, Color.WHITE, false, true)
+			var steel := PSXMat.lit("metal", Color(0.9, 0.92, 0.96))
+			mb.add_box(steel, Transform3D(Basis(), Vector3(0, sole + 0.03, -0.11 * F)), Vector3(0.07, 0.034, 0.09) * F, 3.0)
+			for i in range(2):
+				mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.45), Vector3(0, sole + (0.05 + i * 0.018) * F, (-0.055 + i * 0.03) * F)), Vector3(0.078 * F, 0.01, 0.04 * F), 3.0)
+			mb.add_loft(steel, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.07, sole + 0.17 * F), 0.028), sp, 0.5, Color.WHITE, false, false, true, false, true)
 		"shoes":
 			mb.add_loft(m_feet, fx, _off(foot, -0.004), fprof, 3.0, Color.WHITE, true, true)
 			mb.add_loft(m_feet, Transform3D.IDENTITY, _off(_clip(sr, sole + 0.04, sole + 0.1 * F), 0.01), sp, 3.0)
@@ -510,7 +544,7 @@ func _boot_top() -> float:
 	match str(lk.get("feet", "boots")):
 		"tall_boots", "greaves":
 			return -KNEE_BAND - 0.012
-		"boots":
+		"boots", "sabatons":
 			return sole + 0.19 * Fk
 		"shoes":
 			return sole + 0.1 * Fk
@@ -541,7 +575,7 @@ static func _chain_w(f: float, chain: Array) -> Array:
 ## 12 points: front centre, 5 on the +x side, back centre, 5 on the -x side.
 func _lower_body() -> void:
 	var legs := str(lk.get("legs", "trousers"))
-	var m_legs := _cloth("legs_color")
+	var m_legs := _leather("legs_color") if legs == "leathers" else _cloth("legs_color")
 	var hw := _hips_hw()
 	var hd := _hips_hd()
 	var lg := float(st["leg_gap"])
@@ -753,12 +787,41 @@ func _torso() -> void:
 	# the tunic's skirt hangs in cloth panels that swing with the legs (a rigid
 	# tube let the thighs through), snug under the belt and inside any coat's
 	# tails; with a skirt it's tucked in
-	if top == "tunic" and str(lk.get("legs", "")) != "skirt":
+	if top in ["tunic", "kimono"] and str(lk.get("legs", "")) != "skirt":
 		var secs := []
 		for i in range(6):
 			secs.append([i * 60.0, (i + 1) * 60.0])
-		_cloth_sectors(m_top, null, secs, -0.01, -0.21, [0.012, 0.02, 0.032], 0.2, 0.014)
-	if top != "bare":
+		_cloth_sectors(m_top, null, secs, -0.01, -0.21 if top == "tunic" else -0.27, [0.012, 0.02, 0.032], 0.2, 0.014)
+	if top == "doublet":
+		# a short peplum over the hips, buttons up the front
+		var secs := []
+		for i in range(6):
+			secs.append([i * 60.0 - 30.0, (i + 1) * 60.0 - 30.0])
+		_cloth_sectors(m_top, null, secs, -0.01, -0.11, [0.012, 0.024], 0.25, 0.014)
+		var brass := PSXMat.flat(Color(0.82, 0.68, 0.32))
+		for i in range(5):
+			var by := ty(0.08 + i * 0.1)
+			var r := _at(tr, by)
+			mb.add_box(brass, Transform3D(Basis(), Vector3(0, by, _front_z(r) - 0.007)), Vector3(0.014, 0.014, 0.008), 3.0)
+	if top == "kimono":
+		# crossed lapels in a deeper shade, the left panel over the right
+		var lap := _textured("fabric", _col("top_color").darkened(0.18))
+		for s in [1.0, -1.0]:
+			var o := 0.012 if s < 0 else 0.008
+			var prev: Array = []
+			for i in range(5):
+				var k := i / 4.0
+				var y := lerpf(tu(0.58), ty(0.04), k)
+				var r := _at(tr, y)
+				var xc := lerpf(s * 0.07, -s * 0.045, k)
+				var row: Array = []
+				for e in [-0.022, 0.022]:
+					var x := xc + float(e)
+					row.append(Vector3(x, y, _surf_z(r, x) - o))
+				if i > 0:
+					mb.add_quad(lap, prev[0], prev[1], row[1], row[0], Vector2(0, k - 0.25), Vector2(1, k - 0.25), Vector2(1, k), Vector2(0, k), Color.WHITE, Vector3.FORWARD)
+				prev = row
+	if top != "bare" and top != "kimono":
 		var r := _at(tr, tu(0.6))
 		var cz := _front_z(r) - 0.004
 		var mc := _textured("fabric", _col("top_color").lightened(0.08))
@@ -796,10 +859,10 @@ func _arms() -> void:
 	var sleeves := str(lk.get("sleeves", "long"))
 	if top == "bare":
 		sleeves = "none"
-	var coated := str(lk.get("coat", "none")) != "none"
+	var coat := str(lk.get("coat", "none"))
+	var coated := coat != "none"
 	var m_top := _cloth("top_color")
 	var gloves: bool = lk.get("gloves", false)
-	var gauntlets: bool = lk.get("gauntlets", false)
 	var m_hand := _leather("gloves_color") if gloves else m_skin
 	var L := limb * (1.0 + (sh - 1.0) * 0.4)
 	var prof := MeshBuilder.profile_oct(0.5)
@@ -811,14 +874,19 @@ func _arms() -> void:
 	var fo := [[0.02, 0.056 * L, 0.06 * L], [-0.08 * A, 0.06 * L, 0.064 * L, 0.004], [wrist, 0.043 * L, 0.047 * L]]
 	var m_sleeve := m_top
 	if coated:
-		m_sleeve = _cloth("coat_color")
+		m_sleeve = _textured("canvas", _col("coat_color")) if coat == "duster" else _cloth("coat_color")
 		up = [[0.07, 0.03 * L, 0.034 * L], [0.055, 0.062 * L, 0.068 * L], [0.02, 0.082 * L, 0.088 * L], [-0.06 * A, 0.09 * L, 0.096 * L], [elbow_y, 0.075 * L, 0.08 * L]]
 		fo = [[0.02, 0.076 * L, 0.08 * L], [wrist + 0.02, 0.064 * L, 0.068 * L]]
+		if coat == "haori":
+			# square sleeves hanging open at the wrist
+			fo = [[0.02, 0.076 * L, 0.08 * L], [-0.1 * A, 0.086 * L, 0.09 * L, 0.01], [wrist + 0.02, 0.1 * L, 0.106 * L, 0.03]]
 	elif sleeves == "long":
 		up = _off(up, 0.006)
 		fo = _off(fo, 0.006)
 		if top == "blouse":
 			fo = [[0.02, 0.066 * L, 0.07 * L], [-0.1 * A, 0.08 * L, 0.084 * L, 0.006], [-0.19 * A, 0.062 * L, 0.066 * L], [wrist + 0.02, 0.05 * L, 0.054 * L]]
+		elif top == "kimono":
+			fo = [[0.02, 0.062 * L, 0.066 * L], [-0.1 * A, 0.074 * L, 0.078 * L, 0.008], [wrist + 0.015, 0.095 * L, 0.1 * L, 0.03]]
 	elif sleeves == "short":
 		up = _off(up, 0.003)
 	var bare := not coated and sleeves != "long" and sleeves != "short"
@@ -900,10 +968,7 @@ func _arms() -> void:
 		if not h.swappable_hands:
 			# NPCs never fight bare-handed: keep the hand in the forearm's mesh
 			fmb.merge(hmb)
-			if gloves:
-				fmb.add_loft(m_hand, Transform3D.IDENTITY, [[wrist + 0.06, 0.056 * L, 0.06 * L], [wrist + 0.01, 0.05 * L, 0.054 * L]], prof, 3.0, Color.WHITE, false, false, true, false, true)
-			if gauntlets:
-				_vambrace(fmb, wrist, L, k)
+			_forearm_wear(fmb, wrist, L, k, m_hand)
 			_mesh(arm, amb)
 			_mesh(fore, fmb)
 			continue
@@ -921,12 +986,29 @@ func _arms() -> void:
 		var fi := fist_mb.to_instance("Fist")
 		fi.visible = false
 		fore.add_child(fi)
-		if gloves:
-			fmb.add_loft(m_hand, Transform3D.IDENTITY, [[wrist + 0.06, 0.056 * L, 0.06 * L], [wrist + 0.01, 0.05 * L, 0.054 * L]], prof, 3.0, Color.WHITE, false, false, true, false, true)
-		if gauntlets:
-			_vambrace(fmb, wrist, L, k)
+		_forearm_wear(fmb, wrist, L, k, m_hand)
 		_mesh(arm, amb)
 		_mesh(fore, fmb)
+
+
+## What's worn past the hand: a glove's cuff or a long glove up the forearm,
+## then a gauntlet's vambrace or laced leather bracers (all on the forearm so
+## they stay put when the hand swaps between open and fist).
+func _forearm_wear(fmb: MeshBuilder, wrist: float, L: float, k: float, m_hand: Material) -> void:
+	var prof := MeshBuilder.profile_oct(0.5)
+	if lk.get("long_gloves", false):
+		fmb.add_loft(m_hand, Transform3D.IDENTITY, [[wrist + 0.17, 0.09 * L, 0.094 * L], [wrist + 0.1, 0.078 * L, 0.082 * L], [wrist + 0.005, 0.07 * L, 0.074 * L]],
+			prof, 3.0, Color.WHITE, false, false, true, false, true)
+	elif lk.get("gloves", false):
+		fmb.add_loft(m_hand, Transform3D.IDENTITY, [[wrist + 0.06, 0.056 * L, 0.06 * L], [wrist + 0.01, 0.05 * L, 0.054 * L]], prof, 3.0, Color.WHITE, false, false, true, false, true)
+	if lk.get("gauntlets", false):
+		_vambrace(fmb, wrist, L, k)
+	elif lk.get("bracers", false):
+		fmb.add_loft(_leather("gloves_color"), Transform3D.IDENTITY, [[wrist + 0.16, 0.086 * L, 0.09 * L], [wrist + 0.03, 0.076 * L, 0.08 * L], [wrist + 0.01, 0.08 * L, 0.084 * L]],
+			prof, 3.0, Color.WHITE, false, false, true, false, true)
+		var strap := _textured("leather", _col("gloves_color").darkened(0.35))
+		for yy in [wrist + 0.135, wrist + 0.09, wrist + 0.045]:
+			fmb.add_loft(strap, Transform3D.IDENTITY, [[yy + 0.007, 0.09 * L, 0.094 * L], [yy - 0.007, 0.088 * L, 0.092 * L]], prof, 3.0, Color.WHITE, false, false, true, false, true)
 
 
 ## Gauntlets: a steel plate round the forearm, flared at the wrist, and a
@@ -1026,10 +1108,13 @@ func _head() -> void:
 
 ## Head-local height above which the hat covers the head (INF: no hat).
 func _hat_cut() -> float:
-	match str(lk.get("hat", "none")):
+	var hat := str(lk.get("hat", "none"))
+	if hat in CharacterLook.OVER_HAIR:
+		return INF
+	match hat:
 		"none":
 			return INF
-		"hood":
+		"hood", "coif":
 			return -1.0
 		"bandana":
 			return 0.241 * yk
@@ -1182,9 +1267,11 @@ func _hair_pt(a: float, y: float, off: float, hang_k: float = 1.0) -> Vector3:
 func _hair(mb: MeshBuilder) -> void:
 	var style := str(lk.get("hair", "short"))
 	var hat := str(lk.get("hat", "none"))
+	if hat in CharacterLook.OVER_HAIR:
+		hat = "none"
 	if style == "bald":
 		return
-	if hat == "hood" and style != "crop":
+	if hat in ["hood", "coif"] and style != "crop":
 		style = "crop"
 	var off := 0.018
 	match style:
@@ -1945,15 +2032,52 @@ func _hat(mb: MeshBuilder) -> void:
 					[[yy, rw * sw, rd * sw], [yy + 0.035, rw * (sw + 0.04), rd * (sw + 0.04)], [yy + 0.06, rw * (sw - 0.06), rd * (sw - 0.06)]], crown_prof, 3.0, Color.WHITE, false, i == 2)
 			mb.add_box(PSXMat.glow(Color(0.85, 0.2, 0.25), 1.2), Transform3D(Basis(), Vector3(0, y0 + 0.06, -rd * 1.12)), Vector3(0.025, 0.03, 0.012), 3.0)
 			mb.add_box(PSXMat.flat(Color(0.88, 0.72, 0.3)), Transform3D(Basis(), Vector3(0, y0 + 0.06, -rd * 1.1)), Vector3(0.04, 0.045, 0.008), 3.0)
-		"hood":
-			var hood := _off(head_rings, 0.04, 0.0, true)
-			hood.insert(0, [-0.08, 0.13, 0.13, 0.03, 0.0])
+		"kettle":
+			# a steel skullcap under a wide brim sloping down all round, riveted at the band
+			var steel := PSXMat.lit("metal", Color(0.9, 0.92, 0.95))
+			mb.add_loft(steel, Transform3D.IDENTITY, [[y0 - 0.005, rw * 1.02, rd * 1.02], [y0 + 0.06 + DOME_EXTRA * 0.6, rw * 0.98, rd * 0.98], [y0 + 0.12 + DOME_EXTRA, rw * 0.66, rd * 0.7], [y0 + 0.145 + DOME_EXTRA, rw * 0.2, rd * 0.22]],
+				crown_prof, 0.5, Color.WHITE, false, true)
+			mb.add_loft(steel, Transform3D.IDENTITY, [[y0 - 0.035, rw * 1.8, rd * 1.8], [y0 + 0.005, rw * 1.08, rd * 1.08]], crown_prof, 0.5, Color.WHITE, false, false, true, false, true)
+			var rivet := PSXMat.flat(Color(0.55, 0.55, 0.6))
+			for i in range(6):
+				var a := TAU * (i + 0.5) / 6.0
+				mb.add_box(rivet, Transform3D(Basis(Vector3.UP, -a), Vector3(sin(a) * rw * 1.03, y0 + 0.022, -cos(a) * rd * 1.03)), Vector3(0.014, 0.014, 0.012), 3.0)
+		"fez":
+			# a short tapered felt cylinder, a black tassel swinging off the crown
+			mb.add_loft(m_hat, Transform3D.IDENTITY, [[y0, rw * 0.98, rd * 0.98], [y0 + 0.11 + DOME_EXTRA * 0.5, rw * 0.84, rd * 0.86]], crown_prof, 3.0, Color.WHITE, false, true)
+			var tassel := PSXMat.flat(Color(0.1, 0.09, 0.09))
+			var tp := Vector3(rw * 0.2, y0 + 0.11 + DOME_EXTRA * 0.5, 0.0)
+			mb.add_cylinder(tassel, Transform3D(Basis(Vector3.RIGHT, -1.25), tp + Vector3(0, -0.015, rd * 0.45)), 0.004, 0.004, rd * 0.95, 4, 3.0)
+			mb.add_box(tassel, Transform3D(Basis(Vector3.RIGHT, 0.2), tp + Vector3(0, -0.06, rd * 0.95)), Vector3(0.024, 0.045, 0.02), 3.0, Color.WHITE, false)
+		"headband":
+			# a cloth band round the brow over the hair, knotted at the back
+			var band := _off(_clip(head_rings, 0.212 * yk, 0.25 * yk), hair_off + 0.012, 0.0, true)
+			mb.add_loft(m_hat, Transform3D.IDENTITY, band, P_HEAD(), 3.0, Color.WHITE, false, false, true, false, true)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 13
+			var knot := _head_pt(PI, 0.232 * yk, hair_off + 0.02)
+			mb.add_blob(m_hat, Transform3D(Basis(), knot), Vector3(0.035, 0.03, 0.03), rng, 0.1, 3, 6, 3.0)
+			for s in [-1.0, 1.0]:
+				mb.add_box(m_hat, Transform3D(Basis(Vector3.FORWARD, s * 0.35) * Basis(Vector3.RIGHT, 0.2), knot + Vector3(s * 0.025, -0.06, 0.012)), Vector3(0.022, 0.11, 0.006), 3.0, Color.WHITE, false)
+		"crown":
+			# a gold circlet with points and a jewel at the brow; the hair shows under it
+			var gold := PSXMat.flat(Color(0.9, 0.74, 0.3))
+			mb.add_loft(gold, Transform3D.IDENTITY, [[y0 - 0.012, rw * 1.02, rd * 1.02], [y0 + 0.028, rw * 1.05, rd * 1.05]], crown_prof, 3.0, Color.WHITE, false, false, true, false, true)
+			for i in range(8):
+				var a := TAU * float(i) / 8.0
+				mb.add_box(gold, Transform3D(Basis(Vector3.UP, -a), Vector3(sin(a) * rw * 1.04, y0 + 0.045, -cos(a) * rd * 1.04)), Vector3(0.026, 0.04, 0.008), 3.0, Color.WHITE, false)
+			mb.add_box(PSXMat.glow(Color(0.85, 0.2, 0.25), 1.2), Transform3D(Basis(), Vector3(0, y0 + 0.008, -rd * 1.06)), Vector3(0.02, 0.022, 0.01), 3.0)
+		"hood", "coif":
+			# (a mail coif is the hood closer to the head, in rings)
+			var coif := kind == "coif"
+			var hood := _off(head_rings, 0.03 if coif else 0.04, 0.0, true)
+			hood.insert(0, [-0.05, 0.11, 0.11, 0.025, 0.0] if coif else [-0.08, 0.13, 0.13, 0.03, 0.0])
 			hood.append([(0.385 + DOME_EXTRA) * yk, 0.04, 0.06, 0.03, 0.0])
 			# the opening's edges sit back along the cheeks (edges as far forward as
 			# the face hid half of it from any angle but straight on)
 			var hood_prof := PackedVector2Array([Vector2(0.86, -0.5), Vector2(1, -0.15), Vector2(1, 0.45), Vector2(0.45, 1),
 				Vector2(-0.45, 1), Vector2(-1, 0.45), Vector2(-1, -0.15), Vector2(-0.86, -0.5)])
-			mb.add_loft(m_hat, Transform3D.IDENTITY, hood, hood_prof, 3.0, Color.WHITE, false, false, false)
+			mb.add_loft(_textured("fabric", Color(0.66, 0.68, 0.72)) if coif else m_hat, Transform3D.IDENTITY, hood, hood_prof, 3.0, Color.WHITE, false, false, false)
 
 
 # --------------------------------------------------------------------------
@@ -2017,11 +2141,47 @@ func _clothes() -> void:
 			for r in _off(_clip(tr, 0.0, tu(0.57)), 0.016, 0.0, true):
 				mail.append(r)
 			mb.add_loft(m_mail, Transform3D.IDENTITY, mail, MeshBuilder.profile_oct(0.55), 3.0, Color.WHITE, false, false)
+		"jerkin":
+			# a sleeveless leather jerkin laced up the front
+			mb.add_loft(_textured("leather", _col("vest_color")), Transform3D.IDENTITY, _off(_clip(tr, 0.0, tu(0.57)), 0.015), P_BODY(), 3.0, Color.WHITE, false, false)
+			var lace := PSXMat.flat(Color(0.82, 0.76, 0.6))
+			for i in range(5):
+				var by := ty(0.06 + i * 0.07)
+				var r := _at(tr, by)
+				mb.add_box(lace, Transform3D(Basis(Vector3.BACK, 0.9 if i % 2 == 0 else -0.9), Vector3(0, by, _front_z(r) - 0.018)), Vector3(0.05, 0.005, 0.004), 3.0)
+		"padded":
+			# a quilted jack: thick cloth stitched in bands, hanging over the hips
+			var w0 := float(tr[0][1])
+			var d0 := float(tr[0][2])
+			var jack := [[-0.07, w0 + 0.036, d0 + 0.036], [-0.02, w0 + 0.03, d0 + 0.03]]
+			for r in _off(_clip(tr, 0.0, tu(0.58)), 0.028, 0.0, true):
+				jack.append(r)
+			mb.add_loft(_cloth("vest_color"), Transform3D.IDENTITY, jack, P_BODY(), 3.0, Color.WHITE, false, false)
+			var stitch := _textured("fabric", _col("vest_color").darkened(0.3))
+			for i in range(6):
+				var by := -0.05 + i * 0.07
+				var rr := _at(jack, by)
+				mb.add_loft(stitch, Transform3D.IDENTITY, [[by - 0.004, float(rr[1]) + 0.003, float(rr[2]) + 0.003, float(rr[3])], [by + 0.004, float(rr[1]) + 0.003, float(rr[2]) + 0.003, float(rr[3])]],
+					P_BODY(), 3.0, Color.WHITE, false, false, true, false, true)
+		"scale":
+			# leather hung with rows of overlapping steel scales, front and back
+			mb.add_loft(_textured("leather", _col("vest_color")), Transform3D.IDENTITY, _off(_clip(tr, 0.0, tu(0.56)), 0.02), P_BODY(), 3.0, Color.WHITE, false, false)
+			var steel := PSXMat.lit("metal", Color(0.88, 0.9, 0.94))
+			for row in range(6):
+				var by := ty(0.04 + row * 0.07)
+				var r := _at(tr, by)
+				var n := 6 if row % 2 == 0 else 5
+				for col in range(n):
+					var x := (col - (n - 1) * 0.5) * float(r[1]) * 0.3
+					mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.3), Vector3(x, by, _surf_z(r, x) - 0.024)), Vector3(0.03, 0.03, 0.006), 3.0)
+					mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.3), Vector3(x, by, _surf_z(r, x, true) + 0.024)), Vector3(0.03, 0.03, 0.006), 3.0)
 	var coat := str(lk.get("coat", "none"))
 	if coat != "none":
 		_coat(mb, tr, coat)
 	if str(lk.get("legs", "")) == "skirt":
 		_skirt(_cloth("legs_color"))
+	elif str(lk.get("legs", "")) == "hakama":
+		_hakama(_cloth("legs_color"))
 	_belts(mb, tr, prof)
 	if lk.get("apron", false):
 		_apron(mb, tr)
@@ -2029,18 +2189,32 @@ func _clothes() -> void:
 
 
 func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
-	var m_coat := _cloth("coat_color")
+	if coat == "haori":
+		_haori(mb, tr)
+		return
+	var m_coat := _textured("canvas", _col("coat_color")) if coat == "duster" else _cloth("coat_color")
 	var m_trim := PSXMat.flat(_col("trim_color"))
 	var captain := coat == "captain"
-	var shell := _off(_clip(tr, 0.0, tu(0.62)), 0.03 + (0.012 if fem else 0.0), 0.0, true)
-	mb.add_loft(m_coat, Transform3D.IDENTITY, shell, open_body(0.3), 3.0, Color.WHITE, false, false, false)
+	var frock := coat == "frock"
+	var co := 0.03 + (0.012 if fem else 0.0)
+	var shell := _off(_clip(tr, 0.0, tu(0.62)), co, 0.0, true)
+	mb.add_loft(m_coat, Transform3D.IDENTITY, shell, P_BODY() if frock else open_body(0.3), 3.0, Color.WHITE, false, false, frock)
 	if coat == "jacket":
 		# short tails over the hips (cloth panels: a rigid hem let the thighs through)
 		_cloth_sectors(m_coat, null, [[32.0, 100.0], [100.0, 180.0], [180.0, 260.0], [260.0, 328.0]],
 			0.04, -0.14, [0.03, 0.045, 0.06], 0.18)
-	mb.add_loft(m_coat, Transform3D.IDENTITY, [[tu(0.6), 0.105, 0.095, 0.012], [tu(0.6) + 0.11, 0.115, 0.105, 0.02]], open_front(0.55), 3.0, Color.WHITE, false, false, false)
+	var collar_h := 0.15 if coat == "duster" else 0.11
+	mb.add_loft(m_coat, Transform3D.IDENTITY, [[tu(0.6), 0.105, 0.095, 0.012], [tu(0.6) + collar_h, 0.115, 0.105, 0.02]], open_front(0.55), 3.0, Color.WHITE, false, false, false)
 	var lap := m_trim if captain else _textured("fabric", _col("coat_color").darkened(0.12))
-	for s in [-1.0, 1.0]:
+	if frock:
+		# buttoned closed: two rows of brass down the chest instead of lapels
+		var brass := PSXMat.flat(Color(0.85, 0.7, 0.32))
+		for i in range(4):
+			var by := ty(0.08 + i * 0.1)
+			var r := _at(tr, by)
+			for s in [-1.0, 1.0]:
+				mb.add_box(brass, Transform3D(Basis(), Vector3(s * 0.03, by, _surf_z(r, s * 0.03) - co - 0.005)), Vector3(0.016, 0.016, 0.008), 3.0)
+	for s in ([] if frock else [-1.0, 1.0]):
 		var rt := _at(tr, tu(0.56))
 		var rb := _at(tr, ty(0.3))
 		var zt := _front_z(rt) - 0.028
@@ -2067,11 +2241,17 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 	var cuff := [[wrist + 0.11, 0.08 * L, 0.084 * L], [wrist + 0.015, 0.082 * L, 0.086 * L]]
 	for side in [-1, 1]:
 		var fmb := MeshBuilder.new()
-		fmb.add_loft(m_trim if captain else lap, Transform3D.IDENTITY, cuff, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
+		fmb.add_loft(m_trim if captain or frock else lap, Transform3D.IDENTITY, cuff, MeshBuilder.profile_oct(0.5), 3.0, Color.WHITE, false, false, true, false, true)
 		_mesh(h.fore_l if side < 0 else h.fore_r, fmb)
-	if coat in ["longcoat", "captain", "greatcoat"]:
+	if coat in ["longcoat", "captain", "greatcoat", "duster"]:
 		_cloth_sectors(m_coat, m_trim if captain else null, [[32.0, 100.0], [100.0, 180.0], [180.0, 260.0], [260.0, 328.0]],
-			0.04, -0.02 - 0.42 * Ls - (0.14 if coat == "greatcoat" else 0.08), [0.03, 0.05, 0.08, 0.11], 0.14)
+			0.04, -0.02 - 0.42 * Ls - {"greatcoat": 0.14, "duster": 0.22}.get(coat, 0.08), [0.03, 0.05, 0.08, 0.11], 0.14)
+	if frock:
+		# a full skirt all the way round, hemmed in the trim
+		var secs := []
+		for i in range(6):
+			secs.append([i * 60.0 - 30.0, (i + 1) * 60.0 - 30.0])
+		_cloth_sectors(m_coat, m_trim, secs, 0.04, -0.02 - 0.42 * Ls - 0.04, [0.03, 0.05, 0.08, 0.11], 0.14)
 	if coat == "greatcoat":
 		# a short cape over the shoulders
 		var cape: Array = []
@@ -2086,11 +2266,48 @@ func _coat(mb: MeshBuilder, tr: Array, coat: String) -> void:
 		mb.add_loft(m_coat, Transform3D.IDENTITY, cape, open_body(0.22), 3.0, Color.WHITE, false, false, false, false, true)
 
 
+## A haori: a straight half-coat open down the front, no lapels or cuffs,
+## square sleeves (see _arms), a flat collar band and two cords across the chest.
+func _haori(mb: MeshBuilder, tr: Array) -> void:
+	var m_coat := _cloth("coat_color")
+	var co := 0.03 + (0.012 if fem else 0.0)
+	var shell := _off(_clip(tr, 0.0, tu(0.62)), co, 0.0, true)
+	mb.add_loft(m_coat, Transform3D.IDENTITY, shell, open_body(0.4), 3.0, Color.WHITE, false, false, false)
+	var band := _textured("fabric", _col("coat_color").darkened(0.2))
+	for s in [-1.0, 1.0]:
+		var prev: Array = []
+		for i in range(6):
+			var k := i / 5.0
+			var y := lerpf(tu(0.62), 0.0, k)
+			var r := _at(shell, y)
+			var row: Array = []
+			for e in [0.38, 0.56]:
+				var x: float = s * float(e) * float(r[1])
+				row.append(Vector3(x, y, _surf_z(r, x) - 0.004))
+			if i > 0:
+				mb.add_quad(band, prev[0], prev[1], row[1], row[0], Vector2(0, k - 0.2), Vector2(1, k - 0.2), Vector2(1, k), Vector2(0, k), Color.WHITE, Vector3.FORWARD)
+			prev = row
+	var cord := PSXMat.flat(_col("trim_color"))
+	var rc := _at(tr, ty(0.42))
+	for s in [-1.0, 1.0]:
+		mb.add_box(cord, Transform3D(Basis(Vector3.BACK, s * 0.5), Vector3(s * 0.035, ty(0.42), _front_z(rc) - co - 0.008)), Vector3(0.05, 0.006, 0.006), 3.0)
+	_cloth_sectors(m_coat, null, [[40.0, 100.0], [100.0, 180.0], [180.0, 260.0], [260.0, 320.0]],
+		0.04, -0.02 - 0.42 * Ls * 0.55, [0.03, 0.045, 0.065], 0.16)
+
+
 func _skirt(m: Material) -> void:
 	var secs := []
 	for i in range(6):
 		secs.append([i * 60.0, (i + 1) * 60.0])
 	_cloth_sectors(m, null, secs, 0.07, -0.02 - 0.42 * Ls + 0.04, [0.02, 0.04, 0.08, 0.12], 0.2)
+
+
+## Hakama: wide pleated trousers hanging in panels from the waist to mid-shin.
+func _hakama(m: Material) -> void:
+	var secs := []
+	for i in range(6):
+		secs.append([i * 60.0 - 30.0, (i + 1) * 60.0 - 30.0])
+	_cloth_sectors(m, null, secs, 0.07, -0.02 - 0.65 * Ls, [0.02, 0.035, 0.055, 0.08, 0.1], 0.22)
 
 
 ## Hanging cloth around the hips (coat tails, skirts) split into sectors, each
@@ -2141,13 +2358,27 @@ func _belts(mb: MeshBuilder, tr: Array, prof: PackedVector2Array) -> void:
 	var belt := str(lk.get("belt", "none"))
 	# under a coat only the front shows (its opening): the rest, a centimetre
 	# inside the coat, was pushed out through it by vertex snapping
-	var coated := str(lk.get("coat", "none")) != "none"
+	var coat := str(lk.get("coat", "none"))
+	if coat == "frock":
+		return   # buttoned closed over it
+	var coated := coat != "none"
 	var closed := not coated
 	if coated:
 		prof = PackedVector2Array()
 		for i in range(9):
 			var a := lerpf(-1.25, 1.25, i / 8.0)
 			prof.append(Vector2(sin(a), -cos(a)))
+	if belt == "wide_belt":
+		# a broad belt in two straps, a buckle on each
+		var band := _off(_clip(tr, 0.0, 0.07), 0.018, 0.0, true)
+		band.insert(0, [-0.04, (tr[0][1] as float) + 0.02, (tr[0][2] as float) + 0.02])
+		mb.add_loft(_leather("belt_color"), Transform3D.IDENTITY, band, prof, 3.0, Color.WHITE, false, false, closed, false, true)
+		var seam := _at(band, 0.015)
+		mb.add_loft(_textured("leather", _col("belt_color").darkened(0.35)), Transform3D.IDENTITY, [[0.011, float(seam[1]) + 0.002, float(seam[2]) + 0.002], [0.019, float(seam[1]) + 0.002, float(seam[2]) + 0.002]],
+			prof, 3.0, Color.WHITE, false, false, closed, false, true)
+		var r := _at(tr, 0.0)
+		for by in [-0.015, 0.045]:
+			mb.add_box(PSXMat.flat(Color(0.82, 0.72, 0.38)), Transform3D(Basis(), Vector3(0, by, _front_z(r) - 0.026)), Vector3(0.045, 0.032, 0.012), 3.0)
 	if belt in ["belt", "belt_sash"]:
 		# straddles the seam where the shirt meets the trousers
 		var by := -0.025 if belt == "belt" else -0.035
@@ -2293,6 +2524,46 @@ func _accessories() -> void:
 				mb.add_box(brass, Transform3D(Basis(Vector3.BACK, -0.62), Vector3(x, y, z - 0.012)), Vector3(0.016, 0.03, 0.016), 3.0)
 			var zb := float(r[3]) + float(r[2]) + 0.024 + g
 			mb.add_box(strap, Transform3D(Basis(Vector3.BACK, 0.62), Vector3(-x, y, zb)), Vector3(0.045, seg, 0.01), 3.0)
+	if lk.get("necklace", false):
+		# a cord at the collar strung with teeth
+		var g := 0.025 if coated else 0.0
+		var cord := _off(_clip(tr, tu(0.6) - 0.004, tu(0.6) + 0.004), 0.012 + g)
+		mb.add_loft(PSXMat.flat(Color(0.16, 0.12, 0.09)), Transform3D.IDENTITY, cord, P_BODY(), 3.0, Color.WHITE, false, false, true, false, true)
+		var tooth := PSXMat.flat(Color(0.92, 0.88, 0.76))
+		var rt := _at(tr, tu(0.56))
+		for i in range(5):
+			var a := lerpf(-0.75, 0.75, i / 4.0)
+			var x := sin(a) * float(rt[1]) * 0.45
+			mb.add_box(tooth, Transform3D(Basis(Vector3.BACK, -a * 0.5), Vector3(x, tu(0.56) + 0.015 * absf(sin(a)), _surf_z(rt, x) - 0.012 - g)),
+				Vector3(0.011, 0.034 - 0.008 * absf(sin(a)), 0.008), 3.0, Color.WHITE, false)
+	if lk.get("mantle", false):
+		# a fur mantle over the shoulders, clasped at the collar
+		var g := 0.03 if coated else 0.0
+		var cape: Array = []
+		for r in _clip(tr, tu(0.4), tu(0.63)):
+			var rr: Array = (r as Array).slice(0, 5)
+			while rr.size() < 5:
+				rr.append(0.0)
+			var k := inverse_lerp(tu(0.4), tu(0.63), float(rr[0]))
+			rr[1] = float(rr[1]) * lerpf(1.35, 1.1, k) + 0.06 + g
+			rr[2] = float(rr[2]) * lerpf(1.25, 1.1, k) + 0.06 + g
+			cape.append(rr)
+		mb.add_loft(_textured("fur", _col("mantle_color")), Transform3D.IDENTITY, cape, open_body(0.3), 3.0, Color.WHITE, false, false, false, false, true)
+		var rc := _at(tr, tu(0.6))
+		for s in [-1.0, 1.0]:
+			mb.add_box(gold, Transform3D(Basis(), Vector3(s * 0.032, tu(0.6), _front_z(rc) - 0.062 - g)), Vector3(0.022, 0.022, 0.014), 3.0)
+	if lk.get("goggles", false):
+		# brass goggles pushed up on the brow, strapped round the head
+		var band := _off(_clip(head_rings, 0.232 * yk, 0.252 * yk), hair_off + 0.008, 0.0, true)
+		hmb.add_loft(PSXMat.flat(Color(0.2, 0.14, 0.1)), Transform3D.IDENTITY, band, P_HEAD(), 3.0, Color.WHITE, false, false, true, false, true)
+		var rg := _at(head_rings, 0.242 * yk)
+		var zf := _front_z(rg) - hair_off - 0.006
+		var brass := PSXMat.flat(Color(0.8, 0.66, 0.3))
+		var lens := PSXMat.glow(Color(0.55, 0.8, 0.82), 0.6)
+		for s in [-1.0, 1.0]:
+			var at := Vector3(s * 0.027, 0.242 * yk, zf)
+			hmb.add_cylinder(brass, Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), at), 0.021, 0.021, 0.02, 8, 3.0, Color.WHITE, true, true)
+			hmb.add_cylinder(lens, Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), at + Vector3(0, 0, -0.0205)), 0.015, 0.015, 0.003, 8, 3.0)
 	if lk.get("cape", false):
 		_cape(tr, coated)
 	if lk.get("pauldron", false):

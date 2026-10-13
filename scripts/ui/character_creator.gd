@@ -307,7 +307,7 @@ func _show_tab(t: String) -> void:
 			_colors("Legs color", "legs_color")
 			_cycle("Feet", "feet", CharacterLook.CREATOR_FEET)
 			_colors("Feet color", "feet_color")
-			_cycle("Belt", "belt", CharacterLook.BELTS, ["None", "Belt", "Sash", "Belt + sash"])
+			_cycle("Belt", "belt", CharacterLook.BELTS, ["None", "Belt", "Sash", "Belt + sash", "Wide belt"])
 			_colors("Belt color", "belt_color")
 			_colors("Sash color", "sash_color")
 		"Extras":
