@@ -310,6 +310,29 @@ func _process(d: float) -> bool:
 			check("the host's puppet of us: sword and pistol, the shot playing (%s, %s)" % [rep()["puppet_stance"], rep()["puppet_action"]],
 				rep()["puppet_stance"] == "sword_pistol" and rep()["puppet_action"] == "sp_shot")
 			check("...the pistol along its forearm (%.2f)" % float(rep()["puppet_off_grip"]), float(rep()["puppet_off_grip"]) > 0.95)
+			# --- twin daggers: the host's puppet of us plays the dagger moves, and a wound we open bleeds the host's grunt
+			var dg: ItemData = load("res://resources/items/dagger.tres")
+			p.inventory_component.add_item(dg, 2)
+			p.equip_weapon(dg, false)
+			p.set_offhand(dg)
+			p.sheathe_weapon(true)
+			p.draw_weapon(true)
+			check("two daggers here (%s)" % p.style(), p.style() == "dual_dagger")
+			p.body_model.play("dd_4", 1.5)
+			data["gdmg"] = float(rep()["enemies"][data["gkey"]][5])
+			load("res://scripts/combat/bleed_status.gd").apply(data["g"], 2.0, 10.0, p)
+			go(126)
+		126:
+			if st_t < 2.6:
+				return false
+			tn.ask("report")
+			go(127)
+		127:
+			if not tn.got("report"):
+				return false
+			check("the host's puppet of us: twin daggers (%s)" % rep()["puppet_stance"], rep()["puppet_stance"] == "dual_dagger")
+			var bled: float = float(rep()["enemies"][data["gkey"]][5]) - data["gdmg"]
+			check("the wound we opened bled the host's grunt (%.0f damage over 2 s, 5 a tick)" % bled, bled >= 15.0 and bled <= 20.0)
 			p.set_offhand(null)
 			# --- a grunt swings at us: our machine decides
 			data["php"] = p.health_component.current_health

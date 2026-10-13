@@ -45,7 +45,8 @@ func enter(_data: Dictionary) -> void:
 
 ## Stand at the wheel, facing the bow.
 func _pin(ship: Ship) -> void:
-	player.global_position = ship.helm_position.global_position
+	# (sync_to_physics: the hull's node keeps last step's transform until this step moves it by deck_delta)
+	player.global_position = ship.deck_delta() * ship.helm_position.global_position
 	player.player_model.rotation.y = ship.global_rotation.y
 
 

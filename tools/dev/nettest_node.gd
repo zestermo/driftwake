@@ -4,7 +4,6 @@ extends Node
 
 var replies: Dictionary = {}
 
-
 func net() -> Node:
 	return get_node("/root/Net")
 
@@ -341,6 +340,13 @@ func _run(name_: String, args: Array, from: int):
 
 ## Keep an enemy from swinging or shooting on its own.
 func _calm(e: Node) -> void:
+	if e is Creature:
+		e._cool = 999.0
+		return
+	if e is JungleBeast:
+		for k in e._cd.keys():
+			e._cd[k] = 999.0
+		return
 	e._cooldown = 999.0
 	if e.get("_pistol_cd") != null:
 		e._pistol_cd = 999.0

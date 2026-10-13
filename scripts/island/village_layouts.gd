@@ -88,8 +88,22 @@ func _pick() -> String:
 	for k in POOL.keys():
 		roll -= int(POOL[k])
 		if roll < 0:
+			# (the ruins' survivors need a flat spot out along a path)
+			if k == "ruins" and _survivors_at() == Vector2.INF:
+				return "town"
 			return k
 	return POOL.keys()[0]
+
+
+## Where the ruins' survivors settle: the first flat open ground 55-120 m out along a path, away from the dock (INF: nowhere).
+func _survivors_at() -> Vector2:
+	for i in range(gi.paths.size()):
+		var st := _stretch(gi.paths[i], site, 150.0)
+		for e in KitVillage.along(st, 4.0, 55.0, 120.0):
+			var q: Vector2 = e[0]
+			if q.distance_to(dock) > 45.0 and _open_ground(q) and kc.ground_max(q, 14.0) - kc.ground_min(q, 14.0) < 3.0:
+				return q
+	return Vector2.INF
 
 
 # ==========================================================================
@@ -394,14 +408,7 @@ func _ruins() -> void:
 			quads.append(q)
 	clear.append([site, 30.0])
 	# the survivors: a hamlet on a path nearer the shore, the services round its fire
-	var hc := Vector2.INF
-	for i in range(gi.paths.size()):
-		var st := _stretch(gi.paths[i], site, 150.0)
-		for e in KitVillage.along(st, 4.0, 55.0, 120.0):
-			var q: Vector2 = e[0]
-			if hc == Vector2.INF and q.distance_to(dock) > 45.0 and _open_ground(q) and kc.ground_max(q, 14.0) - kc.ground_min(q, 14.0) < 3.0:
-				hc = q
-	c = hc
+	c = _survivors_at()
 	plaza_r = 7.0
 	fires.append([c, INF])
 	occ.append([c, 2.2])

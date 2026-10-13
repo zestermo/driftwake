@@ -11,4 +11,3 @@ techtest | deadeye lands
 chartest | saved
 net | host accepted us
 net | clock synced
-net | puppet stands at the wheel
