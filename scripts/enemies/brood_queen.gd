@@ -146,7 +146,7 @@ func _physics_process(delta: float) -> void:
 				want = -to_p.normalized() * 1.5
 		S.SPECIAL:
 			_special_tick(p, to_p, dist)
-	if _special == "burrow" and _fired > 0:
+	if _buried():
 		# under the floor: moved by hand, no physics
 		model.rotation.y = lerp_angle(model.rotation.y, _yaw, minf(turn * delta, 1.0))
 		return
@@ -183,7 +183,7 @@ func _begin(what: String) -> void:
 			Net.fx("sfx", ["bug_hiss", global_position, 3.0, 0.05, 0.45])
 			Net.fx("sfx", ["chitter", global_position, 1.0, 0.05, 0.6])
 		"erupt":
-			global_position = _erupt_at + Vector3.UP * 0.3
+			global_position = _erupt_at
 			reset_physics_interpolation()
 			velocity = Vector3.ZERO
 			_aoe(_erupt_at, ERUPT_R, ERUPT_DMG)
@@ -193,6 +193,12 @@ func _begin(what: String) -> void:
 			Net.fx("sfx", ["thud", _erupt_at, 5.0, 0.05, 0.55])
 			Net.fx("sfx", ["roar", _erupt_at, 1.0, 0.05, 1.6])
 			get_node("/root/CombatManager").apply_camera_shake(0.45)
+
+
+## Sunk into the floor (her body's collider is off then, and for a moment after she
+## bursts out: a captain's ragdoll caught inside it was flung through the roof).
+func _buried() -> bool:
+	return state == S.SPECIAL and ((_special == "burrow" and st_t > BURROW_DIG * 0.5) or (_special == "erupt" and st_t < 0.8))
 
 
 ## Ground under `at` (the cave floor), ignoring herself.
@@ -418,6 +424,8 @@ func _process(delta: float) -> void:
 	model.visible = _sunk < 0.97
 	if state != S.DEAD and hurtbox.monitorable != (_sunk < 0.5):
 		hurtbox.set_deferred("monitorable", _sunk < 0.5)
+	if state != S.DEAD and _col.disabled != _buried():
+		_col.set_deferred("disabled", _buried())
 	if _rag != null or state == S.DEAD:
 		return
 	var target := 0.0
