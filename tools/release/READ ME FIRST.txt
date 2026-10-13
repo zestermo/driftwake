@@ -1,0 +1,21 @@
+DRIFTWAKE - a PS1-style pirate action RPG
+
+GETTING IT TO OPEN (first time only)
+Driftwake isn't code-signed yet, so Windows quietly blocks it the first time you double-click it
+(the cursor spins for a second and nothing happens). To fix it:
+
+  1. Unzip everything first (right-click the zip > Extract All). Don't run it from inside the zip.
+  2. Right-click Driftwake.exe > Properties > tick "Unblock" at the bottom > OK.
+  3. Double-click Driftwake.exe.
+
+If a blue "Windows protected your PC" box appears instead: click "More info", then "Run anyway".
+
+Still won't start? Double-click Driftwake.console.exe: it opens the game with a window that shows
+what went wrong. Send that text along with your report.
+
+PLAYING WITH FRIENDS
+Co-op for up to four captains: one hosts from the pause menu, friends join by address.
+
+News, release notes and the roadmap: https://driftwake.fun
+Fair winds,
+Zilk

@@ -156,6 +156,10 @@ h2 {
 }
 .pitch { max-width: 520px; margin: 0 0 24px; font-size: 19px; text-shadow: 1px 1px 0 var(--ink); }
 .small { margin: 14px 0 0; font-size: 14px; color: var(--dim); }
+.howto { margin: 14px 0 0; padding: 10px 14px; font-size: 14px; border-left: 3px solid var(--accent); background: rgba(0, 0, 0, 0.18); }
+.howto p { margin: 0 0 6px; }
+.howto ol { margin: 0 0 6px; padding-left: 20px; }
+.howto li { margin: 2px 0; }
 .hero .small { color: var(--dim); text-shadow: 1px 1px 0 var(--ink); }
 
 .cta { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }

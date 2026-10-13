@@ -43,6 +43,8 @@ jobs:
           mkdir -p build/windows
           ~/godot/godot --headless --path . --export-release "Windows Desktop" build/windows/Driftwake.exe
           test -f build/windows/Driftwake.exe
+          test -f build/windows/Driftwake.console.exe
+          cp "tools/release/READ ME FIRST.txt" build/windows/
           ls -la build/windows
           (cd build/windows && zip -qr ../Driftwake-windows.zip .)
 
