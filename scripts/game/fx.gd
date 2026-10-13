@@ -904,10 +904,7 @@ func power_aura(h: Humanoid, fruit: String, secs: float = 2.5) -> void:
 				"vel_min": 0.1, "vel_max": 0.4, "color": Color(0.18, 0.15, 0.16, 0.55)}, secs)
 			_aura_emitter(holder, _spark_mat, {"amount": 10, "life": 0.8, "size": 0.07, "gravity": Vector3(0, 0.6, 0),
 				"vel_min": 0.2, "vel_max": 0.6, "color": Color(1.0, 0.75, 0.25, 1.0)}, secs)
-	var t := holder.get_tree().create_timer(secs + 2.0)
-	t.timeout.connect(func():
-		if is_instance_valid(holder):
-			holder.queue_free())
+	holder.create_tween().tween_callback(holder.queue_free).set_delay(secs + 2.0)
 
 
 ## Vine Fruit: little vines that sprout along the ground where you dash and

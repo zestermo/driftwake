@@ -73,8 +73,8 @@ Zach's answers. The plan and workflow: `docs/island_fidelity_plan.md`. Phase 0 (
 ## Left after the 2026-10-12 merge's bug pass
 - **Island build hitches:** finish steps on the main thread measured at 100-270 ms: village houses
   (3 a step), beasts (~160 ms, one step), dungeons (100-190 ms a step).
-- **harbourtest:** a "Lambda capture at index 0 was freed" error in its log (a callable outliving a
-  freed island).
+- **harbourtest's ruins harbour** can come out at 6 buildings on some world seeds (the test's island
+  follows the run's random chain seed; seen on Mosswater Key): the "7+ buildings" check fails.
 
 ## Open from the 2026-10-09 session (not yet prioritised)
 - **Save keys repeat across worlds:** chest, job and beast flags (`isle<id>_*`, `leg<x>_<y>_*`) are

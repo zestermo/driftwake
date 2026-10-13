@@ -88,9 +88,12 @@ func _bake(z: Dictionary) -> void:
 	var region := NavigationRegion3D.new()
 	region.name = "NavRegion"
 	node.add_child(region)
+	# by id, not the node: the island can be freed before the bake finishes, and a freed capture errors when the lambda runs
+	var region_id := region.get_instance_id()
 	NavigationServer3D.bake_from_source_geometry_data_async(nm, data, func():
-		if is_instance_valid(region):  # (the world can be gone by the time a bake finishes)
-			region.call_deferred("set_navigation_mesh", nm))
+		var reg := instance_from_id(region_id) as NavigationRegion3D
+		if reg:
+			reg.call_deferred("set_navigation_mesh", nm))
 
 
 func _terrain_faces(c: Vector3, r: float) -> PackedVector3Array:
