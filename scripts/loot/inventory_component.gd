@@ -16,6 +16,38 @@ const HOTBAR_SIZE := 3
 @export var max_slots: int = 20
 var items: Array[ItemStack] = []
 var hotbar: Array[String] = ["", "", ""]
+## The weapons in your hands (Player keeps it). Those stacks and the quick slots'
+## stay in `items` but live in their slots: off the bag grid and taking no bag space.
+var in_hands: Array[ItemData] = []
+
+
+## Is the stack at each bag position held (a hand or a quick slot)?
+func held_mask() -> Array[bool]:
+	var hands: Array[String] = []
+	for w in in_hands:
+		hands.append(w.id)
+	var out: Array[bool] = []
+	for st in items:
+		var h := hotbar.has(st.item.id)
+		if not h and hands.has(st.item.id):
+			hands.erase(st.item.id)
+			h = true
+		out.append(h)
+	return out
+
+
+## The bag positions shown in the bag grid, in order.
+func bag_view() -> Array[int]:
+	var out: Array[int] = []
+	var mask := held_mask()
+	for i in range(items.size()):
+		if not mask[i]:
+			out.append(i)
+	return out
+
+
+func used_slots() -> int:
+	return held_mask().count(false)
 
 
 func add_item(item_data: ItemData, quantity: int = 1) -> bool:
@@ -31,7 +63,7 @@ func add_item(item_data: ItemData, quantity: int = 1) -> bool:
 				added += can_add
 				if quantity <= 0:
 					break
-	while quantity > 0 and items.size() < max_slots:
+	while quantity > 0 and used_slots() < max_slots:
 		var stack := ItemStack.new()
 		stack.item = item_data
 		stack.quantity = mini(quantity, item_data.max_stack if item_data.stackable else 1)
@@ -66,7 +98,7 @@ func remove_item(item_data: ItemData, quantity: int = 1) -> bool:
 
 ## Room for one more (non-stacking) item?
 func has_room() -> bool:
-	return items.size() < max_slots
+	return used_slots() < max_slots
 
 
 ## Put a single item into a specific bag position (gear swapping in place).
@@ -126,7 +158,7 @@ func room_for(item_data: ItemData) -> int:
 		for stack in items:
 			if stack.item == item_data:
 				n += maxi(item_data.max_stack - stack.quantity, 0)
-	n += (max_slots - items.size()) * (item_data.max_stack if item_data.stackable else 1)
+	n += (max_slots - used_slots()) * (item_data.max_stack if item_data.stackable else 1)
 	return n
 
 

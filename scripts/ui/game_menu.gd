@@ -3,8 +3,6 @@ extends CanvasLayer
 ## Esc opens/closes the pause menu, Tab or I opens the inventory. The game is
 ## paused while any screen is open.
 
-const SLOT_SIZE := 34
-
 var _root: Control
 var _dim: ColorRect
 var _screens: Dictionary = {}
@@ -258,6 +256,7 @@ func _fit_current() -> void:
 
 
 func close() -> void:
+	var was := _current
 	if _current == "inventory":
 		_inventory.on_close()
 	elif _current == "yard":
@@ -267,7 +266,12 @@ func close() -> void:
 	elif _current == "shop":
 		SaveGame.save(_player())
 	_current = ""
-	_root.visible = false
+	if was == "inventory":
+		_inventory.fade_out(func():
+			if _current == "":
+				_root.visible = false)
+	else:
+		_root.visible = false
 	Net.set_paused(false)
 	if _on_title():
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -555,62 +559,3 @@ func _build_controls() -> Control:
 # ==========================================================================
 func _player() -> Player:
 	return get_tree().get_first_node_in_group("player") as Player
-
-
-static func make_slot(size: int) -> Button:
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(size, size)
-	b.focus_mode = Control.FOCUS_ALL
-	b.add_theme_stylebox_override("normal", UIStyle.box(Color(0.02, 0.02, 0.04, 0.9), UIStyle.BORDER_DIM, 0, 1))
-	b.add_theme_stylebox_override("hover", UIStyle.box(Color(0.15, 0.12, 0.07, 0.95), UIStyle.BORDER, 0, 1))
-	b.add_theme_stylebox_override("focus", UIStyle.box(Color(0, 0, 0, 0), UIStyle.ACCENT, 0, 2))
-	b.add_theme_stylebox_override("pressed", UIStyle.box(Color(0.25, 0.2, 0.1, 0.95), UIStyle.ACCENT, 0, 1))
-	var icon := TextureRect.new()
-	icon.name = "Icon"
-	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
-	icon.offset_left = 4; icon.offset_top = 4; icon.offset_right = -4; icon.offset_bottom = -4
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(icon)
-	var count := Label.new()
-	count.name = "Count"
-	count.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
-	count.add_theme_font_size_override("font_size", 8)
-	count.add_theme_color_override("font_outline_color", Color.BLACK)
-	count.add_theme_constant_override("outline_size", 3)
-	count.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	count.offset_left = -18; count.offset_top = -12; count.offset_right = -2; count.offset_bottom = 0
-	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(count)
-	var key := Label.new()
-	key.name = "Key"
-	key.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
-	key.add_theme_font_size_override("font_size", 8)
-	key.add_theme_color_override("font_color", UIStyle.ACCENT)
-	key.add_theme_color_override("font_outline_color", Color.BLACK)
-	key.add_theme_constant_override("outline_size", 3)
-	key.position = Vector2(2, 0)
-	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(key)
-	return b
-
-
-static func set_slot(b: Button, item: ItemData, qty: int, key_text: String = "", equipped: bool = false) -> void:
-	var icon := b.get_node("Icon") as TextureRect
-	var count := b.get_node("Count") as Label
-	(b.get_node("Key") as Label).text = key_text
-	icon.texture = item.icon if item else null
-	icon.modulate = Color(1, 1, 1, 1) if qty > 0 else Color(1, 1, 1, 0.3)
-	count.text = str(qty) if item and (qty > 1 or (item.stackable and qty != 1)) else ""
-	if equipped:
-		b.add_theme_stylebox_override("normal", UIStyle.box(Color(0.12, 0.09, 0.04, 0.95), UIStyle.ACCENT, 0, 2))
-	elif item and item.rarity == ItemData.Rarity.SUPREME:
-		# (black on black: a pale slot behind it)
-		b.add_theme_stylebox_override("normal", UIStyle.box(Color(0.45, 0.45, 0.42, 0.9), Color(0.02, 0.02, 0.02), 0, 2))
-	elif item and item.rarity > ItemData.Rarity.COMMON:
-		var rc := item.rarity_color()
-		b.add_theme_stylebox_override("normal", UIStyle.box(Color(rc.r * 0.12, rc.g * 0.12, rc.b * 0.12, 0.92), rc, 0, 1))
-	else:
-		b.add_theme_stylebox_override("normal", UIStyle.box(Color(0.02, 0.02, 0.04, 0.9), UIStyle.BORDER_DIM, 0, 1))

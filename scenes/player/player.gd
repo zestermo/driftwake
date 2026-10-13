@@ -1498,6 +1498,7 @@ func equip_weapon(item: ItemData, draw: bool = true) -> void:
 	if item == null or not item.is_weapon():
 		return
 	equipped_weapon = item
+	_hands_changed()
 	body_model.set_weapon(Props.weapon_mesh(item.model()))
 	if offhand_weapon and not _offhand_valid(offhand_weapon):
 		set_offhand(null)
@@ -1510,9 +1511,17 @@ func equip_weapon(item: ItemData, draw: bool = true) -> void:
 ## Fight with your fists (no weapon in the main hand).
 func unequip_weapon() -> void:
 	equipped_weapon = null
+	_hands_changed()
 	set_offhand(null)
 	body_model.set_weapon(null)
 	weapon_changed.emit(null)
+
+
+func _hands_changed() -> void:
+	inventory_component.in_hands.clear()
+	for w in [equipped_weapon, offhand_weapon]:
+		if w:
+			inventory_component.in_hands.append(w)
 
 
 ## Weapon class of an item: "sword" or "gun".
@@ -1583,6 +1592,7 @@ func set_offhand(item: ItemData) -> bool:
 	if item != null and not _offhand_valid(item):
 		return false
 	offhand_weapon = item
+	_hands_changed()
 	body_model.set_offhand(Props.weapon_mesh(item.model()) if item else null)
 	_reset_ammo()
 	weapon_changed.emit(equipped_weapon)
