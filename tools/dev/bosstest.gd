@@ -139,9 +139,13 @@ func _dens() -> void:
 		await wait(6.0)
 		check("...grazing its way about (%.1f m)" % r.global_position.distance_to(at), r.global_position.distance_to(at) > 1.0 or r._graze_t > 0.0)
 		var hp := heal()
-		put(r.ground_at(r.global_position + r._fwd() * 4.0))
+		# (the ray can land on a trunk or a crown in the thick jungle: the stomp is a ring on its own floor)
+		var near: Vector3 = r.ground_at(r.global_position + r._fwd() * 4.0)
+		if near.y - r.global_position.y > 1.0:
+			near.y = r.global_position.y
+		put(near)
 		await wait(2.2)
-		check("...a captain close: it turns and stomps them flat (%s)" % r.state_name(), r.in_combat() and p.health_component.current_health < hp)
+		check("...a captain close: it turns and stomps them flat (%s, %.1f m off, captain %.1f m above it)" % [r.state_name(), r.global_position.distance_to(p.global_position), p.global_position.y - r.global_position.y], r.in_combat() and p.health_component.current_health < hp)
 		put(r.ground_at(r.global_position + Vector3(0, 0, 80.0)))
 		await wait(8.0)
 		check("...everyone gone: it goes back to grazing, healed", r.state in [0, 3] and r.health.current_health == r.health.max_health)
