@@ -105,7 +105,16 @@ func arm(c: Dictionary) -> void:
 	p._reset_ammo()
 
 
+## The reticle on the grunt, as you'd hold it there.
+func aim_at_grunt() -> void:
+	var arm: Node3D = root.get_viewport().get_camera_3d().get_parent()
+	var to: Vector3 = g.hurtbox.global_position - arm.global_position
+	arm.rotation.x = atan2(to.y, Vector2(to.x, to.z).length())
+
+
 func _physics_process(_d: float) -> bool:
+	if p and step in [12, 13, 14] and CASES[case_i]["anim"] == "hang_shot" and p.current_state_name() != "Idle":
+		aim_at_grunt()
 	if p:
 		saw[p.body_model.current_action()] = true
 		if int(p.air_uses.get("bounce", 0)) > 0:
@@ -207,10 +216,7 @@ func _process(d: float) -> bool:
 			bounced = false
 			plunges = 0
 			if c["anim"] == "hang_shot":
-				# (the reticle on the grunt, as you'd aim it)
-				var arm: Node3D = root.get_viewport().get_camera_3d().get_parent()
-				var to: Vector3 = g.hurtbox.global_position - arm.global_position
-				arm.rotation.x = atan2(to.y, Vector2(to.x, to.z).length())
+				aim_at_grunt()
 			press_in_air = true
 			step = 12
 		12:
