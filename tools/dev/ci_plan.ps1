@@ -22,7 +22,7 @@ foreach ($s in @($suites | Where-Object { $heavy -notcontains $_ } | Sort-Object
 	$b.Secs += Get-Secs $s
 }
 $plan = @($suites | Where-Object { $heavy -contains $_ } | ForEach-Object { [pscustomobject]@{ Secs = Get-Secs $_; Suites = @($_) } }) + @($bins | Where-Object { $_.Suites.Count -gt 0 })
-$shards = @($plan | ForEach-Object { [ordered]@{ name = ($_.Suites -join " "); suites = ($_.Suites -join " ") } })
+$matrix = @($plan | ForEach-Object { [ordered]@{ name = ($_.Suites -join " "); suites = ($_.Suites -join " ") } })
 foreach ($p in $plan) { Write-Host ("{0,5} s  {1}" -f $p.Secs, ($p.Suites -join " ")) }
-$json = ConvertTo-Json -InputObject $shards -Compress
+$json = ConvertTo-Json -InputObject $matrix -Compress
 if ($env:GITHUB_OUTPUT) { Add-Content -Path $env:GITHUB_OUTPUT -Value "shards=$json" -Encoding UTF8 }
