@@ -26,8 +26,9 @@ You build one feature of Driftwake, Zach's Godot 4.7 GDScript PS1-style One Piec
 - **Mouse and sound:** grab the mouse only through `Settings.capture_mouse()`. Tests and tools run muted.
 
 ## Testing (tier 1 only)
-- Run only the suites that test what you built, by name, through `tools/dev/run_tests.ps1 <suite> ...`. No `-Changed`,
-  no nettest, no full run. Long runs in the background; no sleep loops.
+- Run `tools/dev/run_tests.ps1 -Changed -Light` (the tests your changes affect, by what each loads; passes are cached by
+  dependencies) or the tests that cover what you built by name (`run_tests.ps1 <suite> t/<group> ...`). No nettest, no
+  full run. Long runs in the background; no sleep loops.
 - A new suite copies the newest rNtest pattern with `TK.seed_of(self)` and physics-tick waits, and goes on its own
   line in tools/dev/suites.txt, its group's line in suite_groups.txt, and test_map.txt.
 - A failure in a suite you didn't touch: check whether it fails on main too before chasing it, and say so.

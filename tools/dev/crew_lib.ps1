@@ -210,7 +210,7 @@ function Get-DepsFile([string]$crew, [string]$test) { return Join-Path $crew "de
 function Get-Deps([string]$crew, [string]$test) {
 	$f = Get-DepsFile $crew $test
 	if (-not (Test-Path $f)) { return $null }
-	return @(Get-Content $f | Where-Object { $_ })
+	return @([System.IO.File]::ReadAllLines($f) | Where-Object { $_ })
 }
 
 ## Merge what each process of a passed run recorded (`outs`: their DRIFTWAKE_DEPS_OUT files) into the test's deps.
@@ -274,7 +274,9 @@ function Get-TestKey($ctx, [string]$test) {
 	if ($stamp -eq 0) {
 		$r = [pscustomobject]@{ Key = $ctx.Tree; Deps = $false; Manifest = @(); Stamp = 0 }
 	} else {
-		$paths = [string[]]@(@(Get-Content $f | Where-Object { $_ }) + (Get-AlwaysDeps $test) | Select-Object -Unique)
+		$set = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+		foreach ($p in @([System.IO.File]::ReadAllLines($f)) + (Get-AlwaysDeps $test)) { if ($p) { [void]$set.Add($p) } }
+		$paths = [string[]]@($set)
 		[Array]::Sort($paths, [StringComparer]::Ordinal)
 		$lines = New-Object System.Collections.Generic.List[string]
 		foreach ($p in $paths) {

@@ -43,17 +43,27 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev/run_tests.ps1 r10test`.
 
 ```powershell
-.\tools\dev\run_tests.ps1 -Changed               # the suites covering uncommitted changes (normal use)
+.\tools\dev\run_tests.ps1 -Changed -Light        # the tests your uncommitted changes affect, by what each loads (normal use)
 .\tools\dev\run_tests.ps1 r10test swimtest        # specific suites
-.\tools\dev\run_tests.ps1                         # every suite, 5 at a time (-Jobs 1: one at a time)
+.\tools\dev\run_tests.ps1 t/player/dodge t/ship   # an atomic test (tools/dev/t/<group>/<name>.gd), a whole group
+.\tools\dev\run_tests.ps1                         # every test, 5 at a time (-Jobs 1: one at a time)
 .\tools\dev\run_tests.ps1 isletest -Seed 1234     # on that seed instead of the suite's own (a failure prints this line)
 .\tools\dev\nettest.ps1                           # co-op: host + client on localhost (also: water, three, late, hostquit)
 & $env:GODOT --path . --script res://tools/dev/weathershot.gd -- res://tools/dev/out/wx   # renders (GPU, opens a window)
 ```
 
 - run_tests.ps1 compiles every script first (`tools/dev/compilecheck.gd`, ~6 s) and runs
-  nothing if one is broken. `-Changed` picks suites from `tools/dev/test_map.txt` (add a line
-  for a new suite or system; `affected.ps1 -Explain` shows the picks and unmapped scripts).
+  nothing if one is broken.
+- **Dependencies:** every passing run records each project file it loaded (`.git/crew/deps/<test>.txt`;
+  `scripts/game/dep_record.gd`, started by Settings when the runner sets `DRIFTWAKE_DEPS_OUT`). A pass is
+  cached under the hash of those files' contents (plus project.godot, the autoloads and the test's own script),
+  so it stays good whatever else changes; test_status calls a test stale only when a file it loads changed.
+  Every test loads most of the game (a world suite ~500 files; the autoloads' class references alone are 343,
+  atomic tests included), so `-Changed` picks a test only for a changed test-side file it loads or one
+  `tools/dev/test_map.txt` says it's about (a suite's name, or `t`, `t/<group>` for atomic tests: keep adding
+  map lines), and `-Wide` picks every test that loads a changed file. `affected.ps1 -Explain` says why each test was picked. A test with nothing
+  recorded yet falls back to the map. A file read without the resource loader (FileAccess, a listed folder)
+  needs `preload("res://scripts/game/dep_record.gd").note_dep(path)` where it's read.
 - A hook (`.claude/settings.json`) compiles every .gd you edit and hands errors back right away;
   if you're mid-way through a multi-edit change, finish it before reacting.
 - Other hooks there: `guard.ps1` refuses a suite run straight through Godot (use the runner) and
@@ -62,7 +72,7 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
   through). The shared permissions (runners, git, Godot, the generators) are in the same file, so worktree
   agents get them; tags, force pushes and hard resets still ask.
 - A new `class_name` script needs `& $env:GODOT --headless --import` once before tests see it.
-- Logs: `tools/dev/out/logs/<suite>.log`. Screenshots: `tools/dev/out/` (gitignored and
+- Logs: `tools/dev/out/logs/<test>.log` (an atomic test's as `t.<group>.<name>.log`). Screenshots: `tools/dev/out/` (gitignored and
   `.gdignore`d). Read the PNGs to check visuals.
 - `tools/dev/README.md` lists every test and tool with a one-line description.
 - Known flaky checks live in `tools/dev/flaky.txt` (suite | FAIL text). A failure made only of
@@ -72,25 +82,29 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 ### Testing strategy (every session and agent)
 
 - **Only through the runners:** run_tests.ps1 and nettest.ps1, never a raw `godot --script` for
-  a test. The runners share the machine's test slots, skip what already passed on the same code,
-  wait for a run of the same suite already in flight, and show up live in Zach's **Tests** pane
-  (`/tests`; it reads `.git/crew/live`).
+  a test. The runners share the machine's test slots, skip what already passed with the same contents of
+  every file it loads, wait for a run of the same test already in flight, and show up live in Zach's
+  **Tests** pane (`/tests`; it reads `.git/crew/live` and `status.json`, where each `t/<group>` folder is a group).
 - **Three tiers, so a feature in progress never pays for the whole game's tests:**
-  1. **While building (any agent, any worktree):** only the suites that test what you built, by name
-     (`run_tests.ps1 daggertest wieldtest`). No `-Changed`, no nettest. The edit hook compiles each file.
+  1. **While building (any agent, any worktree):** `run_tests.ps1 -Changed -Light` (the tests that load what
+     you changed and that the map says it's about; passes are cached by dependencies, so most are skipped),
+     or the tests that cover what you built by name
+     (`run_tests.ps1 daggertest t/combat`). No nettest. The edit hook compiles each file.
   2. **Landing a branch** (`land.ps1`): the compile check and `smoketest` (the first islands of four
      fixed chain seeds built and run: script errors, non-finite transforms, missing services; even with
-     `-NoTests`, never carried over the rebase), then the covering suites minus the slow whole-world ones
-     in `tools/dev/heavy.txt` and minus co-op (`run_tests -Changed -Light`). Passes carry over the rebase.
-  3. **Before a push** (a finished set of features or a version): `tools/dev/prepush.ps1 -CI`. GitHub runs
-     it all (`.github/workflows/tests.yml`: every suite, the heavy ones and the co-op modes, on ~20 Linux
-     runners) on HEAD's commit pushed to `ci/<branch>`, and a green run pushes that commit (`-NoPush`: just
-     check). `tools/dev/ci.ps1` alone just runs and reports. Local `prepush.ps1` (stale suites on this PC) still works.
+     `-NoTests`; `-Exact`, so never carried over the rebase), then the tests the branch affects minus the
+     slow whole-world ones in `tools/dev/heavy.txt` and minus co-op (`run_tests -Changed -Light -Base main`).
+  3. **After a batch of merges, before a push:** `tools/dev/prepush.ps1 -CI`. GitHub runs it all
+     (`.github/workflows/tests.yml`: every suite, the heavy ones and the co-op modes, on ~20 Linux runners) on
+     HEAD's commit pushed to `ci/<branch>`, and a green run pushes that commit (`-NoPush`: just check).
+     `tools/dev/ci.ps1` alone just runs and reports. Local `prepush.ps1` runs every test test_status calls stale
+     (a file it loads changed since its pass), failing or never run on this PC, atomic tests, heavy suites and
+     co-op modes included; since every suite loads the whole game, after a batch that's most of them.
      This is the only place nettest and the chain/fidelity/perf suites run.
   Run the full suite only when Zach asks.
-- **Don't rerun a suite "to be sure":** a pass is cached against the exact code.
-- **Landing re-tests only what the rebase could change** (land.ps1 carries passes from the
-  branch's own tree over to the rebased one when nothing new touches the suite).
+- **Don't rerun a test "to be sure":** a pass is cached against the exact contents of what it loads.
+- **Landing re-tests only what the rebase could change:** a pass whose loads the rebase didn't change has
+  the same key on the rebased branch, so it counts there.
 - **A suite stops at its first failure** (a FAIL line or a script error): the runner prints that failure
   whole, stack included, and the Tests pane shows it in red. Fix it and rerun that suite.
 - **The runners also stop a suite early** when it stalls (no output for 150 s), its scripts don't parse
