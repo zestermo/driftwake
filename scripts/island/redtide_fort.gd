@@ -549,6 +549,7 @@ func _build_camp() -> void:
 	for sx in [-0.6, 0.6]:
 		chair.add_box(dk, Transform3D(Basis(), cp + Vector3(sx, 0.75, 0.0)), Vector3(0.14, 0.5, 0.9), 1.0)
 	add_child(chair.to_instance("Chair"))
+	Seat.add(self, cp + Vector3(0, 0.57, 0.1), 0.57, Vector3(0, 0, 1))
 	# braziers (fire you can see from the sea), lanterns, the crew flag
 	for bp in [Vector3(-4.5, TOP, -9.5), Vector3(4.5, TOP, -9.5), Vector3(-6.5, TOP, 13.5), Vector3(6.5, TOP, 13.5)]:
 		var br := MeshBuilder.new()

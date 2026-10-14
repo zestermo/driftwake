@@ -1170,6 +1170,12 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
 	var galley := _cabin_zone("Galley", "Restock provisions", COUNTER_AT + Vector3(-0.85, 0.6, 0.3))
 	galley.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").restock(p)))
+	# seats: the cabin's stools (at the table), the crate by the chest, the two crates on deck
+	for sx in [-0.4, 0.5]:
+		Seat.add(ship_model, TABLE_AT + Vector3(sx, 0.45, -0.75), 0.45, Vector3(0, 0, 1))
+	Seat.add(ship_model, STORAGE_AT + Vector3(-0.4, 0.6, 1.0), 0.6)
+	Seat.add(ship_model, Vector3(2.1, DECK_Y + 0.6, -0.4), 0.6, Vector3(-1, 0, 0))
+	Seat.add(ship_model, Vector3(-2.2, DECK_Y + 0.5, -4.5), 0.5, Vector3(1, 0, 0))
 	var lamp := OmniLight3D.new()
 	lamp.name = "CabinLight"
 	lamp.light_color = Color(1.0, 0.75, 0.45)

@@ -1452,12 +1452,25 @@ func crew_color(id: int) -> Color:
 
 
 # ==========================================================================
-# Seats (cannons): one captain each, handed out by the host
+# Seats (cannons, and Seats to sit on): one captain each, handed out by the host
 # ==========================================================================
+## Seats are keyed by where they are (Seat.seat_key), everything else by its path.
+func _seat_key(n: Node) -> String:
+	return (n as Seat).seat_key() if n is Seat else key_of(n)
+
+
+func _seat_node(k: String) -> Node:
+	return Seat.find(get_tree(), k) if k.begins_with(Seat.KEY) else node_of(k)
+
+
+func _seat_taken_text(k: String) -> String:
+	return "A crewmate is sitting there" if k.begins_with(Seat.KEY) else "A crewmate is on that gun"
+
+
 func seat_holder(n: Node) -> int:
 	if not active:
 		return 0
-	return int(seats.get(key_of(n), 0))
+	return int(seats.get(_seat_key(n), 0))
 
 
 ## Ask for a seat. True = it's yours now (host / single player); a client
@@ -1465,11 +1478,11 @@ func seat_holder(n: Node) -> int:
 func request_seat(n: Node) -> bool:
 	if not active:
 		return true
-	var k := key_of(n)
+	var k := _seat_key(n)
 	if hosting:
 		var h := int(seats.get(k, 0))
 		if h != 0 and h != my_id() and players.has(h):
-			get_tree().call_group("hud", "show_toast", "A crewmate is on that gun")
+			get_tree().call_group("hud", "show_toast", _seat_taken_text(k))
 			return false
 		_set_seat(k, my_id())
 		return true
@@ -1480,7 +1493,7 @@ func request_seat(n: Node) -> bool:
 func release_seat(n: Node) -> void:
 	if not active:
 		return
-	var k := key_of(n)
+	var k := _seat_key(n)
 	if int(seats.get(k, 0)) != my_id():
 		return
 	if hosting:
@@ -1505,7 +1518,7 @@ func _want_seat(k: String) -> void:
 	var id := multiplayer.get_remote_sender_id()
 	var h := int(seats.get(k, 0))
 	if h != 0 and h != id and players.has(h):
-		_seat_denied.rpc_id(id)
+		_seat_denied.rpc_id(id, k)
 		return
 	_set_seat(k, id)
 	_seat_granted.rpc_id(id, k)
@@ -1524,14 +1537,14 @@ func _seats(s: Dictionary) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _seat_granted(k: String) -> void:
-	var n := node_of(k)
+	var n := _seat_node(k)
 	if n and local_player and is_instance_valid(local_player):
 		local_player.take_seat(n)
 
 
 @rpc("authority", "call_remote", "reliable")
-func _seat_denied() -> void:
-	get_tree().call_group("hud", "show_toast", "A crewmate is on that gun")
+func _seat_denied(k: String) -> void:
+	get_tree().call_group("hud", "show_toast", _seat_taken_text(k))
 
 
 # ==========================================================================

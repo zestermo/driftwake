@@ -2,6 +2,7 @@
 # line shows under "Other". Merges by union (.gitattributes), like suites.txt.
 Combat: feel katanatest axetest airtest wieldtest daggertest techtest balancetest guntest fixtest
 Player: feat dash stamtest swimtest ragtest looptest styletest healtest
+Player: feat dash stamtest swimtest ragtest looptest styletest emotetest
 Character & UI: chartest hairtest invtest r6test r7test savetest capturetest qoltest
 Powers & progression: powertest vinetest progtest leveltest
 Enemies: bugtest grunttest apetest bosstest watertest faunatest

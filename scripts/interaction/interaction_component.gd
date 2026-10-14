@@ -40,7 +40,7 @@ func _physics_process(_delta: float) -> void:
 			current_interactable = null
 			_shown = false
 			prompt_hidden.emit()
-	if player.context != Player.Context.ON_FOOT or Dialogue.active:
+	if player.context != Player.Context.ON_FOOT or Dialogue.active or player.current_state_name() == "Sit":
 		if current_interactable:
 			current_interactable = null
 			prompt_hidden.emit()

@@ -703,6 +703,7 @@ static func tavern_hall() -> Node3D:
 			var bn := Props.bench()
 			bn.position = tp + Vector3(0, 0, s * 0.85)
 			body.add_child(bn)
+			Props.seats().face_all(bn, Vector3(0, 0, -s))
 		if patron <= 3 and tp != tables[2]:
 			_marker(body, "Patron%d" % patron, tp + Vector3(-0.35, 0, 0.85), PI)
 			patron += 1

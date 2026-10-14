@@ -11,8 +11,8 @@ extends RefCounted
 ## A table with a bench either side (along local z, turned `yaw`).
 static func table_set(ctx: KitContext, p: Vector2, yaw := 0.0) -> void:
 	ctx.place(Props.table(), p, yaw, 1.0)
-	ctx.place(Props.bench(), p + _rot(Vector2(0, 1.0), yaw), yaw)
-	ctx.place(Props.bench(), p + _rot(Vector2(0, -1.0), yaw), yaw)
+	Props.seats().face_all(ctx.place(Props.bench(), p + _rot(Vector2(0, 1.0), yaw), yaw), Vector3(0, 0, -1))
+	Props.seats().face_all(ctx.place(Props.bench(), p + _rot(Vector2(0, -1.0), yaw), yaw), Vector3(0, 0, 1))
 
 
 ## `n` benches round c at radius r facing in (skipping any on a path).

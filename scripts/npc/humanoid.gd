@@ -2515,6 +2515,20 @@ func _locomotion(delta: float) -> Dictionary:
 		p["fore_l"] = Vector3(0.9, 0, 0)
 		p["fore_r"] = Vector3(0.95 + (0.6 if talking else 0.0), 0, 0)
 		lift = Vector3(0, (seat_y + 0.05 - hip_y) * PIVOT_Y / hip_y, 0)
+	# sat on the ground (a low seat_y): knees up, the left forearm over its knee, leaning back on the right hand
+	if seated and grounded and seat_y < 0.25:
+		var gb := sin(_t * 1.3) * 0.025
+		p["hips"] = Vector3(0, 0.12, 0)
+		p["leg_l"] = Vector3(2.25, 0.1, -0.16)
+		p["leg_r"] = Vector3(1.75, -0.15, 0.3)
+		p["shin_l"] = Vector3(-2.35, 0, 0)
+		p["shin_r"] = Vector3(-1.85, 0, 0)
+		p["torso"] = Vector3(0.12 + gb, -0.15, 0.05)
+		p["head"] = Vector3(-0.05 - gb, 0.2, 0)
+		p["arm_l"] = Vector3(0.95, 0.1, -0.05)
+		p["fore_l"] = Vector3(0.35, 0, 0)
+		p["arm_r"] = Vector3(-0.55, 0.0, 0.4)
+		p["fore_r"] = Vector3(0.15, 0, 0)
 	if kneeling and grounded and not swimming:
 		# right knee on the ground, left foot planted ahead, both hands pressing
 		# down on the crewmate in front (pumping)

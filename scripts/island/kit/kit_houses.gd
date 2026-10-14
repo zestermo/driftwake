@@ -303,6 +303,7 @@ static func _home_inside(body: Node3D, mb: MeshBuilder, w: float, d: float, fl: 
 	mb.add_blob(PSXMat.flat(Color(0.95, 0.8, 0.2)), _xf(tp + Vector3(0.05, 0.55, 0.15)), Vector3(0.07, 0.07, 0.07), rng, 0.15, 2, 4)
 	for s in [-1.0, 1.0]:
 		mb.add_cylinder(PSXMat.lit("bark"), _xf(tp + Vector3(s * 0.25, 0, 0.75 * s)), 0.17, 0.17, 0.3, 6, 1.0)
+		Props.seats().add(body, tp + Vector3(s * 0.25, 0.3, 0.75 * s), 0.3, Vector3(0, 0, -s))
 	_box(body, Vector3(1.1, 0.48, 0.7), tp + Vector3(0, 0.24, 0))
 	# a shelf of jars on the back wall, a chest by the right wall
 	for y in [1.15, 1.6]:
@@ -448,6 +449,8 @@ static func _cook_inside(body: Node3D, mb: MeshBuilder, w: float, d: float, fl: 
 		mb.add_box(planks, _xf(tp + Vector3(s * 0.7, 0.44, 0)), Vector3(0.32, 0.06, 1.3), 1.0, Color.WHITE, false)
 		mb.add_box(dark, _xf(tp + Vector3(s * 0.7, 0.21, 0)), Vector3(0.26, 0.42, 1.0), 1.0, Color(0.7, 0.7, 0.7))
 		mb.add_cylinder(_clay(rng), _xf(tp + Vector3(s * 0.2, 0.79, s * 0.3)), 0.09, 0.12, 0.07, 7, 1.0)
+		for z in [-0.35, 0.35]:
+			Props.seats().add(body, tp + Vector3(s * 0.7, 0.47, z), 0.47, Vector3(-s, 0, 0))
 	_box(body, Vector3(2.0, 0.8, 1.3), tp + Vector3(0, 0.4, 0))
 	# baskets and a water jar by the door
 	for k in range(2):

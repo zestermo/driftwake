@@ -692,7 +692,7 @@ func _process(delta: float) -> void:
 	var local := player_model.global_basis.inverse() * hv
 	body_model.ground_speed = hv.length()
 	body_model.local_move = Vector2(local.x, -local.z).normalized() if hv.length() > 0.2 else Vector2(0, 1)
-	body_model.grounded = is_on_floor() or context != Context.ON_FOOT
+	body_model.grounded = is_on_floor() or context != Context.ON_FOOT or current_state_name() == "Sit"
 	body_model.vertical_speed = velocity.y
 	body_model.armed = armed
 	body_model.sprinting = sprinting
@@ -2308,10 +2308,27 @@ func man_cannon(c: Node) -> void:
 	state_machine.force_state("Cannon", {"cannon": c})
 
 
-## Co-op client: the host gave us a seat (a cannon).
+## Co-op client: the host gave us a seat (a cannon, or one to sit on).
 func take_seat(n: Node) -> void:
 	if n is ShipCannon:
 		man_cannon(n)
+	elif n is Seat:
+		sit(n)
+
+
+# --------------------------------------------------------------------------
+# Sitting (SitState): on a Seat (F next to it), or on the ground (emote wheel)
+# --------------------------------------------------------------------------
+func sit(seat: Seat) -> void:
+	if not is_free() or not is_on_floor():
+		Net.release_seat(seat)
+		return
+	state_machine.force_state("Sit", {"seat": seat})
+
+
+func sit_ground() -> void:
+	if is_free() and is_on_floor() and not is_swimming():
+		state_machine.force_state("Sit", {})
 
 
 ## Co-op client: the host gave us the wheel.

@@ -49,7 +49,9 @@ static func tent(tint: Color) -> StaticBody3D:
 static func log_seat() -> MeshInstance3D:
 	var log_mb := MeshBuilder.new()
 	log_mb.add_cylinder(PSXMat.lit("bark"), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.9, 0.2, 0)), 0.2, 0.2, 1.8, 6, 1.0, Color.WHITE, true, true)
-	return log_mb.to_instance("Log")
+	var lg := log_mb.to_instance("Log")
+	Props.seats().pair(lg, 0.4, 0.45)
+	return lg
 
 
 ## A log seat at p, side-on to the fire at c.

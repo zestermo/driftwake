@@ -59,3 +59,4 @@ daggertest
 smoketest
 healtest
 movetest
+emotetest

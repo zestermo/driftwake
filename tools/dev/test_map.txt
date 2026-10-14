@@ -222,3 +222,13 @@ scripts/loot/item_data.gd               healtest
 resources/items/*                       healtest
 scripts/ui/skill_bar.gd                 healtest
 scripts/game/game_manager.gd            healtest
+# --- sitting, sneaking, emotes, gestures (v1.11) ---
+scripts/interaction/seat.gd             emotetest net
+scripts/player_states/sit_state.gd      emotetest
+scripts/player_states/crouch_state.gd   emotetest grunttest
+scripts/ui/emote_wheel.gd               emotetest
+scripts/npc/emote_poses.gd              emotetest
+scripts/npc/humanoid.gd                 emotetest
+scenes/player/*                         emotetest
+scripts/enemies/pirate_grunt.gd         emotetest
+tools/dev/emotetest.gd                  emotetest

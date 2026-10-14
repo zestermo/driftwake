@@ -278,7 +278,13 @@ static func bench() -> Node3D:
 		mb.add_box(wood, _xf(Vector3(x, 0.22, 0)), Vector3(0.08, 0.45, 0.36), 1.0)
 	body.add_child(mb.to_instance())
 	_add_box_col(body, Vector3(1.8, 0.5, 0.4), Vector3(0, 0.25, 0))
+	seats().pair(body, 0.47, 0.45)
 	return body
+
+
+## Seat, loaded when used (naming the class would compile the Player into every prop tool).
+static func seats() -> GDScript:
+	return load("res://scripts/interaction/seat.gd")
 
 
 static func table() -> Node3D:
