@@ -101,8 +101,12 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
   seeds the global rng and the chain, default 4242; island suites loop a small fixed list with `seeds_of`).
   "SEED n" in the log names the seed in use; a failure prints it with the rerun line, and the live suite
   has a `seed` field. `-Seed N` runs (env `DRIFTWAKE_SEED`) are never cached or shared.
-- Writing a test: copy the newest `tools/dev/rNtest.gd` pattern (step machine in `_process`,
-  `check(name, cond)`, final `RESULT OK`/`RESULT FAILED (n)`), plus `TK.seed_of(self)` in `_initialize`.
+- Writing a test: a new test goes in `tools/dev/t/<group>/<behaviour>.gd` on the light stage (copy
+  `tools/dev/t/_template.gd`: `TK.stage(self, opts)` gives flat ground, the captain, camera, HUD and only what
+  you ask for, up in ~2 s; run it with `run_tests.ps1 t/<group>/<behaviour>` or the whole `t/<group>`), one
+  behaviour per test, unless it needs the world (Brinehollow's places, generated islands, the real sea):
+  then a world suite, copying the newest `tools/dev/rNtest.gd`. Either way: a step machine in `_process`,
+  `check(name, cond)`, final `RESULT OK`/`RESULT FAILED (n)`, `TK.seed_of(self)` in `_initialize`.
   Wait in physics ticks, not frames or process seconds, where a check depends on timing
   (`until = TK.wait_ticks(n)` / `TK.wait_secs(s)`, then `if TK.ticking(until): return false`; frames
   under load run fewer ticks than seconds pass). Don't statically type project classes that touch

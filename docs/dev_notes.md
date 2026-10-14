@@ -1458,3 +1458,30 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   Still flaky on runners with two suites each (one or two per run, never the same twice): swimtest and
   watertest "head above the water" (-0.08 / -0.06, limit -0.05), r8test "he dashes past", vinetest "aiming at
   the big bug" (listed), grunttest "the crew mixes its attacks" (12 s of only "peril"). No green full run yet.
+
+## 2026-10-14: the light test stage + atomic tests (pilot)
+- What: `TK.stage(self, opts)` (tools/dev/stage.gd, stage_islands.gd) builds a flat stage instead of world.tscn:
+  ground 3 m above the sea (Ocean.depth_at reads it dry), a sun, the real player.tscn, the camera rig, the HUD,
+  and only what a test asks for (dummy, a GruntCamp, a drawn weapon, an NPC, Props.bench, a chest, the ship's
+  storage on GameManager.storage, the sea past x = 24 and the ship). `stage.up` once the captain is free.
+  Atomic tests live in tools/dev/t/<group>/<behaviour>.gd (template t/_template.gd); run_tests.ps1 takes a path
+  or a group (`t/player`, `t`), and test_map.txt names groups as tokens (`t/player`).
+- What the world gave the player and HUD: nothing they need, except (a) Music reads Brinehollow and the chain
+  every half second (in_village, KitStyle.around): the stage switches Music off; (b) a "world_gen" node for
+  KitStyle.around and GameManager.chain(): stage_islands.gd, no islands (named NoIslands: the sea chart finds
+  "Islands" by name); (c) respawning after death needs the ship (GameManager._respawn_player returns without
+  one: the game always has her), so a death test asks for "ship". Weather only attaches to a scene named World
+  (opt "weather"). No game code changed.
+- The stage plays a fresh game in its own save folder (SaveGame.use_test_dir("user://test_stage"), begin(1,
+  true)): the default captain every time. The world suites build whatever look a previous run left in
+  user://look.cfg (it read "Villager", bare: styletest's "physics chains" check only held by luck).
+- Ported (every check kept; suites removed from suites.txt, suite_groups.txt, test_map.txt): feat, feel,
+  dash, stamtest, styletest, movetest, healtest, emotetest -> 30 tests (t/player 18, combat 3, weapons 1,
+  items 5, ui 2, ship 1; README lists them). ragtest stays a world suite: on the stage the downed body creeps
+  0.092 m/s against its 0.08 limit (both runs), so its port was dropped rather than loosen the check.
+- Timing: stage up in 1.9-4.0 s (median ~2.3), but every Godot process first spends ~8 s compiling the
+  project's scripts (the FX autoload's class references pull in world_generator, the island kit and the
+  fauna: three ~2.5 s gaps in a --verbose boot). So an atomic test is 11-22 s (median ~14 s, measured with
+  another agent's five suites sharing the machine) against 34-48 s for the old suites: a 3x faster loop for one
+  behaviour. The 8 old suites were 318 s of machine time; the 30 atomic tests are ~430 s (30 boots), ~90 s of
+  wall time at 5 slots. Cutting that boot (lazier class references from the autoloads) is the next win.

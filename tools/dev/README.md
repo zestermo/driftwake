@@ -32,16 +32,22 @@ so Godot does not import the PNGs).
 - `serve_web.ps1`: Serves `web/site` on http://localhost:8060/ (the game at /play/) to try the browser build. Args: [-Port n] [-Threads: adds COOP/COEP for a threaded export]
 - `hooks/gdcheck.ps1`: Claude Code hook (`.claude/settings.json`, PostToolUse on Edit/Write): after Claude edits a .gd file it compiles that file (~2 s) and hands any errors straight back to Claude.
 
+## Atomic tests on the stage (tools/dev/t/)
+
+One behaviour each, in its own process, on the light test stage instead of the generated world (~11 s each, of
+which ~8 s is Godot compiling the project's scripts at boot; the stage itself is up in ~2 s). Run one by path or a
+whole group: `run_tests.ps1 t/player/dodge`, `run_tests.ps1 t/player`, `run_tests.ps1 t` (logs as `t.player.dodge.log`).
+
+- `stage.gd` + `stage_islands.gd`: the stage (`TK.stage(self, opts)` in `_initialize`, then wait for `stage.up`): flat ground 3 m above the sea, a sun, the real captain with camera and HUD, a fresh game in `user://test_stage` (the default captain); on request a dummy, a grunt camp, a weapon drawn, an NPC, a bench, a chest, the ship's storage, the sea and the ship. No world generation; the music is off; a stand-in "world_gen" with no islands. The opts are in stage.gd's header.
+- `t/_template.gd`: copy it for a new test.
+- `t/player/`: starting_kit, draw_sheathe, dodge, double_jump, jump_takeoffs, jump_height, sprint, stamina, turn_lean, head_look, head_motion, shonen_body, log_pose_raise, crouch, sit_bench, sit_ground, emotes, gestures.
+- `t/combat/`: slash_dummy, cutlass_combo, sneak_sentry. `t/weapons/`: draw_styles. `t/items/`: rum_quick_slot, chest_loot, heal_timing, heal_spill, heal_kinds. `t/ui/`: menu_keys, emote_wheel. `t/ship/`: sit_stool.
+
 ## Test suites (run_tests.ps1)
 
 Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fails=0` / `RESULT FAILED (n)`.
 
-- `feat`: Starting kit, quick slots, sheathe/draw, items.
-- `feel`: Sword combo chain, move-cancel, combo memory, slash trails.
-- `dash`: Dodge sidestep/backstep direction, distance, facing.
 - `chartest`: Character builder: every option + random looks build, apply_look keeps weapons, legacy looks convert.
-- `styletest`: Shonen body: permanent style, neck joint, head look layer.
-- `stamtest`: Stamina gating, weapon-specific heavy attacks, sprint speed, camera look-at.
 - `invtest`: Gear / paper doll / character sheet / abilities.
 - `ragtest`: Player ragdoll: knockdown -> get up, death -> stays down -> respawn.
 - `bugtest`: Scuttlebugs: spawned in the jungle, notice -> rear -> ram, hitstun, knockdown, death + gold.
@@ -85,7 +91,6 @@ Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fail
 - `wieldtest`: The two-weapon movesets. Sword and pistol: the style and what the off hand may hold, each combo hit lands (the shot uses a ball), Powder Finale only once learned (knocks flat), a shot while reloading is a butt-strike and the reload refills, Powder Lunge (thrust + shot, knocks flat), Dead Man's Drop (shot, dive, landing knocks flat), the Corsair tree (18+ nodes, an ultimate, its element behind the mastery passives). Dual wield: every combo hit lands, Twin Spin only once learned, an off-hand axe hits harder than a second cutlass, the heavy. Prints each style's combo damage per second against the cutlass's.
 - `daggertest`: The daggers: one dagger (style, combo, Gutting Strike gated and bleeding, Shadow Lunge out from behind, Fang Dive's sure crit, backstabs), two daggers (style and tree, combo, Fang Whirl gated, Scissor Rip, Knife Rain), sword + dagger with the off-hand dagger reversed; the trees, every design at every tier, sheaths; combo damage per second against the cutlass's.
 - `uitest`: The crisp UI at 1280x720: the menus', HUD's and dialogue's canvases are 640x360 at 2x; pause, options, controls, skill map (a node's tooltip), sea chart, yard, Vey's stall (prices on slots, the card's Buy), save slots, inventory, a dialogue with choice planks, the HUD (skill bar, boss bar, key-cap prompt) and the creator each open and fit their canvas.
-- `healtest`: Quick-slot healing: rum's swig heals at its end (not mid-swig), the shared cooldown refuses a tonic and quick slot 6, a hit mid-tonic spills it (item gone, no heal, the retry cooldown), stew slurped from a bowl, a biscuit bitten while walking slower, the galley brews no tonics.
 - `musictest`: Music by place and time: the theme at the title, the village theme in Brinehollow's square and out on its pier, the island theme in its wilds, the night arrangement at 22:00 in step with the day one, the village theme resumed at the bar it was left in, a chain island's village vs its wilds, the sea theme aboard under sail (and at night).
 - `ambiencetest`: The ambience: surf at the end of Brinehollow's dock, quieter surf inland, and aboard under way out at sea the open swell, the hull's wash rising in volume and pitch, her timbers creaking, the wind on deck; the deep swell bed, gusts and spray hiss in a storm, the underwater low-pass, rock surf on a cliff top and beach surf on a beach.
 - `skytest`: Birds over Brinehollow by day (high flock, harbour gulls), a perched gull scattering when you run at it, none at night and back by day, the ship's gulls near land, all freed far out under the cap; the ship's spray quiet at rest, bow wave, slaps and sheets under sail in a storm, foam patches, asleep with the camera far.

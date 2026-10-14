@@ -1,11 +1,6 @@
 # Every suite run_tests.ps1 runs (tools/dev/<name>.gd), one per line. Add a new suite on its own line:
 # this file merges by union (.gitattributes), so parallel branches adding suites never conflict.
-feat
-feel
-dash
 chartest
-styletest
-stamtest
 invtest
 ragtest
 bugtest
@@ -57,11 +52,8 @@ bosstest
 faunatest
 daggertest
 smoketest
-healtest
 uitest
-movetest
 cliptest
-emotetest
 musictest
 lighttest
 skytest

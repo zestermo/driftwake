@@ -57,7 +57,7 @@ if ($Changed) {
 	if ($picked -contains "net") { $modes += ".\tools\dev\nettest.ps1" }
 	if ($picked -contains "netchain") { $modes += ".\tools\dev\nettest.ps1 chain" }
 	if ($modes.Count -gt 0) { $netHint = "Co-op code changed: run " + ($modes -join " and ") }
-	$Tests = @($picked | Where-Object { $all -contains $_ })
+	$Tests = @($picked | Where-Object { $all -contains $_ -or $_ -match '^t(/|$)' })
 	if ($Light) {
 		$heavy = @(Get-Content (Join-Path $PSScriptRoot "heavy.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })
 		$deferred = @($Tests | Where-Object { $heavy -contains $_ })
@@ -72,6 +72,15 @@ if ($Changed) {
 	Write-Host ("Suites: " + ($Tests -join " ")) -ForegroundColor Cyan
 }
 if (-not $Tests -or $Tests.Count -eq 0) { $Tests = $all }
+# atomic tests by path (t/<group>/<name>, or t/<group> for the whole group): logs, cache and ledger as t.<group>.<name>
+$scriptOf = @{}
+$Tests = @($Tests | ForEach-Object { ($_ -replace '\\', '/') -replace '\.gd$', '' -replace '^tools/dev/', '' } | ForEach-Object { if ($_ -match '^t\.') { $_.Replace('.', '/') } else { $_ } } | ForEach-Object {
+	$dir = Join-Path $PSScriptRoot $_
+	if ($_ -match '^t(/|$)' -and (Test-Path $dir -PathType Container)) {
+		Get-ChildItem $dir -Recurse -Filter *.gd | Where-Object { -not $_.Name.StartsWith("_") } | Sort-Object FullName |
+			ForEach-Object { $_.FullName.Substring($PSScriptRoot.Length + 1).Replace('\', '/') -replace '\.gd$', '' }
+	} else { $_ }
+} | ForEach-Object { $k = $_ -replace '/', '.'; $scriptOf[$k] = "$_.gd"; $k })
 
 if (-not $Godot) {
 	$cmd = Get-Command godot -ErrorAction SilentlyContinue
@@ -150,7 +159,7 @@ if (-not $NoCompileCheck -and $Tests.Count -gt 0) {
 }
 
 function Start-Suite([string]$t, $slot) {
-	$job = Start-GodotJob $Godot $root "$t.gd" "" (Join-Path $logs "$t.log") $Seed
+	$job = Start-GodotJob $Godot $root $scriptOf[$t] "" (Join-Path $logs "$t.log") $Seed
 	$job | Add-Member -NotePropertyName Name -NotePropertyValue $t
 	$job | Add-Member -NotePropertyName Slot -NotePropertyValue $slot
 	if ($share) { Set-InFlight $crew $tree $t "$me $($run.Data.id)" $true }

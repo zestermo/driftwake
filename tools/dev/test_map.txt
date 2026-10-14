@@ -2,19 +2,31 @@
 # <path pattern (PowerShell -like, from the repo root)>   <suites...>
 # Every line a changed file matches adds its suites. "net" = also run nettest.ps1, "netchain" = nettest.ps1 chain.
 # A changed tools/dev/<suite>.gd runs that suite. Add a line when you add a suite or a system.
+# Atomic tests on the stage go by group: t/player runs every test in tools/dev/t/player/.
+
+# --- the light test stage and its atomic tests ---
+tools/dev/stage.gd                      t
+tools/dev/stage_islands.gd              t
+tools/dev/test_kit.gd                   t
+tools/dev/t/player/*                    t/player
+tools/dev/t/combat/*                    t/combat
+tools/dev/t/items/*                     t/items
+tools/dev/t/ui/*                        t/ui
+tools/dev/t/weapons/*                   t/weapons
+tools/dev/t/ship/*                      t/ship
 
 # --- player ---
-scenes/player/*                         feat feel dash stamtest swimtest
-scenes/player/camera_rig.gd             stamtest feel
-scripts/player_states/*                 feat feel dash
-scripts/player_states/player_state.gd   stamtest balancetest airtest
-scripts/player_states/light_attack*     feel axetest katanatest stamtest techtest wieldtest
-scripts/player_states/heavy_attack*     stamtest axetest techtest balancetest wieldtest
+scenes/player/*                         t/player t/combat t/items swimtest
+scenes/player/camera_rig.gd             t/player t/combat
+scripts/player_states/*                 t/player t/combat
+scripts/player_states/player_state.gd   t/player t/items balancetest airtest
+scripts/player_states/light_attack*     t/combat axetest katanatest techtest wieldtest
+scripts/player_states/heavy_attack*     t/player axetest techtest balancetest wieldtest
 scripts/player_states/iai*              katanatest balancetest
 scripts/player_states/plunge*           fixtest katanatest axetest airtest wieldtest
 scripts/player_states/technique*        techtest wieldtest
 scripts/player_states/corsair_gun.gd    wieldtest techtest net
-scripts/player_states/dodge*            dash
+scripts/player_states/dodge*            t/player
 scripts/player_states/block*            r6test
 scripts/player_states/parry*            grunttest
 scripts/player_states/stagger*          grunttest
@@ -26,29 +38,29 @@ scripts/player_states/cannon*           r8test
 scripts/player_states/helm*             shiptest r8test
 scripts/player_states/skill*            powertest vinetest techtest
 scripts/player_states/shoot*            techtest
-scripts/state_machine/*                 feat feel
-scripts/input/*                         feel dash
+scripts/state_machine/*                 t/player t/combat
+scripts/input/*                         t/player t/combat
 
 # --- bodies and animation ---
-scripts/npc/humanoid.gd                 chartest styletest ragtest r10test katanatest axetest feel techtest chaintest
-scripts/npc/body_builder.gd             chartest styletest hairtest katanatest qoltest
-scripts/npc/character_look.gd           chartest styletest savetest
+scripts/npc/humanoid.gd                 chartest t/player t/combat ragtest r10test katanatest axetest techtest chaintest
+scripts/npc/body_builder.gd             chartest t/player hairtest katanatest qoltest
+scripts/npc/character_look.gd           chartest t/player savetest
 scripts/npc/face_painter.gd             chartest
 scripts/npc/spring_chains.gd            hairtest chartest
-scripts/npc/arm_body.gd                 chartest styletest perftest
-scripts/npc/lower_body.gd               chartest styletest perftest
+scripts/npc/arm_body.gd                 chartest t/player perftest
+scripts/npc/lower_body.gd               chartest t/player perftest
 scripts/npc/npc.gd                      qoltest
-scripts/npc/action_specs.gd             feel axetest katanatest techtest
+scripts/npc/action_specs.gd             t/combat axetest katanatest techtest
 scripts/npc/technique_poses.gd          techtest airtest
 scripts/npc/wield_moves.gd              wieldtest techtest airtest
-scripts/npc/sword_moves.gd              feel axetest katanatest techtest
-scripts/npc/anim_lab.gd                 feel
+scripts/npc/sword_moves.gd              t/combat axetest katanatest techtest
+scripts/npc/anim_lab.gd                 t/combat
 scripts/net/humanoid_sync.gd            net
 scripts/net/network_manager.gd          net netchain
 
 # --- combat, enemies, powers, progression ---
-scenes/combat/*                         grunttest feel techtest
-scripts/combat/*                        grunttest ragtest feel
+scenes/combat/*                         grunttest t/combat techtest
+scripts/combat/*                        grunttest ragtest t/combat
 scripts/combat/ragdoll.gd               ragtest watertest r10test decktest
 scripts/enemies/pirate_grunt.gd         grunttest guntest fixtest watertest perftest balancetest leveltest
 scripts/enemies/grunt_camp.gd           grunttest perftest leveltest
@@ -62,7 +74,7 @@ scripts/progression/*                   progtest techtest r6test balancetest
 scripts/ui/skill_map*                   progtest r6test techtest
 
 # --- items, inventory, saves, game ---
-scripts/loot/*                          r7test invtest feat looptest
+scripts/loot/*                          r7test invtest t/items looptest
 scripts/loot/gear*                      invtest qoltest
 scripts/loot/equipment*                 invtest
 scripts/game/save_game.gd               savetest progtest looptest yardtest r9test
@@ -71,7 +83,7 @@ scripts/game/dev_capture.gd             capturetest
 scripts/game/perf_monitor.gd            perftest
 scripts/game/settings.gd                savetest r6test
 scripts/game/shops.gd                   qoltest
-scripts/game/*                          feat
+scripts/game/*                          t/items t/ui
 scripts/props/weapon_designs.gd         qoltest katanatest axetest
 scripts/props/*                         qoltest
 
@@ -100,7 +112,7 @@ scripts/ship/ship_spray.gd              skytest shiptest
 assets/audio/*_loop.wav                 ambiencetest
 scripts/game/footsteps.gd               ambiencetest
 scripts/game/fx.gd                      powertest r6test
-scripts/game/blade_trail.gd             feel wieldtest
+scripts/game/blade_trail.gd             t/combat wieldtest
 scripts/game/music.gd                   r8test musictest
 assets/audio/music_*                    musictest
 scripts/world/cloud_spawner.gd          r9test r10test
@@ -194,7 +206,7 @@ scripts/ui/*                            r6test
 # --- rendering ---
 scripts/psx/*                           r9test hairtest
 shaders/*                               r9test r10test
-project.godot                           feat r6test
+project.godot                           t r6test
 scripts/enemies/fauna/*                 faunatest netchain
 scripts/island/fauna_spawner.gd         faunatest netchain
 shaders/fauna_swarm.gdshader            faunatest
@@ -211,13 +223,11 @@ scripts/progression/*                   daggertest
 scripts/npc/humanoid.gd                 daggertest wieldtest
 resources/items/dagger.tres             daggertest
 # --- v1.11 moves and clothing ---
-scripts/npc/move_poses.gd               movetest feat
-scripts/npc/draw_moves.gd               movetest feat grunttest guntest
-assets/audio/draw_*.wav                 movetest
-scripts/player_states/jump_state.gd     movetest invtest
-scripts/player_states/fall_state.gd     movetest
-scripts/npc/humanoid.gd                 movetest
-tools/dev/movetest.gd                   movetest
+scripts/npc/move_poses.gd               t/player
+scripts/npc/draw_moves.gd               t/player t/weapons grunttest guntest
+assets/audio/draw_*.wav                 t/weapons
+scripts/player_states/jump_state.gd     t/player invtest
+scripts/player_states/fall_state.gd     t/player
 scripts/npc/body_builder.gd             cliptest
 scripts/npc/character_look.gd           cliptest
 tools/dev/cliptest.gd                   cliptest
@@ -231,23 +241,20 @@ scripts/ui/*                            uitest
 scenes/ui/*                             uitest
 scripts/dialogue/dialogue_box.gd        uitest
 # --- healing (2026-10-13) ---
-scenes/player/player.gd                 healtest
-scripts/player_states/player_state.gd   healtest
-scripts/npc/humanoid.gd                 healtest
-scripts/loot/item_data.gd               healtest
-resources/items/*                       healtest
-scripts/ui/skill_bar.gd                 healtest
-scripts/game/game_manager.gd            healtest
+scripts/loot/item_data.gd               t/items
+resources/items/*                       t/items
+scripts/ui/skill_bar.gd                 t/items
+scripts/game/game_manager.gd            t/items t/player
 # --- sitting, sneaking, emotes, gestures (v1.11) ---
-scripts/interaction/seat.gd             emotetest net
-scripts/player_states/sit_state.gd      emotetest
-scripts/player_states/crouch_state.gd   emotetest grunttest
-scripts/ui/emote_wheel.gd               emotetest
-scripts/npc/emote_poses.gd              emotetest
-scripts/npc/humanoid.gd                 emotetest
-scenes/player/*                         emotetest
-scripts/enemies/pirate_grunt.gd         emotetest
-tools/dev/emotetest.gd                  emotetest
+scripts/interaction/seat.gd             t/player t/ship net
+scripts/player_states/sit_state.gd      t/player t/ship
+scripts/player_states/crouch_state.gd   t/player t/combat grunttest
+scripts/ui/emote_wheel.gd               t/ui
+scripts/npc/emote_poses.gd              t/player t/ui
+scripts/enemies/pirate_grunt.gd         t/combat
+scripts/npc/npc.gd                      t/player
+scripts/dialogue/*                      t/player
+scripts/ship/*                          t/ship
 # --- light: readable nights, ship lanterns, the belt lantern (v1.12) ---
 scripts/world/weather.gd                lighttest
 scripts/world/night_light.gd            lighttest villagetest harbourtest

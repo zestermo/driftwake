@@ -36,3 +36,38 @@ static func wait_secs(s: float) -> int:
 
 static func ticking(until: int) -> bool:
 	return Engine.get_physics_frames() < until
+
+
+## The light test stage (tools/dev/stage.gd; its header lists the opts) as the current scene, instead of the
+## generated world. Call it in _initialize; the test waits for `stage.up` before its first step.
+static func stage(tree: SceneTree, opts := {}) -> Node3D:
+	var s: Node3D = load("res://tools/dev/stage.gd").new()
+	s.build(opts)
+	tree.root.add_child.call_deferred(s)
+	return s
+
+
+## Press and release an input action (one tap).
+static func act(a: String) -> void:
+	press(a)
+	release(a)
+
+
+static func press(a: String) -> void:
+	var e := InputEventAction.new()
+	e.action = a
+	e.pressed = true
+	Input.parse_input_event(e)
+
+
+static func release(a: String) -> void:
+	var e := InputEventAction.new()
+	e.action = a
+	e.pressed = false
+	Input.parse_input_event(e)
+
+
+## The test's last line ("RESULT OK" / "RESULT FAILED (n)"); _process returns it to quit.
+static func done(fails: int) -> bool:
+	print("RESULT OK" if fails == 0 else "RESULT FAILED (%d)" % fails)
+	return true
