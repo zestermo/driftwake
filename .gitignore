@@ -10,6 +10,8 @@ __pycache__/
 # exported builds, wherever they're saved (GitHub refuses files over 100 MB)
 *.exe
 *.pck
+/build/*
+!/build/.gdignore
 
 # the web export, and its copy in the site (tools/dev/build_web.ps1)
 /web/build/

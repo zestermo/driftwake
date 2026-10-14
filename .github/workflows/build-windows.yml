@@ -3,6 +3,9 @@
 # - A version tag (git tag v1.8 && git push origin v1.8): also a GitHub Release with
 #   Driftwake-windows.zip, which https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-windows.zip
 #   always points at (the website's download button).
+# - The exes' version (Properties > Details) is project.godot's config/version: the preset leaves
+#   application/file_version and product_version empty, so Godot fills them in (1.11 -> 1.11.0.0).
+#   A release is: bump config/version, commit, tag v<version>, push the tag. Keep them empty.
 name: Build Windows
 
 on:
