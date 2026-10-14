@@ -52,6 +52,7 @@ func add(q: Dictionary, isl: GenIsland) -> void:
 	it.collision_layer = NPC.INTERACT_LAYER
 	it.collision_mask = 0
 	it.prompt_text = str(q["search"])
+	it.gesture = "pickup"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
 	sph.radius = 1.4

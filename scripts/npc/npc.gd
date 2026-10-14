@@ -132,6 +132,9 @@ func _on_interacted(_by: Node) -> void:
 		var pool := barks.filter(func(b) -> bool: return not (b is Dictionary) or Story.allows(b))
 		var b = pool[randi() % pool.size()]
 		dm.say(npc_name, [str(b["text"]) if b is Dictionary else str(b)], self, voice)
+		# a trader's stall: coin across the counter
+		if shop_id != "":
+			_by.gesture("hand")
 
 
 func _on_dialogue_ended(_id: String) -> void:
@@ -142,6 +145,10 @@ func _on_dialogue_ended(_id: String) -> void:
 func _on_line_shown(speaker: String, _text: String) -> void:
 	if _in_dialogue:
 		humanoid.talking = (speaker == npc_name)
+		# a gesture with each of their lines
+		if speaker == npc_name:
+			var g: String = EmotePoses.TALK.pick_random()
+			humanoid.play(g, ActionSpecs.length(g))
 
 
 ## Called by the dialogue manager while text is typing for this speaker.

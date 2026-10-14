@@ -2378,6 +2378,14 @@ func emote(id: String) -> void:
 			Net.fx("sfx", [s[0], global_position + Vector3(0, 1.5, 0), float(s[2]), 0.03]))
 
 
+## A quick body gesture (EmotePoses "gesture_*"): opening a chest, a lever, handing something over.
+func gesture(id: String) -> void:
+	if not (is_free() or current_state_name() == "Talk"):
+		return
+	var n := "gesture_" + id
+	body_model.play(n, ActionSpecs.length(n))
+
+
 ## A full-body emote ends the moment you move.
 func _emote_tick() -> void:
 	var a := body_model.current_action()

@@ -22,7 +22,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("interact") and current_interactable:
 		get_viewport().set_input_as_handled()
 		var it := current_interactable
+		var g := it.gesture
 		it.interact(player)
+		if g != "":
+			player.gesture(g)
 		# (it may have just gone away: re-check now rather than next tick)
 		if not is_instance_valid(it) or it.is_queued_for_deletion() or not it.enabled:
 			current_interactable = null

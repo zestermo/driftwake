@@ -55,6 +55,7 @@ static func ruins(ctx: KitContext, c: Vector2, rng: RandomNumberGenerator, dialo
 	inter.collision_layer = 512
 	inter.collision_mask = 0
 	inter.prompt_text = "Examine the Driftstone"
+	inter.gesture = "reach"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
 	sph.radius = 2.8

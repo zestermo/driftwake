@@ -12,6 +12,8 @@ signal interacted(player: Player)
 @export var reach: float = 0.0
 ## A test of its own instead (feet position -> bool), e.g. a ladder's ends.
 var reach_test: Callable
+## What the captain's body does on F (Player.gesture: "open", "pickup", "lever", "push", "reach", "hand"); "" none.
+var gesture: String = ""
 
 
 func interact(player: Player) -> void:

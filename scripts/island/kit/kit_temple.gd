@@ -369,6 +369,7 @@ static func _shrines(d: Dungeon, mb: MeshBuilder, stone: Material, carved: Mater
 		area.collision_layer = 512
 		area.collision_mask = 0
 		area.prompt_text = "Pull the lever"
+		area.gesture = "lever"
 		var cs := CollisionShape3D.new()
 		var sph := SphereShape3D.new()
 		sph.radius = 1.4

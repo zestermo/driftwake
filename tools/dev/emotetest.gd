@@ -283,9 +283,59 @@ func _process(d: float) -> bool:
 		86:
 			Input.action_release("move_forward")
 			check("moving ends the hornpipe (%s)" % p.body_model.current_action(), p.body_model.current_action() != "emote_dance")
+			go(90, 10)
+		# --- gestures: talking (the NPC with its lines, the captain with theirs), trading, opening a chest
+		90:
+			for n in get_nodes_in_group("npcs"):
+				if n.dialogue_id != "" and not n.humanoid.seated:
+					npc = n
+					break
+			check("a villager to talk to", npc != null)
+			put(npc.global_position + Vector3(1.2, 0.3, 0))
+			go(91, 20)
+		91:
+			npc._on_interacted(p)
+			go(92, 4)
+		92:
+			var dlg = root.get_node("Dialogue")
+			check("talking: %s gestures with their line (%s)" % [npc.npc_name, npc.humanoid.current_action()], p.current_state_name() == "Talk" and npc.humanoid.current_action().begins_with("gesture_talk"))
+			dlg.line_shown.emit(dlg.PLAYER_SPEAKER, "Aye.")
+			check("...and the captain with theirs (%s)" % p.body_model.current_action(), p.body_model.current_action().begins_with("gesture_talk"))
+			dlg.dialogue_event.emit("shop:nessa")
+			check("...hands over the coin when they trade (%s)" % p.body_model.current_action(), p.body_model.current_action() == "gesture_hand")
+			dlg._close()
+			go(93, 10)
+		93:
+			# a chest next to us: F opens it with both hands
+			root.get_node("GameMenu").close()
+			chest =load("res://scenes/loot/loot_bag.tscn").instantiate()
+			chest.save_id = "emotetest_chest"
+			current_scene.add_child(chest)
+			chest.global_position = get_meta("open") + Vector3(0.9, -0.3, 0)
+			put(get_meta("open"))
+			go(94, 20)
+		94:
+			var ic = p.interaction_component
+			check("next to a chest, F offers it (%s)" % (ic.current_interactable.prompt_text if ic.current_interactable else "nothing"), ic.current_interactable == chest.interactable)
+			var ev := InputEventAction.new()
+			ev.action = "interact"
+			ev.pressed = true
+			ic._unhandled_input(ev)
+			check("...and F reaches in with both hands (%s)" % p.body_model.current_action(), p.body_model.current_action() == "gesture_open")
+			p.body_model.stop_action()
+			var missing := []
+			for g in ["talk_a", "talk_b", "talk_c", "nod", "open", "pickup", "lever", "push", "reach", "hand"]:
+				p.gesture(g)
+				if p.body_model.current_action() != "gesture_" + g:
+					missing.append(g)
+			check("every gesture plays (not: %s)" % str(missing), missing.is_empty())
 			finish()
 			return true
 	return false
+
+
+var npc = null
+var chest
 
 
 const EMOTES := ["wave", "point", "salute", "laugh", "cheer", "dance", "sit", "shrug", "bow", "flex", "facepalm", "shanty"]

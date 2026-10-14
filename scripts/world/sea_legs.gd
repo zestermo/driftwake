@@ -377,6 +377,7 @@ func _build_bottle(leg: Node3D, i: int, c: Vector2, save_id: String, picks: Arra
 	it.collision_mask = 0
 	it.usable_in_water = true
 	it.prompt_text = "Fish out the bottle"
+	it.gesture = "pickup"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
 	sph.radius = 1.6

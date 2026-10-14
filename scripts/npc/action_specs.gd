@@ -258,6 +258,17 @@ const SPECS := {
 	"emote_flex": {"len": 2.0, "stance": "sword", "weapon": ""},
 	"emote_facepalm": {"len": 1.8, "stance": "sword", "weapon": ""},
 	"emote_shanty": {"len": 5.0, "stance": "sword", "weapon": ""},
+	# --- talk and interact gestures (EmotePoses) ---
+	"gesture_talk_a": {"len": 1.4, "stance": "sword", "weapon": ""},
+	"gesture_talk_b": {"len": 1.6, "stance": "sword", "weapon": ""},
+	"gesture_talk_c": {"len": 1.4, "stance": "sword", "weapon": ""},
+	"gesture_nod": {"len": 0.9, "stance": "sword", "weapon": ""},
+	"gesture_open": {"len": 1.2, "stance": "sword", "weapon": ""},
+	"gesture_pickup": {"len": 1.0, "stance": "sword", "weapon": ""},
+	"gesture_lever": {"len": 1.2, "stance": "sword", "weapon": ""},
+	"gesture_push": {"len": 1.1, "stance": "sword", "weapon": ""},
+	"gesture_reach": {"len": 1.0, "stance": "sword", "weapon": ""},
+	"gesture_hand": {"len": 1.3, "stance": "sword", "weapon": ""},
 	# --- healing (quick-slot food, rum, tonics: Player.use_item) ---
 	"bite": {"len": 0.7, "stance": "sword", "weapon": "cutlass"},
 	"swig": {"len": 0.75, "stance": "sword", "weapon": "cutlass"},

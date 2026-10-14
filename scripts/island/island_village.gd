@@ -163,6 +163,7 @@ func _build(rng: RandomNumberGenerator) -> void:
 	rest.collision_layer = 512
 	rest.collision_mask = 0
 	rest.prompt_text = "Rest at the inn"
+	rest.gesture = "push"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
 	sph.radius = 2.4
@@ -195,6 +196,7 @@ func _build(rng: RandomNumberGenerator) -> void:
 	read.collision_layer = 512
 	read.collision_mask = 0
 	read.prompt_text = "Read the job board"
+	read.gesture = "reach"
 	var rcs := CollisionShape3D.new()
 	var rsph := SphereShape3D.new()
 	rsph.radius = 1.8

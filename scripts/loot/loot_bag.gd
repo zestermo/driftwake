@@ -39,6 +39,7 @@ var label: String = ""
 func _ready() -> void:
 	interactable.interacted.connect(_on_interact)
 	interactable.prompt_text = _prompt()
+	interactable.gesture = "open" if persistent or save_id != "" or floating else "pickup"
 	if floating:
 		interactable.usable_in_water = true
 		set_physics_process(true)

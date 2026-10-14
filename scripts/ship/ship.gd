@@ -1170,6 +1170,7 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
 	var galley := _cabin_zone("Galley", "Restock provisions", COUNTER_AT + Vector3(-0.85, 0.6, 0.3))
 	galley.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").restock(p)))
+	galley.gesture = "reach"
 	# seats: the cabin's stools (at the table), the crate by the chest, the two crates on deck
 	for sx in [-0.4, 0.5]:
 		Seat.add(ship_model, TABLE_AT + Vector3(sx, 0.45, -0.75), 0.45, Vector3(0, 0, 1))

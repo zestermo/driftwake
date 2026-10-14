@@ -13,6 +13,8 @@ const SOUNDS := {"salute": ["heel_click", 0.08, -6.0], "laugh": ["laugh", 0.12, 
 	"dance": ["jig", 0.0, -6.0], "bow": ["whoosh", 0.2, -14.0], "flex": ["hup", 0.42, -4.0], "facepalm": ["slap", 0.18, -6.0],
 	"shanty": ["shanty", 0.0, -6.0]}
 const FULL := ["salute", "laugh", "cheer", "dance", "bow", "flex", "shanty"]
+## A speaker's gestures, one picked per line.
+const TALK := ["gesture_talk_a", "gesture_talk_b", "gesture_talk_c"]
 
 const HIP_L := {"arm_l": Vector3(-0.25, 0.35, -0.6), "fore_l": Vector3(1.75, 0, 0)}
 ## Arms folded high across the chest, the left over the right (the arm out sideways, then
@@ -115,4 +117,60 @@ static func pose(h, n: String, u: float) -> Array:
 				"leg_l": Vector3(0.05, 0, -0.18), "leg_r": Vector3(0.05, 0, 0.18),
 				"shin_l": Vector3(-0.2 - maxf(0.0, -sw) * 0.25, 0, 0), "shin_r": Vector3(-0.2 - maxf(0.0, sw) * 0.25, 0, 0), "_lift": Vector3(sw * 0.04, -0.05, 0)}
 			return [h._keys(u, [[0.0, {}], [0.08, sp], [0.92, sp], [1.0, {}]]), "full", Vector3.ZERO]
+		# --- talking (TalkState for the captain, NPC._on_line_shown for whoever speaks) ---
+		"gesture_talk_a":
+			# an open hand offered out to the listener
+			var oa := {"arm_r": Vector3(1.0, -0.3, 0.35), "fore_r": Vector3(0.6 + sin(t * 5.0) * 0.08, 0, 0), "hand_r": Vector3(0.25, 0, 0),
+				"torso": Vector3(-0.04, -0.1, 0), "head": Vector3(0.04, 0.08, 0)}
+			return [h._keys(u, [[0.0, {}], [0.25, oa, "out"], [0.7, oa], [1.0, {}]]), "upper", Vector3.ZERO]
+		"gesture_talk_b":
+			# both hands out, beating time with the words
+			var bt := sin(t * 7.0) * 0.12
+			var ob := {"arm_l": Vector3(0.8 + bt, 0.3, -0.35), "fore_l": Vector3(0.9, 0, 0), "arm_r": Vector3(0.8 + bt, -0.3, 0.35), "fore_r": Vector3(0.9, 0, 0),
+				"torso": Vector3(-0.06 - bt * 0.3, 0, 0), "head": Vector3(0.06 + bt * 0.4, 0, 0)}
+			return [h._keys(u, [[0.0, {}], [0.2, ob, "out"], [0.75, ob], [1.0, {}]]), "upper", Vector3.ZERO]
+		"gesture_talk_c":
+			# a hand to the chest ("me", "my ship"), the head cocked
+			var oc := {"arm_r": Vector3(0.55, 0.4, 0.0), "fore_r": Vector3(2.0, 0, 0), "torso": Vector3(0.05, 0.08, 0), "head": Vector3(0.08, 0, 0.12)}
+			return [h._keys(u, [[0.0, {}], [0.25, oc, "out"], [0.7, oc], [1.0, {}]]), "upper", Vector3.ZERO]
+		"gesture_nod":
+			return [h._keys(u, [[0.0, {}], [0.25, {"head": Vector3(-0.3, 0, 0)}], [0.5, {"head": Vector3(0.05, 0, 0)}], [0.72, {"head": Vector3(-0.22, 0, 0)}], [1.0, {}]]), "upper", Vector3.ZERO]
+		# --- interacting (Interactable.gesture: InteractionComponent plays it on F) ---
+		"gesture_open":
+			# down to the chest, both hands under the lid, heave it up
+			var low := {"torso": Vector3(-0.7, 0, 0), "head": Vector3(0.35, 0, 0), "hips": Vector3.ZERO,
+				"arm_l": Vector3(1.0, 0, -0.15), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(1.0, 0, 0.15), "fore_r": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(0.75, 0, -0.12), "leg_r": Vector3(0.65, 0, 0.12), "shin_l": Vector3(-1.25, 0, 0), "shin_r": Vector3(-1.15, 0, 0), "_lift": Vector3(0, -0.25, 0)}
+			var heave := low.merged({"torso": Vector3(-0.4, 0, 0), "head": Vector3(0.2, 0, 0), "arm_l": Vector3(1.65, 0, -0.15), "fore_l": Vector3(0.6, 0, 0),
+				"arm_r": Vector3(1.65, 0, 0.15), "fore_r": Vector3(0.6, 0, 0), "_lift": Vector3(0, -0.18, 0)}, true)
+			return [h._keys(u, [[0.0, {}], [0.3, low, "out"], [0.45, low], [0.7, heave, "out"], [0.85, heave], [1.0, {}]]), "full", Vector3.ZERO]
+		"gesture_pickup":
+			var dip := {"torso": Vector3(-0.85, 0, 0), "head": Vector3(0.4, 0, 0), "hips": Vector3.ZERO,
+				"arm_r": Vector3(1.0, 0, 0.1), "fore_r": Vector3(0.2, 0, 0), "arm_l": Vector3(0.3, 0, -0.2), "fore_l": Vector3(0.6, 0, 0),
+				"leg_l": Vector3(0.6, 0, -0.1), "leg_r": Vector3(0.1, 0, 0.1), "shin_l": Vector3(-0.9, 0, 0), "shin_r": Vector3(-0.5, 0, 0), "_lift": Vector3(0, -0.15, 0)}
+			var got := {"arm_r": Vector3(0.6, 0.2, 0.1), "fore_r": Vector3(1.4, 0, 0), "torso": Vector3(-0.1, 0, 0), "head": Vector3(-0.15, 0, 0)}
+			return [h._keys(u, [[0.0, {}], [0.4, dip, "out"], [0.55, dip], [0.85, got], [1.0, {}]]), "full", Vector3.ZERO]
+		"gesture_lever":
+			# both hands up on the handle, then hauled down with the weight
+			var hi := {"arm_r": Vector3(2.6, 0, 0.2), "fore_r": Vector3(0.3, 0, 0), "arm_l": Vector3(2.4, 0, -0.2), "fore_l": Vector3(0.4, 0, 0),
+				"torso": Vector3(0.1, 0, 0), "head": Vector3(0.2, 0, 0), "hips": Vector3.ZERO,
+				"leg_l": Vector3(0.2, 0, -0.08), "leg_r": Vector3(-0.1, 0, 0.08), "shin_l": Vector3(-0.2, 0, 0), "shin_r": Vector3(-0.15, 0, 0), "_lift": Vector3.ZERO}
+			var haul := {"arm_r": Vector3(1.2, 0, 0.15), "fore_r": Vector3(0.9, 0, 0), "arm_l": Vector3(1.1, 0, -0.15), "fore_l": Vector3(1.0, 0, 0),
+				"torso": Vector3(-0.35, 0, 0), "head": Vector3(0.25, 0, 0), "hips": Vector3.ZERO,
+				"leg_l": Vector3(0.5, 0, -0.08), "leg_r": Vector3(-0.3, 0, 0.08), "shin_l": Vector3(-0.7, 0, 0), "shin_r": Vector3(-0.3, 0, 0), "_lift": Vector3(0, -0.15, 0)}
+			return [h._keys(u, [[0.0, {}], [0.3, hi, "out"], [0.4, hi], [0.62, haul, "in"], [0.85, haul], [1.0, {}]]), "full", Vector3.ZERO]
+		"gesture_push":
+			# hands drawn in, then both palms shoved out, a step into it
+			var wind := {"arm_l": Vector3(0.9, 0, -0.2), "fore_l": Vector3(1.6, 0, 0), "arm_r": Vector3(0.9, 0, 0.2), "fore_r": Vector3(1.6, 0, 0), "torso": Vector3(0.05, 0, 0)}
+			var shove := {"arm_l": Vector3(1.5, 0, -0.15), "fore_l": Vector3(0.15, 0, 0), "arm_r": Vector3(1.5, 0, 0.15), "fore_r": Vector3(0.15, 0, 0),
+				"torso": Vector3(-0.3, 0, 0), "head": Vector3(0.2, 0, 0), "hips": Vector3.ZERO,
+				"leg_l": Vector3(0.5, 0, -0.08), "leg_r": Vector3(-0.35, 0, 0.08), "shin_l": Vector3(-0.6, 0, 0), "shin_r": Vector3(-0.2, 0, 0), "_lift": Vector3(0, -0.08, 0)}
+			return [h._keys(u, [[0.0, {}], [0.25, wind], [0.5, shove, "out"], [0.8, shove], [1.0, {}]]), "full", Vector3.ZERO]
+		"gesture_reach":
+			var rc := {"arm_r": Vector3(1.75, 0, 0.1), "fore_r": Vector3(0.25, 0, 0), "torso": Vector3(-0.15, -0.1, 0), "head": Vector3(0.1, 0, 0)}
+			return [h._keys(u, [[0.0, {}], [0.35, rc, "out"], [0.7, rc], [1.0, {}]]), "upper", Vector3.ZERO]
+		"gesture_hand":
+			# something handed over at arm's length (coin to a trader, a parcel), a little bow with it
+			var hd := {"arm_r": Vector3(1.3, 0.1, 0.05), "fore_r": Vector3(0.35, 0, 0), "hand_r": Vector3(0.3, 0, 0), "torso": Vector3(-0.15, 0, 0), "head": Vector3(0.05, 0, 0)}
+			return [h._keys(u, [[0.0, {}], [0.3, hd, "out"], [0.65, hd], [1.0, {}]]), "upper", Vector3.ZERO]
 	return [{}, "upper", Vector3.ZERO]

@@ -317,6 +317,7 @@ func _build_treasure(i: int) -> void:
 	it.collision_layer = 512
 	it.collision_mask = 0
 	it.prompt_text = "Dig up the treasure"
+	it.gesture = "pickup"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
 	sph.radius = 1.4
@@ -370,6 +371,7 @@ func _build_bottle(i: int) -> void:
 	it.collision_mask = 0
 	it.usable_in_water = true
 	it.prompt_text = "Fish out the bottle"
+	it.gesture = "pickup"
 	var cs := CollisionShape3D.new()
 	var sph := SphereShape3D.new()
 	sph.radius = 1.6
