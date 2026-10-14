@@ -211,6 +211,9 @@ scripts/player_states/jump_state.gd     movetest invtest
 scripts/player_states/fall_state.gd     movetest
 scripts/npc/humanoid.gd                 movetest
 tools/dev/movetest.gd                   movetest
+scripts/npc/body_builder.gd             cliptest
+scripts/npc/character_look.gd           cliptest
+tools/dev/cliptest.gd                   cliptest
 # --- the island smoke test (land.ps1 runs it on every landing too) ---
 scripts/island/*                        smoketest
 scripts/enemies/*                       smoketest

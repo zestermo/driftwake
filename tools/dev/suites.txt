@@ -59,4 +59,5 @@ daggertest
 smoketest
 healtest
 movetest
+cliptest
 emotetest
