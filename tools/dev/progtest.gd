@@ -15,7 +15,9 @@ var v0 := 0.0
 var pos0 := Vector3.ZERO
 var saw := {}
 var SG
-func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
+var until := 0
+const TK = preload("res://tools/dev/test_kit.gd")
+func _initialize(): TK.seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
 	if not cond: fails += 1
@@ -92,8 +94,11 @@ func _process(d: float) -> bool:
 		for x in camp.grunts:
 			if is_instance_valid(x):
 				x._cooldown = 99.0; x._pistol_cd = 99.0; x._shot_cd = 99.0; x._shove_cd = 99.0
+	# (waits are game time, in physics ticks: a long frame on a loaded machine ran a 0.3 s dodge out inside a 0.2 s wait)
 	if wait > 0.0:
-		wait -= d
+		until = TK.wait_secs(wait)
+		wait = 0.0
+	if TK.ticking(until):
 		return false
 	match step:
 		0:
