@@ -82,3 +82,6 @@ foreach ($r in $board.Rows) {
 }
 $held = Get-SlotHolders $crew
 Write-Host ("Test slots: {0} of {1} in use{2}" -f $held.Count, (Get-SlotCount), $(if ($held.Count) { ": " + ($held -join "; ") } else { "" }))
+$landing = Get-Landing $crew
+$waiting = @(Get-LandQueue $crew | ForEach-Object { $_.branch })
+if ($landing) { Write-Host ("Landing: {0} ({1}, since {2:HH:mm}){3}" -f $landing.branch, $landing.step, [datetime]$landing.since, $(if ($waiting) { "; waiting: " + ($waiting -join ", ") } else { "" })) }

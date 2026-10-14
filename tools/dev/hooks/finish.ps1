@@ -16,6 +16,11 @@ function Block([string]$why) {
 	exit 0
 }
 
+foreach ($p in @("rebase-merge", "rebase-apply")) {
+	if (Test-Path (git -C $root rev-parse --path-format=absolute --git-path $p).Trim()) {
+		Block "This worktree is stopped mid-rebase (land.ps1 hit a conflict with main). Fix the conflicted files (git status lists them), git add them, git rebase --continue, then run .\tools\dev\land.ps1 again; or git rebase --abort to put the branch back."
+	}
+}
 $dirty = @(git -C $root status --porcelain)
 if ($dirty) {
 	Block ("This worktree has uncommitted changes. Commit them (or revert what you don't want) before finishing:`n" + (($dirty | Select-Object -First 15) -join "`n"))

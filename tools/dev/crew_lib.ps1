@@ -6,15 +6,100 @@
 #   claims\    what each session says it's working on (crew.ps1 claim)
 #   live\      every test run's live status (<run id>.json; the Tests pane reads them)
 #   inflight\  suites running right now, by tree (a second runner of the same code waits for it)
-#   ledger\    each suite's last result (<suite>.json: passed/failed/stopped, the tree, branch, when, why)
+#   ledger\    each suite's last result (<suite>.json: passed/failed/stopped, the tree, branch, when, why,
+#              seconds and setup seconds); ledger\history\<suite>.jsonl every result (suite_times.ps1)
+#   landing.lock / landing.json  the one land.ps1 running (held open; who, since, step); landq\ the landers waiting
 #   status.json every suite's state against the main checkout's code (tools/dev/test_status.ps1)
 #   board.json the last board, for the edit hook (refreshed when older than a minute)
 
 function Get-CrewDir([string]$root) {
 	$common = (git -C $root rev-parse --path-format=absolute --git-common-dir).Trim()
 	$dir = Join-Path $common "crew"
-	foreach ($d in @("slots", "results", "claims", "live", "inflight", "ledger")) { New-Item -ItemType Directory -Force -Path (Join-Path $dir $d) | Out-Null }
+	foreach ($d in @("slots", "results", "claims", "live", "inflight", "ledger", "ledger\history", "landq")) { New-Item -ItemType Directory -Force -Path (Join-Path $dir $d) | Out-Null }
 	return $dir
+}
+
+## Replace a small JSON file in one move (a reader may have it open this instant: Windows then refuses, so retry).
+function Write-CrewJson([string]$path, $obj) {
+	[System.IO.File]::WriteAllText("$path.tmp", ($obj | ConvertTo-Json -Depth 6 -Compress))
+	for ($i = 0; ; $i++) {
+		try { Move-Item -Force "$path.tmp" $path -ErrorAction Stop; return }
+		catch [System.IO.IOException] { if ($i -ge 20) { throw }; Start-Sleep -Milliseconds 50 }
+	}
+}
+
+# ---------------------------------------------------------------------------
+# Landing: one land.ps1 at a time machine-wide, the rest wait in order.
+# ---------------------------------------------------------------------------
+
+## Who's landing now (landing.json), or $null. A landing.json whose lock nobody holds (its lander died) is cleared.
+function Get-Landing([string]$crew) {
+	$f = Join-Path $crew "landing.json"
+	if (-not (Test-Path $f)) { return $null }
+	try {
+		([System.IO.File]::Open((Join-Path $crew "landing.lock"), "OpenOrCreate", "ReadWrite", "None")).Dispose()
+		Remove-Item $f -Force -ErrorAction SilentlyContinue
+		return $null
+	} catch { }
+	# (it can be mid-replace for an instant: the step changing)
+	$t = Get-Content $f -Raw -ErrorAction SilentlyContinue
+	if ($t) { return ($t | ConvertFrom-Json) }
+	return $null
+}
+
+## The landers waiting, oldest first (an entry whose process is gone is cleared).
+function Get-LandQueue([string]$crew) {
+	$out = @()
+	foreach ($f in @(Get-ChildItem (Join-Path $crew "landq") -Filter "*.json" -ErrorAction SilentlyContinue | Sort-Object Name)) {
+		# (gone already if its lander just took the lock)
+		$t = Get-Content $f.FullName -Raw -ErrorAction SilentlyContinue
+		if (-not $t) { continue }
+		$q = $t | ConvertFrom-Json
+		if (Get-Process -Id $q.pid -ErrorAction SilentlyContinue) { $out += $q } else { Remove-Item $f.FullName -Force -ErrorAction SilentlyContinue }
+	}
+	return $out
+}
+
+## Wait in line, then take the landing lock: the lock's stream (hold it; Exit-Landing). Says who it's waiting for.
+function Enter-Landing([string]$crew, [string]$branch) {
+	$since = Get-Date
+	$q = Join-Path $crew ("landq\{0:yyyyMMdd-HHmmss-fff}-{1}.json" -f $since, $PID)
+	Write-CrewJson $q ([ordered]@{ branch = $branch; pid = $PID; since = $since.ToString("o") })
+	$told = ""
+	try {
+		while ($true) {
+			$line = @(Get-LandQueue $crew)
+			if ($line.Count -gt 0 -and $line[0].pid -eq $PID) {
+				$fs = $null
+				try { $fs = [System.IO.File]::Open((Join-Path $crew "landing.lock"), "OpenOrCreate", "ReadWrite", "None") } catch { }
+				if ($fs) {
+					Write-CrewJson (Join-Path $crew "landing.json") ([ordered]@{ branch = $branch; pid = $PID; since = (Get-Date).ToString("o"); step = "starting" })
+					return $fs
+				}
+			}
+			$now = Get-Landing $crew
+			$ahead = @($line | Where-Object { $_.pid -ne $PID -and [datetime]$_.since -le $since } | ForEach-Object { $_.branch })
+			$msg = "Waiting to land {0}: {1}{2}" -f $branch,
+				$(if ($now) { "{0} is landing (since {1:HH:mm}, {2})" -f $now.branch, [datetime]$now.since, $now.step } else { "the lock is being handed on" }),
+				$(if ($ahead) { "; ahead of you: " + ($ahead -join ", ") } else { "" })
+			if ($msg -ne $told) { Write-Host $msg -ForegroundColor DarkYellow; $told = $msg }
+			Start-Sleep -Seconds 3
+		}
+	} finally {
+		Remove-Item $q -Force -ErrorAction SilentlyContinue
+	}
+}
+
+function Set-LandingStep([string]$crew, [string]$step) {
+	$f = Join-Path $crew "landing.json"
+	$l = Get-Content $f -Raw | ConvertFrom-Json
+	$l.step = $step
+	Write-CrewJson $f $l
+}
+
+function Exit-Landing([string]$crew, $fs) {
+	Remove-Item (Join-Path $crew "landing.json") -Force -ErrorAction SilentlyContinue
+	$fs.Dispose()
 }
 
 function Get-CrewBranch([string]$root) {
@@ -291,7 +376,7 @@ function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]
 	$psi.EnvironmentVariables.Remove("DRIFTWAKE_SEED")
 	if ($seed) { $psi.EnvironmentVariables["DRIFTWAKE_SEED"] = $seed }
 	$p = [System.Diagnostics.Process]::Start($psi)
-	return [pscustomobject]@{ Proc = $p; Log = $log; Started = Get-Date; Grew = Get-Date; Offset = [long]0; Carry = ""
+	return [pscustomobject]@{ Proc = $p; Log = $log; Started = Get-Date; Grew = Get-Date; First = [datetime]::MinValue; Offset = [long]0; Carry = ""
 		Errors = 0; FirstErrors = @(); Tail = New-Object System.Collections.Generic.List[string]; Parse = $false
 		Fail = New-Object System.Collections.Generic.List[string]; FailAt = [datetime]::MinValue; FailDone = $false; Seed = "" }
 }
@@ -315,6 +400,7 @@ function Update-GodotJob($job) {
 		$whole = if ($lines.Count -gt 1) { $lines[0..($lines.Count - 2)] } else { @() }
 		foreach ($l in $whole) {
 			if (-not $l.Trim()) { continue }
+			if ($job.First -eq [datetime]::MinValue -and $l -cmatch "^\s*(PASS|FAIL)\b") { $job.First = Get-Date }
 			# (the seed in use: a suite looping over seeds prints each; the failure ran on the latest)
 			if ($job.Fail.Count -eq 0 -and $l -cmatch "^SEED (-?\d+)") { $job.Seed = $Matches[1] }
 			# the first failure and the stack lines under it, whole
@@ -389,12 +475,25 @@ function Get-InFlight([string]$crew, [string]$tree, [string]$suite) {
 	return ""
 }
 
-## A suite's latest result, whoever ran it (test_status.ps1 and the Tests pane read these).
-function Write-Ledger([string]$crew, [string]$suite, [string]$state, [string]$tree, [string]$branch, [int]$secs, [string]$why) {
+## Seconds from the suite's start to its first PASS/FAIL line (loading, world build), or -1 if none came.
+function Get-JobSetup($job) {
+	if ($job.First -eq [datetime]::MinValue) { return -1 }
+	return [int]($job.First - $job.Started).TotalSeconds
+}
+
+## A suite's latest result, whoever ran it (test_status.ps1 and the Tests pane read these), and a line in its
+## history (suite_times.ps1). `setup`: Get-JobSetup's, -1 when not measured.
+function Write-Ledger([string]$crew, [string]$suite, [string]$state, [string]$tree, [string]$branch, [int]$secs, [string]$why, [int]$setup = -1) {
 	$f = Join-Path $crew "ledger\$suite.json"
-	$rec = [ordered]@{ suite = $suite; state = $state; tree = $tree; branch = $branch; at = (Get-Date).ToString("o"); secs = $secs; why = $why }
+	$rec = [ordered]@{ suite = $suite; state = $state; tree = $tree; branch = $branch; at = (Get-Date).ToString("o"); secs = $secs; setup = $setup; why = $why }
 	[System.IO.File]::WriteAllText("$f.tmp", ($rec | ConvertTo-Json -Compress))
 	Move-Item -Force "$f.tmp" $f
+	$h = Join-Path $crew "ledger\history\$suite.jsonl"
+	$line = ([ordered]@{ state = $state; at = $rec.at; secs = $secs; setup = $setup; branch = $branch } | ConvertTo-Json -Compress) + "`n"
+	for ($i = 0; ; $i++) {
+		try { [System.IO.File]::AppendAllText($h, $line); return }
+		catch [System.IO.IOException] { if ($i -ge 20) { throw }; Start-Sleep -Milliseconds 50 }
+	}
 }
 
 function Set-InFlight([string]$crew, [string]$tree, [string]$suite, [string]$label, [bool]$on) {

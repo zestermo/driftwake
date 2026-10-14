@@ -114,7 +114,8 @@ foreach ($s in $all) {
 
 $counts = [ordered]@{}
 foreach ($k in @("ok", "stale", "failing", "never")) { $counts[$k] = @($rows | Where-Object { $_.state -eq $k }).Count }
-$status = [ordered]@{ at = (Get-Date).ToString("o"); root = $root; branch = (Get-CrewBranch $root); tree = $tree; counts = $counts; groups = $groups; suites = $rows }
+$landing = [ordered]@{ now = (Get-Landing $crew); queue = @(Get-LandQueue $crew) }
+$status = [ordered]@{ at = (Get-Date).ToString("o"); root = $root; branch = (Get-CrewBranch $root); tree = $tree; counts = $counts; groups = $groups; suites = $rows; landing = $landing }
 [System.IO.File]::WriteAllText((Join-Path $crew "status.json.tmp"), ($status | ConvertTo-Json -Depth 6 -Compress))
 Move-Item -Force (Join-Path $crew "status.json.tmp") (Join-Path $crew "status.json")
 
@@ -123,6 +124,7 @@ if ($Stale) {
 	exit 0
 }
 Write-Host ("{0} ok, {1} need to run, {2} failing, {3} never run   ({4}, {5})" -f $counts.ok, $counts.stale, $counts.failing, $counts.never, $status.branch, $tree.Substring(0, 8))
+if ($landing.now) { Write-Host ("Landing: {0} ({1}){2}" -f $landing.now.branch, $landing.now.step, $(if ($landing.queue) { "; waiting: " + (@($landing.queue | ForEach-Object { $_.branch }) -join ", ") } else { "" })) -ForegroundColor Cyan }
 foreach ($r in $rows | Where-Object { $_.state -ne "ok" }) {
 	$c = switch ($r.state) { "failing" { "Red" } "stale" { "Yellow" } default { "DarkGray" } }
 	Write-Host ("  {0,-8} {1,-14} {2}{3}" -f $r.state, $r.name, $r.why, $(if ($r.files) { "  [" + ($r.files -join ", ") + "]" } else { "" })) -ForegroundColor $c

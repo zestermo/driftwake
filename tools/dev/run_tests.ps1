@@ -169,7 +169,7 @@ function Finish-Suite($job, [string]$trouble, [bool]$failed = $false) {
 		why = $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($job.Fail.Count -gt 0) { $job.Fail[0] } elseif ($fails) { $fails[0] } else { $summary })
 		fail = @($job.Fail); last = @($job.Tail); seed = $job.Seed }
 	if ($ok -and -not $Seed) { Set-CachedPass $crew $tree $job.Name $me }
-	if (-not $Seed) { Write-Ledger $crew $job.Name $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }) $tree $me $secs $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary }) }
+	if (-not $Seed) { Write-Ledger $crew $job.Name $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }) $tree $me $secs $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary }) (Get-JobSetup $job) }
 	return [pscustomobject]@{ Ok = $ok; Fails = $fails; Trouble = $trouble }
 }
 
