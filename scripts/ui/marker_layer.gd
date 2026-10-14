@@ -51,7 +51,7 @@ func _dead(n: Node) -> bool:
 ## (off screen: pinned to the edge, toward it).
 func _place(cam: Camera3D, pos: Vector3, vs: Vector2) -> Array:
 	var behind := cam.is_position_behind(pos)
-	var sp := cam.unproject_position(pos)
+	var sp := PixelCanvas.project(cam, pos, vs)
 	if behind:
 		sp = vs - sp
 	var inside := not behind and Rect2(Vector2(EDGE, EDGE), vs - Vector2(EDGE, EDGE) * 2.0).has_point(sp)
@@ -87,7 +87,7 @@ func _draw_waypoints(cam: Camera3D, vs: Vector2, me: Node3D) -> void:
 
 
 func _draw() -> void:
-	var cam := get_viewport().get_camera_3d()
+	var cam := get_tree().root.get_camera_3d()
 	if cam == null:
 		return
 	var vs := get_viewport_rect().size

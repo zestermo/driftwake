@@ -300,5 +300,54 @@ static func stepper(min_width: float = 0.0) -> Button:
 	return b
 
 
+## A key cap ("F", "TAB"): its label is the cap's only child.
+static func key_cap(key: String, on_paper: bool = false) -> PanelContainer:
+	var chip := PanelContainer.new()
+	var sb := framed(CREAM if not on_paper else Color("e8d6ae"), BORDER_DIM, "chip", 2, 0)
+	sb.content_margin_top = 1
+	chip.add_theme_stylebox_override("panel", sb)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var k := label(key, 8, INK)
+	k.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+	chip.add_child(k)
+	return chip
+
+
+## A key cap and what it does ("TAB" "CLOSE"), in Silkscreen 8: cream text outlined for teal,
+## ink (`on_paper`) for parchment.
+static func key_hint(key: String, what: String, on_paper: bool = false) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 3)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(key_cap(key, on_paper))
+	var l := label(what, 8, INK if on_paper else TEXT)
+	l.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if not on_paper:
+		l.add_theme_color_override("font_outline_color", OUTLINE)
+		l.add_theme_constant_override("outline_size", 2)
+	hb.add_child(l)
+	return hb
+
+
+## Key caps and what they do ([["TAB", "NEXT TREE"], ...]) drawn in a row from `pos` (the
+## text's baseline) on a canvas item, for the screens drawn by hand; returns where the row ends.
+static func draw_hints(ci: CanvasItem, pos: Vector2, pairs: Array, font: Font, on_paper: bool = false) -> float:
+	var x := pos.x
+	for p in pairs:
+		var k := str(p[0])
+		var kw := font.get_string_size(k, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		ci.draw_style_box(frame(CREAM, BORDER_DIM, 0, "chip"), Rect2(x, pos.y - 8.0, kw + 6.0, 11.0))
+		ci.draw_string(font, Vector2(x + 3.0, pos.y), k, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, INK)
+		x += kw + 9.0
+		var l := str(p[1])
+		if not on_paper:
+			ci.draw_string_outline(font, Vector2(x, pos.y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 2, OUTLINE)
+		ci.draw_string(font, Vector2(x, pos.y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, INK if on_paper else TEXT)
+		x += font.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 10.0
+	return x
+
+
 static func stepper_text(value: String) -> String:
 	return "<  %s  >" % value

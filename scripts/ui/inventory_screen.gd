@@ -21,6 +21,8 @@ const DOLL := [["head", "torso", "vest", "coat", "belt"], ["hands", "legs", "fee
 const TAGS := {"head": "HEAD", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
 	"legs": "LEGS", "feet": "FEET", "acc1": "ACC", "acc2": "ACC", "weapon": "MAIN", "offhand": "OFF"}
 const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam"}
+## Item cards from these places compare with what you hold or wear.
+const COMPARE := ["bag", "loot", "shop"]
 const UP := Color(0.45, 0.95, 0.4)
 const DOWN := Color(1.0, 0.4, 0.33)
 
@@ -108,7 +110,7 @@ class Slot extends Button:
 
 
 var menu: Node  # GameMenu (close / blip)
-var _svc: SubViewportContainer
+var _svc: PixelCanvas
 var _ui: Control
 var _canvas := Vector2(640, 360)
 var _cx := 160.0
@@ -156,29 +158,14 @@ func _init(owner_menu: Node) -> void:
 	name = "Inventory"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_svc = SubViewportContainer.new()
-	_svc.stretch = true
-	_svc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_svc = PixelCanvas.new()
 	add_child(_svc)
-	var vp := SubViewport.new()
-	vp.transparent_bg = true
-	vp.disable_3d = true
-	vp.snap_2d_transforms_to_pixel = true
-	vp.snap_2d_vertices_to_pixel = true
-	vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	_svc.add_child(vp)
-	_ui = Control.new()
-	_ui.theme = UIStyle.get_theme()
-	_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vp.add_child(_ui)
+	_ui = _svc.ui
 	_build()
-
-
-func _ready() -> void:
-	get_tree().root.size_changed.connect(func():
+	_svc.refit.connect(func():
+		_canvas = _svc.canvas
 		if visible:
-			_fit_canvas())
+			_layout())
 
 
 func _player() -> Player:
@@ -393,7 +380,7 @@ func _grow_bag(n: int) -> void:
 		_bag.append(b)
 
 
-func _rule() -> ColorRect:
+static func _rule() -> ColorRect:
 	var r := ColorRect.new()
 	r.color = Color(UIStyle.BORDER_DIM, 0.7)
 	r.custom_minimum_size = Vector2(0, 1)
@@ -404,18 +391,8 @@ func _rule() -> ColorRect:
 # ==========================================================================
 # Canvas and layout
 # ==========================================================================
-## The SubViewport is the screen divided by a whole number (at least 360 tall), shown
-## that many times larger: one canvas pixel is always k by k screen pixels.
 func _fit_canvas() -> void:
-	var win := get_tree().root
-	var px := Vector2(win.size)
-	var k := maxi(1, floori(px.y / 360.0))
-	_canvas = (px / k).floor()
-	_svc.stretch_shrink = k
-	_svc.scale = Vector2.ONE * (win.get_visible_rect().size.y / px.y)
-	_svc.position = Vector2.ZERO
-	_svc.size = _canvas * k
-	_layout()
+	_svc.fit()
 
 
 func _layout() -> void:
@@ -670,7 +647,7 @@ func _show_slot(s: Slot) -> void:
 			_set_hints(_hints_for("", null))
 		return
 	var src := str(d["src"])
-	_fill_info(_tip_box, it, _qty_of(d), src, TIP_W)
+	fill_info(_tip_box, it, _qty_of(d), src, TIP_W, _player())
 	var border := it.rarity_color() if it.rarity != ItemData.Rarity.SUPREME else Color(0.85, 0.85, 0.8)
 	_tip.add_theme_stylebox_override("panel", UIStyle.frame(UIStyle.BG_DARK, border, 5, "plank"))
 	if _flash_t <= 0.0:
@@ -683,7 +660,7 @@ func _show_details() -> void:
 		_sel = null
 		_clear(_details)
 		return
-	_fill_info(_details, _sel, _qty_of(d), str(d["src"]), INFO_W)
+	fill_info(_details, _sel, _qty_of(d), str(d["src"]), INFO_W, _player())
 
 
 ## Where an item is now (it moves when equipped, taken off or taken): {} when it's gone.
@@ -722,7 +699,7 @@ func _qty_of(d: Dictionary) -> int:
 	return 1
 
 
-func _clear(box: Container) -> void:
+static func _clear(box: Container) -> void:
 	for c in box.get_children():
 		box.remove_child(c)
 		c.queue_free()
@@ -731,9 +708,10 @@ func _clear(box: Container) -> void:
 # ==========================================================================
 # Item info (the details panel and the tooltip)
 # ==========================================================================
-func _fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w: float) -> void:
+## An item's card (the details panel, the tooltip; ShopScreen's too): src "bag", "loot" and "shop"
+## compare with what `pl` holds or wears.
+static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w: float, pl: Player) -> void:
 	_clear(box)
-	var pl := _player()
 	var title := _text(it.display_name + ("  x%d" % qty if qty > 1 else ""), it.rarity_color(), BOLD)
 	title.add_theme_color_override("font_outline_color", it.rarity_outline())
 	title.add_theme_constant_override("outline_size", 2)
@@ -756,7 +734,7 @@ func _fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w: floa
 	var fx: Array = []
 	if it.is_weapon():
 		var ws := weapon_stats(it)
-		var cur := pl.equipped_weapon if src in ["bag", "loot"] and pl.equipped_weapon and pl.equipped_weapon.id != it.id else null
+		var cur := pl.equipped_weapon if src in COMPARE and pl.equipped_weapon and pl.equipped_weapon.id != it.id else null
 		var cs := weapon_stats(cur) if cur else {}
 		_stat(grid, "DAMAGE", str(int(round(ws["damage"]))), int(round(ws["damage"])) - int(round(cs["damage"])) if cur else 0, true)
 		_stat(grid, "SPEED", str(ws["speed"]), signf(snappedf(ws["rate"] - cs["rate"], 0.01)) if cur else 0, false)
@@ -774,9 +752,9 @@ func _fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w: floa
 			"katana":
 				fx.append(["Two-handed", UIStyle.TEXT_DIM])
 	elif it.is_gear():
-		var cur := pl.equipment.get_item(pl.equipment.slot_for(it)) if src in ["bag", "loot"] else null
+		var cur := pl.equipment.get_item(pl.equipment.slot_for(it)) if src in COMPARE else null
 		var arm := int(round(it.armor()))
-		_stat(grid, "DEFENSE", str(arm), arm - (int(round(cur.armor())) if cur else 0) if src in ["bag", "loot"] else 0, true)
+		_stat(grid, "DEFENSE", str(arm), arm - (int(round(cur.armor())) if cur else 0) if src in COMPARE else 0, true)
 	elif it.is_consumable():
 		if it.heal_amount > 0.0:
 			_stat(grid, "HEALS", str(int(it.heal_amount)), 0, false)
@@ -801,7 +779,7 @@ func _fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w: floa
 
 
 ## A stat row: name, value and (diff != 0) an arrow against what you have on.
-func _stat(grid: GridContainer, label: String, value: String, diff: float, show_num: bool) -> void:
+static func _stat(grid: GridContainer, label: String, value: String, diff: float, show_num: bool) -> void:
 	var n := small(label, UIStyle.TEXT_DIM)
 	n.custom_minimum_size = Vector2(46, 0)
 	grid.add_child(n)
@@ -820,7 +798,7 @@ func _stat(grid: GridContainer, label: String, value: String, diff: float, show_
 		cmp.add_child(small("%+d" % int(diff), UP if diff > 0.0 else DOWN))
 
 
-func _kind(it: ItemData) -> String:
+static func _kind(it: ItemData) -> String:
 	match it.item_type:
 		ItemData.ItemType.WEAPON:
 			return it.weapon_model
@@ -892,19 +870,7 @@ func _hints_for(src: String, it: ItemData) -> Array:
 func _set_hints(pairs: Array) -> void:
 	_clear(_hints)
 	for p in pairs:
-		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", 3)
-		var chip := PanelContainer.new()
-		var sb := UIStyle.framed(UIStyle.CREAM, UIStyle.BORDER_DIM, "chip", 2, 0)
-		sb.content_margin_top = 1
-		chip.add_theme_stylebox_override("panel", sb)
-		chip.add_child(small(str(p[0]), UIStyle.INK))
-		hb.add_child(chip)
-		var l := small(str(p[1]), UIStyle.TEXT)
-		l.add_theme_color_override("font_outline_color", UIStyle.OUTLINE)
-		l.add_theme_constant_override("outline_size", 2)
-		hb.add_child(l)
-		_hints.add_child(hb)
+		_hints.add_child(UIStyle.key_hint(str(p[0]), str(p[1])))
 
 
 ## A short note in place of the hints for a moment (why that didn't work).

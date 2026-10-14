@@ -372,10 +372,8 @@ func _draw_item(r: Rect2, i: int) -> void:
 		var qty := inv.count(item.id)
 		if item.icon:
 			draw_texture_rect(item.icon, r.grow(-1.0), false, Color(1, 1, 1, 1.0 if qty > 0 else 0.3))
-		var cd := player.heal_cd
-		if cd > 0.0:
-			_cooldown_pie(r.grow(-1.0), cd / Player.HEAL_CD)
-			_text(Vector2(r.position.x, r.get_center().y + 4.0), str(ceili(cd)), Color.WHITE, 8, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+		if player.heal_cd > 0.0:
+			_cooldown_pie(r.grow(-1.0), player.heal_cd / Player.HEAL_CD)
 		if _quick_ready > 0.0:
 			draw_rect(r.grow(-1.0), Color(1, 1, 1, _quick_ready * 1.2))
 		_text(Vector2(r.position.x, r.end.y - 1.0), str(qty), Color.WHITE if qty > 0 else UIStyle.DANGER_TEXT, 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)

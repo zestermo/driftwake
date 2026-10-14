@@ -46,7 +46,7 @@ func _process(delta: float) -> void:
 func _swing(delta: float, me: Node3D) -> void:
 	var gm := get_node_or_null("/root/GameManager")
 	var targets: Array = MARKS.targets(gm) if gm else []
-	var cam := get_viewport().get_camera_3d()
+	var cam := get_tree().root.get_camera_3d()
 	var heading := 0.0
 	if cam:
 		var f := -cam.global_basis.z

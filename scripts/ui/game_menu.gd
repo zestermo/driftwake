@@ -5,6 +5,7 @@ extends CanvasLayer
 
 var _root: Control
 var _dim: ColorRect
+var _pc: PixelCanvas
 var _screens: Dictionary = {}
 var _current: String = ""
 var _blip: AudioStreamPlayer
@@ -79,8 +80,11 @@ func _ready() -> void:
 	_load.chosen.connect(_load_slot)
 	_load.cancelled.connect(func(): open("pause"))
 	_screens["load"] = _load
+	# every screen but the inventory (its own canvas) shares one crisp canvas
+	_pc = PixelCanvas.new()
+	_root.add_child(_pc)
 	for s in _screens.values():
-		_root.add_child(s)
+		(_root if s == _inventory else _pc.ui).add_child(s)
 	_root.visible = false
 	get_tree().root.size_changed.connect(func():
 		if _current != "":
@@ -223,6 +227,7 @@ func open(screen: String) -> void:
 	_dim.visible = screen not in ["inventory", "skills", "yard"]
 	for n in _screens.keys():
 		_screens[n].visible = (n == screen)
+	_pc.visible = screen != "inventory"
 	# (in co-op the world keeps running: your captain just stands still)
 	Net.set_paused(true)
 	get_tree().call_group("hud", "set_menu_open", true)
@@ -251,7 +256,7 @@ func open(screen: String) -> void:
 
 ## Shrink the open panel if it wouldn't fit (small or odd-shaped windows).
 func _fit_current() -> void:
-	if _current in ["pause", "options", "controls", "load", "shop"]:
+	if _current in ["pause", "options", "controls", "load"]:
 		UIStyle.fit_to_screen(_screens[_current] as Control)
 
 

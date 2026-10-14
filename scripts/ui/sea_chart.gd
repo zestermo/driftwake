@@ -212,7 +212,7 @@ func _draw() -> void:
 			draw_line(c, c + Vector2(0, -10), ink, 1.0)
 			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -10), c + Vector2(7, -7.5), c + Vector2(0, -5)]), col)
 			draw_string(_font, c + Vector2(3, 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
-	draw_string(_font, Vector2(14, SIZE.y - 10), "Click: set a mark   Right-click: remove   C: clear your marks   M: close", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	UIStyle.draw_hints(self, Vector2(16, SIZE.y - 11), [["LMB", "SET A MARK"], ["RMB", "REMOVE IT"], ["C", "CLEAR YOUR MARKS"], ["M", "CLOSE"]], _font, true)
 
 
 ## The chain's islands: the one we're at (marked), where the log pose points

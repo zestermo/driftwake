@@ -146,7 +146,7 @@ func _process(d: float) -> bool:
 			step = 1
 		1:
 			var hud = get_first_node_in_group("hud")
-			var icon = hud.get_node("LogPose")
+			var icon = hud._log_pose
 			check("holding L raises it", p.log_pose_up and p.body_model.current_action() == "log_pose")
 			check("...and the HUD shows the log pose", icon.visible and icon._k > 0.9)
 			var lp = p.body_model.fore_l.get_node("LogPose")
@@ -164,7 +164,7 @@ func _process(d: float) -> bool:
 			wait = 0.5
 			step = 2
 		2:
-			var icon = get_first_node_in_group("hud").get_node("LogPose")
+			var icon = get_first_node_in_group("hud")._log_pose
 			check("let go of L, it's lowered and the icon goes", not p.log_pose_up and p.body_model.current_action() != "log_pose" and not icon.visible)
 			# saved and loaded back
 			var seed_was: int = gm.chain_seed

@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"chart", "yard", "shop", "load", "dialogue", "hud", "emotes"]
+	"skills_tip", "chart", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes"]
 var si := 0
 
 
@@ -27,6 +27,14 @@ var win_size := Vector2i.ZERO
 
 func gm():
 	return root.get_node("GameMenu")
+
+
+## The menu canvas's mouse at `at` (canvas pixels) without moving the real cursor.
+func hover(at: Vector2) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.position = at
+	ev.global_position = at
+	gm()._pc._vp.push_input(ev, true)
 
 
 func _process(d: float) -> bool:
@@ -53,6 +61,7 @@ func _process(d: float) -> bool:
 			var s: String = screens[si]
 			gm().close()
 			root.get_node("Dialogue").call("_close") if root.get_node("Dialogue").has_method("_close") and root.get_node("Dialogue").active else null
+			root.get_node("Dialogue")._box.close()
 			match s:
 				"inventory_char":
 					gm().open("inventory")
@@ -69,6 +78,30 @@ func _process(d: float) -> bool:
 					gm().open_container(root.get_tree().get_first_node_in_group("ship").storage)
 				"shop":
 					gm().open_shop("nessa")
+				"skills_tip":
+					gm().open("skills")
+					var sm = gm()._skills
+					sm.set_tab("sword")
+					var id := ""
+					for nid in SkillTree.nodes().keys():
+						if id == "" and SkillTree.nodes()[nid]["tree"] == "sword" and SkillTree.nodes()[nid]["kind"] == "passive":
+							id = nid
+					sm._hover = id
+					hover(sm._to_screen(SkillTree.get_node_def(id)["pos"]))
+				"shop_tip":
+					p.inventory_component.add_item(load("res://resources/items/cutlass.tres"), 1)
+					gm().open_shop("vey")
+					var shop = gm()._shop
+					var slot = shop._stock_slots[3]
+					shop._pick("shop", 3)
+					shop._hover = slot
+					hover(slot.get_global_rect().get_center())
+				"dialogue_choice":
+					var box = root.get_node("Dialogue")._box
+					box.open()
+					box.show_line("Nessa", "Sea-gems, captain? I pay full price. Or are you after something else?",
+						[{"text": "Let's trade."}, {"text": "Heard any rumours?"}, {"text": "Another time."}], 1.0)
+					box.finish_typing()
 				"dialogue":
 					root.get_node("Dialogue").say("Odile", ["Welcome to Brinehollow, captain. Mind the smugglers down at the cove, they've been bold of late and the lighthouse keeper swears he saw lights on the water."])
 				"hud":

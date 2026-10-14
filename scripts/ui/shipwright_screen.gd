@@ -48,6 +48,7 @@ func _init(menu: Node) -> void:
 		txt.add_child(UIStyle.label(r[2], 8, UIStyle.TEXT_DIM))
 		row.add_child(txt)
 		var b := UIStyle.button("", 56)
+		b.tooltip_text = "%s.\n%d gold, and she keeps it for good." % [r[2], int(r[3])]
 		var id: String = r[0]
 		b.pressed.connect(func(): buy(id))
 		row.add_child(b)
@@ -75,6 +76,7 @@ func _init(menu: Node) -> void:
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cell.add_child(UIStyle.label(l[1], 8, UIStyle.TEXT_DIM))
 		var b := UIStyle.stepper()
+		b.tooltip_text = "Click the left or right half (or arrow keys) to change it. Free."
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var key: String = l[0]
 		b.connect("stepped", func(d: int): cycle(key, d))
@@ -119,7 +121,7 @@ func _start_preview() -> void:
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
 	if ship == null or _cam:
 		return
-	_was_cam = get_viewport().get_camera_3d()
+	_was_cam = get_tree().root.get_camera_3d()
 	_cam = Camera3D.new()
 	_cam.name = "YardCamera"
 	_cam.fov = 55.0

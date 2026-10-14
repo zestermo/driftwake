@@ -78,9 +78,9 @@ func _process(d: float) -> bool:
 					if st.item and st.item.devil_fruit != "": found = true
 			check("Devil Fruits in chests only when IN_WORLD is on (%s)" % DevilFruits.IN_WORLD, found == DevilFruits.IN_WORLD)
 			var hud = root.get_tree().get_first_node_in_group("hud")
-			var bar = hud.get_node_or_null("SkillBar")
+			var bar = hud._skill_bar
 			check("skill bar on the HUD", bar != null and bar.visible)
-			check("old health row hidden", not hud.get_node("Top/VBox/HealthRow").visible)
+			check("old health row hidden", not hud.top_box.get_node("VBox/HealthRow").visible)
 			check("no skills at level 1", not pc.has_fruit() and pc.can_cast(0) == "Empty" and p.progression.level == 1)
 			check("parry sound loaded", root.get_node("FX")._streams.has("parry"))
 			# eat it

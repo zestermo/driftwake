@@ -89,7 +89,7 @@ func _draw() -> void:
 		return
 	var c := Story.current()
 	var pos := Story.target_pos()
-	var cam := get_viewport().get_camera_3d()
+	var cam := get_tree().root.get_camera_3d()
 	if pos == Vector3.INF or cam == null:
 		return
 	var d := _distance()
@@ -97,7 +97,7 @@ func _draw() -> void:
 		return
 	var vs := get_viewport_rect().size
 	var behind := cam.is_position_behind(pos)
-	var sp := cam.unproject_position(pos)
+	var sp := PixelCanvas.project(cam, pos, vs)
 	if behind:
 		sp = vs - sp
 	var inside := not behind and Rect2(Vector2(EDGE, EDGE + 30.0), vs - Vector2(EDGE * 2.0, EDGE * 2.0 + 30.0)).has_point(sp)

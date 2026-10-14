@@ -44,7 +44,7 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var cam := get_viewport().get_camera_3d()
+	var cam := get_tree().root.get_camera_3d()
 	if cam == null:
 		return
 	var f := -cam.global_basis.z

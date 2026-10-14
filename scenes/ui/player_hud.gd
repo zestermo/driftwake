@@ -17,6 +17,8 @@ extends CanvasLayer
 @onready var banner_title: Label = $Banner/Title
 @onready var banner_sub: Label = $Banner/Subtitle
 @onready var toast: Label = $Toast
+@onready var top_box: MarginContainer = $Top
+@onready var compass_box: HBoxContainer = $CompassContainer
 
 var player: Player
 var ship: Node3D
@@ -30,6 +32,7 @@ var _fps: Label
 var _in_dialogue: bool = false
 const OBJECTIVE := preload("res://scripts/ui/objective_hud.gd")
 var _objective: Control
+var _pc: PixelCanvas
 
 
 func _ready() -> void:
@@ -44,7 +47,13 @@ func _ready() -> void:
 	ivb.add_theme_constant_override("separation", 1)
 	ivb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	interact_panel.remove_child(interact_label)
-	ivb.add_child(interact_label)
+	var irow := HBoxContainer.new()
+	irow.add_theme_constant_override("separation", 5)
+	irow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_interact_key = UIStyle.key_cap("F")
+	irow.add_child(_interact_key)
+	irow.add_child(interact_label)
+	ivb.add_child(irow)
 	interact_panel.add_child(ivb)
 	_hold_bar = _bar(Color(0.95, 0.8, 0.35))
 	_hold_bar.custom_minimum_size = Vector2(0, 3)
@@ -78,6 +87,13 @@ func _ready() -> void:
 	_objective = OBJECTIVE.new()
 	_objective.name = "Objective"
 	add_child(_objective)
+	# all of it on a crisp canvas (whole screen pixels per canvas pixel)
+	_pc = PixelCanvas.new()
+	_pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for c in get_children():
+		if c is Control:
+			c.reparent(_pc.ui, false)
+	add_child(_pc)
 	Dialogue.dialogue_started.connect(func(_id): _in_dialogue = true)
 	Dialogue.dialogue_ended.connect(func(_id): _in_dialogue = false)
 	await get_tree().process_frame
@@ -109,7 +125,7 @@ func _process(delta: float) -> void:
 	_update_compass()
 	# the loot line and the crew list sit under the objective
 	var oh: float = _objective.tracker_height()
-	$Top.offset_top = 8.0 + oh
+	top_box.offset_top = 8.0 + oh
 	_party.position.y = 46.0 + oh
 	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT and player.current_state_name() != "Wake"
 	_skill_bar.visible = show_bar and not _menu_open
@@ -126,7 +142,7 @@ func _process(delta: float) -> void:
 		state_label.text = player.state_machine.current_state.name
 
 	# (no pointer to a ship that isn't yours yet)
-	$CompassContainer.visible = ship != null and (ship as Ship).owned()
+	compass_box.visible = ship != null and (ship as Ship).owned()
 	if player and ship:
 		var to_ship := ship.global_position - player.global_position
 		var dist := Vector2(to_ship.x, to_ship.z).length()
@@ -196,6 +212,7 @@ func _on_health_changed(current: float, maximum: float) -> void:
 var _interact_text: String = ""
 var _hold_text: String = ""
 var _hold_bar: ProgressBar
+var _interact_key: PanelContainer
 
 
 func _on_prompt_changed(text: String) -> void:
@@ -208,20 +225,18 @@ func _on_prompt_hidden() -> void:
 	_show_interact()
 
 
-## One prompt panel for both: "[F] Man the cannon", "[Hold F] Patch the hole".
+## One prompt panel for both: [F] Man the cannon, [HOLD F] Patch the hole.
 func _show_interact() -> void:
-	var text := ""
-	if _hold_text != "":
-		text = "[Hold F] " + _hold_text
-	elif _interact_text != "":
-		text = "[F] " + _interact_text
+	var text := _hold_text if _hold_text != "" else _interact_text
 	interact_panel.visible = text != ""
 	_hold_bar.visible = _hold_text != ""
-	if text == "" or text == interact_label.text:
+	var key := "HOLD F" if _hold_text != "" else "F"
+	if text == "" or (text == interact_label.text and key == (_interact_key.get_child(0) as Label).text):
 		return
 	interact_label.text = text
+	(_interact_key.get_child(0) as Label).text = key
 	interact_panel.reset_size()
-	interact_panel.position.x = (get_viewport().get_visible_rect().size.x - interact_panel.size.x) * 0.5
+	interact_panel.position.x = roundf((interact_panel.get_parent_area_size().x - interact_panel.size.x) * 0.5)
 
 
 func _on_inventory_changed() -> void:
@@ -570,27 +585,34 @@ func _build_bars() -> void:
 	_boss_box = VBoxContainer.new()
 	_boss_box.name = "BossBar"
 	_boss_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_boss_box.offset_left = -130
-	_boss_box.offset_right = 130
+	_boss_box.offset_left = -133
+	_boss_box.offset_right = 133
 	_boss_box.offset_top = 6
 	_boss_box.add_theme_constant_override("separation", 1)
 	_boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_boss_box.visible = false
 	add_child(_boss_box)
-	_boss_name = UIStyle.label("", 12, Color(1.0, 0.85, 0.75))
-	_boss_name.add_theme_color_override("font_outline_color", Color.BLACK)
+	_boss_name = UIStyle.label("", 12, UIStyle.SUN)
+	_boss_name.add_theme_font_override("font", load("res://assets/fonts/PixelifySans-SemiBold.woff2"))
+	_boss_name.add_theme_color_override("font_outline_color", UIStyle.OUTLINE)
 	_boss_name.add_theme_constant_override("outline_size", 4)
 	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_boss_box.add_child(_boss_name)
-	_boss_bar = _bar(Color(0.8, 0.12, 0.1))
-	_boss_bar.custom_minimum_size = Vector2(260, 7)
+	# the bar sunk in a gilt-rimmed well
+	var well := PanelContainer.new()
+	well.add_theme_stylebox_override("panel", UIStyle.framed(UIStyle.OUTLINE, UIStyle.BORDER_DIM, "well", 3, 3))
+	well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_box.add_child(well)
+	_boss_bar = _bar(Color(0.82, 0.16, 0.12))
+	(_boss_bar.get_theme_stylebox("background") as StyleBoxFlat).set_border_width_all(0)
+	_boss_bar.custom_minimum_size = Vector2(260, 6)
 	_boss_bar.max_value = 1.0
-	_boss_box.add_child(_boss_bar)
+	well.add_child(_boss_bar)
 	# phase marks at 60% and 30%
 	for f in [0.6, 0.3]:
 		var tick := ColorRect.new()
 		tick.color = Color(1.0, 0.9, 0.7, 0.9)
-		tick.size = Vector2(1, 7)
+		tick.size = Vector2(1, 6)
 		tick.position = Vector2(260.0 * f, 0)
 		tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_boss_bar.add_child(tick)

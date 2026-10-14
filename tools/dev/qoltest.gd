@@ -113,7 +113,7 @@ func _process(d: float) -> bool:
 			menu.open_shop("sela")
 			menu.close()
 			menu.open_shop("marlo")
-			check("Marlo doesn't buy", menu._shop._buy_list.get_child_count() >= 1)
+			check("Marlo doesn't buy (%s)" % menu._shop._buy_note.text, menu._shop._buy_note.text == "BUYS NOTHING")
 			menu._shop.buy(["fish", 5])
 			check("...but sells grilled fish (a meal: heals)", p.inventory_component.count("fish") == 1 and item("fish").heal_amount > 0.0)
 			menu.close()

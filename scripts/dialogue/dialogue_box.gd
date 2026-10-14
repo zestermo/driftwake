@@ -1,22 +1,23 @@
 class_name DialogueBox
 extends CanvasLayer
-## PS1-style dialogue window: speaker tag, typewriter text with voice blips,
-## and a choice list (W/S or arrows to move, F/Space/Enter/click or 1-4 to pick).
+## PS1-style dialogue window on a crisp canvas (PixelCanvas): a parchment page with the speaker's
+## name tag on its edge, typewriter text with voice blips, choices as planks (W/S or arrows to move,
+## F/Space/Enter/click or 1-4 to pick) and key caps for what you can do.
 
 signal choice_made(choice: Dictionary)
 
 const CHARS_PER_SEC := 42.0
 const TEXT_COLOR := UIStyle.INK
-const CHOICE_COLOR := UIStyle.INK_DIM
-const CHOICE_SEL_COLOR := Color("1d5e66")
 
+var _canvas: PixelCanvas
 var _root: Control
 var _panel: PanelContainer
 var _name_panel: PanelContainer
 var _name_label: Label
 var _text: Label
 var _choice_box: VBoxContainer
-var _arrow: Label
+var _arrow: Control
+var _pick_hint: Control
 var _blip: AudioStreamPlayer
 
 var _typing: bool = false
@@ -24,7 +25,8 @@ var _typing: bool = false
 var _waiting: bool = false
 var _shown_chars: float = 0.0
 var _choices: Array = []
-var _choice_labels: Array[Label] = []
+## The choice planks (Buttons).
+var _choice_labels: Array = []
 var _sel: int = 0
 var _voice: float = 1.0
 var _blip_counter: int = 0
@@ -34,19 +36,22 @@ var _t: float = 0.0
 func _ready() -> void:
 	layer = 10
 	_build()
-	_root.visible = false
+	_pick_hint.visible = false
+	_canvas.visible = false
 
 
-## The window's width on the UI canvas (PSX.UI_SIZE), centred at the bottom.
-const WIDTH := 460.0
+## The window's width on the canvas (at least 640x360), centred at the bottom.
+const WIDTH := 440.0
 
 
 func _build() -> void:
+	_canvas = PixelCanvas.new()
+	_canvas.mouse_filter = Control.MOUSE_FILTER_PASS
+	add_child(_canvas)
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.theme = UIStyle.get_theme()
-	add_child(_root)
+	_canvas.ui.add_child(_root)
 
 	_panel = PanelContainer.new()
 	_panel.add_theme_stylebox_override("panel", UIStyle.panel(Color(UIStyle.CREAM, 0.97), UIStyle.BORDER, 9))
@@ -56,15 +61,15 @@ func _build() -> void:
 	_panel.anchor_bottom = 1.0
 	_panel.offset_left = -WIDTH * 0.5
 	_panel.offset_right = WIDTH * 0.5
-	_panel.offset_top = -78
-	_panel.offset_bottom = -14
+	_panel.offset_top = -70
+	_panel.offset_bottom = -8
 	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_panel.custom_minimum_size = Vector2(WIDTH, 64)
+	_panel.custom_minimum_size = Vector2(WIDTH, 62)
 	_root.add_child(_panel)
 	_panel.resized.connect(_layout)
 
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 3)
+	vb.add_theme_constant_override("separation", 4)
 	_panel.add_child(vb)
 
 	_text = Label.new()
@@ -72,34 +77,28 @@ func _build() -> void:
 	_text.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_text.add_theme_color_override("font_color", TEXT_COLOR)
-	_text.add_theme_constant_override("line_spacing", 1)
+	_text.add_theme_constant_override("line_spacing", -2)
 	vb.add_child(_text)
 
 	_choice_box = VBoxContainer.new()
-	_choice_box.add_theme_constant_override("separation", 0)
+	_choice_box.add_theme_constant_override("separation", 2)
 	vb.add_child(_choice_box)
 
-	# the footer: how to leave, and (waiting on you) how to go on
+	# the footer: how to leave, how to pick, and (waiting on you) how to go on
 	var foot := HBoxContainer.new()
+	foot.add_theme_constant_override("separation", 10)
 	vb.add_child(foot)
-	var leave := Label.new()
-	leave.text = "Esc  leave"
-	leave.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
-	leave.add_theme_font_size_override("font_size", 8)
-	leave.add_theme_color_override("font_color", UIStyle.INK_DIM)
-	leave.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	foot.add_child(leave)
-	_arrow = Label.new()
-	_arrow.text = "F  >"
-	_arrow.add_theme_font_override("font", load("res://assets/fonts/Silkscreen-Regular.woff2"))
-	_arrow.add_theme_font_size_override("font_size", 8)
-	_arrow.add_theme_color_override("font_color", CHOICE_SEL_COLOR)
+	foot.add_child(UIStyle.key_hint("ESC", "LEAVE", true))
+	_pick_hint = UIStyle.key_hint("1-4", "CHOOSE", true)
+	foot.add_child(_pick_hint)
+	var gap := Control.new()
+	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	foot.add_child(gap)
+	_arrow = UIStyle.key_hint("F", "GO ON", true)
 	foot.add_child(_arrow)
 
 	_name_panel = PanelContainer.new()
 	_name_panel.add_theme_stylebox_override("panel", UIStyle.frame(Color(UIStyle.TEAL, 1.0), UIStyle.BORDER, 6, "plank"))
-	_name_panel.anchor_top = 1.0
-	_name_panel.anchor_bottom = 1.0
 	_root.add_child(_name_panel)
 	_name_label = Label.new()
 	_name_label.add_theme_color_override("font_color", UIStyle.SUN)
@@ -121,7 +120,7 @@ func _layout() -> void:
 
 
 func open() -> void:
-	_root.visible = true
+	_canvas.visible = true
 	_panel.scale = Vector2(1, 0.2)
 	_panel.pivot_offset = Vector2(0, _panel.size.y)
 	var tw := create_tween()
@@ -129,7 +128,7 @@ func open() -> void:
 
 
 func close() -> void:
-	_root.visible = false
+	_canvas.visible = false
 	_typing = false
 	_waiting = false
 	_clear_choices()
@@ -204,34 +203,48 @@ func handle_input(event: InputEvent) -> bool:
 func _select(i: int) -> void:
 	if _choice_labels.is_empty():
 		return
+	if wrapi(i, 0, _choice_labels.size()) == _sel and (_choice_labels[_sel] as Button).text.begins_with(">"):
+		return
 	_sel = wrapi(i, 0, _choice_labels.size())
 	for j in range(_choice_labels.size()):
-		var lbl := _choice_labels[j]
-		var raw := str(_choices[j].get("text", "..."))
-		if j == _sel:
-			lbl.text = "> %d. %s" % [j + 1, raw]
-			lbl.add_theme_color_override("font_color", CHOICE_SEL_COLOR)
-		else:
-			lbl.text = "  %d. %s" % [j + 1, raw]
-			lbl.add_theme_color_override("font_color", CHOICE_COLOR)
+		var b: Button = _choice_labels[j]
+		var on := j == _sel
+		b.text = "%s %d.  %s" % [">" if on else " ", j + 1, str(_choices[j].get("text", "..."))]
+		b.add_theme_stylebox_override("normal", _plank(on))
+		b.add_theme_stylebox_override("hover", _plank(true))
+		b.add_theme_color_override("font_color", UIStyle.INK if on else UIStyle.TEXT)
 	_blip.pitch_scale = 1.6
 	_blip.play()
+
+
+## A choice's plank: light teal with ink when it's the one picked.
+static func _plank(on: bool) -> StyleBoxTexture:
+	return UIStyle.framed(UIStyle.HILITE if on else UIStyle.BG_LIGHT, UIStyle.SUN if on else UIStyle.BORDER_DIM, "plank", 6, 1)
 
 
 func _clear_choices() -> void:
 	for l in _choice_labels:
 		l.queue_free()
 	_choice_labels.clear()
+	_pick_hint.visible = false
 
 
 func _on_typing_done() -> void:
 	if _choices.is_empty():
 		_waiting = true
 		return
-	for c in _choices:
-		var lbl := Label.new()
-		_choice_box.add_child(lbl)
-		_choice_labels.append(lbl)
+	for j in range(_choices.size()):
+		var b := Button.new()
+		b.focus_mode = Control.FOCUS_NONE
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_color_override("font_hover_color", UIStyle.INK)
+		b.mouse_entered.connect(func(): _select(j))
+		b.pressed.connect(func():
+			_select(j)
+			confirm_choice())
+		_choice_box.add_child(b)
+		_choice_labels.append(b)
+	_pick_hint.visible = true
 	_select(0)
 
 
