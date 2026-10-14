@@ -107,6 +107,11 @@ eat/drink animation you can be hit out of; the ship's galley refills them as now
   Driftwake.exe and Driftwake.console.exe in `.github/workflows/build-windows.yml` (secrets in the `live`
   environment). Then drop the unblock steps from the site and READ ME FIRST.txt.
 
+## Small follow-ups from v1.11
+- Sitting on a bench reuses the old seated-at-a-table pose (arms rest forward): give benches and stools their
+  own hands-on-knees / leaning-back pose.
+- There are no openable doors yet: the push gesture only plays at the chain-island inn's door.
+
 ## Open technical items
 - **Save keys repeat across worlds:** chest, job and beast flags (`isle<id>_*`, `leg<x>_<y>_*`) are keyed by
   island number, which repeats across chain seeds, so a guest's opened chest counts on the host's
