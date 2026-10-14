@@ -89,6 +89,16 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   instead of dying, and both stand back up on their own when the duel ends. The winner gets a tiny bit of XP.
   Duels have to work for guests (the host runs the fight).
 
+**Instruments** (idea 2026-10-14, like Sea of Thieves)
+- A few instruments (e.g. concertina, fiddle, hurdy-gurdy, drum, flute), one equipped at a time in its own
+  slot. Never a starting item: bought from specific vendors.
+- Played from the emote wheel. Each instrument plays one of a few tunes, picked at random, and every tune
+  has a part for every instrument.
+- **Jamming:** start playing near another captain who's already playing and you pick up their tune, fading in
+  at the matching bar. Several instruments together make one cohesive song (the parts are rendered as stems in
+  sync, the way the music generator already renders tracks). Works in co-op: the tune and its start time
+  are synced on the host's clock.
+
 ## Right after v1.12: the process round (agreed 2026-10-14, one agent)
 - **Tests on GitHub Actions:** the headless suites as a matrix on free Linux runners (public repo), nettest
   included; prepush becomes "push the branch, merge when it's green", and Zach's PC stays free. Renders stay local.
