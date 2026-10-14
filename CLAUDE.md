@@ -82,9 +82,11 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
      fixed chain seeds built and run: script errors, non-finite transforms, missing services; even with
      `-NoTests`, never carried over the rebase), then the covering suites minus the slow whole-world ones
      in `tools/dev/heavy.txt` and minus co-op (`run_tests -Changed -Light`). Passes carry over the rebase.
-  3. **Before a push** (a finished set of features or a version): `tools/dev/prepush.ps1` runs every
-     suite test_status calls stale or failing, the heavy ones and the co-op modes included, and pushes
-     only if nothing is left. This is the only place nettest and the chain/fidelity/perf suites run.
+  3. **Before a push** (a finished set of features or a version): `tools/dev/prepush.ps1 -CI`. GitHub runs
+     it all (`.github/workflows/tests.yml`: every suite, the heavy ones and the co-op modes, on ~20 Linux
+     runners) on HEAD's commit pushed to `ci/<branch>`, and a green run pushes that commit (`-NoPush`: just
+     check). `tools/dev/ci.ps1` alone just runs and reports. Local `prepush.ps1` (stale suites on this PC) still works.
+     This is the only place nettest and the chain/fidelity/perf suites run.
   Run the full suite only when Zach asks.
 - **Don't rerun a suite "to be sure":** a pass is cached against the exact code.
 - **Landing re-tests only what the rebase could change** (land.ps1 carries passes from the
