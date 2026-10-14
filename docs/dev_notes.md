@@ -1345,3 +1345,21 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Pixelation is one toggle (`video.pixelate`, PSX.GRID 960x540); the 640/480/320 presets are gone (Zach: too hard
   to see). Settings v4 migrates (`psx_preset` 3 "native" -> off, anything else on). F2 toggles it.
 - Keys swapped: L toggles the belt lantern, H holds up the log pose.
+
+## 2026-10-14: v1.12 post-merge bug pass
+- Common thread: three suites sampled per frame what the game decides per physics tick. While a chain island
+  puts itself in the world (frames up to 100-190 ms, up to 8 ticks each) the game ran several ticks between two
+  of the test's looks. No game bug in any of the three.
+- swimtest "climbed aboard": W is still held when the climb ends, so Climb -> Idle -> Move inside one long frame
+  (deck spot unchanged, 3.52/0.32/-2.9). Accepts Idle or Move.
+- foresttest "...it shows before she comes up": the damage was a brood bug's ram (B0_1, from the shriek a few
+  steps earlier, 10 -> 8 after armour) landing while she was under the floor, not her. The brood is held
+  (process off) before the burrow checks.
+- seatest stall: steps 5/7 waited on `near(3.0)` with no timeout. At 46 m/s the ball is inside 3 m for ~4 ticks
+  before it bursts on the captain, so one long frame skipped it and the step waited forever. The ball is now
+  caught in the suite's `_physics_process` (frozen in reach until hit) and steps 5/7 fail after 4 s like step 3.
+  Same family: "the brig fires a double broadside" got 0 shots when the brig, still alongside after her ram,
+  went to BOARD a tick later (a warning is cancelled outside HUNT/BROADSIDE); the step puts her in BROADSIDE.
+- Seen twice in four seatest runs, not fixed: a signal 11 in `add_surface_from_arrays` (MeshBuilder.commit)
+  during Mosswater Key's village dressing on the main thread while Kalani Key prepares on a worker. No new code
+  on that path; an engine-side race in headless mesh creation is the suspect.

@@ -235,9 +235,13 @@ func _process(d: float) -> bool:
 			wait = 2.6
 		11:
 			check("her venom fan hits from range", p.health_component.current_health < hp0)
-			# keep away and she burrows at you (the fan's puddles mopped up first)
+			# keep away and she burrows at you (the fan's puddles mopped up and the brood held first:
+			# a brood bug's ram landing in the burrow's warning read as her coming up early)
 			for pp in load("res://scripts/combat/poison_puddle.gd").live():
 				pp.queue_free()
+			for b in cave.brood.get_children():
+				if b is CharacterBody3D:
+					b.process_mode = Node.PROCESS_MODE_DISABLED
 			_get_up()
 			_put(q.global_position + Vector3(0.0, 0.3, 10.0))
 			_cure()

@@ -54,9 +54,16 @@ func hit(sever: bool, ranged: bool) -> void:
 	hd.damage = 20.0
 	hd.sever = sever
 	hd.ranged = ranged
+	ball.set_physics_process(true)
 	ball.hurtbox.take_hit(hd, p)
 func gone() -> bool:
 	return not is_instance_valid(ball) or ball.is_queued_for_deletion()
+## Caught each tick, not each frame: at 46 m/s the ball is in reach for ~4 ticks before it
+## bursts on the captain, and a long frame (a chain island building) runs that many.
+func _physics_process(_d: float) -> bool:
+	if step in [3, 5, 7, 9] and not TK.ticking(until) and near(6.0 if step == 9 else 3.0):
+		ball.set_physics_process(false)
+	return false
 func _process(d: float) -> bool:
 	t += d
 	if t > 200.0:
@@ -132,6 +139,9 @@ func _process(d: float) -> bool:
 			step = 5
 		5:
 			if not near(3.0):
+				if t - t0 > 4.0 or gone():
+					check("the ball reached the deck", false)
+					finish()
 				return false
 			cut_vel = ball.velocity
 			hit(true, false)
@@ -167,6 +177,9 @@ func _process(d: float) -> bool:
 			step = 7
 		7:
 			if not near(3.0):
+				if t - t0 > 4.0 or gone():
+					check("the ball reached the deck", false)
+					finish()
 				return false
 			hit(true, false)
 			check("a cutlass cuts it too", gone())
@@ -325,6 +338,8 @@ func _process(d: float) -> bool:
 			fired_n = 0
 			bg._warn_t = -1.0
 			bg._second = false
+			# (still alongside after the ram she may have gone to board us a tick later: a long frame runs it)
+			bg._set_state(2)
 			for c in bg.cannons:
 				c.cool = 0.0
 				c.fired.connect(func(): fired_n += 1)
@@ -335,7 +350,7 @@ func _process(d: float) -> bool:
 		20:
 			if t - t0 < 4.5:
 				return false
-			print("   brig volley: %d shots" % fired_n)
+			print("   brig volley: %d shots (brig state %d)" % [fired_n, get_meta("by")["brig"].state])
 			check("the brig fires a double broadside (8 shots)", fired_n >= 8)
 			step = 200
 		200:
