@@ -49,7 +49,7 @@ func _ready() -> void:
 	_stern.direction = Vector3(0.0, 0.7, 1.0).normalized()
 	_stern.spread = 40.0
 	_stern.emission_sphere_radius = 0.9
-	_mist = _emitter(36, 1.8, 0.9, Color(0.9, 0.95, 1.0, 0.32), false)
+	_mist = _emitter(24, 1.4, 0.55, Color(0.9, 0.95, 1.0, 0.2), false)
 	_mist.position = Vector3(0.0, HullBuilder.DECK_Y + 1.1, HullBuilder.BOW_Z + 2.2)
 	_mist.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 	_mist.emission_box_extents = Vector3(2.4, 0.6, 1.2)
@@ -126,7 +126,7 @@ func _physics_process(delta: float) -> void:
 	_meet(delta, xf, spd, caps, air_l)
 	# in a blow at speed spray hangs in the air and streams aft across her deck
 	var blow := clampf(caps * 1.2 - 0.1, 0.0, 1.0) * clampf((spd - 3.0) / 6.0, 0.0, 1.0)
-	_mist_k = move_toward(_mist_k, blow * 0.7, delta * 0.6)
+	_mist_k = move_toward(_mist_k, blow * 0.5, delta * 0.6)
 	_mist.emitting = randf() < _mist_k
 	_mist.initial_velocity_min = 1.5
 	_mist.initial_velocity_max = 3.0 + spd * 0.2

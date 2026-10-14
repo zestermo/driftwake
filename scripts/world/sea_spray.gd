@@ -362,6 +362,7 @@ func _break(c: Array, h: float, d: float, amp: float) -> void:
 			FX.spray(at, (Vector3.UP * 1.6 - out * 0.3).normalized(), int(14 + 8 * loud), Color(0.95, 0.98, 1.0), 6.0 + 3.0 * loud)
 			FX.spray(at + Vector3.UP * 0.8, (Vector3.UP + out * 0.4).normalized(), int(8 + 4 * loud), Color(0.95, 0.98, 1.0), 4.0 * loud)
 			FX.splash(at, 4, 0.65)
+			FX.smoke(at + Vector3.UP * 1.2, 4, 1.6, 1.1, Color(0.92, 0.96, 1.0, 0.55))
 			if d < BREAK_HEARD:
 				FX.sfx("rock_crash", at, -5.0 + 4.0 * (loud - 1.0), 0.08)
 		_:

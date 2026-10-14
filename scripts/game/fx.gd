@@ -581,7 +581,8 @@ func water_ring(pos: Vector3, radius: float = 1.5, life: float = 1.1) -> void:
 	var oc := get_node("/root/Ocean")
 	var holder := Node3D.new()
 	_scene_root().add_child(holder)
-	holder.global_position = Vector3(pos.x, float(oc.surface_at(pos)) + 0.05, pos.z)
+	# (high enough off the surface that a passing crest doesn't swallow half of it)
+	holder.global_position = Vector3(pos.x, float(oc.surface_at(pos)) + 0.18, pos.z)
 	var tw := holder.create_tween()
 	for k in range(2):
 		var mi := MeshInstance3D.new()
@@ -599,7 +600,7 @@ func water_ring(pos: Vector3, radius: float = 1.5, life: float = 1.1) -> void:
 		mi.scale = Vector3(r * 0.15, 1.0, r * 0.15)
 		tw.parallel().tween_property(mi, "scale", Vector3(r, 1.0, r), t).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 		tw.parallel().tween_property(mat, "albedo_color:a", 0.0, t * 0.6).set_delay(t * 0.4)
-	tw.parallel().tween_method(func(_k: float): holder.global_position.y = float(oc.surface_at(holder.global_position)) + 0.05, 0.0, 1.0, life)
+	tw.parallel().tween_method(func(_k: float): holder.global_position.y = float(oc.surface_at(holder.global_position)) + 0.18, 0.0, 1.0, life)
 	tw.tween_callback(holder.queue_free)
 
 

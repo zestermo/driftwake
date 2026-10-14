@@ -98,7 +98,25 @@ inside a loop (0.7 at 6 s = an audible 6 s beat).
 | campfire_loop | gen | 3D at campfires (looped by import) | 5.7 s, end crossfade, 42% above 5 kHz | short, hissy | 13 s, circular, crackles in uneven bursts, darker |
 | ocean_loop | gen | **unused** (Brinehollow's ocean loop went in the 10-08 ambience pass) | | dead asset | removed |
 
-All ambience loops are now levelled to -20 LU and mixed by TOP_DB.
+| sea_deep_loop | new 10-14 | "deep", -9 dB, at sea / aboard / swimming, more in wind and storms | | | 53 s, -22 LU, 74% under 200 Hz: a slow low roll at uneven gaps, a hush on the big swells |
+| sea_lap_loop | new 10-14 | "lap", -13 dB: swimming, wading, on a pier over water, near a quay ("wall" coast) | | | 27 s, -20 LU, centroid 1.1 kHz: slaps and slosh at uneven times, gurgles back |
+| far_breakers_loop | new 10-14 | "far", -11 dB: a coast 25-185 m off (CoastProbe), louder in storms | | | 59 s, -20 LU, nothing above ~1.6 kHz: muffled booms with long hushed washes |
+| rock_surf_loop | new 10-14 | "rock", -9 dB by distance to a rocky coast (cliffs, sea stacks, reefs) | | | 31 s, -20 LU: boom, crash, spray, water draining off the stones |
+| shore_surf_loop | | "shore" now by distance to a beach coast (6 m full, gone at 90 m), with the swell | | | unchanged file |
+| spray_hiss_loop | new 10-14 | "spray", -15 dB, aboard: follows ShipSpray.spray (+ whitecaps) | | | 23 s, -20 LU, 35% at 2-5k (softened from 46%): breathy hiss and patter |
+| underwater_loop | new 10-14 | "under", -7 dB while the camera or the captain's head is under | | | 29 s, -21 LU: pressure rumble, low bubble clusters |
+| wind (gusts) | | "wind" x (0.8 + 0.5 gust), pitch +7% on a gust; rigging + gust | | | gust envelope: more often and stronger with wind/storm (at most 16 x (1.4 - blow) s apart) |
+| wind_gust (3 takes) | new 10-14 | 2D on Ambience at a gust's start (peak > 0.35) | | | -19 LU, 3.6-4.8 s swell and fall, a hint of whistle |
+| wave_break (3) | new 10-14 | FX.sfx where SeaSpray breaks a wave on a beach in time with the crest (< 55 m) | | | -17 LU, 3.6 s: roll, crash, wash and fizz (22% at 2-5k) |
+| rock_crash (3) | new 10-14 | FX.sfx where a wave breaks on rock (< 55 m) | | | -15 LU, 3.2 s |
+| hull_wave (4) | new 10-14 | ShipSpray: each wave she meets at speed (the stem's water rising > 1.3 m/s), at the bow | | | -17.5 LU, 0.95 s: plank knock (150-500 Hz), slap, splash falling |
+| gull_cry (4) | new 10-14 | SkyBirds: gulls by distance (< 60 m), scattering | | | -18 LU (the old gull is -10.6): kyow, kek-kek-kek, mew, long call |
+| jungle_bird (4) | new 10-14 | SkyBirds: parrots hopping crowns, scattering | | | -20 LU: whistle run, hoot, squawk, parrot screech |
+
+All ambience loops are now levelled to -20 LU and mixed by TOP_DB (sea_deep -22, underwater -21).
+
+Under water (10-14): Ambience adds an AudioEffectLowPassFilter ("underwater", 12 dB/oct) to the SFX and
+Ambience buses at runtime; it is off above water and closes to 480 Hz under (the music is left alone).
 
 ## Footsteps (new)
 
@@ -202,7 +220,7 @@ The Music bus has a sidechain compressor keyed from SFX (threshold -12 dB, 2.5:1
   A blade "slice" and a metal-on-metal "clash" set would read better.
 - Menus: one "select" for move, confirm and back; no open/close, deny, equip,
   level-up or quest sounds. Inventory and skill map are silent (skill buy uses coin).
-- Underwater: no muffling (a low-pass on SFX/Ambience while diving would sell it).
+- Underwater: done 10-14 (low-pass on SFX/Ambience and an underwater bed).
 - Reverb zones: caves, the cabin, the fort's halls play dry.
 - Interior ambience (tavern murmur, the cabin's creak), jungle birds/insects on
   chain islands, night insects, rain on canvas/deck under shelter.

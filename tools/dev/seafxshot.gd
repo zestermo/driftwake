@@ -109,7 +109,7 @@ func _poke(s: String) -> void:
 			root.get_node("Weather/SeaSpray")._break(["rock", Vector3(w.x, 0.0, w.z), Vector3(cliff.x, 0.0, cliff.z) - cliff_out], 0.6, 20.0, 1.8)
 		"ring":
 			var at := beach + beach_out * 14.0
-			FX.splash(Vector3(at.x, Ocean.surface_at(at), at.z), 12, 1.0)
+			root.get_node("FX").splash(Vector3(at.x, root.get_node("Ocean").surface_at(at), at.z), 12, 1.0)
 
 
 func _setup(s: String) -> void:

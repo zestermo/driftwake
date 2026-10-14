@@ -87,7 +87,7 @@ func _setup(s: String) -> void:
 			var dark := _birds(1)
 			var c: Vector3 = dark[0]["pos"] if not dark.is_empty() else isl.global_position + Vector3.UP * 50.0
 			cam.global_position = Vector3(c.x, 0.0, c.z) + Vector3(60.0, 12.0, 40.0)
-			cam.global_position.y = float(Ocean.get_wave_height(cam.global_position)) + 12.0 + maxf(isl.height_at(isl.to_local(cam.global_position).x, isl.to_local(cam.global_position).z), 0.0)
+			cam.global_position.y = float(root.get_node("Ocean").get_wave_height(cam.global_position)) + 12.0 + maxf(isl.height_at(isl.to_local(cam.global_position).x, isl.to_local(cam.global_position).z), 0.0)
 			cam.look_at(c, Vector3.UP)
 		"gull_close":
 			var g := _birds(0).filter(func(b): return b["mode"] == 2)
