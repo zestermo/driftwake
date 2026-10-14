@@ -53,6 +53,9 @@ var _ready_flash: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
 var _fail_flash: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
 var _prev_cd: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
 var _ult_was_full: bool = false
+var _quick_fail: float = 0.0
+var _quick_ready: float = 0.0
+var _prev_heal_cd: float = 0.0
 ## Skill icons, loaded outside _draw (a texture first loaded while drawing
 ## comes out blank).
 var _icons: Dictionary = {}
@@ -70,6 +73,7 @@ func bind(p: Player) -> void:
 	_hp_shown = _hp_frac()
 	_hp_chip = _hp_shown
 	player.stamina_denied.connect(func(): _stamina_flash = 0.45)
+	player.quick_refused.connect(func(): _quick_fail = 0.35)
 	player.power.cast_failed.connect(func(slot: int, why: String):
 		_fail_flash[slot] = 0.35
 		if why in ["Not enough energy", "Ultimate not charged", "Your power fizzles in the sea"]:
@@ -137,6 +141,11 @@ func _process(delta: float) -> void:
 	if full and not _ult_was_full:
 		_ready_flash[4] = 0.5
 	_ult_was_full = full
+	_quick_fail = maxf(_quick_fail - delta, 0.0)
+	_quick_ready = maxf(_quick_ready - delta, 0.0)
+	if _prev_heal_cd > 0.0 and player.heal_cd <= 0.0:
+		_quick_ready = 0.3
+	_prev_heal_cd = player.heal_cd
 	queue_redraw()
 
 
@@ -353,12 +362,23 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 func _draw_item(r: Rect2, i: int) -> void:
 	var inv := player.inventory_component
 	var item: ItemData = ItemDB.get_item(inv.hotbar[i]) if inv.hotbar[i] != "" else null
-	_slot_frame(r, UIStyle.BORDER_DIM, 1.0)
+	var border := UIStyle.BORDER_DIM
+	if _quick_fail > 0.0 and item:
+		border = UIStyle.CORAL
+	elif _quick_ready > 0.0 and item:
+		border = UIStyle.CREAM
+	_slot_frame(r, border, 2.0 if border != UIStyle.BORDER_DIM else 1.0)
 	if item:
 		var qty := inv.count(item.id)
 		if item.icon:
 			draw_texture_rect(item.icon, r.grow(-1.0), false, Color(1, 1, 1, 1.0 if qty > 0 else 0.3))
-		_text(Vector2(r.position.x, r.end.y - 1.0), str(qty), Color.WHITE if qty > 0 else Color(1, 0.4, 0.35), 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)
+		var cd := player.heal_cd
+		if cd > 0.0:
+			_cooldown_pie(r.grow(-1.0), cd / Player.HEAL_CD)
+			_text(Vector2(r.position.x, r.get_center().y + 4.0), str(ceili(cd)), Color.WHITE, 8, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+		if _quick_ready > 0.0:
+			draw_rect(r.grow(-1.0), Color(1, 1, 1, _quick_ready * 1.2))
+		_text(Vector2(r.position.x, r.end.y - 1.0), str(qty), Color.WHITE if qty > 0 else UIStyle.DANGER_TEXT, 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)
 	_text(r.position + Vector2(2, 8), str(i + 5), UIStyle.TEXT_DIM)
 
 

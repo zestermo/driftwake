@@ -100,6 +100,8 @@ func apply_gravity(delta: float) -> void:
 ## Attack/parry input: first press draws the weapon, later presses attack.
 ## Returns the state to enter, or "" if nothing should happen.
 func combat_input() -> String:
+	if player.is_using_item():
+		return ""
 	if input_buffer.consume_action("light_attack"):
 		if player.can_attack():
 			if player.weapon_class() == "gun":
@@ -194,6 +196,8 @@ func face_direction(direction: Vector3, delta: float) -> void:
 
 ## Jump pressed now, or buffered just before landing.
 func wants_jump() -> bool:
+	if player.is_using_item():
+		return false
 	return Input.is_action_just_pressed("jump") or player.consume_jump_buffer()
 
 

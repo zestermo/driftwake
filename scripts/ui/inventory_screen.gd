@@ -780,6 +780,7 @@ func _fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w: floa
 	elif it.is_consumable():
 		if it.heal_amount > 0.0:
 			_stat(grid, "HEALS", str(int(it.heal_amount)), 0, false)
+			_stat(grid, "TAKES", "%.2f S" % it.use_time, 0, false)
 		if it.devil_fruit != "":
 			fx.append(["Eating it is forever", Color(1.0, 0.6, 0.3)])
 			fx.append(["Deep water takes you", DOWN])

@@ -22,8 +22,8 @@ static func model_of(mi: Node) -> String:
 static func mesh_for(model: String) -> Mesh:
 	if model == "":
 		return null
-	if model == "bottle":
-		return Props.bottle_mesh()
+	if model in ["bottle", "flask", "bowl", "food"]:
+		return Props.provision_mesh(model)
 	if model.begins_with("devil_fruit"):
 		return Props.devil_fruit_mesh(model)
 	return Props.weapon_mesh(model)

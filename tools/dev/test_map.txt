@@ -208,3 +208,11 @@ scripts/island/*                        smoketest
 scripts/enemies/*                       smoketest
 scripts/world/chain.gd                  smoketest
 tools/dev/test_kit.gd                   smoketest isletest lifetest faunatest savetest
+# --- healing (2026-10-13) ---
+scenes/player/player.gd                 healtest
+scripts/player_states/player_state.gd   healtest
+scripts/npc/humanoid.gd                 healtest
+scripts/loot/item_data.gd               healtest
+resources/items/*                       healtest
+scripts/ui/skill_bar.gd                 healtest
+scripts/game/game_manager.gd            healtest

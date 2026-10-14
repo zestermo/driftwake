@@ -966,6 +966,17 @@ def gen_icons():
         d.polygon([(11, 10), (21, 4), (19, 10)], fill=hexc("d0401a") + (255,))
         d.polygon([(12, 14), (21, 15), (18, 10)], fill=hexc("f08a5a") + (255,))
 
+    def tonic(d):
+        # a round glass flask of sea-green tonic, corked, a glint on the glass
+        d.ellipse([5, 8, 19, 22], fill=hexc("c8e8e0") + (255,))
+        d.chord([6, 9, 18, 21], 200, 340, fill=hexc("c8e8e0") + (255,))
+        d.chord([6, 9, 18, 21], -20, 200, fill=hexc("2fb8a0") + (255,))
+        d.ellipse([7, 15, 17, 20], fill=hexc("1f8a7a") + (255,))
+        d.rectangle([10, 4, 13, 9], fill=hexc("c8e8e0") + (255,))
+        d.rectangle([9, 2, 14, 4], fill=hexc("a0703a") + (255,))
+        d.point([(8, 12), (9, 11)], fill=(255, 255, 255, 255))
+
+    _icon("tonic", tonic)
     _icon("boar_haunch", boar_haunch)
     _icon("tusk", tusk)
     _icon("chitin_shard", chitin_shard)

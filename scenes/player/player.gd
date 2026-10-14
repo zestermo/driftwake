@@ -505,6 +505,8 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		Net.fx("sparkle", [(attacker as Node3D).global_position + Vector3(0, 1.0, 0), 4, Color(0.5, 0.9, 0.3)])
 	_last_hit_velocity = dir * maxf(hit.knockback_force, 3.0) + Vector3.UP * (3.5 if hit.knockdown else 2.0)
 	health_component.take_damage(dmg)
+	if _using_item and _using_item.devil_fruit == "" and not hit.dot:
+		_spill_use()
 	Net.fx("impact", [global_position + Vector3(0, 1.0, 0) - dir * 0.3, Color(1.0, 0.55, 0.45)])
 	if not hit.dot:
 		Net.fx("blood", [global_position + Vector3(0, 1.1, 0) - dir * 0.15, dir, clampi(int(hit.damage * 0.6), 6, 18)])
@@ -698,6 +700,9 @@ func _process(delta: float) -> void:
 	_update_head_look()
 	_tick_body(delta)
 	_log_pose_tick()
+	heal_cd = maxf(heal_cd - delta, 0.0)
+	if _using_item and _using_item.devil_fruit == "" and (current_state_name() not in ["Idle", "Move"] or body_model.current_action() != _use_anim):
+		_spill_use()
 	if _using_item:
 		_use_timer -= delta
 		if _use_timer <= 0.0:
@@ -1783,6 +1788,25 @@ func damage_multiplier() -> float:
 # --------------------------------------------------------------------------
 # Consumables
 # --------------------------------------------------------------------------
+## Quick-slot healing: food, rum and tonics share one cooldown from the moment you start one.
+## The heal lands at HEAL_AT of the action; a hit (or a roll) before then spills it: the item's
+## gone, the heal is lost, and the cooldown drops to HEAL_RETRY.
+const HEAL_CD := 8.0
+const HEAL_AT := 0.82
+const HEAL_RETRY := 1.5
+const USE_PROP := {"bite": "food", "swig": "bottle", "slurp": "bowl", "tonic": "flask"}
+## [u, sound, volume, pitch] beats of each way of taking an item.
+const USE_SOUNDS := {"bite": [[0.4, "crunch", -6.0, 1.1], [0.62, "crunch", -12.0, 1.3]],
+	"swig": [[0.38, "splash", -16.0, 1.9], [0.55, "splash", -17.0, 2.1]],
+	"slurp": [[0.4, "splash", -15.0, 1.6], [0.6, "splash", -16.0, 1.7]],
+	"tonic": [[0.34, "clack", -6.0, 1.9], [0.56, "splash", -16.0, 2.0]]}
+## A use was refused on the shared cooldown (the HUD flashes the quick slots).
+signal quick_refused
+var heal_cd: float = 0.0
+var _use_anim := ""
+var _use_id := 0
+
+
 func use_item(item: ItemData) -> void:
 	if _using_item or not item.is_consumable():
 		return
@@ -1791,15 +1815,38 @@ func use_item(item: ItemData) -> void:
 	if item.devil_fruit != "":
 		eat_devil_fruit(item)
 		return
+	if heal_cd > 0.0:
+		quick_refused.emit()
+		return
 	if item.heal_amount > 0.0 and health_component.current_health >= health_component.max_health:
 		_toast("Already at full health")
 		return
 	if not inventory_component.remove_item(item, 1):
 		return
 	_using_item = item
-	_use_timer = item.use_time * 0.6
-	body_model.show_left_prop(Props.bottle_mesh())
-	body_model.play("drink", item.use_time)
+	_use_anim = item.use_anim
+	_use_id += 1
+	_use_timer = item.use_time * HEAL_AT
+	heal_cd = HEAL_CD
+	body_model.show_left_prop(Props.provision_mesh(USE_PROP[item.use_anim]))
+	body_model.play(item.use_anim, item.use_time)
+	var id := _use_id
+	for s in USE_SOUNDS[item.use_anim]:
+		var beat: Array = s
+		get_tree().create_timer(item.use_time * float(beat[0])).timeout.connect(func():
+			if _use_id == id and _using_item:
+				Net.fx("sfx", [beat[1], global_position + Vector3(0, 1.5, 0), beat[2], 0.08, beat[3]]))
+
+
+## Knocked out of it before the heal landed.
+func _spill_use() -> void:
+	_using_item = null
+	_use_id += 1
+	heal_cd = minf(heal_cd, HEAL_RETRY)
+	if body_model.current_action() == _use_anim:
+		body_model.stop_action()
+	Net.fx("sfx", ["clack", global_position + Vector3(0, 1.3, 0), -8.0, 0.1, 0.8])
+	_toast("Spilled!")
 
 
 ## Eat a Devil Fruit (the inventory asks first: it can't be undone).
@@ -1850,6 +1897,8 @@ func _finish_use() -> void:
 	if item.heal_amount > 0.0:
 		var amt := item.heal_amount * (1.0 + progression.stat("potion_pct"))
 		health_component.heal(amt)
+		Net.fx("sparkle", [global_position + Vector3(0, 1.1, 0), 10, Color(0.6, 1.0, 0.55) if item.use_anim != "tonic" else Color(0.45, 1.0, 0.85)])
+		Net.fx("sfx", ["blip_high", global_position + Vector3(0, 1.2, 0), -12.0, 0.05, 1.25])
 		_toast("+%d health" % int(amt))
 
 

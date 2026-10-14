@@ -7,11 +7,11 @@
 script = ExtResource("1")
 id = "boar_haunch"
 display_name = "Boar Haunch"
-description = "A wild boar's haunch, roasted over the fire. Restores 30 health."
+description = "A wild boar's haunch, roasted over the fire."
 value = 4
 stackable = true
 max_stack = 10
 item_type = 2
 icon = ExtResource("2")
-heal_amount = 30.0
-use_time = 1.0
+heal_amount = 32.0
+use_time = 0.85

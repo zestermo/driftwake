@@ -7,11 +7,12 @@
 script = ExtResource("1")
 id = "rum"
 display_name = "Brinehollow Black"
-description = "Gus's finest rum. Tastes like tar and regret. Restores 35 health."
+description = "Gus's finest rum. Tastes like tar and regret. One long swig."
 value = 3
 stackable = true
 max_stack = 10
 item_type = 2
 icon = ExtResource("2")
-heal_amount = 35.0
-use_time = 1.0
+heal_amount = 30.0
+use_time = 0.75
+use_anim = "swig"

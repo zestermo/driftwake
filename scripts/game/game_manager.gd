@@ -252,7 +252,7 @@ func rest(p: Player) -> String:
 	return "You rest a while. Fully recovered."
 
 
-## The galley tops up your quick-slot provisions (each to RESTOCK_CAP).
+## The galley tops up your quick-slot provisions (each to RESTOCK_CAP; tonics are bought, not brewed).
 func restock(p: Player) -> String:
 	var inv := p.inventory_component
 	var ids: Array = []
@@ -265,7 +265,7 @@ func restock(p: Player) -> String:
 	for id in ids:
 		var it := ItemDB.get_item(id)
 		var have := inv.count(id)
-		if it == null or have >= RESTOCK_CAP:
+		if it == null or have >= RESTOCK_CAP or it.use_anim == "tonic":
 			continue
 		var n := mini(RESTOCK_CAP - have, inv.room_for(it))
 		if n > 0 and inv.add_item(it, n):

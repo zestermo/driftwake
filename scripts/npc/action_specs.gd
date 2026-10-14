@@ -240,6 +240,11 @@ const SPECS := {
 	"eat": {"len": 1.0, "stance": "sword", "weapon": "cutlass"},
 	"wave": {"len": 1.5, "stance": "sword", "weapon": "cutlass"},
 	"log_pose": {"len": 0.25, "stance": "sword", "weapon": "cutlass"},
+	# --- healing (quick-slot food, rum, tonics: Player.use_item) ---
+	"bite": {"len": 0.7, "stance": "sword", "weapon": "cutlass"},
+	"swig": {"len": 0.75, "stance": "sword", "weapon": "cutlass"},
+	"slurp": {"len": 0.95, "stance": "sword", "weapon": "cutlass"},
+	"tonic": {"len": 0.9, "stance": "sword", "weapon": "cutlass"},
 	# --- grunts and bosses ---
 	"wind_r": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
 	"swing_r": {"len": 0.5, "stance": "sword", "weapon": "cutlass"},

@@ -898,3 +898,28 @@ static func bottle_mesh() -> ArrayMesh:
 	var m := mb.commit()
 	m.set_meta("model", "bottle")
 	return m
+
+
+## What a quick-slot item is held as while it's taken: "bottle" (rum), "flask" (a tonic), "bowl" (stew), "food".
+static func provision_mesh(model: String) -> ArrayMesh:
+	if model == "bottle":
+		return bottle_mesh()
+	var mb := MeshBuilder.new()
+	var b := Basis(Vector3.RIGHT, -PI * 0.5)
+	match model:
+		"flask":
+			var glass := PSXMat.lit("", Color(0.75, 0.92, 0.88), {"emission": Color(0.12, 0.6, 0.5), "emission_energy": 0.7})
+			var cork := PSXMat.flat(Color(0.62, 0.44, 0.24))
+			mb.add_blob(glass, Transform3D(Basis.IDENTITY, Vector3(0, 0, -0.01)), Vector3(0.055, 0.055, 0.055), RandomNumberGenerator.new(), 0.0, 4, 6, 2.0)
+			mb.add_cylinder(glass, Transform3D(b, Vector3(0, 0, -0.06)), 0.02, 0.02, 0.05, 5, 2.0)
+			mb.add_cylinder(cork, Transform3D(b, Vector3(0, 0, -0.11)), 0.024, 0.024, 0.025, 5, 2.0)
+		"bowl":
+			var wood := PSXMat.lit("planks", Color(0.55, 0.38, 0.22))
+			var stew := PSXMat.flat(Color(0.55, 0.28, 0.1))
+			mb.add_cylinder(wood, Transform3D(b, Vector3(0, 0, 0.03)), 0.05, 0.1, 0.06, 7, 1.0, Color.WHITE, true, false, true, stew)
+		_:
+			var meat := PSXMat.lit("", Color(0.6, 0.34, 0.16))
+			mb.add_blob(meat, Transform3D(Basis.IDENTITY, Vector3(0, 0, -0.03)), Vector3(0.055, 0.05, 0.07), RandomNumberGenerator.new(), 0.15, 4, 6, 2.0)
+	var m := mb.commit()
+	m.set_meta("model", model)
+	return m

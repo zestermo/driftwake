@@ -249,6 +249,8 @@ var _clear_push := Vector3.ZERO
 const GAZE_UP_MAX := 0.3
 const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup", "wake", "vine_hang", "vine_shoot", "vine_release", "drink",
 	"berserk_roar", "suplex", "rising_dragon", "conqueror", "vault_back"]
+## Taking a quick-slot item (Player.use_item): the left hand holds its prop, the head may tip back to drink.
+const HEAL_ACTIONS := ["bite", "swig", "slurp", "tonic"]
 var _freeze: float = 0.0
 var _base: Dictionary = {}
 ## Hip height from the body style (the legs' length); PIVOT_Y is the reference.
@@ -813,7 +815,7 @@ func _iai_pose() -> Dictionary:
 ## stance (and running with it sheathed) the right hand grips the hilt at the
 ## scabbard and the left holds its mouth.
 func _katana_hands() -> void:
-	if stance != "katana" or ragdoll != null or not is_katana() or not weapon.is_inside_tree():
+	if stance != "katana" or ragdoll != null or not is_katana() or not weapon.is_inside_tree() or current_action() in HEAL_ACTIONS:
 		return
 	var pole_l := global_basis * Vector3(-0.7, -1.0, 0.2)
 	match current_action():
@@ -1049,7 +1051,7 @@ func _finish_action() -> void:
 		_attach_weapon(false)
 	elif n in ["iai_ready", "iai_slash", "quick_draw", "air_slash"] and armed and not weapon_in_hand:
 		_attach_weapon(true)   # (a katana readied in its scabbard, then interrupted)
-	elif n == "drink":
+	elif n == "drink" or n in HEAL_ACTIONS:
 		hide_left_prop()
 	if n in SPIN_ACTIONS:
 		_cur["pivot"] = Vector3.ZERO
@@ -1879,6 +1881,40 @@ func _action_pose(n: String, u: float) -> Array:
 			var chew := bite.duplicate()
 			chew["head"] = Vector3(0.05 + sin(_t * 18.0) * 0.06, 0, 0)
 			return [_keys(u, [[0.0, {}], [0.2, bite], [0.4, chew], [0.8, chew], [1.0, {}]]), "upper", lift]
+		# --- healing (HEAL_ACTIONS): the heal lands at Player.HEAL_AT of the action ---
+		"bite":
+			# up to the mouth, a tearing bite (the head jerks aside as the hand pulls away), chewing
+			var up := {"arm_l": Vector3(1.75, 0.6, 0.35), "fore_l": Vector3(2.3, 0, 0), "head": Vector3(-0.05, 0, 0), "torso": Vector3(-0.1, 0, 0)}
+			var tear := {"arm_l": Vector3(1.4, 0.75, 0.3), "fore_l": Vector3(2.0, 0, 0), "head": Vector3(0.12, -0.35, 0.1), "torso": Vector3(-0.04, 0.12, 0)}
+			var chew := {"arm_l": Vector3(1.0, 0.45, 0.25), "fore_l": Vector3(1.9, 0, 0), "head": Vector3(sin(_t * 20.0) * 0.07, -0.1, 0), "torso": Vector3(-0.05, 0.05, 0)}
+			return [_keys(u, [[0.0, {}], [0.22, up, "out"], [0.32, up], [0.42, tear, "out"], [0.55, chew], [0.85, chew], [1.0, {}]]), "upper", lift]
+		"swig":
+			# the bottle up, the head thrown back for a long pull, then lowered with a breath out
+			var raise := {"arm_l": Vector3(1.6, 0.55, 0.3), "fore_l": Vector3(2.2, 0, 0), "head": Vector3(0.1, 0, 0), "torso": Vector3(0, 0, 0)}
+			var pull := {"arm_l": Vector3(2.2, 0.6, 0.35), "fore_l": Vector3(2.15, 0, 0), "head": Vector3(0.6 + sin(_t * 14.0) * 0.04, 0, 0), "torso": Vector3(0.18, 0, 0)}
+			var ahh := {"arm_l": Vector3(0.7, 0.3, 0.2), "fore_l": Vector3(1.6, 0, 0), "head": Vector3(-0.15, 0.1, 0), "torso": Vector3(-0.1, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.2, raise, "out"], [0.3, pull, "out"], [0.72, pull], [0.86, ahh, "out"], [1.0, {}]]), "upper", lift]
+		"slurp":
+			# the bowl in both hands (the left alone with a blade in the right), tipped to the lips, gulped
+			var up := {"arm_l": Vector3(1.5, 0.5, 0.3), "fore_l": Vector3(2.1, 0, 0), "head": Vector3(-0.15, 0, 0), "torso": Vector3(-0.08, 0, 0)}
+			var tip := {"arm_l": Vector3(1.95, 0.55, 0.35), "fore_l": Vector3(2.25, 0, 0), "head": Vector3(0.35 + sin(_t * 12.0) * 0.05, 0, 0), "torso": Vector3(0.1, 0, 0)}
+			if not weapon_in_hand or weapon == null:
+				up.merge({"arm_r": Vector3(1.3, -0.5, -0.3), "fore_r": Vector3(2.0, 0, 0)})
+				tip.merge({"arm_r": Vector3(1.7, -0.55, -0.35), "fore_r": Vector3(2.15, 0, 0)})
+			return [_keys(u, [[0.0, {}], [0.2, up, "out"], [0.32, tip, "out"], [0.82, tip], [1.0, {}]]), "upper", lift]
+		"tonic":
+			# the flask before the chest, the cork twisted out by the right hand (pulled with the teeth and spat
+			# when the right hand holds a blade), then a long drink
+			var hold := {"arm_l": Vector3(1.15, 0.45, 0.25), "fore_l": Vector3(1.85, 0, 0), "head": Vector3(-0.3, 0, 0), "torso": Vector3(-0.06, 0, 0)}
+			var pop := {"arm_l": Vector3(1.2, 0.45, 0.25), "fore_l": Vector3(1.85, 0, 0), "head": Vector3(-0.2, -0.1, 0), "torso": Vector3(-0.04, 0, 0)}
+			if weapon_in_hand and weapon != null:
+				hold = {"arm_l": Vector3(1.7, 0.6, 0.35), "fore_l": Vector3(2.3, 0, 0), "head": Vector3(-0.15, 0, 0), "torso": Vector3(-0.08, 0, 0)}
+				pop = {"arm_l": Vector3(1.35, 0.55, 0.3), "fore_l": Vector3(2.05, 0, 0), "head": Vector3(0.05, 0.45, 0.12), "torso": Vector3(-0.02, -0.12, 0)}
+			else:
+				hold.merge({"arm_r": Vector3(1.1, -0.5, -0.2), "fore_r": Vector3(1.95, 0, 0)})
+				pop.merge({"arm_r": Vector3(0.9, 0.1, 0.45), "fore_r": Vector3(1.1, 0, 0)})
+			var gulp := {"arm_l": Vector3(2.15, 0.6, 0.35), "fore_l": Vector3(2.2, 0, 0), "head": Vector3(0.55, 0, 0), "torso": Vector3(0.15, 0, 0)}
+			return [_keys(u, [[0.0, {}], [0.16, hold, "out"], [0.28, hold], [0.36, pop, "out"], [0.5, gulp, "out"], [0.82, gulp], [1.0, {}]]), "upper", lift]
 		# --- holding a block (player) ---
 		"guard_block", "guard_block_hit":
 			var bp := _block_pose()
@@ -3146,7 +3182,7 @@ func _apply_smear() -> void:
 ## Eyes on the target: lean-back and head tilt add up, so a big overhead stared at the
 ## sky; the head takes back whatever looks higher than GAZE_UP_MAX.
 func _keep_gaze(target: Dictionary) -> void:
-	if str(_action["name"]) in GAZE_FREE:
+	if str(_action["name"]) in GAZE_FREE or str(_action["name"]) in HEAL_ACTIONS:
 		return
 	var up: float = (target["pivot"] as Vector3).x + (target["torso"] as Vector3).x + (target["head"] as Vector3).x
 	if up > GAZE_UP_MAX:

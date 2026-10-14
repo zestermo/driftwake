@@ -8,7 +8,7 @@ extends RefCounted
 const SHOPS := {
 	"nessa": {
 		"name": "Nessa's Notions", "line": "Sea-gems at full price. Nobody on this island pays better.",
-		"stock": [["rum", 9], ["biscuit", 3],
+		"stock": [["rum", 9], ["biscuit", 3], ["tonic", 30],
 			["accessory", "earring", {"earring": true}, 1, 40],
 			["accessory", "eyepatch", {"eyepatch": true}, 0, 25],
 			["accessory", "pouch", {"pouch": true}, 0, 30]],
@@ -68,7 +68,7 @@ const SHOPS := {
 	},
 	"ida": {
 		"name": "Old Ida's Pots", "line": "Hardtack in a jar. Lasts longer than you will.",
-		"stock": [["biscuit", 3], ["rum", 10]],
+		"stock": [["biscuit", 3], ["rum", 10], ["tonic", 32]],
 		"buys": {},
 	},
 	"vey": {

@@ -7,11 +7,11 @@
 script = ExtResource("1")
 id = "crab_meat"
 display_name = "Crab Claw"
-description = "Cracked and roasted in its shell. Restores 18 health."
+description = "Cracked and roasted in its shell."
 value = 2
 stackable = true
 max_stack = 10
 item_type = 2
 icon = ExtResource("2")
-heal_amount = 18.0
-use_time = 0.8
+heal_amount = 22.0
+use_time = 0.7

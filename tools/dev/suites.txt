@@ -57,3 +57,4 @@ bosstest
 faunatest
 daggertest
 smoketest
+healtest

@@ -43,6 +43,8 @@ const RARITY_VALUE := [1.0, 1.6, 2.6, 4.0, 7.0, 12.0, 20.0]
 @export_group("Consumable")
 @export var heal_amount: float = 0.0
 @export var use_time: float = 1.0
+## How it's taken (a Humanoid action): "bite" (food), "swig" (rum), "tonic" (uncork a flask and drink).
+@export var use_anim: String = "bite"
 ## A Devil Fruit (fruit id, see DevilFruits): eating it is permanent.
 @export var devil_fruit: String = ""
 
