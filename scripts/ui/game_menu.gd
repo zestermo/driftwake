@@ -277,7 +277,7 @@ func close() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		return
 	get_tree().call_group("hud", "set_menu_open", false)
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Settings.capture_mouse()
 
 
 func _play() -> void:

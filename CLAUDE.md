@@ -200,6 +200,8 @@ GameMenu, Net, Music, Weather, DevCapture.
   left, `*_r` z+ = out right, pivot x- = lean forward. The animator sets only rotations
   each frame, so anything that writes joint *global* transforms (ragdolls, IK) must restore
   local offsets/scale afterwards (see `Ragdoll.restore_rig`).
+- **Grab the mouse only through `Settings.capture_mouse()`**, never `Input.mouse_mode = MOUSE_MODE_CAPTURED`:
+  a test or render tool (`Settings.tool_run()`) must never lock Zach's mouse, and tools run muted.
 - Shader globals live in project.godot `[shader_globals]` (psx_snap_res, psx_affine,
   cloud_shadow, sky_haze). Add new ones there or shaders fail to compile.
 - New textures: copy import settings from existing ones (mipmaps on, compress_to 0).

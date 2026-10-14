@@ -41,12 +41,26 @@ const BUSES := ["SFX", "Ambience", "UI", "Music"]
 var _values: Dictionary = {}
 
 
+## Run by a test or tool (`--script res://tools/dev/...`: its own SceneTree is the main loop), not played.
+static func tool_run() -> bool:
+	return Engine.get_main_loop().get_script() != null
+
+
+## Gameplay grabs the mouse; a test or render tool never does (it would lock the PC while it runs).
+static func capture_mouse() -> void:
+	if not tool_run():
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_values = DEFAULTS.duplicate(true)
 	_load()
 	_ensure_buses()
 	_apply_audio()
+	# a test or render tool with a window open must not blast the game's sound at whoever's at the PC
+	if tool_run():
+		AudioServer.set_bus_mute(0, true)
 	# web: Ctrl+W closes the browser tab (no page can stop it), so dodge is C there (and crouch X)
 	if OS.has_feature("web"):
 		var c := InputEventKey.new()

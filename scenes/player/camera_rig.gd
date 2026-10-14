@@ -55,7 +55,7 @@ func _ready() -> void:
 	# The rig is moved every rendered frame (in _process), so it must not be
 	# physics-interpolated itself; it follows the player's interpolated transform.
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Settings.capture_mouse()
 	current_zoom = spring_length
 	spring_arm.spring_length = current_zoom
 	camera.add_to_group("player_camera")
@@ -90,7 +90,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		var menu := get_node_or_null("/root/GameMenu")
 		if menu == null or not menu.is_open():
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			Settings.capture_mouse()
 
 	# Scroll wheel zoom
 	if event is InputEventMouseButton and _show_target == 0.0:

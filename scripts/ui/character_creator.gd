@@ -431,7 +431,7 @@ func _finish(accepted: bool) -> void:
 	_play()
 	var result := look if accepted else _original
 	_set_paused(false)
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Settings.capture_mouse()
 	active = false
 	finished.emit(result.duplicate(true), accepted)
 	queue_free()
