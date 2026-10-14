@@ -311,10 +311,16 @@ func _centered_panel(min_size: Vector2) -> PanelContainer:
 # ==========================================================================
 func _build_pause() -> Control:
 	var p := _centered_panel(Vector2(190, 0))
-	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 3)
-	p.add_child(vb)
-	vb.add_child(UIStyle.title("Paused"))
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 6)
+	p.add_child(outer)
+	outer.add_child(UIStyle.title("Paused"))
+	# two columns of planks (one column ran past a 360-tall canvas)
+	var vb := GridContainer.new()
+	vb.columns = 2
+	vb.add_theme_constant_override("h_separation", 6)
+	vb.add_theme_constant_override("v_separation", 4)
+	outer.add_child(vb)
 	var items := [
 		["Resume", func(): close()],
 		["Inventory", func(): open("inventory")],
@@ -346,7 +352,7 @@ func _build_pause() -> Control:
 	for it in items:
 		if OS.has_feature("web") and it[0] in ["Host Co-op", "Quit Game"]:
 			continue
-		var b := UIStyle.button(it[0], 160)
+		var b := UIStyle.button(it[0], 130)
 		b.pressed.connect(it[1])
 		b.pressed.connect(_play)
 		vb.add_child(b)

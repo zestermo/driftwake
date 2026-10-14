@@ -1,14 +1,15 @@
 extends CanvasLayer
 ## The emote wheel: hold T, move the mouse toward an emote (the camera holds still
 ## meanwhile), let go of T (or click) to do it; right click or Esc puts it away.
-## Twelve gilt planks round a dark ring (UIStyle), the one you point at lit in
-## light teal, its name in the ornate plate in the middle. Player.emote does the rest.
+## Twelve gilt planks round a dark ring (UIStyle, on a crisp PixelCanvas), the one you point at
+## lit in light teal, its name in the ornate plate in the middle. Player.emote does the rest.
 
 const R := 118.0
 const DEAD := 26.0
 const ORDER := EmotePoses.ORDER
 
 var player: Node
+var _canvas: PixelCanvas
 var _root: Control
 var _plates: Array[PanelContainer] = []
 var _labels: Array[Label] = []
@@ -28,7 +29,10 @@ func _ready() -> void:
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.draw.connect(_draw_ring)
-	add_child(_root)
+	_canvas = PixelCanvas.new()
+	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_canvas)
+	_canvas.ui.add_child(_root)
 	for i in range(ORDER.size()):
 		var pc := PanelContainer.new()
 		pc.mouse_filter = Control.MOUSE_FILTER_IGNORE

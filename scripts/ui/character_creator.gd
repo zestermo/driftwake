@@ -68,10 +68,11 @@ func _play() -> void:
 # layout
 # --------------------------------------------------------------------------
 func _build_ui() -> void:
+	var pc := PixelCanvas.new()
+	add_child(pc)
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.theme = UIStyle.get_theme()
-	add_child(root)
+	pc.ui.add_child(root)
 	var bg := ColorRect.new()
 	bg.color = Color(Color("0f3238"), 1.0 if first_time else 0.86)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)

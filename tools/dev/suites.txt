@@ -58,6 +58,7 @@ faunatest
 daggertest
 smoketest
 healtest
+uitest
 movetest
 cliptest
 emotetest
