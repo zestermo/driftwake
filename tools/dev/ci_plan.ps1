@@ -1,5 +1,6 @@
 # The CI's matrix (.github/workflows/tests.yml): every suite in suites.txt, each heavy one (heavy.txt) in a job
-# of its own, the rest dealt over `-Shards` jobs, longest first onto the lightest job (times: suite_times.txt).
+# of its own, the rest dealt over `-Shards` jobs, longest first onto the lightest job (times: suite_times.txt),
+# and the atomic tests (tools/dev/t/) in one more.
 # Writes `shards=<json>` to $GITHUB_OUTPUT when it's set, and prints the plan.
 #
 #   pwsh tools/dev/ci_plan.ps1 [-Shards 11]
@@ -22,6 +23,9 @@ foreach ($s in @($suites | Where-Object { $heavy -notcontains $_ } | Sort-Object
 	$b.Secs += Get-Secs $s
 }
 $plan = @($suites | Where-Object { $heavy -contains $_ } | ForEach-Object { [pscustomobject]@{ Secs = Get-Secs $_; Suites = @($_) } }) + @($bins | Where-Object { $_.Suites.Count -gt 0 })
+# (the atomic tests, tools/dev/t/<group>/<name>.gd: one job, run_tests.ps1 takes "t" as all of them)
+$atomic = @(Get-ChildItem (Join-Path $PSScriptRoot "t") -Directory -ErrorAction SilentlyContinue | ForEach-Object { Get-ChildItem $_.FullName -Filter "*.gd" } | Where-Object { -not $_.Name.StartsWith("_") })
+if ($atomic.Count -gt 0) { $plan += [pscustomobject]@{ Secs = 10 * $atomic.Count; Suites = @("t") } }
 $matrix = @($plan | ForEach-Object { [ordered]@{ name = ($_.Suites -join " "); suites = ($_.Suites -join " ") } })
 foreach ($p in $plan) { Write-Host ("{0,5} s  {1}" -f $p.Secs, ($p.Suites -join " ")) }
 $json = ConvertTo-Json -InputObject $matrix -Compress

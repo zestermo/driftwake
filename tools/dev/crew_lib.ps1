@@ -174,6 +174,15 @@ function Get-TestScript([string]$test) {
 	return "$test.gd"
 }
 
+## The test_map.txt names that stand for `test`: its own; an atomic test's "t", "t/<group>", "t/<group>/<name>";
+## a co-op mode's "net" (and "netchain" for net-chain).
+function Get-MapTokens([string]$test) {
+	if ($test -eq "net-chain") { return @("net", "netchain") }
+	if ($test -match "^net(-\w+)?$") { return @("net") }
+	if ($test -match "^t\.([^.]+)\.(.+)$") { return @("t", ("t/" + $Matches[1]), ("t/" + $Matches[1] + "/" + $Matches[2])) }
+	return @($test)
+}
+
 ## An atomic test's group in the Tests pane ("t.player.dash" -> "t/player"), or "".
 function Get-AtomicGroup([string]$test) {
 	if ($test -match "^t\.([^.]+)\.") { return "t/" + $Matches[1] }

@@ -1516,10 +1516,13 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   atomic ones on the light stage included.
 - So: caching, test_status and prepush go by loads (sound: a pass holds until something it loads changes;
   editing a test, a tool, a doc or test_map no longer touches anyone's passes). `-Changed` (and landing) picks
-  atomic tests by loads, and a suite only for a changed test-side file it loads (its script, test_kit, the
-  stage) or one test_map says it's about, among files it loads (`-Wide`: every test that loads one). One-file
-  edits: ship_spray.gd 2 suites (test_map before: 2; by loads: all ~62), inventory_screen.gd 5 (5; ~62),
-  humanoid.gd 15 (15; ~62). The map stays the relevance filter until the autoloads stop naming the whole game
+  a test only for a changed test-side file it loads (its script, test_kit, the stage) or one test_map says
+  it's about, among files it loads (`Get-MapTokens`: a suite's name; an atomic test's `t`, `t/<group>`,
+  `t/<group>/<name>`, the tokens the stage branch put in the map); `-Wide`: every test that loads one. One-file
+  edits, of 87 tests (57 suites, 30 atomic), picked by default / by the map alone (before) / by loads:
+  ship_spray.gd 3 / 3 / 87, inventory_screen.gd 5 / 5 / 87, humanoid.gd 31 / 31 / 87, dodge_state.gd 21 / 21 /
+  87 (every one of the 37 recorded tests loads all four; the 30 atomic tests load 421-433 files each). The
+  default only drops a map pick that doesn't load the file. The map stays the relevance filter until the autoloads stop naming the whole game
   (lazy `load()` in GameManager/Net/GameMenu instead of class references would shrink the floor).
 - Proof (8 suites recorded: dash chartest invtest uitest skytest capturetest shiptest musictest): CLAUDE.md,
   crew_lib.ps1 and this file changed after their passes and all 8 stayed ok. A comment edit to
@@ -1527,5 +1530,7 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   those 3 stale, `affected -Wide` picked exactly those 3 (plus map fallbacks for unrecorded suites), the other
   5 stayed ok. A comment edit to the Story autoload: all 8 stale and picked. Reverting each: all 8 ok again
   (same contents, same key). ship_spray.gd, inventory_screen.gd, humanoid.gd: each loaded by 8 of 8.
+- CI (landed first): `-CI` runs skip the deps like the rest of the crew; ci_plan.ps1 adds one job, `t`, for
+  the atomic tests (the suites ported to them had left suites.txt, so CI had stopped running them).
 - chartest failed twice while the atomic-tests branch's player tests ran beside it and passed alone: both write
   `user://character.cfg` (CharacterLook.SAVE_PATH, global to every checkout); tests that run at once share user://.

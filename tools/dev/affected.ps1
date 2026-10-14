@@ -1,10 +1,9 @@
 # Which tests what changed can affect, by the files each one loads (.git\crew\deps, recorded on its last pass):
-#   atomic tests (tools/dev/t/)  every one whose loads include a changed file
-#   suites, co-op modes          of their loads, a changed test-side file (tools/dev/...) or one test_map.txt says
-#                                the suite is about (every suite loads ~500 files, the whole game, through the
-#                                world and the autoloads); -Wide: every one whose loads include a changed file
-# A test with nothing recorded yet falls back to test_map.txt; an atomic test or a suite the map doesn't know is
-# picked until its first pass records its loads.
+# a test is picked when a changed file it loads is test-side (tools/dev/...) or one test_map.txt says it's about
+# (by its name; an atomic test by "t", "t/<group>" or "t/<group>/<name>"), since every test loads most of the game
+# through the autoloads (and a suite the world too). -Wide: every test whose loads include a changed file.
+# A test with nothing recorded yet falls back to test_map.txt alone; one the map doesn't name is picked until its
+# first pass records its loads.
 #
 #   .\tools\dev\affected.ps1                 # uncommitted changes (and new files) vs HEAD
 #   .\tools\dev\affected.ps1 -Base main      # everything this branch changed since main, plus uncommitted
@@ -49,7 +48,7 @@ try {
 	foreach ($m in $map) { foreach ($s in $m[1]) { $mapped[$s] = $true } }
 	## The ones of `of` that test_map.txt (and the tools/dev/<suite>.gd rule) says cover `test`.
 	function Get-MapHits([string]$test, [string[]]$of) {
-		$tokens = if ($test -eq "net-chain") { @("net", "netchain") } elseif ($test -like "net*") { @("net") } else { @($test) }
+		$tokens = Get-MapTokens $test
 		return @($of | Where-Object {
 			$f = $_
 			$hit = @()
@@ -66,13 +65,13 @@ try {
 		$hits = Get-DepHits $crew $t $files
 		if ($null -ne $hits) {
 			foreach ($h in $hits) { $loadedBy[$h] = 1 + [int]$loadedBy[$h] }
-			# (every suite loads the whole game through the world and the autoloads: of a suite's loads, only the
-			# test-side files and what the map says it's about pick it here; -Wide and prepush take them all)
-			if (-not $Wide -and -not $t.StartsWith("t.")) { $hits = @($hits | Where-Object { $_ -like "tools/dev/*" -or (Get-MapHits $t @($_)).Count -gt 0 }) }
+			# (every test loads most of the game through the autoloads: of its loads, only the test-side files and
+			# what the map says it's about pick it here; -Wide and prepush take them all)
+			if (-not $Wide) { $hits = @($hits | Where-Object { $_ -like "tools/dev/*" -or (Get-MapHits $t @($_)).Count -gt 0 }) }
 			if ($hits.Count -gt 0) { $picked += $t; $why[$t] = "loads " + (($hits | Select-Object -First 4) -join ", ") + $(if ($hits.Count -gt 4) { " (+$($hits.Count - 4))" } else { "" }) }
 			continue
 		}
-		$known = $mapped.ContainsKey($t) -or ($t -eq "net-chain" -and $mapped.ContainsKey("netchain")) -or ($t -like "net*" -and $mapped.ContainsKey("net"))
+		$known = @(Get-MapTokens $t | Where-Object { $mapped.ContainsKey($_) }).Count -gt 0
 		if (-not $known -and -not ($t -like "net*")) {
 			if ($files.Count -gt 0) { $picked += $t; $why[$t] = "no loads recorded yet, no map line" }
 			continue

@@ -55,7 +55,7 @@ function Get-Hits([string]$f) {
 }
 ## Does a change to `files` touch `suite` (by test_map.txt)? The files that do.
 function Get-Touching([string]$suite, [string[]]$files) {
-	$tokens = if ($suite -eq "net-chain") { @("net", "netchain") } elseif ($suite -like "net*") { @("net") } else { @($suite) }
+	$tokens = Get-MapTokens $suite
 	return @($files | Where-Object { $f = $_; (Get-Hits $f | Where-Object { $tokens -contains $_ }).Count -gt 0 })
 }
 $diffs = @{}
