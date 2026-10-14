@@ -1434,3 +1434,25 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   ~15 min of machine time a full run, and an agent's own loop drops from ~40 s to ~10 s a suite. The slow
   suites (harbour/isle/village/sea/dungeon/boss) test the world itself and need it; smoketest keeps covering
   the real world on every landing. Migrate the fastest ten first and compare their times here.
+## 2026-10-14: the test CI on GitHub (prepush.ps1 -CI)
+- `.github/workflows/tests.yml` (pushes to any branch but main, and by hand): a plan job imports once (.godot in
+  actions/cache, keyed on project.godot + *.import + assets/; every job still runs `--import` to catch up new
+  class names) and deals the suites (`tools/dev/ci_plan.ps1`: each heavy.txt suite alone, the rest longest-first
+  over 11 jobs by `suite_times.txt`), then 17 suite jobs (`run_tests.ps1 -CI -Jobs 2`), 3 co-op jobs
+  (`nettest.ps1 -CI`: default, chain, board) and a verdict job, on ubuntu-24.04. ~6 minutes wall for the lot
+  (local prepush: ~20+ and the PC tied up). Each job's summary has a table (suite, time, result, the failure
+  block); logs are artifacts; failures are annotations (ci.ps1 prints them).
+- run_tests/nettest `-CI`: no crew (slots, pass cache, in-flight, ledger, live runs, board) and no import; the
+  judging is crew_lib's as locally (FAIL/SCRIPT ERROR/RESULT, stall/flood limits, flaky.txt's one retry).
+  crew_lib's Start-/Stop-GodotJob start Godot through `/bin/sh -c exec ... > log` and kill it with
+  Process.Kill(tree) on Linux (cmd's redirect and taskkill on Windows). Save-LiveRun skips a run with no file.
+  The CI side (in-memory run, the summary table, annotations, the ci/ branch name) is `tools/dev/ci_lib.ps1`.
+- `tools/dev/ci.ps1` pushes HEAD to `ci/<branch>` (force; never main), finds that commit's new Tests run, one
+  `gh run watch`, prints each job and the failures; `prepush.ps1 -CI [-NoPush]` pushes the same commit when
+  green and deletes the ci/ branch (kept when red, for `gh run rerun --failed`). setup-godot's templates are
+  optional now (tests need none).
+- Linux vs Windows: no suite needs Windows; nothing failed for a platform reason. A runner is slower and
+  hitchier than Zach's PC, which showed timing assumptions: netclient waited at most 20 s for the guest's chain
+  islands (a runner builds one in ~17-20 s) -> 60 s; progtest waited in process seconds and a long frame ran
+  the 0.3 s logia dodge out inside a 0.2 s wait -> physics ticks like the other suites. Seen once, not
+  reproduced: swimtest "head above the water" at -0.08 (limit -0.05), the sibling of the listed flake.
