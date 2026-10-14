@@ -104,7 +104,7 @@ func _brain(delta: float) -> void:
 		S.HIDE:
 			if anim_a > 0.3:
 				return
-			var hunting := _player_ok(p) and dist < NOTICE and _cool <= 0.0 and flat(global_position - home).length() < 30.0
+			var hunting := _player_ok(p) and dist < Stealth.range_for(p, global_position, Vector3.ZERO, NOTICE) and _cool <= 0.0 and flat(global_position - home).length() < 30.0
 			if hunting:
 				_face(to_p)
 				_want = to_p.normalized() * DIG

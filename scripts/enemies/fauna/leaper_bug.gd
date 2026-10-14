@@ -110,7 +110,7 @@ func _brain(delta: float) -> void:
 	match state:
 		S.IDLE, S.WANDER:
 			_wander(0.8, Vector2(2.0, 7.0))
-			if _player_ok(p) and dist < NOTICE and _cool <= 0.0:
+			if _player_ok(p) and dist < Stealth.range_for(p, global_position, _fwd(), NOTICE) and _cool <= 0.0:
 				_set_state(S.NOTICE)
 				Net.fx("sfx", ["chitter", global_position, -3.0, 0.1, 0.8])
 		S.NOTICE:

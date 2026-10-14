@@ -103,7 +103,7 @@ func _brain(_delta: float) -> void:
 				_wander_wait -= get_physics_process_delta_time()
 				if _wander_wait <= 0.0:
 					_pick_wander(Vector2(2.0, 6.0))
-			if _player_ok(p) and dist < NOTICE * size_k and _cool <= 0.0:
+			if _player_ok(p) and dist < Stealth.range_for(p, global_position, _fwd(), NOTICE * size_k) and _cool <= 0.0:
 				_set_state(S.CHASE)
 				Net.fx("sfx", ["clack", global_position, -3.0, 0.1, 1.0 / size_k])
 		S.CHASE:

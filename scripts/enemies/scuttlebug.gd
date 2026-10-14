@@ -367,7 +367,7 @@ func _physics_process(delta: float) -> void:
 		S.WANDER:
 			_wander_tick(delta)
 			want = _wander_vel()
-			if _player_ok(p) and dist < NOTICE_RANGE and _cooldown <= 0.0 and _flat(global_position - home).length() < LEASH:
+			if _player_ok(p) and dist < Stealth.range_for(p, global_position, Vector3.ZERO, NOTICE_RANGE) and _cooldown <= 0.0 and _flat(global_position - home).length() < LEASH:
 				_set_state(S.NOTICE)
 				velocity.y = 2.6
 				Net.fx("sfx", ["chitter", global_position, -2.0, 0.1, 0.85 if big else 1.1])

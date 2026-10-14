@@ -86,6 +86,7 @@ func _process(d: float) -> bool:
 				return true
 			var side: Vector3 = seat.get_parent().global_basis.z.normalized()
 			spot = seat.floor_point() + side * 0.7 + Vector3.UP * 0.3
+			set_meta("open", seat.floor_point() + side * 3.0 + Vector3.UP * 0.3)
 			put(spot, atan2(side.x, side.z))
 			go(1, 30)
 		1:
@@ -159,6 +160,113 @@ func _process(d: float) -> bool:
 		53:
 			Input.action_release("move_forward")
 			check("...and up again on a move", p.current_state_name() != "Sit" and not p.body_model.seated)
+			go(60)
+		# --- sneaking: C toggles the crouch; walk up behind the smugglers' sentry standing, then crouched
+		60:
+			p.health_component.max_health = 99999.0
+			p.health_component.current_health = 99999.0
+			put(get_meta("open"))
+			go(61, 45)
+		61:
+			press_crouch()
+			go(62, 10)
+		62:
+			check("C crouches (%s)" % p.current_state_name(), p.current_state_name() == "Crouch" and p.body_model.crouching)
+			var y0: float = p.body_model.pivot.global_position.y
+			set_meta("stand_hips", y0)
+			Input.action_press("move_forward")
+			go(63, 30)
+		63:
+			var v: float = Vector2(p.velocity.x, p.velocity.z).length()
+			var hips: float = p.body_model.pivot.global_position.y - p.global_position.y
+			check("...and you sneak along slower (%.1f m/s), low (hips %.2f m up)" % [v, hips], v > 2.0 and v < 4.0 and hips < 0.75)
+			Input.action_release("move_forward")
+			press_crouch()
+			go(64, 10)
+		64:
+			check("C again stands you up (%s)" % p.current_state_name(), p.current_state_name() != "Crouch" and not p.body_model.crouching)
+			camp = current_scene.get_node("Islands/Brinehollow/SmugglersCamp")
+			sentry = camp.grunts[2]
+			for x in camp.grunts:
+				if x != sentry:
+					x.process_mode = Node.PROCESS_MODE_DISABLED
+			check("the sentry stands its post", sentry.idle_mode != "sit")
+			approach_from(9.0, false)
+			go(65, 3)
+		65:
+			if approach_step():
+				return false
+			set_meta("stand_d", near_d)
+			print("   standing: the sentry turned at %.2f m behind it" % near_d)
+			reset_camp()
+			# (long enough for the camp's delayed alarms to fire and be reset again, and the sentry to face its post)
+			go(65_1, 120)
+		65_1:
+			reset_camp()
+			go(66, 120)
+		66:
+			approach_from(9.0, true)
+			go(67, 3)
+		67:
+			if approach_step():
+				return false
+			var sd: float = get_meta("stand_d")
+			print("   crouched: the sentry turned at %.2f m behind it" % near_d)
+			check("crouched behind a grunt you get closer before it turns (%.2f m vs %.2f m standing)" % [near_d, sd], near_d < sd - 1.5 and near_d < 2.0)
+			reset_camp()
 			finish()
 			return true
 	return false
+
+
+var camp
+var sentry
+var near_d := 0.0
+var _sneak := false
+
+
+func press_crouch() -> void:
+	var ev := InputEventAction.new()
+	ev.action = "crouch"
+	ev.pressed = true
+	Input.parse_input_event(ev)
+
+
+func reset_camp() -> void:
+	for x in camp.grunts:
+		x.global_position = x.post
+		x.velocity = Vector3.ZERO
+		x.reset_physics_interpolation()
+		x._enter_idle()
+	put(get_meta("open"))
+
+
+## Start `d` m straight behind the sentry, standing or crouched.
+func approach_from(d: float, sneak: bool) -> void:
+	_sneak = sneak
+	near_d = d
+	place_behind()
+
+
+func place_behind() -> void:
+	var back: Vector3 = -sentry._fwd()
+	var at: Vector3 = sentry.global_position + back * near_d
+	at.y = floor_y(at) + 0.05
+	p.global_position = at
+	p.velocity = Vector3.ZERO
+	p.player_model.rotation.y = atan2(back.x, back.z)
+	p.reset_physics_interpolation()
+	if _sneak and p.current_state_name() != "Crouch":
+		p.state_machine.force_state("Crouch", {})
+	elif not _sneak and p.current_state_name() != "Idle":
+		p.state_machine.force_state("Idle", {})
+
+
+## A quarter metre closer every few ticks until the sentry turns; true while still creeping.
+func approach_step() -> bool:
+	if sentry.state != 0 or near_d <= 0.6:
+		return false
+	near_d -= 0.25
+	place_behind()
+	until = TK.wait_ticks(3)
+	return true

@@ -179,13 +179,13 @@ func _brain(delta: float) -> void:
 	match state:
 		S.IDLE, S.WANDER:
 			if young:
-				if _player_ok(p) and dist < 6.5:
+				if _player_ok(p) and dist < Stealth.range_for(p, global_position, _fwd(), 6.5):
 					scare()
 					_alarm()
 					return
 				_wander(1.1, Vector2(1.0, 4.0))
 				return
-			if _player_ok(p) and dist < (8.5 if tusker else 3.8):
+			if _player_ok(p) and dist < Stealth.range_for(p, global_position, _fwd(), 8.5 if tusker else 3.8):
 				provoke(p)
 				_alarm()
 				return

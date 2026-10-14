@@ -653,9 +653,10 @@ func _physics_process(delta: float) -> void:
 	match state:
 		S.IDLE:
 			want = _idle_move(delta)
-			if p and _player_ok(p) and dist < (NOTICE_RANGE * 1.4 if role == "rifle" else NOTICE_RANGE):
-				var ahead := _fwd().dot(dir_p) > -0.2
-				if ahead or dist < 5.0 or idle_mode == "sit":
+			# (a sneaking captain is noticed closer, and from behind only close enough for a backstab: Stealth)
+			if p and _player_ok(p) and dist < Stealth.range_for(p, global_position, _fwd(), NOTICE_RANGE * 1.4 if role == "rifle" else NOTICE_RANGE):
+				var ahead := _fwd().dot(dir_p) > Stealth.AHEAD_DOT
+				if ahead or dist < Stealth.range_for(p, global_position, _fwd(), 5.0) or idle_mode == "sit":
 					alert()
 		S.ALERT:
 			_face(dir_p)
@@ -950,7 +951,7 @@ func _physics_process(delta: float) -> void:
 				_set_state(S.KEEP)
 		S.RETURN:
 			var to_post := _flat(post - global_position)
-			if p and _player_ok(p) and dist < NOTICE_RANGE * 0.7:
+			if p and _player_ok(p) and dist < Stealth.range_for(p, global_position, _fwd(), NOTICE_RANGE * 0.7):
 				alert()
 			elif to_post.length() > 0.6:
 				var nd := _nav_dir(post, delta)

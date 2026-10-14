@@ -24,6 +24,7 @@
 [ext_resource type="Script" path="res://scripts/player_states/climb_state.gd" id="22"]
 [ext_resource type="Script" path="res://scripts/player_states/plunge_state.gd" id="23"]
 [ext_resource type="Script" path="res://scripts/player_states/sit_state.gd" id="sit_state"]
+[ext_resource type="Script" path="res://scripts/player_states/crouch_state.gd" id="crouch_state"]
 [ext_resource type="Script" path="res://scripts/player_states/skill_state.gd" id="skill_state"]
 [ext_resource type="Script" path="res://scripts/player_states/shoot_state.gd" id="shoot_state"]
 [ext_resource type="Script" path="res://scripts/player_states/swing_state.gd" id="swing_state"]
@@ -148,6 +149,9 @@ script = ExtResource("23")
 
 [node name="Sit" type="Node" parent="StateMachine"]
 script = ExtResource("sit_state")
+
+[node name="Crouch" type="Node" parent="StateMachine"]
+script = ExtResource("crouch_state")
 
 [node name="Skill" type="Node" parent="StateMachine"]
 script = ExtResource("skill_state")

@@ -1010,7 +1010,7 @@ const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon"]
 
 
 ## States that drop into swimming when the water gets deep enough.
-const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai"]
+const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
 
 
 ## Distance down to the ground (or INF over nothing within 30 m).
@@ -1228,7 +1228,11 @@ func _on_footstep(strength: float) -> void:
 	if not (is_on_floor() if is_local else bool(_net_flags & NF_FLOOR)):
 		return
 	_step_count += 1
-	FX.sfx("step_" + ground_surface(), global_position, -16.0 + 16.0 * strength, 0.06)
+	# sneaking: soft steps, no dust
+	var sneak := current_state_name() == "Crouch"
+	FX.sfx("step_" + ground_surface(), global_position, -16.0 + 16.0 * strength - (10.0 if sneak else 0.0), 0.06)
+	if sneak:
+		return
 	var wet := water_depth()
 	if wet > 0.08:
 		# wading: splashes instead of dust
@@ -1405,6 +1409,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			_debug_to_next_island()
 		elif is_free():
 			knock_down(player_model.global_basis.z * 6.0 + Vector3.UP * 3.5)
+		get_viewport().set_input_as_handled()
+		return
+	# C: sneak (CrouchState), C again to stand
+	if event.is_action_pressed("crouch"):
+		var st := current_state_name()
+		if st == "Crouch":
+			state_machine.force_state("Idle", {})
+		elif st in ["Idle", "Move"] and context == Context.ON_FOOT and is_on_floor() and not is_swimming():
+			state_machine.force_state("Crouch", {})
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ready_weapon"):

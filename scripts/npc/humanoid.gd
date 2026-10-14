@@ -86,6 +86,8 @@ var helm_steer: float = 0.0
 var kneeling: bool = false
 ## Working a ship's cannon: crouched behind it, hands on the carriage.
 var manning: bool = false
+## Sneaking (the player's CrouchState): low on bent knees, chest forward.
+var crouching: bool = false
 ## In the water: breaststroke when moving, treading water otherwise; `diving`
 ## ducks under head first. `climbing` = hand over hand up a ladder, with
 ## `climb_phase` = how high you are (drives the arm/leg cycle).
@@ -2529,6 +2531,22 @@ func _locomotion(delta: float) -> Dictionary:
 		p["fore_l"] = Vector3(0.35, 0, 0)
 		p["arm_r"] = Vector3(-0.55, 0.0, 0.4)
 		p["fore_r"] = Vector3(0.15, 0, 0)
+	# sneaking: hips dropped on bent knees (thighs and shins fold to match the drop), chest
+	# forward, head up; unarmed, the hands drawn in close in front
+	if crouching and grounded and not swimming and not seated:
+		p["leg_l"] += Vector3(0.75, 0, -0.04)
+		p["leg_r"] += Vector3(0.75, 0, 0.04)
+		p["shin_l"] += Vector3(-1.45, 0, 0)
+		p["shin_r"] += Vector3(-1.45, 0, 0)
+		p["torso"] += Vector3(-0.5, 0, 0)
+		p["head"] += Vector3(0.42, 0, 0)
+		if not armed:
+			var sw := sin(_phase) * 0.15 * clampf(ground_speed / 3.0, 0.0, 1.0)
+			p["arm_l"] = Vector3(0.55 - sw, 0.25, -0.2)
+			p["arm_r"] = Vector3(0.55 + sw, -0.25, 0.2)
+			p["fore_l"] = Vector3(1.35, 0, 0)
+			p["fore_r"] = Vector3(1.35, 0, 0)
+		lift.y -= 0.25
 	if kneeling and grounded and not swimming:
 		# right knee on the ground, left foot planted ahead, both hands pressing
 		# down on the crewmate in front (pumping)
