@@ -1,5 +1,5 @@
 extends SceneTree
-## The log pose held up (L): unset under level 5 (the needle wandering, on the
+## The log pose held up (H): unset under level 5 (the needle wandering, on the
 ## icon and the compass strip), then set in Brinehollow's sea (icon, strip,
 ## the chart with the first island pinned at its edge); then out on the chain
 ## at a city whose log pose forks (a seed found for it): unset (the wait),

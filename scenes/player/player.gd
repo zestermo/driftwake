@@ -1461,7 +1461,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 # --------------------------------------------------------------------------
-# The log pose (Morrow's, worn on the left wrist; hold L to read it)
+# The log pose (Morrow's, worn on the left wrist; hold H to read it)
 # --------------------------------------------------------------------------
 ## True while L is held (the HUD shows the log pose then).
 var log_pose_up: bool = false
@@ -1476,7 +1476,7 @@ func give_log_pose() -> void:
 		return
 	Dialogue.set_flag("log_pose")
 	refresh_look()
-	get_tree().call_group("hud", "show_banner", "A Log Pose!", "Hold L to read it. It points the way past Redtide Rock.", true)
+	get_tree().call_group("hud", "show_banner", "A Log Pose!", "Hold H to read it. It points the way past Redtide Rock.", true)
 
 
 func _debug_to_next_island() -> void:

@@ -5,7 +5,7 @@ extends SceneTree
 ## levels rising, the first island well past Redtide; the old placeholder
 ## islands are gone and the bottle treasures lie on Brinehollow's beaches.
 ## The log pose: none to start, given on the wrist, unset under level 5, then
-## pointing at the first layer; hold L raises it and shows the HUD icon, the
+## pointing at the first layer; hold H raises it and shows the HUD icon, the
 ## needle turns to the island; the seed, where we are, the set rule's state and
 ## the log pose survive a save and load; Gus's rumour talks of the chain. The
 ## compass strip shows its needles while L is held, danger reads by level, and
