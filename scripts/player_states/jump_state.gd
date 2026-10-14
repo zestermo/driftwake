@@ -13,13 +13,33 @@ func _launch(double: bool) -> void:
 	player.velocity.y = player.jump_force * (0.92 if double else 1.0)
 	player.variable_jump_active = true
 	player.squash(4.5 if not double else 3.5)
+	var kind := take_off(double)
+	player.body_model.play(kind, ActionSpecs.length(kind))
+	var at := player.global_position
 	if double:
-		player.body_model.play("flip", 0.45)
-		Net.fx("sparkle", [player.global_position + Vector3(0, 0.8, 0), 10, Color(1.0, 0.95, 0.7)])
-		Net.fx("sfx", ["jump", player.global_position, -8.0, 0.05, 1.15])
+		# a kick off the air itself: a flat ring of wind under the feet
+		Net.fx("ring", [at + Vector3(0, 0.05, 0), Vector3.UP, 0.85, Color(1.0, 0.98, 0.9, 0.8), 0.28, 0.08])
+		Net.fx("motes", [at + Vector3(0, 0.1, 0), Vector3.DOWN, 8, Color(1.0, 0.97, 0.88), 4.0])
+		Net.fx("sfx", ["jump", at, -8.0, 0.05, 1.15])
+		Net.fx("sfx", ["whoosh", at, -12.0, 0.08, 1.3])
+	elif kind == "jump_sprint":
+		Net.fx("dust", [at + Vector3(0, 0.05, 0), 9, 0.7])
+		Net.fx("sfx", ["jump", at, -7.0, 0.06, 0.92])
+		Net.fx("sfx", ["whoosh", at, -14.0, 0.08, 0.9])
 	else:
-		Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 6, 0.6])
-		Net.fx("sfx", ["jump", player.global_position, -8.0, 0.06])
+		Net.fx("dust", [at + Vector3(0, 0.05, 0), 6, 0.6])
+		Net.fx("sfx", ["jump", at, -8.0, 0.06, 1.05 if kind == "jump_stand" else 1.0])
+
+
+## Which take-off: the double jump, or by how fast you were going on the ground.
+func take_off(double: bool) -> String:
+	if double:
+		return "double_jump"
+	var h := Vector2(player.velocity.x, player.velocity.z).length()
+	if h < 1.5:
+		return "jump_stand"
+	# (Move's exit has already cleared `sprinting`: go by the speed)
+	return "jump_sprint" if h > (player.move_speed + player.sprint_speed) * 0.5 else "jump_run"
 
 
 func physics_update(delta: float) -> void:

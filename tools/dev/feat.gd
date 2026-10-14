@@ -105,7 +105,7 @@ func _process(d: float) -> bool:
 			check("jumped", st() in ["Jump", "Fall"])
 			act("jump"); wait = 0.05
 		15:
-			check("double jump flips", p.body_model.current_action() == "flip")
+			check("double jump flips (%s)" % p.body_model.current_action(), p.body_model.current_action() == "double_jump")
 			wait = 1.5
 		16:
 			# loot the ruins chest: treasure + boarding axe

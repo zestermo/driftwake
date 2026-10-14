@@ -41,7 +41,7 @@ func _process(d: float) -> bool:
 		1:
 			act("jump"); wait = 0.08; step = 2
 		2:
-			check("no double jump while locked", p.body_model.current_action() != "flip")
+			check("no double jump while locked", p.body_model.current_action() != "double_jump")
 			wait = 1.2; step = 3
 		3:
 			p.set_ability("double_jump", true)

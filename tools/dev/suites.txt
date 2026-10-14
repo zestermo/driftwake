@@ -58,3 +58,4 @@ faunatest
 daggertest
 smoketest
 healtest
+movetest

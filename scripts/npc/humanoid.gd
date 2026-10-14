@@ -27,7 +27,7 @@ const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r", "hand_l"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
 const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "gun_kata", "axe_whirl", "axe_flip",
-	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "giant_swing", "twin_cyclone", "vault_back"]
+	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "giant_swing", "twin_cyclone", "vault_back", "double_jump"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r", "hand_l"]
 
 var look: Dictionary = {}
@@ -176,6 +176,10 @@ const TIP_MAX := 0.5
 var _jside: float = 1.0
 var _jv: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var _air_vy: float = 0.0
+## The take-off this jump began with (MovePoses: "stand", "run", "sprint", "double"; "" walked off
+## a ledge), and the one the last landing came from.
+var _jkind: String = ""
+var _land_kind: String = ""
 ## Idle weight shift phase (per body, so a crowd doesn't sway in step).
 var _idle_seed: float = 0.0
 ## Out of combat: push-off / planted stop / skid timers (1 -> 0) and what set them.
@@ -248,7 +252,7 @@ var _clear_push := Vector3.ZERO
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
 const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup", "wake", "vine_hang", "vine_shoot", "vine_release", "drink",
-	"berserk_roar", "suplex", "rising_dragon", "conqueror", "vault_back"]
+	"berserk_roar", "suplex", "rising_dragon", "conqueror", "vault_back", "double_jump"]
 ## Taking a quick-slot item (Player.use_item): the left hand holds its prop, the head may tip back to drink.
 const HEAL_ACTIONS := ["bite", "swig", "slurp", "tonic"]
 var _freeze: float = 0.0
@@ -824,7 +828,7 @@ func _katana_hands() -> void:
 		"petal_storm":
 			if not weapon_in_hand:
 				_hands_on_scabbard()
-		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash", "drink":
+		"draw", "sheathe", "iai_slash", "dash", "quick_draw", "air_slash", "drink", "jump_stand", "jump_run", "jump_sprint", "double_jump":
 			pass
 		_:
 			if _run_sheath and not weapon_in_hand:
@@ -2253,6 +2257,9 @@ func _action_pose(n: String, u: float) -> Array:
 			return [_keys(u, [[0.0, {}], [0.2, wv], [0.85, wv], [1.0, {}]]), "upper", lift]
 	if n.begins_with("ape_"):
 		return ApePoses.pose(self, n, u)
+	var mp := MovePoses.pose(self, n, u)
+	if not mp.is_empty():
+		return mp
 	# weapon / unarmed techniques live in their own file
 	var tp := TechniquePoses.pose(self, n, u)
 	if not tp.is_empty():
@@ -2526,6 +2533,14 @@ func _locomotion(delta: float) -> Dictionary:
 			"arm_" + ts: Vector3(0.3, 0, (1.35 * fall_k + flail) * to), "fore_" + ts: Vector3(0.5, 0, 0),
 			"arm_" + ls: Vector3(0.65, 0, (1.05 * fall_k + flail) * lo), "fore_" + ls: Vector3(0.75, 0, 0),
 			"torso": Vector3(-0.12, 0.06 * _jside, 0.04 * _jv[6]), "head": Vector3(0.22, 0, 0)}
+		if _jkind in ["stand", "double"]:
+			# both knees drawn up together, arms out wide
+			fall.merge({"leg_l": Vector3(1.45 + flail * 0.15, 0, -0.14), "shin_l": Vector3(-2.05, 0, 0), "leg_r": Vector3(1.4 - flail * 0.15, 0, 0.14), "shin_r": Vector3(-2.0, 0, 0),
+				"arm_l": Vector3(0.55, 0, -(1.2 * fall_k + flail)), "arm_r": Vector3(0.55, 0, 1.2 * fall_k + flail), "torso": Vector3(-0.15, 0, 0)}, true)
+		elif _jkind == "sprint":
+			# still in stride: the front leg reaching for the ground, the back one folded
+			fall.merge({"leg_" + ls: Vector3(1.35, 0, 0.12 * lo), "shin_" + ls: Vector3(-0.7, 0, 0), "leg_" + ts: Vector3(0.3, 0, 0.14 * to), "shin_" + ts: Vector3(-1.6, 0, 0),
+				"arm_" + ts: Vector3(0.9, 0, (1.0 + flail) * to), "arm_" + ls: Vector3(0.2, 0, (1.2 + flail) * lo), "torso": Vector3(-0.22, 0.08 * _jside, 0)}, true)
 		for j in jump.keys():
 			p[j] = (fall[j] as Vector3).lerp(jump[j], rise)
 		if _guns_out():
@@ -2544,24 +2559,29 @@ func _locomotion(delta: float) -> Dictionary:
 	if grounded and not _was_grounded:
 		_land_strength = clampf(absf(vertical_speed) / 14.0, 0.3, 1.0) if air_before > 0.08 else 0.0
 		_land = 1.0 if _land_strength > 0.0 else 0.0
+		_land_kind = _jkind
+		_jkind = ""
 	if _land > 0.0:
-		_land = maxf(_land - delta / 0.3, 0.0)
+		_land = maxf(_land - delta / float(MovePoses.LAND_SECS.get(_land_kind, 0.3)), 0.0)
 		var k := sin(_land * PI * 0.5) * _land_strength
-		# the foot that hung lower in the fall touches down first and takes the
-		# weight; the tucked lead foot comes down a beat later
-		var late := smoothstep(0.0, 0.2, 1.0 - _land)
-		var fs := "r" if _jside > 0.0 else "l"
-		var ls := "l" if _jside > 0.0 else "r"
-		var fo := 1.0 if fs == "r" else -1.0
-		var vary := 1.0 + 0.2 * float(_jv[0])
-		lift.y -= 0.34 * k * lerpf(0.8, 1.0, late)
-		p["shin_" + fs] += Vector3(-1.4 * k, 0, 0)
-		p["leg_" + fs] += Vector3(0.6 * k, 0, 0.1 * k * fo)
-		p["shin_" + ls] += Vector3(-0.6 * k * late - 0.7 * (1.0 - late) * _land_strength, 0, 0)
-		p["leg_" + ls] += Vector3(0.55 * k * late + 0.45 * (1.0 - late) * _land_strength, 0, -0.12 * k * fo)
-		p["torso"] += Vector3(-0.35 * k, 0.08 * k * fo, -0.12 * k * fo * vary)
-		p["arm_" + fs] += Vector3(0.3 * k, 0, 0.4 * k * fo)
-		p["arm_" + ls] += Vector3(0.35 * k, 0, -0.85 * k * fo * vary)
+		if MovePoses.LAND_SECS.has(_land_kind):
+			lift.y -= MovePoses.land(self, p, k)
+		else:
+			# the foot that hung lower in the fall touches down first and takes the
+			# weight; the tucked lead foot comes down a beat later
+			var late := smoothstep(0.0, 0.2, 1.0 - _land)
+			var fs := "r" if _jside > 0.0 else "l"
+			var ls := "l" if _jside > 0.0 else "r"
+			var fo := 1.0 if fs == "r" else -1.0
+			var vary := 1.0 + 0.2 * float(_jv[0])
+			lift.y -= 0.34 * k * lerpf(0.8, 1.0, late)
+			p["shin_" + fs] += Vector3(-1.4 * k, 0, 0)
+			p["leg_" + fs] += Vector3(0.6 * k, 0, 0.1 * k * fo)
+			p["shin_" + ls] += Vector3(-0.6 * k * late - 0.7 * (1.0 - late) * _land_strength, 0, 0)
+			p["leg_" + ls] += Vector3(0.55 * k * late + 0.45 * (1.0 - late) * _land_strength, 0, -0.12 * k * fo)
+			p["torso"] += Vector3(-0.35 * k, 0.08 * k * fo, -0.12 * k * fo * vary)
+			p["arm_" + fs] += Vector3(0.3 * k, 0, 0.4 * k * fo)
+			p["arm_" + ls] += Vector3(0.35 * k, 0, -0.85 * k * fo * vary)
 	_was_grounded = grounded
 
 	if talking:

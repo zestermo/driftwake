@@ -203,6 +203,12 @@ scripts/powers/power_component.gd       daggertest
 scripts/progression/*                   daggertest
 scripts/npc/humanoid.gd                 daggertest wieldtest
 resources/items/dagger.tres             daggertest
+# --- v1.11 moves and clothing ---
+scripts/npc/move_poses.gd               movetest feat
+scripts/player_states/jump_state.gd     movetest invtest
+scripts/player_states/fall_state.gd     movetest
+scripts/npc/humanoid.gd                 movetest
+tools/dev/movetest.gd                   movetest
 # --- the island smoke test (land.ps1 runs it on every landing too) ---
 scripts/island/*                        smoketest
 scripts/enemies/*                       smoketest

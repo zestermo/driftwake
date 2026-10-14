@@ -231,6 +231,12 @@ const SPECS := {
 		"variants": [{"dash_dir": Vector2(1, 0)}]},
 	"roll": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
 	"flip": {"len": 0.45, "stance": "sword", "weapon": "cutlass"},
+	# v1.11 moves: the take-offs and the double jump (MovePoses)
+	"jump_stand": {"len": 0.42, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0}},
+	"jump_run": {"len": 0.42, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0, "ground_speed": 6.0}},
+	"jump_sprint": {"len": 0.48, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0, "ground_speed": 9.0}},
+	"double_jump": {"len": 0.5, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0},
+		"variants": [{"armed": true}]},
 	"hit": {"len": 0.32, "react": true, "stance": "sword", "weapon": "cutlass", "extras": {"push": Vector3(0, 0, 1)},
 		"variants": [{"push": Vector3(0, 0, -1)}, {"push": Vector3(1, 0, 0)}]},
 	"stagger": {"len": 1.0, "react": true, "stance": "sword", "weapon": "cutlass", "extras": {"push": Vector3(0, 0, 1)},
