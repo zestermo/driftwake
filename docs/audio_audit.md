@@ -65,7 +65,7 @@ inside a loop (0.7 at 6 s = an audible 6 s beat).
 | SFX | Settings._ensure_buses | 1.0 | none | none |
 | Ambience | Settings | 0.8 | none | none |
 | UI | Settings | 0.8 | none | none |
-| Music | Settings | 0.6 | none | none |
+| Music | Settings | 0.6 | none | **Compressor keyed from SFX (v1.12): ducks under big sounds** |
 
 - FX.sfx: AudioStreamPlayer3D on SFX, unit_size 6, max_distance 60 (not made past
   64 m from the camera), inverse-distance falloff, pitch jitter per call (default
@@ -160,21 +160,36 @@ In-game loudness = file LU + typical call volume. Before -> now.
 
 ## Music
 
-| Track | Length | Loop | LU | Notes |
-|---|---|---|---|---|
-| music_title | 57.6 s (24 bars, 100 bpm, D major) | seamless (circular render) | -18.4 | flute/accordion shanty |
-| music_island | 42.7 s (16 bars, 90 bpm, G major) | seamless | -18.2 | the shortest: the island minute repeats most |
-| music_sea | 52.4 s (32 bars 6/8) | seamless | -18.2 | fiddle shanty, wind bed |
-| music_combat | 54.9 s (32 bars, 140 bpm, E minor) | seamless | -18.3 | |
-| music_boss | 51.2 s (32 bars, 150 bpm, E phrygian) | seamless | -18.2 | 10% at 2-5k (hats, brass): brightest track, fine |
-| music_victory | 5.4 s sting | | -13.9 | |
+v1.12 (2026-10-14) replaced the title, island and sea shanties with 2-3 minute
+pieces in real forms, added the village theme and night arrangements, and levels
+each calm track to -18.0 LU in the generator (`target_lu`).
 
-Seams measured on the decoded .ogg: 0.4-1.6x a typical sample step (no clicks).
-Highs are capped by the 8 kHz master low-pass and the 22.05 kHz rate; nothing harsh.
-Weak points: the length (a minute or less per loop), and the style: these are the
-Stardew-ish shanties Zach wanted to move away from (10-08 notes). Changed now:
-the calm tracks (title, island, sea) resume where they were if you return within
-two minutes (a fight no longer restarts the island theme); fight tracks start over.
+| Track | Length | Key, tempo | LU | Notes |
+|---|---|---|---|---|
+| music_title | 140.0 s (56 bars) | D major, 4/4 96 | -18.0 | the game's theme: intro call, A horns, A' strings, B oboe, B' choir, C bridge on Bb-C-D with the gallop, A'' tutti, turn |
+| music_sea | 139.1 s (80 bars) | E minor / G major, 6/8 dq 69 | -18.0 | Waters' tunes on Corsair's band (Zach's pick), the theme in G, a becalmed oboe bridge; strings swelling a bar at a time, wind |
+| music_sea_night | 139.1 s (80 bars) | same | -18.0 | same form: dark harp, low flute and oboe, the theme on a far horn, celesta, no gallop or drums |
+| music_island | 153.6 s (64 bars) | D dorian / F, 4/4 100 | -18.0 | the wilds: ocarina and steel pan, marimba, walking upright bass, bongos, claves; the theme in D minor on a horn; a call-and-answer breakdown with bassoon |
+| music_island_night | 153.6 s (64 bars) | same | -18.0 | same form: low flute, lone ocarina, dark harp, celesta, bass on one and three, no hand drums |
+| music_village | 141.8 s (52 bars) | A dorian / C, 4/4 88 | -18.0 | the harbour town: Harbour's tunes (Zach's pick) on oboe, strings, accordion; a market dance in C; the theme warm in C |
+| music_village_night | 141.8 s (52 bars) | same | -18.0 | same form, harbour_calm's sound: low strings, dark harp, a tavern guitar, soft accordion |
+| music_combat | 54.9 s (32 bars, 140 bpm, E minor) | | -18.3 | unchanged |
+| music_boss | 51.2 s (32 bars, 150 bpm, E phrygian) | | -18.2 | unchanged; 10% at 2-5k (hats, brass): brightest track, fine |
+| music_victory | 5.4 s sting | | -13.9 | unchanged |
+
+All loops seamless (circular render; seams 0.4-3x a typical sample step on the decoded
+.ogg, no clicks). Highs capped by the 8 kHz master low-pass and the 22.05 kHz rate.
+The seven new files are 5.2 MB together (about 0.75 MB each, Vorbis q3 mono).
+
+The player (scripts/game/music.gd): contexts title, village (Music.in_village:
+Brinehollow's square and harbour front, a chain island's plaza, hamlets and buildings),
+island (the wilds; a chain island's KitStyle "music"), sea, combat, boss. From DUSK
+(19:00) to DAWN (5:30) a calm track plays its `_night` arrangement, crossfading over
+6 s at the same position. Calm changes wait for the playing track's next bar line and
+come in on a bar of the new one; fights cut in at once; leaving the title cuts at once.
+A calm context left less than two minutes ago resumes at the bar it was in.
+The Music bus has a sidechain compressor keyed from SFX (threshold -12 dB, 2.5:1,
+8 ms / 450 ms): it dips a few dB under cannons, roars and big hits.
 
 ## Gaps (not done this pass)
 
@@ -196,17 +211,16 @@ two minutes (a fight no longer restarts the island theme); fight tracks start ov
 
 ## Proposals for Zach (need a decision)
 
-1. **Turn the picked samples into the game's tracks**: corsair_waters as the sea
-   theme, harbour_calm as the island/town theme (both exist in gen_psx_music.py as
-   samples). Possibly a corsair-style combat track and storm as the boss track.
-2. **Longer musical forms**: 2-3 minute tracks (A-B-A'-C with an intro and a
-   bridge), or two variations per context that alternate, so a minute doesn't repeat.
+1. **Turn the picked samples into the game's tracks**: done in v1.12 for the sea
+   (corsair_waters) and the town (harbour, harbour_calm at night). Still open: a
+   corsair-style combat track and storm as the boss track.
+2. **Longer musical forms**: done in v1.12 for title, sea, island and village (2:19-2:34).
 3. **Layered combat music**: render each track's stems (drums, strings, brass)
    and bring layers in by intensity: exploration -> enemies near -> fighting ->
    boss, all in sync. Cleaner transitions than crossfading tracks.
-4. **Day and night variants** of the island and sea themes (sparser at night).
-5. **Ducking**: lower the music a few dB under big SFX (cannons, roars,
-   ultimates) with a sidechain compressor on the Music bus keyed from SFX.
+4. **Day and night variants**: done in v1.12 (sea, island, village).
+5. **Ducking**: done in v1.12 (sidechain compressor on Music keyed from SFX); tune
+   its threshold by ear if it pumps in long fights.
 6. **Island identity**: a short motif per chain-island biome (jungle drums,
    ruins choir) layered over the island theme.
 7. **Weapon-specific impact sets** and **UI sound set** (see gaps): small,

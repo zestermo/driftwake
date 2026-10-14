@@ -62,3 +62,4 @@ uitest
 movetest
 cliptest
 emotetest
+musictest

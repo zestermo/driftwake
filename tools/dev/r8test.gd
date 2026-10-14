@@ -114,7 +114,7 @@ func _process(d: float) -> bool:
 						set_meta("worst_at", "s %.1f off %.1f (%s)" % [k * 0.5, off, str(hit.get("collider", null))])
 			check("the stone stair is walkable from the jetty to the gate (worst step %.2f m at %s)" % [worst, get_meta("worst_at", "")], worst < 0.35)
 			check("the crew's ship has four cannons", ship.cannons.size() == 4)
-			check("music: island tune at the dock", music().current == "island")
+			check("music: the village theme at the harbour (%s)" % music().current, music().current == "village")
 			# --- markers
 			p.place_marker()
 			check("G drops a crew marker", hud().markers.markers.size() == 1)

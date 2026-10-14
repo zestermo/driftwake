@@ -153,6 +153,16 @@ func _ensure_buses() -> void:
 		lim.ceiling_db = -0.5
 		lim.release = 0.12
 		AudioServer.add_bus_effect(0, lim)
+	# the music dips a few dB under the loudest sounds near you (cannons, roars, big hits), not footsteps
+	var mus := AudioServer.get_bus_index("Music")
+	if AudioServer.get_bus_effect_count(mus) == 0:
+		var duck := AudioEffectCompressor.new()
+		duck.sidechain = &"SFX"
+		duck.threshold = -12.0
+		duck.ratio = 2.5
+		duck.attack_us = 8000.0
+		duck.release_ms = 450.0
+		AudioServer.add_bus_effect(mus, duck)
 
 
 func _apply_audio() -> void:

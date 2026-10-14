@@ -9,3 +9,4 @@ Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest
 Islands & world: smoketest chaintest isletest villagetest harbourtest lifetest dungeontest landmarktest fidelitytest foresttest storytest ambiencetest r9test r10test perftest
 Co-op: net net-chain net-board
 Moves & clothing: movetest cliptest
+Music: musictest
