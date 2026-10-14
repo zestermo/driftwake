@@ -13,6 +13,8 @@ const SOUNDS := [
 	"splash_big", "wood_crack", "gull", "bow_spray", "swim_stroke",
 	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water",
 	"grunt", "squeal", "screech", "squawk", "flap", "hiss", "monkey", "clack",
+	"draw_katana", "sheathe_katana", "draw_blade", "sheathe_blade", "draw_axe", "sheathe_axe", "draw_great", "sheathe_great",
+	"draw_dagger", "sheathe_dagger", "draw_pistol", "gun_spin", "holster",
 ]
 
 var _dust_mat: StandardMaterial3D

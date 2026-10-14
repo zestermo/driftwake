@@ -617,6 +617,8 @@ func _attach_weapon(in_hand: bool) -> void:
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
+	if kind_of(weapon) == "axe":
+		sheath = DrawMoves.back_socket(self)
 	var target := hand_r if in_hand else sheath
 	if weapon.get_parent() != target:
 		if weapon.get_parent():
@@ -624,6 +626,8 @@ func _attach_weapon(in_hand: bool) -> void:
 		target.add_child(weapon)
 	if target == _katana_socket:
 		weapon.transform = Transform3D(Basis(), KATANA_SHEATHED)
+	elif target != hand_r and target != hip_socket:
+		weapon.transform = DrawMoves.on_back(weapon)
 	else:
 		weapon.transform = Transform3D.IDENTITY if in_hand else _on_hip(weapon)
 
@@ -660,7 +664,7 @@ func point_guns() -> void:
 		if offhand != null and is_instance_valid(offhand) and offhand.get_parent() == hand_l:
 			offhand.basis = GUN_GRIP
 		return
-	if stance not in ["pistol", "dual_pistol"]:
+	if stance not in ["pistol", "dual_pistol"] or current_action() == "sheathe":
 		return
 	for w in [weapon, offhand]:
 		if w != null and is_instance_valid(w):
@@ -1287,22 +1291,6 @@ func _action_pose(n: String, u: float) -> Array:
 			return lab
 	var lift := Vector3.ZERO
 	match n:
-		"draw":
-			if u >= 0.45 and not _action["events"].has("hand"):
-				_action["events"]["hand"] = true
-				_attach_weapon(true)
-			return [_keys(u, [
-				[0.0, REST_ARMS],
-				[0.45, {"arm_r": Vector3(0.55, 0.0, -0.75), "fore_r": Vector3(1.35, 0, 0), "torso": Vector3(-0.05, 0.4, 0)}],
-				[1.0, KATANA_GUARD if stance == "katana" else GUARD]]), "upper", lift]
-		"sheathe":
-			if u >= 0.55 and not _action["events"].has("hip"):
-				_action["events"]["hip"] = true
-				_attach_weapon(false)
-			return [_keys(u, [
-				[0.0, KATANA_GUARD if stance == "katana" else GUARD],
-				[0.55, {"arm_r": Vector3(0.55, 0.0, -0.75), "fore_r": Vector3(1.35, 0, 0), "torso": Vector3(-0.05, 0.4, 0), "arm_l": Vector3(0, 0, -0.1), "fore_l": Vector3(0.2, 0, 0)}],
-				[1.0, REST_ARMS]]), "upper", lift]
 		# --- cutlass: the wrist does the cutting - the blade cocks back in each
 		# wind-up and is flung out along the arm into the cut ---
 		# combo 1 (diagonal forehand) and 2 (rising backhand): swing paths, see SwordMoves

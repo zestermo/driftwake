@@ -205,6 +205,8 @@ scripts/npc/humanoid.gd                 daggertest wieldtest
 resources/items/dagger.tres             daggertest
 # --- v1.11 moves and clothing ---
 scripts/npc/move_poses.gd               movetest feat
+scripts/npc/draw_moves.gd               movetest feat grunttest guntest
+assets/audio/draw_*.wav                 movetest
 scripts/player_states/jump_state.gd     movetest invtest
 scripts/player_states/fall_state.gd     movetest
 scripts/npc/humanoid.gd                 movetest

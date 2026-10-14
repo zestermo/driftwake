@@ -14,6 +14,8 @@ static func pose(h, n: String, u: float) -> Array:
 			return _dash(h, u)
 		"log_pose":
 			return _log_pose(h, u)
+		"draw", "sheathe":
+			return DrawMoves.pose(h, n, u)
 	return []
 
 

@@ -126,8 +126,9 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 	h.setup(CharacterLook.default_look())
 	_world.add_child(h)
 	h.rotation.y = deg_to_rad(yaw)
-	h.stance = s["stance"]
-	var weapon: String = s["weapon"]
+	# AS_WEAPON="axe:war:0" / AS_STANCE="axe": another weapon for every row (draw and sheathe per kind)
+	h.stance = OS.get_environment("AS_STANCE") if OS.get_environment("AS_STANCE") != "" else s["stance"]
+	var weapon: String = OS.get_environment("AS_WEAPON") if OS.get_environment("AS_WEAPON") != "" else s["weapon"]
 	if weapon != "":
 		h.set_weapon(Props.weapon_mesh(weapon))
 		if ex.get("dual", false):

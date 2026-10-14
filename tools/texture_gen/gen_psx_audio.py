@@ -1340,6 +1340,177 @@ def peril_sound():
     write_wav("peril", _fade_out(_level(tone * env, -16.0), 0.05))
 
 
+def _at(t, at):
+    """Time since `at` s (0 before it)."""
+    return np.maximum(t - at, 0.0)
+
+
+def _scrape(n, rng, t0, t1, f0, f1, grit=90.0, q=2.5):
+    """Steel sliding over steel or a scabbard's throat from t0 to t1 s: grainy noise
+    through a band that slides f0 -> f1, with a hiss of fine grit over it."""
+    t = np.arange(n) / SR
+    fc = np.interp(t, [t0, t1], [f0, f1])
+    band = _svf_sweep(rng.standard_normal(n), fc, q)
+    band /= np.max(np.abs(band)) + 1e-9
+    hiss = _noise(n, rng, 2500, 7000) * 0.35
+    env = np.clip((t - t0) / 0.012, 0, 1) * np.clip((t1 - t) / 0.025, 0, 1)
+    return (band + hiss) * (0.55 + 0.45 * _churn(n, rng, grit)) * env
+
+
+def _ring(t, rng, at, base, decay, amp=1.0):
+    """A blade ringing from `at` s: inharmonic steel partials."""
+    tt = _at(t, at)
+    out = _modes(tt, rng, [(base, 1.0, decay), (base * 2.76, 0.5, decay * 1.5), (base * 5.4, 0.22, decay * 2.4), (base * 8.9, 0.1, decay * 3.5)])
+    return out * (t >= at) * amp
+
+
+def _click(t, rng, at, f, amp=1.0):
+    """A hard little click from `at` s (a guard meeting a scabbard's mouth, a lock)."""
+    tt = _at(t, at)
+    knock = _modes(tt, rng, [(f, 1.0, 160), (f * 1.73, 0.6, 210), (f * 2.9, 0.3, 300)], 0.0002)
+    snap = _noise(len(t), rng, 1500, 8000) * np.exp(-tt * 500)
+    return (knock + snap * 0.8) * (t >= at) * amp
+
+
+def _leather(t, rng, at, amp=1.0):
+    """Something seated in leather from `at` s: a soft low thup and a creak of hide."""
+    tt = _at(t, at)
+    thup = _thump(tt, 190, 120, 0.012, 40, 0.0015)
+    hide = _noise(len(t), rng, 300, 1800) * np.exp(-tt * 60) * np.minimum(1, tt / 0.003) * 0.6
+    return (thup + hide) * (t >= at) * amp
+
+
+def katana_draw_sound():
+    """Katana drawn: the habaki breaking free of the saya (a click), a long bright
+    hiss of steel along the mouth, and the blade left ringing."""
+    rng = np.random.default_rng(1500)
+    n = int(SR * 0.9)
+    t = np.arange(n) / SR
+    out = _click(t, rng, 0.0, 1900, 0.7) + _scrape(n, rng, 0.02, 0.2, 1400, 3400, 140) * 0.9
+    out += _ring(t, rng, 0.19, 2350, 4.5, 0.85) + _ring(t, rng, 0.19, 3170, 6.0, 0.35)
+    _write_shot("draw_katana", _filt(out, lambda f: _lp(f, 9000, 2)), -16.0, fade=0.15)
+
+
+def katana_sheathe_sound():
+    """Katana sheathed: a short falling slide into the saya and the guard's hard click home."""
+    rng = np.random.default_rng(1510)
+    n = int(SR * 0.4)
+    t = np.arange(n) / SR
+    out = _scrape(n, rng, 0.0, 0.13, 3000, 1300, 120) * 0.75 + _click(t, rng, 0.14, 2100, 1.4)
+    out += _ring(t, rng, 0.14, 2600, 18.0, 0.25)
+    _write_shot("sheathe_katana", _filt(out, lambda f: _lp(f, 9000, 2)), -16.0, fade=0.08)
+
+
+def blade_draw_sound():
+    """A cutlass out of its hip scabbard: a quick scrape and a short ring."""
+    rng = np.random.default_rng(1520)
+    n = int(SR * 0.55)
+    t = np.arange(n) / SR
+    out = _scrape(n, rng, 0.0, 0.14, 1100, 2700, 100) + _ring(t, rng, 0.13, 1750, 8.0, 0.55)
+    _write_shot("draw_blade", _filt(out, lambda f: _lp(f, 8000, 2)), -17.0, fade=0.12)
+
+
+def blade_sheathe_sound():
+    """A cutlass put away: a slide down the scabbard and the hilt seating in the leather."""
+    rng = np.random.default_rng(1530)
+    n = int(SR * 0.35)
+    t = np.arange(n) / SR
+    out = _scrape(n, rng, 0.0, 0.15, 2400, 900, 90) * 0.8 + _leather(t, rng, 0.15, 1.2) + _click(t, rng, 0.155, 900, 0.35)
+    _write_shot("sheathe_blade", _filt(out, lambda f: _lp(f, 7000, 2)), -17.0, fade=0.06)
+
+
+def axe_draw_sound():
+    """An axe pulled off the back: the haft dragged out of its strap, then slapped into the palm."""
+    rng = np.random.default_rng(1540)
+    n = int(SR * 0.45)
+    t = np.arange(n) / SR
+    drag = _noise(n, rng, 250, 1600) * np.clip(t / 0.02, 0, 1) * np.clip((0.16 - t) / 0.03, 0, 1) * (0.5 + 0.5 * _churn(n, rng, 40))
+    slap = _thump(_at(t, 0.17), 240, 150, 0.01, 35, 0.001) * (t >= 0.17)
+    wood = _modes(_at(t, 0.17), rng, [(620, 0.5, 45), (1130, 0.3, 60)]) * (t >= 0.17)
+    _write_shot("draw_axe", drag * 0.7 + slap * 1.3 + wood, -16.0, fade=0.06)
+
+
+def axe_sheathe_sound():
+    """An axe hung back on the back: a swing over the shoulder and a heavy thunk into its strap."""
+    rng = np.random.default_rng(1550)
+    n = int(SR * 0.4)
+    t = np.arange(n) / SR
+    swing = _noise(n, rng, 200, 1200) * np.sin(np.pi * np.clip(t / 0.18, 0, 1)) ** 2 * 0.5
+    thunk = _leather(t, rng, 0.2, 1.4) + _modes(_at(t, 0.2), rng, [(480, 0.6, 50), (870, 0.3, 70)]) * (t >= 0.2)
+    _write_shot("sheathe_axe", swing + thunk, -16.0, fade=0.06)
+
+
+def great_draw_sound():
+    """A two-hander heaved up over the shoulder: a long low drag, a heavy whoosh and a clank of iron."""
+    rng = np.random.default_rng(1560)
+    n = int(SR * 0.6)
+    t = np.arange(n) / SR
+    drag = _noise(n, rng, 180, 1100) * np.clip(t / 0.02, 0, 1) * np.clip((0.1 - t) / 0.03, 0, 1) * (0.5 + 0.5 * _churn(n, rng, 30))
+    fc = np.interp(t, [0.06, 0.14, 0.24], [150, 700, 200])
+    woosh = _svf_sweep(rng.standard_normal(n), fc, 1.2)
+    woosh = woosh / (np.max(np.abs(woosh)) + 1e-9) * np.sin(np.pi * np.clip((t - 0.06) / 0.18, 0, 1)) ** 1.5
+    clank = _ring(t, rng, 0.22, 520, 14.0, 0.6) + _thump(_at(t, 0.22), 150, 90, 0.02, 25) * (t >= 0.22) * 0.6
+    _write_shot("draw_great", drag * 0.6 + woosh * 0.8 + clank, -15.0, fade=0.1)
+
+
+def great_sheathe_sound():
+    """A two-hander slung back over the shoulder: a heavy swing and a clank and thud on the back."""
+    rng = np.random.default_rng(1570)
+    n = int(SR * 0.5)
+    t = np.arange(n) / SR
+    fc = np.interp(t, [0.0, 0.12, 0.24], [180, 600, 180])
+    woosh = _svf_sweep(rng.standard_normal(n), fc, 1.2)
+    woosh = woosh / (np.max(np.abs(woosh)) + 1e-9) * np.sin(np.pi * np.clip(t / 0.24, 0, 1)) ** 1.5
+    hit = _leather(t, rng, 0.25, 1.5) + _ring(t, rng, 0.25, 470, 16.0, 0.5)
+    _write_shot("sheathe_great", woosh * 0.7 + hit, -15.0, fade=0.08)
+
+
+def dagger_draw_sound():
+    """A dagger whipped out: a short high snick and a little ring."""
+    rng = np.random.default_rng(1580)
+    n = int(SR * 0.4)
+    t = np.arange(n) / SR
+    out = _scrape(n, rng, 0.0, 0.07, 2200, 3500, 160) + _ring(t, rng, 0.065, 3100, 12.0, 0.45)
+    _write_shot("draw_dagger", _filt(out, lambda f: _lp(f, 9000, 2)), -18.0, fade=0.08)
+
+
+def dagger_sheathe_sound():
+    """A dagger slid home: a quick slide and a snap."""
+    rng = np.random.default_rng(1590)
+    n = int(SR * 0.25)
+    t = np.arange(n) / SR
+    out = _scrape(n, rng, 0.0, 0.07, 3000, 1600, 140) * 0.7 + _click(t, rng, 0.075, 1600, 1.0) + _leather(t, rng, 0.075, 0.5)
+    _write_shot("sheathe_dagger", _filt(out, lambda f: _lp(f, 9000, 2)), -18.0, fade=0.05)
+
+
+def pistol_draw_sound():
+    """A pistol out of its holster: leather letting go, then the hammer cocked (two clicks)."""
+    rng = np.random.default_rng(1600)
+    n = int(SR * 0.4)
+    t = np.arange(n) / SR
+    out = _noise(n, rng, 400, 2500) * np.clip(t / 0.01, 0, 1) * np.clip((0.09 - t) / 0.02, 0, 1) * 0.6
+    out += _click(t, rng, 0.15, 2600, 0.8) + _click(t, rng, 0.2, 1800, 1.1)
+    _write_shot("draw_pistol", out, -18.0, fade=0.06)
+
+
+def gun_spin_sound():
+    """A pistol spun on the finger: a fast flutter of air, three turns."""
+    rng = np.random.default_rng(1610)
+    n = int(SR * 0.3)
+    t = np.arange(n) / SR
+    turns = (0.5 + 0.5 * np.cos(2 * np.pi * 11.0 * t)) ** 3
+    out = _noise(n, rng, 350, 2200) * turns * np.sin(np.pi * t / 0.3) + _click(t, rng, 0.0, 2200, 0.25)
+    _write_shot("gun_spin", out, -20.0, fade=0.05)
+
+
+def holster_sound():
+    """A pistol dropped into its holster: a leather thup and a buckle's click."""
+    rng = np.random.default_rng(1620)
+    n = int(SR * 0.25)
+    t = np.arange(n) / SR
+    _write_shot("holster", _leather(t, rng, 0.0, 1.4) + _click(t, rng, 0.03, 1300, 0.45), -18.0, fade=0.05)
+
+
 SOUNDS = [
     ("blip", lambda: ui_blip("blip", 520)),
     ("blip_low", lambda: ui_blip("blip_low", 330)),
@@ -1400,6 +1571,19 @@ SOUNDS = [
     ("hiss", hiss_sound),
     ("monkey", monkey_sound),
     ("clack", clack_sound),
+    ("draw_katana", katana_draw_sound),
+    ("sheathe_katana", katana_sheathe_sound),
+    ("draw_blade", blade_draw_sound),
+    ("sheathe_blade", blade_sheathe_sound),
+    ("draw_axe", axe_draw_sound),
+    ("sheathe_axe", axe_sheathe_sound),
+    ("draw_great", great_draw_sound),
+    ("sheathe_great", great_sheathe_sound),
+    ("draw_dagger", dagger_draw_sound),
+    ("sheathe_dagger", dagger_sheathe_sound),
+    ("draw_pistol", pistol_draw_sound),
+    ("gun_spin", gun_spin_sound),
+    ("holster", holster_sound),
 ]
 
 
