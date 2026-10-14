@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.10-e0b040" alt="Version 1.10">
+  <img src="https://img.shields.io/badge/version-1.11-e0b040" alt="Version 1.11">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,19 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.11: Sea Legs (October 13, 2026)
+The feel update.
+- **Moves:** standing, running and sprinting jumps, a somersault double jump, a snappier dash, the log pose
+  held properly, and every weapon's own draw and sheathe with 13 new sounds (axes on the back).
+- **Healing in a fight:** quick-slot food, rum, stew and the new Sea Tonic on an 8 s shared cooldown, eaten or
+  drunk over a moment; a hit spills it.
+- **Sitting, sneaking, emotes:** sit on benches, stools, logs and crates (F) or the ground; crouch to sneak (C);
+  an emote wheel of twelve (hold T), all mirrored in co-op; gestures when talking, trading and opening things.
+- **Clothing:** clipping fixed between coats, vests, belts and armour, and nine new pieces (admiral's coat,
+  cavalier boots, slouch hat, spyglass...).
+- **Every screen crisp:** skill map, shops, dialogue, chart, yard, save slots, creator and HUD on the
+  inventory's whole-number-scale canvas, with tooltips.
 
 ### v1.10: The Living Isles (October 13, 2026)
 The biggest update yet, and a milestone: every island is now its own adventure, with enough out there

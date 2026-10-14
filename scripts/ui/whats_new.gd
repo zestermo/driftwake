@@ -7,18 +7,15 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["The biggest update yet", "Every island down the chain is now its own adventure, different each time you sail. A real milestone: enough out there to play and play again."],
-	["Harbours and villages", "Five kinds of harbour and five kinds of village (towns, hamlets, walled posts, stilt villages, ruins), with shops and homes you can walk into."],
-	["People with lives", "Villagers work, eat, drink at the inn and go home at night. Named locals gossip about the chain and hand out quests."],
-	["Caves and the temple", "One to three caves on every island, each with a boss and a reward, and a ruined temple with levers, a gate and its Warden on some."],
-	["The jungle grew up", "Six kinds of forest, giant canopy trees, thick undergrowth, landmarks, a set piece on every island, and new coastlines with cliffs and wadeable shallows."],
-	["New beasts", "The Silverback fights from the canopy, with rivals: the Strangler, the Shade and the Mantis Queen. Boars, crabs, snakes, monkeys, toucans and bats move in."],
-	["Daggers", "One or two: quick, close, bleeding wounds and backstabs. Shadow Lunge, Red Eclipse and Hundred Fangs. An off-hand dagger is held reversed."],
-	["Fights with more bite", "Bosses close the gap if you hang back, bug poison lingers on the ground, riflemen telegraph their shove, and tougher pirates dodge like you do."],
-	["A harder road to Grell", "His den now sits on a clifftop out of sight of the beach. Climb the pillars or take the rope ladder from his pier."],
-	["New drip", "23 new pieces of clothing and armour: a fez, a kimono, brass goggles, a frock coat, sabatons, a crown you'll have to steal... Sela sells cloth and leather, Vey the steel."],
-	["A fresh coat of paint", "New colours everywhere: cream, teal, coral and sunflower, with rounded, gilded frames on every menu, the shipyard and the character builder."],
-	["A cleaner inventory", "What you hold isn't in your bag, tooltips compare against what you use, and the text is crisp. Option arrows go back as well as forward."],
+	["New moves", "Standing, running and sprinting jumps each have their own take-off and landing, there's a double jump with a somersault, and the dash snaps harder."],
+	["Draw like you mean it", "Every weapon draws and sheathes its own way, with its own sound: the katana from the hip with a ring, axes off your back, pistols spun into the holster."],
+	["Heal in a fight", "Food, rum, stew and the new Sea Tonic share a short cooldown and take a moment to eat or drink. Get hit mid-swig and it's spilled."],
+	["Take a seat", "Sit on any bench, stool, log or crate (F), or on the ground from the emote wheel. Seats on the ship sail with you."],
+	["Sneak", "C crouches: quieter steps, and pirates and creatures notice you much later. Creep up behind someone and stick a dagger in."],
+	["Emotes", "Hold T: wave, point, salute, laugh, cheer, hornpipe, shanty sway, bow, flex, shrug, facepalm, sit. Your crew sees every one."],
+	["Hands that talk", "Captains and villagers gesture as they talk, chests open with both hands, levers get hauled, and you hand things over when you trade."],
+	["More drip, less clipping", "Coats, vests, belts and armour sit properly over each other now, and nine new pieces: an admiral's coat, cavalier boots, a slouch hat, a spyglass and more."],
+	["Every screen, crisp", "The skill map, shops, dialogue, the chart, the HUD and the creator get the inventory's crisp text, tooltips and frames. The log pose (L) is held properly."],
 ]
 
 
