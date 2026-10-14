@@ -227,8 +227,8 @@ const SPECS := {
 	"sea_king_fist": {"len": 1.45, "hit": [0.53, 0.58], "stance": "fist", "weapon": ""},
 	"conqueror": {"len": 1.2, "hit": [0.31, 0.36], "stance": "fist", "weapon": ""},
 	# --- moving, reacting, everyday ---
-	"dash": {"len": 0.3, "stance": "sword", "weapon": "cutlass", "extras": {"dash_dir": Vector2(0, 1)},
-		"variants": [{"dash_dir": Vector2(1, 0)}]},
+	"dash": {"len": 0.3, "sharp": 50.0, "stance": "sword", "weapon": "cutlass", "extras": {"dash_dir": Vector2(0, 1)},
+		"variants": [{"dash_dir": Vector2(1, 0)}, {"dash_dir": Vector2(0, -1)}, {"dash_dir": Vector2(-1, 0), "armed": false}]},
 	"roll": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
 	"flip": {"len": 0.45, "stance": "sword", "weapon": "cutlass"},
 	# v1.11 moves: the take-offs and the double jump (MovePoses)
