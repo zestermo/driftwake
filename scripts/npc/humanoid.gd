@@ -2158,6 +2158,9 @@ func _action_pose(n: String, u: float) -> Array:
 			return [_keys(u, [[0.0, {}], [0.2, wv], [0.85, wv], [1.0, {}]]), "upper", lift]
 	if n.begins_with("ape_"):
 		return ApePoses.pose(self, n, u)
+	# emotes (the wheel) and talk / interact gestures
+	if n.begins_with("emote_") or n.begins_with("gesture_"):
+		return EmotePoses.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp
@@ -3133,7 +3136,7 @@ func _apply_smear() -> void:
 ## Eyes on the target: lean-back and head tilt add up, so a big overhead stared at the
 ## sky; the head takes back whatever looks higher than GAZE_UP_MAX.
 func _keep_gaze(target: Dictionary) -> void:
-	if str(_action["name"]) in GAZE_FREE or str(_action["name"]) in HEAL_ACTIONS:
+	if str(_action["name"]) in GAZE_FREE or str(_action["name"]) in HEAL_ACTIONS or str(_action["name"]).begins_with("emote_"):
 		return
 	var up: float = (target["pivot"] as Vector3).x + (target["torso"] as Vector3).x + (target["head"] as Vector3).x
 	if up > GAZE_UP_MAX:

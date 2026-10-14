@@ -223,6 +223,10 @@ func _ready() -> void:
 	sword_hitbox.hit_landed.connect(func(target: Node, data: HitData): power.on_sword_hit(target, data))
 	health_component.died.connect(_on_died)
 	_recalc_stats()
+	emote_wheel = preload("res://scripts/ui/emote_wheel.gd").new()
+	emote_wheel.name = "EmoteWheel"
+	emote_wheel.player = self
+	add_child(emote_wheel)
 
 
 func _build_body() -> void:
@@ -699,6 +703,7 @@ func _process(delta: float) -> void:
 	body_model.stance = style()
 	_update_head_look()
 	_tick_body(delta)
+	_emote_tick()
 	_log_pose_tick()
 	heal_cd = maxf(heal_cd - delta, 0.0)
 	if _using_item and _using_item.devil_fruit == "" and (current_state_name() not in ["Idle", "Move"] or body_model.current_action() != _use_anim):
@@ -2342,6 +2347,42 @@ func sit(seat: Seat) -> void:
 func sit_ground() -> void:
 	if is_free() and is_on_floor() and not is_swimming():
 		state_machine.force_state("Sit", {})
+
+
+# --------------------------------------------------------------------------
+# Emotes (the emote wheel, hold T): poses in EmotePoses, mirrored as body actions
+# --------------------------------------------------------------------------
+var emote_wheel
+
+
+func emote(id: String) -> void:
+	if not is_free() or not is_on_floor() or is_swimming():
+		return
+	if id == "sit":
+		sit_ground()
+		return
+	if armed:
+		sheathe_weapon(true)
+	var n := "emote_" + id
+	var dur := ActionSpecs.length(n)
+	body_model.play(n, dur)
+	var s: Array = EmotePoses.SOUNDS.get(id, [])
+	if s.is_empty():
+		return
+	var at := float(s[1]) * dur
+	if at <= 0.0:
+		Net.fx("sfx", [s[0], global_position + Vector3(0, 1.5, 0), float(s[2]), 0.03])
+		return
+	get_tree().create_timer(at).timeout.connect(func():
+		if body_model.current_action() == n:
+			Net.fx("sfx", [s[0], global_position + Vector3(0, 1.5, 0), float(s[2]), 0.03]))
+
+
+## A full-body emote ends the moment you move.
+func _emote_tick() -> void:
+	var a := body_model.current_action()
+	if a.begins_with("emote_") and a.trim_prefix("emote_") in EmotePoses.FULL and Vector2(velocity.x, velocity.z).length() > 0.5:
+		body_model.stop_action()
 
 
 ## Co-op client: the host gave us the wheel.

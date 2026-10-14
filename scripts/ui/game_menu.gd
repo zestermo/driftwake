@@ -518,7 +518,7 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 const BINDINGS := [
 	["Move", "W A S D"], ["Look", "Mouse"], ["Sprint", "Shift"], ["Jump / double jump", "Space"],
 	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
-	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 4"],
+	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Emote wheel (hold, mouse to pick)", "T"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 4"],
 	["Ultimate", "R"], ["Quick items (rum...)", "5 - 7"], ["Block (hold)", "Q"],
 	["Inventory", "Tab / I"], ["Skill map", "K"], ["Sea chart (click: mark)", "M"], ["Read the log pose (hold)", "L"], ["Zoan: shift form", "V"], ["Summon your ship (hold)", "B"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],

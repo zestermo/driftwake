@@ -246,6 +246,18 @@ const SPECS := {
 	"eat": {"len": 1.0, "stance": "sword", "weapon": "cutlass"},
 	"wave": {"len": 1.5, "stance": "sword", "weapon": "cutlass"},
 	"log_pose": {"len": 0.25, "stance": "sword", "weapon": "cutlass"},
+	# --- the emote wheel (EmotePoses) ---
+	"emote_wave": {"len": 1.8, "stance": "sword", "weapon": ""},
+	"emote_point": {"len": 1.4, "stance": "sword", "weapon": ""},
+	"emote_salute": {"len": 1.5, "stance": "sword", "weapon": ""},
+	"emote_laugh": {"len": 2.0, "stance": "sword", "weapon": ""},
+	"emote_cheer": {"len": 1.6, "stance": "sword", "weapon": ""},
+	"emote_dance": {"len": 3.6, "stance": "sword", "weapon": ""},
+	"emote_shrug": {"len": 1.4, "stance": "sword", "weapon": ""},
+	"emote_bow": {"len": 2.0, "stance": "sword", "weapon": ""},
+	"emote_flex": {"len": 2.0, "stance": "sword", "weapon": ""},
+	"emote_facepalm": {"len": 1.8, "stance": "sword", "weapon": ""},
+	"emote_shanty": {"len": 5.0, "stance": "sword", "weapon": ""},
 	# --- healing (quick-slot food, rum, tonics: Player.use_item) ---
 	"bite": {"len": 0.7, "stance": "sword", "weapon": "cutlass"},
 	"swig": {"len": 0.75, "stance": "sword", "weapon": "cutlass"},

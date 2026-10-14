@@ -1511,7 +1511,120 @@ def holster_sound():
     _write_shot("holster", _leather(t, rng, 0.0, 1.4) + _click(t, rng, 0.03, 1300, 0.45), -18.0, fade=0.05)
 
 
+# --- the emote wheel's sounds (v1.11) ---
+
+A_VOWEL = ((750, 5, 1.0), (1200, 6, 0.6), (2500, 8, 0.25))
+E_VOWEL = ((520, 5, 1.0), (1850, 7, 0.55), (2600, 8, 0.3))
+M_HUM = ((300, 4, 1.0), (900, 6, 0.25))
+
+
+def _midi(m):
+    return 440.0 * 2 ** ((m - 69) / 12.0)
+
+
+def laugh_sound():
+    """A hearty 'ha-ha-ha-ha-ha', each falling a little, a breath of 'h' on each."""
+    rng = np.random.default_rng(1501)
+    out = np.zeros(int(SR * 1.15))
+    for k in range(5):
+        f0 = 230 - k * 14
+        g = _voice(rng, 0.13, [f0 * 1.05, f0, f0 * 0.9], A_VOWEL, rasp=0.25, gain=2.2)
+        h = _noise(int(SR * 0.04), rng, 800, 4000) * np.linspace(0.5, 0, int(SR * 0.04))
+        i = int(SR * (0.02 + k * 0.19))
+        out[i:i + len(h)] += h * 0.4
+        out[i + len(h) // 2:i + len(h) // 2 + len(g)] += g
+    _write_shot("laugh", out, -16.0, fade=0.05)
+
+
+def cheer_sound():
+    """A big rising 'hey-YAA!'."""
+    rng = np.random.default_rng(1503)
+    a = _voice(rng, 0.18, [210, 250, 240], E_VOWEL, rasp=0.2, gain=2.5)
+    b = _voice(rng, 0.5, [260, 360, 340, 300], A_VOWEL, rasp=0.3, gain=3.0)
+    out = np.zeros(int(SR * 0.75))
+    out[:len(a)] += a
+    i = int(SR * 0.17)
+    out[i:i + len(b)] += b
+    _write_shot("cheer", out, -14.0, fade=0.08)
+
+
+def hup_sound():
+    """A short effort grunt for the flex: 'hngh!'."""
+    rng = np.random.default_rng(1507)
+    out = _voice(rng, 0.2, [150, 135, 110], ((480, 5, 1.0), (1000, 6, 0.4)), rasp=0.6, gain=3.0)
+    _write_shot("hup", out, -16.0, fade=0.04)
+
+
+def heel_click_sound():
+    """Two boot heels knocked together: a hard leather-on-wood click."""
+    rng = np.random.default_rng(1511)
+    n = int(SR * 0.12)
+    t = np.arange(n) / SR
+    out = _thump(t, 900, 500, 0.01, 90) * 0.6 + _modes(t, rng, [(1700, 0.8, 140), (3100, 0.4, 220)])
+    out += _noise(n, rng, 1500, 6000) * np.exp(-t * 250) * 0.4
+    _write_shot("heel_click", out, -17.0, fade=0.02)
+
+
+def slap_sound():
+    """A palm on the forehead: a fleshy slap."""
+    rng = np.random.default_rng(1513)
+    n = int(SR * 0.14)
+    t = np.arange(n) / SR
+    out = _noise(n, rng, 600, 5000) * np.exp(-t * 60) + _thump(t, 260, 140, 0.02, 45) * 0.7
+    _write_shot("slap", out, -17.0, fade=0.03)
+
+
+def _whistle(notes, step, seed, f_mul=1.0):
+    """A tin whistle: a near-sine with a touch of breath, a slight vibrato, each note tongued."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros(int(SR * (len(notes) * step + 0.2)))
+    for k, m in enumerate(notes):
+        if m is None:
+            continue
+        n = int(SR * step * 0.95)
+        t = np.arange(n) / SR
+        f = _midi(m) * f_mul * (1 + 0.006 * np.sin(2 * np.pi * 5.5 * t))
+        ph = np.cumsum(2 * np.pi * f / SR)
+        tone = np.sin(ph) + 0.18 * np.sin(2 * ph) + 0.05 * np.sin(3 * ph)
+        tone += _noise(n, rng, 2000, 7000) * 0.05
+        env = np.minimum(1, t / 0.008) * np.clip((step * 0.95 - t) / 0.02, 0, 1)
+        i = int(SR * k * step)
+        out[i:i + n] += tone * env
+    return out
+
+
+def jig_sound():
+    """The hornpipe: a quick original tune on a tin whistle, D major, about 3.3 s."""
+    D, E, Fs, G, A, B, Cs, D2, E2 = 74, 76, 78, 79, 81, 83, 85, 86, 88
+    notes = [D, Fs, A, Fs, D, Fs, A, D2, Cs, A, E, A, Cs, E2, D2, A,
+             B, G, D, G, B, D2, Cs, A, Fs, A, D2, None]
+    _write_shot("jig", _whistle(notes, 0.12, 1517), -18.0, fade=0.1)
+
+
+def shanty_sound():
+    """A hummed sea shanty, slow and swaying (an original tune, D dorian), about 4.4 s."""
+    rng = np.random.default_rng(1519)
+    notes = [(57, 0.5), (62, 0.5), (62, 0.25), (62, 0.25), (64, 0.5), (65, 0.75), (64, 0.25), (62, 0.5), (60, 0.5), (57, 0.9)]
+    total = sum(d for _, d in notes)
+    out = np.zeros(int(SR * (total + 0.2)))
+    at = 0.0
+    for m, d in notes:
+        f0 = _midi(m)
+        g = _voice(rng, d * 0.97, [f0, f0 * 1.003, f0], M_HUM, harm=8, rasp=0.05, gain=1.5)
+        i = int(SR * at)
+        out[i:i + len(g)] += g
+        at += d
+    _write_shot("shanty", out, -18.0, fade=0.15)
+
+
 SOUNDS = [
+    ("laugh", laugh_sound),
+    ("cheer", cheer_sound),
+    ("hup", hup_sound),
+    ("heel_click", heel_click_sound),
+    ("slap", slap_sound),
+    ("jig", jig_sound),
+    ("shanty", shanty_sound),
     ("blip", lambda: ui_blip("blip", 520)),
     ("blip_low", lambda: ui_blip("blip_low", 330)),
     ("blip_high", lambda: ui_blip("blip_high", 780)),
