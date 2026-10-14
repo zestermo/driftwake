@@ -84,14 +84,15 @@ func register_player(p: Player) -> void:
 	Net.register_local(p)
 	if not player.health_component.died.is_connected(_on_player_died):
 		player.health_component.died.connect(_on_player_died)
-	_load_save.call_deferred()
+	# (a new game is decided now: a save made in the frames before the load, like the bunk's, isn't loaded back over it)
+	_load_save.call_deferred(SaveGame.new_game)
 
 
-func _load_save() -> void:
+func _load_save(fresh: bool) -> void:
 	# let the world finish building (chests, thornbrush, the ship) first
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if player and is_instance_valid(player) and SaveGame.load_into(player):
+	if player and is_instance_valid(player) and not fresh and SaveGame.load_into(player):
 		get_tree().call_group("hud", "show_toast", "Welcome back, captain")
 	if player and is_instance_valid(player):
 		Net.world_loaded()
