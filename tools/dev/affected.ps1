@@ -74,11 +74,11 @@ try {
 		}
 		$known = $mapped.ContainsKey($t) -or ($t -eq "net-chain" -and $mapped.ContainsKey("netchain")) -or ($t -like "net*" -and $mapped.ContainsKey("net"))
 		if (-not $known -and -not ($t -like "net*")) {
-			if ($files.Count -gt 0) { $picked += $t; $why[$t] = "never passed (nothing recorded, no map line)" }
+			if ($files.Count -gt 0) { $picked += $t; $why[$t] = "no loads recorded yet, no map line" }
 			continue
 		}
 		$hits = Get-MapHits $t $files
-		if ($hits.Count -gt 0) { $picked += $t; $why[$t] = "never passed; test_map: " + (($hits | Select-Object -First 4) -join ", ") }
+		if ($hits.Count -gt 0) { $picked += $t; $why[$t] = "no loads recorded yet; test_map: " + (($hits | Select-Object -First 4) -join ", ") }
 	}
 	if ($Explain) {
 		foreach ($k in $why.Keys) { Write-Host ("{0,-24} {1}" -f $k, $why[$k]) }

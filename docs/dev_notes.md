@@ -1485,3 +1485,47 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   another agent's five suites sharing the machine) against 34-48 s for the old suites: a 3x faster loop for one
   behaviour. The 8 old suites were 318 s of machine time; the 30 atomic tests are ~430 s (30 boots), ~90 s of
   wall time at 5 slots. Cutting that boot (lazier class references from the autoloads) is the next win.
+
+## 2026-10-14: tests keyed by what they load
+- Why (Zach): passes were cached against the whole tree, so any edit anywhere (a doc, another test) made every
+  suite stale, and -Changed leaned on the hand-kept test_map.txt.
+- Recording: `scripts/game/dep_record.gd`, started in Settings' `_init` when `DRIFTWAKE_DEPS_OUT` is set (the
+  runners set it per Godot, run_tests and each nettest process). It's a ResourceFormatLoader added first in line
+  whose `_recognize_path` notes the path and returns false, so it sees every load (transient `load(...).instantiate()`
+  too) and claims nothing. At exit (Settings' `_exit_tree`: the first autoload, so the last out, with the whole
+  tree still allocated) it adds every project file `ResourceLoader.has_cached` (scripts the GDScript cache loads
+  by class name skip the loaders) and writes the list. FileAccess reads and folder listings note themselves:
+  `preload("res://scripts/game/dep_record.gd").note_dep(path)` (dialogue JSON and its folder, ItemDB's items
+  folder). Gotcha: a class_name script can't name an autoload (`Settings.note_dep` failed to compile under a
+  test's `--script`, which compiles before the autoloads exist; compilecheck didn't see it, it loads them first).
+- Keys (crew_lib `Get-TestKey`): after a pass the run's list becomes `.git/crew/deps/<test>.txt`; the key is
+  "d" + SHA-1 of "path blob" for each (plus project.godot, the autoloads, the test's script, a source's .import,
+  a noted folder's file names), blobs from `git ls-tree -r` of the working tree's key. Passes are
+  `results/<key>/<test>.ok` with the manifest under the first line, so test_status names what changed. Before a
+  test's first recorded pass the tree is its key (and test_map its picker). In-flight sharing, the ledger
+  (`key`), nettest (host + client lists merged) use the same key. `-Exact` keys by the tree (land's smoketest).
+  `-CarryFrom` is gone: a pass whose loads the rebase didn't touch has the same key afterwards.
+- Atomic tests: `tools/dev/t/<group>/<name>.gd` are found by themselves, named `t.<group>.<name>` (the other
+  branch's convention), run as `t/player/dash`, `t/player` or `t`; status.json gets a `t/<group>` group each.
+- Measured (dash, capturetest, uitest, skytest, shiptest, musictest, invtest): every suite loads 510-567 files
+  and they share 509; of 621 game files (scripts, scenes, shaders, resources, assets) dash loads 504, and the
+  scripts it doesn't are 6 beasts, enemy_spawner, buoyancy_component, title_screen, whats_new. The autoloads
+  alone (compilecheck on test_kit.gd with the env set) load 343 files, 194 scripts, humanoid, ship_spray,
+  inventory_screen, gen_island and kit_harbour among them: GDScript loads every script a loaded one names as a
+  type, and the autoloads name the game. So by loads alone, any game-script edit makes every test stale,
+  atomic ones on the light stage included.
+- So: caching, test_status and prepush go by loads (sound: a pass holds until something it loads changes;
+  editing a test, a tool, a doc or test_map no longer touches anyone's passes). `-Changed` (and landing) picks
+  atomic tests by loads, and a suite only for a changed test-side file it loads (its script, test_kit, the
+  stage) or one test_map says it's about, among files it loads (`-Wide`: every test that loads one). One-file
+  edits: ship_spray.gd 2 suites (test_map before: 2; by loads: all ~62), inventory_screen.gd 5 (5; ~62),
+  humanoid.gd 15 (15; ~62). The map stays the relevance filter until the autoloads stop naming the whole game
+  (lazy `load()` in GameManager/Net/GameMenu instead of class references would shrink the floor).
+- Proof (8 suites recorded: dash chartest invtest uitest skytest capturetest shiptest musictest): CLAUDE.md,
+  crew_lib.ps1 and this file changed after their passes and all 8 stayed ok. A comment edit to
+  scripts/enemies/beasts/alpha_boar.gd, which only skytest/shiptest/musictest load: test_status called exactly
+  those 3 stale, `affected -Wide` picked exactly those 3 (plus map fallbacks for unrecorded suites), the other
+  5 stayed ok. A comment edit to the Story autoload: all 8 stale and picked. Reverting each: all 8 ok again
+  (same contents, same key). ship_spray.gd, inventory_screen.gd, humanoid.gd: each loaded by 8 of 8.
+- chartest failed twice while the atomic-tests branch's player tests ran beside it and passed alone: both write
+  `user://character.cfg` (CharacterLook.SAVE_PATH, global to every checkout); tests that run at once share user://.
