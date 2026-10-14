@@ -61,6 +61,11 @@ eat/drink animation you can be hit out of; the ship's galley refills them as now
   upgrading or crafting gear with treasure as the material).
 - One coherent price curve across tiers, island levels and buy/sell.
 
+**Gear upgrading and customizing** (idea 2026-10-14): weapons and armour above blue rarity are good enough to
+work on. Upgrade their stats, add effects (burn, bleed, lifesteal, knockback...) and abilities, and rename or
+restyle them (name, colours, engraving). Treasure and materials pay for it, at a smith or rare-gear merchant.
+Ties into the economy's "treasure gets uses" and crafting above. Custom names and looks show to crewmates.
+
 **Experience and skills** (2026-10-13)
 - Uneven pace: some trees and weapons fill fast, others crawl; even out mastery gain and node costs.
 - Skill map readability: what a node does, what's next, what a tree is for.
