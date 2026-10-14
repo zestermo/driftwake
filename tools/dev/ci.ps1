@@ -27,7 +27,15 @@ Write-Host ("Tests run: " + (gh run view $id --json url --jq .url)) -ForegroundC
 
 gh run watch $id --exit-status --compact --interval 30
 $ok = $LASTEXITCODE -eq 0
-gh run view $id
+Write-Host ""
+foreach ($j in (gh run view $id --json jobs | ConvertFrom-Json).jobs) {
+	$mins = ([datetime]$j.completedAt - [datetime]$j.startedAt).TotalMinutes
+	Write-Host ("{0,-9} {1,4:0.0} min  {2}" -f $j.conclusion, $mins, $j.name) -ForegroundColor $(if ($j.conclusion -eq "success") { "Green" } else { "Red" })
+	if ($j.conclusion -ne "failure") { continue }
+	foreach ($a in (gh api "repos/{owner}/{repo}/check-runs/$($j.databaseId)/annotations" | ConvertFrom-Json)) {
+		if ($a.annotation_level -eq "failure" -and -not $a.message.StartsWith("Process completed")) { Write-Host "    $($a.title): $($a.message)" -ForegroundColor Red }
+	}
+}
 if ($ok) { Write-Host "CI PASSED ($ref at $($sha.Substring(0, 8)))" -ForegroundColor Green; exit 0 }
 Write-Host "CI FAILED: the failing jobs' summaries are on the run's page; logs: gh run view $id --log-failed" -ForegroundColor Red
 exit 1

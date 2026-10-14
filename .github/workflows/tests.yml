@@ -21,13 +21,13 @@ env:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
       shards: ${{ steps.plan.outputs.shards }}
       import-key: ${{ steps.key.outputs.key }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - id: godot
         uses: ./.github/actions/setup-godot
@@ -38,7 +38,7 @@ jobs:
         run: echo "key=godot-import-${{ env.GODOT_VERSION }}-${{ hashFiles('project.godot', '**/*.import', 'assets/**') }}" >> "$GITHUB_OUTPUT"
 
       - id: cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .godot
           key: ${{ steps.key.outputs.key }}
@@ -48,7 +48,7 @@ jobs:
         run: '"${{ steps.godot.outputs.bin }}" --headless --path . --import'
 
       - if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: .godot
           key: ${{ steps.key.outputs.key }}
@@ -61,21 +61,21 @@ jobs:
   suites:
     needs: plan
     name: ${{ matrix.shard.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
         shard: ${{ fromJSON(needs.plan.outputs.shards) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - id: godot
         uses: ./.github/actions/setup-godot
         with:
           version: ${{ env.GODOT_VERSION }}
 
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v5
         with:
           path: .godot
           key: ${{ needs.plan.outputs.import-key }}
@@ -92,7 +92,7 @@ jobs:
         run: pwsh -NoProfile -File tools/dev/run_tests.ps1 -CI -Jobs 2 -Timeout 900 $SUITES
 
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: logs-${{ strategy.job-index }}
           path: tools/dev/out/logs/
@@ -101,21 +101,21 @@ jobs:
   coop:
     needs: plan
     name: co-op ${{ matrix.mode }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         mode: [default, chain, board]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - id: godot
         uses: ./.github/actions/setup-godot
         with:
           version: ${{ env.GODOT_VERSION }}
 
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v5
         with:
           path: .godot
           key: ${{ needs.plan.outputs.import-key }}
@@ -131,7 +131,7 @@ jobs:
         run: pwsh -NoProfile -File tools/dev/nettest.ps1 -CI -Timeout 600 $([ "$MODE" = default ] || echo "$MODE")
 
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: logs-net-${{ matrix.mode }}
           path: tools/dev/out/logs/
@@ -140,7 +140,7 @@ jobs:
   verdict:
     needs: [suites, coop]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Every job passed
         run: |
