@@ -94,7 +94,7 @@ func _process(d: float) -> bool:
 		for x in camp.grunts:
 			if is_instance_valid(x):
 				x._cooldown = 99.0; x._pistol_cd = 99.0; x._shot_cd = 99.0; x._shove_cd = 99.0
-	# (waits are game time, in physics ticks: a long frame on a loaded machine ran a 0.3 s dodge out inside a 0.2 s wait)
+	# (waits are game time, in physics ticks: under load frames run fewer ticks than seconds pass)
 	if wait > 0.0:
 		until = TK.wait_secs(wait)
 		wait = 0.0
@@ -495,7 +495,8 @@ func _process(d: float) -> bool:
 			step += 1
 		25:
 			p.state_machine.force_state("Dodge", {})
-			wait = 0.2
+			# (6 ticks: a frame can run up to 8 more before we look, and the dodge lasts 18)
+			wait = 0.1
 			step += 1
 		26:
 			print("   dodge state ", p.current_state_name(), " hurt ", p.hurtbox.monitorable, " vis ", p.body_model.visible, " mask12 ", p.get_collision_mask_value(12), " type ", pc.fruit_type(), " supp ", pc.suppressed(), " depth ", p.water_depth())

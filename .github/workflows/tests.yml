@@ -89,7 +89,7 @@ jobs:
         env:
           GODOT: ${{ steps.godot.outputs.bin }}
           SUITES: ${{ matrix.shard.suites }}
-        run: pwsh -NoProfile -File tools/dev/run_tests.ps1 -CI -Jobs 2 -Timeout 900 $SUITES
+        run: pwsh -NoProfile -File tools/dev/run_tests.ps1 -CI -Jobs 1 -Timeout 900 $SUITES
 
       - if: always()
         uses: actions/upload-artifact@v6
