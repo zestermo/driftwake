@@ -114,6 +114,20 @@ func _process(_d: float) -> bool:
 		12:
 			check("a double jump comes down in the kneeling landing (%s)" % [seen.keys()], seen.has("land:double"))
 			check("the somersault is undone after (%.2f)" % body().pivot.rotation.x, absf(body().pivot.rotation.x) < 0.1)
+			p.give_log_pose()
+			Input.action_press("log_pose")
+			until = TK.wait_secs(0.6)
+		13:
+			var lp: Node3D = body().fore_l.get_node("LogPose")
+			var ball: Vector3 = lp.get_node("Ball").global_position
+			var face: Vector3 = (-lp.global_basis.orthonormalized().z).normalized()
+			var to_eyes: Vector3 = (body().head.global_position - ball).normalized()
+			var front: float = (ball - body().torso.global_position).dot(-body().global_basis.orthonormalized().z)
+			print("   log pose: ball %.2f m below the head, %.2f m out in front, facing the eyes %.2f" % [body().head.global_position.y - ball.y, front, face.dot(to_eyes)])
+			check("holding L raises the wrist (%s)" % body().current_action(), body().current_action() == "log_pose")
+			check("...the ball up in front of the chest, below the chin", front > 0.15 and body().head.global_position.y - ball.y > 0.05 and body().head.global_position.y - ball.y < 0.5)
+			check("...its face turned to the eyes", face.dot(to_eyes) > 0.4)
+			Input.action_release("log_pose")
 			print("RESULT fails=", fails)
 			quit()
 	step += 1

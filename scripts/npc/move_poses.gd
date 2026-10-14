@@ -12,7 +12,21 @@ static func pose(h, n: String, u: float) -> Array:
 			return _jump(h, n, u)
 		"dash":
 			return _dash(h, u)
+		"log_pose":
+			return _log_pose(h, u)
 	return []
+
+
+## (held) The left wrist raised in front of the chin like a watch: the forearm angled up across
+## the body from an elbow held out, so the ball on the back of the wrist faces the eyes; the chest
+## turns a little into it and the head tips down to read it. It comes up quick, a touch past, and settles.
+static func _log_pose(h, u: float) -> Array:
+	var read := {"arm_l": Vector3(0.7, -0.7, -0.5), "fore_l": Vector3(1.5, 0, 0), "hand_l": Vector3(-0.2, 0, 0),
+		"torso": Vector3(-0.06, 0.18, 0), "head": Vector3(-0.45, 0.2, 0)}
+	var lift_up := read.duplicate()
+	lift_up["arm_l"] = read["arm_l"] + Vector3(0.12, 0, 0)
+	lift_up["fore_l"] = read["fore_l"] + Vector3(0.1, 0, 0)
+	return [h._keys(u, [[0.0, {}], [0.6, lift_up, "out"], [1.0, read]]), "upper", Vector3.ZERO]
 
 
 ## The dash (sidestep / forward / backstep by `dash_dir`, blended on diagonals): a snap into the
