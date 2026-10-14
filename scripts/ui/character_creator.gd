@@ -431,7 +431,8 @@ func _finish(accepted: bool) -> void:
 	_play()
 	var result := look if accepted else _original
 	_set_paused(false)
-	Settings.capture_mouse()
+	# (by path: chartest compiles this before the autoloads exist)
+	get_node("/root/Settings").capture_mouse()
 	active = false
 	finished.emit(result.duplicate(true), accepted)
 	queue_free()
