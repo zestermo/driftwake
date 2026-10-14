@@ -56,6 +56,11 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
   for a new suite or system; `affected.ps1 -Explain` shows the picks and unmapped scripts).
 - A hook (`.claude/settings.json`) compiles every .gd you edit and hands errors back right away;
   if you're mid-way through a multi-edit change, finish it before reacting.
+- Other hooks there: `guard.ps1` refuses a suite run straight through Godot (use the runner) and
+  `git add -A` / `git add .` in the main checkout. `finish.ps1` stops an agent in a worktree from finishing
+  with uncommitted changes or a branch that doesn't compile as a whole (it blocks once; a second stop goes
+  through). The shared permissions (runners, git, Godot, the generators) are in the same file, so worktree
+  agents get them; tags, force pushes and hard resets still ask.
 - A new `class_name` script needs `& $env:GODOT --headless --import` once before tests see it.
 - Logs: `tools/dev/out/logs/<suite>.log`. Screenshots: `tools/dev/out/` (gitignored and
   `.gdignore`d). Read the PNGs to check visuals.
