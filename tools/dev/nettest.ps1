@@ -13,11 +13,13 @@
 # already passed on exactly this code (-Force reruns), waits for a run of the same mode on the same
 # code instead of starting a second, stops a Godot that stalls, can't parse its scripts or floods
 # errors, and retries once when every failure is a known flake (tools\dev\flaky.txt, suite "net").
+# -CI (GitHub Actions): none of the crew's slots, cache, sharing or live runs; a table on the job summary.
 param(
 	[Parameter(Position = 0)][string]$Mode = "",
 	[string]$Godot = $env:GODOT,
 	[int]$Timeout = 300,
-	[switch]$Force
+	[switch]$Force,
+	[switch]$CI
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -27,34 +29,41 @@ $logs = [System.IO.Path]::Combine($root, "tools", "dev", "out", "logs")
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
 . (Join-Path $PSScriptRoot "crew_lib.ps1")
-$crew = Get-CrewDir $root
-$me = Get-CrewBranch $root
-Update-ImportCache $root $Godot
-$tree = Get-TreeKey $root
+. (Join-Path $PSScriptRoot "ci_lib.ps1")
 $key = if ($Mode) { "net-$Mode" } else { "net" }
-
-function Test-Done() {
-	$hit = Get-CachedPass $crew $tree $key
-	if ($hit -and -not $Force) {
-		Write-Host "CO-OP TEST OK (already passed on this exact code: $hit; -Force reruns)" -ForegroundColor Green
-		exit 0
-	}
-}
-Test-Done
-# the same mode on the same code already running somewhere: wait for its verdict
-$told = $false
-while ($other = Get-InFlight $crew $tree $key) {
-	if (-not $told) { Write-Host "Waiting for the same co-op test already running ($other)..." -ForegroundColor DarkYellow; $told = $true }
-	Start-Sleep -Seconds 2
-}
-Test-Done
-
 $names = @("host", "client") + $(if ($Mode -eq "three") { @("watch") } else { @() })
-$run = New-LiveRun $crew $root $me $key $names
-Set-InFlight $crew $tree $key "$me $($run.Data.id)" $true
-foreach ($n in $names) { Set-LiveSuite $run $n @{ state = "waiting"; why = "for test slots" } }
-Save-LiveRun $run $true
-$slots = Wait-Slots $crew $names.Count "$me $key"
+$ciRows = [ordered]@{}
+$slots = @()
+if ($CI) {
+	$run = New-CiRun $names
+} else {
+	$crew = Get-CrewDir $root
+	$me = Get-CrewBranch $root
+	Update-ImportCache $root $Godot
+	$tree = Get-TreeKey $root
+
+	function Test-Done() {
+		$hit = Get-CachedPass $crew $tree $key
+		if ($hit -and -not $Force) {
+			Write-Host "CO-OP TEST OK (already passed on this exact code: $hit; -Force reruns)" -ForegroundColor Green
+			exit 0
+		}
+	}
+	Test-Done
+	# the same mode on the same code already running somewhere: wait for its verdict
+	$told = $false
+	while ($other = Get-InFlight $crew $tree $key) {
+		if (-not $told) { Write-Host "Waiting for the same co-op test already running ($other)..." -ForegroundColor DarkYellow; $told = $true }
+		Start-Sleep -Seconds 2
+	}
+	Test-Done
+
+	$run = New-LiveRun $crew $root $me $key $names
+	Set-InFlight $crew $tree $key "$me $($run.Data.id)" $true
+	foreach ($n in $names) { Set-LiveSuite $run $n @{ state = "waiting"; why = "for test slots" } }
+	Save-LiveRun $run $true
+	$slots = Wait-Slots $crew $names.Count "$me $key"
+}
 
 $port = 24700 + (Get-Random -Maximum 250)
 $delay = "2.5"
@@ -106,6 +115,10 @@ function Invoke-Once() {
 		$lines | Where-Object { $_ -cmatch "FAIL|RESULT|SCRIPT ERROR" } | Select-Object -First 20 | ForEach-Object { Write-Host $_ }
 		Set-LiveSuite $run $n @{ state = $(if ($good) { "passed" } elseif ($trouble[$n]) { "stopped" } else { "failed" }); pid = 0; last = @($j.Tail)
 			why = $(if ($trouble[$n]) { $trouble[$n] } elseif ($fails) { $fails[0] } elseif (-not $good) { "no RESULT OK" } else { "" }) }
+		if ($CI) {
+			$block = if ($good) { @() } elseif ($trouble[$n]) { @($trouble[$n]) + @($j.Tail) } elseif ($fails) { @($lines | Where-Object { $_ -cmatch "FAIL|SCRIPT ERROR" } | Select-Object -First 20) } else { @("no RESULT OK") + @($j.Tail) }
+			Add-CiRow $ciRows "$key $n" ([int]((Get-Date) - $j.Started).TotalSeconds) $(if ($good) { "PASS" } elseif ($trouble[$n]) { "STOPPED" } else { "FAIL" }) $block ""
+		}
 	}
 	Save-LiveRun $run $true
 	$script:lastFails = @(Get-JobSummary $jobs["client"] 40 | Where-Object { $_ -cmatch "^FAIL" })
@@ -120,13 +133,17 @@ if (-not $ok -and -not $script:lastTrouble -and (Test-AllFlaky "net" $script:las
 	$ok = Invoke-Once
 }
 foreach ($s in $slots) { Exit-Slot $s }
-Set-InFlight $crew $tree $key "" $false
-$secsAll = [int]((Get-Date) - [datetime]$run.Data.started).TotalSeconds
-Write-Ledger $crew $key $(if ($ok) { "passed" } elseif ($script:lastTrouble) { "stopped" } else { "failed" }) $tree $me $secsAll $(if ($ok) { "" } elseif ($script:lastFails) { $script:lastFails[0] } else { "see the Tests pane" })
-$run.Data.state = $(if ($ok) { "passed" } else { "failed" })
-$run.Data.ended = (Get-Date).ToString("o")
-Save-LiveRun $run $true
+if ($CI) {
+	Write-CiSummary "Co-op: $key" $ciRows
+} else {
+	Set-InFlight $crew $tree $key "" $false
+	$secsAll = [int]((Get-Date) - [datetime]$run.Data.started).TotalSeconds
+	Write-Ledger $crew $key $(if ($ok) { "passed" } elseif ($script:lastTrouble) { "stopped" } else { "failed" }) $tree $me $secsAll $(if ($ok) { "" } elseif ($script:lastFails) { $script:lastFails[0] } else { "see the Tests pane" })
+	$run.Data.state = $(if ($ok) { "passed" } else { "failed" })
+	$run.Data.ended = (Get-Date).ToString("o")
+	Save-LiveRun $run $true
+}
 if (-not $ok) { Write-Host "CO-OP TEST FAILED" -ForegroundColor Red; exit 1 }
-Set-CachedPass $crew $tree $key $me
+if (-not $CI) { Set-CachedPass $crew $tree $key $me }
 Write-Host "CO-OP TEST OK" -ForegroundColor Green
 exit 0

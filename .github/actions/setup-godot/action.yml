@@ -5,8 +5,9 @@ inputs:
     description: Godot version, e.g. 4.7.2 (must match the editor exactly; the templates are tied to it)
     required: true
   templates:
-    description: Template files to keep from the export templates .tpz, space-separated (e.g. web_nothreads_release.zip)
-    required: true
+    description: Template files to keep from the export templates .tpz, space-separated (e.g. web_nothreads_release.zip); none for just the editor (tests)
+    required: false
+    default: ''
 outputs:
   bin:
     description: The Godot command (Linux ~/godot/godot; Windows the console build, which prints to the log and returns the exit code)
@@ -46,13 +47,15 @@ runs:
         curl -fsSL -o "$tmp/godot.zip" "$base/$editor"
         unzip -q "$tmp/godot.zip" -d ~/godot
         if [ "$RUNNER_OS" != "Windows" ]; then mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot; fi
+        rm "$tmp/godot.zip"
+        if [ -z "$TEMPLATES" ]; then exit 0; fi
         # (the .tpz holds every platform's templates, ~1 GB: only the ones named are kept)
         curl -fsSL -o "$tmp/templates.tpz" "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
         mkdir -p "$dir"
         files=(templates/version.txt)
         for t in $TEMPLATES; do files+=("templates/$t"); done
         unzip -q -j "$tmp/templates.tpz" "${files[@]}" -d "$dir"
-        rm "$tmp/godot.zip" "$tmp/templates.tpz"
+        rm "$tmp/templates.tpz"
 
     - name: Name the Godot command
       id: bin

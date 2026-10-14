@@ -346,7 +346,7 @@ function New-LiveRun([string]$crew, [string]$root, [string]$branch, [string]$kin
 
 ## Write the run's status (at most twice a second unless forced: the pane polls once a second).
 function Save-LiveRun($run, [bool]$force = $false) {
-	if (-not $force -and ((Get-Date) - $run.Saved).TotalMilliseconds -lt 500) { return }
+	if (-not $run.File -or (-not $force -and ((Get-Date) - $run.Saved).TotalMilliseconds -lt 500)) { return }
 	$run.Saved = Get-Date
 	$tmp = "$($run.File).tmp"
 	[System.IO.File]::WriteAllText($tmp, ($run.Data | ConvertTo-Json -Depth 6 -Compress))
@@ -368,8 +368,14 @@ function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]
 	Remove-Item $log -Force -ErrorAction SilentlyContinue
 	$gargs = "--headless --path `"$root`" --script res://tools/dev/$script" + $(if ($extra) { " -- $extra" } else { "" })
 	$psi = New-Object System.Diagnostics.ProcessStartInfo
-	$psi.FileName = "cmd.exe"
-	$psi.Arguments = "/d /c `"`"$godot`" $gargs > `"$log`" 2>&1`""
+	if ($IsLinux) {
+		$psi.FileName = "/bin/sh"
+		$psi.ArgumentList.Add("-c")
+		$psi.ArgumentList.Add("exec `"$godot`" $gargs > `"$log`" 2>&1")
+	} else {
+		$psi.FileName = "cmd.exe"
+		$psi.Arguments = "/d /c `"`"$godot`" $gargs > `"$log`" 2>&1`""
+	}
 	$psi.WorkingDirectory = $root
 	$psi.UseShellExecute = $false
 	$psi.CreateNoWindow = $true
@@ -441,7 +447,7 @@ function Get-JobFailure($job) {
 }
 
 function Stop-GodotJob($job) {
-	if (-not $job.Proc.HasExited) { & taskkill /T /F /PID $job.Proc.Id 2>&1 | Out-Null }
+	if (-not $job.Proc.HasExited) { if ($IsLinux) { $job.Proc.Kill($true) } else { & taskkill /T /F /PID $job.Proc.Id 2>&1 | Out-Null } }
 	$job.Proc.WaitForExit(5000) | Out-Null
 }
 

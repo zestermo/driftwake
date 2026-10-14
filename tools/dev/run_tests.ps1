@@ -23,6 +23,8 @@
 # -CarryFrom <tree>: a suite that passed on that tree and that nothing changed since touches
 # (test_map.txt) counts as passed here too (land.ps1 passes the branch's tree before its rebase).
 # The suite list is tools\dev\suites.txt.
+# -CI (GitHub Actions, pwsh 7 on Linux or Windows): no crew (slots, pass cache, in-flight sharing, ledger,
+# live runs), no import (the workflow does it): compile check, run, judge, and a table on the job summary.
 param(
 	[Parameter(Position = 0, ValueFromRemainingArguments = $true)]
 	[string[]]$Tests,
@@ -35,14 +37,18 @@ param(
 	[switch]$Light,
 	[string]$Base = "HEAD",
 	[string]$CarryFrom = "",
-	[string]$Seed = $env:DRIFTWAKE_SEED
+	[string]$Seed = $env:DRIFTWAKE_SEED,
+	[switch]$CI
 )
 
 $ErrorActionPreference = "Stop"
 # (a pass on another seed says nothing about the suite's own: no cache either way, no sharing a run)
-if ($Seed) { $Force = $true; $CarryFrom = "" }
+if ($Seed -or $CI) { $Force = $true; $CarryFrom = "" }
+$share = -not $Seed -and -not $CI
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 . (Join-Path $PSScriptRoot "crew_lib.ps1")
+. (Join-Path $PSScriptRoot "ci_lib.ps1")
+$ciRows = [ordered]@{}
 $all = @(Get-Content (Join-Path $PSScriptRoot "suites.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })
 $netHint = ""
 if ($Changed) {
@@ -79,13 +85,16 @@ if (-not $Godot -or -not (Test-Path $Godot)) {
 $logs = [System.IO.Path]::Combine($root, "tools", "dev", "out", "logs")
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
-Update-ImportCache $root $Godot
-
-$crew = Get-CrewDir $root
-$me = Get-CrewBranch $root
-$tree = Get-TreeKey $root
-Clear-OldResults $crew
-$run = New-LiveRun $crew $root $me "tests" $Tests
+if ($CI) {
+	$run = New-CiRun $Tests
+} else {
+	Update-ImportCache $root $Godot
+	$crew = Get-CrewDir $root
+	$me = Get-CrewBranch $root
+	$tree = Get-TreeKey $root
+	Clear-OldResults $crew
+	$run = New-LiveRun $crew $root $me "tests" $Tests
+}
 
 # skip what already passed on exactly this code (this tree, uncommitted changes included), or on
 # the tree we're carrying from when nothing since touches the suite
@@ -127,6 +136,10 @@ if (-not $NoCompileCheck -and $Tests.Count -gt 0) {
 		$errs = @($cc | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED" } | Select-Object -Unique)
 		$errs | ForEach-Object { Write-Host $_ -ForegroundColor Red }
 		Write-Host "Scripts don't compile: no suites run (-NoCompileCheck to run anyway)" -ForegroundColor Red
+		if ($CI) {
+			Add-CiRow $ciRows "compile check" 0 "FAIL" @($errs | Select-Object -First 40) ""
+			Write-CiSummary ("Suites: " + ($Tests -join " ")) $ciRows
+		}
 		foreach ($t in $Tests) { Set-LiveSuite $run $t @{ state = "skipped"; why = "scripts don't compile"; last = @($errs | Select-Object -First 6) } }
 		$run.Data.state = "failed"; $run.Data.ended = (Get-Date).ToString("o")
 		Save-LiveRun $run $true
@@ -140,7 +153,7 @@ function Start-Suite([string]$t, $slot) {
 	$job = Start-GodotJob $Godot $root "$t.gd" "" (Join-Path $logs "$t.log") $Seed
 	$job | Add-Member -NotePropertyName Name -NotePropertyValue $t
 	$job | Add-Member -NotePropertyName Slot -NotePropertyValue $slot
-	if (-not $Seed) { Set-InFlight $crew $tree $t "$me $($run.Data.id)" $true }
+	if ($share) { Set-InFlight $crew $tree $t "$me $($run.Data.id)" $true }
 	Set-LiveSuite $run $t @{ state = "running"; log = $job.Log; pid = $job.Proc.Id; secs = 0; why = ""; seed = $Seed }
 	return $job
 }
@@ -150,7 +163,7 @@ function Finish-Suite($job, [string]$trouble, [bool]$failed = $false) {
 	if ($trouble -or $failed) { Stop-GodotJob $job }
 	Update-GodotJob $job
 	Exit-Slot $job.Slot
-	if (-not $Seed) { Set-InFlight $crew $tree $job.Name "" $false }
+	if ($share) { Set-InFlight $crew $tree $job.Name "" $false }
 	$lines = Get-JobSummary $job
 	$secs = [int]((Get-Date) - $job.Started).TotalSeconds
 	$ok = (-not $trouble) -and (-not $failed) -and ($lines -cmatch "RESULT (OK|fails=0)") -and -not ($lines -cmatch "FAIL|SCRIPT ERROR")
@@ -168,8 +181,12 @@ function Finish-Suite($job, [string]$trouble, [bool]$failed = $false) {
 	Set-LiveSuite $run $job.Name @{ state = $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }); secs = $secs; pid = 0
 		why = $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($job.Fail.Count -gt 0) { $job.Fail[0] } elseif ($fails) { $fails[0] } else { $summary })
 		fail = @($job.Fail); last = @($job.Tail); seed = $job.Seed }
-	if ($ok -and -not $Seed) { Set-CachedPass $crew $tree $job.Name $me }
-	if (-not $Seed) { Write-Ledger $crew $job.Name $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }) $tree $me $secs $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary }) (Get-JobSetup $job) }
+	if ($CI) {
+		$block = if ($ok) { @() } elseif ($trouble) { @($trouble) + @($job.Tail) } elseif ($job.Fail.Count -gt 0) { @($job.Fail) } else { @($summary) + @($job.Tail) }
+		Add-CiRow $ciRows $job.Name $secs $(if ($ok) { "PASS" } elseif ($trouble) { "STOPPED" } else { "FAIL" }) $block $(if ($ok) { "" } else { $job.Seed })
+	}
+	if ($ok -and $share) { Set-CachedPass $crew $tree $job.Name $me }
+	if ($share) { Write-Ledger $crew $job.Name $(if ($ok) { "passed" } elseif ($trouble) { "stopped" } else { "failed" }) $tree $me $secs $(if ($ok) { "" } elseif ($trouble) { $trouble } elseif ($fails) { $fails[0] } else { $summary }) (Get-JobSetup $job) }
 	return [pscustomobject]@{ Ok = $ok; Fails = $fails; Trouble = $trouble }
 }
 
@@ -181,7 +198,7 @@ $retried = @{}
 $told = $false
 while ($queue.Count -gt 0 -or $running.Count -gt 0) {
 	# a suite another runner is running on this exact code: wait for its verdict instead
-	for ($i = $queue.Count - 1; $i -ge 0 -and -not $Seed; $i--) {
+	for ($i = $queue.Count - 1; $i -ge 0 -and $share; $i--) {
 		$t = $queue[$i]
 		$other = Get-InFlight $crew $tree $t
 		$hit = Get-CachedPass $crew $tree $t
@@ -199,16 +216,19 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
 	while ($running.Count -lt [Math]::Max(1, $Jobs)) {
 		$next = $queue | Where-Object { $run.Data.suites[$_].state -ne "shared" } | Select-Object -First 1
 		if (-not $next) { break }
-		$slot = Enter-Slot $crew "$me $next"
-		if (-not $slot) {
-			if (-not $told) {
-				Write-Host ("Waiting for a test slot ({0} in use: {1})" -f (Get-SlotCount), ((Get-SlotHolders $crew) -join "; ")) -ForegroundColor DarkYellow
-				$told = $true
+		$slot = $null
+		if (-not $CI) {
+			$slot = Enter-Slot $crew "$me $next"
+			if (-not $slot) {
+				if (-not $told) {
+					Write-Host ("Waiting for a test slot ({0} in use: {1})" -f (Get-SlotCount), ((Get-SlotHolders $crew) -join "; ")) -ForegroundColor DarkYellow
+					$told = $true
+				}
+				foreach ($q in $queue) { if ($run.Data.suites[$q].state -eq "queued") { Set-LiveSuite $run $q @{ state = "waiting"; why = "for a test slot" } } }
+				break
 			}
-			foreach ($q in $queue) { if ($run.Data.suites[$q].state -eq "queued") { Set-LiveSuite $run $q @{ state = "waiting"; why = "for a test slot" } } }
-			break
+			$told = $false
 		}
-		$told = $false
 		$queue.Remove($next) | Out-Null
 		$running += Start-Suite $next $slot
 	}
@@ -240,8 +260,11 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
 $run.Data.state = $(if ($failed.Count -gt 0) { "failed" } else { "passed" })
 $run.Data.ended = (Get-Date).ToString("o")
 Save-LiveRun $run $true
+if ($CI) { Write-CiSummary ("Suites: " + ($Tests -join " ")) $ciRows }
 if ($failed.Count -gt 0) {
 	Write-Host ("FAILED: " + ($failed -join ", ") + "   (logs in tools\dev\out\logs)") -ForegroundColor Red
+}
+if ($failed.Count -gt 0 -and -not $CI) {
 	# (in a worktree only this tree's code runs: another session's uncommitted work can't fail it,
 	# but it helps to know who else is in the same files)
 	$board = Get-CrewBoard $root

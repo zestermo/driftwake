@@ -1,0 +1,149 @@
+# Every headless suite and the co-op modes on Linux runners, in parallel: the CI side of tools/dev/prepush.ps1 -CI
+# (tools/dev/ci.ps1 pushes HEAD to ci/<branch>, waits for this run and prints its verdict).
+# - plan: imports the project once (the .godot cache, keyed on the imported files) and deals the suites
+#   into jobs (tools/dev/ci_plan.ps1: each heavy.txt suite alone, the rest balanced by suite_times.txt).
+# - suites: one job per shard, run_tests.ps1 -CI (compile check, run, judge as locally, flaky.txt retried once).
+# - coop: nettest.ps1 -CI per mode, host and client on the runner's localhost.
+# - verdict: fails the run if anything did. Each job's summary has its table; its logs are an artifact.
+name: Tests
+
+on:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      import-key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: godot
+        uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+
+      - id: key
+        run: echo "key=godot-import-${{ env.GODOT_VERSION }}-${{ hashFiles('project.godot', '**/*.import', 'assets/**') }}" >> "$GITHUB_OUTPUT"
+
+      - id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .godot
+          key: ${{ steps.key.outputs.key }}
+          restore-keys: godot-import-${{ env.GODOT_VERSION }}-
+
+      - name: Import the project
+        run: '"${{ steps.godot.outputs.bin }}" --headless --path . --import'
+
+      - if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .godot
+          key: ${{ steps.key.outputs.key }}
+
+      - id: plan
+        name: Deal the suites into jobs
+        shell: pwsh
+        run: ./tools/dev/ci_plan.ps1 -Shards 11
+
+  suites:
+    needs: plan
+    name: ${{ matrix.shard.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: godot
+        uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: .godot
+          key: ${{ needs.plan.outputs.import-key }}
+          fail-on-cache-miss: true
+
+      # (the cache is keyed on the assets: this catches up the class names of scripts added since)
+      - name: Import the project
+        run: '"${{ steps.godot.outputs.bin }}" --headless --path . --import'
+
+      - name: Run the suites
+        env:
+          GODOT: ${{ steps.godot.outputs.bin }}
+          SUITES: ${{ matrix.shard.suites }}
+        run: pwsh -NoProfile -File tools/dev/run_tests.ps1 -CI -Jobs 2 -Timeout 900 $SUITES
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ strategy.job-index }}
+          path: tools/dev/out/logs/
+          retention-days: 7
+
+  coop:
+    needs: plan
+    name: co-op ${{ matrix.mode }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [default, chain, board]
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: godot
+        uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: .godot
+          key: ${{ needs.plan.outputs.import-key }}
+          fail-on-cache-miss: true
+
+      - name: Import the project
+        run: '"${{ steps.godot.outputs.bin }}" --headless --path . --import'
+
+      - name: Run the co-op test
+        env:
+          GODOT: ${{ steps.godot.outputs.bin }}
+          MODE: ${{ matrix.mode }}
+        run: pwsh -NoProfile -File tools/dev/nettest.ps1 -CI -Timeout 600 $([ "$MODE" = default ] || echo "$MODE")
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-net-${{ matrix.mode }}
+          path: tools/dev/out/logs/
+          retention-days: 7
+
+  verdict:
+    needs: [suites, coop]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job passed
+        run: |
+          echo "suites: ${{ needs.suites.result }}, co-op: ${{ needs.coop.result }}"
+          test "${{ needs.suites.result }}" = success
+          test "${{ needs.coop.result }}" = success
