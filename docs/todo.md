@@ -113,6 +113,9 @@ eat/drink animation you can be hit out of; the ship's galley refills them as now
   same-numbered island. Fix: the chain seed in the key, with a save migration. (Quests already carry the seed.)
 - **A one-off co-op crash** (signal 11, "wrong RID" building the Silverback's body on a guest), seen once in
   ~5 chain runs.
+- chartest / savetest race on the shared `user://character.cfg` when two sessions run them at once
+  ("Cannot get keys from nonexistent section look"): give the suites their own config path (e.g. an env or
+  test-kit override of CharacterLook's save path).
 - lifetest's "at nine in the evening" once got 11 of 13 on a Mosswater Atoll; not reproduced (the check
   prints who's late, with their walk).
 - Performance: measure on the other PC (F8 / `user://perf.log`), the 120 s autosave, Vulkan vs D3D12.
