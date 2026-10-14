@@ -267,7 +267,6 @@ func _spindrift(delta: float, cam: Camera3D, wdir: Vector3, caps: float, wind: f
 func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: float, inland: float, ship: Node3D) -> void:
 	var want := int(FOAM * (0.4 + 0.6 * caps) * (1.0 - inland))
 	_foam_acc += delta * 10.0
-	var skip: Array = [(ship as CollisionObject3D).get_rid()] if ship is CollisionObject3D else []
 	while _foam_acc >= 1.0:
 		_foam_acc -= 1.0
 		if _foam.size() >= want:
@@ -275,7 +274,8 @@ func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: 
 		var a := _rng.randf() * TAU
 		var r := _rng.randf_range(FOAM_NEAR.x, FOAM_NEAR.y)
 		var p := Vector3(cam.global_position.x + cos(a) * r, 80.0, cam.global_position.z + sin(a) * r)
-		if float(Ocean.depth_at(p, skip, true)) < 1.0:
+		# (not under a hull: the ship's own collider counts as ground here)
+		if float(Ocean.depth_at(p, [], true)) < 1.0:
 			continue
 		_foam.append([p.x, p.z, 0.0, _rng.randf_range(7.0, 14.0), _rng.randf_range(0.7, 1.7), _rng.randf() * TAU])
 	_foam_acc = minf(_foam_acc, 2.0)

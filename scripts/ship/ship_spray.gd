@@ -10,7 +10,10 @@ extends Node3D
 
 const SLEEP := 180.0
 ## The waterline in her own space (she rides FREEBOARD above the swell).
-const WL := -HullBuilder.FREEBOARD + 0.25
+const WL := -HullBuilder.FREEBOARD + 0.1
+## Where the bow wave leaves her sides, and where her stem cuts the water (her own space).
+const BOW_WAVE_Z := -10.0
+const STEM_Z := -12.3
 ## How fast the sea climbs her stem (m/s) for a slap you hear, and for a sheet of spray.
 const SLAP_RISE := 1.3
 const SHEET_RISE := 2.2
@@ -37,34 +40,54 @@ var _mist_k := 0.0
 
 func _ready() -> void:
 	_ship = get_parent()
+	# everything starts at the waterline just outside her planking (never inboard,
+	# never from the anchor at the cathead): the bow wave low and flat off each side
+	# of the bow, the churn just aft of her transom, the sheet and mist at the stem
 	for s in [-1.0, 1.0]:
 		var e := _emitter(28, 0.9, 0.32, Color(0.93, 0.97, 1.0, 0.9), false)
-		e.position = Vector3(s * 0.55, WL + 0.1, HullBuilder.BOW_Z + 1.1)
-		e.direction = Vector3(s, 0.85, -0.3).normalized()
-		e.spread = 16.0
-		e.emission_sphere_radius = 0.35
+		e.position = Vector3(s * (beam_at(BOW_WAVE_Z) + 0.25), WL, BOW_WAVE_Z)
+		e.direction = Vector3(s, 0.45, -0.2).normalized()
+		e.spread = 14.0
+		e.emission_sphere_radius = 0.25
 		_bow.append(e)
 	_stern = _emitter(20, 1.1, 0.45, Color(0.92, 0.96, 1.0, 0.8), false)
-	_stern.position = Vector3(0.0, WL, HullBuilder.STERN_Z + 0.4)
-	_stern.direction = Vector3(0.0, 0.7, 1.0).normalized()
-	_stern.spread = 40.0
-	_stern.emission_sphere_radius = 0.9
+	_stern.position = Vector3(0.0, WL, float(HullBuilder.RINGS[0][0]) + 0.5)
+	_stern.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	_stern.emission_box_extents = Vector3(beam_at(float(HullBuilder.RINGS[0][0])) * 0.7, 0.05, 0.3)
+	_stern.direction = Vector3(0.0, 0.5, 1.0).normalized()
+	_stern.spread = 30.0
 	_mist = _emitter(24, 1.4, 0.55, Color(0.9, 0.95, 1.0, 0.2), false)
-	_mist.position = Vector3(0.0, HullBuilder.DECK_Y + 1.1, HullBuilder.BOW_Z + 2.2)
+	_mist.position = Vector3(0.0, WL + 0.2, STEM_Z)
 	_mist.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	_mist.emission_box_extents = Vector3(2.4, 0.6, 1.2)
-	_mist.direction = Vector3(0.0, 0.35, 1.0).normalized()
-	_mist.spread = 30.0
+	_mist.emission_box_extents = Vector3(0.4, 0.15, 0.3)
+	_mist.direction = Vector3(0.0, 1.0, 0.25).normalized()
+	_mist.spread = 25.0
 	_mist.damping_min = 0.6
 	_mist.damping_max = 0.6
 	_mist.scale_amount_curve = FX._curve("grow")
 	for i in range(2):
 		var sh := _emitter(42, 1.1, 0.24, Color(0.94, 0.98, 1.0, 0.95), true)
-		sh.position = Vector3(0.0, WL + 0.9, HullBuilder.BOW_Z + 0.4)
-		sh.spread = 32.0
-		sh.emission_sphere_radius = 0.5
+		sh.position = Vector3(0.0, WL + 0.1, STEM_Z)
+		sh.spread = 18.0
+		sh.emission_sphere_radius = 0.25
 		sh.scale_amount_curve = FX._curve("hold")
 		_sheets.append(sh)
+
+
+## Her half-width at the waterline `z` m along her (HullBuilder.RINGS), 0 past the stem.
+static func beam_at(z: float) -> float:
+	var r: Array = HullBuilder.RINGS
+	for i in range(r.size() - 1):
+		var a: Array = r[i]
+		var b: Array = r[i + 1]
+		if z <= float(a[0]) and z >= float(b[0]):
+			var k := (float(a[0]) - z) / (float(a[0]) - float(b[0]))
+			var top := lerpf(float(a[1]), float(b[1]), k)
+			var bottom := lerpf(float(a[2]), float(b[2]), k)
+			var top_y := lerpf(float(a[3]), float(b[3]), k)
+			var bottom_y := lerpf(float(a[4]), float(b[4]), k)
+			return maxf(lerpf(bottom, top, clampf((WL - bottom_y) / (top_y - bottom_y), 0.0, 1.0)), 0.0) if WL > bottom_y else 0.0
+	return 0.0
 
 
 func _emitter(amount: int, life: float, size: float, col: Color, burst: bool) -> CPUParticles3D:
@@ -117,8 +140,9 @@ func _physics_process(delta: float) -> void:
 	var way := clampf((spd - 1.5) / 7.0, 0.0, 1.0)
 	for e in _bow:
 		e.emitting = randf() < way
-		e.initial_velocity_min = 1.0 + spd * 0.35
-		e.initial_velocity_max = 1.6 + spd * 0.5
+		# (a low curl: it never climbs to the cathead and its anchor)
+		e.initial_velocity_min = 0.8 + spd * 0.2
+		e.initial_velocity_max = 1.2 + spd * 0.3
 		e.gravity = Vector3(0.0, -9.0, 0.0) + air_l * 0.25
 	_stern.emitting = randf() < way * 0.8
 	_stern.initial_velocity_min = 0.6 + spd * 0.1
@@ -158,7 +182,7 @@ func _meet(delta: float, xf: Transform3D, spd: float, caps: float, air_l: Vector
 		slams += 1
 		var sh := _sheets[_sheet_i]
 		_sheet_i = (_sheet_i + 1) % _sheets.size()
-		sh.direction = (Vector3(randf_range(-0.45, 0.45), 1.0, 0.35) + air_l.normalized() * 0.2).normalized()
+		sh.direction = (Vector3(randf_range(-0.15, 0.15), 1.0, -0.1) + air_l.normalized() * 0.2).normalized()
 		sh.initial_velocity_min = 4.0 + 4.0 * k
 		sh.initial_velocity_max = 6.0 + 6.0 * k
 		sh.restart()

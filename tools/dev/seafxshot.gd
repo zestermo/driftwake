@@ -77,7 +77,7 @@ func _process(dt: float) -> bool:
 		find_cliff()
 		cam = Camera3D.new(); cam.fov = 62; cam.far = 1500
 		root.add_child(cam); cam.current = true
-		shots = ["beach_calm", "beach_storm", "sea_astern", "sea_deck", "cliff_storm", "ring"]
+		shots = ["beach_calm", "beach_storm", "sea_astern", "sea_deck", "sea_bow", "cliff_storm", "ring"]
 		return false
 	if i >= 0 and i < shots.size() and not poked and t > t0 - 0.2:
 		poked = true
@@ -132,7 +132,7 @@ func _setup(s: String) -> void:
 			p.global_position = beach - beach_out * 6.0 + Vector3.UP * 3.0
 			cam.global_position = beach + beach_out * 4.0 + side * 3.0 + Vector3.UP * 4.0
 			cam.look_at(beach + beach_out * 14.0, Vector3.UP)
-		"sea_astern", "sea_deck":
+		"sea_astern", "sea_deck", "sea_bow":
 			weather(3)
 			var wg = root.get_node("World/Islands")
 			for k in range(32):
@@ -156,6 +156,10 @@ func _follow(s: String) -> void:
 	if s == "sea_astern":
 		cam.global_position = xf * Vector3(-9.0, 9.0, 26.0)
 		cam.look_at(xf * Vector3(0, 2.0, -6.0), Vector3.UP)
+	elif s == "sea_bow":
+		# off her starboard bow, on the anchor at the cathead and the bow wave under it
+		cam.global_position = xf * Vector3(9.0, 3.5, -16.0)
+		cam.look_at(xf * Vector3(1.5, 0.0, -9.5), Vector3.UP)
 	else:
 		cam.global_position = xf * Vector3(1.2, HullBuilder.DECK_Y + 2.0, -3.0)
 		cam.look_at(xf * Vector3(-1.0, 1.0, -20.0), Vector3.UP)

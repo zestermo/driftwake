@@ -215,7 +215,7 @@ func _process(d: float) -> bool:
 			print("   storm, %.1f m/s: bow wave on %.0f%% of frames (v %.1f), stem rise up to %.1f m/s, %d slaps, %d sheets, spray up to %.2f, foam patches %d, hiss %.1f dB" % [ship.speed,
 				on * 100.0, sp._bow[0].initial_velocity_max, float(saw["rise"]), sp.slaps - int(saw["slaps"]), sp.slams - int(saw["slams"]), float(saw["spray"]),
 				amb.get_parent().get_node("SeaSpray")._foam.size(), amb._players["spray"].volume_db])
-			check("under way the bow wave flies, faster with her speed", on > 0.4 and sp._bow[0].initial_velocity_max > 5.0)
+			check("under way the bow wave flies, faster with her speed", on > 0.4 and sp._bow[0].initial_velocity_max > 3.5)
 			check("...every wave she meets slaps her hull", sp.slaps - int(saw["slaps"]) >= 3)
 			check("...a steep one throws a sheet of spray over the bow", sp.slams - int(saw["slams"]) >= 1)
 			check("...and in a blow spray streams across her deck (and hisses)", float(saw["spray"]) > 0.2 and amb._players["spray"].volume_db > -40.0)
