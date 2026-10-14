@@ -174,6 +174,10 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   same-numbered island. Fix: the chain seed in the key, with a save migration. (Quests already carry the seed.)
 - **A one-off co-op crash** (signal 11, "wrong RID" building the Silverback's body on a guest), seen once in
   ~5 chain runs.
+- **Mesh-commit crash while the next island prepares** (2026-10-14 bug pass): a segfault in
+  `add_surface_from_arrays` (MeshBuilder.commit, from village dressing or a scuttlebug's model) on the main
+  thread while a worker prepares the next chain island; 3 of ~10 headless seatest/nettest runs. Likely the same
+  race as the crash above. Needs its own pass (is it headless-only?).
 - chartest / savetest race on the shared `user://character.cfg` when two sessions run them at once
   ("Cannot get keys from nonexistent section look"): give the suites their own config path (e.g. an env or
   test-kit override of CharacterLook's save path).
