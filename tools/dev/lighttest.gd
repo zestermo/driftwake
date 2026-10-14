@@ -94,6 +94,12 @@ func _process(_d: float) -> bool:
 			for e in es:
 				var el: Array = (e as Node).find_children("*", "NightLight", true, false)
 				check("...a pirate ship shows %d lit lanterns" % el.size(), el.size() >= 2 and all_visible(el))
+			var isl: Node3D = current_scene.find_child("Brinehollow", true, false)
+			var nls: Array = isl.find_children("*", "NightLight", true, false)
+			check("Brinehollow's lamps within its budget (%d of %d)" % [nls.size(), isl.LIGHTS], nls.size() > 11 and nls.size() <= isl.LIGHTS)
+			var den: Vector3 = isl.to_global(Vector3(isl.DEN.x, 0, isl.DEN.y))
+			var den_lit := nls.filter(func(n): return Vector2(n.global_position.x - den.x, n.global_position.z - den.z).length() < 30.0 and n.visible)
+			check("...the pirates' den has lit lanterns (%d)" % den_lit.size(), den_lit.size() >= 2)
 			check("...the belt lantern lit itself", p.body_model.lantern.lit and p.body_model.lantern._light.visible)
 			check("...in the co-op snapshot", int(p.net_pack()[8]) & p.NF_LANTERN != 0)
 			check("...a warm light without shadows, 8-10 m", not p.body_model.lantern._light.shadow_enabled and p.body_model.lantern._light.omni_range >= 8.0 and p.body_model.lantern._light.omni_range <= 10.0)

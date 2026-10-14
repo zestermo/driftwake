@@ -358,13 +358,13 @@ func apply_look(look_dict: Dictionary) -> void:
 var lantern: BeltLantern
 
 
-## Hang the belt lantern at the right hip (mirroring the main sheath, set back behind
-## an off-hand blade), keeping whether it was lit.
+## Hang the belt lantern at the back of the right hip (clear of the main sheath on the
+## left and of an off-hand blade's sheath trailing down the right), keeping whether it was lit.
 func wear_lantern() -> void:
 	var was_lit := lantern != null and is_instance_valid(lantern) and lantern.lit
 	lantern = BeltLantern.new()
 	torso.add_child(lantern)
-	lantern.position = Vector3(-hip_socket.position.x + 0.015, hip_socket.position.y - 0.01, hip_socket.position.z + 0.1)
+	lantern.position = Vector3(-hip_socket.position.x * 0.75, hip_socket.position.y - 0.01, hip_socket.position.z + 0.17)
 	lantern.set_lit(was_lit)
 
 
