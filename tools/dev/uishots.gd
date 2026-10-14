@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"chart", "yard", "shop", "load", "dialogue", "hud"]
+	"chart", "yard", "shop", "load", "dialogue", "hud", "emotes"]
 var si := 0
 
 
@@ -73,6 +73,12 @@ func _process(d: float) -> bool:
 					root.get_node("Dialogue").say("Odile", ["Welcome to Brinehollow, captain. Mind the smugglers down at the cove, they've been bold of late and the lighthouse keeper swears he saw lights on the water."])
 				"hud":
 					pass
+				"emotes":
+					# the emote wheel held open, pointing at the fourth (Laugh)
+					Input.action_press("emote")
+					p.emote_wheel._open = true
+					p.emote_wheel._pick = 3
+					p.emote_wheel._restyle()
 				_:
 					gm().open(s)
 			step = 2

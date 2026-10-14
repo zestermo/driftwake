@@ -214,9 +214,84 @@ func _process(d: float) -> bool:
 			print("   crouched: the sentry turned at %.2f m behind it" % near_d)
 			check("crouched behind a grunt you get closer before it turns (%.2f m vs %.2f m standing)" % [near_d, sd], near_d < sd - 1.5 and near_d < 2.0)
 			reset_camp()
+			go(70, 30)
+		# --- the emote wheel: every emote plays (as a body action, so co-op mirrors it), with its sound
+		70:
+			var fx = root.get_node("FX")
+			var missing := []
+			for id in EMOTES:
+				if id != "sit" and EMOTE_SOUNDS.has(id) and not fx._streams.has(EMOTE_SOUNDS[id][0]):
+					missing.append(id)
+			check("every emote's sound is loaded (missing %s)" % str(missing), missing.is_empty())
+			emote_i = 0
+			go(71)
+		71:
+			if emote_i >= EMOTES.size():
+				go(80)
+				return false
+			var id: String = EMOTES[emote_i]
+			if id == "sit":
+				emote_i += 1
+				return false
+			put(get_meta("open"))
+			until = TK.wait_ticks(20)
+			step = 72
+		72:
+			var id: String = EMOTES[emote_i]
+			p.emote(id)
+			go(73, 6)
+		73:
+			var id: String = EMOTES[emote_i]
+			check("emote %s plays (%s)" % [id, p.body_model.current_action()], p.body_model.current_action() == "emote_" + id)
+			p.body_model.stop_action()
+			emote_i += 1
+			go(71)
+		# the wheel itself: hold T, point up (the first: wave), let go
+		80:
+			put(get_meta("open"))
+			go(81, 20)
+		81:
+			Input.action_press("emote")
+			go(82, 3)
+		82:
+			check("holding T opens the wheel", p.emote_wheel.is_open())
+			var mm := InputEventMouseMotion.new()
+			mm.relative = Vector2(0, -80)
+			mm.screen_relative = Vector2(0, -80)
+			p.emote_wheel._input(mm)
+			check("pointing up picks the top one (%d)" % p.emote_wheel._pick, p.emote_wheel._pick == 0)
+			Input.action_release("emote")
+			go(83, 4)
+		83:
+			check("letting go of T waves (%s)" % p.body_model.current_action(), not p.emote_wheel.is_open() and p.body_model.current_action() == "emote_wave")
+			p.body_model.stop_action()
+			Input.action_press("emote")
+			go(84, 3)
+		84:
+			var mm := InputEventMouseMotion.new()
+			mm.screen_relative = Vector2(0, 80)
+			p.emote_wheel._input(mm)
+			Input.action_release("emote")
+			go(85, 30)
+		85:
+			check("pointing down picks Sit: on the ground (%s)" % p.current_state_name(), p.current_state_name() == "Sit" and p.body_model.seat_y < 0.25)
+			p.state_machine.force_state("Idle", {})
+			# a full-body emote stops when you move
+			p.emote("dance")
+			Input.action_press("move_forward")
+			go(86, 10)
+		86:
+			Input.action_release("move_forward")
+			check("moving ends the hornpipe (%s)" % p.body_model.current_action(), p.body_model.current_action() != "emote_dance")
 			finish()
 			return true
 	return false
+
+
+const EMOTES := ["wave", "point", "salute", "laugh", "cheer", "dance", "sit", "shrug", "bow", "flex", "facepalm", "shanty"]
+const EMOTE_SOUNDS := {"salute": ["heel_click"], "laugh": ["laugh"], "cheer": ["cheer"], "dance": ["jig"], "bow": ["whoosh"],
+	"flex": ["hup"], "facepalm": ["slap"], "shanty": ["shanty"]}
+var emote_i := 0
 
 
 var camp
