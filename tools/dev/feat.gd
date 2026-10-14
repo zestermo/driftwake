@@ -68,10 +68,10 @@ func _process(d: float) -> bool:
 			p.health_component.take_damage(50)
 			act("hotbar_1"); wait = 0.2
 		7:
-			check("quick slot 1 (5) drinks rum", p.body_model.current_action() == "drink" and p.inventory_component.count("rum") == 2)
+			check("quick slot 1 (5) drinks rum (%s)" % p.body_model.current_action(), p.body_model.current_action() == "swig" and p.inventory_component.count("rum") == 2)
 			wait = 1.0
 		8:
-			check("rum healed", p.health_component.current_health >= 84.0)
+			check("rum healed (%.0f hp)" % p.health_component.current_health, p.health_component.current_health >= 50.0 + load("res://resources/items/rum.tres").heal_amount - 0.5)
 			print("   hp ", p.health_component.current_health)
 			act("inventory"); wait = 0.1
 		9:
