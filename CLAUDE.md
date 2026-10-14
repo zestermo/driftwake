@@ -115,6 +115,10 @@ the shared files and took longer overall. Finish and merge before starting more.
 build them (each agent runs only its own suites), merge them all with a compile check and the smoke test (`land.ps1 -NoTests`),
 then one full test run and one bug-fix pass on main, with known bugs from the agents' reports listed first.
 
+**Agent types** (`.claude/agents/`): spawn feature work as `driftwake-feature` (worktree isolation; the rules,
+test tiers, landing and report format are built in, so the brief is just the feature) and narrow fixes, failing
+suites and mechanical changes as `driftwake-fixer` (Sonnet, cheaper).
+
 Zach often runs several Claude sessions at once. Each should work in its own git worktree
 so half-finished edits never break another session's tests or end up in its commits:
 
