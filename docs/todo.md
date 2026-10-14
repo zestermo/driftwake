@@ -4,6 +4,21 @@ Zach's list of planned work, in order. Nothing here is started unless it says so
 2026-10-13: the next round is polish and quality of life, then Phase 3 of the islands. Platform: the desktop
 download (co-op by hosted / forwarded address) is the way to play; nothing web or store-related is planned.
 
+## Now: v1.12, light, music and a living sea (started 2026-10-14)
+
+Three agents, one worktree each:
+- **Lighting:** nights are too dark to play. A brighter moonlit night (ambient floor, moonlight), real lights on
+  the ships (deck and stern lanterns, the cabin, enemy ships too), more light in towns and buildings (windows,
+  doorways, street lamps, the den and the rest that only glow today), on the light budget (few shadowed lights,
+  distance fades). A **belt lantern** on every captain: hangs from the belt with swing physics, takes no hand
+  slot, lit at dusk on its own, a key to toggle, seen by crewmates.
+- **Music:** new, theme-appropriate tracks for the title screen, the open sea, island background, villages and
+  exploring; longer forms (2-3 minutes) instead of the one-minute loops; day/night variants where they fit
+  (`docs/audio_audit.md` proposals 1, 2, 4).
+- **A living sea and sky:** more spray and particles on the water (bow and hull spray, crests breaking, surf on
+  rocks, splashes), better ocean sound (layered swell, surf by distance, the hull's wash), and birds in the sky:
+  flocks over islands, gulls round ships and harbours, by time of day.
+
 ## Next: polish and quality of life (after v1.10)
 
 **Animations** (driftwake-animation skill; animsheet / posebench to check)
@@ -97,8 +112,6 @@ eat/drink animation you can be hit out of; the ship's galley refills them as now
   (tracking your ship down the chain, waiting at harbours), tougher hunters as the bounty climbs.
 - **New island themes:** snow, desert and forest islands to the jungle's standard (a KitStyle table,
   vegetation, villages, creatures and bosses each), after Phase 3.
-- **Real lights:** ship lanterns, the den and the rest that only glow today, on the light budget (few shadowed
-  lights, distance fades). Brinehollow's village and generated villages, harbours and caves are done.
 
 ## Code signing (planned 2026-10-13)
 - Sign the Windows build so a browser download opens on double-click with no SmartScreen block or "Unblock"
