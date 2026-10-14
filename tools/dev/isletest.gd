@@ -126,7 +126,7 @@ func _process(d: float) -> bool:
 			check("its elder, innkeeper, trader, cook and a few villagers", npcs.size() >= 6 and npcs.any(func(x): return x.dialogue_id == isl.save_key("elder")))
 			var shops = load("res://scripts/game/shops.gd")
 			check("a trader and a cook to buy from (at the island's tier)", shops.extra.has(isl.save_key("trader")) and shops.extra.has(isl.save_key("cook"))
-				and npcs.any(func(x): return x.shop_id == isl.save_key("trader")) and str(shops.extra[isl.save_key("trader")]["stock"][2][0]).contains("@"))
+				and npcs.any(func(x): return x.shop_id == isl.save_key("trader")) and (shops.extra[isl.save_key("trader")]["stock"] as Array).any(func(e): return str(e[0]).contains("@")))
 			var dlg = root.get_node("Dialogue")
 			check("a job board: the camp's captain and the bug lair", dlg._load(isl.save_key("board"))["nodes"].has("camp") and dlg._load(isl.save_key("board"))["nodes"].has("lair"))
 			check("the elder's talk: the island, the way on, pay for jobs done", dlg._load(isl.save_key("elder"))["nodes"].has("beyond") and dlg._load(isl.save_key("elder"))["nodes"].has("pay_camp"))
