@@ -529,7 +529,7 @@ func _update_clouds() -> void:
 func _build_rain() -> void:
 	_rain = GPUParticles3D.new()
 	_rain.name = "Rain"
-	_rain.amount = 2200
+	_rain.amount = 1500
 	_rain.lifetime = 0.9
 	_rain.local_coords = false
 	_rain.visibility_aabb = AABB(Vector3(-30, -30, -30), Vector3(60, 60, 60))
@@ -550,16 +550,18 @@ func _build_rain() -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for rot in [0.0, PI * 0.5]:
 		var b := Basis(Vector3.UP, rot)
-		var w := 0.025
-		var hgt := 0.85
+		var w := 0.012
+		var hgt := 0.55
 		var v := [b * Vector3(-w, -hgt, 0), b * Vector3(w, -hgt, 0), b * Vector3(w, hgt, 0), b * Vector3(-w, hgt, 0)]
 		for idx in [0, 1, 2, 0, 2, 3]:
+			st.set_normal(b * Vector3.BACK)
 			st.add_vertex(v[idx])
 	var mesh := st.commit()
+	# (lit by the scene: grey by day, dark at night, lamplit near a lamp)
 	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(0.78, 0.82, 0.9, 0.38)
+	mat.albedo_color = Color(0.68, 0.72, 0.78, 0.32)
+	mat.roughness = 0.5
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	# (streaks right past the lens would be big white bars)
 	mat.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
@@ -568,6 +570,7 @@ func _build_rain() -> void:
 	mesh.surface_set_material(0, mat)
 	_rain.draw_pass_1 = mesh
 	_scene.add_child(_rain)
+	_scene.add_child(RainFX.make(_rain))
 
 
 func _update_rain(delta: float) -> void:

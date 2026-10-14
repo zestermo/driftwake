@@ -149,6 +149,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `invshot`: Inventory overlay screenshots. Args: <out_prefix>
 - `invshot_real`: Inventory overlay screenshots. Args: <out_prefix>
 - `seafxshot`: Sea and wind effects: Brinehollow's beach in calm and in a storm (surf rolling in, swash, surf bursts), and at sea in a storm under full sail from astern and from the deck (whitecaps, wind streaks, crest and bow spray, foam patches, the deck mist), a wave on Brinehollow's cliffs in a storm and a splash's foam ring; three frames a shot. Args: <out_prefix> [psx]
+- `rainshot`: Rain (RainFX): Brinehollow's street and the deck at 13:00 and 21:00 with the ground soaked (puddles), and the sea pocked by it; two frames a shot. Args: <out_prefix>
 - `skyshot`: Birds: Brinehollow's harbour gulls, the high flock, a gull close up in flight, parrots over the forest, the ship's gulls near land; two frames a shot. Args: <out_prefix> [psx]
 - `islandshot`: Shots of the starter island (Brinehollow; a chain island is genshot's) from given local (island-space) camera positions. Args: <out_prefix> then repeated "name:cx,cy,cz:tx,ty,tz" (a y of "~3" is 3 m above the ground there). Env ISHOT_HOUR=21 renders at that hour; ISHOT_AT=<node name> (e.g. RedtideRock) frames another place, positions in its space.
 - `jumpshot`: Running jump, side view: lean frames. Args: <out_prefix>

@@ -94,6 +94,7 @@ scripts/world/ambience.gd               ambiencetest skytest
 scripts/world/coast_probe.gd            ambiencetest skytest
 scripts/world/sea_spray.gd              skytest
 scripts/world/sky_birds.gd              skytest
+scripts/world/rain_fx.gd                r9test
 shaders/sky_bird.gdshader               skytest
 scripts/ship/ship_spray.gd              skytest shiptest
 assets/audio/*_loop.wav                 ambiencetest
