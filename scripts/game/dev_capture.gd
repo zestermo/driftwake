@@ -173,7 +173,7 @@ func state_text() -> String:
 		DisplayServer.window_get_vsync_mode()])
 	var settings := get_node_or_null("/root/Settings")
 	if settings and settings.has_method("get_value"):
-		L.append("video: preset %s  warp %s  wobble %s  dither %s" % [str(settings.get_value("video", "psx_preset")),
+		L.append("video: pixelate %s  warp %s  wobble %s  dither %s" % [str(settings.get_value("video", "pixelate")),
 			str(settings.get_value("video", "warp")), str(settings.get_value("video", "wobble")), str(settings.get_value("video", "dither"))])
 
 	# --- player

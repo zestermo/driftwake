@@ -48,7 +48,7 @@ func _process(d: float) -> bool:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 		DisplayServer.window_set_size(size)
 		root.size = size
-		root.get_node("Settings").set_value("video", "psx_preset", 4, false)
+		root.get_node("Settings").set_value("video", "pixelate", true, false)
 		for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 		p = get_first_node_in_group("player")
 		perf = root.get_node("Perf")

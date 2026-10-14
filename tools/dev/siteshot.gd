@@ -148,7 +148,7 @@ func _wait(secs: float) -> void:
 
 ## The 3D on the GRID, dithered, vertices snapped to match (as the game's preset does).
 func _grid() -> void:
-	settings.set_value("video", "psx_preset", 0, false)
+	settings.set_value("video", "pixelate", true, false)
 	settings.set_value("video", "dither", true, false)
 	var psx = root.get_node("PSX")
 	psx._post_rect.material.set_shader_parameter("pixel_res", GRID)

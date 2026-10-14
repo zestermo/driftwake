@@ -159,7 +159,7 @@ func _process(d: float) -> bool:
 
 func _setup() -> void:
 	var settings = root.get_node("Settings")
-	settings.set_value("video", "psx_preset", 4, false)
+	settings.set_value("video", "pixelate", true, false)
 	settings.set_value("video", "dither", true, false)
 	for k in root.find_children("*", "CharacterCreator", true, false): k._finish(true)
 	get_first_node_in_group("hud").visible = false

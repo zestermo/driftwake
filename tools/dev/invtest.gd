@@ -124,26 +124,13 @@ func _process(d: float) -> bool:
 			gm.open("options")
 			wait = 0.3; step = 7
 		7:
-			var st: Button = gm._screens["options"].find_child("psx_preset", true, false)
+			var px: Button = gm._screens["options"].find_child("pixelate", true, false)
 			var settings = root.get_node("Settings")
-			var n: int = root.get_node("PSX").PRESETS.size()
-			var v0 := int(settings.get_value("video", "psx_preset"))
-			var click := InputEventMouseButton.new()
-			click.button_index = MOUSE_BUTTON_LEFT
-			click.pressed = true
-			click.position = Vector2(2, st.size.y * 0.5)
-			st.gui_input.emit(click)
-			check("selector's left half steps back (%d -> %d of %d)" % [v0, int(settings.get_value("video", "psx_preset")), n],
-				int(settings.get_value("video", "psx_preset")) == posmod(v0 - 1, n))
-			var left := InputEventAction.new()
-			left.action = "ui_left"
-			left.pressed = true
-			st.gui_input.emit(left)
-			check("left on a keyboard / pad steps back again", int(settings.get_value("video", "psx_preset")) == posmod(v0 - 2, n))
-			click.position.x = st.size.x - 2.0
-			st.gui_input.emit(click)
-			st.gui_input.emit(click)
-			check("right half steps forward to where it was (%s)" % st.text, int(settings.get_value("video", "psx_preset")) == v0)
+			var v0 := bool(settings.get_value("video", "pixelate"))
+			px.pressed.emit()
+			check("the Pixelation toggle flips it (%s)" % px.text, bool(settings.get_value("video", "pixelate")) == not v0)
+			px.pressed.emit()
+			check("...and back (%s)" % px.text, bool(settings.get_value("video", "pixelate")) == v0)
 			gm.close()
 			print("RESULT fails=", fails); quit()
 	return false

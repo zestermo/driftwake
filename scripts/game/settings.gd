@@ -10,7 +10,7 @@ const PATH := "user://settings.cfg"
 const DEFAULTS := {
 	"video": {
 		"fullscreen": false,
-		"psx_preset": 4,        # index into PSX.PRESETS (4 = 960x540, the default since v2)
+		"pixelate": true,       # the 3D on PSX.GRID (960x540); off = native resolution
 		"dither": true,
 		"wobble": 1.0,          # vertex snapping strength 0..1
 		"warp": 0.0,            # affine texture warp 0..1 (off by default since v3)
@@ -124,20 +124,18 @@ func _load() -> void:
 				elif d is bool:
 					v = bool(v)
 				_values[section][key] = v
-	# v2: 640x360 made distant things too hard to make out - move players who
-	# never changed it to the sharper 960x540 grid (once)
-	if int(cfg.get_value("meta", "version", 1)) < 2:
-		if int(_values["video"]["psx_preset"]) == 0:
-			_values["video"]["psx_preset"] = 4
 	# v3: affine texture warp made textures slide with the camera - off unless
 	# someone turned it up themselves
 	if int(cfg.get_value("meta", "version", 1)) < 3:
 		if absf(float(_values["video"]["warp"]) - 0.6) < 0.01:
 			_values["video"]["warp"] = 0.0
+	# v4: the resolution presets became one pixelation toggle (every grid but "Off (native)", index 3, is on)
+	if int(cfg.get_value("meta", "version", 1)) < 4:
+		_values["video"]["pixelate"] = int(cfg.get_value("video", "psx_preset", 4)) != 3
 		save()
 
 
-const VERSION := 3
+const VERSION := 4
 
 
 func _ensure_buses() -> void:

@@ -127,7 +127,7 @@ func _process(d: float) -> bool:
 			check("the player's own rig poses every frame (%d of 30)" % me_posed, me_posed >= 29)
 			# --- the 3D renders at the PSX grid's size
 			var psx = root.get_node("PSX")
-			root.get_node("Settings").set_value("video", "psx_preset", 4, false)
+			root.get_node("Settings").set_value("video", "pixelate", true, false)
 			var want: float = psx.pixel_res().y / float(root.size.y)
 			check("3D renders at the grid's size (scale %.2f, grid / window %.2f)" % [root.scaling_3d_scale, want], absf(root.scaling_3d_scale - minf(want, 1.0)) < 0.01)
 			# --- bodies built ahead on a worker thread

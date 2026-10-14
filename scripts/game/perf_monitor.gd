@@ -146,4 +146,4 @@ func _open_log() -> void:
 	_log.store_line("Driftwake %s  %s  %s  %s (%s)  window %s  preset %s" % [
 		str(ProjectSettings.get_setting("application/config/version", "")), Time.get_datetime_string_from_system(),
 		OS.get_name(), RenderingServer.get_video_adapter_name(), RenderingServer.get_current_rendering_driver_name(),
-		str(get_tree().root.size), str(psx.PRESETS[psx.preset_index()]["name"]) if psx else "?"])
+		str(get_tree().root.size), ("pixelated" if psx.pixelated() else "native") if psx else "?"])

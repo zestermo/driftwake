@@ -53,7 +53,7 @@ func _process(d: float) -> bool:
 		_set_hour(11.0)
 		gm.chain_since = root.get_node("Weather").world_time()
 		if OS.get_cmdline_user_args().has("psx"):
-			root.get_node("Settings").set_value("video", "psx_preset", 4, false)
+			root.get_node("Settings").set_value("video", "pixelate", true, false)
 		return false
 	if isles.is_empty():
 		if not w.chain_ready() or not w.chain_islands.has(want):

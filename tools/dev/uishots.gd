@@ -1,6 +1,6 @@
 extends SceneTree
 ## Screenshots of every menu.
-## Args: <out_prefix> [psx_preset_index] [window WxH, e.g. 1280x1024]
+## Args: <out_prefix> [pixelate 1|0] [window WxH, e.g. 1280x1024]
 var t := 0.0
 var p
 var out := ""
@@ -15,7 +15,7 @@ func _initialize():
 	var a := OS.get_cmdline_user_args()
 	out = a[0]
 	if a.size() > 1:
-		root.get_node("Settings").set_value("video", "psx_preset", int(a[1]))
+		root.get_node("Settings").set_value("video", "pixelate", a[1] != "0")
 	if a.size() > 2:
 		var wh := a[2].split("x")
 		win_size = Vector2i(int(wh[0]), int(wh[1]))

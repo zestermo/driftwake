@@ -1,5 +1,5 @@
 extends SceneTree
-## Close look at the 3D clouds at a pixelated PSX preset. Args: <out_png> [preset]
+## Close look at the 3D clouds. Args: <out_png> [pixelate 1|0]
 var t := 0.0
 var cam: Camera3D
 var out := ""
@@ -10,7 +10,7 @@ func _initialize():
 	out = a[0]
 	change_scene_to_file("res://scenes/world/world.tscn")
 	if a.size() > 1:
-		root.get_node("Settings").set_value("video", "psx_preset", int(a[1]), false)
+		root.get_node("Settings").set_value("video", "pixelate", a[1] != "0", false)
 func _process(d: float) -> bool:
 	t += d
 	if t < 2.0: return false

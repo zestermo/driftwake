@@ -418,7 +418,7 @@ func _build_options() -> Control:
 
 	_section(list, "Video")
 	_toggle_row(list, "Fullscreen", "video", "fullscreen")
-	_cycle_row(list, "PSX resolution", "video", "psx_preset", preload("res://scripts/psx/psx_settings.gd").PRESETS.map(func(x): return x["name"]))
+	_toggle_row(list, "Pixelation", "video", "pixelate")
 	_toggle_row(list, "Dithering", "video", "dither")
 	_slider_row(list, "Vertex wobble", "video", "wobble", 0.0, 1.0, 0.05, "%d%%", 100.0)
 	_slider_row(list, "Texture warp", "video", "warp", 0.0, 1.0, 0.05, "%d%%", 100.0)
@@ -475,24 +475,11 @@ func _row(list: VBoxContainer, text: String) -> HBoxContainer:
 func _toggle_row(list: VBoxContainer, text: String, section: String, key: String) -> void:
 	var row := _row(list, text)
 	var b := UIStyle.button("", 90)
+	b.name = key
 	row.add_child(b)
 	var refresh := func(): b.text = "On" if Settings.get_value(section, key) else "Off"
 	b.pressed.connect(func():
 		Settings.set_value(section, key, not Settings.get_value(section, key))
-		refresh.call()
-		_play())
-	_opt_refreshers.append(refresh)
-	refresh.call()
-
-
-func _cycle_row(list: VBoxContainer, text: String, section: String, key: String, names: Array) -> void:
-	var row := _row(list, text)
-	var b := UIStyle.stepper(150)
-	b.name = key
-	row.add_child(b)
-	var refresh := func(): b.text = UIStyle.stepper_text(names[clampi(int(Settings.get_value(section, key)), 0, names.size() - 1)])
-	b.connect("stepped", func(d: int):
-		Settings.set_value(section, key, posmod(int(Settings.get_value(section, key)) + d, names.size()))
 		refresh.call()
 		_play())
 	_opt_refreshers.append(refresh)

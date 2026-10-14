@@ -22,7 +22,7 @@ func _process(d: float) -> bool:
 		p.body_model.apply_look(lk)
 		var args := OS.get_cmdline_user_args()
 		if args.size() > 1:
-			root.get_node("Settings").set_value("video", "psx_preset", int(args[1]))
+			root.get_node("Settings").set_value("video", "pixelate", args[1] != "0")
 		cam = Camera3D.new(); cam.fov = 40; root.add_child(cam); cam.current = true
 		return false
 	var dist: float = D[mini(n, D.size() - 1)]

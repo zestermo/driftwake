@@ -12,8 +12,8 @@ extends SceneTree
 ##     back, back3, top, low (from knee height), far (front3, 4x out), eye (eye height,
 ##     6 m in front of the front face), wire (front3 as wireframe), or "yaw:pitch[:zoom]"
 ##     in degrees (yaw 0 = looking at the front, which faces +Z; zoom < 1 = closer).
-## Env: MS_GROUND=<texture>|none (default grass), MS_HOUR=21, MS_PSX=<preset 0-4> (the game's
-##   pixel grid; 0 = 640x360) instead of native, MS_ZOOM=0.5 (all views), MS_FOCUS="x,y,z"
+## Env: MS_GROUND=<texture>|none (default grass), MS_HOUR=21, MS_PSX=1 (the game's
+##   pixel grid) instead of native, MS_ZOOM=0.5 (all views), MS_FOCUS="x,y,z"
 ##   (aim at that point of the first model, in its builder's coordinates, instead of the
 ##   row's centre; pair with MS_ZOOM for a close-up), MS_ROW=y|z (stack the row along that
 ##   axis instead of X: weapons lie along -Z, so MS_ROW=y with a side view shows a rack).
@@ -81,7 +81,7 @@ func _process(d: float) -> bool:
 
 func _setup() -> void:
 	if OS.get_environment("MS_PSX") != "":
-		root.get_node("Settings").set_value("video", "psx_preset", int(OS.get_environment("MS_PSX")), false)
+		root.get_node("Settings").set_value("video", "pixelate", OS.get_environment("MS_PSX") != "0", false)
 	else:
 		root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	for c in root.find_children("*", "CharacterCreator", true, false):

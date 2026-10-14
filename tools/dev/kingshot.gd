@@ -47,7 +47,7 @@ func _process(d: float) -> bool:
 	match step:
 		0:
 			# ("psx": the game's sharper preset, for the README; not saved)
-			if OS.get_cmdline_user_args().has("psx"): root.get_node("Settings").set_value("video", "psx_preset", 4, false)
+			if OS.get_cmdline_user_args().has("psx"): root.get_node("Settings").set_value("video", "pixelate", true, false)
 			else: root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 			if OS.get_cmdline_user_args().has("storm"):
 				var w = root.get_node("Weather")

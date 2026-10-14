@@ -130,7 +130,7 @@ func _seed(s: int) -> void:
 
 
 func _snap(s: int, name: String) -> void:
-	settings.set_value("video", "psx_preset", 0, false)
+	settings.set_value("video", "pixelate", true, false)
 	settings.set_value("video", "dither", true, false)
 	var psx = root.get_node("PSX")
 	psx._post_rect.material.set_shader_parameter("pixel_res", GRID)

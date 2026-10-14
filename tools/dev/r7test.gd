@@ -44,7 +44,7 @@ func _process(d: float) -> bool:
 			if t < 1.5:
 				return false
 			p = get_first_node_in_group("player")
-			check("PSX default is the sharper 960x540 grid", int(root.get_node("Settings").DEFAULTS["video"]["psx_preset"]) == 4)
+			check("PSX default: pixelated on the sharper 960x540 grid", root.get_node("Settings").DEFAULTS["video"]["pixelate"] == true and root.get_node("PSX").GRID == Vector2i(960, 540))
 			var rum = load("res://resources/items/rum.tres")
 			var gold = load("res://resources/items/gold.tres")
 			var pistol = load("res://resources/items/pistol.tres")

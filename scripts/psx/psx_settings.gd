@@ -4,22 +4,15 @@ extends Node
 ## - Drives the global vertex-snap / affine-warp shader uniforms.
 ## - Adds the full-screen 15-bit color + dither pass underneath the HUD.
 ## Values live in the Settings autoload (video section). Hotkeys:
-## F2 cycles resolution presets, F3 toggles dithering, F11 / Alt+Enter fullscreen.
-
-signal preset_changed(preset_name: String)
+## F2 toggles pixelation, F3 toggles dithering, F11 / Alt+Enter fullscreen.
 
 ## The UI's canvas: menus and the HUD are laid out on this many pixels and
 ## drawn at the window's own resolution (the pixel fonts stay hard-edged, just
-## finer); the 3D's pixel grid is the preset's, laid on by the post pass.
+## finer); the 3D's pixel grid is GRID's, laid on by the post pass.
 const UI_SIZE := Vector2i(800, 450)
 
-const PRESETS := [
-	{"name": "640x360", "size": Vector2i(640, 360)},
-	{"name": "480x270", "size": Vector2i(480, 270)},
-	{"name": "320x180", "size": Vector2i(320, 180)},
-	{"name": "Off (native)", "size": Vector2i.ZERO},
-	{"name": "960x540 (sharper)", "size": Vector2i(960, 540)},
-]
+## The one pixel grid (at 800 UI pixels across; coarser grids made distant things too hard to see).
+const GRID := Vector2i(960, 540)
 
 var _post_layer: CanvasLayer
 var _post_rect: ColorRect
@@ -50,8 +43,8 @@ func _exit_tree() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_F2:
-			Settings.set_value("video", "psx_preset", (preset_index() + 1) % PRESETS.size())
-			_show_toast("PSX: %s" % PRESETS[preset_index()]["name"])
+			Settings.set_value("video", "pixelate", not pixelated())
+			_show_toast("Pixelation: %s" % ("On" if pixelated() else "Off"))
 		elif event.keycode == KEY_F3:
 			Settings.set_value("video", "dither", not Settings.get_value("video", "dither"))
 			_show_toast("Dither: %s" % ("On" if Settings.get_value("video", "dither") else "Off"))
@@ -60,8 +53,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
-func preset_index() -> int:
-	return clampi(int(Settings.get_value("video", "psx_preset")), 0, PRESETS.size() - 1)
+func pixelated() -> bool:
+	return bool(Settings.get_value("video", "pixelate"))
 
 
 func toggle_fullscreen() -> void:
@@ -78,7 +71,7 @@ func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
 	match key:
 		"fullscreen":
 			_apply_window_mode()
-		"psx_preset", "dither", "wobble", "warp":
+		"pixelate", "dither", "wobble", "warp":
 			_apply_preset()
 
 
@@ -91,50 +84,41 @@ func _apply_window_mode() -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 
-func _is_lowres() -> bool:
-	return PRESETS[preset_index()]["size"] != Vector2i.ZERO
-
-
 func _apply_preset() -> void:
-	var preset: Dictionary = PRESETS[preset_index()]
 	var win := get_tree().root
 	win.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	win.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	win.content_scale_size = UI_SIZE
-	_post_rect.material.set_shader_parameter("enabled", bool(Settings.get_value("video", "dither")) and _is_lowres())
+	_post_rect.material.set_shader_parameter("enabled", bool(Settings.get_value("video", "dither")) and pixelated())
 	_update_pixelate()
 	var warp := float(Settings.get_value("video", "warp"))
-	RenderingServer.global_shader_parameter_set("psx_affine", warp if _is_lowres() else 0.0)
+	RenderingServer.global_shader_parameter_set("psx_affine", warp if pixelated() else 0.0)
 	_update_snap()
-	preset_changed.emit(preset["name"])
 
 
-## The 3D pixel grid for the preset (wider windows widen the canvas, and the
-## grid with it).
+## The 3D pixel grid (wider windows widen the canvas, and the grid with it).
 func pixel_res() -> Vector2:
-	var preset: Vector2i = PRESETS[preset_index()]["size"]
 	var vis: Vector2 = get_tree().root.get_visible_rect().size
-	if preset == Vector2i.ZERO:
+	if not pixelated():
 		return vis
-	return (vis * (float(preset.x) / float(UI_SIZE.x))).round()
+	return (vis * (float(GRID.x) / float(UI_SIZE.x))).round()
 
 
 func _update_pixelate() -> void:
 	if _post_rect == null:
 		return
-	# the post pass lays the preset's pixel grid on the 3D
-	_post_rect.material.set_shader_parameter("pixelate", _is_lowres())
+	_post_rect.material.set_shader_parameter("pixelate", pixelated())
 	_post_rect.material.set_shader_parameter("pixel_res", pixel_res())
 	# render the 3D at the grid's own size: the post pass samples one texel
 	# per cell, so every pixel past that was drawn and thrown away
 	var win := get_tree().root
-	win.scaling_3d_scale = clampf(pixel_res().y / maxf(float(win.size.y), 1.0), 0.25, 1.0) if _is_lowres() else 1.0
+	win.scaling_3d_scale = clampf(pixel_res().y / maxf(float(win.size.y), 1.0), 0.25, 1.0) if pixelated() else 1.0
 
 
 func _update_snap() -> void:
 	var res := Vector2(8192.0, 8192.0)
 	var wobble := clampf(float(Settings.get_value("video", "wobble")), 0.0, 1.0)
-	if _is_lowres() and wobble > 0.01:
+	if pixelated() and wobble > 0.01:
 		var size: Vector2 = pixel_res()
 		# wobble 1.0 -> snap to half the internal resolution; lower = finer grid
 		var divisor := lerpf(0.25, 2.0, wobble)

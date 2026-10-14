@@ -51,7 +51,7 @@ func _process(d: float) -> bool:
 		wx.set_world_time(fposmod(hour - float(k["START_HOUR"]), 24.0) / 24.0 * float(k["DAY_LEN"]))
 		gm.chain_since = wx.world_time()
 		if OS.get_cmdline_user_args().has("psx"):
-			root.get_node("Settings").set_value("video", "psx_preset", 4, false)
+			root.get_node("Settings").set_value("video", "pixelate", true, false)
 	if t < 1.5:
 		return false
 	if isl == null:

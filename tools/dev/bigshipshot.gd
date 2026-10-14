@@ -26,7 +26,7 @@ func _process(d: float) -> bool:
 	t += d
 	if t < 2.0: return false
 	if cam == null:
-		if OS.get_cmdline_user_args().has("psx"): root.get_node("Settings").set_value("video", "psx_preset", 4, false)
+		if OS.get_cmdline_user_args().has("psx"): root.get_node("Settings").set_value("video", "pixelate", true, false)
 		else: root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 		for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 		get_first_node_in_group("hud").visible = false
