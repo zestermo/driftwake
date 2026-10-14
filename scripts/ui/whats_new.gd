@@ -7,15 +7,15 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["New moves", "Standing, running and sprinting jumps each have their own take-off and landing, there's a double jump with a somersault, and the dash snaps harder."],
-	["Draw like you mean it", "Every weapon draws and sheathes its own way, with its own sound: the katana from the hip with a ring, axes off your back, pistols spun into the holster."],
-	["Heal in a fight", "Food, rum, stew and the new Sea Tonic share a short cooldown and take a moment to eat or drink. Get hit mid-swig and it's spilled."],
-	["Take a seat", "Sit on any bench, stool, log or crate (F), or on the ground from the emote wheel. Seats on the ship sail with you."],
-	["Sneak", "C crouches: quieter steps, and pirates and creatures notice you much later. Creep up behind someone and stick a dagger in."],
-	["Emotes", "Hold T: wave, point, salute, laugh, cheer, hornpipe, shanty sway, bow, flex, shrug, facepalm, sit. Your crew sees every one."],
-	["Hands that talk", "Captains and villagers gesture as they talk, chests open with both hands, levers get hauled, and you hand things over when you trade."],
-	["More drip, less clipping", "Coats, vests, belts and armour sit properly over each other now, and nine new pieces: an admiral's coat, cavalier boots, a slouch hat, a spyglass and more."],
-	["Every screen, crisp", "The skill map, shops, dialogue, the chart, the HUD and the creator get the inventory's crisp text, tooltips and frames. The log pose (L) is held properly."],
+	["Nights you can see in", "Moonlit blue nights instead of black ones, lamps in every window, doorway and pier, and storms that never go pitch dark."],
+	["The belt lantern", "Every captain wears a brass lantern on the hip. It lights itself at dusk, swings as you run, and L puts it out or lights it again. Your crew sees it too."],
+	["Lanterns at sea", "Your ship carries lanterns at the stern, mast, bow, rails and cabin door, and pirate ships show theirs from far off at night."],
+	["New music", "A new theme on the title screen, and longer pieces for the open sea, the island wilds and the villages, each with a quieter night version."],
+	["A living sea", "Spray off the bow when she meets a wave, surf breaking on beaches and rocks, foam on the swell, and a sea that sounds deep, close and far. Dive and it all goes muffled."],
+	["Birds", "Gulls round the harbours and your ship near land, flocks over the islands and parrots in the jungle. Run at a perched one and it's off."],
+	["Rain that lands", "Softer rain that splashes where it falls, puddles that build up and dry out, and rings on the sea."],
+	["Longer days", "Daylight lasts 14 minutes and the night 10."],
+	["Small things", "Pixelation is one on/off option (Options > Video, or F2) at the sharper setting. The log pose moved to H."],
 ]
 
 

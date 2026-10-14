@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.11-e0b040" alt="Version 1.11">
+  <img src="https://img.shields.io/badge/version-1.12-e0b040" alt="Version 1.12">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -97,7 +97,7 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 - **A sea you can hear and see:** surf on the shore, the open swell, the hull's wash and
   creaking timbers, gusting wind in the rigging; surf rolling over the shallows, whitecaps
   in a blow, wind streaks and spray over the bow.
-- **The log pose (hold L):** Captain Morrow's glass points to the next islands of the chain.
+- **The log pose (hold H):** Captain Morrow's glass points to the next islands of the chain.
 - **Hazards and plunder:** reefs, fog banks, whirlpools, storm cells, wrecks, bottles and buried
   treasure.
 - **The sea chart (M)** fills in as you explore. Set your own marks to sail by.
@@ -142,11 +142,11 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 | Light attack | Left click | | Ready / sheathe weapon | Z |
 | Heavy attack | Right click | | Pause menu | Esc |
 | Parry (tap) / block (hold) | Q | | Zoom camera | Mouse wheel |
-| Interact, talk, man a gun (hold for deck jobs) | F | | PSX resolution / dither | F2 / F3 |
+| Interact, talk, man a gun (hold for deck jobs) | F | | Pixelation / dither | F2 / F3 |
 | Skills | 1 – 4 | | Fullscreen | F11 / Alt+Enter |
 | Ultimate | R | | Summon your ship (hold) | B |
-| Quick items | 5 – 7 | | Read the log pose (hold) | L |
-| Zoan fruit: shift form | V | | | |
+| Quick items | 5 – 7 | | Read the log pose (hold) | H |
+| Zoan fruit: shift form | V | | Belt lantern | L |
 
 **At the helm:** W/S set the sail, A/D steer, left click fires a broadside, and F leaves the wheel.
 
@@ -154,6 +154,21 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.12: Night Watch (October 14, 2026)
+Light, music and a living sea.
+- **Light:** moonlit nights you can see in (a floor for storms), lanterns on your ship and pirate ships, more
+  lamps, lit windows and doorways in towns, villages and harbours, and a belt lantern on every captain (lit at
+  dusk, swings as you move, L toggles it, out when you swim; mirrored in co-op).
+- **Music:** a new title theme and 2-2.5 minute pieces for the sea, the island wilds and villages, each with a
+  night arrangement that crossfades in step; music dips under cannons and roars.
+- **Sea and sky:** bow waves, slaps and sheets of spray, surf breaking by coast (beach, rock, quay), spindrift,
+  foam patches and splash rings; a layered ocean (deep swell, lapping, far breakers, gusts) muffled underwater;
+  gulls, flocks and parrots that perch and scatter.
+- **Rain:** dimmer, lit streaks that stop and splash on ground, roofs and decks, puddles that soak in and dry,
+  rings on the sea.
+- **Also:** days run longer than nights (14 minutes of daylight to 10 of night), pixelation is one on/off option
+  at the sharper grid, and the log pose moved to H.
 
 ### v1.11: Sea Legs (October 13, 2026)
 The feel update.

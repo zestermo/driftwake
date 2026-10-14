@@ -247,10 +247,10 @@ pauses), the sloop under sail (watch fps with F8), the log pose setting on the f
 Plain hand-written HTML sharing `style.css` (and `clips.js`), no build step; each page carries
 the same top bar (Download, News, Releases) and footer, and paths are absolute (`/style.css`):
 
-- `index.html`: the version badge (links to the release notes), logo, hook and pitch, the Windows
-  download as the main button (`/download`) with "try it in your browser" (`/play/`) as a small
-  link, the version's GIF clips, screenshots, features, the download panel (what the desktop build
-  has, the browser build's limits), controls.
+- `index.html` is evergreen (no version on it; a release doesn't touch it): a "See what's new" badge to the
+  release notes, logo, hook and pitch, the Windows download as the main button (`/download`) with "try it in
+  your browser" (`/play/`) as a small link, gameplay GIF clips, screenshots, features, the download panel (what
+  the desktop build has, the browser build's limits), controls. A version's own clips and copy go in its news post.
 - `news/index.html` lists the posts; each post is `news/<slug>/index.html`. A new post: copy the
   last one's page, add a card to the list.
 - `releases/index.html`: every version's notes, newest first (from README's version history),
