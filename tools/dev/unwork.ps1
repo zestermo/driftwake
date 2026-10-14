@@ -51,6 +51,8 @@ if (Test-Path $path) {
 	& cmd.exe /d /c "rd /s /q `"\\?\$path`"" 2>&1 | Out-Null
 	if (Test-Path $path) { Fail "Couldn't delete all of ${path}: something still has files open in it (its Claude session, a shell, an editor or Godot). Close it and run this again." }
 }
+# (Claude Code locks an agent's worktree; prune skips locked ones)
+git -C $main worktree unlock $path 2>&1 | Out-Null
 git -C $main worktree prune
 if ($hasBranch) {
 	# (-D: -d asks whether it's merged into the checkout's HEAD, not $Onto; the check above already did)
