@@ -1534,3 +1534,7 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   the atomic tests (the suites ported to them had left suites.txt, so CI had stopped running them).
 - chartest failed twice while the atomic-tests branch's player tests ran beside it and passed alone: both write
   `user://character.cfg` (CharacterLook.SAVE_PATH, global to every checkout); tests that run at once share user://.
+- watertest "grunt won't walk into the sea" failed once the swell phase became deterministic (game-time clock): the
+  test picked its shore `edge` with swell-inclusive `depth_at`, and at t=1.5 s the swell is in a trough, so the "edge"
+  sat 0.66 m under the calm line and the grunt placed "4 m landward" started in the sea (a crest then swam him). The
+  game was fine (a grunt at calm depth 0 never reaches SWIM_ENTER_DEPTH). The test now finds edge/deep by calm depth.

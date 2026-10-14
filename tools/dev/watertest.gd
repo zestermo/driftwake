@@ -51,7 +51,7 @@ func _process(d: float) -> bool:
 			for f in range(4, 90):
 				var l: Vector2 = c + to_sea * float(f)
 				var gp: Vector3 = isl.to_global(Vector3(l.x, 0, l.y))
-				var dd: float = ocean.depth_at(gp)
+				var dd: float = ocean.depth_at(gp, [], true)
 				if edge == Vector3.INF and dd > 0.25:
 					edge = gp
 				if dd > 3.0 and dd < 30.0:
