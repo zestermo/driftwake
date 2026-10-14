@@ -27,10 +27,11 @@ const SLOT_KEYS := {
 	"belt": ["belt", "belt_color", "sash_color"],
 }
 ## Accessories are on/off look flags (+ a color for some).
-const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apron", "cape", "bandolier", "necklace", "goggles", "mantle"]
+const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apron", "cape", "bandolier", "necklace", "goggles", "mantle",
+	"baldric", "spyglass"]
 const ACC_COLOR := {"scarf": "scarf_color", "apron": "apron_color", "cape": "cape_color", "mantle": "mantle_color"}
 ## Steel (and gold) pieces are named plainly ("Morion", not "Grey Morion").
-const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons"]
+const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons", "helm"]
 
 const NAMES := {
 	"tricorn": "Tricorn", "bicorne": "Bicorne", "bandana": "Bandana", "cap": "Sailor's Cap",
@@ -57,6 +58,8 @@ const NAMES := {
 	"sandals": "Sandals", "sabatons": "Sabatons",
 	"wide_belt": "Wide Belt",
 	"necklace": "Tooth Necklace", "goggles": "Brass Goggles", "mantle": "Fur Mantle",
+	"slouch": "Slouch Hat", "helm": "Boarding Helm", "striped": "Striped Shirt", "harness": "Leather Harness",
+	"admiral": "Admiral's Coat", "slops": "Slops", "cavalier_boots": "Cavalier Boots", "baldric": "Sword Baldric", "spyglass": "Spyglass",
 }
 const DESCRIPTIONS := {
 	"tricorn": "A three-cornered hat. Keeps the sun and the spray off.",
@@ -125,6 +128,15 @@ const DESCRIPTIONS := {
 	"necklace": "A cord strung with the teeth of something big. You'd rather not say what.",
 	"goggles": "Brass goggles with sea-green glass, pushed up on the brow. For spray, sand and looking the part.",
 	"mantle": "A fur mantle over the shoulders, clasped at the throat. Warm on the night watch.",
+	"slouch": "A soft wide hat with one side pinned up by a brooch and a plume. Swagger you can wear.",
+	"helm": "An open-faced steel helm with a nose bar, cheek plates and a guard over the nape. Made for the first man over the rail.",
+	"striped": "A boat-necked sailor's shirt in broad stripes. You can spot a hand who's lost overboard in it.",
+	"harness": "Leather straps crossed over chest and back, ringed with iron where they meet. A brawler's armour.",
+	"admiral": "A long coat heavy with gold: braid down the front, bullion fringe on the shoulders. Fleets have struck to less.",
+	"slops": "Wide sailors' trousers that flare below the knee. Roll them up and they never drag in the bilge.",
+	"cavalier_boots": "Tall boots turned down in a wide bucket cuff, a gilt buckle over the instep. For the deck and the duel.",
+	"baldric": "A broad strap from shoulder to hip, a gilt buckle on the chest. It carries the sword and the look.",
+	"spyglass": "A brass spyglass tucked in the belt. Sails on the horizon are a lot less surprising.",
 }
 const DEFENSE := {
 	"tricorn": 2.0, "bicorne": 2.0, "bandana": 1.0, "cap": 1.0, "knit": 1.0, "straw": 0.0, "hood": 1.0,
@@ -149,6 +161,8 @@ const DEFENSE := {
 	"sandals": 0.0, "sabatons": 3.0,
 	"wide_belt": 1.0,
 	"necklace": 0.0, "goggles": 0.0, "mantle": 2.0,
+	"slouch": 2.0, "helm": 5.0, "striped": 1.0, "harness": 2.0, "admiral": 6.0, "slops": 2.0, "cavalier_boots": 3.0,
+	"baldric": 1.0, "spyglass": 1.0,
 }
 
 ## Rough color names for item names ("Navy Long Coat").
@@ -184,6 +198,11 @@ const PLUNDER := [
 	["coat", "frock", {"coat": "frock", "coat_color": Color(0.14, 0.18, 0.34), "trim_color": Color(0.85, 0.68, 0.24)}],
 	["feet", "sabatons", {"feet": "sabatons", "feet_color": Color(0.1, 0.08, 0.07)}],
 	["accessory", "mantle", {"mantle": true, "mantle_color": Color(0.9, 0.88, 0.8)}],
+	["coat", "admiral", {"coat": "admiral", "coat_color": Color(0.14, 0.18, 0.34), "trim_color": Color(0.88, 0.7, 0.28)}],
+	["head", "helm", {"hat": "helm"}],
+	["head", "slouch", {"hat": "slouch", "hat_color": Color(0.1, 0.09, 0.09)}],
+	["feet", "cavalier_boots", {"feet": "cavalier_boots", "feet_color": Color(0.36, 0.12, 0.1)}],
+	["accessory", "spyglass", {"spyglass": true}],
 ]
 
 

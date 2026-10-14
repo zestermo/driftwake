@@ -1,6 +1,7 @@
 extends SceneTree
 ## Clothing layers don't poke through each other: for fixed combos (every vest under every coat,
-## belts and tops under them, every hat over long and wild hair, every legwear in every footwear),
+## belts and tops under them, baldric and bandolier over both, every hat over long and wild hair,
+## every legwear in every footwear),
 ## each vertex of the inner layer is cast out level from the body's axis at its height (in the
 ## head's own space for hats, where hair below the lowest brim is free to hang out) and must not end
 ## up past the outer layer's surface by more than TOL. Bodies are built at rest.
@@ -46,9 +47,18 @@ func _process(_d: float) -> bool:
 			for k in range(2):
 				torso.append({"vest": vest, "coat": coat, "belt": belts[(i + k * 2) % 4], "top": "shirt"})
 			i += 1
-	for top in ["tunic", "doublet", "kimono", "blouse"]:
+	for top in ["tunic", "doublet", "kimono", "blouse", "striped"]:
 		for coat in ["haori", "frock", "jacket"]:
 			torso.append({"vest": "jerkin", "coat": coat, "belt": "wide_belt", "top": top})
+	# straps over whatever's under them (no belt: it shares the straps' leather; not the greatcoat,
+	# whose shoulder cape is meant to hang over them)
+	var straps := []
+	for coat in CharacterLook.COATS:
+		if coat == "greatcoat":
+			continue
+		for vest in ["none", "scale", "cuirass", "harness"]:
+			straps.append({"coat": coat, "vest": vest, "belt": "none", "top": "shirt", "baldric": true})
+			straps.append({"coat": coat, "vest": vest, "belt": "none", "top": "shirt", "bandolier": true})
 	# (fem: the coat's shell sits further out over the bust)
 	for vest in ["cuirass", "padded", "scale", "mail"]:
 		torso.append({"body": "fem", "vest": vest, "coat": "longcoat", "belt": "belt_sash", "top": "blouse"})
@@ -64,6 +74,7 @@ func _process(_d: float) -> bool:
 			if ft not in ["barefoot", "sandals"] and lg != "skirt":
 				legs.append({"legs": lg, "feet": ft})
 	_run("vests, tops and belts under coats", torso, [["top", "vest"], ["top", "coat"], ["vest", "coat"], ["belt", "coat"], ["vest", "belt"]], "axis", TORSO)
+	_run("baldric and bandolier over coats and vests", straps, [["coat", "baldric"], ["vest", "baldric"], ["coat", "bandolier"], ["vest", "bandolier"]], "axis", TORSO)
 	_run("hair under hats", heads, [["hair", "hat"]], "head", ["Head"])
 	_run("legs in footwear", legs, [["legs", "feet"]], "legs", ["Hips", "ShinL", "ShinR"])
 	print("RESULT fails=", fails)
@@ -111,8 +122,8 @@ func _look(combo: Dictionary) -> Dictionary:
 
 
 ## The materials a slot brings with it: built on a bare body with only that slot set.
-func _slot_mats(slot: String, value: String) -> Dictionary:
-	var key := slot + "=" + value
+func _slot_mats(slot: String, value: Variant) -> Dictionary:
+	var key := slot + "=" + str(value)
 	if not _learnt.has(key):
 		var base := _mats_of(_bare({}))
 		var mine := _mats_of(_bare({slot: value}))
@@ -151,9 +162,9 @@ func _mats_of(lk: Dictionary) -> Dictionary:
 func _layers(h, lk: Dictionary, parts: Array, space: Node3D) -> Dictionary:
 	var by_mat := {}
 	var owners := {}
-	for slot in ["vest", "coat", "belt", "feet", "hat", "top", "hair", "legs"]:
-		var v := str(lk.get(slot, ""))
-		if v == "" or v == str(BARE.get(slot, "")):
+	for slot in ["vest", "coat", "belt", "feet", "hat", "top", "hair", "legs", "baldric", "bandolier"]:
+		var v = lk.get(slot, "")
+		if v is bool and not v or str(v) == "" or str(v) == str(BARE.get(slot, "")):
 			continue
 		for m in _slot_mats(slot, v).keys():
 			owners[m] = owners.get(m, []) + [slot]

@@ -38,6 +38,17 @@ func _initialize():
 		{"hat": "fez", "hat_color": C[14], "top": "doublet", "top_color": C[9], "vest": "padded", "vest_color": C[3], "coat": "none", "mantle": true, "mantle_color": C[3],
 			"belt": "wide_belt", "belt_color": L[1], "feet": "shoes", "legs": "breeches"},
 	]
+	# WS_SET=3: the v1.11 pieces (slouch hat, boarding helm, striped shirt, harness, admiral's coat,
+	# slops, cavalier boots, baldric, spyglass)
+	if OS.get_environment("WS_SET") == "3":
+		sets = [
+			{"hat": "slouch", "hat_color": C[4], "top": "striped", "sleeves": "short", "top_color": C[0], "legs": "slops", "legs_color": C[1], "feet": "shoes", "belt": "sash", "sash_color": C[13], "coat": "none"},
+			{"hat": "helm", "vest": "harness", "vest_color": L[1], "top": "shirt", "legs": "leathers", "legs_color": L[1], "feet": "cavalier_boots", "feet_color": L[0], "coat": "none", "baldric": true},
+			{"hat": "tricorn", "hat_color": C[5], "coat": "admiral", "coat_color": C[8], "trim_color": T[0], "vest": "vest", "vest_color": C[0], "legs": "breeches", "legs_color": C[0], "feet": "cavalier_boots", "spyglass": true},
+			{"body": "fem", "hair": "long", "hat": "slouch", "hat_color": C[14], "coat": "jacket", "coat_color": C[13], "top": "striped", "top_color": C[8], "legs": "slops", "legs_color": C[5], "feet": "boots", "baldric": true},
+			{"body": "fem", "hair": "ponytail", "hat": "helm", "vest": "scale", "vest_color": L[1], "coat": "longcoat", "coat_color": C[5], "bandolier": true, "feet": "cavalier_boots", "legs": "leathers", "legs_color": L[0]},
+			{"hat": "none", "vest": "harness", "vest_color": L[0], "top": "bare", "legs": "slops", "legs_color": C[8], "feet": "barefoot", "belt": "belt", "spyglass": true},
+		]
 	for i in range(sets.size()):
 		var lk := CharacterLook.default_look()
 		lk.merge(sets[i], true)

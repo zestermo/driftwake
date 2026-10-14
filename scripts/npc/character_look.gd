@@ -20,7 +20,7 @@ extends RefCounted
 ##   gloves bool, gloves_color, gauntlets bool, bracers bool, long_gloves bool
 ##   apron bool, apron_color, cape bool, cape_color, mantle bool, mantle_color
 ##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool,
-##   bandolier bool, necklace bool, goggles bool
+##   bandolier bool, necklace bool, goggles bool, baldric bool, spyglass bool
 
 const SAVE_PATH := "user://character.cfg"
 
@@ -43,15 +43,15 @@ const HAIR_FEM := ["long", "ponytail", "bun", "braids", "short", "wild", "hime",
 	"low_pony", "layered", "lob", "braid", "curtains", "shag"]
 const FACIAL_HAIR := ["none", "stubble", "moustache", "goatee", "chops", "beard", "long_beard"]
 const HATS := ["none", "tricorn", "bicorne", "bandana", "cap", "knit", "straw", "hood", "cavalier", "morion", "turban",
-	"kettle", "fez", "headband", "crown", "coif"]
+	"kettle", "fez", "headband", "crown", "coif", "slouch", "helm"]
 ## Hats worn over the hair rather than covering it (the hair isn't pressed flat under them).
 const OVER_HAIR := ["headband", "crown"]
-const TOPS := ["shirt", "tunic", "blouse", "doublet", "kimono", "bare"]
+const TOPS := ["shirt", "tunic", "blouse", "doublet", "kimono", "striped", "bare"]
 const SLEEVES := ["long", "short", "none"]
-const VESTS := ["none", "vest", "corset", "cuirass", "brigandine", "mail", "jerkin", "padded", "scale"]
-const COATS := ["none", "jacket", "longcoat", "captain", "greatcoat", "haori", "duster", "frock"]
-const LEGS := ["trousers", "breeches", "shorts", "skirt", "hakama", "leathers"]
-const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves", "sandals", "sabatons"]
+const VESTS := ["none", "vest", "corset", "cuirass", "brigandine", "mail", "jerkin", "padded", "scale", "harness"]
+const COATS := ["none", "jacket", "longcoat", "captain", "greatcoat", "haori", "duster", "frock", "admiral"]
+const LEGS := ["trousers", "breeches", "shorts", "skirt", "hakama", "leathers", "slops"]
+const FEET := ["tall_boots", "boots", "shoes", "barefoot", "greaves", "sandals", "sabatons", "cavalier_boots"]
 const BELTS := ["none", "belt", "sash", "belt_sash", "wide_belt"]
 ## What a new captain can start in (the character creator and its Randomize):
 ## plain clothes. Hats of rank, coats of office and armour are bought or found.
@@ -122,6 +122,7 @@ static func base_look() -> Dictionary:
 		"earring": false, "eyepatch": false, "scarf": false, "scarf_color": CLOTH[13],
 		"pauldron": false, "pouch": false, "cape": false, "cape_color": CLOTH[13], "bandolier": false,
 		"necklace": false, "goggles": false, "mantle": false, "mantle_color": CLOTH[3],
+		"baldric": false, "spyglass": false,
 	}
 
 
