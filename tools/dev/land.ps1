@@ -35,17 +35,32 @@ function Fail([string]$msg) {
 
 function Get-FullPath([string]$p) { return [System.IO.Path]::GetFullPath($p).TrimEnd("\") }
 
-# branch -> the worktree it's checked out in
+## The branch a worktree stopped mid-rebase is rebasing, or "".
+function Get-RebasingBranch([string]$dir) {
+	foreach ($p in @("rebase-merge", "rebase-apply")) {
+		$f = (git -C $dir rev-parse --path-format=absolute --git-path "$p/head-name").Trim()
+		if (Test-Path $f) { return ((Get-Content $f -Raw).Trim() -replace "^refs/heads/", "") }
+	}
+	return ""
+}
+
+# branch -> the worktree it's checked out in (or is being rebased in)
 $trees = @{}
+$rebasing = @{}
 $cur = $null
 foreach ($l in (git -C $here worktree list --porcelain)) {
 	if ($l -like "worktree *") { $cur = $l.Substring(9) }
 	elseif ($l -like "branch refs/heads/*") { $trees[$l.Substring(18)] = $cur }
+	elseif ($l -eq "detached" -and (Test-Path $cur)) { $b = Get-RebasingBranch $cur; if ($b) { $rebasing[$b] = $cur } }
 }
 
 if (-not $Branch -and -not $List) {
 	$mine = Get-CrewBranch $here
-	if ($mine -ne $Onto) { $Branch = $mine }
+	if ($mine -eq "HEAD") { $mine = Get-RebasingBranch $here }
+	if ($mine -and $mine -ne $Onto) { $Branch = $mine }
+}
+if ($Branch -and $rebasing.ContainsKey($Branch)) {
+	Fail "$Branch is in the middle of a rebase in $($rebasing[$Branch]): fix the conflicted files, git add them, git rebase --continue (or git rebase --abort), then land again."
 }
 if ($List -or -not $Branch) {
 	foreach ($b in $trees.Keys) {
@@ -68,13 +83,6 @@ $wt = $trees[$Branch]
 $target = $trees[$Onto]
 $self = (Get-FullPath $here) -eq (Get-FullPath $wt)
 $name = $Branch -replace "^worktree-", ""
-
-function Test-Rebasing([string]$dir) {
-	foreach ($p in @("rebase-merge", "rebase-apply")) {
-		if (Test-Path (git -C $dir rev-parse --path-format=absolute --git-path $p).Trim()) { return $true }
-	}
-	return $false
-}
 
 ## Untracked .uid files of the branch's scripts (Godot writes one per new script when it imports): committed with them.
 function Save-StrayUids([string]$dir) {
@@ -103,7 +111,6 @@ function Assert-MainClean([string[]]$files) {
 	}
 }
 
-if (Test-Rebasing $wt) { Fail "$Branch is in the middle of a rebase in ${wt}: fix the conflicted files, git add them, git rebase --continue (or git rebase --abort), then land again." }
 Save-StrayUids $wt
 $dirty = @(git -C $wt status --porcelain)
 if ($dirty) { Fail ("$Branch has uncommitted changes in ${wt}: commit them first.`n  " + (($dirty | Select-Object -First 10) -join "`n  ")) }

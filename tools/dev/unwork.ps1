@@ -53,7 +53,8 @@ if (Test-Path $path) {
 }
 git -C $main worktree prune
 if ($hasBranch) {
-	git -C $main branch $(if ($Force) { "-D" } else { "-d" }) $branch 2>&1 | ForEach-Object { "$_" } | Write-Host
+	# (-D: -d asks whether it's merged into the checkout's HEAD, not $Onto; the check above already did)
+	git -C $main branch -D $branch 2>&1 | ForEach-Object { "$_" } | Write-Host
 	if ($LASTEXITCODE -ne 0) { Fail "The folder's gone but the branch $branch stays (see git's message above)." }
 }
 Remove-Item (Join-Path $crew "claims\$branch.json") -Force -ErrorAction SilentlyContinue

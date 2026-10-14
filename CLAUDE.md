@@ -122,10 +122,19 @@ so half-finished edits never break another session's tests or end up in its comm
   on branch `worktree-<name>`, branched from local `main` (settings: `worktree.baseRef`
   "head"), with the Godot import cache copied in (`.worktreeinclude`). run_tests.ps1
   imports once by itself if a checkout has no cache.
-- Commit on that branch as usual. When it's done, land it from the main checkout:
-  `.\tools\dev\land.ps1 worktree-<name>` (rebase onto main, compile + smoketest + covering tests,
-  fast-forward main; a conflict backs out and changes nothing). `-List` shows every
-  worktree and how far it is ahead of main.
+- Commit on that branch as usual. **An agent lands its own branch** once its suites pass (unless
+  told to leave it): `.\tools\dev\land.ps1` in its worktree (rebase onto main, compile + smoketest +
+  covering tests, fast-forward main; it releases the claim, prints one line and never pushes). The
+  lead can land any branch from the main checkout: `.\tools\dev\land.ps1 worktree-<name>`.
+- **One landing at a time** machine-wide: a second land.ps1 waits its turn and says whom for
+  (`-List`, `crew.ps1` and the Tests pane's status.json show who's landing and who's waiting).
+- **A conflict** stops a self-landing mid-rebase in its worktree: fix the files, `git add` them,
+  `git rebase --continue`, run land again (from the main checkout it backs out instead and prints
+  those steps for the branch's agent). It refuses while the main checkout has uncommitted changes
+  in files the landing touches. `-Light` is accepted and ignored (landing always runs light).
+- **Removing a landed worktree** (once its session is closed, from the main checkout):
+  `.\tools\dev\unwork.ps1 <name>` (long paths: `git worktree remove` fails on Windows), or
+  `land.ps1 worktree-<name> -Remove` to land and remove in one go.
 - In a worktree session, Zach's F12 captures are still in the main checkout:
   `C:\Users\ZachStermon\Documents\driftwake\tools\dev\out\captures\`. Zach plays main in the
   editor, so he sees a session's work once it's landed (or by opening its worktree folder).

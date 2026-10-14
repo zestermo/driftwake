@@ -1373,3 +1373,64 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   `add_surface_from_arrays` (MeshBuilder.commit: village dressing, a scuttlebug's model) on the main thread while
   the next chain island prepares on a worker. The 2026-10-13 race (bodies built on workers while the main thread
   makes meshes); suspected headless-only (the dummy renderer's mesh storage), unconfirmed. No new code on that path.
+
+## 2026-10-14: the landing queue, agents landing themselves, suite times
+- Why: the lead was the bottleneck, conflicts were fixed after the agent who wrote the code had gone, and two
+  landings at once could trample each other.
+- One land.ps1 at a time machine-wide (crew_lib `Enter-Landing`): `.git/crew/landing.lock` is held open by the
+  lander (the OS frees it if it dies) with `landing.json` beside it (branch, pid, since, step: rebasing,
+  compiling, smoketest, tests, fast-forward); waiters queue in `landq/` in order and print whom they wait for.
+  `Get-Landing` clears a landing.json whose lock nobody holds. test_status.ps1 adds `landing` (now + queue) to
+  status.json; `land.ps1 -List` and crew.ps1 print it.
+- land.ps1 with no branch in a worktree lands that worktree's branch. A conflict stops a self-landing
+  mid-rebase (from elsewhere it backs out) and prints the steps; land and the finish hook both recognise a
+  worktree stopped mid-rebase. It refuses when the main checkout has uncommitted changes (changed, staged or
+  untracked) in files the landing touches (checked before waiting, after the lock and before the
+  fast-forward; the fast-forward used to just fail), or while a test run is going in the worktree. Stray
+  untracked `.uid` files of the branch's scripts are committed on it ("The new scripts' .uid files"); an
+  untracked `.uid` in the main checkout that the landing brings its own of (the editor's import) is deleted.
+  If main moves during the tests (a commit made outside land.ps1) it stops: run land again, passes carry over.
+  `-Light` is accepted and ignored. Prints one line, never pushes.
+- `tools/dev/unwork.ps1 <name>`: deletes the worktree folder through `rd /s /q "\\?\<path>"` (git worktree
+  remove hits "Filename too long" in .godot), prunes, deletes the branch and the claim; refuses with commits
+  the target doesn't have or uncommitted work unless `-Force`. `land.ps1 <branch> -Remove` lands then calls it.
+- Suite times: a job notes its first `PASS`/`FAIL` line (`Get-JobSetup`), Write-Ledger records `setup` and
+  appends every result to `ledger/history/<suite>.jsonl`. `suite_times.ps1` prints median total/setup/checks
+  per suite from that history, the day of live runs before it, and each suite's last result.
+- Proof (scratch worktrees landtest-main/-a/-b off this branch, landed `-Onto worktree-landtest-main`, all
+  removed with unwork.ps1): two landers at once (b waited "worktree-landtest-a is landing (compiling)", then
+  "(smoketest)", rebased onto a's landing and landed); b's stray .uid committed and the target's untracked
+  copy deleted; a conflict from another checkout backed out; the self-landing stopped mid-rebase, the finish
+  hook and a second land named the rebase, the agent resolved, `rebase --continue`; a staged change to the
+  file in the target refused the landing; unstaged, a landed itself (`-Light` passed, the full test step ran).
+- Times (median wall seconds, passed runs, this machine with up to 5 suites at once; setup from one run of 14
+  suites beside a landing, so a little high):
+
+  | suite | runs | total | setup | checks | setup % |
+  |---|---|---|---|---|---|
+  | harbourtest | 3 | 258 | 66 | 192 | 26 |
+  | bosstest | 1 | 174 | - | - | - |
+  | dungeontest | 1 | 156 | - | - | - |
+  | seatest | 5 | 143 | 36 | 107 | 25 |
+  | isletest | 4 | 139 | 58 | 81 | 42 |
+  | techtest | 4 | 128 | - | - | - |
+  | net-chain | 1 | 113 | - | - | - |
+  | villagetest | 7 | 109 | 76 | 33 | 70 |
+  | faunatest | 2 | 107 | - | - | - |
+  | skytest | 8 | 105 | 33 | 72 | 32 |
+  | apetest | 1 | 99 | - | - | - |
+  | foresttest | 6 | 98 | 33 | 65 | 34 |
+  | net | 1 | 94 | - | - | - |
+  | smoketest | 33 | 92 | 44 | 48 | 48 |
+  | savetest | 13 | 90 | 11 | 79 | 12 |
+
+  The light end: feat 37 (setup 34), r6test 39 (38), emotetest 44 (36), qoltest 45 (36), chartest 85 (54).
+  A full run (suites.txt) is ~4530 s of machine time (75 min; 15 min of wall time at best on 5 slots); of the
+  14 suites with setup timed, 43% of their time is setup.
+- Recommendation: a shared lighter test world is worth it, but for the small suites, not the slow ones.
+  59 of 65 suites load scenes/world/world.tscn (Brinehollow plus the chain's islands preparing), and the
+  player-mechanics suites spend 80-97% of their 35-45 s there for 1-10 s of checks. A flat test stage (ground,
+  water plane, the player, a grunt on demand, autoloads up) for those ~35 suites would save ~25 s each:
+  ~15 min of machine time a full run, and an agent's own loop drops from ~40 s to ~10 s a suite. The slow
+  suites (harbour/isle/village/sea/dungeon/boss) test the world itself and need it; smoketest keeps covering
+  the real world on every landing. Migrate the fastest ten first and compare their times here.

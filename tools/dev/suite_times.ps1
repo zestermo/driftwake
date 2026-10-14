@@ -56,7 +56,8 @@ foreach ($f in Get-ChildItem (Join-Path $crew "ledger") -Filter "*.json" -ErrorA
 	if ($r.state -eq "passed" -and $r.secs -gt 0) { Add-Time $f.BaseName $r.secs $(if ($null -ne $r.setup) { $r.setup } else { -1 }) }
 }
 
-$rows = foreach ($k in $totals.Keys) {
+# (nettest's live runs list its host and client; its modes are ledgered as net, net-chain...)
+$rows = foreach ($k in @($totals.Keys | Where-Object { $suites -contains $_ -or $_ -like "net*" })) {
 	$t = Get-Median $totals[$k].ToArray()
 	$s = Get-Median $setups[$k].ToArray()
 	[pscustomobject]@{ Suite = $k; Runs = $totals[$k].Count; Total = $t; Setup = $s; SetupRuns = $setups[$k].Count; Checks = $(if ($null -ne $s) { $t - $s } else { $null }) }
