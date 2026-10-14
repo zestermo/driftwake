@@ -1,4 +1,4 @@
-# The Windows build: export the "Windows Desktop" preset on Linux.
+# The Windows build: export the "Windows Desktop" preset on a Windows runner.
 # - Every push to main: the build is attached to the run (Actions > the run > Artifacts, 14 days).
 # - A version tag (git tag v1.8 && git push origin v1.8): also a GitHub Release with
 #   Driftwake-windows.zip, which https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-windows.zip
@@ -6,6 +6,10 @@
 # - The exes' version (Properties > Details) is project.godot's config/version: the preset leaves
 #   application/file_version and product_version empty, so Godot fills them in (1.11 -> 1.11.0.0).
 #   A release is: bump config/version, commit, tag v<version>, push the tag. Keep them empty.
+# - Shaders are baked into the pck (the preset's shader_baker), so players don't compile them on
+#   first launch. Baking D3D12 shaders needs a Windows editor running the Forward+ renderer: not
+#   --headless (that bakes nothing, silently), so the export opens an editor window, which runs on
+#   the runner's software adapter (WARP). The export step fails if the exe has no baked shaders.
 name: Build Windows
 
 on:
@@ -27,29 +31,47 @@ env:
 
 jobs:
   windows:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/setup-godot
+      - id: godot
+        uses: ./.github/actions/setup-godot
         with:
           version: ${{ env.GODOT_VERSION }}
           templates: windows_release_x86_64.exe windows_release_x86_64_console.exe
 
       - name: Import the project
-        run: ~/godot/godot --headless --path . --import
+        env:
+          GODOT: ${{ steps.godot.outputs.bin }}
+        run: '"$GODOT" --headless --path . --import'
 
-      - name: Export the Windows Desktop preset
+      - name: Export the Windows Desktop preset (shaders baked)
+        env:
+          GODOT: ${{ steps.godot.outputs.bin }}
         run: |
           set -euo pipefail
           mkdir -p build/windows
-          ~/godot/godot --headless --path . --export-release "Windows Desktop" build/windows/Driftwake.exe
+          "$GODOT" --path . --export-release "Windows Desktop" build/windows/Driftwake.exe 2>&1 | tee build/export.log
           test -f build/windows/Driftwake.exe
           test -f build/windows/Driftwake.console.exe
+          grep -m1 "Using Device" build/export.log || true
+          baked=$(grep -a -o 'shader_cache/[A-Za-z0-9]*/[0-9a-f]*/[0-9a-f]*\.d3d12\.cache' build/windows/Driftwake.exe | sort -u | wc -l)
+          echo "baked D3D12 shader files in the pck: $baked"
+          if [ "$baked" -lt 50 ]; then
+            echo "::error::The shader baker didn't run (only $baked baked D3D12 shader files; a full bake has ~90)."
+            exit 1
+          fi
           cp "tools/release/READ ME FIRST.txt" build/windows/
           ls -la build/windows
-          (cd build/windows && zip -qr ../Driftwake-windows.zip .)
+
+      - name: Zip it
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/* -DestinationPath build/Driftwake-windows.zip
 
       - name: Attach the build to the run
         uses: actions/upload-artifact@v4
