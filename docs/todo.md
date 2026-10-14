@@ -72,6 +72,23 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
 - Balance: some skills and ultimates are much stronger than others; a pass with numbers (DPS tables like
   wieldtest's) and Zach's feel.
 
+**Arenas and dueling** (idea 2026-10-14)
+- **City arenas:** small, nonlethal tournaments fought with wooden versions of every weapon, in front of big
+  crowds of spectators, over many rounds:
+  - one-on-one rounds;
+  - team battles, where your team is the colour you wear;
+  - free-for-alls.
+
+  Captains can enter, and co-op crewmates can enter against each other. Losing downs you instead of killing
+  you. Prizes go to the winners.
+- **Interacting with another player:** stand right next to a crewmate and a menu opens with:
+  - trade;
+  - view their gear and what they have equipped;
+  - challenge them to a duel.
+- **Duels:** a light pseudo-fight. Your opponent's health shows at the top like a boss bar. The loser is downed
+  instead of dying, and both stand back up on their own when the duel ends. The winner gets a tiny bit of XP.
+  Duels have to work for guests (the host runs the fight).
+
 ## Then: the dev process plan, step 2 (`docs/dev_process_plan.md`)
 - Island feature registry (`IslandFeatures.add(name, plan, steps)`) and typed contracts between features
   (`VillagePlan`, `LifeSpot`, `PoiInfo`, `HarbourPlan`...), each kit declaring its own fidelity names and style
