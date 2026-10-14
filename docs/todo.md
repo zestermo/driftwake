@@ -89,6 +89,17 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   instead of dying, and both stand back up on their own when the duel ends. The winner gets a tiny bit of XP.
   Duels have to work for guests (the host runs the fight).
 
+## Right after v1.12: the process round (agreed 2026-10-14, one agent)
+- **Tests on GitHub Actions:** the headless suites as a matrix on free Linux runners (public repo), nettest
+  included; prepush becomes "push the branch, merge when it's green", and Zach's PC stays free. Renders stay local.
+- **A Driftwake agent type** (`.claude/agents/driftwake-feature.md`): the rules, test tiers, report format and
+  skills built in, so briefs are just the feature; a cheaper model for test-fixing and mechanical work.
+- **Agents land themselves:** land.ps1 behind a queue/lock, run by the agent when its suites pass, so
+  conflicts are fixed by the agent that wrote the code.
+- Then: suite timings (setup vs checks) and a lighter shared test world if setup dominates; the test map
+  generated from the scripts each suite actually loads; the flake tracker.
+- Done 2026-10-14: shared permissions for worktree agents, the guard and finish hooks.
+
 ## Then: the dev process plan, step 2 (`docs/dev_process_plan.md`)
 - Island feature registry (`IslandFeatures.add(name, plan, steps)`) and typed contracts between features
   (`VillagePlan`, `LifeSpot`, `PoiInfo`, `HarbourPlan`...), each kit declaring its own fidelity names and style
