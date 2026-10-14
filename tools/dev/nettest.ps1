@@ -80,10 +80,10 @@ $modeArg = if ($Mode) { $Mode } else { "" }
 ## One go: host, client (and watcher) until the client and host are done. True if it passed.
 function Invoke-Once() {
 	$jobs = [ordered]@{}
-	$jobs["host"] = Start-GodotJob $Godot $root "nethost.gd" "$port $modeArg" (Join-Path $logs "nethost.log") "" (Get-DepsOut "host")
-	if ($Mode -eq "three") { $jobs["watch"] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10" (Join-Path $logs "netwatch.log") "" (Get-DepsOut "watch") }
+	$jobs["host"] = Start-GodotJob $Godot $root "nethost.gd" "$port $modeArg" (Join-Path $logs "nethost.log") "" (Get-DepsOut "host") $true
+	if ($Mode -eq "three") { $jobs["watch"] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10" (Join-Path $logs "netwatch.log") "" (Get-DepsOut "watch") $true }
 	Start-Sleep -Milliseconds 300
-	$jobs["client"] = Start-GodotJob $Godot $root "netclient.gd" "$port $delay $modeArg" (Join-Path $logs "netclient.log") "" (Get-DepsOut "client")
+	$jobs["client"] = Start-GodotJob $Godot $root "netclient.gd" "$port $delay $modeArg" (Join-Path $logs "netclient.log") "" (Get-DepsOut "client") $true
 	foreach ($n in $jobs.Keys) { Set-LiveSuite $run $n @{ state = "running"; log = $jobs[$n].Log; pid = $jobs[$n].Proc.Id; why = "" } }
 	$trouble = @{}
 	while ($true) {

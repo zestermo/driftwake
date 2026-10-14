@@ -106,9 +106,15 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   skills built in, so briefs are just the feature; a cheaper model for test-fixing and mechanical work.
 - **Agents land themselves:** land.ps1 behind a queue/lock, run by the agent when its suites pass, so
   conflicts are fixed by the agent that wrote the code.
-- Then: suite timings (setup vs checks) and a lighter shared test world if setup dominates; the test map
-  generated from the scripts each suite actually loads; the flake tracker.
-- Done 2026-10-14: shared permissions for worktree agents, the guard and finish hooks.
+- Done 2026-10-14: shared permissions for worktree agents, the guard and finish hooks; the driftwake-feature and
+  driftwake-fixer agent types; the landing queue (agents land themselves, unwork.ps1); tests on GitHub (opt-in,
+  prepush -CI; not yet reliably green on the slower runners); the light test stage with 30 atomic tests in
+  tools/dev/t/ (8 suites ported); passes keyed by the files each test loads; `--fixed-fps 60` for every test but co-op.
+- **Lazy autoloads:** the autoloads (GameManager, Net, GameMenu, FX) name most of the game's classes, so every test
+  boots ~8 s compiling 343 files and "tests that load the changed file" is every test. Load those classes lazily
+  (by path) and both shrink: faster boots for every test, and -Changed picking by loads becomes precise.
+- Port more small suites to the stage only when they're being changed anyway; ragtest stays a world suite (the downed
+  body creeps 0.092 m/s on the flat stage vs its 0.08 limit).
 
 ## Then: the dev process plan, step 2 (`docs/dev_process_plan.md`)
 - Island feature registry (`IslandFeatures.add(name, plan, steps)`) and typed contracts between features

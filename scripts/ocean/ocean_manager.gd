@@ -202,7 +202,7 @@ var _net: Node
 ## The swell's clock. It advances with the physics ticks (so swimmers, the
 ## ship and enemies are pushed by exactly the waves of that tick, however the
 ## frame rate stutters) and drifts toward the session clock (the host's in
-## co-op, so every player sees the same waves). Rendering uses the same time
+## co-op, so every player sees the same waves; game time solo). Rendering uses the same time
 ## interpolated within the tick, so the sea you see is the sea they float on.
 var _phys_t: float = -1.0
 
@@ -212,7 +212,8 @@ func _session_time() -> float:
 		_net = get_node_or_null("/root/Net")
 	if _net and _net.active:
 		return _net.time()
-	return Time.get_ticks_usec() * 0.000001
+	# solo: game time, not the wall clock (a hitch or a --fixed-fps test run would make the swell jump)
+	return float(Engine.get_physics_frames()) / float(Engine.physics_ticks_per_second)
 
 
 func clock() -> float:

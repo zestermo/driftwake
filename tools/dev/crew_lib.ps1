@@ -537,10 +537,12 @@ function Set-LiveSuite($run, [string]$name, [hashtable]$fields) {
 ## A headless Godot running res://tools/dev/<script>, its stdout and stderr redirected to `log` by cmd.
 ## `seed` (if any) goes to it as DRIFTWAKE_SEED (tools/dev/test_kit.gd); `deps` (if any) names the file it writes
 ## its loaded files to at exit (DRIFTWAKE_DEPS_OUT, scripts/game/dep_record.gd).
-function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]$extra, [string]$log, [string]$seed = "", [string]$deps = "") {
+## `realtime` runs on the wall clock (co-op: two processes talking); every other test runs `--fixed-fps 60`, one
+## physics tick per frame however long the frame took, so a loaded machine slows a test down but can't change it.
+function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]$extra, [string]$log, [string]$seed = "", [string]$deps = "", [bool]$realtime = $false) {
 	Remove-Item $log -Force -ErrorAction SilentlyContinue
 	if ($deps) { Remove-Item $deps -Force -ErrorAction SilentlyContinue }
-	$gargs = "--headless --path `"$root`" --script res://tools/dev/$script" + $(if ($extra) { " -- $extra" } else { "" })
+	$gargs = "--headless" + $(if ($realtime) { "" } else { " --fixed-fps 60" }) + " --path `"$root`" --script res://tools/dev/$script" + $(if ($extra) { " -- $extra" } else { "" })
 	$psi = New-Object System.Diagnostics.ProcessStartInfo
 	if ($IsLinux) {
 		$psi.FileName = "/bin/sh"
