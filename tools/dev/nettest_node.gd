@@ -78,6 +78,14 @@ func chain_report() -> Dictionary:
 		"is_set": gm.log_pose_set(), "ready": w.chain_ready(), "ids": ids, "isles": isles, "opened": gm.opened.keys()}
 
 
+## Where a puppet stands on a deck as it's drawn now. (A reply runs after this frame's physics ticks but before
+## the puppet's _process: its last placing against the hull's newest step read 0.17 m off per tick at 10 m/s.)
+func on_deck(pup: Node3D, ship: Node3D) -> Vector3:
+	var smp: Array = net().sample(pup)
+	var at: Vector3 = pup.call("_net_pos", smp[0]).lerp(pup.call("_net_pos", smp[1]), float(smp[2]))
+	return ship.get_global_transform_interpolated().affine_inverse() * at
+
+
 func _run(name_: String, args: Array, from: int):
 	var n := net()
 	var lp = n.local_player
@@ -110,7 +118,7 @@ func _run(name_: String, args: Array, from: int):
 				"enemies": enemies, "roster": n.roster.size(), "players": n.players.size(),
 				"ship_owner": n.ship_owner, "ship_pos": n._ship().global_position,
 				"ship_sail": n._ship().sail, "ship_speed": n._ship().speed,
-				"puppet_on_ship": n._ship().to_local(pup.global_position) if pup else Vector3.INF,
+				"puppet_on_ship": on_deck(pup, n._ship()) if pup else Vector3.INF,
 				"host_on_ship": n._ship().to_local(lp.global_position), "host_aboard": n._ship().aboard(lp.global_position),
 				"host_on_floor": lp.is_on_floor(),
 				"claims": get_node("/root/GameManager").fruit_claims.duplicate(),

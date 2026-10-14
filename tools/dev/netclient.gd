@@ -663,7 +663,7 @@ func _process(d: float) -> bool:
 			var at_wheel: float = (r["puppet_on_ship"] as Vector3).distance_to(ship.helm_position.position + ship.ship_model.position)
 			check("on the host's ship our puppet stands at the wheel (%.2f m off)" % at_wheel, at_wheel < 0.35)
 			var host_pup = net.players.get(1)
-			var host_here: Vector3 = ship.to_local(host_pup.global_position) if host_pup else Vector3.INF
+			var host_here: Vector3 = tn.on_deck(host_pup, ship) if host_pup else Vector3.INF
 			var host_off: float = host_here.distance_to(r["host_on_ship"])
 			check("the host stands on our deck where they are on theirs (%.2f m off)" % host_off, host_off < 0.5)
 			p.state_machine.force_state("Idle", {})

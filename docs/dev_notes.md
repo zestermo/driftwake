@@ -1360,6 +1360,16 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   caught in the suite's `_physics_process` (frozen in reach until hit) and steps 5/7 fail after 4 s like step 3.
   Same family: "the brig fires a double broadside" got 0 shots when the brig, still alongside after her ram,
   went to BOARD a tick later (a warning is cancelled outside HUNT/BROADSIDE); the step puts her in BROADSIDE.
-- Seen twice in four seatest runs, not fixed: a signal 11 in `add_surface_from_arrays` (MeshBuilder.commit)
-  during Mosswater Key's village dressing on the main thread while Kalani Key prepares on a worker. No new code
-  on that path; an engine-side race in headless mesh creation is the suspect.
+- nettest "our puppet stands at the wheel": the same thing over the network. The host's reply runs after the
+  frame's physics ticks but before the puppet's _process, so the puppet (placed last frame on the hull as drawn
+  then) read against the hull's newest step was 0.17 m off per tick in the frame at 10 m/s: 0.46 m under prepush's
+  load, 1.17 m with two suites beside it. nettest_node.on_deck reads both captains' puppets from their snapshots
+  against the hull as drawn now (0.18 m alone, the swell's pitch on the helm).
+- nettest "clock synced" is load, as flaky.txt has it: it is judged while both sides put chain islands in the
+  world (frames to 160 ms), median 1 and 33 ms off in two solo runs, 61 under prepush, 89 with two suites beside it.
+  The new systems cost about 1.3 ms a frame together (perfbench probe:dock_sea, headless: Ambience with CoastProbe
+  0.64, SeaSpray 0.39, SkyBirds 0.38, ShipSpray 0.06, RainFX 0.04, BeltLantern 0.02).
+- Not fixed, seen 3 times in ~10 runs (seatest twice, the nettest guest once): signal 11 in
+  `add_surface_from_arrays` (MeshBuilder.commit: village dressing, a scuttlebug's model) on the main thread while
+  the next chain island prepares on a worker. The 2026-10-13 race (bodies built on workers while the main thread
+  makes meshes); suspected headless-only (the dummy renderer's mesh storage), unconfirmed. No new code on that path.
