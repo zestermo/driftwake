@@ -205,6 +205,7 @@ func _ready() -> void:
 	model.name = "Model"
 	add_child(model)
 	HullBuilder.build(model, spec["look"])
+	ShipLights.enemy(model)
 	HullBuilder.collide(self)
 	for sgn in [-1.0, 1.0]:
 		var guns: Array = spec["guns"]

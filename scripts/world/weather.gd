@@ -209,6 +209,16 @@ func current_state() -> int:
 	return _slot_state(int(floor(world_time() / SLOT)), odds)
 
 
+## How bright the ambient light is now (its colour's luminance x energy).
+func ambient_level() -> float:
+	return _env.ambient_light_color.get_luminance() * _env.ambient_light_energy
+
+
+## The moon's (or the sun's) light on the ground now: its energy x its colour's luminance.
+func sky_light_level() -> float:
+	return _sun.light_energy * _sun.light_color.get_luminance()
+
+
 ## Debug / host: force a weather (-1 = back to the natural cycle).
 func force(s: int) -> void:
 	var net := get_node_or_null("/root/Net")
@@ -373,18 +383,23 @@ func net_apply(s: int, at: float, offset: float) -> void:
 # Sun, moon, colours
 # --------------------------------------------------------------------------
 ## Keyframes by hour: top, horizon, sun colour, sun energy, ambient colour, ambient energy
+## Nights are moonlit blue: the moon and the ambient keep the ground, the crew and the
+## enemies readable, darker than day, so the lamps' warm pools still stand out.
 const KEYS := [
-	[0.0, Color(0.01, 0.02, 0.06), Color(0.05, 0.08, 0.17), Color(0.5, 0.6, 0.9), 0.22, Color(0.22, 0.26, 0.42), 0.5],
-	[4.8, Color(0.03, 0.04, 0.11), Color(0.12, 0.12, 0.24), Color(0.5, 0.6, 0.9), 0.18, Color(0.24, 0.26, 0.42), 0.5],
+	[0.0, Color(0.01, 0.02, 0.06), Color(0.07, 0.1, 0.2), Color(0.55, 0.66, 1.0), 0.42, Color(0.3, 0.36, 0.56), 0.62],
+	[4.8, Color(0.03, 0.04, 0.11), Color(0.12, 0.12, 0.24), Color(0.55, 0.66, 1.0), 0.36, Color(0.3, 0.34, 0.54), 0.6],
 	[6.0, Color(0.16, 0.24, 0.5), Color(0.9, 0.58, 0.42), Color(1.0, 0.55, 0.32), 0.55, Color(0.5, 0.42, 0.5), 0.6],
 	[7.5, Color(0.18, 0.38, 0.75), Color(0.75, 0.72, 0.78), Color(1.0, 0.82, 0.62), 1.1, Color(0.5, 0.55, 0.66), 0.7],
 	[9.0, Color(0.15, 0.4, 0.82), Color(0.5, 0.72, 0.92), Color(1.0, 0.92, 0.78), 1.35, Color(0.5, 0.58, 0.7), 0.75],
 	[15.5, Color(0.14, 0.39, 0.82), Color(0.52, 0.72, 0.9), Color(1.0, 0.9, 0.74), 1.3, Color(0.52, 0.58, 0.68), 0.75],
 	[17.2, Color(0.2, 0.32, 0.66), Color(0.9, 0.62, 0.45), Color(1.0, 0.68, 0.42), 1.0, Color(0.58, 0.5, 0.52), 0.68],
 	[18.3, Color(0.14, 0.17, 0.42), Color(0.95, 0.5, 0.32), Color(1.0, 0.45, 0.25), 0.5, Color(0.5, 0.38, 0.45), 0.6],
-	[19.6, Color(0.04, 0.05, 0.14), Color(0.2, 0.12, 0.22), Color(0.5, 0.6, 0.9), 0.15, Color(0.26, 0.26, 0.42), 0.52],
-	[24.0, Color(0.01, 0.02, 0.06), Color(0.05, 0.08, 0.17), Color(0.5, 0.6, 0.9), 0.22, Color(0.22, 0.26, 0.42), 0.5],
+	[19.6, Color(0.04, 0.05, 0.14), Color(0.2, 0.12, 0.22), Color(0.55, 0.66, 1.0), 0.32, Color(0.32, 0.33, 0.52), 0.6],
+	[24.0, Color(0.01, 0.02, 0.06), Color(0.07, 0.1, 0.2), Color(0.55, 0.66, 1.0), 0.42, Color(0.3, 0.36, 0.56), 0.62],
 ]
+## The least the ambient light may be (its colour's luminance x energy): storms and
+## overcast nights stay playable. ambient_level() reads it back.
+const AMBIENT_FLOOR := 0.16
 
 var _top := Color()
 var _hor := Color()
@@ -446,9 +461,9 @@ func _update_env() -> void:
 		_sky_mat.set_shader_parameter("cloud_lit", lit.lerp(Color(0.5, 0.52, 0.56), storm * 0.7))
 		_sky_mat.set_shader_parameter("cloud_shade", (_amb * 1.1).lerp(Color(0.25, 0.26, 0.3), storm * 0.8))
 	if _env:
-		var amb := _amb.lerp(Color(0.42, 0.44, 0.5), storm * 0.5)
+		var amb := _amb.lerp(Color(0.42, 0.44, 0.5).lerp(Color(0.3, 0.34, 0.5), night), storm * 0.5)
 		_env.ambient_light_color = amb
-		_env.ambient_light_energy = _amb_e * (1.0 - storm * 0.3) + flash * 1.5
+		_env.ambient_light_energy = maxf(_amb_e * (1.0 - storm * 0.3), AMBIENT_FLOOR / amb.get_luminance()) + flash * 1.5
 		var fogc := hor.lerp(Color(0.85, 0.88, 0.92), in_cloud)
 		_env.fog_light_color = fogc
 		# Long-range fog: the sea is fully fogged well inside its edge (1 km),

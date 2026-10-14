@@ -10,3 +10,4 @@ Islands & world: smoketest chaintest isletest villagetest harbourtest lifetest d
 Co-op: net net-chain net-board
 Moves & clothing: movetest cliptest
 Music: musictest
+Light & sound: lighttest

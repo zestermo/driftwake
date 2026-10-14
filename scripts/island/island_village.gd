@@ -27,8 +27,8 @@ const VILLAGER_BARKS := [
 ]
 const JOB_STEPS := 0.5
 const Shops := preload("res://scripts/game/shops.gd")
-## NightLights for the whole village (inn door, the shops' rooms, the shrine, lamps, torches).
-const LIGHTS := 12
+## NightLights for the whole village (inn door, the shops' and homes' rooms, the shrine, lamps, torches).
+const LIGHTS := 16
 ## Built with the people in the village step, then the shops (and their keepers); the other buildings come after.
 const CORE := ["inn"]
 const SHOPS := ["trade", "cook"]
@@ -292,10 +292,10 @@ func _make(b: Dictionary) -> Dictionary:
 			if raised != INF:
 				spec.merge({"fl": raised - top, "steps": false}, true)
 			n = ctx.place(KitHouses.room(spec), p, yaw, r, 0.0, false)
-			if SHOPS.has(kind):
-				var nl := KitLights.light(ctx, n, Vector3(0, float(spec.get("fl", 0.6)) + 1.7, 0.0), 0.9, 6.5)
-				if nl:
-					nl.always = true
+			# every room's lantern lights it: the shops' all day, the homes' after dark
+			var nl := KitLights.light(ctx, n, Vector3(0, float(spec.get("fl", 0.6)) + 1.7, 0.0), 0.9, 6.5)
+			if nl and SHOPS.has(kind):
+				nl.always = true
 		"workshop":
 			n = ctx.place(KitHouses.workshop({"seed": rng.randi(), "found": found}), p, yaw, r, 0.0, false)
 		"shrine":

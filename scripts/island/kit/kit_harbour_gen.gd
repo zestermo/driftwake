@@ -15,7 +15,7 @@ extends RefCounted
 ## off; `steps` puts it in the world a piece a frame. Every draw comes from the
 ## island's seed: a co-op guest builds the same harbour.
 
-const LIGHTS := 4
+const LIGHTS := 6
 const SALT := 7311
 ## The village further than this from the dock: the harbour rolls from the theme's wild kinds.
 const WILD_AT := 110.0

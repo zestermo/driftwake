@@ -7,6 +7,10 @@ extends RefCounted
 ## caller, so the same island always has the same men in the same places.
 
 
+## Where a 2.4 m Props.lantern_post's lamp is (the light the camps' lit posts take).
+const LAMP_AT := Vector3(0.55, 1.85, 0.0)
+
+
 ## A campfire with its crackle (an Ambience loop).
 static func campfire(ctx: KitContext, p: Vector2, footprint := 1.5) -> Node3D:
 	var fire := Props.campfire()
@@ -151,8 +155,11 @@ static func pirate_camp(ctx: KitContext, c: Vector2, to_sea: Vector2, watch: Vec
 	# rowboat pulled up on the beach, weapon rack, lanterns, crew flag
 	ctx.place(Props.rowboat(), at.call(10.0, 1.0), KitContext.face_yaw(to_sea) + 0.25, 1.5)
 	ctx.place(Props.weapon_rack(), at.call(1.5, 4.2), KitContext.face_yaw(c - at.call(1.5, 4.2)))
-	for lp in [at.call(-3.0, 3.0), at.call(4.0, -1.5)]:
-		ctx.place(Props.lantern_post(2.4), lp)
+	var lamps := [at.call(-3.0, 3.0), at.call(4.0, -1.5)]
+	for k in range(lamps.size()):
+		var post := ctx.place(Props.lantern_post(2.4), lamps[k])
+		if k == 0:
+			KitLights.light(ctx, post, LAMP_AT, 1.3, 9.0)
 	ctx.place(flag("CrewFlag", {"cloth": ctx.style["crew_flag"]}), at.call(-3.0, -1.0), 0.4)
 	var chest_p: Vector2 = at.call(-8.5, 0.5)
 	strongbox(ctx, chest_p, KitContext.face_yaw(c - chest_p), chest[0], chest[1])
@@ -262,8 +269,11 @@ static func den(ctx: KitContext, c: Vector2, opts: Dictionary, crew_name := "Den
 	ctx.place(Props.fish_rack(), rim + s * 5.0 - f * 3.0, KitContext.face_yaw(s), 1.5)
 	ctx.place(Props.net_pile(), rim + s * 7.5 - f * 1.0)
 	ctx.place(Props.upturned_boat(), rim - s * 5.0 - f * 1.0, KitContext.face_yaw(f) + 0.3, 1.5)
-	for lp in [at.call(3.0, -3.0), at.call(-7.0, 4.0), (hoist_at[0] as Vector2) - s * 2.2]:
-		ctx.place(Props.lantern_post(2.4), lp)
+	var lamps := [at.call(3.0, -3.0), at.call(-7.0, 4.0), (hoist_at[0] as Vector2) - s * 2.2]
+	for k in range(lamps.size()):
+		var post := ctx.place(Props.lantern_post(2.4), lamps[k])
+		if k > 0:
+			KitLights.light(ctx, post, LAMP_AT, 1.3, 9.0)
 	ctx.place(flag("DenFlag", {"h": 6.0, "r": [0.08, 0.06], "cloth": ctx.style["pirate_flag"], "at": [5.5, 0.6],
 		"size": Vector2(1.2, 0.75), "jolly": true}), at.call(4.0, -6.0), 0.3)
 

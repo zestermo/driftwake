@@ -78,8 +78,8 @@ const SPITTERS := 9
 const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151}
-## NightLights the kit may light (lamps, lit doorways).
-const LIGHTS := 12
+## NightLights the kit may light (lamps, lit doorways, the camps' and the den's lanterns).
+const LIGHTS := 22
 
 var heights := PackedFloat32Array()
 var paths: Array = []        # Array of PackedVector2Array (smoothed)
@@ -819,16 +819,16 @@ func _build_village() -> void:
 	kit.place(Props.barrel(), VILLAGE + Vector2(-16.5, -10.5), 0.0)
 	kit.place(Props.barrel(), VILLAGE + Vector2(-17.3, -9.8), 0.0)
 	kit.house({"w": 6.0, "d": 5.0, "floors": 2, "wall": "plaster", "wall2": "plaster", "roof": "gable_front",
-		"roof_tex": "roof_tiles", "chimney": true, "pitch": 0.55}, VILLAGE + Vector2(23, -3), Vector2(-1, 0))
-	kit.house({"w": 7.0, "d": 5.0, "roof": "hip", "wall": "planks", "roof_tex": "roof_tiles", "porch": 1.8, "door_x": -1.5},
+		"roof_tex": "roof_tiles", "chimney": true, "pitch": 0.55, "lamp_light": true}, VILLAGE + Vector2(23, -3), Vector2(-1, 0))
+	kit.house({"w": 7.0, "d": 5.0, "roof": "hip", "wall": "planks", "roof_tex": "roof_tiles", "porch": 1.8, "door_x": -1.5, "lamp_light": true},
 		VILLAGE + Vector2(-20, 20), Vector2(1, -0.5))
 	kit.house({"w": 4.5, "d": 4.0, "h": 2.4, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch",
-		"lean_to": "right", "chimney": true}, VILLAGE + Vector2(-17, -25), Vector2(1, 0.3))
+		"lean_to": "right", "chimney": true, "lamp_light": true}, VILLAGE + Vector2(-17, -25), Vector2(1, 0.3))
 	_harbor = kit.house({"w": 9.0, "d": 5.5, "h": 3.0, "roof": "shed", "wall": "planks_weathered", "roof_tex": "roof_tiles",
 		"porch": 1.6, "sign": "sign_fish", "door_x": 2.0, "name": "Harbor", "lamp_light": true}, VILLAGE + Vector2(15, -28), Vector2(-1, 0))
 	kit.house({"w": 4.0, "d": 4.5, "floors": 2, "wall": "stone_brick", "wall2": "planks", "roof": "gable",
 		"roof_tex": "thatch", "pitch": 0.75, "jetty": 0.3}, VILLAGE + Vector2(-9, -31), Vector2(1, 0.2))
-	kit.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "hip", "wall": "plaster", "roof_tex": "thatch", "lean_to": "left", "pitch": 0.5},
+	kit.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "hip", "wall": "plaster", "roof_tex": "thatch", "lean_to": "left", "pitch": 0.5, "lamp_light": true},
 		VILLAGE + Vector2(27, 12), Vector2(-1, -0.4))
 
 
@@ -855,9 +855,9 @@ func _build_village_rest() -> void:
 	kit.place(Props.barrel(), kit.local_point(wh, Vector3(3.6, 0, 3.6)))
 	kit.place(Props.barrel(), kit.local_point(wh, Vector3(4.1, 0, 4.2)))
 	kit.house({"w": 5.5, "d": 4.5, "floors": 2, "wall": "plaster", "wall2": "planks", "roof": "gable", "roof_tex": "thatch",
-		"chimney": true, "jetty": 0.3, "trim": Buildings.TRIM_COLORS[0]}, Vector2(-30, -100), Vector2(1, 0.4))
+		"chimney": true, "jetty": 0.3, "trim": Buildings.TRIM_COLORS[0], "lamp_light": true}, Vector2(-30, -100), Vector2(1, 0.4))
 	kit.house({"w": 6.0, "d": 4.5, "h": 2.5, "roof": "hip", "wall": "stone_brick", "roof_tex": "roof_tiles", "porch": 1.5,
-		"chimney": true}, Vector2(-30, -24), Vector2(0.7, -1))
+		"chimney": true, "lamp_light": true}, Vector2(-30, -24), Vector2(0.7, -1))
 
 
 ## Cobbles on the plaza, the market and the main road; benches, planters and lamps

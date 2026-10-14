@@ -63,3 +63,4 @@ movetest
 cliptest
 emotetest
 musictest
+lighttest

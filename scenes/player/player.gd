@@ -193,6 +193,7 @@ var _nameplate: Label3D
 const NF_COAT := 1
 const NF_BLEED := 2
 const NF_FLOOR := 4
+const NF_LANTERN := 8
 
 
 func _ready() -> void:
@@ -256,6 +257,7 @@ func _build_body() -> void:
 		appearance = CharacterLook.load_look()
 	body_model.setup(appearance)
 	lean.add_child(body_model)
+	body_model.wear_lantern()
 	body_model.footstep.connect(_on_footstep)
 	var dm := get_node_or_null("/root/Dialogue")
 	if dm:
@@ -705,6 +707,7 @@ func _process(delta: float) -> void:
 	_tick_body(delta)
 	_emote_tick()
 	_log_pose_tick()
+	_lantern_tick()
 	heal_cd = maxf(heal_cd - delta, 0.0)
 	if _using_item and _using_item.devil_fruit == "" and (current_state_name() not in ["Idle", "Move"] or body_model.current_action() != _use_anim):
 		_spill_use()
@@ -1387,6 +1390,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			toggle_hybrid()
 		get_viewport().set_input_as_handled()
 		return
+	if event.is_action_pressed("lantern"):
+		toggle_lantern()
+		get_viewport().set_input_as_handled()
+		return
 	# debug builds: the animation lab (AnimLab, docs/anim_lab.md): F5 cycles its variants,
 	# Shift+F5 slow motion, Ctrl+F5 clean view (blade trail instead of the arc effects)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
@@ -1499,6 +1506,30 @@ func _log_pose_tick() -> void:
 		body_model.hold("log_pose")
 	elif not raise and body_model.current_action() == "log_pose":
 		body_model.stop_action()
+
+
+## The belt lantern: lit from dusk to dawn (NightLight's hours) and out in the water.
+## The lantern key flips that until the next dusk or dawn, or until you swim.
+var lantern_flip := false
+var _lantern_night := false
+
+
+func _lantern_tick() -> void:
+	var night := NightLight.is_night()
+	var wet := body_model.swimming or body_model.diving
+	if night != _lantern_night or wet:
+		lantern_flip = false
+	_lantern_night = night
+	var on := night != lantern_flip and not wet
+	if on != body_model.lantern.lit:
+		body_model.lantern.set_lit(on)
+
+
+func toggle_lantern() -> void:
+	if body_model.swimming or body_model.diving:
+		return
+	lantern_flip = not lantern_flip
+	Net.fx("sfx", ["clack", global_position + Vector3.UP, -9.0, 0.05, 1.6])
 
 
 func activate_hotbar(slot: int) -> void:
@@ -1959,6 +1990,7 @@ func _setup_puppet() -> void:
 	appearance = lk if not lk.is_empty() else CharacterLook.default_look()
 	body_model.setup(appearance)
 	lean.add_child(body_model)
+	body_model.wear_lantern()
 	body_model.footstep.connect(_on_footstep)
 	_nameplate = Label3D.new()
 	_nameplate.name = "Nameplate"
@@ -2040,6 +2072,8 @@ func net_pack() -> Array:
 		flags |= NF_BLEED
 	if is_on_floor() or context == Context.HELM:
 		flags |= NF_FLOOR
+	if body_model.lantern.lit:
+		flags |= NF_LANTERN
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else []]
@@ -2107,6 +2141,8 @@ func _puppet_process(delta: float) -> void:
 		if changed & NF_COAT:
 			power.buffs["coat"] = 9999.0 if flags & NF_COAT else 0.0
 			update_coat_visual()
+		if changed & NF_LANTERN:
+			body_model.lantern.set_lit(bool(flags & NF_LANTERN))
 		_update_nameplate()
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	# knocked down: the body lies (or floats) exactly where theirs does

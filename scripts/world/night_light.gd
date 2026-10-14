@@ -35,6 +35,10 @@ func _process(delta: float) -> void:
 		_update()
 
 
+static func is_night() -> bool:
+	var h: float = (Engine.get_main_loop() as SceneTree).root.get_node("Weather").hour()
+	return h >= DUSK or h < DAWN
+
+
 func _update() -> void:
-	var h: float = Weather.hour()
-	visible = always or h >= DUSK or h < DAWN
+	visible = always or is_night()

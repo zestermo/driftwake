@@ -2,7 +2,7 @@ extends SceneTree
 ## The bigger ship: from outside (side, three-quarter stern, bow), the main
 ## deck toward the quarterdeck and stairs, inside the cabin (bunk, galley,
 ## storage), up on the quarterdeck at the helm, the crow's nest, and an enemy
-## ship alongside for scale. Args: <out_prefix> [psx]
+## ship alongside for scale. Args: <out_prefix> [psx]; env BSHOT_HOUR=21 at night.
 var t := 0.0
 var out := ""
 var cam: Camera3D
@@ -35,7 +35,8 @@ func _process(d: float) -> bool:
 		var w = root.get_node("Weather")
 		w.forced = 0
 		w.forced_at = w.world_time() - 100.0
-		w.world_offset += fposmod(11.0 - float(w.hour()), 24.0) / 24.0 * float(w.DAY_LEN)
+		var hour := float(OS.get_environment("BSHOT_HOUR")) if OS.get_environment("BSHOT_HOUR") != "" else 11.0
+		w.world_offset += fposmod(hour - float(w.hour()), 24.0) / 24.0 * float(w.DAY_LEN)
 		cam = Camera3D.new(); cam.fov = 60; cam.far = 1500
 		root.add_child(cam); cam.current = true
 		var HB = load("res://scripts/ship/hull_builder.gd")

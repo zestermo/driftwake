@@ -350,6 +350,22 @@ func apply_look(look_dict: Dictionary) -> void:
 	_build_sockets()
 	_attach_weapon(weapon_in_hand)
 	_apply_fists()
+	if lantern != null:
+		wear_lantern()
+
+
+## A captain's belt lantern (BeltLantern), hung again whenever the body is rebuilt.
+var lantern: BeltLantern
+
+
+## Hang the belt lantern at the right hip (mirroring the main sheath, set back behind
+## an off-hand blade), keeping whether it was lit.
+func wear_lantern() -> void:
+	var was_lit := lantern != null and is_instance_valid(lantern) and lantern.lit
+	lantern = BeltLantern.new()
+	torso.add_child(lantern)
+	lantern.position = Vector3(-hip_socket.position.x + 0.015, hip_socket.position.y - 0.01, hip_socket.position.z + 0.1)
+	lantern.set_lit(was_lit)
 
 
 # ==========================================================================

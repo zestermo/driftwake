@@ -242,3 +242,15 @@ scripts/npc/humanoid.gd                 emotetest
 scenes/player/*                         emotetest
 scripts/enemies/pirate_grunt.gd         emotetest
 tools/dev/emotetest.gd                  emotetest
+# --- light: readable nights, ship lanterns, the belt lantern (v1.12) ---
+scripts/world/weather.gd                lighttest
+scripts/world/night_light.gd            lighttest villagetest harbourtest
+scripts/ship/ship_lights.gd             lighttest shiptest
+scripts/ship/ship.gd                    lighttest
+scripts/ship/enemy_ship.gd              lighttest
+scripts/npc/belt_lantern.gd             lighttest
+scripts/npc/humanoid.gd                 lighttest
+scenes/player/player.gd                 lighttest
+scripts/island/kit/kit_camps.gd         lighttest isletest
+scripts/island/starter_island.gd        lighttest
+tools/dev/lighttest.gd                  lighttest

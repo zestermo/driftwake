@@ -148,6 +148,7 @@ func _ready() -> void:
 	_build_psx_model()
 	_build_collision()
 	_build_cannons()
+	ShipLights.crew(ship_model)
 	_ocean = get_node_or_null("/root/Ocean")
 	_game_manager = get_node("/root/GameManager")
 	apply_kit(_game_manager.ship_kit)
