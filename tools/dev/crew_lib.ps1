@@ -2,10 +2,12 @@
 # nettest.ps1, land.ps1 and the crew hook). Everything lives in the git common
 # dir (<main checkout>\.git\crew), which every worktree shares:
 #   slots\     machine-wide test slots (an exclusively opened file each; the OS frees it if a runner dies)
-#   results\   suites that passed, by the exact code they ran on (a tree hash of the working tree)
+#   results\   tests that passed, by the code they ran on: <key>\<test>.ok, the key the hash of the files the test
+#              loads (Get-TestKey; "d..."), or the working tree's hash before its loads are recorded
+#   deps\      each test's recorded loads (<test>.txt, from its last pass)
 #   claims\    what each session says it's working on (crew.ps1 claim)
 #   live\      every test run's live status (<run id>.json; the Tests pane reads them)
-#   inflight\  suites running right now, by tree (a second runner of the same code waits for it)
+#   inflight\  suites running right now, by key (a second runner of the same code waits for it)
 #   ledger\    each suite's last result (<suite>.json: passed/failed/stopped, the tree, branch, when, why,
 #              seconds and setup seconds); ledger\history\<suite>.jsonl every result (suite_times.ps1)
 #   landing.lock / landing.json  the one land.ps1 running (held open; who, since, step); landq\ the landers waiting
@@ -15,7 +17,7 @@
 function Get-CrewDir([string]$root) {
 	$common = (git -C $root rev-parse --path-format=absolute --git-common-dir).Trim()
 	$dir = Join-Path $common "crew"
-	foreach ($d in @("slots", "results", "claims", "live", "inflight", "ledger", "ledger\history", "landq")) { New-Item -ItemType Directory -Force -Path (Join-Path $dir $d) | Out-Null }
+	foreach ($d in @("slots", "results", "deps", "claims", "live", "inflight", "ledger", "ledger\history", "landq")) { New-Item -ItemType Directory -Force -Path (Join-Path $dir $d) | Out-Null }
 	return $dir
 }
 
@@ -124,23 +126,182 @@ function Get-TreeKey([string]$root) {
 	return $tree
 }
 
-function Get-CachedPass([string]$crew, [string]$tree, [string]$suite) {
-	$f = Join-Path $crew "results\$tree\$suite.ok"
-	if (Test-Path $f) { return (Get-Content $f -Raw).Trim() }
+## A pass of `suite` under `key` (Get-TestKey's: its dependencies' hash, or the tree): "who at when", or $null.
+function Get-CachedPass([string]$crew, [string]$key, [string]$suite) {
+	$f = Join-Path $crew "results\$key\$suite.ok"
+	if (Test-Path $f) { return (Get-Content $f -TotalCount 1).Trim() }
 	return $null
 }
 
-function Set-CachedPass([string]$crew, [string]$tree, [string]$suite, [string]$branch) {
-	$d = Join-Path $crew "results\$tree"
+## `manifest`: Get-TestKey's lines (path and content hash of each dependency), kept so test_status can say what changed.
+function Set-CachedPass([string]$crew, [string]$key, [string]$suite, [string]$branch, [string[]]$manifest = @()) {
+	$d = Join-Path $crew "results\$key"
 	New-Item -ItemType Directory -Force -Path $d | Out-Null
-	Set-Content -Path (Join-Path $d "$suite.ok") -Value ("{0} at {1:HH:mm}" -f $branch, (Get-Date)) -Encoding UTF8
+	Set-Content -Path (Join-Path $d "$suite.ok") -Value (@("{0} at {1:HH:mm}" -f $branch, (Get-Date)) + $manifest) -Encoding UTF8
 }
 
-## Results older than two days go (a tree is rarely tested again after that).
+## Results older than a week go (a pass keyed by its dependencies stays good while they don't change).
 function Clear-OldResults([string]$crew) {
 	Get-ChildItem (Join-Path $crew "results") -Directory -ErrorAction SilentlyContinue |
-		Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-2) } |
+		Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
 		ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+# ---------------------------------------------------------------------------
+# Dependencies: each run records every project file it loaded (scripts/game/dep_record.gd, written to
+# DRIFTWAKE_DEPS_OUT at exit) and a pass is kept under the hash of those files' contents, so it stays good
+# while they're unchanged, whatever else changes. A test with nothing recorded yet is keyed by the tree.
+# ---------------------------------------------------------------------------
+
+## The suites (suites.txt) and the atomic tests (tools/dev/t/<group>/<name>.gd, named "t.<group>.<name>").
+function Get-AllTests() {
+	$suites = @(Get-Content (Join-Path $PSScriptRoot "suites.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })
+	return @($suites + (Get-AtomicTests))
+}
+
+function Get-AtomicTests() {
+	$t = Join-Path $PSScriptRoot "t"
+	if (-not (Test-Path $t)) { return @() }
+	return @(Get-ChildItem $t -Directory | Sort-Object Name | ForEach-Object {
+		$g = $_.Name
+		Get-ChildItem $_.FullName -Filter "*.gd" | Where-Object { -not $_.Name.StartsWith("_") } | Sort-Object Name | ForEach-Object { "t.$g." + $_.BaseName }
+	})
+}
+
+## A test's script under tools/dev: "t.player.dash" -> "t/player/dash.gd".
+function Get-TestScript([string]$test) {
+	if ($test.StartsWith("t.")) { return ($test -replace "\.", "/") + ".gd" }
+	return "$test.gd"
+}
+
+## An atomic test's group in the Tests pane ("t.player.dash" -> "t/player"), or "".
+function Get-AtomicGroup([string]$test) {
+	if ($test -match "^t\.([^.]+)\.") { return "t/" + $Matches[1] }
+	return ""
+}
+
+## The co-op modes with a ledger or recorded deps, plus the ones always tracked.
+function Get-NetKeys([string]$crew) {
+	$net = @("net", "net-chain", "net-board")
+	foreach ($f in @(Get-ChildItem (Join-Path $crew "ledger"), (Join-Path $crew "deps") -Filter "net*" -File -ErrorAction SilentlyContinue)) {
+		$n = $f.BaseName
+		if ($n -match "^net(-\w+)?$" -and $net -notcontains $n) { $net += $n }
+	}
+	return $net
+}
+
+## Names to tests: "t/player/dash" (or its path, or "t.player.dash") -> "t.player.dash"; "t/player" or "t" -> every
+## atomic test in it.
+function Resolve-TestNames([string[]]$names) {
+	$atomic = Get-AtomicTests
+	$out = @()
+	foreach ($n in $names) {
+		$n = ($n -replace "\\", "/" -replace "\.gd$", "" -replace "^tools/dev/", "").TrimEnd("/")
+		if ($n -eq "t" -or $n.StartsWith("t/")) { $n = $n -replace "/", "." }
+		$group = @($atomic | Where-Object { $_.StartsWith("$n.") })
+		if ($group.Count -gt 0) { $out += $group } else { $out += $n }
+	}
+	return @($out | Select-Object -Unique)
+}
+
+function Get-DepsFile([string]$crew, [string]$test) { return Join-Path $crew "deps\$test.txt" }
+
+## The project files `test` loaded on its last pass, or $null before one recorded them.
+function Get-Deps([string]$crew, [string]$test) {
+	$f = Get-DepsFile $crew $test
+	if (-not (Test-Path $f)) { return $null }
+	return @(Get-Content $f | Where-Object { $_ })
+}
+
+## Merge what each process of a passed run recorded (`outs`: their DRIFTWAKE_DEPS_OUT files) into the test's deps.
+## False if a process wrote none (it then keeps the tree key).
+function Save-Deps([string]$crew, [string]$test, [string[]]$outs) {
+	$all = @()
+	foreach ($o in $outs) {
+		if (-not (Test-Path $o)) { return $false }
+		$all += @(Get-Content $o | Where-Object { $_ })
+	}
+	New-Item -ItemType Directory -Force -Path (Join-Path $crew "deps") | Out-Null
+	$f = Get-DepsFile $crew $test
+	[System.IO.File]::WriteAllLines("$f.tmp", [string[]]@($all | Sort-Object -Unique))
+	for ($i = 0; ; $i++) {
+		try { Move-Item -Force "$f.tmp" $f -ErrorAction Stop; return $true }
+		catch [System.IO.IOException] { if ($i -ge 20) { throw }; Start-Sleep -Milliseconds 50 }
+	}
+}
+
+## Every test depends on project.godot, the autoloads and its own script.
+function Get-AlwaysDeps([string]$test) {
+	if (-not $script:autoloadDeps) {
+		$script:autoloadDeps = @("project.godot")
+		$in = $false
+		foreach ($l in Get-Content (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "project.godot")) {
+			if ($l.StartsWith("[")) { $in = $l -eq "[autoload]" }
+			elseif ($in -and $l -match '^\w+="\*?res://([^"]+)"') { $script:autoloadDeps += $Matches[1] }
+		}
+	}
+	if ($test -match "^net(-\w+)?$") { return $script:autoloadDeps }
+	return @($script:autoloadDeps + ("tools/dev/" + (Get-TestScript $test)))
+}
+
+## What Get-TestKey needs about one tree: every file's blob (git ls-tree), and a cache of keys by deps file stamp.
+function New-KeyContext([string]$root, [string]$crew, [string]$tree) {
+	$blobs = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([StringComparer]::Ordinal)
+	foreach ($l in @(git -C $root -c core.quotepath=off ls-tree -r --full-tree $tree)) {
+		$tab = $l.IndexOf("`t")
+		$blobs[$l.Substring($tab + 1)] = $l.Substring($tab - 40, 40)
+	}
+	return [pscustomobject]@{ Root = $root; Crew = $crew; Tree = $tree; Blobs = $blobs; Dirs = @{}; Keys = @{} }
+}
+
+## The names in folder `dir` ("a/b/") of the context's tree.
+function Get-DirListing($ctx, [string]$dir) {
+	if (-not $ctx.Dirs.ContainsKey($dir)) {
+		$names = @($ctx.Blobs.Keys | Where-Object { $_.StartsWith($dir, [StringComparison]::Ordinal) -and $_.IndexOf("/", $dir.Length) -lt 0 } | ForEach-Object { $_.Substring($dir.Length) })
+		$ctx.Dirs[$dir] = ($names | Sort-Object) -join ","
+	}
+	return $ctx.Dirs[$dir]
+}
+
+## The key `test`'s pass is kept under in this tree: Key ("d" + the hash of its dependencies' paths and
+## contents, their .import files with them, a listed folder's names), Deps (recorded or not: the tree is
+## the key until then) and Manifest (the hashed lines).
+function Get-TestKey($ctx, [string]$test) {
+	$f = Get-DepsFile $ctx.Crew $test
+	$stamp = if (Test-Path $f) { (Get-Item $f).LastWriteTimeUtc.Ticks } else { 0 }
+	$c = $ctx.Keys[$test]
+	if ($c -and $c.Stamp -eq $stamp) { return $c }
+	if ($stamp -eq 0) {
+		$r = [pscustomobject]@{ Key = $ctx.Tree; Deps = $false; Manifest = @(); Stamp = 0 }
+	} else {
+		$paths = [string[]]@(@(Get-Content $f | Where-Object { $_ }) + (Get-AlwaysDeps $test) | Select-Object -Unique)
+		[Array]::Sort($paths, [StringComparer]::Ordinal)
+		$lines = New-Object System.Collections.Generic.List[string]
+		foreach ($p in $paths) {
+			if ($p.EndsWith("/")) { $lines.Add("$p " + (Get-DirListing $ctx $p)); continue }
+			$lines.Add("$p " + $(if ($ctx.Blobs.ContainsKey($p)) { $ctx.Blobs[$p] } else { "-" }))
+			if ($ctx.Blobs.ContainsKey("$p.import")) { $lines.Add("$p.import " + $ctx.Blobs["$p.import"]) }
+		}
+		$sha = [System.Security.Cryptography.SHA1]::Create()
+		$hash = ($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes(($lines -join "`n"))) | ForEach-Object { $_.ToString("x2") }) -join ""
+		$r = [pscustomobject]@{ Key = "d" + $hash; Deps = $true; Manifest = $lines.ToArray(); Stamp = $stamp }
+	}
+	$ctx.Keys[$test] = $r
+	return $r
+}
+
+## The changed `files` (repo paths) that `test`'s recorded deps include (a file in a listed folder counts,
+## an .import file counts for its source). $null when it has none recorded.
+function Get-DepHits([string]$crew, [string]$test, [string[]]$files) {
+	$deps = Get-Deps $crew $test
+	if ($null -eq $deps) { return $null }
+	$set = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+	foreach ($d in @($deps + (Get-AlwaysDeps $test))) { [void]$set.Add($d) }
+	$dirs = @($deps | Where-Object { $_.EndsWith("/") })
+	return @($files | Where-Object {
+		$f = $_ -replace "\.import$", ""
+		$set.Contains($f) -or @($dirs | Where-Object { $f.StartsWith($_, [StringComparison]::Ordinal) -and $f.IndexOf("/", $_.Length) -lt 0 }).Count -gt 0
+	})
 }
 
 function Get-SlotCount() {
@@ -363,9 +524,11 @@ function Set-LiveSuite($run, [string]$name, [hashtable]$fields) {
 }
 
 ## A headless Godot running res://tools/dev/<script>, its stdout and stderr redirected to `log` by cmd.
-## `seed` (if any) goes to it as DRIFTWAKE_SEED (tools/dev/test_kit.gd).
-function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]$extra, [string]$log, [string]$seed = "") {
+## `seed` (if any) goes to it as DRIFTWAKE_SEED (tools/dev/test_kit.gd); `deps` (if any) names the file it writes
+## its loaded files to at exit (DRIFTWAKE_DEPS_OUT, scripts/game/dep_record.gd).
+function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]$extra, [string]$log, [string]$seed = "", [string]$deps = "") {
 	Remove-Item $log -Force -ErrorAction SilentlyContinue
+	if ($deps) { Remove-Item $deps -Force -ErrorAction SilentlyContinue }
 	$gargs = "--headless --path `"$root`" --script res://tools/dev/$script" + $(if ($extra) { " -- $extra" } else { "" })
 	$psi = New-Object System.Diagnostics.ProcessStartInfo
 	if ($IsLinux) {
@@ -381,6 +544,8 @@ function Start-GodotJob([string]$godot, [string]$root, [string]$script, [string]
 	$psi.CreateNoWindow = $true
 	$psi.EnvironmentVariables.Remove("DRIFTWAKE_SEED")
 	if ($seed) { $psi.EnvironmentVariables["DRIFTWAKE_SEED"] = $seed }
+	$psi.EnvironmentVariables.Remove("DRIFTWAKE_DEPS_OUT")
+	if ($deps) { $psi.EnvironmentVariables["DRIFTWAKE_DEPS_OUT"] = $deps }
 	$p = [System.Diagnostics.Process]::Start($psi)
 	return [pscustomobject]@{ Proc = $p; Log = $log; Started = Get-Date; Grew = Get-Date; First = [datetime]::MinValue; Offset = [long]0; Carry = ""
 		Errors = 0; FirstErrors = @(); Tail = New-Object System.Collections.Generic.List[string]; Parse = $false
@@ -471,9 +636,9 @@ function Test-AllFlaky([string]$suite, [string[]]$fails) {
 	return $true
 }
 
-## Someone else running this exact suite on this exact code right now: their run id, or "".
-function Get-InFlight([string]$crew, [string]$tree, [string]$suite) {
-	$f = Join-Path $crew "inflight\$tree-$suite.txt"
+## Someone else running this exact suite on this exact code (`key`: Get-TestKey's) right now: their run id, or "".
+function Get-InFlight([string]$crew, [string]$key, [string]$suite) {
+	$f = Join-Path $crew "inflight\$key-$suite.txt"
 	if (-not (Test-Path $f)) { return "" }
 	$p = (Get-Content $f -Raw).Trim() -split " ", 2
 	if (Get-Process -Id ([int]$p[0]) -ErrorAction SilentlyContinue) { return $p[1] }
@@ -488,10 +653,10 @@ function Get-JobSetup($job) {
 }
 
 ## A suite's latest result, whoever ran it (test_status.ps1 and the Tests pane read these), and a line in its
-## history (suite_times.ps1). `setup`: Get-JobSetup's, -1 when not measured.
-function Write-Ledger([string]$crew, [string]$suite, [string]$state, [string]$tree, [string]$branch, [int]$secs, [string]$why, [int]$setup = -1) {
+## history (suite_times.ps1). `setup`: Get-JobSetup's, -1 when not measured. `key`: the Get-TestKey it ran under.
+function Write-Ledger([string]$crew, [string]$suite, [string]$state, [string]$tree, [string]$branch, [int]$secs, [string]$why, [int]$setup = -1, [string]$key = "") {
 	$f = Join-Path $crew "ledger\$suite.json"
-	$rec = [ordered]@{ suite = $suite; state = $state; tree = $tree; branch = $branch; at = (Get-Date).ToString("o"); secs = $secs; setup = $setup; why = $why }
+	$rec = [ordered]@{ suite = $suite; state = $state; tree = $tree; key = $(if ($key) { $key } else { $tree }); branch = $branch; at = (Get-Date).ToString("o"); secs = $secs; setup = $setup; why = $why }
 	[System.IO.File]::WriteAllText("$f.tmp", ($rec | ConvertTo-Json -Compress))
 	Move-Item -Force "$f.tmp" $f
 	$h = Join-Path $crew "ledger\history\$suite.jsonl"
@@ -502,7 +667,7 @@ function Write-Ledger([string]$crew, [string]$suite, [string]$state, [string]$tr
 	}
 }
 
-function Set-InFlight([string]$crew, [string]$tree, [string]$suite, [string]$label, [bool]$on) {
-	$f = Join-Path $crew "inflight\$tree-$suite.txt"
+function Set-InFlight([string]$crew, [string]$key, [string]$suite, [string]$label, [bool]$on) {
+	$f = Join-Path $crew "inflight\$key-$suite.txt"
 	if ($on) { Set-Content -Path $f -Value "$PID $label" -Encoding UTF8 } else { Remove-Item $f -Force -ErrorAction SilentlyContinue }
 }

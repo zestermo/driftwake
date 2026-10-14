@@ -255,6 +255,9 @@ func _load(id: String) -> Dictionary:
 	if _cache.has(id):
 		return _cache[id]
 	var path := DIALOGUE_DIR + id + ".json"
+	var deps := preload("res://scripts/game/dep_record.gd")
+	deps.note_dep(DIALOGUE_DIR)
+	deps.note_dep(path)
 	if not FileAccess.file_exists(path):
 		return {}
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))

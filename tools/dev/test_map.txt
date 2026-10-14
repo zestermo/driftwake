@@ -1,4 +1,5 @@
-# Which test suites cover which files: used by affected.ps1 / run_tests.ps1 -Changed.
+# Which test suites cover which files: affected.ps1 / run_tests.ps1 -Changed use it only for a test that has
+# never passed. After a pass the runner knows every file the test loaded (.git/crew/deps) and picks by that.
 # <path pattern (PowerShell -like, from the repo root)>   <suites...>
 # Every line a changed file matches adds its suites. "net" = also run nettest.ps1, "netchain" = nettest.ps1 chain.
 # A changed tools/dev/<suite>.gd runs that suite. Add a line when you add a suite or a system.
@@ -14,6 +15,7 @@ tools/dev/t/items/*                     t/items
 tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
+# A changed tools/dev/<suite>.gd runs that suite.
 
 # --- player ---
 scenes/player/*                         t/player t/combat t/items swimtest

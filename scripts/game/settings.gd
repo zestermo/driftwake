@@ -39,6 +39,7 @@ const DEFAULTS := {
 const BUSES := ["SFX", "Ambience", "UI", "Music"]
 
 var _values: Dictionary = {}
+var _deps
 
 
 ## Run by a test or tool (`--script res://tools/dev/...`: its own SceneTree is the main loop), not played.
@@ -50,6 +51,18 @@ static func tool_run() -> bool:
 static func capture_mouse() -> void:
 	if not tool_run():
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _init() -> void:
+	var out := OS.get_environment("DRIFTWAKE_DEPS_OUT")
+	if out != "":
+		_deps = load("res://scripts/game/dep_record.gd").new(out)
+
+
+func _exit_tree() -> void:
+	if _deps:
+		_deps.write()
+		_deps = null
 
 
 func _ready() -> void:

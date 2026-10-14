@@ -10,8 +10,8 @@
 # as they run (the Tests pane shows them live).
 #
 # Like run_tests.ps1 it takes machine-wide test slots (one per Godot it starts), skips a mode that
-# already passed on exactly this code (-Force reruns), waits for a run of the same mode on the same
-# code instead of starting a second, stops a Godot that stalls, can't parse its scripts or floods
+# already passed with exactly these contents of every file its Godots load (-Force reruns), waits for a run
+# of the same mode on the same code instead of starting a second, stops a Godot that stalls, can't parse its scripts or floods
 # errors, and retries once when every failure is a known flake (tools\dev\flaky.txt, suite "net").
 # -CI (GitHub Actions): none of the crew's slots, cache, sharing or live runs; a table on the job summary.
 param(
@@ -41,29 +41,33 @@ if ($CI) {
 	$me = Get-CrewBranch $root
 	Update-ImportCache $root $Godot
 	$tree = Get-TreeKey $root
+	$ctx = New-KeyContext $root $crew $tree
+	$depKey = (Get-TestKey $ctx $key).Key
 
 	function Test-Done() {
-		$hit = Get-CachedPass $crew $tree $key
+		$hit = Get-CachedPass $crew (Get-TestKey $ctx $key).Key $key
 		if ($hit -and -not $Force) {
-			Write-Host "CO-OP TEST OK (already passed on this exact code: $hit; -Force reruns)" -ForegroundColor Green
+			Write-Host "CO-OP TEST OK (already passed with these exact dependencies: $hit; -Force reruns)" -ForegroundColor Green
 			exit 0
 		}
 	}
 	Test-Done
 	# the same mode on the same code already running somewhere: wait for its verdict
 	$told = $false
-	while ($other = Get-InFlight $crew $tree $key) {
+	while ($other = Get-InFlight $crew $depKey $key) {
 		if (-not $told) { Write-Host "Waiting for the same co-op test already running ($other)..." -ForegroundColor DarkYellow; $told = $true }
 		Start-Sleep -Seconds 2
 	}
 	Test-Done
 
 	$run = New-LiveRun $crew $root $me $key $names
-	Set-InFlight $crew $tree $key "$me $($run.Data.id)" $true
+	Set-InFlight $crew $depKey $key "$me $($run.Data.id)" $true
 	foreach ($n in $names) { Set-LiveSuite $run $n @{ state = "waiting"; why = "for test slots" } }
 	Save-LiveRun $run $true
 	$slots = Wait-Slots $crew $names.Count "$me $key"
 }
+## Where a Godot of this run writes what it loaded (none under -CI).
+function Get-DepsOut([string]$n) { if ($CI) { return "" }; return Join-Path $logs "net$n.deps" }
 
 $port = 24700 + (Get-Random -Maximum 250)
 $delay = "2.5"
@@ -76,10 +80,10 @@ $modeArg = if ($Mode) { $Mode } else { "" }
 ## One go: host, client (and watcher) until the client and host are done. True if it passed.
 function Invoke-Once() {
 	$jobs = [ordered]@{}
-	$jobs["host"] = Start-GodotJob $Godot $root "nethost.gd" "$port $modeArg" (Join-Path $logs "nethost.log")
-	if ($Mode -eq "three") { $jobs["watch"] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10" (Join-Path $logs "netwatch.log") }
+	$jobs["host"] = Start-GodotJob $Godot $root "nethost.gd" "$port $modeArg" (Join-Path $logs "nethost.log") "" (Get-DepsOut "host")
+	if ($Mode -eq "three") { $jobs["watch"] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10" (Join-Path $logs "netwatch.log") "" (Get-DepsOut "watch") }
 	Start-Sleep -Milliseconds 300
-	$jobs["client"] = Start-GodotJob $Godot $root "netclient.gd" "$port $delay $modeArg" (Join-Path $logs "netclient.log")
+	$jobs["client"] = Start-GodotJob $Godot $root "netclient.gd" "$port $delay $modeArg" (Join-Path $logs "netclient.log") "" (Get-DepsOut "client")
 	foreach ($n in $jobs.Keys) { Set-LiveSuite $run $n @{ state = "running"; log = $jobs[$n].Log; pid = $jobs[$n].Proc.Id; why = "" } }
 	$trouble = @{}
 	while ($true) {
@@ -136,14 +140,20 @@ foreach ($s in $slots) { Exit-Slot $s }
 if ($CI) {
 	Write-CiSummary "Co-op: $key" $ciRows
 } else {
-	Set-InFlight $crew $tree $key "" $false
+	Set-InFlight $crew $depKey $key "" $false
 	$secsAll = [int]((Get-Date) - [datetime]$run.Data.started).TotalSeconds
-	Write-Ledger $crew $key $(if ($ok) { "passed" } elseif ($script:lastTrouble) { "stopped" } else { "failed" }) $tree $me $secsAll $(if ($ok) { "" } elseif ($script:lastFails) { $script:lastFails[0] } else { "see the Tests pane" })
+	if ($ok) {
+		if (Save-Deps $crew $key @($names | ForEach-Object { Get-DepsOut $_ })) {
+			$k = Get-TestKey $ctx $key
+			Set-CachedPass $crew $k.Key $key $me $k.Manifest
+			$depKey = $k.Key
+		} else { Set-CachedPass $crew $tree $key $me }
+	}
+	Write-Ledger $crew $key $(if ($ok) { "passed" } elseif ($script:lastTrouble) { "stopped" } else { "failed" }) $tree $me $secsAll $(if ($ok) { "" } elseif ($script:lastFails) { $script:lastFails[0] } else { "see the Tests pane" }) -1 $depKey
 	$run.Data.state = $(if ($ok) { "passed" } else { "failed" })
 	$run.Data.ended = (Get-Date).ToString("o")
 	Save-LiveRun $run $true
 }
 if (-not $ok) { Write-Host "CO-OP TEST FAILED" -ForegroundColor Red; exit 1 }
-if (-not $CI) { Set-CachedPass $crew $tree $key $me }
 Write-Host "CO-OP TEST OK" -ForegroundColor Green
 exit 0

@@ -1,5 +1,6 @@
-# The gate before a push (a finished set of features or a version): every suite test_status calls stale or
-# failing on this checkout, the slow ones (heavy.txt) and the co-op modes included, then push if nothing's left.
+# The gate before a push (a finished set of features or a version): every test test_status calls stale (a file
+# it loads changed since its pass), failing or never run on this checkout, atomic tests, the slow suites
+# (heavy.txt) and the co-op modes included, then push if nothing's left.
 # -CI: GitHub runs every suite and co-op mode instead (ci.ps1 on HEAD's commit); green pushes that same commit
 # and deletes its ci/ branch (a red one keeps it, for `gh run rerun --failed`).
 #

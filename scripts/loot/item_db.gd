@@ -43,6 +43,7 @@ static func register(item: ItemData) -> ItemData:
 
 
 static func _load_all() -> void:
+	preload("res://scripts/game/dep_record.gd").note_dep(DIR)
 	for file in ResourceLoader.list_directory(DIR):
 		var f := file.trim_suffix(".remap")
 		if not (f.ends_with(".tres") or f.ends_with(".res")):

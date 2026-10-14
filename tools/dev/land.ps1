@@ -1,7 +1,7 @@
 # Land a finished parallel session (a Claude Code worktree branch) on main. Agents land their own branch.
 #
 #   .\tools\dev\land.ps1                         # in a worktree: land this worktree's branch
-#   .\tools\dev\land.ps1 worktree-ships          # rebase onto main, compile + smoketest + covering tests, fast-forward main
+#   .\tools\dev\land.ps1 worktree-ships          # rebase onto main, compile + smoketest + the tests it affects (by their loads), fast-forward main
 #   .\tools\dev\land.ps1 worktree-ships -NoTests # skip the tests (the compile check and smoketest still run)
 #   .\tools\dev\land.ps1 worktree-ships -Remove  # from the main checkout: then remove its worktree and branch (unwork.ps1)
 #   .\tools\dev\land.ps1 -List                   # the worktrees, how far ahead of main each is, who's landing
@@ -137,8 +137,6 @@ if ($o) {
 $lock = Enter-Landing $crew $Branch
 try {
 	Assert-MainClean @(git -C $here diff --name-only "$Onto...$Branch")
-	# (the suites that passed on the branch as it is now, and that the rebase brings nothing in for, aren't rerun)
-	$carry = (git -C $here rev-parse "$Branch^{tree}").Trim()
 
 	# onto the newest target
 	Set-LandingStep $crew "rebasing"
@@ -160,13 +158,14 @@ try {
 	Save-StrayUids $wt
 	& $Godot --headless --path "$wt" --script res://tools/dev/compilecheck.gd 2>&1 | Out-Null
 	if ($LASTEXITCODE -ne 0) { Fail "$Branch doesn't compile on top of $Onto (run tools/dev/compilecheck.gd there)." }
-	# (never carried over the rebase: it's there for what the two sides do together)
+	# (-Exact: never carried over the rebase by its dependencies, it's there for what the two sides do together)
 	Set-LandingStep $crew "smoketest"
-	& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") smoketest -NoCompileCheck
+	& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") smoketest -Exact -NoCompileCheck
 	if ($LASTEXITCODE -ne 0) { Fail "The island smoke test failed on top of ${Onto}: not landed (log: $wt\tools\dev\out\logs\smoketest.log)." }
 	if (-not $NoTests) {
+		# (the tests whose loads the branch changes; a pass on the same contents of what a test loads carries over the rebase)
 		Set-LandingStep $crew "tests"
-		& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") -Changed -Light -Base $Onto -CarryFrom $carry -NoCompileCheck
+		& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") -Changed -Light -Base $Onto -NoCompileCheck
 		if ($LASTEXITCODE -ne 0) { Fail "Tests failed on top of ${Onto}: not landed (logs in $wt\tools\dev\out\logs)." }
 	}
 

@@ -1,4 +1,4 @@
-# Run every suite that needs it on this checkout's code (test_status.ps1: stale or failing), then
+# Run every test that needs it on this checkout's code (test_status.ps1: stale, failing or never run), then
 # the co-op modes that do. The Tests pane's "Run needed" starts this in its own window.
 #
 #   .\tools\dev\run_needed.ps1          # run them
@@ -6,8 +6,8 @@
 param([switch]$List)
 $ErrorActionPreference = "Stop"
 $need = @((& (Join-Path $PSScriptRoot "test_status.ps1") -Stale) -split "\s+" | Where-Object { $_ })
-$suites = @($need | Where-Object { $_ -notlike "net*" })
-$nets = @($need | Where-Object { $_ -like "net*" } | ForEach-Object { if ($_ -eq "net") { "" } else { $_.Substring(4) } })
+$suites = @($need | Where-Object { $_ -notmatch "^net(-\w+)?$" })
+$nets = @($need | Where-Object { $_ -match "^net(-\w+)?$" } | ForEach-Object { if ($_ -eq "net") { "" } else { $_.Substring(4) } })
 Write-Host ("Needs running: " + $(if ($need) { $need -join " " } else { "nothing" })) -ForegroundColor Cyan
 if ($List -or $need.Count -eq 0) { exit 0 }
 if ($suites.Count -gt 0) { & (Join-Path $PSScriptRoot "run_tests.ps1") @suites -Jobs 5 }
