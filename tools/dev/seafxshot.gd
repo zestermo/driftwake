@@ -2,8 +2,10 @@ extends SceneTree
 ## Sea and wind effects: Brinehollow's beach in calm and in a storm (surf
 ## rolling in, the swash, spray where waves break), and out at sea in a storm
 ## under full sail, from astern and from the deck (whitecaps, wind streaks,
-## spray off the crests and over the bow). Three frames a shot, 0.35 s apart
-## (spray comes and goes). Args: <out_prefix> [psx]
+## spray off the crests and over the bow, the bow wave, foam patches,
+## spindrift), a wave breaking on Brinehollow's cliffs in a storm, and the
+## foam ring a big splash leaves. Three frames a shot, 0.35 s apart (spray
+## comes and goes). Args: <out_prefix> [psx]
 var t := 0.0
 var out := ""
 var cam: Camera3D
@@ -17,6 +19,9 @@ var frame := 0
 var t0 := 0.0
 var beach := Vector3.ZERO
 var beach_out := Vector3.ZERO
+var cliff := Vector3.ZERO
+var cliff_out := Vector3.ZERO
+var poked := false
 
 
 func _initialize():
@@ -41,6 +46,19 @@ func find_beach(a: float) -> void:
 			return
 
 
+## The first waterline from the middle out with ground over 3 m high 6 m in (a cliff).
+func find_cliff() -> void:
+	for k in range(64):
+		var d := Vector3(cos(k * TAU / 64.0), 0.0, sin(k * TAU / 64.0))
+		for r in range(60, 420):
+			if isl.height_at(d.x * r, d.z * r) < 0.0:
+				if isl.height_at(d.x * (r - 6), d.z * (r - 6)) > 3.0:
+					cliff = isl.to_global(d * float(r))
+					cliff_out = (isl.global_basis * d).normalized()
+					return
+				break
+
+
 func _process(dt: float) -> bool:
 	t += dt
 	if t < 2.0: return false
@@ -56,10 +74,14 @@ func _process(dt: float) -> bool:
 		wx = root.get_node("Weather")
 		isl = root.get_node("World/Islands/Brinehollow")
 		find_beach(0.9)
+		find_cliff()
 		cam = Camera3D.new(); cam.fov = 62; cam.far = 1500
 		root.add_child(cam); cam.current = true
-		shots = ["beach_calm", "beach_storm", "sea_astern", "sea_deck"]
+		shots = ["beach_calm", "beach_storm", "sea_astern", "sea_deck", "cliff_storm", "ring"]
 		return false
+	if i >= 0 and i < shots.size() and not poked and t > t0 - 0.2:
+		poked = true
+		_poke(shots[i])
 	if i < 0 or (t - t0 > 0.35 and frame < 3 and t0 > 0.0):
 		if i >= 0:
 			root.get_texture().get_image().save_png("%s_%s_%d.png" % [out, shots[i], frame])
@@ -74,8 +96,20 @@ func _process(dt: float) -> bool:
 			quit()
 			return false
 		_setup(shots[i])
+		poked = false
 		t0 = t + 4.0  # let the weather, the ship and the effects settle first
 	return false
+
+
+## Just before a shot's frames: a wave breaking on the cliff, a body falling in.
+func _poke(s: String) -> void:
+	match s:
+		"cliff_storm":
+			var w := cliff + cliff_out * 2.0
+			root.get_node("Weather/SeaSpray")._break(["rock", Vector3(w.x, 0.0, w.z), Vector3(cliff.x, 0.0, cliff.z) - cliff_out], 0.6, 20.0, 1.8)
+		"ring":
+			var at := beach + beach_out * 14.0
+			FX.splash(Vector3(at.x, Ocean.surface_at(at), at.z), 12, 1.0)
 
 
 func _setup(s: String) -> void:
@@ -86,6 +120,18 @@ func _setup(s: String) -> void:
 			p.global_position = beach - beach_out * 6.0 + Vector3.UP * 3.0
 			cam.global_position = beach - beach_out * 4.0 + side * 6.0 + Vector3.UP * 3.2
 			cam.look_at(beach + beach_out * 10.0 - side * 4.0, Vector3.UP)
+		"cliff_storm":
+			weather(3)
+			var side := cliff_out.cross(Vector3.UP)
+			p.global_position = cliff - cliff_out * 12.0 + Vector3.UP * 12.0
+			cam.global_position = cliff + cliff_out * 14.0 + side * 12.0 + Vector3.UP * 7.0
+			cam.look_at(cliff + Vector3.UP * 1.5, Vector3.UP)
+		"ring":
+			weather(0)
+			var side := beach_out.cross(Vector3.UP)
+			p.global_position = beach - beach_out * 6.0 + Vector3.UP * 3.0
+			cam.global_position = beach + beach_out * 4.0 + side * 3.0 + Vector3.UP * 4.0
+			cam.look_at(beach + beach_out * 14.0, Vector3.UP)
 		"sea_astern", "sea_deck":
 			weather(3)
 			var wg = root.get_node("World/Islands")

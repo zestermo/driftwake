@@ -10,7 +10,8 @@ const SOUNDS := [
 	"whoosh", "whoosh_big", "hit", "jump", "land", "chitter", "bug_hiss", "thud", "coin",
 	"splash", "blip", "blip_high", "blip_low", "gunshot", "parry", "fire_burst", "fire_blast", "crunch",
 	"howl", "haki", "block", "peril", "bell", "cannon", "cannon_hit", "horn", "roar", "rope",
-	"splash_big", "wood_crack", "gull", "bow_spray", "swim_stroke",
+	"splash_big", "wood_crack", "gull", "bow_spray", "swim_stroke", "hull_wave", "wave_break", "rock_crash",
+	"gull_cry", "jungle_bird",
 	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water",
 	"grunt", "squeal", "screech", "squawk", "flap", "hiss", "monkey", "clack",
 	"draw_katana", "sheathe_katana", "draw_blade", "sheathe_blade", "draw_axe", "sheathe_axe", "draw_great", "sheathe_great",
@@ -560,11 +561,46 @@ func sparkle(pos: Vector3, amount: int = 8, color: Color = Color(1.0, 0.95, 0.6)
 		"damping": 2.0, "grow": false, "color": Color(color.r, color.g, color.b, 1.0)})
 
 
-## Sea spray: white droplets thrown up and falling back (bow wave, wake).
+## Sea spray: white droplets thrown up and falling back (bow wave, wake). A
+## big one at the water (something falling in, a dive, a cannonball) leaves a
+## ring of foam spreading on the swell.
 func splash(pos: Vector3, amount: int = 4, size: float = 0.6) -> void:
 	_burst(pos, amount, _dust_mat, size, 0.7, {
 		"radius": 0.3, "spread": 35.0, "vel_min": 1.2, "vel_max": 2.6, "gravity": Vector3(0, -7.0, 0), "damping": 0.5,
 		"color": Color(0.92, 0.97, 1.0, 0.85)})
+	var oc := get_node_or_null("/root/Ocean")
+	if size >= 0.7 and amount >= 5 and oc and absf(pos.y - float(oc.surface_at(pos))) < 1.2:
+		water_ring(pos, size * 1.5 + amount * 0.06)
+
+
+## Foam rings racing out on the water from `pos`, riding the swell as they go.
+func water_ring(pos: Vector3, radius: float = 1.5, life: float = 1.1) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE * 0.6:
+		return
+	var oc := get_node("/root/Ocean")
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = Vector3(pos.x, float(oc.surface_at(pos)) + 0.05, pos.z)
+	var tw := holder.create_tween()
+	for k in range(2):
+		var mi := MeshInstance3D.new()
+		mi.mesh = _band(0.24 if k == 0 else 0.16)
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.albedo_color = Color(0.93, 0.97, 1.0, 0.75 if k == 0 else 0.6)
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(mi)
+		var r := radius * (1.0 if k == 0 else 0.55)
+		var t := life * (1.0 if k == 0 else 0.8)
+		mi.scale = Vector3(r * 0.15, 1.0, r * 0.15)
+		tw.parallel().tween_property(mi, "scale", Vector3(r, 1.0, r), t).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tw.parallel().tween_property(mat, "albedo_color:a", 0.0, t * 0.6).set_delay(t * 0.4)
+	tw.parallel().tween_method(func(_k: float): holder.global_position.y = float(oc.surface_at(holder.global_position)) + 0.05, 0.0, 1.0, life)
+	tw.tween_callback(holder.queue_free)
 
 
 ## Powder smoke: soft grey puffs that swell, drift up and linger.

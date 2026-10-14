@@ -128,8 +128,6 @@ var _placed: bool = false
 var _pos := Vector3.ZERO
 var _heading: float = 0.0
 var _prev_speed: float = 0.0
-var _wake_t: float = 0.0
-var _bow_t: float = 0.0
 var _cam_heading: float = 0.0
 var _cam_y: float = 0.0
 
@@ -149,6 +147,9 @@ func _ready() -> void:
 	_build_collision()
 	_build_cannons()
 	ShipLights.crew(ship_model)
+	var spray := ShipSpray.new()
+	spray.name = "ShipSpray"
+	add_child(spray)
 	_ocean = get_node_or_null("/root/Ocean")
 	_game_manager = get_node("/root/GameManager")
 	apply_kit(_game_manager.ship_kit)
@@ -301,7 +302,7 @@ func _physics_process(delta: float) -> void:
 	# wheel follows the rudder
 	if wheel:
 		wheel.rotation.z = -rudder * 2.4
-	_wake(delta, pos, fwd, right, mean)
+	_wake(pos, fwd)
 	if speed > top:
 		speed = move_toward(speed, top, 2.0 * delta)
 	if not Net.is_client():
@@ -780,32 +781,10 @@ func _set_work(text: String, progress: float) -> void:
 	get_tree().call_group("hud", "show_prompt", text, progress)
 
 
-## Bow spray and wake (every machine makes its own from the ship's speed).
-func _wake(delta: float, pos: Vector3, fwd: Vector3, right: Vector3, mean: float) -> void:
+## The foam wake (every machine lays its own from the ship's speed; her spray is ShipSpray's).
+func _wake(pos: Vector3, fwd: Vector3) -> void:
 	if absf(speed) > 1.0:
 		Ocean.wake(self, pos - fwd * STERN_Z, clampf(absf(speed) / 9.0, 0.0, 1.0))
-	_wake_t -= delta
-	if absf(speed) > 2.5 and _wake_t <= 0.0:
-		_wake_t = clampf(0.5 - absf(speed) * 0.03, 0.12, 0.4)
-		var water := mean
-		var bow := pos + fwd * (-BOW_Z + 0.6)
-		FX.splash(Vector3(bow.x, water + 0.2, bow.z), int(clampf(absf(speed) * 0.5, 2.0, 7.0)), 0.6)
-		for sgn in [-1.0, 1.0]:
-			var side: Vector3 = pos + right * (HALF_BEAM + 0.2) * float(sgn) + fwd * 2.0
-			FX.splash(Vector3(side.x, water + 0.1, side.z), 2, 0.5)
-		var stern := pos - fwd * (STERN_Z + 0.8)
-		FX.splash(Vector3(stern.x, water + 0.05, stern.z), 3, 0.8)
-		# driving into a swell: a sheet of spray thrown up over the bow and blown aft
-		# (more the faster she goes and the higher the sea runs)
-		_bow_t -= _wake_t
-		var wx := get_node_or_null("/root/Weather")
-		var caps: float = float(wx.call("whitecaps")) if wx else 0.0
-		if _bow_t <= 0.0 and randf() < clampf((absf(speed) - 5.0) / 10.0, 0.0, 1.0) * 0.4 + caps * 0.3:
-			_bow_t = randf_range(0.8, 1.6)
-			var up_and_aft := (Vector3.UP * 0.9 - fwd * 0.5 + right * randf_range(-0.4, 0.4)).normalized()
-			FX.spray(Vector3(bow.x, water + 1.2, bow.z), up_and_aft, int(10 + caps * 8), Color(0.93, 0.97, 1.0), 6.0 + absf(speed) * 0.3)
-			FX.splash(Vector3(bow.x, water + 0.6, bow.z), 6, 0.9)
-			FX.sfx("bow_spray", Vector3(bow.x, water + 1.2, bow.z), -6.0 + 4.0 * clampf((absf(speed) - 5.0) / 6.0, 0.0, 1.0) + caps * 3.0, 0.1)
 
 
 func _wave(p: Vector3, t: float) -> float:

@@ -1056,6 +1056,241 @@ def jungle_loop(seconds=43.0):
     _write_loop("jungle_loop", out)
 
 
+# --- the living sea (2026-10-14): layers, shores by kind, the ship meeting waves, gusts, under water, birds ---
+
+def sea_deep_loop(seconds=53.0):
+    """The deep sea's slow breath under everything: a low roll (mostly under
+    250 Hz) swelling at long uneven gaps, a soft hush riding the biggest swells."""
+    rng = np.random.default_rng(503)
+    n = int(SR * seconds)
+    sw = 0.25 + 0.75 * _cenv(n, rng, 0.07) ** 1.6
+    low = _shape(n, rng, lambda f: _hp(f, 25) * _lp(f, 170, 2) * (np.maximum(f, 25) / 60) ** -0.5)
+    body = _shape(n, rng, lambda f: _hp(f, 80) * _lp(f, 500, 2)) * 0.6
+    hush = _shape(n, rng, lambda f: _hp(f, 250) * _lp(f, 1100, 2)) * 0.2 * sw ** 2.5
+    _write_loop("sea_deep_loop", (low + body) * sw + hush, -22.0)
+
+
+def sea_lap_loop(seconds=27.0):
+    """Water lapping close by (round a swimmer, a pier's piles, a quay wall):
+    little waves slapping and sloshing at uneven times, some gurgling back
+    after, over a soft wash."""
+    rng = np.random.default_rng(509)
+    n = int(SR * seconds)
+    out = _shape(n, rng, lambda f: _hp(f, 120) * _lp(f, 900, 2)) * 0.18 * (0.5 + 0.5 * _cenv(n, rng, 0.4))
+    t = 0.0
+    while t < seconds:
+        t += rng.uniform(0.35, 1.6)
+        L = int(SR * rng.uniform(0.18, 0.45))
+        tt = np.arange(L) / SR
+        slap = _noise(L, rng, 250, 2400) * np.minimum(1, tt / 0.012) * np.exp(-tt * rng.uniform(9, 16))
+        clop = _norm(resonate(rng.standard_normal(L), rng.uniform(180, 420), 5.0)) * np.exp(-tt * 22)
+        _place(out, (slap * 0.7 + clop * 0.35) * rng.uniform(0.3, 1.0), int(t * SR))
+        if rng.random() < 0.5:
+            Lg = int(SR * rng.uniform(0.3, 0.7))
+            tg = np.arange(Lg) / SR
+            g = _noise(Lg, rng, 300, 1400) * _churn(Lg, rng, 25) * np.sin(np.pi * tg / tg[-1]) ** 2 * 0.35
+            _place(out, g * rng.uniform(0.3, 0.8), int((t + 0.15) * SR))
+    _write_loop("sea_lap_loop", out)
+
+
+def far_breakers_loop(seconds=59.0):
+    """Surf on a shore a long way off: slow muffled booms at uneven gaps, each
+    with a long hushed wash, nothing above ~1.6 kHz."""
+    rng = np.random.default_rng(521)
+    n = int(SR * seconds)
+    out = _shape(n, rng, lambda f: _hp(f, 40) * _lp(f, 500, 2)) * 0.3 * (0.6 + 0.4 * _cenv(n, rng, 0.08))
+    t = rng.uniform(0.0, 3.0)
+    while t < seconds - 4.0:
+        size = rng.uniform(0.5, 1.0)
+        tb = np.arange(int(SR * 5.0)) / SR
+        env = np.minimum(1, tb / 0.5) ** 2 * np.exp(-np.maximum(tb - 0.5, 0) * 0.9)
+        boom = _burst(rng, 5.0, 40, 650) * env
+        hush = _burst(rng, 5.0, 300, 1600) * np.minimum(1, tb / 1.0) * np.exp(-tb * 0.7) * 0.3
+        _place(out, (boom + hush) * size, int(t * SR))
+        t += rng.uniform(6.5, 13.0)
+    _write_loop("far_breakers_loop", out)
+
+
+def _rock_wave(rng, n, size):
+    """One wave meeting rock: a deep boom, the crash, spray thrown up hissing,
+    then water draining off the stones in gurgles and trickles."""
+    t = np.arange(n) / SR
+    boom = _thump(t, rng.uniform(130, 160), rng.uniform(40, 52), 0.08, 4.5, 0.01) * 0.9
+    crash = _noise(n, rng, 180, 4200, 2, 2) * np.minimum(1, t / 0.015) * np.exp(-t * 3.4) * 0.8
+    sp = rng.uniform(0.3, 0.42)
+    spray = _noise(n, rng, 1400, 5500) * np.exp(-((t - sp) / 0.22) ** 2) * 0.28
+    drain = np.zeros(n)
+    for _ in range(int(14 * size) + 6):
+        L = int(SR * rng.uniform(0.15, 0.45))
+        p = int(SR * rng.uniform(0.7, 2.6))
+        if p + L >= n:
+            continue
+        tt = np.arange(L) / SR
+        drain[p:p + L] += _noise(L, rng, 250, 1300) * _churn(L, rng, 30) * np.sin(np.pi * tt / tt[-1]) ** 2 * rng.uniform(0.2, 0.5)
+    trickle = _grains(n, rng, 220, 0.6, 2.8, _noise(n, rng, 900, 3800), (0.003, 0.012)) * np.exp(-np.maximum(t - 0.6, 0) * 0.8) * 0.4
+    return (boom + crash + spray + drain + trickle) * size
+
+
+def rock_surf_loop(seconds=31.0):
+    """Waves crashing on rocks and cliffs: six to a loop at uneven gaps, each a
+    boom, a crash and spray, draining back off the stones; a churning bed."""
+    rng = np.random.default_rng(523)
+    n = int(SR * seconds)
+    out = _shape(n, rng, lambda f: _hp(f, 50) * _lp(f, 800, 2)) * 0.2 * (0.6 + 0.4 * _cenv(n, rng, 0.2))
+    for i in range(6):
+        at = int((i * seconds / 6 + rng.uniform(-1.2, 1.2)) * SR) % n
+        _place(out, _rock_wave(rng, int(SR * 3.4), rng.uniform(0.55, 1.0)), at)
+    _write_loop("rock_surf_loop", out)
+
+
+def spray_hiss_loop(seconds=23.0):
+    """Spray blowing over a ship: a soft breathy hiss swelling and thinning,
+    drops pattering on the deck (rolled off above 6 kHz: no whistle)."""
+    rng = np.random.default_rng(529)
+    n = int(SR * seconds)
+    sw = 0.3 + 0.7 * _cenv(n, rng, 0.35) ** 1.3
+    hiss = _shape(n, rng, lambda f: _hp(f, 500) * _lp(f, 1500, 1) * _lp(f, 5000, 2)) * sw
+    grains = np.zeros(n)
+    t = 0.0
+    while t < seconds:
+        t += rng.exponential(1.0 / (60.0 + 220.0 * sw[int(t * SR) % n]))
+        L = int(SR * rng.uniform(0.002, 0.007))
+        _place(grains, np.hanning(L) * rng.uniform(0.2, 1.0), int(t * SR))
+    patter = _shape(n, rng, lambda f: _hp(f, 700) * _lp(f, 3000, 2)) * grains
+    _write_loop("spray_hiss_loop", hiss * 0.6 + _norm(patter) * 0.6)
+
+
+def underwater_loop(seconds=29.0):
+    """Under the surface: a muffled pressure rumble, the swell heard through the
+    water, and bubbles rising in slow low clusters."""
+    rng = np.random.default_rng(541)
+    n = int(SR * seconds)
+    out = _shape(n, rng, lambda f: _hp(f, 30) * _lp(f, 260, 2)) * (0.6 + 0.4 * _cenv(n, rng, 0.12))
+    out += _shape(n, rng, lambda f: _hp(f, 120) * _lp(f, 600, 2)) * 0.18 * _cenv(n, rng, 0.3) ** 2
+    density = 0.15 + 0.85 * _cenv(n, rng, 0.2) ** 2
+    t = 0.0
+    while t < seconds:
+        t += rng.exponential(1.0 / (2.0 + 14.0 * density[int(t * SR) % n]))
+        f0 = np.exp(rng.uniform(np.log(180), np.log(700)))
+        L = int(SR * rng.uniform(0.04, 0.09))
+        tt = np.arange(L) / SR
+        f = f0 * (1 + rng.uniform(0.3, 0.8) * tt / tt[-1])
+        bub = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt * f0 * 0.05) * np.minimum(1, tt / 0.003)
+        _place(out, bub * rng.uniform(0.08, 0.25), int(t * SR))
+    _write_loop("underwater_loop", out, -21.0)
+
+
+def wave_break_takes(count=3):
+    """A wave breaking on a beach: a rising roll, the crash, then the white
+    water rushing up the sand and fizzing as it sinks in."""
+    for k in range(count):
+        rng = np.random.default_rng(1800 + k)
+        n = int(SR * 3.6)
+        t = np.arange(n) / SR
+        tb = rng.uniform(0.45, 0.65)
+        build = _noise(n, rng, 70, 800) * np.where(t < tb, (t / tb) ** 2, np.exp(-(t - tb) * 4.0)) * 0.55
+        crash = _noise(n, rng, 150, 4500) * np.where(t < tb, 0.0, np.exp(-(t - tb) * 5.0)) * np.minimum(1, np.maximum(t - tb, 0) / 0.02)
+        run = np.where(t < tb, 0.0, (1 - np.exp(-(t - tb) * 5)) * np.exp(-np.maximum(t - tb - 0.3, 0) * 0.9))
+        wash = (_noise(n, rng, 900, 4000) * 0.35 + _noise(n, rng, 200, 1400) * 0.5) * run
+        fizz = _grains(n, rng, 260, tb + 0.3, 3.4, _noise(n, rng, 1200, 4500), (0.002, 0.01)) * np.exp(-np.maximum(t - tb, 0) * 0.6) * 0.25
+        out = _filt(build + crash + wash + fizz, lambda f: _lp(f, 5000, 2))
+        _write_shot(f"wave_break_{k + 1}", out, -17.0, fade=0.4)
+
+
+def rock_crash_takes(count=3):
+    """A wave against rock (or a cliff's foot): boom, crash, spray, the drain."""
+    for k in range(count):
+        rng = np.random.default_rng(1830 + k)
+        out = _filt(_rock_wave(rng, int(SR * 3.2), 1.0), lambda f: _lp(f, 6500, 2))
+        _write_shot(f"rock_crash_{k + 1}", out, -15.0, fade=0.4)
+
+
+def hull_wave_takes(count=4):
+    """A wave slapping the hull as she meets it: a hollow knock of planking,
+    the slap of water and the splash falling back."""
+    for k in range(count):
+        rng = np.random.default_rng(1860 + k)
+        n = int(SR * 0.95)
+        t = np.arange(n) / SR
+        knock = _modes(t, rng, [(rng.uniform(140, 175), 1.0, 22), (rng.uniform(240, 300), 0.7, 28), (rng.uniform(420, 520), 0.4, 36)], 0.004)
+        thump = _thump(t, 110, 60, 0.03, 18, 0.004) * 0.4
+        slap = _noise(n, rng, 300, 3000) * np.minimum(1, t / 0.006) * np.exp(-t * rng.uniform(14, 20)) * 1.4
+        fall = _grains(n, rng, 90, 0.12, 0.85, _noise(n, rng, 900, 3600), (0.002, 0.008)) * np.exp(-t * 3.0) * 0.6
+        out = _filt(knock * 0.6 + thump + slap + fall, lambda f: _lp(f, 6000, 2))
+        _write_shot(f"hull_wave_{k + 1}", out, -17.0, fade=0.15)
+
+
+def _gull_call(rng, dur, pts, amp=1.0):
+    m = int(SR * dur)
+    t = np.arange(m) / SR
+    f0 = np.interp(t / dur, np.linspace(0, 1, len(pts)), pts) * (1 + 0.02 * np.sin(2 * np.pi * rng.uniform(30, 42) * t))
+    ph = np.cumsum(f0 / SR)
+    src = np.zeros(m)
+    for k in range(1, 8):
+        src += np.sin(2 * np.pi * k * ph) / k
+    rasp = rng.standard_normal(m) * (0.3 + 0.4 * (np.sin(2 * np.pi * ph) > 0.5))
+    v = np.tanh(src * 2.2) + rasp * 0.3
+    y = resonate(v, rng.uniform(2300, 2800), 4) + resonate(v, rng.uniform(1250, 1500), 5) * 0.7 + resonate(v, 4000, 8) * 0.2
+    return y * np.minimum(1, t / 0.012) * np.clip((dur - t) / 0.07, 0, 1) * amp
+
+
+def gull_cry_takes(count=4):
+    """Gulls: a long 'kyow', a 'kek-kek-kek', a mewing 'kee-ow', and the long
+    laughing call (rising, then a run of falling yelps)."""
+    shapes = [
+        [(0.0, 0.46, [880, 1450, 1300, 740], 1.0)],
+        [(0.0, 0.12, [1300, 1500, 1200], 0.9), (0.17, 0.12, [1250, 1450, 1150], 0.85), (0.34, 0.12, [1200, 1400, 1100], 0.8)],
+        [(0.0, 0.55, [1500, 1700, 1250, 950, 820], 0.9)],
+        [(0.0, 0.3, [800, 1200, 1400], 0.8), (0.4, 0.2, [1400, 1250, 1000], 1.0), (0.66, 0.18, [1350, 1150, 950], 0.9),
+         (0.9, 0.17, [1300, 1100, 900], 0.8), (1.12, 0.16, [1250, 1050, 850], 0.65)],
+    ]
+    for k in range(count):
+        rng = np.random.default_rng(1890 + k)
+        calls = shapes[k % len(shapes)]
+        n = int(SR * (calls[-1][0] + calls[-1][1] + 0.1))
+        out = np.zeros(n)
+        for t0, dur, pts, amp in calls:
+            g = _gull_call(rng, dur, pts, amp)
+            i = int(SR * t0)
+            out[i:i + len(g)] += g
+        out = _filt(out, lambda f: _hp(f, 500, 2) * _lp(f, 6500, 2))
+        _write_shot(f"gull_cry_{k + 1}", out, -18.0, fade=0.04)
+
+
+def jungle_bird_takes(count=4):
+    """Birds over the jungle: a rising whistle run, a two-note hoot, a squawk and
+    a parrot's raspy screech."""
+    for k in range(count):
+        rng = np.random.default_rng(1920 + k)
+        if k == 3:
+            out = np.zeros(int(SR * 0.7))
+            for t0 in (0.0, 0.3):
+                g = _voice(rng, 0.26, [1600, 2100, 1500], ((2200, 4, 1.0), (3400, 6, 0.5)), harm=8, rasp=0.7, gain=3.0)
+                i = int(SR * t0)
+                out[i:i + len(g)] += g
+        else:
+            out = _bird_call(rng, ["whistle", "hoot", "squawk"][k])
+        out = _filt(np.concatenate([out, np.zeros(int(SR * 0.05))]), lambda f: _hp(f, 300, 2) * _lp(f, 6500, 2))
+        _write_shot(f"jungle_bird_{k + 1}", out, -20.0, fade=0.04)
+
+
+def wind_gust_takes(count=3):
+    """A gust of wind sweeping past: a roar swelling and a breathy middle
+    rising with it, a hint of whistle at the peak, falling away."""
+    for k in range(count):
+        rng = np.random.default_rng(1950 + k)
+        dur = rng.uniform(3.6, 4.8)
+        n = int(SR * dur)
+        t = np.arange(n) / SR
+        pk = rng.uniform(1.2, 1.8)
+        env = np.where(t < pk, np.sin(np.pi * 0.5 * t / pk) ** 2, np.exp(-(t - pk) * rng.uniform(1.2, 1.7)))
+        env *= 0.85 + 0.15 * _churn(n, rng, 3.0)
+        roar = _noise(n, rng, 40, 380, 2, 1) * env
+        breath = _noise(n, rng, 300, 1700) * env ** 1.6 * 0.55
+        whistle = (_noise(n, rng, 700, 760, 4, 4) + 0.5 * _noise(n, rng, 1050, 1110, 4, 4)) * env ** 4 * 0.12
+        _write_shot(f"wind_gust_{k + 1}", roar + breath + whistle, -19.0, fade=0.5)
+
+
 def thunder_sound(name="thunder", seed=231, dur=4.5, crack=1.0):
     """Thunder: a sharp crack (close strikes) rolling into long low rumbles."""
     rng = np.random.default_rng(seed)
@@ -1673,6 +1908,18 @@ SOUNDS = [
     ("hull_slap_loop", hull_slap_loop),
     ("ship_creak_loop", ship_creak_loop),
     ("jungle_loop", jungle_loop),
+    ("sea_deep_loop", sea_deep_loop),
+    ("sea_lap_loop", sea_lap_loop),
+    ("far_breakers_loop", far_breakers_loop),
+    ("rock_surf_loop", rock_surf_loop),
+    ("spray_hiss_loop", spray_hiss_loop),
+    ("underwater_loop", underwater_loop),
+    ("wave_break", wave_break_takes),
+    ("rock_crash", rock_crash_takes),
+    ("hull_wave", hull_wave_takes),
+    ("gull_cry", gull_cry_takes),
+    ("jungle_bird", jungle_bird_takes),
+    ("wind_gust", wind_gust_takes),
     ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),
     ("thunder_far", lambda: thunder_sound("thunder_far", 237, 5.0, 0.15)),
     ("gull", gull_sound),

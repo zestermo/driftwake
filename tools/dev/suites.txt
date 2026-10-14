@@ -64,3 +64,4 @@ cliptest
 emotetest
 musictest
 lighttest
+skytest

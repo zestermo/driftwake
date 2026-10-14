@@ -1,8 +1,10 @@
 extends SceneTree
 ## Ambience (the sound of where you are): surf at the end of Brinehollow's
 ## dock, quieter surf and wind in the middle of the island, and aboard the
-## ship out at sea the open swell over the surf, the hull's wash rising (in
-## volume and pitch) once she's under way, her timbers creaking.
+## ship out at sea the open swell and the deep bed over the surf, the hull's wash
+## rising (in volume and pitch) once she's under way, her timbers creaking; in a
+## storm the wind's gusts and her spray's hiss; muffled under water; and ashore,
+## waves crashing on a cliff and surf on a beach, each where it is.
 var t := 0.0
 var step := 0
 var t0 := 0.0
@@ -48,7 +50,7 @@ func put(at: Vector3) -> void:
 
 func _process(d: float) -> bool:
 	t += d
-	if t > 90.0:
+	if t > 160.0:
 		check("timed out at step %d" % step, false)
 		print("RESULT FAILED (%d)" % fails)
 		quit()
@@ -124,6 +126,88 @@ func _process(d: float) -> bool:
 			check("...her timbers creaking", db("creak") > -30.0)
 			check("...and footsteps on her deck are wood (%s)" % p.ground_surface(), p.ground_surface() == "wood")
 			check("...and the wind on deck", db("wind") > -30.0)
+			check("...under it the deep swell", db("deep") > -25.0)
+			var c: Array = amb.coast.nearest("", p.global_position)
+			print("   coast %.0f m off: far breakers %.1f dB" % [c[0], db("far")])
+			check("...and breakers on Brinehollow's far shore", float(c[0]) < 70.0 or float(c[0]) > 175.0 or db("far") > -30.0)
+			# a storm: gusts, and the spray over her bow hissing
+			root.get_node("Weather").forced = 3
+			root.get_node("Weather").forced_at = root.get_node("Weather").world_time() - 100.0
+			set_meta("gust", 0.0)
+			set_meta("wind_calm", db("wind"))
+			next()
+		5:
+			set_meta("gust", maxf(float(get_meta("gust")), amb.gust))
+			if not wait(14.0): return false
+			print("   storm under sail: gusts up to %.2f, wind %.1f dB, spray hiss %.1f dB" % [float(get_meta("gust")), db("wind"), db("spray")])
+			check("in a storm the wind comes in gusts", float(get_meta("gust")) > 0.3)
+			check("...louder than before", db("wind") > float(get_meta("wind_calm")))
+			check("...and the ship's spray hisses", db("spray") > -40.0)
+			# under water: everything muffled
+			var cam := Camera3D.new()
+			cam.name = "UnderCam"
+			root.add_child(cam)
+			cam.global_position = ship.global_position + Vector3(12.0, -4.0, 0.0)
+			cam.current = true
+			next()
+		6:
+			if not wait(2.5): return false
+			var lp := low_pass()
+			print("   under water: %.2f, low-pass %.0f Hz (on %s), rumble %.1f dB" % [amb.under, lp[0], lp[1], db("under")])
+			check("with the camera under water the sound is muffled", amb.under > 0.9 and float(lp[0]) < 1000.0 and lp[1])
+			check("...under a rumble of its own", db("under") > -25.0)
+			root.get_node("UnderCam").queue_free()
+			next()
+		7:
+			if not wait(1.5): return false
+			var lp := low_pass()
+			check("...and clear again above it", amb.under < 0.05 and not lp[1])
+			root.get_node("Weather").forced = 0
+			# a cliff on Brinehollow, then a beach: the shore by what it is
+			var isl = root.get_node("World/Islands/Brinehollow")
+			var spot := shore_spot(isl, true)
+			check("found a cliff on Brinehollow", spot != Vector3.INF)
+			put(spot)
+			next()
+		8:
+			if not wait(4.0): return false
+			print("   on a cliff top: rock %.1f shore %.1f dB (rock %.0f m, beach %.0f m)" % [db("rock"), db("shore"),
+				amb.coast.nearest("rock", p.global_position)[0], amb.coast.nearest("beach", p.global_position)[0]])
+			check("on a cliff top: waves crashing on rock", db("rock") > -25.0 and db("rock") > db("shore"))
+			var isl = root.get_node("World/Islands/Brinehollow")
+			put(shore_spot(isl, false))
+			next()
+		9:
+			if not wait(4.0): return false
+			print("   on a beach: rock %.1f shore %.1f dB (rock %.0f m, beach %.0f m)" % [db("rock"), db("shore"),
+				amb.coast.nearest("rock", p.global_position)[0], amb.coast.nearest("beach", p.global_position)[0]])
+			check("on a beach: the surf", db("shore") > -20.0 and db("shore") > db("rock"))
 			print("RESULT OK" if fails == 0 else "RESULT FAILED (%d)" % fails)
 			quit()
 	return false
+
+
+## [cutoff Hz, on] of the underwater low-pass on the SFX bus.
+func low_pass() -> Array:
+	var b := AudioServer.get_bus_index("SFX")
+	for i in range(AudioServer.get_bus_effect_count(b)):
+		var e := AudioServer.get_bus_effect(b, i)
+		if e.resource_name == "underwater":
+			return [(e as AudioEffectLowPassFilter).cutoff_hz, AudioServer.is_bus_effect_enabled(b, i)]
+	return [INF, false]
+
+
+## A few metres in from Brinehollow's waterline, on a cliff (ground 6 m in over 3 m
+## high) or a beach (under 1.2 m), along the first bearing that has one.
+func shore_spot(isl, cliff: bool) -> Vector3:
+	for k in range(64):
+		var a := k * TAU / 64.0
+		var d := Vector3(cos(a), 0.0, sin(a))
+		for r in range(60, 420):
+			if isl.height_at(d.x * r, d.z * r) < 0.0:
+				var h: float = isl.height_at(d.x * (r - 6), d.z * (r - 6))
+				if (cliff and h > 3.0) or (not cliff and h < 1.2 and h > 0.0):
+					var lp: Vector3 = d * float(r - (6 if cliff else 4))
+					return isl.to_global(Vector3(lp.x, isl.height_at(lp.x, lp.z) + 0.3, lp.z))
+				break
+	return Vector3.INF

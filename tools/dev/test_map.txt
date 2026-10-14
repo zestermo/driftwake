@@ -90,7 +90,12 @@ scenes/ocean/*                          r9test r10test
 scripts/world/sea_features.gd           seatest chaintest legtest
 scripts/world/sea_legs.gd               legtest seatest net
 scripts/world/weather.gd                r9test r10test ambiencetest
-scripts/world/ambience.gd               ambiencetest
+scripts/world/ambience.gd               ambiencetest skytest
+scripts/world/coast_probe.gd            ambiencetest skytest
+scripts/world/sea_spray.gd              skytest
+scripts/world/sky_birds.gd              skytest
+shaders/sky_bird.gdshader               skytest
+scripts/ship/ship_spray.gd              skytest shiptest
 assets/audio/*_loop.wav                 ambiencetest
 scripts/game/footsteps.gd               ambiencetest
 scripts/game/fx.gd                      powertest r6test
