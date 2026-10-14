@@ -18,8 +18,7 @@ func _process(d: float) -> bool:
 	if cam == null:
 		for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 		get_first_node_in_group("hud").visible = false
-		var dh := fposmod(10.5 - float(w.hour()), 24.0)
-		w.world_offset += dh / 24.0 * float(w.DAY_LEN)
+		w.skip_to(10.5)
 		w.forced = 1
 		w.forced_at = w.world_time() - 100.0
 		cam = Camera3D.new(); cam.fov = 60; cam.far = 3000; root.add_child(cam); cam.current = true

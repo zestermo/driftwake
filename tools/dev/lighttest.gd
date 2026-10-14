@@ -27,7 +27,7 @@ func check(name: String, cond: bool) -> void:
 
 
 func set_hour(h: float) -> void:
-	w.world_offset += fposmod(h - float(w.hour()), 24.0) / 24.0 * float(w.DAY_LEN)
+	w.skip_to(h)
 
 
 func force(s: int) -> void:

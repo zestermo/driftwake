@@ -41,8 +41,7 @@ func finish() -> void:
 
 
 func hour_to(h: float) -> void:
-	var k: Dictionary = (wx.get_script() as GDScript).get_script_constant_map()
-	wx.set_world_time(fposmod(h - float(k["START_HOUR"]), 24.0) / 24.0 * float(k["DAY_LEN"]))
+	wx.set_world_time(wx.time_at(h))
 
 
 func put(at: Vector3) -> void:
@@ -89,7 +88,7 @@ func _routines(island, tag: String) -> Array:
 		kinds.has("plaza") and kinds.has("inn") and kinds.has("market") == market and (kinds.has("nets") or kinds.has("forage")))
 	# day and night, from the routine alone
 	var KL = load("res://scripts/island/kit/kit_life.gd")
-	var kind_at := func(v, h: float) -> String: return v.stays[KL.stay_at(v.stays, h, 1440.0)[0]]["kind"]
+	var kind_at := func(v, h: float) -> String: return v.stays[KL.stay_at(v.stays, h)[0]]["kind"]
 	var shift: Array = vs.filter(func(v): return kind_at.call(v, 10.5) != kind_at.call(v, 23.5))
 	var moved := shift.filter(func(v): return (v.spot_at(10.5)[0] as Vector2).distance_to(v.spot_at(23.5)[0]) > 2.0).size()
 	print("   the same kind of place day and night: %s" % [vs.filter(func(v): return not shift.has(v)).map(func(v): return kind_at.call(v, 10.5))])
@@ -97,7 +96,7 @@ func _routines(island, tag: String) -> Array:
 	check(tag + "day and night most are somewhere else (%d of %d; the rest work where they spend the evening)" % [moved, vs.size()], moved == shift.size() and moved > vs.size() / 2)
 	var late: Array = vs.filter(func(v): return not (v.spot_at(20.8)[3] and kind_at.call(v, 20.8) in ["inn", "plaza"]))
 	print("   not at the inn or the fire at nine: %s" % [late.map(func(v): return "%s (%s, %s, %.0f m from %.1f h)" % [v.npc_name, kind_at.call(v, 20.8), v.spot_at(20.8)[2],
-		walk_len(v, KL.stay_at(v.stays, 20.8, 1440.0)[0]), float(v.stays[KL.stay_at(v.stays, 20.8, 1440.0)[0]]["h"])])])
+		walk_len(v, KL.stay_at(v.stays, 20.8)[0]), float(v.stays[KL.stay_at(v.stays, 20.8)[0]]["h"])])])
 	check(tag + "at nine in the evening they're at the inn or round the plaza's fire (%d of %d)" % [vs.size() - late.size(), vs.size()], late.size() <= 1)
 	var home := vs.filter(func(v): return v.spot_at(2.0)[2] == "home").size()
 	var up := vs.filter(func(v): return v.spot_at(2.0)[2] == "talk").size()

@@ -1335,3 +1335,13 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Tests: skytest (new), ambiencetest (deep bed, gusts, spray hiss, underwater low-pass, cliff top rock vs beach surf). Renders: skyshot (new), seafxshot (+ cliff in a storm, splash ring).
 - Zach (renders): spray came off the anchor. ShipSpray's bow emitters sat inside the hull (x 0.55 at z -7.6, where she's 2.3 m wide at the waterline) and threw drops up past the cathead. Everything now starts at the waterline just outside her planking (ShipSpray.beam_at(z) from HullBuilder.RINGS): the bow wave low and flat off her sides at z -10, the sheet and mist from the stem (z -12.3), the churn aft of the transom. Foam patches no longer spawn under a hull. seafxshot `sea_bow` frames the anchor.
 - Rain (Zach: too bright and big, falls through everything): Weather's streaks are thinner (0.012 x 1.1 m), fewer (1500) and lit by the scene (alpha 0.32). RainFX (scripts/world/rain_fx.gd, made by Weather._build_rain): a GPUParticlesCollisionHeightField3D (56 x 64 x 56 m, 256 px, redrawn every frame while it rains, round the camera) stops the drops on ground, roofs and decks, and a collision sub-emitter splashes 2 droplets each; pocks (rings) on the sea round the camera (cells judged once per 4 m); puddles in 7 m cells (45% of them, placed by the cell's hash, flat ground open to the sky, not ships) growing with `wet` (50 s to soak, 160 s to dry, like the deck). Render: rainshot.gd (street and deck at 13:00 and 21:00, the sea).
+
+## 2026-10-14: longer days, pixelation toggle, L = lantern
+- Zach: days slightly longer than nights. DayClock (scripts/world/day_clock.gd): the 24-minute day is warped,
+  6:00-18:00 takes 840 s (70 s an hour) and the night 600 s (50 s an hour). Weather.hour()/day() go through it;
+  `Weather.time_at(h, day)` and `skip_to(h)` replace the old `h / 24 * DAY_LEN` sums in every tool and test (that
+  sum now lands at the wrong hour), F7 skips two clock hours, KitLife.stay_at measures a villager's stay on it.
+  Saves keep world_time, so an old save's hour moves a little on load. r9test checks the rates.
+- Pixelation is one toggle (`video.pixelate`, PSX.GRID 960x540); the 640/480/320 presets are gone (Zach: too hard
+  to see). Settings v4 migrates (`psx_preset` 3 "native" -> off, anything else on). F2 toggles it.
+- Keys swapped: L toggles the belt lantern, H holds up the log pose.

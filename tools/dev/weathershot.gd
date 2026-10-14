@@ -15,9 +15,7 @@ func _initialize():
 	out = OS.get_cmdline_user_args()[0]
 	change_scene_to_file("res://scenes/world/world.tscn")
 func set_hour(h: float) -> void:
-	var cur: float = w.hour()
-	var dh := fposmod(h - cur, 24.0)
-	w.world_offset += dh / 24.0 * w.DAY_LEN
+	w.skip_to(h)
 func _process(d: float) -> bool:
 	t += d
 	if t < 2.0: return false

@@ -134,8 +134,7 @@ func _process(d: float) -> bool:
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
 			if OS.get_environment("AB_HOUR") != "":
 				var wx = root.get_node("Weather")
-				var kc: Dictionary = (wx.get_script() as GDScript).get_script_constant_map()
-				wx.set_world_time(fposmod(float(OS.get_environment("AB_HOUR")) - float(kc["START_HOUR"]), 24.0) / 24.0 * float(kc["DAY_LEN"]))
+				wx.set_world_time(wx.time_at(float(OS.get_environment("AB_HOUR"))))
 			step = 1
 		1:
 			# a flat stage out on the water north of the harbour: a clean backdrop,

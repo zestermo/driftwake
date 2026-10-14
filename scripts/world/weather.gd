@@ -1,7 +1,7 @@
 extends Node
 ## Time of day and weather (autoload "Weather").
 ##
-## * A day lasts 24 minutes (DAY_LEN): dawn ~6:00, dusk ~18:00, a starry
+## * A day lasts 24 minutes (DAY_LEN; DayClock: 14 of daylight, 10 of night): dawn ~6:00, dusk ~18:00, a starry
 ##   night with a moon in between. The sun (the world's DirectionalLight3D)
 ##   swings across the sky; at night the same light becomes moonlight.
 ## * The weather changes every few minutes (SLOT), blending over a minute:
@@ -21,7 +21,7 @@ signal weather_changed(state: int)
 
 enum W { CLEAR, CLOUDY, RAIN, STORM }
 const NAMES := ["Clear", "Cloudy", "Rain", "Storm"]
-const DAY_LEN := 1440.0
+const DAY_LEN := DayClock.LEN
 const START_HOUR := 9.0
 const SLOT := 300.0
 const BLEND := 60.0
@@ -127,11 +127,21 @@ func wind_dir() -> Vector2:
 
 ## 0..24
 func hour() -> float:
-	return fposmod(START_HOUR + world_time() / DAY_LEN * 24.0, 24.0)
+	return DayClock.hour_of(DayClock.secs_of(START_HOUR) + world_time())
 
 
 func day() -> int:
-	return int(floor((START_HOUR / 24.0 * DAY_LEN + world_time()) / DAY_LEN)) + 1
+	return int(floor((DayClock.secs_of(START_HOUR) + world_time()) / DAY_LEN)) + 1
+
+
+## The world time at hour `h` of day `day_n`.
+static func time_at(h: float, day_n: int = 1) -> float:
+	return DayClock.secs_between(START_HOUR, h) + (day_n - 1) * DAY_LEN
+
+
+## Moves the clock forward to the next hour `h`.
+func skip_to(h: float) -> void:
+	world_offset += DayClock.secs_between(hour(), h)
 
 
 func clock_text() -> String:
@@ -364,10 +374,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		force(nxt)
 		get_viewport().set_input_as_handled()
 	elif event.keycode == KEY_F7:
+		var step := DayClock.secs_between(hour(), hour() + 2.0)
 		if net and net.active:
-			net.everyone("_all_weather", [forced, forced_at, world_offset + DAY_LEN / 12.0])
+			net.everyone("_all_weather", [forced, forced_at, world_offset + step])
 		else:
-			world_offset += DAY_LEN / 12.0
+			world_offset += step
 		get_tree().call_group("hud", "show_toast", clock_text())
 		get_viewport().set_input_as_handled()
 

@@ -33,9 +33,7 @@ func _process(d: float) -> bool:
 		# ISHOT_HOUR=21 renders at that hour
 		if OS.get_environment("ISHOT_HOUR") != "":
 			var wx = root.get_node("Weather")
-			var k: Dictionary = (wx.get_script() as GDScript).get_script_constant_map()
-			var want := float(OS.get_environment("ISHOT_HOUR"))
-			wx.set_world_time(fposmod(want - float(k["START_HOUR"]), 24.0) / 24.0 * float(k["DAY_LEN"]))
+			wx.set_world_time(wx.time_at(float(OS.get_environment("ISHOT_HOUR"))))
 			settle = -120  # (lamps check the hour once a second)
 		_aim()
 		return false

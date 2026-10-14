@@ -24,8 +24,7 @@ func _initialize():
 
 
 func set_hour(h: float) -> void:
-	var dh := fposmod(h - float(wx.hour()), 24.0)
-	wx.world_offset += dh / 24.0 * float(wx.DAY_LEN)
+	wx.skip_to(h)
 
 
 func _process(dt: float) -> bool:

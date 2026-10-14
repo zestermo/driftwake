@@ -25,8 +25,7 @@ func check(name: String, cond: bool) -> void:
 
 
 func set_hour(h: float) -> void:
-	var dh := fposmod(h - float(w.hour()), 24.0)
-	w.world_offset += dh / 24.0 * float(w.DAY_LEN)
+	w.skip_to(h)
 
 
 func _physics_process(_d: float) -> bool:
@@ -167,6 +166,19 @@ func _process(d: float) -> bool:
 			check("...and loading puts the clock back (%.1f h)" % w.hour(), absf(w.hour() - 20.0) < 0.2)
 			SG.delete_slot(1)
 			SG._test_dir = ""
+			# --- days run longer than nights
+			var day_s: float = DayClock.secs_between(6.0, 18.0)
+			check("daylight lasts longer than the night (%.0f s vs %.0f s)" % [day_s, w.DAY_LEN - day_s], day_s > w.DAY_LEN - day_s + 60.0)
+			check("...the clock is continuous round the day", absf(DayClock.hour_of(DayClock.secs_of(18.0) - 0.01) - 18.0) < 0.01 and absf(DayClock.hour_of(DayClock.secs_of(5.99)) - 5.99) < 0.001)
+			set_hour(7.0)
+			var h0: float = w.hour()
+			w.world_offset += 60.0
+			var dh_day := fposmod(w.hour() - h0, 24.0)
+			set_hour(23.0)
+			h0 = w.hour()
+			w.world_offset += 60.0
+			var dh_night := fposmod(w.hour() - h0, 24.0)
+			check("a minute of night passes more hours than a minute of day (%.2f vs %.2f h)" % [dh_night, dh_day], dh_night > dh_day * 1.2)
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 	return false

@@ -90,8 +90,7 @@ func _setup() -> void:
 	root.get_node("Settings").set_value("video", "perf_overlay", false, false)
 	if OS.get_environment("MS_HOUR") != "":
 		var wx = root.get_node("Weather")
-		var k: Dictionary = (wx.get_script() as GDScript).get_script_constant_map()
-		wx.set_world_time(fposmod(float(OS.get_environment("MS_HOUR")) - float(k["START_HOUR"]), 24.0) / 24.0 * float(k["DAY_LEN"]))
+		wx.set_world_time(wx.time_at(float(OS.get_environment("MS_HOUR"))))
 	cam = Camera3D.new()
 	cam.fov = FOV
 	cam.far = 3000

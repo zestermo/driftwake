@@ -64,9 +64,8 @@ func _process(d: float) -> bool:
 			if gm.chain_at != want:
 				gm.apply_chain(want, false, root.get_node("Weather").world_time())
 				var wx = root.get_node("Weather")
-				var k: Dictionary = (wx.get_script() as GDScript).get_script_constant_map()
 				var hour := float(OS.get_environment("BSHOT_HOUR")) if OS.get_environment("BSHOT_HOUR") != "" else 11.0
-				wx.set_world_time(fposmod(hour - float(k["START_HOUR"]), 24.0) / 24.0 * float(k["DAY_LEN"]))
+				wx.set_world_time(wx.time_at(hour))
 				gm.chain_since = wx.world_time()
 			if t < 1.5 or not w.chain_ready() or not w.chain_islands.has(want):
 				return false

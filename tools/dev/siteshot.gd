@@ -205,7 +205,7 @@ func _clip(name: String, secs: float, fps := 15.0) -> void:
 
 
 func _time(h: float, state: int) -> void:
-	w.world_offset += fposmod(h - float(w.hour()), 24.0) / 24.0 * float(w.DAY_LEN)
+	w.skip_to(h)
 	w.forced = state
 	w.forced_at = w.world_time() - 100.0
 

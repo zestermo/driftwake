@@ -36,8 +36,7 @@ func check(name: String, cond: bool) -> void:
 
 
 func set_hour(h: float) -> void:
-	var dh := fposmod(h - float(w.hour()), 24.0)
-	w.world_offset += dh / 24.0 * float(w.DAY_LEN)
+	w.skip_to(h)
 
 
 func rig_snapshot() -> Dictionary:

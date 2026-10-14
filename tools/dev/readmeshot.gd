@@ -176,7 +176,7 @@ func _setup() -> void:
 	w = root.get_node("Weather")
 	w.forced = 0
 	w.forced_at = w.world_time() - 100.0
-	w.world_offset += fposmod(16.3 - float(w.hour()), 24.0) / 24.0 * float(w.DAY_LEN)
+	w.skip_to(16.3)
 	isl = root.get_node("World/Islands/Brinehollow")
 	camp = isl.get_node("SmugglersCamp")
 	# (attacks aim along the current camera's grandparent: a stand-in rig)

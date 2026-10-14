@@ -36,7 +36,7 @@ func _process(d: float) -> bool:
 		w.forced = 0
 		w.forced_at = w.world_time() - 100.0
 		var hour := float(OS.get_environment("BSHOT_HOUR")) if OS.get_environment("BSHOT_HOUR") != "" else 11.0
-		w.world_offset += fposmod(hour - float(w.hour()), 24.0) / 24.0 * float(w.DAY_LEN)
+		w.skip_to(hour)
 		cam = Camera3D.new(); cam.fov = 60; cam.far = 1500
 		root.add_child(cam); cam.current = true
 		var HB = load("res://scripts/ship/hull_builder.gd")

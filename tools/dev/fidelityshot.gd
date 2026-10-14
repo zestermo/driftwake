@@ -83,8 +83,7 @@ func _process(d: float) -> bool:
 
 func _set_hour(h: float) -> void:
 	var wx = root.get_node("Weather")
-	var k: Dictionary = (wx.get_script() as GDScript).get_script_constant_map()
-	wx.set_world_time(fposmod(h - float(k["START_HOUR"]), 24.0) / 24.0 * float(k["DAY_LEN"]) + float(k["DAY_LEN"]))
+	wx.set_world_time(wx.time_at(h, 2))
 
 
 func _setup(w) -> void:

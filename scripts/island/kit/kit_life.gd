@@ -132,9 +132,9 @@ static func sample(pts: PackedVector2Array, cum: PackedFloat32Array, d: float) -
 
 
 ## [stay, seconds into it] at `hour`: the last stay begun by then (stays sorted by "h", the day wrapping).
-static func stay_at(stays: Array, hour: float, day_len: float) -> Array:
+static func stay_at(stays: Array, hour: float) -> Array:
 	var k := stays.size() - 1
 	for i in range(stays.size()):
 		if float(stays[i]["h"]) <= hour:
 			k = i
-	return [k, fposmod(hour - float(stays[k]["h"]), 24.0) * day_len / 24.0]
+	return [k, DayClock.secs_between(float(stays[k]["h"]), hour)]

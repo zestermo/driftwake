@@ -45,7 +45,7 @@ func follow(island: Island, s: Array, w: Array, lines: Dictionary) -> void:
 
 ## Where the routine has it at `hour`: [stay, metres along the walk to it].
 func scheduled(hour: float) -> Array:
-	var at := KitLife.stay_at(stays, hour, Weather.DAY_LEN)
+	var at := KitLife.stay_at(stays, hour)
 	return [at[0], float(at[1]) * walk_speed]
 
 

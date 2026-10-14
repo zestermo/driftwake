@@ -30,8 +30,7 @@ func _process(d: float) -> bool:
 		p = get_first_node_in_group("player")
 		w = root.get_node("Weather")
 		oc = root.get_node("Ocean")
-		var dh := fposmod(10.75 - float(w.hour()), 24.0)
-		w.world_offset += dh / 24.0 * float(w.DAY_LEN)
+		w.skip_to(10.75)
 		cam = Camera3D.new(); cam.fov = 85; cam.far = 3000; root.add_child(cam); cam.current = true
 		p.global_position = Vector3(149.5, 1.8, 19.44)
 		p.reset_physics_interpolation()

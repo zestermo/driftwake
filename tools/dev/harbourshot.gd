@@ -93,9 +93,8 @@ func _setup(w) -> void:
 			n.process_mode = Node.PROCESS_MODE_DISABLED
 	root.get_node("Weather").force(0)
 	var wx = root.get_node("Weather")
-	var k: Dictionary = (wx.get_script() as GDScript).get_script_constant_map()
 	var hour := float(OS.get_environment("HSHOT_HOUR")) if OS.get_environment("HSHOT_HOUR") != "" else 11.0
-	wx.set_world_time(fposmod(hour - float(k["START_HOUR"]), 24.0) / 24.0 * float(k["DAY_LEN"]) + float(k["DAY_LEN"]))
+	wx.set_world_time(wx.time_at(hour, 2))
 	cam = Camera3D.new()
 	cam.fov = 60
 	cam.far = 3000

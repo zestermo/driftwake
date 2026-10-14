@@ -103,7 +103,7 @@ func _wait(secs: float) -> void:
 
 
 func _time(h: float) -> void:
-	w.world_offset += fposmod(h - float(w.hour()), 24.0) / 24.0 * float(w.DAY_LEN)
+	w.skip_to(h)
 	w.forced = 0
 	w.forced_at = w.world_time() - 100.0
 
