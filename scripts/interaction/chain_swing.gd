@@ -15,6 +15,7 @@ var _pulled := false
 
 
 func _ready() -> void:
+	taut = true
 	var mb := MeshBuilder.new()
 	var iron := PSXMat.lit("metal", Color(0.46, 0.4, 0.36))
 	var y := -0.04

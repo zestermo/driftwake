@@ -12,7 +12,8 @@ extends RefCounted
 ##   gaps: [from, to, "jump" / "swing"]   sea: bearing past which the drop is sea
 ##   cave: {"at", "out" (m seaward of the line), "r", "h", "tunnels": [[from, to]...]}
 ##   cleft: {"from": bearing, "to": island point on the top, "y": the top}
-##   rails: [[from, to]...]   bridge: the "swing" gap's chain {"at": 0..1 along, "y", "len"}
+##   rails: [[from, to]...]   bridge: the "swing" gap's {"at": its chain 0..1 along, "top": its
+##   cables over the floor, "len": the chain} (a high anchor keeps the swing up at the far lip)
 ## plan, carve (the terrain grid) and mesh are data (mesh on a worker); build makes the nodes.
 
 const STEP := 0.25
@@ -881,7 +882,7 @@ func _bridge(ctx: KitContext, mb: MeshBuilder, body: StaticBody3D, rng: RandomNu
 	var iron := PSXMat.lit("metal", Color(0.46, 0.4, 0.36))
 	var rope := PSXMat.lit("rope")
 	var plank := PSXMat.lit("planks_weathered")
-	var top := 4.6
+	var top := float(bridge["top"])
 	var tops: Array = []
 	for th in [ta, tb]:
 		var row: Array = []

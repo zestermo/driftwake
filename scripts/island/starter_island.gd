@@ -68,7 +68,7 @@ const DEN_PATH := {
 	"landing": [109.0, 126.0, 1.3, -4.0],
 	"rails": [[107.0, 115.5], [137.0, 147.5], [157.0, 162.0]],
 	"cave": {"at": 175.0, "out": 3.5, "r": 6.0, "h": 6.0, "tunnels": [[158.0, 170.0], [180.0, 190.0]]},
-	"bridge": {"at": 0.55, "len": 2.6},
+	"bridge": {"at": 0.5, "top": 8.6, "len": 6.4},
 	"cleft": {"from": 232.5, "to": Vector2(-171.66, -170.66), "y": 17.0},
 }
 ## Where the path's warning stands on the beach: [bearing, radius from DEN].

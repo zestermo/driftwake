@@ -203,6 +203,7 @@ scripts/island/kit/kit_camps.gd         denpathtest storytest
 scripts/island/kit/kit_cliff_path.gd    denpathtest storytest foresttest
 scripts/island/starter_island.gd        denpathtest storytest
 scripts/interaction/chain_swing.gd      denpathtest
+scripts/player_states/swing_state.gd    denpathtest vinetest riggingtest
 scripts/interaction/ladder.gd           denpathtest
 scripts/world/world_latch.gd            denpathtest
 scripts/enemies/scuttlebug*             denpathtest

@@ -79,7 +79,12 @@ func _enter_rope(h: Humanoid) -> void:
 	_max_len = 99.0
 	var deck := player.get_platform_velocity()
 	var fwd := get_camera_forward()
-	player.velocity = deck + Vector3(fwd.x, 0.0, fwd.z) * ROPE_KICK + Vector3.UP * 3.5
+	var kick := Vector3(fwd.x, 0.0, fwd.z) * ROPE_KICK + Vector3.UP * 3.5
+	if _rope.taut:
+		# (all of it along the swing: a push in toward the anchor only goes slack and is lost when it snaps taut)
+		var n := (player.global_position - anchor).normalized()
+		kick = (kick - n * kick.dot(n)).normalized() * kick.length()
+	player.velocity = deck + kick
 	_prev_v = player.velocity
 	h.hold("vine_hang")
 	h.dangle = true
@@ -168,6 +173,8 @@ func physics_update(delta: float) -> void:
 	if Input.is_action_just_pressed("jump"):
 		player.velocity.y = maxf(player.velocity.y, 0.0) + 5.0
 		player.jumps_remaining = maxi(player.max_jumps - 1, 0)
+		# (the fall keeps the swing's speed, as a jump keeps a run's: steering doesn't cap it at a walk)
+		player.air_speed = Vector2(player.velocity.x, player.velocity.z).length()
 		_released = true
 		transitioned.emit(self, "Fall", {})
 		return

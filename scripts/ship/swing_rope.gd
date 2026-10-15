@@ -6,6 +6,8 @@ extends Node3D
 ## the swinging and points the rope at the swinger's hand.
 
 @export var length: float = 11.5
+## The push off goes all along the swing (a long chain across a gap) rather than out and up off a deck.
+var taut := false
 
 var interactable: Interactable
 var _mesh: MeshInstance3D

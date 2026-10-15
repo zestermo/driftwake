@@ -102,7 +102,8 @@ func _landed() -> Array:
 	var far: Vector3 = drive["far"]
 	var dir: Vector3 = drive["dir"]
 	var past := (l - far).dot(dir)
-	return [p.is_on_floor() and absf(l.y - far.y) < 0.4 and past > -0.15 and p.current_state_name() != "Swim", past, l.y - far.y]
+	var fy: float = path.floor_at(path.bearing(Vector2(l.x, l.z)))
+	return [p.is_on_floor() and absf(l.y - fy) < 0.3 and past > -0.15 and p.current_state_name() != "Swim", past, l.y - fy]
 
 
 func _start_drive(j: Dictionary, sprint: bool, double: bool, run_up := 4.5) -> void:
@@ -327,11 +328,11 @@ func _process(dt: float) -> bool:
 				drive["still"] = 0.0
 				drive["climbs"] = int(drive.get("climbs", 0)) + 1
 			var ashore: bool = p.current_state_name() != "Swim" and p.is_on_floor() and _l(p.global_position).y > 0.4
-			if not (ashore and int(drive["i"]) == swim_pts.size() - 1) and float(drive["t"]) < 45.0:
+			if not (ashore and int(drive["i"]) == swim_pts.size() - 1 and Vector2(to.x, to.z).length() < 3.0) and float(drive["t"]) < 45.0:
 				return false
 			_release_all()
 			check("  swum back and out on the beach at the path's foot (%.0f s, %.1f m from it, %d climbs out)" % [drive["t"], Vector2(to.x, to.z).length(), drive.get("climbs", 0)],
-				ashore and Vector2(to.x, to.z).length() < 6.0)
+				ashore and Vector2(to.x, to.z).length() < 3.0)
 			step = 30
 			return false
 		30:
@@ -353,10 +354,10 @@ func _process(dt: float) -> bool:
 				var r := _landed()
 				_release_all()
 				if has_meta("caught"):
-					check("  ...and over onto the far side again (%.2f m past its lip)" % r[1], r[0])
+					check("  ...and over onto the far side again (%.2f m past its lip)" % r[1], r[0] and r[1] > 0.5)
 					step = 40
 					return false
-				check("  and swings you over onto the far side (%.2f m past its lip)" % r[1], r[0])
+				check("  and swings you over onto the far side with room to spare (%.2f m past its lip)" % r[1], r[0] and r[1] > 0.5)
 				var j: Dictionary = get_meta("swing")
 				_start_drive(j, true, false, 3.5)
 				step = 33
@@ -393,12 +394,12 @@ func _process(dt: float) -> bool:
 ## past the chain; true once it's over (on a floor, in the sea, or too long).
 func _swing(dt: float) -> bool:
 	drive["t"] = float(drive["t"]) + dt
-	var far: Vector3 = _g(drive["far"])
+	var far: Vector3 = _g(drive["far"]) + isl.global_basis * (drive["dir"] as Vector3) * 2.5
 	var to: Vector3 = far - p.global_position
 	_rig().global_rotation.y = atan2(-to.x, -to.z)
 	var st: String = p.current_state_name()
 	var past: float = (p.global_position - path.chain.global_position).dot(isl.global_basis * (drive["dir"] as Vector3))
-	if st == "Swing" and past > 1.6 and p.velocity.y < 0.6 and not drive.get("let_go", false):
+	if st == "Swing" and past > 1.5 and not drive.get("let_go", false):
 		TK.press("jump")
 		drive["let_go"] = true
 		drive["lt"] = 0.0
