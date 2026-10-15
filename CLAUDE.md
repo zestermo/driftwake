@@ -135,6 +135,16 @@ the shared files and took longer overall. Finish and merge before starting more.
 build them (each agent runs only its own suites), merge them all with a compile check and the smoke test (`land.ps1 -NoTests`),
 then one full test run and one bug-fix pass on main, with known bugs from the agents' reports listed first.
 
+**Batch rules** (Zach, 2026-10-15, after the v1.13 batch lost hours to a red main):
+1. **Main is green before a batch starts.** Anything failing on main gets a `driftwake-fixer` first; feature agents
+   start only once it's clear. A red main makes every agent stop to ask "is this mine?" and land with `-NoTests`.
+2. **No test or tooling changes during a feature batch** (runner flags, test kit, crew/landing scripts, CI). Do them
+   in their own quiet window with no feature agents running, then a full run, before the next batch.
+3. **Parallel only across separate areas** (at most 3): two features in the same system (two combat features, two
+   island features) go one after the other.
+4. **Small features, landed in pieces:** each agent lands its first coherent piece early, so problems show up in
+   minutes, not after two hours.
+
 **Agent types** (`.claude/agents/`): spawn feature work as `driftwake-feature` (worktree isolation; the rules,
 test tiers, landing and report format are built in, so the brief is just the feature) and narrow fixes, failing
 suites and mechanical changes as `driftwake-fixer` (Sonnet, cheaper).
