@@ -628,7 +628,11 @@ function Stop-GodotJob($job) {
 	if (-not $job.Proc.HasExited) {
 		if ($IsLinux) { $job.Proc.Kill($true) }
 		else {
+			# (under "Stop", taskkill's stderr would throw before the exit check: a child already gone is fine)
+			$eap = $ErrorActionPreference
+			$ErrorActionPreference = "Continue"
 			$out = & taskkill /T /F /PID $job.Proc.Id 2>&1
+			$ErrorActionPreference = $eap
 			if ($LASTEXITCODE -ne 0 -and -not $job.Proc.HasExited) { throw "taskkill failed for pid $($job.Proc.Id) (exit $LASTEXITCODE): $out" }
 		}
 	}
