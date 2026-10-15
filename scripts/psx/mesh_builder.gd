@@ -930,9 +930,8 @@ func fold_tints() -> void:
 		dst["w"].append_array(src["w"])
 
 
-## Commit everything into an ArrayMesh (one surface per material).
 ## A committed rigid mesh back as a builder (null if it has anything a builder doesn't keep:
-## indices, a second UV, custom channels, bones, blend shapes, non-triangles).
+## indices, a second UV, custom channels, bones, blend shapes, non-triangles, an empty surface).
 static func from_mesh(am: ArrayMesh) -> MeshBuilder:
 	if am.get_blend_shape_count() > 0:
 		return null
@@ -941,6 +940,8 @@ static func from_mesh(am: ArrayMesh) -> MeshBuilder:
 		if am.surface_get_primitive_type(i) != Mesh.PRIMITIVE_TRIANGLES:
 			return null
 		var arr := am.surface_get_arrays(i)
+		if arr.size() < Mesh.ARRAY_MAX or arr[Mesh.ARRAY_VERTEX] == null:
+			return null
 		for k in range(Mesh.ARRAY_MAX):
 			# (tangents come back from any mesh with normals: the shader doesn't use them)
 			if arr[k] != null and not k in [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_TANGENT, Mesh.ARRAY_TEX_UV, Mesh.ARRAY_COLOR]:
@@ -960,6 +961,7 @@ static func from_mesh(am: ArrayMesh) -> MeshBuilder:
 	return mb
 
 
+## Commit everything into an ArrayMesh (one surface per material).
 func commit() -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	for mat in _order:
