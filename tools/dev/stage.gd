@@ -5,7 +5,8 @@ extends Node3D
 ##   hud (default true), dummy (spot), grunts ([GruntCamp.add_grunt cfg], posts relative to the ground),
 ##   weapon (item id: given, equipped and drawn), npc (NPC.setup cfg, "at" a spot), bench (spot: Props.bench),
 ##   chest ([[item id, qty]]), storage (the ship's storage chest, on GameManager.storage),
-##   water (sea past x = SHORE_X), ship (riding in that sea), weather (named "World" so Weather attaches).
+##   water (sea past x = SHORE_X), ship (riding in that sea), weather (named "World" so Weather attaches),
+##   crew ([{"name", "at"}]: stand-in crewmates, puppets as co-op makes them with no network, peer ids 2, 3...).
 
 const GROUND_Y := 3.0
 const SHORE_X := 24.0
@@ -30,6 +31,7 @@ var bench
 var chest
 var storage
 var npc
+var crew: Array = []
 ## True once the captain is built and registered and the camera has found them: tests wait for it.
 var up := false
 var _frames := 0
@@ -126,6 +128,16 @@ func build(o: Dictionary) -> void:
 		ship.name = "Ship"
 		add_child(ship)
 		ship.place(SHIP_AT, 0.0)
+	for c in opts.get("crew", []):
+		var mate = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
+		mate.is_local = false
+		mate.net_id = crew.size() + 2
+		mate.net_profile = {"name": c["name"], "level": 1}
+		mate.name = "P%d" % mate.net_id
+		mate.position = _at(c.get("at"), Vector3(0, 0, -2))
+		add_child(mate)
+		mate.visible = true
+		crew.append(mate)
 
 
 ## A loot bag holding [[item id, qty], ...].

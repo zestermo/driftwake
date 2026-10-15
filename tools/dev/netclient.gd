@@ -65,6 +65,9 @@ func _process(d: float) -> bool:
 	if mode == "chain" and step >= 100:
 		_chain_step()
 		return false
+	if mode == "duel" and step >= 200:
+		_duel_step()
+		return false
 	match step:
 		0:
 			if t < start_delay:
@@ -167,6 +170,11 @@ func _process(d: float) -> bool:
 				p.velocity = Vector3.ZERO
 				p.reset_physics_interpolation()
 				go(80)
+				return false
+			if mode == "duel":
+				put(r["host_pos"] + Vector3(0, 0.3, 2.0))
+				p.player_model.rotation.y = 0.0
+				go(200)
 				return false
 			# move the host: the puppet follows
 			data["host_to"] = r["host_pos"] + Vector3(3.0, 0.5, 0.0)
@@ -1107,6 +1115,183 @@ func _chain_step() -> void:
 			check("...keeping our own world's chain, not the host's", int(sd.get("chain_seed", 0)) == 4242 and int(sd.get("chain_at", -1)) == 0 and bool(sd.get("chain_set", false)) and gm.chain_seed != 4242)
 			SG.delete_slot(1)
 			SG._test_dir = ""
+			tn.ask("quit")
+			finish()
+
+
+func _hd(dmg: float) -> HitData:
+	var h := HitData.new()
+	h.damage = dmg
+	h.knockback_force = 1.0
+	h.stagger_duration = 0.1
+	return h
+
+
+func _tap(action: String) -> void:
+	for down in [true, false]:
+		var ev := InputEventAction.new()
+		ev.action = action
+		ev.pressed = down
+		Input.parse_input_event(ev)
+
+
+## Mode "duel": the menu on the host's captain (prompt, Inspect from its machine), no hurting outside a duel,
+## our challenge and the host's accept, the countdown, the fight (our blade lands lightly through the hitbox,
+## the bar), the host's finishing blow downs us without killing, the host's win and XP, both back up after.
+func _duel_step() -> void:
+	var duel = net.get_node("Duel")
+	var hostp = net.players[1]
+	var my: int = net.my_id()
+	match step:
+		200:
+			if st_t < 1.2:
+				return
+			var it = p.interaction_component.current_interactable
+			check("next to the host, facing them: the prompt names them (%s)" % (it.prompt_text if it else "none"),
+				it != null and it == hostp.get_node_or_null("Meet") and it.prompt_text == hostp.display_name())
+			_tap("interact")
+			go(201)
+		201:
+			if st_t < 0.3:
+				return
+			var menu = p.get_node("PlayerMenu")
+			check("F opens the menu on the host's captain", menu.is_open() and menu.target == hostp)
+			menu.choose("inspect")
+			go(202)
+		202:
+			var ins = p.get_node("PlayerMenu")._inspect
+			if (ins == null or ins.items.is_empty()) and st_t < 5.0:
+				return
+			var w = ins.items.get("weapon") if ins else null
+			check("Inspect shows the host's kit, asked of its machine (%s)" % (w.id if w else "nothing"), w != null and w.id == "cutlass")
+			p.get_node("PlayerMenu").close()
+			tn.ask("duel_report")
+			go(203)
+		203:
+			if not tn.got("duel_report"):
+				return
+			data["host_hp0"] = float(tn.replies["duel_report"]["hp"])
+			hostp.hurtbox.take_hit(_hd(20.0), p)
+			go(204)
+		204:
+			if st_t < 0.6:
+				return
+			tn.ask("duel_report")
+			go(205)
+		205:
+			if not tn.got("duel_report"):
+				return
+			check("no duel: our blow doesn't hurt the host", is_equal_approx(float(tn.replies["duel_report"]["hp"]), float(data["host_hp0"])))
+			duel.challenge(1)
+			go(206)
+		206:
+			if st_t < 0.6:
+				return
+			tn.ask("duel_report")
+			go(207)
+		207:
+			if not tn.got("duel_report"):
+				return
+			var r = tn.replies["duel_report"]
+			check("our challenge reaches the host: its prompt is up", bool(r["asking"]) and (r["state"]["asks"] as Dictionary).has(my))
+			data["my_hp0"] = p.health_component.current_health
+			tn.ask("duel_answer", [true])
+			go(208)
+		208:
+			var d = duel.duel_of(my)
+			if d.is_empty():
+				if st_t > 3.0:
+					check("the host accepts: the duel's on here", false)
+					finish()
+				return
+			check("the host accepts: the duel's on here, counting down", not duel.fighting(d) and int(d["a"]) == my and int(d["b"]) == 1)
+			check("...the host's captain can't be hit yet", hostp.hurtbox.collision_layer & 32 == 0)
+			go(209)
+		209:
+			var d = duel.duel_of(my)
+			if not duel.fighting(d):
+				if st_t > 5.0:
+					check("the countdown ends", false)
+					finish()
+				return
+			if not data.has("fight_t"):
+				data["fight_t"] = st_t
+			if st_t < float(data["fight_t"]) + 0.2:
+				return
+			var hud = get_first_node_in_group("hud")
+			check("Fight: the host's captain is on our enemies' layer", hostp.hurtbox.collision_layer & 32 != 0)
+			check("...its name and health across the top (%s)" % hud._boss_name.text, hud._boss_box.visible and hud._boss_name.text == hostp.display_name())
+			tn.ask("duel_report")
+			go(210)
+		210:
+			if not tn.got("duel_report"):
+				return
+			var r = tn.replies["duel_report"]
+			data["host_hp1"] = float(r["hp"])
+			data["host_dr"] = float(r["dr"])
+			data["host_xp"] = r["xp"]
+			data["host_xp_for"] = int(r["xp_for"])
+			p.sword_hitbox.activate(_hd(20.0))
+			go(211)
+		211:
+			if st_t < 0.3:
+				return
+			p.sword_hitbox.deactivate()
+			if st_t < 0.8:
+				return
+			tn.ask("duel_report")
+			go(212)
+		212:
+			if not tn.got("duel_report"):
+				return
+			var lost: float = float(data["host_hp1"]) - float(tn.replies["duel_report"]["hp"])
+			var want: float = 20.0 * Duel.DAMAGE_K * (1.0 - float(data["host_dr"]))
+			check("our blade touches them: it lands, lightly (%.1f, want %.1f)" % [lost, want], absf(lost - want) < 0.5)
+			tn.ask("duel_hit", [9999.0])
+			go(213)
+		213:
+			if p.current_state_name() != "Downed" and st_t < 3.0:
+				return
+			var ds = p.state_machine.current_state
+			check("the host's finishing blow: we're down, not dead (%s, %.0f hp, held %s)" % [p.current_state_name(), p.health_component.current_health, ds.get("dead")],
+				p.current_state_name() == "Downed" and p.health_component.current_health <= 0.0 and bool(ds.get("dead")) and not p.is_bleeding())
+			check("...no grave", root.get_node("GameManager").grave == null)
+			go(214)
+		214:
+			var d = duel.duel_of(my)
+			if (d.is_empty() or int(d["winner"]) == -1) and st_t < 2.0:
+				return
+			check("...the host wins it (%s)" % str(d.get("winner", "none")), not d.is_empty() and int(d["winner"]) == 1)
+			check("...we see Defeated (%s)" % duel.hud.banner_text(), duel.hud.banner_text() == "Defeated")
+			tn.ask("duel_report")
+			go(215)
+		215:
+			if not tn.got("duel_report"):
+				return
+			var r = tn.replies["duel_report"]
+			var before: Array = data["host_xp"]
+			check("...and gets a little XP (%s -> %s, +%d)" % [before, r["xp"], int(data["host_xp_for"])],
+				int(r["xp"][0]) > int(before[0]) or int(r["xp"][1]) == int(before[1]) + int(data["host_xp_for"]))
+			go(216)
+		216:
+			if st_t < 3.6:
+				return
+			check("3 s on: our health is what it was before the duel (%.0f / %.0f)" % [p.health_component.current_health, float(data["my_hp0"])],
+				is_equal_approx(p.health_component.current_health, float(data["my_hp0"])))
+			check("...and the host's captain can't be hit any more", hostp.hurtbox.collision_layer & 32 == 0)
+			go(217)
+		217:
+			if p.current_state_name() == "Downed" and st_t < 4.0:
+				return
+			check("...we get up (%s)" % p.current_state_name(), p.current_state_name() != "Downed")
+			tn.ask("duel_report")
+			go(218)
+		218:
+			if not tn.got("duel_report"):
+				return
+			var r = tn.replies["duel_report"]
+			check("the host's health is back to what it was too (%.0f / %.0f)" % [float(r["hp"]), float(data["host_hp0"])], is_equal_approx(float(r["hp"]), float(data["host_hp0"])))
+			check("...and the duel's over on the host", (r["state"]["duels"] as Dictionary).is_empty())
 			tn.ask("quit")
 			finish()
 

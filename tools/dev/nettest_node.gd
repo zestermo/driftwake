@@ -334,6 +334,21 @@ func _run(name_: String, args: Array, from: int):
 					b.take_all(lp)
 					return true
 			return false
+		"duel_report":
+			var duel = n.get_node("Duel")
+			return {"state": duel.state.duplicate(true), "hp": lp.health_component.current_health, "dr": lp.damage_reduction(),
+				"xp": [lp.progression.level, lp.progression.xp], "xp_for": duel.xp_for(lp), "st": lp.current_state_name(),
+				"asking": duel.hud != null and duel.hud.asking()}
+		"duel_answer":
+			n.get_node("Duel").answer(bool(args[0]))
+			return true
+		"duel_hit":
+			# the host's captain strikes the guest's
+			var hd := HitData.new()
+			hd.damage = float(args[0])
+			hd.knockback_force = 2.0
+			n.players[from].hurtbox.take_hit(hd, lp)
+			return true
 		"quit":
 			get_tree().create_timer(0.5).timeout.connect(func(): get_tree().quit())
 			return true

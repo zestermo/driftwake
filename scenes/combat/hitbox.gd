@@ -39,7 +39,7 @@ func _on_area_entered(area: Area3D) -> void:
 		# co-op: another machine's captain decides for themselves whether
 		# this swing touched them (they see it too)
 		var net := get_node_or_null("/root/Net")
-		if net and net.active and net.ignore_overlap(area):
+		if net and net.active and net.ignore_overlap(area) and not Duel.foes(owner, area.owner):
 			hit_targets.append(area.owner)  # (it did touch them: a ram still bounces off)
 			return
 		hit_targets.append(area.owner)

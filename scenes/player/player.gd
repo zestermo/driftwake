@@ -228,6 +228,10 @@ func _ready() -> void:
 	emote_wheel.name = "EmoteWheel"
 	emote_wheel.player = self
 	add_child(emote_wheel)
+	var menu: Node = load("res://scripts/ui/player_menu.gd").new()
+	menu.name = "PlayerMenu"
+	menu.player = self
+	add_child(menu)
 
 
 func _build_body() -> void:
@@ -447,6 +451,11 @@ func attack_cost_k() -> float:
 func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished():
 		return
+	# captains only hurt each other in a duel, and lightly
+	if attacker and attacker != self and attacker.is_in_group("players"):
+		if not Duel.foes(self, attacker):
+			return
+		hit = Duel.soften(hit)
 	var dir := Vector3.ZERO
 	if attacker is Node3D:
 		dir = global_position - (attacker as Node3D).global_position
@@ -471,7 +480,8 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 			Net.fx("sparkle", [global_position + Vector3(0, 1.4, 0), 10, Color(1.0, 0.8, 0.4)])
 			_toast("Guard broken!")
 			state_machine.force_state("Stagger", {"stagger_duration": 0.6, "knockback_dir": dir, "knockback_force": 4.0, "flinch": false})
-			health_component.take_damage(hit.damage * 0.5 * (1.0 - damage_reduction()))
+			if not Duel.beaten(self, attacker, hit.damage * 0.5 * (1.0 - damage_reduction())):
+				health_component.take_damage(hit.damage * 0.5 * (1.0 - damage_reduction()))
 			return
 	# Observation Haki: Foresight dodges by itself
 	if not hit.dot and power.use_foresight():
@@ -510,7 +520,8 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		(attacker.get("hurtbox") as Hurtbox).take_hit(th, self)
 		Net.fx("sparkle", [(attacker as Node3D).global_position + Vector3(0, 1.0, 0), 4, Color(0.5, 0.9, 0.3)])
 	_last_hit_velocity = dir * maxf(hit.knockback_force, 3.0) + Vector3.UP * (3.5 if hit.knockdown else 2.0)
-	health_component.take_damage(dmg)
+	if not Duel.beaten(self, attacker, dmg):
+		health_component.take_damage(dmg)
 	if _using_item and _using_item.devil_fruit == "" and not hit.dot:
 		_spill_use()
 	Net.fx("impact", [global_position + Vector3(0, 1.0, 0) - dir * 0.3, Color(1.0, 0.55, 0.45)])

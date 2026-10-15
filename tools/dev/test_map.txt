@@ -15,6 +15,11 @@ tools/dev/t/items/*                     t/items
 tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
+tools/dev/t/coop/*                      t/coop
+scripts/game/duel.gd                    t/coop net
+scripts/ui/player_menu.gd               t/coop net
+scripts/ui/inspect_panel.gd             t/coop
+scripts/ui/duel_hud.gd                  t/coop
 # A changed tools/dev/<suite>.gd runs that suite.
 
 # --- player ---
