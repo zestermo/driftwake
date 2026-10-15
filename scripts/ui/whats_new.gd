@@ -7,11 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Smooth sailing", "Brinehollow runs about four and a half times faster: far-off pirates, bugs, ships and villagers nap until you come near, with fewer things to draw and calmer physics. Same look."],
-	["Awake or asleep", "The F8 overlay shows how many enemies are awake and how many are asleep. Distant camps spring to life as you get within about 120 m."],
-	["Stances and parries", "Twin daggers sit lower and wider, one dagger keeps its off hand low, dual swords settle lower. Each gets its own block, parry and a flourish when a parry lands."],
-	["No more stretchy captains", "Knockdowns and some weapons and instruments could slowly stretch your arms until you re-equipped something. Fixed."],
-	["Tighter timing", "Combos, reloads and buffered inputs count in game time, so a hitch can't throw them off. Nothing can kill you mid-duel any more."],
+	["The cliff path to Grell", "The way up to Grell's den is a ledge cut into the sea cliff now: longer, with real gaps over the sea, a bug cave with a cave brute, and a broken bridge you swing across on a chain. Grell waits by his fire until you get close."],
+	["The pier ladder", "Grell's pier ladder stays rolled up until someone reaches the top the hard way. After that it's a shortcut for good."],
+	["Water that knows the shore", "Waves calm down over the shallows and roll in along the beach instead of crossing it, and the sea never comes up through the sand any more."],
+	["Smoke and fire", "Cannons leave a bank of powder smoke, a ball on a hull bursts into a fireball, and heavy hits kick up real dust clouds."],
+	["Swings keep your speed", "Letting go of a vine, a ship's rope or a chain keeps your momentum, so you can fling yourself across."],
+	["Steadier timing", "More little things now run on game time instead of the clock, so hitches can't throw off sprints, markers, thunder or the weather."],
 ]
 
 
