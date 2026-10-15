@@ -73,6 +73,7 @@ Projectiles carry it as model `"elem"`. Film both: `AB_TIER=0` and the default 2
 | `screen_flash(at, color_with_alpha, secs)` | a full-screen flash for a camera within 35 m | an ultimate's moment (alpha 0.2-0.45) |
 | `impact(pos, color)`, `parry_sparks(pos, dir)` | flash + sparks | every hit; clashes |
 | `sparkle`, `dust`, `dust_ring`, `smoke`, `splash`, `muzzle_sparks`, `tracer`, `flame`, `fire_ring`, `fire_pillar`, `punch_wind`, `afterimage`, `blood` | the older set | see their doc comments in fx.gd |
+| `flipbook(pos, sheet, amount, size, life, cfg)` | particles each playing a 4x4 sprite sheet (`flip_smoke`, `flip_explosion`, gen_flipbooks.py) once over their life; cfg as `_burst` plus start, spin, fade_in, fade, curve, lit | pilot (`FX.flipbook_pilot`): the ship's cannon (`cannon_fire/hit/splash`) and a heavy blow's dust (`heavy_dust`) |
 | `blade_swoosh(body, secs, color)` | the real blade's trail (BladeTrail) | any strike where the blade moves: swing paths and keyed technique cuts alike |
 | `slash(follow, kind, dur, color)` | a fixed arc mesh | spins and wide arcs the blade alone can't show (keep few; prefer blade_swoosh) |
 

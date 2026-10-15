@@ -201,9 +201,7 @@ func _shoot(from: Vector3, vel: Vector3, auth: bool, by: Node, n: int) -> void:
 	b.hull_damage = hull_damage
 	b.splash_damage = splash_damage
 	var dir := vel.normalized()
-	FX.muzzle_sparks(from, dir, 16)
-	FX.smoke(from + dir * 0.6, 10, 1.6, 2.2)
-	FX.flame(from + dir * 0.3, 8, 0.7, 0.25, 0.25)
+	FX.cannon_fire(from, dir)
 	FX.sfx("cannon", from, 2.0, 0.06)
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me and me.global_position.distance_to(from) < 14.0:

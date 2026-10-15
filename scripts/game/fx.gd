@@ -145,6 +145,9 @@ static func _curve(kind: String) -> Curve:
 			"grow":
 				curve.add_point(Vector2(0, 0.6))
 				curve.add_point(Vector2(1, 1.3))
+			"flat":
+				curve.add_point(Vector2(0, 1.0))
+				curve.add_point(Vector2(1, 1.0))
 			_:
 				curve.add_point(Vector2(0, 1.0))
 				curve.add_point(Vector2(1, 0.0))
@@ -1323,6 +1326,119 @@ func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 
 		ring(pos + Vector3(0, 0.6, 0), Vector3.UP, 1.6 * size, tree_col("corsair", ACCENT), 0.3, 0.2)
 	else:
 		dust(pos + Vector3(0, 0.1, 0), 8, 1.0)
+
+
+## The flipbook pilot's switch: sprite-sheet smoke and explosions on the ship's cannons and
+## a heavy blow's dust (false: the particles from before, to compare or to revert).
+var flipbook_pilot := true
+var _flip_mats: Dictionary = {}
+var _flip_ramps: Dictionary = {}
+
+
+## A burst whose particles each play a sprite sheet once over their life
+## (assets/textures/fx/flip_<sheet>.png: 4x4 frames, tools/texture_gen/gen_flipbooks.py).
+## _burst's cfg, plus "start" (each starts up to that far into the sheet, 0..1), "spin"
+## (a random roll up to that many degrees either way), "fade_in" / "fade" (when the colour
+## is all there and when it starts to clear, 0..1 of the life), "curve" (the size over
+## life: "flat", "grow"...) and "lit" (dimmed at night: smoke, not fire).
+func flipbook(pos: Vector3, sheet: String, amount: int, size: float, life: float, cfg: Dictionary) -> CPUParticles3D:
+	var col: Color = cfg.get("color", Color.WHITE)
+	if cfg.get("lit", false):
+		# (unshaded, so smoke would glow white in the dark)
+		var k := 1.0 - 0.65 * snappedf(float(get_node("/root/Weather").night), 0.1)
+		col = Color(col.r * k, col.g * k, col.b * k, col.a)
+	var c := {"ramp": _flip_ramp(col, cfg.get("fade_in", 0.0), cfg.get("fade", 0.6))}
+	c.merge(cfg)
+	var p := _burst(pos, amount, _flip_mat(sheet), size, life, c)
+	if p:
+		p.scale_amount_curve = _curve(cfg.get("curve", "flat"))
+		p.anim_speed_min = 1.0
+		p.anim_speed_max = 1.0
+		p.anim_offset_max = cfg.get("start", 0.0)
+		p.angle_min = -float(cfg.get("spin", 0.0))
+		p.angle_max = float(cfg.get("spin", 0.0))
+		p.draw_order = CPUParticles3D.DRAW_ORDER_VIEW_DEPTH
+		p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return p
+
+
+func _flip_mat(sheet: String) -> StandardMaterial3D:
+	if not _flip_mats.has(sheet):
+		var m := _billboard_mat("res://assets/textures/fx/flip_%s.png" % sheet, false)
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+		m.particles_anim_h_frames = 4
+		m.particles_anim_v_frames = 4
+		m.particles_anim_loop = false
+		_flip_mats[sheet] = m
+	return _flip_mats[sheet]
+
+
+func _flip_ramp(col: Color, fade_in: float, fade: float) -> Gradient:
+	var key := [col, fade_in, fade]
+	if not _flip_ramps.has(key):
+		var clear := Color(col.r, col.g, col.b, 0.0)
+		var g := Gradient.new()
+		if fade_in > 0.0:
+			g.offsets = PackedFloat32Array([0.0, fade_in, fade, 1.0])
+			g.colors = PackedColorArray([clear, col, col, clear])
+		else:
+			g.offsets = PackedFloat32Array([0.0, fade, 1.0])
+			g.colors = PackedColorArray([col, col, clear])
+		_flip_ramps[key] = g
+	return _flip_ramps[key]
+
+
+## A ship's cannon going off at `from` along `dir`: sparks, a fireball out of the muzzle
+## and a bank of smoke pushed out along the shot.
+func cannon_fire(from: Vector3, dir: Vector3) -> void:
+	muzzle_sparks(from, dir, 16)
+	if not flipbook_pilot:
+		smoke(from + dir * 0.6, 10, 1.6, 2.2)
+		flame(from + dir * 0.3, 8, 0.7, 0.25, 0.25)
+		return
+	flipbook(from + dir * 0.5, "explosion", 2, 1.5, 0.4, {"radius": 0.15, "direction": dir, "spread": 10.0,
+		"vel_min": 2.0, "vel_max": 4.0, "gravity": Vector3.ZERO, "damping": 6.0, "spin": 180.0, "fade": 0.7})
+	flipbook(from + dir * 0.9, "smoke", 5, 1.7, 2.4, {"radius": 0.25, "direction": dir, "spread": 14.0,
+		"vel_min": 1.5, "vel_max": 6.0, "gravity": Vector3(0, 0.35, 0), "damping": 2.2, "start": 0.08, "spin": 25.0,
+		"curve": "grow", "fade_in": 0.06, "lit": true, "color": Color(0.8, 0.79, 0.77, 0.9)})
+
+
+## A cannonball bursting on a hull, a rock or the ground at `at` (`normal`: off the surface).
+func cannon_hit(at: Vector3, normal: Vector3) -> void:
+	impact(at, Color(1.0, 0.7, 0.35))
+	if not flipbook_pilot:
+		flame(at, 12, 0.8, 0.45, 0.6)
+		smoke(at + normal * 0.3, 8, 1.3, 1.8)
+		dust(at, 8, 0.9)
+		return
+	flipbook(at + normal * 0.5, "explosion", 3, 3.0, 1.0, {"radius": 0.35, "direction": normal, "spread": 40.0,
+		"vel_min": 0.5, "vel_max": 1.8, "gravity": Vector3(0, 0.6, 0), "damping": 3.0, "start": 0.06, "spin": 180.0, "fade": 0.75})
+	flipbook(at + normal * 0.7, "smoke", 3, 2.2, 2.2, {"radius": 0.4, "direction": (normal + Vector3.UP).normalized(), "spread": 30.0,
+		"vel_min": 0.6, "vel_max": 1.6, "gravity": Vector3(0, 0.5, 0), "damping": 1.5, "start": 0.15, "spin": 25.0,
+		"curve": "grow", "fade_in": 0.2, "lit": true, "color": Color(0.5, 0.48, 0.47, 0.85)})
+	embers(at + normal * 0.3, normal + Vector3.UP * 0.5, 8, Color(1.0, 0.45, 0.12), 5.0)
+
+
+## A cannonball into the sea at `at`: a splash, its foam ring and a cloud of white water.
+func cannon_splash(at: Vector3) -> void:
+	splash(at, 10, 1.4)
+	if not flipbook_pilot:
+		splash(at + Vector3(0, 0.6, 0), 6, 0.9)
+		return
+	flipbook(at + Vector3(0, 0.7, 0), "smoke", 4, 1.9, 1.3, {"radius": 0.4, "direction": Vector3.UP, "spread": 25.0,
+		"vel_min": 2.0, "vel_max": 4.5, "gravity": Vector3(0, -3.0, 0), "damping": 1.5, "spin": 40.0, "fade": 0.4, "lit": true,
+		"color": Color(0.9, 0.96, 1.0, 0.85)})
+
+
+## A heavy blow landing or a body thrown down hard: dust thrown out along the ground.
+func heavy_dust(pos: Vector3, amount: int = 12, size: float = 0.8) -> void:
+	if not flipbook_pilot:
+		dust_ring(pos, amount, size)
+		return
+	dust_ring(pos, amount / 2, size)
+	flipbook(pos + Vector3(0, 0.15, 0), "smoke", maxi(amount / 3, 3), size * 1.5, 0.95, {"ring_radius": 0.3, "spread": 10.0,
+		"direction": Vector3(0, 0.15, 0), "vel_min": 0.3, "vel_max": 0.6, "radial": 5.0, "gravity": Vector3(0, 0.4, 0),
+		"damping": 4.0, "start": 0.1, "spin": 30.0, "lit": true, "color": Color(0.66, 0.6, 0.5, 0.85)})
 
 
 ## An X of two light-streaks through `pos` (the dual blades' mark): upright,

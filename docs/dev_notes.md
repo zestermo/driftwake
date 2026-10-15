@@ -1884,3 +1884,24 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   Bench after (laptop, mean of 8 stops; v1.13: 42.3 / 29.1 ms at 13:00): 13:00 clear frame 9.23 ms, frame1t 10.18,
   ticks 0.56, GPU 1.79, draws 714 + 489 shadow; 21:00 clear 9.29 / 10.29 / 0.56 / 1.80 / 715 + 588; 13:00 rain
   10.05 / 10.95 / 0.60 / 2.07 / 767 + 518. Tests: t/world, perftest, smoketest, isletest.
+
+## 2026-10-15: flipbook particles (pilot)
+- `FX.flipbook(pos, sheet, amount, size, life, cfg)`: a `_burst` whose particles each play
+  `assets/textures/fx/flip_<sheet>.png` once over their life (StandardMaterial3D particles anim 4x4, no loop,
+  CPUParticles3D `anim_speed` 1 = one sheet per life, `anim_offset` for a random start, `angle` for a random roll,
+  a hold-then-fade colour ramp with an optional fade-in, size curve "flat" by default). NEAREST_WITH_MIPMAPS, one
+  shared material per sheet. cfg "lit": smoke dimmed by Weather.night (unshaded smoke glowed white at 21:00).
+- Sheets from `tools/texture_gen/gen_flipbooks.py` (16 frames of 64 px; noise-warped lobes, the noise scaled with the
+  puff so it billows instead of flickering; palette-stepped colour, alpha on 4 levels with a Bayer dither): `smoke`
+  (grows, then thins along the noise) and `explosion` (a star flash, a fireball cooling from the rim in with hot
+  pockets inside the soot, embers thrown out, then rising smoke). Imports: mipmaps on, compress_to 0.
+- The pilot swaps two effects, all behind `FX.flipbook_pilot` (true; false = exactly the old calls):
+  the ship's cannon (`FX.cannon_fire` from ShipCannon._shoot, `cannon_hit` / `cannon_splash` from Cannonball: a
+  fireball and a bank of smoke at the muzzle, a bigger fireball + smoke + embers on a hull, a plume of white water on
+  the sea) and a heavy blow's dust (`FX.heavy_dust` from HeavyAttackState's impact and DownedState's landing thud,
+  through Net.fx: half the old dust ring plus a ring of flipbook dust puffs). Sparks, flashes, splashes and foam
+  rings stay.
+- Cost per effect (bursts / particles, before -> after; one burst = one draw): heavy dust 1/16 -> 2/13, cannon
+  fire 3/34 -> 3/23, hull hit 5/39 -> 6/27, sea hit 2/16 -> 2/14. Two 256x256 sheets (~0.7 MB with mips).
+- Renders: `tools/dev/flipshot.gd` (before/after strips at the pixel grid; compare_heavy, compare_cannon,
+  compare_cannon_h21 in tools/dev/out/flipbook/). Test: `t/fx/flipbook`.

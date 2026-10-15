@@ -240,7 +240,7 @@ func physics_update(delta: float) -> void:
 			if cfg["impact_fx"] and timer >= _active * 0.5 and not impact_fx:
 				impact_fx = true
 				var front := player.global_position - player.player_model.global_basis.z * 1.3
-				Net.fx("dust_ring", [front, 16, 1.0])
+				Net.fx("heavy_dust", [front, 16, 1.0])
 				Net.fx("sparkle", [front + Vector3(0, 0.3, 0), 8, Color(1.0, 0.85, 0.5)])
 			if timer >= _active:
 				phase = 2

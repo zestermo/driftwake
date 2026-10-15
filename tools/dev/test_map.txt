@@ -16,6 +16,8 @@ tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
 tools/dev/t/coop/*                      t/coop
+tools/dev/t/fx/*                        t/fx
+assets/textures/fx/flip_*               t/fx
 scripts/game/duel.gd                    t/coop net
 scripts/ui/player_menu.gd               t/coop net
 scripts/ui/inspect_panel.gd             t/coop
@@ -100,7 +102,7 @@ scripts/ship/ship.gd                    shiptest seatest riggingtest qoltest yar
 scripts/ship/ship_kit.gd                yardtest
 scripts/ship/enemy_ship.gd              seatest r8test perftest leveltest legtest
 scripts/ship/enemy_fleet.gd             seatest perftest legtest leveltest net
-scripts/ship/cannon*                    r8test seatest
+scripts/ship/cannon*                    r8test seatest t/fx
 scripts/ship/ship_rigging.gd            riggingtest
 scripts/ship/swing_rope.gd              riggingtest
 scripts/ship/*                          shiptest
@@ -118,7 +120,7 @@ shaders/sky_bird.gdshader               skytest
 scripts/ship/ship_spray.gd              skytest shiptest
 assets/audio/*_loop.wav                 ambiencetest
 scripts/game/footsteps.gd               ambiencetest
-scripts/game/fx.gd                      powertest r6test
+scripts/game/fx.gd                      powertest r6test t/fx
 scripts/game/blade_trail.gd             t/combat wieldtest
 scripts/game/music.gd                   r8test musictest
 assets/audio/music_*                    musictest

@@ -168,8 +168,7 @@ func _shake(at: Vector3, strength: float) -> void:
 
 func _splash(at: Vector3) -> void:
 	_done = true
-	FX.splash(at, 10, 1.4)
-	FX.splash(at + Vector3(0, 0.6, 0), 6, 0.9)
+	FX.cannon_splash(at)
 	FX.sfx("splash_big", at, -2.0, 0.08)
 	_shake(at, 0.08)
 	_finish(func(): _check_crew(at, BURST * 0.7, splash_damage * 0.6))
@@ -177,10 +176,7 @@ func _splash(at: Vector3) -> void:
 
 func _burst(at: Vector3, col: Node, normal: Vector3) -> void:
 	_done = true
-	FX.impact(at, Color(1.0, 0.7, 0.35))
-	FX.flame(at, 12, 0.8, 0.45, 0.6)
-	FX.smoke(at + normal * 0.3, 8, 1.3, 1.8)
-	FX.dust(at, 8, 0.9)
+	FX.cannon_hit(at, normal)
 	FX.sfx("cannon_hit", at, 0.0, 0.08)
 	_shake(at, 0.25)
 	var ship := _ship_of(col)

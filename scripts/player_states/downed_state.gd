@@ -101,7 +101,7 @@ func physics_update(delta: float) -> void:
 	if not _landed and timer > 0.1 and vy - _prev_vy > 2.0:
 		_landed = true
 		Net.fx("sfx", ["thud", hips, -2.0, 0.1, 0.85])
-		Net.fx("dust_ring", [Vector3(hips.x, player.global_position.y, hips.z), 12, 0.8])
+		Net.fx("heavy_dust", [Vector3(hips.x, player.global_position.y, hips.z), 12, 0.8])
 		get_node("/root/CombatManager").apply_camera_shake(0.12)
 	_prev_vy = vy
 	if dead:
