@@ -13,7 +13,7 @@ const PEOPLE := [160.0, 120.0, 230.0, 210.0]
 ## Ships sleep only well past where they'd notice the crew's ship (EnemyShip.NOTICE, LOSE) and stay in sight.
 const SHIP := [420.0, 340.0, INF, INF]
 ## Every actor is looked at once every this many frames.
-const SLICES := 8
+const SLICES := 15
 ## A guest's puppet: asleep once the host has sent nothing for this long, awake on a snapshot this fresh.
 const STALE := 0.6
 const FRESH := 0.3

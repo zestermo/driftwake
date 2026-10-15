@@ -147,6 +147,23 @@ func _process(d: float) -> bool:
 			check("all %d host enemies exist here (missing %d)" % [r["enemies"].size(), missing], missing == 0 and r["enemies"].size() >= 8)
 			# (shown ~0.1 s in the past: a charging bug can be a metre or two behind)
 			check("enemy puppets in place (median %.2f m, worst %.2f m: %s)" % [med, worst, str(data.get("worst_key", ""))], med < 0.4 and worst < 4.0)
+			# far from both captains the host's enemies sleep (ActorSleep, no snapshots): their puppets here sleep too, the near ones don't
+			var sleep = load("res://scripts/world/actor_sleep.gd")
+			var slept := 0
+			var agree := 0
+			var near_awake := 0
+			var near := 0
+			for k in r["enemies"].keys():
+				var e = net.node_of(k)
+				if e == null:
+					continue
+				if bool(r["enemies"][k][6]):
+					slept += 1
+					agree += 1 if sleep.asleep(e) else 0
+				elif e.global_position.distance_to(p.global_position) < 60.0:
+					near += 1
+					near_awake += 0 if sleep.asleep(e) else 1
+			check("enemies asleep on the host sleep here too (%d of %d), those near us awake (%d of %d)" % [agree, slept, near_awake, near], slept > 0 and agree >= slept - 2 and near_awake == near)
 			var g_hp_scale: float = 0.0
 			for k in r["enemies"].keys():
 				if "SmugglersCamp" in k:

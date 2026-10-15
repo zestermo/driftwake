@@ -92,11 +92,12 @@ func _run(name_: String, args: Array, from: int):
 	match name_:
 		"report":
 			var enemies := {}
+			var sleep = load("res://scripts/world/actor_sleep.gd")
 			for e in get_tree().get_nodes_in_group("net_sync"):
 				if e.get("health") == null:
 					continue
 				enemies[n.key_of(e)] = [e.global_position, int(e.state), e.health.current_health, e.health.max_health,
-					float(e.get_meta("min_hp", e.health.max_health)), float(e.get_meta("dmg_taken", 0.0))]
+					float(e.get_meta("min_hp", e.health.max_health)), float(e.get_meta("dmg_taken", 0.0)), sleep.asleep(e)]
 			var pup = n.players.get(from)
 			var camp = _world().find_children("SmugglersCamp", "", true, false)
 			var burned: Array = get_node("/root/GameManager").burned.keys()
