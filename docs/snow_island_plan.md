@@ -22,7 +22,7 @@ island kit, like the desert (docs/desert_island_plan.md). Order: after or alongs
   **tall, icy, pointed mountain peaks** that dominate the skyline (Zach: traditional sharp peaks, not literal
   flat-topped drum columns), climbable at a few routes, with a summit castle on the tallest. Ice-crystal clusters (glowing blue at night) on slopes and in caves. Coasts: snowy
   beaches, ice shelves and black-rock cliffs.
-- **Size:** medium-large; the pine forests and drum mountains break the eyeline, so it needn't be as big as the desert.
+- **Size:** medium-large; the pine forests and peaks break the eyeline, so it needn't be as big as the desert.
 - **Sky and light:** pale overcast days, low winter sun, long blue dusk, clear starry nights; the belt lantern, warm
   windows and campfires matter here.
 
@@ -32,7 +32,7 @@ island kit, like the desert (docs/desert_island_plan.md). Order: after or alongs
   a market under awnings heavy with snow.
 - **A buried town** (the buried-town ref): ruins and arches drowned in drifts, loot inside.
 - **Ice-block ruins** (the fields ref): stacked-block towers with barred windows.
-- **The summit castle** on a drum mountain: a dungeon/boss lair reached by a climb or a cable lift.
+- **The summit castle** on the tallest peak: a dungeon/boss lair reached by a climb or a cable lift.
 - **Ice caves:** crystal caverns, frozen waterfalls; a frozen shipwreck in the pack ice.
 - **The harbour:** wooden docks over icy water, ships with snow on their decks.
 
@@ -53,7 +53,7 @@ island kit, like the desert (docs/desert_island_plan.md). Order: after or alongs
 - **Music:** a snow theme, day and night (gen_psx_music.py), and the village's own; crackling fires, howling wind.
 
 ## Order (separate areas; green main first)
-1. Foundations: the snow KitStyle table, terrain (drifts, valleys, drum mountains, frozen water), snow textures and
+1. Foundations: the snow KitStyle table, terrain (drifts, valleys, icy peaks, frozen water), snow textures and
    palette, coasts.
 2. Towns: the village (round tiered-roof houses), buried town, ice ruins, harbour styling.
 3. Life: pine forests, creatures (wolves, bears, the beast of burden), people and clothing, ActorSleep.
