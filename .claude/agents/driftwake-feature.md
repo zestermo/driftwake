@@ -26,6 +26,8 @@ You build one feature of Driftwake, Zach's Godot 4.7 GDScript PS1-style One Piec
 - **Mouse and sound:** grab the mouse only through `Settings.capture_mouse()`. Tests and tools run muted.
 
 ## Testing (tier 1 only)
+- Driftwake overrides Zach's global "never write or run tests" rule (CLAUDE.md, Testing strategy): here you write
+  tests for what you build and run them before landing.
 - Run `tools/dev/run_tests.ps1 -Changed -Light` (the tests your changes affect, by what each loads; passes are cached by
   dependencies) or the tests that cover what you built by name (`run_tests.ps1 <suite> t/<group> ...`). No nettest, no
   full run. Long runs in the background; no sleep loops.

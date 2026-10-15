@@ -81,6 +81,9 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 
 ### Testing strategy (every session and agent)
 
+**This project overrides Zach's global "never write or run tests" rule:** in Driftwake you write and run tests as
+described here (Zach's choice). Tests are how agents prove their work before it lands.
+
 - **Only through the runners:** run_tests.ps1 and nettest.ps1, never a raw `godot --script` for
   a test. The runners share the machine's test slots, skip what already passed with the same contents of
   every file it loads, wait for a run of the same test already in flight, and show up live in Zach's
