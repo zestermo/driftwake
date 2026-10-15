@@ -159,6 +159,14 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   (top tiers change how a skill works: a shadow-step dodge, Observation Haki dodging on its own), each new
   weapon its own tree; more minibosses (pirate warlord at a camp, bat swarm-mother, carnivorous plant titan
   in a swamp, which needs a swamp site).
+- **Polearms** (Zach, 2026-10-14): one long-weapon kind with its own moveset and tree: spears, tridents, a
+  naginata/bisento (the Whitebeard-style great poleaxe), halberds, a pitchfork, anything long. Reach, sweeps, thrusts,
+  a vault and pole spins.
+- **More weapon kinds to consider** (One Piece-flavoured, after polearms; see the list in the 2026-10-14 chat):
+  three-sword style (a blade in the mouth, from dual swords), greatswords (a black great blade, a saw blade),
+  kanabo and big clubs (merges with the planned hammer), the cane sword (a blade in a walking stick, iai), black-leg
+  kicks (an unarmed kick style), the slingshot and ranged kit (musket, blunderbuss, hand cannon, harpoon gun, thrown
+  chakrams), claws and wrist blades, jitte and tonfa (parry/disarm), a staff, a whip or chain, and off-hand shields.
 - **Devil Fruits back:** polish them to the rest of the game's level, switch `DevilFruits.IN_WORLD` back on
   (off since 2026-10-09); a captain can dive in and haul up a fruit-user crewmate who falls in the sea (works
   for a guest).
