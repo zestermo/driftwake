@@ -19,7 +19,7 @@ const SLICES := 15
 ## A guest's puppet: asleep once the host has sent nothing for this long, awake on a snapshot this fresh.
 const STALE := 0.6
 const FRESH := 0.3
-const BURST_MS := 3000
+const BURST := 3.0
 
 ## Off (the bench's nosleep run): everyone wakes and stays awake.
 static var enabled := true
@@ -29,7 +29,8 @@ static var _all: Array = []
 var _i := 0
 var _caps: Array = []
 var _crew := 0
-var _burst_until := 0
+## Seconds left of the burst (0: none).
+var _burst := 0.0
 
 
 static func add(actor: Node3D, radii: Array = PEOPLE) -> void:
@@ -47,7 +48,7 @@ static func asleep(actor: Node) -> bool:
 	return false
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not enabled:
 		for e in _all:
 			if is_instance_valid(e["n"]) and bool(e["asleep"]):
@@ -56,12 +57,14 @@ func _process(_delta: float) -> void:
 	# (Net.players grows once the newcomer's world is up and its captain is put in: the roster grows before it loads)
 	var crew: int = Net.players.size() if Net.hosting else 0
 	if crew > _crew:
-		_burst_until = Time.get_ticks_msec() + BURST_MS
+		_burst = BURST
 		_sleepers_idle(false)
 	_crew = crew
-	if _burst_until > 0 and Time.get_ticks_msec() >= _burst_until:
-		_burst_until = 0
-		_sleepers_idle(true)
+	if _burst > 0.0:
+		_burst -= delta
+		if _burst <= 0.0:
+			_burst = 0.0
+			_sleepers_idle(true)
 	_caps.clear()
 	for p in Net.all_players():
 		_caps.append((p as Node3D).global_position)
@@ -133,7 +136,7 @@ func _sleep(e: Dictionary) -> void:
 	var a := e["n"] as Node3D
 	e["asleep"] = true
 	a.process_mode = Node.PROCESS_MODE_DISABLED
-	a.set("net_idle", _burst_until == 0)
+	a.set("net_idle", _burst == 0.0)
 
 
 func _wake(e: Dictionary) -> void:

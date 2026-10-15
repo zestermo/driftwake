@@ -1123,15 +1123,15 @@ func spend_stamina(cost: float) -> bool:
 ## a landing or a quick re-press).
 const SPRINT_SHAKE := 0.045
 const DASH_SHAKE := 0.06
-var _sprint_seen_ms: int = -100000
+var _sprint_seen: float = -100.0
 
 
 func on_sprint_start() -> void:
-	var now := Time.get_ticks_msec()
-	if now - _sprint_seen_ms > 600:
+	var now := PlayerState.now_s()
+	if now - _sprint_seen > 0.6:
 		CombatManager.apply_camera_shake(SPRINT_SHAKE)
 		squash(-1.2)
-	_sprint_seen_ms = now
+	_sprint_seen = now
 
 
 ## Whether a sprint can start / continue right now.
@@ -1141,7 +1141,7 @@ func can_sprint() -> bool:
 
 ## Called every physics tick while sprinting.
 func drain_sprint(delta: float) -> void:
-	_sprint_seen_ms = Time.get_ticks_msec()
+	_sprint_seen = PlayerState.now_s()
 	stamina = maxf(stamina - SPRINT_DRAIN * (1.0 - progression.stat("sprint_cost_pct")) * delta, 0.0)
 	_stamina_delay = STAMINA_REGEN_DELAY * 0.6
 	if stamina <= 0.0:
@@ -2285,7 +2285,7 @@ func reticle_ray() -> Array:
 ## G / middle mouse: mark where the camera points (an enemy, if one is under
 ## the crosshair) for the whole crew.
 func place_marker() -> void:
-	var now := Time.get_ticks_msec() * 0.001
+	var now := PlayerState.now_s()
 	if now < _mark_cd:
 		return
 	_mark_cd = now + 0.35

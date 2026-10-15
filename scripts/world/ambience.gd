@@ -51,6 +51,8 @@ var _zone_t := 0.0
 var _probe_t := 0.0
 var _bow_y := INF
 var _surge := 0.0
+## Game seconds, for the hull loops' slow drift.
+var _clock := 0.0
 ## The wind's gusts (0..1 now): with the weather, more and stronger in a blow.
 var gust := 0.0
 var _gust_peak := 0.0
@@ -118,6 +120,7 @@ func _loop_player(path: String) -> AudioStreamPlayer:
 
 
 func _process(delta: float) -> void:
+	_clock += delta
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	var want := {}
 	for k in LOOPS:
@@ -254,7 +257,7 @@ func _hull(ship: Node3D, spd: float, want: Dictionary, delta: float) -> void:
 
 ## A slow wander, -1..1, different for each k (sines that never line up).
 func _drift(k: int) -> float:
-	var t := Time.get_ticks_msec() * 0.001
+	var t := _clock
 	return sin(t * 0.13 + k * 1.7) * 0.5 + sin(t * 0.071 + k * 2.9) * 0.3 + sin(t * 0.037 + k * 0.6) * 0.2
 
 

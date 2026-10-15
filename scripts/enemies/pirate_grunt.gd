@@ -2414,7 +2414,7 @@ func _process(delta: float) -> void:
 		_overhead.visible = state != S.DEAD
 		_overhead.track(health.current_health, health.max_health)
 	if _peril_on and _peril_mat:
-		_peril_mat.albedo_color.a = 0.18 + 0.4 * absf(sin(Time.get_ticks_msec() * 0.012))
+		_peril_mat.albedo_color.a = 0.18 + 0.4 * absf(sin(Engine.get_physics_frames() * 12.0 / Engine.physics_ticks_per_second))
 	if _glow_t > 0.0:
 		_glow_t -= delta
 		if _glow_t <= 0.0:

@@ -67,16 +67,16 @@ func in_reach(feet: Vector3) -> bool:
 	return (h == 0 or h == net.my_id()) and super(feet) and not _npc_sitting()
 
 
-var _npc_ms: int = -100000
+var _npc_tick: int = -100000
 var _npc_on: bool = false
 
 
 ## A seated villager (a tavern regular, Pell on his bench) already has this spot (checked once a second).
 func _npc_sitting() -> bool:
-	var now := Time.get_ticks_msec()
-	if now - _npc_ms < 1000:
+	var now := Engine.get_physics_frames()
+	if now - _npc_tick < Engine.physics_ticks_per_second:
 		return _npc_on
-	_npc_ms = now
+	_npc_tick = now
 	_npc_on = false
 	for n in get_tree().get_nodes_in_group("npcs"):
 		var hm = n.get("humanoid")

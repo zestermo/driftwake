@@ -412,7 +412,7 @@ func _bob_bottles() -> void:
 
 
 static func bob_bottles(nodes: Array, delta: float) -> void:
-	var t := Time.get_ticks_msec() * 0.001
+	var t: float = Ocean.clock()
 	var glint := fmod(t, 1.4) < delta
 	var cam: Camera3D = null
 	for i in range(nodes.size()):

@@ -991,7 +991,7 @@ func _wave(p: Vector3, t: float) -> float:
 
 
 func _swell(delta: float) -> void:
-	var t: float = _ocean.call("clock") if _ocean and _ocean.has_method("clock") else Time.get_ticks_msec() / 1000.0
+	var t: float = Ocean.clock()
 	if _far and _swell_ready:
 		# too far to see her roll: ride the swell's height only
 		_y = lerpf(_y, _wave(_pos, t) * HEAVE_SCALE + FREEBOARD, minf(delta * 2.0, 1.0))

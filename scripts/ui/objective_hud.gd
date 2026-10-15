@@ -15,6 +15,7 @@ var _box: VBoxContainer
 var _head: Label
 var _goal: Label
 var _flash: float = 0.0
+var _t: float = 0.0
 var _font: Font
 var _player: Player
 
@@ -67,6 +68,7 @@ func _process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as Player
 	_box.visible = Story.active() and not hidden_by_menu and not _wake() and not Dialogue.active
+	_t += delta
 	_flash = maxf(_flash - delta, 0.0)
 	var pulse := 0.5 + 0.5 * sin(_flash * 9.0) if _flash > 0.0 else 0.0
 	_head.text = "NEW OBJECTIVE" if _flash > 0.0 else "OBJECTIVE"
@@ -109,7 +111,7 @@ func _draw() -> void:
 			dv = Vector2(0, 1)
 		var half := mid - Vector2(EDGE, EDGE)
 		at = mid + dv * minf(half.x / maxf(absf(dv.x), 0.001), half.y / maxf(absf(dv.y), 0.001))
-	var bob := sin(Time.get_ticks_msec() * 0.005) * 2.0 if inside else 0.0
+	var bob := sin(_t * 5.0) * 2.0 if inside else 0.0
 	var p := at + Vector2(0, bob)
 	var r := 7.0 + (2.0 if _flash > 0.0 else 0.0)
 	var dia := PackedVector2Array([p + Vector2(0, -r), p + Vector2(r * 0.8, 0), p + Vector2(0, r), p + Vector2(-r * 0.8, 0)])

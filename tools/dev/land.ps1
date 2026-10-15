@@ -157,7 +157,7 @@ try {
 	Update-ImportCache $wt $Godot
 	Save-StrayUids $wt
 	& $Godot --headless --path "$wt" --script res://tools/dev/compilecheck.gd 2>&1 | Out-Null
-	if ($LASTEXITCODE -ne 0) { Fail "$Branch doesn't compile on top of $Onto (run tools/dev/compilecheck.gd there)." }
+	if ($LASTEXITCODE -ne 0) { Fail "$Branch doesn't compile (or fails the wall-clock lint) on top of $Onto (run tools/dev/compilecheck.gd there)." }
 	# (-Exact: never carried over the rebase by its dependencies, it's there for what the two sides do together)
 	Set-LandingStep $crew "smoketest"
 	& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $wt "tools\dev\run_tests.ps1") smoketest -Exact -NoCompileCheck

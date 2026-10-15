@@ -262,7 +262,7 @@ func _physics_process(delta: float) -> void:
 		right = Vector3(cos(heading), 0.0, -sin(heading))
 
 	# swell: sample the waves under bow, stern and both sides
-	var t: float = _ocean.call("clock") if _ocean and _ocean.has_method("clock") else Time.get_ticks_msec() / 1000.0
+	var t: float = Ocean.clock()
 	var hb := _wave(pos + fwd * -BOW_Z, t)
 	var hs := _wave(pos + fwd * -STERN_Z, t)
 	var hp := _wave(pos - right * HALF_BEAM, t)

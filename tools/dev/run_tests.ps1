@@ -132,9 +132,9 @@ if (-not $NoCompileCheck -and $Tests.Count -gt 0) {
 	$cc = & $Godot --headless --path "$root" --script res://tools/dev/compilecheck.gd 2>&1 | ForEach-Object { "$_" }
 	$ErrorActionPreference = "Stop"
 	if ($LASTEXITCODE -ne 0) {
-		$errs = @($cc | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED" } | Select-Object -Unique)
+		$errs = @($cc | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED|WALL CLOCK" } | Select-Object -Unique)
 		$errs | ForEach-Object { Write-Host $_ -ForegroundColor Red }
-		Write-Host "Scripts don't compile: no suites run (-NoCompileCheck to run anyway)" -ForegroundColor Red
+		Write-Host "Scripts don't compile (or call the wall clock in game code): no suites run (-NoCompileCheck to run anyway)" -ForegroundColor Red
 		if ($CI) {
 			Add-CiRow $ciRows "compile check" 0 "FAIL" @($errs | Select-Object -First 40) ""
 			Write-CiSummary ("Suites: " + ($Tests -join " ")) $ciRows

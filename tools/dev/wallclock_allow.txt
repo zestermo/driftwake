@@ -1,0 +1,22 @@
+# Wall-clock calls allowed in game code (scripts/, scenes/). tools/dev/compilecheck.gd (run_tests.ps1's compile
+# step, the edit hook, land.ps1) fails on any other Time.get_ticks_*, Time/OS unix or system time there: gameplay runs on
+# game time (delta, physics ticks, timers, Ocean.clock() / Weather.world_time() for shared clocks).
+# One entry per line: path (the whole file) or path:function, then | and why it needs real time.
+scripts/net/network_manager.gd | the co-op session clock: every machine's wall time plus the host's offset, measured by ping
+scripts/world/weather.gd:_session | the solo session clock under the world time (Net's in co-op), kept as it was
+scripts/game/music.gd:play | the resume timer: a calm track left less than RESUME_WITHIN ago (menus, loading included) picks up where it was
+scripts/game/perf_monitor.gd | the perf log's date stamp
+scripts/game/dev_capture.gd | F12 captures: file names, the date, the movement history's own timestamps
+scripts/game/save_game.gd | a save's saved_at date
+scripts/ui/save_slot_list.gd | a save slot's date in the local time zone
+scripts/ui/game_menu.gd | web: the Esc that released the pointer lock (real input events, the menu's open and the game paused)
+scripts/ui/ui_style.gd:sfx | menu sounds: a focus "move" right after another sound is dropped (menus run while paused)
+scripts/npc/humanoid.gd:play | co-op: a held pose re-played every frame is sent at most every 250 ms (network rate)
+scripts/psx/draw_lod.gd:steps | a build step's 12 ms budget (work sliced by real time so a frame never hitches)
+scripts/island/world_generator.gd | chain island build timing (the "ready in ... ms" log) and its per-frame build steps
+scripts/island/gen_island.gd | build timing (build_ms) per step
+scripts/island/starter_island.gd | build timing (build_ms)
+scripts/island/island_life.gd | build timing (build_ms)
+scripts/island/kit/kit_context.gd | build timing (build_ms) per kit piece
+scripts/island/kit/kit_dungeons.gd | build timing (build_ms)
+scripts/island/kit/kit_landmarks.gd | build timing (build_ms)

@@ -303,3 +303,7 @@ scripts/ship/enemy_ship.gd              t/world
 scripts/ship/cannon.gd                  t/world
 scripts/npc/npc.gd                      t/world
 scripts/game/perf_monitor.gd            t/world
+# --- game time, not the wall clock (wallclock_allow.txt; compilecheck lints it) ---
+scripts/world/weather.gd                t/world
+tools/dev/compilecheck.gd               smoketest
+tools/dev/wallclock_allow.txt           smoketest

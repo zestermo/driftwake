@@ -34,8 +34,8 @@ $ErrorActionPreference = "Continue"
 $out = & $env:GODOT --headless --path "$dir" --script res://tools/dev/compilecheck.gd "--" @rel 2>&1 | ForEach-Object { "$_" }
 if ($LASTEXITCODE -eq 0) { exit 0 }
 
-$msg = $out | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED" } | Select-Object -Unique
-[Console]::Error.WriteLine("Godot can't compile what you just edited:")
+$msg = $out | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED|WALL CLOCK" } | Select-Object -Unique
+[Console]::Error.WriteLine("Godot can't compile what you just edited (or it calls the wall clock in game code):")
 $msg | ForEach-Object { [Console]::Error.WriteLine($_) }
 [Console]::Error.WriteLine("(If you're part way through a change across several edits, finish it; otherwise fix these.)")
 exit 2

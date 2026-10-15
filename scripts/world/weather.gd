@@ -84,7 +84,7 @@ var _base_deep := Color(0.05, 0.16, 0.3, 0.95)
 var _base_shallow := Color(0.2, 0.5, 0.6, 0.8)
 var _ocean_mat: ShaderMaterial
 var _prev_state: int = -1
-var _thunder_q: Array = []   # [time, far]
+var _thunder_q: Array = []   # [seconds until it's heard, far]
 var _sky_t: float = 0.0
 ## The style round the camera ([name, weight], KitStyle.around), looked up twice a second.
 var _zone: Array = ["brinehollow", 0.0]
@@ -707,7 +707,8 @@ func _update_lightning(t: float, delta: float) -> void:
 			_bolt.queue_free()
 			_bolt = null
 	for th in _thunder_q.duplicate():
-		if Time.get_ticks_msec() * 0.001 >= float(th[0]):
+		th[0] = float(th[0]) - delta
+		if float(th[0]) <= 0.0:
 			_thunder_q.erase(th)
 			FX_sfx("thunder_far" if th[1] else "thunder", -4.0 if th[1] else 0.0)
 	if storm < 0.55:
@@ -762,7 +763,7 @@ func _strike(at: Vector3, dist: float, seed_value: int) -> void:
 	_scene.add_child(_bolt)
 	_bolt_t = 0.28
 	# thunder arrives later the farther away it struck
-	_thunder_q.append([Time.get_ticks_msec() * 0.001 + dist / 340.0, dist > 300.0])
+	_thunder_q.append([dist / 340.0, dist > 300.0])
 
 
 func FX_sfx(name_: String, db: float) -> void:

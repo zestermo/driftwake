@@ -44,5 +44,5 @@ if ($code -eq 0) {
 	Set-Content $mark $head
 	exit 0
 }
-$errs = @($out | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED" } | Select-Object -Unique -First 20)
+$errs = @($out | Where-Object { $_ -match "SCRIPT ERROR|^\s+at: GDScript::reload|COMPILE FAILED|WALL CLOCK" } | Select-Object -Unique -First 20)
 Block ("Your branch doesn't compile as a whole (tools/dev/compilecheck.gd); fix it before finishing:`n" + ($errs -join "`n"))

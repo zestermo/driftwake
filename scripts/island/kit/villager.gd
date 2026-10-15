@@ -30,7 +30,7 @@ var _bark_cd := 0.0
 var _bubble: Label3D
 var _bubble_t := 0.0
 var _gesture_t := 0.0
-static var _last_bark_ms := -100000
+static var _last_bark_tick := -100000
 
 
 func follow(island: Island, s: Array, w: Array, lines: Dictionary) -> void:
@@ -162,13 +162,13 @@ func _bark(dt: float, to_player: float, kind: String) -> void:
 			_bubble.visible = false
 			_bubble_t = 0.0
 	_bark_cd -= dt
-	if _bark_cd > 0.0 or to_player > BARK_R or _in_dialogue or Dialogue.active or Time.get_ticks_msec() - _last_bark_ms < 8000:
+	if _bark_cd > 0.0 or to_player > BARK_R or _in_dialogue or Dialogue.active or Engine.get_physics_frames() - _last_bark_tick < 8 * Engine.physics_ticks_per_second:
 		return
 	_bark_cd = randf_range(35.0, 70.0)
 	var h := Weather.hour()
 	var pool: Array = ambient[("day" if h >= 6.0 and h < 18.0 else "evening" if h >= 18.0 and h < 22.0 else "night")].duplicate()
 	pool.append_array(ambient.get(kind, []))
-	_last_bark_ms = Time.get_ticks_msec()
+	_last_bark_tick = Engine.get_physics_frames()
 	say(pool[randi() % pool.size()])
 
 
