@@ -2015,6 +2015,10 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   the lips, a red rag on the swing chain's ring. `ChainSwing` (scripts/interaction/chain_swing.gd, a SwingRope): F
   at the lip ("Grab the chain"), or jump into it and it catches you; SwingState's rope mode swings you; let go with
   jump or ride it until your feet find the far side. Another captain's swing pulls the chain on your screen.
+  Tuned with the test: the cables ride 8.6 m over the floor and the chain is 6.4 m (a low anchor swung you under
+  the far lip); a chain's push-off goes all along the swing (`SwingRope.taut`: the old kick went in toward the
+  anchor, the rope went slack and the snap taut threw the speed away), and letting go of any swing keeps its speed
+  (`player.air_speed`: the fall capped it at a walk while you steered). F-grab and let go lands ~2.7 m past the lip.
 - The sea ladder from Grell's pier (`Ladder.lock_flag`): rolled up at the hoist until world flag "den_ladder" is set
   (a `WorldLatch` on the plateau: any captain within 21 m of the fire), then it unrolls. World flags are new:
   `GameManager.world_flags`, saved ("world_flags", a guest keeps its own), set for everyone by `Net.world_flag`, in
@@ -2028,4 +2032,6 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   mesh, the coast rock chunks round the den, the plants and colliders there, the den's nodes).
 - Story: the marker leads to the path's foot (a trail along the beach from the old one), then the cleft's top, then
   the den. storytest no longer drives the old climb (denpathtest drives the path).
-- Tests: denpathtest (new). Renders: tools/dev/out/denpath/.
+- Tests: denpathtest (new: driven gaps land 0.4-1.3 m past their lips, the double-jump run 1.3 m), storytest,
+  foresttest, grunttest, lifetest, smoketest, vinetest, riggingtest. Renders: tools/dev/out/denpath/final_*.png
+  (sea_w, sea_sw, over, foot, ledge, cave, bridge_sea, chain_lip, cleft, camp) and night_*.
