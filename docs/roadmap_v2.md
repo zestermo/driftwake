@@ -34,7 +34,18 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 
 ## 5. Player customization
 - Gear upgrading and customizing (blue rarity and up: upgrades, effects, abilities, renaming), more clothing and
-  looks, ship customization.
+  looks.
+- **Ships to work toward** (Zach, 2026-10-15), bought at the canal city's shipyard and moored at harbours (switch
+  between them; each keeps its own upgrades):
+  - the starting sloop stays as it is, a little slower; a fast caravel (Going Merry-style); a brigantine/brig (more
+    guns and crew jobs); a galleon (two gun decks, room for four); and an oddball submarine (Heart Pirates-style: dives
+    under storms and Marines, explores wrecks and sunken ruins, keeps fruit users safe).
+  - **Many small upgrades per ship, each one visible:** sails and rigging (+speed/turning, new cloth and colours),
+    hull plating and copper bottom, paint, more or heavier cannons and bow chasers, a tangerine grove (small heal/food),
+    a crow's-nest cabin, lanterns, railings, flags, figureheads, galley, bunks, a bigger storage chest. Small numbers
+    (~5%), big visual identity.
+  - **A Seamanship skill tree:** trim efficiency, faster turns, storm handling, reload and broadside aim, faster
+    repairs, reading the log pose further, co-op crew-station bonuses.
 
 ## 6. The Marines and bounties
 - Bounties that grow, wanted posters, Marine patrols and pursuit, named Marine captains hunting you; the Marine
