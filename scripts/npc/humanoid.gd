@@ -3787,7 +3787,8 @@ func reach_hand(right: bool, target: Vector3, pole: Vector3) -> void:
 	var y_axis := -upper
 	var z_axis := -n
 	var x_axis := y_axis.cross(z_axis).normalized()
-	arm.global_basis = Basis(x_axis, y_axis, z_axis).scaled(Vector3(sc, sc, sc))
+	# local rotation only: a global basis with scale left the arm a lasting local scale under a squashed pivot
+	arm.basis = arm.get_parent_node_3d().global_basis.orthonormalized().inverse() * Basis(x_axis, y_axis, z_axis)
 	fore.rotation = Vector3(bend, 0, 0)
 
 
