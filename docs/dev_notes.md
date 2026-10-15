@@ -1864,3 +1864,23 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   Tide", "everyone left") failed under load because the fort's three gate guards (`fort.guards`) were still alive
   and walked into the fight, hitting the captain mid-lane and keeping Morrow "in combat"; the test now clears them
   before the boss fight. (Reproduced by running r8test with five other suites at once.)
+- 2026-10-15 fix pass: the bench "hang", the "weird fog" in Brinehollow and F8's ENEMIES 0 were one thing, main's
+  stale import cache: .godot/global_script_class_cache.cfg was written 13:30, ActorSleep landed 13:36, and nothing
+  that runs Godot outside the editor and the runners imports. So ~25 scripts failed to parse (grunts, bugs, NPCs,
+  enemy ships and everything that names them, gen_island, kit pieces): no enemies or villagers, the captain started
+  on the plaza, SeaFeatures had no data so Weather._update_slow errored at local_weather before it set the sun, sky
+  and fog (world.tscn's default environment: the pale haze over the near houses), and the chain islands' prepare
+  tasks never finished. The bench waited 240 s for them, gave up, and quitting then blocked in
+  WorldGenerator._exit_tree's wait_for_task_completion on those 2 tasks: the frozen window, ~0 CPU after ~230
+  CPU-seconds. Reproduced with main's own cache (twice, the hang at the same wait; screenshots match Zach's).
+  With a current import the bench finishes (main, B+C before A, v1.13). Players can't hit it: an export bakes its
+  class list and the editor rescans; it hits only CLI runs (bench, renders) in a checkout that missed an import.
+  Fixes: bench.ps1 runs Update-ImportCache first; land.ps1 refreshes the target checkout's import after the
+  fast-forward (main is current for the bench, renders and Zach's runs). The bench now prints `bench: <stop>
+  <phase>`, a watchdog thread names the stop/phase/island build step of a stalled frame, it saves a screenshot per
+  stop and bench.ps1 keeps the whole Godot log (`out/bench/brinehollow_<label>.log`). F8: "enemies N awake / M
+  asleep" (awake = processing physics: ActorSleep's sleepers and creatures in their distance LOD count as asleep;
+  the perf log line too); t/world/actor_sleep checks the counts. Windows glowing at 13:00 are as in v1.13.
+  Bench after (laptop, mean of 8 stops; v1.13: 42.3 / 29.1 ms at 13:00): 13:00 clear frame 9.23 ms, frame1t 10.18,
+  ticks 0.56, GPU 1.79, draws 714 + 489 shadow; 21:00 clear 9.29 / 10.29 / 0.56 / 1.80 / 715 + 588; 13:00 rain
+  10.05 / 10.95 / 0.60 / 2.07 / 767 + 518. Tests: t/world, perftest, smoketest, isletest.
