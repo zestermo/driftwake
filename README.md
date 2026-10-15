@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.12-e0b040" alt="Version 1.12">
+  <img src="https://img.shields.io/badge/version-1.13-e0b040" alt="Version 1.13">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,18 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.13: Shore Leave (October 15, 2026)
+Things to do with your crew when nobody's trying to sink you.
+- **Instruments:** tin whistle, bodhrán, concertina, fiddle and hurdy-gurdy, sold by Gus at The Salted Gull and
+  chain-island traders (never a starting item), worn in a new INST slot and played from the emote wheel (T).
+- **Jamming:** four original shanties with a part for every instrument, on the host's clock; start near a crewmate
+  who's playing and you join their tune at the same spot. The music dips while anyone nearby plays.
+- **Player menu and duels:** F next to a crewmate opens Trade, Inspect and Duel; a duel shows the opponent's
+  health as a boss bar, only the pair can hurt each other, the loser is downed (nothing lost), both stand up healed,
+  and the winner earns a little XP.
+- **Sound:** impacts by weapon (slice, chop, punch, shot, a steel clash on parries and blocks) and a UI sound set.
+- **Fixes:** the solo swell runs on game time (it jumped after a hitch); emotes no longer play music.
 
 ### v1.12: Night Watch (October 14, 2026)
 Light, music and a living sea.

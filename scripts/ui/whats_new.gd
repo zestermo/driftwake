@@ -7,15 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Nights you can see in", "Moonlit blue nights instead of black ones, lamps in every window, doorway and pier, and storms that never go pitch dark."],
-	["The belt lantern", "Every captain wears a brass lantern on the hip. It lights itself at dusk, swings as you run, and L puts it out or lights it again. Your crew sees it too."],
-	["Lanterns at sea", "Your ship carries lanterns at the stern, mast, bow, rails and cabin door, and pirate ships show theirs from far off at night."],
-	["New music", "A new theme on the title screen, and longer pieces for the open sea, the island wilds and the villages, each with a quieter night version."],
-	["A living sea", "Spray off the bow when she meets a wave, surf breaking on beaches and rocks, foam on the swell, and a sea that sounds deep, close and far. Dive and it all goes muffled."],
-	["Birds", "Gulls round the harbours and your ship near land, flocks over the islands and parrots in the jungle. Run at a perched one and it's off."],
-	["Rain that lands", "Softer rain that splashes where it falls, puddles that build up and dry out, and rings on the sea."],
-	["Longer days", "Daylight lasts 14 minutes and the night 10."],
-	["Small things", "Pixelation is one on/off option (Options > Video, or F2) at the sharper setting. The log pose moved to H."],
+	["Instruments", "A tin whistle, a bodhrán, a concertina, a fiddle and a hurdy-gurdy. Buy one from Gus at The Salted Gull (or a chain-island trader), wear it in the new INST slot, and hold T to play."],
+	["Jam with your crew", "Four shanties with a part for every instrument. Start playing near a crewmate who's already at it and you come in on their tune, right on the beat."],
+	["Duels", "Walk up to a crewmate and press F: trade, inspect their gear, or challenge them. Their health goes up top like a boss's, the loser just gets knocked down, and the winner gets a little XP."],
+	["Hits you can hear", "Blades slice, axes chop, fists thud, shots smack and parries ring steel on steel. Heavy hits and finishers hit harder."],
+	["Menus that click", "Every menu has its own sounds now: hover, confirm, back, buy, sell, equip, level up and quests."],
+	["Fixes", "The waves no longer jump after a hitch. Emotes leave the music to the instruments."],
 ]
 
 
