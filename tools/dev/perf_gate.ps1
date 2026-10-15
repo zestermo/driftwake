@@ -3,6 +3,8 @@
 #
 #   .\tools\dev\perf_gate.ps1                  # bench this checkout at every light in the baseline, compare
 #   .\tools\dev\perf_gate.ps1 -Update          # bench it and rewrite the baseline (after an intended change), then commit it
+#                                              # (it names HEAD: on a branch, after the landing's rebase point the
+#                                              # baseline's commit line at the landed commit with the same game code)
 #   .\tools\dev\perf_gate.ps1 -Hours 13        # one light only (-Update's default: 13 and 21, clear)
 #   .\tools\dev\perf_gate.ps1 -BenchArgs stops=beach,dock -Runs 1 # extra bench args (to both sides of a confirm too)
 #
