@@ -131,9 +131,10 @@ func complete(id: String) -> void:
 	step = STEPS[i]["id"] if i < STEPS.size() else DONE
 	changed.emit()
 	if step == DONE:
-		get_tree().call_group("hud", "show_banner", "The sea is yours", "Sail where you like, Captain", true)
+		UIStyle.sfx("quest_done")
+		get_tree().call_group("hud", "show_banner", "The sea is yours", "Sail where you like, Captain")
 	else:
-		get_tree().call_group("hud", "show_objective_banner", goal())
+		get_tree().call_group("hud", "show_objective_banner", goal(), true)
 	if p:
 		SaveGame.save(p)
 	_check_won()

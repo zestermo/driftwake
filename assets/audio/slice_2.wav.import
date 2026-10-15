@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://bfu5pp63iec0"
-path="res://.godot/imported/shanty.wav-fa96bc771a41b63ef4dd8fda79465624.sample"
+uid="uid://cao05a713vu0y"
+path="res://.godot/imported/slice_2.wav-8fb7e6bb921fafe55714c2ad1fc82cc1.sample"
 
 [deps]
 
-source_file="res://assets/audio/shanty.wav"
-dest_files=["res://.godot/imported/shanty.wav-fa96bc771a41b63ef4dd8fda79465624.sample"]
+source_file="res://assets/audio/slice_2.wav"
+dest_files=["res://.godot/imported/slice_2.wav-8fb7e6bb921fafe55714c2ad1fc82cc1.sample"]
 
 [params]
 

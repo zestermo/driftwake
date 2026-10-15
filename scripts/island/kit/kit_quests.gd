@@ -115,6 +115,7 @@ func _on_event(ev: String) -> void:
 	match parts[2]:
 		"take":
 			get_tree().call_group("hud", "show_toast", "New task: %s" % q["title"])
+			UIStyle.sfx("quest_accept")
 			_t = 0.0
 		"got":
 			get_tree().call_group("hud", "show_toast", str(q["found"]))
@@ -142,6 +143,7 @@ func _pay(q: Dictionary) -> void:
 	me.inventory_component.add_item(ItemDB.get_item("gold"), int(q["gold"]))
 	GameManager.award_xp(int(q["xp"]), me.global_position)
 	get_tree().call_group("hud", "show_toast", "Done: %s" % q["title"])
+	UIStyle.sfx("quest_done")
 
 
 ## Twice a second for the local captain: a scouted place seen, items to fetch in hand, lost things shown.

@@ -405,6 +405,7 @@ func _ready() -> void:
 	hd.stagger_duration = 0.3
 	hd.hitstop_duration = 0.06
 	hd.camera_shake_intensity = 0.14
+	hd.impact = "slice"
 	hitbox.hit_data = hd
 	_hit_light = hd
 	_hit_heavy = hd.duplicate() as HitData
@@ -426,6 +427,7 @@ func _ready() -> void:
 	_hit_rush.stagger_duration = 0.4
 	_hit_rush.hitstop_duration = 0.1
 	_hit_rush.camera_shake_intensity = 0.28
+	_hit_rush.impact = "punch"
 	_hit_sweep = hd.duplicate() as HitData
 	_hit_sweep.damage = _dmg(10.0)
 	_hit_sweep.knockback_force = 4.0
@@ -945,6 +947,7 @@ func _physics_process(delta: float) -> void:
 						hd.stagger_duration = 0.4
 						hd.hitstop_duration = 0.05
 						hd.camera_shake_intensity = 0.12
+						hd.impact = "punch"
 						hb.take_hit(hd, self)
 			if st_t > SHOVE_LEN:
 				_shove_cd = SHOVE_COOLDOWN
@@ -1525,14 +1528,14 @@ const BARK_READ := ["Saw that coming!", "Same trick twice?", "Not again!", "Too 
 
 ## Read a heavy the player keeps repeating: a swordsman turns it on his guard,
 ## a rifleman steps out of the way. No damage either way.
-func _read_heavy(dir: Vector3) -> void:
+func _read_heavy(hit: HitData, dir: Vector3) -> void:
 	var at := global_position + Vector3(0, 1.25, 0) - dir * 0.5
 	bark(BARK_READ, 0.7)
 	Net.fx("float_text", [global_position + Vector3(0, 2.3, 0), "Read!", Color(1.0, 0.82, 0.4), 24])
 	if role == "sword":
 		Net.fx("impact", [at, Color(1.0, 0.95, 0.7)])
 		Net.fx("sparkle", [at, 8, Color(1.0, 0.9, 0.5)])
-		Net.fx("sfx", ["block", at, -2.0, 0.05, 1.2])
+		CombatManager.guard(hit, true, at, -2.0, 0.05, 1.2)
 		humanoid.play("block", 0.4)
 		velocity = dir * 3.0
 		_riposte = true
@@ -1622,7 +1625,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	# the same heavy again: it saw that coming (HitData.predictable)
 	if hit.predictable > 0.0 and from_front and state in [S.CIRCLE, S.CHASE, S.ALERT, S.BLOCK, S.CLOSE, S.KEEP, S.REPOSITION] \
 			and _rng.randf() < hit.predictable:
-		_read_heavy(dir)
+		_read_heavy(hit, dir)
 		return
 
 	# blocked: sparks, no damage (until the guard breaks)
@@ -1634,7 +1637,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			var spark := global_position + Vector3(0, 1.25, 0) - dir * 0.55
 			Net.fx("impact", [spark, Color(1.0, 0.95, 0.7)])
 			Net.fx("sparkle", [spark, 6, Color(1.0, 0.9, 0.5)])
-			Net.fx("sfx", ["hit", spark, -2.0, 0.05, 1.8])
+			CombatManager.guard(hit, true, spark, -2.0, 0.05, 1.1)
 			get_node("/root/CombatManager").apply_hitstop(0.04, [_hit_by, self])
 			humanoid.play("block", 0.4)
 			velocity = dir * 2.5
@@ -1692,7 +1695,7 @@ func _take_damage(hit: HitData, dir: Vector3) -> void:
 	Net.damage_number(hit.damage, global_position + Vector3(0, 1.9, 0))
 	Net.fx("impact", [global_position + Vector3(0, 1.2, 0) - dir * 0.35, Color(1.0, 0.6, 0.45)])
 	Net.fx("blood", [global_position + Vector3(0, 1.15, 0) - dir * 0.15, dir, clampi(int(hit.damage * 0.6), 6, 22)])
-	Net.fx("sfx", ["hit", global_position, -2.0, 0.1, 1.05 if hit.damage < 20.0 else 0.85])
+	CombatManager.impact(hit, global_position, -2.0, 0.1, 1.05 if hit.damage < 20.0 else 0.85)
 	_hit_feedback(hit)
 	set_meta("last_dir", dir)
 	_last_hit = hit
@@ -2255,6 +2258,7 @@ func _fire(p: Node3D) -> void:
 	# through); in co-op each captain checks the line on their own screen
 	var hd := HitData.new()
 	hd.ranged = true
+	hd.impact = "shot"
 	hd.damage = _dmg(10.0 if _gun == "pistol" else 15.0)
 	hd.knockback_force = 3.0 if _gun == "pistol" else 4.0
 	hd.stagger_duration = 0.3

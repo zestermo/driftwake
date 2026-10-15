@@ -39,19 +39,12 @@ var _tip_t := 0.0
 var _flash_t := 0.0
 ## What the card shows: {"src": "shop" | "bag", "i": slot}, or {}.
 var _sel := {}
-var _coin: AudioStreamPlayer
 
 
 func _init(menu: Node) -> void:
 	_menu = menu
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# (the game's paused in here: a plain player, not a positional FX sound)
-	_coin = AudioStreamPlayer.new()
-	_coin.stream = load("res://assets/audio/coin.wav")
-	_coin.bus = "UI"
-	_coin.volume_db = -6.0
-	add_child(_coin)
 	_panel = PanelContainer.new()
 	_panel.add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.BG, UIStyle.BORDER, 8))
 	_panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -326,7 +319,7 @@ func buy(entry: Array) -> void:
 		_flash("Your bag's full", true)
 		return
 	inv.remove_item(ItemDB.get_item("gold"), price)
-	_coin.play()
+	UIStyle.sfx("buy")
 	_flash("Bought %s for %d gold" % [it.display_name, price], false)
 	_refresh()
 	_bounce(it)
@@ -341,7 +334,7 @@ func sell(it: ItemData, n: int) -> void:
 	if not inv.remove_item(it, n):
 		return
 	inv.add_item(ItemDB.get_item("gold"), each * n)
-	_coin.play()
+	UIStyle.sfx("sell")
 	_flash("Sold %s%s for %d gold" % [it.display_name, " x%d" % n if n > 1 else "", each * n], false)
 	_refresh()
 	_gold.pivot_offset = _gold.size * 0.5
@@ -370,6 +363,8 @@ func _flash(text: String, bad: bool) -> void:
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_hints.add_child(l)
 	_flash_t = 2.5
+	if bad:
+		UIStyle.sfx("deny")
 
 
 func _process(delta: float) -> void:

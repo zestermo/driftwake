@@ -363,7 +363,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	Net.event(self, "flash", [])
 	_number(hit.damage)
 	Net.fx("impact", [global_position + Vector3(0, 0.45 * size_k, 0) - dir * 0.8, Color(0.75, 1.0, 0.55)])
-	Net.fx("sfx", ["hit", global_position, -1.0, 0.1, 0.8])
+	CombatManager.impact(hit, global_position, -1.0, 0.1, 0.8)
 	if not Net.active or attacker == Net.local_player:
 		get_node("/root/CombatManager").apply_hit_effects(hit, [attacker])
 	health.take_damage(hit.damage)

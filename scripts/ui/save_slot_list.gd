@@ -14,7 +14,6 @@ var mode: String = "load"
 var warn_unsaved: bool = false
 var _title: Label
 var _body: VBoxContainer
-var _blip: AudioStreamPlayer
 
 
 func _init() -> void:
@@ -31,11 +30,6 @@ func _init() -> void:
 	_body = VBoxContainer.new()
 	_body.add_theme_constant_override("separation", 4)
 	vb.add_child(_body)
-	_blip = AudioStreamPlayer.new()
-	_blip.stream = load("res://assets/audio/select.wav")
-	_blip.bus = "UI"
-	_blip.volume_db = -8.0
-	add_child(_blip)
 
 
 func open(mode_: String, warn: bool = false) -> void:
@@ -81,9 +75,7 @@ func refresh() -> void:
 			row.add_child(del)
 	var back := UIStyle.button("Back", 120)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.pressed.connect(func():
-		_blip.play()
-		cancelled.emit())
+	back.pressed.connect(func(): cancelled.emit())
 	_body.add_child(back)
 	(first if first else back).call_deferred("grab_focus")
 
@@ -108,7 +100,6 @@ static func when(unix: int) -> String:
 
 
 func _pick(slot: int, info: Dictionary) -> void:
-	_blip.play()
 	if mode == "new" and not info.is_empty():
 		_confirm("Overwrite slot %d (%s, Lv %d)?\nThat save will be gone for good." % [slot, info["name"], info["level"]],
 			"Overwrite", func(): chosen.emit(slot))
@@ -120,7 +111,6 @@ func _pick(slot: int, info: Dictionary) -> void:
 
 
 func _ask_delete(slot: int, info: Dictionary) -> void:
-	_blip.play()
 	_confirm("Delete slot %d (%s, Lv %d)?\nThis can't be undone." % [slot, info["name"], info["level"]],
 		"Delete", func():
 			SaveGame.delete_slot(slot)
@@ -139,13 +129,9 @@ func _confirm(question: String, yes_text: String, on_yes: Callable) -> void:
 	var yes := UIStyle.button(yes_text, 110)
 	if yes_text != "Load":
 		UIStyle.danger(yes)
-	yes.pressed.connect(func():
-		_blip.play()
-		on_yes.call())
+	yes.pressed.connect(func(): on_yes.call())
 	row.add_child(yes)
 	var no := UIStyle.button("Cancel", 110)
-	no.pressed.connect(func():
-		_blip.play()
-		refresh())
+	no.pressed.connect(func(): refresh())
 	row.add_child(no)
 	no.call_deferred("grab_focus")

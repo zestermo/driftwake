@@ -213,8 +213,7 @@ func _select(i: int) -> void:
 		b.add_theme_stylebox_override("normal", _plank(on))
 		b.add_theme_stylebox_override("hover", _plank(true))
 		b.add_theme_color_override("font_color", UIStyle.INK if on else UIStyle.TEXT)
-	_blip.pitch_scale = 1.6
-	_blip.play()
+	UIStyle.sfx("move")
 
 
 ## A choice's plank: light teal with ink when it's the one picked.
@@ -249,8 +248,7 @@ func _on_typing_done() -> void:
 
 
 func _play_select() -> void:
-	_blip.pitch_scale = 2.0
-	_blip.play()
+	UIStyle.sfx("confirm")
 
 
 func _process(delta: float) -> void:

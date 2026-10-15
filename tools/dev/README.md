@@ -43,7 +43,7 @@ whole group: `run_tests.ps1 t/player/dodge`, `run_tests.ps1 t/player`, `run_test
 - `stage.gd` + `stage_islands.gd`: the stage (`TK.stage(self, opts)` in `_initialize`, then wait for `stage.up`): flat ground 3 m above the sea, a sun, the real captain with camera and HUD, a fresh game in `user://test_stage` (the default captain); on request a dummy, a grunt camp, a weapon drawn, an NPC, a bench, a chest, the ship's storage, the sea and the ship. No world generation; the music is off; a stand-in "world_gen" with no islands. The opts are in stage.gd's header.
 - `t/_template.gd`: copy it for a new test.
 - `t/player/`: starting_kit, draw_sheathe, dodge, double_jump, jump_takeoffs, jump_height, sprint, stamina, turn_lean, head_look, head_motion, shonen_body, log_pose_raise, crouch, sit_bench, sit_ground, emotes, gestures.
-- `t/combat/`: slash_dummy, cutlass_combo, sneak_sentry. `t/weapons/`: draw_styles. `t/items/`: rum_quick_slot, chest_loot, heal_timing, heal_spill, heal_kinds. `t/ui/`: menu_keys, emote_wheel. `t/ship/`: sit_stool.
+- `t/combat/`: slash_dummy, cutlass_combo, sneak_sentry, impact_sounds (each weapon's impact and guard sound names, menu open/close and button sounds). `t/weapons/`: draw_styles. `t/items/`: rum_quick_slot, chest_loot, heal_timing, heal_spill, heal_kinds. `t/ui/`: menu_keys, emote_wheel. `t/ship/`: sit_stool.
 
 ## Test suites (run_tests.ps1)
 

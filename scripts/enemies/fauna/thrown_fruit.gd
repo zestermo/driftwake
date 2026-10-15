@@ -63,6 +63,7 @@ func _hit_player(p: Node3D) -> void:
 		return
 	var hd := HitData.new()
 	hd.ranged = true
+	hd.impact = "punch"
 	hd.damage = damage
 	hd.knockback_force = 2.5
 	hd.stagger_duration = 0.3

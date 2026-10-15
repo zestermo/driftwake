@@ -63,7 +63,7 @@ func _on_hit_received(hit_data: HitData, _attacker: Node) -> void:
 		to_attacker.y = 0.0
 		hit_pos += to_attacker.normalized() * 0.35
 	FX.impact(hit_pos)
-	FX.sfx("hit", global_position, -2.0, 0.1, 1.15 if hit_data.damage < 20.0 else 0.85)
+	FX.sfx(CombatManager.impact_sound(hit_data), global_position, -2.0, 0.1, 1.15 if hit_data.damage < 20.0 else 0.85)
 	get_node("/root/CombatManager").apply_hit_effects(hit_data)
 
 

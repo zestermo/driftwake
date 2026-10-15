@@ -474,6 +474,7 @@ func _shot(d: Vector3, base: float) -> void:
 		var hd := player.melee_hit(base)
 		hd.knockback_force = 3.0
 		hd.ranged = true
+		hd.impact = "shot"
 		(hit["collider"] as Hurtbox).take_hit(hd, player)
 		_pc.add_ult(hd.damage)
 		Net.fx("impact", [end, Color(1.0, 0.75, 0.45)])

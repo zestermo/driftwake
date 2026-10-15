@@ -313,7 +313,7 @@ func _build_panel() -> void:
 		b.add_theme_color_override("font_hover_color", UIStyle.TEXT)
 		b.add_theme_color_override("font_pressed_color", UIStyle.ACCENT)
 		b.add_theme_color_override("font_hover_pressed_color", UIStyle.ACCENT)
-		b.pressed.connect(func(): menu._play(); show_tab(id))
+		b.pressed.connect(func(): menu._play("select"); show_tab(id))
 		head.add_child(b)
 		_tab_buttons[id] = b
 	var gap := Control.new()
@@ -881,6 +881,7 @@ func _flash(text: String) -> void:
 	l.add_theme_constant_override("outline_size", 2)
 	_hints.add_child(l)
 	_flash_t = 2.5
+	menu._play("deny")
 
 
 # ==========================================================================
@@ -904,11 +905,11 @@ func _use(idx: int) -> void:
 	var it := pl.inventory_component.items[idx].item
 	if it.is_weapon():
 		pl.equip_weapon(it, false)
-		menu._play()
+		menu._play("equip")
 		refresh()
 	elif it.is_gear():
 		if pl.equip_gear_from_bag(idx):
-			menu._play()
+			menu._play("equip")
 		refresh()
 	elif it.is_consumable() and it.devil_fruit != "":
 		_confirm_fruit(it)
@@ -930,7 +931,7 @@ func _put_away(off: bool) -> void:
 		pl.set_offhand(null)
 	else:
 		pl.unequip_weapon()
-	menu._play()
+	menu._play("unequip")
 	refresh()
 	_bounce_item(it)
 
@@ -939,7 +940,7 @@ func _clear_quick(k: int) -> void:
 	var inv := _player().inventory_component
 	var it: ItemData = inv.get_hotbar_item(k) if inv.hotbar[k] != "" else null
 	inv.clear_hotbar_slot(k)
-	menu._play()
+	menu._play("unequip")
 	refresh()
 	if it:
 		_bounce_item(it)
@@ -963,7 +964,7 @@ func _offhand_from_bag(idx: int) -> void:
 	if not pl.set_offhand(it):
 		_flash("Off hand: a second blade, a second pistol, or a pistol beside a cutlass")
 		return
-	menu._play()
+	menu._play("equip")
 	refresh()
 	_offhand_slot.bounce()
 
@@ -1021,7 +1022,7 @@ func _on_doll_pressed(slot: String) -> void:
 	var pl := _player()
 	var it := pl.equipment.get_item(slot)
 	if pl.unequip_gear(slot):
-		menu._play()
+		menu._play("unequip")
 	refresh()
 	if it and pl.equipment.get_item(slot) == null:
 		_bounce_item(it)
@@ -1036,7 +1037,7 @@ func assign_hotbar(slot: int) -> void:
 		return
 	pl.inventory_component.assign_hotbar(slot, it.id)
 	_selected = -1
-	menu._play()
+	menu._play("equip")
 	refresh()
 	_quick[slot].bounce()
 
@@ -1288,7 +1289,7 @@ func _drop_world(_at: Vector2, d) -> void:
 				if pl.inventory_component.items[i].item.id == pl.offhand_weapon.id:
 					idx = i
 	pl.drop_from_bag(idx)
-	menu._play()
+	menu._play("unequip")
 	refresh()
 
 
@@ -1299,7 +1300,7 @@ func drop_selected(one: bool) -> void:
 		return
 	pl.drop_from_bag(_selected, 1 if one else -1)
 	_selected = -1
-	menu._play()
+	menu._play("unequip")
 	refresh()
 
 
@@ -1347,7 +1348,7 @@ func _grow_loot(n: int) -> void:
 			if pl and has_container() and idx < _container.contents.size():
 				var it: ItemData = _container.contents[idx].item
 				_container.take(idx, pl, 1 if Input.is_key_pressed(KEY_SHIFT) else -1)
-				menu._play()
+				menu._play("equip")
 				if has_container():
 					refresh()
 					_bounce_item(it))
@@ -1395,7 +1396,7 @@ func take_all() -> void:
 	var pl := _player()
 	if pl and has_container():
 		_container.take_all(pl)
-		menu._play()
+		menu._play("equip")
 		if has_container():
 			refresh()
 

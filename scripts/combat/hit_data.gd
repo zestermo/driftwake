@@ -28,6 +28,9 @@ class_name HitData
 @export var breaker: bool = false
 ## Cannon fire: the only thing that damages a ship's hull.
 @export var siege: bool = false
+## What struck, for the sound it makes on a body (CombatManager.impact_sound): "" (a plain
+## hit: claws, teeth, blasts), "slice", "slice_heavy", "chop", "punch", "punch_heavy", "shot".
+@export var impact: String = ""
 ## A heavy the player keeps repeating (0..1): the chance a grunt who saw it
 ## coming reads it and steps out of it or guards (PlayerState.heavy_used).
 @export var predictable: float = 0.0

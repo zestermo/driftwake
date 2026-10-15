@@ -98,8 +98,8 @@ func _on_level_up() -> void:
 		player.power.energy = player.power.max_energy()
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 24, Color(1.0, 0.92, 0.5)])
 		Net.fx("dust_ring", [player.global_position, 14, 0.9])
-		Net.fx("sfx", ["coin", player.global_position, 0.0, 0.0, 0.75])
-		get_tree().call_group("hud", "show_banner", "Level %d!" % level, "+%d skill points  -  press K to open the skill map" % SP_PER_LEVEL, true)
+		UIStyle.sfx("level_up")
+		get_tree().call_group("hud", "show_banner", "Level %d!" % level, "+%d skill points  -  press K to open the skill map" % SP_PER_LEVEL)
 		SaveGame.save(player)
 	leveled_up.emit(level)
 

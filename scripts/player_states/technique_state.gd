@@ -1190,6 +1190,7 @@ func _grapeshot() -> void:
 		var c := CorsairGun.body_center(e)
 		var hd := _hd(22.0 * lerpf(1.0, 0.6, clampf((d.length() - 3.0) / 4.0, 0.0, 1.0)), 10.0, false)
 		hd.ranged = true
+		hd.impact = "shot"
 		hd.stagger_duration = 0.8
 		_strike_toward(e, hd, _flat_to(e))
 		Net.fx("tracer", [from, c, _col(FX.CORE)])
@@ -1291,6 +1292,7 @@ func _broadside(delta: float) -> void:
 		var c := CorsairGun.body_center(e)
 		var hd := _hd(10.0, 1.0, false)
 		hd.ranged = true
+		hd.impact = "shot"
 		hd.stagger_duration = 1.3
 		hd.hitstop_duration = 0.02
 		_strike(e, hd)

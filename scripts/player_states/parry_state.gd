@@ -71,7 +71,9 @@ func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 			to_att = to_att.normalized() if to_att.length() > 0.05 else fwd
 		var at := player.global_position + Vector3(0, 1.25, 0) + to_att * 0.6
 		Net.fx("parry_sparks", [at, to_att])
-		Net.fx("sfx", ["parry", at, -1.0, 0.06, 1.0])
+		if not _hit_data.ranged:
+			CombatManager.guard(_hit_data, player.armed and player.weapon_class() == "sword", at, -2.0, 0.06, 1.05)
+		Net.fx("sfx", ["parry", at, -6.0, 0.06, 1.0])
 		var combat_mgr := get_node("/root/CombatManager")
 		combat_mgr.apply_hitstop(0.1, [player, attacker])
 		combat_mgr.apply_camera_shake(0.15)

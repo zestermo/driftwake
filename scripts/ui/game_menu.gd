@@ -8,7 +8,6 @@ var _dim: ColorRect
 var _pc: PixelCanvas
 var _screens: Dictionary = {}
 var _current: String = ""
-var _blip: AudioStreamPlayer
 
 # inventory overlay (paper doll + bag + character sheet)
 var _inventory: InventoryScreen
@@ -48,11 +47,7 @@ func _ready() -> void:
 	_dim.color = Color(0, 0, 0, 0.55)
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(_dim)
-	_blip = AudioStreamPlayer.new()
-	_blip.stream = load("res://assets/audio/select.wav")
-	_blip.bus = "UI"
-	_blip.volume_db = -8.0
-	add_child(_blip)
+	UIStyle.make_sound_players(self)
 	_screens["pause"] = _build_pause()
 	_screens["options"] = _build_options()
 	_screens["controls"] = _build_controls()
@@ -137,6 +132,7 @@ func _input(event: InputEvent) -> void:
 		if _current == "":
 			open("pause")
 		elif _current in ["options", "controls", "load"]:
+			_play("back")
 			open("pause")
 		elif _current == "pause" and Time.get_ticks_msec() - _lock_lost_ms < 300:
 			pass   # (web: the same Esc that released the pointer lock)
@@ -216,7 +212,7 @@ func open(screen: String) -> void:
 			pl.call("_toast", "You don't know how to train yet. Sergeant Vey will show you.")
 		return
 	if _current == "":
-		_play()
+		_play("open")
 	if _current == "inventory" and screen != "inventory":
 		_inventory.on_close()
 	if _current == "yard" and screen != "yard":
@@ -271,6 +267,7 @@ func close() -> void:
 	elif _current == "shop":
 		SaveGame.save(_player())
 	_current = ""
+	_play("close")
 	if was == "inventory":
 		_inventory.fade_out(func():
 			if _current == "":
@@ -285,8 +282,9 @@ func close() -> void:
 	Settings.capture_mouse()
 
 
-func _play() -> void:
-	_blip.play()
+## A menu sound (UIStyle.SOUNDS).
+func _play(what: String = "confirm") -> void:
+	UIStyle.sfx(what)
 
 
 func _focus_first(node: Node) -> void:
@@ -354,7 +352,6 @@ func _build_pause() -> Control:
 			continue
 		var b := UIStyle.button(it[0], 130)
 		b.pressed.connect(it[1])
-		b.pressed.connect(_play)
 		vb.add_child(b)
 	return p
 
@@ -451,7 +448,6 @@ func _build_options() -> Control:
 	buttons.add_child(reset)
 	var back := UIStyle.button("Back", 120)
 	back.pressed.connect(_back)
-	back.pressed.connect(_play)
 	buttons.add_child(back)
 	return p
 
@@ -480,8 +476,7 @@ func _toggle_row(list: VBoxContainer, text: String, section: String, key: String
 	var refresh := func(): b.text = "On" if Settings.get_value(section, key) else "Off"
 	b.pressed.connect(func():
 		Settings.set_value(section, key, not Settings.get_value(section, key))
-		refresh.call()
-		_play())
+		refresh.call())
 	_opt_refreshers.append(refresh)
 	refresh.call()
 
@@ -547,7 +542,6 @@ func _build_controls() -> Control:
 	var back := UIStyle.button("Back", 120)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(_back)
-	back.pressed.connect(_play)
 	vb.add_child(back)
 	return p
 

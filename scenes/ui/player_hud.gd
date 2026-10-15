@@ -186,10 +186,10 @@ func show_banner(title: String, subtitle: String = "", chime: bool = false) -> v
 		_chime.play()
 
 
-## The story moved on (Story): the objective flashes, a chime.
-func show_objective_banner(_goal: String) -> void:
+## The story moved on (Story): the objective flashes, a chime (`done`: the last step's finished too).
+func show_objective_banner(_goal: String, done: bool = false) -> void:
 	_objective.flash()
-	_chime.play()
+	UIStyle.sfx("quest_done" if done else "quest_accept")
 
 
 ## Small message bottom-left (loot picked up, banking...).

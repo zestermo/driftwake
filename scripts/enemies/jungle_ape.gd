@@ -118,6 +118,7 @@ func _ready() -> void:
 	(bs.shape as BoxShape3D).size = Vector3(5.2, 2.8, 4.2)
 	bs.position = Vector3(0, 1.4, -2.7)
 	_hit_swipe = HitData.new()
+	_hit_swipe.impact = "punch"
 	_hit_swipe.damage = _dmg(22.0)
 	_hit_swipe.knockback_force = 10.0
 	_hit_swipe.stagger_duration = 0.5

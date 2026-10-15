@@ -1498,6 +1498,104 @@ def parry_takes(count=2):
         _write_shot(f"parry_{k + 1}", _filt(out + click, lambda f: _lp(f, 7500, 2)), -17.0, fade=0.05)
 
 
+# --- weapon impacts (v1.13): what landed, not just that something did ---
+
+def slice_takes(name, count, heavy, seed, lufs):
+    """A blade biting: a quick 'shk' sweeping down as the edge passes through, a
+    wet tear of cloth and flesh under it and a light knock of the body behind.
+    Heavy: a longer draw through, a deeper body and a wet chunk after."""
+    for k in range(count):
+        rng = np.random.default_rng(seed + k)
+        n = int(SR * (0.36 if heavy else 0.22))
+        t = np.arange(n) / SR
+        f0 = rng.uniform(2600, 3000)
+        f1 = rng.uniform(700, 1000) if heavy else rng.uniform(1000, 1300)
+        fc = f1 + (f0 - f1) * np.exp(-t / (0.045 if heavy else 0.025))
+        edge = _svf_sweep(rng.standard_normal(n), fc, 1.8)
+        edge /= np.max(np.abs(edge)) + 1e-9
+        edge *= np.minimum(1, t / 0.0012) * np.exp(-t * (15 if heavy else 28))
+        tear = _noise(n, rng, 450, 2400) * (0.35 + 0.65 * _churn(n, rng, 140))
+        tear *= np.minimum(1, t / 0.004) * np.exp(-t * (13 if heavy else 24))
+        body = _thump(t, rng.uniform(100, 120) if heavy else rng.uniform(140, 165), 62, 0.02, 24 if heavy else 40, 0.0015)
+        out = edge * 1.1 + tear * 0.9 + body * (0.75 if heavy else 0.35)
+        if heavy:
+            tt = _at(t, 0.035)
+            chunk = _noise(n, rng, 160, 900) * np.exp(-tt * 30) * np.minimum(1, tt / 0.003) * (t >= 0.035)
+            out += chunk * 0.8
+        out = np.tanh(out / (np.max(np.abs(out)) + 1e-9) * 1.5)
+        _write_shot(f"{name}_{k + 1}", _filt(out, lambda f: _lp(f, 3600, 2)), lufs, fade=0.03)
+
+
+def chop_takes(count=3):
+    """An axe biting deep: a heavy low thunk with the haft's weight behind it, a
+    wet crunch of something giving way and a short cleave of the edge."""
+    for k in range(count):
+        rng = np.random.default_rng(1520 + k)
+        n = int(SR * 0.4)
+        t = np.arange(n) / SR
+        thunk = _thump(t, rng.uniform(170, 200), rng.uniform(62, 70), 0.025, 15, 0.0015)
+        knock = _noise(n, rng, 250, 1300) * np.exp(-t * 34) * np.minimum(1, t / 0.0008)
+        grit = _noise(n, rng, 600, 2600)
+        crunch = _grains(n, rng, 90, 0.003, 0.1, grit, (0.002, 0.007), decay=10.0)
+        fc = 600 + 1500 * np.exp(-t / 0.02)
+        cleave = _svf_sweep(rng.standard_normal(n), fc, 1.5)
+        cleave = cleave / (np.max(np.abs(cleave)) + 1e-9) * np.exp(-t * 35) * np.minimum(1, t / 0.001)
+        out = thunk * 0.8 + knock * 3.2 + crunch * 4.0 + cleave * 0.9
+        out = np.tanh(out / (np.max(np.abs(out)) + 1e-9) * 1.7)
+        _write_shot(f"chop_{k + 1}", _filt(out, lambda f: _lp(f, 3200, 2)), -13.5, fade=0.05)
+
+
+def punch_takes(name, count, heavy, seed, lufs):
+    """A fist or a boot landing: a tight low punch, the knuckles' snap on skin and
+    a puff of cloth. Heavy (kicks, finishers): a deeper whump, a longer body."""
+    for k in range(count):
+        rng = np.random.default_rng(seed + k)
+        n = int(SR * (0.32 if heavy else 0.2))
+        t = np.arange(n) / SR
+        f0 = rng.uniform(85, 100) if heavy else rng.uniform(115, 140)
+        punch = np.sin(2 * np.pi * np.cumsum(f0 * (0.6 + np.exp(-t / 0.02))) / SR)
+        punch *= np.exp(-t * (17 if heavy else 30)) * np.minimum(1, t / 0.0012)
+        snap = _noise(n, rng, 700, 3000) * np.exp(-t * 110) * np.minimum(1, t / 0.0005)
+        skin = _noise(n, rng, 300, 1500) * np.exp(-t * (30 if heavy else 45)) * np.minimum(1, t / 0.001)
+        out = punch * (0.8 if heavy else 0.6) + snap * 2.0 + skin * 5.0
+        if heavy:
+            out += _noise(n, rng, 150, 600) * np.exp(-t * 16) * np.minimum(1, t / 0.006) * 2.0
+        out = np.tanh(out / (np.max(np.abs(out)) + 1e-9) * 1.6)
+        _write_shot(f"{name}_{k + 1}", _filt(out, lambda f: _lp(f, 4500, 2)), lufs, fade=0.03)
+
+
+def shot_hit_takes(count=3):
+    """A ball striking a body: a dull close thwack (no crack: that's the gun's), a
+    short low thump and a puff of cloth."""
+    for k in range(count):
+        rng = np.random.default_rng(1560 + k)
+        n = int(SR * 0.22)
+        t = np.arange(n) / SR
+        thwack = _noise(n, rng, 280, 1400) * np.exp(-t * 50) * np.minimum(1, t / 0.0006)
+        thump = _thump(t, rng.uniform(190, 220), 95, 0.012, 38, 0.0008)
+        cloth = _noise(n, rng, 300, 1800) * np.exp(-_at(t, 0.012) * 45) * (t >= 0.012)
+        out = thwack * 5.0 + thump * 0.8 + cloth * 1.5
+        out = np.tanh(out / (np.max(np.abs(out)) + 1e-9) * 1.5)
+        _write_shot(f"shot_hit_{k + 1}", _filt(out, lambda f: _lp(f, 3200, 2)), -16.0, fade=0.03)
+
+
+def clash_takes(count=3):
+    """Steel meeting steel (parries, blocks, a blade turned aside): a hard bright
+    strike, a clangour of close inharmonic partials ringing out short, the blades'
+    weight under it and a grate of the edges sliding apart."""
+    for k in range(count):
+        rng = np.random.default_rng(1580 + k)
+        n = int(SR * 0.6)
+        t = np.arange(n) / SR
+        strike = _noise(n, rng, 1500, 6500) * np.exp(-t * 220) * np.minimum(1, t / 0.0003)
+        b = rng.uniform(1000, 1300)
+        ring = _modes(t, rng, [(b, 1.0, 11), (b * 1.47, 0.75, 14), (b * 2.09, 0.5, 18), (b * 2.76, 0.4, 22), (b * 3.9, 0.18, 30)])
+        weight = _modes(t, rng, [(b * 0.41, 0.7, 28), (b * 0.63, 0.4, 34)])
+        grate = _scrape(n, rng, 0.008, 0.13, 2400, 1300, 150, 3.0)
+        out = strike * 1.4 + ring * 0.8 + weight + grate * 0.45
+        _write_shot(f"clash_{k + 1}", _filt(out, lambda f: _lp(f, 7000, 2)), -15.0, fade=0.06)
+
+
 def gunshot_takes(count=3):
     """Flintlock shot: a sharp crack, the bark of the charge, a boom under it
     and a short rolling tail with a slap back off the surroundings."""
@@ -1562,6 +1660,135 @@ def ui_select():
     out = _soft_tone(t, 880, [1.0, 0.25], 55, 0.001) + _soft_tone(t, 1320, [0.5], 70, 0.001)
     out += _modes(t, rng, [(440, 0.5, 80)]) + _noise(len(t), rng, 1500, 4000) * np.exp(-t * 400) * 0.2
     write_wav("select", _fade_out(_level(out, -18.0), 0.015))
+
+
+# --- the UI set (v1.13): soft wooden tocks, plucks and little bells, all short ---
+
+def _tock(t, f, at, amp=1.0, decay=55.0, rng=None):
+    """A soft wooden-bodied note from `at` s: a band-limited tone and a low knock."""
+    tt = _at(t, at)
+    note = _soft_tone(tt, f, [1.0, 0.25, 0.08], decay, 0.001)
+    if rng is not None:
+        note += _modes(tt, rng, [(f * 0.5, 0.45, decay * 1.5)])
+    return note * (t >= at) * amp
+
+
+def _bell(t, f, at, amp=1.0, decay=4.0):
+    """A small bell from `at` s: a soft fundamental, a quieter octave and an
+    inharmonic shimmer that dies first."""
+    tt = _at(t, at)
+    tone = np.sin(2 * np.pi * f * tt) + 0.3 * np.sin(2 * np.pi * f * 2.0 * tt) * np.exp(-tt * decay)
+    tone += 0.12 * np.sin(2 * np.pi * f * 2.76 * tt) * np.exp(-tt * decay * 2.5) * (f * 2.76 < 7500)
+    return tone * np.minimum(1, tt / 0.002) * np.exp(-tt * decay) * (t >= at) * amp
+
+
+def _swish(n, rng, t0, t1, f0, f1, amp=1.0):
+    """A soft breath of cloth or paper from t0 to t1 s, its colour sliding f0 -> f1."""
+    t = np.arange(n) / SR
+    fc = np.interp(t, [t0, t1], [f0, f1])
+    band = _svf_sweep(rng.standard_normal(n), fc, 1.2)
+    band /= np.max(np.abs(band)) + 1e-9
+    mid = (t0 + t1) * 0.5
+    env = np.clip(1 - np.abs(t - mid) / ((t1 - t0) * 0.5), 0, 1) ** 1.5
+    return band * env * amp
+
+
+def _ui_shot(name, out, lufs, fade=0.02):
+    write_wav(name, _fade_out(_level(out, lufs), fade))
+
+
+def ui_sounds():
+    """Menus: move (a tiny tick), confirm (two tocks up a fifth), back (down a
+    fourth, softer), deny (two dull low bonks a semitone apart), open and close (a
+    page's breath and plucks up / down), equip and unequip (leather and a buckle),
+    buy and sell (coins into a purse / onto a counter), level up (a rising bell
+    arpeggio), quest accepted (a quill and two notes) and done (three bells home)."""
+    rng = np.random.default_rng(1600)
+
+    t = np.arange(int(SR * 0.05)) / SR
+    out = _soft_tone(t, 1480, [1.0, 0.12], 120, 0.0008) * 0.6 + _modes(t, rng, [(740, 0.5, 150)])
+    out += _noise(len(t), rng, 1800, 4500) * np.exp(-t * 700) * 0.12
+    _ui_shot("ui_move", out, -22.0, 0.012)
+
+    t = np.arange(int(SR * 0.17)) / SR
+    out = _tock(t, 880, 0.0, 0.8, 50, rng) + _tock(t, 1320, 0.05, 1.0, 40, rng)
+    out += _noise(len(t), rng, 1500, 4000) * np.exp(-t * 450) * 0.15
+    _ui_shot("ui_confirm", out, -18.0)
+
+    t = np.arange(int(SR * 0.15)) / SR
+    out = _tock(t, 1175, 0.0, 0.8, 60, rng) + _tock(t, 880, 0.045, 0.9, 55, rng)
+    _ui_shot("ui_back", out, -19.5)
+
+    t = np.arange(int(SR * 0.22)) / SR
+    out = np.zeros(len(t))
+    for at, f in ((0.0, 330), (0.085, 311)):
+        tt = _at(t, at)
+        out += _soft_tone(tt, f, [1.0, 0.0, 0.35, 0.0, 0.1], 32, 0.002) * (t >= at)
+        out += _thump(tt, 260, 200, 0.01, 50, 0.001) * (t >= at) * 0.4
+    _ui_shot("ui_deny", _filt(out, lambda f: _lp(f, 2500, 2)), -18.0)
+
+    n = int(SR * 0.3)
+    t = np.arange(n) / SR
+    out = _swish(n, rng, 0.0, 0.14, 500, 1800, 0.35)
+    out += _tock(t, 587, 0.06, 0.7, 30, rng) + _tock(t, 880, 0.12, 0.8, 26, rng)
+    _ui_shot("ui_open", _filt(out, lambda f: _lp(f, 5000, 2)), -19.0, 0.05)
+
+    n = int(SR * 0.26)
+    t = np.arange(n) / SR
+    out = _swish(n, rng, 0.0, 0.12, 1600, 450, 0.3)
+    out += _tock(t, 880, 0.04, 0.7, 34, rng) + _tock(t, 587, 0.1, 0.75, 32, rng)
+    out += _thump(_at(t, 0.1), 160, 100, 0.01, 40, 0.001) * (t >= 0.1) * 0.4
+    _ui_shot("ui_close", _filt(out, lambda f: _lp(f, 5000, 2)), -20.0, 0.05)
+
+    n = int(SR * 0.3)
+    t = np.arange(n) / SR
+    out = _leather(t, rng, 0.0, 1.0) + _click(t, rng, 0.05, 1500, 0.45) + _ring(t, rng, 0.05, 1150, 28, 0.2)
+    _ui_shot("equip", _filt(out, lambda f: _lp(f, 4000, 2)), -18.0, 0.05)
+
+    n = int(SR * 0.26)
+    t = np.arange(n) / SR
+    out = _swish(n, rng, 0.0, 0.1, 1400, 600, 1.2) + _leather(t, rng, 0.07, 0.5) + _click(t, rng, 0.08, 900, 0.3)
+    _ui_shot("unequip", _filt(out, lambda f: _lp(f, 5000, 2)), -19.5, 0.05)
+
+    n = int(SR * 0.32)
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    for i, (at, f) in enumerate(((0.0, 1660), (0.035, 1480), (0.065, 1760), (0.1, 1320))):
+        out += _bell(t, f, at, 0.7 - i * 0.08, 28)
+    out += _leather(t, rng, 0.13, 0.7)
+    _ui_shot("ui_buy", _filt(out, lambda f: _lp(f, 7000, 2)), -18.0, 0.05)
+
+    n = int(SR * 0.42)
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    at = 0.0
+    for i in range(7):
+        f = rng.uniform(1300, 1850) * (1 - i * 0.025)
+        out += _bell(t, f, at, rng.uniform(0.4, 0.75), 30)
+        out += _modes(_at(t, at), rng, [(rng.uniform(280, 340), 0.25, 70)]) * (t >= at)
+        at += rng.uniform(0.03, 0.05)
+    _ui_shot("ui_sell", _filt(out, lambda f: _lp(f, 7000, 2)), -18.0, 0.06)
+
+    n = int(SR * 1.4)
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    for i, f in enumerate((587.3, 740.0, 880.0, 1174.7)):
+        out += _bell(t, f, i * 0.075, 0.8 if i < 3 else 1.0, 5.5 if i < 3 else 2.6)
+    out += _soft_tone(t, 293.7, [1.0, 0.3, 0.1], 2.2, 0.06) * 0.35
+    out += _bell(t, 1760.0, 0.225, 0.2, 4.0)
+    _ui_shot("level_up", out, -16.0, 0.2)
+
+    n = int(SR * 0.85)
+    t = np.arange(n) / SR
+    out = _scrape(n, rng, 0.0, 0.11, 1300, 2000, 220, 2.0) * 0.18
+    out += _bell(t, 440.0, 0.12, 0.8, 6.0) + _bell(t, 587.3, 0.24, 0.9, 5.0)
+    _ui_shot("quest_accept", _filt(out, lambda f: _lp(f, 5000, 2)), -19.0, 0.12)
+
+    n = int(SR * 1.5)
+    t = np.arange(n) / SR
+    out = _bell(t, 440.0, 0.0, 0.7, 4.5) + _bell(t, 587.3, 0.11, 0.8, 4.0) + _bell(t, 740.0, 0.22, 1.0, 2.4)
+    out += _soft_tone(t, 293.7, [1.0, 0.25], 2.0, 0.08) * 0.3
+    _ui_shot("quest_done", out, -17.0, 0.2)
 
 
 def peril_sound():
@@ -1750,11 +1977,6 @@ def holster_sound():
 
 A_VOWEL = ((750, 5, 1.0), (1200, 6, 0.6), (2500, 8, 0.25))
 E_VOWEL = ((520, 5, 1.0), (1850, 7, 0.55), (2600, 8, 0.3))
-M_HUM = ((300, 4, 1.0), (900, 6, 0.25))
-
-
-def _midi(m):
-    return 440.0 * 2 ** ((m - 69) / 12.0)
 
 
 def laugh_sound():
@@ -1809,66 +2031,29 @@ def slap_sound():
     _write_shot("slap", out, -17.0, fade=0.03)
 
 
-def _whistle(notes, step, seed, f_mul=1.0):
-    """A tin whistle: a near-sine with a touch of breath, a slight vibrato, each note tongued."""
-    rng = np.random.default_rng(seed)
-    out = np.zeros(int(SR * (len(notes) * step + 0.2)))
-    for k, m in enumerate(notes):
-        if m is None:
-            continue
-        n = int(SR * step * 0.95)
-        t = np.arange(n) / SR
-        f = _midi(m) * f_mul * (1 + 0.006 * np.sin(2 * np.pi * 5.5 * t))
-        ph = np.cumsum(2 * np.pi * f / SR)
-        tone = np.sin(ph) + 0.18 * np.sin(2 * ph) + 0.05 * np.sin(3 * ph)
-        tone += _noise(n, rng, 2000, 7000) * 0.05
-        env = np.minimum(1, t / 0.008) * np.clip((step * 0.95 - t) / 0.02, 0, 1)
-        i = int(SR * k * step)
-        out[i:i + n] += tone * env
-    return out
-
-
-def jig_sound():
-    """The hornpipe: a quick original tune on a tin whistle, D major, about 3.3 s."""
-    D, E, Fs, G, A, B, Cs, D2, E2 = 74, 76, 78, 79, 81, 83, 85, 86, 88
-    notes = [D, Fs, A, Fs, D, Fs, A, D2, Cs, A, E, A, Cs, E2, D2, A,
-             B, G, D, G, B, D2, Cs, A, Fs, A, D2, None]
-    _write_shot("jig", _whistle(notes, 0.12, 1517), -18.0, fade=0.1)
-
-
-def shanty_sound():
-    """A hummed sea shanty, slow and swaying (an original tune, D dorian), about 4.4 s."""
-    rng = np.random.default_rng(1519)
-    notes = [(57, 0.5), (62, 0.5), (62, 0.25), (62, 0.25), (64, 0.5), (65, 0.75), (64, 0.25), (62, 0.5), (60, 0.5), (57, 0.9)]
-    total = sum(d for _, d in notes)
-    out = np.zeros(int(SR * (total + 0.2)))
-    at = 0.0
-    for m, d in notes:
-        f0 = _midi(m)
-        g = _voice(rng, d * 0.97, [f0, f0 * 1.003, f0], M_HUM, harm=8, rasp=0.05, gain=1.5)
-        i = int(SR * at)
-        out[i:i + len(g)] += g
-        at += d
-    _write_shot("shanty", out, -18.0, fade=0.15)
-
-
 SOUNDS = [
     ("laugh", laugh_sound),
     ("cheer", cheer_sound),
     ("hup", hup_sound),
     ("heel_click", heel_click_sound),
     ("slap", slap_sound),
-    ("jig", jig_sound),
-    ("shanty", shanty_sound),
     ("blip", lambda: ui_blip("blip", 520)),
     ("blip_low", lambda: ui_blip("blip_low", 330)),
     ("blip_high", lambda: ui_blip("blip_high", 780)),
     ("select", ui_select),
+    ("ui", ui_sounds),
     ("campfire_loop", campfire_loop),
     ("discover_chime", chime),
     ("whoosh", lambda: whoosh_takes("whoosh", 3, 0.26, 240, 1150, -17.0, 31)),
     ("whoosh_big", lambda: whoosh_takes("whoosh_big", 3, 0.42, 160, 950, -15.0, 33)),
     ("hit", hit_takes),
+    ("slice", lambda: slice_takes("slice", 3, False, 1500, -15.0)),
+    ("slice_heavy", lambda: slice_takes("slice_heavy", 3, True, 1510, -13.5)),
+    ("chop", chop_takes),
+    ("punch", lambda: punch_takes("punch", 3, False, 1540, -15.0)),
+    ("punch_heavy", lambda: punch_takes("punch_heavy", 3, True, 1550, -13.5)),
+    ("shot_hit", shot_hit_takes),
+    ("clash", clash_takes),
     ("step", lambda: [step_takes(s) for s in STEP_SURFACES]),
     ("jump", jump_sound),
     ("land", land_takes),

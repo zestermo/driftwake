@@ -69,6 +69,39 @@ func _rig() -> Node:
 	return camera.get_parent().get_parent() if camera else null  # Camera3D -> SpringArm3D -> CameraRig
 
 
+## A blow thrown off its feet sounds heavier.
+const HEAVY_IMPACT := {"slice": "slice_heavy", "punch": "punch_heavy"}
+## Blows of steel (or lead): on a steel guard they clash, anything else on a guard knocks ("block").
+const STEEL := ["slice", "slice_heavy", "chop", "shot"]
+## The last impact and guard sounds played here (tests read them).
+var last_impact: String = ""
+var last_guard: String = ""
+
+
+## The sound a blow makes on a body, by what struck (HitData.impact).
+func impact_sound(hit: HitData) -> String:
+	if hit.impact == "":
+		return "hit"
+	if hit.impact == "shot":
+		return "shot_hit"
+	if hit.knockdown or hit.crumple:
+		return HEAVY_IMPACT.get(hit.impact, hit.impact)
+	return hit.impact
+
+
+## Play a blow landing on a body at `at`, on every screen.
+func impact(hit: HitData, at: Vector3, volume_db: float, jitter: float, pitch: float) -> void:
+	last_impact = impact_sound(hit)
+	Net.fx("sfx", [last_impact, at, volume_db, jitter, pitch])
+
+
+## A blow stopped by a guard (a block, a parry, a blade's edge turning it): steel on steel
+## clashes, anything else on a guard is a duller knock.
+func guard(hit: HitData, steel_guard: bool, at: Vector3, volume_db: float, jitter: float, pitch: float) -> void:
+	last_guard = "clash" if steel_guard and hit.impact in STEEL else "block"
+	Net.fx("sfx", [last_guard, at, volume_db, jitter, pitch])
+
+
 func apply_hit_effects(hit_data: HitData, bodies: Array = []) -> void:
 	if hit_data.hitstop_duration > 0.0:
 		apply_hitstop(hit_data.hitstop_duration, bodies)

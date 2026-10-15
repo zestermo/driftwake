@@ -221,10 +221,10 @@ func _gui_input(event: InputEvent) -> void:
 			for i in range(5):
 				if _bar_slot_rect(i).has_point(mb.position):
 					pl.power.equip("", i)
-					menu._play()
+					menu._play("unequip")
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and _tab_at(mb.position) >= 0:
 			set_tab(SkillTree.TAB_ORDER[_tab_at(mb.position)])
-			menu._play()
+			menu._play("select")
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
 				_drag = true
@@ -259,7 +259,7 @@ func _click(sp: Vector2) -> void:
 		_try_learn(id)
 	else:
 		_sel = id
-		menu._play()
+		menu._play("select")
 
 
 func _input(event: InputEvent) -> void:
@@ -273,7 +273,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if k == KEY_TAB:
 		_cycle_tab(-1 if (event as InputEventKey).shift_pressed else 1)
-		menu._play()
+		menu._play("select")
 		get_viewport().set_input_as_handled()
 	elif k == KEY_ENTER or k == KEY_KP_ENTER or k == KEY_F:
 		_try_learn(_sel)
@@ -288,13 +288,13 @@ func _input(event: InputEvent) -> void:
 		var slot := 4 if k == KEY_R else k - KEY_1
 		var sk := str(SkillTree.get_node_def(_sel).get("skill", ""))
 		if sk == "":
-			_say("Select a learned active skill first")
+			_deny("Select a learned active skill first")
 		elif not pl.progression.knows(sk):
-			_say("Learn it first")
+			_deny("Learn it first")
 		elif Skills.is_ult(sk) != (slot == 4):
-			_say("Ultimates go on R" if Skills.is_ult(sk) else "R is for ultimates")
+			_deny("Ultimates go on R" if Skills.is_ult(sk) else "R is for ultimates")
 		elif pl.power.equip(sk, slot):
-			menu._play()
+			menu._play("equip")
 			_say("%s on %s" % [Skills.get_skill(sk)["name"], "R" if slot == 4 else str(slot + 1)])
 		get_viewport().set_input_as_handled()
 
@@ -309,21 +309,24 @@ func _try_learn(id: String) -> void:
 		var rwhy := pr.can_rank_up(sk)
 		if rwhy == "":
 			pr.rank_up(sk)
-			menu._play()
+			menu._play("coin")
 			_say("%s: %s" % [Skills.get_skill(sk)["name"], Skills.tier_def(sk, pr.skill_tier(sk))["name"]])
-			FX.sfx("coin", pl.global_position, -10.0, 0.0, 1.1)
 		else:
-			_say(rwhy)
+			_deny(rwhy)
 		return
 	var why := pr.can_learn(id)
 	if why == "":
 		pr.learn(id)
-		menu._play()
+		menu._play("coin")
 		var n := SkillTree.get_node_def(id)
 		_say("Learned %s" % str(n["name"]))
-		FX.sfx("coin", pl.global_position, -10.0, 0.0, 1.3)
 	elif why != "Learned":
-		_say(why)
+		_deny(why)
+
+
+func _deny(m: String) -> void:
+	_say(m)
+	menu._play("deny")
 
 
 func _say(m: String) -> void:

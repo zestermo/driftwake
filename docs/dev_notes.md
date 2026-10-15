@@ -1538,3 +1538,32 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   test picked its shore `edge` with swell-inclusive `depth_at`, and at t=1.5 s the swell is in a trough, so the "edge"
   sat 0.66 m under the calm line and the grunt placed "4 m landward" started in the sea (a crest then swam him). The
   game was fine (a grunt at calm depth 0 never reaches SWIM_ENTER_DEPTH). The test now finds edge/deep by calm depth.
+
+## 2026-10-14: v1.13 weapon impact sounds and the UI sound set
+- Why: every blow on a body played "hit", and the menus one "select" (docs/audio_audit.md gaps, proposal 7).
+- Impacts: `HitData.impact` (packed at index 15 of Net.hit_pack). `Player.melee_hit` sets it from `Player.IMPACT[style]`
+  (heavy/finisher kinds take the heavy take); blade-style gunfire sets "shot" at the site (corsair_gun.fire,
+  grapeshot, the corsair volley, Bullet Storm, the hang shot), the pistol butt and meteor kick punch; grunts' cutlass
+  hits slice, rush and rifle butt punch, shots "shot"; the ape's swipe punches; thrown fruit punches; the rest stay "".
+  `CombatManager.impact_sound(hit)` ("" -> hit, shot -> shot_hit, knockdown/crumple -> heavy) and `impact(hit, at, ...)`
+  (Net.fx, `last_impact` for tests) replace the "hit" sfx where bodies take blows: player, grunt (and boss, ape),
+  scuttlebug, jungle_beast, creature, brood_queen; the dummy plays it locally. `CombatManager.guard(hit, steel, ...)`:
+  clash for slice/chop/shot on a steel guard, else block (the captain's block and parry, the grunt's guard and its
+  heavy read; `_read_heavy` takes the hit now). Parry: the guard sound plus the old ting at -6; a cut shot clashes.
+  Hit timing and damage untouched.
+- Sounds (gen_psx_audio.py, `py tools/texture_gen/gen_psx_audio.py slice slice_heavy chop punch punch_heavy shot_hit clash ui`):
+  slice/slice_heavy/chop/punch/punch_heavy/shot_hit/clash, 3 takes each (-14 to -16.6 LU), and `ui_sounds()`:
+  ui_move, ui_confirm, ui_back, ui_deny, ui_open, ui_close, equip, unequip, ui_buy, ui_sell, level_up, quest_accept,
+  quest_done (-16 to -22 LU). First drafts of chop/punch/shot_hit were 83-96% under 200 Hz (inaudible on laptop
+  speakers, the audit's old complaint): rebuilt with mid knocks. jig and shanty are gone (no emote plays music).
+- UI: `UIStyle.SOUNDS` + `UIStyle.sfx(name)` (`played` log for tests), players made by GameMenu (`make_sound_players`,
+  PROCESS_MODE_ALWAYS parent). `UIStyle.button()` hooks hover/focus "move" and a deferred press sound ("back" by its
+  text, else "confirm") that's skipped if the press played its own sound; "move" within 150 ms of another sound is
+  dropped. Steppers "select". GameMenu open/close/back; inventory equip/unequip/deny (`_flash`), skill map
+  coin/deny/equip/unequip/select (`_deny`), shop buy/sell/deny, dialogue choices move/confirm, level up
+  (Progression, local only: peers no longer hear a coin), Story and KitQuests quest_accept/quest_done
+  (`show_objective_banner(goal, done)`). Title, save slots and the creator lost their own select players.
+- Test: `t/combat/impact_sounds` (cutlass slice + finisher, knockdown heavy, hit_pack round trip, grunt's cutlass
+  and ball on the captain, blade parry clash, axe chop, fist punch + finisher, bare-handed parry block, inventory
+  open/close, a button's confirm and a Back button's back). t/combat t/ui pass except cutlass_combo "after a long
+  pause, combo restarts", which already fails on main and on the duels branch (ledger), not touched here.

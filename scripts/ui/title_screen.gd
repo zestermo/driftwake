@@ -15,7 +15,6 @@ var _continue_slot: int = 0
 var _fade: ColorRect
 var _loading: bool = false
 var _stars: PackedVector2Array = PackedVector2Array()
-var _blip: AudioStreamPlayer
 ## Co-op: the Host / Join panel, and what the slot list was opened for
 ## ("" = single player, "host", "join").
 var _coop: PanelContainer
@@ -43,11 +42,6 @@ func _ready() -> void:
 	rng.seed = 11
 	for i in range(70):
 		_stars.append(Vector2(rng.randf(), rng.randf() * 0.4))
-	_blip = AudioStreamPlayer.new()
-	_blip.stream = load("res://assets/audio/select.wav")
-	_blip.bus = "UI"
-	_blip.volume_db = -8.0
-	add_child(_blip)
 	Net.leave()
 	_build_menu()
 	_build_coop()
@@ -104,7 +98,6 @@ func _item(text: String, cb: Callable) -> Button:
 	b.pressed.connect(func():
 		if _loading:
 			return
-		_blip.play()
 		cb.call())
 	_menu.add_child(b)
 	return b
@@ -169,7 +162,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# the version ribbon opens what's new
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
 			and _menu.visible and not _loading and RIBBON.has_point(event.position):
-		_blip.play()
+		UIStyle.sfx("open")
 		_open_whats_new()
 		get_viewport().set_input_as_handled()
 		return
@@ -206,7 +199,6 @@ func _build_coop() -> void:
 	vb.add_child(hint)
 	var host := UIStyle.button("Host a game (pick your save)", 260)
 	host.pressed.connect(func():
-		_blip.play()
 		_slot_purpose = "host"
 		_open_slots("load" if SaveGame.latest_slot() > 0 else "new")
 		_slot_purpose = "host")
@@ -221,7 +213,6 @@ func _build_coop() -> void:
 	row.add_child(_ip_edit)
 	var join := UIStyle.button("Join", 100)
 	join.pressed.connect(func():
-		_blip.play()
 		if _ip_edit.text.strip_edges() == "":
 			_coop_status.text = "Type the host's address first"
 			return
@@ -237,7 +228,6 @@ func _build_coop() -> void:
 	var back := UIStyle.button("Back", 120)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(func():
-		_blip.play()
 		Net.leave()
 		_show_menu())
 	vb.add_child(back)

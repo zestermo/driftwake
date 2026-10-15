@@ -635,6 +635,8 @@ func _dive_hit(hb: Hurtbox, kick: bool, tree: String) -> void:
 	hd.camera_shake_intensity = 0.2
 	hd.knockdown = kick
 	hd.sever = not kick
+	if kick:
+		hd.impact = "punch_heavy"
 	if fang:
 		# (from above it always finds the gap: a sure crit, and the wound bleeds)
 		if not hd.has_meta("crit"):
@@ -819,6 +821,7 @@ func _hang_fire() -> void:
 		end = hit["position"]
 		var hd := player.melee_hit(HANGSHOT_DAMAGE)
 		hd.ranged = true
+		hd.impact = "shot"
 		hd.knockdown = true
 		hd.knockback_force = 9.0
 		hd.stagger_duration = 0.6

@@ -89,6 +89,7 @@ static func fire(p, dir: Vector3, base: float, kind: String, opts: Dictionary = 
 		var far := from.distance_to(end)
 		hd.damage *= lerpf(1.0, FAR_MIN, clampf((far - NEAR) / (RANGE - NEAR), 0.0, 1.0))
 		hd.ranged = true
+		hd.impact = "shot"
 		hd.knockback_force = float(opts.get("knock", 5.0))
 		hd.stagger_duration = float(opts.get("stagger", 0.4))
 		hd.knockdown = bool(opts.get("down", false))
@@ -126,6 +127,7 @@ static func butt(p, dir: Vector3, base: float, kind: String) -> Node3D:
 	if hb == null:
 		return null
 	var hd: HitData = p.melee_hit(base, kind)
+	hd.impact = "punch"
 	hd.knockback_force = 4.0
 	hd.stagger_duration = 0.35
 	hd.hitstop_duration = 0.04

@@ -263,11 +263,72 @@ static func fit_to_screen(c: Control, margin: float = 10.0) -> void:
 	c.scale = Vector2(k, k)
 
 
+## The menus' sounds on the UI bus: name -> [file in res://assets/audio, volume_db].
+const SOUNDS := {
+	"move": ["ui_move", -10.0], "confirm": ["ui_confirm", -7.0], "back": ["ui_back", -7.0], "deny": ["ui_deny", -6.0],
+	"open": ["ui_open", -6.0], "close": ["ui_close", -6.0], "equip": ["equip", -5.0], "unequip": ["unequip", -5.0],
+	"buy": ["ui_buy", -5.0], "sell": ["ui_sell", -5.0], "coin": ["coin", -8.0], "level_up": ["level_up", -3.0],
+	"quest_accept": ["quest_accept", -4.0], "quest_done": ["quest_done", -3.0], "select": ["select", -8.0],
+}
+## A button whose text is one of these sounds "back" when pressed, the rest "confirm".
+const BACK_WORDS := ["Back", "Cancel", "Close", "Leave", "Resume", "Not yet", "No"]
+static var _sound_players: Dictionary = {}
+## Every menu sound played, newest last (tests read it).
+static var played: Array = []
+static var _last_ms: int = -1000
+static var _count: int = 0
+
+
+## A player per menu sound under `host` (GameMenu: it runs while the game is paused).
+static func make_sound_players(host: Node) -> void:
+	for k in SOUNDS:
+		var p := AudioStreamPlayer.new()
+		p.stream = load("res://assets/audio/%s.wav" % SOUNDS[k][0])
+		p.volume_db = SOUNDS[k][1]
+		p.bus = "UI"
+		p.max_polyphony = 3
+		host.add_child(p)
+		_sound_players[k] = p
+
+
+## Play a menu sound (SOUNDS). A "move" right after another sound is dropped (the focus
+## landing on a screen's first button as it opens, a click focusing what it pressed).
+static func sfx(what: String) -> void:
+	var now := Time.get_ticks_msec()
+	if what == "move" and now - _last_ms < 150:
+		return
+	_last_ms = now
+	_count += 1
+	played.append(what)
+	if played.size() > 40:
+		played.pop_front()
+	var p: AudioStreamPlayer = _sound_players[what]
+	p.pitch_scale = randf_range(0.98, 1.02)
+	p.play()
+
+
+## Sounds for a button: a tick on hover or focus, and on press "confirm" (or "back", or
+## `sound`), unless what it does plays a sound of its own (buy, equip, deny...).
+static func button_sounds(b: BaseButton, sound: String = "") -> void:
+	if sound == "":
+		sound = "back" if b is Button and (b as Button).text in BACK_WORDS else "confirm"
+	b.mouse_entered.connect(func():
+		if not b.disabled:
+			sfx("move"))
+	b.focus_entered.connect(func(): sfx("move"))
+	b.pressed.connect(func():
+		var n := _count
+		(func():
+			if _count == n:
+				sfx(sound)).call_deferred())
+
+
 static func button(text: String, min_width: float = 0.0) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = Vector2(min_width, 0)
 	b.focus_mode = Control.FOCUS_ALL
+	button_sounds(b)
 	return b
 
 
@@ -296,6 +357,7 @@ static func stepper(min_width: float = 0.0) -> Button:
 			d = 1
 		if d != 0 and not b.disabled:
 			b.accept_event()
+			sfx("select")
 			b.emit_signal("stepped", d))
 	return b
 

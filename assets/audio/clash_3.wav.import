@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://bdv5xsrmuh7hm"
-path="res://.godot/imported/jig.wav-7563c41404c16e26925a7859fa807dd8.sample"
+uid="uid://c7vmyj2qnyafe"
+path="res://.godot/imported/clash_3.wav-5eef643c8c9940cbd0e8b75912ed47c9.sample"
 
 [deps]
 
-source_file="res://assets/audio/jig.wav"
-dest_files=["res://.godot/imported/jig.wav-7563c41404c16e26925a7859fa807dd8.sample"]
+source_file="res://assets/audio/clash_3.wav"
+dest_files=["res://.godot/imported/clash_3.wav-5eef643c8c9940cbd0e8b75912ed47c9.sample"]
 
 [params]
 

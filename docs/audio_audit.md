@@ -76,7 +76,9 @@ inside a loop (0.7 at 6 s = an audible 6 s beat).
   (2D, Ambience bus). Campfires: AudioStreamPlayer3D loops (unit 4, max 30 m).
 - Music: two players crossfading (1.8 s, 0.7 s into fights), a sting player,
   BASE_DB -5, victory ducks the music 14 dB for 5.5 s.
-- UI: per-screen AudioStreamPlayers (select, blip, coin, discover_chime) on UI.
+- UI: one AudioStreamPlayer per menu sound (UIStyle.SOUNDS, made under GameMenu so they play while
+  paused) on UI, played with `UIStyle.sfx(name)`; the dialogue voice blip and the HUD's discover_chime
+  keep their own players.
 
 ## Ambience loops
 
@@ -176,6 +178,55 @@ In-game loudness = file LU + typical call volume. Before -> now.
 | discover_chime | gen | HUD discoveries (UI) | ok | | unchanged |
 | music_victory | music gen | boss beaten | ok | | unchanged |
 
+## Weapon impacts (v1.13)
+
+A blow's sound comes from what struck: `HitData.impact` ("" a plain hit, "slice", "slice_heavy",
+"chop", "punch", "punch_heavy", "shot"). `Player.melee_hit` sets it from the style (`Player.IMPACT`:
+blades and claws slice, the axe chops, fists punch, pistols shoot), a "heavy" or "finisher" blow takes
+the heavy take, and every attack, technique and ultimate built on melee_hit gets it for free. Gunfire
+from a blade style (the corsair's pistol, grapeshot, Bullet Storm, the hang shot) sets "shot"; the
+pistol butt and the meteor kick set punch. Grunts: cutlass blows slice, the shoulder rush and the rifle
+butt punch, their shots "shot"; the ape's swipe punches. It rides `Net.hit_pack` (index 15), so a
+guest's blow routed to the host sounds the same, and the host's `Net.fx` plays one name on every screen.
+`CombatManager.impact(hit, ...)` plays it where a body takes the hit (grunts and the boss, scuttlebugs,
+beasts, creatures, the brood queen, the captain; the dummy locally): a blow that floors them
+(knockdown/crumple) also goes heavy. `CombatManager.guard(hit, steel_guard, ...)`: a steel blow
+(slice, chop, shot) on a steel guard clashes, anything else on a guard is "block" (the captain's
+block and parry, a grunt's guard and its read of a repeated heavy). A parry plays the clash with the
+old "parry" ting quieter on top; a shot cut out of the air clashes high.
+
+| Sound | Takes | LU | Design |
+|---|---|---|---|
+| slice | 3 | -15.4 | the edge's 'shk' sweeping 2.6-3 kHz down to ~1.1 kHz, a fluttering tear of cloth, a light body knock; 19-27% at 2-5k |
+| slice_heavy | 3 | -14.3 | a longer draw through, a deeper knock, a wet chunk 35 ms later |
+| chop | 3 | -14.3 | a thunk from 185 Hz down, a mid knock, a crunch of grains, a short cleave; 17-20% at 2-5k |
+| punch | 3 | -15.5 | a 115-140 Hz punch, the knuckles' snap, a slap of skin |
+| punch_heavy | 3 | -14.5 | deeper (85-100 Hz), a whump of cloth and air |
+| shot_hit | 3 | -16.6 | a dull close thwack and a short 200 Hz thump, a puff of cloth; no crack (the gun has it) |
+| clash | 3 | -15.5 | a hard strike, close inharmonic partials (1.0-1.3 kHz x1.47, 2.09, 2.76, 3.9) ringing ~0.4 s, the blades' weight under it, a grate of edges |
+
+## UI sound set (v1.13)
+
+`UIStyle.sfx(name)`; `UIStyle.button()` (and `button_sounds(b)` for any other button) ticks "move" on
+hover or focus and plays "confirm" on press ("back" for Back / Cancel / Close / Leave / Resume / Not yet /
+No), unless what the button does plays a sound of its own that frame (buy, equip, deny, close...). A
+"move" within 150 ms of another sound is dropped (a screen focusing its first button as it opens).
+Steppers tock "select". GameMenu: "open" from the game, "close", "back" on Esc out of options.
+
+| Sound | LU | Played | Design |
+|---|---|---|---|
+| ui_move | -22.2 | hover, focus, dialogue choice moves | a 1.5 kHz tick with a wooden knock, 50 ms |
+| ui_confirm | -18.2 | button press, a dialogue choice | two tocks up a fifth (880, 1320) |
+| ui_back | -19.7 | Back / Cancel buttons, Esc out of options | two tocks down a fourth, softer |
+| ui_deny | -18.2 | can't afford, bag full, can't equip, can't learn / rank / slot a skill | two dull bonks a semitone apart (330, 311) |
+| ui_open / ui_close | -19.2 / -20.2 | inventory, skill map, chart, pause, shops, yard; what's new | a page's breath and plucks up (D-A) / down |
+| equip / unequip | -18.3 / -19.7 | weapons, gear, hot-bar slots, skills on the bar, taking loot / dropping | leather and a buckle's click / a slide and a thup |
+| ui_buy / ui_sell | -18.2 / -18.2 | shop | four coins into a purse / seven onto a counter |
+| coin | -18.4 | learning or ranking a skill (now on UI, was a positional sfx) | unchanged |
+| level_up | -16.2 | levelling (was coin at 0.75, on SFX for everyone) | a bell arpeggio D-F#-A-D over a low D |
+| quest_accept | -19.2 | a new story objective, a villager's task taken | a quill's scratch and two bells (A, D) |
+| quest_done | -17.2 | a story step done, a villager paid, the story finished | three bells home (A, D, F#) over a low D |
+
 ## Music
 
 v1.12 (2026-10-14) replaced the title, island and sea shanties with 2-3 minute
@@ -216,10 +267,10 @@ The Music bus has a sidechain compressor keyed from SFX (threshold -12 dB, 2.5:1
   Cheap to add from pirate_grunt, but it's another agent's code and many grunts
   means many sounds: worth a distance cap.
 - Cloth and gear foley (coat rustle on turns, weapon draw/sheathe, armour clink).
-- Weapon-specific impacts: a sword cut, a blunt bash and a fist all play "hit".
-  A blade "slice" and a metal-on-metal "clash" set would read better.
-- Menus: one "select" for move, confirm and back; no open/close, deny, equip,
-  level-up or quest sounds. Inventory and skill map are silent (skill buy uses coin).
+- Weapon-specific impacts: done in v1.13 (below).
+- Menus: done in v1.13 (below).
+- Monsters' impacts: claws, teeth, slams and blasts still play the plain "hit" (HitData.impact "").
+  A claw rake and a bite would be the next set.
 - Underwater: done 10-14 (low-pass on SFX/Ambience and an underwater bed).
 - Reverb zones: caves, the cabin, the fort's halls play dry.
 - Interior ambience (tavern murmur, the cabin's creak), jungle birds/insects on
@@ -241,5 +292,4 @@ The Music bus has a sidechain compressor keyed from SFX (threshold -12 dB, 2.5:1
    its threshold by ear if it pumps in long fights.
 6. **Island identity**: a short motif per chain-island biome (jungle drums,
    ruins choir) layered over the island theme.
-7. **Weapon-specific impact sets** and **UI sound set** (see gaps): small,
-   self-contained, worth doing next.
+7. **Weapon-specific impact sets** and **UI sound set**: done in v1.13 (above).

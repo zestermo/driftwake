@@ -17,6 +17,7 @@ const SOUNDS := [
 	"draw_katana", "sheathe_katana", "draw_blade", "sheathe_blade", "draw_axe", "sheathe_axe", "draw_great", "sheathe_great",
 	"draw_dagger", "sheathe_dagger", "draw_pistol", "gun_spin", "holster",
 	"laugh", "cheer", "hup", "heel_click", "slap",
+	"slice", "slice_heavy", "chop", "punch", "punch_heavy", "shot_hit", "clash",
 ]
 
 var _dust_mat: StandardMaterial3D

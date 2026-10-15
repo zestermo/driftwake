@@ -516,7 +516,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	Net.fx("impact", [global_position + Vector3(0, 1.0, 0) - dir * 0.3, Color(1.0, 0.55, 0.45)])
 	if not hit.dot:
 		Net.fx("blood", [global_position + Vector3(0, 1.1, 0) - dir * 0.15, dir, clampi(int(hit.damage * 0.6), 6, 18)])
-	Net.fx("sfx", ["hit", global_position, -3.0, 0.08, 0.8])
+	CombatManager.impact(hit, global_position, -3.0, 0.08, 0.8)
 	get_node("/root/CombatManager").apply_hit_effects(hit, [self, attacker])
 	if health_component.current_health <= 0.0:
 		return  # _on_died ragdolls the body
@@ -584,7 +584,7 @@ func _cut_shot(hit: HitData, dir: Vector3, attacker: Node) -> void:
 	var at := global_position + Vector3(0, 1.3, 0) - dir * 0.6
 	Net.fx("sparkle", [at, 12, Color(1.0, 0.85, 0.5)])
 	Net.fx("impact", [at, Color(1.0, 0.9, 0.6)])
-	Net.fx("sfx", ["parry", at, -4.0, 0.05, 1.6])
+	Net.fx("sfx", ["clash", at, -4.0, 0.05, 1.4])
 	Net.fx("float_text", [at + Vector3.UP * 0.5, "Deflected!", Color(1.0, 0.9, 0.6)])
 	if progression.style_stat("return", style()) > 0.0 and attacker is Node3D and attacker.get("hurtbox") is Hurtbox:
 		var back := HitData.new()
@@ -1767,6 +1767,11 @@ func can_attack() -> bool:
 	return armed and not (body_model.current_action() in ["draw", "sheathe", "drink"])
 
 
+## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
+const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
+	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot"}
+
+
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
 ## ("heavy", "finisher", "skill") adds that weapon tree's bonus for it; any hit
 ## can crit (x1.5).
@@ -1774,6 +1779,9 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 	var h := HitData.new()
 	var st := style()
 	var pr := progression
+	h.impact = IMPACT[st]
+	if kind in ["heavy", "finisher"]:
+		h.impact = CombatManager.HEAVY_IMPACT.get(h.impact, h.impact)
 	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0)
 	h.damage = base * damage_multiplier() * k
 	if randf() < pr.style_stat("crit", st) + pr.stat("crit_all") + (0.2 if power.buff("bleeding_edge") else 0.0):

@@ -26,7 +26,6 @@ var _cam: Camera3D
 var _yaw := 0.0
 var _zoom := 0.0  # 0 = full body, 1 = head
 var _dragging := false
-var _blip: AudioStreamPlayer
 var _rng := RandomNumberGenerator.new()
 
 
@@ -47,11 +46,6 @@ func _ready() -> void:
 	_rng.randomize()
 	_set_paused(true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_blip = AudioStreamPlayer.new()
-	_blip.stream = load("res://assets/audio/select.wav")
-	_blip.bus = "UI"
-	_blip.volume_db = -10.0
-	add_child(_blip)
 	_build_ui()
 	_show_tab("Body")
 
@@ -61,7 +55,7 @@ func _exit_tree() -> void:
 
 
 func _play() -> void:
-	_blip.play()
+	UIStyle.sfx("select")
 
 
 # --------------------------------------------------------------------------
@@ -352,7 +346,6 @@ func _cycle(text: String, key: String, values: Array, names: Array = []) -> void
 	b.connect("stepped", func(d: int):
 		look[key] = values[posmod(maxi(values.find(look.get(key)), 0) + d, values.size())]
 		refresh.call()
-		_play()
 		_rebuild())
 	r.add_child(b)
 	refresh.call()
@@ -429,7 +422,6 @@ func _randomize() -> void:
 
 
 func _finish(accepted: bool) -> void:
-	_play()
 	var result := look if accepted else _original
 	_set_paused(false)
 	# (by path: chartest compiles this before the autoloads exist)
