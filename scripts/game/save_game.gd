@@ -180,7 +180,7 @@ static func format_time(secs: float) -> String:
 static func item_ref(item: ItemData) -> Array:
 	if item == null:
 		return []
-	if item.is_gear():
+	if item.is_gear() and item.gear_slot != "instrument":
 		return ["gear", item.gear_slot, item.icon_kind, item.look, item.display_name, int(item.rarity)]
 	return ["id", item.id]
 

@@ -52,3 +52,4 @@ static func _load_all() -> void:
 		if item and item.id != "":
 			_items[item.id] = item
 	WeaponDesigns.make_items(_items)
+	Instruments.make_items(_items)

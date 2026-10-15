@@ -539,11 +539,17 @@ const ICON := 24
 static func icon(model: String) -> Texture2D:
 	if _icons.has(model):
 		return _icons[model]
-	var mesh := build(model)
+	var tex := mesh_icon(build(model))
+	_icons[model] = tex
+	return tex
+
+
+## Any mesh as an icon: turned by `view`, seen from +X (down -X, right = -Z), the picture turned by `turn`.
+static func mesh_icon(mesh: ArrayMesh, view := Basis(), turn := -PI * 0.25) -> ImageTexture:
 	var tris: Array = []
 	var lo := Vector2(INF, INF)
 	var hi := Vector2(-INF, -INF)
-	var rot := Transform2D(-PI * 0.25, Vector2.ZERO)
+	var rot := Transform2D(turn, Vector2.ZERO)
 	for s in range(mesh.get_surface_count()):
 		var arr := mesh.surface_get_arrays(s)
 		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
@@ -551,15 +557,17 @@ static func icon(model: String) -> Texture2D:
 		var col := _tone(mesh.surface_get_material(s))
 		for i in range(0, verts.size() - 2, 3):
 			var pts: Array = []
+			var depth := 0.0
 			for j in range(3):
-				var v: Vector3 = verts[i + j]
+				var v: Vector3 = view * verts[i + j]
 				var q: Vector2 = rot * Vector2(-v.z, -v.y)
 				pts.append(q)
+				depth += v.x / 3.0
 				lo = Vector2(minf(lo.x, q.x), minf(lo.y, q.y))
 				hi = Vector2(maxf(hi.x, q.x), maxf(hi.y, q.y))
-			var nx := absf(norms[i].x)
-			var shade := 0.55 + 0.45 * nx + 0.15 * norms[i].y
-			tris.append([pts, col * shade, (verts[i].x + verts[i + 1].x + verts[i + 2].x) / 3.0])
+			var nv: Vector3 = view * norms[i]
+			var shade := 0.55 + 0.45 * absf(nv.x) + 0.15 * nv.y
+			tris.append([pts, col * shade, depth])
 	tris.sort_custom(func(a, b): return float(a[2]) < float(b[2]))
 	var span := maxf(hi.x - lo.x, hi.y - lo.y)
 	var k := (ICON - 3.0) / maxf(span, 0.001)
@@ -597,9 +605,7 @@ static func icon(model: String) -> Texture2D:
 				if n.x >= 0 and n.y >= 0 and n.x < ICON and n.y < ICON and img.get_pixel(n.x, n.y).a > 0.0:
 					out.set_pixel(x, y, Color(0.08, 0.055, 0.04))
 					break
-	var tex := ImageTexture.create_from_image(out)
-	_icons[model] = tex
-	return tex
+	return ImageTexture.create_from_image(out)
 
 
 static func _tone(mat: Material) -> Color:

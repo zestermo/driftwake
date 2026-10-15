@@ -16,7 +16,7 @@ const SHOPS := {
 	},
 	"gus": {
 		"name": "The Salted Gull", "line": "Rum, stew, and a dry seat. Pick two.",
-		"stock": [["rum", 8], ["stew", 18]],
+		"stock": [["rum", 8], ["stew", 18], ["tin_whistle", 35], ["bodhran", 60], ["concertina", 110]],
 		"buys": {"consumable": 0.4},
 	},
 	"marlo": {

@@ -181,7 +181,8 @@ func _build(rng: RandomNumberGenerator) -> void:
 	Shops.extra[trade_id] = {"name": "%s's Trade Goods" % TRADERS[rng.randi() % TRADERS.size()],
 		"line": "Shells, steel and sea-gems. I'll take your loot at a fair price.",
 		"stock": [["rum", 9], ["biscuit", 3], ["tonic", 28 + t * 2], ["%s@%d" % [w[rng.randi() % w.size()], t], 60 + t * 40],
-			["%s@%d" % [w[rng.randi() % w.size()], maxi(t - 1, 0)], 40 + t * 25], ["pistol@%d" % maxi(t - 1, 0), 70 + t * 30]],
+			["%s@%d" % [w[rng.randi() % w.size()], maxi(t - 1, 0)], 40 + t * 25], ["pistol@%d" % maxi(t - 1, 0), 70 + t * 30]]
+			+ Instruments.trader_stock(trade_id),
 		"buys": {"loot": 0.9, "gear": 0.5, "weapon": 0.5}}
 	Shops.extra[food_id] = {"name": "%s's Cookpot" % COOKS[rng.randi() % COOKS.size()],
 		"line": "Fish from the reef, fruit from the trees, something in the pot. Eat.",

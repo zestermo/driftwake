@@ -13,7 +13,7 @@ const SLOTS := [
 	["head", "Head", "head"], ["torso", "Torso", "torso"], ["vest", "Vest", "vest"],
 	["coat", "Coat", "coat"], ["belt", "Belt", "belt"],
 	["hands", "Hands", "hands"], ["legs", "Legs", "legs"], ["feet", "Feet", "feet"],
-	["acc1", "Accessory", "accessory"], ["acc2", "Accessory", "accessory"]]
+	["acc1", "Accessory", "accessory"], ["acc2", "Accessory", "accessory"], ["instrument", "Instrument", "instrument"]]
 
 ## Look keys each slot kind controls.
 const SLOT_KEYS := {
@@ -25,6 +25,7 @@ const SLOT_KEYS := {
 	"legs": ["legs", "legs_color"],
 	"feet": ["feet", "feet_color"],
 	"belt": ["belt", "belt_color", "sash_color"],
+	"instrument": ["instrument"],
 }
 ## Accessories are on/off look flags (+ a color for some).
 const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apron", "cape", "bandolier", "necklace", "goggles", "mantle",
@@ -341,6 +342,7 @@ static func bare(kind: String, fem: bool) -> Dictionary:
 		"legs": return {"legs": "shorts", "legs_color": CharacterLook.CLOTH[1]}
 		"feet": return {"feet": "barefoot"}
 		"belt": return {"belt": "none"}
+		"instrument": return {"instrument": "none"}
 	return {}
 
 
