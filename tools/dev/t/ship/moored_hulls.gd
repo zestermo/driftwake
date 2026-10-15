@@ -1,5 +1,6 @@
 extends SceneTree
 ## A moored hull rides the swell with a captain within MooredHull.NEAR and holds still (no physics moves) past FAR;
+## (moored_hull.gd loaded by path: it reads Ocean, which a SceneTree script can't name at compile time)
 ## it rides again once a captain comes back.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -24,8 +25,8 @@ func check(what: String, cond: bool) -> void:
 		fails += 1
 
 
-func hull(at: Vector3) -> MooredHull:
-	var h := MooredHull.new()
+func hull(at: Vector3) -> Node3D:
+	var h = load("res://scripts/ship/moored_hull.gd").new()
 	h.collision_layer = 1
 	h.collision_mask = 0
 	var cs := CollisionShape3D.new()
@@ -44,9 +45,9 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
-			near = hull(Vector3(60.0, HullBuilder.FREEBOARD, 0.0))
-			far = hull(Vector3(400.0, HullBuilder.FREEBOARD, 0.0))
-			until = TK.wait_ticks(MooredHull.CHECK_TICKS + 2)
+			near = hull(Vector3(60.0, 1.0, 0.0))
+			far = hull(Vector3(400.0, 1.0, 0.0))
+			until = TK.wait_ticks(near.CHECK_TICKS + 2)
 		1:
 			xf_near = near.global_transform
 			xf_far = far.global_transform
@@ -56,7 +57,7 @@ func _process(_d: float) -> bool:
 			check("a hull 400 m away holds still", not far.riding and far.global_transform.is_equal_approx(xf_far))
 			p.global_position = Vector3(380.0, 4.0, 0.0)
 			p.reset_physics_interpolation()
-			until = TK.wait_ticks(MooredHull.CHECK_TICKS + 2)
+			until = TK.wait_ticks(far.CHECK_TICKS + 2)
 		3:
 			xf_far = far.global_transform
 			until = TK.wait_ticks(40)

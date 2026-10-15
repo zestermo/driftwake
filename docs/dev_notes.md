@@ -1768,3 +1768,30 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
      moved per frame, max_physics_steps_per_frame to bound the spiral; Ambience / SkyBirds / CloudSpawner / Weather /
      SeaSpray throttled. Estimated -0.5..-1 ms per tick, -1 ms per frame.
   Later: near-rig animation LOD (humanoid.gd, spring chains), sun shadow distance.
+
+## 2026-10-15: v1.14 area C, physics and per-frame systems
+- `physics/common/max_physics_steps_per_frame=4` (was Godot's 8): below 15 fps the game slows instead of
+  running ever more ticks a frame. Tests run `--fixed-fps 60` (one tick a frame), so they don't feel it.
+- Hurtbox (`_init`: monitoring off, `_ready`: mask 0) and Interactable (`_init`: monitoring off): hitboxes,
+  projectiles and the captain's InteractionComponent do the finding; nothing read a hurtbox's or an
+  interactable's own overlaps. Areas monitoring in Brinehollow: 394 -> 6. Hitboxes already monitored only while active.
+- MooredHull: rides the swell within NEAR 80 m of a captain (group "players") or the crew's ship, holds still past
+  FAR 90 m (checked every 15 ticks, staggered by instance id): no kinematic moves, no transform notifications down
+  its model. A frozen hull keeps its colliders (pirates or loot on a far deck don't fall through).
+- Per-frame systems, same look and sound: CoastProbe a bearing every 0.07 s (a sweep in ~1.1 s, one reused ray
+  query); Ambience sets the underwater low-pass only when it changes; SkyBirds steers birds behind the camera or
+  past DRAW one frame in three (with the time they missed), the flocks' angles move in _process, the dead-bird
+  filter only when one died; PuffClouds re-sorts every 0.15 s (was 0.05); Weather's blend, sun, sky/fog colours,
+  ocean colours and 3D-cloud look every 0.1 s (every frame while a flash or the cloud whiteout changes), the sky's
+  cloud_time and the cloud shadows' drift still every frame; SeaSpray checks the coasts for a breaking crest every
+  0.06 s and filters streaks/foam in place; RainFX lays out puddles when the camera moves a metre, cells are still
+  to be judged or every 0.25 s; the HUD's clock/FPS text every 0.25 s; InventoryScreen processes only while
+  visible in the tree (GameMenu hides its root, not the screen, so it ran all game).
+- Measured (bench.ps1, 13:00 clear, back to back: main `c_before`, this branch `c_after`; mean of the 8 stops):
+  frame 24.54 -> 21.04 ms, frame1t 21.38 -> 19.50, ticks/frame 1.48 -> 1.28, scripts/tick 4.45 -> 4.13,
+  Jolt/tick 2.28 -> 2.18, proc_scr 6.10 -> 5.20, tail 3.17 -> 2.98. Per script (ms): ambience 0.40 -> 0.22,
+  sky_birds 0.32 -> 0.26, weather 0.18 -> 0.08, sea_spray 0.17 -> 0.14, cloud_spawner 0.14 -> 0.06, moored_hull
+  0.15 -> 0.08 (most hulls are within 80 m of the town's stops), player_hud 0.08 -> 0.07. The monitoring areas
+  were worth only ~0.1 ms of Jolt per tick; Jolt's cost is the far actors' character bodies (area A).
+- Tests: t/items/quiet_areas (no hurtbox/interactable monitors; the chest's prompt, F and a swing still work),
+  t/ship/moored_hulls (rides near, holds still far, rides again).

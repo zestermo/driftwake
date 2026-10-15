@@ -28,12 +28,13 @@ func _process(_d: float) -> bool:
 		0:
 			p = stage.player
 			var watching: Array = []
+			var quiet := ["res://scenes/combat/hurtbox.gd", "res://scripts/interaction/interactable.gd", "res://scripts/interaction/seat.gd"]
 			for a in root.find_children("*", "Area3D", true, false):
-				if (a is Hurtbox or a is Interactable) and (a as Area3D).monitoring:
+				if a.get_script() != null and a.get_script().resource_path in quiet and (a as Area3D).monitoring:
 					watching.append(str(a.get_path()))
 			check("no hurtbox or interactable monitors %s" % str(watching), watching.is_empty())
 			check("...the captain's hurtbox is still found", p.hurtbox.monitorable)
-			var bag_it: Array = stage.chest.find_children("*", "Interactable", true, false)
+			var bag_it: Array = stage.chest.find_children("*", "Area3D", true, false)
 			check("...and the chest's", not bag_it.is_empty() and (bag_it[0] as Area3D).monitorable)
 			check("the captain's interaction zone still looks", p.interaction_component.monitoring)
 			p.global_position = stage.chest.global_position + Vector3(-1.2, 0.05, 0.0)
