@@ -172,12 +172,14 @@ function Sync-Branch {
 }
 
 ## Of `files` (changed on the target meanwhile), the ones a check could see: scripts (the compile check), and
-## whatever a test's recorded loads include. Docs, *.md, web/site/ and files no test loads are left out.
+## whatever a test's recorded loads include (all of them while a test has none recorded). Docs, *.md, web/site/
+## and files no test loads are left out.
 function Get-LiveFiles([string[]]$files) {
 	$rest = @($files | Where-Object { -not ($_ -like "docs/*" -or $_ -like "*.md" -or $_ -like "web/site/*") })
 	$live = @($rest | Where-Object { $_ -like "*.gd" })
 	foreach ($t in @((Get-AllTests) + (Get-NetKeys $crew))) {
 		if ($rest.Count -eq 0) { break }
+		if (-not (Test-Path (Get-DepsFile $crew $t))) { return $rest }
 		$live += @(Get-DepHits $crew $t $rest)
 	}
 	return @($live | Select-Object -Unique)
