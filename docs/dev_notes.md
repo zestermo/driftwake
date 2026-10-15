@@ -1675,4 +1675,5 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   ignores a taskkill failure only if the process had already exited, otherwise throws.
 
 ## 2026-10-15: rig drift fix (arms stretching until a re-equip)
-- Humanoid.reach_hand (two-bone IK: instruments, off-hand on rifle/axe/scabbard, swings) wrote the arm's global basis with a scale. Under a squashed pivot or non-uniform parent scale that left the arm a lasting local scale (the animator only sets rotations, and Ragdoll.add_part copied it as rest_scale, so knockdowns kept it). It now sets the arm's local rotation only. Not covered by a test (written, not verified).
+- Humanoid.reach_hand (two-bone IK: instruments, off-hand on rifle/axe/scabbard, swings) wrote the arm's global basis with a scale. Under a squashed pivot or non-uniform parent scale that left the arm a lasting local scale (the animator only sets rotations, and Ragdoll.add_part copied it as rest_scale, so knockdowns kept it). It now sets the arm's local rotation only.
+- Second source: Ragdoll.restore_rig left the ragdoll processing, so one more drive() that frame wrote global transforms over the restored rig (the hips came back 1.3 cm off after a get-up). restore_rig now stops the ragdoll first. Test: t/player/rig_drift (squashed body + reach_hand, instrument, sword swing, knockdown/get-up, in water).

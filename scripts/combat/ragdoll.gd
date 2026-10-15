@@ -352,6 +352,9 @@ func _wake() -> void:
 ## limbs a bit longer, shorter or squashed (until the body was rebuilt, e.g.
 ## by changing clothes). Rotations stay: the animator blends out of them.
 func restore_rig() -> void:
+	# a queue_free'd ragdoll still ran drive() once more this frame, writing the rig's global transforms over the restore
+	set_process(false)
+	set_physics_process(false)
 	for p in parts:
 		var node: Node3D = p["node"]
 		if node == null or not is_instance_valid(node):
