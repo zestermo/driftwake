@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.13-e0b040" alt="Version 1.13">
+  <img src="https://img.shields.io/badge/version-1.14-e0b040" alt="Version 1.14">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,20 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.14: Smooth Sailing (October 15, 2026)
+The performance update: the last few releases had slowed Brinehollow to 20-30 fps; it now runs about 4.5x faster.
+- **Far actors sleep:** pirates, bugs, spitters, enemy ships and villagers past ~160 m from every captain stop
+  thinking, moving and animating, and wake within ~120 m where they were (villagers back on their routine); co-op aware.
+- **Fewer draws:** a body is ~15 surfaces instead of 23, kit pieces get visibility ranges by size, small things stop
+  casting shadows, sun shadows reach 80 m, fog banks are one MultiMesh each.
+- **Calmer physics:** hurtboxes and interactables no longer monitor (6 of 720 areas do), moored hulls rest far off,
+  at most 4 physics steps a frame; Weather, birds, clouds, coast checks, spray and puddles update less often.
+- **Measured** (dev laptop, Brinehollow route): 42.3 -> 9.2 ms a frame at midday (~24 -> ~108 fps), 35.9 -> 9.3 at
+  night, 32.1 -> 10.1 in rain. The F8 overlay shows enemies awake / asleep.
+- **Also:** stance and parry polish (twin daggers, one dagger, dual swords, with parry flourishes), arms no longer
+  stretch after knockdowns or hand-placed weapons and instruments, combo/reload/input-buffer timing in game time,
+  nothing kills a duelist mid-duel.
 
 ### v1.13: Shore Leave (October 15, 2026)
 Things to do with your crew when nobody's trying to sink you.

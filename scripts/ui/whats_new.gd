@@ -7,12 +7,11 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Instruments", "A tin whistle, a bodhrán, a concertina, a fiddle and a hurdy-gurdy. Buy one from Gus at The Salted Gull (or a chain-island trader), wear it in the new INST slot, and hold T to play."],
-	["Jam with your crew", "Four shanties with a part for every instrument. Start playing near a crewmate who's already at it and you come in on their tune, right on the beat."],
-	["Duels", "Walk up to a crewmate and press F: trade, inspect their gear, or challenge them. Their health goes up top like a boss's, the loser just gets knocked down, and the winner gets a little XP."],
-	["Hits you can hear", "Blades slice, axes chop, fists thud, shots smack and parries ring steel on steel. Heavy hits and finishers hit harder."],
-	["Menus that click", "Every menu has its own sounds now: hover, confirm, back, buy, sell, equip, level up and quests."],
-	["Fixes", "The waves no longer jump after a hitch. Emotes leave the music to the instruments."],
+	["Smooth sailing", "Brinehollow runs about four and a half times faster: far-off pirates, bugs, ships and villagers nap until you come near, with fewer things to draw and calmer physics. Same look."],
+	["Awake or asleep", "The F8 overlay shows how many enemies are awake and how many are asleep. Distant camps spring to life as you get within about 120 m."],
+	["Stances and parries", "Twin daggers sit lower and wider, one dagger keeps its off hand low, dual swords settle lower. Each gets its own block, parry and a flourish when a parry lands."],
+	["No more stretchy captains", "Knockdowns and some weapons and instruments could slowly stretch your arms until you re-equipped something. Fixed."],
+	["Tighter timing", "Combos, reloads and buffered inputs count in game time, so a hitch can't throw them off. Nothing can kill you mid-duel any more."],
 ]
 
 

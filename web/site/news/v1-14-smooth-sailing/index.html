@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v1.14: Smooth Sailing | Driftwake</title>
+<meta name="description" content="Driftwake v1.14 is a performance update: the last few releases had slowed the game to 20-30 fps in town, so we found out why and fixed it. Brinehollow now runs about four and a half times faster.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://driftwake.fun/news/v1-14-smooth-sailing/">
+<meta property="og:title" content="Driftwake v1.14: Smooth Sailing">
+<meta property="og:description" content="The game had got slow. Now it isn't. What went wrong, what we fixed, and the numbers.">
+<meta property="og:image" content="https://driftwake.fun/img/harbour.jpg">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="900">
+<meta property="og:image:alt" content="A stilt harbour at sunset, the sloop at the pier beyond boardwalks on pilings">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://driftwake.fun/img/harbour.jpg">
+<meta name="theme-color" content="#12363c">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the post</a>
+
+<div class="top">
+	<a class="brand" href="/">DRIFTWAKE</a>
+	<nav aria-label="Site">
+		<a href="/news/" aria-current="page">News</a>
+		<a href="/roadmap/">Roadmap</a>
+		<a href="/releases/">Releases</a>
+		<a class="nav-dl" href="/#download">Download</a>
+	</nav>
+</div>
+
+<header class="page-head">
+	<p class="date"><a href="/news/">News</a> &middot; October 15, 2026</p>
+	<h1>v1.14: Smooth Sailing</h1>
+	<p>The game had got slow. Now it isn't.</p>
+</header>
+
+<main id="main" class="article">
+	<p>The last few updates piled a lot onto the islands: villages full of people with routines, harbours, caves,
+		jungle bosses, lanterns and lit windows, a living sea with spray and birds, instruments and duels. I love every
+		one of them. But stacked together, they dragged the game down. On a solid gaming PC (a Ryzen 5 5600G with an
+		RTX 3080) Brinehollow was running at 20 to 30 frames per second, and honestly, it had stopped being fun to play.
+		So v1.14 is all about putting that right.</p>
+
+	<h2>What was going wrong</h2>
+	<p>The graphics card was barely breaking a sweat. The processor was the one drowning. When you stood on
+		Brinehollow's beach, the world held about 200 enemies, but only around 35 of them were anywhere near you. The rest
+		were on the islands ahead, two kilometres away, and every one of them was still thinking, walking and animating
+		every single frame as if you were standing right next to them. On top of that, every slow frame made the physics
+		run extra catch-up steps, which made the next frame slower still.</p>
+
+	<h2>What we did</h2>
+	<ul>
+		<li><b>Far-off things take a nap.</b> Pirates, bugs, enemy ships and villagers more than about 160 m from every
+			captain now sleep: no thinking, no moving, no animating. Get within about 120 m and they wake up exactly where
+			they were, and villagers pick their routine back up. It works the same for your whole crew in co-op.</li>
+		<li><b>Less to draw.</b> Each character is drawn in about 15 pieces instead of 23, small props fade out at a
+			distance and stop casting shadows, and repeated things like fog banks are drawn as one. Draw calls in
+			Brinehollow dropped by about a third.</li>
+		<li><b>Calmer physics.</b> Hundreds of hitboxes and interaction spots stopped constantly checking for overlaps
+			(only 6 of 720 still do), moored ships rest until you come near, and a slow frame can no longer snowball into
+			more and more physics catch-up.</li>
+		<li><b>Smarter background work.</b> The weather, birds, clouds, shoreline sounds, spray and rain puddles update a
+			little less often, and the inventory screen stopped quietly running in the background the whole game.</li>
+	</ul>
+
+	<h2>The numbers</h2>
+	<p>Measured on the same laptop along the same route through Brinehollow (the beach, the plaza, the market, the quay,
+		the dock, the den, the training yard and aboard the ship), averaged across the whole route:</p>
+	<table>
+		<tr><th>Brinehollow</th><th>v1.13</th><th>v1.14</th></tr>
+		<tr><td>Midday, clear</td><td>~24 fps</td><td><b>~108 fps</b></td></tr>
+		<tr><td>Night</td><td>~28 fps</td><td><b>~107 fps</b></td></tr>
+		<tr><td>Midday, rain</td><td>~31 fps</td><td><b>~99 fps</b></td></tr>
+	</table>
+	<p>That's roughly four and a half times faster, and the town looks exactly the same as it did.</p>
+
+	<h2>What you'll notice</h2>
+	<ul>
+		<li>Towns, the market and fights feel smooth, with far fewer hitches, and slower PCs gain the most.</li>
+		<li>Distant camps sit quiet until you get closer, then spring to life. They were always there; they're just
+			not burning your processor while you're on the other side of the island.</li>
+		<li>Press F8 for the performance overlay. It now shows how many enemies are awake and how many are asleep.</li>
+	</ul>
+
+	<h2>A few more things in this one</h2>
+	<ul>
+		<li><b>Stances and parries.</b> Twin daggers sit lower and wider, a single dagger's off hand hangs low at your side,
+			and dual swords settle lower. Dual swords, one dagger and twin daggers each get their own block, parry and a
+			new flourish when a parry lands.</li>
+		<li><b>No more stretchy captains.</b> Getting knocked down or holding certain weapons and instruments could slowly
+			stretch your arms until you re-equipped something. Fixed.</li>
+		<li><b>Tighter timing.</b> Combos, reloads and buffered inputs now count in game time, so a hitch can no longer throw
+			them off, and nothing can actually kill you mid-duel any more.</li>
+	</ul>
+
+	<p>Thanks for sticking with it while things got sluggish. Every change is in the <a href="/releases/#v1-14">release
+		notes</a>, and what's next is on the <a href="/roadmap/">roadmap</a>.</p>
+	<p><a class="btn btn-big" href="/download" download>Download for Windows<small>Free &middot; co-op for up to 4</small></a></p>
+	<p class="signoff"><img class="avatar" src="/img/zilk.webp" alt="Zilk: a pixel-art captain with round glasses, freckles and a battered brown wizard hat" width="72" height="72" loading="lazy"><span>Fair winds,<br>Zilk</span></p>
+</main>
+
+<footer>
+	<nav aria-label="Footer">
+		<a href="/download" download>Download</a>
+		<a href="/play/">Play in browser</a>
+		<a href="/news/">News</a>
+		<a href="/roadmap/">Roadmap</a>
+		<a href="/releases/">Releases</a>
+	</nav>
+	<p>Driftwake is made by Zilk. Fonts: Pixelify Sans and Silkscreen (SIL Open Font License). Built with Godot.</p>
+	<p class="credit">Inspired by <i>One Piece</i> by Eiichiro Oda, with love. Driftwake is an independent fan-made game, not affiliated with or endorsed by Eiichiro Oda, Shueisha or Toei Animation.</p>
+</footer>
+
+</body>
+</html>

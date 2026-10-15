@@ -238,6 +238,12 @@ figcaption b { color: var(--text); }
 .notes li::before { content: ""; position: absolute; left: 1px; top: 0.6em; width: 8px; height: 8px; background: var(--coral); box-shadow: 2px 2px 0 var(--ink); }
 .notes h3 { margin: 18px 0 8px; font: 400 11px "Silkscreen", monospace; letter-spacing: 1px; text-transform: uppercase; color: var(--teal-light); }
 
+.article table { width: 100%; max-width: 480px; border-collapse: collapse; font-size: 15px; margin: 8px 0 16px; }
+.article th { padding: 6px 12px 6px 0; text-align: left; font-weight: 400; color: var(--dim); }
+.article td { padding: 6px 12px 6px 0; white-space: nowrap; }
+.article tr + tr th, .article tr + tr td { border-top: 1px solid #f5e8c81a; }
+.article td b { color: var(--accent); }
+
 .controls { overflow-x: auto; }
 .controls table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .controls th { padding: 4px 12px 4px 0; text-align: left; font-weight: 400; color: var(--dim); white-space: nowrap; }
