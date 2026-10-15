@@ -1,5 +1,9 @@
 # Driftwake to-do
 
+**The plan of record is [docs/roadmap_v2.md](roadmap_v2.md)** (2026-10-15): the First Sea's islands, the sea between
+them, progression and effects, enemies, customization, the Marines, the finale boss, then version 2.0. This file holds
+the details of each item; the roadmap sets the order.
+
 Zach's list of planned work, in order. Nothing here is started unless it says so. Reviewed with Zach
 2026-10-13: the next round is polish and quality of life, then Phase 3 of the islands. Platform: the desktop
 download (co-op by hosted / forwarded address) is the way to play; nothing web or store-related is planned.
