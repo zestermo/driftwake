@@ -4,21 +4,23 @@ Zach's references for a snow island, inspired by One Piece's winter island (Drum
 island kit, like the desert (docs/desert_island_plan.md). Order: after or alongside the desert, in separate areas.
 
 ## References (Zach's, in `tools/dev/out/refs/`, git-ignored: One Piece art, internal reference only)
-- `snow_island_map.webp`: the island from above. Tall flat-topped mountains standing up like giant drums, a castle
+- `snow_island_map.webp`: the island from above. Tall icy mountains (we use pointed peaks, not the map's flat-topped
+  drums), a castle
   on the highest summit, clusters of glowing blue ice crystals, dense pine forests, mist, a frozen river or channel
   splitting the island, a red-roofed town in the middle, harbours and docks.
 - `snow_village.webp`: a village street. Round red/pink brick houses with tall conical roofs in stacked, snow-dusted
   green tiers and little chimney finials; wooden fences; snowy pines; drum mountains towering behind; villagers in
-  heavy coats; a big shaggy white beast of burden carrying cargo; falling snow.
+  heavy coats; a big shaggy white beast of burden carrying cargo; falling snow. (The mountains behind are drums in
+  the ref; ours are pointed peaks.)
 - `snow_buried_town.jpg`: a ruined town on a slope, stone buildings and arches half-drowned in drifts, snow-laden
   trees, a castle on the hilltop.
 - `snow_fields_ruins.jpg`: rolling snowfields with wind-carved ridges, ruined towers of stacked ice/stone blocks with
   barred windows, pines, blowing mist.
 
 ## Look and size
-- **Terrain:** snowfields with wind-carved drifts, pine-forested valleys, frozen lakes and a frozen river, and the
-  signature **drum mountains**: sheer, flat-topped columns that dominate the skyline (climbable at a few routes, with a
-  summit castle on the tallest). Ice-crystal clusters (glowing blue at night) on slopes and in caves. Coasts: snowy
+- **Terrain:** snowfields with wind-carved drifts, pine-forested valleys, frozen lakes and a frozen river, and
+  **tall, icy, pointed mountain peaks** that dominate the skyline (Zach: traditional sharp peaks, not literal
+  flat-topped drum columns), climbable at a few routes, with a summit castle on the tallest. Ice-crystal clusters (glowing blue at night) on slopes and in caves. Coasts: snowy
   beaches, ice shelves and black-rock cliffs.
 - **Size:** medium-large; the pine forests and drum mountains break the eyeline, so it needn't be as big as the desert.
 - **Sky and light:** pale overcast days, low winter sun, long blue dusk, clear starry nights; the belt lantern, warm
