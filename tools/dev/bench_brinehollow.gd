@@ -11,7 +11,7 @@ extends SceneTree
 ## Each frame is split by timeline marks: physics scripts (the scene's physics pass), physics engine
 ## (Jolt's step and sync), process scripts (the scene's process pass), rest (tweens, transforms, the draw, present).
 ## Args (after --): label=<name> hour=13 wx=clear|cloudy|rain|storm pix=1|0 size=1920x1080
-## warm=20 seed=4242 stops=beach,dock quick (base only). Writes tools/dev/out/bench/brinehollow_<label>.txt.
+## warm=20 seed=4242 stops=beach,dock quick (base only) nosleep (ActorSleep off: far actors stay awake). Writes tools/dev/out/bench/brinehollow_<label>.txt.
 ## Run it through tools/dev/bench.ps1 (a quiet machine); compare two with bench_compare.ps1.
 const OUT_DIR := "res://tools/dev/out/bench/"
 const ROUTE := ["beach", "plaza", "market", "quay", "dock", "den", "yard", "aboard"]
@@ -90,6 +90,7 @@ func _initialize():
 		var kv := a.split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	label = args.get("label", "run")
+	load("res://scripts/world/actor_sleep.gd").enabled = not args.has("nosleep")
 	stops = Array((args["stops"] as String).split(",")) if args.has("stops") else ROUTE.duplicate()
 	TK.use_seed(self, int(args.get("seed", str(TK.DEFAULT_SEED))))
 	RenderingServer.frame_pre_draw.connect(_mark.bind("pre_draw"))
