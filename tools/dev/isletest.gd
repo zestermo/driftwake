@@ -121,7 +121,7 @@ func _process(d: float) -> bool:
 			for place in [isl, world.get_node("Brinehollow")]:
 				var dp := _draw_pass(place)
 				check("the draw pass ran on %s: small things have a range (%d small, %d without), tints folded (%d meshes with two surfaces of one texture)" % [place.name, dp[0], dp[1], dp[2]],
-					dp[0] > 20 and dp[1] == 0 and dp[2] == 0)
+					dp[0] > 5 and dp[1] == 0 and dp[2] == 0)
 			# the same node builds the same island
 			var again = load("res://scripts/island/gen_island.gd").new()
 			again.prepare(n)

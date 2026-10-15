@@ -1795,3 +1795,37 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   were worth only ~0.1 ms of Jolt per tick; Jolt's cost is the far actors' character bodies (area A).
 - Tests: t/items/quiet_areas (no hurtbox/interactable monitors; the chest's prompt, F and a swing still work),
   t/ship/moored_hulls (rides near, holds still far, rides again).
+## 2026-10-15: v1.14 area B, draw calls and shadow casters
+- Bench (13:00 clear, main then this branch back to back, mean of 8 stops): frame 24.6 -> 22.4 ms, frame1t 21.4 -> 20.1,
+  main-thread draw 4.77 -> 3.70 (rcpu 2.25 -> 1.57), GPU 3.9 -> 3.6; draws visible 1137 -> 745, shadow 920 -> 489
+  (total 2129 -> 1307, -39%). Brinehollow renders (islandshot plaza/market/street/aerial/far, day and 21:00,
+  `tools/dev/out/drawlod/`) look the same; the F8 overlay at the plaza reads 3733 -> 2306 draws.
+- Tint folding (`MeshBuilder.fold_tints`, `PSXMat.fold`): every plain `PSXMat.lit` surface moves onto its texture's
+  white twin (opts + `vc_srgb`) and its tint goes into the vertex colours, sRGB-encoded (shader `vertex_srgb` decodes
+  in vertex()), so a mesh is one surface per texture, not per tint, and every body shares those materials. Only the
+  cached material folds: an object's own copy (scuttlebug, beasts, dummy: tint_mul flashes) stays. Not folded: glow,
+  decal, no-vertex-colour materials. Gotcha: code that finds a surface by material identity (ship.gd's deck/hull) or
+  reads albedo_color back (weapon icons) must not be folded; the island pass skips anything with a material or
+  surface override (it would multiply the baked tints).
+- Bodies (BodyBuilder): every part's builder folds; the rigid shin parts (cuffs, footwear) join LowerBody's skinned
+  mesh on SHIN_L/R and the forearm parts (NPC hands, cuffs, bracers) join ArmBody's MeshL/R on FORE_L/R
+  (`MeshBuilder.rebind`; the skinned setups run once every part is in, `_skin_into`/`_skinned`). A severed arm's bake
+  carries its hand. 23.3 -> 14.9 surfaces per body (61 looks; worst 30 -> 18). Every body part ends at
+  `BodyBuilder.RANGE` (220 m) x height. r9test's scalp check reads the vertex colours.
+- `DrawLOD` (scripts/psx/draw_lod.gd), run once a place is built (end of StarterIsland.build, GenIsland's last finish
+  steps in ~12 ms slices, Redtide): folds each MeshInstance's mesh (shared meshes once; only when it saves a surface),
+  gives a visibility range to whatever set none (130 m per metre of size, min 45, glow x3, none past the camera's
+  1200 m far: ~2 px on the 640x360 grid), and turns shadows off under 0.9 m. Humanoids and CharacterBody3Ds are
+  skipped. `DrawLOD.creature` gives a nest's bugs and spitters ranges by part. Brinehollow's islanddump changes only in
+  mesh surfaces, cs and vr (367 lines; transforms, colliders, everything else identical).
+- Sun (world.tscn): shadows to 80 m (was 120), split 0.3, fade from 0.8. Turning sun shadows off now saves 0.35 ms of
+  draw (was 0.64) and 496 shadow draws (was 929).
+- Fog banks: 60 billboard puffs each as one MultiMesh (was 60 nodes).
+- Not done: OccluderInstance3D in the town (occlusion culling rasterises on the CPU, the camera is high and behind,
+  and the project setting is C's project.godot); MultiMesh for the nest/roosts (they're animated creatures: ranges
+  instead); other repeated props as separate nodes are few (drawcount's list).
+- Tool: `tools/dev/drawcount.gd` (headless): `world` = draws by piece with ranges/shadows, `bodies` = per body.
+- Tests: chartest (60 looks <= 20 draws, mean <= 16.5; every part's range), isletest (the draw pass ran on a chain
+  island and Brinehollow), r9test, villagetest, harbourtest, fidelitytest, lighttest, cliptest, bugtest, seatest,
+  hairtest, qoltest, katanatest, foresttest, t/player. Renders: islandshot before/after, wardrobeshot, armorshot,
+  goreshot.
