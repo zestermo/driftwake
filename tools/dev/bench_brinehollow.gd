@@ -11,7 +11,8 @@ extends SceneTree
 ## Each frame is split by timeline marks: physics scripts (the scene's physics pass), physics engine
 ## (Jolt's step and sync), process scripts (the scene's process pass), rest (tweens, transforms, the draw, present).
 ## Args (after --): label=<name> hour=13 wx=clear|cloudy|rain|storm pix=1|0 size=1920x1080
-## warm=20 seed=4242 stops=beach,dock quick (base only) nosleep (ActorSleep off: far actors stay awake). Writes tools/dev/out/bench/brinehollow_<label>.txt
+## warm=20 seed=4242 stops=beach,dock quick (base only) gate (base + probe: the summary and the scripts, no ablations; perf_gate.ps1)
+## nosleep (ActorSleep off: far actors stay awake). Writes tools/dev/out/bench/brinehollow_<label>.txt
 ## and a screenshot per stop (brinehollow_<label>_<stop>.png, after its settle); bench.ps1 keeps the whole log beside them.
 ## Prints "bench: <stop> <phase>" as it goes, and a watchdog thread names the stop, phase and island build step if a frame stalls.
 ## Run it through tools/dev/bench.ps1 (a quiet machine); compare two with bench_compare.ps1.
@@ -53,6 +54,7 @@ var rec := {}
 var results := {}
 var all_frames := PackedFloat32Array()
 var census_text := ""
+var calib_ms := 0.0
 
 var lights: Array = []
 var toggled: Array = []
@@ -151,6 +153,8 @@ func _process(d: float) -> bool:
 			return false
 		census_text = _census()
 		print(census_text)
+		calib_ms = _calib()
+		print("bench: calib %.2f ms" % calib_ms)
 		_next_stop()
 		return false
 	_step(d)
@@ -272,7 +276,7 @@ func _next_stop() -> void:
 	p.velocity = Vector3.ZERO
 	p.reset_physics_interpolation()
 	rig.global_position = p.global_position + Vector3(0, 1.2, 0)
-	phases = ["settle", "base"] if args.has("quick") else PHASES.duplicate()
+	phases = ["settle", "base"] if args.has("quick") else ["settle", "base", "probe"] if args.has("gate") else PHASES.duplicate()
 	results[stops[si]] = {"at": at, "enemies": _enemy_line(at)}
 	print("bench: %s at %s" % [stops[si], str(at)])
 	_begin(0)
@@ -701,6 +705,21 @@ func _place_of(n: Node) -> String:
 	return "?"
 
 
+## A fixed script workload (ms, the best of 5): how fast this machine runs GDScript right now (power plan,
+## heat), so perf_gate.ps1 can tell a slower machine from slower code.
+func _calib() -> float:
+	var best := INF
+	for r in range(5):
+		var t0 := Time.get_ticks_usec()
+		var acc := 0.0
+		var d := {}
+		for i in range(200000):
+			acc += sin(i * 0.001) * 1.0001
+			d[i & 1023] = acc
+		best = minf(best, (Time.get_ticks_usec() - t0) / 1000.0)
+	return best
+
+
 func _census() -> String:
 	var pos: Vector3 = p.global_position
 	var groups := {}
@@ -759,8 +778,8 @@ func _finish() -> void:
 	L.append("version %s  Godot %s  driver %s  %s  CPU %s (%d threads)" % [str(ProjectSettings.get_setting("application/config/version", "")),
 		Engine.get_version_info()["string"], RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_video_adapter_name(),
 		OS.get_processor_name(), OS.get_processor_count()])
-	L.append("window %s  3D scale %.3f  pixelate %s  hour %s  weather %s  vsync off  physics %d Hz" % [str(root.size), root.scaling_3d_scale,
-		args.get("pix", "1"), args.get("hour", "13"), args.get("wx", "clear"), Engine.physics_ticks_per_second])
+	L.append("window %s  3D scale %.3f  pixelate %s  hour %s  weather %s  vsync off  physics %d Hz  calib %.2f ms" % [str(root.size), root.scaling_3d_scale,
+		args.get("pix", "1"), args.get("hour", "13"), args.get("wx", "clear"), Engine.physics_ticks_per_second, calib_ms])
 	L.append("")
 	L.append(census_text)
 	L.append("== summary")
@@ -789,7 +808,8 @@ func _finish() -> void:
 	for s in stops:
 		L.append("  %-8s %s" % [s, results[s]["enemies"]])
 	if not args.has("quick"):
-		_report_ablations(L)
+		if not args.has("gate"):
+			_report_ablations(L)
 		_report_scripts(L)
 	var text := "\n".join(L) + "\n"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))

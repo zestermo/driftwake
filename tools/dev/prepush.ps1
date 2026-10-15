@@ -3,13 +3,23 @@
 # (heavy.txt) and the co-op modes included, then push if nothing's left.
 # -CI: GitHub runs every suite and co-op mode instead (ci.ps1 on HEAD's commit); green pushes that same commit
 # and deletes its ci/ branch (a red one keeps it, for `gh run rerun --failed`).
+# -Release (before tagging a version): after the tests, the performance gate (perf_gate.ps1: the Brinehollow
+# bench against tools/dev/perf_baseline.txt, ~20 min) must pass too.
 #
 #   .\tools\dev\prepush.ps1            # run what's needed here, push main if it all passes
 #   .\tools\dev\prepush.ps1 -CI        # run it all on GitHub, push main if it all passes
+#   .\tools\dev\prepush.ps1 -Release   # either way, plus the performance gate
 #   .\tools\dev\prepush.ps1 -NoPush    # just run it (either way)
-param([switch]$NoPush, [switch]$CI)
+param([switch]$NoPush, [switch]$CI, [switch]$Release)
 $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+
+function Test-Perf {
+	if (-not $Release) { return $true }
+	& (Join-Path $PSScriptRoot "perf_gate.ps1") | Out-Host
+	return $LASTEXITCODE -eq 0
+}
+
 if ($CI) {
 	. (Join-Path $PSScriptRoot "ci_lib.ps1")
 	$sha = (git -C $root rev-parse HEAD).Trim()
@@ -17,6 +27,7 @@ if ($CI) {
 	$ref = Get-CiRef $root
 	& (Join-Path $PSScriptRoot "ci.ps1")
 	if ($LASTEXITCODE) { Write-Host "Not pushed ($ref kept)." -ForegroundColor Red; exit 1 }
+	if (-not (Test-Perf)) { Write-Host "The performance gate failed: not pushed ($ref kept)." -ForegroundColor Red; exit 1 }
 	$pushed = 0
 	if (-not $NoPush) { git -C $root push origin "${sha}:refs/heads/$branch"; $pushed = $LASTEXITCODE }
 	git -C $root push origin --delete $ref
@@ -29,4 +40,5 @@ if ($left) {
 	exit 1
 }
 Write-Host "Every suite is up to date on this code." -ForegroundColor Green
+if (-not (Test-Perf)) { Write-Host "The performance gate failed: not pushed." -ForegroundColor Red; exit 1 }
 if (-not $NoPush) { git -C $root push origin HEAD }

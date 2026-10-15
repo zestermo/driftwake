@@ -24,6 +24,9 @@ You build one feature of Driftwake, Zach's Godot 4.7 GDScript PS1-style One Piec
 - **Co-op:** anything a second player sees or changes must work for a guest (the host simulates the world; effects
   through Net.fx; see driftwake-coop).
 - **Mouse and sound:** grab the mouse only through `Settings.capture_mouse()`. Tests and tools run muted.
+- **Performance** (CLAUDE.md, Performance rules): per-frame/tick code sleeps when far (ActorSleep or the island LOD) at
+  the lowest rate that looks right; new meshes get a visibility range, no shadow when small, MultiMesh when repeated;
+  areas monitor only if read. Game time only, never the wall clock. Bench before/after (`bench.ps1 label=...`).
 
 ## Testing (tier 1 only)
 - Driftwake overrides Zach's global "never write or run tests" rule (CLAUDE.md, Testing strategy): here you write

@@ -53,7 +53,7 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 ```
 
 - run_tests.ps1 compiles every script first (`tools/dev/compilecheck.gd`, ~6 s) and runs
-  nothing if one is broken.
+  nothing if one is broken or calls the wall clock in game code.
 - **Dependencies:** every passing run records each project file it loaded (`.git/crew/deps/<test>.txt`;
   `scripts/game/dep_record.gd`, started by Settings when the runner sets `DRIFTWAKE_DEPS_OUT`). A pass is
   cached under the hash of those files' contents (plus project.godot, the autoloads and the test's own script),
@@ -257,6 +257,27 @@ GameMenu, Net, Music, Weather, DevCapture.
 - Shader globals live in project.godot `[shader_globals]` (psx_snap_res, psx_affine,
   cloud_shadow, sky_haze). Add new ones there or shaders fail to compile.
 - New textures: copy import settings from existing ones (mipmaps on, compress_to 0).
+- **Game time, never the wall clock:** gameplay uses delta, physics ticks (`Engine.get_physics_frames()`,
+  `PlayerState.now_s()`), timers, and `Ocean.clock()` / `Weather.world_time()` for shared clocks; never
+  `Time.get_ticks_*`, unix or system time (waves, combo windows, reloads and the input buffer all broke on it).
+  compilecheck (the edit hook, run_tests, land) fails on one in scripts/ or scenes/ unless
+  `tools/dev/wallclock_allow.txt` lists it with its reason.
+
+## Performance rules
+
+- **The target:** the min-spec PC (Ryzen 5 5600G + RTX 3080) at 60 fps in Brinehollow = the laptop's
+  Brinehollow bench (`tools/dev/bench.ps1`) at <= ~10 ms mean frame (v1.14: 9.2 ms; v1.13 was 42).
+- **Every frame or physics tick:** anything that runs per frame or tick sleeps when far or out of sight
+  (`ActorSleep.add(self)` + `sleep_ok()`, or the island's LOD like FaunaSpawner's) and updates at the lowest
+  rate that looks right (a timer, not every frame).
+- **New meshes:** a visibility range; small ones cast no shadow; repeated props are one MultiMesh; materials
+  shared (cached `PSXMat`, tints folded into vertex colours; an object's own copy only for flashes).
+- **Areas:** `monitoring` only when something reads that area's overlaps (hitboxes do; hurtboxes don't).
+- **Report the cost:** a feature agent benches before and after, back to back (`bench.ps1 label=<x>_before`,
+  `label=<x>_after`, `bench_compare.ps1`), and reports the ms at the stops.
+- **Before tagging a version** Claude runs `tools/dev/prepush.ps1 -Release`: the tests, then
+  `perf_gate.ps1` against `tools/dev/perf_baseline.txt` (fails at a mean frame or frame1t >15% worse, a stop's
+  frame1t >25% worse, or >0.8 physics ticks a frame; `perf_gate.ps1 -Update` after an intended change).
 
 ## History and plans
 
