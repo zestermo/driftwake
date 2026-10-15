@@ -19,3 +19,4 @@ scripts/island/island_life.gd | build timing (build_ms)
 scripts/island/kit/kit_context.gd | build timing (build_ms) per kit piece
 scripts/island/kit/kit_dungeons.gd | build timing (build_ms)
 scripts/island/kit/kit_landmarks.gd | build timing (build_ms)
+scripts/island/kit/kit_cliff_path.gd:mesh | build timing (build_ms: the den path's rock, meshed on a worker)
