@@ -308,7 +308,10 @@ func _process(d: float) -> bool:
 			step = 12
 		12:
 			check("the wreck goes under for good", not is_instance_valid(es))
-			# --- the boss fight
+			# --- the boss fight (the gate guards are out of it: they'd join in and hit the captain mid-lane)
+			for g in fort.guards.grunts:
+				if is_instance_valid(g):
+					g.health.take_damage(9999.0)
 			p.global_position = fort.to_global(Vector3(0, 6.4, 2.0))
 			p.reset_physics_interpolation()
 			ship.place(Vector3(150, 0.5, 40), 0.0)
@@ -379,13 +382,13 @@ func _process(d: float) -> bool:
 			wait = 1.3
 			step = 44
 		44:
-			check("...step out of the lane once it shows: he dashes past", p.health_component.current_health >= hp0 - 0.01)
+			check("...step out of the lane once it shows: he dashes past",p.health_component.current_health >= hp0 - 0.01)
 			check("...and is left open after it", boss.state in [7, 9] or (boss.state == 6 and boss._rush_stop >= 0.0))
 			boss.health.current_health = boss.health.max_health * 0.25
 			wait = 2.4
 			step = 17
 		17:
-			check("below 30%: Red Tide", boss.phase == 3 and boss._red)
+			check("below 30%: Red Tide",boss.phase == 3 and boss._red)
 			# leave: he resets
 			p.global_position = fort.to_global(Vector3(0, 2.0, 60.0))
 			p.reset_physics_interpolation()

@@ -402,18 +402,18 @@ func _process(d: float) -> bool:
 			wait = 1.5
 			step = 220
 		220:
-			# her height afloat, dry, then half full of water
+			# her height afloat, dry, then half full of water (15 s each: more than two swell periods)
 			ys.append(ship._y)
-			if ys.size() < 90:
+			if ys.size() < 900:
 				return false
-			set_meta("dry", ys.reduce(func(a, b): return a + b) / ys.size())
+			set_meta("dry",ys.reduce(func(a, b): return a + b) / ys.size())
 			ys.clear()
 			ship.flood = 0.6
 			wait = 2.0
 			step = 221
 		221:
 			ys.append(ship._y)
-			if ys.size() < 90:
+			if ys.size() < 900:
 				return false
 			var wet: float = ys.reduce(func(a, b): return a + b) / ys.size()
 			print("   half full of water she sits %.2f m lower" % (float(get_meta("dry")) - wet))

@@ -6,7 +6,6 @@ swimtest | head still above water while swimming
 vinetest | aiming at the big bug
 grunttest | survivors return to their posts
 seatest | passing near a reef charts it
-seatest | water in her: she sits lower
 techtest | deadeye lands
 chartest | saved
 net | host accepted us

@@ -1857,3 +1857,10 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   where it stopped, hurtbox out/in, net_idle, hide/show, a boarder never sleeps, enabled off); nettest checks a
   guest's puppets sleep with the host's (Brinehollow's) and stand where the host's are. lifetest picks a walker near
   the village. seatest's "water in her: she sits lower" fails on main too (0.16 m), not this.
+- Test fixes (both were test measurement/isolation, the game was right): seatest's "water in her: she sits lower"
+  averaged her height over 1.5 s dry and 1.5 s flooded, shorter than a swell period (the solo swell has been on
+  game time since d66622a, so the phase was the same unlucky one every run: 0.16 m against the true 0.34 m of
+  0.6 x flood); it now averages 15 s each and is off flaky.txt. r8test's Morrow checks ("he dashes past", "Red
+  Tide", "everyone left") failed under load because the fort's three gate guards (`fort.guards`) were still alive
+  and walked into the fight, hitting the captain mid-lane and keeping Morrow "in combat"; the test now clears them
+  before the boss fight. (Reproduced by running r8test with five other suites at once.)
