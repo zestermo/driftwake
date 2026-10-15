@@ -10,6 +10,8 @@ extends CharacterBody3D
 ## make it flinch (hitstun); heavy hits and parried rams throw it (physics
 ## ragdoll) - on its back it kicks its legs until it rolls itself over.
 ## "Big ones" are larger and tougher, and their ram knocks you off your feet.
+## A cave brute (a big one grown huge in the dark, slate-shelled) takes a good few
+## hits, shrugs off light knockdowns and rears up longer before its heavy ram.
 
 signal died(bug: Scuttlebug)
 
@@ -24,6 +26,7 @@ const RAM_RANGE := 5.8
 const LEASH := 16.0
 
 var big: bool = false
+var brute: bool = false
 ## A respawned bug is worth half the experience.
 var xp_k: float = 1.0
 ## The island's level: health, damage, XP and coins by Levels. 0: unscaled (Brinehollow).
@@ -104,11 +107,12 @@ func sleep_ok() -> bool:
 
 
 ## Call before adding to the tree.
-func setup(is_big: bool, home_pos: Vector3) -> Scuttlebug:
-	big = is_big
+func setup(is_big: bool, home_pos: Vector3, is_brute := false) -> Scuttlebug:
+	brute = is_brute
+	big = is_big or brute
 	home = home_pos
-	size_k = 1.45 if big else 1.0
-	max_hp = 75.0 if big else 30.0
+	size_k = 1.9 if brute else (1.45 if big else 1.0)
+	max_hp = 110.0 if brute else (75.0 if big else 30.0)
 	return self
 
 
@@ -149,6 +153,8 @@ func _mat(c: Color, glow: bool = false) -> ShaderMaterial:
 
 ## Shell, spots, thorax plate, legs, eyes.
 func _colors() -> Array:
+	if brute:
+		return [Color(0.34, 0.32, 0.3), Color(0.58, 0.68, 0.42), Color(0.22, 0.2, 0.19), Color(0.12, 0.1, 0.09), Color(1.0, 0.72, 0.18)]
 	if big:
 		return [Color(0.55, 0.19, 0.1), Color(0.1, 0.07, 0.05), Color(0.36, 0.12, 0.07), Color(0.15, 0.1, 0.08), Color(1.0, 0.25, 0.12)]
 	return [Color(0.16, 0.44, 0.41), Color(0.96, 0.78, 0.3), Color(0.11, 0.31, 0.29), Color(0.15, 0.1, 0.08), Color(1.0, 0.62, 0.16)]
@@ -208,7 +214,7 @@ func _build_model() -> void:
 	var hb := MeshBuilder.new()
 	hb.add_blob(m_head, Transform3D(Basis.IDENTITY, Vector3(0, 0, -0.04)), Vector3(0.12, 0.09, 0.1), rng, 0.03, 3, 6)
 	# horn: a stout cone forward, tip curling up (bigger on the big ones)
-	var hk := 1.35 if big else 1.0
+	var hk := 1.75 if brute else (1.35 if big else 1.0)
 	hb.add_cone(m_horn, Transform3D(Basis(Vector3.RIGHT, -1.25), Vector3(0, 0.04, -0.1)), 0.05 * hk, 0.16 * hk, 5)
 	hb.add_cone(m_horn, Transform3D(Basis(Vector3.RIGHT, -0.35), Vector3(0, 0.04 + 0.05 * hk, -0.1 - 0.13 * hk)), 0.028 * hk, 0.1 * hk, 5)
 	for sx in [-1.0, 1.0]:
@@ -294,11 +300,11 @@ func _build_physics() -> void:
 	model.add_child(hitbox)
 	hitbox.owner = self
 	var hd := HitData.new()
-	hd.damage = _dmg(18.0 if big else 10.0)
-	hd.knockback_force = 5.0 if big else 4.5
+	hd.damage = _dmg(24.0 if brute else (18.0 if big else 10.0))
+	hd.knockback_force = 7.0 if brute else (5.0 if big else 4.5)
 	hd.stagger_duration = 0.35
 	hd.hitstop_duration = 0.07 if big else 0.05
-	hd.camera_shake_intensity = 0.28 if big else 0.14
+	hd.camera_shake_intensity = 0.38 if brute else (0.28 if big else 0.14)
 	hd.knockdown = big
 	hitbox.hit_data = hd
 
@@ -392,14 +398,14 @@ func _physics_process(delta: float) -> void:
 			else:
 				_face(to_p)
 				if dist > RAM_RANGE:
-					want = to_p.normalized() * (2.2 if big else 2.7)
+					want = to_p.normalized() * (1.9 if brute else (2.2 if big else 2.7))
 				elif dist < 2.2:
 					want = -to_p.normalized() * 1.4  # back off to get a run-up
 				elif _cooldown <= 0.0:
 					_set_state(S.REAR)
 					Net.fx("sfx", ["bug_hiss", global_position, -1.0, 0.08, 0.8 if big else 1.0])
 		S.REAR:
-			var dur := 0.95 if big else 0.75
+			var dur := 1.15 if brute else (0.95 if big else 0.75)
 			if st_t < dur * 0.7 and p:
 				_face(to_p)
 			turn = 10.0
@@ -487,7 +493,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _ram_speed() -> float:
-	return 9.0 if big else 10.5
+	return 8.2 if brute else (9.0 if big else 10.5)
 
 
 func _wander_tick(delta: float) -> void:
@@ -544,7 +550,8 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		# kick it while it's down: the shell skids
 		_rag.push(dir * minf(hit.knockback_force, 8.0) * 0.6 + Vector3.UP * 2.5)
 		return
-	if hit.knockdown:
+	# (a brute is only thrown by a really heavy blow; lighter knockdowns just make it flinch)
+	if hit.knockdown and not (brute and hit.damage < 30.0):
 		var v := dir * clampf(hit.knockback_force * 0.75, 4.0, 8.0) / sqrt(size_k) + Vector3.UP * 4.0
 		_knock_down(v, Vector3.UP.cross(dir) * 9.0)
 		return
@@ -764,8 +771,8 @@ func _on_died() -> void:
 	_dead_t = 0.0
 	Net.event(self, "die", [dir])
 	Net.fx("sfx", ["chitter", global_position, 0.0, 0.05, 0.6])
-	Net.coins(global_position + Vector3(0, 0.4, 0), roundi((_rng.randi_range(3, 5) if big else _rng.randi_range(1, 2)) * Levels.coins_k(level)))
-	Net.award_xp(roundi((120 if big else 25) * xp_k * Levels.xp_k(level)), global_position + Vector3(0, 1.2 * size_k, 0))
+	Net.coins(global_position + Vector3(0, 0.4, 0), roundi((_rng.randi_range(6, 9) if brute else (_rng.randi_range(3, 5) if big else _rng.randi_range(1, 2))) * Levels.coins_k(level)))
+	Net.award_xp(roundi((200 if brute else (120 if big else 25)) * xp_k * Levels.xp_k(level)), global_position + Vector3(0, 1.2 * size_k, 0))
 	died.emit(self)
 
 

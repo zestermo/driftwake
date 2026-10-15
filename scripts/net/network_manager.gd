@@ -1314,6 +1314,17 @@ func _all_number(amount: float, at: Vector3) -> void:
 	n.call("setup", amount, at)
 
 
+## A world flag (GameManager.world_flags) set on every machine.
+func world_flag(flag_name: String) -> void:
+	everyone("_all_world_flag", [flag_name])
+
+
+func _all_world_flag(flag_name: String) -> void:
+	var gm := get_node_or_null("/root/GameManager")
+	if gm:
+		gm.world_flags[flag_name] = true
+
+
 ## Burning thornbrush, burning for everyone.
 func burned(node_name: String) -> void:
 	if active and not _burning and world_ready:
@@ -1701,7 +1712,7 @@ func _world_state() -> Dictionary:
 		if b is LootBag and (b as LootBag).shared_id != "":
 			drops.append([(b as LootBag).shared_id, (b as LootBag).refs(), (b as Node3D).global_position])
 	var ship := _ship()
-	return {"ents": ents, "spawners": spawners, "burned": gm.burned.keys() if gm else [], "ship_owner": ship_owner,
+	return {"ents": ents, "spawners": spawners, "burned": gm.burned.keys() if gm else [], "flags": gm.world_flags.keys() if gm else [], "ship_owner": ship_owner,
 		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
 		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state(),
 		"kit": gm.ship_kit.duplicate() if gm else {}, "waypoints": waypoints.duplicate(),
@@ -1750,6 +1761,8 @@ func _apply_world_sync(state: Dictionary) -> void:
 		gm.chain_at = int(ch[1])
 		gm.chain_set = bool(ch[2])
 		gm.chain_since = float(ch[3])
+		for f in state.get("flags", []):
+			gm.world_flags[str(f)] = true
 		world_synced = true
 	var sp: Dictionary = state.get("spawners", {})
 	for k in sp.keys():

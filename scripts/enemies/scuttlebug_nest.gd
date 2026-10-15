@@ -12,8 +12,8 @@ var spots: Array = []  # {pos: Vector3 (local), big: bool, bug: Scuttlebug, time
 var level: int = 0
 
 
-func add_spot(local_pos: Vector3, big: bool = false) -> void:
-	spots.append({"pos": local_pos, "big": big, "bug": null, "timer": 0.0, "gen": 0})
+func add_spot(local_pos: Vector3, big: bool = false, brute := false) -> void:
+	spots.append({"pos": local_pos, "big": big, "brute": brute, "bug": null, "timer": 0.0, "gen": 0})
 
 
 ## A spitter's tree: its thread hangs from `anchor`, over `ground` (both local).
@@ -60,7 +60,7 @@ func _spawn(s: Dictionary) -> void:
 		start = to_global(s["anchor"] as Vector3)
 		bug = CanopySpitter.new().roost(start, gp)
 	else:
-		bug = Scuttlebug.new().setup(bool(s["big"]), gp)
+		bug = Scuttlebug.new().setup(bool(s["big"]), gp, bool(s.get("brute", false)))
 	bug.name = "B%d_%d" % [spots.find(s), int(s["gen"])]
 	# (an empty nest's first hatching is gen 1)
 	bug.xp_k = 0.5 if int(s["gen"]) > (1 if start_empty else 0) else 1.0

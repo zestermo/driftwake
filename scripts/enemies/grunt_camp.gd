@@ -50,6 +50,8 @@ func _spawn_all() -> void:
 		for q in c.get("patrol", []):
 			patrol.append(to_global(q))
 		c["patrol"] = patrol
+		if c.has("hold"):
+			c["hold"] = [to_global(c["hold"][0]), c["hold"][1]]
 		var g := PirateGrunt.new()
 		g.name = "G%d_%d" % [gen, i]
 		i += 1

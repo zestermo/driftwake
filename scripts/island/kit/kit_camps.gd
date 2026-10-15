@@ -195,7 +195,9 @@ static func pirate_camp(ctx: KitContext, c: Vector2, to_sea: Vector2, watch: Vec
 ## with nobody within `clearance`): two at the fire, a patrol, a guard at `guard`
 ## ([post, looking at]), a rifleman by the tower, another at the pier's end, the
 ## captain. opts: to_sea, hoist, top, guard, pier (length), deck_y, floor_y, hull
-## (paint for HullBuilder), chest ([key, items]), seeds (7, the captain's last), captain (look), title.
+## (paint for HullBuilder), chest ([key, items]), seeds (7, the captain's last), captain (look), title;
+## hold_r (the captain stays put until a captain is this near the fire), ladder_lock (a world flag:
+## the hoist's ladder pulled up until it's set, set once a captain has stood on the top).
 static func den(ctx: KitContext, c: Vector2, opts: Dictionary, crew_name := "Den", respawn := 180.0, clearance := 60.0) -> GruntCamp:
 	var pier_len := float(opts["pier"])
 	var deck_y := float(opts["deck_y"])
@@ -208,7 +210,14 @@ static func den(ctx: KitContext, c: Vector2, opts: Dictionary, crew_name := "Den
 	var pier_pt := func(d: float) -> Vector2: return root + f * d
 	ctx.reserve(c, 20.0)
 
-	hoist(ctx, hoist_at[0], root, float(opts["top"]), deck_y, "DenHoist")
+	hoist(ctx, hoist_at[0], root, float(opts["top"]), deck_y, "DenHoist", str(opts.get("ladder_lock", "")))
+	if opts.has("ladder_lock"):
+		var latch := WorldLatch.new()
+		latch.name = "DenTopLatch"
+		latch.flag = opts["ladder_lock"]
+		latch.radius = 21.0
+		latch.below = 2.5
+		ctx.put(latch, Vector3(c.x, float(opts["top"]), c.y))
 	var pier := Props.dock(pier_len, 3.2, deck_y, float(opts["floor_y"]))
 	ctx.put(pier, KitContext.v3(root), KitContext.face_yaw(f))
 	var lad := Ladder.new()
@@ -302,15 +311,19 @@ static func den(ctx: KitContext, c: Vector2, opts: Dictionary, crew_name := "Den
 	var pier_end: Vector2 = pier_pt.call(pier_len - 3.0)
 	crew.add_grunt({"post": v3.call(pier_end, deck_y), "yaw": look_yaw(pier_end, pier_end - f), "mode": "stand", "seed": seeds[5], "role": "rifle"})
 	var cap_post: Vector2 = cap_p + f * 5.0 - s * 1.0
-	crew.add_grunt({"post": v3.call(cap_post), "yaw": look_yaw(cap_post, cap_post + f), "mode": "stand", "seed": seeds[6],
-		"look": opts["captain"], "captain": true, "title": opts["title"]})
+	var cap_cfg := {"post": v3.call(cap_post), "yaw": look_yaw(cap_post, cap_post + f), "mode": "stand", "seed": seeds[6],
+		"look": opts["captain"], "captain": true, "title": opts["title"]}
+	if opts.has("hold_r"):
+		cap_cfg["hold"] = [Vector3(0.0, float(opts["top"]), 0.0), float(opts["hold_r"])]
+	crew.add_grunt(cap_cfg)
 	return crew
 
 
 ## A timber hoist out over a cliff: a plank deck from `root` on the clifftop out to
 ## `tip` over the drop (its top at `top_y`), rope rails, struts back into the rock, a
-## gallows arm with a block and hook, and a rope ladder from the tip down to `bottom_y`.
-static func hoist(ctx: KitContext, root: Vector2, tip: Vector2, top_y: float, bottom_y: float, node_name: String) -> Ladder:
+## gallows arm with a block and hook, and a rope ladder from the tip down to `bottom_y`
+## (pulled up until world flag `lock` is set, if one's given).
+static func hoist(ctx: KitContext, root: Vector2, tip: Vector2, top_y: float, bottom_y: float, node_name: String, lock := "") -> Ladder:
 	var dir := (tip - root).normalized()
 	var length := root.distance_to(tip)
 	var body := StaticBody3D.new()
@@ -348,71 +361,10 @@ static func hoist(ctx: KitContext, root: Vector2, tip: Vector2, top_y: float, bo
 	var lad := Ladder.new()
 	lad.length = top_y - bottom_y + 0.1
 	lad.deck_depth = 1.0
+	lad.lock_flag = lock
 	lad.position = Vector3(0.0, 0.0, length)
 	body.add_child(lad)
 	return lad
-
-
-## The climb up to a clifftop den (`plan`): rock slabs to jump between and a knife edge
-## (`climb`: {"k": "slab", "at", "y", "r"} / {"k": "edge", "line" (Vector3s), "w"}), a
-## hoist with a rope ladder from the last slab up to the top (`hoist` [root, tip], `top`,
-## `ladder_y`), and at its foot (`start`, `face` toward the climb) the crew's warning:
-## their colours, a skull on a pike, two torches (one lit after dark from the budget).
-static func den_climb(ctx: KitContext, plan: Dictionary, rng: RandomNumberGenerator) -> Node3D:
-	var node := Node3D.new()
-	node.name = "DenClimb"
-	ctx.put(node, Vector3.ZERO)
-	var a: Array = [[], [], [], [], []]
-	var rags := MeshBuilder.new()
-	var stake := PSXMat.lit("bark")
-	var rag := PSXMat.lit("cloth_red")
-	for e in plan["climb"]:
-		var shade := rng.randf_range(0.86, 1.02)
-		if e["k"] == "slab":
-			var p: Vector2 = e["at"]
-			var r: float = e["r"]
-			Coast.slab(a, rng, p, ctx.ground_min(p, r * 1.5) - 1.0, e["y"], r, shade)
-			ctx.reserve(p, r + 1.0)
-			# a stake with a rag on its outer lip: the crew's way up
-			var out: Vector2 = e["out"]
-			var sp := p + out * (r - 0.3) + out.orthogonal() * 0.4
-			var foot := Vector3(sp.x, float(e["y"]) - 0.05, sp.y)
-			rags.add_cylinder(stake, Transform3D(Basis.IDENTITY, foot), 0.05, 0.035, 1.15, 5, 1.0)
-			var rag_at := foot + Vector3(0, 0.62, 0) + KitContext.v3(out.orthogonal()) * 0.18
-			for turn in [0.0, PI]:
-				rags.add_card(rag, Transform3D(Basis(Vector3.UP, KitContext.face_yaw(out) + turn), rag_at), 0.36, 0.45, Rect2(0, 0, 0.5, 0.5))
-		else:
-			var line: Array = e["line"]
-			var low := INF
-			for q in line:
-				low = minf(low, ctx.ground_min(Vector2(q.x, q.z), 2.0))
-				ctx.reserve(Vector2(q.x, q.z), 2.0)
-			Coast.fin(a, rng, line, e["w"], low - 1.0, shade)
-	Coast.build(node, {Vector2i.ZERO: Coast.pack(a)})
-	node.add_child(rags.to_instance("Rags"))
-	var hp: Array = plan["hoist"]
-	hoist(ctx, hp[0], hp[1], plan["top"], plan["ladder_y"], "ClimbHoist")
-	var foot: Vector2 = plan["start"]
-	var face: Vector2 = plan["face"]
-	var side := Vector2(-face.y, face.x)
-	ctx.place(flag("ClimbFlag", {"h": 5.0, "r": [0.08, 0.06], "cloth": ctx.style["pirate_flag"], "at": [4.5, 0.6],
-		"size": Vector2(1.2, 0.75), "jolly": true}), foot - side * 2.2, KitContext.face_yaw(side))
-	var pike := MeshBuilder.new()
-	var bone := PSXMat.lit("", Color(0.86, 0.82, 0.7))
-	var dark := PSXMat.lit("", Color(0.08, 0.07, 0.06))
-	pike.add_cylinder(PSXMat.lit("bark"), Transform3D.IDENTITY, 0.06, 0.04, 2.3, 5, 1.0)
-	pike.add_box(bone, Transform3D(Basis.IDENTITY, Vector3(0, 2.38, 0)), Vector3(0.28, 0.26, 0.3), 1.0, Color.WHITE, false)
-	pike.add_box(bone, Transform3D(Basis.IDENTITY, Vector3(0, 2.2, 0.05)), Vector3(0.2, 0.1, 0.2), 1.0)
-	for x in [-0.07, 0.07]:
-		pike.add_box(dark, Transform3D(Basis.IDENTITY, Vector3(x, 2.4, 0.15)), Vector3(0.08, 0.08, 0.02), 1.0)
-	ctx.place(pike.to_instance("SkullPike"), foot + side * 2.2, KitContext.face_yaw(-face))
-	for k in [-1.0, 1.0]:
-		var t := KitHouses.torch(2.3)
-		ctx.place(t, foot + side * k * 1.2 - face * 0.4, 0.0, 0.0, 0.0, false)
-		if k > 0.0:
-			KitLights.light(ctx, t, Vector3(0, 2.6, 0), 1.2, 9.0)
-	ctx.reserve(foot, 3.5)
-	return node
 
 
 # --------------------------------------------------------------------------

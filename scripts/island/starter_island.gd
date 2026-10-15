@@ -49,9 +49,33 @@ const DEN_TOP := 17.0
 const DEN_IN := 24.0
 const DEN_OUT := 30.0
 const DEN_SEA := Vector2(0.301, -0.954)
-## The climb up the plateau's landward face, on a circle CLIMB_R round DEN from
-## CLIMB_FROM degrees: slabs [radius, top, gap to the next], the knife edge
-## ["edge", length, its far end's top]; a rope ladder from the last slab (LADDER_Y).
+## Grell's cliff path (KitCliffPath): from the beach south of the den clockwise round
+## its sea cliffs (bearings from DEN, degrees from +x toward +z): keys [bearing, radius,
+## floor y, half width, headroom, overhang]; gaps over the sand, then the sea, and the
+## broken bridge's swing; the cave in its buttress; the cleft up onto the top.
+const DEN_PATH := {
+	"keys": [[106.0, 31.0, 2.0, 1.15, 4.0, 0.0], [111.5, 31.5, 3.05, 1.12, 3.6, 0.6], [117.0, 32.0, 4.1, 1.1, 4.2, 0.0],
+		[120.8, 32.8, 4.9, 1.1, 4.2, 0.0], [126.0, 34.2, 5.2, 1.05, 3.2, 0.9], [131.0, 35.5, 5.5, 1.05, 4.2, 0.0],
+		[135.4, 36.4, 6.1, 1.0, 4.2, 0.0], [142.0, 38.0, 6.5, 1.0, 3.1, 1.2], [149.0, 39.0, 7.0, 1.0, 4.2, 0.0],
+		[155.5, 38.8, 7.0, 1.0, 4.2, 0.0], [163.0, 37.5, 7.5, 1.1, 3.6, 0.5], [187.0, 36.0, 7.5, 1.1, 3.6, 0.0],
+		[192.0, 35.8, 8.0, 1.0, 4.2, 0.0], [197.6, 36.0, 8.5, 1.0, 4.2, 0.0], [200.3, 36.1, 8.75, 1.05, 3.4, 0.8],
+		[203.0, 36.3, 9.0, 1.1, 4.5, 0.0], [218.0, 36.5, 9.0, 1.1, 4.5, 0.0], [220.5, 36.4, 9.3, 1.0, 3.4, 0.9],
+		[223.0, 36.2, 9.6, 1.0, 4.2, 0.0], [229.0, 35.6, 10.2, 1.05, 4.2, 0.0], [232.5, 35.3, 10.65, 1.1, 3.6, 0.6],
+		[236.0, 35.0, 11.1, 1.1, 4.0, 0.0]],
+	"gaps": [[117.0, 120.8, "jump"], [131.0, 135.4, "jump"], [149.0, 155.5, "jump"], [192.0, 197.6, "jump"],
+		[203.0, 218.0, "swing"], [223.0, 229.0, "jump"]],
+	"sea": 124.0,
+	"rails": [[107.0, 115.5], [137.0, 147.5], [157.0, 162.0]],
+	"cave": {"at": 175.0, "out": 3.5, "r": 6.0, "h": 6.0, "tunnels": [[158.0, 170.0], [180.0, 190.0]]},
+	"bridge": {"at": 0.55, "len": 2.6},
+	"cleft": {"from": 232.5, "to": Vector2(-171.66, -170.66), "y": 17.0},
+}
+## Where the path's warning stands on the beach: [bearing, radius from DEN].
+const PATH_FOOT := [100.0, 34.0]
+## Grell waits by his shack until a captain is this near his fire.
+const GRELL_HOLD := 6.5
+## The climb that was (2026-10-13, slabs up the landward face): gone, but its footprint's
+## reserves stay so the plants grow as they did everywhere else.
 const CLIMB_R := 33.0
 const CLIMB_FROM := 46.0
 const LADDER_Y := 7.6
@@ -130,9 +154,16 @@ var forest_crowns: Array = []
 ## The cliffs' rock wall (Coast.cliffs) and the clifftop splat.
 var coast_cols: Array = []
 var _coast_rock := PackedFloat32Array()
-## The den's hoists and its climb (_plan_den): sea_hoist and hoist [root, tip], climb
-## (the pieces from the foot up), start and face (the warning at its foot), top, ladder_y, guard.
+## The den's sea hoist and its path (_plan_den): sea_hoist [root, tip], start and face (the
+## warning at the path's foot), top (where the cleft comes up onto the plateau), route (floor
+## points), jumps (KitCliffPath.jumps), guard.
 var den_plan := {}
+var den_path: KitCliffPath
+## The ground before the path was cut in (the plants grow from it as they always have).
+var _land_heights := PackedFloat32Array()
+var _path_task := -1
+var _path_mesh := {}
+var _veg_skip := false
 
 
 # ==========================================================================
@@ -153,6 +184,7 @@ func build(world_seed: int) -> Dictionary:
 	_define_paths()
 	_generate_heights()
 	_plan_den()
+	_plan_den_path()
 	build_ms["land"] = int((Time.get_ticks_usec() - t0) / 1000)
 	kit = KitContext.make(self, world_seed, "brinehollow", LIGHTS, build_ms)
 	kit.paved = harbour.on_platform
@@ -442,9 +474,9 @@ static func climb_start() -> Array:
 	return [p, (_climb_at(0.0) - p).normalized()]
 
 
-## The den's hoists (each from the rim out over its drop), the climb and the guard at
-## its top; rock along the ridge and round the plateau's landward rim, and none
-## where the hoist and the pier come down the sea cliff.
+## The den's sea hoist (from the rim out over its drop); rock along the ridge and round
+## the plateau's landward rim, and none where the hoist and the pier come down the sea
+## cliff (nor where the old climb's hoist stood: its gap in the rim is kept).
 func _plan_den() -> void:
 	var sea := _rim_out(DEN_SEA)
 	var d := DEN.distance_to(sea) + 1.0
@@ -455,9 +487,7 @@ func _plan_den() -> void:
 	var u := ((pieces[pieces.size() - 1]["at"] as Vector2) - DEN).normalized()
 	var root := _rim_out(u)
 	var tip := DEN + u * (CLIMB_R - 0.9)
-	var start := climb_start()
-	den_plan = {"sea_hoist": [sea, sea_tip], "hoist": [root, tip], "climb": pieces, "start": start[0], "face": start[1],
-		"top": DEN_TOP, "ladder_y": LADDER_Y, "guard": [root - u * 2.5, root + u * 4.0]}
+	den_plan = {"sea_hoist": [sea, sea_tip]}
 	coast_cols = coast_cols.filter(func(c: Array) -> bool:
 		return Geometry2D.get_closest_point_to_segment(c[0], sea, sea_tip + DEN_SEA * 4.0).distance_to(c[0]) > 6.5)
 	var rng := RandomNumberGenerator.new()
@@ -497,6 +527,42 @@ func _plan_den() -> void:
 				coast_cols.append([q, g + float(sp[1]), sp[2], 0.45, 20000 + n, 2])
 				reserve(q, 2.5)
 				n += 1
+
+
+## Grell's cliff path: planned on the land as it was, then cut into it (its rock is meshed
+## on a worker while the rest builds); no coast rock where it runs; its foot, its top and
+## the guard up there.
+func _plan_den_path() -> void:
+	den_path = KitCliffPath.plan(DEN, DEN_PATH, func(p: Vector2) -> float: return height_at(p.x, p.y), SEEDS["climb"])
+	_land_heights = heights
+	heights = den_path.carve(heights, RES, CELL, HALF)
+	_path_task = WorkerThreadPool.add_task(func(): _path_mesh = den_path.mesh())
+	coast_cols = coast_cols.filter(func(c: Array) -> bool: return not den_path.covers(c[0], 6.0))
+	var foot := DEN + Vector2.from_angle(deg_to_rad(PATH_FOOT[0])) * float(PATH_FOOT[1])
+	var top: Vector2 = DEN_PATH["cleft"]["to"]
+	var inward := (DEN - top).normalized()
+	den_plan.merge({"start": foot, "face": (den_path.point(den_path.th0) - foot).normalized(), "top": top,
+		"route": den_path.route(), "jumps": den_path.jumps(), "guard": [top + inward * 2.5, top - inward * 3.0]})
+
+
+## The trodden way along the beach from the den path's old end to the cliff path's foot.
+func _den_trail() -> PackedVector2Array:
+	var pts := PackedVector2Array([climb_start()[0]])
+	for e in [[55.0, 35.5], [72.0, 36.0], [88.0, 35.0], PATH_FOOT]:
+		pts.append(DEN + Vector2.from_angle(deg_to_rad(e[0])) * float(e[1]))
+	pts.append(den_path.point(den_path.th0))
+	return pts
+
+
+## The old climb's footprint, reserved as it was (KitCamps' den climb, until 2026-10-15).
+func _old_climb_reserves() -> void:
+	for e in climb_pieces():
+		if e["k"] == "slab":
+			reserve(e["at"], float(e["r"]) + 1.0)
+		else:
+			for q in e["line"]:
+				reserve(Vector2(q.x, q.z), 2.0)
+	reserve(climb_start()[0], 3.5)
 
 
 ## The last point out along `dir` from DEN still on the plateau's top.
@@ -548,7 +614,7 @@ func place_of(place: String) -> Vector3:
 
 
 ## Where the story's marker leads for `place` from `from` (world): for the den, the
-## foot of its climb, then the top of the climb once you're on it, then the den.
+## foot of its cliff path, then the top of the path once you're on it, then the den.
 func guide_to(place: String, from: Vector3) -> Vector3:
 	if place != "den":
 		return place_of(place)
@@ -558,10 +624,10 @@ func guide_to(place: String, from: Vector3) -> Vector3:
 		return place_of("den")
 	var start: Vector2 = den_plan["start"]
 	var on := at.distance_to(start) < 10.0
-	for e in den_plan["climb"]:
-		on = on or at.distance_to(e["at"]) < float(e["r"]) + 2.5
+	for q in den_plan["route"]:
+		on = on or (at.distance_to(Vector2(q.x, q.z)) < 4.0 and absf(l.y - q.y) < 3.0)
 	if on:
-		var top: Vector2 = den_plan["hoist"][0]
+		var top: Vector2 = den_plan["top"]
 		return to_global(Vector3(top.x, DEN_TOP + 1.5, top.y))
 	return to_global(Vector3(start.x, hv(start) + 2.5, start.y))
 
@@ -718,6 +784,7 @@ func _build_terrain() -> void:
 	norms.resize(n)
 	cols.resize(n)
 	var dock_root := dock_shore
+	var trail := _den_trail()
 	for iz in range(RES + 1):
 		for ix in range(RES + 1):
 			var i := iz * (RES + 1) + ix
@@ -734,6 +801,11 @@ func _build_terrain() -> void:
 			var rock := maxf(_coast_rock[i], _crag(p))
 			if h > -1.0:
 				dirt = maxf(_path_weight(p), _disk(p, VILLAGE, 12.0, 17.0))
+				if p.distance_to(DEN) < 50.0:
+					var td := INF
+					for j in range(trail.size() - 1):
+						td = minf(td, Geometry2D.get_closest_point_to_segment(p, trail[j], trail[j + 1]).distance_to(p))
+					dirt = maxf(dirt, 1.0 - _smooth(0.7, 1.9, td))
 				dirt = maxf(dirt, _disk(p, TRAINING, 10.0, 13.0))
 				dirt = maxf(dirt, _disk(p, RUINS, 8.0, 11.0))
 				dirt = maxf(dirt, _disk(p, HILL, 5.0, 8.0))
@@ -941,7 +1013,7 @@ func _build_smugglers_camp() -> void:
 	smugglers = KitCamps.pirate_camp(kit, SMUGGLERS, Vector2(1, 0.15).normalized(), CAMP, ["smugglers_strongbox", items], [11, 23, 37, 41, 53], "SmugglersCamp")
 
 
-## Captain Grell's den on its clifftop (comes back 3 minutes after it's beaten), and the climb up to it.
+## Captain Grell's den on its clifftop (comes back 3 minutes after it's beaten), and the path up to it.
 func _build_den() -> void:
 	var C := CharacterLook.CLOTH
 	var lk := PirateGrunt.crew_look(kit.rng(0, SEEDS["grell"]))
@@ -954,8 +1026,13 @@ func _build_den() -> void:
 		"chest": ["den_strongbox", [["treasure", 4], ["gold", 15], ["rum", 2],
 			[Gear.make("coat", "longcoat", {"coat": "longcoat", "coat_color": C[5], "trim_color": CharacterLook.TRIM[4]}, "Harbor Captain's Longcoat", 2), 1],
 			[ItemDB.tiered("pistol", 2), 1]]],
-		"seeds": [61, 67, 71, 79, 83, 89, 97], "captain": lk, "title": "Captain Grell"}, "PirateDen")
-	KitCamps.den_climb(kit, den_plan, kit.rng(0, SEEDS["climb"]))
+		"seeds": [61, 67, 71, 79, 83, 89, 97], "captain": lk, "title": "Captain Grell", "hold_r": GRELL_HOLD,
+		"ladder_lock": "den_ladder"}, "PirateDen")
+	_old_climb_reserves()
+	WorkerThreadPool.wait_for_task_completion(_path_task)
+	build_ms["den path rock"] = int(_path_mesh["ms"])
+	den_path.build(kit, _path_mesh, kit.rng(0, SEEDS["climb"]), den_plan["start"], den_plan["face"])
+	_path_mesh = {}
 
 
 # ==========================================================================
@@ -1061,6 +1138,10 @@ func _scatter_vegetation() -> void:
 	var rocks := [Props.rock_mesh(51, 1.0), Props.rock_mesh(52, 1.0, true), Props.rock_mesh(53, 1.0)]
 	var buckets := {}
 	var rng := _rng
+	# (the plants grow from the ground as it was before the den path was cut in, so every
+	# draw is what it always was; where the path changed the land they're left out)
+	var built := heights
+	heights = _land_heights
 
 	# --- trees and rocks on a 5 m jittered grid ---
 	var step := 5.0
@@ -1070,6 +1151,7 @@ func _scatter_vegetation() -> void:
 		while z < HALF - 3.0:
 			var p := Vector2(x + rng.randf_range(-2.0, 2.0), z + rng.randf_range(-2.0, 2.0))
 			z += step
+			_veg_skip = den_path.covers(p)
 			var h := hv(p)
 			if h < -1.6:
 				continue
@@ -1116,6 +1198,7 @@ func _scatter_vegetation() -> void:
 		while z < HALF - 3.0:
 			var p := Vector2(x + rng.randf_range(-1.1, 1.1), z + rng.randf_range(-1.1, 1.1))
 			z += step
+			_veg_skip = den_path.covers(p)
 			var h := hv(p)
 			if h < 1.4:
 				continue
@@ -1146,6 +1229,8 @@ func _scatter_vegetation() -> void:
 			elif roll < p_fern + p_bush + p_grass:
 				_bucket(buckets, grass, Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.4)), Vector3(p.x, h - 0.05, p.y)))
 		x += step
+	_veg_skip = false
+	heights = built
 
 	# --- commit MultiMeshes: one per mesh per VEG_CELL square, so only the
 	# squares in view (and in the sun's shadow range) are drawn; the small
@@ -1178,6 +1263,8 @@ func _jungle(p: Vector2) -> float:
 
 
 func _bucket(buckets: Dictionary, mesh: Mesh, xf: Transform3D) -> void:
+	if _veg_skip:
+		return
 	var key := [mesh, floori(xf.origin.x / VEG_CELL), floori(xf.origin.z / VEG_CELL)]
 	if not buckets.has(key):
 		buckets[key] = []
@@ -1194,6 +1281,9 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: Ra
 	_bucket(buckets, tree_mesh, xf)
 	# the crown is something a vine can latch onto
 	var crown := xf * GrapplePoints.crown_of(tree_mesh)
+	reserve(p, 1.2)
+	if _veg_skip:
+		return crown
 	GrapplePoints.add(self, crown)
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
@@ -1202,7 +1292,6 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: Ra
 	cs.shape = shape
 	cs.position = Vector3(p.x, h + col_h * 0.5, p.y)
 	_tree_colliders.add_child(cs)
-	reserve(p, 1.2)
 	return crown
 
 
@@ -1210,7 +1299,7 @@ func _add_rock(buckets: Dictionary, meshes: Array, p: Vector2, s: float, rng: Ra
 	var h := _ground_min(p, s * 0.8)
 	var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.8, 1.2), s))
 	_bucket(buckets, meshes[rng.randi() % meshes.size()], Transform3D(basis, Vector3(p.x, h - 0.1 * s, p.y)))
-	if s > 0.7:
+	if s > 0.7 and not _veg_skip:
 		var cs := CollisionShape3D.new()
 		var shape := SphereShape3D.new()
 		shape.radius = s * 0.85

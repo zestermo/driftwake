@@ -36,6 +36,7 @@ chaintest
 isletest
 apetest
 storytest
+denpathtest
 ambiencetest
 balancetest
 airtest

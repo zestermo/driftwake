@@ -168,6 +168,9 @@ const DASH_SPEED := 13.0
 const DASH_LEN := 0.3
 const DASH_IFRAMES := 0.22
 var elite_rank: bool = false
+## [centre (global), radius]: stays put, deaf to the crew's alarm and blind to captains, until
+## one is in that circle or it's hit (Grell: his camp's middle). Empty once it's let go (for good).
+var hold: Array = []
 var _dash_cd: float = 0.0
 var _dash_dir := Vector3.ZERO
 var _dodge_chance: float = 0.7
@@ -267,6 +270,7 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 	captain = bool(cfg.get("captain", false))
 	elite_rank = bool(cfg.get("elite", false))
 	title = str(cfg.get("title", ""))
+	hold = cfg.get("hold", [])
 	look = PirateGrunt.look_for(cfg)
 	_body = cfg.get("body")
 	return self
@@ -585,6 +589,8 @@ func _enter_idle() -> void:
 func alert(delay: float = 0.0) -> void:
 	if state != S.IDLE and state != S.RETURN:
 		return
+	if _holding():
+		return
 	if delay > 0.0:
 		get_tree().create_timer(delay).timeout.connect(func():
 			if is_instance_valid(self) and (state == S.IDLE or state == S.RETURN):
@@ -598,6 +604,19 @@ func alert(delay: float = 0.0) -> void:
 		humanoid.play("draw", 0.45)
 	if camp and is_instance_valid(camp):
 		camp.call("alert_all", global_position)
+
+
+## Still held back (no captain in the hold's circle yet)? Lets go for good once one is.
+func _holding() -> bool:
+	if hold.is_empty():
+		return false
+	var c: Vector3 = hold[0]
+	for p in Net.all_players():
+		var d: Vector3 = (p as Node3D).global_position - c
+		if Vector2(d.x, d.z).length() < float(hold[1]) and absf(d.y) < 4.0:
+			hold = []
+			return false
+	return true
 
 
 # ==========================================================================
@@ -663,6 +682,8 @@ func _physics_process(delta: float) -> void:
 	match state:
 		S.IDLE:
 			want = _idle_move(delta)
+			if not hold.is_empty() and not _holding():
+				alert()
 			# (a sneaking captain is noticed closer, and from behind only close enough for a backstab: Stealth)
 			if p and _player_ok(p) and dist < Stealth.range_for(p, global_position, _fwd(), NOTICE_RANGE * 1.4 if role == "rifle" else NOTICE_RANGE):
 				var ahead := _fwd().dot(dir_p) > Stealth.AHEAD_DOT
@@ -1575,6 +1596,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 		_last_hit = null   # (burned to death: nothing to cut off)
 		health.take_damage(hit.damage)
 		if state == S.IDLE or state == S.RETURN:
+			hold = []
 			alert()
 		return
 	# on the ground (ragdoll) or getting up: it takes the hit, nothing else.
@@ -1628,6 +1650,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 	var from_front := _fwd().dot(-dir) > 0.3
 	var guarding := role == "sword" and state in [S.CIRCLE, S.CHASE, S.ALERT, S.BLOCK, S.CLOSE]
 	if state == S.IDLE or state == S.RETURN:
+		hold = []
 		alert()
 		guarding = false
 	# the same heavy again: it saw that coming (HitData.predictable)
