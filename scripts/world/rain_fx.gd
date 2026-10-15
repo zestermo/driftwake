@@ -243,11 +243,11 @@ func _puddles(c: Vector3, delta: float) -> void:
 	var cx := floori(c.x / PUDDLE_CELL)
 	var cz := floori(c.z / PUDDLE_CELL)
 	# (laid out again when the camera moves a metre, cells are still to be judged, or the wet has grown a little)
-	var at := Vector3i(roundi(c.x), roundi(c.z), 0)
+	var cam_cell := Vector3i(roundi(c.x), roundi(c.z), 0)
 	_puddle_t -= delta
-	if at == _puddle_at and not _puddle_pending and _puddle_t > 0.0:
+	if cam_cell == _puddle_at and not _puddle_pending and _puddle_t > 0.0:
 		return
-	_puddle_at = at
+	_puddle_at = cam_cell
 	_puddle_t = PUDDLE_EVERY
 	_puddle_pending = false
 	var looked := 0
