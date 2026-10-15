@@ -84,6 +84,8 @@ var _damage_number_scene: PackedScene
 var net_puppet: bool = false
 var _net_serial: int = -1
 var _net_hb_t: float = 0.0
+## Asleep far from every captain (ActorSleep): the host sends no snapshots for it.
+var net_idle: bool = false
 
 
 ## Markers and the like: is it down for good?
@@ -94,6 +96,11 @@ func is_dead() -> bool:
 ## Fighting someone (the music picks up)?
 func in_combat() -> bool:
 	return state not in [S.WANDER, S.DEAD]
+
+
+## ActorSleep: pottering at its burrow (a spitter up its tree), not on its back.
+func sleep_ok() -> bool:
+	return not in_combat() and _rag == null
 
 
 ## Call before adding to the tree.
@@ -127,6 +134,7 @@ func _ready() -> void:
 	_wander_target = global_position
 	if Net.hosting:
 		net_rescale(Net.hp_scale())
+	ActorSleep.add(self)
 
 
 # ==========================================================================

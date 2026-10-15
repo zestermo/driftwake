@@ -136,6 +136,9 @@ func holder() -> int:
 
 func _process(delta: float) -> void:
 	cool = maxf(cool - delta, 0.0)
+	# (an enemy's gun at rest: nothing to move, no transform notifications down the barrel)
+	if interactable == null and not aiming_locally and _recoil <= 0.0 and is_equal_approx(yaw, _yaw_node.rotation.y) and is_equal_approx(pitch, _pitch_node.rotation.x):
+		return
 	if _recoil > 0.0:
 		_recoil = maxf(_recoil - delta * 1.6, 0.0)
 	_barrel.position.z = _recoil * 0.45

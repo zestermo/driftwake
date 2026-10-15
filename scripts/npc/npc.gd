@@ -110,6 +110,7 @@ func _short_name() -> String:
 
 
 func _ready() -> void:
+	ActorSleep.add(self)
 	await get_tree().process_frame
 	_player = get_tree().get_first_node_in_group("player") as Node3D
 	if Engine.has_singleton("Dialogue") or has_node("/root/Dialogue"):
@@ -149,6 +150,11 @@ func _on_line_shown(speaker: String, _text: String) -> void:
 		if speaker == npc_name:
 			var g: String = EmotePoses.TALK.pick_random()
 			humanoid.play(g, ActionSpecs.length(g))
+
+
+## ActorSleep: not mid-conversation (a villager on a routine snaps to its schedule when it wakes).
+func sleep_ok() -> bool:
+	return not _in_dialogue
 
 
 ## Called by the dialogue manager while text is typing for this speaker.

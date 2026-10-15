@@ -122,6 +122,8 @@ var cannons: Array = []
 var hurtbox: Hurtbox
 var boarders: Array = []
 var net_puppet: bool = false
+## Asleep far from every captain (ActorSleep): the host sends no snapshots for her.
+var net_idle: bool = false
 var look_seed: int = 1
 
 var _pos := Vector3.ZERO
@@ -271,10 +273,16 @@ func _ready() -> void:
 	_heading = global_rotation.y
 	if Net.hosting:
 		net_rescale(Net.hp_scale())
+	ActorSleep.add(self, ActorSleep.SHIP)
 
 
 func is_dead() -> bool:
 	return state == S.SINK
+
+
+## ActorSleep: on patrol with nobody aboard (her guns and crew sleep with her).
+func sleep_ok() -> bool:
+	return state == S.PATROL and not _anyone_aboard()
 
 
 func in_combat() -> bool:

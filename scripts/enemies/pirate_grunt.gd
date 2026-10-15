@@ -243,11 +243,18 @@ var net_puppet: bool = false
 var _net_serial: int = -1
 var _net_hb_t: float = 0.0
 var _net_glow: bool = false
+## Asleep far from every captain (ActorSleep): the host sends no snapshots for it.
+var net_idle: bool = false
 
 
 ## Markers and the like: is it down for good?
 func is_dead() -> bool:
 	return state == S.DEAD
+
+
+## ActorSleep: at its post or on the way back, on its feet (a boarder never sleeps: it slips away on its own).
+func sleep_ok() -> bool:
+	return not boarder and not in_combat() and humanoid.ragdoll == null
 
 
 func setup(cfg: Dictionary) -> PirateGrunt:
@@ -480,6 +487,7 @@ func _ready() -> void:
 	_enter_idle()
 	if Net.hosting:
 		net_rescale(Net.hp_scale())
+	ActorSleep.add(self)
 
 
 # ==========================================================================
