@@ -159,6 +159,19 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   (top tiers change how a skill works: a shadow-step dodge, Observation Haki dodging on its own), each new
   weapon its own tree; more minibosses (pirate warlord at a camp, bat swarm-mother, carnivorous plant titan
   in a swamp, which needs a swamp site).
+- **The Kraken** (Zach, 2026-10-15): a rare encounter at some shipwrecks. Sail in to investigate and a huge
+  kraken/squid rises and grabs the ship. Tentacles over the rails, on the deck and round the mast. Learn how it works
+  and you can beat it off the ship and escape, or fight it and try to kill it. Co-op crews share the fight.
+- **The knock-up stream and the sky islands** (Zach, 2026-10-15), Skypiea-inspired:
+  - **Finding it:** clues at sea for those who know what to look for (strange currents, birds flying away, the sea
+    bulging, a dark patch below). Sit on the spot long enough at the right moment and it erupts, launching the ship
+    and crew into the sky.
+  - **Going up:** a short loading cinematic, then the crew wakes on deck in the White-White Sea, a sea of clouds up
+    in the sky.
+  - **Up there:** up to two cloud islands to explore (their own theme: cloud ground, sky villages, sky creatures).
+  - **Coming down:** find the way back to the Blue Sea, a second cinematic, and the ship comes down past the island
+    you were heading to when you entered the stream.
+  - Works in co-op (the whole crew goes, seeded so everyone sees the same sky islands).
 - **Polearms** (Zach, 2026-10-14): one long-weapon kind with its own moveset and tree: spears, tridents, a
   naginata/bisento (the Whitebeard-style great poleaxe), halberds, a pitchfork, anything long. Reach, sweeps, thrusts,
   a vault and pole spins.
