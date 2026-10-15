@@ -21,7 +21,9 @@
       "PowerShell(py tools/texture_gen/*)",
       "Bash(ffmpeg *)",
       "Bash(ffprobe *)",
-      "PowerShell(Select-String *)"
+      "PowerShell(Select-String *)",
+      "Bash",
+      "PowerShell",
     ],
     "ask": [
       "Bash(git push --force*)",
