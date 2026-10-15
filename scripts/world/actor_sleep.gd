@@ -107,7 +107,8 @@ func _check(e: Dictionary) -> void:
 			_wake(e)
 		elif not bool(e["asleep"]) and age > STALE and d > float(r[1]):
 			_sleep(e)
-	elif bool(e["asleep"]) and d < float(r[1]):
+	# (one that may no longer sleep wakes too: alerted, made a boarder, a captain aboard her)
+	elif bool(e["asleep"]) and (d < float(r[1]) or not a.sleep_ok()):
 		_wake(e)
 	elif not bool(e["asleep"]) and d > float(r[0]) and a.sleep_ok():
 		_sleep(e)

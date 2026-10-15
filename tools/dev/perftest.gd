@@ -47,6 +47,8 @@ func _process(d: float) -> bool:
 			Input.action_release("sprint")
 			# --- a pirate in open sea with no beach in reach drowns
 			g = camp.grunts[0]
+			# (230 m from the captain: held awake, ActorSleep would freeze him)
+			g.set_meta("no_sleep", true)
 			g.global_position = Vector3(260.0, 0.5, -320.0)
 			g.velocity = Vector3.ZERO
 			g.reset_physics_interpolation()
@@ -102,7 +104,10 @@ func _process(d: float) -> bool:
 			check("a reset fight's second phase two calls no extra crew (%d -> %d)" % [n1, fort.crew.size()], n1 > 0 and fort.crew.size() == n1)
 			# --- rig LOD: a villager far off poses now and then; the player's every frame
 			set_meta("frames", [])
-			wait = 0.0
+			# (the captain's out at sea: the town's people held awake, past ActorSleep's range they'd not pose at all)
+			for n in root.find_children("*", "NPC", true, false):
+				n.set_meta("no_sleep", true)
+			wait = 1.0
 			step += 1
 		6:
 			var npcs := root.find_children("*", "NPC", true, false)
@@ -110,7 +115,8 @@ func _process(d: float) -> bool:
 			var far_h = null
 			for n in npcs:
 				var h = n.get("humanoid")
-				if h and h.lod and cam.global_position.distance_to(h.global_position) > 70.0:
+				# (awake: past ActorSleep's range one doesn't pose at all)
+				if h and h.lod and n.can_process() and h.is_visible_in_tree() and cam.global_position.distance_to(h.global_position) > 70.0:
 					far_h = h
 					break
 			var frames: Array = get_meta("frames")
