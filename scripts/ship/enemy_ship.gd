@@ -1104,12 +1104,22 @@ func _puppet(delta: float) -> void:
 		_bark.visible = true
 	elif txt == "":
 		_bark.visible = false
-	var ahead := clampf(Net.time() - float(last[0]), 0.0, 0.5)
-	var rate := float(s[11])
+	var age := Net.time() - float(last[0])
+	# (no word from the host for a while: she's asleep far from every captain (ActorSleep), lying still
+	# where the last word put her; this copy stops there before it dozes off too)
+	var still := age > 0.5
+	var ahead := 0.0 if still else clampf(age, 0.0, 0.5)
+	var rate := 0.0 if still else float(s[11])
 	var mid := float(s[1]) + rate * ahead * 0.5
 	var at: Vector3 = (s[0] as Vector3) + Vector3(-sin(mid), 0.0, -cos(mid)) * float(s[5]) * ahead
 	var head := float(s[1]) + rate * ahead
-	if not _copy_ready or Vector2(at.x - _pos.x, at.z - _pos.z).length() > 8.0:
+	if still and _far:
+		_copy_ready = true
+		_pos = Vector3(at.x, 0.0, at.z)
+		_heading = head
+		speed = 0.0
+		_yaw_rate = 0.0
+	elif not _copy_ready or Vector2(at.x - _pos.x, at.z - _pos.z).length() > 8.0:
 		_copy_ready = true
 		_pos = Vector3(at.x, 0.0, at.z)
 		_heading = head
@@ -1121,7 +1131,7 @@ func _puppet(delta: float) -> void:
 		var k := 1.0 - exp(-2.5 * delta)
 		_pos += Vector3(at.x - _pos.x, 0.0, at.z - _pos.z) * k
 		_heading = lerp_angle(_heading, head, k)
-		speed = lerpf(speed, float(s[5]), k)
+		speed = lerpf(speed, 0.0 if still else float(s[5]), k)
 		_yaw_rate = lerpf(_yaw_rate, rate, k)
 	_swell(delta)
 	_place_hull(Transform3D(Basis.from_euler(Vector3(_pitch, _heading, _roll)), Vector3(_pos.x, _y, _pos.z)))

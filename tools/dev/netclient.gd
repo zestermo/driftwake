@@ -153,13 +153,17 @@ func _process(d: float) -> bool:
 			var agree := 0
 			var near_awake := 0
 			var near := 0
+			# (Brinehollow's: a chain island here may have just been manned, its crews not looked at yet)
 			for k in r["enemies"].keys():
 				var e = net.node_of(k)
-				if e == null:
+				if e == null or not "Brinehollow" in k:
 					continue
 				if bool(r["enemies"][k][6]):
 					slept += 1
 					agree += 1 if sleep.asleep(e) else 0
+					if not sleep.asleep(e) and slept - agree <= 4:
+						print("   awake here, asleep on the host: %s (last snapshot %.1f s ago, %.0f m from us, dead %s)" % [k, net.snapshot_age(e),
+							e.global_position.distance_to(p.global_position), e.is_dead()])
 				elif e.global_position.distance_to(p.global_position) < 60.0:
 					near += 1
 					near_awake += 0 if sleep.asleep(e) else 1

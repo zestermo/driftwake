@@ -7,6 +7,8 @@ extends Node
 ## (sleep_ok(): not fighting, not on the ground, not boarding). Judged against every captain,
 ## a slice of the actors each frame. The host decides for synced enemies (asleep: net_idle, no
 ## snapshots); a guest's puppet sleeps while the host sends nothing for it and wakes with the next one.
+## When a captain joins, the host sends its sleepers for a moment (BURST) so the newcomer's copies
+## stand where the host's dozed off, not where they were built.
 
 ## [sleep past, wake within, hide past, show within] (m)
 const PEOPLE := [160.0, 120.0, 230.0, 210.0]
@@ -17,6 +19,7 @@ const SLICES := 15
 ## A guest's puppet: asleep once the host has sent nothing for this long, awake on a snapshot this fresh.
 const STALE := 0.6
 const FRESH := 0.3
+const BURST_MS := 3000
 
 ## Off (the bench's nosleep run): everyone wakes and stays awake.
 static var enabled := true
@@ -25,10 +28,12 @@ static var _all: Array = []
 
 var _i := 0
 var _caps: Array = []
+var _crew := 0
+var _burst_until := 0
 
 
 static func add(actor: Node3D, radii: Array = PEOPLE) -> void:
-	_all.append({"n": actor, "r": radii, "asleep": false, "hid": false})
+	_all.append({"n": actor, "r": radii, "asleep": false, "hid": false, "new": true})
 	if _mgr == null or not is_instance_valid(_mgr):
 		_mgr = ActorSleep.new()
 		_mgr.name = "ActorSleep"
@@ -48,6 +53,15 @@ func _process(_delta: float) -> void:
 			if is_instance_valid(e["n"]) and bool(e["asleep"]):
 				_wake(e)
 		return
+	# (Net.players grows once the newcomer's world is up and its captain is put in: the roster grows before it loads)
+	var crew: int = Net.players.size() if Net.hosting else 0
+	if crew > _crew:
+		_burst_until = Time.get_ticks_msec() + BURST_MS
+		_sleepers_idle(false)
+	_crew = crew
+	if _burst_until > 0 and Time.get_ticks_msec() >= _burst_until:
+		_burst_until = 0
+		_sleepers_idle(true)
 	_caps.clear()
 	for p in Net.all_players():
 		_caps.append((p as Node3D).global_position)
@@ -70,6 +84,10 @@ func _process(_delta: float) -> void:
 func _check(e: Dictionary) -> void:
 	var a := e["n"] as Node3D
 	if not a.is_inside_tree():
+		return
+	# (a round awake first: a guest's puppet takes the host's newest snapshot before it can doze off)
+	if bool(e["new"]):
+		e["new"] = false
 		return
 	# (a body sinks away and frees itself; a test that moves an actor about by hand holds it awake with the meta)
 	if (a.has_method("is_dead") and a.is_dead()) or a.has_meta("no_sleep"):
@@ -104,11 +122,17 @@ func _check(e: Dictionary) -> void:
 		e["hid"] = false
 
 
+func _sleepers_idle(idle: bool) -> void:
+	for e in _all:
+		if bool(e["asleep"]) and is_instance_valid(e["n"]):
+			(e["n"] as Node).set("net_idle", idle)
+
+
 func _sleep(e: Dictionary) -> void:
 	var a := e["n"] as Node3D
 	e["asleep"] = true
 	a.process_mode = Node.PROCESS_MODE_DISABLED
-	a.set("net_idle", true)
+	a.set("net_idle", _burst_until == 0)
 
 
 func _wake(e: Dictionary) -> void:
