@@ -159,6 +159,12 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   (top tiers change how a skill works: a shadow-step dodge, Observation Haki dodging on its own), each new
   weapon its own tree; more minibosses (pirate warlord at a camp, bat swarm-mother, carnivorous plant titan
   in a swamp, which needs a swamp site).
+- **Flipbook effects** (2026-10-15, instead of the Pixelpart plugin): add flipbook (animated sprite-sheet) particles
+  to the FX autoload, keeping the PS1 treatment (snap, dither, palette) and Net.fx co-op. Then generate sheets in code
+  (tools/texture_gen: smoke puffs, explosions, cannon blasts, splashes, sparks, dust, fire, magic bursts) and layer
+  them into the existing effects (anticipation, impact, aftermath) with brief impact lights where they pay off. Hero
+  effects (ultimates, the Kraken's ink, the knock-up stream) can later be designed in Pixelpart and exported as sprite
+  sheets that drop into the same system; no runtime plugin.
 - **The Kraken** (Zach, 2026-10-15): a rare encounter at some shipwrecks. Sail in to investigate and a huge
   kraken/squid rises and grabs the ship. Tentacles over the rails, on the deck and round the mast. Learn how it works
   and you can beat it off the ship and escape, or fight it and try to kill it. Co-op crews share the fight.
