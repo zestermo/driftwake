@@ -21,6 +21,7 @@ Usage (from the project root):
     py tools/texture_gen/gen_psx_music.py                      # all tracks
     py tools/texture_gen/gen_psx_music.py sea sea_night        # only some
     py tools/texture_gen/gen_psx_music.py samples              # style samples to listen to
+    py tools/texture_gen/gen_psx_music.py jam [lass haul ...]  # the instruments' stems (assets/audio/jam/)
 Output: assets/audio/music_*.ogg (or .wav if ffmpeg is not installed); samples go to
 tools/dev/out/music_samples/. The calm tracks are levelled to -18 LU (audio_report's measure).
 """
@@ -578,6 +579,75 @@ def inst_swellstr(m, n):
     return tone * np.interp(x, [0, 0.6 * n, n, len(tone) - 1], [0.12, 1.0, 0.5, 0.0]) * 0.9
 
 
+# --- the captains' instruments (the jam stems): tin whistle, hurdy-gurdy, the
+# gurdy's buzzing bridge, the bodhran tipped on the rim ---
+
+def inst_whistle(m, n):
+    """Tin whistle: a near-pure tone, a breathy chiff on each note, a slight scoop up."""
+    f = mtof(m)
+    rng = seeded("whistle", m, n)
+    e = envelope(n, 0.012, 0.08, 0.9, 0.05)
+    L = len(e)
+    ph = phase_of(f, L, 5.8, 0.004, 0.25, scoop=0.012, scoop_t=0.02)
+    tone = additive(ph, f, [1.0, 0.14, 0.06, 0.025])
+    t = np.arange(L) / SR
+    breath = bandnoise(rng, L, 1800, 6500) * (0.04 + 0.32 * np.exp(-t / 0.025))
+    return (tone + breath * 0.5) * e * 0.8
+
+
+def inst_gurdy(m, n):
+    """Hurdy-gurdy chanter: the wheel bows it, so it's level and bright with a nasal hump
+    and the wheel's slow wobble; a tangent knocks at each key."""
+    f = mtof(m)
+    rng = seeded("gurdy", m, n)
+    e = envelope(n, 0.018, 0.06, 0.95, 0.045)
+    L = len(e)
+    ph = phase_of(f, L, 3.1, 0.0025, 0.0)
+    amps = harmonics(f, lambda k: (0.4 + 0.9 * np.exp(-((k * f - 1500) / 600) ** 2)) / k ** 0.75)
+    tone = normpeak(additive(ph, f, amps))
+    t = np.arange(L) / SR
+    knock = bandnoise(rng, L, 800, 3000) * np.exp(-t / 0.008) * 0.35
+    rasp = bandnoise(rng, L, 2500, 6000) * 0.03
+    return (tone * 0.85 + rasp) * e + knock
+
+
+def inst_trompette(m, n):
+    """The gurdy's buzzing bridge: a rasp of the chien slapping its table on a crank stroke."""
+    f = mtof(m)
+    rng = seeded("trompette", m)
+    L = max(n, int(0.12 * SR))
+    t = np.arange(L) / SR
+    buzz = np.sign(np.sin(2 * np.pi * f * t + 0.3 * np.sin(2 * np.pi * f * 2 * t)))
+    buzz = apply_filter(buzz, butter(2, [300, 3800], "band", fs=SR, output="sos"), False)
+    grit = bandnoise(rng, L, 1500, 5000) * 0.4
+    env = np.minimum(1, t / 0.006) * np.exp(-t / 0.07)
+    return normpeak((buzz + grit) * env) * 0.8
+
+
+def inst_bodhran(m, n):
+    """Bodhran, the open skin (pitched by the hand behind it): a deep boom and a soft slap."""
+    rng = seeded("bodhran", m)
+    L = int(0.42 * SR)
+    t = np.arange(L) / SR
+    f0 = mtof(m)
+    f = f0 * (1 + 0.35 * np.exp(-t / 0.025))
+    out = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 9)
+    out += 0.3 * np.sin(2 * np.pi * np.cumsum(f * 1.59) / SR) * np.exp(-t * 16)
+    out += bandnoise(rng, L, 300, 2200) * np.exp(-t * 55) * 0.5
+    return normpeak(out * np.minimum(1, t / 0.0015))
+
+
+def inst_bodhran_rim(m, n):
+    """Bodhran tipped near the rim with the hand pressed in: a tight, higher knock."""
+    rng = seeded("bodhran_rim", m)
+    L = int(0.2 * SR)
+    t = np.arange(L) / SR
+    f0 = mtof(m)
+    out = np.sin(2 * np.pi * np.cumsum(f0 * (1 + 0.12 * np.exp(-t / 0.01))) / SR) * np.exp(-t * 26)
+    out += bandnoise(rng, L, 700, 4200) * np.exp(-t * 80) * 0.7
+    return normpeak(out * np.minimum(1, t / 0.001))
+
+
 INSTRUMENTS = {
     "flute": inst_flute, "fiddle": inst_fiddle, "accordion": inst_accordion,
     "concertina": inst_concertina, "pluck": inst_pluck, "guitar": inst_guitar,
@@ -590,6 +660,8 @@ INSTRUMENTS = {
     "swell": inst_swell,
     "ocarina": inst_ocarina, "steel": inst_steel, "bassoon": inst_bassoon, "tamb": inst_tamb,
     "clave": inst_clave, "celesta": inst_celesta, "swellstr": inst_swellstr,
+    "whistle": inst_whistle, "gurdy": inst_gurdy, "trompette": inst_trompette,
+    "bodhran": inst_bodhran, "bodhran_rim": inst_bodhran_rim,
 }
 
 _cache = {}
@@ -1909,6 +1981,204 @@ SAMPLE_OUT = os.path.join(ROOT, "tools", "dev", "out", "music_samples")
 
 
 # --------------------------------------------------------------------------
+# the jam (`jam`): four shanties the captains play on their own instruments.
+# One stem per instrument per tune, every stem of a tune the same tempo, bars
+# and length, so any mix of them is one band (scripts/items/jam.gd plays them
+# from one shared clock). Everyone plays the tune, as at a session: whistle,
+# fiddle (double stops on the long notes), concertina (the tune over a left
+# hand's bass and chords), hurdy-gurdy (the tune over its drones and buzzing
+# bridge); the bodhran keeps time, its open strokes tuned to the chord.
+# --------------------------------------------------------------------------
+JAM_OUT = os.path.join(OUT, "jam")
+JAM_INSTRUMENTS = ("concertina", "fiddle", "whistle", "bodhran", "gurdy")
+
+# The Brinehollow Lass: a jig, 6/8, G major, eighth ticks.
+LASS_A = ("G4/1 B4/1 D5/1 G5/2 D5/1 | E5/1 G5/1 E5/1 D5/1 B4/1 G4/1 | A4/2 B4/1 C5/2 E5/1 | D5/1 C5/1 B4/1 A4/3 | "
+          "G4/1 B4/1 D5/1 G5/2 A5/1 | B5/1 A5/1 G5/1 E5/2 G5/1 | D5/1 B4/1 G4/1 A4/1 C5/1 F#4/1 | G4/3 G4/2 D5/1")
+LASS_B = ("B5/2 A5/1 G5/1 A5/1 B5/1 | C6/2 B5/1 A5/1 G5/1 E5/1 | D5/1 E5/1 F#5/1 G5/1 A5/1 B5/1 | A5/3 F#5/2 D5/1 | "
+          "B5/2 A5/1 G5/1 F#5/1 E5/1 | F#5/1 G5/1 A5/1 D5/2 C5/1 | B4/1 D5/1 G5/1 F#5/1 E5/1 F#5/1 | G5/3 G5/2 D5/1")
+# Haul Away the Morrow: a hauling shanty, 4/4, D (a flat seventh in it), eighth ticks; verse and chorus.
+HAUL_V = ("D5/2 D5/1 E5/1 F#5/2 D5/2 | A5/3 G5/1 F#5/2 E5/2 | G5/2 G5/1 F#5/1 E5/2 C5/2 | D5/6 -/2 | "
+          "D5/2 D5/1 E5/1 F#5/2 A5/2 | B5/3 A5/1 G5/2 F#5/2 | E5/2 F#5/1 G5/1 E5/2 A4/2 | D5/6 -/2")
+HAUL_C = ("A5/4 F#5/2 D5/2 | G5/4 E5/2 C5/2 | A5/2 A5/1 B5/1 A5/2 F#5/2 | E5/6 -/2 | "
+          "A5/4 F#5/2 D5/2 | G5/4 B5/2 G5/2 | F#5/2 E5/1 D5/1 E5/2 A4/2 | D5/4 -/2 A4/2")
+# The Drowned Bell: a slow waltz, 3/4, E minor, eighth ticks.
+BELL_A = ("E5/4 B4/2 | E5/2 F#5/2 G5/2 | A5/4 G5/2 | F#5/4 D5/2 | "
+          "E5/3 F#5/1 G5/2 | B5/4 A5/2 | G5/2 F#5/2 D5/2 | E5/6")
+BELL_B = ("G5/4 A5/2 | B5/4 G5/2 | A5/3 G5/1 F#5/2 | D5/6 | "
+          "E5/2 G5/2 B5/2 | D6/4 B5/2 | A5/2 G5/2 F#5/2 | E5/6")
+# Rum and Rigging: a polka, 2/4, A major, eighth ticks.
+RUM_A = ("A4/1 C#5/1 E5/1 C#5/1 | D5/1 F#5/1 E5/2 | C#5/1 E5/1 A5/1 E5/1 | F#5/2 E5/2 | "
+         "A4/1 C#5/1 E5/1 C#5/1 | D5/1 F#5/1 A5/1 F#5/1 | E5/1 D5/1 C#5/1 B4/1 | A4/2 -/1 E4/1")
+RUM_B = ("A5/1 G#5/1 A5/1 E5/1 | F#5/1 E5/1 D5/1 B4/1 | E5/1 D#5/1 E5/1 B4/1 | C#5/1 B4/1 A4/1 E4/1 | "
+         "A5/1 G#5/1 A5/1 E5/1 | F#5/1 A5/1 D6/1 F#5/1 | E5/1 G#5/1 B5/1 G#5/1 | A5/2 A5/1 -/1")
+
+# Per tune: tick (s), ticks per bar and per beat, scale, parts {name: (melody, chords per bar)}, form,
+# the whistle's octave, the gurdy's drones, the concertina's left hand [(tick, dur, Bass root / Fifth / Chord)],
+# the bodhran's open strokes and rim, the trompette's strokes (a char per tick or per sub-tick).
+JAM_TUNES = {
+    "lass": dict(title="The Brinehollow Lass", tick=60 / 92 / 3, tpb=6, beat=3, scale=("G", "major"),
+                 parts={"A": (LASS_A, ["G", "C G", "Am", "D", "G", "Em", "G D", "G"]),
+                        "B": (LASS_B, ["G", "C", "D", "D", "Em", "D", "G D", "G"])},
+                 form="AABB", whistle=12, drone=["G2", "D3", "G3"],
+                 lh=[(0, 1, "B"), (2, 1, "C"), (3, 1, "F"), (5, 1, "C")],
+                 lo="X..x..", rim=".xo.xo", dog="..x..x"),
+    "haul": dict(title="Haul Away the Morrow", tick=0.3, tpb=8, beat=2, scale=("D", "mixolydian"),
+                 parts={"V": (HAUL_V, ["D", "D", "C", "D", "D", "G", "A", "D"]),
+                        "C": (HAUL_C, ["D", "C", "D", "A", "D", "G", "A7", "D"])},
+                 form="VC", whistle=0, drone=["D3", "A3"],
+                 lh=[(0, 2, "B"), (2, 2, "C"), (4, 2, "F"), (6, 2, "C")],
+                 lo="X.o.X.o.", rim="..x...x.", dog="..x...x."),
+    "bell": dict(title="The Drowned Bell", tick=0.25, tpb=6, beat=2, scale=("E", "minor"),
+                 parts={"A": (BELL_A, ["Em", "Em", "Am", "D", "C", "G", "D", "Em"]),
+                        "B": (BELL_B, ["C", "G", "D", "D", "Em", "G", "D", "Em"])},
+                 form="ABAB", whistle=0, drone=["E3", "B3"],
+                 lh=[(0, 2, "B"), (2, 2, "C"), (4, 2, "C")],
+                 lo="X.....", rim="..x.o.", dog="..x.x."),
+    "rum": dict(title="Rum and Rigging", tick=60 / 116 / 2, tpb=4, beat=2, scale=("A", "major"),
+                parts={"A": (RUM_A, ["A", "D", "A", "D E", "A", "D", "E", "A"]),
+                       "B": (RUM_B, ["A", "D", "E", "A", "A", "D", "E7", "A"])},
+                form="AABB", whistle=12, drone=["A2", "E3"],
+                lh=[(0, 1, "B"), (1, 1, "C"), (2, 1, "F"), (3, 1, "C")],
+                lo="X.x.", rim=".x.x", dog=".x.x"),
+}
+
+
+def _check_bars(name, text, tpb):
+    for i, seg in enumerate(text.split("|")):
+        ticks = sum(d for _, d in parse_line(seg))
+        if abs(ticks - tpb) > 1e-6:
+            raise ValueError(f"{name}: bar {i + 1} is {ticks} ticks, not {tpb}")
+
+
+def drone_layer(n, midis, seed=23):
+    """The gurdy's drone strings: a level, nasal tone at whole cycles over the loop (seamless),
+    the wheel's pressure swelling a little."""
+    rng = np.random.default_rng(seed)
+    t = np.arange(n) / SR
+    secs = n / SR
+    out = np.zeros(n)
+    for m in midis:
+        f = round(mtof(nn(m)) * secs) / secs
+        for k in range(1, min(30, int(NYQ_LIMIT // f)) + 1):
+            a = (0.4 + 0.9 * np.exp(-((k * f - 1500) / 600) ** 2)) / k ** 0.75
+            out += a * np.sin(2 * np.pi * k * f * t + rng.uniform(0, 2 * np.pi))
+    sw = round(0.35 * secs) / secs
+    return normpeak(out) * (1 + 0.08 * np.sin(2 * np.pi * sw * t))
+
+
+def jam_song(key):
+    spec = JAM_TUNES[key]
+    tpb = spec["tpb"]
+    melody, chords = [], []
+    for part in spec["form"]:
+        text, ch = spec["parts"][part]
+        _check_bars(f"{key} {part}", text, tpb)
+        melody.append(text)
+        chords += ch
+    bars = len(chords)
+    s = Song("jam_" + key, spec["tick"], tpb, bars, spec["title"], seed=zlib.crc32(key.encode()))
+    for b, g, v in (("whistle", 1.0, 0.14), ("fiddle", 1.0, 0.16), ("concertina", 1.0, 0.12), ("concertina:lh", 0.42, 0.1),
+                    ("gurdy", 1.0, 0.12), ("gurdy:drone", 0.24, 0.12), ("gurdy:dog", 0.26, 0.08),
+                    ("bodhran", 1.0, 0.08), ("bodhran:rim", 0.55, 0.08)):
+        s.bus(b, g, verb=v)
+    ch = split_chords(chords)
+    sc = scale(*spec["scale"])
+    rng = seeded("orn", key)
+    grace = 0.045 / spec["tick"]
+    bar = 0
+    for text in melody:
+        tick = bar * tpb
+        for midi, dur in parse_line(text):
+            if midi is not None:
+                b, frac = int(tick // tpb), (tick % tpb) / tpb
+                # whistle: a cut (the note above, a flick) on some of the long notes
+                w = midi + spec["whistle"]
+                if dur >= spec["beat"] and rng.random() < 0.45:
+                    s.note("whistle", "whistle", diatonic_shift(w, sc, 1), tick, grace, 0.55, 1.0)
+                    s.note("whistle", "whistle", w, tick + grace, dur - grace, 0.85, 0.9)
+                else:
+                    s.note("whistle", "whistle", w, tick, dur, 0.85, 0.9)
+                s.note("fiddle", "fiddle", midi, tick, dur, 0.85, 0.95)
+                if dur >= spec["beat"]:
+                    pcs = chord_pcs(chord_at(ch, b, frac))[1]
+                    under = [x for x in range(midi - 9, midi - 2) if x % 12 in pcs]
+                    if under:
+                        s.note("fiddle", "fiddle", max(under), tick, dur, 0.38, 0.95)
+                s.note("concertina", "concertina", midi, tick, dur, 0.8, 0.9)
+                s.note("gurdy", "gurdy", midi, tick, dur, 0.8, 0.97)
+            tick += dur
+        bar += len(text.split("|"))
+    lo, low = nn("G2"), nn("G3")
+    for b in range(bars):
+        for tk, dur, kind in spec["lh"]:
+            sym = chord_at(ch, b, tk / tpb)
+            root, pcs = chord_pcs(sym)
+            r = lo + ((root - lo) % 12)
+            if kind == "C":
+                for m in voice(pcs, low):
+                    s.note("concertina:lh", "concertina", m, b * tpb + tk, dur, 0.45, 0.7)
+            else:
+                s.note("concertina:lh", "concertina", r + (7 if kind == "F" else 0), b * tpb + tk, dur, 0.7, 0.8)
+    # the bodhran: open strokes tuned to the chord's root (A1-G#2), rim taps, a triplet into each part's last downbeat
+    drum_lo = nn("A1")
+    levels = {"X": 1.0, "x": 0.72, "o": 0.42}
+    for b in range(bars):
+        for pat, bus, inst in ((spec["lo"], "bodhran", "bodhran"), (spec["rim"], "bodhran:rim", "bodhran_rim")):
+            step = tpb / len(pat)
+            for i, c in enumerate(pat):
+                if c not in levels:
+                    continue
+                tk = i * step
+                if inst == "bodhran":
+                    m = drum_lo + ((chord_pcs(chord_at(ch, b, tk / tpb))[0] - drum_lo) % 12)
+                else:
+                    m = nn("D3")
+                s.note(bus, inst, m, b * tpb + tk, step, levels[c], 1.0, human=0.12)
+        if b % 8 == 7:
+            beat = spec["beat"]
+            for i in range(3):
+                s.note("bodhran:rim", "bodhran_rim", nn("D3"), (b + 1) * tpb - beat + i * beat / 3, beat / 3, 0.5 + 0.15 * i, 1.0)
+        step = tpb / len(spec["dog"])
+        for i, c in enumerate(spec["dog"]):
+            if c in levels:
+                s.note("gurdy:dog", "trompette", nn(spec["drone"][0]) + 12, b * tpb + i * step, step, levels[c], 1.0, human=0.1)
+    return s, spec
+
+
+class _Stem:
+    """One instrument's buses of a jam Song, for mixdown on their own."""
+
+    def __init__(self, song, names):
+        self.loop = True
+        self.buses = {k: song.buses[k] for k in names}
+
+
+def build_jam(key):
+    song, spec = jam_song(key)
+    buses = song.render()
+    buses["gurdy:drone"] = buses["gurdy:drone"] + drone_layer(song.length, spec["drone"])
+    os.makedirs(JAM_OUT, exist_ok=True)
+    bar_sec = song.tpb * song.tick_sec
+    print(f"  {key}: {spec['title']} - {song.bars} bars x {bar_sec:.4f}s = {song.length / SR:.3f}s ({song.length} samples)")
+    total = 0
+    for inst in JAM_INSTRUMENTS:
+        names = [b for b in song.buses if b.split(":")[0] == inst]
+        stem = _Stem(song, names)
+        mix = mixdown(stem, {k: buses[k] for k in names}, verb_t60=1.1, target_lu=-22.0 if inst == "bodhran" else -20.0)
+        assert len(mix) == song.length
+        wav = os.path.join(JAM_OUT, f"{key}_{inst}.wav")
+        write_wav(wav, mix)
+        pcm = np.clip(mix, -1, 1)
+        out = to_ogg(wav) or wav
+        size = os.path.getsize(out)
+        total += size
+        print(f"    {inst:<10} peak {np.max(np.abs(pcm)):.3f} {audio_report.loudness(pcm, SR, True):.1f} LU"
+              f" seam {abs(pcm[-1] - pcm[0]):.4f}  {size / 1024:.0f} KB")
+    return total
+
+
+# --------------------------------------------------------------------------
 # output
 # --------------------------------------------------------------------------
 
@@ -1981,6 +2251,15 @@ def main(argv=None):
             _cache.clear()
             build(k, SAMPLES, SAMPLE_OUT)
         print("done.")
+        return
+    if wanted[0] == "jam":
+        # the instrument stems: `jam` (all four tunes) or `jam lass bell`
+        print("Generating jam stems ->", os.path.relpath(JAM_OUT, ROOT))
+        total = 0
+        for k in wanted[1:] or list(JAM_TUNES):
+            _cache.clear()
+            total += build_jam(k)
+        print(f"done: {total / 1048576:.2f} MB")
         return
     bad = [w for w in wanted if w not in TRACKS]
     if bad:
