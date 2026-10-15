@@ -138,7 +138,10 @@ func _process(d: float) -> bool:
 			step = 8
 		8:
 			var cc = root.find_children("*", "CharacterCreator", true, false)
-			var pc: PixelCanvas = cc[0].get_child(1) if not cc.is_empty() else null
+			var pc: PixelCanvas = null
+			for c in (cc[0].get_children() if not cc.is_empty() else []):
+				if c is PixelCanvas:
+					pc = c
 			check("the creator is on a crisp canvas and fits it", pc != null and crisp(pc) and (pc.ui.get_child(0) as Control).get_combined_minimum_size().x <= 640.0 and (pc.ui.get_child(0) as Control).get_combined_minimum_size().y <= 360.0)
 			if not cc.is_empty():
 				cc[0]._finish(false)
