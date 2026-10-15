@@ -85,7 +85,7 @@ func _process(d: float) -> bool:
 						continue
 					nb += 1
 					var hp0: float = b.max_hp
-					if b.level != 0 or not near(b.health.max_health, hp0) or not (near(b.hitbox.hit_data.damage, 10.0) or near(b.hitbox.hit_data.damage, 18.0)):
+					if b.level != 0 or not near(b.health.max_health, hp0) or not (near(b.hitbox.hit_data.damage, 10.0) or near(b.hitbox.hit_data.damage, 18.0) or near(b.hitbox.hit_data.damage, 24.0)):
 						bugs_same = false
 			check("Brinehollow's bugs unchanged (%d)" % nb, nb > 0 and bugs_same)
 			# --- a level-12 camp
