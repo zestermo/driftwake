@@ -484,7 +484,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 			Net.fx("sparkle", [global_position + Vector3(0, 1.4, 0), 10, Color(1.0, 0.8, 0.4)])
 			_toast("Guard broken!")
 			state_machine.force_state("Stagger", {"stagger_duration": 0.6, "knockback_dir": dir, "knockback_force": 4.0, "flinch": false})
-			if not Duel.beaten(self, attacker, hit.damage * 0.5 * (1.0 - damage_reduction())):
+			if not Duel.beaten(self, hit.damage * 0.5 * (1.0 - damage_reduction())):
 				health_component.take_damage(hit.damage * 0.5 * (1.0 - damage_reduction()))
 			return
 	# Observation Haki: Foresight dodges by itself
@@ -524,7 +524,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		(attacker.get("hurtbox") as Hurtbox).take_hit(th, self)
 		Net.fx("sparkle", [(attacker as Node3D).global_position + Vector3(0, 1.0, 0), 4, Color(0.5, 0.9, 0.3)])
 	_last_hit_velocity = dir * maxf(hit.knockback_force, 3.0) + Vector3.UP * (3.5 if hit.knockdown else 2.0)
-	if not Duel.beaten(self, attacker, dmg):
+	if not Duel.beaten(self, dmg):
 		health_component.take_damage(dmg)
 	if _using_item and _using_item.devil_fruit == "" and not hit.dot:
 		_spill_use()
@@ -1229,7 +1229,8 @@ func _fall_damage(speed: float) -> void:
 		dmg *= 0.25
 		speed = minf(speed, SAFE_FALL_SPEED + 4.0)
 	_since_hit = 0.0
-	health_component.take_damage(dmg)
+	if not Duel.beaten(self, dmg):
+		health_component.take_damage(dmg)
 	Net.fx("sfx", ["thud", global_position, -2.0, 0.05, 0.8])
 	Net.fx("dust_ring", [global_position, 18, 1.2])
 	CombatManager.apply_camera_shake(clampf(dmg / 60.0, 0.1, 0.4))
@@ -1290,11 +1291,11 @@ const COMBO_MEMORY := 0.9
 
 func remember_combo(next_index: int) -> void:
 	_combo_next = next_index
-	_combo_expire = Time.get_ticks_msec() / 1000.0 + COMBO_MEMORY
+	_combo_expire = PlayerState.now_s() + COMBO_MEMORY
 
 
 func next_combo_index() -> int:
-	if Time.get_ticks_msec() / 1000.0 <= _combo_expire:
+	if PlayerState.now_s() <= _combo_expire:
 		return _combo_next
 	return 0
 

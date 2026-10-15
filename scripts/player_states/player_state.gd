@@ -23,7 +23,7 @@ static var reload_until := -100.0
 
 
 static func now_s() -> float:
-	return Time.get_ticks_msec() / 1000.0
+	return float(Engine.get_physics_frames()) / float(Engine.physics_ticks_per_second)
 
 
 ## A heavy started (`move`: which one): fatigue and repetition.

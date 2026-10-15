@@ -117,7 +117,7 @@ const CASES := [
 	["grapeshot", "sword_pistol", 3.5, ""],
 	["crossfire", "sword_pistol", 5.0, "down"],
 	["broadside", "sword_pistol", 6.0, "down"],
-	["deadeye", "pistol", 10.0, ""],
+	["deadeye", "pistol", 8.0, ""],
 	["point_blank", "pistol", 2.5, ""],
 	["deaths_waltz", "pistol", 8.0, ""],
 	["suplex", "fist", 1.4, "carried"],

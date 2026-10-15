@@ -1658,3 +1658,13 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Tests: t/items/instruments, t/jam/play_solo, t/jam/join (a puppet stand-in as the crewmate); nettest mode `jam`
   (net-jam, not run here: feature agents don't run nettest). Renders: `jamshot` (tools/dev/out/jam/v113_*), modelshot
   `Instruments.mesh("<kind>")` (tools/dev/out/models/i_*).
+
+### Fixes after --fixed-fps (2026-10-15)
+- Wall-clock timers moved to game time (physics ticks): the combo memory (Player.remember_combo / next_combo_index),
+  PlayerState.now_s (heavy fatigue, gun reload) and the InputBuffer window. A fixed-fps run, a hitch or slow motion no
+  longer skews them.
+- techtest "deadeye lands": not a clock bug in Deadeye. The grunt parked 10 m out stood in ~1.1 m of water, and the
+  wave phase of the game-time clock tipped it into SWIM (it swam 2.4 m/s off the line during the wind-up). The case is
+  now 8 m, on the beach.
+- Duels: Duel.beaten(p, dmg) no longer needs the attacker: any lethal damage to a fighting duelist (a sourceless
+  bleed/burn tick, a fall) is "downed, not dead". Test: t/coop/duel_bleed.

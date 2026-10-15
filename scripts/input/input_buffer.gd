@@ -17,12 +17,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		buffer_action("parry")
 
 
+func _now() -> float:
+	return float(Engine.get_physics_frames()) / float(Engine.physics_ticks_per_second)
+
+
 func buffer_action(action: String) -> void:
-	buffer.append({"action": action, "time": Time.get_ticks_msec() / 1000.0})
+	buffer.append({"action": action, "time": _now()})
 
 
 func consume_action(action: String) -> bool:
-	var now := Time.get_ticks_msec() / 1000.0
+	var now := _now()
 	for i in range(buffer.size() - 1, -1, -1):
 		if buffer[i].action == action and (now - buffer[i].time) <= buffer_window:
 			buffer.remove_at(i)
@@ -32,7 +36,7 @@ func consume_action(action: String) -> bool:
 
 
 func has_action(action: String) -> bool:
-	var now := Time.get_ticks_msec() / 1000.0
+	var now := _now()
 	for entry in buffer:
 		if entry.action == action and (now - entry.time) <= buffer_window:
 			return true
@@ -40,5 +44,5 @@ func has_action(action: String) -> bool:
 
 
 func _clean_buffer() -> void:
-	var now := Time.get_ticks_msec() / 1000.0
+	var now := _now()
 	buffer = buffer.filter(func(entry: Dictionary) -> bool: return (now - entry.time) <= buffer_window)

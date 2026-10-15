@@ -141,9 +141,11 @@ static func soften(hit: HitData) -> HitData:
 	return h
 
 
-## A blow that would finish `p` off in a duel: down, not dead (true: it's taken care of).
-static func beaten(p: Node, attacker: Node, dmg: float) -> bool:
-	if not foes(p, attacker) or dmg < p.health_component.current_health:
+## Damage that would finish off a captain mid-duel, whatever its source (a bleed or burn names none): down, not dead (true: it's taken care of).
+static func beaten(p: Node, dmg: float) -> bool:
+	if inst == null or p == null or not p.is_in_group("players") or dmg < p.health_component.current_health:
+		return false
+	if not inst.fighting(inst.duel_of(inst.id_of(p))):
 		return false
 	spare(p)
 	return true
