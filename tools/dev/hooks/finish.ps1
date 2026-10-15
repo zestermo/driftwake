@@ -21,6 +21,9 @@ foreach ($p in @("rebase-merge", "rebase-apply")) {
 		Block "This worktree is stopped mid-rebase (land.ps1 hit a conflict with main). Fix the conflicted files (git status lists them), git add them, git rebase --continue, then run .\tools\dev\land.ps1 again; or git rebase --abort to put the branch back."
 	}
 }
+if (Test-Path (git -C $root rev-parse --path-format=absolute --git-path MERGE_HEAD).Trim()) {
+	Block "This worktree is in the middle of a merge (git merge main, or land.ps1 merging main in, hit a conflict). Fix the conflicted files (git status lists them), git add them, git commit; or git merge --abort to put the branch back."
+}
 $dirty = @(git -C $root status --porcelain)
 if ($dirty) {
 	Block ("This worktree has uncommitted changes. Commit them (or revert what you don't want) before finishing:`n" + (($dirty | Select-Object -First 15) -join "`n"))

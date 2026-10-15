@@ -1,7 +1,8 @@
 # Claude Code PreToolUse hook (.claude/settings.json) on Bash and PowerShell commands: refuses
 # the two that bite parallel work: a test run straight through Godot instead of the runners
 # (no shared slots, no pass cache, invisible in the Tests pane), and `git add -A` / `git add .`
-# in the main checkout (sweeps up another session's half-done files).
+# in the main checkout (sweeps up another session's half-done files). Otherwise, in a worktree branch,
+# says once per new main head that main moved (mainmoved.ps1; additionalContext, never blocks).
 $ErrorActionPreference = "Stop"
 $raw = [Console]::In.ReadToEnd()
 if (-not $raw) { exit 0 }
@@ -28,4 +29,8 @@ $plain = $cmd -replace '"[^"]*"', '' -replace "'[^']*'", ''
 if (-not $inWorktree -and $plain -match '\bgit\b(\s+-C\s+\S+)?\s+add\s+(-A\b|--all\b|\.(\s|$|;|&))') {
 	Deny "Not git add -A / git add . in the main checkout: other sessions' unfinished files live here. Add your own paths: git add -- <file> <file>."
 }
+
+. (Join-Path $PSScriptRoot "mainmoved.ps1")
+$note = Get-MainMovedNote (Get-CheckoutDir ([string]$data.cwd))
+if ($note) { @{ hookSpecificOutput = @{ hookEventName = "PreToolUse"; additionalContext = $note } } | ConvertTo-Json -Compress }
 exit 0
