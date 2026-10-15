@@ -122,6 +122,13 @@ func _process(d: float) -> bool:
 				c._finish(true)
 			p = root.get_tree().get_first_node_in_group("player")
 			isl = root.get_node("World/Islands/Brinehollow")
+			# (the den is far from the captain: held awake (ActorSleep) so the hit plays out on Grell)
+			if not has_meta("den_awake"):
+				set_meta("den_awake", true)
+				for g in isl.get_node("PirateDen").grunts:
+					g.set_meta("no_sleep", true)
+				wait = 1.0
+				return false
 			# --- the land
 			check("the west coast reaches past 190 m (forest)", isl.height_at(-185.0, 60.0) > 0.5)
 			check("the north-west beach is land at the den", isl.height_at(-112.0, -112.0) > 1.0)

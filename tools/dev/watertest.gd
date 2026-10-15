@@ -66,6 +66,9 @@ func _process(d: float) -> bool:
 					for q in x.patrol: print("     patrol pt ", snappedf(ocean.depth_at(q, [], true), 0.01))
 			check("all posts on dry land", camp.grunts.all(func(x): return ocean.depth_at(x.post, [], true) <= 0.0))
 			g = camp.grunts[0]
+			# (the captain's parked far off: the crew held awake, ActorSleep would freeze them)
+			for x in camp.grunts:
+				x.set_meta("no_sleep", true)
 			g.humanoid.seated = false
 			g.global_position = Vector3(deep.x, surf(deep) - 1.4, deep.z)
 			g.reset_physics_interpolation()

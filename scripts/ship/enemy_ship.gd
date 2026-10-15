@@ -208,6 +208,9 @@ func _ready() -> void:
 	add_child(model)
 	HullBuilder.build(model, spec["look"])
 	ShipLights.enemy(model)
+	# (her lanterns keep the clock while she sleeps far off in sight: ActorSleep)
+	for nl in model.find_children("*", "NightLight", true, false):
+		nl.process_mode = Node.PROCESS_MODE_ALWAYS
 	HullBuilder.collide(self)
 	for sgn in [-1.0, 1.0]:
 		var guns: Array = spec["guns"]
