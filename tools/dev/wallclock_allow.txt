@@ -3,7 +3,6 @@
 # game time (delta, physics ticks, timers, Ocean.clock() / Weather.world_time() for shared clocks).
 # One entry per line: path (the whole file) or path:function, then | and why it needs real time.
 scripts/net/network_manager.gd | the co-op session clock: every machine's wall time plus the host's offset, measured by ping
-scripts/world/weather.gd:_session | the solo session clock under the world time (Net's in co-op), kept as it was
 scripts/game/music.gd:play | the resume timer: a calm track left less than RESUME_WITHIN ago (menus, loading included) picks up where it was
 scripts/game/perf_monitor.gd | the perf log's date stamp
 scripts/game/dev_capture.gd | F12 captures: file names, the date, the movement history's own timestamps

@@ -1938,7 +1938,7 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   system time in scripts/ or scenes/ fail as `WALL CLOCK <path>:<line> (in <func>)` unless
   `tools/dev/wallclock_allow.txt` lists the file or `file:function` with a reason. A full run names entries that
   match nothing now. tools/ is exempt (savetest's wall-clock timeout, the bench).
-  - Allowed (18 entries): Net's session clock, Weather._session (the solo session clock), Music.play's resume
+  - Allowed (17 entries): Net's session clock, Music.play's resume
     timer, perf_monitor's and dev_capture's dates, save_game's saved_at, save_slot_list's dates, game_menu's web
     pointer-lock Esc, UIStyle.sfx's debounce (menus run paused), Humanoid.play's 250 ms net throttle,
     DrawLOD.steps' 12 ms budget, build timing in world_generator, gen_island, starter_island, island_life,
@@ -1948,7 +1948,10 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
     NPC-sitting check (physics ticks), Ambience's hull-loop drift and the objective marker's bob (delta),
     Weather's thunder delay (a countdown in delta), ActorSleep's 3 s newcomer burst (delta). The ships' swell
     called `Ocean.clock()` with a wall-clock fallback: now Ocean.clock() only. BuoyancyComponent (unused, old
-    wave constants on the wall clock) deleted.
+    wave constants on the wall clock) deleted. Weather's solo session clock (under world_time) is game time now,
+    like Ocean's: r9test/r10test's forced storm blends over 8 s of world time but waits 9 s of game time, and with
+    the v1.14 world running faster than real time under --fixed-fps they failed on the wall clock (twice in a row
+    while landing). Co-op still runs on Net's shared clock.
   - Test: t/world/thunder_delay (thunder 340 m off is still due at 0.7 game s, heard by 1.2; on the wall clock a
     --fixed-fps run outpaces it). Also run: t/world, t/player/sprint, t/player/sit_bench, ambiencetest, seatest,
     lifetest, uitest, skytest, smoketest.

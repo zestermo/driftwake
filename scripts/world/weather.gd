@@ -104,7 +104,8 @@ func _session() -> float:
 	var net := get_node_or_null("/root/Net")
 	if net and net.active:
 		return net.time()
-	return Time.get_ticks_usec() * 0.000001
+	# solo: game time, like Ocean's (on the wall clock a forced weather's 8 s blend ran out of step with the game)
+	return float(Engine.get_physics_frames()) / float(Engine.physics_ticks_per_second)
 
 
 func world_time() -> float:
