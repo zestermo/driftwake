@@ -4,7 +4,7 @@
 #   .\tools\dev\perf_gate.ps1                  # bench this checkout at every light in the baseline, compare
 #   .\tools\dev\perf_gate.ps1 -Update          # bench it and rewrite the baseline (after an intended change), then commit it
 #   .\tools\dev\perf_gate.ps1 -Hours 13        # one light only (-Update's default: 13 and 21, clear)
-#   .\tools\dev\perf_gate.ps1 -BenchArgs nosleep -Label regress   # extra bench args (e.g. a deliberate regression)
+#   .\tools\dev\perf_gate.ps1 -BenchArgs stops=beach,dock -Runs 1 # extra bench args (to both sides of a confirm too)
 #
 # Noise (laptop runs swing ~10% in frame, ~5% in frame1t, and the machine's state swings far more over hours):
 # each light is benched -Runs times (2) and each stop keeps its best (lowest) numbers, since what lands on a
