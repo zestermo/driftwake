@@ -10,7 +10,8 @@
 # each light is benched -Runs times (2) and each stop keeps its best (lowest) numbers, since what lands on a
 # frame is the code's cost plus interference that only adds. It FAILS (exit 1) when, against the baseline:
 #   - the mean of the stops' frame or frame1t is more than 15% worse, or
-#   - one stop's frame1t is more than 25% worse (a regression in one place, diluted in the mean), or
+#   - one stop's frame1t is more than 35% worse (a regression in one place, diluted in the mean; a single stop
+#     swung up to 22% between two passing runs of the same code, even as the best of 2), or
 #   - physics ticks per frame (the mean) rise above 0.8 (the spiral that made v1.13 slow).
 # Every bench run also times a fixed script workload (calib). When the gate would fail, or this machine's
 # calib is more than 15% off the baseline's (a different power plan or heat: the numbers aren't comparable),
@@ -29,7 +30,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $basePath = Join-Path $PSScriptRoot "perf_baseline.txt"
 $FRAME_PCT = 15.0
-$STOP_PCT = 25.0
+$STOP_PCT = 35.0
 $MAX_TICKS = 0.8
 $CALIB_PCT = 15.0
 $TARGET_MS = 10.0
@@ -45,7 +46,7 @@ function Invoke-Bench([string]$dir, [string]$label, [int]$hour) {
 	$ErrorActionPreference = "Continue"
 	$lines = & (Join-Path $dir "tools/dev/bench.ps1") @a
 	$code = $LASTEXITCODE
-	$lines | ForEach-Object { "$_" } | Where-Object { $_ -match "SCRIPT ERROR|STALL|calib|never finished" } | ForEach-Object { Write-Host "  $_" }
+	$lines | ForEach-Object { "$_" } | Where-Object { $_ -match "SCRIPT ERROR|STALL(?!.*stop -,)|calib|never finished" } | ForEach-Object { Write-Host "  $_" }
 	if ($code -ne 0 -or -not (Test-Path $out)) { throw "the bench $label failed (exit $code; log tools/dev/out/bench/brinehollow_$label.log in $dir)" }
 	return $out
 }
@@ -115,7 +116,7 @@ function Write-Baseline($res, [string]$commit) {
 		"commit $commit",
 		("taken {0:yyyy-MM-dd HH:mm}  runs {1}" -f (Get-Date), $Runs),
 		"machine $($first.machine)",
-		("calib {0:N2}" -f $first.calib)
+		("calib {0:N2}" -f ($res.Values | ForEach-Object { $_.calib } | Measure-Object -Minimum).Minimum)
 	)
 	foreach ($h in $res.Keys) {
 		$r = $res[$h]

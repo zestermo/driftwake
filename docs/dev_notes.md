@@ -1905,3 +1905,50 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   fire 3/34 -> 3/23, hull hit 5/39 -> 6/27, sea hit 2/16 -> 2/14. Two 256x256 sheets (~0.7 MB with mips).
 - Renders: `tools/dev/flipshot.gd` (before/after strips at the pixel grid; compare_heavy, compare_cannon,
   compare_cannon_h21 in tools/dev/out/flipbook/). Test: `t/fx/flipbook`.
+## 2026-10-15: v1.14 lessons locked in (the perf gate, performance rules, the wall-clock lint)
+- **The perf gate** (`tools/dev/perf_gate.ps1`, run by `prepush.ps1 -Release` after the tests, i.e. before tagging a
+  version): the Brinehollow bench in its new `gate` mode (settle, base, probe at the 8 stops: the summary and the
+  scripts table, no ablations; ~2.8 min a run) against `tools/dev/perf_baseline.txt` (committed: per stop frame,
+  frame1t, ticks, draws, shadow draws, the ALL row, each script's ms, the commit and the machine's calib).
+  - Noise: frame swings ~10% run to run on the laptop, frame1t ~5%, and the laptop's state far more over hours
+    (v1.13 measured 42 ms one morning and 25 ms at 10:38 on the same code). So each light is benched twice and
+    each stop keeps its best numbers (interference only adds), and every bench prints `calib`: a fixed GDScript
+    workload (best of 5), steady within ~3% across today's runs (23.6-24.4 ms).
+  - Fails (exit 1): the mean of the stops' frame or frame1t >15% worse, one stop's frame1t >35% worse (a local
+    regression the mean dilutes; one stop swung 22% between passing runs of the same code, best of 2 each), or the mean physics ticks a frame >0.8 (the spiral). Prints each stop (base,
+    now, d%, ticks, draws) and the scripts whose ms grew most.
+  - A fail, or a calib >15% off the baseline's (another power plan, heat: not comparable), is confirmed by
+    benching the baseline's commit back to back in a temporary worktree (%TEMP%\driftwake_perfref_<sha>, imported
+    by bench.ps1, removed after) and judging against that. `-NoConfirm` skips it; `-Update` rewrites the baseline
+    (commit it; it records HEAD, so commit game changes first). `-Hours`, `-Runs`, `-BenchArgs` (to both sides).
+  - Baseline (laptop i7-14700HX + RTX 4060, d3d12, best of 2): 13:00 clear mean frame 9.41 ms, frame1t 10.36,
+    ticks 0.57, draws 714 + 490 shadow; 21:00 clear 9.27 / 10.20 / 0.56. Target: <= ~10 ms mean frame here keeps the
+    min-spec PC (Ryzen 5 5600G + RTX 3080) at 60 fps in Brinehollow.
+  - Proof: on this branch (main + the lint fixes) both lights PASS (13:00 mean frame 9.58 / frame1t 10.51, +2% /
+    +1%; 21:00 9.41 / 10.35; worst stop +22% frame1t at the 21:00 plaza, hence 35% per stop; 13 min). ActorSleep
+    disabled in a scratch edit: FAIL, frame 9.41 -> 21.96 ms, frame1t +98%, ticks 1.32, every stop flagged,
+    scuttlebug.gd +1.64 ms, pirate_grunt.gd +1.62, canopy_spitter +0.60, enemy_ship +0.47 on top of the list;
+    confirmed against the baseline's commit benched right after (9.54 ms there; 14 min with the import).
+- **CLAUDE.md:** "Game time, never the wall clock" in Rules that bite, a Performance rules section (the target,
+  per-frame code sleeps far and runs at the lowest rate that looks right, visibility ranges / no small shadows /
+  MultiMesh / shared materials, areas monitor only if read, bench before/after, `prepush.ps1 -Release` before a
+  tag); two lines of it in `.claude/agents/driftwake-feature.md`.
+- **The wall-clock lint** (in `tools/dev/compilecheck.gd`, so the edit hook, run_tests' compile step, finish.ps1
+  and land.ps1 all run it): `Time.get_ticks_*`, `Time.get_unix_time*`, `Time.get_*_from_system`, `OS` ticks/unix/
+  system time in scripts/ or scenes/ fail as `WALL CLOCK <path>:<line> (in <func>)` unless
+  `tools/dev/wallclock_allow.txt` lists the file or `file:function` with a reason. A full run names entries that
+  match nothing now. tools/ is exempt (savetest's wall-clock timeout, the bench).
+  - Allowed (18 entries): Net's session clock, Weather._session (the solo session clock), Music.play's resume
+    timer, perf_monitor's and dev_capture's dates, save_game's saved_at, save_slot_list's dates, game_menu's web
+    pointer-lock Esc, UIStyle.sfx's debounce (menus run paused), Humanoid.play's 250 ms net throttle,
+    DrawLOD.steps' 12 ms budget, build timing in world_generator, gen_island, starter_island, island_life,
+    kit_context, kit_dungeons, kit_landmarks. (No loading-screen budget or dep_record use exists: nothing to allow.)
+  - Fixed to game time: the sprint-start shake debounce and the marker cooldown (PlayerState.now_s()), the grunt's
+    peril flash, the bottles' bob and glint (Ocean.clock()), villager barks' shared 8 s gap and a seat's
+    NPC-sitting check (physics ticks), Ambience's hull-loop drift and the objective marker's bob (delta),
+    Weather's thunder delay (a countdown in delta), ActorSleep's 3 s newcomer burst (delta). The ships' swell
+    called `Ocean.clock()` with a wall-clock fallback: now Ocean.clock() only. BuoyancyComponent (unused, old
+    wave constants on the wall clock) deleted.
+  - Test: t/world/thunder_delay (thunder 340 m off is still due at 0.7 game s, heard by 1.2; on the wall clock a
+    --fixed-fps run outpaces it). Also run: t/world, t/player/sprint, t/player/sit_bench, ambiencetest, seatest,
+    lifetest, uitest, skytest, smoketest.

@@ -277,7 +277,7 @@ GameMenu, Net, Music, Weather, DevCapture.
   `label=<x>_after`, `bench_compare.ps1`), and reports the ms at the stops.
 - **Before tagging a version** Claude runs `tools/dev/prepush.ps1 -Release`: the tests, then
   `perf_gate.ps1` against `tools/dev/perf_baseline.txt` (fails at a mean frame or frame1t >15% worse, a stop's
-  frame1t >25% worse, or >0.8 physics ticks a frame; `perf_gate.ps1 -Update` after an intended change).
+  frame1t >35% worse, or >0.8 physics ticks a frame; `perf_gate.ps1 -Update` after an intended change).
 
 ## History and plans
 
