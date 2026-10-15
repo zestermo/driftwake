@@ -207,12 +207,14 @@ func _initialize():
 		var surf := 0
 		for mi in mis:
 			surf += (mi as MeshInstance3D).mesh.get_surface_count()
+			if not is_equal_approx((mi as MeshInstance3D).visibility_range_end, BodyBuilder.RANGE * float(h.look.get("height", 1.0))):
+				ok = false; print("   ", mi.name, " ends at ", (mi as MeshInstance3D).visibility_range_end)
 		max_meshes = maxi(max_meshes, n)
 		max_surf = maxi(max_surf, surf)
 		all_surf += surf
 		if n < 6: ok = false
 		h.free()
-	check("60 random looks build (max %d mesh instances each)" % max_meshes, ok and max_meshes <= 12)
+	check("60 random looks build (max %d mesh instances each, every one ending at BodyBuilder.RANGE x height)" % max_meshes, ok and max_meshes <= 12)
 	# draw calls: shins and forearms ride the skinned meshes, tints fold into vertex colours (v1.14: 23.3 -> 14.9)
 	check("a body is at most 20 draws (mean %.1f, worst %d)" % [all_surf / 60.0, max_surf], max_surf <= 20 and all_surf / 60.0 <= 16.5)
 	# 1b. the skinned lower body: one surface, thighs without meshes of their own,

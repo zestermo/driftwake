@@ -29,6 +29,35 @@ func check(name: String, cond: bool) -> void:
 func finish() -> void:
 	print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 	quit()
+## DrawLOD's work on a place: [small static meshes, those of them without a range,
+## foldable meshes with two plain surfaces of one texture left].
+func _draw_pass(place: Node) -> Array:
+	var out := [0, 0, 0]
+	var dl = load("res://scripts/psx/draw_lod.gd")
+	var list: Array = []
+	dl._walk(place, list)
+	for g in list:
+		if not g is MeshInstance3D or g.mesh == null:
+			continue
+		var s: Vector3 = (g.global_transform * g.mesh.get_aabb()).size
+		if maxf(s.x, maxf(s.y, s.z)) < 0.8 and g.visibility_range_begin == 0.0:
+			out[0] += 1
+			if g.visibility_range_end <= 0.0:
+				out[1] += 1
+		var overridden := false
+		for i in range(g.get_surface_override_material_count()):
+			overridden = overridden or g.get_surface_override_material(i) != null
+		if g.material_override == null and not overridden and g.mesh is ArrayMesh and load("res://scripts/psx/mesh_builder.gd").from_mesh(g.mesh) != null:
+			var seen := {}
+			for i in range(g.mesh.get_surface_count()):
+				var f: Array = load("res://scripts/psx/psx_mat.gd").fold(g.mesh.surface_get_material(i))
+				if f.is_empty():
+					continue
+				if seen.has(f[0]):
+					out[2] += 1
+					break
+				seen[f[0]] = true
+	return out
 func _process(d: float) -> bool:
 	t += d
 	if t > 240.0:
@@ -89,6 +118,10 @@ func _process(d: float) -> bool:
 			check("the shallows are sent to the ocean", root.get_node("Ocean").isle_shoals.size() == mini(world.chain_islands.size(), 2))
 			check("on the chart's list", world.island_infos.any(func(i): return i["name"] == isl.island_name))
 			check("enemy ships keep off it", load("res://scripts/ship/enemy_ship.gd").no_go.any(func(z): return z[0] == n["pos"]))
+			for place in [isl, world.get_node("Brinehollow")]:
+				var dp := _draw_pass(place)
+				check("the draw pass ran on %s: small things have a range (%d small, %d without), tints folded (%d meshes with two surfaces of one texture)" % [place.name, dp[0], dp[1], dp[2]],
+					dp[0] > 20 and dp[1] == 0 and dp[2] == 0)
 			# the same node builds the same island
 			var again = load("res://scripts/island/gen_island.gd").new()
 			again.prepare(n)

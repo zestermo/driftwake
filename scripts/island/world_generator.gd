@@ -574,6 +574,7 @@ func _build_redtide() -> void:
 	redtide.position = Vector3(spot.x, 0.0, spot.y)
 	redtide.rotation.y = atan2(to_home.x, to_home.y)
 	add_child(redtide)
+	DrawLOD.apply(redtide)
 	EnemyShip.safe_center = Vector3(starter_center.x, 0.0, starter_center.y)
 	EnemyShip.no_go = []
 	for z in StarterIsland.NO_GO:

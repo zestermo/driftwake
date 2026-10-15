@@ -212,6 +212,8 @@ scripts/ui/*                            r6test
 
 # --- rendering ---
 scripts/psx/*                           r9test hairtest
+scripts/psx/draw_lod.gd                 isletest chartest fidelitytest villagetest
+scripts/psx/mesh_builder.gd             chartest isletest cliptest
 shaders/*                               r9test r10test
 project.godot                           t r6test
 scripts/enemies/fauna/*                 faunatest netchain

@@ -524,14 +524,20 @@ static func build_fog(parent: Node3D, c: Vector2, r: float, rng: RandomNumberGen
 	var q := QuadMesh.new()
 	q.size = Vector2(80, 40)
 	q.material = mat
+	# one draw for the bank's 60 puffs (billboards: the scale is dropped either way)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = q
+	mm.instance_count = 60
 	for i in range(60):
 		var a := rng.randf() * TAU
 		var d := sqrt(rng.randf()) * r * 0.9
-		var mi := MeshInstance3D.new()
-		mi.mesh = q
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mi.visibility_range_end = 1000.0
-		mi.position = Vector3(cos(a) * d, rng.randf_range(6.0, 26.0), sin(a) * d)
-		mi.scale = Vector3.ONE * rng.randf_range(0.9, 1.8)
-		holder.add_child(mi)
+		var p := Vector3(cos(a) * d, rng.randf_range(6.0, 26.0), sin(a) * d)
+		mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3.ONE * rng.randf_range(0.9, 1.8)), p))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Puffs"
+	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.visibility_range_end = 1000.0 + r
+	holder.add_child(mmi)
 
