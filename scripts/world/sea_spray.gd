@@ -27,7 +27,7 @@ var _streaks: Array = []   # [pos, dir, len, age, life, speed, width]
 var _spawn_acc := 0.0
 var _crest_t := 0.0
 var _rng := RandomNumberGenerator.new()
-## coast water point (rounded) -> [wave height last frame, cooldown]
+## coast water point (rounded) -> [wave height last frame, cooldown, exposure to the swell]
 var _breaks := {}
 var _break_gap := 0.0
 var _surf_acc := 0.0
@@ -339,15 +339,21 @@ func _surf(delta: float, cam: Camera3D, coast: CoastProbe) -> void:
 			continue
 		var key := Vector3i(roundi(w.x), 0, roundi(w.z))
 		seen[key] = true
-		var h: float = float(Ocean.get_wave_height(w))
-		var st: Array = _breaks.get(key, [h, _rng.randf_range(0.0, 1.5)])
+		# (the crest as it arrives: at the waterline the shallows have calmed the surface itself)
+		var h: float = float(Ocean.breaker_height(w))
+		var st: Array = _breaks.get(key, [])
+		if st.is_empty():
+			# (a lee shore's smaller swell breaks smaller: how exposed this spot is, once)
+			var sh: Vector4 = Ocean.shore_at(w.x, w.z)
+			st = [h, _rng.randf_range(0.0, 1.5), lerpf(1.0, sh.w, sh.z)]
 		st[1] = float(st[1]) - delta
 		# (each crest as it reaches the shore)
-		var crest := 0.28 * amp
+		var expo := float(st[2])
+		var crest := 0.28 * amp * expo
 		if float(st[0]) < crest and h >= crest and float(st[1]) <= 0.0 and _break_gap <= 0.0:
 			st[1] = 2.0
 			_break_gap = 0.2
-			_break(c, h, d, amp)
+			_break(c, h, d, amp * (0.5 + 0.5 * expo))
 		st[0] = h
 		_breaks[key] = st
 	for k in _breaks.keys():

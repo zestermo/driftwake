@@ -249,7 +249,7 @@ func _process(d: float) -> bool:
 			var at: Vector2 = get_meta("half_pos")
 			check("...nothing of it left in the world", not is_instance_valid(get_meta("half")) and world.get_node_or_null("Isle%d" % x) == null)
 			check("...nor on the chart, in the ships' no-go list or the sea's shallows", not world.island_infos.any(func(i): return int(i["id"]) == x)
-				and not load("res://scripts/ship/enemy_ship.gd").no_go.any(func(z): return z[0] == at) and root.get_node("Ocean").isle_shoals.size() == mini(world.chain_islands.size(), 2))
+				and not load("res://scripts/ship/enemy_ship.gd").no_go.any(func(z): return z[0] == at) and not root.get_node("Ocean").shores.has("isle%d" % x))
 			check("...nor among the navmesh zones", world.get_node("NavBaker")._zones.all(func(z): return is_instance_valid(z["node"])))
 			var H = load("res://scripts/npc/humanoid.gd")
 			var left := 0

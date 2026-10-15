@@ -81,7 +81,8 @@ var _arrays: Array = []
 ## The terrain's triangles for its colliders, a GROUND x GROUND grid of them (worked out in prepare).
 var _faces: Array = []
 const GROUND := 4
-var _shoal_img: Image
+## Its shore map (prepare), put in the sea by WorldGenerator.
+var shore: ShoreMap
 ## The cliffs' rock wall (Coast.cliffs): its columns, the clifftop splat, its meshes by square.
 var coast_cols: Array = []
 var _coast_rock := PackedFloat32Array()
@@ -132,8 +133,10 @@ func prepare(n: Dictionary) -> void:
 	KitLandmarks.plan_gen(self)
 	interiors = KitDungeons.plan(self)
 	_terrain_arrays()
-	_shoal_image()
 	build_ms["arrays"] = _lap(t0)
+	t0 = Time.get_ticks_usec()
+	_shore_map()
+	build_ms["shore"] = _lap(t0)
 	_plan_dock()
 	_scatter_vegetation()
 	# the villagers' bodies, ready for their NPCs (Humanoid.make picks them up)
@@ -617,19 +620,9 @@ func _terrain_collider(i: int) -> void:
 	add_child(body)
 
 
-## The seabed's depth for the ocean's shallows, an L8 texel per vertex.
-func _shoal_image() -> void:
-	var data := PackedByteArray()
-	data.resize((res + 1) * (res + 1))
-	for i in range(data.size()):
-		data[i] = int(clampf(-heights[i] / Ocean.SHOAL_DEPTH, 0.0, 1.0) * 255.0)
-	_shoal_img = Image.create_from_data(res + 1, res + 1, false, Image.FORMAT_L8, data)
-
-
-## The shallows for the ocean: [texture, the world rect it covers (x0, z0, size, 1)].
-func shallows() -> Array:
-	var g := global_position
-	return [ImageTexture.create_from_image(_shoal_img), Vector4(g.x - half - CELL * 0.5, g.z - half - CELL * 0.5, extent + CELL, 1.0)]
+## The sea's shore map (its swell turning to the coast, the shallows), a texel per vertex.
+func _shore_map() -> void:
+	shore = ShoreMap.bake(heights, res + 1, CELL, Vector2(-half, -half), Ocean.swell_dir())
 
 
 # ==========================================================================

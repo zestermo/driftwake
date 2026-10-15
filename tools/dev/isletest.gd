@@ -115,7 +115,7 @@ func _process(d: float) -> bool:
 			var trees: int = isl.get_node("VegetationColliders").get_child_count()
 			check("trees and rocks with colliders (%d)" % trees, trees > 500)
 			check("grapple crowns in the trees", load("res://scripts/world/grapple_points.gd").count() > 1000)
-			check("the shallows are sent to the ocean", root.get_node("Ocean").isle_shoals.size() == mini(world.chain_islands.size(), 2))
+			check("its shore map is in the sea", world.chain_islands.keys().all(func(id): return root.get_node("Ocean").shores.get("isle%d" % id) == world.chain_islands[id].shore))
 			check("on the chart's list", world.island_infos.any(func(i): return i["name"] == isl.island_name))
 			check("enemy ships keep off it", load("res://scripts/ship/enemy_ship.gd").no_go.any(func(z): return z[0] == n["pos"]))
 			for place in [isl, world.get_node("Brinehollow")]:

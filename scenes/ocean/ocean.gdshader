@@ -1,10 +1,11 @@
-// PSX ocean. Wave math MUST stay in sync with OceanManager.get_wave_height
-// (scripts/ocean/ocean_manager.gd): swimmers, the ship and enemies float on it.
+// PSX ocean. The wave math (ocean_waves.gdshaderinc) MUST stay in sync with
+// OceanManager._height (scripts/ocean/ocean_manager.gd): swimmers, the ship and enemies float on it.
 shader_type spatial;
 render_mode blend_mix, depth_draw_always, cull_back, diffuse_lambert, specular_schlick_ggx;
 
 #include "res://shaders/psx/psx_common.gdshaderinc"
 #include "res://shaders/world/cloud_shadow.gdshaderinc"
+#include "res://scenes/ocean/ocean_waves.gdshaderinc"
 
 uniform vec4 deep_color : source_color = vec4(0.05, 0.16, 0.3, 0.95);
 uniform vec4 shallow_color : source_color = vec4(0.2, 0.5, 0.6, 0.8);
@@ -12,27 +13,6 @@ uniform vec4 foam_color : source_color = vec4(0.9, 0.95, 1.0, 1.0);
 uniform sampler2D water_tex : source_color, filter_nearest_mipmap, repeat_enable, hint_default_white;
 uniform float water_tex_scale = 0.14;
 uniform vec2 water_scroll = vec2(0.02, 0.012);
-
-// The swell (pushed by OceanManager._send_waves from its WAVES table):
-// per wave [dir.x, dir.y, k, omega] and [amplitude, phase].
-uniform vec4 waves[6];
-uniform vec2 wave_amp_phase[6];
-uniform float amp_mult = 1.0;
-// Storm cells at sea (OceanManager.storm_cells): x, z, radius, extra swell.
-uniform vec4 storm_cells[2];
-// Whirlpools (OceanManager.whirls): x, z, radius, funnel depth.
-uniform vec4 whirls[2];
-
-// The funnel a whirlpool drags the sea down into (same as OceanManager.funnel).
-float funnel(vec2 p) {
-	float f = 0.0;
-	for (int i = 0; i < 2; i++) {
-		vec4 w = whirls[i];
-		float k = 1.0 - smoothstep(0.0, max(w.z, 0.001), distance(p, w.xy));
-		f -= w.w * k * k;
-	}
-	return f;
-}
 
 // Foam spiralling in toward the eye (0..1), and how near the eye (0..1).
 vec2 whirl_foam(vec2 p, float t) {
@@ -104,31 +84,16 @@ float wake_foam(vec2 p, float t) {
 	return v * step(0.35 + k * 0.45, n);
 }
 
-// Turquoise shallows (WorldGenerator.bake_shallows): the seabed's depth here,
-// 0 at the waterline to 1 at OceanManager.SHOAL_DEPTH and below.
+// Turquoise shallows: the seabed's depth here (an island's shore map, or
+// WorldGenerator.bake_shallows' world map), 0 at the waterline to 1 at OceanManager.SHOAL_DEPTH and below.
 uniform sampler2D shoal_map : filter_linear, repeat_disable, hint_default_white;
 uniform vec4 shoal_rect = vec4(0.0);
-uniform sampler2D shoal_fine : filter_linear, repeat_disable, hint_default_white;
-uniform vec4 fine_rect = vec4(0.0);
-// the chain's islands built just now (OceanManager.isle_shoals, two at most)
-uniform sampler2D shoal_isle0 : filter_linear, repeat_disable, hint_default_white;
-uniform vec4 isle_rect0 = vec4(0.0);
-uniform sampler2D shoal_isle1 : filter_linear, repeat_disable, hint_default_white;
-uniform vec4 isle_rect1 = vec4(0.0);
 uniform vec4 shoal_color : source_color = vec4(0.16, 0.72, 0.66, 1.0);
+const float SHOAL_DEPTH = 14.0;
 
-float shoal_depth(vec2 p) {
-	vec2 fu = (p - fine_rect.xy) / max(fine_rect.z, 0.001);
-	if (fine_rect.w > 0.5 && fu.x > 0.0 && fu.y > 0.0 && fu.x < 1.0 && fu.y < 1.0) {
-		return texture(shoal_fine, fu).r;
-	}
-	vec2 iu = (p - isle_rect0.xy) / max(isle_rect0.z, 0.001);
-	if (isle_rect0.w > 0.5 && iu.x > 0.0 && iu.y > 0.0 && iu.x < 1.0 && iu.y < 1.0) {
-		return texture(shoal_isle0, iu).r;
-	}
-	iu = (p - isle_rect1.xy) / max(isle_rect1.z, 0.001);
-	if (isle_rect1.w > 0.5 && iu.x > 0.0 && iu.y > 0.0 && iu.x < 1.0 && iu.y < 1.0) {
-		return texture(shoal_isle1, iu).r;
+float shoal_depth(vec2 p, vec4 sh) {
+	if (sh.x < shore_none.x - 1.0) {
+		return clamp(sh.x / SHOAL_DEPTH, 0.0, 1.0);
 	}
 	vec2 u = (p - shoal_rect.xy) / max(shoal_rect.z, 0.001);
 	if (shoal_rect.w > 0.5 && u.x > 0.0 && u.y > 0.0 && u.x < 1.0 && u.y < 1.0) {
@@ -137,10 +102,6 @@ float shoal_depth(vec2 p) {
 	return 1.0;
 }
 uniform float wave_total = 1.38;
-uniform vec2 crest = vec2(2.0, 0.75);
-uniform vec4 env_dirs = vec4(0.019, 0.011, -0.008, 0.016);
-uniform vec3 env_params = vec3(0.22, 0.05, 0.037);
-uniform vec2 crest_cap = vec2(0.85, 0.4);
 uniform float near_half = 120.0;
 uniform float growth = 0.08;
 
@@ -162,45 +123,26 @@ varying float wave_height_val;
 varying vec3 world_pos;
 varying vec3 affine_w;
 
-// Height of the swell at p. `cell` is the mesh spacing there: waves too short
-// for the grid to draw fade out (far away) instead of turning into noise.
-float wave_h(vec2 p, float t, float cell) {
-	float h = 0.0;
-	for (int i = 0; i < 6; i++) {
-		vec4 w = waves[i];
-		float lam = 6.2831853 / max(w.z, 0.0001);
-		float keep = 1.0 - smoothstep(lam * 0.25, lam * 0.5, cell);
-		float s = sin(dot(p, w.xy) * w.z + t * w.w + wave_amp_phase[i].y);
-		h += wave_amp_phase[i].x * (2.0 * pow(max(0.5 + 0.5 * s, 0.0), crest.x) - crest.y) * keep;
-	}
-	float env = 1.0 + env_params.x * sin(dot(p, env_dirs.xy) + t * env_params.y) * sin(dot(p, env_dirs.zw) - t * env_params.z);
-	h *= env;
-	if (h > crest_cap.x) {
-		float e = h - crest_cap.x;
-		h = crest_cap.x + e / (1.0 + e / crest_cap.y);
-	}
-	float swell = 1.0;
-	for (int i = 0; i < 2; i++) {
-		vec4 c = storm_cells[i];
-		swell += c.w * (1.0 - smoothstep(c.z * 0.35, max(c.z, 0.001), distance(p, c.xy)));
-	}
-	return h * amp_mult * swell;
-}
-
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	// the graded grid: 1 m cells within near_half of its centre, then growing
 	float d = max(abs(VERTEX.x), abs(VERTEX.z));
 	float cell = d <= near_half ? 1.0 : 1.25 + growth * (d - near_half);
 
-	float h = wave_h(world_pos.xz, time_val, cell);
+	vec4 sh = shore_at(world_pos.xz);
+	float h = wave_h(world_pos.xz, time_val, cell, sh);
 	float fu = funnel(world_pos.xz);
 	VERTEX.y += h + fu;
 	wave_height_val = h;
 
 	float eps = 0.25;
-	float dx = (wave_h(world_pos.xz + vec2(eps, 0.0), time_val, cell) + funnel(world_pos.xz + vec2(eps, 0.0)) - h - fu) / eps;
-	float dz = (wave_h(world_pos.xz + vec2(0.0, eps), time_val, cell) + funnel(world_pos.xz + vec2(0.0, eps)) - h - fu) / eps;
+	vec2 px = world_pos.xz + vec2(eps, 0.0);
+	vec2 pz = world_pos.xz + vec2(0.0, eps);
+	// (off the maps a neighbour's shore sample is the same: no fetch)
+	vec4 shx = sh.x < shore_none.x - 1.0 ? shore_at(px) : sh;
+	vec4 shz = sh.x < shore_none.x - 1.0 ? shore_at(pz) : sh;
+	float dx = (wave_h(px, time_val, cell, shx) + funnel(px) - h - fu) / eps;
+	float dz = (wave_h(pz, time_val, cell, shz) + funnel(pz) - h - fu) / eps;
 	NORMAL = normalize(vec3(-dx, 1.0, -dz));
 
 	vec4 clip = PROJECTION_MATRIX * (MODELVIEW_MATRIX * vec4(VERTEX, 1.0));
@@ -235,18 +177,23 @@ void fragment() {
 	base_color = mix(base_color, deep_color.rgb * 0.35, wf.y);
 	// over shoals the sea turns turquoise, lighter toward the beach, with a
 	// lacing of light on the sand and a line of surf at the very edge
-	float sd = shoal_depth(wuv);
+	vec4 sh = shore_at(wuv);
+	float sd = shoal_depth(wuv, sh);
 	float shoal = 1.0 - smoothstep(0.05, 0.85, sd);
 	float lace = smoothstep(0.55, 0.95, sin(wuv.x * 0.9 + sin(wuv.y * 0.7 + time_val * 0.6) * 1.8 + time_val * 0.4) * 0.5 + 0.5);
 	base_color = mix(base_color, shoal_color.rgb * (1.0 + lace * 0.25 * shoal), shoal * 0.7);
-	// surf rolling in: bands of foam riding in over the shallows toward the
-	// beach (a bright leading edge, a short tail), and at the waterline a
-	// sheet of swash running up the sand and draining back, in PSX blocks
+	// surf: bands of foam on the shore swell's crests as they break in over
+	// the shallows (a bright edge, a short tail; where it hasn't turned to the
+	// shore, bands rolling in by depth), and at the waterline a sheet of swash
+	// running up the sand as each crest arrives and draining back, in PSX blocks
 	float near_shore = smoothstep(0.0, 0.03, sd) * (1.0 - smoothstep(0.12, 0.35, sd));
-	float roll = fract(sd * 7.0 + time_val * 0.22);
-	float band = smoothstep(0.0, 0.03, roll) * (1.0 - smoothstep(0.03, 0.11, roll));
-	band *= near_shore * step(0.45, cell_noise(floor(wuv * 2.0) + floor(time_val * 1.5)));
-	float reach = 0.009 + 0.016 * (0.5 + 0.5 * sin(time_val * 0.9 + wuv.x * 0.05 + wuv.y * 0.04));
+	float turned = clamp(sh.z * 1.6, 0.0, 1.0);
+	float roll = turned > 0.0 ? shore_roll(wuv, time_val, sh) : fract(sd * 7.0 + time_val * 0.22);
+	float rolled = smoothstep(0.0, 0.03, roll) * (1.0 - smoothstep(0.03, 0.11, roll));
+	float surf_zone = mix(near_shore, smoothstep(0.08, 0.35, sh.x) * (1.0 - smoothstep(1.0, 2.8, sh.x)), turned);
+	float band = rolled * surf_zone * step(0.45, cell_noise(floor(wuv * 2.0) + floor(time_val * 1.5)));
+	float arriving = pow(0.5 + 0.5 * cos(roll * 6.2831853), 3.0);
+	float reach = 0.007 + 0.014 * mix(0.5 + 0.5 * sin(time_val * 0.9 + wuv.x * 0.05 + wuv.y * 0.04), arriving, turned);
 	float swash = (1.0 - smoothstep(reach * 0.5, reach, sd)) * step(0.4, cell_noise(floor(wuv * 3.0) + floor(time_val * 3.0)));
 	float surf = max(band * 0.7, swash * 0.85);
 	base_color = mix(base_color, foam_color.rgb, surf * 0.7);

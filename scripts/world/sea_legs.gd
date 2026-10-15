@@ -250,6 +250,7 @@ func _build_leg(key: Vector2i) -> void:
 			picks.append([_weapon(rng, tier), 1])
 		_build_islet(leg, i, lay["islets"][i], rng, _save_key(key, "islet%d" % i), picks)
 		nogo.append([lay["islets"][i], ISLET_R + 16.0])
+		Ocean.set_shore(_save_key(key, "islet%d" % i), islet_shore(), lay["islets"][i])
 	var bottles: Array = []
 	var gm := get_node("/root/GameManager")
 	for i in range(lay["bottles"].size()):
@@ -274,6 +275,8 @@ func _free_leg(key: Vector2i) -> void:
 	built.erase(key)
 	var mine: Array = leg.get_meta("no_go")
 	EnemyShip.no_go = EnemyShip.no_go.filter(func(z): return not mine.has(z))
+	for i in range((leg.get_meta("plan")["islets"] as Array).size()):
+		Ocean.set_shore(_save_key(key, "islet%d" % i), null)
 	leg.queue_free()
 	_collect()
 
@@ -313,6 +316,26 @@ static func _islet_ground(d: float) -> float:
 		if d >= hi.x:
 			return lerpf(hi.y, lo.y, (d - hi.x) / (lo.x - hi.x))
 	return ISLET_TOP
+
+
+## An islet's shore map (its profile on a 2 m grid out to the deep): baked once, every islet's the same.
+static var _islet_shore: ShoreMap
+
+
+static func islet_shore() -> ShoreMap:
+	return _islet_base().clone()
+
+
+static func _islet_base() -> ShoreMap:
+	if _islet_shore == null:
+		var n := 49
+		var hs := PackedFloat32Array()
+		hs.resize(n * n)
+		for z in range(n):
+			for x in range(n):
+				hs[z * n + x] = _islet_ground(Vector2(x - 24, z - 24).length() * 2.0)
+		_islet_shore = ShoreMap.bake(hs, n, 2.0, Vector2(-48.0, -48.0), Ocean.swell_dir())
+	return _islet_shore
 
 
 ## A rock of sand and stone breaking the sea, a palm on it and a chest under the palm.

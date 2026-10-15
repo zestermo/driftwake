@@ -57,7 +57,7 @@ const INFRA := ["HarbourPier", "Quay", "Dock", "Pier", "Cobbles", "Ladder", "Boa
 const INTERIORS := ["Tavern", "BroodCave", "Dungeon", "Temple", "Home", "Shop"]
 const SKIP := ["Terrain", "Ground", "Vegetation", "VegetationColliders", "ShotMarks", "CargoColliders", "Worn"]
 ## GenIsland.build_ms keys worked out in prepare (a worker thread in the game).
-const PREP_KEYS := ["land", "places", "arrays", "trees", "undergrowth", "thicket", "bodies", "harbour plan", "dungeon_plan"]
+const PREP_KEYS := ["land", "places", "arrays", "shore", "trees", "undergrowth", "thicket", "bodies", "harbour plan", "dungeon_plan"]
 
 ## [key, label, gated]: gated ones are what phase 3 holds at >= 80% of Brinehollow.
 const METRICS := [

@@ -5,7 +5,7 @@ Player: swimtest ragtest looptest
 Character & UI: chartest hairtest invtest r6test r7test savetest capturetest qoltest uitest
 Powers & progression: powertest vinetest progtest leveltest
 Enemies: bugtest grunttest apetest bosstest watertest faunatest
-Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest skytest
+Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest skytest shoretest
 Islands & world: smoketest chaintest isletest villagetest harbourtest lifetest dungeontest landmarktest fidelitytest foresttest storytest ambiencetest r9test r10test perftest
 Co-op: net net-chain net-board net-duel
 Co-op: net net-chain net-board net-jam

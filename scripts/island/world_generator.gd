@@ -189,8 +189,7 @@ func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int, 
 	island_infos.append({"pos": p, "type": n["theme"], "radius": isl.radius, "name": n["name"], "id": int(n["id"])})
 	EnemyShip.no_go.append([p, isl.radius + 30.0])
 	(isl.find_child("DockingArea", true, false) as Interactable).interacted.connect(_on_dock_interacted)
-	isl.set_meta("shoals", isl.shallows())
-	_send_isle_shoals()
+	Ocean.set_shore("isle%d" % int(n["id"]), isl.shore, p)
 	# (built after the save was applied: its chests opened before are gone)
 	var gm := get_node("/root/GameManager")
 	for bag in isl.find_children("*", "LootBag", true, false):
@@ -209,15 +208,7 @@ func _free_chain_island(id: int) -> void:
 	island_infos = island_infos.filter(func(info): return int(info.get("id", -1)) != id)
 	EnemyShip.no_go = EnemyShip.no_go.filter(func(z): return (z[0] as Vector2) != p)
 	isl.queue_free()
-	_send_isle_shoals()
-
-
-func _send_isle_shoals() -> void:
-	var list: Array = []
-	for isl in chain_islands.values():
-		if list.size() < Ocean.MAX_ISLES:
-			list.append(isl.get_meta("shoals"))
-	Ocean.isle_shoals = list
+	Ocean.set_shore("isle%d" % id, null)
 
 
 ## The island chain from GameManager.chain_seed (remade when a load or a host's world changes it).
@@ -464,7 +455,8 @@ func height_at(wx: float, wz: float) -> float:
 
 
 ## The seabed's depth for the ocean shader's turquoise shallows: the world
-## terrain (a texel per heightmap point) and Brinehollow's own, finer.
+## terrain (a texel per heightmap point); and Brinehollow's shore map (its own
+## terrain: the shallows, the swell turning to its coasts).
 func bake_shallows() -> void:
 	var n := terrain_resolution + 1
 	var img := Image.create(n, n, false, Image.FORMAT_L8)
@@ -475,14 +467,10 @@ func bake_shallows() -> void:
 	var cell := terrain_size / float(terrain_resolution)
 	Ocean.shoal_map = ImageTexture.create_from_image(img)
 	Ocean.shoal_rect = Vector4(-terrain_size * 0.5 - cell * 0.5, -terrain_size * 0.5 - cell * 0.5, terrain_size + cell, 1.0)
-	var fine := Image.create(StarterIsland.RES, StarterIsland.RES, false, Image.FORMAT_L8)
-	for z in range(StarterIsland.RES):
-		for x in range(StarterIsland.RES):
-			var lx := -StarterIsland.HALF + (x + 0.5) * StarterIsland.CELL
-			var lz := -StarterIsland.HALF + (z + 0.5) * StarterIsland.CELL
-			fine.set_pixel(x, z, Color(_shoal(starter_island.height_at(lx, lz)), 0, 0))
-	Ocean.shoal_fine = ImageTexture.create_from_image(fine)
-	Ocean.fine_rect = Vector4(starter_center.x - StarterIsland.HALF, starter_center.y - StarterIsland.HALF, StarterIsland.HALF * 2.0, 1.0)
+	var t0 := Time.get_ticks_usec()
+	var h := StarterIsland.HALF
+	Ocean.set_shore("brinehollow", ShoreMap.bake(starter_island.heights, StarterIsland.RES + 1, StarterIsland.CELL, Vector2(-h, -h), Ocean.swell_dir()), starter_center)
+	print("WorldGenerator: Brinehollow's shore map in %d ms" % ((Time.get_ticks_usec() - t0) / 1000))
 
 
 func _shoal(h: float) -> float:
@@ -492,8 +480,8 @@ func _shoal(h: float) -> float:
 func _exit_tree() -> void:
 	# (the title screen's sea has no shoals)
 	Ocean.shoal_rect = Vector4.ZERO
-	Ocean.fine_rect = Vector4.ZERO
-	Ocean.isle_shoals = []
+	for key in Ocean.shores.keys():
+		Ocean.set_shore(key, null)
 	for e in _pending.values():
 		WorkerThreadPool.wait_for_task_completion(e[1])
 		(e[0] as Node).free()

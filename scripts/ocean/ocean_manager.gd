@@ -61,19 +61,39 @@ const WAKE_SEND := 180.0
 var _wakes: Dictionary = {}
 ## The newest end of each trail: the stern itself, this tick.
 var _wake_heads: Dictionary = {}
-## Turquoise shallows (WorldGenerator.bake_shallows): seabed depth maps,
-## r = depth below the sea / SHOAL_DEPTH. The world's terrain, and a finer map
-## over Brinehollow's own; rects are (x0, z0, size, on).
+## Turquoise shallows (WorldGenerator.bake_shallows): the world terrain's seabed
+## depth map, r = depth below the sea / SHOAL_DEPTH; rect (x0, z0, size, on).
+## The islands' own come from their shore maps.
 const SHOAL_DEPTH := 14.0
 var shoal_map: Texture2D
 var shoal_rect := Vector4.ZERO
-var shoal_fine: Texture2D
-var fine_rect := Vector4.ZERO
-## The chain's islands built now ([texture, rect] each, GenIsland.shallows; two at most).
-const MAX_ISLES := 2
 const WATER_TEX := preload("res://assets/textures/psx/water.png")
-var isle_shoals: Array = []
 var _shoals_sent: Array = []
+
+## Near the coasts the swell turns to the shore (ShoreMap: each island's depth and
+## distance offshore): these trains run in over the shallows, steepen, and die
+## away to nothing at the waterline, so the sea never climbs over dry sand.
+## [wavelength (m), amplitude (m), phase]
+const SHORE_WAVES := [[11.5, 0.42, 0.0], [7.3, 0.2, 2.3]]
+## Crest power where they break, and its mean (sea level stays at 0).
+const SHORE_POW := 3.2
+const SHORE_MEAN := 0.607
+## They steepen from STEEP.y m deep to STEEP.x, growing by SHOAL_GROW as they do.
+const SHORE_STEEP := Vector2(0.8, 5.0)
+const SHOAL_GROW := 0.25
+## All the waves die away from FADE.y m deep to nothing at FADE.x.
+const SHORE_FADE := Vector2(0.05, 2.4)
+## Crests reach a coast a little out of step along it.
+const SHORE_WOB := 3.0
+const WOB_A := Vector2(0.021, 0.013)
+const WOB_B := Vector2(-0.009, 0.019)
+## key -> ShoreMap (set_shore); the shader gets the MAX_SHORES nearest the camera.
+const MAX_SHORES := 4
+var shores: Dictionary = {}
+var _shore_list: Array = []
+var _shores_bound: Array = []
+## Unpacked SHORE_WAVES: [k, omega, amplitude, phase]
+var _sw: Array[Vector4] = []
 ## Still water inland (InlandPool: waterfall pools, springs, sinkholes):
 ## instance id -> Vector4(x, z, radius, surface y). Swimmers, ragdolls and the
 ## camera read surface_at, which counts them; the sea's own waves don't.
@@ -100,6 +120,58 @@ func _init() -> void:
 		_w4.append(Vector4(cos(a), sin(a), k, SPEED * sqrt(9.8 * k)))
 		_w2.append(Vector2(float(w[2]), float(w[3])))
 		_amp_total += float(w[2])
+	for w in SHORE_WAVES:
+		var k := TAU / float(w[0])
+		_sw.append(Vector4(k, SPEED * sqrt(9.8 * k), float(w[1]), float(w[2])))
+
+
+## Which way the open swell runs, on the whole (its trains weighted by height; a
+## train's crests travel against its heading's vector: phase = k dir.p + omega t).
+static func swell_dir() -> Vector2:
+	var d := Vector2.ZERO
+	for w in WAVES:
+		d -= Vector2.from_angle(deg_to_rad(float(w[0]))) * float(w[2])
+	return d.normalized()
+
+
+## An island's shore map in (`map` placed at its world position `at`), or out (null).
+func set_shore(key: String, map: ShoreMap, at := Vector2.ZERO) -> void:
+	if map:
+		map.place(at)
+		shores[key] = map
+	else:
+		shores.erase(key)
+	_shore_list = shores.values()
+
+
+## What the shore maps say at (x, z): Vector4(depth, phase distance, turned, exposure); ShoreMap.NONE at sea.
+## (Where maps overlap, the one nearest its shore.)
+func shore_at(x: float, z: float) -> Vector4:
+	var best := ShoreMap.NONE
+	for m in _shore_list:
+		var s: Vector4 = m.sample(x, z)
+		if s.y < best.y:
+			best = s
+	return best
+
+
+## How much of the swell is left at this depth (0 at the waterline, 1 from SHORE_FADE.y m deep).
+static func shore_fade(depth: float) -> float:
+	var t := clampf((depth - SHORE_FADE.x) / (SHORE_FADE.y - SHORE_FADE.x), 0.0, 1.0)
+	return 1.0 - (1.0 - t) * (1.0 - t)
+
+
+## The swell turned to the shore at (x, z) (sh: shore_at), before the open swell's envelope.
+func shore_swell(x: float, z: float, time: float, sh: Vector4) -> float:
+	var steep := 1.0 - smoothstep(SHORE_STEEP.x, SHORE_STEEP.y, sh.x)
+	var pw := lerpf(CREST_POW, SHORE_POW, steep)
+	var mean := lerpf(CREST_MEAN, SHORE_MEAN, steep)
+	var wob := SHORE_WOB * sin(x * WOB_A.x + z * WOB_A.y) * sin(x * WOB_B.x + z * WOB_B.y)
+	var h := 0.0
+	for w in _sw:
+		var s := sin(w.x * sh.y + time * w.y + w.w + wob)
+		h += w.z * (2.0 * pow(maxf(0.5 + 0.5 * s, 0.0), pw) - mean)
+	return h * (1.0 + SHOAL_GROW * steep) * sh.w
 
 
 ## The biggest crest the calm swell can make (before amp_mult), for foam.
@@ -234,19 +306,31 @@ func _physics_process(delta: float) -> void:
 
 
 func get_wave_height(world_pos: Vector3, time: float = -1.0) -> float:
+	return _height(world_pos.x, world_pos.z, time, true)
+
+
+## The swell as it arrives at a shore, before the shallows calm it (where it breaks: SeaSpray).
+func breaker_height(world_pos: Vector3, time: float = -1.0) -> float:
+	return _height(world_pos.x, world_pos.z, time, false)
+
+
+func _height(x: float, z: float, time: float, calmed: bool) -> float:
 	if time < 0.0:
 		time = clock()
-	var x := world_pos.x
-	var z := world_pos.z
 	var h := 0.0
 	for i in range(_w4.size()):
 		var w: Vector4 = _w4[i]
 		var s := sin((x * w.x + z * w.y) * w.z + time * w.w + _w2[i].y)
 		h += _w2[i].x * (2.0 * pow(maxf(0.5 + 0.5 * s, 0.0), CREST_POW) - CREST_MEAN)
+	var sh := shore_at(x, z) if not _shore_list.is_empty() else ShoreMap.NONE
+	if sh.z > 0.0:
+		h = lerpf(h, shore_swell(x, z, time, sh), sh.z)
 	var env := 1.0 + ENV_AMOUNT * sin(x * ENV_A.x + z * ENV_A.y + time * ENV_SPEED.x) * sin(x * ENV_B.x + z * ENV_B.y - time * ENV_SPEED.y)
 	h *= env
 	if h > CREST_KNEE:
 		h = CREST_KNEE + (h - CREST_KNEE) / (1.0 + (h - CREST_KNEE) / CREST_ROOM)
+	if calmed:
+		h *= shore_fade(sh.x)
 	return h * amp_mult * local_swell(x, z) + funnel(x, z)
 
 
@@ -308,17 +392,13 @@ func _process(_delta: float) -> void:
 			wh.append(whirls[i] if i < whirls.size() else Vector4(0, 0, 0, 0))
 		ocean_material.set_shader_parameter("whirls", wh)
 		_send_wakes(time)
-		var shoals := [shoal_map, shoal_rect, shoal_fine, fine_rect, ocean_material, isle_shoals.duplicate()]
+		var shoals := [shoal_map, shoal_rect, ocean_material]
 		if shoals != _shoals_sent:
 			_shoals_sent = shoals
 			ocean_material.set_shader_parameter("shoal_map", shoal_map)
 			ocean_material.set_shader_parameter("shoal_rect", shoal_rect)
-			ocean_material.set_shader_parameter("shoal_fine", shoal_fine)
-			ocean_material.set_shader_parameter("fine_rect", fine_rect)
-			for i in range(MAX_ISLES):
-				var s: Array = isle_shoals[i] if i < isle_shoals.size() else [null, Vector4.ZERO]
-				ocean_material.set_shader_parameter("shoal_isle%d" % i, s[0])
-				ocean_material.set_shader_parameter("isle_rect%d" % i, s[1])
+			_shores_bound = []
+		_bind_shores()
 		if absf(amp_mult - _amp_sent) > 0.0005:
 			_amp_sent = amp_mult
 			_send_waves()
@@ -390,7 +470,35 @@ func _send_wakes(now: float) -> void:
 	ocean_material.set_shader_parameter("wake_life", WAKE_LIFE)
 
 
+## The shore maps nearest the camera into the shader's slots (when that set changes).
+func _bind_shores() -> void:
+	var cam := get_viewport().get_camera_3d()
+	var eye := Vector2(cam.global_position.x, cam.global_position.z) if cam else Vector2.ZERO
+	var near := _shore_list.duplicate()
+	if near.size() > MAX_SHORES:
+		var off := func(m: ShoreMap) -> float:
+			return Vector2(maxf(maxf(m.rect.x - eye.x, eye.x - m.rect.x - m.rect.z), 0.0), maxf(maxf(m.rect.y - eye.y, eye.y - m.rect.y - m.rect.z), 0.0)).length()
+		near.sort_custom(func(a, b): return off.call(a) < off.call(b))
+		near.resize(MAX_SHORES)
+	var key := near.map(func(m): return [m, m.rect])
+	if key == _shores_bound:
+		return
+	_shores_bound = key
+	var rects := PackedVector4Array()
+	for i in range(MAX_SHORES):
+		var m: ShoreMap = near[i] if i < near.size() else null
+		ocean_material.set_shader_parameter("shore%d" % i, m.texture() if m else null)
+		rects.append(m.rect if m else Vector4.ZERO)
+	ocean_material.set_shader_parameter("shore_rect", rects)
+
+
 func _send_waves() -> void:
+	var sw := PackedVector4Array(_sw)
+	ocean_material.set_shader_parameter("shore_waves", sw)
+	ocean_material.set_shader_parameter("shore_shape", Vector4(SHORE_POW, SHORE_MEAN, SHORE_STEEP.x, SHORE_STEEP.y))
+	ocean_material.set_shader_parameter("shore_fade", Vector4(SHORE_FADE.x, SHORE_FADE.y, SHOAL_GROW, SHORE_WOB))
+	ocean_material.set_shader_parameter("shore_wob", Vector4(WOB_A.x, WOB_A.y, WOB_B.x, WOB_B.y))
+	ocean_material.set_shader_parameter("shore_none", ShoreMap.NONE)
 	ocean_material.set_shader_parameter("waves", PackedVector4Array(_w4))
 	ocean_material.set_shader_parameter("wave_amp_phase", PackedVector2Array(_w2))
 	ocean_material.set_shader_parameter("amp_mult", amp_mult)

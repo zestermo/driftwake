@@ -106,8 +106,9 @@ scripts/ship/cannon*                    r8test seatest t/fx
 scripts/ship/ship_rigging.gd            riggingtest
 scripts/ship/swing_rope.gd              riggingtest
 scripts/ship/*                          shiptest
-scripts/ocean/*                         swimtest shiptest r9test r10test watertest
-scenes/ocean/*                          r9test r10test
+scripts/ocean/*                         swimtest shiptest r9test r10test watertest shoretest
+scenes/ocean/*                          r9test r10test shoretest
+scripts/ocean/shore_map.gd              shoretest isletest yardtest seatest ambiencetest skytest netchain
 scripts/world/sea_features.gd           seatest chaintest legtest
 scripts/world/sea_legs.gd               legtest seatest net
 scripts/world/weather.gd                r9test r10test ambiencetest

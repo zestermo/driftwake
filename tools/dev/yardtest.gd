@@ -105,11 +105,10 @@ func _process(d: float) -> bool:
 			check("...and on her after the load", ship.cannons.size() == 6 and ship.max_hull == 560.0)
 			# --- sea polish: shallows, wake, rain on deck
 			var oc = root.get_node("Ocean")
-			var fine: Image = oc.shoal_fine.get_image()
 			var coarse: Image = oc.shoal_map.get_image()
-			check("the shallows are baked: Brinehollow's middle is dry, the open sea deep", oc.fine_rect.w == 1.0 and oc.shoal_rect.w == 1.0
-				and fine.get_pixel(fine.get_width() / 2, fine.get_height() / 2).r < 0.05 and coarse.get_pixel(2, 2).r > 0.95)
 			var sc: Vector2 = root.get_node("World/Islands").starter_center
+			check("the shallows are baked: Brinehollow's middle is dry, the open sea deep", oc.shores.has("brinehollow") and oc.shoal_rect.w == 1.0
+				and oc.shore_at(sc.x, sc.y).x < 0.0 and coarse.get_pixel(2, 2).r > 0.95)
 			ship.place(Vector3(sc.x + 330.0, 0.0, sc.y + 120.0), 0.6)
 			p.global_position = ship.global_transform * Vector3(0, 0.8, 2.0)
 			p.reset_physics_interpolation()
