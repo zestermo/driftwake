@@ -6,6 +6,8 @@ uniform sampler2D albedo_tex : source_color, filter_nearest_mipmap_anisotropic, 
 uniform vec4 albedo_color : source_color = vec4(1.0);
 uniform vec2 uv_scale = vec2(1.0);
 uniform bool use_vertex_color = true;
+// Vertex colours carry the tint, sRGB-encoded (MeshBuilder.fold_tints: one surface per texture).
+uniform bool vertex_srgb = false;
 // Decal mode: texture alpha blends texture over the tint color (used for faces).
 uniform bool decal_mode = false;
 uniform float affine_amount : hint_range(0.0, 1.0) = 1.0;
@@ -40,6 +42,10 @@ const float BAYER4[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.
 varying vec3 affine_uv;
 
 void vertex() {
+	if (vertex_srgb) {
+		vec3 c = COLOR.rgb;
+		COLOR.rgb = mix(pow((c + vec3(0.055)) / 1.055, vec3(2.4)), c / 12.92, lessThan(c, vec3(0.04045)));
+	}
 	vec4 view = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 	if (depth_pull > 0.0 && !IN_SHADOW_PASS) {
 		float dd = -view.z;

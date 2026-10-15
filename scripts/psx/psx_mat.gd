@@ -71,7 +71,26 @@ static func lit(tex_name: String, tint: Color = Color.WHITE, opts: Dictionary = 
 		m.set_shader_parameter("depth_pull", float(opts["pull"]))
 	if opts.has("cull_disabled"):
 		m.render_priority = 0
+	if opts.has("vc_srgb"):
+		m.set_shader_parameter("vertex_srgb", true)
+	m.set_meta("psx", [tex_name, tint, opts])
 	return _store(key, m)
+
+
+## The shared white-tinted twin of a plain lit material, and the tint (linear) its
+## vertex colours must carry instead: one surface per texture, whatever the tints.
+## [] for a material that can't fold (glow, decal, no vertex colour, not a PSXMat.lit) or already has.
+static func fold(m: Material) -> Array:
+	if m == null or not m.has_meta("psx"):
+		return []
+	var spec: Array = m.get_meta("psx")
+	var opts: Dictionary = spec[2]
+	for k in opts:
+		if not k in ["affine", "pull", "cull_disabled"]:
+			return []
+	var o := opts.duplicate()
+	o["vc_srgb"] = true
+	return [lit(spec[0], Color.WHITE, o), (spec[1] as Color).srgb_to_linear()]
 
 
 ## Alpha-cutout foliage material (double sided, optional wind sway).

@@ -189,22 +189,32 @@ func _initialize():
 			var h := Humanoid.new(); h.setup(lk); root.add_child(h)
 			for i in range(5): h._process(1.0 / 60.0)
 			var meshes := h.find_children("*", "MeshInstance3D", true, false).size()
-			if meshes < 8 or h.hand_r == null or h.hip_socket == null or h.head == null:
+			if meshes < 6 or h.hand_r == null or h.hip_socket == null or h.head == null:
 				ok = false; print("   bad build ", k, "=", v, " meshes=", meshes)
 			h.free(); built += 1
-	check("all %d single-option variants build (>=8 meshes, sockets present)" % built, ok)
+	check("all %d single-option variants build (>=6 meshes, sockets present)" % built, ok)
 	var rng := RandomNumberGenerator.new()
 	ok = true
 	var max_meshes := 0
+	var max_surf := 0
+	var all_surf := 0
 	for i in range(60):
 		rng.seed = 1000 + i
 		var h := Humanoid.new(); h.setup(CharacterLook.random_look(rng)); root.add_child(h)
 		for j in range(5): h._process(1.0 / 60.0)
-		var n := h.find_children("*", "MeshInstance3D", true, false).size()
+		var mis := h.find_children("*", "MeshInstance3D", true, false)
+		var n := mis.size()
+		var surf := 0
+		for mi in mis:
+			surf += (mi as MeshInstance3D).mesh.get_surface_count()
 		max_meshes = maxi(max_meshes, n)
-		if n < 8: ok = false
+		max_surf = maxi(max_surf, surf)
+		all_surf += surf
+		if n < 6: ok = false
 		h.free()
-	check("60 random looks build (max %d mesh instances each)" % max_meshes, ok and max_meshes <= 16)
+	check("60 random looks build (max %d mesh instances each)" % max_meshes, ok and max_meshes <= 12)
+	# draw calls: shins and forearms ride the skinned meshes, tints fold into vertex colours (v1.14: 23.3 -> 14.9)
+	check("a body is at most 20 draws (mean %.1f, worst %d)" % [all_surf / 60.0, max_surf], max_surf <= 20 and all_surf / 60.0 <= 16.5)
 	# 1b. the skinned lower body: one surface, thighs without meshes of their own,
 	# nothing inside-out, and the thigh bones follow the leg joints
 	var lb_ok := true

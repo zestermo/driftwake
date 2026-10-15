@@ -872,6 +872,54 @@ func merge(other: MeshBuilder) -> void:
 		dst["w"].append_array(src["w"])
 
 
+## Every vertex moved by `xf` and bound wholly to `b` (a rigid part joining a skinned mesh).
+func rebind(xf: Transform3D, b: int) -> void:
+	for mat in _order:
+		var s: Dictionary = _surfaces[mat]
+		var v: PackedVector3Array = s["v"]
+		var n: PackedVector3Array = s["n"]
+		var bb := PackedInt32Array()
+		var ww := PackedFloat32Array()
+		bb.resize(v.size() * 4)
+		ww.resize(v.size() * 4)
+		bb.fill(0)
+		ww.fill(0.0)
+		for i in range(v.size()):
+			v[i] = xf * v[i]
+			n[i] = (xf.basis * n[i]).normalized()
+			bb[i * 4] = b
+			ww[i * 4] = 1.0
+		s["v"] = v
+		s["n"] = n
+		s["b"] = bb
+		s["w"] = ww
+
+
+## One surface per texture instead of per tint: every plain PSXMat.lit surface moves onto its
+## white twin (PSXMat.fold), its tint baked into the vertex colours (sRGB-encoded, decoded by the shader).
+func fold_tints() -> void:
+	var surfs := _surfaces
+	var order := _order
+	_surfaces = {}
+	_order = []
+	for mat in order:
+		var src: Dictionary = surfs[mat]
+		var f := PSXMat.fold(mat)
+		var dst := _surf(mat if f.is_empty() else f[0])
+		var c: PackedColorArray = src["c"]
+		if not f.is_empty():
+			c = c.duplicate()
+			var k: Color = f[1]
+			for i in range(c.size()):
+				c[i] = Color(c[i].r * k.r, c[i].g * k.g, c[i].b * k.b, c[i].a).linear_to_srgb()
+		dst["v"].append_array(src["v"])
+		dst["n"].append_array(src["n"])
+		dst["uv"].append_array(src["uv"])
+		dst["c"].append_array(c)
+		dst["b"].append_array(src["b"])
+		dst["w"].append_array(src["w"])
+
+
 ## Commit everything into an ArrayMesh (one surface per material).
 func commit() -> ArrayMesh:
 	var mesh := ArrayMesh.new()

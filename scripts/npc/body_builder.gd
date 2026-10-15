@@ -63,6 +63,8 @@ var colliders: Dictionary = {}
 var _parts: Dictionary = {}
 var _part_order: Array = []
 var _sims: Dictionary = {}
+var _skin_into: Dictionary = {}   # joint -> [skinned MeshBuilder, bone, joint's rest in its space]
+var _skinned: Array = []          # the skinned meshes' setups, run once every part is in
 
 
 static func build(hum: Humanoid, look: Dictionary) -> void:
@@ -104,6 +106,7 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	_accessories()
 	_commit_parts()
 	for s in _sims.values():
+		(s as SpringChains).mb.fold_tints()
 		(s as SpringChains).finalize()
 
 
@@ -148,11 +151,24 @@ func _mesh(parent: Node3D, mb: MeshBuilder, _n: String = "Mesh") -> void:
 	(_parts[parent] as MeshBuilder).merge(mb)
 
 
+## Rigid parts on a joint a skinned mesh has a bone for (shins, forearms) join that mesh
+## bound to the bone: one draw instead of two.
 func _commit_parts() -> void:
 	for node in _part_order:
-		(node as Node3D).add_child((_parts[node] as MeshBuilder).to_instance("Mesh"))
+		var mb := _parts[node] as MeshBuilder
+		if _skin_into.has(node):
+			var e: Array = _skin_into[node]
+			mb.rebind(e[2], e[1])
+			(e[0] as MeshBuilder).merge(mb)
+			continue
+		mb.fold_tints()
+		(node as Node3D).add_child(mb.to_instance("Mesh"))
+	for f in _skinned:
+		(f as Callable).call()
 	_parts.clear()
 	_part_order.clear()
+	_skin_into.clear()
+	_skinned.clear()
 
 
 ## Physics chains anchored on a joint (created on first use).
@@ -767,7 +783,11 @@ func _lower_body() -> void:
 	mb.weld_normals()
 	var lb := LowerBody.new()
 	h.hips.add_child(lb)
-	lb.setup(h.leg_l, h.leg_r, h.shin_l, h.shin_r, mb)
+	_skin_into[h.shin_l] = [mb, LowerBody.SHIN_L, h.leg_l.transform * h.shin_l.transform]
+	_skin_into[h.shin_r] = [mb, LowerBody.SHIN_R, h.leg_r.transform * h.shin_r.transform]
+	_skinned.append(func():
+		mb.fold_tints()
+		lb.setup(h.leg_l, h.leg_r, h.shin_l, h.shin_r, mb))
 
 
 ## A 12-point hip ring (front centre, +x side, back centre, -x side) of half
@@ -983,7 +1003,12 @@ func _arms() -> void:
 		amb_all.add_rings(m_sleeve, tube, 3.0, Color.WHITE, true, true, pick)
 	var ab := ArmBody.new()
 	h.torso.add_child(ab)
-	ab.setup(h.arm_l, h.arm_r, h.fore_l, h.fore_r, arm_mbs[-1], arm_mbs[1])
+	_skin_into[h.fore_l] = [arm_mbs[-1], ArmBody.FORE_L, h.arm_l.transform * h.fore_l.transform]
+	_skin_into[h.fore_r] = [arm_mbs[1], ArmBody.FORE_R, h.arm_r.transform * h.fore_r.transform]
+	_skinned.append(func():
+		(arm_mbs[-1] as MeshBuilder).fold_tints()
+		(arm_mbs[1] as MeshBuilder).fold_tints()
+		ab.setup(h.arm_l, h.arm_r, h.fore_l, h.fore_r, arm_mbs[-1], arm_mbs[1]))
 	for side in [-1, 1]:
 		var arm: Node3D = h.arm_l if side < 0 else h.arm_r
 		var fore: Node3D = h.fore_l if side < 0 else h.fore_r

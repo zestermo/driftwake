@@ -1,44 +1,59 @@
 extends SceneTree
 ## Draw calls by piece (headless, no camera): what a frame could draw and cast shadows with.
-##   & $env:GODOT --headless --path . --script res://tools/dev/drawcount.gd -- isle     # Brinehollow by piece
+##   & $env:GODOT --headless --path . --script res://tools/dev/drawcount.gd -- world    # the bench's world (seed 4242), by piece
 ##   & $env:GODOT --headless --path . --script res://tools/dev/drawcount.gd -- bodies   # 61 bodies: per body, by joint, by material
-## isle: per island child (digits dropped) [nodes, surfaces, surfaces with no visibility range, surfaces casting
-## shadows, surfaces visible past 150 m], then the meshes most often repeated as separate nodes (MultiMesh candidates).
+## world: waits for the chain islands ahead, then per piece (an island's child, digits dropped; else the world's child)
+## [nodes, surfaces, surfaces with no visibility range, casting shadows, drawn past 150 m], then the meshes most often
+## repeated as separate nodes (MultiMesh candidates). "DRAW" lines are the totals.
 var t := 0.0
-var mode := "isle"
+var mode := "world"
+var ready_at := -1.0
 
 
 func _initialize() -> void:
 	var a := OS.get_cmdline_user_args()
-	mode = a[0] if a.size() > 0 else "isle"
+	mode = a[0] if a.size() > 0 else "world"
 	if mode == "bodies":
 		_bodies()
 		quit()
 		return
+	load("res://tools/dev/test_kit.gd").use_seed(self, 4242)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
 func _process(d: float) -> bool:
 	t += d
 	var w = root.get_node_or_null("World/Islands")
-	if w == null or t < 1.5:
+	if w == null or t < 2.5:
 		return false
-	var isl = load("res://scripts/island/starter_island.gd").new()
-	isl.name = "CountIsle"
-	isl.position = Vector3(0.0, 0.0, 9000.0)
-	w.add_child(isl)
-	isl.build(int(w.world_seed))
+	if not w.chain_ready():
+		if t > 240.0:
+			push_error("drawcount: the chain islands never finished building")
+			quit(1)
+		return false
+	if ready_at < 0.0:
+		ready_at = t
+	if t - ready_at < 5.0:
+		return false
+	_count(root.get_node("World"))
+	quit()
+	return true
+
+
+func _count(world: Node) -> void:
 	var by := {}
 	var reps := {}
 	var tot := [0, 0, 0, 0, 0]
-	for g in isl.find_children("*", "GeometryInstance3D", true, false):
+	for g in world.find_children("*", "GeometryInstance3D", true, false):
 		var gi := g as GeometryInstance3D
 		if not gi.is_visible_in_tree():
 			continue
 		var a: Node = gi
-		while a.get_parent() != isl:
+		while a.get_parent() != world and a.get_parent().get_parent() != null and a.get_parent().get_parent().name != "Islands":
 			a = a.get_parent()
 		var key := str(a.name).rstrip("0123456789_@")
+		if a.get_parent() != world:
+			key = "%s/%s" % [str(a.get_parent().name).left(14), key]
 		var s := 1
 		var m: Mesh = null
 		if gi is MeshInstance3D:
@@ -57,17 +72,15 @@ func _process(d: float) -> bool:
 			e[i] += row[i]
 			tot[i] += row[i]
 		by[key] = e
-	print("DRAW Brinehollow: %d nodes, %d surfaces, %d with no visibility range, %d casting shadows, %d seen past 150 m" % tot)
+	print("DRAW world: %d nodes, %d surfaces, %d with no visibility range, %d casting shadows, %d drawn past 150 m" % tot)
 	var ks := by.keys()
 	ks.sort_custom(func(x, y): return by[x][1] > by[y][1])
-	for k in ks:
-		print("  %-24s nodes %4d  surf %5d  norange %5d  shadow %5d  past150 %5d" % ([k] + by[k]))
+	for k in ks.slice(0, 70):
+		print("  %-34s nodes %5d  surf %5d  norange %5d  shadow %5d  past150 %5d" % ([k] + by[k]))
 	var ms := reps.keys().filter(func(x): return reps[x] >= 4)
 	ms.sort_custom(func(x, y): return reps[x] * x.get_surface_count() > reps[y] * y.get_surface_count())
-	for m in ms.slice(0, 15):
+	for m in ms.slice(0, 20):
 		print("  repeated mesh x%d (%d surf, aabb %s)" % [reps[m], m.get_surface_count(), m.get_aabb().size])
-	quit()
-	return true
 
 
 func _bodies() -> void:
