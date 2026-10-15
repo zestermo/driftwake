@@ -1829,3 +1829,31 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   island and Brinehollow), r9test, villagetest, harbourtest, fidelitytest, lighttest, cliptest, bugtest, seatest,
   hairtest, qoltest, katanatest, foresttest, t/player. Renders: islandshot before/after, wardrobeshot, armorshot,
   goreshot.
+## 2026-10-15: v1.14 A, far actors sleep (ActorSleep)
+- `scripts/world/actor_sleep.gd` (ActorSleep, a node under /root made by the first actor): grunts (and Morrow, apes),
+  scuttlebugs, spitters, the brood queen, enemy ships and NPCs/villagers call `ActorSleep.add(self)` in _ready and
+  say when they may sleep (`sleep_ok()`: grunt idle or walking home, not a boarder, no ragdoll; bug wandering or a
+  spitter up its tree; ship on patrol with nobody aboard; NPC not talking). Asleep = `PROCESS_MODE_DISABLED` on the
+  actor: no AI, no move_and_slide, its body and hurtbox out of the physics space (nothing can target it), no rig,
+  timers and state clocks stopped (it wakes exactly where and how it was; patrols don't fast-forward). People sleep
+  past 160 m from every captain and wake within 120 (hysteresis), hidden past 230 (shown within 210); ships sleep past
+  420 and wake within 340 (beyond NOTICE 150 / LOSE 240) and stay in sight. A slice of the actors each frame (15).
+  Per actor, not per camp: alert_all only reaches campmates within 22 m, all well inside the wake range.
+- Villagers: judged by where their routine has them now (`Villager.sleep_pos()`), so one due near you wakes there
+  and its own far tick snaps it to the schedule. `set_meta("no_sleep", true)` holds an actor awake (seatest's ships,
+  moved about by hand). `ActorSleep.enabled = false` wakes everyone (the bench's `nosleep` arg).
+- Co-op: the host decides. Asleep = `net_idle` (no snapshots). A guest's puppet sleeps once the host has sent nothing
+  for 0.6 s and it's past the wake range, and wakes on a fresh snapshot. When a captain is put in (Net.players grows)
+  the host sends its sleepers for 3 s so the newcomer's copies stand where the host's dozed off (not where they were
+  built); every actor gets one round awake first so a puppet takes that snapshot. A guest's copy of a sleeping pirate
+  ship stops dead-reckoning once the word is 0.5 s old (it used to run ~5 m ahead before dozing off). Known gap: a
+  chain island built on a newcomer after that burst shows its moved sleepers where they were built until they wake.
+- ShipCannon: an enemy's gun at rest skips its per-frame aim/recoil writes.
+- Bench (laptop, back to back, `A_nosleep` vs `A_sleep`, 13:00 clear): frame 25.65 -> 10.72 ms (39 -> 93 fps), frame1t
+  21.94 -> 11.42, ticks/frame 1.54 -> 0.65, scripts/tick 4.56 -> 0.91, Jolt/tick 2.35 -> 0.94, tail 3.19 -> 1.48, draw
+  4.86 -> 4.04, GPU 3.97 -> 2.22. The `far` ablation left after it: -0.3 ms (was -14.9). ActorSleep itself ~0.1 ms.
+  (The laptop was faster than the v1.13 runs today: 25.7 ms with nothing asleep vs 42 then.)
+- Tests: `t/world/actor_sleep` (stage: sleep 650 m off, frozen, hysteresis at 140 m, wake in place with the clock
+  where it stopped, hurtbox out/in, net_idle, hide/show, a boarder never sleeps, enabled off); nettest checks a
+  guest's puppets sleep with the host's (Brinehollow's) and stand where the host's are. lifetest picks a walker near
+  the village. seatest's "water in her: she sits lower" fails on main too (0.16 m), not this.
