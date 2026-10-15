@@ -1677,3 +1677,27 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 ## 2026-10-15: rig drift fix (arms stretching until a re-equip)
 - Humanoid.reach_hand (two-bone IK: instruments, off-hand on rifle/axe/scabbard, swings) wrote the arm's global basis with a scale. Under a squashed pivot or non-uniform parent scale that left the arm a lasting local scale (the animator only sets rotations, and Ragdoll.add_part copied it as rest_scale, so knockdowns kept it). It now sets the arm's local rotation only.
 - Second source: Ragdoll.restore_rig left the ragdoll processing, so one more drive() that frame wrote global transforms over the restored rig (the hips came back 1.3 cm off after a get-up). restore_rig now stops the ragdoll first. Test: t/player/rig_drift (squashed body + reach_hand, instrument, sword swing, knockdown/get-up, in water).
+## 2026-10-15: stance and parry polish (v1.14)
+- Zach (after playing): twin daggers lower and wider; one dagger's off hand was up and looked weird (lower, out at
+  the side); dual swords too forward and upright (lower, blades down); the dual sword / dagger / twin dagger
+  blocks and parries were odd and boring.
+- Stances: `Humanoid.STANCE_LEGS` (stance -> standing thigh/shin offsets + hip drop, the drop worked out from the
+  thigh 0.42 / shin 0.46 so the feet stay down); "" and "fist" are the old values. Twin daggers: hips 0.22 down
+  (was 0.125), feet wider, chest leaning 0.28 (DUAL_GUARD). Dual swords: hips 0.165 down, `WieldMoves.dual_guard`
+  elbows in, right blade a little above level, left lower and out (was both blades up ~50 deg, arms out front).
+  One dagger: GUARD's off hand low and out at the side (arm_l 0.45/0.15/-0.45, fore 0.7). Speeds unchanged.
+- Blade aiming: `DaggerMoves.wrist_to(arm, fore, dir)` returns the wrist that points a blade along a chest-frame
+  direction (a reversed off-hand dagger takes -dir); `DaggerMoves.aim(pose)` turns a pose's "blade_r"/"blade_l"
+  into wrists. Hand x alone can only tilt a blade in the forearm's plane; blocks need sideways blades.
+- Blocks (`Humanoid._block_pose`, guard_block): dual swords an X in front of the face (`WieldMoves.DUAL_X`), one
+  dagger a catch by the face with the blade laid down along the forearm and the off hand bracing the wrist
+  (`DaggerMoves.BLOCK_ONE`), twin daggers wrists crossed low, blades flared out of the cross (`BLOCK_TWIN`).
+- Parries: `ActionSpecs.PARRIES` {stance: [parry pose, flourish]}; Humanoid "parry" plays the stance's pose
+  (dual: right blade slanted up across the front; one dagger: the catch snapped up; twin: twisted away, the left
+  blade along the forearm before the face, the right chambered at the hip). ParryState plays the flourish when a
+  parry lands (0.42 s, mirrored by play): dual sweeps the blow out to the right and drives the left blade in, one
+  dagger knocks it wide with the off hand shoving in, twin untwists, sweeping it out left with the right point
+  snapping in low. The parry window, recovery and block timing are unchanged.
+- Previews: ActionSpecs `*_stance` (the stance itself), `*_block` (the held block), `*_parry`, `*_deflect` per
+  style for animsheet. Renders: tools/dev/out/anim/v114_before_y{125,90,180,330}_* and v114_after_y*_*,
+  v114_after_walk_*. Tests: t/weapons, t/combat, daggertest, wieldtest.
