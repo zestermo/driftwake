@@ -23,7 +23,8 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 - **Levels and abilities:** even pacing, the skill-tree carousel with discovery and fog of war, weapon families,
   balance; new weapon kinds (polearms first) on the moveset template.
 - **Devil Fruits back:** polished to the weapons' level (own moves, effects and tree, the sea's weakness, co-op
-  rescues) and back in the world, before 2.0 (Zach, 2026-10-15).
+  rescues) and back in the world, before 2.0 (Zach, 2026-10-15). Design: docs/devil_fruits_plan.md (why not to eat
+  one, the Seafarer tree, saving fruit users from the sea).
 - **Effects:** the flipbook rollout across the game's FX, then hero passes.
 - **Polish:** whatever play-testing turns up.
 
