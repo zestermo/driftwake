@@ -139,6 +139,9 @@ func _process(_d: float) -> bool:
 			check("asleep, the host sends no snapshots (net_idle)", walker.net_idle and nest.spots[0]["bug"].net_idle and ship.net_idle)
 			check("past the hide range grunts, bugs and the villager are hidden", not walker.visible and not sitter.visible and not npc.visible and not nest.spots[0]["bug"].visible)
 			check("a sleeping ship stays in sight", ship.visible)
+			var c: Dictionary = root.get_node("Perf").counts()
+			print("   F8: enemies %d, awake %d" % [c["enemies"], c["awake"]])
+			check("the F8 overlay counts the sleepers in its enemies and not as awake", c["enemies"] >= 4 and c["enemies"] - c["awake"] >= 4)
 			for a in actors:
 				frozen[a] = _snap(a)
 			frozen["patrol"] = [walker._patrol_i, walker._patrol_wait]
@@ -163,6 +166,8 @@ func _process(_d: float) -> bool:
 			check("woken, the clocks pick up where they stopped (no fast-forward)", float(walker.st_t) - float(frozen[walker]["st_t"]) < 0.5)
 			check("woken, snapshots go out again", not walker.net_idle and not ship.net_idle)
 			check("the sitter is still seated", sitter.humanoid.seated)
+			var c: Dictionary = root.get_node("Perf").counts()
+			check("woken, the F8 overlay counts them awake", c["awake"] >= 4)
 			until = TK.wait_secs(3.0)
 		6:
 			check("woken, the hurtbox is back in the physics space", _hurtbox_found(walker))

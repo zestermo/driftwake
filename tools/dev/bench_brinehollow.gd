@@ -11,7 +11,9 @@ extends SceneTree
 ## Each frame is split by timeline marks: physics scripts (the scene's physics pass), physics engine
 ## (Jolt's step and sync), process scripts (the scene's process pass), rest (tweens, transforms, the draw, present).
 ## Args (after --): label=<name> hour=13 wx=clear|cloudy|rain|storm pix=1|0 size=1920x1080
-## warm=20 seed=4242 stops=beach,dock quick (base only) nosleep (ActorSleep off: far actors stay awake). Writes tools/dev/out/bench/brinehollow_<label>.txt.
+## warm=20 seed=4242 stops=beach,dock quick (base only) nosleep (ActorSleep off: far actors stay awake). Writes tools/dev/out/bench/brinehollow_<label>.txt
+## and a screenshot per stop (brinehollow_<label>_<stop>.png, after its settle); bench.ps1 keeps the whole log beside them.
+## Prints "bench: <stop> <phase>" as it goes, and a watchdog thread names the stop, phase and island build step if a frame stalls.
 ## Run it through tools/dev/bench.ps1 (a quiet machine); compare two with bench_compare.ps1.
 const OUT_DIR := "res://tools/dev/out/bench/"
 const ROUTE := ["beach", "plaza", "market", "quay", "dock", "den", "yard", "aboard"]
@@ -62,6 +64,10 @@ var creature_gd
 
 var mk := ""
 var mk_t := 0
+const STALL_S := 10.0
+var watchdog: Thread
+## The chain island step about to run this frame (named by the watchdog if the frame never ends).
+var building := ""
 var acc_phys_scr := 0.0
 var acc_phys_eng := 0.0
 var last_proc_scr := 0.0
@@ -95,7 +101,22 @@ func _initialize():
 	TK.use_seed(self, int(args.get("seed", str(TK.DEFAULT_SEED))))
 	RenderingServer.frame_pre_draw.connect(_mark.bind("pre_draw"))
 	RenderingServer.frame_post_draw.connect(_mark.bind("post_draw"))
+	watchdog = Thread.new()
+	watchdog.start(_watch)
 	change_scene_to_file("res://scenes/world/world.tscn")
+
+
+## A stalled main thread (no timeline mark for STALL_S) is named: the stop, the phase and the last mark.
+func _watch() -> void:
+	var told := false
+	while not done:
+		OS.delay_msec(1000)
+		var quiet := (Time.get_ticks_usec() - mk_t) / 1000000.0
+		if quiet > STALL_S and not told:
+			told = true
+			print("bench: STALL main thread quiet %.0f s after mark '%s' (t %.1f s, stop %s, phase %s; islands: %s)" % [quiet, mk, t, stops[si] if si >= 0 and si < stops.size() else "-", phase, building])
+		elif quiet < 1.0:
+			told = false
 
 
 func _process(d: float) -> bool:
@@ -104,6 +125,11 @@ func _process(d: float) -> bool:
 	_mark("proc")
 	t += d
 	var w = root.get_node_or_null("World/Islands")
+	if w != null and not w._finishing.is_empty():
+		var e: Array = w._finishing[w._finishing.keys()[0]]
+		building = "Isle%d step %d/%d '%s', %d preparing" % [w._finishing.keys()[0], e[2], e[1].size(), e[1][e[2]][0], w._pending.size()]
+	else:
+		building = "" if w == null else "nothing building, %d preparing" % w._pending.size()
 	if w == null or t < 2.5:
 		return false
 	if not started:
@@ -113,7 +139,8 @@ func _process(d: float) -> bool:
 	if si < 0:
 		if not w.chain_ready():
 			if t > 240.0:
-				push_error("bench: the chain islands never finished building")
+				# (seen with a stale import cache: the islands' worker tasks never finish and quitting waits on them forever)
+				push_error("bench: the chain islands never finished building (SCRIPT ERRORs above? the log is beside the results)")
 				done = true
 				quit(1)
 			return false
@@ -257,6 +284,7 @@ func _begin(i: int) -> void:
 	t0 = t
 	rec = {}
 	toggled = []
+	print("bench: %s %s (t %.1f s)" % [stops[si], phase, t])
 	if phase == "probe":
 		_probe_begin()
 	elif phase == "far":
@@ -296,6 +324,9 @@ func _step(d: float) -> void:
 		return
 	var r: Dictionary = results[stops[si]]
 	match phase:
+		"settle":
+			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
+			root.get_texture().get_image().save_png(OUT_DIR + "brinehollow_%s_%s.png" % [label, stops[si]])
 		"base":
 			r["base"] = _summarise()
 			all_frames.append_array(rec["frame"])
@@ -768,6 +799,7 @@ func _finish() -> void:
 	f.close()
 	print(text)
 	print("bench: wrote " + ProjectSettings.globalize_path(path))
+	watchdog.wait_to_finish()
 	quit()
 
 

@@ -179,6 +179,9 @@ try {
 	git -C $target merge --ff-only $Branch 2>&1 | ForEach-Object { "$_" } | Write-Host
 	if ($LASTEXITCODE -ne 0) { Fail "$Onto couldn't fast-forward (see git's message above). Nothing landed." }
 	Remove-Item (Join-Path $crew ("claims\" + ($Branch -replace "[\\/]", "_") + ".json")) -Force -ErrorAction SilentlyContinue
+	# (a class_name it brings: the target's runs outside the editor and the runners, the bench and the renders, need it imported)
+	Set-LandingStep $crew "importing $Onto"
+	Update-ImportCache $target $Godot
 } finally {
 	Exit-Landing $crew $lock
 }

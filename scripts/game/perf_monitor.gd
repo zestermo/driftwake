@@ -97,11 +97,15 @@ func gpu_ms() -> float:
 func counts() -> Dictionary:
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	var swimming := 0
+	var awake := 0
 	for e in enemies:
 		var h = e.get("humanoid")
 		if h and h.get("swimming"):
 			swimming += 1
-	return {"enemies": enemies.size(), "swimming": swimming,
+		# (asleep: ActorSleep's PROCESS_MODE_DISABLED or a creature's distance LOD)
+		if e.can_process() and e.is_physics_processing():
+			awake += 1
+	return {"enemies": enemies.size(), "awake": awake, "swimming": swimming,
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
 		"draws": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 		"prims": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
@@ -110,11 +114,11 @@ func counts() -> Dictionary:
 
 func _overlay_text() -> String:
 	var c := counts()
-	return "%d fps  %.1f ms\nprocess %.1f  physics %.1f\nrender cpu %.1f  gpu %.1f\ndraws %d  prims %dk\nnodes %d  enemies %d (%d swim)" % [
+	return "%d fps  %.1f ms\nprocess %.1f  physics %.1f\nrender cpu %.1f  gpu %.1f\ndraws %d  prims %dk\nnodes %d\nenemies %d awake / %d asleep (%d swim)" % [
 		Engine.get_frames_per_second(), 1000.0 / maxf(Engine.get_frames_per_second(), 1.0),
 		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 		RenderingServer.viewport_get_measured_render_time_cpu(get_viewport().get_viewport_rid()), gpu_ms(),
-		c["draws"], c["prims"] / 1000, c["nodes"], c["enemies"], c["swimming"]]
+		c["draws"], c["prims"] / 1000, c["nodes"], c["awake"], c["enemies"] - c["awake"], c["swimming"]]
 
 
 func _write_line() -> void:
@@ -125,10 +129,10 @@ func _write_line() -> void:
 	var s := frame_stats()
 	var c := counts()
 	var p := get_tree().get_first_node_in_group("player") as Node3D
-	_log.store_line("%6.1f min  fps %5.1f  1%%low %5.1f  worst %5.1f ms  hitches %d  process %.1f  physics %.1f  gpu %.1f  draws %d  nodes %d  enemies %d  swimming %d  loot %d  at %s" % [
+	_log.store_line("%6.1f min  fps %5.1f  1%%low %5.1f  worst %5.1f ms  hitches %d  process %.1f  physics %.1f  gpu %.1f  draws %d  nodes %d  enemies %d (%d awake)  swimming %d  loot %d  at %s" % [
 		_session_t / 60.0, s[0], s[1], s[2], _hitches,
 		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
-		gpu_ms(), c["draws"], c["nodes"], c["enemies"], c["swimming"], c["loot"],
+		gpu_ms(), c["draws"], c["nodes"], c["enemies"], c["awake"], c["swimming"], c["loot"],
 		"(%.0f, %.0f)" % [p.global_position.x, p.global_position.z] if p else "-"])
 	_log.flush()
 	_frames.clear()

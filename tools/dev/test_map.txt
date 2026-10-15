@@ -300,3 +300,4 @@ scripts/enemies/canopy_spitter.gd       t/world bugtest
 scripts/ship/enemy_ship.gd              t/world
 scripts/ship/cannon.gd                  t/world
 scripts/npc/npc.gd                      t/world
+scripts/game/perf_monitor.gd            t/world
