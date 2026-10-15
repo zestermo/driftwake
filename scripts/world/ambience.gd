@@ -17,7 +17,7 @@ class_name Ambience
 ## and pitch, and they surge when the bow drops into a swell (the slaps and the
 ## spray one-shots are the ship's, with its spray: ShipSpray).
 ##
-## Where the shore is: CoastProbe, a bearing a frame. The waves breaking on it in
+## Where the shore is: CoastProbe, a bearing every PROBE_EVERY s. The waves breaking on it in
 ## time with the swell are SeaSpray's (it reads `coast`).
 ##
 ## A themed island has its own bed (KitStyle "ambience": the jungle's insects and
@@ -35,6 +35,8 @@ const TOP_DB := {"shore": -8.5, "rock": -9.0, "far": -11.0, "lap": -13.0, "sea":
 	"gurgle": -13.0, "foam": -17.0, "slap": -16.0, "creak": -15.0, "spray": -15.0, "wind": -12.5, "rig": -12.5,
 	"under": -7.0, "jungle": -13.0}
 const ZONE_EVERY := 0.5
+## CoastProbe's next bearing every PROBE_EVERY s (a sweep of all 16 in ~1.1 s).
+const PROBE_EVERY := 0.07
 ## Under water: the buses' low-pass closes to this.
 const UNDER_HZ := 480.0
 
@@ -46,6 +48,7 @@ var _land_far := 0.0
 var _zone: Array = ["brinehollow", 0.0]
 var _bed := ""
 var _zone_t := 0.0
+var _probe_t := 0.0
 var _bow_y := INF
 var _surge := 0.0
 ## The wind's gusts (0..1 now): with the weather, more and stronger in a blow.
@@ -120,10 +123,13 @@ func _process(delta: float) -> void:
 	for k in LOOPS:
 		want[k] = 0.0
 	if me != null and me.is_inside_tree():
-		var ship := get_tree().get_first_node_in_group("ship") as CollisionObject3D
-		coast.tick(me.get_world_3d().direct_space_state, me.global_position, [ship.get_rid()] if ship else [])
-		_land_near = coast.land_near()
-		_land_far = coast.land_far()
+		_probe_t -= delta
+		if _probe_t <= 0.0:
+			_probe_t = PROBE_EVERY
+			var ship := get_tree().get_first_node_in_group("ship") as CollisionObject3D
+			coast.tick(me.get_world_3d().direct_space_state, me.global_position, [ship.get_rid()] if ship else [])
+			_land_near = coast.land_near()
+			_land_far = coast.land_far()
 		_zone_t -= delta
 		if _zone_t <= 0.0:
 			_zone_t = ZONE_EVERY
@@ -217,6 +223,8 @@ func _underwater(me: Node3D, want: Dictionary, delta: float) -> void:
 
 
 func _set_under(k: float) -> void:
+	if k == under:
+		return
 	under = k
 	for e in _lowpass:
 		var b: int = e[0]

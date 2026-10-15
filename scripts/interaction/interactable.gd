@@ -16,6 +16,11 @@ var reach_test: Callable
 var gesture: String = ""
 
 
+# Only the captain's InteractionComponent looks for interactables; their own monitoring is pure Jolt cost.
+func _init() -> void:
+	monitoring = false
+
+
 func interact(player: Player) -> void:
 	if enabled:
 		interacted.emit(player)

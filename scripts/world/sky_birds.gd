@@ -31,6 +31,8 @@ const CLOSE := 2.5
 const RUN := 4.5
 const SIZE := {GULL: 1.0, DARK: 1.7, PARROT: 0.65}
 const TOP_SPEED := {GULL: 11.0, DARK: 14.0, PARROT: 10.0}
+const UNSEEN_EVERY := 3
+const UNSEEN_BEHIND := 4.0
 
 enum { GULL, DARK, PARROT }
 enum { WHEEL, VEE, CIRCLE, TRAIL, PERCH, LAND, SCATTER, HOP, LEAVE }
@@ -46,6 +48,7 @@ var _scan_t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _t := 0.0
 var _runners := {}
+var _frame := 0
 
 
 func _ready() -> void:
@@ -115,18 +118,32 @@ func _process(delta: float) -> void:
 		_scan_t = 1.0
 		_scan(cam.global_position)
 	_watch_runners(delta)
+	_advance(delta)
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
 	var ship_xf: Transform3D = ship.get_global_transform_interpolated() if ship else Transform3D.IDENTITY
+	var at := cam.global_position
+	var fwd := -cam.global_basis.z
+	_frame += 1
 	var n := 0
-	for b in birds:
-		_fly(b, delta, cam.global_position, ship, ship_xf)
-		if b["gone"] or (b["pos"] as Vector3).distance_to(cam.global_position) > DRAW:
+	var any_dead := false
+	for i in range(birds.size()):
+		var b: Dictionary = birds[i]
+		b["acc"] = float(b["acc"]) + delta
+		var to: Vector3 = (b["pos"] as Vector3) - at
+		# behind the camera or past DRAW: flown every UNSEEN_EVERY frames, a turn each
+		if (to.dot(fwd) > -UNSEEN_BEHIND and to.length_squared() < DRAW * DRAW) or (i + _frame) % UNSEEN_EVERY == 0 or not b.has("xf"):
+			_fly(b, float(b["acc"]), at, ship, ship_xf)
+			b["acc"] = 0.0
+			b["xf"] = _xf(b)
+		any_dead = any_dead or b["dead"]
+		if b["gone"] or (b["pos"] as Vector3).distance_to(at) > DRAW:
 			continue
-		_mm.set_instance_transform(n, _xf(b))
+		_mm.set_instance_transform(n, b["xf"])
 		_mm.set_instance_custom_data(n, Color(b["wing"], b["fold"], b["paint"], 0.0))
 		n += 1
 	_mm.visible_instance_count = n
-	birds = birds.filter(func(b): return not b["dead"])
+	if any_dead:
+		birds = birds.filter(func(b): return not b["dead"])
 
 
 ## Birds drawn now (of `kind`, -1 any).
@@ -195,7 +212,7 @@ func _bird(kind: int, owner: String, mode: int, at: Vector3, rng: RandomNumberGe
 		"yaw": rng.randf() * TAU, "pitch": 0.0, "bank": 0.0, "wing": 0.0, "fold": 0.0, "flap": rng.randf() * TAU,
 		"seed": rng.randf() * 100.0, "keep": rng.randf() * 0.98, "out": true, "gone": false, "dead": false,
 		"paint": float(kind) if kind != PARROT else float(rng.randi_range(2, 5)), "call": rng.randf_range(3.0, 15.0),
-		"t": 0.0, "rest": rng.randf_range(5.0, 25.0), "perch": Vector3.INF, "perch_ship": false, "spot": -1}
+		"t": 0.0, "rest": rng.randf_range(5.0, 25.0), "perch": Vector3.INF, "perch_ship": false, "spot": -1, "acc": 0.0}
 	birds.append(b)
 	return b
 
@@ -499,10 +516,6 @@ func _advance(delta: float) -> void:
 				f["a"] = float(f["a"]) + float(f["w"]) * delta
 		elif b.has("w"):
 			b["a"] = float(b["a"]) + float(b["w"]) * delta
-
-
-func _physics_process(delta: float) -> void:
-	_advance(delta)
 
 
 func _wings(b: Dictionary, delta: float) -> void:

@@ -521,9 +521,13 @@ func _rig() -> Node:
 	return null
 
 
+func _notification(what: int) -> void:
+	# (GameMenu hides its root, not this: closed, nothing here runs)
+	if what == NOTIFICATION_VISIBILITY_CHANGED or what == NOTIFICATION_READY:
+		set_process(is_visible_in_tree())
+
+
 func _process(delta: float) -> void:
-	if not visible:
-		return
 	# keep the captain's eyes on the viewer while the world is paused
 	var pl := _player()
 	var cam := get_viewport().get_camera_3d()

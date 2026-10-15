@@ -90,6 +90,11 @@ var _sky_t: float = 0.0
 var _zone: Array = ["brinehollow", 0.0]
 var _zone_style: Dictionary = KitStyle.of("brinehollow")
 var _zone_t: float = 0.0
+const SLOW_EVERY := 0.1
+var _slow_t: float = 0.0
+var _flash_set: float = 0.0
+var _cloud_set: float = 0.0
+var _cloud_target: float = 0.0
 
 
 # --------------------------------------------------------------------------
@@ -276,6 +281,7 @@ func _attach(scene: Node) -> void:
 	_build_overlay()
 	_build_audio()
 	_last_strike = -1
+	_slow_t = 0.0
 
 
 func _detach() -> void:
@@ -328,6 +334,23 @@ func _process(delta: float) -> void:
 		_zone_t = 0.5
 		_zone = KitStyle.around(get_tree(), cam.global_position)
 		_zone_style = KitStyle.of(_zone[0])
+	_update_lightning(t, delta)
+	in_cloud = move_toward(in_cloud, _cloud_target, delta * 2.0)
+	_slow_t -= delta
+	if _slow_t <= 0.0 or flash != _flash_set or in_cloud != _cloud_set:
+		_slow_t = SLOW_EVERY
+		_flash_set = flash
+		_cloud_set = in_cloud
+		_update_slow(t)
+	_drift_sky(delta)
+	_update_rain(delta)
+	_update_rays()
+	_update_audio(delta)
+
+
+## The weather's blend, sun, sky, fog and 3D clouds: SLOW_EVERY s apart, every frame while a flash or the whiteout changes.
+func _update_slow(t: float) -> void:
+	var cam := get_viewport().get_camera_3d()
 	var p := _params_here(t)
 	coverage = p[0]
 	rain = p[1]
@@ -352,12 +375,8 @@ func _process(delta: float) -> void:
 	if oc:
 		oc.set("amp_mult", waves)
 	_update_sun(hour())
-	_update_lightning(t, delta)
 	_update_clouds()
 	_update_env()
-	_update_rain(delta)
-	_update_rays()
-	_update_audio(delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -465,7 +484,6 @@ func _update_env() -> void:
 		_sky_mat.set_shader_parameter("coverage", coverage)
 		_sky_mat.set_shader_parameter("storm", storm)
 		_sky_mat.set_shader_parameter("flash", flash)
-		_sky_mat.set_shader_parameter("cloud_time", _sky_t)
 		_sky_mat.set_shader_parameter("fog_color", fog_color)
 		_sky_mat.set_shader_parameter("haze_height", haze_height)
 		var lit := Color(0.92, 0.93, 0.95).lerp(_sun_col, 0.3).lerp(Color(0.2, 0.22, 0.3), night * 0.85) * clampf(_sun_e / 1.2, 0.55, 1.0)
@@ -493,13 +511,6 @@ func _update_env() -> void:
 		haze_height = lerpf(lerpf(0.09, 0.3, fog), 1.6, in_cloud)
 		RenderingServer.global_shader_parameter_set("sky_haze", Vector4(fogc.r, fogc.g, fogc.b, haze_height))
 		RenderingServer.global_shader_parameter_set("fog_range", Vector2(begin, end))
-	# cloud shadows (shaders/world/cloud_shadow.gdshaderinc): the global the
-	# terrain and ocean read
-	var wd := wind_dir() * (3.0 + wind * 9.0)
-	_shadow_drift += wd * get_process_delta_time()
-	var strength := 0.4 * (1.0 - night) * (1.0 - storm * 0.6) * (1.0 - in_cloud)
-	cloud_shadow = Vector4(clampf(coverage * 0.75, 0.0, 0.85), strength if _env else 0.0, _shadow_drift.x, _shadow_drift.y)
-	RenderingServer.global_shader_parameter_set("cloud_shadow", cloud_shadow)
 	if _ocean_mat:
 		var dk := 1.0 - storm * 0.35
 		var dc := Color(_base_deep.r * dk, _base_deep.g * dk, _base_deep.b * dk * 1.02, _base_deep.a)
@@ -513,10 +524,22 @@ func _update_env() -> void:
 		_overlay.visible = in_cloud > 0.01
 
 
+## Every frame: the sky's clouds and the cloud shadows on the ground and sea (shaders/world/cloud_shadow.gdshaderinc) drift.
+func _drift_sky(delta: float) -> void:
+	if _sky_mat:
+		_sky_mat.set_shader_parameter("cloud_time", _sky_t)
+	var wd := wind_dir() * (3.0 + wind * 9.0)
+	_shadow_drift += wd * delta
+	var strength := 0.4 * (1.0 - night) * (1.0 - storm * 0.6) * (1.0 - in_cloud)
+	cloud_shadow = Vector4(clampf(coverage * 0.75, 0.0, 0.85), strength if _env else 0.0, _shadow_drift.x, _shadow_drift.y)
+	RenderingServer.global_shader_parameter_set("cloud_shadow", cloud_shadow)
+
+
 func _update_clouds() -> void:
 	var cam := get_viewport().get_camera_3d()
 	if _clouds == null or not is_instance_valid(_clouds):
 		in_cloud = 0.0
+		_cloud_target = 0.0
 		return
 	_clouds.set("coverage", coverage)
 	_clouds.set("storm", storm)
@@ -528,10 +551,9 @@ func _update_clouds() -> void:
 	var lit := Color(1, 1, 1).lerp(_sun_col, 0.3).lerp(Color(0.24, 0.26, 0.36), night * 0.85)
 	_clouds.set("lit_color", lit.lerp(Color(0.48, 0.5, 0.55), storm * 0.75))
 	_clouds.set("shade_color", (_amb * 1.05).lerp(Color(0.22, 0.23, 0.27), storm * 0.8).lerp(Color(0.08, 0.09, 0.14), night * 0.6))
-	var target := 0.0
+	_cloud_target = 0.0
 	if cam and _clouds.has_method("density_at"):
-		target = float(_clouds.density_at(cam.global_position))
-	in_cloud = move_toward(in_cloud, target, get_process_delta_time() * 2.0)
+		_cloud_target = float(_clouds.density_at(cam.global_position))
 
 
 # --------------------------------------------------------------------------

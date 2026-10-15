@@ -15,6 +15,7 @@ const PUDDLES := 48
 ## Rain soaks the ground fully in WET_TIME s of heavy rain and it dries in DRY_TIME s (as on deck).
 const WET_TIME := 50.0
 const DRY_TIME := 160.0
+const PUDDLE_EVERY := 0.25
 
 ## How soaked the ground is (0..1).
 var wet := 0.0
@@ -28,6 +29,9 @@ var _sea := {}
 var _puddle_mm: MultiMesh
 ## cell -> [ground point, normal ok] (or [] where there's no puddle)
 var _cells := {}
+var _puddle_at := Vector3i(1 << 30, 0, 0)
+var _puddle_t := 0.0
+var _puddle_pending := false
 var _rng := RandomNumberGenerator.new()
 
 
@@ -176,7 +180,7 @@ func _process(delta: float) -> void:
 	_field.visible = rain > 0.02
 	_field.global_position = Vector3(snappedf(c.x, 1.0), snappedf(c.y, 1.0) + 6.0, snappedf(c.z, 1.0))
 	_water_pocks(delta, c, rain * (1.0 - shelter * 0.9))
-	_puddles(c)
+	_puddles(c, delta)
 
 
 # --------------------------------------------------------------------------
@@ -193,9 +197,13 @@ func _water_pocks(delta: float, c: Vector3, amt: float) -> void:
 		if _is_sea(x, z):
 			_pocks.append([x, z, 0.0])
 	_pock_acc = minf(_pock_acc, 4.0)
+	var keep := 0
 	for p in _pocks:
 		p[2] = float(p[2]) + delta
-	_pocks = _pocks.filter(func(p): return float(p[2]) < 0.4)
+		if float(p[2]) < 0.4:
+			_pocks[keep] = p
+			keep += 1
+	_pocks.resize(keep)
 	_pock_mm.visible_instance_count = _pocks.size()
 	for i in range(_pocks.size()):
 		var p: Array = _pocks[i]
@@ -226,7 +234,7 @@ func _is_sea(x: float, z: float) -> bool:
 # --------------------------------------------------------------------------
 ## Each 7 m cell near the camera may hold a puddle (decided by the cell, so they
 ## stay put): flat ground open to the sky, not the ship (she has her own).
-func _puddles(c: Vector3) -> void:
+func _puddles(c: Vector3, delta: float) -> void:
 	if wet <= 0.01:
 		_puddle_mm.visible_instance_count = 0
 		return
@@ -234,6 +242,14 @@ func _puddles(c: Vector3) -> void:
 	var reach := ceili(PUDDLE_R / PUDDLE_CELL)
 	var cx := floori(c.x / PUDDLE_CELL)
 	var cz := floori(c.z / PUDDLE_CELL)
+	# (laid out again when the camera moves a metre, cells are still to be judged, or the wet has grown a little)
+	var at := Vector3i(roundi(c.x), roundi(c.z), 0)
+	_puddle_t -= delta
+	if at == _puddle_at and not _puddle_pending and _puddle_t > 0.0:
+		return
+	_puddle_at = at
+	_puddle_t = PUDDLE_EVERY
+	_puddle_pending = false
 	var looked := 0
 	for dz in range(-reach, reach + 1):
 		for dx in range(-reach, reach + 1):
@@ -243,6 +259,7 @@ func _puddles(c: Vector3) -> void:
 			if not _cells.has(key):
 				# (a few new cells a frame)
 				if looked >= 6:
+					_puddle_pending = true
 					continue
 				looked += 1
 				_cells[key] = _cell(key)

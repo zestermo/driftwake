@@ -19,6 +19,8 @@ const BREAK_HEARD := 55.0
 const FOAM := 40
 const FOAM_NEAR := Vector2(6.0, 55.0)
 const DRIFTS := 5
+## The coasts are watched for an arriving crest every SURF_EVERY s.
+const SURF_EVERY := 0.06
 
 var _mm: MultiMesh
 var _streaks: Array = []   # [pos, dir, len, age, life, speed, width]
@@ -28,6 +30,7 @@ var _rng := RandomNumberGenerator.new()
 ## coast water point (rounded) -> [wave height last frame, cooldown]
 var _breaks := {}
 var _break_gap := 0.0
+var _surf_acc := 0.0
 ## Waves broken so far, by kind (tests).
 var breaks := {"beach": 0, "rock": 0, "wall": 0}
 var _foam_mm: MultiMesh
@@ -166,8 +169,10 @@ func _process(delta: float) -> void:
 			_crest_spray(cam, wdir, caps, wind)
 	_spindrift(delta, cam, wdir, caps, wind, storm, gust)
 	_drift_foam(delta, cam, wdir, wind, caps, inland, ship)
-	if amb:
-		_surf(delta, cam, amb.get("coast"))
+	_surf_acc += delta
+	if amb and _surf_acc >= SURF_EVERY:
+		_surf(_surf_acc, cam, amb.get("coast"))
+		_surf_acc = 0.0
 
 
 # --------------------------------------------------------------------------
@@ -190,10 +195,14 @@ func _spawn_streaks(delta: float, cam: Camera3D, strength: float, dir: Vector3, 
 
 
 func _update_streaks(delta: float) -> void:
+	var keep := 0
 	for s in _streaks:
 		s[3] = float(s[3]) + delta
 		s[0] = (s[0] as Vector3) + (s[1] as Vector3) * float(s[5]) * delta
-	_streaks = _streaks.filter(func(s): return float(s[3]) < float(s[4]))
+		if float(s[3]) < float(s[4]):
+			_streaks[keep] = s
+			keep += 1
+	_streaks.resize(keep)
 
 
 func _draw(cam: Camera3D) -> void:
@@ -281,11 +290,15 @@ func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: 
 	_foam_acc = minf(_foam_acc, 2.0)
 	var v := wdir * (0.3 + wind * 0.8) * delta
 	var c := Vector2(cam.global_position.x, cam.global_position.z)
+	var keep := 0
 	for f in _foam:
 		f[0] = float(f[0]) + v.x
 		f[1] = float(f[1]) + v.z
 		f[2] = float(f[2]) + delta
-	_foam = _foam.filter(func(f): return float(f[2]) < float(f[3]) and c.distance_to(Vector2(f[0], f[1])) < FOAM_NEAR.y + 10.0)
+		if float(f[2]) < float(f[3]) and c.distance_to(Vector2(f[0], f[1])) < FOAM_NEAR.y + 10.0:
+			_foam[keep] = f
+			keep += 1
+	_foam.resize(keep)
 	_draw_foam()
 
 

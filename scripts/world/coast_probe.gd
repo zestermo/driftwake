@@ -24,10 +24,12 @@ var land_90 := PackedByteArray()
 ## The ground under the centre itself is under the sea (a pier, a ship, swimming).
 var over_water := false
 var _next := 0
+var _q := PhysicsRayQueryParameters3D.new()
 static var _kinds := {}
 
 
 func _init() -> void:
+	_q.collision_mask = 1
 	coasts.resize(DIRS)
 	for i in range(DIRS):
 		coasts[i] = []
@@ -95,16 +97,18 @@ func all() -> Array:
 
 ## [land, hit] straight down at `p` (through anything wooden).
 func _sample(space: PhysicsDirectSpaceState3D, p: Vector3, skip: Array) -> Array:
-	var ex := skip.duplicate()
+	_q.from = Vector3(p.x, 81.5, p.z)
+	_q.to = Vector3(p.x, -40.0, p.z)
+	_q.exclude = skip
+	var ex := skip
 	for _i in range(4):
-		var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, 81.5, p.z), Vector3(p.x, -40.0, p.z), 1)
-		q.exclude = ex
-		var hit := space.intersect_ray(q)
+		var hit := space.intersect_ray(_q)
 		if hit.is_empty():
 			return [false, hit]
 		var col := hit["collider"] as CollisionObject3D
 		if col != null and _kind_of(col) == "wood":
-			ex.append(col.get_rid())
+			ex = ex + [col.get_rid()]
+			_q.exclude = ex
 			continue
 		return [(hit["position"] as Vector3).y > LAND_Y, hit]
 	return [false, {}]

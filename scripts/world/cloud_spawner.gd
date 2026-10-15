@@ -127,7 +127,7 @@ func density_at(pos: Vector3) -> float:
 
 ## The sorted buffer is rebuilt REBUILD times a second; in between the layer
 ## just slides with the wind (far, slow clouds: nobody sees the difference).
-const REBUILD := 0.05
+const REBUILD := 0.15
 var _rebuild_t: float = 0.0
 var _drift_built := Vector3.ZERO
 

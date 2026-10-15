@@ -4,6 +4,15 @@ class_name Hurtbox
 signal hit_received(hit_data: HitData, attacker: Node)
 
 
+# Hitboxes and projectiles find hurtboxes; a hurtbox only needs to be found, and a monitoring area costs Jolt every tick.
+func _init() -> void:
+	monitoring = false
+
+
+func _ready() -> void:
+	collision_mask = 0
+
+
 func take_hit(data: HitData, attacker: Node) -> void:
 	attacker = Duel.blame(owner, attacker)
 	# co-op: another machine's captain, or (on a client) an enemy the host

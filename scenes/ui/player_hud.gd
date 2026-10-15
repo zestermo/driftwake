@@ -29,6 +29,7 @@ var _skill_bar: SkillBar
 var _reticle: Reticle
 const SHOOT_STATE := preload("res://scripts/player_states/shoot_state.gd")
 var _fps: Label
+var _clock_t := 0.0
 var _in_dialogue: bool = false
 const OBJECTIVE := preload("res://scripts/ui/objective_hud.gd")
 var _objective: Control
@@ -130,13 +131,16 @@ func _process(delta: float) -> void:
 	var show_bar: bool = not _in_dialogue and player != null and player.context == Player.Context.ON_FOOT and player.current_state_name() != "Wake"
 	_skill_bar.visible = show_bar and not _menu_open
 	toast.visible = true
-	_fps.visible = true
-	var wx := get_node_or_null("/root/Weather")
-	var clock := str(wx.clock_text()) if wx and wx.get("_scene") != null else ""
-	if Settings.get_value("video", "show_fps"):
-		_fps.text = "%d FPS\n%s" % [Engine.get_frames_per_second(), clock]
-	else:
-		_fps.text = clock
+	# (the clock moves a minute a second, the FPS once a second)
+	_clock_t -= delta
+	if _clock_t <= 0.0:
+		_clock_t = 0.25
+		var wx := get_node_or_null("/root/Weather")
+		var clock := str(wx.clock_text()) if wx and wx.get("_scene") != null else ""
+		if Settings.get_value("video", "show_fps"):
+			_fps.text = "%d FPS\n%s" % [Engine.get_frames_per_second(), clock]
+		else:
+			_fps.text = clock
 	_fps.visible = _fps.text != "" and not _menu_open
 	if state_label.visible and player and player.state_machine and player.state_machine.current_state:
 		state_label.text = player.state_machine.current_state.name
