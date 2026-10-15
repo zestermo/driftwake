@@ -350,6 +350,7 @@ func _process(d: float) -> bool:
 					grell = g
 				else:
 					g.process_mode = Node.PROCESS_MODE_DISABLED
+			grell.hold = []
 			grell.alert()
 			_grell_setup()
 			step = 50

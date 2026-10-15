@@ -1987,3 +1987,43 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   `shoreprobe` (render tool): the shader's own wave code read back on 64x64 grids at four coast spots vs the CPU:
   worst 3.5 mm. r9test's storm sea point moved off the den (it stood on land). isletest/chaintest/yardtest read the
   new API. Renders: tools/dev/out/shorea_* (after) vs main's tools/dev/out/shoreb_* (before).
+## 2026-10-15: Grell's den, a path cut into the cliff (v1.15)
+- Zach (reference photo: a ledge path cut into a mossy cliff, a short tunnel, a cable railing, red earth, a drop): the
+  slabs sticking out of the sand are gone; the way up is a path cut into the den's sea cliffs, longer and harder.
+- `KitCliffPath` (scripts/island/kit/kit_cliff_path.gd), laid out on bearings round DEN from `StarterIsland.DEN_PATH`:
+  keys [bearing, radius, floor, half width, headroom, overhang], gaps, the cave, the bridge, the cleft, rails. From the
+  beach south of the den (106 deg) clockwise round the west face to a cleft up onto the top (236 deg): ~80 m of shelf
+  plus the cleft. One rock mass as a distance field: the cliff band behind the path (leaning out over it where
+  `overhang` > 0, its top falling back into the land), the shelf under it (a corbel under the floor, gaps cut through
+  with undercut lips), a buttress round the cave room (CaveMesher's hull formula) and the cleft's walls; the room,
+  the two short tunnels and the cleft hollowed out. Meshed by surface nets at 1 m on a WorkerThreadPool task started
+  right after the heights (~1.4 s there; the den step waits ~0.2 s for it). Facets by kind: red-earth path, turf,
+  moss, rock; the cave's walls and floor darker, no shadows. The collider is the trimesh plus a thin box under every
+  ~1.2 m of floor, so the lips are exact where you jump.
+- Gaps (run jump ~4.3 m flat, sprint ~6.4, double jump adds ~3): 2.3 m (+0.8, over the sand), 2.9 (+0.6), 4.4
+  (level, sprint), 3.5 (+0.5), 3.8 (+0.6), then the broken bridge (9.5 m) and its chain. Every gap past 124 deg
+  drops to the sea (the terrain under the shelf is cut down to -6.5); from the water swim back round to the beach.
+  Headroom over every lip is >= 4.2 m (an overhang at a lip cut the jump short: found by the test).
+- The cave: a room (r 6, 6 m high) in a buttress out over the sea, 5 small scuttlebugs, a cave brute
+  (`Scuttlebug.brute`: 1.9x, 110 hp, slate shell, longer rear-up, 24 dmg ram; only a >= 30 dmg knockdown throws it;
+  200 XP; no boss bar), 3 spitters on threads from the roof, stalactites (tips >= 3.4 m up) and stalagmites (off the
+  way through, colliders on the big ones), lichen and fungus, one always-on light (from the budget). Nest
+  `DenCaveBugs`, back after 180 s.
+- The broken bridge: posts at both lips, its two chains still slung across with a crossbeam, deck planks hanging off
+  the lips, a red rag on the swing chain's ring. `ChainSwing` (scripts/interaction/chain_swing.gd, a SwingRope): F
+  at the lip ("Grab the chain"), or jump into it and it catches you; SwingState's rope mode swings you; let go with
+  jump or ride it until your feet find the far side. Another captain's swing pulls the chain on your screen.
+- The sea ladder from Grell's pier (`Ladder.lock_flag`): rolled up at the hoist until world flag "den_ladder" is set
+  (a `WorldLatch` on the plateau: any captain within 21 m of the fire), then it unrolls. World flags are new:
+  `GameManager.world_flags`, saved ("world_flags", a guest keeps its own), set for everyone by `Net.world_flag`, in
+  the world state a joining guest gets.
+- Grell: `PirateGrunt.hold` [centre, radius] (KitCamps.den `hold_r`, 6.5 m round the fire): deaf to the crew's alarm
+  and blind to captains until one is in the circle (any captain: the host checks Net.all_players) or he's hit; then let
+  go for good. His crew fights as before.
+- Brinehollow elsewhere stays the same: the plants grow from the ground as it was before the path was cut in
+  (`_land_heights` during the scan, so every rng draw is what it was) and are left out where the path changed the
+  land (`covers`); the old climb's reserves are kept for the same reason. islanddump diff: only the den area (terrain
+  mesh, the coast rock chunks round the den, the plants and colliders there, the den's nodes).
+- Story: the marker leads to the path's foot (a trail along the beach from the old one), then the cleft's top, then
+  the den. storytest no longer drives the old climb (denpathtest drives the path).
+- Tests: denpathtest (new). Renders: tools/dev/out/denpath/.

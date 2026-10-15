@@ -312,8 +312,21 @@ func rock(x: float, y: float, z: float) -> float:
 	var v := _band(x, y, z)
 	var o := _outer(x, y, z)
 	if o < 8.0:
-		v = _smin(v, o, 1.5)
+		v = maxf(_smin(v, o, 1.5), -_gallery(x, y, z))
 	return maxf(v, -_cav(x, y, z, false))
+
+
+## Inside the path's way (< 0): over its floor (and its gaps) to its headroom, from the cliff
+## face out to sea, outside the cave. Kept clear of the cleft's walls (they arch over it).
+func _gallery(x: float, y: float, z: float) -> float:
+	var th := bearing(Vector2(x, z))
+	var tunnels: Array = cave["tunnels"]
+	if th < th0 or th > th1 or (th > float(tunnels[0][0]) and th < float(tunnels[tunnels.size() - 1][1])):
+		return 50.0
+	var hw := half_at(th)
+	var yf := floor_at(th)
+	var u := Vector2(x, z).distance_to(c) - radius_at(th)
+	return maxf(maxf(-hw - 0.25 - u, u - hw - 8.0), maxf(yf - y, y - yf - _lk(_h, th)))
 
 
 ## The cliff band (the face behind the path, leaning out over it in places, its top
@@ -647,13 +660,16 @@ func _kind(m: Vector3, n: Vector3) -> String:
 		return "turf"
 	if n.y > 0.4 and patch > -0.45 and m.y > 0.5:
 		return "moss"
+	# (moss down the faces too, in streaks: the reference's wet green cliff)
+	if n.y > -0.3 and m.y > 1.2 and _crag.get_noise_3d(m.x * 1.4, m.y * 0.45, m.z * 1.4) > 0.12:
+		return "moss"
 	return "rock"
 
 
 # ==========================================================================
 # The nodes (main thread)
 # ==========================================================================
-const LOOK := {"rock": ["rock", Coast.TINT], "moss": ["rock", Color(0.56, 0.7, 0.42)], "turf": ["grass", Color(0.8, 0.95, 0.7)],
+const LOOK := {"rock": ["rock", Color(0.9, 0.86, 0.8)], "moss": ["rock", Color(0.58, 0.74, 0.42)], "turf": ["grass", Color(0.8, 0.95, 0.7)],
 	"path": ["dirt", Color(0.98, 0.62, 0.46)], "cave": ["rock", Color(0.6, 0.57, 0.53)], "cave_floor": ["dirt", Color(0.72, 0.62, 0.54)]}
 const CAVE_LIGHT := Color(0.62, 1.0, 0.82)
 

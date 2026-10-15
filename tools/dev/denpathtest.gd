@@ -75,8 +75,6 @@ func _drive(dt: float) -> bool:
 	var to := aim - at
 	_rig().global_rotation.y = atan2(-to.x, -to.z)
 	var st: String = p.current_state_name()
-	if OS.get_environment("DPT_DEBUG") != "":
-		print("  drive t%.2f %s floor%s at%s to_lip%.2f vel%s" % [drive["t"], st, p.is_on_floor(), _l(at), (lip - at).dot(dir), p.velocity])
 	if not drive["jumped"]:
 		if p.is_on_floor() and (lip - at).dot(dir) < float(drive.get("jump_at", 0.3)):
 			TK.press("jump")
@@ -318,6 +316,8 @@ func _process(dt: float) -> bool:
 			_rig().global_rotation.y = atan2(-to.x, -to.z)
 			if Vector2(to.x, to.z).length() < 3.0 and int(drive["i"]) < swim_pts.size() - 1:
 				drive["i"] = int(drive["i"]) + 1
+			if int(float(drive["t"]) / 3.0) != int((float(drive["t"]) - dt) / 3.0):
+				print("   swimming %.0f s: at %s (%s), for point %d" % [drive["t"], _l(p.global_position), p.current_state_name(), drive["i"]])
 			var ashore: bool = p.current_state_name() != "Swim" and p.is_on_floor() and _l(p.global_position).y > 0.4
 			if not (ashore and int(drive["i"]) == swim_pts.size() - 1) and float(drive["t"]) < 45.0:
 				return false
