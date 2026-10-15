@@ -625,7 +625,13 @@ function Get-JobFailure($job) {
 }
 
 function Stop-GodotJob($job) {
-	if (-not $job.Proc.HasExited) { if ($IsLinux) { $job.Proc.Kill($true) } else { & taskkill /T /F /PID $job.Proc.Id 2>&1 | Out-Null } }
+	if (-not $job.Proc.HasExited) {
+		if ($IsLinux) { $job.Proc.Kill($true) }
+		else {
+			$out = & taskkill /T /F /PID $job.Proc.Id 2>&1
+			if ($LASTEXITCODE -ne 0 -and -not $job.Proc.HasExited) { throw "taskkill failed for pid $($job.Proc.Id) (exit $LASTEXITCODE): $out" }
+		}
+	}
 	$job.Proc.WaitForExit(5000) | Out-Null
 }
 

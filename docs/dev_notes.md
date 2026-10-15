@@ -1668,3 +1668,8 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   now 8 m, on the beach.
 - Duels: Duel.beaten(p, dmg) no longer needs the attacker: any lethal damage to a fighting duelist (a sourceless
   bleed/burn tick, a fall) is "downed, not dead". Test: t/coop/duel_bleed.
+- Test-infra fixes (with `--fixed-fps 60`, frame delta runs ahead of wall time): savetest's 60 s "world loaded" wait now
+  counts wall time (the loader thread and scene build take wall seconds, 60+ under load; game itself unaffected, the
+  loading screen polls the thread per frame with no timeout). progtest's second pistol shot waits for the first
+  Shoot state to end before the buffered input is consumed (InputBuffer's 0.15 s window is wall time). Stop-GodotJob
+  ignores a taskkill failure only if the process had already exited, otherwise throws.

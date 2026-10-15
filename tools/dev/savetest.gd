@@ -9,6 +9,7 @@ var SG
 var lv_saved := 0
 var was = null
 var seen_at := -1
+var wall0 := 0
 
 
 func check(c: bool, msg: String) -> void:
@@ -41,6 +42,7 @@ func wait(secs: float) -> bool:
 func next() -> void:
 	step += 1
 	t0 = t
+	wall0 = Time.get_ticks_msec()
 	was = player()
 	seen_at = -1
 
@@ -50,7 +52,8 @@ func next() -> void:
 func world_ready() -> bool:
 	var p = player()
 	if p == null or p == was:
-		return wait(60.0)
+		# wall clock: --fixed-fps makes the frame delta run ahead of the loader's thread
+		return Time.get_ticks_msec() - wall0 >= 60000
 	if seen_at < 0:
 		seen_at = Engine.get_process_frames()
 	return Engine.get_process_frames() - seen_at >= 5

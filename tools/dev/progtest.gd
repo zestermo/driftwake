@@ -252,7 +252,7 @@ func _process(d: float) -> bool:
 			v0 = g.health.current_health
 			set_meta("ammo", p.ammo[0])
 			attack("light_attack")
-			wait = 0.25
+			wait = 0.5
 			step += 1
 		14:
 			print("   shot dist ", snappedf((g.global_position - p.global_position).length(), 0.01), " gstate ", g.state, " cam fwd ", -root.get_viewport().get_camera_3d().global_basis.z)
@@ -277,7 +277,7 @@ func _process(d: float) -> bool:
 			step += 1
 		15:
 			check("a shot with the crosshair off the enemy misses", g.health.current_health == float(get_meta("hp1")))
-			check("empty pistol reloads", p.reloading() or p.ammo[0] == p.max_ammo())
+			check("empty pistol reloads",p.reloading() or p.ammo[0] == p.max_ammo())
 			p.inventory_component.add_item(item("pistol"), 1)
 			check("second pistol = dual pistols", p.style() == "dual_pistol")
 			wait = 1.8
