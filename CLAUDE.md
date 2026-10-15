@@ -133,8 +133,9 @@ described here (Zach's choice). Tests are how agents prove their work before it 
 
 ## Parallel sessions (one worktree each)
 
-**At most 3 agents/sessions at a time** (Zach, 2026-10-12): more burned usage, caused constant conflicts in
-the shared files and took longer overall. Finish and merge before starting more. For a batch of features:
+**More than 3 agents is fine when they're isolated** (Zach, 2026-10-15; was "at most 3" since 2026-10-12): each in
+its own worktree, in separate areas/files. The landing queue lands one at a time and the test slots are shared
+machine-wide, so runs queue instead of piling up. Two agents in the same files still go one after the other. Finish and merge before starting more. For a batch of features:
 build them (each agent runs only its own suites), merge them all with a compile check and the smoke test (`land.ps1 -NoTests`),
 then one full test run and one bug-fix pass on main, with known bugs from the agents' reports listed first.
 
@@ -143,7 +144,7 @@ then one full test run and one bug-fix pass on main, with known bugs from the ag
    start only once it's clear. A red main makes every agent stop to ask "is this mine?" and land with `-NoTests`.
 2. **No test or tooling changes during a feature batch** (runner flags, test kit, crew/landing scripts, CI). Do them
    in their own quiet window with no feature agents running, then a full run, before the next batch.
-3. **Parallel only across separate areas** (at most 3): two features in the same system (two combat features, two
+3. **Parallel only across separate areas**: two features in the same system (two combat features, two
    island features) go one after the other.
 4. **Small features, landed in pieces:** each agent lands its first coherent piece early, so problems show up in
    minutes, not after two hours.
