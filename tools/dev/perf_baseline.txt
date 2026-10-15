@@ -1,7 +1,7 @@
 # Driftwake performance baseline: tools/dev/perf_gate.ps1 compares a release with it, -Update rewrites it.
 # Brinehollow bench (bench_brinehollow.gd gate: base + probe), per stop the best of 2 runs; ms; ALL = the mean of the stops.
 # Target: ALL frame <= ~10 ms on this laptop keeps the min-spec PC (Ryzen 5 5600G + RTX 3080) at 60 fps in Brinehollow.
-commit 9ee434f4fa0918cce7dbbb4d67d8f12b22f50879
+commit 8e7fe774b3a3206ab78d66637df9eeb8c5062212
 taken 2026-10-15 16:10  runs 2
 machine Intel(R) Core(TM) i7-14700HX | NVIDIA GeForce RTX 4060 Laptop GPU | d3d12
 calib 23.65
