@@ -124,7 +124,7 @@ func _process(d: float) -> bool:
 			step = 6
 		6:
 			check("forcing a storm: storm weather", w.state == 3 and w.storm > 0.95)
-			check("...rough seas", oc.amp_mult > 1.7 and absf(oc.get_wave_height(Vector3(3, 0, 7), 10.0) / 1.8) > 0.0)
+			check("...rough seas", oc.amp_mult > 1.7 and absf(oc.get_wave_height(Vector3(-400, 0, 7), 10.0) / 1.8) > 0.0)
 			check("...rain falls", w._rain.emitting and w._rain.amount_ratio > 0.5)
 			check("...the fog closes in", current_scene.get_node("WorldEnvironment").environment.fog_depth_end < 300.0)
 			check("...the clouds come down and darken", current_scene.get_node("Clouds").storm > 0.95)

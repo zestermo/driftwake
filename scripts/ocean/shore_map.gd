@@ -92,12 +92,18 @@ func sample(x: float, z: float) -> Vector4:
 	var x1 := clampi(ix + 1, 0, n - 1) * 4
 	var r0 := clampi(iz, 0, n - 1) * n * 4
 	var r1 := clampi(iz + 1, 0, n - 1) * n * 4
-	var out := Vector4()
-	for c in range(4):
-		var a := lerpf(data[r0 + x0 + c], data[r0 + x1 + c], tx)
-		var b := lerpf(data[r1 + x0 + c], data[r1 + x1 + c], tx)
-		out[c] = lerpf(a, b, tz)
-	return out
+	var a := r0 + x0
+	var b := r0 + x1
+	var c := r1 + x0
+	var e := r1 + x1
+	var w00 := (1.0 - tx) * (1.0 - tz)
+	var w10 := tx * (1.0 - tz)
+	var w01 := (1.0 - tx) * tz
+	var w11 := tx * tz
+	return Vector4(data[a] * w00 + data[b] * w10 + data[c] * w01 + data[e] * w11,
+		data[a + 1] * w00 + data[b + 1] * w10 + data[c + 1] * w01 + data[e + 1] * w11,
+		data[a + 2] * w00 + data[b + 2] * w10 + data[c + 2] * w01 + data[e + 2] * w11,
+		data[a + 3] * w00 + data[b + 3] * w10 + data[c + 3] * w01 + data[e + 3] * w11)
 
 
 func _bake(heights: PackedFloat32Array, swell: Vector2) -> void:

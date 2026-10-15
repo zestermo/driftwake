@@ -171,6 +171,19 @@ func _process(d: float) -> bool:
 					seam = maxf(seam, absf(hm - oc.get_wave_height(Vector3(q.x, 0.0, q.y), 300.0)))
 					oc._shore_list = oc.shores.values()
 			check("at its map's edge the sea is the open swell (%.5f m apart)" % seam, seam < 0.0005)
+			# what a wave height costs now (the game asks for hundreds a frame)
+			var cost := []
+			for q in [P, sc + Vector2(2000.0, 0.0)]:
+				var t1 := Time.get_ticks_usec()
+				for i in range(5000):
+					oc.get_wave_height(Vector3(q.x, 0.0, q.y), 100.0 + i * 0.01)
+				cost.append(float(Time.get_ticks_usec() - t1) / 5000.0)
+			oc._shore_list = []
+			var t2 := Time.get_ticks_usec()
+			for i in range(5000):
+				oc.get_wave_height(Vector3(P.x, 0.0, P.y), 100.0 + i * 0.01)
+			oc._shore_list = oc.shores.values()
+			print("   a wave height: %.1f us by the shore, %.1f us at sea (%d maps), %.1f us with no maps" % [cost[0], cost[1], oc.shores.size(), float(Time.get_ticks_usec() - t2) / 5000.0])
 			# waves still break on the beach you wake on
 			var spray = root.get_node("Weather").find_child("SeaSpray", true, false)
 			spray.breaks["beach"] = 0
