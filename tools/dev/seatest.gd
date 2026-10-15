@@ -100,6 +100,8 @@ func _process(d: float) -> bool:
 			es.set_physics_process(false)
 			# (the rest of the fleet keeps its distance until the ramming test wants the brig)
 			for other in get_nodes_in_group("enemy_ships"):
+				# (moved about by hand far from the captain: kept awake, ActorSleep would put them out of the physics space)
+				other.set_meta("no_sleep", true)
 				if other != es:
 					other.set_physics_process(false)
 			es._pos = sea + Vector3(32, 0, 0)

@@ -55,6 +55,12 @@ func spot_at(hour: float) -> Array:
 	return _where(at[0], at[1])
 
 
+## ActorSleep judges a sleeping villager by where its routine has it now, not where it dozed off.
+func sleep_pos() -> Vector3:
+	var p: Vector2 = spot_at(Weather.hour())[0]
+	return isl.to_global(Vector3(p.x, isl.walk_height(p.x, p.y), p.y))
+
+
 func _where(k: int, d: float) -> Array:
 	var cum: PackedFloat32Array = cums[k]
 	var s: Dictionary = stays[k]

@@ -139,7 +139,8 @@ func _process(d: float) -> bool:
 			var to_dock: Vector2 = (isl.sites["dock"] - hub).normalized()
 			var at: Vector2 = hub + to_dock * 13.0 + Vector2(-to_dock.y, to_dock.x) * 4.0
 			put(isl.to_global(Vector3(at.x, isl.height_at(at.x, at.y) + 1.0, at.y)))
-			var v0 = goers.filter(func(v): return walk_len(v, 1) > 20.0)[0]
+			# (one walking near the village: farther off, past ActorSleep's range, villagers sleep)
+			var v0 = goers.filter(func(v): return walk_len(v, 1) > 20.0 and (v.spot_at(float(v.stays[1]["h"]) + 0.02)[0] as Vector2).distance_to(at) < 90.0)[0]
 			set_meta("v0", v0)
 			hour_to(float(v0.stays[1]["h"]) + 0.02)
 			wait = 0.8

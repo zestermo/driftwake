@@ -71,14 +71,17 @@ func _check(e: Dictionary) -> void:
 	var a := e["n"] as Node3D
 	if not a.is_inside_tree():
 		return
-	if a.has_method("is_dead") and a.is_dead():
-		# (a body sinks away and frees itself)
+	# (a body sinks away and frees itself; a test that moves an actor about by hand holds it awake with the meta)
+	if (a.has_method("is_dead") and a.is_dead()) or a.has_meta("no_sleep"):
 		if bool(e["asleep"]):
 			_wake(e)
 		return
+	var at := a.global_position
+	if bool(e["asleep"]) and a.has_method("sleep_pos"):
+		at = a.sleep_pos()
 	var d := INF
 	for q in _caps:
-		d = minf(d, a.global_position.distance_to(q))
+		d = minf(d, at.distance_to(q))
 	var r: Array = e["r"]
 	if Net.is_client() and a.is_in_group("net_sync"):
 		var age := Net.snapshot_age(a)
