@@ -113,6 +113,9 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
 - **Lazy autoloads:** the autoloads (GameManager, Net, GameMenu, FX) name most of the game's classes, so every test
   boots ~8 s compiling 343 files and "tests that load the changed file" is every test. Load those classes lazily
   (by path) and both shrink: faster boots for every test, and -Changed picking by loads becomes precise.
+  **Parked 2026-10-14** on branch `worktree-agent-ad4bf0ee149f348f2` (7 commits: the autoloads, player/HUD and Weather
+  untangled, GameMenu screens built on first use, selection by loads, and a fix for the title -> world load hanging
+  on the loader thread). Left: its full test run (progtest's empty-pistol reload failed), then rebase and land.
 - **A private user:// per test process** (APPDATA / XDG_DATA_HOME per job in Start-GodotJob) would end the
   chartest/savetest races and allow 8-10 tests at once, but savetest then fails "world loaded from the title" (it
   leans on leftover user data: a saved look, settings or the what's-new seen file). Fix savetest first, then turn it on
