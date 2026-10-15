@@ -91,6 +91,8 @@ const WOB_B := Vector2(-0.009, 0.019)
 const MAX_SHORES := 4
 var shores: Dictionary = {}
 var _shore_list: Array = []
+## Each listed map's box (x0, z0, x1, z1).
+var _shore_boxes := PackedFloat32Array()
 var _shores_bound: Array = []
 ## Unpacked SHORE_WAVES: [k, omega, amplitude, phase]
 var _sw: Array[Vector4] = []
@@ -142,14 +144,21 @@ func set_shore(key: String, map: ShoreMap, at := Vector2.ZERO) -> void:
 	else:
 		shores.erase(key)
 	_shore_list = shores.values()
+	_shore_boxes = PackedFloat32Array()
+	for m in _shore_list:
+		_shore_boxes.append_array([m.rect.x, m.rect.y, m.rect.x + m.rect.z, m.rect.y + m.rect.z])
 
 
 ## What the shore maps say at (x, z): Vector4(depth, phase distance, turned, exposure); ShoreMap.NONE at sea.
 ## (Where maps overlap, the one nearest its shore.)
 func shore_at(x: float, z: float) -> Vector4:
 	var best := ShoreMap.NONE
-	for m in _shore_list:
-		var s: Vector4 = m.sample(x, z)
+	for i in range(_shore_list.size()):
+		var j := i * 4
+		# (most asks are out at sea: off every map without a call)
+		if x <= _shore_boxes[j] or z <= _shore_boxes[j + 1] or x >= _shore_boxes[j + 2] or z >= _shore_boxes[j + 3]:
+			continue
+		var s: Vector4 = _shore_list[i].sample(x, z)
 		if s.y < best.y:
 			best = s
 	return best
