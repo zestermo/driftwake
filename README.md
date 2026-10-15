@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.14-e0b040" alt="Version 1.14">
+  <img src="https://img.shields.io/badge/version-1.15-e0b040" alt="Version 1.15">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,21 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.15: Cliffs and Currents (October 15, 2026)
+- **Grell's cliff path:** a ledge cut into the den's sea cliff (cable railings, overhangs, moss), about twice the old
+  climb, with five gaps over the sea (a sand ramp to swim back), a bug cave (scuttlebugs, ceiling spitters, a cave
+  brute), and a broken bridge crossed on a hanging chain. Grell holds by his fire until a captain is close; his pier
+  ladder stays rolled up until someone reaches the top once (saved, shared in co-op).
+- **Shore-aware water:** each island bakes a shore map; the swell fades to nothing at the waterline (no more sea
+  through the sand) and turns to run in along the beach, steepening as it shoals; lee coasts are calmer. CPU and GPU
+  share one wave function.
+- **Flipbook effects (pilot):** sprite-sheet smoke and explosions on the ship's cannon (muzzle smoke, hull fireballs,
+  sea plumes) and dust clouds on heavy hits and knockdowns.
+- **Swings keep momentum** when you let go (vines, ship ropes, the chain).
+- **Game time everywhere:** sprint shake, the marker cooldown, thunder's delay, villager barks, bobbing markers and
+  bottles, and the solo weather clock no longer use the wall clock. A release performance gate and a wall-clock check
+  guard against regressions.
 
 ### v1.14: Smooth Sailing (October 15, 2026)
 The performance update: the last few releases had slowed Brinehollow to 20-30 fps; it now runs about 4.5x faster.
