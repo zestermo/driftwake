@@ -284,3 +284,8 @@ scripts/loot/gear.gd                    t/items
 scripts/ui/inventory_screen.gd          t/items invtest
 scripts/island/island_village.gd        t/items
 tools/texture_gen/gen_psx_music.py      t/jam
+# --- v1.14 perf C: quiet areas, moored hulls, throttled per-frame systems ---
+scripts/interaction/*                   t/items
+scenes/combat/hurtbox.gd                t/items
+scripts/ship/moored_hull.gd             t/ship
+scenes/ui/player_hud.gd                 t/items
