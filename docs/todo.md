@@ -113,6 +113,10 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
 - **Lazy autoloads:** the autoloads (GameManager, Net, GameMenu, FX) name most of the game's classes, so every test
   boots ~8 s compiling 343 files and "tests that load the changed file" is every test. Load those classes lazily
   (by path) and both shrink: faster boots for every test, and -Changed picking by loads becomes precise.
+- **A private user:// per test process** (APPDATA / XDG_DATA_HOME per job in Start-GodotJob) would end the
+  chartest/savetest races and allow 8-10 tests at once, but savetest then fails "world loaded from the title" (it
+  leans on leftover user data: a saved look, settings or the what's-new seen file). Fix savetest first, then turn it on
+  and measure 5/7/9/10 jobs.
 - Port more small suites to the stage only when they're being changed anyway; ragtest stays a world suite (the downed
   body creeps 0.092 m/s on the flat stage vs its 0.08 limit).
 
