@@ -61,7 +61,10 @@ func exit() -> void:
 func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 	if parry_active and not _hit_data.unblockable and (not _hit_data.ranged or player.parries_shots()):
 		parry_succeeded = true
-		var fwd := -player.player_model.global_basis.z
+		var fl: Array = ActionSpecs.PARRIES.get(player.body_model.stance, [])
+		if not fl.is_empty():
+			player.body_model.play(fl[1], ActionSpecs.length(fl[1]))
+		var fwd :=-player.player_model.global_basis.z
 		fwd.y = 0.0
 		fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
 		var to_att := fwd

@@ -36,6 +36,9 @@ class_name ActionSpecs
 ## {"dir", "r", "pole"?}, mode?], ...]}; arm IK, the wrist as posed.
 ## AnimLab variants override any of this while picked.
 
+## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
+const PARRIES := {"dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"]}
+
 const SPECS := {
 	# --- cutlass ---
 	"draw": {"len": 0.35, "stance": "sword", "weapon": "cutlass", "extras": {"sheathed": true}},
@@ -62,6 +65,20 @@ const SPECS := {
 	"parry": {"len": 0.66, "stance": "sword", "weapon": "cutlass"},
 	"guard_block": {"len": 0.24, "hold": true, "stance": "sword", "weapon": "cutlass"},
 	"guard_block_hit": {"len": 0.2, "stance": "sword", "weapon": "cutlass"},
+	# (the stances with their own parry and flourish, PARRIES; *_stance and *_block are previews:
+	# the stance as it stands, the held guard_block)
+	"dual_parry": {"len": 0.66, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"dual_deflect": {"len": 0.42, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"dual_block": {"len": 0.24, "hold": true, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"dual_stance": {"len": 1.0, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
+	"dg_parry": {"len": 0.66, "stance": "dagger", "weapon": "dagger"},
+	"dg_deflect": {"len": 0.42, "stance": "dagger", "weapon": "dagger"},
+	"dg_block": {"len": 0.24, "hold": true, "stance": "dagger", "weapon": "dagger"},
+	"dg_stance": {"len": 1.0, "stance": "dagger", "weapon": "dagger"},
+	"dd_parry": {"len": 0.66, "stance": "dual_dagger", "weapon": "dagger", "extras": {"dual": true}},
+	"dd_deflect": {"len": 0.42, "stance": "dual_dagger", "weapon": "dagger", "extras": {"dual": true}},
+	"dd_block": {"len": 0.24, "hold": true, "stance": "dual_dagger", "weapon": "dagger", "extras": {"dual": true}},
+	"dd_stance": {"len": 1.0, "stance": "dual_dagger", "weapon": "dagger", "extras": {"dual": true}},
 	"plunge_air": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
 	"plunge_land": {"len": 0.48, "stance": "sword", "weapon": "cutlass"},
 	# the learned air attacks (PlungeState)

@@ -10,10 +10,10 @@ class_name DaggerMoves
 
 const GUARD := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.2, 0.28, 0), "head": Vector3(0.12, -0.28, 0),
 	"arm_r": Vector3(0.75, -0.1, 0.25), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3(-1.45, 0, 0),
-	"arm_l": Vector3(1.0, 0.25, -0.2), "fore_l": Vector3(1.3, 0, 0), "hand_l": Vector3.ZERO}
-const DUAL_GUARD := {"hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.22, 0.08, 0), "head": Vector3(0.14, -0.08, 0),
-	"arm_r": Vector3(0.85, -0.3, 0.25), "fore_r": Vector3(1.35, 0, 0), "hand_r": Vector3(-1.6, 0, 0),
-	"arm_l": Vector3(1.0, 0.35, -0.22), "fore_l": Vector3(1.4, 0, 0), "hand_l": Vector3(-0.53, 0, 0)}
+	"arm_l": Vector3(0.45, 0.15, -0.45), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3.ZERO}
+const DUAL_GUARD := {"hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.28, 0.08, 0), "head": Vector3(0.2, -0.08, 0),
+	"arm_r": Vector3(0.8, -0.3, 0.38), "fore_r": Vector3(1.35, 0, 0), "hand_r": Vector3(-1.6, 0, 0),
+	"arm_l": Vector3(0.95, 0.35, -0.36), "fore_l": Vector3(1.4, 0, 0), "hand_l": Vector3(-0.53, 0, 0)}
 
 const SET := {"leg_l": Vector3(0.35, 0, -0.14), "shin_l": Vector3(-0.65, 0, 0), "leg_r": Vector3(-0.25, 0, 0.14), "shin_r": Vector3(-0.5, 0, 0)}
 const STEP_L := {"leg_l": Vector3(0.8, 0, -0.12), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.55, 0, 0.14), "shin_r": Vector3(-0.25, 0, 0)}
@@ -32,6 +32,25 @@ const REACH_R := {"arm_r": Vector3(1.78, 0.05, 0.08), "fore_r": Vector3(0.04, 0,
 ## forward `arm`, elbow bent `fore`). At ~-1.5 the blade lies back along the forearm.
 static func rev(arm: float, fore: float, theta: float) -> float:
 	return theta + PI * 0.5 - arm - fore
+
+
+## The wrist that points a normal-grip blade along `dir` (chest frame: x right, y up, z back); a reversed one takes -dir.
+static func wrist_to(arm: Vector3, fore: float, dir: Vector3) -> Vector3:
+	var d := (Basis.from_euler(arm) * Basis(Vector3.RIGHT, fore)).inverse() * dir.normalized()
+	return Vector3(asin(clampf(d.y, -1.0, 1.0)), atan2(-d.x, -d.z), 0.0)
+
+
+## The pose with its "blade_r"/"blade_l" directions turned into wrists (wrist_to).
+static func aim(p: Dictionary, rev_l: bool) -> Dictionary:
+	var out := p.duplicate()
+	if p.has("blade_r"):
+		out["hand_r"] = wrist_to(p["arm_r"], (p["fore_r"] as Vector3).x, p["blade_r"])
+		out.erase("blade_r")
+	if p.has("blade_l"):
+		var d: Vector3 = p["blade_l"]
+		out["hand_l"] = wrist_to(p["arm_l"], (p["fore_l"] as Vector3).x, -d if rev_l else d)
+		out.erase("blade_l")
+	return out
 
 
 static func _p(parts: Array) -> Dictionary:
@@ -355,4 +374,52 @@ static func pose(h, n: String, u: float) -> Array:
 			return [h._keys(u, [[0.0, g], [0.12 / T, gather, "out"], [0.38 / T, gather], [0.44 / T, cut, "out"], [k_x - 0.04, cut],
 				[k_x, cross, "out"], [k_f - 0.02, cross], [k_f, _whip(fling, Vector3(1.08, 0.94, 1.0), 0.8), "out"], [k_f + 0.05, fling],
 				[1.0 - 0.12 / T, fling], [1.0, g]]), "full", lift]
+		# --- parries (Humanoid "parry" for these stances) and the flourish when one lands ---
+		"dg_parry":
+			var c := _p([BLOCK_ONE, {"hips": Vector3(0, 0.25, 0), "_lift": Vector3(0, -0.16, 0)}, SET])
+			var snap := c.merged({"_scale": Vector3(1.03, 0.95, 1.0)}, true)
+			return [h._keys(u, [[0.0, g], [0.1, aim(snap, false), "out"], [0.17, aim(c, false)], [0.6, aim(c, false)], [1.0, g]]), "full", lift]
+		"dg_deflect":
+			# the blow knocked out wide by the forearm and blade, the off hand shoving in behind it
+			var c := _p([BLOCK_ONE, {"hips": Vector3(0, 0.25, 0), "_lift": Vector3(0, -0.16, 0)}, SET])
+			var shove := _p([{"hips": Vector3(0, -0.2, 0), "torso": Vector3(-0.22, -0.3, -0.04), "head": Vector3(0.15, 0.3, 0),
+				"arm_r": Vector3(1.0, -0.9, 1.1), "fore_r": Vector3(1.1, 0, 0), "blade_r": Vector3(0.9, 0.35, 0.05),
+				"arm_l": Vector3(1.45, 0.15, -0.05), "fore_l": Vector3(0.25, 0, 0), "hand_l": Vector3.ZERO, "_lift": Vector3(0, -0.2, 0)}, STEP_L])
+			return [h._keys(u, [[0.0, aim(c, false)], [0.32, aim(_whip(shove, Vector3(1.05, 0.97, 1.03), 0.5), false), "out"], [0.42, aim(shove, false)],
+				[0.66, aim(shove, false)], [1.0, g]]), "full", lift]
+		"dd_parry":
+			# twisted away, the left blade along the forearm in front of the face, the right chambered at the hip
+			var c := _p([PARRY_TWIN, SET])
+			var snap := c.merged({"_scale": Vector3(1.03, 0.95, 1.0)}, true)
+			return [h._keys(u, [[0.0, g], [0.1, aim(snap, true), "out"], [0.17, aim(c, true)], [0.6, aim(c, true)], [1.0, g]]), "full", lift]
+		"dd_deflect":
+			# untwisting: the left forearm sweeps the blow out to the left, the right point snaps in low
+			var sweep := _p([{"hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.3, 0.45, 0.04), "head": Vector3(0.2, -0.4, 0),
+				"arm_l": Vector3(1.15, -0.3, -1.15), "fore_l": Vector3(0.6, 0, 0), "blade_l": Vector3(-0.8, -0.3, -0.45),
+				"arm_r": Vector3(1.3, 0.2, 0.1), "fore_r": Vector3(0.5, 0, 0), "blade_r": Vector3(0.0, 0.15, -1.0), "_lift": Vector3(0, -0.24, 0)}, STEP_R])
+			return [h._keys(u, [[0.0, aim(_p([PARRY_TWIN, SET]), true)], [0.3, aim(_whip(sweep, Vector3(1.06, 0.97, 1.02), 0.5), true), "out"],
+				[0.4, aim(sweep, true)], [0.66, aim(sweep, true)], [1.0, g]]), "full", lift]
+		# (previews: the stance itself and the held block)
+		"dg_stance", "dd_stance":
+			return [{}, "upper", lift]
+		"dg_block", "dd_block":
+			return h._action_pose("guard_block", u)
 	return []
+
+
+## The one dagger's catch: forearm up by the face, the blade laid down along it, the off hand bracing the wrist.
+const BLOCK_ONE := {"torso": Vector3(-0.15, 0.3, 0.05), "head": Vector3(0.18, -0.3, 0),
+	"arm_r": Vector3(1.4, -0.1, 0.25), "fore_r": Vector3(1.9, 0, 0), "blade_r": Vector3(0.55, -0.7, -0.45),
+	"arm_l": Vector3(1.2, -0.5, 0.1), "fore_l": Vector3(1.0, 0, 0), "hand_l": Vector3.ZERO}
+## Two daggers held low, wrists crossed in front of the belly, blades flared up out of the cross, the chest down over them.
+const BLOCK_TWIN := {"torso": Vector3(-0.38, 0, 0), "head": Vector3(0.3, 0, 0),
+	"arm_r": Vector3(0.85, 0.5, 0.05), "fore_r": Vector3(1.15, 0, 0), "blade_r": Vector3(-0.55, 0.65, -0.5),
+	"arm_l": Vector3(0.8, -0.5, -0.05), "fore_l": Vector3(1.15, 0, 0), "blade_l": Vector3(0.55, 0.65, -0.5)}
+const PARRY_TWIN := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.2, -0.5, 0.04), "head": Vector3(0.15, 0.45, 0),
+	"arm_l": Vector3(1.5, 0.3, -0.5), "fore_l": Vector3(1.5, 0, 0), "blade_l": Vector3(-0.9, 0.2, -0.3),
+	"arm_r": Vector3(-0.3, 0.2, 0.35), "fore_r": Vector3(1.3, 0, 0), "blade_r": Vector3(0.0, 0.1, -1.0), "_lift": Vector3(0, -0.18, 0)}
+
+
+## The held block (Humanoid._block_pose, upper body) for one dagger or two.
+static func block(twin: bool) -> Dictionary:
+	return aim(BLOCK_TWIN, true) if twin else aim(BLOCK_ONE, false)

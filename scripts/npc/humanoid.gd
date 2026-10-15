@@ -793,6 +793,15 @@ func _guard() -> Dictionary:
 	return GUARD
 
 
+## The combat stance's feet, standing (added to the idle; the hip drop matches the bent knees so the feet stay down).
+const STANCE_LEGS := {
+	"": {"leg_l": Vector3(0.35, 0, -0.14), "leg_r": Vector3(-0.3, 0, 0.14), "shin_l": Vector3(-0.45, 0, 0), "shin_r": Vector3(-0.35, 0, 0), "_lift": Vector3(0, -0.1, 0)},
+	"fist": {"leg_l": Vector3(0.12, 0, -0.2), "leg_r": Vector3(-0.12, 0, 0.2), "shin_l": Vector3(-0.45, 0, 0), "shin_r": Vector3(-0.35, 0, 0), "_lift": Vector3(0, -0.1, 0)},
+	"dual_sword": {"leg_l": Vector3(0.5, 0, -0.2), "leg_r": Vector3(-0.28, 0, 0.2), "shin_l": Vector3(-0.9, 0, 0), "shin_r": Vector3(-0.42, 0, 0), "_lift": Vector3(0, -0.14, 0)},
+	"dual_dagger": {"leg_l": Vector3(0.6, 0, -0.28), "leg_r": Vector3(-0.22, 0, 0.28), "shin_l": Vector3(-1.15, 0, 0), "shin_r": Vector3(-0.55, 0, 0), "_lift": Vector3(0, -0.195, 0)},
+}
+
+
 func _guns_out() -> bool:
 	return armed and stance in ["pistol", "dual_pistol"]
 
@@ -949,11 +958,10 @@ func _block_pose() -> Dictionary:
 			return {"torso": Vector3(-0.2, 0.45, 0), "head": Vector3(0.28, 0.05, 0),
 				"arm_l": Vector3(1.3, -0.32, -0.05), "fore_l": Vector3(2.2, 0, 0),
 				"arm_r": Vector3(1.3, 0.32, 0.05), "fore_r": Vector3(2.2, 0, 0), "hand_r": Vector3(-0.3, 0, 0)}
-		"dual_sword", "dual_dagger":
-			# both blades crossed in front
-			return {"torso": Vector3(-0.12, 0.0, 0), "head": Vector3(0.12, 0, 0),
-				"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),
-				"arm_l": Vector3(1.35, 0.6, 0.15), "fore_l": Vector3(1.25, 0, 0)}
+		"dual_sword":
+			return WieldMoves.dual_block(WieldMoves.offhand_kind(self))
+		"dagger", "dual_dagger":
+			return DaggerMoves.block(stance == "dual_dagger")
 	# one blade held level across the body, the off hand bracing it
 	return {"torso": Vector3(-0.08, -0.2, 0), "head": Vector3(0.08, 0.2, 0),
 		"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),
@@ -1597,6 +1605,8 @@ func _action_pose(n: String, u: float) -> Array:
 			pose2["pivot"] = Vector3(-TAU * _ease(u), 0, 0)
 			return [pose2, "full", lift]
 		"parry":
+			if ActionSpecs.PARRIES.has(stance):
+				return _action_pose(ActionSpecs.PARRIES[stance][0], u)
 			var block: Dictionary = KATANA_HANG if stance == "katana" else {"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "arm_l": Vector3(1.1, 0.5, -0.1), "fore_l": Vector3(1.6, 0, 0), "torso": Vector3(-0.05, -0.35, 0), "head": Vector3(0, 0.3, 0)}
 			# (the katana's high guard sets the feet a little wider)
 			var spread := KATANA_SPREAD if stance == "katana" else 0.0
@@ -2354,7 +2364,6 @@ func _locomotion(delta: float) -> Dictionary:
 		elif armed and not sprinting:
 			var hop := absf(sin(_t * 4.5))
 			var gd := _guard()
-			var fist := stance == "fist"
 			for j in gd.keys():
 				if j == "hips":
 					# the bladed hips relax while moving so the legs stride straight
@@ -2363,16 +2372,12 @@ func _locomotion(delta: float) -> Dictionary:
 				p[j] = gd[j] + Vector3(hop * 0.06, 0, sin(_t * 4.5) * 0.03)
 			if walk < 0.5:
 				var st := 1.0 - walk * 2.0
-				if fist:
-					# feet shoulder-width apart; the turned hips put the left foot ahead
-					p["leg_l"] += Vector3(0.12, 0, -0.2) * st
-					p["leg_r"] += Vector3(-0.12, 0, 0.2) * st
-				else:
-					p["leg_l"] += Vector3(0.35, 0, -0.14) * st
-					p["leg_r"] += Vector3(-0.3, 0, 0.14) * st
-				p["shin_l"] += Vector3(-0.45 - hop * 0.15, 0, 0) * st
-				p["shin_r"] += Vector3(-0.35 - hop * 0.15, 0, 0) * st
-				lift.y += (-0.1 + hop * 0.045) * st
+				var ss: Dictionary = STANCE_LEGS.get(stance, STANCE_LEGS[""])
+				p["leg_l"] += (ss["leg_l"] as Vector3) * st
+				p["leg_r"] += (ss["leg_r"] as Vector3) * st
+				p["shin_l"] += Vector3(ss["shin_l"].x - hop * 0.15, 0, 0) * st
+				p["shin_r"] += Vector3(ss["shin_r"].x - hop * 0.15, 0, 0) * st
+				lift.y += (ss["_lift"].y + hop * 0.045) * st
 		# strafing: hips (and legs) turned into the travel line, chest square
 		# (_hip_yaw is toward +X = the body's right; a positive Y turn is left)
 		# (the pelvis and chest are rigid, so a big twist between them shears the

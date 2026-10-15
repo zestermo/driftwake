@@ -16,12 +16,15 @@ const SP_GUARD := {"arm_r": Vector3(0.7, -0.2, 0.18), "fore_r": Vector3(0.6, 0, 
 	"torso": Vector3(-0.1, 0.22, 0), "head": Vector3(0.05, -0.24, 0)}
 
 
-## The dual guard: both blades angled forward, the off hand's a little lower; an
-## off-hand axe is held low with its head out in front, a dagger close, point out.
+## The dual guard: elbows in, the right blade a little above level, the left lower and out; an off-hand axe low, a dagger close.
+static var _GUARD_R := DaggerMoves.wrist_to(Vector3(0.6, 0.05, 0.2), 1.0, Vector3(0.12, 0.3, -1.0))
+static var _GUARD_L := DaggerMoves.wrist_to(Vector3(0.45, 0.1, -0.3), 0.85, Vector3(-0.25, -0.12, -1.0))
+
+
 static func dual_guard(kind: String) -> Dictionary:
-	var g := {"arm_r": Vector3(0.75, -0.2, 0.35), "fore_r": Vector3(0.55, 0, 0), "hand_r": Vector3(-0.55, 0, 0),
-		"arm_l": Vector3(0.7, 0.2, -0.38), "fore_l": Vector3(0.6, 0, 0), "hand_l": Vector3(-0.45, 0, 0),
-		"torso": Vector3(-0.12, 0.1, 0), "head": Vector3(0.08, -0.1, 0)}
+	var g := {"arm_r": Vector3(0.6, 0.05, 0.2), "fore_r": Vector3(1.0, 0, 0), "hand_r": _GUARD_R,
+		"arm_l": Vector3(0.45, 0.1, -0.3), "fore_l": Vector3(0.85, 0, 0), "hand_l": _GUARD_L,
+		"torso": Vector3(-0.08, 0.12, 0), "head": Vector3(0.05, -0.12, 0)}
 	match kind:
 		"axe":
 			g["arm_l"] = Vector3(0.4, 0.25, -0.3)
@@ -318,7 +321,44 @@ static func pose(h, n: String, u: float) -> Array:
 				"_lift": Vector3(0, -0.4, 0)}
 			var crash := _with(down, {"_scale": Vector3(1.07, 0.92, 1.03), "_smear": Vector3(0.6, 0, 0)})
 			return [h._keys(u, [[0.0, g], [0.3, raise, "out"], [0.36, raise], [0.42, air], [0.48, crash, "in"], [0.54, down], [0.74, down], [1.0, g]]), "full", lift]
+		# --- the dual parry (Humanoid "parry"), its flourish when it lands, previews ---
+		"dual_parry":
+			var rv := offhand_kind(h) == "dagger"
+			var snap := DUAL_HANG.merged({"_scale": Vector3(1.03, 0.95, 1.0)}, true)
+			return [h._keys(u, [[0.0, g], [0.1, DaggerMoves.aim(snap, rv), "out"], [0.17, DaggerMoves.aim(DUAL_HANG, rv)],
+				[0.6, DaggerMoves.aim(DUAL_HANG, rv)], [1.0, g]]), "full", lift]
+		"dual_deflect":
+			# the blow swept aside and out to the right, the body turning with it, the left blade driven in to answer
+			var rv := offhand_kind(h) == "dagger"
+			var whip := DUAL_SWEEP.merged({"_scale": Vector3(1.05, 0.97, 1.03), "_smear": Vector3(0.6, 0, 0)}, true)
+			return [h._keys(u, [[0.0, DaggerMoves.aim(DUAL_HANG, rv)], [0.3, DaggerMoves.aim(whip, rv), "out"], [0.4, DaggerMoves.aim(DUAL_SWEEP, rv)],
+				[0.66, DaggerMoves.aim(DUAL_SWEEP, rv)], [1.0, g]]), "full", lift]
+		"dual_stance":
+			return [{}, "upper", lift]
+		"dual_block":
+			return h._action_pose("guard_block", u)
 	return DaggerMoves.pose(h, n, u)
+
+
+## Both blades crossed in an X in front of the face, hands apart at the chin (the held block).
+const DUAL_X := {"torso": Vector3(-0.14, 0, 0), "head": Vector3(0.22, 0, 0),
+	"arm_r": Vector3(1.0, 0.05, -0.15), "fore_r": Vector3(1.5, 0, 0), "blade_r": Vector3(-0.5, 0.8, -0.35),
+	"arm_l": Vector3(1.0, -0.05, 0.15), "fore_l": Vector3(1.5, 0, 0), "blade_l": Vector3(0.5, 0.8, -0.35)}
+## The parry: the right blade slanted up across the front, point over the left shoulder, the left one low and back.
+const DUAL_HANG := {"hips": Vector3(0, 0.2, 0), "torso": Vector3(-0.15, 0.25, 0), "head": Vector3(0.15, -0.25, 0),
+	"arm_r": Vector3(1.15, 0.15, 0.3), "fore_r": Vector3(0.8, 0, 0), "blade_r": Vector3(-0.6, 0.6, -0.5),
+	"arm_l": Vector3(-0.15, 0.0, -0.35), "fore_l": Vector3(0.7, 0, 0), "blade_l": Vector3(-0.2, -0.1, -1.0),
+	"leg_l": Vector3(0.45, 0, -0.2), "shin_l": Vector3(-0.8, 0, 0), "leg_r": Vector3(-0.3, 0, 0.2), "shin_r": Vector3(-0.45, 0, 0),
+	"_lift": Vector3(0, -0.16, 0)}
+const DUAL_SWEEP := {"hips": Vector3(0, -0.25, 0), "torso": Vector3(-0.2, -0.4, -0.05), "head": Vector3(0.15, 0.35, 0),
+	"arm_r": Vector3(1.15, -0.75, 1.15), "fore_r": Vector3(0.45, 0, 0), "blade_r": Vector3(0.9, -0.2, -0.35),
+	"arm_l": Vector3(1.2, 0.3, -0.2), "fore_l": Vector3(0.8, 0, 0), "blade_l": Vector3(0.1, 0.2, -1.0),
+	"leg_l": Vector3(0.8, 0, -0.15), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.5, 0, 0.18), "shin_r": Vector3(-0.3, 0, 0),
+	"_lift": Vector3(0, -0.2, 0)}
+
+
+static func dual_block(kind: String) -> Dictionary:
+	return DaggerMoves.aim(DUAL_X, kind == "dagger")
 
 
 ## The dual combo's single-blade cuts. Hit 1: the right blade hauled high over the
