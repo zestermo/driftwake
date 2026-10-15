@@ -349,6 +349,20 @@ func _run(name_: String, args: Array, from: int):
 			hd.knockback_force = 2.0
 			n.players[from].hurtbox.take_hit(hd, lp)
 			return true
+		"jam_play":
+			# the host puts on an instrument and plays it
+			var it: ItemData = ItemDB.get_item(Instruments.item_id(str(args[0])))
+			lp.inventory_component.add_item(it, 1)
+			lp.equip_gear_from_bag(lp.inventory_component.find_index(it.id))
+			lp.state_machine.force_state("Idle", {})
+			lp.velocity = Vector3.ZERO
+			lp.jam.start()
+			return [lp.jam.playing, lp.jam.tune, lp.jam.t0]
+		"jam_state":
+			var pup = n.players.get(from)
+			var pj = pup.jam if pup else null
+			return {"host": [lp.jam.playing, lp.jam.tune, lp.jam.t0, lp.jam.kind],
+				"puppet": [pj.playing, pj.tune, pj.t0, pj.kind, pup.body_model.current_action(), str(pup.body_model.look.get("instrument", ""))] if pj else []}
 		"quit":
 			get_tree().create_timer(0.5).timeout.connect(func(): get_tree().quit())
 			return true

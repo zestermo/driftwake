@@ -2177,6 +2177,8 @@ func _action_pose(n: String, u: float) -> Array:
 	# emotes (the wheel) and talk / interact gestures
 	if n.begins_with("emote_") or n.begins_with("gesture_"):
 		return EmotePoses.pose(self, n, u)
+	if n.begins_with("music_"):
+		return InstrumentPoses.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp

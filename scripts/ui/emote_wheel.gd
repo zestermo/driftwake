@@ -9,6 +9,8 @@ const DEAD := 26.0
 const ORDER := EmotePoses.ORDER
 
 var player: Node
+## The emotes on the wheel now: ORDER, plus "play" (start or stop the worn instrument: Jam) when one is worn.
+var entries: Array = ORDER.duplicate()
 var _canvas: PixelCanvas
 var _root: Control
 var _plates: Array[PanelContainer] = []
@@ -33,15 +35,7 @@ func _ready() -> void:
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_canvas)
 	_canvas.ui.add_child(_root)
-	for i in range(ORDER.size()):
-		var pc := PanelContainer.new()
-		pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var l := UIStyle.label(EmotePoses.LABELS[ORDER[i]], 12)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		pc.add_child(l)
-		_root.add_child(pc)
-		_plates.append(pc)
-		_labels.append(l)
+	_build_plates()
 	var mid := PanelContainer.new()
 	mid.name = "Centre"
 	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -53,6 +47,47 @@ func _ready() -> void:
 	_root.add_child(mid)
 	_root.visible = false
 	_restyle()
+
+
+func _build_plates() -> void:
+	for pc in _plates:
+		pc.queue_free()
+	_plates.clear()
+	_labels.clear()
+	for id in entries:
+		var pc := PanelContainer.new()
+		pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var l := UIStyle.label(_label(id), 12)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pc.add_child(l)
+		_root.add_child(pc)
+		_plates.append(pc)
+		_labels.append(l)
+
+
+func _label(id: String) -> String:
+	if id == "play":
+		return "Stop" if player.jam.playing else "Play"
+	return EmotePoses.LABELS[id]
+
+
+## On opening: "Play" joins the wheel while an instrument is worn.
+func _refresh_entries() -> void:
+	var want: Array = ORDER.duplicate()
+	if player.jam.worn() != "":
+		want.append("play")
+	if want != entries:
+		entries = want
+		_build_plates()
+	for i in range(entries.size()):
+		_labels[i].text = _label(entries[i])
+
+
+func _do(id: String) -> void:
+	if id == "play":
+		player.jam.toggle()
+	else:
+		player.emote(id)
 
 
 func is_open() -> bool:
@@ -71,7 +106,7 @@ func _process(delta: float) -> void:
 	if not held:
 		if _open and _pick >= 0:
 			_close()
-			player.emote(ORDER[_pick])
+			_do(entries[_pick])
 		elif _open:
 			_close()
 		_spent = false
@@ -79,6 +114,7 @@ func _process(delta: float) -> void:
 		_open = true
 		_vec = Vector2.ZERO
 		_pick = -1
+		_refresh_entries()
 		_restyle()
 	if _open and not _can_open():
 		_close()
@@ -102,16 +138,16 @@ func _input(event: InputEvent) -> void:
 		_pick = -1
 		if _vec.length() > DEAD:
 			var a := fposmod(atan2(_vec.x, -_vec.y), TAU)
-			_pick = int(round(a / (TAU / ORDER.size()))) % ORDER.size()
+			_pick = int(round(a / (TAU / entries.size()))) % entries.size()
 		if _pick != was:
 			_restyle()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		var b := (event as InputEventMouseButton).button_index
 		if b == MOUSE_BUTTON_LEFT and _pick >= 0:
-			var id: String = ORDER[_pick]
+			var id: String = entries[_pick]
 			_close()
-			player.emote(id)
+			_do(id)
 		elif b == MOUSE_BUTTON_RIGHT:
 			_close()
 		get_viewport().set_input_as_handled()
@@ -125,7 +161,7 @@ func _restyle() -> void:
 		var on := i == _pick
 		_plates[i].add_theme_stylebox_override("panel", UIStyle.frame(UIStyle.HILITE if on else UIStyle.BG_LIGHT, UIStyle.ACCENT if on else UIStyle.BORDER_DIM, 6, "plank", on))
 		_labels[i].add_theme_color_override("font_color", UIStyle.INK if on else UIStyle.TEXT)
-	_centre.text = EmotePoses.LABELS[ORDER[_pick]] if _pick >= 0 else "Emotes"
+	_centre.text = _label(entries[_pick]) if _pick >= 0 else "Emotes"
 
 
 ## The planks round the ring (popping out from the middle as it opens).
@@ -152,7 +188,7 @@ func _draw_ring() -> void:
 	_root.draw_arc(c, (R + 40.0) * s, 0.0, TAU, 64, UIStyle.BORDER_DIM, 2.0)
 	_root.draw_arc(c, (R - 34.0) * s, 0.0, TAU, 48, Color(UIStyle.BORDER_DIM, 0.6), 1.0)
 	if _pick >= 0:
-		var a := TAU * _pick / ORDER.size()
+		var a := TAU * _pick / entries.size()
 		var d := Vector2(sin(a), -cos(a))
 		_root.draw_line(c + d * 46.0, c + d * (R - 22.0) * s, UIStyle.ACCENT, 3.0)
 		_root.draw_arc(c, (R + 40.0) * s, a - PI * 0.5 - 0.22, a - PI * 0.5 + 0.22, 8, UIStyle.ACCENT, 4.0)

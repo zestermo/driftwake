@@ -164,6 +164,10 @@ func _process(d: float) -> bool:
 				tn.ask("quit")
 				go(40)
 				return false
+			if mode == "jam":
+				tn.ask("jam_play", ["fiddle"])
+				go(190)
+				return false
 			if mode == "board":
 				var ship = net._ship()
 				p.global_position = ship.global_transform * Vector3(-1.5, 1.2, 3.5)
@@ -820,6 +824,52 @@ func _process(d: float) -> bool:
 			finish()
 		40:
 			_hostquit_step()
+		190:
+			# --- mode "jam": the host plays the fiddle, we join on the concertina
+			if not tn.got("jam_play"):
+				return false
+			data["jam"] = tn.replies["jam_play"]
+			check("the host plays its fiddle (%s)" % str(data["jam"]), bool(data["jam"][0]))
+			go(191)
+		191:
+			if st_t < 1.2:
+				return false
+			var r: Array = data["jam"]
+			var hj = net.players[1].jam
+			check("the host's jam plays on its puppet here: same tune and start (%s %d %.3f)" % [hj.kind, hj.tune, hj.t0 - float(r[2])],
+				hj.playing and hj.kind == "fiddle" and hj.tune == int(r[1]) and absf(hj.t0 - float(r[2])) < 0.001)
+			check("the host's puppet holds the fiddle up (%s)" % net.players[1].body_model.current_action(), net.players[1].body_model.current_action() == "music_fiddle")
+			var it: ItemData = ItemDB.get_item("concertina")
+			p.inventory_component.add_item(it, 1)
+			p.equip_gear_from_bag(p.inventory_component.find_index("concertina"))
+			p.state_machine.force_state("Idle", {})
+			p.velocity = Vector3.ZERO
+			p.jam.start()
+			check("we join the host's tune at its place (tune %d, start %.3f off)" % [p.jam.tune, p.jam.t0 - float(r[2])],
+				p.jam.playing and p.jam.tune == int(r[1]) and absf(p.jam.t0 - float(r[2])) < 0.001)
+			check("and fade in (%.2f)" % p.jam._gain, p.jam._gain < 0.5)
+			go(192)
+		192:
+			if st_t < 1.6:
+				return false
+			tn.ask("jam_state")
+			go(193)
+		193:
+			if not tn.got("jam_state"):
+				return false
+			var s: Dictionary = tn.replies["jam_state"]
+			var r: Array = data["jam"]
+			var pj: Array = s["puppet"]
+			check("the host sees us play the concertina in its jam (%s)" % str(pj),
+				pj.size() > 0 and bool(pj[0]) and pj[3] == "concertina" and int(pj[1]) == int(r[1]) and absf(float(pj[2]) - float(r[2])) < 0.001 and pj[4] == "music_concertina" and pj[5] == "concertina")
+			check("the host still plays (%s)" % str(s["host"]), bool(s["host"][0]))
+			check("we're faded in after two beats (%.2f)" % p.jam._gain, p.jam._gain > 0.99)
+			go(194)
+		194:
+			if not data.has("clock_done"):
+				return false
+			tn.ask("quit")
+			finish()
 		50:
 			if st_t < 3.0:
 				return false

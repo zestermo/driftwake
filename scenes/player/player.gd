@@ -214,6 +214,10 @@ func _ready() -> void:
 	floor_constant_speed = true
 	floor_max_angle = deg_to_rad(50.0)
 	add_to_group("players")
+	jam = Jam.new()
+	jam.name = "Jam"
+	jam.player = self
+	add_child(jam)
 	if not is_local:
 		_setup_puppet()
 		return
@@ -2408,6 +2412,8 @@ func sit_ground() -> void:
 # Emotes (the emote wheel, hold T): poses in EmotePoses, mirrored as body actions
 # --------------------------------------------------------------------------
 var emote_wheel
+## The worn instrument, carried and played (Jam; "Play" on the wheel).
+var jam: Jam
 
 
 func emote(id: String) -> void:

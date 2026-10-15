@@ -258,6 +258,12 @@ const SPECS := {
 	"emote_flex": {"len": 2.0, "stance": "sword", "weapon": ""},
 	"emote_facepalm": {"len": 1.8, "stance": "sword", "weapon": ""},
 	"emote_shanty": {"len": 5.0, "stance": "sword", "weapon": ""},
+	# --- playing an instrument (InstrumentPoses, held by Jam; len = the blend in) ---
+	"music_concertina": {"len": 0.35, "stance": "sword", "weapon": ""},
+	"music_fiddle": {"len": 0.35, "stance": "sword", "weapon": ""},
+	"music_whistle": {"len": 0.35, "stance": "sword", "weapon": ""},
+	"music_bodhran": {"len": 0.35, "stance": "sword", "weapon": ""},
+	"music_gurdy": {"len": 0.35, "stance": "sword", "weapon": ""},
 	# --- talk and interact gestures (EmotePoses) ---
 	"gesture_talk_a": {"len": 1.4, "stance": "sword", "weapon": ""},
 	"gesture_talk_b": {"len": 1.6, "stance": "sword", "weapon": ""},

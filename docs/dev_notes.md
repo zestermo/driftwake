@@ -1612,3 +1612,49 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Seen on the way (not this feature, fails on main too): t/combat/cutlass_combo "after a long pause, combo restarts"
   fails since tests run --fixed-fps 60: Player.remember_combo times the 0.9 s combo memory on the wall clock, and a
   fixed-fps run outpaces it.
+## 2026-10-14: instruments and the jam (v1.13)
+- Zach: instruments you buy, one equipped at a time, played from an emote, a tune at random; a nearby captain playing
+  makes yours pick the same tune and join at the same spot, all instruments syncing into one song (Sea of Thieves).
+- Items (`scripts/items/instruments.gd`, Instruments): concertina, fiddle, tin_whistle, bodhran, hurdy_gurdy, made in
+  ItemDB._load_all (like weapons) as GEAR for a new "instrument" slot (Gear.SLOTS / SLOT_KEYS: the look key
+  "instrument" names the kind, so a crewmate's puppet knows it from the look; bare = "none"). Saved by id
+  (SaveGame.item_ref skips the gear ref for them). Inventory: an INST slot right of MAIN/OFF; the card says how to play.
+  Never in the starting kit. The Salted Gull (gus) sells whistle 35, bodhran 60, concertina 110; a chain island's
+  trader has one 45% of the time, +15% (`trader_stock(trade_id)`: its own rng from the shop key, so the island's
+  rng and everything after it are unchanged). Icons: `WeaponDesigns.mesh_icon(mesh, view, turn)` (the weapon icon
+  rasterizer, now for any mesh and side; weapon icons unchanged).
+- Models (MeshBuilder; tris/surfaces: concertina 744/6, fiddle 688/5, whistle 142/3, bodhran ~700, gurdy ~900): a
+  hex concertina (button ends, a strap, red leather bellows as a unit-length loft Jam stretches), a fiddle (extruded
+  body, f-holes, fingerboard, pegs, scroll) and its bow, a brass whistle with a green head, a bodhran (16 rim staves,
+  tacks, a painted skin, the cross-bars inside) and tipper, a hurdy-gurdy (extruded body, keybox with keys out of the
+  far side, the wheel's cover, strings, a carved head) and its crank. Carried (Jam.BACK, torso space): fiddle and
+  gurdy slung diagonally on the back, the concertina and bodhran flat on it, the whistle in the belt at the front
+  right; 5 cm further out over an axe on the back.
+- Playing (`scripts/items/jam.gd`, Jam, the Player's child "Jam" on every machine incl. puppets): the emote wheel adds
+  "Play" (or "Stop") while one is worn (`entries`, rebuilt on opening). start(): sheathes, holds "music_<kind>"
+  (`scripts/npc/instrument_poses.gd`: the stance, a sway every two beats and the right foot tapping each beat from the
+  body's meta "jam_beat"), places the instrument in torso space (head space for the whistle) and IKs both hands onto
+  it after the pose every frame (process_priority 10, eased in over 0.3 s): bellows open and close over a bar, a
+  down/up bow a beat, the tipper rocking a stroke per sub-beat, the crank 0.75 turns a beat, fingers moving on the
+  keys/neck. Stops on moving, any other action (attack, dodge, draw, emote), a state other than Idle/Move, a hit,
+  or taking the instrument off.
+- The jam: a stem per instrument per tune, all sample-aligned and the same length, played from an
+  AudioStreamPlayer3D (SFX bus, unit 8, max 55 m) at `where() = (Net.time() - t0) mod length`. Alone: a random tune,
+  t0 = now. A captain playing within JOIN_R 20 m: their tune and t0, faded in over FADE_BEATS 2. Every machine plays
+  every jammer's stem from the shared clock, so the band is in step everywhere; drift > 12 ms is pulled in by pitch
+  (at most 1.2%), a slip > 0.15 s (a hitch) jumps to place on the next bar line. Co-op: Net.event(Jam, "jam" [kind,
+  tune, t0] / "stop"), resent every 3 s so a late joiner picks it up; the pose rides the usual Humanoid hold event.
+  Ducking: the local Jam adds an AudioEffectAmplify "JamDuck" to the Music bus (after Settings' compressor) and moves
+  it to -12 dB while anyone within DUCK_R 30 m plays (24 dB/s down, 8 up); reset when the captain leaves.
+- Tunes (gen_psx_music.py `jam`, JAM_TUNES; Instruments.TUNES mirrors them): The Brinehollow Lass (jig, 6/8 G, dq
+  92, AABB 32 bars, 41.7 s), Haul Away the Morrow (hauling shanty, 4/4 D mixolydian 100, verse + chorus 16 bars,
+  38.4 s), The Drowned Bell (waltz, 3/4 E minor 120, ABAB 32 bars, 48.0 s), Rum and Rigging (polka, 2/4 A 116, AABB
+  32 bars, 33.1 s). Everyone plays the tune, as at a session: whistle (cuts on long notes; an octave up in the jig and
+  polka), fiddle (double stops under long notes), concertina (the tune over a left-hand bass and chords), gurdy (the
+  tune over a seamless drone layer and the trompette's buzz on the off-beats), bodhran (open strokes tuned to the
+  chord root, rim taps, a triplet into each part's end). New voices: whistle, gurdy, trompette, bodhran, bodhran_rim.
+  Each stem levelled alone to -20 LU (bodhran -22), so a full band is ~5-6 dB louder than one player. 20 files,
+  3.52 MB (assets/audio/jam/<tune>_<kind>.ogg).
+- Tests: t/items/instruments, t/jam/play_solo, t/jam/join (a puppet stand-in as the crewmate); nettest mode `jam`
+  (net-jam, not run here: feature agents don't run nettest). Renders: `jamshot` (tools/dev/out/jam/v113_*), modelshot
+  `Instruments.mesh("<kind>")` (tools/dev/out/models/i_*).

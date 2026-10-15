@@ -274,3 +274,13 @@ scenes/player/player.gd                 lighttest
 scripts/island/kit/kit_camps.gd         lighttest isletest
 scripts/island/starter_island.gd        lighttest
 tools/dev/lighttest.gd                  lighttest
+# --- instruments and the jam (v1.13) ---
+tools/dev/t/jam/*                       t/jam
+scripts/items/*                         t/jam t/items net
+scripts/npc/instrument_poses.gd         t/jam
+scripts/ui/emote_wheel.gd               t/jam
+scripts/game/shops.gd                   t/items
+scripts/loot/gear.gd                    t/items
+scripts/ui/inventory_screen.gd          t/items invtest
+scripts/island/island_village.gd        t/items
+tools/texture_gen/gen_psx_music.py      t/jam
