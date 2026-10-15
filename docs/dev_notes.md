@@ -1955,3 +1955,35 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   - Test: t/world/thunder_delay (thunder 340 m off is still due at 0.7 game s, heard by 1.2; on the wall clock a
     --fixed-fps run outpaces it). Also run: t/world, t/player/sprint, t/player/sit_bench, ambiencetest, seatest,
     lifetest, uitest, skytest, smoketest.
+## 2026-10-15: v1.15 shore-aware water (the swell knows where land is)
+- Zach: waves that don't make sense for the shore, water coming up through the ground (worst round the den climb).
+  The sea was one global wave field: the swell's ~1 m crests rose over low sand and shelves, and on lee coasts it
+  ran sideways or away from the beach (Brinehollow's NW beach by the den: the open swell ran straight off it).
+- ShoreMap (`scripts/ocean/shore_map.gd`): baked from an island's height grid, a texel per vertex, RGBA half floats:
+  r depth (kept under the terrain's triangles: each vertex lifted by its cells' bilinear-vs-triangle error
+  |h00-h10-h01+h11|/4 + 3 cm, so filtered depth never exceeds the real depth anywhere), g the swell's phase
+  distance offshore (euclidean distance transform to the waterline, box-blurred ~9 m, shortened over the last 30 m),
+  b how far the swell has turned (1 inside 14 m of the shore, 0 by 56 m, 0 where the distance field folds and over
+  the map's last 24 m), a exposure (open water upwind along the swell, a sweep; a lee shore keeps 0.45).
+  Brinehollow bakes at load (~140 ms, main thread), chain islands in prepare on the worker (`build_ms["shore"]`,
+  250-580 ms under load), islets once (shared texels, `SeaLegs.islet_shore()`). Deterministic from the heights:
+  guests bake the same. A new den/cliff terrain is picked up as-is (nothing hard-coded).
+- `Ocean.set_shore(key, map, at)` ("brinehollow", "isle<id>", "leg..._islet<i>"); `shore_at(x, z)` (the map nearest
+  its shore where maps overlap); the shader binds the 4 nearest the camera (`shore0..3`, `shore_rect`).
+  `OceanManager._height` and `scenes/ocean/ocean_waves.gdshaderinc` (shared by ocean.gdshader and shoreprobe) do the
+  same: the open swell mixed toward two shore trains (`SHORE_WAVES` 11.5 m / 7.3 m, phase k*g + omega*t plus a slow
+  wobble along the coast) by b, the shore trains steepen (crest pow 2 -> 3.2) and grow 25% from 5 m deep to 0.8 m,
+  times a; then the envelope and crest cap as before; then everything fades with depth (1 - (1-t)^2 from 2.4 m to
+  nothing at 0.05 m). Open sea, ship feel and storms unchanged (amp_mult and storm cells scale it all).
+  `swell_dir()`: a train's crests travel against its WAVES heading vector (phase = k dir.p + omega t).
+- Surf: the shader's foam bands ride the main shore train's crests (`shore_roll`) in 0.08-2.8 m of water; the swash
+  runs up with each arriving crest; turquoise shallows from the map's depth. SeaSpray breaks on `breaker_height`
+  (the swell before the depth fade), its threshold and size scaled by exposure. Rain pocks, foam patches, FX rings
+  all sit on get_wave_height. F12 captures print the shore sample under you.
+- Tests: `shoretest` (new): maps in the sea and identical rebakes; along Brinehollow's, both chain islands' and an
+  islet's coasts the sea never over dry ground at amp 1.0 and 1.8 (5-10k points x 30 times each); the most sheltered
+  beach (island (-195, -93), next to the den) where the open swell alone ran off it (-0.96) now has crests along the
+  beach (slope across/along > 1000) travelling in (0.99); seamless map edge; breakers on the wake beach.
+  `shoreprobe` (render tool): the shader's own wave code read back on 64x64 grids at four coast spots vs the CPU:
+  worst 3.5 mm. r9test's storm sea point moved off the den (it stood on land). isletest/chaintest/yardtest read the
+  new API. Renders: tools/dev/out/shorea_* (after) vs main's tools/dev/out/shoreb_* (before).
