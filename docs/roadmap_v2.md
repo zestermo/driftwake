@@ -10,18 +10,20 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
   unchanged (fidelity / islanddump checks). This is step 2 of docs/dev_process_plan.md.
 - **Four island types:** jungle (done), snow (docs/snow_island_plan.md), desert (docs/desert_island_plan.md), and a
   temperate forest (to plan).
-- **Two cities** for variety, each its own kind of place to arrive at (to plan: e.g. a grand port or royal capital,
-  and a canal/shipyard city), home to the bigger shops, the shipwright's upgrades and the city arenas.
+- **Two cities** for variety, each its own kind of place to arrive at: a **royal capital / grand port** (palace, big
+  markets, the city arena) and a **canal city with shipyards** (water taxis, dry docks, the shipwright's big upgrades).
 - The island fidelity Phase 3 work (district planner, far LOD, fidelitytest as a gate) folds in here where it helps.
 
 ## 2. The sea between them
 - More ocean encounters: the Kraken at shipwrecks, sea monsters, merchant and treasure ships, storms and whirlpools
-  with purpose, floating loot and events. (Sky islands via the knock-up stream: decide whether they're part of 2.0.)
+  with purpose, floating loot and events. (Sky islands via the knock-up stream come after 2.0.)
 
 ## 3. Progression and feel
 - **Economy:** gold that means something, rare-gear merchants, treasure uses, crafting and quests, one price curve.
 - **Levels and abilities:** even pacing, the skill-tree carousel with discovery and fog of war, weapon families,
   balance; new weapon kinds (polearms first) on the moveset template.
+- **Devil Fruits back:** polished to the weapons' level (own moves, effects and tree, the sea's weakness, co-op
+  rescues) and back in the world, before 2.0 (Zach, 2026-10-15).
 - **Effects:** the flipbook rollout across the game's FX, then hero passes.
 - **Polish:** whatever play-testing turns up.
 
@@ -42,7 +44,6 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 
 ## Then: version 2.0, the first official release.
 
-## Open questions
-- **Devil Fruits:** they aren't placed yet. Before 2.0 (they're the heart of the fantasy) or after?
-- **Sky islands:** part of 2.0's sea encounters, or after?
-- **City arenas:** with the cities in phase 1, or with customization/progression?
+## Decided (2026-10-15)
+- Devil Fruits come back before 2.0 (phase 3). Sky islands come after 2.0. The cities are a royal capital and a canal
+  city. The public website roadmap stays as it is for now (this plan is internal).
