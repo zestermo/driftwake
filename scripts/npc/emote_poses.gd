@@ -5,13 +5,12 @@ extends RefCounted
 ## in ActionSpecs. Full-body emotes stop when you move (Player._emote_tick).
 
 ## The wheel's order (clockwise from the top), its labels, and each one's sound
-## [name, at u, volume dB] ("sit" is the ground sit, not an action).
+## [name, at u, volume dB] ("sit" is the ground sit, not an action). No emote plays music: that's the instruments'.
 const ORDER := ["wave", "point", "salute", "laugh", "cheer", "dance", "sit", "shrug", "bow", "flex", "facepalm", "shanty"]
 const LABELS := {"wave": "Wave", "point": "Point", "salute": "Salute", "laugh": "Laugh", "cheer": "Cheer", "dance": "Hornpipe",
 	"sit": "Sit", "shrug": "Shrug", "bow": "Bow", "flex": "Flex", "facepalm": "Facepalm", "shanty": "Shanty"}
 const SOUNDS := {"salute": ["heel_click", 0.08, -6.0], "laugh": ["laugh", 0.12, -2.0], "cheer": ["cheer", 0.28, -2.0],
-	"dance": ["jig", 0.0, -6.0], "bow": ["whoosh", 0.2, -14.0], "flex": ["hup", 0.42, -4.0], "facepalm": ["slap", 0.18, -6.0],
-	"shanty": ["shanty", 0.0, -6.0]}
+	"bow": ["whoosh", 0.2, -14.0], "flex": ["hup", 0.42, -4.0], "facepalm": ["slap", 0.18, -6.0]}
 const FULL := ["salute", "laugh", "cheer", "dance", "bow", "flex", "shanty"]
 ## A speaker's gestures, one picked per line.
 const TALK := ["gesture_talk_a", "gesture_talk_b", "gesture_talk_c"]

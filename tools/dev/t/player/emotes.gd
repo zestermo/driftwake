@@ -1,9 +1,10 @@
 extends SceneTree
-## Every emote plays as a body action (so co-op mirrors it), and every emote's sound is loaded.
+## Every emote plays as a body action (so co-op mirrors it), every emote's sound is loaded, and none plays music.
 const TK := preload("res://tools/dev/test_kit.gd")
 const EMOTES := ["wave", "point", "salute", "laugh", "cheer", "dance", "shrug", "bow", "flex", "facepalm", "shanty"]
-const EMOTE_SOUNDS := {"salute": ["heel_click"], "laugh": ["laugh"], "cheer": ["cheer"], "dance": ["jig"], "bow": ["whoosh"],
-	"flex": ["hup"], "facepalm": ["slap"], "shanty": ["shanty"]}
+const EMOTE_SOUNDS := {"salute": ["heel_click"], "laugh": ["laugh"], "cheer": ["cheer"], "bow": ["whoosh"],
+	"flex": ["hup"], "facepalm": ["slap"]}
+const EmotePoses := preload("res://scripts/npc/emote_poses.gd")
 var stage
 var p
 var i := 0
@@ -35,6 +36,7 @@ func _process(_d: float) -> bool:
 				if EMOTE_SOUNDS.has(id) and not fx._streams.has(EMOTE_SOUNDS[id][0]):
 					missing.append(id)
 			check("every emote's sound is loaded (missing %s)" % str(missing), missing.is_empty())
+			check("the hornpipe and the shanty play no music (the instruments do)", not EmotePoses.SOUNDS.has("dance") and not EmotePoses.SOUNDS.has("shanty"))
 		1:
 			p.state_machine.force_state("Idle", {})
 			p.global_position = Vector3(0, stage.GROUND_Y + 0.05, 0)
