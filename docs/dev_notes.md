@@ -2035,3 +2035,6 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Tests: denpathtest (new: driven gaps land 0.4-1.3 m past their lips, the double-jump run 1.3 m), storytest,
   foresttest, grunttest, lifetest, smoketest, vinetest, riggingtest. Renders: tools/dev/out/denpath/final_*.png
   (sea_w, sea_sw, over, foot, ledge, cave, bridge_sea, chain_lip, cleft, camp) and night_*.
+
+## 2026-10-15: musictest sea theme picks open sea clear of enemy ships
+- musictest sailed to a sea point inside an enemy ship's NOTICE range (150 m); the ship, now awake via ActorSleep, really hunted, so Music rightly played combat. The test now picks sea 400 m from every enemy ship and prints any enemy/ship in combat at the check. No game change.

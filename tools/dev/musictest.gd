@@ -150,7 +150,11 @@ func _process(d: float) -> bool:
 			for k in range(32):
 				var a := k * TAU / 32.0
 				var c: Vector2 = w.starter_center + Vector2(cos(a), sin(a)) * 380.0
-				if w._deep_enough(c, 140.0):
+				var clear := true
+				for es in get_nodes_in_group("enemy_ships"):
+					if Vector2((es as Node3D).global_position.x, (es as Node3D).global_position.z).distance_to(c) < 400.0:
+						clear = false
+				if clear and w._deep_enough(c, 140.0):
 					sea = Vector3(c.x, 0, c.y)
 					break
 			check("found open sea", sea != Vector3.INF)
@@ -165,6 +169,12 @@ func _process(d: float) -> bool:
 			ship.sail = 1.0
 			wait(8.0)
 		12:
+			for e in get_nodes_in_group("enemies"):
+				if e.has_method("in_combat") and e.in_combat():
+					print("   enemy in combat: %s %.0f m" % [e.get_path(), (e as Node3D).global_position.distance_to(p.global_position)])
+			for s in get_nodes_in_group("enemy_ships"):
+				if s.in_combat():
+					print("   ship in combat: %s %.0f m" % [s.get_path(), (s as Node3D).global_position.distance_to(p.global_position)])
 			check("aboard under sail out at sea: the sea theme (%s, %.1f m/s)" % [m.current, ship.speed], m.current == "sea")
 			set_hour(22.0)
 			wait(1.5)
