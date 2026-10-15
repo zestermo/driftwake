@@ -316,13 +316,21 @@ func _process(dt: float) -> bool:
 			_rig().global_rotation.y = atan2(-to.x, -to.z)
 			if Vector2(to.x, to.z).length() < 3.0 and int(drive["i"]) < swim_pts.size() - 1:
 				drive["i"] = int(drive["i"]) + 1
-			if int(float(drive["t"]) / 3.0) != int((float(drive["t"]) - dt) / 3.0):
-				print("   swimming %.0f s: at %s (%s), for point %d" % [drive["t"], _l(p.global_position), p.current_state_name(), drive["i"]])
+			# (at the beach's bank in deep water: Space climbs out, as a player would)
+			var flat := Vector2(p.global_position.x, p.global_position.z)
+			if flat.distance_to(drive.get("was", Vector2.INF)) > 0.5:
+				drive["was"] = flat
+				drive["still"] = 0.0
+			drive["still"] = float(drive.get("still", 0.0)) + dt
+			if float(drive["still"]) > 1.5 and p.current_state_name() == "Swim":
+				TK.act("jump")
+				drive["still"] = 0.0
+				drive["climbs"] = int(drive.get("climbs", 0)) + 1
 			var ashore: bool = p.current_state_name() != "Swim" and p.is_on_floor() and _l(p.global_position).y > 0.4
 			if not (ashore and int(drive["i"]) == swim_pts.size() - 1) and float(drive["t"]) < 45.0:
 				return false
 			_release_all()
-			check("  swum back and out on the beach at the path's foot (%.0f s, %.1f m from it)" % [drive["t"], Vector2(to.x, to.z).length()],
+			check("  swum back and out on the beach at the path's foot (%.0f s, %.1f m from it, %d climbs out)" % [drive["t"], Vector2(to.x, to.z).length(), drive.get("climbs", 0)],
 				ashore and Vector2(to.x, to.z).length() < 6.0)
 			step = 30
 			return false

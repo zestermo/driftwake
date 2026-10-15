@@ -2002,7 +2002,9 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   ~1.2 m of floor, so the lips are exact where you jump.
 - Gaps (run jump ~4.3 m flat, sprint ~6.4, double jump adds ~3): 2.3 m (+0.8, over the sand), 2.9 (+0.6), 4.4
   (level, sprint), 3.5 (+0.5), 3.8 (+0.6), then the broken bridge (9.5 m) and its chain. Every gap past 124 deg
-  drops to the sea (the terrain under the shelf is cut down to -6.5); from the water swim back round to the beach.
+  drops to the sea (the terrain under the shelf is cut down to -6.5); from the water swim back round to the beach,
+  up a sand ramp (`landing`) cut in at the foot: the old climb's dry-beach band ended in a 4 m underwater bank a
+  swimmer couldn't get up (found by the test's swim back).
   Headroom over every lip is >= 4.2 m (an overhang at a lip cut the jump short: found by the test).
 - The cave: a room (r 6, 6 m high) in a buttress out over the sea, 5 small scuttlebugs, a cave brute
   (`Scuttlebug.brute`: 1.9x, 110 hp, slate shell, longer rear-up, 24 dmg ram; only a >= 30 dmg knockdown throws it;

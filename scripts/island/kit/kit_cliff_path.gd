@@ -33,6 +33,8 @@ var rails: Array = []
 var th0 := 0.0
 var th1 := 0.0
 var sea_from := 0.0
+## [from, to, height there, height here]: the sand ramp from the foot down into the sea.
+var landing: Array = []
 var cave: Dictionary = {}
 var bridge: Dictionary = {}
 ## Hollows: rooms [cx, cz, floor y, r, h], segs [ax, az, ay, bx, bz, by, half width, h, inside (1: the cave's)].
@@ -69,6 +71,7 @@ static func plan(centre: Vector2, spec: Dictionary, ground: Callable, seed_value
 	k.gaps = spec["gaps"]
 	k.rails = spec["rails"]
 	k.sea_from = float(spec["sea"])
+	k.landing = spec["landing"]
 	k.cave = spec["cave"]
 	k.bridge = spec["bridge"]
 	k.th0 = float(k.keys[0][0])
@@ -249,7 +252,7 @@ func carve(src: PackedFloat32Array, res: int, cell: float, half: float) -> Packe
 	var n := res + 1
 	var reach := 0.0
 	for i in range(_nt):
-		reach = maxf(reach, _r[i] + 12.0)
+		reach = maxf(reach, _r[i] + 16.0)
 	var i0 := clampi(int((c.x - reach + half) / cell), 0, res)
 	var i1 := clampi(int((c.x + reach + half) / cell) + 1, 0, res)
 	var k0 := clampi(int((c.y - reach + half) / cell), 0, res)
@@ -271,6 +274,12 @@ func carve(src: PackedFloat32Array, res: int, cell: float, half: float) -> Packe
 					var sea := _sea(th) * (1.0 - _sm(hw + 3.0, hw + 6.0, u)) * _sm(wall_in - 0.5, wall_in + 0.8, u)
 					tgt = lerpf(tgt, minf(tgt, SEA_FLOOR), sea)
 					h = lerpf(h, minf(h, tgt), behind * along)
+				# a sandy ramp up out of the sea to the foot, so a swimmer can walk out
+				var ld: Array = landing
+				var lw := _sm(float(ld[0]) - 4.0, float(ld[0]), th) * (1.0 - _sm(float(ld[1]), float(ld[1]) + 3.0, th)) \
+					* _sm(wall_in, wall_in + 0.5, u) * (1.0 - _sm(hw + 9.0, hw + 13.0, u))
+				if lw > 0.0:
+					h = lerpf(h, lerpf(ld[2], ld[3], clampf((th - float(ld[0])) / (float(ld[1]) - float(ld[0])), 0.0, 1.0)), lw)
 			for r in hull_rooms:
 				if p.distance_to(Vector2(r[0], r[1])) < float(r[3]) + 1.5:
 					h = minf(h, float(r[2]) - 1.5)
@@ -292,7 +301,8 @@ func covers(p: Vector2, inland := 3.2) -> bool:
 	var th := bearing(p)
 	if th > th0 - 6.0 and th < th1 + 6.0:
 		var u := p.distance_to(c) - radius_at(th)
-		if u > -half_at(th) - 0.35 - inland and u < half_at(th) + 7.0:
+		var sea_side := 14.0 if th > float(landing[0]) - 5.0 and th < float(landing[1]) + 4.0 else 7.0
+		if u > -half_at(th) - 0.35 - inland and u < half_at(th) + sea_side:
 			return true
 	for r in hull_rooms:
 		if p.distance_to(Vector2(r[0], r[1])) < float(r[3]) + T + CRAG + 1.0:
