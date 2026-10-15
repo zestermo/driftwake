@@ -1701,3 +1701,70 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Previews: ActionSpecs `*_stance` (the stance itself), `*_block` (the held block), `*_parry`, `*_deflect` per
   style for animsheet. Renders: tools/dev/out/anim/v114_before_y{125,90,180,330}_* and v114_after_y*_*,
   v114_after_walk_*. Tests: t/weapons, t/combat, daggertest, wieldtest.
+
+## 2026-10-15: v1.14 step 1, the Brinehollow benchmark (measured, nothing fixed yet)
+- Zach, v1.13 on a Ryzen 5 5600G + RTX 3080: 20-30 fps in Brinehollow. His F8 on the way to Grell's den: 47.6 ms,
+  PROCESS 46.6, PHYSICS 8.7, RENDER CPU 13.3, GPU 0.9, 5057 draws, 1837K prims, 17975 nodes, 129 enemies. CPU-bound.
+- Tools: `tools/dev/bench_brinehollow.gd` (a real window, vsync off, 1920x1080, ~5 min), run through
+  `tools/dev/bench.ps1` (holds every test slot so no other session's suites run beside it, then lets them go) and
+  compared with `tools/dev/bench_compare.ps1 <a> <b>`. Chain seed 4242 (TK.use_seed), waits until the chain islands
+  ahead are built and manned + 20 s: 2 chain islands, 204 enemies, 30.2k nodes (a heavier world than Zach's). Eight
+  stops (wake beach, plaza, market, quay, dock, foot of the den climb, training yard, aboard the moored sloop); at each
+  the gameplay camera rig pans a full turn per phase: base (5 s), probe (every processing script's node taken off the
+  engine and called by the bench in the engine's order, timed per node, so per script and per distance band from the
+  captain; rigs posed per frame), ablations (far: enemies, villagers, enemy ships past 120 m set PROCESS_MODE_DISABLED;
+  sun shadows off; local light shadows off; local lights hidden), base2 (ablations compare with the mean of base and
+  base2). Each frame is split by timeline marks (the bench script runs first in each pass, a BenchLate node last, plus
+  RenderingServer frame_pre/post_draw): phys_scr (the scene's physics pass, all ticks), phys_eng (Jolt step + sync),
+  proc_scr, tail (timers, tweens, transform notifications, deferred calls), draw (RenderingServer.draw), present.
+  frame1t = the frame with exactly one physics tick: the stable number to compare (frame swings ~10% run to run on
+  the laptop, frame1t ~5%). Also: visible geometry by piece (surfaces, without visibility range, casting shadows),
+  collision by owner, an enemy census. Results: `tools/dev/out/bench/brinehollow_<label>.txt` (not committed).
+- Gotcha: Godot's TIME_PROCESS / TIME_PHYSICS_PROCESS (the F8 PROCESS / PHYSICS) are the worst of the last second and
+  PROCESS includes RenderingServer.draw, so PROCESS ~ frame time says little about scripts.
+- v1.13 results (i7-14700HX laptop, RTX 4060, pixelated, d3d12; mean of the 8 stops):
+
+  | run | frame | p95 | frame1t | ticks | scripts/tick | Jolt/tick | process | tail | draw (rcpu) | GPU | draws vis+shadow |
+  |---|---|---|---|---|---|---|---|---|---|---|---|
+  | 13:00 clear | 42.3 | 50.5 | 29.1 | 2.54 | 5.6 | 3.0 | 8.4 | 4.6 | 6.7 (2.9) | 2.5 | 1135 + 912 |
+  | 21:00 clear | 35.9 | 46.6 | 26.6 | 2.16 | 5.3 | 2.8 | 7.4 | 4.0 | 6.3 (2.7) | 1.9 | 1124 + 1056 |
+  | 13:00 rain | 32.1 | 47.6 | 25.5 | 1.98 | 4.8 | 2.6 | 7.4 | 3.8 | 6.2 (2.8) | 4.1 | 1147 + 913 |
+
+  (the rain run's lower CPU numbers are the laptop's state, not the weather: RainFX itself is 0.17 ms.)
+- CPU-bound, confirmed (quick runs back to back, 13:00 clear): d3d12 frame1t 21.6 ms / GPU 4.2, Vulkan 20.3 / 3.7,
+  pixelation off (3D scale 1.0) 21.1 / 4.9. Neither the driver nor the pixel grid matters. The same quick run was
+  37.9 ms (frame1t 27.5) a few hours earlier on the same laptop: compare before/after only from runs taken back to
+  back, and look at frame1t. (One earlier Vulkan and pixelation-off pair showed repeated ~140 ms stalls inside the
+  draw; not seen again on the repeat.)
+- The physics spiral: at 24 fps the game runs 2.5 physics ticks a frame, so every ms per tick is paid 2.5 times (8.6 ms
+  per tick = 21 ms of a 42 ms frame). Zach at 21 fps runs ~2.9 a frame. frame = (frame1t - tick) / (1 - tick / 16.7).
+- Ranked costs (13:00 clear, frame1t 29.1 ms):
+  1. Far actors, -13.5 ms frame1t (-26.8 ms real frame: 42 -> 15.5 ms, 24 -> 65 fps): nothing sleeps by distance but
+     fauna (FaunaSpawner LOD) and beasts (dormant). Grunts 2.26 ms (2.13 of it past 120 m; physics AI + move_and_slide
+     every tick), scuttlebugs 2.23 (2.06), canopy spitters 0.86 (0.84), enemy ships 0.86 (all far) + their 40 cannons
+     0.16, grunt rigs 0.34, villager.gd 0.14, plus Jolt -1.7 ms/tick, tail -2.6 (moving rigs' transform
+     notifications), draw -0.6. 79 of 204 enemies process physics; 27 grunts, 25 scuttlebugs, 19 spitters, 6 ships.
+  2. The tick multiplier above: 8.6 ms per tick (scripts 5.6, Jolt 3.0).
+  3. Jolt 3.0 ms/tick: 205 character bodies, 720 areas (394 monitoring: 215 hurtboxes, 173 interactables), 6 enemy
+     ships (198 shapes) and 10 moored hulls (182 shapes) moved every tick, 13.1k shapes (9k static chain-island
+     vegetation colliders).
+  4. Main-thread draw 6.7 ms (rcpu 2.9) for ~1135 visible + 700-1250 shadow draws. 10,981 visible surfaces in the
+     world, 7,333 with no visibility range, 8,444 casting shadows; a humanoid is ~29 surfaces (141 rigs ~ 4k), the
+     scuttlebug nest 220, the spitter roosts 180. Sun shadows off: draw -0.8, rcpu -0.7, GPU -1.0..-1.4 ms.
+  5. Tail 4.6 ms (2.6 of it the far actors).
+  6. Near rigs: ~0.2 ms per fully posed humanoid (town NPC rigs 1.0 ms mean, 2.5 at the market; the player's 0.46;
+     npc.gd 0.43 for all 32, near or not; arm_body + lower_body 0.6).
+  7. Per-frame systems: Ambience + CoastProbe 0.50, SkyBirds 0.38 (0.10 at night), CloudSpawner 0.30, Weather 0.24,
+     SeaSpray 0.22 (0.29 rain), RainFX 0.17 (rain), HUD 0.12, InventoryScreen 0.10 while closed, 78 NightLights 0.05.
+  8. Local lights: up to 15 omni lights in view at 21:00, none with shadows; hiding them all is within noise.
+- Proposed fix areas (separate files, at most 3 at once):
+  A. Sleep far actors (first): pirate_grunt, scuttlebug/canopy_spitter, enemy_ship (+cannon), npc.gd, grunt_camp /
+     scuttlebug_nest as the owners, island-level sleep like FaunaSpawner._update_lod, all captains (Net.all_players),
+     the host only. Measured -13.5 ms frame1t.
+  B. Draw calls: visibility ranges on kit pieces, fewer surfaces per humanoid (body_builder), MultiMesh / merged nest
+     and roost props, cast_shadow off for small props. Estimated -2..-3 ms main-thread draw, -0.8 ms with fewer
+     shadow casters.
+  C. Physics + per-frame systems: hurtbox / interactable monitoring, moored hulls moved only near, NPC StaticBody
+     moved per frame, max_physics_steps_per_frame to bound the spiral; Ambience / SkyBirds / CloudSpawner / Weather /
+     SeaSpray throttled. Estimated -0.5..-1 ms per tick, -1 ms per frame.
+  Later: near-rig animation LOD (humanoid.gd, spring chains), sun shadow distance.
