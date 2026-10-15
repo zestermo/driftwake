@@ -1567,3 +1567,48 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   and ball on the captain, blade parry clash, axe chop, fist punch + finisher, bare-handed parry block, inventory
   open/close, a button's confirm and a Back button's back). t/combat t/ui pass except cutlass_combo "after a long
   pause, combo restarts", which already fails on main and on the duels branch (ledger), not touched here.
+## 2026-10-14: the player menu and duels (v1.13)
+- Zach: an interact menu with other players right next to them (trading, viewing their gear, a duel: a light fight
+  with the opponent's health at the top like a boss, the loser downed not dead and back up after, a little XP).
+- Menu (`scripts/ui/player_menu.gd`, a child of the local captain like the emote wheel): every other captain gets a
+  "Meet" Interactable (prompt = their name, so the HUD reads "F Name"; reach_test: 2.5 m flat and facing them,
+  dot >= 0.5; off while they're down or either is duelling). F opens Trade / Inspect / Duel (click, 1-3; the keys are
+  eaten so skills don't fire); Esc (Inspect: back first), a click outside, the pause menu or them being 3.5 m off
+  closes it. Trade is the existing trading (2026-10-05: drop, they pick up the sack): it turns you to face them and
+  opens the inventory with a toast saying how. Inspect (`inspect_panel.gd`): name, LV, fighting style, fruit, main /
+  off hand, the ten worn slots, quick items with counts, the inventory's Slot look and fill_info cards on hover; the
+  kit is asked of their own machine (Duel.ask_kit -> _want_kit / _kit RPCs, item refs as SaveGame's).
+- Duel (`scripts/game/duel.gd`, /root/Net/Duel made with the local captain by Duel.ensure, so the RPC path is the same
+  everywhere; it names no game class or autoload: hitbox.gd and the tests compile it before the autoloads exist).
+  The host keeps `state` = {asks, duels} and sends the whole of it to every captain in the world on each change
+  (a late joiner gets the next one); each machine plays its own part from it every frame (`_play`). Timing on the
+  shared clock (game time when Net is off, so the stage tests don't drift). Challenge -> the other gets
+  "<name> challenges you to a duel" with Y/N and 15 s (`duel_hud.gd`, a parry clang); decline/lapse is told to the
+  challenger. Accept: the ring centre is where the answerer stood; 3-2-1-Fight! banners (blips, a clang), the
+  opponent's name and health on the HUD's boss bar (show_boss phase 99: no ticks); a captain within 45 m who isn't in
+  it sees "A vs B" with the bar as A's share of the pair's health. Fight: on each duelist's machine the opponent's
+  puppet hurtbox joins layer 32 (the enemies'), so our blades, shots, skills and enemies_in find it and only it;
+  Hitbox lets that one overlap through Net.ignore_overlap (normally another machine's captain decides), route_hit
+  sends it to their machine, and Player._on_hit_received takes a captain's blow only from the duel opponent
+  (Duel.foes) and at x0.6 (Duel.soften). Normal co-op stays free of friendly fire (that gate is new: before, nothing
+  of a captain's reached another captain anyway). A blow that would finish you (and a guard break's) calls
+  Duel.beaten -> spare: HP 0, Downed with dead = true (held down), no died signal (no death, grave, bleed-out or
+  respawn). The host's referee: a duelist not standing (their snapshot's HP 0) loses; one 35 m off the ring, gone,
+  or 3 minutes: a draw. Result: Victory (+2% of the winner's level's XP, at least 10; GameManager.award_xp on the
+  winner's machine only) / Defeated / Draw banners; 3 s later stand_up: released from Downed (like a revive) with the
+  health and energy each had when the duel began. Arenas can reuse Duel.spare(p) / Duel.stand_up(p, hp, energy).
+- Not done: watchers don't get a second bar (one boss bar on the HUD); a captain who joins mid-duel sees it from the
+  next state change; a damage-over-time tick that doesn't name the opponent as its attacker can still really kill.
+- Files touched outside the new ones: player.gd (_ready adds the menu; _on_hit_received's gate and two beaten()
+  calls), hitbox.gd (one condition), hurtbox.gd (Duel.blame: a skill's blow on a duel opponent "from" our
+  PowerComponent's BlastOrigin proxy is sent as ours, or their machine couldn't tell it came from the duel and it
+  would land at full strength, maybe killing for real), stage.gd (opt `crew`: stand-in puppets with net ids 2, 3...), netclient.gd /
+  nettest_node.gd (mode duel).
+- Guests' requests are their own RPCs (_want_challenge / _want_answer, the sender is who asks); the host calls
+  _challenge / _answer directly (a sender check there broke when the host answered inside another RPC's handler).
+  A session starting or ending clears the state.
+- Tests: t/coop meet_menu, duel_win, duel_lose, duel_decline; nettest.ps1 duel (host vs guest). Render:
+  tools/dev/duelshot.gd (prompt, menu, Inspect with a card, challenge, countdown, fight bar, Victory).
+- Seen on the way (not this feature, fails on main too): t/combat/cutlass_combo "after a long pause, combo restarts"
+  fails since tests run --fixed-fps 60: Player.remember_combo times the 0.9 s combo memory on the wall clock, and a
+  fixed-fps run outpaces it.

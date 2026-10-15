@@ -148,11 +148,12 @@ func _process(delta: float) -> void:
 		close()
 		return
 	_refresh()
+	# right of the middle, clear of the captain you're facing and the skill bar
 	var vs := _canvas.canvas
 	for c in [_panel, _inspect]:
 		if c and c.visible:
 			c.reset_size()
-			c.position = Vector2(roundf((vs.x - c.size.x) * 0.5), roundf(vs.y * 0.62 - c.size.y * 0.5)).max(Vector2(4, 4))
+			c.position = Vector2(roundf(vs.x * 0.5 + 36.0), roundf(minf((vs.y - c.size.y) * 0.45, vs.y - 78.0 - c.size.y))).max(Vector2(4, 4))
 
 
 ## Every other captain gets the prompt (their name), off while they're down or either of you is duelling.

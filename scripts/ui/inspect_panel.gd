@@ -116,7 +116,9 @@ func _hover(key: String, s: Control) -> void:
 	_tip.add_theme_stylebox_override("panel", UIStyle.frame(UIStyle.BG_DARK, border, 5, "plank"))
 	_tip.visible = true
 	_tip.reset_size()
+	# beside the panel (left of it, or right if there's no room), level with the slot
 	var r := s.get_global_rect()
+	var pr := get_global_rect()
 	var vs := get_viewport_rect().size
-	var x := r.end.x + 4.0 if r.end.x + 4.0 + _tip.size.x < vs.x else r.position.x - 4.0 - _tip.size.x
+	var x := pr.position.x - 4.0 - _tip.size.x if pr.position.x - 4.0 - _tip.size.x >= 2.0 else pr.end.x + 4.0
 	_tip.global_position = Vector2(x, clampf(r.position.y, 2.0, vs.y - _tip.size.y - 2.0)).round()

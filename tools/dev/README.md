@@ -44,6 +44,7 @@ whole group: `run_tests.ps1 t/player/dodge`, `run_tests.ps1 t/player`, `run_test
 - `t/_template.gd`: copy it for a new test.
 - `t/player/`: starting_kit, draw_sheathe, dodge, double_jump, jump_takeoffs, jump_height, sprint, stamina, turn_lean, head_look, head_motion, shonen_body, log_pose_raise, crouch, sit_bench, sit_ground, emotes, gestures.
 - `t/combat/`: slash_dummy, cutlass_combo, sneak_sentry, impact_sounds (each weapon's impact and guard sound names, menu open/close and button sounds). `t/weapons/`: draw_styles. `t/items/`: rum_quick_slot, chest_loot, heal_timing, heal_spill, heal_kinds. `t/ui/`: menu_keys, emote_wheel. `t/ship/`: sit_stool.
+- `t/coop/` (stand-in crewmates: stage opt `crew`, puppets with no network): meet_menu (the prompt at 2.5 m facing them, Trade/Inspect/Duel, their kit in Inspect, Esc back and closed, walking off closes), duel_win (their challenge, Y, 3-2-1-Fight, only the pair's blows land at x0.6, the bar, Victory + XP, health and energy restored), duel_lose (our challenge from the menu, their finishing blow downs us without death, grave or loss, up again after 3 s), duel_decline (declined both ways, the 15 s lapse, busy duelists, a draw by walking off the ring).
 
 ## Test suites (run_tests.ps1)
 
@@ -109,7 +110,9 @@ Each prints `PASS ...` / `FAIL ...` lines and a final `RESULT OK` / `RESULT fail
 
 `nettest.ps1 [mode]` runs a headless host and client on localhost. Modes: none (the full session), `late` (the host
 starts single player and hosts from the pause menu), `three` (plus netwatch), `hostquit`, `water`, `board`, `chain` (the
-last two below).
+last two below), `duel` (the guest's F menu on the host's captain and Inspect from its machine, no hurting outside a duel,
+challenge and accept, the countdown, the guest's blade landing lightly, the host's finishing blow downing the guest without
+death, the host's win and XP, both back up with their health from before).
 
 - `nethost`: Co-op test, host side: hosts a world and runs the client's commands (see nettest_node.gd). In `chain` mode it first lands on the chain's first island in single player and fells its camp's captain, then hosts. Args: <port> [mode]
 - `netclient`: Co-op test, client side: joins the host (nethost.gd, same port) and checks the session: puppets both ways, enemies in sync, hits each way (client hits an enemy, an enemy hits the client), gunshots, kills (coins + XP), knocked out + revive, actions mirrored, fruit claims, the helm, spawner waves, burning brush, leaving. Mode `board`: a pirate ship boards the host before the client joins, then again with the client at the helm, then her deck crew turn: the client checks the boarders and deck crew are puppets on the right deck, in the crewmen's bodies, hits both ways and a kill. `chain` mode instead (retrying the join until the host's up): joining late it has the host's chain state (seed, where the crew is, unset, since when) and builds the same island (name, place, size, sites, camp crew - the captain the host felled isn't standing - village people, chests, the beast); a chest emptied by the guest is gone for it and still there for the host (each captain loots each chest once) until the host empties its own; the host's clock running on 15 minutes sets the log pose here and the next islands are built the same; the guest landing on an island ahead moves the crew there for both (the island behind and the fork's other side go); the guest felling the beast sets the log pose for everyone; the host landing on the next island moves the guest's chain on; a guest's save keeps its own world's chain. Args: <port> <start_delay> [mode]
@@ -240,6 +243,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `seashot`: The open sea's features from a passing ship: a reef, a whirlpool, a fog bank, a storm cell. Args: <out_prefix> [psx]
 - `islanddump`: Brinehollow node by node (transforms, vertex hashes, materials, colliders, lights, NPCs, loot, save ids, exclusions) for diffing two builds: the island kit's "same island" check (headless). Args: <out.txt>; then `git diff --no-index a.txt b.txt`
 - `yardshot`: The ship plain, then refitted in a few colour schemes (side, bow, masthead flag, each figurehead), Tackett at his timber, and the yard screen. Args: <out_prefix>
+- `duelshot`: The player menu and a duel on the light stage with a stand-in crewmate: the F prompt, the menu, Inspect (a weapon card up), their challenge, the countdown, the fight's boss bar, Victory. Args: <out_prefix> (e.g. res://tools/dev/out/duel/d)
 - `webframes`: Writes the game's gilt UI frames (UIStyle.frame_image) to web/site/img/ui/*.png for the site's border-image rules, plus an 8x contact sheet at out/palette/frames_x8.png (headless). Rerun after changing UIStyle's frames or palette.
 - `perfbench`: Frame/process/physics/render CPU/GPU ms, draws, prims, worst frame at five fixed views (1920x1080, vsync off, sharper preset). `probe` / `probe:<view>` instead times every script's _process/_physics_process. Args: [label|probe] [WxH]
 - `hitchprobe`: Times one-off jobs that can stall a frame (autosave, camp and ship respawns cold vs prebuilt, a rig, weapon meshes, navmesh parses).

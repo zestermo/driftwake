@@ -1144,7 +1144,8 @@ func _duel_step() -> void:
 	var my: int = net.my_id()
 	match step:
 		200:
-			if st_t < 1.2:
+			# (the clock is judged first: building the menus here hitches a frame or two)
+			if st_t < 1.2 or not data.has("clock_done"):
 				return
 			var it = p.interaction_component.current_interactable
 			check("next to the host, facing them: the prompt names them (%s)" % (it.prompt_text if it else "none"),

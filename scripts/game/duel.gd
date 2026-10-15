@@ -38,6 +38,7 @@ var _clock := 0.0
 var _mine := {}
 ## The challenger we've just answered (their challenge stays in our state until the host's word comes back).
 var _answered := -1
+var _was_active := false
 
 
 static func ensure(tree: SceneTree) -> Duel:
@@ -123,6 +124,16 @@ static func foes(a: Node, b: Node) -> bool:
 	return inst.fighting(d) and inst.opponent(d, inst.id_of(a)) == inst.id_of(b)
 
 
+## Our skills strike "from" a stand-in node (PowerComponent's BlastOrigin: the push's direction); on a duel
+## opponent the blow is ours, or their machine wouldn't know whose it was.
+static func blame(target: Node, attacker: Node) -> Node:
+	if inst == null or attacker == null or target == null or not target.is_in_group("players") or target.is_local \
+			or attacker.is_in_group("players"):
+		return attacker
+	var p := inst.me()
+	return p if p and attacker == p.power.get("_proxy_node") else attacker
+
+
 ## A blow from the duel opponent, lightened.
 static func soften(hit: HitData) -> HitData:
 	var h := hit.duplicate() as HitData
@@ -172,32 +183,39 @@ func _sfx(sound: String, at: Vector3, db: float, jitter: float, pitch: float) ->
 
 ## Our captain challenges captain `to`.
 func challenge(to: int) -> void:
-	_host_call("_challenge", [net.my_id(), to])
+	if net.is_host():
+		_challenge(net.my_id(), to)
+	else:
+		_want_challenge.rpc_id(1, to)
 
 
 ## Our answer to the challenge we were sent.
 func answer(accept: bool) -> void:
 	_answered = asker_of(net.my_id())
 	var p := me()
-	_host_call("_answer", [net.my_id(), accept, p.global_position if p else Vector3.ZERO])
-
-
-func _host_call(method: String, args: Array) -> void:
+	var at := p.global_position if p else Vector3.ZERO
 	if net.is_host():
-		callv(method, args)
+		_answer(net.my_id(), accept, at)
 	else:
-		callv("rpc_id", [1, method] + args)
+		_want_answer.rpc_id(1, accept, at)
 
 
-## (a request names who it's for: a guest may only speak for themselves)
-func _from_ok(id: int) -> bool:
-	var s := multiplayer.get_remote_sender_id()
-	return net.is_host() and (s == 0 or s == id)
+## A guest's requests: they speak for themselves only.
+@rpc("any_peer", "call_remote", "reliable")
+func _want_challenge(to: int) -> void:
+	if net.is_host():
+		_challenge(multiplayer.get_remote_sender_id(), to)
 
 
 @rpc("any_peer", "call_remote", "reliable")
+func _want_answer(accept: bool, at: Vector3) -> void:
+	if net.is_host():
+		_answer(multiplayer.get_remote_sender_id(), accept, at)
+
+
+## (host) `a` challenges `b`.
 func _challenge(a: int, b: int) -> void:
-	if not _from_ok(a) or a == b or captain(b) == null:
+	if a == b or captain(b) == null:
 		return
 	if not duel_of(a).is_empty() or not duel_of(b).is_empty():
 		_tell(a, "%s is already in a duel" % name_of(b) if duel_of(a).is_empty() else "You're already in a duel")
@@ -214,10 +232,8 @@ func _challenge(a: int, b: int) -> void:
 	_tell(a, "You challenged %s to a duel" % name_of(b))
 
 
-@rpc("any_peer", "call_remote", "reliable")
+## (host) `b` answers whoever challenged them, standing at `at` (the ring's centre).
 func _answer(b: int, accept: bool, at: Vector3) -> void:
-	if not _from_ok(b):
-		return
 	var a := asker_of(b)
 	if a < 0:
 		return
@@ -267,6 +283,11 @@ func _state(s: Dictionary) -> void:
 # ==========================================================================
 func _process(delta: float) -> void:
 	_clock += delta
+	# a session started or ended: nothing from before carries over
+	if net.active != _was_active:
+		_was_active = net.active
+		state = {"asks": {}, "duels": {}}
+		_mine.clear()
 	if net.is_host():
 		_referee()
 	_play_all()
