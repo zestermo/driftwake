@@ -66,6 +66,7 @@ func _spawn(s: Dictionary) -> void:
 	bug.xp_k = 0.5 if int(s["gen"]) > (1 if start_empty else 0) else 1.0
 	bug.level = level
 	add_child(bug)
+	DrawLOD.creature(bug)
 	bug.global_position = start
 	bug.reset_physics_interpolation()
 	s["bug"] = bug

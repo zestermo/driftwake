@@ -39,6 +39,10 @@ func is_empty() -> bool:
 	return _order.is_empty()
 
 
+func surface_count() -> int:
+	return _order.filter(func(m): return not (_surfaces[m]["v"] as PackedVector3Array).is_empty()).size()
+
+
 ## Core primitive. `want` is the desired facing direction (used for winding).
 func add_tri(mat: Material, a: Vector3, b: Vector3, c: Vector3,
 		na: Vector3, nb: Vector3, nc: Vector3,
@@ -910,8 +914,14 @@ func fold_tints() -> void:
 		if not f.is_empty():
 			c = c.duplicate()
 			var k: Color = f[1]
+			var last_in := Color(-1, -1, -1)
+			var last_out := Color.WHITE
 			for i in range(c.size()):
-				c[i] = Color(c[i].r * k.r, c[i].g * k.g, c[i].b * k.b, c[i].a).linear_to_srgb()
+				var ci := c[i]
+				if ci != last_in:
+					last_in = ci
+					last_out = Color(ci.r * k.r, ci.g * k.g, ci.b * k.b, ci.a).linear_to_srgb()
+				c[i] = last_out
 		dst["v"].append_array(src["v"])
 		dst["n"].append_array(src["n"])
 		dst["uv"].append_array(src["uv"])
@@ -921,6 +931,35 @@ func fold_tints() -> void:
 
 
 ## Commit everything into an ArrayMesh (one surface per material).
+## A committed rigid mesh back as a builder (null if it has anything a builder doesn't keep:
+## indices, a second UV, custom channels, bones, blend shapes, non-triangles).
+static func from_mesh(am: ArrayMesh) -> MeshBuilder:
+	if am.get_blend_shape_count() > 0:
+		return null
+	var mb := MeshBuilder.new()
+	for i in range(am.get_surface_count()):
+		if am.surface_get_primitive_type(i) != Mesh.PRIMITIVE_TRIANGLES:
+			return null
+		var arr := am.surface_get_arrays(i)
+		for k in range(Mesh.ARRAY_MAX):
+			# (tangents come back from any mesh with normals: the shader doesn't use them)
+			if arr[k] != null and not k in [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_TANGENT, Mesh.ARRAY_TEX_UV, Mesh.ARRAY_COLOR]:
+				return null
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		if arr[Mesh.ARRAY_NORMAL] == null or arr[Mesh.ARRAY_TEX_UV] == null:
+			return null
+		var c: PackedColorArray = arr[Mesh.ARRAY_COLOR] if arr[Mesh.ARRAY_COLOR] != null else PackedColorArray()
+		if c.is_empty():
+			c.resize(v.size())
+			c.fill(Color.WHITE)
+		var s := mb._surf(am.surface_get_material(i))
+		s["v"].append_array(v)
+		s["n"].append_array(arr[Mesh.ARRAY_NORMAL])
+		s["uv"].append_array(arr[Mesh.ARRAY_TEX_UV])
+		s["c"].append_array(c)
+	return mb
+
+
 func commit() -> ArrayMesh:
 	var mesh := ArrayMesh.new()
 	for mat in _order:

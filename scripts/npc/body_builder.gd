@@ -25,6 +25,8 @@ const STYLES := {
 ## Shonen is the game's art style. The other presets stay available to looks
 ## that name a "style" explicitly (tools / mockups).
 const DEFAULT_STYLE := "shonen"
+## A body stops drawing this far off (x its height): ~2 pixels tall on the 640x360 grid.
+const RANGE := 220.0
 const STYLE_NAMES := ["shonen", "chibi", "heroic"]
 
 
@@ -108,6 +110,10 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	for s in _sims.values():
 		(s as SpringChains).mb.fold_tints()
 		(s as SpringChains).finalize()
+	var end := RANGE * float(lk.get("height", 1.0))
+	for g in h.find_children("*", "GeometryInstance3D", true, false):
+		(g as GeometryInstance3D).visibility_range_end = end
+		(g as GeometryInstance3D).visibility_range_end_margin = end * 0.1
 
 
 # --------------------------------------------------------------------------

@@ -79,12 +79,15 @@ static func lit(tex_name: String, tint: Color = Color.WHITE, opts: Dictionary = 
 
 ## The shared white-tinted twin of a plain lit material, and the tint (linear) its
 ## vertex colours must carry instead: one surface per texture, whatever the tints.
-## [] for a material that can't fold (glow, decal, no vertex colour, not a PSXMat.lit) or already has.
+## [] for a material that can't fold (glow, decal, no vertex colour, not a PSXMat.lit) or already has,
+## and for an object's own copy of one (its hit flash sets tint_mul on that copy).
 static func fold(m: Material) -> Array:
 	if m == null or not m.has_meta("psx"):
 		return []
 	var spec: Array = m.get_meta("psx")
 	var opts: Dictionary = spec[2]
+	if _cached("lit|%s|%s|%s" % [spec[0], (spec[1] as Color).to_html(), str(opts)]) != m:
+		return []
 	for k in opts:
 		if not k in ["affine", "pull", "cull_disabled"]:
 			return []

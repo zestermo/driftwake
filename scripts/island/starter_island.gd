@@ -185,6 +185,7 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("npcs", func(): KitLife.spawn(kit, BrinehollowCast.people(self)))
 	kit.timed("loot", _spawn_loot)
 	_add_arrival_zone()
+	kit.timed("draw lod", func(): DrawLOD.apply(self))
 
 	# the ship lies alongside the pier's head, against its fender
 	var dock_end := harbour.dock_point(DOCK_LENGTH - 4.0)

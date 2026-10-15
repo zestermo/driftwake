@@ -72,10 +72,10 @@ shadow_enabled = true
 shadow_bias = 0.06
 shadow_normal_bias = 1.5
 directional_shadow_mode = 1
-directional_shadow_split_1 = 0.25
+directional_shadow_split_1 = 0.3
 directional_shadow_blend_splits = true
-directional_shadow_fade_start = 0.85
-directional_shadow_max_distance = 120.0
+directional_shadow_fade_start = 0.8
+directional_shadow_max_distance = 80.0
 
 [node name="Clouds" type="Node3D" parent="." unique_id=541984501]
 script = ExtResource("10")

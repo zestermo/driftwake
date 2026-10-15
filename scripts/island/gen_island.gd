@@ -172,6 +172,7 @@ func finish_steps() -> Array:
 	steps.append_array(IslandContent.steps(self))
 	steps.append_array(IslandVillage.steps(self))
 	steps.append_array(life.steps())
+	steps.append_array(DrawLOD.steps(self, 24))
 	return steps
 
 

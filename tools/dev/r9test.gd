@@ -76,6 +76,13 @@ func _process(d: float) -> bool:
 						var c: Color = mat.get_shader_parameter("albedo_color")
 						if c.is_equal_approx(hc.darkened(0.15)):
 							found = true
+						# (bodies fold tints into sRGB vertex colours: MeshBuilder.fold_tints)
+						if mat.get_shader_parameter("vertex_srgb") == true and mat.get_shader_parameter("albedo_tex") == null:
+							for vc in (m.surface_get_arrays(si)[Mesh.ARRAY_COLOR] as PackedColorArray):
+								var want := hc.darkened(0.15)
+								if absf(vc.r - want.r) < 0.01 and absf(vc.g - want.g) < 0.01 and absf(vc.b - want.b) < 0.01:
+									found = true
+									break
 			check("the scalp under the hair is hair-coloured", found or str(p.body_model.look.get("hair", "")) == "bald")
 			# --- swim: feet stay at the same depth under the passing waves
 			var ship = get_first_node_in_group("ship")
