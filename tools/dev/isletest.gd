@@ -326,7 +326,8 @@ func _process(d: float) -> bool:
 
 ## What prepare alone decides: the land, the sea round it, the berth, the cliffs, the sites.
 func _land(isl, tag: String) -> void:
-	check(tag + "600-900 m across", isl.radius >= 300.0 and isl.radius <= 450.0)
+	var span: Array = load("res://scripts/island/themes/island_themes.gd").of(isl.theme).radius
+	check(tag + "its theme's size across", isl.radius >= float(span[0]) and isl.radius <= float(span[1]))
 	var mid_land := false
 	for k in range(12):
 		var q := Vector2.from_angle(k * TAU / 12.0) * 40.0

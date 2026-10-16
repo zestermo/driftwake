@@ -62,8 +62,9 @@ const BRINEHOLLOW := {
 			"legs_color": [Color(0.40, 0.28, 0.18), Color(0.24, 0.17, 0.12), Color(0.28, 0.28, 0.30), Color(0.14, 0.18, 0.34)]},
 		"set": {"coat": "none", "eyepatch": false, "gloves": false},
 	},
-	# what you hear: Music's track on foot here (Music.TRACKS), Ambience's bed (Ambience.LOOPS; "" none)
+	# what you hear: Music's track on foot here and in its village's streets (Music.TRACKS), Ambience's bed (Ambience.LOOPS; "" none)
 	"music": "island",
+	"music_town": "village",
 	"ambience": "",
 	# the weather here (Weather): where clear, cloudy and rain end on a 0..1 roll (the rest is storm), extra fog
 	"weather": [0.36, 0.66, 0.86],

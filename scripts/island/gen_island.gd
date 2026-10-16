@@ -18,7 +18,6 @@ const CELL := 3.0
 const SEAFLOOR := -30.0
 ## Sea between the furthest coast and the edge of the island's own terrain.
 const MARGIN := 80.0
-const RADIUS := [300.0, 450.0]
 const DOCK_DECK_Y := 1.7
 const PIER_LEN := 30.0
 const BERTH_DEPTH := 4.5
@@ -54,7 +53,10 @@ var build_ms := {}
 var life: IslandLife
 ## The village laid out in prepare (IslandVillage.plan), built in its finish steps.
 var village_plan := {}
+## The theme's own land features (ThemeDef.plan_land; ThemeDef.shape reads it): {} for the jungle.
+var land_plan := {}
 
+var _theme: ThemeDef
 var _def: Dictionary
 var _rng := RandomNumberGenerator.new()
 var _coast_noise := FastNoiseLite.new()
@@ -108,6 +110,7 @@ func build(n: Dictionary) -> void:
 func prepare(n: Dictionary) -> void:
 	node = n
 	theme = str(n["theme"])
+	_theme = IslandThemes.of(theme)
 	_def = IslandTheme.def(theme)
 	_rng.seed = int(n["seed"])
 	# the island's own forest (IslandTheme "forests"), from its own stream so the land stays the same
@@ -117,12 +120,15 @@ func prepare(n: Dictionary) -> void:
 	var pick: Array = forests[frng.randi() % forests.size()]
 	forest = pick[0]
 	_def = _def.merged(pick[1], true)
-	radius = _rng.randf_range(RADIUS[0], RADIUS[1])
+	radius = _rng.randf_range(_theme.radius[0], _theme.radius[1])
 	extent = ceilf((radius + MARGIN) * 2.0 / CELL) * CELL
 	half = extent * 0.5
 	res = int(extent / CELL)
 	var t0 := Time.get_ticks_usec()
 	_setup_shape()
+	var lrng := RandomNumberGenerator.new()
+	lrng.seed = int(n["seed"]) + 977
+	land_plan = _theme.plan_land(self, lrng)
 	_plan_sites()
 	_generate_heights()
 	build_ms["land"] = _lap(t0)
@@ -270,7 +276,16 @@ func _height_natural(p: Vector2, shelf := 1.0) -> float:
 	h += _detail_noise.get_noise_2d(p.x, p.y) * 0.45 * inland
 	for b in _bumps:
 		h += float(b[1]) * _gauss(p, b[0], b[2]) * inland
-	return h
+	if land_plan.is_empty():
+		return h
+	# the theme's features over the base land; round the sites it may raise the ground but not take it away
+	var s := _theme.shape(self, p, h)
+	if s < h:
+		for k in _keep:
+			var w := 1.0 - _smooth(float(k[1]) * 0.6, float(k[1]), p.distance_to(k[0]))
+			if w > 0.0:
+				s = lerpf(s, h, w)
+	return s
 
 
 ## 0..1: room for the shelf at p (none in the dock's fairway or near the radius: the sea is deep there).

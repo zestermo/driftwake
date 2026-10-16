@@ -147,6 +147,7 @@ func _init() -> void:
 	glyph = _glyph
 	flocks = 2
 	land = LAND
+	radius = [300.0, 450.0]
 	style = STYLE
 	props = {
 		"basket": func(rng: RandomNumberGenerator, size: float) -> Node3D: return JungleProps.basket(0.8 * size, rng.randi()),

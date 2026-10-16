@@ -28,6 +28,9 @@ var flocks := -1
 ## The land's shape and the plants on it (IslandTheme.def: peak, hills, roll, base, ramp, cliffs, the plant chances
 ## per grid cell, cover, canopy and giants, the floor layers, forests). Numbers only: GenIsland.prepare reads it on a worker.
 var land := {}
+## Its islands' radius range [lo, hi] (m; GenIsland.prepare's first draw, the jungle's [300, 450]). Chain pushes a fork's
+## islands and the next layer apart by how far a theme's top end passes Chain.BASE_R.
+var radius: Array = []
 ## The settlement style (KitStyle.of merges it over KitStyle.BRINEHOLLOW: a key replaces the whole base key,
 ## so a nested table carries every sub-key; its "props" slots name models, "ambience" an Ambience.LOOPS key,
 ## "music" a Music.TRACKS key).
@@ -53,8 +56,24 @@ var fauna := {}
 var creatures := {}
 
 ## Every member above, for the check and the test: a new member goes here too.
-const CONTRACT := ["name", "display", "blurb", "island_names", "weight", "color", "glyph", "flocks", "land", "style", "props",
+const CONTRACT := ["name", "display", "blurb", "island_names", "weight", "color", "glyph", "flocks", "land", "radius", "style", "props",
 	"life", "bosses", "minis", "roamers", "beasts", "fauna", "creatures"]
+
+
+## The theme's own land features for one island (dune fields, ridges, wadis, plateaus...), planned on the worker in
+## GenIsland.prepare after the coast, the summit and hills are set up and before the sites: numbers only, drawn from
+## `rng` (the island's own stream for this, so the base land's draws never move). What it returns is the island's
+## `land_plan`, which shape() reads. The jungle has none.
+func plan_land(_isl, _rng: RandomNumberGenerator) -> Dictionary:
+	return {}
+
+
+## The height at island point p once the theme's features are in: `h` is the base land's (coast, beach ramp, roll,
+## summit and hills). GenIsland's flats (sites, the dock) and the berth are laid over it afterwards, and the sites'
+## kept land holds, so a site's ground is level whatever this does. Called on the worker, many times per point:
+## numbers only, reading `isl.land_plan`. The jungle's is the base land.
+func shape(_isl, _p: Vector2, h: float) -> float:
+	return h
 
 
 ## The plant and rock meshes its islands are made of, built once per theme on the main thread before

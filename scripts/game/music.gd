@@ -224,9 +224,9 @@ func _pick(dt: float) -> String:
 	# swimming: whatever was on (the sea stays the sea)
 	if me.has_method("is_swimming") and me.is_swimming():
 		var was := context_of(current)
-		return was if was in ["sea", "island", "village"] else "island"
+		return was if was not in ["", "title"] and was not in FIGHTS else "island"
 	if in_village(tree, pos):
-		return "village"
+		return KitStyle.of(KitStyle.around(tree, pos)[0])["music_town"]
 	# ashore on a chain island: its style's track
 	var zone := KitStyle.around(tree, pos)
 	if float(zone[1]) > 0.5:

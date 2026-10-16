@@ -26,6 +26,9 @@ const BEND := 0.22
 const RING := [2000.0, 7500.0]
 ## A layer's islands keep this far from the layer before's (m).
 const APART := 1150.0
+## The island radius the legs, forks and APART are sized for (the jungle's top end): a theme whose islands
+## reach further (ThemeDef.radius) pushes its fork partner and the next layer out by the difference.
+const BASE_R := 450.0
 
 ## (the themes, their names and blurbs are the registry's: IslandThemes, in its declared order)
 const ISLE_WORDS := ["Isle", "Island", "Key", "Atoll", "Rock"]
@@ -101,6 +104,7 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 			n["name"] = _name(rng, n)
 			nodes.append(n)
 			ids.append(n["id"])
+		at = _make_room(ids, prev, at, dir, side)
 		# link the layer before to this one: branch to branch, everything into a single island
 		if prev.is_empty():
 			start_next = ids.duplicate()
@@ -143,6 +147,35 @@ static func _steer(at: Vector2, origin: Vector2, dir: Vector2, leg: float, offs:
 			best_gap = gap
 			best = d
 	return best
+
+
+## Room for islands bigger than BASE_R (no rng: a chain of BASE_R themes is untouched): a fork's two pushed
+## apart sideways by their excess, then the layer pushed on along `dir` until each island keeps APART plus
+## both excesses from the layer before's. Returns the line's point, moved with the layer.
+func _make_room(ids: Array, prev: Array, at: Vector2, dir: Vector2, side: Vector2) -> Vector2:
+	if ids.size() == 2:
+		for b in range(2):
+			nodes[ids[b]]["pos"] += side * _excess(nodes[ids[b]]) * (-1.0 if b == 0 else 1.0)
+	var push := 0.0
+	for id in ids:
+		for pid in prev:
+			var extra := _excess(nodes[id]) + _excess(nodes[pid])
+			if extra > 0.0:
+				var a: Vector2 = nodes[pid]["pos"]
+				var q: Vector2 = nodes[id]["pos"]
+				var need := APART + extra
+				var along := (q - a).dot(dir)
+				var across := (q - a).length_squared() - along * along
+				if across < need * need:
+					push = maxf(push, sqrt(need * need - across) - along)
+	if push > 0.0:
+		for id in ids:
+			nodes[id]["pos"] += dir * push
+	return at + dir * push
+
+
+static func _excess(n: Dictionary) -> float:
+	return maxf(float(IslandThemes.of(n["theme"]).radius[1]) - BASE_R, 0.0)
 
 
 ## A registered theme by its weight (ThemeDef.weight), the ones to avoid left out unless
