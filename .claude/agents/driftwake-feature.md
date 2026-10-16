@@ -26,7 +26,8 @@ You build one feature of Driftwake, Zach's Godot 4.7 GDScript PS1-style One Piec
 - **Mouse and sound:** grab the mouse only through `Settings.capture_mouse()`. Tests and tools run muted.
 - **Performance** (CLAUDE.md, Performance rules): per-frame/tick code sleeps when far (ActorSleep or the island LOD) at
   the lowest rate that looks right; new meshes get a visibility range, no shadow when small, MultiMesh when repeated;
-  areas monitor only if read. Game time only, never the wall clock. Bench before/after (`bench.ps1 label=...`).
+  areas monitor only if read. Game time only, never the wall clock. Load the driftwake-perf skill before benching:
+  bench before/after back to back (`bench.ps1 label=<feature>_before` / `_after`, `bench_compare.ps1`).
 
 ## Testing (tier 1 only)
 - Load the driftwake-test skill before running or writing a test: it has the command forms the guard hook starts
