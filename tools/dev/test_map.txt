@@ -27,8 +27,6 @@ scripts/ui/duel_hud.gd                  t/coop
 # --- player ---
 scenes/player/*                         t/player t/combat t/items swimtest
 scenes/player/camera_rig.gd             t/player t/combat
-scripts/npc/blender_body.gd             t/player/blender_body
-assets/models/captain/*                 t/player/blender_body
 scripts/player_states/*                 t/player t/combat
 scripts/player_states/player_state.gd   t/player t/items balancetest airtest
 scripts/player_states/light_attack*     t/combat axetest katanatest techtest wieldtest
