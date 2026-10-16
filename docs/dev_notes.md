@@ -2448,3 +2448,41 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   (every roster kind makes its own creature, the beasts are the snow's); bosstest's "every boss turns up" counts every
   theme's bosses. lifetest failed once on "a villager walks its route" (4.1 m in 2 s, the check's < 4.0: process
   seconds under load) and passed on its rerun.
+## 2026-10-16: the cutlass's drawn water (Kraken's Wake, the awakened blade)
+- **Why:** Zach's test of Demon Slayer's Water Breathing look in Driftwake (Tanjiro key art as the
+  reference). His notes as it went: animated pixel-art sprites, "not just arcs"; the first sheets "too
+  jagged and solid" -> flowy, ukiyo-e water with bubbles and small swirls along the edges; a swirling
+  water trail round the blade once awakened; the blade coil "too tight and circular" -> oval along
+  the flat, serpentine; the big upright swirl round you at the payoff "a bit too much" (removed). This
+  is the direction for most weapon effects (driftwake-fx "Drawn elements").
+- **Art** (`tools/texture_gen/gen_water_fx.py`, its own generator so the 16-sheet library and
+  t/fx/sheets stay as they were): `flip_water_slash` (a crescent sweeping over and curling in, claws
+  of foam riding its back, pinching into gobs and bubbles), `flip_water_swirl` (two arms spiralling
+  out of a dark eye, spinning then slowing, flung apart), `flip_water_curl` (a wave tongue rising and
+  rolling over, breaking from the tip): 4x4 frames of 128 px, solid alpha, a 7-step navy-to-foam
+  palette. `water_trail.png`: 8 looping frames of 256x64 (a foam crest with claws and bubbles, dashed
+  flow lines, eddies along the inner edge). ~4.2 MB with mips in all.
+- **FX** (`scripts/game/fx.gd`): `water_arc` / `water_wake` (a `WaterRibbon`, scripts/game/water_ribbon.gd:
+  the strip laid camera-facing along an arc that curls in at its head, or flat along the ground; its
+  UVs scroll and step through the frames on game time; a `water_curl` at the head, droplets off the
+  tail as it pinches into gobs; one shared material, an ArrayMesh rebuilt each frame for its ~0.5 s),
+  `water_burst` (one sheet played once, unlit), `droplets` (spray's droplets alone).
+- **Kraken's Wake** (TechniqueState `_kraken`, all behind `_elem()`; the plain version is unchanged):
+  two coils of water winding opposite ways round you and a swirl as you gather; per blink-cut an arc
+  through them (its slant swapping), an eddy (swirl) on them and a wake of water along the ground
+  between them, plus the old streak and spray; a rising arc off the blade on the flick; at the tear a
+  whirl of water once round you and, under each victim, three rising curls + a swirl in place of the
+  geometry tentacles (`FX.water_tentacles` stays for now, unused).
+- **The awakened blade** (`BladeWater`, scripts/game/blade_water.gd): with `elem_sword` (the cutlass's
+  tier-1 mastery, Call of the Tide) and the cutlass drawn (style "sword", not hybrid), two loose
+  serpentine strands of the strip wind up the blade on an oval laid along its flat (the wider of the
+  mesh's x/y). Built once per blade size, a child of the weapon mesh; animated only by a sway and one
+  shared material's `uv1_offset` stepped once a frame. Co-op: Player's snapshot flag `NF_TIDE` (16),
+  puppets call `BladeWater.keep` with it.
+- **Cost:** Kraken's Wake at six victims: up to ~8 ribbons alive at once (each one node, one draw,
+  <=186 vertices rebuilt a frame), one sprite per cut plus a few droplet bursts per ribbon, three
+  curls and a swirl per victim at the tear; it lasts ~2 s. The aura: one node and one draw per drawn
+  awakened cutlass (~530 static vertices), nothing rebuilt. No lights. The Brinehollow bench route
+  fires neither (no ult, no awakened blade), so it wasn't re-benched.
+- **Tools/tests:** abilityshot's `close` view (the captain's blade up close). `t/fx/water`.
+  Renders: tools/dev/out/abil/ (g2/s2/g3/night/aura3).

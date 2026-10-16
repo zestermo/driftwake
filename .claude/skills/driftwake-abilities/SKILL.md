@@ -109,6 +109,12 @@ after the mid-tree skill, tier 2 at level 16 after the late one and tier 1). Wri
 a clean physical one (plain palette, rings, dust) that still reads, and the elemental layer
 behind `_elem()`. Tier 2 colours the basics (light/heavy trails, `FX.elem_hit`).
 
+**The elemental layer is drawn (2026-10-16, Zach's direction for most weapon effects):** animated
+pixel-art sprite sheets and flowing textured ribbons in a Demon Slayer / ukiyo-e manner, not flat
+geometry, plus an aura on the weapon once its tier-1 mastery is owned. The cutlass's sea (Kraken's
+Wake, `BladeWater`) is the worked example; driftwake-fx "Drawn elements" has the recipe for a new
+element's variation (its own sheets, strip and aura shape).
+
 ## Spam limits (balance)
 
 Right-click heavies chained within 3 s cost x1.5 each (`PlayerState.heavy_cost`, the chain

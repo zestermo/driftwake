@@ -1967,6 +1967,60 @@ func water_tentacles(pos: Vector3, height: float = 3.0, color: Color = Color(0.3
 	ring(pos, Vector3.UP, 2.4, color.lerp(Color.WHITE, 0.4), 0.4)
 
 
+## A ribbon of water swept round an arc (the cutlass's water slashes): centred on `center`
+## in the plane of `u` (where it starts) and `v` (the way it sweeps), `sweep` radians round,
+## drawn on over `draw` s, then breaking up into droplets by `life`.
+func water_arc(center: Vector3, u: Vector3, v: Vector3, radius: float = 1.5, sweep: float = PI, width: float = 0.5,
+		draw: float = 0.1, life: float = 0.6, color: Color = Color(0.3, 0.72, 1.0), seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(center) > BURST_RANGE:
+		return
+	var r := WaterRibbon.new()
+	r.center = center
+	r.u = u.normalized()
+	r.v = v.normalized()
+	r.radius = radius
+	r.sweep = sweep
+	r.width = width
+	r.draw = draw
+	r.life = life
+	r.color = color
+	r.seed_v = seed_v
+	_scene_root().add_child(r)
+
+
+## A run of water lying along the ground from `from` to `to` (the path of a dash).
+func water_wake(from: Vector3, to: Vector3, width: float = 0.6, life: float = 0.7, color: Color = Color(0.3, 0.72, 1.0), seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if (to - from).length() < 0.3 or cam and cam.global_position.distance_to(from) > BURST_RANGE:
+		return
+	var r := WaterRibbon.new()
+	r.line = true
+	r.center = from + Vector3(0, 0.06, 0)
+	r.to = to + Vector3(0, 0.06, 0)
+	r.width = width
+	r.draw = 0.07
+	r.life = life
+	r.color = color
+	r.seed_v = seed_v
+	_scene_root().add_child(r)
+
+
+## One of the cutlass's drawn-water sheets (gen_water_fx.py: water_slash, water_swirl,
+## water_curl) played once at `pos`, rolled up to `spin` degrees either way. Unlit: the
+## awakened sea keeps its colour at night.
+func water_burst(pos: Vector3, sheet: String, size: float = 2.0, life: float = 0.5, spin: float = 30.0) -> void:
+	flipbook(pos, sheet, 1, size, life, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+		"damping": 0.0, "spin": spin, "fade": 0.9, "lit": false})
+
+
+## Droplets of water thrown along `dir` that fall back (spray without its mist).
+func droplets(pos: Vector3, dir: Vector3, amount: int = 6, color: Color = Color(0.85, 0.95, 1.0), speed: float = 4.0) -> void:
+	_burst(pos, amount, _dust_mat, 0.16, 0.6, {"radius": 0.1, "direction": dir.normalized(), "spread": 35.0,
+		"vel_min": speed * 0.5, "vel_max": speed, "gravity": Vector3(0, -12.0, 0), "damping": 0.8, "grow": false,
+		"hold": true, "color": Color(color.r, color.g, color.b, 0.95)})
+
+
 ## A blow landing with the weapon's element awakened (its tree's second mastery
 ## passive): the tree's material thrown off the hit along `dir`.
 func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
