@@ -3,7 +3,8 @@ extends SceneTree
 ## waterfall, the great tree and the totem grove): the desert stands its caravan camp, obelisk and twin
 ## guardians in for them (the jungle keeps the chain's); an oasis with room gets its pool (the bed under the
 ## water, the banks over it, swimmable) and its camp on the bank; the same node plans the same places; each
-## builds, with its colliders and its cache.
+## builds, with its colliders and its cache. Then the set pieces it stands in for the volcano vent, the
+## sunken village and the cenote: the ruined skyline, the buried city and the tomb, each built.
 const TK := preload("res://tools/dev/test_kit.gd")
 var KL
 var stage
@@ -88,4 +89,34 @@ func _process(_d: float) -> bool:
 	var gd: Node3D = isl.get_node("Place_guardians")
 	check("the twin guardians, solid, their gate behind", gd.find_children("Guardian?", "", false, false).size() == 2 and gd.get_node_or_null("GuardianGate") != null)
 	isl.queue_free()
+	# the set pieces the desert stands in: the ruined skyline, the buried city, the tomb
+	for e in [["volcano_vent", "ruined_skyline"], ["sunken_village", "buried_city"], ["cenote", "tomb"]]:
+		var n2 := n.duplicate(true)
+		n2.merge({"setpiece": e[0], "landmarks": [], "landmark_count": 0}, true)
+		var si = _make(n2)
+		var pls: Array = si.places.filter(func(pl): return pl["kind"] == e[1])
+		check("the desert's %s stands in for the chain's %s %s" % [e[1], e[0], si.places.map(func(pl): return pl["kind"])], pls.size() == 1 and pls[0]["role"] == "theme"
+			and not si.places.any(func(pl): return pl["kind"] == e[0]))
+		si.name = "SetPieceIsland"
+		stage.add_child(si)
+		for s in KL.steps(si):
+			s[1].call()
+		var node: Node3D = si.get_node("Place_" + str(e[1]))
+		var solid := node.find_children("*", "CollisionShape3D", true, false).size()
+		var chest := not node.find_children("*", "LootBag", true, false).is_empty()
+		match e[1]:
+			"ruined_skyline":
+				check("the skyline: broken towers, a minaret, the great dome torn open, a cache (%d colliders)" % solid, node.get_node_or_null("Skyline") != null
+					and node.get_node_or_null("Minaret") != null and node.get_node_or_null("GreatDome") != null and solid > 40 and chest)
+			"buried_city":
+				var houses := node.find_children("BuriedHouse*", "", false, false)
+				var planned: Array = pls[0]["houses"]
+				var sunk := houses.size() == planned.size() and planned.all(func(h): return float(h[5]) >= 1.8)
+				check("the buried city: %d houses sunk in the sand, a colonnade, a chest" % houses.size(), houses.size() >= 5 and sunk and node.get_node_or_null("BuriedCity") != null and chest)
+			"tomb":
+				var hall: Node3D = node.get_node("TombHall")
+				check("the tomb: its crag solid, its carved front, the hall inside with the treasure and a light", node.get_node_or_null("TombRock") != null
+					and node.get_node_or_null("TombFacade") != null and hall.find_children("*", "CollisionShape3D", false, false).size() >= 8 and chest
+					and not node.find_children("*", "OmniLight3D", true, false).is_empty())
+		si.queue_free()
 	return TK.done(fails)

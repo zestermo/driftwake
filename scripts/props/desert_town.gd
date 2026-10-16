@@ -198,13 +198,13 @@ static func _awning(mb: MeshBuilder, tex: String, w: float, z0: float, y: float,
 
 
 ## Small deep windows along a wall (`xf` at the wall's foot and middle, +Z out), kept off x = `skip` (the door).
-static func _windows(mb: MeshBuilder, xf: Transform3D, w: float, y: float, rng: RandomNumberGenerator, skip := INF, arched := false) -> void:
+static func _windows(mb: MeshBuilder, xf: Transform3D, w: float, y: float, rng: RandomNumberGenerator, skip := INF, arched := false, lit_p := 0.35) -> void:
 	var n := maxi(int(w / 1.9), 1)
 	for k in range(n):
 		var x := -w * 0.5 + (k + 0.5) * w / n
 		if absf(x - skip) < 1.1:
 			continue
-		var lit := rng.randf() < 0.35
+		var lit := rng.randf() < lit_p
 		if arched:
 			_arch_recess(mb, xf * _xf(Vector3(x, y - 0.45, 0)), 0.55, 0.95, lit)
 		else:
@@ -220,7 +220,8 @@ static func _footing(mb: MeshBuilder, body: Node3D, w: float, d: float, fl: floa
 
 ## A flat-roofed house in a pastel wash: one storey, or two with the upper set back on the roof terrace;
 ## a parapet, an arched doorway, small deep windows, roof beams, maybe a dome, a rooftop shade, an awning
-## or an outside stair to the roof. spec: w, d, storeys, dome (chance), seed, name.
+## or an outside stair to the roof. spec: w, d, storeys, dome (chance), seed, name; optionally lit (each window's
+## chance of a lamp in it, 0.35; an abandoned house's 0).
 static func house(spec: Dictionary) -> StaticBody3D:
 	var rng := _rng(int(spec["seed"]))
 	var w: float = spec["w"]
@@ -244,10 +245,11 @@ static func house(spec: Dictionary) -> StaticBody3D:
 	_arch_recess(mb, _xf(Vector3(dx, fl, d * 0.5)), DOOR_W - 0.2, DOOR_H, false)
 	mb.add_box_unit_uv(PSXMat.lit("door", Color(1.0, 0.9, 0.8), {"vertex_color": false}), _xf(Vector3(dx, fl + 0.95, d * 0.5 + 0.035)), Vector3(DOOR_W - 0.32, 1.9, 0.04))
 	mb.add_box(stone, _xf(Vector3(dx, fl * 0.5, d * 0.5 + 0.35)), Vector3(1.5, fl, 0.7), 0.6, Color(0.9, 0.88, 0.85))
-	_windows(mb, _xf(Vector3(0, fl, d * 0.5 + 0.005)), w, 1.75, rng, dx, rng.randf() < 0.4)
-	_windows(mb, _xf(Vector3(-w * 0.5 - 0.005, fl, 0), -PI * 0.5), d, 1.75, rng)
-	_windows(mb, _xf(Vector3(w * 0.5 + 0.005, fl, 0), PI * 0.5), d, 1.75, rng)
-	_windows(mb, _xf(Vector3(0, fl, -d * 0.5 - 0.005), PI), w, 1.75, rng)
+	var lp: float = spec.get("lit", 0.35)
+	_windows(mb, _xf(Vector3(0, fl, d * 0.5 + 0.005)), w, 1.75, rng, dx, rng.randf() < 0.4, lp)
+	_windows(mb, _xf(Vector3(-w * 0.5 - 0.005, fl, 0), -PI * 0.5), d, 1.75, rng, INF, false, lp)
+	_windows(mb, _xf(Vector3(w * 0.5 + 0.005, fl, 0), PI * 0.5), d, 1.75, rng, INF, false, lp)
+	_windows(mb, _xf(Vector3(0, fl, -d * 0.5 - 0.005), PI), w, 1.75, rng, INF, false, lp)
 	# the upper storey, set back on the roof terrace
 	var roof_y := top
 	var rw := w
@@ -265,8 +267,8 @@ static func house(spec: Dictionary) -> StaticBody3D:
 		_box(body, Vector3(rw, h2, rd), Vector3(rx, top + h2 * 0.5, rz))
 		var up := _xf(Vector3(rx, top, rz))
 		mb.add_box(_dark(), up * _xf(Vector3(0, 1.0, rd * 0.5 + 0.01)), Vector3(0.9, 2.0, 0.04), 1.0)
-		_windows(mb, up * _xf(Vector3(0, 0, rd * 0.5 + 0.005)), rw, 1.6, rng, 0.0, true)
-		_windows(mb, up * _xf(Vector3(0, 0, -rd * 0.5 - 0.005), PI), rw, 1.6, rng)
+		_windows(mb, up * _xf(Vector3(0, 0, rd * 0.5 + 0.005)), rw, 1.6, rng, 0.0, true, lp)
+		_windows(mb, up * _xf(Vector3(0, 0, -rd * 0.5 - 0.005), PI), rw, 1.6, rng, INF, false, lp)
 		_parapet(mb, rw, rd, top + h2, col2, false, rz)
 		roof_y = top + h2
 	# a dome on the top roof, or a canvas shade on four poles
