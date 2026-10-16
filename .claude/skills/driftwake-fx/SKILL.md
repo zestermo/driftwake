@@ -88,7 +88,13 @@ splash, fire, fireball, muzzle, sparks, glint, magic, wisp; `FLIP_ADD` are light
 by the burst's colour; `FLIP_LIT` are matter dimmed with the night). Geometry stays for *lines and
 rings*: sparks, streaks, tracers, rings, cracks, blade trails, vines, afterimages, foam rings, droplets.
 Budget: a sheet burst is still one node + one draw; fewer, bigger particles than the quads it replaces
-(a puff ring of 5 for a dust ring of 12). Never a per-effect material: `_flip_mat(sheet)` is shared.
+(a puff ring of 6 for a dust ring of 12). Never a per-effect material: `_flip_mat(sheet)` is shared.
+The older primitives already play sheets when the switch is on (same names and arguments, so Net.fx
+callers didn't change): `dust` / `dust_ring` / `heavy_dust` (brown dust), `smoke` (and so powder smoke,
+shadow wisps), `blood`'s mist, `splash` and `spray`'s mist, `flame` / `fire_ring` / `fire_pillar` /
+`flame_emitter` / `embers`' flame, `chimney_smoke` (wisp), the flashes of `impact` / `parry_sparks` /
+`powder_burst` / `cannon_blast` / `glint`, `gather` (glints rushing in) and `motes` (magic, tinted by
+the tree). `t/fx/blocks` checks each costs no more bursts or particles than before; keep it so.
 | `blade_swoosh(body, secs, color)` | the real blade's trail (BladeTrail) | any strike where the blade moves: swing paths and keyed technique cuts alike |
 | `slash(follow, kind, dur, color)` | a fixed arc mesh | spins and wide arcs the blade alone can't show (keep few; prefer blade_swoosh) |
 
