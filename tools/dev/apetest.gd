@@ -18,7 +18,7 @@ var hp0 := 0.0
 var fails := 0
 var rebuilt := false
 func _initialize():
-	load("res://tools/dev/test_kit.gd").seed_of(self)
+	load("res://tools/dev/test_kit.gd").seed_of(self, 4246)
 	change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
