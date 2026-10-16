@@ -369,7 +369,7 @@ func dust(pos: Vector3, amount: int = 5, size: float = 0.5) -> void:
 func chimney_smoke(parent: Node3D, pos: Vector3) -> CPUParticles3D:
 	if flipbooks:
 		var w := flip_emitter(parent, "wisp", 6, 1.6, 4.5, {"radius": 0.15, "spread": 12.0, "gravity": Vector3(0.25, 0.35, 0.1),
-			"vel_min": 0.5, "vel_max": 0.8, "damping": 0.15, "curve": "grow", "start": 0.05, "spin": 6.0, "fade": 0.55,
+			"vel_min": 0.5, "vel_max": 0.8, "damping": 0.15, "curve": "grow", "start": 0.05, "spin": 6.0, "fade_in": 0.12, "fade": 0.55,
 			"color": Color(0.72, 0.7, 0.68, 0.5)})
 		w.name = "Smoke"
 		w.position = pos
@@ -422,7 +422,7 @@ func spit(from: Vector3, vel: Vector3, damage: float, size: float = 1.0, poison_
 ## Expanding ring of dust (landings, heavy slam).
 func dust_ring(pos: Vector3, amount: int = 12, size: float = 0.7) -> void:
 	if flipbooks:
-		puff_ring(pos, "dust_low", maxi(amount / 2, 4), 0.35, size * 1.4, 0.7, Color.WHITE, 6.0)
+		puff_ring(pos, "dust_low", maxi(amount / 2, 4), 0.35, size * 2.1, 0.8, Color.WHITE, 6.0)
 		return
 	_burst(pos + Vector3(0, 0.08, 0), amount, _dust_mat, size, 0.6, {
 		"ring_radius": 0.35, "spread": 15.0, "direction": Vector3(0, 0.2, 0), "vel_min": 0.4, "vel_max": 0.8,
@@ -591,7 +591,7 @@ func sparkle(pos: Vector3, amount: int = 8, color: Color = Color(1.0, 0.95, 0.6)
 ## ring of foam spreading on the swell.
 func splash(pos: Vector3, amount: int = 4, size: float = 0.6) -> void:
 	if flipbooks:
-		plume(pos + Vector3(0, 0.45 * size, 0), Vector3.UP, "splash", maxi(amount / 3, 1), size * 2.0, 0.7, Color.WHITE, 1.0, 20.0)
+		plume(pos + Vector3(0, 0.8 * size, 0), Vector3.UP, "splash", maxi(amount / 3, 1), size * 3.0, 0.8, Color.WHITE, 1.0, 20.0)
 	else:
 		_burst(pos, amount, _dust_mat, size, 0.7, {
 			"radius": 0.3, "spread": 35.0, "vel_min": 1.2, "vel_max": 2.6, "gravity": Vector3(0, -7.0, 0), "damping": 0.5,
@@ -644,6 +644,7 @@ func smoke(pos: Vector3, amount: int = 6, size: float = 0.8, life: float = 1.6, 
 
 ## Gunshot sparks: a hot spray out of the muzzle along `dir`.
 func muzzle_sparks(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1.0, 0.75, 0.35)) -> void:
+	flash_light(pos + dir.normalized() * 0.3, Color(1.0, 0.72, 0.4), 1.2 + amount * 0.08, 3.0 + amount * 0.12, 0.08 + amount * 0.004)
 	_burst(pos, amount, _spark_mat, 0.16, 0.3, {
 		"radius": 0.04, "direction": dir, "spread": 16.0, "vel_min": 5.0, "vel_max": 10.0,
 		"gravity": Vector3(0, -4.0, 0), "damping": 6.0, "grow": false, "color": color})
@@ -652,7 +653,7 @@ func muzzle_sparks(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = 
 ## Hit impact: a flash plus a spray of sparks.
 func impact(pos: Vector3, color: Color = Color(1.0, 0.9, 0.55)) -> void:
 	if flipbooks:
-		flash(pos, 1.0, Color.WHITE, "glint", 0.14)
+		flash(pos, 1.7, Color.WHITE, "glint", 0.14)
 	else:
 		_burst(pos, 1, _impact_mat, 0.9, 0.12, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 			"grow": true, "color": Color(1, 1, 1, 1)})
@@ -664,7 +665,7 @@ func impact(pos: Vector3, color: Color = Color(1.0, 0.9, 0.55)) -> void:
 ## back toward the attacker (`dir`) and a few slow glints hanging in the air.
 func parry_sparks(pos: Vector3, dir: Vector3) -> void:
 	if flipbooks:
-		flash(pos, 1.4, Color.WHITE, "glint", 0.12)
+		flash(pos, 2.2, Color.WHITE, "glint", 0.12)
 	else:
 		_burst(pos, 1, _impact_mat, 1.25, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 			"grow": true, "color": Color(1, 1, 1, 1)})
@@ -1126,8 +1127,9 @@ func tracer(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.6)) -> 
 # --------------------------------------------------------------------------
 ## A gout of flame: hot puffs that rise, swell and burn out yellow -> red.
 func flame(pos: Vector3, amount: int = 10, size: float = 0.6, life: float = 0.55, radius: float = 0.25) -> void:
+	flash_light(pos + Vector3(0, 0.3, 0), FIRE_LIGHT, 1.2 + size * 1.5, 2.5 + size * 3.0 + radius * 2.0, minf(life * 0.5, 0.3))
 	if flipbooks:
-		flipbook(pos, "fire", maxi(amount / 3, 2), size * 1.7, life, {"radius": radius, "spread": 30.0, "vel_min": 1.0,
+		flipbook(pos, "fire", maxi(amount / 3, 2), size * 2.4, life, {"radius": radius, "spread": 30.0, "vel_min": 1.0,
 			"vel_max": 2.4, "gravity": Vector3(0, 2.5, 0), "damping": 2.0, "explosiveness": 0.85, "start": 0.1, "spin": 15.0, "fade": 0.75})
 		return
 	_burst(pos, amount, _flame_mat, size, life, {"radius": radius, "spread": 35.0, "vel_min": 1.0, "vel_max": 2.6,
@@ -1137,6 +1139,7 @@ func flame(pos: Vector3, amount: int = 10, size: float = 0.6, life: float = 0.55
 ## A ring of fire racing outward along the ground (fire ring, inferno).
 func fire_ring(pos: Vector3, radius: float = 4.0, amount: int = 40) -> void:
 	var speed := radius / 0.35
+	flash_light(pos + Vector3(0, 0.6, 0), FIRE_LIGHT, 5.0, radius * 1.8, 0.45)
 	if flipbooks:
 		flipbook(pos + Vector3(0, 0.3, 0), "fireball", maxi(amount / 4, 8), 1.3, 0.5, {"ring_radius": 0.4, "spread": 8.0,
 			"direction": Vector3(0, 0.15, 0), "vel_min": speed * 0.85, "vel_max": speed, "gravity": Vector3(0, 3.0, 0),
@@ -1150,6 +1153,7 @@ func fire_ring(pos: Vector3, radius: float = 4.0, amount: int = 40) -> void:
 
 ## The ultimate: a column of fire and a rolling wave of flame along the ground.
 func fire_pillar(pos: Vector3, radius: float = 7.0) -> void:
+	flash_light(pos + Vector3(0, 1.2, 0), FIRE_LIGHT, 8.0, radius * 2.2, 0.6)
 	if flipbooks:
 		plume(pos, Vector3.UP, "fireball", 10, 2.4, 1.1, Color.WHITE, 11.0, 12.0)
 	else:
@@ -1353,6 +1357,7 @@ func motes(pos: Vector3, dir: Vector3, amount: int = 8, color: Color = Color.WHI
 ## (a combo shot ~0.7, a cannon-blast ~2).
 func powder_burst(pos: Vector3, dir: Vector3, size: float = 1.0, color: Color = Color(1.0, 0.34, 0.26)) -> void:
 	var d := dir.normalized() if dir.length() > 0.01 else Vector3.UP
+	flash_light(pos, color.lerp(FIRE_LIGHT, 0.5), 2.0 * size, 3.0 + 2.5 * size, 0.1 + 0.06 * size)
 	if flipbooks:
 		flash(pos, 1.2 * size, Color.WHITE, "muzzle", 0.22)
 	else:
@@ -1370,6 +1375,7 @@ func powder_burst(pos: Vector3, dir: Vector3, size: float = 1.0, color: Color = 
 ## colour (the element) it burns: a ring of it, sparks, flame and black smoke.
 func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 0)) -> void:
 	var hot := glow.a > 0.0
+	flash_light(pos + Vector3(0, 0.8, 0), Color(glow.r, glow.g, glow.b) if hot else FIRE_LIGHT, 4.0 * size, 6.0 * size, 0.2 + 0.1 * size)
 	if flipbooks:
 		flash(pos + Vector3(0, 0.5, 0), 2.2 * size, Color.WHITE, "muzzle", 0.3)
 	else:
@@ -1460,6 +1466,80 @@ func flip_emitter(parent: Node3D, sheet: String, amount: int, size: float, life:
 		p.color = Color(k, k, k)
 		_lit_emitters.append(p)
 	return p
+
+
+## Brief real light from fire and explosions: a pool of at most FLASH_CAP shadowless OmniLights (the
+## weakest one is taken over when all are lit), none beyond FLASH_RANGE of the camera. false: no lights.
+var flash_lights := true
+const FLASH_CAP := 6
+const FLASH_RANGE := 90.0
+const FIRE_LIGHT := Color(1.0, 0.6, 0.28)
+var _lights: Array = []
+
+
+## A light flaring up at `pos` and dying away over `secs` (a fast rise, a quick fall-off), `reach` m.
+## Lights asked for in the same frame close together (an effect calling another) are one light, the
+## biggest of them.
+func flash_light(pos: Vector3, color: Color = FIRE_LIGHT, energy: float = 3.0, reach: float = 6.0, secs: float = 0.25) -> void:
+	if not flash_lights:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_squared_to(pos) > FLASH_RANGE * FLASH_RANGE:
+		return
+	var frame := Engine.get_process_frames()
+	var l: OmniLight3D = null
+	for o in _lights:
+		if o.visible and int(o.get_meta("frame")) == frame and o.global_position.distance_to(pos) < 1.5:
+			if float(o.get_meta("peak")) >= energy:
+				color = o.light_color
+			energy = maxf(energy, float(o.get_meta("peak")))
+			reach = maxf(reach, o.omni_range)
+			secs = maxf(secs, float(o.get_meta("secs")))
+			l = o
+			break
+	if l == null:
+		for o in _lights:
+			if not o.visible:
+				l = o
+				break
+	if l == null and _lights.size() < FLASH_CAP:
+		l = OmniLight3D.new()
+		l.shadow_enabled = false
+		l.light_bake_mode = Light3D.BAKE_DISABLED
+		l.visible = false
+		add_child(l)
+		_lights.append(l)
+	if l == null:
+		l = _lights[0]
+		for o in _lights:
+			if o.light_energy < l.light_energy:
+				l = o
+	var old = l.get_meta("tw") if l.has_meta("tw") else null
+	if old and (old as Tween).is_valid():
+		(old as Tween).kill()
+	l.global_position = pos
+	l.light_color = color
+	l.omni_range = reach
+	l.set_meta("frame", frame)
+	l.set_meta("peak", energy)
+	l.set_meta("secs", secs)
+	if not l.visible:
+		l.light_energy = 0.0
+	l.visible = true
+	var tw := l.create_tween()
+	tw.tween_property(l, "light_energy", energy, minf(0.04, secs * 0.2))
+	tw.tween_property(l, "light_energy", 0.0, secs).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_callback(l.hide)
+	l.set_meta("tw", tw)
+
+
+## Flash lights lit right now.
+func lights_lit() -> int:
+	var n := 0
+	for o in _lights:
+		if o.visible:
+			n += 1
+	return n
 
 
 func _flip_setup(p: CPUParticles3D, cfg: Dictionary) -> void:
@@ -1553,6 +1633,7 @@ func flash(pos: Vector3, size: float = 0.9, color: Color = Color.WHITE, sheet: S
 ## pistol 0.4, a cannon's muzzle 1, a ball bursting on a hull 2). Sparks and embers are the caller's.
 func blast(pos: Vector3, normal: Vector3 = Vector3.UP, size: float = 1.0, hot: bool = true, smoke_col: Color = Color(0.8, 0.79, 0.77, 0.9), speed: float = 6.0) -> void:
 	var n := normal.normalized() if normal.length() > 0.01 else Vector3.UP
+	flash_light(pos + n * 0.5 * size, FIRE_LIGHT, (3.0 if hot else 2.0) * size, 5.0 * size + 2.0, 0.15 + 0.12 * size)
 	flash(pos, 1.6 * size, Color.WHITE, "muzzle", 0.35 + 0.1 * size)
 	if hot:
 		flipbook(pos + n * 0.3 * size, "fireball", 1 + int(size), 1.1 * size, 0.4 + 0.15 * size, {"radius": 0.1 * size,
@@ -1572,6 +1653,7 @@ func lick(parent: Node3D, radius: float = 0.3, amount: int = 8, size: float = 0.
 ## A ship's cannon going off at `from` along `dir`: sparks, the flare and a bank of smoke pushed
 ## out along the shot.
 func cannon_fire(from: Vector3, dir: Vector3) -> void:
+	flash_light(from + dir * 0.8, FIRE_LIGHT, 5.0, 10.0, 0.25)
 	muzzle_sparks(from, dir, 16)
 	if not flipbooks:
 		smoke(from + dir * 0.6, 10, 1.6, 2.2)
@@ -1583,6 +1665,7 @@ func cannon_fire(from: Vector3, dir: Vector3) -> void:
 ## A cannonball bursting on a hull, a rock or the ground at `at` (`normal`: off the surface): a
 ## fireball blooming, dark smoke and embers.
 func cannon_hit(at: Vector3, normal: Vector3) -> void:
+	flash_light(at + normal * 0.6, FIRE_LIGHT, 7.0, 12.0, 0.4)
 	if not flipbooks:
 		impact(at, Color(1.0, 0.7, 0.35))
 		flame(at, 12, 0.8, 0.45, 0.6)
@@ -1833,7 +1916,7 @@ func streak(from: Vector3, to: Vector3, color: Color = Color(0.4, 0.8, 1.0), wid
 ## A star of light (a blade's edge catching it before a strike, a hit landing).
 func glint(pos: Vector3, color: Color = Color.WHITE, size: float = 0.8) -> void:
 	if flipbooks:
-		flash(pos, size * 1.1, color, "glint", 0.2)
+		flash(pos, size * 1.8, color, "glint", 0.2)
 		return
 	_burst(pos, 1, _spark_mat, size, 0.2, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 		"grow": true, "color": Color(color.r, color.g, color.b, 1.0)})
