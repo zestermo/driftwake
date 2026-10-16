@@ -25,7 +25,7 @@ func _init() -> void:
 func _spec() -> Dictionary:
 	var c: Array = BEAR_COATS[variant % BEAR_COATS.size()]
 	return {"hip_h": 1.7, "len": 2.4, "chest_r": 1.15, "hip_r": 1.0, "neck": Vector3(0, -0.05, -0.55), "head": Vector3(0.6, 0.55, 0.62),
-		"snout": 0.5, "tail": 0.3, "tail_r": 0.12, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur", "ears": 0.25,
+		"snout": 0.5, "tail": 0.3, "tail_r": 0.12, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur_white", "ears": 0.25,
 		"eye": Color(0.3, 0.75, 1.0)}
 
 

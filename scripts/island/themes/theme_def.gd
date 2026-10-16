@@ -45,7 +45,8 @@ var life := {}
 ## Its beasts (BeastPool): the bosses its islands roll from, the minibosses (1+ picked per island) and roamers (one),
 ## and every kind named there in `beasts`: {"script": the beast's script, "names": its names (the first the plain one;
 ## a boss's picked by the chain, a mini's and roamer's by the island's seed), a boss's "looks": how many variants,
-## a mini's "site": the island site it keeps, optionally "stock": Callable() -> a look whose body prepare builds ahead}.
+## a mini's "site": the island site it keeps, optionally "stock": Callable() -> a look whose body prepare builds ahead,
+## and a boss's "banner": [title, line] for its arena when BeastArena has none of its own}.
 var bosses: Array = []
 var minis: Array = []
 var roamers: Array = []

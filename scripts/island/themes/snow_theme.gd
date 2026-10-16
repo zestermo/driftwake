@@ -114,19 +114,25 @@ const STYLE := {
 	"rust": Color(0.4, 0.32, 0.28),
 }
 
-## Each kind: its zones, how likely an island has it, how many groups (dens) when it does.
-## (until the snow's own creatures: the jungle's that fit the cold)
+## Each kind: its zones, how likely an island has it, how many groups (dens) when it does; the snow's own
+## kinds a "pack" [lo, hi] round a lead and the chance a follower is "young" (FaunaSpawner's default group).
 const FAUNA := {
-	"boar": {"zones": ["floor"], "p": 0.5, "dens": [2, 4]},
-	"mite": {"zones": ["floor", "cave"], "p": 0.4, "dens": [1, 3]},
+	"wolf": {"zones": ["floor"], "p": 0.75, "dens": [2, 4], "pack": [3, 5]},
+	"snow_hare": {"zones": ["floor"], "p": 0.7, "dens": [3, 6], "pack": [2, 4]},
+	"snow_bear": {"zones": ["floor"], "p": 0.5, "dens": [1, 3], "pack": [1, 2], "young": 0.8},
+	"shagback": {"zones": ["floor"], "p": 0.5, "dens": [1, 2], "pack": [3, 5], "young": 0.3},
+	"walrus": {"zones": ["shore"], "p": 0.6, "dens": [1, 3], "pack": [3, 6], "young": 0.35},
+	"mite": {"zones": ["floor", "cave"], "p": 0.35, "dens": [1, 2]},
 	"bat": {"zones": ["cave"], "p": 0.5, "dens": [1, 3]},
-	"crab": {"zones": ["shore"], "p": 0.5, "dens": [2, 5]},
 }
 const CREATURES := {
-	"boar": "res://scripts/enemies/fauna/boar.gd",
+	"wolf": "res://scripts/enemies/fauna/wolf.gd",
+	"snow_hare": "res://scripts/enemies/fauna/snow_hare.gd",
+	"snow_bear": "res://scripts/enemies/fauna/snow_bear.gd",
+	"shagback": "res://scripts/enemies/fauna/shagback.gd",
+	"walrus": "res://scripts/enemies/fauna/walrus.gd",
 	"mite": "res://scripts/enemies/fauna/swarm_mite.gd",
 	"bat": "res://scripts/enemies/fauna/bat.gd",
-	"crab": "res://scripts/enemies/fauna/crab.gd",
 }
 
 
@@ -149,17 +155,20 @@ func _init() -> void:
 		"snow_round_house_tall": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.round_house(rng.randi(), size, 2),
 	}
 	life = preload("res://scripts/island/themes/snow_life.gd").TEXT
-	# (until the snow's own beasts: the jungle's stalker as a snow cat, its serpent, mantis queen and ape, the alpha boar, the behemoth)
-	bosses = ["stalker", "serpent", "mantis", "ape"]
-	minis = ["boar"]
-	roamers = ["behemoth"]
+	# (the serpent is the jungle's, coiled in the pines: a fourth so a branching chain never runs the pool dry)
+	bosses = ["snow_leopard", "great_bear", "ice_golem", "serpent"]
+	minis = ["frost_alpha"]
+	roamers = ["rimeback"]
 	beasts = {
-		"stalker": {"script": "res://scripts/enemies/beasts/stalker.gd", "names": ["The White Shade", "Frostfang", "The Pale Death"], "looks": 3},
+		"snow_leopard": {"script": "res://scripts/enemies/beasts/snow_leopard.gd", "names": ["The White Shade", "The Pale Death", "Ghostpaw"], "looks": 3,
+			"banner": ["The White Shade's Run", "Pawprints in the snow, then none. Something is watching you."]},
+		"great_bear": {"script": "res://scripts/enemies/beasts/great_bear.gd", "names": ["The Bear King", "Old Whitemaw", "The Snow Tyrant"], "looks": 3,
+			"banner": ["The Bear King's Den", "Pines torn from the ground, bones under the snow. Something huge sleeps here."]},
+		"ice_golem": {"script": "res://scripts/enemies/beasts/ice_golem.gd", "names": ["The Ice Golem", "The Glacier's Heart", "Rimehulk"], "looks": 3,
+			"banner": ["The Frozen Hollow", "The crystals here hum. The ice underfoot is breathing."]},
 		"serpent": {"script": "res://scripts/enemies/beasts/strangler.gd", "names": ["The Ice Coil", "Old Rimescale", "The Pine Strangler"], "looks": 3},
-		"mantis": {"script": "res://scripts/enemies/beasts/mantis_queen.gd", "names": ["The Frost Queen", "The Rime Queen", "The Pale Queen"], "looks": 3},
-		"ape": {"script": "res://scripts/enemies/jungle_ape.gd", "names": ["The Mountain Ape"], "looks": 1, "stock": func() -> Dictionary: return JungleApe.ape_look()},
-		"boar": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Frostbristle", "Old Rime", "Icetusk", "Snowmaw"], "site": "ruins"},
-		"behemoth": {"script": "res://scripts/enemies/beasts/behemoth.gd", "names": ["The Rimeback", "Old Glacier", "The Snowhorn"]},
+		"frost_alpha": {"script": "res://scripts/enemies/beasts/frost_alpha.gd", "names": ["Frostfang", "Old Rime", "Whitefang", "The Howler"], "site": "ruins"},
+		"rimeback": {"script": "res://scripts/enemies/beasts/rimeback.gd", "names": ["The Rimeback", "Old Glacier", "The Snowhorn"]},
 	}
 	fauna = FAUNA
 	creatures = CREATURES

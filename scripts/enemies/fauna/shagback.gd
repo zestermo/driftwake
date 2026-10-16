@@ -26,7 +26,7 @@ func _setup(args: Dictionary) -> void:
 	calf = bool(args.get("calf", false))
 	morph = int(args.get("morph", 0))
 	hostile = false
-	skin_tex = "fur"
+	skin_tex = "fur_white"
 	if calf:
 		size_k = 0.55
 		max_hp = 60.0
@@ -69,14 +69,10 @@ func _build() -> void:
 			[0.9, 0.7, 0.72, 0.0], [1.15, 0.35, 0.4, 0.0]]
 		mb.add_loft(skin, xf, rings, MeshBuilder.profile_circle(10), 0.8, coat, true, true)
 		# the long coat hanging in a skirt nearly to the snow, in shaggy hanks
-		for k in range(16):
-			var a := TAU * k / 16.0
-			var z := sin(a) * 0.95
-			var x := cos(a) * 0.78
-			if absf(z) > 0.9:
-				continue
-			var hank := PackedVector3Array([Vector3(x, -0.1, z), Vector3(x * 1.08, -0.6, z * 1.02), Vector3(x * 1.05, -1.0 - rng.randf() * 0.12, z)])
-			mb.add_tube(skin, hank, 0.2, 0.1, 5, 1.0, shade.lightened(rng.randf() * 0.1))
+		for k in range(12):
+			var a := TAU * k / 12.0
+			var at := Vector3(cos(a) * 0.72, -0.55, sin(a) * 0.9)
+			mb.add_blob(skin, Transform3D(Basis(Vector3.UP, -a), at), Vector3(0.22, 0.42, 0.45), rng, 0.25, 3, 6, 1.0, shade.lightened(rng.randf() * 0.1))
 		mb.add_blob(skin, Transform3D(Basis.IDENTITY, Vector3(0, 0.75, -0.6)), Vector3(0.6, 0.35, 0.55), rng, 0.15, 3, 7, 1.0, coat), true)
 	_head = _part(_body, "Head", Vector3(0, -0.05, -1.25), v + "_head", func(mb: MeshBuilder, rng: RandomNumberGenerator):
 		mb.add_blob(skin, Transform3D(Basis.IDENTITY, Vector3(0, -0.05, -0.2)), Vector3(0.32, 0.36, 0.4), rng, 0.12, 3, 7, 1.0, coat)

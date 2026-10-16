@@ -334,3 +334,14 @@ scripts/island/gen_island.gd            t/island
 scripts/props/snow_plants.gd            t/island isletest
 scripts/props/snow_props.gd             t/island isletest
 tools/texture_gen/gen_snow_textures.py  t/island
+scripts/enemies/fauna/wolf.gd           t/island faunatest
+scripts/enemies/fauna/snow_hare.gd      t/island faunatest
+scripts/enemies/fauna/snow_bear.gd      t/island faunatest
+scripts/enemies/fauna/shagback.gd       t/island faunatest
+scripts/enemies/fauna/walrus.gd         t/island faunatest
+scripts/enemies/beasts/snow_leopard.gd  t/island bosstest
+scripts/enemies/beasts/great_bear.gd    t/island bosstest
+scripts/enemies/beasts/ice_golem.gd     t/island bosstest
+scripts/enemies/beasts/frost_alpha.gd   t/island bosstest
+scripts/enemies/beasts/rimeback.gd      t/island bosstest
+scripts/island/themes/snow_land.gd      t/island isletest smoketest

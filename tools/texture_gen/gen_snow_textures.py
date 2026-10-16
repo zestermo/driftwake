@@ -255,7 +255,35 @@ def gen_glacier_rock():
     save(to_img(rgb), "glacier_rock")
 
 
+def gen_fur_white():
+    """Shaggy fur for the snow's white beasts: bright clumps (0.72-1.0) down the texture, tinted by vertex colour."""
+    rng = np.random.default_rng(7114)
+    size = 64
+    v = np.full((size, size), 0.8)
+    for _ in range(60):
+        x0, y0 = rng.uniform(0, size), rng.uniform(0, size)
+        length = rng.integers(10, 20)
+        w = rng.uniform(1.2, 2.6)
+        lean = rng.uniform(-0.25, 0.25)
+        for i in range(length):
+            k = i / length
+            x = x0 + lean * i + math.sin(i * 0.35 + x0) * 0.6
+            y = int(y0 + i) % size
+            half = w * (1.0 - k * 0.7)
+            for xx in range(int(x - half - 1), int(x + half + 2)):
+                d = abs(xx - x) / max(half, 0.5)
+                if d < 1.0:
+                    v[y, xx % size] = max(v[y, xx % size], 1.0 - d * 0.15 - k * 0.1)
+                elif d < 1.6:
+                    v[y, xx % size] = min(v[y, xx % size], 0.72)
+    pal_g = [0.72, 0.8, 0.88, 0.94, 1.0]
+    q = np.array(pal_g)[np.clip((norm(v) * len(pal_g)).astype(int), 0, len(pal_g) - 1)]
+    g = (q * 255).astype(np.uint8)
+    save(to_img(np.dstack([g, g, g])), "fur_white")
+
+
 ALL = {
+    "fur_white": gen_fur_white,
     "snow_beach": gen_snow_beach, "shingle_wet": gen_shingle_wet, "glacier_rock": gen_glacier_rock,
     "snow": gen_snow, "snow_packed": gen_snow_packed, "ice": gen_ice, "black_rock": gen_black_rock,
     "brick_pink": gen_brick_pink, "roof_green": gen_roof_green, "pine_snow": gen_pine_snow,

@@ -111,7 +111,11 @@ func _pool() -> void:
 				if (o["next"] as Array).has(n["id"]) and o["theme"] == n["theme"] and o["beast"] == n["beast"]:
 					bad += 1
 	check("the pool: no island's boss is the one on the island before it (60 chains, %d repeats)" % bad, bad == 0)
-	check("...every boss turns up (%s)" % [seen.keys()], seen.size() == 4)
+	var every := {}
+	for t in load("res://scripts/island/themes/island_themes.gd").all():
+		for k in t.bosses:
+			every[k] = true
+	check("...every theme's every boss turns up (%s)" % [seen.keys()], seen.size() == every.size() and every.keys().all(func(k): return seen.has(k)))
 	var a = ChainK.make(4242, Vector2.ZERO, Vector2(1, 0))
 	var b = ChainK.make(4242, Vector2.ZERO, Vector2(1, 0))
 	check("...the same seed, the same beasts", a.nodes.map(func(n): return [n["beast"], n["beast_look"], n["minis"], n["roamer"]]) == b.nodes.map(func(n): return [n["beast"], n["beast_look"], n["minis"], n["roamer"]]))

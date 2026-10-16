@@ -25,7 +25,7 @@ func _setup(args: Dictionary) -> void:
 	kind = "snow_hare"
 	morph = int(args.get("morph", 0))
 	hostile = false
-	skin_tex = "fur"
+	skin_tex = "fur_white"
 	size_k = 0.9
 	max_hp = 14.0
 	xp = 6

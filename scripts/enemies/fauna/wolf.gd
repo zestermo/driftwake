@@ -38,9 +38,10 @@ func _setup(args: Dictionary) -> void:
 	lead = bool(args.get("lead", false))
 	morph = int(args.get("morph", 0))
 	hostile = true
-	skin_tex = "fur"
+	skin_tex = "fur_white"
+	size_k = 1.25
 	if lead:
-		size_k = 1.3
+		size_k = 1.6
 		max_hp = 150.0
 		xp = 90
 		coins = Vector2i(3, 6)

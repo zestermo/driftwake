@@ -183,7 +183,7 @@ func _place(rng: RandomNumberGenerator) -> void:
 
 
 func _group_size(k: String) -> int:
-	return {"boar": 3, "mite": 6, "bat": 4, "monkey": 3, "crab": 3, "leaper": 1, "roller": 1}.get(k, 1)
+	return {"boar": 3, "mite": 6, "bat": 4, "monkey": 3, "crab": 3, "leaper": 1, "roller": 1}.get(k, roster[k].get("pack", [1, 1])[1])
 
 
 func _free_point(list, taken: Array, rng: RandomNumberGenerator):
@@ -250,7 +250,13 @@ func _add_group(k: String, zone: String, at, rng: RandomNumberGenerator) -> void
 			for i in range(rng.randi_range(1, 2)):
 				_add_spot(gi, k, _ground(near.call(at, 2.0)), {"morph": morph})
 		_:
-			_add_spot(gi, k, _ground(at), {"morph": morph})
+			# (a theme's own kinds: a pack round its lead, `young` the chance each follower is one)
+			var pack: Array = roster[k].get("pack", [1, 1])
+			if pack[1] > 1:
+				g["role"] = "pack"
+			for i in range(rng.randi_range(pack[0], pack[1])):
+				var young := i > 0 and rng.randf() < float(roster[k].get("young", 0.0))
+				_add_spot(gi, k, _ground(near.call(at, 4.0) if i > 0 else at), {"morph": morph, "pack": gi, "lead": i == 0, "calf": young})
 
 
 func _add_spot(gi: int, k: String, local_at: Vector3, args: Dictionary) -> void:

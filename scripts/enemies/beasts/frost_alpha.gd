@@ -20,7 +20,7 @@ func _init() -> void:
 func _spec() -> Dictionary:
 	return {"hip_h": 1.25, "len": 1.9, "chest_r": 0.62, "hip_r": 0.48, "neck": Vector3(0, 0.25, -0.5), "head": Vector3(0.36, 0.34, 0.42),
 		"snout": 0.55, "tail": 1.4, "tail_r": 0.16, "coat": Color(0.7, 0.72, 0.75), "under": Color(0.93, 0.94, 0.95), "mark": Color(0.36, 0.37, 0.4),
-		"tex": "fur", "ears": 0.9, "eye": Color(0.5, 0.9, 1.0)}
+		"tex": "fur_white", "ears": 0.9, "eye": Color(0.5, 0.9, 1.0)}
 
 
 ## A shaggy ruff rimed with ice, a dark saddle, fangs.

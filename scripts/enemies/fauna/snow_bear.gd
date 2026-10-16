@@ -29,7 +29,7 @@ func _setup(args: Dictionary) -> void:
 	morph = int(args.get("morph", 0))
 	family = int(args.get("pack", -1))
 	hostile = false
-	skin_tex = "fur"
+	skin_tex = "fur_white"
 	if cub:
 		size_k = 0.45
 		max_hp = 40.0

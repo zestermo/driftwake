@@ -3,7 +3,7 @@ extends SceneTree
 ## every mesh slot the scatter reads is filled (big trees as [body, detail, lean]) and built the same twice
 ## from its seed; the ice crystals carry their own glow; the forest stands about as tall as the jungle's
 ## canopy; its style (packed-snow paving, its own lamp with a Flame, pink brick and green tier roofs), its
-## music and bed are registered, and its people have their names, roles and text.
+## music and bed are registered, its wildlife and beasts are its own, and its people have their names, roles and text.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var fails := 0
@@ -74,6 +74,21 @@ func _process(_d: float) -> bool:
 	var amb = load("res://scripts/world/ambience.gd")
 	check("its music (day, night, the town's) and its bed are registered",
 		music.TRACKS.has(st["music"]) and music.TRACKS.has(st["music"] + "_night") and music.TRACKS.has(st["music_town"]) and amb.LOOPS.has(st["ambience"]))
+	var FS = load("res://scripts/island/fauna_spawner.gd")
+	var snow = IT.of("snow")
+	var made: Array = []
+	for k in snow.fauna:
+		var c = FS.make("snow", k)
+		if c != null and c.get_script().resource_path == snow.creatures[k]:
+			made.append(k)
+		c.free()
+	var own: Array = []
+	for k in snow.bosses + snow.minis + snow.roamers:
+		if str(snow.beasts[k]["script"]).contains("/beasts/") and not ["serpent"].has(k):
+			own.append(k)
+	check("its wildlife (%s) are its own creatures, wolves and walruses in packs; its beasts its own (%s)" % [made, own],
+		made.size() == snow.fauna.size() and made.has("wolf") and snow.fauna["wolf"]["pack"][1] >= 3 and snow.fauna["walrus"]["zones"] == ["shore"]
+		and own.has("great_bear") and own.has("frost_alpha") and own.has("rimeback") and snow.beasts["great_bear"].has("banner"))
 	var life: Dictionary = LP.of("snow")
 	var works := {}
 	for r in life["roles"].values():

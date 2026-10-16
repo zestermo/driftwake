@@ -17,7 +17,7 @@ func _init() -> void:
 func _spec() -> Dictionary:
 	var c: Array = SNOW_COATS[variant % SNOW_COATS.size()]
 	return {"hip_h": 1.3, "len": 2.0, "chest_r": 0.64, "hip_r": 0.54, "neck": Vector3(0, 0.3, -0.55), "head": Vector3(0.4, 0.33, 0.4),
-		"snout": 0.26, "tail": 2.6, "tail_r": 0.2, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur", "ears": 0.35,
+		"snout": 0.26, "tail": 2.6, "tail_r": 0.2, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur_white", "ears": 0.35,
 		"eye": Color(0.6, 0.95, 1.0)}
 
 

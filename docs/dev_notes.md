@@ -2379,3 +2379,27 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   the sea is the tropical one. Clothing has no fur hats or mittens (knit caps, hoods, coifs and leather gloves stand in).
 - **Tests:** `t/island/snow_foundations`; theme_registry's chain check now "every island's theme registered and named
   from its list". Renders: genshot seed 1 node 1 (Hoarfell Atoll, snow), villageshot seed 1 node 1 town.
+## 2026-10-16: the snow island theme, piece 2 (wildlife and beasts)
+- **Wildlife** (`scripts/enemies/fauna/`, Creature kinds, LOD and sleep by FaunaSpawner as every kind): `wolf.gd`
+  (packs of 3-5 round a bigger lead: the lead howls, the pack circles at a lunge's length, one lunge at a time per
+  pack - `_pack_next`, game time - a beaten wolf limps off; grey, white, dark), `snow_hare.gd` (freezes with ears up,
+  bolts in zigzag bounds), `snow_bear.gd` (a sow and often a cub: rears and roars, lopes in, two swipes, then a
+  rearing slam ring if you're still in front; leaves you be at a distance), `shagback.gd` (huge placid shaggy grazers
+  in herds; hit one and the herd stampedes, a big one shoving through), `walrus.gd` (shore colonies: the bull rears
+  and stabs with its tusks, calves flop away). White coats on a new `fur_white` texture (the grey `fur` read dirty).
+  Snow puffs (FX.puff "snow") on runs, lunges and slams.
+- **FaunaSpawner** (generic): a kind its group logic doesn't know is a pack round a lead when its roster entry has
+  `"pack": [lo, hi]` (and `"young"`: the chance a follower is young); args `pack` (the group), `lead`, `calf`.
+  The jungle's kinds all have their own cases, so their groups and rng are unchanged.
+- **Beasts** (`scripts/enemies/beasts/`, subclasses of the jungle's brains with their own bodies): bosses
+  `snow_leopard.gd` (the stalker in a snow leopard's coat), `great_bear.gd` and `ice_golem.gd` (the alpha boar's
+  charge / swat / stomp at a boss's scale, no overhead bar), plus the jungle's serpent so a branching chain never runs
+  the pool dry; mini `frost_alpha.gd` (a horse-sized wolf at the ruins); roamer `rimeback.gd` (the behemoth as a woolly
+  mammoth with ice on its back). BeastArena: a boss kind it has no banner for takes its theme's `"banner"`, the brush
+  round the floor is the theme's bush and fern meshes (the jungle's are the same four), and the victory line names the
+  theme ("The snow goes quiet.").
+- **Tests:** `t/island/snow_wolves` (light stage: the pack notices at 9 m, circles, lunges one at a time; hares bolt and
+  get away; a far shagback and walrus mind their business; walk into the colony and the bull comes), snow_foundations
+  (every roster kind makes its own creature, the beasts are the snow's); bosstest's "every boss turns up" counts every
+  theme's bosses. lifetest failed once on "a villager walks its route" (4.1 m in 2 s, the check's < 4.0: process
+  seconds under load) and passed on its rerun.

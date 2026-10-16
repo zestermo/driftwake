@@ -133,8 +133,12 @@ func _brush(rng: RandomNumberGenerator, g: Dictionary) -> void:
 	var c: Vector2 = g["c"]
 	var y0 := isl.hv(c)
 	var entry: Vector2 = g["entry"]
-	var meshes := [Props.bush_mesh(131), Props.bush_mesh(132), Props.fern_mesh(141), Props.fern_mesh(142)]
-	var xf := [[], [], [], []]
+	var tm := IslandTheme.meshes(isl.theme)
+	var bushes: int = (tm["bush"] as Array).size()
+	var meshes: Array = tm["bush"] + tm["fern"]
+	var xf: Array = []
+	for m in meshes:
+		xf.append([])
 	for i in range(11):
 		var a := entry.angle() + TAU * (i + 0.3) / 11.0 + rng.randf_range(-0.1, 0.1)
 		if absf(angle_difference(a, entry.angle())) < 0.5:
@@ -144,7 +148,7 @@ func _brush(rng: RandomNumberGenerator, g: Dictionary) -> void:
 		for k in range(rng.randi_range(6, 9)):
 			var q := hub + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(0.0, 3.2)
 			var m := rng.randi() % meshes.size()
-			var s := rng.randf_range(1.3, 2.1) * (1.0 if m < 2 else 1.25)
+			var s := rng.randf_range(1.3, 2.1) * (1.0 if m < bushes else 1.25)
 			(xf[m] as Array).append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s), Vector3(q.x - c.x, isl.hv(q) - y0 - 0.1, q.y - c.y)))
 	for m in range(meshes.size()):
 		var mm := MultiMesh.new()
@@ -349,7 +353,7 @@ func _process(delta: float) -> void:
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	if me and not _arrived and me.global_position.distance_to(global_position) < 60.0:
 		_arrived = true
-		var bn: Array = BANNERS[kind]
+		var bn: Array = BANNERS[kind] if BANNERS.has(kind) else BeastPool.info(isl.theme, kind)["banner"]
 		get_tree().call_group("hud", "show_banner", bn[0], bn[1], true)
 	var alive: bool = boss != null and is_instance_valid(boss) and not boss.is_dead()
 	_boss_hud(me, alive)
@@ -401,7 +405,7 @@ func _victory(me: Node3D) -> void:
 	if not Net.is_client() and GameManager.chain_at == int(isl.node["id"]) and not GameManager.chain_set:
 		GameManager.chain_settle()
 	if me and me.global_position.distance_to(global_position) < RESET_R + 20.0:
-		get_tree().call_group("hud", "show_banner", "%s falls!" % boss.boss_name, "The jungle goes quiet.", true)
+		get_tree().call_group("hud", "show_banner", "%s falls!" % boss.boss_name, "The %s goes quiet." % IslandThemes.of(isl.theme).display.to_lower(), true)
 		var music := get_node_or_null("/root/Music")
 		if music:
 			music.victory()
