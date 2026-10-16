@@ -1063,7 +1063,7 @@ static func _outside(isl: GenIsland, e: Dictionary, d: Dungeon, rng: RandomNumbe
 
 ## A few lights inside, asleep with the dungeon while nobody's near.
 static func _lights(isl: GenIsland, e: Dictionary, d: Dungeon) -> void:
-	var ctx := KitContext.make(isl, int(e["seed"]), "jungle", LIGHTS, isl.build_ms)
+	var ctx := KitContext.make(isl, int(e["seed"]), isl.theme, LIGHTS, isl.build_ms)
 	var col: Color = LOOK[e["kind"]]["light"]
 	for role in ["end", "mid", "side", "entry"]:
 		var r := room_of(e, role)

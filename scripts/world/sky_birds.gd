@@ -270,10 +270,11 @@ func _make_isle(key: String, e: Array) -> void:
 				b["t"] = rng.randf_range(10.0, 40.0)
 	else:
 		e.append([])
-	# parrots over the jungle: a few small parties hopping crown to crown
+	# parrots over the trees: a few small parties hopping crown to crown (the theme's ThemeDef.flocks; Brinehollow one)
 	var crowns: Array = isl.get("forest_crowns") if isl.get("forest_crowns") != null else []
-	if crowns.size() >= 6 and (str(e[3]) == "jungle" or key == "brinehollow"):
-		for g in range(2 if str(e[3]) == "jungle" else 1):
+	var parties: int = 1 if key == "brinehollow" else IslandThemes.of(str(e[3])).flocks
+	if crowns.size() >= 6:
+		for g in range(parties):
 			var count := rng.randi_range(3, 5)
 			if birds.size() + count > MAX or _count(PARROT) + count > CAPS[PARROT]:
 				break
