@@ -17,5 +17,9 @@ __pycache__/
 /web/build/
 /web/site/play/
 
+# BlenderBody's intermediate export and Blender's backups
+/art/blender/captain_export.glb
+/art/blender/*.blend1
+
 # Claude Code worktrees (one per parallel session)
 /.claude/worktrees/

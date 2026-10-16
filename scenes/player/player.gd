@@ -1439,6 +1439,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			knock_down(player_model.global_basis.z * 6.0 + Vector3.UP * 3.5)
 		get_viewport().set_input_as_handled()
 		return
+	# debug builds: F4 swaps the body for the Blender model, Ctrl+F4 exports this captain to Blender (BlenderBody)
+	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F4:
+		if (event as InputEventKey).ctrl_pressed:
+			_toast(BlenderBody.export_captain(body_model.look, body_model.swappable_hands))
+		else:
+			_toast(BlenderBody.toggle(body_model))
+		get_viewport().set_input_as_handled()
+		return
 	# C: sneak (CrouchState), C again to stand
 	if event.is_action_pressed("crouch"):
 		var st := current_state_name()
