@@ -2610,3 +2610,14 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Tests:** `t/island/desert_places` builds the three set pieces too; dungeontest, isletest, landmarktest.
   Renders: landmarkshot on seed 7 with `LSHOT_PIECE` volcano_vent / sunken_village / cenote (tools/dev/out/desert/
   sky7_*, bur7_*, tomb7_* incl. tomb_front and tomb_hall, landmarkshot's new tomb views).
+- **After the references** (tools/dev/out/refs/desert_*): the great dome's ribs stand across its hole (turned to
+  the square), buried houses go down to their windows or their roofs, toppled slabs and a drowned arcade.
+- **Perf:** perf_gate (13:00, 1 run) PASS against the baseline 8e7fe77 at calib 23.60 / 23.65: ALL frame 9.41 ->
+  10.74 ms (+14%), frame1t 10.36 -> 11.69. Not back to back and it spans everything since the baseline; the
+  bench's chain islands on seed 4242 are snow and jungle, so the route never meets a desert, and no desert script
+  is among the growers (sea_spray, scuttlebug, moored_hull, ship, ambience). A desert island on its own: prepared
+  in 18-30 s on the worker (jungle 11-21), 1.3-2.3 s on the main thread over ~120-130 frames (jungle 1.6-2.8),
+  worst step 43-204 ms (jungle 59-389).
+- **Fidelity** (fidelityshot on seed 7, tools/dev/out/desert/fid7_sheet.png): open against the royal-city ref:
+  the village reads sparse next to its packed boxes and onion domes; the wooden lookout tower and the pirates'
+  shacks are still the base kit's timber; the town hardly shows from the sea.
