@@ -88,7 +88,13 @@ splash, fire, fireball, muzzle, sparks, glint, magic, wisp; `FLIP_ADD` are light
 by the burst's colour; `FLIP_LIT` are matter dimmed with the night). Geometry stays for *lines and
 rings*: sparks, streaks, tracers, rings, cracks, blade trails, vines, afterimages, foam rings, droplets.
 Budget: a sheet burst is still one node + one draw; fewer, bigger particles than the quads it replaces
-(a puff ring of 5 for a dust ring of 12). Never a per-effect material: `_flip_mat(sheet)` is shared.
+(a puff ring of 6 for a dust ring of 12). Never a per-effect material: `_flip_mat(sheet)` is shared.
+The older primitives already play sheets when the switch is on (same names and arguments, so Net.fx
+callers didn't change): `dust` / `dust_ring` / `heavy_dust` (brown dust), `smoke` (and so powder smoke,
+shadow wisps), `blood`'s mist, `splash` and `spray`'s mist, `flame` / `fire_ring` / `fire_pillar` /
+`flame_emitter` / `embers`' flame, `chimney_smoke` (wisp), the flashes of `impact` / `parry_sparks` /
+`powder_burst` / `cannon_blast` / `glint`, `gather` (glints rushing in) and `motes` (magic, tinted by
+the tree). `t/fx/blocks` checks each costs no more bursts or particles than before; keep it so.
 | `blade_swoosh(body, secs, color)` | the real blade's trail (BladeTrail) | any strike where the blade moves: swing paths and keyed technique cuts alike |
 | `slash(follow, kind, dur, color)` | a fixed arc mesh | spins and wide arcs the blade alone can't show (keep few; prefer blade_swoosh) |
 
@@ -133,7 +139,15 @@ all five. Repeated hits (flurries) get small per-hit accents and one bigger one 
   a flurry firing every 0.1 s at 20 is too much; 3-6 per hit.
 - Additive unshaded materials (`_glow_mat`) for light; each effect owns its material only when
   it tweens it (fading); otherwise share (`_quad`, `_curve`, `_fade_to_clear` caches).
-- No real lights in effects (the lighting budget is the village's NightLights). Glow is emissive.
+- No real lights in effects except `flash_light(pos, color, energy, reach, secs)`: fire and explosions only
+  (cannon_fire/hit/blast, powder_burst, blast, gunshots via muzzle_sparks, flame, fire_ring, fire_pillar
+  already call it). A pool of `FLASH_CAP` = 6 shadowless OmniLights for the whole game (the weakest is
+  taken over), none beyond `FLASH_RANGE` = 90 m, a rise of <= 0.04 s and a quad ease-out fall over `secs`;
+  calls in the same frame within 1.5 m merge into one (nested effects). Sizes in use: a pistol 2 energy /
+  4 m / 0.12 s, a cannon's muzzle 5 / 10 m / 0.25 s, a ball on a hull 7 / 12 m / 0.4 s, fire_ring 5 /
+  1.8 x radius / 0.45 s, fire_pillar 8 / 2.2 x radius / 0.6 s. Switch: `FX.flash_lights`. Long-lived fire
+  (campfires, burning props) has its own lights; never a flash light for sparks, impacts or magic.
+  Otherwise glow is emissive (the lighting budget is the village's NightLights).
 - Shapes, not noise: a few bold rings and streaks read on a 640x360 grid; a cloud of tiny
   sparks turns to mush. Billboards stay `TEXTURE_FILTER_NEAREST`.
 - Effects in slow motion slow with the world (tweens and particles run on scaled time) except
