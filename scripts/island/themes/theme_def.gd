@@ -6,7 +6,7 @@ extends RefCounted
 ## refuses one that leaves a member unset (missing()), so a gap shows at start-up, not deep in
 ## an island build. The hubs read a theme only through IslandThemes: IslandTheme (land, meshes),
 ## KitStyle (style, props), LifePools (life), BeastPool (bosses, minis, roamers, beasts), Chain
-## (display, blurb, island_names, weight), FaunaSpawner (fauna, creatures), ChainMarks (color,
+## (display, blurb, island_names, weight), FaunaSpawner (fauna, creatures, cave_fauna), ChainMarks (color,
 ## glyph), SkyBirds (flocks). Its models, plants, creatures and beasts live in their own files
 ## (scripts/props/<theme>_plants.gd, <theme>_props.gd, scripts/enemies/fauna/, scripts/enemies/beasts/).
 
@@ -51,10 +51,13 @@ var beasts := {}
 ## an island has it, "dens": [lo, hi] groups when it does}, and each kind's Creature script.
 var fauna := {}
 var creatures := {}
+## What lives in caves and dungeons' wildlife slots (FaunaSpawner.fill_slots): {"ceiling": the kind roosting
+## overhead, "floor": [the kinds a floor slot picks from]}, each one of `creatures`.
+var cave_fauna := {}
 
 ## Every member above, for the check and the test: a new member goes here too.
 const CONTRACT := ["name", "display", "blurb", "island_names", "weight", "color", "glyph", "flocks", "land", "style", "props",
-	"life", "bosses", "minis", "roamers", "beasts", "fauna", "creatures"]
+	"life", "bosses", "minis", "roamers", "beasts", "fauna", "creatures", "cave_fauna"]
 
 
 ## The plant and rock meshes its islands are made of, built once per theme on the main thread before
@@ -102,6 +105,11 @@ func missing() -> Array:
 	for k in fauna:
 		if not creatures.has(k):
 			out.append("creatures.%s" % k)
+	if not cave_fauna.is_empty():
+		if not (cave_fauna.has("ceiling") and creatures.has(cave_fauna["ceiling"])):
+			out.append("cave_fauna.ceiling (one of creatures)")
+		if not (cave_fauna.has("floor") and not (cave_fauna["floor"] as Array).is_empty() and (cave_fauna["floor"] as Array).all(func(k): return creatures.has(k))):
+			out.append("cave_fauna.floor (kinds of creatures)")
 	return out
 
 

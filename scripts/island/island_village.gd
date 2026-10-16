@@ -88,7 +88,7 @@ static func build(gi: GenIsland, rng: RandomNumberGenerator) -> IslandVillage:
 	v.isl = gi
 	var site := gi.site_node("village")
 	site.add_child(v)
-	v.ctx = KitContext.make(gi, int(gi.node["seed"]), "jungle", LIGHTS, gi.build_ms).under(site)
+	v.ctx = KitContext.make(gi, int(gi.node["seed"]), gi.theme, LIGHTS, gi.build_ms).under(site)
 	v._build(rng)
 	return v
 

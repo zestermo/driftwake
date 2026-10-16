@@ -449,7 +449,7 @@ static func _vines(mb: MeshBuilder, rng: RandomNumberGenerator, pz1: float) -> v
 
 
 static func _lights(isl: GenIsland, e: Dictionary, d: Dungeon) -> void:
-	var ctx := KitContext.make(isl, int(e["seed"]), "jungle", LIGHTS, isl.build_ms)
+	var ctx := KitContext.make(isl, int(e["seed"]), isl.theme, LIGHTS, isl.build_ms)
 	for at in [Vector3(0, 3.2, -15.0), Vector3(0, 3.0, 0.0), Vector3(-10.0, 2.6, 0.0), Vector3(10.0, 2.6, 0.0)]:
 		if not ctx.take_light():
 			break

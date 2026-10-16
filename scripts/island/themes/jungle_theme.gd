@@ -169,6 +169,7 @@ func _init() -> void:
 	}
 	fauna = FAUNA
 	creatures = CREATURES
+	cave_fauna = {"ceiling": "bat", "floor": ["mite", "burrower", "snake"]}
 
 
 func meshes() -> Dictionary:
