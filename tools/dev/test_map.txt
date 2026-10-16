@@ -328,3 +328,7 @@ scripts/enemies/beasts/beast_pool.gd    t/island
 scripts/world/chain.gd                  t/island
 scripts/island/fauna_spawner.gd         t/island
 scripts/ui/chain_marks.gd               t/island
+# --- the snow theme (2026-10-15) ---
+scripts/props/snow_plants.gd            t/island isletest
+scripts/props/snow_props.gd             t/island isletest
+tools/texture_gen/gen_snow_textures.py  t/island
