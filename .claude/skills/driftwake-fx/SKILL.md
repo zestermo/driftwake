@@ -139,7 +139,15 @@ all five. Repeated hits (flurries) get small per-hit accents and one bigger one 
   a flurry firing every 0.1 s at 20 is too much; 3-6 per hit.
 - Additive unshaded materials (`_glow_mat`) for light; each effect owns its material only when
   it tweens it (fading); otherwise share (`_quad`, `_curve`, `_fade_to_clear` caches).
-- No real lights in effects (the lighting budget is the village's NightLights). Glow is emissive.
+- No real lights in effects except `flash_light(pos, color, energy, reach, secs)`: fire and explosions only
+  (cannon_fire/hit/blast, powder_burst, blast, gunshots via muzzle_sparks, flame, fire_ring, fire_pillar
+  already call it). A pool of `FLASH_CAP` = 6 shadowless OmniLights for the whole game (the weakest is
+  taken over), none beyond `FLASH_RANGE` = 90 m, a rise of <= 0.04 s and a quad ease-out fall over `secs`;
+  calls in the same frame within 1.5 m merge into one (nested effects). Sizes in use: a pistol 2 energy /
+  4 m / 0.12 s, a cannon's muzzle 5 / 10 m / 0.25 s, a ball on a hull 7 / 12 m / 0.4 s, fire_ring 5 /
+  1.8 x radius / 0.45 s, fire_pillar 8 / 2.2 x radius / 0.6 s. Switch: `FX.flash_lights`. Long-lived fire
+  (campfires, burning props) has its own lights; never a flash light for sparks, impacts or magic.
+  Otherwise glow is emissive (the lighting budget is the village's NightLights).
 - Shapes, not noise: a few bold rings and streaks read on a 640x360 grid; a cloud of tiny
   sparks turns to mush. Billboards stay `TEXTURE_FILTER_NEAREST`.
 - Effects in slow motion slow with the world (tweens and particles run on scaled time) except

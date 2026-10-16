@@ -2250,3 +2250,42 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Open:** a theme brought up before piece 2 lands needs `cave_fauna` (the registry refuses it otherwise, naming
   the member). lifetest's "a villager walks its route" (1.5 < d < 4.0 m over 2 process-seconds) failed once at
   exactly 4.0 m with five slots busy and passed alone: a load flake in a process-seconds wait, not this change.
+
+## 2026-10-15: flipbook rollout across FX, and brief impact lights
+- **Rollout** (`scripts/game/fx.gd`, all behind `FX.flipbooks`; same names and arguments, so every Net.fx caller is
+  unchanged): `dust` (a puff or two of the brown dust sheet), `dust_ring` (a `puff_ring` of `dust_low`), `heavy_dust`
+  (a dust_low ring + a dust puff; piece 1's half quad ring is gone), `smoke` (smoke puffs; so powder smoke, shadow
+  wisps, burning props' smoke), `blood`'s mist (`blood` sheet along the spray), `splash` (a column of the `splash`
+  sheet; the foam ring stays geometry), `spray`'s mist (`mist`), `flame` (`fire` tongues; so embers' puff, Ember
+  Fruit hits), `fire_ring` (a ring of `fireball`), `fire_pillar` (a `fireball` plume), `flame_emitter` (`lick`: Ember
+  Fruit fire zones, burning statuses, the fireball's trail, burnable props, the fort's braziers), `chimney_smoke`
+  (`wisp` emitter, 6 particles), the flashes of `impact` / `parry_sparks` / `glint` (the `glint` star) and
+  `powder_burst` / `cannon_blast` (the `muzzle` flare), `gather` (glints rushing in), `motes` (the `magic` sheet,
+  tinted by the tree: dual / dual_dagger / dagger elements), `cannon_splash`'s cloud (`mist`). Geometry stays:
+  sparks, streaks, tracers, rings, foam rings, cracks, blade trails, vines, afterimages, punch wind, petals,
+  debris, bleed's droplets and streaks, splats.
+- **Counts per call** (bursts / particles, geometry -> sheets; flipshot's COUNT lines, asserted in t/fx/blocks):
+  dust 1/6 -> 1/2, dust_ring 1/12 -> 1/6, heavy_dust 1/12 -> 2/8, smoke 1/6 -> 1/3, blood 3/35 -> 3/32, splash
+  1/6 -> 1/2, spray 2/16 -> 2/15, flame 1/10 -> 1/3, fire_ring 2/54 -> 2/14, fire_pillar 6/141 -> 6/47,
+  flame_emitter 1/14 -> 1/7, chimney_smoke 1/10 -> 1/6, impact 2/11 -> 2/11, parry_sparks 4/38 -> 4/38, glint
+  2/2 -> 1/1, gather 1/16 -> 1/5, elem_hit dual 1/6 -> 1/2, powder_burst 3/18 -> 3/15, cannon_blast 6/70 -> 6/49,
+  cannon_fire 3/34 -> 3/21, cannon_hit 5/39 -> 5/20, cannon_splash 2/16 -> 2/5. Nothing costs more.
+- **Brief impact lights** (Zach's ask): `FX.flash_light(pos, color, energy, reach, secs)`, a pool of `FLASH_CAP` = 6
+  shadowless OmniLights (children of FX; made on demand, never more; all lit: the weakest is taken over), skipped
+  beyond `FLASH_RANGE` = 90 m of the camera, rise <= 0.04 s then a quad ease-out to 0 over `secs` on a tween (game
+  time: slows with slow motion), hidden after. Calls in the same process frame within 1.5 m merge into one light
+  with the biggest energy/reach/secs (fire_pillar -> fire_ring -> flame is one light). Called inside the effects,
+  so they reach every screen wherever the effect already goes through Net.fx: cannon_fire 5 / 10 m / 0.25 s,
+  cannon_hit 7 / 12 m / 0.4 s, cannon_blast 4 x size / 6 x size m (the tree colour when it burns), powder_burst,
+  blast, muzzle_sparks (every gunshot: 1.2 + 0.08 x sparks, ~4 m, ~0.12 s), flame (1.2 + 1.5 x size), fire_ring
+  5 / 1.8 x radius / 0.45 s, fire_pillar 8 / 2.2 x radius / 0.6 s. Switch `FX.flash_lights` (independent of
+  `flipbooks`). Not on flame emitters (campfires and burning props have their own lights) or plain impacts.
+- **Notes:** `kit_landmarks.puffs` reskins the chimney emitter with its own quad and ramp (waterfall mist, steam);
+  it still works, and now dims at night with the other lit emitters. The light merge radius was first scaled
+  with reach: a broadside 3 m apart merged into one light; a fixed 1.5 m catches only nested calls.
+- **Tests:** t/fx/blocks (the cost table above, each swap plays a sheet), t/fx/flash_lights (a hull hit lights one warm
+  shadowless light that flares and dies, fire_pillar is one light, impacts and glints light nothing, a broadside of
+  ten cannons firing and hitting keeps to 6 nodes, nothing at 200 m, the switch, a gunshot's small light).
+  Renders (tools/dev/out/flipbook/): compare_ground / fire / hits / water (+ cannon, heavy), compare_cannon_h21
+  and compare_fire_h21 (the hull and the ground lit at night), abil_axe_heavy / abil_kraken_wake /
+  abil_point_blank (abilityshot at 21:00).
