@@ -308,17 +308,23 @@ func _process(d: float) -> bool:
 				WorkerThreadPool.wait_for_task_completion(e["task"])
 				TK.use_seed(self, e["seed"])
 				_land(e["isl"], "[%s] " % e["n"]["name"])
+				# (an open-ground theme's beasts fight in the open: no canopy arena to check)
+				e.erase("task")
+				if load("res://scripts/island/kit/kit_style.gd").of(str(e["n"]["theme"]))["arena"] != "canopy":
+					continue
 				e["arena"] = _with_arena(e["isl"])
 				e["task"] = WorkerThreadPool.add_task(e["arena"].prepare.bind(e["n"]))
 			step = 6
 		6:
-			if not preps.all(func(e): return WorkerThreadPool.is_task_completed(e["task"])):
+			if not preps.all(func(e): return not e.has("task") or WorkerThreadPool.is_task_completed(e["task"])):
 				return false
 			for e in preps:
+				e["isl"].free()
+				if not e.has("arena"):
+					continue
 				WorkerThreadPool.wait_for_task_completion(e["task"])
 				TK.use_seed(self, e["seed"])
 				_arena(e["arena"], "[%s] " % e["n"]["name"])
-				e["isl"].free()
 				e["arena"].free()
 			finish()
 	return false
