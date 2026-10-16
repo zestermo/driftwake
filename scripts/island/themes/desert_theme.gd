@@ -68,7 +68,7 @@ const STYLE := {
 		"cook": "desert_cook", "inn": "desert_inn", "workshop": "desert_workshop", "shrine": "desert_shrine", "storehouse": "desert_storehouse",
 		"ruin": "desert_ruin"},
 	"item_models": {"torch": "desert_brazier", "well": "desert_well"},
-	"village_layouts": {"town": 4, "hamlets": 2, "ruins": 2},
+	"village_layouts": {"town": 4, "hamlets": 2, "post": 0, "stilts": 0, "ruins": 2},
 	"folk": {
 		"pick": {"skin": [Color(0.86, 0.68, 0.52), Color(0.76, 0.56, 0.4), Color(0.66, 0.47, 0.32), Color(0.55, 0.38, 0.26), Color(0.42, 0.29, 0.2)],
 			"hair_color": [Color(0.08, 0.06, 0.05), Color(0.12, 0.08, 0.06), Color(0.22, 0.14, 0.08)],
@@ -117,19 +117,25 @@ const STYLE := {
 	"harbour_signal": Color(1.0, 0.55, 0.2),
 }
 
-## Each kind: its zones, how likely an island has it, how many groups (dens).
+## Each kind: its zones, how likely an island has it, how many groups (dens), a group's size ("pack" [lo, hi])
+## and the chance each follower is a young one. Sand crabs on the shore, scorpions, monitor lizards, fennec
+## foxes, snakes and burrowers out on the open ground; bats in the caves.
 const FAUNA := {
+	"scorpion": {"zones": ["floor"], "p": 0.85, "dens": [3, 7], "pack": [1, 3], "young": 0.0},
+	"lizard": {"zones": ["floor"], "p": 0.6, "dens": [2, 5], "pack": [1, 2], "young": 0.5},
+	"fox": {"zones": ["floor"], "p": 0.55, "dens": [2, 4], "pack": [2, 3], "young": 0.35},
 	"crab": {"zones": ["shore"], "p": 0.75, "dens": [3, 7]},
-	"snake": {"zones": ["floor"], "p": 0.65, "dens": [3, 7]},
-	"burrower": {"zones": ["floor", "shore"], "p": 0.45, "dens": [2, 5]},
-	"mite": {"zones": ["floor", "cave"], "p": 0.35, "dens": [1, 3]},
+	"snake": {"zones": ["floor"], "p": 0.55, "dens": [2, 6]},
+	"burrower": {"zones": ["floor", "shore"], "p": 0.35, "dens": [2, 4]},
 	"bat": {"zones": ["cave"], "p": 0.5, "dens": [1, 3]},
 }
 const CREATURES := {
+	"scorpion": "res://scripts/enemies/fauna/scorpion.gd",
+	"lizard": "res://scripts/enemies/fauna/monitor_lizard.gd",
+	"fox": "res://scripts/enemies/fauna/desert_fox.gd",
 	"crab": "res://scripts/enemies/fauna/crab.gd",
 	"snake": "res://scripts/enemies/fauna/snake.gd",
 	"burrower": "res://scripts/enemies/fauna/burrower.gd",
-	"mite": "res://scripts/enemies/fauna/swarm_mite.gd",
 	"bat": "res://scripts/enemies/fauna/bat.gd",
 }
 
@@ -180,7 +186,7 @@ func _init() -> void:
 	}
 	fauna = FAUNA
 	creatures = CREATURES
-	cave_fauna = {"ceiling": "bat", "floor": ["mite", "burrower", "snake"]}
+	cave_fauna = {"ceiling": "bat", "floor": ["scorpion", "burrower", "snake"]}
 
 
 func meshes() -> Dictionary:

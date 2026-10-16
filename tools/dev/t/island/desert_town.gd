@@ -91,7 +91,7 @@ func _process(_d: float) -> bool:
 			torch.free()
 			well.free()
 			check("the desert rolls towns, hamlets and buried ruins, never a stilt village (%s)" % [st["village_layouts"]],
-				not (st["village_layouts"] as Dictionary).has("stilts") and (st["village_layouts"] as Dictionary).has("ruins")
+				int(st["village_layouts"]["stilts"]) == 0 and int(st["village_layouts"]["ruins"]) > 0
 				and KS.of("jungle")["village_layouts"] == VL.POOL)
 			return TK.done(fails)
 	step += 1

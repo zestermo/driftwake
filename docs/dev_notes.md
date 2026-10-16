@@ -2325,6 +2325,37 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   nothing: ~1 s on the main thread for a desert's); `_fit` stops sizing a MultiMesh once it is too big ever to get a
   range (exactly equivalent). genshot skips its jungle shot on an island with no forest.
 - **Test:** `t/island/desert_land` (seeds 2, 7, 1999). Renders: `genshot.gd tools/dev/out/desert/g2 2` (and g7, g5).
+
+## 2026-10-16: the desert theme, towns and wildlife (plan phases 2 and 3)
+- **Towns** (`scripts/props/desert_town.gd`, DesertTown, through snow's `village_models`): flat-roofed houses in
+  pastel washes (lilac, cream, salmon, mint, blue-grey, white, ochre: vertex colour over one adobe material, so a
+  street is one surface) on sandstone footings 2.2 m deep, parapets (crenels now and then), arched doorways framed in
+  sandstone, small deep windows (some lit), roof beams through the front, a dome (round or onion; gold, green, blue,
+  rose, turquoise glaze) or a canvas roof shade, a striped awning or an outside stair to the roof; two-storey ones
+  set back on the roof terrace. Rooms you walk into (home/elder, trader, cookhouse) are the same shell hollow, an
+  arched wall (`add_extrude` of the wall with the arch notched out), the kit's furnishing (`KitHouses._home_inside`
+  etc.) and its markers; the caravanserai (the inn: an arcade of three arches, a gallery, a dome); the potter's
+  workshop (two arches, a kiln, a wheel; Worker, Bench); the domed shrine (Keeper, Pray); granaries (beehive domes);
+  ruins half buried in sand (Cache); a minaret (for set pieces); a brazier (the desert's torch, "Flame") and a well.
+  Paving `desert_flags` (new texture); adobe texture calmed.
+- **Generic hooks** (KitStyle, BRINEHOLLOW keeps today's): `item_models` (a theme's models for a village's dressing
+  items by kind, KitVillage.build_items: a lit one's light at its Flame) and `village_layouts` (the layout weights;
+  BRINEHOLLOW = VillageLayouts.POOL, so jungle and snow roll as before; every key must stay - isletest's style check
+  - so the desert sets post and stilts to 0: towns 4, hamlets 2, buried ruins 2).
+- **Wildlife** (`scripts/enemies/fauna/`): Scorpion (claws wide and the tail quivering high is the tell; a pinch or
+  the sting, which poisons; plates turn blows from the front; one pack lead in eight is an emperor), MonitorLizard
+  (basks; close in and it hisses, then a lunging bite or a tail lash that knocks you down; runs when badly hurt),
+  DesertFox (fennec: sits up to listen, bolts zigzagging when a captain comes near; snaps once if cornered). The
+  roster: scorpion, lizard, fox, crab (shore), snake, burrower; bats in caves; cave floors scorpion/burrower/snake.
+  FaunaSpawner: an island with fewer than 40 forest-floor points (no forest to speak of) samples its floor out in
+  the open (240 tries, only then: a jungle's draws don't move). Vultures: SkyBirds' dark flocks already circle every
+  island; a desert look for them is left for later.
+- **Proof:** islanddump Brinehollow (dummies only) and 4246 (jungle) identical to main. **Tests:**
+  `t/island/desert_town` (every village kind builds with a collider, a footing, its markers, an open doorway; same
+  seed same house; brazier Flame, well collider; no stilt village), `t/island/desert_fauna` (scorpion strikes and
+  stings with poison, foxes bolt, a lizard close by comes on, one far off basks; roster scripts). Renders:
+  `tools/dev/out/desert/v7b_*` (the capital on its plateau), `v2_*` (buried ruins), `models/desert_town_*`,
+  `models/desert_fauna*`.
 ## 2026-10-15: flipbook rollout across FX, and brief impact lights
 - **Rollout** (`scripts/game/fx.gd`, all behind `FX.flipbooks`; same names and arguments, so every Net.fx caller is
   unchanged): `dust` (a puff or two of the brown dust sheet), `dust_ring` (a `puff_ring` of `dust_low`), `heavy_dust`
