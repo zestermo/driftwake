@@ -4,7 +4,7 @@ extends SceneTree
 ## floor, the arena from above, the beast asleep, then each of its moves filmed
 ## as a strip of frames (the captain standing in, invulnerable), and a sheet of
 ## everything. Out: <dir>/<shot>.png, <dir>/<move>_strip.png, <dir>/sheet.png.
-## Args: <out_dir> <kind> [move,move,... | -] [variant]
+## Args: <out_dir> <kind> [move,move,... | -] [variant] [chain seed: a theme's kind needs a chain whose first island is that theme]
 ##   kind: ape | serpent | stalker | mantis | boar | behemoth (the boss's FILM
 ##   const lists its moves and how long to film each; the ape's are below).
 ## Env BSHOT_HOUR (11), BSHOT_EYE=1 films from the captain's shoulder (how it reads in play).
@@ -41,6 +41,8 @@ func _initialize():
 	if a.size() > 2 and a[2] != "-":
 		moves = Array(a[2].split(","))
 	variant = int(a[3]) if a.size() > 3 else 0
+	if a.size() > 4:
+		root.get_node("GameManager").chain_seed = int(a[4])
 	DirAccess.make_dir_recursive_absolute(out)
 	change_scene_to_file("res://scenes/world/world.tscn")
 

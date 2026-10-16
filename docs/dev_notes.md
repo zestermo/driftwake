@@ -2289,6 +2289,73 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   a 4th "canopy" bool, `arena_ring` is empty for an open one). Proof: islanddump on main vs the branch, seeds 4242 and
   12 (jungle) and 77 (snow): byte-identical. theme_land's test theme also moves its village, grows nothing, paints
   sand everywhere and has an open arena: checked.
+
+## 2026-10-16: the desert theme, foundations (docs/desert_island_plan.md phase 1)
+- **Registered** after snow (`IslandThemes.SCRIPTS`: jungle, snow, desert; weight 1.0), so a third of the chain's
+  islands roll desert and the fixed seeds roll differently (bosstest moved to 4246, a chain that opens on a jungle;
+  musictest reads a chain island's town and wild tracks from its style). Chains that open on a desert: 2, 5, 7, 8.
+- **Files:** `scripts/island/themes/desert_theme.gd` (contract, style, land, the land hooks), `desert_life.gd` (names,
+  roles - water-seller, caravan guide, potter, spice merchant, storyteller, lookout, healer - barks, rumours, quests in
+  a desert voice), `scripts/props/desert_plants.gd` (DesertPlants), `desert_props.gd` (DesertProps: urn, brass
+  lantern post, waymarker), `tools/texture_gen/gen_desert_textures.py` (desert_sand with wind ripples, desert_beach,
+  desert_hardpan, desert_rock in ochre/rust bands, adobe, sandstone, glaze, four awning stripes, rug_kilim, cactus,
+  dry_grass, reeds). Music/ambience lines in Music.TRACKS and Ambience.LOOPS/TOP_DB (the music agent's files).
+- **Size:** 480-640 m (jungle 300-450); Chain pushes forks and layers apart by the excess (BASE_R). Prepare on its
+  worker ~10-18 s (land 2.3-3.8 s, arrays 1.6-2.1, undergrowth 1.8-3.3, bodies ~2; a jungle 418 m is ~15 s);
+  on the main thread ~2.4-2.7 s over ~118 frames.
+- **Land** (`plan_land` on the island's own stream, `shape` per height point; features as data in `land_plan`):
+  a plateau (65%; round the middle, its far side under the summit so the town keeps 45 m off the summit's site;
+  rim steep but for ramps toward every site off it) the capital moves up onto (`village_at`, 55%); mesas (flat tops,
+  steep sides, dropped where a site or a way would be); rock ridges (sharp crests, tapering ends, parting where a way
+  crosses); transverse dune fields (stoss slope to a sharp crest, a soft-footed slip face, crests meandering on noise,
+  off the sites and the wadi beds); wadis from the plateau's rim or the highlands meandering out past the coast;
+  canyons (steep, forded where a way crosses); salt pans levelled low; oasis hollows. "The ways" are straight lines
+  dock-village and village-site, worked out again whenever GenIsland has placed more sites. Inland never drops under
+  1.2 m (GenIsland finds the dock by walking out to the first ground under 0.4 m). Six variants (`forests`): open
+  desert, sand sea, badlands, high plateau, salt pans, oasis coast.
+- **Life on the land:** a zone grid (8 m, built on first use after the sites: dunes, rock, wadi beds, oases) drives
+  `cover` (oases and wadi beds green, the rest a third of the base's), `growth` (bare dunes and pans, stony ridges and
+  mesas, rich oases and wadis) and `paint` (hardpan on pans and wadi beds, rock on ridges and mesas; the plateau's rim
+  is the shader's slope rock). Plants: date palms (clumps, a skirt of dead fronds, dates), acacias and dead trees,
+  column and barrel cacti and prickly pear, scrub, saltbush, tumbleweed, dry grass, reeds at the water and in the
+  oases; sandstone boulders. The boss's ground is "open" (no canopy ring). Interim until the later phases: the
+  jungle's beasts and its wildlife subset (crab, snake, burrower, mite, bat), the jungle's village builders with
+  desert materials.
+- **Perf fixes found on the way:** `DrawLOD._fold` skips one-surface meshes (an island's terrain was copied for
+  nothing: ~1 s on the main thread for a desert's); `_fit` stops sizing a MultiMesh once it is too big ever to get a
+  range (exactly equivalent). genshot skips its jungle shot on an island with no forest.
+- **Test:** `t/island/desert_land` (seeds 2, 7, 1999). Renders: `genshot.gd tools/dev/out/desert/g2 2` (and g7, g5).
+
+## 2026-10-16: the desert theme, towns and wildlife (plan phases 2 and 3)
+- **Towns** (`scripts/props/desert_town.gd`, DesertTown, through snow's `village_models`): flat-roofed houses in
+  pastel washes (lilac, cream, salmon, mint, blue-grey, white, ochre: vertex colour over one adobe material, so a
+  street is one surface) on sandstone footings 2.2 m deep, parapets (crenels now and then), arched doorways framed in
+  sandstone, small deep windows (some lit), roof beams through the front, a dome (round or onion; gold, green, blue,
+  rose, turquoise glaze) or a canvas roof shade, a striped awning or an outside stair to the roof; two-storey ones
+  set back on the roof terrace. Rooms you walk into (home/elder, trader, cookhouse) are the same shell hollow, an
+  arched wall (`add_extrude` of the wall with the arch notched out), the kit's furnishing (`KitHouses._home_inside`
+  etc.) and its markers; the caravanserai (the inn: an arcade of three arches, a gallery, a dome); the potter's
+  workshop (two arches, a kiln, a wheel; Worker, Bench); the domed shrine (Keeper, Pray); granaries (beehive domes);
+  ruins half buried in sand (Cache); a minaret (for set pieces); a brazier (the desert's torch, "Flame") and a well.
+  Paving `desert_flags` (new texture); adobe texture calmed.
+- **Generic hooks** (KitStyle, BRINEHOLLOW keeps today's): `item_models` (a theme's models for a village's dressing
+  items by kind, KitVillage.build_items: a lit one's light at its Flame) and `village_layouts` (the layout weights;
+  BRINEHOLLOW = VillageLayouts.POOL, so jungle and snow roll as before; every key must stay - isletest's style check
+  - so the desert sets post and stilts to 0: towns 4, hamlets 2, buried ruins 2).
+- **Wildlife** (`scripts/enemies/fauna/`): Scorpion (claws wide and the tail quivering high is the tell; a pinch or
+  the sting, which poisons; plates turn blows from the front; one pack lead in eight is an emperor), MonitorLizard
+  (basks; close in and it hisses, then a lunging bite or a tail lash that knocks you down; runs when badly hurt),
+  DesertFox (fennec: sits up to listen, bolts zigzagging when a captain comes near; snaps once if cornered). The
+  roster: scorpion, lizard, fox, crab (shore), snake, burrower; bats in caves; cave floors scorpion/burrower/snake.
+  FaunaSpawner: an island with fewer than 40 forest-floor points (no forest to speak of) samples its floor out in
+  the open (240 tries, only then: a jungle's draws don't move). Vultures: SkyBirds' dark flocks already circle every
+  island; a desert look for them is left for later.
+- **Proof:** islanddump Brinehollow (dummies only) and 4246 (jungle) identical to main. **Tests:**
+  `t/island/desert_town` (every village kind builds with a collider, a footing, its markers, an open doorway; same
+  seed same house; brazier Flame, well collider; no stilt village), `t/island/desert_fauna` (scorpion strikes and
+  stings with poison, foxes bolt, a lizard close by comes on, one far off basks; roster scripts). Renders:
+  `tools/dev/out/desert/v7b_*` (the capital on its plateau), `v2_*` (buried ruins), `models/desert_town_*`,
+  `models/desert_fauna*`.
 ## 2026-10-15: flipbook rollout across FX, and brief impact lights
 - **Rollout** (`scripts/game/fx.gd`, all behind `FX.flipbooks`; same names and arguments, so every Net.fx caller is
   unchanged): `dust` (a puff or two of the brown dust sheet), `dust_ring` (a `puff_ring` of `dust_low`), `heavy_dust`
@@ -2412,3 +2479,41 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   (every roster kind makes its own creature, the beasts are the snow's); bosstest's "every boss turns up" counts every
   theme's bosses. lifetest failed once on "a villager walks its route" (4.1 m in 2 s, the check's < 4.0: process
   seconds under load) and passed on its rerun.
+## 2026-10-16: the cutlass's drawn water (Kraken's Wake, the awakened blade)
+- **Why:** Zach's test of Demon Slayer's Water Breathing look in Driftwake (Tanjiro key art as the
+  reference). His notes as it went: animated pixel-art sprites, "not just arcs"; the first sheets "too
+  jagged and solid" -> flowy, ukiyo-e water with bubbles and small swirls along the edges; a swirling
+  water trail round the blade once awakened; the blade coil "too tight and circular" -> oval along
+  the flat, serpentine; the big upright swirl round you at the payoff "a bit too much" (removed). This
+  is the direction for most weapon effects (driftwake-fx "Drawn elements").
+- **Art** (`tools/texture_gen/gen_water_fx.py`, its own generator so the 16-sheet library and
+  t/fx/sheets stay as they were): `flip_water_slash` (a crescent sweeping over and curling in, claws
+  of foam riding its back, pinching into gobs and bubbles), `flip_water_swirl` (two arms spiralling
+  out of a dark eye, spinning then slowing, flung apart), `flip_water_curl` (a wave tongue rising and
+  rolling over, breaking from the tip): 4x4 frames of 128 px, solid alpha, a 7-step navy-to-foam
+  palette. `water_trail.png`: 8 looping frames of 256x64 (a foam crest with claws and bubbles, dashed
+  flow lines, eddies along the inner edge). ~4.2 MB with mips in all.
+- **FX** (`scripts/game/fx.gd`): `water_arc` / `water_wake` (a `WaterRibbon`, scripts/game/water_ribbon.gd:
+  the strip laid camera-facing along an arc that curls in at its head, or flat along the ground; its
+  UVs scroll and step through the frames on game time; a `water_curl` at the head, droplets off the
+  tail as it pinches into gobs; one shared material, an ArrayMesh rebuilt each frame for its ~0.5 s),
+  `water_burst` (one sheet played once, unlit), `droplets` (spray's droplets alone).
+- **Kraken's Wake** (TechniqueState `_kraken`, all behind `_elem()`; the plain version is unchanged):
+  two coils of water winding opposite ways round you and a swirl as you gather; per blink-cut an arc
+  through them (its slant swapping), an eddy (swirl) on them and a wake of water along the ground
+  between them, plus the old streak and spray; a rising arc off the blade on the flick; at the tear a
+  whirl of water once round you and, under each victim, three rising curls + a swirl in place of the
+  geometry tentacles (`FX.water_tentacles` stays for now, unused).
+- **The awakened blade** (`BladeWater`, scripts/game/blade_water.gd): with `elem_sword` (the cutlass's
+  tier-1 mastery, Call of the Tide) and the cutlass drawn (style "sword", not hybrid), two loose
+  serpentine strands of the strip wind up the blade on an oval laid along its flat (the wider of the
+  mesh's x/y). Built once per blade size, a child of the weapon mesh; animated only by a sway and one
+  shared material's `uv1_offset` stepped once a frame. Co-op: Player's snapshot flag `NF_TIDE` (16),
+  puppets call `BladeWater.keep` with it.
+- **Cost:** Kraken's Wake at six victims: up to ~8 ribbons alive at once (each one node, one draw,
+  <=186 vertices rebuilt a frame), one sprite per cut plus a few droplet bursts per ribbon, three
+  curls and a swirl per victim at the tear; it lasts ~2 s. The aura: one node and one draw per drawn
+  awakened cutlass (~530 static vertices), nothing rebuilt. No lights. The Brinehollow bench route
+  fires neither (no ult, no awakened blade), so it wasn't re-benched.
+- **Tools/tests:** abilityshot's `close` view (the captain's blade up close). `t/fx/water`.
+  Renders: tools/dev/out/abil/ (g2/s2/g3/night/aura3).

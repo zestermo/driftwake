@@ -29,6 +29,10 @@ const TRACKS := {
 	"snow_night": ["res://assets/audio/music_snow_night.ogg", 56],
 	"snow_town": ["res://assets/audio/music_snow_town.ogg", 64],
 	"snow_town_night": ["res://assets/audio/music_snow_town_night.ogg", 64],
+	"desert": ["res://assets/audio/music_desert.ogg", 48],
+	"desert_night": ["res://assets/audio/music_desert_night.ogg", 48],
+	"desert_town": ["res://assets/audio/music_desert_town.ogg", 64],
+	"desert_town_night": ["res://assets/audio/music_desert_town_night.ogg", 64],
 }
 const FIGHTS := ["combat", "boss"]
 const VICTORY := "res://assets/audio/music_victory.ogg"

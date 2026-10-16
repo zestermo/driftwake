@@ -58,6 +58,8 @@ func _process(_d: float) -> bool:
 	var c = load("res://scripts/world/chain.gd").make(4242, Vector2.ZERO, Vector2(0, -1))
 	var n: Dictionary = c.node(int(c.start_next[0])).duplicate(true)
 	n["theme"] = "jungle"
+	var t = IT.of("jungle")
+	n.merge({"beast": t.bosses[0], "beast_look": 0, "beast_name": t.beasts[t.bosses[0]]["names"][0], "minis": [t.minis[0]], "roamer": t.roamers[0]}, true)
 	load("res://scripts/island/island_theme.gd").meshes("jungle")
 	var j = load("res://scripts/island/gen_island.gd").new()
 	j.prepare(n)

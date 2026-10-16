@@ -138,14 +138,16 @@ func _process(d: float) -> bool:
 			put(isl.to_global(Vector3(c.x, 0, c.y)))
 			wait(4.0)
 		9:
-			check("%s's village: the village theme (%s)" % [isl.name, m.current], m.current == "village")
+			var town: String = load("res://scripts/island/kit/kit_style.gd").of(isl.theme)["music_town"]
+			check("%s's village: its style's town track, %s (%s)" % [isl.name, town, m.current], m.current == town)
 			var top: Vector2 = isl.sites["summit"]
 			put(isl.to_global(Vector3(top.x, 0, top.y)))
 			wait(4.0)
 		10:
 			var l: Vector3 = isl.to_local(p.global_position)
 			print("   at %s on %s, %.0f m from its village's heart" % [str(l), isl.name, Vector2(l.x, l.z).distance_to(isl.village_plan["c"])])
-			check("%s's wilds: its style's track, the island theme (%s)" % [isl.name, m.current], m.current == "island")
+			var wild: String = load("res://scripts/island/kit/kit_style.gd").of(isl.theme)["music"]
+			check("%s's wilds: its style's track, %s (%s)" % [isl.name, wild, m.current], m.current == wild)
 			var sea := Vector3.INF
 			for k in range(32):
 				var a := k * TAU / 32.0

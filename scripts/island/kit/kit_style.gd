@@ -56,6 +56,11 @@ const BRINEHOLLOW := {
 	# a theme's own models for a village's buildings by kind (hut, tall, storehouse, workshop, shrine...): a ThemeDef.props
 	# name each, made at the footprint across, with the kind's markers (workshop: Worker, Bench; shrine: Keeper, Pray); others are the kit's
 	"village_models": {},
+	# a theme's own models for a village's dressing items by kind (torch, well, bench, cart...: KitVillage.build_items);
+	# a lit one's light at its "Flame"
+	"item_models": {},
+	# the village layouts it rolls from, by weight (VillageLayouts: town, hamlets, post, stilts, ruins)
+	"village_layouts": {"town": 3, "hamlets": 2, "post": 2, "stilts": 2, "ruins": 1},
 	# its people (KitStyle.folk_look): pools a villager's look picks from ("<key>_fem" for women), then fixed values
 	"folk": {
 		"pick": {"hat": ["none", "none", "cap", "knit", "bandana"], "top": ["shirt", "shirt", "tunic"], "top_fem": ["blouse", "shirt", "tunic"],

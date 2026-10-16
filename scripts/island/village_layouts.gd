@@ -15,6 +15,7 @@ extends RefCounted
 ## own occupancy (`occ`) keeps the pieces apart, and what it takes is reserved from the
 ## plants at the end (the settlement is a clearing cut into the jungle).
 
+## The layouts there are (a theme rolls from its style's "village_layouts" weights; Brinehollow's are these).
 const POOL := {"town": 3, "hamlets": 2, "post": 2, "stilts": 2, "ruins": 1}
 ## Tools and tests set this to build one layout (every island built after uses it).
 static var force := ""
@@ -83,12 +84,13 @@ static func plan(isl: GenIsland) -> Dictionary:
 
 
 func _pick() -> String:
+	var pool: Dictionary = kc.style["village_layouts"]
 	var total := 0
-	for k in POOL.keys():
-		total += int(POOL[k])
+	for k in pool.keys():
+		total += int(pool[k])
 	var roll := kc.rng(40).randi() % total
-	for k in POOL.keys():
-		roll -= int(POOL[k])
+	for k in pool.keys():
+		roll -= int(pool[k])
 		if roll < 0:
 			# (the ruins' survivors need a flat spot out along a path)
 			if k == "ruins" and _survivors_at() == Vector2.INF:
@@ -97,7 +99,7 @@ func _pick() -> String:
 			if k == "hamlets" and _hamlet_picks(_hamlet_spots(), 0).size() < 2:
 				return "town"
 			return k
-	return POOL.keys()[0]
+	return pool.keys()[0]
 
 
 ## Where the ruins' survivors settle: the first flat open ground 55-120 m out along a path, away from the dock (INF: nowhere).

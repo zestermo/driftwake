@@ -90,6 +90,9 @@ static func _fit(g: GeometryInstance3D, out: Array, folds: Dictionary) -> void:
 		box = mm.get_instance_transform(0) * mesh.get_aabb()
 		for i in range(1, mm.instance_count):
 			box = box.merge(mm.get_instance_transform(i) * mesh.get_aabb())
+			# (big enough never to get a range nor lose its shadow: the rest can't change that)
+			if i % 32 == 0 and (g.global_transform * box).get_longest_axis_size() * PX_PER_M >= NEVER:
+				break
 	var size := (g.global_transform * box).size
 	var s := maxf(size.x, maxf(size.y, size.z))
 	var end := maxf(MIN_END, PX_PER_M * s)
@@ -106,7 +109,8 @@ static func _fit(g: GeometryInstance3D, out: Array, folds: Dictionary) -> void:
 
 ## (not under a material override or a surface override: those would multiply the baked tints)
 static func _fold(mi: MeshInstance3D, out: Array, folds: Dictionary) -> void:
-	if mi.material_override != null or not mi.mesh is ArrayMesh:
+	# (one surface has nothing to fold, and copying a big one - an island's terrain - is a long frame)
+	if mi.material_override != null or not mi.mesh is ArrayMesh or mi.mesh.get_surface_count() < 2:
 		return
 	for i in range(mi.get_surface_override_material_count()):
 		if mi.get_surface_override_material(i) != null:

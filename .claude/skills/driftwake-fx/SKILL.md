@@ -29,6 +29,11 @@ on that tree (`TechniqueState`, `SkillState`, `HeavyAttackState`, `Projectile`).
   advanced abilities**: a basic skill gets a clean accent, an ultimate gets a signature moment.
 - Picks (2026-10-08): **a colour identity per tree, big ultimates** (a signature moment: slow
   motion, a punch-in, a flash, and one effect only that ultimate has).
+- **The direction for weapon effects (2026-10-16): drawn, animated sprite effects** in the manner
+  of Demon Slayer's Water Breathing / ukiyo-e prints (see "Drawn elements" below). Zach wants most
+  weapon effects to end up in this style, each mastered element its own variation. Plain geometry
+  (flat-coloured arcs, tubes, banded strips) reads "too jagged and solid": he wants flowing shapes,
+  thin flow lines, small curls and bubbles along the edges, round gobs when it breaks up.
 
 ## Tree identities (FX.TREE_FX: [CORE, EDGE, ACCENT])
 
@@ -97,6 +102,50 @@ shadow wisps), `blood`'s mist, `splash` and `spray`'s mist, `flame` / `fire_ring
 the tree). `t/fx/blocks` checks each costs no more bursts or particles than before; keep it so.
 | `blade_swoosh(body, secs, color)` | the real blade's trail (BladeTrail) | any strike where the blade moves: swing paths and keyed technique cuts alike |
 | `slash(follow, kind, dur, color)` | a fixed arc mesh | spins and wide arcs the blade alone can't show (keep few; prefer blade_swoosh) |
+| `water_arc(center, u, v, radius, sweep, width, draw, life, color, seed)` | a WaterRibbon: the drawn water strip flowing round an arc, a wave curling off its head, breaking into gobs from the tail | the cutlass's water slashes (Kraken's Wake): coils round you, a whirl at the payoff |
+| `water_wake(from, to, width, life, color, seed)` | a WaterRibbon lying flat along the ground | the path of a dash or a blink, left as running water |
+| `water_burst(pos, sheet, size, life, spin)` | one drawn-water sheet (`water_slash`, `water_swirl`, `water_curl`) played once, unlit | an eddy where a cut lands, the sea gathering, claws of water heaving up |
+| `droplets(pos, dir, amount, color, speed)` | spray's droplets without its mist (one burst) | flung off a ribbon's head and tail |
+
+## Drawn elements (the Water Breathing look: the model for every weapon's element)
+
+The cutlass's sea (2026-10-16) is the first element built this way; the others (katana petals and
+wind, axe embers, dagger shadow, venom...) should follow the same recipe with their own art. The
+pieces, all reusable as a pattern:
+
+1. **Sheets drawn in code** (`tools/texture_gen/gen_water_fx.py`, `py tools/texture_gen/gen_water_fx.py
+   [name]`): 4x4 frames of **128 px** (64 px reads jagged once it's 2-3 m on screen), shapes made as
+   strokes (`stroke()`: a union of discs along a path, giving per pixel the place along it and the
+   offset across it), shaded in hard bands across the stroke (`shade()`: foam outside, light, bright
+   with thin dashed flow lines racing along, mid, deep, a dark inner line), then decoration painted on:
+   `claws()` (foam hooks curling over off the outside edge every so often, riding along with time,
+   small eddies just inside), `bubbles_along()` (hollow rings rising off the edge), and `gobs()` (the
+   trailing part pinched into round blobs that shrink away: never noise-torn edges). Alpha is solid
+   (0/255): hard pixel edges, no soft fades. One seed per sheet. New element: a `gen_<element>_fx.py`
+   on the same skeleton with its own palette and decorations (petals instead of bubbles, licks of
+   flame instead of claws), played with `FX.flipbook` / a named block like `water_burst`.
+2. **A flowing strip** (`water_trail.png`: 8 frames of 256x64 stacked, tiling along x, everything
+   advancing a whole spacing over the loop so it loops cleanly): top = the outside (foam crest, claws,
+   bubbles), bottom = inside. `WaterRibbon` (scripts/game/water_ribbon.gd) lays it along any path
+   (an arc with a curl at its head, or a line on the ground), camera-facing so it reads from any
+   side, UVs scrolled along it and stepped through the frames; a sprite (`water_curl`) at its head
+   and droplets off its tail. One shared material; rebuilt each frame only while it lives (~0.5 s).
+3. **An aura on the awakened weapon** (`BladeWater`, scripts/game/blade_water.gd): shown while the
+   weapon is drawn and its tree's tier-1 mastery is owned; a child of the weapon mesh, built once per
+   blade size, animated only by one shared material's `uv1_offset` (stepped once a frame for every
+   blade) and a small sway: no per-frame geometry. Co-op: the player's snapshot flag `NF_TIDE`.
+   Not every element needs a snaking aura: shape it to the element (the cutlass's is two loose
+   serpentine strands on an oval laid along the flat of the blade, not a round spring: Zach's
+   correction). Others could be a flame licking off the edge, petals shed from the tip, a shadow
+   smear behind it: same plumbing (a mesh on the weapon + a shared stepped material + a flag).
+4. **In the ability:** sprites and ribbons replace flat geometry for the element's layer (Kraken's
+   Wake: coils + a swirl as you gather, an arc + an eddy + a wake per cut, a rising arc on the flick,
+   a whirl and rising curls under each victim at the payoff). Gate them behind `_elem()` like any
+   element. Keep the moment readable: Zach found a big upright swirl round the player at the payoff
+   "a bit too much"; one big flat shape plus the per-victim ones was right.
+
+Film with `abilityshot` views `game,side` and `close` (the captain's blade up close), at
+`AB_HOUR=21` too (the drawn water is unlit and keeps its colour at night). Test: `t/fx/water`.
 
 CombatManager: `apply_hitstop(secs, bodies)`, `apply_camera_shake(intensity)`,
 `apply_slowmo(scale, secs, ease_out)` (single player; hit-stop returns to it, not to full speed;

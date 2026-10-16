@@ -11,19 +11,19 @@ extends ThemeDef
 ## raised centre, "plateau_h" its rise, "capital" the chance the village moves up onto it.
 ## "forests" are its land variants (one per island from its seed).
 const LAND := {
-	"peak": [6.0, 11.0], "hills": [3, 5], "hill_h": [3.0, 8.0], "roll": 3.5, "base": 4.8,
+	"peak": [12.0, 22.0], "hills": [3, 6], "hill_h": [5.0, 13.0], "roll": 4.0, "base": 4.8,
 	"ramp": [32.0, 54.0], "cliffs": [1, 3], "cliff_h": [8.0, 15.0],
-	"tree": 0.08, "edge": 0.01, "beach_tree": 0.05, "fern": 0.05, "bush": 0.05, "grass": 0.06, "rock": 0.035,
+	"tree": 0.08, "edge": 0.004, "beach_tree": 0.03, "fern": 0.05, "bush": 0.05, "grass": 0.06, "rock": 0.035,
 	"cover": 0.3,
 	"canopy": 0.0, "giants": {"giant": 1.0, "fig": 0.0, "kapok": 0.0, "emergent": 0.0},
 	"bamboo": 0.06, "palm_inland": 0.14, "mangrove": 0.03,
 	"broadleaf": 0.035, "shrub": 0.02, "floor": 0.0, "overgrown": 0.0,
-	"dune_fields": [1, 3], "dune_h": [3.0, 6.5], "dune_len": [36.0, 64.0],
+	"dune_fields": [1, 3], "dune_h": [4.5, 9.0], "dune_len": [40.0, 72.0],
 	"ridges": [1, 3], "mesas": [1, 3], "canyons": [0, 1], "wadis": [1, 2], "salt": [0, 1], "oases": [1, 2],
 	"plateau": 0.65, "plateau_h": [11.0, 17.0], "capital": 0.55,
 	"forests": [
 		["open desert", {}],
-		["sand sea", {"dune_fields": [3, 4], "dune_h": [5.0, 8.5], "ridges": [0, 1], "mesas": [0, 1], "plateau": 0.35}],
+		["sand sea", {"dune_fields": [3, 4], "dune_h": [7.0, 12.0], "ridges": [0, 1], "mesas": [0, 1], "plateau": 0.35}],
 		["badlands", {"dune_fields": [0, 1], "ridges": [3, 5], "mesas": [3, 6], "canyons": [1, 2], "rock": 0.06, "plateau": 0.5}],
 		["high plateau", {"plateau": 1.0, "plateau_h": [16.0, 23.0], "wadis": [2, 3], "capital": 0.8}],
 		["salt pans", {"salt": [2, 3], "dune_fields": [1, 2], "mesas": [1, 2], "oases": [0, 1]}],
@@ -35,7 +35,7 @@ const LAND := {
 const STYLE := {
 	"lamp": Color(1.0, 0.72, 0.38),
 	"lamp_range": 11.0,
-	"paving": "sandstone",
+	"paving": "desert_flags",
 	"quay_wall": Color(0.95, 0.86, 0.68),
 	"quay_cope": Color(0.86, 0.76, 0.58),
 	"iron": Color(0.55, 0.42, 0.2),
@@ -64,6 +64,11 @@ const STYLE := {
 	"stall": {"canopies": ["awning_red", "awning_blue", "awning_gold", "awning_green"], "post": "planks_dark"},
 	"pier": {"deck": "planks_weathered", "post": "planks_dark", "rail": "planks_dark", "lashings": false, "rope_rail": true},
 	"props": {"crate": "crate", "barrel": "desert_urn", "lamp": "desert_lantern_post", "marker": "desert_marker"},
+	"village_models": {"hut": "desert_hut", "tall": "desert_tall", "home": "desert_home", "elder": "desert_home", "trade": "desert_trade",
+		"cook": "desert_cook", "inn": "desert_inn", "workshop": "desert_workshop", "shrine": "desert_shrine", "storehouse": "desert_storehouse",
+		"ruin": "desert_ruin"},
+	"item_models": {"torch": "desert_brazier", "well": "desert_well"},
+	"village_layouts": {"town": 4, "hamlets": 2, "post": 0, "stilts": 0, "ruins": 2},
 	"folk": {
 		"pick": {"skin": [Color(0.86, 0.68, 0.52), Color(0.76, 0.56, 0.4), Color(0.66, 0.47, 0.32), Color(0.55, 0.38, 0.26), Color(0.42, 0.29, 0.2)],
 			"hair_color": [Color(0.08, 0.06, 0.05), Color(0.12, 0.08, 0.06), Color(0.22, 0.14, 0.08)],
@@ -112,19 +117,25 @@ const STYLE := {
 	"harbour_signal": Color(1.0, 0.55, 0.2),
 }
 
-## Each kind: its zones, how likely an island has it, how many groups (dens).
+## Each kind: its zones, how likely an island has it, how many groups (dens), a group's size ("pack" [lo, hi])
+## and the chance each follower is a young one. Sand crabs on the shore, scorpions, monitor lizards, fennec
+## foxes, snakes and burrowers out on the open ground; bats in the caves.
 const FAUNA := {
+	"scorpion": {"zones": ["floor"], "p": 0.85, "dens": [3, 7], "pack": [1, 3], "young": 0.0},
+	"lizard": {"zones": ["floor"], "p": 0.6, "dens": [2, 5], "pack": [1, 2], "young": 0.5},
+	"fox": {"zones": ["floor"], "p": 0.55, "dens": [2, 4], "pack": [2, 3], "young": 0.35},
 	"crab": {"zones": ["shore"], "p": 0.75, "dens": [3, 7]},
-	"snake": {"zones": ["floor"], "p": 0.65, "dens": [3, 7]},
-	"burrower": {"zones": ["floor", "shore"], "p": 0.45, "dens": [2, 5]},
-	"mite": {"zones": ["floor", "cave"], "p": 0.35, "dens": [1, 3]},
+	"snake": {"zones": ["floor"], "p": 0.55, "dens": [2, 6]},
+	"burrower": {"zones": ["floor", "shore"], "p": 0.35, "dens": [2, 4]},
 	"bat": {"zones": ["cave"], "p": 0.5, "dens": [1, 3]},
 }
 const CREATURES := {
+	"scorpion": "res://scripts/enemies/fauna/scorpion.gd",
+	"lizard": "res://scripts/enemies/fauna/monitor_lizard.gd",
+	"fox": "res://scripts/enemies/fauna/desert_fox.gd",
 	"crab": "res://scripts/enemies/fauna/crab.gd",
 	"snake": "res://scripts/enemies/fauna/snake.gd",
 	"burrower": "res://scripts/enemies/fauna/burrower.gd",
-	"mite": "res://scripts/enemies/fauna/swarm_mite.gd",
 	"bat": "res://scripts/enemies/fauna/bat.gd",
 }
 
@@ -145,23 +156,40 @@ func _init() -> void:
 		"desert_urn": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertProps.urn(size, rng.randi()),
 		"desert_lantern_post": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return DesertProps.lantern_post(2.5 * size),
 		"desert_marker": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertProps.waymarker(rng.randi()),
+		# the village's buildings by kind (style village_models), `size` the plot across
+		"desert_hut": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.house({"w": size, "d": snappedf(size * 0.85, 0.1), "storeys": 1, "dome": 0.15, "seed": rng.randi(), "name": "House"}),
+		"desert_tall": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.house({"w": size, "d": snappedf(size * 0.85, 0.1), "storeys": 2, "dome": 0.35, "seed": rng.randi(), "name": "House"}),
+		"desert_home": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.room("home", rng.randi(), size),
+		"desert_trade": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.room("trade", rng.randi(), size),
+		"desert_cook": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.room("cook", rng.randi(), size),
+		"desert_inn": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.inn(rng.randi(), size, snappedf(size * 0.75, 0.1)),
+		"desert_workshop": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.workshop(rng.randi(), size),
+		"desert_shrine": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertTown.shrine(rng.randi()),
+		"desert_storehouse": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.storehouse(rng.randi(), size),
+		"desert_ruin": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.ruin(rng.randi(), size, snappedf(size * 0.84, 0.1)),
+		"desert_minaret": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.minaret(rng.randi(), 14.0 * size),
+		"desert_brazier": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.brazier(1.5 * size),
+		"desert_well": func(_rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertTown.well(),
 	}
 	life = preload("res://scripts/island/themes/desert_life.gd").TEXT
-	# (interim: the jungle's beasts until the desert's own)
-	bosses = ["ape", "serpent", "stalker", "mantis"]
-	minis = ["boar"]
-	roamers = ["behemoth"]
+	bosses = ["sandworm", "giant_scorpion", "basilisk", "sand_lion"]
+	minis = ["hyena"]
+	roamers = ["dune_strider"]
 	beasts = {
-		"ape": {"script": "res://scripts/enemies/jungle_ape.gd", "names": ["The Silverback"], "looks": 1, "stock": func() -> Dictionary: return JungleApe.ape_look()},
-		"serpent": {"script": "res://scripts/enemies/beasts/strangler.gd", "names": ["The Strangler", "Old Coil", "Mother of Vines"], "looks": 3},
-		"stalker": {"script": "res://scripts/enemies/beasts/stalker.gd", "names": ["The Shade", "Nightmaw", "The Spotted Death"], "looks": 3},
-		"mantis": {"script": "res://scripts/enemies/beasts/mantis_queen.gd", "names": ["The Mantis Queen", "The Orchid Queen", "The Leaf Queen"], "looks": 3},
-		"boar": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Tuskmaw", "Old Gristle", "Mudking", "Ironbristle"], "site": "ruins"},
-		"behemoth": {"script": "res://scripts/enemies/beasts/behemoth.gd", "names": ["The Thornback", "Old Ironhide", "The Mossback"]},
+		"sandworm": {"script": "res://scripts/enemies/beasts/sandworm.gd", "names": ["The Sand King", "The Dune Devourer", "Old Under-the-Sand"], "looks": 3,
+			"banner": ["The Sand King's Ground", "The sand here hums underfoot. Something huge moves beneath it."], "dress": _dress_arena},
+		"giant_scorpion": {"script": "res://scripts/enemies/beasts/giant_scorpion.gd", "names": ["The Dune Emperor", "Blackstinger", "The Red Death"], "looks": 3,
+			"banner": ["The Emperor's Pit", "Husks the size of boats, picked clean. Its sting is still out here."], "dress": _dress_arena},
+		"basilisk": {"script": "res://scripts/enemies/beasts/basilisk.gd", "names": ["The Basilisk", "Old Dunecrawler", "The Stone-Eye"], "looks": 3,
+			"banner": ["The Basilisk's Wallow", "Scales shed like plates of armour. Something cold-blooded basks here."], "dress": _dress_arena},
+		"sand_lion": {"script": "res://scripts/enemies/beasts/sand_lion.gd", "names": ["The Sand Lion", "The Golden Mane", "Dusk-Prowler"], "looks": 3,
+			"banner": ["The Lion's Run", "Tracks in circles round the bones. It's watching from the scrub."], "dress": _dress_arena},
+		"hyena": {"script": "res://scripts/enemies/beasts/hyena_alpha.gd", "names": ["Bonecrusher", "Old Laughter", "Gnawbone", "Spotback"], "site": "ruins"},
+		"dune_strider": {"script": "res://scripts/enemies/beasts/dune_strider.gd", "names": ["The Dune Strider", "Old Hump", "The Lost Caravan"]},
 	}
 	fauna = FAUNA
 	creatures = CREATURES
-	cave_fauna = {"ceiling": "bat", "floor": ["mite", "burrower", "snake"]}
+	cave_fauna = {"ceiling": "bat", "floor": ["scorpion", "burrower", "snake"]}
 
 
 func meshes() -> Dictionary:
@@ -179,6 +207,65 @@ func meshes() -> Dictionary:
 		"broadleaf": [DesertPlants.column_cactus(491), DesertPlants.column_cactus(492)],
 		"shrub": [DesertPlants.tumbleweed(495), DesertPlants.dead_tree(496), DesertPlants.saltbush(497)],
 	}
+
+
+## The boss's ground in the desert (BeastArena, a beast's "dress"): broken sandstone pillars round the floor,
+## the drums of one fallen across the sand, rubble, and the bones of what it caught - a great ribcage half
+## sunk in the sand, a skull, bones about. Arena-local (the floor's middle at 0, its ground y0).
+static func _dress_arena(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var stone := PSXMat.lit("sandstone")
+	var bone := PSXMat.flat(Color(0.92, 0.88, 0.76))
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	# pillars round the edge, broken at different heights, a capital on the tallest
+	var n := rng.randi_range(4, 6)
+	var a0 := rng.randf() * TAU
+	for k in range(n):
+		var a := a0 + TAU * k / n + rng.randf_range(-0.2, 0.2)
+		var q := Vector2.from_angle(a) * (r + rng.randf_range(1.5, 3.5))
+		var h := rng.randf_range(1.6, 5.5)
+		var base := Vector3(q.x, gy.call(q) - 0.4, q.y)
+		mb.add_box(stone, Transform3D(Basis(), base + Vector3(0, 0.3, 0)), Vector3(1.4, 0.6, 1.4), 0.8, Color(0.85, 0.82, 0.78))
+		var y := 0.6
+		while y < h:
+			var dh := minf(rng.randf_range(0.7, 1.0), h - y)
+			mb.add_cylinder(stone, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), base + Vector3(rng.randf_range(-0.04, 0.04), y, rng.randf_range(-0.04, 0.04))), 0.5, 0.48, dh - 0.03, 8, 0.8, Color.WHITE.darkened(rng.randf() * 0.12))
+			y += dh
+		if h > 4.5:
+			mb.add_box(stone, Transform3D(Basis(), base + Vector3(0, h + 0.15, 0)), Vector3(1.3, 0.3, 1.3), 0.8, Color(0.9, 0.88, 0.84))
+		KitLandmarks.cyl_col(body, 0.6, h, base + Vector3(0, h * 0.5, 0))
+	# one fallen: its drums strewn in a line across the sand
+	var fa := rng.randf() * TAU
+	var fq := Vector2.from_angle(fa) * (r - 2.0)
+	var along := Vector2.from_angle(fa + PI * 0.5 + rng.randf_range(-0.4, 0.4))
+	for k in range(4):
+		var q := fq + along * (k * 1.05 + rng.randf_range(-0.1, 0.2))
+		mb.add_cylinder(stone, Transform3D(Basis(Vector3.UP, -atan2(along.y, along.x)) * Basis(Vector3.BACK, PI * 0.5 + rng.randf_range(-0.15, 0.15)), Vector3(q.x, gy.call(q) + 0.3, q.y)), 0.5, 0.48, 0.95, 8, 0.8, Color.WHITE.darkened(0.1), true, true)
+	# rubble
+	for k in range(9):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(r * 0.6, r + 3.0)
+		var s := rng.randf_range(0.25, 0.6)
+		mb.add_box(stone, Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.4, 0.4)), Vector3(q.x, gy.call(q) + s * 0.3, q.y)), Vector3(s * 1.6, s, s * 1.1), 0.8, Color.WHITE.darkened(rng.randf() * 0.15))
+	# a great ribcage half sunk in the sand, its spine along the ground, a skull at its end
+	var rq := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(r * 0.45, r * 0.75)
+	var yaw := rng.randf() * TAU
+	var bb := Basis(Vector3.UP, yaw)
+	var ry: float = gy.call(rq) - 0.5
+	var o := Vector3(rq.x, ry, rq.y)
+	mb.add_tube(bone, PackedVector3Array([o + bb * Vector3(0, 0.3, -3.5), o + bb * Vector3(0, 0.5, 0), o + bb * Vector3(0, 0.3, 3.5)]), 0.22, 0.16, 6, 1.0)
+	for k in range(7):
+		var z := -2.7 + k * 0.85
+		var span := 2.2 - absf(k - 3) * 0.25
+		for s in [-1.0, 1.0]:
+			var pts := MeshBuilder.curve_points(o + bb * Vector3(0, 0.5, z), o + bb * Vector3(s * span, span * 1.3, z + 0.2), o + bb * Vector3(s * span * 1.1, -0.2, z + 0.4), 6)
+			mb.add_tube(bone, pts, 0.12, 0.07, 5, 1.0)
+	mb.add_blob(bone, Transform3D(bb, o + bb * Vector3(0, 0.5, -4.4)), Vector3(0.9, 0.7, 1.2), rng, 0.15, 3, 7, 1.0)
+	KitLandmarks.cyl_col(body, 0.4, 1.4, o + Vector3(0, 0.7, 0))
+	for k in range(8):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(4.0, r - 2.0)
+		var b2 := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.BACK, PI * 0.5)
+		mb.add_cylinder(bone, Transform3D(b2, Vector3(q.x, gy.call(q) + 0.06, q.y)), 0.06, 0.05, rng.randf_range(0.7, 1.3), 5, 1.0, Color.WHITE, true, true)
 
 
 ## A dune: a long crest with a slip face, a sun over it.
@@ -201,17 +288,21 @@ func plan_land(isl, rng: RandomNumberGenerator) -> Dictionary:
 	nz.frequency = 0.012
 	nz.fractal_octaves = 2
 	L["noise"] = nz
-	# the plateau, near the middle: [centre, radius, rise, two phases for its rim's wobble]
+	# the plateau, round the middle with the summit on its far side (the town keeps 45 m off the summit's site):
+	# [centre, radius, rise, two phases for its rim's wobble, the way from the summit across it]
 	L["plateau"] = []
 	if rng.randf() < float(d["plateau"]):
-		var c := Vector2.from_angle(rng.randf() * TAU) * r * rng.randf_range(0.0, 0.15)
-		L["plateau"] = [c, r * rng.randf_range(0.2, 0.28), rng.randf_range(d["plateau_h"][0], d["plateau_h"][1]), rng.randf() * TAU, rng.randf() * TAU]
+		var peak: Vector2 = isl._bumps[0][0]
+		var away := -peak.normalized() if peak.length() > 1.0 else Vector2.from_angle(rng.randf() * TAU)
+		var pr := r * rng.randf_range(0.2, 0.28)
+		var c := peak + away * (pr * 0.45 + 40.0)
+		L["plateau"] = [c, pr, rng.randf_range(d["plateau_h"][0], d["plateau_h"][1]), rng.randf() * TAU, rng.randf() * TAU, away]
 	L["capital"] = not (L["plateau"] as Array).is_empty() and rng.randf() < float(d["capital"])
 	# mesas: flat-topped buttes, steep all round: [centre, radius, height, phase, rim width]
 	L["mesas"] = []
 	for i in range(rng.randi_range(d["mesas"][0], d["mesas"][1])):
 		var c := Vector2.from_angle(rng.randf() * TAU) * r * rng.randf_range(0.25, 0.62)
-		L["mesas"].append([c, rng.randf_range(14.0, 34.0), rng.randf_range(8.0, 18.0), rng.randf() * TAU, rng.randf_range(3.0, 6.0)])
+		L["mesas"].append([c, rng.randf_range(14.0, 34.0), rng.randf_range(10.0, 24.0), rng.randf() * TAU, rng.randf_range(3.0, 6.0)])
 	# ridges: sharp-crested rock spines along a polyline
 	L["ridges"] = []
 	for i in range(rng.randi_range(d["ridges"][0], d["ridges"][1])):
@@ -221,13 +312,13 @@ func plan_land(isl, rng: RandomNumberGenerator) -> Dictionary:
 		for k in range(rng.randi_range(3, 5)):
 			dir = dir.rotated(rng.randf_range(-0.5, 0.5))
 			pts.append(pts[pts.size() - 1] + dir * rng.randf_range(50.0, 90.0))
-		L["ridges"].append(_line(pts, rng.randf_range(14.0, 24.0), rng.randf_range(7.0, 15.0)))
+		L["ridges"].append(_line(pts, rng.randf_range(16.0, 28.0), rng.randf_range(10.0, 22.0)))
 	# dune fields: transverse dunes across one wind, crests meandering: [centre, radius, wind, crest to crest, height, noise offset]
 	L["dunes"] = []
 	var wind := Vector2.from_angle(rng.randf() * TAU)
 	for i in range(rng.randi_range(d["dune_fields"][0], d["dune_fields"][1])):
 		var c := Vector2.from_angle(rng.randf() * TAU) * r * rng.randf_range(0.2, 0.6)
-		L["dunes"].append([c, r * rng.randf_range(0.28, 0.45), wind.rotated(rng.randf_range(-0.4, 0.4)), rng.randf_range(d["dune_len"][0], d["dune_len"][1]),
+		L["dunes"].append([c, r * rng.randf_range(0.32, 0.5), wind.rotated(rng.randf_range(-0.4, 0.4)), rng.randf_range(d["dune_len"][0], d["dune_len"][1]),
 			rng.randf_range(d["dune_h"][0], d["dune_h"][1]), rng.randf() * 1000.0])
 	# wadis: from the highlands (the plateau's rim, or inland) meandering out past the coast
 	L["wadis"] = []
@@ -343,7 +434,7 @@ func village_at(isl, p: Vector2) -> Vector2:
 	var L: Dictionary = isl.land_plan
 	if not L["capital"]:
 		return p
-	return (L["plateau"][0] as Vector2) + Vector2.from_angle(float(L["plateau"][3])) * float(L["plateau"][1]) * 0.25
+	return (L["plateau"][0] as Vector2) + (L["plateau"][5] as Vector2) * float(L["plateau"][1]) * 0.25
 
 
 func shape(isl, p: Vector2, h: float) -> float:
@@ -411,7 +502,7 @@ func shape(isl, p: Vector2, h: float) -> float:
 			var s := ph / 0.7
 			prof = s * (2.0 - s) * 0.9 + s * 0.1
 		else:
-			prof = 1.0 - _sm(0.0, 1.0, (ph - 0.7) / 0.3)
+			prof = pow(1.0 - (ph - 0.7) / 0.3, 1.6)
 		var amp := float(f[4]) * (0.55 + 0.45 * nz.get_noise_2d(p.x * 0.35 - float(f[5]), p.y * 0.35))
 		dune = maxf(dune, prof * amp * (1.0 - _sm(fr * 0.6, fr, dist)))
 	if dune > 0.0:
@@ -448,15 +539,16 @@ func shape(isl, p: Vector2, h: float) -> float:
 ## How green: the oases and the wadis' beds lush, dunes and the rest thinner than the base's noise.
 func cover(isl, p: Vector2, c: float) -> float:
 	var z := _zone(isl, p)
-	return maxf(c * 0.6 * (1.0 - z.r), maxf(z.a, z.b * 0.7))
+	return maxf(c * 0.35 * (1.0 - z.r), maxf(z.a, z.b * 0.7))
 
 
 ## [plants, rocks]: dunes and salt pans bare, stony on the ridges and mesas, rich in the oases and the wadis.
 func growth(isl, p: Vector2) -> Vector2:
 	var z := _zone(isl, p)
 	var salt := _salt(isl.land_plan, p)
-	var plants := (1.0 - z.r * 0.96) * (1.0 - z.g * 0.4) * (1.0 + z.b * 1.5 + z.a) * (1.0 - salt * 0.97)
-	return Vector2(plants * 0.7, (1.0 - z.r) * (1.0 + z.g * 3.0) * (1.0 - salt * 0.8))
+	var bare := 1.0 - _sm(0.25, 0.75, z.r)
+	var plants := bare * (1.0 - z.g * 0.4) * (1.0 + z.b * 1.5 + z.a) * (1.0 - salt * 0.97)
+	return Vector2(plants * 0.7, bare * (1.0 + z.g * 3.0) * (1.0 - salt * 0.8))
 
 
 ## Hardpan on the salt pans and the wadis' beds, rock on the ridges and the mesas.
@@ -479,7 +571,7 @@ static func _salt(L: Dictionary, p: Vector2) -> float:
 
 
 ## The island's zones on a ZONE_CELL grid (worked out on first use, once the sites are placed):
-## r dunes, g rock (ridges, mesas, the plateau's rim), b the wadis' beds, a the oases.
+## r dunes, g rock (ridges, mesas; the plateau's steep rim is the terrain shader's slope rock), b the wadis' beds, a the oases.
 const ZONE_CELL := 8.0
 
 
@@ -521,9 +613,6 @@ func _zones(isl, L: Dictionary) -> void:
 				var m: Array = L["mesas"][i]
 				if L["keep_mesa"][i] > 0.0:
 					rock = maxf(rock, 1.0 - _sm(float(m[1]) * 0.9, float(m[1]) + 10.0, p.distance_to(m[0])))
-			var pl: Array = L["plateau"]
-			if not pl.is_empty():
-				rock = maxf(rock, (1.0 - _sm(4.0, 16.0, absf(p.distance_to(pl[0]) - float(pl[1])))) * 0.7)
 			var bed := 0.0
 			for wd in L["wadis"]:
 				if (wd[3] as Rect2).has_point(p):

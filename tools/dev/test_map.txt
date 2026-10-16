@@ -18,6 +18,9 @@ tools/dev/t/ship/*                      t/ship
 tools/dev/t/coop/*                      t/coop
 tools/dev/t/fx/*                        t/fx
 assets/textures/fx/flip_*               t/fx
+assets/textures/fx/water_trail*         t/fx
+scripts/game/water_ribbon.gd            t/fx techtest
+scripts/game/blade_water.gd             t/fx
 scripts/game/duel.gd                    t/coop net
 scripts/ui/player_menu.gd               t/coop net
 scripts/ui/inspect_panel.gd             t/coop
@@ -345,3 +348,8 @@ scripts/enemies/beasts/ice_golem.gd     t/island bosstest
 scripts/enemies/beasts/frost_alpha.gd   t/island bosstest
 scripts/enemies/beasts/rimeback.gd      t/island bosstest
 scripts/island/themes/snow_land.gd      t/island isletest smoketest
+# --- the desert theme (2026-10-16) ---
+scripts/props/desert_plants.gd          t/island isletest
+scripts/props/desert_props.gd           t/island isletest
+tools/texture_gen/gen_desert_textures.py t/island
+scripts/psx/draw_lod.gd                 t/island isletest perftest

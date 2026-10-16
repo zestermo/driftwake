@@ -135,6 +135,12 @@ func _zones(rng: RandomNumberGenerator) -> void:
 		var q := c + Vector2.from_angle(a) * 2.6
 		if isl.hv(q) > 2.0 and not isl.excluded(q, 0.3, 1.5):
 			floor_pts.append(q)
+	# (an island with no forest to speak of - a desert - has its floor out in the open)
+	if floor_pts.size() < 40:
+		for i in range(240):
+			var q := Vector2.from_angle(rng.randf() * TAU) * float(isl.radius) * sqrt(rng.randf()) * 0.85
+			if isl.hv(q) > 2.0 and not _keep_clear(q) and not isl.excluded(q, 0.3, 1.5):
+				floor_pts.append(q)
 	var shore := PackedVector2Array()
 	for i in range(96):
 		var a := TAU * i / 96.0 + rng.randf_range(-0.02, 0.02)
