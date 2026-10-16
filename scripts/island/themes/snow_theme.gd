@@ -90,6 +90,7 @@ const STYLE := {
 	"music": "snow",
 	"music_town": "snow_town",
 	"ambience": "snow",
+	"ground": {"grass": "snow", "sand": "snow_beach", "wet_sand": "shingle_wet", "dirt": "snow_packed", "rock": "glacier_rock", "seafloor": "seafloor", "cliff": "black_rock"},
 	"weather": [0.3, 0.75, 0.9],
 	"haze": 0.25,
 	# landmarks and set pieces (KitLandmarks, KitSetPieces): rock, carved stone, water, bone, lava, crystal
@@ -152,6 +153,7 @@ func _init() -> void:
 	}
 	fauna = FAUNA
 	creatures = CREATURES
+	cave_fauna = {"ceiling": "bat", "floor": ["mite"]}
 
 
 func meshes() -> Dictionary:

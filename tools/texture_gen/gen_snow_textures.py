@@ -209,7 +209,46 @@ def gen_frost_grass():
     save(img, "frost_grass")
 
 
+def gen_snow_beach():
+    """The shore above the tide: grey shingle and pale sand with snow lying in patches."""
+    rng = np.random.default_rng(7111)
+    n = fbm(64, 4, 3, rng) * 0.6 + rng.random((64, 64)) * 0.4
+    rgb = ramp(norm(n), pal("6f6c68", "7f7b75", "8f8a82", "9e988e", "aca598"))
+    patches = fbm(64, 4, 3, rng)
+    snow = norm(patches) > 0.58
+    rgb[snow] = ramp(norm(fbm(64, 8, 2, rng))[snow] * 0.6 + 0.4, SNOW)
+    for _ in range(50):
+        x, y = rng.integers(0, 64, 2)
+        rgb[y, x] = hexc("3f3d3b") if rng.random() < 0.6 else hexc("c9c4ba")
+    save(to_img(rgb), "snow_beach")
+
+
+def gen_shingle_wet():
+    """Wet dark shingle at the waterline, a glint here and there."""
+    rng = np.random.default_rng(7112)
+    n = fbm(64, 4, 3, rng) * 0.5 + rng.random((64, 64)) * 0.5
+    rgb = ramp(norm(n), pal("2f3134", "3a3c3f", "45474a", "515356"))
+    for _ in range(20):
+        x, y = rng.integers(0, 64, 2)
+        rgb[y, x] = hexc("9aa6b2")
+    save(to_img(rgb), "shingle_wet")
+
+
+def gen_glacier_rock():
+    """The peaks' steep faces: blue-grey rock under ice, snow packed in the cracks, pale streaks down it."""
+    rng = np.random.default_rng(7113)
+    n = fbm(64, 4, 5, rng)
+    streak = np.repeat(periodic_noise(64, 16, rng)[:1, :], 64, axis=0) * 0.35
+    rgb = ramp(norm(n * 0.7 + streak), pal("4a5868", "57677a", "65778b", "74879b", "8698ab", "9cadbf"))
+    cracks = np.abs(periodic_noise(64, 8, rng) - 0.5) < 0.03
+    rgb[cracks] = hexc("e4ecf5")
+    frost = fbm(64, 8, 2, rng) > 0.66
+    rgb[frost] = hexc("c6d4e2")
+    save(to_img(rgb), "glacier_rock")
+
+
 ALL = {
+    "snow_beach": gen_snow_beach, "shingle_wet": gen_shingle_wet, "glacier_rock": gen_glacier_rock,
     "snow": gen_snow, "snow_packed": gen_snow_packed, "ice": gen_ice, "black_rock": gen_black_rock,
     "brick_pink": gen_brick_pink, "roof_green": gen_roof_green, "pine_snow": gen_pine_snow,
     "ice_block": gen_ice_block, "frost_shrub": gen_frost_shrub, "frost_grass": gen_frost_grass,

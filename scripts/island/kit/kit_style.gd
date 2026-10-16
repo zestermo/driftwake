@@ -65,6 +65,8 @@ const BRINEHOLLOW := {
 	# what you hear: Music's track on foot here (Music.TRACKS), Ambience's bed (Ambience.LOOPS; "" none)
 	"music": "island",
 	"ambience": "",
+	# the ground's textures (PSXMat.terrain: a generated island's terrain by splat, slope and height; "cliff" its sea cliffs' rock, Coast.build)
+	"ground": {"grass": "grass", "sand": "sand", "wet_sand": "wet_sand", "dirt": "dirt", "rock": "rock", "seafloor": "seafloor", "cliff": "rock"},
 	# the weather here (Weather): where clear, cloudy and rain end on a 0..1 roll (the rest is storm), extra fog
 	"weather": [0.36, 0.66, 0.86],
 	"haze": 0.0,

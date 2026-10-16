@@ -146,19 +146,18 @@ static func _white() -> Texture2D:
 const TERRAIN_SHADER := preload("res://scenes/island/terrain.gdshader")
 
 ## Terrain material shared by the procedural world and the hand-built island.
-static func terrain(use_splat: bool, water_level: float = 0.0) -> ShaderMaterial:
+## `ground` swaps the textures by layer (KitStyle "ground": grass, sand, wet_sand, dirt, rock, seafloor).
+static func terrain(use_splat: bool, water_level: float = 0.0, ground: Dictionary = {}) -> ShaderMaterial:
 	var key := "terrain|%s|%f" % [str(use_splat), water_level]
+	if not ground.is_empty():
+		key += "|" + str(ground)
 	var hit := _cached(key)
 	if hit:
 		return hit
 	var m := ShaderMaterial.new()
 	m.shader = TERRAIN_SHADER
-	m.set_shader_parameter("tex_grass", tex("grass"))
-	m.set_shader_parameter("tex_sand", tex("sand"))
-	m.set_shader_parameter("tex_wet_sand", tex("wet_sand"))
-	m.set_shader_parameter("tex_dirt", tex("dirt"))
-	m.set_shader_parameter("tex_rock", tex("rock"))
-	m.set_shader_parameter("tex_seafloor", tex("seafloor"))
+	for layer in ["grass", "sand", "wet_sand", "dirt", "rock", "seafloor"]:
+		m.set_shader_parameter("tex_" + layer, tex(str(ground.get(layer, layer))))
 	m.set_shader_parameter("use_splat", use_splat)
 	m.set_shader_parameter("water_level", water_level)
 	m.set_shader_parameter("sand_height", water_level + 2.2)
