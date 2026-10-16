@@ -2068,3 +2068,75 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   committed during smoketest re-ran only the compile check (smoketest's loads don't include it), then a flaky.txt
   commit during that check went through with no re-testing, and it fast-forwarded.
 - guntest 'shoves when you're too close' flaked ~half the runs: the camp's other grunts are asleep (ActorSleep) when the test disables them, and wake (back to PROCESS_MODE_INHERIT) as the captain is teleported in, so they shot and slashed the player down; a Downed body snaps the teleport back to the ragdoll. The test now keeps the other grunts disabled every frame until the pistol part. No game change.
+
+## 2026-10-15: desert and snow music, beds and footsteps (assets only)
+- **What:** the audio for the desert and snow island themes (docs/desert_island_plan.md, docs/snow_island_plan.md):
+  eight music tracks, four ambience/weather beds, snow and ice footsteps. No .gd changed: nothing plays them yet; the
+  theme agents register them (block below).
+- **gen_psx_music.py:** new voices `ney` (breathy end-blown flute), `mizmar` (nasal double reed), `oud` (two detuned
+  KS courses), `dum`/`tek` (darbuka low and rim strokes), `zill` (finger cymbals), `sleigh` (sleigh bells); a `hijaz`
+  mode in `scale()`; `drone_layer(hump, tilt)` and a `drone` option in `build()` (a seamless drone bus under a track;
+  the desert's is G2+D3, darker than the jam's gurdy). Tracks `track_desert(night)`, `track_desert_town(night)`,
+  `track_snow(night)`, `track_snow_town(night)`, in TRACKS as desert, desert_night, desert_town, desert_town_night,
+  snow, snow_night, snow_town, snow_town_night (`py tools/texture_gen/gen_psx_music.py desert desert_night ...`).
+  Each quotes THEME_A once, rewritten in its mode (DES_THEME, DT_THEME in Hijaz; SNOW_THEME re-barred for 3/4;
+  SNT_THEME in Bb). Night = the same Song (tempo, bars, chords, melodies), arranged sparser.
+  | track | bars | key, metre, tempo | length | form | LU / peak |
+  |---|---|---|---|---|---|
+  | desert | 48 | G Hijaz over a G-D drone / C minor, 4/4 72 | 160.0 s | intro ney call - A caravan tune (ney, oud answers) - A' mizmar - B dunes on strings (C minor) - T theme on oud - A'' mizmar + oud, zills - turn; darbuka maqsum | -18.0 / -2.6 dBFS |
+  | desert_night | 48 | same | 160.0 s | same form: drone and strings carry it, lone ney, slow oud, celesta, one dum a bar | -18.0 / -3.7 |
+  | desert_town | 64 | C Hijaz / F minor, 4/4 112 | 137.1 s | intro oud riff - A market dance (mizmar) - A' ney - B royal city: strings + brass fanfare - T theme (oud) - C quick dance (mizmar+oud, zills) - A'' - B' fanfare tutti - turn | -18.0 / -2.2 |
+  | desert_town_night | 64 | same | 137.1 s | same form: oud picking, strings, ney, horns where the brass was, celesta | -18.0 / -2.5 |
+  | snow | 56 | Eb major / C minor, 3/4 66 | 152.7 s | intro celesta call, choir, timpani roll - A glockenspiel tune - A' strings - B pines on a far horn (C minor) - T theme in 3/4 (strings, horn, choir) - A'' - B' - turn | -18.0 / -2.2 |
+  | snow_night | 56 | same | 152.7 s | same form, a hush: celesta alone on the tune, soft strings and choir, far horn, dark harp, no drums | -18.0 / -2.4 |
+  | snow_town | 64 | Bb major / G minor, 4/4 104 | 147.7 s | intro accordion vamp, bodhran, sleigh bells - A fiddle reel - A' accordion - B fireside song (concertina, G minor) - T theme warm (accordion, glockenspiel) - C skipping tune - A'' - B' tutti - turn | -18.0 / -3.0 |
+  | snow_town_night | 64 | same | 147.7 s | same form: the inn by the fire, guitar picking, soft concertina, quiet fiddle, horn on the theme, bodhran on one | -18.0 / -3.0 |
+  Today's tracks (for the keys): title D major 96, sea E minor 6/8, island D dorian 100, village A dorian 88. The
+  eight files are 6.0 MB (Vorbis q3 mono, 675-805 KB each).
+- **gen_psx_audio.py:** `desert_loop` (47 s: dry wind in long gusts, mostly under 1 kHz, sand hiss off the crests on
+  the strong ones, 4 insect rasps, 2 far vulture cries), `snow_loop` (50 s: cold wind whistling on its gusts, pine
+  hush, 3 ice groans, 3 snow slumps off branches, one far wolf howl), `sandstorm_loop` (41 s: a roar that never lets
+  up, thick breath, sand hiss, grit rattle, surging), `blizzard_loop` (43 s: hard wind whistling on three edges,
+  driving snow hiss, 5 howling sweeps). All built circularly (`_cband`, `_cenv`, `_place` wrapping), levelled by
+  `_write_loop` to -20 (measure -20.2 like every bed: write_wav scales by 32000). Footsteps: STEP_SURFACES gains
+  `snow` (soft thump, a dense squeaky crunch of grains, packing; take 2 squeaks; -21 LU like sand) and `ice` (a sharp
+  click, a ringing at 1.7-4.9 kHz, a hard thump, shard ticks; -19.5 like stone), 4 takes each: step_snow_1..4,
+  step_ice_1..4 (`gen_psx_audio.py step_snow step_ice`).
+- **Measured** (audio_report.py): beds -20.2 LU, peaks -1.7 to -4.2 dBFS, 42-67% under 200 Hz, 1-3% at 2-5 kHz,
+  repeat scores 0.17-0.24 (jungle 0.18); snow steps -21.2, ice -19.7 to -19.9. **Seams:** each loop decoded and
+  joined to itself: the sample jump at the join is 0.3-2.2x a median step for the music (music_island 0.4x), and the
+  high-band (>4 kHz) peak in 20 ms round the join sits inside the range of the track's own bar lines (2nd-73rd
+  percentile); the beds' join is at the 40th-97th percentile of all windows (blizzard 97%, rain_loop 98%: its join
+  window 0.062 against 0.049-0.075 either side and the same RMS before and after, a loud gust, not a click).
+  audio_report's seam column shows +13 to +29 dB on desert, desert_town and snow_town: the downbeat of bar 1 after the
+  turn's closing rest (music_island shows +18.8), not a jump.
+- **Imports:** loop off at import like every track and bed (Music sets `loop`, Ambience/Weather `LOOP_FORWARD` in code).
+- **Tests:** none apply (no .gd changed).
+- **Registration block** for the desert and snow agents. Where a theme declares these may have moved into the theme
+  file by then: the plumbing agent's recipe in .claude/skills/driftwake-islands/SKILL.md "Adding a theme" wins.
+  ```gdscript
+  # Music.TRACKS (scripts/game/music.gd)
+  "desert": ["res://assets/audio/music_desert.ogg", 48],
+  "desert_night": ["res://assets/audio/music_desert_night.ogg", 48],
+  "desert_town": ["res://assets/audio/music_desert_town.ogg", 64],
+  "desert_town_night": ["res://assets/audio/music_desert_town_night.ogg", 64],
+  "snow": ["res://assets/audio/music_snow.ogg", 56],
+  "snow_night": ["res://assets/audio/music_snow_night.ogg", 56],
+  "snow_town": ["res://assets/audio/music_snow_town.ogg", 64],
+  "snow_town_night": ["res://assets/audio/music_snow_town_night.ogg", 64],
+  # Ambience.LOOPS / TOP_DB (scripts/world/ambience.gd); jungle is -13
+  "desert": "desert_loop", "snow": "snow_loop",
+  "desert": -13.0, "snow": -13.5,
+  # KitStyle (the theme's table)
+  DESERT: "music": "desert", "ambience": "desert"
+  SNOW:   "music": "snow",   "ambience": "snow"
+  ```
+  - The town tracks need one more step: on main Music picks plain "village" for every village
+    (`if in_village(tree, pos): return "village"`), and only the wilds read KitStyle "music". Suggested: a KitStyle
+    key `"music_town"` ("village" in BRINEHOLLOW and JUNGLE, "desert_town" / "snow_town" in the themes) and that line
+    returning the zone's `music_town` on a chain island. `_night` keys are found by name, as today.
+  - Both beds carry their own wind, so the "wind" layer may want a few dB less ashore on these themes; judge in game.
+  - Weather beds: `sandstorm_loop` / `blizzard_loop` are made like `rain_loop` and are about as loud (-20.2 LU);
+    play them where Weather plays rain on desert/snow islands (rain is at -6 dB x rain amount).
+  - Footsteps: add `"step_snow", "step_ice"` to FX.SOUNDS (scripts/game/fx.gd, beside "step_water"; FX finds the
+    _1.._4 takes), then Footsteps returns "snow"/"ice" for the surface (the snow agent's wiring).
