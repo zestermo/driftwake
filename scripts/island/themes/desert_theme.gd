@@ -11,19 +11,19 @@ extends ThemeDef
 ## raised centre, "plateau_h" its rise, "capital" the chance the village moves up onto it.
 ## "forests" are its land variants (one per island from its seed).
 const LAND := {
-	"peak": [6.0, 11.0], "hills": [3, 5], "hill_h": [3.0, 8.0], "roll": 3.5, "base": 4.8,
+	"peak": [12.0, 22.0], "hills": [3, 6], "hill_h": [5.0, 13.0], "roll": 4.0, "base": 4.8,
 	"ramp": [32.0, 54.0], "cliffs": [1, 3], "cliff_h": [8.0, 15.0],
-	"tree": 0.08, "edge": 0.01, "beach_tree": 0.05, "fern": 0.05, "bush": 0.05, "grass": 0.06, "rock": 0.035,
+	"tree": 0.08, "edge": 0.004, "beach_tree": 0.03, "fern": 0.05, "bush": 0.05, "grass": 0.06, "rock": 0.035,
 	"cover": 0.3,
 	"canopy": 0.0, "giants": {"giant": 1.0, "fig": 0.0, "kapok": 0.0, "emergent": 0.0},
 	"bamboo": 0.06, "palm_inland": 0.14, "mangrove": 0.03,
 	"broadleaf": 0.035, "shrub": 0.02, "floor": 0.0, "overgrown": 0.0,
-	"dune_fields": [1, 3], "dune_h": [3.0, 6.5], "dune_len": [36.0, 64.0],
+	"dune_fields": [1, 3], "dune_h": [4.5, 9.0], "dune_len": [40.0, 72.0],
 	"ridges": [1, 3], "mesas": [1, 3], "canyons": [0, 1], "wadis": [1, 2], "salt": [0, 1], "oases": [1, 2],
 	"plateau": 0.65, "plateau_h": [11.0, 17.0], "capital": 0.55,
 	"forests": [
 		["open desert", {}],
-		["sand sea", {"dune_fields": [3, 4], "dune_h": [5.0, 8.5], "ridges": [0, 1], "mesas": [0, 1], "plateau": 0.35}],
+		["sand sea", {"dune_fields": [3, 4], "dune_h": [7.0, 12.0], "ridges": [0, 1], "mesas": [0, 1], "plateau": 0.35}],
 		["badlands", {"dune_fields": [0, 1], "ridges": [3, 5], "mesas": [3, 6], "canyons": [1, 2], "rock": 0.06, "plateau": 0.5}],
 		["high plateau", {"plateau": 1.0, "plateau_h": [16.0, 23.0], "wadis": [2, 3], "capital": 0.8}],
 		["salt pans", {"salt": [2, 3], "dune_fields": [1, 2], "mesas": [1, 2], "oases": [0, 1]}],
@@ -201,17 +201,21 @@ func plan_land(isl, rng: RandomNumberGenerator) -> Dictionary:
 	nz.frequency = 0.012
 	nz.fractal_octaves = 2
 	L["noise"] = nz
-	# the plateau, near the middle: [centre, radius, rise, two phases for its rim's wobble]
+	# the plateau, round the middle with the summit on its far side (the town keeps 45 m off the summit's site):
+	# [centre, radius, rise, two phases for its rim's wobble, the way from the summit across it]
 	L["plateau"] = []
 	if rng.randf() < float(d["plateau"]):
-		var c := Vector2.from_angle(rng.randf() * TAU) * r * rng.randf_range(0.0, 0.15)
-		L["plateau"] = [c, r * rng.randf_range(0.2, 0.28), rng.randf_range(d["plateau_h"][0], d["plateau_h"][1]), rng.randf() * TAU, rng.randf() * TAU]
+		var peak: Vector2 = isl._bumps[0][0]
+		var away := -peak.normalized() if peak.length() > 1.0 else Vector2.from_angle(rng.randf() * TAU)
+		var pr := r * rng.randf_range(0.2, 0.28)
+		var c := peak + away * (pr * 0.45 + 40.0)
+		L["plateau"] = [c, pr, rng.randf_range(d["plateau_h"][0], d["plateau_h"][1]), rng.randf() * TAU, rng.randf() * TAU, away]
 	L["capital"] = not (L["plateau"] as Array).is_empty() and rng.randf() < float(d["capital"])
 	# mesas: flat-topped buttes, steep all round: [centre, radius, height, phase, rim width]
 	L["mesas"] = []
 	for i in range(rng.randi_range(d["mesas"][0], d["mesas"][1])):
 		var c := Vector2.from_angle(rng.randf() * TAU) * r * rng.randf_range(0.25, 0.62)
-		L["mesas"].append([c, rng.randf_range(14.0, 34.0), rng.randf_range(8.0, 18.0), rng.randf() * TAU, rng.randf_range(3.0, 6.0)])
+		L["mesas"].append([c, rng.randf_range(14.0, 34.0), rng.randf_range(10.0, 24.0), rng.randf() * TAU, rng.randf_range(3.0, 6.0)])
 	# ridges: sharp-crested rock spines along a polyline
 	L["ridges"] = []
 	for i in range(rng.randi_range(d["ridges"][0], d["ridges"][1])):
@@ -221,13 +225,13 @@ func plan_land(isl, rng: RandomNumberGenerator) -> Dictionary:
 		for k in range(rng.randi_range(3, 5)):
 			dir = dir.rotated(rng.randf_range(-0.5, 0.5))
 			pts.append(pts[pts.size() - 1] + dir * rng.randf_range(50.0, 90.0))
-		L["ridges"].append(_line(pts, rng.randf_range(14.0, 24.0), rng.randf_range(7.0, 15.0)))
+		L["ridges"].append(_line(pts, rng.randf_range(16.0, 28.0), rng.randf_range(10.0, 22.0)))
 	# dune fields: transverse dunes across one wind, crests meandering: [centre, radius, wind, crest to crest, height, noise offset]
 	L["dunes"] = []
 	var wind := Vector2.from_angle(rng.randf() * TAU)
 	for i in range(rng.randi_range(d["dune_fields"][0], d["dune_fields"][1])):
 		var c := Vector2.from_angle(rng.randf() * TAU) * r * rng.randf_range(0.2, 0.6)
-		L["dunes"].append([c, r * rng.randf_range(0.28, 0.45), wind.rotated(rng.randf_range(-0.4, 0.4)), rng.randf_range(d["dune_len"][0], d["dune_len"][1]),
+		L["dunes"].append([c, r * rng.randf_range(0.32, 0.5), wind.rotated(rng.randf_range(-0.4, 0.4)), rng.randf_range(d["dune_len"][0], d["dune_len"][1]),
 			rng.randf_range(d["dune_h"][0], d["dune_h"][1]), rng.randf() * 1000.0])
 	# wadis: from the highlands (the plateau's rim, or inland) meandering out past the coast
 	L["wadis"] = []
@@ -343,7 +347,7 @@ func village_at(isl, p: Vector2) -> Vector2:
 	var L: Dictionary = isl.land_plan
 	if not L["capital"]:
 		return p
-	return (L["plateau"][0] as Vector2) + Vector2.from_angle(float(L["plateau"][3])) * float(L["plateau"][1]) * 0.25
+	return (L["plateau"][0] as Vector2) + (L["plateau"][5] as Vector2) * float(L["plateau"][1]) * 0.25
 
 
 func shape(isl, p: Vector2, h: float) -> float:
@@ -411,7 +415,7 @@ func shape(isl, p: Vector2, h: float) -> float:
 			var s := ph / 0.7
 			prof = s * (2.0 - s) * 0.9 + s * 0.1
 		else:
-			prof = 1.0 - _sm(0.0, 1.0, (ph - 0.7) / 0.3)
+			prof = pow(1.0 - (ph - 0.7) / 0.3, 1.6)
 		var amp := float(f[4]) * (0.55 + 0.45 * nz.get_noise_2d(p.x * 0.35 - float(f[5]), p.y * 0.35))
 		dune = maxf(dune, prof * amp * (1.0 - _sm(fr * 0.6, fr, dist)))
 	if dune > 0.0:
@@ -448,15 +452,16 @@ func shape(isl, p: Vector2, h: float) -> float:
 ## How green: the oases and the wadis' beds lush, dunes and the rest thinner than the base's noise.
 func cover(isl, p: Vector2, c: float) -> float:
 	var z := _zone(isl, p)
-	return maxf(c * 0.6 * (1.0 - z.r), maxf(z.a, z.b * 0.7))
+	return maxf(c * 0.35 * (1.0 - z.r), maxf(z.a, z.b * 0.7))
 
 
 ## [plants, rocks]: dunes and salt pans bare, stony on the ridges and mesas, rich in the oases and the wadis.
 func growth(isl, p: Vector2) -> Vector2:
 	var z := _zone(isl, p)
 	var salt := _salt(isl.land_plan, p)
-	var plants := (1.0 - z.r * 0.96) * (1.0 - z.g * 0.4) * (1.0 + z.b * 1.5 + z.a) * (1.0 - salt * 0.97)
-	return Vector2(plants * 0.7, (1.0 - z.r) * (1.0 + z.g * 3.0) * (1.0 - salt * 0.8))
+	var bare := 1.0 - _sm(0.25, 0.75, z.r)
+	var plants := bare * (1.0 - z.g * 0.4) * (1.0 + z.b * 1.5 + z.a) * (1.0 - salt * 0.97)
+	return Vector2(plants * 0.7, bare * (1.0 + z.g * 3.0) * (1.0 - salt * 0.8))
 
 
 ## Hardpan on the salt pans and the wadis' beds, rock on the ridges and the mesas.
@@ -479,7 +484,7 @@ static func _salt(L: Dictionary, p: Vector2) -> float:
 
 
 ## The island's zones on a ZONE_CELL grid (worked out on first use, once the sites are placed):
-## r dunes, g rock (ridges, mesas, the plateau's rim), b the wadis' beds, a the oases.
+## r dunes, g rock (ridges, mesas; the plateau's steep rim is the terrain shader's slope rock), b the wadis' beds, a the oases.
 const ZONE_CELL := 8.0
 
 
@@ -521,9 +526,6 @@ func _zones(isl, L: Dictionary) -> void:
 				var m: Array = L["mesas"][i]
 				if L["keep_mesa"][i] > 0.0:
 					rock = maxf(rock, 1.0 - _sm(float(m[1]) * 0.9, float(m[1]) + 10.0, p.distance_to(m[0])))
-			var pl: Array = L["plateau"]
-			if not pl.is_empty():
-				rock = maxf(rock, (1.0 - _sm(4.0, 16.0, absf(p.distance_to(pl[0]) - float(pl[1])))) * 0.7)
 			var bed := 0.0
 			for wd in L["wadis"]:
 				if (wd[3] as Rect2).has_point(p):

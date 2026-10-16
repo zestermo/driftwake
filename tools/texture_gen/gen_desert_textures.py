@@ -67,14 +67,12 @@ def _cells(size: int, n: int, rng: np.random.Generator) -> tuple[np.ndarray, np.
 def gen_desert_hardpan():
     """Pale baked clay and salt crust, cracked into plates (paths, plazas, salt flats)."""
     rng = np.random.default_rng(7103)
-    d1, d2 = _cells(64, 18, rng)
+    d1, d2 = _cells(64, 34, rng)
     n = fbm(64, 4, 3, rng)
-    plate = norm(n * 0.6 + norm(d1) * 0.25 + rng.random((64, 64)) * 0.15)
-    rgb = ramp(plate, pal("c9b08a", "d3bc96", "dcc7a2", "e5d2b0", "ede0c4"))
-    crack = (d2 - d1) < 1.1
-    rgb[crack] = hexc("8e7558")
-    rim = ((d2 - d1) >= 1.1) & ((d2 - d1) < 2.0)
-    rgb[rim] = np.clip(rgb[rim] * 1.05, 0, 255)
+    plate = norm(n * 0.7 + norm(d1) * 0.15 + rng.random((64, 64)) * 0.15)
+    rgb = ramp(plate, pal("cdb38c", "d5bd98", "dcc6a2", "e3cfac", "eadab8"))
+    crack = (d2 - d1) < 0.7
+    rgb[crack] = hexc("b09670")
     save(to_img(rgb), "desert_hardpan")
 
 

@@ -129,10 +129,11 @@ func _setup(island) -> void:
 		["boss", "the beast's ground", _g(s["boss"] + dd * 30.0, 9.0), _g(s["boss"], 1.0), false, 0.0],
 		["ape", "the beast", _g(s["boss"] + (s["village"] - s["boss"]).normalized() * 8.0 + side * 3.0, 2.2), _g(s["boss"], 1.6), false, 0.0],
 	]
-	# inside the jungle at eye height, in the thick of the cover
-	var fc: Vector3 = isl.forest_crowns[isl.forest_crowns.size() / 3]
-	var inside := Vector2(fc.x, fc.z) + dd * 2.0
-	shots.insert(5, ["jungle", "inside the jungle", _g(inside, 1.7), _g(inside - side * 20.0, 3.0), false, 0.0])
+	# inside the jungle at eye height, in the thick of the cover (a theme with no forest: none)
+	if not isl.forest_crowns.is_empty():
+		var fc: Vector3 = isl.forest_crowns[isl.forest_crowns.size() / 3]
+		var inside := Vector2(fc.x, fc.z) + dd * 2.0
+		shots.insert(5, ["jungle", "inside the jungle", _g(inside, 1.7), _g(inside - side * 20.0, 3.0), false, 0.0])
 	if not isl.coast_cols.is_empty():
 		var c: Array = isl.coast_cols[isl.coast_cols.size() / 2]
 		var at: Vector2 = c[0]

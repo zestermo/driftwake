@@ -345,3 +345,8 @@ scripts/enemies/beasts/ice_golem.gd     t/island bosstest
 scripts/enemies/beasts/frost_alpha.gd   t/island bosstest
 scripts/enemies/beasts/rimeback.gd      t/island bosstest
 scripts/island/themes/snow_land.gd      t/island isletest smoketest
+# --- the desert theme (2026-10-16) ---
+scripts/props/desert_plants.gd          t/island isletest
+scripts/props/desert_props.gd           t/island isletest
+tools/texture_gen/gen_desert_textures.py t/island
+scripts/psx/draw_lod.gd                 t/island isletest perftest

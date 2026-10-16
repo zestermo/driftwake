@@ -10,6 +10,7 @@ extends RefCounted
 const SCRIPTS := [
 	"res://scripts/island/themes/jungle_theme.gd",
 	"res://scripts/island/themes/snow_theme.gd",
+	"res://scripts/island/themes/desert_theme.gd",
 ]
 
 static var _all: Array = []
