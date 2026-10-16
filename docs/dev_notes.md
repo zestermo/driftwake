@@ -2280,6 +2280,12 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   blast, muzzle_sparks (every gunshot: 1.2 + 0.08 x sparks, ~4 m, ~0.12 s), flame (1.2 + 1.5 x size), fire_ring
   5 / 1.8 x radius / 0.45 s, fire_pillar 8 / 2.2 x radius / 0.6 s. Switch `FX.flash_lights` (independent of
   `flipbooks`). Not on flame emitters (campfires and burning props have their own lights) or plain impacts.
+- **Bench** (Brinehollow, 13:00 clear, other agents' Godots running throughout, so old fx.gd (e2d808c) and new run
+  back to back): ALL frame 10.61 -> 10.81 ms, p95 13.00 -> 13.97, GPU 2.08 -> 2.01, draws 1278 -> 1268; per stop
+  beach 11.09 -> 10.82, plaza 10.67 -> 13.52 (physics script +57% in the same window: load, not FX), market
+  11.84 -> 11.12, quay 10.85 -> 10.34, dock 10.21 -> 9.81, den 10.00 -> 10.24, yard 10.58 -> 11.42, aboard 9.92 ->
+  10.02. A first after-run against the morning's before-run showed GPU +0.77 ms; the back-to-back run puts that on
+  the other processes. No flash lights fire in the bench (no explosions on its route).
 - **Notes:** `kit_landmarks.puffs` reskins the chimney emitter with its own quad and ramp (waterfall mist, steam);
   it still works, and now dims at night with the other lit emitters. The light merge radius was first scaled
   with reach: a broadside 3 m apart merged into one light; a fixed 1.5 m catches only nested calls.
