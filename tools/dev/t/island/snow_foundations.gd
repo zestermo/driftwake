@@ -70,6 +70,15 @@ func _process(_d: float) -> bool:
 		hut is StaticBody3D and hut.get_node_or_null("Door") != null and hut.find_children("*", "CollisionShape3D", false, false).size() >= 1 and tall_top > hut_top + 1.5)
 	hut.free()
 	tall.free()
+	var ws: Node3D = KS.model(st["village_models"]["workshop"], RandomNumberGenerator.new(), 7.5)
+	var sh: Node3D = KS.model(st["village_models"]["shrine"], RandomNumberGenerator.new(), 4.6)
+	var store: Node3D = KS.model(st["village_models"]["storehouse"], RandomNumberGenerator.new(), 3.6)
+	var crate: Node3D = KS.prop(st, "crate", RandomNumberGenerator.new())
+	check("its workshop, shrine and store shed are its own, with the kit's work spots (Worker, Bench, Keeper, Pray); snow on its crates",
+		ws.get_node_or_null("Worker") != null and ws.get_node_or_null("Bench") != null and sh.get_node_or_null("Keeper") != null
+		and sh.get_node_or_null("Pray") != null and store is StaticBody3D and crate.get_node_or_null("Snow") != null)
+	for n in [ws, sh, store, crate]:
+		n.free()
 	var music = load("res://scripts/game/music.gd")
 	var amb = load("res://scripts/world/ambience.gd")
 	check("its music (day, night, the town's) and its bed are registered",

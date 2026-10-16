@@ -70,8 +70,9 @@ const STYLE := {
 	"inn": {"w": 9.0, "d": 7.0, "h": 3.0, "roof": "hip", "wall": "brick_pink", "porch": 2.2, "flowers": false},
 	"stall": {"canopies": ["cloth_red", "canvas", "cloth_red"], "post": "planks_dark"},
 	"pier": {"deck": "planks_weathered", "post": "planks_dark", "rail": "planks_dark", "lashings": false, "rope_rail": true},
-	"props": {"crate": "crate", "barrel": "barrel", "lamp": "snow_lamp", "marker": "snow_waymark"},
-	"village_models": {"hut": "snow_round_house", "tall": "snow_round_house_tall"},
+	"props": {"crate": "snow_crate", "barrel": "snow_barrel", "lamp": "snow_lamp", "marker": "snow_waymark"},
+	"village_models": {"hut": "snow_round_house", "tall": "snow_round_house_tall", "storehouse": "snow_storehouse", "workshop": "snow_workshop",
+		"shrine": "snow_shrine"},
 	# (no fur hats or mittens exist yet: knit caps, hoods and coifs, leather gloves stand in)
 	"folk": {
 		"pick": {"skin": [Color(0.96, 0.82, 0.70), Color(0.92, 0.74, 0.60), Color(0.87, 0.67, 0.50), Color(0.80, 0.60, 0.44)],
@@ -153,6 +154,11 @@ func _init() -> void:
 		"snow_waymark": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.waymark(rng.randi()),
 		"snow_round_house": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.round_house(rng.randi(), size),
 		"snow_round_house_tall": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.round_house(rng.randi(), size, 2),
+		"snow_storehouse": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.storehouse(rng.randi()),
+		"snow_workshop": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.workshop(rng.randi()),
+		"snow_shrine": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.shrine(rng.randi()),
+		"snow_crate": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.crate(0.8 * size),
+		"snow_barrel": func(_rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.barrel(),
 	}
 	life = preload("res://scripts/island/themes/snow_life.gd").TEXT
 	# (the serpent is the jungle's, coiled in the pines: a fourth so a branching chain never runs the pool dry)
