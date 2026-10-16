@@ -2289,6 +2289,42 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   a 4th "canopy" bool, `arena_ring` is empty for an open one). Proof: islanddump on main vs the branch, seeds 4242 and
   12 (jungle) and 77 (snow): byte-identical. theme_land's test theme also moves its village, grows nothing, paints
   sand everywhere and has an open arena: checked.
+
+## 2026-10-16: the desert theme, foundations (docs/desert_island_plan.md phase 1)
+- **Registered** after snow (`IslandThemes.SCRIPTS`: jungle, snow, desert; weight 1.0), so a third of the chain's
+  islands roll desert and the fixed seeds roll differently (bosstest moved to 4246, a chain that opens on a jungle;
+  musictest reads a chain island's town and wild tracks from its style). Chains that open on a desert: 2, 5, 7, 8.
+- **Files:** `scripts/island/themes/desert_theme.gd` (contract, style, land, the land hooks), `desert_life.gd` (names,
+  roles - water-seller, caravan guide, potter, spice merchant, storyteller, lookout, healer - barks, rumours, quests in
+  a desert voice), `scripts/props/desert_plants.gd` (DesertPlants), `desert_props.gd` (DesertProps: urn, brass
+  lantern post, waymarker), `tools/texture_gen/gen_desert_textures.py` (desert_sand with wind ripples, desert_beach,
+  desert_hardpan, desert_rock in ochre/rust bands, adobe, sandstone, glaze, four awning stripes, rug_kilim, cactus,
+  dry_grass, reeds). Music/ambience lines in Music.TRACKS and Ambience.LOOPS/TOP_DB (the music agent's files).
+- **Size:** 480-640 m (jungle 300-450); Chain pushes forks and layers apart by the excess (BASE_R). Prepare on its
+  worker ~10-18 s (land 2.3-3.8 s, arrays 1.6-2.1, undergrowth 1.8-3.3, bodies ~2; a jungle 418 m is ~15 s);
+  on the main thread ~2.4-2.7 s over ~118 frames.
+- **Land** (`plan_land` on the island's own stream, `shape` per height point; features as data in `land_plan`):
+  a plateau (65%; round the middle, its far side under the summit so the town keeps 45 m off the summit's site;
+  rim steep but for ramps toward every site off it) the capital moves up onto (`village_at`, 55%); mesas (flat tops,
+  steep sides, dropped where a site or a way would be); rock ridges (sharp crests, tapering ends, parting where a way
+  crosses); transverse dune fields (stoss slope to a sharp crest, a soft-footed slip face, crests meandering on noise,
+  off the sites and the wadi beds); wadis from the plateau's rim or the highlands meandering out past the coast;
+  canyons (steep, forded where a way crosses); salt pans levelled low; oasis hollows. "The ways" are straight lines
+  dock-village and village-site, worked out again whenever GenIsland has placed more sites. Inland never drops under
+  1.2 m (GenIsland finds the dock by walking out to the first ground under 0.4 m). Six variants (`forests`): open
+  desert, sand sea, badlands, high plateau, salt pans, oasis coast.
+- **Life on the land:** a zone grid (8 m, built on first use after the sites: dunes, rock, wadi beds, oases) drives
+  `cover` (oases and wadi beds green, the rest a third of the base's), `growth` (bare dunes and pans, stony ridges and
+  mesas, rich oases and wadis) and `paint` (hardpan on pans and wadi beds, rock on ridges and mesas; the plateau's rim
+  is the shader's slope rock). Plants: date palms (clumps, a skirt of dead fronds, dates), acacias and dead trees,
+  column and barrel cacti and prickly pear, scrub, saltbush, tumbleweed, dry grass, reeds at the water and in the
+  oases; sandstone boulders. The boss's ground is "open" (no canopy ring). Interim until the later phases: the
+  jungle's beasts and its wildlife subset (crab, snake, burrower, mite, bat), the jungle's village builders with
+  desert materials.
+- **Perf fixes found on the way:** `DrawLOD._fold` skips one-surface meshes (an island's terrain was copied for
+  nothing: ~1 s on the main thread for a desert's); `_fit` stops sizing a MultiMesh once it is too big ever to get a
+  range (exactly equivalent). genshot skips its jungle shot on an island with no forest.
+- **Test:** `t/island/desert_land` (seeds 2, 7, 1999). Renders: `genshot.gd tools/dev/out/desert/g2 2` (and g7, g5).
 ## 2026-10-15: flipbook rollout across FX, and brief impact lights
 - **Rollout** (`scripts/game/fx.gd`, all behind `FX.flipbooks`; same names and arguments, so every Net.fx caller is
   unchanged): `dust` (a puff or two of the brown dust sheet), `dust_ring` (a `puff_ring` of `dust_low`), `heavy_dust`
