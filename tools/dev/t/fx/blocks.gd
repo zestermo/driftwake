@@ -158,6 +158,57 @@ func _process(_d: float) -> bool:
 			check("and no more particles (cannon %d -> %d, heavy dust %d -> %d)" % [_particles(off_fire), _particles(on_fire),
 				_particles(off_dust), _particles(on_dust)], _particles(on_fire) <= _particles(off_fire) and _particles(on_dust) <= _particles(off_dust))
 			emitter.queue_free()
+			_rollout()
 			return TK.done(fails)
 	step += 1
 	return false
+
+
+## Every effect moved onto the sheets: with the switch on it makes no more bursts (heavy_dust one more: its
+## two layers) and no more particles than the geometry it replaced, and some of it plays a sheet.
+func _rollout() -> void:
+	var d := Vector3(1, 0.3, 0).normalized()
+	var effects := {
+		"dust": func(): fx.dust(at, 6, 0.6),
+		"dust_ring": func(): fx.dust_ring(at, 12, 0.7),
+		"smoke": func(): fx.smoke(at, 6, 0.8),
+		"blood": func(): fx.blood(at, d, 12),
+		"splash": func(): fx.splash(at, 6, 0.8),
+		"spray": func(): fx.spray(at, d, 12),
+		"impact": func(): fx.impact(at),
+		"parry_sparks": func(): fx.parry_sparks(at, d),
+		"glint": func(): fx.glint(at),
+		"gather": func(): fx.gather(at),
+		"motes": func(): fx.motes(at, d),
+		"elem_hit dual": func(): fx.elem_hit("dual", at, d),
+		"element axe": func(): fx.element("axe", at, d),
+		"flame": func(): fx.flame(at),
+		"fire_ring": func(): fx.fire_ring(at),
+		"fire_pillar": func(): fx.fire_pillar(at),
+		"powder_burst": func(): fx.powder_burst(at, d),
+		"cannon_blast": func(): fx.cannon_blast(at, 1.5, Color(1, 0.3, 0.2)),
+		"cannon_hit": func(): fx.cannon_hit(at, Vector3.UP),
+		"cannon_splash": func(): fx.cannon_splash(at),
+		"heavy_dust": func(): fx.heavy_dust(at, 12, 0.8),
+		"flame_emitter": func(): fx.flame_emitter(holder, 0.3, 16, 0.5, 0.6),
+		"chimney_smoke": func(): fx.chimney_smoke(holder, Vector3.ZERO),
+	}
+	for name in effects:
+		var cost := []
+		for on in [false, true]:
+			fx.flipbooks = on
+			var old := _ids()
+			effects[name].call()
+			var made := _new(old)
+			var sheets := 0
+			for b in made:
+				if _sheet_of(b) != "":
+					sheets += 1
+			cost.append([made.size(), _particles(made), sheets])
+			for b in made:
+				b.queue_free()
+		var extra := 1 if name == "heavy_dust" else 0
+		check("%s: bursts %d -> %d, particles %d -> %d, %d plays a sheet" % [name, cost[0][0], cost[1][0], cost[0][1], cost[1][1], cost[1][2]],
+			cost[1][0] <= cost[0][0] + extra and cost[1][1] <= cost[0][1] and cost[1][2] > 0 and cost[0][2] == 0)
+	fx.flipbooks = true
+	holder.queue_free()
