@@ -2250,3 +2250,33 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Open:** a theme brought up before piece 2 lands needs `cave_fauna` (the registry refuses it otherwise, naming
   the member). lifetest's "a villager walks its route" (1.5 < d < 4.0 m over 2 process-seconds) failed once at
   exactly 4.0 m with five slots busy and passed alone: a load flake in a process-seconds wait, not this change.
+
+## 2026-10-15: theme land hooks (island size, the theme's own terrain), the village's town track
+- **Why:** the desert is the largest island type and both new themes shape their own land (dunes, ridges, wadis,
+  plateaus; sharp peaks, frozen rivers), so GenIsland's size and height function had to ask the theme. Desert piece 1,
+  generic so the snow theme uses the same hooks.
+- **Size:** `ThemeDef.radius` ([lo, hi] m, a contract member; jungle [300, 450]) replaces `GenIsland.RADIUS`: the same
+  first `_rng` draw in prepare. **Chain:** legs, forks and APART were sized for 450 m islands, so `Chain.BASE_R` (450)
+  and `_make_room` (no rng): a fork's two islands go out sideways by each one's excess over BASE_R (its theme's top
+  end), then the layer is pushed on along the line until each island is APART + both excesses from the layer
+  before's (the line's point moves with it, so later layers follow). A chain of 450 m themes is untouched. What
+  else assumes the size, checked: WorldGenerator streams by the chain (next islands), not distance; Redtide's
+  deep-water check, EnemyShip.no_go, the chart, KitStyle.around, FaunaSpawner, KitDungeons/KitTemple/KitLandmarks
+  spots all read `isl.radius`. The cost grows with area: the terrain grid (CELL 3 m: res 354 at 450 m, ~500 at
+  650 m, 2x the vertices) and the vegetation scatter's 5 m and 2.5 m grids (every point tests ground and reserves,
+  plants or not), so a 1.5x island prepares ~2x as long on its worker; the finish steps are a frame each.
+- **Terrain:** `ThemeDef.plan_land(isl, rng) -> Dictionary` (the island's `land_plan`; called in prepare after
+  `_setup_shape`, before the sites, on its own stream `seed + 977` so the base land's draws never move) and
+  `ThemeDef.shape(isl, p, h) -> float` (called at the end of `_height_natural` only when the plan isn't empty: the
+  jungle pays nothing). Flats (sites, the dock's 2 m, the berth) are laid over the shaped height in `_height_fn`,
+  and the sites' kept land holds: inside each `_keep` disc the shape may raise the ground but a cut is blended back
+  to the base land, so a wadi can't drown a site. The site's flat level is the shaped ground there. `isl` is untyped
+  in ThemeDef's signatures (naming GenIsland there pulls Ocean into anything that loads a theme early).
+- **Music:** KitStyle key `music_town` (BRINEHOLLOW "village"); Music plays the zone's style's `music_town` in a
+  village (Brinehollow and jungle villages unchanged), night variants by name as before. Swimming keeps whatever
+  calm track was on (was: only sea/island/village kept, so a theme's track dropped to "island").
+- **Proof:** islanddump before/after: chain seeds 4242 (5559 nodes) and 77 (4459): byte-identical; Brinehollow the
+  same but for the three dummies' heads. **Test:** `t/island/theme_land`: the base hooks are identity, the jungle has
+  no plan; a test theme (the jungle's files sinking the inland 6 m, loaded from source so the test compiles before
+  the autoloads) keeps the jungle island's radius, capes and hills, sinks the land away from the sites, and every
+  flat, the sites' kept land and the dock's 2 m hold. isletest's size check reads the theme's range.

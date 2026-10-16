@@ -328,3 +328,5 @@ scripts/enemies/beasts/beast_pool.gd    t/island
 scripts/world/chain.gd                  t/island
 scripts/island/fauna_spawner.gd         t/island
 scripts/ui/chain_marks.gd               t/island
+# --- theme land hooks: radius, plan_land, shape (2026-10-15) ---
+scripts/island/gen_island.gd            t/island
