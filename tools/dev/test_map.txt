@@ -18,6 +18,9 @@ tools/dev/t/ship/*                      t/ship
 tools/dev/t/coop/*                      t/coop
 tools/dev/t/fx/*                        t/fx
 assets/textures/fx/flip_*               t/fx
+assets/textures/fx/water_trail*         t/fx
+scripts/game/water_ribbon.gd            t/fx techtest
+scripts/game/blade_water.gd             t/fx
 scripts/game/duel.gd                    t/coop net
 scripts/ui/player_menu.gd               t/coop net
 scripts/ui/inspect_panel.gd             t/coop
