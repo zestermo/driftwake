@@ -2509,6 +2509,19 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   buildings' work spots). On main after the desert registered, isletest (Sunscar Atoll, desert: its open arena) and
   dungeontest (seed 5 is now Qadir Rock, desert: stuck at point 3, with or without the snow's mouth check) fail on desert
   islands; the terrain piece landed with `-NoTests` for that, reported to the lead.
+## 2026-10-16: the snow island theme, piece 4 (places on the desert's place hooks)
+- **What:** `scripts/island/themes/snow_places.gd` through SnowTheme's place_kind / plan_places / plan_place /
+  place_steps: `snow_ruins` stands in for the chain's totem grove (3-7 towers of stacked ice-stone blocks, barred
+  windows, snow on the ledges, blocks tumbled off), `snow_buried` for the great tree (4-7 stone houses with broken
+  gables sunk 1-2 m in drifts, free-standing arches, a strongbox kept as `snow_buried`), and on 75% of snow islands
+  (their own stream) `snow_castle` round the summit's lookout: seven stretches of crenellated curtain wall at 12.5 m,
+  round towers under three green tiers with snow on each, the gate (piers, lintel, the portcullis drawn up) where the
+  summit trail arrives. Spots from KitWilds._spot kept off the ice. The river's distance is now a 3 m grid baked in
+  the plan (the hooks asked every segment at every point).
+- **Tests:** snow_land checks no jungle totem grove or great tree on a snow island and a castle only on the summit
+  (2 of 3 seeds have one); landmarktest's forced island is now made jungle (its first chain island rolls snow, whose
+  great tree is the buried town); snow_foundations' models from a seeded rng (an unseeded one flaked during the
+  desert's landing). Render: landmarkshot seed 1 node 1 with `LSHOT_MARKS=totem_grove,great_tree`.
 ## 2026-10-16: the cutlass's drawn water (Kraken's Wake, the awakened blade)
 - **Why:** Zach's test of Demon Slayer's Water Breathing look in Driftwake (Tanjiro key art as the
   reference). His notes as it went: animated pixel-art sprites, "not just arcs"; the first sheets "too

@@ -20,6 +20,13 @@ func check(what: String, cond: bool) -> void:
 		fails += 1
 
 
+## (the same stream every run: an unseeded one gives the hut and the tall house different rolls)
+func _seeded() -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	return rng
+
+
 func _process(_d: float) -> bool:
 	if not stage.up:
 		return false
@@ -55,25 +62,25 @@ func _process(_d: float) -> bool:
 	var canopy: float = KL.canopy("snow")
 	check("the forest stands about as tall as a canopy (%.1f m)" % canopy, canopy > 15.0 and canopy < 30.0)
 	var st: Dictionary = KS.of("snow")
-	var lamp: Node3D = KS.prop(st, "lamp", RandomNumberGenerator.new())
-	var mark: Node3D = KS.prop(st, "marker", RandomNumberGenerator.new())
+	var lamp: Node3D = KS.prop(st, "lamp", _seeded())
+	var mark: Node3D = KS.prop(st, "marker", _seeded())
 	check("the snow style: packed-snow paving, pink brick houses under green roofs, its own lamp with a Flame and a waymark",
 		st["paving"] == "snow_packed" and (st["house"]["walls"] as Array).has("brick_pink") and (st["house"]["roof_tex"] as Array).has("roof_green")
 		and lamp != null and lamp.get_node_or_null("Flame") != null and mark != null)
 	lamp.free()
 	mark.free()
-	var hut: Node3D = KS.model(st["village_models"]["hut"], RandomNumberGenerator.new(), 5.6)
-	var tall: Node3D = KS.model(st["village_models"]["tall"], RandomNumberGenerator.new(), 5.6)
+	var hut: Node3D = KS.model(st["village_models"]["hut"], _seeded(), 5.6)
+	var tall: Node3D = KS.model(st["village_models"]["tall"], _seeded(), 5.6)
 	var tall_top: float = (tall.find_children("*", "MeshInstance3D", false, false)[0] as MeshInstance3D).get_aabb().end.y
 	var hut_top: float = (hut.find_children("*", "MeshInstance3D", false, false)[0] as MeshInstance3D).get_aabb().end.y
 	check("the village's huts are round houses with a door and a wall to bump into, the tall ones a storey higher (%.1f, %.1f m)" % [hut_top, tall_top],
 		hut is StaticBody3D and hut.get_node_or_null("Door") != null and hut.find_children("*", "CollisionShape3D", false, false).size() >= 1 and tall_top > hut_top + 1.5)
 	hut.free()
 	tall.free()
-	var ws: Node3D = KS.model(st["village_models"]["workshop"], RandomNumberGenerator.new(), 7.5)
-	var sh: Node3D = KS.model(st["village_models"]["shrine"], RandomNumberGenerator.new(), 4.6)
-	var store: Node3D = KS.model(st["village_models"]["storehouse"], RandomNumberGenerator.new(), 3.6)
-	var crate: Node3D = KS.prop(st, "crate", RandomNumberGenerator.new())
+	var ws: Node3D = KS.model(st["village_models"]["workshop"], _seeded(), 7.5)
+	var sh: Node3D = KS.model(st["village_models"]["shrine"], _seeded(), 4.6)
+	var store: Node3D = KS.model(st["village_models"]["storehouse"], _seeded(), 3.6)
+	var crate: Node3D = KS.prop(st, "crate", _seeded())
 	check("its workshop, shrine and store shed are its own, with the kit's work spots (Worker, Bench, Keeper, Pray); snow on its crates",
 		ws.get_node_or_null("Worker") != null and ws.get_node_or_null("Bench") != null and sh.get_node_or_null("Keeper") != null
 		and sh.get_node_or_null("Pray") != null and store is StaticBody3D and crate.get_node_or_null("Snow") != null)

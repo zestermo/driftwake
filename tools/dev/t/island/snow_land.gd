@@ -7,6 +7,7 @@ extends SceneTree
 const TK := preload("res://tools/dev/test_kit.gd")
 const SEEDS := [4242, 77, 1301]
 var SL
+var castles := 0
 var stage
 var fails := 0
 
@@ -107,9 +108,15 @@ func _process(_d: float) -> bool:
 		for a in range(8):
 			vs = maxf(vs, absf(gi.hv(v + Vector2.from_angle(a * TAU / 8.0) * 18.0) - gi.hv(v)))
 		check("[%d] the village stands on flat ground (%.1f m within 18 m)" % [sv, vs], vs < 2.0)
+		var kinds: Array = gi.places.map(func(e): return str(e["kind"]))
+		castles += kinds.count("snow_castle")
+		var castle_ok: bool = gi.places.all(func(e): return e["kind"] != "snow_castle" or (e["at"] as Vector2) == summit)
+		check("[%d] the snow's places stand in for the jungle's (%s), a castle only on the summit" % [sv, kinds],
+			not kinds.has("totem_grove") and not kinds.has("great_tree") and castle_ok)
 		if sv == SEEDS[0]:
 			var again = _island(sv)
 			check("the same seed makes the same land", again.heights == gi.heights and str(again.land_plan["spires"]) == str(lp["spires"]))
 			again.free()
 		gi.free()
+	check("most snow islands crown their summit with a castle (%d of %d)" % [castles, SEEDS.size()], castles >= 1)
 	return TK.done(fails)

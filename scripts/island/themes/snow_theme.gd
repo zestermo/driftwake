@@ -30,6 +30,7 @@ const LAND := {
 
 ## The settlement style, over KitStyle.BRINEHOLLOW (the keys that differ; a nested table whole).
 const LAND_FEATURES := preload("res://scripts/island/themes/snow_land.gd")
+const PLACES := preload("res://scripts/island/themes/snow_places.gd")
 
 const STYLE := {
 	"row_walls": ["brick_pink", "planks_dark", "brick_pink", "stone_brick", "planks"],
@@ -207,6 +208,23 @@ func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
 
 func steps(isl) -> Array:
 	return LAND_FEATURES.steps(isl)
+
+
+## Places (snow_places.gd): ice-block ruins for the totem grove, the buried town for the great tree, the summit castle.
+func place_kind(kind: String) -> String:
+	return PLACES.KINDS.get(kind, "")
+
+
+func plan_places(isl, avoid: Array) -> Array:
+	return PLACES.plan_castle(isl, avoid)
+
+
+func plan_place(isl, kind: String, rng: RandomNumberGenerator, avoid: Array) -> Dictionary:
+	return PLACES.plan(isl, kind, rng, avoid)
+
+
+func place_steps(isl, ctx, pl: Dictionary) -> Array:
+	return PLACES.steps(isl, ctx, pl)
 
 
 func meshes() -> Dictionary:

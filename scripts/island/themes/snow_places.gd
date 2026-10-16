@@ -104,8 +104,8 @@ static func _ruins(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 		spots.append(at)
 		var y := KitLandmarks.gy(ctx, pl, at.x, at.y) - 0.6
 		var yaw := rng.randf() * TAU
-		var w := rng.randf_range(2.4, 3.2)
-		var n := rng.randi_range(2, 5)
+		var w := rng.randf_range(2.8, 3.8)
+		var n := rng.randi_range(3, 7)
 		var b := Basis(Vector3.UP, yaw)
 		var top := y
 		for j in range(n):
