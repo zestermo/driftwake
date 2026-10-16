@@ -31,7 +31,8 @@ const MOVES := {
 
 
 func _initialize():
-	load("res://tools/dev/test_kit.gd").seed_of(self)
+	# (a chain whose first island is a jungle: its beasts are the ones tested here)
+	load("res://tools/dev/test_kit.gd").seed_of(self, 4246)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
