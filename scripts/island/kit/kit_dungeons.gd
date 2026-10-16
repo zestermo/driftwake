@@ -376,6 +376,10 @@ static func _finish_cave(isl: GenIsland, rng: RandomNumberGenerator, kind: Strin
 			isl.reserve(q, float(t["w"]) + CaveMesher.T)
 	var mouth: Vector2 = lay["mouth"]
 	var out: Vector2 = lay["out"]
+	# (a theme's own land rolls under a mouth, dunes most: its apron levelled just under the floor, so you walk
+	# from the ground onto the floor instead of under its edge)
+	if not isl.land_plan.is_empty():
+		KitLandmarks.level(isl, mouth + out * 1.5, float(lay["mouth_y"]) - 0.05, 3.0, 7.0)
 	isl.reserve(mouth + out * 3.0, 4.0)
 	path_to(isl, rng, mouth + out * 3.5)
 	var pick: Array = TITLES[kind][rng.randi() % TITLES[kind].size()]
