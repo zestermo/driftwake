@@ -95,15 +95,23 @@ def gen_adobe():
     n = fbm(64, 4, 4, rng)
     stains = fbm(64, 2, 2, rng)
     v = norm(n * 0.5 + stains * 0.5)
-    rgb = ramp(v, pal("cdc4b4", "d8d0c1", "e1dacd", "e9e3d8", "f1ece3"))
-    for _ in range(3):
-        x, y = rng.integers(0, 56, 2)
-        rgb[y:y + 4, x:x + 7] = hexc("b08a62")
-        rgb[y + 2, x:x + 7] = hexc("94704c")
-        rgb[y:y + 4, x + 3] = hexc("94704c")
-    cracks = np.abs(periodic_noise(64, 6, rng) - 0.5) < 0.012
-    rgb[cracks] = hexc("a89c88")
+    rgb = ramp(v, pal("d4ccbd", "dcd5c7", "e3ddd1", "eae5db", "f1ece3"))
+    x, y = rng.integers(0, 56, 2)
+    rgb[y:y + 3, x:x + 5] = hexc("c4a888")
+    rgb[y + 1, x:x + 5] = hexc("b8987a")
     save(to_img(rgb), "adobe")
+
+
+def gen_desert_flags():
+    """Big irregular sandstone flags for a town's squares and streets, sand in the joints."""
+    rng = np.random.default_rng(7204)
+    d1, d2 = _cells(64, 10, rng)
+    n = fbm(64, 4, 3, rng)
+    v = norm(n * 0.6 + rng.random((64, 64)) * 0.2 + norm(d1) * 0.2)
+    rgb = ramp(v, pal("c4a274", "cdad80", "d6b88c", "dec298", "e5cca4"))
+    joint = (d2 - d1) < 1.4
+    rgb[joint] = hexc("a8885c")
+    save(to_img(rgb), "desert_flags")
 
 
 def gen_sandstone():
@@ -241,6 +249,7 @@ def main():
     gen_desert_rock()
     gen_adobe()
     gen_sandstone()
+    gen_desert_flags()
     gen_glaze()
     gen_awnings()
     gen_rug()

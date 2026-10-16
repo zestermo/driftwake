@@ -35,7 +35,7 @@ const LAND := {
 const STYLE := {
 	"lamp": Color(1.0, 0.72, 0.38),
 	"lamp_range": 11.0,
-	"paving": "sandstone",
+	"paving": "desert_flags",
 	"quay_wall": Color(0.95, 0.86, 0.68),
 	"quay_cope": Color(0.86, 0.76, 0.58),
 	"iron": Color(0.55, 0.42, 0.2),
@@ -64,6 +64,11 @@ const STYLE := {
 	"stall": {"canopies": ["awning_red", "awning_blue", "awning_gold", "awning_green"], "post": "planks_dark"},
 	"pier": {"deck": "planks_weathered", "post": "planks_dark", "rail": "planks_dark", "lashings": false, "rope_rail": true},
 	"props": {"crate": "crate", "barrel": "desert_urn", "lamp": "desert_lantern_post", "marker": "desert_marker"},
+	"village_models": {"hut": "desert_hut", "tall": "desert_tall", "home": "desert_home", "elder": "desert_home", "trade": "desert_trade",
+		"cook": "desert_cook", "inn": "desert_inn", "workshop": "desert_workshop", "shrine": "desert_shrine", "storehouse": "desert_storehouse",
+		"ruin": "desert_ruin"},
+	"item_models": {"torch": "desert_brazier", "well": "desert_well"},
+	"village_layouts": {"town": 4, "hamlets": 2, "ruins": 2},
 	"folk": {
 		"pick": {"skin": [Color(0.86, 0.68, 0.52), Color(0.76, 0.56, 0.4), Color(0.66, 0.47, 0.32), Color(0.55, 0.38, 0.26), Color(0.42, 0.29, 0.2)],
 			"hair_color": [Color(0.08, 0.06, 0.05), Color(0.12, 0.08, 0.06), Color(0.22, 0.14, 0.08)],
@@ -145,6 +150,20 @@ func _init() -> void:
 		"desert_urn": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertProps.urn(size, rng.randi()),
 		"desert_lantern_post": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return DesertProps.lantern_post(2.5 * size),
 		"desert_marker": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertProps.waymarker(rng.randi()),
+		# the village's buildings by kind (style village_models), `size` the plot across
+		"desert_hut": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.house({"w": size, "d": snappedf(size * 0.85, 0.1), "storeys": 1, "dome": 0.15, "seed": rng.randi(), "name": "House"}),
+		"desert_tall": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.house({"w": size, "d": snappedf(size * 0.85, 0.1), "storeys": 2, "dome": 0.35, "seed": rng.randi(), "name": "House"}),
+		"desert_home": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.room("home", rng.randi(), size),
+		"desert_trade": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.room("trade", rng.randi(), size),
+		"desert_cook": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.room("cook", rng.randi(), size),
+		"desert_inn": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.inn(rng.randi(), size, snappedf(size * 0.75, 0.1)),
+		"desert_workshop": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.workshop(rng.randi(), size),
+		"desert_shrine": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertTown.shrine(rng.randi()),
+		"desert_storehouse": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.storehouse(rng.randi(), size),
+		"desert_ruin": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.ruin(rng.randi(), size, snappedf(size * 0.84, 0.1)),
+		"desert_minaret": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.minaret(rng.randi(), 14.0 * size),
+		"desert_brazier": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.brazier(1.5 * size),
+		"desert_well": func(_rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertTown.well(),
 	}
 	life = preload("res://scripts/island/themes/desert_life.gd").TEXT
 	# (interim: the jungle's beasts until the desert's own)
