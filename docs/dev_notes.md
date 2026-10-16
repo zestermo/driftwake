@@ -2585,3 +2585,28 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Tests:** `t/island/desert_places`; landmarktest (jungle unchanged). Renders: landmarkshot on chain seed 7
   (`LSHOT_MARKS=waterfall,great_tree,totem_grove`), tools/dev/out/desert/lm7_*; models
   tools/dev/out/models/desert_places_*, desert_monuments_*, desert_guardian_*.
+
+## 2026-10-16: the desert's set pieces; cave mouths on themed land
+
+- **Set pieces** (DesertPlaces, standing in through `place_kind`): the **ruined skyline** for the volcano vent
+  (high ground, r 28: broken plaster towers in faded washes round a square, their walls in courses of different
+  heights, doorways toward the square, dark windows high up; an arcade broken in the middle; a minaret kept away
+  from the great dome; the dome's drum broken and its glazed shell torn open on one side, drawn both faces;
+  rubble, fallen drums, a cache in a tower). The **buried city** for the sunken village (r 26: 7-10 DesertTown
+  houses sunk 1.8-4.8 m with their windows dark (house spec `lit` 0), the ground heaped in mounds between
+  them so the sand is walkable terrain; a colonnade drowned to its capitals with one lintel standing, a
+  pediment tipped in the sand, one or two dome tops and a minaret's top out of the dunes, a chest). The
+  **tomb** for the cenote, so desert islands no longer get the jungle's green sinkhole (a rose sandstone crag
+  built like the mine's rock, its front flat and cut open behind a carved temple front: podium steps over a
+  ramp, four columns, entablature, pediment, a round pavilion with cone and urn between half-pediments; inside a
+  pillared hall 14 m deep at the door's sill with burial niches in two rows, some sealed, a frieze, the
+  sarcophagus with its lid askew, braziers and one light, jars, bones, sand blown in, the treasure). The
+  guardians now use the obelisk's sandstone. Sand heaps are one untextured material (the sand texture
+  pinwheels on a blob's cap).
+- **Cave mouths** (KitDungeons, themed land only, the jungle unchanged): the apron in front of a mouth is
+  levelled just under its floor. Dunes rolled under the floor's edge on seed 5's grotto, so a captain walked
+  under the floor and stuck (dungeontest on main). dungeontest now runs ~150-320 s depending on load (the
+  desert's bigger islands); the runner's 330 s limit is close when the machine is busy.
+- **Tests:** `t/island/desert_places` builds the three set pieces too; dungeontest, isletest, landmarktest.
+  Renders: landmarkshot on seed 7 with `LSHOT_PIECE` volcano_vent / sunken_village / cenote (tools/dev/out/desert/
+  sky7_*, bur7_*, tomb7_* incl. tomb_front and tomb_hall, landmarkshot's new tomb views).
