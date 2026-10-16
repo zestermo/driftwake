@@ -73,7 +73,22 @@ Projectiles carry it as model `"elem"`. Film both: `AB_TIER=0` and the default 2
 | `screen_flash(at, color_with_alpha, secs)` | a full-screen flash for a camera within 35 m | an ultimate's moment (alpha 0.2-0.45) |
 | `impact(pos, color)`, `parry_sparks(pos, dir)` | flash + sparks | every hit; clashes |
 | `sparkle`, `dust`, `dust_ring`, `smoke`, `splash`, `muzzle_sparks`, `tracer`, `flame`, `fire_ring`, `fire_pillar`, `punch_wind`, `afterimage`, `blood` | the older set | see their doc comments in fx.gd |
-| `flipbook(pos, sheet, amount, size, life, cfg)` | particles each playing a 4x4 sprite sheet (`flip_smoke`, `flip_explosion`, gen_flipbooks.py) once over their life; cfg as `_burst` plus start, spin, fade_in, fade, curve, lit | pilot (`FX.flipbook_pilot`): the ship's cannon (`cannon_fire/hit/splash`) and a heavy blow's dust (`heavy_dust`) |
+| `flipbook(pos, sheet, amount, size, life, cfg)` | particles each playing a 4x4 sprite sheet once over their life (`FX.FLIP_SHEETS`, gen_flipbooks.py); cfg as `_burst` plus start, spin, fade_in, fade, curve, lit | the raw block; prefer the named ones below |
+| `puff(pos, sheet, amount, size, life, color, lift, dir)` | one puff (or a few) of a sheet drifting off | a footstep's dust, a shot's smoke, blood mist off a wound |
+| `puff_ring(pos, sheet, count, radius, size, life, color, speed)` | a ring of puffs racing out along the ground | landings, slams, a blast's base (`dust_low`) |
+| `plume(pos, dir, sheet, count, size, life, color, speed, spread)` | puffs pushed out along a direction, growing | a cannon's smoke bank, a column of white water (`splash`), a pillar of fire (`fireball`) |
+| `flash(pos, size, color, sheet, life)` | one `glint` star (tinted) or `muzzle` flare played fast | the beat before a strike, a hit's flash, a blast's flare |
+| `blast(pos, normal, size, hot, smoke_col, speed)` | flare + fireball (if hot) + smoke plume, three bursts | a muzzle (size 1, fast), a ball bursting on a hull (size 2, slow) |
+| `lick(parent, radius, amount, size, life, world)` / `flip_emitter(parent, sheet, ...)` | an emitter whose particles each play a sheet once; keeps going until freed | campfires, braziers, burning bodies (`fire`), chimneys (`wisp`) |
+
+**Sheets vs geometry (`FX.flipbooks`, default true; false = the geometry effects from before, to compare
+or to revert in one line).** A sheet is for *matter with a shape that changes*: smoke, dust, fire, water,
+mist, blood, a flare (the 16 in `FLIP_SHEETS`: smoke, explosion, dust, dust_low, sand, snow, mist, blood,
+splash, fire, fireball, muzzle, sparks, glint, magic, wisp; `FLIP_ADD` are light, drawn additive and tinted
+by the burst's colour; `FLIP_LIT` are matter dimmed with the night). Geometry stays for *lines and
+rings*: sparks, streaks, tracers, rings, cracks, blade trails, vines, afterimages, foam rings, droplets.
+Budget: a sheet burst is still one node + one draw; fewer, bigger particles than the quads it replaces
+(a puff ring of 5 for a dust ring of 12). Never a per-effect material: `_flip_mat(sheet)` is shared.
 | `blade_swoosh(body, secs, color)` | the real blade's trail (BladeTrail) | any strike where the blade moves: swing paths and keyed technique cuts alike |
 | `slash(follow, kind, dur, color)` | a fixed arc mesh | spins and wide arcs the blade alone can't show (keep few; prefer blade_swoosh) |
 
