@@ -30,7 +30,7 @@ static func _stone() -> Material:
 
 ## Heaped sand (untextured: the sand texture pinwheels on a blob's cap), the dunes' colour.
 static func _sand() -> Material:
-	return PSXMat.flat(Color(0.88, 0.73, 0.5))
+	return PSXMat.flat(Color(0.86, 0.66, 0.4))
 
 
 # ==========================================================================
@@ -651,7 +651,7 @@ static func _skyline_dome(ctx: KitContext, pl: Dictionary) -> void:
 	var drum := rng.randf_range(4.5, 6.0)
 	var col := (DesertTown.WASH[rng.randi() % DesertTown.WASH.size()] as Color).lerp(SAND, 0.4)
 	var na := 16
-	var gap := rng.randi() % na
+	var gap := posmod(int(round(atan2(-q.y, -q.x) / TAU * na)) - 1, na)
 	for i in range(na):
 		var a := TAU * (i + 0.5) / na
 		var bs := Basis(Vector3.UP, -a + PI * 0.5)
@@ -684,6 +684,20 @@ static func _skyline_dome(ctx: KitContext, pl: Dictionary) -> void:
 			var nrm := ((qa + qc) * 0.5 - (c + Vector3(0, drum, 0))).normalized()
 			mb.add_quad(glaze, qa, qb, qc, qd, Vector2(a0 * r, p0 * r) * 0.3, Vector2(a1 * r, p0 * r) * 0.3, Vector2(a1 * r, p1 * r) * 0.3, Vector2(a0 * r, p1 * r) * 0.3, Color.WHITE, nrm)
 			mb.add_quad(glaze, qa, qd, qc, qb, Vector2(a0 * r, p0 * r) * 0.3, Vector2(a0 * r, p1 * r) * 0.3, Vector2(a1 * r, p1 * r) * 0.3, Vector2(a1 * r, p0 * r) * 0.3, Color(0.5, 0.48, 0.45), -nrm)
+	# its ribs still standing across the hole: the meridians up to the crown, a ring half way
+	var rib := func(a: float, p: float) -> Vector3: return c + Vector3(cos(a) * cos(p) * r * 0.99, drum + 0.25 + sin(p) * r * 0.94, sin(a) * cos(p) * r * 0.99)
+	for i in range(na):
+		var a := TAU * i / na
+		if absf(angle_difference(a, hole)) > 1.0:
+			continue
+		var pts := PackedVector3Array()
+		for k in range(rows + 1):
+			pts.append(rib.call(a, PI * 0.5 * k / rows * 0.98))
+		mb.add_tube(stone, pts, 0.12, 0.09, 4, 1.0, DesertTown.STONE_COL)
+	var ring := PackedVector3Array()
+	for k in range(9):
+		ring.append(rib.call(hole - 1.1 + 2.2 * k / 8.0, PI * 0.5 * 2.5 / rows))
+	mb.add_tube(stone, ring, 0.1, 0.1, 4, 1.0, DesertTown.STONE_COL)
 	for k in range(rng.randi_range(6, 9)):
 		var s := rng.randf_range(0.5, 1.2)
 		var p := c + Vector3(rng.randf_range(-r, r) * 0.6, s * 0.3, rng.randf_range(-r, r) * 0.6)
@@ -717,7 +731,7 @@ static func _plan_buried(isl, pl: Dictionary, rng: RandomNumberGenerator) -> voi
 		if houses.any(func(e): return (e[0] as Vector2).distance_to(q) < r + float(e[6])):
 			continue
 		var storeys := 2 if rng.randf() < 0.35 else 1
-		houses.append([q, PI * 0.5 * rng.randi_range(0, 3) + rng.randf_range(-0.35, 0.35), w, d, storeys, rng.randf_range(1.8, 2.6) + (2.2 if storeys == 2 else 0.0), r, rng.randi()])
+		houses.append([q, PI * 0.5 * rng.randi_range(0, 3) + rng.randf_range(-0.35, 0.35), w, d, storeys, rng.randf_range(0.9, 2.6) + (2.2 if storeys == 2 else 0.0), r, rng.randi()])
 		keep.append([q, r])
 	for k in range(rng.randi_range(10, 14)):
 		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(2.0, 22.0)
@@ -776,6 +790,30 @@ static func _buried(isl, ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 	DesertTown._box(b, Vector3(3.4, 0.6, 0.9), lintel, tb)
 	mb.add_extrude(stone, Transform3D(tb * Basis(Vector3.FORWARD, rng.randf_range(0.2, 0.4)), Vector3(tq.x, _gy(ctx, pl, tq.x, tq.y) + 0.2, tq.y) + tb * Vector3(0, 0, 2.4)),
 		PackedVector2Array([Vector2(-3.5, 0), Vector2(3.5, 0), Vector2(0, 1.6)]), 0.6, 0.5, Color(0.92, 0.88, 0.82))
+	# toppled slabs pitched in the sand, and an arcade drowned to its arches' crowns
+	for k in range(rng.randi_range(3, 5)):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(5.0, 23.0)
+		if houses.any(func(e): return (e[0] as Vector2).distance_to(q) < float(e[6]) + 1.0):
+			continue
+		var sb := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(0.5, 1.1))
+		var size := Vector3(rng.randf_range(1.6, 2.6), rng.randf_range(2.0, 3.2), 0.4)
+		var at := Vector3(q.x, _gy(ctx, pl, q.x, q.y) + 0.3, q.y)
+		mb.add_box(stone, Transform3D(sb, at), size, 0.5, Color(0.92, 0.9, 0.86).darkened(rng.randf() * 0.1), false)
+		DesertTown._box(b, size, at, sb)
+	for k in range(rng.randi_range(1, 2)):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(10.0, 22.0)
+		if houses.any(func(e): return (e[0] as Vector2).distance_to(q) < float(e[6]) + 4.0):
+			continue
+		var ay := rng.randf() * TAU
+		var gy := _gy(ctx, pl, q.x, q.y)
+		var ww := rng.randf_range(6.0, 9.0)
+		var holes: Array = []
+		var nh := int(ww / 2.4)
+		for i in range(nh):
+			holes.append([-ww * 0.5 + (i + 0.5) * ww / nh, 1.5, 2.6])
+		var col: Color = (DesertTown.WASH[rng.randi() % DesertTown.WASH.size()] as Color).lerp(SAND, 0.3)
+		DesertTown._arched_wall(mb, PSXMat.lit("adobe"), _xf(Vector3(q.x, gy - 1.6, q.y), ay), ww, 3.6, holes, 0.6, col)
+		DesertTown._box(b, Vector3(ww, 2.0, 0.6), Vector3(q.x, gy + 1.0, q.y), Basis(Vector3.UP, ay))
 	# domes of buried halls, just their tops out of the sand, and a minaret's top
 	for k in range(rng.randi_range(1, 2)):
 		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(8.0, 22.0)

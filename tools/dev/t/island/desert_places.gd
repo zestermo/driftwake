@@ -111,7 +111,7 @@ func _process(_d: float) -> bool:
 			"buried_city":
 				var houses := node.find_children("BuriedHouse*", "", false, false)
 				var planned: Array = pls[0]["houses"]
-				var sunk := houses.size() == planned.size() and planned.all(func(h): return float(h[5]) >= 1.8)
+				var sunk := houses.size() == planned.size() and planned.all(func(h): return float(h[5]) >= 0.9)
 				check("the buried city: %d houses sunk in the sand, a colonnade, a chest" % houses.size(), houses.size() >= 5 and sunk and node.get_node_or_null("BuriedCity") != null and chest)
 			"tomb":
 				var hall: Node3D = node.get_node("TombHall")
