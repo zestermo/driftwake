@@ -2067,3 +2067,4 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   re-testing" and landed. A second landing (a plain branch, so rebased) with the target moving twice: a tool script
   committed during smoketest re-ran only the compile check (smoketest's loads don't include it), then a flaky.txt
   commit during that check went through with no re-testing, and it fast-forwarded.
+- guntest 'shoves when you're too close' flaked ~half the runs: the camp's other grunts are asleep (ActorSleep) when the test disables them, and wake (back to PROCESS_MODE_INHERIT) as the captain is teleported in, so they shot and slashed the player down; a Downed body snaps the teleport back to the ragdoll. The test now keeps the other grunts disabled every frame until the pistol part. No game change.

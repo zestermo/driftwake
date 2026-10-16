@@ -20,6 +20,9 @@ func check(name: String, cond: bool) -> void:
 func _process(d: float) -> bool:
 	t += d
 	if rifle: seen[rifle.state] = true
+	if step > 0 and step < 13:
+		for x in camp.grunts:
+			if x != rifle: x.process_mode = Node.PROCESS_MODE_DISABLED
 	if wait > 0.0:
 		wait -= d
 		return false
