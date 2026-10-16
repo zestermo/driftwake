@@ -148,14 +148,15 @@ func _init() -> void:
 		"snow_round_house_tall": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.round_house(rng.randi(), size, 2),
 	}
 	life = preload("res://scripts/island/themes/snow_life.gd").TEXT
-	# (until the snow's own beasts: the jungle's stalker as a snow cat, its serpent and mantis queen, the alpha boar, the behemoth)
-	bosses = ["stalker", "serpent", "mantis"]
+	# (until the snow's own beasts: the jungle's stalker as a snow cat, its serpent, mantis queen and ape, the alpha boar, the behemoth)
+	bosses = ["stalker", "serpent", "mantis", "ape"]
 	minis = ["boar"]
 	roamers = ["behemoth"]
 	beasts = {
 		"stalker": {"script": "res://scripts/enemies/beasts/stalker.gd", "names": ["The White Shade", "Frostfang", "The Pale Death"], "looks": 3},
 		"serpent": {"script": "res://scripts/enemies/beasts/strangler.gd", "names": ["The Ice Coil", "Old Rimescale", "The Pine Strangler"], "looks": 3},
 		"mantis": {"script": "res://scripts/enemies/beasts/mantis_queen.gd", "names": ["The Frost Queen", "The Rime Queen", "The Pale Queen"], "looks": 3},
+		"ape": {"script": "res://scripts/enemies/jungle_ape.gd", "names": ["The Mountain Ape"], "looks": 1, "stock": func() -> Dictionary: return JungleApe.ape_look()},
 		"boar": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Frostbristle", "Old Rime", "Icetusk", "Snowmaw"], "site": "ruins"},
 		"behemoth": {"script": "res://scripts/enemies/beasts/behemoth.gd", "names": ["The Rimeback", "Old Glacier", "The Snowhorn"]},
 	}
