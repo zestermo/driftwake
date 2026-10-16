@@ -79,6 +79,8 @@ func _process(_d: float) -> bool:
 		and sh.get_node_or_null("Pray") != null and store is StaticBody3D and crate.get_node_or_null("Snow") != null)
 	for n in [ws, sh, store, crate]:
 		n.free()
+	check("its caves are frozen (icicles, crystals, a frozen waterfall), the base style's aren't",
+		st["cave_frost"] == true and KS.of("brinehollow")["cave_frost"] == false and (st["cave_look"] as Dictionary).has("wall"))
 	var music = load("res://scripts/game/music.gd")
 	var amb = load("res://scripts/world/ambience.gd")
 	check("its music (day, night, the town's) and its bed are registered",

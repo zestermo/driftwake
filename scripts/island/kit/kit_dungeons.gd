@@ -545,8 +545,9 @@ static func _dress_start(isl: GenIsland, e: Dictionary, w: Dictionary) -> void:
 		used.append(loc(e, r["c"], r["y"]))
 	var d: Dungeon = isl.get_node(str(e["name"]))
 	d.add_child(clutter)
-	w.merge({"d": d, "rng": rng, "mb": MeshBuilder.new(), "clutter": clutter, "used": used})
-	_dripstone_pass(e, w["mb"], clutter, rng, used)
+	var frost: bool = KitStyle.of(isl.theme)["cave_frost"]
+	w.merge({"d": d, "rng": rng, "mb": MeshBuilder.new(), "clutter": clutter, "used": used, "frost": frost})
+	_dripstone_pass(e, w["mb"], clutter, rng, used, frost)
 
 
 static func _dress_kind(e: Dictionary, w: Dictionary) -> void:
@@ -569,6 +570,8 @@ static func _dress_kind(e: Dictionary, w: Dictionary) -> void:
 			_dress_grotto(e, d, mb, clutter, rng, used)
 		"flooded_ruin", "sunken_shrine":
 			_dress_ruin(e, d, mb, clutter, rng, used)
+	if w["frost"]:
+		_frost(e, mb, clutter, rng, used)
 
 
 static func _dress_walls(e: Dictionary, w: Dictionary) -> void:
@@ -586,9 +589,14 @@ static func _dress_outside(isl: GenIsland, e: Dictionary, w: Dictionary) -> void
 	w.clear()
 
 
-## Stalactites under the roof, stalagmites and rubble along the walls.
-static func _dripstone_pass(e: Dictionary, mb: MeshBuilder, body: StaticBody3D, rng: RandomNumberGenerator, used: Array) -> void:
-	var stone := PSXMat.lit("rock", Color(0.74, 0.7, 0.62))
+## The ice that grows in a frozen cave's dripstone and crystals (it glows a little of itself).
+static func _ice_mat() -> Material:
+	return PSXMat.lit("ice", Color(0.82, 0.93, 1.0), {"emission": Color(0.25, 0.62, 1.0), "emission_energy": 0.7, "affine": 0.3})
+
+
+## Stalactites under the roof, stalagmites and rubble along the walls (`frost`: icicles and ice spires instead).
+static func _dripstone_pass(e: Dictionary, mb: MeshBuilder, body: StaticBody3D, rng: RandomNumberGenerator, used: Array, frost: bool) -> void:
+	var stone := _ice_mat() if frost else PSXMat.lit("rock", Color(0.74, 0.7, 0.62))
 	var rubble := PSXMat.lit("rock", Color(0.5, 0.48, 0.45), {"affine": 0.6})
 	for r in e["rooms"]:
 		var c := loc(e, r["c"], r["y"])
@@ -610,6 +618,38 @@ static func _dripstone_pass(e: Dictionary, mb: MeshBuilder, body: StaticBody3D, 
 			var a := rng.randf() * TAU
 			var q: Vector2 = r["c"] + Vector2.from_angle(a) * float(r["r"]) * rng.randf_range(0.85, 0.97)
 			mb.add_blob(rubble, Transform3D(Basis(Vector3.UP, a), loc(e, q, float(r["y"]) + 0.15)), Vector3.ONE * rng.randf_range(0.4, 1.1), rng, 0.25, 3, 6)
+
+
+## A frozen cave's own (style "cave_frost"): clusters of ice crystals on the floors, and in the end room a waterfall
+## frozen down the wall into an iced-over pool.
+static func _frost(e: Dictionary, mb: MeshBuilder, body: StaticBody3D, rng: RandomNumberGenerator, used: Array) -> void:
+	var ice := _ice_mat()
+	for r in e["rooms"]:
+		for p in spots(e, r, rng, rng.randi_range(2, 4), 0.55, 0.88, 2.6, used):
+			for k in range(rng.randi_range(3, 6)):
+				var off := Vector3(rng.randf_range(-0.5, 0.5), 0.0, rng.randf_range(-0.5, 0.5))
+				var h := rng.randf_range(0.7, 2.1) * (1.4 if k == 0 else 1.0)
+				_spike(mb, ice, p + off - Vector3.UP * 0.25, h, h * rng.randf_range(0.14, 0.2), false, rng)
+			KitLandmarks.cyl_col(body, 0.6, 1.6, p + Vector3.UP * 0.8)
+	var end := room_of(e, "end")
+	for hit in end["walls"]:
+		var p: Vector3 = hit[0]
+		var nrm: Vector3 = hit[1]
+		if absf(nrm.y) > 0.4 or p.y - float(end["y"]) < 2.2:
+			continue
+		var flat := Vector3(nrm.x, 0.0, nrm.z).normalized()
+		var foot := Vector3(p.x, float(end["y"]), p.z) + flat * 0.3
+		var top := p.y - float(end["y"]) + 1.2
+		var rings: Array = []
+		var n := maxi(4, int(top / 0.6))
+		for k in range(n + 1):
+			var t := float(k) / n
+			var bulge := 1.0 + 0.25 * sin(t * 9.0 + rng.randf()) + (0.5 * (1.0 - t) * (1.0 - t))
+			rings.append([top * t, 1.1 * bulge, 0.45 * bulge, 0.0, rng.randf_range(-0.08, 0.08)])
+		mb.add_loft(ice, Transform3D(Basis.looking_at(-flat, Vector3.UP), foot), rings, MeshBuilder.profile_circle(8), 1.0, Color(0.95, 0.98, 1.0), false, true)
+		mb.add_cylinder(ice, Transform3D(Basis(), foot + flat * 1.6 + Vector3.UP * 0.02), 2.2, 2.0, 0.08, 12, 0.6, Color(0.85, 0.92, 1.0))
+		KitLandmarks.box_col_xf(body, Vector3(2.4, top, 1.0), Transform3D(Basis.looking_at(-flat, Vector3.UP), foot + Vector3.UP * top * 0.5))
+		break
 
 
 ## On the walls: glowing lichen in the bug tunnels, the smugglers' torches, the ruin's glowing glyphs.
