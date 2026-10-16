@@ -97,6 +97,7 @@ const STYLE := {
 	"ground": {"grass": "snow", "sand": "snow_beach", "wet_sand": "shingle_wet", "dirt": "snow_packed", "rock": "glacier_rock", "seafloor": "seafloor", "cliff": "black_rock"},
 	"cave_look": {"rock": ["black_rock", Color(0.9, 0.92, 0.96)], "moss": ["glacier_rock", Color(0.95, 0.97, 1.0)], "turf": ["snow", Color.WHITE],
 		"wall": ["glacier_rock", Color(0.7, 0.78, 0.88)], "floor": ["snow_packed", Color(0.8, 0.84, 0.9)]},
+	"cave_frost": true,
 	# mostly overcast and white with haze (the fog's colour is Weather's: the weather pass themes it)
 	"weather": [0.15, 0.8, 0.95],
 	"haze": 0.4,

@@ -80,6 +80,8 @@ const BRINEHOLLOW := {
 	"arena": "canopy",
 	# caves' surfaces over each kind's own (KitDungeons.LOOK: rock, moss, turf outside; wall, floor inside: [texture, tint])
 	"cave_look": {},
+	# caves frozen through (KitDungeons): icicles and ice spires for dripstone, crystal clusters, a frozen waterfall
+	"cave_frost": false,
 	# the weather here (Weather): where clear, cloudy and rain end on a 0..1 roll (the rest is storm), extra fog
 	"weather": [0.36, 0.66, 0.86],
 	"haze": 0.0,

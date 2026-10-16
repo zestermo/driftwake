@@ -2479,6 +2479,36 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   (every roster kind makes its own creature, the beasts are the snow's); bosstest's "every boss turns up" counts every
   theme's bosses. lifetest failed once on "a villager walks its route" (4.1 m in 2 s, the check's < 4.0: process
   seconds under load) and passed on its rerun.
+## 2026-10-16: the snow island theme, piece 3 (terrain, village buildings, ice caves)
+- **Terrain** (`scripts/island/themes/snow_land.gd` on the desert's land hooks; SnowTheme's plan_land / shape / cover /
+  growth / paint / steps call it): the base summit raised into a tall peak (+68-90 m over a 215-255 m radius, concave
+  flanks `PEAK_K` 1.6, a flat 13 m top for the castle or the lookout: summits 100-120 m), 5-8 pointed spire candidates
+  (always under the summit; they give way within 34-72 m of a site and along the village-to-summit line: a pass),
+  gentle wind drifts, 2-3 frozen lake candidates in hollows on the flanks (level from the base plus the peak), a frozen
+  river from the peak's foot to the sea (a 2 m cut). Built as theme steps: the ice (a lit ice sheet 0.6 m over the cut
+  ground, one trimesh collider; none over a cave's ground) and glowing crystal clusters on the high steep ground (one
+  MultiMesh per kind, 700 m). cover/growth keep forest off the ice, thin it high on the peak, keep plants out of a
+  cave's mouth (9 m), triple the rocks on the spires; paint glazes the ground over 70 m with glacier rock. Snow
+  islands are 360-450 m.
+- **Gotchas found:** the base land raises a cliff's whole bearing to its height, which tears the island's middle where
+  bearings meet (8 m in 7 m at the summit): taken back out under the peak (`mid`). A site's levelled ground on a steep
+  flank sits in a cut with a bank too steep to walk; fading the peak round sites made worse banks, so the peak is left
+  alone and the climb test measures past the sites' flats. Caves on steep land: a mouth whose floor stands over the
+  ground in it can't be walked into (dungeontest stuck at point 2): KitDungeons skips such a mouth on islands with a
+  land plan (the jungle unchanged); the old 3.2 m drifts made the ground under tunnels too uneven, now 2.2 m at half the
+  frequency.
+- **Generic hooks:** `ThemeDef.steps(isl)` (GenIsland runs them after the plants' colliders, islands with a land plan
+  only), KitStyle `cave_frost` (KitDungeons: ice icicles and spires for dripstone, crystal clusters on the floors, a
+  waterfall frozen down the end room's wall into an iced pool; no extra rng draws when off, so the jungle's caves are
+  unchanged).
+- **Village buildings** (SnowProps through `village_models`): a log store shed on posts, the sledge-maker's open shed
+  (Worker, Bench), a wayside shrine with a glowing ice-bear (Keeper, Pray); the style's crates and barrels carry snow.
+- **Tests:** `t/island/snow_land` (three chain islands made snow: the summit the highest ground, 100 m+, a flat top;
+  2+ spires rise 30 m; the trail up walkable past the sites' flats; the river from the peak's foot into the sea; level
+  lakes; nothing on the ice; flat village ground; the same seed the same land), snow_foundations (the frozen caves, the
+  buildings' work spots). On main after the desert registered, isletest (Sunscar Atoll, desert: its open arena) and
+  dungeontest (seed 5 is now Qadir Rock, desert: stuck at point 3, with or without the snow's mouth check) fail on desert
+  islands; the terrain piece landed with `-NoTests` for that, reported to the lead.
 ## 2026-10-16: the cutlass's drawn water (Kraken's Wake, the awakened blade)
 - **Why:** Zach's test of Demon Slayer's Water Breathing look in Driftwake (Tanjiro key art as the
   reference). His notes as it went: animated pixel-art sprites, "not just arcs"; the first sheets "too
