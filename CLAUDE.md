@@ -67,7 +67,8 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 - A hook (`.claude/settings.json`) compiles every .gd you edit and hands errors back right away;
   if you're mid-way through a multi-edit change, finish it before reacting.
 - Other hooks there: `guard.ps1` refuses a suite run straight through Godot (use the runner) and
-  `git add -A` / `git add .` in the main checkout. `finish.ps1` stops an agent in a worktree from finishing
+  `git add -A` / `git add .` in the main checkout, and starts the runners and tools without a permission
+  prompt in any mode (the command forms are in the driftwake-test skill). `finish.ps1` stops an agent in a worktree from finishing
   with uncommitted changes or a branch that doesn't compile as a whole (it blocks once; a second stop goes
   through). The shared permissions (runners, git, Godot, the generators) are in the same file, so worktree
   agents get them; tags, force pushes and hard resets still ask.

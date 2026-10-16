@@ -29,6 +29,8 @@ You build one feature of Driftwake, Zach's Godot 4.7 GDScript PS1-style One Piec
   areas monitor only if read. Game time only, never the wall clock. Bench before/after (`bench.ps1 label=...`).
 
 ## Testing (tier 1 only)
+- Load the driftwake-test skill before running or writing a test: it has the command forms the guard hook starts
+  without a permission prompt, the test template and stage, and how to read a failure.
 - Driftwake overrides Zach's global "never write or run tests" rule (CLAUDE.md, Testing strategy): here you write
   tests for what you build and run them before landing.
 - Run `tools/dev/run_tests.ps1 -Changed -Light` (the tests your changes affect, by what each loads; passes are cached by

@@ -22,7 +22,8 @@ the test that catches the bug and run the suites before landing.
   ls, and never a script for file I/O. The shell is for git, Godot and the runners.
 - **Code:** match the surrounding GDScript; no comments except a rare one-line gotcha; no fallback or defensive code.
 - Run only the failing suite and what covers your change, through `tools/dev/run_tests.ps1 <suite>` (nettest.ps1
-  for co-op). Never a windowed render.
+  for co-op). Never a windowed render. The driftwake-test skill has the command forms the guard hook starts without
+  a permission prompt, and how to read a failure.
 - Commit with a clear message ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`, plus a line in
   docs/dev_notes.md's newest section. Never push or tag.
 - When a hook says main moved: at a clean point commit, `git merge main` (not a rebase), fix conflicts, rerun your
