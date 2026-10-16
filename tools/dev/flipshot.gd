@@ -1,6 +1,6 @@
 extends SceneTree
-## The flipbook pilot's before/after (FX.flipbook_pilot) in the real world: each shot filmed
-## twice from the same camera at the game's pixel grid, the pilot off then on, frames along
+## The flipbook effects' before/after (FX.flipbooks) in the real world: each shot filmed
+## twice from the same camera at the game's pixel grid, the switch off then on, frames along
 ## the effect's life. Effects: "heavy" (a katana's heavy slam on a patch of dirt out on the
 ## water, from a game camera behind the captain) and "cannon" (the crew's sloop: a cannon going
 ## off, a ball bursting on the hull, a ball into the sea; all on the seaward side).
@@ -125,7 +125,7 @@ func _process(d: float) -> bool:
 			step = 2
 		2:
 			_setup()
-			root.get_node("FX").flipbook_pilot = run[2]
+			root.get_node("FX").flipbooks = run[2]
 			before.clear()
 			seen.clear()
 			for n in _bursts():
@@ -149,7 +149,7 @@ func _process(d: float) -> bool:
 				var parts := 0
 				for k in seen.keys():
 					parts += int(seen[k])
-				print("PERF %s pilot=%s bursts=%d particles=%d draws=+%d" % [run[1], run[2], seen.size(), parts, peak_draws - base_draws])
+				print("PERF %s flipbooks=%s bursts=%d particles=%d draws=+%d" % [run[1], run[2], seen.size(), parts, peak_draws - base_draws])
 				(rows[run[0]] as Array).append([run[1], run[2], imgs.duplicate()])
 				step = 1
 	return false
