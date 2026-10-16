@@ -45,6 +45,11 @@ island kit, like the desert (docs/desert_island_plan.md). Order: after or alongs
 - **People:** villagers in heavy coats and fur hats (clothing pieces: coats, fur hats, scarves, mittens).
 
 ## Weather, sound, effects
+- **Zach's direction (2026-10-16):** a **white haze most of the time**, **constant light snowfall**, and **occasional
+  heavy snow that obscures a lot**, the snow island's equivalent of the desert's sandstorm. A **soft, collision-free
+  snow layer** on the ground (you wade through it, it doesn't block you) and **snow lying on things** (roofs, fences,
+  pines, rocks, props, decks). **Footprints** left in it, with powder kicked up as particles. The same footprint and
+  kick-up system serves the desert's sand (one shared ground system, built once in the weather pass).
 - **Snowfall and blizzards** instead of rain (Weather + RainFX's place): falling snow, whiteouts, wind; snow settles on
   roofs and decks. Breath fog in the cold.
 - **Footprints** in snow, snow footsteps (the audio audit's missing snow step sound), icy patches you slide on.
