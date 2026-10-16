@@ -71,6 +71,8 @@ const BRINEHOLLOW := {
 	"ambience": "",
 	# the ground's textures (PSXMat.terrain: a generated island's terrain by splat, slope and height; "cliff" its sea cliffs' rock, Coast.build)
 	"ground": {"grass": "grass", "sand": "sand", "wet_sand": "wet_sand", "dirt": "dirt", "rock": "rock", "seafloor": "seafloor", "cliff": "rock"},
+	# the boss's ground on a generated island (GenIsland): "canopy" (giants ring it, a roof of crowns) or "open"
+	"arena": "canopy",
 	# caves' surfaces over each kind's own (KitDungeons.LOOK: rock, moss, turf outside; wall, floor inside: [texture, tint])
 	"cave_look": {},
 	# the weather here (Weather): where clear, cloudy and rain end on a 0..1 roll (the rest is storm), extra fog

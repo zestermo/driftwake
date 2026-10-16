@@ -80,6 +80,27 @@ func shape(_isl, _p: Vector2, h: float) -> float:
 	return h
 
 
+## The rest of the land hooks, called only for an island with a land plan (the jungle pays nothing):
+## where its village goes once GenIsland has placed it (`p`: by the dock or inland), island space.
+func village_at(_isl, p: Vector2) -> Vector2:
+	return p
+
+
+## How overgrown p is (0..1; `c` the base's: the theme's "cover" over noise), before the sites are cleared.
+func cover(_isl, _p: Vector2, c: float) -> float:
+	return c
+
+
+## [plants, rocks]: multipliers on the scatter's chances at p (bare dunes, stony ridges, lush oases).
+func growth(_isl, _p: Vector2) -> Vector2:
+	return Vector2.ONE
+
+
+## The terrain's splat at p (dirt, rock, sand; the rest is the "grass" layer) after the base's paths, sites, beach and cliffs.
+func paint(_isl, _p: Vector2, _h: float, splat: Color) -> Color:
+	return splat
+
+
 ## The plant and rock meshes its islands are made of, built once per theme on the main thread before
 ## GenIsland.prepare (IslandTheme.meshes caches it; KitLandmarks.canopy reads their AABBs). The scatter
 ## reads: tree, beach_tree, bush, fern, grass, rock (lists of meshes), giant, fig, kapok, emergent, roof
