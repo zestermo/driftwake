@@ -178,6 +178,8 @@ func finish_steps() -> Array:
 		["plants", _vegetation_meshes.bind(2, 3)],
 		["colliders", _vegetation_colliders],
 	]
+	if not land_plan.is_empty():
+		steps.append_array(_theme.steps(self))
 	steps.append_array(IslandContent.steps(self))
 	steps.append_array(IslandVillage.steps(self))
 	steps.append_array(life.steps())

@@ -9,12 +9,13 @@ extends RefCounted
 
 ## The main peak's flat top (m across, radius) and its flanks' curve (higher: steeper near the top).
 const TOP_R := 13.0
-const PEAK_K := 1.7
+const PEAK_K := 1.6
 ## How far round a site the spires and drifts give way (m: none within the first, all past the second).
 const SITE_CLEAR := [34.0, 72.0]
 ## The ice sits this far over the ground cut for it (the vertex snap: ground and a surface laid on it mustn't fight).
 const ICE_LIFT := 0.6
 const RIVER_DEPTH := 2.0
+const PLANT_PAD := 2.0
 const VIS := 700.0
 
 
@@ -22,23 +23,27 @@ static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
 	var r: float = isl.radius
 	var main_c: Vector2 = isl._bumps[0][0]
 	var lp := {}
-	lp["main"] = {"c": main_c, "h": rng.randf_range(46.0, 62.0), "r": rng.randf_range(105.0, 135.0)}
+	lp["main"] = {"c": main_c, "h": rng.randf_range(68.0, 90.0), "r": rng.randf_range(215.0, 255.0)}
 	var spires: Array = []
 	var a0 := rng.randf() * TAU
-	for k in range(rng.randi_range(3, 5)):
-		var a := a0 + TAU * k / 5.0 + rng.randf_range(-0.4, 0.4)
-		var c := Vector2.from_angle(a) * r * rng.randf_range(0.42, 0.7)
-		if c.distance_to(main_c) < 95.0:
+	# (more than will stand: those on a site's ground or the way up give way)
+	for k in range(rng.randi_range(5, 8)):
+		var a := a0 + TAU * k / 8.0 + rng.randf_range(-0.3, 0.3)
+		var c := Vector2.from_angle(a) * r * rng.randf_range(0.45, 0.72)
+		if c.distance_to(main_c) < 110.0:
 			continue
-		spires.append({"c": c, "h": rng.randf_range(40.0, 78.0), "r": rng.randf_range(30.0, 50.0), "k": rng.randf_range(1.15, 1.5)})
+		# (always under the summit, whose peak is the island's crown)
+		spires.append({"c": c, "h": rng.randf_range(0.65, 0.9) * float(lp["main"]["h"]), "r": rng.randf_range(38.0, 60.0), "k": rng.randf_range(1.2, 1.5)})
 	lp["spires"] = spires
 	var lakes: Array = []
-	for k in range(rng.randi_range(1, 2)):
-		var c := Vector2.from_angle(rng.randf() * TAU) * r * rng.randf_range(0.2, 0.55)
+	for k in range(rng.randi_range(2, 3)):
+		var c := Vector2.from_angle(rng.randf() * TAU) * r * rng.randf_range(0.3, 0.62)
 		var lr := rng.randf_range(16.0, 28.0)
-		if c.distance_to(main_c) < float(lp["main"]["r"]) * 0.8 or spires.any(func(s): return c.distance_to(s["c"]) < float(s["r"]) + lr + 10.0):
+		if c.distance_to(main_c) < float(lp["main"]["r"]) * 0.5 or spires.any(func(s): return c.distance_to(s["c"]) < float(s["r"]) + lr + 10.0) \
+				or lakes.any(func(o): return c.distance_to(o["c"]) < float(o["r"]) + lr + 30.0):
 			continue
-		lakes.append({"c": c, "r": lr, "level": float(isl._height_natural(c)) - 1.0})
+		# (in a hollow a metre under the land there: the base's and the peak's flank)
+		lakes.append({"c": c, "r": lr, "level": float(isl._height_natural(c)) + _cone(lp["main"], c) - 1.0})
 	lp["lakes"] = lakes
 	# the river: from the main peak's foot outward to the sea, wandering
 	var dir := Vector2.from_angle(rng.randf() * TAU)
@@ -65,16 +70,41 @@ static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
 	crag.fractal_type = FastNoiseLite.FRACTAL_RIDGED
 	crag.fractal_octaves = 3
 	lp["crag"] = crag
-	# nothing grows on the ice
-	for lk in lakes:
-		isl.reserve_area(lk["c"], float(lk["r"]) + 2.0)
-	for i in range(pts.size() - 1):
-		var d := pts[i].distance_to(pts[i + 1])
-		var s := 0.0
-		while s < d:
-			isl.reserve(pts[i].lerp(pts[i + 1], s / d), float(lp["river_w"]) * 0.5 + 1.5)
-			s += 4.0
 	return lp
+
+
+## 0..1: how much of p is frozen water (the lakes and the river), `pad` m further out (the plants keep that far off:
+## the scatter's second layer grows ~2 m from the spot it was judged at).
+static func _ice_at(lp: Dictionary, p: Vector2, pad := 0.0) -> float:
+	var k := 0.0
+	for lk in lp["lakes"]:
+		k = maxf(k, 1.0 - smoothstep(float(lk["r"]) + pad, float(lk["r"]) + pad + 3.0, p.distance_to(lk["c"])))
+	var w: float = float(lp["river_w"]) * 0.5 + pad
+	return maxf(k, 1.0 - smoothstep(w + 0.5, w + 3.0, _river_dist(lp["river"], p)))
+
+
+## No forest on the ice; the peaks' high flanks thin out to bare snow and rock.
+static func cover(isl, p: Vector2, c: float) -> float:
+	var lp: Dictionary = isl.land_plan
+	var m: Dictionary = lp["main"]
+	var high := smoothstep(0.75, 0.35, p.distance_to(m["c"]) / float(m["r"]))
+	return c * (1.0 - _ice_at(lp, p, PLANT_PAD)) * (1.0 - high * 0.85)
+
+
+## [plants, rocks]: nothing on the ice; more rocks on the spires.
+static func growth(isl, p: Vector2) -> Vector2:
+	var lp: Dictionary = isl.land_plan
+	var bare := 1.0 - _ice_at(lp, p, PLANT_PAD)
+	var stony := 1.0
+	for sp in lp["spires"]:
+		stony = maxf(stony, 1.0 + 2.0 * (1.0 - smoothstep(0.4, 1.0, p.distance_to(sp["c"]) / float(sp["r"]))))
+	return Vector2(bare, bare * stony)
+
+
+## The high ground glazed: the rock layer (glacier rock) creeps over the peaks' upper flanks.
+static func paint(_isl, _p: Vector2, h: float, splat: Color) -> Color:
+	splat.g = maxf(splat.g, smoothstep(70.0, 100.0, h) * 0.7)
+	return splat
 
 
 ## 0..1: how much a spire or drift may stand at p (none on a site's ground).
@@ -83,6 +113,16 @@ static func _clear(isl, p: Vector2) -> float:
 	for s in isl.sites.values():
 		k = minf(k, smoothstep(SITE_CLEAR[0], SITE_CLEAR[1], p.distance_to(s)))
 	return k
+
+
+## 0..1: how much a spire may stand at p on the way up from the village to the summit (a pass through them).
+static func _pass(isl, p: Vector2) -> float:
+	if not (isl.sites.has("village") and isl.sites.has("summit")):
+		return 1.0
+	var a: Vector2 = isl.sites["village"]
+	var ab: Vector2 = isl.sites["summit"] - a
+	var q := a + ab * clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.01), 0.0, 1.0)
+	return smoothstep(SITE_CLEAR[0] + 6.0, SITE_CLEAR[1] + 10.0, p.distance_to(q))
 
 
 static func _river_dist(pts: PackedVector2Array, p: Vector2) -> float:
@@ -95,28 +135,33 @@ static func _river_dist(pts: PackedVector2Array, p: Vector2) -> float:
 	return best
 
 
+## The main peak's height over the base land at p: a flat top, then concave flanks out to its radius.
+static func _cone(m: Dictionary, p: Vector2) -> float:
+	var t := clampf((p.distance_to(m["c"]) - TOP_R) / (float(m["r"]) - TOP_R), 0.0, 1.0)
+	return float(m["h"]) * pow(1.0 - t, PEAK_K)
+
+
 static func shape(isl, p: Vector2, h: float) -> float:
 	var lp: Dictionary = isl.land_plan
 	var land := smoothstep(0.5, 4.0, h)
 	if land <= 0.0:
 		return h
-	var s := h
-	var m: Dictionary = lp["main"]
-	var dm := p.distance_to(m["c"])
-	if dm < float(m["r"]):
-		var t := clampf((dm - TOP_R) / (float(m["r"]) - TOP_R), 0.0, 1.0)
-		var crag: FastNoiseLite = lp["crag"]
-		s += float(m["h"]) * pow(1.0 - t, PEAK_K) * land + crag.get_noise_2d(p.x, p.y) * 5.0 * t * (1.0 - t) * 4.0
+	# (the base raises a cliff's whole bearing to the cliff's height, which tears the middle of the island where
+	# the bearings meet: under the peak it's taken back out)
+	var mid := 1.0 - smoothstep(0.15, 0.4, p.length() / float(isl.radius))
+	var s := h - (float(isl._cliff_h) - float(isl._def["base"])) * float(isl._cliff(atan2(p.y, p.x))) * mid * land
+	s += _cone(lp["main"], p) * land
 	var clear := _clear(isl, p)
 	if clear > 0.0:
+		var pass_k := _pass(isl, p)
 		for sp in lp["spires"]:
 			var d := p.distance_to(sp["c"])
 			if d < float(sp["r"]):
 				var crag: FastNoiseLite = lp["crag"]
 				var t := d / float(sp["r"])
-				s += (float(sp["h"]) * pow(1.0 - t, float(sp["k"])) + crag.get_noise_2d(p.x * 1.6, p.y * 1.6) * 6.0 * (1.0 - t)) * clear * land
+				s += (float(sp["h"]) * pow(1.0 - t, float(sp["k"])) + crag.get_noise_2d(p.x * 1.6, p.y * 1.6) * 6.0 * (1.0 - t)) * clear * pass_k * land
 		var drift: FastNoiseLite = lp["drift"]
-		s += maxf(drift.get_noise_2d(p.x * 0.35 + p.y * 0.15, p.y * 1.4 - p.x * 0.2), 0.0) * 3.2 * clear * land
+		s += maxf(drift.get_noise_2d(p.x * 0.35 + p.y * 0.15, p.y * 1.4 - p.x * 0.2), 0.0) * 3.2 * clear * (0.3 + 0.7 * pass_k) * land
 	for lk in lp["lakes"]:
 		var d := p.distance_to(lk["c"])
 		var lr: float = lk["r"]

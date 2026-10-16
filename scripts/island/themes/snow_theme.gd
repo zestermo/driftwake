@@ -10,7 +10,7 @@ extends ThemeDef
 ## "bush" frozen shrubs, "grass" frosted grass, "broadleaf" drifts, "bamboo" ice-crystal clusters,
 ## "mangrove" ice floes at the waterline, "rock" snow-capped black rocks.
 const LAND := {
-	"peak": [40.0, 58.0], "hills": [3, 5], "hill_h": [10.0, 22.0], "roll": 4.0, "base": 4.0,
+	"peak": [26.0, 36.0], "hills": [2, 4], "hill_h": [6.0, 12.0], "roll": 4.0, "base": 4.0,
 	"ramp": [30.0, 50.0], "cliffs": [1, 3], "cliff_h": [8.0, 15.0],
 	"tree": 0.5, "edge": 0.1, "beach_tree": 0.12, "fern": 0.3, "bush": 0.2, "grass": 0.3, "rock": 0.04,
 	"cover": 0.72,
@@ -29,6 +29,8 @@ const LAND := {
 }
 
 ## The settlement style, over KitStyle.BRINEHOLLOW (the keys that differ; a nested table whole).
+const LAND_FEATURES := preload("res://scripts/island/themes/snow_land.gd")
+
 const STYLE := {
 	"row_walls": ["brick_pink", "planks_dark", "brick_pink", "stone_brick", "planks"],
 	"row_upper": ["planks_dark", "brick_pink", "planks"],
@@ -147,7 +149,7 @@ func _init() -> void:
 	glyph = _glyph
 	flocks = 0
 	land = LAND
-	radius = [300.0, 450.0]
+	radius = [360.0, 450.0]
 	style = STYLE
 	props = {
 		"snow_lamp": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.lamp_post(2.6 * size),
@@ -179,6 +181,31 @@ func _init() -> void:
 	fauna = FAUNA
 	creatures = CREATURES
 	cave_fauna = {"ceiling": "bat", "floor": ["mite"]}
+
+
+## The land (snow_land.gd): the summit raised into a tall icy peak, spires, drifts, frozen lakes and a river.
+func plan_land(isl, rng: RandomNumberGenerator) -> Dictionary:
+	return LAND_FEATURES.plan(isl, rng)
+
+
+func shape(isl, p: Vector2, h: float) -> float:
+	return LAND_FEATURES.shape(isl, p, h)
+
+
+func cover(isl, p: Vector2, c: float) -> float:
+	return LAND_FEATURES.cover(isl, p, c)
+
+
+func growth(isl, p: Vector2) -> Vector2:
+	return LAND_FEATURES.growth(isl, p)
+
+
+func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
+	return LAND_FEATURES.paint(isl, p, h, splat)
+
+
+func steps(isl) -> Array:
+	return LAND_FEATURES.steps(isl)
 
 
 func meshes() -> Dictionary:

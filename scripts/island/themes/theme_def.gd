@@ -101,6 +101,12 @@ func paint(_isl, _p: Vector2, _h: float, splat: Color) -> Color:
 	return splat
 
 
+## Its own build steps ([name, Callable], GenIsland.finish_steps after the plants' colliders): what its land
+## features need built on the main thread (ice laid on frozen water, a castle...).
+func steps(_isl) -> Array:
+	return []
+
+
 ## The plant and rock meshes its islands are made of, built once per theme on the main thread before
 ## GenIsland.prepare (IslandTheme.meshes caches it; KitLandmarks.canopy reads their AABBs). The scatter
 ## reads: tree, beach_tree, bush, fern, grass, rock (lists of meshes), giant, fig, kapok, emergent, roof
