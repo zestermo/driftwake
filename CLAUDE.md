@@ -67,7 +67,8 @@ From bash (Claude Code's shell on Windows) call the scripts through PowerShell:
 - A hook (`.claude/settings.json`) compiles every .gd you edit and hands errors back right away;
   if you're mid-way through a multi-edit change, finish it before reacting.
 - Other hooks there: `guard.ps1` refuses a suite run straight through Godot (use the runner) and
-  `git add -A` / `git add .` in the main checkout. `finish.ps1` stops an agent in a worktree from finishing
+  `git add -A` / `git add .` in the main checkout, and starts the runners and tools without a permission
+  prompt in any mode (the command forms are in the driftwake-test skill). `finish.ps1` stops an agent in a worktree from finishing
   with uncommitted changes or a branch that doesn't compile as a whole (it blocks once; a second stop goes
   through). The shared permissions (runners, git, Godot, the generators) are in the same file, so worktree
   agents get them; tags, force pushes and hard resets still ask.
@@ -151,7 +152,8 @@ then one full test run and one bug-fix pass on main, with known bugs from the ag
 
 **Agent types** (`.claude/agents/`): spawn feature work as `driftwake-feature` (worktree isolation; the rules,
 test tiers, landing and report format are built in, so the brief is just the feature) and narrow fixes, failing
-suites and mechanical changes as `driftwake-fixer` (Sonnet, cheaper).
+suites and mechanical changes as `driftwake-fixer` (Sonnet, cheaper). The lead session running a batch follows the
+`driftwake-lead` skill (before the batch, the brief template, relaying, checking reports, cleanup, the push).
 
 Zach often runs several Claude sessions at once. Each should work in its own git worktree
 so half-finished edits never break another session's tests or end up in its commits:

@@ -101,6 +101,12 @@ func paint(_isl, _p: Vector2, _h: float, splat: Color) -> Color:
 	return splat
 
 
+## Its own build steps ([name, Callable], GenIsland.finish_steps after the plants' colliders): what its land
+## features need built on the main thread (ice laid on frozen water, a castle...).
+func steps(_isl) -> Array:
+	return []
+
+
 ## Places (KitLandmarks.plan_gen, on the worker): the theme's own kind standing in for a chain set piece or landmark
 ## (KitSetPieces.POOL, KitLandmarks.KINDS), "" = the chain's own. The jungle keeps them all.
 func place_kind(_kind: String) -> String:
