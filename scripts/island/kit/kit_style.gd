@@ -3,8 +3,8 @@ extends RefCounted
 ## How a settlement looks, by theme: the kit pieces read their materials, palettes
 ## and lamp colours from here (KitContext.style, KitStyle.of(theme)) instead of
 ## literals. Brinehollow's timber-and-stone harbour town is the base style and has
-## every key; a theme's table replaces whole keys of it (nested tables too), so a
-## new theme is a const like JUNGLE plus a line in STYLES.
+## every key; a theme's table (ThemeDef.style, in the theme's own file, through the
+## IslandThemes registry) replaces whole keys of it (nested tables too).
 
 const BRINEHOLLOW := {
 	# lamp posts: the flame's colour and reach (energy is the piece's)
@@ -70,92 +70,26 @@ const BRINEHOLLOW := {
 	"haze": 0.0,
 }
 
-## The jungle: stilt huts of bamboo and woven palm under steep palm-leaf thatch,
-## rope-lashed posts, tiki torches, baskets and clay pots, a mossy green stone.
-const JUNGLE := {
-	"row_walls": ["woven", "bamboo", "planks_weathered", "woven"],
-	"row_upper": ["woven", "bamboo"],
-	"row_roofs": ["gable", "hip", "gable_front"],
-	"row_roof_tex": ["palm_thatch", 1.0, "palm_thatch"],
-	"row_awnings": ["", "red", "", "green", ""],
-	"lamp": Color(1.0, 0.66, 0.32),
-	"lamp_range": 12.0,
-	# generated harbours (GenHarbour): the kinds this theme's roll from; pilings, decks, roofs and walls; tarps, net floats, the smugglers' signal lamp
-	"harbour_kinds": ["stilts", "cove", "wharf", "ruins"],
-	"harbour_wild_kinds": ["landing", "landing", "cove", "ruins", "stilts"],
-	"harbour_pile": "palm_bark",
-	"harbour_deck": "planks_weathered",
-	"harbour_roof": "thatch",
-	"harbour_walls": ["planks", "planks_weathered", "planks"],
-	"harbour_tarp": Color(0.52, 0.48, 0.38),
-	"harbour_floats": [Color(0.9, 0.55, 0.2), Color(0.88, 0.86, 0.8), Color(0.75, 0.25, 0.18)],
-	"harbour_signal": Color(1.0, 0.32, 0.22),
-	"paving": "flagstones",
-	"quay_wall": Color(0.68, 0.74, 0.62),
-	"quay_cope": Color(0.58, 0.63, 0.52),
-	"iron": Color(0.26, 0.2, 0.16),
-	"pennants": [Color(0.85, 0.2, 0.18), Color(0.98, 0.78, 0.18), Color(0.12, 0.55, 0.52), Color(0.95, 0.5, 0.15), Color(0.3, 0.62, 0.22)],
-	"washing": [Color(0.92, 0.88, 0.76), Color(0.85, 0.32, 0.22), Color(0.2, 0.55, 0.55), Color(0.95, 0.72, 0.25), Color(0.6, 0.3, 0.5)],
-	"goods": [Color(0.98, 0.62, 0.12), Color(0.95, 0.85, 0.25), Color(0.45, 0.3, 0.16), Color(0.92, 0.35, 0.25), Color(0.45, 0.72, 0.2)],
-	"tent": Color(0.82, 0.76, 0.56),
-	"camp_tent": Color(0.52, 0.5, 0.38),
-	"rough": {"flowers": false, "trim": Color(0.34, 0.28, 0.2), "beam": "bamboo", "poles": true, "lashings": true, "pitch": 0.62, "eaves": 0.75},
-	"crew_flag": Color(0.72, 0.28, 0.2),
-
-	"mat": {"wall": "woven", "beam": "bamboo", "floor": "planks_weathered", "deck": "planks_weathered", "post": "palm_bark",
-		"rail": "bamboo", "roof": "palm_thatch", "thatch": "palm_thatch", "rope": "rope", "stone": "stone_brick", "cloth": "canvas",
-		"weave": "straw"},
-	"house": {"w": [4.0, 5.5], "d": [3.5, 4.5], "h": [2.2, 2.5], "walls": ["woven", "bamboo", "woven", "planks_weathered"],
-		"roofs": ["gable", "hip", "gable", "gable_front"], "roof_tex": ["palm_thatch"], "pitch": [0.68, 0.8], "eaves": 0.85,
-		"beam": "bamboo", "floor": "planks_weathered", "poles": true, "lashings": true, "stilts": true,
-		"porch": [0.5, 1.2, 1.6], "flowers": 0.25, "chimney": 0.0,
-		"trims": [Color(0.42, 0.3, 0.2), Color(0.55, 0.36, 0.2), Color(0.25, 0.42, 0.38), Color(0.62, 0.26, 0.18)]},
-	"inn": {"w": 8.0, "d": 6.0, "h": 2.8, "roof": "hip", "wall": "bamboo", "porch": 2.0, "flowers": false},
-	"stall": {"canopies": ["palm_thatch", "cloth_red", "palm_thatch"], "post": "bamboo"},
-	"pier": {"deck": "planks_weathered", "post": "palm_bark", "rail": "bamboo", "lashings": true, "rope_rail": true},
-	"props": {"crate": "basket", "barrel": "pot", "lamp": "torch_post", "marker": "totem"},
-	"folk": {
-		"pick": {"skin": [Color(0.80, 0.60, 0.44), Color(0.72, 0.52, 0.38), Color(0.62, 0.43, 0.30), Color(0.50, 0.34, 0.23), Color(0.38, 0.25, 0.17)],
-			"hair_color": [Color(0.08, 0.06, 0.05), Color(0.08, 0.06, 0.05), Color(0.18, 0.11, 0.07), Color(0.32, 0.20, 0.11)],
-			"hat": ["none", "none", "straw", "bandana", "none"], "top": ["bare", "tunic", "bare", "shirt"], "top_fem": ["blouse", "tunic", "blouse"],
-			"sleeves": ["none", "short"], "legs": ["shorts", "shorts", "trousers"], "legs_fem": ["skirt", "skirt", "shorts"],
-			"feet": ["barefoot", "barefoot", "shoes"], "belt": ["sash", "sash", "none"], "marks": ["none", "none", "none", "war_paint"],
-			"top_color": [Color(0.90, 0.88, 0.80), Color(0.80, 0.62, 0.20), Color(0.16, 0.42, 0.44), Color(0.66, 0.14, 0.12), Color(0.68, 0.36, 0.18)],
-			"legs_color": [Color(0.82, 0.76, 0.62), Color(0.62, 0.52, 0.38), Color(0.18, 0.34, 0.20), Color(0.40, 0.28, 0.18), Color(0.66, 0.14, 0.12)],
-			"sash_color": [Color(0.66, 0.14, 0.12), Color(0.80, 0.62, 0.20), Color(0.16, 0.42, 0.44), Color(0.36, 0.20, 0.44)],
-			"hat_color": [Color(0.66, 0.14, 0.12), Color(0.80, 0.62, 0.20), Color(0.16, 0.42, 0.44)]},
-		"set": {"coat": "none", "vest": "none", "eyepatch": false, "gloves": false, "scarf": false},
-	},
-	"music": "island",
-	"ambience": "jungle",
-	"weather": [0.3, 0.56, 0.88],
-	"haze": 0.15,
-	# landmarks and set pieces (KitLandmarks, KitSetPieces): rock, carved stone, water, bone, lava, crystal
-	"rock_tint": Color(0.62, 0.62, 0.55),
-	"moss_tint": Color(0.5, 0.64, 0.4),
-	"temple_stone": Color(0.74, 0.76, 0.66),
-	"fort_stone": Color(0.8, 0.78, 0.72),
-	"water_tint": Color(0.3, 0.58, 0.55, 0.82),
-	"falls_tint": Color(0.78, 0.9, 0.95, 0.85),
-	"spring_tint": Color(0.55, 0.85, 0.82, 0.85),
-	"travertine": Color(0.93, 0.88, 0.76),
-	"wreck_hull": Color(0.55, 0.52, 0.46),
-	"bone": Color(0.9, 0.86, 0.74),
-	"basalt": Color(0.3, 0.29, 0.3),
-	"lava": Color(1.0, 0.45, 0.12),
-	"crystal": Color(0.4, 0.95, 0.85),
-	"rust": Color(0.42, 0.32, 0.26),
-}
-
-const STYLES := {"brinehollow": BRINEHOLLOW, "jungle": JUNGLE}
+## The prop models KitStyle makes itself; a theme's style names these or the theme's own (ThemeDef.props).
+const BASE_PROPS := ["crate", "barrel", "lantern_post", "notice_board"]
 ## How far past an island's radius its style still holds (blending out over it).
 const REACH := 140.0
 
 
+## Brinehollow's style, or a registered theme's over it.
 static func of(style_name: String) -> Dictionary:
-	var st: Dictionary = BRINEHOLLOW.merged(STYLES[style_name], true)
+	var over: Dictionary = BRINEHOLLOW if style_name == "brinehollow" else IslandThemes.of(style_name).style
+	var st: Dictionary = BRINEHOLLOW.merged(over, true)
 	st.make_read_only()
 	return st
+
+
+## Every style there is, by name (Brinehollow's and each theme's), merged as of() gives them.
+static func styles() -> Dictionary:
+	var out := {"brinehollow": of("brinehollow")}
+	for t in IslandThemes.all():
+		out[t.name] = of(t.name)
+	return out
 
 
 static func get_style(style_name: String) -> Dictionary:
@@ -179,10 +113,12 @@ static func house_spec(st: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 		"trim": _pick(rng, h["trims"]), "seed": rng.randi()}
 
 
-## The style's model for a kit's prop slot ("crate", "barrel", "lamp", "marker"). A
-## lamp has a "Flame" marker where its light goes.
+## The style's model for a kit's prop slot ("crate", "barrel", "lamp", "marker"): one of
+## BASE_PROPS, else the model of the theme that declares it (ThemeDef.props). A lamp has a
+## "Flame" marker where its light goes.
 static func prop(st: Dictionary, slot: String, rng: RandomNumberGenerator, size := 1.0) -> Node3D:
-	match str(st["props"][slot]):
+	var model := str(st["props"][slot])
+	match model:
 		"crate":
 			return Props.crate(0.8 * size)
 		"barrel":
@@ -196,15 +132,10 @@ static func prop(st: Dictionary, slot: String, rng: RandomNumberGenerator, size 
 			return post
 		"notice_board":
 			return KitVillage.notice_board(rng)
-		"basket":
-			return JungleProps.basket(0.8 * size, rng.randi())
-		"pot":
-			return JungleProps.pot(size, rng.randi())
-		"torch_post":
-			return JungleProps.torch_post(2.4 * size)
-		"totem":
-			return JungleProps.totem(rng.randi())
-	push_error("KitStyle: no prop %s" % st["props"][slot])
+	for t in IslandThemes.all():
+		if t.props.has(model):
+			return (t.props[model] as Callable).call(rng, size)
+	push_error("KitStyle: no prop %s" % model)
 	return null
 
 

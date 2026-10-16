@@ -167,7 +167,7 @@ func _process(d: float) -> bool:
 			var ks = load("res://scripts/island/kit/kit_style.gd")
 			var missing: Array = []
 			var rng := RandomNumberGenerator.new()
-			for sn in ks.STYLES.keys():
+			for sn in ks.styles().keys():
 				var st: Dictionary = ks.of(sn)
 				for k in ks.BRINEHOLLOW.keys():
 					if not st.has(k):

@@ -634,7 +634,7 @@ func _rumor() -> String:
 	var c := chain()
 	var first: Dictionary = c.node(c.start_next[randi() % c.start_next.size()])
 	var picks := [
-		"%s past Redtide Rock, %s" % [Chain.THEMES[first["theme"]]["blurb"], "if you've a log pose to find it by"],
+		"%s past Redtide Rock, %s" % [IslandThemes.of(first["theme"]).blurb, "if you've a log pose to find it by"],
 		"a fort on a sea stack %s. Captain Morrow's. Keeps a log pose, they say" % redtide_phrase(),
 		"a whole chain of islands out past Redtide, one after the next, and cities on it bigger than any you've seen",
 	]

@@ -76,7 +76,7 @@ func _process(d: float) -> bool:
 					if int(c.node(id)["level"]) <= int(n["level"]):
 						rising = false
 			# (different themes once there's more than one the islands can be built in)
-			var themes_ready: int = CH.FIRST_SEA_THEMES.filter(func(th): return load("res://scripts/island/island_theme.gd").has(th)).size()
+			var themes_ready: int = load("res://scripts/island/themes/island_themes.gd").all().size()
 			for l in by_layer.keys():
 				if by_layer[l].size() == 2:
 					var a: Dictionary = by_layer[l][0]

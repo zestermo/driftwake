@@ -318,3 +318,13 @@ scripts/game/perf_monitor.gd            t/world
 scripts/world/weather.gd                t/world
 tools/dev/compilecheck.gd               smoketest
 tools/dev/wallclock_allow.txt           smoketest
+# --- island themes register from their own files (2026-10-15) ---
+tools/dev/t/island/*                    t/island
+scripts/island/themes/*                 t/island isletest chaintest smoketest lifetest bosstest faunatest
+scripts/island/island_theme.gd          t/island
+scripts/island/kit/kit_style.gd         t/island
+scripts/island/kit/life_pools.gd        t/island
+scripts/enemies/beasts/beast_pool.gd    t/island
+scripts/world/chain.gd                  t/island
+scripts/island/fauna_spawner.gd         t/island
+scripts/ui/chain_marks.gd               t/island
