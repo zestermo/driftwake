@@ -85,6 +85,13 @@ const BRINEHOLLOW := {
 	# the weather here (Weather): where clear, cloudy and rain end on a 0..1 roll (the rest is storm), extra fog
 	"weather": [0.36, 0.66, 0.86],
 	"haze": 0.0,
+	# what falls in its rain and storm slots (Weather): "rain", "snow" (a light fall always, heavy in those) or "sand" (sandstorms)
+	"precip": "rain",
+	# the fog's colour here (alpha: how far it leans to it; at home the fog is the sky's horizon) and the sky's and fog's in a storm
+	"haze_color": Color(0.5, 0.72, 0.92, 0.0),
+	"storm_color": Color(0.36, 0.38, 0.42),
+	# footprints in the ground (GroundLayer): "" none, "sand" pressed into the terrain, "snow" also the soft layer you wade through
+	"ground_prints": "",
 }
 
 ## The prop models KitStyle makes itself; a theme's style names these or the theme's own (ThemeDef.props).

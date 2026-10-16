@@ -234,6 +234,7 @@ func state_text() -> String:
 			float(w.world_time()), names[st] if st < names.size() else str(st), "  (forced)" if int(w.forced) >= 0 else ""])
 		L.append("coverage %.2f  rain %.2f  storm %.2f  wind %.2f  fog %.2f  in_cloud %.2f  night %.2f" % [float(w.coverage),
 			float(w.rain), float(w.storm), float(w.wind), float(w.fog), float(w.in_cloud), float(w.night)])
+		L.append("snow %.2f  sand %.2f  murk %.2f  zone %s (%s)" % [float(w.snow), float(w.sand), float(w.murk), str(w._zone), w.state_name(int(w.state))])
 	var oc := get_node_or_null("/root/Ocean")
 	if oc and p:
 		L.append("sea: amp_mult %.2f  wave height at player %.2f  clock %.2f" % [float(oc.amp_mult),

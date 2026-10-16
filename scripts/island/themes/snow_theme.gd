@@ -99,9 +99,13 @@ const STYLE := {
 	"cave_look": {"rock": ["black_rock", Color(0.9, 0.92, 0.96)], "moss": ["glacier_rock", Color(0.95, 0.97, 1.0)], "turf": ["snow", Color.WHITE],
 		"wall": ["glacier_rock", Color(0.7, 0.78, 0.88)], "floor": ["snow_packed", Color(0.8, 0.84, 0.9)]},
 	"cave_frost": true,
-	# mostly overcast and white with haze (the fog's colour is Weather's: the weather pass themes it)
+	# mostly overcast under a white haze, a light snowfall always; heavy snow in the rain slots, a blizzard in a storm
 	"weather": [0.15, 0.8, 0.95],
 	"haze": 0.4,
+	"precip": "snow",
+	"haze_color": Color(0.86, 0.89, 0.94, 0.75),
+	"storm_color": Color(0.8, 0.83, 0.88),
+	"ground_prints": "snow",
 	# landmarks and set pieces (KitLandmarks, KitSetPieces): rock, carved stone, water, bone, lava, crystal
 	"rock_tint": Color(0.44, 0.46, 0.52),
 	"moss_tint": Color(0.86, 0.9, 0.96),

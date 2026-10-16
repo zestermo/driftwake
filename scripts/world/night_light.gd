@@ -5,6 +5,7 @@ extends OmniLight3D
 
 const DUSK := 18.5
 const DAWN := 6.0
+const STORM_LIT := 0.45
 
 var always := false
 var _check := 0.0
@@ -35,9 +36,11 @@ func _process(delta: float) -> void:
 		_update()
 
 
+## Dusk to dawn, or a whiteout or a sandstorm closing in (the lamps are lit against it).
 static func is_night() -> bool:
-	var h: float = (Engine.get_main_loop() as SceneTree).root.get_node("Weather").hour()
-	return h >= DUSK or h < DAWN
+	var wx = (Engine.get_main_loop() as SceneTree).root.get_node("Weather")
+	var h: float = wx.hour()
+	return h >= DUSK or h < DAWN or float(wx.murk) > STORM_LIT
 
 
 func _update() -> void:
