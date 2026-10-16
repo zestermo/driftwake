@@ -2621,3 +2621,85 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Fidelity** (fidelityshot on seed 7, tools/dev/out/desert/fid7_sheet.png): open against the royal-city ref:
   the village reads sparse next to its packed boxes and onion domes; the wooden lookout tower and the pirates'
   shacks are still the base kit's timber; the town hardly shows from the sea.
+
+## 2026-10-16: island size sweep (how big can desert and snow islands get)
+
+- **Tool:** `tools/dev/sizesweep.gd` (headless, ~25 min, a measuring tool only: no game code changed). Each theme's
+  islands at 1.0 / 1.5 / 2.0 x its own `ThemeDef.radius` (scaled on the registry's def for the build only), chain seeds
+  777 / 31337 / 4242 (each seed's first regular island of the theme), built the world's way (prepare on a worker, the
+  finish steps timed one by one), then the chain's spacing over 300 chain seeds with the scaled radius[1] going through
+  `Chain._make_room`. Output `tools/dev/out/sizesweep.txt` (every build, the slowest steps and prepare stages, errors).
+  Timings ran beside other sessions' Godots: ms swing up to ~2x build to build (desert 4242 x1.0 prepared in 57 s,
+  bodies alone 11.5 s; elsewhere desert x1.0 12-27 s); counts and memory are steady.
+- **Means** (3 seeds; exp = growth over x1.0 as a power of the radius, 2 = with area; mem = static memory the build
+  adds, CPU side; geo = estimated mesh + MultiMesh buffers, GPU side):
+
+  | theme | x | r m | land ha | prep s | main s | worst ms | nodes | mm inst | geo MB | mem MB | exp prep | exp mem |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+  | jungle | 1.0 | 363 | 27 | 7.4 | 1.9 | 145 | 8.6k | 42k | 29 | 110 | - | - |
+  | jungle | 1.5 | 545 | 61 | 12.7 | 2.2 | 151 | 15.5k | 101k | 38 | 164 | 1.33 | 0.99 |
+  | jungle | 2.0 | 727 | 107 | 23.0 | 3.3 | 356 | 24.9k | 185k | 49 | 226 | 1.64 | 1.04 |
+  | desert | 1.0 | 554 | 65 | 32.2 | 3.5 | 352 | 6.5k | 14k | 30 | 102 | - | - |
+  | desert | 1.5 | 832 | 144 | 43.8 | 2.8 | 128 | 10.6k | 30k | 42 | 161 | 0.76 | 1.14 |
+  | desert | 2.0 | 1109 | 257 | 71.1 | 5.6 | 273 | 16.1k | 53k | 59 | 239 | 1.14 | 1.23 |
+  | snow | 1.0 | 413 | 34 | 10.3 | 1.7 | 141 | 8.2k | 41k | 32 | 114 | - | - |
+  | snow | 1.5 | 619 | 76 | 21.3 | 2.3 | 168 | 15.7k | 101k | 41 | 165 | 1.80 | 0.91 |
+  | snow | 2.0 | 826 | 135 | 31.1 | 2.4 | 212 | 25.9k | 189k | 54 | 243 | 1.60 | 1.09 |
+
+  Desert's x1.0 row is pulled up by the loaded 4242 build; seeds 777 / 31337 alone go 27 / 12 s -> 51 / 23 s -> 61 / 69 s.
+- **How each cost scales:**
+  - Prepare (worker) = a fixed part (bodies ~2-3 s, the cave plan 0.2-1.5 s) plus stages that go with area: undergrowth
+    (jungle 777: 1.3 -> 3.3 -> 5.4 s), land (1.8 -> 3.2 -> 4.9), trees, thicket, shore, arrays. Overall r^1.3-1.8 here,
+    heading to r^2 as the area part takes over (the desert, the biggest, is mostly area already).
+  - Main thread total barely grows (2-3.5 s at x1.0, 2.4-5.6 at x2.0, ~120-145 steps): the sites and the village are fixed
+    counts. What grows is four single steps: plant colliders (one step for every trunk shape: jungle/snow ~50-80 -> 155-541
+    ms), the ground's 16 collider squares (GROUND is fixed at 4x4, so each square grows with area: desert up to 572 ms),
+    the terrain mesh (one mesh, up to 470 ms) and fauna (up to 640 ms). x1.0 already has 200-600 ms outliers (fauna, boss).
+  - Nodes r^1.5-1.7, MultiMesh instances ~r^2 (jungle 42k -> 185k), collision shapes ~r^2 (jungle 4.4k -> 16k).
+  - Static memory ~r^1 (110 -> ~240 MB an island at x2.0); geo ~r^0.7-0.9 (30 -> ~55 MB). Nothing held after freeing
+    beyond noise (-21..+26 MB).
+  - Content doesn't grow: places 4-7 and caves 1-3 at every size; every site and service placed at every size, no
+    script errors from the bigger islands. A 2x island is 4x the land with the same things on it.
+- **Chain spacing** (gaps coast to coast at full radius; the coast is mostly ~0.8 r, so the real water is wider):
+
+  | grown | x | leg min m | leg mean m | first leg min m | loaded together min m | Brinehollow min m (islands over it) | Redtide min m (over it) |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | desert+snow | 1.0 | 206 | 941 | 959 | 174 | 206 (0) | 147 (0) |
+  | desert+snow | 1.5 | 249 | 747 | 639 | 174 | -332 (3) | -197 (2) |
+  | desert+snow | 2.0 | 249 | 665 | 319 | 174 | -1013 (3) | -1047 (3) |
+  | all themes | 2.0 | 249 | 555 | 319 | 174 | -666 (6) | -773 (3) |
+
+  `_make_room` holds between layers and between a fork's two (islands loaded together never overlap), but nothing keeps a
+  grown island off Brinehollow or Redtide Rock, which are always in the world: RING[0] (2000 m) is a centre distance, and
+  fork offsets and later layers wandering back aren't held to it. 3 of 300 chains put an island over Brinehollow at 1.5x.
+  (Islands of one chain on the same water, never loaded together: 246 -> 556 pairs.)
+- **Which limit hits first:**
+  1. **Spacing near home, at 1.5x:** islands over Brinehollow / Redtide. A Chain fix (RING and the forks kept off home and
+     Redtide by radius), no streaming needed.
+  2. **Worker time vs the sail, at 1.5x for the desert:** the next islands start preparing when the log pose sets. After the
+     beast falls the crew still walks back to the ship (the arena is 0.5-0.62 r past the middle), which covers it; after the
+     15-minute auto-set the crew may already be aboard, and then it's the leg: mean 750 m = ~50 s at the sloop's best
+     15.2 m/s (the shortest 249 m = 16 s) against ~45 s (desert x1.5) and 60-85 s (x2.0) of prepare on this laptop, more on
+     the min-spec 5600G and with a busy worker. Desert x1.0 (12-30 s against a 940 m mean leg) is fine.
+  3. **Main-thread hitches** grow with area in those four single steps: 150-570 ms at 2x, already past a frame at 1.5x
+     (colliders up to 243, ground 211). Splitting them (colliders per 70 m cell, GROUND scaled with `res`, the terrain mesh
+     in chunks) is plain step work, no streaming.
+  4. **Memory** is not the limit: three x2.0 islands ~720 MB static + ~170 MB of mesh buffers, on top of Brinehollow.
+  5. **Not measured:** the frame cost of standing on a big island. The vegetation is already 70 m MultiMesh cells with
+     visibility ranges and people/fauna sleep by distance, but the terrain is one mesh with no LOD (x2.0 desert: 880 x 880
+     cells) and every plant collider and ground square is live. Bench one before deciding past 1.5x.
+- **What in-island sector streaming would have to cover** (only past ~1.5x, and it doesn't cut prepare by itself): the
+  terrain mesh and ground colliders by chunk (build / free by distance, LOD for far chunks); plant MultiMesh cells with
+  their trunk colliders and grapple crowns (GrapplePoints) made when near; site contents (camp, lair, ruins, caves,
+  landmarks, the beast's arena) built as a captain nears and kept while anyone's there, their saved state (opened chests,
+  cleared camps, beast down) re-applied; fauna dens and nav zones per sector; and co-op: the host simulates enemies, so a
+  sector stays live while any captain is near it, and guests stream their own visuals. Prepare would need splitting too
+  (the scatter and undergrowth per cell, lazily), keeping only the heights, coast, shore map and paths whole, or limit 2
+  stays.
+- **Read:** desert and snow can go to ~1.5x their radius (desert ~720-960 m, snow ~540-680 m: about 2.25x the area) with
+  three fixes and no streaming: Chain keeps islands off Brinehollow and Redtide, the four big steps split, and the next
+  islands start preparing earlier than the log pose's set (e.g. on arrival). Past that, prepare outruns the sail and the
+  islands get emptier unless their content scales too.
+- **Found on the way (not size-related):** `Chain._name` divides by zero when a theme's 8 names are all given and all
+  within two layers (chain seeds 74, 200, 220, 259 of 1-300: "Modulo by zero" in Chain.make). One desert x1.0 build
+  logged `Parameter "m" is null` (mesh_storage.h) with two "!F" conditions, not seen in the trial run of the same island.
