@@ -27,17 +27,7 @@ const RING := [2000.0, 7500.0]
 ## A layer's islands keep this far from the layer before's (m).
 const APART := 1150.0
 
-const THEMES := {
-	"jungle": {"name": "Jungle", "blurb": "a steaming jungle isle",
-		"names": ["Verdant", "Kalani", "Mosswater", "Tambor", "Orchid", "Viper", "Greenmaw", "Tikal"]},
-	"snow": {"name": "Snow", "blurb": "an island under ice and snow",
-		"names": ["Frosthelm", "Rimeholt", "Whitecap", "Glacia", "Icefang", "Winterhold", "Hoarfell", "Snowmere"]},
-	"desert": {"name": "Desert", "blurb": "a sun-baked desert island",
-		"names": ["Sunscar", "Dunmara", "Saffra", "Ashbar", "Mirage", "Scorpa", "Dustwell", "Qadir"]},
-	"forest": {"name": "Forest", "blurb": "an island of deep green woods",
-		"names": ["Elderwood", "Oakhollow", "Fernreach", "Mistvale", "Thornby", "Larchmoor", "Bramble", "Woodhaven"]},
-}
-const FIRST_SEA_THEMES := ["jungle", "snow", "desert", "forest"]
+## (the themes, their names and blurbs are the registry's: IslandThemes, in its declared order)
 const ISLE_WORDS := ["Isle", "Island", "Key", "Atoll", "Rock"]
 const CITY_WORDS := ["Port", "Harbour", "Haven"]
 
@@ -155,19 +145,28 @@ static func _steer(at: Vector2, origin: Vector2, dir: Vector2, leg: float, offs:
 	return best
 
 
-## (only themes IslandTheme can build; the rest join as they're made)
+## A registered theme by its weight (ThemeDef.weight), the ones to avoid left out unless
+## that leaves none; one draw whatever the themes, so the stream is the same as with one.
 func _pick_theme(rng: RandomNumberGenerator, avoid: Array) -> String:
-	var ready: Array = FIRST_SEA_THEMES.filter(func(t): return IslandTheme.has(t))
-	var pool: Array = ready.filter(func(t): return not avoid.has(t))
+	var ready: Array = IslandThemes.all()
+	var pool: Array = ready.filter(func(t): return not avoid.has(t.name))
 	if pool.is_empty():
 		pool = ready
-	return pool[rng.randi() % pool.size()]
+	var total := 0.0
+	for t in pool:
+		total += float(t.weight)
+	var roll := float(rng.randi()) / 4294967296.0 * total
+	for t in pool:
+		roll -= float(t.weight)
+		if roll < 0.0:
+			return t.name
+	return pool[-1].name
 
 
 ## (a name not given yet in this sea; once a theme's run out, one not on the
 ## islands of this layer or the two before, so a fork's two never match)
 func _name(rng: RandomNumberGenerator, n: Dictionary) -> String:
-	var names: Array = THEMES[n["theme"]]["names"]
+	var names: Array = IslandThemes.of(n["theme"]).island_names
 	var given := {}
 	var near := {}
 	for o in nodes:
@@ -187,7 +186,7 @@ func _name(rng: RandomNumberGenerator, n: Dictionary) -> String:
 
 ## What the log pose tells of an island (its theme and how dangerous).
 static func describe(n: Dictionary) -> String:
-	var kind: String = THEMES[n["theme"]]["name"]
+	var kind: String = IslandThemes.of(n["theme"]).display
 	match str(n["role"]):
 		"city":
 			kind += " city"

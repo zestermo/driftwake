@@ -518,7 +518,7 @@ func _define_board() -> void:
 func _define_elder(lvl: int) -> void:
 	var c: Chain = get_tree().get_first_node_in_group("world_gen").chain()
 	var ahead: Array = c.next_of(int(isl.node["id"])).map(func(id): return c.node(id))
-	var beyond := "Past us? %s." % " or ".join(ahead.map(func(n): return "%s, %s" % [n["name"], Chain.THEMES[n["theme"]]["blurb"]])) if not ahead.is_empty() else "Past us? The end of this sea, they say."
+	var beyond := "Past us? %s." % " or ".join(ahead.map(func(n): return "%s, %s" % [n["name"], IslandThemes.of(n["theme"]).blurb])) if not ahead.is_empty() else "Past us? The end of this sea, they say."
 	var menu := {"text": "What do you need, Captain?", "choices": [
 		{"text": "Tell me about this island.", "next": "about"},
 		{"text": "Where does the log pose point from here?", "next": "beyond"},
@@ -527,8 +527,7 @@ func _define_elder(lvl: int) -> void:
 		"intro": {"text": ["Visitors! It's been a long season. Welcome to %s." % isl.island_name,
 			"I'm %s. The board by the path has work, if you're the sort who takes it." % elder_name], "next": "menu"},
 		"menu": menu,
-		"about": {"text": ["The jungle feeds us and the jungle eats us. Pirates squat in the old camp, bugs nest inland, and the ruins are older than anyone remembers.",
-			"And something walks the far side of the island at night. Big. We don't go there."], "next": "menu"},
+		"about": {"text": LifePools.of(isl.theme)["elder_about"], "next": "menu"},
 		"beyond": {"text": [beyond, "Your needle needs time on an island before it sets on the next, or something to happen here worth remembering."], "next": "menu"},
 	}
 	for job in jobs.keys():

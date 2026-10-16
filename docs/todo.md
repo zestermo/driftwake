@@ -130,7 +130,9 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
 ## Then: the dev process plan, step 2 (`docs/dev_process_plan.md`)
 - Island feature registry (`IslandFeatures.add(name, plan, steps)`) and typed contracts between features
   (`VillagePlan`, `LifeSpot`, `PoiInfo`, `HarbourPlan`...), each kit declaring its own fidelity names and style
-  keys. One agent, nothing else on islands meanwhile. Step 1 (smoketest, fixed seeds, wait_ticks) is done.
+  keys. One agent, nothing else on islands meanwhile. Step 1 (smoketest, fixed seeds, wait_ticks) is done; the
+  theme part of step 2 is done (2026-10-15: `scripts/island/themes/`, ThemeDef / IslandThemes, a theme is its own
+  file plus one registry line; the hubs read it).
 - Step 3 alongside the next batch: the brief-template and integrator skills, merge as you go, the agent wall's
   overlap alarm, the Tests pane's flake tracker.
 
@@ -149,8 +151,8 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   - People on the harbour's decks (walk_height doesn't know them; `GenHarbour.spots` says where they'd work)
     and escort quests.
   - Theme styling not carried into the new village: the layouts' stalls, the workshop/shrine/storehouse/
-    ruin/palisade/decks, GenHarbour's `harbour_roof`, IslandLife's villagers' looks; the village ctx is
-    hardwired to "jungle".
+    ruin/palisade/decks, GenHarbour's `harbour_roof`, IslandLife's villagers' looks (the village, layout,
+    dungeon and temple contexts take the island's theme since 2026-10-15).
   - Jungle bosses: the bosses' AlphaBoar and the fauna Boar overlap; arena crowns don't sway (MultiMesh);
     minibosses and the roamer stay dead until the island is rebuilt; bossshot review of the serpent,
     stalker and mantis.

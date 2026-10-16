@@ -4,13 +4,22 @@ extends SceneTree
 ## written as one line (path with auto-name numbers dropped, class, transform to the
 ## mm, meshes by surface/vertex count/texture/tint, collision shapes, lights, NPC
 ## names, save ids, prompts). Diff two dumps with `git diff --no-index a.txt b.txt`.
-## Headless is fine. Args: <out.txt>
+## With a chain seed it dumps that chain's first island (GenIsland.build at its place, the
+## theme's meshes made first) the same way, after the whole chain's table (every node's
+## name, theme, place, level, seed, beasts, set piece and landmarks): the "same chain, same
+## island" check for the theme registry and the chain. Headless is fine.
+## Args: <out.txt> [chain seed]
 var t := 0.0
 var out := ""
+var chain_seed := 0
 
 
 func _initialize():
-	out = OS.get_cmdline_user_args()[0]
+	var a := OS.get_cmdline_user_args()
+	out = a[0]
+	if a.size() > 1:
+		chain_seed = int(a[1])
+		load("res://tools/dev/test_kit.gd").use_seed(self, chain_seed)
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -19,19 +28,38 @@ func _process(d: float) -> bool:
 	var w = root.get_node_or_null("World/Islands")
 	if w == null or t < 1.5:
 		return false
-	var isl = load("res://scripts/island/starter_island.gd").new()
-	isl.name = "DumpIsle"
-	isl.position = Vector3(0.0, 0.0, 9000.0)
-	w.add_child(isl)
-	isl.build(int(w.world_seed))
 	var lines := PackedStringArray()
+	var isl
+	if chain_seed != 0:
+		var c = w.chain()
+		for n in c.nodes:
+			lines.append("chain %d L%d b%d %s %s lv%d seed%d pos%s %s next%s beast=%s look%d %s minis=%s roamer=%s setpiece=%s landmarks=%s/%s" % [int(n["id"]), int(n["layer"]), int(n["branch"]),
+				n["theme"], n["role"], int(n["level"]), int(n["seed"]), _f(Vector3(n["pos"].x, 0, n["pos"].y)), n["name"], str(n["next"]), n["beast"], int(n["beast_look"]), n["beast_name"],
+				str(n["minis"]), n["roamer"], n["setpiece"], str(n["landmarks"]), str(n.get("landmark_count", "-"))])
+		var n: Dictionary = c.node(int(c.start_next[0]))
+		load("res://scripts/island/island_theme.gd").meshes(str(n["theme"]))
+		isl = load("res://scripts/island/gen_island.gd").new()
+		isl.name = "DumpIsle"
+		isl.position = Vector3(n["pos"].x, 0.0, n["pos"].y)
+		w.add_child(isl)
+		isl.build(n)
+		lines.append("island %s %s r%s forest=%s village=%s harbour=%s interiors=%s places=%s sites=%s" % [n["name"], isl.theme, _f(float(isl.radius)), isl.forest, isl.village_plan["layout"], isl.harbour.kind,
+			str(isl.interiors.map(func(e): return e["kind"])), str(isl.places.map(func(pl): return "%s:%s" % [pl.get("role", "?"), pl["kind"]])), str(isl.sites)])
+	else:
+		isl = load("res://scripts/island/starter_island.gd").new()
+		isl.name = "DumpIsle"
+		isl.position = Vector3(0.0, 0.0, 9000.0)
+		w.add_child(isl)
+		isl.build(int(w.world_seed))
 	_walk(isl, isl, lines)
-	var ex := PackedStringArray()
-	for e in isl.exclusions:
-		ex.append("%s/%s" % [_f(Vector3(e[0].x, 0, e[0].y)), _f(float(e[1]))])
-	lines.append("exclusions %d h%d" % [ex.size(), hash(ex)])
+	if chain_seed == 0:
+		var ex := PackedStringArray()
+		for e in isl.exclusions:
+			ex.append("%s/%s" % [_f(Vector3(e[0].x, 0, e[0].y)), _f(float(e[1]))])
+		lines.append("exclusions %d h%d" % [ex.size(), hash(ex)])
 	lines.append("paths %d h%d" % [isl.paths.size(), hash(str(isl.paths))])
-	lines.append("anchors odile%s tackett%s pell%s spawn%s" % [_f(Vector3(isl.odile_at.x, 0, isl.odile_at.y)), _f(Vector3(isl.tackett_at.x, 0, isl.tackett_at.y)), _f(Vector3(isl.pell_at.x, 0, isl.pell_at.y)), _f(isl.player_spawn_local)])
+	if chain_seed == 0:
+		lines.append("anchors odile%s tackett%s pell%s spawn%s" % [_f(Vector3(isl.odile_at.x, 0, isl.odile_at.y)), _f(Vector3(isl.tackett_at.x, 0, isl.tackett_at.y)), _f(Vector3(isl.pell_at.x, 0, isl.pell_at.y)), _f(isl.player_spawn_local)])
 	var f := FileAccess.open(out, FileAccess.WRITE)
 	f.store_string("\n".join(lines) + "\n")
 	f.close()

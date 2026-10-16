@@ -5,35 +5,20 @@ extends RefCounted
 ## roaming its floor. assign() writes them into each chain node ("beast",
 ## "beast_look", "minis", "roamer") once the chain is built.
 ##
+## The kinds are the theme's (ThemeDef: bosses, minis, roamers, and each kind's
+## script, names, looks and site in `beasts`, read here with info()).
+##
 ## Pool rules: a boss is never one the island before it had on any route
 ## (walking back through the chain's links), nor its fork's other side's; past
 ## that it's an even seeded pick. A variant ("beast_look": skin, name) is rolled
 ## with it, so two islands with the same beast still differ.
 
-## theme -> the bosses its islands roll from.
-const POOLS := {
-	"jungle": ["ape", "serpent", "stalker", "mantis"],
-}
-## kind -> its names (one is picked per island; the first is the plain one).
-const NAMES := {
-	"ape": ["The Silverback"],
-	"serpent": ["The Strangler", "Old Coil", "Mother of Vines"],
-	"stalker": ["The Shade", "Nightmaw", "The Spotted Death"],
-	"mantis": ["The Mantis Queen", "The Orchid Queen", "The Leaf Queen"],
-}
-## How many looks each kind has (the variant index is < this).
-const LOOKS := {"ape": 1, "serpent": 3, "stalker": 3, "mantis": 3}
-## The beasts that aren't the ape (JungleBeast scripts).
-const SCRIPTS := {
-	"serpent": "res://scripts/enemies/beasts/strangler.gd",
-	"stalker": "res://scripts/enemies/beasts/stalker.gd",
-	"mantis": "res://scripts/enemies/beasts/mantis_queen.gd",
-	"boar": "res://scripts/enemies/beasts/alpha_boar.gd",
-	"behemoth": "res://scripts/enemies/beasts/behemoth.gd",
-}
-const MINIS := {"jungle": ["boar"]}
-const ROAMERS := {"jungle": ["behemoth"]}
 const SALT := 70411
+
+
+## A theme's beast kind: {"script", "names", a boss's "looks", a mini's "site", maybe "stock"}.
+static func info(theme: String, kind: String) -> Dictionary:
+	return IslandThemes.of(theme).beasts[kind]
 
 
 ## Every node of `chain` gets its beasts (called at the end of Chain._build).
@@ -47,7 +32,8 @@ static func assign(chain: Chain) -> void:
 				prevs[id] = []
 			prevs[id].append(int(n["id"]))
 	for n in chain.nodes:
-		var pool: Array = POOLS[str(n["theme"])]
+		var theme: ThemeDef = IslandThemes.of(str(n["theme"]))
+		var pool: Array = theme.bosses
 		var avoid := _before(chain, prevs, int(n["id"]), str(n["theme"]))
 		for o in chain.nodes:
 			if int(o["layer"]) == int(n["layer"]) and o.has("beast") and str(o["theme"]) == str(n["theme"]):
@@ -55,16 +41,17 @@ static func assign(chain: Chain) -> void:
 		# (a pool of one can't help repeating)
 		var left: Array = pool.filter(func(k): return not avoid.has(k)) if pool.size() > 1 else pool
 		var kind: String = left[rng.randi() % left.size()]
+		var b: Dictionary = theme.beasts[kind]
 		n["beast"] = kind
-		n["beast_look"] = rng.randi() % int(LOOKS[kind])
-		n["beast_name"] = NAMES[kind][rng.randi() % (NAMES[kind] as Array).size()]
-		var minis: Array = (MINIS[str(n["theme"])] as Array).duplicate()
+		n["beast_look"] = rng.randi() % int(b["looks"])
+		n["beast_name"] = b["names"][rng.randi() % (b["names"] as Array).size()]
+		var minis: Array = theme.minis.duplicate()
 		var keep := 1 + rng.randi() % minis.size()
 		var picked: Array = []
 		while picked.size() < keep:
 			picked.append(minis.pop_at(rng.randi() % minis.size()))
 		n["minis"] = picked
-		var roam: Array = ROAMERS[str(n["theme"])]
+		var roam: Array = theme.roamers
 		n["roamer"] = roam[rng.randi() % roam.size()]
 
 
@@ -97,7 +84,7 @@ static func pois(isl: GenIsland) -> Array:
 	out.append({"kind": "boss", "beast": n["beast"], "name": n["beast_name"], "at": c,
 		"pos": isl.to_global(Vector3(c.x, isl.hv(c), c.y)), "radius": BeastArena.FLOOR_R})
 	for m in n["minis"]:
-		var site: String = MINI_SITES[m]
+		var site: String = info(isl.theme, m)["site"]
 		var at: Vector2 = isl.sites[site]
 		out.append({"kind": "miniboss", "beast": m, "name": mini_name(isl, m), "at": at,
 			"pos": isl.to_global(Vector3(at.x, isl.hv(at), at.y)), "radius": 22.0})
@@ -107,26 +94,18 @@ static func pois(isl: GenIsland) -> Array:
 	return out
 
 
-## Where each miniboss keeps (a site of the island's).
-const MINI_SITES := {"boar": "ruins", "warlord": "camp"}
 const ROAM_R := 140.0
-const BOAR_NAMES := ["Tuskmaw", "Old Gristle", "Mudking", "Ironbristle"]
-const WARLORD_NAMES := ["Warlord", "Warchief", "Butcher"]
-const ROAMER_NAMES := ["The Thornback", "Old Ironhide", "The Mossback"]
 
 
+## A miniboss's name on this island, from the island's seed.
 static func mini_name(isl: GenIsland, kind: String) -> String:
-	var s := int(isl.node["seed"])
-	match kind:
-		"boar":
-			return BOAR_NAMES[absi(s) % BOAR_NAMES.size()]
-		"warlord":
-			return WARLORD_NAMES[absi(s / 7) % WARLORD_NAMES.size()]
-	return kind
+	var names: Array = info(isl.theme, kind)["names"]
+	return names[absi(int(isl.node["seed"])) % names.size()]
 
 
 static func roamer_name(isl: GenIsland) -> String:
-	return ROAMER_NAMES[absi(int(isl.node["seed"]) / 13) % ROAMER_NAMES.size()]
+	var names: Array = info(isl.theme, str(isl.node["roamer"]))["names"]
+	return names[absi(int(isl.node["seed"]) / 13) % names.size()]
 
 
 ## The middle of the roamer's range: between the island's middle and its boss, off the paths.
@@ -142,6 +121,7 @@ static func roamer_of(isl: GenIsland) -> Node3D:
 	return r
 
 
-## The bodies prepare builds ahead for this island's beasts (Humanoid.stock).
+## The bodies prepare builds ahead for this island's beasts (Humanoid.stock): the boss's, if its kind stocks one.
 static func stock_looks(n: Dictionary) -> Array:
-	return [JungleApe.ape_look()] if str(n["beast"]) == "ape" else []
+	var b := info(str(n["theme"]), str(n["beast"]))
+	return [(b["stock"] as Callable).call()] if b.has("stock") else []

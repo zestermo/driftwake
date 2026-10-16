@@ -61,7 +61,7 @@ static func build(gi: GenIsland, _rng: RandomNumberGenerator) -> BeastArena:
 static func rebuild(gi: GenIsland, kind: String, variant: int = 0) -> BeastArena:
 	gi.node["beast"] = kind
 	gi.node["beast_look"] = variant
-	gi.node["beast_name"] = BeastPool.NAMES[kind][0]
+	gi.node["beast_name"] = BeastPool.info(gi.theme, kind)["names"][0]
 	var site := gi.site_node("boss")
 	for c in site.get_children():
 		c.free()
@@ -319,7 +319,7 @@ func spawn_boss() -> void:
 		ape.level = IslandContent.level(isl)
 		boss = ape
 	else:
-		var b: JungleBeast = load(BeastPool.SCRIPTS[kind]).new()
+		var b: JungleBeast = load(BeastPool.info(isl.theme, kind)["script"]).new()
 		b.setup({"post": global_position, "yaw": yaw, "level": IslandContent.level(isl), "variant": int(isl.node["beast_look"]),
 			"name": str(isl.node["beast_name"])})
 		boss = b

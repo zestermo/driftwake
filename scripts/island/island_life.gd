@@ -384,7 +384,7 @@ func _ahead(rng: RandomNumberGenerator) -> Array:
 		return [LifePools.fill(pools["rumour_fork"], {"a": ahead[0]["name"], "b": ahead[1]["name"]})]
 	var n: Dictionary = ahead[0]
 	var lines: Array = pools["rumour_chain"]
-	var out := [LifePools.fill(lines[rng.randi() % lines.size()], {"name": n["name"], "blurb": _cap(Chain.THEMES[n["theme"]]["blurb"])})]
+	var out := [LifePools.fill(lines[rng.randi() % lines.size()], {"name": n["name"], "blurb": _cap(IslandThemes.of(n["theme"]).blurb)})]
 	if rng.randf() < 0.5:
 		out.append(pools["rumour_hard"])
 	return out

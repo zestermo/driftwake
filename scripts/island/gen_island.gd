@@ -1129,7 +1129,7 @@ func _add_arrival_zone() -> void:
 	cs.shape = sph
 	area.add_child(cs)
 	add_child(area)
-	var blurb: String = Chain.THEMES[theme]["blurb"]
+	var blurb: String = IslandThemes.of(theme).blurb
 	area.body_entered.connect(func(b: Node3D):
 		if b.is_in_group("player") and b.get("is_local"):
 			get_tree().call_group("hud", "show_banner", island_name, "%s  (Lv %d)" % [blurb.capitalize(), int(node["level"])], true))
