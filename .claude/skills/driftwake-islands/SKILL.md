@@ -131,10 +131,11 @@ mesh child of the same name; services go further out until they fit (never silen
 
 ## The style table (KitStyle)
 
-`KitStyle.of(name)` (= `ctx.style`) is `BRINEHOLLOW` merged with the theme's table (`STYLES[name]`),
-read-only. BRINEHOLLOW has **every** key; a theme replaces **whole keys** (a nested table is replaced,
-not merged), so a theme's nested tables carry all their sub-keys. isletest fails if a theme misses a
-key, a nested key or a prop slot.
+`KitStyle.of(name)` (= `ctx.style`) is `BRINEHOLLOW` merged with the theme's table (`ThemeDef.style`,
+in the theme's own file: see "Adding a theme"), read-only. BRINEHOLLOW has **every** key; a theme
+replaces **whole keys** (a nested table is replaced, not merged), so a theme's nested tables carry all
+their sub-keys. isletest and `t/island/theme_registry` fail if a theme misses a key, a nested key or a
+prop slot. `KitStyle.styles()` is every style by name (Brinehollow's and each registered theme's).
 
 | Key | What | Read by |
 |---|---|---|
@@ -148,8 +149,8 @@ key, a nested key or a prop slot.
 | `inn` | what the inn changes from a rolled house | IslandVillage._make (`wall`) |
 | `stall` | `canopies` (textures), `post` | nothing yet (the layouts' market is KitMarket's Buildings.stall) |
 | `pier` | `deck post rail` textures, `lashings`, `rope_rail` | nothing yet (GenHarbour builds the dock from the `harbour_*` keys) |
-| `harbour_*` | GenHarbour's kinds, pilings, decks, roofs, walls, tarps, floats, signal lamp (JUNGLE only) | KitHarbourGen |
-| `props` | slot -> model: `crate barrel lamp marker` (jungle: basket, pot, torch_post, totem) | `KitStyle.prop(st, slot, rng, size)`; a lamp has a "Flame" marker for its light; KitLights.post uses the lamp slot |
+| `harbour_*` | GenHarbour's kinds, pilings, decks, roofs, walls, tarps, floats, signal lamp (the jungle's only) | KitHarbourGen |
+| `props` | slot -> model: `crate barrel lamp marker` (`KitStyle.BASE_PROPS` or a theme's own makers, `ThemeDef.props`; jungle: basket, pot, torch_post, totem) | `KitStyle.prop(st, slot, rng, size)`; a lamp has a "Flame" marker for its light; KitLights.post uses the lamp slot |
 | `folk` | `pick` pools (any CharacterLook key, `<key>_fem` for women), `set` fixed values | `KitStyle.folk_look(st, rng)` |
 | `music`, `ambience` | Music.TRACKS key ashore; Ambience.LOOPS bed ("" none) | Music, Ambience |
 | `weather`, `haze` | where clear/cloudy/rain end on a slot's roll (rest storm); fog added | Weather |
@@ -160,10 +161,63 @@ twice a second). Buildings.house takes `beam`, `floor`, `poles` (round posts), `
 the joints) and `eaves` (defaults are Brinehollow's look). Jungle models: `JungleProps` (basket, pot,
 torch_post, totem); textures bamboo, woven, palm_thatch, flagstones (gen_psx_textures.py `jungle`).
 
-**Adding a theme** (snow, desert, forest): a const table like `JUNGLE` with the keys that differ
-(whole nested tables), a line in `STYLES`, new prop slot values in `KitStyle.prop` if it has its own
-models, an `IslandTheme.DEFS` entry and `meshes` for its land and plants. Phase 2 agents add their
-own keys as one block at the end of BRINEHOLLOW (today's value) and of JUNGLE.
+## Adding a theme (snow, desert, forest...)
+
+**A theme is new files, not lines in hubs.** Everything the game looks up by a theme's name comes from one
+file, `scripts/island/themes/<theme>_theme.gd` (`extends ThemeDef`, no class_name needed), registered by
+its one line in `IslandThemes.SCRIPTS` (`scripts/island/themes/island_themes.gd`, one path per line: the
+only hub edit a theme makes, and two themes' lines merge cleanly). The jungle (`jungle_theme.gd`) is the
+worked example: copy it and change every value. The hubs (IslandTheme, KitStyle, LifePools, BeastPool,
+Chain, FaunaSpawner, ChainMarks, SkyBirds) read a theme only through `IslandThemes.of(name)` / `all()` /
+`has(name)`; never add a `match "jungle"` or a `{"jungle": ...}` table to one.
+
+**The contract** (`ThemeDef`, `scripts/island/themes/theme_def.gd`): fill every member in `_init()` and
+override `meshes()`. `IslandThemes` loads every theme together on first use and **refuses one that leaves a
+member unset** (`ThemeDef.missing()`: push_error naming the theme and the member, then assert), so a gap
+shows at start-up, never deep in an island build.
+
+| Member | What it is | Read by |
+|---|---|---|
+| `name` | the key ("jungle"): chain nodes, saves, `KitStyle.of`, `LifePools.of` | everything |
+| `display`, `blurb` | "Jungle"; "a steaming jungle isle" (the log pose, compass strip, arrival banner, rumours) | Chain.describe, GenIsland, IslandLife, IslandVillage's elder, Gus |
+| `island_names` | the names its islands draw from (a sea never repeats one while the list lasts) | Chain._name |
+| `weight` | its share of the chain's islands against the other themes' (jungle 1.0) | Chain._pick_theme (a weighted pick over `IslandThemes.all()` in declared order, one rng draw) |
+| `color`, `glyph` | the chart's and compass strip's colour and little icon: `glyph(ci, p, s, col)` draws about `s` px round `p` | ChainMarks.theme_color / icon |
+| `flocks` | parties of parrots hopping crown to crown over an island of 6+ crowns (jungle 2, Brinehollow 1; 0 = none) | SkyBirds |
+| `land` | the land's shape and plants: `peak hills hill_h roll base ramp cliffs cliff_h`, the chances per grid cell (`tree edge beach_tree fern bush grass rock`), `cover`, `canopy` + `giants` weights, `bamboo palm_inland mangrove`, `broadleaf shrub floor overgrown`, `forests` ([name, overrides], one per island from its seed). Numbers only: prepare reads it on a worker | IslandTheme.def -> GenIsland |
+| `meshes()` | the plant and rock meshes the scatter uses (`tree beach_tree bush fern grass rock` lists; `giant fig kapok emergent roof` as [body, detail, lean]; `mangrove bamboo broadleaf shrub`), built once on the main thread **before** `GenIsland.prepare` (world_generator and every tool call `IslandTheme.meshes(theme)` first). `KitLandmarks.canopy(theme)` sizes landmarks from their AABBs | IslandTheme.meshes |
+| `style` | the KitStyle table (the section above): the keys that differ from BRINEHOLLOW, nested tables whole. Its `props` slots name models, `ambience` an `Ambience.LOOPS` key (or ""), `music` a `Music.TRACKS` key, `weather`/`haze` the Weather odds | KitStyle.of |
+| `props` | model name -> `Callable(rng, size) -> Node3D` for the models `style.props` names beyond `KitStyle.BASE_PROPS` (crate, barrel, lantern_post, notice_board); a lamp carries a "Flame" Marker3D. Names unique across themes: prefix them with the theme's | KitStyle.prop |
+| `life` | the people's text table: `first`, `where`, `where_else`, `roles` (title, work, intro, self), `barks` (day/evening/night, one per spot kind, `pointer`), `menu bye rumour_* self_menu accept decline taken`, `quests` (lost, scout, deliver, fetch, clear), `scout_at`, `lost_at`, `elder_about` (the elder's two lines about the island). Keep it in its own file, `scripts/island/themes/<theme>_life.gd` (`const TEXT`), and `preload` it | LifePools.of -> IslandLife, IslandVillage |
+| `bosses`, `minis`, `roamers` | the kinds its islands roll from: one boss (never the island before's, nor its fork's other side's), 1+ minibosses, one roamer | BeastPool.assign |
+| `beasts` | every kind named above: `{"script": the beast's script, "names": [...] (a boss's picked by the chain, a mini's and the roamer's by the island's seed), a boss's "looks": variant count, a mini's "site": the island site it keeps, optionally "stock": Callable() -> a look whose body prepare builds ahead (the ape)}` | BeastPool.info, BeastArena, BeastDens |
+| `fauna`, `creatures` | the wildlife roster, kind -> `{"zones": floor/shore/canopy/swamp/cave, "p": chance an island has it, "dens": [lo, hi]}`, and each kind's Creature script | FaunaSpawner.roll / make |
+
+**Where a theme's own things go** (its files, nobody else's):
+- plants and rocks: `scripts/props/<theme>_plants.gd` (the jungle's `JunglePlants`: each big tree as [body, detail,
+  lean]); props: `scripts/props/<theme>_props.gd` (`JungleProps`); buildings that aren't a `Buildings.house` spec too.
+- creatures: `scripts/enemies/fauna/<kind>.gd` extending Creature (FaunaSpawner's group logic by kind - herd, nest,
+  roost, colony - is generic; a kind it doesn't know gets lone spots); beasts: `scripts/enemies/beasts/<kind>.gd`
+  extending JungleBeast (a boss BeastArena can spawn with `setup({post, yaw, level, variant, name})`).
+- textures: `tools/texture_gen/gen_<theme>_textures.py`, importing the helpers from gen_psx_textures.py
+  (`from gen_psx_textures import save, fbm, norm, ramp, pal, hexc, to_img, periodic_noise, planks`) and run on its
+  own (`py tools/texture_gen/gen_<theme>_textures.py`); never edit the jungle's sections or regenerate its PNGs.
+  Copy an existing `.png.import` next to each new texture (mipmaps on, compress_to 0).
+- music and ambience: a track is one line in `Music.TRACKS` (`<theme>` and `<theme>_night`, made with
+  gen_psx_music.py), a bed one line each in `Ambience.LOOPS` and `TOP_DB`; the style's `music` / `ambience` name
+  them. (Those two tables are the one place a theme still adds a line to a hub: Music and Ambience stay simple.)
+- the people's text: `scripts/island/themes/<theme>_life.gd`.
+- weather: the style's `weather` odds and `haze`; a new precipitation (sand, snow) is Weather's, not the theme's.
+
+**Steps:** write the files; add the line to `IslandThemes.SCRIPTS`; `& $env:GODOT --headless --import` once (new
+class_names); `run_tests.ps1 t/island/theme_registry` (every contract member set, scripts exist, every prop slot
+builds, no model name shared); `run_tests.ps1 smoketest` (the chain still rolls and builds: with a second theme
+registered the fixed seeds roll new themes, so expect smoketest's printed rolls to change, and chaintest's
+"forks differ" to start checking themes); then look at it: `islandshot` / `genshot` for an island, `fidelityshot`
+against Brinehollow, `islanddump.gd <out> <chain seed>` for a node-by-node dump of a seed's first island.
+Keep the jungle itself unchanged: a jungle island (one of the smoketest seeds' that still rolls jungle, or a seed
+of your own) and Brinehollow dump the same before and after your branch. A second registered theme changes
+which seeds roll jungle (the pick is weighted over the registry), not what a jungle island is.
 
 ## Jungle vegetation (IslandTheme, GenIsland._scatter_vegetation)
 

@@ -2113,3 +2113,49 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   bottom) sits below the quad's centre, so spawn those puffs ~0.6 x half-size above the surface and give them little
   velocity: the sheet does the rising. `lobes()` push past the frame edge at high `push`, which read as a cloud
   vanishing; keep `push` under ~1.3 r.
+## 2026-10-15: theme plumbing (island themes register from their own files)
+- **Why:** a theme was lines keyed `"jungle"` in nine hubs (IslandTheme.DEFS, KitStyle.JUNGLE/STYLES, LifePools.POOLS,
+  BeastPool's POOLS/MINIS/ROAMERS/NAMES/LOOKS/SCRIPTS/MINI_SITES/name lists, Chain.THEMES/FIRST_SEA_THEMES,
+  FaunaSpawner.ROSTER/make, ChainMarks.THEME_COLORS/icon, SkyBirds' parrot rule, Ambience/Music keys), so the desert
+  and snow agents would have edited every hub at once (docs/dev_process_plan.md "What went wrong"). Now **a theme is
+  new files**: `scripts/island/themes/<theme>_theme.gd` (extends `ThemeDef`) plus its line in `IslandThemes.SCRIPTS`.
+  Step 2 of the dev process plan, narrowed to themes (the IslandFeatures step registry and typed contracts are not in it).
+- **Registry** (`scripts/island/themes/`): `ThemeDef` (RefCounted; the contract as members: name, display, blurb,
+  island_names, weight, color, glyph, flocks, land, style, props, life, bosses, minis, roamers, beasts, fauna,
+  creatures, and `meshes()`; `CONTRACT` lists them, `missing()` says what's unset or inconsistent - a boss without
+  looks, a mini without a site, a roster kind without a creature script). `IslandThemes` (a const list of theme
+  script paths in declared order, never a folder listing: the order is the chain's; `of(name)` / `all()` / `has()`
+  over cached instances; `of` is not `get`, which would override Object.get). Every theme is loaded and checked
+  together on the first call, on the main thread (Chain._build, IslandTheme.meshes come before any worker), and a
+  theme with a gap is refused with push_error + assert. `of("nope")` pushes an error and returns null.
+  `JungleTheme` (`jungle_theme.gd`): today's jungle, every value moved unchanged; its text in `jungle_life.gd`
+  (`TEXT`, plus `elder_about`: the two lines IslandVillage's elder had hard-coded).
+- **Hubs on it** (their public API kept): `IslandTheme.has/def/meshes` (meshes cached per theme as before, made on
+  the main thread before prepare); `KitStyle.of` (BRINEHOLLOW merged with the theme's `style`; `styles()` for every
+  style by name; `BASE_PROPS`; `prop` makes the base models itself and asks the themes' `props` Callables for the
+  rest, first declaring theme wins, so the registry test checks no two themes share a model name); `LifePools.of`;
+  `BeastPool.info(theme, kind)` (script, names, looks, site, stock) with `assign/pois/mini_name/roamer_name/
+  stock_looks` reading it (the never-used "warlord" mini and its `s / 7` naming are gone; `mini_name` is
+  `names[abs(seed) % n]`, `roamer_name` `names[abs(seed / 13) % n]` as the boar's and behemoth's were); BeastArena
+  and BeastDens load scripts through `info`. `Chain._pick_theme` is a weighted pick (`ThemeDef.weight`, jungle 1.0)
+  over `IslandThemes.all()` in declared order, the avoided themes left out unless that empties the pool: exactly one
+  `rng.randi()` whatever the themes, so with the jungle alone the stream is today's. `Chain.THEMES` and
+  `FIRST_SEA_THEMES` are gone (snow/desert/forest's names and blurbs with them: their agents bring their own);
+  `Chain.describe`, GenIsland's banner, IslandLife's rumours, the elder's "beyond" and Gus's rumour read
+  `IslandThemes.of(theme).display/blurb`.
+- **Proof** (`tools/dev/islanddump.gd`, which now takes a chain seed: the whole chain's table - name, theme, place,
+  seed, level, beasts, set piece, landmarks - then that seed's first island built node by node): before and after on
+  the smoketest's seeds 1 (8721 nodes), 12 (7613), 36 (7048) and 9 (8235): byte-identical; two runs of seed 1 on
+  the same code also identical (no noise in GenIsland). Brinehollow (2486 nodes): identical but for the three
+  training dummies' sack heads (`Props.straw_dummy_mesh`, unseeded, as ever).
+- **Test:** `t/island/theme_registry` (the first `t/island` atomic test, on the light stage): every registered theme
+  fills every `CONTRACT` member, its beast and creature scripts exist, every style's prop slots build with a Flame on
+  the lamp, no two themes make a model of the same name; the jungle's land def, style (over Brinehollow's), beasts,
+  roster, text and chain words spot-checked; `_pick_theme` advances the rng by one draw; a chain is all jungle with
+  jungle names; a blank ThemeDef is refused on every member (props may be empty); `of("nope")` logs its error and
+  returns null. Covering suites: isletest (now over `KitStyle.styles()`), chaintest (themes ready =
+  `IslandThemes.all().size()`), lifetest, bosstest, smoketest, villagetest, harbourtest and the rest `-Changed` picks.
+- **Gotchas:** a theme's `props` lambdas and `stock` Callable run on the main thread (props) or the prepare worker
+  (stock: JungleApe.ape_look, as before) - keep them node-free. `KitStyle.of` is called from Weather, Music and
+  Ambience twice a second: it merges on every call as before (no new cost). `IslandThemes` must not be a directory
+  listing: declared order feeds the chain's rng. Don't name a static `get` on a RefCounted (native override).
