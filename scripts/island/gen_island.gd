@@ -606,7 +606,7 @@ func _terrain_arrays() -> void:
 func _terrain_node() -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
-	mesh.surface_set_material(0, PSXMat.terrain(true, 0.0))
+	mesh.surface_set_material(0, PSXMat.terrain(true, 0.0, KitStyle.of(theme)["ground"]))
 	var body := StaticBody3D.new()
 	body.name = "Terrain"
 	body.collision_layer = 1
@@ -615,7 +615,7 @@ func _terrain_node() -> void:
 	mi.mesh = mesh
 	body.add_child(mi)
 	add_child(body)
-	Coast.build(self, _rocks)
+	Coast.build(self, _rocks, KitStyle.of(theme)["ground"]["cliff"])
 	_rocks = {}
 
 

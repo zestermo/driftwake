@@ -2351,3 +2351,31 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   decoded to linear for Blender. The glb imports with LODs off and textures embedded uncompressed.
 - **Tests:** t/player/blender_body (on, procedural body hidden, forearm / shoulder helper / knee helper / hair
   bones within 1 cm of their sources at rest and through a cutlass draw, 13/13 parts mirror visibility, off).
+## 2026-10-16: the snow island theme, piece 1 (foundations, ground, village houses)
+- **What:** the snow theme (docs/snow_island_plan.md) registered after the jungle: `scripts/island/themes/snow_theme.gd`
+  (land, seven forests: pine valley, deep spruce, open snowfield, crystal slopes, frozen shore, heavy firs, cedar
+  ridge; the style; interim beasts and wildlife borrowed from the jungle until the snow's own: stalker / serpent /
+  mantis bosses renamed, alpha boar, behemoth; boar, mite, bat, crab), `snow_life.gd` (36 names, 7 roles: ice-fisher,
+  trapper, doctor, furrier, storyteller, lookout, brewer; barks, rumours, quests), `scripts/props/snow_plants.gd`
+  (SnowPlants: conifers as tiers of drooping boughs, a star of tips each, snow on top from the pine_snow texture's upper
+  half - spruce, fir, great pine, cedar, bough roof as [body, detail, lean]; young pines, saplings, dead trees, bent
+  shore pines, frozen shrubs, junipers, frosted grass, drifts, snow-capped black rocks, ice floes, ice-crystal clusters
+  that glow blue by emission), `scripts/props/snow_props.gd` (SnowProps: iron lamp post, waymark cairn, round house),
+  `tools/texture_gen/gen_snow_textures.py` (snow, snow_packed, ice, black_rock, glacier_rock, snow_beach, shingle_wet,
+  brick_pink, roof_green with snow on every course, pine_snow, ice_block, frost_shrub, frost_grass). Music.TRACKS
+  snow / snow_night / snow_town / snow_town_night and Ambience snow_loop at -13.5 (the theme's hub lines).
+- **Generic hooks added** (small; Brinehollow and the jungle unchanged): KitStyle `ground` (the terrain's layer
+  textures for PSXMat.terrain and the sea cliffs' rock for Coast.build; GenIsland passes its style's), `village_models`
+  (a theme's own prop models for a village's building kinds; IslandVillage places them where the kit's would go,
+  never on a raised layout), `cave_look` (caves' surfaces over KitDungeons.LOOK), `KitStyle.model(name)` (prop()
+  without the slot), IslandVillage's worn earth from the ground's dirt. BeastPool.assign: when every boss of a small
+  pool is avoided (the islands before plus the layer's same-theme islands), only the islands before are kept.
+- **Look:** the snow's round houses: pink brick drum, a tall cone of 4-6 green tiers with snow on each step, a brick
+  finial with a clay cap and chimney smoke, a hooded door at +Z, lit windows, a black-stone footing; the tall kind is two
+  storeys. Mostly overcast, haze 0.4 (the fog's colour is Weather's: still the home colour until the weather pass).
+- **Not yet:** the terrain (peaks, drifts, lakes, river; waits for the desert's land hooks), the snow's own creatures,
+  bosses and set pieces, KitHouses' workshop/storehouse/shrine and the harbour dressing are still jungle-built,
+  landmarks and set pieces are the chain's (totem groves, temples), FaunaAmbient's butterflies and fireflies fly here too,
+  the sea is the tropical one. Clothing has no fur hats or mittens (knit caps, hoods, coifs and leather gloves stand in).
+- **Tests:** `t/island/snow_foundations`; theme_registry's chain check now "every island's theme registered and named
+  from its list". Renders: genshot seed 1 node 1 (Hoarfell Atoll, snow), villageshot seed 1 node 1 town.

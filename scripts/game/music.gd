@@ -25,6 +25,10 @@ const TRACKS := {
 	"sea_night": ["res://assets/audio/music_sea_night.ogg", 80],
 	"combat": ["res://assets/audio/music_combat.ogg", 32],
 	"boss": ["res://assets/audio/music_boss.ogg", 32],
+	"snow": ["res://assets/audio/music_snow.ogg", 56],
+	"snow_night": ["res://assets/audio/music_snow_night.ogg", 56],
+	"snow_town": ["res://assets/audio/music_snow_town.ogg", 64],
+	"snow_town_night": ["res://assets/audio/music_snow_town_night.ogg", 64],
 }
 const FIGHTS := ["combat", "boss"]
 const VICTORY := "res://assets/audio/music_victory.ogg"

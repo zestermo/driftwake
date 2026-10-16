@@ -134,15 +134,15 @@ func _process(_d: float) -> bool:
 	var b := RandomNumberGenerator.new()
 	b.seed = 5
 	b.randi()
-	check("the theme pick is one rng draw (%s)" % picked, picked == "jungle" and a.state == b.state)
-	var all_jungle := true
+	check("the theme pick is one rng draw (%s)" % picked, IT.has(picked) and a.state == b.state)
+	var known := true
 	var named := true
 	for n in c.nodes:
-		if n["theme"] != "jungle":
-			all_jungle = false
-		if not j.island_names.has(n["base"]):
+		if not IT.has(n["theme"]):
+			known = false
+		elif not IT.of(n["theme"]).island_names.has(n["base"]):
 			named = false
-	check("with the jungle alone every island of a chain is jungle, named from its list (%d islands)" % c.nodes.size(), all_jungle and named and c.nodes.size() >= 9)
+	check("every island of a chain has a registered theme and a name from that theme's list (%d islands)" % c.nodes.size(), known and named and c.nodes.size() >= 9)
 	# refusals
 	var blank = TD.new()
 	var missing: Array = blank.missing()

@@ -27,8 +27,6 @@ scripts/ui/duel_hud.gd                  t/coop
 # --- player ---
 scenes/player/*                         t/player t/combat t/items swimtest
 scenes/player/camera_rig.gd             t/player t/combat
-scripts/npc/blender_body.gd             t/player/blender_body
-assets/models/captain/*                 t/player/blender_body
 scripts/player_states/*                 t/player t/combat
 scripts/player_states/player_state.gd   t/player t/items balancetest airtest
 scripts/player_states/light_attack*     t/combat axetest katanatest techtest wieldtest
@@ -332,3 +330,7 @@ scripts/island/fauna_spawner.gd         t/island
 scripts/ui/chain_marks.gd               t/island
 # --- theme land hooks: radius, plan_land, shape (2026-10-15) ---
 scripts/island/gen_island.gd            t/island
+# --- the snow theme (2026-10-15) ---
+scripts/props/snow_plants.gd            t/island isletest
+scripts/props/snow_props.gd             t/island isletest
+tools/texture_gen/gen_snow_textures.py  t/island

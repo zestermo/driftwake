@@ -259,10 +259,10 @@ static func fin(a: Array, rng: RandomNumberGenerator, line: Array, w: float, y0:
 
 
 ## The rock's nodes from `rocks`: a mesh and a collider per square, under one body.
-static func build(parent: Node3D, chunks: Dictionary) -> void:
+static func build(parent: Node3D, chunks: Dictionary, tex := "rock") -> void:
 	if chunks.is_empty():
 		return
-	var mat := PSXMat.lit("rock", TINT, {"affine": 0.5})
+	var mat := PSXMat.lit(tex, TINT, {"affine": 0.5})
 	var body := StaticBody3D.new()
 	body.name = "CoastRocks"
 	body.collision_layer = 1
