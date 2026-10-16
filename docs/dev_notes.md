@@ -2295,3 +2295,30 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   Renders (tools/dev/out/flipbook/): compare_ground / fire / hits / water (+ cannon, heavy), compare_cannon_h21
   and compare_fire_h21 (the hull and the ground lit at night), abil_axe_heavy / abil_kraken_wake /
   abil_point_blank (abilityshot at 21:00).
+
+## 2026-10-16: the captain in Blender (BlenderBody, F4 / Ctrl+F4)
+- **What:** a debug round trip for the player model. `BlenderBody.export_captain` (Ctrl+F4 in game, or
+  `tools/dev/blender_export.gd` for the default captain) builds a fresh unposed body of the look, bakes every
+  body mesh (BodyBuilder now tags them `body_part`) into one armature, writes `art/blender/captain_export.glb`
+  and runs Blender headless (`tools/blender/captain_setup.py`) to make `art/blender/captain.blend` with a glTF
+  collection exporter aimed at `assets/models/captain/captain.glb`. An existing captain.blend is never
+  overwritten (a second export makes captain_new.blend). F4 puts that model on the live captain.
+- **The rig:** one bone per joint that carries a mesh (named after the joint: Hips, ForeR, Head...) and one per
+  bone of the skinned parts' skeletons, `<owner>_<bone>` (ArmBody_shoulder_r_4, LowerBody_knee_l_3,
+  HeadChains_chain0_1 for SpringChains). 78 bones on the default captain. Bone rests have their scale stripped
+  (the head's style scale is baked into the vertices) and Blender imports them with bone_heuristic BLENDER so
+  they come back as sent.
+- **In game:** the procedural body keeps animating, ragdolling and simulating hair/cloth with its meshes on
+  `layers = 0`; each frame (after ArmBody/LowerBody, priority 110, only on frames the rig posed) every Blender
+  bone gets `source_now * source_rest^-1 * blender_rest`, the rest coming from a fresh unposed body of the live
+  look built at toggle time, so a bone Blender moved still lines up and a model with other proportions keeps
+  its own. A Blender part shows when the procedural part of the same name would (the fist/mitten swap, a
+  severed arm). Bones or objects added in Blender just hold their rest. Not carried over: hit flashes and
+  Haki tints (per-object material copies), co-op (only your screen), other captains.
+- **Materials:** psx_lit becomes a plain material for Blender (texture, tint, vertex colour, emission) and back
+  to psx_lit at toggle time. What glTF can't hold rides in the name: `~a<affine %>`, `~p<depth pull mm>`, `~nv`
+  (no vertex colour), `~u<n>` only for uniqueness (glTF writers number duplicate names, which garbled a tag).
+  The face decal is baked over the skin colour so it paints like any texture; sRGB-stored vertex colours are
+  decoded to linear for Blender. The glb imports with LODs off and textures embedded uncompressed.
+- **Tests:** t/player/blender_body (on, procedural body hidden, forearm / shoulder helper / knee helper / hair
+  bones within 1 cm of their sources at rest and through a cutlass draw, 13/13 parts mirror visibility, off).

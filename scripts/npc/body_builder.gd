@@ -114,6 +114,7 @@ func _run(hum: Humanoid, look: Dictionary) -> void:
 	for g in h.find_children("*", "GeometryInstance3D", true, false):
 		(g as GeometryInstance3D).visibility_range_end = end
 		(g as GeometryInstance3D).visibility_range_end_margin = end * 0.1
+		g.set_meta("body_part", true)
 
 
 # --------------------------------------------------------------------------
