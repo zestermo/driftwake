@@ -14,12 +14,25 @@ const SINK := """extends "res://scripts/island/themes/jungle_theme.gd"
 func _init() -> void:
 	super()
 	name = "sink_test"
+	style = style.merged({"arena": "open"})
 
 func plan_land(_isl, rng: RandomNumberGenerator) -> Dictionary:
 	return {"drop": 6.0, "roll": rng.randf()}
 
 func shape(isl, _p: Vector2, h: float) -> float:
 	return h - float(isl.land_plan["drop"]) * clampf(h - 3.0, 0.0, 1.0)
+
+func village_at(isl, _p: Vector2) -> Vector2:
+	return isl.dock_shore * 0.3
+
+func cover(_isl, _p: Vector2, _c: float) -> float:
+	return 0.0
+
+func growth(_isl, _p: Vector2) -> Vector2:
+	return Vector2(0.0, 1.0)
+
+func paint(_isl, _p: Vector2, _h: float, splat: Color) -> Color:
+	return Color(splat.r, splat.g, 1.0, 1.0)
 """
 
 
@@ -87,6 +100,16 @@ func _process(_d: float) -> bool:
 	check("the sites' kept land stays land round each site", kept)
 	var dock: Vector2 = s.dock_shore - s.dock_dir * 8.0
 	check("the dock's flat ground is at 2 m (%.2f)" % s.hv(dock), absf(s.hv(dock) - 2.0) < 0.3)
+	check("village_at moves the village (%s: its dock shore x 0.3)" % s.sites["village"], s.sites["village"] == s.dock_shore * 0.3)
+	var kinds := {}
+	for k in s._buckets.keys():
+		kinds[k[1]] = true
+	check("growth's plants 0 and cover 0: only rocks are scattered (%s), no undergrowth" % [kinds.keys()],
+		kinds.keys() == ["rock"] and Array(s._thick).max() == 0)
+	var cols: PackedColorArray = s._arrays[Mesh.ARRAY_COLOR]
+	check("paint reaches the terrain's splat (every vertex's sand 1)", Array(cols).all(func(c): return c.b == 1.0))
+	check("an open arena: the boss's floor kept clear, no ring of giants", s.canopy_arenas.size() == 1 and not s.canopy_arenas[0][3]
+		and s.arena_ring(s.sites["boss"]).is_empty() and s.reserved_in(s.sites["boss"], 3.0) and j.canopy_arenas[0][3] and not j.arena_ring(j.sites["boss"]).is_empty())
 	j.free()
 	s.free()
 	IT._by_name.erase("sink_test")

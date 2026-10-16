@@ -2280,6 +2280,15 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   no plan; a test theme (the jungle's files sinking the inland 6 m, loaded from source so the test compiles before
   the autoloads) keeps the jungle island's radius, capes and hills, sinks the land away from the sites, and every
   flat, the sites' kept land and the dock's 2 m hold. isletest's size check reads the theme's range.
+- **More land hooks** (same rule: called only with a land plan, so the jungle and snow pay nothing):
+  `village_at(isl, p)` (the village moved once GenIsland has placed it: the desert's capital up on its plateau),
+  `cover(isl, p, c)` (how overgrown, before the sites are cleared), `growth(isl, p) -> Vector2(plants, rocks)`
+  (multipliers on every scatter chance: bare dunes, stony ridges; the 5 m and 2.5 m grids), `paint(isl, p, h, splat)`
+  (the terrain's dirt/rock/sand after the base's). KitStyle key `arena` ("canopy" in BRINEHOLLOW; "open" = the
+  boss's floor kept clear with no ring of giants and no roof: `GenIsland.open_arena`, `canopy_arenas` entries carry
+  a 4th "canopy" bool, `arena_ring` is empty for an open one). Proof: islanddump on main vs the branch, seeds 4242 and
+  12 (jungle) and 77 (snow): byte-identical. theme_land's test theme also moves its village, grows nothing, paints
+  sand everywhere and has an open arena: checked.
 ## 2026-10-15: flipbook rollout across FX, and brief impact lights
 - **Rollout** (`scripts/game/fx.gd`, all behind `FX.flipbooks`; same names and arguments, so every Net.fx caller is
   unchanged): `dust` (a puff or two of the brown dust sheet), `dust_ring` (a `puff_ring` of `dust_low`), `heavy_dust`

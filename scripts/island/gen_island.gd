@@ -401,6 +401,8 @@ func _plan_sites() -> void:
 	# the village: by the dock half the time, otherwise well inland
 	var inland := _rng.randf_range(60.0, 90.0) if _rng.randf() < 0.5 else _rng.randf_range(130.0, 190.0)
 	sites["village"] = _settle(dock_shore - dock_dir * inland, 30.0)
+	if not land_plan.is_empty():
+		sites["village"] = _theme.village_at(self, sites["village"])
 	# the boss's ground on the far side, the others round about
 	sites["boss"] = _settle(-dock_dir * radius * _rng.randf_range(0.5, 0.62), 26.0)
 	var peak: Vector2 = _bumps[0][0]
@@ -426,7 +428,10 @@ func _plan_sites() -> void:
 	# the sites' cores stay clear of trees and rocks (what's built there comes later)
 	for site in SITE_CLEAR.keys():
 		reserve_area(sites[site], SITE_CLEAR[site])
-	canopy_arena(sites["boss"], BeastArena.FLOOR_R)
+	if KitStyle.of(theme)["arena"] == "canopy":
+		canopy_arena(sites["boss"], BeastArena.FLOOR_R)
+	else:
+		open_arena(sites["boss"], BeastArena.FLOOR_R)
 	# levelled ground for each (the summit keeps its top)
 	_flat.append([sites["village"], _height_natural(sites["village"]), 26.0, 44.0])
 	_flat.append([sites["boss"], _height_natural(sites["boss"]), 22.0, 36.0])
@@ -576,6 +581,8 @@ func _terrain_arrays() -> void:
 				dirt *= 1.0 - rock
 				sand = (1.0 - _smooth(1.7, 2.8, h)) * (1.0 - dirt) * (1.0 - rock)
 			cols[i] = Color(dirt, rock, sand, 1.0)
+			if not land_plan.is_empty():
+				cols[i] = _theme.paint(self, p, h, cols[i])
 	var idx := PackedInt32Array()
 	idx.resize(res * res * 6)
 	var k := 0
@@ -673,6 +680,8 @@ func mooring() -> Array:
 ## kept off the sites).
 func _cover(p: Vector2) -> float:
 	var c := _smooth(-0.15, 0.2, _cover_noise.get_noise_2d(p.x, p.y) + float(_def["cover"]) - 0.5)
+	if not land_plan.is_empty():
+		c = _theme.cover(self, p, c)
 	for site in ["village", "boss", "camp", "lair", "ruins"]:
 		c *= _smooth(20.0, 42.0, p.distance_to(sites[site]))
 	for a in canopy_arenas:
@@ -701,7 +710,13 @@ const THICKET_SLOW := 0.3
 ## overhead. Paths still reach it as they're planned. Its centre's ground is levelled
 ## only if the caller adds it to the flats.
 func canopy_arena(c: Vector2, r: float) -> void:
-	canopy_arenas.append([c, r, []])
+	canopy_arenas.append([c, r, [], true])
+	reserve_area(c, r)
+
+
+## A fight's floor in the open (a theme with no canopy, land "arena" "open"): kept clear like a canopy arena, no ring, no roof.
+func open_arena(c: Vector2, r: float) -> void:
+	canopy_arenas.append([c, r, [], false])
 	reserve_area(c, r)
 
 
@@ -777,6 +792,8 @@ func _scatter_vegetation() -> void:
 	var t_veg := Time.get_ticks_usec()
 	# canopy arenas: giants ring each, leaning in, and canopy pieces roof it over
 	for a in canopy_arenas:
+		if not a[3]:
+			continue
 		var ac: Vector2 = a[0]
 		var ar: float = a[1]
 		var n := maxi(int(TAU * (ar + 4.6) / 8.0), 6)
@@ -825,26 +842,28 @@ func _scatter_vegetation() -> void:
 			if h < -1.6 or _excluded(p, 1.0):
 				continue
 			var roll := _rng.randf()
+			# the theme's [plants, rocks] multipliers here (dunes bare, ridges stony)
+			var grow := Vector2.ONE if land_plan.is_empty() else _theme.growth(self, p)
 			if h < 0.7:
-				if h > -1.2 and roll < float(_def["mangrove"]):
+				if h > -1.2 and roll < float(_def["mangrove"]) * grow.x:
 					_add_tree(buckets, m["mangrove"], p, h, 0.25, 2.5, _rng.randf_range(0.85, 1.2))
-				elif h > -1.4 and roll < 0.05 + float(_def["mangrove"]):
+				elif h > -1.4 and roll < (0.05 + float(_def["mangrove"])) * grow.y:
 					_add_rock(buckets, m["rock"], p, _rng.randf_range(0.6, 1.6))
 				continue
 			var slope := _slope_at(p)
 			if slope > 0.5:
-				if roll < 0.35:
+				if roll < 0.35 * grow.y:
 					_add_rock(buckets, m["rock"], p, _rng.randf_range(0.8, 2.2))
 				continue
 			if _path_dist(p) < 3.0:
 				continue
 			var beach := 1.0 - _smooth(2.0, 3.8, h)
 			var cov := _cover(p) * (1.0 - beach)
-			var p_mangrove := float(_def["mangrove"]) * beach * 0.6
-			var p_beach := float(_def["beach_tree"]) * beach + float(_def["palm_inland"]) * cov
-			var p_tree := float(_def["tree"]) * cov + float(_def["edge"]) * (1.0 - cov) * (1.0 - beach)
-			var p_rock := float(_def["rock"])
-			var p_bamboo := float(_def["bamboo"]) * cov
+			var p_mangrove := float(_def["mangrove"]) * beach * 0.6 * grow.x
+			var p_beach := (float(_def["beach_tree"]) * beach + float(_def["palm_inland"]) * cov) * grow.x
+			var p_tree := (float(_def["tree"]) * cov + float(_def["edge"]) * (1.0 - cov) * (1.0 - beach)) * grow.x
+			var p_rock := float(_def["rock"]) * grow.y
+			var p_bamboo := float(_def["bamboo"]) * cov * grow.x
 			if roll < p_mangrove:
 				_add_tree(buckets, m["mangrove"], p, h, 0.25, 2.5, _rng.randf_range(0.85, 1.2))
 				continue
@@ -881,11 +900,12 @@ func _scatter_vegetation() -> void:
 				continue
 			var beach := 1.0 - _smooth(2.2, 3.6, h)
 			var cov := _cover(p)
-			var p_fern := float(_def["fern"]) * cov * (1.0 - beach)
-			var p_bush := (0.05 + float(_def["bush"]) * cov) * (1.0 - beach * 0.7)
-			var p_broad := float(_def["broadleaf"]) * cov * (1.0 - beach)
-			var p_shrub := float(_def["shrub"]) * cov * (1.0 - beach)
-			var p_grass := (float(_def["grass"]) * (1.0 - cov * 0.5) + 0.05) * (1.0 - beach * 0.8)
+			var g := 1.0 if land_plan.is_empty() else _theme.growth(self, p).x
+			var p_fern := float(_def["fern"]) * cov * (1.0 - beach) * g
+			var p_bush := (0.05 + float(_def["bush"]) * cov) * (1.0 - beach * 0.7) * g
+			var p_broad := float(_def["broadleaf"]) * cov * (1.0 - beach) * g
+			var p_shrub := float(_def["shrub"]) * cov * (1.0 - beach) * g
+			var p_grass := (float(_def["grass"]) * (1.0 - cov * 0.5) + 0.05) * (1.0 - beach * 0.8) * g
 			if pd < 2.0:
 				var k := 0.0 if road else float(_def["overgrown"])
 				p_fern *= k
@@ -913,7 +933,7 @@ func _scatter_vegetation() -> void:
 			# under thick cover a second layer of ground cover between the rest
 			var floor_k := 1.0 if pd >= 2.0 else (0.0 if road else float(_def["overgrown"]))
 			var q := p + Vector2(1.25, 1.25)
-			if cov > 0.5 and _rng.randf() < float(_def["floor"]) * cov * (1.0 - beach) * floor_k and not _excluded(q, -0.5):
+			if cov > 0.5 and _rng.randf() < float(_def["floor"]) * cov * (1.0 - beach) * floor_k * g and not _excluded(q, -0.5):
 				var fk := "fern" if _rng.randf() < 0.6 else "grass"
 				var fl: Array = m[fk]
 				_bucket(buckets, fl[_rng.randi() % fl.size()], fk, Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.7, 1.2)), Vector3(q.x, hv(q) - 0.05, q.y)))
