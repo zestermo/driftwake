@@ -355,3 +355,11 @@ tools/texture_gen/gen_desert_textures.py t/island
 scripts/psx/draw_lod.gd                 t/island isletest perftest
 scripts/island/themes/desert_places.gd  t/island landmarktest smoketest
 scripts/island/kit/kit_landmarks.gd     t/island landmarktest
+# --- weather and ground by theme: snowfall, sandstorms, fog colour, footprints (2026-10-16) ---
+scripts/world/precip_fx.gd              t/world r9test
+scripts/world/night_light.gd            t/world
+scripts/world/ground_layer.gd           t/world
+shaders/world/ground_prints.gdshaderinc t/world
+shaders/world/snow_layer.gdshader       t/world
+scenes/island/terrain.gdshader          t/world
+scripts/game/footsteps.gd               t/world ambiencetest

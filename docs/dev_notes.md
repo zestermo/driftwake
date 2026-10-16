@@ -2703,3 +2703,29 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Found on the way (not size-related):** `Chain._name` divides by zero when a theme's 8 names are all given and all
   within two layers (chain seeds 74, 200, 220, 259 of 1-300: "Modulo by zero" in Chain.make). One desert x1.0 build
   logged `Parameter "m" is null` (mesh_storage.h) with two "!F" conditions, not seen in the trial run of the same island.
+## 2026-10-16: weather and ground on the snow and desert islands (piece 1: fog colour, snowfall, sandstorms)
+- **What:** Zach's direction (docs/snow_island_plan.md, desert_island_plan.md "Weather, sound, effects"): a snow
+  island under a white haze nearly always, a light snowfall all the time and heavy spells that close the view in
+  (its rain slots heavy snow, its storm a blizzard); a desert that never rains, its rain and storm slots blowing
+  sand (a sandstorm), lanterns lit against it. Home and the jungle are exactly as before.
+- **KitStyle keys** (BRINEHOLLOW keeps today's): `precip` ("rain" / "snow" / "sand"), `haze_color` (the colour the
+  fog leans to, alpha = how far; home's alpha 0: its fog is the horizon as before), `storm_color` (the sky's and
+  fog's grey in a storm: home's 0.36/0.38/0.42), `ground_prints` (piece 2). Snow: white haze 0.75, storm white,
+  odds unchanged ([0.15, 0.8, 0.95]: heavy snow in ~18% of slots, a blizzard ~5% of them). Desert: a warm dust haze
+  0.35, storm ochre, odds [0.6, 0.86, 0.91] (sand in ~12% of slots; was 0.93, ~7% storms).
+- **Weather** (`params_in(t, style, k)`: PARAMS' six, then snow and sand): a theme whose fall isn't rain zeroes its
+  rain and turns that slot's fall into `snow` (at least SNOW_LIGHT 0.22 always) or `sand`; `murk` (0..1) is a
+  heavy fall or a sandstorm closing in: the fog pulls in to 2..65 m, the sky's haze rises to 1.3, the fog colour
+  goes to the storm colour (`haze_here`), the sky top pales toward the haze. No lightning where the fall isn't
+  rain. Beds: `sandstorm_loop` x sand, `blizzard_loop` x heavy snow (a light fall is quiet), at -6 dB like the rain,
+  halved under a roof. F6's toast names them (Heavy snow, Blizzard, Blowing sand, Sandstorm: `state_name`).
+  NightLight.is_night() (lamps, the belt lantern) is also true past murk 0.45.
+- **PrecipFX** (`scripts/world/precip_fx.gd`, made by Weather beside the rain; GPU particles round the camera,
+  each screen its own from the synced weather): flakes (1800 max, a 3x3 pixel cross, lit, drifting on the wind),
+  and once murk rises streaks on the wind (sand's long, snow's short and only in a blizzard) and big drifting
+  curtains of the flipbook's snow / sand sheet (36, unshaded, dimmed with the night and a storm's dusk). All three
+  off (not emitting, hidden) wherever nothing falls: the per-frame cost away from those islands is one _process
+  that sets three positions.
+- **Co-op:** nothing sent: snow, sand and murk come from world time and the place, like the rain.
+- **Tests:** `t/world/theme_weather`. Render: `themewxshot.gd <out> 1 1` (Hoarfell Atoll, snow) and `<out> 2`
+  (Mirage Island, desert): tools/dev/out/wx2/snow2_sheet.png, desert3_sheet.png.
