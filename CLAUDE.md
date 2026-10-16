@@ -152,7 +152,8 @@ then one full test run and one bug-fix pass on main, with known bugs from the ag
 
 **Agent types** (`.claude/agents/`): spawn feature work as `driftwake-feature` (worktree isolation; the rules,
 test tiers, landing and report format are built in, so the brief is just the feature) and narrow fixes, failing
-suites and mechanical changes as `driftwake-fixer` (Sonnet, cheaper).
+suites and mechanical changes as `driftwake-fixer` (Sonnet, cheaper). The lead session running a batch follows the
+`driftwake-lead` skill (before the batch, the brief template, relaying, checking reports, cleanup, the push).
 
 Zach often runs several Claude sessions at once. Each should work in its own git worktree
 so half-finished edits never break another session's tests or end up in its commits:
