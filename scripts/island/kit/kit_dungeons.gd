@@ -207,6 +207,9 @@ static func _layout(isl: GenIsland, rng: RandomNumberGenerator, spec: Dictionary
 		var m := c + d * (r0 + CaveMesher.T + 1.0)
 		if isl.hv(m) < 1.6:
 			continue
+		# (a theme's own land can be steep: a mouth whose floor stands over the ground in it or below it can't be walked into)
+		if not isl.land_plan.is_empty() and minf(isl.hv(m), isl.hv(m + d * 4.0)) < top(isl, m, w + 0.5) - 0.45:
+			continue
 		var score := absf(top(isl, m, w * 0.7) - y0) / (CaveMesher.T + 2.5) + absf(k - 4) * 0.08
 		if score < best:
 			best = score

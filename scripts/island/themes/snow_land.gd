@@ -16,6 +16,8 @@ const SITE_CLEAR := [34.0, 72.0]
 const ICE_LIFT := 0.6
 const RIVER_DEPTH := 2.0
 const PLANT_PAD := 2.0
+## No tree, bush or rock this near a cave's mouth (a trunk in the way and you can't walk in).
+const MOUTH_CLEAR := 9.0
 const VIS := 700.0
 
 
@@ -60,7 +62,7 @@ static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
 	var drift := FastNoiseLite.new()
 	drift.seed = rng.randi()
 	drift.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	drift.frequency = 0.03
+	drift.frequency = 0.016
 	drift.fractal_octaves = 2
 	lp["drift"] = drift
 	var crag := FastNoiseLite.new()
@@ -91,10 +93,13 @@ static func cover(isl, p: Vector2, c: float) -> float:
 	return c * (1.0 - _ice_at(lp, p, PLANT_PAD)) * (1.0 - high * 0.85)
 
 
-## [plants, rocks]: nothing on the ice; more rocks on the spires.
+## [plants, rocks]: nothing on the ice or in front of a cave's mouth; more rocks on the spires.
 static func growth(isl, p: Vector2) -> Vector2:
 	var lp: Dictionary = isl.land_plan
 	var bare := 1.0 - _ice_at(lp, p, PLANT_PAD)
+	for e in isl.interiors:
+		if p.distance_to(e["mouth"]) < MOUTH_CLEAR:
+			bare = 0.0
 	var stony := 1.0
 	for sp in lp["spires"]:
 		stony = maxf(stony, 1.0 + 2.0 * (1.0 - smoothstep(0.4, 1.0, p.distance_to(sp["c"]) / float(sp["r"]))))
@@ -161,7 +166,7 @@ static func shape(isl, p: Vector2, h: float) -> float:
 				var t := d / float(sp["r"])
 				s += (float(sp["h"]) * pow(1.0 - t, float(sp["k"])) + crag.get_noise_2d(p.x * 1.6, p.y * 1.6) * 6.0 * (1.0 - t)) * clear * pass_k * land
 		var drift: FastNoiseLite = lp["drift"]
-		s += maxf(drift.get_noise_2d(p.x * 0.35 + p.y * 0.15, p.y * 1.4 - p.x * 0.2), 0.0) * 3.2 * clear * (0.3 + 0.7 * pass_k) * land
+		s += maxf(drift.get_noise_2d(p.x * 0.35 + p.y * 0.15, p.y * 1.4 - p.x * 0.2), 0.0) * 2.2 * clear * (0.3 + 0.7 * pass_k) * land
 	for lk in lp["lakes"]:
 		var d := p.distance_to(lk["c"])
 		var lr: float = lk["r"]
@@ -180,6 +185,15 @@ static func steps(isl) -> Array:
 	return [["snow ice", func(): _ice(isl)], ["snow crystals", func(): _crystals(isl)]]
 
 
+## Whether p (or a disk of r round it) is on a cave's or dungeon's ground (KitDungeons, planned after the land:
+## its rock and tunnels stand over the ground there, and a sheet of ice would cut through them).
+static func _in_interior(isl, p: Vector2, r := 0.0) -> bool:
+	for e in isl.interiors:
+		if p.distance_to(e["at"]) < float(e["radius"]) + r + 4.0:
+			return true
+	return false
+
+
 static func _ice(isl) -> void:
 	var lp: Dictionary = isl.land_plan
 	var mb := MeshBuilder.new()
@@ -192,7 +206,7 @@ static func _ice(isl) -> void:
 	for lk in lp["lakes"]:
 		var c: Vector2 = lk["c"]
 		# (a site's flat may have filled a lake in: no ice where the ground isn't the bed)
-		if absf(float(isl.hv(c)) - (float(lk["level"]) - ICE_LIFT)) > 0.3:
+		if absf(float(isl.hv(c)) - (float(lk["level"]) - ICE_LIFT)) > 0.3 or _in_interior(isl, c, float(lk["r"])):
 			continue
 		var y: float = lk["level"]
 		var lr: float = float(lk["r"]) + 1.0
@@ -213,7 +227,7 @@ static func _ice(isl) -> void:
 		var side := (b - a).normalized().orthogonal() * hw
 		var ya := maxf(float(isl.hv(a)), -0.8) + ICE_LIFT
 		var yb := maxf(float(isl.hv(b)), -0.8) + ICE_LIFT
-		if ya < 0.2 and yb < 0.2:
+		if (ya < 0.2 and yb < 0.2) or _in_interior(isl, a) or _in_interior(isl, b):
 			continue
 		var q := [Vector3(a.x - side.x, ya, a.y - side.y), Vector3(a.x + side.x, ya, a.y + side.y), Vector3(b.x + side.x, yb, b.y + side.y), Vector3(b.x - side.x, yb, b.y - side.y)]
 		mb.add_quad(ice, q[0], q[1], q[2], q[3], Vector2(q[0].x, q[0].z) * 0.12, Vector2(q[1].x, q[1].z) * 0.12, Vector2(q[2].x, q[2].z) * 0.12, Vector2(q[3].x, q[3].z) * 0.12, Color(0.95, 0.97, 1.0), Vector3.UP)
