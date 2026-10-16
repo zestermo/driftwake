@@ -62,6 +62,14 @@ func _process(_d: float) -> bool:
 		and lamp != null and lamp.get_node_or_null("Flame") != null and mark != null)
 	lamp.free()
 	mark.free()
+	var hut: Node3D = KS.model(st["village_models"]["hut"], RandomNumberGenerator.new(), 5.6)
+	var tall: Node3D = KS.model(st["village_models"]["tall"], RandomNumberGenerator.new(), 5.6)
+	var tall_top: float = (tall.find_children("*", "MeshInstance3D", false, false)[0] as MeshInstance3D).get_aabb().end.y
+	var hut_top: float = (hut.find_children("*", "MeshInstance3D", false, false)[0] as MeshInstance3D).get_aabb().end.y
+	check("the village's huts are round houses with a door and a wall to bump into, the tall ones a storey higher (%.1f, %.1f m)" % [hut_top, tall_top],
+		hut is StaticBody3D and hut.get_node_or_null("Door") != null and hut.find_children("*", "CollisionShape3D", false, false).size() >= 1 and tall_top > hut_top + 1.5)
+	hut.free()
+	tall.free()
 	var music = load("res://scripts/game/music.gd")
 	var amb = load("res://scripts/world/ambience.gd")
 	check("its music (day, night, the town's) and its bed are registered",

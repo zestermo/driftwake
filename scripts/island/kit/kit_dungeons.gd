@@ -442,7 +442,7 @@ static func _shell(isl: GenIsland, e: Dictionary) -> void:
 	d.info = e
 	d.position = Vector3(e["at"].x, 0.0, e["at"].y)
 	var m: Dictionary = e["mesh"]
-	var look: Dictionary = LOOK[e["kind"]]
+	var look: Dictionary = (LOOK[e["kind"]] as Dictionary).merged(KitStyle.of(isl.theme)["cave_look"], true)
 	var body := StaticBody3D.new()
 	body.name = "Rock"
 	body.collision_layer = 1

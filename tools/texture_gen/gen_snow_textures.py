@@ -111,6 +111,14 @@ def gen_roof_green():
             rgb[y, x] = palette[min(len(palette) - 1, int(v * len(palette)))]
         if y % 8 == 7:
             rgb[y] = hexc("16291c")
+    # snow lying along the top of each course, in lumps
+    lumps = fbm(64, 8, 2, rng)
+    for row in range(8):
+        for x in range(64):
+            depth = int(1 + lumps[row * 8, x] * 4.5)
+            for k in range(depth):
+                y = row * 8 + k
+                rgb[y, x] = SNOW[min(len(SNOW) - 1, 3 + (k == 0) * 2 - (k == depth - 1))]
     save(to_img(rgb), "roof_green")
 
 

@@ -53,6 +53,9 @@ const BRINEHOLLOW := {
 	"pier": {"deck": "planks_weathered", "post": "planks_dark", "rail": "planks_dark", "lashings": false, "rope_rail": false},
 	# the props a kit asks for by slot, and the model each style makes for it (KitStyle.prop)
 	"props": {"crate": "crate", "barrel": "barrel", "lamp": "lantern_post", "marker": "notice_board"},
+	# a theme's own models for a village's buildings by kind (hut, tall, storehouse, workshop, shrine...): a ThemeDef.props
+	# name each, made at the footprint across, with the kind's markers (workshop: Worker, Bench; shrine: Keeper, Pray); others are the kit's
+	"village_models": {},
 	# its people (KitStyle.folk_look): pools a villager's look picks from ("<key>_fem" for women), then fixed values
 	"folk": {
 		"pick": {"hat": ["none", "none", "cap", "knit", "bandana"], "top": ["shirt", "shirt", "tunic"], "top_fem": ["blouse", "shirt", "tunic"],
@@ -67,6 +70,8 @@ const BRINEHOLLOW := {
 	"ambience": "",
 	# the ground's textures (PSXMat.terrain: a generated island's terrain by splat, slope and height; "cliff" its sea cliffs' rock, Coast.build)
 	"ground": {"grass": "grass", "sand": "sand", "wet_sand": "wet_sand", "dirt": "dirt", "rock": "rock", "seafloor": "seafloor", "cliff": "rock"},
+	# caves' surfaces over each kind's own (KitDungeons.LOOK: rock, moss, turf outside; wall, floor inside: [texture, tint])
+	"cave_look": {},
 	# the weather here (Weather): where clear, cloudy and rain end on a 0..1 roll (the rest is storm), extra fog
 	"weather": [0.36, 0.66, 0.86],
 	"haze": 0.0,
@@ -119,8 +124,12 @@ static func house_spec(st: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 ## BASE_PROPS, else the model of the theme that declares it (ThemeDef.props). A lamp has a
 ## "Flame" marker where its light goes.
 static func prop(st: Dictionary, slot: String, rng: RandomNumberGenerator, size := 1.0) -> Node3D:
-	var model := str(st["props"][slot])
-	match model:
+	return model(str(st["props"][slot]), rng, size)
+
+
+## A prop model by name: one of BASE_PROPS, else the theme's that declares it (ThemeDef.props).
+static func model(kind: String, rng: RandomNumberGenerator, size := 1.0) -> Node3D:
+	match kind:
 		"crate":
 			return Props.crate(0.8 * size)
 		"barrel":
@@ -135,9 +144,9 @@ static func prop(st: Dictionary, slot: String, rng: RandomNumberGenerator, size 
 		"notice_board":
 			return KitVillage.notice_board(rng)
 	for t in IslandThemes.all():
-		if t.props.has(model):
-			return (t.props[model] as Callable).call(rng, size)
-	push_error("KitStyle: no prop %s" % model)
+		if t.props.has(kind):
+			return (t.props[kind] as Callable).call(rng, size)
+	push_error("KitStyle: no prop %s" % kind)
 	return null
 
 

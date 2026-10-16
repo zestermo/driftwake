@@ -60,8 +60,8 @@ const STYLE := {
 	"crew_flag": Color(0.72, 0.18, 0.16),
 
 	"mat": {"wall": "brick_pink", "beam": "planks_dark", "floor": "planks", "deck": "planks_weathered", "post": "planks_dark",
-		"rail": "planks_dark", "roof": "roof_green", "thatch": "thatch", "rope": "rope", "stone": "stone_brick", "cloth": "canvas",
-		"weave": "straw"},
+		"rail": "planks_dark", "roof": "roof_green", "thatch": "roof_green", "rope": "rope", "stone": "stone_brick", "cloth": "canvas",
+		"weave": "planks_dark"},
 	"house": {"w": [5.0, 6.5], "d": [4.5, 5.5], "h": [2.6, 3.0], "walls": ["brick_pink", "brick_pink", "planks_dark", "stone_brick"],
 		"roofs": ["gable", "hip", "gable_front"], "roof_tex": ["roof_green", "roof_green", "planks_dark"], "pitch": [0.75, 0.95], "eaves": 0.6,
 		"beam": "planks_dark", "floor": "planks", "poles": false, "lashings": false, "stilts": false,
@@ -71,6 +71,7 @@ const STYLE := {
 	"stall": {"canopies": ["cloth_red", "canvas", "cloth_red"], "post": "planks_dark"},
 	"pier": {"deck": "planks_weathered", "post": "planks_dark", "rail": "planks_dark", "lashings": false, "rope_rail": true},
 	"props": {"crate": "crate", "barrel": "barrel", "lamp": "snow_lamp", "marker": "snow_waymark"},
+	"village_models": {"hut": "snow_round_house", "tall": "snow_round_house_tall"},
 	# (no fur hats or mittens exist yet: knit caps, hoods and coifs, leather gloves stand in)
 	"folk": {
 		"pick": {"skin": [Color(0.96, 0.82, 0.70), Color(0.92, 0.74, 0.60), Color(0.87, 0.67, 0.50), Color(0.80, 0.60, 0.44)],
@@ -91,8 +92,11 @@ const STYLE := {
 	"music_town": "snow_town",
 	"ambience": "snow",
 	"ground": {"grass": "snow", "sand": "snow_beach", "wet_sand": "shingle_wet", "dirt": "snow_packed", "rock": "glacier_rock", "seafloor": "seafloor", "cliff": "black_rock"},
-	"weather": [0.3, 0.75, 0.9],
-	"haze": 0.25,
+	"cave_look": {"rock": ["black_rock", Color(0.9, 0.92, 0.96)], "moss": ["glacier_rock", Color(0.95, 0.97, 1.0)], "turf": ["snow", Color.WHITE],
+		"wall": ["glacier_rock", Color(0.7, 0.78, 0.88)], "floor": ["snow_packed", Color(0.8, 0.84, 0.9)]},
+	# mostly overcast and white with haze (the fog's colour is Weather's: the weather pass themes it)
+	"weather": [0.15, 0.8, 0.95],
+	"haze": 0.4,
 	# landmarks and set pieces (KitLandmarks, KitSetPieces): rock, carved stone, water, bone, lava, crystal
 	"rock_tint": Color(0.44, 0.46, 0.52),
 	"moss_tint": Color(0.86, 0.9, 0.96),
@@ -140,14 +144,18 @@ func _init() -> void:
 	props = {
 		"snow_lamp": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.lamp_post(2.6 * size),
 		"snow_waymark": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.waymark(rng.randi()),
+		"snow_round_house": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.round_house(rng.randi(), size),
+		"snow_round_house_tall": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.round_house(rng.randi(), size, 2),
 	}
 	life = preload("res://scripts/island/themes/snow_life.gd").TEXT
-	# (until the snow's own beasts: the jungle's stalker as a snow cat, the alpha boar, the behemoth)
-	bosses = ["stalker"]
+	# (until the snow's own beasts: the jungle's stalker as a snow cat, its serpent and mantis queen, the alpha boar, the behemoth)
+	bosses = ["stalker", "serpent", "mantis"]
 	minis = ["boar"]
 	roamers = ["behemoth"]
 	beasts = {
 		"stalker": {"script": "res://scripts/enemies/beasts/stalker.gd", "names": ["The White Shade", "Frostfang", "The Pale Death"], "looks": 3},
+		"serpent": {"script": "res://scripts/enemies/beasts/strangler.gd", "names": ["The Ice Coil", "Old Rimescale", "The Pine Strangler"], "looks": 3},
+		"mantis": {"script": "res://scripts/enemies/beasts/mantis_queen.gd", "names": ["The Frost Queen", "The Rime Queen", "The Pale Queen"], "looks": 3},
 		"boar": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Frostbristle", "Old Rime", "Icetusk", "Snowmaw"], "site": "ruins"},
 		"behemoth": {"script": "res://scripts/enemies/beasts/behemoth.gd", "names": ["The Rimeback", "Old Glacier", "The Snowhorn"]},
 	}

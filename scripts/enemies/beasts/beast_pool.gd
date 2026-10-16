@@ -34,12 +34,16 @@ static func assign(chain: Chain) -> void:
 	for n in chain.nodes:
 		var theme: ThemeDef = IslandThemes.of(str(n["theme"]))
 		var pool: Array = theme.bosses
-		var avoid := _before(chain, prevs, int(n["id"]), str(n["theme"]))
+		var before := _before(chain, prevs, int(n["id"]), str(n["theme"]))
+		var avoid := before.duplicate()
 		for o in chain.nodes:
 			if int(o["layer"]) == int(n["layer"]) and o.has("beast") and str(o["theme"]) == str(n["theme"]):
 				avoid.append(o["beast"])
 		# (a pool of one can't help repeating)
 		var left: Array = pool.filter(func(k): return not avoid.has(k)) if pool.size() > 1 else pool
+		# (a small pool with its layer's neighbours taken: only the islands before are kept from repeating)
+		if left.is_empty():
+			left = pool.filter(func(k): return not before.has(k))
 		var kind: String = left[rng.randi() % left.size()]
 		var b: Dictionary = theme.beasts[kind]
 		n["beast"] = kind

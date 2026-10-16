@@ -282,7 +282,11 @@ func _make(b: Dictionary) -> Dictionary:
 	var frame := {"beam": hs["beam"], "floor": hs["floor"], "poles": hs["poles"], "lashings": hs["lashings"], "eaves": hs["eaves"]}
 	var trim: Color = hs["trims"][0]
 	var n: Node3D
+	var own: Dictionary = ctx.style["village_models"]
 	match kind:
+		_ when own.has(kind) and raised == INF:
+			n = ctx.place(KitStyle.model(own[kind], rng, maxf(w, d)), p, yaw, r, 0.0, false)
+			n.name = _uniq(kind.capitalize())
 		"inn":
 			n = _house({"w": w, "d": d, "h": 2.7, "floors": 2, "h2": 2.3, "roof": "hip", "wall": ctx.style["inn"]["wall"], "wall2": mat["weave"], "roof_tex": mat["thatch"],
 				"porch": 2.0, "lantern": true, "lamp_light": true, "trim": trim, "sign": "sign_tavern", "seed": rng.randi(), "name": "Inn"}.merged(frame), p, face, raised)
@@ -458,7 +462,7 @@ func _market() -> void:
 func _pave() -> void:
 	if not isl.village_plan["quads"].is_empty():
 		KitPaving.build(ctx, isl.village_plan["quads"])
-	var worn := KitPaving.build(ctx, isl.village_plan["worn"], "Worn", "dirt", Color(0.92, 0.85, 0.78))
+	var worn := KitPaving.build(ctx, isl.village_plan["worn"], "Worn", ctx.style["ground"]["dirt"], Color(0.92, 0.85, 0.78))
 	worn.position.y -= 0.02
 
 
