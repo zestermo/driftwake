@@ -1543,7 +1543,7 @@ func cannon_splash(at: Vector3) -> void:
 	if not flipbooks:
 		splash(at + Vector3(0, 0.6, 0), 6, 0.9)
 		return
-	plume(at + Vector3(0, 0.7, 0), Vector3.UP, "splash", 3, 2.0, 1.2, Color.WHITE, 1.0, 20.0)
+	plume(at + Vector3(0, 0.9, 0), Vector3.UP, "splash", 3, 2.8, 1.3, Color.WHITE, 1.0, 20.0)
 
 
 ## A heavy blow landing or a body thrown down hard: dust thrown out along the ground.

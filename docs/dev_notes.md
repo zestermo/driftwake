@@ -1895,7 +1895,8 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   puff so it billows instead of flickering; palette-stepped colour, alpha on 4 levels with a Bayer dither): `smoke`
   (grows, then thins along the noise) and `explosion` (a star flash, a fireball cooling from the rim in with hot
   pockets inside the soot, embers thrown out, then rising smoke). Imports: mipmaps on, compress_to 0.
-- The pilot swaps two effects, all behind `FX.flipbook_pilot` (true; false = exactly the old calls):
+- The pilot swaps two effects, all behind `FX.flipbook_pilot` (true; false = exactly the old calls; renamed
+  `FX.flipbooks` with the library, below):
   the ship's cannon (`FX.cannon_fire` from ShipCannon._shoot, `cannon_hit` / `cannon_splash` from Cannonball: a
   fireball and a bank of smoke at the muzzle, a bigger fireball + smoke + embers on a hull, a plume of white water on
   the sea) and a heavy blow's dust (`FX.heavy_dust` from HeavyAttackState's impact and DownedState's landing thud,
@@ -2068,3 +2069,47 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   committed during smoketest re-ran only the compile check (smoketest's loads don't include it), then a flaky.txt
   commit during that check went through with no re-testing, and it fast-forwarded.
 - guntest 'shoves when you're too close' flaked ~half the runs: the camp's other grunts are asleep (ActorSleep) when the test disables them, and wake (back to PROCESS_MODE_INHERIT) as the captain is teleported in, so they shot and slashed the player down; a Downed body snaps the teleport back to the ragdoll. The test now keeps the other grunts disabled every frame until the pistol part. No game change.
+
+## 2026-10-15: the flipbook effects library (sheets, the FX blocks, one switch)
+- **Why:** the pilot (above) proved sprite-sheet puffs read better than quads at the pixel grid; this makes them the
+  vocabulary every effect is built from. Zach's one note on the pilot, the dust reading pale and grey, is fixed by
+  baking a dark brown palette into its own sheet instead of tinting the grey smoke sheet.
+- **The library** (`tools/texture_gen/gen_flipbooks.py`, `py tools/texture_gen/gen_flipbooks.py [name ...]`): 16 sheets,
+  all 4x4 frames of 64 px (256x256 RGBA8, 5.6 MB in all with mips), deterministic with a seed per sheet so changing one
+  never changes another, the two pilot sheets byte-identical. The puff family (`gen_puff`: a palette, `sy` squash, `rise`
+  / `settle`, `speed` / `grow`, `thin` so it never saturates, `grain` speckle, `sparkle` points, a flat `ground` cut) gives
+  `dust` (dark brown, kicks up fast, sinks late), `dust_low` (a wide rolling cloud cut flat on the ground), `sand`
+  (speckled tan), `snow` (white-blue with sparkles), `mist` (thin, pale), `blood` (dark red, thin, fast). Columns on the
+  same `Puff` with a vertical stretch and the noise scrolled up them: `splash` (white water heaving up, breaking into
+  droplets, falling back on a spreading foam disc), `fire` (a lick that grows, flickers, lifts off and burns out from the
+  bottom), `wisp` (thin tall chimney smoke widening at the top). Hot: `fireball` (blooms, burns from the rim in, no
+  soot, embers), `muzzle` (a star flare with a hot heart, then a ring of powder puffs). Light, grey-white so the burst's
+  colour tints them: `sparks`, `glint` (a four-point star, halo, a ring racing out), `magic` (a soft burst thinning to a
+  ring, motes thrown out). Preview: `tools/dev/out/flipbook/sheets.png` (labelled, 2x). Imports: mipmaps on, lossless,
+  detect_3d compress_to 0 (copied; Godot adds the uid on `--import`).
+- **FX:** `FX.flipbooks` (default true; false = the geometry effects from before, to compare or to revert in one line;
+  was `flipbook_pilot`), `FLIP_SHEETS`, `FLIP_ADD` (the light sheets: additive materials), `FLIP_LIT` (matter dimmed by
+  `Weather.night`, the default for `flipbook`'s "lit"). One shared material per sheet (`_flip_mat`), NEAREST_WITH_MIPMAPS.
+  The blocks, one burst (one node, one draw) each, all sendable through Net.fx: `puff(pos, sheet, amount, size, life,
+  color, lift, dir)`, `puff_ring(pos, sheet, count, radius, size, life, color, speed)` (a ring racing out along the
+  ground), `plume(pos, dir, sheet, count, size, life, color, speed, spread)` (pushed along a direction, growing),
+  `flash(pos, size, color, sheet, life)` (a glint star or a muzzle flare), `blast(pos, normal, size, hot, smoke_col,
+  speed)` (flare + fireball if hot + smoke plume: three bursts; a muzzle is size 1 at speed 6, a ball on a hull size 2 at
+  speed 2), `flip_emitter(parent, sheet, amount, size, life, cfg)` (continuous, each particle plays the sheet once;
+  visibility range 140) and `lick(parent, radius, amount, size, life, world)` (fire licks for good). Lit emitters are
+  re-dimmed by one 2 s Timer on FX (`_dim_emitters`, `CPUParticles3D.color`), not a process on each.
+- **On the blocks now:** `cannon_fire` = sparks + `blast(dir, 1, cold)`; `cannon_hit` = `blast(normal, 2, hot, dark
+  smoke, slow)` + embers (the old `impact` flash is the flare now); `cannon_splash` = splash + a `splash`-sheet plume;
+  `heavy_dust` = half the dust ring + a `puff_ring` of the dust sheet. Particles before -> after (bursts): heavy dust
+  12 -> 10 (1 -> 2), cannon fire 34 -> 21 (3 -> 3), hull hit 39 -> 20 (5 -> 5), sea hit 16 -> 13 (2 -> 2).
+- **Tests:** `t/fx/sheets` (every sheet exists with its import, 4x4 of 64 px, plays, four dithered alpha levels, one
+  shared material each, additive for FLIP_ADD), `t/fx/blocks` (each block one burst that frees itself, blast three,
+  the lick keeps going, lit dims 1.0 -> 0.35 at night and emitters follow the night, light doesn't dim, the switch off
+  gives the old bursts and on costs no more particles), `t/fx/flipbook` on the new names. Renders: `flipshot`
+  (compare_heavy / compare_cannon, and `_h21`): the slam's dust is brown now, the muzzle keeps the pilot's look with a
+  star flare, the hull hit blooms big and dark with a fireball frame, the sea hit shows a column with droplets.
+- **Gotchas:** flipshot's PERF lines count every burst in the world during the window (harbour life adds ~10), so the
+  counts above are by code (and asserted in t/fx/blocks). A sheet's "ground" (splash's foam disc, dust_low's flat
+  bottom) sits below the quad's centre, so spawn those puffs ~0.6 x half-size above the surface and give them little
+  velocity: the sheet does the rising. `lobes()` push past the frame edge at high `push`, which read as a cloud
+  vanishing; keep `push` under ~1.3 r.
