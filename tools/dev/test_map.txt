@@ -353,3 +353,5 @@ scripts/props/desert_plants.gd          t/island isletest
 scripts/props/desert_props.gd           t/island isletest
 tools/texture_gen/gen_desert_textures.py t/island
 scripts/psx/draw_lod.gd                 t/island isletest perftest
+scripts/island/themes/desert_places.gd  t/island landmarktest smoketest
+scripts/island/kit/kit_landmarks.gd     t/island landmarktest

@@ -101,6 +101,28 @@ func paint(_isl, _p: Vector2, _h: float, splat: Color) -> Color:
 	return splat
 
 
+## Places (KitLandmarks.plan_gen, on the worker): the theme's own kind standing in for a chain set piece or landmark
+## (KitSetPieces.POOL, KitLandmarks.KINDS), "" = the chain's own. The jungle keeps them all.
+func place_kind(_kind: String) -> String:
+	return ""
+
+
+## The theme's places beyond the chain's (planned before its set piece and landmarks): plans as plan_place's.
+func plan_places(_isl, _avoid: Array) -> Array:
+	return []
+
+
+## A theme place's plan, its ground shaped: {"at", "y", "face", "r", "keep" (place-local discs), "kind", optionally "door"};
+## {} = no ground for it. KitLandmarks sets its role ("theme") and seed.
+func plan_place(_isl, _kind: String, _rng: RandomNumberGenerator, _avoid: Array) -> Dictionary:
+	return {}
+
+
+## A theme place's build steps (main thread, a step each), as KitSetPieces.steps.
+func place_steps(_isl, _ctx, _pl: Dictionary) -> Array:
+	return []
+
+
 ## The plant and rock meshes its islands are made of, built once per theme on the main thread before
 ## GenIsland.prepare (IslandTheme.meshes caches it; KitLandmarks.canopy reads their AABBs). The scatter
 ## reads: tree, beach_tree, bush, fern, grass, rock (lists of meshes), giant, fig, kapok, emergent, roof

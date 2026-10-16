@@ -96,7 +96,7 @@ const STYLE := {
 	"moss_tint": Color(0.82, 0.72, 0.52),
 	"temple_stone": Color(0.92, 0.82, 0.62),
 	"fort_stone": Color(0.95, 0.86, 0.68),
-	"water_tint": Color(0.22, 0.55, 0.52, 0.85),
+	"water_tint": Color(0.22, 0.62, 0.56, 0.9),
 	"falls_tint": Color(0.78, 0.9, 0.95, 0.85),
 	"spring_tint": Color(0.45, 0.8, 0.75, 0.85),
 	"travertine": Color(0.96, 0.92, 0.82),
@@ -266,6 +266,22 @@ static func _dress_arena(arena, body: StaticBody3D, mb: MeshBuilder, rng: Random
 		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(4.0, r - 2.0)
 		var b2 := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.BACK, PI * 0.5)
 		mb.add_cylinder(bone, Transform3D(b2, Vector3(q.x, gy.call(q) + 0.06, q.y)), 0.06, 0.05, rng.randf_range(0.7, 1.3), 5, 1.0, Color.WHITE, true, true)
+
+
+func place_kind(kind: String) -> String:
+	return DesertPlaces.KINDS.get(kind, "")
+
+
+func plan_places(isl, avoid: Array) -> Array:
+	return DesertPlaces.plan_oases(isl, avoid)
+
+
+func plan_place(isl, kind: String, rng: RandomNumberGenerator, avoid: Array) -> Dictionary:
+	return DesertPlaces.plan(isl, kind, rng, avoid)
+
+
+func place_steps(isl, ctx, pl: Dictionary) -> Array:
+	return DesertPlaces.steps(isl, ctx, pl)
 
 
 ## A dune: a long crest with a slip face, a sun over it.

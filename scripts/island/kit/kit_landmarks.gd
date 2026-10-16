@@ -257,13 +257,25 @@ static func plan_gen(isl: GenIsland) -> void:
 	var avoid: Array = []
 	for site in KEEP_OFF.keys():
 		avoid.append([isl.dock_shore if site == "dock" else isl.sites[site], float(KEEP_OFF[site])])
-	_add_place(isl, KitSetPieces.plan(isl, str(isl.node["setpiece"]), rng, avoid), avoid, rng)
+	var theme := IslandThemes.of(isl.theme)
+	for pl in theme.plan_places(isl, avoid):
+		_add_place(isl, _theme_place(pl, rng), avoid, rng)
+	var piece := str(isl.node["setpiece"])
+	if theme.place_kind(piece) != "":
+		var pl := theme.plan_place(isl, theme.place_kind(piece), rng, avoid)
+		if pl.is_empty():
+			push_error("KitLandmarks: %s's %s found no ground on %s" % [isl.theme, theme.place_kind(piece), isl.node["name"]])
+		_add_place(isl, _theme_place(pl, rng), avoid, rng)
+	else:
+		_add_place(isl, KitSetPieces.plan(isl, piece, rng, avoid), avoid, rng)
 	var n := 0
 	for kind in isl.node["landmarks"]:
 		if n >= int(isl.node["landmark_count"]):
 			break
 		var pl: Dictionary
 		match str(kind):
+			_ when theme.place_kind(kind) != "":
+				pl = _theme_place(theme.plan_place(isl, theme.place_kind(kind), rng, avoid), rng)
 			"waterfall":
 				pl = _plan_waterfall(isl, rng, avoid)
 			"wreck":
@@ -279,6 +291,13 @@ static func plan_gen(isl: GenIsland) -> void:
 		_add_place(isl, pl, avoid, rng)
 		n += 1
 	isl.build_ms["places"] = int((Time.get_ticks_usec() - t0) / 1000)
+
+
+static func _theme_place(pl: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+	if not pl.is_empty():
+		pl["role"] = "theme"
+		pl["seed"] = rng.randi()
+	return pl
 
 
 static func _add_place(isl: GenIsland, pl: Dictionary, avoid: Array, rng: RandomNumberGenerator) -> void:
@@ -386,6 +405,8 @@ static func steps(isl: GenIsland) -> Array:
 				built = _landmark_steps(isl, ctx, pl)
 			"setpiece":
 				built = KitSetPieces.steps(isl, ctx, pl)
+			"theme":
+				built = IslandThemes.of(isl.theme).place_steps(isl, ctx, pl)
 			_:
 				continue
 		built.append(func(): overgrow(ctx, pl))
@@ -459,6 +480,7 @@ static func far_off(mi: GeometryInstance3D, range_end := DETAIL_RANGE) -> Geomet
 static func overgrow(ctx: KitContext, pl: Dictionary) -> void:
 	var node := node_of(ctx, pl)
 	var m := IslandTheme.meshes(str(ctx.isl.get("theme")))
+	var theme := IslandThemes.of(str(ctx.isl.get("theme")))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(pl["seed"]) + 7
 	var reach := float(pl["r"]) * 1.05
@@ -476,6 +498,9 @@ static func overgrow(ctx: KitContext, pl: Dictionary) -> void:
 		var ip := (pl["at"] as Vector2) + Vector2(cos(a), sin(a)) * d
 		var h := ctx.hv(ip)
 		if h < 0.6 or ctx.isl.path_dist(ip) < 1.2 or keep.any(func(e): return ip.distance_to(e[0]) < float(e[1])):
+			continue
+		var g := theme.growth(ctx.isl, ip).x
+		if g < 1.0 and fposmod(i * 0.618034, 1.0) >= g:
 			continue
 		var kind := "tree" if roll < 0.07 and h > 2.5 else ("bush" if roll < 0.4 else ("fern" if roll < 0.75 else "grass"))
 		var list: Array = m[kind]

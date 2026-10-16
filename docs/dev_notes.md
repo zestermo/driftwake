@@ -2517,3 +2517,28 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   fires neither (no ult, no awakened blade), so it wasn't re-benched.
 - **Tools/tests:** abilityshot's `close` view (the captain's blade up close). `t/fx/water`.
   Renders: tools/dev/out/abil/ (g2/s2/g3/night/aura3).
+
+## 2026-10-16: theme places (ThemeDef place hooks) and the desert's first places
+
+- **The hook** (`ThemeDef`, all optional, the jungle overrides none and its islands are unchanged):
+  `place_kind(kind) -> String` (the theme's own kind standing in for a chain set piece or landmark, "" keeps
+  the chain's), `plan_places(isl, avoid) -> Array` (the theme's own places beyond the chain's, planned first),
+  `plan_place(isl, kind, rng, avoid) -> Dictionary` (a stand-in's plan, ground shaped; {} = no ground) and
+  `place_steps(isl, ctx, pl) -> Array` (its build steps). A plan is KitSetPieces' shape: `at, y, face, r,
+  keep` (place-local discs), `kind` (unique on the island: it names the `Place_<kind>` node), optionally
+  `door` (a trail is run to it); KitLandmarks sets `role` "theme" and `seed`. `KitLandmarks.plan_gen` calls
+  them, `steps` builds role "theme" through `place_steps`, and `overgrow` now thins by the theme's `growth().x`
+  (deterministic, the jungle's 1.0 skips nothing). A mapped set piece that finds no ground push_errors like
+  KitSetPieces; a mapped landmark that finds none is skipped like the chain's.
+- **The desert's** (`scripts/island/themes/desert_places.gd`, DesertPlaces): an oasis pool on each land-plan
+  oasis with room (off sites, places, paths; skipped where the land rises steeply all round): the bed dug 1.5 m,
+  the banks levelled and held over the water, InlandPool (swimmable), reeds and lily pads, date palms leaning
+  in (MultiMesh, solid), a well-sweep, a camp on the lowest side of the bank (long tent, fire, water jars, a
+  couched camel, a lamp, a cache). For the chain's waterfall a caravan's camp (tents round a fire, camels at the
+  line, bales, a brazier, a chest), for the great tree an obelisk (13-19 m, glyph columns, gilded cap, its
+  fallen twin in pieces), for the totem grove the twin guardians (two seated colossi, one maybe broken with its
+  head in the sand, a processional way and a battered gate). Models stand alone in modelshot: `camel`,
+  `long_tent`, `shaduf`, `obelisk`, `guardian`. Style water_tint is the oasis's turquoise.
+- **Tests:** `t/island/desert_places`; landmarktest (jungle unchanged). Renders: landmarkshot on chain seed 7
+  (`LSHOT_MARKS=waterfall,great_tree,totem_grove`), tools/dev/out/desert/lm7_*; models
+  tools/dev/out/models/desert_places_*, desert_monuments_*, desert_guardian_*.
