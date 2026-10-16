@@ -80,7 +80,7 @@ func spawn(k: String, args: Dictionary, off: Vector3):
 	if a.has("anchor"):
 		a["anchor"] = ground(base + Vector3((a["anchor"] as Vector3).x, 0, 0)) + Vector3.UP * (a["anchor"] as Vector3).y
 	var home := ground(base + Vector3(off.x, 0, off.z))
-	var cr = FS.make(k)
+	var cr = FS.make("jungle", k)
 	cr.setup(home, a)
 	cr.name = "T_%s_%d" % [k, step]
 	cr.position = holder.to_local(home) + Vector3.UP * 0.2
@@ -126,10 +126,10 @@ func _process(d: float) -> bool:
 			check("a pool of several kinds (%d)" % kinds.size(), kinds.size() >= FS.MIN_KINDS and kinds.size() <= FS.MAX_KINDS)
 			check("a good number of creatures (%d)" % fauna.spots.size(), fauna.spots.size() >= 15 and fauna.spots.size() <= FS.CAP + 10)
 			check("they all stood up", fauna.alive_count() == fauna.spots.size())
-			check("same seed, same pool", JSON.stringify(FS.roll(1234)) == JSON.stringify(FS.roll(1234)))
+			check("same seed, same pool", JSON.stringify(FS.roll("jungle", 1234)) == JSON.stringify(FS.roll("jungle", 1234)))
 			var rolls := {}
 			for s in range(8):
-				var r: Dictionary = FS.roll(1000 + s * 77)
+				var r: Dictionary = FS.roll("jungle", 1000 + s * 77)
 				rolls[JSON.stringify(r.keys().filter(func(k): return k != "morph" and k != "ambient"))] = true
 			print("   8 seeds, %d different line-ups of kinds" % rolls.size())
 			check("different seeds, different islands", rolls.size() >= 4)
@@ -138,7 +138,7 @@ func _process(d: float) -> bool:
 			# (an island's seed, not the chain's: 2749453084's island once had none)
 			var bare: Array = []
 			for s in [2749453084] + range(3000):
-				var amb: Dictionary = FS.roll(s)["ambient"]
+				var amb: Dictionary = FS.roll("jungle", s)["ambient"]
 				if not (amb["butterflies"] or amb["fireflies"]) and int(amb["flocks"]) == 0:
 					bare.append(s)
 			check("every island's roll has ambient life, swarms by day or night or flocks (bare: %s)" % [bare.slice(0, 6)], bare.is_empty())
@@ -257,10 +257,10 @@ func _process(d: float) -> bool:
 			step = 6
 		9:
 			# levels scale it
-			var lo = FS.make("boar")
+			var lo = FS.make("jungle", "boar")
 			lo.setup(p.global_position + Vector3(50, 0, 0), {})
 			lo.level = 3
-			var hi = FS.make("boar")
+			var hi = FS.make("jungle", "boar")
 			hi.setup(p.global_position + Vector3(52, 0, 0), {})
 			hi.level = 18
 			holder.add_child(lo)

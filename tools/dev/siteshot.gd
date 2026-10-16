@@ -328,7 +328,8 @@ func _seed_with(kind: String) -> int:
 	while true:
 		gm.chain_seed = s
 		var c = wg.chain()
-		if fs.roll(int(c.node(int(c.start_next[0]))["seed"])).has(kind):
+		var first: Dictionary = c.node(int(c.start_next[0]))
+		if fs.roll(str(first["theme"]), int(first["seed"])).has(kind):
 			break
 		s += 1
 	gm.chain_seed = was

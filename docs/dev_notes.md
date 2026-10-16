@@ -2230,3 +2230,23 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   (stock: JungleApe.ape_look, as before) - keep them node-free. `KitStyle.of` is called from Weather, Music and
   Ambience twice a second: it merges on every call as before (no new cost). `IslandThemes` must not be a directory
   listing: declared order feeds the chain's rng. Don't name a static `get` on a RefCounted (native override).
+- **Piece 2** (the rest of the hubs): `FaunaSpawner` keeps the island's `theme` and `roster` (`ThemeDef.fauna`):
+  `roll(theme, seed)` and `make(theme, kind)` (the kind's script from `ThemeDef.creatures`) - same sorted kind order,
+  same draws, so every island's wildlife is as before; the cave/dungeon slots read a new contract member,
+  `cave_fauna` ({"ceiling": "bat", "floor": ["mite", "burrower", "snake"]} for the jungle, was hard-coded).
+  The four `"jungle"` KitContexts (IslandVillage.build, VillageLayouts.plan, KitDungeons._lights, KitTemple._lights)
+  take the island's theme. `ChainMarks.theme_color/icon` read `ThemeDef.color/glyph` (the snow/desert/forest colours
+  and glyphs went: those themes bring their own). `SkyBirds`' parrots: `ThemeDef.flocks` parties (jungle 2,
+  Brinehollow 1 as before, 0 = none). **Music and Ambience stay as they are**: a theme's style names a track
+  (`Music.TRACKS`) and a bed (`Ambience.LOOPS` + `TOP_DB`), and a theme that needs new ones adds its line to those
+  tables (the one hub edit besides the registry line; it keeps both autoloads simple, and the registry test checks
+  the names exist). Textures: `gen_psx_textures.py` was already importable (main() only under `__main__`); its
+  docstring says how a `gen_<theme>_textures.py` imports the helpers, and `save` makes the out folder. No PNG
+  regenerated. faunatest and siteshot call the new signatures with "jungle"/the node's theme.
+  Proof: islanddump on seeds 1, 12, 36, 9 after piece 2 (on the main with the flipbook library in) byte-identical to
+  the dumps taken before piece 1 (wildlife F-nodes, cave and temple lights, the village included); Brinehollow the
+  same but for the three dummies' heads. New registry-test checks: ambience/music names exist, the jungle's
+  cave_fauna, FaunaSpawner rolls and makes from the theme, ChainMarks reads its colour.
+- **Open:** a theme brought up before piece 2 lands needs `cave_fauna` (the registry refuses it otherwise, naming
+  the member). lifetest's "a villager walks its route" (1.5 < d < 4.0 m over 2 process-seconds) failed once at
+  exactly 4.0 m with five slots busy and passed alone: a load flake in a process-seconds wait, not this change.

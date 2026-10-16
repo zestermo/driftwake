@@ -1,8 +1,9 @@
 extends SceneTree
 ## The island theme registry (IslandThemes, ThemeDef): every registered theme fills the whole contract
 ## (walked from ThemeDef.CONTRACT, not a list here), its beast and creature scripts exist, its style's
-## prop slots build (a lamp with its Flame) and name models no other theme does; the jungle's land def,
-## style, roster, beasts and text are what they were in the hubs (spot checks); the chain's theme pick is
+## prop slots build (a lamp with its Flame) and name models no other theme does, its style's ambience and
+## music are real beds and tracks; the jungle's land def, style, roster, cave fauna, beasts and text are what
+## they were in the hubs (spot checks), FaunaSpawner and ChainMarks read it; the chain's theme pick is
 ## one rng draw whatever the themes, and with the jungle alone every island is jungle with a jungle name;
 ## a blank theme is refused whole and an unknown name fails loudly (an error naming it, null back).
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -71,6 +72,11 @@ func _process(_d: float) -> bool:
 				gaps.append("%s style props.%s names %s, which no theme makes" % [t.name, slot, m])
 		if not IT.of(t.name) == t:
 			gaps.append("%s: of() gives another instance" % t.name)
+		var amb: String = t.style.get("ambience", "")
+		if amb != "" and not load("res://scripts/world/ambience.gd").LOOPS.has(amb):
+			gaps.append("%s style ambience %s is no Ambience.LOOPS bed" % [t.name, amb])
+		if t.style.has("music") and not load("res://scripts/game/music.gd").TRACKS.has(t.style["music"]):
+			gaps.append("%s style music %s is no Music.TRACKS track" % [t.name, t.style["music"]])
 	check("every theme fills every contract member, its scripts exist, its prop models are its own %s" % [gaps], gaps.is_empty())
 	# every style's prop slots build, lamps with their Flame
 	var rng := RandomNumberGenerator.new()
@@ -101,7 +107,18 @@ func _process(_d: float) -> bool:
 		(BP.stock_looks({"theme": "jungle", "beast": "ape"}) as Array).size() == 1 and BP.stock_looks({"theme": "jungle", "beast": "ape"})[0]["name"] == "Silverback"
 		and (BP.stock_looks({"theme": "jungle", "beast": "mantis"}) as Array).is_empty())
 	check("the jungle's roster: ten creatures, boars 60% likely in 2-5 dens on the floor, bats in the canopy and caves",
-		j.fauna.size() == 10 and j.fauna["boar"] == {"zones": ["floor"], "p": 0.6, "dens": [2, 5]} and j.fauna["bat"]["zones"] == ["canopy", "cave"] and j.creatures.size() == 10)
+		j.fauna.size() == 10 and j.fauna["boar"] == {"zones": ["floor"], "p": 0.6, "dens": [2, 5]} and j.fauna["bat"]["zones"] == ["canopy", "cave"] and j.creatures.size() == 10
+		and j.cave_fauna == {"ceiling": "bat", "floor": ["mite", "burrower", "snake"]})
+	var FS = load("res://scripts/island/fauna_spawner.gd")
+	var r: Dictionary = FS.roll("jungle", 1234)
+	var kinds: Array = r.keys().filter(func(k): return k != "morph" and k != "ambient")
+	var cr = FS.make("jungle", "crab")
+	check("FaunaSpawner rolls from the theme's roster (%s) and makes its creatures (%s)" % [kinds, cr.get_class()],
+		kinds.size() >= FS.MIN_KINDS and kinds.all(func(k): return j.fauna.has(k)) and JSON.stringify(r) == JSON.stringify(FS.roll("jungle", 1234))
+		and cr.get_script().resource_path == j.creatures["crab"])
+	cr.free()
+	check("ChainMarks reads the theme's colour (and darkens it for the chart)", load("res://scripts/ui/chain_marks.gd").theme_color("jungle") == j.color
+		and load("res://scripts/ui/chain_marks.gd").theme_color("jungle", true) == j.color.darkened(0.5))
 	var life: Dictionary = LP.of("jungle")
 	check("the jungle's text: 36 first names, 7 roles, the elder's two lines about the island, every quest kind",
 		(life["first"] as Array).size() == 36 and life["roles"].size() == 7 and life["roles"].has("netmender") and (life["elder_about"] as Array).size() == 2

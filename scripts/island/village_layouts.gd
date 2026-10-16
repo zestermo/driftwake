@@ -66,7 +66,7 @@ var clear: Array = []
 static func plan(isl: GenIsland) -> Dictionary:
 	var L := VillageLayouts.new()
 	L.gi = isl
-	L.kc = KitContext.make(isl, int(isl.node["seed"]), "jungle", 0, {})
+	L.kc = KitContext.make(isl, int(isl.node["seed"]), isl.theme, 0, {})
 	L.rng = L.kc.rng(41)
 	L.site = isl.sites["village"]
 	L.c = L.site
