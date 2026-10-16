@@ -2038,3 +2038,32 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 
 ## 2026-10-15: musictest sea theme picks open sea clear of enemy ships
 - musictest sailed to a sea point inside an enemy ship's NOTICE range (150 m); the ship, now awake via ActorSleep, really hunted, so Music rightly played combat. The test now picks sea 400 m from every enemy ship and prints any enemy/ship in combat at the check. No game change.
+
+## 2026-10-15: branches sync with main by merging; a moving main doesn't restart a landing
+- **Why:** long-running branches drifted far behind main and paid for it all at once at landing (a big rebase, every
+  conflict resolved again per commit), and a commit on main during a landing's tests (a release note, a docs fix)
+  threw the whole landing away.
+- **Main-moved hook** (`tools/dev/hooks/mainmoved.ps1`, dot-sourced by guard.ps1 before each Bash/PowerShell command
+  and crewcheck.ps1 after each edit): in a worktree branch, once per new main head, adds context "main moved (n new
+  commits: subjects): at your next clean point, commit, `git merge main`, fix conflicts, rerun your covering tests".
+  Never acts. Quiet in the main checkout, on a detached HEAD, when main is already in the branch, and on every later
+  call for the same head. The quiet path reads .git, HEAD, commondir, the main ref and `.git/crew/mainseen/<branch>.txt`
+  with no git (~10 ms); git (merge-base, log) runs only on a new head.
+- **land.ps1:** `Sync-Branch` does nothing for a branch that already has the target in it (fast-forward), merges the
+  target into a branch with merge commits of its own (a rebase would drop its conflict resolutions), rebases
+  otherwise. After the tests, if the target moved, it takes the new commits in the same way, then: only docs/, *.md,
+  web/site/ or files no test's recorded loads include (`Get-LiveFiles`; any test with nothing recorded makes every
+  non-doc file live) go straight to the fast-forward; anything else re-runs the compile check, smoketest only if its
+  loads include a changed file, and `run_tests -Changed -Light` (passes keyed by loads, so only tests whose loads
+  changed run). Five moves in one landing: it gives up. A self-landing that conflicts while merging stops mid-merge
+  (finish.ps1 and land refuse a worktree with MERGE_HEAD until it's committed or aborted).
+- **Docs:** CLAUDE.md Parallel sessions, `.claude/agents/driftwake-feature.md` and `driftwake-fixer.md`: merge main
+  when told, `git merge` over rebase mid-work.
+- **Proved** with scratch worktrees under this branch's tools/dev/out and `land.ps1 -Onto` a scratch target:
+  guard.ps1 fed a hook JSON from a worktree at 6880dcc said "main moved (1 new commit: v1.15 ...)" once, then nothing
+  (guard again, crewcheck); `Get-MainMovedNote` against the scratch target fired once per new target head, then
+  stayed quiet. A branch with the target merged in landed with "already has ... no rebase" and fast-forwarded; a docs
+  commit on the target during that landing's compile step was merged in with "Only docs or files no test loads: no
+  re-testing" and landed. A second landing (a plain branch, so rebased) with the target moving twice: a tool script
+  committed during smoketest re-ran only the compile check (smoketest's loads don't include it), then a flaky.txt
+  commit during that check went through with no re-testing, and it fast-forwarded.

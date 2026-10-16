@@ -25,4 +25,6 @@ the test that catches the bug and run the suites before landing.
   for co-op). Never a windowed render.
 - Commit with a clear message ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`, plus a line in
   docs/dev_notes.md's newest section. Never push or tag.
+- When a hook says main moved: at a clean point commit, `git merge main` (not a rebase), fix conflicts, rerun your
+  suites.
 - **Report** in a few lines: each problem's root cause, the fix (files), and the suites run with results.

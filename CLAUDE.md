@@ -164,10 +164,15 @@ so half-finished edits never break another session's tests or end up in its comm
   told to leave it): `.\tools\dev\land.ps1` in its worktree (rebase onto main, compile + smoketest +
   covering tests, fast-forward main; it releases the claim, prints one line and never pushes). The
   lead can land any branch from the main checkout: `.\tools\dev\land.ps1 worktree-<name>`.
+- **Keep in sync with main by merging:** a hook (`tools/dev/hooks/mainmoved.ps1`, in guard/crewcheck) says once per
+  new main head that main moved and what landed. At your next clean point commit, `git merge main` (not a rebase
+  mid-work), fix conflicts, rerun your covering tests. land.ps1 fast-forwards a branch that has main in it, merges
+  main (not rebases) into one with merge commits, and takes in a main that moves during its tests: docs or files no
+  test loads go straight through, anything else re-runs only the checks whose loads it changed.
 - **One landing at a time** machine-wide: a second land.ps1 waits its turn and says whom for
   (`-List`, `crew.ps1` and the Tests pane's status.json show who's landing and who's waiting).
 - **A conflict** stops a self-landing mid-rebase in its worktree: fix the files, `git add` them,
-  `git rebase --continue`, run land again (from the main checkout it backs out instead and prints
+  `git rebase --continue` (mid-merge: `git commit`), run land again (from the main checkout it backs out instead and prints
   those steps for the branch's agent). It refuses while the main checkout has uncommitted changes
   in files the landing touches. `-Light` is accepted and ignored (landing always runs light).
 - **Removing a landed worktree** (once its session is closed, from the main checkout):

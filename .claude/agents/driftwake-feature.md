@@ -43,6 +43,8 @@ You build one feature of Driftwake, Zach's Godot 4.7 GDScript PS1-style One Piec
 ## Finish
 - Commit as you go: clear messages ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
   The finish hook refuses to let you stop with uncommitted changes or a branch that doesn't compile.
+- When a hook says main moved: at your next clean point commit, `git merge main` (not a rebase, mid-work), fix
+  conflicts and rerun your covering tests. land.ps1 then fast-forwards the branch.
 - Add a short dated section to docs/dev_notes.md (what, where, why, how it's tested) and a line per new tool or
   suite in tools/dev/README.md.
 - Land your branch with `tools/dev/land.ps1 worktree-<name>` from the main checkout path when your suites pass,
