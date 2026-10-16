@@ -9,6 +9,7 @@ extends JungleBeast
 ## and dives, to come up again under you - twice running from 60%, three times from 30%.
 ## While it's under the sand nothing reaches it. Looks: dune gold, rust, bone.
 
+const FILM := [["erupt", 2.6], ["bite", 1.6], ["slam", 2.4], ["spit", 1.8], ["dive", 1.6]]
 const SEGS := 12
 const SEG_LEN := 1.45
 const HEAD_R := 1.5
@@ -70,7 +71,7 @@ func _hit_point() -> Vector3:
 # ==========================================================================
 func _build() -> void:
 	var look: Array = LOOKS[variant % LOOKS.size()]
-	var hide := own(PSXMat.lit("scales", look[0]))
+	var hide := own(PSXMat.lit("leather", look[0]))
 	var plate := own(PSXMat.lit("desert_rock", Color(1.0, 0.95, 0.9)))
 	var maw := PSXMat.flat(Color(0.35, 0.06, 0.05))
 	var tooth := PSXMat.flat(Color(0.95, 0.92, 0.82))
@@ -78,11 +79,13 @@ func _build() -> void:
 	rng.seed = 7311
 	# one ring mesh, scaled down the body
 	var smb := MeshBuilder.new()
-	smb.add_loft(hide, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, -SEG_LEN * 0.5)), [[0.0, 0.9, 0.9], [SEG_LEN * 0.15, 1.0, 1.0], [SEG_LEN * 0.85, 1.0, 1.0], [SEG_LEN, 0.88, 0.88]],
+	# (a little longer than the spacing: neighbours overlap, no seams)
+	var sl := SEG_LEN * 1.15
+	smb.add_loft(hide, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, -sl * 0.5)), [[0.0, 0.96, 0.96], [sl * 0.2, 1.0, 1.0], [sl * 0.8, 1.0, 1.0], [sl, 0.95, 0.95]],
 		MeshBuilder.profile_circle(10), 0.6, look[0])
-	for k in range(5):
-		var a := PI * 0.5 + (k - 2) * 0.42
-		smb.add_box(plate, Transform3D(Basis(Vector3.BACK, a - PI * 0.5), Vector3(cos(a) * 1.0, sin(a) * 1.0, 0)), Vector3(0.75, 0.22, SEG_LEN * 0.8), 0.6, (look[1] as Color).lerp(Color.WHITE, 0.25))
+	for k in range(3):
+		var a := PI * 0.5 + (k - 1) * 0.55
+		smb.add_box(plate, Transform3D(Basis(Vector3.BACK, a - PI * 0.5), Vector3(cos(a) * 0.98, sin(a) * 0.98, 0.1)), Vector3(0.95, 0.18, SEG_LEN * 0.9), 0.6, (look[1] as Color).lerp(Color.WHITE, 0.25))
 	smb.add_blob(hide, Transform3D(Basis(), Vector3(0, -0.85, 0)), Vector3(0.8, 0.25, SEG_LEN * 0.45), rng, 0.05, 2, 7, 0.6, look[2])
 	var ring := smb.commit()
 	for i in range(SEGS):
@@ -125,6 +128,16 @@ func _build() -> void:
 		jmb.add_box(maw, Transform3D(Basis(), Vector3(0, -0.1, -0.8)), Vector3(1.0, 0.04, 1.2), 1.0, Color.WHITE, false)
 		jp.add_child(jmb.to_instance("Mesh"))
 		_jaws.append(jp)
+	# the churned sand round its hole
+	var cmb := MeshBuilder.new()
+	var sand := PSXMat.lit("desert_sand")
+	for k in range(9):
+		var a := TAU * k / 9.0 + rng.randf_range(-0.2, 0.2)
+		cmb.add_blob(sand, Transform3D(Basis(), Vector3(cos(a), 0.0, sin(a)) * HEAD_R * 1.5), Vector3(1.1, 0.45, 1.1), rng, 0.2, 2, 6, 0.3, Color(0.85, 0.8, 0.75), 0.0)
+	cmb.add_cylinder(PSXMat.flat(Color(0.25, 0.18, 0.1)), Transform3D(), HEAD_R * 1.2, HEAD_R * 1.2, 0.05, 12, 1.0, Color.WHITE, true, false)
+	var crater := cmb.to_instance("Crater")
+	crater.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	model.add_child(crater)
 	_col = CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = HEAD_R
@@ -374,7 +387,7 @@ func _animate(delta: float) -> void:
 		var d := (a - b).normalized()
 		var sc := s.scale
 		s.basis = Basis.looking_at(d, Vector3.UP if absf(d.y) < 0.95 else Vector3.BACK).scaled(sc)
-		s.visible = s.position.y > -1.0
+		s.visible = maxf(a.y, b.y) > -0.3
 	var open := 0.15 + sin(_t_anim * 2.0) * 0.05
 	match move:
 		"bite":

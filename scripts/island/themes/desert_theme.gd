@@ -172,17 +172,20 @@ func _init() -> void:
 		"desert_well": func(_rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertTown.well(),
 	}
 	life = preload("res://scripts/island/themes/desert_life.gd").TEXT
-	# (interim: the jungle's beasts until the desert's own)
-	bosses = ["ape", "serpent", "stalker", "mantis"]
-	minis = ["boar"]
-	roamers = ["behemoth"]
+	bosses = ["sandworm", "giant_scorpion", "basilisk", "sand_lion"]
+	minis = ["hyena"]
+	roamers = ["dune_strider"]
 	beasts = {
-		"ape": {"script": "res://scripts/enemies/jungle_ape.gd", "names": ["The Silverback"], "looks": 1, "stock": func() -> Dictionary: return JungleApe.ape_look()},
-		"serpent": {"script": "res://scripts/enemies/beasts/strangler.gd", "names": ["The Strangler", "Old Coil", "Mother of Vines"], "looks": 3},
-		"stalker": {"script": "res://scripts/enemies/beasts/stalker.gd", "names": ["The Shade", "Nightmaw", "The Spotted Death"], "looks": 3},
-		"mantis": {"script": "res://scripts/enemies/beasts/mantis_queen.gd", "names": ["The Mantis Queen", "The Orchid Queen", "The Leaf Queen"], "looks": 3},
-		"boar": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Tuskmaw", "Old Gristle", "Mudking", "Ironbristle"], "site": "ruins"},
-		"behemoth": {"script": "res://scripts/enemies/beasts/behemoth.gd", "names": ["The Thornback", "Old Ironhide", "The Mossback"]},
+		"sandworm": {"script": "res://scripts/enemies/beasts/sandworm.gd", "names": ["The Sand King", "The Dune Devourer", "Old Under-the-Sand"], "looks": 3,
+			"banner": ["The Sand King's Ground", "The sand here hums underfoot. Something huge moves beneath it."], "dress": _dress_arena},
+		"giant_scorpion": {"script": "res://scripts/enemies/beasts/giant_scorpion.gd", "names": ["The Dune Emperor", "Blackstinger", "The Red Death"], "looks": 3,
+			"banner": ["The Emperor's Pit", "Husks the size of boats, picked clean. Its sting is still out here."], "dress": _dress_arena},
+		"basilisk": {"script": "res://scripts/enemies/beasts/basilisk.gd", "names": ["The Basilisk", "Old Dunecrawler", "The Stone-Eye"], "looks": 3,
+			"banner": ["The Basilisk's Wallow", "Scales shed like plates of armour. Something cold-blooded basks here."], "dress": _dress_arena},
+		"sand_lion": {"script": "res://scripts/enemies/beasts/sand_lion.gd", "names": ["The Sand Lion", "The Golden Mane", "Dusk-Prowler"], "looks": 3,
+			"banner": ["The Lion's Run", "Tracks in circles round the bones. It's watching from the scrub."], "dress": _dress_arena},
+		"hyena": {"script": "res://scripts/enemies/beasts/hyena_alpha.gd", "names": ["Bonecrusher", "Old Laughter", "Gnawbone", "Spotback"], "site": "ruins"},
+		"dune_strider": {"script": "res://scripts/enemies/beasts/dune_strider.gd", "names": ["The Dune Strider", "Old Hump", "The Lost Caravan"]},
 	}
 	fauna = FAUNA
 	creatures = CREATURES
@@ -204,6 +207,65 @@ func meshes() -> Dictionary:
 		"broadleaf": [DesertPlants.column_cactus(491), DesertPlants.column_cactus(492)],
 		"shrub": [DesertPlants.tumbleweed(495), DesertPlants.dead_tree(496), DesertPlants.saltbush(497)],
 	}
+
+
+## The boss's ground in the desert (BeastArena, a beast's "dress"): broken sandstone pillars round the floor,
+## the drums of one fallen across the sand, rubble, and the bones of what it caught - a great ribcage half
+## sunk in the sand, a skull, bones about. Arena-local (the floor's middle at 0, its ground y0).
+static func _dress_arena(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var stone := PSXMat.lit("sandstone")
+	var bone := PSXMat.flat(Color(0.92, 0.88, 0.76))
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	# pillars round the edge, broken at different heights, a capital on the tallest
+	var n := rng.randi_range(4, 6)
+	var a0 := rng.randf() * TAU
+	for k in range(n):
+		var a := a0 + TAU * k / n + rng.randf_range(-0.2, 0.2)
+		var q := Vector2.from_angle(a) * (r + rng.randf_range(1.5, 3.5))
+		var h := rng.randf_range(1.6, 5.5)
+		var base := Vector3(q.x, gy.call(q) - 0.4, q.y)
+		mb.add_box(stone, Transform3D(Basis(), base + Vector3(0, 0.3, 0)), Vector3(1.4, 0.6, 1.4), 0.8, Color(0.85, 0.82, 0.78))
+		var y := 0.6
+		while y < h:
+			var dh := minf(rng.randf_range(0.7, 1.0), h - y)
+			mb.add_cylinder(stone, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), base + Vector3(rng.randf_range(-0.04, 0.04), y, rng.randf_range(-0.04, 0.04))), 0.5, 0.48, dh - 0.03, 8, 0.8, Color.WHITE.darkened(rng.randf() * 0.12))
+			y += dh
+		if h > 4.5:
+			mb.add_box(stone, Transform3D(Basis(), base + Vector3(0, h + 0.15, 0)), Vector3(1.3, 0.3, 1.3), 0.8, Color(0.9, 0.88, 0.84))
+		KitLandmarks.cyl_col(body, 0.6, h, base + Vector3(0, h * 0.5, 0))
+	# one fallen: its drums strewn in a line across the sand
+	var fa := rng.randf() * TAU
+	var fq := Vector2.from_angle(fa) * (r - 2.0)
+	var along := Vector2.from_angle(fa + PI * 0.5 + rng.randf_range(-0.4, 0.4))
+	for k in range(4):
+		var q := fq + along * (k * 1.05 + rng.randf_range(-0.1, 0.2))
+		mb.add_cylinder(stone, Transform3D(Basis(Vector3.UP, -atan2(along.y, along.x)) * Basis(Vector3.BACK, PI * 0.5 + rng.randf_range(-0.15, 0.15)), Vector3(q.x, gy.call(q) + 0.3, q.y)), 0.5, 0.48, 0.95, 8, 0.8, Color.WHITE.darkened(0.1), true, true)
+	# rubble
+	for k in range(9):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(r * 0.6, r + 3.0)
+		var s := rng.randf_range(0.25, 0.6)
+		mb.add_box(stone, Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.4, 0.4)), Vector3(q.x, gy.call(q) + s * 0.3, q.y)), Vector3(s * 1.6, s, s * 1.1), 0.8, Color.WHITE.darkened(rng.randf() * 0.15))
+	# a great ribcage half sunk in the sand, its spine along the ground, a skull at its end
+	var rq := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(r * 0.45, r * 0.75)
+	var yaw := rng.randf() * TAU
+	var bb := Basis(Vector3.UP, yaw)
+	var ry: float = gy.call(rq) - 0.5
+	var o := Vector3(rq.x, ry, rq.y)
+	mb.add_tube(bone, PackedVector3Array([o + bb * Vector3(0, 0.3, -3.5), o + bb * Vector3(0, 0.5, 0), o + bb * Vector3(0, 0.3, 3.5)]), 0.22, 0.16, 6, 1.0)
+	for k in range(7):
+		var z := -2.7 + k * 0.85
+		var span := 2.2 - absf(k - 3) * 0.25
+		for s in [-1.0, 1.0]:
+			var pts := MeshBuilder.curve_points(o + bb * Vector3(0, 0.5, z), o + bb * Vector3(s * span, span * 1.3, z + 0.2), o + bb * Vector3(s * span * 1.1, -0.2, z + 0.4), 6)
+			mb.add_tube(bone, pts, 0.12, 0.07, 5, 1.0)
+	mb.add_blob(bone, Transform3D(bb, o + bb * Vector3(0, 0.5, -4.4)), Vector3(0.9, 0.7, 1.2), rng, 0.15, 3, 7, 1.0)
+	KitLandmarks.cyl_col(body, 0.4, 1.4, o + Vector3(0, 0.7, 0))
+	for k in range(8):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(4.0, r - 2.0)
+		var b2 := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.BACK, PI * 0.5)
+		mb.add_cylinder(bone, Transform3D(b2, Vector3(q.x, gy.call(q) + 0.06, q.y)), 0.06, 0.05, rng.randf_range(0.7, 1.3), 5, 1.0, Color.WHITE, true, true)
 
 
 ## A dune: a long crest with a slip face, a sun over it.

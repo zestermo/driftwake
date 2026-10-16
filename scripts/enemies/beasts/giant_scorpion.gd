@@ -13,6 +13,7 @@ const LOOKS := [
 	[Color(0.84, 0.64, 0.32), Color(0.95, 0.82, 0.55), Color(0.42, 0.26, 0.12)],
 	[Color(0.55, 0.12, 0.08), Color(0.8, 0.35, 0.22), Color(0.22, 0.06, 0.04)],
 ]
+const FILM := [["pinch", 1.2], ["sting", 1.8], ["sweep", 1.6], ["ambush", 2.6]]
 const BODY_Y := 1.1
 const TAIL := 6
 
@@ -98,6 +99,8 @@ func _build() -> void:
 			var barb := PackedVector2Array([Vector2(-0.18, 0), Vector2(0.18, 0), Vector2(0.0, 1.1)])
 			tmb.add_extrude(shell, Transform3D(Basis(Vector3.RIGHT, PI * 0.6), Vector3(0, -0.2, 1.4)), barb, 0.16, 0.8, dark)
 		seg.add_child(tmb.to_instance("Mesh"))
+		# (curled over its back from the start: asleep, it isn't posed)
+		seg.rotation.x = -0.67 if k == 0 else -0.42
 		_tail.append(seg)
 		prev = seg
 		at = Vector3(0, 0, 0.85)
@@ -122,8 +125,8 @@ func _build() -> void:
 			leg.position = Vector3(s * 0.9, -0.1, -0.8 + k * 0.6)
 			_body.add_child(leg)
 			var lmb := MeshBuilder.new()
-			Creature.seg(lmb, shell, Vector3.ZERO, Vector3(s * 1.1, 0.55, k * 0.15 - 0.2), 0.16, look[0])
-			Creature.seg(lmb, shell, Vector3(s * 1.1, 0.55, k * 0.15 - 0.2), Vector3(s * 1.7, -BODY_Y + 0.05, k * 0.3 - 0.4), 0.12, (look[0] as Color).darkened(0.2))
+			Creature.seg(lmb, shell, Vector3.ZERO, Vector3(s * 0.85, 0.35, k * 0.15 - 0.2), 0.24, look[0])
+			Creature.seg(lmb, shell, Vector3(s * 0.85, 0.35, k * 0.15 - 0.2), Vector3(s * 1.35, -BODY_Y + 0.05, k * 0.3 - 0.4), 0.18, (look[0] as Color).darkened(0.2))
 			leg.add_child(lmb.to_instance("Mesh"))
 			_legs.append([leg, s, k])
 	var col := CollisionShape3D.new()

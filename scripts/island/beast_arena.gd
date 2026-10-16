@@ -118,6 +118,11 @@ func _dress(rng: RandomNumberGenerator, site: Node3D) -> void:
 			_dress_stalker(mb, rng, c, y0)
 		"mantis":
 			_dress_mantis(mb, rng, c, y0)
+		_:
+			# (a theme's own beast dresses its own ground: ThemeDef.beasts[kind]["dress"])
+			var info: Dictionary = BeastPool.info(isl.theme, kind)
+			if info.has("dress"):
+				(info["dress"] as Callable).call(self, body, mb, rng, c, y0)
 	body.add_child(mb.to_instance("Dressing"))
 	site.add_child(body)
 	# (the arena sits at the site's origin: world positions for the beasts)
@@ -179,6 +184,9 @@ func _floor(mb: MeshBuilder, bark: Material, rng: RandomNumberGenerator, g: Dict
 			var bq := Vector2(b.x, b.z) + c
 			b.y = isl.hv(bq) - y0 - 0.05
 			mb.add_tube(bark, MeshBuilder.curve_points(a + Vector3(0, 0.25, 0), (a + b) * 0.5 + Vector3(0, 0.3, 0), b, 6), 0.28, 0.08, 5, 0.6, Color(0.78, 0.74, 0.68))
+	# (an open ground has no giants: no fallen one, no mossy stones)
+	if KitStyle.of(isl.theme)["arena"] != "canopy":
+		return
 	var stone := PSXMat.lit("rock", Color(0.7, 0.85, 0.65))
 	for i in range(7):
 		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(8.0, FLOOR_R - 1.0)
