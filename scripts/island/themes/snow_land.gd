@@ -59,6 +59,7 @@ static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
 		pts.append(at)
 	lp["river"] = pts
 	lp["river_w"] = rng.randf_range(4.5, 7.0)
+	lp["river_grid"] = _river_grid(pts, float(isl.half))
 	var drift := FastNoiseLite.new()
 	drift.seed = rng.randi()
 	drift.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
@@ -75,6 +76,46 @@ static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
 	return lp
 
 
+## The river's distance on a GRID_CELL grid over the island's terrain, filled only within GRID_BAND of it (the land's
+## hooks ask it at every point of the terrain and the scatter: walking the river's segments each time cost seconds).
+const GRID_CELL := 3.0
+const GRID_BAND := 40.0
+
+
+static func _river_grid(pts: PackedVector2Array, half: float) -> Dictionary:
+	var n := int(ceil(half * 2.0 / GRID_CELL)) + 1
+	var d := PackedFloat32Array()
+	d.resize(n * n)
+	d.fill(GRID_BAND)
+	for j in range(pts.size() - 1):
+		var a := pts[j]
+		var ab := pts[j + 1] - a
+		var lo := Vector2(minf(a.x, pts[j + 1].x), minf(a.y, pts[j + 1].y)) - Vector2.ONE * GRID_BAND
+		var hi := Vector2(maxf(a.x, pts[j + 1].x), maxf(a.y, pts[j + 1].y)) + Vector2.ONE * GRID_BAND
+		for iz in range(maxi(0, floori((lo.y + half) / GRID_CELL)), mini(n, ceili((hi.y + half) / GRID_CELL) + 1)):
+			for ix in range(maxi(0, floori((lo.x + half) / GRID_CELL)), mini(n, ceili((hi.x + half) / GRID_CELL) + 1)):
+				var q := Vector2(-half + ix * GRID_CELL, -half + iz * GRID_CELL)
+				var t := clampf((q - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+				var i := iz * n + ix
+				d[i] = minf(d[i], q.distance_to(a + ab * t))
+	return {"n": n, "half": half, "d": d}
+
+
+## The distance from p to the river (bilinear on the grid; GRID_BAND past it).
+static func _river_near(lp: Dictionary, p: Vector2) -> float:
+	var g: Dictionary = lp["river_grid"]
+	var n: int = g["n"]
+	var fx := clampf((p.x + float(g["half"])) / GRID_CELL, 0.0, n - 1.001)
+	var fz := clampf((p.y + float(g["half"])) / GRID_CELL, 0.0, n - 1.001)
+	var ix := int(fx)
+	var iz := int(fz)
+	var tx := fx - ix
+	var tz := fz - iz
+	var d: PackedFloat32Array = g["d"]
+	var i := iz * n + ix
+	return lerpf(lerpf(d[i], d[i + 1], tx), lerpf(d[i + n], d[i + n + 1], tx), tz)
+
+
 ## 0..1: how much of p is frozen water (the lakes and the river), `pad` m further out (the plants keep that far off:
 ## the scatter's second layer grows ~2 m from the spot it was judged at).
 static func _ice_at(lp: Dictionary, p: Vector2, pad := 0.0) -> float:
@@ -82,7 +123,7 @@ static func _ice_at(lp: Dictionary, p: Vector2, pad := 0.0) -> float:
 	for lk in lp["lakes"]:
 		k = maxf(k, 1.0 - smoothstep(float(lk["r"]) + pad, float(lk["r"]) + pad + 3.0, p.distance_to(lk["c"])))
 	var w: float = float(lp["river_w"]) * 0.5 + pad
-	return maxf(k, 1.0 - smoothstep(w + 0.5, w + 3.0, _river_dist(lp["river"], p)))
+	return maxf(k, 1.0 - smoothstep(w + 0.5, w + 3.0, _river_near(lp, p)))
 
 
 ## No forest on the ice; the peaks' high flanks thin out to bare snow and rock.
@@ -130,16 +171,6 @@ static func _pass(isl, p: Vector2) -> float:
 	return smoothstep(SITE_CLEAR[0] + 6.0, SITE_CLEAR[1] + 10.0, p.distance_to(q))
 
 
-static func _river_dist(pts: PackedVector2Array, p: Vector2) -> float:
-	var best := INF
-	for j in range(pts.size() - 1):
-		var a := pts[j]
-		var ab := pts[j + 1] - a
-		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-		best = minf(best, p.distance_to(a + ab * t))
-	return best
-
-
 ## The main peak's height over the base land at p: a flat top, then concave flanks out to its radius.
 static func _cone(m: Dictionary, p: Vector2) -> float:
 	var t := clampf((p.distance_to(m["c"]) - TOP_R) / (float(m["r"]) - TOP_R), 0.0, 1.0)
@@ -174,7 +205,7 @@ static func shape(isl, p: Vector2, h: float) -> float:
 			var bed: float = float(lk["level"]) - ICE_LIFT
 			s = lerpf(bed, s, smoothstep(lr - 1.0, lr + 12.0, d)) if d > lr - 1.0 else bed
 	var w: float = lp["river_w"]
-	var dr := _river_dist(lp["river"], p)
+	var dr := _river_near(lp, p)
 	if dr < w * 0.5 + 6.0:
 		s -= RIVER_DEPTH * (1.0 - smoothstep(w * 0.5, w * 0.5 + 6.0, dr))
 	return s
