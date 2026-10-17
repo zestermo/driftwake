@@ -128,9 +128,11 @@ const GROW_KEEP := [[SMUGGLERS, 26.0]]
 const CAPE_TIP := Vector2(92, 372)
 ## The windmill hamlet's fields round FARM (KitFarm: [centre, half size, yaw, crop], rows along local X)
 ## and the orchard (the same rectangle form).
-const FIELDS := [[Vector2(-75, 175), Vector2(7, 5), 0.2, "wheat"], [Vector2(-88, 205), Vector2(6, 8), 0.1, "greens"],
-	[Vector2(-72, 238), Vector2(8, 5.5), -0.15, "wheat"], [Vector2(-42, 242), Vector2(7, 5), 0.25, "vines"],
-	[Vector2(2, 208), Vector2(6, 5), 0.3, "greens"], [Vector2(-38, 168), Vector2(6, 4.5), 0.35, "wheat"]]
+const FIELDS := [[Vector2(-75, 175), Vector2(9, 6.5), 0.2, "wheat"], [Vector2(-88, 205), Vector2(7.5, 10), 0.1, "greens"],
+	[Vector2(-72, 238), Vector2(9, 6), -0.15, "wheat"], [Vector2(-42, 242), Vector2(8, 5), 0.25, "vines"],
+	[Vector2(2, 208), Vector2(7, 6), 0.3, "greens"], [Vector2(-38, 168), Vector2(8, 5.5), 0.35, "wheat"],
+	[Vector2(-96, 179), Vector2(8, 6.5), 0.15, "vines"], [Vector2(-104, 230), Vector2(7, 9), 0.05, "wheat"],
+	[Vector2(-13, 203), Vector2(6, 6), 0.3, "wheat"], [Vector2(-49, 253), Vector2(7, 3.5), 0.2, "greens"]]
 const ORCHARD := [Vector2(-55, 265), Vector2(9, 7), 0.1, "orchard"]
 ## The wild places on the far side: the falls' pool at the highland's north-west foot (its crag uphill
 ## toward HIGHLAND, KitLandmarks' waterfall), the wreck on the east coast's rocks (found from LOBE on
@@ -482,7 +484,7 @@ func _height_natural(x: float, z: float, shelf := 1.0) -> float:
 ## The ground: the old island's, the southern lands where they stand higher, the upper town.
 func _height_fn(x: float, z: float, shelf := 1.0) -> float:
 	var p := Vector2(x, z)
-	return _falls(p, _upper(p, maxf(_height_old(x, z, shelf), _grown(p, shelf))))
+	return _falls(p, _upper(p, _grown(p, shelf, _height_old(x, z, shelf))))
 
 
 ## The falls' pool: its ground levelled round it, its basin dug (KitLandmarks.POOL_DEPTH).
@@ -596,17 +598,18 @@ static func _cove2(p: Vector2) -> float:
 	return maxf(27.0 - p.distance_to(COVE2), 15.0 - p.distance_to(m))
 
 
-## The southern lands' ground (land, shelf or seabed), sunk out of the way where the old island's
-## interior is and round GROW_KEEP.
-func _grown(p: Vector2, shelf: float) -> float:
+## The ground over the old island's (`old`) with the southern lands' (land, shelf or seabed) where
+## they stand higher, eased into the old island's interior (and kept off GROW_KEEP) so no trough is
+## left along its old coast.
+func _grown(p: Vector2, shelf: float, old: float) -> float:
 	var t := _lobe_t(p)
 	if t > 75.0:
-		return SEAFLOOR * 2.0
+		return old
 	var w := _smooth(-30.0, -6.0, _old_t(p))
 	for k in GROW_KEEP:
 		w *= _smooth(float(k[1]), float(k[1]) + 18.0, p.distance_to(k[0]))
 	if w <= 0.0:
-		return SEAFLOOR * 2.0
+		return old
 	var h: float
 	if t < 0.0:
 		h = lerpf(0.5, 4.3, pow(clampf(-t / 50.0, 0.0, 1.0), 0.85))
@@ -619,7 +622,7 @@ func _grown(p: Vector2, shelf: float) -> float:
 	h += (16.0 * _gauss(p, HIGHLAND, 36.0) + 3.0 * _gauss(p, FARM, 70.0)) * inland
 	var spine := Geometry2D.get_closest_point_to_segment(p, HIGHLAND, CAPE_TIP).distance_to(p)
 	h += 9.0 * (1.0 - _smooth(5.0, 18.0, spine)) * _smooth(-1.0, 4.0, -t)
-	return lerpf(SEAFLOOR * 2.0, h, w)
+	return maxf(old, lerpf(old, h, w))
 
 
 func _setup_flat_zones() -> void:
@@ -632,7 +635,7 @@ func _setup_flat_zones() -> void:
 		[CAVE, _height_natural(CAVE.x, CAVE.y), 30.0, 44.0],
 		[climb_start()[0], 2.0, 5.0, 11.0],
 	]
-	_pool_y = maxf(_height_old(POOL.x, POOL.y), _grown(POOL, 1.0))
+	_pool_y = _grown(POOL, 1.0, _height_old(POOL.x, POOL.y))
 	var dir := Vector2.from_angle(deg_to_rad(WRECK_BEARING))
 	var d := LOBE_R * 0.6
 	while _lobe_t(LOBE + dir * d) < 0.0:
@@ -669,7 +672,7 @@ func _generate_heights() -> void:
 			var z := -HALF + iz * CELL + GRID_C.y
 			var h := _height_old(x, z)
 			a[ix] = h
-			b[ix] = _falls(Vector2(x, z), _upper(Vector2(x, z), maxf(h, _grown(Vector2(x, z), 1.0))))
+			b[ix] = _falls(Vector2(x, z), _upper(Vector2(x, z), _grown(Vector2(x, z), 1.0, h)))
 		rows[iz] = [a, b], RES + 1)
 	WorkerThreadPool.wait_for_group_task_completion(task)
 	var old := PackedFloat32Array()
@@ -1643,6 +1646,10 @@ func _build_shrine_terrace() -> void:
 	KitPaving.plan_path(kit, quads, PackedVector2Array([Vector2(UP_X, UP_Z1 + 0.2), Vector2(UP_X, 19.6)]), 1.9)
 	KitPaving.plan_disk(kit, quads, Vector2(UP_X, 15.5), 4.6, rng)
 	KitPaving.build(kit, quads, "ShrineWay", "flagstones", Color(0.95, 0.93, 0.88))
+	# (nothing grows through the flags)
+	kit.reserve(Vector2(UP_X, 15.5), 4.4)
+	for z in range(7, 20, 2):
+		kit.reserve(Vector2(UP_X, z), 1.8)
 	var gate := BrinehollowModels.gate()
 	kit.put(gate, Vector3(UP_X, top, UP_Z1 + 2.3), 0.0)
 	town_spots["gate"] = gate
@@ -1780,6 +1787,7 @@ func _build_farmland() -> void:
 	var yq: Array = []
 	KitPaving.plan_disk(kit, yq, FARM, 10.0, rng)
 	KitPaving.build(kit, yq, "FarmYard", "dirt", Color(0.85, 0.75, 0.62))
+	kit.reserve(FARM, 9.5)
 	# the fields, the orchard
 	var fields: Array = []
 	for i in range(FIELDS.size()):
