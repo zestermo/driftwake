@@ -2912,3 +2912,60 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   for the player and named characters; crowds would want fewer sides/rings or a far LOD before these go in the pools.
 - **Tools/tests:** `tools/dev/hairstudio.gd` (lineup, HAIR cost lines, HS_HAT); `t/player/flow_hair` (every style
   with and without a hat: chains, committed mesh, triangle/bone caps, settled bones finite and near the body).
+## 2026-10-17: capes: mode A with its safety net, the cloak, trapezoid tattered capes, the lantern on the hip's side
+- **Why:** Zach played the cape lab's modes and picked A on both looks; the thick look became an item; then the capes'
+  shape (less square: a trapezoid with a torn hem), painted folds, and the belt lantern off the cape's back.
+- **Default:** `BodyBuilder.cape_mode` "a" (`CAPE_MODES` a, a0, b, c; F1 cycles, **Shift+F1 the net on/off**,
+  `cape_net`) for every cape and cloak, player, NPCs and co-op puppets (each machine builds its own). BG (Godot's
+  SpringBoneSimulator3D) removed from CapeMotion: no angle limits, it flipped the cape out after a 180, Zach won't use it.
+- **The net** (`SpringChains.net`, `_net_clear`, scripts/npc/spring_chains.gd): on the **drawn shape only**: the
+  simulation never sees it, so where the cape is clear of the body A with the net is A to the frame (capelab: the hem
+  on every untouched frame matches the same frame without the net to < 0.4 mm). Per segment: (1) a swing limit off its
+  rest direction (`NET_SWING` 1.5 rad, the top segment from the shoulders `NET_SWING_TOP` 1.0: a landing threw it up
+  over the shoulder and turned the sheet's top row inside out; swung far aside it carried the cloak's wrapped edge in
+  over the back); (2) its sheet's probe lines (`set_probes`, offsets across the sheet, turned with the bone as the skin
+  is) against the thighs and shins: inside `CUSHION` 2.5 cm the gap kept is eased (`C * exp((g - C) / C)`, never
+  reaching 0, C1 at the cushion's edge), so it rides off a leg before touching; (3) out of the hips and behind the back
+  plane (the chain points and the sheet over the middle of the back) hard; found by bisecting a turn back about x
+  (`NET_TURN` 0.9 most); no turn clears it: left as it is (popping helps no one); (4) the turn follows its target at
+  `NET_IN` 40 / `NET_OUT` 8 rad/s (an instant target jumped the cloak's hem 23 cm in a frame in the spin); (5) the
+  cloak's edge chains stay on their side of the middle chain by half their spacing (`set_side`). The bones are judged
+  at rest length along the drawn direction (where pose_local puts the skin). A step-level cushion (B's) was tried
+  first: it changed A's trajectory in 2/3 of frames (the padded thighs are within 5 cm of the cape most of the time),
+  so the net moved to the drawn shape.
+- **Numbers** (capelab, 144 fps, the same scripted run; "araw" = A without the net):
+
+  | | pen vert-frames (frames), worst | legs | back | jitter mean / p95 / max mm | swing max | ms/frame |
+  |---|---|---|---|---|---|---|
+  | cape A | 10 (9), 1.0 cm | 5, 1.0 cm | 5, 2 mm | 3.56 / 16.6 / 156 | 66 | 0.20-0.25 |
+  | cape araw | 331 (173), 7.9 cm | 292, 7.9 cm | 37, 4.9 cm | 2.48 / 10.0 / 136 | 69 | 0.055 |
+  | cloak A | 120 (51), 3.7 cm | 0 | 120, 3.7 cm | 3.70 / 18.3 / 173 | 66 | 0.38 |
+  | cloak araw | 210 (74), 3.9 cm | 43, 1.6 cm | 167, 3.9 cm | 2.43 / 10.2 / 147 | 69 | 0.165 |
+
+  The net touches ~40-50% of frames (the cushion near the thighs while walking), moving the hem up to ~22 cm on those
+  frames (swing up to 6-13 deg). The cloak's remaining "back" count is its wrapped edge passing over the upper back in
+  the sharp 180 (4.4 s): open. Jitter rises ~1 mm mean (the cape now rides the legs instead of passing through them).
+- **Cost:** +0.15 ms per caped character, +0.2 per cloak (GDScript probe tests; the cloak has three chains). No NPC
+  wears a cape or cloak (gear only), so the Brinehollow bench doesn't see it; co-op: up to 4 captains.
+- **The cloak:** accessory `cloak` / `cloak_color` (Gear, GearIcons icon, CharacterLook), Sela sells it (tier 1, 110),
+  saves like any gear. The old thick look: a yoke, gathered collar, doubled sheet 7 across on three chains, sewn edges,
+  rolled hem. Worn with a cape, the cloak wins (one drape on the back). Not in the creator or random looks (capes
+  aren't either).
+- **Shape** (both, `BodyBuilder._drape_rows`): a trapezoid, `DRAPE_FLARE` 0.78 to 1.42 x the shoulders, straight sides
+  to a straight hem, a row between each pair of chain points; `cape_tatter` / `cloak_tatter` (0..1, seeded by the
+  piece's colour) nicks the sides (edge points between rows pulled in) and tears a ragged row of tongues and notches
+  under the hem (the cloak's rolled hem only when untorn). Defaults: a cape 0.5, a cloak 0; Sela's cape 0.15, the
+  plunder cape 0.85. Gear carries the key (`ACC_TATTER`).
+- **Folds:** `drape_fabric` / `drape_canvas` (tools/texture_gen/gen_drape_textures.py, 64x64): vertical folds stepped
+  into five levels with a 4x4 ordered dither at their edges, two uneven folds a tile, wobbling down it.
+  `MeshBuilder.add_strip_grid(..., u_span)` lays the u of a sheet's columns evenly edge to edge so the folds gather at
+  the collar and fan out to the hem.
+- **Belt lantern:** hooked on the right hip's side, round 0.4 rad toward the back, just off the belt or the coat
+  (`BodyBuilder._lantern_spot` -> `Humanoid.lantern_spot`), resting leaning out (`BeltLantern.LEAN` 0.3: its foot out,
+  its top at the hip). Swing, light, toggle and co-op unchanged. Open: an off-hand blade's sheath also hangs on the
+  right hip and may meet it (not checked).
+- **Tests:** no cloth physics tests (Zach: they'd flake and stop runs): t/cloth/cape_modes deleted, and lighttest's
+  lantern swing checks with it. qoltest wears the cloak (icon, armour); cliptest checks coats and vests under the cloak's
+  yoke. Renders: `tools/dev/drapeshot.gd` (capes, cloak, coat, lantern from four sides), capelab.
+- **capelab:** modes a, araw, a0, b, c x cape/cloak; penetration by legs/hips/back; each "a" frame against the same frame
+  without the net; runs start from the same seed and body clocks (they still drift apart: the whip is chaotic).
