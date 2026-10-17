@@ -1,5 +1,8 @@
 # Axe pass: drawn fire, two new abilities (plan, 2026-10-17)
 
+## Status
+**Paused (Zach, 2026-10-17), out of v1.17.** Its work in progress is committed on its branch, not on main (the branch is named in docs/todo.md); resume from there after the release.
+
 ## What it is
 The second weapon in the weapon-by-weapon drawn-awakening series, after the katana (docs/katana_polish_plan.md;
 the cutlass's drawn water before it). **Starts once the katana pass has landed** (they share fx.gd, humanoid.gd,

@@ -1,4 +1,4 @@
-# v1.17 "Timber and Tide" (release plan, 2026-10-17)
+# v1.17 "Timber and Tide" (release plan, 2026-10-17; the axe dropped the same day)
 
 Zach, 2026-10-17: package the current batch as **v1.17 "Timber and Tide"** once it's finished.
 
@@ -16,8 +16,7 @@ Zach, 2026-10-17: package the current batch as **v1.17 "Timber and Tide"** once 
   only, Gus food and drink); townsfolk on routines, smoke and night lights, a busier harbour.
 - **The katana** (docs/katana_polish_plan.md): the combo on its real swing paths, drawn steel slashes, the
   petal-cloud awakening, the five abilities reworked.
-- **The axe** (docs/axe_polish_plan.md): the same fix, the drawn fire awakening, its abilities, Skyfall Smash and
-  War Cry.
+- ~~**The axe**~~: **out of v1.17** (Zach, 2026-10-17: paused to stay in scope; its WIP stays on its branch, docs/axe_polish_plan.md).
 - Also: test and render windows no longer go fullscreen or on top.
 
 ## Steps (once every agent has landed and been checked)
@@ -31,7 +30,7 @@ Zach, 2026-10-17: package the current batch as **v1.17 "Timber and Tide"** once 
 3. **The release commit**, like v1.16's (b29d8a4): `project.godot` version 1.17, `scripts/ui/whats_new.gd`,
    README, `web/site/news/v1-17-timber-and-tide/index.html` + the news index, `web/site/releases/index.html`,
    `web/site/roadmap/index.html`, site images from `themewxshot.gd` with `TWX_SITE` (1600x900 + 640 JPEGs: the forest,
-   the lumber town, Brinehollow's terrace and market street, the upgraded sloop, the katana's petals, the axe's fire).
+   the lumber town, Brinehollow's terrace and market street, the upgraded sloop, the katana's petals).
    Show Zach the what's-new text and the news post before tagging.
 4. **Push main, then tag `v1.17` and push the tag** (the tag starts build-windows.yml; deploy-web on main's push).
    Zach asked for this release: confirm with him once at this point, since a tag and a public post can't be quietly
