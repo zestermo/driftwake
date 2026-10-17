@@ -1433,7 +1433,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_toast(AnimLab.cycle())
 		get_viewport().set_input_as_handled()
 		return
-	# debug builds: the cape lab (BodyBuilder.cycle_cape): F1 cycles how capes move, Shift+F1 thin/thick
+	# debug builds: the cape lab (BodyBuilder.cycle_cape): F1 cycles how capes move, Shift+F1 A's safety net on/off
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F1:
 		_toast(BodyBuilder.cycle_cape(get_tree(), (event as InputEventKey).shift_pressed))
 		get_viewport().set_input_as_handled()

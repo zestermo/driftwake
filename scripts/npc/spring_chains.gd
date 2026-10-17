@@ -14,6 +14,11 @@ const STEP := 1.0 / 60.0
 const MAX_STEPS := 4
 ## The cape variants test a segment against the legs here too, off to each side (the sheet is wider than its chain).
 const PROBES := [Vector3.ZERO, Vector3(-0.1, 0, 0), Vector3(0.1, 0, 0)]
+## Mode "a"'s safety net (`net`): within CUSHION of a leg a point is eased off it (a share of the depth a step), and the
+## drawn sheet's probe lines never end up inside NET_CAPS or a chain point in front of the back's plane.
+const CUSHION := 0.05
+const CUSHION_K := 0.3
+const NET_CAPS := ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips"]
 
 var skel: Skeleton3D
 ## Skinned geometry is added here by BodyBuilder, then finalize() commits it.
@@ -23,13 +28,16 @@ var colliders: Dictionary = {}
 var gravity := Vector3(0, -9.8, 0)
 var enabled := true
 
-## The cape lab's variants (BodyBuilder.cape_mode) on a cape's own chains: "a0" today's solver, "a" the
-## tuned one (use_tuned); "b", "bg" and "c" hand the chains to `motion` (CapeMotion).
+## How a drape moves (BodyBuilder.cape_mode for capes and cloaks): "a0" the plain solver, "a" the tuned one
+## (use_tuned) with its safety net; "b" and "c" hand the chains to `motion` (CapeMotion, the cape lab's).
 var mode := "a0"
 var motion: CapeMotion
 var iters := 1
 ## Mode "a": anchor-local z every point stays behind (the back's plane).
 var back_z := -INF
+var net := false
+## Frames the drawn net moved a segment (the lab and tests read it).
+var net_hits := 0
 
 var _chains: Array = []
 var _acc := 0.0
@@ -37,6 +45,7 @@ var _last_origin := Vector3.INF
 var _g_step := Transform3D()
 var _g_prev := Transform3D()
 var _cw: Dictionary = {}
+var _net_acted := false
 
 
 func _init() -> void:
@@ -70,8 +79,13 @@ func add_chain(points: PackedVector3Array, stiffness: float = 0.12, damping: flo
 	for i in range(n):
 		bones.append(first + i)
 	_chains.append({"p": points, "bones": bones, "x": [], "px": [],
-		"k": stiffness, "d": damping, "g": gravity_scale, "col": collide})
+		"k": stiffness, "d": damping, "g": gravity_scale, "col": collide, "probe": PackedVector3Array([Vector3.ZERO])})
 	return per_point
+
+
+## The net's probe lines for chain `ci`: offsets from the chain across the sheet it carries (rest space).
+func set_probes(ci: int, offsets: PackedVector3Array) -> void:
+	_chains[ci]["probe"] = offsets
 
 
 func chain_count() -> int:
@@ -267,13 +281,17 @@ func _simulate_tuned(delta: float) -> void:
 	_g_prev = g
 	# the shape blended between the last two steps, in the anchor's space: smooth on any refresh rate
 	var w := _acc / STEP
+	var caps := _net_caps(g) if net else []
+	_net_acted = false
 	for c in _chains:
 		var lp: PackedVector3Array = c["lp"]
 		var lc: PackedVector3Array = c["lc"]
 		var loc := PackedVector3Array()
 		for i in range(lc.size()):
 			loc.append(lp[i].lerp(lc[i], w))
-		pose_local(c, loc)
+		pose_local(c, _net_clear(c, loc, caps) if net else loc)
+	if _net_acted:
+		net_hits += 1
 
 
 func _step_tuned(g: Transform3D) -> void:
@@ -296,6 +314,7 @@ func _step_tuned(g: Transform3D) -> void:
 			px[i] = cur
 			x[i] = nx.lerp((x[i - 1] as Vector3) + g.basis * (p[i] - p[i - 1]), k)
 		for it in range(iters):
+			var soft := CUSHION if net and it == 0 else 0.0
 			for i in range(1, p.size()):
 				var prev: Vector3 = x[i - 1]
 				var seg := (g.basis * (p[i] - p[i - 1])).length()
@@ -305,7 +324,7 @@ func _step_tuned(g: Transform3D) -> void:
 					var ow: Vector3 = g.basis * (o as Vector3)
 					for name_ in col:
 						if _cw.has(name_):
-							nx = _push_segment(prev + ow, nx + ow, _cw[name_]) - ow
+							nx = _push_segment(prev + ow, nx + ow, _cw[name_], soft) - ow
 				var l := inv * nx
 				if l.z < back_z:
 					l.z = back_z
@@ -313,18 +332,102 @@ func _step_tuned(g: Transform3D) -> void:
 				x[i] = nx
 
 
-## Moves `b` so the segment a-b clears the capsule (a, the point above, stays).
-static func _push_segment(a: Vector3, b: Vector3, cap: Array) -> Vector3:
+## Moves `b` so the segment a-b clears the capsule (a, the point above, stays); within `soft` of it, eases it off.
+static func _push_segment(a: Vector3, b: Vector3, cap: Array, soft := 0.0) -> Vector3:
 	var st := _closest_segments(a, b, cap[0], cap[1])
 	var on_seg: Vector3 = st[0]
 	var off: Vector3 = on_seg - (st[1] as Vector3)
 	var dist := off.length()
 	var r: float = cap[2]
-	if dist >= r:
+	if dist >= r + soft:
 		return b
 	var n := off / dist if dist > 1e-5 else Vector3.BACK
 	var t := maxf(float(st[2]), 0.35)
+	if dist >= r:
+		return b + n * (r + soft - dist) * CUSHION_K / t
 	return b + n * minf((r - dist) / t, r * 2.0)
+
+
+## The net's capsules in the anchor's space as drawn: [a, b, r, box min, box max].
+func _net_caps(g: Transform3D) -> Array:
+	var inv := g.affine_inverse()
+	var out: Array = []
+	for key in NET_CAPS:
+		var cd: Dictionary = colliders[key]
+		var t := inv * (cd["node"] as Node3D).get_global_transform_interpolated()
+		var a: Vector3 = t * (cd["a"] as Vector3)
+		var b: Vector3 = t * (cd["b"] as Vector3)
+		var r: float = float(cd["r"]) * t.basis.get_scale().x
+		out.append([a, b, r, a.min(b) - Vector3.ONE * r, a.max(b) + Vector3.ONE * r])
+	return out
+
+
+## The drawn chain (anchor space) with every segment that ends up inside a capsule or in front of the back's plane
+## swung back about its root, the least that clears (bisected); the rest of the chain rides on it.
+func _net_clear(c: Dictionary, loc: PackedVector3Array, caps: Array) -> PackedVector3Array:
+	var p: PackedVector3Array = c["p"]
+	var probes: PackedVector3Array = c["probe"]
+	var a := loc[0]
+	for j in range(loc.size() - 1):
+		var rest := (p[j + 1] - p[j]).normalized()
+		var d := loc[j + 1] - loc[j]
+		# (the bone is posed at its rest length along the drawn direction: judged so, its end is where the skin is)
+		var full := d.normalized() * (p[j + 1] - p[j]).length()
+		# (a point the step left on the back's plane comes back a hair in front of it)
+		if _net_gap(a, full, rest, probes, caps) < -0.0001:
+			d = full
+			var lo := 0.0
+			var hi := 1.3
+			if _net_gap(a, d.rotated(Vector3.RIGHT, -hi), rest, probes, caps) >= 0.0:
+				for k in range(8):
+					var mid := (lo + hi) * 0.5
+					if _net_gap(a, d.rotated(Vector3.RIGHT, -mid), rest, probes, caps) < 0.0:
+						lo = mid
+					else:
+						hi = mid
+			else:
+				# (nothing clears it: the least bad)
+				var best := -INF
+				for k in range(6):
+					var ang := 1.3 * k / 5.0
+					var gk := _net_gap(a, d.rotated(Vector3.RIGHT, -ang), rest, probes, caps)
+					if gk > best:
+						best = gk
+						hi = ang
+			d = d.rotated(Vector3.RIGHT, -hi)
+			# (a segment swung out sideways barely turns about x: its end goes onto the plane, the length kept)
+			var need := back_z - a.z
+			if a.z + d.z < back_z and absf(need) < d.length():
+				var side := Vector2(d.x, d.y).normalized() * sqrt(d.length_squared() - need * need)
+				d = Vector3(side.x, side.y, need)
+			_net_acted = true
+		loc[j] = a
+		a += d
+	loc[loc.size() - 1] = a
+	return loc
+
+
+## How far segment a-(a+d)'s probe lines (turned with it, as the skin is) are from the capsules, and its end from the
+## back's plane (negative: inside).
+func _net_gap(a: Vector3, d: Vector3, rest: Vector3, probes: PackedVector3Array, caps: Array) -> float:
+	var x := a + d
+	var gap := x.z - back_z
+	var dn := d.normalized()
+	var q := Quaternion(rest, dn) if rest.dot(dn) > -0.9999 else Quaternion(Vector3.RIGHT, PI)
+	for o in probes:
+		var ow := q * o
+		var pa := a + ow
+		var pb := x + ow
+		var lo := pa.min(pb)
+		var hi := pa.max(pb)
+		for cap in caps:
+			var cl: Vector3 = cap[3]
+			var ch: Vector3 = cap[4]
+			if lo.x > ch.x or hi.x < cl.x or lo.y > ch.y or hi.y < cl.y or lo.z > ch.z or hi.z < cl.z:
+				continue
+			var st := _closest_segments(pa, pb, cap[0], cap[1])
+			gap = minf(gap, (st[0] as Vector3).distance_to(st[1]) - float(cap[2]))
+	return gap
 
 
 ## Closest points of segments p1-q1 and p2-q2: [on the first, on the second, the first's parameter].

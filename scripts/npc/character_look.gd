@@ -18,7 +18,7 @@ extends RefCounted
 ##   feet (see FEET), feet_color
 ##   belt (see BELTS), belt_color, sash_color
 ##   gloves bool, gloves_color, gauntlets bool, bracers bool, long_gloves bool
-##   apron bool, apron_color, cape bool, cape_color, mantle bool, mantle_color
+##   apron bool, apron_color, cape bool, cape_color, cloak bool, cloak_color, mantle bool, mantle_color
 ##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool,
 ##   bandolier bool, necklace bool, goggles bool, baldric bool, spyglass bool
 
@@ -89,7 +89,7 @@ const COLOR_PALETTES := {
 	"hat_color": "CLOTH", "top_color": "CLOTH", "vest_color": "CLOTH", "coat_color": "CLOTH",
 	"trim_color": "TRIM", "legs_color": "CLOTH", "feet_color": "LEATHER", "belt_color": "LEATHER",
 	"sash_color": "CLOTH", "gloves_color": "LEATHER", "scarf_color": "CLOTH", "apron_color": "CLOTH", "cape_color": "CLOTH",
-	"mantle_color": "CLOTH"}
+	"cloak_color": "CLOTH", "mantle_color": "CLOTH"}
 
 
 static func palette(key: String) -> Array:
@@ -120,7 +120,7 @@ static func base_look() -> Dictionary:
 		"gloves": false, "gloves_color": LEATHER[1], "gauntlets": false, "bracers": false, "long_gloves": false,
 		"apron": false, "apron_color": CLOTH[0],
 		"earring": false, "eyepatch": false, "scarf": false, "scarf_color": CLOTH[13],
-		"pauldron": false, "pouch": false, "cape": false, "cape_color": CLOTH[13], "bandolier": false,
+		"pauldron": false, "pouch": false, "cape": false, "cape_color": CLOTH[13], "cloak": false, "cloak_color": CLOTH[4], "bandolier": false,
 		"necklace": false, "goggles": false, "mantle": false, "mantle_color": CLOTH[3],
 		"baldric": false, "spyglass": false,
 	}

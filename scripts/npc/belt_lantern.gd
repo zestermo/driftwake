@@ -1,7 +1,8 @@
 class_name BeltLantern
 extends Node3D
-## A small brass lantern hung from a captain's belt at the back of the right hip, clear
-## of the sheaths (Humanoid.wear_lantern; it never takes a hand). It swings
+## A small brass lantern hung from a captain's belt on the right hip, clear of the main
+## sheath (Humanoid.wear_lantern; it never takes a hand), resting against the hip so its foot
+## leans out a little. It swings
 ## on its strap as a pendulum driven by the body's motion (verlet against the torso's
 ## drawn transform, like SpringChains) and settles when you stand still. Lit: a warm
 ## OmniLight, no shadows. Who lights it: Player._lantern_tick.
@@ -14,8 +15,9 @@ const STEP := 1.0 / 60.0
 const DAMP := 0.03
 ## How much of the body's speeding up and slowing down the lantern feels (the rest it's carried with).
 const INERTIA := 0.35
-## How far it may swing in toward the body (m, local x and z) and up from hanging straight (rad).
-const IN_MAX := 0.015
+## The least it leans out from the hip (sine of the angle off straight down, local x), and how far up from hanging
+## straight it may swing (rad).
+const LEAN := 0.3
 const SWING_MAX := 1.1
 const COLOR := Color(1.0, 0.72, 0.42)
 const ENERGY := 1.0
@@ -111,7 +113,7 @@ func _process(delta: float) -> void:
 	var moved := g.origin - _hook
 	_hook = g.origin
 	if _x == Vector3.INF or moved.length() > 1.5 or delta <= 0.0:
-		_x = Vector3.DOWN * arm
+		_x = (g.basis * Vector3(LEAN, -sqrt(1.0 - LEAN * LEAN), 0)).normalized() * arm
 		_px = _x
 		_hv = Vector3.ZERO
 		_kick = Vector3.ZERO
@@ -131,11 +133,10 @@ func _process(delta: float) -> void:
 	_swing.basis = Basis(Quaternion(Vector3.DOWN, dir)) if dir.dot(Vector3.DOWN) > -0.999 else Basis()
 
 
-## On the strap's length from the hook, never into the leg, never up over the belt.
+## On the strap's length from the hook, never in against the leg, never up over the belt.
 func _limit(b: Basis, r: Vector3, arm: float) -> Vector3:
-	var d := b.inverse() * r
-	d.x = maxf(d.x, -IN_MAX)
-	d.z = maxf(d.z, -IN_MAX)
+	var d := (b.inverse() * r).normalized()
+	d.x = maxf(d.x, LEAN)
 	d = d.normalized()
 	if d.angle_to(Vector3.DOWN) > SWING_MAX:
 		var axis := Vector3.DOWN.cross(d)

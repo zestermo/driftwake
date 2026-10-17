@@ -1,6 +1,6 @@
 extends SceneTree
 ## Clothing layers don't poke through each other: for fixed combos (every vest under every coat,
-## belts and tops under them, baldric and bandolier over both, every hat over long and wild hair,
+## belts and tops under them, baldric and bandolier over both, the cloak over both, every hat over long and wild hair,
 ## every legwear in every footwear),
 ## each vertex of the inner layer is cast out level from the body's axis at its height (in the
 ## head's own space for hats, where hair below the lowest brim is free to hang out) and must not end
@@ -12,7 +12,7 @@ const TOL := 0.004
 const C := {"top_color": Color(0.9, 0.88, 0.8), "vest_color": Color(0.18, 0.34, 0.2), "coat_color": Color(0.2, 0.32, 0.62),
 	"trim_color": Color(0.75, 0.76, 0.78), "belt_color": Color(0.62, 0.44, 0.26), "sash_color": Color(0.8, 0.62, 0.2),
 	"legs_color": Color(0.36, 0.2, 0.44), "feet_color": Color(0.1, 0.08, 0.07), "hat_color": Color(0.66, 0.14, 0.12),
-	"hair_color": Color(0.7, 0.34, 0.14), "mantle_color": Color(0.55, 0.55, 0.55)}
+	"hair_color": Color(0.7, 0.34, 0.14), "mantle_color": Color(0.55, 0.55, 0.55), "cloak_color": Color(0.42, 0.42, 0.2)}
 const BARE := {"hat": "none", "vest": "none", "coat": "none", "belt": "none", "top": "bare", "feet": "barefoot", "hair": "bald", "legs": "skirt"}
 ## The part of the body each layer pair is checked on: the meshes it reads and how rays are cast.
 const TORSO := ["Torso", "Hips"]
@@ -59,6 +59,13 @@ func _process(_d: float) -> bool:
 		for vest in ["none", "scale", "cuirass", "harness"]:
 			straps.append({"coat": coat, "vest": vest, "belt": "none", "top": "shirt", "baldric": true})
 			straps.append({"coat": coat, "vest": vest, "belt": "none", "top": "shirt", "bandolier": true})
+	# the cloak's yoke and collar over coats and vests (not the greatcoat, whose own shoulder cape it sits beside)
+	var cloaks := []
+	for coat in CharacterLook.COATS:
+		if coat == "greatcoat":
+			continue
+		for vest in ["none", "scale", "cuirass", "padded"]:
+			cloaks.append({"coat": coat, "vest": vest, "belt": "belt", "top": "shirt", "cloak": true})
 	# (fem: the coat's shell sits further out over the bust)
 	for vest in ["cuirass", "padded", "scale", "mail"]:
 		torso.append({"body": "fem", "vest": vest, "coat": "longcoat", "belt": "belt_sash", "top": "blouse"})
@@ -75,6 +82,7 @@ func _process(_d: float) -> bool:
 				legs.append({"legs": lg, "feet": ft})
 	_run("vests, tops and belts under coats", torso, [["top", "vest"], ["top", "coat"], ["vest", "coat"], ["belt", "coat"], ["vest", "belt"]], "axis", TORSO)
 	_run("baldric and bandolier over coats and vests", straps, [["coat", "baldric"], ["vest", "baldric"], ["coat", "bandolier"], ["vest", "bandolier"]], "axis", TORSO)
+	_run("coats and vests under the cloak", cloaks, [["coat", "cloak"], ["vest", "cloak"], ["top", "cloak"]], "axis", TORSO)
 	_run("hair under hats", heads, [["hair", "hat"]], "head", ["Head"])
 	_run("legs in footwear", legs, [["legs", "feet"]], "legs", ["Hips", "ShinL", "ShinR"])
 	print("RESULT fails=", fails)
@@ -162,7 +170,7 @@ func _mats_of(lk: Dictionary) -> Dictionary:
 func _layers(h, lk: Dictionary, parts: Array, space: Node3D) -> Dictionary:
 	var by_mat := {}
 	var owners := {}
-	for slot in ["vest", "coat", "belt", "feet", "hat", "top", "hair", "legs", "baldric", "bandolier"]:
+	for slot in ["vest", "coat", "belt", "feet", "hat", "top", "hair", "legs", "baldric", "bandolier", "cloak"]:
 		var v = lk.get(slot, "")
 		if v is bool and not v or str(v) == "" or str(v) == str(BARE.get(slot, "")):
 			continue

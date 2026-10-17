@@ -29,8 +29,10 @@ const SLOT_KEYS := {
 }
 ## Accessories are on/off look flags (+ a color for some).
 const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apron", "cape", "bandolier", "necklace", "goggles", "mantle",
-	"baldric", "spyglass"]
-const ACC_COLOR := {"scarf": "scarf_color", "apron": "apron_color", "cape": "cape_color", "mantle": "mantle_color"}
+	"baldric", "spyglass", "cloak"]
+const ACC_COLOR := {"scarf": "scarf_color", "apron": "apron_color", "cape": "cape_color", "mantle": "mantle_color", "cloak": "cloak_color"}
+## How torn a cape or cloak is (0..1, BodyBuilder._drape_rows), carried by the item.
+const ACC_TATTER := {"cape": "cape_tatter", "cloak": "cloak_tatter"}
 ## Steel (and gold) pieces are named plainly ("Morion", not "Grey Morion").
 const STEEL_PIECES := ["morion", "cuirass", "mail", "gauntlets", "greaves", "pauldron", "kettle", "coif", "crown", "scale", "sabatons", "helm"]
 
@@ -61,6 +63,7 @@ const NAMES := {
 	"necklace": "Tooth Necklace", "goggles": "Brass Goggles", "mantle": "Fur Mantle",
 	"slouch": "Slouch Hat", "helm": "Boarding Helm", "striped": "Striped Shirt", "harness": "Leather Harness",
 	"admiral": "Admiral's Coat", "slops": "Slops", "cavalier_boots": "Cavalier Boots", "baldric": "Sword Baldric", "spyglass": "Spyglass",
+	"cloak": "Cloak",
 }
 const DESCRIPTIONS := {
 	"tricorn": "A three-cornered hat. Keeps the sun and the spray off.",
@@ -104,7 +107,8 @@ const DESCRIPTIONS := {
 	"greatcoat": "A long coat with a cape over the shoulders. For wind, rain and making an entrance.",
 	"gauntlets": "Steel over the forearms and the backs of the hands.",
 	"greaves": "Tall boots with steel down the shins and a cop over each knee.",
-	"cape": "A cloak from the shoulders to the knees. Mostly for the look of it.",
+	"cape": "A light cape from the shoulders to the knees. Mostly for the look of it.",
+	"cloak": "Heavy canvas from a gathered collar to the knees, the hem rolled and sewn. Turns wind, rain and the odd glancing cut.",
 	"bandolier": "A strap across the chest, cartridges along it.",
 	"kettle": "A steel skullcap under a wide brim. Rain, sun and falling spars all run off it.",
 	"fez": "A tall felt cap with a tassel. Worn by men who have been somewhere.",
@@ -164,6 +168,7 @@ const DEFENSE := {
 	"necklace": 0.0, "goggles": 0.0, "mantle": 2.0,
 	"slouch": 2.0, "helm": 5.0, "striped": 1.0, "harness": 2.0, "admiral": 6.0, "slops": 2.0, "cavalier_boots": 3.0,
 	"baldric": 1.0, "spyglass": 1.0,
+	"cloak": 2.0,
 }
 
 ## Rough color names for item names ("Navy Long Coat").
@@ -190,7 +195,7 @@ const PLUNDER := [
 	["hands", "gauntlets", {"gloves": true, "gloves_color": Color(0.1, 0.08, 0.07), "gauntlets": true}],
 	["feet", "greaves", {"feet": "greaves", "feet_color": Color(0.1, 0.08, 0.07)}],
 	["accessory", "pauldron", {"pauldron": true}],
-	["accessory", "cape", {"cape": true, "cape_color": Color(0.4, 0.1, 0.12)}],
+	["accessory", "cape", {"cape": true, "cape_color": Color(0.4, 0.1, 0.12), "cape_tatter": 0.85}],
 	["head", "kettle", {"hat": "kettle"}],
 	["head", "coif", {"hat": "coif"}],
 	["head", "crown", {"hat": "crown"}],
@@ -216,7 +221,7 @@ static func is_outfit_key(k: String) -> bool:
 	for keys in SLOT_KEYS.values():
 		if k in keys:
 			return true
-	return k in ACCESSORIES or k in ACC_COLOR.values()
+	return k in ACCESSORIES or k in ACC_COLOR.values() or k in ACC_TATTER.values()
 
 
 static func slot_label(kind: String) -> String:
@@ -319,6 +324,8 @@ static func items_from_look(lk: Dictionary) -> Dictionary:
 		var part := {a: true}
 		if ACC_COLOR.has(a):
 			part[ACC_COLOR[a]] = lk.get(ACC_COLOR[a])
+		if ACC_TATTER.has(a) and lk.has(ACC_TATTER[a]):
+			part[ACC_TATTER[a]] = lk[ACC_TATTER[a]]
 		var it := make("accessory", a, part)
 		if n < 2:
 			out["acc%d" % (n + 1)] = it
@@ -355,6 +362,8 @@ static func compose(appearance: Dictionary, equipped: Dictionary) -> Dictionary:
 		lk.merge(it.look if it else bare(kind, fem), true)
 	for a in ACCESSORIES:
 		lk[a] = false
+	for k in ACC_TATTER.values():
+		lk.erase(k)
 	for slot in ["acc1", "acc2"]:
 		var it: ItemData = equipped.get(slot)
 		if it:

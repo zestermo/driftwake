@@ -474,7 +474,7 @@ func add_loft(mat: Material, xf: Transform3D, rings: Array, profile: PackedVecto
 ## skirt sectors). rows[r] is a row of points; row_bones[r] skins each row.
 ## Normals face away from the vertical axis through `center`.
 func add_strip_grid(mat: Material, xf: Transform3D, rows: Array, row_bones: PackedInt32Array = PackedInt32Array(),
-		uv_scale: float = 2.0, col: Color = Color.WHITE, center: Vector3 = Vector3.ZERO) -> void:
+		uv_scale: float = 2.0, col: Color = Color.WHITE, center: Vector3 = Vector3.ZERO, u_span: float = 0.0) -> void:
 	var nr := rows.size()
 	if nr < 2:
 		return
@@ -492,7 +492,8 @@ func add_strip_grid(mat: Material, xf: Transform3D, rows: Array, row_bones: Pack
 			var out := mid - Vector3(center.x, mid.y, center.z)
 			if nn.dot(out) < 0.0:
 				nn = -nn
-			var du := a.distance_to(b) * uv_scale
+			# (u_span: the columns' u the same on every row, so a texture's columns fan out with a flaring sheet)
+			var du := a.distance_to(b) * uv_scale if u_span <= 0.0 else u_span / (top.size() - 1)
 			var b0 := row_bones[r] if row_bones.size() == nr else bone
 			var b1 := row_bones[r + 1] if row_bones.size() == nr else bone
 			var pa := xf * a; var pb := xf * b; var pc := xf * c; var pd := xf * d

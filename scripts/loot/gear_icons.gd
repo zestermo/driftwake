@@ -51,7 +51,7 @@ static func _main_color(it: ItemData) -> Color:
 		return GOLD
 	if it.icon_kind in Gear.STEEL_PIECES:
 		return STEEL
-	for k in ["hat_color", "top_color", "vest_color", "coat_color", "gloves_color", "legs_color", "feet_color", "scarf_color", "apron_color", "cape_color"]:
+	for k in ["hat_color", "top_color", "vest_color", "coat_color", "gloves_color", "legs_color", "feet_color", "scarf_color", "apron_color", "cape_color", "cloak_color"]:
 		if lk.has(k) and lk[k] is Color:
 			return lk[k]
 	if lk.has("belt"):
@@ -454,6 +454,15 @@ static func _shapes(kind: String, look: Dictionary) -> Array:
 				["d", [Vector2(7, 3), Vector2(17, 3), Vector2(17, 5), Vector2(7, 5)]],
 				["g", [Vector2(6, 3), Vector2(8, 3), Vector2(8, 5), Vector2(6, 5)]],
 				["g", [Vector2(16, 3), Vector2(18, 3), Vector2(18, 5), Vector2(16, 5)]]]
+		"cloak":
+			var layers := [["m", [Vector2(7, 5), Vector2(17, 5), Vector2(23, 20), Vector2(1, 20)]],
+				["l", [Vector2(5, 4), Vector2(19, 4), Vector2(21, 9), Vector2(3, 9)]]]
+			for i in range(5):
+				var x := 7 + i * 2.5
+				layers.append(["d", [Vector2(x, 2), Vector2(x + 1.5, 2), Vector2(x + 1.5, 5), Vector2(x, 5)]])
+			layers.append(["d", [Vector2(1, 19), Vector2(23, 19), Vector2(23, 22), Vector2(1, 22)]])
+			layers.append(["g", [Vector2(11, 6), Vector2(13, 6), Vector2(13, 8), Vector2(11, 8)]])
+			return layers
 		"bandolier":
 			return [["m", [Vector2(4, 2), Vector2(8, 2), Vector2(21, 20), Vector2(17, 22)]],
 				["g", [Vector2(8, 7), Vector2(10, 7), Vector2(10, 9), Vector2(8, 9)]],

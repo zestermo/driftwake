@@ -268,14 +268,15 @@ func _process(d: float) -> bool:
 			check("Randomize in the creator stays plain too", plain)
 			var gear = load("res://scripts/loot/gear.gd")
 			var built := 0
-			for e in gear.PLUNDER + [["accessory", "bandolier", {"bandolier": true}], ["head", "turban", {"hat": "turban"}], ["vest", "brigandine", {"vest": "brigandine"}]]:
+			for e in gear.PLUNDER + [["accessory", "bandolier", {"bandolier": true}], ["head", "turban", {"hat": "turban"}], ["vest", "brigandine", {"vest": "brigandine"}],
+					["accessory", "cloak", {"cloak": true, "cloak_color": Color(0.24, 0.17, 0.12)}]]:
 				var it = gear.make(str(e[0]), str(e[1]), e[2], "", 2)
 				p.equipment.clear()
 				p.equipment.equip(it)
 				p.refresh_look()
 				if it.icon != null and it.armor() > it.defense:
 					built += 1
-			check("every new piece wears, has an icon, and a blue one guards better than its base (%d)" % built, built == gear.PLUNDER.size() + 3)
+			check("every new piece wears, has an icon, and a blue one guards better than its base (%d)" % built, built == gear.PLUNDER.size() + 4)
 			var g = gear.make("hands", "gauntlets", {"gloves": true, "gauntlets": true}, "", 0)
 			check("gauntlets are plain-named steel", g.display_name == "Gauntlets" and g.defense >= 3.0)
 			finish()

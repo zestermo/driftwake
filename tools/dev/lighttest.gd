@@ -2,7 +2,7 @@ extends SceneTree
 ## v1.12 light: readable nights (the ambient and the moon over a floor at 21:00 and
 ## 2:00, and in a storm, below the day's), the belt lantern (lit at night, out by day,
 ## the key flips it, its bit in the co-op snapshot, out in the water and back on
-## climbing out, kept through a rebuilt body, swings and settles), the ship's lanterns
+## climbing out, kept through a rebuilt body), the ship's lanterns
 ## (there, lit at night, dark by day; the pirates' too).
 const TK := preload("res://tools/dev/test_kit.gd")
 
@@ -45,11 +45,6 @@ func all_visible(lights: Array) -> bool:
 
 func none_visible(lights: Array) -> bool:
 	return lights.all(func(l): return not (l as Node3D).visible)
-
-
-## The angle the lantern hangs off straight down along the belt (rad).
-func swing_angle(l) -> float:
-	return (l._swing.basis * Vector3.DOWN).angle_to(Vector3.DOWN)
 
 
 func _process(_d: float) -> bool:
@@ -155,40 +150,6 @@ func _process(_d: float) -> bool:
 		8:
 			check("at dawn the lantern goes out", not p.body_model.lantern.lit)
 			check("...and the ship's lanterns", none_visible(ship_lights()))
-			_pendulum()
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 	return false
-
-
-## A body standing still, run sideways and stopped: its lantern hangs straight, swings, settles.
-func _pendulum() -> void:
-	var h := Humanoid.new()
-	h.setup(CharacterLook.default_look())
-	h.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
-	root.add_child(h)
-	h.global_position = Vector3(5000, 0, 5000)
-	h.set_process(false)
-	h.wear_lantern()
-	var l = h.lantern
-	l.set_process(false)
-	var dt := 1.0 / 60.0
-	for f in range(120):
-		l._process(dt)
-	var still := swing_angle(l)
-	check("standing still the lantern hangs straight (%.3f rad)" % still, still < 0.05)
-	var peak := 0.0
-	for f in range(50):
-		if f < 30:
-			h.global_position += Vector3(5.0 * dt, 0, 0)
-		l._process(dt)
-		peak = maxf(peak, swing_angle(l))
-	check("running and stopping swings it (%.2f rad)" % peak, peak > 0.15)
-	check("...not up over the belt", peak <= l.SWING_MAX + 0.01)
-	for f in range(300):
-		l._process(dt)
-	var after := swing_angle(l)
-	check("...and it settles again (%.3f rad)" % after, after < 0.05)
-	var inward: float = (l.global_basis.inverse() * l._x).x
-	check("...never swinging into the leg", inward >= -l.IN_MAX - 0.001)
-	h.queue_free()

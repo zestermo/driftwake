@@ -6,9 +6,7 @@ extends RefCounted
 ##      that point of the body really moves (its acceleration and air drag) and gravity, limited so it never
 ##      swings in front of the back, and lifted off the legs;
 ## "c"  procedural: the same swing eased toward targets read off the body (speed lifts it back, turning sways
-##      it, falling lifts the hem, a little seeded flutter), no physics: nothing can jitter;
-## "bg" Godot's SpringBoneSimulator3D on the chains' skeleton (swing locked to front and back, a plane at the
-##      back, the thighs and shins as capsules), simulated in the body's space with its speed as a wind.
+##      it, falling lifts the hem, a little seeded flutter), no physics: nothing can jitter.
 
 const LEGS := ["thigh_l", "thigh_r", "shin_l", "shin_r"]
 const SUB := 1.0 / 120.0
@@ -25,17 +23,11 @@ const B_AIR := 0.45
 const B_REST := 12.0
 const B_BEND := 40.0
 const B_ZETA := 0.75
-# bg: SpringBoneSimulator3D's settings, and the share of the body's speed blown at the cloth
-const BG_STIFF := 4.0
-const BG_DRAG := 0.9
-const BG_GRAVITY := 9.8
-const BG_WIND := 0.12
 # c: each segment's spring (Hz, top to hem) and damping ratio
 const C_HZ := [2.6, 2.1, 1.7, 1.5]
 const C_ZETA := 0.8
 
 var mode := "b"
-var h: Node3D
 ## The back's plane (anchor-local z): nothing below a chain's root swings in front of it.
 var back := 0.0
 var _st: Array = []
@@ -47,14 +39,11 @@ var _yaw := 0.0
 var _yaw_rate := 0.0
 var _t := 0.0
 var _phase := 0.0
-var _gb: SpringBoneSimulator3D
-var _caps: Array = []
 
 
 static func attach(sim: SpringChains, m: String, body: Node3D, back: float) -> CapeMotion:
 	var cm := CapeMotion.new()
 	cm.mode = m
-	cm.h = body
 	cm.back = back
 	cm._phase = float(hash(str(body.name)) % 1000) * 0.01
 	for i in range(sim.chain_count()):
@@ -79,8 +68,6 @@ static func attach(sim: SpringChains, m: String, body: Node3D, back: float) -> C
 		z.resize(n)
 		cm._st.append({"dirs": dirs, "len": lens, "reach": reach, "lo": lo, "mids": mids,
 			"b": z.duplicate(), "s": z.duplicate(), "vb": z.duplicate(), "vs": z.duplicate(), "pv": [], "va": []})
-	if m == "bg":
-		cm._setup_godot(sim, back)
 	sim.motion = cm
 	sim.back_z = back
 	return cm
@@ -88,9 +75,6 @@ static func attach(sim: SpringChains, m: String, body: Node3D, back: float) -> C
 
 func update(sim: SpringChains, delta: float) -> void:
 	var g := sim.get_global_transform_interpolated()
-	if mode == "bg":
-		_update_godot(sim, g, delta)
-		return
 	if _fresh or g.origin.distance_to(_g_prev.origin) > 2.5:
 		_fresh = false
 		_g_prev = g
@@ -309,64 +293,3 @@ func _gap(x: Vector3, a: Vector3, cols: Array, plane := true) -> float:
 			var st := SpringChains._closest_segments(a + o, x + o, cap[0], cap[1])
 			g = minf(g, (st[0] as Vector3).distance_to(st[1]) - float(cap[2]))
 	return g
-
-
-# ---- bg: Godot's SpringBoneSimulator3D ----
-func _setup_godot(sim: SpringChains, back: float) -> void:
-	_gb = SpringBoneSimulator3D.new()
-	_gb.name = "SpringBones"
-	sim.skel.add_child(_gb)
-	_gb.setting_count = sim.chain_count()
-	var up := ".."
-	var n: Node = _gb.get_parent()
-	while n != h:
-		n = n.get_parent()
-		up += "/.."
-	for i in range(sim.chain_count()):
-		var c := sim.chain(i)
-		var bones: PackedInt32Array = c["bones"]
-		var p: PackedVector3Array = c["p"]
-		_gb.set_root_bone(i, bones[0])
-		_gb.set_end_bone(i, bones[bones.size() - 1])
-		_gb.set_extend_end_bone(i, true)
-		_gb.set_end_bone_direction(i, SkeletonModifier3D.BONE_DIRECTION_FROM_PARENT)
-		_gb.set_end_bone_length(i, p[p.size() - 1].distance_to(p[p.size() - 2]))
-		_gb.set_center_from(i, SpringBoneSimulator3D.CENTER_FROM_NODE)
-		_gb.set_center_node(i, NodePath(up))
-		_gb.set_rotation_axis(i, SkeletonModifier3D.ROTATION_AXIS_X)
-		_gb.set_radius(i, 0.03)
-		_gb.set_stiffness(i, BG_STIFF)
-		_gb.set_drag(i, BG_DRAG)
-		_gb.set_gravity(i, BG_GRAVITY)
-		_gb.set_gravity_direction(i, Vector3.DOWN)
-		_gb.set_enable_all_child_collisions(i, true)
-	var plane := SpringBoneCollisionPlane3D.new()
-	plane.name = "Back"
-	plane.transform = Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0, 0, back))
-	_gb.add_child(plane)
-	for key in LEGS:
-		var cd: Dictionary = sim.colliders[key]
-		var cap := SpringBoneCollisionCapsule3D.new()
-		cap.name = key
-		var a: Vector3 = cd["a"]
-		var bb: Vector3 = cd["b"]
-		cap.radius = float(cd["r"])
-		cap.height = a.distance_to(bb) + 2.0 * float(cd["r"])
-		_gb.add_child(cap)
-		_caps.append([cap, cd])
-
-
-func _update_godot(_sim: SpringChains, g: Transform3D, delta: float) -> void:
-	if delta <= 0.0:
-		return
-	if _fresh:
-		_fresh = false
-		_g_prev = g
-	_read_body(g, g.basis.orthonormalized(), delta)
-	_g_prev = g
-	for e in _caps:
-		var cd: Dictionary = e[1]
-		var node: Node3D = cd["node"]
-		(e[0] as Node3D).global_transform = node.global_transform * Transform3D(Basis(), ((cd["a"] as Vector3) + (cd["b"] as Vector3)) * 0.5)
-	# (simulated in the body's space, so the body's own travel reaches the cloth only as this wind)
-	_gb.external_force = -_v * BG_WIND
