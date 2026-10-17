@@ -22,7 +22,8 @@ extends RefCounted
 ##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool,
 ##   bandolier bool, necklace bool, goggles bool, baldric bool, spyglass bool
 
-const SAVE_PATH := "user://character.cfg"
+## Tests running side by side point this at their own file.
+static var save_path := "user://character.cfg"
 
 const BODIES := ["masc", "fem"]
 const BUILDS := ["slim", "average", "broad", "stout"]
@@ -246,19 +247,19 @@ static func _pick(rng: RandomNumberGenerator, arr: Array) -> Variant:
 # Save / load (the player's look)
 # --------------------------------------------------------------------------
 static func has_saved() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return FileAccess.file_exists(save_path)
 
 
 static func save_look(lk: Dictionary) -> void:
 	var cf := ConfigFile.new()
 	for k in lk.keys():
 		cf.set_value("look", str(k), lk[k])
-	cf.save(SAVE_PATH)
+	cf.save(save_path)
 
 
 static func load_look() -> Dictionary:
 	var cf := ConfigFile.new()
-	if cf.load(SAVE_PATH) != OK:
+	if cf.load(save_path) != OK:
 		return default_look()
 	var lk := {}
 	for k in cf.get_section_keys("look"):
