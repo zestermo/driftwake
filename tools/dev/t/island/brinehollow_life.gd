@@ -51,7 +51,7 @@ func _process(_d: float) -> bool:
 			isl.position = Vector3(0, 0, 9000)
 			stage.add_child(isl)
 			isl.build(42)
-			print("   life built in %s ms (%s)" % [str(isl.build_ms.get("life", "?")), str(isl.build_ms)])
+			print("   life %s ms (walks %s, people %s), the cast %s ms" % [str(isl.build_ms["life"]), str(isl.build_ms["life walks"]), str(isl.build_ms["life people"]), str(isl.build_ms["npcs"])])
 			# a camera 110-125 m over the town: everyone shown, and on their schedule to the letter (past NEAR_R)
 			var cam := Camera3D.new()
 			root.add_child(cam)

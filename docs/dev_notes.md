@@ -3267,7 +3267,7 @@ Found and fixed (Buildings unless said):
   (no blades); new "haldor" (Haldor's Forge): the sixteen weapons Vey used to stock, buys weapons at 0.6; new "corin" (Corin's Strings
   and Skins): all five instruments (the fiddle and hurdy-gurdy were chain-only before), buys nothing.
 - **Where** (scripts/island/brinehollow_cast.gd): Haldor the Smith gets the "haldor" shop (talk = trade at the anvil, new barks); Corin
-  stands at the counter of the market street's Shop2 (`town_spots["shops"]`, nearest the plaza on the east side), `BrinehollowCast.corin()`.
+  stands at the counter of a market street shopfront (Shop4 since the street's frontage pass), `BrinehollowCast.corin()`.
   Vey's menu says "Buy or sell armour" and points you to Haldor; Gus mentions Corin with his drinks.
 - **Tested by** t/island/brinehollow_shops (the stock moves; on a built Brinehollow Haldor trades and Corin is at a shopfront's counter)
   and t/items/instruments (Corin sells all five, no one else on Brinehollow sells one). qoltest now sells its blue cutlass to Haldor.
@@ -3417,3 +3417,22 @@ Found and fixed (Buildings unless said):
   trunk's 24 wall boxes and the cavern's trimesh), the castle ~35 ms; the cave meshes ~130 ms on the prepare worker.
 - **Tests:** `t/island/forest_places`. Renders: `tools/dev/out/forest/lm5_*` (landmarkshot seed 5, LSHOT_PIECE=cenote,
   LSHOT_MARKS=great_tree: the gorge, the hollow tree, the sawmill, the camps), `c5_forest_castle.png` (forestshot seed 5).
+
+## 2026-10-17: Brinehollow life, piece 2: townsfolk on routines
+- **Who** (BrinehollowCast.townsfolk, made in that order by scripts/island/brinehollow_life.gd from StarterIsland's LIFE hook): Corin
+  (now a routine: his shopfront Shop4 by day, the Salted Gull's fire in the evening, still trading there), six shopkeepers (Shop0-3,
+  Shop5, StreetStall0) who drink at the Gull after closing, four customers browsing the street's shops and the old market, three
+  porters hauling sacks from the quay to the shops and market stalls (a sack on the shoulder going, BrinehollowFolk `load_node`),
+  three kids running the plaza, the long stair's lanes and the shopfronts until supper (home for lunch). All home (hidden) by 0:30.
+- **How**: each is a BrinehollowFolk (scripts/island/brinehollow_folk.gd, a Villager): stays by hour from Weather.hour (same on every
+  screen, nothing sent), seated stays (bench, tavern seat, rug stool) set `humanoid.seated`, and the walk's height follows the town's
+  floors (`Town.y_at`: the long stair's treads, the Gull's boards). Spots are ids (`_spot`: vendor/front of a shop or stall, bench,
+  plaza knot, tavern bar/seat/fire, home door, stair lane, quay), each with a lane out to the street.
+- **The walk graph** (`BrinehollowLife.Town`): every path within REACH 140 m of the plaza, the upper lanes, the long stair and a ring round
+  the well, densified to 2.5 m, lines joined within 3.2 m; an edge is kept only if rays both ways at waist height hit nothing (a lamp at a
+  path's end, a stall on a path's edge); cut-off pieces are bridged at the nearest clear step (<= 9 m). A walk is the spot's lane, an
+  A* route between the entries (the nearest graph point in clear sight), and the next spot's lane in.
+- **Load time**: every cast and townsfolk body is prebuilt on worker threads from `BrinehollowCast.dockhands` (early in the build, the
+  looks are data): the cast's "npcs" step went 2064 -> 435 ms and the townsfolk cost 159 ms (2898 built on the main thread).
+- **Tested by** t/island/brinehollow_life (everyone made once; 10:00 keepers at their counters; 21:00 the Gull busy, Corin there
+  trading; 2:00 everyone in; no stop in a doorway or on the stair; every walk's legs clear of colliders by ray).
