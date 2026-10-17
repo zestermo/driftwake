@@ -177,6 +177,58 @@ static func shrine(seed_value: int) -> StaticBody3D:
 	return _done(body, mb)
 
 
+## A pagoda: `tiers` storeys stepping in on a stone plinth, each under its own sweeping roof, red posts
+## at the corners, a bronze spire of rings on top: the terrace's mark seen from the sea. Door on +Z.
+static func pagoda(seed_value: int, tiers := 3) -> StaticBody3D:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var body := _body("Pagoda")
+	var mb := MeshBuilder.new()
+	var stone := PSXMat.lit("stone_brick")
+	var plaster := PSXMat.lit("plaster", Color(0.96, 0.93, 0.86))
+	var red := PSXMat.lit("planks", Color(0.78, 0.26, 0.18))
+	var post := PSXMat.lit("planks_dark")
+	var roof := PSXMat.lit("roof_tiles", Color(0.5, 0.56, 0.62), {"affine": 0.8})
+	var under := PSXMat.lit("planks_dark", Color(0.8, 0.75, 0.7))
+	var bronze := PSXMat.lit("metal", Color(0.75, 0.6, 0.35))
+	mb.add_box(stone, _xf(Vector3(0, 0.0, 0)), Vector3(6.4, 1.6, 6.4), 0.6, Color(0.85, 0.85, 0.85))
+	for i in range(3):
+		var st := 0.8 - (i + 1) * 0.4
+		mb.add_box(stone, _xf(Vector3(0, (st - 0.8) * 0.5, 3.2 + 0.17 + i * 0.34)), Vector3(2.2, st + 0.8, 0.34), 0.6, Color(0.8, 0.8, 0.8))
+	_box(body, Vector3(6.4, 1.6, 6.4), Vector3.ZERO)
+	var ramp := CollisionShape3D.new()
+	var rb := BoxShape3D.new()
+	rb.size = Vector3(2.2, 0.2, 1.9)
+	ramp.shape = rb
+	ramp.transform = Transform3D(Basis(Vector3.RIGHT, atan2(1.6, 1.36)), Vector3(0, 0.0, 3.85))
+	body.add_child(ramp)
+	var y := 0.8
+	for k in range(tiers):
+		var w := 4.6 - k * 0.8
+		var h := 3.0 if k == 0 else 2.3
+		mb.add_box(plaster, _xf(Vector3(0, y + h * 0.5, 0)), Vector3(w, h, w), 0.5)
+		for sx: float in [-1.0, 1.0]:
+			for sz: float in [-1.0, 1.0]:
+				mb.add_box(red, _xf(Vector3(sx * w * 0.5, y + h * 0.5, sz * w * 0.5)), Vector3(0.26, h, 0.26), 0.6)
+		mb.add_box(post, _xf(Vector3(0, y + h - 0.08, 0)), Vector3(w + 0.3, 0.16, w + 0.3), 0.6)
+		if k == 0:
+			mb.add_box_unit_uv(Buildings.door_leaf(), _xf(Vector3(0, y + 1.05, w * 0.5 + 0.03)), Vector3(1.1, 2.1, 0.06))
+		else:
+			var window := PSXMat.lit("window", Color.WHITE, {"emission": Color(0.9, 0.7, 0.35), "emission_energy": 0.6, "emission_tex": "window"})
+			for a in range(4):
+				var b := Basis(Vector3.UP, a * PI * 0.5)
+				mb.add_box_unit_uv(window, Transform3D(b, b * Vector3(0, y + h * 0.55, w * 0.5 + 0.03)), Vector3(0.6, 0.7, 0.05))
+		_box(body, Vector3(w, h, w), Vector3(0, y + h * 0.5, 0))
+		flared_roof(mb, roof, under, Vector3(0, y + h, 0), w, w, 1.0, 1.1 - k * 0.1, 0.45)
+		y += h + 0.75
+	mb.add_cylinder(bronze, _xf(Vector3(0, y - 0.6, 0)), 0.12, 0.08, 3.2, 6, 1.0)
+	for k in range(5):
+		mb.add_cylinder(bronze, _xf(Vector3(0, y + k * 0.42, 0)), 0.3 - k * 0.03, 0.3 - k * 0.03, 0.08, 8, 1.0, Color.WHITE, true, true)
+	mb.add_blob(bronze, _xf(Vector3(0, y + 2.7, 0)), Vector3.ONE * 0.2, rng, 0.05, 2, 5, 1.0)
+	_marker(body, "Door", Vector3(0, 0, 4.6), PI)
+	return _done(body, mb, 1200.0)
+
+
 ## A gate of two posts and two beams (the top one curving up at its ends), vermilion, over a path
 ## (across X, `span` between the posts).
 static func gate(span := 4.4, h := 4.6) -> StaticBody3D:
@@ -241,6 +293,145 @@ static func stone_lantern(seed_value: int, s := 1.0) -> StaticBody3D:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	body.add_child(mi)
 	return body
+
+
+## A windmill: a tapered eight-sided tower (stone below, plaster above) with a door on +Z, a thatched
+## cap, and four lattice sails on a hub over the door (the "Sails" child turns on its local Z; give it
+## WindmillSails). Markers "Miller" (at the door), "Door".
+static func windmill(seed_value: int) -> StaticBody3D:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var body := _body("Windmill")
+	var mb := MeshBuilder.new()
+	var stone := PSXMat.lit("stone_brick")
+	var plaster := PSXMat.lit("plaster", Color(0.95, 0.92, 0.85))
+	var post := PSXMat.lit("planks_dark")
+	var thatch := PSXMat.lit("thatch", Color.WHITE, {"affine": 0.8})
+	var h := 9.0
+	mb.add_cylinder(stone, _xf(Vector3(0, -0.6, 0)), 3.0, 2.75, 3.6, 8, 0.5, Color(0.88, 0.88, 0.88), false)
+	mb.add_cylinder(plaster, _xf(Vector3(0, 3.0, 0)), 2.75, 1.9, h - 3.0, 8, 0.5, Color.WHITE, false)
+	mb.add_cylinder(post, _xf(Vector3(0, 2.9, 0)), 2.82, 2.8, 0.22, 8, 0.6)
+	mb.add_cylinder(post, _xf(Vector3(0, h - 0.1, 0)), 2.1, 2.1, 0.25, 8, 0.6)
+	mb.add_cone(thatch, _xf(Vector3(0, h + 0.1, 0)), 2.6, 2.6, 8, 0.6)
+	mb.add_blob(post, _xf(Vector3(0, h + 2.7, 0)), Vector3.ONE * 0.16, rng, 0.05, 2, 5, 0.6)
+	# the door and its step, small windows up the tower, a hay loft door
+	mb.add_box_unit_uv(Buildings.door_leaf(), _xf(Vector3(0, 1.05, 2.8)), Vector3(1.1, 2.1, 0.08))
+	mb.add_box(post, _xf(Vector3(0, 2.2, 2.82)), Vector3(1.5, 0.18, 0.2), 0.8)
+	mb.add_box(stone, _xf(Vector3(0, -0.15, 3.2)), Vector3(1.6, 0.4, 0.9), 0.6)
+	var window := PSXMat.lit("window", Color.WHITE, {"emission": Color(0.9, 0.7, 0.35), "emission_energy": 0.6, "emission_tex": "window"})
+	for k in range(3):
+		var a := PI * 0.5 + (k - 1) * PI * 0.6
+		var y := 4.2 + k * 1.3
+		var r := lerpf(2.75, 1.9, (y - 3.0) / (h - 3.0)) + 0.02
+		mb.add_box_unit_uv(window, Transform3D(Basis(Vector3.UP, PI * 0.5 - a), Vector3(cos(a) * r, y, sin(a) * r)), Vector3(0.5, 0.6, 0.06))
+	var cs := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = 2.7
+	cyl.height = h
+	cs.shape = cyl
+	cs.position = Vector3(0, h * 0.5, 0)
+	body.add_child(cs)
+	_box(body, Vector3(1.6, 0.4, 0.9), Vector3(0, -0.15, 3.2))
+	# the sails: four arms with lattice and canvas, on a hub out from the cap
+	var smb := MeshBuilder.new()
+	var canvas := PSXMat.lit("canvas", Color(0.92, 0.88, 0.78), {"affine": 0.6})
+	smb.add_cylinder(post, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, -0.9)), 0.3, 0.3, 1.0, 8, 0.6, Color.WHITE, true, true)
+	for k in range(4):
+		var b := Basis(Vector3.BACK, k * PI * 0.5)
+		smb.add_box(post, Transform3D(b, b * Vector3(0, 3.1, 0.1)), Vector3(0.18, 6.2, 0.14), 0.8)
+		for j in range(6):
+			smb.add_box(post, Transform3D(b, b * Vector3(0.55, 1.2 + j * 0.92, 0.12)), Vector3(1.1, 0.06, 0.06), 1.0)
+		smb.add_box(post, Transform3D(b, b * Vector3(1.1, 3.6, 0.12)), Vector3(0.06, 4.8, 0.06), 1.0)
+		var c0 := b * Vector3(0.1, 1.2, 0.16)
+		var c1 := b * Vector3(1.1, 1.2, 0.16)
+		var c2 := b * Vector3(1.1, 6.0, 0.16)
+		var c3 := b * Vector3(0.1, 6.0, 0.16)
+		var n := b * Vector3(0, 0, 1)
+		smb.add_quad(canvas, c0, c1, c2, c3, Vector2(0, 1), Vector2(0.4, 1), Vector2(0.4, 0), Vector2(0, 0), Color.WHITE, n)
+		smb.add_quad(canvas, c0, c3, c2, c1, Vector2(0, 1), Vector2(0, 0), Vector2(0.4, 0), Vector2(0.4, 1), Color(0.7, 0.7, 0.7), -n)
+	var sails := Node3D.new()
+	sails.name = "Sails"
+	sails.position = Vector3(0, h - 0.6, 2.75)
+	var smi := smb.to_instance("SailsMesh")
+	smi.visibility_range_end = RANGE
+	sails.add_child(smi)
+	body.add_child(sails)
+	_marker(body, "Miller", Vector3(0.9, 0, 3.6), PI)
+	_marker(body, "Door", Vector3(0, 0, 3.9), PI)
+	return _done(body, mb)
+
+
+## A haystack (a rounded heap of straw on a few poles' worth of base), into mb at p.
+static func haystack(mb: MeshBuilder, p: Vector3, s: float, rng: RandomNumberGenerator) -> void:
+	var straw := PSXMat.lit("straw", Color(1.0, 0.95, 0.8))
+	mb.add_blob(straw, _xf(p + Vector3(0, 0.75 * s, 0), rng.randf() * TAU), Vector3(1.3, 1.1, 1.3) * s, rng, 0.15, 3, 7, 0.6)
+	mb.add_cone(straw, _xf(p + Vector3(0, 1.5 * s, 0)), 0.9 * s, 0.9 * s, 7, 0.6)
+
+
+## A scarecrow: a post and a crossbar in an old coat, a sack head under a straw hat.
+static func scarecrow(seed_value: int) -> StaticBody3D:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var body := _body("Scarecrow")
+	var mb := MeshBuilder.new()
+	var post := PSXMat.lit("planks_dark")
+	mb.add_box(post, _xf(Vector3(0, 1.0, 0)), Vector3(0.1, 2.0, 0.1), 1.0)
+	mb.add_box(post, _xf(Vector3(0, 1.55, 0)), Vector3(1.5, 0.08, 0.08), 1.0)
+	var coat := PSXMat.lit("fabric", [Color(0.45, 0.35, 0.25), Color(0.3, 0.38, 0.5), Color(0.5, 0.25, 0.2)][rng.randi() % 3])
+	mb.add_box(coat, _xf(Vector3(0, 1.2, 0)), Vector3(0.55, 0.75, 0.3), 1.0)
+	mb.add_box(coat, _xf(Vector3(0, 1.52, 0)), Vector3(1.3, 0.18, 0.2), 1.0)
+	mb.add_blob(PSXMat.lit("canvas", Color(0.85, 0.75, 0.55)), _xf(Vector3(0, 1.85, 0)), Vector3(0.2, 0.22, 0.2), rng, 0.1, 2, 5, 1.0)
+	var straw := PSXMat.lit("straw")
+	mb.add_cylinder(straw, _xf(Vector3(0, 2.0, 0)), 0.42, 0.4, 0.04, 8, 1.0)
+	mb.add_cone(straw, _xf(Vector3(0, 2.03, 0)), 0.2, 0.2, 7, 1.0)
+	_box(body, Vector3(0.4, 2.0, 0.4), Vector3(0, 1.0, 0))
+	var mi := mb.to_instance("Mesh")
+	mi.visibility_range_end = 120.0
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	body.add_child(mi)
+	return body
+
+
+## One crop clump (a field's MultiMesh instance) by kind: "wheat" (a tuft of stalks with ears),
+## "greens" (a leafy head), "vines" (beans up a stake).
+static func crop_mesh(kind: String) -> ArrayMesh:
+	var mb := MeshBuilder.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(kind)
+	match kind:
+		"wheat":
+			var stalk := PSXMat.lit("straw", Color(1.0, 0.9, 0.55))
+			for k in range(5):
+				var a := TAU * k / 5.0
+				var q := Vector3(cos(a), 0, sin(a)) * 0.12
+				mb.add_box(stalk, Transform3D(Basis(Vector3(sin(a), 0, -cos(a)), 0.12), q + Vector3(0, 0.45, 0)), Vector3(0.03, 0.9, 0.03), 1.0)
+				mb.add_box(stalk, Transform3D(Basis(Vector3(sin(a), 0, -cos(a)), 0.12), q + Vector3(0, 0.95, 0)), Vector3(0.06, 0.2, 0.06), 1.0)
+		"vines":
+			mb.add_box(PSXMat.lit("planks_dark"), _xf(Vector3(0, 0.75, 0)), Vector3(0.05, 1.5, 0.05), 1.0)
+			var leaf := PSXMat.lit("leaves", Color(0.7, 0.95, 0.6))
+			for k in range(4):
+				mb.add_blob(leaf, _xf(Vector3(rng.randf_range(-0.12, 0.12), 0.3 + k * 0.32, rng.randf_range(-0.12, 0.12))), Vector3(0.2, 0.17, 0.2), rng, 0.3, 2, 5, 1.0)
+		_:
+			var leaf := PSXMat.lit("leaves", Color(0.75, 1.0, 0.7))
+			mb.add_blob(leaf, _xf(Vector3(0, 0.16, 0)), Vector3(0.28, 0.2, 0.28), rng, 0.3, 2, 6, 1.0)
+	return mb.commit()
+
+
+## A fruit tree for the orchard: a short trunk, a round crown, fruit in it.
+static func fruit_tree_mesh(seed_value: int) -> ArrayMesh:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var mb := MeshBuilder.new()
+	mb.add_cylinder(PSXMat.lit("bark"), _xf(Vector3.ZERO), 0.16, 0.12, 1.7, 6, 0.8)
+	var leaf := PSXMat.lit("leaves", Color(0.8, 1.0, 0.75))
+	mb.add_blob(leaf, _xf(Vector3(0, 2.4, 0)), Vector3(1.5, 1.2, 1.5), rng, 0.25, 3, 7, 0.6)
+	mb.add_blob(leaf, _xf(Vector3(0.5, 2.0, 0.3)), Vector3(0.9, 0.8, 0.9), rng, 0.25, 2, 6, 0.6)
+	var fruit := PSXMat.flat([Color(0.9, 0.35, 0.15), Color(0.95, 0.75, 0.2), Color(0.75, 0.15, 0.2)][seed_value % 3])
+	for k in range(9):
+		var a := rng.randf() * TAU
+		var y := rng.randf_range(1.7, 2.9)
+		mb.add_blob(fruit, _xf(Vector3(cos(a) * 1.3, y, sin(a) * 1.3)), Vector3.ONE * 0.11, rng, 0.1, 2, 4, 1.0)
+	return mb.commit()
 
 
 ## A teahouse: a long low room behind a deep veranda under one sweeping roof, its front open but for

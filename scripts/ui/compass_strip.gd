@@ -87,6 +87,7 @@ func _draw() -> void:
 					draw_string_outline(_font, Vector2(x - 8, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color.BLACK)
 					draw_string(_font, Vector2(x - 8, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
 		_draw_log_pose(heading, here)
+		_draw_lookout(heading, here, me)
 	# where we're facing
 	draw_colored_polygon(PackedVector2Array([Vector2(W * 0.5, 12), Vector2(W * 0.5 - 3, 15), Vector2(W * 0.5 + 3, 15)]), UIStyle.ACCENT)
 	draw_line(Vector2(W * 0.5, 0), Vector2(W * 0.5, 12), UIStyle.ACCENT, 1.0)
@@ -123,6 +124,28 @@ func _draw_log_pose(heading: float, here: Vector2) -> void:
 		var w := _font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		var left := j == 0 and marks.size() > 1
 		_label(x - 6.0 - w if left else x + 6.0, txt, dz[1])
+
+
+## The crow's nest's lookout (the ship's nest line, Ship.lookout m): enemy sails (red, with how far)
+## and floating salvage (gold) in range, while you're aboard her.
+func _draw_lookout(heading: float, here: Vector2, me: Node3D) -> void:
+	var ship := get_tree().get_first_node_in_group("ship") as Ship
+	if ship == null or ship.lookout <= 0.0 or not ship.aboard(me.global_position):
+		return
+	for n in get_tree().get_nodes_in_group("enemy_ships"):
+		var to := Vector2(n.global_position.x, n.global_position.z) - here
+		var x := _x(bearing(to), heading)
+		if n.is_dead() or to.length() > ship.lookout or x == INF:
+			continue
+		var c := Color(1.0, 0.36, 0.3)
+		draw_colored_polygon(PackedVector2Array([Vector2(x - 3, 0), Vector2(x + 3, 0), Vector2(x, 5)]), c)
+		_label(x - 7.0, "%dm" % int(to.length()), c)
+	for n in get_tree().get_nodes_in_group("salvage"):
+		var to := Vector2(n.global_position.x, n.global_position.z) - here
+		var x := _x(bearing(to), heading)
+		if to.length() > ship.lookout or x == INF:
+			continue
+		draw_rect(Rect2(x - 1.5, 13.0, 3.0, 3.0), Color(1.0, 0.85, 0.4))
 
 
 ## A needle standing on the strip: the coloured point up, the dark tail down.

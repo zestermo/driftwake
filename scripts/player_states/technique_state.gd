@@ -87,6 +87,9 @@ func enter(data: Dictionary) -> void:
 				if player.style() == "dagger":
 					_blink_behind(_target)
 			player.body_model.play(str(cp[0]), dur)
+			if player.style() == "katana":
+				# (the drawing cut's whole path, from the scabbard on)
+				KatanaFx.slash(player, 0.17, false, 1.2)
 			# the blow caught: sparks off the blade, a beat of slow time to answer in
 			var clash := _chest() + Vector3(0, 0.15, 0) + _dir * 0.55
 			Net.fx("sfx", ["parry", player.global_position, -2.0, 0.05, 1.1])
@@ -128,7 +131,11 @@ func enter(data: Dictionary) -> void:
 				_refund("Nobody close enough")
 				return
 			player.body_model.play("phantom_cut", dur)
+			var was := _chest()
 			_blink_behind(_target)
+			if _elem():
+				# the step itself left as a run of cloud and petals in the air you crossed
+				Net.fx("katana_line", [was, _chest(), 0.55, true, 0.06, randi() % 1000])
 		"petal_storm":
 			dur = 2.0
 			_victims = _closest(9.0, 99)
@@ -137,6 +144,8 @@ func enter(data: Dictionary) -> void:
 			Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.05, 0.6])
 			if _elem():
 				Net.fx("gather", [player.global_position + Vector3(0, 0.9, 0), 2.8, _col(FX.ACCENT), 0.38, 26])
+				# the cloud drawn in round your feet as you crouch to the hilt
+				Net.fx("katana_arc", [player.global_position + Vector3(0, 0.35, 0), -_dir, -_dir.cross(Vector3.UP), 1.7, TAU, 0.55, true, 0.38, 40])
 			else:
 				Net.fx("dust_ring", [player.global_position, 12, 0.9])
 			Net.fx("ring", [player.global_position, Vector3.UP, 3.5, _col(), 0.45, 0.08])
@@ -280,6 +289,9 @@ func physics_update(delta: float) -> void:
 			# the waiting blade catches the light (the katana's waits in its scabbard: the hilt)
 			if _once("glint", 0.12) or _once("glint2", 0.55):
 				Net.fx("glint", [_hilt() if id == "iai_counter" else _blade_tip(), _col(FX.CORE), 0.7])
+				# (the katana's waits in stillness, a petal or two adrift round the hilt)
+				if id == "iai_counter" and _elem():
+					Net.fx("sakura", [_hilt(), Vector3.UP, 2, 0.8])
 		"riposte_counter":
 			_rooted(delta, 0.0)
 			if _once("cut", 0.11):
@@ -295,6 +307,8 @@ func physics_update(delta: float) -> void:
 				Net.fx("sfx", ["parry", player.global_position, -10.0, 0.0, 2.0])
 				if _target and is_instance_valid(_target):
 					_spray(_target.global_position + Vector3(0, 1.3, 0), Vector3.UP, 10, 2.0)
+					if _elem():
+						Net.fx("katana_burst", [_target.global_position + Vector3(0, 1.0, 0), "katana_cloud", 2.0, 0.5, 40.0])
 		"swordfish":
 			_drift(delta, 3.0)
 			if _once("ready", 0.04):
@@ -322,15 +336,17 @@ func physics_update(delta: float) -> void:
 				Net.fx("gather", [_blade_tip(), 1.4, _col(FX.ACCENT) if _elem() else _col(), 0.22, 14])
 			if _once("glint", 0.24):
 				Net.fx("glint", [_blade_tip(), _col(FX.CORE), 0.9])
-			if _once("swoosh", 0.28):
-				Net.fx("blade_swoosh", [player.body_model, 0.16, _col()])
+			if _once("swoosh", 0.3):
+				KatanaFx.slash(player, 0.12, false, 1.3)
 			if _once("fire", 0.34):
 				var from := player.global_position + Vector3(0, 0.2, 0) + _dir * 0.8
 				Projectile.launch(player.get_tree(), "wave", from, _dir, player, 34.0, "elem" if _elem() else "")
 				Net.fx("sfx", ["whoosh_big", from, 0.0, 0.05, 0.8])
-				Net.fx("dust", [from, 10, 0.8])
+				Net.fx("puff_ring", [from, "dust_low", 6, 0.3, 1.0, 0.8, Color.WHITE, 5.0])
+				if _elem():
+					Net.fx("katana_burst", [from + Vector3(0, 0.6, 0), "katana_cloud", 1.8, 0.45, 30.0])
 				Net.fx("ring", [from + Vector3(0, 0.9, 0) + _dir * 1.2, _dir, 1.2, _col(), 0.24, 0.14])
-				_spray(from + Vector3(0, 0.6, 0), _dir + Vector3.UP * 0.8, 12, 4.0)
+				_spray(from + Vector3(0, 0.6, 0), _dir + Vector3.UP * 0.8, 9, 4.0)
 				CombatManager.apply_camera_shake(0.15)
 				CombatManager.apply_camera_kick(0.15, 0.3)
 				player.squash(-2.0)
@@ -340,7 +356,7 @@ func physics_update(delta: float) -> void:
 			if _once("glint", 0.07):
 				Net.fx("glint", [_blade_tip(), _col(FX.CORE), 0.8])
 			if _once("swoosh", 0.12):
-				Net.fx("blade_swoosh", [player.body_model, 0.14, _col()])
+				KatanaFx.slash(player, 0.13, false, 1.15)
 			if _once("cut", 0.16) and _target and is_instance_valid(_target):
 				var hd := player.melee_hit(36.0, "skill")
 				hd.stagger_duration = 0.8
@@ -352,8 +368,8 @@ func physics_update(delta: float) -> void:
 				_strike(_target, hd)
 				var at := _target.global_position + Vector3(0, 1.1, 0)
 				Net.fx("impact", [at, _col(FX.ACCENT)])
-				Net.fx("ring", [at, _dir, 1.2, _col(), 0.2, 0.14])
-				_spray(at, _dir + Vector3.UP * 0.3, 10, 4.0)
+				Net.fx("katana_burst", [at, "katana_slash" if _elem() else "steel_slash", 2.0 if _elem() else 1.5, 0.35, 180.0])
+				_spray(at, _dir + Vector3.UP * 0.3, 8, 4.0)
 				Net.fx("sfx", ["parry", player.global_position, -8.0, 0.05, 1.7])
 				CombatManager.apply_camera_kick(0.15, 0.3)
 		"petal_storm":
@@ -745,11 +761,10 @@ func _riposte_cut() -> void:
 		_cone(2.4, 0.5, base, 9.0, false, true)
 	match st:
 		"katana":
-			# out of the scabbard in one line through them
-			Net.fx("blade_swoosh", [player.body_model, 0.12, _col()])
+			# out of the scabbard in one cut through them (its drawn slash began with the answer)
 			Net.fx("afterimage", [player.body_model, _col(), 0.25])
-			var right := _dir.cross(Vector3.UP)
-			Net.fx("streak", [_chest() + _dir * 0.6 - right * 1.2, _chest() + _dir * 0.9 + right * 1.6, _col(), 0.08, 0.25])
+			if _target and is_instance_valid(_target):
+				Net.fx("katana_burst", [_target.global_position + Vector3(0, 1.1, 0), "katana_slash" if _elem() else "steel_slash", 1.9, 0.35, 180.0])
 		"dual_sword":
 			# the scissoring answer: both blades' trails, an X through them
 			Net.fx("blade_swoosh", [player.body_model, 0.14, _col(), _col(FX.ACCENT)])
@@ -865,27 +880,36 @@ const PETAL_CLICK := 1.4
 
 func _petals(delta: float) -> void:
 	_rooted(delta, 0.0)
+	var feet := player.global_position
 	if _once("glint", PETAL_DRAW - 0.1):
 		Net.fx("glint", [_hilt(), _col(FX.CORE), 1.0])
+	if _once("slash", PETAL_DRAW - 0.05):
+		# (the drawing cut's whole path, out of the scabbard on: KatanaMoves.PETAL_SWING)
+		KatanaFx.slash(player, 0.14, false, 1.6)
 	if _once("draw", PETAL_DRAW):
-		Net.fx("blade_swoosh", [player.body_model, 0.2, _col()])
 		Net.fx("afterimage", [player.body_model, _col(), 0.3])
-		Net.fx("ring", [player.global_position + Vector3(0, 1.0, 0), Vector3.UP, 9.0, _col(), 0.3, 0.05])
-		Net.fx("sfx", ["whoosh_big", player.global_position, -1.0, 0.05, 1.4])
+		if _elem():
+			# the signature: a crescent of cloud racing once round you at chest height as the blade leaves
+			var back := -_dir
+			Net.fx("katana_arc", [feet + Vector3(0, 1.0, 0), back, back.cross(Vector3.UP), 3.6, -TAU * 0.97, 0.95, true, 0.14, 41])
+		Net.fx("ring", [feet + Vector3(0, 1.0, 0), Vector3.UP, 9.0, _col(), 0.3, 0.05])
+		Net.fx("sfx", ["whoosh_big", feet, -1.0, 0.05, 1.4])
 		CombatManager.apply_camera_kick(0.25, 0.4)
 		var k := 0
 		for e in _victims:
 			if is_instance_valid(e):
 				Net.fx("cut_lines", [(e as Node3D).global_position, 12, _col(FX.CORE), PETAL_CLICK - PETAL_DRAW - 0.15, k * 31 + 7])
 				k += 1
-	# petals swirl round them while the cuts land
-	if t > PETAL_DRAW + 0.1 and t < PETAL_CLICK and int(t / 0.15) != int((t - delta) / 0.15):
+	# the cuts landing on them: drawn crescents crossing them (cloud and petals once awakened)
+	if t > PETAL_DRAW + 0.08 and t < PETAL_CLICK - 0.1 and int(t / 0.16) != int((t - delta) / 0.16):
 		for e in _victims:
 			if is_instance_valid(e):
-				_spray((e as Node3D).global_position + Vector3(0, 1.0, 0), Vector3.UP, 3, 1.5)
+				var at := (e as Node3D).global_position + Vector3(randf_range(-0.2, 0.2), randf_range(0.7, 1.5), randf_range(-0.2, 0.2))
+				Net.fx("katana_burst", [at, "katana_slash" if _elem() else "steel_slash", randf_range(1.3, 1.9), 0.3, 180.0])
+				_spray(at, Vector3.UP, 3, 1.5)
 	if _once("click", PETAL_CLICK):
 		player.hurtbox.set_deferred("monitorable", true)
-		Net.fx("sfx", ["parry", player.global_position, 0.0, 0.0, 1.8])
+		Net.fx("sfx", ["parry", feet, 0.0, 0.0, 1.8])
 		Net.fx("glint", [_hilt(), _col(FX.CORE), 1.4])
 		for e in _victims:
 			if is_instance_valid(e) and BurnStatus.alive(e):
@@ -896,12 +920,18 @@ func _petals(delta: float) -> void:
 				_strike(e, hd)
 				var at := (e as Node3D).global_position
 				Net.fx("impact", [at + Vector3(0, 1.1, 0), _col(FX.ACCENT)])
-				Net.fx("ring", [at, Vector3.UP, 2.0, _col(), 0.35, 0.1])
 				if _elem():
-					Net.fx("petals", [at + Vector3(0, 1.0, 0), Vector3.UP, 26, _col(FX.ACCENT), 5.0])
+					Net.fx("katana_burst", [at + Vector3(0, 1.1, 0), "katana_slash", 3.0, 0.45, 180.0])
+					Net.fx("katana_burst", [at + Vector3(0, 0.7, 0), "katana_cloud", 2.8, 0.6, 40.0])
+					Net.fx("sakura", [at + Vector3(0, 1.0, 0), Vector3.UP, 12, 4.5])
 				else:
+					Net.fx("katana_burst", [at + Vector3(0, 1.1, 0), "steel_slash", 2.4, 0.35, 180.0])
+					Net.fx("ring", [at, Vector3.UP, 2.0, _col(), 0.35, 0.1])
 					Net.fx("dust_ring", [at, 10, 0.9])
-		Net.fx("ring", [player.global_position, Vector3.UP, 9.0, _col(), 0.6, 0.06])
+		if _elem():
+			# a thousand petals let go over everyone in reach, falling through the still air
+			Net.fx("sakura", [feet + Vector3(0, 3.5, 0), Vector3.DOWN, 30, 0.8, 0.32, 6.0])
+		Net.fx("ring", [feet, Vector3.UP, 9.0, _col(), 0.6, 0.06])
 		CombatManager.apply_camera_shake(0.4)
 		CombatManager.apply_hitstop(0.12, [player])
 		_moment(0.3, 0.35, 0.7, 0.45)

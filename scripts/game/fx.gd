@@ -2098,8 +2098,8 @@ func sakura_quad(size: float) -> QuadMesh:
 
 ## Drawn sakura petals thrown along `dir`, turning over and over as they drift down (the
 ## katana's element; `petals` is the plain tinted kind other things throw).
-func sakura(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, size: float = 0.26) -> void:
-	var cfg := {"radius": 0.25, "direction": dir.normalized(), "spread": 55.0, "vel_min": speed * 0.35, "vel_max": speed,
+func sakura(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, size: float = 0.26, area: float = 0.25) -> void:
+	var cfg := {"radius": area, "direction": dir.normalized(), "spread": 55.0, "vel_min": speed * 0.35, "vel_max": speed,
 		"gravity": Vector3(0, -1.2, 0), "damping": 2.4, "hold": true, "scale_min": 0.7, "scale_max": 1.2, "explosiveness": 0.85,
 		"ramp": _flip_ramp(Color(_night_k() * 0.35 + 0.65, _night_k() * 0.35 + 0.65, _night_k() * 0.35 + 0.65), 0.0, 0.75), "start": 1.0, "spin": 180.0}
 	var p := _burst(pos, amount, _sakura(), size, 1.8, cfg)

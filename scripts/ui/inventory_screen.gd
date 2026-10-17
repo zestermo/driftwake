@@ -590,7 +590,7 @@ func refresh() -> void:
 		return
 	var inv := pl.inventory_component
 	_view = inv.bag_view()
-	var cells := maxi(inv.max_slots, ceili(_view.size() / float(COLS)) * COLS)
+	var cells := maxi(inv.slots(), ceili(_view.size() / float(COLS)) * COLS)
 	_grow_bag(cells)
 	for k in range(_bag.size()):
 		if k < _view.size():

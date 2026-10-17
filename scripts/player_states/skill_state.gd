@@ -125,11 +125,14 @@ func enter(data: Dictionary) -> void:
 			_dir = get_camera_forward()
 			face_direction(_dir, 1.0)
 			player.hurtbox.set_deferred("monitorable", false)
-			player.body_model.play("thrust", dur)
+			# (the katana's own: a low run with the blade trailing, then the drawing cut; a cutlass lunges)
+			player.body_model.play("tiger_rush" if player.style() == "katana" else "thrust", dur)
 			Net.fx("sfx", ["whoosh_big", player.global_position, -3.0, 0.05, 1.2])
 			_last_pos = player.global_position + Vector3(0, 1.1, 0)
 			Net.fx("glint", [_last_pos + _dir * 0.6, FX.tree_col("katana", FX.CORE), 0.8])
-			Net.fx("blade_swoosh", [player.body_model, 0.38, _tiger_col()])
+			_slammed = false
+			if player.style() != "katana":
+				Net.fx("blade_swoosh", [player.body_model, 0.38, _tiger_col()])
 		"bullet_storm":
 			dur = 0.75
 			_dir = get_camera_forward()
@@ -491,15 +494,21 @@ func _tiger(delta: float) -> void:
 	player.move_and_slide()
 	var col := _tiger_col()
 	var elem := player.progression.elemental("katana")
+	# the katana's drawing cut as the dash ends (the pose's cut, u 0.6-0.76), laid along the blade
+	if player.style() == "katana" and not _slammed and t >= 0.32:
+		_slammed = true
+		KatanaFx.slash(player, 0.1, false, 1.2)
 	if t >= 0.38 and not _fired:
 		_fired = true
 		player.hurtbox.set_deferred("monitorable", true)
-		# the line you cut along, the air closing where you stop
+		# the line you cut along (cloud once awakened), the air closing where you stop
 		var to := player.global_position + Vector3(0, 1.1, 0)
-		Net.fx("streak", [_last_pos, to, col, 0.12, 0.35])
-		Net.fx("ring", [to + _dir * 0.4, _dir, 1.4, col, 0.25, 0.14])
 		if elem:
-			Net.fx("petals", [to, -_dir + Vector3.UP * 0.5, 12, FX.tree_col("katana", FX.ACCENT), 3.0])
+			Net.fx("katana_line", [_last_pos, to, 0.6, true, 0.07, randi() % 1000])
+			Net.fx("sakura", [to, -_dir + Vector3.UP * 0.5, 8, 3.0])
+		else:
+			Net.fx("streak", [_last_pos, to, col, 0.12, 0.35])
+		Net.fx("ring", [to + _dir * 0.4, _dir, 1.4, col, 0.25, 0.14])
 	if t < 0.42:
 		for e in _pc.enemies_in(player.global_position + Vector3(0, 0.9, 0), 1.5):
 			if e in _hit:
@@ -517,8 +526,9 @@ func _tiger(delta: float) -> void:
 				_pc.add_ult(hd.damage)
 				var at := (e as Node3D).global_position + Vector3(0, 1.1, 0)
 				Net.fx("impact", [at, FX.tree_col("katana" if elem else "plain", FX.ACCENT)])
+				Net.fx("katana_burst", [at, "katana_slash" if elem else "steel_slash", 1.8 if elem else 1.3, 0.3, 180.0])
 				if elem:
-					Net.fx("petals", [at, _dir + Vector3.UP * 0.3, 8, FX.tree_col("katana", FX.ACCENT), 3.5])
+					Net.fx("sakura", [at, _dir + Vector3.UP * 0.3, 5, 3.5])
 		if int(t * 30.0) % 2 == 0:
 			Net.fx("afterimage", [player.body_model, col, 0.18])
 

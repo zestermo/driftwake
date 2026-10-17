@@ -96,6 +96,12 @@ var crippled: bool = false
 var kit: Dictionary = {}
 var _top_k: float = 1.0
 var _turn_k: float = 1.0
+## The lines' other effects (ShipLines): speed in the dark, what's left of a reef's damage, how much less a
+## ram throws the crew (1 = not at all), how far the lookout puts ships and salvage on the compass (m).
+var _night_k: float = 0.0
+var _reef_k: float = 1.0
+var steady: float = 0.0
+var lookout: float = 0.0
 var _psx_model: MeshInstance3D
 var _hull_mat: Material
 var _canvas_mat: Material
@@ -212,7 +218,7 @@ func _physics_process(delta: float) -> void:
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
 	# (water in her: low and sluggish; a fair wind: a little faster)
-	var top := MAX_SPEED * _top_k * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood) * wind_effect()
+	var top := MAX_SPEED * _top_k * (1.0 + _night_k * Weather.night) * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood) * wind_effect()
 	var want := top * sail_shown
 	_fair_wind_note()
 	if summoning():
@@ -624,7 +630,7 @@ func _damage_tick(delta: float) -> void:
 		var on_reef: bool = sf.reef_at(global_position) and absf(speed) > 1.5
 		var in_eye: bool = sf.in_eye(global_position)
 		if on_reef or in_eye:
-			hull = maxf(hull - (absf(speed) * 1.4 if on_reef else 6.0) * delta, 1.0)
+			hull = maxf(hull - (absf(speed) * 1.4 if on_reef else 6.0) * _reef_k * delta, 1.0)
 			_since_hit = 0.0
 			_send_hull(false)
 			if on_reef:
@@ -1308,13 +1314,31 @@ func apply_kit(k: Dictionary) -> void:
 			var c := ship_model.get_node(n)
 			cannons.erase(c)
 			c.free()
-	var dmg := 1.0 + ShipLines.total(kit, "dmg")
+	var bow := get_node_or_null("ShipModel/CannonBow") as ShipCannon
+	if ShipLines.total(kit, "chaser") >= 1.0 and bow == null:
+		bow = ShipCannon.new()
+		bow.name = "CannonBow"
+		bow.ship = self
+		bow.team = "crew"
+		bow.position = ShipParts.CHASER_AT
+		ship_model.add_child(bow)
+		cannons.append(bow)
+	elif ShipLines.total(kit, "chaser") < 1.0 and bow:
+		cannons.erase(bow)
+		bow.free()
 	for c in cannons:
 		var cn := c as ShipCannon
+		var chase := cn.name == "CannonBow"
+		var dmg := 1.0 + ShipLines.total(kit, "dmg") + (ShipLines.total(kit, "chaser_dmg") if chase else 0.0)
 		cn.hull_damage = GUN_HULL * dmg
 		cn.splash_damage = GUN_SPLASH * dmg
 		cn.reload_time = GUN_RELOAD * (1.0 - ShipLines.total(kit, "reload"))
-		cn.muzzle_speed = ShipCannon.MUZZLE_SPEED * sqrt(1.0 + ShipLines.total(kit, "range"))
+		cn.muzzle_speed = ShipCannon.MUZZLE_SPEED * sqrt(1.0 + ShipLines.total(kit, "range") + (ShipLines.total(kit, "chaser_range") if chase else 0.0))
+	_night_k = ShipLines.total(kit, "night")
+	_reef_k = 1.0 - ShipLines.total(kit, "reef")
+	steady = ShipLines.total(kit, "steady")
+	lookout = ShipLines.total(kit, "spot")
+	InventoryComponent.bonus_slots = int(ShipLines.total(kit, "slots"))
 	var paint := (_hull_mat as ShaderMaterial).duplicate() as ShaderMaterial
 	paint.set_shader_parameter("albedo_color", ShipKit.HULL_PAINT[int(kit["hull"])][1])
 	for i in range(_psx_model.mesh.get_surface_count()):

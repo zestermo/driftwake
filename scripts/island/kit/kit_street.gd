@@ -279,6 +279,39 @@ static func ground_stairs(ctx: KitContext, mb: MeshBuilder, body: StaticBody3D, 
 		_box(body, Vector3(w, 0.2, d.length() + 0.3), Transform3D(basis, (p0 + p1) * 0.5 + basis.y * -0.08))
 
 
+## Folds the meshes of built pieces (houses, shops: their bodies, colliders and markers stay) into one
+## mesh a material, in island space under the context's parent: a district drawn in a handful of calls.
+## Glowing and see-through surfaces fold like the rest (their materials are shared).
+static func merge_meshes(ctx: KitContext, roots: Array, node_name: String) -> MeshInstance3D:
+	var to_isl := ctx.isl.global_transform.affine_inverse()
+	var tools := {}
+	for r in roots:
+		for g in (r as Node).find_children("*", "MeshInstance3D", true, false):
+			var mi := g as MeshInstance3D
+			if mi.mesh == null or mi.material_override != null or not mi.visible:
+				continue
+			var xf := to_isl * mi.global_transform
+			for s in range(mi.mesh.get_surface_count()):
+				var mat := mi.mesh.surface_get_material(s)
+				if not tools.has(mat):
+					var st := SurfaceTool.new()
+					st.begin(Mesh.PRIMITIVE_TRIANGLES)
+					tools[mat] = st
+				(tools[mat] as SurfaceTool).append_from(mi.mesh, s, xf)
+			mi.get_parent().remove_child(mi)
+			mi.queue_free()
+	var mesh := ArrayMesh.new()
+	for mat in tools.keys():
+		var st: SurfaceTool = tools[mat]
+		st.set_material(mat)
+		st.commit(mesh)
+	var out := MeshInstance3D.new()
+	out.name = node_name
+	out.mesh = mesh
+	ctx.add(out)
+	return out
+
+
 ## A merged piece (mesh + colliders) built in island space, added under the context's parent.
 static func finish(ctx: KitContext, mb: MeshBuilder, body: StaticBody3D, shadow := true) -> StaticBody3D:
 	body.collision_layer = 1

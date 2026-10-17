@@ -266,12 +266,15 @@ func restock(p: Player) -> String:
 	if ids.is_empty():
 		ids = ["rum"]
 	var got: Array = []
+	# (the galley line stocks more of each; tests restock with no ship about)
+	var s := _get_ship()
+	var cap := RESTOCK_CAP + (int(ShipLines.total(s.kit, "restock")) if s else 0)
 	for id in ids:
 		var it := ItemDB.get_item(id)
 		var have := inv.count(id)
-		if it == null or have >= RESTOCK_CAP or it.use_anim == "tonic":
+		if it == null or have >= cap or it.use_anim == "tonic":
 			continue
-		var n := mini(RESTOCK_CAP - have, inv.room_for(it))
+		var n := mini(cap - have, inv.room_for(it))
 		if n > 0 and inv.add_item(it, n):
 			got.append("%d %s" % [n, it.display_name])
 	if got.is_empty():

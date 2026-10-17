@@ -3,7 +3,7 @@ extends SceneTree
 ## levels (that line alone, from where it shows), fully refitted in two colour
 ## schemes (side, bow, masthead), at night, Tackett at his timber, and the
 ## yard screen's two tabs.
-## Args: <out_prefix> [psx] [lines=armour,guns] (only those lines' shots)
+## Args: <out_prefix> [psx] [lines=armour,guns] (only those lines' shots; "screen" for the yard screen)
 var t := 0.0
 var out := ""
 var cam: Camera3D
@@ -74,7 +74,8 @@ func _process(d: float) -> bool:
 			])
 			if tackett:
 				shots.append(["tackett", null, tackett.global_position + tackett.global_basis.z * 4.0 + Vector3(1.5, 1.6, 0), tackett.global_position + Vector3(0, 1.0, 0)])
-			shots.append(["screen", {"armour": 2, "guns": 1, "sails": 5}, Vector3.ZERO, Vector3.ZERO])
+		if only.is_empty() or only.has("screen"):
+			shots.append(["screen", {"armour": 2, "guns": 1, "sails": 5, "grove": 1}, Vector3.ZERO, Vector3.ZERO])
 			shots.append(["screen_paint", null, Vector3.ZERO, Vector3.ZERO])
 		t0 = t
 		return false

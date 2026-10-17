@@ -77,9 +77,11 @@ func _init(menu: Node) -> void:
 	show_tab("refits")
 
 
-## A short plank button (a row of the tree is ~18 px high).
+## A short plank button in Silkscreen 8 (a row of the tree is 16 px high).
 func _small_button(text: String, w: float) -> Button:
 	var b := UIStyle.button(text, w)
+	b.add_theme_font_override("font", SILK)
+	b.add_theme_font_size_override("font_size", 8)
 	for st in [["normal", UIStyle.BG_LIGHT, UIStyle.BORDER_DIM, "plank"], ["hover", UIStyle.HILITE, UIStyle.SUN, "plank"],
 			["pressed", UIStyle.SUN, UIStyle.BORDER_DIM, "pressed"], ["disabled", UIStyle.DISABLED, UIStyle.DISABLED_RIM, "plank"],
 			["focus", Color(0, 0, 0, 0), UIStyle.SUN, "plank"]]:
@@ -98,19 +100,19 @@ func _build_tree() -> void:
 			var id: String = ids[i]
 			var row := HBoxContainer.new()
 			row.add_theme_constant_override("separation", 4)
-			row.custom_minimum_size = Vector2(0, 18)
+			row.custom_minimum_size = Vector2(0, 16)
 			var branch := Control.new()
-			branch.custom_minimum_size = Vector2(10, 18)
+			branch.custom_minimum_size = Vector2(10, 16)
 			var last := i == ids.size() - 1
 			branch.draw.connect(func():
-				branch.draw_line(Vector2(3, 0), Vector2(3, 9 if last else 18), UIStyle.BORDER_DIM, 1.0)
-				branch.draw_line(Vector2(3, 9), Vector2(10, 9), UIStyle.BORDER_DIM, 1.0))
+				branch.draw_line(Vector2(3, 0), Vector2(3, 8 if last else 16), UIStyle.BORDER_DIM, 1.0)
+				branch.draw_line(Vector2(3, 8), Vector2(10, 8), UIStyle.BORDER_DIM, 1.0))
 			row.add_child(branch)
 			var nm := UIStyle.label(str(ShipLines.line(id)["name"]), 12)
 			nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			row.add_child(nm)
 			var pips := Control.new()
-			pips.custom_minimum_size = Vector2(ShipLines.max_level(id) * 7, 18)
+			pips.custom_minimum_size = Vector2(ShipLines.max_level(id) * 7, 16)
 			pips.draw.connect(func(): _draw_pips(pips, id))
 			row.add_child(pips)
 			_pips[id] = pips
@@ -126,7 +128,7 @@ func _build_tree() -> void:
 func _draw_pips(c: Control, id: String) -> void:
 	var lv := ShipLines.level(_kit(), id)
 	for k in range(ShipLines.max_level(id)):
-		var r := Rect2(k * 7 + 1, 6, 5, 5)
+		var r := Rect2(k * 7 + 1, 5, 5, 5)
 		if k < lv:
 			c.draw_rect(r, UIStyle.ACCENT)
 		else:

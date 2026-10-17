@@ -139,8 +139,9 @@ static func room(spec: Dictionary) -> StaticBody3D:
 	for x in [-w * 0.5, w * 0.5]:
 		for z in [-d * 0.5, d * 0.5]:
 			mb.add_cylinder(palm,_xf(Vector3(x, fl, z)), 0.15, 0.14, h + 0.1, 6, 0.6)
-	for y in [fl + 0.06, fl + h]:
-		mb.add_box(beam, _xf(Vector3(0, y, 0)), Vector3(w + 0.12, 0.14, d + 0.12), 0.6, Color.WHITE, false)
+	mb.add_box(beam, _xf(Vector3(0, fl + 0.06, 0)), Vector3(w + 0.12, 0.14, d + 0.12), 0.6, Color.WHITE, false)
+	# (the top plate inside the walls, under the thatch's slope)
+	mb.add_box(beam, _xf(Vector3(0, fl + h - 0.07, 0)), Vector3(w - 0.02, 0.14, d - 0.02), 0.6, Color.WHITE, false)
 	# the doorway: log jambs, a lintel lashed on, the door swung in against the wall
 	for s in [-1.0, 1.0]:
 		mb.add_cylinder(palm,_xf(Vector3(s * (DOOR_W * 0.5 + 0.05), fl, d * 0.5 + 0.02)), 0.08, 0.08, DOOR_H + 0.1, 5, 0.8)

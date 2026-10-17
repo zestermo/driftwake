@@ -113,34 +113,11 @@ static func pose(h, n: String, u: float) -> Array:
 			return [h._keys(u, [[0.0, g], [0.3, wind, "out"], [0.37, wind], [0.46, whip, "out"], [0.52, cut], [0.74, cut], [1.0, g]]), "full", lift]
 		# --- katana ---
 		"wind_sever":
-			# blade low behind the right foot, chest wound round, then a rising cut
-			# up across the body to overhead as the wave leaves (u 0.4)
-			var low := {"hips": Vector3(0, 0.25, 0), "arm_r": Vector3(-0.2, 0.3, 0.5), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(0.3, 0, 0),
-				"torso": Vector3(-0.4, 0.8, 0.1), "head": Vector3(0.3, -0.6, 0),
-				"leg_l": Vector3(0.5, 0, -0.14), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.4, 0, 0.14), "shin_r": Vector3(-0.8, 0, 0),
-				"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.04, 0.94, 1.0)}
-			var rise := {"hips": Vector3(0, -0.2, 0), "arm_r": Vector3(2.7, -0.3, -0.4), "fore_r": Vector3(0.3, 0, 0), "hand_r": Vector3(-0.6, 0, 0),
-				"torso": Vector3(0.15, -0.6, -0.1), "head": Vector3(-0.1, 0.4, 0),
-				"leg_l": Vector3(1.0, 0, -0.14), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(-0.8, 0, 0.14), "shin_r": Vector3(-0.2, 0, 0),
-				"_lift": Vector3(0, -0.06, 0)}
-			# (stretched up along the cut, the blade smeared, on the one fast key)
-			var whip := rise.merged({"_scale": Vector3(0.97, 1.07, 1.0), "_smear": Vector3(0.7, 0, 0)}, true)
-			return [h._keys(u, [[0.0, g], [0.28, low, "out"], [0.36, low], [0.46, whip, "out"], [0.52, rise], [0.72, rise], [1.0, g]]), "full", lift]
+			# (the rising cut rides a swing path: KatanaMoves.SEVER_SWING)
+			return KatanaMoves.sever(h, u)
 		"phantom_cut":
-			# arriving crouched behind them, then one flat cut round to the right
-			var arrive := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.4, -0.6, 0), "head": Vector3(0.3, 0.5, 0),
-				"arm_r": Vector3(0.5, 1.0, -0.3), "fore_r": Vector3(1.3, 0, 0), "hand_r": Vector3.ZERO,
-				"arm_l": Vector3(0.4, -0.2, -0.3), "fore_l": Vector3(1.0, 0, 0),
-				"leg_l": Vector3(0.6, 0, -0.15), "shin_l": Vector3(-1.25, 0, 0), "leg_r": Vector3(-0.2, 0, 0.15), "shin_r": Vector3(-1.2, 0, 0),
-				"_lift": Vector3(0, -0.32, 0)}
-			var cut := {"hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.35, 0.9, 0.1), "head": Vector3(0.25, -0.7, 0),
-				"arm_r": Vector3(1.4, -0.5, 1.2), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.25, 0, 0),
-				"arm_l": Vector3(-0.4, 0, -0.8), "fore_l": Vector3(0.3, 0, 0),
-				"leg_l": Vector3(1.1, 0, -0.14), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.85, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0),
-				"_lift": Vector3(0, -0.26, 0)}
-			var whip := cut.merged({"_scale": Vector3(1.07, 0.97, 1.0), "_smear": Vector3(0.7, 0, 0)}, true)
-			var low := arrive.merged({"_scale": Vector3(1.04, 0.94, 1.02)}, true)
-			return [h._keys(u, [[0.0, low], [0.12, low], [0.27, whip, "out"], [0.33, cut], [0.65, cut], [1.0, g]]), "full", lift]
+			# (the cut rides a swing path: KatanaMoves.PHANTOM_SWING)
+			return KatanaMoves.phantom(h, u)
 		"petal_storm":
 			# the blade slipped home, crouched low with the hand on the hilt while it
 			# gathers, one wide drawing cut round to the right (0.46 s), held, then

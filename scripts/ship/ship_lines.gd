@@ -9,9 +9,13 @@ extends RefCounted
 ## A level: [name, what it is, gold, materials {item id: n}, effects {key: amount}].
 ## Effects sum over every level a line has reached (total()):
 ##   hull (max hull), speed (top speed), turn (turn rate), dmg (gun damage),
-##   reload (reload time cut), range (gun range), guns (the quarterdeck pair)
+##   reload (reload time cut), range (gun range), guns (the quarterdeck pair),
+##   reef (reef and whirlpool damage cut), chaser (the bow gun), chaser_dmg / chaser_range,
+##   spot (m: the lookout puts ships and salvage on the compass), night (speed between dusk and dawn),
+##   steady (a ram throws the crew that much less; 1 = not at all), board (boarders fewer),
+##   fruit (tangerine trees), restock (more of each at the galley), slots (bag slots)
 
-const GROUPS := ["Hull", "Guns", "Rig", "Helm"]
+const GROUPS := ["Hull", "Guns", "Rig", "Helm", "Deck", "Cabin"]
 
 const LINES := {
 	"armour": {"name": "Hull plating", "group": "Hull", "legacy": 5, "levels": [
@@ -43,16 +47,60 @@ const LINES := {
 		["Balanced blade", "A wider, balanced rudder blade", 170, {"timber": 6, "iron": 4}, {"turn": 0.06}],
 		["Carved taffrail", "A gilded taffrail over her stern", 230, {"timber": 4, "copper": 3}, {"turn": 0.06}],
 	]},
+	"copper": {"name": "Copper bottom", "group": "Hull", "legacy": 0, "levels": [
+		["Copper bow", "Copper sheathing at her bow", 120, {"copper": 3}, {"speed": 0.02, "reef": 0.2}],
+		["Copper waist", "Sheathed back to amidships", 160, {"copper": 5}, {"speed": 0.02, "reef": 0.2}],
+		["Coppered hull", "Copper from stem to stern", 220, {"copper": 8}, {"speed": 0.02, "reef": 0.2}],
+	]},
+	"chaser": {"name": "Bow chaser", "group": "Guns", "legacy": 0, "levels": [
+		["Bow chaser", "A gun on a step at the bow, firing ahead", 200, {"iron": 4, "timber": 2}, {"chaser": 1}],
+		["Chaser's locker", "A shot locker and a banded barrel", 140, {"iron": 3}, {"chaser_dmg": 0.15}],
+		["Bow platform", "A railed platform and a long barrel", 220, {"timber": 6, "iron": 3}, {"chaser_dmg": 0.15, "chaser_range": 0.12}],
+	]},
+	"nest": {"name": "Crow's nest", "group": "Rig", "legacy": 0, "levels": [
+		["Canvas hood", "A canvas hood over the nest", 70, {"canvas": 3}, {"spot": 150}],
+		["Lookout cabin", "Boards, windows and a roof aloft", 150, {"timber": 6, "canvas": 2}, {"spot": 150}],
+		["Great spyglass", "A brass spyglass on a swivel", 220, {"copper": 3, "iron": 2}, {"spot": 200}],
+	]},
+	"lanterns": {"name": "Lanterns", "group": "Deck", "legacy": 0, "levels": [
+		["Lantern string", "Paper lanterns from the mast to the bowsprit", 40, {}, {"night": 0.03}],
+		["Stern strings", "Strings aft to the quarterdeck", 70, {"canvas": 2}, {"night": 0.03}],
+		["Festival lights", "Lanterns round the nest and along the rails", 110, {"canvas": 2, "copper": 1}, {"night": 0.03}],
+	]},
+	"rails": {"name": "Railings", "group": "Deck", "legacy": 0, "levels": [
+		["Man-ropes", "Iron stanchions and ropes along the rails", 60, {}, {"steady": 0.5}],
+		["Balustrade", "A turned balustrade on the bulwarks", 120, {"timber": 6}, {"steady": 0.5}],
+		["Boarding nets", "Nets rigged along her waist", 180, {"canvas": 4, "timber": 2}, {"board": 1}],
+	]},
+	"grove": {"name": "Tangerine grove", "group": "Deck", "legacy": 0, "levels": [
+		["A tangerine tree", "A tree in a planter on the quarterdeck", 90, {"timber": 2}, {"fruit": 1}],
+		["Two trees", "Another tree beside it", 140, {"timber": 3}, {"fruit": 1}],
+		["The grove", "A third tree between them", 200, {"timber": 4, "copper": 1}, {"fruit": 1}],
+	]},
+	"galley": {"name": "Galley & bunks", "group": "Cabin", "legacy": 0, "levels": [
+		["Upper bunk", "A second bunk over the bed", 60, {"timber": 3}, {"restock": 1}],
+		["Galley range", "An oven, hanging pots, a chimney up through the deck", 120, {"iron": 4}, {"restock": 1}],
+		["Hammocks", "Hammocks slung under the beams", 160, {"canvas": 4, "timber": 2}, {"restock": 1}],
+	]},
+	"chest": {"name": "Ship's hold", "group": "Cabin", "legacy": 0, "levels": [
+		["Iron-bound chest", "Iron bands and a lock on the storage chest", 100, {"iron": 2, "timber": 2}, {"slots": 2}],
+		["Sea chests", "A sea chest at the bunk's foot and by the galley", 160, {"timber": 6}, {"slots": 2}],
+		["Cargo hatch", "A hatch to the hold and crates lashed by it", 240, {"timber": 8, "iron": 4}, {"slots": 2}],
+	]},
 }
 ## The lines in the yard's order (grouped as GROUPS).
-const ORDER := ["armour", "guns", "sails", "rudder"]
+const ORDER := ["armour", "copper", "guns", "chaser", "sails", "nest", "rudder", "lanterns", "rails", "grove", "galley", "chest"]
 
-## How an effect reads (percent keys show amount x 100).
+## How an effect reads (percent keys show amount x 100, count keys as they are).
 const EFFECT_TEXT := {
 	"hull": "+%d%% hull", "speed": "+%d%% speed", "turn": "+%d%% turning", "dmg": "+%d%% gun damage",
 	"reload": "%d%% faster reload", "range": "+%d%% gun range", "guns": "+%d gun pair",
+	"reef": "%d%% less from reefs", "chaser": "+%d gun firing ahead", "chaser_dmg": "+%d%% chaser damage",
+	"chaser_range": "+%d%% chaser range", "spot": "ships and salvage on the compass +%d m",
+	"night": "+%d%% speed at night", "steady": "%d%% steadier when rammed", "board": "%d fewer boarder",
+	"fruit": "+%d tangerine tree", "restock": "+%d of each at the galley", "slots": "+%d bag slots",
 }
-const COUNT_KEYS := ["guns"]
+const COUNT_KEYS := ["guns", "chaser", "spot", "board", "fruit", "restock", "slots"]
 
 
 static func line(id: String) -> Dictionary:

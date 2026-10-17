@@ -14,6 +14,8 @@ signal hotbar_changed
 const HOTBAR_SIZE := 3
 
 @export var max_slots: int = 20
+## Bag slots the crew's ship's hold adds (Ship.apply_kit: the ship this machine sees).
+static var bonus_slots: int = 0
 var items: Array[ItemStack] = []
 var hotbar: Array[String] = ["", "", ""]
 ## The weapons in your hands (Player keeps it). Those stacks and the quick slots'
@@ -50,6 +52,11 @@ func used_slots() -> int:
 	return held_mask().count(false)
 
 
+## How many stacks the bag holds.
+func slots() -> int:
+	return max_slots + bonus_slots
+
+
 func add_item(item_data: ItemData, quantity: int = 1) -> bool:
 	if item_data == null or quantity <= 0:
 		return false
@@ -63,7 +70,7 @@ func add_item(item_data: ItemData, quantity: int = 1) -> bool:
 				added += can_add
 				if quantity <= 0:
 					break
-	while quantity > 0 and used_slots() < max_slots:
+	while quantity > 0 and used_slots() < slots():
 		var stack := ItemStack.new()
 		stack.item = item_data
 		stack.quantity = mini(quantity, item_data.max_stack if item_data.stackable else 1)
@@ -98,7 +105,7 @@ func remove_item(item_data: ItemData, quantity: int = 1) -> bool:
 
 ## Room for one more (non-stacking) item?
 func has_room() -> bool:
-	return used_slots() < max_slots
+	return used_slots() < slots()
 
 
 ## Put a single item into a specific bag position (gear swapping in place).
@@ -158,7 +165,7 @@ func room_for(item_data: ItemData) -> int:
 		for stack in items:
 			if stack.item == item_data:
 				n += maxi(item_data.max_stack - stack.quantity, 0)
-	n += (max_slots - used_slots()) * (item_data.max_stack if item_data.stackable else 1)
+	n += maxi(slots() - used_slots(), 0) * (item_data.max_stack if item_data.stackable else 1)
 	return n
 
 

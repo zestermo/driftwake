@@ -674,6 +674,9 @@ func _can_board() -> bool:
 func _board(tgt: Node3D) -> void:
 	_set_state(S.HOLD)
 	var n := 3 + clampi(Net.crew_size() - 2, 0, 2)
+	# (boarding nets on our rails keep one off)
+	if tgt is Ship:
+		n -= int(ShipLines.total((tgt as Ship).kit, "board"))
 	var seed_value := _rng.randi()
 	_spawn_boarders(n, seed_value, tgt)
 	Net.fx("sfx", ["rope", global_position, 2.0, 0.05])

@@ -3191,6 +3191,22 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   World suites not run in this batch (Zach, 2026-10-17); expected to notice: shoretest/swimtest (the south coast moved), qoltest/storytest
   if they walk the ruins or cove paths (rerouted round the hill), foresttest (plants in the changed strip), savetest (treasure X spots move:
   sea_features picks them up to LAND_R).
+- **The shrine terrace** (`_build_shrine_terrace`, models in scripts/props/brinehollow_models.gd, BrinehollowModels): the gate at the long
+  stair's head, the flagged way up between six stone lanterns (the far pair lit) to the shrine (a hall on a stone plinth, veranda, two
+  flared roofs: `flared_roof`), a four-tier pagoda on the terrace's west side (the mark the harbour sees over the town), benches, the old
+  tree roped round, a parapet along the front; the third band's teahouse (veranda, red-felt benches, paper lanterns, one lit), two hill
+  shops and a house; the switchback (paths[15]) down the terrace's back to the cove path, trodden, two unlit posts. The market street's
+  shopfronts are square to the street and shoulder to shoulder now (checked against the old reserves and each other), its edges dressed
+  (cargo, planters, benches, carts), the two old houses on it squared to it.
+- **Draws:** the new district's built pieces are folded into one mesh a material each (KitStreet.merge_meshes: StreetMeshes,
+  UpperTownMeshes, TerraceMeshes; bodies, colliders, markers and lights stay); the grown land's trees and rocks go in 140 m squares with
+  ranges (700 / 320 m). The bench before this (pieces 1-2, 5600G/3080, noisy: 6 other Godots) read ALL frame 13.15 -> 14.56 ms, draws
+  1357 -> 1544 (plaza +310).
+- **Hook for the town's life:** StarterIsland.LIFE (scripts/island/brinehollow_life.gd) is built last if it exists (`static func build(isl)`);
+  town_spots adds "shrine", "pagoda", "gate", "teahouse" (Vendor, Customer, Seat1-3), "lanterns" (Flame markers). LIGHTS 34: old island 18,
+  the new town 8 (street 2, upper houses 3, teahouse 1, shrine lanterns 2), 8 for the life pass.
+- Two kit fixes from the buildings pass: KitHouses.room's top plate inside its walls (under the thatch), GenHarbour's water houses
+  "steps": false.
 
 ## 2026-10-17: salvage (ship upgrades, piece 2)
 - Four materials (resources/items/timber, iron, canvas, copper .tres; icons from tools/texture_gen/gen_ship_icons.py),
@@ -3243,3 +3259,62 @@ Found and fixed (Buildings unless said):
   Vey's menu says "Buy or sell armour" and points you to Haldor; Gus mentions Corin with his drinks.
 - **Tested by** t/island/brinehollow_shops (the stock moves; on a built Brinehollow Haldor trades and Corin is at a shopfront's counter)
   and t/items/instruments (Corin sells all five, no one else on Brinehollow sells one). qoltest now sells its blue cutlass to Haldor.
+
+## 2026-10-17: the katana pass, piece 3 (the five abilities)
+- **Poses:** every katana cut rides a swing path now (KatanaMoves; the body keyed there, small chest turns so the hands
+  stay in front; a last key on the follow-through's point holds it): `tiger_rush` (new: Tiger Rush with a katana runs low
+  with the blade trailing by the right hip, then one drawing cut flat across to the left as the dash ends, u 0.6-0.76; a
+  cutlass still lunges with "thrust"), `wind_sever` (low behind the right foot, a beat, one rising cut up across the
+  front; the wave leaves on it at 0.34 s), `phantom_cut` (arrived crouched, hands low left, a flat cut round to the right
+  at 0.16 s), `iai_slash` (the heavy's release and Iai Counter's answer: out of the scabbard, the blade on the target at
+  contact (it lagged left before), held), `petal_storm`'s drawing cut (PETAL_SWING, u 0.195-0.36; the rest still keyed).
+- **Effects** (plain steel / awakened cloud, all Net.fx): each cut lays `FX.katana_slash` along its blade (Iai Counter's
+  from the answer's start, so the ribbon has the whole path). Tiger Rush: a katana_line of cloud along the dash once
+  awakened (plain: the streak), a drawn crescent on each victim (katana_slash / steel_slash sheet). Wind Severer: the
+  wave is a tall crescent of the drawn strip standing across its path (Projectile `_wave_mesh`, its own copy of
+  PetalRibbon's material stepped through the frames by distance flown; plain steel / cloud), a dust_low puff ring and a
+  cloud puff at its launch. Phantom Step: a katana_line along the blink (awakened), a crescent on the cut. Iai Counter:
+  petals adrift round the hilt while it waits, a crescent on the answer, a cloud puff on the flick. Thousand Petals
+  (the showpiece): a ring of cloud drawn in round the feet over the gather, the big drawing cut's ribbon, the signature
+  (awakened): a crescent of cloud racing once round you at chest height (katana_arc r 3.6 m) as the blade leaves; drawn
+  crescents crossing every victim every 0.16 s while the cut_lines flash; at the click a crescent and a cloud burst on
+  each, and a thousand petals let go over the whole area (one 30-petal burst spread over 6 m). Plain: steel crescents,
+  rings and dust.
+- **Budgets** (the ult at its peak, ~0.5 s, three victims): 3 PetalRibbons alive (the blade's ~360 vertices, the big arc
+  ~380, the gather ring ~190: each one node, one draw, rebuilt a frame while it lives; given paths aren't subdivided),
+  ~6-9 one-shot bursts (one draw each), the old rings and cut_lines. At the click: 3 bursts per victim + 1 petal storm.
+  No lights. Abilities aren't on the bench route (not re-benched); nothing per-frame was added outside them except
+  BladePetals (piece 2: static, a shared material step).
+- **Tests:** t/combat, t/fx (petals), t/weapons/draw_styles (atomic, per the batch's rule). World suites to run after the
+  batch: katanatest (combo, iai, the air slash's hit window now 0.2-0.36 s), techtest (wind_sever, phantom_step,
+  petal_storm, iai_counter), powertest (Tiger Rush), wieldtest, balancetest. Renders: tools/dev/out/kab_before/ and
+  kab_after/ (a_ awakened, plain_ tier 0, night_ AB_HOUR=21), tools/dev/out/klab/ (lab sheets of every move).
+
+## 2026-10-17: the new upgrade lines (ship upgrades, piece 3)
+- Eight more lines (ShipLines; groups Hull, Guns, Rig, Helm, Deck, Cabin; 3 levels each), every level built by
+  ShipParts:
+  - **Copper bottom**: copper sheathing at her waterline, bow, then waist, then stern; +2% speed and 20% less
+    reef / whirlpool-eye damage a level (`Ship._reef_k`).
+  - **Bow chaser**: `CannonBow` (a crew ShipCannon facing ahead on a step at ShipParts.CHASER_AT; x = 0 keeps it
+    out of broadsides), a shot locker and banded barrel, then a railed platform and long barrel; +15% damage at
+    2 and 3, +12% range at 3 (the gun deck's damage/reload apply too).
+  - **Crow's nest**: poles and a canvas hood (the flag goes 0.75 m up a new masthead staff), boards, windows and a
+    roof, a brass spyglass and a lantern; the lookout (`Ship.lookout`, 150/300/500 m) puts enemy sails (red, with
+    distance) and floating salvage (gold) on the compass strip while you're aboard.
+  - **Lanterns**: strings of paper lanterns (three glow colours, no real lights) mast to bowsprit, mast to the
+    quarterdeck corners, round the nest and along the rails; +3% speed at night a level (`Weather.night`).
+  - **Railings**: iron stanchions and man-ropes, a turned balustrade, boarding nets along the waist; a ram
+    throws the crew half as hard at 1 and not at all at 2 (`Ship.steady`, Net._all_rammed); the nets keep one
+    boarder off (`EnemyShip._board`).
+  - **Tangerine grove**: planters with trees on the quarterdeck (collision), fruit shown while ripe; F at the
+    grove picks them ("tangerine": heals 25). Each tree ripens one every 150 s up to two (a Timer, game time);
+    each screen grows its own (each captain picks their own).
+  - **Galley & bunks**: an upper bunk, an oven, pots and a chimney through the quarterdeck, hammocks; the
+    galley restocks one more of each a level (GameManager.restock).
+  - **Ship's hold**: iron bands and a lock on the storage chest, sea chests, a cargo hatch and lashed crates on
+    the main deck; +2 bag slots a level (`InventoryComponent.bonus_slots`, static, set by Ship.apply_kit: the ship
+    this machine sees; `slots()` is max_slots + it; the storage chest itself was already unlimited).
+- ShipParts `_solid` adds collision for what you'd walk into (the chaser step, planters, sea chests, crates,
+  the chimney). Everything is in the two folded meshes except the jib, rudder, wheel rim, grove fruit and zone.
+- The yard's rows are 16 px (prices in Silkscreen 8) so the twelve lines fit 450.
+- Tests: t/ship/new_lines; upgrade_levels checks every level of all twelve shows.

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/tangerine.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "tangerine"
+display_name = "Tangerine"
+description = "Grown in the planters on her quarterdeck. Sweet, sharp, and better for you than rum."
+value = 2
+stackable = true
+max_stack = 20
+item_type = 2
+icon = ExtResource("2")
+heal_amount = 25.0
+use_time = 0.7
+use_anim = "bite"
