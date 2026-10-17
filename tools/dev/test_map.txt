@@ -369,3 +369,9 @@ shaders/world/ground_prints.gdshaderinc t/world
 shaders/world/snow_layer.gdshader       t/world
 scenes/island/terrain.gdshader          t/world
 scripts/game/footsteps.gd               t/world ambiencetest
+# --- the forest theme (2026-10-17) ---
+scripts/props/forest_plants.gd          t/island isletest
+scripts/props/forest_props.gd           t/island isletest
+scripts/island/themes/forest_land.gd    t/island isletest smoketest
+scripts/island/themes/forest_places.gd  t/island landmarktest smoketest
+tools/texture_gen/gen_forest_textures.py t/island
