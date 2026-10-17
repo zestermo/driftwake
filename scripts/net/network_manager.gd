@@ -568,9 +568,12 @@ func _pong(client_t: float, host_t: float) -> void:
 		_have_offset = true
 		_best_rtt = r
 		return
+	# a round trip far quicker than any so far replaces the estimate outright: the first ones can
+	# come back seconds late while this machine builds Brinehollow in one blocking call (2026-10-17)
+	var snap := r < _best_rtt * 0.5
 	_best_rtt = minf(_best_rtt * 1.02, r)
 	# trust the quick round trips most
-	var k := 0.25 if r <= _best_rtt * 1.3 else 0.03
+	var k := 1.0 if snap else (0.25 if r <= _best_rtt * 1.3 else 0.03)
 	_offset = lerpf(_offset, off, k)
 
 
