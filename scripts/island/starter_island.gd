@@ -155,8 +155,8 @@ const UP_BANDS := [-30.0, -18.0, -6.0]
 const UP_SINK := 0.7
 ## The town's life, built last from its own file (`static func build(isl: StarterIsland)`), when it exists.
 const LIFE := "res://scripts/island/brinehollow_life.gd"
-## Where the woods round the town grow (_plant_woods, _woods).
-const WOODS_RECT := Rect2(-120, -150, 280, 225)
+## Where the woods round the town grow (_plant_woods, _woods): the land but the den's corner.
+const WOODS_RECT := Rect2(-210, -170, 380, 560)
 ## NightLights the kit may light (lamps, lit doorways, the camps' and the den's lanterns): the old
 ## island takes 18, the grown town's pieces after it (2026-10-17: 34, a share kept for the town's life).
 const LIGHTS := 34
@@ -2029,6 +2029,10 @@ func _scatter_vegetation() -> void:
 	var rocks := [Props.rock_mesh(51, 1.0), Props.rock_mesh(52, 1.0, true), Props.rock_mesh(53, 1.0)]
 	var buckets := {}
 	var rng := _rng
+	# (the trunks' body out of the tree until the woods are in too (_plant_woods): a shape added to a body in
+	# the physics world costs ~1 ms)
+	var colliders_at := _tree_colliders.get_index()
+	remove_child(_tree_colliders)
 	# (the old island's plants grow from its ground as it was before the den path was cut in and
 	# the land grew, and decide on its reserves and paths only, so every draw is what it always
 	# was; where the path, the grown land or a newer piece changed things they're left out, and
@@ -2131,7 +2135,7 @@ func _scatter_vegetation() -> void:
 	var vegetation := Node3D.new()
 	vegetation.name = "Vegetation"
 	add_child(vegetation)
-	_veg = {"buckets": buckets, "meshes": m, "node": vegetation}
+	_veg = {"buckets": buckets, "meshes": m, "node": vegetation, "colliders_at": colliders_at}
 
 
 ## The vegetation's MultiMeshes (once the woods are in): one per mesh per VEG_CELL square, so only the
@@ -2264,8 +2268,9 @@ func _scatter_grown(buckets: Dictionary, m: Dictionary) -> void:
 
 
 ## The woods round the town (2026-10-17, Zach: "too much open space"): the eastern hill out to the cove and
-## up toward the lighthouse, the slopes round the upper town and the terrace, the town's edges; as thick as
-## the western forest where `_woods` is 1. Planted after everything else, each lattice point its own seed
+## up toward the lighthouse, the slopes round the upper town and the terrace, the town's edges, the farmland's
+## surroundings and groves between its fields, the south-east down to the coast; as thick as the western forest
+## where `_woods` is 1. Planted after everything else, each lattice point its own seed
 ## (SEEDS["woods"]), so every older plant keeps its draws; nothing on a path, a reserve, a door's way out, a
 ## chest, a burrow, a lane or the stair, nor in the harbour's view of the pagoda. Into the vegetation's
 ## squares already there where they have that mesh (more instances, not more draws).
@@ -2273,8 +2278,9 @@ func _plant_woods() -> void:
 	var m: Dictionary = _veg["meshes"]
 	var buckets: Dictionary = _veg["buckets"]
 	var keep := _woods_keep()
-	var sight: Array = []
-	_keep_seg(sight, dock_shore, Vector2(UP_X - 10.6, 23.0), 10.0)
+	var line: Array = []
+	_keep_seg(line, dock_shore, Vector2(UP_X - 10.6, 23.0), 10.0)
+	var sight := _keep_index(line)
 	var o := grid_origin()
 	var rng := RandomNumberGenerator.new()
 	var all := paths.size()
@@ -2285,12 +2291,15 @@ func _plant_woods() -> void:
 			rng.seed = hash([SEEDS["woods"], ix, iz])
 			var p := o + Vector2(3.0 + ix * 5.0 + rng.randf_range(-2.0, 2.0), 3.0 + iz * 5.0 + rng.randf_range(-2.0, 2.0))
 			var roll := rng.randf()
+			if roll >= 0.85:
+				continue
 			var w := _woods(p)
 			if w <= 0.0:
 				continue
 			var h := hv(p)
 			var beach := 1.0 - _smooth(2.0, 3.8, h)
-			var p_palm := (0.3 * beach + 0.05 * (1.0 - beach)) * w
+			# (the broad north-west beach stays mostly open sand)
+			var p_palm := (0.3 * beach * (1.0 - 0.75 * _beach_lobe(p)) + 0.05 * (1.0 - beach)) * w
 			var p_tree := 0.8 * w * (1.0 - beach)
 			if h < 0.9 or roll >= p_palm + p_tree or _slope_at(p) > 0.45 or _path_dist(p, all, 0, true) < 3.5 \
 					or _ex_near(_ex_old, p, 1.2, 3.0) or _ex_near(_ex_new, p, 1.2, 3.0) or _near_any(p, keep) or _near_any(p, sight):
@@ -2302,12 +2311,16 @@ func _plant_woods() -> void:
 				_add_tree(buckets, kind, p, h, rng, 0.45, 3.5, rng.randf_range(0.9, 1.35))
 			woods["trees"].append(_last_tree)
 	_veg_cell = VEG_CELL
+	add_child(_tree_colliders)
+	move_child(_tree_colliders, _veg["colliders_at"])
 	lat = _lattice(WOODS_RECT, 2.5)
 	for ix in range(lat[0], lat[1]):
 		for iz in range(lat[2], lat[3]):
 			rng.seed = hash([SEEDS["woods"] + 1, ix, iz])
 			var p := o + Vector2(3.0 + ix * 2.5 + rng.randf_range(-1.1, 1.1), 3.0 + iz * 2.5 + rng.randf_range(-1.1, 1.1))
 			var roll := rng.randf()
+			if roll >= 0.44:
+				continue
 			var w := _woods(p)
 			var p_fern := 0.3 * w
 			if w <= 0.0 or roll >= p_fern + 0.14 * w:
@@ -2344,15 +2357,26 @@ static func _veg_key(mesh: Mesh, p: Vector2, cell: float) -> Array:
 
 ## 0..1: how thick the woods round the town stand at p (1 = the western forest's), thinning toward what stays
 ## open: the plaza, the market street and the harbour's front, the upper town's built hill, the lighthouse's
-## top, the yard, the ruins, the camps, the den, the cave (the old forest has its own trees).
+## top, the yard, the ruins, the camps, the den, the cave; on the farmland only groves
+## between the fields, none in a field, the orchard or the hamlet's yard (the old forest and the southern
+## lands' jungle have their own trees).
 func _woods(p: Vector2) -> float:
-	if not WOODS_RECT.has_point(p) or p.y > 75.0:
+	if not WOODS_RECT.has_point(p):
 		return 0.0
-	var w := (1.0 - _jungle(p)) * _smooth(20.0, 30.0, p.distance_to(VILLAGE)) * _smooth(26.0, 40.0, p.distance_to(HILL)) \
+	var old := absf(p.x) < OLD_HALF - 5.0 and absf(p.y) < OLD_HALF - 5.0 and not _grown_at(p)
+	var w := (1.0 - _jungle(p) if old else 1.0 - _jungle_south(p)) \
+		* _smooth(20.0, 30.0, p.distance_to(VILLAGE)) * _smooth(26.0, 40.0, p.distance_to(HILL)) \
 		* _smooth(16.0, 24.0, p.distance_to(TRAINING)) * _smooth(12.0, 18.0, p.distance_to(RUINS)) * _smooth(14.0, 22.0, p.distance_to(CAMP)) \
 		* _smooth(30.0, 40.0, p.distance_to(SMUGGLERS)) * _smooth(65.0, 85.0, p.distance_to(DEN)) * _smooth(50.0, 62.0, p.distance_to(CAVE))
 	if w <= 0.0:
 		return 0.0
+	var farm := _farm(p)
+	if farm > 0.0:
+		for f in FIELDS + [ORCHARD]:
+			if KitFarm.inside(f, p, 6.0):
+				return 0.0
+		var grove := _smooth(0.1, 0.35, _shape_noise.get_noise_2d(p.x * 2.3 + 900.0, p.y * 2.3))
+		w *= (1.0 - farm + farm * 0.7 * grove) * _smooth(28.0, 40.0, p.distance_to(FARM))
 	var s := harbour.s_of(p)
 	w *= 1.0 - (1.0 - _smooth(PLAT_D + 6.0, PLAT_D + 16.0, harbour.t_of(p) - harbour.wall(s))) \
 		* _smooth(harbour.s0 - 30.0, harbour.s0 - 10.0, s) * (1.0 - _smooth(harbour.s1 + 10.0, harbour.s1 + 30.0, s))
@@ -2362,9 +2386,10 @@ func _woods(p: Vector2) -> float:
 	return w * (1.0 - (1.0 - _smooth(uw + 1.0, uw + 5.0, absf(p.x - UP_X))) * _smooth(UP_Z0 - 8.0, UP_Z0 - 2.0, p.y) * (1.0 - _smooth(UP_Z2 + 2.0, UP_Z2 + 8.0, p.y)))
 
 
-## What the woods keep clear of, as segments [a, b, r, bounds]: each door's way in and out, the chests,
-## the burrows and spitters' spots, the town's lanes and the stair, the beach a new captain wakes on.
-func _woods_keep() -> Array:
+## What the woods keep clear of (segments [a, b, r, bounds] by square: _keep_index): each door's way in and out, the chests,
+## the burrows and spitters' spots, the town's lanes and the stair, the windmill's sails, the beach a new
+## captain wakes on.
+func _woods_keep() -> Dictionary:
 	var keep: Array = []
 	for n in get_children():
 		if n.get_node_or_null("Door") is Node3D:
@@ -2384,16 +2409,38 @@ func _woods_keep() -> Array:
 	var st: PackedVector3Array = town_spots["stair"]
 	for i in range(st.size() - 1):
 		_keep_seg(keep, Vector2(st[i].x, st[i].z), Vector2(st[i + 1].x, st[i + 1].z), 4.0)
+	var mill: Vector3 = town_spots["windmill"].position
+	_keep_seg(keep, Vector2(mill.x, mill.z), Vector2(mill.x, mill.z), 10.0)
 	var wake := to_local(wake_spot()[0])
 	_keep_seg(keep, Vector2(wake.x, wake.z), Vector2(wake.x, wake.z), 18.0)
-	return keep
+	return _keep_index(keep)
 
 
 static func _keep_seg(list: Array, a: Vector2, b: Vector2, r: float) -> void:
 	list.append([a, b, r, Rect2(a, Vector2.ZERO).expand(b).grow(r)])
 
 
-static func _near_any(p: Vector2, segs: Array) -> bool:
+const KEEP_CELL := 16.0
+
+
+## The segments by KEEP_CELL square (each in every square its bounds touch).
+static func _keep_index(segs: Array) -> Dictionary:
+	var idx := {}
+	for s in segs:
+		var r: Rect2 = s[3]
+		for cx in range(floori(r.position.x / KEEP_CELL), floori(r.end.x / KEEP_CELL) + 1):
+			for cz in range(floori(r.position.y / KEEP_CELL), floori(r.end.y / KEEP_CELL) + 1):
+				var k := Vector2i(cx, cz)
+				if not idx.has(k):
+					idx[k] = []
+				idx[k].append(s)
+	return idx
+
+
+static func _near_any(p: Vector2, idx: Dictionary) -> bool:
+	var segs = idx.get(Vector2i(floori(p.x / KEEP_CELL), floori(p.y / KEEP_CELL)))
+	if segs == null:
+		return false
 	for s in segs:
 		if (s[3] as Rect2).has_point(p) and Geometry2D.get_closest_point_to_segment(p, s[0], s[1]).distance_to(p) < float(s[2]):
 			return true

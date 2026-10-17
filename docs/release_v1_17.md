@@ -35,3 +35,17 @@ Zach, 2026-10-17: package the current batch as **v1.17 "Timber and Tide"** once 
 4. **Push main, then tag `v1.17` and push the tag** (the tag starts build-windows.yml; deploy-web on main's push).
    Zach asked for this release: confirm with him once at this point, since a tag and a public post can't be quietly
    taken back.
+
+## State at 2026-10-17 ~19:30 (for a session picking this up)
+- On main and checked: buildings (doors, steps, roofs), katana pass, ship upgrades + Seamanship, forest island (+ its
+  music, d5bd0ad), Brinehollow layout (land, market street, second row, shrine terrace, farm, wild places), Brinehollow
+  life pieces 1-5 (shops, townsfolk, sound/lanterns/smoke, harbour, terrace/farm/cove people), the woods round
+  Brinehollow piece 1. The axe is reverted out (037d9bd); its work is on branch worktree-agent-afa189ebe4af75f8f.
+- Still running when this was written: the woods agent's piece 2 (farmland surroundings, south-east) and the life
+  agent's final bench. Check `git log main` and `crew.ps1` for whether they landed; nothing else is needed from them.
+- No world suite or nettest has run on this batch (Zach's rule: suites once, after everything's in).
+- **Usage-limited plan (Zach, 2026-10-17):** if there's no budget for the full run + fix pass, the minimum before
+  tagging is `run_tests.ps1 savetest storytest` and `nettest.ps1` (basic mode), in the background; fix only what
+  breaks saves, the story or co-op joining. Then the release commit (step 3) and the tag (step 4, ask Zach first).
+  The full suite and the perf gate then wait for 1.17.1.
+- Known bug: a big quadruped beast can lift a standing captain onto its back (docs/todo.md).

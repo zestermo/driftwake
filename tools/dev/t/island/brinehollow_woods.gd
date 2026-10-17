@@ -1,7 +1,8 @@
 extends SceneTree
 ## The woods round Brinehollow (StarterIsland._plant_woods): hundreds of trees and their undergrowth on the eastern hill
-## and round the town, none on a path, a lane, the stair, a door's way, a chest or a burrow; the harbour still sees
-## the pagoda and the lighthouse past them; they go into the vegetation's draws already there.
+## and round the town, round the farmland and down to the south-east, none on a path, a lane, the stair, a door's
+## way, a chest, a burrow, a field or the orchard; the harbour still sees the pagoda and the lighthouse past them;
+## they go into the vegetation's draws already there.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var step := 0
@@ -39,7 +40,15 @@ func _process(_d: float) -> bool:
 			print("   %d trees, %d on the eastern hill, %d undergrowth" % [trees.size(), east.size(), isl.woods["under"]])
 			check("the woods stand round the town", trees.size() >= 350 and isl.woods["under"] >= 800)
 			check("they climb the eastern hill", east.size() >= 150)
-			var keep: Array = isl._woods_keep()
+			var farm: Vector2 = isl.FARM
+			var round_farm := trees.filter(func(t): return Vector2(t[0].origin.x, t[0].origin.z).distance_to(farm) > 50.0 and Vector2(t[0].origin.x, t[0].origin.z).distance_to(farm) < 130.0)
+			var south_east := trees.filter(func(t): return t[0].origin.x > 0.0 and t[0].origin.z > 150.0)
+			print("   %d round the farmland, %d in the south-east; built in %d ms (+%d committing)" % [round_farm.size(), south_east.size(), isl.build_ms["woods"], isl.build_ms["vegetation"]])
+			check("woods round the farmland and down to the south-east", round_farm.size() >= 250 and south_east.size() >= 100)
+			var kf = load("res://scripts/island/kit/kit_farm.gd")
+			var in_fields := trees.filter(func(t): return (isl.FIELDS + [isl.ORCHARD]).any(func(f): return kf.inside(f, Vector2(t[0].origin.x, t[0].origin.z), 3.0)))
+			check("none in a field or the orchard (%d)" % in_fields.size(), in_fields.is_empty())
+			var keep: Dictionary = isl._woods_keep()
 			var bad := trees.filter(func(t):
 				var p := Vector2(t[0].origin.x, t[0].origin.z)
 				return isl._path_dist(p, isl.paths.size(), 0, true) < 3.0 or isl._near_any(p, keep))
