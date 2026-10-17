@@ -241,6 +241,7 @@ func _house(spec: Dictionary, p: Vector2, face: Vector2, stilts: bool) -> void:
 func _water_house(spec: Dictionary, p: Vector2, face: Vector2) -> void:
 	spec["stilts"] = 0.4
 	spec["foundation"] = 0.6
+	spec["steps"] = false
 	var w: float = spec["w"]
 	var d: float = spec["d"]
 	ctx.reserve(p, maxf(w, d) * 0.6 + 1.0)

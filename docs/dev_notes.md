@@ -3191,6 +3191,22 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   World suites not run in this batch (Zach, 2026-10-17); expected to notice: shoretest/swimtest (the south coast moved), qoltest/storytest
   if they walk the ruins or cove paths (rerouted round the hill), foresttest (plants in the changed strip), savetest (treasure X spots move:
   sea_features picks them up to LAND_R).
+- **The shrine terrace** (`_build_shrine_terrace`, models in scripts/props/brinehollow_models.gd, BrinehollowModels): the gate at the long
+  stair's head, the flagged way up between six stone lanterns (the far pair lit) to the shrine (a hall on a stone plinth, veranda, two
+  flared roofs: `flared_roof`), a four-tier pagoda on the terrace's west side (the mark the harbour sees over the town), benches, the old
+  tree roped round, a parapet along the front; the third band's teahouse (veranda, red-felt benches, paper lanterns, one lit), two hill
+  shops and a house; the switchback (paths[15]) down the terrace's back to the cove path, trodden, two unlit posts. The market street's
+  shopfronts are square to the street and shoulder to shoulder now (checked against the old reserves and each other), its edges dressed
+  (cargo, planters, benches, carts), the two old houses on it squared to it.
+- **Draws:** the new district's built pieces are folded into one mesh a material each (KitStreet.merge_meshes: StreetMeshes,
+  UpperTownMeshes, TerraceMeshes; bodies, colliders, markers and lights stay); the grown land's trees and rocks go in 140 m squares with
+  ranges (700 / 320 m). The bench before this (pieces 1-2, 5600G/3080, noisy: 6 other Godots) read ALL frame 13.15 -> 14.56 ms, draws
+  1357 -> 1544 (plaza +310).
+- **Hook for the town's life:** StarterIsland.LIFE (scripts/island/brinehollow_life.gd) is built last if it exists (`static func build(isl)`);
+  town_spots adds "shrine", "pagoda", "gate", "teahouse" (Vendor, Customer, Seat1-3), "lanterns" (Flame markers). LIGHTS 34: old island 18,
+  the new town 8 (street 2, upper houses 3, teahouse 1, shrine lanterns 2), 8 for the life pass.
+- Two kit fixes from the buildings pass: KitHouses.room's top plate inside its walls (under the thatch), GenHarbour's water houses
+  "steps": false.
 
 ## 2026-10-17: salvage (ship upgrades, piece 2)
 - Four materials (resources/items/timber, iron, canvas, copper .tres; icons from tools/texture_gen/gen_ship_icons.py),
