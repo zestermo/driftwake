@@ -16,8 +16,21 @@ const SHOPS := {
 	},
 	"gus": {
 		"name": "The Salted Gull", "line": "Rum, stew, and a dry seat. Pick two.",
-		"stock": [["rum", 8], ["stew", 18], ["tin_whistle", 35], ["bodhran", 60], ["concertina", 110]],
+		"stock": [["rum", 8], ["stew", 18]],
 		"buys": {"consumable": 0.4},
+	},
+	"corin": {
+		"name": "Corin's Strings and Skins", "line": "Strings, skins and bellows. All in tune, give or take a gale.",
+		"stock": [["tin_whistle", 35], ["bodhran", 60], ["concertina", 110], ["fiddle", 140], ["hurdy_gurdy", 175]],
+		"buys": {},
+	},
+	"haldor": {
+		"name": "Haldor's Forge", "line": "Every blade on the rack came out of that fire. I'll buy your spares, too.",
+		"stock": [["cutlass", 45], ["hunting_hanger", 40], ["naval_sabre", 70], ["hatchet", 30], ["boarding_axe", 70],
+			["pistol", 90], ["duelling_pistol", 130], ["wakizashi", 120],
+			["dagger", 28], ["stiletto", 45], ["main_gauche", 60], ["kukri@1", 110],
+			["scimitar@1", 140], ["bearded_axe@1", 160], ["cutlass@1", 110], ["katana", 180]],
+		"buys": {"weapon": 0.6},
 	},
 	"marlo": {
 		"name": "Marlo's Fish", "line": "Grilled while you wait. Mostly while you wait.",
@@ -79,12 +92,8 @@ const SHOPS := {
 		"buys": {},
 	},
 	"vey": {
-		"name": "Vey's Armoury", "line": "Steel to carry and steel to wear. I'll buy your spares, too.",
-		"stock": [["cutlass", 45], ["hunting_hanger", 40], ["naval_sabre", 70], ["hatchet", 30], ["boarding_axe", 70],
-			["pistol", 90], ["duelling_pistol", 130], ["wakizashi", 120],
-			["dagger", 28], ["stiletto", 45], ["main_gauche", 60], ["kukri@1", 110],
-			["scimitar@1", 140], ["bearded_axe@1", 160], ["cutlass@1", 110], ["katana", 180],
-			["head", "morion", {"hat": "morion"}, 0, 90],
+		"name": "Vey's Armoury", "line": "Steel to wear. Blades are Haldor's business; keeping you alive in them is mine.",
+		"stock": [["head", "morion", {"hat": "morion"}, 0, 90],
 			["vest", "brigandine", {"vest": "brigandine", "vest_color": Color(0.4, 0.26, 0.14)}, 0, 110],
 			["vest", "mail", {"vest": "mail"}, 0, 120],
 			["vest", "cuirass", {"vest": "cuirass", "vest_color": Color(0.55, 0.55, 0.58)}, 1, 260],
@@ -95,7 +104,7 @@ const SHOPS := {
 			["vest", "scale", {"vest": "scale", "vest_color": Color(0.24, 0.15, 0.09)}, 1, 170],
 			["feet", "sabatons", {"feet": "sabatons", "feet_color": Color(0.1, 0.08, 0.07)}, 0, 90],
 			["head", "helm", {"hat": "helm"}, 1, 150]],
-		"buys": {"weapon": 0.6, "gear": 0.5},
+		"buys": {"gear": 0.5},
 	},
 }
 

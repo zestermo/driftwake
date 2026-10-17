@@ -2,7 +2,7 @@ class_name Instruments
 extends RefCounted
 ## The captains' instruments: items (gear for the "instrument" slot, one worn at a time; the look key
 ## "instrument" names the kind, so crewmates' screens know it too), their models (built in code, held
-## and played by Jam) and their icons. Nobody starts with one: Brinehollow's tavern sells three, a chain
+## and played by Jam) and their icons. Nobody starts with one: Corin's music shop on Brinehollow's market street sells all five, a chain
 ## island's trader sometimes has one (trader_stock). The tunes they play are gen_psx_music.py's JAM_TUNES.
 
 ## kind -> [item id, name, price at a shop, worth, description]

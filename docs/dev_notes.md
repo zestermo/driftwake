@@ -3234,3 +3234,12 @@ Found and fixed (Buildings unless said):
 - **Tests:** t/island/house_roofs (the plate, posts and chimneys against `_roof_y` on every roof kind, 1-2 storeys,
   pitch 0.45 and 0.8); house_doors, desert_town, snow_foundations pass. Brinehollow's islanddump changes only in its
   buildings (houses, tavern, smithy, chapel, harbour tower, lighthouse, the waterfront and camp houses).
+## 2026-10-17: Brinehollow life, piece 1: the shop moves (docs/brinehollow_polish_plan.md step 3)
+- **Who sells what** (scripts/game/shops.gd): Gus (The Salted Gull) rum and stew only; Vey's Armoury armour only and buys only gear
+  (no blades); new "haldor" (Haldor's Forge): the sixteen weapons Vey used to stock, buys weapons at 0.6; new "corin" (Corin's Strings
+  and Skins): all five instruments (the fiddle and hurdy-gurdy were chain-only before), buys nothing.
+- **Where** (scripts/island/brinehollow_cast.gd): Haldor the Smith gets the "haldor" shop (talk = trade at the anvil, new barks); Corin
+  stands at the counter of the market street's Shop2 (`town_spots["shops"]`, nearest the plaza on the east side), `BrinehollowCast.corin()`.
+  Vey's menu says "Buy or sell armour" and points you to Haldor; Gus mentions Corin with his drinks.
+- **Tested by** t/island/brinehollow_shops (the stock moves; on a built Brinehollow Haldor trades and Corin is at a shopfront's counter)
+  and t/items/instruments (Corin sells all five, no one else on Brinehollow sells one). qoltest now sells its blue cutlass to Haldor.

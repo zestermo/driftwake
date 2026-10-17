@@ -48,7 +48,7 @@
 				{ "text": "Heavy attack", "next": "heavy" },
 				{ "text": "Dodging", "next": "dodge" },
 				{ "text": "Parrying", "next": "parry" },
-				{ "text": "Buy or sell weapons.", "next": "arms" },
+				{ "text": "Buy or sell armour.", "next": "arms" },
 				{ "text": "Why'd you leave the Marines?", "next": "story" },
 				{ "text": "Dismissed.", "next": "bye" }
 			]
@@ -82,7 +82,10 @@
 			"next": "menu"
 		},
 		"arms": {
-			"text": "I keep a rack of good steel, and I'll take blades you've no use for. Not cheap. Neither is a funeral.",
+			"text": [
+				"Mail, plate, a helm that's turned a cutlass or two. I'll take armour you've outgrown. Not cheap. Neither is a funeral.",
+				"Blades you'll want from Haldor, at the forge west of the plaza. Tell him Vey sent you. He'll charge you more."
+			],
 			"event": "shop:vey",
 			"next": "end"
 		},

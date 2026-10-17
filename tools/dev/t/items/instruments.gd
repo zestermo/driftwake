@@ -1,5 +1,5 @@
 extends SceneTree
-## Instruments as items: none in a new captain's kit; five with icons; the Salted Gull sells three (and a chain
+## Instruments as items: none in a new captain's kit; five with icons; Corin's music shop sells all five (and a chain
 ## island's trader now and then, the same on every machine); worn in the "instrument" slot one at a time (a second
 ## swaps the first back into the bag), named in the look; carried on the back; saved by id.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -38,15 +38,15 @@ func _process(_d: float) -> bool:
 				var it: ItemData = ItemDB.get_item(Instruments.item_id(k))
 				ok = ok and it != null and it.is_gear() and it.gear_slot == "instrument" and it.icon != null and Instruments.kind_of(it) == k and it.worth() > 0
 			check("five instruments, each gear for the instrument slot with an icon", ok)
-			var gull: Array = []
-			for e in SHOPS.SHOPS["gus"]["stock"]:
+			var music: Array = []
+			for e in SHOPS.SHOPS["corin"]["stock"]:
 				var it: ItemData = SHOPS.item_of(e)
 				if Instruments.kind_of(it) != "":
-					gull.append(Instruments.kind_of(it))
-			check("the Salted Gull sells three instruments (%s)" % str(gull), gull.size() == 3)
+					music.append(Instruments.kind_of(it))
+			check("Corin's music shop sells all five instruments (%s)" % str(music), music.size() == 5)
 			var others := 0
 			for id in SHOPS.SHOPS.keys():
-				if id != "gus":
+				if id != "corin":
 					for e in SHOPS.SHOPS[id]["stock"]:
 						if e.size() == 2 and Instruments.kind_of(ItemDB.get_item(str(e[0]))) != "":
 							others += 1

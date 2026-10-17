@@ -89,7 +89,8 @@
 		"drink": {
 			"text": [
 				"Rum, stew, and a seat out of the rain. Brinehollow Black tastes like tar and regret. The stew tastes like stew.",
-				"Pay up front. Nessa taught me that one."
+				"Pay up front. Nessa taught me that one.",
+				"Want a tune with it? Corin sells whistles and fiddles on the market street. Plays better than he sells, too."
 			],
 			"event": "shop:gus",
 			"next": "end"

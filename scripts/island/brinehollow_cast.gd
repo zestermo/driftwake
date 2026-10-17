@@ -174,12 +174,13 @@ static func people(isl: StarterIsland) -> Array:
 		cfg["seated"] = true
 		cast.append({"cfg": cfg}.merged(KitLife.at_marker(kit, isl._tavern, "Patron%d" % (i + 1))))
 
-	# the smith at his anvil
+	# the smith at his anvil, and his rack of blades (talk: his forge)
 	cast.append({"cfg": {
-		"name": "Haldor the Smith", "voice": 0.7,
+		"name": "Haldor the Smith", "voice": 0.7, "shop": "haldor",
 		"barks": [
 			"Every blade on this island's been through my fire. Twice, if the owner was careless.",
-			"Bring me something to mend and gold to mend it with. Not in that order.",
+			"Cutlass, hanger, axe, a pistol if you must. Vey sends them all to me now. He says I talk less.",
+			"Bring me your spare steel. I'll pay for it, then I'll sell it back to someone braver.",
 			{"text": "Bug chitin? Takes an edge better than iron, I'll grant. Smells worse.", "before": "queen"},
 			{"text": "That's queen chitin on Tackett's keel, I hear. I'd have made a fine blade of it. Typical.", "after": "queen"},
 			"Hear that hammer? That's the sound of Brinehollow not being robbed.",
@@ -191,6 +192,9 @@ static func people(isl: StarterIsland) -> Array:
 			"legs": "trousers", "legs_color": L.CLOTH[6], "feet": "boots", "feet_color": L.LEATHER[0],
 			"belt": "belt", "belt_color": L.LEATHER[1], "gloves": true, "gloves_color": L.LEATHER[2]},
 	}}.merged(KitLife.at_marker(kit, isl._smithy, "Smith")))
+
+	# the instrument seller at his shopfront on the market street
+	cast.append(_vendor(kit, _shop(isl, "Shop2"), corin()))
 
 	# Lighthouse keeper on the hill
 	cast.append({"cfg": {
@@ -257,6 +261,31 @@ static func people(isl: StarterIsland) -> Array:
 		"waypoints": fish_route,
 	}, "at": Vector2(fish_route[0].x, fish_route[0].z), "face": Vector2(0, 1)})
 	return cast
+
+
+## Corin, who sells instruments (Shops "corin").
+static func corin() -> Dictionary:
+	return {
+		"name": "Corin", "voice": 1.08, "shop": "corin",
+		"barks": [
+			"Whistle, drum, squeezebox, fiddle. The hurdy-gurdy's for people who hate their neighbours.",
+			"Every crew needs a tune at the capstan. Haul to the beat and the anchor weighs half.",
+			"Gus used to sell these behind the bar. Kept getting rum in the bellows. So now there's me.",
+			"Play it badly in a tavern and they'll pay you to stop. That's still getting paid.",
+			{"text": "The Brinehollow Lass? Every child on the island can hum it. Learn it before you sail.", "before": "tackett_ship"},
+			{"text": "Your own sloop and no shanty to sail her by? Tackett would weep. Buy a whistle.", "after": "tackett_ship"},
+		],
+		"look": {"body": "masc", "build": "slim", "height": 1.02, "skin": L.SKIN_TONES[2],
+			"head": "long", "nose": "straight", "eyes": 2, "brows": 2, "mouth": 4, "eye_color": L.EYE_COLORS[1],
+			"hair": "ponytail", "hair_color": L.HAIR_COLORS[5], "facial_hair": "goatee", "hat": "cavalier", "hat_color": L.CLOTH[9],
+			"top": "shirt", "top_color": L.CLOTH[12], "sleeves": "long", "vest": "vest", "vest_color": L.CLOTH[14],
+			"legs": "breeches", "legs_color": L.CLOTH[5], "feet": "cavalier_boots", "feet_color": L.LEATHER[2],
+			"belt": "sash", "sash_color": L.CLOTH[16], "earring": true, "scarf": true, "scarf_color": L.CLOTH[15]},
+	}
+
+
+static func _shop(isl: StarterIsland, shop_name: String) -> Node3D:
+	return isl.town_spots["shops"].filter(func(s): return s.name == shop_name)[0]
 
 
 ## A vendor behind a stall's counter (its "Vendor" marker), on the ground.
