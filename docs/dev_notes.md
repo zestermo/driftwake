@@ -3516,3 +3516,20 @@ Found and fixed (Buildings unless said):
   identical islands (piece 1). Dumped again at the end, they differ only where main's Buildings door/steps pass landed
   (Site_harbour houses' colliders, Door markers), none in forest code.
 - Renders: `tools/dev/out/forest/n5_sheet.png` (forestshot seed 5 at 21:30), the falls' glow turned down after it.
+
+## 2026-10-17: Brinehollow life, piece 4: the busier harbour
+- **Smacks** (scripts/island/brinehollow_harbour.gd): five fishing smacks (a longboat with a mast, yard and furled lug sail, a net in
+  the stern) moored bow-out at the quay wall at frame s -27, -9, 40, -17, 54: between the piers' hulls and the longboats, none in the
+  sloop's lane (`berth_lane`: from the main pier's berth side 3 + 14 m wide out to sea). Three are MooredHulls (walkable, riding the swell).
+- **Coming and going** (scripts/island/harbour_boat.gd, HarbourBoat, an AnimatableBody3D): Smack0 and Smack1 leave at 5:4 / 6:0, run
+  straight out off the wall and turn away from the lane to grounds 170 m out and 45 m aside, drift there with their fisher aboard (Hob
+  Tarrant, Marrin Sedge: Humanoid bodies, seated, prebuilt) and sail set, and are home by 15:8 / 17:2. Where each is is `where(hour)`
+  (Weather.hour; the drift on Weather.world_time), so guests see the same; full rate within 300 m of the camera, once a second past.
+- **People** (BrinehollowCast.harbourfolk, after the townsfolk): three fishers sat on pier edges, legs over the water, rods out (a rod on
+  the right hand shown while sat at a "rod" stay): two on the main pier's side away from the berth, one at the merchant's pier's end on its
+  open side; they fish from before dawn and after lunch, eat and drink at the Gull. Two dockers carry sacks from a stack on the quay out
+  along the merchant's pier to the merchantman, 7:00-17:00.
+- **Walk graph**: a line along the quay (7 m in from the wall), the main pier and each side pier (their decks are floors for `y_at`);
+  walks join the graph only at its biggest piece (`Town.main`). The Gull got four more places (two at the bar's end, two by the walls).
+- **Tested by** t/island/brinehollow_harbour (the smacks' places and courses clear of the lane and the other boats; out at 10:00, home at
+  18:00; fishers on the piers at 7:00 and off at 12:00; dockers carrying). Renders: tools/dev/out/life/p4_*.png.
