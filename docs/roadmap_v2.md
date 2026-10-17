@@ -64,3 +64,4 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 ## Decided (2026-10-17)
 - The fourth island type is an **autumn woodland** forest with a lumber town and a folklore bestiary
   (docs/forest_island_plan.md), built alongside a Brinehollow growth and polish pass (docs/brinehollow_polish_plan.md).
+- The katana's animations and effects are redone in the drawn flipbook style (docs/katana_polish_plan.md); the other weapons' awakenings follow one at a time.
