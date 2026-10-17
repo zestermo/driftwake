@@ -3219,6 +3219,13 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   hut, a jetty, a boat drawn up, a fish rack; chest "cove2_chest"). KitLandmarks' two dressings take a fixed chest (`items`) instead of
   rolling a chain island's loot. Paths out to the wreck and down to the cove (paths 16, 17). town_spots: "falls", "wreck", "cove2",
   "piers" (the cove's jetty).
+- **Cost** (bench, the 5600G/3080 here, 13:00 clear, back to back main 201b879 vs all five pieces, calib 26.5 / 28.0, 4 other Godots
+  running): ALL frame 14.83 -> 15.55 ms (+5%), draws 1363 -> 1475, nodes 30.5k -> 32.1k; plaza 16.1 -> 18.1, quay 14.8 -> 18.5 (the town
+  hill and the street in view), market and yard lower (noise). No script of mine in the per-frame tables (the windmill's sails only turn
+  on screen). Build: land 1.3-2 s (the old and new grids both; heights on worker threads), vegetation ~3 s, the new pieces ~0.6 s together.
+- **Fidelity** (fidelity.gd 777, Brinehollow before -> after): buildings 31 -> 41, interiors (enterable / shops) 2 -> 8, settled 1.62 ->
+  2.18 ha, props in it 91 -> 127, street props per 50 m 2.84 -> 4.08, landmarks 8 -> 13, NightLights 22 -> 32, lit windows 179 -> 362,
+  paths 599 -> 1412 m, land 9.1 -> 15.2 ha, vegetation 592 -> 612 a ha.
 
 ## 2026-10-17: salvage (ship upgrades, piece 2)
 - Four materials (resources/items/timber, iron, canvas, copper .tres; icons from tools/texture_gen/gen_ship_icons.py),
