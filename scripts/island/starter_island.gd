@@ -140,6 +140,8 @@ const UP_Z2 := 33.0
 const UP_RISE := 12.0
 const UP_BANDS := [-30.0, -18.0, -6.0]
 const UP_SINK := 0.7
+## The town's life, built last from its own file (`static func build(isl: StarterIsland)`), when it exists.
+const LIFE := "res://scripts/island/brinehollow_life.gd"
 ## NightLights the kit may light (lamps, lit doorways, the camps' and the den's lanterns): the old
 ## island takes 18, the grown town's pieces after it (2026-10-17: 30, a share kept for the town's life).
 const LIGHTS := 30
@@ -280,6 +282,9 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("spitters", _build_spitters)
 	kit.timed("npcs", func(): KitLife.spawn(kit, BrinehollowCast.people(self)))
 	kit.timed("loot", _spawn_loot)
+	# the town's life (people, smoke, harbour traffic, their lights), from its own file once it's there
+	if ResourceLoader.exists(LIFE):
+		kit.timed("life", func(): load(LIFE).build(self))
 	_add_arrival_zone()
 	kit.timed("draw lod", func(): DrawLOD.apply(self))
 
