@@ -2290,15 +2290,12 @@ func _plant_woods() -> void:
 				continue
 			var h := hv(p)
 			var beach := 1.0 - _smooth(2.0, 3.8, h)
-			var p_palm := (0.3 * beach + 0.06 * (1.0 - beach)) * w
-			var p_tree := 0.62 * w * (1.0 - beach)
+			var p_palm := (0.3 * beach + 0.05 * (1.0 - beach)) * w
+			var p_tree := 0.8 * w * (1.0 - beach)
 			if h < 0.9 or roll >= p_palm + p_tree or _slope_at(p) > 0.45 or _path_dist(p, all, 0, true) < 3.5 \
 					or _ex_near(_ex_old, p, 1.2, 3.0) or _ex_near(_ex_new, p, 1.2, 3.0) or _near_any(p, keep) or _near_any(p, sight):
 				continue
-			var kind: Array = m["palms"] if roll < p_palm else m["jungle"]
-			var cx := floori(p.x / VEG_CELL)
-			var cz := floori(p.y / VEG_CELL)
-			_veg_cell = VEG_CELL if kind.any(func(mesh: Mesh) -> bool: return buckets.has([mesh, cx, cz])) else 140.0
+			var kind := _woods_meshes(buckets, m["palms"] if roll < p_palm else m["jungle"], p)
 			if roll < p_palm:
 				_add_tree(buckets, kind, p, h, rng, 0.35, 3.0)
 			else:
@@ -2319,12 +2316,30 @@ func _plant_woods() -> void:
 			if h < 2.2 or _slope_at(p) > 0.45 or _path_dist(p, all, 0, true) < 2.0 or _excluded(p, -0.5) or _near_any(p, keep):
 				continue
 			var basis := Basis(Vector3.UP, rng.randf() * TAU)
-			if roll < p_fern:
-				_bucket(buckets, m["ferns"][rng.randi() % 2], Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.3)), Vector3(p.x, h - 0.05, p.y)))
-			else:
-				_bucket(buckets, m["bushes"][rng.randi() % 2], Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.4)), Vector3(p.x, h - 0.1, p.y)))
+			var kind := _woods_meshes(buckets, m["ferns"] if roll < p_fern else m["bushes"], p, [VEG_CELL], m["bushes"] if roll < p_fern else m["ferns"])
+			var mesh: Mesh = kind[rng.randi() % kind.size()]
+			var fern: bool = m["ferns"].has(mesh)
+			_bucket(buckets, mesh, Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.3 if fern else 1.4)), Vector3(p.x, h - (0.05 if fern else 0.1), p.y)))
 			woods["under"] += 1
+	_veg_cell = VEG_CELL
 	woods["keys_after"] = buckets.size()
+
+
+## Of `pool` (else `alt`), the meshes the vegetation already has a square for at p (and _veg_cell set to that
+## square's size), so the new plants go into draws already there; `pool` in a new square of the last size if none.
+func _woods_meshes(buckets: Dictionary, pool: Array, p: Vector2, cells: Array = [VEG_CELL, 140.0], alt: Array = []) -> Array:
+	for cell: float in cells:
+		for kinds: Array in [pool, alt]:
+			var have := kinds.filter(func(mesh: Mesh) -> bool: return buckets.has(_veg_key(mesh, p, cell)))
+			if not have.is_empty():
+				_veg_cell = cell
+				return have
+	_veg_cell = cells[cells.size() - 1]
+	return pool
+
+
+static func _veg_key(mesh: Mesh, p: Vector2, cell: float) -> Array:
+	return [mesh, floori(p.x / cell), floori(p.y / cell)] if cell == VEG_CELL else [mesh, floori(p.x / cell), floori(p.y / cell), cell]
 
 
 ## 0..1: how thick the woods round the town stand at p (1 = the western forest's), thinning toward what stays
@@ -2333,7 +2348,7 @@ func _plant_woods() -> void:
 func _woods(p: Vector2) -> float:
 	if not WOODS_RECT.has_point(p) or p.y > 75.0:
 		return 0.0
-	var w := (1.0 - _jungle(p)) * _smooth(24.0, 36.0, p.distance_to(VILLAGE)) * _smooth(30.0, 46.0, p.distance_to(HILL)) \
+	var w := (1.0 - _jungle(p)) * _smooth(20.0, 30.0, p.distance_to(VILLAGE)) * _smooth(26.0, 40.0, p.distance_to(HILL)) \
 		* _smooth(16.0, 24.0, p.distance_to(TRAINING)) * _smooth(12.0, 18.0, p.distance_to(RUINS)) * _smooth(14.0, 22.0, p.distance_to(CAMP)) \
 		* _smooth(30.0, 40.0, p.distance_to(SMUGGLERS)) * _smooth(65.0, 85.0, p.distance_to(DEN)) * _smooth(50.0, 62.0, p.distance_to(CAVE))
 	if w <= 0.0:
