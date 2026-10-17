@@ -3207,6 +3207,18 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   the new town 8 (street 2, upper houses 3, teahouse 1, shrine lanterns 2), 8 for the life pass.
 - Two kit fixes from the buildings pass: KitHouses.room's top plate inside its walls (under the thatch), GenHarbour's water houses
   "steps": false.
+- **The windmill hamlet** (`_build_farmland`, new kit file kit_farm.gd: KitFarm field/orchard/tilled/reserve): a yard round a well at
+  FARM (trodden, a lit lamp), the windmill on its rise (BrinehollowModels.windmill: its "Sails" turn by Ocean.clock() only while on
+  screen, scripts/props/windmill_sails.gd), a barn, two farmhouses (one lit) and a shed, haystacks, carts, cargo; six fields (FIELDS:
+  wheat, greens, vines on tilled ground in the terrain's splat, a crop MultiMesh each, fenced but for a gap, a scarecrow in the grain)
+  and the orchard (ORCHARD, three fruit-tree shapes in rows). Folded into FarmMeshes but the windmill. town_spots: "windmill" (Miller,
+  Door), "farm" (barn, homes), "fields", "orchard".
+- **The wild places** (`_build_wilds`): the falls (KitLandmarks._waterfall at POOL off the highland, its ground levelled and basin dug in
+  `_falls`; the InlandPool makes it swimmable; chest "falls_chest"), the wreck (KitLandmarks._wreck heeled over on the east coast where
+  WRECK_BEARING from LOBE meets the shore, among rocks; chest "wreck_chest" with the Drowned Mate's Coat), the second cove (a fisher's
+  hut, a jetty, a boat drawn up, a fish rack; chest "cove2_chest"). KitLandmarks' two dressings take a fixed chest (`items`) instead of
+  rolling a chain island's loot. Paths out to the wreck and down to the cove (paths 16, 17). town_spots: "falls", "wreck", "cove2",
+  "piers" (the cove's jetty).
 
 ## 2026-10-17: salvage (ship upgrades, piece 2)
 - Four materials (resources/items/timber, iron, canvas, copper .tres; icons from tools/texture_gen/gen_ship_icons.py),

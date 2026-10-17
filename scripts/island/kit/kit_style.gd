@@ -102,6 +102,13 @@ const BRINEHOLLOW := {
 	"storm_color": Color(0.36, 0.38, 0.42),
 	# footprints in the ground (GroundLayer): "" none, "sand" pressed into the terrain, "snow" also the soft layer you wade through
 	"ground_prints": "",
+	# landmarks (KitLandmarks: Brinehollow's falls and wreck, 2026-10-17): rock, water, the wreck's timbers, bone
+	"rock_tint": Color(0.66, 0.65, 0.6),
+	"moss_tint": Color(0.52, 0.64, 0.42),
+	"water_tint": Color(0.32, 0.6, 0.62, 0.82),
+	"falls_tint": Color(0.8, 0.92, 0.96, 0.85),
+	"wreck_hull": Color(0.56, 0.5, 0.44),
+	"bone": Color(0.9, 0.86, 0.74),
 }
 
 ## The prop models KitStyle makes itself; a theme's style names these or the theme's own (ThemeDef.props).
