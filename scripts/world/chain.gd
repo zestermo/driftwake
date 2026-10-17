@@ -202,13 +202,20 @@ func _name(rng: RandomNumberGenerator, n: Dictionary) -> String:
 	var names: Array = IslandThemes.of(n["theme"]).island_names
 	var given := {}
 	var near := {}
+	var same_layer := {}
 	for o in nodes:
 		given[o["base"]] = true
+		if int(o["layer"]) == int(n["layer"]):
+			same_layer[o["base"]] = true
 		if int(o["layer"]) >= int(n["layer"]) - 2:
 			near[o["base"]] = true
 	var pool: Array = names.filter(func(b): return not given.has(b))
 	if pool.is_empty():
 		pool = names.filter(func(b): return not near.has(b))
+	if pool.is_empty():
+		pool = names.filter(func(b): return not same_layer.has(b))
+	if pool.is_empty():
+		pool = names
 	var base: String = pool[rng.randi() % pool.size()]
 	n["base"] = base
 	if n["role"] == "city":
