@@ -3550,6 +3550,14 @@ Found and fixed (Buildings unless said):
   ~405 trees (Brinehollow had ~1.4k tree and rock colliders), ~1k ferns and bushes. Bench (5600G/3080, 13:00 clear, calib 24.2 / 24.3, a
   life agent's test at the before's start): draws 901+623 -> 913+644 (shadow +21), prims +5%, nodes +408; frame noise both ways (ALL 16.1 ->
   14.8, frame1t 16.6 -> 15.5: the machine, not the trees).
-- **Tested by** t/island/brinehollow_woods (counts, none on a path/lane/stair/door/chest/burrow, the harbour sees the pagoda and the lighthouse
-  past every new tree's bounds, at most 8 new squares). Expected to notice: foresttest (Brinehollow's tree counts; forest_crowns and the
+- **Piece 2** (round the farmland: groves between the fields on the grove noise the grown land uses, none within 6 m of a field or the
+  orchard nor in the hamlet's yard, the windmill kept clear; the south-east down to the coast; WOODS_RECT the whole land but the den's
+  corner): 1074 trees, 2755 ferns and bushes in all, 3 new squares. The trunks' body is out of the tree from the old scatter through the
+  woods (a shape added to a body in the physics world cost ~1 ms each): woods 430 ms, vegetation 2.1 -> 1.6 s.
+- **Bench, both pieces** (back to back, old starter_island.gd vs new on the same main, 13:00 clear, calib 23.8 / 24.0, the life agent's
+  bench just before): ALL frame 15.61 -> 15.67, frame1t 16.34 -> 16.33, draws 946+663 -> 960+684, nodes 33.2k -> 34.3k, gpu 0.73 -> 1.04;
+  per stop frame1t beach 18.17 -> 15.47, plaza 20.04 -> 18.59, market 18.54 -> 19.26, quay 15.35 -> 15.68, dock 14.66 -> 15.00, den
+  13.43 -> 13.76, yard 15.78 -> 17.28, aboard 14.79 -> 15.62 (noise either way; no script of mine per frame).
+- **Tested by** t/island/brinehollow_woods (counts, none on a path/lane/stair/door/chest/burrow/field/orchard, the harbour sees the pagoda
+  and the lighthouse past every new tree's bounds, at most 8 new squares). Expected to notice: foresttest (Brinehollow's tree counts; forest_crowns and the
   spitters are unchanged), anything counting the vegetation's MultiMesh instances.
