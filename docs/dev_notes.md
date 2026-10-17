@@ -2070,6 +2070,62 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   commit during that check went through with no re-testing, and it fast-forwarded.
 - guntest 'shoves when you're too close' flaked ~half the runs: the camp's other grunts are asleep (ActorSleep) when the test disables them, and wake (back to PROCESS_MODE_INHERIT) as the captain is teleported in, so they shot and slashed the player down; a Downed body snaps the teleport back to the ragdoll. The test now keeps the other grunts disabled every frame until the pistol part. No game change.
 
+## 2026-10-16: the cape lab (cape motion variants side by side; the default unchanged)
+- **Why:** capes (and every long drape) look fine standing and janky the moment the captain moves: jitter, whipping,
+  clipping. Zach wants a thick, heavy cape that reacts less, never jitters, never goes through the body, tried on the
+  cape alone first. Nothing else changed: other clothing still runs today's SpringChains.
+- **Switch:** `BodyBuilder.cape_mode` ("a0" default, "a", "b", "bg", "c") and `cape_thick` (static, read when a cape is
+  built). Debug builds: **F1** cycles the mode, **Shift+F1** thin/thick (`BodyBuilder.cycle_cape` rebuilds every caped
+  Humanoid; a toast names it). A0 thin is today's code to 5 decimals (t/cloth/cape_modes replays the anchor motion
+  against numbers recorded before the lab). Every other mode gets its own SpringChains on the torso named "Cape" (A0
+  shares the torso's with a sash tail).
+- **Variants:** A0 today's world-space verlet at 60 Hz, frozen rigid to the anchor between steps. **A** (SpringChains
+  mode "a", `use_tuned`): the shape blended between the last two steps in the anchor's space (smooth at any refresh
+  rate), the anchor interpolated across sub-steps, damping 0.3, k 0.07, 4 passes (lengths, then thighs and shins
+  against whole segments at three probes across the sheet, then the back's plane). **B** (CapeMotion "b"): per
+  segment a damped swing (back and side angles) in the torso's space, driven by gravity, 45% of the point's
+  acceleration and air drag on its speed (smoothed: interpolated transforms move in straight pieces between ticks),
+  rest pull and bend coupling, hard limits (never in front of the back's plane), a 6 cm cushion off the legs then a
+  bisected hard clearance. **C** (CapeMotion "c"): no physics, the same angles eased by 2.6-1.5 Hz springs toward
+  targets from smoothed speed (lift), turn rate (sway, spin flare), falling (hem lift), the torso's lean (hangs
+  plumb), a flutter only while moving; same limits and cushion. **BG**: Godot 4.7's SpringBoneSimulator3D on the
+  cape's skeleton (exists and runs headless and on the skinned PSX mesh), centred on the Humanoid, swing locked to
+  the X axis, a SpringBoneCollisionPlane3D at the back and capsules moved onto the thighs and shins every frame, the
+  body's speed as `external_force`. It has **no angle limits** (only an axis lock), and after the 180 turn it flips
+  the cape out horizontal and holds it there ~0.7 s whatever the stiffness/drag/gravity (2-4, 0.6-0.9, 1.5-9.8): not
+  a fit. Kept in the lab for the record.
+- **Thick look** (`_cape_thick`, any mode): a rigid yoke over the shoulders (open front), a gathered collar (a 14-point
+  pleated ring), a doubled sheet 7 verts across on three chains (middle and +-0.62 of the width), skinned by distance
+  between the middle chain and its edge chain (MeshBuilder.weight_fn), sewn side edges, a rolled hem (a tube), the
+  canvas texture.
+- **Lab** (`tools/dev/capelab.gd`, `--fixed-fps 144`): the captain (tunic, no coat, plain belt) runs idle 2 s, walk,
+  sprint, a 180, a dead stop, a jump, draw + the cutlass combo's spin, idle, once per mode x look, twice (stills +
+  metrics, then sequences). Out: `tools/dev/out/capelab/` strips, sheets, `turn_<look>.gif` / `stop_<look>.gif` (modes
+  side by side a0 a b bg c, 4x slow), metrics.txt. Env CAPE_TRACE="t0,t1" prints the hem per frame.
+- **Numbers** (144 fps render, 60 Hz physics; jitter = hem second difference per frame in the torso's space, walk to
+  spin; pen = cape vertex-frames inside the legs/hips or in front of the back across its middle; ms = the cape's
+  simulate per character per frame):
+
+  | mode | pen (frames, worst) | jitter mean / p95 / max mm | settle | swing max | ms thin / thick |
+  |---|---|---|---|---|---|
+  | A0 | 207 fr, 17 cm (thick 316 fr) | 33.9 / 130.8 / 246 | 0.88 s | 38 | 0.006 / 0.013 |
+  | A | 60 fr, 17 cm (thick 15 fr, 3.5 cm) | 2.4 / 10.1 / 131 | 0.55 s | 70 | 0.056 / 0.184 |
+  | B | 0 (thick 1 fr, 3 mm) | 1.3 / 4.1 / 36 | 1.06 s | 41 | 0.043 / 0.177 |
+  | BG | 767 fr, 19 cm | 4.1 / 13.2 / 847 | >1.9 s | 131 | engine side, not measured |
+  | C | 0 (thick 1 fr, 2 mm) | 1.2 / 2.8 / 35 | 0.75 s | 34 | 0.039 / 0.117 |
+
+  The diagnosis held: A0's jitter is the 60 Hz stepping (p95 13 cm a frame at 144 Hz), A0 clips in 11% of frames.
+  B's and C's maxima (~35 mm, 3.4 s) are a sprinting heel kicking the cape (the hard clearance after the cushion),
+  not stepping. Runs aren't bit-identical (the head's glances are randomized), counts move ~10% run to run.
+- **Cost:** the default path adds two branch checks per SpringChains.simulate; no NPC wears a cape (gear only), so the
+  Brinehollow bench doesn't exercise it (not benched). Per caped character: B/C ~0.04 ms thin, 0.12-0.18 thick
+  (three chains, GDScript); the leg cushion's segment tests are most of it.
+- **To extend the winner to coattails, skirts, hakama, sashes:** CapeMotion takes any SpringChains' chains; each drape
+  needs its own back/front plane (a skirt: a cylinder round the hips instead of one plane, limits per chain by its
+  angle round the body), the hips as anchor for skirts and tails (thigh swing drives them far more than the cape),
+  the leg cushion per chain, and a pass over BodyBuilder's `_sim(...)` callers to give each a mode.
+- **Tests:** t/cloth/cape_modes (every mode x look builds and steps to finite bones by hand and on the captain's
+  walk/turn/stop/jump; A0 thin equals today's numbers; B and C never in front of the back's plane).
 ## 2026-10-15: desert and snow music, beds and footsteps (assets only)
 - **What:** the audio for the desert and snow island themes (docs/desert_island_plan.md, docs/snow_island_plan.md):
   eight music tracks, four ambience/weather beds, snow and ice footsteps. No .gd changed: nothing plays them yet; the
