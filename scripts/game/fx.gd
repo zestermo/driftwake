@@ -75,6 +75,11 @@ func _ready() -> void:
 	_splat_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	for k in SOUNDS:
 		_streams[k] = _sound_set(k)
+	var dim := Timer.new()
+	dim.wait_time = 2.0
+	dim.autostart = true
+	dim.timeout.connect(_dim_emitters)
+	add_child(dim)
 
 
 func _sound_set(sound_name: String) -> AudioStream:
@@ -353,12 +358,22 @@ func _annulus(inner: float, outer: float) -> ArrayMesh:
 
 ## Little dust puff (footsteps, jumps, rolls).
 func dust(pos: Vector3, amount: int = 5, size: float = 0.5) -> void:
+	if flipbooks:
+		puff(pos, "dust", maxi(amount / 3, 1), size * 1.6, 0.6, Color.WHITE, 1.0)
+		return
 	_burst(pos, amount, _dust_mat, size, 0.55, {
 		"radius": 0.15, "spread": 70.0, "vel_min": 0.5, "vel_max": 1.4, "gravity": Vector3(0, 0.4, 0), "damping": 3.0})
 
 
 ## A chimney's thin smoke, rising and drifting for good (under `parent`).
 func chimney_smoke(parent: Node3D, pos: Vector3) -> CPUParticles3D:
+	if flipbooks:
+		var w := flip_emitter(parent, "wisp", 6, 1.6, 4.5, {"radius": 0.15, "spread": 12.0, "gravity": Vector3(0.25, 0.35, 0.1),
+			"vel_min": 0.5, "vel_max": 0.8, "damping": 0.15, "curve": "grow", "start": 0.05, "spin": 6.0, "fade_in": 0.12, "fade": 0.55,
+			"color": Color(0.72, 0.7, 0.68, 0.5)})
+		w.name = "Smoke"
+		w.position = pos
+		return w
 	var p := CPUParticles3D.new()
 	p.name = "Smoke"
 	p.amount = 10
@@ -406,6 +421,9 @@ func spit(from: Vector3, vel: Vector3, damage: float, size: float = 1.0, poison_
 
 ## Expanding ring of dust (landings, heavy slam).
 func dust_ring(pos: Vector3, amount: int = 12, size: float = 0.7) -> void:
+	if flipbooks:
+		puff_ring(pos, "dust_low", maxi(amount / 2, 4), 0.35, size * 2.1, 0.8, Color.WHITE, 6.0)
+		return
 	_burst(pos + Vector3(0, 0.08, 0), amount, _dust_mat, size, 0.6, {
 		"ring_radius": 0.35, "spread": 15.0, "direction": Vector3(0, 0.2, 0), "vel_min": 0.4, "vel_max": 0.8,
 		"radial": 6.0, "gravity": Vector3(0, 0.3, 0), "damping": 5.0})
@@ -419,8 +437,11 @@ func blood(pos: Vector3, dir: Vector3, amount: int = 12) -> void:
 	var dn := dir.normalized() if dir.length() > 0.01 else Vector3.UP
 	var d := (dn + Vector3.UP * 0.35).normalized()
 	bleed(pos, d, amount)
-	_burst(pos, 5, _dust_mat, 0.4, 0.45, {"radius": 0.06, "direction": d, "spread": 45.0, "vel_min": 0.4,
-		"vel_max": 1.2, "gravity": Vector3(0, -1.5, 0), "color": Color(0.09, 0.0, 0.004, 0.6)})
+	if flipbooks:
+		puff(pos, "blood", 2, 0.55, 0.45, Color.WHITE, 1.0, d)
+	else:
+		_burst(pos, 5, _dust_mat, 0.4, 0.45, {"radius": 0.06, "direction": d, "spread": 45.0, "vel_min": 0.4,
+			"vel_max": 1.2, "gravity": Vector3(0, -1.5, 0), "color": Color(0.09, 0.0, 0.004, 0.6)})
 	var flat := Vector3(dn.x, 0.0, dn.z)
 	var along := flat.normalized() if flat.length() > 0.01 else Vector3.ZERO
 	blood_splat(pos + along * randf_range(0.3, 0.9), 0.3 + 0.014 * amount, along)
@@ -569,9 +590,12 @@ func sparkle(pos: Vector3, amount: int = 8, color: Color = Color(1.0, 0.95, 0.6)
 ## big one at the water (something falling in, a dive, a cannonball) leaves a
 ## ring of foam spreading on the swell.
 func splash(pos: Vector3, amount: int = 4, size: float = 0.6) -> void:
-	_burst(pos, amount, _dust_mat, size, 0.7, {
-		"radius": 0.3, "spread": 35.0, "vel_min": 1.2, "vel_max": 2.6, "gravity": Vector3(0, -7.0, 0), "damping": 0.5,
-		"color": Color(0.92, 0.97, 1.0, 0.85)})
+	if flipbooks:
+		plume(pos + Vector3(0, 0.8 * size, 0), Vector3.UP, "splash", maxi(amount / 3, 1), size * 3.0, 0.8, Color.WHITE, 1.0, 20.0)
+	else:
+		_burst(pos, amount, _dust_mat, size, 0.7, {
+			"radius": 0.3, "spread": 35.0, "vel_min": 1.2, "vel_max": 2.6, "gravity": Vector3(0, -7.0, 0), "damping": 0.5,
+			"color": Color(0.92, 0.97, 1.0, 0.85)})
 	var oc := get_node_or_null("/root/Ocean")
 	if size >= 0.7 and amount >= 5 and oc and absf(pos.y - float(oc.surface_at(pos))) < 1.2:
 		water_ring(pos, size * 1.5 + amount * 0.06)
@@ -610,6 +634,9 @@ func water_ring(pos: Vector3, radius: float = 1.5, life: float = 1.1) -> void:
 
 ## Powder smoke: soft grey puffs that swell, drift up and linger.
 func smoke(pos: Vector3, amount: int = 6, size: float = 0.8, life: float = 1.6, color: Color = Color(0.72, 0.72, 0.7, 0.75)) -> void:
+	if flipbooks:
+		puff(pos, "smoke", maxi(amount / 2, 2), size * 1.5, life, color, 0.8)
+		return
 	_burst(pos, amount, _dust_mat, size, life, {
 		"radius": 0.15, "spread": 70.0, "vel_min": 0.2, "vel_max": 0.8, "gravity": Vector3(0, 0.45, 0),
 		"damping": 1.2, "explosiveness": 0.9, "color": color})
@@ -617,6 +644,7 @@ func smoke(pos: Vector3, amount: int = 6, size: float = 0.8, life: float = 1.6, 
 
 ## Gunshot sparks: a hot spray out of the muzzle along `dir`.
 func muzzle_sparks(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1.0, 0.75, 0.35)) -> void:
+	flash_light(pos + dir.normalized() * 0.3, Color(1.0, 0.72, 0.4), 1.2 + amount * 0.08, 3.0 + amount * 0.12, 0.08 + amount * 0.004)
 	_burst(pos, amount, _spark_mat, 0.16, 0.3, {
 		"radius": 0.04, "direction": dir, "spread": 16.0, "vel_min": 5.0, "vel_max": 10.0,
 		"gravity": Vector3(0, -4.0, 0), "damping": 6.0, "grow": false, "color": color})
@@ -624,8 +652,11 @@ func muzzle_sparks(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = 
 
 ## Hit impact: a flash plus a spray of sparks.
 func impact(pos: Vector3, color: Color = Color(1.0, 0.9, 0.55)) -> void:
-	_burst(pos, 1, _impact_mat, 0.9, 0.12, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
-		"grow": true, "color": Color(1, 1, 1, 1)})
+	if flipbooks:
+		flash(pos, 1.7, Color.WHITE, "glint", 0.14)
+	else:
+		_burst(pos, 1, _impact_mat, 0.9, 0.12, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+			"grow": true, "color": Color(1, 1, 1, 1)})
 	_burst(pos, 10, _spark_mat, 0.18, 0.4, {"radius": 0.1, "spread": 180.0, "vel_min": 3.0, "vel_max": 6.0,
 		"gravity": Vector3(0, -9.0, 0), "damping": 4.0, "grow": false, "color": color})
 
@@ -633,8 +664,11 @@ func impact(pos: Vector3, color: Color = Color(1.0, 0.9, 0.55)) -> void:
 ## Parry: a white flash where the blades meet, a hot spray of sparks thrown
 ## back toward the attacker (`dir`) and a few slow glints hanging in the air.
 func parry_sparks(pos: Vector3, dir: Vector3) -> void:
-	_burst(pos, 1, _impact_mat, 1.25, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
-		"grow": true, "color": Color(1, 1, 1, 1)})
+	if flipbooks:
+		flash(pos, 2.2, Color.WHITE, "glint", 0.12)
+	else:
+		_burst(pos, 1, _impact_mat, 1.25, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+			"grow": true, "color": Color(1, 1, 1, 1)})
 	var d := dir.normalized() if dir.length() > 0.01 else Vector3.FORWARD
 	_burst(pos, 22, _spark_mat, 0.13, 0.42, {"radius": 0.05, "direction": (d + Vector3(0, 0.35, 0)).normalized(),
 		"spread": 55.0, "vel_min": 4.5, "vel_max": 9.0, "gravity": Vector3(0, -12.0, 0), "damping": 3.0,
@@ -1093,6 +1127,11 @@ func tracer(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.6)) -> 
 # --------------------------------------------------------------------------
 ## A gout of flame: hot puffs that rise, swell and burn out yellow -> red.
 func flame(pos: Vector3, amount: int = 10, size: float = 0.6, life: float = 0.55, radius: float = 0.25) -> void:
+	flash_light(pos + Vector3(0, 0.3, 0), FIRE_LIGHT, 1.2 + size * 1.5, 2.5 + size * 3.0 + radius * 2.0, minf(life * 0.5, 0.3))
+	if flipbooks:
+		flipbook(pos, "fire", maxi(amount / 3, 2), size * 2.4, life, {"radius": radius, "spread": 30.0, "vel_min": 1.0,
+			"vel_max": 2.4, "gravity": Vector3(0, 2.5, 0), "damping": 2.0, "explosiveness": 0.85, "start": 0.1, "spin": 15.0, "fade": 0.75})
+		return
 	_burst(pos, amount, _flame_mat, size, life, {"radius": radius, "spread": 35.0, "vel_min": 1.0, "vel_max": 2.6,
 		"gravity": Vector3(0, 2.5, 0), "damping": 2.0, "explosiveness": 0.85, "ramp": _flame_ramp})
 
@@ -1100,16 +1139,26 @@ func flame(pos: Vector3, amount: int = 10, size: float = 0.6, life: float = 0.55
 ## A ring of fire racing outward along the ground (fire ring, inferno).
 func fire_ring(pos: Vector3, radius: float = 4.0, amount: int = 40) -> void:
 	var speed := radius / 0.35
-	_burst(pos + Vector3(0, 0.25, 0), amount, _flame_mat, 0.9, 0.5, {"ring_radius": 0.4, "spread": 8.0,
-		"direction": Vector3(0, 0.15, 0), "vel_min": speed * 0.85, "vel_max": speed, "radial": 0.0,
-		"gravity": Vector3(0, 3.0, 0), "damping": speed * 1.6, "ramp": _flame_ramp})
+	flash_light(pos + Vector3(0, 0.6, 0), FIRE_LIGHT, 5.0, radius * 1.8, 0.45)
+	if flipbooks:
+		flipbook(pos + Vector3(0, 0.3, 0), "fireball", maxi(amount / 4, 8), 1.3, 0.5, {"ring_radius": 0.4, "spread": 8.0,
+			"direction": Vector3(0, 0.15, 0), "vel_min": speed * 0.85, "vel_max": speed, "gravity": Vector3(0, 3.0, 0),
+			"damping": speed * 1.6, "start": 0.1, "spin": 180.0, "fade": 0.6})
+	else:
+		_burst(pos + Vector3(0, 0.25, 0), amount, _flame_mat, 0.9, 0.5, {"ring_radius": 0.4, "spread": 8.0,
+			"direction": Vector3(0, 0.15, 0), "vel_min": speed * 0.85, "vel_max": speed, "radial": 0.0,
+			"gravity": Vector3(0, 3.0, 0), "damping": speed * 1.6, "ramp": _flame_ramp})
 	flame(pos + Vector3(0, 0.3, 0), 14, 1.0, 0.6, 0.6)
 
 
 ## The ultimate: a column of fire and a rolling wave of flame along the ground.
 func fire_pillar(pos: Vector3, radius: float = 7.0) -> void:
-	_burst(pos, 36, _flame_mat, 1.6, 1.1, {"radius": 0.8, "spread": 12.0, "vel_min": 6.0, "vel_max": 13.0,
-		"gravity": Vector3(0, -2.0, 0), "damping": 3.0, "explosiveness": 0.9, "ramp": _flame_ramp})
+	flash_light(pos + Vector3(0, 1.2, 0), FIRE_LIGHT, 8.0, radius * 2.2, 0.6)
+	if flipbooks:
+		plume(pos, Vector3.UP, "fireball", 10, 2.4, 1.1, Color.WHITE, 11.0, 12.0)
+	else:
+		_burst(pos, 36, _flame_mat, 1.6, 1.1, {"radius": 0.8, "spread": 12.0, "vel_min": 6.0, "vel_max": 13.0,
+			"gravity": Vector3(0, -2.0, 0), "damping": 3.0, "explosiveness": 0.9, "ramp": _flame_ramp})
 	fire_ring(pos, radius, 70)
 	impact(pos + Vector3(0, 1.0, 0), Color(1.0, 0.7, 0.3))
 	smoke(pos + Vector3(0, 1.5, 0), 10, 1.8, 2.6)
@@ -1119,6 +1168,8 @@ func fire_pillar(pos: Vector3, radius: float = 7.0) -> void:
 ## enemies, the fireball's trail). world: particles stay where they were
 ## emitted (trails); otherwise they ride with the parent.
 func flame_emitter(parent: Node3D, radius: float = 0.3, amount: int = 16, size: float = 0.5, life: float = 0.6, world: bool = false) -> CPUParticles3D:
+	if flipbooks:
+		return lick(parent, radius, maxi(amount / 2, 3), size * 1.6, life * 1.15, world)
 	var p := CPUParticles3D.new()
 	p.amount = amount
 	p.lifetime = life
@@ -1234,8 +1285,11 @@ func spray(pos: Vector3, dir: Vector3, amount: int = 12, color: Color = Color(0.
 	_burst(pos, amount, _dust_mat, 0.16, 0.6, {"radius": 0.12, "direction": dir.normalized(), "spread": 30.0,
 		"vel_min": speed * 0.55, "vel_max": speed, "gravity": Vector3(0, -12.0, 0), "damping": 0.8, "grow": false,
 		"hold": true, "color": Color(color.r, color.g, color.b, 0.95)})
-	_burst(pos, maxi(amount / 3, 2), _dust_mat, 0.55, 0.55, {"radius": 0.2, "direction": dir.normalized(), "spread": 40.0,
-		"vel_min": 0.6, "vel_max": 1.6, "gravity": Vector3(0, 0.3, 0), "damping": 2.0, "color": Color(color.r, color.g, color.b, 0.45)})
+	if flipbooks:
+		puff(pos, "mist", maxi(amount / 4, 1), 0.9, 0.55, Color(color.r, color.g, color.b, 0.6), speed * 0.2, dir)
+	else:
+		_burst(pos, maxi(amount / 3, 2), _dust_mat, 0.55, 0.55, {"radius": 0.2, "direction": dir.normalized(), "spread": 40.0,
+			"vel_min": 0.6, "vel_max": 1.6, "gravity": Vector3(0, 0.3, 0), "damping": 2.0, "color": Color(color.r, color.g, color.b, 0.45)})
 
 
 ## Petals thrown along `dir` that tumble and drift down slowly (the katana's
@@ -1288,6 +1342,11 @@ const POWDER_SMOKE := Color(0.24, 0.22, 0.24, 0.8)
 ## Bright motes thrown along `dir` that slow and hang a moment (the dual blades'
 ## twin currents).
 func motes(pos: Vector3, dir: Vector3, amount: int = 8, color: Color = Color.WHITE, speed: float = 4.0) -> void:
+	if flipbooks:
+		flipbook(pos, "magic", maxi(amount / 3, 2), 0.5, 0.5, {"radius": 0.12, "direction": dir.normalized(), "spread": 45.0,
+			"vel_min": speed * 0.4, "vel_max": speed, "gravity": Vector3.ZERO, "damping": 6.0, "start": 0.1, "spin": 180.0,
+			"fade": 0.6, "color": Color(color.r, color.g, color.b, 1.0)})
+		return
 	_burst(pos, amount, _spark_mat, 0.14, 0.5, {"radius": 0.12, "direction": dir.normalized(), "spread": 45.0,
 		"vel_min": speed * 0.4, "vel_max": speed, "gravity": Vector3.ZERO, "damping": 6.0, "grow": false,
 		"color": Color(color.r, color.g, color.b, 1.0)})
@@ -1298,8 +1357,12 @@ func motes(pos: Vector3, dir: Vector3, amount: int = 8, color: Color = Color.WHI
 ## (a combo shot ~0.7, a cannon-blast ~2).
 func powder_burst(pos: Vector3, dir: Vector3, size: float = 1.0, color: Color = Color(1.0, 0.34, 0.26)) -> void:
 	var d := dir.normalized() if dir.length() > 0.01 else Vector3.UP
-	_burst(pos, 1, _impact_mat, 0.9 * size, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
-		"grow": true, "color": Color(1, 1, 1, 1)})
+	flash_light(pos, color.lerp(FIRE_LIGHT, 0.5), 2.0 * size, 3.0 + 2.5 * size, 0.1 + 0.06 * size)
+	if flipbooks:
+		flash(pos, 1.2 * size, Color.WHITE, "muzzle", 0.22)
+	else:
+		_burst(pos, 1, _impact_mat, 0.9 * size, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+			"grow": true, "color": Color(1, 1, 1, 1)})
 	_burst(pos, int(8 * size) + 4, _spark_mat, 0.15, 0.4, {"radius": 0.08, "direction": d, "spread": 50.0,
 		"vel_min": 3.0 * size, "vel_max": 7.0 * size, "gravity": Vector3(0, -7.0, 0), "damping": 3.0, "grow": false,
 		"color": tree_col("corsair", ACCENT)})
@@ -1312,8 +1375,12 @@ func powder_burst(pos: Vector3, dir: Vector3, size: float = 1.0, color: Color = 
 ## colour (the element) it burns: a ring of it, sparks, flame and black smoke.
 func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 0)) -> void:
 	var hot := glow.a > 0.0
-	_burst(pos + Vector3(0, 0.5, 0), 1, _impact_mat, 2.0 * size, 0.14, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
-		"grow": true, "color": Color(1, 1, 1, 1)})
+	flash_light(pos + Vector3(0, 0.8, 0), Color(glow.r, glow.g, glow.b) if hot else FIRE_LIGHT, 4.0 * size, 6.0 * size, 0.2 + 0.1 * size)
+	if flipbooks:
+		flash(pos + Vector3(0, 0.5, 0), 2.2 * size, Color.WHITE, "muzzle", 0.3)
+	else:
+		_burst(pos + Vector3(0, 0.5, 0), 1, _impact_mat, 2.0 * size, 0.14, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+			"grow": true, "color": Color(1, 1, 1, 1)})
 	debris(pos + Vector3(0, 0.1, 0), Vector3.UP, 12, Color(0.35, 0.3, 0.25), 6.5)
 	dust_ring(pos, 18, 1.1 * size)
 	ring(pos, Vector3.UP, 2.6 * size, glow if hot else Color(1.0, 0.95, 0.85), 0.4, 0.14)
@@ -1328,43 +1395,183 @@ func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 
 		dust(pos + Vector3(0, 0.1, 0), 8, 1.0)
 
 
-## The flipbook pilot's switch: sprite-sheet smoke and explosions on the ship's cannons and
-## a heavy blow's dust (false: the particles from before, to compare or to revert).
-var flipbook_pilot := true
+# --------------------------------------------------------------------------
+# Flipbooks: sprite-sheet particles (the library in tools/texture_gen/gen_flipbooks.py) and the
+# blocks over them that the effects are built from (puff, puff_ring, plume, flash, blast, lick)
+# --------------------------------------------------------------------------
+## Flipbook effects on (sprite sheets) or off (the geometry effects from before, kept to compare
+## and to revert a regression in one line).
+var flipbooks := true
+## Every sheet in assets/textures/fx/flip_<name>.png, all 4x4 frames of 64 px.
+const FLIP_SHEETS := ["smoke", "explosion", "dust", "dust_low", "sand", "snow", "mist", "blood", "splash", "fire",
+	"fireball", "muzzle", "sparks", "glint", "magic", "wisp"]
+## Light: grey-white sheets drawn additive, so the burst's colour tints them. The rest is matter.
+const FLIP_ADD := ["sparks", "glint", "magic"]
+## Matter that doesn't glow: dimmed with the night (unshaded, it would shine white in the dark).
+const FLIP_LIT := ["smoke", "dust", "dust_low", "sand", "snow", "mist", "blood", "splash", "wisp"]
+const FLIP_NIGHT_DIM := 0.65
 var _flip_mats: Dictionary = {}
 var _flip_ramps: Dictionary = {}
+var _lit_emitters: Array = []
 
 
-## A burst whose particles each play a sprite sheet once over their life
-## (assets/textures/fx/flip_<sheet>.png: 4x4 frames, tools/texture_gen/gen_flipbooks.py).
-## _burst's cfg, plus "start" (each starts up to that far into the sheet, 0..1), "spin"
-## (a random roll up to that many degrees either way), "fade_in" / "fade" (when the colour
-## is all there and when it starts to clear, 0..1 of the life), "curve" (the size over
-## life: "flat", "grow"...) and "lit" (dimmed at night: smoke, not fire).
+## A burst whose particles each play a sprite sheet once over their life. _burst's cfg, plus
+## "start" (each starts up to that far into the sheet, 0..1), "spin" (a random roll up to that
+## many degrees either way), "fade_in" / "fade" (when the colour is all there and when it starts
+## to clear, 0..1 of the life), "curve" (the size over life: "flat", "grow"...) and "lit"
+## (dimmed at night; by default the FLIP_LIT sheets).
 func flipbook(pos: Vector3, sheet: String, amount: int, size: float, life: float, cfg: Dictionary) -> CPUParticles3D:
 	var col: Color = cfg.get("color", Color.WHITE)
-	if cfg.get("lit", false):
-		# (unshaded, so smoke would glow white in the dark)
-		var k := 1.0 - 0.65 * snappedf(float(get_node("/root/Weather").night), 0.1)
+	if cfg.get("lit", sheet in FLIP_LIT):
+		var k := _night_k()
 		col = Color(col.r * k, col.g * k, col.b * k, col.a)
 	var c := {"ramp": _flip_ramp(col, cfg.get("fade_in", 0.0), cfg.get("fade", 0.6))}
 	c.merge(cfg)
 	var p := _burst(pos, amount, _flip_mat(sheet), size, life, c)
 	if p:
 		p.scale_amount_curve = _curve(cfg.get("curve", "flat"))
-		p.anim_speed_min = 1.0
-		p.anim_speed_max = 1.0
-		p.anim_offset_max = cfg.get("start", 0.0)
-		p.angle_min = -float(cfg.get("spin", 0.0))
-		p.angle_max = float(cfg.get("spin", 0.0))
-		p.draw_order = CPUParticles3D.DRAW_ORDER_VIEW_DEPTH
-		p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_flip_setup(p, cfg)
 	return p
+
+
+## A flipbook emitter that keeps going until freed: each particle plays `sheet` once over its
+## life (a campfire's licks, a chimney's wisps, a burning body). cfg as flipbook's, plus "world"
+## (particles stay where they were emitted: trails; otherwise they ride with `parent`) and
+## "range" (seen this far, 140 m). Lit sheets follow the night as it comes and goes.
+func flip_emitter(parent: Node3D, sheet: String, amount: int, size: float, life: float, cfg: Dictionary) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.amount = amount
+	p.lifetime = life
+	p.local_coords = not cfg.get("world", false)
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = cfg.get("radius", 0.2)
+	p.direction = cfg.get("direction", Vector3.UP)
+	p.spread = cfg.get("spread", 20.0)
+	p.gravity = cfg.get("gravity", Vector3(0, 0.3, 0))
+	p.initial_velocity_min = cfg.get("vel_min", 0.3)
+	p.initial_velocity_max = cfg.get("vel_max", 0.8)
+	p.damping_min = cfg.get("damping", 0.2)
+	p.damping_max = cfg.get("damping", 0.2)
+	p.scale_amount_min = cfg.get("scale_min", 0.8)
+	p.scale_amount_max = cfg.get("scale_max", 1.2)
+	p.scale_amount_curve = _curve(cfg.get("curve", "flat"))
+	p.color_ramp = _flip_ramp(cfg.get("color", Color.WHITE), cfg.get("fade_in", 0.0), cfg.get("fade", 0.6))
+	p.mesh = _quad(size, _flip_mat(sheet))
+	p.visibility_range_end = cfg.get("range", 140.0)
+	_flip_setup(p, cfg)
+	parent.add_child(p)
+	p.emitting = true
+	if cfg.get("lit", sheet in FLIP_LIT):
+		var k := _night_k()
+		p.color = Color(k, k, k)
+		_lit_emitters.append(p)
+	return p
+
+
+## Brief real light from fire and explosions: a pool of at most FLASH_CAP shadowless OmniLights (the
+## weakest one is taken over when all are lit), none beyond FLASH_RANGE of the camera. false: no lights.
+var flash_lights := true
+const FLASH_CAP := 6
+const FLASH_RANGE := 90.0
+const FIRE_LIGHT := Color(1.0, 0.6, 0.28)
+var _lights: Array = []
+
+
+## A light flaring up at `pos` and dying away over `secs` (a fast rise, a quick fall-off), `reach` m.
+## Lights asked for in the same frame close together (an effect calling another) are one light, the
+## biggest of them.
+func flash_light(pos: Vector3, color: Color = FIRE_LIGHT, energy: float = 3.0, reach: float = 6.0, secs: float = 0.25) -> void:
+	if not flash_lights:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_squared_to(pos) > FLASH_RANGE * FLASH_RANGE:
+		return
+	var frame := Engine.get_process_frames()
+	var l: OmniLight3D = null
+	for o in _lights:
+		if o.visible and int(o.get_meta("frame")) == frame and o.global_position.distance_to(pos) < 1.5:
+			if float(o.get_meta("peak")) >= energy:
+				color = o.light_color
+			energy = maxf(energy, float(o.get_meta("peak")))
+			reach = maxf(reach, o.omni_range)
+			secs = maxf(secs, float(o.get_meta("secs")))
+			l = o
+			break
+	if l == null:
+		for o in _lights:
+			if not o.visible:
+				l = o
+				break
+	if l == null and _lights.size() < FLASH_CAP:
+		l = OmniLight3D.new()
+		l.shadow_enabled = false
+		l.light_bake_mode = Light3D.BAKE_DISABLED
+		l.visible = false
+		add_child(l)
+		_lights.append(l)
+	if l == null:
+		l = _lights[0]
+		for o in _lights:
+			if o.light_energy < l.light_energy:
+				l = o
+	var old = l.get_meta("tw") if l.has_meta("tw") else null
+	if old and (old as Tween).is_valid():
+		(old as Tween).kill()
+	l.global_position = pos
+	l.light_color = color
+	l.omni_range = reach
+	l.set_meta("frame", frame)
+	l.set_meta("peak", energy)
+	l.set_meta("secs", secs)
+	if not l.visible:
+		l.light_energy = 0.0
+	l.visible = true
+	var tw := l.create_tween()
+	tw.tween_property(l, "light_energy", energy, minf(0.04, secs * 0.2))
+	tw.tween_property(l, "light_energy", 0.0, secs).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_callback(l.hide)
+	l.set_meta("tw", tw)
+
+
+## Flash lights lit right now.
+func lights_lit() -> int:
+	var n := 0
+	for o in _lights:
+		if o.visible:
+			n += 1
+	return n
+
+
+func _flip_setup(p: CPUParticles3D, cfg: Dictionary) -> void:
+	p.anim_speed_min = 1.0
+	p.anim_speed_max = 1.0
+	p.anim_offset_max = cfg.get("start", 0.0)
+	p.angle_min = -float(cfg.get("spin", 0.0))
+	p.angle_max = float(cfg.get("spin", 0.0))
+	p.draw_order = CPUParticles3D.DRAW_ORDER_VIEW_DEPTH
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func _night_k() -> float:
+	return 1.0 - FLIP_NIGHT_DIM * snappedf(float(get_node("/root/Weather").night), 0.1)
+
+
+## Every 2 s: the lit emitters take the night's dimming (one loop, not a process on each).
+func _dim_emitters() -> void:
+	if _lit_emitters.is_empty():
+		return
+	var k := _night_k()
+	var keep: Array = []
+	for e in _lit_emitters:
+		if is_instance_valid(e):
+			e.color = Color(k, k, k)
+			keep.append(e)
+	_lit_emitters = keep
 
 
 func _flip_mat(sheet: String) -> StandardMaterial3D:
 	if not _flip_mats.has(sheet):
-		var m := _billboard_mat("res://assets/textures/fx/flip_%s.png" % sheet, false)
+		var m := _billboard_mat("res://assets/textures/fx/flip_%s.png" % sheet, sheet in FLIP_ADD)
 		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
 		m.particles_anim_h_frames = 4
 		m.particles_anim_v_frames = 4
@@ -1388,57 +1595,103 @@ func _flip_ramp(col: Color, fade_in: float, fade: float) -> Gradient:
 	return _flip_ramps[key]
 
 
-## A ship's cannon going off at `from` along `dir`: sparks, a fireball out of the muzzle
-## and a bank of smoke pushed out along the shot.
+## The blocks (all one burst each, so one draw; all sendable through Net.fx). Layer them as the
+## driftwake-fx skill says: a flash or a gather first, the blast or the plume as the release, puffs
+## and smoke settling after.
+
+## One puff of `sheet` (or `amount` of them) drifting off along `dir` from `pos` at `lift` m/s:
+## the smallest block (a footstep's dust, a shot's smoke, blood mist off a wound).
+func puff(pos: Vector3, sheet: String = "dust", amount: int = 1, size: float = 0.6, life: float = 0.7, color: Color = Color.WHITE, lift: float = 0.6, dir: Vector3 = Vector3.UP) -> CPUParticles3D:
+	return flipbook(pos, sheet, amount, size, life, {"radius": 0.12 * size, "direction": dir.normalized(), "spread": 45.0,
+		"vel_min": lift * 0.5, "vel_max": lift, "gravity": Vector3(0, 0.3, 0), "damping": 2.0, "start": 0.06, "spin": 25.0, "color": color})
+
+
+## A ring of `count` puffs of `sheet` thrown out along the ground from `pos` (a landing, a slam, a
+## blast's base), racing out at `speed` m/s and slowing.
+func puff_ring(pos: Vector3, sheet: String = "dust_low", count: int = 6, radius: float = 0.3, size: float = 1.0, life: float = 0.9, color: Color = Color.WHITE, speed: float = 5.0) -> CPUParticles3D:
+	return flipbook(pos + Vector3(0, 0.12, 0), sheet, count, size, life, {"ring_radius": radius, "spread": 10.0,
+		"direction": Vector3(0, 0.15, 0), "vel_min": speed * 0.06, "vel_max": speed * 0.12, "radial": speed,
+		"gravity": Vector3(0, 0.3, 0), "damping": speed * 0.8, "start": 0.1, "spin": 30.0, "color": color})
+
+
+## `count` puffs of `sheet` pushed out along `dir` from `pos` at up to `speed` m/s (a cannon's bank
+## of smoke, a column of white water, a pillar of fire): fast at first, slowing and growing.
+func plume(pos: Vector3, dir: Vector3, sheet: String = "smoke", count: int = 4, size: float = 1.5, life: float = 1.6, color: Color = Color.WHITE, speed: float = 4.0, spread: float = 15.0) -> CPUParticles3D:
+	return flipbook(pos, sheet, count, size, life, {"radius": 0.15 * size, "direction": dir.normalized(), "spread": spread,
+		"vel_min": speed * 0.35, "vel_max": speed, "gravity": Vector3(0, 0.35, 0), "damping": speed * 0.4, "start": 0.08,
+		"spin": 25.0, "curve": "grow", "fade_in": 0.06, "color": color})
+
+
+## A flash at `pos`: one `glint` (a star, in `color`) or `muzzle` (a blast's flare) sheet played fast.
+func flash(pos: Vector3, size: float = 0.9, color: Color = Color.WHITE, sheet: String = "glint", life: float = 0.15) -> CPUParticles3D:
+	return flipbook(pos, sheet, 1, size, life, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+		"damping": 0.0, "spin": 180.0 if sheet == "muzzle" else 0.0, "fade": 0.85, "color": color})
+
+
+## Something going off at `pos`, out along `normal`: the flare, a fireball when `hot`, and smoke
+## pushed out at `speed` (fast: a muzzle's jet; slow: a bloom on a hull). `size` scales it all (a
+## pistol 0.4, a cannon's muzzle 1, a ball bursting on a hull 2). Sparks and embers are the caller's.
+func blast(pos: Vector3, normal: Vector3 = Vector3.UP, size: float = 1.0, hot: bool = true, smoke_col: Color = Color(0.8, 0.79, 0.77, 0.9), speed: float = 6.0) -> void:
+	var n := normal.normalized() if normal.length() > 0.01 else Vector3.UP
+	flash_light(pos + n * 0.5 * size, FIRE_LIGHT, (3.0 if hot else 2.0) * size, 5.0 * size + 2.0, 0.15 + 0.12 * size)
+	flash(pos, 1.6 * size, Color.WHITE, "muzzle", 0.35 + 0.1 * size)
+	if hot:
+		flipbook(pos + n * 0.3 * size, "fireball", 1 + int(size), 1.1 * size, 0.4 + 0.15 * size, {"radius": 0.1 * size,
+			"direction": n, "spread": 30.0, "vel_min": speed * 0.3, "vel_max": speed * 0.8, "gravity": Vector3.ZERO,
+			"damping": speed * 0.8, "start": 0.04, "spin": 180.0, "fade": 0.7})
+	plume(pos + n * 0.5 * size, n, "smoke", 2 + int(size * 2.0), 1.4 * size + 0.3, 1.9 + 0.5 * size, smoke_col, speed, 25.0)
+
+
+## Flame licking up for good from `parent` (a campfire, a brazier, a burning hull; `world`: a
+## trail): `amount` tongues of the `fire` sheet, each rising and burning out over `life`.
+func lick(parent: Node3D, radius: float = 0.3, amount: int = 8, size: float = 0.6, life: float = 0.7, world: bool = false) -> CPUParticles3D:
+	return flip_emitter(parent, "fire", amount, size, life, {"radius": radius, "spread": 12.0, "vel_min": 0.4, "vel_max": 1.0,
+		"gravity": Vector3(0, 1.2, 0), "damping": 0.8, "scale_min": 0.7, "scale_max": 1.2, "start": 0.15, "spin": 8.0,
+		"fade": 0.75, "world": world})
+
+
+## A ship's cannon going off at `from` along `dir`: sparks, the flare and a bank of smoke pushed
+## out along the shot.
 func cannon_fire(from: Vector3, dir: Vector3) -> void:
+	flash_light(from + dir * 0.8, FIRE_LIGHT, 5.0, 10.0, 0.25)
 	muzzle_sparks(from, dir, 16)
-	if not flipbook_pilot:
+	if not flipbooks:
 		smoke(from + dir * 0.6, 10, 1.6, 2.2)
 		flame(from + dir * 0.3, 8, 0.7, 0.25, 0.25)
 		return
-	flipbook(from + dir * 0.5, "explosion", 2, 1.5, 0.4, {"radius": 0.15, "direction": dir, "spread": 10.0,
-		"vel_min": 2.0, "vel_max": 4.0, "gravity": Vector3.ZERO, "damping": 6.0, "spin": 180.0, "fade": 0.7})
-	flipbook(from + dir * 0.9, "smoke", 5, 1.7, 2.4, {"radius": 0.25, "direction": dir, "spread": 14.0,
-		"vel_min": 1.5, "vel_max": 6.0, "gravity": Vector3(0, 0.35, 0), "damping": 2.2, "start": 0.08, "spin": 25.0,
-		"curve": "grow", "fade_in": 0.06, "lit": true, "color": Color(0.8, 0.79, 0.77, 0.9)})
+	blast(from + dir * 0.5, dir, 1.0, false)
 
 
-## A cannonball bursting on a hull, a rock or the ground at `at` (`normal`: off the surface).
+## A cannonball bursting on a hull, a rock or the ground at `at` (`normal`: off the surface): a
+## fireball blooming, dark smoke and embers.
 func cannon_hit(at: Vector3, normal: Vector3) -> void:
-	impact(at, Color(1.0, 0.7, 0.35))
-	if not flipbook_pilot:
+	flash_light(at + normal * 0.6, FIRE_LIGHT, 7.0, 12.0, 0.4)
+	if not flipbooks:
+		impact(at, Color(1.0, 0.7, 0.35))
 		flame(at, 12, 0.8, 0.45, 0.6)
 		smoke(at + normal * 0.3, 8, 1.3, 1.8)
 		dust(at, 8, 0.9)
 		return
-	flipbook(at + normal * 0.5, "explosion", 3, 3.0, 1.0, {"radius": 0.35, "direction": normal, "spread": 40.0,
-		"vel_min": 0.5, "vel_max": 1.8, "gravity": Vector3(0, 0.6, 0), "damping": 3.0, "start": 0.06, "spin": 180.0, "fade": 0.75})
-	flipbook(at + normal * 0.7, "smoke", 3, 2.2, 2.2, {"radius": 0.4, "direction": (normal + Vector3.UP).normalized(), "spread": 30.0,
-		"vel_min": 0.6, "vel_max": 1.6, "gravity": Vector3(0, 0.5, 0), "damping": 1.5, "start": 0.15, "spin": 25.0,
-		"curve": "grow", "fade_in": 0.2, "lit": true, "color": Color(0.5, 0.48, 0.47, 0.85)})
+	blast(at + normal * 0.2, normal, 2.0, true, Color(0.5, 0.48, 0.47, 0.85), 2.0)
 	embers(at + normal * 0.3, normal + Vector3.UP * 0.5, 8, Color(1.0, 0.45, 0.12), 5.0)
 
 
-## A cannonball into the sea at `at`: a splash, its foam ring and a cloud of white water.
+## A cannonball into the sea at `at`: a splash, its foam ring and a column of white water.
 func cannon_splash(at: Vector3) -> void:
 	splash(at, 10, 1.4)
-	if not flipbook_pilot:
+	if not flipbooks:
 		splash(at + Vector3(0, 0.6, 0), 6, 0.9)
 		return
-	flipbook(at + Vector3(0, 0.7, 0), "smoke", 4, 1.9, 1.3, {"radius": 0.4, "direction": Vector3.UP, "spread": 25.0,
-		"vel_min": 2.0, "vel_max": 4.5, "gravity": Vector3(0, -3.0, 0), "damping": 1.5, "spin": 40.0, "fade": 0.4, "lit": true,
-		"color": Color(0.9, 0.96, 1.0, 0.85)})
+	puff(at + Vector3(0, 1.2, 0), "mist", 2, 2.2, 1.4, Color(0.9, 0.96, 1.0, 0.7), 1.5)
 
 
 ## A heavy blow landing or a body thrown down hard: dust thrown out along the ground.
 func heavy_dust(pos: Vector3, amount: int = 12, size: float = 0.8) -> void:
-	if not flipbook_pilot:
+	if not flipbooks:
 		dust_ring(pos, amount, size)
 		return
-	dust_ring(pos, amount / 2, size)
-	flipbook(pos + Vector3(0, 0.15, 0), "smoke", maxi(amount / 3, 3), size * 1.5, 0.95, {"ring_radius": 0.3, "spread": 10.0,
-		"direction": Vector3(0, 0.15, 0), "vel_min": 0.3, "vel_max": 0.6, "radial": 5.0, "gravity": Vector3(0, 0.4, 0),
-		"damping": 4.0, "start": 0.1, "spin": 30.0, "lit": true, "color": Color(0.66, 0.6, 0.5, 0.85)})
+	puff_ring(pos, "dust_low", maxi(amount / 2, 5), 0.3, size * 1.6, 0.95, Color.WHITE, 5.0)
+	puff(pos + Vector3(0, 0.3, 0), "dust", 2, size * 1.4, 0.9, Color.WHITE, 1.2)
 
 
 ## An X of two light-streaks through `pos` (the dual blades' mark): upright,
@@ -1624,6 +1877,11 @@ func cut_lines(pos: Vector3, count: int = 10, color: Color = Color.WHITE, secs: 
 ## Power drawn in to `pos` from all round (a wind-up, a charge): motes on a
 ## sphere of `radius` rushing to the middle over `secs`.
 func gather(pos: Vector3, radius: float = 1.2, color: Color = Color.WHITE, secs: float = 0.4, amount: int = 16) -> void:
+	if flipbooks:
+		flipbook(pos, "glint", maxi(amount / 3, 4), 0.35, secs, {"shape": CPUParticles3D.EMISSION_SHAPE_SPHERE_SURFACE, "radius": radius,
+			"vel_min": 0.0, "vel_max": 0.0, "radial": -2.0 * radius / (secs * secs), "gravity": Vector3.ZERO, "damping": 0.0,
+			"explosiveness": 0.7, "start": 0.15, "fade": 0.9, "color": Color(color.r, color.g, color.b, 1.0)})
+		return
 	_burst(pos, amount, _spark_mat, 0.15, secs, {"shape": CPUParticles3D.EMISSION_SHAPE_SPHERE_SURFACE, "radius": radius,
 		"vel_min": 0.0, "vel_max": 0.0, "radial": -2.0 * radius / (secs * secs), "gravity": Vector3.ZERO, "damping": 0.0,
 		"grow": false, "explosiveness": 0.7, "color": Color(color.r, color.g, color.b, 1.0)})
@@ -1657,6 +1915,9 @@ func streak(from: Vector3, to: Vector3, color: Color = Color(0.4, 0.8, 1.0), wid
 
 ## A star of light (a blade's edge catching it before a strike, a hit landing).
 func glint(pos: Vector3, color: Color = Color.WHITE, size: float = 0.8) -> void:
+	if flipbooks:
+		flash(pos, size * 1.8, color, "glint", 0.2)
+		return
 	_burst(pos, 1, _spark_mat, size, 0.2, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 		"grow": true, "color": Color(color.r, color.g, color.b, 1.0)})
 	_burst(pos, 1, _impact_mat, size * 0.6, 0.12, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
@@ -1704,6 +1965,60 @@ func water_tentacles(pos: Vector3, height: float = 3.0, color: Color = Color(0.3
 	tw.tween_callback(holder.queue_free)
 	spray(pos + Vector3.UP * 0.2, Vector3.UP, 18, color.lerp(Color.WHITE, 0.6), 7.0)
 	ring(pos, Vector3.UP, 2.4, color.lerp(Color.WHITE, 0.4), 0.4)
+
+
+## A ribbon of water swept round an arc (the cutlass's water slashes): centred on `center`
+## in the plane of `u` (where it starts) and `v` (the way it sweeps), `sweep` radians round,
+## drawn on over `draw` s, then breaking up into droplets by `life`.
+func water_arc(center: Vector3, u: Vector3, v: Vector3, radius: float = 1.5, sweep: float = PI, width: float = 0.5,
+		draw: float = 0.1, life: float = 0.6, color: Color = Color(0.3, 0.72, 1.0), seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(center) > BURST_RANGE:
+		return
+	var r := WaterRibbon.new()
+	r.center = center
+	r.u = u.normalized()
+	r.v = v.normalized()
+	r.radius = radius
+	r.sweep = sweep
+	r.width = width
+	r.draw = draw
+	r.life = life
+	r.color = color
+	r.seed_v = seed_v
+	_scene_root().add_child(r)
+
+
+## A run of water lying along the ground from `from` to `to` (the path of a dash).
+func water_wake(from: Vector3, to: Vector3, width: float = 0.6, life: float = 0.7, color: Color = Color(0.3, 0.72, 1.0), seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if (to - from).length() < 0.3 or cam and cam.global_position.distance_to(from) > BURST_RANGE:
+		return
+	var r := WaterRibbon.new()
+	r.line = true
+	r.center = from + Vector3(0, 0.06, 0)
+	r.to = to + Vector3(0, 0.06, 0)
+	r.width = width
+	r.draw = 0.07
+	r.life = life
+	r.color = color
+	r.seed_v = seed_v
+	_scene_root().add_child(r)
+
+
+## One of the cutlass's drawn-water sheets (gen_water_fx.py: water_slash, water_swirl,
+## water_curl) played once at `pos`, rolled up to `spin` degrees either way. Unlit: the
+## awakened sea keeps its colour at night.
+func water_burst(pos: Vector3, sheet: String, size: float = 2.0, life: float = 0.5, spin: float = 30.0) -> void:
+	flipbook(pos, sheet, 1, size, life, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+		"damping": 0.0, "spin": spin, "fade": 0.9, "lit": false})
+
+
+## Droplets of water thrown along `dir` that fall back (spray without its mist).
+func droplets(pos: Vector3, dir: Vector3, amount: int = 6, color: Color = Color(0.85, 0.95, 1.0), speed: float = 4.0) -> void:
+	_burst(pos, amount, _dust_mat, 0.16, 0.6, {"radius": 0.1, "direction": dir.normalized(), "spread": 35.0,
+		"vel_min": speed * 0.5, "vel_max": speed, "gravity": Vector3(0, -12.0, 0), "damping": 0.8, "grow": false,
+		"hold": true, "color": Color(color.r, color.g, color.b, 0.95)})
 
 
 ## A blow landing with the weapon's element awakened (its tree's second mastery

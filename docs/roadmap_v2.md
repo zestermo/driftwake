@@ -7,7 +7,8 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 ## 1. The First Sea's islands (the building blocks)
 - **Theme plumbing first:** island themes register from their own files (style table, terrain shaping, vegetation
   and creature pools, music, weather, chain weights), so themes can be built in parallel. The jungle moves onto it
-  unchanged (fidelity / islanddump checks). This is step 2 of docs/dev_process_plan.md.
+  unchanged (fidelity / islanddump checks). This is step 2 of docs/dev_process_plan.md. **Done 2026-10-15**
+  (`scripts/island/themes/`: ThemeDef, IslandThemes, JungleTheme; the recipe is the islands skill's "Adding a theme").
 - **Four island types:** jungle (done), snow (docs/snow_island_plan.md), desert (docs/desert_island_plan.md), and a
   temperate forest (to plan).
 - **Two cities** for variety, each its own kind of place to arrive at: a **royal capital / grand port** (palace, big

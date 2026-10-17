@@ -4,7 +4,7 @@ extends SceneTree
 ## game time, so hit-stop and slow motion show as held frames).
 ## Args: <out_prefix> <skill_id> [style: sword|katana|axe|dual_sword|sword_axe|sword_pistol|pistol|fist|
 ##       dagger|dual_dagger|sword_dagger]
-##       [views: game,side,front3,top] [frames=8] [span s=1.2] [start s=0.0]
+##       [views: game,side,front3,top,close] [frames=8] [span s=1.2] [start s=0.0]
 ## skill_id may also be "heavy" (the right-click), "combo" (the light combo, clicked
 ## through every 0.2 s), "air" (the jump attack from 2.5 m up) or "riposte_counter".
 ## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night; AB_TIER=0/1/2
@@ -258,6 +258,9 @@ func _aim() -> void:
 				cam.look_at_from_position(c + f * 7.5 + r * 3.5 + Vector3.UP * 1.0, c + f * 1.5, Vector3.UP)
 			"top":
 				cam.look_at_from_position(c + f * 2.5 + Vector3.UP * 11.0 + r * 0.01, c + f * 2.5, Vector3.FORWARD)
+			"close":
+				# the captain up close from the front right (the blade, the hands)
+				cam.look_at_from_position(c + r * 1.8 + f * 1.6 + Vector3.UP * 0.2, c + f * 0.4, Vector3.UP)
 
 
 func _grab() -> void:

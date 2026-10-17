@@ -125,6 +125,9 @@ func _setup(island) -> void:
 			"great_tree":
 				var dk: Array = load("res://scripts/island/kit/kit_landmarks.gd").deck_heights(pl)
 				shots.append(["great_tree_deck", "great_tree, on its middle deck", Vector3(at.x + d.x * 4.3, y0 + float(dk[1]) + 1.7, at.y + d.y * 4.3), Vector3(at.x + d.x * 18.0, y0 + float(dk[1]) - 2.0, at.y + d.y * 18.0), 0.0])
+			"tomb":
+				shots.append(["tomb_front", "tomb, its carved front", Vector3(at.x + d.x * 16.0, y0 + 3.0, at.y + d.y * 16.0), Vector3(at.x, y0 + 5.5, at.y), 0.0])
+				shots.append(["tomb_hall", "tomb, inside the hall", Vector3(at.x - d.x * 1.0, y0 + 2.4, at.y - d.y * 1.0), Vector3(at.x - d.x * 13.0, y0 + 1.2, at.y - d.y * 13.0), 0.0])
 			"waterfall":
 				shots.append(["waterfall_pool", "waterfall, from the pool's edge", Vector3(at.x + d.x * 7.5, y0 + 1.2, at.y + d.y * 7.5), Vector3(at.x - d.x * 6.0, y0 + 5.0, at.y - d.y * 6.0), 0.0])
 			"wreck":

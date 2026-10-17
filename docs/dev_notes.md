@@ -1895,7 +1895,8 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   puff so it billows instead of flickering; palette-stepped colour, alpha on 4 levels with a Bayer dither): `smoke`
   (grows, then thins along the noise) and `explosion` (a star flash, a fireball cooling from the rim in with hot
   pockets inside the soot, embers thrown out, then rising smoke). Imports: mipmaps on, compress_to 0.
-- The pilot swaps two effects, all behind `FX.flipbook_pilot` (true; false = exactly the old calls):
+- The pilot swaps two effects, all behind `FX.flipbook_pilot` (true; false = exactly the old calls; renamed
+  `FX.flipbooks` with the library, below):
   the ship's cannon (`FX.cannon_fire` from ShipCannon._shoot, `cannon_hit` / `cannon_splash` from Cannonball: a
   fireball and a bank of smoke at the muzzle, a bigger fireball + smoke + embers on a hull, a plume of white water on
   the sea) and a heavy blow's dust (`FX.heavy_dust` from HeavyAttackState's impact and DownedState's landing thud,
@@ -2125,3 +2126,728 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   the leg cushion per chain, and a pass over BodyBuilder's `_sim(...)` callers to give each a mode.
 - **Tests:** t/cloth/cape_modes (every mode x look builds and steps to finite bones by hand and on the captain's
   walk/turn/stop/jump; A0 thin equals today's numbers; B and C never in front of the back's plane).
+## 2026-10-15: desert and snow music, beds and footsteps (assets only)
+- **What:** the audio for the desert and snow island themes (docs/desert_island_plan.md, docs/snow_island_plan.md):
+  eight music tracks, four ambience/weather beds, snow and ice footsteps. No .gd changed: nothing plays them yet; the
+  theme agents register them (block below).
+- **gen_psx_music.py:** new voices `ney` (breathy end-blown flute), `mizmar` (nasal double reed), `oud` (two detuned
+  KS courses), `dum`/`tek` (darbuka low and rim strokes), `zill` (finger cymbals), `sleigh` (sleigh bells); a `hijaz`
+  mode in `scale()`; `drone_layer(hump, tilt)` and a `drone` option in `build()` (a seamless drone bus under a track;
+  the desert's is G2+D3, darker than the jam's gurdy). Tracks `track_desert(night)`, `track_desert_town(night)`,
+  `track_snow(night)`, `track_snow_town(night)`, in TRACKS as desert, desert_night, desert_town, desert_town_night,
+  snow, snow_night, snow_town, snow_town_night (`py tools/texture_gen/gen_psx_music.py desert desert_night ...`).
+  Each quotes THEME_A once, rewritten in its mode (DES_THEME, DT_THEME in Hijaz; SNOW_THEME re-barred for 3/4;
+  SNT_THEME in Bb). Night = the same Song (tempo, bars, chords, melodies), arranged sparser.
+  | track | bars | key, metre, tempo | length | form | LU / peak |
+  |---|---|---|---|---|---|
+  | desert | 48 | G Hijaz over a G-D drone / C minor, 4/4 72 | 160.0 s | intro ney call - A caravan tune (ney, oud answers) - A' mizmar - B dunes on strings (C minor) - T theme on oud - A'' mizmar + oud, zills - turn; darbuka maqsum | -18.0 / -2.6 dBFS |
+  | desert_night | 48 | same | 160.0 s | same form: drone and strings carry it, lone ney, slow oud, celesta, one dum a bar | -18.0 / -3.7 |
+  | desert_town | 64 | C Hijaz / F minor, 4/4 112 | 137.1 s | intro oud riff - A market dance (mizmar) - A' ney - B royal city: strings + brass fanfare - T theme (oud) - C quick dance (mizmar+oud, zills) - A'' - B' fanfare tutti - turn | -18.0 / -2.2 |
+  | desert_town_night | 64 | same | 137.1 s | same form: oud picking, strings, ney, horns where the brass was, celesta | -18.0 / -2.5 |
+  | snow | 56 | Eb major / C minor, 3/4 66 | 152.7 s | intro celesta call, choir, timpani roll - A glockenspiel tune - A' strings - B pines on a far horn (C minor) - T theme in 3/4 (strings, horn, choir) - A'' - B' - turn | -18.0 / -2.2 |
+  | snow_night | 56 | same | 152.7 s | same form, a hush: celesta alone on the tune, soft strings and choir, far horn, dark harp, no drums | -18.0 / -2.4 |
+  | snow_town | 64 | Bb major / G minor, 4/4 104 | 147.7 s | intro accordion vamp, bodhran, sleigh bells - A fiddle reel - A' accordion - B fireside song (concertina, G minor) - T theme warm (accordion, glockenspiel) - C skipping tune - A'' - B' tutti - turn | -18.0 / -3.0 |
+  | snow_town_night | 64 | same | 147.7 s | same form: the inn by the fire, guitar picking, soft concertina, quiet fiddle, horn on the theme, bodhran on one | -18.0 / -3.0 |
+  Today's tracks (for the keys): title D major 96, sea E minor 6/8, island D dorian 100, village A dorian 88. The
+  eight files are 6.0 MB (Vorbis q3 mono, 675-805 KB each).
+- **gen_psx_audio.py:** `desert_loop` (47 s: dry wind in long gusts, mostly under 1 kHz, sand hiss off the crests on
+  the strong ones, 4 insect rasps, 2 far vulture cries), `snow_loop` (50 s: cold wind whistling on its gusts, pine
+  hush, 3 ice groans, 3 snow slumps off branches, one far wolf howl), `sandstorm_loop` (41 s: a roar that never lets
+  up, thick breath, sand hiss, grit rattle, surging), `blizzard_loop` (43 s: hard wind whistling on three edges,
+  driving snow hiss, 5 howling sweeps). All built circularly (`_cband`, `_cenv`, `_place` wrapping), levelled by
+  `_write_loop` to -20 (measure -20.2 like every bed: write_wav scales by 32000). Footsteps: STEP_SURFACES gains
+  `snow` (soft thump, a dense squeaky crunch of grains, packing; take 2 squeaks; -21 LU like sand) and `ice` (a sharp
+  click, a ringing at 1.7-4.9 kHz, a hard thump, shard ticks; -19.5 like stone), 4 takes each: step_snow_1..4,
+  step_ice_1..4 (`gen_psx_audio.py step_snow step_ice`).
+- **Measured** (audio_report.py): beds -20.2 LU, peaks -1.7 to -4.2 dBFS, 42-67% under 200 Hz, 1-3% at 2-5 kHz,
+  repeat scores 0.17-0.24 (jungle 0.18); snow steps -21.2, ice -19.7 to -19.9. **Seams:** each loop decoded and
+  joined to itself: the sample jump at the join is 0.3-2.2x a median step for the music (music_island 0.4x), and the
+  high-band (>4 kHz) peak in 20 ms round the join sits inside the range of the track's own bar lines (2nd-73rd
+  percentile); the beds' join is at the 40th-97th percentile of all windows (blizzard 97%, rain_loop 98%: its join
+  window 0.062 against 0.049-0.075 either side and the same RMS before and after, a loud gust, not a click).
+  audio_report's seam column shows +13 to +29 dB on desert, desert_town and snow_town: the downbeat of bar 1 after the
+  turn's closing rest (music_island shows +18.8), not a jump.
+- **Imports:** loop off at import like every track and bed (Music sets `loop`, Ambience/Weather `LOOP_FORWARD` in code).
+- **Tests:** none apply (no .gd changed).
+- **Registration block** for the desert and snow agents. Where a theme declares these may have moved into the theme
+  file by then: the plumbing agent's recipe in .claude/skills/driftwake-islands/SKILL.md "Adding a theme" wins.
+  ```gdscript
+  # Music.TRACKS (scripts/game/music.gd)
+  "desert": ["res://assets/audio/music_desert.ogg", 48],
+  "desert_night": ["res://assets/audio/music_desert_night.ogg", 48],
+  "desert_town": ["res://assets/audio/music_desert_town.ogg", 64],
+  "desert_town_night": ["res://assets/audio/music_desert_town_night.ogg", 64],
+  "snow": ["res://assets/audio/music_snow.ogg", 56],
+  "snow_night": ["res://assets/audio/music_snow_night.ogg", 56],
+  "snow_town": ["res://assets/audio/music_snow_town.ogg", 64],
+  "snow_town_night": ["res://assets/audio/music_snow_town_night.ogg", 64],
+  # Ambience.LOOPS / TOP_DB (scripts/world/ambience.gd); jungle is -13
+  "desert": "desert_loop", "snow": "snow_loop",
+  "desert": -13.0, "snow": -13.5,
+  # KitStyle (the theme's table)
+  DESERT: "music": "desert", "ambience": "desert"
+  SNOW:   "music": "snow",   "ambience": "snow"
+  ```
+  - The town tracks need one more step: on main Music picks plain "village" for every village
+    (`if in_village(tree, pos): return "village"`), and only the wilds read KitStyle "music". Suggested: a KitStyle
+    key `"music_town"` ("village" in BRINEHOLLOW and JUNGLE, "desert_town" / "snow_town" in the themes) and that line
+    returning the zone's `music_town` on a chain island. `_night` keys are found by name, as today.
+  - Both beds carry their own wind, so the "wind" layer may want a few dB less ashore on these themes; judge in game.
+  - Weather beds: `sandstorm_loop` / `blizzard_loop` are made like `rain_loop` and are about as loud (-20.2 LU);
+    play them where Weather plays rain on desert/snow islands (rain is at -6 dB x rain amount).
+  - Footsteps: add `"step_snow", "step_ice"` to FX.SOUNDS (scripts/game/fx.gd, beside "step_water"; FX finds the
+    _1.._4 takes), then Footsteps returns "snow"/"ice" for the surface (the snow agent's wiring).
+## 2026-10-15: the flipbook effects library (sheets, the FX blocks, one switch)
+- **Why:** the pilot (above) proved sprite-sheet puffs read better than quads at the pixel grid; this makes them the
+  vocabulary every effect is built from. Zach's one note on the pilot, the dust reading pale and grey, is fixed by
+  baking a dark brown palette into its own sheet instead of tinting the grey smoke sheet.
+- **The library** (`tools/texture_gen/gen_flipbooks.py`, `py tools/texture_gen/gen_flipbooks.py [name ...]`): 16 sheets,
+  all 4x4 frames of 64 px (256x256 RGBA8, 5.6 MB in all with mips), deterministic with a seed per sheet so changing one
+  never changes another, the two pilot sheets byte-identical. The puff family (`gen_puff`: a palette, `sy` squash, `rise`
+  / `settle`, `speed` / `grow`, `thin` so it never saturates, `grain` speckle, `sparkle` points, a flat `ground` cut) gives
+  `dust` (dark brown, kicks up fast, sinks late), `dust_low` (a wide rolling cloud cut flat on the ground), `sand`
+  (speckled tan), `snow` (white-blue with sparkles), `mist` (thin, pale), `blood` (dark red, thin, fast). Columns on the
+  same `Puff` with a vertical stretch and the noise scrolled up them: `splash` (white water heaving up, breaking into
+  droplets, falling back on a spreading foam disc), `fire` (a lick that grows, flickers, lifts off and burns out from the
+  bottom), `wisp` (thin tall chimney smoke widening at the top). Hot: `fireball` (blooms, burns from the rim in, no
+  soot, embers), `muzzle` (a star flare with a hot heart, then a ring of powder puffs). Light, grey-white so the burst's
+  colour tints them: `sparks`, `glint` (a four-point star, halo, a ring racing out), `magic` (a soft burst thinning to a
+  ring, motes thrown out). Preview: `tools/dev/out/flipbook/sheets.png` (labelled, 2x). Imports: mipmaps on, lossless,
+  detect_3d compress_to 0 (copied; Godot adds the uid on `--import`).
+- **FX:** `FX.flipbooks` (default true; false = the geometry effects from before, to compare or to revert in one line;
+  was `flipbook_pilot`), `FLIP_SHEETS`, `FLIP_ADD` (the light sheets: additive materials), `FLIP_LIT` (matter dimmed by
+  `Weather.night`, the default for `flipbook`'s "lit"). One shared material per sheet (`_flip_mat`), NEAREST_WITH_MIPMAPS.
+  The blocks, one burst (one node, one draw) each, all sendable through Net.fx: `puff(pos, sheet, amount, size, life,
+  color, lift, dir)`, `puff_ring(pos, sheet, count, radius, size, life, color, speed)` (a ring racing out along the
+  ground), `plume(pos, dir, sheet, count, size, life, color, speed, spread)` (pushed along a direction, growing),
+  `flash(pos, size, color, sheet, life)` (a glint star or a muzzle flare), `blast(pos, normal, size, hot, smoke_col,
+  speed)` (flare + fireball if hot + smoke plume: three bursts; a muzzle is size 1 at speed 6, a ball on a hull size 2 at
+  speed 2), `flip_emitter(parent, sheet, amount, size, life, cfg)` (continuous, each particle plays the sheet once;
+  visibility range 140) and `lick(parent, radius, amount, size, life, world)` (fire licks for good). Lit emitters are
+  re-dimmed by one 2 s Timer on FX (`_dim_emitters`, `CPUParticles3D.color`), not a process on each.
+- **On the blocks now:** `cannon_fire` = sparks + `blast(dir, 1, cold)`; `cannon_hit` = `blast(normal, 2, hot, dark
+  smoke, slow)` + embers (the old `impact` flash is the flare now); `cannon_splash` = splash + a `splash`-sheet plume;
+  `heavy_dust` = half the dust ring + a `puff_ring` of the dust sheet. Particles before -> after (bursts): heavy dust
+  12 -> 10 (1 -> 2), cannon fire 34 -> 21 (3 -> 3), hull hit 39 -> 20 (5 -> 5), sea hit 16 -> 13 (2 -> 2).
+- **Tests:** `t/fx/sheets` (every sheet exists with its import, 4x4 of 64 px, plays, four dithered alpha levels, one
+  shared material each, additive for FLIP_ADD), `t/fx/blocks` (each block one burst that frees itself, blast three,
+  the lick keeps going, lit dims 1.0 -> 0.35 at night and emitters follow the night, light doesn't dim, the switch off
+  gives the old bursts and on costs no more particles), `t/fx/flipbook` on the new names. Renders: `flipshot`
+  (compare_heavy / compare_cannon, and `_h21`): the slam's dust is brown now, the muzzle keeps the pilot's look with a
+  star flare, the hull hit blooms big and dark with a fireball frame, the sea hit shows a column with droplets.
+- **Gotchas:** flipshot's PERF lines count every burst in the world during the window (harbour life adds ~10), so the
+  counts above are by code (and asserted in t/fx/blocks). A sheet's "ground" (splash's foam disc, dust_low's flat
+  bottom) sits below the quad's centre, so spawn those puffs ~0.6 x half-size above the surface and give them little
+  velocity: the sheet does the rising. `lobes()` push past the frame edge at high `push`, which read as a cloud
+  vanishing; keep `push` under ~1.3 r.
+## 2026-10-15: theme plumbing (island themes register from their own files)
+- **Why:** a theme was lines keyed `"jungle"` in nine hubs (IslandTheme.DEFS, KitStyle.JUNGLE/STYLES, LifePools.POOLS,
+  BeastPool's POOLS/MINIS/ROAMERS/NAMES/LOOKS/SCRIPTS/MINI_SITES/name lists, Chain.THEMES/FIRST_SEA_THEMES,
+  FaunaSpawner.ROSTER/make, ChainMarks.THEME_COLORS/icon, SkyBirds' parrot rule, Ambience/Music keys), so the desert
+  and snow agents would have edited every hub at once (docs/dev_process_plan.md "What went wrong"). Now **a theme is
+  new files**: `scripts/island/themes/<theme>_theme.gd` (extends `ThemeDef`) plus its line in `IslandThemes.SCRIPTS`.
+  Step 2 of the dev process plan, narrowed to themes (the IslandFeatures step registry and typed contracts are not in it).
+- **Registry** (`scripts/island/themes/`): `ThemeDef` (RefCounted; the contract as members: name, display, blurb,
+  island_names, weight, color, glyph, flocks, land, style, props, life, bosses, minis, roamers, beasts, fauna,
+  creatures, and `meshes()`; `CONTRACT` lists them, `missing()` says what's unset or inconsistent - a boss without
+  looks, a mini without a site, a roster kind without a creature script). `IslandThemes` (a const list of theme
+  script paths in declared order, never a folder listing: the order is the chain's; `of(name)` / `all()` / `has()`
+  over cached instances; `of` is not `get`, which would override Object.get). Every theme is loaded and checked
+  together on the first call, on the main thread (Chain._build, IslandTheme.meshes come before any worker), and a
+  theme with a gap is refused with push_error + assert. `of("nope")` pushes an error and returns null.
+  `JungleTheme` (`jungle_theme.gd`): today's jungle, every value moved unchanged; its text in `jungle_life.gd`
+  (`TEXT`, plus `elder_about`: the two lines IslandVillage's elder had hard-coded).
+- **Hubs on it** (their public API kept): `IslandTheme.has/def/meshes` (meshes cached per theme as before, made on
+  the main thread before prepare); `KitStyle.of` (BRINEHOLLOW merged with the theme's `style`; `styles()` for every
+  style by name; `BASE_PROPS`; `prop` makes the base models itself and asks the themes' `props` Callables for the
+  rest, first declaring theme wins, so the registry test checks no two themes share a model name); `LifePools.of`;
+  `BeastPool.info(theme, kind)` (script, names, looks, site, stock) with `assign/pois/mini_name/roamer_name/
+  stock_looks` reading it (the never-used "warlord" mini and its `s / 7` naming are gone; `mini_name` is
+  `names[abs(seed) % n]`, `roamer_name` `names[abs(seed / 13) % n]` as the boar's and behemoth's were); BeastArena
+  and BeastDens load scripts through `info`. `Chain._pick_theme` is a weighted pick (`ThemeDef.weight`, jungle 1.0)
+  over `IslandThemes.all()` in declared order, the avoided themes left out unless that empties the pool: exactly one
+  `rng.randi()` whatever the themes, so with the jungle alone the stream is today's. `Chain.THEMES` and
+  `FIRST_SEA_THEMES` are gone (snow/desert/forest's names and blurbs with them: their agents bring their own);
+  `Chain.describe`, GenIsland's banner, IslandLife's rumours, the elder's "beyond" and Gus's rumour read
+  `IslandThemes.of(theme).display/blurb`.
+- **Proof** (`tools/dev/islanddump.gd`, which now takes a chain seed: the whole chain's table - name, theme, place,
+  seed, level, beasts, set piece, landmarks - then that seed's first island built node by node): before and after on
+  the smoketest's seeds 1 (8721 nodes), 12 (7613), 36 (7048) and 9 (8235): byte-identical; two runs of seed 1 on
+  the same code also identical (no noise in GenIsland). Brinehollow (2486 nodes): identical but for the three
+  training dummies' sack heads (`Props.straw_dummy_mesh`, unseeded, as ever).
+- **Test:** `t/island/theme_registry` (the first `t/island` atomic test, on the light stage): every registered theme
+  fills every `CONTRACT` member, its beast and creature scripts exist, every style's prop slots build with a Flame on
+  the lamp, no two themes make a model of the same name; the jungle's land def, style (over Brinehollow's), beasts,
+  roster, text and chain words spot-checked; `_pick_theme` advances the rng by one draw; a chain is all jungle with
+  jungle names; a blank ThemeDef is refused on every member (props may be empty); `of("nope")` logs its error and
+  returns null. Covering suites: isletest (now over `KitStyle.styles()`), chaintest (themes ready =
+  `IslandThemes.all().size()`), lifetest, bosstest, smoketest, villagetest, harbourtest and the rest `-Changed` picks.
+- **Gotchas:** a theme's `props` lambdas and `stock` Callable run on the main thread (props) or the prepare worker
+  (stock: JungleApe.ape_look, as before) - keep them node-free. `KitStyle.of` is called from Weather, Music and
+  Ambience twice a second: it merges on every call as before (no new cost). `IslandThemes` must not be a directory
+  listing: declared order feeds the chain's rng. Don't name a static `get` on a RefCounted (native override).
+- **Piece 2** (the rest of the hubs): `FaunaSpawner` keeps the island's `theme` and `roster` (`ThemeDef.fauna`):
+  `roll(theme, seed)` and `make(theme, kind)` (the kind's script from `ThemeDef.creatures`) - same sorted kind order,
+  same draws, so every island's wildlife is as before; the cave/dungeon slots read a new contract member,
+  `cave_fauna` ({"ceiling": "bat", "floor": ["mite", "burrower", "snake"]} for the jungle, was hard-coded).
+  The four `"jungle"` KitContexts (IslandVillage.build, VillageLayouts.plan, KitDungeons._lights, KitTemple._lights)
+  take the island's theme. `ChainMarks.theme_color/icon` read `ThemeDef.color/glyph` (the snow/desert/forest colours
+  and glyphs went: those themes bring their own). `SkyBirds`' parrots: `ThemeDef.flocks` parties (jungle 2,
+  Brinehollow 1 as before, 0 = none). **Music and Ambience stay as they are**: a theme's style names a track
+  (`Music.TRACKS`) and a bed (`Ambience.LOOPS` + `TOP_DB`), and a theme that needs new ones adds its line to those
+  tables (the one hub edit besides the registry line; it keeps both autoloads simple, and the registry test checks
+  the names exist). Textures: `gen_psx_textures.py` was already importable (main() only under `__main__`); its
+  docstring says how a `gen_<theme>_textures.py` imports the helpers, and `save` makes the out folder. No PNG
+  regenerated. faunatest and siteshot call the new signatures with "jungle"/the node's theme.
+  Proof: islanddump on seeds 1, 12, 36, 9 after piece 2 (on the main with the flipbook library in) byte-identical to
+  the dumps taken before piece 1 (wildlife F-nodes, cave and temple lights, the village included); Brinehollow the
+  same but for the three dummies' heads. New registry-test checks: ambience/music names exist, the jungle's
+  cave_fauna, FaunaSpawner rolls and makes from the theme, ChainMarks reads its colour.
+- **Open:** a theme brought up before piece 2 lands needs `cave_fauna` (the registry refuses it otherwise, naming
+  the member). lifetest's "a villager walks its route" (1.5 < d < 4.0 m over 2 process-seconds) failed once at
+  exactly 4.0 m with five slots busy and passed alone: a load flake in a process-seconds wait, not this change.
+
+## 2026-10-15: theme land hooks (island size, the theme's own terrain), the village's town track
+- **Why:** the desert is the largest island type and both new themes shape their own land (dunes, ridges, wadis,
+  plateaus; sharp peaks, frozen rivers), so GenIsland's size and height function had to ask the theme. Desert piece 1,
+  generic so the snow theme uses the same hooks.
+- **Size:** `ThemeDef.radius` ([lo, hi] m, a contract member; jungle [300, 450]) replaces `GenIsland.RADIUS`: the same
+  first `_rng` draw in prepare. **Chain:** legs, forks and APART were sized for 450 m islands, so `Chain.BASE_R` (450)
+  and `_make_room` (no rng): a fork's two islands go out sideways by each one's excess over BASE_R (its theme's top
+  end), then the layer is pushed on along the line until each island is APART + both excesses from the layer
+  before's (the line's point moves with it, so later layers follow). A chain of 450 m themes is untouched. What
+  else assumes the size, checked: WorldGenerator streams by the chain (next islands), not distance; Redtide's
+  deep-water check, EnemyShip.no_go, the chart, KitStyle.around, FaunaSpawner, KitDungeons/KitTemple/KitLandmarks
+  spots all read `isl.radius`. The cost grows with area: the terrain grid (CELL 3 m: res 354 at 450 m, ~500 at
+  650 m, 2x the vertices) and the vegetation scatter's 5 m and 2.5 m grids (every point tests ground and reserves,
+  plants or not), so a 1.5x island prepares ~2x as long on its worker; the finish steps are a frame each.
+- **Terrain:** `ThemeDef.plan_land(isl, rng) -> Dictionary` (the island's `land_plan`; called in prepare after
+  `_setup_shape`, before the sites, on its own stream `seed + 977` so the base land's draws never move) and
+  `ThemeDef.shape(isl, p, h) -> float` (called at the end of `_height_natural` only when the plan isn't empty: the
+  jungle pays nothing). Flats (sites, the dock's 2 m, the berth) are laid over the shaped height in `_height_fn`,
+  and the sites' kept land holds: inside each `_keep` disc the shape may raise the ground but a cut is blended back
+  to the base land, so a wadi can't drown a site. The site's flat level is the shaped ground there. `isl` is untyped
+  in ThemeDef's signatures (naming GenIsland there pulls Ocean into anything that loads a theme early).
+- **Music:** KitStyle key `music_town` (BRINEHOLLOW "village"); Music plays the zone's style's `music_town` in a
+  village (Brinehollow and jungle villages unchanged), night variants by name as before. Swimming keeps whatever
+  calm track was on (was: only sea/island/village kept, so a theme's track dropped to "island").
+- **Proof:** islanddump before/after: chain seeds 4242 (5559 nodes) and 77 (4459): byte-identical; Brinehollow the
+  same but for the three dummies' heads. **Test:** `t/island/theme_land`: the base hooks are identity, the jungle has
+  no plan; a test theme (the jungle's files sinking the inland 6 m, loaded from source so the test compiles before
+  the autoloads) keeps the jungle island's radius, capes and hills, sinks the land away from the sites, and every
+  flat, the sites' kept land and the dock's 2 m hold. isletest's size check reads the theme's range.
+- **More land hooks** (same rule: called only with a land plan, so the jungle and snow pay nothing):
+  `village_at(isl, p)` (the village moved once GenIsland has placed it: the desert's capital up on its plateau),
+  `cover(isl, p, c)` (how overgrown, before the sites are cleared), `growth(isl, p) -> Vector2(plants, rocks)`
+  (multipliers on every scatter chance: bare dunes, stony ridges; the 5 m and 2.5 m grids), `paint(isl, p, h, splat)`
+  (the terrain's dirt/rock/sand after the base's). KitStyle key `arena` ("canopy" in BRINEHOLLOW; "open" = the
+  boss's floor kept clear with no ring of giants and no roof: `GenIsland.open_arena`, `canopy_arenas` entries carry
+  a 4th "canopy" bool, `arena_ring` is empty for an open one). Proof: islanddump on main vs the branch, seeds 4242 and
+  12 (jungle) and 77 (snow): byte-identical. theme_land's test theme also moves its village, grows nothing, paints
+  sand everywhere and has an open arena: checked.
+
+## 2026-10-16: the desert theme, foundations (docs/desert_island_plan.md phase 1)
+- **Registered** after snow (`IslandThemes.SCRIPTS`: jungle, snow, desert; weight 1.0), so a third of the chain's
+  islands roll desert and the fixed seeds roll differently (bosstest moved to 4246, a chain that opens on a jungle;
+  musictest reads a chain island's town and wild tracks from its style). Chains that open on a desert: 2, 5, 7, 8.
+- **Files:** `scripts/island/themes/desert_theme.gd` (contract, style, land, the land hooks), `desert_life.gd` (names,
+  roles - water-seller, caravan guide, potter, spice merchant, storyteller, lookout, healer - barks, rumours, quests in
+  a desert voice), `scripts/props/desert_plants.gd` (DesertPlants), `desert_props.gd` (DesertProps: urn, brass
+  lantern post, waymarker), `tools/texture_gen/gen_desert_textures.py` (desert_sand with wind ripples, desert_beach,
+  desert_hardpan, desert_rock in ochre/rust bands, adobe, sandstone, glaze, four awning stripes, rug_kilim, cactus,
+  dry_grass, reeds). Music/ambience lines in Music.TRACKS and Ambience.LOOPS/TOP_DB (the music agent's files).
+- **Size:** 480-640 m (jungle 300-450); Chain pushes forks and layers apart by the excess (BASE_R). Prepare on its
+  worker ~10-18 s (land 2.3-3.8 s, arrays 1.6-2.1, undergrowth 1.8-3.3, bodies ~2; a jungle 418 m is ~15 s);
+  on the main thread ~2.4-2.7 s over ~118 frames.
+- **Land** (`plan_land` on the island's own stream, `shape` per height point; features as data in `land_plan`):
+  a plateau (65%; round the middle, its far side under the summit so the town keeps 45 m off the summit's site;
+  rim steep but for ramps toward every site off it) the capital moves up onto (`village_at`, 55%); mesas (flat tops,
+  steep sides, dropped where a site or a way would be); rock ridges (sharp crests, tapering ends, parting where a way
+  crosses); transverse dune fields (stoss slope to a sharp crest, a soft-footed slip face, crests meandering on noise,
+  off the sites and the wadi beds); wadis from the plateau's rim or the highlands meandering out past the coast;
+  canyons (steep, forded where a way crosses); salt pans levelled low; oasis hollows. "The ways" are straight lines
+  dock-village and village-site, worked out again whenever GenIsland has placed more sites. Inland never drops under
+  1.2 m (GenIsland finds the dock by walking out to the first ground under 0.4 m). Six variants (`forests`): open
+  desert, sand sea, badlands, high plateau, salt pans, oasis coast.
+- **Life on the land:** a zone grid (8 m, built on first use after the sites: dunes, rock, wadi beds, oases) drives
+  `cover` (oases and wadi beds green, the rest a third of the base's), `growth` (bare dunes and pans, stony ridges and
+  mesas, rich oases and wadis) and `paint` (hardpan on pans and wadi beds, rock on ridges and mesas; the plateau's rim
+  is the shader's slope rock). Plants: date palms (clumps, a skirt of dead fronds, dates), acacias and dead trees,
+  column and barrel cacti and prickly pear, scrub, saltbush, tumbleweed, dry grass, reeds at the water and in the
+  oases; sandstone boulders. The boss's ground is "open" (no canopy ring). Interim until the later phases: the
+  jungle's beasts and its wildlife subset (crab, snake, burrower, mite, bat), the jungle's village builders with
+  desert materials.
+- **Perf fixes found on the way:** `DrawLOD._fold` skips one-surface meshes (an island's terrain was copied for
+  nothing: ~1 s on the main thread for a desert's); `_fit` stops sizing a MultiMesh once it is too big ever to get a
+  range (exactly equivalent). genshot skips its jungle shot on an island with no forest.
+- **Test:** `t/island/desert_land` (seeds 2, 7, 1999). Renders: `genshot.gd tools/dev/out/desert/g2 2` (and g7, g5).
+
+## 2026-10-16: the desert theme, towns and wildlife (plan phases 2 and 3)
+- **Towns** (`scripts/props/desert_town.gd`, DesertTown, through snow's `village_models`): flat-roofed houses in
+  pastel washes (lilac, cream, salmon, mint, blue-grey, white, ochre: vertex colour over one adobe material, so a
+  street is one surface) on sandstone footings 2.2 m deep, parapets (crenels now and then), arched doorways framed in
+  sandstone, small deep windows (some lit), roof beams through the front, a dome (round or onion; gold, green, blue,
+  rose, turquoise glaze) or a canvas roof shade, a striped awning or an outside stair to the roof; two-storey ones
+  set back on the roof terrace. Rooms you walk into (home/elder, trader, cookhouse) are the same shell hollow, an
+  arched wall (`add_extrude` of the wall with the arch notched out), the kit's furnishing (`KitHouses._home_inside`
+  etc.) and its markers; the caravanserai (the inn: an arcade of three arches, a gallery, a dome); the potter's
+  workshop (two arches, a kiln, a wheel; Worker, Bench); the domed shrine (Keeper, Pray); granaries (beehive domes);
+  ruins half buried in sand (Cache); a minaret (for set pieces); a brazier (the desert's torch, "Flame") and a well.
+  Paving `desert_flags` (new texture); adobe texture calmed.
+- **Generic hooks** (KitStyle, BRINEHOLLOW keeps today's): `item_models` (a theme's models for a village's dressing
+  items by kind, KitVillage.build_items: a lit one's light at its Flame) and `village_layouts` (the layout weights;
+  BRINEHOLLOW = VillageLayouts.POOL, so jungle and snow roll as before; every key must stay - isletest's style check
+  - so the desert sets post and stilts to 0: towns 4, hamlets 2, buried ruins 2).
+- **Wildlife** (`scripts/enemies/fauna/`): Scorpion (claws wide and the tail quivering high is the tell; a pinch or
+  the sting, which poisons; plates turn blows from the front; one pack lead in eight is an emperor), MonitorLizard
+  (basks; close in and it hisses, then a lunging bite or a tail lash that knocks you down; runs when badly hurt),
+  DesertFox (fennec: sits up to listen, bolts zigzagging when a captain comes near; snaps once if cornered). The
+  roster: scorpion, lizard, fox, crab (shore), snake, burrower; bats in caves; cave floors scorpion/burrower/snake.
+  FaunaSpawner: an island with fewer than 40 forest-floor points (no forest to speak of) samples its floor out in
+  the open (240 tries, only then: a jungle's draws don't move). Vultures: SkyBirds' dark flocks already circle every
+  island; a desert look for them is left for later.
+- **Proof:** islanddump Brinehollow (dummies only) and 4246 (jungle) identical to main. **Tests:**
+  `t/island/desert_town` (every village kind builds with a collider, a footing, its markers, an open doorway; same
+  seed same house; brazier Flame, well collider; no stilt village), `t/island/desert_fauna` (scorpion strikes and
+  stings with poison, foxes bolt, a lizard close by comes on, one far off basks; roster scripts). Renders:
+  `tools/dev/out/desert/v7b_*` (the capital on its plateau), `v2_*` (buried ruins), `models/desert_town_*`,
+  `models/desert_fauna*`.
+## 2026-10-15: flipbook rollout across FX, and brief impact lights
+- **Rollout** (`scripts/game/fx.gd`, all behind `FX.flipbooks`; same names and arguments, so every Net.fx caller is
+  unchanged): `dust` (a puff or two of the brown dust sheet), `dust_ring` (a `puff_ring` of `dust_low`), `heavy_dust`
+  (a dust_low ring + a dust puff; piece 1's half quad ring is gone), `smoke` (smoke puffs; so powder smoke, shadow
+  wisps, burning props' smoke), `blood`'s mist (`blood` sheet along the spray), `splash` (a column of the `splash`
+  sheet; the foam ring stays geometry), `spray`'s mist (`mist`), `flame` (`fire` tongues; so embers' puff, Ember
+  Fruit hits), `fire_ring` (a ring of `fireball`), `fire_pillar` (a `fireball` plume), `flame_emitter` (`lick`: Ember
+  Fruit fire zones, burning statuses, the fireball's trail, burnable props, the fort's braziers), `chimney_smoke`
+  (`wisp` emitter, 6 particles), the flashes of `impact` / `parry_sparks` / `glint` (the `glint` star) and
+  `powder_burst` / `cannon_blast` (the `muzzle` flare), `gather` (glints rushing in), `motes` (the `magic` sheet,
+  tinted by the tree: dual / dual_dagger / dagger elements), `cannon_splash`'s cloud (`mist`). Geometry stays:
+  sparks, streaks, tracers, rings, foam rings, cracks, blade trails, vines, afterimages, punch wind, petals,
+  debris, bleed's droplets and streaks, splats.
+- **Counts per call** (bursts / particles, geometry -> sheets; flipshot's COUNT lines, asserted in t/fx/blocks):
+  dust 1/6 -> 1/2, dust_ring 1/12 -> 1/6, heavy_dust 1/12 -> 2/8, smoke 1/6 -> 1/3, blood 3/35 -> 3/32, splash
+  1/6 -> 1/2, spray 2/16 -> 2/15, flame 1/10 -> 1/3, fire_ring 2/54 -> 2/14, fire_pillar 6/141 -> 6/47,
+  flame_emitter 1/14 -> 1/7, chimney_smoke 1/10 -> 1/6, impact 2/11 -> 2/11, parry_sparks 4/38 -> 4/38, glint
+  2/2 -> 1/1, gather 1/16 -> 1/5, elem_hit dual 1/6 -> 1/2, powder_burst 3/18 -> 3/15, cannon_blast 6/70 -> 6/49,
+  cannon_fire 3/34 -> 3/21, cannon_hit 5/39 -> 5/20, cannon_splash 2/16 -> 2/5. Nothing costs more.
+- **Brief impact lights** (Zach's ask): `FX.flash_light(pos, color, energy, reach, secs)`, a pool of `FLASH_CAP` = 6
+  shadowless OmniLights (children of FX; made on demand, never more; all lit: the weakest is taken over), skipped
+  beyond `FLASH_RANGE` = 90 m of the camera, rise <= 0.04 s then a quad ease-out to 0 over `secs` on a tween (game
+  time: slows with slow motion), hidden after. Calls in the same process frame within 1.5 m merge into one light
+  with the biggest energy/reach/secs (fire_pillar -> fire_ring -> flame is one light). Called inside the effects,
+  so they reach every screen wherever the effect already goes through Net.fx: cannon_fire 5 / 10 m / 0.25 s,
+  cannon_hit 7 / 12 m / 0.4 s, cannon_blast 4 x size / 6 x size m (the tree colour when it burns), powder_burst,
+  blast, muzzle_sparks (every gunshot: 1.2 + 0.08 x sparks, ~4 m, ~0.12 s), flame (1.2 + 1.5 x size), fire_ring
+  5 / 1.8 x radius / 0.45 s, fire_pillar 8 / 2.2 x radius / 0.6 s. Switch `FX.flash_lights` (independent of
+  `flipbooks`). Not on flame emitters (campfires and burning props have their own lights) or plain impacts.
+- **Bench** (Brinehollow, 13:00 clear, other agents' Godots running throughout, so old fx.gd (e2d808c) and new run
+  back to back): ALL frame 10.61 -> 10.81 ms, p95 13.00 -> 13.97, GPU 2.08 -> 2.01, draws 1278 -> 1268; per stop
+  beach 11.09 -> 10.82, plaza 10.67 -> 13.52 (physics script +57% in the same window: load, not FX), market
+  11.84 -> 11.12, quay 10.85 -> 10.34, dock 10.21 -> 9.81, den 10.00 -> 10.24, yard 10.58 -> 11.42, aboard 9.92 ->
+  10.02. A first after-run against the morning's before-run showed GPU +0.77 ms; the back-to-back run puts that on
+  the other processes. No flash lights fire in the bench (no explosions on its route).
+- **Notes:** `kit_landmarks.puffs` reskins the chimney emitter with its own quad and ramp (waterfall mist, steam);
+  it still works, and now dims at night with the other lit emitters. The light merge radius was first scaled
+  with reach: a broadside 3 m apart merged into one light; a fixed 1.5 m catches only nested calls.
+- **Tests:** t/fx/blocks (the cost table above, each swap plays a sheet), t/fx/flash_lights (a hull hit lights one warm
+  shadowless light that flares and dies, fire_pillar is one light, impacts and glints light nothing, a broadside of
+  ten cannons firing and hitting keeps to 6 nodes, nothing at 200 m, the switch, a gunshot's small light).
+  Renders (tools/dev/out/flipbook/): compare_ground / fire / hits / water (+ cannon, heavy), compare_cannon_h21
+  and compare_fire_h21 (the hull and the ground lit at night), abil_axe_heavy / abil_kraken_wake /
+  abil_point_blank (abilityshot at 21:00).
+
+## 2026-10-16: the captain in Blender (BlenderBody, F4 / Ctrl+F4)
+- **What:** a debug round trip for the player model. `BlenderBody.export_captain` (Ctrl+F4 in game, or
+  `tools/dev/blender_export.gd` for the default captain) builds a fresh unposed body of the look, bakes every
+  body mesh (BodyBuilder now tags them `body_part`) into one armature, writes `art/blender/captain_export.glb`
+  and runs Blender headless (`tools/blender/captain_setup.py`) to make `art/blender/captain.blend` with a glTF
+  collection exporter aimed at `assets/models/captain/captain.glb`. An existing captain.blend is never
+  overwritten (a second export makes captain_new.blend). F4 puts that model on the live captain.
+- **The rig:** one bone per joint that carries a mesh (named after the joint: Hips, ForeR, Head...) and one per
+  bone of the skinned parts' skeletons, `<owner>_<bone>` (ArmBody_shoulder_r_4, LowerBody_knee_l_3,
+  HeadChains_chain0_1 for SpringChains). 78 bones on the default captain. Bone rests have their scale stripped
+  (the head's style scale is baked into the vertices) and Blender imports them with bone_heuristic BLENDER so
+  they come back as sent.
+- **In game:** the procedural body keeps animating, ragdolling and simulating hair/cloth with its meshes on
+  `layers = 0`; each frame (after ArmBody/LowerBody, priority 110, only on frames the rig posed) every Blender
+  bone gets `source_now * source_rest^-1 * blender_rest`, the rest coming from a fresh unposed body of the live
+  look built at toggle time, so a bone Blender moved still lines up and a model with other proportions keeps
+  its own. A Blender part shows when the procedural part of the same name would (the fist/mitten swap, a
+  severed arm). Bones or objects added in Blender just hold their rest. Not carried over: hit flashes and
+  Haki tints (per-object material copies), co-op (only your screen), other captains.
+- **Materials:** psx_lit becomes a plain material for Blender (texture, tint, vertex colour, emission) and back
+  to psx_lit at toggle time. What glTF can't hold rides in the name: `~a<affine %>`, `~p<depth pull mm>`, `~nv`
+  (no vertex colour), `~u<n>` only for uniqueness (glTF writers number duplicate names, which garbled a tag).
+  The face decal is baked over the skin colour so it paints like any texture; sRGB-stored vertex colours are
+  decoded to linear for Blender. The glb imports with LODs off and textures embedded uncompressed.
+- **Tests:** t/player/blender_body (on, procedural body hidden, forearm / shoulder helper / knee helper / hair
+  bones within 1 cm of their sources at rest and through a cutlass draw, 13/13 parts mirror visibility, off).
+## 2026-10-16: the snow island theme, piece 1 (foundations, ground, village houses)
+- **What:** the snow theme (docs/snow_island_plan.md) registered after the jungle: `scripts/island/themes/snow_theme.gd`
+  (land, seven forests: pine valley, deep spruce, open snowfield, crystal slopes, frozen shore, heavy firs, cedar
+  ridge; the style; interim beasts and wildlife borrowed from the jungle until the snow's own: stalker / serpent /
+  mantis bosses renamed, alpha boar, behemoth; boar, mite, bat, crab), `snow_life.gd` (36 names, 7 roles: ice-fisher,
+  trapper, doctor, furrier, storyteller, lookout, brewer; barks, rumours, quests), `scripts/props/snow_plants.gd`
+  (SnowPlants: conifers as tiers of drooping boughs, a star of tips each, snow on top from the pine_snow texture's upper
+  half - spruce, fir, great pine, cedar, bough roof as [body, detail, lean]; young pines, saplings, dead trees, bent
+  shore pines, frozen shrubs, junipers, frosted grass, drifts, snow-capped black rocks, ice floes, ice-crystal clusters
+  that glow blue by emission), `scripts/props/snow_props.gd` (SnowProps: iron lamp post, waymark cairn, round house),
+  `tools/texture_gen/gen_snow_textures.py` (snow, snow_packed, ice, black_rock, glacier_rock, snow_beach, shingle_wet,
+  brick_pink, roof_green with snow on every course, pine_snow, ice_block, frost_shrub, frost_grass). Music.TRACKS
+  snow / snow_night / snow_town / snow_town_night and Ambience snow_loop at -13.5 (the theme's hub lines).
+- **Generic hooks added** (small; Brinehollow and the jungle unchanged): KitStyle `ground` (the terrain's layer
+  textures for PSXMat.terrain and the sea cliffs' rock for Coast.build; GenIsland passes its style's), `village_models`
+  (a theme's own prop models for a village's building kinds; IslandVillage places them where the kit's would go,
+  never on a raised layout), `cave_look` (caves' surfaces over KitDungeons.LOOK), `KitStyle.model(name)` (prop()
+  without the slot), IslandVillage's worn earth from the ground's dirt. BeastPool.assign: when every boss of a small
+  pool is avoided (the islands before plus the layer's same-theme islands), only the islands before are kept.
+- **Look:** the snow's round houses: pink brick drum, a tall cone of 4-6 green tiers with snow on each step, a brick
+  finial with a clay cap and chimney smoke, a hooded door at +Z, lit windows, a black-stone footing; the tall kind is two
+  storeys. Mostly overcast, haze 0.4 (the fog's colour is Weather's: still the home colour until the weather pass).
+- **Not yet:** the terrain (peaks, drifts, lakes, river; waits for the desert's land hooks), the snow's own creatures,
+  bosses and set pieces, KitHouses' workshop/storehouse/shrine and the harbour dressing are still jungle-built,
+  landmarks and set pieces are the chain's (totem groves, temples), FaunaAmbient's butterflies and fireflies fly here too,
+  the sea is the tropical one. Clothing has no fur hats or mittens (knit caps, hoods, coifs and leather gloves stand in).
+- **Tests:** `t/island/snow_foundations`; theme_registry's chain check now "every island's theme registered and named
+  from its list". Renders: genshot seed 1 node 1 (Hoarfell Atoll, snow), villageshot seed 1 node 1 town.
+## 2026-10-16: the snow island theme, piece 2 (wildlife and beasts)
+- **Wildlife** (`scripts/enemies/fauna/`, Creature kinds, LOD and sleep by FaunaSpawner as every kind): `wolf.gd`
+  (packs of 3-5 round a bigger lead: the lead howls, the pack circles at a lunge's length, one lunge at a time per
+  pack - `_pack_next`, game time - a beaten wolf limps off; grey, white, dark), `snow_hare.gd` (freezes with ears up,
+  bolts in zigzag bounds), `snow_bear.gd` (a sow and often a cub: rears and roars, lopes in, two swipes, then a
+  rearing slam ring if you're still in front; leaves you be at a distance), `shagback.gd` (huge placid shaggy grazers
+  in herds; hit one and the herd stampedes, a big one shoving through), `walrus.gd` (shore colonies: the bull rears
+  and stabs with its tusks, calves flop away). White coats on a new `fur_white` texture (the grey `fur` read dirty).
+  Snow puffs (FX.puff "snow") on runs, lunges and slams.
+- **FaunaSpawner** (generic): a kind its group logic doesn't know is a pack round a lead when its roster entry has
+  `"pack": [lo, hi]` (and `"young"`: the chance a follower is young); args `pack` (the group), `lead`, `calf`.
+  The jungle's kinds all have their own cases, so their groups and rng are unchanged.
+- **Beasts** (`scripts/enemies/beasts/`, subclasses of the jungle's brains with their own bodies): bosses
+  `snow_leopard.gd` (the stalker in a snow leopard's coat), `great_bear.gd` and `ice_golem.gd` (the alpha boar's
+  charge / swat / stomp at a boss's scale, no overhead bar), plus the jungle's serpent so a branching chain never runs
+  the pool dry; mini `frost_alpha.gd` (a horse-sized wolf at the ruins); roamer `rimeback.gd` (the behemoth as a woolly
+  mammoth with ice on its back). BeastArena: a boss kind it has no banner for takes its theme's `"banner"`, the brush
+  round the floor is the theme's bush and fern meshes (the jungle's are the same four), and the victory line names the
+  theme ("The snow goes quiet.").
+- **Tests:** `t/island/snow_wolves` (light stage: the pack notices at 9 m, circles, lunges one at a time; hares bolt and
+  get away; a far shagback and walrus mind their business; walk into the colony and the bull comes), snow_foundations
+  (every roster kind makes its own creature, the beasts are the snow's); bosstest's "every boss turns up" counts every
+  theme's bosses. lifetest failed once on "a villager walks its route" (4.1 m in 2 s, the check's < 4.0: process
+  seconds under load) and passed on its rerun.
+## 2026-10-16: the snow island theme, piece 3 (terrain, village buildings, ice caves)
+- **Terrain** (`scripts/island/themes/snow_land.gd` on the desert's land hooks; SnowTheme's plan_land / shape / cover /
+  growth / paint / steps call it): the base summit raised into a tall peak (+68-90 m over a 215-255 m radius, concave
+  flanks `PEAK_K` 1.6, a flat 13 m top for the castle or the lookout: summits 100-120 m), 5-8 pointed spire candidates
+  (always under the summit; they give way within 34-72 m of a site and along the village-to-summit line: a pass),
+  gentle wind drifts, 2-3 frozen lake candidates in hollows on the flanks (level from the base plus the peak), a frozen
+  river from the peak's foot to the sea (a 2 m cut). Built as theme steps: the ice (a lit ice sheet 0.6 m over the cut
+  ground, one trimesh collider; none over a cave's ground) and glowing crystal clusters on the high steep ground (one
+  MultiMesh per kind, 700 m). cover/growth keep forest off the ice, thin it high on the peak, keep plants out of a
+  cave's mouth (9 m), triple the rocks on the spires; paint glazes the ground over 70 m with glacier rock. Snow
+  islands are 360-450 m.
+- **Gotchas found:** the base land raises a cliff's whole bearing to its height, which tears the island's middle where
+  bearings meet (8 m in 7 m at the summit): taken back out under the peak (`mid`). A site's levelled ground on a steep
+  flank sits in a cut with a bank too steep to walk; fading the peak round sites made worse banks, so the peak is left
+  alone and the climb test measures past the sites' flats. Caves on steep land: a mouth whose floor stands over the
+  ground in it can't be walked into (dungeontest stuck at point 2): KitDungeons skips such a mouth on islands with a
+  land plan (the jungle unchanged); the old 3.2 m drifts made the ground under tunnels too uneven, now 2.2 m at half the
+  frequency.
+- **Generic hooks:** `ThemeDef.steps(isl)` (GenIsland runs them after the plants' colliders, islands with a land plan
+  only), KitStyle `cave_frost` (KitDungeons: ice icicles and spires for dripstone, crystal clusters on the floors, a
+  waterfall frozen down the end room's wall into an iced pool; no extra rng draws when off, so the jungle's caves are
+  unchanged).
+- **Village buildings** (SnowProps through `village_models`): a log store shed on posts, the sledge-maker's open shed
+  (Worker, Bench), a wayside shrine with a glowing ice-bear (Keeper, Pray); the style's crates and barrels carry snow.
+- **Tests:** `t/island/snow_land` (three chain islands made snow: the summit the highest ground, 100 m+, a flat top;
+  2+ spires rise 30 m; the trail up walkable past the sites' flats; the river from the peak's foot into the sea; level
+  lakes; nothing on the ice; flat village ground; the same seed the same land), snow_foundations (the frozen caves, the
+  buildings' work spots). On main after the desert registered, isletest (Sunscar Atoll, desert: its open arena) and
+  dungeontest (seed 5 is now Qadir Rock, desert: stuck at point 3, with or without the snow's mouth check) fail on desert
+  islands; the terrain piece landed with `-NoTests` for that, reported to the lead.
+## 2026-10-16: the snow island theme, piece 4 (places on the desert's place hooks)
+- **What:** `scripts/island/themes/snow_places.gd` through SnowTheme's place_kind / plan_places / plan_place /
+  place_steps: `snow_ruins` stands in for the chain's totem grove (3-7 towers of stacked ice-stone blocks, barred
+  windows, snow on the ledges, blocks tumbled off), `snow_buried` for the great tree (4-7 stone houses with broken
+  gables sunk 1-2 m in drifts, free-standing arches, a strongbox kept as `snow_buried`), and on 75% of snow islands
+  (their own stream) `snow_castle` round the summit's lookout: seven stretches of crenellated curtain wall at 12.5 m,
+  round towers under three green tiers with snow on each, the gate (piers, lintel, the portcullis drawn up) where the
+  summit trail arrives. Spots from KitWilds._spot kept off the ice. The river's distance is now a 3 m grid baked in
+  the plan (the hooks asked every segment at every point).
+- **Tests:** snow_land checks no jungle totem grove or great tree on a snow island and a castle only on the summit
+  (2 of 3 seeds have one); landmarktest's forced island is now made jungle (its first chain island rolls snow, whose
+  great tree is the buried town); snow_foundations' models from a seeded rng (an unseeded one flaked during the
+  desert's landing). Render: landmarkshot seed 1 node 1 with `LSHOT_MARKS=totem_grove,great_tree`.
+## 2026-10-16: the cutlass's drawn water (Kraken's Wake, the awakened blade)
+- **Why:** Zach's test of Demon Slayer's Water Breathing look in Driftwake (Tanjiro key art as the
+  reference). His notes as it went: animated pixel-art sprites, "not just arcs"; the first sheets "too
+  jagged and solid" -> flowy, ukiyo-e water with bubbles and small swirls along the edges; a swirling
+  water trail round the blade once awakened; the blade coil "too tight and circular" -> oval along
+  the flat, serpentine; the big upright swirl round you at the payoff "a bit too much" (removed). This
+  is the direction for most weapon effects (driftwake-fx "Drawn elements").
+- **Art** (`tools/texture_gen/gen_water_fx.py`, its own generator so the 16-sheet library and
+  t/fx/sheets stay as they were): `flip_water_slash` (a crescent sweeping over and curling in, claws
+  of foam riding its back, pinching into gobs and bubbles), `flip_water_swirl` (two arms spiralling
+  out of a dark eye, spinning then slowing, flung apart), `flip_water_curl` (a wave tongue rising and
+  rolling over, breaking from the tip): 4x4 frames of 128 px, solid alpha, a 7-step navy-to-foam
+  palette. `water_trail.png`: 8 looping frames of 256x64 (a foam crest with claws and bubbles, dashed
+  flow lines, eddies along the inner edge). ~4.2 MB with mips in all.
+- **FX** (`scripts/game/fx.gd`): `water_arc` / `water_wake` (a `WaterRibbon`, scripts/game/water_ribbon.gd:
+  the strip laid camera-facing along an arc that curls in at its head, or flat along the ground; its
+  UVs scroll and step through the frames on game time; a `water_curl` at the head, droplets off the
+  tail as it pinches into gobs; one shared material, an ArrayMesh rebuilt each frame for its ~0.5 s),
+  `water_burst` (one sheet played once, unlit), `droplets` (spray's droplets alone).
+- **Kraken's Wake** (TechniqueState `_kraken`, all behind `_elem()`; the plain version is unchanged):
+  two coils of water winding opposite ways round you and a swirl as you gather; per blink-cut an arc
+  through them (its slant swapping), an eddy (swirl) on them and a wake of water along the ground
+  between them, plus the old streak and spray; a rising arc off the blade on the flick; at the tear a
+  whirl of water once round you and, under each victim, three rising curls + a swirl in place of the
+  geometry tentacles (`FX.water_tentacles` stays for now, unused).
+- **The awakened blade** (`BladeWater`, scripts/game/blade_water.gd): with `elem_sword` (the cutlass's
+  tier-1 mastery, Call of the Tide) and the cutlass drawn (style "sword", not hybrid), two loose
+  serpentine strands of the strip wind up the blade on an oval laid along its flat (the wider of the
+  mesh's x/y). Built once per blade size, a child of the weapon mesh; animated only by a sway and one
+  shared material's `uv1_offset` stepped once a frame. Co-op: Player's snapshot flag `NF_TIDE` (16),
+  puppets call `BladeWater.keep` with it.
+- **Cost:** Kraken's Wake at six victims: up to ~8 ribbons alive at once (each one node, one draw,
+  <=186 vertices rebuilt a frame), one sprite per cut plus a few droplet bursts per ribbon, three
+  curls and a swirl per victim at the tear; it lasts ~2 s. The aura: one node and one draw per drawn
+  awakened cutlass (~530 static vertices), nothing rebuilt. No lights. The Brinehollow bench route
+  fires neither (no ult, no awakened blade), so it wasn't re-benched.
+- **Tools/tests:** abilityshot's `close` view (the captain's blade up close). `t/fx/water`.
+  Renders: tools/dev/out/abil/ (g2/s2/g3/night/aura3).
+
+## 2026-10-16: theme places (ThemeDef place hooks) and the desert's first places
+
+- **The hook** (`ThemeDef`, all optional, the jungle overrides none and its islands are unchanged):
+  `place_kind(kind) -> String` (the theme's own kind standing in for a chain set piece or landmark, "" keeps
+  the chain's), `plan_places(isl, avoid) -> Array` (the theme's own places beyond the chain's, planned first),
+  `plan_place(isl, kind, rng, avoid) -> Dictionary` (a stand-in's plan, ground shaped; {} = no ground) and
+  `place_steps(isl, ctx, pl) -> Array` (its build steps). A plan is KitSetPieces' shape: `at, y, face, r,
+  keep` (place-local discs), `kind` (unique on the island: it names the `Place_<kind>` node), optionally
+  `door` (a trail is run to it); KitLandmarks sets `role` "theme" and `seed`. `KitLandmarks.plan_gen` calls
+  them, `steps` builds role "theme" through `place_steps`, and `overgrow` now thins by the theme's `growth().x`
+  (deterministic, the jungle's 1.0 skips nothing). A mapped set piece that finds no ground push_errors like
+  KitSetPieces; a mapped landmark that finds none is skipped like the chain's.
+- **The desert's** (`scripts/island/themes/desert_places.gd`, DesertPlaces): an oasis pool on each land-plan
+  oasis with room (off sites, places, paths; skipped where the land rises steeply all round): the bed dug 1.5 m,
+  the banks levelled and held over the water, InlandPool (swimmable), reeds and lily pads, date palms leaning
+  in (MultiMesh, solid), a well-sweep, a camp on the lowest side of the bank (long tent, fire, water jars, a
+  couched camel, a lamp, a cache). For the chain's waterfall a caravan's camp (tents round a fire, camels at the
+  line, bales, a brazier, a chest), for the great tree an obelisk (13-19 m, glyph columns, gilded cap, its
+  fallen twin in pieces), for the totem grove the twin guardians (two seated colossi, one maybe broken with its
+  head in the sand, a processional way and a battered gate). Models stand alone in modelshot: `camel`,
+  `long_tent`, `shaduf`, `obelisk`, `guardian`. Style water_tint is the oasis's turquoise.
+- **Tests:** `t/island/desert_places`; landmarktest (jungle unchanged). Renders: landmarkshot on chain seed 7
+  (`LSHOT_MARKS=waterfall,great_tree,totem_grove`), tools/dev/out/desert/lm7_*; models
+  tools/dev/out/models/desert_places_*, desert_monuments_*, desert_guardian_*.
+
+## 2026-10-16: the desert's set pieces; cave mouths on themed land
+
+- **Set pieces** (DesertPlaces, standing in through `place_kind`): the **ruined skyline** for the volcano vent
+  (high ground, r 28: broken plaster towers in faded washes round a square, their walls in courses of different
+  heights, doorways toward the square, dark windows high up; an arcade broken in the middle; a minaret kept away
+  from the great dome; the dome's drum broken and its glazed shell torn open on one side, drawn both faces;
+  rubble, fallen drums, a cache in a tower). The **buried city** for the sunken village (r 26: 7-10 DesertTown
+  houses sunk 1.8-4.8 m with their windows dark (house spec `lit` 0), the ground heaped in mounds between
+  them so the sand is walkable terrain; a colonnade drowned to its capitals with one lintel standing, a
+  pediment tipped in the sand, one or two dome tops and a minaret's top out of the dunes, a chest). The
+  **tomb** for the cenote, so desert islands no longer get the jungle's green sinkhole (a rose sandstone crag
+  built like the mine's rock, its front flat and cut open behind a carved temple front: podium steps over a
+  ramp, four columns, entablature, pediment, a round pavilion with cone and urn between half-pediments; inside a
+  pillared hall 14 m deep at the door's sill with burial niches in two rows, some sealed, a frieze, the
+  sarcophagus with its lid askew, braziers and one light, jars, bones, sand blown in, the treasure). The
+  guardians now use the obelisk's sandstone. Sand heaps are one untextured material (the sand texture
+  pinwheels on a blob's cap).
+- **Cave mouths** (KitDungeons, themed land only, the jungle unchanged): the apron in front of a mouth is
+  levelled just under its floor. Dunes rolled under the floor's edge on seed 5's grotto, so a captain walked
+  under the floor and stuck (dungeontest on main). dungeontest now runs ~150-320 s depending on load (the
+  desert's bigger islands); the runner's 330 s limit is close when the machine is busy.
+- **Tests:** `t/island/desert_places` builds the three set pieces too; dungeontest, isletest, landmarktest.
+  Renders: landmarkshot on seed 7 with `LSHOT_PIECE` volcano_vent / sunken_village / cenote (tools/dev/out/desert/
+  sky7_*, bur7_*, tomb7_* incl. tomb_front and tomb_hall, landmarkshot's new tomb views).
+- **After the references** (tools/dev/out/refs/desert_*): the great dome's ribs stand across its hole (turned to
+  the square), buried houses go down to their windows or their roofs, toppled slabs and a drowned arcade.
+- **Perf:** perf_gate (13:00, 1 run) PASS against the baseline 8e7fe77 at calib 23.60 / 23.65: ALL frame 9.41 ->
+  10.74 ms (+14%), frame1t 10.36 -> 11.69. Not back to back and it spans everything since the baseline; the
+  bench's chain islands on seed 4242 are snow and jungle, so the route never meets a desert, and no desert script
+  is among the growers (sea_spray, scuttlebug, moored_hull, ship, ambience). A desert island on its own: prepared
+  in 18-30 s on the worker (jungle 11-21), 1.3-2.3 s on the main thread over ~120-130 frames (jungle 1.6-2.8),
+  worst step 43-204 ms (jungle 59-389).
+- **Fidelity** (fidelityshot on seed 7, tools/dev/out/desert/fid7_sheet.png): open against the royal-city ref:
+  the village reads sparse next to its packed boxes and onion domes; the wooden lookout tower and the pirates'
+  shacks are still the base kit's timber; the town hardly shows from the sea.
+
+## 2026-10-16: island size sweep (how big can desert and snow islands get)
+
+- **Tool:** `tools/dev/sizesweep.gd` (headless, ~25 min, a measuring tool only: no game code changed). Each theme's
+  islands at 1.0 / 1.5 / 2.0 x its own `ThemeDef.radius` (scaled on the registry's def for the build only), chain seeds
+  777 / 31337 / 4242 (each seed's first regular island of the theme), built the world's way (prepare on a worker, the
+  finish steps timed one by one), then the chain's spacing over 300 chain seeds with the scaled radius[1] going through
+  `Chain._make_room`. Output `tools/dev/out/sizesweep.txt` (every build, the slowest steps and prepare stages, errors).
+  Timings ran beside other sessions' Godots: ms swing up to ~2x build to build (desert 4242 x1.0 prepared in 57 s,
+  bodies alone 11.5 s; elsewhere desert x1.0 12-27 s); counts and memory are steady.
+- **Means** (3 seeds; exp = growth over x1.0 as a power of the radius, 2 = with area; mem = static memory the build
+  adds, CPU side; geo = estimated mesh + MultiMesh buffers, GPU side):
+
+  | theme | x | r m | land ha | prep s | main s | worst ms | nodes | mm inst | geo MB | mem MB | exp prep | exp mem |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+  | jungle | 1.0 | 363 | 27 | 7.4 | 1.9 | 145 | 8.6k | 42k | 29 | 110 | - | - |
+  | jungle | 1.5 | 545 | 61 | 12.7 | 2.2 | 151 | 15.5k | 101k | 38 | 164 | 1.33 | 0.99 |
+  | jungle | 2.0 | 727 | 107 | 23.0 | 3.3 | 356 | 24.9k | 185k | 49 | 226 | 1.64 | 1.04 |
+  | desert | 1.0 | 554 | 65 | 32.2 | 3.5 | 352 | 6.5k | 14k | 30 | 102 | - | - |
+  | desert | 1.5 | 832 | 144 | 43.8 | 2.8 | 128 | 10.6k | 30k | 42 | 161 | 0.76 | 1.14 |
+  | desert | 2.0 | 1109 | 257 | 71.1 | 5.6 | 273 | 16.1k | 53k | 59 | 239 | 1.14 | 1.23 |
+  | snow | 1.0 | 413 | 34 | 10.3 | 1.7 | 141 | 8.2k | 41k | 32 | 114 | - | - |
+  | snow | 1.5 | 619 | 76 | 21.3 | 2.3 | 168 | 15.7k | 101k | 41 | 165 | 1.80 | 0.91 |
+  | snow | 2.0 | 826 | 135 | 31.1 | 2.4 | 212 | 25.9k | 189k | 54 | 243 | 1.60 | 1.09 |
+
+  Desert's x1.0 row is pulled up by the loaded 4242 build; seeds 777 / 31337 alone go 27 / 12 s -> 51 / 23 s -> 61 / 69 s.
+- **How each cost scales:**
+  - Prepare (worker) = a fixed part (bodies ~2-3 s, the cave plan 0.2-1.5 s) plus stages that go with area: undergrowth
+    (jungle 777: 1.3 -> 3.3 -> 5.4 s), land (1.8 -> 3.2 -> 4.9), trees, thicket, shore, arrays. Overall r^1.3-1.8 here,
+    heading to r^2 as the area part takes over (the desert, the biggest, is mostly area already).
+  - Main thread total barely grows (2-3.5 s at x1.0, 2.4-5.6 at x2.0, ~120-145 steps): the sites and the village are fixed
+    counts. What grows is four single steps: plant colliders (one step for every trunk shape: jungle/snow ~50-80 -> 155-541
+    ms), the ground's 16 collider squares (GROUND is fixed at 4x4, so each square grows with area: desert up to 572 ms),
+    the terrain mesh (one mesh, up to 470 ms) and fauna (up to 640 ms). x1.0 already has 200-600 ms outliers (fauna, boss).
+  - Nodes r^1.5-1.7, MultiMesh instances ~r^2 (jungle 42k -> 185k), collision shapes ~r^2 (jungle 4.4k -> 16k).
+  - Static memory ~r^1 (110 -> ~240 MB an island at x2.0); geo ~r^0.7-0.9 (30 -> ~55 MB). Nothing held after freeing
+    beyond noise (-21..+26 MB).
+  - Content doesn't grow: places 4-7 and caves 1-3 at every size; every site and service placed at every size, no
+    script errors from the bigger islands. A 2x island is 4x the land with the same things on it.
+- **Chain spacing** (gaps coast to coast at full radius; the coast is mostly ~0.8 r, so the real water is wider):
+
+  | grown | x | leg min m | leg mean m | first leg min m | loaded together min m | Brinehollow min m (islands over it) | Redtide min m (over it) |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | desert+snow | 1.0 | 206 | 941 | 959 | 174 | 206 (0) | 147 (0) |
+  | desert+snow | 1.5 | 249 | 747 | 639 | 174 | -332 (3) | -197 (2) |
+  | desert+snow | 2.0 | 249 | 665 | 319 | 174 | -1013 (3) | -1047 (3) |
+  | all themes | 2.0 | 249 | 555 | 319 | 174 | -666 (6) | -773 (3) |
+
+  `_make_room` holds between layers and between a fork's two (islands loaded together never overlap), but nothing keeps a
+  grown island off Brinehollow or Redtide Rock, which are always in the world: RING[0] (2000 m) is a centre distance, and
+  fork offsets and later layers wandering back aren't held to it. 3 of 300 chains put an island over Brinehollow at 1.5x.
+  (Islands of one chain on the same water, never loaded together: 246 -> 556 pairs.)
+- **Which limit hits first:**
+  1. **Spacing near home, at 1.5x:** islands over Brinehollow / Redtide. A Chain fix (RING and the forks kept off home and
+     Redtide by radius), no streaming needed.
+  2. **Worker time vs the sail, at 1.5x for the desert:** the next islands start preparing when the log pose sets. After the
+     beast falls the crew still walks back to the ship (the arena is 0.5-0.62 r past the middle), which covers it; after the
+     15-minute auto-set the crew may already be aboard, and then it's the leg: mean 750 m = ~50 s at the sloop's best
+     15.2 m/s (the shortest 249 m = 16 s) against ~45 s (desert x1.5) and 60-85 s (x2.0) of prepare on this laptop, more on
+     the min-spec 5600G and with a busy worker. Desert x1.0 (12-30 s against a 940 m mean leg) is fine.
+  3. **Main-thread hitches** grow with area in those four single steps: 150-570 ms at 2x, already past a frame at 1.5x
+     (colliders up to 243, ground 211). Splitting them (colliders per 70 m cell, GROUND scaled with `res`, the terrain mesh
+     in chunks) is plain step work, no streaming.
+  4. **Memory** is not the limit: three x2.0 islands ~720 MB static + ~170 MB of mesh buffers, on top of Brinehollow.
+  5. **Not measured:** the frame cost of standing on a big island. The vegetation is already 70 m MultiMesh cells with
+     visibility ranges and people/fauna sleep by distance, but the terrain is one mesh with no LOD (x2.0 desert: 880 x 880
+     cells) and every plant collider and ground square is live. Bench one before deciding past 1.5x.
+- **What in-island sector streaming would have to cover** (only past ~1.5x, and it doesn't cut prepare by itself): the
+  terrain mesh and ground colliders by chunk (build / free by distance, LOD for far chunks); plant MultiMesh cells with
+  their trunk colliders and grapple crowns (GrapplePoints) made when near; site contents (camp, lair, ruins, caves,
+  landmarks, the beast's arena) built as a captain nears and kept while anyone's there, their saved state (opened chests,
+  cleared camps, beast down) re-applied; fauna dens and nav zones per sector; and co-op: the host simulates enemies, so a
+  sector stays live while any captain is near it, and guests stream their own visuals. Prepare would need splitting too
+  (the scatter and undergrowth per cell, lazily), keeping only the heights, coast, shore map and paths whole, or limit 2
+  stays.
+- **Read:** desert and snow can go to ~1.5x their radius (desert ~720-960 m, snow ~540-680 m: about 2.25x the area) with
+  three fixes and no streaming: Chain keeps islands off Brinehollow and Redtide, the four big steps split, and the next
+  islands start preparing earlier than the log pose's set (e.g. on arrival). Past that, prepare outruns the sail and the
+  islands get emptier unless their content scales too.
+- **Found on the way (not size-related):** `Chain._name` divides by zero when a theme's 8 names are all given and all
+  within two layers (chain seeds 74, 200, 220, 259 of 1-300: "Modulo by zero" in Chain.make). One desert x1.0 build
+  logged `Parameter "m" is null` (mesh_storage.h) with two "!F" conditions, not seen in the trial run of the same island.
+## 2026-10-16: weather and ground on the snow and desert islands (piece 1: fog colour, snowfall, sandstorms)
+- **What:** Zach's direction (docs/snow_island_plan.md, desert_island_plan.md "Weather, sound, effects"): a snow
+  island under a white haze nearly always, a light snowfall all the time and heavy spells that close the view in
+  (its rain slots heavy snow, its storm a blizzard); a desert that never rains, its rain and storm slots blowing
+  sand (a sandstorm), lanterns lit against it. Home and the jungle are exactly as before.
+- **KitStyle keys** (BRINEHOLLOW keeps today's): `precip` ("rain" / "snow" / "sand"), `haze_color` (the colour the
+  fog leans to, alpha = how far; home's alpha 0: its fog is the horizon as before), `storm_color` (the sky's and
+  fog's grey in a storm: home's 0.36/0.38/0.42), `ground_prints` (piece 2). Snow: white haze 0.75, storm white,
+  odds unchanged ([0.15, 0.8, 0.95]: heavy snow in ~18% of slots, a blizzard ~5% of them). Desert: a warm dust haze
+  0.35, storm ochre, odds [0.6, 0.86, 0.91] (sand in ~12% of slots; was 0.93, ~7% storms).
+- **Weather** (`params_in(t, style, k)`: PARAMS' six, then snow and sand): a theme whose fall isn't rain zeroes its
+  rain and turns that slot's fall into `snow` (at least SNOW_LIGHT 0.22 always) or `sand`; `murk` (0..1) is a
+  heavy fall or a sandstorm closing in: the fog pulls in to 2..65 m, the sky's haze rises to 1.3, the fog colour
+  goes to the storm colour (`haze_here`), the sky top pales toward the haze. No lightning where the fall isn't
+  rain. Beds: `sandstorm_loop` x sand, `blizzard_loop` x heavy snow (a light fall is quiet), at -6 dB like the rain,
+  halved under a roof. F6's toast names them (Heavy snow, Blizzard, Blowing sand, Sandstorm: `state_name`).
+  NightLight.is_night() (lamps, the belt lantern) is also true past murk 0.45.
+- **PrecipFX** (`scripts/world/precip_fx.gd`, made by Weather beside the rain; GPU particles round the camera,
+  each screen its own from the synced weather): flakes (1800 max, a 3x3 pixel cross, lit, drifting on the wind),
+  and once murk rises streaks on the wind (sand's long, snow's short and only in a blizzard) and big drifting
+  curtains of the flipbook's snow / sand sheet (36, unshaded, dimmed with the night and a storm's dusk). All three
+  off (not emitting, hidden) wherever nothing falls: the per-frame cost away from those islands is one _process
+  that sets three positions.
+- **Co-op:** nothing sent: snow, sand and murk come from world time and the place, like the rain.
+- **Tests:** `t/world/theme_weather`. Render: `themewxshot.gd <out> 1 1` (Hoarfell Atoll, snow) and `<out> 2`
+  (Mirage Island, desert): tools/dev/out/wx2/snow2_sheet.png, desert3_sheet.png.
+## 2026-10-16: desert polish (the medina, its own lookout and camp, the bandit chief, vultures)
+- **The medina** (VillageLayouts `_medina`, a new layout; POOL and BRINEHOLLOW's `village_layouts` carry it at weight
+  0, so jungle and snow roll exactly as before; the desert's weights are medina 5, town 2, hamlets 2, ruins 2): the
+  town's heart, souk and services, then flat roofs packed ~0.4 m apart instead of the town's metre (`_take`,
+  `_ring_fill`, `_street_houses` take a gap; their defaults are the old numbers, same rng draws): a ring round the
+  plaza, rows along every street and four lanes (12 a street), 2-3 minarets (`_minarets`, 17-23 m) and rings at 27,
+  36 and 44 m facing in; the great domed hall (`DesertTown.great_hall`: portal in a raised frame, arched windows,
+  corner turrets under little domes, the big onion dome on a windowed drum, ~14 m) across from the road in. Seed 7
+  forced medina: 88 buildings (the town had ~26). Desert garden walls (`DesertTown.mud_wall`) and agave pots
+  (`planter`) through `item_models` in place of the jungle's timber fence and green bush.
+- **Its own lookout and camp house** (generic KitStyle keys, BRINEHOLLOW "": the kit's timber tower and rough house):
+  `lookout` (a theme model made at its platform's height; KitStyle.lookout(st, h, seed) for the camp's, the summit's,
+  GenHarbour's and the trading post's towers) and `camp_shack` (IslandContent._camp). The desert's: `watchtower`
+  (mud brick in two setbacks, slit windows, beam ends under a crenellated platform open where the ladder arrives on
+  +Z, a domed kiosk on four posts; the timber tower's interface: platform top at h + 0.09, the summit chest and View
+  area unchanged) and `bandit_hut` (an unwashed blockhouse, broken parapet, striped lean-to over a rug, hides on the
+  roof, jars and sacks).
+- **The bandit chief** (`scripts/enemies/bandit_chief.gd`, extends PirateBoss): the desert's second mini
+  (`minis` hyena, bandit_chief: an island gets one or both). A mini whose entry has `"camp": true` leads the pirates'
+  camp in its captain's place (IslandContent._camp merges his script, look and name into the captain's setup;
+  GruntCamp builds a setup's `"script"`), so the bounty names him. Morrow's fight under a turban with a scimitar,
+  620 hp and every blow scaled by Levels, his own barks, a miniboss's pay. PirateBoss gained overridable `_boss_look`,
+  `_boss_hp`, `_barks`, `_prize` (Morrow's values unchanged).
+- **Minibosses spawn on every theme**: BeastDens._mini handled only the jungle's "boar", so the desert's hyena and the
+  snow's frost alpha never appeared. Now any beast mini goes to its entry's site, named `kind.to_pascal_case()`
+  ("Boar" as before).
+- **Vultures** (SkyBirds kind VULTURE, KitStyle `high_birds` "dark" | "vulture"; the desert's "vulture"): an island's
+  high flocks become kettles of 3-6 big (2.9x) dun-brown birds wheeling slow on a thermal, soaring with a few slow
+  beats, silent. Shader paint 6. Same rng draws as the dark flocks.
+- **DrawLOD on generated islands** gets 64 steps (was 24): its last step does whatever is left, and the medina's
+  geometry overran 24 steps into a 722 ms frame. Extra steps are no-ops once done.
+- **Proof:** islanddump main vs branch: chain seed 4246 (jungle) byte-identical, Brinehollow the three dummies only.
+  **Tests:** t/island/desert_town (hall, minarets, watchtower ladder and platform, hideout, planter, wall, medina in
+  the pool), t/island/bandit_chief, villagetest (medina: 40+ buildings, minarets, the hall), the -Changed -Light set.
+  Renders: tools/dev/out/polish/med7_sheet.png (villageshot seed 7 medina), fid7_after_*, g7_camp, models/desert_skyline_*.
+## 2026-10-16: Chain._name no longer divides by zero
+- When every name of a theme was already given on islands within the last two layers, both pools were empty and `rng.randi() % 0` broke Chain.make (chain seeds 74, 200, 220, 259). Now it falls back to a name not on this layer, then any of the theme's names; chains that never hit the empty case draw the same rng values as before.
+- BeastPool.assign had the same hole (a theme's bosses all on the islands before): falls back to the whole pool. Test: t/world/chain_names (those four seeds: every island named, beast set).
+
+## 2026-10-16: snow polish (fences, the tame shagback, the frozen wreck, no jungle bugs)
+- **The village** (snow style): `item_models` torch -> its iron lamp (lit ones light at the Flame), fence ->
+  `SnowProps.fence` (dark posts with snow caps, two rails, snow on the top rail, drifts at the foot), planter ->
+  `SnowProps.planter` (a hooped tub with a snowy fir). KitStyle `yard_fences` (BRINEHOLLOW 0; snow 0.7): each side of a
+  hut's, tall house's, home's or the elder's yard gets a 4.4 m fence along its side wall where there's room
+  (VillageLayouts._yard_fences, its own stream per building, so a 0 draws nothing and the jungle's village is unchanged).
+- **The tame shagback** (Shagback `tame`): blanket, trim, packs and a girth rope (one more cached part variant), stands
+  about its post (wanders 0.6-2.5 m), struck it shies ~2.5 m and comes back, no herd stampede, worth nothing; its LOD
+  from the nearest captain on a Timer (it has no FaunaSpawner, and a sleeping creature's _tick stops). SnowTheme.steps
+  adds "village beast": at the market's edge (the plaza's if no market) on the first spot clear of the plan's buildings,
+  items and paths, named VillageShagback under the island (same on every machine).
+- **The frozen wreck** (snow_places `snow_wreck`, standing in for the chain's wreck landmark): off a beach away from the
+  dock, 4-9 m out over 0.8-3.5 m of sea with open water past it; the kit's wreck hull (KitLandmarks._wreck, stove in on
+  her low side) frozen in at her waterline (origin 0.95 over the place, the ice's top 0.75 over the sea) in a ragged
+  slab of pack ice reaching back onto the beach (one trimesh collider), ridges of pitched ice blocks, snow on her deck
+  and quarterdeck, icicles off her rails, drifts against her sides and mounds on the ice, the chest on the ice in her
+  hold (`snow_wreck_chest`). The trail arrives on the beach behind her.
+- **No butterflies or fireflies on snow** (KitStyle `ambient_bugs`, BRINEHOLLOW true; FaunaSpawner.roll clears them after
+  its draws, so the bird flocks over the pines stay and nothing else moves).
+- **Proof:** islanddump main vs branch, chain seed 4246 (jungle) identical, Brinehollow the three dummies.
+  **Tests:** t/island/snow_village; snow_foundations, snow_land, villagetest, landmarktest. Renders:
+  tools/dev/out/polish/snow1_before_sheet / snow1_after_sheet (villageshot seed 1 node 1), sw1_snow_wreck_close
+  (landmarkshot seed 1 node 1, LSHOT_MARKS=wreck), models/snow_village_sheet (the tame shagback, fence, tub).
+- **Left:** the shallows' turquoise is the ocean shader's `shallow_color`, set by Weather (a theme-tinted shallows
+  wants a KitStyle key read there); the market's planter (KitMarket) and Buildings.planter elsewhere still hold a green
+  bush; temples and mines from the shared landmark pool still come to snow islands (their stone takes the theme's
+  temple/rock tints).

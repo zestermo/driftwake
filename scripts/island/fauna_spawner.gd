@@ -11,38 +11,15 @@ extends Node3D
 ## Data for others: `groups` ({kind, zone, role, at (island space), spots}),
 ## roosts() / herds() / groups_of(kind), zones (zone -> island-space points),
 ## and fill_slots() for caves and dungeons that leave slots for wildlife.
+## Which creatures there are is the island's theme's (ThemeDef.fauna, creatures, cave_fauna).
 
-static func make(k: String) -> Creature:
-	match k:
-		"boar": return Boar.new()
-		"leaper": return LeaperBug.new()
-		"roller": return RollerBug.new()
-		"mite": return SwarmMite.new()
-		"burrower": return Burrower.new()
-		"bat": return Bat.new()
-		"toucan": return Toucan.new()
-		"monkey": return Monkey.new()
-		"snake": return Snake.new()
-		"crab": return Crab.new()
-	push_error("FaunaSpawner: no creature called " + k)
-	return null
+## A creature of the theme's kind `k` (its script in ThemeDef.creatures).
+static func make(theme: String, k: String) -> Creature:
+	return load(IslandThemes.of(theme).creatures[k]).new()
 
 
 ## The creatures are put on the island over this many build steps.
 const SPAWN_STEPS := 3
-## Each kind: its zones, how likely an island has it, how many groups (dens) when it does.
-const ROSTER := {
-	"boar": {"zones": ["floor"], "p": 0.6, "dens": [2, 5]},
-	"leaper": {"zones": ["floor"], "p": 0.5, "dens": [2, 6]},
-	"roller": {"zones": ["floor", "shore"], "p": 0.45, "dens": [2, 5]},
-	"mite": {"zones": ["floor", "cave"], "p": 0.45, "dens": [1, 3]},
-	"burrower": {"zones": ["floor", "shore"], "p": 0.4, "dens": [2, 5]},
-	"bat": {"zones": ["canopy", "cave"], "p": 0.55, "dens": [2, 4]},
-	"toucan": {"zones": ["canopy"], "p": 0.55, "dens": [3, 6]},
-	"monkey": {"zones": ["canopy"], "p": 0.5, "dens": [1, 3]},
-	"snake": {"zones": ["floor", "swamp"], "p": 0.55, "dens": [3, 8]},
-	"crab": {"zones": ["shore"], "p": 0.6, "dens": [3, 6]},
-}
 const MIN_KINDS := 3
 const MAX_KINDS := 8
 ## Most creatures an island holds (the pool's density is scaled down to fit).
@@ -51,6 +28,9 @@ const CAP := 72
 const SPACING := 16.0
 
 var isl: Node3D
+var theme := ""
+## The theme's roster: kind -> {zones, p, dens}.
+var roster := {}
 var level: int = 0
 var respawn_time: float = 150.0
 var respawn_clearance: float = 40.0
@@ -66,15 +46,16 @@ var _lod_t: float = 0.0
 var _all_hidden := false
 
 
-## Which creatures live on an island of this seed, how many, which colours (data only).
-static func roll(seed_v: int) -> Dictionary:
+## Which of the theme's creatures live on an island of this seed, how many, which colours (data only).
+static func roll(theme: String, seed_v: int) -> Dictionary:
+	var roster: Dictionary = IslandThemes.of(theme).fauna
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_v + 7717
-	var kinds: Array = ROSTER.keys()
+	var kinds: Array = roster.keys()
 	kinds.sort()
 	var have: Array = []
 	for k in kinds:
-		if rng.randf() < float(ROSTER[k]["p"]):
+		if rng.randf() < float(roster[k]["p"]):
 			have.append(k)
 	while have.size() < MIN_KINDS:
 		var k: String = kinds[rng.randi() % kinds.size()]
@@ -86,12 +67,15 @@ static func roll(seed_v: int) -> Dictionary:
 	# one kind runs riot (sometimes): twice the usual
 	var plague: String = have[rng.randi() % have.size()] if rng.randf() < 0.35 else ""
 	for k in have:
-		var d: Array = ROSTER[k]["dens"]
+		var d: Array = roster[k]["dens"]
 		var n := roundi(rng.randi_range(d[0], d[1]) * rng.randf_range(0.6, 1.5) * (2.0 if k == plague else 1.0))
 		out[k] = maxi(n, 1)
 		out["morph"][k] = rng.randi() % 3
 	var amb := {"swarms": rng.randi_range(3, 10), "flocks": rng.randi_range(0, 4), "fireflies": rng.randf() < 0.8, "butterflies": rng.randf() < 0.8}
 	# (one in 125 rolled no swarm and no flock: a bare island. Those get a flock; no other roll changes)
+	if not KitStyle.of(theme)["ambient_bugs"]:
+		amb["fireflies"] = false
+		amb["butterflies"] = false
 	if not (amb["fireflies"] or amb["butterflies"]):
 		amb["flocks"] = maxi(int(amb["flocks"]), 1)
 	out["ambient"] = amb
@@ -114,8 +98,10 @@ static func _plan_on(island: Node3D, rng: RandomNumberGenerator) -> void:
 	var f := FaunaSpawner.new()
 	f.name = "Fauna"
 	f.isl = island
+	f.theme = str(island.theme)
+	f.roster = IslandThemes.of(f.theme).fauna
 	f.level = int(island.node["level"])
-	f.pool = roll(int(island.node["seed"]))
+	f.pool = roll(f.theme, int(island.node["seed"]))
 	island.add_child(f)
 	f._zones(rng)
 
@@ -152,6 +138,12 @@ func _zones(rng: RandomNumberGenerator) -> void:
 		var q := c + Vector2.from_angle(a) * 2.6
 		if isl.hv(q) > 2.0 and not isl.excluded(q, 0.3, 1.5):
 			floor_pts.append(q)
+	# (an island with no forest to speak of - a desert - has its floor out in the open)
+	if floor_pts.size() < 40:
+		for i in range(240):
+			var q := Vector2.from_angle(rng.randf() * TAU) * float(isl.radius) * sqrt(rng.randf()) * 0.85
+			if isl.hv(q) > 2.0 and not _keep_clear(q) and not isl.excluded(q, 0.3, 1.5):
+				floor_pts.append(q)
 	var shore := PackedVector2Array()
 	for i in range(96):
 		var a := TAU * i / 96.0 + rng.randf_range(-0.02, 0.02)
@@ -175,7 +167,7 @@ func _zones(rng: RandomNumberGenerator) -> void:
 # Groups
 # ==========================================================================
 func _place(rng: RandomNumberGenerator) -> void:
-	var kinds: Array = ROSTER.keys()
+	var kinds: Array = roster.keys()
 	kinds.sort()
 	var total := 0
 	for k in kinds:
@@ -188,7 +180,7 @@ func _place(rng: RandomNumberGenerator) -> void:
 			continue
 		var want := maxi(1, roundi(int(pool[k]) * k_scale))
 		for i in range(want):
-			var zone_list: Array = (ROSTER[k]["zones"] as Array).filter(func(z): return z != "cave" and not (zones[z] as Array).is_empty())
+			var zone_list: Array = (roster[k]["zones"] as Array).filter(func(z): return z != "cave" and not (zones[z] as Array).is_empty())
 			if zone_list.is_empty():
 				break
 			var zone: String = zone_list[rng.randi() % zone_list.size()]
@@ -200,7 +192,7 @@ func _place(rng: RandomNumberGenerator) -> void:
 
 
 func _group_size(k: String) -> int:
-	return {"boar": 3, "mite": 6, "bat": 4, "monkey": 3, "crab": 3, "leaper": 1, "roller": 1}.get(k, 1)
+	return {"boar": 3, "mite": 6, "bat": 4, "monkey": 3, "crab": 3, "leaper": 1, "roller": 1}.get(k, roster[k].get("pack", [1, 1])[1])
 
 
 func _free_point(list, taken: Array, rng: RandomNumberGenerator):
@@ -267,7 +259,13 @@ func _add_group(k: String, zone: String, at, rng: RandomNumberGenerator) -> void
 			for i in range(rng.randi_range(1, 2)):
 				_add_spot(gi, k, _ground(near.call(at, 2.0)), {"morph": morph})
 		_:
-			_add_spot(gi, k, _ground(at), {"morph": morph})
+			# (a theme's own kinds: a pack round its lead, `young` the chance each follower is one)
+			var pack: Array = roster[k].get("pack", [1, 1])
+			if pack[1] > 1:
+				g["role"] = "pack"
+			for i in range(rng.randi_range(pack[0], pack[1])):
+				var young := i > 0 and rng.randf() < float(roster[k].get("young", 0.0))
+				_add_spot(gi, k, _ground(near.call(at, 4.0) if i > 0 else at), {"morph": morph, "pack": gi, "lead": i == 0, "calf": young})
 
 
 func _add_spot(gi: int, k: String, local_at: Vector3, args: Dictionary) -> void:
@@ -276,15 +274,17 @@ func _add_spot(gi: int, k: String, local_at: Vector3, args: Dictionary) -> void:
 
 
 ## Caves and dungeons: wildlife for the slots they leave ([Vector3 local to `parent`, "floor" | "ceiling"]).
-## Rolls from this island's pool (bats on ceilings, mites and burrowers on floors).
+## The theme's cave_fauna: its ceiling kind hangs in a roost, a floor kind picked per slot.
 func fill_slots(parent: Node3D, slots: Array, salt: int = 0) -> void:
+	var cave: Dictionary = IslandThemes.of(theme).cave_fauna
+	var floors: Array = cave["floor"]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(isl.node["seed"]) + 3301 + salt
 	for s in slots:
 		var at: Vector3 = to_local(parent.to_global(s[0]))
 		var ceiling := str(s[1]) == "ceiling"
 		var gi := groups.size()
-		var k: String = "bat" if ceiling else ["mite", "burrower", "snake"][rng.randi() % 3]
+		var k: String = cave["ceiling"] if ceiling else floors[rng.randi() % floors.size()]
 		var morph: int = pool["morph"].get(k, 2)
 		groups.append({"kind": k, "zone": "cave", "role": "roost" if ceiling else "lone", "at": at, "spots": []})
 		if ceiling:
@@ -331,7 +331,7 @@ func _spawn(s: Dictionary) -> void:
 	if args.has("anchor"):
 		args["anchor"] = to_global(args["anchor"] as Vector3)
 	var home := to_global(s["at"] as Vector3)
-	var c := make(str(s["kind"]))
+	var c := make(theme, str(s["kind"]))
 	c.setup(home, args)
 	c.name = "F%d_%d" % [spots.find(s), int(s["gen"])]
 	c.xp_k = 0.5 if int(s["gen"]) > 0 else 1.0

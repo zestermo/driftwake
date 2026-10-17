@@ -107,6 +107,12 @@ func enter(data: Dictionary) -> void:
 			Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 0.6])
 			if _elem():
 				Net.fx("gather", [player.global_position + Vector3(0, 0.9, 0), 2.6, _col(FX.ACCENT), 0.4, 26])
+				# the sea coils up round you: two rings of water winding opposite ways
+				var right := _dir.cross(Vector3.UP)
+				var feet := player.global_position
+				Net.fx("water_arc", [feet + Vector3(0, 0.35, 0), -_dir, right, 1.5, TAU * 0.85, 0.42, 0.32, KRAKEN_GATHER + 0.1, _col(), 1])
+				Net.fx("water_arc", [feet + Vector3(0, 1.05, 0), _dir, right, 1.05, -TAU * 0.75, 0.32, 0.36, KRAKEN_GATHER + 0.05, _col(), 2])
+				Net.fx("water_burst", [feet + Vector3(0, 0.9, 0), "water_swirl", 3.0, KRAKEN_GATHER + 0.1, 20.0])
 			else:
 				Net.fx("dust_ring", [player.global_position, 12, 0.9])
 			Net.fx("ring", [player.global_position, Vector3.UP, 3.5, _col(), 0.45, 0.08])
@@ -778,6 +784,7 @@ func _kraken(delta: float) -> void:
 		if is_instance_valid(e):
 			Net.fx("afterimage", [player.body_model, _col(), 0.3])
 			var from := _chest()
+			var feet := player.global_position
 			var through := _flat_to(e)
 			_place(e.global_position + through * 1.4)
 			_dir = through
@@ -786,6 +793,16 @@ func _kraken(delta: float) -> void:
 			var at := e.global_position + Vector3(0, 1.0, 0)
 			Net.fx("streak", [from, _chest(), _col(), 0.16, 0.35])
 			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
+			if _elem():
+				# a crescent of water through them, its slant swapping cut to cut, and the
+				# run of water you leave along the ground between them
+				var right := through.cross(Vector3.UP)
+				var tilt := (0.6 if i % 2 == 0 else -0.6)
+				var up := Vector3.UP.rotated(through, tilt)
+				Net.fx("water_arc", [at, up.rotated(through, 0.5), right.rotated(through, tilt), 1.5, PI * 1.15, 0.7, 0.09, 0.75, _col(), i + 3])
+				Net.fx("water_wake", [feet, player.global_position, 0.7, 0.75, _col(), i + 11])
+				Net.fx("water_burst", [at, "water_swirl", 1.9, 0.5, 180.0])
+				Net.fx("splash", [e.global_position, 4, 0.45])
 			_spray(at, through + Vector3.UP * 0.4, 12, 6.0)
 			Net.fx("glint", [at, _col(FX.CORE), 1.0])
 			Net.fx("sfx", ["whoosh", player.global_position, -4.0, 0.1, 1.5])
@@ -798,6 +815,9 @@ func _kraken(delta: float) -> void:
 	if _once("still", dur - 0.75):
 		Net.fx("glint", [_blade_tip(), _col(FX.CORE), 1.3])
 		Net.fx("sfx", ["parry", player.global_position, -6.0, 0.0, 1.9])
+		if _elem():
+			# the flick of the blade: water flung up off it in one rising arc
+			Net.fx("water_arc", [_chest(), -Vector3.UP, _dir, 1.25, PI * 0.95, 0.5, 0.12, 0.5, _col(), 21])
 	if _once("tear", dur - 0.55):
 		player.hurtbox.set_deferred("monitorable", true)
 		var k := 0
@@ -809,7 +829,14 @@ func _kraken(delta: float) -> void:
 				_strike(e, hd)
 				var at := (e as Node3D).global_position
 				if _elem():
-					Net.fx("water_tentacles", [at, 3.2, _col(), 4, k * 17 + 3])
+					# the sea heaves up under them in claws of drawn water
+					var side := _dir.cross(Vector3.UP)
+					for c in 3:
+						var off := side * (c - 1) * 0.7 + Vector3(0, 1.6 + 0.3 * (c % 2), 0)
+						Net.fx("water_burst", [at + off, "water_curl", 3.4 - 0.4 * (c % 2), 0.75, 35.0])
+					Net.fx("water_burst", [at + Vector3(0, 0.5, 0), "water_swirl", 2.6, 0.6, 180.0])
+					Net.fx("spray", [at + Vector3.UP * 0.2, Vector3.UP, 14, _col(FX.ACCENT), 7.0])
+					Net.fx("ring", [at, Vector3.UP, 2.4, _col(), 0.4, 0.12])
 				else:
 					Net.fx("ring", [at, Vector3.UP, 2.2, _col(), 0.35, 0.12])
 					Net.fx("dust_ring", [at, 12, 1.0])
@@ -817,6 +844,9 @@ func _kraken(delta: float) -> void:
 				k += 1
 		Net.fx("ring", [player.global_position, Vector3.UP, 9.0, _col(), 0.6, 0.06])
 		if _elem():
+			# the signature: a whirlpool of water whipping once round you as they tear
+			var back := -_dir
+			Net.fx("water_arc", [player.global_position + Vector3(0, 0.75, 0), back, back.cross(Vector3.UP), 2.6, TAU * 1.05, 0.95, 0.16, 0.8, _col(), 22])
 			Net.fx("sfx", ["splash_big", player.global_position, 2.0, 0.05, 0.8])
 		Net.fx("sfx", ["whoosh_big", player.global_position, 3.0, 0.05, 0.6])
 		CombatManager.apply_camera_shake(0.5)

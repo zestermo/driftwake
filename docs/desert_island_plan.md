@@ -49,6 +49,8 @@ pool, FaunaSpawner).
 ## Weather, sound, effects
 - **Sandstorms** instead of rain (Weather + RainFX's place): blowing sand, low visibility, wind, lanterns lit.
   Heat haze. No rain on desert islands (or very rare).
+- **Footprints in the sand** (Zach, 2026-10-16), with sand kicked up as particles: the same soft ground layer and
+  footprint system as the snow island's (one shared system, built once in the weather pass).
 - **Effects:** sand bursts, dune spray off crests, sandstorm streaks, heat shimmer, all on the flipbook library once
   it lands (see docs/todo.md, Flipbook effects).
 - **Music:** a desert theme for the island (gen_psx_music.py, a day and night version), plus the town's own.

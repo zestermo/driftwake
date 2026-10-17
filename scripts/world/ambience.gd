@@ -29,11 +29,15 @@ const LOOPS := {
 	"sea": "sea_swell_loop", "deep": "sea_deep_loop", "wash": "hull_rush_loop", "gurgle": "hull_gurgle_loop",
 	"foam": "hull_foam_loop", "slap": "hull_slap_loop", "creak": "ship_creak_loop", "spray": "spray_hiss_loop",
 	"wind": "wind_loop", "rig": "rigging_wind_loop", "under": "underwater_loop", "jungle": "jungle_loop",
+	"snow": "snow_loop",
+	"desert": "desert_loop",
 }
 ## Each loop's level at full strength (the loops are all made about as loud as each other).
 const TOP_DB := {"shore": -8.5, "rock": -9.0, "far": -11.0, "lap": -13.0, "sea": -11.0, "deep": -9.0, "wash": -9.0,
 	"gurgle": -13.0, "foam": -17.0, "slap": -16.0, "creak": -15.0, "spray": -15.0, "wind": -12.5, "rig": -12.5,
-	"under": -7.0, "jungle": -13.0}
+	"under": -7.0, "jungle": -13.0,
+	"snow": -13.5,
+	"desert": -13.0}
 const ZONE_EVERY := 0.5
 ## CoastProbe's next bearing every PROBE_EVERY s (a sweep of all 16 in ~1.1 s).
 const PROBE_EVERY := 0.07

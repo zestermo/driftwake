@@ -18,23 +18,27 @@ static func steps(isl: GenIsland) -> Array:
 	return out
 
 
+## A miniboss beast at its site, off to one side of the site's middle (the jungle's alpha boar at the ruins:
+## "Boar"). A "camp" mini is a person, not a beast: IslandContent._camp makes him the camp's captain.
 static func _mini(isl: GenIsland, kind: String) -> void:
-	match kind:
-		"boar":
-			var c: Vector2 = isl.sites["ruins"]
-			var at: Vector2 = c + ((isl.sites["village"] as Vector2) - c).normalized().rotated(1.2) * 9.0
-			var b: JungleBeast = load(BeastPool.SCRIPTS["boar"]).new()
-			b.setup({"post": _ground(isl, at), "yaw": IslandContent._yaw_to(at, c), "level": IslandContent.level(isl), "name": BeastPool.mini_name(isl, "boar")})
-			b.name = "Boar"
-			isl.site_node("ruins").add_child(b)
-			b.global_position = b.post
-			b.reset_physics_interpolation()
+	var info := BeastPool.info(isl.theme, kind)
+	if info.get("camp", false):
+		return
+	var site: String = info["site"]
+	var c: Vector2 = isl.sites[site]
+	var at: Vector2 = c + ((isl.sites["village"] as Vector2) - c).normalized().rotated(1.2) * 9.0
+	var b: JungleBeast = load(info["script"]).new()
+	b.setup({"post": _ground(isl, at), "yaw": IslandContent._yaw_to(at, c), "level": IslandContent.level(isl), "name": BeastPool.mini_name(isl, kind)})
+	b.name = kind.to_pascal_case()
+	isl.site_node(site).add_child(b)
+	b.global_position = b.post
+	b.reset_physics_interpolation()
 
 
 static func _roamer(isl: GenIsland) -> void:
 	var lv := IslandContent.level(isl)
 	var home := BeastPool.roam_home(isl)
-	var r: JungleBeast = load(BeastPool.SCRIPTS[str(isl.node["roamer"])]).new()
+	var r: JungleBeast = load(BeastPool.info(isl.theme, str(isl.node["roamer"]))["script"]).new()
 	r.setup({"post": _ground(isl, home), "yaw": 0.0, "level": lv, "name": BeastPool.roamer_name(isl)})
 	r.set("waypoints", [_ground(isl, home), _ground(isl, isl.sites["ruins"] + Vector2(0, 14.0)), _ground(isl, isl.sites["lair"] + Vector2(16.0, 0)),
 		_ground(isl, (isl.sites["summit"] as Vector2).lerp(home, 0.3))])

@@ -88,7 +88,7 @@ static func build(gi: GenIsland, rng: RandomNumberGenerator) -> IslandVillage:
 	v.isl = gi
 	var site := gi.site_node("village")
 	site.add_child(v)
-	v.ctx = KitContext.make(gi, int(gi.node["seed"]), "jungle", LIGHTS, gi.build_ms).under(site)
+	v.ctx = KitContext.make(gi, int(gi.node["seed"]), gi.theme, LIGHTS, gi.build_ms).under(site)
 	v._build(rng)
 	return v
 
@@ -282,7 +282,11 @@ func _make(b: Dictionary) -> Dictionary:
 	var frame := {"beam": hs["beam"], "floor": hs["floor"], "poles": hs["poles"], "lashings": hs["lashings"], "eaves": hs["eaves"]}
 	var trim: Color = hs["trims"][0]
 	var n: Node3D
+	var own: Dictionary = ctx.style["village_models"]
 	match kind:
+		_ when own.has(kind) and raised == INF:
+			n = ctx.place(KitStyle.model(own[kind], rng, maxf(w, d)), p, yaw, r, 0.0, false)
+			n.name = _uniq(kind.capitalize())
 		"inn":
 			n = _house({"w": w, "d": d, "h": 2.7, "floors": 2, "h2": 2.3, "roof": "hip", "wall": ctx.style["inn"]["wall"], "wall2": mat["weave"], "roof_tex": mat["thatch"],
 				"porch": 2.0, "lantern": true, "lamp_light": true, "trim": trim, "sign": "sign_tavern", "seed": rng.randi(), "name": "Inn"}.merged(frame), p, face, raised)
@@ -392,7 +396,7 @@ func _gates() -> void:
 
 func _tower(i: int) -> void:
 	var tw: Dictionary = isl.village_plan["extra"]["towers"][i]
-	var tower := KitLandmarks.lookout_tower()
+	var tower := KitStyle.lookout(ctx.style, 6.0, hash(tw["p"]))
 	tower.name = _uniq("LookoutTower")
 	ctx.place(tower, tw["p"], KitContext.face_yaw(tw["face"]), 2.6, 0.0, false)
 
@@ -458,7 +462,7 @@ func _market() -> void:
 func _pave() -> void:
 	if not isl.village_plan["quads"].is_empty():
 		KitPaving.build(ctx, isl.village_plan["quads"])
-	var worn := KitPaving.build(ctx, isl.village_plan["worn"], "Worn", "dirt", Color(0.92, 0.85, 0.78))
+	var worn := KitPaving.build(ctx, isl.village_plan["worn"], "Worn", ctx.style["ground"]["dirt"], Color(0.92, 0.85, 0.78))
 	worn.position.y -= 0.02
 
 
@@ -518,7 +522,7 @@ func _define_board() -> void:
 func _define_elder(lvl: int) -> void:
 	var c: Chain = get_tree().get_first_node_in_group("world_gen").chain()
 	var ahead: Array = c.next_of(int(isl.node["id"])).map(func(id): return c.node(id))
-	var beyond := "Past us? %s." % " or ".join(ahead.map(func(n): return "%s, %s" % [n["name"], Chain.THEMES[n["theme"]]["blurb"]])) if not ahead.is_empty() else "Past us? The end of this sea, they say."
+	var beyond := "Past us? %s." % " or ".join(ahead.map(func(n): return "%s, %s" % [n["name"], IslandThemes.of(n["theme"]).blurb])) if not ahead.is_empty() else "Past us? The end of this sea, they say."
 	var menu := {"text": "What do you need, Captain?", "choices": [
 		{"text": "Tell me about this island.", "next": "about"},
 		{"text": "Where does the log pose point from here?", "next": "beyond"},
@@ -527,8 +531,7 @@ func _define_elder(lvl: int) -> void:
 		"intro": {"text": ["Visitors! It's been a long season. Welcome to %s." % isl.island_name,
 			"I'm %s. The board by the path has work, if you're the sort who takes it." % elder_name], "next": "menu"},
 		"menu": menu,
-		"about": {"text": ["The jungle feeds us and the jungle eats us. Pirates squat in the old camp, bugs nest inland, and the ruins are older than anyone remembers.",
-			"And something walks the far side of the island at night. Big. We don't go there."], "next": "menu"},
+		"about": {"text": LifePools.of(isl.theme)["elder_about"], "next": "menu"},
 		"beyond": {"text": [beyond, "Your needle needs time on an island before it sets on the next, or something to happen here worth remembering."], "next": "menu"},
 	}
 	for job in jobs.keys():

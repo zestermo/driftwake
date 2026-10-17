@@ -1,17 +1,30 @@
 extends SceneTree
-## The flipbook pilot's before/after (FX.flipbook_pilot) in the real world: each shot filmed
-## twice from the same camera at the game's pixel grid, the pilot off then on, frames along
+## The flipbook effects' before/after (FX.flipbooks) in the real world: each shot filmed
+## twice from the same camera at the game's pixel grid, the switch off then on, frames along
 ## the effect's life. Effects: "heavy" (a katana's heavy slam on a patch of dirt out on the
 ## water, from a game camera behind the captain) and "cannon" (the crew's sloop: a cannon going
 ## off, a ball bursting on the hull, a ball into the sea; all on the seaward side).
-## Args: <out_dir> [effects: heavy,cannon] [frames=8]. Env FLIP_HOUR (default 13; another hour
-## adds "_h<hour>" to the names). Writes <out_dir>/compare_<effect>.png: two rows per shot,
-## before (grey bar) over after (orange bar). Prints each run's bursts, particles and draw calls.
+## The other groups call one FX effect each on the dirt pad (or the sea past it), filmed from the side:
+## "ground" (dust, dust_ring, smoke, blood), "fire" (flame, fire_ring, fire_pillar, a campfire's
+## flame_emitter, chimney_smoke), "hits" (impact, parry, glint, gather, the dual tree's elem_hit,
+## powder_burst, cannon_blast), "water" (splash, spray).
+## Args: <out_dir> [effects: heavy,cannon,ground,fire,hits,water] [frames=8]. Env FLIP_HOUR (default 13;
+## another hour adds "_h<hour>" to the names). Writes <out_dir>/compare_<effect>.png: two rows per shot,
+## before (grey bar) over after (orange bar). Prints each run's bursts, particles and draw calls, and for
+## the single-call shots a COUNT line: exactly the bursts and particles that one call made.
 const TK := preload("res://tools/dev/test_kit.gd")
-const SHOTS := {"heavy": ["heavy"], "cannon": ["muzzle", "hull", "sea"]}
-const SPAN := {"heavy": 1.0, "muzzle": 1.8, "hull": 1.8, "sea": 1.4}
+const SHOTS := {"heavy": ["heavy"], "cannon": ["muzzle", "hull", "sea"], "ground": ["dust", "dust_ring", "smoke", "blood"],
+	"fire": ["flame", "fire_ring", "fire_pillar", "lick", "chimney"],
+	"hits": ["impact", "parry", "glint", "gather", "elem", "powder", "cannon_blast"], "water": ["splash", "spray"]}
+const SPAN := {"heavy": 1.0, "muzzle": 1.8, "hull": 1.8, "sea": 1.4, "smoke": 1.6, "fire_pillar": 1.4, "lick": 1.6,
+	"chimney": 4.0, "cannon_blast": 1.8, "powder": 1.0, "blood": 0.8}
 const CROP := Vector2i(360, 240)
 const PAD := Vector3(150, 2.5, -96)
+## Where the single-call shots go off (on the pad, in front of the captain) and the sea beyond it.
+const FX_AT := PAD + Vector3(0, 0, -5)
+const SEA_AT := PAD + Vector3(0, 0, -22)
+const FX_GROUPS := ["ground", "fire", "hits", "water"]
+const WIDE := ["fire_ring", "fire_pillar", "cannon_blast", "chimney"]
 
 var t := 0.0
 var p
@@ -39,6 +52,7 @@ var before: Dictionary = {}
 var seen: Dictionary = {}
 var base_draws := 0
 var peak_draws := 0
+var holder: Node3D
 
 
 func _initialize() -> void:
@@ -125,7 +139,7 @@ func _process(d: float) -> bool:
 			step = 2
 		2:
 			_setup()
-			root.get_node("FX").flipbook_pilot = run[2]
+			root.get_node("FX").flipbooks = run[2]
 			before.clear()
 			seen.clear()
 			for n in _bursts():
@@ -141,7 +155,7 @@ func _process(d: float) -> bool:
 			if not started:
 				started = bool(p.state_machine.current_state.get("impact_fx"))
 				return false
-			if not busy and imgs.size() < frames and since >= SPAN[run[1]] * float(imgs.size()) / float(frames - 1):
+			if not busy and imgs.size() < frames and since >= SPAN.get(run[1], 1.2) * float(imgs.size()) / float(frames - 1):
 				busy = true
 				_grab()
 			since += d
@@ -149,8 +163,10 @@ func _process(d: float) -> bool:
 				var parts := 0
 				for k in seen.keys():
 					parts += int(seen[k])
-				print("PERF %s pilot=%s bursts=%d particles=%d draws=+%d" % [run[1], run[2], seen.size(), parts, peak_draws - base_draws])
+				print("PERF %s flipbooks=%s bursts=%d particles=%d draws=+%d" % [run[1], run[2], seen.size(), parts, peak_draws - base_draws])
 				(rows[run[0]] as Array).append([run[1], run[2], imgs.duplicate()])
+				if is_instance_valid(holder):
+					holder.queue_free()
 				step = 1
 	return false
 
@@ -165,6 +181,17 @@ func _setup() -> void:
 		p.player_model.rotation.y = 0.0
 		cam.look_at_from_position(PAD + Vector3(1.6, 2.5, 4.4), PAD + Vector3(0, 0.6, -1.4), Vector3.UP)
 		focus = PAD + Vector3(0, 0.4, -1.3)
+		return
+	if run[0] in FX_GROUPS:
+		p.state_machine.force_state("Idle", {})
+		p.global_position = PAD + Vector3(0, 0.1, 0)
+		p.velocity = Vector3.ZERO
+		p.reset_physics_interpolation()
+		var at := _fx_at()
+		var back := 7.5 if run[1] in WIDE else 4.5
+		var up := 2.5 if run[1] in WIDE else 1.6
+		cam.look_at_from_position(at + Vector3(back * 0.75, up, back * 0.66), at + Vector3(0, 1.0, 0), Vector3.UP)
+		focus = at + Vector3(0, 1.2 if run[1] in WIDE else 0.9, 0)
 		return
 	p.global_position = PAD + Vector3(0, 0.1, 0)
 	p.velocity = Vector3.ZERO
@@ -187,8 +214,76 @@ func _setup() -> void:
 			focus = Vector3(at.x, 1.0, at.z)
 
 
+func _fx_at() -> Vector3:
+	if run[0] != "water":
+		return FX_AT
+	var oc = root.get_node("Ocean")
+	return Vector3(SEA_AT.x, float(oc.get_wave_height(SEA_AT, oc.clock())), SEA_AT.z)
+
+
+## One FX call, with exactly what it made (bursts and emitters, made synchronously by the call).
+func _single(fx) -> void:
+	var at := _fx_at()
+	var up := Vector3.UP
+	var side := Vector3(1, 0.3, 0).normalized()
+	var old := {}
+	for n in _bursts():
+		old[n.get_instance_id()] = true
+	match run[1]:
+		"dust":
+			fx.dust(at + up * 0.05, 6, 0.6)
+		"dust_ring":
+			fx.dust_ring(at, 12, 0.7)
+		"smoke":
+			fx.smoke(at + up, 6, 0.8, 1.6)
+		"blood":
+			fx.blood(at + up * 1.2, side, 12)
+		"flame":
+			fx.flame(at + up * 0.3, 10, 0.6, 0.55)
+		"fire_ring":
+			fx.fire_ring(at, 4.0, 40)
+		"fire_pillar":
+			fx.fire_pillar(at, 7.0)
+		"lick", "chimney":
+			holder = Node3D.new()
+			root.get_tree().current_scene.add_child(holder)
+			holder.global_position = at + (up * 0.2 if run[1] == "lick" else up * 0.5)
+			if run[1] == "lick":
+				fx.flame_emitter(holder, 0.3, 14, 0.55, 0.6)
+			else:
+				fx.chimney_smoke(holder, Vector3.ZERO)
+		"impact":
+			fx.impact(at + up, Color(1.0, 0.9, 0.55))
+		"parry":
+			fx.parry_sparks(at + up * 1.2, side)
+		"glint":
+			fx.glint(at + up * 1.2, fx.tree_col("katana", fx.EDGE), 0.8)
+		"gather":
+			fx.gather(at + up, 1.2, fx.tree_col("sword", fx.EDGE), 0.4)
+		"elem":
+			fx.elem_hit("dual", at + up, side)
+		"powder":
+			fx.powder_burst(at + up, side, 1.0)
+		"cannon_blast":
+			fx.cannon_blast(at, 1.5, fx.tree_col("corsair", fx.EDGE))
+		"splash":
+			fx.splash(at, 6, 0.8)
+		"spray":
+			fx.spray(at + up * 0.8, side, 12, fx.tree_col("sword", fx.ACCENT), 6.0)
+	var n := 0
+	var parts := 0
+	for b in _bursts():
+		if not old.has(b.get_instance_id()):
+			n += 1
+			parts += b.amount
+	print("COUNT %s flipbooks=%s bursts=%d particles=%d" % [run[1], run[2], n, parts])
+
+
 func _trigger() -> void:
 	var fx = root.get_node("FX")
+	if run[0] in FX_GROUPS:
+		_single(fx)
+		return
 	match run[1]:
 		"heavy":
 			p.state_machine.force_state("HeavyAttack", {})

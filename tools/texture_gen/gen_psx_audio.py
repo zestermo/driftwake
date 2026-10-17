@@ -1291,6 +1291,116 @@ def wind_gust_takes(count=3):
         _write_shot(f"wind_gust_{k + 1}", roar + breath + whistle, -19.0, fade=0.5)
 
 
+# --- the desert and the snow (2026-10-15): dry wind over dunes, cold wind through pines,
+# a sandstorm, a blizzard (Ambience beds for the island themes; the storms for Weather) ---
+
+def _far_cry(rng, f0, f1, dur, vib=0.0):
+    """A bird's cry a long way off: a tone gliding f0 -> f1 with a little of its octave."""
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    f = np.interp(t, [0, dur], [f0, f1]) * (1 + vib * np.sin(2 * np.pi * 7.0 * t))
+    tone = np.sin(2 * np.pi * np.cumsum(f) / SR) + 0.3 * np.sin(2 * np.pi * np.cumsum(2 * f) / SR)
+    return tone * np.sin(np.pi * t / dur) ** 1.2
+
+
+def _wolf_howl(rng, dur=2.4):
+    """A wolf: a tone rising then falling slowly, vibrato, a little breath."""
+    n = int(SR * dur)
+    t = np.arange(n) / SR
+    f = np.interp(t, [0, 0.3 * dur, 0.55 * dur, dur], [300, 520, 490, 340])
+    f = f * (1 + 0.01 * np.sin(2 * np.pi * 5.0 * t))
+    ph = np.cumsum(2 * np.pi * f / SR)
+    tone = np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.12 * np.sin(3 * ph)
+    breath = lpf(rng.standard_normal(n), 0.2) * 0.3
+    env = np.minimum(1, t / 0.2) * np.clip((dur - t) / (0.4 * dur), 0, 1) ** 1.5
+    return (tone + breath) * env
+
+
+def desert_loop(seconds=47.0):
+    """The desert's wilds: a dry wind over the dunes in long slow gusts, sand hissing off the
+    crests on the strong ones, a dry insect's rasp now and then, a vulture far off. No rain."""
+    rng = np.random.default_rng(1015)
+    n = int(SR * seconds)
+    gust = 0.25 + 0.75 * _cenv(n, rng, 0.08) ** 1.6
+    flutter = 0.8 + 0.2 * _cenv(n, rng, 3.0)
+    out = _cband(n, rng, 50, 420, tilt=0.8) * 0.8 * gust * flutter
+    out += _cband(n, rng, 350, 1900) * 0.45 * gust ** 1.5 * flutter
+    out += _cband(n, rng, 2200, 6800) * (0.4 + 0.6 * _cenv(n, rng, 6.0)) * gust ** 2.5 * 0.3
+    for _ in range(4):
+        L = int(rng.uniform(0.8, 1.8) * SR)
+        tt = np.arange(L) / SR
+        pulse = (0.5 + 0.5 * np.sin(2 * np.pi * rng.uniform(28, 40) * tt)) ** 4
+        buzz = _cband(L, rng, 3200, 4600) * pulse * np.sin(np.pi * tt / (L / SR)) ** 0.6
+        _place(out, buzz * rng.uniform(0.07, 0.14), rng.integers(0, n))
+    for _ in range(2):
+        cry = _far_cry(rng, rng.uniform(1500, 1800), rng.uniform(1000, 1200), rng.uniform(0.5, 0.8), vib=0.01)
+        _place(out, lpf(cry, 0.3) * rng.uniform(0.12, 0.2), rng.integers(0, n))
+    _write_loop("desert_loop", out)
+
+
+def snow_loop(seconds=50.0):
+    """Snowfields and pines: a cold wind that whistles on its gusts, the needles' hush rising with
+    it, ice groaning now and then, snow slumping off a branch, one wolf a long way off."""
+    rng = np.random.default_rng(1023)
+    n = int(SR * seconds)
+    gust = 0.2 + 0.8 * _cenv(n, rng, 0.1) ** 1.8
+    out = _cband(n, rng, 70, 500, tilt=0.6) * 0.6 * gust
+    out += _cband(n, rng, 400, 1500) * 0.4 * gust ** 1.4
+    out += (_cband(n, rng, 820, 870) + 0.6 * _cband(n, rng, 1240, 1300)) * 0.22 * gust ** 3
+    out += _cband(n, rng, 1600, 4800) * (0.5 + 0.5 * _cenv(n, rng, 4.0)) * gust ** 2 * 0.22
+    for _ in range(3):
+        c = _stick_slip(rng, rng.uniform(0.9, 1.8), 14, 50, [(380, 7, 1.0), (1150, 10, 0.5), (2300, 12, 0.3)])
+        _place(out, c * rng.uniform(0.25, 0.45), rng.integers(0, n))
+    for _ in range(3):
+        L = int(rng.uniform(0.5, 0.9) * SR)
+        tt = np.arange(L) / SR
+        slump = _cband(L, rng, 150, 1200) * np.exp(-tt * 5) * np.minimum(1, tt / 0.03)
+        slump += _cband(L, rng, 2000, 5000) * np.exp(-tt * 9) * 0.3 * np.minimum(1, tt / 0.05)
+        _place(out, slump * rng.uniform(0.2, 0.4), rng.integers(0, n))
+    _place(out, lpf(_wolf_howl(rng), 0.12) * 0.12, rng.integers(0, n))
+    _write_loop("snow_loop", out)
+
+
+def sandstorm_loop(seconds=41.0):
+    """A sandstorm: the wind never lets up - a deep roar, a thick breathy middle, sand hissing
+    and grit rattling against everything, all surging in waves."""
+    rng = np.random.default_rng(1031)
+    n = int(SR * seconds)
+    surge = 0.6 + 0.4 * _cenv(n, rng, 0.15)
+    flutter = 0.85 + 0.15 * _cenv(n, rng, 2.5)
+    out = _cband(n, rng, 35, 300, tilt=1.0) * 0.9 * surge * flutter
+    out += _cband(n, rng, 250, 1600) * 0.6 * surge ** 1.3 * flutter
+    out += _cband(n, rng, 1800, 6500) * 0.28 * surge ** 2 * (0.6 + 0.4 * _cenv(n, rng, 8.0))
+    grit = np.zeros(n)
+    for _ in range(int(seconds * 400)):
+        L = int(rng.integers(12, 60))
+        g = hpf(rng.standard_normal(L), 0.45) * np.exp(-np.arange(L) / (L / 4)) * rng.uniform(0.1, 0.5)
+        _place(grit, g, rng.integers(0, n))
+    out += _norm(grit) * 0.3 * surge ** 1.5
+    _write_loop("sandstorm_loop", out)
+
+
+def blizzard_loop(seconds=43.0):
+    """A blizzard: a hard cold wind whistling on three edges, snow hissing past in sheets, the
+    roar swelling in waves, a sweep of the gale howling through now and then."""
+    rng = np.random.default_rng(1039)
+    n = int(SR * seconds)
+    surge = 0.55 + 0.45 * _cenv(n, rng, 0.12)
+    out = _cband(n, rng, 45, 350, tilt=0.8) * 0.8 * surge
+    out += _cband(n, rng, 300, 1700) * 0.55 * surge ** 1.3
+    out += (_cband(n, rng, 760, 810) + 0.7 * _cband(n, rng, 1120, 1180) + 0.4 * _cband(n, rng, 1650, 1720)) * 0.3 * surge ** 2
+    out += _cband(n, rng, 2500, 7000) * 0.22 * surge ** 1.6 * (0.6 + 0.4 * _cenv(n, rng, 10.0))
+    for _ in range(5):
+        L = int(rng.uniform(1.5, 2.6) * SR)
+        tt = np.arange(L) / SR
+        bell = np.sin(np.pi * tt / (L / SR)) ** 2
+        f = rng.uniform(500, 700) * (1 + 1.2 * bell)
+        tone = np.sin(2 * np.pi * np.cumsum(f) / SR) * 0.5 + np.sin(2 * np.pi * np.cumsum(f * 1.5) / SR) * 0.25
+        sweep = (tone * 0.4 + _cband(L, rng, 400, 1800)) * bell
+        _place(out, sweep * rng.uniform(0.2, 0.35), rng.integers(0, n))
+    _write_loop("blizzard_loop", out)
+
+
 def thunder_sound(name="thunder", seed=231, dur=4.5, crack=1.0):
     """Thunder: a sharp crack (close strikes) rolling into long low rumbles."""
     rng = np.random.default_rng(seed)
@@ -1316,9 +1426,10 @@ def thunder_sound(name="thunder", seed=231, dur=4.5, crack=1.0):
 # combat sounds (FX picks one at random), softer UI tones
 # --------------------------------------------------------------------------
 
-STEP_SURFACES = ("sand", "grass", "dirt", "stone", "wood", "water")
+STEP_SURFACES = ("sand", "grass", "dirt", "stone", "wood", "water", "snow", "ice")
 STEP_TAKES = 4
-STEP_LUFS = {"sand": -21.0, "grass": -22.0, "dirt": -20.0, "stone": -19.5, "wood": -19.0, "water": -19.0}
+STEP_LUFS = {"sand": -21.0, "grass": -22.0, "dirt": -20.0, "stone": -19.5, "wood": -19.0, "water": -19.0,
+             "snow": -21.0, "ice": -19.5}
 
 
 def _step_contact(surface, rng, n, t, k, s):
@@ -1356,6 +1467,21 @@ def _step_contact(surface, rng, n, t, k, s):
             c = _stick_slip(rng, 0.14, 70, 140, [(620, 8, 1.0), (1350, 10, 0.4)])
             out += _delay(np.pad(c, (0, n - len(c))), 0.05) * 0.12
         return out * s
+    if surface == "snow":
+        th = _thump(t, 95, 60, 0.02, 28, 0.005) * 0.4
+        cr = _grains(n, rng, int(110 * s) + 20, 0.0, 0.11, _noise(n, rng, 1400, 5500), (0.0006, 0.0025)) * np.exp(-t * 14)
+        pack = _noise(n, rng, 250, 1400) * _churn(n, rng, 90) * np.minimum(1, t / 0.01) * np.exp(-t * 22) * 0.45
+        out = th + cr * 1.1 + pack
+        if k == 1 and s == 1.0:  # (one take in four: cold snow squeaks under the heel)
+            out += np.sin(2 * np.pi * rng.uniform(1700, 2300) * t) * np.exp(-t * 60) * np.minimum(1, t / 0.008) * 0.12
+        return out * s
+    if surface == "ice":
+        click = _noise(n, rng, 1800, 6500) * np.exp(-t * 320) * np.minimum(1, t / 0.0002) * 0.6
+        ring = _modes(t, rng, [(rng.uniform(1700, 2100), 0.35, 45), (rng.uniform(2900, 3400), 0.22, 60),
+                               (rng.uniform(4300, 4900), 0.12, 80)])
+        th = _thump(t, 190, 115, 0.01, 60, 0.001) * 0.5
+        shards = _scatter_bursts(n, rng, 5, 0.0, 0.06, 3000, 6000, 20, 60) * 0.12
+        return (click + ring + th + shards) * s
     # wading: a slosh, a bloop and a few drips (one contact)
     slosh = _noise(n, rng, 220, 2400) * _churn(n, rng, 25) * np.minimum(1, t / 0.02) * np.exp(-t * 9) * 0.8
     plunge = _thump(t, 160, 320, 0.06, 25, 0.006) * 0.35
@@ -2055,6 +2181,8 @@ SOUNDS = [
     ("shot_hit", shot_hit_takes),
     ("clash", clash_takes),
     ("step", lambda: [step_takes(s) for s in STEP_SURFACES]),
+    ("step_snow", lambda: step_takes("snow")),
+    ("step_ice", lambda: step_takes("ice")),
     ("jump", jump_sound),
     ("land", land_takes),
     ("skid", skid_sound),
@@ -2105,6 +2233,10 @@ SOUNDS = [
     ("gull_cry", gull_cry_takes),
     ("jungle_bird", jungle_bird_takes),
     ("wind_gust", wind_gust_takes),
+    ("desert_loop", desert_loop),
+    ("snow_loop", snow_loop),
+    ("sandstorm_loop", sandstorm_loop),
+    ("blizzard_loop", blizzard_loop),
     ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),
     ("thunder_far", lambda: thunder_sound("thunder_far", 237, 5.0, 0.15)),
     ("gull", gull_sound),

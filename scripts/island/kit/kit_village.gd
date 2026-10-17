@@ -435,7 +435,12 @@ static func build_items(ctx: KitContext, items: Array, range_end := 130.0) -> Ar
 		var p: Vector2 = it["p"]
 		var yaw: float = it.get("yaw", 0.0)
 		var n: Node3D = null
+		var own: Dictionary = ctx.style["item_models"]
 		match str(it["k"]):
+			_ when own.has(str(it["k"])):
+				n = ctx.place(KitStyle.model(own[it["k"]], _seeded(hash(p)), 1.0), p, yaw, 0.8, 0.0, false)
+				if it.get("lit", false):
+					KitLights.light(ctx, n, (n.get_node("Flame") as Node3D).position, 1.3, 9.0)
 			"laundry":
 				laundry(ctx, it["a"], it["b"], _seeded(int(it["seed"])))
 			"garden":

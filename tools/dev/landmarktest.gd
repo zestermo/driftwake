@@ -99,6 +99,8 @@ func _process(d: float) -> bool:
 			# the first island again, with a waterfall, the great tree and a wreck, and a cenote
 			var id: int = world.chain().start_next[0]
 			var n: Dictionary = world.chain().node(id)
+			# (a jungle island: a theme's own places stand in for the chain's, the snow's for the great tree)
+			n.merge({"theme": "jungle", "beast": "serpent", "beast_look": 0, "beast_name": "Old Coil", "minis": ["boar"], "roamer": "behemoth"}, true)
 			n["setpiece"] = "cenote"
 			n["landmarks"] = ["waterfall", "great_tree", "wreck", "temple"]
 			n["landmark_count"] = 3

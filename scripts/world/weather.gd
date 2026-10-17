@@ -47,6 +47,12 @@ var waves: float = 1.0
 var fog: float = 0.0
 var night: float = 0.0
 var state: int = W.CLEAR
+## Snow falling (0..1: SNOW_LIGHT always on a snow island, heavy in its rain and storm slots) and blowing
+## sand (a desert's sandstorm), by place like the rest; murk is how far either closes the view in.
+var snow: float = 0.0
+var sand: float = 0.0
+var murk: float = 0.0
+const SNOW_LIGHT := 0.22
 var sun_dir := Vector3(0, 1, 0)
 var in_cloud: float = 0.0
 var flash: float = 0.0
@@ -69,6 +75,9 @@ var _rain: GPUParticles3D
 var _rays: MultiMeshInstance3D
 var _ray_mat: ShaderMaterial
 var _rain_snd: AudioStreamPlayer
+var _sand_snd: AudioStreamPlayer
+var _blizzard_snd: AudioStreamPlayer
+var _precip: PrecipFX
 ## The surf, sea, ship and wind sounds (they follow the weather's wind too),
 ## and what you see of them (wind streaks, crest spray, surf bursts).
 var _ambience: Ambience
@@ -205,16 +214,29 @@ func _natural(t: float, odds: Array = HOME_ODDS) -> Array:
 ## The weather where the camera is: home's, blended into a themed island's
 ## odds and haze over its reach (KitStyle.around).
 func _params_here(t: float) -> Array:
-	var p := _params_at(t)
-	var k := float(_zone[1])
+	return params_in(t, _zone_style, float(_zone[1]))
+
+
+## The weather at world time `t` in style `st` held with weight `k` over home's: PARAMS' six, then snow and sand.
+## A theme whose fall isn't rain turns its rain and storm slots' rain into its snow or its sandstorm.
+func params_in(t: float, st: Dictionary, k: float) -> Array:
+	# (a slot's params are PARAMS' own read-only row)
+	var p: Array = _params_at(t).duplicate()
+	p.append_array([0.0, 0.0])
 	if k <= 0.0:
 		return p
-	# (a slot's params are PARAMS' own read-only row)
-	p = p.duplicate()
-	var q := _params_at(t, _zone_style["weather"])
+	var q: Array = _params_at(t, st["weather"]).duplicate()
+	var fall := float(q[1])
+	var kind: String = st["precip"]
+	if kind != "rain":
+		q[1] = 0.0
 	for i in range(6):
 		p[i] = lerpf(float(p[i]), float(q[i]), k)
-	p[5] = minf(float(p[5]) + float(_zone_style["haze"]) * k, 1.0)
+	p[5] = minf(float(p[5]) + float(st["haze"]) * k, 1.0)
+	if kind == "snow":
+		p[6] = maxf(fall, SNOW_LIGHT) * k
+	elif kind == "sand":
+		p[7] = fall * k
 	return p
 
 
@@ -247,7 +269,18 @@ func force(s: int) -> void:
 func _apply_force(s: int, at: float) -> void:
 	forced = s
 	forced_at = at
-	get_tree().call_group("hud", "show_toast", "Weather: %s" % ("natural cycle" if s < 0 else NAMES[s]))
+	get_tree().call_group("hud", "show_toast", "Weather: %s" % ("natural cycle" if s < 0 else state_name(s)))
+
+
+## A state's name where you are: a snow island's rain is heavy snow and its storm a blizzard, a desert's both sandstorms.
+func state_name(s: int) -> String:
+	if float(_zone[1]) > 0.5 and s >= W.RAIN:
+		match str(_zone_style["precip"]):
+			"snow":
+				return "Heavy snow" if s == W.RAIN else "Blizzard"
+			"sand":
+				return "Blowing sand" if s == W.RAIN else "Sandstorm"
+	return NAMES[s]
 
 
 # --------------------------------------------------------------------------
@@ -293,6 +326,7 @@ func _detach() -> void:
 	_sun = null
 	_clouds = null
 	_rain = null
+	_precip = null
 	_rays = null
 	_bolt = null
 	var oc := get_node_or_null("/root/Ocean")
@@ -301,8 +335,9 @@ func _detach() -> void:
 	if _layer and is_instance_valid(_layer):
 		_layer.queue_free()
 	_layer = null
-	if _rain_snd and is_instance_valid(_rain_snd):
-		_rain_snd.stop()
+	for snd in [_rain_snd, _sand_snd, _blizzard_snd]:
+		if snd and is_instance_valid(snd):
+			snd.stop()
 	if _ambience and is_instance_valid(_ambience):
 		_ambience.queue_free()
 	_ambience = null
@@ -359,6 +394,9 @@ func _update_slow(t: float) -> void:
 	wind = p[3]
 	waves = p[4]
 	fog = p[5]
+	snow = p[6]
+	sand = p[7]
+	murk = maxf(smoothstep(0.35, 1.0, snow), smoothstep(0.2, 0.9, sand))
 	# out at sea: inside a storm cell or a fog bank (SeaFeatures)
 	var sf := get_tree().get_first_node_in_group("sea_features")
 	if sf and cam:
@@ -466,13 +504,33 @@ func _update_sun(h: float) -> void:
 		_sun.global_basis = Basis.looking_at(-light_dir.normalized(), Vector3.UP if absf(light_dir.y) < 0.98 else Vector3.FORWARD)
 		var e := _sun_e * (1.0 - storm * 0.72) * (1.0 - in_cloud * 0.6)
 		_sun.light_energy = e + flash * 2.5
-		_sun.light_color = _sun_col.lerp(Color(0.75, 0.8, 0.9), storm * 0.6)
+		var storm_light := STORM_LIGHT.lerp((_zone_style["storm_color"] as Color).lightened(0.35), float(_zone[1]))
+		_sun.light_color = _sun_col.lerp(storm_light, storm * 0.6)
 		_sun.shadow_enabled = e > 0.12
 
 
+## Home's storm sky and storm light; a themed island's storm_color takes over across its reach.
+const STORM_GREY := Color(0.36, 0.38, 0.42)
+const STORM_LIGHT := Color(0.75, 0.8, 0.9)
+
+
+## The fog's colour from the horizon's: leaning to the place's haze_color (by its alpha x weight `k`) and, as a heavy
+## fall or a sandstorm closes in (`mk`), to its storm colour; both dim with the night.
+func haze_here(hor: Color, st: Dictionary, k: float, mk: float) -> Color:
+	var hz: Color = st["haze_color"]
+	var dim := lerpf(1.0, 0.2, night)
+	var c := hor.lerp(Color(hz.r * dim, hz.g * dim, hz.b * dim), hz.a * k)
+	var sc := (st["storm_color"] as Color).lightened(0.2)
+	return c.lerp(Color(sc.r * dim, sc.g * dim, sc.b * dim), mk)
+
+
 func _update_env() -> void:
-	var grey := Color(0.36, 0.38, 0.42)
+	var zk := float(_zone[1])
+	var grey := STORM_GREY.lerp(_zone_style["storm_color"], zk)
 	var top := _top.lerp(grey * (1.0 - night * 0.75), storm * 0.7)
+	# (a hazy place's sky pales toward its haze overhead too: a snow island's white, a desert's dusty pale blue)
+	var hz: Color = _zone_style["haze_color"]
+	top = top.lerp(Color(hz.r, hz.g, hz.b) * lerpf(1.0, 0.2, night), hz.a * zk * 0.4)
 	var hor := _hor.lerp(grey * 1.2 * (1.0 - night * 0.75), storm * 0.7)
 	if _sky_mat:
 		_sky_mat.set_shader_parameter("top_color", top)
@@ -494,12 +552,15 @@ func _update_env() -> void:
 		var amb := _amb.lerp(Color(0.42, 0.44, 0.5).lerp(Color(0.3, 0.34, 0.5), night), storm * 0.5)
 		_env.ambient_light_color = amb
 		_env.ambient_light_energy = maxf(_amb_e * (1.0 - storm * 0.3), AMBIENT_FLOOR / amb.get_luminance()) + flash * 1.5
-		var fogc := hor.lerp(Color(0.85, 0.88, 0.92), in_cloud)
+		var fogc := haze_here(hor, _zone_style, zk, murk).lerp(Color(0.85, 0.88, 0.92), in_cloud)
 		_env.fog_light_color = fogc
 		# Long-range fog: the sea is fully fogged well inside its edge (1 km),
 		# and the sky shader hazes into the same colour at the horizon.
 		var begin := lerpf(110.0, 28.0, fog)
 		var end := lerpf(820.0, 240.0, fog)
+		# (a whiteout or a sandstorm: the next house is a shape in it)
+		begin = lerpf(begin, 2.0, murk)
+		end = lerpf(end, 65.0, murk)
 		begin = lerpf(begin, 0.0, in_cloud)
 		end = lerpf(end, 28.0, in_cloud)
 		_env.fog_depth_begin = begin
@@ -509,7 +570,8 @@ func _update_env() -> void:
 		fog_color = fogc
 		fog_begin = begin
 		fog_end = end
-		haze_height = lerpf(lerpf(0.09, 0.3, fog), 1.6, in_cloud)
+		var hazed := float((_zone_style["haze_color"] as Color).a) * zk * 0.3
+		haze_height = lerpf(lerpf(lerpf(0.09, 0.3, fog) + hazed, 1.3, murk), 1.6, in_cloud)
 		RenderingServer.global_shader_parameter_set("sky_haze", Vector4(fogc.r, fogc.g, fogc.b, haze_height))
 		RenderingServer.global_shader_parameter_set("fog_range", Vector2(begin, end))
 	if _ocean_mat:
@@ -605,6 +667,9 @@ func _build_rain() -> void:
 	_rain.draw_pass_1 = mesh
 	_scene.add_child(_rain)
 	_scene.add_child(RainFX.make(_rain))
+	_precip = PrecipFX.new()
+	_precip.name = "PrecipFX"
+	_scene.add_child(_precip)
 
 
 func _update_rain(delta: float) -> void:
@@ -712,7 +777,8 @@ func _update_lightning(t: float, delta: float) -> void:
 		if float(th[0]) <= 0.0:
 			_thunder_q.erase(th)
 			FX_sfx("thunder_far" if th[1] else "thunder", -4.0 if th[1] else 0.0)
-	if storm < 0.55:
+	# (no lightning in a blizzard or a sandstorm)
+	if (storm if _zone_style["precip"] == "rain" else storm * (1.0 - float(_zone[1]))) < 0.55:
 		return
 	var tick := int(floor(t * 2.0))
 	if tick == _last_strike:
@@ -784,6 +850,8 @@ func FX_sfx(name_: String, db: float) -> void:
 func _build_audio() -> void:
 	if _rain_snd == null:
 		_rain_snd = _loop_player("res://assets/audio/rain_loop.wav")
+		_sand_snd = _loop_player("res://assets/audio/sandstorm_loop.wav")
+		_blizzard_snd = _loop_player("res://assets/audio/blizzard_loop.wav")
 	if _ambience == null:
 		_ambience = Ambience.new()
 		_ambience.name = "Ambience"
@@ -811,8 +879,11 @@ func _loop_player(path: String) -> AudioStreamPlayer:
 
 
 func _update_audio(delta: float) -> void:
-	var rv := rain * (1.0 - _shelter * 0.5)
-	_set_loop(_rain_snd, rv, -6.0, delta)
+	var cover := 1.0 - _shelter * 0.5
+	_set_loop(_rain_snd, rain * cover, -6.0, delta)
+	_set_loop(_sand_snd, sand * cover, -6.0, delta)
+	# (a light fall is quiet: the bed is for a heavy one and the blizzard)
+	_set_loop(_blizzard_snd, smoothstep(SNOW_LIGHT, 1.0, snow) * cover, -6.0, delta)
 
 
 func _set_loop(p: AudioStreamPlayer, k: float, top_db: float, delta: float) -> void:

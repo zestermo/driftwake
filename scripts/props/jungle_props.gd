@@ -1,6 +1,6 @@
 class_name JungleProps
 extends RefCounted
-## The jungle style's props (KitStyle.JUNGLE "props"): woven baskets, clay pots,
+## The jungle style's props (JungleTheme's style "props" slots, made through ThemeDef.props): woven baskets, clay pots,
 ## bamboo tiki torches and carved totems. Same conventions as Props: origin on the
 ## ground, front +Z, a simple collider. Shading is vertex colour on shared materials.
 

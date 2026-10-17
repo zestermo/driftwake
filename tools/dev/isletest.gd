@@ -167,7 +167,7 @@ func _process(d: float) -> bool:
 			var ks = load("res://scripts/island/kit/kit_style.gd")
 			var missing: Array = []
 			var rng := RandomNumberGenerator.new()
-			for sn in ks.STYLES.keys():
+			for sn in ks.styles().keys():
 				var st: Dictionary = ks.of(sn)
 				for k in ks.BRINEHOLLOW.keys():
 					if not st.has(k):
@@ -308,17 +308,23 @@ func _process(d: float) -> bool:
 				WorkerThreadPool.wait_for_task_completion(e["task"])
 				TK.use_seed(self, e["seed"])
 				_land(e["isl"], "[%s] " % e["n"]["name"])
+				# (an open-ground theme's beasts fight in the open: no canopy arena to check)
+				e.erase("task")
+				if load("res://scripts/island/kit/kit_style.gd").of(str(e["n"]["theme"]))["arena"] != "canopy":
+					continue
 				e["arena"] = _with_arena(e["isl"])
 				e["task"] = WorkerThreadPool.add_task(e["arena"].prepare.bind(e["n"]))
 			step = 6
 		6:
-			if not preps.all(func(e): return WorkerThreadPool.is_task_completed(e["task"])):
+			if not preps.all(func(e): return not e.has("task") or WorkerThreadPool.is_task_completed(e["task"])):
 				return false
 			for e in preps:
+				e["isl"].free()
+				if not e.has("arena"):
+					continue
 				WorkerThreadPool.wait_for_task_completion(e["task"])
 				TK.use_seed(self, e["seed"])
 				_arena(e["arena"], "[%s] " % e["n"]["name"])
-				e["isl"].free()
 				e["arena"].free()
 			finish()
 	return false
@@ -326,7 +332,8 @@ func _process(d: float) -> bool:
 
 ## What prepare alone decides: the land, the sea round it, the berth, the cliffs, the sites.
 func _land(isl, tag: String) -> void:
-	check(tag + "600-900 m across", isl.radius >= 300.0 and isl.radius <= 450.0)
+	var span: Array = load("res://scripts/island/themes/island_themes.gd").of(isl.theme).radius
+	check(tag + "its theme's size across", isl.radius >= float(span[0]) and isl.radius <= float(span[1]))
 	var mid_land := false
 	for k in range(12):
 		var q := Vector2.from_angle(k * TAU / 12.0) * 40.0

@@ -12,6 +12,10 @@ Usage (from the project root):
 
 Output: assets/textures/psx/*.png
 Tweak the palettes / parameters below and re-run to restyle the island.
+
+A theme's textures live in their own generator (tools/texture_gen/gen_<theme>_textures.py) that
+imports the helpers from here (from gen_psx_textures import save, fbm, norm, ramp, pal, hexc,
+to_img, periodic_noise, planks) and runs on its own; nothing here runs on import.
 """
 from __future__ import annotations
 
@@ -85,6 +89,7 @@ def to_img(rgb: np.ndarray, alpha: np.ndarray | None = None) -> Image.Image:
 
 
 def save(img: Image.Image, name: str) -> None:
+    os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, name + ".png")
     img.save(path)
     print("  wrote", os.path.relpath(path, ROOT), img.size)

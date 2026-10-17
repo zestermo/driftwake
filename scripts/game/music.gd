@@ -25,6 +25,14 @@ const TRACKS := {
 	"sea_night": ["res://assets/audio/music_sea_night.ogg", 80],
 	"combat": ["res://assets/audio/music_combat.ogg", 32],
 	"boss": ["res://assets/audio/music_boss.ogg", 32],
+	"snow": ["res://assets/audio/music_snow.ogg", 56],
+	"snow_night": ["res://assets/audio/music_snow_night.ogg", 56],
+	"snow_town": ["res://assets/audio/music_snow_town.ogg", 64],
+	"snow_town_night": ["res://assets/audio/music_snow_town_night.ogg", 64],
+	"desert": ["res://assets/audio/music_desert.ogg", 48],
+	"desert_night": ["res://assets/audio/music_desert_night.ogg", 48],
+	"desert_town": ["res://assets/audio/music_desert_town.ogg", 64],
+	"desert_town_night": ["res://assets/audio/music_desert_town_night.ogg", 64],
 }
 const FIGHTS := ["combat", "boss"]
 const VICTORY := "res://assets/audio/music_victory.ogg"
@@ -224,9 +232,9 @@ func _pick(dt: float) -> String:
 	# swimming: whatever was on (the sea stays the sea)
 	if me.has_method("is_swimming") and me.is_swimming():
 		var was := context_of(current)
-		return was if was in ["sea", "island", "village"] else "island"
+		return was if was not in ["", "title"] and was not in FIGHTS else "island"
 	if in_village(tree, pos):
-		return "village"
+		return KitStyle.of(KitStyle.around(tree, pos)[0])["music_town"]
 	# ashore on a chain island: its style's track
 	var zone := KitStyle.around(tree, pos)
 	if float(zone[1]) > 0.5:

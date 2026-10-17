@@ -52,7 +52,8 @@ func _spawn_all() -> void:
 		c["patrol"] = patrol
 		if c.has("hold"):
 			c["hold"] = [to_global(c["hold"][0]), c["hold"][1]]
-		var g := PirateGrunt.new()
+		# (a setup's "script": a grunt of its own kind, the desert's bandit chief)
+		var g: PirateGrunt = load(c["script"]).new() if c.has("script") else PirateGrunt.new()
 		g.name = "G%d_%d" % [gen, i]
 		i += 1
 		g.setup(c)

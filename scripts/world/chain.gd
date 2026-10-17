@@ -26,18 +26,11 @@ const BEND := 0.22
 const RING := [2000.0, 7500.0]
 ## A layer's islands keep this far from the layer before's (m).
 const APART := 1150.0
+## The island radius the legs, forks and APART are sized for (the jungle's top end): a theme whose islands
+## reach further (ThemeDef.radius) pushes its fork partner and the next layer out by the difference.
+const BASE_R := 450.0
 
-const THEMES := {
-	"jungle": {"name": "Jungle", "blurb": "a steaming jungle isle",
-		"names": ["Verdant", "Kalani", "Mosswater", "Tambor", "Orchid", "Viper", "Greenmaw", "Tikal"]},
-	"snow": {"name": "Snow", "blurb": "an island under ice and snow",
-		"names": ["Frosthelm", "Rimeholt", "Whitecap", "Glacia", "Icefang", "Winterhold", "Hoarfell", "Snowmere"]},
-	"desert": {"name": "Desert", "blurb": "a sun-baked desert island",
-		"names": ["Sunscar", "Dunmara", "Saffra", "Ashbar", "Mirage", "Scorpa", "Dustwell", "Qadir"]},
-	"forest": {"name": "Forest", "blurb": "an island of deep green woods",
-		"names": ["Elderwood", "Oakhollow", "Fernreach", "Mistvale", "Thornby", "Larchmoor", "Bramble", "Woodhaven"]},
-}
-const FIRST_SEA_THEMES := ["jungle", "snow", "desert", "forest"]
+## (the themes, their names and blurbs are the registry's: IslandThemes, in its declared order)
 const ISLE_WORDS := ["Isle", "Island", "Key", "Atoll", "Rock"]
 const CITY_WORDS := ["Port", "Harbour", "Haven"]
 
@@ -111,6 +104,7 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 			n["name"] = _name(rng, n)
 			nodes.append(n)
 			ids.append(n["id"])
+		at = _make_room(ids, prev, at, dir, side)
 		# link the layer before to this one: branch to branch, everything into a single island
 		if prev.is_empty():
 			start_next = ids.duplicate()
@@ -155,28 +149,73 @@ static func _steer(at: Vector2, origin: Vector2, dir: Vector2, leg: float, offs:
 	return best
 
 
-## (only themes IslandTheme can build; the rest join as they're made)
+## Room for islands bigger than BASE_R (no rng: a chain of BASE_R themes is untouched): a fork's two pushed
+## apart sideways by their excess, then the layer pushed on along `dir` until each island keeps APART plus
+## both excesses from the layer before's. Returns the line's point, moved with the layer.
+func _make_room(ids: Array, prev: Array, at: Vector2, dir: Vector2, side: Vector2) -> Vector2:
+	if ids.size() == 2:
+		for b in range(2):
+			nodes[ids[b]]["pos"] += side * _excess(nodes[ids[b]]) * (-1.0 if b == 0 else 1.0)
+	var push := 0.0
+	for id in ids:
+		for pid in prev:
+			var extra := _excess(nodes[id]) + _excess(nodes[pid])
+			if extra > 0.0:
+				var a: Vector2 = nodes[pid]["pos"]
+				var q: Vector2 = nodes[id]["pos"]
+				var need := APART + extra
+				var along := (q - a).dot(dir)
+				var across := (q - a).length_squared() - along * along
+				if across < need * need:
+					push = maxf(push, sqrt(need * need - across) - along)
+	if push > 0.0:
+		for id in ids:
+			nodes[id]["pos"] += dir * push
+	return at + dir * push
+
+
+static func _excess(n: Dictionary) -> float:
+	return maxf(float(IslandThemes.of(n["theme"]).radius[1]) - BASE_R, 0.0)
+
+
+## A registered theme by its weight (ThemeDef.weight), the ones to avoid left out unless
+## that leaves none; one draw whatever the themes, so the stream is the same as with one.
 func _pick_theme(rng: RandomNumberGenerator, avoid: Array) -> String:
-	var ready: Array = FIRST_SEA_THEMES.filter(func(t): return IslandTheme.has(t))
-	var pool: Array = ready.filter(func(t): return not avoid.has(t))
+	var ready: Array = IslandThemes.all()
+	var pool: Array = ready.filter(func(t): return not avoid.has(t.name))
 	if pool.is_empty():
 		pool = ready
-	return pool[rng.randi() % pool.size()]
+	var total := 0.0
+	for t in pool:
+		total += float(t.weight)
+	var roll := float(rng.randi()) / 4294967296.0 * total
+	for t in pool:
+		roll -= float(t.weight)
+		if roll < 0.0:
+			return t.name
+	return pool[-1].name
 
 
 ## (a name not given yet in this sea; once a theme's run out, one not on the
 ## islands of this layer or the two before, so a fork's two never match)
 func _name(rng: RandomNumberGenerator, n: Dictionary) -> String:
-	var names: Array = THEMES[n["theme"]]["names"]
+	var names: Array = IslandThemes.of(n["theme"]).island_names
 	var given := {}
 	var near := {}
+	var same_layer := {}
 	for o in nodes:
 		given[o["base"]] = true
+		if int(o["layer"]) == int(n["layer"]):
+			same_layer[o["base"]] = true
 		if int(o["layer"]) >= int(n["layer"]) - 2:
 			near[o["base"]] = true
 	var pool: Array = names.filter(func(b): return not given.has(b))
 	if pool.is_empty():
 		pool = names.filter(func(b): return not near.has(b))
+	if pool.is_empty():
+		pool = names.filter(func(b): return not same_layer.has(b))
+	if pool.is_empty():
+		pool = names
 	var base: String = pool[rng.randi() % pool.size()]
 	n["base"] = base
 	if n["role"] == "city":
@@ -187,7 +226,7 @@ func _name(rng: RandomNumberGenerator, n: Dictionary) -> String:
 
 ## What the log pose tells of an island (its theme and how dangerous).
 static func describe(n: Dictionary) -> String:
-	var kind: String = THEMES[n["theme"]]["name"]
+	var kind: String = IslandThemes.of(n["theme"]).display
 	match str(n["role"]):
 		"city":
 			kind += " city"

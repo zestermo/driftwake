@@ -22,6 +22,9 @@ tools/dev/t/cloth/*                     t/cloth
 scripts/npc/cape_motion.gd              t/cloth
 scripts/npc/spring_chains.gd            t/cloth
 scripts/npc/body_builder.gd             t/cloth
+assets/textures/fx/water_trail*         t/fx
+scripts/game/water_ribbon.gd            t/fx techtest
+scripts/game/blade_water.gd             t/fx
 scripts/game/duel.gd                    t/coop net
 scripts/ui/player_menu.gd               t/coop net
 scripts/ui/inspect_panel.gd             t/coop
@@ -322,3 +325,45 @@ scripts/game/perf_monitor.gd            t/world
 scripts/world/weather.gd                t/world
 tools/dev/compilecheck.gd               smoketest
 tools/dev/wallclock_allow.txt           smoketest
+# --- island themes register from their own files (2026-10-15) ---
+tools/dev/t/island/*                    t/island
+scripts/island/themes/*                 t/island isletest chaintest smoketest lifetest bosstest faunatest
+scripts/island/island_theme.gd          t/island
+scripts/island/kit/kit_style.gd         t/island
+scripts/island/kit/life_pools.gd        t/island
+scripts/enemies/beasts/beast_pool.gd    t/island
+scripts/world/chain.gd                  t/island
+scripts/island/fauna_spawner.gd         t/island
+scripts/ui/chain_marks.gd               t/island
+# --- theme land hooks: radius, plan_land, shape (2026-10-15) ---
+scripts/island/gen_island.gd            t/island
+# --- the snow theme (2026-10-15) ---
+scripts/props/snow_plants.gd            t/island isletest
+scripts/props/snow_props.gd             t/island isletest
+tools/texture_gen/gen_snow_textures.py  t/island
+scripts/enemies/fauna/wolf.gd           t/island faunatest
+scripts/enemies/fauna/snow_hare.gd      t/island faunatest
+scripts/enemies/fauna/snow_bear.gd      t/island faunatest
+scripts/enemies/fauna/shagback.gd       t/island faunatest
+scripts/enemies/fauna/walrus.gd         t/island faunatest
+scripts/enemies/beasts/snow_leopard.gd  t/island bosstest
+scripts/enemies/beasts/great_bear.gd    t/island bosstest
+scripts/enemies/beasts/ice_golem.gd     t/island bosstest
+scripts/enemies/beasts/frost_alpha.gd   t/island bosstest
+scripts/enemies/beasts/rimeback.gd      t/island bosstest
+scripts/island/themes/snow_land.gd      t/island isletest smoketest
+# --- the desert theme (2026-10-16) ---
+scripts/props/desert_plants.gd          t/island isletest
+scripts/props/desert_props.gd           t/island isletest
+tools/texture_gen/gen_desert_textures.py t/island
+scripts/psx/draw_lod.gd                 t/island isletest perftest
+scripts/island/themes/desert_places.gd  t/island landmarktest smoketest
+scripts/island/kit/kit_landmarks.gd     t/island landmarktest
+# --- weather and ground by theme: snowfall, sandstorms, fog colour, footprints (2026-10-16) ---
+scripts/world/precip_fx.gd              t/world r9test
+scripts/world/night_light.gd            t/world
+scripts/world/ground_layer.gd           t/world
+shaders/world/ground_prints.gdshaderinc t/world
+shaders/world/snow_layer.gdshader       t/world
+scenes/island/terrain.gdshader          t/world
+scripts/game/footsteps.gd               t/world ambiencetest

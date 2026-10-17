@@ -62,13 +62,31 @@ static func morrow_look() -> Dictionary:
 	return lk
 
 
+## What a boss built on Morrow changes (the desert's bandit chief): his look, health, barks
+## ("phase2", "phase3", "taunt") and what he pays out [coins, xp].
+func _boss_look() -> Dictionary:
+	return PirateBoss.morrow_look()
+
+
+func _boss_hp() -> float:
+	return BOSS_HP
+
+
+func _barks(kind: String) -> Array:
+	return {"phase2": BARK_PHASE2, "phase3": BARK_PHASE3, "taunt": BARK_TAUNT}[kind]
+
+
+func _prize() -> Array:
+	return [18, 400]
+
+
 func _ready() -> void:
-	look = PirateBoss.morrow_look()
+	look = _boss_look()
 	role = "sword"
 	super._ready()
 	add_to_group("bosses")
-	health.max_health = BOSS_HP
-	health.current_health = BOSS_HP
+	health.max_health = _boss_hp()
+	health.current_health = _boss_hp()
 	# a longer reach for a bigger man
 	var bs := hitbox.get_child(0) as CollisionShape3D
 	(bs.shape as BoxShape3D).size = Vector3(2.4, 1.6, 2.1)
@@ -132,14 +150,14 @@ func _phase_check() -> void:
 	if phase == 1 and f < 0.6 and state not in [S.DOWN, S.GETUP, S.DEAD]:
 		phase = 2
 		_begin_special("roar")
-		bark(BARK_PHASE2, 1.0)
+		bark(_barks("phase2"), 1.0)
 		phase_changed.emit(2)
 		if arena and arena.has_method("call_crew"):
 			arena.call_crew()
 	elif phase == 2 and f < 0.3 and state not in [S.DOWN, S.GETUP, S.DEAD]:
 		phase = 3
 		_begin_special("roar")
-		bark(BARK_PHASE3, 1.0)
+		bark(_barks("phase3"), 1.0)
 		_set_red(true)
 		phase_changed.emit(3)
 
@@ -377,7 +395,7 @@ func _end_special(recover: float) -> void:
 	_set_state(S.RECOVER)
 	if _taunt_t <= 0.0 and _rng.randf() < 0.4:
 		_taunt_t = 8.0
-		bark(BARK_TAUNT, 1.0)
+		bark(_barks("taunt"), 1.0)
 
 
 ## A shockwave around `center`: every machine checks its own captain (jump
@@ -465,8 +483,8 @@ func _on_died() -> void:
 	_set_red(false)
 	_set_peril(false)
 	super._on_died()
-	Net.coins(global_position + Vector3(0, 1.0, 0), 18)
-	Net.award_xp(400, global_position + Vector3(0, 2.5, 0), 60.0)
+	Net.coins(global_position + Vector3(0, 1.0, 0), _prize()[0])
+	Net.award_xp(_prize()[1], global_position + Vector3(0, 2.5, 0), 60.0)
 
 
 func _net_die() -> void:
@@ -482,7 +500,7 @@ func _drop_weapon() -> void:
 
 func net_rescale(k: float) -> void:
 	var frac := health.current_health / maxf(health.max_health, 1.0)
-	health.max_health = BOSS_HP * k
+	health.max_health = _boss_hp() * k
 	if state != S.DEAD:
 		health.current_health = maxf(frac * health.max_health, 1.0)
 

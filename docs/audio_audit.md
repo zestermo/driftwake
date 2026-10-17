@@ -115,6 +115,12 @@ inside a loop (0.7 at 6 s = an audible 6 s beat).
 | gull_cry (4) | new 10-14 | SkyBirds: gulls by distance (< 60 m), scattering | | | -18 LU (the old gull is -10.6): kyow, kek-kek-kek, mew, long call |
 | jungle_bird (4) | new 10-14 | SkyBirds: parrots hopping crowns, scattering | | | -20 LU: whistle run, hoot, squawk, parrot screech |
 
+| desert_loop | new 10-15 | not wired yet: the desert theme's bed (suggested TOP_DB -13) | | | 47 s, -20 LU, 67% under 200 Hz: dry wind in long gusts, sand hiss off the crests, insect rasps, a far vulture |
+| snow_loop | new 10-15 | not wired yet: the snow theme's bed (suggested -13.5) | | | 50 s, -20 LU: cold wind whistling on gusts, pine hush, ice groans, snow slumping off branches, one far wolf |
+| sandstorm_loop | new 10-15 | not wired yet: Weather, in rain's place on desert islands | | | 41 s, -20 LU: unrelenting roar, sand hiss, grit, surging |
+| blizzard_loop | new 10-15 | not wired yet: Weather, in rain's place on snow islands | | | 43 s, -20 LU: hard wind whistling on three edges, driving snow, howling sweeps |
+| step_snow (4) / step_ice (4) | new 10-15 | not wired yet (FX.SOUNDS + Footsteps) | | | snow: soft thump, dense squeaky crunch, -21 LU; ice: sharp click, a ring at 1.7-4.9 kHz, -19.5 LU |
+
 All ambience loops are now levelled to -20 LU and mixed by TOP_DB (sea_deep -22, underwater -21).
 
 Under water (10-14): Ambience adds an AudioEffectLowPassFilter ("underwater", 12 dB/oct) to the SFX and
@@ -242,6 +248,14 @@ each calm track to -18.0 LU in the generator (`target_lu`).
 | music_island_night | 153.6 s (64 bars) | same | -18.0 | same form: low flute, lone ocarina, dark harp, celesta, bass on one and three, no hand drums |
 | music_village | 141.8 s (52 bars) | A dorian / C, 4/4 88 | -18.0 | the harbour town: Harbour's tunes (Zach's pick) on oboe, strings, accordion; a market dance in C; the theme warm in C |
 | music_village_night | 141.8 s (52 bars) | same | -18.0 | same form, harbour_calm's sound: low strings, dark harp, a tavern guitar, soft accordion |
+| music_desert | 160.0 s (48 bars) | G Hijaz over a G-D drone / C minor, 4/4 72 | -18.0 | 10-15, not wired yet: the desert's wilds. A caravan tune on the ney, the oud answering, the mizmar, the dunes in C minor on strings, the theme in Hijaz on the oud; darbuka maqsum, finger cymbals |
+| music_desert_night | 160.0 s (48 bars) | same | -18.0 | same form: the drone and strings, a lone ney, slow oud, celesta, one dum a bar |
+| music_desert_town | 137.1 s (64 bars) | C Hijaz / F minor, 4/4 112 | -18.0 | the souk and the royal city: a market dance on the mizmar, the city in F minor with a brass fanfare for the palace, the theme on the oud, a quick dance with zills |
+| music_desert_town_night | 137.1 s (64 bars) | same | -18.0 | same form: oud picking, strings, ney, horns for the brass, celesta |
+| music_snow | 152.7 s (56 bars) | Eb major / C minor, 3/4 66 | -18.0 | the snowfields: a glockenspiel tune over harp and choir, the pines in C minor on a far horn, the theme re-barred in 3/4 |
+| music_snow_night | 152.7 s (56 bars) | same | -18.0 | same form, a hush: the celesta alone, soft strings and choir, a far horn, no drums |
+| music_snow_town | 147.7 s (64 bars) | Bb major / G minor, 4/4 104 | -18.0 | the round-house village: a fiddle reel, accordion, a fireside song on the concertina, the theme warm in Bb; bodhran, sleigh bells |
+| music_snow_town_night | 147.7 s (64 bars) | same | -18.0 | same form: the inn by the fire, guitar, soft concertina, quiet fiddle |
 | music_combat | 54.9 s (32 bars, 140 bpm, E minor) | | -18.3 | unchanged |
 | music_boss | 51.2 s (32 bars, 150 bpm, E phrygian) | | -18.2 | unchanged; 10% at 2-5k (hats, brass): brightest track, fine |
 | music_victory | 5.4 s sting | | -13.9 | unchanged |
@@ -262,7 +276,8 @@ The Music bus has a sidechain compressor keyed from SFX (threshold -12 dB, 2.5:1
 
 ## Gaps (not done this pass)
 
-- Snow footsteps (no snow yet), mud, shallow-reef rock vs sand underwater.
+- Snow and ice footsteps: made 10-15 (step_snow / step_ice, 4 takes each, -21 / -19.5 LU), not wired yet (the snow
+  island agent adds them to FX.SOUNDS and Footsteps). Still open: mud, shallow-reef rock vs sand underwater.
 - Enemy footsteps (grunts emit Humanoid's footstep signal; nobody plays it).
   Cheap to add from pirate_grunt, but it's another agent's code and many grunts
   means many sounds: worth a distance cap.
