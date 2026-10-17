@@ -27,6 +27,10 @@ scripts/game/petal_ribbon.gd            t/fx t/combat katanatest techtest
 scripts/game/katana_fx.gd               t/fx t/combat katanatest techtest
 scripts/game/blade_petals.gd            t/fx
 scripts/npc/katana_moves.gd             t/combat katanatest techtest
+scripts/npc/axe_moves.gd                t/combat axetest techtest
+scripts/game/drawn_fx.gd                t/fx t/combat katanatest axetest techtest
+assets/textures/fx/axe_trail*           t/fx t/combat
+assets/textures/fx/ember_trail*         t/fx t/combat
 scripts/game/duel.gd                    t/coop net
 scripts/ui/player_menu.gd               t/coop net
 scripts/ui/inspect_panel.gd             t/coop
