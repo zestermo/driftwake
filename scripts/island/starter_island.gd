@@ -1823,8 +1823,10 @@ func _build_wilds() -> void:
 		"r": 14.0, "keep": [], "heel": -0.38, "pitch": 0.07, "seed": SEEDS["wilds"] + 2}
 	var wnode := KitLandmarks.place_node(kit, wpl)
 	KitLandmarks._wreck(kit, wpl, wnode)
-	KitLandmarks._wreck_dressing(null, kit, wpl, [["gold", 30], ["treasure", 3], ["rum", 2],
-		[Gear.make("coat", "longcoat", {"coat": "longcoat", "coat_color": CharacterLook.CLOTH[8], "trim_color": CharacterLook.TRIM[2]}, "Drowned Mate's Coat", 2), 1]])
+	var picks: Array = [["gold", 30], ["treasure", 3], ["rum", 2],
+		[Gear.make("coat", "longcoat", {"coat": "longcoat", "coat_color": CharacterLook.CLOTH[8], "trim_color": CharacterLook.TRIM[2]}, "Drowned Mate's Coat", 2), 1]]
+	picks.append_array(Salvage.roll(kit.rng(0, SEEDS["wilds"] + 3), 3, 0.4))
+	KitLandmarks._wreck_dressing(null, kit, wpl, picks)
 	kit.reserve(wat, 12.5)
 	var mats := KitLandmarks.rock_mats(kit)
 	var rmb := MeshBuilder.new()
@@ -1854,6 +1856,7 @@ func _build_wilds() -> void:
 	kit.place(Props.rowboat(), beach + Vector2(5, 3), face_yaw(COVE2 - beach) + 0.6, 1.5)
 	kit.place(Props.fish_rack(), beach + Vector2(-1, -3), face_yaw(Vector2(1, 0)), 1.0)
 	var items: Array = [["gold", 16], ["treasure", 1], ["rum", 1], [ItemDB.tiered("pistol", 1), 1]]
+	items.append_array(Salvage.roll(kit.rng(0, SEEDS["wilds"] + 4), 2, 0.2))
 	KitCamps.strongbox(kit, kit.local_point(hut, Vector3(-1.6, 0, 2.2)), face_yaw((COVE2 - beach).normalized()), "cove2_chest", items, 0.9)
 	town_spots["cove2"] = {"hut": hut, "jetty": [jf, jt], "beach": beach}
 	town_spots["piers"] = [[jf, jt]]
