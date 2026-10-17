@@ -44,11 +44,14 @@ func _process(_d: float) -> bool:
 		return false
 	match step:
 		0:
+			# (the captain stays on the stage, 9 km off: keep the town awake)
+			load("res://scripts/world/actor_sleep.gd").enabled = false
 			isl = load("res://scripts/island/starter_island.gd").new()
 			isl.name = "Brinehollow"
 			isl.position = Vector3(0, 0, 9000)
 			stage.add_child(isl)
 			isl.build(42)
+			print("   life built in %s ms (%s)" % [str(isl.build_ms.get("life", "?")), str(isl.build_ms)])
 			# a camera 110-125 m over the town: everyone shown, and on their schedule to the letter (past NEAR_R)
 			var cam := Camera3D.new()
 			root.add_child(cam)
@@ -62,8 +65,8 @@ func _process(_d: float) -> bool:
 				if n.get("stays") != null and names.has(n.npc_name):
 					folk[n.npc_name] = n
 			check("every townsperson made once (%d of %d)" % [folk.size(), names.size()], folk.size() == names.size() and names.size() >= 16)
-			var keepers := {"Corin": "Shop2", "Hester Quill": "Shop0", "Abel Marsh": "Shop1", "Rosa Tamm": "Shop3",
-				"Pip Calloway": "StreetStall0", "Mags Ferrow": "StreetStall1", "Jory Lusk": "StreetStall2"}
+			var keepers := {"Corin": "Shop4", "Hester Quill": "Shop0", "Abel Marsh": "Shop1", "Rosa Tamm": "Shop2",
+				"Pip Calloway": "Shop3", "Mags Ferrow": "Shop5", "Jory Lusk": "StreetStall0"}
 			var at_work := 0
 			for who in keepers:
 				var where: Node3D = null
@@ -92,7 +95,7 @@ func _process(_d: float) -> bool:
 			# the walks: a ray along each leg at waist height
 			var space: PhysicsDirectSpaceState3D = isl.get_world_3d().direct_space_state
 			var skip: Array = []
-			for f in folk.values():
+			for f in get_nodes_in_group("npcs"):
 				skip.append(f.get_node("Body").get_rid())
 			var blocked: Array = []
 			var legs := 0

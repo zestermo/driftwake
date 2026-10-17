@@ -9,6 +9,7 @@ const L := preload("res://scripts/npc/character_look.gd")
 
 ## The dockhands walking the quay (along its back, clear of the booth, the yard and the crane).
 static func dockhands(isl: StarterIsland) -> Array:
+	_warm(isl)
 	var h: KitHarbour = isl.harbour
 	var y := h.quay_y
 	var a := h.quay_pt(maxf(h.s0 + 4.0, -30.0), 14.0)
@@ -28,6 +29,15 @@ static func dockhands(isl: StarterIsland) -> Array:
 		out.append({"cfg": {"name": spec[1], "voice": spec[3], "barks": spec[2], "look": KitLife.look_for(spec[1]), "waypoints": route},
 			"at": Vector2(route[0].x, route[0].z), "face": Vector2(1, 0), "y": y})
 	return out
+
+
+## The bodies of everyone made at the end of the build (the cast and the townsfolk) built ahead on worker threads
+## while the rest of the island builds: ~40 bodies were ~5 s on the main thread.
+static func _warm(isl: StarterIsland) -> void:
+	var looks: Array = people(isl).map(func(e): return e["cfg"]["look"])
+	looks.append_array(townsfolk().map(func(e): return e["cfg"]["look"]))
+	for i in range(0, looks.size(), 7):
+		Humanoid.prebuild(looks.slice(i, i + 7))
 
 
 ## Everyone else, in the order they're made.
@@ -288,7 +298,7 @@ static func corin() -> Dictionary:
 ## kids run the plaza and the long stair until supper.
 static func townsfolk() -> Array:
 	var out: Array = []
-	out.append({"cfg": corin(), "plan": [[7.4, "vendor:Shop2"], [12.6, "bench:0"], [13.3, "vendor:Shop2"],
+	out.append({"cfg": corin(), "plan": [[7.4, "vendor:Shop4"], [12.6, "bench:0"], [13.3, "vendor:Shop4"],
 		[19.0, "tavern:fire:0"], [23.6, "home:UpperHouse4"]]})
 	var keepers := [
 		["Hester Quill", "Shop0", 1.12, "UpperHouse0", [
@@ -299,19 +309,19 @@ static func townsfolk() -> Array:
 			"First shop off the quay. Sailors with a full purse see me before they see Gus.",
 			"Lanterns, oilskins, a good knife. Everything for weather, except luck.",
 			{"text": "Since you cleared the south beach my shutters stay up past dark. Thank you.", "after": "smugglers"}]],
-		["Rosa Tamm", "Shop3", 1.18, "UpperHouse2", [
+		["Rosa Tamm", "Shop2", 1.18, "UpperHouse2", [
 			"Up early, closed late, and the upper town still says I keep bankers' hours.",
 			"The stair's a hundred and some steps. I carry my stock up it every night. Look at these calves.",
 			"Buy something, Captain. You've been looking at it for a full minute."]],
-		["Pip Calloway", "StreetStall0", 1.3, "UpperHouse7", [
-			"Best barrow on the street! It's the only barrow on the street. Still the best.",
-			"Mum lets me run the stall now. Mum also counts the takings. Twice.",
+		["Pip Calloway", "Shop3", 1.3, "UpperHouse7", [
+			"Best shop on the street! Well. Best shop on this side of the street.",
+			"Mum lets me run the shop now. Mum also counts the takings. Twice.",
 			"Fresh this morning! Well. This morning-ish."]],
-		["Mags Ferrow", "StreetStall1", 1.05, "UpperHouse8", [
-			"Sit if you like. The rug's for selling, but the shade's free.",
+		["Mags Ferrow", "Shop5", 1.05, "UpperHouse8", [
+			"Sit on my step if you like. The shade's free. The step's free. Buy something.",
 			"I've had this spot since before the street had cobbles. The cobbles are new. I'm not.",
 			"Haggle with me, dear. It's the only exercise I get."]],
-		["Jory Lusk", "StreetStall2", 0.92, "UpperHouse9", [
+		["Jory Lusk", "StreetStall0", 0.92, "UpperHouse9", [
 			"Two for one, Captain. One for you, one for the sea when you drop it overboard.",
 			"Corin plays the Gull most nights. Come by. I'll be the one singing the wrong words.",
 			"Quiet day. The quiet days are when the pirates are busy somewhere else."]],
@@ -336,8 +346,8 @@ static func townsfolk() -> Array:
 			"Market day's every day here. Even Sundays. Especially Sundays.",
 			"Mind the porters. They don't stop for captains and they don't stop for Cobb."]],
 	]
-	var fronts := ["front:Shop0", "front:StreetStall1", "front:market0", "front:Shop3", "front:StreetStall0", "front:market2", "front:Shop1",
-		"front:StreetStall2", "front:market1", "front:Shop2", "front:market3"]
+	var fronts := ["front:Shop0", "front:Shop5", "front:market0", "front:Shop3", "front:StreetStall0", "front:market2", "front:Shop1",
+		"front:Shop4", "front:market1", "front:Shop2", "front:market3"]
 	for i in range(customers.size()):
 		var c: Array = customers[i]
 		var plan: Array = []
@@ -351,7 +361,7 @@ static func townsfolk() -> Array:
 		plan.append([21.8 + i * 0.3, "home:" + c[2]])
 		out.append({"cfg": {"name": c[0], "voice": c[1], "barks": c[3], "look": KitLife.look_for(c[0])}, "plan": plan})
 	var porters := [["Gideon", 0.8], ["Lou Haskett", 1.05], ["Bastian", 0.9]]
-	var drops := ["drop:Warehouse", "front:Shop1", "drop:Warehouse", "front:Shop0", "front:Shop3", "drop:Warehouse", "front:StreetStall1"]
+	var drops := ["front:market0", "front:Shop1", "front:market1", "front:Shop0", "front:Shop3", "front:market3", "front:Shop5"]
 	for i in range(porters.size()):
 		var plan: Array = []
 		var h := 6.6 + i * 0.35
@@ -370,7 +380,7 @@ static func townsfolk() -> Array:
 				"Heaviest thing I ever carried? Dunk. Home. Twice a week."],
 			"look": KitLife.look_for(porters[i][0])}, "plan": plan, "carry": true})
 	var kids := [["Nell", 1.45], ["Tam", 1.4], ["Wick", 1.5]]
-	var runs := ["plaza:%d", "stair:%d", "front:market%d", "stair:%d", "plaza:%d", "front:StreetStall%d"]
+	var runs := ["plaza:%d", "stair:%d", "front:market%d", "stair:%d", "plaza:%d", "front:Shop%d"]
 	for i in range(kids.size()):
 		var plan: Array = []
 		var h := 8.0 + i * 0.1

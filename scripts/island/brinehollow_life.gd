@@ -9,14 +9,18 @@ extends RefCounted
 const Folk := preload("res://scripts/island/brinehollow_folk.gd")
 const RING_R := 9.5
 const JOIN := 3.2
+## The walk graph's reach from the plaza (the quay to the shrine terrace).
+const REACH := 140.0
+const BRIDGE := 9.0
 
 
 static func build(isl: StarterIsland) -> void:
 	var life := Node3D.new()
 	life.name = "TownLife"
 	isl.add_child(life)
-	var town := Town.new(isl)
-	isl.kit.timed("life people", func(): _people(isl, town))
+	var made: Array = []
+	isl.kit.timed("life walks", func(): made.append(Town.new(isl)))
+	isl.kit.timed("life people", func(): _people(isl, made[0]))
 
 
 # --------------------------------------------------------------------------
@@ -30,42 +34,46 @@ class Town:
 	## [island -> local Transform3D, half extents Vector2, floor y]
 	var floors: Array = []
 	var ring_ids: Array = []
+	var grid := {}
+	var space: PhysicsDirectSpaceState3D
 
 	func _init(island: StarterIsland) -> void:
 		isl = island
+		space = isl.get_world_3d().direct_space_state
 		stair = isl.town_spots["stair"]
+		var tav: Node3D = isl._tavern
+		floors.append([tav.transform.affine_inverse(), Vector2(5.8, 4.3), isl.kit.marker_y(tav, "Barkeep")])
 		var lines: Array = isl.paths.duplicate()
 		lines.append_array(isl.town_spots["lanes"])
-		var ring := PackedVector2Array()
-		for k in range(25):
-			ring.append(StarterIsland.VILLAGE + Vector2.from_angle(TAU * k / 24.0) * RING_R)
 		var flat := PackedVector2Array()
 		for q in stair:
 			flat.append(Vector2(q.x, q.z))
 		lines.append(flat)
-		var grid := {}
+		var ring := PackedVector2Array()
+		for k in range(25):
+			ring.append(StarterIsland.VILLAGE + Vector2.from_angle(TAU * k / 24.0) * RING_R)
+		lines.append(ring)
 		var owner := {}
+		var edges: Array = []
 		for li in range(lines.size()):
 			var pts := _dense(lines[li])
 			var prev := -1
 			for q in pts:
+				if q.distance_to(StarterIsland.VILLAGE) > REACH:
+					prev = -1
+					continue
 				var id := graph.get_point_count()
 				graph.add_point(id, q)
 				owner[id] = li
+				if li == lines.size() - 1:
+					ring_ids.append(id)
 				var cell := Vector2i(floori(q.x / JOIN), floori(q.y / JOIN))
 				if not grid.has(cell):
 					grid[cell] = []
 				grid[cell].append(id)
 				if prev >= 0:
-					graph.connect_points(prev, id)
+					edges.append([prev, id])
 				prev = id
-		var ring_first := graph.get_point_count()
-		for k in range(ring.size()):
-			var id := ring_first + k
-			graph.add_point(id, ring[k])
-			ring_ids.append(id)
-			if k > 0:
-				graph.connect_points(id - 1, id)
 		# lines that touch: points of different lines within JOIN of each other
 		for cell in grid:
 			for id in grid[cell]:
@@ -74,15 +82,92 @@ class Town:
 					for dz in range(-1, 2):
 						for o in grid.get(cell + Vector2i(dx, dz), []):
 							if o > id and owner[o] != owner[id] and graph.get_point_position(o).distance_to(q) < JOIN:
-								graph.connect_points(id, o)
+								edges.append([id, o])
 		# the ends that come into the plaza (and the stair's foot) onto the ring
-		for li in range(lines.size()):
+		for li in range(lines.size() - 1):
 			var pl: PackedVector2Array = lines[li]
 			for q in [pl[0], pl[pl.size() - 1]]:
-				if q.distance_to(StarterIsland.VILLAGE) < 20.0:
-					graph.connect_points(_nearest(q, owner, li), _ring_near(q))
-		var tav: Node3D = isl._tavern
-		floors.append([tav.transform.affine_inverse(), Vector2(5.8, 4.3), isl.kit.marker_y(tav, "Barkeep")])
+				if q.distance_to(StarterIsland.VILLAGE) < 25.0:
+					edges.append([_nearest(q, owner, li), _ring_near(q)])
+		# only where nothing's built in the way
+		for e in edges:
+			if clear(graph.get_point_position(e[0]), graph.get_point_position(e[1])):
+				graph.connect_points(e[0], e[1])
+		_bridge()
+
+	## Pieces cut off by something standing on a path (a lamp at a path's end): joined to the rest at the
+	## nearest clear step, up to BRIDGE m, until nothing more joins.
+	func _bridge() -> void:
+		while true:
+			var comps := _components()
+			var main: Array = comps[0]
+			var in_main := {}
+			for id in main:
+				in_main[id] = true
+			var joined := false
+			for comp in comps.slice(1):
+				var best := []
+				for id in comp:
+					var p := graph.get_point_position(id)
+					var c := Vector2i(floori(p.x / JOIN), floori(p.y / JOIN))
+					for dx in range(-3, 4):
+						for dz in range(-3, 4):
+							for o in grid.get(c + Vector2i(dx, dz), []):
+								var d := graph.get_point_position(o).distance_to(p)
+								if in_main.has(o) and d < BRIDGE and (best.is_empty() or d < best[2]) and clear(p, graph.get_point_position(o)):
+									best = [id, o, d]
+				if not best.is_empty():
+					graph.connect_points(best[0], best[1])
+					joined = true
+			if not joined:
+				return
+
+	## The graph's connected pieces, biggest first.
+	func _components() -> Array:
+		var seen := {}
+		var out: Array = []
+		for id in range(graph.get_point_count()):
+			if seen.has(id):
+				continue
+			var stack := [id]
+			var comp: Array = []
+			seen[id] = true
+			while not stack.is_empty():
+				var x: int = stack.pop_back()
+				comp.append(x)
+				for y in graph.get_point_connections(x):
+					if not seen.has(y):
+						seen[y] = true
+						stack.append(y)
+			out.append(comp)
+		out.sort_custom(func(a, b): return a.size() > b.size())
+		return out
+
+	## Nothing built between a and b at waist height (rays against the island's colliders).
+	func clear(a: Vector2, b: Vector2) -> bool:
+		var ga := isl.to_global(Vector3(a.x, y_at(a, isl.hv(a)) + 0.9, a.y))
+		var gb := isl.to_global(Vector3(b.x, y_at(b, isl.hv(b)) + 0.9, b.y))
+		# (both ways: a ray starting inside a collider doesn't see it)
+		return space.intersect_ray(PhysicsRayQueryParameters3D.create(ga, gb)).is_empty() and space.intersect_ray(PhysicsRayQueryParameters3D.create(gb, ga)).is_empty()
+
+	## Nothing built standing at p (waist height).
+	func free_at(p: Vector2) -> bool:
+		var q := PhysicsPointQueryParameters3D.new()
+		q.position = isl.to_global(Vector3(p.x, y_at(p, isl.hv(p)) + 0.9, p.y))
+		return space.intersect_point(q, 1).is_empty()
+
+	## The graph point to step onto from p: the nearest one in clear sight (within 12 m), else the nearest.
+	func entry(p: Vector2) -> int:
+		var c := Vector2i(floori(p.x / JOIN), floori(p.y / JOIN))
+		var near: Array = []
+		for dx in range(-4, 5):
+			for dz in range(-4, 5):
+				near.append_array(grid.get(c + Vector2i(dx, dz), []))
+		near.sort_custom(func(x, y): return graph.get_point_position(x).distance_squared_to(p) < graph.get_point_position(y).distance_squared_to(p))
+		for id in near:
+			if graph.get_point_connections(id).size() > 0 and clear(p, graph.get_point_position(id)):
+				return id
+		return graph.get_closest_point(p)
 
 	func _dense(pl: PackedVector2Array) -> PackedVector2Array:
 		var out := PackedVector2Array([pl[0]])
@@ -109,7 +194,7 @@ class Town:
 	## The walk from island point a to b over the graph (a and b at its ends).
 	func route(a: Vector2, b: Vector2) -> PackedVector2Array:
 		var out := PackedVector2Array([a])
-		out.append_array(graph.get_point_path(graph.get_closest_point(a), graph.get_closest_point(b)))
+		out.append_array(graph.get_point_path(entry(a), entry(b)))
 		out.append(b)
 		return out
 
@@ -163,13 +248,15 @@ static func _at_counter(isl: StarterIsland, node: Node3D, front: bool) -> Dictio
 			return {"at": lp.call(c), "face": kit.marker_face(node, "Customer"), "act": "stand", "kind": "front", "lane": PackedVector2Array([lp.call(c + Vector3(0, 0, 1.2))])}
 		return {"at": lp.call(v), "face": face, "act": "stand", "kind": "vendor",
 			"lane": PackedVector2Array([lp.call(Vector3(out_x, 0, v.z)), lp.call(Vector3(out_x, 0, c.z)), lp.call(c + Vector3(0, 0, 1.2))])}
-	if node.has_node("BarrowMesh"):
+	# (the street's meshes are folded together: a rug's vendor sits on a stool, a barrow's stands by its handles)
+	var rug: bool = node.has_node("Customer") and (node.get_node("Vendor") as Node3D).position.y > 0.2
+	if node.has_node("Customer") and not rug:
 		var c := lp.call(Vector3(0.1, 0, 1.4)) as Vector2
 		if front:
 			return {"at": c, "face": kit.marker_face(node, "Customer"), "act": "stand", "kind": "front", "lane": PackedVector2Array([lp.call(Vector3(0.1, 0, 2.6))])}
 		return {"at": kit.marker_point(node, "Vendor"), "face": face, "act": "stand", "kind": "vendor",
 			"lane": PackedVector2Array([c, lp.call(Vector3(0.1, 0, 2.6))])}
-	if node.has_node("RugMesh"):
+	if rug:
 		if front:
 			return {"at": lp.call(Vector3(0, 0, 1.3)), "face": kit.marker_face(node, "Customer"), "act": "stand", "kind": "front",
 				"lane": PackedVector2Array([lp.call(Vector3(0, 0, 2.5))])}
@@ -216,9 +303,10 @@ static func _in_tavern(isl: StarterIsland, what: String, i: int) -> Dictionary:
 ## Seats on the plaza's benches (two a bench, facing the well), in order round it.
 static func _bench_seats(isl: StarterIsland) -> Array:
 	var out: Array = []
-	for n in isl.find_children("*Bench*", "Node3D", true, false):
+	# (KitVillage.benches_round's, 5.5 m out: their names are the engine's once the first Bench is taken)
+	for n in isl.find_children("*", "StaticBody3D", false, false):
 		var c: Vector2 = isl.kit.local_point(n, Vector3.ZERO)
-		if c.distance_to(StarterIsland.VILLAGE) < 6.5:
+		if absf(c.distance_to(StarterIsland.VILLAGE) - 5.5) < 0.3:
 			var along: Vector2 = isl.kit.local_point(n, Vector3.RIGHT) - c
 			var face := c.direction_to(StarterIsland.VILLAGE)
 			for s: float in [-0.45, 0.45]:
@@ -255,25 +343,20 @@ static func _spot(isl: StarterIsland, id: String, cache: Dictionary) -> Dictiona
 			return {"at": at, "face": Vector2(0, -1), "act": "stand", "kind": "stair", "lane": PackedVector2Array()}
 		"quay":
 			if not cache.has("quay"):
-				cache["quay"] = _quay_spots(isl)
+				cache["quay"] = _quay_spots(isl, cache["town"])
 			return cache["quay"][int(parts[1])]
-		"drop":
-			var d: Node3D = isl.get_node(parts[1])
-			# beside the crates stacked by its door
-			var at := kit.local_point(d, Vector3(-0.1, 0, 4.2))
-			return {"at": at, "face": at.direction_to(kit.local_point(d, Vector3(1.0, 0, 4.2))), "act": "kneel", "kind": "drop", "lane": PackedVector2Array()}
 	push_error("BrinehollowLife: no spot %s" % id)
 	return {}
 
 
 ## Where the porters take up their loads on the quay: clear spots by the foot of the street.
-static func _quay_spots(isl: StarterIsland) -> Array:
+static func _quay_spots(isl: StarterIsland, town: Town) -> Array:
 	var h: KitHarbour = isl.harbour
 	var out: Array = []
 	for s: float in [-6.0, 7.0, -10.0, 11.0, -3.0, 4.0]:
 		for d: float in [9.0, 10.5, 12.0, 7.5]:
 			var p := h.quay_pt(s, d)
-			if not isl.kit.excluded(p, 0.7) and out.all(func(o): return o["at"].distance_to(p) > 2.5):
+			if not isl.kit.excluded(p, 0.7, 4.0) and town.free_at(p) and out.all(func(o): return o["at"].distance_to(p) > 2.5):
 				out.append({"at": p, "face": h.quay_pt(s, d - 3.0) - p, "act": "kneel", "kind": "quay", "lane": PackedVector2Array()})
 				break
 	return out
@@ -291,13 +374,12 @@ const AMBIENT := {
 	"tavern": ["Another round!", "Gus! Gus. Gus, the jug.", "Sing it again, Corin!", "To Brinehollow!"],
 	"plaza": ["Did you hear about the Morrow's men?", "Lovely day by the well.", "Tilly's been at the bunting again."],
 	"quay": ["Heave!", "Mind your back.", "Last one. Said that an hour ago."],
-	"drop": ["There.", "That's the lot. For now.", "Odile wants a count. Odile can count."],
 	"stair": ["Race you to the top!", "Bet you can't jump three!"],
 }
 
 
 static func _people(isl: StarterIsland, town: Town) -> void:
-	var cache := {}
+	var cache := {"town": town}
 	for e in BrinehollowCast.townsfolk():
 		var stays: Array = []
 		for p in e["plan"]:
