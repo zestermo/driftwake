@@ -946,6 +946,8 @@ func _drop_chest() -> void:
 	var root := get_tree().current_scene
 	root.add_child(bag)
 	bag.global_position = Vector3(_pos.x, 0.0, _pos.z) + _right() * 4.0
+	# and what's left of her, afloat: salvage for Tackett's yard
+	Salvage.scatter(root, Vector3(_pos.x, 0.0, _pos.z), kind, hash(name + "salvage"))
 
 
 ## Another ship (or a dock, or the shore) is in the way: slide along it.
@@ -1202,6 +1204,8 @@ func _prize() -> void:
 		# and something to wear, at the same sort of tier
 		var r2 := rng.randf()
 		picks.append([Gear.random_piece(rng, mini(t0 + (2 if r2 < 0.06 else (1 if r2 < 0.45 else 0)), 4)).id, 1])
+	# her stores: salvage for the yard
+	picks.append_array(Salvage.roll(rng, 2, float(Salvage.HAULS[kind][1])))
 	for e in picks:
 		var it := ItemDB.get_item(str(e[0]))
 		var stk := ItemStack.new()

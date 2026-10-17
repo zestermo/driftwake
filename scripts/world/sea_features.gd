@@ -255,8 +255,13 @@ static func build_wreck(parent: Node3D, i: int, c: Vector2, yaw: float, save_id:
 	body.add_child(model)
 	HullBuilder.build(model, {"hull": Color(0.42, 0.45, 0.4), "deck": Color(0.55, 0.58, 0.5), "trim": Color(0.35, 0.36, 0.32), "wreck": true})
 	HullBuilder.collide(body, false)
+	# what the wreck still has of her timbers and fittings (salvage for Tackett's yard)
+	var srng := RandomNumberGenerator.new()
+	srng.seed = hash(save_id + "salvage")
+	var all := picks.duplicate()
+	all.append_array(Salvage.roll(srng, 2, 0.35))
 	var bag := (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
-	bag.setup(stacks(picks), false)
+	bag.setup(stacks(all), false)
 	bag.save_id = save_id
 	bag.name = "WreckChest%d" % i
 	body.add_child(bag)

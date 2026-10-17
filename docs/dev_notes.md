@@ -3191,3 +3191,20 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   World suites not run in this batch (Zach, 2026-10-17); expected to notice: shoretest/swimtest (the south coast moved), qoltest/storytest
   if they walk the ruins or cove paths (rerouted round the hill), foresttest (plants in the changed strip), savetest (treasure X spots move:
   sea_features picks them up to LAND_R).
+
+## 2026-10-17: salvage (ship upgrades, piece 2)
+- Four materials (resources/items/timber, iron, canvas, copper .tres; icons from tools/texture_gen/gen_ship_icons.py),
+  plain stackable loot. Higher levels of every line want them as well as gold (ShipLines level [3] = {id: n});
+  the yard's second line shows your bag's gold and salvage; payment comes from your bag only.
+- `Salvage` (scripts/ship/salvage.gd): a floating piece (a node per piece, shared mesh per kind: spars, an
+  iron-bound crate, a sailcloth bundle, a crate of copper sheet, 1.35x so it reads from a deck), bobbing on
+  `Ocean.get_wave_height`, drifting apart from where she sank, a glint every 2.6 s within 90 m, gone after 600 s,
+  asleep past 260 m. Taken when your captain swims within 1.8 m or is aboard while the hull sweeps over it (her
+  footprint + 1.2 m); a full bag leaves it afloat (one toast). Each screen scatters its own copy from the same
+  seed (each captain finds their own, like the floating plunder): no network.
+- Drops: `EnemyShip._drop_chest` scatters `Salvage.HAULS[kind]` pieces (gunboat 3 .. brig 6, richness tipping
+  toward iron and copper: marine most); the prize chest gets 2 pieces; every sea wreck's chest
+  (`SeaFeatures.build_wreck`, so sea legs' wrecks too) 2.
+- **The loot-table hook** for island chests and wrecks: `Salvage.roll(rng, pieces, rich := 0.2) -> [[item id, qty]]`
+  (kinds merged), append it to a chest's picks.
+- Tests: t/ship/salvage_pickup, yard_buy (salvage costs). Render: tools/dev/salvageshot.gd.

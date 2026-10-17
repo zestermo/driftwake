@@ -252,7 +252,10 @@ func _refresh() -> void:
 	var kit := _kit()
 	var guest := Net.is_client()
 	var inv := _inv()
-	_gold.text = "%d gold" % inv.count("gold")
+	var have: Array = ["%d gold" % inv.count("gold")]
+	for k in Salvage.KINDS:
+		have.append("%d %s" % [inv.count(k), k])
+	_gold.text = "  ".join(have)
 	for id in ShipLines.ORDER:
 		var b: Button = _buy[id]
 		var entry := ShipLines.next(kit, id)
