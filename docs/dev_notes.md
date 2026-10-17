@@ -3198,8 +3198,8 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   shops and a house; the switchback (paths[15]) down the terrace's back to the cove path, trodden, two unlit posts. The market street's
   shopfronts are square to the street and shoulder to shoulder now (checked against the old reserves and each other), its edges dressed
   (cargo, planters, benches, carts), the two old houses on it squared to it.
-- **Draws:** the new district's built pieces are folded into one mesh a material each (KitStreet.merge_meshes: StreetMeshes,
-  UpperTownMeshes, TerraceMeshes; bodies, colliders, markers and lights stay); the grown land's trees and rocks go in 140 m squares with
+- **Draws:** the new district's built pieces are folded into one mesh a material each (KitStreet.merge_meshes: TownMeshes for the street,
+  the upper town and the terrace together, FarmMeshes; bodies, colliders, markers and lights stay); the grown land's trees and rocks go in 140 m squares with
   ranges (700 / 320 m). The bench before this (pieces 1-2, 5600G/3080, noisy: 6 other Godots) read ALL frame 13.15 -> 14.56 ms, draws
   1357 -> 1544 (plaza +310).
 - **Hook for the town's life:** StarterIsland.LIFE (scripts/island/brinehollow_life.gd) is built last if it exists (`static func build(isl)`);

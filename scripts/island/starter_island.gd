@@ -236,6 +236,8 @@ var _path_mesh := {}
 var _veg_skip := false
 ## The square the next plants are bucketed by (the grown land's trees and rocks: 140 m).
 var _veg_cell := VEG_CELL
+## The new town's built pieces, their meshes folded into one at the end (TownMeshes).
+var _town_parts: Array = []
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
 ## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
 ## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
@@ -1496,7 +1498,7 @@ func _build_market_street() -> void:
 			k += 1
 	var built: Array = KitVillage.build_items(kit, items).map(func(e: Array): return e[1]).filter(func(n): return n != null)
 	KitVillage.build_cargo(kit, items)
-	KitStreet.merge_meshes(kit, town_spots["shops"] + town_spots["stalls"] + built, "StreetMeshes")
+	_town_parts.append_array(town_spots["shops"] + town_spots["stalls"] + built)
 	var mi := mb.to_instance("StreetCloths")
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_end = KitStreet.RANGE
@@ -1535,7 +1537,7 @@ func _build_upper_town() -> void:
 				var x := UP_X + sd * 1.9
 				KitStreet.wall(kit, mb, body, PackedVector3Array([Vector3(x, a.y - 0.1, a.z), Vector3(x, b.y - 0.1, b.z)]), 0.36, 0.0)
 	town_spots["stair"] = line
-	KitStreet.finish(kit, mb, body)
+	_town_parts.append(KitStreet.finish(kit, mb, body))
 	# the bands' retaining blocks (the step to the next band, but where the stair climbs through)
 	var wb := MeshBuilder.new()
 	var wbody := StaticBody3D.new()
@@ -1554,7 +1556,7 @@ func _build_upper_town() -> void:
 				x += sd * 1.5
 			if run.size() >= 2:
 				KitStreet.wall(kit, wb, wbody, run, 3.0, 0.0)
-	KitStreet.finish(kit, wb, wbody)
+	_town_parts.append(KitStreet.finish(kit, wb, wbody))
 	# the second row: houses on the two lower bands facing their lanes, doors to the north
 	var occ: Array = []
 	for nx: float in steps:
@@ -1606,10 +1608,10 @@ func _build_upper_town() -> void:
 			var foot := Vector2(UP_X + sd * (_up_w(zl) + 9.5), zl)
 			KitStreet.ground_stairs(kit, fb, fbody, top, foot, 2.2)
 			town_spots["lanes"].append(PackedVector2Array([top, foot]))
-	KitStreet.finish(kit, fb, fbody)
+	_town_parts.append(KitStreet.finish(kit, fb, fbody))
 	var built: Array = KitVillage.build_items(kit, items).map(func(e: Array): return e[1]).filter(func(n): return n != null)
 	KitVillage.build_cargo(kit, items)
-	KitStreet.merge_meshes(kit, town_spots["houses"] + built, "UpperTownMeshes")
+	_town_parts.append_array(town_spots["houses"] + built)
 
 
 ## The shrine terrace at the top of the long stair: the gate at the stair's head, the flagged way up
@@ -1697,7 +1699,7 @@ func _build_shrine_terrace() -> void:
 	kit.place(tree, tree_p, rng.randf() * TAU, 0.0, -0.15)
 	kit.reserve(tree_p, 3.0)
 	parts.append(tree)
-	KitStreet.merge_meshes(kit, parts, "TerraceMeshes")
+	_town_parts.append_array(parts)
 	# a parapet along the terrace's front edge but where the stair comes up
 	var pb := MeshBuilder.new()
 	var pbody := StaticBody3D.new()
@@ -1710,7 +1712,7 @@ func _build_shrine_terrace() -> void:
 			pts.append(Vector3(x, top, UP_Z1 + 0.35))
 			x += s * 1.6
 		KitStreet.wall(kit, pb, pbody, pts, 0.4, 0.55)
-	KitStreet.finish(kit, pb, pbody)
+	_town_parts.append(KitStreet.finish(kit, pb, pbody))
 	# the switchback down the back: trodden, a low wall on its drop, a lamp post at each turn
 	var lane: PackedVector2Array = paths[OLD_PATHS + 4 + UP_BANDS.size()]
 	town_spots["lanes"].append(lane)
@@ -1721,6 +1723,7 @@ func _build_shrine_terrace() -> void:
 		var lp: Vector2 = q + (Vector2(-2.2, 0.6) if q.x < 0.0 else Vector2(2.2, 0.6))
 		if not _excluded(lp, 0.4):
 			KitLights.post(kit, lp, 0.0, 0.3, 0.0)
+	KitStreet.merge_meshes(kit, _town_parts, "TownMeshes")
 
 
 ## The windmill hamlet in the southern lands (KitFarm): a yard round a well at FARM, the windmill on its
