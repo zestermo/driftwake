@@ -373,11 +373,11 @@ static func _falls(node: Node3D, mb: MeshBuilder, st: Dictionary, fl: Dictionary
 		var s := float(k) / 8.0
 		var at := lip + Vector3(dir.x, 0, dir.y) * (3.2 * sqrt(s)) + Vector3.UP * (y1 - y0) * s
 		curve.append(at)
-	KitLandmarks.ribbon(mb, KitLandmarks.flow_mat("water", st["falls_tint"], Vector2(0.05, -1.2), 0.4), curve, w * 2.0, w * 2.3, side, Vector3(dir.x, 0, dir.y), 0.45)
+	KitLandmarks.ribbon(mb, KitLandmarks.flow_mat("water", st["falls_tint"], Vector2(0.05, -1.2), 0.12), curve, w * 2.0, w * 2.3, side, Vector3(dir.x, 0, dir.y), 0.45)
 	var front := PackedVector3Array()
 	for q in curve:
 		front.append(q + Vector3(dir.x, 0, dir.y) * 0.15)
-	KitLandmarks.ribbon(mb, KitLandmarks.flow_mat("canvas", st["falls_tint"], Vector2(-0.04, -2.0), 0.3), front, w * 1.4, w * 1.8, side, Vector3(dir.x, 0, dir.y), 0.6)
+	KitLandmarks.ribbon(mb, KitLandmarks.flow_mat("canvas", st["falls_tint"], Vector2(-0.04, -2.0), 0.1), front, w * 1.4, w * 1.8, side, Vector3(dir.x, 0, dir.y), 0.6)
 	var pool_r := float(fl["w"]) + 2.5
 	KitLandmarks.water_disc(mb, KitLandmarks.flow_mat("water", st["water_tint"], Vector2(0.02, 0.05)), Vector3(foot.x, y1, foot.y), pool_r + 0.6, 18, 0.22)
 	var hit := top + dir * 3.2

@@ -3465,3 +3465,32 @@ Found and fixed (Buildings unless said):
   vertices, no new lights; the parts themselves are UpgradeMesh (13 surfaces, one per texture) and
   UpgradeFine (1). Per frame: nothing while nobody steers; the helmsman's and gunner's stat lookups are cached
   by Progression.stat. Copper and gilt are flat paint (the metal texture read olive and dull).
+## 2026-10-17: the forest island theme, piece 5 (sound, weather, fidelity, cost)
+- **Bed:** `forest_loop` (gen_psx_audio.py `forest_loop`, 53 s, -20.2 LU, 3% at 2-5 kHz, repeat 0.19@6.7 s, seam 1.2x):
+  wind through the leaves in slow gusts with a dry rustle, a trunk creaking, songbirds near and far (`_songbird`), a
+  woodpecker (`_woodpecker`), crows (`_crow`), a stream's murmur, a tawny owl now and then (`_owl_hoot`). Ambience
+  "forest" at TOP_DB -13; the forest style's `ambience`. (One bed for day and night: Ambience has no night variant.)
+- **Music, not in the game yet:** `track_forest(night)` in gen_psx_music.py (6/8, 72 bpm, A dorian / C major, 56 bars =
+  140 s: a tin whistle's air over harp and guitar, the clearings' song in C on the oboe, the game's theme re-barred in A
+  minor 6/8 on strings / whistle / horn, the bodhran; night: the whistle alone far off, dark harp, celesta stars, no drums;
+  both -18.0 LU, seams 0.2x / 1.2x). This PC has no ffmpeg, so the generator kept .wav files, which were not committed
+  (Music loads .ogg). To finish: `py tools/texture_gen/gen_psx_music.py forest forest_night` where ffmpeg is on PATH, the
+  two `Music.TRACKS` lines (`"forest": ["res://assets/audio/music_forest.ogg", 56]`, `"forest_night": [..._night.ogg, 56]`)
+  and the forest style's `"music": "forest"`. Until then the woods play the jungle's island track and the town the village's.
+- **Weather** (the style, set in piece 1): clear 24%, cloudy 32%, rain 34%, storm 10% (the jungle 30/26/32/12), a pale grey
+  haze 0.25 (alpha 0.5). "Misty mornings" are only this all-day haze: Weather has no hour-dependent fog per style.
+  `falling_leaves` ({rate, colors}) is in the style as a hook for the shared weather/ground pass (nothing reads it yet).
+- **Fidelity** (fidelity.gd on chain seeds 5, 7, 13, forest first islands, against Brinehollow): buildings 49-50 (1.2x),
+  dressed share 2.2-2.8x, props per settled ha 0.80-1.05, street props per 50 m 0.60-0.67, prop categories 0.92-1, NPCs
+  0.95, walking NPCs 3x, places 1.2-1.9x, distinct landmarks 0.62-0.92, real lights per ha 0.60-0.77, lit windows per ha
+  0.37-0.52, vegetation variety 3.9x and density 2.3-2.5x per ha. fidelity.gd's building table has no "Tall" (the name a
+  theme's own two-storey model gets: snow's, desert's and the forest's go uncounted).
+- **Cost:** prepare on the worker 15-22 s (land 2-3 s with the river grid, undergrowth 2-3 s, bodies ~2-3 s, the set
+  pieces' cave meshes ~130 ms), the main thread 1.6-3.1 s over ~165-175 frames, the worst step ~140-260 ms (draw lod ~600 ms
+  over its 64 steps, the hollow tree ~290 ms over two). Static surfaces 4.6-7.6k (Brinehollow 1.8k), MultiMesh instances
+  36-63k, draw calls ~430 at the plaza and 1.4-1.9k at the harbour (Brinehollow 1238 / 1670), nodes 7.6-10.9k, static
+  memory 102-134 MB. Not benched: the bench's route is Brinehollow's, which nothing of the forest touches.
+- **Proof:** islanddump of seeds 1 (jungle), 4 (snow), 2 (desert) before the forest and with only the forest registered:
+  identical islands (piece 1). Dumped again at the end, they differ only where main's Buildings door/steps pass landed
+  (Site_harbour houses' colliders, Door markers), none in forest code.
+- Renders: `tools/dev/out/forest/n5_sheet.png` (forestshot seed 5 at 21:30), the falls' glow turned down after it.
