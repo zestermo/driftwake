@@ -2969,3 +2969,30 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   yoke. Renders: `tools/dev/drapeshot.gd` (capes, cloak, coat, lantern from four sides), capelab.
 - **capelab:** modes a, araw, a0, b, c x cape/cloak; penetration by legs/hips/back; each "a" frame against the same frame
   without the net; runs start from the same seed and body clocks (they still drift apart: the whip is chaotic).
+
+## 2026-10-17: Brinehollow buildings polish, piece 1: doors and steps (Buildings.house, tavern, smithy)
+- **Doors:** `Buildings.panel_door(mb, xf, w, h, leaf, frame, fan)` (scripts/props/buildings.gd): a closed leaf
+  with the new `door_panel` texture (32x64, four raised panels, pale so a tint paints it; gen_psx_textures.py
+  `doors` mode), jambs, a head and drip cap, a threshold, iron strap hinges and a ring pull; two leaves at 1.6 m+;
+  `fan` (the window material) turns the top 0.34 m into a fanlight. `door_leaf(paint)`, `door_paint(seed, trim)`
+  (its own hash of the seed, so the house's rng stream is untouched: bare wood half the time, else the trim lifted).
+- **Buildings.house:** new spec keys `door_w`, `door_h`, `door_paint`, `fanlight` (defaults: 1.0 x 2.0; h >= 2.9 a
+  2.4 m door with a fanlight; h >= 3.4 a 1.8 x 2.5 pair). Painted leaves get a dark timber frame, bare ones the trim.
+  Front windows too close for their shutters move clear of the frame, or lose their shutters on a narrow house (no
+  rng draw changes). The lantern and the bench keep clear of a wider door. A "Door" marker at the foot of the steps.
+- **Steps:** `Buildings.door_steps(body, mb, mat, x, z0, top, width, land, found, timber)`: a landing (0 = the
+  porch is the landing), RISE 0.16 / TREAD 0.34, stone blocks into the ground (wider going down) or timber treads
+  on stringers with the landing on posts; a box under the landing and a ConvexPolygon ramp over the treads
+  (25-32 deg; nothing in the game steps up by itself, NPCs walk 45). Ground houses: a stone stoop off the footing's
+  edge (the old step stone z-fought the footing's top). Stilts: a timber stoop deck and a stair (they had loose
+  treads with no collider, and with a porch the treads went through it). Porch houses: steps off the porch's edge.
+- **Porches:** the floor starts at the footing's edge (it z-fought the footing's top), a stone plinth under it on
+  the ground (it floated 0.14 m), a collider, posts up to a header beam under the roof (they poked through it).
+- **Awning goods** stand on the ground either side of the steps (they floated at floor height).
+- **Tavern:** stone steps with a ramp (the 0.3 m step box had no way up), its two leaves standing open inside, a
+  threshold; the barrel by the door moved off the bottom step. **Smithy** (open-fronted, no door): a dressed kerb,
+  a half step up onto its floor.
+- fidelity.gd counts a body with `door_panel` as a house too.
+- **Tests:** `t/island/house_doors` (every house kind and the tavern: the door, the marker, walkable steps by
+  downward rays, nothing in the way, the tavern open inside). Brinehollow's islanddump changes only in houses,
+  the tavern and the smithy (meshes, step colliders, Door markers, the warehouse's lamp 0.4 m along).

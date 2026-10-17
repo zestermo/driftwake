@@ -139,8 +139,9 @@ static func _lash(mb: MeshBuilder, at: Vector3, r: float) -> void:
 
 ## Shutters either side, a sill below and (maybe) a box of flowers, on a
 ## window whose frame is `xf` (outward +Z) and size `sz`.
-static func dress_window(mb: MeshBuilder, xf: Transform3D, sz: float, trim: Material, sill: Material, flowers: bool, rng: RandomNumberGenerator) -> void:
-	for s in [-1.0, 1.0]:
+static func dress_window(mb: MeshBuilder, xf: Transform3D, sz: float, trim: Material, sill: Material, flowers: bool, rng: RandomNumberGenerator,
+		shutters := true) -> void:
+	for s in ([-1.0, 1.0] if shutters else []):
 		# hung open, angled a little off the wall
 		var hinge := Vector3(s * (sz * 0.5 + 0.03), 0, 0.04)
 		var leaf := Transform3D(Basis(Vector3.UP, s * 0.35), hinge) * Transform3D(Basis(), Vector3(s * 0.17, 0, 0))
@@ -159,21 +160,119 @@ static func dress_window(mb: MeshBuilder, xf: Transform3D, sz: float, trim: Mate
 		mb.add_blob(bloom if k % 2 == 0 else bloom2, xf * Transform3D(Basis(), Vector3(x + 0.04, -sz * 0.5 + 0.02, 0.22)), Vector3.ONE * 0.055, rng, 0.2, 2, 4, 1.0)
 
 
-## A door's frame, a step stone and (with no porch) a little hood over it.
-static func dress_door(mb: MeshBuilder, at: Vector3, trim: Material, beam: Material, roof: Material, hood: bool) -> void:
-	for s in [-1.0, 1.0]:
-		mb.add_box(trim, _xf(at + Vector3(s * 0.58, 1.05, 0.04)), Vector3(0.14, 2.15, 0.08), 1.0)
-	mb.add_box(trim, _xf(at + Vector3(0, 2.15, 0.05)), Vector3(1.36, 0.16, 0.1), 1.0)
+## A house's door: the panelled door in its frame at `at` (the sill's middle on the wall's face) and,
+## with no porch over it, a little hood on two brackets.
+static func dress_door(mb: MeshBuilder, at: Vector3, dw: float, dh: float, leaf: Material, frame: Material, beam: Material,
+		roof: Material, hood: bool, fan: Material = null) -> void:
+	panel_door(mb, _xf(at), dw, dh, leaf, frame, fan)
 	if not hood:
 		return
-	var y := at.y + 2.45
+	var y := at.y + maxf(2.45, dh + 0.45)
 	var z := at.z
-	mb.add_quad(roof, Vector3(at.x - 0.85, y, z), Vector3(at.x + 0.85, y, z), Vector3(at.x + 0.85, y - 0.35, z + 0.8), Vector3(at.x - 0.85, y - 0.35, z + 0.8),
-		Vector2.ZERO, Vector2(0.85, 0), Vector2(0.85, 0.5), Vector2(0, 0.5), Color.WHITE, Vector3(0, 1, 0.45).normalized())
-	mb.add_quad(roof, Vector3(at.x - 0.85, y, z), Vector3(at.x - 0.85, y - 0.35, z + 0.8), Vector3(at.x + 0.85, y - 0.35, z + 0.8), Vector3(at.x + 0.85, y, z),
-		Vector2.ZERO, Vector2(0, 0.5), Vector2(0.85, 0.5), Vector2(0.85, 0), Color(0.55, 0.55, 0.55), Vector3(0, -1, -0.45).normalized())
+	var hw := dw * 0.5 + 0.35
+	mb.add_quad(roof, Vector3(at.x - hw, y, z), Vector3(at.x + hw, y, z), Vector3(at.x + hw, y - 0.35, z + 0.8), Vector3(at.x - hw, y - 0.35, z + 0.8),
+		Vector2.ZERO, Vector2(hw, 0), Vector2(hw, 0.5), Vector2(0, 0.5), Color.WHITE, Vector3(0, 1, 0.45).normalized())
+	mb.add_quad(roof, Vector3(at.x - hw, y, z), Vector3(at.x - hw, y - 0.35, z + 0.8), Vector3(at.x + hw, y - 0.35, z + 0.8), Vector3(at.x + hw, y, z),
+		Vector2.ZERO, Vector2(0, 0.5), Vector2(hw, 0.5), Vector2(hw, 0), Color(0.55, 0.55, 0.55), Vector3(0, -1, -0.45).normalized())
 	for s in [-1.0, 1.0]:
-		beam_between(mb, beam, Vector3(at.x + s * 0.75, y - 0.75, z), Vector3(at.x + s * 0.75, y - 0.3, z + 0.65), 0.08)
+		beam_between(mb, beam, Vector3(at.x + s * (hw - 0.1), y - 0.75, z), Vector3(at.x + s * (hw - 0.1), y - 0.3, z + 0.65), 0.08)
+
+
+# ==========================================================================
+# Doors and steps (every building's)
+# ==========================================================================
+const DOOR_W := 1.0
+const DOOR_H := 2.0
+## Unpainted door wood (the panel texture is pale so a tint paints it).
+const DOOR_WOOD := Color(0.62, 0.45, 0.31)
+const TREAD := 0.34
+const RISE := 0.16
+
+
+## A door leaf's material: the panelled door texture in `paint`.
+static func door_leaf(paint: Color = DOOR_WOOD) -> Material:
+	return PSXMat.lit("door_panel", paint, {"vertex_color": false})
+
+
+## A house door's paint from its seed: bare wood about half the time, else its trim lifted a little.
+static func door_paint(seed: int, trim: Color) -> Color:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash([seed, "door"])
+	return DOOR_WOOD if r.randf() < 0.5 else trim.lerp(Color.WHITE, 0.22)
+
+
+## A closed panelled door, framed: `xf` at the sill's middle on the wall's face, outward +Z. One leaf
+## w x h (two when w >= 1.6), jambs and a head with a drip cap over it (`frame`), a threshold, strap
+## hinges and a ring pull; with `fan` (a window material) the top 0.34 m is a fanlight over a transom.
+static func panel_door(mb: MeshBuilder, xf: Transform3D, w: float, h: float, leaf: Material, frame: Material, fan: Material = null) -> void:
+	var iron := PSXMat.lit("metal", Color(0.3, 0.3, 0.32))
+	var lh := h - (0.34 if fan != null else 0.0)
+	var n := 2 if w >= 1.6 else 1
+	var lw := w / n
+	for i in range(n):
+		var cx := -w * 0.5 + lw * (i + 0.5)
+		var hs := -1.0 if i == 0 else 1.0
+		mb.add_box_unit_uv(leaf, xf * _xf(Vector3(cx, lh * 0.5, 0.03)), Vector3(lw - 0.02, lh, 0.06))
+		for y in [0.3, lh - 0.3]:
+			mb.add_box(iron, xf * _xf(Vector3(cx + hs * (lw * 0.5 - 0.2), y, 0.066)), Vector3(0.4, 0.06, 0.012), 1.0, Color.WHITE, false)
+		var px := cx - hs * (lw * 0.5 - 0.14)
+		mb.add_box(iron, xf * _xf(Vector3(px, 1.02, 0.066)), Vector3(0.07, 0.16, 0.012), 1.0, Color.WHITE, false)
+		var ring := PackedVector3Array()
+		for k in range(7):
+			var a := TAU * k / 6.0
+			ring.append(xf * Vector3(px + sin(a) * 0.055, 0.93 + cos(a) * 0.055, 0.085))
+		mb.add_tube(iron, ring, 0.012, -1.0, 4)
+	if fan != null:
+		mb.add_box(frame, xf * _xf(Vector3(0, lh + 0.03, 0.05)), Vector3(w, 0.06, 0.1), 1.0, Color.WHITE, false)
+		mb.add_box_unit_uv(fan, xf * _xf(Vector3(0, lh + 0.06 + (h - lh - 0.06) * 0.5, 0.02)), Vector3(w, h - lh - 0.06, 0.04))
+	for s in [-1.0, 1.0]:
+		mb.add_box(frame, xf * _xf(Vector3(s * (w * 0.5 + 0.065), h * 0.5, 0.06)), Vector3(0.13, h, 0.12), 1.0)
+	mb.add_box(frame, xf * _xf(Vector3(0, h + 0.08, 0.065)), Vector3(w + 0.42, 0.16, 0.13), 1.0, Color.WHITE, false)
+	mb.add_box(frame, xf * _xf(Vector3(0, h + 0.19, 0.1)), Vector3(w + 0.56, 0.06, 0.2), 1.0, Color(0.8, 0.8, 0.8), false)
+	mb.add_box(frame, xf * _xf(Vector3(0, 0.025, 0.09)), Vector3(w + 0.26, 0.05, 0.18), 1.0, Color(0.75, 0.75, 0.75))
+
+
+## Steps up to a door whose sill is `top` over the ground, out from z0 along +Z at x: a landing `land`
+## deep (0: the floor or porch it leaves is the landing), then treads down to the ground. Stone blocks
+## reaching `found` below ground, or (`timber`) treads on stringers and the landing on two posts. A box
+## under the landing and a ramp over the treads to walk on (nothing steps up by itself). Returns the
+## distance from z0 to the foot of the steps.
+static func door_steps(body: Node3D, mb: MeshBuilder, mat: Material, x: float, z0: float, top: float, width: float,
+		land := 0.5, found := 0.6, timber := false) -> float:
+	var n := maxi(int(ceil(top / RISE - 0.01)), 1)
+	var rise := top / n
+	var zt := z0 + land
+	var run := (n - 1) * TREAD
+	if timber:
+		if land > 0.0:
+			mb.add_box(mat, _xf(Vector3(x, top - 0.07, z0 + land * 0.5)), Vector3(width, 0.14, land), 0.6, Color.WHITE, false)
+			for s in [-1.0, 1.0]:
+				mb.add_box(mat, _xf(Vector3(x + s * (width * 0.5 - 0.08), (top - 0.14 - found) * 0.5, zt - 0.08)), Vector3(0.14, top - 0.14 + found, 0.14), 0.6)
+		for i in range(1, n):
+			mb.add_box(mat, _xf(Vector3(x, top - i * rise - 0.03, zt + (i - 0.5) * TREAD)), Vector3(width - 0.14, 0.06, TREAD + 0.02), 0.8, Color.WHITE, false)
+		if n > 1:
+			for s in [-1.0, 1.0]:
+				var sx: float = x + s * (width * 0.5 - 0.04)
+				beam_between(mb, mat, Vector3(sx, top - 0.1, zt), Vector3(sx, -0.05, zt + run + 0.1), 0.07, 0.24)
+	else:
+		if land > 0.0:
+			mb.add_box(mat, _xf(Vector3(x, (top - found) * 0.5, z0 + land * 0.5)), Vector3(width, top + found, land), 0.6, Color.WHITE, true, false)
+		for i in range(1, n):
+			var y := top - i * rise
+			mb.add_box(mat, _xf(Vector3(x, (y - found) * 0.5, zt + (i - 0.5) * TREAD)), Vector3(width + 0.08 * i, y + found, TREAD), 0.6, Color(0.92 - 0.05 * (i % 2), 0.92, 0.9), true, false)
+	if land > 0.0:
+		_box_col(body, Vector3(width, top + found, land), Vector3(x, (top - found) * 0.5, z0 + land * 0.5))
+	var zf := zt + run + 0.15
+	var hw := width * 0.5
+	var pts := PackedVector3Array()
+	for s in [-1.0, 1.0]:
+		pts.append_array([Vector3(x + s * hw, top, zt), Vector3(x + s * hw, 0.0, zf), Vector3(x + s * hw, -0.3, zf), Vector3(x + s * hw, -0.3, zt)])
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = pts
+	var cs := CollisionShape3D.new()
+	cs.shape = shape
+	body.add_child(cs)
+	return land + run + 0.15
 
 
 ## A lantern on a bracket beside a door (glowing; the real light is the caller's).
@@ -200,6 +299,9 @@ static func wall_lantern(mb: MeshBuilder, at: Vector3, beam: Material) -> void:
 ##   lean_to          side shed: "left" / "right"
 ##   chimney          true / false; stilts height (raised on posts + steps; steps false: none)
 ##   door_x           door offset along the front; sign texture name
+##   door_w, door_h   the doorway (1.0 x 2.0; a tall house 2.4 with a fanlight, a barn-tall one a 1.8 x 2.5 pair)
+##   door_paint       the leaf's colour (else bare wood or the trim, from the seed); fanlight
+##   steps            false: no steps (a walkway meets the porch)
 ##   foundation       how far the stone base reaches below ground (slopes)
 ##   beam, floor      textures of the posts and beams / the raised floor and porch
 ##   poles            round posts (bamboo, palm) instead of square timbers; lashings rope at their joints
@@ -223,13 +325,18 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	var poles: bool = spec.get("poles", false)
 	var lashings: bool = spec.get("lashings", false)
 	var stone := PSXMat.lit("stone_brick")
-	var door := PSXMat.lit("door", Color.WHITE, {"vertex_color": false})
 	var window := PSXMat.lit("window", Color.WHITE, {"emission": Color(0.9, 0.7, 0.35), "emission_energy": 0.6, "emission_tex": "window"})
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(spec.get("seed", hash([w, d, h, roof_kind, door_x])))
-	var trim := PSXMat.lit("planks", spec.get("trim", TRIM_COLORS[rng.randi() % TRIM_COLORS.size()]))
+	var trim_col: Color = spec.get("trim", TRIM_COLORS[rng.randi() % TRIM_COLORS.size()])
+	var trim := PSXMat.lit("planks", trim_col)
 	var flowers: bool = spec.get("flowers", rng.randf() < 0.65)
 	var porch: float = spec.get("porch", 0.0)
+	var dw: float = spec.get("door_w", 1.8 if h >= 3.4 else DOOR_W)
+	var dh: float = spec.get("door_h", 2.5 if h >= 3.4 else (2.4 if h >= 2.9 else DOOR_H))
+	var fan: bool = spec.get("fanlight", h >= 2.9 and h < 3.4)
+	var paint: Color = spec.get("door_paint", door_paint(rng.seed, trim_col))
+	var painted := paint != DOOR_WOOD
 	var body := StaticBody3D.new()
 	body.name = str(spec.get("name", "House"))
 	body.collision_layer = WORLD_LAYER
@@ -253,14 +360,14 @@ static func house(spec: Dictionary = {}) -> Node3D:
 				for s in [-1.0, 1.0]:
 					beam_between(mb, beam, Vector3(s * (w * 0.5 - 0.25), 0.15, z), Vector3(0, fl - 0.35, z), 0.08)
 		mb.add_box(floor_m, _xf(Vector3(0, fl - 0.1, 0)), Vector3(w + 0.3, 0.2, d + 0.3), 0.5, Color.WHITE, false, false)
-		# steps up to the door (none when a walkway meets the porch)
-		var n_steps := int(ceil(fl / 0.3)) if spec.get("steps", true) else 0
-		for i in range(n_steps):
-			var sy := fl - (i + 1) * (fl / n_steps)
-			mb.add_box(beam, _xf(Vector3(door_x, sy + 0.05, d * 0.5 + 0.35 + i * 0.32)), Vector3(1.2, 0.1, 0.32), 0.6, Color.WHITE, false)
 	else:
 		mb.add_box(stone, _xf(Vector3(0, (0.3 - found) * 0.5, 0)), Vector3(w + 0.3, 0.3 + found, d + 0.3), 0.5, Color.WHITE, true, false)
-		mb.add_box(stone, _xf(Vector3(door_x, 0.15, d * 0.5 + 0.35)), Vector3(1.4, 0.3, 0.7), 0.6, Color.WHITE, true, false)
+	# steps up to the door, from the porch's edge or a stoop at the wall (none when a walkway meets the porch)
+	var foot := d * 0.5 + maxf(porch, 0.15)
+	if spec.get("steps", true):
+		var sz := d * 0.5 + porch if porch > 0.0 else d * 0.5 + 0.15
+		var land := 0.0 if porch > 0.0 else (0.8 if stilts > 0.0 else 0.5)
+		foot = sz + door_steps(body, mb, beam if stilts > 0.0 else stone, door_x, sz, fl, dw + (0.8 if stilts > 0.0 else 0.7), land, found, stilts > 0.0)
 
 	# ground floor
 	tiled_box(mb, wall, Vector3(0, fl + h * 0.5, 0), Vector3(w, h, d), 3.2, 0.5, true, floors == 1 and roof_kind == "shed")
@@ -273,16 +380,23 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			if lashings:
 				_lash(mb, Vector3(x * w * 0.5, fl + h - 0.2, z * d * 0.5), 0.13)
 	mb.add_box(beam, _xf(Vector3(0, fl + h, 0)), Vector3(w + 0.1, 0.18, d + 0.1), 0.6)
-	mb.add_box_unit_uv(door, _xf(Vector3(door_x, fl + 1.0, d * 0.5 + 0.03)), Vector3(1.0, 2.0, 0.06))
-	dress_door(mb, Vector3(door_x, fl, d * 0.5), trim, beam, roof, porch <= 0.0 and stilts <= 0.0)
+	dress_door(mb, Vector3(door_x, fl, d * 0.5), dw, dh, door_leaf(paint), beam if painted else trim, beam, roof, porch <= 0.0, window if fan else null)
 	var nwin := maxi(int(w / 2.6), 1)
 	for i in range(nwin + 1):
 		var x := -w * 0.5 + w * (i + 0.5) / (nwin + 1)
-		if absf(x - door_x) < 1.0:
+		if absf(x - door_x) < dw * 0.5 + 0.5:
 			continue
+		# clear of the door's frame: shutters swing out ~0.7 m, so a window too near for them goes without
+		var shutters := true
+		var dx := x - door_x
+		if absf(dx) < dw * 0.5 + 0.95:
+			x = door_x + signf(dx) * (dw * 0.5 + 0.95)
+			if absf(x) > w * 0.5 - 0.8:
+				x = door_x + signf(dx) * maxf(absf(dx), minf(dw * 0.5 + 0.9, w * 0.5 - 0.5 - signf(dx) * door_x))
+				shutters = false
 		var wx := _xf(Vector3(x, fl + 1.5, d * 0.5 + 0.03))
 		mb.add_box_unit_uv(window, wx, Vector3(0.7, 0.7, 0.06))
-		dress_window(mb, wx, 0.7, trim, beam, flowers and porch <= 0.0, rng)
+		dress_window(mb, wx, 0.7, trim, beam, flowers and porch <= 0.0, rng, shutters)
 	for s in [-1.0, 1.0]:
 		var sx := _xf(Vector3(s * (w * 0.5 + 0.03), fl + 1.5, 0), s * PI * 0.5)
 		mb.add_box_unit_uv(window, sx, Vector3(0.7, 0.7, 0.06))
@@ -292,7 +406,8 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	mb.add_box_unit_uv(window, back_win, Vector3(0.7, 0.7, 0.06))
 	dress_window(mb, back_win, 0.7, trim, beam, false, rng)
 	if spec.get("lantern", true):
-		var lx := door_x + (0.95 if door_x + 0.95 < w * 0.5 - 0.2 else -0.95)
+		var lo := dw * 0.5 + 0.45
+		var lx := door_x + (lo if door_x + lo < w * 0.5 - 0.2 else -lo)
 		wall_lantern(mb, Vector3(lx, fl + 1.95, d * 0.5), beam)
 		if spec.get("lamp_light", false):
 			var nl := NightLight.make(Color(1.0, 0.75, 0.42), 1.2, 7.0)
@@ -396,7 +511,8 @@ static func house(spec: Dictionary = {}) -> Node3D:
 					mb.add_cylinder(bark, Transform3D(lb, Vector3(side2 * (w * 0.5 + 0.7), 0.13 + row * 0.22, z)), 0.12, 0.12, 0.6, 6, 1.0, Color.WHITE, true, true)
 			_box_col(body, Vector3(0.6, 0.7, 1.1), Vector3(side2 * (w * 0.5 + 0.4), 0.35, z0))
 		if porch <= 0.0 and rng.randf() < 0.5:
-			var bz := Vector3(door_x + (-1.6 if door_x > -w * 0.5 + 2.2 else 1.6), 0.0, d * 0.5 + 0.55)
+			var bo := dw * 0.5 + 1.1
+			var bz := Vector3(door_x + (-bo if door_x > -w * 0.5 + bo + 0.6 else bo), 0.0, d * 0.5 + 0.55)
 			var seat := PSXMat.lit("planks")
 			mb.add_box(seat, _xf(bz + Vector3(0, 0.42, 0)), Vector3(1.2, 0.07, 0.34), 1.0)
 			for s in [-1.0, 1.0]:
@@ -405,14 +521,23 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	# covered porch along the front
 	if porch > 0.0:
 		var pz := d * 0.5 + porch
-		mb.add_box(floor_m, _xf(Vector3(0, fl - 0.08, d * 0.5 + porch * 0.5)), Vector3(w, 0.16, porch), 0.5, Color.WHITE, false, false)
+		var pd := porch - 0.15
+		var pc := d * 0.5 + 0.15 + pd * 0.5
+		# its floor from the footing's edge, on a stone plinth (or the stilts), posts up to a header under the roof
+		mb.add_box(floor_m, _xf(Vector3(0, fl - 0.08, pc)), Vector3(w, 0.16, pd), 0.5, Color.WHITE, false, false)
+		if stilts <= 0.0:
+			mb.add_box(stone, _xf(Vector3(0, (fl - 0.16 - found) * 0.5, pc)), Vector3(w, fl - 0.16 + found, pd), 0.5, Color.WHITE, true, true)
+		_box_col(body, Vector3(w, fl + found, pd), Vector3(0, (fl - found) * 0.5, pc))
+		var post_top := fl + h - 0.05 - (porch - 0.1) / (porch + 0.3) * (h * 0.1 + 0.15) - 0.18
+		var post_y := 0.0 if stilts > 0.0 else fl
 		for x in [-w * 0.5 + 0.15, w * 0.5 - 0.15]:
 			if poles:
-				mb.add_cylinder(beam, _xf(Vector3(x, 0.0, pz - 0.1)), 0.1, 0.09, h * 0.9 + 0.3 + stilts, 6, 0.6)
+				mb.add_cylinder(beam, _xf(Vector3(x, post_y, pz - 0.1)), 0.1, 0.09, post_top - post_y, 6, 0.6)
 			else:
-				mb.add_box(beam, _xf(Vector3(x, fl + h * 0.45 - (0.3 + stilts) * 0.5, pz - 0.1)), Vector3(0.16, h * 0.9 + 0.3 + stilts, 0.16), 0.6)
+				mb.add_box(beam, _xf(Vector3(x, (post_top + post_y) * 0.5, pz - 0.1)), Vector3(0.16, post_top - post_y, 0.16), 0.6)
 			if lashings:
 				_lash(mb, Vector3(x, fl - 0.25, pz - 0.1), 0.1)
+		mb.add_box(beam, _xf(Vector3(0, post_top + 0.07, pz - 0.1)), Vector3(w - 0.1, 0.14, 0.14), 0.6, Color.WHITE, false)
 		var porch_roof_y := fl + h * 0.9
 		mb.add_quad(roof, Vector3(-w * 0.5 - 0.2, fl + h - 0.05, d * 0.5), Vector3(w * 0.5 + 0.2, fl + h - 0.05, d * 0.5),
 			Vector3(w * 0.5 + 0.2, porch_roof_y - 0.2, pz + 0.3), Vector3(-w * 0.5 - 0.2, porch_roof_y - 0.2, pz + 0.3),
@@ -455,10 +580,14 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			mb.add_tri(cloth, Vector3(x0, ay - 0.55, z0 + ad + 0.01), Vector3(x1, ay - 0.55, z0 + ad + 0.01), tip, Vector3.BACK, Vector3.BACK, Vector3.BACK, Vector2(0, 0.9), Vector2(0.25, 0.9), Vector2(0.12, 1.0), Color.WHITE, Vector3.BACK)
 			mb.add_tri(cloth, Vector3(x0, ay - 0.55, z0 + ad), tip - Vector3(0, 0, 0.02), Vector3(x1, ay - 0.55, z0 + ad), Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector2(0, 0.9), Vector2(0.12, 1.0), Vector2(0.25, 0.9), Color(0.6, 0.6, 0.6), Vector3.FORWARD)
 		for s in [-1.0, 1.0]:
-			mb.add_box(beam, _xf(Vector3(s * aw * 0.5, (fl + ay - 0.55) * 0.5, z0 + ad)), Vector3(0.08, ay - 0.55, 0.08), 1.0)
-		# goods out front: a crate and a basket
-		mb.add_box(PSXMat.lit("planks", Color(0.9, 0.85, 0.75)), _xf(Vector3(-aw * 0.3, fl + 0.3, z0 + 0.7)), Vector3(0.7, 0.6, 0.6), 1.2)
-		mb.add_cylinder(PSXMat.lit("straw"), _xf(Vector3(aw * 0.32, fl, z0 + 0.8)), 0.26, 0.3, 0.32, 7, 1.0)
+			mb.add_box(beam, _xf(Vector3(s * aw * 0.5, (ay - 0.55) * 0.5, z0 + ad)), Vector3(0.08, ay - 0.55, 0.08), 1.0)
+		# goods out front on the ground either side of the steps: a crate and a basket
+		var cx := door_x - dw * 0.5 - 0.8
+		if cx > -aw * 0.5 + 0.4:
+			mb.add_box(PSXMat.lit("planks", Color(0.9, 0.85, 0.75)), _xf(Vector3(cx, 0.3, z0 + 0.7)), Vector3(0.7, 0.6, 0.6), 1.2)
+		var kx := door_x + dw * 0.5 + 0.75
+		if kx < aw * 0.5 - 0.35:
+			mb.add_cylinder(PSXMat.lit("straw"), _xf(Vector3(kx, 0.0, z0 + 0.8)), 0.26, 0.3, 0.32, 7, 1.0)
 
 	var sign_tex: String = spec.get("sign", "")
 	if sign_tex != "":
@@ -467,6 +596,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		mb.add_box_unit_uv(sign_m, _xf(Vector3(w * 0.5 - 0.2, fl + h - 0.65, d * 0.5 + 0.9), PI * 0.5), Vector3(1.0, 0.5, 0.06))
 
 	body.add_child(mb.to_instance())
+	_marker(body, "Door", Vector3(door_x, 0.0, foot + 0.5))
 	_box_col(body, Vector3(w + 0.3, fl + h + found, d + 0.3), Vector3(0, (fl + h - found) * 0.5, 0))
 	if floors > 1:
 		_box_col(body, Vector3(uw, h2, ud), Vector3(0, fl + h + h2 * 0.5 + 0.1, 0))
@@ -508,9 +638,14 @@ static func tavern_hall() -> Node3D:
 	mb.add_box(stone, _xf(Vector3(0, fl - 1.0, 0)), Vector3(w + 0.4, 2.0, d + 0.4), 0.5, Color.WHITE, true, false)
 	tiled_box(mb, planks, Vector3(0, fl - 0.005, 0), Vector3(w - t * 2, 0.04, d - t * 2), 2.0, 0.6, true, false)
 	_box_col(body, Vector3(w + 0.4, 2.0, d + 0.4), Vector3(0, fl - 1.0, 0))
-	# steps up to the door
-	mb.add_box(stone, _xf(Vector3(door_x, 0.15, d * 0.5 + 0.45)), Vector3(door_w + 0.8, 0.3, 0.9), 0.6, Color.WHITE, true, false)
-	_box_col(body, Vector3(door_w + 0.8, 0.3, 0.9), Vector3(door_x, 0.15, d * 0.5 + 0.45))
+	# steps up to the door, and its two leaves standing open against the wall inside
+	door_steps(body, mb, stone, door_x, d * 0.5 + 0.2, fl, door_w + 0.8, 0.5, 1.0)
+	var leaf := door_leaf(Color(0.42, 0.56, 0.5))
+	var lw := door_w * 0.5 - 0.04
+	for s in [-1.0, 1.0]:
+		mb.add_box_unit_uv(leaf, Transform3D(Basis(Vector3.UP, s * PI * 0.5), Vector3(door_x + s * (door_w * 0.5 - 0.05), fl + 0.02 + (door_h - 0.1) * 0.5, d * 0.5 - t - lw * 0.5)),
+			Vector3(lw, door_h - 0.1, 0.06))
+	mb.add_box(beam, _xf(Vector3(door_x, fl + 0.02, d * 0.5 - t * 0.5)), Vector3(door_w, 0.04, t + 0.12), 1.0, Color(0.8, 0.8, 0.8))
 
 	# walls: stone wainscot band + plaster, each a solid slab with both faces
 	var walls := [
@@ -689,7 +824,7 @@ static func tavern_hall() -> Node3D:
 	crate.rotation.y = 0.3
 	body.add_child(crate)
 	var barrel := Props.barrel()
-	barrel.position = Vector3(door_x + door_w * 0.5 + 0.8, 0.0, d * 0.5 + 0.7)
+	barrel.position = Vector3(door_x + door_w * 0.5 + 0.95, 0.0, d * 0.5 + 0.7)
 	body.add_child(barrel)
 
 	# tables with benches; patrons sit at the first two
@@ -838,6 +973,8 @@ static func smithy() -> Node3D:
 	# floor slab (reaching down into the ground) and the back and left walls
 	mb.add_box(stone, _xf(Vector3(0, -0.5, 0)), Vector3(w + 0.3, 1.2, d + 0.3), 0.5, Color.WHITE, true, false)
 	_box_col(body, Vector3(w + 0.3, 1.2, d + 0.3), Vector3(0, -0.5, 0))
+	# a dressed kerb along the open front: a half step up onto the floor
+	mb.add_box(stone, _xf(Vector3(0, -0.3, d * 0.5 + 0.35)), Vector3(w + 0.1, 0.7, 0.4), 0.6, Color(0.85, 0.84, 0.8), true, false)
 	tiled_box(mb, stone, Vector3(0, 0.1 + 0.6, -d * 0.5 + 0.15), Vector3(w, 1.2, 0.3), 2.4, 0.5)
 	tiled_box(mb, planks, Vector3(0, 1.3 + 1.0, -d * 0.5 + 0.15), Vector3(w, 2.0, 0.26), 2.4, 0.5)
 	_box_col(body, Vector3(w, 3.2, 0.3), Vector3(0, 1.7, -d * 0.5 + 0.15))

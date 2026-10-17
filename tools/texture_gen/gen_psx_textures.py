@@ -771,6 +771,31 @@ def gen_door():
     save(img, "door")
 
 
+def gen_door_panel():
+    """A panelled door leaf, 32x64, pale so a tint paints it (Buildings.panel_door): stiles and
+    rails round four raised panels, bevels lit from the top left, a faint vertical grain."""
+    W, H = 32, 64
+    rng = np.random.default_rng(7611)
+    grain = norm(periodic_noise(64, 16, rng))[:H, :W] * 0.6 + rng.random((H, W)) * 0.4
+    v = 0.55 + (grain - 0.5) * 0.22
+    for x in (0, 1, W - 2, W - 1):
+        v[:, x] -= 0.12
+    v[0:2, :] -= 0.1
+    v[H - 2:, :] -= 0.14
+    panels = [(4, 5, 14, 31), (18, 5, 28, 31), (4, 37, 14, 57), (18, 37, 28, 57)]
+    for x0, y0, x1, y1 in panels:
+        v[y0:y1, x0:x1] -= 0.26
+        v[y0 + 2:y1 - 2, x0 + 2:x1 - 2] += 0.2
+        v[y0 + 1, x0 + 1:x1 - 1] += 0.24
+        v[y0 + 1:y1 - 1, x0 + 1] += 0.18
+        v[y1 - 2, x0 + 1:x1 - 1] -= 0.06
+        v[y0 + 1:y1 - 1, x1 - 2] -= 0.06
+        v[y0 + 2:y1 - 2, x0 + 2:x1 - 2] += (grain[y0 + 2:y1 - 2, x0 + 2:x1 - 2] - 0.5) * 0.1
+    v[33:35, 2:W - 2] -= 0.05
+    rgb = ramp(np.clip(v, 0, 0.999), pal("4a453e", "6e675c", "8e867a", "aaa294", "c2baab", "d8d1c2", "ebe5d7"))
+    save(to_img(rgb), "door_panel")
+
+
 # --------------------------------------------------------------------------
 # Faces (16x16, transparent background -> skin shows through)
 # Laid out in a 4x2 atlas (64x32).
@@ -1908,6 +1933,9 @@ def main():
     if "village" in sys.argv[1:]:
         gen_cobbles(); gen_sign_smithy()
         return
+    if "doors" in sys.argv[1:]:
+        gen_door_panel()
+        return
     if "jungle" in sys.argv[1:]:
         gen_bamboo(); gen_woven(); gen_palm_thatch(); gen_flagstones(); gen_vines(); gen_broadleaf()
         return
@@ -1925,7 +1953,7 @@ def main():
     gen_cloth(1212, hexc("d8d0b8"), hexc("d8d0b8"), "canvas", stripes=False)
     gen_fabric(); gen_metal(); gen_straw()
     gen_leaves(); gen_palm_frond(); gen_bush(); gen_grass_tuft(); gen_fern()
-    gen_driftstone(); gen_rope(); gen_sign_tavern(); gen_sign_fish(); gen_window(); gen_door()
+    gen_driftstone(); gen_rope(); gen_sign_tavern(); gen_sign_fish(); gen_window(); gen_door(); gen_door_panel()
     gen_faces()
     gen_face_parts(); gen_hair(); gen_leather()
     gen_scales(); gen_fur()

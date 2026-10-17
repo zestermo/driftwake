@@ -566,7 +566,7 @@ static func _kind_of(c: Node, fp: Dictionary) -> String:
 	var mine: PackedStringArray = keys[3].split("/")
 	for i in range(keys.size()):
 		var k := "%d|%s" % [i, keys[i]]
-		if i == 2 and c is StaticBody3D and mine.has("door"):
+		if i == 2 and c is StaticBody3D and (mine.has("door") or mine.has("door_panel")):
 			return "House"
 		if fp.has(k) and fp[k] != "?":
 			return fp[k]
