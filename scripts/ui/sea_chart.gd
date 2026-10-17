@@ -11,8 +11,8 @@ const SIZE := Vector2(560, 320)
 ## World metres from Brinehollow shown to each edge (the chart is square-ish).
 const REACH := 1400.0
 ## Brinehollow's land, about: its forest and beach reach further west.
-const BRINEHOLLOW_R := 200.0
-const BRINEHOLLOW_OFFSET := Vector2(-45, 0)
+const BRINEHOLLOW_R := 300.0
+const BRINEHOLLOW_OFFSET := Vector2(-45, 80)
 ## A chain island's shore, about, before it's built (m).
 const ISLE_R := 380.0
 const MARKS := preload("res://scripts/ui/chain_marks.gd")

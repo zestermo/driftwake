@@ -245,22 +245,22 @@ static func _seg_t(x: float, z: float, s: Array) -> float:
 # ==========================================================================
 # The terrain under it (data)
 # ==========================================================================
-## Cut the height grid ((res + 1)^2 vertices `cell` apart from (-half, -half)) away under
+## Cut the height grid ((res + 1)^2 vertices `cell` apart from (-half, -half) + off) away under
 ## the rock: down behind the cliff face and under the cave and cleft (hidden in the rock),
 ## down to the sea floor below the shelf where the drop is the sea. Returns the cut grid.
-func carve(src: PackedFloat32Array, res: int, cell: float, half: float) -> PackedFloat32Array:
+func carve(src: PackedFloat32Array, res: int, cell: float, half: float, off := Vector2.ZERO) -> PackedFloat32Array:
 	var heights := src.duplicate()
 	var n := res + 1
 	var reach := 0.0
 	for i in range(_nt):
 		reach = maxf(reach, _r[i] + 16.0)
-	var i0 := clampi(int((c.x - reach + half) / cell), 0, res)
-	var i1 := clampi(int((c.x + reach + half) / cell) + 1, 0, res)
-	var k0 := clampi(int((c.y - reach + half) / cell), 0, res)
-	var k1 := clampi(int((c.y + reach + half) / cell) + 1, 0, res)
+	var i0 := clampi(int((c.x - off.x - reach + half) / cell), 0, res)
+	var i1 := clampi(int((c.x - off.x + reach + half) / cell) + 1, 0, res)
+	var k0 := clampi(int((c.y - off.y - reach + half) / cell), 0, res)
+	var k1 := clampi(int((c.y - off.y + reach + half) / cell) + 1, 0, res)
 	for iz in range(k0, k1 + 1):
 		for ix in range(i0, i1 + 1):
-			var p := Vector2(-half + ix * cell, -half + iz * cell)
+			var p := Vector2(-half + ix * cell, -half + iz * cell) + off
 			var vi := iz * n + ix
 			var h := heights[vi]
 			var th := bearing(p)

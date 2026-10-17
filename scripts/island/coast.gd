@@ -38,11 +38,11 @@ static func shelf(h: float, t: float, w: float, floor_y: float) -> float:
 
 
 ## Cuts the cliffs into a height grid ((res + 1)^2 vertices `cell` apart from
-## (-half, -half)). `allow` (p -> 0..1) keeps them off harbours and the like,
+## (-half, -half) + off). `allow` (p -> 0..1) keeps them off harbours and the like,
 ## `bare` (p -> height) is the ground without the shelf, given back off a cliff.
 ## Returns {"heights": the grid with the cliffs, "rock": the clifftop splat per vertex,
 ## "cols": the rock wall's columns [[centre, top, to_sea, k, ix, iz]]}.
-static func cliffs(src: PackedFloat32Array, res: int, cell: float, half: float, allow: Callable, bare: Callable) -> Dictionary:
+static func cliffs(src: PackedFloat32Array, res: int, cell: float, half: float, allow: Callable, bare: Callable, off := Vector2.ZERO) -> Dictionary:
 	var n := res + 1
 	var heights := src.duplicate()
 	var raise := PackedFloat32Array()
@@ -69,7 +69,7 @@ static func cliffs(src: PackedFloat32Array, res: int, cell: float, half: float, 
 			var top := _top(src, n, res, ix, iz, cell)
 			if top <= CLIFF_LO:
 				continue
-			var k := _smooth(CLIFF_LO, CLIFF_HI, top) * float(allow.call(Vector2(-half + ix * cell, -half + iz * cell)))
+			var k := _smooth(CLIFF_LO, CLIFF_HI, top) * float(allow.call((Vector2(-half + ix * cell, -half + iz * cell) + off)))
 			if k <= 0.01:
 				continue
 			for o in offs:
@@ -98,7 +98,7 @@ static func cliffs(src: PackedFloat32Array, res: int, cell: float, half: float, 
 					heights[i] = lerpf(h, maxf(h, _top(src, n, res, ix, iz, cell)), raise[i])
 					rock[i] = raise[i]
 			elif deep[i] > 0.0:
-				h = lerpf(h, minf(h, float(bare.call(Vector2(-half + ix * cell, -half + iz * cell)))), deep[i])
+				h = lerpf(h, minf(h, float(bare.call((Vector2(-half + ix * cell, -half + iz * cell) + off)))), deep[i])
 				if foot[i] > 0.0:
 					h = lerpf(h, minf(h, FOOT - near[i] * 0.25), foot[i])
 				heights[i] = h
@@ -118,7 +118,7 @@ static func cliffs(src: PackedFloat32Array, res: int, cell: float, half: float, 
 			if to_sea.length() < 0.1:
 				continue
 			to_sea = to_sea.normalized()
-			cols.append([Vector2(-half + ix * cell, -half + iz * cell) + to_sea * cell * 0.5, heights[i], to_sea, raise[i], ix, iz])
+			cols.append([(Vector2(-half + ix * cell, -half + iz * cell) + off) + to_sea * cell * 0.5, heights[i], to_sea, raise[i], ix, iz])
 	return {"heights": heights, "rock": rock, "cols": cols}
 
 

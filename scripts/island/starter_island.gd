@@ -3,9 +3,10 @@ extends Island
 ## Brinehollow — the hand-designed starter island, and the reference the island
 ## kit (scripts/island/kit/, .claude/skills/driftwake-islands) is held to.
 ##
-## Its own: the terrain (a 630 m chunk at 3 m resolution with a designed height
+## Its own: the terrain (a 780 m chunk at 3 m resolution with a designed height
 ## function: village plateau, lighthouse hill, jungle highlands, a sheltered cove,
-## the deep forest to the west, a broad beach to the north-west), the splat paint
+## the deep forest to the west, a broad beach to the north-west, and since 2026-10-17
+## the southern lands: farmland, a highland, a second cove), the splat paint
 ## for paths / sand / grass, the paths, the vegetation, the bugs and the loot.
 ## Everything settled is a kit piece; this file is where each goes, with
 ## Brinehollow's own parameters and fixed seeds (SEEDS), so it stays the same island.
@@ -18,15 +19,22 @@ extends Island
 ##   Pirate den   (-160, -152) on a clifftop plateau off the north-west beach,
 ##                behind the rocky ridge down the point west of the harbour
 
-const EXTENT := 630.0
+const EXTENT := 780.0
 const CELL := 3.0
-const RES := 210
+const RES := 260
 const HALF := EXTENT * 0.5
+## The terrain grid's middle: the land grew south (2026-10-17), the grid's north edge stayed.
+const GRID_C := Vector2(0, 75)
+## The grid before it grew (630 m round the centre): the old land's plants and coast rock
+## keep their draws on it; its vertices are the new grid's, OLD_SHIFT cells in.
+const OLD_HALF := 315.0
+const OLD_SHIFT := Vector2i(25, 0)
 ## Ships keep out of these circles ([centre, radius], island space): the old
-## island, the western lobes and the two long points.
-const NO_GO := [[Vector2(0, 0), 225.0], [Vector2(-100, 5), 225.0], [Vector2(-120, 220), 75.0], [Vector2(-100, -215), 70.0]]
+## island, the western lobes, the two long points and the southern lands.
+const NO_GO := [[Vector2(0, 0), 225.0], [Vector2(-100, 5), 225.0], [Vector2(-120, 220), 75.0], [Vector2(-100, -215), 70.0],
+	[Vector2(-45, 235), 205.0]]
 ## The land fits inside this far from the centre (navmesh bake).
-const LAND_R := 305.0
+const LAND_R := 400.0
 const WATER := 0.0
 const SEAFLOOR := -26.0
 
@@ -102,7 +110,24 @@ const DEN_PIER := 26.0
 const SPITTERS := 9
 const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
-const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151}
+const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
+	"south": 8181}
+## The southern lands (2026-10-17): a lobe of land round LOBE, LOBE_R to its coast (ragged), kept
+## off the cove (COVE_SEA) and the old island's interior; the highland the falls come off, the
+## farmland round the windmill hamlet, the second cove's bay on the south coast.
+const LOBE := Vector2(-45, 235)
+const LOBE_R := 155.0
+const COVE_SEA := 58.0
+const HIGHLAND := Vector2(28, 318)
+const FARM := Vector2(-45, 200)
+const COVE2 := Vector2(-56, 356)
+const COVE2_MOUTH := Vector2(-0.12, 1.0)
+## Places that keep their ground exactly as it was where the new land meets the old coast: [centre, radius].
+const GROW_KEEP := [[SMUGGLERS, 26.0]]
+## The rocky spine from the highland out to the south-east cape (sea cliffs at its end: the wreck's rocks).
+const CAPE_TIP := Vector2(92, 372)
+## Paths before the land grew: the old pieces and plants see only these.
+const OLD_PATHS := 8
 ## NightLights the kit may light (lamps, lit doorways, the camps' and the den's lanterns).
 const LIGHTS := 22
 
@@ -111,6 +136,17 @@ var paths: Array = []        # Array of PackedVector2Array (smoothed)
 var path_widths: Array = []  # half widths
 var path_bounds: Array = []  # Rect2 per path (grown by width)
 var exclusions: Array = []   # [Vector2 center, float radius]
+## The reserves for `excluded`, by cell: [cell -> [[centre, r]], the ones bigger than a cell]; the
+## old island's and the grown land's apart (the old plants decide on the old ones only).
+var _ex_old := [{}, []]
+var _ex_new := [{}, []]
+const EX_CELL := 8.0
+## While true, reserves are the grown land's.
+var _grow_layer := false
+## While true (the old island's plants deciding), only the old reserves and paths count.
+var _old_only := false
+## Paths path_dist sees: the old ones until the grown land's pieces start.
+var _open_paths := OLD_PATHS
 
 var dock_shore := Vector2.ZERO
 var dock_dir := Vector2(0, -1)
@@ -160,8 +196,10 @@ var _coast_rock := PackedFloat32Array()
 ## points), jumps (KitCliffPath.jumps), guard.
 var den_plan := {}
 var den_path: KitCliffPath
-## The ground before the path was cut in (the plants grow from it as they always have).
+## The old island's ground before the path was cut in (the old plants decide on it, so every
+## draw is what it always was), and per vertex whether the grown ground differs from it (dilated).
 var _land_heights := PackedFloat32Array()
+var _changed := PackedByteArray()
 var _path_task := -1
 var _path_mesh := {}
 var _veg_skip := false
@@ -213,6 +251,9 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("smugglers", _build_smugglers_camp)
 	kit.timed("den", _build_den)
 	kit.timed("cave", func(): cave = KitCave.cave(kit, CAVE))
+	# the grown land's pieces: their reserves and paths kept apart from the old island's
+	_open_grown()
+	_grow_layer = false
 	kit.timed("vegetation", _scatter_vegetation)
 	kit.timed("spitters", _build_spitters)
 	kit.timed("npcs", func(): KitLife.spawn(kit, BrinehollowCast.people(self)))
@@ -318,10 +359,12 @@ func _harbour_band(p: Vector2, pad: float) -> float:
 		* (1.0 - _smooth(30.0, 60.0, harbour.t_of(p) - harbour.wall(s)))
 
 
-## 0..1: room for the shelf at p (none off the harbour, round the den or near the terrain's edge).
-func _shelf_room(p: Vector2) -> float:
-	return (1.0 - _smooth(HALF - 75.0, HALF - 35.0, maxf(absf(p.x), absf(p.y)))) * _smooth(60.0, 90.0, p.distance_to(DEN)) \
-		* (1.0 - _harbour_band(p, 20.0))
+## 0..1: room for the shelf at p (none off the harbour, round the den or near the terrain's edge:
+## the old grid's for the old island's ground).
+func _shelf_room(p: Vector2, old := false) -> float:
+	var edge := (1.0 - _smooth(OLD_HALF - 75.0, OLD_HALF - 35.0, maxf(absf(p.x), absf(p.y)))) if old \
+		else (1.0 - _smooth(HALF - 75.0, HALF - 35.0, maxf(absf(p.x - GRID_C.x), absf(p.y - GRID_C.y))))
+	return edge * _smooth(60.0, 90.0, p.distance_to(DEN)) * (1.0 - _harbour_band(p, 20.0))
 
 
 ## 0..1: where a cliff may stand (not at the harbour or the castaway's camp).
@@ -353,23 +396,30 @@ func _crag(p: Vector2) -> float:
 		_smooth(DEN_IN - 1.5, DEN_IN + 0.5, dd) * (1.0 - _smooth(DEN_OUT - 0.5, DEN_OUT + 1.5, dd)))
 
 
-## Natural terrain before flattening.
-func _height_natural(x: float, z: float, shelf := 1.0) -> float:
-	var p := Vector2(x, z)
+## How far p is outside the old island's coast (negative inland).
+func _old_t(p: Vector2) -> float:
 	var d := p.length()
-	var ang := atan2(z, x)
+	var ang := atan2(p.y, p.x)
 	var ext := _coast_extra(ang)
 	var r := 126.0 + _coast_noise.get_noise_2d(cos(ang) * 50.0, sin(ang) * 50.0) * 16.0 + maxf(ext.x, ext.y) + _capes(ang)
-	var t := d - r + _shape_noise.get_noise_2d(x, z) * 34.0 * _wild(ang)
+	var t := d - r + _shape_noise.get_noise_2d(p.x, p.y) * 34.0 * _wild(ang)
 	for k in LAND_KEEP:
 		t = minf(t, p.distance_to(k[0]) - float(k[1]))
-	t = minf(t, p.distance_to(DEN) - _den_r((p - DEN).angle()) - DEN_OUT + DEN_IN)
+	return minf(t, p.distance_to(DEN) - _den_r((p - DEN).angle()) - DEN_OUT + DEN_IN)
+
+
+## Natural terrain before flattening (the old island's: `old` keeps the old grid's edge).
+func _height_natural(x: float, z: float, shelf := 1.0) -> float:
+	var p := Vector2(x, z)
+	var ang := atan2(z, x)
+	var ext := _coast_extra(ang)
+	var t := _old_t(p)
 	var bw := ext.y / 62.0
 	var h: float
 	if t < 0.0:
 		h = lerpf(0.5, 4.3, pow(clampf(-t / (44.0 + 46.0 * bw), 0.0, 1.0), 0.85))
 	else:
-		h = Coast.shelf(lerpf(0.5, SEAFLOOR, _smooth(0.0, 60.0, t)), t, shelf * _shelf_room(p), SEAFLOOR)
+		h = Coast.shelf(lerpf(0.5, SEAFLOOR, _smooth(0.0, 60.0, t)), t, shelf * _shelf_room(p, true), SEAFLOOR)
 	var inland := clampf(-t / 35.0 - 0.15, 0.0, 1.0)
 	h += _roll_noise.get_noise_2d(x, z) * 2.6 * inland * (1.0 - 0.6 * bw)
 	h += _detail_noise.get_noise_2d(x, z) * 0.45 * inland
@@ -381,7 +431,12 @@ func _height_natural(x: float, z: float, shelf := 1.0) -> float:
 	return h
 
 
+## The ground: the old island's, and the southern lands where they stand higher.
 func _height_fn(x: float, z: float, shelf := 1.0) -> float:
+	return maxf(_height_old(x, z, shelf), _grown(Vector2(x, z), shelf))
+
+
+func _height_old(x: float, z: float, shelf := 1.0) -> float:
 	var p := Vector2(x, z)
 	var h := _height_natural(x, z, shelf)
 	for zone in _flat_zones:
@@ -414,6 +469,56 @@ func _height_fn(x: float, z: float, shelf := 1.0) -> float:
 	return h
 
 
+## Bays and capes round the southern lands (bearings from LOBE).
+static func _lobe_capes(ang: float) -> float:
+	return 40.0 * (1.0 - _smooth(2.0, 16.0, _bearing_off(ang, 45.0))) + 22.0 * (1.0 - _smooth(3.0, 18.0, _bearing_off(ang, 140.0))) \
+		- 18.0 * (1.0 - _smooth(4.0, 14.0, _bearing_off(ang, 112.0))) - 30.0 * (1.0 - _smooth(5.0, 17.0, _bearing_off(ang, -8.0))) \
+		+ 16.0 * (1.0 - _smooth(3.0, 12.0, _bearing_off(ang, 168.0)))
+
+
+## How far p is outside the southern lands' coast (negative inland): the sea kept round the
+## cove, the second cove's bay and its mouth.
+func _lobe_t(p: Vector2) -> float:
+	var v := p - LOBE
+	var ang := atan2(v.y, v.x)
+	var r := LOBE_R + _coast_noise.get_noise_2d(cos(ang) * 60.0 + 300.0, sin(ang) * 60.0) * 24.0 + _lobe_capes(ang)
+	var t := v.length() - r + _shape_noise.get_noise_2d(p.x + 500.0, p.y) * 30.0
+	t = maxf(t, COVE_SEA - p.distance_to(COVE))
+	return maxf(t, _cove2(p))
+
+
+## The second cove's bay and its mouth: > 0 in the water (how far in).
+static func _cove2(p: Vector2) -> float:
+	var m := Geometry2D.get_closest_point_to_segment(p, COVE2, COVE2 + COVE2_MOUTH * 70.0)
+	return maxf(27.0 - p.distance_to(COVE2), 15.0 - p.distance_to(m))
+
+
+## The southern lands' ground (land, shelf or seabed), sunk out of the way where the old island's
+## interior is and round GROW_KEEP.
+func _grown(p: Vector2, shelf: float) -> float:
+	var t := _lobe_t(p)
+	if t > 75.0:
+		return SEAFLOOR * 2.0
+	var w := _smooth(-30.0, -6.0, _old_t(p))
+	for k in GROW_KEEP:
+		w *= _smooth(float(k[1]), float(k[1]) + 18.0, p.distance_to(k[0]))
+	if w <= 0.0:
+		return SEAFLOOR * 2.0
+	var h: float
+	if t < 0.0:
+		h = lerpf(0.5, 4.3, pow(clampf(-t / 50.0, 0.0, 1.0), 0.85))
+	else:
+		# (no wading shelf in the second cove: deep enough to swim and moor in)
+		h = Coast.shelf(lerpf(0.5, SEAFLOOR * 0.35, _smooth(0.0, 24.0, t)), t, shelf * _shelf_room(p) * (1.0 - _smooth(2.0, 8.0, _cove2(p))), SEAFLOOR) \
+			if _cove2(p) > 0.0 else Coast.shelf(lerpf(0.5, SEAFLOOR, _smooth(0.0, 60.0, t)), t, shelf * _shelf_room(p), SEAFLOOR)
+	var inland := clampf(-t / 35.0 - 0.15, 0.0, 1.0)
+	h += (_roll_noise.get_noise_2d(p.x, p.y) * 2.6 + _detail_noise.get_noise_2d(p.x, p.y) * 0.45) * inland
+	h += (16.0 * _gauss(p, HIGHLAND, 36.0) + 3.0 * _gauss(p, FARM, 70.0)) * inland
+	var spine := Geometry2D.get_closest_point_to_segment(p, HIGHLAND, CAPE_TIP).distance_to(p)
+	h += 9.0 * (1.0 - _smooth(5.0, 18.0, spine)) * _smooth(-1.0, 4.0, -t)
+	return lerpf(SEAFLOOR * 2.0, h, w)
+
+
 func _setup_flat_zones() -> void:
 	_flat_zones = [
 		[VILLAGE, _height_natural(VILLAGE.x, VILLAGE.y), 24.0, 40.0],
@@ -426,15 +531,77 @@ func _setup_flat_zones() -> void:
 	]
 
 
+## The grid's (0, 0) vertex, island space.
+static func grid_origin() -> Vector2:
+	return GRID_C - Vector2(HALF, HALF)
+
+
+## The terrain grid's square, island space.
+static func grid_rect() -> Rect2:
+	return Rect2(grid_origin(), Vector2(EXTENT, EXTENT))
+
+
+## The ground (and the old island's, for its plants), its cliffs and their rock; which vertices
+## the grown land changed. The coast rock keeps the old grid's indices for its seeds.
 func _generate_heights() -> void:
-	heights.resize((RES + 1) * (RES + 1))
-	for iz in range(RES + 1):
+	var n := (RES + 1) * (RES + 1)
+	var o := grid_origin()
+	var t0 := Time.get_ticks_usec()
+	# (a row a task on the worker threads: the height function only reads)
+	var rows: Array = []
+	rows.resize(RES + 1)
+	var task := WorkerThreadPool.add_group_task(func(iz: int):
+		var a := PackedFloat32Array()
+		var b := PackedFloat32Array()
+		a.resize(RES + 1)
+		b.resize(RES + 1)
 		for ix in range(RES + 1):
-			heights[iz * (RES + 1) + ix] = _height_fn(-HALF + ix * CELL, -HALF + iz * CELL)
-	var coast := Coast.cliffs(heights, RES, CELL, HALF, _cliff_allow, func(p: Vector2) -> float: return _height_fn(p.x, p.y, 0.0))
+			var x := -HALF + ix * CELL + GRID_C.x
+			var z := -HALF + iz * CELL + GRID_C.y
+			var h := _height_old(x, z)
+			a[ix] = h
+			b[ix] = maxf(h, _grown(Vector2(x, z), 1.0))
+		rows[iz] = [a, b], RES + 1)
+	WorkerThreadPool.wait_for_group_task_completion(task)
+	var old := PackedFloat32Array()
+	heights = PackedFloat32Array()
+	for r in rows:
+		old.append_array(r[0])
+		heights.append_array(r[1])
+	var t1 := Time.get_ticks_usec()
+	var coast := Coast.cliffs(heights, RES, CELL, HALF, _cliff_allow, func(p: Vector2) -> float: return _height_fn(p.x, p.y, 0.0), GRID_C)
 	heights = coast["heights"]
 	_coast_rock = coast["rock"]
 	coast_cols = coast["cols"]
+	for c in coast_cols:
+		c[4] = int(c[4]) - OLD_SHIFT.x
+		c[5] = int(c[5]) - OLD_SHIFT.y
+	var t2 := Time.get_ticks_usec()
+	_land_heights = Coast.cliffs(old, RES, CELL, HALF, _cliff_allow, func(p: Vector2) -> float: return _height_old(p.x, p.y, 0.0), GRID_C)["heights"]
+	var t3 := Time.get_ticks_usec()
+	_changed.resize(n)
+	_changed.fill(0)
+	for i in range(n):
+		if absf(heights[i] - _land_heights[i]) <= 0.002:
+			continue
+		var ix := i % (RES + 1)
+		var iz := i / (RES + 1)
+		for dz in range(maxi(iz - 1, 0), mini(iz + 2, RES + 1)):
+			for dx in range(maxi(ix - 1, 0), mini(ix + 2, RES + 1)):
+				_changed[dz * (RES + 1) + dx] = 1
+	build_ms["land: heights"] = int((t1 - t0) / 1000)
+	build_ms["land: cliffs"] = int((t2 - t1) / 1000)
+	build_ms["land: old cliffs"] = int((t3 - t2) / 1000)
+	build_ms["land: changed"] = int((Time.get_ticks_usec() - t3) / 1000)
+	assert(o.x + OLD_SHIFT.x * CELL == -OLD_HALF and o.y + OLD_SHIFT.y * CELL == -OLD_HALF)
+
+
+## Did the grown land change the ground round p (from the old island's)?
+func _grown_at(p: Vector2) -> bool:
+	var o := grid_origin()
+	var ix := clampi(int(round((p.x - o.x) / CELL)), 0, RES)
+	var iz := clampi(int(round((p.y - o.y) / CELL)), 0, RES)
+	return _changed[iz * (RES + 1) + ix] == 1
 
 
 ## A point on the climb's circle `sig` m along it from its foot (`r` from DEN).
@@ -535,8 +702,7 @@ func _plan_den() -> void:
 ## the guard up there.
 func _plan_den_path() -> void:
 	den_path = KitCliffPath.plan(DEN, DEN_PATH, func(p: Vector2) -> float: return height_at(p.x, p.y), SEEDS["climb"])
-	_land_heights = heights
-	heights = den_path.carve(heights, RES, CELL, HALF)
+	heights = den_path.carve(heights, RES, CELL, HALF, GRID_C)
 	_path_task = WorkerThreadPool.add_task(func(): _path_mesh = den_path.mesh())
 	coast_cols = coast_cols.filter(func(c: Array) -> bool: return not den_path.covers(c[0], 6.0))
 	var foot := DEN + Vector2.from_angle(deg_to_rad(PATH_FOOT[0])) * float(PATH_FOOT[1])
@@ -582,8 +748,8 @@ func _h(ix: int, iz: int) -> float:
 
 ## Exact terrain height (matches the rendered triangles). Local coordinates.
 func height_at(x: float, z: float) -> float:
-	var fx := (x + HALF) / CELL
-	var fz := (z + HALF) / CELL
+	var fx := (x + HALF - GRID_C.x) / CELL
+	var fz := (z + HALF - GRID_C.y) / CELL
 	var ix := clampi(int(floor(fx)), 0, RES - 1)
 	var iz := clampi(int(floor(fz)), 0, RES - 1)
 	var u := clampf(fx - ix, 0.0, 1.0)
@@ -727,11 +893,26 @@ func _define_paths() -> void:
 	# into the deep forest to the cave, and off the training path round the ridge to the den's climb
 	_add_path([RUINS + Vector2(-9, 5), Vector2(-84, 64), Vector2(-104, 56), Vector2(-118, 47), CAVE + Vector2(29, 0)], 1.2)
 	_add_path([Vector2(-44, -41), Vector2(-60, -62), Vector2(-90, -80), Vector2(-112, -100), Vector2(-128, -120), climb_start()[0]], 1.3)
+	# the southern lands (worn in now, seen by path_dist once their pieces build): off the cove path
+	# south over the old bay to the windmill hamlet, on to the highland's foot, and down from the ruins
+	_add_path([Vector2(32, 16), Vector2(26, 58), Vector2(12, 104), Vector2(-2, 150), Vector2(-24, 186), FARM + Vector2(12, -8)], 1.3)
+	_add_path([FARM + Vector2(12, -8), Vector2(-14, 232), Vector2(4, 262), Vector2(14, 278)], 1.2)
+	_add_path([RUINS + Vector2(-4, 9), Vector2(-74, 110), Vector2(-66, 150), FARM + Vector2(-7, -16)], 1.2)
 
 
-func _path_dist(p: Vector2) -> float:
+## The grown land's paths count from here on (its pieces and plants).
+func _open_grown() -> void:
+	_open_paths = paths.size()
+	_grow_layer = true
+
+
+## Distance to the nearest path's edge, of paths `from` to `n` (-1: those open; the old ones while
+## the old plants decide).
+func _path_dist(p: Vector2, n := -1, from := 0) -> float:
+	if n < 0:
+		n = OLD_PATHS if _old_only else _open_paths
 	var best := 9999.0
-	for i in range(paths.size()):
+	for i in range(from, n):
 		if not (path_bounds[i] as Rect2).has_point(p):
 			continue
 		var pts: PackedVector2Array = paths[i]
@@ -748,20 +929,40 @@ func path_dist(p: Vector2) -> float:
 	return _path_dist(p)
 
 
+## The terrain's wear: every path, open or not.
 func _path_weight(p: Vector2) -> float:
-	var d := _path_dist(p)
+	var d := _path_dist(p, paths.size())
 	return 1.0 - _smooth(-0.6, 0.6, d)
 
 
 func _excluded(p: Vector2, pad: float = 0.0, under := INF) -> bool:
-	for e in exclusions:
+	return _ex_hit(_ex_old, p, pad, under) or (not _old_only and _ex_hit(_ex_new, p, pad, under))
+
+
+static func _ex_hit(ex: Array, p: Vector2, pad: float, under: float) -> bool:
+	for e in ex[1]:
 		if float(e[1]) < under and p.distance_to(e[0]) < float(e[1]) + pad:
 			return true
+	var reach := maxf(EX_CELL + pad, 0.0)
+	var cells: Dictionary = ex[0]
+	for cx in range(floori((p.x - reach) / EX_CELL), floori((p.x + reach) / EX_CELL) + 1):
+		for cz in range(floori((p.y - reach) / EX_CELL), floori((p.y + reach) / EX_CELL) + 1):
+			var list = cells.get(Vector2i(cx, cz))
+			if list == null:
+				continue
+			for e in list:
+				if float(e[1]) < under and p.distance_to(e[0]) < float(e[1]) + pad:
+					return true
 	return false
 
 
 func excluded(p: Vector2, pad: float, under := INF) -> bool:
 	return _excluded(p, pad, under)
+
+
+## The places on the map (tools/dev/bhmapshot.gd).
+func map_places() -> Array:
+	return [VILLAGE, MARKET, TRAINING, HILL, RUINS, COVE, CAMP, SMUGGLERS, FOREST, CAVE, DEN, LOBE, HIGHLAND, FARM, COVE2, CAPE_TIP]
 
 
 ## Brinehollow's save ids are its own names (chests, strongboxes).
@@ -789,8 +990,8 @@ func _build_terrain() -> void:
 	for iz in range(RES + 1):
 		for ix in range(RES + 1):
 			var i := iz * (RES + 1) + ix
-			var x := -HALF + ix * CELL
-			var z := -HALF + iz * CELL
+			var x := -HALF + ix * CELL + GRID_C.x
+			var z := -HALF + iz * CELL + GRID_C.y
 			var h := heights[i]
 			verts[i] = Vector3(x, h, z)
 			var dx := _h(ix - 1, iz) - _h(ix + 1, iz)
@@ -871,7 +1072,16 @@ func place(node: Node3D, p: Vector2, yaw: float = 0.0, footprint: float = 0.0, y
 
 
 func reserve(p: Vector2, r: float) -> void:
-	exclusions.append([p, r])
+	var e := [p, r]
+	exclusions.append(e)
+	var ex: Array = _ex_new if _grow_layer else _ex_old
+	if r > EX_CELL:
+		ex[1].append(e)
+		return
+	var key := Vector2i(floori(p.x / EX_CELL), floori(p.y / EX_CELL))
+	if not ex[0].has(key):
+		ex[0][key] = []
+	ex[0][key].append(e)
 
 
 # ==========================================================================
@@ -1117,8 +1327,8 @@ func _build_spitters() -> void:
 func _nearest_path_dir(p: Vector2) -> Vector2:
 	var best := Vector2(0, -1)
 	var bd := INF
-	for path in paths:
-		var pts: PackedVector2Array = path
+	for k in range(_open_paths):
+		var pts: PackedVector2Array = paths[k]
 		for q in pts:
 			var d := p.distance_squared_to(q)
 			if d < bd:
@@ -1139,20 +1349,23 @@ func _scatter_vegetation() -> void:
 	var rocks := [Props.rock_mesh(51, 1.0), Props.rock_mesh(52, 1.0, true), Props.rock_mesh(53, 1.0)]
 	var buckets := {}
 	var rng := _rng
-	# (the plants grow from the ground as it was before the den path was cut in, so every
-	# draw is what it always was; where the path changed the land they're left out)
+	# (the old island's plants grow from its ground as it was before the den path was cut in and
+	# the land grew, and decide on its reserves and paths only, so every draw is what it always
+	# was; where the path, the grown land or a newer piece changed things they're left out, and
+	# the grown land's own scatter fills in)
 	var built := heights
 	heights = _land_heights
+	_old_only = true
 
 	# --- trees and rocks on a 5 m jittered grid ---
 	var step := 5.0
-	var x := -HALF + 3.0
-	while x < HALF - 3.0:
-		var z := -HALF + 3.0
-		while z < HALF - 3.0:
+	var x := -OLD_HALF + 3.0
+	while x < OLD_HALF - 3.0:
+		var z := -OLD_HALF + 3.0
+		while z < OLD_HALF - 3.0:
 			var p := Vector2(x + rng.randf_range(-2.0, 2.0), z + rng.randf_range(-2.0, 2.0))
 			z += step
-			_veg_skip = den_path.covers(p)
+			_veg_skip = den_path.covers(p) or _grown_at(p) or _ex_hit(_ex_new, p, 1.0, INF) or _path_dist(p, paths.size(), OLD_PATHS) < 3.0
 			var h := hv(p)
 			if h < -1.6:
 				continue
@@ -1193,13 +1406,13 @@ func _scatter_vegetation() -> void:
 
 	# --- undergrowth on a 2.5 m grid ---
 	step = 2.5
-	x = -HALF + 3.0
-	while x < HALF - 3.0:
-		var z := -HALF + 3.0
-		while z < HALF - 3.0:
+	x = -OLD_HALF + 3.0
+	while x < OLD_HALF - 3.0:
+		var z := -OLD_HALF + 3.0
+		while z < OLD_HALF - 3.0:
 			var p := Vector2(x + rng.randf_range(-1.1, 1.1), z + rng.randf_range(-1.1, 1.1))
 			z += step
-			_veg_skip = den_path.covers(p)
+			_veg_skip = den_path.covers(p) or _grown_at(p) or _ex_hit(_ex_new, p, -0.5, INF) or _path_dist(p, paths.size(), OLD_PATHS) < 0.6
 			var h := hv(p)
 			if h < 1.4:
 				continue
@@ -1232,6 +1445,8 @@ func _scatter_vegetation() -> void:
 		x += step
 	_veg_skip = false
 	heights = built
+	_old_only = false
+	_scatter_grown(buckets, {"palms": palms, "jungle": jungle, "bushes": bushes, "ferns": ferns, "grass": grass, "rocks": rocks})
 
 	# --- commit MultiMeshes: one per mesh per VEG_CELL square, so only the
 	# squares in view (and in the sun's shadow range) are drawn; the small
@@ -1261,6 +1476,92 @@ func _scatter_vegetation() -> void:
 
 func _jungle(p: Vector2) -> float:
 	return maxf(1.0 - _smooth(50.0, 80.0, p.distance_to(JUNGLE_HIGH)), 1.0 - _smooth(72.0, 112.0, p.distance_to(FOREST)))
+
+
+## The southern lands' jungle: the old jungle's edge, the highland's wilds, groves in the open.
+func _jungle_south(p: Vector2) -> float:
+	var grove := _smooth(0.2, 0.45, _shape_noise.get_noise_2d(p.x * 2.3 + 900.0, p.y * 2.3)) * 0.55
+	return maxf(maxf(_jungle(p), 1.0 - _smooth(45.0, 95.0, p.distance_to(HIGHLAND))), grove) * (1.0 - _farm(p))
+
+
+## 0..1: the farmland round the windmill hamlet (open ground).
+func _farm(p: Vector2) -> float:
+	return 1.0 - _smooth(60.0, 95.0, p.distance_to(FARM))
+
+
+## The grown land's plants (where the old island's scatter left off: outside its grid, or where the
+## ground changed): the same kinds by the same rules, each lattice point its own seed so a piece
+## built later changes only the plants round it.
+func _scatter_grown(buckets: Dictionary, m: Dictionary) -> void:
+	var o := grid_origin()
+	var rng := RandomNumberGenerator.new()
+	var mine := func(p: Vector2) -> bool:
+		return p.x < -OLD_HALF + 1.0 or p.x > OLD_HALF - 5.0 or p.y < -OLD_HALF + 1.0 or p.y > OLD_HALF - 5.0 or _grown_at(p)
+	var nx := int((EXTENT - 6.0) / 5.0)
+	for ix in range(nx):
+		for iz in range(nx):
+			rng.seed = hash([SEEDS["south"], ix, iz])
+			var p := o + Vector2(3.0 + ix * 5.0 + rng.randf_range(-2.0, 2.0), 3.0 + iz * 5.0 + rng.randf_range(-2.0, 2.0))
+			if not mine.call(p):
+				continue
+			var h := hv(p)
+			if h < -1.6 or _excluded(p, 1.0):
+				continue
+			var slope := _slope_at(p)
+			var roll := rng.randf()
+			if h < 0.7:
+				if h > -1.4 and roll < 0.05:
+					_add_rock(buckets, m["rocks"], p, rng.randf_range(0.6, 1.6), rng)
+				continue
+			if slope > 0.5:
+				if roll < 0.35:
+					_add_rock(buckets, m["rocks"], p, rng.randf_range(0.8, 2.2), rng)
+				continue
+			if _path_dist(p) < 3.0:
+				continue
+			var beach := 1.0 - _smooth(2.0, 3.8, h)
+			var jung := _jungle_south(p)
+			var farm := _farm(p)
+			var p_palm := (0.32 * beach + 0.05 * (1.0 - beach) * (1.0 - jung) + 0.06 * jung) * (1.0 - 0.85 * farm)
+			var p_jungle := (0.62 * jung + 0.05 * (1.0 - farm)) * (1.0 - beach)
+			var p_rock := 0.02 + 0.03 * farm
+			if roll < p_palm:
+				_add_tree(buckets, m["palms"], p, h, rng, 0.35, 3.0)
+			elif roll < p_palm + p_jungle:
+				_add_tree(buckets, m["jungle"], p, h, rng, 0.45, 3.5, rng.randf_range(0.85, 1.25))
+			elif roll < p_palm + p_jungle + p_rock:
+				_add_rock(buckets, m["rocks"], p, rng.randf_range(0.5, 1.8), rng)
+	nx = int((EXTENT - 6.0) / 2.5)
+	for ix in range(nx):
+		for iz in range(nx):
+			rng.seed = hash([SEEDS["south"] + 1, ix, iz])
+			var p := o + Vector2(3.0 + ix * 2.5 + rng.randf_range(-1.1, 1.1), 3.0 + iz * 2.5 + rng.randf_range(-1.1, 1.1))
+			if not mine.call(p):
+				continue
+			var h := hv(p)
+			if h < 1.4 or _excluded(p, -0.5) or _slope_at(p) > 0.45:
+				continue
+			var pd := _path_dist(p)
+			if pd < 0.6:
+				continue
+			var beach := 1.0 - _smooth(2.2, 3.6, h)
+			var jung := _jungle_south(p)
+			var farm := _farm(p)
+			var roll := rng.randf()
+			var p_fern := 0.32 * jung * (1.0 - beach)
+			var p_bush := (0.08 + 0.14 * jung) * (1.0 - beach * 0.7) * (1.0 - 0.6 * farm)
+			var p_grass := (0.3 * (1.0 - jung * 0.5) + 0.05 + 0.15 * farm) * (1.0 - beach * 0.8)
+			if pd < 2.0:
+				p_fern = 0.0
+				p_bush = 0.0
+				p_grass *= 0.5
+			var basis := Basis(Vector3.UP, rng.randf() * TAU)
+			if roll < p_fern:
+				_bucket(buckets, m["ferns"][rng.randi() % 2], Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.3)), Vector3(p.x, h - 0.05, p.y)))
+			elif roll < p_fern + p_bush:
+				_bucket(buckets, m["bushes"][rng.randi() % 2], Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.4)), Vector3(p.x, h - 0.1, p.y)))
+			elif roll < p_fern + p_bush + p_grass:
+				_bucket(buckets, m["grass"], Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.4)), Vector3(p.x, h - 0.05, p.y)))
 
 
 func _bucket(buckets: Dictionary, mesh: Mesh, xf: Transform3D) -> void:

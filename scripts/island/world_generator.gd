@@ -337,7 +337,7 @@ func _generate_heightmap(centers: Array[Dictionary], _rng: RandomNumberGenerator
 			for c in centers:
 				if c.get("starter", false):
 					# Hand-built island sits here: keep the seafloor below its chunk
-					var sp: Vector2 = c["pos"]
+					var sp: Vector2 = c["pos"] + StarterIsland.GRID_C
 					if absf(wx - sp.x) < StarterIsland.HALF + 5.0 and absf(wz - sp.y) < StarterIsland.HALF + 5.0:
 						h = minf(h, seafloor_depth - 3.0)
 					continue
@@ -468,8 +468,7 @@ func bake_shallows() -> void:
 	Ocean.shoal_map = ImageTexture.create_from_image(img)
 	Ocean.shoal_rect = Vector4(-terrain_size * 0.5 - cell * 0.5, -terrain_size * 0.5 - cell * 0.5, terrain_size + cell, 1.0)
 	var t0 := Time.get_ticks_usec()
-	var h := StarterIsland.HALF
-	Ocean.set_shore("brinehollow", ShoreMap.bake(starter_island.heights, StarterIsland.RES + 1, StarterIsland.CELL, Vector2(-h, -h), Ocean.swell_dir()), starter_center)
+	Ocean.set_shore("brinehollow", ShoreMap.bake(starter_island.heights, StarterIsland.RES + 1, StarterIsland.CELL, StarterIsland.grid_origin(), Ocean.swell_dir()), starter_center)
 	print("WorldGenerator: Brinehollow's shore map in %d ms" % ((Time.get_ticks_usec() - t0) / 1000))
 
 
