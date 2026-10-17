@@ -2766,4 +2766,4 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   Renders: tools/dev/out/polish/med7_sheet.png (villageshot seed 7 medina), fid7_after_*, g7_camp, models/desert_skyline_*.
 ## 2026-10-16: Chain._name no longer divides by zero
 - When every name of a theme was already given on islands within the last two layers, both pools were empty and `rng.randi() % 0` broke Chain.make (chain seeds 74, 200, 220, 259). Now it falls back to a name not on this layer, then any of the theme's names; chains that never hit the empty case draw the same rng values as before.
-- Test: t/world/chain_names (those four seeds: every island named).
+- BeastPool.assign had the same hole (a theme's bosses all on the islands before): falls back to the whole pool. Test: t/world/chain_names (those four seeds: every island named, beast set).

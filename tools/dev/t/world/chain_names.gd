@@ -24,7 +24,7 @@ func _process(_d: float) -> bool:
 		var c = load("res://scripts/world/chain.gd").make(s, Vector2.ZERO, Vector2(1, 0))
 		var named := true
 		for n in c.nodes:
-			if str(n["name"]).is_empty() or str(n["base"]).is_empty():
+			if str(n["name"]).is_empty() or str(n["base"]).is_empty() or str(n["beast"]).is_empty():
 				named = false
 		check("chain seed %d: %d islands, every one named" % [s, c.nodes.size()], c.nodes.size() > 0 and named)
 	return TK.done(fails)
