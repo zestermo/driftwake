@@ -3388,3 +3388,32 @@ Found and fixed (Buildings unless said):
   by another id).
 - techtest's "each weapon tree has 18+ nodes and one ultimate" now counts only the weapon trees (STYLE_TREE).
 - Tests: t/ship/seamanship. Render: tools/dev/seamapshot.gd (the SEA tab fresh and learned).
+## 2026-10-17: the forest island theme, piece 4 (set pieces: the waterfall gorge, the ruined castle, the hollow tree)
+- **What** (`scripts/island/themes/forest_setpieces.gd`, ForestSetPieces, through ForestPlaces.KINDS on the theme place
+  hooks; a set piece and a landmark never share a kind): `forest_gorge` for the chain's cenote or sunken village,
+  `forest_castle` for its volcano vent or old fort, `forest_hollow_tree` for its great tree. Nothing guaranteed: the chain
+  rolls which set piece and landmarks an island gets.
+- **The waterfall gorge:** forest_land.gd gives the island's first river big falls (14-19 m; as big as the land allows,
+  at least 5 m) when its set piece maps to the gorge (`land_plan["gorge"]`), so the river runs on in a deep gorge below
+  them. The set piece takes the island's biggest falls clear of the sites: mist off the pool, ferns and moss down the
+  walls, a cave dug into the gorge wall beside the curtain (the terrain cut to the pool's level there, a CaveMesher room
+  meshed on the worker, its rock one trimesh, glowing fungus, a light, the `gorge_cave_hoard` chest and two of the
+  island's cave fauna by FaunaSpawner.fill_slots), rope bridges (KitLandmarks.bridge) rim to rim across the gorge a few
+  steps downstream, the trail to the first bridge, the falls' roar.
+- **The ruined castle:** on high level ground (KitSetPieces._plan_inland, r 27): eight stretches of crenellated mossy-stone
+  curtain wall at 21 m (a seeded third breached to rubble), the gatehouse toward the trail (piers, a lintel, an arch), round
+  towers on every other corner (some broken low), ivy red and green down them; the keep at the back, roofless, its doorway
+  toward the gate, a stair of stone blocks round its inside walls to a timber floor at 8.4 m under the broken parapet with
+  the `castle_keep_chest`, arrow slits, a light; outlaws camped in the courtyard (a fire, tents, crates, a GruntCamp of five:
+  two at the fire, one walking the walls' foot, a rifle at the gate, one at the keep's door) with their own nav zone.
+- **The hollow giant tree:** a trunk 11 m across, hollow to 7 m (outer and inner walls, a doorway between buttress roots at
+  +Z, the back open), solid and tapering on up to the fork at 22 m, seven limbs into a crown of oak, maple and beech leaves
+  with grapple points; bracket fungus spiralling up its side (17 shelves, 0.82 m apart, each a box to stand on) to a planked
+  perch in the fork with the `hollow_tree_perch` chest. Through the back of the hollow a root cavern of three chambers in a
+  mound of earth and roots behind it (CaveMesher, the ground levelled under it; the forest's cave look), roots down through
+  the roofs, glowing fungus, a light per chamber, bats overhead and sprites / treantlings / mites on the floors
+  (fill_slots), the `hollow_tree_hoard` in the end chamber.
+- **Build cost** (seed 5, landmarkshot): the gorge's steps ~160 ms in all, the hollow tree's ~290 ms over two steps (the
+  trunk's 24 wall boxes and the cavern's trimesh), the castle ~35 ms; the cave meshes ~130 ms on the prepare worker.
+- **Tests:** `t/island/forest_places`. Renders: `tools/dev/out/forest/lm5_*` (landmarkshot seed 5, LSHOT_PIECE=cenote,
+  LSHOT_MARKS=great_tree: the gorge, the hollow tree, the sawmill, the camps), `c5_forest_castle.png` (forestshot seed 5).
