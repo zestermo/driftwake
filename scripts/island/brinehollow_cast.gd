@@ -9,7 +9,6 @@ const L := preload("res://scripts/npc/character_look.gd")
 
 ## The dockhands walking the quay (along its back, clear of the booth, the yard and the crane).
 static func dockhands(isl: StarterIsland) -> Array:
-	_warm(isl)
 	var h: KitHarbour = isl.harbour
 	var y := h.quay_y
 	var a := h.quay_pt(maxf(h.s0 + 4.0, -30.0), 14.0)
@@ -29,18 +28,6 @@ static func dockhands(isl: StarterIsland) -> Array:
 		out.append({"cfg": {"name": spec[1], "voice": spec[3], "barks": spec[2], "look": KitLife.look_for(spec[1]), "waypoints": route},
 			"at": Vector2(route[0].x, route[0].z), "face": Vector2(1, 0), "y": y})
 	return out
-
-
-## The bodies of everyone made at the end of the build (the cast and the townsfolk) built ahead on worker threads
-## while the rest of the island builds: ~40 bodies were ~5 s on the main thread.
-static func _warm(isl: StarterIsland) -> void:
-	var looks: Array = people(isl).map(func(e): return e["cfg"]["look"])
-	looks.append_array(townsfolk().map(func(e): return e["cfg"]["look"]))
-	var boat = load("res://scripts/island/harbour_boat.gd")
-	for i in range(boat.CREW.size()):
-		looks.append(boat.crew_look(i))
-	for i in range(0, looks.size(), 7):
-		Humanoid.prebuild(looks.slice(i, i + 7))
 
 
 ## Everyone else, in the order they're made.

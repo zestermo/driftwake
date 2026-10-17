@@ -227,7 +227,10 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
 - **Mesh-commit crash while the next island prepares** (2026-10-14 bug pass): a segfault in
   `add_surface_from_arrays` (MeshBuilder.commit, from village dressing or a scuttlebug's model) on the main
   thread while a worker prepares the next chain island; 3 of ~10 headless seatest/nettest runs. Likely the same
-  race as the crash above. Needs its own pass (is it headless-only?).
+  race as the crash above. Needs its own pass (is it headless-only?). 2026-10-17: prebuilding Brinehollow's ~45
+  bodies on workers (Humanoid.prebuild) while the main thread built the island reproduced it at once ("Attempting to
+  initialize the wrong RID" in MeshBuilder.to_instance from body_builder._commit_parts on the main thread); the
+  prebuild was taken out again. A load-time speed-up for bodies needs their meshes committed on the main thread first.
 - chartest / savetest race on the shared `user://character.cfg` when two sessions run them at once
   ("Cannot get keys from nonexistent section look"): give the suites their own config path (e.g. an env or
   test-kit override of CharacterLook's save path).

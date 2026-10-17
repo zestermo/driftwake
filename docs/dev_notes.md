@@ -3439,8 +3439,8 @@ Found and fixed (Buildings unless said):
   the well, densified to 2.5 m, lines joined within 3.2 m; an edge is kept only if rays both ways at waist height hit nothing (a lamp at a
   path's end, a stall on a path's edge); cut-off pieces are bridged at the nearest clear step (<= 9 m). A walk is the spot's lane, an
   A* route between the entries (the nearest graph point in clear sight), and the next spot's lane in.
-- **Load time**: every cast and townsfolk body is prebuilt on worker threads from `BrinehollowCast.dockhands` (early in the build, the
-  looks are data): the cast's "npcs" step went 2064 -> 435 ms and the townsfolk cost 159 ms (2898 built on the main thread).
+- **Load time**: the bodies are built on the main thread, ~150 ms each (the townsfolk ~2.9 s). Prebuilding them on workers early in
+  the build cut that to ~0.6 s but raced the main thread's mesh commits ("wrong RID", docs/todo.md's mesh-commit crash), so it's out.
 - **Tested by** t/island/brinehollow_life (everyone made once; 10:00 keepers at their counters; 21:00 the Gull busy, Corin there
   trading; 2:00 everyone in; no stop in a doorway or on the stair; every walk's legs clear of colliders by ray).
 ## 2026-10-17: the axe pass, piece 1 (the combo on swing paths, the drawn iron crescent)
