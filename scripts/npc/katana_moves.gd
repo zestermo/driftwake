@@ -135,3 +135,121 @@ static func _side(h) -> Dictionary:
 	var follow := cut.merged({"pivot": Vector3(-0.08, 0, -0.06), "hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.28, -0.32, -0.1),
 		"head": Vector3(0.15, 0.36, 0), "_lift": Vector3(0, -0.28, 0), "_scale": Vector3.ONE}, true)
 	return {"g": p["g"], "start": p["follow"], "gather": gather, "whoosh": whoosh, "cut": cut, "follow": follow}
+
+
+# --------------------------------------------------------------------------
+# The techniques: each cut on a swing path (the follow-through held by a last key on the same
+# point), the body keyed here
+# --------------------------------------------------------------------------
+## Tiger Rush (SkillState, 0.55 s; the dash runs to 0.38 s): run low with the hands drawn back by
+## the right hip, the blade trailing level behind, then one drawing cut flat across the front to
+## the left as the dash ends (u 0.6-0.76), held.
+const TIGER_SWING := {"from_shoulder": true, "follow": 1.0, "center": Vector3.ZERO, "lag": 0.01, "plane": Vector3(0, 1, 0),
+	"cut": Vector3.LEFT, "keys": [
+	[0.0, {"dir": Vector3(-0.52, -0.34, -0.78), "r": 0.5, "break": 1.0}],
+	[0.16, {"dir": Vector3(0.45, -0.75, 0.48), "r": 0.5, "break": 1.2}, "smooth"],
+	[0.5, {"dir": Vector3(0.5, -0.7, 0.5), "r": 0.5, "break": 1.25}],
+	[0.6, {"dir": Vector3(0.75, -0.3, -0.58), "r": 0.6, "break": 0.8}, "in"],
+	[0.68, {"dir": Vector3(-0.1, -0.2, -0.97), "r": 0.63, "break": 0.35}],
+	[0.76, {"dir": Vector3(-0.8, -0.25, -0.55), "r": 0.6, "break": 0.15}, "out"],
+	[0.82, {"dir": Vector3(-0.8, -0.25, -0.55), "r": 0.6, "break": 0.15}]]}
+
+## Wind Severer (0.75 s, the wave leaves at 0.34 s = u 0.45): the blade swung down low behind the
+## right foot, a beat, then one rising cut up across the front to high on the left.
+const SEVER_SWING := {"from_shoulder": true, "follow": 1.0, "center": Vector3.ZERO, "lag": 0.01, "plane_from": 1, "keys": [
+	[0.0, {"dir": Vector3(-0.52, -0.34, -0.78), "r": 0.5, "break": 1.0}],
+	[0.3, {"dir": Vector3(0.45, -0.8, 0.4), "r": 0.6, "break": 1.1}, "smooth"],
+	[0.37, {"dir": Vector3(0.42, -0.82, 0.34), "r": 0.6, "break": 1.15}, "in"],
+	[0.45, {"dir": Vector3(0.0, -0.45, -0.9), "r": 0.63, "break": 0.5}],
+	[0.52, {"dir": Vector3(-0.4, 0.45, -0.8), "r": 0.6, "break": 0.2}],
+	[0.6, {"dir": Vector3(-0.35, 0.85, -0.38), "r": 0.52, "break": 0.2}, "out"],
+	[0.72, {"dir": Vector3(-0.35, 0.85, -0.38), "r": 0.52, "break": 0.2}]]}
+
+## Phantom Step's cut (0.6 s, the cut at 0.16 s = u 0.27): arrived crouched behind them with the
+## hands low at the left, then one flat cut round to the right.
+const PHANTOM_SWING := {"from_shoulder": true, "follow": 1.0, "center": Vector3.ZERO, "lag": 0.01, "plane": Vector3(0, -1, 0),
+	"cut": Vector3.RIGHT, "keys": [
+	[0.0, {"dir": Vector3(-0.7, -0.5, -0.5), "r": 0.5, "break": 1.1}],
+	[0.12, {"dir": Vector3(-0.75, -0.45, -0.45), "r": 0.5, "break": 1.2}, "smooth"],
+	[0.2, {"dir": Vector3(-0.45, -0.25, -0.85), "r": 0.58, "break": 0.8}, "in"],
+	[0.27, {"dir": Vector3(0.1, -0.2, -0.98), "r": 0.63, "break": 0.4}],
+	[0.34, {"dir": Vector3(0.65, -0.2, -0.73), "r": 0.6, "break": 0.2}],
+	[0.42, {"dir": Vector3(0.85, -0.2, -0.45), "r": 0.56, "break": 0.15}, "out"],
+	[0.62, {"dir": Vector3(0.85, -0.2, -0.45), "r": 0.56, "break": 0.15}]]}
+
+## The drawing cut (iai_slash: the heavy's release, Iai Counter's answer; played 0.6-0.78 s): out of
+## the scabbard at the left hip and one flat cut round to the right (contact ~0.08 s).
+const IAI_SWING := {"from_shoulder": true, "follow": 1.0, "center": Vector3.ZERO, "lag": 0.0, "plane": Vector3(0, -1, 0),
+	"cut": Vector3.RIGHT, "keys": [
+	[0.0, {"dir": Vector3(-0.7, -0.66, -0.25), "r": 0.6, "break": 1.3}],
+	[0.06, {"dir": Vector3(-0.5, -0.45, -0.74), "r": 0.6, "break": 0.6}, "in"],
+	[0.13, {"dir": Vector3(0.32, -0.25, -0.91), "r": 0.63, "break": 0.15}],
+	[0.2, {"dir": Vector3(0.7, -0.2, -0.68), "r": 0.6, "break": 0.15}],
+	[0.28, {"dir": Vector3(0.85, -0.18, -0.48), "r": 0.57, "break": 0.15}, "out"],
+	[0.6, {"dir": Vector3(0.85, -0.18, -0.48), "r": 0.57, "break": 0.15}]]}
+
+## Thousand Petals' drawing cut (petal_storm, 2.0 s: the blade leaves the scabbard at 0.44 s, cuts at
+## 0.46 s; keys in u of the 2 s): out of the scabbard at the left hip and one flat cut round to the
+## right, held a moment; then the arm turns back to the posed flick and the slow sheathe.
+const PETAL_SWING := {"from_shoulder": true, "follow": 1.0, "center": Vector3.ZERO, "lag": 0.0, "plane": Vector3(0, -1, 0),
+	"cut": Vector3.RIGHT, "keys": [
+	[0.195, {"dir": Vector3(-0.7, -0.66, -0.25), "r": 0.6, "break": 1.3}],
+	[0.215, {"dir": Vector3(-0.5, -0.42, -0.76), "r": 0.6, "break": 0.6}, "in"],
+	[0.232, {"dir": Vector3(0.32, -0.22, -0.92), "r": 0.63, "break": 0.15}],
+	[0.25, {"dir": Vector3(0.75, -0.16, -0.64), "r": 0.6, "break": 0.15}],
+	[0.28, {"dir": Vector3(0.88, -0.12, -0.46), "r": 0.57, "break": 0.15}, "out"],
+	[0.36, {"dir": Vector3(0.88, -0.12, -0.46), "r": 0.57, "break": 0.15}]]}
+
+
+## Tiger Rush's body: dropped into a long low run-lunge, leaning in, the chest turned a little right
+## over the trailing blade, then turned left through the drawing cut and held.
+static func tiger(h, u: float) -> Array:
+	var g: Dictionary = h._guard()
+	var low := {"pivot": Vector3(-0.32, 0, 0), "hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.28, -0.3, 0.02), "head": Vector3(0.5, 0.28, 0),
+		"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.25, 0, 0), "leg_r": Vector3(-0.8, 0, 0.12), "shin_r": Vector3(-0.45, 0, 0),
+		"_lift": Vector3(0, -0.32, 0), "_scale": Vector3(1.03, 0.94, 1.08), "_smear": Vector3.ZERO}
+	var cut := low.merged({"pivot": Vector3(-0.2, 0, 0), "hips": Vector3(0, 0.25, 0), "torso": Vector3(-0.25, 0.35, 0.04), "head": Vector3(0.35, -0.3, 0),
+		"_scale": Vector3(1.04, 0.95, 1.04)}, true)
+	var whip := SwordMoves._with(SwordMoves._mix(low, cut, 0.5), Vector3(0.95, 1.0, 1.15), 0.7)
+	return [h._keys(u, [[0.0, g], [0.14, low, "out"], [0.55, low], [0.63, whip, "in"], [0.7, cut, "out"], [0.86, cut], [1.0, g]]), "full", Vector3.ZERO]
+
+
+## Wind Severer's body: coiled low over the right foot with the blade, then rising up onto the
+## front foot and turning left with the cut.
+static func sever(h, u: float) -> Array:
+	var g: Dictionary = h._guard()
+	var low := {"pivot": Vector3(-0.1, 0, 0), "hips": Vector3(0, -0.35, 0), "torso": Vector3(-0.32, -0.42, 0.06), "head": Vector3(0.3, 0.4, 0),
+		"leg_l": Vector3(0.5, 0, -0.14), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.4, 0, 0.14), "shin_r": Vector3(-0.85, 0, 0),
+		"_lift": Vector3(0, -0.24, 0), "_scale": Vector3(1.04, 0.93, 1.02), "_smear": Vector3.ZERO}
+	var rise := {"pivot": Vector3(0.04, 0, 0), "hips": Vector3(0, 0.25, 0), "torso": Vector3(0.12, 0.3, -0.06), "head": Vector3(-0.1, -0.25, 0),
+		"leg_l": Vector3(1.0, 0, -0.14), "shin_l": Vector3(-1.05, 0, 0), "leg_r": Vector3(-0.8, 0, 0.14), "shin_r": Vector3(-0.2, 0, 0),
+		"_lift": Vector3(0, -0.06, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}
+	# (stretched up along the cut, the blade smeared, on the one fast key)
+	var whip := SwordMoves._with(SwordMoves._mix(low, rise, 0.5), Vector3(0.96, 1.07, 1.0), 0.7)
+	return [h._keys(u, [[0.0, g], [0.28, low, "out"], [0.37, low], [0.44, whip, "in"], [0.5, rise, "out"], [0.74, rise], [1.0, g]]), "full", Vector3.ZERO]
+
+
+## Phantom Step's body: arrived crouched low behind them, coiled left, then rising a little and
+## turning right through the cut, held.
+static func phantom(h, u: float) -> Array:
+	var g: Dictionary = h._guard()
+	var arrive := {"pivot": Vector3(-0.12, 0, 0), "hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.38, 0.35, 0.02), "head": Vector3(0.35, -0.35, 0),
+		"leg_l": Vector3(0.65, 0, -0.15), "shin_l": Vector3(-1.25, 0, 0), "leg_r": Vector3(-0.2, 0, 0.15), "shin_r": Vector3(-1.2, 0, 0),
+		"_lift": Vector3(0, -0.34, 0), "_scale": Vector3(1.04, 0.93, 1.03), "_smear": Vector3.ZERO}
+	var cut := {"pivot": Vector3(-0.08, 0, 0), "hips": Vector3(0, -0.25, 0), "torso": Vector3(-0.3, -0.35, -0.05), "head": Vector3(0.25, 0.35, 0),
+		"leg_l": Vector3(1.1, 0, -0.14), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.85, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0),
+		"_lift": Vector3(0, -0.26, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}
+	var whip := SwordMoves._with(SwordMoves._mix(arrive, cut, 0.5), Vector3(0.95, 1.0, 1.15), 0.7)
+	return [h._keys(u, [[0.0, arrive], [0.12, arrive], [0.22, whip, "in"], [0.28, cut, "out"], [0.65, cut], [1.0, g]]), "full", Vector3.ZERO]
+
+
+## The drawing cut's body (iai_slash): from the drawing stance, driving forward low through the cut
+## and turning right with it, the scabbard hand flung back; rising back to the guard at the end.
+static func iai(h, u: float) -> Array:
+	var cut := {"pivot": Vector3(-0.15, 0, 0), "hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.35, -0.35, 0.06), "head": Vector3(0.3, 0.3, 0),
+		"arm_l": Vector3(-0.55, 0.0, -0.95), "fore_l": Vector3(0.35, 0, 0),
+		"leg_l": Vector3(1.35, 0, -0.14), "shin_l": Vector3(-1.55, 0, 0), "leg_r": Vector3(-1.05, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0),
+		"_scale": Vector3.ONE, "_smear": Vector3.ZERO}
+	var whip := cut.merged({"_scale": Vector3(0.95, 1.0, 1.14), "_smear": Vector3(0.7, 0, 0)}, true)
+	var lift := Vector3(0, -0.4 * (1.0 - h._ease(clampf((u - 0.62) / 0.38, 0.0, 1.0))), 0)
+	return [h._keys(u, [[0.0, h._iai_pose()], [0.08, whip, "in"], [0.16, cut, "out"], [0.62, cut], [1.0, h._guard()]]), "full", lift]

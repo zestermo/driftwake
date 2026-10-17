@@ -3243,3 +3243,33 @@ Found and fixed (Buildings unless said):
   Vey's menu says "Buy or sell armour" and points you to Haldor; Gus mentions Corin with his drinks.
 - **Tested by** t/island/brinehollow_shops (the stock moves; on a built Brinehollow Haldor trades and Corin is at a shopfront's counter)
   and t/items/instruments (Corin sells all five, no one else on Brinehollow sells one). qoltest now sells its blue cutlass to Haldor.
+
+## 2026-10-17: the katana pass, piece 3 (the five abilities)
+- **Poses:** every katana cut rides a swing path now (KatanaMoves; the body keyed there, small chest turns so the hands
+  stay in front; a last key on the follow-through's point holds it): `tiger_rush` (new: Tiger Rush with a katana runs low
+  with the blade trailing by the right hip, then one drawing cut flat across to the left as the dash ends, u 0.6-0.76; a
+  cutlass still lunges with "thrust"), `wind_sever` (low behind the right foot, a beat, one rising cut up across the
+  front; the wave leaves on it at 0.34 s), `phantom_cut` (arrived crouched, hands low left, a flat cut round to the right
+  at 0.16 s), `iai_slash` (the heavy's release and Iai Counter's answer: out of the scabbard, the blade on the target at
+  contact (it lagged left before), held), `petal_storm`'s drawing cut (PETAL_SWING, u 0.195-0.36; the rest still keyed).
+- **Effects** (plain steel / awakened cloud, all Net.fx): each cut lays `FX.katana_slash` along its blade (Iai Counter's
+  from the answer's start, so the ribbon has the whole path). Tiger Rush: a katana_line of cloud along the dash once
+  awakened (plain: the streak), a drawn crescent on each victim (katana_slash / steel_slash sheet). Wind Severer: the
+  wave is a tall crescent of the drawn strip standing across its path (Projectile `_wave_mesh`, its own copy of
+  PetalRibbon's material stepped through the frames by distance flown; plain steel / cloud), a dust_low puff ring and a
+  cloud puff at its launch. Phantom Step: a katana_line along the blink (awakened), a crescent on the cut. Iai Counter:
+  petals adrift round the hilt while it waits, a crescent on the answer, a cloud puff on the flick. Thousand Petals
+  (the showpiece): a ring of cloud drawn in round the feet over the gather, the big drawing cut's ribbon, the signature
+  (awakened): a crescent of cloud racing once round you at chest height (katana_arc r 3.6 m) as the blade leaves; drawn
+  crescents crossing every victim every 0.16 s while the cut_lines flash; at the click a crescent and a cloud burst on
+  each, and a thousand petals let go over the whole area (one 30-petal burst spread over 6 m). Plain: steel crescents,
+  rings and dust.
+- **Budgets** (the ult at its peak, ~0.5 s, three victims): 3 PetalRibbons alive (the blade's ~360 vertices, the big arc
+  ~380, the gather ring ~190: each one node, one draw, rebuilt a frame while it lives; given paths aren't subdivided),
+  ~6-9 one-shot bursts (one draw each), the old rings and cut_lines. At the click: 3 bursts per victim + 1 petal storm.
+  No lights. Abilities aren't on the bench route (not re-benched); nothing per-frame was added outside them except
+  BladePetals (piece 2: static, a shared material step).
+- **Tests:** t/combat, t/fx (petals), t/weapons/draw_styles (atomic, per the batch's rule). World suites to run after the
+  batch: katanatest (combo, iai, the air slash's hit window now 0.2-0.36 s), techtest (wind_sever, phantom_step,
+  petal_storm, iai_counter), powertest (Tiger Rush), wieldtest, balancetest. Renders: tools/dev/out/kab_before/ and
+  kab_after/ (a_ awakened, plain_ tier 0, night_ AB_HOUR=21), tools/dev/out/klab/ (lab sheets of every move).

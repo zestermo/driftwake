@@ -59,7 +59,15 @@ func _ready() -> void:
 	_mat = StandardMaterial3D.new()
 	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	if kind in ["slash", "wave"]:
+	if kind == "wave":
+		# Wind Severer: a tall crescent of the katana's drawn strip standing across the flight path,
+		# bowed forward, its crest outside (steel; cloud and petals once awakened), stepping
+		# through the strip's frames as it flies
+		_mat = PetalRibbon.material(_elemental()).duplicate() as StandardMaterial3D
+		_mat.vertex_color_use_as_albedo = false
+		_mesh.mesh = _wave_mesh()
+		_mesh.material_override = _mat
+	elif kind == "slash":
 		# a thin crescent lying across the flight path (stood on its edge for the
 		# wave): a coloured sheath round a hot white core
 		var mb := MeshBuilder.new()
@@ -82,10 +90,6 @@ func _ready() -> void:
 				mb.add_quad(m, p0 + Vector3(0, 0, -w0), p1 + Vector3(0, 0, -w1), p1 + Vector3(0, 0, w1), p0 + Vector3(0, 0, w0), Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1))
 		_mesh.mesh = mb.commit()
 		_mesh.material_override = _mat
-		if kind == "wave":
-			_mesh.scale = Vector3(1.9, 1.9, 1.6)
-			_mesh.rotation.z = PI * 0.5
-			_mesh.position.y = 0.6
 	elif kind == "axe":
 		_mesh.mesh = Props.weapon_mesh(model.trim_prefix("elem|"))
 	else:
@@ -140,6 +144,8 @@ func _physics_process(delta: float) -> void:
 			_mesh.rotation.x -= 22.0 * delta
 			_axe_wake(step.length())
 		_:
+			if kind == "wave":
+				_mat.uv1_offset = Vector3(-floorf(_travel * 0.3 * 64.0) / 64.0, float(int(_travel * 1.4) % 8) / 8.0, 0.0)
 			# a wake behind it (the wave tears the ground up as it goes)
 			if int(_travel / 1.4) != int((_travel - step.length()) / 1.4):
 				if kind == "wave":
@@ -152,6 +158,43 @@ func _physics_process(delta: float) -> void:
 			_turn_back()
 		else:
 			_finish()
+
+
+## The wave's crescent (local: -Z ahead, standing up on +Y): 2.7 m tall, bowed forward and out to
+## the right, thickest in the middle, the strip's crest (its top rows) along the outside.
+static func _wave_mesh() -> ArrayMesh:
+	var n := 16
+	var pts: Array = []
+	for i in n + 1:
+		var s := float(i) / n
+		pts.append(Vector3(0.6 * sin(PI * s) - 0.3, 0.1 + 2.6 * s, -0.45 * sin(PI * s)))
+	var verts := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var along := 0.0
+	var rows: Array = []
+	for i in n + 1:
+		var s := float(i) / n
+		var p: Vector3 = pts[i]
+		var tan: Vector3 = ((pts[mini(i + 1, n)] as Vector3) - (pts[maxi(i - 1, 0)] as Vector3)).normalized()
+		var out := tan.cross(Vector3.BACK).normalized()
+		if out.x < 0.0:
+			out = -out
+		var w := 1.0 * pow(sin(PI * s), 0.6) + 0.03
+		if i > 0:
+			along += p.distance_to(pts[i - 1])
+		rows.append([p + out * w * 0.6, p - out * w * 0.4, along / 2.4])
+	for i in n:
+		var a: Array = rows[i]
+		var b: Array = rows[i + 1]
+		verts.append_array([a[0], b[0], a[1], a[1], b[0], b[1]])
+		uvs.append_array([Vector2(a[2], 0.002), Vector2(b[2], 0.002), Vector2(a[2], 0.123), Vector2(a[2], 0.123), Vector2(b[2], 0.002), Vector2(b[2], 0.123)])
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	arr[Mesh.ARRAY_TEX_UV] = uvs
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return m
 
 
 func _pc() -> PowerComponent:

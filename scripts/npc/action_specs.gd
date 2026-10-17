@@ -102,7 +102,9 @@ const SPECS := {
 		"extras": {"after": "katana_l"}},
 	"quick_draw": {"len": 1.3, "hit": [0.04, 0.15], "swoosh": [0.02, 0.15], "stance": "katana", "weapon": "katana"},
 	"iai_ready": {"len": 0.3, "hold": true, "stance": "katana", "weapon": "katana"},
-	"iai_slash": {"len": 0.6, "stance": "katana", "weapon": "katana"},
+	"iai_slash": {"len": 0.6, "hit": [0.05, 0.2], "swoosh": [0.03, 0.3], "sharp": 55.0, "swing": KatanaMoves.IAI_SWING, "stance": "katana", "weapon": "katana"},
+	# (Tiger Rush with a katana: SkillState plays it in place of the cutlass's thrust)
+	"tiger_rush": {"len": 0.55, "hit": [0.3, 0.76], "swoosh": [0.6, 0.78], "sharp": 55.0, "swing": KatanaMoves.TIGER_SWING, "stance": "katana", "weapon": "katana"},
 	"air_slash": {"len": 0.6, "hit": [0.34, 0.6], "swoosh": [0.34, 0.62], "sharp": 55.0, "swing": KatanaMoves.AIR_SWING, "stance": "katana", "weapon": "katana"},
 	# --- axe ---
 	"axe_hack": {"len": 0.62, "hit": [0.39, 0.56], "stance": "axe", "weapon": "axe"},
@@ -213,9 +215,10 @@ const SPECS := {
 	"riposte_cut": {"len": 0.5, "hit": [0.16, 0.34], "stance": "sword", "weapon": "cutlass"},
 	"swordfish": {"len": 0.95, "hit": [0.1, 0.7], "stance": "sword", "weapon": "cutlass"},
 	"kraken_cut": {"len": 1.6, "hit": [0.6, 0.7], "stance": "sword", "weapon": "cutlass"},
-	"wind_sever": {"len": 0.75, "hit": [0.42, 0.5], "stance": "katana", "weapon": "katana"},
-	"phantom_cut": {"len": 0.6, "hit": [0.24, 0.32], "stance": "katana", "weapon": "katana"},
-	"petal_storm": {"len": 2.0, "hit": [0.68, 0.72], "stance": "katana", "weapon": "katana"},
+	# (the katana's cuts ride swing paths: KatanaMoves)
+	"wind_sever": {"len": 0.75, "hit": [0.42, 0.5], "swoosh": [0.4, 0.56], "sharp": 55.0, "swing": KatanaMoves.SEVER_SWING, "stance": "katana", "weapon": "katana"},
+	"phantom_cut": {"len": 0.6, "hit": [0.24, 0.32], "swoosh": [0.2, 0.42], "sharp": 55.0, "swing": KatanaMoves.PHANTOM_SWING, "stance": "katana", "weapon": "katana"},
+	"petal_storm": {"len": 2.0, "hit": [0.68, 0.72], "swoosh": [0.22, 0.28], "swing": KatanaMoves.PETAL_SWING, "stance": "katana", "weapon": "katana"},
 	"axe_throw": {"len": 0.6, "hit": [0.38, 0.44], "stance": "axe", "weapon": "axe"},
 	"earthsplitter": {"len": 0.95, "hit": [0.45, 0.52], "stance": "axe", "weapon": "axe"},
 	"berserk_roar": {"len": 0.75, "stance": "axe", "weapon": "axe"},

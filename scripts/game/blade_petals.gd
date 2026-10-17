@@ -69,7 +69,8 @@ func _ready() -> void:
 	_petals.anim_offset_max = 1.0
 	_petals.scale_amount_min = 0.7
 	_petals.scale_amount_max = 1.1
-	_petals.mesh = FX.sakura_quad(0.2)
+	# (the autoload by path: Player loads this, and tools compile Player before the autoloads)
+	_petals.mesh = get_node("/root/FX").sakura_quad(0.2)
 	_petals.visibility_range_end = 45.0
 	_petals.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_petals)

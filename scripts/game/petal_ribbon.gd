@@ -125,7 +125,8 @@ func _path() -> Array:
 		var p3: Vector3 = samples[mini(i + 2, n - 1)][1]
 		var o1: Vector3 = (samples[i][1] as Vector3) - (samples[i][0] as Vector3)
 		var o2: Vector3 = (samples[mini(i + 1, n - 1)][1] as Vector3) - (samples[mini(i + 1, n - 1)][0] as Vector3)
-		var steps := SUB if i < n - 1 else 1
+		# (a given path is dense already: lines and arcs aren't subdivided)
+		var steps := SUB if i < n - 1 and fixed.is_empty() else 1
 		for k in steps:
 			var x := float(k) / SUB
 			pts.append(p1.cubic_interpolate(p2, p0, p3, x))

@@ -1379,13 +1379,10 @@ func _action_pose(n: String, u: float) -> Array:
 			if u >= 0.03 and not _action["events"].has("hand"):
 				_action["events"]["hand"] = true
 				_attach_weapon(true)
-			var cut2 := {"pivot": Vector3(-0.15, 0, 0), "hips": Vector3(0, -0.3, 0),
-				"torso": Vector3(-0.35, 0.95, 0.1), "head": Vector3(0.3, -0.7, 0),
-				"arm_r": Vector3(1.45, -0.55, 1.3), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
-				"arm_l": Vector3(-0.55, 0.0, -0.95), "fore_l": Vector3(0.35, 0, 0),
-				"leg_l": Vector3(1.35, 0, -0.14), "shin_l": Vector3(-1.55, 0, 0), "leg_r": Vector3(-1.05, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0)}
-			lift.y = -0.4 * (1.0 - _ease(clampf((u - 0.62) / 0.38, 0.0, 1.0)))
-			return [_keys(u, [[0.0, _iai_pose()], [0.14, cut2, "out"], [0.62, cut2], [1.0, _guard()]]), "full", lift]
+			# (the cut rides a swing path: KatanaMoves.IAI_SWING)
+			return KatanaMoves.iai(self, u)
+		"tiger_rush":
+			return KatanaMoves.tiger(self, u)
 		"air_slash":
 			# katana air attack: a swing path (KatanaMoves.AIR_SWING) on this body
 			return KatanaMoves.air(self, u)
