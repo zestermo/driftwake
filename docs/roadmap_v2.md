@@ -60,3 +60,7 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 ## Decided (2026-10-15)
 - Devil Fruits come back before 2.0 (phase 3). Sky islands come after 2.0. The cities are a royal capital and a canal
   city. The public website roadmap stays as it is for now (this plan is internal).
+
+## Decided (2026-10-17)
+- The fourth island type is an **autumn woodland** forest with a lumber town and a folklore bestiary
+  (docs/forest_island_plan.md), built alongside a Brinehollow growth and polish pass (docs/brinehollow_polish_plan.md).
