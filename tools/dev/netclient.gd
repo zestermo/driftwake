@@ -619,6 +619,24 @@ func _process(d: float) -> bool:
 				return false
 			var sh = net._ship()
 			check("the host's refit reaches our ship (guns %d, figurehead)" % sh.cannons.size(), sh.cannons.size() == 6 and sh._figure_node.get_child_count() == 1)
+			# a guest pays for a level at the yard: the host puts it on her
+			p.inventory_component.add_item(load("res://resources/items/gold.tres"), 100)
+			data["gold9"] = p.inventory_component.count("gold")
+			data["rud9"] = int(sh.kit["rudder"])
+			root.get_node("GameMenu")._yard.order("rudder", int(data["rud9"]))
+			go(743)
+		743:
+			if st_t < 1.0:
+				return false
+			var sh = net._ship()
+			check("a guest pays for a level at the yard: it's on her here (rudder %d)" % int(sh.kit["rudder"]),
+				int(sh.kit["rudder"]) == int(data["rud9"]) + 1 and p.inventory_component.count("gold") == int(data["gold9"]) - 40)
+			tn.ask("kit_level", ["rudder"])
+			go(744)
+		744:
+			if not tn.got("kit_level"):
+				return false
+			check("...and on the host's", int(tn.replies["kit_level"]) == int(data["rud9"]) + 1)
 			data["php8"] = p.health_component.current_health
 			p.state_machine.force_state("Idle", {})
 			tn.ask("boss_aoe", [p.global_position])

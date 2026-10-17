@@ -3360,3 +3360,13 @@ Found and fixed (Buildings unless said):
   can lift them onto its back (the test puts them down again) - the same for every big QuadBeast.
 - **Tests:** `t/island/forest_fauna`, `t/island/forest_beasts`, `t/island/forest_huntsman`. Renders: `tools/dev/out/forest/
   models_fauna_*` (modelshot), `boss_stag/sheet.png`, `boss_treant/sheet.png` (bossshot seed 5).
+
+## 2026-10-17: any captain pays for her refits (ship upgrades, piece 4)
+- The yard's buttons work for guests too: `ShipwrightScreen.order(id, lv)` takes the price out of the payer's
+  own bag and calls `Net.request_upgrade(id, lv)`; the host (`_grant_upgrade`) puts level lv + 1 on her
+  (Net.set_ship_kit: every screen, and the join world state) only if she's still at `lv` (two captains paying
+  for the same level at once: the second is refused) and saves its world; the answer (`_upgrade_done`) goes
+  back to the payer's yard: done, or the whole price (gold and salvage) back in their bag. Single player and
+  the host take the same path, answered at once. Paint and colours stay the host's.
+- Tests: t/ship/upgrade_request (the arbitration and the refund, host side); nettest (netclient 742-744): the
+  guest pays for a rudder level, it's on the guest's ship and in the host's kit.

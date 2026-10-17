@@ -178,9 +178,9 @@ func show_tab(id: String) -> void:
 
 
 func _default_note() -> String:
-	if Net.is_client():
-		return "This is the host's ship: only they can order work on her."
-	return "Every refit is for good. Paint is free." if tab == "refits" else "Paint, sails and colours are free."
+	if tab == "refits":
+		return "Any of the crew can pay for her refits, and every one is for good." if Net.coop() else "Every refit is for good. Paint is free."
+	return "Her colours are the host's to choose." if Net.is_client() else "Paint, sails and colours are free."
 
 
 func on_open() -> void:
@@ -266,7 +266,7 @@ func _refresh() -> void:
 			b.disabled = true
 		else:
 			b.text = "%dg%s" % [int(entry[2]), "+" if not (entry[3] as Dictionary).is_empty() else ""]
-			b.disabled = guest
+			b.disabled = false
 			b.modulate = Color.WHITE if ShipLines.short_of(inv, entry) == "" else Color(1, 1, 1, 0.55)
 		(_pips[id] as Control).queue_redraw()
 	for c in _cycles:
@@ -288,23 +288,42 @@ func _describe(id: String) -> void:
 	_note.text = "%s %d, %s: %s. %s.\n%s." % [ln["name"], ShipLines.level(kit, id) + 1, entry[0], entry[1], ShipLines.effect_text(entry[4]), ShipLines.cost_text(entry)]
 
 
-## Order a line's next level: the price is gone, the work's done.
+## Order a line's next level: the price comes out of your bag and the host puts it on her (any
+## captain can pay: Net.request_upgrade). Single player and the host get the answer straight away.
 func buy(id: String) -> void:
 	var kit := _kit()
-	var entry := ShipLines.next(kit, id)
-	if Net.is_client() or entry.is_empty():
+	if ShipLines.next(kit, id).is_empty():
 		return
+	order(id, ShipLines.level(kit, id))
+
+
+## Pay for the level after `lv` (the level she has as you pay: the host checks nobody beat you to it).
+func order(id: String, lv: int) -> void:
+	var entry: Array = ShipLines.line(id)["levels"][lv]
 	var short := ShipLines.short_of(_inv(), entry)
 	if short != "":
 		_note.text = "\"%s, Captain, and not a copper less.\" (you need %s)" % [ShipLines.cost_text(entry), short]
 		UIStyle.sfx("deny")
 		return
 	ShipLines.pay(_inv(), entry)
-	kit[id] = ShipLines.level(kit, id) + 1
-	Net.set_ship_kit(kit)
+	_note.text = "Tackett gets to work..."
+	Net.request_upgrade(id, lv)
+
+
+## (Net) The host's answer: done, or a crewmate paid for that level first (the price comes back).
+func upgrade_done(id: String, lv: int, ok: bool) -> void:
+	var entry: Array = ShipLines.line(id)["levels"][lv]
+	if ok:
+		_note.text = "%s: done. %s. She'll thank you for it." % [entry[0], ShipLines.effect_text(entry[4])]
+		UIStyle.sfx("buy")
+	else:
+		_inv().add_item(ItemDB.get_item("gold"), int(entry[2]))
+		var mats: Dictionary = entry[3]
+		for m in mats.keys():
+			_inv().add_item(ItemDB.get_item(m), int(mats[m]))
+		_note.text = "\"A crewmate's already paid for that one.\" You get your %s back." % ShipLines.cost_text(entry)
+		UIStyle.sfx("deny")
 	SaveGame.save(_menu.call("_player"))
-	_note.text = "%s: done. %s. She'll thank you for it." % [entry[0], ShipLines.effect_text(entry[4])]
-	UIStyle.sfx("buy")
 	_refresh()
 
 

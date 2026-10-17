@@ -1075,9 +1075,47 @@ func _ship_anchor(on: bool) -> void:
 		_ship().set_anchored(on)
 
 
-## The shipwright's work on the ship (the host orders it; it's the host's ship).
+## The shipwright's work on the ship (the host's ship: the host sets it).
 func set_ship_kit(kit: Dictionary) -> void:
 	everyone("_all_ship_kit", [kit])
+
+
+## Any captain at Tackett's yard pays for the next level of one of her lines (from their own bag) and
+## asks the host, who puts it on her unless someone already bought that level (the price then goes
+## back). `lv` is the level she had as they paid. The answer goes to their yard (upgrade_done).
+func request_upgrade(id: String, lv: int) -> void:
+	if is_host():
+		_grant_upgrade(id, lv, my_id())
+	else:
+		_ask_upgrade.rpc_id(1, id, lv)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _ask_upgrade(id: String, lv: int) -> void:
+	if not hosting:
+		return
+	_grant_upgrade(id, lv, multiplayer.get_remote_sender_id())
+
+
+func _grant_upgrade(id: String, lv: int, by: int) -> void:
+	var gm := get_node("/root/GameManager")
+	var kit := ShipKit.merged(gm.ship_kit)
+	var ok := ShipLines.level(kit, id) == lv and lv < ShipLines.max_level(id)
+	if ok:
+		kit[id] = lv + 1
+		set_ship_kit(kit)
+		# (the host's world keeps it: saved now, as when the host buys)
+		if by != my_id() and gm.player:
+			SaveGame.save(gm.player)
+	if by == my_id():
+		_upgrade_done(id, lv, ok)
+	else:
+		_upgrade_done.rpc_id(by, id, lv, ok)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _upgrade_done(id: String, lv: int, ok: bool) -> void:
+	get_node("/root/GameMenu")._yard.upgrade_done(id, lv, ok)
 
 
 ## The chain's state (GameManager.chain_arrive / chain_settle, the host's).
