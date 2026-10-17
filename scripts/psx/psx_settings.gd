@@ -28,7 +28,9 @@ func _ready() -> void:
 	get_tree().root.size_changed.connect(_update_pixelate)
 	Settings.changed.connect(_on_setting_changed)
 	_apply_preset()
-	if Settings.get_value("video", "fullscreen"):
+	if Settings.tool_run():
+		_tool_window()
+	elif Settings.get_value("video", "fullscreen"):
 		if OS.has_feature("web"):
 			# (a browser only goes fullscreen from a click or key press)
 			Settings.set_value("video", "fullscreen", false)
@@ -75,8 +77,22 @@ func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
 			_apply_preset()
 
 
+## A test or render tool's window (`--script`): never fullscreen whatever the player's saved setting says,
+## never takes the focus, out of the way in the bottom-right corner of the screen, so it doesn't cover
+## or interrupt whatever Zach is doing (it still renders: off to the side, not minimized).
+func _tool_window() -> void:
+	if DisplayServer.get_name() == "headless" or Engine.is_embedded_in_editor():
+		return
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, false)
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_NO_FOCUS, true)
+	var area := DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen())
+	var size := DisplayServer.window_get_size()
+	DisplayServer.window_set_position(area.end - size - Vector2i(8, 8))
+
+
 func _apply_window_mode() -> void:
-	if Engine.is_embedded_in_editor():
+	if Engine.is_embedded_in_editor() or Settings.tool_run():
 		return
 	if Settings.get_value("video", "fullscreen"):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)

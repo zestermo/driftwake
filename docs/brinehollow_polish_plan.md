@@ -20,6 +20,7 @@ Brinehollow numbers rise (generated islands' ratios drop; fidelitytest is report
 | Doors | Every building gets a proper closed, framed, panelled door with steps or a stoop, built in the shared house builder (`Buildings.house`, tavern, smithy, chapel...), so chain-island houses gain them too | Shared builder = every island improves | Openable doors / new interiors (later, own pass) |
 | Roofs and textures | The agent renders every building and street from several angles and fixes what's wrong (seams, stretched or wrong textures, roof gaps and overhangs, z-fighting, floating or sunk pieces); Zach adds his own finds as F12 captures or notes | Zach's pick | Zach's list arrives |
 | Life | More townsfolk on daily routines (shopkeepers, kids, porters, fishers; the market by day, the tavern at night) with barks; chimney smoke, more lit windows and lanterns, a market murmur and street sound; a busier harbour (more boats moored and coming and going, cargo loading, fishers on the piers) | Zach's picks (small animals not chosen) | - |
+| Shops | **Gus stops selling instruments** and **Vey stops selling weapons** (Vey's Armoury keeps armour); **Haldor the Smith sells the weapons** at his anvil; **a new townsperson sells instruments** (a music stall or shop in the market street) | Zach, 2026-10-17 | - |
 | Co-op | Everything seeded from Brinehollow's fixed SEEDS (guests build it themselves); people's positions a function of Weather.hour() | Standing rule | - |
 | Budget | Brinehollow is the perf target (bench <= ~10 ms mean; v1.14 9.2 ms): every piece benches before/after; new dressing as MultiMesh/merged meshes, lights from the budget (LIGHTS), NPCs asleep when far | Standing rule | - |
 
@@ -28,7 +29,7 @@ Brinehollow numbers rise (generated islands' ratios drop; fidelitytest is report
    and texture audit and fixes. Lands first; every island's houses change.
 2. **Layout** (`scripts/island/starter_island.gd`, the kit modules it calls): the land to ~400 m with the core fixed,
    the market street, the second row of houses, the shrine terrace, the farms and windmill hamlet, the wild places.
-3. **Life** (`scripts/island/brinehollow_cast.gd`, KitLife, ambience, harbour traffic), after the layout's town
+3. **Life** (`scripts/island/brinehollow_cast.gd`, `scripts/game/shops.gd`, KitLife, ambience, harbour traffic; the shop moves first), after the layout's town
    pieces have landed, so the people live in the new streets.
 
 ### Open / deferred
