@@ -378,3 +378,4 @@ scripts/props/forest_props.gd           t/island isletest
 scripts/island/themes/forest_land.gd    t/island isletest smoketest
 scripts/island/themes/forest_places.gd  t/island landmarktest smoketest
 tools/texture_gen/gen_forest_textures.py t/island
+scripts/props/forest_town.gd            t/island villagetest

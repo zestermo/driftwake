@@ -66,7 +66,11 @@ const STYLE := {
 	"stall": {"canopies": ["cloth_red", "canvas", "cloth_red"], "post": "planks_dark"},
 	"pier": {"deck": "planks_weathered", "post": "planks_dark", "rail": "planks_dark", "lashings": false, "rope_rail": true},
 	"props": {"crate": "crate", "barrel": "barrel", "lamp": "forest_lamp", "marker": "forest_waymark"},
-	"yard_fences": 0.4,
+	# the lumber town (ForestTown): log cabins, timber-framed houses, the cooper's shed, the timber store, a carved shrine
+	"village_models": {"hut": "forest_cabin", "tall": "forest_timber_house", "workshop": "forest_workshop", "storehouse": "forest_store",
+		"shrine": "forest_shrine"},
+	"item_models": {"torch": "forest_lamp", "fence": "forest_fence", "woodpile": "forest_woodpile"},
+	"yard_fences": 0.55,
 	"village_layouts": {"town": 4, "hamlets": 2, "post": 1, "stilts": 0, "ruins": 1, "medina": 0},
 	"folk": {
 		"pick": {"skin": [Color(0.95, 0.80, 0.68), Color(0.90, 0.72, 0.58), Color(0.84, 0.64, 0.48), Color(0.74, 0.54, 0.40), Color(0.60, 0.42, 0.30)],
@@ -155,6 +159,14 @@ func _init() -> void:
 	props = {
 		"forest_lamp": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return ForestProps.lamp_post(2.6 * size),
 		"forest_waymark": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return ForestProps.waymark(rng.randi()),
+		# the town's buildings by kind (style village_models), `size` the plot across
+		"forest_cabin": func(rng: RandomNumberGenerator, size: float) -> Node3D: return ForestTown.log_cabin(rng.randi(), size, 1 if rng.randf() < 0.7 else 2),
+		"forest_timber_house": func(rng: RandomNumberGenerator, size: float) -> Node3D: return ForestTown.timber_house(rng.randi(), size),
+		"forest_workshop": func(rng: RandomNumberGenerator, size: float) -> Node3D: return ForestTown.workshop(rng.randi(), size),
+		"forest_store": func(rng: RandomNumberGenerator, size: float) -> Node3D: return ForestTown.storehouse(rng.randi(), size),
+		"forest_shrine": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return ForestTown.shrine(rng.randi()),
+		"forest_fence": func(rng: RandomNumberGenerator, size: float) -> Node3D: return ForestTown.fence(rng.randi(), 4.4 * size),
+		"forest_woodpile": func(rng: RandomNumberGenerator, size: float) -> Node3D: return ForestTown.woodpile(rng.randi(), size),
 	}
 	life = preload("res://scripts/island/themes/forest_life.gd").TEXT
 	# (interim: the jungle's and the snow's beasts and wildlife, renamed, until the forest's own)
@@ -205,6 +217,11 @@ func steps(isl) -> Array:
 
 func place_kind(kind: String) -> String:
 	return ForestPlaces.KINDS.get(kind, "")
+
+
+## The sawmill on the town's river, charcoal burners' camps and a hunter's lodge out in the woods (forest_places.gd).
+func plan_places(isl, avoid: Array) -> Array:
+	return ForestPlaces.plan_places(isl, avoid)
 
 
 func plan_place(isl, kind: String, rng: RandomNumberGenerator, avoid: Array) -> Dictionary:

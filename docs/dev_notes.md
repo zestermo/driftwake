@@ -3112,3 +3112,29 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   kit's totals.
 - Tests: t/ship/upgrade_levels, t/ship/refit_migration, t/ship/yard_buy; yardtest's refit checks moved to levels.
   Render: yardshot (each line at each level, full kit side/bow/stern/far/deck/night, the two tabs).
+## 2026-10-17: the forest island theme, piece 2 (the lumber town on its river)
+- **Town** (`scripts/props/forest_town.gd`, ForestTown, through KitStyle `village_models` / `item_models`; no hub or
+  Buildings change): `hut` a log cabin (round logs in courses notched at the corners and running past them, the front's
+  broken by the door; chinking behind; a steep shingle gable roof with a ridge board and planked gables; a fieldstone
+  chimney up one end with smoke; small shuttered lit windows; a porch roof on two posts now and then; a woodpile and a
+  chopping block with its axe; 30% a loft with a gable window), `tall` a two-storey timber-framed house (fieldstone or
+  plastered ground floor, the upper floor jettied 0.35 m on joists, plaster panels in five washes between dark posts,
+  rails and braces, the gable to the street framed too, flower boxes), `workshop` the cooper's and sawyer's shed (Worker at
+  the sawhorse and its half-sawn log, Bench; barrels in the making, staves and hoops, shavings), `storehouse` a timber store
+  on stone pads with racked boards under a lean-to, `shrine` a carved stag post with antlers under a shingle hood, stones,
+  offerings (Keeper, Pray). Dressing items: the forest lamp for torches, split-rail fences (55% of yard sides), woodpiles.
+  Rooms (homes, the trader, the cookhouse, the inn) are the kit's with log walls and shingles from the style
+  (`mat.thatch` = shingles). One merged mesh each, 8-13 surfaces, 500-2300 tris.
+- **Places** (`ForestPlaces.plan_places`, the theme hook, planned before the chain's set piece and landmarks):
+  `forest_sawmill` on the town's river 58-110 m from the town's middle (kept 40 m off it, clear of its houses, level ground
+  a little over the water, facing the river): the mill house (timber frame and planks on a fieldstone footing, a steep
+  shingle roof, the sash saw at its open end with a log on the carriage, a light), the water wheel on its axle out of the
+  wall turning in the stream (a looping tween on game time, 9 s a turn; foam and a rush), log piles, a crossed stack of
+  boards drying, sawdust, a handcart, and the log flume (a plank V-trough on trestles from the highest ground 26-40 m behind
+  down to the river beside the wheel, water running in it, logs riding it and waiting at its head) when the land behind
+  rises 2.5 m+. Then 1-3 places out in the woods on its own stream: `forest_charcoal` (2-3 earth kilns smoking, one
+  glowing at a vent, one stacked but not covered, cordwood, the burners' bark lean-to, a fire and light, charcoal sacks)
+  and `forest_lodge` (a log cabin with antlers over its door, hides on frames, a deer hung from a pole over the skinning
+  bench, a fire, a cache chest `forest_lodge_cache`).
+- **Tests:** `t/island/forest_town`. Renders: `tools/dev/out/forest/models_town_*` (modelshot), `t5_sheet.png` (forestshot
+  seed 5: the town on its river, from above, the sawmill, the camp, the lodge).

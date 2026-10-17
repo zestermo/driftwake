@@ -329,7 +329,9 @@ static func _flume(ctx: KitContext, pl: Dictionary, mb: MeshBuilder, body: Stati
 		mb.add_cylinder(bark, Transform3D(Basis(Quaternion(Vector3.UP, dd)), p + Vector3.UP * 0.25 - dd * 1.1), 0.18, 0.17, 2.2, 6, 0.6, Color.WHITE, true, true, true, ends)
 	ForestTown.log_pile(mb, body, Vector3(a.x, _gy(ctx, pl, a.x, a.y), a.y) - Vector3(dir.x, 0, dir.y) * 2.5, atan2(dir.x, dir.y) + PI * 0.5, 3, 3.4, rng, 0.2)
 	for k in range(0, n + 1, 3):
-		KitLandmarks.box_col(body, Vector3(0.3, pts[k].y - _gy(ctx, pl, pts[k].x, pts[k].z) + 0.4, 0.3), Vector3(pts[k].x, (pts[k].y + _gy(ctx, pl, pts[k].x, pts[k].z)) * 0.5, pts[k].z) + side * 0.55)
+		var g := _gy(ctx, pl, pts[k].x, pts[k].z)
+		if pts[k].y - g > 0.3:
+			KitLandmarks.box_col(body, Vector3(0.3, pts[k].y - g + 0.4, 0.3), Vector3(pts[k].x, (pts[k].y + g) * 0.5, pts[k].z) + side * 0.55)
 
 
 # ==========================================================================
