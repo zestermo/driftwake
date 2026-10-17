@@ -3533,3 +3533,23 @@ Found and fixed (Buildings unless said):
   walks join the graph only at its biggest piece (`Town.main`). The Gull got four more places (two at the bar's end, two by the walls).
 - **Tested by** t/island/brinehollow_harbour (the smacks' places and courses clear of the lane and the other boats; out at 10:00, home at
   18:00; fishers on the piers at 7:00 and off at 12:00; dockers carrying). Renders: tools/dev/out/life/p4_*.png.
+
+## 2026-10-17: woods round Brinehollow (Zach: "too much open space still")
+- **What** (starter_island.gd `_plant_woods`, `_woods`, `_woods_keep`): the same jungle trees, palms near the coasts, ferns and bushes,
+  planted after everything else (after the loot, before the town's life) from their own lattice (5 m trees, 2.5 m undergrowth, a seed per
+  point from SEEDS["woods"]), so every older plant keeps its draws (islanddump: only added plants, colliders, the vegetation squares'
+  counts and the exclusions). `_woods(p)` 0..1 is where: the complement of the old forest's `_jungle` (the southern lands' `_jungle_south`),
+  thinning to nothing round the plaza (20-30 m), the market street (10-16 m off the road), the harbour front, the upper town's built hill,
+  the lighthouse's top (26-40 m), the yard, the ruins, the camps, the den and the cave. Trees keep 3.5 m off every path, 1.2 m past another
+  plant's reserve and 3 m past anything bigger (`_ex_near`), and off `_woods_keep`'s segments: each door's way in and out, the chests, the
+  burrows and spitters' spots, the lanes and the stair, the wake beach; and off the harbour's line to the pagoda.
+- **Draws:** the plants go into a vegetation square already holding that mesh (70 m, else the grown land's 140 m; `_woods_meshes`), so
+  it's more instances: 2 new squares. The MultiMeshes are made in `_commit_vegetation` after the woods (the Vegetation node itself still
+  goes in where it was, so the tree's order is unchanged). Trunks have colliders and grapple crowns like the old trees.
+- **Piece 1** (the eastern hill to the cove and up toward the lighthouse, the town's edges, the upper town's slopes and the terrace's back):
+  ~405 trees (Brinehollow had ~1.4k tree and rock colliders), ~1k ferns and bushes. Bench (5600G/3080, 13:00 clear, calib 24.2 / 24.3, a
+  life agent's test at the before's start): draws 901+623 -> 913+644 (shadow +21), prims +5%, nodes +408; frame noise both ways (ALL 16.1 ->
+  14.8, frame1t 16.6 -> 15.5: the machine, not the trees).
+- **Tested by** t/island/brinehollow_woods (counts, none on a path/lane/stair/door/chest/burrow, the harbour sees the pagoda and the lighthouse
+  past every new tree's bounds, at most 8 new squares). Expected to notice: foresttest (Brinehollow's tree counts; forest_crowns and the
+  spitters are unchanged), anything counting the vegetation's MultiMesh instances.
