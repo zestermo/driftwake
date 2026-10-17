@@ -125,24 +125,33 @@ const STYLE := {
 	"harbour_signal": Color(1.0, 0.45, 0.2),
 }
 
-## Each kind: its zones, how likely an island has it, how many groups (dens); a "pack" [lo, hi] round a lead.
+## Each kind: its zones, how likely an island has it, how many groups (dens), a group's size ("pack" [lo, hi] round a
+## lead) and the chance each follower is a young one. Ordinary woodland animals - red deer herds round a stag, boar,
+## red foxes, a wolf pack now and then, bats, shore crabs - and the folklore that walks among them: will-o'-wisps,
+## wood sprites (under the leaves by day, up at night) and treantlings (stumps that walk).
 const FAUNA := {
-	"boar": {"zones": ["floor"], "p": 0.6, "dens": [2, 4]},
-	"wolf": {"zones": ["floor"], "p": 0.45, "dens": [1, 3], "pack": [3, 4]},
-	"snake": {"zones": ["floor"], "p": 0.4, "dens": [2, 5]},
-	"mite": {"zones": ["floor", "cave"], "p": 0.35, "dens": [1, 2]},
-	"bat": {"zones": ["canopy", "cave"], "p": 0.55, "dens": [1, 3]},
-	"crab": {"zones": ["shore"], "p": 0.5, "dens": [2, 5]},
+	"deer": {"zones": ["floor"], "p": 0.85, "dens": [2, 4], "pack": [3, 5], "young": 0.4},
+	"boar": {"zones": ["floor"], "p": 0.55, "dens": [1, 3]},
+	"fox": {"zones": ["floor"], "p": 0.5, "dens": [1, 3], "pack": [1, 2], "young": 0.3},
+	"wolf": {"zones": ["floor"], "p": 0.3, "dens": [1, 2], "pack": [3, 4]},
+	"wisp": {"zones": ["floor"], "p": 0.75, "dens": [2, 4], "pack": [2, 4]},
+	"sprite": {"zones": ["floor"], "p": 0.6, "dens": [2, 4], "pack": [2, 3]},
+	"treant": {"zones": ["floor"], "p": 0.55, "dens": [2, 4], "pack": [1, 2]},
+	"bat": {"zones": ["canopy", "cave"], "p": 0.45, "dens": [1, 3]},
+	"crab": {"zones": ["shore"], "p": 0.4, "dens": [2, 4]},
 }
 const CREATURES := {
+	"deer": "res://scripts/enemies/fauna/deer.gd",
 	"boar": "res://scripts/enemies/fauna/boar.gd",
+	"fox": "res://scripts/enemies/fauna/red_fox.gd",
 	"wolf": "res://scripts/enemies/fauna/wolf.gd",
-	"snake": "res://scripts/enemies/fauna/snake.gd",
-	"mite": "res://scripts/enemies/fauna/swarm_mite.gd",
+	"wisp": "res://scripts/enemies/fauna/wisp.gd",
+	"sprite": "res://scripts/enemies/fauna/wood_sprite.gd",
+	"treant": "res://scripts/enemies/fauna/treant.gd",
 	"bat": "res://scripts/enemies/fauna/bat.gd",
 	"crab": "res://scripts/enemies/fauna/crab.gd",
+	"mite": "res://scripts/enemies/fauna/swarm_mite.gd",
 }
-
 
 func _init() -> void:
 	name = "forest"
@@ -169,21 +178,28 @@ func _init() -> void:
 		"forest_woodpile": func(rng: RandomNumberGenerator, size: float) -> Node3D: return ForestTown.woodpile(rng.randi(), size),
 	}
 	life = preload("res://scripts/island/themes/forest_life.gd").TEXT
-	# (interim: the jungle's and the snow's beasts and wildlife, renamed, until the forest's own)
-	bosses = ["serpent", "stalker", "great_bear"]
-	minis = ["boar"]
-	roamers = ["behemoth"]
+	# the antlered spirit of the wood and the walking oak are the forest's own; the jungle's serpent coils in the roots
+	# and its shade prowls as a lynx, so a branching chain never runs the pool dry
+	bosses = ["stag_king", "elder_treant", "serpent", "stalker"]
+	minis = ["moss_golem", "huntsman", "boar"]
+	roamers = ["wild_hunt"]
 	beasts = {
+		"stag_king": {"script": "res://scripts/enemies/beasts/stag_king.gd", "names": ["The Stag King", "The Antlered One", "Old Crownhorn"], "looks": 3,
+			"banner": ["The Stag King's Grove", "Standing stones, antlers hung on them, offerings rotting. The wood holds its breath."], "dress": _dress_grove},
+		"elder_treant": {"script": "res://scripts/enemies/beasts/elder_treant.gd", "names": ["The Elder Treant", "Old Oakheart", "The Walking Wood"], "looks": 3,
+			"banner": ["The Elder's Hollow", "Roots torn up, oaks pushed over. Something here is older than the island."], "dress": _dress_hollow},
 		"serpent": {"script": "res://scripts/enemies/beasts/strangler.gd", "names": ["The Root Coil", "Old Bramble", "The Hollow Serpent"], "looks": 3},
-		"stalker": {"script": "res://scripts/enemies/beasts/stalker.gd", "names": ["The Grey Shade", "Leafshadow", "The Quiet Death"], "looks": 3},
-		"great_bear": {"script": "res://scripts/enemies/beasts/great_bear.gd", "names": ["The Bear of the Wood", "Old Ursa", "Barkhide"], "looks": 3,
-			"banner": ["The Bear's Wood", "Bark torn off the trees higher than your head. Something heavy sleeps here."]},
-		"boar": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Acornmaw", "Old Bristle", "Rootgrubber", "Ironhide"], "site": "ruins"},
-		"behemoth": {"script": "res://scripts/enemies/beasts/behemoth.gd", "names": ["The Mossback", "Old Oakhide", "The Walking Hill"]},
+		"stalker": {"script": "res://scripts/enemies/beasts/stalker.gd", "names": ["The Grey Lynx", "Leafshadow", "The Quiet Death"], "looks": 3},
+		"moss_golem": {"script": "res://scripts/enemies/beasts/moss_golem.gd", "names": ["The Moss Golem", "Old Stones", "Cairnback", "The Mossheart"], "site": "ruins"},
+		# (a "camp" mini leads the outlaws' camp in its captain's place: IslandContent._camp)
+		"huntsman": {"script": "res://scripts/enemies/huntsman.gd", "names": ["The Cursed Huntsman", "Black Herne", "Lord Wulfric's Huntsman", "The Antlered Man"],
+			"site": "camp", "camp": true},
+		"boar": {"script": "res://scripts/enemies/beasts/alpha_boar.gd", "names": ["Acornmaw", "Old Bristle", "Rootgrubber", "Ironhide"], "site": "lair"},
+		"wild_hunt": {"script": "res://scripts/enemies/beasts/wild_hunt.gd", "names": ["The Wild Hunt", "The Night Rider", "The Pale Elk"]},
 	}
 	fauna = FAUNA
 	creatures = CREATURES
-	cave_fauna = {"ceiling": "bat", "floor": ["mite", "snake"]}
+	cave_fauna = {"ceiling": "bat", "floor": ["mite", "sprite", "treant"]}
 
 
 ## The land (forest_land.gd): rolling hills, rivers in their valleys, falls into gorges, the town by a river.
@@ -261,3 +277,106 @@ static func _glyph(ci: CanvasItem, p: Vector2, s: float, col: Color) -> void:
 	pts.append(pts[0])
 	ci.draw_polyline(pts, col, 1.0)
 	ci.draw_line(p + Vector2(0, s * 0.2), p + Vector2(s * 0.15, s), col, 1.0)
+
+
+## The Stag King's grove (BeastArena, a beast's "dress"): a ring of mossy standing stones round the floor, antlers
+## hung on some, offerings at their feet (apples, candles guttered out), a ring of toadstools, a white stag's skull
+## on a cairn. Arena-local (the floor's middle at 0, its ground y0).
+static func _dress_grove(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var stone := PSXMat.lit("moss_stone", Color(0.95, 0.95, 0.92), {"affine": 0.6})
+	var bone := PSXMat.flat(Color(0.88, 0.84, 0.74))
+	var apple := PSXMat.flat(Color(0.75, 0.15, 0.1))
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	var n := rng.randi_range(7, 9)
+	var a0 := rng.randf() * TAU
+	for k in range(n):
+		var a := a0 + TAU * k / n + rng.randf_range(-0.12, 0.12)
+		var q := Vector2.from_angle(a) * (r + rng.randf_range(0.5, 2.0))
+		var h := rng.randf_range(2.2, 4.0)
+		var w := rng.randf_range(0.9, 1.3)
+		var base := Vector3(q.x, gy.call(q) - 0.3, q.y)
+		var b := Basis(Vector3.UP, -a + PI * 0.5) * Basis(Vector3.BACK, rng.randf_range(-0.08, 0.08))
+		mb.add_box(stone, Transform3D(b, base + Vector3(0, h * 0.5, 0)), Vector3(w, h, w * 0.45), 0.6, Color.WHITE.darkened(rng.randf() * 0.15))
+		KitLandmarks.box_col_xf(body, Vector3(w, h, w * 0.45), Transform3D(b, base + Vector3(0, h * 0.5, 0)))
+		if k % 3 == 0:
+			var at := base + Vector3(0, h * 0.82, 0) - Vector3(cos(a), 0, sin(a)) * w * 0.25
+			for s in [-1.0, 1.0]:
+				var side: Vector3 = Vector3(-sin(a), 0, cos(a)) * s
+				mb.add_tube(bone, MeshBuilder.curve_points(at, at + side * 0.5 + Vector3.UP * 0.3, at + side * 0.7 + Vector3.UP * 0.9, 4), 0.05, 0.02, 4, 1.0)
+		for j in range(3):
+			var o := q * 0.9 + Vector2.from_angle(rng.randf() * TAU) * 0.5
+			mb.add_blob(apple, Transform3D(Basis(), Vector3(o.x, gy.call(o) + 0.06, o.y)), Vector3(0.08, 0.075, 0.08), rng, 0.05, 2, 5)
+	var cap := PSXMat.flat(Color(0.8, 0.14, 0.1))
+	var stem := PSXMat.flat(Color(0.92, 0.88, 0.8))
+	for k in range(26):
+		var a := TAU * k / 26.0 + rng.randf_range(-0.05, 0.05)
+		var q := Vector2.from_angle(a) * (r - 1.5)
+		var at := Vector3(q.x, gy.call(q), q.y)
+		mb.add_cylinder(stem, Transform3D(Basis(), at), 0.05, 0.04, 0.25, 4, 1.0)
+		mb.add_cylinder(cap, Transform3D(Basis(), at + Vector3.UP * 0.22), 0.16, 0.04, 0.1, 6, 1.0)
+	var cq := Vector2.from_angle(a0 + PI / n) * (r - 3.5)
+	var cy: float = gy.call(cq)
+	for k in range(4):
+		var s := 0.7 - k * 0.14
+		mb.add_blob(stone, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(cq.x, cy + k * 0.38, cq.y)), Vector3(s, s * 0.5, s), rng, 0.2, 3, 6, 0.6)
+	var sk := Vector3(cq.x, cy + 1.5, cq.y)
+	mb.add_blob(bone, Transform3D(Basis(), sk), Vector3(0.22, 0.18, 0.32), rng, 0.08, 3, 6)
+	for s in [-1.0, 1.0]:
+		mb.add_tube(bone, MeshBuilder.curve_points(sk + Vector3(s * 0.1, 0.12, 0.05), sk + Vector3(s * 0.6, 0.4, 0.2), sk + Vector3(s * 0.8, 1.1, 0.0), 5), 0.05, 0.02, 4, 1.0)
+	KitLandmarks.cyl_col(body, 0.8, 1.6, Vector3(cq.x, cy + 0.8, cq.y))
+
+
+## The Elder Treant's hollow: oaks it pushed over lying across the edge of the floor, their root plates torn up
+## standing on end with the earth still in them, boulders turned out, splintered stumps. Arena-local.
+static func _dress_hollow(arena, body: StaticBody3D, mb: MeshBuilder, rng: RandomNumberGenerator, c: Vector2, y0: float) -> void:
+	var isl = arena.isl
+	var r := float(BeastArena.FLOOR_R)
+	var bark := PSXMat.lit("bark", Color(0.9, 0.8, 0.68))
+	var ends := PSXMat.flat(Color(0.75, 0.6, 0.42))
+	var earth := PSXMat.lit("forest_dirt", Color(0.85, 0.8, 0.75), {"affine": 0.6})
+	var rock := PSXMat.lit("forest_rock", Color.WHITE, {"affine": 0.6})
+	var leaves := PSXMat.lit("leaves_oak", Color(0.8, 0.72, 0.62), {"affine": 0.5})
+	var gy := func(q: Vector2) -> float: return float(isl.hv(c + q)) - y0
+	for k in range(rng.randi_range(2, 3)):
+		var a := rng.randf() * TAU
+		var foot := Vector2.from_angle(a) * (r + 1.5)
+		var dir := Vector2.from_angle(a + PI + rng.randf_range(-0.9, 0.9))
+		var L := rng.randf_range(9.0, 13.0)
+		var tip := foot + dir * L
+		var p0 := Vector3(foot.x, gy.call(foot) + 0.6, foot.y)
+		var p1 := Vector3(tip.x, gy.call(tip) + 0.35, tip.y)
+		mb.add_tube(bark, PackedVector3Array([p0, p0.lerp(p1, 0.5) + Vector3.UP * 0.1, p1]), 0.65, 0.3, 7, 0.6, Color.WHITE, true, true)
+		for j in range(3):
+			var t := rng.randf_range(0.4, 0.95)
+			var at := p0.lerp(p1, t)
+			var out := Vector3(dir.y, rng.randf_range(0.2, 0.8), -dir.x) * (1.0 if j % 2 == 0 else -1.0)
+			mb.add_tube(bark, PackedVector3Array([at, at + out * 1.5, at + out * 2.6 + Vector3.UP * 0.4]), 0.2, 0.06, 5, 0.8)
+			mb.add_blob(leaves, Transform3D(Basis(), at + out * 2.6 + Vector3.UP * 0.5), Vector3(1.0, 0.6, 0.9), rng, 0.25, 3, 5, 0.6)
+		var steps := int(L / 1.5)
+		for j in range(steps):
+			var q := foot.lerp(tip, (j + 0.5) / steps)
+			KitLandmarks.cyl_col(body, 0.65, 1.3, Vector3(q.x, gy.call(q) + 0.3, q.y))
+		# the root plate, on end
+		var plate := Vector3(foot.x, gy.call(foot), foot.y) - Vector3(dir.x, 0, dir.y) * 0.8
+		var pb := Basis(Vector3.UP, -atan2(dir.y, dir.x)) * Basis(Vector3.BACK, PI * 0.5)
+		mb.add_cylinder(earth, Transform3D(pb, plate + Vector3.UP * 1.6), 1.9, 1.7, 0.7, 9, 0.5, Color.WHITE, true, true)
+		for j in range(8):
+			var ra := TAU * j / 8.0
+			var rq := plate + Vector3.UP * 1.6 + pb * Vector3(cos(ra) * 1.7, 0.0, sin(ra) * 1.7)
+			mb.add_tube(bark, PackedVector3Array([rq, rq + pb * Vector3(cos(ra) * 0.8, rng.randf_range(-0.6, 0.2), sin(ra) * 0.8)]), 0.12, 0.03, 4, 1.0)
+		KitLandmarks.cyl_col(body, 1.6, 3.2, plate + Vector3.UP * 1.6)
+	for k in range(7):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(r * 0.6, r + 2.5)
+		var s := rng.randf_range(0.5, 1.2)
+		mb.add_blob(rock, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(q.x, gy.call(q) + s * 0.2, q.y)), Vector3(s, s * 0.7, s * 0.9), rng, 0.25, 3, 6, 0.5)
+	for k in range(3):
+		var q := Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(r * 0.5, r - 1.0)
+		var at := Vector3(q.x, gy.call(q) - 0.1, q.y)
+		mb.add_cylinder(bark, Transform3D(Basis(), at), 0.55, 0.5, 0.9, 7, 0.8)
+		for j in range(5):
+			var a := TAU * j / 5.0
+			mb.add_cone(bark, Transform3D(Basis(), at + Vector3(cos(a) * 0.3, 0.9, sin(a) * 0.3)), 0.2, rng.randf_range(0.3, 0.8), 4)
+		mb.add_cylinder(ends, Transform3D(Basis(), at + Vector3.UP * 0.9), 0.48, 0.48, 0.02, 7, 1.0)
+		KitLandmarks.cyl_col(body, 0.55, 1.0, at + Vector3.UP * 0.5)

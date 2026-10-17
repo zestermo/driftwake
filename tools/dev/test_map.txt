@@ -381,3 +381,13 @@ scripts/island/themes/forest_land.gd    t/island isletest smoketest
 scripts/island/themes/forest_places.gd  t/island landmarktest smoketest
 tools/texture_gen/gen_forest_textures.py t/island
 scripts/props/forest_town.gd            t/island villagetest
+scripts/enemies/fauna/deer.gd           t/island faunatest
+scripts/enemies/fauna/red_fox.gd        t/island faunatest
+scripts/enemies/fauna/wisp.gd           t/island faunatest
+scripts/enemies/fauna/wood_sprite.gd    t/island faunatest
+scripts/enemies/fauna/treant.gd         t/island faunatest
+scripts/enemies/beasts/stag_king.gd     t/island bosstest
+scripts/enemies/beasts/elder_treant.gd  t/island bosstest
+scripts/enemies/beasts/moss_golem.gd    t/island bosstest
+scripts/enemies/beasts/wild_hunt.gd     t/island bosstest
+scripts/enemies/huntsman.gd             t/island grunttest

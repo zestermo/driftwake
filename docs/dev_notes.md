@@ -3318,3 +3318,33 @@ Found and fixed (Buildings unless said):
   the chimney). Everything is in the two folded meshes except the jib, rudder, wheel rim, grove fruit and zone.
 - The yard's rows are 16 px (prices in Silkscreen 8) so the twelve lines fit 450.
 - Tests: t/ship/new_lines; upgrade_levels checks every level of all twelve shows.
+## 2026-10-17: the forest island theme, piece 3 (wildlife, folklore and beasts)
+- **Wildlife** (`scripts/enemies/fauna/`, Creature kinds; FaunaSpawner's packs, LOD and sleep as every kind): `deer.gd`
+  (ForestDeer: herds of hinds and spotted fawns round an antlered stag - "pack" [3, 5], young 0.4; they graze, the nearest
+  throws up its head and stamps, the herd bounds off flagging white tails; struck, the stag roars, lowers his antlers and
+  charges for a knockdown, then bolts; morphs red, fallow, dark), `red_fox.gd` (RedFox: the fennec's wariness - DesertFox's
+  brain - in a russet woodland fox with black socks, a bib and a white-tipped brush). Folklore: `wisp.gd` (Wisp: a little
+  floating light, faint by day, glowing at night - a flickering core and an additive halo, no light; near a captain at
+  night it draws off ahead of them, out of reach, then drifts back to its haunt; one blow puts it out), `wood_sprite.gd`
+  (WoodSprite: twig and leaf, ember eyes; by day a leaf mound you might step on, at night up in twos and threes, chitters
+  and crouches - the tell - then pounces and rakes, skips back out of reach and comes again), `treant.gd` (Treantling: a
+  stump that walks; stands still till you're close - 4 m by day, 11 m at night - then heaves up on its roots, slow, its bark
+  turning 55% of a blow from the front; a raised-arms slam that knocks you down or a wide sweep). The roster: deer, boar,
+  fox, wolf (now and then), wisp, sprite, treant, bat, crab; caves get bats overhead and mites, sprites and treantlings on
+  the floor.
+- **Beasts** (the alpha boar's / behemoth's brains on new bodies, as snow's): bosses `stag_king.gd` (the Stag King: a pale
+  stag the size of a cottage, its antlers a crown of branches hung with glowing moss and leaves; charge, antler sweep,
+  hoof-stomp ring from the start; a grove of standing stones hung with antlers, offerings, a toadstool ring and a stag skull
+  on a cairn for its ground), `elder_treant.gd` (the Elder Treant: an oak on four root-legs under a crown of autumn leaves,
+  slow and heavy, a ring of roots; its ground the oaks it pushed over, root plates on end, splintered stumps), plus the
+  jungle's serpent ("The Root Coil") and stalker ("The Grey Lynx") so a branching chain never runs the pool dry. Minis:
+  `moss_golem.gd` (a boulder-beast bound in moss and roots, at the ruins), `huntsman.gd` (the Cursed Huntsman, a "camp"
+  mini like the bandit chief: he leads the outlaws' camp in its captain's place, hooded with a war axe, Morrow's fight on the
+  island's level, and two hounds - wolves - at his heel with their own distance LOD on a timer), the alpha boar (at the
+  lair). Roamer: `wild_hunt.gd` (the Wild Hunt: a black spectral elk with antlers of pale fire and a hooded rider with a horn;
+  only at night - by day it's hidden, out of the physics space and asleep, from the synced world time - the behemoth's
+  roaming and temper).
+- **Gotcha:** a QuadBeast's vertex colours are linear (a coat over 1.0 wraps); a big beast that walks into a standing captain
+  can lift them onto its back (the test puts them down again) - the same for every big QuadBeast.
+- **Tests:** `t/island/forest_fauna`, `t/island/forest_beasts`, `t/island/forest_huntsman`. Renders: `tools/dev/out/forest/
+  models_fauna_*` (modelshot), `boss_stag/sheet.png`, `boss_treant/sheet.png` (bossshot seed 5).
