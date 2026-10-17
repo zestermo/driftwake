@@ -5,6 +5,7 @@ extends SceneTree
 ## Args: <out_prefix> <chain seed> [node id | -] [shot,shot...]   (seed 1 node 1: Hoarfell Atoll, snow; seed 2: a desert)
 ## Shots: clear (11:00 cloudy), heavy (13:00 rain slot), worst (15:00 storm), night (22:00 cloudy), dusk (18:30 storm),
 ## steps (11:00 clear: the captain walks 4 s across the open ground, then the camera looks back along the prints).
+## TWX_SITE=1: website art: no caption, a 1600x900 window, and <out>_<shot>.jpg plus a 640x360 <out>_<shot>-640.jpg.
 const SHOTS := {"clear": [11.0, 1], "heavy": [13.0, 2], "worst": [15.0, 3], "night": [22.0, 1], "dusk": [18.4, 3], "steps": [11.0, 0]}
 const WALK := 0.5
 var walk_t := 0.0
@@ -23,6 +24,7 @@ var frames: Array = []
 var caption: Label
 var spot := Vector2.ZERO
 var look := Vector2.ZERO
+var site := OS.get_environment("TWX_SITE") == "1"
 
 
 func _initialize():
@@ -36,6 +38,8 @@ func _initialize():
 		names = Array(a[3].split(","))
 	for n in names:
 		shots.append([n, SHOTS[n][0], SHOTS[n][1]])
+	if site:
+		DisplayServer.window_set_size(Vector2i(1600, 900))
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -71,6 +75,11 @@ func _process(d: float) -> bool:
 	var img := root.get_texture().get_image()
 	var nm := "%s_%s" % [shots[idx][0], ["eye", "wide"][view]]
 	img.save_png("%s_%s.png" % [out, nm])
+	if site:
+		img.save_jpg("%s_%s.jpg" % [out, nm], 0.88)
+		var small := img.duplicate() as Image
+		small.resize(640, 360, Image.INTERPOLATE_BILINEAR)
+		small.save_jpg("%s_%s-640.jpg" % [out, nm], 0.88)
 	frames.append(img)
 	var wx = root.get_node("Weather")
 	print("shot %s: hour %.1f state %s snow %.2f sand %.2f murk %.2f rain %.2f fog %.2f fog_end %.0f fog_color %s zone %s" % [nm, wx.hour(),
@@ -114,6 +123,7 @@ func _setup(island) -> void:
 	caption.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	caption.add_theme_constant_override("outline_size", 6)
 	cl.add_child(caption)
+	caption.visible = not site
 	var s: Dictionary = isl.sites
 	var v: Vector2 = s["village"]
 	var dd: Vector2 = (s["dock"] - v).normalized()

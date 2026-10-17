@@ -2911,7 +2911,7 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Cost:** 6.9-9.9k triangles, 31-86 bones, 1-2 surfaces per head (the old long styles: 80-560 tris, 4-28 bones). Fine
   for the player and named characters; crowds would want fewer sides/rings or a far LOD before these go in the pools.
 - **Tools/tests:** `tools/dev/hairstudio.gd` (lineup, HAIR cost lines, HS_HAT); `t/player/flow_hair` (every style
-  with and without a hat: chains, committed mesh, triangle/bone caps, settled bones finite and near the body).
+  with and without a hat: chains, committed mesh, triangle/bone caps; its settle check came out, no hair physics tests).
 ## 2026-10-17: capes: mode A with its safety net, the cloak, trapezoid tattered capes, the lantern on the hip's side
 - **Why:** Zach played the cape lab's modes and picked A on both looks; the thick look became an item; then the capes'
   shape (less square: a trapezoid with a torn hem), painted folds, and the belt lantern off the cape's back.
