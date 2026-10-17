@@ -459,8 +459,9 @@ func _slash_update(delta: float) -> void:
 		player.sword_hitbox.activate(hit)
 		var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else Color(0.85, 0.92, 1.0)
 		var sw := ActionSpecs.swoosh_seconds("air_slash")
-		Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, col])
-		KatanaFx.slash(player, sw.y - sw.x)
+		if not KatanaFx.awake(player) or player.power.buff("coat"):
+			Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, col])
+		KatanaFx.slash(player, sw.y - sw.x, false, 1.2)
 		Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 1.2])
 	if _fired and timer >= SLASH_HIT.y:
 		player.sword_hitbox.deactivate()

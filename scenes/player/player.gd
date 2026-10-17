@@ -196,6 +196,8 @@ const NF_FLOOR := 4
 const NF_LANTERN := 8
 ## The cutlass drawn with its sea awakened (BladeWater round the blade).
 const NF_TIDE := 16
+## The katana drawn with its element awakened (BladePetals: cloud and sakura on the blade).
+const NF_PETALS := 32
 
 
 func _ready() -> void:
@@ -726,6 +728,7 @@ func _process(delta: float) -> void:
 	_log_pose_tick()
 	_lantern_tick()
 	BladeWater.keep(body_model, _tide_on())
+	BladePetals.keep(body_model, _petals_on())
 	heal_cd = maxf(heal_cd - delta, 0.0)
 	if _using_item and _using_item.devil_fruit == "" and (current_state_name() not in ["Idle", "Move"] or body_model.current_action() != _use_anim):
 		_spill_use()
@@ -2099,6 +2102,10 @@ func _tide_on() -> bool:
 	return armed and not hybrid and style() == "sword" and progression.elemental("sword")
 
 
+func _petals_on() -> bool:
+	return armed and not hybrid and style() == "katana" and progression.elemental("katana")
+
+
 ## Our snapshot (~20 times a second): where, how, and the body's state.
 func net_pack() -> Array:
 	var pos := global_position
@@ -2119,6 +2126,8 @@ func net_pack() -> Array:
 		flags |= NF_LANTERN
 	if _tide_on():
 		flags |= NF_TIDE
+	if _petals_on():
+		flags |= NF_PETALS
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else []]
@@ -2191,6 +2200,7 @@ func _puppet_process(delta: float) -> void:
 		_update_nameplate()
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	BladeWater.keep(body_model, bool(_net_flags & NF_TIDE))
+	BladePetals.keep(body_model, bool(_net_flags & NF_PETALS))
 	# knocked down: the body lies (or floats) exactly where theirs does
 	if body_model.ragdoll and (b[11] as Array).size() > 0:
 		body_model.ragdoll.net_follow(a[11], b[11], f)

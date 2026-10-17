@@ -6,6 +6,7 @@ extends MeshInstance3D
 ## crescent of steel; awakened (the katana tree's mastery): petal_trail.png, a big billowing
 ## cloud that curls over at the head, breaks into puffs from the tail and sheds petals.
 ## `thrust`: laid along the blade's line instead (a stab), reaching out past the point.
+## `fixed`: no blade, a given path drawn on over `emit` (FX.katana_line, FX.katana_arc).
 ## Camera-facing, the crest on the outside (away from the hilt); in world space, on game time;
 ## frees itself by its life. Other screens make their own from their copy of the body.
 
@@ -30,6 +31,8 @@ var seed_v := 0
 ## way the swing went, read by t/combat/katana_slash).
 var samples: Array = []
 var local_tips: Array = []
+## [[base, tip], ...] in world space, laid in order over `emit` (the crest on the tip's side).
+var fixed: Array = []
 var _t := 0.0
 var _left := 0.0
 var _since := 0.0
@@ -64,13 +67,13 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if body == null or not is_instance_valid(body):
+	if fixed.is_empty() and (body == null or not is_instance_valid(body)):
 		queue_free()
 		return
 	_t += delta
 	if _left > 0.0:
 		# (a hit-stop freezes the body: the window waits for it, or the arc's end is lost)
-		if body._freeze <= 0.0:
+		if body == null or body._freeze <= 0.0:
 			_left -= delta
 			_sample()
 	else:
@@ -83,6 +86,11 @@ func _process(delta: float) -> void:
 
 ## The blade's base and tip now (skipped while it hasn't moved: a frozen frame adds nothing).
 func _sample() -> void:
+	if not fixed.is_empty():
+		var due := clampi(ceili(fixed.size() * (1.0 - _left / maxf(emit, 0.001))), 2, fixed.size())
+		while samples.size() < due:
+			samples.append(fixed[samples.size()])
+		return
 	var w := body.weapon
 	if w == null or not is_instance_valid(w) or w.get_parent() not in [body.hand_r, body.hand_l]:
 		return

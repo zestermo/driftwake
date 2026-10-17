@@ -376,7 +376,7 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	# the element on every blow (the tree's second mastery passive): combo and heavy hits throw it
 	var tree := SkillTree.style_tree(st)
 	if player.is_local and tree != "" and target is Node3D and player.progression.elemental(tree, 2) \
-			and player.current_state_name() in ["LightAttack", "HeavyAttack", "Plunge"]:
+			and player.current_state_name() in ["LightAttack", "HeavyAttack", "Plunge", "Iai"]:
 		var hit_at := (target as Node3D).global_position + Vector3(0, 1.0, 0)
 		var away := hit_at - player.global_position
 		away.y = 0.0

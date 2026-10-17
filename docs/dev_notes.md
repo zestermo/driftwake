@@ -3138,3 +3138,22 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   bench, a fire, a cache chest `forest_lodge_cache`).
 - **Tests:** `t/island/forest_town`. Renders: `tools/dev/out/forest/models_town_*` (modelshot), `t5_sheet.png` (forestshot
   seed 5: the town on its river, from above, the sawmill, the camp, the lodge).
+
+## 2026-10-17: the katana pass, piece 2 (the awakening: cloud and sakura)
+- **Awakened slashes** (`Progression.elemental("katana")`, the tree's tier-1 mastery): the combo, the air slash and the
+  iai draw lay the petal_trail cloud (KatanaFx.AWAKE_W 0.72 m) and drop the thin additive BladeTrail (the cloud is the
+  trail; Haki's coat keeps it). The full iai draw's dash is a `FX.katana_line` of cloud (plain: the streak); its charge
+  levels throw a katana_cloud puff and sakura.
+- **FX:** `katana_line(from, to, width, awake, secs, seed)` and `katana_arc(center, u, v, radius, sweep, width, awake,
+  secs, seed)`: a PetalRibbon with a `fixed` path drawn on over `secs` (no blade). `elem_hit("katana")` (tier 2, on
+  every combo / heavy / plunge / iai hit: "Iai" joined PowerComponent's list) is drawn: a katana_slash crescent through
+  them, a cloud puff, sakura. `FX.element("katana")` throws drawn sakura (2/3 the count, bigger), so every katana
+  technique's `_spray` and the Wind Severer wave's wake moved to them.
+- **The awakened blade** (`BladePetals`, scripts/game/blade_petals.gd, the BladeWater pattern): two crossed sheets of the
+  cloud strip rising 0.13 m off the blade's spine (its curve follows WeaponDesigns._katana's), flowing to the tip by one
+  shared material's uv1_offset, and a 4-petal CPUParticles3D (world coords) letting sakura go from the tip; built once
+  per blade length, hidden when sheathed (the emitter stops). Co-op: Player's snapshot flag `NF_PETALS` (32), puppets
+  call `BladePetals.keep` with it. Cost: one node + one draw (~216 static vertices) and 4 particles per drawn awakened
+  katana; nothing rebuilt.
+- **Tests:** t/fx/petals. Renders: tools/dev/out/kab/aura_*, night_* (AB_HOUR=21: the drawn cloud is unlit, the sakura
+  dim with the night).

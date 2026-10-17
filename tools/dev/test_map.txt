@@ -25,6 +25,7 @@ assets/textures/fx/steel_trail*         t/fx t/combat
 assets/textures/fx/petal_trail*         t/fx t/combat
 scripts/game/petal_ribbon.gd            t/fx t/combat katanatest techtest
 scripts/game/katana_fx.gd               t/fx t/combat katanatest techtest
+scripts/game/blade_petals.gd            t/fx
 scripts/npc/katana_moves.gd             t/combat katanatest techtest
 scripts/game/duel.gd                    t/coop net
 scripts/ui/player_menu.gd               t/coop net

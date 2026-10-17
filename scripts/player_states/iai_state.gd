@@ -68,7 +68,10 @@ func physics_update(delta: float) -> void:
 				player.set_collision_mask_value(12, true)
 				# the line you cut along, and the air closing behind you
 				var to := player.global_position + Vector3.UP * 1.1
-				Net.fx("streak", [_from, to, _col(), 0.08 + 0.03 * level, 0.25 + 0.08 * level])
+				if KatanaFx.awake(player):
+					Net.fx("katana_line", [_from, to, 0.45 + 0.15 * level, true, 0.06, randi() % 1000])
+				else:
+					Net.fx("streak", [_from, to, _col(), 0.08 + 0.03 * level, 0.25 + 0.08 * level])
 				Net.fx("ring", [to + _dir * 0.4, _dir, 0.9 + 0.4 * level, _col(), 0.22, 0.14])
 		2, 3:
 			player.velocity.x = move_toward(player.velocity.x, 0.0, 40.0 * delta)
@@ -100,7 +103,8 @@ func _charged() -> void:
 	if level == _top:
 		Net.fx("ring", [player.global_position, Vector3.UP, 1.6 + 0.6 * level, _col(), 0.35, 0.1])
 		if player.progression.elemental("katana"):
-			Net.fx("petals", [at, Vector3.UP, 6 + 4 * level, FX.tree_col("katana", FX.ACCENT), 1.5])
+			Net.fx("katana_burst", [player.global_position + Vector3(0, 0.4, 0), "katana_cloud", 1.6 + 0.4 * level, 0.5, 30.0])
+			Net.fx("sakura", [at, Vector3.UP, 4 + 2 * level, 1.5])
 
 
 ## Out of the scabbard in one cut, driving forward.
@@ -134,14 +138,16 @@ func _release() -> void:
 	player.sword_hitbox.activate(hit)
 	var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _col()
 	_from = player.global_position + Vector3.UP * 1.1
-	Net.fx("blade_swoosh", [player.body_model, 0.16, col])
+	if not KatanaFx.awake(player) or player.power.buff("coat"):
+		Net.fx("blade_swoosh", [player.body_model, 0.16, col])
+	KatanaFx.slash(player, 0.16, false, 1.0 + 0.2 * level)
 	Net.fx("sfx", ["whoosh_big", player.global_position, -3.0, 0.05, 1.35])
 	Net.fx("sfx", ["parry", player.global_position, -10.0 + 3.0 * level, 0.05, 1.5])
 	if level > 0:
 		Net.fx("afterimage", [player.body_model, col, 0.2 + 0.08 * level])
 	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 6 + 3 * level, 0.6])
 	if player.progression.elemental("katana"):
-		Net.fx("petals", [_from, -_dir + Vector3.UP * 0.5, 4 + 6 * level, FX.tree_col("katana", FX.ACCENT), 3.0])
+		Net.fx("sakura", [_from, -_dir + Vector3.UP * 0.5, 3 + 3 * level, 3.0])
 	player.squash(-2.0 - level)
 	CombatManager.apply_camera_shake(0.06 + 0.04 * level)
 	if full:

@@ -168,7 +168,9 @@ func physics_update(delta: float) -> void:
 		_swooshed = true
 		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col()
 		var sl: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col(true)
-		Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc, sl])
+		# (the awakened katana's cloud is its trail: the thin line of light under it went)
+		if not cfg.get("drawn", false) or not KatanaFx.awake(player) or player.power.buff("coat"):
+			Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc, sl])
 		if cfg.get("drawn", false):
 			KatanaFx.slash(player, _swoosh.y - _swoosh.x, str(cfg["anims"][combo_index]) == "katana_stab")
 

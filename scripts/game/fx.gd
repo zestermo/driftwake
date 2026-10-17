@@ -1304,13 +1304,13 @@ func petals(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1
 		p.angular_velocity_max = 420.0
 
 
-## A tree's element thrown along `dir`: sea spray (cutlass), petals (katana),
-## embers (axe).
+## A tree's element thrown along `dir`: sea spray (cutlass), drawn sakura (katana: bigger, so
+## fewer), embers (axe).
 func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
 	var c := tree_col(tree, ACCENT)
 	match tree:
 		"katana":
-			petals(pos, dir, amount, c, speed)
+			sakura(pos, dir, maxi(amount * 2 / 3, 2), speed)
 		"axe":
 			embers(pos, dir, amount, c, speed)
 		"dual":
@@ -2042,19 +2042,67 @@ func katana_burst(pos: Vector3, sheet: String, size: float = 1.6, life: float = 
 		"damping": 0.0, "spin": spin, "fade": 0.9, "lit": false})
 
 
+## A run of the katana's drawn strip along `from` to `to` (the path of a dash or a blink), drawn on
+## over `secs`, standing up off the line (crest up) so it reads from behind.
+func katana_line(from: Vector3, to: Vector3, width: float = 0.5, awake: bool = false, secs: float = 0.08, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if (to - from).length() < 0.3 or cam and cam.global_position.distance_to(from) > BURST_RANGE:
+		return
+	var path: Array = []
+	for i in 12:
+		var p := from.lerp(to, float(i) / 11.0)
+		path.append([p - Vector3.UP * 0.4, p])
+	_katana_path(path, width, awake, secs, seed_v)
+
+
+## The katana's drawn strip swept round an arc (centred on `center` in the plane of `u`, where it
+## starts, and `v`, the way it sweeps; `sweep` radians round), drawn on over `secs`, its crest outside.
+func katana_arc(center: Vector3, u: Vector3, v: Vector3, radius: float = 2.0, sweep: float = PI, width: float = 0.8,
+		awake: bool = false, secs: float = 0.12, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(center) > BURST_RANGE:
+		return
+	var path: Array = []
+	var n := clampi(int(absf(sweep) * radius / 0.35), 8, 64)
+	for i in n + 1:
+		var a := sweep * float(i) / n
+		path.append([center, center + (u.normalized() * cos(a) + v.normalized() * sin(a)) * radius])
+	_katana_path(path, width, awake, secs, seed_v)
+
+
+func _katana_path(path: Array, width: float, awake: bool, secs: float, seed_v: int) -> void:
+	var r := PetalRibbon.new()
+	r.fixed = path
+	r.emit = secs
+	r.awake = awake
+	r.width = width
+	r.seed_v = seed_v
+	r.linger = 0.5 if awake else 0.3
+	_scene_root().add_child(r)
+
+
 var _sakura_mat: StandardMaterial3D
+
+
+func _sakura() -> StandardMaterial3D:
+	if _sakura_mat == null:
+		_sakura_mat = _flip_mat("sakura").duplicate()
+		_sakura_mat.particles_anim_loop = true
+	return _sakura_mat
+
+
+## The drawn petal on a quad of `size` (BladePetals' emitter).
+func sakura_quad(size: float) -> QuadMesh:
+	return _quad(size, _sakura())
 
 
 ## Drawn sakura petals thrown along `dir`, turning over and over as they drift down (the
 ## katana's element; `petals` is the plain tinted kind other things throw).
-func sakura(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, size: float = 0.17) -> void:
-	if _sakura_mat == null:
-		_sakura_mat = _flip_mat("sakura").duplicate()
-		_sakura_mat.particles_anim_loop = true
+func sakura(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, size: float = 0.26) -> void:
 	var cfg := {"radius": 0.25, "direction": dir.normalized(), "spread": 55.0, "vel_min": speed * 0.35, "vel_max": speed,
 		"gravity": Vector3(0, -1.2, 0), "damping": 2.4, "hold": true, "scale_min": 0.7, "scale_max": 1.2, "explosiveness": 0.85,
 		"ramp": _flip_ramp(Color(_night_k() * 0.35 + 0.65, _night_k() * 0.35 + 0.65, _night_k() * 0.35 + 0.65), 0.0, 0.75), "start": 1.0, "spin": 180.0}
-	var p := _burst(pos, amount, _sakura_mat, size, 1.8, cfg)
+	var p := _burst(pos, amount, _sakura(), size, 1.8, cfg)
 	if p:
 		_flip_setup(p, cfg)
 		p.anim_speed_min = 1.5
@@ -2078,8 +2126,10 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 			spray(pos, dir + Vector3.UP * 0.3, 8, accent, 5.0)
 			ring(pos, dir, 0.9, edge, 0.18, 0.2)
 		"katana":
-			petals(pos, dir + Vector3.UP * 0.4, 7, accent, 3.5)
-			ring(pos, dir, 0.9, edge, 0.16, 0.12)
+			# a drawn crescent of cloud cut through them, a puff, petals thrown off
+			katana_burst(pos + dir * 0.15, "katana_slash", 1.8, 0.35, 180.0)
+			katana_burst(pos + dir * 0.4 + Vector3.UP * 0.2, "katana_cloud", 1.1, 0.45, 40.0)
+			sakura(pos, dir + Vector3.UP * 0.4, 5, 3.0)
 		"axe":
 			embers(pos, dir + Vector3.UP * 0.4, 9, accent, 4.0)
 			ring(pos, dir, 0.9, edge, 0.18, 0.2)
