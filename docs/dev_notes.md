@@ -3204,7 +3204,7 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   1357 -> 1544 (plaza +310).
 - **Hook for the town's life:** StarterIsland.LIFE (scripts/island/brinehollow_life.gd) is built last if it exists (`static func build(isl)`);
   town_spots adds "shrine", "pagoda", "gate", "teahouse" (Vendor, Customer, Seat1-3), "lanterns" (Flame markers). LIGHTS 34: old island 18,
-  the new town 8 (street 2, upper houses 3, teahouse 1, shrine lanterns 2), 8 for the life pass.
+  the new town 10 (street 2, upper houses 3, teahouse 1, shrine lanterns 2, the farmhouse and the farm yard 2), 6 for the life pass.
 - Two kit fixes from the buildings pass: KitHouses.room's top plate inside its walls (under the thatch), GenHarbour's water houses
   "steps": false.
 - **The windmill hamlet** (`_build_farmland`, new kit file kit_farm.gd: KitFarm field/orchard/tilled/reserve): a yard round a well at

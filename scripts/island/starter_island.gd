@@ -1381,7 +1381,6 @@ func _build_market_street() -> void:
 	var across: Array = []
 	var n_shop := 0
 	var n_stall := 0
-	var lit := 0
 	# a lamp a third of the way up either side, on the cobbles' edge
 	for k in range(2):
 		var e: Array = KitVillage.along(road, length, length / 3.0 * (k + 1))[0]
@@ -1390,7 +1389,6 @@ func _build_market_street() -> void:
 			var lp: Vector2 = e[0] + nrm * 3.5 + e[1] * (tries - 3) * 1.3
 			if not _excluded(lp, 0.4) and _off_walk(lp, 1.0):
 				KitLights.post(kit, lp, face_yaw(-nrm) - PI * 0.5, 0.3)
-				lit += 1
 				break
 	# shopfronts, square to the street and shoulder to shoulder where the old houses leave room
 	var fronts: Array = []
