@@ -20,6 +20,9 @@ const WOOD_TEX := ["plank", "deck", "door", "bark", "rope", "straw", "thatch", "
 const STONE_TEX := ["stone", "rock", "cobble", "brick", "plaster", "driftstone", "roof_tiles", "metal"]
 const SAND_TEX := ["sand", "seafloor"]
 const GRASS_TEX := ["grass", "fern", "bush", "leaves", "thornbrush", "palm_frond"]
+## (before the rest: "snow_packed", "snow_beach" are snow, "ice_block" ice)
+const SNOW_TEX := ["snow"]
+const ICE_TEX := ["ice"]
 
 static var _kinds := {}
 static var _grids := {}
@@ -37,8 +40,11 @@ static func surface_under(body: Node3D) -> String:
 	if col.has_meta("surface"):
 		return str(col.get_meta("surface"))
 	var mi := _terrain_mesh(col)
+	# (a GenIsland's ground collider is a body of its own, Ground<n>, beside its Terrain mesh)
+	if mi == null and str(col.name).begins_with("Ground") and col.get_parent():
+		mi = col.get_parent().get_node_or_null("Terrain/MeshInstance3D") as MeshInstance3D
 	if mi:
-		return _terrain_surface(mi, hit["position"], hit["normal"])
+		return _ground_kind(mi, _terrain_surface(mi, hit["position"], hit["normal"]))
 	var id := col.get_instance_id()
 	if not _kinds.has(id):
 		if _kinds.size() > 512:
@@ -86,6 +92,15 @@ static func _terrain_surface(mi: MeshInstance3D, p: Vector3, n: Vector3) -> Stri
 	return "grass"
 
 
+## What the terrain's `layer` is painted with, as a step (a theme's ground: a snow island's grass is snow, a
+## desert's sand); the layer's own name where its texture says nothing (home's dirt).
+static func _ground_kind(mi: MeshInstance3D, layer: String) -> String:
+	var m := mi.get_active_material(0) as ShaderMaterial
+	var tex := m.get_shader_parameter("tex_" + {"stone": "rock", "sand": "sand", "dirt": "dirt", "grass": "grass"}[layer]) as Texture2D
+	var kind := _kind_of_texture(tex.resource_path.get_file() if tex else "")
+	return kind if kind != "" else layer
+
+
 ## The splat colour (r dirt, g rock, b sand) under `p`: the terrain is a
 ## square grid of vertices, read once per mesh and kept.
 static func _splat_at(mi: MeshInstance3D, p: Vector3) -> Color:
@@ -121,7 +136,7 @@ static func _judge(col: Node) -> String:
 	var meshes := col.find_children("*", "MeshInstance3D", true, false)
 	if meshes.is_empty() and col.get_parent():
 		meshes = col.get_parent().get_children().filter(func(c): return c is MeshInstance3D)
-	var score := {"wood": 0, "stone": 0, "sand": 0, "grass": 0}
+	var score := {"wood": 0, "stone": 0, "sand": 0, "grass": 0, "snow": 0, "ice": 0}
 	for mi in meshes.slice(0, 24):
 		var mesh := (mi as MeshInstance3D).mesh
 		if mesh == null:
@@ -149,6 +164,12 @@ static func _texture_name(m: Material) -> String:
 static func _kind_of_texture(file: String) -> String:
 	if file == "":
 		return ""
+	for w in SNOW_TEX:
+		if w in file:
+			return "snow"
+	for w in ICE_TEX:
+		if w in file:
+			return "ice"
 	for w in WOOD_TEX:
 		if w in file:
 			return "wood"

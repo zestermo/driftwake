@@ -616,7 +616,7 @@ func _terrain_arrays() -> void:
 func _terrain_node() -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _arrays)
-	mesh.surface_set_material(0, PSXMat.terrain(true, 0.0, KitStyle.of(theme)["ground"]))
+	mesh.surface_set_material(0, PSXMat.terrain(true, 0.0, KitStyle.of(theme)["ground"], KitStyle.of(theme)["ground_prints"]))
 	var body := StaticBody3D.new()
 	body.name = "Terrain"
 	body.collision_layer = 1

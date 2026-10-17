@@ -2785,6 +2785,43 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Co-op:** nothing sent: snow, sand and murk come from world time and the place, like the rain.
 - **Tests:** `t/world/theme_weather`. Render: `themewxshot.gd <out> 1 1` (Hoarfell Atoll, snow) and `<out> 2`
   (Mirage Island, desert): tools/dev/out/wx2/snow2_sheet.png, desert3_sheet.png.
+
+## 2026-10-16: weather and ground, piece 2 (footprints in snow and sand, the snow layer, snow and ice steps)
+- **One ground system for both** (`scripts/world/ground_layer.gd`, GroundLayer, made by Weather beside the rain;
+  KitStyle `ground_prints`: "" home and jungle, "sand" desert, "snow" snow). Not decals (Forward+ shares its 512
+  clustered slots between lights and decals). Prints are pixels in one 512x512 RGBA8 texture wrapped over the world
+  every 42.7 m (12 px a metre): r depth, g/b the clock when pressed (16 bits of quarter seconds), a which wrap of the
+  world (4 bits of x and z, so prints 40 m off never alias here). A footstep paints ~10 texels (a boot, oversized to
+  read at the camera's distance: 42 x 19 cm, feet 14 cm off the middle) and the texture goes up at most every 0.1 s
+  when something changed; the fade (the last half of LIFE: snow 70 s, sand 45 s) is the shader's, from the global
+  `ground_prints_at` (now, life), so nothing runs per pixel on the CPU. Shader side:
+  `shaders/world/ground_prints.gdshaderinc` (`ground_print(xz)`: 0..1 in three pixel-stepped grades); globals
+  `ground_prints` (sampler2D) and `ground_prints_at` in project.godot.
+- **Who prints:** Player._on_footstep on every machine for every captain it sees (puppets too: synced positions),
+  so co-op sends nothing; `GroundLayer.step` presses the print where the foot came down (left/right by step count)
+  and kicks up one puff of the flipbook's `snow` / `sand` sheet (2 when sprinting; none when sneaking, which still
+  prints) in place of the brown dust. A landing on soft ground throws a `puff_ring` of it (Net.fx). Only on the
+  theme's own soft surface (snow on a snow island, sand on a desert); off it (rock, decks, paving) nothing.
+- **Terrain** (`terrain.gdshader`): `prints` + `print_tint` (PSXMat.terrain's new `prints` argument, from GenIsland's
+  style; a blue shadow in snow, darker sand) multiply the ground in a print. Home's terrain material has prints off:
+  same output.
+- **The snow layer** (`shaders/world/snow_layer.gdshader`, a next pass on a snow island's terrain material): the same
+  triangles raised 0.24 m where the splat is the theme's grass (snow), off steep rock, paths and the shore, so boots
+  sink into it; no collider, no slow (Zach's movement is input x speed: I left wading at full speed; a small slow would
+  go in MoveState beside thicket). Only near the camera: it settles onto the ground from 31 to 48 m and its vertices
+  past 54 m are thrown off screen (no fill for the far island; the vertex pass is ~100k trivial vertices on a snow
+  island only); casts nothing. A fresh print is a hole down to the darkened ground under it, a fading one a shadow.
+- **Footsteps** (`scripts/game/footsteps.gd`): the terrain's layer is now read through its texture (a snow island's
+  grass, packed paths and snowy beach are `snow`, its glacier rock `stone`; a desert's dunes `sand`, hardpan `dirt`),
+  textures with snow / ice in their names are `snow` / `ice` (the frozen lakes), and a GenIsland's ground collider
+  (Ground<n>, a body beside its Terrain mesh) is read as its terrain. That last one changes jungle islands too: their
+  steps were judged from the GenIsland's own meshes before (mostly sand); now grass, dirt, sand and stone like
+  Brinehollow's. `step_snow` / `step_ice` are in FX.SOUNDS.
+- **Breath:** in a snow zone every captain within 30 m of the camera breathes a little `mist` every 2.8 s (local).
+- **Gotcha:** a render after editing only the .gdshaderinc drew the old shader (the cache keyed on the main file):
+  touch terrain.gdshader / snow_layer.gdshader too.
+- **Tests:** `t/world/footprints`, `t/world/footstep_surfaces`. Render: `themewxshot.gd <out> 1 1 steps` and
+  `<out> 2 - steps` (tools/dev/out/wx2/snowsteps_steps_eye.png, desertsteps_*).
 ## 2026-10-16: desert polish (the medina, its own lookout and camp, the bandit chief, vultures)
 - **The medina** (VillageLayouts `_medina`, a new layout; POOL and BRINEHOLLOW's `village_layouts` carry it at weight
   0, so jungle and snow roll exactly as before; the desert's weights are medina 5, town 2, hamlets 2, ruins 2): the
@@ -2851,3 +2888,27 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   wants a KitStyle key read there); the market's planter (KitMarket) and Buildings.planter elsewhere still hold a green
   bush; temples and mines from the shared landmark pool still come to snow islands (their stone takes the theme's
   temple/rock tints).
+## 2026-10-17: flowing lock hairstyles (HairFlow, prototype)
+- **What:** Zach asked whether we could make hair like an anime-figure reference sheet (long layered locks, ponytails, buns,
+  manes, ombre). `scripts/npc/hair_flow.gd` (HairFlow) builds eight new styles from many locks: cascade (waist, centre part),
+  high_tail, waves, princess (thigh length + ahoge), court_bun (blunt bangs, pinned bun, gold sticks), twin_low, half_bun,
+  mane. Not in any random pool or the creator yet: set `lk["hair"]` directly. Optional `lk["hair_tip"]` = ombre tip colour.
+- **The lock:** a lens-section tube (6 sides) along a path, edges curled toward the head, root_k at the root, pointed by
+  `tip` (higher = later, blunter). Untextured (`PSXMat.lit("")`) with per-vertex colour: root -> tip by height (by length for
+  tails), undersides 0.72, an "angel ring" sheen band at y 0.255. The textured hair speckled badly on light colours; the shell
+  under these styles is untextured too (`HairFlow.shell_mat`). `MeshBuilder.add_tri` takes optional per-vertex colours (`vc`).
+- **Masses:** `_mass` lays a layer of hanging locks round an arc; neighbours share the wave phase (random phases crossed
+  like spaghetti). Below the jaw every lock turns to lie in front of the shoulder (fwd 1) or on the back (>= 138 deg):
+  nothing hangs off the point of the shoulder. `_clear_body` pushes points out of a per-height neck/shoulder/chest ellipse
+  (head space, from the arm joints and the torso collider). Gotcha: wrap angles before lerping (256 -> -138 went round the
+  front and made a collar).
+- **Physics:** guide chains every ~30 deg per mass (`sim.add_chain`, colliders head, torso and a new `hair_sh` capsule
+  across the shoulders); each lock ring is skinned to the guide's bone at its height, rings above the guide to a never-posed
+  `hair_root` bone. Tails are a centre-line chain (`_bundle`, a parallel-transported frame: a per-point frame flipped where
+  the tail turned vertical and pinched it into beads). Uses SpringChains' public API only (the cape work owns that file).
+- **Hats:** under a hat (not headband/crown) bangs, ahoge, buns, scalp strands and the mane's crown rows are left off;
+  masses start below the brim and tails tie lower.
+- **Cost:** 6.9-9.9k triangles, 31-86 bones, 1-2 surfaces per head (the old long styles: 80-560 tris, 4-28 bones). Fine
+  for the player and named characters; crowds would want fewer sides/rings or a far LOD before these go in the pools.
+- **Tools/tests:** `tools/dev/hairstudio.gd` (lineup, HAIR cost lines, HS_HAT); `t/player/flow_hair` (every style
+  with and without a hat: chains, committed mesh, triangle/bone caps, settled bones finite and near the body).

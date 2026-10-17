@@ -272,3 +272,11 @@ fog_range={
 "type": "vec2",
 "value": Vector2(90, 750)
 }
+ground_prints={
+"type": "sampler2D",
+"value": ""
+}
+ground_prints_at={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}

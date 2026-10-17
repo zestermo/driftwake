@@ -670,6 +670,9 @@ func _build_rain() -> void:
 	_precip = PrecipFX.new()
 	_precip.name = "PrecipFX"
 	_scene.add_child(_precip)
+	var gl := GroundLayer.new()
+	gl.name = "GroundLayer"
+	_scene.add_child(gl)
 
 
 func _update_rain(delta: float) -> void:

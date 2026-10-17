@@ -22,7 +22,8 @@ extends RefCounted
 ##   earring bool, eyepatch bool, scarf bool, scarf_color, pauldron bool, pouch bool,
 ##   bandolier bool, necklace bool, goggles bool, baldric bool, spyglass bool
 
-const SAVE_PATH := "user://character.cfg"
+## Tests running side by side point this at their own file.
+static var save_path := "user://character.cfg"
 
 const BODIES := ["masc", "fem"]
 const BUILDS := ["slim", "average", "broad", "stout"]
@@ -35,7 +36,8 @@ const MOUTH_STYLES := 6
 const MARKS := ["none", "freckles", "scar", "blush", "war_paint", "age_lines"]
 const HAIR := ["bald", "crop", "short", "long", "ponytail", "bun", "braids", "wild",
 	"swept", "messy", "slick", "topknot", "hime", "twintails", "bob", "side_pony",
-	"quiff", "curtains", "spiky", "shag", "swoop", "low_pony", "layered", "lob", "braid"]
+	"quiff", "curtains", "spiky", "shag", "swoop", "low_pony", "layered", "lob", "braid",
+	"cascade", "high_tail", "waves", "princess", "court_bun", "twin_low", "half_bun", "mane"]
 ## Styles the random looks give each body (any style can still be picked for either).
 const HAIR_MASC := ["bald", "crop", "short", "long", "ponytail", "wild", "swept", "messy", "slick", "topknot",
 	"quiff", "curtains", "spiky", "shag", "swoop"]
@@ -245,19 +247,19 @@ static func _pick(rng: RandomNumberGenerator, arr: Array) -> Variant:
 # Save / load (the player's look)
 # --------------------------------------------------------------------------
 static func has_saved() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return FileAccess.file_exists(save_path)
 
 
 static func save_look(lk: Dictionary) -> void:
 	var cf := ConfigFile.new()
 	for k in lk.keys():
 		cf.set_value("look", str(k), lk[k])
-	cf.save(SAVE_PATH)
+	cf.save(save_path)
 
 
 static func load_look() -> Dictionary:
 	var cf := ConfigFile.new()
-	if cf.load(SAVE_PATH) != OK:
+	if cf.load(save_path) != OK:
 		return default_look()
 	var lk := {}
 	for k in cf.get_section_keys("look"):

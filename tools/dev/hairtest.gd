@@ -11,19 +11,23 @@ func check(name: String, cond: bool) -> void:
 		fails += 1
 
 
-## Hair-material vertices of the head (head-local, unscaled), the strands included.
-func _hair_verts(h) -> PackedVector3Array:
+## Hair-material vertices of the head (head-local, unscaled), the strands included
+## (HairFlow's locks are untextured: all of a lock style's chain mesh counts).
+func _hair_verts(h, style: String) -> PackedVector3Array:
 	var out := PackedVector3Array()
+	var locks := HairFlow.has(style)
 	for mi in h.head.find_children("*", "MeshInstance3D", true, false):
 		var m: Mesh = (mi as MeshInstance3D).mesh
 		if m == null:
 			continue
+		var on_chains: bool = (mi as Node).get_parent() is Skeleton3D and (mi as Node).get_parent().get_parent() is SpringChains
 		for s in range(m.get_surface_count()):
 			var mat := m.surface_get_material(s) as ShaderMaterial
 			if mat == null:
 				continue
 			var tex = mat.get_shader_parameter("albedo_tex")
-			if tex == null or not str((tex as Texture2D).resource_path).contains("hair"):
+			var textured_hair: bool = tex != null and str((tex as Texture2D).resource_path).contains("hair")
+			if not textured_hair and not (locks and on_chains):
 				continue
 			var v: PackedVector3Array = m.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
 			var xf: Transform3D = h.head.global_transform.affine_inverse() * (mi as Node3D).global_transform
@@ -46,7 +50,7 @@ func _process(_d: float) -> bool:
 			var h := Humanoid.new()
 			h.setup(lk)
 			root.add_child(h)
-			if hs == "bald" or _hair_verts(h).size() > 0:
+			if hs == "bald" or _hair_verts(h, hs).size() > 0:
 				built += 1
 			h.free()
 	check("every hair style builds for both bodies (%d / %d)" % [built, styles.size() * 2], built == styles.size() * 2)
@@ -67,7 +71,7 @@ func _process(_d: float) -> bool:
 			var h := Humanoid.new()
 			h.setup(lk)
 			root.add_child(h)
-			for p in _hair_verts(h):
+			for p in _hair_verts(h, hs):
 				if p.y < 0.285:
 					continue
 				var d := Vector2(p.x, p.z - 0.004)

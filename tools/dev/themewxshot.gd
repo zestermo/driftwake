@@ -3,8 +3,13 @@ extends SceneTree
 ## from 14 m up over it) in a light fall, a heavy one, the worst (blizzard / sandstorm) and at night;
 ## then a contact sheet (<out>_sheet.png). Prints Weather's numbers for each.
 ## Args: <out_prefix> <chain seed> [node id | -] [shot,shot...]   (seed 1 node 1: Hoarfell Atoll, snow; seed 2: a desert)
-## Shots: clear (11:00 cloudy), heavy (13:00 rain slot), worst (15:00 storm), night (22:00 cloudy), dusk (18:30 storm).
-const SHOTS := {"clear": [11.0, 1], "heavy": [13.0, 2], "worst": [15.0, 3], "night": [22.0, 1], "dusk": [18.4, 3]}
+## Shots: clear (11:00 cloudy), heavy (13:00 rain slot), worst (15:00 storm), night (22:00 cloudy), dusk (18:30 storm),
+## steps (11:00 clear: the captain walks 4 s across the open ground, then the camera looks back along the prints).
+const SHOTS := {"clear": [11.0, 1], "heavy": [13.0, 2], "worst": [15.0, 3], "night": [22.0, 1], "dusk": [18.4, 3], "steps": [11.0, 0]}
+const WALK := 0.5
+var walk_t := 0.0
+var walk_from := Vector3.ZERO
+var rig: Node3D
 var t := 0.0
 var out := ""
 var want := -1
@@ -54,6 +59,13 @@ func _process(d: float) -> bool:
 		_shot()
 		return false
 	settle += d
+	if shots[idx][0] == "steps" and walk_t < WALK:
+		walk_t += d
+		if walk_t >= WALK:
+			_trail()
+			settle = 0.0
+			_aim()
+		return false
 	if settle < 4.0:
 		return false
 	var img := root.get_texture().get_image()
@@ -86,8 +98,13 @@ func _setup(island) -> void:
 	var hud = get_first_node_in_group("hud")
 	if hud: hud.visible = false
 	root.get_node("Settings").set_value("video", "perf_overlay", false, false)
+	# (under a rig and an arm like the game's: the captain's moves read the camera's grandparent for "forward")
+	rig = Node3D.new()
+	var arm := Node3D.new()
+	root.add_child(rig)
+	rig.add_child(arm)
 	cam = Camera3D.new(); cam.fov = 60; cam.far = 3000
-	root.add_child(cam); cam.current = true
+	arm.add_child(cam); cam.current = true
 	var cl := CanvasLayer.new()
 	cl.layer = 100
 	root.add_child(cl)
@@ -114,12 +131,52 @@ func _shot() -> void:
 	wx.forced = int(shots[idx][2])
 	wx.forced_at = wx.world_time() - 100.0
 	settle = 0.0
+	if shots[idx][0] == "steps":
+		var p = get_first_node_in_group("player")
+		p.global_position = isl.to_global(Vector3(spot.x, isl.hv(spot) + 0.3, spot.y))
+		p.reset_physics_interpolation()
+		walk_from = p.global_position
+		walk_t = 0.0
 	_aim()
+
+
+## The trail runs from the spot toward the village, over the open ground beside the road.
+func _trail_dir() -> Vector3:
+	var to_look := (look - spot).normalized()
+	return Vector3(to_look.x, 0.0, to_look.y)
+
+
+## A trail of 12 boot prints pressed across the open ground from the spot (as GroundLayer.step lays them,
+## a stride of 0.8 m), the captain standing at its end facing on.
+func _trail() -> void:
+	var gl = current_scene.get_node("GroundLayer")
+	var dir := _trail_dir()
+	var sd := Vector3(-dir.z, 0.0, dir.x)
+	for k in range(12):
+		var at: Vector3 = walk_from + dir * (k * 0.8) + sd * (0.14 if k % 2 == 0 else -0.14)
+		gl.stamp(at, dir)
+	var p = get_first_node_in_group("player")
+	p.global_position = walk_from + dir * 10.0 + Vector3(0, 1.0, 0)
+	p.player_model.rotation.y = atan2(-dir.x, -dir.z)
+	p.reset_physics_interpolation()
+	var n := 0
+	var used: Rect2i = gl._img.get_used_rect()
+	for y in range(used.position.y, used.end.y):
+		for x in range(used.position.x, used.end.x):
+			if gl._img.get_pixel(x, y).r > 0.0:
+				n += 1
+	print("trail: prints %s, at %s, under the first %.2f, %d texels pressed in %s" % [gl.kind, walk_from, maxf(gl.print_at(walk_from + sd * gl.FOOT_OFF), gl.print_at(walk_from - sd * gl.FOOT_OFF)), n, used])
 
 
 func _aim() -> void:
 	var s: Array = shots[idx]
 	caption.text = "%s (%s)  -  %s, %s" % [isl.island_name, isl.theme, s[0], ["eye height", "from 14 m up"][view]]
+	if s[0] == "steps":
+		# (from behind the trail's start, at the game camera's height, looking along it to the captain)
+		var dir := _trail_dir()
+		cam.global_position = walk_from - dir * (2.5 if view == 0 else 4.0) + Vector3(0, 2.0 if view == 0 else 5.0, 0)
+		cam.look_at(walk_from + dir * 5.0, Vector3.UP)
+		return
 	var to_look := (look - spot).normalized()
 	if view == 0:
 		var side := Vector2(-to_look.y, to_look.x)

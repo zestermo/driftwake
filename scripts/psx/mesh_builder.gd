@@ -47,23 +47,27 @@ func surface_count() -> int:
 func add_tri(mat: Material, a: Vector3, b: Vector3, c: Vector3,
 		na: Vector3, nb: Vector3, nc: Vector3,
 		ua: Vector2, ub: Vector2, uc: Vector2, col: Color = Color.WHITE, want: Vector3 = Vector3.ZERO,
-		vb: PackedInt32Array = PackedInt32Array()) -> void:
+		vb: PackedInt32Array = PackedInt32Array(), vc: PackedColorArray = PackedColorArray()) -> void:
 	var s := _surf(mat)
 	if want == Vector3.ZERO:
 		want = na + nb + nc
 	var ba := bone; var bb := bone; var bc := bone
 	if vb.size() == 3:
 		ba = vb[0]; bb = vb[1]; bc = vb[2]
+	var ca := col; var cb := col; var cc := col
+	if vc.size() == 3:
+		ca = vc[0]; cb = vc[1]; cc = vc[2]
 	# Godot front face: (c - a).cross(b - a) points outward.
 	if (c - a).cross(b - a).dot(want) < 0.0:
 		var t := b; b = c; c = t
 		var tn := nb; nb = nc; nc = tn
 		var tu := ub; ub = uc; uc = tu
 		var tb := bb; bb = bc; bc = tb
+		var tc := cb; cb = cc; cc = tc
 	s["v"].append_array([a, b, c])
 	s["n"].append_array([na, nb, nc])
 	s["uv"].append_array([ua, ub, uc])
-	s["c"].append_array([col, col, col])
+	s["c"].append_array([ca, cb, cc])
 	if weight_fn.is_valid():
 		for p in [a, b, c]:
 			var bw: Array = weight_fn.call(p)
