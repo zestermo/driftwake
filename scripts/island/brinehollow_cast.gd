@@ -391,6 +391,50 @@ static func townsfolk() -> Array:
 				"Tam says you're a pirate. I said pirates have parrots. Where's your parrot?",
 				"We're not allowed past the old ruins. So we only go a bit past."]}, "plan": plan})
 	out.append_array(harbourfolk())
+	out.append_array(outskirts())
+	return out
+
+
+## The shrine terrace's, the windmill hamlet's and the second cove's people (piece 5; "area": the walks they keep to).
+static func outskirts() -> Array:
+	var out: Array = []
+	out.append({"cfg": {"name": "Keeper Sanae", "voice": 1.0, "look": KitLife.look_for("Keeper Sanae"), "barks": [
+			"The shrine's older than the harbour. Sailors built it before they built houses. Tells you their priorities.",
+			"Ring the bell before you sail and the sea remembers your name. Forget, and it remembers that too.",
+			{"text": "You came back from Grell's den. Whatever you prayed to, keep it up.", "after": "grell"}]},
+		"plan": [[5.8, "mark:shrine:Priest"], [12.0, "mark:teahouse:Seat1"], [13.0, "mark:shrine:Priest"], [19.6, "door:shrine"]]})
+	out.append({"cfg": {"name": "Hana Teal", "voice": 1.2, "look": KitLife.look_for("Hana Teal"), "barks": [
+			"Tea from the far east, by way of Ysolde's junk and a great deal of arguing.",
+			"Climb the stair, drink the tea, look at the sea. That's the whole teahouse. People pay for it.",
+			"The keeper takes her lunch here every day and pays every other day. It evens out at the shrine."]},
+		"plan": [[6.5, "mark:teahouse:Vendor"], [20.5, "home:UpperHouse10"]]})
+	out.append({"cfg": {"name": "Old Oda", "voice": 0.85, "look": KitLife.look_for("Old Oda"), "barks": [
+			"Sixty years I've climbed that stair. It's got longer.",
+			"I pray for my son's ship every morning. It's a good ship. It doesn't need it. I do."]},
+		"plan": [[7.0, "mark:shrine:Worshipper"], [8.4, "mark:teahouse:Seat2"], [11.5, "mark:teahouse:Seat3"], [15.0, "mark:shrine:Worshipper"],
+			[16.2, "home:UpperHouse5"]]})
+	out.append({"cfg": {"name": "Miller Brann", "voice": 0.75, "look": KitLife.look_for("Miller Brann"), "barks": [
+			"Every loaf in Brinehollow started on my stones. Ida's hardtack too. I'm not proud of that one.",
+			"The wind off the south lands is the best on the island. Steady. Like me. Mostly.",
+			"Mind the sails when they're turning. I've lost two hats and a nephew. The nephew came back."]},
+		"plan": [[5.8, "mark:windmill:Miller"], [12.2, "yard:0"], [13.2, "mark:windmill:Miller"], [19.4, "door:windmill"]], "area": "farm"})
+	var hands := [["Joss", 1.05, [8, 4], "Farmhouse0"], ["Wynn", 0.9, [5, 3], "Farmhouse1"]]
+	for i in range(hands.size()):
+		var hd: Array = hands[i]
+		var a: int = hd[2][0]
+		var b: int = hd[2][1]
+		out.append({"cfg": {"name": "Farmhand " + str(hd[0]), "voice": hd[1], "look": KitLife.look_for(hd[0]), "barks": [
+				"Up before the sun, in after it. The crops don't care whose captain you are.",
+				"Brann grinds it, Ida bakes it, Gus soaks it in stew. Somebody has to grow it.",
+				"The scarecrow's named Morrow. He scares the crows about as well as the real one scared you."]},
+			"plan": [[6.2 + 0.3 * i, "field:%d:0" % a], [7.6 + 0.3 * i, "field:%d:1" % a], [9.0 + 0.3 * i, "field:%d:2" % a], [10.4 + 0.3 * i, "field:%d:0" % b],
+				[12.0 + 0.2 * i, "yard:%d" % (1 + i)], [13.2 + 0.3 * i, "field:%d:1" % b], [14.6 + 0.3 * i, "field:%d:2" % b], [16.0 + 0.3 * i, "field:%d:3" % b],
+				[18.6 + 0.3 * i, "door:" + str(hd[3])]], "area": "farm"})
+	out.append({"cfg": {"name": "Old Gannet", "voice": 0.78, "look": KitLife.look_for("Old Gannet"), "barks": [
+			"Nobody comes round this side. That's why I live on it.",
+			"Town's too loud. Twelve people in it last I counted. Twelve!",
+			"The wreck up the coast? Don't go poking in her. She's still got her crew, in a manner of speaking."]},
+		"plan": [[5.0, "cove:jetty"], [10.6, "cove:rack"], [13.0, "cove:jetty"], [17.6, "cove:rack"], [20.4, "door:hut"]], "area": "cove"})
 	return out
 
 

@@ -3533,3 +3533,18 @@ Found and fixed (Buildings unless said):
   walks join the graph only at its biggest piece (`Town.main`). The Gull got four more places (two at the bar's end, two by the walls).
 - **Tested by** t/island/brinehollow_harbour (the smacks' places and courses clear of the lane and the other boats; out at 10:00, home at
   18:00; fishers on the piers at 7:00 and off at 12:00; dockers carrying). Renders: tools/dev/out/life/p4_*.png.
+
+## 2026-10-17: Brinehollow life, piece 5: the shrine terrace's, the hamlet's and the cove's people
+- **Who** (BrinehollowCast.outskirts, after the harbour's): Keeper Sanae before the shrine's doors by day (lunch on the teahouse's
+  bench), Hana Teal behind the teahouse's counter 6:30-20:30, Old Oda praying at the shrine's foot and sitting out on the teahouse's
+  benches; Miller Brann at his mill (a step off its door), two farmhands weeding among two fields' rows each (in by each field's gate)
+  with lunch in the yard, Old Gannet fishing off the second cove's jetty and mending nets by his rack. Seven, so the frame stays.
+- **Walks**: `Town` takes a centre, reach and ring now: `of_town` (as before, plus the way up the terrace to the shrine, the
+  teahouse's and the shrine's plinth as floors), `of_farm` (the paths near the farm, a ring round its well, for each field a way round
+  its fence and three spokes from the yard to its gate: straight and bent either way round what's in the yard), `of_cove` (a ring on
+  the beach, the jetty, onto it straight at its shore end). A cast entry's "area" picks one. BrinehollowFolk ramps to a stay's own
+  height over its last/first 2.5 m (`walk_y`: the shrine's steps, the teahouse's boards, a pier edge's seat) and only adjusts on the
+  frames its routine moved it.
+- **Load time** (no prebuild): the build's "life" step is ~5.6 s (29 bodies on the main thread), the cast's "npcs" ~2.2 s.
+- **Tested by** t/island/brinehollow_outskirts (at 8:36 each at their place, the farmhands kneeling in the fields, the cove's fisher sat
+  with his rod; walks clear of what's built, fences included; all in at 2:00). Renders tools/dev/out/life/p5_day_*.png.

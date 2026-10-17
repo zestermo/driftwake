@@ -26,7 +26,7 @@ static func build(isl: StarterIsland) -> void:
 	isl.add_child(life)
 	var made: Array = []
 	isl.kit.timed("life harbour", func(): Harbour.build(isl, life))
-	isl.kit.timed("life walks", func(): made.append(Town.new(isl)))
+	isl.kit.timed("life walks", func(): made.append(Town.of_town(isl)))
 	isl.kit.timed("life people", func(): _people(isl, made[0]))
 	isl.kit.timed("life lights", func(): _lights(isl, life))
 	_sounds(isl, life)
@@ -172,20 +172,16 @@ class Town:
 	## the ids of the biggest connected piece (where walks join the graph)
 	var main := {}
 
-	func _init(island: StarterIsland) -> void:
-		isl = island
-		space = isl.get_world_3d().direct_space_state
-		stair = isl.town_spots["stair"]
-		var tav: Node3D = isl._tavern
-		floors.append([tav.transform.affine_inverse(), Vector2(5.8, 4.3), isl.kit.marker_y(tav, "Barkeep")])
-		var lines: Array = isl.paths.duplicate()
-		lines.append_array(isl.town_spots["lanes"])
+	## The town's: every path within REACH of the plaza, the upper lanes, the long stair and the way up the
+	## terrace to the shrine, the quay, the main pier and the side piers (their decks floors, the Gull's too).
+	static func of_town(island: StarterIsland) -> Town:
+		var lines: Array = island.town_spots["lanes"].duplicate()
 		var flat := PackedVector2Array()
-		for q in stair:
+		for q in island.town_spots["stair"]:
 			flat.append(Vector2(q.x, q.z))
 		lines.append(flat)
-		# the harbour: along the quay, out the main pier and the side piers (their decks are floors)
-		var h := isl.harbour
+		lines.append(PackedVector2Array([flat[flat.size() - 1], Vector2(StarterIsland.UP_X, 21.5)]))
+		var h := island.harbour
 		var quay := PackedVector2Array()
 		var s := h.s0 + 2.0
 		while s < h.s1 - 2.0:
@@ -193,13 +189,62 @@ class Town:
 			s += 2.5
 		lines.append(quay)
 		lines.append(PackedVector2Array([h.dock_point(0.5), h.dock_point(StarterIsland.DOCK_LENGTH - 1.0)]))
-		floors.append([_rect(h.dock_point(StarterIsland.DOCK_LENGTH * 0.5), h.out), Vector2(StarterIsland.PIER_HW, StarterIsland.DOCK_LENGTH * 0.5), StarterIsland.DOCK_DECK_Y])
-		for pr in Harbour.side_piers(isl):
+		var tav: Node3D = island._tavern
+		var floors: Array = [[tav.transform.affine_inverse(), Vector2(5.8, 4.3), island.kit.marker_y(tav, "Barkeep")],
+			[_rect(h.dock_point(StarterIsland.DOCK_LENGTH * 0.5), h.out), Vector2(StarterIsland.PIER_HW, StarterIsland.DOCK_LENGTH * 0.5), StarterIsland.DOCK_DECK_Y]]
+		for pr in Harbour.side_piers(island):
 			lines.append(PackedVector2Array([pr[0] + pr[1] * 0.5, pr[0] + pr[1] * (float(pr[2]) - 0.6)]))
 			floors.append([_rect(pr[0] + pr[1] * float(pr[2]) * 0.5, pr[1]), Vector2(1.5, float(pr[2]) * 0.5), h.deck_y])
+		var tea: Node3D = island.town_spots["teahouse"]
+		floors.append([(tea.transform * Transform3D(Basis(), Vector3(0, 0, 1.1))).affine_inverse(), Vector2(3.9, 3.0), island.kit.marker_y(tea, "Vendor")])
+		var shrine: Node3D = island.town_spots["shrine"]
+		floors.append([shrine.transform.affine_inverse(), Vector2(5.2, 4.45), island.kit.marker_y(shrine, "Priest")])
+		return Town.new(island, StarterIsland.VILLAGE, REACH, RING_R, lines, floors, island.town_spots["stair"])
+
+	## The windmill hamlet's: the paths near the farm, a ring round its well, and for each field near it a way
+	## round its fence and a spoke from the yard to its gate.
+	static func of_farm(island: StarterIsland) -> Town:
+		var lines: Array = []
+		for f in StarterIsland.FIELDS:
+			var c: Vector2 = f[0]
+			var h: Vector2 = f[1]
+			if c.distance_to(StarterIsland.FARM) > 80.0:
+				continue
+			var e := h + Vector2(1.6, 1.6)
+			lines.append(PackedVector2Array([KitFarm.at(f, -e.x, -e.y), KitFarm.at(f, e.x, -e.y), KitFarm.at(f, e.x, e.y), KitFarm.at(f, -e.x, e.y), KitFarm.at(f, -e.x, -e.y)]))
+			# (straight, and bent either way round what stands in the yard: the clear ones survive)
+			var gate := KitFarm.at(f, 0.0, -h.y - 1.8)
+			var dir := StarterIsland.FARM.direction_to(gate)
+			var start := StarterIsland.FARM + dir * 6.5
+			lines.append(PackedVector2Array([start, gate]))
+			for bend: float in [-0.7, 0.7]:
+				var r := StarterIsland.FARM + dir.rotated(bend) * 6.5
+				lines.append(PackedVector2Array([r, r + dir.rotated(bend) * 10.0, gate]))
+		return Town.new(island, StarterIsland.FARM, 95.0, 6.5, lines, [], PackedVector3Array())
+
+	## The second cove's: a ring on its beach and the jetty (its deck a floor).
+	static func of_cove(island: StarterIsland) -> Town:
+		var c: Dictionary = island.town_spots["cove2"]
+		var jf: Vector2 = c["jetty"][0]
+		var jt: Vector2 = c["jetty"][1]
+		var probe := Town.new(island, c["beach"], 0.0, 0.0, [], [], PackedVector3Array())
+		var deck := probe.floor_at(jf.lerp(jt, 0.5))
+		# (onto the jetty straight on at its shore end: its rails run down both sides)
+		return Town.new(island, c["beach"], 40.0, 2.5, [PackedVector2Array([jf - jf.direction_to(jt) * 2.5, jf, jt])],
+			[[_rect(jf.lerp(jt, 0.5), jt - jf), Vector2(0.9, jf.distance_to(jt) * 0.5), deck]], PackedVector3Array())
+
+	func _init(island: StarterIsland, centre: Vector2, reach: float, ring_r: float, extra: Array, extra_floors: Array, stair_line: PackedVector3Array) -> void:
+		isl = island
+		space = isl.get_world_3d().direct_space_state
+		stair = stair_line
+		floors = extra_floors
+		if reach <= 0.0:
+			return
+		var lines: Array = isl.paths.duplicate()
+		lines.append_array(extra)
 		var ring := PackedVector2Array()
 		for k in range(25):
-			ring.append(StarterIsland.VILLAGE + Vector2.from_angle(TAU * k / 24.0) * RING_R)
+			ring.append(centre + Vector2.from_angle(TAU * k / 24.0) * ring_r)
 		lines.append(ring)
 		var owner := {}
 		var edges: Array = []
@@ -207,7 +252,7 @@ class Town:
 			var pts := _dense(lines[li])
 			var prev := -1
 			for q in pts:
-				if q.distance_to(StarterIsland.VILLAGE) > REACH:
+				if q.distance_to(centre) > reach:
 					prev = -1
 					continue
 				var id := graph.get_point_count()
@@ -235,7 +280,7 @@ class Town:
 		for li in range(lines.size() - 1):
 			var pl: PackedVector2Array = lines[li]
 			for q in [pl[0], pl[pl.size() - 1]]:
-				if q.distance_to(StarterIsland.VILLAGE) < 25.0:
+				if q.distance_to(centre) < ring_r + 15.5 and owner.values().has(li):
 					edges.append([_nearest(q, owner, li), _ring_near(q)])
 		# only where nothing's built in the way
 		for e in edges:
@@ -319,7 +364,7 @@ class Town:
 		return graph.get_closest_point(p)
 
 	## Island space -> a rectangle's own (its middle at c, its length along `dir`).
-	func _rect(c: Vector2, dir: Vector2) -> Transform3D:
+	static func _rect(c: Vector2, dir: Vector2) -> Transform3D:
 		return Transform3D(Basis(Vector3.UP, KitContext.face_yaw(dir)), Vector3(c.x, 0, c.y)).affine_inverse()
 
 	func _dense(pl: PackedVector2Array) -> PackedVector2Array:
@@ -351,9 +396,15 @@ class Town:
 		out.append(b)
 		return out
 
+	## The top of whatever's built at p (a ray down).
+	func floor_at(p: Vector2) -> float:
+		var top := isl.to_global(Vector3(p.x, 40.0, p.y))
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(top, top - Vector3(0, 80, 0)))
+		return isl.to_local(hit["position"]).y
+
 	## The height of what's walked on at p: the long stair's treads, a building's floor, else `ground`.
 	func y_at(p: Vector2, ground: float) -> float:
-		if absf(p.x - StarterIsland.UP_X) < 1.6 and p.y > stair[0].z and p.y < stair[stair.size() - 1].z:
+		if not stair.is_empty() and absf(p.x - StarterIsland.UP_X) < 1.6 and p.y > stair[0].z and p.y < stair[stair.size() - 1].z:
 			for i in range(1, stair.size()):
 				if p.y <= stair[i].z:
 					return lerpf(stair[i - 1].y, stair[i].y, (p.y - stair[i - 1].z) / maxf(stair[i].z - stair[i - 1].z, 0.01))
@@ -513,12 +564,90 @@ static func _spot(isl: StarterIsland, id: String, cache: Dictionary) -> Dictiona
 			var sv := Vector2(side.x, side.z) * _hull_side(isl, pr)
 			var at: Vector2 = pr[0] + pr[1] * (float(pr[2]) - 4.0 - 6.0 * int(parts[1])) + sv * 0.9
 			return {"at": at, "face": sv, "act": "kneel", "kind": "quay", "y": isl.harbour.deck_y, "lane": PackedVector2Array([at - sv * 0.9])}
+		"mark":
+			return _at_mark(isl, parts[1], parts[2])
+		"door":
+			var dn := _node(isl, parts[1])
+			return {"at": kit.marker_point(dn, "Door"), "face": kit.marker_face(dn, "Door"), "act": "home", "kind": "home", "lane": PackedVector2Array()}
+		"field":
+			# among a field's rows, in by the gate in its -Z side
+			var fd: Array = StarterIsland.FIELDS[int(parts[1])]
+			var hf: Vector2 = fd[1]
+			var k := int(parts[2])
+			var x := [-0.5, 0.45, -0.15, 0.3][k] as float * hf.x
+			var z := [-0.35, 0.1, 0.45, -0.05][k] as float * hf.y
+			var at := KitFarm.at(fd, x, z)
+			return {"at": at, "face": at.direction_to(KitFarm.at(fd, x, z + 1.0)), "act": "kneel", "kind": "field",
+				"lane": PackedVector2Array([KitFarm.at(fd, 0.0, -hf.y + 0.5), KitFarm.at(fd, 0.0, -hf.y - 1.8)])}
+		"yard":
+			var at := StarterIsland.FARM + Vector2.from_angle(int(parts[1]) * 2.2 + 0.5) * 4.2
+			return {"at": at, "face": at.direction_to(StarterIsland.FARM), "act": "talk", "kind": "yard", "lane": PackedVector2Array()}
+		"cove":
+			var c: Dictionary = isl.town_spots["cove2"]
+			var jf: Vector2 = c["jetty"][0]
+			var jt: Vector2 = c["jetty"][1]
+			if parts[1] == "jetty":
+				var d := jf.direction_to(jt)
+				var n := d.orthogonal()
+				var mid := jt - d * 0.8
+				var deck: float = cache["cove"].floors[0][2]
+				return {"at": mid + n * 0.4, "face": n, "act": "sit", "kind": "fish", "y": deck - 0.45, "walk_y": deck, "seat_y": 0.45, "rod": true,
+					"lane": PackedVector2Array([mid])}
+			var b: Vector2 = c["beach"]
+			var r := b + Vector2(0.4, -3.0)
+			return {"at": r, "face": Vector2(-1, 0), "act": "kneel", "kind": "nets", "lane": PackedVector2Array()}
 		"stack":
 			if not cache.has("stack"):
 				cache["stack"] = _quay_spots(isl, cache["town"], [26.0, 24.0, 34.0, 22.0], [6.0, 8.0, 10.0])
 			return cache["stack"][int(parts[1])]
 	push_error("BrinehollowLife: no spot %s" % id)
 	return {}
+
+
+## A place from town_spots by key ("shrine", "teahouse", "windmill"), the farm's or the cove's by name.
+static func _node(isl: StarterIsland, key: String) -> Node3D:
+	if isl.town_spots.get(key) is Node3D:
+		return isl.town_spots[key]
+	if key == "hut":
+		return isl.town_spots["cove2"]["hut"]
+	return _named(isl.town_spots["farm"], key)
+
+
+## At a marker in a place: the shrine's Priest (before its doors) and Worshipper (at the foot of its steps), the
+## teahouse's Vendor (behind its counter), Customer and Seat1-3, the windmill's Miller.
+static func _at_mark(isl: StarterIsland, key: String, marker: String) -> Dictionary:
+	var kit := isl.kit
+	var n := _node(isl, key)
+	var lp := func(v: Vector3) -> Vector2: return kit.local_point(n, v)
+	var m: Vector3 = (n.get_node(marker) as Node3D).position
+	var out := {"at": lp.call(m), "face": kit.marker_face(n, marker), "act": "stand", "kind": key, "y": kit.marker_y(n, marker), "lane": PackedVector2Array()}
+	match key:
+		"shrine":
+			# (round the offering box between the two, then down the steps)
+			var door: Vector3 = (n.get_node("Door") as Node3D).position
+			var wp: Vector3 = (n.get_node("Worshipper") as Node3D).position
+			out["lane"] = PackedVector2Array([lp.call(door)]) if marker == "Worshipper" else \
+				PackedVector2Array([lp.call(Vector3(1.1, 0, m.z)), lp.call(Vector3(1.1, 0, wp.z)), lp.call(wp), lp.call(door)])
+			if marker == "Worshipper":
+				out["act"] = "kneel"
+		"teahouse":
+			# (Brinehollow's is 3.4 deep with its veranda 2.2 m out in front; the counter's end is at local x 0)
+			var front := 1.7 + 2.2 + 0.9
+			if marker == "Vendor":
+				out["lane"] = PackedVector2Array([lp.call(Vector3(0.6, 0, m.z)), lp.call(Vector3(0.6, 0, 2.7)), lp.call(Vector3(0.6, 0, front))])
+			else:
+				out["lane"] = PackedVector2Array([lp.call(Vector3(m.x, 0, maxf(front, m.z + 0.9)))])
+			if marker.begins_with("Seat"):
+				out["act"] = "sit"
+				out["seat_y"] = 0.46
+				out["y"] = float(out["y"]) - 0.46
+				out["walk_y"] = out["y"]
+		"windmill":
+			# (a step further from the door than the marker: nobody stands in a doorway)
+			out["at"] = lp.call(m + Vector3(0.5, 0, 0.6))
+			out["lane"] = PackedVector2Array([lp.call(m + Vector3(0.5, 0, 1.8))])
+			out.erase("y")
+	return out
 
 
 ## The side pier the merchantman lies at (the one whose hull is a merchant's).
@@ -559,7 +688,7 @@ static func _fishing(isl: StarterIsland, i: int) -> Dictionary:
 		lane = pr[0] + pr[1] * (float(pr[2]) - 2.5)
 		at = lane + face * 1.35
 		y = h.deck_y
-	return {"at": at, "face": face, "act": "sit", "kind": "fish", "y": y - 0.45, "seat_y": 0.45, "rod": true, "lane": PackedVector2Array([lane])}
+	return {"at": at, "face": face, "act": "sit", "kind": "fish", "y": y - 0.45, "walk_y": y, "seat_y": 0.45, "rod": true, "lane": PackedVector2Array([lane])}
 
 
 ## Clear spots on the quay (by the foot of the street unless told where: frame s and metres in from the wall).
@@ -589,18 +718,29 @@ const AMBIENT := {
 	"quay": ["Heave!", "Mind your back.", "Last one. Said that an hour ago."],
 	"stair": ["Race you to the top!", "Bet you can't jump three!"],
 	"fish": ["Shh. You'll scare them.", "Bite, you beauty. Bite.", "Nothing yet. There's always nothing yet."],
+	"shrine": ["Peace on the tide.", "Mind the steps. They're older than the town.", "Light a stick for the drowned, Captain."],
+	"teahouse": ["Tea's hot.", "Sit, sit. The stair will wait.", "Best view on the island, and the cheapest."],
+	"field": ["Weeds. Always weeds.", "Rain soon, I hope.", "Mind the rows, Captain."],
+	"windmill": ["Wind's good today.", "Flour on everything. Everything.", "Hear her creak? She's happy."],
+	"yard": ["Hot one.", "Bread's in the oven.", "The goats got out again. We don't have goats. That's how far they got."],
+	"nets": ["Every hole's a story. Most of them about sharks.", "Nets don't mend themselves."],
 }
 
 
-static func _people(isl: StarterIsland, town: Town) -> void:
-	var cache := {"town": town}
+static func _people(isl: StarterIsland, town_walks: Town) -> void:
+	var cache := {"town": town_walks}
 	for e in BrinehollowCast.townsfolk():
+		# (the farm's and the cove's own walks, made when their first person needs them)
+		var area: String = e.get("area", "town")
+		if not cache.has(area):
+			cache[area] = Town.of_farm(isl) if area == "farm" else Town.of_cove(isl)
+		var town: Town = cache[area]
 		var stays: Array = []
 		for p in e["plan"]:
 			var sp: Dictionary = _spot(isl, str(p[1]), cache)
 			var st := {"h": float(p[0]), "kind": sp["kind"], "at": sp["at"], "face": (sp["face"] as Vector2).normalized(),
 				"act": str(p[2]) if p.size() > 2 else str(sp["act"]), "lane": sp["lane"]}
-			for k in ["y", "seat_y", "rod"]:
+			for k in ["y", "walk_y", "seat_y", "rod"]:
 				if sp.has(k):
 					st[k] = sp[k]
 			if p.size() > 3:
