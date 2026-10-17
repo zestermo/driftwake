@@ -66,6 +66,10 @@ var _back_in: bool = false
 var _sail_node: Node3D
 var _furl_node: Node3D
 var _rig: Node3D
+var _yard_node: Node3D
+## How much bigger the yard and mainsail are than plain (x across, y down: the sails line's levels).
+## (The yard and sails are scaled, not the rig: the swing ropes on it can't take a stretched scale.)
+var rig_scale := Vector2.ONE
 var _brace: float = 0.0
 ## Riding to her anchor: she stops and stays, sails or no sails.
 var anchored: bool = false
@@ -97,7 +101,8 @@ var _hull_mat: Material
 var _canvas_mat: Material
 var _flag_node: MeshInstance3D
 var _figure_node: Node3D
-var _armour_node: Node3D
+## What the upgrade lines have put on her (ShipParts, built from the kit).
+var parts: ShipParts
 ## Rain on deck: how wet she is (0..1), the puddles it pools into.
 var wet: float = 0.0
 const WET_TIME := 50.0
@@ -302,6 +307,7 @@ func _physics_process(delta: float) -> void:
 	# wheel follows the rudder
 	if wheel:
 		wheel.rotation.z = -rudder * 2.4
+	parts.steer(rudder)
 	_wake(pos, fwd)
 	if speed > top:
 		speed = move_toward(speed, top, 2.0 * delta)
@@ -387,6 +393,10 @@ func hull_velocity() -> Vector3:
 ## the mast (clear of the rigging), and (the shipwright's refit) up on the
 ## quarterdeck.
 const GUN_SPOTS := [[-6.8, 3.0, DECK_Y], [-4.2, 3.65, DECK_Y], [8.0, 3.55, QD_Y]]
+## A crew gun's ball (hull, splash) and reload before the gun deck's levels.
+const GUN_HULL := 30.0
+const GUN_SPLASH := 22.0
+const GUN_RELOAD := 3.2
 
 
 func _build_cannons() -> void:
@@ -1030,6 +1040,9 @@ func _build_psx_model() -> void:
 	_hull_mat = hull
 	_canvas_mat = canvas
 	_deck_mat = deck
+	parts = ShipParts.new()
+	parts.setup(self)
+	ship_model.add_child(parts)
 
 	# hull, decks, quarterdeck over the cabin, stairs, mast, crow's nest, rigging
 	HullBuilder.hull(mb, {"hull": hull, "deck": deck, "trim": trim, "wood": wood, "rope": PSXMat.lit("rope")})
@@ -1074,7 +1087,6 @@ func _build_psx_model() -> void:
 	_build_cabin(mb, wood, trim, glass)
 	_psx_model = mb.to_instance("PSXModel")
 	ship_model.add_child(_psx_model)
-	_build_armour(HullBuilder.RINGS)
 	_build_puddles()
 	# rope ladders down both sides: climb back aboard from the water
 	for sgn in [-1.0, 1.0]:
@@ -1197,31 +1209,6 @@ func _line_mesh(mb: MeshBuilder, mat: Material, a: Vector3, b: Vector3) -> void:
 	HullBuilder._line(mb, mat, a, b, 0.03)
 
 
-## Iron straps down her sides and a rubbing band along them (the armour refit).
-func _build_armour(rings: Array) -> void:
-	var iron := PSXMat.lit("metal", Color(0.55, 0.55, 0.6))
-	var mb := MeshBuilder.new()
-	for z in [-8.0, -5.0, -2.0, 1.0, 4.0, 7.0, 9.4]:
-		var r := _ring_at(rings, z)
-		var top := Vector2(float(r[1]), float(r[3]))
-		var low := top.lerp(Vector2(float(r[2]), float(r[4])), 0.55)
-		var along := top - low
-		for sgn in [-1.0, 1.0]:
-			var mid := (top + low) * 0.5
-			var b := Basis(Vector3.BACK, -sgn * asin(along.x / along.length()))
-			mb.add_box(iron, Transform3D(b, Vector3(sgn * (mid.x + 0.04), mid.y, z)), Vector3(0.07, along.length(), 0.22), 1.0)
-	for i in range(rings.size() - 2):
-		var a: Array = rings[i]
-		var c: Array = rings[i + 1]
-		for sgn in [-1.0, 1.0]:
-			var p0 := Vector3(sgn * (float(a[1]) - 0.05), float(a[3]) - 0.35, float(a[0]))
-			var p1 := Vector3(sgn * (float(c[1]) - 0.05), float(c[3]) - 0.35, float(c[0]))
-			mb.add_box(iron, Transform3D(Basis.looking_at((p1 - p0).normalized(), Vector3.UP), (p0 + p1) * 0.5), Vector3(0.08, 0.12, p0.distance_to(p1) + 0.05), 1.0)
-	_armour_node = mb.to_instance("Armour")
-	_armour_node.visible = false
-	ship_model.add_child(_armour_node)
-
-
 ## Flat, ragged puddles in the deck's low spots (grown by `wet`), and a copy
 ## of the deck planks to darken as they soak.
 func _build_puddles() -> void:
@@ -1309,14 +1296,25 @@ func _ring_at(rings: Array, z: float) -> Array:
 func apply_kit(k: Dictionary) -> void:
 	kit = ShipKit.merged(k)
 	var was := max_hull
-	max_hull = MAX_HULL * (1.4 if kit["armour"] else 1.0)
+	max_hull = MAX_HULL * (1.0 + ShipLines.total(kit, "hull"))
 	hull = clampf(hull + maxf(max_hull - was, 0.0), 0.0, max_hull)
-	_top_k = 1.15 if kit["sails"] else 1.0
-	_turn_k = 1.3 if kit["rudder"] else 1.0
-	if kit["guns"] and cannons.size() < GUN_SPOTS.size() * 2:
+	_top_k = 1.0 + ShipLines.total(kit, "speed")
+	_turn_k = 1.0 + ShipLines.total(kit, "turn")
+	var aft := get_node_or_null("ShipModel/CannonS2") != null
+	if ShipLines.total(kit, "guns") >= 1.0 and not aft:
 		_add_gun_pair(2)
-	_armour_node.visible = kit["armour"]
-	_rig.scale = Vector3(1.18, 1.12, 1.0) if kit["sails"] else Vector3.ONE
+	elif ShipLines.total(kit, "guns") < 1.0 and aft:
+		for n in ["CannonS2", "CannonP2"]:
+			var c := ship_model.get_node(n)
+			cannons.erase(c)
+			c.free()
+	var dmg := 1.0 + ShipLines.total(kit, "dmg")
+	for c in cannons:
+		var cn := c as ShipCannon
+		cn.hull_damage = GUN_HULL * dmg
+		cn.splash_damage = GUN_SPLASH * dmg
+		cn.reload_time = GUN_RELOAD * (1.0 - ShipLines.total(kit, "reload"))
+		cn.muzzle_speed = ShipCannon.MUZZLE_SPEED * sqrt(1.0 + ShipLines.total(kit, "range"))
 	var paint := (_hull_mat as ShaderMaterial).duplicate() as ShaderMaterial
 	paint.set_shader_parameter("albedo_color", ShipKit.HULL_PAINT[int(kit["hull"])][1])
 	for i in range(_psx_model.mesh.get_surface_count()):
@@ -1326,6 +1324,7 @@ func apply_kit(k: Dictionary) -> void:
 	sails.set_shader_parameter("albedo_color", ShipKit.SAILS[int(kit["sail"])][1])
 	_sail_node.material_override = sails
 	_furl_node.material_override = sails
+	parts.apply(kit, sails)
 	var flag := ShaderMaterial.new()
 	flag.shader = PSXMat.LIT_SHADER
 	flag.set_shader_parameter("albedo_tex", ImageTexture.create_from_image(ShipKit.flag_image(kit)))
@@ -1351,7 +1350,8 @@ func _build_rig(canvas: Material, wood: Material) -> void:
 	ship_model.add_child(_rig)
 	var ymb := MeshBuilder.new()
 	ymb.add_cylinder(wood, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(4.5, 0, 0)), 0.12, 0.12, 9.0, 6, 0.8)
-	_rig.add_child(ymb.to_instance("Yard"))
+	_yard_node = ymb.to_instance("Yard")
+	_rig.add_child(_yard_node)
 	var sz := HullBuilder.MAST_Z + 0.25
 	var top := Vector3(0, HullBuilder.YARD_Y - 0.15, sz)
 	var mid_y := top.y - 4.35
@@ -1400,11 +1400,13 @@ func _show_sail(delta: float) -> void:
 	_brace = lerp_angle(_brace, clampf(rel * 0.5, -0.8, 0.8), clampf(1.5 * delta, 0.0, 1.0))
 	_rig.rotation.y = _brace
 	var belly := lerpf(0.8, 1.25, clampf((wind_effect() - 1.0) / FAIR_BOOST, 0.0, 1.0))
-	_sail_node.scale = Vector3(1.0, lerpf(0.03, 1.0, k), belly)
+	_sail_node.scale = Vector3(rig_scale.x, lerpf(0.03, 1.0, k) * rig_scale.y, belly)
 	_sail_node.visible = k > 0.01
 	var r := lerpf(1.0, 0.35, k)
-	_furl_node.scale = Vector3(1.0, r, r)
+	_furl_node.scale = Vector3(rig_scale.x, r, r)
+	_yard_node.scale.x = rig_scale.x
 	_furl_node.visible = k < 0.98
+	parts.show_sail(k)
 
 
 # --------------------------------------------------------------------------

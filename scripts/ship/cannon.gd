@@ -33,7 +33,12 @@ var pitch: float = 0.08
 var cool: float = 0.0
 var hull_damage: float = 30.0
 var splash_damage: float = 22.0
+var muzzle_speed: float = MUZZLE_SPEED
 var interactable: Interactable
+## The yard's work on a crew gun (fit): the level it shows, the longer barrel's extra length.
+var fitted: int = 0
+var _barrel_extra: float = 0.0
+var _fittings: Array = []
 var camera: Camera3D
 ## A captain is aiming it on this machine (draws the arc).
 var aiming_locally: bool = false
@@ -121,6 +126,41 @@ func _build() -> void:
 	_apply_aim()
 
 
+## The gun deck's level on this gun (ShipLines "guns"): brass bands on the
+## barrel (3+), an iron shield on the yoke (4+), a longer barrel (5).
+func fit(lv: int) -> void:
+	if lv == fitted:
+		return
+	fitted = lv
+	for n in _fittings:
+		n.free()
+	_fittings.clear()
+	_barrel_extra = 0.0
+	var brass := PSXMat.lit("metal", Color(1.0, 0.78, 0.4))
+	var iron := PSXMat.lit("metal", Color(0.24, 0.23, 0.22))
+	if lv >= 3:
+		var bm := MeshBuilder.new()
+		for z in [-0.2, -0.62]:
+			bm.add_cylinder(brass, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0, z + 0.04)), 0.19, 0.18, 0.08, 8, 1.0)
+		if lv >= 5:
+			_barrel_extra = 0.38
+			bm.add_cylinder(iron, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0, -BARREL + 0.1)), 0.145, 0.135, 0.48, 8, 1.0)
+			bm.add_cylinder(brass, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0, -BARREL - _barrel_extra + 0.1)), 0.17, 0.17, 0.12, 8, 1.0)
+		var mi := bm.to_instance("Bands")
+		_barrel.add_child(mi)
+		_fittings.append(mi)
+	if lv >= 4:
+		var sm := MeshBuilder.new()
+		var plate := PSXMat.lit("metal", Color(0.42, 0.42, 0.46))
+		for sx in [-0.36, 0.36]:
+			sm.add_box(plate, Transform3D(Basis(Vector3.UP, sx * 0.6), Vector3(sx, 0.9, -0.42)), Vector3(0.36, 0.55, 0.05), 1.0, Color.WHITE, false)
+		sm.add_box(plate, Transform3D(Basis(), Vector3(0, 1.22, -0.44)), Vector3(0.95, 0.12, 0.05), 1.0, Color.WHITE, false)
+		var mi := sm.to_instance("Shield")
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_yaw_node.add_child(mi)
+		_fittings.append(mi)
+
+
 func _on_interact(player: Player) -> void:
 	if player == null or not player.is_free():
 		return
@@ -170,12 +210,12 @@ func reload_frac() -> float:
 
 ## Where the ball leaves the muzzle, and how fast (world space).
 func muzzle() -> Vector3:
-	return _pitch_node.global_transform * Vector3(0, 0, -BARREL - 0.05)
+	return _pitch_node.global_transform * Vector3(0, 0, -BARREL - 0.05 - _barrel_extra)
 
 
 func shot_velocity() -> Vector3:
 	var dir := -_pitch_node.global_basis.z.normalized()
-	var v := dir * MUZZLE_SPEED
+	var v := dir * muzzle_speed
 	if ship and ship.has_method("hull_velocity"):
 		v += ship.hull_velocity()
 	return v
@@ -224,7 +264,7 @@ func aim_at(target: Vector3) -> bool:
 	var local := inv * to
 	yaw = clampf(atan2(-local.x, -local.z), -YAW_LIMIT, YAW_LIMIT)
 	var flat := Vector2(to.x, to.z).length()
-	var p = ShipCannon.solve_pitch(flat, to.y, MUZZLE_SPEED, Cannonball.GRAVITY)
+	var p = ShipCannon.solve_pitch(flat, to.y, muzzle_speed, Cannonball.GRAVITY)
 	if p == null:
 		pitch = PITCH_MAX * 0.7
 		_apply_aim()

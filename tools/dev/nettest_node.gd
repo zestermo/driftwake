@@ -309,7 +309,7 @@ func _run(name_: String, args: Array, from: int):
 			return n._ship().breaches.size()
 		"refit":
 			var k: Dictionary = get_node("/root/GameManager").ship_kit.duplicate()
-			k["guns"] = true
+			k["guns"] = 2
 			k["figure"] = 2
 			n.set_ship_kit(k)
 			return true

@@ -1,7 +1,7 @@
 extends SceneTree
-## The shipwright: Tackett by the dock opens his yard; refits cost gold (refused
-## when short) and change the ship (iron straps + 40% hull, a third pair of guns,
-## a bigger, faster sail, a sharper rudder); paint, sails, flag and figurehead
+## The shipwright: Tackett by the dock opens his yard; upgrade levels cost gold
+## (refused when short) and change the ship (plating + 8% hull a level, a third
+## pair of guns at gun deck 2, faster sails, a sharper rudder); paint, sails, flag and figurehead
 ## change her looks; the kit is saved and loaded back. Then the sea polish:
 ## shallows baked, a wake laid under way, rain soaking and pooling on deck.
 var SG
@@ -54,7 +54,7 @@ func _process(d: float) -> bool:
 				if n.dialogue_id == "tackett":
 					tackett = n
 			check("Shipwright Tackett is at the foot of the dock", tackett != null)
-			check("a plain sloop to start: 4 guns, 400 hull, no figurehead", ship.cannons.size() == 4 and ship.max_hull == 400.0 and ship._figure_node.get_child_count() == 0 and not ship._armour_node.visible)
+			check("a plain sloop to start: 4 guns, 400 hull, no figurehead", ship.cannons.size() == 4 and ship.max_hull == 400.0 and ship._figure_node.get_child_count() == 0 and ship.parts.pieces("armour") == 0)
 			# talking it through to the yard
 			var dlg = root.get_node("Dialogue")
 			dlg.dialogue_event.emit("shipwright")
@@ -65,19 +65,20 @@ func _process(d: float) -> bool:
 			check("his talk ends in the yard", menu._current == "yard" and yard.visible)
 			p.inventory_component.remove_item(load("res://resources/items/gold.tres"), gold())
 			yard.buy("armour")
-			check("no gold, no refit", not gm.ship_kit["armour"] and ship.max_hull == 400.0)
+			check("no gold, no refit", int(gm.ship_kit["armour"]) == 0 and ship.max_hull == 400.0)
 			p.inventory_component.add_item(load("res://resources/items/gold.tres"), 1000)
 			yard.buy("armour")
 			print("   gold %d, hull %.0f / %.0f" % [gold(), ship.hull, ship.max_hull])
-			check("iron straps: 220 gold, 40% more hull (topped up), straps on her sides", gold() == 780 and ship.max_hull == 560.0 and ship.hull == 560.0 and ship._armour_node.visible)
+			check("hull plating 1: 60 gold, 8% more hull (topped up), wales on her sides", gold() == 940 and is_equal_approx(ship.max_hull, 432.0) and is_equal_approx(ship.hull, 432.0) and ship.parts.pieces("armour") == 1)
 			yard.buy("armour")
-			check("...and only once", gold() == 780)
+			check("...level 2: another 100 gold, another 8%", gold() == 840 and is_equal_approx(ship.max_hull, 464.0) and ship.parts.pieces("armour") == 2)
 			yard.buy("guns")
-			check("a third pair of guns aft", ship.cannons.size() == 6 and ship.side_cannons(1.0).size() == 3 and gold() == 600)
+			yard.buy("guns")
+			check("gun deck 2: a third pair of guns aft", ship.cannons.size() == 6 and ship.side_cannons(1.0).size() == 3 and gold() == 610)
 			yard.buy("sails")
-			check("a larger sail: faster, and it shows", ship._top_k > 1.1 and ship._rig.scale.x > 1.1)
+			check("sails 1: faster, and it shows", ship._top_k > 1.02 and ship.rig_scale.x > 1.02 and gold() == 560)
 			yard.buy("rudder")
-			check("a balanced rudder: sharper turns", ship._turn_k > 1.2 and gold() == 330)
+			check("rudder 1: sharper turns", ship._turn_k > 1.05 and gold() == 520)
 			# looks
 			var tex0 = ship._flag_node.material_override.get_shader_parameter("albedo_tex")
 			yard.cycle("hull")
@@ -93,7 +94,7 @@ func _process(d: float) -> bool:
 			check("the sails take their colour", ship._sail_node.material_override.get_shader_parameter("albedo_color") == KIT.SAILS[1][1])
 			check("the flag is repainted with an emblem", ship._flag_node.material_override.get_shader_parameter("albedo_tex") != tex0 and gm.ship_kit["emblem"] == 1)
 			check("a figurehead under the bowsprit", ship._figure_node.get_child_count() == 1)
-			check("looks are free", gold() == 330)
+			check("looks are free", gold() == 520)
 			for i in range(KIT.FIGURES.size()):
 				yard.cycle("figure")
 			check("every figurehead builds (back to the mermaid)", ship._figure_node.get_child_count() == 1 and gm.ship_kit["figure"] == 1)
@@ -101,8 +102,8 @@ func _process(d: float) -> bool:
 			# saved with the purchase; a fresh kit is replaced by the saved one on load
 			gm.ship_kit = KIT.fresh()
 			SG.load_into(p)
-			check("the kit is saved and loaded back", gm.ship_kit["armour"] and gm.ship_kit["guns"] and gm.ship_kit["rudder"] and gm.ship_kit["figure"] == 1 and gm.ship_kit["emblem"] == 1)
-			check("...and on her after the load", ship.cannons.size() == 6 and ship.max_hull == 560.0)
+			check("the kit is saved and loaded back", gm.ship_kit["armour"] == 2 and gm.ship_kit["guns"] == 2 and gm.ship_kit["rudder"] == 1 and gm.ship_kit["figure"] == 1 and gm.ship_kit["emblem"] == 1)
+			check("...and on her after the load", ship.cannons.size() == 6 and is_equal_approx(ship.max_hull, 464.0))
 			# --- sea polish: shallows, wake, rain on deck
 			var oc = root.get_node("Ocean")
 			var coarse: Image = oc.shoal_map.get_image()

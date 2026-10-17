@@ -3087,3 +3087,28 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - Stalls have no doors (counters); the smithy is open-fronted (its kerb is piece 1's).
 - **Tests:** t/island/house_doors also walks the chapel's, the harbour tower's, the lighthouse's and the snow
   store's steps; t/island/desert_town, snow_foundations, snow_village, theme_registry pass.
+
+## 2026-10-17: ship upgrade lines (Tackett's yard, piece 1)
+- The four one-time refits are now tiered **upgrade lines** (docs/ship_upgrades_plan.md): `ShipLines`
+  (scripts/ship/ship_lines.gd) holds each line's levels as [name, what, gold, materials, effects]; effects sum
+  over every level reached (`ShipLines.total(kit, key)`: hull, speed, turn, dmg, reload, range, guns). Hull
+  plating 6 levels (+8% hull each), gun deck 5 (+5% damage at 1, 3, 5; the quarterdeck pair at 2; 5% faster
+  reload at 3 and 4; +8% range at 5), sails 5 (+3% speed each), rudder 5 (+6% turning each).
+- The kit holds each line's level as an int under the line's id. **Save migration** in `ShipKit.merged`: an old
+  refit (a bool) becomes its line's `legacy` level (armour 5 = the old 40%, guns 2 = the third pair, sails 5 =
+  15%, rudder 5 = 30%), so nothing bought is lost; numbers are clamped to the line's top.
+- **Every level shows** (`ShipParts`, scripts/ship/ship_parts.gd, node "Upgrades" under ShipModel): the fixed
+  parts are one folded mesh (UpgradeMesh, 600 m, no shadow) plus UpgradeFine (rivets, shot, pegs; 90 m), rebuilt
+  only when a level changes. Plating: painted wales, iron knees, full straps and band (the old refit), an
+  iron-shod stem, iron-capped rails, riveted stern quarters. Guns: shot racks, the aft pair, then
+  `ShipCannon.fit(lv)` (brass bands, an iron shield on the yoke, a longer barrel; `muzzle_speed` per gun).
+  Sails: reef bands, a jib (furls with the main sail: `show_sail`), a longer yard, studding sails on booms past
+  the yard's ends, full canvas with a masthead truck and pennant. Rudder: a rudder on iron pintles that turns
+  with the helm (`steer`), a brass-rimmed wheel, a binnacle, a balanced blade, a gilded taffrail.
+- The sail grows by `Ship.rig_scale` on the yard, sail and furled canvas (not the Rig node: Jolt can't take a
+  stretched scale on the swing ropes' areas, which logged an error with the old refit).
+- The yard screen is a tree of lines (Refits tab: a group header and branches, pips per level, the next price on
+  the button, hover/focus for what it does; Paint tab: the old looks). Gun stats come from Ship.GUN_* times the
+  kit's totals.
+- Tests: t/ship/upgrade_levels, t/ship/refit_migration, t/ship/yard_buy; yardtest's refit checks moved to levels.
+  Render: yardshot (each line at each level, full kit side/bow/stern/far/deck/night, the two tabs).

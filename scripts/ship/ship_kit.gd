@@ -1,19 +1,11 @@
 class_name ShipKit
 extends RefCounted
 ## What the shipwright (Tackett's yard, Brinehollow) has done to our ship:
-## refits bought with gold and her paint, colours, flag and figurehead. A
-## plain Dictionary (GameManager.ship_kit, saved; the host's in co-op):
-##   {"armour": bool, "guns": bool, "sails": bool, "rudder": bool,
-##    "hull": i, "sail": i, "field": i, "emblem": i, "mark": i, "figure": i}
+## each upgrade line's level (ShipLines) and her paint, colours, flag and
+## figurehead. A plain Dictionary (GameManager.ship_kit, saved; the host's in co-op):
+##   {<line id>: level, ..., "hull": i, "sail": i, "field": i, "emblem": i, "mark": i, "figure": i}
 ## Ship.apply_kit puts it on the hull.
 
-## [id, name, what it does, gold]
-const REFITS := [
-	["armour", "Iron-strapped hull", "Iron straps on her planks: 40% more hull", 220],
-	["guns", "Third pair of guns", "Two more swivel guns aft: three a side", 180],
-	["sails", "Larger sail", "A bigger mainsail: 15% faster", 150],
-	["rudder", "Balanced rudder", "She turns 30% sharper", 120],
-]
 const HULL_PAINT := [["Tarred", Color.WHITE], ["Pitch black", Color(0.38, 0.38, 0.42)], ["Oxblood", Color(1.35, 0.5, 0.42)],
 	["Navy", Color(0.6, 0.8, 1.35)], ["Sea green", Color(0.65, 1.15, 0.8)], ["Whitewash", Color(1.9, 1.85, 1.7)]]
 const SAILS := [["Canvas", Color(0.95, 0.92, 0.82)], ["Black", Color(0.24, 0.24, 0.27)], ["Crimson", Color(1.0, 0.32, 0.28)],
@@ -30,22 +22,20 @@ const FLAG_H := 30
 
 
 static func fresh() -> Dictionary:
-	return {"armour": false, "guns": false, "sails": false, "rudder": false,
-		"hull": 0, "sail": 0, "field": 0, "emblem": 0, "mark": 0, "figure": 0}
-
-
-## A saved kit over the defaults (older saves have none).
-static func merged(saved: Dictionary) -> Dictionary:
-	var k := fresh()
-	k.merge(saved, true)
+	var k := {"hull": 0, "sail": 0, "field": 0, "emblem": 0, "mark": 0, "figure": 0}
+	for id in ShipLines.LINES.keys():
+		k[id] = 0
 	return k
 
 
-static func refit(id: String) -> Array:
-	for r in REFITS:
-		if r[0] == id:
-			return r
-	return []
+## A saved kit over the defaults (older saves have none; their one-time
+## refits are bools, each its line's matching level).
+static func merged(saved: Dictionary) -> Dictionary:
+	var k := fresh()
+	k.merge(saved, true)
+	for id in ShipLines.LINES.keys():
+		k[id] = ShipLines.from_saved(id, k[id])
+	return k
 
 
 ## The flag as painted: the field, a little cloth noise, the emblem.
