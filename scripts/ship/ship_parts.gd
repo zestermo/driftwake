@@ -34,11 +34,11 @@ func setup(s: Ship) -> void:
 		"oak": PSXMat.lit("planks_dark", Color(0.78, 0.66, 0.52)),
 		"trim": PSXMat.lit("planks", Color(0.85, 0.65, 0.35)),
 		"wale": PSXMat.lit("planks", Color(1.15, 0.88, 0.45)),
-		"gilt": PSXMat.lit("metal", Color(1.6, 1.25, 0.5)),
+		"gilt": PSXMat.lit("", Color(1.0, 0.76, 0.28)),
 		"rope": PSXMat.lit("rope"),
 		"pennant": PSXMat.lit("cloth_red", Color(1.0, 0.85, 0.8)),
 		"glass": PSXMat.glow(Color(1.0, 0.8, 0.45), 2.2),
-		"copper": PSXMat.lit("metal", Color(1.25, 0.62, 0.32)),
+		"copper": PSXMat.lit("", Color(0.92, 0.48, 0.22)),
 		"canvas": PSXMat.lit("canvas", Color(0.92, 0.88, 0.76)),
 		"roof": PSXMat.lit("planks_dark", Color(0.7, 0.5, 0.38)),
 		"leaves": PSXMat.lit("leaves", Color(0.55, 0.85, 0.45)),
@@ -459,8 +459,8 @@ const COPPER_Z := [-12.45, -6.0, 2.0, HullBuilder.QD_BACK - 0.02]
 
 func _copper(mb: MeshBuilder, n: int) -> void:
 	for k in range(n):
-		_skin(mb, _m["copper"], COPPER_Z[k], COPPER_Z[k + 1], -1.7, -0.95, 0.03)
-		_band(mb, _m["copper"], COPPER_Z[k], COPPER_Z[k + 1], -0.93, 0.07, 0.05, Color(1.35, 1.25, 1.1))
+		_skin(mb, _m["copper"], COPPER_Z[k], COPPER_Z[k + 1], -1.7, -0.97, 0.03)
+		_band(mb, _m["copper"], COPPER_Z[k], COPPER_Z[k + 1], -0.95, 0.07, 0.05, Color(1.35, 1.25, 1.1))
 		_count("copper")
 
 

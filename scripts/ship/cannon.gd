@@ -146,7 +146,10 @@ func fit(lv: int) -> void:
 			_barrel_extra = 0.38
 			bm.add_cylinder(iron, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0, -BARREL + 0.1)), 0.145, 0.135, 0.48, 8, 1.0)
 			bm.add_cylinder(brass, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0, -BARREL - _barrel_extra + 0.1)), 0.17, 0.17, 0.12, 8, 1.0)
+		bm.fold_tints()
 		var mi := bm.to_instance("Bands")
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 150.0
 		_barrel.add_child(mi)
 		_fittings.append(mi)
 	if lv >= 4:
@@ -157,6 +160,7 @@ func fit(lv: int) -> void:
 		sm.add_box(plate, Transform3D(Basis(), Vector3(0, 1.22, -0.44)), Vector3(0.95, 0.12, 0.05), 1.0, Color.WHITE, false)
 		var mi := sm.to_instance("Shield")
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 150.0
 		_yaw_node.add_child(mi)
 		_fittings.append(mi)
 
