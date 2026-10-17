@@ -1294,7 +1294,9 @@ const HAIRLINES := {
 const HAIRLINE_OF := {"bun": "ponytail", "swept": "short", "messy": "wild", "slick": "short", "topknot": "crop",
 	"hime": "long", "twintails": "ponytail", "bob": "long", "side_pony": "ponytail",
 	"quiff": "short", "curtains": "short", "spiky": "wild", "shag": "long", "swoop": "crop",
-	"layered": "long", "lob": "long", "braid": "ponytail", "low_pony": "ponytail"}
+	"layered": "long", "lob": "long", "braid": "ponytail", "low_pony": "ponytail",
+	"cascade": "long", "waves": "long", "princess": "long", "court_bun": "long", "half_bun": "long",
+	"high_tail": "ponytail", "twin_low": "braids", "mane": "wild"}
 
 
 static func hairline_for(style: String) -> Array:
@@ -1314,7 +1316,7 @@ static func _hairline(line: Array, a: float) -> float:
 
 ## Whether a hair style covers the ears (they're left off the head then).
 static func hair_hides_ears(style: String) -> bool:
-	return style in ["long", "braids", "hime", "bob", "shag", "layered", "lob"]
+	return style in ["long", "braids", "hime", "bob", "shag", "layered", "lob"] or HairFlow.hides_ears(style)
 
 
 ## Distance from the ring center to the head surface along angle a (actual
@@ -1362,6 +1364,12 @@ func _hair(mb: MeshBuilder) -> void:
 		return
 	if hat in ["hood", "coif"] and style != "crop":
 		style = "crop"
+	if HairFlow.has(style):
+		hair_off = 0.016
+		m_hair = HairFlow.shell_mat(_col("hair_color"))
+		_hair_shell(mb, hairline_for(style), hair_off)
+		HairFlow.new(self, style, hat).build()
+		return
 	var off := 0.018
 	match style:
 		"crop", "topknot", "swoop":

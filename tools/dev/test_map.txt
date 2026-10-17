@@ -63,6 +63,7 @@ scripts/npc/body_builder.gd             chartest t/player hairtest katanatest qo
 scripts/npc/character_look.gd           chartest t/player savetest
 scripts/npc/face_painter.gd             chartest
 scripts/npc/spring_chains.gd            hairtest chartest
+scripts/npc/hair_flow.gd                t/player/flow_hair hairtest
 scripts/npc/arm_body.gd                 chartest t/player perftest
 scripts/npc/lower_body.gd               chartest t/player perftest
 scripts/npc/npc.gd                      qoltest

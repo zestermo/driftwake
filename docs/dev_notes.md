@@ -2888,3 +2888,27 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   wants a KitStyle key read there); the market's planter (KitMarket) and Buildings.planter elsewhere still hold a green
   bush; temples and mines from the shared landmark pool still come to snow islands (their stone takes the theme's
   temple/rock tints).
+## 2026-10-17: flowing lock hairstyles (HairFlow, prototype)
+- **What:** Zach asked whether we could make hair like an anime-figure reference sheet (long layered locks, ponytails, buns,
+  manes, ombre). `scripts/npc/hair_flow.gd` (HairFlow) builds eight new styles from many locks: cascade (waist, centre part),
+  high_tail, waves, princess (thigh length + ahoge), court_bun (blunt bangs, pinned bun, gold sticks), twin_low, half_bun,
+  mane. Not in any random pool or the creator yet: set `lk["hair"]` directly. Optional `lk["hair_tip"]` = ombre tip colour.
+- **The lock:** a lens-section tube (6 sides) along a path, edges curled toward the head, root_k at the root, pointed by
+  `tip` (higher = later, blunter). Untextured (`PSXMat.lit("")`) with per-vertex colour: root -> tip by height (by length for
+  tails), undersides 0.72, an "angel ring" sheen band at y 0.255. The textured hair speckled badly on light colours; the shell
+  under these styles is untextured too (`HairFlow.shell_mat`). `MeshBuilder.add_tri` takes optional per-vertex colours (`vc`).
+- **Masses:** `_mass` lays a layer of hanging locks round an arc; neighbours share the wave phase (random phases crossed
+  like spaghetti). Below the jaw every lock turns to lie in front of the shoulder (fwd 1) or on the back (>= 138 deg):
+  nothing hangs off the point of the shoulder. `_clear_body` pushes points out of a per-height neck/shoulder/chest ellipse
+  (head space, from the arm joints and the torso collider). Gotcha: wrap angles before lerping (256 -> -138 went round the
+  front and made a collar).
+- **Physics:** guide chains every ~30 deg per mass (`sim.add_chain`, colliders head, torso and a new `hair_sh` capsule
+  across the shoulders); each lock ring is skinned to the guide's bone at its height, rings above the guide to a never-posed
+  `hair_root` bone. Tails are a centre-line chain (`_bundle`, a parallel-transported frame: a per-point frame flipped where
+  the tail turned vertical and pinched it into beads). Uses SpringChains' public API only (the cape work owns that file).
+- **Hats:** under a hat (not headband/crown) bangs, ahoge, buns, scalp strands and the mane's crown rows are left off;
+  masses start below the brim and tails tie lower.
+- **Cost:** 6.9-9.9k triangles, 31-86 bones, 1-2 surfaces per head (the old long styles: 80-560 tris, 4-28 bones). Fine
+  for the player and named characters; crowds would want fewer sides/rings or a far LOD before these go in the pools.
+- **Tools/tests:** `tools/dev/hairstudio.gd` (lineup, HAIR cost lines, HS_HAT); `t/player/flow_hair` (every style
+  with and without a hat: chains, committed mesh, triangle/bone caps, settled bones finite and near the body).
