@@ -111,7 +111,7 @@ const SPITTERS := 9
 const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
-	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686}
+	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686, "woods": 8787}
 ## The southern lands (2026-10-17): a lobe of land round LOBE, LOBE_R to its coast (ragged), kept
 ## off the cove (COVE_SEA) and the old island's interior; the highland the falls come off, the
 ## farmland round the windmill hamlet, the second cove's bay on the south coast.
@@ -155,6 +155,8 @@ const UP_BANDS := [-30.0, -18.0, -6.0]
 const UP_SINK := 0.7
 ## The town's life, built last from its own file (`static func build(isl: StarterIsland)`), when it exists.
 const LIFE := "res://scripts/island/brinehollow_life.gd"
+## Where the woods round the town grow (_plant_woods, _woods).
+const WOODS_RECT := Rect2(-120, -150, 280, 225)
 ## NightLights the kit may light (lamps, lit doorways, the camps' and the den's lanterns): the old
 ## island takes 18, the grown town's pieces after it (2026-10-17: 34, a share kept for the town's life).
 const LIGHTS := 34
@@ -238,6 +240,12 @@ var _path_mesh := {}
 var _veg_skip := false
 ## The square the next plants are bucketed by (the grown land's trees and rocks: 140 m).
 var _veg_cell := VEG_CELL
+## The plants bucketed so far, the meshes and the Vegetation node, until _commit_vegetation.
+var _veg := {}
+var _last_tree: Array = []
+## The woods round the town (_plant_woods): each tree [Transform3D, Mesh], the undergrowth's count, and how many
+## vegetation squares there were before them and after.
+var woods := {"trees": [], "under": 0, "keys_before": 0, "keys_after": 0}
 ## The new town's built pieces, their meshes folded into one at the end (TownMeshes).
 var _town_parts: Array = []
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
@@ -305,6 +313,8 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("spitters", _build_spitters)
 	kit.timed("npcs", func(): KitLife.spawn(kit, BrinehollowCast.people(self)))
 	kit.timed("loot", _spawn_loot)
+	kit.timed("woods", _plant_woods)
+	kit.timed("vegetation", _commit_vegetation)
 	# the town's life (people, smoke, harbour traffic, their lights), from its own file once it's there
 	if ResourceLoader.exists(LIFE):
 		kit.timed("life", func(): load(LIFE).build(self))
@@ -2116,14 +2126,23 @@ func _scatter_vegetation() -> void:
 	_veg_skip = false
 	heights = built
 	_old_only = false
-	_scatter_grown(buckets, {"palms": palms, "jungle": jungle, "bushes": bushes, "ferns": ferns, "grass": grass, "rocks": rocks})
-
-	# --- commit MultiMeshes: one per mesh per VEG_CELL square, so only the
-	# squares in view (and in the sun's shadow range) are drawn; the small
-	# stuff stops drawing a little way off ---
+	var m := {"palms": palms, "jungle": jungle, "bushes": bushes, "ferns": ferns, "grass": grass, "rocks": rocks}
+	_scatter_grown(buckets, m)
 	var vegetation := Node3D.new()
 	vegetation.name = "Vegetation"
 	add_child(vegetation)
+	_veg = {"buckets": buckets, "meshes": m, "node": vegetation}
+
+
+## The vegetation's MultiMeshes (once the woods are in): one per mesh per VEG_CELL square, so only the
+## squares in view (and in the sun's shadow range) are drawn; the small stuff stops drawing a little way off.
+func _commit_vegetation() -> void:
+	var buckets: Dictionary = _veg["buckets"]
+	var grass: Mesh = _veg["meshes"]["grass"]
+	var ferns: Array = _veg["meshes"]["ferns"]
+	var bushes: Array = _veg["meshes"]["bushes"]
+	var rocks: Array = _veg["meshes"]["rocks"]
+	var vegetation: Node3D = _veg["node"]
 	for key in buckets.keys():
 		var mesh: Mesh = key[0]
 		var xforms: Array = buckets[key]
@@ -2244,6 +2263,170 @@ func _scatter_grown(buckets: Dictionary, m: Dictionary) -> void:
 				_bucket(buckets, m["grass"], Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.4)), Vector3(p.x, h - 0.05, p.y)))
 
 
+## The woods round the town (2026-10-17, Zach: "too much open space"): the eastern hill out to the cove and
+## up toward the lighthouse, the slopes round the upper town and the terrace, the town's edges; as thick as
+## the western forest where `_woods` is 1. Planted after everything else, each lattice point its own seed
+## (SEEDS["woods"]), so every older plant keeps its draws; nothing on a path, a reserve, a door's way out, a
+## chest, a burrow, a lane or the stair, nor in the harbour's view of the pagoda. Into the vegetation's
+## squares already there where they have that mesh (more instances, not more draws).
+func _plant_woods() -> void:
+	var m: Dictionary = _veg["meshes"]
+	var buckets: Dictionary = _veg["buckets"]
+	var keep := _woods_keep()
+	var sight: Array = []
+	_keep_seg(sight, dock_shore, Vector2(UP_X - 10.6, 23.0), 10.0)
+	var o := grid_origin()
+	var rng := RandomNumberGenerator.new()
+	var all := paths.size()
+	woods["keys_before"] = buckets.size()
+	var lat := _lattice(WOODS_RECT, 5.0)
+	for ix in range(lat[0], lat[1]):
+		for iz in range(lat[2], lat[3]):
+			rng.seed = hash([SEEDS["woods"], ix, iz])
+			var p := o + Vector2(3.0 + ix * 5.0 + rng.randf_range(-2.0, 2.0), 3.0 + iz * 5.0 + rng.randf_range(-2.0, 2.0))
+			var roll := rng.randf()
+			var w := _woods(p)
+			if w <= 0.0:
+				continue
+			var h := hv(p)
+			var beach := 1.0 - _smooth(2.0, 3.8, h)
+			var p_palm := (0.3 * beach + 0.05 * (1.0 - beach)) * w
+			var p_tree := 0.8 * w * (1.0 - beach)
+			if h < 0.9 or roll >= p_palm + p_tree or _slope_at(p) > 0.45 or _path_dist(p, all, 0, true) < 3.5 \
+					or _ex_near(_ex_old, p, 1.2, 3.0) or _ex_near(_ex_new, p, 1.2, 3.0) or _near_any(p, keep) or _near_any(p, sight):
+				continue
+			var kind := _woods_meshes(buckets, m["palms"] if roll < p_palm else m["jungle"], p)
+			if roll < p_palm:
+				_add_tree(buckets, kind, p, h, rng, 0.35, 3.0)
+			else:
+				_add_tree(buckets, kind, p, h, rng, 0.45, 3.5, rng.randf_range(0.9, 1.35))
+			woods["trees"].append(_last_tree)
+	_veg_cell = VEG_CELL
+	lat = _lattice(WOODS_RECT, 2.5)
+	for ix in range(lat[0], lat[1]):
+		for iz in range(lat[2], lat[3]):
+			rng.seed = hash([SEEDS["woods"] + 1, ix, iz])
+			var p := o + Vector2(3.0 + ix * 2.5 + rng.randf_range(-1.1, 1.1), 3.0 + iz * 2.5 + rng.randf_range(-1.1, 1.1))
+			var roll := rng.randf()
+			var w := _woods(p)
+			var p_fern := 0.3 * w
+			if w <= 0.0 or roll >= p_fern + 0.14 * w:
+				continue
+			var h := hv(p)
+			if h < 2.2 or _slope_at(p) > 0.45 or _path_dist(p, all, 0, true) < 2.0 or _excluded(p, -0.5) or _near_any(p, keep):
+				continue
+			var basis := Basis(Vector3.UP, rng.randf() * TAU)
+			var kind := _woods_meshes(buckets, m["ferns"] if roll < p_fern else m["bushes"], p, [VEG_CELL], m["bushes"] if roll < p_fern else m["ferns"])
+			var mesh: Mesh = kind[rng.randi() % kind.size()]
+			var fern: bool = m["ferns"].has(mesh)
+			_bucket(buckets, mesh, Transform3D(basis.scaled(Vector3.ONE * rng.randf_range(0.8, 1.3 if fern else 1.4)), Vector3(p.x, h - (0.05 if fern else 0.1), p.y)))
+			woods["under"] += 1
+	_veg_cell = VEG_CELL
+	woods["keys_after"] = buckets.size()
+
+
+## Of `pool` (else `alt`), the meshes the vegetation already has a square for at p (and _veg_cell set to that
+## square's size), so the new plants go into draws already there; `pool` in a new square of the last size if none.
+func _woods_meshes(buckets: Dictionary, pool: Array, p: Vector2, cells: Array = [VEG_CELL, 140.0], alt: Array = []) -> Array:
+	for cell: float in cells:
+		for kinds: Array in [pool, alt]:
+			var have := kinds.filter(func(mesh: Mesh) -> bool: return buckets.has(_veg_key(mesh, p, cell)))
+			if not have.is_empty():
+				_veg_cell = cell
+				return have
+	_veg_cell = cells[cells.size() - 1]
+	return pool
+
+
+static func _veg_key(mesh: Mesh, p: Vector2, cell: float) -> Array:
+	return [mesh, floori(p.x / cell), floori(p.y / cell)] if cell == VEG_CELL else [mesh, floori(p.x / cell), floori(p.y / cell), cell]
+
+
+## 0..1: how thick the woods round the town stand at p (1 = the western forest's), thinning toward what stays
+## open: the plaza, the market street and the harbour's front, the upper town's built hill, the lighthouse's
+## top, the yard, the ruins, the camps, the den, the cave (the old forest has its own trees).
+func _woods(p: Vector2) -> float:
+	if not WOODS_RECT.has_point(p) or p.y > 75.0:
+		return 0.0
+	var w := (1.0 - _jungle(p)) * _smooth(20.0, 30.0, p.distance_to(VILLAGE)) * _smooth(26.0, 40.0, p.distance_to(HILL)) \
+		* _smooth(16.0, 24.0, p.distance_to(TRAINING)) * _smooth(12.0, 18.0, p.distance_to(RUINS)) * _smooth(14.0, 22.0, p.distance_to(CAMP)) \
+		* _smooth(30.0, 40.0, p.distance_to(SMUGGLERS)) * _smooth(65.0, 85.0, p.distance_to(DEN)) * _smooth(50.0, 62.0, p.distance_to(CAVE))
+	if w <= 0.0:
+		return 0.0
+	var s := harbour.s_of(p)
+	w *= 1.0 - (1.0 - _smooth(PLAT_D + 6.0, PLAT_D + 16.0, harbour.t_of(p) - harbour.wall(s))) \
+		* _smooth(harbour.s0 - 30.0, harbour.s0 - 10.0, s) * (1.0 - _smooth(harbour.s1 + 10.0, harbour.s1 + 30.0, s))
+	if (path_bounds[0] as Rect2).grow(12.0).has_point(p):
+		w *= _smooth(10.0, 16.0, _path_dist(p, 1, 0, true))
+	var uw := _up_w(p.y)
+	return w * (1.0 - (1.0 - _smooth(uw + 1.0, uw + 5.0, absf(p.x - UP_X))) * _smooth(UP_Z0 - 8.0, UP_Z0 - 2.0, p.y) * (1.0 - _smooth(UP_Z2 + 2.0, UP_Z2 + 8.0, p.y)))
+
+
+## What the woods keep clear of, as segments [a, b, r, bounds]: each door's way in and out, the chests,
+## the burrows and spitters' spots, the town's lanes and the stair, the beach a new captain wakes on.
+func _woods_keep() -> Array:
+	var keep: Array = []
+	for n in get_children():
+		if n.get_node_or_null("Door") is Node3D:
+			var a := kit.marker_point(n, "Door")
+			var f := kit.marker_face(n, "Door") * 4.0
+			_keep_seg(keep, a - f, a + f, 2.5)
+		elif n is LootBag:
+			var q := Vector2((n as Node3D).position.x, (n as Node3D).position.z)
+			_keep_seg(keep, q, q, 3.5)
+	for nest: ScuttlebugNest in [bug_nest, spitters]:
+		for s in nest.spots:
+			var q := Vector2(s["pos"].x, s["pos"].z)
+			_keep_seg(keep, q, q, 3.0)
+	for lane: PackedVector2Array in town_spots["lanes"]:
+		for i in range(lane.size() - 1):
+			_keep_seg(keep, lane[i], lane[i + 1], 3.0)
+	var st: PackedVector3Array = town_spots["stair"]
+	for i in range(st.size() - 1):
+		_keep_seg(keep, Vector2(st[i].x, st[i].z), Vector2(st[i + 1].x, st[i + 1].z), 4.0)
+	var wake := to_local(wake_spot()[0])
+	_keep_seg(keep, Vector2(wake.x, wake.z), Vector2(wake.x, wake.z), 18.0)
+	return keep
+
+
+static func _keep_seg(list: Array, a: Vector2, b: Vector2, r: float) -> void:
+	list.append([a, b, r, Rect2(a, Vector2.ZERO).expand(b).grow(r)])
+
+
+static func _near_any(p: Vector2, segs: Array) -> bool:
+	for s in segs:
+		if (s[3] as Rect2).has_point(p) and Geometry2D.get_closest_point_to_segment(p, s[0], s[1]).distance_to(p) < float(s[2]):
+			return true
+	return false
+
+
+## Within a reserve grown by `small` (a plant's own: r <= 1.25) or `big` (anything bigger)?
+static func _ex_near(ex: Array, p: Vector2, small: float, big: float) -> bool:
+	for e in ex[1]:
+		if p.distance_to(e[0]) < float(e[1]) + big:
+			return true
+	var reach := EX_CELL + big
+	var cells: Dictionary = ex[0]
+	for cx in range(floori((p.x - reach) / EX_CELL), floori((p.x + reach) / EX_CELL) + 1):
+		for cz in range(floori((p.y - reach) / EX_CELL), floori((p.y + reach) / EX_CELL) + 1):
+			var list = cells.get(Vector2i(cx, cz))
+			if list == null:
+				continue
+			for e in list:
+				var r := float(e[1])
+				if p.distance_to(e[0]) < r + (small if r <= 1.25 else big):
+					return true
+	return false
+
+
+## The grid's lattice indices (`step` m apart, from 3 m in) covering `r`: [ix0, ix1, iz0, iz1).
+static func _lattice(r: Rect2, step: float) -> Array:
+	var o := grid_origin()
+	var n := int((EXTENT - 6.0) / step)
+	return [clampi(floori((r.position.x - o.x - 3.0) / step), 0, n), clampi(ceili((r.end.x - o.x - 3.0) / step) + 1, 0, n),
+		clampi(floori((r.position.y - o.y - 3.0) / step), 0, n), clampi(ceili((r.end.y - o.y - 3.0) / step) + 1, 0, n)]
+
+
 func _bucket(buckets: Dictionary, mesh: Mesh, xf: Transform3D) -> void:
 	if _veg_skip:
 		return
@@ -2262,6 +2445,7 @@ func _add_tree(buckets: Dictionary, meshes: Array, p: Vector2, h: float, rng: Ra
 	var tree_mesh: Mesh = meshes[rng.randi() % meshes.size()]
 	var xf := Transform3D(basis, Vector3(p.x, h - 0.15, p.y))
 	_bucket(buckets, tree_mesh, xf)
+	_last_tree = [xf, tree_mesh]
 	# the crown is something a vine can latch onto
 	var crown := xf * GrapplePoints.crown_of(tree_mesh)
 	reserve(p, 1.2)
