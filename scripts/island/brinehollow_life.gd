@@ -11,6 +11,7 @@ extends RefCounted
 
 const Folk := preload("res://scripts/island/brinehollow_folk.gd")
 const TownLife := preload("res://scripts/island/brinehollow_town.gd")
+const Harbour := preload("res://scripts/island/brinehollow_harbour.gd")
 const RING_R := 9.5
 const JOIN := 3.2
 ## The walk graph's reach from the plaza (the quay to the shrine terrace).
@@ -24,6 +25,7 @@ static func build(isl: StarterIsland) -> void:
 	life.name = "TownLife"
 	isl.add_child(life)
 	var made: Array = []
+	isl.kit.timed("life harbour", func(): Harbour.build(isl, life))
 	isl.kit.timed("life walks", func(): made.append(Town.new(isl)))
 	isl.kit.timed("life people", func(): _people(isl, made[0]))
 	isl.kit.timed("life lights", func(): _lights(isl, life))
@@ -167,6 +169,8 @@ class Town:
 	var ring_ids: Array = []
 	var grid := {}
 	var space: PhysicsDirectSpaceState3D
+	## the ids of the biggest connected piece (where walks join the graph)
+	var main := {}
 
 	func _init(island: StarterIsland) -> void:
 		isl = island
@@ -180,6 +184,19 @@ class Town:
 		for q in stair:
 			flat.append(Vector2(q.x, q.z))
 		lines.append(flat)
+		# the harbour: along the quay, out the main pier and the side piers (their decks are floors)
+		var h := isl.harbour
+		var quay := PackedVector2Array()
+		var s := h.s0 + 2.0
+		while s < h.s1 - 2.0:
+			quay.append(h.quay_pt(s, 7.0))
+			s += 2.5
+		lines.append(quay)
+		lines.append(PackedVector2Array([h.dock_point(0.5), h.dock_point(StarterIsland.DOCK_LENGTH - 1.0)]))
+		floors.append([_rect(h.dock_point(StarterIsland.DOCK_LENGTH * 0.5), h.out), Vector2(StarterIsland.PIER_HW, StarterIsland.DOCK_LENGTH * 0.5), StarterIsland.DOCK_DECK_Y])
+		for pr in Harbour.side_piers(isl):
+			lines.append(PackedVector2Array([pr[0] + pr[1] * 0.5, pr[0] + pr[1] * (float(pr[2]) - 0.6)]))
+			floors.append([_rect(pr[0] + pr[1] * float(pr[2]) * 0.5, pr[1]), Vector2(1.5, float(pr[2]) * 0.5), h.deck_y])
 		var ring := PackedVector2Array()
 		for k in range(25):
 			ring.append(StarterIsland.VILLAGE + Vector2.from_angle(TAU * k / 24.0) * RING_R)
@@ -225,15 +242,16 @@ class Town:
 			if clear(graph.get_point_position(e[0]), graph.get_point_position(e[1])):
 				graph.connect_points(e[0], e[1])
 		_bridge()
+		for id in _components()[0]:
+			main[id] = true
 
 	## Pieces cut off by something standing on a path (a lamp at a path's end): joined to the rest at the
 	## nearest clear step, up to BRIDGE m, until nothing more joins.
 	func _bridge() -> void:
 		while true:
 			var comps := _components()
-			var main: Array = comps[0]
 			var in_main := {}
-			for id in main:
+			for id in comps[0]:
 				in_main[id] = true
 			var joined := false
 			for comp in comps.slice(1):
@@ -296,9 +314,13 @@ class Town:
 				near.append_array(grid.get(c + Vector2i(dx, dz), []))
 		near.sort_custom(func(x, y): return graph.get_point_position(x).distance_squared_to(p) < graph.get_point_position(y).distance_squared_to(p))
 		for id in near:
-			if graph.get_point_connections(id).size() > 0 and clear(p, graph.get_point_position(id)):
+			if main.has(id) and clear(p, graph.get_point_position(id)):
 				return id
 		return graph.get_closest_point(p)
+
+	## Island space -> a rectangle's own (its middle at c, its length along `dir`).
+	func _rect(c: Vector2, dir: Vector2) -> Transform3D:
+		return Transform3D(Basis(Vector3.UP, KitContext.face_yaw(dir)), Vector3(c.x, 0, c.y)).affine_inverse()
 
 	func _dense(pl: PackedVector2Array) -> PackedVector2Array:
 		var out := PackedVector2Array([pl[0]])
@@ -401,12 +423,15 @@ static func _at_counter(isl: StarterIsland, node: Node3D, front: bool) -> Dictio
 		"lane": PackedVector2Array([lp.call(Vector3(w * 0.5 + 0.7, 0, -0.75)), lp.call(Vector3(w * 0.5 + 0.7, 0, 1.6)), lp.call(Vector3(0, 0, 2.6))])}
 
 
-## The Salted Gull inside (local): five places along the bar, eight free seats at the tables, two by the fire.
+## The Salted Gull inside (local): five places along the bar, eight free seats at the tables, two by the fire,
+## two at the bar's end and two standing by the walls ([place, a point it faces]).
 const BAR := [Vector3(2.5, 0, -1.1), Vector3(3.2, 0, -1.1), Vector3(3.9, 0, -1.1), Vector3(4.6, 0, -1.1), Vector3(5.3, 0, -1.1)]
 const SEATS := [[Vector3(-2.15, 0, 2.25), -1.0], [Vector3(-2.95, 0, 0.55), 1.0], [Vector3(-2.15, 0, 0.55), 1.0],
 	[Vector3(2.05, 0, 2.85), -1.0], [Vector3(1.25, 0, 1.15), 1.0], [Vector3(2.05, 0, 1.15), 1.0],
 	[Vector3(-2.65, 0, -3.25), 1.0], [Vector3(-2.55, 0, -1.55), -1.0]]
 const FIRE := [Vector3(-4.3, 0, 1.5), Vector3(-4.3, 0, -1.3)]
+const SIDE := [[Vector3(1.5, 0, -2.6), Vector3(2.4, 0, -2.6)], [Vector3(1.5, 0, -3.3), Vector3(2.4, 0, -3.3)],
+	[Vector3(-4.4, 0, 3.2), Vector3(-2.6, 0, 1.4)], [Vector3(0.4, 0, 3.5), Vector3(1.6, 0, 2.0)]]
 
 
 static func _in_tavern(isl: StarterIsland, what: String, i: int) -> Dictionary:
@@ -424,6 +449,9 @@ static func _in_tavern(isl: StarterIsland, what: String, i: int) -> Dictionary:
 			var s: Array = SEATS[i]
 			var v: Vector3 = s[0]
 			out.merge({"at": lp.call(v), "face": lp.call(v).direction_to(lp.call(v + Vector3(0, 0, float(s[1])))), "act": "sit"})
+		"side":
+			var sd: Array = SIDE[i]
+			out.merge({"at": lp.call(sd[0]), "face": lp.call(sd[0]).direction_to(lp.call(sd[1]))})
 		_:
 			var f: Vector3 = FIRE[i]
 			out.merge({"at": lp.call(f), "face": lp.call(f).direction_to(lp.call(Vector3(-5.4, 0, 0)))})
@@ -476,16 +504,70 @@ static func _spot(isl: StarterIsland, id: String, cache: Dictionary) -> Dictiona
 			if not cache.has("quay"):
 				cache["quay"] = _quay_spots(isl, cache["town"])
 			return cache["quay"][int(parts[1])]
+		"fish":
+			return _fishing(isl, int(parts[1]))
+		"dock":
+			# beside the merchantman on its pier, the lower of the two by the end
+			var pr: Array = _merchant_pier(isl)
+			var side := (pr[3] as Node3D).global_basis.x
+			var sv := Vector2(side.x, side.z) * _hull_side(isl, pr)
+			var at: Vector2 = pr[0] + pr[1] * (float(pr[2]) - 4.0 - 6.0 * int(parts[1])) + sv * 0.9
+			return {"at": at, "face": sv, "act": "kneel", "kind": "quay", "y": isl.harbour.deck_y, "lane": PackedVector2Array([at - sv * 0.9])}
+		"stack":
+			if not cache.has("stack"):
+				cache["stack"] = _quay_spots(isl, cache["town"], [26.0, 24.0, 34.0, 22.0], [6.0, 8.0, 10.0])
+			return cache["stack"][int(parts[1])]
 	push_error("BrinehollowLife: no spot %s" % id)
 	return {}
 
 
-## Where the porters take up their loads on the quay: clear spots by the foot of the street.
-static func _quay_spots(isl: StarterIsland, town: Town) -> Array:
+## The side pier the merchantman lies at (the one whose hull is a merchant's).
+static func _merchant_pier(isl: StarterIsland) -> Array:
+	var hull: Node3D = isl.get_node("Moored_merchant")
+	var best: Array = []
+	for pr in Harbour.side_piers(isl):
+		if best.is_empty() or Vector2(hull.position.x, hull.position.z).distance_to(pr[0]) < Vector2(hull.position.x, hull.position.z).distance_to(best[0]):
+			best = pr
+	return best
+
+
+## Which way across its pier (+1 / -1 along the pier's local X) a pier's moored hull lies.
+static func _hull_side(isl: StarterIsland, pr: Array) -> float:
+	var hull: Node3D = isl.get_node("Moored_merchant")
+	var x := (pr[3] as Node3D).global_basis.x
+	return signf((hull.global_position - (pr[3] as Node3D).global_position).dot(x))
+
+
+## A fisher's seat on a pier's edge, legs over the water, away from what's moored: two on the main pier's side
+## away from the sloop's berth, one at the merchantman's pier's end on its open side.
+static func _fishing(isl: StarterIsland, i: int) -> Dictionary:
+	var h: KitHarbour = isl.harbour
+	var at: Vector2
+	var face: Vector2
+	var lane: Vector2
+	var y: float
+	if i < 2:
+		face = Vector2(isl.dock_dir.y, -isl.dock_dir.x)
+		var d := [10.0, 17.0][i] as float
+		at = h.dock_point(d) + face * (StarterIsland.PIER_HW - 0.15)
+		lane = h.dock_point(d)
+		y = StarterIsland.DOCK_DECK_Y
+	else:
+		var pr: Array = _merchant_pier(isl)
+		var side := (pr[3] as Node3D).global_basis.x
+		face = Vector2(side.x, side.z) * -_hull_side(isl, pr)
+		lane = pr[0] + pr[1] * (float(pr[2]) - 2.5)
+		at = lane + face * 1.35
+		y = h.deck_y
+	return {"at": at, "face": face, "act": "sit", "kind": "fish", "y": y - 0.45, "seat_y": 0.45, "rod": true, "lane": PackedVector2Array([lane])}
+
+
+## Clear spots on the quay (by the foot of the street unless told where: frame s and metres in from the wall).
+static func _quay_spots(isl: StarterIsland, town: Town, ss: Array = [-6.0, 7.0, -10.0, 11.0, -3.0, 4.0], ds: Array = [9.0, 10.5, 12.0, 7.5]) -> Array:
 	var h: KitHarbour = isl.harbour
 	var out: Array = []
-	for s: float in [-6.0, 7.0, -10.0, 11.0, -3.0, 4.0]:
-		for d: float in [9.0, 10.5, 12.0, 7.5]:
+	for s: float in ss:
+		for d: float in ds:
 			var p := h.quay_pt(s, d)
 			if not isl.kit.excluded(p, 0.7, 4.0) and town.free_at(p) and out.all(func(o): return o["at"].distance_to(p) > 2.5):
 				out.append({"at": p, "face": h.quay_pt(s, d - 3.0) - p, "act": "kneel", "kind": "quay", "lane": PackedVector2Array()})
@@ -506,6 +588,7 @@ const AMBIENT := {
 	"plaza": ["Did you hear about the Morrow's men?", "Lovely day by the well.", "Tilly's been at the bunting again."],
 	"quay": ["Heave!", "Mind your back.", "Last one. Said that an hour ago."],
 	"stair": ["Race you to the top!", "Bet you can't jump three!"],
+	"fish": ["Shh. You'll scare them.", "Bite, you beauty. Bite.", "Nothing yet. There's always nothing yet."],
 }
 
 
@@ -517,7 +600,7 @@ static func _people(isl: StarterIsland, town: Town) -> void:
 			var sp: Dictionary = _spot(isl, str(p[1]), cache)
 			var st := {"h": float(p[0]), "kind": sp["kind"], "at": sp["at"], "face": (sp["face"] as Vector2).normalized(),
 				"act": str(p[2]) if p.size() > 2 else str(sp["act"]), "lane": sp["lane"]}
-			for k in ["y", "seat_y"]:
+			for k in ["y", "seat_y", "rod"]:
 				if sp.has(k):
 					st[k] = sp[k]
 			if p.size() > 3:
@@ -544,6 +627,9 @@ static func _people(isl: StarterIsland, town: Town) -> void:
 		if e.get("carry", false):
 			f.load_node = _sack()
 			f.humanoid.torso.add_child(f.load_node)
+		if stays.any(func(s): return s.has("rod")):
+			f.rod_node = Harbour.rod()
+			f.humanoid.hand_r.add_child(f.rod_node)
 		var first: Dictionary = stays[0]
 		f.position = Vector3(first["at"].x, isl.hv(first["at"]), first["at"].y)
 		isl.add_child(f)

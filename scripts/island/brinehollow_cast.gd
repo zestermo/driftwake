@@ -36,6 +36,9 @@ static func dockhands(isl: StarterIsland) -> Array:
 static func _warm(isl: StarterIsland) -> void:
 	var looks: Array = people(isl).map(func(e): return e["cfg"]["look"])
 	looks.append_array(townsfolk().map(func(e): return e["cfg"]["look"]))
+	var boat = load("res://scripts/island/harbour_boat.gd")
+	for i in range(boat.CREW.size()):
+		looks.append(boat.crew_look(i))
 	for i in range(0, looks.size(), 7):
 		Humanoid.prebuild(looks.slice(i, i + 7))
 
@@ -400,6 +403,48 @@ static func townsfolk() -> Array:
 				"You can't catch me! You're not even trying. Try!",
 				"Tam says you're a pirate. I said pirates have parrots. Where's your parrot?",
 				"We're not allowed past the old ruins. So we only go a bit past."]}, "plan": plan})
+	out.append_array(harbourfolk())
+	return out
+
+
+## The harbour's people (piece 4): fishers on the piers' edges at dawn and after lunch, dockers loading the
+## merchantman from a stack on the quay.
+static func harbourfolk() -> Array:
+	var out: Array = []
+	var fishers := [
+		["Sully Penhallow", 0.8, "UpperHouse10", ["tavern:side:0", "tavern:side:0"], [
+			"Forty years off this pier. The fish have learned my face. That's the trouble.",
+			"Bram goes out in the boats. Boats are for people who can't wait.",
+			{"text": "The water's been sweeter since the smugglers went. Ask the mackerel.", "after": "smugglers"}]],
+		["Kit Garrow", 1.15, "UpperHouse6", ["tavern:side:1", "tavern:side:1"], [
+			"Don't stand on my line. Don't stand near my line. Don't look at my line.",
+			"Hob and Marrin take the smacks out at dawn. Back by the afternoon, if the Sea King's in a good mood.",
+			"A pier's the only place on the island nobody asks you to carry anything."]],
+		["Fen Doyle", 0.95, "UpperHouse4", ["tavern:seat:7", "tavern:seat:7"], [
+			"Ysolde lets me fish off her pier if I keep the gulls off her deck. I do not keep the gulls off her deck.",
+			"Caught a boot once. Wore it for a year. Lovely boot.",
+			"Best spot's the end of the merchant pier. Don't tell Sully."]],
+	]
+	for i in range(fishers.size()):
+		var f: Array = fishers[i]
+		out.append({"cfg": {"name": f[0], "voice": f[1], "barks": f[4], "look": KitLife.look_for(f[0])},
+			"plan": [[3.8 + 0.2 * i, "fish:%d" % i], [10.9 + 0.2 * i, f[3][0], "talk"], [14.2 + 0.2 * i, "fish:%d" % i],
+				[19.1 + 0.2 * i, f[3][1], "talk"], [22.6 + 0.2 * i, "home:" + f[2]]]})
+	var dockers := [["Docker Abby", 1.1], ["Docker Thom", 0.85]]
+	for i in range(dockers.size()):
+		var plan: Array = []
+		var h := 7.0 + i * 0.5
+		while h < 17.0:
+			plan.append([h, "stack:%d" % i, "kneel"])
+			plan.append([h + 0.5, "dock:%d" % i, "kneel", true])
+			h += 1.0
+		plan.append([h, "tavern:side:%d" % (2 + i), "talk"])
+		plan.append([22.0 + i * 0.4, "home:UpperHouse%d" % [9, 3][i]])
+		out.append({"cfg": {"name": dockers[i][0], "voice": dockers[i][1], "barks": [
+				"Ysolde's cargo, Ysolde's ship, Ysolde's shouting. My back.",
+				"Spice in, salt fish out. Brinehollow's whole economy, one crate at a time.",
+				"If you're not lifting, Captain, you're in the way. Kindly."],
+			"look": KitLife.look_for(dockers[i][0])}, "plan": plan, "carry": true})
 	return out
 
 

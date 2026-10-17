@@ -6,6 +6,7 @@ extends Villager
 ## BrinehollowLife's walk graph: y_at(p, ground) -> the floor's height there
 var town: RefCounted
 var load_node: Node3D
+var rod_node: Node3D
 
 
 func _process(delta: float) -> void:
@@ -23,3 +24,5 @@ func _process(delta: float) -> void:
 		humanoid.seat_y = float(s.get("seat_y", 0.47))
 	if load_node:
 		load_node.visible = bool(s.get("carry", false)) and not arrived
+	if rod_node:
+		rod_node.visible = arrived and s.has("rod")
