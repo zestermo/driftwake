@@ -88,7 +88,7 @@ const STYLE := {
 			"scarf_color": [Color(0.62, 0.16, 0.12), Color(0.80, 0.56, 0.16), Color(0.22, 0.36, 0.24)]},
 		"set": {"eyepatch": false, "gloves": false},
 	},
-	"music": "island",
+	"music": "forest",
 	"music_town": "village",
 	"ambience": "forest",
 	"ground": {"grass": "forest_litter", "sand": "forest_beach", "wet_sand": "wet_sand", "dirt": "forest_dirt", "rock": "forest_rock", "seafloor": "seafloor", "cliff": "forest_rock"},

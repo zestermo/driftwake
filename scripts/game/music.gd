@@ -33,6 +33,8 @@ const TRACKS := {
 	"desert_night": ["res://assets/audio/music_desert_night.ogg", 48],
 	"desert_town": ["res://assets/audio/music_desert_town.ogg", 64],
 	"desert_town_night": ["res://assets/audio/music_desert_town_night.ogg", 64],
+	"forest": ["res://assets/audio/music_forest.ogg", 56],
+	"forest_night": ["res://assets/audio/music_forest_night.ogg", 56],
 }
 const FIGHTS := ["combat", "boss"]
 const VICTORY := "res://assets/audio/music_victory.ogg"
