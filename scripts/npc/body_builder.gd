@@ -28,6 +28,25 @@ const DEFAULT_STYLE := "shonen"
 ## A body stops drawing this far off (x its height): ~2 pixels tall on the 640x360 grid.
 const RANGE := 220.0
 const STYLE_NAMES := ["shonen", "chibi", "heroic"]
+## The cape lab (tools/dev/capelab.gd, docs/dev_notes.md): how a cape moves ("a0" today's chain, "a" tuned,
+## "b" local swing, "bg" Godot's spring bones, "c" procedural) and the thick-fabric look, read when a cape is
+## built. Debug builds: F1 cycles the mode, Shift+F1 the look (cycle_cape).
+const CAPE_MODES := ["a0", "a", "b", "bg", "c"]
+static var cape_mode := "a0"
+static var cape_thick := false
+
+
+## The next cape mode (or look), every caped body in the tree rebuilt with it; returns a line to show.
+static func cycle_cape(tree: SceneTree, look_only: bool) -> String:
+	if look_only:
+		cape_thick = not cape_thick
+	else:
+		cape_mode = CAPE_MODES[(CAPE_MODES.find(cape_mode) + 1) % CAPE_MODES.size()]
+	for n in tree.root.find_children("*", "Humanoid", true, false):
+		var hm := n as Humanoid
+		if hm.look.get("cape", false):
+			hm.apply_look(hm.look)
+	return "Cape: %s, %s" % [cape_mode.to_upper(), "thick" if cape_thick else "thin"]
 
 
 static func current_style() -> String:
@@ -2626,7 +2645,7 @@ func _apron(mb: MeshBuilder, tr: Array) -> void:
 ## (cloth on a chain like the apron, the other way round).
 func _cape(tr: Array, coated: bool) -> void:
 	var m := _cloth("cape_color")
-	var sim := _sim(h.torso)
+	var sim := _sim(h.torso) if cape_mode == "a0" else _cape_sim()
 	var top := tu(0.6)
 	var rt := _at(tr, top)
 	# (clear of the back and only the thighs pushing it: against the torso's
@@ -2646,18 +2665,118 @@ func _cape(tr: Array, coated: bool) -> void:
 	var hw := float(rt[1]) + 0.05
 	var y1 := -0.02 - 0.42 * Ls * 0.9
 	var chain := PackedVector3Array([Vector3(0, top, zb), Vector3(0, tu(0.42), zb + 0.01), Vector3(0, 0.0, zb + 0.03), Vector3(0, y1, zb + 0.07)])
-	var bones := sim.add_chain(chain, 0.2, 0.08, 1.0, ["thigh_l", "thigh_r"])
-	var rows := []
-	for i in range(chain.size()):
-		var p: Vector3 = chain[i]
-		var w := hw * lerpf(1.0, 1.25, i / 3.0)
-		rows.append(PackedVector3Array([p + Vector3(-w, 0, -0.02), p + Vector3(-w * 0.35, 0, 0.004), p + Vector3(w * 0.35, 0, 0.004), p + Vector3(w, 0, -0.02)]))
-	sim.mb.add_strip_grid(m, Transform3D.IDENTITY, rows, bones, 3.0, Color.WHITE, Vector3(0, 0, -0.3))
-	# the clasp at the collar
 	var mb := MeshBuilder.new()
+	if cape_thick:
+		_cape_thick(sim, tr, chain, hw, coated, mb)
+	else:
+		var bones := sim.add_chain(chain, 0.2, 0.08, 1.0, ["thigh_l", "thigh_r"])
+		var rows := []
+		for i in range(chain.size()):
+			var p: Vector3 = chain[i]
+			var w := hw * lerpf(1.0, 1.25, i / 3.0)
+			rows.append(PackedVector3Array([p + Vector3(-w, 0, -0.02), p + Vector3(-w * 0.35, 0, 0.004), p + Vector3(w * 0.35, 0, 0.004), p + Vector3(w, 0, -0.02)]))
+		sim.mb.add_strip_grid(m, Transform3D.IDENTITY, rows, bones, 3.0, Color.WHITE, Vector3(0, 0, -0.3))
+	# the clasp at the collar
 	for s in [-1.0, 1.0]:
 		mb.add_box(PSXMat.flat(Color(0.88, 0.72, 0.3)), Transform3D(Basis(), Vector3(s * float(rt[1]) * 0.75, top, float(rt[3]))), Vector3(0.025, 0.025, 0.02), 3.0)
 	_mesh(h.torso, mb)
+	match cape_mode:
+		"a":
+			sim.use_tuned(zb - 0.028, 0.07, 0.2, 4, ["thigh_l", "thigh_r", "shin_l", "shin_r"])
+		"b", "c", "bg":
+			CapeMotion.attach(sim, cape_mode, h, zb - 0.028)
+
+
+## The cape lab's variants on a cape of its own (today's shares the torso's chains with a sash's tail).
+func _cape_sim() -> SpringChains:
+	var s := SpringChains.new()
+	s.name = "Cape"
+	s.colliders = colliders
+	h.torso.add_child(s)
+	_sims["cape"] = s
+	h._sims.append(s)
+	return s
+
+
+## The thick-fabric cape (BodyBuilder.cape_thick): a yoke wrapping over the shoulders under a gathered
+## collar, a doubled sheet seven verts across on three chains (the sides skinned between the middle and its
+## edge chain by distance), sewn edges and a rolled hem, in a heavier weave.
+func _cape_thick(sim: SpringChains, tr: Array, chain: PackedVector3Array, hw: float, coated: bool, mb: MeshBuilder) -> void:
+	var m := _textured("canvas", _col("cape_color"))
+	var g := 0.03 + (0.03 if coated else 0.0)
+	var yoke: Array = []
+	for r in _clip(tr, tu(0.47), tu(0.63)):
+		var rr: Array = (r as Array).slice(0, 5)
+		while rr.size() < 5:
+			rr.append(0.0)
+		var k := inverse_lerp(tu(0.47), tu(0.63), float(rr[0]))
+		rr[1] = float(rr[1]) * lerpf(1.18, 1.04, k) + 0.035 + g
+		rr[2] = float(rr[2]) * lerpf(1.2, 1.06, k) + 0.035 + g
+		yoke.append(rr)
+	mb.add_loft(m, Transform3D.IDENTITY, yoke, open_body(0.42), 2.0, Color.WHITE, false, false, false, false, true)
+	# the gathered collar: a ring of pleats standing up round the neck
+	var rc := _at(tr, tu(0.62))
+	var pleats := PackedVector2Array()
+	for i in range(14):
+		var a := PI * 0.5 + 0.55 + (TAU - 1.1) * i / 13.0
+		var kk := 1.0 if i % 2 == 0 else 0.86
+		pleats.append(Vector2(cos(a) * kk, sin(a) * kk))
+	var cw := float(rc[1]) * 0.62 + g
+	var cd := float(rc[2]) * 0.8 + g
+	mb.add_loft(m, Transform3D.IDENTITY, [[tu(0.6), cw * 1.08, cd * 1.08, float(rc[3])], [tu(0.6) + 0.05, cw * 0.92, cd * 0.92, float(rc[3])]],
+		pleats, 2.0, Color(0.9, 0.9, 0.9), false, false, false, true, true)
+	var n := chain.size()
+	var wides := PackedFloat32Array()
+	for i in range(n):
+		wides.append(hw * lerpf(1.08, 1.3, i / float(n - 1)))
+	var side := 0.62
+	var chains: Array = []
+	var bones: Array = []
+	for c in [0.0, -side, side]:
+		var pts := PackedVector3Array()
+		for i in range(n):
+			pts.append(chain[i] + Vector3(c * wides[i], 0, -0.04 * absf(c) * lerpf(1.4, 0.4, i / float(n - 1))))
+		chains.append(pts)
+		bones.append(sim.add_chain(pts, 0.2, 0.08, 1.0, ["thigh_l", "thigh_r"]))
+	var ys := PackedFloat32Array()
+	for p in chain:
+		ys.append(p.y)
+	sim.mb.weight_fn = func(pos: Vector3) -> Array:
+		var row := 0
+		for i in range(1, n):
+			if absf(pos.y - ys[i]) < absf(pos.y - ys[row]):
+				row = i
+		var w := clampf(absf(pos.x) / (side * wides[row]), 0.0, 1.0)
+		var edge: PackedInt32Array = bones[1 if pos.x < 0.0 else 2]
+		var mid: PackedInt32Array = bones[0]
+		return [PackedInt32Array([mid[row], edge[row], 0, 0]), PackedFloat32Array([1.0 - w, w, 0.0, 0.0])]
+	var th := 0.008
+	var rows_out := []
+	var rows_in := []
+	for i in range(n):
+		var ro := PackedVector3Array()
+		var ri := PackedVector3Array()
+		for k in range(7):
+			var u := (k - 3) / 3.0
+			var wrap := 0.06 * u * u * lerpf(1.5, 0.5, i / float(n - 1))
+			var at := chain[i] + Vector3(u * wides[i], 0, 0.006 - wrap)
+			ro.append(at + Vector3(0, 0, th))
+			ri.append(at - Vector3(0, 0, th))
+		rows_out.append(ro)
+		rows_in.append(ri)
+	sim.mb.add_strip_grid(m, Transform3D.IDENTITY, rows_out, PackedInt32Array(), 2.0, Color.WHITE, Vector3(0, 0, -0.3))
+	sim.mb.add_strip_grid(m, Transform3D.IDENTITY, rows_in, PackedInt32Array(), 2.0, Color(0.8, 0.8, 0.8), Vector3(0, 0, -0.3))
+	# sewn edges down both sides, and the hem rolled into a cord
+	for k in [0, 6]:
+		var strip := []
+		for i in range(n):
+			strip.append(PackedVector3Array([rows_out[i][k], rows_in[i][k]]))
+		sim.mb.add_strip_grid(m, Transform3D.IDENTITY, strip, PackedInt32Array(), 2.0, Color(0.85, 0.85, 0.85), Vector3(0, chain[0].y, 0))
+	var hem := PackedVector3Array()
+	for k in range(7):
+		hem.append(((rows_out[n - 1][k] as Vector3) + (rows_in[n - 1][k] as Vector3)) * 0.5 + Vector3(0, 0.004, 0))
+	sim.mb.add_tube(m, hem, 0.014, -1.0, 5, 2.0, Color(0.82, 0.82, 0.82), true, true, true)
+	sim.mb.weight_fn = Callable()
 
 
 func _accessories() -> void:
