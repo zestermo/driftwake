@@ -18,6 +18,10 @@ tools/dev/t/ship/*                      t/ship
 tools/dev/t/coop/*                      t/coop
 tools/dev/t/fx/*                        t/fx
 assets/textures/fx/flip_*               t/fx
+tools/dev/t/cloth/*                     t/cloth
+scripts/npc/cape_motion.gd              t/cloth
+scripts/npc/spring_chains.gd            t/cloth
+scripts/npc/body_builder.gd             t/cloth
 scripts/game/duel.gd                    t/coop net
 scripts/ui/player_menu.gd               t/coop net
 scripts/ui/inspect_panel.gd             t/coop

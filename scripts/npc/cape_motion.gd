@@ -150,9 +150,8 @@ func _forces(s: Dictionary, g: Transform3D, binv: Basis, delta: float) -> Array:
 	return out
 
 
-func _dir(s: Dictionary, j: int) -> Vector3:
-	var v: Vector3 = Basis(Vector3.RIGHT, -float(s["b"][j])) * (s["dirs"][j] as Vector3)
-	return Basis(Vector3.BACK, float(s["s"][j])) * v
+static func _dir_at(r: Vector3, b: float, sd: float) -> Vector3:
+	return Basis(Vector3.BACK, sd) * (Basis(Vector3.RIGHT, -b) * r)
 
 
 func _step_b(s: Dictionary, f: Array, dt: float) -> void:
@@ -198,7 +197,7 @@ func _targets(s: Dictionary, binv: Basis) -> Array:
 	var out: Array = []
 	for j in range(n):
 		var w := lerpf(0.55, 1.0, float(j) / maxf(n - 1, 1))
-		var fl := (0.012 + 0.05 * fwd) * (sin(_t * 9.0 + _phase - j * 0.9) * 0.6 + sin(_t * 14.3 + _phase * 1.7 - j * 1.3) * 0.4)
+		var fl := 0.05 * fwd * (sin(_t * 9.0 + _phase - j * 0.9) * 0.6 + sin(_t * 14.3 + _phase * 1.7 - j * 1.3) * 0.4)
 		var tb := lean_b * 0.85 + (0.6 * fwd + spin + fall) * w + fl * w
 		var tsd := lean_s * 0.85 + sway * w + fl * 0.5 * w
 		out.append(Vector2(tb, tsd))
@@ -265,26 +264,38 @@ func _fk(c: Dictionary, s: Dictionary, cols: Array) -> PackedVector3Array:
 	var lens: PackedFloat32Array = s["len"]
 	var b: PackedFloat32Array = s["b"]
 	var vb: PackedFloat32Array = s["vb"]
+	var sd: PackedFloat32Array = s["s"]
 	var loc := PackedVector3Array([p[0]])
 	for j in range(lens.size()):
-		var x := loc[j] + _dir(s, j) * lens[j]
-		var tries := 0
-		while tries < 16 and (x.z < back or _inside(loc[j], x, cols)):
-			b[j] = minf(b[j] + 0.05, THETA_MAX)
+		var a := loc[j]
+		var r: Vector3 = s["dirs"][j]
+		if _blocked(a + _dir_at(r, b[j], sd[j]) * lens[j], a, cols):
+			# the least swing back that clears (bisected: stepping it made the hem jump)
+			var lo_b := b[j]
+			var hi_b := minf(b[j] + 0.9, THETA_MAX)
+			if not _blocked(a + _dir_at(r, hi_b, sd[j]) * lens[j], a, cols):
+				for k in range(8):
+					var mid := (lo_b + hi_b) * 0.5
+					if _blocked(a + _dir_at(r, mid, sd[j]) * lens[j], a, cols):
+						lo_b = mid
+					else:
+						hi_b = mid
+			b[j] = hi_b
 			vb[j] = maxf(vb[j], 0.0)
-			x = loc[j] + _dir(s, j) * lens[j]
-			tries += 1
-		loc.append(x)
+		loc.append(a + _dir_at(r, b[j], sd[j]) * lens[j])
 	s["b"] = b
 	s["vb"] = vb
 	return loc
 
 
-static func _inside(a: Vector3, x: Vector3, cols: Array) -> bool:
-	for cap in cols:
-		var st := SpringChains._closest_segments(a, x, cap[0], cap[1])
-		if (st[0] as Vector3).distance_to(st[1]) < float(cap[2]):
-			return true
+func _blocked(x: Vector3, a: Vector3, cols: Array) -> bool:
+	if x.z < back:
+		return true
+	for o in SpringChains.PROBES:
+		for cap in cols:
+			var st := SpringChains._closest_segments(a + o, x + o, cap[0], cap[1])
+			if (st[0] as Vector3).distance_to(st[1]) < float(cap[2]):
+				return true
 	return false
 
 

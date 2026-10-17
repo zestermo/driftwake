@@ -12,6 +12,8 @@ extends Node3D
 
 const STEP := 1.0 / 60.0
 const MAX_STEPS := 4
+## The cape variants test a segment against the legs here too, off to each side (the sheet is wider than its chain).
+const PROBES := [Vector3.ZERO, Vector3(-0.1, 0, 0), Vector3(0.1, 0, 0)]
 
 var skel: Skeleton3D
 ## Skinned geometry is added here by BodyBuilder, then finalize() commits it.
@@ -299,9 +301,11 @@ func _step_tuned(g: Transform3D) -> void:
 				var seg := (g.basis * (p[i] - p[i - 1])).length()
 				var d: Vector3 = (x[i] as Vector3) - prev
 				var nx: Vector3 = prev + d.normalized() * seg if d.length_squared() > 1e-10 else x[i]
-				for name_ in col:
-					if _cw.has(name_):
-						nx = _push_segment(prev, nx, _cw[name_])
+				for o in PROBES:
+					var ow: Vector3 = g.basis * (o as Vector3)
+					for name_ in col:
+						if _cw.has(name_):
+							nx = _push_segment(prev + ow, nx + ow, _cw[name_]) - ow
 				var l := inv * nx
 				if l.z < back_z:
 					l.z = back_z
