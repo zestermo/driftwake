@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.15-e0b040" alt="Version 1.15">
+  <img src="https://img.shields.io/badge/version-1.16-e0b040" alt="Version 1.16">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,32 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.16: Sand and Snow (October 17, 2026)
+The island chain goes past the jungle: it now rolls jungle, snow and desert islands, each with its own land, towns,
+people, wildlife, bosses, weather and music.
+- **Snow islands:** a tall peak with spires, frozen lakes and a frozen river, a summit castle on most; round pink-brick
+  villages under tiered green roofs, snowy fences, iron lamps and a tame shagback by the market; ice-block ruins, a
+  buried town, a ship frozen in the pack ice, ice caves with icicles, crystals and a frozen waterfall. Wolf packs,
+  white bears, walrus colonies, snow hares and shagback herds; the White Shade, the Bear King and the Ice Golem,
+  Frostfang and the roaming Rimeback.
+- **Desert islands** (the biggest yet): plateaus, mesas, ridges, dune fields, wadis, canyons, salt pans and oases;
+  pastel flat-roofed towns with domes and awnings, packed medinas with minarets and a great domed hall, rooms to walk
+  into, the caravanserai and the potter's; caravan camps, an obelisk, twin guardians, a ruined skyline, a buried city
+  and a tomb in the cliffs. Scorpions, monitor lizards, fennec foxes and vultures; the Sand King, the Dune Emperor, the
+  Basilisk and the Sand Lion, a hyena alpha, the Dune Strider and a bandit chief leading the pirates' camp.
+- **Weather by island:** a snow island's white haze, constant light snow, heavy snow and blizzards; a desert's
+  sandstorms instead of rain (lamps light against them); no lightning where it doesn't rain.
+- **Footprints** in snow and sand that fade, a soft snow layer your boots sink into, snow and sand kicked up as you
+  walk, snow and ice footsteps, breath in the cold; footsteps on every generated island read the real ground.
+- **Music:** desert and snow tracks for the wilds and the towns, each with a night version; wind, sandstorm and
+  blizzard beds.
+- **Effects:** a library of hand-drawn sprite effects drives the smoke, dust, sand, snow, mist and blood; fire and
+  explosions throw a brief light. Kraken's Wake (the cutlass's ultimate) is redrawn in flowing ink-style water, and
+  Call of the Tide winds water round a drawn cutlass.
+- **Capes and the cloak:** capes are a tattered trapezoid with painted folds and keep off the legs; Sela sells a heavy
+  cloak; the belt lantern hangs at the hip.
+- **Fixes:** minibosses now turn up on every kind of island; a few chain seeds no longer fail to name their islands.
 
 ### v1.15: Cliffs and Currents (October 15, 2026)
 - **Grell's cliff path:** a ledge cut into the den's sea cliff (cable railings, overhangs, moss), about twice the old

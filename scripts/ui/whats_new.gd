@@ -7,12 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["The cliff path to Grell", "The way up to Grell's den is a ledge cut into the sea cliff now: longer, with real gaps over the sea, a bug cave with a cave brute, and a broken bridge you swing across on a chain. Grell waits by his fire until you get close."],
-	["The pier ladder", "Grell's pier ladder stays rolled up until someone reaches the top the hard way. After that it's a shortcut for good."],
-	["Water that knows the shore", "Waves calm down over the shallows and roll in along the beach instead of crossing it, and the sea never comes up through the sand any more."],
-	["Smoke and fire", "Cannons leave a bank of powder smoke, a ball on a hull bursts into a fireball, and heavy hits kick up real dust clouds."],
-	["Swings keep your speed", "Letting go of a vine, a ship's rope or a chain keeps your momentum, so you can fling yourself across."],
-	["Steadier timing", "More little things now run on game time instead of the clock, so hitches can't throw off sprints, markers, thunder or the weather."],
+	["Snow islands", "Peaks with a castle on top, round brick villages, frozen lakes, ice caves and a ship frozen in the pack ice. Wolf packs, white bears and walruses, and bosses like the Bear King and the Ice Golem."],
+	["Desert islands", "Dunes, mesas, oases and packed medinas with minarets. Caravan camps, a buried city and a tomb in the cliffs. Watch for the Sand King under the sand, and a bandit chief running the pirates' camp."],
+	["Weather to match", "Snow islands sit under a white haze with snow falling all the time and the odd blizzard. Deserts never rain: sandstorms roll in instead, and the lamps come on."],
+	["Footprints", "You leave boot prints in snow and sand that slowly fill back in, your boots sink into soft snow, and every step sounds like what you're on."],
+	["New music and effects", "Eight new tracks for the desert and snow, day and night. Smoke, dust, sand and snow are hand-drawn sprite effects now, and Kraken's Wake pours out flowing ink-drawn water."],
+	["Capes and the cloak", "Capes are tattered with painted folds and stay off your legs, Sela sells a heavy cloak, and the belt lantern hangs at your hip."],
 ]
 
 
