@@ -619,9 +619,17 @@ static func lighthouse() -> Node3D:
 		mb.add_cylinder(red if i % 2 == 1 else white, _xf(Vector3(0, y, 0)), r, r2, band_h, 8, 0.4, Color.WHITE, false, false, false)
 		y += band_h
 		r = r2
-	# door
-	var door := PSXMat.lit("door", Color.WHITE, {"vertex_color": false})
-	mb.add_box_unit_uv(door, _xf(Vector3(0, 3.1, 2.25)), Vector3(1.0, 2.0, 0.1))
+	# the door in a stone porch on the tower's front corner, a stair up the side of the base to it
+	mb.add_box(stone, _xf(Vector3(0, 3.425, 2.175)), Vector3(1.8, 2.65, 0.65), 0.5)
+	mb.add_box(stone, _xf(Vector3(0, 4.82, 2.22)), Vector3(2.0, 0.14, 0.86), 0.6, Color(0.8, 0.8, 0.8), false)
+	Buildings.panel_door(mb, _xf(Vector3(0, 2.13, 2.5)), 1.0, 2.0, Buildings.door_leaf(Color(0.55, 0.4, 0.28)), PSXMat.lit("planks_dark"))
+	Buildings.door_steps(body, mb, stone, 0.0, 0.0, 2.13, 1.6, 1.2, 1.5, false, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(-0.6, 0, 3.4)))
+	_add_box_col(body, Vector3(1.8, 2.65, 0.65), Vector3(0, 3.425, 2.175))
+	_add_cyl_col(body, 2.6, 3.6, Vector3(0, -1.5, 0))
+	var mark := Marker3D.new()
+	mark.name = "Door"
+	mark.position = Vector3(5.4, 0, 3.4)
+	body.add_child(mark)
 	# gallery
 	mb.add_cylinder(dark, _xf(Vector3(0, y, 0)), 2.2, 2.2, 0.25, 8, 0.6, Color.WHITE, true, true)
 	for i in range(16):

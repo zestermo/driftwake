@@ -3067,3 +3067,23 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   worker (land 2.0-3.0 s with the river grid), ~2-3 s on the main thread over ~165 frames, worst step ~150-230 ms.
 - **Tests:** `t/island/forest_land`. Renders: `genshot.gd tools/dev/out/forest/g5 5`, `forestshot.gd tools/dev/out/forest/f5 5`
   (new tool).
+
+## 2026-10-17: Brinehollow buildings polish, piece 2: the other buildings' doors
+- `Buildings.door_steps` takes a `frame` (a stair along a side wall); stone treads flare only over the first three.
+- **Chapel:** a pair of oak panelled doors in a wider stone surround, the tower on its own base course (its front
+  stood 0.15 m past the hall's footing, over nothing), stone steps with a ramp, a Door marker.
+- **Harbour tower:** the door sat on the shaft half buried in the battered base; now a stone porch built out past
+  the base with a panelled door, a cap, a collider, steps up to its 0.3 m sill, a Door marker.
+- **Lighthouse** (Props.lighthouse): its door hung 2.1 m up on the tower's corner with no way up; now a stone porch on
+  that corner with a panelled door and a stone stair up the side of the base (along +X, clear of the keeper's
+  cottage and stores), a collider for the base's top (r 2.6), a Door marker at the stair's foot.
+- **KitHouses** (small edits; the layout agent owns the file): the room's open leaf and the granary's hatch are
+  panelled (the hatch framed). **Snow:** the round house's door framed and panelled, stone steps with a ramp
+  (its step slab had no collider), the hood raised to clear the frame; the log store's door framed, a timber stair
+  with a landing and ramp, a Door marker. **Desert** (DOOR_PAINT): houses' leaves panelled, stone steps (the step
+  block z-fought the footing), the awning centred on the door; rooms' steps with a ramp (the 0.35 m step box had
+  none), their door standing open inside, the Door marker past the steps; the inn's door framed and panelled, steps
+  up into its arcade; the workshop's arches get steps; the great hall's portal doors framed, steps with a ramp.
+- Stalls have no doors (counters); the smithy is open-fronted (its kerb is piece 1's).
+- **Tests:** t/island/house_doors also walks the chapel's, the harbour tower's, the lighthouse's and the snow
+  store's steps; t/island/desert_town, snow_foundations, snow_village, theme_registry pass.

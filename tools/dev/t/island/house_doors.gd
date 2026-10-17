@@ -22,6 +22,7 @@ var fails := 0
 var houses: Array = []
 var bare: Node3D
 var tavern: Node3D
+var landmarks: Array = []
 
 
 func _initialize() -> void:
@@ -95,6 +96,12 @@ func _process(_d: float) -> bool:
 			tavern = B.tavern_hall()
 			tavern.position = Vector3(-30.0, stage.GROUND_Y, 25.0)
 			stage.add_child(tavern)
+			var made := [B.chapel(), B.harbor_tower(), load("res://scripts/props/props.gd").lighthouse(), load("res://scripts/props/snow_props.gd").storehouse(3)]
+			for i in range(made.size()):
+				var n: Node3D = made[i]
+				n.position = Vector3(-50.0 + i * 16.0, stage.GROUND_Y, 45.0)
+				stage.add_child(n)
+				landmarks.append([n, [Vector3(0, 0.26, 5.6), Vector3(0, 0.3, 3.55), Vector3(0, 2.13, 2.62), Vector3(0, 0.6, 1.75)][i]])
 			until = TK.wait_ticks(3)
 		1:
 			var bad: Array = []
@@ -110,6 +117,13 @@ func _process(_d: float) -> bool:
 				if why != "":
 					bad.append("%d %s: %s" % [i, spec, why])
 			check("every house kind has a panelled door and steps you walk up from its Door marker to the sill %s" % [bad], bad.is_empty())
+			var lbad: Array = []
+			for e in landmarks:
+				var n: Node3D = e[0]
+				var why0 := "no Door marker or panelled door" if n.get_node_or_null("Door") == null or not _has_tex(n, "door_panel") else _walk(n, e[1])
+				if why0 != "":
+					lbad.append("%s: %s" % [n.name, why0])
+			check("the chapel, the harbour tower, the lighthouse and the snow store: a panelled door up walkable steps %s" % [lbad], lbad.is_empty())
 			var convex := bare.find_children("*", "CollisionShape3D", false, false).filter(func(c): return c.shape is ConvexPolygonShape3D)
 			check("with steps false a stilted house has none", convex.is_empty())
 			var why := _walk(tavern, Vector3(-1.6, 0.3, 9.0 * 0.5 + 0.1))

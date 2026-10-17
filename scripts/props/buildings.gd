@@ -235,38 +235,44 @@ static func panel_door(mb: MeshBuilder, xf: Transform3D, w: float, h: float, lea
 ## Steps up to a door whose sill is `top` over the ground, out from z0 along +Z at x: a landing `land`
 ## deep (0: the floor or porch it leaves is the landing), then treads down to the ground. Stone blocks
 ## reaching `found` below ground, or (`timber`) treads on stringers and the landing on two posts. A box
-## under the landing and a ramp over the treads to walk on (nothing steps up by itself). Returns the
-## distance from z0 to the foot of the steps.
+## under the landing and a ramp over the treads to walk on (nothing steps up by itself). `frame` places
+## the lot in the body (a stair along a side wall). Returns the distance from z0 to the foot of the steps.
 static func door_steps(body: Node3D, mb: MeshBuilder, mat: Material, x: float, z0: float, top: float, width: float,
-		land := 0.5, found := 0.6, timber := false) -> float:
+		land := 0.5, found := 0.6, timber := false, frame := Transform3D.IDENTITY) -> float:
 	var n := maxi(int(ceil(top / RISE - 0.01)), 1)
 	var rise := top / n
 	var zt := z0 + land
 	var run := (n - 1) * TREAD
 	if timber:
 		if land > 0.0:
-			mb.add_box(mat, _xf(Vector3(x, top - 0.07, z0 + land * 0.5)), Vector3(width, 0.14, land), 0.6, Color.WHITE, false)
+			mb.add_box(mat, frame * _xf(Vector3(x, top - 0.07, z0 + land * 0.5)), Vector3(width, 0.14, land), 0.6, Color.WHITE, false)
 			for s in [-1.0, 1.0]:
-				mb.add_box(mat, _xf(Vector3(x + s * (width * 0.5 - 0.08), (top - 0.14 - found) * 0.5, zt - 0.08)), Vector3(0.14, top - 0.14 + found, 0.14), 0.6)
+				mb.add_box(mat, frame * _xf(Vector3(x + s * (width * 0.5 - 0.08), (top - 0.14 - found) * 0.5, zt - 0.08)), Vector3(0.14, top - 0.14 + found, 0.14), 0.6)
 		for i in range(1, n):
-			mb.add_box(mat, _xf(Vector3(x, top - i * rise - 0.03, zt + (i - 0.5) * TREAD)), Vector3(width - 0.14, 0.06, TREAD + 0.02), 0.8, Color.WHITE, false)
+			mb.add_box(mat, frame * _xf(Vector3(x, top - i * rise - 0.03, zt + (i - 0.5) * TREAD)), Vector3(width - 0.14, 0.06, TREAD + 0.02), 0.8, Color.WHITE, false)
 		if n > 1:
 			for s in [-1.0, 1.0]:
 				var sx: float = x + s * (width * 0.5 - 0.04)
-				beam_between(mb, mat, Vector3(sx, top - 0.1, zt), Vector3(sx, -0.05, zt + run + 0.1), 0.07, 0.24)
+				beam_between(mb, mat, frame * Vector3(sx, top - 0.1, zt), frame * Vector3(sx, -0.05, zt + run + 0.1), 0.07, 0.24)
 	else:
 		if land > 0.0:
-			mb.add_box(mat, _xf(Vector3(x, (top - found) * 0.5, z0 + land * 0.5)), Vector3(width, top + found, land), 0.6, Color.WHITE, true, false)
+			mb.add_box(mat, frame * _xf(Vector3(x, (top - found) * 0.5, z0 + land * 0.5)), Vector3(width, top + found, land), 0.6, Color.WHITE, true, false)
 		for i in range(1, n):
 			var y := top - i * rise
-			mb.add_box(mat, _xf(Vector3(x, (y - found) * 0.5, zt + (i - 0.5) * TREAD)), Vector3(width + 0.08 * i, y + found, TREAD), 0.6, Color(0.92 - 0.05 * (i % 2), 0.92, 0.9), true, false)
+			mb.add_box(mat, frame * _xf(Vector3(x, (y - found) * 0.5, zt + (i - 0.5) * TREAD)), Vector3(width + 0.08 * mini(i, 3), y + found, TREAD), 0.6, Color(0.92 - 0.05 * (i % 2), 0.92, 0.9), true, false)
 	if land > 0.0:
-		_box_col(body, Vector3(width, top + found, land), Vector3(x, (top - found) * 0.5, z0 + land * 0.5))
+		var lc := CollisionShape3D.new()
+		var lb := BoxShape3D.new()
+		lb.size = Vector3(width, top + found, land)
+		lc.shape = lb
+		lc.transform = frame * _xf(Vector3(x, (top - found) * 0.5, z0 + land * 0.5))
+		body.add_child(lc)
 	var zf := zt + run + 0.15
 	var hw := width * 0.5
 	var pts := PackedVector3Array()
 	for s in [-1.0, 1.0]:
-		pts.append_array([Vector3(x + s * hw, top, zt), Vector3(x + s * hw, 0.0, zf), Vector3(x + s * hw, -0.3, zf), Vector3(x + s * hw, -0.3, zt)])
+		for p in [Vector3(x + s * hw, top, zt), Vector3(x + s * hw, 0.0, zf), Vector3(x + s * hw, -0.3, zf), Vector3(x + s * hw, -0.3, zt)]:
+			pts.append(frame * p)
 	var shape := ConvexPolygonShape3D.new()
 	shape.points = pts
 	var cs := CollisionShape3D.new()
@@ -1108,17 +1114,18 @@ static func chapel() -> Node3D:
 		Vector3.RIGHT, Vector3.RIGHT, Vector3.RIGHT, Vector2.ZERO, Vector2(0, 1), Vector2(1, 0), Color.WHITE, Vector3.RIGHT)
 	# door with a stone arch, a round window over it
 	var fz := tz + tw * 0.5
-	mb.add_box_unit_uv(PSXMat.lit("door", Color.WHITE, {"vertex_color": false}), _xf(Vector3(0, 0.2 + 1.3, fz + 0.03)), Vector3(1.4, 2.6, 0.06))
+	# the tower stands on its own base course (its front is past the hall's footing)
+	mb.add_box(dark, _xf(Vector3(0, -0.37, tz)), Vector3(tw + 0.24, 1.26, tw + 0.24), 0.5, Color(0.9, 0.9, 0.9), true, false)
+	# a pair of oak doors in a stone surround, a round window over them
+	panel_door(mb, _xf(Vector3(0, 0.26, fz)), 1.6, 2.6, door_leaf(Color(0.5, 0.36, 0.25)), dark)
 	for s in [-1.0, 1.0]:
-		mb.add_box(dark, _xf(Vector3(s * 0.85, 0.2 + 1.4, fz + 0.08)), Vector3(0.3, 2.8, 0.18), 0.5)
-	mb.add_box(dark, _xf(Vector3(0, 0.2 + 2.9, fz + 0.08)), Vector3(2.0, 0.3, 0.18), 0.5)
+		mb.add_box(dark, _xf(Vector3(s * 1.08, 0.26 + 1.45, fz + 0.08)), Vector3(0.3, 2.9, 0.18), 0.5)
+	mb.add_box(dark, _xf(Vector3(0, 0.26 + 3.05, fz + 0.08)), Vector3(2.46, 0.3, 0.18), 0.5)
 	mb.add_cylinder(window, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 4.6, fz + 0.06)), 0.45, 0.45, 0.04, 10, 1.0, Color.WHITE, true, true)
 	mb.add_cylinder(dark, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 4.6, fz + 0.03)), 0.6, 0.6, 0.06, 10, 0.5, Color.WHITE, true, true)
-	# two steps down from the door
-	for k in range(2):
-		var top := 0.2 - k * 0.1
-		mb.add_box(dark, _xf(Vector3(0, (top - 0.6) * 0.5, fz + 0.2 + k * 0.35)), Vector3(2.2 + k * 0.3, top + 0.6, 0.35), 0.5, Color.WHITE, true, false)
+	door_steps(body, mb, dark, 0.0, fz + 0.12, 0.26, 2.6, 0.6, 0.6)
 	body.add_child(mb.to_instance())
+	_marker(body, "Door", Vector3(0, 0, fz + 1.6))
 	var lamp := NightLight.make(Color(0.95, 0.85, 0.65), 1.0, 7.0)
 	lamp.position = Vector3(0, 3.0, fz + 1.4)
 	body.add_child(lamp)
@@ -1163,9 +1170,15 @@ static func harbor_tower() -> Node3D:
 			mb.add_box_unit_uv(window, wxf, Vector3(0.6, 1.0, 0.06))
 			mb.add_cylinder(band, wxf * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.5, -0.02)), 0.36, 0.36, 0.1, 6, 1.0)
 			mb.add_box(band, wxf * Transform3D(Basis(), Vector3(0, -0.56, 0.06)), Vector3(0.8, 0.1, 0.16), 1.0)
-	var dz := r * cos(PI / n) + 0.04
-	mb.add_box_unit_uv(PSXMat.lit("door", Color.WHITE, {"vertex_color": false}), Transform3D(Basis(), Vector3(0, 1.0 + 0.1, dz)), Vector3(1.1, 2.2, 0.06))
-	mb.add_box(band, Transform3D(Basis(), Vector3(0, 2.35, dz + 0.05)), Vector3(1.5, 0.25, 0.14), 1.0)
+	# the door in a stone porch built out past the battered base, steps up to its sill
+	var dz := r + 0.75
+	var sill := 0.3
+	mb.add_box(stone, _xf(Vector3(0, (sill + 2.75 - 1.0) * 0.5, (r * 0.6 + dz) * 0.5)), Vector3(2.0, sill + 2.75 + 1.0, dz - r * 0.6), 0.5, Color.WHITE, true, false)
+	mb.add_box(band, _xf(Vector3(0, sill + 2.84, (r * 0.6 + dz) * 0.5 + 0.06)), Vector3(2.2, 0.18, dz - r * 0.6 + 0.12), 0.6, Color.WHITE, false)
+	panel_door(mb, _xf(Vector3(0, sill, dz)), 1.1, 2.2, door_leaf(Color(0.55, 0.4, 0.28)), band)
+	_box_col(body, Vector3(2.0, sill + 2.75 + 1.0, dz - r * 0.6), Vector3(0, (sill + 2.75 - 1.0) * 0.5, (r * 0.6 + dz) * 0.5))
+	door_steps(body, mb, band, 0.0, dz, sill, 1.7, 0.55, 0.8)
+	_marker(body, "Door", Vector3(0, 0, dz + 1.6))
 	# the gallery on corbels, its rail, the cap
 	var gy := h
 	for k in range(n * 2):

@@ -147,7 +147,7 @@ static func room(spec: Dictionary) -> StaticBody3D:
 		mb.add_cylinder(rope, _xf(Vector3(s * (DOOR_W * 0.5 + 0.05), fl + DOOR_H - 0.05, d * 0.5 + 0.02)), 0.1, 0.1, 0.14, 5, 1.5)
 	mb.add_box(beam, _xf(Vector3(0, fl + DOOR_H + 0.08, d * 0.5 + 0.04)), Vector3(DOOR_W + 0.5, 0.16, t + 0.12), 0.8, Color.WHITE, false)
 	var hinge := Vector3(-DOOR_W * 0.5 + 0.05, fl + DOOR_H * 0.5, d * 0.5 - t - 0.04)
-	var door := PSXMat.lit("door", Color.WHITE, {"vertex_color": false})
+	var door := Buildings.door_leaf()
 	mb.add_box_unit_uv(door, Transform3D(Basis(Vector3.UP, 2.55), hinge) * _xf(Vector3(DOOR_W * 0.5 - 0.06, 0, 0)), Vector3(DOOR_W - 0.12, DOOR_H - 0.06, 0.05))
 	# windows: each side, either side of the door, the back
 	var wins: Array = [_xf(Vector3(-w * 0.5 + t * 0.5, fl + 1.45, 0), -PI * 0.5), _xf(Vector3(w * 0.5 - t * 0.5, fl + 1.45, 0), PI * 0.5),
@@ -686,8 +686,7 @@ static func storehouse(spec: Dictionary) -> StaticBody3D:
 	mb.add_gable_roof(thatch, _xf(Vector3(0, st + h + 0.06, 0), PI * 0.5), d, w, d * 0.95, 0.6, 0.5, Color.WHITE, weave)
 	mb.add_box(PSXMat.lit("thatch", Color(0.7, 0.66, 0.6), {"affine": 0.8}), _xf(Vector3(0, st + h + d * 0.95 + 0.08, 0)), Vector3(w + 1.4, 0.2, 0.3), 0.8)
 	_box(body, Vector3(w + 0.3, h + 0.2, d + 0.3), Vector3(0, st + h * 0.5, 0))
-	var door := PSXMat.lit("door", Color.WHITE, {"vertex_color": false})
-	mb.add_box_unit_uv(door, _xf(Vector3(0, st + 0.75, d * 0.5 + 0.03)), Vector3(0.75, 1.4, 0.05))
+	Buildings.panel_door(mb, _xf(Vector3(0, st, d * 0.5)), 0.75, 1.4, Buildings.door_leaf(), dark)
 	# the ladder up to it
 	var foot := d * 0.5 + 1.0
 	for s in [-1.0, 1.0]:

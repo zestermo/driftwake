@@ -21,6 +21,8 @@ const ROOF_COL := Color(0.86, 0.8, 0.72)
 const DOMES := [Color(1.0, 0.78, 0.3), Color(0.42, 0.72, 0.5), Color(0.42, 0.6, 0.92), Color(0.95, 0.62, 0.66), Color(0.4, 0.82, 0.85)]
 const AWNINGS := ["awning_red", "awning_blue", "awning_gold", "awning_green"]
 const STONE_COL := Color(0.92, 0.9, 0.86)
+## The doors' wood (Buildings.door_leaf).
+const DOOR_PAINT := Color(0.66, 0.5, 0.36)
 
 
 static func _rng(seed_value: int) -> RandomNumberGenerator:
@@ -184,17 +186,17 @@ static func _vigas(mb: MeshBuilder, w: float, z: float, y: float) -> void:
 
 
 ## A striped awning over the front on two poles.
-static func _awning(mb: MeshBuilder, tex: String, w: float, z0: float, y: float, out: float) -> void:
+static func _awning(mb: MeshBuilder, tex: String, w: float, z0: float, y: float, out: float, x := 0.0) -> void:
 	var cloth := PSXMat.lit(tex, Color.WHITE, {"affine": 0.6})
-	var a0 := Vector3(-w * 0.5, y, z0)
-	var a1 := Vector3(w * 0.5, y, z0)
-	var a2 := Vector3(w * 0.5, y - 0.5, z0 + out)
-	var a3 := Vector3(-w * 0.5, y - 0.5, z0 + out)
+	var a0 := Vector3(x - w * 0.5, y, z0)
+	var a1 := Vector3(x + w * 0.5, y, z0)
+	var a2 := Vector3(x + w * 0.5, y - 0.5, z0 + out)
+	var a3 := Vector3(x - w * 0.5, y - 0.5, z0 + out)
 	var n := Vector3(0, out, 0.5).normalized()
 	mb.add_quad(cloth, a0, a1, a2, a3, Vector2.ZERO, Vector2(w * 0.5, 0), Vector2(w * 0.5, 0.9), Vector2(0, 0.9), Color.WHITE, n)
 	mb.add_quad(cloth, a0, a3, a2, a1, Vector2.ZERO, Vector2(0, 0.9), Vector2(w * 0.5, 0.9), Vector2(w * 0.5, 0), Color(0.6, 0.6, 0.6), -n)
 	for s in [-1.0, 1.0]:
-		mb.add_cylinder(_beam(), _xf(Vector3(s * w * 0.5, 0.0, z0 + out)), 0.05, 0.05, y - 0.5, 5, 1.0)
+		mb.add_cylinder(_beam(), _xf(Vector3(x + s * w * 0.5, 0.0, z0 + out)), 0.05, 0.05, y - 0.5, 5, 1.0)
 
 
 ## Small deep windows along a wall (`xf` at the wall's foot and middle, +Z out), kept off x = `skip` (the door).
@@ -243,8 +245,8 @@ static func house(spec: Dictionary) -> StaticBody3D:
 	# the door, a little off-centre, its arch framed in sandstone, a step before it
 	var dx := rng.randf_range(-w * 0.18, w * 0.18)
 	_arch_recess(mb, _xf(Vector3(dx, fl, d * 0.5)), DOOR_W - 0.2, DOOR_H, false)
-	mb.add_box_unit_uv(PSXMat.lit("door", Color(1.0, 0.9, 0.8), {"vertex_color": false}), _xf(Vector3(dx, fl + 0.95, d * 0.5 + 0.035)), Vector3(DOOR_W - 0.32, 1.9, 0.04))
-	mb.add_box(stone, _xf(Vector3(dx, fl * 0.5, d * 0.5 + 0.35)), Vector3(1.5, fl, 0.7), 0.6, Color(0.9, 0.88, 0.85))
+	mb.add_box_unit_uv(Buildings.door_leaf(DOOR_PAINT), _xf(Vector3(dx, fl + 0.95, d * 0.5 + 0.035)), Vector3(DOOR_W - 0.32, 1.9, 0.04))
+	Buildings.door_steps(body, mb, stone, dx, d * 0.5 + 0.15, fl, 1.5, 0.45, FOOT)
 	var lp: float = spec.get("lit", 0.35)
 	_windows(mb, _xf(Vector3(0, fl, d * 0.5 + 0.005)), w, 1.75, rng, dx, rng.randf() < 0.4, lp)
 	_windows(mb, _xf(Vector3(-w * 0.5 - 0.005, fl, 0), -PI * 0.5), d, 1.75, rng, INF, false, lp)
@@ -285,7 +287,8 @@ static func house(spec: Dictionary) -> StaticBody3D:
 	if storeys == 1 and rng.randf() < 0.4:
 		_stair(mb, body, w, d, fl, top, 1.0 if rng.randf() < 0.5 else -1.0)
 	elif rng.randf() < 0.45:
-		_awning(mb, AWNINGS[rng.randi() % AWNINGS.size()], minf(w - 0.6, 3.2), d * 0.5 + 0.05, fl + 2.7, 1.5)
+		var aw := minf(w - 0.6, 3.2)
+		_awning(mb, AWNINGS[rng.randi() % AWNINGS.size()], aw, d * 0.5 + 0.05, fl + 2.7, 1.5, clampf(dx, -(w - aw) * 0.5 + 0.1, (w - aw) * 0.5 - 0.1))
 	body.add_child(mb.to_instance("HouseMesh"))
 	return body
 
@@ -338,8 +341,10 @@ static func room(kind: String, seed_value: int, size: float) -> StaticBody3D:
 	var jamb := crown - DOOR_W * 0.5
 	for s in [-1.0, 1.0]:
 		mb.add_box(stone, _xf(Vector3(s * (DOOR_W * 0.5 + 0.07), fl + jamb * 0.5, d * 0.5 + 0.03)), Vector3(0.14, jamb, 0.1), 1.0, STONE_COL)
-	mb.add_box(stone, _xf(Vector3(0, fl * 0.5, d * 0.5 + 0.45)), Vector3(1.8, fl, 0.9), 0.6, Color(0.9, 0.88, 0.85))
-	_box(body, Vector3(1.8, fl, 0.9), Vector3(0, fl * 0.5, d * 0.5 + 0.45))
+	var run := Buildings.door_steps(body, mb, stone, 0.0, d * 0.5 + 0.15, fl, 1.8, 0.45, FOOT)
+	# its door stands open inside, swung back against the wall
+	var hinge := Vector3(-DOOR_W * 0.5 + 0.05, fl + 1.0, d * 0.5 - t - 0.04)
+	mb.add_box_unit_uv(Buildings.door_leaf(DOOR_PAINT), Transform3D(Basis(Vector3.UP, 2.55), hinge) * _xf(Vector3(DOOR_W * 0.5 - 0.06, 0, 0)), Vector3(DOOR_W - 0.12, 2.0, 0.05))
 	# windows through the walls (lit both sides), deep sills outside
 	var win := _window()
 	for wx in [_xf(Vector3(-w * 0.5 + t * 0.5, fl + 1.55, 0), -PI * 0.5), _xf(Vector3(w * 0.5 - t * 0.5, fl + 1.55, 0), PI * 0.5), _xf(Vector3(w * 0.25, fl + 1.55, -d * 0.5 + t * 0.5), PI)]:
@@ -375,7 +380,7 @@ static func room(kind: String, seed_value: int, size: float) -> StaticBody3D:
 	var inside := imb.to_instance("Furnishing")
 	inside.visibility_range_end = 45.0
 	body.add_child(inside)
-	_marker(body, "Door", Vector3(0, 0, d * 0.5 + 1.3), 0.0)
+	_marker(body, "Door", Vector3(0, 0, d * 0.5 + 0.15 + run + 0.4), 0.0)
 	_marker(body, "Inside", Vector3(0, fl, 0.4), 0.0)
 	return body
 
@@ -426,7 +431,8 @@ static func inn(seed_value: int, w: float, d: float) -> StaticBody3D:
 		mb.add_box(_adobe(), _xf(Vector3(s * (w * 0.5 - 0.15), fl + h1 * 0.5, d * 0.5 - ad * 0.5)), Vector3(0.3, h1, ad), 0.5, col)
 		_box(body, Vector3(0.3, h1, ad), Vector3(s * (w * 0.5 - 0.15), fl + h1 * 0.5, d * 0.5 - ad * 0.5))
 	# under the arcade: the door, a bench, a kilim, lanterns hung in the arches
-	mb.add_box_unit_uv(PSXMat.lit("door", Color(1.0, 0.9, 0.8), {"vertex_color": false}), _xf(Vector3(0, fl + 1.05, bz + bd * 0.5 + 0.03)), Vector3(1.4, 2.1, 0.05))
+	Buildings.panel_door(mb, _xf(Vector3(0, fl, bz + bd * 0.5)), 1.4, 2.1, Buildings.door_leaf(DOOR_PAINT), stone)
+	Buildings.door_steps(body, mb, stone, 0.0, d * 0.5 + 0.2, fl, aw - 0.9, 0.0, FOOT)
 	var glow := PSXMat.glow(Color(1.0, 0.75, 0.4), 2.2)
 	for hole in holes:
 		mb.add_box(_brass(), _xf(Vector3(hole[0], fl + h1 - 0.6, d * 0.5 - 0.3)), Vector3(0.03, 0.4, 0.03), 1.0)
@@ -466,6 +472,8 @@ static func workshop(seed_value: int, size: float) -> StaticBody3D:
 		_box(body, wl[1], Vector3(c.x, fl + h * 0.5, c.z))
 	_arched_wall(mb, _adobe(), _xf(Vector3(0, fl, d * 0.5 - 0.15)), w, h, [[-w * 0.25, w * 0.5 - 0.8, h - 0.4], [w * 0.25, w * 0.5 - 0.8, h - 0.4]], 0.3, col)
 	_box(body, Vector3(0.8, h, 0.3), Vector3(0, fl + h * 0.5, d * 0.5 - 0.15))
+	for s in [-1.0, 1.0]:
+		Buildings.door_steps(body, mb, _stone(), s * w * 0.25, d * 0.5 + 0.15, fl, w * 0.5 - 1.2, 0.0, FOOT)
 	mb.add_box(_adobe(), _xf(Vector3(0, fl + h + 0.06, 0)), Vector3(w + 0.1, 0.14, d + 0.1), 0.5, ROOF_COL, false)
 	_parapet(mb, w, d, fl + h + 0.13, col, false)
 	var kp := Vector3(-w * 0.5 + 1.2, fl, -d * 0.5 + 1.1)
@@ -643,9 +651,9 @@ static func great_hall(seed_value: int, size := 10.0) -> StaticBody3D:
 	_block(mb, Vector3(0, fl + ph * 0.5, w * 0.5 + 0.2), Vector3(pw, ph, 0.4), col.darkened(0.03))
 	mb.add_box(stone, _xf(Vector3(0, fl + ph + 0.05, w * 0.5 + 0.2)), Vector3(pw + 0.2, 0.12, 0.6), 0.8, STONE_COL)
 	_arch_recess(mb, _xf(Vector3(0, fl, w * 0.5 + 0.41)), pw - 1.2, ph - 1.3, false)
-	mb.add_box_unit_uv(PSXMat.lit("door", Color(1.0, 0.9, 0.8), {"vertex_color": false}), _xf(Vector3(0, fl + 1.2, w * 0.5 + 0.43)), Vector3(1.6, 2.4, 0.04))
+	Buildings.panel_door(mb, _xf(Vector3(0, fl, w * 0.5 + 0.41)), 1.6, 2.4, Buildings.door_leaf(DOOR_PAINT), stone)
 	mb.add_box(PSXMat.glow(Color(1.0, 0.75, 0.4), 2.2), _xf(Vector3(0, fl + ph - 2.4, w * 0.5 + 0.7)), Vector3(0.24, 0.32, 0.24), 1.0)
-	mb.add_box(stone, _xf(Vector3(0, fl * 0.5, w * 0.5 + 1.0)), Vector3(pw, fl, 1.2), 0.6, Color(0.9, 0.88, 0.85))
+	Buildings.door_steps(body, mb, stone, 0.0, w * 0.5 + 0.41, fl, pw, 0.6, FOOT)
 	_box(body, Vector3(pw, ph, 0.4), Vector3(0, fl + ph * 0.5, w * 0.5 + 0.2))
 	# arched windows round the other three sides, two rows
 	for yaw in [-PI * 0.5, PI * 0.5, PI]:

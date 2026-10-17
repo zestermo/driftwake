@@ -136,15 +136,13 @@ static func round_house(seed_value: int, diameter: float, storeys := 1) -> Node3
 	mb.add_cylinder(clay, Transform3D(Basis(), Vector3.UP * (peak + 1.2)), 0.06, 0.02, 0.25, 5, 1.0)
 	FX.chimney_smoke(body, Vector3(0, peak + 1.3, 0))
 	# the door and its hood, facing +Z on a flat of the wall
-	var dz := apothem + 0.02
-	mb.add_box_unit_uv(PSXMat.lit("door", Color(0.85, 0.75, 0.65), {"vertex_color": false}), Transform3D(Basis(), Vector3(0, 0.25 + 1.0, dz)), Vector3(1.0, 2.0, 0.08))
+	var dz := apothem
+	Buildings.panel_door(mb, Transform3D(Basis(), Vector3(0, 0.25, dz)), 1.0, 2.0, Buildings.door_leaf(Color(0.5, 0.36, 0.3)), wood)
 	for s in [-1.0, 1.0]:
-		mb.add_box(wood, Transform3D(Basis(), Vector3(s * 0.58, 0.25 + 1.05, dz + 0.04)), Vector3(0.14, 2.15, 0.1), 1.0)
-		mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, -0.6), Vector3(s * 0.62, 2.55, dz + 0.3)), Vector3(0.1, 0.1, 0.8), 1.0, Color.WHITE, false)
-	mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.25 + 2.15, dz + 0.05)), Vector3(1.36, 0.16, 0.12), 1.0)
-	mb.add_gable_roof(roof, Transform3D(Basis(), Vector3(0, 2.62, dz + 0.45)), 1.6, 1.0, 0.55, 0.15, 0.7, Color.WHITE, wood)
-	mb.add_box(snow, Transform3D(Basis(), Vector3(0, 3.12, dz + 0.45)), Vector3(0.3, 0.12, 1.3), 0.6)
-	mb.add_box(stone, Transform3D(Basis(), Vector3(0, 0.12, dz + 0.55)), Vector3(1.5, 0.24, 0.9), 0.6, Color(0.85, 0.85, 0.85))
+		mb.add_box(wood, Transform3D(Basis(Vector3.RIGHT, -0.6), Vector3(s * 0.66, 2.6, dz + 0.32)), Vector3(0.1, 0.1, 0.8), 1.0, Color.WHITE, false)
+	mb.add_gable_roof(roof, Transform3D(Basis(), Vector3(0, 2.67, dz + 0.45)), 1.6, 1.0, 0.55, 0.15, 0.7, Color.WHITE, wood)
+	mb.add_box(snow, Transform3D(Basis(), Vector3(0, 3.17, dz + 0.45)), Vector3(0.3, 0.12, 1.3), 0.6)
+	Buildings.door_steps(body, mb, stone, 0.0, dz, 0.25, 1.6, 0.5, 1.2)
 	# windows on other flats, a sill and a little snow on each
 	var n_win := rng.randi_range(2, 4)
 	var used := {}
@@ -192,7 +190,7 @@ static func round_house(seed_value: int, diameter: float, storeys := 1) -> Node3
 	body.add_child(cone)
 	var door := Marker3D.new()
 	door.name = "Door"
-	door.position = Vector3(0, 0.25, dz + 0.9)
+	door.position = Vector3(0, 0.0, dz + 1.4)
 	body.add_child(door)
 	return body
 
@@ -282,9 +280,12 @@ static func storehouse(seed_value: int) -> Node3D:
 	mb.add_box(dark, _xf(Vector3(0, fl + h * 0.5, 0)), Vector3(w - 0.1, h, d - 0.1), 0.6, Color(0.5, 0.45, 0.4))
 	mb.add_gable_roof(roof, _xf(Vector3(0, fl + h + 0.05, 0), PI * 0.5), d, w, d * 0.9, 0.55, 0.6, Color.WHITE, logs)
 	mb.add_box(snow, _xf(Vector3(0, fl + h + d * 0.9 + 0.08, 0)), Vector3(w + 1.0, 0.18, 0.4), 0.6)
-	mb.add_box_unit_uv(PSXMat.lit("door", Color(0.8, 0.72, 0.62), {"vertex_color": false}), _xf(Vector3(0, fl + 0.75, d * 0.5 + 0.08)), Vector3(0.8, 1.45, 0.06))
-	for i in range(2):
-		mb.add_box(dark, _xf(Vector3(0, fl - 0.2 - i * 0.2, d * 0.5 + 0.35 + i * 0.3)), Vector3(1.0, 0.08, 0.3), 1.0, Color.WHITE, false)
+	Buildings.panel_door(mb, _xf(Vector3(0, fl, d * 0.5 + 0.13)), 0.8, 1.5, Buildings.door_leaf(Color(0.5, 0.36, 0.3)), dark)
+	var run := Buildings.door_steps(body, mb, dark, 0.0, d * 0.5 + 0.13, fl, 1.2, 0.4, 0.8, true)
+	var door := Marker3D.new()
+	door.name = "Door"
+	door.position = Vector3(0, 0, d * 0.5 + 0.13 + run + 0.4)
+	body.add_child(door)
 	# sacks against the wall, a sledge leaning on it, drifts at the foot
 	for i in range(3):
 		mb.add_blob(PSXMat.lit("canvas", Color(0.82, 0.76, 0.62)), _xf(Vector3(-w * 0.5 - 0.35, 0.25, -0.6 + i * 0.5), rng.randf() * TAU), Vector3(0.24, 0.3, 0.22), rng, 0.2, 3, 6)
