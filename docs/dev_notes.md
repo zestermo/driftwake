@@ -3208,3 +3208,29 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **The loot-table hook** for island chests and wrecks: `Salvage.roll(rng, pieces, rich := 0.2) -> [[item id, qty]]`
   (kinds merged), append it to a chest's picks.
 - Tests: t/ship/salvage_pickup, yard_buy (salvage costs). Render: tools/dev/salvageshot.gd.
+## 2026-10-17: Brinehollow buildings polish, piece 3: the roof and texture audit
+Rendered every Brinehollow building and street (modelshot per kind; islandshot day and 21:00: village, plaza,
+tavern, porch house, harbour house, north row, smithy, chapel, warehouse, quay, waterfront, roofs from above).
+Found and fixed (Buildings unless said):
+- **A dark line along every roof's slopes** (bld_houses_eye, bld_houses2_eye, day_ware, day_north): the wall plate
+  (w+0.1 x d+0.1) stuck out under the slopes and its top poked through the roof along the eaves. `_plate`: proud of
+  the gable walls, 1 cm inside the walls the slopes come down to (hip: all four); a shed's sits under the walls'
+  top (its roof starts there). The tavern's too.
+- **Posts through steep roofs** (bld_houses2_after_eye): the corner posts under a roof stop 0.15 m short, the upper
+  storey's front and back posts too.
+- **Chimneys swallowed by steep roofs** (smoke out of the thatch): `_roof_y` (each roof kind's height over a point);
+  a chimney rises to 0.6 m over the highest roof under its footprint (never lower than before).
+- **Barge boards and fascias off the eave** with eaves other than 0.5 (themes): placed at the eave's real drop
+  (2 x eaves x pitch; identical at 0.5).
+- **Stretched eave undersides**: the hip and shed roofs' and the porch roof's undersides had one texture tile over
+  a whole face; now mapped like their tops. Same for `MeshBuilder.add_gable_roof` (every gable roof in the game).
+- **The tavern's jetty was open underneath** (bld_tavern_eye: a pale band over the street between the floors): its
+  underside is drawn.
+- Piece 1's finds (step stone and porch floor z-fighting the footing, the porch floating and its posts through its
+  roof, shutters through door frames, awning goods in the air) and piece 2's (the tower and lighthouse doors).
+- Looked at and left: the harbour house's shed eave over its porch roof reads as a stepped double eave (day_harbor);
+  stalls, market and quay paving are fine; KitHouses.room's plates poke slightly through its thatch (the layout agent's
+  file); KitHarbourGen's water houses keep their stair under the deck (they want "steps": false there).
+- **Tests:** t/island/house_roofs (the plate, posts and chimneys against `_roof_y` on every roof kind, 1-2 storeys,
+  pitch 0.45 and 0.8); house_doors, desert_town, snow_foundations pass. Brinehollow's islanddump changes only in its
+  buildings (houses, tavern, smithy, chapel, harbour tower, lighthouse, the waterfront and camp houses).

@@ -218,8 +218,8 @@ func add_gable_roof(mat: Material, xf: Transform3D, w: float, d: float, h: float
 	add_quad(mat, r1, r0, t0, t1, Vector2(0, slope_len), Vector2(dl, slope_len), Vector2(dl, 0), Vector2(0, 0), col, nr)
 	# underside so the overhang isn't see-through from below
 	var nd := (xf.basis * Vector3.DOWN).normalized()
-	add_quad(mat, l0, t0, t1, l1, Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), col * 0.6, nd)
-	add_quad(mat, r0, r1, t1, t0, Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), col * 0.6, nd)
+	add_quad(mat, l0, t0, t1, l1, Vector2(0, slope_len), Vector2(0, 0), Vector2(dl, 0), Vector2(dl, slope_len), col * 0.6, nd)
+	add_quad(mat, r0, r1, t1, t0, Vector2(dl, slope_len), Vector2(0, slope_len), Vector2(0, 0), Vector2(dl, 0), col * 0.6, nd)
 	if gable_mat:
 		var gw := w * 0.5
 		for zs in [-1.0, 1.0]:

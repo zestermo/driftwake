@@ -77,11 +77,11 @@ static func add_hip_roof(mb: MeshBuilder, mat: Material, xf: Transform3D, w: flo
 			mb.add_quad(mat, a, b, f[2], f[3], Vector2(0, 2), Vector2(L, 2), Vector2(L * 0.75, 0), Vector2(L * 0.25, 0), Color.WHITE, n)
 		else:
 			mb.add_tri(mat, a, b, f[2], n, n, n, Vector2(0, 2), Vector2(L, 2), Vector2(L * 0.5, 0), Color.WHITE, n)
-		# underside of the eaves
+		# underside of the eaves, mapped like the top (one tile stretched over a whole face showed under the eaves)
 		if f.size() == 4:
-			mb.add_quad(mat, a, f[3], f[2], b, Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Color(0.55, 0.55, 0.55), -n)
+			mb.add_quad(mat, a, f[3], f[2], b, Vector2(0, 2), Vector2(L * 0.25, 0), Vector2(L * 0.75, 0), Vector2(L, 2), Color(0.55, 0.55, 0.55), -n)
 		else:
-			mb.add_tri(mat, a, f[2], b, -n, -n, -n, Vector2.ZERO, Vector2(0, 1), Vector2(1, 0), Color(0.55, 0.55, 0.55), -n)
+			mb.add_tri(mat, a, f[2], b, -n, -n, -n, Vector2(0, 2), Vector2(L * 0.5, 0), Vector2(L, 2), Color(0.55, 0.55, 0.55), -n)
 
 
 ## Single-slope (shed) roof, high at the back (-Z), low at the front (+Z).
@@ -95,7 +95,7 @@ static func add_shed_roof(mb: MeshBuilder, mat: Material, wall_mat: Material, xf
 	var e := xf * Vector3(-hw, -drop, hd)
 	var n := (xf.basis * Vector3(0, d, rise)).normalized()
 	mb.add_quad(mat, e, c, b, a, Vector2(0, 2.5), Vector2(w * 0.5, 2.5), Vector2(w * 0.5, 0), Vector2(0, 0), Color.WHITE, n)
-	mb.add_quad(mat, e, a, b, c, Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Color(0.55, 0.55, 0.55), -n)
+	mb.add_quad(mat, e, a, b, c, Vector2(0, 2.5), Vector2(0, 0), Vector2(w * 0.5, 0), Vector2(w * 0.5, 2.5), Color(0.55, 0.55, 0.55), -n)
 	# wall triangles on the sides under the slope
 	for s in [-1.0, 1.0]:
 		var x: float = s * w * 0.5
@@ -110,6 +110,33 @@ static func add_shed_roof(mb: MeshBuilder, mat: Material, wall_mat: Material, xf
 # Dressing: shutters, sills, flower boxes, trim
 # ==========================================================================
 ## Shutter / door-frame paints a house can have (one per house).
+## The wall plate under a roof: proud of the gable walls, but just inside the walls the slopes come down
+## to (it stuck out under them and its top poked through the roof along the eaves as a dark line).
+static func _plate(w: float, d: float, roof_kind: String) -> Vector3:
+	match roof_kind:
+		"hip":
+			return Vector3(w - 0.02, 0.18, d - 0.02)
+		"gable_front":
+			return Vector3(w - 0.02, 0.18, d + 0.1)
+	return Vector3(w + 0.1, 0.18, d - 0.02)
+
+
+## The height of a house's roof over (x, z) (Buildings.house's roofs: eaves `ev`, base y0, a shed's at top).
+static func _roof_y(kind: String, uw: float, ud: float, y0: float, top: float, pitch: float, ev: float, x: float, z: float) -> float:
+	match kind:
+		"gable_front":
+			return y0 + uw * pitch - 2.0 * pitch * absf(x)
+		"hip":
+			var hh := minf(uw, ud) * pitch
+			var hd := minf(uw, ud) * 0.5 + ev
+			var r := absf(uw - ud) * 0.5
+			var off := maxf(absf(z), absf(x) - r) if uw >= ud else maxf(absf(x), absf(z) - r)
+			return y0 + hh * (1.0 - off / hd)
+		"shed":
+			return top + ud * pitch * 0.6 * (0.5 - z / ud)
+	return y0 + ud * pitch - 2.0 * pitch * absf(z)
+
+
 const TRIM_COLORS := [Color(0.27, 0.42, 0.62), Color(0.25, 0.5, 0.44), Color(0.6, 0.22, 0.16), Color(0.78, 0.62, 0.26),
 	Color(0.86, 0.85, 0.8), Color(0.35, 0.3, 0.45)]
 const BLOOMS := [Color(0.9, 0.2, 0.22), Color(0.95, 0.82, 0.25), Color(0.92, 0.5, 0.7), Color(0.95, 0.95, 0.92), Color(0.6, 0.4, 0.85)]
@@ -377,15 +404,19 @@ static func house(spec: Dictionary = {}) -> Node3D:
 
 	# ground floor
 	tiled_box(mb, wall, Vector3(0, fl + h * 0.5, 0), Vector3(w, h, d), 3.2, 0.5, true, floors == 1 and roof_kind == "shed")
+	# corner posts (under a roof they stop short of it: their tops poked through a steep one)
+	var ph := h - (0.15 if floors == 1 else 0.0)
 	for x in [-1, 1]:
 		for z in [-1, 1]:
 			if poles:
-				mb.add_cylinder(beam, _xf(Vector3(x * w * 0.5, fl, z * d * 0.5)), 0.13, 0.12, h, 6, 0.6)
+				mb.add_cylinder(beam, _xf(Vector3(x * w * 0.5, fl, z * d * 0.5)), 0.13, 0.12, ph, 6, 0.6)
 			else:
-				mb.add_box(beam, _xf(Vector3(x * w * 0.5, fl + h * 0.5, z * d * 0.5)), Vector3(0.22, h, 0.22), 0.6)
+				mb.add_box(beam, _xf(Vector3(x * w * 0.5, fl + ph * 0.5, z * d * 0.5)), Vector3(0.22, ph, 0.22), 0.6)
 			if lashings:
 				_lash(mb, Vector3(x * w * 0.5, fl + h - 0.2, z * d * 0.5), 0.13)
-	mb.add_box(beam, _xf(Vector3(0, fl + h, 0)), Vector3(w + 0.1, 0.18, d + 0.1), 0.6)
+	# (a shed roof starts at the walls' top, not over them: its plate sits below it)
+	var shed_drop := 0.1 if roof_kind == "shed" else 0.0
+	mb.add_box(beam, _xf(Vector3(0, fl + h - (shed_drop if floors == 1 else 0.0), 0)), _plate(w, d, roof_kind) if floors == 1 else Vector3(w + 0.1, 0.18, d + 0.1), 0.6)
 	dress_door(mb, Vector3(door_x, fl, d * 0.5), dw, dh, door_leaf(paint), beam if painted else trim, beam, roof, porch <= 0.0, window if fan else null)
 	var nwin := maxi(int(w / 2.6), 1)
 	for i in range(nwin + 1):
@@ -429,9 +460,9 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		ud = d + jetty * 2.0
 		tiled_box(mb, wall2, Vector3(0, top + h2 * 0.5 + 0.1, 0), Vector3(uw, h2, ud), 3.2, 0.5, false, roof_kind == "shed")
 		for x in [-uw * 0.5, -uw * 0.17, uw * 0.17, uw * 0.5]:
-			mb.add_box(beam, _xf(Vector3(x, top + h2 * 0.5 + 0.1, ud * 0.5)), Vector3(0.2, h2, 0.2), 0.6)
-			mb.add_box(beam, _xf(Vector3(x, top + h2 * 0.5 + 0.1, -ud * 0.5)), Vector3(0.2, h2, 0.2), 0.6)
-		mb.add_box(beam, _xf(Vector3(0, top + h2 + 0.1, 0)), Vector3(uw + 0.1, 0.18, ud + 0.1), 0.6)
+			mb.add_box(beam, _xf(Vector3(x, top + (h2 - 0.15) * 0.5 + 0.1, ud * 0.5)), Vector3(0.2, h2 - 0.15, 0.2), 0.6)
+			mb.add_box(beam, _xf(Vector3(x, top + (h2 - 0.15) * 0.5 + 0.1, -ud * 0.5)), Vector3(0.2, h2 - 0.15, 0.2), 0.6)
+		mb.add_box(beam, _xf(Vector3(0, top + h2 + 0.1 - shed_drop, 0)), _plate(uw, ud, roof_kind), 0.6)
 		# diagonal braces on the front
 		for s in [-1.0, 1.0]:
 			var bx: float = s * uw * 0.34
@@ -452,6 +483,8 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	var cap := PSXMat.lit(spec.get("roof_tex", "thatch"), Color(0.7, 0.66, 0.62), {"affine": 0.8})
 	var y0 := top + 0.09
 	var ev: float = spec.get("eaves", 0.45 if roof_kind == "hip" else 0.5)
+	# the gable's eave drops this far below y0 (the barge boards and fascias meet it whatever the eaves)
+	var drop := 2.0 * ev * pitch
 	match roof_kind:
 		"gable_front":
 			mb.add_gable_roof(roof, _xf(Vector3(0, y0, 0)), uw, ud, uw * pitch, ev, 0.5, Color.WHITE, wall2)
@@ -459,9 +492,9 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			mb.add_box(cap, _xf(Vector3(0, ry + 0.03, 0)), Vector3(0.26, 0.16, ud + ev * 2.0 + 0.1), 0.8)
 			for z in [-(ud * 0.5 + ev), ud * 0.5 + ev]:
 				for s in [-1.0, 1.0]:
-					beam_between(mb, beam, Vector3(s * (uw * 0.5 + ev), y0 - pitch, z), Vector3(0, ry, z), 0.16, 0.06)
+					beam_between(mb, beam, Vector3(s * (uw * 0.5 + ev), y0 - drop, z), Vector3(0, ry, z), 0.16, 0.06)
 			for s in [-1.0, 1.0]:
-				mb.add_box(beam, _xf(Vector3(s * (uw * 0.5 + ev + 0.02), y0 - pitch - 0.05, 0)), Vector3(0.06, 0.18, ud + ev * 2.0), 0.8)
+				mb.add_box(beam, _xf(Vector3(s * (uw * 0.5 + ev + 0.02), y0 - drop - 0.05, 0)), Vector3(0.06, 0.18, ud + ev * 2.0), 0.8)
 		"hip":
 			var hh := minf(uw, ud) * pitch
 			add_hip_roof(mb, roof, _xf(Vector3(0, y0, 0)), uw, ud, hh, ev)
@@ -483,17 +516,22 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			mb.add_box(cap, _xf(Vector3(0, ry + 0.03, 0)), Vector3(uw + ev * 2.0 + 0.1, 0.16, 0.26), 0.8)
 			for x in [-(uw * 0.5 + ev), uw * 0.5 + ev]:
 				for s in [-1.0, 1.0]:
-					beam_between(mb, beam, Vector3(x, y0 - pitch, s * (ud * 0.5 + ev)), Vector3(x, ry, 0), 0.06, 0.16)
+					beam_between(mb, beam, Vector3(x, y0 - drop, s * (ud * 0.5 + ev)), Vector3(x, ry, 0), 0.06, 0.16)
 			for s in [-1.0, 1.0]:
-				mb.add_box(beam, _xf(Vector3(0, y0 - pitch - 0.05, s * (ud * 0.5 + ev + 0.02))), Vector3(uw + ev * 2.0, 0.18, 0.06), 0.8)
+				mb.add_box(beam, _xf(Vector3(0, y0 - drop - 0.05, s * (ud * 0.5 + ev + 0.02))), Vector3(uw + ev * 2.0, 0.18, 0.06), 0.8)
 
 	if spec.get("chimney", false):
 		var cx := -uw * 0.3
-		mb.add_box(stone, _xf(Vector3(cx, top + 0.9, -ud * 0.15)), Vector3(0.7, 2.6, 0.7), 0.6, Color.WHITE, true, false)
-		mb.add_box(stone, _xf(Vector3(cx, top + 2.25, -ud * 0.15)), Vector3(0.86, 0.12, 0.86), 0.6)
-		mb.add_cylinder(PSXMat.lit("plaster", Color(0.72, 0.42, 0.28)), _xf(Vector3(cx, top + 2.3, -ud * 0.15)), 0.13, 0.11, 0.3, 6, 1.0)
+		var cz := -ud * 0.15
+		# clear of the roof by 0.6 m whatever its pitch (a steep roof swallowed it, smoke and all)
+		var ct := top + 2.2
+		for k in range(4):
+			ct = maxf(ct, _roof_y(roof_kind, uw, ud, y0, top, pitch, ev, cx + (0.35 if k % 2 == 0 else -0.35), cz + (0.35 if k < 2 else -0.35)) + 0.6)
+		mb.add_box(stone, _xf(Vector3(cx, (ct + top - 0.4) * 0.5, cz)), Vector3(0.7, ct - top + 0.4, 0.7), 0.6, Color.WHITE, true, false)
+		mb.add_box(stone, _xf(Vector3(cx, ct + 0.05, cz)), Vector3(0.86, 0.12, 0.86), 0.6)
+		mb.add_cylinder(PSXMat.lit("plaster", Color(0.72, 0.42, 0.28)), _xf(Vector3(cx, ct + 0.1, cz)), 0.13, 0.11, 0.3, 6, 1.0)
 		if spec.get("smoke", true):
-			FX.chimney_smoke(body, Vector3(cx, top + 2.7, -ud * 0.15))
+			FX.chimney_smoke(body, Vector3(cx, ct + 0.5, cz))
 
 	# a few things about the place (only on level ground, it's not built on slopes)
 	if found <= 1.15 and stilts <= 0.0 and spec.get("clutter", true):
@@ -550,7 +588,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 			Vector2(0, 0), Vector2(w * 0.5, 0), Vector2(w * 0.5, 1), Vector2(0, 1), Color.WHITE, Vector3(0, 1, 0.3).normalized())
 		mb.add_quad(roof, Vector3(-w * 0.5 - 0.2, fl + h - 0.05, d * 0.5), Vector3(-w * 0.5 - 0.2, porch_roof_y - 0.2, pz + 0.3),
 			Vector3(w * 0.5 + 0.2, porch_roof_y - 0.2, pz + 0.3), Vector3(w * 0.5 + 0.2, fl + h - 0.05, d * 0.5),
-			Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Color(0.55, 0.55, 0.55), Vector3(0, -1, -0.3).normalized())
+			Vector2.ZERO, Vector2(0, 1), Vector2(w * 0.5, 1), Vector2(w * 0.5, 0), Color(0.55, 0.55, 0.55), Vector3(0, -1, -0.3).normalized())
 
 	# lean-to shed on one side
 	var lean: String = spec.get("lean_to", "")
@@ -714,7 +752,17 @@ static func tavern_hall() -> Node3D:
 		mb.add_box(beam, _xf(Vector3(x, y2 + h2 * 0.5, ud * 0.5)), Vector3(0.2, h2, 0.08), 0.6)
 		mb.add_box(beam, _xf(Vector3(x, y2 + h2 * 0.5, -ud * 0.5)), Vector3(0.2, h2, 0.08), 0.6)
 	mb.add_box(beam, _xf(Vector3(0, y2 + 0.05, 0)), Vector3(uw + 0.1, 0.18, ud + 0.1), 0.6)
-	mb.add_box(beam, _xf(Vector3(0, y2 + h2, 0)), Vector3(uw + 0.1, 0.18, ud + 0.1), 0.6)
+	# the jetty's underside (it was open: the upper walls' insides showed as a pale band over the street)
+	var jy := y2 - 0.045
+	for r in [[-uw * 0.5 - 0.05, uw * 0.5 + 0.05, d * 0.5, ud * 0.5 + 0.05], [-uw * 0.5 - 0.05, uw * 0.5 + 0.05, -ud * 0.5 - 0.05, -d * 0.5],
+			[-uw * 0.5 - 0.05, -w * 0.5, -d * 0.5, d * 0.5], [w * 0.5, uw * 0.5 + 0.05, -d * 0.5, d * 0.5]]:
+		var x0: float = r[0]
+		var x1: float = r[1]
+		var z0: float = r[2]
+		var z1: float = r[3]
+		mb.add_quad(beam, Vector3(x0, jy, z0), Vector3(x1, jy, z0), Vector3(x1, jy, z1), Vector3(x0, jy, z1),
+			Vector2(x0, z0) * 0.6, Vector2(x1, z0) * 0.6, Vector2(x1, z1) * 0.6, Vector2(x0, z1) * 0.6, Color(0.6, 0.6, 0.6), Vector3.DOWN)
+	mb.add_box(beam, _xf(Vector3(0, y2 + h2, 0)), _plate(uw, ud, "gable"), 0.6)
 	for x in [-uw * 0.375, -uw * 0.125, uw * 0.125, uw * 0.375]:
 		mb.add_box_unit_uv(window, _xf(Vector3(x, y2 + 1.35, ud * 0.5 + 0.04)), Vector3(0.8, 0.8, 0.06))
 		mb.add_box_unit_uv(window, _xf(Vector3(x, y2 + 1.35, -ud * 0.5 - 0.04)), Vector3(0.8, 0.8, 0.06))
