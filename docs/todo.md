@@ -243,3 +243,5 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
 - Sword + pistol (Corsair), dual wield, daggers (one and two, the reversed off hand), the v1.10 enemy pass
   (gap closers, poison puddles, the rifleman's tell, smarter dodging pirates), Brinehollow's clifftop den and
   its climb, the coastlines, the inventory refresh.
+
+- Buildings follow-up (2026-10-17): on tall double doors the wall lantern sits close to the door hood's bracket; nudge it out.
