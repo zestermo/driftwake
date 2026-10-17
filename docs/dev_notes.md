@@ -2729,3 +2729,38 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Co-op:** nothing sent: snow, sand and murk come from world time and the place, like the rain.
 - **Tests:** `t/world/theme_weather`. Render: `themewxshot.gd <out> 1 1` (Hoarfell Atoll, snow) and `<out> 2`
   (Mirage Island, desert): tools/dev/out/wx2/snow2_sheet.png, desert3_sheet.png.
+## 2026-10-16: desert polish (the medina, its own lookout and camp, the bandit chief, vultures)
+- **The medina** (VillageLayouts `_medina`, a new layout; POOL and BRINEHOLLOW's `village_layouts` carry it at weight
+  0, so jungle and snow roll exactly as before; the desert's weights are medina 5, town 2, hamlets 2, ruins 2): the
+  town's heart, souk and services, then flat roofs packed ~0.4 m apart instead of the town's metre (`_take`,
+  `_ring_fill`, `_street_houses` take a gap; their defaults are the old numbers, same rng draws): a ring round the
+  plaza, rows along every street and four lanes (12 a street), 2-3 minarets (`_minarets`, 17-23 m) and rings at 27,
+  36 and 44 m facing in; the great domed hall (`DesertTown.great_hall`: portal in a raised frame, arched windows,
+  corner turrets under little domes, the big onion dome on a windowed drum, ~14 m) across from the road in. Seed 7
+  forced medina: 88 buildings (the town had ~26). Desert garden walls (`DesertTown.mud_wall`) and agave pots
+  (`planter`) through `item_models` in place of the jungle's timber fence and green bush.
+- **Its own lookout and camp house** (generic KitStyle keys, BRINEHOLLOW "": the kit's timber tower and rough house):
+  `lookout` (a theme model made at its platform's height; KitStyle.lookout(st, h, seed) for the camp's, the summit's,
+  GenHarbour's and the trading post's towers) and `camp_shack` (IslandContent._camp). The desert's: `watchtower`
+  (mud brick in two setbacks, slit windows, beam ends under a crenellated platform open where the ladder arrives on
+  +Z, a domed kiosk on four posts; the timber tower's interface: platform top at h + 0.09, the summit chest and View
+  area unchanged) and `bandit_hut` (an unwashed blockhouse, broken parapet, striped lean-to over a rug, hides on the
+  roof, jars and sacks).
+- **The bandit chief** (`scripts/enemies/bandit_chief.gd`, extends PirateBoss): the desert's second mini
+  (`minis` hyena, bandit_chief: an island gets one or both). A mini whose entry has `"camp": true` leads the pirates'
+  camp in its captain's place (IslandContent._camp merges his script, look and name into the captain's setup;
+  GruntCamp builds a setup's `"script"`), so the bounty names him. Morrow's fight under a turban with a scimitar,
+  620 hp and every blow scaled by Levels, his own barks, a miniboss's pay. PirateBoss gained overridable `_boss_look`,
+  `_boss_hp`, `_barks`, `_prize` (Morrow's values unchanged).
+- **Minibosses spawn on every theme**: BeastDens._mini handled only the jungle's "boar", so the desert's hyena and the
+  snow's frost alpha never appeared. Now any beast mini goes to its entry's site, named `kind.to_pascal_case()`
+  ("Boar" as before).
+- **Vultures** (SkyBirds kind VULTURE, KitStyle `high_birds` "dark" | "vulture"; the desert's "vulture"): an island's
+  high flocks become kettles of 3-6 big (2.9x) dun-brown birds wheeling slow on a thermal, soaring with a few slow
+  beats, silent. Shader paint 6. Same rng draws as the dark flocks.
+- **DrawLOD on generated islands** gets 64 steps (was 24): its last step does whatever is left, and the medina's
+  geometry overran 24 steps into a 722 ms frame. Extra steps are no-ops once done.
+- **Proof:** islanddump main vs branch: chain seed 4246 (jungle) byte-identical, Brinehollow the three dummies only.
+  **Tests:** t/island/desert_town (hall, minarets, watchtower ladder and platform, hideout, planter, wall, medina in
+  the pool), t/island/bandit_chief, villagetest (medina: 40+ buildings, minarets, the hall), the -Changed -Light set.
+  Renders: tools/dev/out/polish/med7_sheet.png (villageshot seed 7 medina), fid7_after_*, g7_camp, models/desert_skyline_*.

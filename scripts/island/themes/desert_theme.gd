@@ -66,9 +66,12 @@ const STYLE := {
 	"props": {"crate": "crate", "barrel": "desert_urn", "lamp": "desert_lantern_post", "marker": "desert_marker"},
 	"village_models": {"hut": "desert_hut", "tall": "desert_tall", "home": "desert_home", "elder": "desert_home", "trade": "desert_trade",
 		"cook": "desert_cook", "inn": "desert_inn", "workshop": "desert_workshop", "shrine": "desert_shrine", "storehouse": "desert_storehouse",
-		"ruin": "desert_ruin"},
-	"item_models": {"torch": "desert_brazier", "well": "desert_well"},
-	"village_layouts": {"town": 4, "hamlets": 2, "post": 0, "stilts": 0, "ruins": 2},
+		"ruin": "desert_ruin", "hall": "desert_hall", "minaret": "desert_minaret"},
+	"item_models": {"torch": "desert_brazier", "well": "desert_well", "planter": "desert_planter", "fence": "desert_wall"},
+	"village_layouts": {"town": 2, "hamlets": 2, "post": 0, "stilts": 0, "ruins": 2, "medina": 5},
+	"lookout": "desert_watchtower",
+	"camp_shack": "desert_bandit_hut",
+	"high_birds": "vulture",
 	"folk": {
 		"pick": {"skin": [Color(0.86, 0.68, 0.52), Color(0.76, 0.56, 0.4), Color(0.66, 0.47, 0.32), Color(0.55, 0.38, 0.26), Color(0.42, 0.29, 0.2)],
 			"hair_color": [Color(0.08, 0.06, 0.05), Color(0.12, 0.08, 0.06), Color(0.22, 0.14, 0.08)],
@@ -172,13 +175,19 @@ func _init() -> void:
 		"desert_shrine": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertTown.shrine(rng.randi()),
 		"desert_storehouse": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.storehouse(rng.randi(), size),
 		"desert_ruin": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.ruin(rng.randi(), size, snappedf(size * 0.84, 0.1)),
-		"desert_minaret": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.minaret(rng.randi(), 14.0 * size),
+		"desert_minaret": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertTown.minaret(rng.randi(), rng.randf_range(17.0, 23.0)),
+		"desert_hall": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.great_hall(rng.randi(), size - 2.0),
 		"desert_brazier": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.brazier(1.5 * size),
 		"desert_well": func(_rng: RandomNumberGenerator, _size: float) -> Node3D: return DesertTown.well(),
+		"desert_planter": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.planter(rng.randi(), 0.6 * size),
+		"desert_wall": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.mud_wall(rng.randi(), 4.4 * size),
+		# the lookout at its platform's height, the camp's house at its width (style lookout, camp_shack)
+		"desert_watchtower": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.watchtower(rng.randi(), size),
+		"desert_bandit_hut": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.bandit_hut(rng.randi(), size, snappedf(size * 0.82, 0.1)),
 	}
 	life = preload("res://scripts/island/themes/desert_life.gd").TEXT
 	bosses = ["sandworm", "giant_scorpion", "basilisk", "sand_lion"]
-	minis = ["hyena"]
+	minis = ["hyena", "bandit_chief"]
 	roamers = ["dune_strider"]
 	beasts = {
 		"sandworm": {"script": "res://scripts/enemies/beasts/sandworm.gd", "names": ["The Sand King", "The Dune Devourer", "Old Under-the-Sand"], "looks": 3,
@@ -190,6 +199,9 @@ func _init() -> void:
 		"sand_lion": {"script": "res://scripts/enemies/beasts/sand_lion.gd", "names": ["The Sand Lion", "The Golden Mane", "Dusk-Prowler"], "looks": 3,
 			"banner": ["The Lion's Run", "Tracks in circles round the bones. It's watching from the scrub."], "dress": _dress_arena},
 		"hyena": {"script": "res://scripts/enemies/beasts/hyena_alpha.gd", "names": ["Bonecrusher", "Old Laughter", "Gnawbone", "Spotback"], "site": "ruins"},
+		# (a "camp" mini leads the pirates' camp in its captain's place: IslandContent._camp)
+		"bandit_chief": {"script": "res://scripts/enemies/bandit_chief.gd", "names": ["Sharif the Red", "Khalid Sandfang", "The Dune Wolf", "Old Ashar", "Black Rashid"],
+			"site": "camp", "camp": true},
 		"dune_strider": {"script": "res://scripts/enemies/beasts/dune_strider.gd", "names": ["The Dune Strider", "Old Hump", "The Lost Caravan"]},
 	}
 	fauna = FAUNA

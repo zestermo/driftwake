@@ -10,13 +10,15 @@ extends RefCounted
 ##             stilts, ramps down to the ground, lanes of stilt huts beyond
 ##   ruins   - the old village abandoned and overgrown, bugs in its plaza and caches in
 ##             its houses; the survivors (and the services) in a hamlet nearer the shore
+##   medina  - a packed town (the desert's): the town's heart, then houses shoulder to
+##             shoulder in rings and rows, a great domed hall and minarets over the roofs
 ## Every layout keeps the inn, the trader, the cook, the elder and the job board where its
 ## people are. All of it is data, worked out on GenIsland.prepare's worker thread; its
 ## own occupancy (`occ`) keeps the pieces apart, and what it takes is reserved from the
 ## plants at the end (the settlement is a clearing cut into the jungle).
 
 ## The layouts there are (a theme rolls from its style's "village_layouts" weights; Brinehollow's are these).
-const POOL := {"town": 3, "hamlets": 2, "post": 2, "stilts": 2, "ruins": 1}
+const POOL := {"town": 3, "hamlets": 2, "post": 2, "stilts": 2, "ruins": 1, "medina": 0}
 ## Tools and tests set this to build one layout (every island built after uses it).
 static var force := ""
 
@@ -26,7 +28,7 @@ const PER_STREET := 6
 ## [w, d, ext: porch and steps in front] by kind
 const SIZE := {"inn": [8.0, 6.0, 3.6], "trade": [6.4, 5.2, 2.4], "cook": [6.4, 5.2, 2.4], "home": [5.6, 4.6, 2.3], "elder": [6.0, 4.8, 2.3],
 	"hut": [5.0, 4.2, 2.0], "tall": [5.2, 4.6, 2.0], "workshop": [7.5, 5.0, 0.6], "storehouse": [3.6, 3.0, 1.4], "shrine": [4.6, 4.6, 1.0],
-	"ruin": [5.0, 4.2, 0.6]}
+	"ruin": [5.0, 4.2, 0.6], "hall": [12.0, 12.0, 1.6], "minaret": [3.4, 3.4, 0.3]}
 const STREET_KINDS := ["workshop", "home", "tall", "storehouse", "hut", "home", "tall", "hut", "hut", "tall", "hut", "hut", "tall", "hut", "home", "hut"]
 ## Raised (stilts layout): the deck's height over the plaza and its radius.
 const DECK_H := 2.6
@@ -137,6 +139,52 @@ func _town() -> void:
 	for l in lanes:
 		KitPaving.plan_path(kc, quads, KitVillage.cut(l, 0.0, 16.0), 1.15)
 	_worn_fronts(prng)
+
+
+## The town's heart, souk and services, then flat roofs packed close (gaps of ~0.4 m, not the town's metre):
+## a ring round the plaza, rows along every street and lane, minarets, and rings further out facing in.
+func _medina() -> void:
+	_streets_at(site, 74.0)
+	fires.append([c, INF])
+	_market_off(24.0, ["fruit", "fish", "cloth", "pots"], 9.6)
+	_lanes(4)
+	_services(RING_R)
+	var hall_a: float = _free_angle(dock_a, deg_to_rad(70.0))[0]
+	for k in range(6):
+		if _ring("hall", hall_a, RING_R + 6.5 + k * 3.0, PI * 0.5):
+			break
+	if not _shrine_at_lane_end():
+		_ring("shrine", dock_a + PI, RING_R + 2.0, PI)
+	_ring_fill(8, RING_R, "", 0.45, 0.35)
+	var queue: Array = []
+	for k in range(48):
+		queue.append(["tall", "hut", "tall", "home", "hut", "tall", "hut", "hut", "tall", "hut", "tall", "home", "hut", "tall", "storehouse", "hut"][k % 16])
+	_street_houses(queue, 13.0, 12, 0.3, 1.4, 0.35)
+	_minarets(rng.randi_range(2, 3))
+	for e in [[RING_R + 9.0, 12], [RING_R + 17.5, 14], [RING_R + 26.0, 16]]:
+		_ring_fill(e[1], e[0] - 0.4, "", 0.5, 0.35)
+	_plaza(true, 2, 12.8)
+	_market_dressing()
+	_dress_buildings()
+	_dress_streets(13.0)
+	var prng := kc.rng(43)
+	KitPaving.plan_disk(kc, quads, c, 10.5, prng)
+	KitPaving.plan_disk(kc, quads, market["c"], 6.8, prng)
+	KitPaving.plan_path(kc, quads, KitVillage.cut(streets[0], 9.0, 52.0), 1.6)
+	for l in lanes:
+		KitPaving.plan_path(kc, quads, KitVillage.cut(l, 0.0, 24.0), 1.15)
+	_worn_fronts(prng)
+
+
+## n minarets spread round the heart, each as near the ring past the plaza's houses as there's room.
+func _minarets(n: int) -> void:
+	var a0 := rng.randf() * TAU
+	for i in range(n):
+		var a := a0 + TAU * i / n
+		for k in range(36):
+			var p := c + Vector2.from_angle(a + (k % 6 - 2.5) * 0.11) * (RING_R + 5.0 + (k / 6) * 4.5)
+			if _take("minaret", p, c - p, [], 0.2):
+				break
 
 
 func _hamlets() -> void:
@@ -611,11 +659,11 @@ func _size(kind: String) -> Array:
 	return s
 
 
-## Takes the plot at p for a `kind` (door toward `face`) if it's clear: into `blds` and `occ`.
-func _take(kind: String, p: Vector2, face: Vector2, sz: Array = []) -> bool:
+## Takes the plot at p for a `kind` (door toward `face`) if it's clear (by `gap` of everything taken): into `blds` and `occ`.
+func _take(kind: String, p: Vector2, face: Vector2, sz: Array = [], gap := 1.0) -> bool:
 	var s: Array = sz if not sz.is_empty() else _size(kind)
 	var f := face.normalized()
-	if not KitVillage.plot_clear(kc, occ, p, f, s[0], s[1], s[2], 0.6, 1.0) or not _open_ground(p) or not _open_ground(p + f * (s[1] * 0.5 + s[2])):
+	if not KitVillage.plot_clear(kc, occ, p, f, s[0], s[1], s[2], 0.6, gap) or not _open_ground(p) or not _open_ground(p + f * (s[1] * 0.5 + s[2])):
 		return false
 	blds.append({"kind": kind, "p": p, "face": f, "w": s[0], "d": s[1], "ext": s[2], "seed": rng.randi()})
 	occ.append_array(KitVillage.plot_circles(p, f, s[0], s[1], s[2]))
@@ -648,17 +696,17 @@ func _services(r: float) -> void:
 				break
 
 
-## Up to n more houses (`kind`, or huts and tall houses) round the heart at about r.
-func _ring_fill(n: int, r: float, kind := "") -> void:
+## Up to n more houses (`kind`, or huts and a `tall` share of tall houses) round the heart at about r, `gap` apart.
+func _ring_fill(n: int, r: float, kind := "", tall := 0.3, gap := 1.0) -> void:
 	var a0 := rng.randf() * TAU
 	var got := 0
 	for k in range(72):
 		if got >= n:
 			return
 		var a := a0 + k * TAU / 72.0
-		var kd := kind if kind != "" else ("tall" if rng.randf() < 0.3 else "hut")
+		var kd := kind if kind != "" else ("tall" if rng.randf() < tall else "hut")
 		var p := c + Vector2.from_angle(a) * (r + rng.randf_range(-0.3, 1.2))
-		if _take(kd, p, c - p):
+		if _take(kd, p, c - p, [], gap):
 			got += 1
 
 
@@ -674,8 +722,9 @@ func _shrine_at_lane_end() -> bool:
 	return _take("shrine", longest[longest.size() - 1] + t * 5.5, -t)
 
 
-## Houses along both sides of every street from `start` m out (lanes first), from `queue`, at most `per` a street.
-func _street_houses(queue: Array, start: float, per := PER_STREET) -> void:
+## Houses along both sides of every street from `start` m out (lanes first), from `queue`, at most `per` a street,
+## [gap_lo, gap_hi] m between neighbours along it, `gap` clear of everything else.
+func _street_houses(queue: Array, start: float, per := PER_STREET, gap_lo := 1.5, gap_hi := 4.5, gap := 1.0) -> void:
 	for i in range(queue.size() - 1, 4, -1):
 		var j := rng.randi_range(4, i)
 		var tmp = queue[i]
@@ -694,11 +743,11 @@ func _street_houses(queue: Array, start: float, per := PER_STREET) -> void:
 				var t: Vector2 = e[1]
 				var nrm := Vector2(-t.y, t.x) * float(side)
 				var p: Vector2 = e[0] + nrm * (float(widths[si]) + 1.0 + sz[2] + sz[1] * 0.5)
-				if _take(kind, p, -nrm, sz):
+				if _take(kind, p, -nrm, sz, gap):
 					queue.pop_front()
 					got += 1
 					reach[si] = e[2] + sz[0] * 0.5
-					nexts[side] = e[2] + sz[0] + rng.randf_range(1.5, 4.5)
+					nexts[side] = e[2] + sz[0] + rng.randf_range(gap_lo, gap_hi)
 				else:
 					nexts[side] = e[2] + 1.0
 
@@ -804,10 +853,10 @@ func _dress_buildings() -> void:
 				if b["kind"] == "cook" and not b.has("raised"):
 					KitVillage.plan_put(kc, items, occ, "table", p + f * (front - 0.4) - s * 3.4, KitContext.face_yaw(s), 1.5)
 				KitVillage.plan_yard(kc, items, occ, p, f, float(b["w"]), float(b["d"]), front, brng)
-			"shrine":
+			"shrine", "hall":
 				for sd in [-1.0, 1.0]:
 					KitVillage.plan_put(kc, items, occ, "planter", p + f * (front + 0.4) + s * float(sd) * 2.6, 0.0, 0.8, {"r": 0.55})
-			"ruin":
+			"ruin", "minaret":
 				pass
 			_:
 				KitVillage.plan_yard(kc, items, occ, p, f, float(b["w"]), float(b["d"]), front, brng)

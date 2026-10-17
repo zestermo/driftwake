@@ -33,6 +33,12 @@ const BRINEHOLLOW := {
 	"rough": {"flowers": false, "trim": Color(0.36, 0.34, 0.32)},
 	"crew_flag": Color(0.75, 0.3, 0.28),
 	"pirate_flag": Color(0.18, 0.16, 0.16),
+	# a theme's own models (ThemeDef.props) for a lookout tower (made at its platform's height; KitLandmarks.lookout_tower's
+	# interface) and the pirates' camp house (made at its width); "" = the kit's timber tower and a rough house
+	"lookout": "",
+	"camp_shack": "",
+	# the high birds over its islands (SkyBirds): "dark" flocks wheeling or in a V, or "vulture"s soaring on thermals
+	"high_birds": "dark",
 
 	# the material palette: the texture each part is made of (PSXMat shares one material per texture)
 	"mat": {"wall": "planks", "beam": "planks_dark", "floor": "planks", "deck": "planks_weathered", "post": "planks_dark",
@@ -59,8 +65,8 @@ const BRINEHOLLOW := {
 	# a theme's own models for a village's dressing items by kind (torch, well, bench, cart...: KitVillage.build_items);
 	# a lit one's light at its "Flame"
 	"item_models": {},
-	# the village layouts it rolls from, by weight (VillageLayouts: town, hamlets, post, stilts, ruins)
-	"village_layouts": {"town": 3, "hamlets": 2, "post": 2, "stilts": 2, "ruins": 1},
+	# the village layouts it rolls from, by weight (VillageLayouts: town, hamlets, post, stilts, ruins, medina)
+	"village_layouts": {"town": 3, "hamlets": 2, "post": 2, "stilts": 2, "ruins": 1, "medina": 0},
 	# its people (KitStyle.folk_look): pools a villager's look picks from ("<key>_fem" for women), then fixed values
 	"folk": {
 		"pick": {"hat": ["none", "none", "cap", "knit", "bandana"], "top": ["shirt", "shirt", "tunic"], "top_fem": ["blouse", "shirt", "tunic"],
@@ -165,6 +171,13 @@ static func model(kind: String, rng: RandomNumberGenerator, size := 1.0) -> Node
 			return (t.props[kind] as Callable).call(rng, size)
 	push_error("KitStyle: no prop %s" % kind)
 	return null
+
+
+## The style's lookout tower, its platform at `h` (the kit's timber one unless the theme has its own; `seed_value` varies a theme's).
+static func lookout(st: Dictionary, h := 6.0, seed_value := 0) -> Node3D:
+	if str(st["lookout"]) == "":
+		return KitLandmarks.lookout_tower(h)
+	return model(st["lookout"], KitVillage._seeded(seed_value), h)
 
 
 ## A villager of the style: CharacterLook.random_look, then the style's pools and fixed values.

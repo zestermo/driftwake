@@ -17,7 +17,7 @@ extends Node3D
 
 const Footsteps := preload("res://scripts/game/footsteps.gd")
 const MAX := 72
-const CAPS := {GULL: 24, DARK: 36, PARROT: 12}
+const CAPS := {GULL: 24, DARK: 36, PARROT: 12, VULTURE: 18}
 const AWAKE := 650.0
 const SLEEP := 900.0
 const DRAW := 480.0
@@ -29,12 +29,12 @@ const BRINEHOLLOW_SEED := 8181
 const SCATTER_R := 7.0
 const CLOSE := 2.5
 const RUN := 4.5
-const SIZE := {GULL: 1.0, DARK: 1.7, PARROT: 0.65}
-const TOP_SPEED := {GULL: 11.0, DARK: 14.0, PARROT: 10.0}
+const SIZE := {GULL: 1.0, DARK: 1.7, PARROT: 0.65, VULTURE: 2.9}
+const TOP_SPEED := {GULL: 11.0, DARK: 14.0, PARROT: 10.0, VULTURE: 8.0}
 const UNSEEN_EVERY := 3
 const UNSEEN_BEHIND := 4.0
 
-enum { GULL, DARK, PARROT }
+enum { GULL, DARK, PARROT, VULTURE }
 enum { WHEEL, VEE, CIRCLE, TRAIL, PERCH, LAND, SCATTER, HOP, LEAVE }
 
 var birds: Array = []
@@ -211,7 +211,7 @@ func _bird(kind: int, owner: String, mode: int, at: Vector3, rng: RandomNumberGe
 	var b := {"kind": kind, "owner": owner, "mode": mode, "home": mode, "pos": at, "vel": Vector3.ZERO,
 		"yaw": rng.randf() * TAU, "pitch": 0.0, "bank": 0.0, "wing": 0.0, "fold": 0.0, "flap": rng.randf() * TAU,
 		"seed": rng.randf() * 100.0, "keep": rng.randf() * 0.98, "out": true, "gone": false, "dead": false,
-		"paint": float(kind) if kind != PARROT else float(rng.randi_range(2, 5)), "call": rng.randf_range(3.0, 15.0),
+		"paint": float(kind) if kind < PARROT else (6.0 if kind == VULTURE else float(rng.randi_range(2, 5))), "call": rng.randf_range(3.0, 15.0),
 		"t": 0.0, "rest": rng.randf_range(5.0, 25.0), "perch": Vector3.INF, "perch_ship": false, "spot": -1, "acc": 0.0}
 	birds.append(b)
 	return b
@@ -224,22 +224,26 @@ func _make_isle(key: String, e: Array) -> void:
 	rng.seed = int(e[1]) + 4401
 	var radius := float(e[2])
 	var centre := isl.global_position
-	# high flocks: a V going round the island, or a clump wheeling over it
+	# high flocks: a V going round the island, or a clump wheeling over it; over a theme's whose style says
+	# "vulture" (KitStyle high_birds), a few vultures wheeling slow and wide on a thermal instead
+	var kind := VULTURE if key != "brinehollow" and KitStyle.of(str(e[3]))["high_birds"] == "vulture" else DARK
 	for f in range(rng.randi_range(1, 3)):
 		var count := rng.randi_range(5, 10)
-		if birds.size() + count > MAX or _count(DARK) + count > CAPS[DARK]:
+		if kind == VULTURE:
+			count = 3 + count % 4
+		if birds.size() + count > MAX or _count(kind) + count > CAPS[kind]:
 			break
 		var c := centre + Vector3(rng.randf_range(-0.4, 0.4) * radius, 0.0, rng.randf_range(-0.4, 0.4) * radius)
 		var ground := _ground(isl, c)
 		var flock := {"c": c, "a": rng.randf() * TAU, "w": rng.randf_range(0.06, 0.12) * (1.0 if rng.randf() < 0.5 else -1.0),
 			"h": ground + rng.randf_range(38.0, 62.0), "r": rng.randf_range(22.0, 40.0), "R": radius * rng.randf_range(0.45, 0.75)}
-		var vee := rng.randf() < 0.5
+		var vee := rng.randf() < 0.5 and kind == DARK
 		if vee:
 			flock["h"] = maxf(float(flock["h"]), _ground(isl, centre) + 45.0)
 			flock["c"] = centre
 			flock["w"] = signf(float(flock["w"])) * 11.0 / float(flock["R"])
 		for i in range(count):
-			var b := _bird(DARK, key, VEE if vee else WHEEL, c + Vector3(0, float(flock["h"]), 0), rng)
+			var b := _bird(kind, key, VEE if vee else WHEEL, c + Vector3(0, float(flock["h"]), 0), rng)
 			b["flock"] = flock
 			b["rank"] = i
 			b["off"] = rng.randf_range(-0.5, 0.5)
@@ -527,9 +531,10 @@ func _wings(b: Dictionary, delta: float) -> void:
 	b["fold"] = move_toward(float(b["fold"]), 0.0, delta * 6.0)
 	var v: Vector3 = b["vel"]
 	var kind: int = b["kind"]
-	var rate: float = {GULL: 17.0, DARK: 30.0, PARROT: 44.0}[kind]
+	var rate: float = {GULL: 17.0, DARK: 30.0, PARROT: 44.0, VULTURE: 9.0}[kind]
 	var effort := clampf(0.2 + v.y * 0.3 + (1.0 if b["mode"] in [SCATTER, LAND, HOP] else 0.0), 0.0, 1.0)
-	var glides := kind != PARROT and effort < 0.6 and sin(_t * (0.5 if kind == GULL else 0.9) + float(b["seed"])) > (0.1 if kind == GULL else 0.4)
+	# (a vulture soars: a few slow beats now and then)
+	var glides: bool = kind != PARROT and effort < 0.6 and sin(_t * (0.5 if kind == GULL else 0.9) + float(b["seed"])) > ({GULL: 0.1, DARK: 0.4, VULTURE: -0.8}[kind])
 	b["flap"] = float(b["flap"]) + delta * rate
 	if glides:
 		b["wing"] = lerpf(float(b["wing"]), 0.14 + 0.04 * sin(float(b["flap"]) * 0.2), minf(5.0 * delta, 1.0))
@@ -538,7 +543,7 @@ func _wings(b: Dictionary, delta: float) -> void:
 
 
 func _cry(b: Dictionary, delta: float, cam: Vector3) -> void:
-	if b["kind"] == DARK:
+	if b["kind"] == DARK or b["kind"] == VULTURE:
 		return
 	b["call"] = float(b["call"]) - delta
 	if float(b["call"]) > 0.0:

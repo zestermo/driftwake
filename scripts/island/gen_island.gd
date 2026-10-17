@@ -183,7 +183,8 @@ func finish_steps() -> Array:
 	steps.append_array(IslandContent.steps(self))
 	steps.append_array(IslandVillage.steps(self))
 	steps.append_array(life.steps())
-	steps.append_array(DrawLOD.steps(self, 24))
+	# (the last step does whatever's left in one go: a packed town overran 24 into a 700 ms frame)
+	steps.append_array(DrawLOD.steps(self, 64))
 	return steps
 
 
