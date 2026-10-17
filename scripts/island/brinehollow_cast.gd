@@ -193,9 +193,6 @@ static func people(isl: StarterIsland) -> Array:
 			"belt": "belt", "belt_color": L.LEATHER[1], "gloves": true, "gloves_color": L.LEATHER[2]},
 	}}.merged(KitLife.at_marker(kit, isl._smithy, "Smith")))
 
-	# the instrument seller at his shopfront on the market street
-	cast.append(_vendor(kit, _shop(isl, "Shop2"), corin()))
-
 	# Lighthouse keeper on the hill
 	cast.append({"cfg": {
 		"name": "Keeper Ambrose", "dialogue": "ambrose", "voice": 0.8,
@@ -284,8 +281,116 @@ static func corin() -> Dictionary:
 	}
 
 
-static func _shop(isl: StarterIsland, shop_name: String) -> Node3D:
-	return isl.town_spots["shops"].filter(func(s): return s.name == shop_name)[0]
+## The townsfolk on routines (BrinehollowLife, in this order): `cfg` for NPC.setup, `plan` [[hour, spot id
+## (BrinehollowLife._spot), act (optional: the spot's own otherwise)]...] by hour, the day wrapping, `speed`,
+## `carry` (a load on the shoulder walking to a stay marked "carry"). Shopkeepers keep the market street's
+## shops and stalls by day and drink at the Salted Gull after; customers browse; porters haul from the quay;
+## kids run the plaza and the long stair until supper.
+static func townsfolk() -> Array:
+	var out: Array = []
+	out.append({"cfg": corin(), "plan": [[7.4, "vendor:Shop2"], [12.6, "bench:0"], [13.3, "vendor:Shop2"],
+		[19.0, "tavern:fire:0"], [23.6, "home:UpperHouse4"]]})
+	var keepers := [
+		["Hester Quill", "Shop0", 1.12, "UpperHouse0", [
+			"Rope, tar, lamp oil, nails by the pound. If it's on a ship and it isn't the crew, I sell it.",
+			"Ysolde's junk brought in Eastern twine. Stronger than ours. Don't tell the ropewalk.",
+			"Pay what it's worth, not what you think it's worth. We'll both be happier."]],
+		["Abel Marsh", "Shop1", 0.86, "UpperHouse1", [
+			"First shop off the quay. Sailors with a full purse see me before they see Gus.",
+			"Lanterns, oilskins, a good knife. Everything for weather, except luck.",
+			{"text": "Since you cleared the south beach my shutters stay up past dark. Thank you.", "after": "smugglers"}]],
+		["Rosa Tamm", "Shop3", 1.18, "UpperHouse2", [
+			"Up early, closed late, and the upper town still says I keep bankers' hours.",
+			"The stair's a hundred and some steps. I carry my stock up it every night. Look at these calves.",
+			"Buy something, Captain. You've been looking at it for a full minute."]],
+		["Pip Calloway", "StreetStall0", 1.3, "UpperHouse7", [
+			"Best barrow on the street! It's the only barrow on the street. Still the best.",
+			"Mum lets me run the stall now. Mum also counts the takings. Twice.",
+			"Fresh this morning! Well. This morning-ish."]],
+		["Mags Ferrow", "StreetStall1", 1.05, "UpperHouse8", [
+			"Sit if you like. The rug's for selling, but the shade's free.",
+			"I've had this spot since before the street had cobbles. The cobbles are new. I'm not.",
+			"Haggle with me, dear. It's the only exercise I get."]],
+		["Jory Lusk", "StreetStall2", 0.92, "UpperHouse9", [
+			"Two for one, Captain. One for you, one for the sea when you drop it overboard.",
+			"Corin plays the Gull most nights. Come by. I'll be the one singing the wrong words.",
+			"Quiet day. The quiet days are when the pirates are busy somewhere else."]],
+	]
+	for i in range(keepers.size()):
+		var k: Array = keepers[i]
+		out.append({"cfg": {"name": k[0], "voice": k[2], "barks": k[4], "look": KitLife.look_for(k[0])},
+			"plan": [[7.0 + 0.15 * i, "vendor:" + k[1]], [12.2 + 0.2 * i, ("bench:%d" % (1 + i / 2)) if i % 2 == 0 else ("plaza:%d" % (12 + i / 2))],
+				[13.2 + 0.1 * i, "vendor:" + k[1]],
+				[18.8 + 0.25 * i, ("tavern:bar:%d" % (i / 2)) if i % 2 == 0 else ("tavern:seat:%d" % (i / 2))], [22.4 + 0.2 * i, "home:" + k[3]]]})
+	var customers := [
+		["Widow Maple", 1.1, "UpperHouse3", [
+			"I don't need anything. I just like to know what everything costs.",
+			"My Albert sailed with a captain like you. Mind you come back, unlike Albert."]],
+		["Fennick", 0.95, "UpperHouse5", [
+			"Shopping for my wife. She gave me a list. I've lost the list.",
+			"Don't buy from Pip before noon. Prices drop when his mum goes for lunch."]],
+		["Agatha Brine", 1.2, "UpperHouse6", [
+			"No relation to the island. People always ask.",
+			"I come down the stair for bread and go back up for my breath."]],
+		["Cobb", 0.8, "UpperHouse3", [
+			"Market day's every day here. Even Sundays. Especially Sundays.",
+			"Mind the porters. They don't stop for captains and they don't stop for Cobb."]],
+	]
+	var fronts := ["front:Shop0", "front:StreetStall1", "front:market0", "front:Shop3", "front:StreetStall0", "front:market2", "front:Shop1",
+		"front:StreetStall2", "front:market1", "front:Shop2", "front:market3"]
+	for i in range(customers.size()):
+		var c: Array = customers[i]
+		var plan: Array = []
+		for j in range(4):
+			plan.append([8.0 + i * 0.3 + j * 0.9, fronts[(i * 3 + j) % fronts.size()]])
+		plan.append([12.0 + i * 0.25, "plaza:%d" % i, "talk"])
+		for j in range(3):
+			plan.append([13.6 + i * 0.3 + j * 1.0, fronts[(i * 3 + j + 5) % fronts.size()]])
+		plan.append([17.4 + i * 0.3, "plaza:%d" % (4 + i), "talk"])
+		plan.append([19.2 + i * 0.2, "tavern:seat:%d" % (3 + i), "sit"])
+		plan.append([21.8 + i * 0.3, "home:" + c[2]])
+		out.append({"cfg": {"name": c[0], "voice": c[1], "barks": c[3], "look": KitLife.look_for(c[0])}, "plan": plan})
+	var porters := [["Gideon", 0.8], ["Lou Haskett", 1.05], ["Bastian", 0.9]]
+	var drops := ["drop:Warehouse", "front:Shop1", "drop:Warehouse", "front:Shop0", "front:Shop3", "drop:Warehouse", "front:StreetStall1"]
+	for i in range(porters.size()):
+		var plan: Array = []
+		var h := 6.6 + i * 0.35
+		var n := 0
+		while h < 17.5:
+			plan.append([h, "quay:%d" % i, "kneel"])
+			plan.append([h + 0.55, drops[(i * 2 + n) % drops.size()], "kneel", true])
+			h += 1.25
+			n += 1
+		plan.append([h, "plaza:%d" % (8 + i), "talk"])
+		plan.append([19.6 + i * 0.3, ["tavern:bar:3", "tavern:bar:4", "tavern:fire:1"][i]])
+		plan.append([23.2, "home:UpperHouse%d" % (5 + i)])
+		out.append({"cfg": {"name": porters[i][0], "voice": porters[i][1], "barks": [
+				"Can't stop, Captain. Odile counts the crates and Odile counts the minutes.",
+				"Quay to the warehouse, warehouse to the quay. Some days I dream in sacks.",
+				"Heaviest thing I ever carried? Dunk. Home. Twice a week."],
+			"look": KitLife.look_for(porters[i][0])}, "plan": plan, "carry": true})
+	var kids := [["Nell", 1.45], ["Tam", 1.4], ["Wick", 1.5]]
+	var runs := ["plaza:%d", "stair:%d", "front:market%d", "stair:%d", "plaza:%d", "front:StreetStall%d"]
+	for i in range(kids.size()):
+		var plan: Array = []
+		var h := 8.0 + i * 0.1
+		var n := 0
+		while h < 19.0:
+			if h > 12.4 and h < 13.4:
+				plan.append([h, "home:UpperHouse%d" % [1, 7, 8][i]])
+				h = 13.4
+			var run: String = runs[n % runs.size()]
+			plan.append([h, run % ((n + i) % 3 + (12 if run.begins_with("plaza") else 0))])
+			h += 0.5
+			n += 1
+		plan.append([19.0 + i * 0.1, "home:UpperHouse%d" % [1, 7, 8][i]])
+		var lk := KitLife.look_for(kids[i][0])
+		lk.merge({"height": 0.78, "build": "slim", "facial_hair": "none", "coat": "none", "marks": "freckles" if i != 1 else "none"}, true)
+		out.append({"cfg": {"name": kids[i][0], "voice": kids[i][1], "look": lk, "walk_speed": 2.4, "barks": [
+				"You can't catch me! You're not even trying. Try!",
+				"Tam says you're a pirate. I said pirates have parrots. Where's your parrot?",
+				"We're not allowed past the old ruins. So we only go a bit past."]}, "plan": plan})
+	return out
 
 
 ## A vendor behind a stall's counter (its "Vendor" marker), on the ground.
