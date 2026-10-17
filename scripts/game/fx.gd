@@ -2019,12 +2019,6 @@ func water_burst(pos: Vector3, sheet: String, size: float = 2.0, life: float = 0
 ## element awakened a billowing cloud that sheds petals. `thrust`: along the blade's line (a
 ## stab). Other screens lay their own along their copy of the body, which plays the same swing.
 func katana_slash(body: Node3D, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0) -> void:
-	drawn_slash(body, "katana", secs, awake, width, thrust, seed_v)
-
-
-## A weapon's drawn slash (PetalRibbon.LOOKS: "katana", "axe") laid along the path the blade in
-## `body`'s hand takes over the next `secs`; the axe's along its bit.
-func drawn_slash(body: Node3D, kind: String, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0) -> void:
 	if AnimLab.clean or not body is Humanoid:
 		return
 	var cam := get_viewport().get_camera_3d()
@@ -2032,63 +2026,20 @@ func drawn_slash(body: Node3D, kind: String, secs: float, awake: bool = false, w
 		return
 	var r := PetalRibbon.new()
 	r.body = body
-	r.kind = kind
 	r.emit = secs
 	r.awake = awake
 	r.width = width
 	r.thrust = thrust
 	r.seed_v = seed_v
-	r.linger = (0.48 if awake else 0.3) if kind == "axe" else (0.42 if awake else 0.26)
+	r.linger = 0.42 if awake else 0.26
 	body.add_child(r)
 
 
 ## One of the katana's drawn sheets (gen_katana_fx.py: steel_slash, katana_slash, katana_cloud)
 ## played once at `pos`, rolled up to `spin` degrees either way. Unlit, like the drawn water.
 func katana_burst(pos: Vector3, sheet: String, size: float = 1.6, life: float = 0.45, spin: float = 30.0) -> void:
-	drawn_burst(pos, sheet, size, life, spin)
-
-
-## One drawn sheet (the katana's, gen_katana_fx.py; the axe's, gen_axe_fx.py: axe_slash,
-## ember_slash, ember_cloud) played once at `pos`, rolled up to `spin` degrees either way. Unlit.
-func drawn_burst(pos: Vector3, sheet: String, size: float = 1.6, life: float = 0.45, spin: float = 30.0) -> void:
 	flipbook(pos, sheet, 1, size, life, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 		"damping": 0.0, "spin": spin, "fade": 0.9, "lit": false})
-
-
-## Drawn cinders thrown along `dir` (the axe's element): each flares white-hot and cools to a
-## dull red speck as it slows and drifts up. One burst, unlit.
-func cinders(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, size: float = 0.16) -> void:
-	flipbook(pos, "cinder", amount, size, 0.85, {"radius": 0.18, "direction": dir.normalized(), "spread": 45.0,
-		"vel_min": speed * 0.4, "vel_max": speed, "gravity": Vector3(0, 1.4, 0), "damping": 2.6, "hold": true,
-		"scale_min": 0.7, "scale_max": 1.3, "explosiveness": 0.9, "fade": 0.85, "lit": false})
-
-
-var _ash_mat: StandardMaterial3D
-
-
-func _ash() -> StandardMaterial3D:
-	if _ash_mat == null:
-		_ash_mat = _flip_mat("ash").duplicate()
-		_ash_mat.particles_anim_loop = true
-	return _ash_mat
-
-
-## The drawn ash flake on a quad of `size` (BladeEmbers' emitter).
-func ash_quad(size: float) -> QuadMesh:
-	return _quad(size, _ash())
-
-
-## Flakes of ash let go along `dir`, tumbling as they drift slowly down (dimmed at night).
-func ash(pos: Vector3, dir: Vector3, amount: int = 4, speed: float = 1.0, size: float = 0.16) -> void:
-	var k := _night_k()
-	var cfg := {"radius": 0.3, "direction": dir.normalized(), "spread": 60.0, "vel_min": speed * 0.3, "vel_max": speed,
-		"gravity": Vector3(0, -0.5, 0), "damping": 2.0, "hold": true, "scale_min": 0.7, "scale_max": 1.2, "explosiveness": 0.7,
-		"ramp": _flip_ramp(Color(k, k, k), 0.0, 0.7), "start": 1.0, "spin": 180.0}
-	var p := _burst(pos, amount, _ash(), size, 2.0, cfg)
-	if p:
-		_flip_setup(p, cfg)
-		p.anim_speed_min = 1.0
-		p.anim_speed_max = 2.0
 
 
 ## A run of the katana's drawn strip along `from` to `to` (the path of a dash or a blink), drawn on

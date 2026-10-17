@@ -3417,26 +3417,3 @@ Found and fixed (Buildings unless said):
   trunk's 24 wall boxes and the cavern's trimesh), the castle ~35 ms; the cave meshes ~130 ms on the prepare worker.
 - **Tests:** `t/island/forest_places`. Renders: `tools/dev/out/forest/lm5_*` (landmarkshot seed 5, LSHOT_PIECE=cenote,
   LSHOT_MARKS=great_tree: the gorge, the hollow tree, the sawmill, the camps), `c5_forest_castle.png` (forestshot seed 5).
-## 2026-10-17: the axe pass, piece 1 (the combo on swing paths, the drawn iron crescent)
-- **Why:** the katana's fix for the axe (docs/axe_polish_plan.md): the keyed combo's fixed arcs (kesa_r / left / overhead)
-  only roughly matched the swings; hit 2's axe pointed backward and hit 3's raise held it behind the head.
-- **Animation** (`scripts/npc/axe_moves.gd`, AxeMoves; ActionSpecs axe_hack / axe_hook / axe_split, lengths, hit windows
-  and chain times as before: 0.62 / 0.62 / 0.9 s, chain 0.46 / 0.46 / 0.72 s): the right hand rides a swing path
-  (`from_shoulder`, `follow` 1, the katana's frame), the bit leading like a sword's edge. axe_hack: up in front and over
-  the right shoulder with the head laid back (the katana's jodan: the hand above and a little ahead of the shoulder; a hand
-  behind it ran the wrist into its roll limit and laid the axe flat across the head), a beat, then down through the front
-  at a slant to low left, a deep lunge; the off hand on a reach path (out at the target, then flung back past the hip).
-  axe_hook: from hit 1's finish down to the left hip, then ripped up across the front to high right, stepping through on
-  the right foot. axe_split (two-handed, `_axe_hands`): up over the head, laid back through the hop, a beat, then straight
-  down into the ground ahead, held bitten in (the body bends less than before: the old pose all but lay on the ground).
-- **Effects:** PetalRibbon is now every drawn weapon's: `kind` picks its strips (`LOOKS`: katana steel/petal, axe
-  axe_trail/ember_trail); the axe's samples the bit's edge (`WeaponDesigns.axe_head_z`, the mesh's min y) with the crest
-  away from the hand. `FX.drawn_slash(body, kind, ...)` / `drawn_burst` (katana_slash / katana_burst call them, the
-  katana's look unchanged); `DrawnFx` (scripts/game/drawn_fx.gd: WIDTHS axe 0.44 plain / 0.9 awakened, katana as before;
-  KatanaFx forwards to it). LightAttackState "drawn" is the kind ("katana", "axe"); the axe's finisher is 1.25x. Plain:
-  a heavy iron crescent with a puff of dust off the head and one off the tail as it breaks.
-- **Art** (`tools/texture_gen/gen_axe_fx.py`, on gen_katana_fx.py's strokes): axe_trail and ember_trail (8 looping frames
-  of 256x64), flip_axe_slash, flip_ember_slash, flip_ember_cloud (4x4 of 128 px), flip_cinder, flip_ash (4x4 of 64 px).
-  Palettes: iron and dust; fire (char, crimson, red-orange, orange, amber, yellow, white-hot); ash.
-- **Tests:** t/combat/axe_slash (each hit's path in the body's frame, plain, lands). Renders: tools/dev/out/axe_pass/
-  before/ (the old keyed combo, abilityshot of every axe move), after/, lab/.
