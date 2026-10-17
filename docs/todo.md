@@ -161,6 +161,10 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   - Brinehollow's den: check the tower and flag tops aren't visible from far off at the training yard.
 
 ## Later (kept, not scheduled)
+- **Lock hairstyles (parked 2026-10-17):** eight long anime-figure styles built from locks (`scripts/npc/hair_flow.gd`,
+  renders with `tools/dev/hairstudio.gd`, test `t/player/flow_hair`) are on main but out of `CharacterLook.HAIR`.
+  Zach: they need work; get his notes first. Also open: a lite version (7-10k tris, up to 86 bones a head) before NPC
+  pools, and a creator picker for the `hair_tip` ombre.
 - **Combat expansion:** dual axes (own moveset and tree), two-handed hammer, ability tiers and mastery
   (top tiers change how a skill works: a shadow-step dodge, Observation Haki dodging on its own), each new
   weapon its own tree; more minibosses (pirate warlord at a camp, bat swarm-mother, carnivorous plant titan

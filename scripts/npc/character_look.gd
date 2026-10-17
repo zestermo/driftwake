@@ -36,8 +36,7 @@ const MOUTH_STYLES := 6
 const MARKS := ["none", "freckles", "scar", "blush", "war_paint", "age_lines"]
 const HAIR := ["bald", "crop", "short", "long", "ponytail", "bun", "braids", "wild",
 	"swept", "messy", "slick", "topknot", "hime", "twintails", "bob", "side_pony",
-	"quiff", "curtains", "spiky", "shag", "swoop", "low_pony", "layered", "lob", "braid",
-	"cascade", "high_tail", "waves", "princess", "court_bun", "twin_low", "half_bun", "mane"]
+	"quiff", "curtains", "spiky", "shag", "swoop", "low_pony", "layered", "lob", "braid"]
 ## Styles the random looks give each body (any style can still be picked for either).
 const HAIR_MASC := ["bald", "crop", "short", "long", "ponytail", "wild", "swept", "messy", "slick", "topknot",
 	"quiff", "curtains", "spiky", "shag", "swoop"]
