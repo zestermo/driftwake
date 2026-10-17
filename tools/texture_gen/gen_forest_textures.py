@@ -110,11 +110,11 @@ def _crown(seed, base, specks, name, dark):
 
 
 def gen_leaves_maple():
-    _crown(8111, pal("5a1410", "6e1a12", "821f14", "962816"), pal("b02a18", "c43a1c", "d84c20", "e0642a", "c8781e"), "leaves_maple", "3a0e0a")
+    _crown(8111, pal("7a1c12", "922416", "a82e18", "bc3a1c"), pal("b02a18", "c43a1c", "d84c20", "e0642a", "c8781e"), "leaves_maple", "4e140c")
 
 
 def gen_leaves_oak():
-    _crown(8112, pal("4a3018", "5a3a1c", "6a4620", "6a5a24"), pal("8a5424", "a0642a", "b47a30", "8a7a2c", "c48e3a"), "leaves_oak", "2e1e10")
+    _crown(8112, pal("6a4420", "7e5226", "92602c", "8a7430"), pal("8a5424", "a0642a", "b47a30", "8a7a2c", "c48e3a"), "leaves_oak", "3e2a16")
 
 
 def gen_leaves_birch():
@@ -122,12 +122,12 @@ def gen_leaves_birch():
 
 
 def gen_leaves_beech():
-    _crown(8114, pal("6a2e10", "7e3a14", "924618", "a2541c"), pal("c0621e", "d07426", "dc8a30", "b85a1c", "e4a03c"), "leaves_beech", "3e1a0a")
+    _crown(8114, pal("8a3c14", "a04a18", "b45a1e", "c46a24"), pal("c0621e", "d07426", "dc8a30", "b85a1c", "e4a03c"), "leaves_beech", "52240e")
 
 
 def gen_leaves_green():
     """The odd tree still green (late to turn), so a hillside isn't one flat colour."""
-    _crown(8115, pal("243a14", "2e4818", "38561c", "4a5a20"), pal("4e7028", "5e8030", "6e8a34", "8a8a30", "a07a2a"), "leaves_late", "16240c")
+    _crown(8115, pal("34501c", "406020", "4c6e26", "5e7028"), pal("4e7028", "5e8030", "6e8a34", "8a8a30", "a07a2a"), "leaves_late", "16240c")
 
 
 def gen_fir_needles():

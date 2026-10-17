@@ -26,7 +26,7 @@ static func bark(kind := "bark") -> Material:
 			return PSXMat.lit("birch_bark", Color.WHITE)
 		"beech":
 			return PSXMat.lit("beech_bark", Color.WHITE)
-	return PSXMat.lit("bark", Color(0.78, 0.7, 0.62))
+	return PSXMat.lit("bark", Color(1.0, 0.92, 0.84))
 
 
 static func _needles() -> Material:
@@ -81,7 +81,7 @@ static func _broadleaf(mb: MeshBuilder, rng: RandomNumberGenerator, h: float, tr
 	for q in pts:
 		var r := rng.randf_range(blob_r[0], blob_r[1])
 		var up := clampf(((q as Vector3).y - (cc.y - ch * 0.5)) / ch, 0.0, 1.0)
-		var shade := lerpf(0.62, 1.0, up) * rng.randf_range(0.92, 1.05)
+		var shade := lerpf(0.74, 1.0, up) * rng.randf_range(0.92, 1.05)
 		mb.add_blob(pick.call(), Transform3D(Basis(Vector3.UP, rng.randf() * TAU), q), Vector3(r, r * rng.randf_range(0.65, 0.85), r), rng, 0.22, 3, 6, 0.5,
 			Color(shade, shade, shade))
 	return cc

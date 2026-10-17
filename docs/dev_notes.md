@@ -3026,3 +3026,44 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Tests:** t/combat/katana_slash (hit 1 high right to low left, hit 2 level left to right, hit 3 a thrust at the
   target, from the ribbon's samples in the body's frame; each lands on the dummy). Renders: tools/dev/out/anim_before_*
   (the old keyed combo), tools/dev/out/klab/ (lab sheets), tools/dev/out/kab/ (abilityshot).
+## 2026-10-17: the forest island theme, piece 1 (foundations: woods, hills, rivers, falls)
+- **What:** the fourth First Sea theme (docs/forest_island_plan.md), registered after the desert (`IslandThemes.SCRIPTS`,
+  weight 1.0: a quarter of the chain's islands; chains that open on a forest: 5, 7, 9, 13, 14, 15...). Files:
+  `scripts/island/themes/forest_theme.gd` (contract, land, style), `forest_land.gd` (the land), `forest_life.gd` (36 names,
+  7 roles - woodcutter, charcoal-burner, herbalist, mushroom-seller, storyteller, raftsman, cider-presser - barks, rumours,
+  quests in a lumber town's voice), `forest_places.gd` (ForestPlaces), `scripts/props/forest_plants.gd` (ForestPlants),
+  `forest_props.gd` (ForestProps: lantern post, owl waymark), `forest_town.gd` (ForestTown, piece 2),
+  `tools/texture_gen/gen_forest_textures.py` (forest_litter, forest_dirt, forest_rock, forest_beach; leaves_maple / oak /
+  birch / beech / late; fir_needles, birch_bark, beech_bark; bracken, autumn_grass, autumn_bush cards; logs, shingles,
+  plaster_wash, river_cobbles, moss_stone, wisp_glow). Islands 340-460 m.
+- **The woods** (mesh slots): giant = maples (scarlet with orange, one gold), fig = oaks (one ancient, hollow at the foot),
+  kapok = beeches (copper on smooth grey trunks, over the canopy), emergent = firs (dark tiers), roof = red/gold crown
+  pieces; tree = birches (1-3 white stems), young maples, a young fir, a dead snag; beach_tree = shore pines and alders;
+  bush = autumn shrub cards and leaf bushes; fern = bracken; grass = dry grass; shrub = saplings; broadleaf = leaf piles,
+  a fallen log, toadstools; bamboo = stumps and toadstool rings; mangrove = cattails; rock = mossy granite. A broadleaf
+  is a trunk forking into limbs under a crown of leaf blobs (`_broadleaf`: two leaf textures by share at most, shaded
+  darker underneath); its detail is root flares, bracket fungus, a dead limb, toadstools. Woodlands (`forests`, one per
+  island): autumn maple, birch and pine, ancient oak grove, misty firs (more rivers, higher hills). Canopy ~22 m.
+- **The land** (`forest_land.gd`, on the land hooks): rolling hills (`roll_h` 6-10 m of noise over the base land, giving
+  way round the sites), 1-2 rivers (3 in misty firs) from the summit's flanks to the sea. A river's surface is worked out
+  along it in the plan from the land it crosses (the base's height + the hills): a metre under it, down at least 0.12 m
+  a 12 m step, never up, never under `FLOOR` 1.4 m inland (where the land is lower its banks are raised to hold it) until
+  the coast. So where the land rises it cuts in; and with falls (70%; the furthest down its first half where it can drop
+  6-11 m and still run over its floor) the river runs on below the land in a gorge until the land comes down to it: the
+  cross-section is a wide valley where the cut is shallow (banks 22 m) and steep walls where it's deep (4.5 m). The bed
+  0.9 m under the water (wading), a 2.6 m pool at the falls' foot. The river's distance and surface are baked on a 3 m
+  grid in the plan. The first river is aimed past the dock's side (`_dock_angle` replays GenIsland's dock pick from a
+  copy of its stream) and the town stands beside a river (`village_at`: 47 m + its half width off the water's middle,
+  down in the valley rather than on the summit's flank). Paint: rock bed, mud banks. Nothing grows in the water.
+- **Steps:** `forest river` (the flowing water strip along each river where its bed is - not where a site's flat or a
+  place filled it - the falls' curtain and sheet, foam, an InlandPool at the foot, mist and its rush), `forest bridges`
+  (a plank footbridge with rails and a collider where a path crosses a river).
+- **Style:** log and plaster walls, shingle roofs everywhere (mat thatch = shingles), steep pitch 0.95-1.15, chimneys, river
+  cobbles, its lamp, the autumn ground, folk in flannel reds, mustard, forest green, knit caps and hoods, vests and
+  jerkins; cloudier and wetter than the jungle with a pale haze. Interim beasts and wildlife (renamed jungle/snow kinds)
+  until piece 3/4.
+- **Proof:** islanddump of chain seeds 1 (jungle), 4 (snow) and 2 (desert), whose first islands still roll the same theme:
+  byte-identical islands before and after (tools/dev/out/forest/dump_before_* / dump_after_*). Build: prepare ~15 s on the
+  worker (land 2.0-3.0 s with the river grid), ~2-3 s on the main thread over ~165 frames, worst step ~150-230 ms.
+- **Tests:** `t/island/forest_land`. Renders: `genshot.gd tools/dev/out/forest/g5 5`, `forestshot.gd tools/dev/out/forest/f5 5`
+  (new tool).

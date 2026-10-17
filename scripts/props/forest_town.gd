@@ -272,3 +272,224 @@ static func timber_house(seed_value: int, w: float) -> Node3D:
 	Props._add_box_col(body, Vector3(ux * 1.6, rh * 0.8, uz * 2.0), Vector3(0, ry + rh * 0.4, 0))
 	_marker(body, "Door", Vector3(0, 0.0, hz + 0.9))
 	return _finish(body, mb)
+
+
+## A pile of logs into `mb`: `rows` courses along local X, `len` long, narrowing upward, at `at` turned `yaw`.
+## Its box collider into `body`.
+static func log_pile(mb: MeshBuilder, body: Node3D, at: Vector3, yaw: float, rows: int, length: float, rng: RandomNumberGenerator, r := 0.2) -> void:
+	var bark := PSXMat.lit("bark", Color(0.9, 0.78, 0.64))
+	var ends := PSXMat.flat(Color(0.8, 0.64, 0.44))
+	var b := Basis(Vector3.UP, yaw)
+	var n0 := rows + 2
+	for row in range(rows):
+		var n := n0 - row
+		for k in range(n):
+			var z := (k - (n - 1) * 0.5) * r * 2.0
+			var y := r + row * r * 1.72
+			var off := rng.randf_range(-0.25, 0.25)
+			mb.add_cylinder(bark, Transform3D(b * Basis(Vector3.BACK, -PI * 0.5), at + b * Vector3(-length * 0.5 + off, y, z)), r, r * 0.95, length, 6, 0.6,
+				Color.WHITE.darkened(rng.randf() * 0.18), true, true, true, ends)
+	for s in [-1.0, 1.0]:
+		mb.add_cylinder(PSXMat.lit("planks_dark"), Transform3D(b, at + b * Vector3(length * 0.3 * s, -0.1, n0 * r + 0.1)), 0.07, 0.06, rows * r * 1.8 + 0.2, 5, 1.0)
+		mb.add_cylinder(PSXMat.lit("planks_dark"), Transform3D(b, at + b * Vector3(length * 0.3 * s, -0.1, -n0 * r - 0.1)), 0.07, 0.06, rows * r * 1.8 + 0.2, 5, 1.0)
+	KitLandmarks.box_col_xf(body, Vector3(length, rows * r * 1.75 + r, n0 * r * 2.0), Transform3D(b, at + Vector3.UP * (rows * r * 0.87 + r * 0.5)))
+
+
+## The cooper's and sawyer's open shed: posts, a shingle shed roof, a log back wall, a sawhorse with a log
+## half sawn and the two-man saw on it, barrels in the making, staves and hoops, the bench, shavings.
+## Markers: Worker (at the sawhorse, facing it), Bench.
+static func workshop(seed_value: int, size: float) -> Node3D:
+	var rng := _rng(seed_value)
+	var body := Props._body("Workshop")
+	var mb := MeshBuilder.new()
+	var dark := PSXMat.lit("planks_dark")
+	var planks := PSXMat.lit("planks")
+	var bark := PSXMat.lit("bark", Color(0.9, 0.78, 0.64))
+	var ends := PSXMat.flat(Color(0.8, 0.64, 0.44))
+	var shingles := PSXMat.lit("shingles", Color.WHITE, {"affine": 0.7})
+	var iron := PSXMat.lit("metal", Color(0.3, 0.3, 0.32))
+	var w := clampf(size, 6.0, 8.5)
+	var d := 5.0
+	mb.add_box(PSXMat.lit("forest_rock", Color.WHITE, {"affine": 0.6}), _xf(Vector3(0, -0.6, 0)), Vector3(w + 0.2, 1.3, d + 0.2), 0.5, Color(0.8, 0.8, 0.8), true, false)
+	mb.add_box(planks, _xf(Vector3(0, 0.03, 0)), Vector3(w, 0.1, d), 0.5, Color(0.8, 0.76, 0.7))
+	Props._add_box_col(body, Vector3(w + 0.2, 1.3, d + 0.2), Vector3(0, -0.6, 0))
+	for x in [-w * 0.5, 0.0, w * 0.5]:
+		for z in [-d * 0.5, d * 0.5]:
+			var ph := 3.6 if z < 0.0 else 2.8
+			mb.add_cylinder(bark, _xf(Vector3(x, 0.0, z)), 0.16, 0.14, ph, 6, 0.6)
+			Props._add_box_col(body, Vector3(0.3, ph, 0.3), Vector3(x, ph * 0.5, z))
+	mb.add_box(dark, _xf(Vector3(0, 2.75, d * 0.5)), Vector3(w + 0.3, 0.16, 0.18), 0.6, Color.WHITE, false)
+	mb.add_box(dark, _xf(Vector3(0, 3.55, -d * 0.5)), Vector3(w + 0.3, 0.16, 0.18), 0.6, Color.WHITE, false)
+	Buildings.add_shed_roof(mb, shingles, dark, _xf(Vector3(0, 2.82, 0)), w, d, 0.8, 0.6)
+	for i in range(12):
+		_log_x(mb, bark, ends, -w * 0.5, w * 0.5, 0.15 + i * 0.29, -d * 0.5 + 0.12, 0.15, Color.WHITE.darkened(rng.randf() * 0.15))
+	Props._add_box_col(body, Vector3(w, 3.4, 0.3), Vector3(0, 1.7, -d * 0.5 + 0.12))
+	# the sawhorse and its log, the saw across it
+	var sp := Vector3(1.4, 0.0, 0.5)
+	for x in [-0.9, 0.9]:
+		for s in [-1.0, 1.0]:
+			Buildings.beam_between(mb, dark, sp + Vector3(x - 0.15 * s, 0.0, s * 0.35), sp + Vector3(x, 0.75, 0.0), 0.06)
+	_log_x(mb, bark, ends, sp.x - 1.6, sp.x + 1.4, 0.95, sp.z, 0.24)
+	mb.add_box(iron, Transform3D(Basis(Vector3.BACK, 0.15), sp + Vector3(0.6, 1.2, 0.0)), Vector3(1.6, 0.18, 0.02), 1.0)
+	for s in [-1.0, 1.0]:
+		mb.add_cylinder(planks, Transform3D(Basis(), sp + Vector3(0.6 + s * 0.85, 1.05 + s * 0.12, 0.0)), 0.03, 0.03, 0.35, 4, 1.0)
+	Props._add_box_col(body, Vector3(3.2, 1.2, 0.9), sp + Vector3(0, 0.6, 0))
+	# barrels in the making: staves bound by a hoop, open at the top; finished ones stacked
+	for k in range(3):
+		var bp := Vector3(-w * 0.5 + 0.9 + k * 0.9, 0.08, -d * 0.5 + 0.8)
+		var n := 12
+		for i in range(n):
+			var a := TAU * i / n
+			mb.add_box(planks, Transform3D(Basis(Vector3.UP, -a) * Basis(Vector3.RIGHT, 0.06 if k == 0 else 0.0), bp + Vector3(cos(a) * 0.34, 0.45, sin(a) * 0.34)), Vector3(0.18, 0.9, 0.04), 1.0, Color(0.85, 0.7, 0.52))
+		for hy in ([0.2, 0.7] if k == 0 else [0.15, 0.45, 0.78]):
+			mb.add_cylinder(iron, _xf(bp + Vector3(0, hy, 0)), 0.37, 0.37, 0.05, 10, 1.0, Color.WHITE, false, false, false)
+	Props._add_box_col(body, Vector3(2.8, 1.0, 0.8), Vector3(-w * 0.5 + 1.8, 0.5, -d * 0.5 + 0.8))
+	var bench := Vector3(-1.6, 0.0, 0.6)
+	mb.add_box(planks, _xf(bench + Vector3(0, 0.82, 0)), Vector3(2.0, 0.1, 0.6), 1.0, Color.WHITE, false)
+	for x in [-0.85, 0.85]:
+		for z in [-0.22, 0.22]:
+			mb.add_box(dark, _xf(bench + Vector3(x, 0.4, z)), Vector3(0.08, 0.8, 0.08), 1.0)
+	mb.add_box(iron, _xf(bench + Vector3(0.3, 0.9, 0.0), 0.5), Vector3(0.3, 0.06, 0.07), 1.0)
+	Props._add_box_col(body, Vector3(2.0, 0.9, 0.6), bench + Vector3(0, 0.45, 0))
+	var shave := PSXMat.flat(Color(0.86, 0.72, 0.48))
+	for i in range(12):
+		mb.add_blob(shave, _xf(Vector3(rng.randf_range(-1.0, 3.0), 0.1, rng.randf_range(-0.2, 1.6))), Vector3(0.12, 0.02, 0.08), rng, 0.3, 2, 4)
+	_marker(body, "Worker", sp + Vector3(0.4, 0.0, 1.0), PI)
+	_marker(body, "Bench", bench + Vector3(0, 0.0, 0.75), PI)
+	return _finish(body, mb, 400.0)
+
+
+## A timber store: a log shed on stone pads, its plank door, a lean-to with sawn timber racked under it.
+static func storehouse(seed_value: int, size: float) -> Node3D:
+	var rng := _rng(seed_value)
+	var body := Props._body("Storehouse")
+	var mb := MeshBuilder.new()
+	var bark := PSXMat.lit("bark", Color(0.86, 0.72, 0.58))
+	var ends := PSXMat.flat(Color(0.78, 0.62, 0.42))
+	var stone := PSXMat.lit("forest_rock", Color.WHITE, {"affine": 0.6})
+	var shingles := PSXMat.lit("shingles", Color.WHITE, {"affine": 0.7})
+	var dark := PSXMat.lit("planks_dark")
+	var w := clampf(size, 3.2, 5.0)
+	var d := w * 0.8
+	var fl := 0.5
+	for x in [-w * 0.5 + 0.3, w * 0.5 - 0.3]:
+		for z in [-d * 0.5 + 0.3, d * 0.5 - 0.3]:
+			mb.add_box(stone, _xf(Vector3(x, fl * 0.5 - 0.4, z)), Vector3(0.6, fl + 0.8, 0.6), 0.6)
+	for i in range(7):
+		var y := fl + LOG_R + i * LOG_R * 1.9
+		if i % 2 == 0:
+			for z in [-d * 0.5, d * 0.5]:
+				_log_x(mb, bark, ends, -w * 0.5 - 0.25, w * 0.5 + 0.25, y, z, LOG_R, Color.WHITE.darkened(rng.randf() * 0.14))
+		else:
+			for x in [-w * 0.5, w * 0.5]:
+				_log_z(mb, bark, ends, -d * 0.5 - 0.25, d * 0.5 + 0.25, y, x, LOG_R, Color.WHITE.darkened(rng.randf() * 0.14))
+	var top := fl + 7 * LOG_R * 1.9 + 0.1
+	mb.add_box(PSXMat.lit("plaster_wash", Color(0.6, 0.54, 0.44)), _xf(Vector3(0, (fl + top) * 0.5, 0)), Vector3(w - 0.1, top - fl, d - 0.1), 0.5)
+	mb.add_box(PSXMat.lit("planks_weathered"), _xf(Vector3(0, fl + 0.85, d * 0.5 + LOG_R + 0.02)), Vector3(1.0, 1.6, 0.06), 1.0)
+	mb.add_gable_roof(shingles, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, top, 0)), d, w, d * 0.5, 0.45, 0.7, Color.WHITE, dark)
+	# the lean-to and its racked timber
+	var lx := w * 0.5 + 1.0
+	Buildings.add_shed_roof(mb, shingles, dark, _xf(Vector3(lx, top - 0.5, 0)), 2.0, d, 0.5, 0.3)
+	for z in [-d * 0.5, d * 0.5]:
+		mb.add_cylinder(bark, _xf(Vector3(lx + 0.9, 0.0, z)), 0.1, 0.09, top - 0.6, 6, 0.8)
+	var planks := PSXMat.lit("planks", Color(0.92, 0.82, 0.66))
+	for k in range(5):
+		mb.add_box(planks, _xf(Vector3(lx, 0.12 + k * 0.1, 0)), Vector3(1.3, 0.06, d - 0.3), 0.6)
+	Props._add_box_col(body, Vector3(w + 0.5, top, d + 0.5), Vector3(0, top * 0.5, 0))
+	Props._add_box_col(body, Vector3(2.0, 0.7, d), Vector3(lx, 0.35, 0))
+	_marker(body, "Door", Vector3(0, 0.0, d * 0.5 + 1.0))
+	return _finish(body, mb, 450.0)
+
+
+## A wayside shrine of carved wood: a post carved with a stag's head and real antlers on it, under a shingle hood on
+## four posts, a ring of stones, offerings of apples, candles and acorns; a lantern each side.
+## Markers: Keeper (beside the post, facing it), Pray (in front).
+static func shrine(seed_value: int) -> Node3D:
+	var rng := _rng(seed_value)
+	var body := Props._body("Shrine")
+	var mb := MeshBuilder.new()
+	var stone := PSXMat.lit("forest_rock", Color.WHITE, {"affine": 0.6})
+	var wood := PSXMat.lit("bark", Color(0.9, 0.78, 0.64))
+	var carved := PSXMat.lit("planks", Color(0.75, 0.6, 0.45))
+	var dark := PSXMat.lit("planks_dark")
+	var shingles := PSXMat.lit("shingles", Color.WHITE, {"affine": 0.7})
+	var bone := PSXMat.flat(Color(0.86, 0.8, 0.68))
+	mb.add_cylinder(stone, _xf(Vector3(0, -0.3, -0.3)), 2.2, 2.1, 0.5, 10, 0.6, Color(0.85, 0.85, 0.85))
+	Props._add_box_col(body, Vector3(4.0, 0.5, 4.0), Vector3(0, -0.05, -0.3))
+	for k in range(12):
+		var a := TAU * k / 12.0
+		mb.add_blob(stone, _xf(Vector3(cos(a) * 2.3, 0.15, sin(a) * 2.3 - 0.3)), Vector3(0.35, 0.3, 0.3), rng, 0.2, 3, 5, 0.8, Color.WHITE.darkened(rng.randf() * 0.2))
+	var pp := Vector3(0, 0.2, -0.8)
+	mb.add_cylinder(carved, _xf(pp), 0.3, 0.26, 2.0, 8, 0.8)
+	# the stag's head carved at its top, antlers branching off it
+	mb.add_blob(carved, _xf(pp + Vector3(0, 2.15, 0.12)), Vector3(0.28, 0.32, 0.36), rng, 0.08, 3, 6, 0.8)
+	mb.add_blob(carved, _xf(pp + Vector3(0, 2.05, 0.45)), Vector3(0.14, 0.13, 0.2), rng, 0.05, 2, 6, 0.8)
+	var eye := PSXMat.glow(Color(1.0, 0.75, 0.35), 1.2)
+	for s in [-1.0, 1.0]:
+		mb.add_box(eye, _xf(pp + Vector3(s * 0.16, 2.24, 0.36)), Vector3(0.05, 0.04, 0.03), 1.0)
+		var root := pp + Vector3(s * 0.12, 2.42, 0.05)
+		var tip := root + Vector3(s * 0.7, 0.9, -0.1)
+		mb.add_tube(bone, MeshBuilder.curve_points(root, root + Vector3(s * 0.5, 0.25, 0.1), tip, 5), 0.05, 0.02, 4, 1.0)
+		for t in [0.35, 0.65]:
+			var at: Vector3 = MeshBuilder.curve_points(root, root + Vector3(s * 0.5, 0.25, 0.1), tip, 5)[int(t * 5)]
+			mb.add_tube(bone, PackedVector3Array([at, at + Vector3(s * 0.08, 0.32, 0.12)]), 0.03, 0.012, 4, 1.0)
+	Props._add_box_col(body, Vector3(0.7, 2.6, 0.7), pp + Vector3(0, 1.3, 0))
+	for x in [-1.2, 1.2]:
+		for z in [-1.8, 0.4]:
+			mb.add_cylinder(wood, _xf(Vector3(x, 0.2, z)), 0.1, 0.09, 2.9, 6, 0.8)
+			Props._add_box_col(body, Vector3(0.22, 2.9, 0.22), Vector3(x, 1.65, z))
+	mb.add_gable_roof(shingles, _xf(Vector3(0, 3.1, -0.7)), 2.5, 2.3, 1.3, 0.35, 0.7, Color.WHITE, dark)
+	# offerings on a plank at the post's foot: apples, candles, acorns
+	mb.add_box(dark, _xf(pp + Vector3(0, 0.45, 0.55)), Vector3(1.4, 0.08, 0.4), 1.0)
+	var flame := PSXMat.glow(Color(1.0, 0.72, 0.32), 3.0)
+	var wax := PSXMat.flat(Color(0.93, 0.9, 0.8))
+	var apple := PSXMat.flat(Color(0.78, 0.14, 0.1))
+	for i in range(6):
+		var op := pp + Vector3(-0.55 + i * 0.22, 0.49, 0.55)
+		match i % 3:
+			0:
+				mb.add_cylinder(wax, _xf(op), 0.035, 0.03, 0.2, 5, 1.0)
+				mb.add_box(flame, _xf(op + Vector3(0, 0.24, 0)), Vector3(0.04, 0.07, 0.04), 1.0)
+			1:
+				mb.add_blob(apple, _xf(op + Vector3(0, 0.06, 0)), Vector3(0.07, 0.065, 0.07), rng, 0.05, 3, 6)
+			_:
+				mb.add_blob(PSXMat.flat(Color(0.55, 0.38, 0.2)), _xf(op + Vector3(0, 0.04, 0)), Vector3(0.04, 0.05, 0.04), rng, 0.05, 2, 5)
+	for s in [-1.0, 1.0]:
+		var lp := Vector3(s * 1.7, 0.2, 1.4)
+		mb.add_cylinder(dark, _xf(lp), 0.05, 0.05, 1.3, 5, 1.0)
+		mb.add_box(flame, _xf(lp + Vector3(0, 1.45, 0)), Vector3(0.16, 0.22, 0.16), 1.0)
+		mb.add_gable_roof(shingles, _xf(lp + Vector3(0, 1.58, 0)), 0.26, 0.26, 0.14, 0.04, 1.0)
+	_marker(body, "Keeper", pp + Vector3(0.9, 0.2, 0.7), atan2(-0.9, -0.7))
+	_marker(body, "Pray", Vector3(0, 0.2, 2.6), PI)
+	return _finish(body, mb, 400.0)
+
+
+## A split-rail fence `length` along +Z (the village ref's 4.4 m yard sides): posts, two rails, leaves at the foot.
+static func fence(seed_value: int, length := 4.4) -> Node3D:
+	var rng := _rng(seed_value)
+	var body := Props._body("Fence")
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("bark", Color(0.82, 0.7, 0.58))
+	var n := maxi(int(round(length / 2.2)), 1)
+	for k in range(n + 1):
+		var z := length * k / n
+		mb.add_cylinder(wood, _xf(Vector3(0, -0.2, z)), 0.07, 0.06, 1.3 + rng.randf_range(-0.05, 0.08), 5, 1.0)
+	for y in [0.45, 0.9]:
+		for k in range(n):
+			var z0 := length * k / n
+			var z1 := length * (k + 1) / n
+			mb.add_tube(wood, PackedVector3Array([Vector3(0.04, y + rng.randf_range(-0.04, 0.04), z0), Vector3(0.04, y + rng.randf_range(-0.04, 0.04), z1)]), 0.045, 0.04, 4, 1.0)
+	var litter := PSXMat.lit("leaves_maple", Color.WHITE, {"affine": 0.5})
+	for k in range(rng.randi_range(1, 3)):
+		mb.add_blob(litter, _xf(Vector3(rng.randf_range(-0.2, 0.2), 0.0, rng.randf_range(0.3, length - 0.3))), Vector3(0.4, 0.1, 0.5), rng, 0.2, 2, 5, 0.5, Color.WHITE, 0.0)
+	Props._add_box_col(body, Vector3(0.2, 1.1, length), Vector3(0, 0.55, length * 0.5))
+	return _finish(body, mb, 260.0)
+
+
+## A woodpile: split logs stacked between end posts, a chopping block beside (the village's dressing item).
+static func woodpile(seed_value: int, size := 1.0) -> Node3D:
+	var rng := _rng(seed_value)
+	var body := Props._body("Woodpile")
+	var mb := MeshBuilder.new()
+	log_pile(mb, body, Vector3.ZERO, 0.0, 3, 1.4 * size, rng, 0.13)
+	return _finish(body, mb, 260.0)
