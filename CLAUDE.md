@@ -89,22 +89,21 @@ described here (Zach's choice). Tests are how agents prove their work before it 
   a test. The runners share the machine's test slots, skip what already passed with the same contents of
   every file it loads, wait for a run of the same test already in flight, and show up live in Zach's
   **Tests** pane (`/tests`; it reads `.git/crew/live` and `status.json`, where each `t/<group>` folder is a group).
-- **Three tiers, so a feature in progress never pays for the whole game's tests:**
-  1. **While building (any agent, any worktree):** `run_tests.ps1 -Changed -Light` (the tests that load what
-     you changed and that the map says it's about; passes are cached by dependencies, so most are skipped),
-     or the tests that cover what you built by name
-     (`run_tests.ps1 daggertest t/combat`). No nettest. The edit hook compiles each file.
-  2. **Landing a branch** (`land.ps1`): the compile check and `smoketest` (the first islands of four
-     fixed chain seeds built and run: script errors, non-finite transforms, missing services; even with
-     `-NoTests`; `-Exact`, so never carried over the rebase), then the tests the branch affects minus the
-     slow whole-world ones in `tools/dev/heavy.txt` and minus co-op (`run_tests -Changed -Light -Base main`).
-  3. **After a batch of merges, before a push:** `tools/dev/prepush.ps1 -CI`. GitHub runs it all
-     (`.github/workflows/tests.yml`: every suite, the heavy ones and the co-op modes, on ~20 Linux runners) on
-     HEAD's commit pushed to `ci/<branch>`, and a green run pushes that commit (`-NoPush`: just check).
-     `tools/dev/ci.ps1` alone just runs and reports. Local `prepush.ps1` runs every test test_status calls stale
-     (a file it loads changed since its pass), failing or never run on this PC, atomic tests, heavy suites and
-     co-op modes included; since every suite loads the whole game, after a batch that's most of them.
-     This is the only place nettest and the chain/fidelity/perf suites run.
+- **Three tiers, so a feature in progress never pays for the whole game's tests** (Zach, 2026-10-17: suites
+  wait until everything is in, to cut excessive testing):
+  1. **While building (any agent, any worktree):** atomic tests only (`tools/dev/t/<group>/<name>`) and small
+     isolated tests that cover exactly what you built (`run_tests.ps1 t/combat t/fx/petals`). **No world
+     suites** (rNtest, storytest, isletest, villagetest...), no `-Changed` sweep that pulls them in, no nettest.
+     Write the atomic tests your feature needs; say in your report which suites you expect it to affect.
+  2. **Landing a branch:** `land.ps1 -NoTests`: the compile check and `smoketest` (the first islands of four
+     fixed chain seeds built and run: script errors, non-finite transforms, missing services; `-Exact`, so never
+     carried over the rebase).
+  3. **Once every feature of the batch is merged onto main and its conflicts resolved, before a push:** the
+     suites run **locally**, once: `tools/dev/prepush.ps1` (every test test_status calls stale, failing or never
+     run, atomic, heavy and co-op included, up to 5 at a time in the shared slots; it pushes main if all pass;
+     `-NoPush` to just check). **Never on GitHub:** no `-CI` / `ci.ps1` (Zach, 2026-10-17). This is the only place
+     the suites, nettest and the chain/fidelity/perf suites run. The Tests panel (`/tests`) shows what's cached,
+     what each task will need and the push set, and starts this run.
   Run the full suite only when Zach asks.
 - **Don't rerun a test "to be sure":** a pass is cached against the exact contents of what it loads.
 - **Landing re-tests only what the rebase could change:** a pass whose loads the rebase didn't change has
