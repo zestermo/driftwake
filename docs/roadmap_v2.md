@@ -66,3 +66,4 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
   (docs/forest_island_plan.md), built alongside a Brinehollow growth and polish pass (docs/brinehollow_polish_plan.md).
 - The katana's animations and effects are redone in the drawn flipbook style (docs/katana_polish_plan.md); the other weapons' awakenings follow one at a time.
 - Ship upgrades come as tiered, visible lines bought at Tackett's yard for gold + salvage, with a per-captain Seamanship tree; the extra ship classes wait for the canal city (docs/ship_upgrades_plan.md).
+- The drawn-awakening series goes weapon by weapon: katana, then the axe (fire and embers, + Skyfall Smash and War Cry; docs/axe_polish_plan.md), after the katana lands.
