@@ -5,22 +5,153 @@ extends RefCounted
 ## host's with no messages). They walk the town's walk graph (Town: the paths, a ring round the plaza, the long
 ## stair, the upper lanes) between spots resolved by id (_spot: shop and stall counters and fronts, the plaza
 ## and its benches, the Salted Gull's bar, seats and fire, the upper town's doors, the quay, the stair).
+## The town's sound and light (TownLife, brinehollow_town.gd): the market's murmur, the Gull's room, Haldor's
+## hammer, paper lanterns strung across the market street (two lit from the light budget), a lantern post on the
+## long stair, smoke from the new houses' chimneys ("Chimney" markers).
 
 const Folk := preload("res://scripts/island/brinehollow_folk.gd")
+const TownLife := preload("res://scripts/island/brinehollow_town.gd")
 const RING_R := 9.5
 const JOIN := 3.2
 ## The walk graph's reach from the plaza (the quay to the shrine terrace).
 const REACH := 140.0
 const BRIDGE := 9.0
+const LANTERN_UP := 4.3
 
 
 static func build(isl: StarterIsland) -> void:
-	var life := Node3D.new()
+	var life := TownLife.new()
 	life.name = "TownLife"
 	isl.add_child(life)
 	var made: Array = []
 	isl.kit.timed("life walks", func(): made.append(Town.new(isl)))
 	isl.kit.timed("life people", func(): _people(isl, made[0]))
+	isl.kit.timed("life lights", func(): _lights(isl, life))
+	_sounds(isl, life)
+	for m in isl.find_children("Chimney", "Marker3D", true, false):
+		life.chimneys.append([m, null])
+
+
+# --------------------------------------------------------------------------
+# Sound and light
+# --------------------------------------------------------------------------
+static func _bed(life: TownLife, file: String, at: Vector3, kind: String, base_db: float, unit: float, reach: float) -> void:
+	var p := AudioStreamPlayer3D.new()
+	var s := (load("res://assets/audio/%s.wav" % file) as AudioStreamWAV).duplicate() as AudioStreamWAV
+	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	s.loop_begin = 0
+	# (in frames: the imported data is QOA-compressed, so its byte count says nothing)
+	s.loop_end = int(round(s.get_length() * s.mix_rate))
+	p.stream = s
+	p.unit_size = unit
+	p.max_distance = reach
+	p.bus = "Ambience"
+	p.position = at
+	life.add_child(p)
+	life.beds.append([p, kind, base_db])
+
+
+## A point `frac` of the way along a polyline.
+static func _along(pl: PackedVector2Array, frac: float) -> Vector2:
+	var cum := KitLife.measure(pl)
+	return KitLife.sample(pl, cum, cum[cum.size() - 1] * frac)[0]
+
+
+static func _sounds(isl: StarterIsland, life: TownLife) -> void:
+	var kit := isl.kit
+	for frac: float in [0.35, 0.7]:
+		var q := _along(isl.paths[0], frac)
+		_bed(life, "market_murmur_loop", Vector3(q.x, kit.hv(q) + 1.8, q.y), "day", -4.0, 7.0, 45.0)
+	_bed(life, "market_murmur_loop", Vector3(StarterIsland.MARKET.x, kit.hv(StarterIsland.MARKET) + 1.8, StarterIsland.MARKET.y), "day", -8.0, 5.0, 35.0)
+	var tav: Node3D = isl._tavern
+	var tq := kit.local_point(tav, Vector3.ZERO)
+	_bed(life, "tavern_room_loop", Vector3(tq.x, kit.marker_y(tav, "Barkeep") + 1.5, tq.y), "night", -2.0, 4.0, 26.0)
+	var anvil := AudioStreamPlayer3D.new()
+	var takes := AudioStreamRandomizer.new()
+	takes.playback_mode = AudioStreamRandomizer.PLAYBACK_RANDOM_NO_REPEATS
+	takes.random_pitch = 1.04
+	for k in range(4):
+		takes.add_stream(-1, load("res://assets/audio/anvil_%d.wav" % (k + 1)))
+	anvil.stream = takes
+	anvil.unit_size = 5.0
+	anvil.max_distance = 60.0
+	anvil.volume_db = -3.0
+	anvil.bus = "SFX"
+	var sq := kit.marker_point(isl._smithy, "Smith")
+	anvil.position = Vector3(sq.x, kit.marker_y(isl._smithy, "Smith") + 1.0, sq.y)
+	life.add_child(anvil)
+	life.anvil = anvil
+
+
+## Paper lanterns strung between the market street's shopfronts facing each other (a string from each one to the
+## nearest across the street), glowing after dark; real light from the budget at the middle of the two longest;
+## a lantern post by the long stair's middle landing, lit.
+static func _lights(isl: StarterIsland, life: TownLife) -> void:
+	var kit := isl.kit
+	var road: PackedVector2Array = isl.paths[0]
+	var fronts: Array = []
+	for s: Node3D in isl.town_spots["shops"]:
+		if not str(s.name).begins_with("Shop"):
+			continue
+		var c: Vector3 = (s.get_node("Customer") as Node3D).position
+		var w := kit.local_point(s, Vector3(0, 0, c.z - 2.2))
+		var near := road[0]
+		for q in road:
+			if q.distance_squared_to(w) < near.distance_squared_to(w):
+				near = q
+		fronts.append([w, near, s.position.y + LANTERN_UP])
+	var strings: Array = []
+	for i in range(fronts.size()):
+		var best := -1
+		for j in range(fronts.size()):
+			var across: bool = (fronts[i][0] - fronts[i][1]).dot(fronts[j][0] - fronts[j][1]) < 0.0
+			if across and fronts[i][0].distance_to(fronts[j][0]) < 18.0 and (best < 0 or fronts[i][0].distance_to(fronts[j][0]) < fronts[i][0].distance_to(fronts[best][0])):
+				best = j
+		if best >= 0 and not strings.any(func(p): return p == [best, i] or p == [i, best]):
+			strings.append([i, best])
+	var rope := MeshBuilder.new()
+	var day := MeshBuilder.new()
+	var night := MeshBuilder.new()
+	var cord := PSXMat.lit("planks_dark")
+	var cols := [Color(0.85, 0.3, 0.2), Color(0.95, 0.75, 0.4), Color(0.9, 0.55, 0.25)]
+	var mids: Array = []
+	for st in strings:
+		var a: Array = fronts[st[0]]
+		var b: Array = fronts[st[1]]
+		var A := Vector3(a[0].x, a[2], a[0].y)
+		var B := Vector3(b[0].x, b[2], b[0].y)
+		var n := 8
+		var prev := A
+		for k in range(1, n + 1):
+			var t := float(k) / n
+			var q := A.lerp(B, t) - Vector3.UP * 0.7 * 4.0 * t * (1.0 - t)
+			Buildings.beam_between(rope, cord, prev, q, 0.03)
+			prev = q
+		var count := int(A.distance_to(B) / 1.5)
+		for k in range(1, count):
+			var t := float(k) / count
+			var q := A.lerp(B, t) - Vector3.UP * (0.7 * 4.0 * t * (1.0 - t) + 0.28)
+			var col: Color = cols[(k + st[0]) % cols.size()]
+			for mb_mat in [[day, PSXMat.lit("fabric", col)], [night, PSXMat.glow(col, 2.2)]]:
+				(mb_mat[0] as MeshBuilder).add_cylinder(mb_mat[1], Transform3D(Basis(), q - Vector3.UP * 0.15), 0.13, 0.15, 0.3, 6, 1.0)
+		mids.append([A.distance_to(B), A.lerp(B, 0.5) - Vector3.UP * 0.9])
+	for mb_name in [[rope, "LanternCords"], [day, "LanternsDay"], [night, "LanternsNight"]]:
+		var mi: MeshInstance3D = (mb_name[0] as MeshBuilder).to_instance(mb_name[1])
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 160.0
+		life.add_child(mi)
+	life.lanterns_day = life.get_node("LanternsDay")
+	life.lanterns_night = life.get_node("LanternsNight")
+	life.lanterns_night.visible = false
+	mids.sort_custom(func(x, y): return x[0] > y[0])
+	for m in mids.slice(0, 2):
+		KitLights.light(kit, life, m[1], 1.4, 9.0)
+	# the long stair's middle landing: a newel post at its corner where the flight comes up, its arm over the landing
+	var landing: Vector3 = isl.town_spots["stair"][3]
+	var post := Props.lantern_post(2.6)
+	kit.put(post, Vector3(landing.x + 1.35, landing.y, landing.z + 0.2), PI)
+	KitLights.light(kit, post, Vector3(0.55, 2.0, 0.0), 1.4)
+	life.stair_post = post
 
 
 # --------------------------------------------------------------------------

@@ -532,6 +532,8 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		mb.add_cylinder(PSXMat.lit("plaster", Color(0.72, 0.42, 0.28)), _xf(Vector3(cx, ct + 0.1, cz)), 0.13, 0.11, 0.3, 6, 1.0)
 		if spec.get("smoke", true):
 			FX.chimney_smoke(body, Vector3(cx, ct + 0.5, cz))
+		else:
+			_marker(body, "Chimney", Vector3(cx, ct + 0.5, cz))
 
 	# a few things about the place (only on level ground, it's not built on slopes)
 	if found <= 1.15 and stilts <= 0.0 and spec.get("clutter", true):

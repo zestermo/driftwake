@@ -3465,3 +3465,18 @@ Found and fixed (Buildings unless said):
   vertices, no new lights; the parts themselves are UpgradeMesh (13 surfaces, one per texture) and
   UpgradeFine (1). Per frame: nothing while nobody steers; the helmsman's and gunner's stat lookups are cached
   by Progression.stat. Copper and gilt are flat paint (the metal texture read olive and dull).
+
+## 2026-10-17: Brinehollow life, piece 3: smoke, lanterns, the town's sound
+- **TownLife** (scripts/island/brinehollow_town.gd, made by BrinehollowLife): one node ticking every 0.5 s (local on every screen, from
+  Weather.hour): the beds' gains (`day_gain`, `night_gain`), Haldor's hammer runs, the lanterns' day/night meshes, chimney smoke. Its
+  players stop past FAR_R 220 m.
+- **Sound** (tools/texture_gen/gen_town_audio.py, new, built on gen_psx_audio's helpers): `market_murmur_loop` (47.3 s, -20.2 LU:
+  formant babble of sixteen voices, calls, laughs, coins) at two points on the market street and one in the old market; `tavern_room_loop`
+  (41.7 s, -20.2 LU) in the Salted Gull; `anvil_1..4` (-17.2 LU) at the Smith marker in runs of strikes, 7:30-18:00. All 3D players.
+- **Light**: paper lanterns on cords from each street shopfront to the nearest one across the street (4.3 m up, sagging; three meshes:
+  cords, day paper, night glow), the two longest strings' middles lit (NightLight from the budget), and a newel lantern post at the long
+  stair's middle landing (lit). 3 of the budget; LIGHTS left after: 3 (the harbour gets 2).
+- **Smoke**: Buildings.house now puts a "Chimney" Marker3D where its smoke would be when a spec says `"smoke": false` (only Brinehollow's
+  new town, farm and cove hut do: 5 chimneys); TownLife makes FX.chimney_smoke at one a tick once the camera's within 60 m and stops it
+  emitting past 80 m.
+- **Tested by** t/island/brinehollow_town. Renders: tools/dev/out/life/p3_night_street.png (the lanterns), p3_day_upper.png.

@@ -121,6 +121,10 @@ inside a loop (0.7 at 6 s = an audible 6 s beat).
 | blizzard_loop | new 10-15 | not wired yet: Weather, in rain's place on snow islands | | | 43 s, -20 LU: hard wind whistling on three edges, driving snow, howling sweeps |
 | step_snow (4) / step_ice (4) | new 10-15 | not wired yet (FX.SOUNDS + Footsteps) | | | snow: soft thump, dense squeaky crunch, -21 LU; ice: sharp click, a ring at 1.7-4.9 kHz, -19.5 LU |
 
+| market_murmur_loop | gen_town_audio 10-17 | 3D (BrinehollowLife's TownLife): two on Brinehollow's market street (-4 dB, unit 7, 45 m), one in the old market (-8 dB), by day (6:30 in, gone by 20:30) | | | 47.3 s, -20.2 LU, centroid 504 Hz, 89% at 200-1k: sixteen voices of formant babble near and far, vendors' calls, laughs, coins; repeat 0.18 |
+| tavern_room_loop | gen_town_audio 10-17 | 3D in the Salted Gull (-2 dB, unit 4, 26 m): a few at lunch, full 19:30-0:30 | | | 41.7 s, -20.2 LU, centroid 563 Hz: close talk, laughter, mugs and coins on tables, two cheers, the fire, rolled off above 3.6 kHz; repeat 0.20 |
+| anvil (4 takes) | gen_town_audio 10-17 | 3D at Haldor's anvil (SFX, unit 5, 60 m), 7:30-18:00: runs of 3-7 strikes 0.55-0.75 s apart, 3-9 s between | | | -17.2 LU, 0.9 s: a bright ring (1.1-1.4 kHz and up) over a dull knock and a tick |
+
 All ambience loops are now levelled to -20 LU and mixed by TOP_DB (sea_deep -22, underwater -21).
 
 Under water (10-14): Ambience adds an AudioEffectLowPassFilter ("underwater", 12 dB/oct) to the SFX and
