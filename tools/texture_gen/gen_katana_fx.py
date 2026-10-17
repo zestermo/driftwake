@@ -248,7 +248,7 @@ def gen_katana_slash() -> list:
     rng = np.random.default_rng(8412)
     cx, cy, r0 = 0.0, 0.2, 0.62
     curl_s = 0.22
-    pet = [(rng.uniform(0.1, 1.1), rng.uniform(0.15, 0.6), rng.uniform(0.0, 6.3), rng.uniform(2.2, 3.6), rng.uniform(0.6, 1.4))
+    pet = [(rng.uniform(0.1, 1.1), rng.uniform(0.15, 0.6), rng.uniform(0.0, 6.3), rng.uniform(4.0, 6.0), rng.uniform(0.6, 1.4))
            for _ in range(9)]
     frames = []
     for i in range(N):
@@ -286,7 +286,7 @@ def gen_katana_cloud() -> list:
     them, turning a little, then shrinking apart into small puffs; a petal or two let go."""
     rng = np.random.default_rng(8413)
     lob = [(rng.uniform(0, 2 * np.pi), rng.uniform(0.18, 0.3), rng.uniform(0.32, 0.5)) for _ in range(6)]
-    pet = [(rng.uniform(0.0, 6.3), rng.uniform(0.2, 0.45), rng.uniform(2.0, 3.2)) for _ in range(3)]
+    pet = [(rng.uniform(0.0, 6.3), rng.uniform(0.2, 0.45), rng.uniform(4.0, 5.5)) for _ in range(3)]
     frames = []
     for i in range(N):
         t = i / (N - 1)
@@ -335,7 +335,7 @@ def gen_sakura() -> list:
     for i in range(N):
         t = i / N
         img = np.zeros((fr, fr, 4))
-        petal(img, 0.0, 0.0, 22.0, 0.5 + 2 * np.pi * t * 0.5, np.cos(2 * np.pi * t), 2.0 / fr)
+        petal(img, 0.0, 0.0, 27.0, 0.5 + 2 * np.pi * t * 0.5, np.cos(2 * np.pi * t), 2.0 / fr)
         frames.append(img)
     return frames
 
@@ -425,7 +425,7 @@ def gen_petal_trail() -> Image.Image:
     fx = xx / TRAIL_W
     rng = np.random.default_rng(8422)
     lob = [(c * 32 + rng.uniform(-4, 4), rng.uniform(12.0, 16.0)) for c in range(8)]
-    pets = [(rng.uniform(0, TRAIL_W), rng.uniform(0, 1), rng.uniform(0, 6.3), rng.uniform(2.6, 3.8)) for _ in range(7)]
+    pets = [(rng.uniform(0, TRAIL_W), rng.uniform(0, 1), rng.uniform(0, 6.3), rng.uniform(4.0, 5.5)) for _ in range(7)]
     for f in range(TRAIL_FRAMES):
         p = f / TRAIL_FRAMES
         ph = 2 * np.pi * p
