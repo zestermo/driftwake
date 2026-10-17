@@ -86,7 +86,10 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 	for tp in [at.call(-6.0, -3.5), at.call(-5.5, 4.0), at.call(-1.5, -6.5)]:
 		isl.place(KitCamps.tent(st["camp_tent"]), site, tp, StarterIsland.face_yaw(c - tp), 2.0)
 	var shack_p: Vector2 = at.call(-11.0, 0.0)
-	isl.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4}.merged(st["rough"]), site, shack_p, f)
+	if str(st["camp_shack"]) == "":
+		isl.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4}.merged(st["rough"]), site, shack_p, f)
+	else:
+		isl.place(KitStyle.model(st["camp_shack"], KitVillage._seeded(int(isl.node["seed"]) + 61), 5.5), site, shack_p, StarterIsland.face_yaw(f), 3.4)
 	var stash: Vector2 = at.call(4.5, 5.0)
 	isl.place(KitStyle.prop(st, "crate", rng, 1.1), site, stash, 0.3, 1.0)
 	isl.place(KitStyle.prop(st, "crate", rng, 0.9), site, stash + s * 1.0, 0.9, 1.0)
@@ -96,7 +99,7 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 	for lp in [at.call(3.0, -3.0), at.call(-7.0, 4.5)]:
 		isl.place(KitStyle.prop(st, "lamp", rng), site, lp)
 	var tower_p: Vector2 = at.call(8.0, -9.0)
-	isl.place(KitLandmarks.lookout_tower(), site, tower_p, StarterIsland.face_yaw(f), 2.6)
+	isl.place(KitStyle.lookout(st, 6.0, int(isl.node["seed"]) + 67), site, tower_p, StarterIsland.face_yaw(f), 2.6)
 	var pole := MeshBuilder.new()
 	pole.add_cylinder(PSXMat.lit("bark"), Transform3D.IDENTITY, 0.08, 0.06, 6.0, 5, 1.0)
 	var jolly := HullBuilder.jolly_material()
@@ -134,8 +137,15 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 		"hat_color": C[rng.randi() % C.size()], "coat": "longcoat", "coat_color": C[rng.randi() % C.size()],
 		"trim_color": CharacterLook.TRIM[rng.randi() % CharacterLook.TRIM.size()], "marks": "scar"}, true)
 	var cap_post: Vector2 = shack_p + f * 4.5 - s * 1.0
-	crew.add_grunt({"post": v3.call(cap_post), "yaw": _yaw_to(cap_post, cap_post + f), "mode": "stand", "seed": seed0 + 6,
-		"look": lk, "captain": true, "title": "Captain " + cap_name})
+	var cap := {"post": v3.call(cap_post), "yaw": _yaw_to(cap_post, cap_post + f), "mode": "stand", "seed": seed0 + 6,
+		"look": lk, "captain": true, "title": "Captain " + cap_name}
+	# a miniboss that leads the camp (BeastPool, a "camp" mini: the desert's bandit chief) stands in the captain's place
+	for m in isl.node["minis"]:
+		var info := BeastPool.info(isl.theme, str(m))
+		if info.get("camp", false):
+			var chief = load(info["script"])
+			cap.merge({"script": info["script"], "look": chief.chief_look(KitVillage._seeded(int(isl.node["seed"]) + 73)), "title": BeastPool.mini_name(isl, str(m))}, true)
+	crew.add_grunt(cap)
 	site.add_child(crew)
 	var baker := isl.get_parent().get_node_or_null("NavBaker")
 	if baker:
@@ -225,7 +235,7 @@ static func _summit(isl: GenIsland) -> void:
 	var site := isl.site_node("summit")
 	var face: Vector2 = isl.dock_dir
 	var th := KitLandmarks.summit_h(isl.theme)
-	var tower := isl.place(KitLandmarks.lookout_tower(th), site, c, StarterIsland.face_yaw(face), 2.6)
+	var tower := isl.place(KitStyle.lookout(KitStyle.of(isl.theme), th, int(isl.node["seed"]) + 71), site, c, StarterIsland.face_yaw(face), 2.6)
 	# a small chest up on the platform, and the view
 	var t := tier(isl)
 	var bag := isl.strongbox(site, c, tower.global_rotation.y, "summit_chest", [["gold", 8 + t * 4], ["treasure", 1]], 0.8)

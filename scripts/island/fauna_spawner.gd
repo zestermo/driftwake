@@ -73,6 +73,9 @@ static func roll(theme: String, seed_v: int) -> Dictionary:
 		out["morph"][k] = rng.randi() % 3
 	var amb := {"swarms": rng.randi_range(3, 10), "flocks": rng.randi_range(0, 4), "fireflies": rng.randf() < 0.8, "butterflies": rng.randf() < 0.8}
 	# (one in 125 rolled no swarm and no flock: a bare island. Those get a flock; no other roll changes)
+	if not KitStyle.of(theme)["ambient_bugs"]:
+		amb["fireflies"] = false
+		amb["butterflies"] = false
 	if not (amb["fireflies"] or amb["butterflies"]):
 		amb["flocks"] = maxi(int(amb["flocks"]), 1)
 	out["ambient"] = amb

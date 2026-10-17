@@ -621,6 +621,221 @@ static func minaret(seed_value: int, h: float) -> StaticBody3D:
 	return body
 
 
+## The great domed hall over a medina's roofs (the royal city's palace dome): a tall block on a
+## sandstone plinth, an arched portal in a raised frame on its front, arched windows, a crenellated
+## parapet, corner turrets under little domes and the great onion dome on a windowed drum. Seen,
+## not entered. `size` is its width and depth.
+static func great_hall(seed_value: int, size := 10.0) -> StaticBody3D:
+	var rng := _rng(seed_value)
+	var body := _body("Hall")
+	var mb := MeshBuilder.new()
+	var stone := _stone()
+	var w := size
+	var h := rng.randf_range(6.6, 7.6)
+	var fl := 0.6
+	var col: Color = [Color(1.0, 0.97, 0.92), Color(1.0, 0.92, 0.78), Color(0.98, 0.84, 0.74)][rng.randi() % 3]
+	_footing(mb, body, w + 0.8, w + 0.8, fl)
+	_block(mb, Vector3(0, fl + h * 0.5, 0), Vector3(w, h, w), col)
+	_box(body, Vector3(w, h, w), Vector3(0, fl + h * 0.5, 0))
+	# the portal: a raised frame proud of the front, a deep arch in it, a lamp hung in the arch
+	var pw := w * 0.46
+	var ph := h + 1.3
+	_block(mb, Vector3(0, fl + ph * 0.5, w * 0.5 + 0.2), Vector3(pw, ph, 0.4), col.darkened(0.03))
+	mb.add_box(stone, _xf(Vector3(0, fl + ph + 0.05, w * 0.5 + 0.2)), Vector3(pw + 0.2, 0.12, 0.6), 0.8, STONE_COL)
+	_arch_recess(mb, _xf(Vector3(0, fl, w * 0.5 + 0.41)), pw - 1.2, ph - 1.3, false)
+	mb.add_box_unit_uv(PSXMat.lit("door", Color(1.0, 0.9, 0.8), {"vertex_color": false}), _xf(Vector3(0, fl + 1.2, w * 0.5 + 0.43)), Vector3(1.6, 2.4, 0.04))
+	mb.add_box(PSXMat.glow(Color(1.0, 0.75, 0.4), 2.2), _xf(Vector3(0, fl + ph - 2.4, w * 0.5 + 0.7)), Vector3(0.24, 0.32, 0.24), 1.0)
+	mb.add_box(stone, _xf(Vector3(0, fl * 0.5, w * 0.5 + 1.0)), Vector3(pw, fl, 1.2), 0.6, Color(0.9, 0.88, 0.85))
+	_box(body, Vector3(pw, ph, 0.4), Vector3(0, fl + ph * 0.5, w * 0.5 + 0.2))
+	# arched windows round the other three sides, two rows
+	for yaw in [-PI * 0.5, PI * 0.5, PI]:
+		var xf := _xf(Vector3(0, fl, 0), yaw) * _xf(Vector3(0, 0, w * 0.5 + 0.005))
+		_windows(mb, xf, w, 2.0, rng, INF, false, 0.25)
+		_windows(mb, xf, w, 4.9, rng, INF, true, 0.25)
+	_windows(mb, _xf(Vector3(0, fl, w * 0.5 + 0.005)), w, 4.9, rng, 0.0, true, 0.25)
+	_parapet(mb, w, w, fl + h, col, true)
+	# corner turrets, each under a little dome
+	var glaze: Color = DOMES[rng.randi() % DOMES.size()]
+	for cx in [-1.0, 1.0]:
+		for cz in [-1.0, 1.0]:
+			var tp := Vector3(cx * (w * 0.5 - 0.1), fl, cz * (w * 0.5 - 0.1))
+			mb.add_cylinder(_adobe(), _xf(tp), 0.6, 0.55, h + 1.6, 8, 0.5, col)
+			dome(mb, tp + Vector3(0, h + 1.6, 0), 0.62, glaze, true, 0.1)
+	# the drum, ringed with arched windows, and the great dome
+	var r := w * 0.3
+	var dy := fl + h + 0.15
+	var drum := 1.7
+	for k in range(8):
+		var a := TAU * k / 8.0 + PI / 8.0
+		_arch_recess(mb, _xf(Vector3(sin(a) * r * 1.03, dy + 0.35, cos(a) * r * 1.03), a), 0.45, 1.0, rng.randf() < 0.5)
+	dome(mb, Vector3(0, dy, 0), r, DOMES[rng.randi() % DOMES.size()], rng.randf() < 0.75, drum)
+	body.add_child(mb.to_instance("HallMesh"))
+	return body
+
+
+## The desert's lookout (KitStyle "lookout"): a mud-brick tower narrowing in two setbacks, slit
+## windows, beam ends under a crenellated platform at `h` open on its +Z side where the ladder
+## arrives, a little domed kiosk on four posts over the platform. KitLandmarks.lookout_tower's
+## interface: the platform's top at h, the ladder up the +Z face.
+static func watchtower(seed_value: int, h := 6.0) -> StaticBody3D:
+	var rng := _rng(seed_value)
+	var body := _body("LookoutTower")
+	var mb := MeshBuilder.new()
+	var stone := _stone()
+	var col: Color = [Color(0.95, 0.86, 0.7), Color(0.98, 0.9, 0.78), Color(0.9, 0.78, 0.62)][rng.randi() % 3]
+	const E := 1.9
+	var top := h + 0.09
+	_footing(mb, body, 3.8, 3.8, 0.3)
+	var hws := [1.75, 1.6, 1.45]
+	var y := 0.3
+	for i in range(3):
+		var hw: float = hws[i]
+		var sh := (h - 0.6 - 0.3) / 3.0
+		_block(mb, Vector3(0, y + sh * 0.5, 0), Vector3(hw * 2.0, sh, hw * 2.0), col.darkened(i * 0.02))
+		_box(body, Vector3(hw * 2.0, sh, hw * 2.0), Vector3(0, y + sh * 0.5, 0))
+		if i > 0:
+			mb.add_box(stone, _xf(Vector3(0, y + 0.04, 0)), Vector3(hw * 2.0 + 0.36, 0.08, hw * 2.0 + 0.36), 0.8, STONE_COL)
+		# a slit window on each side but the ladder's, one lit now and then
+		for yaw in [-PI * 0.5, PI * 0.5, PI]:
+			var lit := rng.randf() < 0.2
+			mb.add_box(_window() if lit else _dark(), _xf(Vector3(0, 0, 0), yaw) * _xf(Vector3(rng.randf_range(-0.4, 0.4), y + sh * 0.55, hw + 0.01)), Vector3(0.2, 0.8, 0.04), 1.0)
+		y += sh
+	# the platform on a band of beam ends, its slab out to E
+	var hw2: float = hws[2]
+	_block(mb, Vector3(0, y + 0.3, 0), Vector3(hw2 * 2.0, 0.6, hw2 * 2.0), col.darkened(0.04))
+	for yaw in [0.0, PI * 0.5, PI, -PI * 0.5]:
+		var b := Basis(Vector3.UP, yaw)
+		for k in range(4):
+			mb.add_cylinder(_beam(), Transform3D(b * Basis(Vector3.RIGHT, PI * 0.5), b * Vector3(-1.05 + k * 0.7, top - 0.42, hw2 - 0.1)), 0.06, 0.06, 0.5, 5, 1.0, Color(0.9, 0.85, 0.8), true, true)
+	mb.add_box(stone, _xf(Vector3(0, top - 0.15, 0)), Vector3(E * 2.0, 0.3, E * 2.0), 0.6, STONE_COL, false)
+	_box(body, Vector3(E * 2.0, 0.3, E * 2.0), Vector3(0, top - 0.15, 0))
+	# the parapet: three sides whole, the +Z side either side of the gap the ladder comes up through
+	var adobe := _adobe()
+	var pt := 0.22
+	var ph := 0.95
+	for e in [[Vector3(0, 0, -E + pt * 0.5), Vector3(E * 2.0, ph, pt)], [Vector3(-E + pt * 0.5, 0, 0), Vector3(pt, ph, E * 2.0)], [Vector3(E - pt * 0.5, 0, 0), Vector3(pt, ph, E * 2.0)],
+			[Vector3(-1.25, 0, E - pt * 0.5), Vector3(1.3, ph, pt)], [Vector3(1.25, 0, E - pt * 0.5), Vector3(1.3, ph, pt)]]:
+		var at: Vector3 = e[0]
+		var sz: Vector3 = e[1]
+		mb.add_box(adobe, _xf(at + Vector3(0, top + ph * 0.5, 0)), sz, 0.5, col, false)
+		_box(body, sz, at + Vector3(0, top + ph * 0.5, 0))
+		var n := maxi(int(maxf(sz.x, sz.z) / 0.55), 1)
+		for k in range(0, n, 2):
+			var off := -maxf(sz.x, sz.z) * 0.5 + (k + 0.5) * maxf(sz.x, sz.z) / n
+			var mp := at + (Vector3(off, 0, 0) if sz.x > sz.z else Vector3(0, 0, off))
+			mb.add_box(adobe, _xf(mp + Vector3(0, top + ph + 0.15, 0)), Vector3(0.3 if sz.x > sz.z else pt, 0.3, pt if sz.x > sz.z else 0.3), 0.5, col)
+	# the kiosk: four posts, a slab, a little dome
+	var kq := E - 0.35
+	for sx in [-1.0, 1.0]:
+		for sz2 in [-1.0, 1.0]:
+			mb.add_cylinder(stone, _xf(Vector3(sx * kq, top, sz2 * kq)), 0.1, 0.09, 2.3, 6, 0.8, STONE_COL)
+	mb.add_box(adobe, _xf(Vector3(0, top + 2.38, 0)), Vector3(kq * 2.0 + 0.5, 0.16, kq * 2.0 + 0.5), 0.5, col, false)
+	dome(mb, Vector3(0, top + 2.46, 0), 0.95, DOMES[rng.randi() % DOMES.size()], rng.randf() < 0.6, 0.15)
+	body.add_child(mb.to_instance("WatchtowerMesh"))
+	var lad := Ladder.new()
+	lad.length = top
+	lad.rail = 0.0
+	lad.deck_depth = 1.0
+	lad.position = Vector3(0, top, E)
+	body.add_child(lad)
+	return body
+
+
+## The bandits' hideout (the desert's camp house, KitStyle "camp_shack"): a squat blockhouse of
+## unwashed mud brick, its parapet crumbling, a dark arched doorway, a patched striped lean-to on
+## poles out front over a rug, hides drying on the roof, jars and sacks against the walls. Front +Z.
+static func bandit_hut(seed_value: int, w := 5.5, d := 4.5) -> StaticBody3D:
+	var rng := _rng(seed_value)
+	var body := _body("Shack")
+	var mb := MeshBuilder.new()
+	var adobe := _adobe()
+	var col := Color(0.86, 0.72, 0.56).darkened(rng.randf() * 0.08)
+	var h := rng.randf_range(2.6, 2.9)
+	var fl := 0.2
+	_footing(mb, body, w + 0.2, d + 0.2, fl)
+	_block(mb, Vector3(0, fl + h * 0.5, 0), Vector3(w, h, d), col)
+	_box(body, Vector3(w, h, d), Vector3(0, fl + h * 0.5, 0))
+	# a parapet in broken stretches
+	for s in [-1.0, 1.0]:
+		for k in range(4):
+			var ph := rng.randf_range(0.15, 0.6)
+			mb.add_box(adobe, _xf(Vector3(-w * 0.5 + (k + 0.5) * w / 4.0, fl + h + ph * 0.5, s * (d * 0.5 - 0.1))), Vector3(w / 4.0 + 0.01, ph, 0.2), 0.5, col.darkened(0.05))
+		for k in range(3):
+			var ph := rng.randf_range(0.15, 0.6)
+			mb.add_box(adobe, _xf(Vector3(s * (w * 0.5 - 0.1), fl + h + ph * 0.5, -d * 0.5 + (k + 0.5) * d / 3.0)), Vector3(0.2, ph, d / 3.0 - 0.02), 0.5, col.darkened(0.05))
+	_vigas(mb, w, d * 0.5 + 0.1, fl + h - 0.3)
+	_arch_recess(mb, _xf(Vector3(-0.6, fl, d * 0.5)), 1.1, 2.1, false)
+	for x in [-w * 0.5 + 0.8, w * 0.5 - 0.8]:
+		mb.add_box(_dark(), _xf(Vector3(x, fl + 1.6, d * 0.5 + 0.01)), Vector3(0.45, 0.4, 0.04), 1.0)
+		mb.add_box(_beam(), _xf(Vector3(x, fl + 1.36, d * 0.5 + 0.06)), Vector3(0.6, 0.06, 0.1), 1.0)
+	_windows(mb, _xf(Vector3(0, fl, -d * 0.5 - 0.005), PI), w, 1.6, rng, INF, false, 0.0)
+	# the lean-to: patched canvas on two poles, a rug under it
+	_awning(mb, ["awning_red", "awning_gold"][rng.randi() % 2], 3.0, d * 0.5 + 0.05, fl + 2.3, 1.8)
+	mb.add_box(PSXMat.lit("canvas", Color(0.75, 0.66, 0.52)), _xf(Vector3(0.6, fl + 2.1, d * 0.5 + 1.0), 0.1) * Transform3D(Basis(Vector3.RIGHT, 0.28), Vector3.ZERO), Vector3(0.9, 0.03, 0.8), 1.0, Color.WHITE, false)
+	mb.add_quad(PSXMat.lit("rug_kilim"), Vector3(-1.3, 0.03, d * 0.5 + 0.3), Vector3(1.3, 0.03, d * 0.5 + 0.3), Vector3(1.3, 0.03, d * 0.5 + 1.9), Vector3(-1.3, 0.03, d * 0.5 + 1.9),
+		Vector2.ZERO, Vector2(1, 0), Vector2(1, 0.6), Vector2(0, 0.6), Color(0.8, 0.75, 0.7), Vector3.UP)
+	# hides pegged out on the roof
+	var hide := PSXMat.lit("leather", Color(0.75, 0.55, 0.38))
+	for k in range(2):
+		mb.add_box(hide, _xf(Vector3(rng.randf_range(-1.2, 1.2), fl + h + 0.05, rng.randf_range(-1.0, 0.6)), rng.randf() * TAU), Vector3(1.3, 0.04, 0.9), 1.0, Color.WHITE.darkened(k * 0.15), false)
+	# jars by the wall, sacks by the door
+	var clay := PSXMat.lit("adobe", Color(0.85, 0.55, 0.38))
+	for k in range(3):
+		KitHouses._jar(mb, clay, _xf(Vector3(-w * 0.5 - 0.35, 0.0, -d * 0.3 + k * 0.6)), rng.randf_range(0.9, 1.2))
+	var sack := PSXMat.lit("canvas", Color(0.8, 0.72, 0.56))
+	for k in range(3):
+		mb.add_blob(sack, _xf(Vector3(w * 0.5 - 0.5 - k * 0.55, 0.3, d * 0.5 + 0.45)), Vector3(0.3, 0.32, 0.26), rng, 0.12, 3, 6, 1.0, Color.WHITE, 0.0)
+	_box(body, Vector3(0.5, 1.0, 1.8), Vector3(-w * 0.5 - 0.35, 0.5, 0.3))
+	body.add_child(mb.to_instance("ShackMesh"))
+	return body
+
+
+## A low mud-brick garden wall (the desert's fence) `length` along +Z from the origin: stretches
+## of uneven height under a sandstone coping, footed below the ground.
+static func mud_wall(seed_value: int, length := 4.4) -> StaticBody3D:
+	var rng := _rng(seed_value)
+	var mb := MeshBuilder.new()
+	var col := (WASH[rng.randi() % WASH.size()] as Color).lerp(Color(0.9, 0.78, 0.62), 0.5)
+	var n := 3
+	for k in range(n):
+		var h := rng.randf_range(0.8, 1.05)
+		var z := (k + 0.5) * length / n
+		mb.add_box(_adobe(), _xf(Vector3(0, (h - 0.4) * 0.5, z)), Vector3(0.36, h + 0.4, length / n + 0.01), 0.5, col.darkened(rng.randf() * 0.06))
+		mb.add_box(_stone(), _xf(Vector3(0, h + 0.03, z)), Vector3(0.44, 0.07, length / n - 0.02), 0.8, STONE_COL)
+	var body := _body("Fence")
+	body.add_child(mb.to_instance("WallMesh"))
+	_box(body, Vector3(0.36, 1.0, length), Vector3(0, 0.5, length * 0.5))
+	return body
+
+
+## A clay pot with an agave in it (the desert's planter); `r` the pot's radius.
+static func planter(seed_value: int, r := 0.6) -> StaticBody3D:
+	var rng := _rng(seed_value)
+	var mb := MeshBuilder.new()
+	var clay := PSXMat.lit("adobe", [Color(0.88, 0.56, 0.4), Color(0.8, 0.5, 0.36), Color(0.95, 0.85, 0.7)][rng.randi() % 3])
+	mb.add_loft(clay, Transform3D.IDENTITY, [[0.0, r * 0.7, r * 0.7], [r * 0.5, r, r], [r * 0.95, r * 0.92, r * 0.92], [r * 1.0, r * 1.02, r * 1.02], [r * 1.08, r * 1.0, r * 1.0]],
+		MeshBuilder.profile_circle(10), 1.0, Color.WHITE, true)
+	mb.add_cylinder(PSXMat.lit("desert_hardpan"), _xf(Vector3(0, r * 0.98, 0)), r * 0.95, r * 0.95, 0.02, 10, 1.0)
+	var leaf := PSXMat.flat(Color(0.42, 0.56, 0.44))
+	var n := rng.randi_range(9, 13)
+	for k in range(n):
+		var a := TAU * k / n + rng.randf_range(-0.2, 0.2)
+		var up := rng.randf_range(0.5, 1.2)
+		var out := Vector3(cos(a), 0, sin(a))
+		var base := Vector3(0, r * 1.0, 0)
+		mb.add_tube(leaf, MeshBuilder.curve_points(base, base + out * 0.25 + Vector3(0, up * 0.7, 0), base + out * (0.45 + up * 0.25) + Vector3(0, up * 0.75, 0), 4), 0.07, 0.0, 3, 1.0, Color.WHITE.darkened(rng.randf() * 0.2))
+	var body := _body("Planter")
+	body.add_child(mb.to_instance("PlanterMesh"))
+	var cs := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = r
+	cyl.height = r * 1.08
+	cs.shape = cyl
+	cs.position = Vector3(0, r * 0.54, 0)
+	body.add_child(cs)
+	return body
+
+
 ## A brazier on an iron tripod (the desert's torch), its coals aglow; "Flame" over them.
 static func brazier(h := 1.5) -> StaticBody3D:
 	var mb := MeshBuilder.new()

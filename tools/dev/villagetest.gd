@@ -144,3 +144,5 @@ func _check_layout(kind: String) -> void:
 			check("hamlets: two or more hamlets away from the hub", vil.hamlets.size() >= 3 and vil.hamlets.slice(1).all(func(h): return (h["c"] as Vector2).distance_to(isl.sites["village"]) > 60.0))
 		"town":
 			check("town: lanes off the plaza, a market and a shrine", vil.lanes.size() >= 1 and not vil.market.is_empty() and kinds.has("shrine"))
+		"medina":
+			check("medina: packed (%d buildings), minarets and the domed hall" % b.size(), b.size() >= 40 and kinds.count("minaret") >= 1 and kinds.has("hall") and not vil.market.is_empty())

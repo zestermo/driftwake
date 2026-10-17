@@ -44,6 +44,8 @@ static func assign(chain: Chain) -> void:
 		# (a small pool with its layer's neighbours taken: only the islands before are kept from repeating)
 		if left.is_empty():
 			left = pool.filter(func(k): return not before.has(k))
+		if left.is_empty():
+			left = pool
 		var kind: String = left[rng.randi() % left.size()]
 		var b: Dictionary = theme.beasts[kind]
 		n["beast"] = kind

@@ -36,6 +36,58 @@ static func lamp_post(height: float) -> Node3D:
 	return body
 
 
+## A wooden fence (the village ref's) `length` along +Z from the origin: dark posts every ~2.2 m with
+## snow on their tops, two rails, snow lying along the top rail and drifted against the foot.
+static func fence(seed_value: int, length := 4.4) -> Node3D:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var body := Props._body("Fence")
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks_dark")
+	var snow := PSXMat.lit("snow", Color.WHITE, {"affine": 0.5})
+	var h := 1.05
+	var n := maxi(int(round(length / 2.2)), 1)
+	for k in range(n + 1):
+		var z := length * k / n
+		var ph := h + rng.randf_range(-0.06, 0.08)
+		mb.add_box(wood, _xf(Vector3(0, ph * 0.5 - 0.2, z), rng.randf_range(-0.08, 0.08)), Vector3(0.13, ph + 0.4, 0.13), 1.0, Color.WHITE.darkened(rng.randf() * 0.15))
+		mb.add_box(snow, _xf(Vector3(0, ph + 0.04, z)), Vector3(0.17, 0.08, 0.17), 1.0, Color.WHITE, false)
+	for y in [0.42, 0.86]:
+		mb.add_box(wood, _xf(Vector3(0.02, y, length * 0.5)), Vector3(0.06, 0.13, length), 0.8, Color(0.9, 0.88, 0.85), false)
+	mb.add_box(snow, _xf(Vector3(0.02, 0.95, length * 0.5)), Vector3(0.1, 0.05, length - 0.1), 0.6, Color.WHITE, false)
+	for k in range(n):
+		var z := length * (k + 0.5) / n
+		mb.add_blob(snow, _xf(Vector3(rng.randf_range(-0.15, 0.15), 0.0, z), rng.randf() * TAU), Vector3(0.45, 0.22, length / n * 0.45), rng, 0.15, 3, 6, 0.6, Color.WHITE, 0.0)
+	body.add_child(mb.to_instance("FenceMesh"))
+	Props._add_box_col(body, Vector3(0.2, h, length), Vector3(0, h * 0.5, length * 0.5))
+	return body
+
+
+## A wooden tub with a little fir in it, snow on its boughs (the snow's planter); `r` the tub's radius.
+static func planter(seed_value: int, r := 0.55) -> Node3D:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var body := Props._body("Planter")
+	var mb := MeshBuilder.new()
+	var wood := PSXMat.lit("planks_dark")
+	var iron := PSXMat.lit("metal", Color(0.2, 0.2, 0.23))
+	var snow := PSXMat.lit("snow", Color.WHITE, {"affine": 0.5})
+	var leaf := PSXMat.lit("pine_snow")
+	mb.add_cylinder(wood, _xf(Vector3.ZERO), r * 0.9, r, r * 1.1, 8, 1.0, Color.WHITE, true)
+	for y in [0.2, 0.85]:
+		mb.add_cylinder(iron, _xf(Vector3(0, r * 1.1 * y, 0)), r * (0.92 + y * 0.08) + 0.01, r * (0.92 + y * 0.08) + 0.01, 0.06, 8, 1.0)
+	mb.add_cylinder(snow, _xf(Vector3(0, r * 1.1 - 0.02, 0)), r * 0.95, r * 0.9, 0.06, 8, 0.6)
+	mb.add_cylinder(wood, _xf(Vector3(0, r * 1.1, 0)), 0.06, 0.05, 0.4, 5, 1.0)
+	var fh := rng.randf_range(1.1, 1.5)
+	for k in range(3):
+		var y := r * 1.1 + 0.25 + k * fh * 0.26
+		var rr := (0.6 - k * 0.15) * fh * 0.75
+		mb.add_cone(leaf, _xf(Vector3(0, y, 0), rng.randf() * TAU), rr, fh * 0.42, 7, 0.8)
+	body.add_child(mb.to_instance("PlanterMesh"))
+	Props._add_box_col(body, Vector3(r * 1.8, r * 1.1, r * 1.8), Vector3(0, r * 0.55, 0))
+	return body
+
+
 ## A round house of pink brick under a tall cone of green tiers, snow lying on every step, a
 ## brick finial with a pointed clay cap on top (and smoke from it), a door at +Z under a little
 ## hood, small lit windows round the wall, a black-stone footing down into the ground and snow

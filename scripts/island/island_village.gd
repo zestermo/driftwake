@@ -396,7 +396,7 @@ func _gates() -> void:
 
 func _tower(i: int) -> void:
 	var tw: Dictionary = isl.village_plan["extra"]["towers"][i]
-	var tower := KitLandmarks.lookout_tower()
+	var tower := KitStyle.lookout(ctx.style, 6.0, hash(tw["p"]))
 	tower.name = _uniq("LookoutTower")
 	ctx.place(tower, tw["p"], KitContext.face_yaw(tw["face"]), 2.6, 0.0, false)
 

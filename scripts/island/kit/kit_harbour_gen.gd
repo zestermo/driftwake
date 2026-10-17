@@ -519,7 +519,7 @@ func _cove() -> void:
 	for k in range(8):
 		var tp := at(_rng.randf_range(8.0, 28.0), _rng.randf_range(4.0, 12.0))
 		if _ok_land(tp, 2.6):
-			_prop(KitLandmarks.lookout_tower, tp, KitContext.face_yaw(f.inland), 2.6)
+			_prop(KitStyle.lookout.bind(ctx.style, 6.0, hash(tp)), tp, KitContext.face_yaw(f.inland), 2.6)
 			spots.append([tp + f.inland * 2.6, f.out, "lookout"])
 			break
 	var stash_n := 0

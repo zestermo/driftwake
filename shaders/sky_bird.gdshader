@@ -2,7 +2,7 @@ shader_type spatial;
 // SkyBirds' MultiMesh: every bird is the same little mesh (span along x,
 // facing -z) whose wings hinge at the shoulders. Per instance (INSTANCE_CUSTOM):
 // x the wing angle now (radians, up +), y folded (1 = wings tucked along the
-// back), z the kind (0 gull, 1 dark far bird, 2+ a parrot's colour).
+// back), z the kind (0 gull, 1 dark far bird, 2-5 a parrot's colour, 6 a vulture).
 // Vertex colour: the gull's plumage; alpha marks body 1, inner wing 0.6, tip 0.3.
 render_mode cull_disabled, shadows_disabled, specular_disabled;
 
@@ -35,6 +35,9 @@ void vertex() {
 		tint = COLOR.rgb;
 	} else if (c.z < 1.5) {
 		tint = vec3(0.07, 0.065, 0.06);
+	} else if (c.z > 5.5) {
+		// a vulture: dun-brown body and coverts, dark flight feathers, near-black fingered tips
+		tint = part > 0.8 ? vec3(0.24, 0.17, 0.12) : (part > 0.45 ? vec3(0.13, 0.09, 0.07) : vec3(0.04, 0.035, 0.03));
 	} else {
 		tint = parrot(c.z, part);
 	}

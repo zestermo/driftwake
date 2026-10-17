@@ -90,9 +90,37 @@ func _process(_d: float) -> bool:
 				torch.get_node_or_null("Flame") != null and well.find_children("*", "CollisionShape3D", true, false).size() > 0)
 			torch.free()
 			well.free()
-			check("the desert rolls towns, hamlets and buried ruins, never a stilt village (%s)" % [st["village_layouts"]],
-				int(st["village_layouts"]["stilts"]) == 0 and int(st["village_layouts"]["ruins"]) > 0
+			check("the desert rolls medinas, towns, hamlets and buried ruins, never a stilt village (%s)" % [st["village_layouts"]],
+				int(st["village_layouts"]["stilts"]) == 0 and int(st["village_layouts"]["ruins"]) > 0 and int(st["village_layouts"]["medina"]) > 0
 				and KS.of("jungle")["village_layouts"] == VL.POOL)
+			# its own lookout and camp house, not the kit's timber ones; its planters and garden walls
+			var tw: Node3D = KS.lookout(st, 9.0, 3)
+			root.add_child(tw)
+			tw.global_position = Vector3(0, 0, 240.0)
+			built["tower"] = tw
+			var hut: Node3D = KS.model(st["camp_shack"], RandomNumberGenerator.new(), 5.5)
+			root.add_child(hut)
+			hut.global_position = Vector3(30, 0, 240.0)
+			built["hut"] = hut
+			var bits := ["planter", "fence"].map(func(k): return KS.model(items[k], RandomNumberGenerator.new(), 1.0))
+			check("a planter and a garden wall, each with a collider", bits.all(func(x): return x.find_children("*", "CollisionShape3D", true, false).size() > 0))
+			for x in bits:
+				x.free()
+			until = TK.wait_ticks(3)
+		2:
+			var tw: Node3D = built["tower"]
+			var lads: Array = tw.get_children().filter(func(x): return x.get("deck_depth") != null)
+			var lad: Node3D = lads[0] if lads.size() > 0 else null
+			var space := root.world_3d.direct_space_state
+			var deck := space.intersect_ray(PhysicsRayQueryParameters3D.create(tw.global_position + Vector3(0.3, 12.0, -0.6), tw.global_position + Vector3(0.3, 5.0, -0.6)))
+			check("the desert's lookout: not the timber one, a platform at its height, a ladder from it to the ground on +Z",
+				tw.find_children("WatchtowerMesh", "", true, false).size() == 1 and not deck.is_empty() and absf(deck["position"].y - 9.09) < 0.05
+				and lad != null and absf(lad.position.y - 9.09) < 0.05 and lad.position.z > 1.5 and absf(float(lad.get("length")) - lad.position.y) < 0.05)
+			var hut: Node3D = built["hut"]
+			check("the bandits' hideout: mud brick with a collider, not a timber shack", hut.find_children("ShackMesh", "", true, false).size() == 1
+				and hut.find_children("*", "CollisionShape3D", true, false).size() > 0)
+			tw.queue_free()
+			hut.queue_free()
 			return TK.done(fails)
 	step += 1
 	return false

@@ -3,10 +3,13 @@ extends RefCounted
 ## the chain's totem grove a field of ruined ice-block towers with barred windows (the fields ref); for the great
 ## tree a buried town of stone houses and arches drowned in drifts, a strongbox in it (the buried-town ref); and,
 ## on most islands, a castle round the summit's lookout (curtain walls, round towers under green tiered roofs, a
-## gate to the trail). Planned on the worker (KitWilds' spots, off the ice), built a step each in place-local
-## coordinates (+Z the face).
+## gate to the trail); for the chain's wreck a ship frozen into the pack ice off a beach. Planned on the worker
+## (KitWilds' spots, off the ice), built a step each in place-local coordinates (+Z the face).
 
-const KINDS := {"totem_grove": "snow_ruins", "great_tree": "snow_buried"}
+const KINDS := {"totem_grove": "snow_ruins", "great_tree": "snow_buried", "wreck": "snow_wreck"}
+## The frozen wreck: the pack ice's top over the sea, and the hull's origin over that (frozen in at her waterline).
+const ICE_TOP := 0.75
+const HULL_Y := 0.95
 const RUIN_R := 20.0
 const TOWN_R := 24.0
 const CASTLE_R := 12.5
@@ -43,6 +46,8 @@ static func plan_castle(isl, _avoid: Array) -> Array:
 
 
 static func plan(isl, kind: String, rng: RandomNumberGenerator, avoid: Array) -> Dictionary:
+	if kind == "snow_wreck":
+		return _plan_wreck(isl, rng, avoid)
 	var r := RUIN_R if kind == "snow_ruins" else TOWN_R
 	var pl := {}
 	for k in range(4):
@@ -66,8 +71,112 @@ static func steps(isl, ctx: KitContext, pl: Dictionary) -> Array:
 			return [func(): _buried(isl, ctx, pl, KitLandmarks.place_node(ctx, pl))]
 		"snow_castle":
 			return [func(): _castle(ctx, pl, KitLandmarks.place_node(ctx, pl))]
+		"snow_wreck":
+			return [func(): _wreck(ctx, pl, KitLandmarks.place_node(ctx, pl)), func(): _wreck_dressing(isl, ctx, pl)]
 	push_error("SnowPlaces: no place %s" % pl["kind"])
 	return []
+
+
+## Off a beach (away from the dock), 4-9 m out where the sea's 0.8-3.5 m deep with open water past it: the hull's
+## middle, her stern to the sea, the trail arriving on the beach behind her.
+static func _plan_wreck(isl, rng: RandomNumberGenerator, avoid: Array) -> Dictionary:
+	var dock_a: float = (isl.dock_dir as Vector2).angle()
+	var a0 := rng.randf() * TAU
+	for k in range(48):
+		var a := a0 + TAU * k / 48.0
+		if absf(angle_difference(a, dock_a)) < 0.55:
+			continue
+		var c := KitLandmarks.coast(isl, a)
+		if c.is_empty():
+			continue
+		var s: Vector2 = c["shore"]
+		var out: Vector2 = c["out"]
+		if s.distance_to(isl.dock_shore) < 70.0 or isl.hv(s - out * 10.0) > 4.5 or isl.hv(s + out * 24.0) > -1.0:
+			continue
+		for d in range(4, 10):
+			var at := s + out * d
+			if isl.hv(at) > -0.8 or isl.hv(at) < -3.5 or not KitLandmarks.clear_of(isl, at, 17.0, avoid):
+				continue
+			return {"kind": "snow_wreck", "at": at, "y": 0.0, "face": out.rotated(rng.randf_range(-0.5, 0.5)), "r": 17.0,
+				"keep": [[Vector2(0, -float(d) - 2.0), 6.0]], "door": s - out * 3.0,
+				"heel": rng.randf_range(0.08, 0.16) * (1.0 if rng.randf() < 0.5 else -1.0), "pitch": rng.randf_range(0.02, 0.06)}
+	return {}
+
+
+## Hull space (HullBuilder, as KitLandmarks._wreck lays her) to the place's.
+static func _hull_xf(pl: Dictionary) -> Transform3D:
+	return Transform3D(Basis(), Vector3(0, HULL_Y, 0)) * KitLandmarks._wreck_xf(pl)
+
+
+## The pack ice: a ragged slab out round her from the beach (its top ICE_TOP over the sea, walkable), her hull
+## frozen into it (the kit's wreck, stove in on her low side), ridges of broken ice where the floes pushed together.
+static func _wreck(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
+	var rng := _rng(int(pl["seed"]))
+	var m := _mats()
+	var sunk := Node3D.new()
+	sunk.name = "Frozen"
+	sunk.position = Vector3(0, HULL_Y, 0)
+	node.add_child(sunk)
+	KitLandmarks._wreck(ctx, pl, sunk)
+	var outline := PackedVector2Array()
+	var n := 22
+	for k in range(n):
+		var a := TAU * k / n
+		var rx := rng.randf_range(10.5, 13.5)
+		var rz := rng.randf_range(14.0, 17.5) * (1.25 if cos(a) < 0.0 else 1.0)
+		outline.append(Vector2(sin(a) * rx, cos(a) * rz))
+	var mb := MeshBuilder.new()
+	var ice := PSXMat.lit("ice", Color(1.12, 1.14, 1.16), {"affine": 0.6})
+	# (outline x/y laid flat: local y is the place's z; the extrusion is centred, 1.7 deep)
+	mb.add_extrude(ice, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, ICE_TOP - 0.85, 0)), outline, 1.7, 0.25)
+	var body := KitLandmarks.body("PackIce")
+	var cs := CollisionShape3D.new()
+	cs.shape = mb.commit().create_trimesh_shape()
+	body.add_child(cs)
+	mb = MeshBuilder.new()
+	mb.add_extrude(ice, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, ICE_TOP - 0.85, 0)), outline, 1.7, 0.25)
+	# pressure ridges: broken slabs pitched up in lines across the ice
+	for r in range(rng.randi_range(2, 3)):
+		var a := rng.randf() * TAU
+		var c := Vector2(sin(a) * rng.randf_range(6.0, 9.0), cos(a) * rng.randf_range(7.0, 11.0))
+		var along := Vector2.from_angle(a + PI * 0.5 + rng.randf_range(-0.4, 0.4))
+		for k in range(rng.randi_range(5, 8)):
+			var q := c + along * (k - 3.5) * rng.randf_range(0.9, 1.3)
+			var s := rng.randf_range(0.7, 1.4)
+			mb.add_box(m["ice"], Transform3D(Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.7, 0.7)), Vector3(q.x, ICE_TOP + s * 0.2, q.y)),
+				Vector3(s * 1.4, s * 0.35, s), 0.8, Color.WHITE.darkened(rng.randf() * 0.12))
+	_finish(node, body, mb)
+
+
+## Snow lying on her deck and heaped against her sides, icicles off her rails, snow in patches on the ice, the chest in her hold.
+static func _wreck_dressing(isl, ctx: KitContext, pl: Dictionary) -> void:
+	var node := KitLandmarks.node_of(ctx, pl)
+	var rng := _rng(int(pl["seed"]) + 1)
+	var m := _mats()
+	var xf := _hull_xf(pl)
+	var side := signf(float(pl["heel"]))
+	var mb := MeshBuilder.new()
+	for z in [-6.5, -2.0, 2.4]:
+		mb.add_box(m["snow"], Transform3D(xf.basis, xf * Vector3(-side * 0.6, HullBuilder.DECK_Y + 0.08, z)), Vector3(1.8, 0.16, 3.2), 0.6, Color.WHITE, false)
+	mb.add_box(m["snow"], Transform3D(xf.basis, xf * Vector3(0, HullBuilder.QD_Y + 0.08, 7.3)), Vector3(3.6, 0.16, 3.4), 0.6, Color.WHITE, false)
+	var icicle := PSXMat.lit("ice", Color(0.85, 0.94, 1.0), {"affine": 0.4})
+	for sd in [-1.0, 1.0]:
+		var z := -7.0
+		while z < 4.5:
+			var hw := HullBuilder.half_width(z) + 0.1
+			var ln := rng.randf_range(0.25, 0.9)
+			mb.add_cone(icicle, Transform3D(xf.basis * Basis(Vector3.RIGHT, PI), xf * Vector3(sd * hw, HullBuilder.DECK_Y + 0.9, z)), rng.randf_range(0.04, 0.08), ln, 4, 1.0)
+			z += rng.randf_range(0.35, 0.8)
+		# a drift heaped against her side on the ice
+		var dq := xf * Vector3(sd * (HullBuilder.HALF_BEAM + 0.4), 0, rng.randf_range(-3.0, 3.0))
+		mb.add_blob(m["snow"], _xf(Vector3(dq.x, ICE_TOP, dq.z), rng.randf() * TAU), Vector3(1.4, 0.9, 3.2), rng, 0.15, 3, 7, 0.5, Color.WHITE, 0.0)
+	for k in range(rng.randi_range(7, 11)):
+		var a := rng.randf() * TAU
+		var q := Vector2(sin(a) * rng.randf_range(5.0, 10.0), cos(a) * rng.randf_range(6.0, 13.0))
+		mb.add_blob(m["snow"], _xf(Vector3(q.x, ICE_TOP - 0.1, q.y), rng.randf() * TAU), Vector3(rng.randf_range(1.2, 3.0), rng.randf_range(0.3, 0.5), rng.randf_range(1.0, 2.2)), rng, 0.25, 3, 7, 0.5, Color.WHITE, 0.0)
+	node.add_child(KitLandmarks.far_off(mb.to_instance("WreckSnow")))
+	var cp := xf * Vector3(side * 1.2, 0, -5.6)
+	KitLandmarks.chest(ctx, pl, Vector3(cp.x, ICE_TOP + 0.05, cp.z), rng.randf_range(-0.4, 0.4), "snow_wreck_chest", KitLandmarks.loot(isl, rng, true), 1.0)
 
 
 # ==========================================================================
