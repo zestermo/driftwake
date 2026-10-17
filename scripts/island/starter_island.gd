@@ -111,7 +111,7 @@ const SPITTERS := 9
 const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
-	"south": 8181}
+	"south": 8181, "street": 8282, "upper": 8383}
 ## The southern lands (2026-10-17): a lobe of land round LOBE, LOBE_R to its coast (ragged), kept
 ## off the cove (COVE_SEA) and the old island's interior; the highland the falls come off, the
 ## farmland round the windmill hamlet, the second cove's bay on the south coast.
@@ -128,8 +128,21 @@ const GROW_KEEP := [[SMUGGLERS, 26.0]]
 const CAPE_TIP := Vector2(92, 372)
 ## Paths before the land grew: the old pieces and plants see only these.
 const OLD_PATHS := 8
-## NightLights the kit may light (lamps, lit doorways, the camps' and the den's lanterns).
-const LIGHTS := 22
+## The upper town (2026-10-17): a hill climbing south from the plaza between the ruins and cove
+## paths to the shrine terrace, UP_RISE over the plaza from UP_Z0 to UP_Z1 (flat to UP_Z2, then
+## down), terraced in bands: each flat at its lane's height (UP_BANDS, its front) to 3 m short of
+## the next, a stone block filling the step. The long stair climbs its middle (UP_X, 3 m wide) on
+## a corridor sunk under it. The grid's vertex lines (3 m) fall on the bands' and corridor's edges.
+const UP_X := 4.5
+const UP_Z0 := -39.0
+const UP_Z1 := 6.0
+const UP_Z2 := 33.0
+const UP_RISE := 12.0
+const UP_BANDS := [-30.0, -18.0, -6.0]
+const UP_SINK := 0.7
+## NightLights the kit may light (lamps, lit doorways, the camps' and the den's lanterns): the old
+## island takes 18, the grown town's pieces after it (2026-10-17: 30, a share kept for the town's life).
+const LIGHTS := 30
 
 var heights := PackedFloat32Array()
 var paths: Array = []        # Array of PackedVector2Array (smoothed)
@@ -147,6 +160,8 @@ var _grow_layer := false
 var _old_only := false
 ## Paths path_dist sees: the old ones until the grown land's pieces start.
 var _open_paths := OLD_PATHS
+## The old paths as they ran before the upper town: [paths, widths, bounds].
+var _frozen: Array = []
 
 var dock_shore := Vector2.ZERO
 var dock_dir := Vector2(0, -1)
@@ -203,6 +218,11 @@ var _changed := PackedByteArray()
 var _path_task := -1
 var _path_mesh := {}
 var _veg_skip := false
+## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
+## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
+## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
+## space Vector3s from the plaza up to the terrace).
+var town_spots := {"stalls": [], "shops": [], "houses": [], "lanes": [], "stair": PackedVector3Array()}
 
 
 # ==========================================================================
@@ -253,6 +273,8 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("cave", func(): cave = KitCave.cave(kit, CAVE))
 	# the grown land's pieces: their reserves and paths kept apart from the old island's
 	_open_grown()
+	kit.timed("market street", _build_market_street)
+	kit.timed("upper town", _build_upper_town)
 	_grow_layer = false
 	kit.timed("vegetation", _scatter_vegetation)
 	kit.timed("spitters", _build_spitters)
@@ -431,9 +453,55 @@ func _height_natural(x: float, z: float, shelf := 1.0) -> float:
 	return h
 
 
-## The ground: the old island's, and the southern lands where they stand higher.
+## The ground: the old island's, the southern lands where they stand higher, the upper town.
 func _height_fn(x: float, z: float, shelf := 1.0) -> float:
-	return maxf(_height_old(x, z, shelf), _grown(Vector2(x, z), shelf))
+	var p := Vector2(x, z)
+	return _upper(p, maxf(_height_old(x, z, shelf), _grown(p, shelf)))
+
+
+## The upper town's hill's half width at z (flat across it, then 9 m of flank down to the land).
+static func _up_w(z: float) -> float:
+	return minf(9.0 + 0.3 * (z - UP_Z0), 16.0)
+
+
+## The hill's rise over the plaza at z: a straight climb to the terrace, flat over it, down behind.
+static func _up_rise(z: float) -> float:
+	return UP_RISE * clampf((z - UP_Z0) / (UP_Z1 - UP_Z0), 0.0, 1.0) * (1.0 - _smooth(UP_Z2, UP_Z2 + 25.0, z))
+
+
+## The banded ground's rise at z: each band flat at its lane's rise to 3 m short of the next.
+static func _up_band(z: float) -> float:
+	if z < UP_BANDS[0] or z > UP_Z1:
+		return _up_rise(z)
+	for k in range(UP_BANDS.size()):
+		var zl: float = UP_BANDS[k]
+		var nx: float = UP_BANDS[k + 1] if k + 1 < UP_BANDS.size() else UP_Z1
+		if z <= nx:
+			if z <= nx - 3.0:
+				return _up_rise(zl)
+			return lerpf(_up_rise(zl), _up_rise(nx), (z - nx + 3.0) / 3.0)
+	return _up_rise(z)
+
+
+## 0..1: how much of the upper town's hill stands at p.
+static func _up_mask(p: Vector2) -> float:
+	var w := _up_w(p.y)
+	return (1.0 - _smooth(w, w + 8.0, absf(p.x - UP_X))) * _smooth(UP_Z0 - 7.0, UP_Z0 - 1.0, p.y) * (1.0 - _smooth(UP_Z2 + 18.0, UP_Z2 + 28.0, p.y))
+
+
+## The ground under the long stair (sunk UP_SINK under its line, easing in at its foot).
+static func _up_corridor(p: Vector2) -> bool:
+	return absf(p.x - UP_X) <= 1.51 and p.y >= UP_Z0 and p.y <= UP_Z1
+
+
+## The upper town's ground over h (the plaza's height plus its rise), never below the land.
+func _upper(p: Vector2, h: float) -> float:
+	var m := _up_mask(p)
+	if m <= 0.0:
+		return h
+	var h0: float = _flat_zones[0][1]
+	var r := _up_rise(p.y) - UP_SINK * _smooth(UP_Z0, UP_Z0 + 3.0, p.y) if _up_corridor(p) else _up_band(p.y)
+	return maxf(h, lerpf(h, h0 + r, m))
 
 
 func _height_old(x: float, z: float, shelf := 1.0) -> float:
@@ -560,7 +628,7 @@ func _generate_heights() -> void:
 			var z := -HALF + iz * CELL + GRID_C.y
 			var h := _height_old(x, z)
 			a[ix] = h
-			b[ix] = maxf(h, _grown(Vector2(x, z), 1.0))
+			b[ix] = _upper(Vector2(x, z), maxf(h, _grown(Vector2(x, z), 1.0)))
 		rows[iz] = [a, b], RES + 1)
 	WorkerThreadPool.wait_for_group_task_completion(task)
 	var old := PackedFloat32Array()
@@ -872,13 +940,18 @@ static func _catmull(pts: Array, sub: int = 6) -> PackedVector2Array:
 	return out
 
 
-func _add_path(pts: Array, half_width: float) -> void:
+func _add_path(pts: Array, half_width: float, at := -1) -> void:
 	var smooth := _catmull(pts)
-	paths.append(smooth)
-	path_widths.append(half_width)
 	var rect := Rect2(smooth[0], Vector2.ZERO)
 	for q in smooth:
 		rect = rect.expand(q)
+	if at >= 0:
+		paths[at] = smooth
+		path_widths[at] = half_width
+		path_bounds[at] = rect.grow(half_width + 4.0)
+		return
+	paths.append(smooth)
+	path_widths.append(half_width)
 	path_bounds.append(rect.grow(half_width + 4.0))
 
 
@@ -893,11 +966,22 @@ func _define_paths() -> void:
 	# into the deep forest to the cave, and off the training path round the ridge to the den's climb
 	_add_path([RUINS + Vector2(-9, 5), Vector2(-84, 64), Vector2(-104, 56), Vector2(-118, 47), CAVE + Vector2(29, 0)], 1.2)
 	_add_path([Vector2(-44, -41), Vector2(-60, -62), Vector2(-90, -80), Vector2(-112, -100), Vector2(-128, -120), climb_start()[0]], 1.3)
+	# (the old pieces and plants keep to the paths as they ran before the upper town)
+	_frozen = [paths.duplicate(), path_widths.duplicate(), path_bounds.duplicate()]
+	# the ruins and cove paths now skirt the upper town's hill
+	_add_path([VILLAGE + Vector2(-3, 14), Vector2(-14, -36), Vector2(-26, -14), Vector2(-33, 8), Vector2(-34, 28), Vector2(-48, 46), RUINS + Vector2(6, -5)], 1.3, 3)
+	_add_path([VILLAGE + Vector2(4, 14), Vector2(20, -38), Vector2(32, -14), Vector2(40, 12), Vector2(46, 44), CAMP + Vector2(-2, -4)], 1.3, 4)
 	# the southern lands (worn in now, seen by path_dist once their pieces build): off the cove path
 	# south over the old bay to the windmill hamlet, on to the highland's foot, and down from the ruins
-	_add_path([Vector2(32, 16), Vector2(26, 58), Vector2(12, 104), Vector2(-2, 150), Vector2(-24, 186), FARM + Vector2(12, -8)], 1.3)
+	_add_path([Vector2(40, 12), Vector2(26, 58), Vector2(12, 104), Vector2(-2, 150), Vector2(-24, 186), FARM + Vector2(12, -8)], 1.3)
 	_add_path([FARM + Vector2(12, -8), Vector2(-14, 232), Vector2(4, 262), Vector2(14, 278)], 1.2)
 	_add_path([RUINS + Vector2(-4, 9), Vector2(-74, 110), Vector2(-66, 150), FARM + Vector2(-7, -16)], 1.2)
+	# the upper town: the long stair, the second row's lanes (UP_BANDS)
+	_add_path([Vector2(UP_X, UP_Z0 - 1.0), Vector2(UP_X, UP_Z1 + 2.0)], 1.6)
+	for k in range(2):
+		var zl: float = UP_BANDS[k]
+		var w := _up_w(zl) + 3.0
+		_add_path([Vector2(UP_X - w, zl), Vector2(UP_X + w, zl)], 1.2)
 
 
 ## The grown land's paths count from here on (its pieces and plants).
@@ -907,21 +991,25 @@ func _open_grown() -> void:
 
 
 ## Distance to the nearest path's edge, of paths `from` to `n` (-1: those open; the old ones while
-## the old plants decide).
-func _path_dist(p: Vector2, n := -1, from := 0) -> float:
+## the old plants decide). Before the grown land's pieces (and while the old plants decide) the old
+## paths run as they did before the upper town, unless `live`.
+func _path_dist(p: Vector2, n := -1, from := 0, live := false) -> float:
 	if n < 0:
 		n = OLD_PATHS if _old_only else _open_paths
+	var frozen := not live and (_old_only or _open_paths == OLD_PATHS)
 	var best := 9999.0
 	for i in range(from, n):
-		if not (path_bounds[i] as Rect2).has_point(p):
+		var old := frozen and i < OLD_PATHS
+		if not ((_frozen[2][i] if old else path_bounds[i]) as Rect2).has_point(p):
 			continue
-		var pts: PackedVector2Array = paths[i]
+		var pts: PackedVector2Array = _frozen[0][i] if old else paths[i]
+		var hw: float = _frozen[1][i] if old else path_widths[i]
 		for j in range(pts.size() - 1):
 			var a := pts[j]
 			var b := pts[j + 1]
 			var ab := b - a
 			var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-			best = minf(best, p.distance_to(a + ab * t) - path_widths[i])
+			best = minf(best, p.distance_to(a + ab * t) - hw)
 	return best
 
 
@@ -931,7 +1019,7 @@ func path_dist(p: Vector2) -> float:
 
 ## The terrain's wear: every path, open or not.
 func _path_weight(p: Vector2) -> float:
-	var d := _path_dist(p, paths.size())
+	var d := _path_dist(p, paths.size(), 0, true)
 	return 1.0 - _smooth(-0.6, 0.6, d)
 
 
@@ -1107,11 +1195,11 @@ func _build_village() -> void:
 	kit.house({"w": 7.0, "d": 5.0, "roof": "hip", "wall": "planks", "roof_tex": "roof_tiles", "porch": 1.8, "door_x": -1.5, "lamp_light": true},
 		VILLAGE + Vector2(-20, 20), Vector2(1, -0.5))
 	kit.house({"w": 4.5, "d": 4.0, "h": 2.4, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch",
-		"lean_to": "right", "chimney": true, "lamp_light": true}, VILLAGE + Vector2(-17, -25), Vector2(1, 0.3))
+		"lean_to": "right", "chimney": true, "lamp_light": true, "awning": "blue"}, VILLAGE + Vector2(-17, -25), Vector2(1, 0.3))
 	_harbor = kit.house({"w": 9.0, "d": 5.5, "h": 3.0, "roof": "shed", "wall": "planks_weathered", "roof_tex": "roof_tiles",
 		"porch": 1.6, "sign": "sign_fish", "door_x": 2.0, "name": "Harbor", "lamp_light": true}, VILLAGE + Vector2(15, -28), Vector2(-1, 0))
 	kit.house({"w": 4.0, "d": 4.5, "floors": 2, "wall": "stone_brick", "wall2": "planks", "roof": "gable",
-		"roof_tex": "thatch", "pitch": 0.75, "jetty": 0.3}, VILLAGE + Vector2(-9, -31), Vector2(1, 0.2))
+		"roof_tex": "thatch", "pitch": 0.75, "jetty": 0.3, "awning": "red"}, VILLAGE + Vector2(-9, -31), Vector2(1, 0.2))
 	kit.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "hip", "wall": "plaster", "roof_tex": "thatch", "lean_to": "left", "pitch": 0.5, "lamp_light": true},
 		VILLAGE + Vector2(27, 12), Vector2(-1, -0.4))
 
@@ -1198,6 +1286,243 @@ func _build_port() -> void:
 	kit.timed("npcs", func(): KitLife.spawn(kit, BrinehollowCast.dockhands(self)))
 
 
+# ==========================================================================
+# The grown town (2026-10-17): the market street, the upper town (KitStreet)
+# ==========================================================================
+## Bram's walk up from the harbour (brinehollow_cast.gd): the street keeps it clear.
+func _bram_walk() -> Array:
+	return [dock_shore + Vector2(-8.0, 9.0), dock_shore + Vector2(3.0, 12.0), VILLAGE + Vector2(1.5, -26), VILLAGE + Vector2(3, -14)]
+
+
+func _off_walk(q: Vector2, r: float) -> bool:
+	var w := _bram_walk()
+	for i in range(w.size() - 1):
+		if Geometry2D.get_closest_point_to_segment(q, w[i], w[i + 1]).distance_to(q) < r:
+			return false
+	return true
+
+
+## The quay-to-plaza road as a market street: cobbled out to its stalls, shopfronts where a house
+## fits back from it, barrows, rugs and stalls between, shade cloths and bunting across, lamps.
+func _build_market_street() -> void:
+	var rng := kit.rng(0, SEEDS["street"])
+	var road: PackedVector2Array = paths[0]
+	var goods: Array = kit.style["goods"]
+	var quads: Array = []
+	for sd: float in [-1.0, 1.0]:
+		var line := PackedVector2Array()
+		for e in KitVillage.along(road, 1.5):
+			line.append(e[0])
+		for i in range(line.size() - 1):
+			var t0 := (line[mini(i + 1, line.size() - 1)] - line[maxi(i - 1, 0)]).normalized()
+			var t1 := (line[mini(i + 2, line.size() - 1)] - line[i]).normalized()
+			var n0 := Vector2(-t0.y, t0.x) * sd
+			var n1 := Vector2(-t1.y, t1.x) * sd
+			if line[i].distance_to(VILLAGE) < 14.0:
+				continue
+			KitPaving._quad(kit, quads, line[i] + n0 * 1.7, line[i] + n0 * 3.7, line[i + 1] + n1 * 3.7, line[i + 1] + n1 * 1.7)
+	KitPaving.build(kit, quads, "StreetCobbles")
+	var length := 0.0
+	for i in range(road.size() - 1):
+		length += road[i].distance_to(road[i + 1])
+	var stalls := ["fruit", "cloth", "pots", "fish"]
+	var cloths := ["awning_red", "awning_blue", "awning_gold", "awning_green"]
+	var shop_walls := ["plaster", "planks", "stone_brick", "plaster"]
+	var shop_signs := ["", "sign_fish", "", ""]
+	var across: Array = []
+	var n_shop := 0
+	var n_stall := 0
+	var lit := 0
+	# a lamp a third of the way up either side, on the cobbles' edge
+	for k in range(2):
+		var e: Array = KitVillage.along(road, length, length / 3.0 * (k + 1))[0]
+		var nrm := Vector2(-e[1].y, e[1].x) * (1.0 if k == 0 else -1.0)
+		for tries in range(6):
+			var lp: Vector2 = e[0] + nrm * 3.5 + e[1] * (tries - 3) * 1.3
+			if not _excluded(lp, 0.4) and _off_walk(lp, 1.0):
+				KitLights.post(kit, lp, face_yaw(-nrm) - PI * 0.5, 0.3)
+				lit += 1
+				break
+	for e in KitVillage.along(road, 3.3, 7.0, length - 5.0):
+		var q: Vector2 = e[0]
+		var t: Vector2 = e[1]
+		var row: Array = []
+		for sd: float in [-1.0, 1.0]:
+			var nrm := Vector2(-t.y, t.x) * sd
+			var w := rng.randf_range(5.0, 6.0)
+			var d := rng.randf_range(4.3, 4.8)
+			var sp := q + nrm * (5.7 + d * 0.5)
+			var kind: String = stalls[(n_shop + n_stall) % stalls.size()]
+			if not _excluded(sp, maxf(w, d) * 0.62) and _path_dist(sp) > maxf(w, d) * 0.6 and _off_walk(sp, maxf(w, d) * 0.5 + 1.0):
+				var spec := {"w": w, "d": d, "h": rng.randf_range(2.6, 2.9), "floors": 2, "wall": shop_walls[n_shop % 4], "wall2": "plaster",
+					"roof": ["gable_front", "gable", "hip"][rng.randi() % 3], "roof_tex": "roof_tiles" if rng.randf() < 0.7 else "thatch",
+					"pitch": rng.randf_range(0.5, 0.7), "jetty": 0.3, "door_x": rng.randf_range(0.8, 1.3) * (1.0 if rng.randf() < 0.5 else -1.0),
+					"awning": ["red", "blue", "green"][n_shop % 3], "sign": shop_signs[n_shop % 4], "seed": 8300 + n_shop,
+					"name": "Shop%d" % n_shop, "smoke": false}
+				var shop := KitStreet.shopfront(kit, spec, sp, -nrm, kind, rng)
+				town_spots["shops"].append(shop)
+				row.append(sp - nrm * (d * 0.5 + 0.2))
+				n_shop += 1
+				continue
+			var st := q + nrm * 4.7
+			if _excluded(st, 1.7) or _path_dist(st) < 1.0 or not _off_walk(st, 1.4):
+				continue
+			var node: Node3D
+			match n_stall % 3:
+				0:
+					node = Buildings.stall(kind)
+				1:
+					node = KitStreet.barrow(kind, goods, cloths[n_stall % 4], rng.randi())
+				_:
+					var rugs: Array = kit.style["rugs"]
+					node = KitStreet.rug_stall(kind, goods, rugs[n_stall % rugs.size()], cloths[(n_stall + 1) % 4], rng.randi())
+			node.name = "StreetStall%d" % n_stall
+			kit.place(node, st, face_yaw(-nrm), 1.6)
+			town_spots["stalls"].append(node)
+			row.append(st + nrm * 1.2)
+			n_stall += 1
+		if row.size() == 2:
+			across.append(row)
+	# shade cloths and bunting across the street between what lines it
+	var mb := MeshBuilder.new()
+	for k in range(across.size()):
+		var a: Vector2 = across[k][0]
+		var b: Vector2 = across[k][1]
+		if k % 2 == 0:
+			KitStreet.shade(kit, mb, a, b, 3.4, 1.6, cloths[k % 4])
+		else:
+			KitVillage.pole(kit, mb, a, 3.6)
+			KitVillage.pole(kit, mb, b, 3.6)
+			KitVillage.bunting(kit, mb, Vector3(a.x, hv(a) + 3.5, a.y), Vector3(b.x, hv(b) + 3.5, b.y), rng)
+	# barrows and rugs into the gaps left
+	for e in KitVillage.along(road, 2.2, 5.0, length - 4.0):
+		var q: Vector2 = e[0]
+		var t: Vector2 = e[1]
+		for sd: float in [-1.0, 1.0]:
+			var nrm := Vector2(-t.y, t.x) * sd
+			var st := q + nrm * 4.6
+			if _excluded(st, 1.2) or _path_dist(st) < 1.2 or not _off_walk(st, 1.4):
+				continue
+			var kind: String = stalls[n_stall % stalls.size()]
+			var node: Node3D = KitStreet.barrow(kind, goods, cloths[n_stall % 4], rng.randi()) if n_stall % 2 == 0 \
+				else KitStreet.rug_stall(kind, goods, kit.style["rugs"][n_stall % kit.style["rugs"].size()], cloths[(n_stall + 1) % 4], rng.randi())
+			node.name = "StreetStall%d" % n_stall
+			kit.place(node, st, face_yaw(-nrm), 1.3)
+			town_spots["stalls"].append(node)
+			n_stall += 1
+	var mi := mb.to_instance("StreetCloths")
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = KitStreet.RANGE
+	kit.add(mi)
+
+
+## The upper town: the long stair up the hill's middle, the bands' retaining blocks, the second row
+## of houses on the two lower bands with their lanes paved, a yard's worth of dressing each, steps
+## down the flanks from the second lane to the ruins and cove paths.
+func _build_upper_town() -> void:
+	var rng := kit.rng(0, SEEDS["upper"])
+	var h0: float = _flat_zones[0][1]
+	var lv := func(zl: float) -> float: return h0 + _up_rise(zl)
+	# the long stair: flights between landings at each lane, up to the terrace's edge
+	var mb := MeshBuilder.new()
+	var body := StaticBody3D.new()
+	body.name = "LongStair"
+	var line := PackedVector3Array([Vector3(UP_X, h0, UP_Z0)])
+	for zl: float in UP_BANDS:
+		line.append(Vector3(UP_X, lv.call(zl), zl - 1.5))
+		line.append(Vector3(UP_X, lv.call(zl), zl + 1.5))
+	line.append(Vector3(UP_X, h0 + UP_RISE, UP_Z1))
+	for i in range(line.size() - 1):
+		var a := line[i]
+		var b := line[i + 1]
+		if absf(b.y - a.y) < 0.01:
+			# a landing, flagged, as wide as the stair and its curbs' gap for the lane
+			var c := (a + b) * 0.5
+			mb.add_box(PSXMat.lit("stone_brick"), Transform3D(Basis(), Vector3(c.x, c.y - 0.7, c.z)), Vector3(3.1, 1.4, b.z - a.z + 0.02), 0.7, Color(0.85, 0.85, 0.85), false)
+			mb.add_box(PSXMat.lit("flagstones", Color(0.95, 0.92, 0.86)), Transform3D(Basis(), Vector3(c.x, c.y + 0.02, c.z)), Vector3(3.14, 0.05, b.z - a.z + 0.04), 0.7)
+			KitStreet._box(body, Vector3(3.1, 0.3, b.z - a.z), Transform3D(Basis(), Vector3(c.x, c.y - 0.13, c.z)))
+		else:
+			KitStreet.stairs(mb, body, a, b, 3.0)
+			# its sides walled down to the band beside it
+			for sd: float in [-1.0, 1.0]:
+				var x := UP_X + sd * 1.9
+				KitStreet.wall(kit, mb, body, PackedVector3Array([Vector3(x, a.y - 0.1, a.z), Vector3(x, b.y - 0.1, b.z)]), 0.36, 0.0)
+	town_spots["stair"] = line
+	KitStreet.finish(kit, mb, body)
+	# the bands' retaining blocks (the step to the next band, but where the stair climbs through)
+	var wb := MeshBuilder.new()
+	var wbody := StaticBody3D.new()
+	wbody.name = "TerraceWalls"
+	var steps := [UP_BANDS[1], UP_BANDS[2], UP_Z1]
+	for nx: float in steps:
+		var w := _up_w(nx) + 7.0
+		for sd: float in [-1.0, 1.0]:
+			var run := PackedVector3Array()
+			var x := UP_X + sd * 1.9
+			while absf(x - UP_X) < w:
+				var top := hv(Vector2(x, nx))
+				if top - hv(Vector2(x, nx - 3.0)) < 0.6:
+					break
+				run.append(Vector3(x, top - 0.02, nx - 1.5))
+				x += sd * 1.5
+			if run.size() >= 2:
+				KitStreet.wall(kit, wb, wbody, run, 3.0, 0.0)
+	KitStreet.finish(kit, wb, wbody)
+	# the second row: houses on the two lower bands facing their lanes, doors to the north
+	var occ: Array = []
+	for nx: float in steps:
+		for k in range(-12, 13):
+			occ.append([Vector2(UP_X + k * 2.5, nx - 1.6), 1.5])
+	var walls := ["plaster", "planks", "planks_weathered", "stone_brick", "plaster"]
+	var roofs := ["gable", "hip", "gable_front", "gable"]
+	var items: Array = []
+	var n := 0
+	for b in range(2):
+		var zl: float = UP_BANDS[b]
+		var zc := zl + 5.4
+		var xs := [-1.2, -7.6, 10.2, 16.6] if b == 0 else [-1.2, -7.6, -14.0, 10.2, 16.6, 23.0]
+		for x: float in xs:
+			var w := rng.randf_range(4.6, 5.4)
+			var d := rng.randf_range(4.2, 4.6)
+			var p := Vector2(x, zc)
+			if _ex_hit(_ex_old, p, maxf(w, d) * 0.6, INF):
+				continue
+			var spec := {"w": w, "d": d, "h": rng.randf_range(2.4, 2.8), "floors": 2 if rng.randf() < 0.55 else 1,
+				"wall": walls[(n + b) % walls.size()], "wall2": "plaster" if rng.randf() < 0.6 else "planks",
+				"roof": roofs[rng.randi() % roofs.size()], "roof_tex": "roof_tiles" if rng.randf() < 0.6 else "thatch",
+				"pitch": rng.randf_range(0.45, 0.75), "jetty": rng.randf_range(0.2, 0.4), "door_x": rng.randf_range(-0.9, 0.9),
+				"chimney": rng.randf() < 0.4, "smoke": false, "seed": 8400 + n, "name": "UpperHouse%d" % n,
+				"lamp_light": n % 4 == 1, "lean_to": ["", "", "left", "right"][rng.randi() % 4]}
+			var house := kit.house(spec, p, Vector2(0, -1))
+			town_spots["houses"].append(house)
+			occ.append_array(KitVillage.plot_circles(p, Vector2(0, -1), w, d, 1.6))
+			KitVillage.plan_yard(kit, items, occ, p, Vector2(0, -1), w, d, d * 0.5 + 0.8, rng)
+			n += 1
+	# the lanes along each band's front, flagged, and steps down the second's flanks to the paths
+	var lq: Array = []
+	for k in range(2):
+		var lane: PackedVector2Array = paths[OLD_PATHS + 4 + k]
+		town_spots["lanes"].append(lane)
+		# (flagged from the block's edge to the doors)
+		var front := PackedVector2Array()
+		for q in lane:
+			front.append(q + Vector2(0, 1.2))
+		KitPaving.plan_path(kit, lq, front, 2.1)
+	KitPaving.build(kit, lq, "Lanes", "flagstones", Color(0.92, 0.9, 0.84))
+	var fb := MeshBuilder.new()
+	var fbody := StaticBody3D.new()
+	fbody.name = "FlankSteps"
+	var zl2: float = UP_BANDS[1]
+	for sd: float in [-1.0, 1.0]:
+		var top := Vector2(UP_X + sd * (_up_w(zl2) - 0.5), zl2)
+		var foot := Vector2(UP_X + sd * (_up_w(zl2) + 9.5), zl2)
+		KitStreet.ground_stairs(kit, fb, fbody, top, foot, 2.2)
+		town_spots["lanes"].append(PackedVector2Array([top, foot]))
+	KitStreet.finish(kit, fb, fbody)
+	KitVillage.build_items(kit, items)
+	KitVillage.build_cargo(kit, items)
+
+
 func _build_lighthouse() -> void:
 	# (the keeper's cottage on the levelled hilltop)
 	_keeper_hut = KitLandmarks.lighthouse(kit, HILL, Vector2(-1, 0.3), {"w": 4.5, "d": 4.0, "h": 2.3, "wall": "stone_brick", "roof": "gable",
@@ -1259,8 +1584,14 @@ func _build_scuttlebugs() -> void:
 	var wanted := [[Vector2(-27, 18), false], [Vector2(-40, 31), false], [Vector2(-37, 48), false], [Vector2(-56, 37), true],
 		[Vector2(-88, 78), false], [Vector2(-102, 38), false], [Vector2(-118, 90), true], [Vector2(-94, 106), false],
 		[Vector2(-142, 100), false], [Vector2(-126, 16), false], [Vector2(-160, 80), true]]
-	for w in wanted:
-		var p := _find_burrow_spot(w[0])
+	# (found on the ground as it was before the land grew, so they're where they always were)
+	var built := heights
+	heights = _land_heights
+	var found: Array = wanted.map(func(w: Array) -> Vector2: return _find_burrow_spot(w[0]))
+	heights = built
+	for i in range(wanted.size()):
+		var w: Array = wanted[i]
+		var p: Vector2 = found[i]
 		var yaw := face_yaw(-_nearest_path_dir(p))  # hole (-Z) faces the path
 		var b := Props.burrow(int(absf(p.x * 13.0 + p.y * 7.0)))
 		place(b, p, yaw, 0.0, -0.08)
@@ -1327,8 +1658,8 @@ func _build_spitters() -> void:
 func _nearest_path_dir(p: Vector2) -> Vector2:
 	var best := Vector2(0, -1)
 	var bd := INF
-	for k in range(_open_paths):
-		var pts: PackedVector2Array = paths[k]
+	for k in range(OLD_PATHS):
+		var pts: PackedVector2Array = _frozen[0][k]
 		for q in pts:
 			var d := p.distance_squared_to(q)
 			if d < bd:
@@ -1365,7 +1696,7 @@ func _scatter_vegetation() -> void:
 		while z < OLD_HALF - 3.0:
 			var p := Vector2(x + rng.randf_range(-2.0, 2.0), z + rng.randf_range(-2.0, 2.0))
 			z += step
-			_veg_skip = den_path.covers(p) or _grown_at(p) or _ex_hit(_ex_new, p, 1.0, INF) or _path_dist(p, paths.size(), OLD_PATHS) < 3.0
+			_veg_skip = den_path.covers(p) or _grown_at(p) or _ex_hit(_ex_new, p, 1.0, INF) or _path_dist(p, paths.size(), 0, true) < 3.0
 			var h := hv(p)
 			if h < -1.6:
 				continue
@@ -1412,7 +1743,7 @@ func _scatter_vegetation() -> void:
 		while z < OLD_HALF - 3.0:
 			var p := Vector2(x + rng.randf_range(-1.1, 1.1), z + rng.randf_range(-1.1, 1.1))
 			z += step
-			_veg_skip = den_path.covers(p) or _grown_at(p) or _ex_hit(_ex_new, p, -0.5, INF) or _path_dist(p, paths.size(), OLD_PATHS) < 0.6
+			_veg_skip = den_path.covers(p) or _grown_at(p) or _ex_hit(_ex_new, p, -0.5, INF) or _path_dist(p, paths.size(), 0, true) < 0.6
 			var h := hv(p)
 			if h < 1.4:
 				continue
@@ -1481,12 +1812,17 @@ func _jungle(p: Vector2) -> float:
 ## The southern lands' jungle: the old jungle's edge, the highland's wilds, groves in the open.
 func _jungle_south(p: Vector2) -> float:
 	var grove := _smooth(0.2, 0.45, _shape_noise.get_noise_2d(p.x * 2.3 + 900.0, p.y * 2.3)) * 0.55
-	return maxf(maxf(_jungle(p), 1.0 - _smooth(45.0, 95.0, p.distance_to(HIGHLAND))), grove) * (1.0 - _farm(p))
+	return maxf(maxf(_jungle(p), 1.0 - _smooth(45.0, 95.0, p.distance_to(HIGHLAND))), grove) * (1.0 - _open(p))
 
 
-## 0..1: the farmland round the windmill hamlet (open ground).
+## 0..1: the farmland round the windmill hamlet.
 func _farm(p: Vector2) -> float:
 	return 1.0 - _smooth(60.0, 95.0, p.distance_to(FARM))
+
+
+## 0..1: open ground (the farmland, the upper town): no woods, few trees.
+func _open(p: Vector2) -> float:
+	return maxf(_farm(p), _up_mask(p))
 
 
 ## The grown land's plants (where the old island's scatter left off: outside its grid, or where the
@@ -1521,7 +1857,7 @@ func _scatter_grown(buckets: Dictionary, m: Dictionary) -> void:
 				continue
 			var beach := 1.0 - _smooth(2.0, 3.8, h)
 			var jung := _jungle_south(p)
-			var farm := _farm(p)
+			var farm := _open(p)
 			var p_palm := (0.32 * beach + 0.05 * (1.0 - beach) * (1.0 - jung) + 0.06 * jung) * (1.0 - 0.85 * farm)
 			var p_jungle := (0.62 * jung + 0.05 * (1.0 - farm)) * (1.0 - beach)
 			var p_rock := 0.02 + 0.03 * farm
@@ -1546,7 +1882,7 @@ func _scatter_grown(buckets: Dictionary, m: Dictionary) -> void:
 				continue
 			var beach := 1.0 - _smooth(2.2, 3.6, h)
 			var jung := _jungle_south(p)
-			var farm := _farm(p)
+			var farm := _open(p)
 			var roll := rng.randf()
 			var p_fern := 0.32 * jung * (1.0 - beach)
 			var p_bush := (0.08 + 0.14 * jung) * (1.0 - beach * 0.7) * (1.0 - 0.6 * farm)

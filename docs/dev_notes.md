@@ -3157,3 +3157,37 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   katana; nothing rebuilt.
 - **Tests:** t/fx/petals. Renders: tools/dev/out/kab/aura_*, night_* (AB_HOUR=21: the drawn cloud is unlit, the sakura
   dim with the night).
+## 2026-10-17: Brinehollow grows south, the market street and the upper town (layout pass, docs/brinehollow_polish_plan.md step 2)
+- **The land** (starter_island.gd): LAND_R 305 -> 400. The terrain grid is 780 m (RES 260) centred at GRID_C (0, 75): its north and east
+  edges stay put and the old grid's vertices are its own (OLD_SHIFT 25 cells in), so the old ground is the same to the bit. The southern
+  lands are a lobe round LOBE (-45, 235), LOBE_R 155 with its own capes (_lobe_capes) and noise, max'd over the old ground (`_grown`):
+  faded out where the old island's interior is (_old_t < -30) and round GROW_KEEP (the smugglers), the sea kept round the cove (COVE_SEA)
+  and the second cove's bay and mouth (COVE2, `_cove2`, no wading shelf in it). In it: the HIGHLAND (+16 m) with a rocky spine out to the
+  SE cape (CAPE_TIP: sea cliffs, the wreck's rocks), a gentle rise round FARM. NO_GO gains the lobe; world_generator's seafloor box and the
+  shore map follow grid_rect()/grid_origin(); the sea chart's Brinehollow circle is 300 m at (-45, 80). Coast.cliffs and
+  KitCliffPath.carve take a grid offset.
+- **The old island's look kept:** its plants decide on its old ground (`_land_heights`, the old function's heights and cliffs), its old
+  reserves (`_ex_old`: reserves now indexed by 8 m cell, vegetation 3.8 -> ~2 s) and its old paths as they ran (`_frozen`), so every draw
+  is what it was; where the grown land, a new path or a newer piece changed things they're left out (`_veg_skip`; `_changed` per vertex,
+  dilated) and the grown land's scatter (`_scatter_grown`, a seed per lattice point: a later piece changes only the plants round it) fills
+  in. Coast rock keeps the old grid's indices for its seeds. The old pieces (built before `_open_grown`) see the frozen paths; the burrows
+  are found on the old ground. The height grid is computed on the worker threads.
+- **The upper town** (UP_*): a hill from the plaza's south edge (UP_Z0 -39) climbing 12 m to the shrine terrace (UP_Z1 6 .. UP_Z2 33),
+  between the ruins and cove paths, which now skirt it (paths 3 and 4 rerouted; the old pieces and plants keep the old courses). Terraced in
+  bands (UP_BANDS -30, -18, -6: each flat at its lane's height to 3 m short of the next, a 3 m stone block filling the step, KitStreet.wall
+  lift 0); the long stair up its middle (UP_X 4.5, on a corridor sunk 0.7 m under it: flights between flagged landings at each lane, side
+  walls down to the band). The grid's 3 m vertex lines fall on the bands' and the corridor's edges. The second row: 10 houses on the two
+  lower bands facing their lanes (flagged from the block to the doors), KitVillage.plan_yard dressing (the backs blocked), steps down the
+  second lane's flanks to the paths (KitStreet.ground_stairs).
+- **The market street** (`_build_market_street`): the main road cobbled out to 3.7 m either side, shopfronts where a house fits back from
+  it (KitStreet.shopfront: a house with its awning and sign, a counter of wares beside the door, Vendor/Customer markers), stalls,
+  barrows and rugs between, shade cloths and bunting across, two lamps; the two old houses facing it got awnings (same seeds). Bram's walk
+  up from the quay now keeps to the street's middle (brinehollow_cast.gd, one waypoint) and the street keeps it clear.
+- **New kit file** scripts/island/kit/kit_street.gd (KitStreet): shopfront, barrow, rug_stall, shade, stairs, ground_stairs, wall, finish.
+- **For the life agent:** `town_spots` {"stalls", "shops" (nodes with Vendor/Customer markers), "houses", "lanes", "stair"}. LIGHTS 22 -> 30:
+  the old island takes 18, the street and the upper houses 5.
+- **Checked by** islanddump diffs against main (only vegetation where the land changed, the terrain, two coast-rock chunks, the two
+  awnings, Bram, a burrow 0.2 m up, the dummies' known noise) and renders (tools/dev/out/bh/). New tool `bhmapshot` (a top-down map).
+  World suites not run in this batch (Zach, 2026-10-17); expected to notice: shoretest/swimtest (the south coast moved), qoltest/storytest
+  if they walk the ruins or cove paths (rerouted round the hill), foresttest (plants in the changed strip), savetest (treasure X spots move:
+  sea_features picks them up to LAND_R).

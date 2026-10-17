@@ -238,7 +238,7 @@ static func people(isl: StarterIsland) -> Array:
 	}, "at": Vector2(ring[0].x, ring[0].z), "face": Vector2(0, 1)})
 
 	var fish_route := KitLife.route(kit, [isl.dock_shore + Vector2(-8.0, 9.0), isl.dock_shore + Vector2(3.0, 12.0),
-		StarterIsland.VILLAGE + Vector2(8, -26), StarterIsland.VILLAGE + Vector2(3, -14)])
+		StarterIsland.VILLAGE + Vector2(1.5, -26), StarterIsland.VILLAGE + Vector2(3, -14)])
 	cast.append({"cfg": {
 		"name": "Bram", "voice": 0.95,
 		"barks": [
