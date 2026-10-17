@@ -11,7 +11,7 @@ const OUT := 170.0
 const FREEBOARD := 0.15
 const HALF_LEN := 2.4
 const HEAVE := 0.7
-const NEAR := 300.0
+const NEAR := 150.0
 const DRIFT_R := 5.0
 
 var isl: StarterIsland

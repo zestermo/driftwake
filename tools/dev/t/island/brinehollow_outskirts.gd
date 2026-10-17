@@ -108,12 +108,12 @@ func _process(_d: float) -> bool:
 			check("the tea-mistress behind her counter", _near_mark("Hana Teal", ts["teahouse"], "Vendor"))
 			check("the miller at his mill", _near_mark("Miller Brann", ts["windmill"], "Miller"))
 			check("the farmhands are in the fields", _in_field("Farmhand Joss") and _in_field("Farmhand Wynn"))
-			cam.global_position = isl.to_global(Vector3(isl.FARM.x, 90, isl.FARM.y))
+			cam.global_position = isl.to_global(Vector3(isl.FARM.x, 75, isl.FARM.y))
 			until = TK.wait_secs(1.0)
 		2:
 			check("...on their knees among the rows", folk["Farmhand Joss"].humanoid.kneeling and folk["Farmhand Wynn"].humanoid.kneeling)
 			var c: Vector2 = isl.town_spots["cove2"]["beach"]
-			cam.global_position = isl.to_global(Vector3(c.x, 90, c.y))
+			cam.global_position = isl.to_global(Vector3(c.x, 80, c.y))
 			until = TK.wait_secs(1.0)
 		3:
 			check("the cove's fisher sat on his jetty, rod out", folk["Old Gannet"].humanoid.seated and folk["Old Gannet"].rod_node.visible)

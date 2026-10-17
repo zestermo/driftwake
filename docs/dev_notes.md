@@ -3567,3 +3567,12 @@ Found and fixed (Buildings unless said):
 - **Tested by** t/island/brinehollow_woods (counts, none on a path/lane/stair/door/chest/burrow, the harbour sees the pagoda and the lighthouse
   past every new tree's bounds, at most 8 new squares). Expected to notice: foresttest (Brinehollow's tree counts; forest_crowns and the
   spitters are unchanged), anything counting the vegetation's MultiMesh instances.
+
+## 2026-10-17: Brinehollow life: the cost, and a first cut
+- **Bench** (min-spec PC, gate mode, 13:00 clear, same build with BrinehollowLife.build on/off back to back, calib 24.0 / 24.1, other
+  Godots running): ALL frame 12.35 -> 16.07 ms (+30%), plaza 12.49 -> 19.43, market 13.02 -> 21.47, quay 11.66 -> 15.89; the folk's
+  Villager routine 0.56 ms + their rigs 0.64, Jolt +0.4 (bodies dragged every frame), tail +0.6, draws +240.
+- **First cut** (BrinehollowFolk): the routine every frame only within 20 m of the camera, every other frame to 45 m, every fourth
+  past; walkers out of the physics (their Body disabled while walking, solid when stopped); hidden past 100 m. HarbourBoat rides the
+  swell within 150 m (was 300). A quick re-bench under load wasn't conclusive; the full gate pair needs rerunning. Open: if it's still
+  over budget, fewer townsfolk in the street (customers, porters, kids are the cheapest to cut).

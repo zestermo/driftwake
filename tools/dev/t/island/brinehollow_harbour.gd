@@ -53,7 +53,7 @@ func _process(_d: float) -> bool:
 			isl.build(42)
 			var cam := Camera3D.new()
 			root.add_child(cam)
-			cam.global_position = isl.to_global(Vector3(0, 110, -110))
+			cam.global_position = isl.to_global(Vector3(5, 80, -125))
 			cam.make_current()
 			var smacks: Array = isl.get_children().filter(func(n): return str(n.name).begins_with("Smack"))
 			boats = smacks.filter(func(n): return n.get("route") != null)

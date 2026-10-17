@@ -73,7 +73,7 @@ func _process(_d: float) -> bool:
 				for s in isl.town_spots["shops"] + isl.town_spots["stalls"]:
 					if s.name == keepers[who]:
 						where = s
-				if folk.has(who) and _local(folk[who]).distance_to(isl.kit.marker_point(where, "Vendor")) < 0.8 and folk[who].visible:
+				if folk.has(who) and _local(folk[who]).distance_to(isl.kit.marker_point(where, "Vendor")) < 0.8 and not folk[who]._home:
 					at_work += 1
 				else:
 					print("   %s at %s, %s's Vendor at %s" % [who, str(_local(folk[who])) if folk.has(who) else "-", keepers[who], str(isl.kit.marker_point(where, "Vendor"))])
@@ -119,13 +119,13 @@ func _process(_d: float) -> bool:
 			_at(21.0)
 			until = TK.wait_ticks(30)
 		2:
-			var inside := folk.values().filter(func(f): return f.visible and _in_tavern(f))
+			var inside := folk.values().filter(func(f): return not f._home and _in_tavern(f))
 			check("at 21:00 the Salted Gull is busy (%d inside)" % inside.size(), inside.size() >= 8)
-			check("Corin's in by the fire, still trading", folk.has("Corin") and _in_tavern(folk["Corin"]) and folk["Corin"].visible)
+			check("Corin's in by the fire, still trading", folk.has("Corin") and _in_tavern(folk["Corin"]) and not folk["Corin"]._home)
 			_at(2.0)
 			until = TK.wait_ticks(30)
 		3:
-			var out := folk.values().filter(func(f): return f.visible)
+			var out := folk.values().filter(func(f): return not f._home)
 			check("at 2:00 everyone's indoors (%s out)" % str(out.map(func(f): return f.npc_name)), out.is_empty())
 			isl.queue_free()
 			return TK.done(fails)
