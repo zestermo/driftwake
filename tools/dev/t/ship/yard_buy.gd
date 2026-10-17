@@ -47,7 +47,7 @@ func _process(_d: float) -> bool:
 			yard._refresh()
 			check("a line at its top reads MAX", yard._buy["rudder"].text == "MAX" and yard._buy["rudder"].disabled)
 			# higher levels want salvage too
-			ship.apply_kit(ship.kit.merged({"armour": 2}, true))
+			root.get_node("Net").set_ship_kit(ship.kit.merged({"armour": 2}, true))
 			yard.buy("armour")
 			check("level 3 wants timber as well: refused without it (%s)" % yard._note.text, int(ship.kit["armour"]) == 2 and yard._note.text.contains("4 more ship's timber"))
 			inv.add_item(load("res://resources/items/timber.tres"), 5)

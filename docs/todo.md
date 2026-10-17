@@ -246,3 +246,4 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
 
 - Buildings follow-up (2026-10-17): on tall double doors the wall lantern sits close to the door hood's bracket; nudge it out.
 - Katana follow-ups (2026-10-17, katana pass): the stab's pull-back points the blade at the ground before the drive; Tiger Rush's cut clips the arm into the head by ~0.05 m (posebench BLADE line); chest turns stay at ~0.45 rad (further ran the hands off to the side); proposed: Thousand Petals also takes victims who walk into range late; an atomic test for the abilities.
+- Axe pass paused (2026-10-17, out of v1.17): its WIP is on branch worktree-agent-afa189ebe4af75f8f (not on main); resume from it after the release (docs/axe_polish_plan.md). Don't unwork that branch.

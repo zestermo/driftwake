@@ -1,7 +1,7 @@
 class_name SkillMapScreen
 extends Control
 ## The skill trees (K), one tab each (click them, or Tab / Shift+Tab):
-## Base & Haki, Unarmed, Cutlass, Katana, Axe, the daggers, Dual Wield, Corsair, Pistol, Devil Fruit
+## Base & Haki, Unarmed, Cutlass, Katana, Axe, the daggers, Dual Wield, Corsair, Pistol, Seamanship, Devil Fruit
 ## (SkillTree.TAB_ORDER). It opens on the tree of the weapon in your hand and
 ## frames that tree's whole cluster. Weapon trees spend that weapon's mastery
 ## points; the others spend skill points.

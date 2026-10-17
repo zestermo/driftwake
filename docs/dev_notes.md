@@ -3198,8 +3198,8 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   shops and a house; the switchback (paths[15]) down the terrace's back to the cove path, trodden, two unlit posts. The market street's
   shopfronts are square to the street and shoulder to shoulder now (checked against the old reserves and each other), its edges dressed
   (cargo, planters, benches, carts), the two old houses on it squared to it.
-- **Draws:** the new district's built pieces are folded into one mesh a material each (KitStreet.merge_meshes: StreetMeshes,
-  UpperTownMeshes, TerraceMeshes; bodies, colliders, markers and lights stay); the grown land's trees and rocks go in 140 m squares with
+- **Draws:** the new district's built pieces are folded into one mesh a material each (KitStreet.merge_meshes: TownMeshes for the street,
+  the upper town and the terrace together, FarmMeshes; bodies, colliders, markers and lights stay); the grown land's trees and rocks go in 140 m squares with
   ranges (700 / 320 m). The bench before this (pieces 1-2, 5600G/3080, noisy: 6 other Godots) read ALL frame 13.15 -> 14.56 ms, draws
   1357 -> 1544 (plaza +310).
 - **Hook for the town's life:** StarterIsland.LIFE (scripts/island/brinehollow_life.gd) is built last if it exists (`static func build(isl)`);
@@ -3207,6 +3207,18 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   the new town 8 (street 2, upper houses 3, teahouse 1, shrine lanterns 2), 8 for the life pass.
 - Two kit fixes from the buildings pass: KitHouses.room's top plate inside its walls (under the thatch), GenHarbour's water houses
   "steps": false.
+- **The windmill hamlet** (`_build_farmland`, new kit file kit_farm.gd: KitFarm field/orchard/tilled/reserve): a yard round a well at
+  FARM (trodden, a lit lamp), the windmill on its rise (BrinehollowModels.windmill: its "Sails" turn by Ocean.clock() only while on
+  screen, scripts/props/windmill_sails.gd), a barn, two farmhouses (one lit) and a shed, haystacks, carts, cargo; six fields (FIELDS:
+  wheat, greens, vines on tilled ground in the terrain's splat, a crop MultiMesh each, fenced but for a gap, a scarecrow in the grain)
+  and the orchard (ORCHARD, three fruit-tree shapes in rows). Folded into FarmMeshes but the windmill. town_spots: "windmill" (Miller,
+  Door), "farm" (barn, homes), "fields", "orchard".
+- **The wild places** (`_build_wilds`): the falls (KitLandmarks._waterfall at POOL off the highland, its ground levelled and basin dug in
+  `_falls`; the InlandPool makes it swimmable; chest "falls_chest"), the wreck (KitLandmarks._wreck heeled over on the east coast where
+  WRECK_BEARING from LOBE meets the shore, among rocks; chest "wreck_chest" with the Drowned Mate's Coat), the second cove (a fisher's
+  hut, a jetty, a boat drawn up, a fish rack; chest "cove2_chest"). KitLandmarks' two dressings take a fixed chest (`items`) instead of
+  rolling a chain island's loot. Paths out to the wreck and down to the cove (paths 16, 17). town_spots: "falls", "wreck", "cove2",
+  "piers" (the cove's jetty).
 
 ## 2026-10-17: salvage (ship upgrades, piece 2)
 - Four materials (resources/items/timber, iron, canvas, copper .tres; icons from tools/texture_gen/gen_ship_icons.py),
@@ -3318,3 +3330,90 @@ Found and fixed (Buildings unless said):
   the chimney). Everything is in the two folded meshes except the jib, rudder, wheel rim, grove fruit and zone.
 - The yard's rows are 16 px (prices in Silkscreen 8) so the twelve lines fit 450.
 - Tests: t/ship/new_lines; upgrade_levels checks every level of all twelve shows.
+## 2026-10-17: the forest island theme, piece 3 (wildlife, folklore and beasts)
+- **Wildlife** (`scripts/enemies/fauna/`, Creature kinds; FaunaSpawner's packs, LOD and sleep as every kind): `deer.gd`
+  (ForestDeer: herds of hinds and spotted fawns round an antlered stag - "pack" [3, 5], young 0.4; they graze, the nearest
+  throws up its head and stamps, the herd bounds off flagging white tails; struck, the stag roars, lowers his antlers and
+  charges for a knockdown, then bolts; morphs red, fallow, dark), `red_fox.gd` (RedFox: the fennec's wariness - DesertFox's
+  brain - in a russet woodland fox with black socks, a bib and a white-tipped brush). Folklore: `wisp.gd` (Wisp: a little
+  floating light, faint by day, glowing at night - a flickering core and an additive halo, no light; near a captain at
+  night it draws off ahead of them, out of reach, then drifts back to its haunt; one blow puts it out), `wood_sprite.gd`
+  (WoodSprite: twig and leaf, ember eyes; by day a leaf mound you might step on, at night up in twos and threes, chitters
+  and crouches - the tell - then pounces and rakes, skips back out of reach and comes again), `treant.gd` (Treantling: a
+  stump that walks; stands still till you're close - 4 m by day, 11 m at night - then heaves up on its roots, slow, its bark
+  turning 55% of a blow from the front; a raised-arms slam that knocks you down or a wide sweep). The roster: deer, boar,
+  fox, wolf (now and then), wisp, sprite, treant, bat, crab; caves get bats overhead and mites, sprites and treantlings on
+  the floor.
+- **Beasts** (the alpha boar's / behemoth's brains on new bodies, as snow's): bosses `stag_king.gd` (the Stag King: a pale
+  stag the size of a cottage, its antlers a crown of branches hung with glowing moss and leaves; charge, antler sweep,
+  hoof-stomp ring from the start; a grove of standing stones hung with antlers, offerings, a toadstool ring and a stag skull
+  on a cairn for its ground), `elder_treant.gd` (the Elder Treant: an oak on four root-legs under a crown of autumn leaves,
+  slow and heavy, a ring of roots; its ground the oaks it pushed over, root plates on end, splintered stumps), plus the
+  jungle's serpent ("The Root Coil") and stalker ("The Grey Lynx") so a branching chain never runs the pool dry. Minis:
+  `moss_golem.gd` (a boulder-beast bound in moss and roots, at the ruins), `huntsman.gd` (the Cursed Huntsman, a "camp"
+  mini like the bandit chief: he leads the outlaws' camp in its captain's place, hooded with a war axe, Morrow's fight on the
+  island's level, and two hounds - wolves - at his heel with their own distance LOD on a timer), the alpha boar (at the
+  lair). Roamer: `wild_hunt.gd` (the Wild Hunt: a black spectral elk with antlers of pale fire and a hooded rider with a horn;
+  only at night - by day it's hidden, out of the physics space and asleep, from the synced world time - the behemoth's
+  roaming and temper).
+- **Gotcha:** a QuadBeast's vertex colours are linear (a coat over 1.0 wraps); a big beast that walks into a standing captain
+  can lift them onto its back (the test puts them down again) - the same for every big QuadBeast.
+- **Tests:** `t/island/forest_fauna`, `t/island/forest_beasts`, `t/island/forest_huntsman`. Renders: `tools/dev/out/forest/
+  models_fauna_*` (modelshot), `boss_stag/sheet.png`, `boss_treant/sheet.png` (bossshot seed 5).
+
+## 2026-10-17: any captain pays for her refits (ship upgrades, piece 4)
+- The yard's buttons work for guests too: `ShipwrightScreen.order(id, lv)` takes the price out of the payer's
+  own bag and calls `Net.request_upgrade(id, lv)`; the host (`_grant_upgrade`) puts level lv + 1 on her
+  (Net.set_ship_kit: every screen, and the join world state) only if she's still at `lv` (two captains paying
+  for the same level at once: the second is refused) and saves its world; the answer (`_upgrade_done`) goes
+  back to the payer's yard: done, or the whole price (gold and salvage) back in their bag. Single player and
+  the host take the same path, answered at once. Paint and colours stay the host's.
+- Tests: t/ship/upgrade_request (the arbitration and the refund, host side); nettest (netclient 742-744): the
+  guest pays for a rudder level, it's on the guest's ship and in the host's kit.
+
+## 2026-10-17: Seamanship (ship upgrades, piece 5)
+- A mastery tree "sea" (SkillTree.TREES / TAB_ORDER: the SEA tab before FRUIT; `_build_seamanship`, 15 nodes
+  in three columns: the helm, the guns, repairs, Bosun at the top), each captain's own: Progression saves it
+  with the captain like weapon mastery, so a guest's is theirs. Mastery comes on the captain's own machine
+  (`Seamanship`, scripts/ship/seamanship.gd): 1 xp per 25 m sailed at the helm (Ship._physics_process),
+  8 a hit with her guns on a ship (Cannonball, the authoritative copy, shooter = our captain), 12 a hole
+  patched or fire beaten out, 1 a pump stroke (0.25 s), 3 at the capstan, and 30-60 for a ship sunk within
+  250 m (EnemyShip._sea_credit on every screen, host and puppets).
+- **Station bonuses** count only while you man the station: helm_speed / helm_turn / helm_flood (Ship._helm_k
+  from `Seamanship.helm_k` on the helmsman's machine, and on Ship.net_pack's new fields 15-18 for the other
+  screens: PACK_SIZE 19, with whether they're steering), gun_reload (ShipCannon._process, the gun you aim),
+  gun_dmg (ShipCannon._shoot, balls you fire), repair / capstan (`Ship.job_time`), pump (more bailed),
+  lookout (the compass marks reach further aboard, added to the nest's). Bosun (crew 0.5): the rest count half
+  again while a crewmate mans another station (another machine's helmsman: `Ship.helm_other`; a gun seat held
+  by another id).
+- techtest's "each weapon tree has 18+ nodes and one ultimate" now counts only the weapon trees (STYLE_TREE).
+- Tests: t/ship/seamanship. Render: tools/dev/seamapshot.gd (the SEA tab fresh and learned).
+## 2026-10-17: the forest island theme, piece 4 (set pieces: the waterfall gorge, the ruined castle, the hollow tree)
+- **What** (`scripts/island/themes/forest_setpieces.gd`, ForestSetPieces, through ForestPlaces.KINDS on the theme place
+  hooks; a set piece and a landmark never share a kind): `forest_gorge` for the chain's cenote or sunken village,
+  `forest_castle` for its volcano vent or old fort, `forest_hollow_tree` for its great tree. Nothing guaranteed: the chain
+  rolls which set piece and landmarks an island gets.
+- **The waterfall gorge:** forest_land.gd gives the island's first river big falls (14-19 m; as big as the land allows,
+  at least 5 m) when its set piece maps to the gorge (`land_plan["gorge"]`), so the river runs on in a deep gorge below
+  them. The set piece takes the island's biggest falls clear of the sites: mist off the pool, ferns and moss down the
+  walls, a cave dug into the gorge wall beside the curtain (the terrain cut to the pool's level there, a CaveMesher room
+  meshed on the worker, its rock one trimesh, glowing fungus, a light, the `gorge_cave_hoard` chest and two of the
+  island's cave fauna by FaunaSpawner.fill_slots), rope bridges (KitLandmarks.bridge) rim to rim across the gorge a few
+  steps downstream, the trail to the first bridge, the falls' roar.
+- **The ruined castle:** on high level ground (KitSetPieces._plan_inland, r 27): eight stretches of crenellated mossy-stone
+  curtain wall at 21 m (a seeded third breached to rubble), the gatehouse toward the trail (piers, a lintel, an arch), round
+  towers on every other corner (some broken low), ivy red and green down them; the keep at the back, roofless, its doorway
+  toward the gate, a stair of stone blocks round its inside walls to a timber floor at 8.4 m under the broken parapet with
+  the `castle_keep_chest`, arrow slits, a light; outlaws camped in the courtyard (a fire, tents, crates, a GruntCamp of five:
+  two at the fire, one walking the walls' foot, a rifle at the gate, one at the keep's door) with their own nav zone.
+- **The hollow giant tree:** a trunk 11 m across, hollow to 7 m (outer and inner walls, a doorway between buttress roots at
+  +Z, the back open), solid and tapering on up to the fork at 22 m, seven limbs into a crown of oak, maple and beech leaves
+  with grapple points; bracket fungus spiralling up its side (17 shelves, 0.82 m apart, each a box to stand on) to a planked
+  perch in the fork with the `hollow_tree_perch` chest. Through the back of the hollow a root cavern of three chambers in a
+  mound of earth and roots behind it (CaveMesher, the ground levelled under it; the forest's cave look), roots down through
+  the roofs, glowing fungus, a light per chamber, bats overhead and sprites / treantlings / mites on the floors
+  (fill_slots), the `hollow_tree_hoard` in the end chamber.
+- **Build cost** (seed 5, landmarkshot): the gorge's steps ~160 ms in all, the hollow tree's ~290 ms over two steps (the
+  trunk's 24 wall boxes and the cavern's trimesh), the castle ~35 ms; the cave meshes ~130 ms on the prepare worker.
+- **Tests:** `t/island/forest_places`. Renders: `tools/dev/out/forest/lm5_*` (landmarkshot seed 5, LSHOT_PIECE=cenote,
+  LSHOT_MARKS=great_tree: the gorge, the hollow tree, the sawmill, the camps), `c5_forest_castle.png` (forestshot seed 5).

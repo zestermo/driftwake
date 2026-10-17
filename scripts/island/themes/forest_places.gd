@@ -6,8 +6,10 @@ extends RefCounted
 ## (earth kilns smoking) and a hunter's lodge (antlers over the door, hides on their frames, a cache).
 ## Plans are numbers (the worker); steps build under the place's node in place-local coordinates (+Z its face).
 
-## Which chain set pieces and landmarks the forest's own kinds stand in for.
-const KINDS := {}
+## Which chain set pieces and landmarks the forest's own kinds stand in for (ForestSetPieces). A set piece and a
+## landmark never share a kind (an island gets one of each at most).
+const KINDS := {"volcano_vent": "forest_castle", "old_fort": "forest_castle", "cenote": "forest_gorge", "sunken_village": "forest_gorge",
+	"great_tree": "forest_hollow_tree"}
 const LAND := preload("res://scripts/island/themes/forest_land.gd")
 const MILL_R := 16.0
 const CAMP_R := 10.0
@@ -130,12 +132,14 @@ static func _turn(face: Vector2, q: Vector2) -> Vector2:
 	return Vector2(v.x, v.z)
 
 
-static func plan(_isl, _kind: String, _rng_in: RandomNumberGenerator, _avoid: Array) -> Dictionary:
-	return {}
+static func plan(isl, kind: String, rng: RandomNumberGenerator, avoid: Array) -> Dictionary:
+	return ForestSetPieces.plan(isl, kind, rng, avoid)
 
 
 static func steps(isl, ctx: KitContext, pl: Dictionary) -> Array:
 	var k := str(pl["kind"])
+	if ["forest_gorge", "forest_castle", "forest_hollow_tree"].has(k):
+		return ForestSetPieces.steps(isl, ctx, pl)
 	if k == "forest_sawmill":
 		return [func(): _mill(ctx, pl, KitLandmarks.place_node(ctx, pl)), func(): _mill_yard(isl, ctx, pl)]
 	if k.begins_with("forest_charcoal"):

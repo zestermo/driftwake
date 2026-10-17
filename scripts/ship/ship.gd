@@ -51,7 +51,7 @@ const SAIL_RATE := 0.5
 ## how far off it may be before it just jumps there.
 const FIX_RATE := 2.5
 const FIX_SNAP := 6.0
-const PACK_SIZE := 15
+const PACK_SIZE := 19
 
 var is_player_steering: bool = false
 ## Current forward speed (m/s, negative = backing) and smoothed rudder (-1..1).
@@ -102,6 +102,12 @@ var _night_k: float = 0.0
 var _reef_k: float = 1.0
 var steady: float = 0.0
 var lookout: float = 0.0
+## The helmsman's Seamanship on her sailing ([top speed x, turning x, share of flooding's slowdown]:
+## Seamanship.helm_k on their machine, from their snapshot elsewhere), and whether a captain on another
+## machine has the wheel (for the Bosun's crew bonus).
+var _helm_k := Vector3.ONE
+var helm_other: bool = false
+var _sea_m: float = 0.0
 var _psx_model: MeshInstance3D
 var _hull_mat: Material
 var _canvas_mat: Material
@@ -207,10 +213,14 @@ func _physics_process(delta: float) -> void:
 			_turn_in = float(s[12])
 			_back_in = bool(s[13])
 			set_anchored(bool(s[14]))
+			_helm_k = Vector3(float(s[15]), float(s[16]), float(s[17]))
+			helm_other = bool(s[18])
 		else:
 			snap = []
 	else:
 		_read_helm()
+		_helm_k = Seamanship.helm_k(get_tree(), self) if is_player_steering else Vector3.ONE
+		helm_other = false
 	sail_shown = move_toward(sail_shown, sail, SAIL_RATE * delta)
 	var heading := _heading
 	var pos := _pos
@@ -218,7 +228,7 @@ func _physics_process(delta: float) -> void:
 	var right := Vector3(cos(heading), 0.0, -sin(heading))
 
 	# (water in her: low and sluggish; a fair wind: a little faster)
-	var top := MAX_SPEED * _top_k * (1.0 + _night_k * Weather.night) * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood) * wind_effect()
+	var top := MAX_SPEED * _top_k * _helm_k.x * (1.0 + _night_k * Weather.night) * (CRIPPLED_SPEED if crippled else 1.0) * (1.0 - 0.55 * flood * _helm_k.z) * wind_effect()
 	var want := top * sail_shown
 	_fair_wind_note()
 	if summoning():
@@ -235,7 +245,7 @@ func _physics_process(delta: float) -> void:
 		speed = move_toward(speed, want, (0.35 + 0.012 * speed * speed) * delta)
 	rudder = move_toward(rudder, _turn_in, 2.2 * _turn_k * delta)
 	var flow := clampf(absf(speed) / 4.0, 0.3, 1.0) * (0.0 if anchored else 1.0)
-	var target_rate := -rudder * MAX_TURN * _turn_k * flow * (-1.0 if speed < -0.3 else 1.0)
+	var target_rate := -rudder * MAX_TURN * _turn_k * _helm_k.y * flow * (-1.0 if speed < -0.3 else 1.0)
 	_yaw_rate = move_toward(_yaw_rate, target_rate, 1.1 * delta)
 	heading += _yaw_rate * delta
 
@@ -315,6 +325,12 @@ func _physics_process(delta: float) -> void:
 		wheel.rotation.z = -rudder * 2.4
 	parts.steer(rudder)
 	_wake(pos, fwd)
+	# the helmsman's Seamanship grows with the sea under her
+	if is_player_steering:
+		_sea_m += absf(speed) * delta
+		if _sea_m >= Seamanship.SAIL_M:
+			_sea_m -= Seamanship.SAIL_M
+			Seamanship.xp(get_tree(), 1)
 	if speed > top:
 		speed = move_toward(speed, top, 2.0 * delta)
 	if not Net.is_client():
@@ -754,28 +770,39 @@ func _damage_view(delta: float) -> void:
 			if holding:
 				_bail_t += delta
 				if _bail_t >= 0.25:
-					Net.ship_work("bail", 0, BAIL_RATE * _bail_t)
+					Net.ship_work("bail", 0, BAIL_RATE * _bail_t * (1.0 + Seamanship.station(get_tree(), "pump", self)))
 					_bail_t = 0.0
+					Seamanship.xp(get_tree(), Seamanship.BAIL)
 			_set_work("Hold F: work the pump", flood)
 		"anchor":
+			var need := job_time("anchor")
 			_work_t = _work_t + delta if holding else 0.0
 			me.body_model.kneeling = holding
-			if _work_t >= ANCHOR_TIME:
+			if _work_t >= need:
 				_work_t = 0.0
 				me.body_model.kneeling = false
 				Net.ship_anchor(not anchored)
 				FX.sfx("rope", global_transform * CAPSTAN_AT, -2.0, 0.05, 0.75)
-			_set_work("Hold F: weigh anchor" if anchored else "Hold F: let go the anchor", _work_t / ANCHOR_TIME)
+				Seamanship.xp(get_tree(), Seamanship.CAPSTAN)
+			_set_work("Hold F: weigh anchor" if anchored else "Hold F: let go the anchor", _work_t / need)
 		_:
-			var need := PATCH_TIME if job == "patch" else DOUSE_TIME
+			var need := job_time(job)
 			_work_t = _work_t + delta if holding else 0.0
 			me.body_model.kneeling = holding
 			if _work_t >= need:
 				_work_t = 0.0
 				me.body_model.kneeling = false
 				Net.ship_work(job, id, 0.0)
+				Seamanship.xp(get_tree(), Seamanship.PATCH)
 				FX.sfx("wood_crack" if job == "patch" else "splash", me.global_position, -6.0, 0.05, 1.3)
 			_set_work("Hold F: patch the hole" if job == "patch" else "Hold F: beat out the fire", _work_t / need)
+
+
+## How long our captain takes over a deck job ("patch", "douse", "anchor"), with their Seamanship.
+func job_time(job: String) -> float:
+	if job == "anchor":
+		return ANCHOR_TIME / (1.0 + Seamanship.station(get_tree(), "capstan", self))
+	return (PATCH_TIME if job == "patch" else DOUSE_TIME) / (1.0 + Seamanship.station(get_tree(), "repair", self))
 
 
 var _prompting: bool = false
@@ -1576,7 +1603,8 @@ func _helm_locked() -> bool:
 
 
 func net_pack() -> Array:
-	return [_pos, _heading, _y, _pitch, _roll, speed, rudder, _yaw_rate, _vy, _vpitch, _vroll, sail, _turn_in, _back_in, anchored]
+	return [_pos, _heading, _y, _pitch, _roll, speed, rudder, _yaw_rate, _vy, _vpitch, _vroll, sail, _turn_in, _back_in, anchored,
+		_helm_k.x, _helm_k.y, _helm_k.z, is_player_steering]
 
 
 ## We now steer. Our copy has been following the helmsman all along, so it

@@ -855,7 +855,7 @@ static func _waterfall(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 
 
 ## The ledge behind the falls and its chest, vines down the face, stones round the pool.
-static func _waterfall_dressing(ctx: KitContext, pl: Dictionary) -> void:
+static func _waterfall_dressing(ctx: KitContext, pl: Dictionary, items := []) -> void:
 	var node := node_of(ctx, pl)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(pl["seed"]) + 1
@@ -868,7 +868,7 @@ static func _waterfall_dressing(ctx: KitContext, pl: Dictionary) -> void:
 	mb.add_blob(mats[0], Transform3D(Basis(), Vector3(0.3, wy - 0.6, z0 + 0.2)), Vector3(1.7, 1.25, 1.0), rng, 0.12, 3, 7, 0.4, Color(0.75, 0.75, 0.75), -0.6)
 	box_col(ledge, Vector3(2.8, 1.2, 1.4), Vector3(0.3, wy + 0.0, z0 + 0.3))
 	node.add_child(ledge)
-	chest(ctx, pl, Vector3(0.3, wy + 0.6, z0 + 0.35), 0.0, "falls_chest", loot(ctx.isl as GenIsland, rng, true), 0.9)
+	chest(ctx, pl, Vector3(0.3, wy + 0.6, z0 + 0.35), 0.0, "falls_chest", loot(ctx.isl as GenIsland, rng, true) if items.is_empty() else items, 0.9)
 	var at: Array = []
 	for k in range(13):
 		var a := TAU * k / 13.0 + rng.randf_range(-0.1, 0.1)
@@ -979,7 +979,7 @@ static func _wreck(ctx: KitContext, pl: Dictionary, node: Node3D) -> void:
 
 ## Her mast and torn sail on the sand, cargo spilled from the breach, the bones
 ## of someone who stayed with her, and the chest in her hold.
-static func _wreck_dressing(isl: GenIsland, ctx: KitContext, pl: Dictionary) -> void:
+static func _wreck_dressing(isl: GenIsland, ctx: KitContext, pl: Dictionary, items := []) -> void:
 	var node := node_of(ctx, pl)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(pl["seed"]) + 1
@@ -1045,7 +1045,7 @@ static func _wreck_dressing(isl: GenIsland, ctx: KitContext, pl: Dictionary) -> 
 		pr.rotation.z = rng.randf_range(-0.3, 0.3)
 	# the chest in her hold, on the sand that's drifted in
 	var cp := xf * Vector3(side * 1.2, 0, -5.6)
-	chest(ctx, pl, Vector3(cp.x, gy(ctx, pl, cp.x, cp.z) + 0.05, cp.z), rng.randf_range(-0.4, 0.4), "wreck_chest", loot(isl, rng, true), 1.0)
+	chest(ctx, pl, Vector3(cp.x, gy(ctx, pl, cp.x, cp.z) + 0.05, cp.z), rng.randf_range(-0.4, 0.4), "wreck_chest", loot(isl, rng, true) if items.is_empty() else items, 1.0)
 
 
 # ==========================================================================

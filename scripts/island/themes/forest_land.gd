@@ -72,6 +72,16 @@ static func plan(isl, rng: RandomNumberGenerator) -> Dictionary:
 			for k in range(5, int(pts.size() * 0.5)):
 				if surf[k - 1] - drop >= FLOOR + 2.0:
 					falls = k
+			# (the gorge's river always gets its falls: as big as the land there allows)
+			if falls < 0 and gorge and i == 0:
+				var hi := 5
+				for k in range(5, maxi(int(pts.size() * 0.5), 6)):
+					if surf[k - 1] > surf[hi - 1]:
+						hi = k
+				var room := surf[hi - 1] - FLOOR - 2.0
+				if room >= 5.0:
+					falls = hi
+					drop = minf(drop, room)
 		if falls > 0:
 			surf = _profile(nat, floor_at, falls, drop)
 		rivers.append({"pts": pts, "surf": surf, "w": w, "falls": falls, "drop": drop if falls > 0 else 0.0})
@@ -179,13 +189,14 @@ static func wet(lp: Dictionary, p: Vector2, pad := 0.0) -> float:
 ## The falls' foot (island point) and the pool's surface, for each river that has falls.
 static func falls_of(lp: Dictionary) -> Array:
 	var out: Array = []
-	for rv in lp["rivers"]:
+	for ri in range((lp["rivers"] as Array).size()):
+		var rv: Dictionary = lp["rivers"][ri]
 		var f: int = rv["falls"]
 		if f > 0:
 			var pts: PackedVector2Array = rv["pts"]
 			var dir := (pts[f] - pts[f - 1]).normalized()
 			out.append({"top": pts[f] - dir, "foot": pts[f] + dir * (float(rv["w"]) + 2.5), "dir": dir, "y_top": float(rv["surf"][f - 1]),
-				"y": float(rv["surf"][f]), "w": float(rv["w"]), "drop": float(rv["drop"])})
+				"y": float(rv["surf"][f]), "w": float(rv["w"]), "drop": float(rv["drop"]), "river": ri, "k": f})
 	return out
 
 

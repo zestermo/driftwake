@@ -313,6 +313,8 @@ func _run(name_: String, args: Array, from: int):
 			k["figure"] = 2
 			n.set_ship_kit(k)
 			return true
+		"kit_level":
+			return int(get_node("/root/GameManager").ship_kit.get(str(args[0]), 0))
 		"boss_aoe":
 			for b in get_tree().get_nodes_in_group("bosses"):
 				if str(b.name).begins_with("Morrow"):

@@ -350,6 +350,7 @@ static func windmill(seed_value: int) -> StaticBody3D:
 		smb.add_quad(canvas, c0, c1, c2, c3, Vector2(0, 1), Vector2(0.4, 1), Vector2(0.4, 0), Vector2(0, 0), Color.WHITE, n)
 		smb.add_quad(canvas, c0, c3, c2, c1, Vector2(0, 1), Vector2(0, 0), Vector2(0.4, 0), Vector2(0.4, 1), Color(0.7, 0.7, 0.7), -n)
 	var sails := Node3D.new()
+	sails.set_script(preload("res://scripts/props/windmill_sails.gd"))
 	sails.name = "Sails"
 	sails.position = Vector3(0, h - 0.6, 2.75)
 	var smi := smb.to_instance("SailsMesh")

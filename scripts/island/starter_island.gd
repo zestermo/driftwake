@@ -111,7 +111,7 @@ const SPITTERS := 9
 const VEG_CELL := 70.0
 ## Brinehollow's fixed seeds: the same island whatever the world's seed.
 const SEEDS := {"port": 7007, "village": 2626, "market": 51, "ruins": 4242, "spitters": 7171, "grell": 97, "coast": 3131, "climb": 5151,
-	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484}
+	"south": 8181, "street": 8282, "upper": 8383, "shrine": 8484, "farm": 8585, "wilds": 8686}
 ## The southern lands (2026-10-17): a lobe of land round LOBE, LOBE_R to its coast (ragged), kept
 ## off the cove (COVE_SEA) and the old island's interior; the highland the falls come off, the
 ## farmland round the windmill hamlet, the second cove's bay on the south coast.
@@ -126,6 +126,17 @@ const COVE2_MOUTH := Vector2(-0.12, 1.0)
 const GROW_KEEP := [[SMUGGLERS, 26.0]]
 ## The rocky spine from the highland out to the south-east cape (sea cliffs at its end: the wreck's rocks).
 const CAPE_TIP := Vector2(92, 372)
+## The windmill hamlet's fields round FARM (KitFarm: [centre, half size, yaw, crop], rows along local X)
+## and the orchard (the same rectangle form).
+const FIELDS := [[Vector2(-75, 175), Vector2(7, 5), 0.2, "wheat"], [Vector2(-88, 205), Vector2(6, 8), 0.1, "greens"],
+	[Vector2(-72, 238), Vector2(8, 5.5), -0.15, "wheat"], [Vector2(-42, 242), Vector2(7, 5), 0.25, "vines"],
+	[Vector2(2, 208), Vector2(6, 5), 0.3, "greens"], [Vector2(-38, 168), Vector2(6, 4.5), 0.35, "wheat"]]
+const ORCHARD := [Vector2(-55, 265), Vector2(9, 7), 0.1, "orchard"]
+## The wild places on the far side: the falls' pool at the highland's north-west foot (its crag uphill
+## toward HIGHLAND, KitLandmarks' waterfall), the wreck on the east coast's rocks (found from LOBE on
+## WRECK_BEARING), the second cove (COVE2) with its landing.
+const POOL := Vector2(12, 290)
+const WRECK_BEARING := 24.0
 ## Paths before the land grew: the old pieces and plants see only these.
 const OLD_PATHS := 8
 ## The upper town (2026-10-17): a hill climbing south from the plaza between the ruins and cove
@@ -181,6 +192,9 @@ var _detail_noise := FastNoiseLite.new()
 ## Bays and headlands: shifts the coast in and out across the map.
 var _shape_noise := FastNoiseLite.new()
 var _flat_zones: Array = []  # [Vector2 center, float target, float r_in, float r_out]
+## The falls' pool's water line ground (its basin dug under it); the wreck's spot on the shore and out to sea.
+var _pool_y := 0.0
+var wreck_site: Array = []
 var _rng := RandomNumberGenerator.new()
 var _tree_colliders: StaticBody3D
 
@@ -222,6 +236,8 @@ var _path_mesh := {}
 var _veg_skip := false
 ## The square the next plants are bucketed by (the grown land's trees and rocks: 140 m).
 var _veg_cell := VEG_CELL
+## The new town's built pieces, their meshes folded into one at the end (TownMeshes).
+var _town_parts: Array = []
 ## The new town's places for its people (2026-10-17; scripts/island/brinehollow_cast.gd's to use):
 ## "stalls" and "shops" (nodes with "Vendor" and "Customer" markers), "houses" (nodes, their doors
 ## on local +Z), "lanes" (PackedVector2Array each), "stair" (the long stair's walking line, island
@@ -280,6 +296,8 @@ func build(world_seed: int) -> Dictionary:
 	kit.timed("market street", _build_market_street)
 	kit.timed("upper town", _build_upper_town)
 	kit.timed("shrine terrace", _build_shrine_terrace)
+	kit.timed("farmland", _build_farmland)
+	kit.timed("wild places", _build_wilds)
 	_grow_layer = false
 	kit.timed("vegetation", _scatter_vegetation)
 	kit.timed("spitters", _build_spitters)
@@ -464,7 +482,16 @@ func _height_natural(x: float, z: float, shelf := 1.0) -> float:
 ## The ground: the old island's, the southern lands where they stand higher, the upper town.
 func _height_fn(x: float, z: float, shelf := 1.0) -> float:
 	var p := Vector2(x, z)
-	return _upper(p, maxf(_height_old(x, z, shelf), _grown(p, shelf)))
+	return _falls(p, _upper(p, maxf(_height_old(x, z, shelf), _grown(p, shelf))))
+
+
+## The falls' pool: its ground levelled round it, its basin dug (KitLandmarks.POOL_DEPTH).
+func _falls(p: Vector2, h: float) -> float:
+	var d := p.distance_to(POOL)
+	if d > 12.0:
+		return h
+	h = lerpf(h, _pool_y, 1.0 - _smooth(7.0, 12.0, d))
+	return lerpf(h, _pool_y - KitLandmarks.POOL_DEPTH, 1.0 - _smooth(3.0, 6.4, d))
 
 
 ## The upper town's hill's half width at z (flat across it, then 9 m of flank down to the land).
@@ -605,6 +632,12 @@ func _setup_flat_zones() -> void:
 		[CAVE, _height_natural(CAVE.x, CAVE.y), 30.0, 44.0],
 		[climb_start()[0], 2.0, 5.0, 11.0],
 	]
+	_pool_y = maxf(_height_old(POOL.x, POOL.y), _grown(POOL, 1.0))
+	var dir := Vector2.from_angle(deg_to_rad(WRECK_BEARING))
+	var d := LOBE_R * 0.6
+	while _lobe_t(LOBE + dir * d) < 0.0:
+		d += 0.5
+	wreck_site = [LOBE + dir * (d - 2.0), dir]
 
 
 ## The grid's (0, 0) vertex, island space.
@@ -636,7 +669,7 @@ func _generate_heights() -> void:
 			var z := -HALF + iz * CELL + GRID_C.y
 			var h := _height_old(x, z)
 			a[ix] = h
-			b[ix] = _upper(Vector2(x, z), maxf(h, _grown(Vector2(x, z), 1.0)))
+			b[ix] = _falls(Vector2(x, z), _upper(Vector2(x, z), maxf(h, _grown(Vector2(x, z), 1.0))))
 		rows[iz] = [a, b], RES + 1)
 	WorkerThreadPool.wait_for_group_task_completion(task)
 	var old := PackedFloat32Array()
@@ -992,6 +1025,10 @@ func _define_paths() -> void:
 		_add_path([Vector2(UP_X - w, zl), Vector2(UP_X + w, zl)], 1.2)
 	# the switchback down the terrace's back to the cove path
 	_add_path([Vector2(UP_X + 11.0, UP_Z2 - 1.5), Vector2(-6, 39), Vector2(16, 46), Vector2(30, 49), Vector2(44, 42)], 1.3)
+	# out to the wild places: from the highland's foot round to the wreck, from the farm down to the second cove
+	var ws: Vector2 = wreck_site[0] - (wreck_site[1] as Vector2) * 13.0
+	_add_path([Vector2(14, 278), Vector2(40, 284), ws.lerp(Vector2(40, 284), 0.4), ws], 1.1)
+	_add_path([Vector2(-14, 232), Vector2(-36, 284), Vector2(-46, 312), COVE2 + Vector2(4, -31)], 1.1)
 
 
 ## The grown land's paths count from here on (its pieces and plants).
@@ -1114,6 +1151,8 @@ func _build_terrain() -> void:
 				# packed earth behind the quay, among the waterfront houses
 				dirt = maxf(dirt, harbour.earth(x, z))
 				dirt = maxf(dirt, _disk(p, dock_root, 3.0, 6.0) * 0.6)
+				# the fields' tilled ground, the hamlet's yard
+				dirt = maxf(dirt, maxf(KitFarm.tilled(FIELDS, p) * 0.9, _disk(p, FARM, 8.0, 12.0) * 0.75))
 				sand = 1.0 - _smooth(1.7, 2.8, h)
 				sand = maxf(sand, _disk(p, CAMP, 4.0, 9.0))
 				dirt *= (1.0 - _disk(p, CAMP, 0.0, 9.0)) * (1.0 - rock)
@@ -1459,7 +1498,7 @@ func _build_market_street() -> void:
 			k += 1
 	var built: Array = KitVillage.build_items(kit, items).map(func(e: Array): return e[1]).filter(func(n): return n != null)
 	KitVillage.build_cargo(kit, items)
-	KitStreet.merge_meshes(kit, town_spots["shops"] + town_spots["stalls"] + built, "StreetMeshes")
+	_town_parts.append_array(town_spots["shops"] + town_spots["stalls"] + built)
 	var mi := mb.to_instance("StreetCloths")
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_end = KitStreet.RANGE
@@ -1498,7 +1537,7 @@ func _build_upper_town() -> void:
 				var x := UP_X + sd * 1.9
 				KitStreet.wall(kit, mb, body, PackedVector3Array([Vector3(x, a.y - 0.1, a.z), Vector3(x, b.y - 0.1, b.z)]), 0.36, 0.0)
 	town_spots["stair"] = line
-	KitStreet.finish(kit, mb, body)
+	_town_parts.append(KitStreet.finish(kit, mb, body))
 	# the bands' retaining blocks (the step to the next band, but where the stair climbs through)
 	var wb := MeshBuilder.new()
 	var wbody := StaticBody3D.new()
@@ -1517,7 +1556,7 @@ func _build_upper_town() -> void:
 				x += sd * 1.5
 			if run.size() >= 2:
 				KitStreet.wall(kit, wb, wbody, run, 3.0, 0.0)
-	KitStreet.finish(kit, wb, wbody)
+	_town_parts.append(KitStreet.finish(kit, wb, wbody))
 	# the second row: houses on the two lower bands facing their lanes, doors to the north
 	var occ: Array = []
 	for nx: float in steps:
@@ -1569,10 +1608,10 @@ func _build_upper_town() -> void:
 			var foot := Vector2(UP_X + sd * (_up_w(zl) + 9.5), zl)
 			KitStreet.ground_stairs(kit, fb, fbody, top, foot, 2.2)
 			town_spots["lanes"].append(PackedVector2Array([top, foot]))
-	KitStreet.finish(kit, fb, fbody)
+	_town_parts.append(KitStreet.finish(kit, fb, fbody))
 	var built: Array = KitVillage.build_items(kit, items).map(func(e: Array): return e[1]).filter(func(n): return n != null)
 	KitVillage.build_cargo(kit, items)
-	KitStreet.merge_meshes(kit, town_spots["houses"] + built, "UpperTownMeshes")
+	_town_parts.append_array(town_spots["houses"] + built)
 
 
 ## The shrine terrace at the top of the long stair: the gate at the stair's head, the flagged way up
@@ -1660,7 +1699,7 @@ func _build_shrine_terrace() -> void:
 	kit.place(tree, tree_p, rng.randf() * TAU, 0.0, -0.15)
 	kit.reserve(tree_p, 3.0)
 	parts.append(tree)
-	KitStreet.merge_meshes(kit, parts, "TerraceMeshes")
+	_town_parts.append_array(parts)
 	# a parapet along the terrace's front edge but where the stair comes up
 	var pb := MeshBuilder.new()
 	var pbody := StaticBody3D.new()
@@ -1673,7 +1712,7 @@ func _build_shrine_terrace() -> void:
 			pts.append(Vector3(x, top, UP_Z1 + 0.35))
 			x += s * 1.6
 		KitStreet.wall(kit, pb, pbody, pts, 0.4, 0.55)
-	KitStreet.finish(kit, pb, pbody)
+	_town_parts.append(KitStreet.finish(kit, pb, pbody))
 	# the switchback down the back: trodden, a low wall on its drop, a lamp post at each turn
 	var lane: PackedVector2Array = paths[OLD_PATHS + 4 + UP_BANDS.size()]
 	town_spots["lanes"].append(lane)
@@ -1684,6 +1723,134 @@ func _build_shrine_terrace() -> void:
 		var lp: Vector2 = q + (Vector2(-2.2, 0.6) if q.x < 0.0 else Vector2(2.2, 0.6))
 		if not _excluded(lp, 0.4):
 			KitLights.post(kit, lp, 0.0, 0.3, 0.0)
+	KitStreet.merge_meshes(kit, _town_parts, "TownMeshes")
+
+
+## The windmill hamlet in the southern lands (KitFarm): a yard round a well at FARM, the windmill on its
+## rise, a barn, two farmhouses and a shed, haystacks and carts; the fields round it with their fences
+## and scarecrows, the orchard by the way to the highland.
+func _build_farmland() -> void:
+	var rng := kit.rng(0, SEEDS["farm"])
+	var parts: Array = []
+	var yard: Array = []
+	kit.place(Props.well(), FARM, 0.0, 1.6)
+	var mill := BrinehollowModels.windmill(rng.randi())
+	var mp := FARM + Vector2(-15, 14)
+	kit.place(mill, mp, face_yaw(FARM - mp), 3.2)
+	town_spots["windmill"] = mill
+	var barn := kit.house({"w": 9.0, "d": 6.5, "h": 3.4, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "pitch": 0.6,
+		"door_x": 0.0, "flowers": false, "seed": 8600, "name": "Barn"}, FARM + Vector2(14, 8), Vector2(-1, -0.3))
+	var homes := [kit.house({"w": 6.0, "d": 5.0, "floors": 2, "wall": "plaster", "wall2": "planks", "roof": "gable", "roof_tex": "thatch",
+			"pitch": 0.7, "jetty": 0.3, "door_x": -1.0, "chimney": true, "smoke": false, "seed": 8601, "name": "Farmhouse0", "lamp_light": true},
+			FARM + Vector2(0, 15), Vector2(0, -1)),
+		kit.house({"w": 5.5, "d": 4.5, "wall": "stone_brick", "roof": "hip", "roof_tex": "thatch", "pitch": 0.55, "porch": 1.4, "door_x": 0.8,
+			"seed": 8602, "name": "Farmhouse1", "smoke": false}, FARM + Vector2(-14, -3), Vector2(1, 0.1)),
+		kit.house({"w": 4.0, "d": 3.5, "h": 2.3, "wall": "planks_weathered", "roof": "shed", "roof_tex": "thatch", "lean_to": "left",
+			"seed": 8603, "name": "Shed", "smoke": false}, FARM + Vector2(16, -5), Vector2(-1, 0.2))]
+	parts.append_array([barn] + homes)
+	town_spots["farm"] = [barn] + homes
+	KitLights.post(kit, FARM + Vector2(3.2, 3.2), 0.0, 0.3)
+	# the yard's clutter: haystacks by the barn, carts, a trough, cargo by the doors
+	var hmb := MeshBuilder.new()
+	for q in [FARM + Vector2(19, 15), FARM + Vector2(21.5, 11.5), FARM + Vector2(-8, 22)]:
+		BrinehollowModels.haystack(hmb, Vector3(q.x, hv(q) - 0.1, q.y), rng.randf_range(0.85, 1.15), rng)
+		kit.reserve(q, 2.0)
+	var hay := StaticBody3D.new()
+	hay.name = "Haystacks"
+	for q in [FARM + Vector2(19, 15), FARM + Vector2(21.5, 11.5), FARM + Vector2(-8, 22)]:
+		KitLandmarks.cyl_col(hay, 1.2, 2.0, Vector3(q.x, hv(q), q.y))
+	hay.add_child(hmb.to_instance("Mesh"))
+	kit.add(hay)
+	parts.append(hay)
+	var items: Array = []
+	var occ: Array = []
+	for e in [[FARM + Vector2(7, 5), "cart", 0.6], [FARM + Vector2(-6, 8), "cart", 2.4], [FARM + Vector2(9, 12), "cargo", 0.0],
+			[FARM + Vector2(-9, 4), "cargo", 1.0], [FARM + Vector2(5, -6), "bench", PI], [FARM + Vector2(-4, -7), "planter", 0.0]]:
+		var q: Vector2 = e[0]
+		if _excluded(q, 0.8):
+			continue
+		match str(e[1]):
+			"cargo":
+				KitVillage.plan_cargo(kit, items, q, float(e[2]), rng, ["sack", "basket", "barrel"][rng.randi() % 3])
+			"planter":
+				KitVillage.plan_put(kit, items, occ, "planter", q, 0.0, 0.7, {"r": 0.55})
+			_:
+				KitVillage.plan_put(kit, items, occ, str(e[1]), q, float(e[2]), 1.2)
+		kit.reserve(q, 1.2)
+	parts.append_array(KitVillage.build_items(kit, items).map(func(x: Array): return x[1]).filter(func(n): return n != null))
+	KitVillage.build_cargo(kit, items)
+	var yq: Array = []
+	KitPaving.plan_disk(kit, yq, FARM, 10.0, rng)
+	KitPaving.build(kit, yq, "FarmYard", "dirt", Color(0.85, 0.75, 0.62))
+	# the fields, the orchard
+	var fields: Array = []
+	for i in range(FIELDS.size()):
+		fields.append(KitFarm.field(kit, FIELDS[i], rng, i))
+	parts.append_array(fields)
+	town_spots["fields"] = FIELDS
+	town_spots["orchard"] = KitFarm.orchard(kit, ORCHARD, rng)
+	KitStreet.merge_meshes(kit, parts, "FarmMeshes")
+
+
+## The wild places on the far side, each with its chest (fixed names, bare save keys): the falls off
+## the highland into a swimmable pool (KitLandmarks' waterfall: its InlandPool), the wreck heeled over
+## on the east coast among rocks, the second cove's beach with a fisher's hut, a jetty and a boat.
+func _build_wilds() -> void:
+	var rng := kit.rng(0, SEEDS["wilds"])
+	# the falls
+	var u := (HIGHLAND - POOL).normalized()
+	var crag := POOL + u * KitLandmarks.CRAG_OFF
+	var fpl := {"kind": "waterfall", "role": "landmark", "at": POOL, "y": _pool_y, "face": -u, "yaw": face_yaw(-u), "r": 16.0,
+		"keep": [], "water": _pool_y - 0.35, "lip": maxf(11.5, hv(crag) - _pool_y + 8.5), "seed": SEEDS["wilds"] + 1}
+	KitLandmarks._waterfall(kit, fpl, KitLandmarks.place_node(kit, fpl))
+	KitLandmarks._waterfall_dressing(kit, fpl, [["gold", 24], ["treasure", 2], [ItemDB.tiered("cutlass", 2), 1]])
+	kit.reserve(POOL, KitLandmarks.POOL_R + 2.0)
+	kit.reserve(crag, 7.5)
+	# (the falls seen from the way in: no trees in front)
+	for k in range(3):
+		kit.reserve(POOL - u * (9.0 + k * 5.0), 4.5 + k * 1.0)
+	town_spots["falls"] = KitLandmarks.node_of(kit, fpl)
+	# the wreck, bow up the beach, stern in the surf, rocks round her
+	var out: Vector2 = wreck_site[1]
+	var wat: Vector2 = wreck_site[0]
+	var wpl := {"kind": "wreck", "role": "landmark", "at": wat, "y": hv(wat), "face": out.rotated(0.35), "yaw": face_yaw(out.rotated(0.35)),
+		"r": 14.0, "keep": [], "heel": -0.38, "pitch": 0.07, "seed": SEEDS["wilds"] + 2}
+	var wnode := KitLandmarks.place_node(kit, wpl)
+	KitLandmarks._wreck(kit, wpl, wnode)
+	KitLandmarks._wreck_dressing(null, kit, wpl, [["gold", 30], ["treasure", 3], ["rum", 2],
+		[Gear.make("coat", "longcoat", {"coat": "longcoat", "coat_color": CharacterLook.CLOTH[8], "trim_color": CharacterLook.TRIM[2]}, "Drowned Mate's Coat", 2), 1]])
+	kit.reserve(wat, 12.5)
+	var mats := KitLandmarks.rock_mats(kit)
+	var rmb := MeshBuilder.new()
+	var rocks := StaticBody3D.new()
+	rocks.name = "WreckRocks"
+	var at: Array = []
+	for k in range(9):
+		var q := wat + out * rng.randf_range(4.0, 14.0) + out.orthogonal() * rng.randf_range(-11.0, 11.0)
+		if q.distance_to(wat + out * 3.0) < 6.0:
+			continue
+		var g := hv(q)
+		at.append(Vector3(q.x, g, q.y))
+		KitLandmarks.cyl_col(rocks, 1.3, 2.4, Vector3(q.x, g - 0.4, q.y))
+	KitLandmarks.boulders(rmb, mats, at, rng, 1.4, 2.8)
+	rocks.add_child(rmb.to_instance("Mesh"))
+	kit.add(rocks)
+	town_spots["wreck"] = wnode
+	# the second cove: a fisher's hut at the back of the beach, a jetty out, a boat drawn up, nets drying
+	var beach := COVE2 + Vector2(-4, -30)
+	var hut := kit.house({"w": 3.8, "d": 3.2, "h": 2.3, "wall": "planks_weathered", "roof": "shed", "roof_tex": "thatch", "door_x": 0.6,
+		"seed": 8700, "name": "FisherHut", "smoke": false, "flowers": false}, beach + Vector2(-6, -4), (COVE2 - beach).normalized())
+	var jf := COVE2 + Vector2(3, -24)
+	var jt := COVE2 + Vector2(1, -12)
+	var jetty := KitHouses.walkway(kit, jf, jt, 1.1, 1.8)
+	jetty.name = "CoveJetty"
+	kit.reserve(jf.lerp(jt, 0.5), 6.0)
+	kit.place(Props.rowboat(), beach + Vector2(5, 3), face_yaw(COVE2 - beach) + 0.6, 1.5)
+	kit.place(Props.fish_rack(), beach + Vector2(-1, -3), face_yaw(Vector2(1, 0)), 1.0)
+	var items: Array = [["gold", 16], ["treasure", 1], ["rum", 1], [ItemDB.tiered("pistol", 1), 1]]
+	KitCamps.strongbox(kit, kit.local_point(hut, Vector3(-1.6, 0, 2.2)), face_yaw((COVE2 - beach).normalized()), "cove2_chest", items, 0.9)
+	town_spots["cove2"] = {"hut": hut, "jetty": [jf, jt], "beach": beach}
+	town_spots["piers"] = [[jf, jt]]
 
 
 func _build_lighthouse() -> void:

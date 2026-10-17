@@ -113,6 +113,7 @@ scripts/ship/ship_kit.gd                yardtest t/ship
 scripts/ship/ship_lines.gd              yardtest t/ship
 scripts/ship/ship_parts.gd              yardtest t/ship
 scripts/ship/salvage.gd                 t/ship seatest r8test
+scripts/ship/seamanship.gd              t/ship shiptest r8test
 scripts/ui/shipwright_screen.gd         yardtest t/ship
 scripts/ship/enemy_ship.gd              seatest r8test perftest leveltest legtest
 scripts/ship/enemy_fleet.gd             seatest perftest legtest leveltest net
@@ -381,3 +382,14 @@ scripts/island/themes/forest_land.gd    t/island isletest smoketest
 scripts/island/themes/forest_places.gd  t/island landmarktest smoketest
 tools/texture_gen/gen_forest_textures.py t/island
 scripts/props/forest_town.gd            t/island villagetest
+scripts/island/themes/forest_setpieces.gd t/island landmarktest dungeontest smoketest
+scripts/enemies/fauna/deer.gd           t/island faunatest
+scripts/enemies/fauna/red_fox.gd        t/island faunatest
+scripts/enemies/fauna/wisp.gd           t/island faunatest
+scripts/enemies/fauna/wood_sprite.gd    t/island faunatest
+scripts/enemies/fauna/treant.gd         t/island faunatest
+scripts/enemies/beasts/stag_king.gd     t/island bosstest
+scripts/enemies/beasts/elder_treant.gd  t/island bosstest
+scripts/enemies/beasts/moss_golem.gd    t/island bosstest
+scripts/enemies/beasts/wild_hunt.gd     t/island bosstest
+scripts/enemies/huntsman.gd             t/island grunttest
