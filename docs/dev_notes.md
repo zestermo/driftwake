@@ -2729,3 +2729,40 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Co-op:** nothing sent: snow, sand and murk come from world time and the place, like the rain.
 - **Tests:** `t/world/theme_weather`. Render: `themewxshot.gd <out> 1 1` (Hoarfell Atoll, snow) and `<out> 2`
   (Mirage Island, desert): tools/dev/out/wx2/snow2_sheet.png, desert3_sheet.png.
+
+## 2026-10-16: weather and ground, piece 2 (footprints in snow and sand, the snow layer, snow and ice steps)
+- **One ground system for both** (`scripts/world/ground_layer.gd`, GroundLayer, made by Weather beside the rain;
+  KitStyle `ground_prints`: "" home and jungle, "sand" desert, "snow" snow). Not decals (Forward+ shares its 512
+  clustered slots between lights and decals). Prints are pixels in one 512x512 RGBA8 texture wrapped over the world
+  every 42.7 m (12 px a metre): r depth, g/b the clock when pressed (16 bits of quarter seconds), a which wrap of the
+  world (4 bits of x and z, so prints 40 m off never alias here). A footstep paints ~10 texels (a boot, oversized to
+  read at the camera's distance: 42 x 19 cm, feet 14 cm off the middle) and the texture goes up at most every 0.1 s
+  when something changed; the fade (the last half of LIFE: snow 70 s, sand 45 s) is the shader's, from the global
+  `ground_prints_at` (now, life), so nothing runs per pixel on the CPU. Shader side:
+  `shaders/world/ground_prints.gdshaderinc` (`ground_print(xz)`: 0..1 in three pixel-stepped grades); globals
+  `ground_prints` (sampler2D) and `ground_prints_at` in project.godot.
+- **Who prints:** Player._on_footstep on every machine for every captain it sees (puppets too: synced positions),
+  so co-op sends nothing; `GroundLayer.step` presses the print where the foot came down (left/right by step count)
+  and kicks up one puff of the flipbook's `snow` / `sand` sheet (2 when sprinting; none when sneaking, which still
+  prints) in place of the brown dust. A landing on soft ground throws a `puff_ring` of it (Net.fx). Only on the
+  theme's own soft surface (snow on a snow island, sand on a desert); off it (rock, decks, paving) nothing.
+- **Terrain** (`terrain.gdshader`): `prints` + `print_tint` (PSXMat.terrain's new `prints` argument, from GenIsland's
+  style; a blue shadow in snow, darker sand) multiply the ground in a print. Home's terrain material has prints off:
+  same output.
+- **The snow layer** (`shaders/world/snow_layer.gdshader`, a next pass on a snow island's terrain material): the same
+  triangles raised 0.24 m where the splat is the theme's grass (snow), off steep rock, paths and the shore, so boots
+  sink into it; no collider, no slow (Zach's movement is input x speed: I left wading at full speed; a small slow would
+  go in MoveState beside thicket). Only near the camera: it settles onto the ground from 31 to 48 m and its vertices
+  past 54 m are thrown off screen (no fill for the far island; the vertex pass is ~100k trivial vertices on a snow
+  island only); casts nothing. A fresh print is a hole down to the darkened ground under it, a fading one a shadow.
+- **Footsteps** (`scripts/game/footsteps.gd`): the terrain's layer is now read through its texture (a snow island's
+  grass, packed paths and snowy beach are `snow`, its glacier rock `stone`; a desert's dunes `sand`, hardpan `dirt`),
+  textures with snow / ice in their names are `snow` / `ice` (the frozen lakes), and a GenIsland's ground collider
+  (Ground<n>, a body beside its Terrain mesh) is read as its terrain. That last one changes jungle islands too: their
+  steps were judged from the GenIsland's own meshes before (mostly sand); now grass, dirt, sand and stone like
+  Brinehollow's. `step_snow` / `step_ice` are in FX.SOUNDS.
+- **Breath:** in a snow zone every captain within 30 m of the camera breathes a little `mist` every 2.8 s (local).
+- **Gotcha:** a render after editing only the .gdshaderinc drew the old shader (the cache keyed on the main file):
+  touch terrain.gdshader / snow_layer.gdshader too.
+- **Tests:** `t/world/footprints`, `t/world/footstep_surfaces`. Render: `themewxshot.gd <out> 1 1 steps` and
+  `<out> 2 - steps` (tools/dev/out/wx2/snowsteps_steps_eye.png, desertsteps_*).

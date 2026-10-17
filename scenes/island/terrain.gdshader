@@ -8,6 +8,7 @@ render_mode diffuse_lambert, specular_disabled, cull_back;
 
 #include "res://shaders/psx/psx_common.gdshaderinc"
 #include "res://shaders/world/cloud_shadow.gdshaderinc"
+#include "res://shaders/world/ground_prints.gdshaderinc"
 
 uniform sampler2D tex_grass : source_color, filter_nearest_mipmap, repeat_enable, hint_default_white;
 uniform sampler2D tex_sand : source_color, filter_nearest_mipmap, repeat_enable, hint_default_white;
@@ -27,6 +28,10 @@ uniform float dither_amount : hint_range(0.0, 1.0) = 0.35;
 uniform float dither_cells_per_meter = 6.0;
 uniform float affine_amount : hint_range(0.0, 1.0) = 0.2;
 uniform vec4 tint : source_color = vec4(1.0);
+// Footprints pressed into this ground (a snow or desert island's: GroundLayer), and their shade.
+// (after editing ground_prints.gdshaderinc, touch this file too: a render ran on the cached shader without it)
+uniform bool prints = false;
+uniform vec3 print_tint = vec3(0.7);
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -106,6 +111,8 @@ void fragment() {
 	if (s4 > best) { best = s4; col = texture(tex_rock, uv * 0.75).rgb; }
 	if (s5 > best) { best = s5; col = texture(tex_grass, uv).rgb; }
 
+	if (prints) {
+		col *= mix(vec3(1.0), print_tint, ground_print(world_pos.xz) * land);	}
 	ALBEDO = col * tint.rgb * cloud_shade(world_pos.xz);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;

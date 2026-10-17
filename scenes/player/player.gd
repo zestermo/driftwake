@@ -1219,9 +1219,13 @@ func _on_landed(impact_vy: float) -> void:
 	if k < 0.15:
 		return
 	squash(-2.0 - 5.0 * k)
-	Net.fx("dust_ring", [global_position, int(6 + 14 * k), 0.6 + 0.6 * k])
+	var surf := ground_surface()
+	if GroundLayer.soft(surf):
+		Net.fx("puff_ring", [global_position, surf, int(5 + 5 * k), 0.3, 0.8 + 0.6 * k, 0.8, GroundLayer.PUFF[surf], 3.0 + 4.0 * k])
+	else:
+		Net.fx("dust_ring", [global_position, int(6 + 14 * k), 0.6 + 0.6 * k])
 	Net.fx("sfx", ["land", global_position, -8.0 + 6.0 * k])
-	Net.fx("sfx", ["step_" + ground_surface(), global_position, -6.0 + 6.0 * k, 0.05, 0.85])
+	Net.fx("sfx", ["step_" + surf, global_position, -6.0 + 6.0 * k, 0.05, 0.85])
 
 
 func _fall_damage(speed: float) -> void:
@@ -1257,8 +1261,11 @@ func _on_footstep(strength: float) -> void:
 	_step_count += 1
 	# sneaking: soft steps, no dust
 	var sneak := current_state_name() == "Crouch"
-	FX.sfx("step_" + ground_surface(), global_position, -16.0 + 16.0 * strength - (10.0 if sneak else 0.0), 0.06)
-	if sneak:
+	var surf := ground_surface()
+	FX.sfx("step_" + surf, global_position, -16.0 + 16.0 * strength - (10.0 if sneak else 0.0), 0.06)
+	# (snow or sand on a theme's island: a print, and its own puff instead of the dust)
+	var soft := GroundLayer.step(self, surf, _step_count, 0.0 if sneak else strength, sprinting or (not is_local and body_model.sprinting))
+	if sneak or soft:
 		return
 	var wet := water_depth()
 	if wet > 0.08:

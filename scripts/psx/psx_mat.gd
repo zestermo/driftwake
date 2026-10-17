@@ -6,6 +6,9 @@ extends RefCounted
 const TEX_DIR := "res://assets/textures/psx/"
 const LIT_SHADER := preload("res://shaders/psx/psx_lit.gdshader")
 const CUTOUT_SHADER := preload("res://shaders/psx/psx_cutout.gdshader")
+const SNOW_LAYER_SHADER := preload("res://shaders/world/snow_layer.gdshader")
+## What a footprint multiplies the ground's colour by (terrain's prints), by ground: a blue shadow in snow, darker sand.
+const PRINT_TINT := {"snow": Vector3(0.52, 0.62, 0.82), "sand": Vector3(0.6, 0.46, 0.32)}
 
 static var _cache: Dictionary = {}
 static var _tex_cache: Dictionary = {}
@@ -147,10 +150,14 @@ const TERRAIN_SHADER := preload("res://scenes/island/terrain.gdshader")
 
 ## Terrain material shared by the procedural world and the hand-built island.
 ## `ground` swaps the textures by layer (KitStyle "ground": grass, sand, wet_sand, dirt, rock, seafloor).
-static func terrain(use_splat: bool, water_level: float = 0.0, ground: Dictionary = {}) -> ShaderMaterial:
+## `prints` (KitStyle "ground_prints"): footprints pressed into it ("sand", "snow"); "snow" also lays the soft
+## snow layer over it as a next pass (snow_layer.gdshader).
+static func terrain(use_splat: bool, water_level: float = 0.0, ground: Dictionary = {}, prints := "") -> ShaderMaterial:
 	var key := "terrain|%s|%f" % [str(use_splat), water_level]
 	if not ground.is_empty():
 		key += "|" + str(ground)
+	if prints != "":
+		key += "|" + prints
 	var hit := _cached(key)
 	if hit:
 		return hit
@@ -162,4 +169,15 @@ static func terrain(use_splat: bool, water_level: float = 0.0, ground: Dictionar
 	m.set_shader_parameter("water_level", water_level)
 	m.set_shader_parameter("sand_height", water_level + 2.2)
 	m.set_shader_parameter("rock_height", water_level + 14.0)
+	if prints != "":
+		var shade: Vector3 = PRINT_TINT[prints]
+		m.set_shader_parameter("prints", true)
+		m.set_shader_parameter("print_tint", shade)
+		if prints == "snow":
+			var layer := ShaderMaterial.new()
+			layer.shader = SNOW_LAYER_SHADER
+			layer.set_shader_parameter("tex_snow", tex(str(ground.get("grass", "grass"))))
+			layer.set_shader_parameter("water_level", water_level)
+			layer.set_shader_parameter("print_tint", shade)
+			m.next_pass = layer
 	return _store(key, m)

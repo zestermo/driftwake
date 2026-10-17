@@ -12,7 +12,7 @@ const SOUNDS := [
 	"howl", "haki", "block", "peril", "bell", "cannon", "cannon_hit", "horn", "roar", "rope",
 	"splash_big", "wood_crack", "gull", "bow_spray", "swim_stroke", "hull_wave", "wave_break", "rock_crash",
 	"gull_cry", "jungle_bird",
-	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water",
+	"step_sand", "step_grass", "step_dirt", "step_stone", "step_wood", "step_water", "step_snow", "step_ice",
 	"grunt", "squeal", "screech", "squawk", "flap", "hiss", "monkey", "clack",
 	"draw_katana", "sheathe_katana", "draw_blade", "sheathe_blade", "draw_axe", "sheathe_axe", "draw_great", "sheathe_great",
 	"draw_dagger", "sheathe_dagger", "draw_pistol", "gun_spin", "holster",
