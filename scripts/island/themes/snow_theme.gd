@@ -76,6 +76,10 @@ const STYLE := {
 	"props": {"crate": "snow_crate", "barrel": "snow_barrel", "lamp": "snow_lamp", "marker": "snow_waymark"},
 	"village_models": {"hut": "snow_round_house", "tall": "snow_round_house_tall", "storehouse": "snow_storehouse", "workshop": "snow_workshop",
 		"shrine": "snow_shrine"},
+	# iron lamps for the jungle's torches, snowy fences, firs in tubs; most yards fenced (the village ref)
+	"item_models": {"torch": "snow_lamp", "fence": "snow_fence", "planter": "snow_planter"},
+	"yard_fences": 0.7,
+	"ambient_bugs": false,
 	# (no fur hats or mittens exist yet: knit caps, hoods and coifs, leather gloves stand in)
 	"folk": {
 		"pick": {"skin": [Color(0.96, 0.82, 0.70), Color(0.92, 0.74, 0.60), Color(0.87, 0.67, 0.50), Color(0.80, 0.60, 0.44)],
@@ -167,6 +171,8 @@ func _init() -> void:
 		"snow_shrine": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.shrine(rng.randi()),
 		"snow_crate": func(_rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.crate(0.8 * size),
 		"snow_barrel": func(_rng: RandomNumberGenerator, _size: float) -> Node3D: return SnowProps.barrel(),
+		"snow_fence": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.fence(rng.randi(), 4.4 * size),
+		"snow_planter": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.planter(rng.randi(), 0.55 * size),
 	}
 	life = preload("res://scripts/island/themes/snow_life.gd").TEXT
 	# (the serpent is the jungle's, coiled in the pines: a fourth so a branching chain never runs the pool dry)
@@ -211,7 +217,35 @@ func paint(isl, p: Vector2, h: float, splat: Color) -> Color:
 
 
 func steps(isl) -> Array:
-	return LAND_FEATURES.steps(isl)
+	return LAND_FEATURES.steps(isl) + [["village beast", func(): _village_beast(isl)]]
+
+
+## The village's beast of burden (the village ref): a tame shagback in its blanket and packs at the market's edge
+## (or the plaza's), on the first spot round it clear of the plan's buildings, dressing and paths; none without room.
+static func _village_beast(isl) -> void:
+	var vp: Dictionary = isl.village_plan
+	if vp.is_empty():
+		return
+	var market: Dictionary = vp["market"]
+	var c: Vector2 = vp["c"] if market.is_empty() else market["c"]
+	var r0: float = float(vp["plaza_r"]) + 1.5 if market.is_empty() else 9.5
+	for k in range(36):
+		var q := c + Vector2.from_angle(TAU * k / 12.0 + 0.3) * (r0 + (k / 12) * 2.5)
+		if isl.hv(q) < 1.5 or isl.path_dist(q) < 1.2:
+			continue
+		if (vp["buildings"] as Array).any(func(b): return q.distance_to(b["p"]) < maxf(float(b["w"]), float(b["d"])) * 0.6 + 2.6):
+			continue
+		if (vp["items"] as Array).any(func(it): return q.distance_to(it["p"]) < 2.4):
+			continue
+		var beast = load(CREATURES["shagback"]).new()
+		var y: float = isl.hv(q)
+		beast.setup(isl.to_global(Vector3(q.x, y, q.y)), {"tame": true, "morph": absi(int(isl.node["seed"])) % 3})
+		beast.name = "VillageShagback"
+		beast.level = int(isl.node["level"])
+		beast.position = Vector3(q.x, y + 0.2, q.y)
+		isl.add_child(beast)
+		beast.reset_physics_interpolation()
+		return
 
 
 ## Places (snow_places.gd): ice-block ruins for the totem grove, the buried town for the great tree, the summit castle.

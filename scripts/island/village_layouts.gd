@@ -860,6 +860,25 @@ func _dress_buildings() -> void:
 				pass
 			_:
 				KitVillage.plan_yard(kc, items, occ, p, f, float(b["w"]), float(b["d"]), front, brng)
+		if float(kc.style["yard_fences"]) > 0.0 and ["hut", "tall", "home", "elder"].has(str(b["kind"])) and not b.has("raised"):
+			_yard_fences(b, float(kc.style["yard_fences"]))
+
+
+## A run of fence along each side wall of b's yard (back corner to front corner, a little out from the wall) where
+## there's room, each side at `chance` (its own stream: the yard's draws don't move).
+func _yard_fences(b: Dictionary, chance: float) -> void:
+	var frng := KitVillage._seeded(int(b["seed"]) + 13)
+	var f: Vector2 = (b["face"] as Vector2).normalized()
+	var s := Vector2(-f.y, f.x)
+	for sd in [-1.0, 1.0]:
+		if frng.randf() >= chance:
+			continue
+		var a: Vector2 = b["p"] + s * float(sd) * (float(b["w"]) * 0.5 + 0.8) - f * (float(b["d"]) * 0.5 + 0.6)
+		var pts := [a, a + f * 2.2, a + f * 4.4]
+		if pts.all(func(q): return KitVillage._spot(kc, occ, q, 0.35)):
+			items.append({"k": "fence", "p": a, "yaw": KitContext.face_yaw(f), "len": 4.4})
+			for q in pts:
+				occ.append([q, 0.35])
 
 
 ## Along every street with houses on it, from `from` m out to just past its last house.

@@ -2767,3 +2767,31 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 ## 2026-10-16: Chain._name no longer divides by zero
 - When every name of a theme was already given on islands within the last two layers, both pools were empty and `rng.randi() % 0` broke Chain.make (chain seeds 74, 200, 220, 259). Now it falls back to a name not on this layer, then any of the theme's names; chains that never hit the empty case draw the same rng values as before.
 - BeastPool.assign had the same hole (a theme's bosses all on the islands before): falls back to the whole pool. Test: t/world/chain_names (those four seeds: every island named, beast set).
+
+## 2026-10-16: snow polish (fences, the tame shagback, the frozen wreck, no jungle bugs)
+- **The village** (snow style): `item_models` torch -> its iron lamp (lit ones light at the Flame), fence ->
+  `SnowProps.fence` (dark posts with snow caps, two rails, snow on the top rail, drifts at the foot), planter ->
+  `SnowProps.planter` (a hooped tub with a snowy fir). KitStyle `yard_fences` (BRINEHOLLOW 0; snow 0.7): each side of a
+  hut's, tall house's, home's or the elder's yard gets a 4.4 m fence along its side wall where there's room
+  (VillageLayouts._yard_fences, its own stream per building, so a 0 draws nothing and the jungle's village is unchanged).
+- **The tame shagback** (Shagback `tame`): blanket, trim, packs and a girth rope (one more cached part variant), stands
+  about its post (wanders 0.6-2.5 m), struck it shies ~2.5 m and comes back, no herd stampede, worth nothing; its LOD
+  from the nearest captain on a Timer (it has no FaunaSpawner, and a sleeping creature's _tick stops). SnowTheme.steps
+  adds "village beast": at the market's edge (the plaza's if no market) on the first spot clear of the plan's buildings,
+  items and paths, named VillageShagback under the island (same on every machine).
+- **The frozen wreck** (snow_places `snow_wreck`, standing in for the chain's wreck landmark): off a beach away from the
+  dock, 4-9 m out over 0.8-3.5 m of sea with open water past it; the kit's wreck hull (KitLandmarks._wreck, stove in on
+  her low side) frozen in at her waterline (origin 0.95 over the place, the ice's top 0.75 over the sea) in a ragged
+  slab of pack ice reaching back onto the beach (one trimesh collider), ridges of pitched ice blocks, snow on her deck
+  and quarterdeck, icicles off her rails, drifts against her sides and mounds on the ice, the chest on the ice in her
+  hold (`snow_wreck_chest`). The trail arrives on the beach behind her.
+- **No butterflies or fireflies on snow** (KitStyle `ambient_bugs`, BRINEHOLLOW true; FaunaSpawner.roll clears them after
+  its draws, so the bird flocks over the pines stay and nothing else moves).
+- **Proof:** islanddump main vs branch, chain seed 4246 (jungle) identical, Brinehollow the three dummies.
+  **Tests:** t/island/snow_village; snow_foundations, snow_land, villagetest, landmarktest. Renders:
+  tools/dev/out/polish/snow1_before_sheet / snow1_after_sheet (villageshot seed 1 node 1), sw1_snow_wreck_close
+  (landmarkshot seed 1 node 1, LSHOT_MARKS=wreck), models/snow_village_sheet (the tame shagback, fence, tub).
+- **Left:** the shallows' turquoise is the ocean shader's `shallow_color`, set by Weather (a theme-tinted shallows
+  wants a KitStyle key read there); the market's planter (KitMarket) and Buildings.planter elsewhere still hold a green
+  bush; temples and mines from the shared landmark pool still come to snow islands (their stone takes the theme's
+  temple/rock tints).

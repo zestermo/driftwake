@@ -12,6 +12,9 @@ const BODY_Y := 1.2
 var herd: int = -1
 var calf := false
 var morph: int = 0
+## A village's beast of burden (SnowTheme puts one by the market): blanket, packs and a halter, stands
+## about its post, shies a few steps when hit and comes back; no herd, worth nothing, its own distance LOD.
+var tame := false
 
 var _flee_from := Vector3.ZERO
 var _gait: float = 0.0
@@ -25,8 +28,15 @@ func _setup(args: Dictionary) -> void:
 	herd = int(args.get("pack", -1))
 	calf = bool(args.get("calf", false))
 	morph = int(args.get("morph", 0))
+	tame = bool(args.get("tame", false))
 	hostile = false
 	skin_tex = "fur_white"
+	if tame:
+		size_k = 1.0
+		max_hp = 260.0
+		xp = 0
+		coins = Vector2i(0, 0)
+		return
 	if calf:
 		size_k = 0.55
 		max_hp = 60.0
@@ -60,7 +70,7 @@ func _build() -> void:
 	var coat: Color = coats[morph % 3]
 	var shade := coat.darkened(0.12)
 	var horn := Color(0.3, 0.27, 0.24)
-	var v := "%d%s" % [morph % 3, "_calf" if calf else ""]
+	var v := "%d%s" % [morph % 3, "_calf" if calf else ("_tame" if tame else "")]
 	var skin := _skin()
 	var eye := _glow(Color(0.15, 0.1, 0.08))
 	_body = _part(model, "Body", Vector3(0, BODY_Y, 0), v + "_body", func(mb: MeshBuilder, rng: RandomNumberGenerator):
@@ -73,7 +83,23 @@ func _build() -> void:
 			var a := TAU * k / 12.0
 			var at := Vector3(cos(a) * 0.72, -0.55, sin(a) * 0.9)
 			mb.add_blob(skin, Transform3D(Basis(Vector3.UP, -a), at), Vector3(0.22, 0.42, 0.45), rng, 0.25, 3, 6, 1.0, shade.lightened(rng.randf() * 0.1))
-		mb.add_blob(skin, Transform3D(Basis.IDENTITY, Vector3(0, 0.75, -0.6)), Vector3(0.6, 0.35, 0.55), rng, 0.15, 3, 7, 1.0, coat), true)
+		mb.add_blob(skin, Transform3D(Basis.IDENTITY, Vector3(0, 0.75, -0.6)), Vector3(0.6, 0.35, 0.55), rng, 0.15, 3, 7, 1.0, coat)
+		if tame:
+			# a red blanket over the back, its sides hanging, packs lashed either side, a girth rope
+			var red := Color(0.66, 0.16, 0.12)
+			var trim := Color(0.86, 0.66, 0.2)
+			mb.add_box(skin, Transform3D(Basis.IDENTITY, Vector3(0, 0.93, 0.25)), Vector3(1.3, 0.08, 1.3), 1.0, red, false)
+			for sd in [-1.0, 1.0]:
+				mb.add_box(skin, Transform3D(Basis(Vector3.BACK, sd * 0.22), Vector3(sd * 0.78, 0.55, 0.25)), Vector3(0.06, 0.75, 1.3), 1.0, red.darkened(0.15), false, false)
+				mb.add_box(skin, Transform3D(Basis(Vector3.BACK, sd * 0.22), Vector3(sd * 0.71, 0.2, 0.25)), Vector3(0.07, 0.07, 1.32), 1.0, trim, false, false)
+				mb.add_blob(skin, Transform3D(Basis.IDENTITY, Vector3(sd * 0.98, 0.45, 0.45)), Vector3(0.28, 0.42, 0.5), rng, 0.12, 3, 6, 1.0, Color(0.72, 0.64, 0.5))
+				mb.add_blob(skin, Transform3D(Basis.IDENTITY, Vector3(sd * 0.95, 0.5, -0.25)), Vector3(0.24, 0.32, 0.3), rng, 0.12, 3, 6, 1.0, Color(0.5, 0.36, 0.24))
+			mb.add_box(skin, Transform3D(Basis.IDENTITY, Vector3(0, 1.05, 0.35)), Vector3(0.7, 0.3, 0.5), 1.0, Color(0.45, 0.32, 0.22), false)
+			var girth := PackedVector3Array()
+			for k in range(13):
+				var a := TAU * k / 12.0
+				girth.append(Vector3(cos(a) * 0.97, sin(a) * 0.97 + 0.05, -0.1))
+			mb.add_tube(skin, girth, 0.04, 0.04, 4, 1.0, Color(0.55, 0.45, 0.3)), true)
 	_head = _part(_body, "Head", Vector3(0, -0.05, -1.25), v + "_head", func(mb: MeshBuilder, rng: RandomNumberGenerator):
 		mb.add_blob(skin, Transform3D(Basis.IDENTITY, Vector3(0, -0.05, -0.2)), Vector3(0.32, 0.36, 0.4), rng, 0.12, 3, 7, 1.0, coat)
 		mb.add_blob(skin, Transform3D(Basis.IDENTITY, Vector3(0, -0.25, -0.5)), Vector3(0.22, 0.18, 0.16), rng, 0.08, 3, 6, 1.0, Color(0.45, 0.4, 0.4))
@@ -100,6 +126,9 @@ func _stampede(from: Vector3) -> void:
 func _hurt(_hit: HitData, attacker: Node, _dir: Vector3) -> bool:
 	var from: Vector3 = (attacker as Node3D).global_position if attacker is Node3D else global_position + _fwd()
 	Net.fx("sfx", ["grunt", global_position, 0.0, 0.08, 0.5 if not calf else 0.8])
+	if tame:
+		_stampede(from)
+		return false
 	for f in get_tree().get_nodes_in_group("fauna"):
 		if f is Shagback and (f as Shagback).herd == herd and (f as Node3D).global_position.distance_to(global_position) < 30.0:
 			(f as Shagback)._stampede(from)
@@ -117,12 +146,17 @@ func _after_daze() -> void:
 func _brain(_delta: float) -> void:
 	match state:
 		S.IDLE, S.WANDER:
-			_wander(0.7, Vector2(2.0, 10.0))
+			_wander(0.4 if tame else 0.7, Vector2(0.6, 2.5) if tame else Vector2(2.0, 10.0))
 		S.FLEE:
 			var away := _flee_dir(_flee_from)
 			_face(away)
 			_turn = 4.0
-			_want = away * TROT
+			_want = away * (TROT * 0.5 if tame else TROT)
+			if tame:
+				if st_t > 1.6:
+					_set_state(S.WANDER)
+					_wander_to = home
+				return
 			# a big one in a hurry shoves through whoever's in its way
 			var p := _target()
 			if not calf and p and flat(p.global_position - global_position).length() < 2.2 and _cool <= 0.0:
@@ -137,6 +171,29 @@ func _brain(_delta: float) -> void:
 
 func _tick(delta: float) -> void:
 	anim_a = move_toward(anim_a, 1.0 if (state == S.WANDER and _wander_wait > 0.5) else 0.0, delta * 1.5)
+
+
+func _ready() -> void:
+	super._ready()
+	if not tame or preview:
+		return
+	# (no FaunaSpawner looks after the village's: its LOD by the nearest captain four times a second, on a timer that runs while it sleeps)
+	var t := Timer.new()
+	t.name = "Lod"
+	t.wait_time = 0.25
+	t.autostart = true
+	t.timeout.connect(_tame_lod)
+	add_child(t)
+
+
+func _tame_lod() -> void:
+	var d := INF
+	for p in Net.all_players():
+		d = minf(d, (p as Node3D).global_position.distance_to(global_position))
+	var r: Array = LOD_RANGE
+	var want := LOD_FULL if d < r[0] else (LOD_LOW if d < r[1] else (LOD_SLEEP if d < r[2] else LOD_HIDDEN))
+	if want != lod:
+		set_lod(want)
 
 
 func _pose(delta: float) -> void:

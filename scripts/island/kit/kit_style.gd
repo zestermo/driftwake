@@ -39,6 +39,8 @@ const BRINEHOLLOW := {
 	"camp_shack": "",
 	# the high birds over its islands (SkyBirds): "dark" flocks wheeling or in a V, or "vulture"s soaring on thermals
 	"high_birds": "dark",
+	# butterflies by day and fireflies by night over its floor (FaunaAmbient); false: neither (the bird flocks stay)
+	"ambient_bugs": true,
 
 	# the material palette: the texture each part is made of (PSXMat shares one material per texture)
 	"mat": {"wall": "planks", "beam": "planks_dark", "floor": "planks", "deck": "planks_weathered", "post": "planks_dark",
@@ -65,6 +67,8 @@ const BRINEHOLLOW := {
 	# a theme's own models for a village's dressing items by kind (torch, well, bench, cart...: KitVillage.build_items);
 	# a lit one's light at its "Flame"
 	"item_models": {},
+	# the chance each side of a village house's yard is fenced (a 4.4 m "fence" item along the side wall; VillageLayouts)
+	"yard_fences": 0.0,
 	# the village layouts it rolls from, by weight (VillageLayouts: town, hamlets, post, stilts, ruins, medina)
 	"village_layouts": {"town": 3, "hamlets": 2, "post": 2, "stilts": 2, "ruins": 1, "medina": 0},
 	# its people (KitStyle.folk_look): pools a villager's look picks from ("<key>_fem" for women), then fixed values
