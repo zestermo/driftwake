@@ -3273,3 +3273,32 @@ Found and fixed (Buildings unless said):
   batch: katanatest (combo, iai, the air slash's hit window now 0.2-0.36 s), techtest (wind_sever, phantom_step,
   petal_storm, iai_counter), powertest (Tiger Rush), wieldtest, balancetest. Renders: tools/dev/out/kab_before/ and
   kab_after/ (a_ awakened, plain_ tier 0, night_ AB_HOUR=21), tools/dev/out/klab/ (lab sheets of every move).
+
+## 2026-10-17: the new upgrade lines (ship upgrades, piece 3)
+- Eight more lines (ShipLines; groups Hull, Guns, Rig, Helm, Deck, Cabin; 3 levels each), every level built by
+  ShipParts:
+  - **Copper bottom**: copper sheathing at her waterline, bow, then waist, then stern; +2% speed and 20% less
+    reef / whirlpool-eye damage a level (`Ship._reef_k`).
+  - **Bow chaser**: `CannonBow` (a crew ShipCannon facing ahead on a step at ShipParts.CHASER_AT; x = 0 keeps it
+    out of broadsides), a shot locker and banded barrel, then a railed platform and long barrel; +15% damage at
+    2 and 3, +12% range at 3 (the gun deck's damage/reload apply too).
+  - **Crow's nest**: poles and a canvas hood (the flag goes 0.75 m up a new masthead staff), boards, windows and a
+    roof, a brass spyglass and a lantern; the lookout (`Ship.lookout`, 150/300/500 m) puts enemy sails (red, with
+    distance) and floating salvage (gold) on the compass strip while you're aboard.
+  - **Lanterns**: strings of paper lanterns (three glow colours, no real lights) mast to bowsprit, mast to the
+    quarterdeck corners, round the nest and along the rails; +3% speed at night a level (`Weather.night`).
+  - **Railings**: iron stanchions and man-ropes, a turned balustrade, boarding nets along the waist; a ram
+    throws the crew half as hard at 1 and not at all at 2 (`Ship.steady`, Net._all_rammed); the nets keep one
+    boarder off (`EnemyShip._board`).
+  - **Tangerine grove**: planters with trees on the quarterdeck (collision), fruit shown while ripe; F at the
+    grove picks them ("tangerine": heals 25). Each tree ripens one every 150 s up to two (a Timer, game time);
+    each screen grows its own (each captain picks their own).
+  - **Galley & bunks**: an upper bunk, an oven, pots and a chimney through the quarterdeck, hammocks; the
+    galley restocks one more of each a level (GameManager.restock).
+  - **Ship's hold**: iron bands and a lock on the storage chest, sea chests, a cargo hatch and lashed crates on
+    the main deck; +2 bag slots a level (`InventoryComponent.bonus_slots`, static, set by Ship.apply_kit: the ship
+    this machine sees; `slots()` is max_slots + it; the storage chest itself was already unlimited).
+- ShipParts `_solid` adds collision for what you'd walk into (the chaser step, planters, sea chests, crates,
+  the chimney). Everything is in the two folded meshes except the jib, rudder, wheel rim, grove fruit and zone.
+- The yard's rows are 16 px (prices in Silkscreen 8) so the twelve lines fit 450.
+- Tests: t/ship/new_lines; upgrade_levels checks every level of all twelve shows.
