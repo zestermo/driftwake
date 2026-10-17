@@ -44,7 +44,7 @@ const RAIN_DAMAGE := 20.0
 
 const SLASH_DUR := 0.6
 const SLASH_BOOST := 4.0                 # m/s up as the slash starts
-const SLASH_HIT := Vector2(0.17, 0.34)   # s: hitbox on..off (the arc under you)
+const SLASH_HIT := Vector2(0.2, 0.36)    # s: hitbox on..off (the arc under you)
 const SLASH_DAMAGE := 24.0
 
 const AXE_HANG := 0.36                   # s of somersault before the dive
@@ -458,7 +458,9 @@ func _slash_update(delta: float) -> void:
 		hit.camera_shake_intensity = 0.14
 		player.sword_hitbox.activate(hit)
 		var col: Color = Player.HAKI_TRAIL if player.power.buff("coat") else Color(0.85, 0.92, 1.0)
-		Net.fx("slash", [player.player_model, "under", 0.3, col])
+		var sw := ActionSpecs.swoosh_seconds("air_slash")
+		Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, col])
+		KatanaFx.slash(player, sw.y - sw.x)
 		Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 1.2])
 	if _fired and timer >= SLASH_HIT.y:
 		player.sword_hitbox.deactivate()

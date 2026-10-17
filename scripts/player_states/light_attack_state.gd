@@ -28,18 +28,19 @@ const STYLES := {
 		"durations": [0.5], "impulses": [12.0],
 		"damages": [14.0], "hitstops": [0.06], "shakes": [0.12],
 		"reach": "wide", "color": Color(0.45, 0.75, 1.0), "breaker": true},
-	# two-handed: slow, wide cuts with a held wind-up, hitting hard
-	"katana": {"anims": ["katana_r", "katana_l", "katana_stab"], "trails": ["kesa_r", "sweep_l", "thrust"],
+	# two-handed: slow, wide cuts with a held wind-up, hitting hard; "drawn": the katana's drawn
+	# slash laid along the blade (FX.katana_slash)
+	"katana": {"anims": ["katana_r", "katana_l", "katana_stab"], "trails": ["", "", ""],
 		"durations": [0.62, 0.62, 0.7], "impulses": [5.0, 5.0, 9.0],
 		"damages": [18.0, 20.0, 30.0], "hitstops": [0.06, 0.06, 0.1], "shakes": [0.1, 0.1, 0.18],
-		"reach": "katana", "color": Color(0.85, 0.92, 1.0)},
+		"reach": "katana", "color": Color(0.85, 0.92, 1.0), "drawn": true},
 	# katana, attacked at a sprint: a quick cut straight out of the scabbard,
 	# stepping in a little; catches the target mid-move (breaks wind-ups, staggers)
 	# (the follow-through is held about a second before you can move on)
-	"katana_draw": {"anims": ["quick_draw"], "trails": ["iai"],
+	"katana_draw": {"anims": ["quick_draw"], "trails": [""],
 		"durations": [0.95], "impulses": [9.0],
 		"damages": [14.0], "hitstops": [0.05], "shakes": [0.1],
-		"reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true},
+		"reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true, "drawn": true},
 	# axe: heavy, deliberate hacks with the weight behind them; the finisher
 	# smashes down two-handed into the ground and knocks them flat
 	"axe": {"anims": ["axe_hack", "axe_hook", "axe_split"], "trails": ["kesa_r", "left", "overhead"],
@@ -168,6 +169,8 @@ func physics_update(delta: float) -> void:
 		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col()
 		var sl: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col(true)
 		Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc, sl])
+		if cfg.get("drawn", false):
+			KatanaFx.slash(player, _swoosh.y - _swoosh.x, str(cfg["anims"][combo_index]) == "katana_stab")
 
 	if _shot_t >= 0.0 and timer >= _shot_t and not _shot_done:
 		_shot_done = true

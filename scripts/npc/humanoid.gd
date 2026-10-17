@@ -1357,39 +1357,13 @@ func _action_pose(n: String, u: float) -> Array:
 			lift = Vector3(0, -0.2 * dip + 0.32 * hop, 0)
 			return [pose, "full", lift]
 		# --- katana: slow, wide two-handed cuts through deep lunges ---
+		# (the combo: swing paths and body keys in KatanaMoves)
 		"katana_r":
-			# combo 1: the blade swung up behind the head over the right shoulder,
-			# held a beat, then a long diagonal cut down to the lower left
-			var coil := {"leg_l": Vector3(0.45, 0, -0.14), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.3, 0, 0.14), "shin_r": Vector3(-0.55, 0, 0)}
-			var lunge := {"leg_l": Vector3(1.25, 0, -0.14), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(-0.95, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0)}
-			var up := {"arm_r": Vector3(2.7, -0.3, 0.45), "fore_r": Vector3(1.3, 0, 0), "hand_r": Vector3.ZERO,
-				"torso": Vector3(0.2, 0.8, 0.12), "head": Vector3(0.0, -0.55, 0)}
-			var cut := {"arm_r": Vector3(0.75, 0.95, -0.45), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.0, 0, 0),
-				"torso": Vector3(-0.55, -0.85, -0.15), "head": Vector3(0.25, 0.6, 0)}
-			lift.y = _strike_lift(u, 0.4, 0.52, 0.74, -0.1, -0.34)
-			return [_keys(u, [[0.0, _guard()], [0.3, up.merged(coil), "out"], [0.4, up.merged(coil)], [0.52, cut.merged(lunge), "out"], [0.74, cut.merged(lunge)], [1.0, _guard()]]), "full", lift]
+			return KatanaMoves.kesa(self, u)
 		"katana_l":
-			# combo 2: the blade swung round to the left shoulder, then a wide
-			# flat cut across to the right, stepping through with the right foot
-			var coil2 := {"leg_r": Vector3(0.45, 0, 0.14), "shin_r": Vector3(-0.85, 0, 0), "leg_l": Vector3(-0.3, 0, -0.14), "shin_l": Vector3(-0.55, 0, 0)}
-			var lunge2 := {"leg_r": Vector3(1.25, 0, 0.14), "shin_r": Vector3(-1.4, 0, 0), "leg_l": Vector3(-0.95, 0, -0.16), "shin_l": Vector3(-0.2, 0, 0)}
-			var cock := {"arm_r": Vector3(1.7, 1.25, -0.2), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
-				"torso": Vector3(0.05, -0.95, -0.1), "head": Vector3(0.0, 0.7, 0)}
-			var sweep := {"arm_r": Vector3(1.35, -0.55, 1.25), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.25, 0, 0),
-				"torso": Vector3(-0.35, 1.0, 0.12), "head": Vector3(0.15, -0.75, 0)}
-			lift.y = _strike_lift(u, 0.4, 0.52, 0.74, -0.1, -0.32)
-			return [_keys(u, [[0.0, _guard()], [0.3, cock.merged(coil2), "out"], [0.4, cock.merged(coil2)], [0.52, sweep.merged(lunge2), "out"], [0.74, sweep.merged(lunge2)], [1.0, _guard()]]), "full", lift]
+			return KatanaMoves.side(self, u)
 		"katana_stab":
-			# combo 3: drawn back to the right hip, point forward, then driven
-			# straight out through a long lunge
-			var coil3 := {"arm_r": Vector3(0.25, 0.35, 0.35), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(-1.55, 0, 0),
-				"torso": Vector3(0.1, -0.7, 0.05), "head": Vector3(0.05, 0.6, 0),
-				"leg_r": Vector3(0.35, 0, 0.08), "shin_r": Vector3(-0.8, 0, 0), "leg_l": Vector3(-0.4, 0, -0.1), "shin_l": Vector3(-0.9, 0, 0)}
-			var drive := {"arm_r": Vector3(1.8, 0.25, 0.0), "fore_r": Vector3(0.0, 0, 0), "hand_r": Vector3(-1.6, 0, 0),
-				"torso": Vector3(-0.45, 0.35, 0), "head": Vector3(0.4, -0.3, 0),
-				"leg_r": Vector3(1.3, 0, 0.06), "shin_r": Vector3(-1.4, 0, 0), "leg_l": Vector3(-1.0, 0, -0.08), "shin_l": Vector3(-0.1, 0, 0)}
-			lift.y = _strike_lift(u, 0.4, 0.5, 0.74, -0.16, -0.36)
-			return [_keys(u, [[0.0, _guard()], [0.3, coil3, "out"], [0.4, coil3], [0.5, drive, "out"], [0.74, drive], [1.0, _guard()]]), "full", lift]
+			return KatanaMoves.stab(self, u)
 		"iai_ready":
 			# katana heavy, held: the blade slips back into its scabbard and you
 			# lean into the draw, hands on scabbard and hilt (put there by
@@ -1413,20 +1387,8 @@ func _action_pose(n: String, u: float) -> Array:
 			lift.y = -0.4 * (1.0 - _ease(clampf((u - 0.62) / 0.38, 0.0, 1.0)))
 			return [_keys(u, [[0.0, _iai_pose()], [0.14, cut2, "out"], [0.62, cut2], [1.0, _guard()]]), "full", lift]
 		"air_slash":
-			# katana air attack: knees drawn up unevenly, the blade whipped up over
-			# the left shoulder one-handed with the chest wound round, then a big arc
-			# swept down under the body and out to the right (the strike overshoots
-			# and bounces), then back to guard
-			var knees := {"leg_l": Vector3(1.45, 0, -0.16), "shin_l": Vector3(-2.05, 0, 0), "leg_r": Vector3(0.95, 0, 0.18), "shin_r": Vector3(-1.45, 0, 0)}
-			var wind := {"arm_r": Vector3(2.6, -0.45, -0.8), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3.ZERO,
-				"arm_l": Vector3(0.3, 0, -1.2), "fore_l": Vector3(0.5, 0, 0),
-				"torso": Vector3(0.1, -0.9, -0.15), "head": Vector3(0.0, 0.6, 0)}.merged(knees)
-			# (the cut comes through a little in front of the body, not straight down)
-			var under := {"arm_r": Vector3(0.75, -0.4, 1.25), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.2, 0, 0),
-				"arm_l": Vector3(0.9, 0, -1.3), "fore_l": Vector3(0.4, 0, 0),
-				"torso": Vector3(-0.35, 0.9, 0.2), "head": Vector3(-0.1, -0.5, 0), "pivot": Vector3(-0.28, 0, 0.2)}.merged(knees)
-			var settle := {"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.6, 0, 0.14), "shin_r": Vector3(-1.1, 0, 0)}.merged(_guard())
-			return [_keys(u, [[0.0, {}], [0.22, wind, "out"], [0.3, wind], [0.5, under, "back"], [0.72, under], [1.0, settle]]), "full", lift]
+			# katana air attack: a swing path (KatanaMoves.AIR_SWING) on this body
+			return KatanaMoves.air(self, u)
 		"quick_draw":
 			# katana, attacked at a sprint: straight out of the scabbard in one fast
 			# flat cut across to the right, a short step in, then back to guard

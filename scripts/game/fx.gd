@@ -2014,6 +2014,53 @@ func water_burst(pos: Vector3, sheet: String, size: float = 2.0, life: float = 0
 		"damping": 0.0, "spin": spin, "fade": 0.9, "lit": false})
 
 
+## The katana's drawn slash, laid along the path the blade in `body`'s hand really takes over
+## the next `secs` (a PetalRibbon; gen_katana_fx.py): a thin crescent of steel, or with the
+## element awakened a billowing cloud that sheds petals. `thrust`: along the blade's line (a
+## stab). Other screens lay their own along their copy of the body, which plays the same swing.
+func katana_slash(body: Node3D, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0) -> void:
+	if AnimLab.clean or not body is Humanoid:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(body.global_position) > BURST_RANGE:
+		return
+	var r := PetalRibbon.new()
+	r.body = body
+	r.emit = secs
+	r.awake = awake
+	r.width = width
+	r.thrust = thrust
+	r.seed_v = seed_v
+	r.linger = 0.42 if awake else 0.26
+	body.add_child(r)
+
+
+## One of the katana's drawn sheets (gen_katana_fx.py: steel_slash, katana_slash, katana_cloud)
+## played once at `pos`, rolled up to `spin` degrees either way. Unlit, like the drawn water.
+func katana_burst(pos: Vector3, sheet: String, size: float = 1.6, life: float = 0.45, spin: float = 30.0) -> void:
+	flipbook(pos, sheet, 1, size, life, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
+		"damping": 0.0, "spin": spin, "fade": 0.9, "lit": false})
+
+
+var _sakura_mat: StandardMaterial3D
+
+
+## Drawn sakura petals thrown along `dir`, turning over and over as they drift down (the
+## katana's element; `petals` is the plain tinted kind other things throw).
+func sakura(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, size: float = 0.17) -> void:
+	if _sakura_mat == null:
+		_sakura_mat = _flip_mat("sakura").duplicate()
+		_sakura_mat.particles_anim_loop = true
+	var cfg := {"radius": 0.25, "direction": dir.normalized(), "spread": 55.0, "vel_min": speed * 0.35, "vel_max": speed,
+		"gravity": Vector3(0, -1.2, 0), "damping": 2.4, "hold": true, "scale_min": 0.7, "scale_max": 1.2, "explosiveness": 0.85,
+		"ramp": _flip_ramp(Color(_night_k() * 0.35 + 0.65, _night_k() * 0.35 + 0.65, _night_k() * 0.35 + 0.65), 0.0, 0.75), "start": 1.0, "spin": 180.0}
+	var p := _burst(pos, amount, _sakura_mat, size, 1.8, cfg)
+	if p:
+		_flip_setup(p, cfg)
+		p.anim_speed_min = 1.5
+		p.anim_speed_max = 2.5
+
+
 ## Droplets of water thrown along `dir` that fall back (spray without its mist).
 func droplets(pos: Vector3, dir: Vector3, amount: int = 6, color: Color = Color(0.85, 0.95, 1.0), speed: float = 4.0) -> void:
 	_burst(pos, amount, _dust_mat, 0.16, 0.6, {"radius": 0.1, "direction": dir.normalized(), "spread": 35.0,

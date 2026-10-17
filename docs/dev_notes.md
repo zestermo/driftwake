@@ -2996,3 +2996,33 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
 - **Tests:** `t/island/house_doors` (every house kind and the tavern: the door, the marker, walkable steps by
   downward rays, nothing in the way, the tavern open inside). Brinehollow's islanddump changes only in houses,
   the tavern and the smithy (meshes, step colliders, Door markers, the warehouse's lamp 0.4 m along).
+## 2026-10-17: the katana pass, piece 1 (the combo on swing paths, the drawn steel slash)
+- **Why:** Zach: "the animations don't match the slash effect directions" (docs/katana_polish_plan.md). The combo was
+  keyed arm angles with fixed arc meshes (`FX.slash` kesa_r / sweep_l / thrust) that only roughly agreed with the blade.
+- **Animation** (`scripts/npc/katana_moves.gd`, KatanaMoves; ActionSpecs katana_r / katana_l / katana_stab / air_slash):
+  the right hand rides a swing path, `_katana_hands` keeps the left on the hilt. Points are offsets from the sword
+  shoulder in the chest's frame (`from_shoulder`, `follow` 1). katana_r (0.85 s): up over the right shoulder (jodan,
+  the blade laid back), a beat, down through the front on a given diagonal plane (-0.8, 0.6, 0) to low left; the chest
+  turns only ~0.45 rad (turned further, the hands ran off left and the blade lay flat across the body). katana_l
+  (0.75 s, chains from hit 1's finish): up to the left shoulder, then level across at waist height to the right
+  (plane given: level). katana_stab (0.9 s): back to the right hip with the point on the target (the wrist break lifts
+  it: in the sagittal plane the trailing side is forward there), then a lunge with the blade in line. air_slash
+  (one-handed, 0.6 s): up by the left shoulder, a beat, one arc down through the front, under the drawn-up knees and
+  out right; its body is a small turn now (the old keyed one turned the chest ~1.8 rad and the blade never went under);
+  PlungeState SLASH_HIT 0.2-0.36 s to match. quick_draw keeps its keyed pose (it gained a "swoosh").
+- **Effects:** `PetalRibbon` (scripts/game/petal_ribbon.gd), made by `FX.katana_slash(body, secs, awake, width, thrust,
+  seed)` over the move's "swoosh" window: it samples the real blade's tip every frame (not while the body is frozen in
+  a hit-stop) and lays the drawn strip along that path (Catmull-Rom between frames), camera-facing with the crest on the
+  outside, so a diagonal is diagonal and a side cut level, whatever the camera. Plain: steel_trail.png (a thin crescent of
+  steel, gust hooks, dust fraying off the inner edge). Awakened (the katana tree's mastery, `Progression.elemental
+  "katana"`): petal_trail.png, ~2x as wide, cloud lobes along the crest, parting into puffs from the tail, a
+  katana_cloud sheet at the head and sakura shed along it. A stab is laid along the blade's line (`thrust`). Still with
+  the thin additive BladeTrail on top. `KatanaFx` (scripts/game/katana_fx.gd) picks plain/awakened and sends it
+  (Net.fx: every screen lays its own along its copy of the body). `FX.katana_burst` (one drawn sheet, unlit),
+  `FX.sakura` (drawn petals that turn over as they fall; `FX.petals` stays for the toucan and fruit).
+- **Art** (`tools/texture_gen/gen_katana_fx.py`, its own generator like gen_water_fx.py; t/fx/sheets untouched):
+  flip_steel_slash, flip_katana_slash, flip_katana_cloud (4x4 of 128 px), flip_sakura (4x4 of 64 px), steel_trail and
+  petal_trail (8 looping frames of 256x64). Palettes: steel and dust; sky (navy to white); sakura.
+- **Tests:** t/combat/katana_slash (hit 1 high right to low left, hit 2 level left to right, hit 3 a thrust at the
+  target, from the ribbon's samples in the body's frame; each lands on the dummy). Renders: tools/dev/out/anim_before_*
+  (the old keyed combo), tools/dev/out/klab/ (lab sheets), tools/dev/out/kab/ (abilityshot).
