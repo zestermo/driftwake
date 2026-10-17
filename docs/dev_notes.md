@@ -3204,7 +3204,7 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   1357 -> 1544 (plaza +310).
 - **Hook for the town's life:** StarterIsland.LIFE (scripts/island/brinehollow_life.gd) is built last if it exists (`static func build(isl)`);
   town_spots adds "shrine", "pagoda", "gate", "teahouse" (Vendor, Customer, Seat1-3), "lanterns" (Flame markers). LIGHTS 34: old island 18,
-  the new town 8 (street 2, upper houses 3, teahouse 1, shrine lanterns 2), 8 for the life pass.
+  the new town 10 (street 2, upper houses 3, teahouse 1, shrine lanterns 2, the farmhouse and the farm yard 2), 6 for the life pass.
 - Two kit fixes from the buildings pass: KitHouses.room's top plate inside its walls (under the thatch), GenHarbour's water houses
   "steps": false.
 - **The windmill hamlet** (`_build_farmland`, new kit file kit_farm.gd: KitFarm field/orchard/tilled/reserve): a yard round a well at
@@ -3219,6 +3219,13 @@ Godot 4.6.3 + 4.7.2, software rendering), so timings mentioned there are slow.
   hut, a jetty, a boat drawn up, a fish rack; chest "cove2_chest"). KitLandmarks' two dressings take a fixed chest (`items`) instead of
   rolling a chain island's loot. Paths out to the wreck and down to the cove (paths 16, 17). town_spots: "falls", "wreck", "cove2",
   "piers" (the cove's jetty).
+- **Cost** (bench, the 5600G/3080 here, 13:00 clear, back to back main 201b879 vs all five pieces, calib 26.5 / 28.0, 4 other Godots
+  running): ALL frame 14.83 -> 15.55 ms (+5%), draws 1363 -> 1475, nodes 30.5k -> 32.1k; plaza 16.1 -> 18.1, quay 14.8 -> 18.5 (the town
+  hill and the street in view), market and yard lower (noise). No script of mine in the per-frame tables (the windmill's sails only turn
+  on screen). Build: land 1.3-2 s (the old and new grids both; heights on worker threads), vegetation ~3 s, the new pieces ~0.6 s together.
+- **Fidelity** (fidelity.gd 777, Brinehollow before -> after): buildings 31 -> 41, interiors (enterable / shops) 2 -> 8, settled 1.62 ->
+  2.18 ha, props in it 91 -> 127, street props per 50 m 2.84 -> 4.08, landmarks 8 -> 13, NightLights 22 -> 32, lit windows 179 -> 362,
+  paths 599 -> 1412 m, land 9.1 -> 15.2 ha, vegetation 592 -> 612 a ha.
 
 ## 2026-10-17: salvage (ship upgrades, piece 2)
 - Four materials (resources/items/timber, iron, canvas, copper .tres; icons from tools/texture_gen/gen_ship_icons.py),
@@ -3480,3 +3487,32 @@ Found and fixed (Buildings unless said):
   new town, farm and cove hut do: 5 chimneys); TownLife makes FX.chimney_smoke at one a tick once the camera's within 60 m and stops it
   emitting past 80 m.
 - **Tested by** t/island/brinehollow_town. Renders: tools/dev/out/life/p3_night_street.png (the lanterns), p3_day_upper.png.
+## 2026-10-17: the forest island theme, piece 5 (sound, weather, fidelity, cost)
+- **Bed:** `forest_loop` (gen_psx_audio.py `forest_loop`, 53 s, -20.2 LU, 3% at 2-5 kHz, repeat 0.19@6.7 s, seam 1.2x):
+  wind through the leaves in slow gusts with a dry rustle, a trunk creaking, songbirds near and far (`_songbird`), a
+  woodpecker (`_woodpecker`), crows (`_crow`), a stream's murmur, a tawny owl now and then (`_owl_hoot`). Ambience
+  "forest" at TOP_DB -13; the forest style's `ambience`. (One bed for day and night: Ambience has no night variant.)
+- **Music, not in the game yet:** `track_forest(night)` in gen_psx_music.py (6/8, 72 bpm, A dorian / C major, 56 bars =
+  140 s: a tin whistle's air over harp and guitar, the clearings' song in C on the oboe, the game's theme re-barred in A
+  minor 6/8 on strings / whistle / horn, the bodhran; night: the whistle alone far off, dark harp, celesta stars, no drums;
+  both -18.0 LU, seams 0.2x / 1.2x). This PC has no ffmpeg, so the generator kept .wav files, which were not committed
+  (Music loads .ogg). To finish: `py tools/texture_gen/gen_psx_music.py forest forest_night` where ffmpeg is on PATH, the
+  two `Music.TRACKS` lines (`"forest": ["res://assets/audio/music_forest.ogg", 56]`, `"forest_night": [..._night.ogg, 56]`)
+  and the forest style's `"music": "forest"`. Until then the woods play the jungle's island track and the town the village's.
+- **Weather** (the style, set in piece 1): clear 24%, cloudy 32%, rain 34%, storm 10% (the jungle 30/26/32/12), a pale grey
+  haze 0.25 (alpha 0.5). "Misty mornings" are only this all-day haze: Weather has no hour-dependent fog per style.
+  `falling_leaves` ({rate, colors}) is in the style as a hook for the shared weather/ground pass (nothing reads it yet).
+- **Fidelity** (fidelity.gd on chain seeds 5, 7, 13, forest first islands, against Brinehollow): buildings 49-50 (1.2x),
+  dressed share 2.2-2.8x, props per settled ha 0.80-1.05, street props per 50 m 0.60-0.67, prop categories 0.92-1, NPCs
+  0.95, walking NPCs 3x, places 1.2-1.9x, distinct landmarks 0.62-0.92, real lights per ha 0.60-0.77, lit windows per ha
+  0.37-0.52, vegetation variety 3.9x and density 2.3-2.5x per ha. fidelity.gd's building table has no "Tall" (the name a
+  theme's own two-storey model gets: snow's, desert's and the forest's go uncounted).
+- **Cost:** prepare on the worker 15-22 s (land 2-3 s with the river grid, undergrowth 2-3 s, bodies ~2-3 s, the set
+  pieces' cave meshes ~130 ms), the main thread 1.6-3.1 s over ~165-175 frames, the worst step ~140-260 ms (draw lod ~600 ms
+  over its 64 steps, the hollow tree ~290 ms over two). Static surfaces 4.6-7.6k (Brinehollow 1.8k), MultiMesh instances
+  36-63k, draw calls ~430 at the plaza and 1.4-1.9k at the harbour (Brinehollow 1238 / 1670), nodes 7.6-10.9k, static
+  memory 102-134 MB. Not benched: the bench's route is Brinehollow's, which nothing of the forest touches.
+- **Proof:** islanddump of seeds 1 (jungle), 4 (snow), 2 (desert) before the forest and with only the forest registered:
+  identical islands (piece 1). Dumped again at the end, they differ only where main's Buildings door/steps pass landed
+  (Site_harbour houses' colliders, Door markers), none in forest code.
+- Renders: `tools/dev/out/forest/n5_sheet.png` (forestshot seed 5 at 21:30), the falls' glow turned down after it.

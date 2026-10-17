@@ -90,7 +90,7 @@ const STYLE := {
 	},
 	"music": "island",
 	"music_town": "village",
-	"ambience": "",
+	"ambience": "forest",
 	"ground": {"grass": "forest_litter", "sand": "forest_beach", "wet_sand": "wet_sand", "dirt": "forest_dirt", "rock": "forest_rock", "seafloor": "seafloor", "cliff": "forest_rock"},
 	"cave_look": {"rock": ["forest_rock", Color(1.0, 1.0, 1.0)], "moss": ["forest_rock", Color(0.85, 0.95, 0.75)], "turf": ["forest_litter", Color.WHITE],
 		"wall": ["forest_rock", Color(0.8, 0.8, 0.78)], "floor": ["forest_dirt", Color(0.85, 0.82, 0.78)]},
@@ -98,6 +98,9 @@ const STYLE := {
 	"weather": [0.24, 0.56, 0.9],
 	"haze": 0.25,
 	"haze_color": Color(0.8, 0.82, 0.84, 0.5),
+	# (a hook for the shared weather/ground pass, nothing reads it yet: leaves drifting down under the trees, how many
+	# a second round the camera on a still day, and their colours)
+	"falling_leaves": {"rate": 6.0, "colors": [Color(0.78, 0.2, 0.1), Color(0.9, 0.5, 0.14), Color(0.88, 0.7, 0.2), Color(0.55, 0.34, 0.18)]},
 	"storm_color": Color(0.36, 0.37, 0.4),
 	# landmarks and set pieces (KitLandmarks, KitSetPieces): rock, carved stone, water, bone, lava, crystal
 	"rock_tint": Color(0.62, 0.62, 0.6),

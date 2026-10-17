@@ -117,6 +117,7 @@ inside a loop (0.7 at 6 s = an audible 6 s beat).
 
 | desert_loop | new 10-15 | not wired yet: the desert theme's bed (suggested TOP_DB -13) | | | 47 s, -20 LU, 67% under 200 Hz: dry wind in long gusts, sand hiss off the crests, insect rasps, a far vulture |
 | snow_loop | new 10-15 | not wired yet: the snow theme's bed (suggested -13.5) | | | 50 s, -20 LU: cold wind whistling on gusts, pine hush, ice groans, snow slumping off branches, one far wolf |
+| forest_loop | new 10-17 | the forest theme's bed (Ambience "forest", TOP_DB -13) | | | 53 s, -20.2 LU, 3% at 2-5 kHz, repeat 0.19: wind through the leaves in slow gusts with a dry rustle, a trunk creaking, songbirds near and far, a woodpecker, crows, a stream's murmur, an owl now and then |
 | sandstorm_loop | new 10-15 | not wired yet: Weather, in rain's place on desert islands | | | 41 s, -20 LU: unrelenting roar, sand hiss, grit, surging |
 | blizzard_loop | new 10-15 | not wired yet: Weather, in rain's place on snow islands | | | 43 s, -20 LU: hard wind whistling on three edges, driving snow, howling sweeps |
 | step_snow (4) / step_ice (4) | new 10-15 | not wired yet (FX.SOUNDS + Footsteps) | | | snow: soft thump, dense squeaky crunch, -21 LU; ice: sharp click, a ring at 1.7-4.9 kHz, -19.5 LU |
@@ -258,6 +259,8 @@ each calm track to -18.0 LU in the generator (`target_lu`).
 | music_desert_town_night | 137.1 s (64 bars) | same | -18.0 | same form: oud picking, strings, ney, horns for the brass, celesta |
 | music_snow | 152.7 s (56 bars) | Eb major / C minor, 3/4 66 | -18.0 | the snowfields: a glockenspiel tune over harp and choir, the pines in C minor on a far horn, the theme re-barred in 3/4 |
 | music_snow_night | 152.7 s (56 bars) | same | -18.0 | same form, a hush: the celesta alone, soft strings and choir, a far horn, no drums |
+| music_forest | 140.0 s (56 bars) | A dorian / C major, 6/8 72 | -18.0 | NOT IN THE GAME YET (see the night row): the autumn woods, a tin whistle's air over harp and guitar, the clearings' song in C on the oboe, the theme in A minor in 6/8, the bodhran |
+| music_forest_night | 140.0 s (56 bars) | same | -18.0 | NOT IN THE GAME YET (rendered as .wav, no ffmpeg on this PC: rerun `py tools/texture_gen/gen_psx_music.py forest forest_night` with ffmpeg, add the Music.TRACKS lines, set the forest style's music): same form, the whistle alone far off, dark harp, celesta stars, no drums |
 | music_snow_town | 147.7 s (64 bars) | Bb major / G minor, 4/4 104 | -18.0 | the round-house village: a fiddle reel, accordion, a fireside song on the concertina, the theme warm in Bb; bodhran, sleigh bells |
 | music_snow_town_night | 147.7 s (64 bars) | same | -18.0 | same form: the inn by the fire, guitar, soft concertina, quiet fiddle |
 | music_combat | 54.9 s (32 bars, 140 bpm, E minor) | | -18.3 | unchanged |

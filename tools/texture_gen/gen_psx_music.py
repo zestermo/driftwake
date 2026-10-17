@@ -2061,6 +2061,102 @@ def track_snow_town(night=False):
     return s, dict(verb_t60=2.0 if night else 1.6, echo_sec=60 / 104 * 0.75, target_lu=-18.0)
 
 
+# The autumn woods (A dorian / C major, 6/8 in sixteenth ticks): a tin whistle's air (A), an oboe's song in C over
+# the clearings (B), the game's theme in A minor (T), a call and a turn.
+FOR_CALL = "E5/6 A5/6 | G5/12 | D5/6 E5/6 | A4/12"
+FOR_A = ("E5/2 A5/2 B5/2 C6/4 B5/2 | A5/4 E5/2 G5/4 E5/2 | D5/2 E5/2 G5/2 A5/4 G5/2 | E5/10 -/2 | "
+         "E5/2 A5/2 B5/2 C6/4 D6/2 | E6/4 D6/2 C6/4 B5/2 | A5/2 G5/2 E5/2 D5/2 E5/2 G5/2 | A5/10 -/2")
+FOR_B = ("G4/6 C5/4 D5/2 | E5/8 D5/4 | C5/4 B4/4 A4/4 | G4/12 | "
+         "G4/6 C5/4 E5/2 | G5/8 F5/4 | E5/4 D5/4 B4/4 | C5/12")
+FOR_THEME = ("A4/4 E4/2 A4/4 B4/2 | C5/4 D5/2 E5/6 | F5/4 E5/2 C5/4 A4/2 | B4/10 -/2 | "
+             "A4/4 E4/2 A4/4 B4/2 | C5/4 D5/2 E5/4 A5/2 | G5/4 F5/2 E5/2 D5/2 B4/2 | A4/10 -/2")
+FOR_TURN = "C5/4 B4/4 A4/4 | G4/6 E4/6 | F4/4 G4/4 A4/4 | E4/12"
+
+
+def track_forest(night=False):
+    # The autumn woods: 6/8 (sixteenth ticks, 12 a bar), 72 bpm by the quarter, A dorian with the clearings in C
+    # major; 56 bars (2:20). Intro (the whistle's call over the harp, a held choir) | A the whistle's air, a guitar
+    # picking | A' the oboe takes it, the whistle a third above | B the clearings' song in C on the oboe, strings |
+    # T the game's theme in A minor (strings, whistle, horn, choir) | A'' whistle and fiddle, the bodhran | B' the
+    # horn and everyone | a turn. Under it: low strings on the roots, the harp rolling, the bodhran on the strong beats.
+    # Night: the woods asleep - the whistle alone far off on the air, a dark harp, soft strings and choir, the horn
+    # on the theme, celesta stars like fireflies, no drums.
+    s = Song("music_forest_night" if night else "music_forest", 60 / 72 / 4, 12, 56,
+             "6/8, 72 bpm, A dorian / C major: " + ("the autumn woods at night" if night else "the autumn woods"))
+    s.bus("whis", 0.44, verb=0.34, echo=0.08)
+    s.bus("whis2", 0.26, verb=0.34)
+    s.bus("oboe", 0.42, verb=0.3)
+    s.bus("fid", 0.32, verb=0.28)
+    s.bus("horn", 0.4, verb=0.42)
+    s.bus("choir", 0.24, verb=0.45)
+    s.bus("str", 0.28, verb=0.38)
+    s.bus("low", 0.42, verb=0.22)
+    s.bus("harp", 0.34, verb=0.34)
+    s.bus("gtr", 0.36, verb=0.22)
+    s.bus("star", 0.16, verb=0.45, echo=0.2)
+    s.bus("bod", 0.3, verb=0.14)
+    intro = ["Am", "G", "D", "Am"]
+    A = ["Am", "G", "D", "Em", "Am", "C", "G", "Am"]
+    B = ["C", "C", "F", "G", "C", "Em", "G", "C"]
+    T = ["Am", "Am", "F", "E", "Am", "F", "G E", "Am"]
+    turn = ["F", "C", "Dm", "E"]
+    ch = split_chords(intro + A + A + B + T + A + B + turn)
+    I, A1, A2, B1, T1, A3, B2, TN = 0, 4, 12, 20, 28, 36, 44, 52
+    adorian = scale("A", "dorian")
+    allb = range(56)
+    airs = list(_bars(A1, 16)) + list(_bars(A3, 8))
+    clearings = list(_bars(B1, 8)) + list(_bars(B2, 8))
+    _roots(s, "low", "lowstr", ch, allb, nn("A1"), 0.42 if night else 0.52)
+    if not night:
+        arpeggio(s, "harp", "harp", ch, list(_bars(I, 4)) + clearings + list(_bars(TN, 4)), [0, 1, 2, 3, 2, 1], 2, low=50, vel=0.36, dur=4)
+        arpeggio(s, "gtr", "guitar", ch, airs + list(_bars(T1, 8)), [0, 2, 1, 2, 3, 2], 2, low=48, vel=0.32, dur=3)
+        _chordpads(s, "choir", "choir", ch, list(_bars(I, 4)) + list(_bars(T1, 8)) + list(_bars(B2, 8)), 57, 0.3)
+        _chordpads(s, "str", "strings", ch, clearings + list(_bars(T1, 8)), 53, 0.3)
+        s.drums("bod", "bodhran", "X.....x.....", list(_bars(A2, 8)) + list(_bars(T1, 8)) + list(_bars(A3, 8)) + list(_bars(B2, 8)),
+                midi=nn("D2"), vel=0.55)
+        s.drums("bod", "bodhran_rim", "....x.....x.", list(_bars(A3, 8)), midi=nn("D3"), vel=0.4)
+        # intro: the whistle's call
+        s.line("whis", "whistle", FOR_CALL, I, vel=0.7)
+        # A: the whistle's air
+        s.line("whis", "whistle", FOR_A, A1, vel=0.85)
+        # A': the oboe takes it, the whistle a third above
+        s.line("oboe", "oboe", FOR_A, A2, vel=0.8, transpose=-12)
+        s.line("whis2", "whistle", FOR_A, A2, vel=0.45, harmonize=(adorian, 2))
+        # B: the clearings' song
+        s.line("oboe", "oboe", FOR_B, B1, vel=0.85)
+        s.line("fid", "strings", FOR_B, B1, vel=0.35, transpose=-12)
+        # T: the game's theme in A minor
+        s.line("fid", "strings", FOR_THEME, T1, vel=0.85)
+        s.line("whis2", "whistle", FOR_THEME, T1, vel=0.45, transpose=12)
+        s.line("horn", "horn", FOR_THEME, T1, vel=0.5, transpose=-12)
+        # A'': the whistle and the fiddle together
+        s.line("whis", "whistle", FOR_A, A3, vel=0.85)
+        s.line("fid", "fiddle", FOR_A, A3, vel=0.5, transpose=-12)
+        # B': horn and everyone
+        s.line("horn", "horn", FOR_B, B2, vel=0.85, transpose=-12)
+        s.line("oboe", "oboe", FOR_B, B2, vel=0.6)
+        s.line("whis2", "whistle", FOR_B, B2, vel=0.35, transpose=12)
+        # the turn
+        s.line("oboe", "oboe", FOR_TURN, TN, vel=0.7)
+        s.line("whis2", "whistle", FOR_TURN, TN, vel=0.4, transpose=12)
+    else:
+        arpeggio(s, "harp", "harp_dark", ch, allb, [0, 2, 3, 2], 3, low=50, vel=0.4, dur=6)
+        _chordpads(s, "str", "strings", ch, allb, 53, 0.22)
+        _chordpads(s, "choir", "choir", ch, list(_bars(T1, 8)) + list(_bars(B2, 8)), 57, 0.18)
+        _twinkle(s, "star", "celesta", ch, list(_bars(I, 4)) + list(_bars(A2, 8)) + list(_bars(TN, 4)), 2, 76, 0.28, seed=72)
+        s.line("whis", "whistle", FOR_CALL, I, vel=0.45)
+        s.line("whis", "whistle", FOR_A, A1, vel=0.55)
+        s.line("oboe", "oboe", FOR_A, A2, vel=0.45, transpose=-12)
+        s.line("str", "strings", FOR_B, B1, vel=0.4)
+        s.line("horn", "horn", FOR_THEME, T1, vel=0.4, transpose=-12)
+        s.line("fid", "strings", FOR_THEME, T1, vel=0.4)
+        s.line("whis", "whistle", FOR_A, A3, vel=0.45)
+        s.line("oboe", "oboe", FOR_B, B2, vel=0.4)
+        s.line("whis", "whistle", FOR_TURN, TN, vel=0.4)
+    return s, dict(verb_t60=2.6 if night else 2.1, echo_sec=60 / 72 * 0.75, target_lu=-18.0)
+
+
+
 def track_combat():
     # 4/4, 140 bpm, sixteenth ticks. E minor. 32 bars: A, B (fiddle), A' (fiddle motif), C (brass build).
     s = Song("music_combat", 60 / 140 / 4, 16, 32, "4/4, 140 bpm, E minor (harmonic), driving tense fight")
@@ -2228,6 +2324,7 @@ TRACKS = {"title": track_title, "sea": track_sea, "sea_night": lambda: track_sea
           "desert_town": track_desert_town, "desert_town_night": lambda: track_desert_town(True),
           "snow": track_snow, "snow_night": lambda: track_snow(True),
           "snow_town": track_snow_town, "snow_town_night": lambda: track_snow_town(True),
+          "forest": track_forest, "forest_night": lambda: track_forest(True),
           "combat": track_combat, "boss": track_boss, "victory": track_victory}
 
 

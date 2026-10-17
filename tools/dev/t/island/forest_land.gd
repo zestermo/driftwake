@@ -74,10 +74,11 @@ func _process(_d: float) -> bool:
 	var st: Dictionary = KS.of("forest")
 	var lamp: Node3D = KS.prop(st, "lamp", _seeded())
 	var mark: Node3D = KS.prop(st, "marker", _seeded())
-	check("the forest style: river cobbles, log walls under shingles, steep roofs, its lamp with a Flame and its waymark, the autumn ground",
+	check("the forest style: river cobbles, log walls under shingles, steep roofs, its lamp with a Flame and its waymark, the autumn ground, its woodland bed, wetter than the jungle and misty",
 		st["paving"] == "river_cobbles" and (st["house"]["walls"] as Array).has("logs") and (st["house"]["roof_tex"] as Array).has("shingles")
 		and float(st["house"]["pitch"][0]) > 0.9 and lamp.get_node_or_null("Flame") != null and mark != null and st["ground"]["grass"] == "forest_litter"
-		and st["ground"]["cliff"] == "forest_rock")
+		and st["ground"]["cliff"] == "forest_rock" and st["ambience"] == "forest" and load("res://scripts/world/ambience.gd").LOOPS.has("forest")
+		and float(st["weather"][2]) > float(KS.of("jungle")["weather"][2]) and float(st["haze"]) > 0.0)
 	lamp.free()
 	mark.free()
 	var variants := {}

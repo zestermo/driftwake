@@ -1361,6 +1361,87 @@ def snow_loop(seconds=50.0):
     _write_loop("snow_loop", out)
 
 
+def _songbird(rng):
+    """A woodland songbird: a quick run of falling and rising notes, a trill to finish now and then."""
+    out = np.zeros(0)
+    f0 = rng.uniform(2600, 3800)
+    for _ in range(int(rng.integers(3, 7))):
+        L = rng.uniform(0.04, 0.09)
+        t = np.arange(int(L * SR)) / SR
+        f = f0 * (1 + rng.uniform(-0.25, 0.25) * t / L)
+        note = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * t / L) ** 2
+        out = np.concatenate([out, note, np.zeros(int(rng.uniform(0.02, 0.07) * SR))])
+        f0 *= rng.uniform(0.86, 1.14)
+    if rng.random() < 0.5:
+        L = rng.uniform(0.25, 0.45)
+        t = np.arange(int(L * SR)) / SR
+        f = f0 * (1 + 0.06 * np.sin(2 * np.pi * 28 * t))
+        out = np.concatenate([out, np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * t / L) * 0.7])
+    return out
+
+
+def _owl_hoot(rng):
+    """A tawny owl far off: a soft hoot, a pause, a long wavering hoo-oo-oo."""
+    def hoo(f, L, waver):
+        t = np.arange(int(L * SR)) / SR
+        ph = 2 * np.pi * np.cumsum(f * (1 + waver * np.sin(2 * np.pi * 9 * t))) / SR
+        return (np.sin(ph) + 0.2 * np.sin(2 * ph)) * np.sin(np.pi * t / L) ** 1.4
+    return np.concatenate([hoo(rng.uniform(420, 470), 0.28, 0.0), np.zeros(int(0.9 * SR)), hoo(rng.uniform(400, 440), 1.1, 0.04)])
+
+
+def _woodpecker(rng):
+    """A woodpecker's drum on a dead trunk: a fast roll of knocks, fading."""
+    n = int(0.75 * SR)
+    out = np.zeros(n)
+    k = 0
+    at = 0.0
+    while at < 0.6:
+        t = np.arange(int(0.03 * SR)) / SR
+        _place(out, _thump(t, 1500, 900, 0.004, 120) * (1 - at / 0.75), int(at * SR))
+        at += rng.uniform(0.038, 0.048)
+        k += 1
+    return out
+
+
+def _crow(rng):
+    """A crow's caw: a harsh falling buzz, twice."""
+    out = np.zeros(0)
+    for _ in range(int(rng.integers(1, 3))):
+        L = rng.uniform(0.28, 0.4)
+        t = np.arange(int(L * SR)) / SR
+        f = rng.uniform(650, 800) * (1 - 0.25 * t / L)
+        ph = 2 * np.pi * np.cumsum(f) / SR
+        tone = np.tanh(3 * np.sin(ph)) * 0.6 + _burst(rng, L, 900, 3500) * 0.35
+        out = np.concatenate([out, tone * np.sin(np.pi * t / L) ** 0.8, np.zeros(int(0.25 * SR))])
+    return out
+
+
+def forest_loop(seconds=53.0):
+    """The autumn woods: wind moving through the leaves in slow gusts (a dry rustle rising with it), a creak of a
+    trunk swaying, songbirds near and far, a woodpecker drumming, crows across the canopy, a stream's murmur low
+    under it all, and an owl now and then (the woods at dusk and at night have it too)."""
+    rng = np.random.default_rng(1031)
+    n = int(SR * seconds)
+    gust = 0.3 + 0.7 * _cenv(n, rng, 0.09) ** 1.5
+    out = _cband(n, rng, 80, 600, tilt=0.6) * 0.42 * gust
+    out += _cband(n, rng, 900, 2600) * (0.5 + 0.5 * _cenv(n, rng, 7.0)) * gust ** 1.8 * 0.2
+    out += _cband(n, rng, 200, 900) * (0.6 + 0.4 * _cenv(n, rng, 1.6)) * 0.12
+    for _ in range(3):
+        c = _stick_slip(rng, rng.uniform(0.8, 1.6), 10, 40, [(220, 6, 1.0), (640, 9, 0.5), (1400, 12, 0.25)])
+        _place(out, c * rng.uniform(0.15, 0.3), rng.integers(0, n))
+    for _ in range(9):
+        far = rng.uniform(0.15, 0.55)
+        _place(out, lpf(_songbird(rng), 0.25 + 0.35 * far) * far * 0.42, rng.integers(0, n))
+    for _ in range(2):
+        _place(out, _woodpecker(rng) * rng.uniform(0.15, 0.25), rng.integers(0, n))
+    for _ in range(3):
+        _place(out, lpf(_crow(rng), 0.4) * rng.uniform(0.1, 0.18), rng.integers(0, n))
+    for _ in range(2):
+        _place(out, lpf(_owl_hoot(rng), 0.2) * rng.uniform(0.12, 0.18), rng.integers(0, n))
+    _write_loop("forest_loop", out)
+
+
+
 def sandstorm_loop(seconds=41.0):
     """A sandstorm: the wind never lets up - a deep roar, a thick breathy middle, sand hissing
     and grit rattling against everything, all surging in waves."""
@@ -2235,6 +2316,7 @@ SOUNDS = [
     ("wind_gust", wind_gust_takes),
     ("desert_loop", desert_loop),
     ("snow_loop", snow_loop),
+    ("forest_loop", forest_loop),
     ("sandstorm_loop", sandstorm_loop),
     ("blizzard_loop", blizzard_loop),
     ("thunder", lambda: thunder_sound("thunder", 231, 4.5, 1.0)),

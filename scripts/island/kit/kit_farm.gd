@@ -2,8 +2,8 @@ class_name KitFarm
 extends RefCounted
 ## Farmland (Brinehollow's windmill hamlet, 2026-10-17): fields of a crop in rows on tilled ground (one
 ## MultiMesh a field, unshadowed, ranged), fenced round but for a gap, a scarecrow in the grain; an
-## orchard of fruit trees in rows (a MultiMesh a tree shape, a collider a trunk); haystacks. A field
-## is [centre, half size, yaw, crop] in island space, local +X along its rows. Reserves cover each.
+## orchard of fruit trees in rows (a MultiMesh a tree shape, a collider a trunk). A field is [centre,
+## half size, yaw, crop] in island space, local +X along its rows. Reserves cover each.
 
 const CROP_RANGE := 140.0
 
