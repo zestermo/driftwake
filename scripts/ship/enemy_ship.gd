@@ -893,7 +893,15 @@ func _start_sink(fought: bool = true) -> void:
 		bark("Abandon ship!", 3.0)
 		Net.fx("sfx", ["bell", global_position, 2.0, 0.02, 0.8])
 		Net.award_xp(_xp(100), global_position, 160.0)
+		_sea_credit()
 	sunk.emit(self)
+
+
+## (every screen) A captain near enough when she goes down learns from it: their own Seamanship.
+func _sea_credit() -> void:
+	var me := Seamanship.me(get_tree())
+	if me and me.global_position.distance_to(global_position) < Seamanship.SUNK_REACH:
+		Seamanship.xp(get_tree(), int(Seamanship.SUNK.get(kind, 40)))
 
 
 func _sink_update(delta: float) -> void:
@@ -1156,6 +1164,8 @@ func net_event(what: String, args: Array) -> void:
 				_sink_t = 0.0
 				_chest_done = args.size() > 0 and not bool(args[0])
 				hurtbox.set_deferred("monitorable", false)
+				if not _chest_done:
+					_sea_credit()
 				sunk.emit(self)
 
 

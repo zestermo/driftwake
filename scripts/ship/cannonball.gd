@@ -196,6 +196,8 @@ func _burst(at: Vector3, col: Node, normal: Vector3) -> void:
 			if ship and ship.has_method("is_dead") and ship.get("hurtbox"):
 				(ship.get("hurtbox") as Hurtbox).take_hit(hd, shooter)
 				hit_ship = true
+				if shooter and shooter == Seamanship.me(get_tree()):
+					Seamanship.xp(get_tree(), Seamanship.GUN_HIT)
 			elif col and col.is_in_group("sea_kings"):
 				(col.get("hurtbox") as Hurtbox).take_hit(hd, shooter)
 				hit_ship = true

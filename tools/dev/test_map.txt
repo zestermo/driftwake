@@ -113,6 +113,7 @@ scripts/ship/ship_kit.gd                yardtest t/ship
 scripts/ship/ship_lines.gd              yardtest t/ship
 scripts/ship/ship_parts.gd              yardtest t/ship
 scripts/ship/salvage.gd                 t/ship seatest r8test
+scripts/ship/seamanship.gd              t/ship shiptest r8test
 scripts/ui/shipwright_screen.gd         yardtest t/ship
 scripts/ship/enemy_ship.gd              seatest r8test perftest leveltest legtest
 scripts/ship/enemy_fleet.gd             seatest perftest legtest leveltest net

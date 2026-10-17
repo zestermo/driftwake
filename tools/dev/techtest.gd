@@ -178,7 +178,7 @@ func _process(d: float) -> bool:
 					missing.append(k)
 			check("every node in every tree can be learned (missing: %s)" % str(missing), missing.is_empty())
 			var trees_ok := true
-			for tr in SkillTree.TREES.keys().filter(func(k): return SkillTree.is_mastery_tree(k)):
+			for tr in SkillTree.TREES.keys().filter(func(k): return SkillTree.is_mastery_tree(k) and k in SkillTree.STYLE_TREE.values()):
 				var n := 0
 				var ults := 0
 				for k in SkillTree.nodes().keys():

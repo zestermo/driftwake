@@ -3370,3 +3370,21 @@ Found and fixed (Buildings unless said):
   the host take the same path, answered at once. Paint and colours stay the host's.
 - Tests: t/ship/upgrade_request (the arbitration and the refund, host side); nettest (netclient 742-744): the
   guest pays for a rudder level, it's on the guest's ship and in the host's kit.
+
+## 2026-10-17: Seamanship (ship upgrades, piece 5)
+- A mastery tree "sea" (SkillTree.TREES / TAB_ORDER: the SEA tab before FRUIT; `_build_seamanship`, 15 nodes
+  in three columns: the helm, the guns, repairs, Bosun at the top), each captain's own: Progression saves it
+  with the captain like weapon mastery, so a guest's is theirs. Mastery comes on the captain's own machine
+  (`Seamanship`, scripts/ship/seamanship.gd): 1 xp per 25 m sailed at the helm (Ship._physics_process),
+  8 a hit with her guns on a ship (Cannonball, the authoritative copy, shooter = our captain), 12 a hole
+  patched or fire beaten out, 1 a pump stroke (0.25 s), 3 at the capstan, and 30-60 for a ship sunk within
+  250 m (EnemyShip._sea_credit on every screen, host and puppets).
+- **Station bonuses** count only while you man the station: helm_speed / helm_turn / helm_flood (Ship._helm_k
+  from `Seamanship.helm_k` on the helmsman's machine, and on Ship.net_pack's new fields 15-18 for the other
+  screens: PACK_SIZE 19, with whether they're steering), gun_reload (ShipCannon._process, the gun you aim),
+  gun_dmg (ShipCannon._shoot, balls you fire), repair / capstan (`Ship.job_time`), pump (more bailed),
+  lookout (the compass marks reach further aboard, added to the nest's). Bosun (crew 0.5): the rest count half
+  again while a crewmate mans another station (another machine's helmsman: `Ship.helm_other`; a gun seat held
+  by another id).
+- techtest's "each weapon tree has 18+ nodes and one ultimate" now counts only the weapon trees (STYLE_TREE).
+- Tests: t/ship/seamanship. Render: tools/dev/seamapshot.gd (the SEA tab fresh and learned).

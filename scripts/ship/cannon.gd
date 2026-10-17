@@ -175,7 +175,8 @@ func holder() -> int:
 
 
 func _process(delta: float) -> void:
-	cool = maxf(cool - delta, 0.0)
+	# (a gunner's Seamanship reloads the gun they man faster)
+	cool = maxf(cool - delta * (1.0 + Seamanship.station(get_tree(), "gun_reload", ship as Ship) if aiming_locally else 1.0), 0.0)
 	# (an enemy's gun at rest: nothing to move, no transform notifications down the barrel)
 	if interactable == null and not aiming_locally and _recoil <= 0.0 and is_equal_approx(yaw, _yaw_node.rotation.y) and is_equal_approx(pitch, _pitch_node.rotation.x):
 		return
@@ -240,6 +241,11 @@ func _shoot(from: Vector3, vel: Vector3, auth: bool, by: Node, n: int) -> void:
 	var b := Cannonball.launch(get_tree(), from, vel, team, auth, by if by else ship, ship, "%s#%d" % [Net.key_of(self), n])
 	b.hull_damage = hull_damage
 	b.splash_damage = splash_damage
+	# (our captain's Seamanship on the balls they fire)
+	if auth and by and by == Seamanship.me(get_tree()):
+		var k := 1.0 + Seamanship.station(get_tree(), "gun_dmg", ship as Ship)
+		b.hull_damage *= k
+		b.splash_damage *= k
 	var dir := vel.normalized()
 	FX.cannon_fire(from, dir)
 	FX.sfx("cannon", from, 2.0, 0.06)

@@ -8,6 +8,7 @@ extends RefCounted
 ##            weapon trees, paid for with that weapon's mastery points (earned
 ##            by fighting with it); they hold its passives, its skills, its
 ##            ultimate and the parts of its moveset you have to unlock ("move" nodes)
+##   sea      Seamanship: a mastery tree earned at sea, its bonuses for the station you man
 ##   fruit    your Devil Fruit (only once you've eaten one)
 ## You can learn any node linked to one you own (if you meet its requirements).
 ##
@@ -39,9 +40,10 @@ const TREES := {
 	"dual_dagger": {"name": "Twin Daggers", "tab": "2 DAGGERS", "mastery": true},
 	"corsair": {"name": "Corsair", "tab": "CORSAIR", "mastery": true},
 	"pistol": {"name": "Pistol", "tab": "PISTOL", "mastery": true},
+	"sea": {"name": "Seamanship", "tab": "SEA", "mastery": true},
 	"fruit": {"name": "Devil Fruit", "tab": "FRUIT", "mastery": false},
 }
-const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "corsair", "pistol", "fruit"]
+const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "corsair", "pistol", "sea", "fruit"]
 
 ## Fighting style (Player.style()) -> the weapon tree it builds mastery in.
 const STYLE_TREE := {"fist": "unarmed", "sword": "sword", "katana": "katana", "axe": "axe", "dagger": "dagger",
@@ -53,6 +55,7 @@ const REGION_COLORS := {
 	"Unarmed": Color(1.0, 0.85, 0.6), "Cutlass": Color(0.85, 0.85, 0.95), "Katana": Color(0.7, 0.85, 1.0),
 	"Axe": Color(1.0, 0.7, 0.45), "Dual Wield": Color(0.55, 0.85, 1.0), "Dagger": Color(1.0, 0.45, 0.58), "Twin Daggers": Color(0.6, 1.0, 0.45), "Corsair": Color(1.0, 0.5, 0.42), "Pistol": Color(0.95, 0.75, 0.4),
 	"Ember": Color(1.0, 0.5, 0.15), "Wolf": Color(0.7, 0.62, 0.5), "Vine": Color(0.45, 0.85, 0.3),
+	"Seamanship": Color(0.45, 0.8, 0.9),
 }
 
 ## Direction (degrees, screen space: 90 = down) each base-tree region grows in.
@@ -132,6 +135,7 @@ static func _build() -> void:
 	_build_dual_dagger()
 	_build_corsair()
 	_build_pistol()
+	_build_seamanship()
 	_build_mastery()
 	_build_fruits()
 
@@ -239,6 +243,41 @@ static func _build_base() -> void:
 	_add("h_will", "King's Will", "passive", "Conqueror", _p(A, 210.0), ["c_strength"], {"damage_pct": 0.06, "max_hp": 20.0},
 		"A will that bends others: +6% damage, +20 max health.", {"level": 18})
 	_add("h_conq", "Conqueror's Haki", "ult", "Conqueror", _p(A, 300.0), ["h_will"], {}, "", {"level": 20}, "conquerors_haki")
+
+
+## Seamanship (Seamanship, scripts/ship/seamanship.gd): each captain's own, paid for with its mastery
+## points (sailing at the helm, hitting ships with her guns, repairs and pumping, ships sunk near you).
+## Station bonuses, each counting only while you man that station: helm_speed / helm_turn (her top speed
+## and turning while you steer), helm_flood (less of flooding's slowdown, steering), gun_reload (a gun
+## you man), gun_dmg (balls you fire), repair (patching, dousing), pump (bailing), capstan (the anchor),
+## lookout (m: sails and salvage on your compass aboard), crew (the rest half again while a crewmate mans
+## another station).
+static func _build_seamanship() -> void:
+	_tree = "sea"
+	var R := "Seamanship"
+	_add("sea_root", "Seamanship", "root", R, _g(0, 0), [], {},
+		"Sail her, fight her guns and keep her afloat to build Seamanship. Its bonuses count at the station you're manning: the helm, a gun, the pump, a hole or a fire.")
+	# the helm
+	_add("sea_trim", "Sail Trim", "stat", R, _g(-2, 0), ["sea_root"], {"helm_speed": 0.04}, "At the helm: she sails 4% faster.")
+	_add("sea_turn", "Hard Over", "stat", R, _g(-2, 1), ["sea_trim"], {"helm_turn": 0.08}, "At the helm: she turns 8% sharper.")
+	_add("sea_storm", "Storm Sailing", "passive", R, _g(-3, 2), ["sea_turn"], {"helm_flood": 0.4},
+		"At the helm: water in her costs 40% less of her speed.")
+	_add("sea_wind", "Fair Wind", "stat", R, _g(-2, 3), ["sea_turn"], {"helm_speed": 0.05}, "At the helm: another 5% faster.", {"level": 6})
+	_add("sea_eye", "Weather Eye", "passive", R, _g(-3, 4), ["sea_wind", "sea_storm"], {"lookout": 200.0},
+		"Aboard: enemy sails and floating salvage within 200 m show on your compass (further with her crow's nest).")
+	# the guns
+	_add("sea_load", "Quick Loader", "stat", R, _g(0, 1), ["sea_root"], {"gun_reload": 0.15}, "A gun you man reloads 15% faster.")
+	_add("sea_gunner", "Gun Captain", "stat", R, _g(0, 2), ["sea_load"], {"gun_dmg": 0.1}, "Balls you fire from her guns hit 10% harder.")
+	_add("sea_powder", "Powder Monkey", "stat", R, _g(0, 3), ["sea_gunner"], {"gun_reload": 0.15}, "Another 15% faster reload.", {"level": 5})
+	_add("sea_broad", "Broadside Master", "stat", R, _g(0, 4), ["sea_powder"], {"gun_dmg": 0.15}, "Balls you fire hit another 15% harder.", {"level": 8})
+	# repairs
+	_add("sea_carp", "Carpenter", "stat", R, _g(2, 0), ["sea_root"], {"repair": 0.3}, "You patch holes and beat out fires 30% faster.")
+	_add("sea_pump", "Pump Hand", "stat", R, _g(2, 1), ["sea_carp"], {"pump": 0.4}, "You bail 40% more water at the pump.")
+	_add("sea_cap", "Capstan Hand", "passive", R, _g(3, 2), ["sea_pump"], {"capstan": 1.0}, "You work the anchor at the capstan twice as fast.")
+	_add("sea_mend", "Shipwright's Hands", "stat", R, _g(2, 3), ["sea_pump"], {"repair": 0.3, "pump": 0.3}, "Another 30% faster repairs, 30% more bailed.", {"level": 5})
+	# the crew
+	_add("sea_crew", "Bosun", "passive", R, _g(0, 5), ["sea_broad", "sea_eye", "sea_mend"], {"crew": 0.5},
+		"Your station bonuses count half again while a crewmate mans another station: a crew of specialists beats four of the same.", {"level": 8})
 
 
 ## Weapon trees share a shape: the root at the bottom, the moveset and defence
