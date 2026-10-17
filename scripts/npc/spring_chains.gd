@@ -14,11 +14,23 @@ const STEP := 1.0 / 60.0
 const MAX_STEPS := 4
 ## The cape variants test a segment against the legs here too, off to each side (the sheet is wider than its chain).
 const PROBES := [Vector3.ZERO, Vector3(-0.1, 0, 0), Vector3(0.1, 0, 0)]
-## Mode "a"'s safety net (`net`): within CUSHION of a leg a point is eased off it (a share of the depth a step), and the
-## drawn sheet's probe lines never end up inside NET_CAPS or a chain point in front of the back's plane.
-const CUSHION := 0.05
-const CUSHION_K := 0.3
+## Mode "a"'s safety net (`net`), on the drawn cape only (the simulation never sees it, so a cape clear of the body
+## moves exactly as without it): a segment whose sheet comes within CUSHION of NET_CAPS is swung back, softly, so it
+## eases off before it touches and never goes in; none ends in front of the back's plane or swings past NET_SWING.
+const CUSHION := 0.025
 const NET_CAPS := ["thigh_l", "thigh_r", "shin_l", "shin_r", "hips"]
+const NET_HIPS := 4
+## The most a drawn segment swings off its rest direction (rad): never up past level, the top one (from the shoulders)
+## less; and the most the net turns one back.
+const NET_SWING := 1.5
+const NET_SWING_TOP := 1.0
+const NET_TURN := 0.9
+## How fast the net's turn follows its target (rad/s): into a correction, and letting it go.
+const NET_IN := 40.0
+const NET_OUT := 8.0
+## How far in front of the plane the sheet's own probe lines may sit (its wrap toward the edges is shaped that way).
+const NET_SHEET := 0.012
+const NET_MID := 0.12
 
 var skel: Skeleton3D
 ## Skinned geometry is added here by BodyBuilder, then finalize() commits it.
@@ -36,8 +48,6 @@ var iters := 1
 ## Mode "a": anchor-local z every point stays behind (the back's plane).
 var back_z := -INF
 var net := false
-## Frames the drawn net moved a segment (the lab and tests read it).
-var net_hits := 0
 
 var _chains: Array = []
 var _acc := 0.0
@@ -45,6 +55,7 @@ var _last_origin := Vector3.INF
 var _g_step := Transform3D()
 var _g_prev := Transform3D()
 var _cw: Dictionary = {}
+## Whether the net moved anything on the last frame (capelab reads it).
 var _net_acted := false
 
 
@@ -86,6 +97,25 @@ func add_chain(points: PackedVector3Array, stiffness: float = 0.12, damping: flo
 ## The net's probe lines for chain `ci`: offsets from the chain across the sheet it carries (rest space).
 func set_probes(ci: int, offsets: PackedVector3Array) -> void:
 	_chains[ci]["probe"] = offsets
+
+
+## The net keeps chain `ci` on its side (`sign` -1 left, 1 right) of an earlier chain `of` of the same sheet, at least
+## half their rest spacing apart across: drawn, a sheet's edge never folds in over its middle (and through the back).
+func set_side(ci: int, of: int, sign: float) -> void:
+	_chains[ci]["side_of"] = of
+	_chains[ci]["side"] = sign
+
+
+func _net_side(c: Dictionary, loc: PackedVector3Array, mid: PackedVector3Array) -> PackedVector3Array:
+	var p: PackedVector3Array = c["p"]
+	var mp: PackedVector3Array = _chains[c["side_of"]]["p"]
+	var s: float = c["side"]
+	for i in range(1, loc.size()):
+		var least := absf(p[i].x - mp[i].x) * 0.5
+		if (loc[i].x - mid[i].x) * s < least:
+			loc[i].x = mid[i].x + s * least
+			_net_acted = true
+	return loc
 
 
 func chain_count() -> int:
@@ -283,15 +313,19 @@ func _simulate_tuned(delta: float) -> void:
 	var w := _acc / STEP
 	var caps := _net_caps(g) if net else []
 	_net_acted = false
+	var drawn: Array = []
 	for c in _chains:
 		var lp: PackedVector3Array = c["lp"]
 		var lc: PackedVector3Array = c["lc"]
 		var loc := PackedVector3Array()
 		for i in range(lc.size()):
 			loc.append(lp[i].lerp(lc[i], w))
-		pose_local(c, _net_clear(c, loc, caps) if net else loc)
-	if _net_acted:
-		net_hits += 1
+		if net:
+			loc = _net_clear(c, loc, caps, delta)
+			if c.has("side_of"):
+				loc = _net_side(c, loc, drawn[c["side_of"]])
+		drawn.append(loc)
+		pose_local(c, loc)
 
 
 func _step_tuned(g: Transform3D) -> void:
@@ -314,7 +348,6 @@ func _step_tuned(g: Transform3D) -> void:
 			px[i] = cur
 			x[i] = nx.lerp((x[i - 1] as Vector3) + g.basis * (p[i] - p[i - 1]), k)
 		for it in range(iters):
-			var soft := CUSHION if net and it == 0 else 0.0
 			for i in range(1, p.size()):
 				var prev: Vector3 = x[i - 1]
 				var seg := (g.basis * (p[i] - p[i - 1])).length()
@@ -324,7 +357,7 @@ func _step_tuned(g: Transform3D) -> void:
 					var ow: Vector3 = g.basis * (o as Vector3)
 					for name_ in col:
 						if _cw.has(name_):
-							nx = _push_segment(prev + ow, nx + ow, _cw[name_], soft) - ow
+							nx = _push_segment(prev + ow, nx + ow, _cw[name_]) - ow
 				var l := inv * nx
 				if l.z < back_z:
 					l.z = back_z
@@ -332,23 +365,21 @@ func _step_tuned(g: Transform3D) -> void:
 				x[i] = nx
 
 
-## Moves `b` so the segment a-b clears the capsule (a, the point above, stays); within `soft` of it, eases it off.
-static func _push_segment(a: Vector3, b: Vector3, cap: Array, soft := 0.0) -> Vector3:
+## Moves `b` so the segment a-b clears the capsule (a, the point above, stays).
+static func _push_segment(a: Vector3, b: Vector3, cap: Array) -> Vector3:
 	var st := _closest_segments(a, b, cap[0], cap[1])
 	var on_seg: Vector3 = st[0]
 	var off: Vector3 = on_seg - (st[1] as Vector3)
 	var dist := off.length()
 	var r: float = cap[2]
-	if dist >= r + soft:
+	if dist >= r:
 		return b
 	var n := off / dist if dist > 1e-5 else Vector3.BACK
 	var t := maxf(float(st[2]), 0.35)
-	if dist >= r:
-		return b + n * (r + soft - dist) * CUSHION_K / t
 	return b + n * minf((r - dist) / t, r * 2.0)
 
 
-## The net's capsules in the anchor's space as drawn: [a, b, r, box min, box max].
+## The net's capsules in the anchor's space as drawn: [a, b, r, box min, box max] (the box out to the cushion).
 func _net_caps(g: Transform3D) -> Array:
 	var inv := g.affine_inverse()
 	var out: Array = []
@@ -358,76 +389,113 @@ func _net_caps(g: Transform3D) -> Array:
 		var a: Vector3 = t * (cd["a"] as Vector3)
 		var b: Vector3 = t * (cd["b"] as Vector3)
 		var r: float = float(cd["r"]) * t.basis.get_scale().x
-		out.append([a, b, r, a.min(b) - Vector3.ONE * r, a.max(b) + Vector3.ONE * r])
+		var reach := Vector3.ONE * (r + CUSHION)
+		out.append([a, b, r, a.min(b) - reach, a.max(b) + reach])
 	return out
 
 
-## The drawn chain (anchor space) with every segment that ends up inside a capsule or in front of the back's plane
-## swung back about its root, the least that clears (bisected); the rest of the chain rides on it.
-func _net_clear(c: Dictionary, loc: PackedVector3Array, caps: Array) -> PackedVector3Array:
+## The drawn chain (anchor space) with every segment that comes within the cushion of a capsule, or ends in front of
+## the back's plane, swung back about its root (bisected) just enough; the rest of the chain rides on it. The turn
+## follows that target at a limited rate (fast in, slower out), so a target that jumps doesn't pop the hem.
+func _net_clear(c: Dictionary, loc: PackedVector3Array, caps: Array, delta: float) -> PackedVector3Array:
 	var p: PackedVector3Array = c["p"]
 	var probes: PackedVector3Array = c["probe"]
+	var turns := PackedFloat32Array()
+	if c.has("turn"):
+		turns = c["turn"]
+	else:
+		turns.resize(p.size() - 1)
 	var a := loc[0]
 	for j in range(loc.size() - 1):
 		var rest := (p[j + 1] - p[j]).normalized()
 		var d := loc[j + 1] - loc[j]
 		# (the bone is posed at its rest length along the drawn direction: judged so, its end is where the skin is)
 		var full := d.normalized() * (p[j + 1] - p[j]).length()
-		# (a point the step left on the back's plane comes back a hair in front of it)
-		if _net_gap(a, full, rest, probes, caps) < -0.0001:
+		# (a segment thrown up past level, a landing's top segment over the shoulder, turns its row of the sheet inside out)
+		# (and the top one, held across the shoulders, swung far aside carries the sheet's wrapped edge in over the back)
+		var most := NET_SWING_TOP if j == 0 else NET_SWING
+		if full.angle_to(rest) > most:
+			var axis := rest.cross(full)
+			full = (rest.rotated(axis.normalized(), most) if axis.length_squared() > 1e-10 else rest) * full.length()
 			d = full
-			var lo := 0.0
-			var hi := 1.3
-			if _net_gap(a, d.rotated(Vector3.RIGHT, -hi), rest, probes, caps) >= 0.0:
+			_net_acted = true
+		var g0 := _net_gap(a, full, rest, probes, caps, j > 0)
+		var target := 0.0
+		# (a point the step left on the back's plane comes back a hair in front of it)
+		if g0.x < CUSHION or g0.y < 0.0 or g0.z < -0.0001:
+			# the legs' gap kept: as it is past the cushion; inside, eased toward them but never reaching them (C1 at its
+			# edge); off the hips and the back's plane, only out of them
+			var want := Vector3(CUSHION * exp((g0.x - CUSHION) / CUSHION) if g0.x < CUSHION else g0.x, 0.0, 0.0)
+			var hi := NET_TURN
+			if not _net_ok(_net_gap(a, full.rotated(Vector3.RIGHT, -hi), rest, probes, caps, j > 0), want):
+				want.x = minf(want.x, 0.0)
+			# (no turn about the root clears it, a root already in the cushion: left as it is, popping helps no one)
+			if _net_ok(_net_gap(a, full.rotated(Vector3.RIGHT, -hi), rest, probes, caps, j > 0), want):
+				var lo := 0.0
 				for k in range(8):
 					var mid := (lo + hi) * 0.5
-					if _net_gap(a, d.rotated(Vector3.RIGHT, -mid), rest, probes, caps) < 0.0:
-						lo = mid
-					else:
+					if _net_ok(_net_gap(a, full.rotated(Vector3.RIGHT, -mid), rest, probes, caps, j > 0), want):
 						hi = mid
-			else:
-				# (nothing clears it: the least bad)
-				var best := -INF
-				for k in range(6):
-					var ang := 1.3 * k / 5.0
-					var gk := _net_gap(a, d.rotated(Vector3.RIGHT, -ang), rest, probes, caps)
-					if gk > best:
-						best = gk
-						hi = ang
-			d = d.rotated(Vector3.RIGHT, -hi)
-			# (a segment swung out sideways barely turns about x: its end goes onto the plane, the length kept)
-			var need := back_z - a.z
-			if a.z + d.z < back_z and absf(need) < d.length():
-				var side := Vector2(d.x, d.y).normalized() * sqrt(d.length_squared() - need * need)
-				d = Vector3(side.x, side.y, need)
+					else:
+						lo = mid
+				target = hi
+		var turn := move_toward(turns[j], target, (NET_IN if target > turns[j] else NET_OUT) * delta)
+		turns[j] = turn
+		if turn > 0.0:
+			d = full.rotated(Vector3.RIGHT, -turn)
+			_net_acted = true
+		# (a segment swung out sideways barely turns about x: its end goes onto the plane, the length kept)
+		var need := back_z - a.z
+		if a.z + d.z < back_z - 0.0001 and absf(need) < d.length():
+			var side := Vector2(d.x, d.y).normalized() * sqrt(d.length_squared() - need * need)
+			d = Vector3(side.x, side.y, need)
 			_net_acted = true
 		loc[j] = a
 		a += d
 	loc[loc.size() - 1] = a
+	c["turn"] = turns
 	return loc
 
 
-## How far segment a-(a+d)'s probe lines (turned with it, as the skin is) are from the capsules, and its end from the
-## back's plane (negative: inside).
-func _net_gap(a: Vector3, d: Vector3, rest: Vector3, probes: PackedVector3Array, caps: Array) -> float:
+static func _net_ok(g: Vector3, want: Vector3) -> bool:
+	return g.x >= want.x and g.y >= want.y and g.z >= want.z
+
+
+## How far segment a-(a+d)'s probe lines (turned with it, as the skin is) are from the legs (x) and the hips (y) (INF
+## past the cushion's reach), and its end (and the sheet across the middle; its root row too `below_root`, the collar's
+## being under the yoke) from the back's plane (z); negative inside.
+func _net_gap(a: Vector3, d: Vector3, rest: Vector3, probes: PackedVector3Array, caps: Array, below_root: bool) -> Vector3:
 	var x := a + d
-	var gap := x.z - back_z
+	var gap := INF
+	var hips := INF
+	var plane := x.z - back_z
 	var dn := d.normalized()
 	var q := Quaternion(rest, dn) if rest.dot(dn) > -0.9999 else Quaternion(Vector3.RIGHT, PI)
 	for o in probes:
 		var ow := q * o
 		var pa := a + ow
 		var pb := x + ow
+		# (the sheet over the middle of the back may not cross the plane either: an edge wrapped round toward the
+		# shoulders, swung in across the back by a turn, went into it)
+		if absf(pb.x) <= NET_MID:
+			plane = minf(plane, pb.z - back_z + NET_SHEET)
+		if below_root and absf(pa.x) <= NET_MID:
+			plane = minf(plane, pa.z - back_z + NET_SHEET)
 		var lo := pa.min(pb)
 		var hi := pa.max(pb)
-		for cap in caps:
+		for ci in range(caps.size()):
+			var cap: Array = caps[ci]
 			var cl: Vector3 = cap[3]
 			var ch: Vector3 = cap[4]
 			if lo.x > ch.x or hi.x < cl.x or lo.y > ch.y or hi.y < cl.y or lo.z > ch.z or hi.z < cl.z:
 				continue
 			var st := _closest_segments(pa, pb, cap[0], cap[1])
-			gap = minf(gap, (st[0] as Vector3).distance_to(st[1]) - float(cap[2]))
-	return gap
+			var gc: float = (st[0] as Vector3).distance_to(st[1]) - float(cap[2])
+			if ci == NET_HIPS:
+				hips = minf(hips, gc)
+			else:
+				gap = minf(gap, gc)
+	return Vector3(gap, hips, plane)
 
 
 ## Closest points of segments p1-q1 and p2-q2: [on the first, on the second, the first's parameter].

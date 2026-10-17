@@ -10,8 +10,8 @@ extends SceneTree
 ## Env CAPE_TRACE="t0,t1": each film run prints the hem per frame between those seconds (speed, jitter).
 ## Writes strip_<mode>_<look>.png (behind over back three-quarter at the key moments), sheet_<look>.png (every mode
 ## top to bottom, from behind at the run, the turn, the stop and the spin), seq/<mode>_<look>_<turn|stop>/f###.png
-## and <turn|stop>_<look>.gif (the modes side by side in mode order, 4x slow), metrics.txt (also printed), with
-## "a" against "araw" frame by frame where both are clear of the body (the net must not change the free swing).
+## and <turn|stop>_<look>.gif (the modes side by side in mode order, 4x slow), metrics.txt (also printed); for "a",
+## each frame's hem and swing against the same frame without the net (it only touches what's drawn).
 const TK := preload("res://tools/dev/test_kit.gd")
 const CROP := Vector2i(190, 250)
 const FPS_GIF := 36
@@ -32,8 +32,6 @@ var p
 var out_dir := "res://tools/dev/out/capelab"
 var modes: Array = ["a", "araw", "a0", "b", "c"]
 var looks: Array = ["cape", "cloak"]
-## "<mode>|<look>" -> the film run's per-frame hem, swing and gap to the body
-var paths := {}
 var runs: Array = []
 var seqs := true
 var run := -1
@@ -201,6 +199,14 @@ func _next() -> void:
 	p.velocity = Vector3.ZERO
 	p.player_model.rotation.y = 0.0
 	p.body_model.apply_look(_look(r[1]))
+	# (the body's own clocks and glances from the same start every run, so runs line up frame for frame)
+	var hm = p.body_model
+	hm._rng.seed = 4242
+	hm._t = 0.0
+	hm._phase = 0.0
+	hm._idle_seed = 0.0
+	hm._glance_t = 1.0
+	hm._glance = Vector3.ZERO
 	p.reset_physics_interpolation()
 	_find_cape()
 	t0 = Engine.get_physics_frames()
@@ -213,7 +219,7 @@ func _next() -> void:
 	if r[2] == "seq":
 		for s in SEQS:
 			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("%s/seq/%s_%s_%s" % [out_dir, r[0], r[1], s[0]]))
-	rec = {"t": [], "hem": [], "sw": [], "gap": [], "pen_n": 0, "pen_frames": 0, "pen_worst": 0.0, "pen_at": 0.0, "swing": 0.0, "frames": 0,
+	rec = {"t": [], "hem": [], "netdiff": {}, "pen_n": 0, "pen_frames": 0, "pen_worst": 0.0, "pen_at": 0.0, "swing": 0.0, "frames": 0,
 		"src": {"legs": [0, 0.0, 0.0], "hips": [0, 0.0, 0.0], "back": [0, 0.0, 0.0]}}
 	print("RUN %s %s %s" % r)
 
@@ -280,8 +286,23 @@ func _sample() -> void:
 	(rec["t"] as Array).append(ft)
 	(rec["hem"] as Array).append(hem)
 	var sw := (hem - top).angle_to(pts[pts.size() - 1] - pts[0])
-	(rec["sw"] as Array).append(sw)
 	rec["swing"] = maxf(rec["swing"], sw)
+	if sim.net:
+		# the same frame without the net: the simulation's own shape (the net only touches what's drawn)
+		var lp: PackedVector3Array = c["lp"]
+		var lc: PackedVector3Array = c["lc"]
+		var k: float = sim._acc / SpringChains.STEP
+		var n := lc.size()
+		var raw_top := lp[0].lerp(lc[0], k)
+		var raw_pre := lp[n - 2].lerp(lc[n - 2], k)
+		var raw_hem := raw_pre + (lp[n - 1].lerp(lc[n - 1], k) - raw_pre).normalized() * (pts[n - 1] - pts[n - 2]).length()
+		var dh := raw_hem.distance_to(hem) * 1000.0
+		var ds := rad_to_deg(absf((raw_hem - raw_top).angle_to(pts[n - 1] - pts[0]) - sw))
+		var key := "on" if sim._net_acted else "off"
+		var nd: Dictionary = rec["netdiff"]
+		nd[key + "_n"] = int(nd.get(key + "_n", 0)) + 1
+		nd[key + "_hem"] = maxf(float(nd.get(key + "_hem", 0.0)), dh)
+		nd[key + "_sw"] = maxf(float(nd.get(key + "_sw", 0.0)), ds)
 	rec["frames"] += 1
 	var inv := sim.get_global_transform_interpolated().affine_inverse()
 	var caps := []
@@ -292,7 +313,6 @@ func _sample() -> void:
 	# (the body's deepest back: the cape hangs 4 cm off it, over a tunic)
 	var back := pts[0].z - 0.04
 	var hits := 0
-	var near := INF
 	var src: Dictionary = rec["src"]
 	for v in verts:
 		var q := Vector3.ZERO
@@ -308,7 +328,6 @@ func _sample() -> void:
 			var ab: Vector3 = (cap[1] as Vector3) - a
 			var k := clampf((q - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
 			var dist := q.distance_to(a + ab * k) - float(cap[2])
-			near = minf(near, dist)
 			if -dist - float(cap[3]) > depth:
 				depth = -dist - float(cap[3])
 				what = cap[4]
@@ -322,7 +341,6 @@ func _sample() -> void:
 			if depth > rec["pen_worst"]:
 				rec["pen_worst"] = depth
 				rec["pen_at"] = ft
-	(rec["gap"] as Array).append(near)
 	rec["pen_n"] += hits
 	if hits > 0:
 		rec["pen_frames"] += 1
@@ -395,41 +413,18 @@ func _metrics(c: Array) -> String:
 	mean /= maxf(jit.size(), 1)
 	var p95 := jit[int(jit.size() * 0.95)] if jit.size() > 0 else 0.0
 	var mx := jit[jit.size() - 1] if jit.size() > 0 else 0.0
-	paths["%s|%s" % [c[0], c[1]]] = [hem, PackedFloat32Array(rec["sw"]), PackedFloat32Array(rec["gap"]), ts]
 	var src: Dictionary = rec["src"]
-	var hits := sim.net_hits
+	var nd: Dictionary = rec["netdiff"]
 	var by := []
 	for k in ["legs", "hips", "back"]:
 		by.append("%s %d (%.3f m, %.2f s)" % [k, src[k][0], src[k][1], src[k][2]])
-	return "%-4s %-5s | pen %5d vert-frames in %4d/%d frames, worst %.3f m (%.2f s) | jitter mean %.2f p95 %.2f max %.1f mm (%.2f s) | settle %.2f s | swing max %3.0f deg | %.3f ms/frame | net frames %d | %s" % [
+	var net := ""
+	if not nd.is_empty():
+		net = " | the same frames without the net: %d untouched (hem differs %.2f mm), %d netted (hem max %.1f mm, swing max %.1f deg)" % [
+			nd.get("off_n", 0), nd.get("off_hem", 0.0), nd.get("on_n", 0), nd.get("on_hem", 0.0), nd.get("on_sw", 0.0)]
+	return "%-4s %-5s | pen %5d vert-frames in %4d/%d frames, worst %.3f m (%.2f s) | jitter mean %.2f p95 %.2f max %.1f mm (%.2f s) | settle %.2f s | swing max %3.0f deg | %.3f ms/frame | %s%s" % [
 		c[0], c[1], rec["pen_n"], rec["pen_frames"], rec["frames"], rec["pen_worst"], rec["pen_at"], mean, p95, mx, worst_at, settle, rad_to_deg(rec["swing"]),
-		_time_sim(2000), hits, ", ".join(by)]
-
-
-## "a" against "araw" on the same look, frame by frame: how far the hem and the swing differ where both are clear of
-## the body by more than the net's cushion, and everywhere.
-func _net_compare(lk: String) -> String:
-	var a: Array = paths["a|" + lk]
-	var r: Array = paths["araw|" + lk]
-	var n := mini((a[0] as PackedVector3Array).size(), (r[0] as PackedVector3Array).size())
-	var clear := 0
-	var hem_clear := 0.0
-	var sw_clear := 0.0
-	var hem_all := 0.0
-	var first := -1.0
-	var ts: PackedFloat32Array = a[3]
-	for i in range(n):
-		var dh: float = (a[0][i] as Vector3).distance_to(r[0][i])
-		var ds: float = absf(float(a[1][i]) - float(r[1][i]))
-		hem_all = maxf(hem_all, dh)
-		if float(a[2][i]) > SpringChains.CUSHION and float(r[2][i]) > SpringChains.CUSHION:
-			clear += 1
-			hem_clear = maxf(hem_clear, dh)
-			sw_clear = maxf(sw_clear, ds)
-		if first < 0.0 and dh > 0.0005:
-			first = ts[i]
-	return "net %s: a vs araw over %d frames clear of the body (both > %.0f cm): hem differs max %.1f mm, swing max %.2f deg; everywhere hem max %.1f mm; paths part at %.2f s" % [
-		lk, clear, SpringChains.CUSHION * 100.0, hem_clear * 1000.0, rad_to_deg(sw_clear), hem_all * 1000.0, first]
+		_time_sim(2000), ", ".join(by), net]
 
 
 func _time_sim(n: int) -> float:
@@ -450,9 +445,6 @@ func _write_report() -> void:
 		"pen: cape vertices inside the body (the legs' and hips' capsules less their clearance; the back's plane across the middle)",
 		"jitter: the hem's frame-to-frame second difference in the torso's space, walk to the spin's end; settle: until the hem stays under 0.1 m/s after the stop"]
 	lines.append_array(report)
-	for lk in looks:
-		if paths.has("a|" + lk) and paths.has("araw|" + lk):
-			lines.append(_net_compare(lk))
 	var f := FileAccess.open(ProjectSettings.globalize_path(out_dir + "/metrics.txt"), FileAccess.WRITE)
 	f.store_string("\n".join(lines) + "\n")
 	f.close()

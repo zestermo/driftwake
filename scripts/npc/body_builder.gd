@@ -2807,6 +2807,8 @@ func _cloak(sim: SpringChains, tr: Array, chain: PackedVector3Array, hw: float, 
 		else:
 			probes.append(Vector3(signf(c) * (1.0 - side) * wh, 0, -0.03))
 		sim.set_probes(sim.chain_count() - 1, probes)
+		if c != 0.0:
+			sim.set_side(sim.chain_count() - 1, sim.chain_count() - 1 - (1 if c < 0.0 else 2), signf(c))
 	var ys := PackedFloat32Array()
 	for p in chain:
 		ys.append(p.y)
