@@ -5,7 +5,8 @@ extends SceneTree
 ## frame sequences), so run it at a fixed frame rate: the runs then line up frame for frame and the jitter measured
 ## is the one a 144 Hz screen shows against 60 Hz physics:
 ##   & $env:GODOT --path . --fixed-fps 144 --script res://tools/dev/capelab.gd
-## Args: [out_dir=res://tools/dev/out/capelab] [modes=a0,a,b,bg,c] [looks=thin,thick]
+## Args: [out_dir=res://tools/dev/out/capelab] [modes=a0,a,b,bg,c] [looks=thin,thick] ["stills": no sequences, no GIFs].
+## Env CAPE_TRACE="t0,t1": each film run prints the hem per frame between those seconds (speed, jitter).
 ## Writes strip_<mode>_<look>.png (behind over back three-quarter at the key moments), sheet_<look>.png (every mode
 ## top to bottom, from behind at the run, the turn, the stop and the spin), seq/<mode>_<look>_<turn|stop>/f###.png
 ## and <turn|stop>_<look>.gif (the modes side by side in mode order, 4x slow), metrics.txt (also printed).
@@ -30,6 +31,7 @@ var out_dir := "res://tools/dev/out/capelab"
 var modes: Array = ["a0", "a", "b", "bg", "c"]
 var looks: Array = ["thin", "thick"]
 var runs: Array = []
+var seqs := true
 var run := -1
 var t0 := 0
 var ft := 0.0
@@ -60,10 +62,12 @@ func _initialize() -> void:
 		modes = Array(args[1].split(","))
 	if args.size() > 2:
 		looks = Array(args[2].split(","))
+	seqs = not (args.size() > 3 and args[3] == "stills")
 	for lk in looks:
 		for m in modes:
 			runs.append([m, lk, "film"])
-			runs.append([m, lk, "seq"])
+			if seqs:
+				runs.append([m, lk, "seq"])
 	TK.seed_of(self)
 	stage = TK.stage(self, {"hud": false, "weapon": "cutlass"})
 	RenderingServer.frame_pre_draw.connect(_sample)
@@ -144,9 +148,9 @@ func _place(view: String, fixed_yaw: float) -> void:
 	var back := Vector3(sin(yaw), 0, cos(yaw))
 	var aim := at + Vector3(0, 0.95, 0)
 	if view == "q3":
-		cam.look_at_from_position(at + back.rotated(Vector3.UP, 0.87) * 3.2 + Vector3(0, 1.5, 0), aim, Vector3.UP)
+		cam.look_at_from_position(at + back.rotated(Vector3.UP, 0.87) * 4.0 + Vector3(0, 1.7, 0), aim, Vector3.UP)
 	else:
-		cam.look_at_from_position(at + back * 3.4 + Vector3(0, 1.7, 0), aim, Vector3.UP)
+		cam.look_at_from_position(at + back * 4.2 + Vector3(0, 1.9, 0), aim, Vector3.UP)
 
 
 func _event(e: String) -> void:
@@ -180,7 +184,8 @@ func _next() -> void:
 	run += 1
 	if run >= runs.size():
 		_write_report()
-		_gifs()
+		if seqs:
+			_gifs()
 		return
 	var r: Array = runs[run]
 	BodyBuilder.cape_mode = r[0]
@@ -203,7 +208,7 @@ func _next() -> void:
 	if r[2] == "seq":
 		for s in SEQS:
 			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("%s/seq/%s_%s_%s" % [out_dir, r[0], r[1], s[0]]))
-	rec = {"t": [], "hem": [], "pen_n": 0, "pen_frames": 0, "pen_worst": 0.0, "swing": 0.0, "frames": 0}
+	rec = {"t": [], "hem": [], "pen_n": 0, "pen_frames": 0, "pen_worst": 0.0, "pen_at": 0.0, "swing": 0.0, "frames": 0}
 	print("RUN %s %s %s" % r)
 
 
@@ -294,7 +299,9 @@ func _sample() -> void:
 			depth = maxf(depth, float(cap[2]) - q.distance_to(a + ab * k))
 		if depth > 0.0:
 			hits += 1
-			rec["pen_worst"] = maxf(rec["pen_worst"], depth)
+			if depth > rec["pen_worst"]:
+				rec["pen_worst"] = depth
+				rec["pen_at"] = ft
 	rec["pen_n"] += hits
 	if hits > 0:
 		rec["pen_frames"] += 1
@@ -344,11 +351,22 @@ func _metrics(c: Array) -> String:
 	var hem := PackedVector3Array(rec["hem"])
 	var jit := PackedFloat32Array()
 	var settle := 0.0
+	var worst_at := 0.0
+	var worst := 0.0
+	var trace := OS.get_environment("CAPE_TRACE").split(",")
 	for i in range(1, hem.size() - 1):
+		var j2 := (hem[i + 1] - hem[i] * 2.0 + hem[i - 1]).length() * 1000.0
+		var sp := hem[i].distance_to(hem[i - 1]) / maxf(ts[i] - ts[i - 1], 1e-4)
 		if ts[i] >= MOVING[0] and ts[i] < MOVING[1]:
-			jit.append((hem[i + 1] - hem[i] * 2.0 + hem[i - 1]).length() * 1000.0)
-		if ts[i] >= SETTLE[0] and ts[i] < SETTLE[1] and hem[i].distance_to(hem[i - 1]) / maxf(ts[i] - ts[i - 1], 1e-4) > 0.1:
+			jit.append(j2)
+			if j2 > worst:
+				worst = j2
+				worst_at = ts[i]
+		# (over the last six frames: a one-frame twitch isn't a cape still swinging)
+		if ts[i] >= SETTLE[0] and ts[i] < SETTLE[1] and i >= 6 and hem[i].distance_to(hem[i - 6]) / maxf(ts[i] - ts[i - 6], 1e-4) > 0.1:
 			settle = ts[i] - SETTLE[0]
+		if trace.size() == 2 and ts[i] >= float(trace[0]) and ts[i] <= float(trace[1]):
+			print("TRACE %s %.4f hem %.3f %.3f %.3f speed %.2f jitter %.1f" % [c[0], ts[i], hem[i].x, hem[i].y, hem[i].z, sp, j2])
 	jit.sort()
 	var mean := 0.0
 	for j in jit:
@@ -356,8 +374,8 @@ func _metrics(c: Array) -> String:
 	mean /= maxf(jit.size(), 1)
 	var p95 := jit[int(jit.size() * 0.95)] if jit.size() > 0 else 0.0
 	var mx := jit[jit.size() - 1] if jit.size() > 0 else 0.0
-	return "%-3s %-5s | pen %5d vert-frames in %4d/%d frames, worst %.3f m | jitter mean %.2f p95 %.2f max %.2f mm | settle %.2f s | swing max %2.0f deg | %.3f ms/frame" % [
-		c[0], c[1], rec["pen_n"], rec["pen_frames"], rec["frames"], rec["pen_worst"], mean, p95, mx, settle, rad_to_deg(rec["swing"]), _cost()]
+	return "%-3s %-5s | pen %5d vert-frames in %4d/%d frames, worst %.3f m (%.2f s) | jitter mean %.2f p95 %.2f max %.1f mm (%.2f s) | settle %.2f s | swing max %3.0f deg | %.3f ms/frame" % [
+		c[0], c[1], rec["pen_n"], rec["pen_frames"], rec["frames"], rec["pen_worst"], rec["pen_at"], mean, p95, mx, worst_at, settle, rad_to_deg(rec["swing"]), _cost()]
 
 
 ## The cape's cost per character per frame: its simulate() back to back at a 144 Hz frame's delta (Godot's spring

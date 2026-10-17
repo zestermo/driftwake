@@ -2682,7 +2682,7 @@ func _cape(tr: Array, coated: bool) -> void:
 	_mesh(h.torso, mb)
 	match cape_mode:
 		"a":
-			sim.use_tuned(zb - 0.028, 0.07, 0.2, 4, ["thigh_l", "thigh_r", "shin_l", "shin_r"])
+			sim.use_tuned(zb - 0.028, 0.07, 0.3, 4,["thigh_l", "thigh_r", "shin_l", "shin_r"])
 		"b", "c", "bg":
 			CapeMotion.attach(sim, cape_mode, h, zb - 0.028)
 

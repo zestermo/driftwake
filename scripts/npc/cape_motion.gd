@@ -14,14 +14,22 @@ const LEGS := ["thigh_l", "thigh_r", "shin_l", "shin_r"]
 const SUB := 1.0 / 120.0
 const THETA_MAX := 1.35
 const SIDE_MAX := 0.4
+## The cushion off the legs and the back (m) and how hard it pushes (rad/s^2 per m inside it).
+const SOFT := 0.06
+const SOFT_K := 2500.0
 
 # b: the share of the body's acceleration the cloth feels, air drag per m/s, the rest pull, the
 # bend between segments (both per s^2), the damping ratio
-const B_INERTIA := 0.6
+const B_INERTIA := 0.45
 const B_AIR := 0.45
 const B_REST := 12.0
 const B_BEND := 40.0
 const B_ZETA := 0.75
+# bg: SpringBoneSimulator3D's settings, and the share of the body's speed blown at the cloth
+const BG_STIFF := 4.0
+const BG_DRAG := 0.9
+const BG_GRAVITY := 9.8
+const BG_WIND := 0.12
 # c: each segment's spring (Hz, top to hem) and damping ratio
 const C_HZ := [2.6, 2.1, 1.7, 1.5]
 const C_ZETA := 0.8
@@ -109,7 +117,7 @@ func update(sim: SpringChains, delta: float) -> void:
 			else:
 				_step_c(s, tgt, dt)
 			_limit(s)
-		var loc := _fk(sim.chain(ci), s, cols)
+		var loc := _fk(sim.chain(ci), s, cols, delta)
 		sim.pose_local(sim.chain(ci), loc)
 	_g_prev = g
 
@@ -135,7 +143,7 @@ func _forces(s: Dictionary, g: Transform3D, binv: Basis, delta: float) -> Array:
 	var pv: Array = s["pv"]
 	var va: Array = s["va"]
 	var out: Array = []
-	var k := 1.0 - exp(-delta / 0.05)
+	var k := 1.0 - exp(-delta / 0.1)
 	for j in range(mids.size()):
 		var w := g * (mids[j] as Vector3)
 		if pv.size() <= j:
@@ -257,9 +265,10 @@ func _leg_caps(sim: SpringChains, inv: Transform3D) -> Array:
 	return out
 
 
-## Points down the chain from the swing angles; a segment whose end is inside a leg swings back until clear
-## (its speed into the leg dropped), so the cloth rides over the legs instead of through them.
-func _fk(c: Dictionary, s: Dictionary, cols: Array) -> PackedVector3Array:
+## Points down the chain from the swing angles. Within SOFT of a leg a segment is eased back
+## (so it slows before it touches: a hard stop alone made the hem pop when a lunge swept a leg into it); one
+## inside swings back until clear, its speed into the leg dropped: the cloth rides over the legs, never through.
+func _fk(c: Dictionary, s: Dictionary, cols: Array, delta: float) -> PackedVector3Array:
 	var p: PackedVector3Array = c["p"]
 	var lens: PackedFloat32Array = s["len"]
 	var b: PackedFloat32Array = s["b"]
@@ -269,14 +278,18 @@ func _fk(c: Dictionary, s: Dictionary, cols: Array) -> PackedVector3Array:
 	for j in range(lens.size()):
 		var a := loc[j]
 		var r: Vector3 = s["dirs"][j]
-		if _blocked(a + _dir_at(r, b[j], sd[j]) * lens[j], a, cols):
+		var x := a + _dir_at(r, b[j], sd[j]) * lens[j]
+		var legs := _gap(x, a, cols, false)
+		if legs < SOFT:
+			vb[j] += (SOFT - legs) * SOFT_K * delta
+		if minf(legs, x.z - back) < 0.0:
 			# the least swing back that clears (bisected: stepping it made the hem jump)
 			var lo_b := b[j]
 			var hi_b := minf(b[j] + 0.9, THETA_MAX)
-			if not _blocked(a + _dir_at(r, hi_b, sd[j]) * lens[j], a, cols):
+			if _gap(a + _dir_at(r, hi_b, sd[j]) * lens[j], a, cols) >= 0.0:
 				for k in range(8):
 					var mid := (lo_b + hi_b) * 0.5
-					if _blocked(a + _dir_at(r, mid, sd[j]) * lens[j], a, cols):
+					if _gap(a + _dir_at(r, mid, sd[j]) * lens[j], a, cols) < 0.0:
 						lo_b = mid
 					else:
 						hi_b = mid
@@ -288,15 +301,14 @@ func _fk(c: Dictionary, s: Dictionary, cols: Array) -> PackedVector3Array:
 	return loc
 
 
-func _blocked(x: Vector3, a: Vector3, cols: Array) -> bool:
-	if x.z < back:
-		return true
+## How far the segment a-x is from the legs and (with `plane`) the back's plane (negative: inside).
+func _gap(x: Vector3, a: Vector3, cols: Array, plane := true) -> float:
+	var g := x.z - back if plane else INF
 	for o in SpringChains.PROBES:
 		for cap in cols:
 			var st := SpringChains._closest_segments(a + o, x + o, cap[0], cap[1])
-			if (st[0] as Vector3).distance_to(st[1]) < float(cap[2]):
-				return true
-	return false
+			g = minf(g, (st[0] as Vector3).distance_to(st[1]) - float(cap[2]))
+	return g
 
 
 # ---- bg: Godot's SpringBoneSimulator3D ----
@@ -323,9 +335,9 @@ func _setup_godot(sim: SpringChains, back: float) -> void:
 		_gb.set_center_node(i, NodePath(up))
 		_gb.set_rotation_axis(i, SkeletonModifier3D.ROTATION_AXIS_X)
 		_gb.set_radius(i, 0.03)
-		_gb.set_stiffness(i, 1.2)
-		_gb.set_drag(i, 0.7)
-		_gb.set_gravity(i, 1.5)
+		_gb.set_stiffness(i, BG_STIFF)
+		_gb.set_drag(i, BG_DRAG)
+		_gb.set_gravity(i, BG_GRAVITY)
 		_gb.set_gravity_direction(i, Vector3.DOWN)
 		_gb.set_enable_all_child_collisions(i, true)
 	var plane := SpringBoneCollisionPlane3D.new()
@@ -357,4 +369,4 @@ func _update_godot(_sim: SpringChains, g: Transform3D, delta: float) -> void:
 		var node: Node3D = cd["node"]
 		(e[0] as Node3D).global_transform = node.global_transform * Transform3D(Basis(), ((cd["a"] as Vector3) + (cd["b"] as Vector3)) * 0.5)
 	# (simulated in the body's space, so the body's own travel reaches the cloth only as this wind)
-	_gb.external_force = -_v * B_AIR
+	_gb.external_force = -_v * BG_WIND
