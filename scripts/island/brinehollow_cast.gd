@@ -5,6 +5,9 @@ extends RefCounted
 ## dialogue ids, shops and barks (`before`/`after` story flags), walking routes.
 
 const L := preload("res://scripts/npc/character_look.gd")
+## The market street's customers, porters and kids (10 townsfolk): off for v1.17, which failed the perf gate at
+## Brinehollow (+28-32% frame time over v1.16; Zach, 2026-10-17). True brings them back once the town is cheaper.
+const CROWD := false
 
 
 ## The dockhands walking the quay (along its back, clear of the booth, the yard and the crane).
@@ -338,7 +341,7 @@ static func townsfolk() -> Array:
 	]
 	var fronts := ["front:Shop0", "front:Shop5", "front:market0", "front:Shop3", "front:StreetStall0", "front:market2", "front:Shop1",
 		"front:Shop4", "front:market1", "front:Shop2", "front:market3"]
-	for i in range(customers.size()):
+	for i in range(customers.size() if CROWD else 0):
 		var c: Array = customers[i]
 		var plan: Array = []
 		for j in range(4):
@@ -352,7 +355,7 @@ static func townsfolk() -> Array:
 		out.append({"cfg": {"name": c[0], "voice": c[1], "barks": c[3], "look": KitLife.look_for(c[0])}, "plan": plan})
 	var porters := [["Gideon", 0.8], ["Lou Haskett", 1.05], ["Bastian", 0.9]]
 	var drops := ["front:market0", "front:Shop1", "front:market1", "front:Shop0", "front:Shop3", "front:market3", "front:Shop5"]
-	for i in range(porters.size()):
+	for i in range(porters.size() if CROWD else 0):
 		var plan: Array = []
 		var h := 6.6 + i * 0.35
 		var n := 0
@@ -371,7 +374,7 @@ static func townsfolk() -> Array:
 			"look": KitLife.look_for(porters[i][0])}, "plan": plan, "carry": true})
 	var kids := [["Nell", 1.45], ["Tam", 1.4], ["Wick", 1.5]]
 	var runs := ["plaza:%d", "stair:%d", "front:market%d", "stair:%d", "plaza:%d", "front:Shop%d"]
-	for i in range(kids.size()):
+	for i in range(kids.size() if CROWD else 0):
 		var plan: Array = []
 		var h := 8.0 + i * 0.1
 		var n := 0
