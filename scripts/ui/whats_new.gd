@@ -7,12 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Snow islands", "Peaks with a castle on top, round brick villages, frozen lakes, ice caves and a ship frozen in the pack ice. Wolf packs, white bears and walruses, and bosses like the Bear King and the Ice Golem."],
-	["Desert islands", "Dunes, mesas, oases and packed medinas with minarets. Caravan camps, a buried city and a tomb in the cliffs. Watch for the Sand King under the sand, and a bandit chief running the pirates' camp."],
-	["Weather to match", "Snow islands sit under a white haze with snow falling all the time and the odd blizzard. Deserts never rain: sandstorms roll in instead, and the lamps come on."],
-	["Footprints", "You leave boot prints in snow and sand that slowly fill back in, your boots sink into soft snow, and every step sounds like what you're on."],
-	["New music and effects", "Eight new tracks for the desert and snow, day and night. Smoke, dust, sand and snow are hand-drawn sprite effects now, and Kraken's Wake pours out flowing ink-drawn water."],
-	["Capes and the cloak", "Capes are tattered with painted folds and stay off your legs, Sela sells a heavy cloak, and the belt lantern hangs at your hip."],
+	["Forest islands", "Autumn woods of maple, oak, beech and birch, rivers that tumble into gorges, and a lumber town with a water-wheel sawmill. Climb a hollow giant tree, storm a ruined castle, and watch for the Stag King, the Elder Treant and the Wild Hunt at night."],
+	["Build up your ship", "Tackett's yard sells upgrades in levels now: plating, guns, sails, rudder, copper, a bow chaser, a crow's nest, lanterns, railings, a tangerine grove, galley and bunks, and a bigger hold. Every level shows on the sloop, and higher ones need salvage from ships you sink."],
+	["Seamanship", "A new SEA skill tree, earned at the helm, the guns and the pump. Its bonuses work at the station you're manning, so a crew that splits up sails better."],
+	["A bigger Brinehollow", "The island grew south: farmland and a windmill hamlet, a waterfall pool, a wreck and a second cove. The town has a market street, houses up the hill and a shrine terrace at the top of a long stair, all inside thick woods."],
+	["A livelier town", "Shopkeepers work the market street by day and the Salted Gull fills up at night. Fishing boats work the harbour. Haldor's Forge sells the weapons now and Corin sells instruments."],
+	["The katana, redrawn", "Its cuts follow the blade, with drawn slashes that match the swing. Awakened, they billow into steel-blue cloud and sakura petals, and all five katana skills got the same treatment."],
 ]
 
 

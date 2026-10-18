@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.16-e0b040" alt="Version 1.16">
+  <img src="https://img.shields.io/badge/version-1.17-e0b040" alt="Version 1.17">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -154,6 +154,30 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.17: Timber and Tide (October 17, 2026)
+Forest islands join the chain, the sloop becomes a ship you build up, and Brinehollow grows into a real town.
+- **Forest islands:** autumn woodland of maples, oaks, beeches, birches and firs, rolling hills, rivers that fall into
+  gorges; a lumber town on its river with a water-wheel sawmill and a log flume, charcoal camps and a hunter's lodge; a
+  waterfall gorge with a cave and rope bridges, a ruined castle with a keep to climb, a hollow giant tree with a root
+  cavern. Red deer, foxes, will-o'-wisps, wood sprites and walking stumps; the Stag King and the Elder Treant, the moss
+  golem, the Cursed Huntsman and his hounds, the Wild Hunt at night; its own day and night music and woodland ambience.
+- **Ship upgrades:** Tackett's refits are twelve levelled lines, every level visible on the sloop (plating, gun deck,
+  sails, rudder, copper bottom, bow chaser, crow's nest lookout, lanterns, railings, tangerine grove, galley and bunks,
+  the hold); higher levels need salvage (timber, iron, canvas, copper) from sunk ships, wrecks and chests; any captain
+  can chip in; old refits carry over.
+- **Seamanship:** each captain's own SEA tree, earned at the helm, the guns, repairs and the pump, with bonuses at the
+  station you man.
+- **Brinehollow:** the island grew south (farmland, a windmill hamlet, a waterfall pool, a wreck, a second cove); a
+  market street of shopfronts, a second row of houses on the hill, a shrine terrace and pagoda up a long stair, woods
+  all round the town; shopkeepers on routines, a busy Salted Gull at night, lanterns across the market street, chimney
+  smoke, town sounds, fishing boats and dockers at the harbour. Haldor's Forge sells the weapons, Corin instruments,
+  Vey armour.
+- **Doors and steps** on every building, walkable (the lighthouse and harbour tower too); roofs without the dark seam
+  or buried chimneys.
+- **The katana:** the combo, the air slash and all five skills on the blade's real path, drawn steel slashes, a
+  steel-blue cloud and sakura awakening, a petal aura on the blade.
+- **Fixes:** co-op guests' clocks settle right after joining; test and render windows no longer go fullscreen.
 
 ### v1.16: Sand and Snow (October 17, 2026)
 The island chain goes past the jungle: it now rolls jungle, snow and desert islands, each with its own land, towns,
