@@ -49,3 +49,10 @@ Zach, 2026-10-17: package the current batch as **v1.17 "Timber and Tide"** once 
   breaks saves, the story or co-op joining. Then the release commit (step 3) and the tag (step 4, ask Zach first).
   The full suite and the perf gate then wait for 1.17.1.
 - Known bug: a big quadruped beast can lift a standing captain onto its back (docs/todo.md).
+
+## Released (2026-10-17, ~20:35)
+Tagged v1.17 at 17f233e and pushed; Build Windows (tag and main) and Deploy web build all green. Shipped with
+savetest/storytest/nettest passing and the perf gate failing (Brinehollow 13.4 ms mean vs v1.16's 9.4 on the min-spec
+PC; the market street's customers/porters/kids are off behind CROWD in brinehollow_cast.gd).
+**For 1.17.1:** the full local suite + fix pass (nothing else ran), a Brinehollow perf pass (then CROWD back on), the
+big-beast lift bug, and the follow-ups in docs/todo.md. The axe pass resumes from branch worktree-agent-afa189ebe4af75f8f.
