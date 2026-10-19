@@ -170,7 +170,7 @@ static func sting(me: Player, at: Vector3) -> void:
 	var sw := me.get_node("StateMachine/Swim")
 	sw.set("stung", STING_SLOW)
 	Net.fx("sparkle", [at, 10, BELL])
-	Net.fx("sfx", ["hiss", at, -3.0, 0.1, 1.4])
+	Net.fx("sfx", ["jelly_zap", at, -2.0, 0.1])
 	CombatManager.apply_camera_shake(0.12)
 	me.call("_toast", "Stung by a jellyfish!")
 

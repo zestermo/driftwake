@@ -40,6 +40,9 @@ var _tell_t := 0.0
 const CURRENTS := preload("res://scripts/swim/sea_currents.gd")
 ## The rips off the same islands' beaches.
 var currents: Node3D
+const THREATS := preload("res://scripts/swim/sea_threats.gd")
+## The sharks, morays and jellyfish round them.
+var threats: Node3D
 
 
 func _ready() -> void:
@@ -47,6 +50,9 @@ func _ready() -> void:
 	currents = CURRENTS.new()
 	currents.name = "SeaCurrents"
 	add_child(currents)
+	threats = THREATS.new()
+	threats.name = "SeaThreats"
+	add_child(threats)
 	build_island("brinehollow", gen.get("starter_island"), int(gen.get("world_seed")), HOME_KINDS)
 
 
@@ -79,6 +85,7 @@ func _sync_islands() -> void:
 			(_sites[key] as Node).queue_free()
 			_sites.erase(key)
 			currents.drop_island(key)
+			threats.drop_island(key)
 	_pickups = _pickups.filter(func(e): return is_instance_valid(e[0]))
 
 
@@ -113,9 +120,16 @@ func build_island(key: String, isl: Node3D, seed_value: int, kinds: Array) -> vo
 	print("DiveSites: %s: %d spots for %s" % [key, spots.size(), kinds])
 	# (the deepest spots for the wreck and the ruins: they stand tall)
 	spots.sort_custom(func(a, b): return a.y < b.y)
+	var by_kind := {}
+	var open: Array = []
+	for i in range(kinds.size(), spots.size()):
+		open.append(isl.to_global(spots[i]))
 	for i in range(mini(kinds.size(), spots.size())):
 		var s: Vector3 = spots[i]
 		var at := isl.to_global(s)
+		if not by_kind.has(kinds[i]):
+			by_kind[kinds[i]] = []
+		by_kind[kinds[i]].append(at)
 		var srng := RandomNumberGenerator.new()
 		srng.seed = hash([seed_value, "dive", i])
 		var save_key := str(isl.call("save_key", "dive_%s_%d" % [kinds[i], i]))
@@ -131,6 +145,7 @@ func build_island(key: String, isl: Node3D, seed_value: int, kinds: Array) -> vo
 				sunken_wreck(holder, at, yaw, save_key, srng)
 			"ruin":
 				sunken_ruin(holder, at, yaw, save_key, srng)
+	threats.build_island(key, seed_value, by_kind, open, isl is StarterIsland)
 	# (built after the save was applied: chests opened before are gone)
 	var gm := get_node("/root/GameManager")
 	for bag in holder.find_children("*", "LootBag", true, false):

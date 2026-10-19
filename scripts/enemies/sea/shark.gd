@@ -155,8 +155,8 @@ func _brain(_delta: float) -> void:
 				_circle_a = atan2(global_position.z - p.global_position.z, global_position.x - p.global_position.x)
 				_set_state(S.NOTICE)
 				# the tell that it's coming: a sting, and the fin rises
-				Net.fx("sfx", ["peril", global_position, -1.0, 0.0, 0.7])
-				Net.event(self, "spotted", [])
+				Net.fx("sfx", ["fin_sting", global_position, 0.0, 0.0])
+				Net.fx("splash", [Vector3(global_position.x, float(Ocean.surface_at(global_position)), global_position.z), 6, 0.6])
 		S.NOTICE:
 			if not ok:
 				_give_up()
@@ -246,11 +246,6 @@ func _fly(delta: float) -> void:
 
 func _cry_death() -> void:
 	Net.fx("splash", [global_position, 10, 1.0])
-
-
-func _net_event(what: String, _args: Array) -> void:
-	if what == "spotted":
-		pass
 
 
 ## Dead, it rolls belly-up and drifts up to the surface, then sinks away.

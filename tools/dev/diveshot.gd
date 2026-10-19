@@ -109,5 +109,30 @@ func _process(d: float) -> bool:
 			if e < 2.0:
 				return false
 			shot("rip")
+			# the shark at Brinehollow's wreck: let it notice a swimmer and come round with its fin out
+			var shark = root.get_tree().get_first_node_in_group("sea_threats").find_child("Shark0", true, false)
+			var to: Vector3 = shark.home + Vector3(9.0, 0.0, 0.0)
+			p.global_position = Vector3(to.x, float(p.water_surface(to)) - 1.3, to.z)
+			p.reset_physics_interpolation()
+			shark.global_position = shark.home + Vector3(-8.0, 0.0, 0.0)
+			shark.reset_physics_interpolation()
+			phase = 4
+			t0 = t
+		4:
+			var shark = root.get_tree().get_first_node_in_group("sea_threats").find_child("Shark0", true, false)
+			var to_s: Vector3 = shark.global_position - p.global_position
+			rig.rotation.y = atan2(-to_s.x, -to_s.z) + 0.3
+			rig.get_node("SpringArm3D").rotation.x = -0.45
+			rig.current_zoom = 6.0
+			if e < 3.2:
+				return false
+			shot("shark_fin")
+			phase = 5
+			t0 = t
+		5:
+			var shark = root.get_tree().get_first_node_in_group("sea_threats").find_child("Shark0", true, false)
+			if int(shark.state) != int(shark.S.TELL) and e < 8.0:
+				return false
+			shot("shark_tell")
 			quit()
 	return false

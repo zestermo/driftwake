@@ -81,6 +81,9 @@ const DEEP_PUSH := 0.35
 ## How cold the water is here (0..1; the HUD shows it), and the storm's strength.
 var cold: float = 0.0
 var storm: float = 0.0
+## Seconds left of a jellyfish sting's slower stroke (SeaThreats sets it).
+var stung: float = 0.0
+const STUNG_SLOW := 0.55
 var _drift := Vector3.ZERO
 var _crest: float = 0.0
 var _sea_t: float = 0.0
@@ -152,6 +155,9 @@ func physics_update(delta: float) -> void:
 	if _diving:
 		spd = DIVE_FAST if fast else DIVE_SPEED
 	spd *= clampf(input.length(), 0.0, 1.0) * (1.0 + player.progression.stat("swim_pct"))
+	if stung > 0.0:
+		stung -= delta
+		spd *= STUNG_SLOW
 	# your own stroke, apart from the drift the sea carries you on
 	var hv := Vector3(player.velocity.x, 0.0, player.velocity.z) - _drift
 	hv = hv.move_toward(dir * spd, ACCEL * delta)

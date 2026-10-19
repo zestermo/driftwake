@@ -3779,3 +3779,28 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - Tests: t/swim/rip_current (carried out treading, barely gains against it, out of it along the shore, the drift stops), cold_water
   (a stand-in snow island: stamina falls treading where at home it rose, no health lost). The surf and the storm aren't on the stage
   (no shore maps or storm cells): swimtest/seatest will exercise them once run. Render: diveshot's `_rip`.
+
+## 2026-10-19: deeper swimming, piece 3: sea threats (sharks, morays, jellyfish)
+- **SeaThreats** (scripts/swim/sea_threats.gd, "SeaThreats" under DiveSites, per island with its dive spots): a shark at the
+  wreck / ruin / a chest (Brinehollow 1, a chain island 1-2, size 0.95-1.25), a moray at each reef and wreck on 60%, a jellyfish
+  field or two over unused open seabed. Creatures are named and built in a fixed order from the island's seed (Threats_<key>/Shark0,
+  Moray3...), so every screen has the same ones and Creature's co-op (host runs, puppets elsewhere) applies.
+- **Shark** (scripts/enemies/sea/shark.gd, a Creature that swims: `flying`, held DEEP 2.8 m under the waves, 0.6 m over the
+  seabed it raycasts every 0.5 s): patrols a 13 m circle round home at CRUISE 3. Only a captain in the Swim state within LEASH 48 m
+  of home is fair game. Noticed within NOTICE 22 m: the **fin_sting** (new sound) and a splash, it rises to FIN 0.5 m (the dorsal fin
+  out of the water, a wake), and circles the swimmer at STALK 4.4 m/s closing 10 -> 5.5 m for STALK_FIRST 4.5 s (STALK_AGAIN 2.6 after
+  a bite). Then the tell: square on, a red lane on the water along its line (FX.lane) for TELL 0.85 s, jaw open; the charge at
+  CHARGE 10.5 m/s for 0.7 s with the bite armed (16, knockback 6, stagger 0.45), then it swims off AWAY 3.5 s. Hurt below half, it
+  breaks off once. Out of the water you're left alone. 150 hp, xp 90, drops fish. Dead: belly-up to the surface, then sinks away.
+  ActorSleep (sleeps when idle and far); no knockdowns.
+- **Moray** (scripts/enemies/sea/moray.gd): in a hole in a heap of stones, head out; a swimmer within REACH 3.6 m in front: TELL 0.65
+  s (draws back, gapes, eyes lit, a burst of bubbles and a hiss), then a 1.8 m lunge (11), back in; COOL 2.4 s. Struck, it hides 5 s.
+- **Jellyfish fields**: 18 jellies over an 11 m field, 0.4-1.6 m under the surface, drifting and pulsing by Weather.world_time (the
+  same on every screen), one MultiMesh a field (a glowing bell + tentacles, brighter at night), moved every 0.08 s within 90 m. A
+  jelly within 0.95 m of a captain's body (a line feet to head) stings on that captain's machine: 7 (less armour), `stung` 2 s (the
+  stroke at x0.55), jelly_zap (new sound), a toast; 1.2 s before the next.
+- Sounds (gen_psx_audio.py): fin_sting (1.7 s: a low bowed cluster swelling with a quickening tremolo, a struck note at 1.08 s;
+  -15.2 LU, centroid 167 Hz), jelly_zap (0.42 s fizzing crackle and a falling whine; -17.3 LU, 76% in 1-2 kHz). In FX.SOUNDS.
+- Tests: t/swim/shark_telegraph (noticed, fin out, 4 s of circling with nothing landing, the 0.85 s tell, then a bite and away; a
+  captain ashore is left alone), jelly_sting (clear of the field nothing, a jelly stings and slows, not again at once). Renders:
+  diveshot `_shark_fin`, `_shark_tell`; modelshot of the shark and moray.
