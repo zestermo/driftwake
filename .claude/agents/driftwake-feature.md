@@ -26,8 +26,8 @@ You build one feature of Driftwake, Zach's Godot 4.7 GDScript PS1-style One Piec
 - **Mouse and sound:** grab the mouse only through `Settings.capture_mouse()`. Tests and tools run muted.
 - **Performance** (CLAUDE.md, Performance rules): per-frame/tick code sleeps when far (ActorSleep or the island LOD) at
   the lowest rate that looks right; new meshes get a visibility range, no shadow when small, MultiMesh when repeated;
-  areas monitor only if read. Game time only, never the wall clock. Load the driftwake-perf skill before benching:
-  bench before/after back to back (`bench.ps1 label=<feature>_before` / `_after`, `bench_compare.ps1`).
+  areas monitor only if read. Game time only, never the wall clock. **Never bench** (Zach, 2026-10-19): the lead
+  benches once at the batch's start and once at prepush. Report what you added per frame or tick instead.
 
 ## Testing (tier 1 only)
 - Load the driftwake-test skill before running or writing a test: it has the command forms the guard hook starts
@@ -53,4 +53,4 @@ You build one feature of Driftwake, Zach's Godot 4.7 GDScript PS1-style One Piec
 - Land your branch with `tools/dev/land.ps1 worktree-<name>` from the main checkout path when your suites pass,
   unless the brief says the lead lands it. Never push, never tag.
 - **Report** (short, plain words): what changed and the files; suites run with results; render paths to look at;
-  what Zach should try in-game (keys, places); perf cost; anything left open or unverified.
+  what Zach should try in-game (keys, places); what runs per frame/tick (no bench); anything left open or unverified.
