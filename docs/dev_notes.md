@@ -3883,3 +3883,18 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   loads with its hands as loadout 1). Co-op: nothing new on the wire: the hands ride in the snapshot (HumanoidSync), the clack goes
   through Net.fx. Per frame: one more wheel polling its key, and `_loadout_tick` returns at once unless a swap is waiting.
 - Tests: t/player/loadout_swap. Render: `uishots <out> 1 0 items,loadouts` (the item and loadout wheels held open).
+
+## 2026-10-19: v1.18 controls, piece 3: the crew's chat (Enter)
+- **ChatBox** (scripts/ui/chat_box.gd, a CanvasLayer the local Player adds; class_name for `ChatBox.typing`): co-op only (`Net.active`;
+  Enter does nothing solo). Enter (input `chat`, Enter and keypad Enter; not Alt+Enter) opens a LineEdit at the bottom left above the
+  toast; Enter sends, Esc or an empty line puts it away. While it's open `typing` is set and the captain's input_locked (the state
+  machine stops, the wheels and MapHold stay shut) and GameMenu._input returns early (so I, K, Esc typed don't open menus). The last
+  LINES 6 lines sit above it, name in the captain's crew colour (Net.crew_color) and outlined text, fading after SHOW 10 s; all come
+  back while you type. A crewmate's line ticks ("select"; tool runs are muted anyway).
+- **Net** (the controls block): `Net.chat(text)` -> a guest asks the host (`_chat_req`, host only), the host strips it to CHAT_MAX 120
+  and sends `everyone("_all_chat", [id, text])`; `_all_chat` names the sender from the roster (solo or self: the local captain) and
+  emits `chat_line(id, who, text)`. Late joiners don't get the history.
+- Per frame: ChatBox._process walks its rows (at most 6) to fade them; nothing else.
+- Tests: t/ui/chat_line (solo Enter opens nothing; typing locks the captain and keeps I/T/Esc from menus and wheels; a sent line comes
+  back with your name, a crewmate's with theirs; empty lines dropped; fade and back; six kept). Nettest should check a guest's line
+  reaching the host and a third captain with the guest's name (not run: the push gate's job). Render: `uishots <out> 1 0 chat`.

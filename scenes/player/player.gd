@@ -236,6 +236,8 @@ func _ready() -> void:
 	item_wheel = _wheel("res://scripts/ui/item_wheel.gd", "ItemWheel")
 	action_wheel = _wheel("res://scripts/ui/action_wheel_ui.gd", "ActionWheel")
 	loadout_wheel = _wheel("res://scripts/ui/loadout_wheel.gd", "LoadoutWheel")
+	if is_local:
+		chat_box = _wheel("res://scripts/ui/chat_box.gd", "ChatBox")
 	var menu: Node = load("res://scripts/ui/player_menu.gd").new()
 	menu.name = "PlayerMenu"
 	menu.player = self
@@ -1588,10 +1590,11 @@ func toggle_lantern() -> void:
 
 
 # --------------------------------------------------------------------------
-# The wheels (RadialWheel): emotes T, quick items E, actions N
+# The wheels (RadialWheel): emotes T, quick items E, actions N; the crew's chat (Enter)
 # --------------------------------------------------------------------------
 var item_wheel
 var action_wheel
+var chat_box
 ## A tap of E mid-swing waits this long for the swing to end (its combo window opening).
 const QUICK_BUFFER := 1.0
 var _quick_want := 0.0
