@@ -1,13 +1,13 @@
 extends SceneTree
 ## Screenshots of every menu.
-## Args: <out_prefix> [pixelate 1|0] [window WxH, e.g. 1280x1024]
+## Args: <out_prefix> [pixelate 1|0] [window WxH, e.g. 1280x1024, or 0] [only these screens, e.g. emotes,loadouts]
 var t := 0.0
 var p
 var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"skills_tip", "chart", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes"]
+	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat"]
 var si := 0
 
 
@@ -16,9 +16,11 @@ func _initialize():
 	out = a[0]
 	if a.size() > 1:
 		root.get_node("Settings").set_value("video", "pixelate", a[1] != "0")
-	if a.size() > 2:
+	if a.size() > 2 and a[2] != "0":
 		var wh := a[2].split("x")
 		win_size = Vector2i(int(wh[0]), int(wh[1]))
+	if a.size() > 3:
+		screens = Array(a[3].split(","))
 	change_scene_to_file("res://scenes/world/world.tscn")
 
 
@@ -112,6 +114,24 @@ func _process(d: float) -> bool:
 					p.emote_wheel._open = true
 					p.emote_wheel._pick = 3
 					p.emote_wheel._restyle()
+				"items":
+					p.inventory_component.add_item(load("res://resources/items/biscuit.tres"), 2)
+					p.inventory_component.add_item(load("res://resources/items/stew.tres"), 1)
+					p.item_wheel._open_now()
+					p.item_wheel.point_at(1)
+				"loadouts":
+					var dg = load("res://resources/items/dagger.tres")
+					p.inventory_component.add_item(dg, 2)
+					p.loadouts[1] = ["dagger", "dagger"]
+					p.loadout_wheel._open_now()
+					p.loadout_wheel.point_at(1)
+				"chat":
+					var net = root.get_node("Net")
+					net._all_chat(1, "Land ho! The island off the port bow.")
+					net._all_chat(2, "Aye. Bring her round, I'll take the guns.")
+					net._all_chat(3, "Wait for me, I'm still up the mast with a very long line of text that wraps")
+					p.chat_box.open()
+					p.chat_box._line.text = "On my way"
 				_:
 					gm().open(s)
 			step = 2

@@ -1,5 +1,6 @@
 extends Control
-## The sea chart (M): a parchment map that fills in as you sail
+## The held map's page (MapHold draws it into the sheet in the captain's hands, at SIZE px: one page
+## pixel to one of the PS1 grid's). The sea chart: a parchment map that fills in as you sail
 ## (GameManager.charted): islands you've come near, with their names; reefs,
 ## whirlpools, fog banks and wrecks you've passed close to; an X for every
 ## treasure map you hold. Your captain and the ship are marked; north is up.
@@ -7,9 +8,10 @@ extends Control
 ## the island the crew is at and the ones the log pose points to, each with
 ## its theme, level and danger, and a course line to each.
 ## On an island it opens on the island's own page (MapIsleView: the fog of war, `?` marks, what's
-## been found); the mouse wheel goes between that and the chart.
+## been found); the mouse wheel goes between that and the chart. The mouse is a pen on it (`pen`,
+## `press`): marks are set and taken off where it points.
 
-const SIZE := Vector2(560, 320)
+const SIZE := Vector2(448, 256)
 ## World metres from Brinehollow shown to each edge (the chart is square-ish).
 const REACH := 1400.0
 ## Brinehollow's land, about: its forest and beach reach further west.
@@ -31,20 +33,25 @@ var _pin := true
 ## The island page, and whether it's the one showing (the island we're on; else the chart).
 var isle: MapIsleView
 var on_isle := false
+## Where the pen points (page px), drawn over everything.
+var pen := Vector2(-20, -20)
+var _nib: Control
 
 
 func _init() -> void:
-	set_anchors_preset(Control.PRESET_CENTER)
-	offset_left = -SIZE.x * 0.5
-	offset_top = -SIZE.y * 0.5
-	offset_right = SIZE.x * 0.5
-	offset_bottom = SIZE.y * 0.5
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	size = SIZE
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_font = load("res://assets/fonts/Silkscreen-Regular.woff2")
 	_font_big = load("res://assets/fonts/PixelifySans-Regular.woff2")
 	isle = MapIsleView.new()
 	isle.visible = false
 	add_child(isle)
+	_nib = Control.new()
+	_nib.name = "Pen"
+	_nib.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_nib.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_nib.draw.connect(_draw_pen)
+	add_child(_nib)
 
 
 ## Opens on the island our captain is on, or the chart at sea.
@@ -66,8 +73,16 @@ func show_isle(on: bool) -> void:
 
 
 func _process(_delta: float) -> void:
-	if visible:
-		queue_redraw()
+	queue_redraw()
+	_nib.queue_redraw()
+
+
+## The pen: a nib over the page with its point at `pen`.
+func _draw_pen() -> void:
+	var ink := Color(0.25, 0.15, 0.08)
+	_nib.draw_colored_polygon(PackedVector2Array([pen, pen + Vector2(3, -8), pen + Vector2(8, -3)]), ink)
+	_nib.draw_line(pen + Vector2(5, -5), pen + Vector2(14, -14), ink, 2.0)
+	_nib.draw_rect(Rect2(pen - Vector2(0, 1), Vector2(1, 1)), Color(0.9, 0.85, 0.7))
 
 
 func _world() -> Node:
@@ -126,9 +141,10 @@ func _shown(p: Vector2) -> bool:
 
 
 func _draw() -> void:
-	draw_style_box(UIStyle.panel(UIStyle.CREAM.darkened(0.05), UIStyle.BORDER, 0), Rect2(Vector2.ZERO, SIZE))
-	draw_rect(Rect2(Vector2(9, 9), SIZE - Vector2(18, 18)), Color(UIStyle.TEAL, 0.55), false, 1.0)
 	var ink := Color(0.3, 0.2, 0.12)
+	draw_rect(Rect2(Vector2.ZERO, SIZE), MapIsleView.PAPER)
+	draw_rect(Rect2(Vector2(5, 5), SIZE - Vector2(10, 10)), Color(ink, 0.7), false, 1.0)
+	draw_rect(Rect2(Vector2(8, 8), SIZE - Vector2(16, 16)), Color(ink, 0.35), false, 1.0)
 	var sea_ink := Color(0.55, 0.62, 0.62, 0.5)
 	if on_isle:
 		_draw_isle_page(ink)
@@ -233,6 +249,7 @@ func _draw() -> void:
 			draw_line(c, c + Vector2(0, -10), ink, 1.0)
 			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -10), c + Vector2(7, -7.5), c + Vector2(0, -5)]), col)
 			draw_string(_font, c + Vector2(3, 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	MapMarks.draw_all(self, _to_chart, _font)
 	_hints()
 
 
@@ -244,11 +261,11 @@ func _north(ink: Color) -> void:
 
 
 func _hints() -> void:
-	var pairs: Array = [["LMB", "SET A MARK"], ["RMB", "REMOVE IT"], ["C", "CLEAR YOUR MARKS"]]
+	var pairs: Array = [["LMB", "MARK"], ["RMB", "UNMARK"], ["C", "CLEAR"]]
 	if not isle.d.is_empty():
 		pairs.append(["WHEEL", "SEA CHART" if on_isle else "ISLAND"])
-	pairs.append(["M", "CLOSE"])
-	UIStyle.draw_hints(self, Vector2(16, SIZE.y - 11), pairs, _font, true)
+	pairs.append(["M", "PUT AWAY"])
+	UIStyle.draw_hints(self, Vector2(14, SIZE.y - 10), pairs, _font, true)
 
 
 ## The island page's own: its name and what's found of it, north, the hints (the island's drawn by `isle`).
@@ -335,31 +352,26 @@ func _chain_island(n: Dictionary, radius: float, col: Color, here: bool) -> void
 	draw_string(_font, at + Vector2(10 + lw, 9), dz[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, (dz[1] as Color).darkened(0.45))
 
 
-## Click: a mark there (up to Net.MAX_WAYPOINTS of ours); right-click near
-## one of ours: it's gone.
-func _gui_input(event: InputEvent) -> void:
-	if not (event is InputEventMouseButton and event.pressed):
-		return
-	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-		show_isle(event.button_index == MOUSE_BUTTON_WHEEL_UP)
-		accept_event()
+## A mouse button with the pen at `at` (page px): the wheel goes between the island and the chart; a
+## click sets a mark there (up to Net.MAX_WAYPOINTS of ours); a right-click near one of ours takes it off.
+func press(button: int, at: Vector2) -> void:
+	if button in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+		show_isle(button == MOUSE_BUTTON_WHEEL_UP)
 		return
 	var w := _world()
 	if w == null:
 		return
 	_view(w, get_node("/root/GameManager"))
 	var mine: Array = (Net.waypoints.get(Net.my_id(), []) as Array).duplicate()
-	var at: Vector2 = event.position
-	if event.button_index == MOUSE_BUTTON_LEFT:
+	if button == MOUSE_BUTTON_LEFT:
 		if at.y < 30.0 or at.y > SIZE.y - 22.0:
 			return
 		if mine.size() >= Net.MAX_WAYPOINTS:
 			mine.pop_front()
 		mine.append(isle.page_to_world(at) if on_isle else _centre + (at - SIZE * 0.5) / _k)
 		Net.set_waypoints(mine)
-		get_node("/root/GameMenu").call("_play")
-		accept_event()
-	elif event.button_index == MOUSE_BUTTON_RIGHT:
+		UIStyle.sfx("confirm")
+	elif button == MOUSE_BUTTON_RIGHT:
 		var best := -1
 		var best_d := 12.0
 		for i in range(mine.size()):
@@ -370,7 +382,6 @@ func _gui_input(event: InputEvent) -> void:
 		if best >= 0:
 			mine.remove_at(best)
 			Net.set_waypoints(mine)
-		accept_event()
 
 
 ## C: our marks and our G marker, gone.

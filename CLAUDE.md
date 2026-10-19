@@ -279,8 +279,9 @@ GameMenu, Net, Music, Weather, DevCapture.
 - **New meshes:** a visibility range; small ones cast no shadow; repeated props are one MultiMesh; materials
   shared (cached `PSXMat`, tints folded into vertex colours; an object's own copy only for flashes).
 - **Areas:** `monitoring` only when something reads that area's overlaps (hitboxes do; hurtboxes don't).
-- **Report the cost:** a feature agent benches before and after, back to back (`bench.ps1 label=<x>_before`,
-  `label=<x>_after`, `bench_compare.ps1`), and reports the ms at the stops.
+- **Benches are the lead's, twice a batch** (Zach, 2026-10-19): one on main when a new feature set starts, one at
+  prepush once everything is built, merged and tested (`bench_compare.ps1` between them). Feature agents and worktrees
+  never bench (a bench holds every test slot and stalls the landing queue); they report what they added per frame/tick.
 - **Before tagging a version** Claude runs `tools/dev/prepush.ps1 -Release`: the tests, then
   `perf_gate.ps1` against `tools/dev/perf_baseline.txt` (fails at a mean frame or frame1t >15% worse, a stop's
   frame1t >35% worse, or >0.8 physics ticks a frame; `perf_gate.ps1 -Update` after an intended change).

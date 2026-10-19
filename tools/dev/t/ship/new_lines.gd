@@ -2,7 +2,7 @@ extends SceneTree
 ## The new upgrade lines do what they say: the copper bottom (faster, less from reefs), the bow chaser (a
 ## gun firing ahead, kept out of broadsides, harder and further at 2-3), the crow's nest (the lookout's range,
 ## the flag up its staff), lanterns (faster at night), railings (steady when rammed, a boarder fewer), the
-## tangerine grove (pick what's ripe, it ripens again), the galley (more of each restocked) and the hold
+## tangerine grove (pick what's ripe, it ripens again), the galley (more portions of each dish cooked) and the hold
 ## (more bag slots).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -54,10 +54,7 @@ func _process(_d: float) -> bool:
 			ship.apply_kit({"chest": 3})
 			check("the hold: +6 bag slots (%d)" % p.inventory_component.slots(), p.inventory_component.slots() == p.inventory_component.max_slots + 6)
 			ship.apply_kit({"galley": 3})
-			var rum = load("res://resources/items/rum.tres")
-			p.inventory_component.remove_item(rum, p.inventory_component.count("rum"))
-			root.get_node("GameManager").restock(p)
-			check("the galley at 3 stocks six of each (%d rum)" % p.inventory_component.count("rum"), p.inventory_component.count("rum") == 6)
+			check("the galley at 3 cooks four portions a dish", root.get_node("GameManager").galley_portions() == 4)
 			ship.apply_kit({"grove": 3})
 			var parts = ship.parts
 			check("three trees in the grove, a tangerine on each", parts.grove_zone != null and parts.ripe == 3 and parts.grove_zone.prompt_text.contains("3"))

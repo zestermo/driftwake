@@ -1,6 +1,6 @@
 extends PanelContainer
 ## Inspect (the player menu): another captain's name, level, fighting style and fruit, and what they carry:
-## weapons, the ten worn slots, quick items. Read only; the inventory's slots and item cards (hover a slot).
+## weapons, the ten worn slots, the quick item. Read only; the inventory's slots and item cards (hover a slot).
 
 const STYLES := {"fist": "Brawler", "sword": "Cutlass", "axe": "Axe", "katana": "Katana", "dagger": "Dagger",
 	"dual_sword": "Twin blades", "dual_dagger": "Twin daggers", "sword_pistol": "Blade and pistol",
@@ -8,7 +8,7 @@ const STYLES := {"fist": "Brawler", "sword": "Cutlass", "axe": "Axe", "katana": 
 const TIP_W := 150
 
 var viewer: Node
-## What's shown, by slot ("weapon", "offhand", the doll's slots, "quick0".."quick2").
+## What's shown, by slot ("weapon", "offhand", the doll's slots, "quick0").
 var items: Dictionary = {}
 var _name: Label
 var _line: Label
@@ -41,7 +41,7 @@ func _init() -> void:
 		for s in col:
 			r.append([s, InventoryScreen.TAGS[s]])
 		vb.add_child(_row("WORN" if col == InventoryScreen.DOLL[0] else "", r))
-	vb.add_child(_row("QUICK", [["quick0", "5"], ["quick1", "6"], ["quick2", "7"]]))
+	vb.add_child(_row("QUICK", [["quick0", "E"]]))
 	vb.add_child(UIStyle.key_hint("ESC", "BACK"))
 	_tip = PanelContainer.new()
 	_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE

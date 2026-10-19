@@ -23,6 +23,12 @@ func _initialize():
 func snap(n: String) -> void:
 	root.get_texture().get_image().save_png("%s_%s.png" % [out, n])
 	print("shot ", n)
+## The map's page (the held map's SubViewport), on its own.
+func snap_page(n: String) -> void:
+	var hm = p.get_node("MapHold")
+	hm.image().save_png("%s_%s.png" % [out, n])
+	hm.preview(false)
+	print("shot ", n)
 func _process(d: float) -> bool:
 	t += d
 	if t < 2.5: return false
@@ -56,10 +62,9 @@ func _process(d: float) -> bool:
 		2:
 			snap("set_brinehollow")
 			Input.action_release("log_pose")
-			menu.open("chart")
+			p.get_node("MapHold").preview(true)
 		3:
-			snap("chart_brinehollow")
-			menu.close()
+			snap_page("chart_brinehollow")
 			var c = world.chain()
 			var at: Vector2 = c.node(city)["pos"]
 			var ahead: Vector2 = (c.node(c.next_of(city)[0])["pos"] + c.node(c.next_of(city)[1])["pos"]) * 0.5
@@ -86,10 +91,9 @@ func _process(d: float) -> bool:
 		6:
 			snap("fork_helm")
 			Input.action_release("log_pose")
-			menu.open("chart")
+			p.get_node("MapHold").preview(true)
 		7:
-			snap("fork_chart")
-			menu.close()
+			snap_page("fork_chart")
 			quit()
 	step += 1
 	return false

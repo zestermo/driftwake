@@ -1261,6 +1261,7 @@ func _prize() -> void:
 		stk.quantity = int(e[1])
 		items.append(stk)
 	bag.setup(items, false)
+	bag.rolls = true
 	bag.name = "Prize_%s" % name
 	get_node("Model").add_child(bag)
 	bag.position = Vector3(1.6, HullBuilder.DECK_Y, 3.2)

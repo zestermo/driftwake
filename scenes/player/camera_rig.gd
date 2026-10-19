@@ -46,6 +46,19 @@ const ROOM_LIFT := 0.7
 var _kick := 0.0
 var _kick_t := 0.0
 var _kick_len := 0.5
+## The held map (MapHold): the camera comes in over the right side of the captain's head (MapHold hides
+## it meanwhile) and tilts down onto the sheet (`_map_focus`), close and narrow, in 1 / MAP_SPEED s; the
+## mouse is the map's meanwhile. Nearly straight on, so the page reads level on the pixel grid.
+const MAP_YAW := 0.165
+const MAP_PITCH := -0.9
+const MAP_DIST := 0.92
+const MAP_FOV := 31.0
+const MAP_SPEED := 4.0
+var _map_focus: Node3D = null
+var _map_on := false
+var _map := 0.0
+var _map_e := 0.0
+var _map_pitch := 0.0
 
 @onready var spring_arm: SpringArm3D = $SpringArm3D
 @onready var camera: Camera3D = $SpringArm3D/Camera3D
@@ -132,14 +145,27 @@ func _process(delta: float) -> void:
 	zoom *= 1.0 - punch * 0.25
 	spring_arm.spring_length = lerpf(spring_arm.spring_length, zoom, 1.0 - exp(-11.0 * delta))
 	var shoulder := combat_shoulder * _combat_blend
+	# the held map
+	_map = move_toward(_map, 1.0 if _map_on else 0.0, delta * MAP_SPEED)
+	var swing := smoothstep(0.0, 0.6, _map)
+	rotation.y += MAP_YAW * (swing - _map_e)
+	_map_e = swing
+	var me := smoothstep(0.3, 1.0, _map)
+	if me > 0.0:
+		spring_arm.rotation.x = lerpf(_map_pitch, MAP_PITCH, me)
+		spring_arm.spring_length = lerpf(spring_arm.spring_length, MAP_DIST, me)
+		camera.fov = lerpf(camera.fov, MAP_FOV, me)
+		shoulder *= 1.0 - me
 
 	if target:
 		# Use the interpolated transform: the player moves at the physics rate
 		# (60 Hz), the camera at the display rate. Reading the raw position here
 		# makes everything judder on high-refresh monitors.
 		var target_pos := target.get_global_transform_interpolated().origin + Vector3(0, lerpf(1.2, 0.88, e) + ROOM_LIFT * _room * (1.0 - e), 0)
-		# exponential weight: the same follow at 30 fps and at 165 fps
-		global_position = global_position.lerp(target_pos, 1.0 - exp(-follow_speed * delta))
+		if me > 0.0 and is_instance_valid(_map_focus):
+			target_pos = target_pos.lerp(_map_focus.get_global_transform_interpolated().origin, me)
+		# exponential weight: the same follow at 30 fps and at 165 fps (on the map, held to it)
+		global_position = global_position.lerp(target_pos, lerpf(1.0 - exp(-follow_speed * delta), 1.0, me))
 		# keep the camera above the waves (swimming, falling in), or under them with a captain deep on a dive
 		var ocean := get_node_or_null("/root/Ocean")
 		if ocean and camera:
@@ -155,7 +181,7 @@ func _process(delta: float) -> void:
 	if e > 0.0:
 		shoulder = lerpf(shoulder, _showcase_offset(), e)
 	camera.h_offset = shoulder
-	camera.v_offset = 0.15 * _combat_blend - 0.3 * e
+	camera.v_offset = (0.15 * _combat_blend - 0.3 * e) * (1.0 - me)
 	camera.rotation.z = 0.0
 	if trauma > 0.0:
 		# real time: a hit-stop slows the engine, but the freeze frame should still shake
@@ -196,6 +222,25 @@ func set_showcase(on: bool, facing_yaw: float = 0.0, screen_x: float = 0.25) -> 
 			spring_arm.collision_mask = 0
 	else:
 		_show_target = 0.0
+
+
+## The held map out (`focus`: its sheet) or away (null).
+func set_map(focus: Node3D) -> void:
+	if focus and not _map_on and _map == 0.0:
+		_map_pitch = spring_arm.rotation.x
+	_map_on = focus != null
+	if focus:
+		_map_focus = focus
+
+
+## How far the camera has turned for the map (0..1).
+func map_blend() -> float:
+	return _map_e
+
+
+## Is the camera on its way to, at or back from the map?
+func on_map() -> bool:
+	return _map > 0.0
 
 
 func is_showcasing() -> bool:

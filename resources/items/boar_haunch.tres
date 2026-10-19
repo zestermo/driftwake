@@ -15,3 +15,4 @@ item_type = 2
 icon = ExtResource("2")
 heal_amount = 32.0
 use_time = 0.85
+ingredient = "meat"

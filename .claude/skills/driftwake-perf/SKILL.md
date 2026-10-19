@@ -10,7 +10,7 @@ description: >
   meshes, MultiMesh, shared PSXMat materials (tint_mul copies only for flashes), Area3D monitoring, the
   light budget (KitLights, FX.flash_light), island build budgets (build_ms, prepare on a worker /
   finish a step a frame). Also the F8 overlay and user://perf.log, and perftest / t/world/actor_sleep.
-  Use when a feature agent benches before and after, Zach says "fps", "slow", "stutter", "hitch",
+  Use when the lead benches a batch (once at its start, once at prepush; feature agents never bench), Zach says "fps", "slow", "stutter", "hitch",
   "lag", reports F8 numbers or a perf.log, before tagging a release, or when adding anything that
   runs every frame, spawns many nodes, meshes or lights, or builds on an island. The generic method
   is performance-optimization; this is Driftwake's tools and numbers.

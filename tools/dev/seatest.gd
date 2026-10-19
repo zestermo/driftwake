@@ -599,10 +599,9 @@ func _process(d: float) -> bool:
 		36:
 			var gm = root.get_node("GameManager")
 			check("coming near Redtide Rock charts it", gm.charted.has("island:Redtide Rock"))
-			var menu = root.get_node("GameMenu")
-			menu.open("chart")
-			check("M opens the sea chart", menu._current == "chart" and menu._chart.visible)
-			menu.close()
+			var pg = p.get_node("MapHold").page
+			pg.on_open()
+			check("out at sea the map opens on the sea chart", not pg.on_isle)
 			step = 360
 		360:
 			# --- the Sea King: sail into its waters

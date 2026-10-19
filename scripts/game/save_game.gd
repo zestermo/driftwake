@@ -251,10 +251,12 @@ static func save(player: Player) -> bool:
 		"hybrid": player.hybrid,
 		"health": player.health_component.current_health,
 		"items": items,
-		"hotbar": inv.hotbar.duplicate(),
+		"quick": inv.quick,
 		"worn": worn,
 		"weapon": item_ref(player.equipped_weapon),
 		"offhand": item_ref(player.offhand_weapon),
+		"loadouts": player.loadouts.duplicate(true),
+		"loadout_at": player.loadout_at,
 		"storage": stored,
 		"grave": grave,
 		"opened": gm.opened.keys() if gm else [],
@@ -326,15 +328,12 @@ static func load_into(player: Player) -> bool:
 			st.item = it
 			st.quantity = int(e[1])
 			inv.items.append(st)
-	var hb: Array = data.get("hotbar", [])
-	for i in range(inv.hotbar.size()):
-		inv.hotbar[i] = ""
-	# quick slots hold consumables only (older saves had weapons there too)
-	var qi := 0
-	for id in hb:
-		if qi < inv.hotbar.size() and InventoryComponent.quick_ok(ItemDB.get_item(str(id))):
-			inv.hotbar[qi] = str(id)
-			qi += 1
+	# the quick item (saves before v1.18 had three quick slots: their first food or drink)
+	inv.quick = ""
+	for id in ([data["quick"]] if data.has("quick") else data.get("hotbar", [])):
+		if InventoryComponent.quick_ok(ItemDB.get_item(str(id))):
+			inv.quick = str(id)
+			break
 	var lk = data.get("look", {})
 	if lk is Dictionary and not lk.is_empty():
 		player.appearance = (lk as Dictionary).duplicate(true)
@@ -353,8 +352,10 @@ static func load_into(player: Player) -> bool:
 	var off := item_from(data.get("offhand", []))
 	if off:
 		player.set_offhand(off)
+	# (saves before v1.18's loadouts: the hands are loadout 1)
+	player.set_loadouts(data.get("loadouts", []), int(data.get("loadout_at", 0)))
 	inv.inventory_changed.emit()
-	inv.hotbar_changed.emit()
+	inv.quick_changed.emit()
 	if data.get("hybrid", false) and player.power.fruit_type() == "zoan":
 		player.set_hybrid(true)
 	player.call("_recalc_stats")

@@ -1006,6 +1006,7 @@ def gen_icons():
         d.rectangle([9, 2, 14, 4], fill=hexc("a0703a") + (255,))
         d.point([(8, 12), (9, 11)], fill=(255, 255, 255, 255))
 
+    gen_food_icons()
     _icon("tonic", tonic)
     _icon("boar_haunch", boar_haunch)
     _icon("tusk", tusk)
@@ -1023,6 +1024,142 @@ def gen_icons():
     _icon("fish", fish)
     _icon("stew", stew)
     _icon("biscuit", biscuit)
+
+
+def gen_food_icons():
+    """v1.18 cooking: the raw ingredients (Food.INGREDIENTS), the galley's meals (Food.MEALS) and the pearl."""
+    def c(h, a=255):
+        return hexc(h) + (a,)
+
+    def sack(d, body, spill):
+        d.polygon([(6, 8), (18, 8), (20, 21), (4, 21)], fill=c(body))
+        d.line([(6, 8), (18, 8)], fill=c("8a7448"), width=2)
+        d.polygon([(8, 4), (16, 4), (18, 8), (6, 8)], fill=c("b89a60"))
+        d.line([(9, 6), (15, 6)], fill=c("6a4628"))
+        for (x, y) in ((8, 14), (15, 16), (11, 18), (13, 12)):
+            d.point((x, y), fill=c(spill))
+
+    def rice(d):
+        sack(d, "d8c8a0", "fff8e8")
+        for (x, y) in ((3, 22), (5, 21), (20, 22), (21, 21)):
+            d.point((x, y), fill=c("fff8e8"))
+
+    def flour(d):
+        sack(d, "e8e0cc", "c8b890")
+        d.ellipse([9, 12, 15, 17], outline=c("a08a60"))
+
+    def salt(d):
+        d.chord([4, 10, 20, 22], 0, 180, fill=c("6a4628"))
+        d.ellipse([4, 12, 20, 17], fill=c("f4f4ee"))
+        d.polygon([(8, 14), (12, 7), (16, 14)], fill=c("ffffff"))
+        d.point([(10, 11), (13, 12)], fill=c("c8d8e0"))
+
+    def pepper(d):
+        for (x, y) in ((8, 9), (14, 8), (11, 13), (16, 14), (7, 16), (12, 18), (17, 19)):
+            d.ellipse([x - 2, y - 2, x + 2, y + 2], fill=c("2a2018"))
+            d.point((x - 1, y - 1), fill=c("6a5a48"))
+
+    def mushroom(d):
+        for (x, s) in ((8, 1.0), (15, 0.8)):
+            w = int(6 * s)
+            d.rectangle([x - 1, 13, x + 1, 21], fill=c("e8dcc0"))
+            d.chord([x - w, 6 + int(4 * (1 - s)), x + w, 18], 180, 360, fill=c("8a5a30"))
+            d.point([(x - 2, 9 + int(3 * (1 - s))), (x + 2, 10 + int(3 * (1 - s)))], fill=c("d8b080"))
+
+    def seaweed(d):
+        for (x0, col) in ((7, "2e7a3a"), (12, "3e9a48"), (17, "2a6a34")):
+            pts = [(x0 + (1 if k % 2 else -1), 22 - k * 3) for k in range(7)]
+            d.line(pts, fill=c(col), width=3)
+
+    def coconut(d):
+        d.ellipse([4, 5, 20, 21], fill=c("6a4020"))
+        d.ellipse([6, 7, 13, 13], fill=c("8a5a30"))
+        for (x, y) in ((10, 9), (14, 9), (12, 12)):
+            d.point((x, y), fill=c("2a1a0a"))
+        d.line([(6, 16), (18, 18)], fill=c("4a2a10"))
+
+    def egg(d):
+        for (x, y) in ((8, 13), (15, 12)):
+            d.ellipse([x - 4, y - 6, x + 4, y + 6], fill=c("e8e4d0"))
+            d.point([(x - 1, y - 2), (x + 2, y + 1), (x, y + 3)], fill=c("8a7a60"))
+        d.chord([2, 16, 22, 23], 180, 360, fill=c("8a6a40"))
+
+    def oyster(d):
+        d.ellipse([3, 8, 21, 20], fill=c("8a8478"))
+        d.ellipse([5, 10, 19, 18], fill=c("e8d8d0"))
+        d.ellipse([10, 12, 14, 16], fill=c("fff8f0"))
+        d.arc([3, 4, 21, 16], 200, 340, fill=c("5a564c"), width=2)
+
+    def sea_urchin(d):
+        for k in range(12):
+            a = k * math.pi / 6
+            d.line([(12, 13), (12 + int(10 * math.cos(a)), 13 + int(9 * math.sin(a)))], fill=c("3a1a4a"))
+        d.ellipse([7, 8, 17, 18], fill=c("5a2a6a"))
+        d.point([(10, 11), (13, 10)], fill=c("a070b0"))
+
+    def pearl(d):
+        d.ellipse([6, 6, 18, 18], fill=c("e8e4e8"))
+        d.ellipse([8, 8, 13, 13], fill=c("ffffff"))
+        d.arc([6, 6, 18, 18], 20, 120, fill=c("b8b0c0"))
+
+    def bowl(d, food, bits, steam=True):
+        d.chord([3, 8, 21, 22], 0, 180, fill=c("6a4628"))
+        d.ellipse([3, 9, 21, 15], fill=c(food))
+        for (x, y, col) in bits:
+            d.ellipse([x - 1, y - 1, x + 1, y + 1], fill=c(col))
+        if steam:
+            for x in (8, 15):
+                d.line([(x, 7), (x + 1, 5), (x, 3)], fill=c("e8e8e8", 200))
+
+    def fish_stew(d):
+        bowl(d, "c8a060", [(8, 12, "f0e0c0"), (13, 11, "e8783a"), (16, 13, "f0e0c0"), (11, 13, "60a040")])
+
+    def porridge(d):
+        bowl(d, "e8dcb8", [(9, 12, "f08a28"), (14, 11, "f08a28"), (12, 13, "c89858")])
+
+    def reef_salad(d):
+        bowl(d, "3e8a48", [(8, 12, "e8d8d0"), (13, 11, "8a3a9a"), (16, 13, "f4f4ee"), (11, 13, "5ab060")], steam=False)
+
+    def forest_curry(d):
+        bowl(d, "d89a28", [(8, 12, "8a5a30"), (13, 11, "fff8e8"), (16, 13, "8a5a30"), (11, 13, "a83018")])
+
+    def peppered_boar(d):
+        d.ellipse([2, 15, 22, 22], fill=c("c8c0b0"))
+        d.ellipse([5, 9, 19, 19], fill=c("5a2a10"))
+        d.ellipse([7, 10, 15, 15], fill=c("8a4a20"))
+        for (x, y) in ((9, 12), (13, 13), (16, 15), (11, 16)):
+            d.point((x, y), fill=c("1a1008"))
+
+    def citrus_tart(d):
+        d.chord([3, 8, 21, 22], 0, 180, fill=c("c89048"))
+        d.ellipse([3, 9, 21, 16], fill=c("f0a020"))
+        for (x, y) in ((8, 12), (12, 11), (16, 12)):
+            d.pieslice([x - 3, y - 3, x + 3, y + 3], 0, 180, fill=c("ffd870"))
+        d.line([(3, 14), (21, 14)], fill=c("a87030"))
+
+    def island_skewers(d):
+        for (dx, cols) in ((0, ("8a4a20", "f0a020", "8a4a20")), (5, ("f08a28", "8a4a20", "60a040"))):
+            d.line([(3 + dx, 21), (16 + dx, 3)], fill=c("c8a070"))
+            for k, col in enumerate(cols):
+                x = 6 + dx + k * 3
+                y = 17 - k * 4
+                d.rectangle([x - 2, y - 2, x + 2, y + 2], fill=c(col))
+
+    def captains_feast(d):
+        d.ellipse([1, 13, 23, 23], fill=c("d8c8a0"))
+        d.ellipse([3, 8, 13, 18], fill=c("8a4a20"))
+        d.line([(11, 10), (15, 6)], fill=c("eee4cc"), width=2)
+        d.ellipse([12, 11, 21, 17], fill=c("c08048"))
+        d.polygon([(20, 14), (23, 11), (23, 17)], fill=c("a86a38"))
+        d.ellipse([15, 4, 20, 9], fill=c("f08a28"))
+        d.point((17, 4), fill=c("4a9a30"))
+
+    for name, fn in (("rice", rice), ("flour", flour), ("salt", salt), ("pepper", pepper), ("mushroom", mushroom),
+                     ("seaweed", seaweed), ("coconut", coconut), ("egg", egg), ("oyster", oyster),
+                     ("sea_urchin", sea_urchin), ("pearl", pearl), ("fish_stew", fish_stew), ("porridge", porridge),
+                     ("reef_salad", reef_salad), ("forest_curry", forest_curry), ("peppered_boar", peppered_boar),
+                     ("citrus_tart", citrus_tart), ("island_skewers", island_skewers), ("captains_feast", captains_feast)):
+        _icon(name, fn)
 
 
 # --------------------------------------------------------------------------

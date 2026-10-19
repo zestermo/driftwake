@@ -245,6 +245,31 @@ def crunch_sound():
     write_wav("crunch", out * 0.6)
 
 
+def sizzle_sound():
+    """Cooking at the galley: a pan's sizzle, spitting fat, then a ladle's tap on the pot."""
+    rng = np.random.default_rng(143)
+    n = int(SR * 1.3)
+    t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    hiss = (w - lowpass(w, 0.25)) * 0.6
+    hiss *= (0.7 + 0.3 * lowpass(rng.standard_normal(n), 0.002) * 8.0)
+    env = np.minimum(1, t / 0.06) * np.clip((1.05 - t) / 0.35, 0, 1)
+    spit = np.zeros(n)
+    for _ in range(46):
+        p0 = rng.integers(0, int(SR * 0.95))
+        L = rng.integers(20, 70)
+        spit[p0:p0 + L] += rng.standard_normal(L) * np.exp(-np.arange(L) / 9.0) * rng.uniform(0.3, 0.9)
+    tap = np.zeros(n)
+    p0 = int(SR * 1.08)
+    L = n - p0
+    tt = np.arange(L) / SR
+    tap[p0:] = (np.sin(2 * np.pi * 1180 * tt) + 0.5 * np.sin(2 * np.pi * 2730 * tt)) * np.exp(-tt * 30) * 0.5
+    out = hiss * env + spit * env + tap
+    out = lowpass(out, 0.8)
+    out /= np.max(np.abs(out))
+    write_wav("sizzle", out * 0.55)
+
+
 def howl_sound():
     """A wolf's howl: a rising then long falling tone with vibrato and breath."""
     rng = np.random.default_rng(149)
@@ -2309,6 +2334,7 @@ SOUNDS = [
     ("fire_burst", fire_burst_sound),
     ("fire_blast", fire_blast_sound),
     ("crunch", crunch_sound),
+    ("sizzle", sizzle_sound),
     ("howl", howl_sound),
     ("haki", haki_sound),
     ("block", block_takes),

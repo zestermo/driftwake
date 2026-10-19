@@ -16,3 +16,4 @@ item_type = 1
 icon = ExtResource("2")
 weapon_model = "cutlass"
 damage_mult = 1.13
+weapon_trait = "thundering"

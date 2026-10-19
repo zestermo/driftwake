@@ -231,6 +231,8 @@ static func _build_base() -> void:
 	]
 	for d in ring:
 		_add(d[1], d[2], "stat", "Core", _p(d[0], 90.0), ["origin"], d[3], d[4])
+	_add("c_quarter", "Quartermaster", "passive", "Core", _p(0.0, 175.0), ["c_focus"], {"loadout_slots": 1},
+		"A third weapon loadout on the loadout wheel (X): three setups to swap between mid-fight.", {"level": 3})
 
 	# ---- Mobility ----
 	var A: float = REGION_ANGLE["Mobility"]

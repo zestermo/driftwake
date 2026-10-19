@@ -28,11 +28,7 @@ func gold() -> int:
 func item(id: String):
 	return load("res://resources/items/%s.tres" % id)
 func click(at: Vector2, right: bool) -> void:
-	var ev := InputEventMouseButton.new()
-	ev.button_index = MOUSE_BUTTON_RIGHT if right else MOUSE_BUTTON_LEFT
-	ev.pressed = true
-	ev.position = at
-	menu._chart._gui_input(ev)
+	p.get_node("MapHold").page.press(MOUSE_BUTTON_RIGHT if right else MOUSE_BUTTON_LEFT, at)
 func _process(d: float) -> bool:
 	t += d
 	if t > 90.0:
@@ -62,7 +58,7 @@ func _process(d: float) -> bool:
 			var top := 0
 			var shops = load("res://scripts/game/shops.gd")
 			for sid in shops.SHOPS.keys():
-				for e in shops.SHOPS[sid]["stock"]:
+				for e in shops.SHOPS[sid]["stock"] + shops.SHOPS[sid].get("pool", []):
 					top = maxi(top, int(shops.item_of(e).rarity))
 			check("everything for sale on Brinehollow is white or green", top <= 1)
 			check("the first level takes 200 XP", p.progression.xp_to_next(1) == 200)
@@ -82,7 +78,7 @@ func _process(d: float) -> bool:
 			check("she buys treasure at full worth", gold() == 10 * gem and gem >= 24 and p.inventory_component.count("treasure") == 0)
 			check("the gold counter shows it", hud._gold_label.text == str(10 * gem) and hud._gold_t > 0.0)
 			shop.buy(["rum", 9])
-			check("buying rum: in the bag, gold gone", gold() == 10 * gem - 9 and p.inventory_component.count("rum") >= 1)
+			check("buying rum: in the bag, gold gone", gold() == 10 * gem - shop.SHOPS.price_of(["rum", 9]) and p.inventory_component.count("rum") >= 1)
 			menu.close()
 			menu.open_shop("sela")
 			var coat: Array = []
@@ -93,10 +89,12 @@ func _process(d: float) -> bool:
 			var g0 := gold()
 			menu._shop.buy(coat)
 			var got = p.inventory_component.items[-1].item
-			check("Sela's captain's coat: a green gear piece, made to order", p.inventory_component.items.size() == before + 1
-				and got.is_gear() and got.rarity == 1 and gold() == g0 - 190)
+			var cost: int = menu._shop.SHOPS.price_of(coat)
+			check("Sela's captain's coat (%d g): a green gear piece, made to order" % cost, p.inventory_component.items.size() == before + 1
+				and got.is_gear() and got.rarity == 1 and gold() == g0 - cost)
+			p.inventory_component.remove_item(item("gold"), gold() - (cost - 1))
 			menu._shop.buy(coat)
-			check("no gold, no coat", gold() == g0 - 190)
+			check("no gold, no coat", gold() == cost - 1 and p.inventory_component.items.size() == before + 1)
 			# selling clothes back to her, and spare steel to Haldor
 			var sold_coat := gold()
 			menu._shop.sell(got, 1)
@@ -113,7 +111,7 @@ func _process(d: float) -> bool:
 			menu.open_shop("sela")
 			menu.close()
 			menu.open_shop("marlo")
-			check("Marlo doesn't buy (%s)" % menu._shop._buy_note.text, menu._shop._buy_note.text == "BUYS NOTHING")
+			check("Marlo buys only ingredients (%s)" % menu._shop._buy_note.text, menu._shop._buy_note.text == "BUYS INGREDIENTS")
 			menu._shop.buy(["fish", 5])
 			check("...but sells grilled fish (a meal: heals)", p.inventory_component.count("fish") == 1 and item("fish").heal_amount > 0.0)
 			menu.close()
@@ -186,7 +184,7 @@ func _process(d: float) -> bool:
 			# --- chart marks
 			p.global_position = ship.global_transform * Vector3(0, 0.6, 2.0)
 			p.reset_physics_interpolation()
-			menu.open("chart")
+			p.get_node("MapHold").page.on_open()
 			click(Vector2(400, 100), false)
 			click(Vector2(150, 220), false)
 			var mine: Array = net.waypoints.get(net.my_id(), [])
@@ -194,9 +192,8 @@ func _process(d: float) -> bool:
 			click(Vector2(401, 101), true)
 			mine = net.waypoints.get(net.my_id(), [])
 			check("right-click on one takes it off", mine.size() == 1)
-			menu._chart.clear_marks()
+			p.get_node("MapHold").page.clear_marks()
 			check("C clears them all", not net.waypoints.has(net.my_id()))
-			menu.close()
 			var far := Vector2(p.global_position.x + 300.0, p.global_position.z)
 			net.set_waypoints([far])
 			p.global_position = Vector3(p.global_position.x, 30.0, p.global_position.z + 200.0)

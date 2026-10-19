@@ -166,7 +166,7 @@ var stamina_regen_mult: float = 1.0
 var _last_hit_velocity := Vector3.ZERO
 var _looking_at_cam: bool = false
 
-## States in which the player may draw/sheathe or use the hotbar.
+## States in which the player may draw/sheathe or take the quick item.
 const FREE_STATES := ["Idle", "Move", "Jump", "Fall"]
 
 ## Co-op. false on the other players' captains here (puppets): no brain,
@@ -232,10 +232,12 @@ func _ready() -> void:
 	sword_hitbox.hit_landed.connect(func(target: Node, data: HitData): power.on_sword_hit(target, data))
 	health_component.died.connect(_on_died)
 	_recalc_stats()
-	emote_wheel = preload("res://scripts/ui/emote_wheel.gd").new()
-	emote_wheel.name = "EmoteWheel"
-	emote_wheel.player = self
-	add_child(emote_wheel)
+	emote_wheel = _wheel("res://scripts/ui/emote_wheel.gd", "EmoteWheel")
+	item_wheel = _wheel("res://scripts/ui/item_wheel.gd", "ItemWheel")
+	action_wheel = _wheel("res://scripts/ui/action_wheel_ui.gd", "ActionWheel")
+	loadout_wheel = _wheel("res://scripts/ui/loadout_wheel.gd", "LoadoutWheel")
+	if is_local:
+		chat_box = _wheel("res://scripts/ui/chat_box.gd", "ChatBox")
 	var menu: Node = load("res://scripts/ui/player_menu.gd").new()
 	menu.name = "PlayerMenu"
 	menu.player = self
@@ -730,6 +732,8 @@ func _process(delta: float) -> void:
 	BladeWater.keep(body_model, _tide_on())
 	BladePetals.keep(body_model, _petals_on())
 	heal_cd = maxf(heal_cd - delta, 0.0)
+	_quick_tick(delta)
+	_loadout_tick(delta)
 	if _using_item and _using_item.devil_fruit == "" and (current_state_name() not in ["Idle", "Move"] or body_model.current_action() != _use_anim):
 		_spill_use()
 	if _using_item:
@@ -739,8 +743,24 @@ func _process(delta: float) -> void:
 	_update_lean(delta)
 
 
+## Out-of-combat regen (Food): a share of max health a second once CALM_S has passed since a blow
+## either way (fought(): a hit you landed).
+const REGEN_PCT := 0.01
+const CALM_S := 8.0
+var _since_fight := 100.0
+
+
+func fought() -> void:
+	_since_fight = 0.0
+
+
+func in_fight() -> bool:
+	return _since_hit <= CALM_S or _since_fight <= CALM_S
+
+
 func _tick_body(delta: float) -> void:
 	_since_hit += delta
+	_since_fight += delta
 	_last_stand_cd = maxf(_last_stand_cd - delta, 0.0)
 	_deflect_cd = maxf(_deflect_cd - delta, 0.0)
 	if _vanish_t > 0.0:
@@ -752,8 +772,11 @@ func _tick_body(delta: float) -> void:
 	var hc := health_component
 	if hc.current_health <= 0.0 or current_state_name() == "Downed":
 		return
-	# Mend: heal out of combat
+	# out of a fight you mend slowly (Food: a meal's regen_pct speeds it; Mend adds its own)
+	var calm := _since_hit > CALM_S and _since_fight > CALM_S
 	var regen := progression.stat("regen_hp")
+	if calm:
+		regen += hc.max_health * REGEN_PCT * (1.0 + progression.stat("regen_pct"))
 	# Vine Fruit: Photosynthesis (out of combat, on land)
 	if power.fruit == "vine" and _since_hit > 4.0 and is_on_floor() and water_depth() < 0.3:
 		var k := 1.0 + progression.stat("photo_mult")
@@ -761,7 +784,7 @@ func _tick_body(delta: float) -> void:
 		power.add_energy(3.0 * k * delta)
 		if randf() < delta * 1.5:
 			Net.fx("sparkle", [global_position + Vector3(randf_range(-0.4, 0.4), randf_range(0.4, 1.6), randf_range(-0.4, 0.4)), 1, Color(0.6, 1.0, 0.4)])
-	if regen > 0.0 and _since_hit > 5.0 and hc.current_health < hc.max_health:
+	if regen > 0.0 and calm and hc.current_health < hc.max_health:
 		hc.heal(regen * delta)
 	# pistols reload by themselves once empty (or put away)
 	if _reload_t > 0.0:
@@ -1484,17 +1507,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		place_marker()
 		get_viewport().set_input_as_handled()
 		return
-	# Devil Fruit skills (1-4) and the ultimate (R)
-	for i in range(5):
-		var act := "ultimate" if i == 4 else "skill_%d" % (i + 1)
+	# skills (1-5) and the ultimate (R)
+	for i in range(PowerComponent.SLOTS):
+		var act := "ultimate" if i == PowerComponent.ULT else "skill_%s" % PowerComponent.key_of(i)
 		if event.is_action_pressed(act):
 			if context == Context.ON_FOOT and current_state_name() not in ["Talk", "Downed", "Skill"]:
 				power.try_cast(i)
-			get_viewport().set_input_as_handled()
-			return
-	for i in range(InventoryComponent.HOTBAR_SIZE):
-		if event.is_action_pressed("hotbar_%d" % (i + 1)):
-			activate_hotbar(i)
 			get_viewport().set_input_as_handled()
 			return
 
@@ -1571,17 +1589,156 @@ func toggle_lantern() -> void:
 	Net.fx("sfx", ["clack", global_position + Vector3.UP, -9.0, 0.05, 1.6])
 
 
-func activate_hotbar(slot: int) -> void:
-	if not is_free():
-		return
-	var item := inventory_component.get_hotbar_item(slot)
+# --------------------------------------------------------------------------
+# The wheels (RadialWheel): emotes T, quick items E, actions N; the crew's chat (Enter)
+# --------------------------------------------------------------------------
+var item_wheel
+var action_wheel
+var chat_box
+## A tap of E mid-swing waits this long for the swing to end (its combo window opening).
+const QUICK_BUFFER := 1.0
+var _quick_want := 0.0
+
+
+func _wheel(path: String, n: String) -> Node:
+	var w: Node = load(path).new()
+	w.name = n
+	w.player = self
+	add_child(w)
+	return w
+
+
+## E tapped: take the selected quick item now, or as soon as the swing or dodge you're in ends.
+func use_quick() -> void:
+	var item := inventory_component.quick_item()
 	if item == null:
+		_toast("Nothing to eat or drink (hold E to choose)")
 		return
 	if inventory_component.count(item.id) <= 0:
 		_toast("Out of %s" % item.display_name)
 		return
-	if item.is_consumable() and item.devil_fruit == "":
+	if heal_cd > 0.0:
+		quick_refused.emit()
+		return
+	_quick_want = QUICK_BUFFER
+	_quick_tick(0.0)
+
+
+func _quick_tick(delta: float) -> void:
+	if _quick_want <= 0.0:
+		return
+	_quick_want -= delta
+	if _using_item or context != Context.ON_FOOT:
+		return
+	# a swing's over once its combo window opens: the drink ends the chain
+	if state_machine.current_state.get("can_combo") == true:
+		state_machine.force_state("Idle", {})
+	if current_state_name() not in ["Idle", "Move"]:
+		return
+	_quick_want = 0.0
+	var item := inventory_component.quick_item()
+	if item and inventory_component.count(item.id) > 0:
 		use_item(item)
+
+
+# --------------------------------------------------------------------------
+# Weapon loadouts (X: a tap swaps to the next, hold for the loadout wheel)
+# --------------------------------------------------------------------------
+## Slots on the wheel: LOADOUTS_FREE from the start, the rest from the Captain tree ("loadout_slots").
+const LOADOUTS := 3
+const LOADOUTS_FREE := 2
+signal loadout_changed
+var loadout_wheel
+## Each slot: [main hand id ("" = fists), off hand id ("" = none)], or [] never set up. The slot in
+## use (loadout_at) is whatever you put in your hands meanwhile (the bag, I).
+var loadouts: Array = [[], [], []]
+var loadout_at := 0
+var _loadout_quiet := false
+var _loadout_want := -1
+var _loadout_want_t := 0.0
+
+
+func loadout_slots() -> int:
+	return LOADOUTS_FREE + int(progression.stat("loadout_slots"))
+
+
+func hands_slot() -> Array:
+	return [equipped_weapon.id if equipped_weapon else "", offhand_weapon.id if offhand_weapon else ""]
+
+
+func _loadout_note() -> void:
+	if not _loadout_quiet:
+		loadouts[loadout_at] = hands_slot()
+
+
+## Is slot i's main weapon in the bag (or it's fists, or empty)?
+func loadout_carried(i: int) -> bool:
+	var l: Array = loadouts[i]
+	return l.is_empty() or l[0] == "" or inventory_component.count(l[0]) > 0
+
+
+## Take up loadout slot i: at once when free, or the moment the swing you're in ends.
+func swap_loadout(i: int) -> void:
+	if i == loadout_at or i < 0 or i >= loadout_slots():
+		return
+	_loadout_want = i
+	_loadout_want_t = QUICK_BUFFER
+	_loadout_tick(0.0)
+
+
+func _loadout_tick(delta: float) -> void:
+	if _loadout_want < 0:
+		return
+	_loadout_want_t -= delta
+	if _loadout_want_t <= 0.0:
+		_loadout_want = -1
+		return
+	if _using_item or context != Context.ON_FOOT:
+		return
+	if state_machine.current_state.get("can_combo") == true:
+		state_machine.force_state("Idle", {})
+	if current_state_name() not in FREE_STATES:
+		return
+	var i := _loadout_want
+	_loadout_want = -1
+	_apply_loadout(i)
+
+
+func _apply_loadout(i: int) -> void:
+	loadout_at = i
+	var l: Array = loadouts[i]
+	if l.is_empty():
+		loadouts[i] = hands_slot()
+		_toast("Loadout %d set up: what's in your hands (change it in the bag, I)" % (i + 1))
+		loadout_changed.emit()
+		return
+	var main: ItemData = inventory_component.find_item(l[0]) if l[0] != "" else null
+	var off: ItemData = inventory_component.find_item(l[1]) if l[1] != "" else null
+	_loadout_quiet = true
+	if main:
+		equip_weapon(main, false)
+	else:
+		unequip_weapon()
+	if off == null or not set_offhand(off):
+		set_offhand(null)
+	_loadout_quiet = false
+	if l[0] != "" and main == null:
+		_toast("Loadout %d: your %s isn't in your bag" % [i + 1, ItemDB.get_item(l[0]).display_name])
+	else:
+		_toast("Loadout %d: %s" % [i + 1, " + ".join(PackedStringArray([main.display_name if main else "Fists"] + ([offhand_weapon.display_name] if offhand_weapon else [])))])
+	if armed and not hybrid:
+		body_model.play("draw" if main else "fists_up", 0.22)
+	Net.fx("sfx", ["clack", global_position + Vector3.UP, -10.0, 0.05, 1.3])
+	loadout_changed.emit()
+
+
+## (a save) the slots, and which is in use; the hands are the truth for that one.
+func set_loadouts(slots: Array, at: int) -> void:
+	loadouts = [[], [], []]
+	for k in range(mini(slots.size(), LOADOUTS)):
+		loadouts[k] = (slots[k] as Array).duplicate()
+	loadout_at = clampi(at, 0, LOADOUTS - 1)
+	loadouts[loadout_at] = hands_slot()
 
 
 # --------------------------------------------------------------------------
@@ -1597,6 +1754,7 @@ func equip_weapon(item: ItemData, draw: bool = true) -> void:
 		set_offhand(null)
 	_reset_ammo()
 	weapon_changed.emit(item)
+	_loadout_note()
 	if draw and not armed:
 		draw_weapon()
 
@@ -1608,6 +1766,7 @@ func unequip_weapon() -> void:
 	set_offhand(null)
 	body_model.set_weapon(null)
 	weapon_changed.emit(null)
+	_loadout_note()
 
 
 func _hands_changed() -> void:
@@ -1635,17 +1794,22 @@ func weapon_class() -> String:
 ## sword, axe or dagger), dual_dagger (dagger + dagger), sword_pistol (a one-handed
 ## blade and a pistol in the off hand), pistol, dual_pistol or claw.
 func style() -> String:
-	var c := weapon_class()
-	var dual := offhand_weapon != null and not hybrid
+	return "claw" if hybrid else style_of(equipped_weapon, offhand_weapon)
+
+
+## The fighting style a main and off hand make (a loadout's, without holding it).
+static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
+	var c := class_of(main_hand)
+	var dual := off_hand != null
 	match c:
 		"sword":
-			var main := equipped_weapon.weapon_model
+			var main := main_hand.weapon_model
 			if main == "katana":
 				return "katana"
 			if dual:
-				if class_of(offhand_weapon) == "gun":
+				if class_of(off_hand) == "gun":
 					return "sword_pistol"
-				return "dual_dagger" if main == "dagger" and offhand_weapon.weapon_model == "dagger" else "dual_sword"
+				return "dual_dagger" if main == "dagger" and off_hand.weapon_model == "dagger" else "dual_sword"
 			return main if main in ["axe", "dagger"] else "sword"
 		"gun":
 			return "dual_pistol" if dual else "pistol"
@@ -1689,18 +1853,21 @@ func set_offhand(item: ItemData) -> bool:
 	body_model.set_offhand(Props.weapon_mesh(item.model()) if item else null)
 	_reset_ammo()
 	weapon_changed.emit(equipped_weapon)
+	_loadout_note()
 	return true
 
 
 ## Something left the bag (dropped, stored in a chest): stop holding a
-## weapon you no longer carry.
+## weapon you no longer carry. (The loadout keeps it, for when it's back.)
 func check_equipped() -> void:
+	_loadout_quiet = true
 	if equipped_weapon and inventory_component.count(equipped_weapon.id) <= 0:
 		if armed:
 			sheathe_weapon(true)
 		unequip_weapon()
 	if offhand_weapon and not _offhand_valid(offhand_weapon):
 		set_offhand(null)
+	_loadout_quiet = false
 
 
 ## Put a bag stack on the ground at your feet (in co-op everyone sees it and
@@ -1832,6 +1999,7 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 		# Armament: Coat - nothing can block it, and it breaks red wind-ups
 		h.unblockable = true
 		h.haki = true
+	TraitMoves.shape(self, h, kind)
 	return h
 
 
@@ -1896,7 +2064,7 @@ const USE_SOUNDS := {"bite": [[0.4, "crunch", -6.0, 1.1], [0.62, "crunch", -12.0
 	"swig": [[0.38, "splash", -16.0, 1.9], [0.55, "splash", -17.0, 2.1]],
 	"slurp": [[0.4, "splash", -15.0, 1.6], [0.6, "splash", -16.0, 1.7]],
 	"tonic": [[0.34, "clack", -6.0, 1.9], [0.56, "splash", -16.0, 2.0]]}
-## A use was refused on the shared cooldown (the HUD flashes the quick slots).
+## A use was refused on the shared cooldown (the HUD flashes the quick slot).
 signal quick_refused
 var heal_cd: float = 0.0
 var _use_anim := ""
@@ -1914,7 +2082,8 @@ func use_item(item: ItemData) -> void:
 	if heal_cd > 0.0:
 		quick_refused.emit()
 		return
-	if item.heal_amount > 0.0 and health_component.current_health >= health_component.max_health:
+	if item.heal_amount > 0.0 and health_component.current_health >= health_component.max_health \
+			and item.meal == "" and item.stamina_amount <= 0.0 and item.energy_amount <= 0.0:
 		_toast("Already at full health")
 		return
 	if not inventory_component.remove_item(item, 1):
@@ -1952,9 +2121,6 @@ func eat_devil_fruit(item: ItemData) -> void:
 		return
 	if not inventory_component.remove_item(item, 1):
 		return
-	for i in range(InventoryComponent.HOTBAR_SIZE):
-		if inventory_component.hotbar[i] == item.id:
-			inventory_component.clear_hotbar_slot(i)
 	_using_item = item
 	_use_timer = item.use_time
 	body_model.show_left_prop(Props.devil_fruit_mesh("devil_fruit_" + item.devil_fruit))
@@ -1990,12 +2156,27 @@ func _finish_use() -> void:
 		get_tree().call_group("hud", "show_banner", "%s (%s)" % [fd.get("name", "Devil Fruit"), DevilFruits.type_name(item.devil_fruit)], line, true)
 		SaveGame.save(self)
 		return
+	var got: Array = []
 	if item.heal_amount > 0.0:
 		var amt := item.heal_amount * (1.0 + progression.stat("potion_pct"))
 		health_component.heal(amt)
 		Net.fx("sparkle", [global_position + Vector3(0, 1.1, 0), 10, Color(0.6, 1.0, 0.55) if item.use_anim != "tonic" else Color(0.45, 1.0, 0.85)])
 		Net.fx("sfx", ["blip_high", global_position + Vector3(0, 1.2, 0), -12.0, 0.05, 1.25])
-		_toast("+%d health" % int(amt))
+		got.append("+%d health" % int(amt))
+	if item.stamina_amount > 0.0:
+		stamina = minf(stamina + item.stamina_amount, max_stamina)
+		got.append("+%d stamina" % int(item.stamina_amount))
+	if item.energy_amount > 0.0:
+		power.add_energy(item.energy_amount)
+		got.append("+%d energy" % int(item.energy_amount))
+	if item.meal != "":
+		progression.eat_meal(item.meal)
+		Net.fx("sparkle", [global_position + Vector3(0, 1.3, 0), 22, Color(1.0, 0.82, 0.4)])
+		Net.fx("float_text", [global_position + Vector3(0, 2.3, 0), item.display_name + "!", Color(1.0, 0.85, 0.45), 20])
+		Net.fx("sfx", ["blip_high", global_position + Vector3(0, 1.2, 0), -9.0, 0.05, 0.95])
+		got = ["%s for %d min" % [Food.buff_text(item.meal, progression.meal_k), roundi(progression.meal_left / 60.0)]]
+	if not got.is_empty():
+		_toast(", ".join(got))
 
 
 func is_using_item() -> bool:

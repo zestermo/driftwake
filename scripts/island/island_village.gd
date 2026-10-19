@@ -178,15 +178,17 @@ func _build(rng: RandomNumberGenerator) -> void:
 	var trade_id := _key("trader")
 	var food_id := _key("cook")
 	var w := IslandContent.LOOT_WEAPONS
+	# (the treasure merchant of the island: its staples at the island's tier, a trait on blue and up from a stream of its own)
 	Shops.extra[trade_id] = {"name": "%s's Trade Goods" % TRADERS[rng.randi() % TRADERS.size()],
-		"line": "Shells, steel and sea-gems. I'll take your loot at a fair price.",
-		"stock": [["rum", 9], ["biscuit", 3], ["tonic", 28 + t * 2], ["%s@%d" % [w[rng.randi() % w.size()], t], 60 + t * 40],
+		"line": "Shells, steel and sea-gems. I'll take your loot at a fair price.", "trade": "treasure", "tier": maxi(t, 2),
+		"stock": Shops.with_traits([["rum", 9], ["biscuit", 3], ["tonic", 28 + t * 2], ["%s@%d" % [w[rng.randi() % w.size()], t], 60 + t * 40],
 			["%s@%d" % [w[rng.randi() % w.size()], maxi(t - 1, 0)], 40 + t * 25], ["pistol@%d" % maxi(t - 1, 0), 70 + t * 30]]
-			+ Instruments.trader_stock(trade_id),
+			+ Instruments.trader_stock(trade_id), trade_id),
 		"buys": {"loot": 0.9, "gear": 0.5, "weapon": 0.5}}
 	Shops.extra[food_id] = {"name": "%s's Cookpot" % COOKS[rng.randi() % COOKS.size()],
-		"line": "Fish from the reef, fruit from the trees, something in the pot. Eat.",
-		"stock": [["fish", 5], ["stew", 16], ["rum", 8]], "buys": {"consumable": 0.4}}
+		"line": "Fish from the reef, fruit from the trees, something in the pot. Eat.", "trade": "grocer",
+		"stock": [["fish", 5], ["stew", 16], ["rum", 8]], "pool": Shops.THEME_GROCER.get(isl.theme, Shops.THEME_GROCER["jungle"]),
+		"size": Shops.GROCER_SIZE, "buys": {"consumable": 0.4, "ingredient": 0.5}}
 	# the job board by the way in
 	var bd: Dictionary = p["board"]
 	var board := ctx.place(KitVillage.notice_board(rng), bd["p"], KitContext.face_yaw(bd["face"]), 1.0, 0.0, false)

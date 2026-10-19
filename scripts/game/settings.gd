@@ -74,7 +74,7 @@ func _ready() -> void:
 	# a test or render tool with a window open must not blast the game's sound at whoever's at the PC
 	if tool_run():
 		AudioServer.set_bus_mute(0, true)
-	# web: Ctrl+W closes the browser tab (no page can stop it), so dodge is C there (and crouch X)
+	# web: Ctrl+W closes the browser tab (no page can stop it), so dodge is C there (and crouch X, loadouts Y)
 	if OS.has_feature("web"):
 		var c := InputEventKey.new()
 		c.physical_keycode = KEY_C
@@ -84,6 +84,10 @@ func _ready() -> void:
 		x.physical_keycode = KEY_X
 		InputMap.action_erase_events("crouch")
 		InputMap.action_add_event("crouch", x)
+		var y := InputEventKey.new()
+		y.physical_keycode = KEY_Y
+		InputMap.action_erase_events("loadout")
+		InputMap.action_add_event("loadout", y)
 
 
 func get_value(section: String, key: String) -> Variant:

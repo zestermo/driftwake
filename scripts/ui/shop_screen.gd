@@ -11,7 +11,7 @@ const COLS := 5
 const ROWS := 5
 const INFO_W := 142
 const TIP_W := 150
-const KIND_NAMES := {"loot": "treasure", "weapon": "weapons", "consumable": "food and drink", "gear": "clothes and armour"}
+const KIND_NAMES := {"loot": "treasure", "weapon": "weapons", "consumable": "food and drink", "gear": "clothes and armour", "ingredient": "ingredients"}
 
 var shop_id: String = ""
 var _menu: Node
@@ -22,7 +22,9 @@ var _gold: Label
 var _stock_grid: GridContainer
 var _bag_grid: GridContainer
 var _buy_note: Label
-var _stock: Array = []  # [stock entry, item] per stock slot
+var _stock: Array = []  # [stock entry, item] per stock slot; the buy-back row after: [[], item, each, count]
+## The first buy-back slot (Shops.sold_back) in _stock.
+var _back_at := 0
 var _stock_slots: Array = []
 var _bag_slots: Array = []
 var _view: Array[int] = []
@@ -209,8 +211,11 @@ func _refresh() -> void:
 	_buy_note.text = ("BUYS " + ", ".join(kinds)).to_upper() if not kinds.is_empty() else "BUYS NOTHING"
 	_buy_note.add_theme_color_override("font_color", UIStyle.TEXT_DIM if not kinds.is_empty() else UIStyle.DANGER_TEXT)
 	_stock.clear()
-	for e in shop["stock"]:
+	for e in SHOPS.stock(shop_id):
 		_stock.append([e, SHOPS.item_of(e)])
+	_back_at = _stock.size()
+	for b in SHOPS.sold_back(shop_id):
+		_stock.append([[], b[0], int(b[2]), int(b[1])])
 	while _stock_slots.size() < _stock.size():
 		var s = _slot("shop", _stock_slots.size())
 		_stock_grid.add_child(s)
@@ -218,11 +223,15 @@ func _refresh() -> void:
 	for i in range(_stock_slots.size()):
 		var s = _stock_slots[i]
 		s.visible = i < _stock.size()
+		s.modulate = Color.WHITE
 		if i < _stock.size():
-			var price := SHOPS.price_of(_stock[i][0])
+			var price := price_at(i)
 			s.show_item(_stock[i][1], 1)
 			s.count.text = str(price)
 			s.count.add_theme_color_override("font_color", UIStyle.ACCENT if gold() >= price else UIStyle.DANGER_TEXT)
+			if i >= _back_at:
+				# (the buy-back row: what you just sold them, tinted)
+				s.modulate = Color(0.75, 0.9, 1.0)
 	_view = inv.bag_view()
 	var cells := maxi(ceili(_view.size() / float(COLS)) * COLS, ROWS * COLS)
 	while _bag_slots.size() < cells:
@@ -271,9 +280,9 @@ func _show_card() -> void:
 	var pl := _player()
 	var src := str(_sel["src"])
 	if src == "shop":
-		var price := SHOPS.price_of(_stock[int(_sel["i"])][0])
+		var price := price_at(int(_sel["i"]))
 		InventoryScreen.fill_info(_card, it, 1, "shop", INFO_W, pl)
-		_price.text = "PRICE %d G" % price
+		_price.text = ("BUY BACK %d G" if int(_sel["i"]) >= _back_at else "PRICE %d G") % price
 		_price.add_theme_color_override("font_color", UIStyle.ACCENT if gold() >= price else UIStyle.DANGER_TEXT)
 		_buy_btn.visible = true
 		_buy_btn.disabled = gold() < price or pl.inventory_component.room_for(it) <= 0
@@ -302,10 +311,42 @@ func _act(all: bool) -> void:
 	var it := _item_of(str(_sel["src"]), int(_sel["i"]))
 	if it == null:
 		return
-	if str(_sel["src"]) == "shop":
+	if str(_sel["src"]) == "shop" and int(_sel["i"]) >= _back_at:
+		buy_back(int(_sel["i"]) - _back_at)
+	elif str(_sel["src"]) == "shop":
 		buy(_stock[int(_sel["i"])][0])
 	else:
 		sell(it, _count(it) if all else 1)
+
+
+## What stock slot `i` costs: on the curve, or (the buy-back row) what they paid you.
+func price_at(i: int) -> int:
+	return int(_stock[i][2]) if i >= _back_at else SHOPS.price_of(_stock[i][0])
+
+
+## The stock slot of buy-back entry `k`.
+func back_slot(k: int) -> int:
+	return _back_at + k
+
+
+## Buy back one of what you sold them (buy-back entry `k`) at what they paid.
+func buy_back(k: int) -> void:
+	var i := _back_at + k
+	var price := price_at(i)
+	var it: ItemData = _stock[i][1]
+	var inv = _player().inventory_component
+	if gold() < price:
+		_flash("Not enough gold", true)
+		return
+	if not inv.add_item(it, 1):
+		_flash("Your bag's full", true)
+		return
+	inv.remove_item(ItemDB.get_item("gold"), price)
+	SHOPS.took_back(shop_id, k)
+	UIStyle.sfx("buy")
+	_flash("Bought back %s for %d gold" % [it.display_name, price], false)
+	_refresh()
+	_bounce(it)
 
 
 func buy(entry: Array) -> void:
@@ -334,6 +375,7 @@ func sell(it: ItemData, n: int) -> void:
 	if not inv.remove_item(it, n):
 		return
 	inv.add_item(ItemDB.get_item("gold"), each * n)
+	SHOPS.note_sold(shop_id, it, n, each)
 	UIStyle.sfx("sell")
 	_flash("Sold %s%s for %d gold" % [it.display_name, " x%d" % n if n > 1 else "", each * n], false)
 	_refresh()

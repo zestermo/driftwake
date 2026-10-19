@@ -1,36 +1,35 @@
 extends Node
 class_name InventoryComponent
-## Carried items plus three quick-item slots (keys 5-7) for consumables.
-## Quick slots fill themselves as you pick up consumables and store item ids,
-## so a slot remembers its item even when the stack runs out (you drank all
-## the rum) and lights up again when you find more. Weapons are equipped from
-## the inventory, not from here. (The slots are still called the "hotbar" in
-## code and saves.)
+## Carried items, and the selected quick item: the food or drink the quick-item key (E) takes.
+## A tap of E takes it (Player.use_quick); holding E opens the item wheel of every food and drink
+## you carry (quick_choices) to pick another (select_quick). The selection is an item id: it fills
+## itself with the first consumable you pick up, moves on to the next food you carry when its stack
+## runs out, and is remembered when you've none left at all (it lights up again when you find more).
+## Weapons are equipped from the inventory, not from here.
 
 signal inventory_changed
 signal item_added(item: ItemData, quantity: int)
-signal hotbar_changed
-
-const HOTBAR_SIZE := 3
+signal quick_changed
 
 @export var max_slots: int = 20
 ## Bag slots the crew's ship's hold adds (Ship.apply_kit: the ship this machine sees).
 static var bonus_slots: int = 0
 var items: Array[ItemStack] = []
-var hotbar: Array[String] = ["", "", ""]
-## The weapons in your hands (Player keeps it). Those stacks and the quick slots'
+## The selected quick item's id ("" = none).
+var quick: String = ""
+## The weapons in your hands (Player keeps it). Those stacks and the selected quick item's
 ## stay in `items` but live in their slots: off the bag grid and taking no bag space.
 var in_hands: Array[ItemData] = []
 
 
-## Is the stack at each bag position held (a hand or a quick slot)?
+## Is the stack at each bag position held (a hand or the quick item)?
 func held_mask() -> Array[bool]:
 	var hands: Array[String] = []
 	for w in in_hands:
 		hands.append(w.id)
 	var out: Array[bool] = []
 	for st in items:
-		var h := hotbar.has(st.item.id)
+		var h := quick != "" and st.item.id == quick
 		if not h and hands.has(st.item.id):
 			hands.erase(st.item.id)
 			h = true
@@ -99,6 +98,7 @@ func remove_item(item_data: ItemData, quantity: int = 1) -> bool:
 		quantity -= take
 		if stack.quantity <= 0:
 			items.remove_at(i)
+	_quick_ran_out()
 	inventory_changed.emit()
 	return true
 
@@ -175,6 +175,7 @@ func take_at(idx: int) -> ItemStack:
 		return null
 	var st := items[idx]
 	items.remove_at(idx)
+	_quick_ran_out()
 	inventory_changed.emit()
 	return st
 
@@ -265,6 +266,7 @@ func take_all_except(keep: Array) -> Array[ItemStack]:
 		out.append(st)
 		items.remove_at(i)
 	if not out.is_empty():
+		_quick_ran_out()
 		inventory_changed.emit()
 	return out
 
@@ -274,42 +276,51 @@ func clear() -> void:
 	inventory_changed.emit()
 
 
-# ---- Hotbar ----
-## Can this item go in a quick slot? (Consumables only, not Devil Fruits.)
+# ---- The quick item ----
+## Can this item be the quick item? (Food and drink: consumables, not Devil Fruits.)
 static func quick_ok(item_data: ItemData) -> bool:
 	return item_data != null and item_data.is_consumable() and item_data.devil_fruit == ""
 
 
-func assign_hotbar(slot: int, item_id: String) -> void:
-	if slot < 0 or slot >= HOTBAR_SIZE:
-		return
+## Make `item_id` the quick item ("" = none). Refused for anything but food and drink.
+func select_quick(item_id: String) -> bool:
 	if item_id != "" and not quick_ok(ItemDB.get_item(item_id)):
-		return
-	# an item lives in one slot only
-	for i in range(HOTBAR_SIZE):
-		if hotbar[i] == item_id:
-			hotbar[i] = ""
-	hotbar[slot] = item_id
-	hotbar_changed.emit()
+		return false
+	if item_id != quick:
+		quick = item_id
+		quick_changed.emit()
+		inventory_changed.emit()
+	return true
 
 
-func clear_hotbar_slot(slot: int) -> void:
-	if slot >= 0 and slot < HOTBAR_SIZE:
-		hotbar[slot] = ""
-		hotbar_changed.emit()
+## The selected quick item (null: none). It may be one you've run out of (count() says).
+func quick_item() -> ItemData:
+	return find_item(quick) if quick != "" else null
 
 
-func get_hotbar_item(slot: int) -> ItemData:
-	if slot < 0 or slot >= HOTBAR_SIZE or hotbar[slot] == "":
-		return null
-	return find_item(hotbar[slot])
+## Every food and drink you carry, one per kind, in bag order; the selected one is
+## always among them (first, when you've run out of it).
+func quick_choices() -> Array[ItemData]:
+	var out: Array[ItemData] = []
+	var it := quick_item()
+	if it and count(quick) <= 0:
+		out.append(it)
+	for st in items:
+		if quick_ok(st.item) and not out.has(st.item):
+			out.append(st.item)
+	return out
 
 
 func _auto_assign(item_data: ItemData) -> void:
-	if not quick_ok(item_data) or hotbar.has(item_data.id):
+	if quick_ok(item_data) and (quick == "" or count(quick) <= 0):
+		select_quick(item_data.id)
+
+
+## The quick item's last one went: on to the next food or drink you carry, if any.
+func _quick_ran_out() -> void:
+	if quick == "" or count(quick) > 0:
 		return
-	for i in range(HOTBAR_SIZE):
-		if hotbar[i] == "":
-			hotbar[i] = item_data.id
-			hotbar_changed.emit()
+	for st in items:
+		if quick_ok(st.item):
+			select_quick(st.item.id)
 			return

@@ -111,7 +111,7 @@ func _process(d: float) -> bool:
 			p.health_component.current_health = 99999.0
 			check("start at level 1 with nothing learned (origin + weapon roots)", pr.level == 1 and pr.skill_points == 0
 				and pr.owned.size() == SkillTree.starting_nodes().size() and pr.owns("origin") and pr.owns("s_root") and not pr.owns("e_root"))
-			check("empty skill bar", pc.loadout == ["", "", "", "", ""])
+			check("empty skill bar", pc.loadout == ["", "", "", "", "", ""])
 			check("no double jump at the start", p.max_jumps == 1)
 			check("everyone has energy", pc.max_energy() >= 100.0)
 			# a grunt kill gives experience

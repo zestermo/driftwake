@@ -114,6 +114,8 @@ var _kind := "cut"
 var _shot_t := -1.0
 var _shot_done := false
 var _off: Array = OFFHAND["sword"]
+## The running cut's reach with a Rushing weapon (TraitMoves.rush_k; 1: plain).
+var _rush := 1.0
 
 
 func enter(data: Dictionary) -> void:
@@ -144,8 +146,9 @@ func enter(data: Dictionary) -> void:
 
 	var forward := get_camera_forward()
 	player.player_model.rotation.y = atan2(-forward.x, -forward.z)
-	player.velocity.x = forward.x * float(cfg["impulses"][combo_index])
-	player.velocity.z = forward.z * float(cfg["impulses"][combo_index])
+	_rush = TraitMoves.rush_k(player) if cfg.get("breaker", false) else 1.0
+	player.velocity.x = forward.x * float(cfg["impulses"][combo_index]) * _rush
+	player.velocity.z = forward.z * float(cfg["impulses"][combo_index]) * _rush
 	var anim := str(cfg["anims"][combo_index])
 	_window = ActionSpecs.hit_seconds(anim)
 	_swoosh = ActionSpecs.swoosh_seconds(anim)
@@ -192,7 +195,7 @@ func physics_update(delta: float) -> void:
 		if cfg.has("bleeds") and float(cfg["bleeds"][combo_index]) > 0.0:
 			hit.set_meta("bleed", float(cfg["bleeds"][combo_index]))
 		# (the axe's finisher puts them on the ground)
-		hit.knockdown = last and cfg.get("slam", false)
+		hit.knockdown = (last and cfg.get("slam", false)) or _rush > 1.0
 		player.sword_hitbox.activate(hit)
 		if last and cfg.get("slam", false):
 			var fwd := -player.player_model.global_basis.z

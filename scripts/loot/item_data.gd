@@ -10,7 +10,8 @@ const RARITY_COLORS := [Color(0.92, 0.92, 0.9), Color(0.4, 0.88, 0.38), Color(0.
 	Color(1.0, 0.82, 0.22), Color(1.0, 0.22, 0.2), Color(0.04, 0.04, 0.05)]
 const RARITY_DAMAGE := 0.08
 const RARITY_DEFENSE := 0.25
-const RARITY_VALUE := [1.0, 1.6, 2.6, 4.0, 7.0, 12.0, 20.0]
+## x1.6 a tier: the economy's one curve (Economy.STEP).
+const RARITY_VALUE := [1.0, 1.6, 2.56, 4.1, 6.55, 10.49, 16.78]
 
 @export var id: String = ""
 @export var display_name: String = ""
@@ -30,6 +31,8 @@ const RARITY_VALUE := [1.0, 1.6, 2.6, 4.0, 7.0, 12.0, 20.0]
 @export var damage_mult: float = 1.0
 ## Venom on the blade: each hit poisons for 4 s at this much damage a second.
 @export var poison: float = 0.0
+## Its named trait (WeaponTraits.TRAITS id; blue and up), which changes one of its moves.
+@export var weapon_trait: String = ""
 
 @export_group("Gear")
 ## Equipment slot kind: head, torso, vest, coat, hands, legs, feet, belt, accessory.
@@ -47,6 +50,13 @@ const RARITY_VALUE := [1.0, 1.6, 2.6, 4.0, 7.0, 12.0, 20.0]
 @export var use_anim: String = "bite"
 ## A Devil Fruit (fruit id, see DevilFruits): eating it is permanent.
 @export var devil_fruit: String = ""
+## Drink and food beyond healing: stamina and energy back when it lands.
+@export var stamina_amount: float = 0.0
+@export var energy_amount: float = 0.0
+## A galley meal (Food.MEALS id): eating it gives that buff for its minutes.
+@export var meal: String = ""
+## What it counts as in a recipe (Food.TAGS: fish, meat, fruit, grain, spice, greens); "" none.
+@export var ingredient: String = ""
 
 
 ## Loot is what gets dropped on death and stored when banking.
