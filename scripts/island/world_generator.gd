@@ -265,6 +265,10 @@ func _generate_world() -> void:
 	features.name = "SeaFeatures"
 	features.gen = self
 	add_child(features)
+	var dive := preload("res://scripts/swim/dive_sites.gd").new()
+	dive.name = "DiveSites"
+	dive.gen = self
+	add_child(dive)
 	if not Net.is_client():
 		var baker := _nav_baker.new()
 		baker.name = "NavBaker"

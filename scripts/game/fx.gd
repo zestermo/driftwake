@@ -601,6 +601,13 @@ func splash(pos: Vector3, amount: int = 4, size: float = 0.6) -> void:
 		water_ring(pos, size * 1.5 + amount * 0.06)
 
 
+## Bubbles wobbling up through the water (a diver's breath, a gasp, a chest's lid): a few pale specks rising.
+func bubbles(pos: Vector3, amount: int = 3) -> void:
+	_burst(pos, amount, _spark_mat, 0.09, 1.3, {
+		"radius": 0.1, "spread": 20.0, "vel_min": 0.5, "vel_max": 1.1, "gravity": Vector3(0, 1.8, 0), "damping": 0.4,
+		"explosiveness": 0.6, "grow": false, "hold": true, "color": Color(0.82, 0.95, 1.0, 1.0)})
+
+
 ## Foam rings racing out on the water from `pos`, riding the swell as they go.
 func water_ring(pos: Vector3, radius: float = 1.5, life: float = 1.1) -> void:
 	var cam := get_viewport().get_camera_3d()

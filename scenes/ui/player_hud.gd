@@ -88,6 +88,9 @@ func _ready() -> void:
 	_objective = OBJECTIVE.new()
 	_objective.name = "Objective"
 	add_child(_objective)
+	var breath := preload("res://scripts/swim/breath_meter.gd").new()
+	breath.name = "BreathMeter"
+	add_child(breath)
 	# all of it on a crisp canvas (whole screen pixels per canvas pixel)
 	_pc = PixelCanvas.new()
 	_pc.mouse_filter = Control.MOUSE_FILTER_IGNORE

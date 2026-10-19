@@ -1,7 +1,7 @@
 // PSX ocean. The wave math (ocean_waves.gdshaderinc) MUST stay in sync with
 // OceanManager._height (scripts/ocean/ocean_manager.gd): swimmers, the ship and enemies float on it.
 shader_type spatial;
-render_mode blend_mix, depth_draw_always, cull_back, diffuse_lambert, specular_schlick_ggx;
+render_mode blend_mix, depth_draw_always, cull_disabled, diffuse_lambert, specular_schlick_ggx;
 
 #include "res://shaders/psx/psx_common.gdshaderinc"
 #include "res://shaders/world/cloud_shadow.gdshaderinc"
@@ -112,6 +112,8 @@ uniform float whitecaps = 0.0;
 uniform vec2 wind_dir = vec2(1.0, 0.0);
 uniform float time_val = 0.0;
 uniform float near_alpha = 0.82;
+// the camera is under the sea (Weather): the surface's underside is drawn, otherwise its back faces aren't
+uniform float under_sea = 0.0;
 // The horizon haze (Weather): rgb = the fog colour (sRGB), a = how far up the
 // sky it reaches. Toward the horizon the sea melts into the same colour the
 // sky does just above it, so there is no line where the sea stops.
@@ -219,4 +221,21 @@ void fragment() {
 	ROUGHNESS = 0.2;
 	METALLIC = 0.0;
 	SPECULAR = 0.2 * (1.0 - hz);
+	// seen from under the sea (a diver's camera): the surface is a bright rippling window straight
+	// overhead and, further off, a mirror of the deep (the scene fog does the distance)
+	if (!FRONT_FACING) {
+		if (under_sea < 0.5) {
+			discard;
+		}
+		float up = clamp(-rel.y / max(dist, 0.001), 0.0, 1.0);
+		float window = smoothstep(0.45, 0.8, up);
+		float ripple = smoothstep(0.5, 0.9, tex.g + lace * 0.3);
+		vec3 sky_lin = mix(haze_lin, vec3(0.75, 0.9, 1.0), 0.5);
+		vec3 under = mix(deep_color.rgb * 0.6, sky_lin * 1.2, window) + ripple * window * 0.25;
+		under = mix(under, foam_color.rgb, max(surf, caps) * 0.5);
+		ALBEDO = vec3(0.0);
+		EMISSION = under * cloud_shade(world_pos.xz);
+		ALPHA = mix(0.75, 0.95, window);
+		SPECULAR = 0.0;
+	}
 }

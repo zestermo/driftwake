@@ -3723,3 +3723,36 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   the captains. Layers redraw only when MapFog.version moves; the captains' layer every frame while open.
 - **sea_chart.gd**: M on an island opens on its page, at sea on the chart; the mouse wheel goes between them; marks set on either.
 - Tests: `t/map/` fog_reveal, spot_marks, fog_shared (the stub island `tools/dev/map_stub_isle.gd`). Render: `heldmapshot`.
+
+## 2026-10-19: deeper swimming, piece 1: breath, diving, dive loot (v1.18 lane E)
+Spec: docs/v1_18_plan.md ("Swimming", "Breath").
+- **Diving** (swim_state.gd): Ctrl is a duck dive (DIVE_KICK 3.6 m/s down, DIVE_COST 6 stamina), then you swim free under water: hold Ctrl
+  to go down (DESCEND 2.6), Space to kick up (ASCEND 3.4), neither drifts up (DRIFT_UP 0.9), DIVE_VACCEL 9; DIVE_SPEED 3.0 / DIVE_FAST 4.3
+  (Shift) x swim_pct. Back through the surface (after DIVE_MIN 0.4 s, rising, at the float height) you surface with a splash. Exhausted: you rise.
+  Strokes cost DRAIN/FAST_DRAIN under water as on top (the old DIVE_DRAIN 8/s and the 2.6 s cap are gone).
+- **Breath** (`breath`, `breath_max()` = BREATH 20 s x (1 + breath_pct)): spent only on a dive with the head under (x FAST_BREATH 1.6 at a
+  sprint), back at BREATH_REFILL 9/s x (1 + breath_refill_pct) otherwise. At BREATH_WARN 0.3 a toast and a blip; at 0 `gasping`: a toast, the
+  peril sting and GASP_DPS 6% of max health a second (0.5 s ticks, a small shake) until the head's out ("Air!"). A wave over a swimmer's head at
+  the surface never counts: plain swimming can't drown a non-fruit captain. Bubbles from the mouth (`FX.bubbles`, new, via Net.fx).
+- **Breath meter** (scripts/swim/breath_meter.gd, added by player_hud.gd): ten bubbles over the skill bar while breath isn't full in the water,
+  amber and pulsing under 30%, empty: red, "SURFACE!" flashing and a red pulse in from the screen's edges.
+- **Perks** (skill_tree.gd): Deep Lungs +50% breath (breath_pct 0.5) besides +10 stamina; Second Wind breath back twice as fast at the surface
+  (breath_refill_pct 1.0); Child of the Sea another +50% breath. Strong Strokes / Sea Born speed count under water too.
+- **Under water** (the camera follows a diver whose head is 0.9 m under, back up at 0.3: `SwimState.camera_under()` read by camera_rig.gd, which
+  otherwise keeps it above the waves as before). Weather.gd `under_water`: the fog closes in blue-green (UNDER_SHALLOW -> UNDER_DEEP by depth to
+  UNDER_DARK 22 m; you see UNDER_SEE 34 m just under, 13 m at depth), ambient dims, the overlay tints (UNDER_TINT 0.22), re-run when the depth
+  moves 0.5 m. ocean.gdshader is `cull_disabled` now: its back faces draw only with `under_sea` set (Weather), as a bright rippling window
+  overhead and a mirror of the deep further off; above water they're discarded. The wave maths is untouched.
+- **Dive sites** (scripts/swim/dive_sites.gd, "DiveSites" under WorldGenerator): off each island's coasts, 4-15 m down, clear of the dock by
+  70 m, 26 m apart: found by marching 64 bearings out from the island (150 m / 0.6 x radius) over the seabed (the island's terrain or the world's
+  under it, whichever is higher), every level point in the open-sea band a candidate. Brinehollow: a wreck, a ruin, two chests, three oyster beds,
+  two reefs (HOME_KINDS; 11 spots found); a chain island: a chest or two, 2-3 oysters, 1-2 reefs, a wreck on half, ruins on a third (its seed),
+  built when it stands, freed with it. The deepest spots take the wreck and the ruin. Kinds: `sunken_chest` (a LootBag with the treasure-chest
+  model and barnacles, usable in water, save id `dive_chest_<i>` through the island's save_key), `oyster_bed` (F: a pearl, PEARL), `reef_garden`
+  (coral and kelp, F: REEF), `sunken_wreck` (a HullBuilder wreck on her side, her chest beside her), `sunken_ruin` (a plinth, columns standing,
+  broken and fallen, an arch, a stone coffer with RUIN_LOOT). Each captain loots each once (chests are world LootBags; oysters/reefs mark
+  GameManager.opened). Bubbles at the surface over a chest still down there, and a glint under water (local, every 1.7 s within 70 m). All from
+  the seed, so a guest builds the same; nothing synced. **Item ids:** PEARL and REEF stand in as treasure and crab meat until economy (A) publishes
+  pearl / reef ingredient ids; the chests' tables move to A's loot API then.
+- Tests: t/swim/ breath_dive, out_of_breath, surface_safe, dive_loot. swimtest (not run during the batch): its "bobs back up" wait is 5 s now
+  (letting go drifts up at 0.9 m/s). Render: tools/dev/diveshot.gd.

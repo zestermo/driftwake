@@ -3705,10 +3705,16 @@ func _swim_pose(p: Dictionary, delta: float) -> void:
 	for j in b.keys():
 		p[j] = (tr[j] as Vector3).lerp(b[j], m)
 	if diving:
-		var fl := sin(_t * 9.0)
-		var d := {"pivot": Vector3(-1.45, 0, 0), "torso": Vector3(0.0, 0, 0), "head": Vector3(0.2, 0, 0),
-			"arm_l": Vector3(2.95, 0, -0.12), "arm_r": Vector3(2.95, 0, 0.12), "fore_l": Vector3(0.1, 0, 0), "fore_r": Vector3(0.1, 0, 0),
-			"leg_l": Vector3(fl * 0.3, 0, -0.04), "leg_r": Vector3(-fl * 0.3, 0, 0.04), "shin_l": Vector3(-0.3, 0, 0), "shin_r": Vector3(-0.3, 0, 0)}
+		# under water the body points where it's going: head down going deeper, up kicking for the surface,
+		# level swimming along, nearly upright sculling in place
+		var fl := sin(_t * (9.0 + m * 3.0))
+		var vs := clampf(vertical_speed / 3.0, -1.0, 1.0)
+		var pitch := minf(lerpf(-0.35, -1.5, m) + vs * lerpf(0.9, 0.55, m), -0.1)
+		var scull := sin(_t * 4.0) * (1.0 - m)
+		var d := {"pivot": Vector3(pitch, 0, 0), "torso": Vector3(0.0, 0, 0), "head": Vector3(lerpf(0.1, 0.45, m), 0, 0),
+			"arm_l": Vector3(lerpf(0.6, 2.95, m), scull * 0.4, -lerpf(0.9, 0.12, m)), "arm_r": Vector3(lerpf(0.6, 2.95, m), -scull * 0.4, lerpf(0.9, 0.12, m)),
+			"fore_l": Vector3(lerpf(0.5, 0.1, m), 0, 0), "fore_r": Vector3(lerpf(0.5, 0.1, m), 0, 0),
+			"leg_l": Vector3(fl * 0.35, 0, -0.04), "leg_r": Vector3(-fl * 0.35, 0, 0.04), "shin_l": Vector3(-0.3 - maxf(fl, 0.0) * 0.3, 0, 0), "shin_r": Vector3(-0.3 - maxf(-fl, 0.0) * 0.3, 0, 0)}
 		for j in d.keys():
 			p[j] = d[j]
 

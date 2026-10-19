@@ -1,11 +1,16 @@
 extends PlayerState
 ## Swimming at the surface. You float with your head above the waves and
-## stroke around (Shift: faster but hungrier on stamina). Ctrl ducks you under
-## for a few seconds. Space pulls you up onto a low ledge in front of you, or
-## up a ladder; F also uses a ladder.
+## stroke around (Shift: faster but hungrier on stamina). Space pulls you up
+## onto a low ledge in front of you, or up a ladder; F also uses a ladder.
 ## Swimming slowly drains stamina and treading water lets it creep back; run
 ## the bar dry and you're exhausted: a slow float-paddle (no sprint, no dive)
 ## until you've got your breath back. No damage.
+##
+## Diving (Ctrl): a duck dive under, then you swim free below the waves: hold
+## Ctrl to go deeper, Space to kick for the surface, neither and you drift
+## slowly up. Under water you hold your breath (`breath`, the HUD's meter);
+## at the surface it comes back fast. Run out on a dive and you take steady
+## damage until your head is out (warned at a third left, and again at empty).
 ##
 ## Devil Fruit users can't swim at all: the sea drags them under. They sink,
 ## struggling weakly, can trudge along the bottom, and drown (health drains
@@ -17,11 +22,26 @@ const TIRED_SPEED := 1.1
 const ACCEL := 9.0
 const DRAIN := 3.5
 const FAST_DRAIN := 13.0
-const DIVE_COST := 12.0
-const DIVE_DRAIN := 8.0
-const DIVE_MIN := 0.5
-const DIVE_MAX := 2.6
-const DIVE_DEPTH := 1.7
+const DIVE_COST := 6.0
+const DIVE_SPEED := 3.0
+const DIVE_FAST := 4.3
+const DESCEND := 2.6
+const ASCEND := 3.4
+const DRIFT_UP := 0.9
+const DIVE_VACCEL := 9.0
+## The duck dive's push down, and how long before you can come back up through the surface.
+const DIVE_KICK := 3.6
+const DIVE_MIN := 0.4
+## Seconds of breath on a dive (Swimming perks add breath_pct), refilled at BREATH_REFILL/s with the head out.
+const BREATH := 20.0
+const BREATH_REFILL := 9.0
+## Sprinting under water spends breath this much faster.
+const FAST_BREATH := 1.6
+## Warned with this share of breath left.
+const BREATH_WARN := 0.3
+## Out of breath: this share of max health a second, in ticks of GASP_TICK s, until the head's out.
+const GASP_DPS := 0.06
+const GASP_TICK := 0.5
 const TREAD_REGEN := 0.15
 ## Exhausted: a slow float-paddle, stamina creeping back at this share of its regen.
 const FLOAT_REGEN := 0.25
@@ -40,6 +60,14 @@ var _stroke_t: float = 0.0
 var _move_blend: float = 0.0
 var _exhausted: bool = false
 var _prev_target: float = INF
+## Seconds of breath left (the HUD's meter reads it with breath_max()).
+var breath: float = BREATH
+## Out of breath on a dive right now.
+var gasping: bool = false
+var _gasp_t: float = 0.0
+var _breath_warned: bool = false
+var _head_under: bool = false
+var _cam_under: bool = false
 # the sea's curse
 const SINK_SPEED := 1.6
 const SEABED_SPEED := 1.5
@@ -63,6 +91,8 @@ func enter(data: Dictionary) -> void:
 	var vy_in := float(data.get("entry_vy", 0.0))
 	_vy = minf(vy_in, 0.0) * 0.45
 	_diving = false
+	gasping = false
+	_breath_warned = false
 	_tick = 0.0
 	_warned = false
 	_exhausted = player.stamina <= 0.0
@@ -97,36 +127,42 @@ func physics_update(delta: float) -> void:
 	elif player.stamina >= RECOVER:
 		_exhausted = false
 	var tired := _exhausted
-	var fast := Input.is_action_pressed("sprint") and not tired and dir != Vector3.ZERO and not _diving
+	var fast := Input.is_action_pressed("sprint") and not tired and dir != Vector3.ZERO
 	var spd := TIRED_SPEED if tired else (FAST_SPEED if fast else SWIM_SPEED)
 	if _diving:
-		spd = SWIM_SPEED * 1.15
+		spd = DIVE_FAST if fast else DIVE_SPEED
 	spd *= clampf(input.length(), 0.0, 1.0) * (1.0 + player.progression.stat("swim_pct"))
 	var hv := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	hv = hv.move_toward(dir * spd, ACCEL * delta)
 
-	# duck under (Ctrl): a few seconds, then you bob back up
+	# duck dive (Ctrl), then free under water until you come back up through the surface
 	if not _diving and Input.is_action_just_pressed("dodge") and not tired and player.spend_stamina(DIVE_COST):
 		_diving = true
 		_dive_t = 0.0
+		_vy = -DIVE_KICK
 		var at := _surface_point()
 		Net.fx("splash", [at, 6, 0.7])
 		Net.fx("sfx", ["splash", at, -6.0, 0.1, 0.9])
 	if _diving:
 		_dive_t += delta
-		if (_dive_t > DIVE_MIN and not Input.is_action_pressed("dodge")) or _dive_t > DIVE_MAX or player.stamina <= 0.0:
-			_diving = false
-			var at := _surface_point()
-			Net.fx("splash", [at, 6, 0.7])
-			Net.fx("sfx", ["splash", at, -7.0, 0.1, 1.15])
+		var want := DRIFT_UP
+		if tired:
+			want = ASCEND * 0.6
+		elif Input.is_action_pressed("jump"):
+			want = ASCEND
+		elif Input.is_action_pressed("dodge"):
+			want = -DESCEND
+		_vy = move_toward(_vy, want, DIVE_VACCEL * delta)
+		if _dive_t > DIVE_MIN and want > 0.0 and player.global_position.y >= _float_y(false) - 0.08:
+			_surface()
 	player.body_model.diving = _diving
+	_update_breath(delta, fast)
 
 	# stamina: strokes cost a little, treading water lets it creep back
 	if _exhausted:
 		player.stamina_regen_mult = FLOAT_REGEN
-	elif dir != Vector3.ZERO or _diving:
-		var rate := DIVE_DRAIN if _diving else (FAST_DRAIN if fast else DRAIN)
-		player.drain_stamina(rate * delta)
+	elif dir != Vector3.ZERO:
+		player.drain_stamina((FAST_DRAIN if fast else DRAIN) * delta)
 		player.stamina_regen_mult = 0.0
 	else:
 		player.stamina_regen_mult = TREAD_REGEN
@@ -146,8 +182,11 @@ func physics_update(delta: float) -> void:
 	# so the head doesn't lag under a rising wave
 	var target_v := 0.0 if _prev_target == INF else clampf((target - _prev_target) / maxf(delta, 0.0001), -6.0, 6.0)
 	_prev_target = target
-	_vy += ((target - y) * 14.0 + (target_v - _vy) * 7.5) * delta
-	_vy = clampf(_vy, -12.0, 6.0)
+	if not _diving:
+		_vy += ((target - y) * 14.0 + (target_v - _vy) * 7.5) * delta
+		_vy = clampf(_vy, -12.0, 6.0)
+	elif y + _vy * delta > target:
+		_vy = (target - y) / maxf(delta, 0.0001)
 	player.velocity = Vector3(hv.x, _vy, hv.z)
 	player.move_and_slide()
 	if dir != Vector3.ZERO:
@@ -237,9 +276,64 @@ func _float_y(tired: bool) -> float:
 	var depth := lerpf(0.42, 0.34, _move_blend) * player.body_model.scale.y
 	if tired:
 		depth += 0.12
-	if _diving:
-		depth += DIVE_DEPTH
 	return surf - depth - hip
+
+
+## Back up through the surface: a gasp of air and a splash.
+func _surface() -> void:
+	_diving = false
+	_vy = minf(_vy, 1.5)
+	var at := _surface_point()
+	Net.fx("splash", [at, 8 if breath < breath_max() * BREATH_WARN else 6, 0.75])
+	Net.fx("sfx", ["splash", at, -7.0, 0.1, 1.15])
+
+
+func breath_max() -> float:
+	return BREATH * (1.0 + player.progression.stat("breath_pct"))
+
+
+## Breath: held while the head's under (faster at a sprint), back fast once it's out. Empty on a dive:
+## steady damage until you surface. Bubbles trail from the mouth now and then.
+func _update_breath(delta: float, fast: bool) -> void:
+	var head := player.body_model.head.global_position
+	var depth := player.water_surface(head) - head.y
+	# (only a dive holds your breath: a wave over a swimmer's head at the surface doesn't)
+	_head_under = _diving and depth > 0.05
+	_cam_under = _diving and (depth > 0.9 or (_cam_under and depth > 0.3))
+	if not _head_under:
+		breath = minf(breath + BREATH_REFILL * (1.0 + player.progression.stat("breath_refill_pct")) * delta, breath_max())
+		if gasping:
+			gasping = false
+			player.call("_toast", "Air!")
+		if breath > breath_max() * BREATH_WARN:
+			_breath_warned = false
+		return
+	breath = maxf(breath - delta * (FAST_BREATH if fast else 1.0), 0.0)
+	_bubble_t -= delta
+	if _bubble_t <= 0.0:
+		_bubble_t = 0.25 if gasping else randf_range(0.9, 1.6)
+		Net.fx("bubbles", [head + Vector3(0, 0.1, 0) - player.player_model.global_basis.z * 0.12, 6 if gasping else 3])
+	if not _breath_warned and breath <= breath_max() * BREATH_WARN:
+		_breath_warned = true
+		player.call("_toast", "Running out of air! Space to surface")
+		FX.sfx("blip_low", head, -4.0, 0.0, 0.8)
+	if breath > 0.0:
+		return
+	if not gasping:
+		gasping = true
+		_gasp_t = 0.0
+		player.call("_toast", "Out of breath! Get to the surface!")
+		FX.sfx("peril", head, -2.0)
+	_gasp_t -= delta
+	if _gasp_t <= 0.0:
+		_gasp_t = GASP_TICK
+		player.health_component.take_damage(player.health_component.max_health * GASP_DPS * GASP_TICK)
+		CombatManager.apply_camera_shake(0.05)
+
+
+## The camera should be under the waves too (a deep enough dive).
+func camera_under() -> bool:
+	return _cam_under and player.current_state_name() == "Swim"
 
 
 func _ladder_in_reach() -> Ladder:
@@ -292,3 +386,6 @@ func exit() -> void:
 	player.body_model.diving = false
 	player.stamina_regen_mult = 1.0
 	_diving = false
+	_cam_under = false
+	gasping = false
+	breath = breath_max()
