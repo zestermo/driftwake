@@ -2,13 +2,14 @@ extends SceneTree
 ## Scuttlebugs: spawned in the jungle, notice -> rear -> ram, hitstun, knockdown, death + gold.
 var t := 0.0
 var step := 0
-var wait := 0.0
+const TK := preload("res://tools/dev/test_kit.gd")
+var until := 0
 var p
 var fails := 0
 var nest
 var bug
 var seen := {}
-var t0 := 0.0
+var t0 := 0
 var gold0 := 0
 func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
@@ -16,8 +17,7 @@ func check(name: String, cond: bool) -> void:
 	if not cond: fails += 1
 func _process(d: float) -> bool:
 	t += d
-	if wait > 0.0:
-		wait -= d
+	if TK.ticking(until):
 		if bug and is_instance_valid(bug): seen[bug.state] = true
 		return false
 	match step:
@@ -57,7 +57,7 @@ func _process(d: float) -> bool:
 			p.global_position = stand + Vector3.UP * 0.5
 			p.reset_physics_interpolation()
 			seen.clear()
-			wait = 4.0
+			until = TK.wait_secs(4.0)
 		1:
 			print("   states seen: ", seen.keys())
 			check("noticed the player", seen.has(1) or seen.has(2))
@@ -69,25 +69,25 @@ func _process(d: float) -> bool:
 			var hit := HitData.new(); hit.damage = 8.0; hit.knockback_force = 6.0
 			bug.hurtbox.take_hit(hit, p)
 			check("light hit -> hitstun", bug.state == 7)
-			wait = 0.4
+			until = TK.wait_secs(0.4)
 		2:
 			check("hitstun is brief", bug.state != 7)
 			var hit := HitData.new(); hit.damage = 5.0; hit.knockback_force = 9.0; hit.knockdown = true
 			bug.hurtbox.take_hit(hit, p)
 			check("heavy hit -> ragdoll", bug.state == 8 and bug._rag != null)
-			t0 = t
+			t0 = TK.wait_secs(9.0)
 			step += 1
 			return false
 		3:
-			if bug.state != 8 or t - t0 > 9.0:
-				print("   down for ", snappedf(t - t0, 0.01), " s, flips tried ", bug._flip_tries)
+			if bug.state != 8 or not TK.ticking(t0):
+				print("   down for ", snappedf(9.0 - (t0 - Engine.get_physics_frames()) / float(Engine.physics_ticks_per_second), 0.01), " s, flips tried ", bug._flip_tries)
 				check("gets back up", bug.state != 8)
 				check("ragdoll freed", bug._rag == null)
 				check("upright again", bug.body_node.global_basis.orthonormalized().y.y > 0.9 or bug._settle_t < 1.0)
 				step += 1
 			return false
 		4:
-			wait = 0.5
+			until = TK.wait_secs(0.5)
 		5:
 			check("upright after settle", bug.body_node.global_basis.orthonormalized().y.y > 0.9)
 			var hit := HitData.new(); hit.damage = 99.0; hit.knockback_force = 6.0
@@ -96,18 +96,18 @@ func _process(d: float) -> bool:
 			check("dies", bug.state == 9)
 			check("death ragdoll", bug._rag != null)
 			check("coins dropped", root.get_tree().current_scene.find_children("Coin*", "", false, false).size() > 0)
-			wait = 2.5
+			until = TK.wait_secs(2.5)
 		6:
 			print("   gold ", gold0, " -> ", p.inventory_component.count("gold"))
 			check("coins fly to the player", p.inventory_component.count("gold") > gold0)
-			wait = 2.5
+			until = TK.wait_secs(2.5)
 		7:
 			check("dead bug sinks away", not is_instance_valid(bug))
 			check("the rest still alive", nest.alive_count() == nest.spots.size() - 1)
 			# respawn once far away
 			nest.respawn_time = 0.5
 			p.global_position = p.global_position + Vector3(60, 5, 0)
-			wait = 1.5
+			until = TK.wait_secs(1.5)
 		8:
 			check("respawns when you're away", nest.alive_count() == nest.spots.size())
 			print("RESULT ", "OK" if fails == 0 else "%d FAILED" % fails)

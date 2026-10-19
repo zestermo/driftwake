@@ -3695,7 +3695,7 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   ground, but the rope hangs by the second gun (x 3.6 vs 3.65) and on the ground the nearer interactable, the gun, wins by design (yard_ropes only
   passed its first check because the captain was still falling): both now jump into it (the rope wins in the air), and yard_ropes gained a grounded
   grab with the rope moved clear of the guns. bugtest stood the captain 7 m east of a nest bug, now off a ledge into the sea (the Brinehollow
-  rebuild moved the ground): it picks level ground round the bug. r10test's sprint reversal ran the captain 17 m into a house (speed 0 for 0.3 s,
+  rebuild moved the ground): it picks level ground round the bug (and waits in physics ticks: under load its process-seconds waits ended before the coins' flight, a check the first failure had hidden). r10test's sprint reversal ran the captain 17 m into a house (speed 0 for 0.3 s,
   so no skid): it first finds a clear 24 m run. nettest board: the client waited 20 s (from the scene change) for the host's captain; alone it
   has it in 2-4 s, but under the crew's five test slots its world load alone took ~20 s, so the window closed as the world became ready
   (world_ready true, no puppet yet; the host's "stalled" line is only the host idling after the client quit). The wait is 60 s now, like the
