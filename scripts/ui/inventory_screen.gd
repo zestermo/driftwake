@@ -880,7 +880,7 @@ func _hints_for(src: String, it: ItemData) -> Array:
 		"quick":
 			out = [["RMB", "CLEAR"]]
 		"loot":
-			out = [["LMB", "TAKE"], ["SHIFT", "TAKE ONE"]]
+			out = [["LMB", "TAKE ONE"], ["SHIFT", "TAKE ALL"]]
 		_:
 			out = [["DRAG", "MOVE / EQUIP"]]
 	if has_container():
@@ -1385,12 +1385,13 @@ func _grow_loot(n: int) -> void:
 		_loot_slots.append(b)
 
 
-## Click a chest slot: the whole stack into your bag (just one with shift).
-func _click_loot(idx: int, one: bool) -> void:
+## Click a chest slot: one into your bag; shift+click: the whole stack (as shift+click stores a
+## whole stack from the bag side).
+func _click_loot(idx: int, shift: bool) -> void:
 	var pl := _player()
 	if pl and has_container() and idx < _container.contents.size():
 		var it: ItemData = _container.contents[idx].item
-		_container.take(idx, pl, 1 if one else -1)
+		_container.take(idx, pl, -1 if shift else 1)
 		menu._play("equip")
 		if has_container():
 			refresh()
