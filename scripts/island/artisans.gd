@@ -64,8 +64,14 @@ static func plan(gi) -> Dictionary:
 		var p: Vector2 = q + Vector2(-d.y, d.x) * side * 5.0
 		if _ok(gi, p):
 			gi.reserve(p, 6.0)
-			return {"kind": kind, "at": p, "face": (q - p).normalized(), "seed": rng.randi()}
+			# (their body is made in prepare with the villagers', from this look: Humanoid.stock)
+			return {"kind": kind, "at": p, "face": (q - p).normalized(), "seed": rng.randi(), "look": KitStyle.folk_look(KitStyle.of(gi.theme), rng)}
 	return {}
+
+
+## The bodies prepare makes ahead (GenIsland: with the villagers').
+static func looks(gi) -> Array:
+	return [] if gi.artisan.is_empty() else [gi.artisan["look"]]
 
 
 static func _ok(gi, p: Vector2) -> bool:
@@ -133,7 +139,7 @@ static func build(gi) -> void:
 	var id := shop_id(gi)
 	Shops.extra[id] = {"name": who, "line": str(k[1]), "trade": "artisan", "stock": stock_of(kind, rng), "buys": k[4]}
 	var npc := NPC.new()
-	npc.setup({"name": who, "voice": rng.randf_range(0.85, 1.2), "shop": id, "look": KitStyle.folk_look(st, rng),
+	npc.setup({"name": who, "voice": rng.randf_range(0.85, 1.2), "shop": id, "look": a["look"],
 		"barks": k[5], "yaw": atan2(-face.x, -face.y)})
 	npc.ground_func = gi.walk_height
 	site.add_child(npc)
