@@ -61,7 +61,7 @@ func add(q: Dictionary, isl: GenIsland) -> void:
 	if q.has("poi_at"):
 		var a: Vector2 = q["poi_at"]
 		q["poi"] = isl.to_global(Vector3(a.x, isl.hv(a) + 1.5, a.y))
-	if q["kind"] != "lost":
+	if step_index(q, "pickup") < 0:
 		return
 	var n := Node3D.new()
 	n.name = "Lost_%s" % q["id"]
@@ -116,6 +116,13 @@ func _favour(q: Dictionary, choices: Array, nodes: Dictionary) -> void:
 	if q["reward"].has("favour"):
 		choices.append({"text": q["favour_ask"], "next": "q_%s_favour" % id, "if": func(): return Journal.favour_owed(id)})
 		nodes["q_%s_favour" % id] = {"text": q["favour_thanks"], "event": "isle_q:%s:favour" % id, "next": "menu"}
+
+
+## Whoever a found quest is for (a dead man's note): the turn-in, nothing to offer or remind.
+func receive(q: Dictionary, choices: Array, nodes: Dictionary) -> void:
+	var id: String = q["id"]
+	choices.append({"text": q["done"], "next": "q_%s_pay" % id, "if": func(): return Journal.at_turnin(id)})
+	nodes["q_%s_pay" % id] = {"text": q["thanks"] + ["(%s)" % QuestRewards.text(q["reward"])], "event": "isle_q:%s:pay" % id, "next": "menu"}
 
 
 ## A deliver quest's recipient: the parcel handed over.
@@ -247,7 +254,7 @@ func _process(delta: float) -> void:
 		_glint_t = 2.5
 	for q in quests:
 		var id: String = q["id"]
-		if q["kind"] == "lost":
+		if _marks.has(id):
 			_show_mark(q)
 		if not Journal.has(id) or Journal.is_done(id):
 			continue

@@ -53,6 +53,11 @@ var quest_node: KitQuests
 var deck: LineDeck
 ## The notice board's quests (IslandVillage.jobs posted, each by the elder or a named character).
 var notices: Array = []
+## The island's encounters and events as rolled in plan (IslandEncounters.roll), the node that builds them, and
+## the quests found in the world that a named character is the one to receive (a dead man's note).
+var encounter_kinds: Array = []
+var encounters: IslandEncounters
+var found: Array = []
 var _blockers: Array = []
 var _made := 0
 
@@ -75,6 +80,7 @@ static func plan(gi: GenIsland) -> IslandLife:
 	for k in _shuffled(KitQuests.KINDS, rng):
 		L.quests.append({"kind": k, "pick": rng.randf(), "pick2": rng.randf()})
 	L.quest_count = rng.randi_range(2, 3)
+	L.encounter_kinds = IslandEncounters.roll(int(gi.node["seed"]), gi.theme)
 	for f in L.folk:
 		var h := Humanoid.new()
 		h.setup(f["look"])
@@ -125,7 +131,25 @@ func steps() -> Array:
 	var out: Array = [["life", _setup]]
 	for i in range(0, folk.size(), PER_STEP):
 		out.append(["life", _spawn.bind(i)])
+	if not encounter_kinds.is_empty():
+		out.append(["encounters", _encounters_start])
+		for i in range(encounter_kinds.size()):
+			out.append(["encounters", _encounter.bind(i)])
 	return out
+
+
+## The encounters' node (none on an island without people: nobody to meet there but the wild).
+func _encounters_start() -> void:
+	if placed.is_empty():
+		return
+	encounters = IslandEncounters.new()
+	encounters.setup(self, encounter_kinds)
+	isl.add_child(encounters)
+
+
+func _encounter(i: int) -> void:
+	if encounters:
+		encounters.build(encounters.rolled[i])
 
 
 # --------------------------------------------------------------------------
@@ -455,6 +479,9 @@ func _define_talk(i: int) -> void:
 	for q in notices:
 		if q["giver"] == f["name"]:
 			quest_node.report(q, menu, nodes)
+	for q in found:
+		if q["giver"] == f["name"]:
+			quest_node.receive(q, menu, nodes)
 	menu.append({"text": pools["bye"], "next": "end"})
 	Dialogue.define(f["talk"], {"speaker": f["name"], "voice": f["voice"], "start": "intro", "return": "menu", "nodes": nodes})
 

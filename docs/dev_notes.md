@@ -3755,6 +3755,30 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Tests: t/quests/unique_lines (four themes built whole: no line said by two people, ~20 people each with lines, small talk, notices
   reported to their posters). isletest's bounty part moved onto the journal (not run in this tier). Brinehollow islanddump identical
   (only the dummies' unseeded sack heads differ).
+
+## 2026-10-19: v1.18 lane D, piece 3: encounters and events on generated islands
+- **IslandEncounters** (`scripts/quests/island_encounters.gd`, the island's "Encounters" Node3D): `roll(seed, theme)` (data, in
+  IslandLife.plan: `hash([seed, 5201])`; 0/1/2/3 kinds at 15/40/33/12%, weighted by the theme, never a kind twice; `force` for tools and
+  tests), built after the people (IslandLife.steps: "encounters", a step each). A kind that finds nothing it needs leaves nothing.
+- Kinds (10): traveller (by a trail at a fire: small talk, two rumours into the journal, a gift once per captain: the item its line names),
+  ambush (3-4 grunts in a GruntCamp beside a trail, never respawning; a captain within 13 m springs it: banner + shout, the host alerts them),
+  festival (the village plaza: four lantern posts, a host who shouts festive lines over the crowd 17:00-23:30 and wants food for the feast:
+  a fetch turn-in with a favour), shipwreck (a beach: wrecked rowboat, timber, a survivor's camp; their chest washed up elsewhere on the
+  shore: pickup -> turn-in, a treasure map), merchant (a tipped handcart on a trail; the strongbox at the pirates' camp: pickup -> turn-in),
+  lost_child (a parent at the plaza; "Young <name>" at a wild place: talk to them -> they're home beside the parent -> turn-in, a favour),
+  hermit (at a wild place by a fire: rumours; go and see another wild place: reach -> turn-in, a map), wounded (seated by a trail: a Sea
+  Tonic), note (remains with a satchel by a trail: "Search" reads the note and takes the quest: the keepsake to a named villager, who
+  gets a turn-in choice: things you find, `src` "found"), duelist (a swordsman on a trail: accept and he fights as a captain grunt of a
+  GruntCamp of one, level +2; beaten, he stands again and pays gold and a tiered weapon).
+- Text per theme: `scripts/island/themes/<theme>_encounters.gd` (`ThemeDef.encounters`, a new contract member: weights and every kind's
+  lines), dealt through the island's LineDeck like everyone else's. Placement: trail spots 35-120 m along a path, 4.5 m aside; beaches
+  scanned in from the coast, 70 m+ from the dock; wild places from IslandLife's POIs (not the camp); spots are dry, fairly level, off
+  paths and clear of anything solid (a physics sphere 1.1-5.1 m up; people and moving bodies don't count, so guests place the same).
+- Co-op: rolls and placement are the island's seed; quests through the Journal; the ambush's and duel's crews are GruntCamps (host
+  simulated; the duel's camp appears on every machine once the journal says the challenge was taken); gifts are per captain (a flag).
+- Tests: t/quests/encounter_rolls (every theme's pool complete, 8+ kinds weighted, feast items real; rolls the same per seed, 0-3, no
+  repeats, every kind over 300 seeds; a jungle island with all ten forced builds them all, quests turned in to someone on the island, no
+  unfilled tokens, the same places on a second build). unique_lines covers their lines too.
 ## 2026-10-19: the held map, piece 1: fog of war, `?` marks, the island page (v1.18 lane C)
 - **Islands** (`scripts/map/map_isles.gd`, MapIsles): Brinehollow and the chain's standing islands as dictionaries made once per
   island node: key ("brinehollow", "isle<chain id>" like GenIsland.save_key), the world origin of island space, the height grid's

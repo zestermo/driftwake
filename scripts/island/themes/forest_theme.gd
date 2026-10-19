@@ -181,6 +181,7 @@ func _init() -> void:
 		"forest_woodpile": func(rng: RandomNumberGenerator, size: float) -> Node3D: return ForestTown.woodpile(rng.randi(), size),
 	}
 	life = preload("res://scripts/island/themes/forest_life.gd").TEXT
+	encounters = preload("res://scripts/island/themes/forest_encounters.gd").TEXT
 	# the antlered spirit of the wood and the walking oak are the forest's own; the jungle's serpent coils in the roots
 	# and its shade prowls as a lynx, so a branching chain never runs the pool dry
 	bosses = ["stag_king", "elder_treant", "serpent", "stalker"]

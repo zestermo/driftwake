@@ -175,6 +175,7 @@ func _init() -> void:
 		"snow_planter": func(rng: RandomNumberGenerator, size: float) -> Node3D: return SnowProps.planter(rng.randi(), 0.55 * size),
 	}
 	life = preload("res://scripts/island/themes/snow_life.gd").TEXT
+	encounters = preload("res://scripts/island/themes/snow_encounters.gd").TEXT
 	# (the serpent is the jungle's, coiled in the pines: a fourth so a branching chain never runs the pool dry)
 	bosses = ["snow_leopard", "great_bear", "ice_golem", "serpent"]
 	minis = ["frost_alpha"]

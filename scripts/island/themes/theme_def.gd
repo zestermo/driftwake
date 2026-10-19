@@ -58,10 +58,13 @@ var creatures := {}
 ## What lives in caves and dungeons' wildlife slots (FaunaSpawner.fill_slots): {"ceiling": the kind roosting
 ## overhead, "floor": [the kinds a floor slot picks from]}, each one of `creatures`.
 var cave_fauna := {}
+## Who its islands' encounters and events are and what they say (IslandEncounters): kind -> {"weight" (0: never), the
+## kind's text}; its own file, `scripts/island/themes/<theme>_encounters.gd`.
+var encounters := {}
 
 ## Every member above, for the check and the test: a new member goes here too.
 const CONTRACT := ["name", "display", "blurb", "island_names", "weight", "color", "glyph", "flocks", "land", "radius", "style", "props",
-	"life", "bosses", "minis", "roamers", "beasts", "fauna", "creatures", "cave_fauna"]
+	"life", "bosses", "minis", "roamers", "beasts", "fauna", "creatures", "cave_fauna", "encounters"]
 
 
 ## The theme's own land features for one island (dune fields, ridges, wadis, plateaus...), planned on the worker in

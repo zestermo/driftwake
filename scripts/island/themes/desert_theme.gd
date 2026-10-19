@@ -186,6 +186,7 @@ func _init() -> void:
 		"desert_bandit_hut": func(rng: RandomNumberGenerator, size: float) -> Node3D: return DesertTown.bandit_hut(rng.randi(), size, snappedf(size * 0.82, 0.1)),
 	}
 	life = preload("res://scripts/island/themes/desert_life.gd").TEXT
+	encounters = preload("res://scripts/island/themes/desert_encounters.gd").TEXT
 	bosses = ["sandworm", "giant_scorpion", "basilisk", "sand_lion"]
 	minis = ["hyena", "bandit_chief"]
 	roamers = ["dune_strider"]

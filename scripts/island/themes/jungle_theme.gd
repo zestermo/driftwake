@@ -156,6 +156,7 @@ func _init() -> void:
 		"totem": func(rng: RandomNumberGenerator, _size: float) -> Node3D: return JungleProps.totem(rng.randi()),
 	}
 	life = preload("res://scripts/island/themes/jungle_life.gd").TEXT
+	encounters = preload("res://scripts/island/themes/jungle_encounters.gd").TEXT
 	bosses = ["ape", "serpent", "stalker", "mantis"]
 	minis = ["boar"]
 	roamers = ["behemoth"]

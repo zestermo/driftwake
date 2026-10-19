@@ -22,6 +22,9 @@ scripts/quests/*                        t/quests lifetest net
 scripts/ui/journal_screen.gd            t/quests
 scripts/ui/objective_hud.gd             t/quests storytest
 scripts/island/kit/kit_quests.gd        t/quests netchain
+scripts/island/themes/*_life.gd         t/quests
+scripts/island/themes/*_encounters.gd   t/quests
+scripts/island/island_village.gd        t/quests isletest
 assets/textures/fx/flip_*               t/fx
 assets/textures/fx/water_trail*         t/fx
 scripts/game/water_ribbon.gd            t/fx techtest
