@@ -16,7 +16,7 @@ const TIPS := [
 	"Nessa buys anything that glitters. Treasure sells for more than gold weighs.",
 	"Hold F at the capstan to drop or weigh anchor.",
 	"Pirates only hunt ships with a captain aboard.",
-	"Rum on a quick slot (5-7) heals you in a pinch.",
+	"Tap E to drink your rum in a pinch; hold E to pick other food and drink.",
 ]
 
 var scene_path: String = ""

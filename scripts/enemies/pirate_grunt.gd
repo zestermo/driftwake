@@ -1864,22 +1864,17 @@ func _on_died() -> void:
 	died.emit(self)
 
 
-## Sometimes the dead drop their sidearm: a pistol (or the rifleman's...
-## nothing - those are too long to carry) or a cutlass.
+## Now and then the dead drop their sidearm: a pistol (or the rifleman's...
+## nothing - those are too long to carry) or their blade. Each captain rolls their own.
+const DROP_PISTOL := 0.06
+const DROP_BLADE := 0.04
+
+
 func _drop_weapon() -> void:
-	var roll := _rng.randf()
-	var id := ""
+	var table: Array = [["pistol", DROP_PISTOL, 1]]
 	if role == "sword":
-		if roll < 0.3:
-			id = "pistol"
-		elif roll < 0.45:
-			id = _blade_id
-	elif roll < 0.4:
-		id = "pistol"
-	if id == "":
-		return
-	# (in co-op every captain finds their own copy)
-	Net.drop_item(id, global_position + Vector3(_rng.randf_range(-0.6, 0.6), 0.1, _rng.randf_range(-0.6, 0.6)), _rng.randf() * TAU)
+		table.append([_blade_id, DROP_BLADE, 1])
+	Net.kill_loot(table, global_position)
 
 
 ## Vine Snare: tied in place for a while.

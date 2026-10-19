@@ -52,7 +52,7 @@ func _process(d: float) -> bool:
 			var band = Gear.make("head", "bandana", {"hat": "bandana", "hat_color": CharacterLook.CLOTH[13]})
 			p.inventory_component.add_item(band, 1)
 			set_meta("band", band)
-			check("gear doesn't land on the hotbar", not p.inventory_component.hotbar.has(gloves.id))
+			check("gear isn't the quick item", p.inventory_component.quick != gloves.id)
 			gm.open("inventory")
 			wait = 0.8; step = 4
 		4:
@@ -86,12 +86,12 @@ func _process(d: float) -> bool:
 			check("equipping it again takes it out of the bag grid", p.equipped_weapon == w and not shown.call(w))
 			var rum = ItemDB.get_item("rum")
 			p.inventory_component.add_item(rum, 2)
-			p.inventory_component.assign_hotbar(0, "rum")
+			p.inventory_component.select_quick("rum")
 			scr.refresh()
-			check("a quick-slot item shows in its slot, not the bag", not shown.call(rum) and scr._quick[0].item == rum)
-			scr._clear_quick(0)
-			check("clearing the quick slot puts it back in the bag", shown.call(rum) and p.inventory_component.hotbar[0] == "")
-			p.inventory_component.assign_hotbar(0, "rum")
+			check("the quick item shows in its slot, not the bag", not shown.call(rum) and scr._quick[0].item == rum)
+			scr._clear_quick()
+			check("clearing the quick item puts it back in the bag", shown.call(rum) and p.inventory_component.quick == "")
+			p.inventory_component.select_quick("rum")
 			scr.refresh()
 			check("held stacks take no bag space (%d of %d stacks)" % [p.inventory_component.used_slots(), p.inventory_component.items.size()],
 				p.inventory_component.used_slots() == scr._view.size() and p.inventory_component.used_slots() <= p.inventory_component.items.size() - 2)

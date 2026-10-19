@@ -29,7 +29,7 @@ func _setup(args: Dictionary) -> void:
 	max_hp = 26.0 * size_k
 	xp = 25
 	coins = Vector2i(0, 2)
-	drops = [["plume", 0.6, 1]]
+	drops = [["plume", 0.6, 1], ["egg", 0.25, 1]]
 	speed = 8.0
 	dive_speed = 13.0
 	orbit = Vector2(2.0, 5.0)

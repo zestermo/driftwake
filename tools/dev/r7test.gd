@@ -72,15 +72,13 @@ func _process(d: float) -> bool:
 			for i in range(inv().items.size()):
 				if inv().items[i].item == rum:
 					ri = i
-			inv().clear_hotbar_slot(0)
-			inv().clear_hotbar_slot(1)
-			inv().clear_hotbar_slot(2)
-			check("consumables can go on a quick slot", scr._can_drop_on({"src": "quick", "idx": 1}, {"src": "bag", "idx": ri, "item": rum}))
-			check("weapons can't", not scr._can_drop_on({"src": "quick", "idx": 1}, {"src": "bag", "idx": pi, "item": pistol}))
-			scr._drop_on({"src": "quick", "idx": 1}, {"src": "bag", "idx": ri, "item": rum})
-			check("rum on quick slot 6", inv().hotbar[1] == "rum")
-			scr._drop_on({"src": "bag", "idx": 0}, {"src": "quick", "idx": 1, "item": rum})
-			check("dragging it off the quick slot clears it", inv().hotbar[1] == "")
+			inv().select_quick("")
+			check("consumables can go on the quick slot", scr._can_drop_on({"src": "quick", "idx": 0}, {"src": "bag", "idx": ri, "item": rum}))
+			check("weapons can't", not scr._can_drop_on({"src": "quick", "idx": 0}, {"src": "bag", "idx": pi, "item": pistol}))
+			scr._drop_on({"src": "quick", "idx": 0}, {"src": "bag", "idx": ri, "item": rum})
+			check("rum is the quick item", inv().quick == "rum")
+			scr._drop_on({"src": "bag", "idx": 0}, {"src": "quick", "idx": 0, "item": rum})
+			check("dragging it off the quick slot clears it", inv().quick == "")
 			# --- drop the pistol on the ground (it's equipped: put away first)
 			pi = -1
 			for i in range(inv().items.size()):
@@ -125,6 +123,8 @@ func _process(d: float) -> bool:
 				items.append(st)
 			bag.setup(items, false)
 			bag.save_id = "test_chest"
+			# (what's in it as it is: the economy's roll is t/economy's)
+			bag.rolled = true
 			current_scene.add_child(bag)
 			bag.global_position = p.global_position + Vector3(1.5, 0, 0)
 			saw["chest"] = bag

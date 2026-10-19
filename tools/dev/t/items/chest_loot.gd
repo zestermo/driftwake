@@ -26,12 +26,14 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
+			# (what's in it as it is: the economy's roll is t/economy's)
+			stage.chest.rolled = true
 			stage.chest._on_picked_up(p)
 			until = TK.wait_ticks(6)
 		1:
 			var inv = p.inventory_component
 			check("picked up axe", inv.count("boarding_axe") == 1)
-			check("axe stays off the quick slots", not inv.hotbar.has("boarding_axe"))
+			check("axe isn't the quick item", inv.quick != "boarding_axe")
 			check("loot counted", inv.get_loot_count() == 1)
 			p.equip_weapon(inv.find_item("boarding_axe"), true)
 			until = TK.wait_secs(0.6)

@@ -1,5 +1,5 @@
 extends SceneTree
-## Quick slot 1 (key 5) drinks a rum, and the rum heals.
+## A tap of the quick-item key (E) drinks the selected rum, and the rum heals.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -26,10 +26,10 @@ func _process(_d: float) -> bool:
 		0:
 			p = stage.player
 			p.health_component.take_damage(50)
-			TK.act("hotbar_1")
+			TK.act("quick_item")
 			until = TK.wait_secs(0.2)
 		1:
-			check("quick slot 1 (5) drinks rum (%s)" % p.body_model.current_action(), p.body_model.current_action() == "swig" and p.inventory_component.count("rum") == 2)
+			check("a tap of E drinks the rum (%s)" % p.body_model.current_action(), p.body_model.current_action() == "swig" and p.inventory_component.count("rum") == 2)
 			until = TK.wait_secs(1.0)
 		2:
 			print("   hp ", p.health_component.current_health)

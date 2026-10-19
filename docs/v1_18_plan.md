@@ -38,6 +38,19 @@ local full run, a fix pass, the perf gate, then the release.
 - **F. Sailing downtime + Blender clips** (starts once A's cooking and B's action wheel have landed): lashing the helm,
   the activity loops, the importer and clip player, and one downtime loop from a Blender clip.
 
+### Contracts on main (for lanes that start later)
+- **Items (lane A, 11d68bc):** ingredient tags fish, meat, fruit, grain, spice, greens. New raw items: rice, flour,
+  salt, pepper, mushroom, seaweed, coconut, egg, oyster, sea_urchin. Food that also cooks: fish, crab_meat,
+  boar_haunch, tangerine, jungle_fruit, biscuit. `pearl` is dive loot (value 18). A taught recipe as a quest reward:
+  `Food.teach(player.progression, "captains_feast")`. A fishing system only has to hand out items tagged fish.
+- **Quick item / action wheel (lane B, 816da79):** `InventoryComponent.quick`, `select_quick`, `quick_choices`,
+  `quick_ok`. `ActionWheel.register(id, label, icon, available, run, order)` with **method callables, not lambdas
+  from another script** (a lambda left in the static table crashes Godot at exit). Camp is order 10, train 20, cook 30.
+- **MapMarks (lane C, 8ba9852):** `MapMarks.put(id, world_pos, kind, label)` / `clear` / `has`. Kinds are quest, spot
+  and x. A mark is local to the screen that sets it, so call it on every machine.
+- The galley no longer restocks food for free (lane A): food is cooked or bought, and the Galley & bunks line gives
+  +1 portion per level.
+
 ### Open / deferred
 - The encounter pool's contents and sizes: **assumed** D proposes them (about 8-12 kinds across themes) and lists them in its report.
 - Quest kinds beyond today's KitQuests: **assumed** D proposes them.

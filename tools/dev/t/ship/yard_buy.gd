@@ -42,7 +42,7 @@ func _process(_d: float) -> bool:
 			inv.add_item(gold, 500)
 			yard.buy("armour")
 			check("bought: the gold's gone, she has level 1", inv.count("gold") == 440 and int(ship.kit["armour"]) == 1 and ship.parts.pieces("armour") == 1)
-			check("...and the button moves on to the next price", yard._buy["armour"].text == "100g")
+			check("...and the button moves on to the next price (on the curve: %s)" % yard._buy["armour"].text, yard._buy["armour"].text == "%dg" % LINES.price("armour", 1) and LINES.price("armour", 1) == 95)
 			ship.apply_kit(ship.kit.merged({"rudder": LINES.max_level("rudder")}, true))
 			yard._refresh()
 			check("a line at its top reads MAX", yard._buy["rudder"].text == "MAX" and yard._buy["rudder"].disabled)

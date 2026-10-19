@@ -3700,6 +3700,117 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   has it in 2-4 s, but under the crew's five test slots its world load alone took ~20 s, so the window closed as the world became ready
   (world_ready true, no puppet yet; the host's "stalled" line is only the host idling after the client quit). The wait is 60 s now, like the
   join wait above it.
+
+## 2026-10-19: v1.18 controls, piece 1: the quick item (E), keys 1-5, the action wheel and making camp
+- **Keys:** 1-5 are ability slots, R the ultimate, nothing on 6+. E is the quick item (tap: eat/drink the selected one; hold: the
+  item wheel). N is the action wheel (hold). T is still emotes. Input actions `quick_item`, `action_wheel`, `skill_5`; `hotbar_1..3` are gone.
+- **The quick item** (InventoryComponent): `quick` (the selected item id, saved as "quick"; old saves' "hotbar" gives its first food or
+  drink), `select_quick(id) -> bool`, `quick_item()`, `quick_choices()` (every food and drink carried, bag order; the wheel's planks),
+  signal `quick_changed`, `quick_ok(item)`. The first consumable you pick up fills it; when its stack runs out it moves on to the next food you
+  carry (`_quick_ran_out`, from remove_item/take_at/take_all_except); with none left it's remembered. Like a weapon in hand, the selected stack is
+  off the bag grid and takes no bag space; the other food lives in the bag now (the three quick slots no longer hold two extra stacks free).
+  `Player.use_quick()` (the tap): refused at once on the shared heal cooldown (the bar flashes), otherwise wanted for QUICK_BUFFER 1 s: a tap
+  mid-swing drinks the moment the swing's combo window opens (it ends the chain). The galley restocks the first 3 kinds on the wheel, the
+  selected one first.
+- **Keys 1-5** (PowerComponent): SLOTS 6, ULT 4 stays on R (saves keep it there), slot 5 is key 5 (`KEYS = [0, 1, 2, 3, 5]`, `key_of(slot)`).
+  The skill map puts a skill on 1-5 / R; the bar draws [1][2][3][4][5] [R] | [E].
+- **RadialWheel** (scripts/ui/radial_wheel.gd): the emote wheel's ring, planks and picking, shared by the emote (T), item (E) and action (N)
+  wheels; planks can carry an icon, a second line (counts), greyed (out of stock) and a sun rim (the current choice). A `tap_ok` wheel opens
+  only after HOLD 0.2 s held; a quicker press is `_tap()`. One wheel open at a time, none while input is locked (menus; the chat line later).
+  Polls the key (tests drive it with `Input.action_press`).
+- **ActionWheel** (scripts/game/action_wheel.gd, the registry other lanes add to):
+  `ActionWheel.register(id, label, icon, available: Callable(p) -> bool, run: Callable(p), order := 100)`; label may be a Callable(p) ->
+  String; icon a texture path or "". Re-registering an id replaces it; `ensure_builtins()` adds "camp" (10) and the "train" placeholder (20)
+  unless a feature registered those ids first. `ActionWheel.place(p)`: "island" (ashore), "town" (Music.in_village), "ship" (aboard the owned
+  ship), "" (swimming, helm, air).
+- **Camp** (scripts/game/camp.gd): Make camp (ashore, out of town, no enemies fighting within 40 m) lays a campfire 1.25 m ahead on flat ground
+  and sits you by it (the Sit state; "Rest by the fire" turns you to one already there). Sitting within 3 m for REST 3 s rests you
+  (GameManager.rest: full health/stamina/energy and a save). It burns 240 s; one per captain (`Camp_<peer>`, the old one dies down).
+  Co-op: `Net._all_camp` (the controls block at the end of network_manager.gd) builds it on every screen; a crewmate rests at anyone's fire on
+  their own machine. Not in world sync (a captain joining later doesn't see a fire already burning). Respawning at the camp is for later.
+  Perf: one OmniLight (distance fade 45-55 m), meshes to 90 m without shadows, particles to 60 m, a 0.25 s timer, nothing per frame.
+- Tests: t/ui/item_wheel, t/ui/action_wheel, t/player/skill_slot_5, t/player/quick_mid_swing, t/items/quick_save; the hotbar's tests and
+  suites (rum_quick_slot, heal_timing, heal_kinds, chest_loot, starting_kit, meet_menu, invtest, looptest, powertest, r6test, r7test,
+  progtest) follow the new API.
+## 2026-10-19: v1.18 economy, piece 1: scarce loot, per-captain rolls, weapon traits, one price curve
+- **Loot** (`scripts/items/loot.gd`, Loot): every captain rolls their own. Kills: `Net.coins` sends the creature's own count to every
+  machine and each rolls `Loot.kill_gold` (KILL_GOLD_K 0.45 x 0.6-1.4, never none); drops go through `Net.kill_loot(table, at)`
+  (`[[id, chance, count]]`, each machine rolls its own into a plain local bag; a weapon lies alone), used by creature.gd's `drops` and the
+  grunt's sidearm (DROP_PISTOL 0.06, DROP_BLADE 0.04; was 30-45%). Chests: a LootBag with a save id, plunder afloat, or `rolls` (the
+  prize chest) is rolled the first time it's opened (`LootBag.roll()`, `Loot.chest`), seeded by its key and the captain's name, so a
+  reload can't reroll and a crewmate's copy differs. Gold x0.45 (0.7-1.3), treasure kept 35% each, supplies 50% each, a generic weapon
+  30% (always in a boss's hoard: put in with >= HOARD_GOLD 55 gold), rerolled to a design of its kind with a trait from blue up.
+  Uniques, fruits, gear and salvage stay; Brinehollow's hand-placed chests (save ids without "isle") keep their weapons. Never empty.
+  The island generators are untouched (their rng draws are unchanged, so every island builds as before): the roll is downstream.
+- **Weapon traits** (`scripts/items/weapon_traits.gd` data, `trait_moves.gd` what they do): 11 traits, one per Rare+ weapon, each
+  changing a move: serrated (finisher bleeds 5 s), gale (finisher throws a 9 m wind blade), bloodthirsty (finisher heals 5%),
+  thundering (heavy: a 3.5 m knockdown shockwave), headsman (heavy: double on an enemy under a third), rushing (the running cut drives
+  twice as far and knocks down), embered (a roll leaves fire), duellist (a parry ripostes), venomous (hits poison), hair-trigger
+  (a shot within 1 s of a roll crits and knocks down), blasting (the load's last ball bursts 2.5 m). +20% a tier above blue. The trait
+  rides in the id: `"<base>@<tier>+<trait>"` (`ItemDB.with_trait`), named "Serrated Cutlass", a tooltip line in the tier's colour, and
+  its name floats up when it fires. Red Tide is thundering, the Queen's Fang venomous. Hooks: `Player.melee_hit` -> `TraitMoves.shape`,
+  `PowerComponent.on_sword_hit` -> `landed`, Dodge/Parry/Shoot states, LightAttack's running cut (`rush_k`); all on the captain's machine
+  (effects via Net.fx, Projectile/FireZone sync themselves). WeaponTraits has no autoload names (ItemDB reads it; test scripts name ItemDB
+  before the autoloads exist).
+- **One price curve** (`scripts/items/economy.gd`): worth = value x 1.6^tier (ItemData.RARITY_VALUE now exactly that), a trader asks
+  worth x 4 (weapons, gear), x2.5 (food and drink), rounded nice (`Shops.price_of`; the numbers in stock entries aren't read any more),
+  pays worth x their rate. Ship upgrades: level n = the line's "base" x 1.6^n (`ShipLines.price/entry`; the gold column is gone).
+- Tests: t/economy/ (drop_rates, captain_rolls, trait_finisher, price_curve); chest_loot, quiet_areas and r7test mark their chests
+  `rolled` (they test taking, not the economy); yard_buy reads the curve's 95 for armour 2. Suites likely to notice: faunatest
+  (drops via kill_loot), bugtest/netclient (coins rolled per captain, never none), qoltest/uitest (prices on the curve), nettest
+  (`_all_kill_loot` is new co-op traffic, the ruins chest roll).
+- Finished (second agent): every trait hook is live in play (checked by trait_finisher, trait_roll_fire, trait_gale on the light
+  stage). A trait weapon arriving in the bag (found, bought, given) gets the HUD's big banner once a session: its name in the tier's
+  colour and its trait line under it, with the chime (`PlayerHUD._on_item_added`, `_announced`).
+## 2026-10-19: v1.18 economy, piece 3: specialist shops with rotating stock, buy-back, artisans in the wilds
+- **Trades** (`scripts/game/shops.gd`): every shop has a `trade` (smith Haldor, armourer Vey, tailor Sela, grocers Ida and Marlo,
+  cook Gus, luthier Corin, treasure merchant Nessa; a village's Trade Goods is its treasure merchant, its Cookpot a grocer; artisans).
+  `stock` is the staples, `pool` + `size` the day's picks: `Shops.stock(id)` = `stock_on(id, Weather.day())`, seeded by the shop id
+  and the day, so a crew sees the same stock (Weather's clock is the host's) and it turns over each in-game day (24 min). Haldor 4
+  staples + 5 of 12, Vey 2 + 4 of 9, Sela 6 + 10 of ~40, Ida 4 + 3 of 6, Marlo 1 + 2 of 4, Gus rum and stew + 1 galley meal.
+- **Rare only at treasure merchants**: smiths, armourers, tailors and grocers stock white and green only. A treasure merchant
+  (`trade` "treasure", `tier`) adds each day one weapon of their tier (a random design with its trait, Loot.weapon's roll written out:
+  naming Loot from shops.gd breaks the tests that preload it) and on 60% of days a piece of rare gear (RARE_GEAR). Nessa's tier is 2
+  (blue); a village's is the island's tier, at least 2. A village trader's tiered staples get a trait from blue up (`with_traits`,
+  its own stream: the village's rng draws are unchanged). Village cookpots stock 3 a day of their theme's grocer goods (THEME_GROCER).
+- **Buy-back** (`Shops.note_sold / sold_back / took_back`, ShopScreen): what a captain sells waits after the stock in a tinted row
+  priced at what the shop paid ("BUY BACK n G"), until the day turns; per captain, not saved.
+- **Artisans** (`scripts/island/artisans.gd`): 45% of generated islands (their seed + 7717, a stream of its own) have a fisher,
+  herbalist, wandering smith, weaver or trapper camped 5 m off a trail point at least 45 m from the village and 35 m from the dock,
+  22 m from every site, on gentle dry ground: `Artisans.plan` in GenIsland.prepare after the dock and before the plants (reserves
+  6 m), `Artisans.steps` after the village (a fire with its crackle, a tent, a crate, a log, the NPC with a shop in Shops.extra under
+  `isle<id>_artisan`: 2-3 of their goods, what they buy). Every machine builds the same camp from the seed.
+- Tests: t/economy/shop_rotation, t/economy/artisan_camp; brinehollow_shops and qoltest read stock + pool (qoltest: Marlo buys
+  ingredients now). Suites likely to notice: qoltest, uitest (shop screens), isletest (the village trader's stock), smoketest /
+  chain suites (islands with an artisan grow their plants round its reserve, so their vegetation differs from before).
+## 2026-10-19: v1.18 economy, piece 2: food takes over healing, ingredients, galley cooking, meal buffs
+- **Regen** (`Player._tick_body`): out of a fight you mend REGEN_PCT 1% of max health a second once CALM_S 8 s have passed with no
+  blow taken (`_since_hit`) or landed (`fought()`, from PowerComponent.on_sword_hit); `in_fight()`. Mend's regen_hp and the Vine
+  Fruit's photosynthesis ride the same gate now (Mend's was 5 s). A meal's `regen_pct` multiplies the base.
+- **Food and drink** (ItemData `stamina_amount`, `energy_amount`, `meal`, `ingredient`): the old heal/cooldown/spill flow is
+  unchanged; drinks give back stamina (rum +35) or energy (tonic +30), and an item that does more than heal can be taken at full health.
+- **Ingredients and meals** (`scripts/items/food.gd`, Food; made as items in `Food.make_items` from ItemDB, icons from
+  `gen_psx_textures.py icons`/gen_food_icons): tags fish, meat, fruit, grain, spice, greens. New raw ingredients (LOOT, Economy's kind
+  "ingredient", grocers buy them at half): rice, flour, salt, pepper, mushroom, seaweed, coconut, egg, oyster, sea_urchin; food that
+  counts as a tag too: fish, crab_meat (fish), boar_haunch (meat), tangerine, jungle_fruit (fruit), biscuit (grain). `pearl.tres` is
+  loot for lane E's dives. Sources: Ida (grains, spice, mushrooms), Marlo (fish, crab, kelp), village cookpots (rice, pepper), toucan
+  eggs, treant mushrooms, monkey coconuts; fishing (later) only has to hand out fish-tagged items.
+- **Meals** (Food.MEALS, 10-20 min base): Fisherman's Stew (fish+grain: +20 max hp, +50% regen, 15), Peppered Boar (meat+spice:
+  +8% dmg, 12), Sailor's Porridge (2 grain+fruit: +20 stamina, +15% stamina regen, 20), Citrus Tart (2 fruit+grain: +15 energy, +20%
+  energy regen, 15), Island Skewers (meat+fruit: +6% run and sprint, 15), Reef Salad (fish+greens+spice: +15% swim, +10 stamina, 15),
+  Forest Curry (2 greens+spice+grain: +6% crit, +3% dmg, 12), Captain's Feast (taught: meat+fish+fruit+spice: +25 hp, +5% dmg, +4 def,
+  20). One meal at a time, the newest wins: `Progression.meal / meal_left / meal_k` (saved in its dict, ticked on game time in its
+  `_physics_process`, on the captain's own machine), its buff added in `Progression.stat` outside the node cache, `_recalc_stats` on
+  start and end. Cooking's perks read on eating: meal_time_pct (Ship's Cook +25%), meal_power_pct (Master Chef +20%).
+- **Cooking** (`scripts/ui/galley_screen.gd`, GameMenu "galley", `GameMenu.open_galley(portions)`): the ship's galley opens it
+  (replacing the free restock: GameManager.restock is gone, `galley_portions()` = 1 + the Galley & bunks line's "portions", up to 4).
+  `Food.cook` takes raw ingredients before edible food, the cheapest first; Cooking mastery 20 + 10 an ingredient (twice the first time
+  a dish is cooked: `Progression.cooked`); taught recipes (`Food.teach(pr, id)`, saved in `Progression.recipes`) for quest rewards.
+  The sizzle (`gen_psx_audio.py sizzle`, UIStyle "sizzle"). HUD: the meal's icon, name and m:ss top right under the gold, blinking in
+  its last minute (`PlayerHUD.meal_text()`).
+- Tests: t/food (regen_gating, meal_buff, cooking_gain); t/ship/new_lines (portions), t/items/heal_kinds and looptest lost their
+  restock checks (looptest cooks instead). Suites likely to notice: looptest, qoltest/uitest (galley prompt, shop stock), faunatest
+  (new drop entries), nettest (nothing new on the wire: meals are local).
 ## 2026-10-19: the held map, piece 1: fog of war, `?` marks, the island page (v1.18 lane C)
 - **Islands** (`scripts/map/map_isles.gd`, MapIsles): Brinehollow and the chain's standing islands as dictionaries made once per
   island node: key ("brinehollow", "isle<chain id>" like GenIsland.save_key), the world origin of island space, the height grid's
@@ -3754,3 +3865,36 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Tests: `t/map/` held_map (out in under a second, the camera on it, the page drawing only then, slow walking, M away fast, a hit
   knocks it away), crew_sheet (a stand-in crewmate's sheet with the sketch, between their hands), map_marks. Render: heldmapshot
   (_unroll, _isle, _chart, _front).
+
+## 2026-10-19: v1.18 controls, piece 2: weapon loadouts (X)
+- **X** (input `loadout`; Y on the web build, where X is crouch): a tap swaps to the next loadout, held 0.2 s it opens the loadout
+  wheel (RadialWheel, scripts/ui/loadout_wheel.gd): a plank per slot with its style ("Twin daggers", from inspect_panel's STYLES),
+  the slot number and weapons, the main weapon's icon, the one in use with the sun rim, a slot whose weapon isn't in the bag greyed,
+  the third "Locked" until the Captain tree's **Quartermaster** (c_quarter: off Focus at 0 degrees, level 3, 2 points,
+  effect `loadout_slots` +1). RadialWheel now refreshes plank icons on every open (a fixed list's icons change).
+- **The model** (Player): `loadouts` (3 slots, each [main id, off id] with "" = fists / none, or [] never set up), `loadout_at`,
+  `loadout_slots()` (LOADOUTS_FREE 2 + the stat). The slot in use is whatever you put in your hands: equip_weapon, unequip_weapon
+  and set_offhand write it (`_loadout_note`), except while a loadout is applied or check_equipped drops a weapon that left the bag
+  (selling, storing, dying keep the slot's ids, for when it's back). Taking up an empty slot sets it up with the hands you have.
+  `swap_loadout(i)` is buffered like the quick item (QUICK_BUFFER 1 s: mid-swing it swaps once the combo window opens, ending the
+  chain); with the weapon out it replays a quick "draw" (0.22 s) so the new blades come out of their sheaths; a toast names the setup.
+  `Player.style_of(main, off)` is style() without holding the weapons.
+- Saves: "loadouts" and "loadout_at" (`set_loadouts`; the hands are the truth for the slot in use, so a save from before loadouts
+  loads with its hands as loadout 1). Co-op: nothing new on the wire: the hands ride in the snapshot (HumanoidSync), the clack goes
+  through Net.fx. Per frame: one more wheel polling its key, and `_loadout_tick` returns at once unless a swap is waiting.
+- Tests: t/player/loadout_swap. Render: `uishots <out> 1 0 items,loadouts` (the item and loadout wheels held open).
+
+## 2026-10-19: v1.18 controls, piece 3: the crew's chat (Enter)
+- **ChatBox** (scripts/ui/chat_box.gd, a CanvasLayer the local Player adds; class_name for `ChatBox.typing`): co-op only (`Net.active`;
+  Enter does nothing solo). Enter (input `chat`, Enter and keypad Enter; not Alt+Enter) opens a LineEdit at the bottom left above the
+  toast; Enter sends, Esc or an empty line puts it away. While it's open `typing` is set and the captain's input_locked (the state
+  machine stops, the wheels and MapHold stay shut) and GameMenu._input returns early (so I, K, Esc typed don't open menus). The last
+  LINES 6 lines sit above it, name in the captain's crew colour (Net.crew_color) and outlined text, fading after SHOW 10 s; all come
+  back while you type. A crewmate's line ticks ("select"; tool runs are muted anyway).
+- **Net** (the controls block): `Net.chat(text)` -> a guest asks the host (`_chat_req`, host only), the host strips it to CHAT_MAX 120
+  and sends `everyone("_all_chat", [id, text])`; `_all_chat` names the sender from the roster (solo or self: the local captain) and
+  emits `chat_line(id, who, text)`. Late joiners don't get the history.
+- Per frame: ChatBox._process walks its rows (at most 6) to fade them; nothing else.
+- Tests: t/ui/chat_line (solo Enter opens nothing; typing locks the captain and keeps I/T/Esc from menus and wheels; a sent line comes
+  back with your name, a crewmate's with theirs; empty lines dropped; fade and back; six kept). Nettest should check a guest's line
+  reaching the host and a third captain with the guest's name (not run: the push gate's job). Render: `uishots <out> 1 0 chat`.

@@ -16,6 +16,18 @@ tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
 tools/dev/t/coop/*                      t/coop
+tools/dev/t/economy/*                   t/economy
+scripts/items/economy.gd                t/economy t/ship
+scripts/items/loot.gd                   t/economy t/items
+scripts/items/weapon_traits.gd          t/economy t/combat
+scripts/loot/*                          t/economy t/items
+scripts/game/shops.gd                   t/economy t/island
+scripts/ship/ship_lines.gd              t/economy t/ship
+tools/dev/t/food/*                      t/food
+scripts/items/food.gd                   t/food t/economy
+scripts/ui/galley_screen.gd             t/food
+scripts/island/artisans.gd              t/economy
+scripts/ui/shop_screen.gd               t/economy
 tools/dev/t/fx/*                        t/fx
 assets/textures/fx/flip_*               t/fx
 assets/textures/fx/water_trail*         t/fx
@@ -396,6 +408,15 @@ scripts/enemies/huntsman.gd             t/island grunttest
 tools/dev/t/progression/*               t/progression
 scripts/progression/*                   t/progression
 scripts/ui/skill_map_screen.gd          t/progression
+# --- v1.18 controls: the quick item, the wheels, 1-5, camps ---
+scripts/ui/radial_wheel.gd              t/ui t/jam
+scripts/ui/item_wheel.gd                t/ui t/player t/items
+scripts/ui/action_wheel_ui.gd           t/ui
+scripts/game/action_wheel.gd            t/ui
+scripts/game/camp.gd                    t/ui
+scripts/loot/inventory_component.gd     t/items t/ui t/player
+scripts/powers/power_component.gd       t/player
+scripts/ui/skill_bar.gd                 t/ui
 # --- the held map: fog of war, ? marks, the island page (v1.18 lane C) ---
 tools/dev/t/map/*                       t/map
 tools/dev/map_stub_isle.gd              t/map

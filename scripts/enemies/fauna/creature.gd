@@ -721,12 +721,9 @@ func _reward() -> void:
 	if n > 0:
 		Net.coins(at, n)
 	Net.award_xp(roundi(xp * xp_k * Levels.xp_k(level)), global_position + Vector3(0, 1.0 * size_k, 0))
-	var stacks: Array = []
-	for d in drops:
-		if _rng.randf() < float(d[1]):
-			stacks.append([["id", str(d[0])], int(d[2])])
-	if not stacks.is_empty():
-		Net.drop_items(stacks, global_position + Vector3(0, 0.3, 0))
+	# (each captain rolls their own)
+	if not drops.is_empty():
+		Net.kill_loot(drops, global_position + Vector3(0, 0.3, 0))
 
 
 func _dead_update(delta: float) -> void:

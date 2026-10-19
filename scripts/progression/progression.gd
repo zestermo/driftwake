@@ -60,7 +60,9 @@ func _ready() -> void:
 	player = get_parent() as Player
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	if meal != "" and player and player.is_local:
+		_tick_meal(delta)
 	if Engine.get_physics_frames() % SWIM_TICKS != 0 or player == null or not player.is_local:
 		return
 	if player.current_state_name() != "Swim":
@@ -315,20 +317,53 @@ func grant_fruit(fruit_id: String) -> void:
 
 
 ## Sum of an effect over every owned node (asked several times a frame:
-## remembered until the owned set changes).
+## remembered until the owned set changes), and the meal you ate (Food).
 func stat(key: String) -> float:
 	if owned.size() != _stat_n:
 		_stat_n = owned.size()
 		_stats.clear()
-	if _stats.has(key):
-		return _stats[key]
-	var total := 0.0
-	for k in owned.keys():
-		var e: Dictionary = SkillTree.get_node_def(k).get("effects", {})
-		if e.has(key):
-			total += float(e[key])
-	_stats[key] = total
-	return total
+	if not _stats.has(key):
+		var total := 0.0
+		for k in owned.keys():
+			var e: Dictionary = SkillTree.get_node_def(k).get("effects", {})
+			if e.has(key):
+				total += float(e[key])
+		_stats[key] = total
+	return _stats[key] + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0)
+
+
+# --------------------------------------------------------------------------
+# Meals (Food): one buff at a time, on the captain's own machine
+# --------------------------------------------------------------------------
+signal meal_changed
+var meal := ""
+## Seconds of it left (game time), and its strength (Cooking's meal_power_pct when eaten).
+var meal_left := 0.0
+var meal_k := 1.0
+## Recipes taught (Food.teach) and how often each dish was cooked.
+var recipes: Dictionary = {}
+var cooked: Dictionary = {}
+
+
+func eat_meal(id: String) -> void:
+	meal = ""
+	var k := Food.strength(self)
+	meal_left = Food.seconds(self, id)
+	meal = id
+	meal_k = k
+	player.call("_recalc_stats")
+	meal_changed.emit()
+
+
+func _tick_meal(delta: float) -> void:
+	meal_left -= delta
+	if meal_left > 0.0:
+		return
+	meal = ""
+	meal_left = 0.0
+	player.call("_recalc_stats")
+	meal_changed.emit()
+	get_tree().call_group("hud", "show_toast", "Your meal's worn off")
 
 
 var _stats: Dictionary = {}
@@ -425,12 +460,21 @@ func rank_up(skill_id: String) -> bool:
 # --------------------------------------------------------------------------
 func to_dict() -> Dictionary:
 	return {"format": FORMAT, "level": level, "xp": xp, "sp": skill_points, "owned": owned.keys(),
-		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate()}
+		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate(),
+		"meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate()}
 
 
 func from_dict(d: Dictionary) -> void:
 	level = int(d.get("level", 1))
 	xp = int(d.get("xp", 0))
+	var ml: Array = d.get("meal", ["", 0.0, 1.0])
+	meal = str(ml[0]) if Food.MEALS.has(str(ml[0])) else ""
+	meal_left = float(ml[1])
+	meal_k = float(ml[2])
+	recipes = {}
+	for k in d.get("recipes", []):
+		recipes[str(k)] = true
+	cooked = (d.get("cooked", {}) as Dictionary).duplicate()
 	_reset_owned()
 	mastery = {}
 	tiers = {}

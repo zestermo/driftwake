@@ -21,6 +21,9 @@ var _yard: Control
 # traders' stalls (talk to a vendor)
 const SHOP := preload("res://scripts/ui/shop_screen.gd")
 var _shop: Control
+# cooking (the ship's galley; a camp's fire)
+const GALLEY := preload("res://scripts/ui/galley_screen.gd")
+var _galley: Control
 ## A screen to open once the talking's done: [] or ["yard"] / ["shop", id].
 var _after_talk: Array = []
 
@@ -56,6 +59,9 @@ func _ready() -> void:
 	_screens["yard"] = _yard
 	_shop = SHOP.new(self)
 	_screens["shop"] = _shop
+	_galley = GALLEY.new(self)
+	_screens["galley"] = _galley
+	_galley.register_wheel()
 	var dlg := get_node("/root/Dialogue")
 	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
@@ -116,7 +122,7 @@ func _input(event: InputEvent) -> void:
 	var dialogue := get_node_or_null("/root/Dialogue")
 	if dialogue and dialogue.active:
 		return
-	if CharacterCreator.active:
+	if CharacterCreator.active or ChatBox.typing:
 		return
 	if _on_title():
 		if _current != "" and event.is_action_pressed("pause"):
@@ -152,8 +158,8 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif _current == "inventory" and event is InputEventKey and event.pressed and not event.echo:
 		var k: int = event.keycode
-		if k >= KEY_5 and k <= KEY_7:
-			_inventory.assign_hotbar(k - KEY_5)
+		if event.is_action_pressed("quick_item"):
+			_inventory.select_quick()
 			get_viewport().set_input_as_handled()
 		elif k == KEY_X or k == KEY_DELETE:
 			# drop the hovered stack (shift: just one)
@@ -179,6 +185,12 @@ func _on_dialogue_event(ev: String) -> void:
 func open_shop(id: String) -> void:
 	_shop.open_shop(id)
 	open("shop")
+
+
+## Cooking: `portions` of each dish from one set of ingredients (the ship's galley line; a camp fire 1).
+func open_galley(portions: int) -> void:
+	_galley.portions = portions
+	open("galley")
 
 
 func shop_after_talk(id: String) -> void:
@@ -228,6 +240,8 @@ func open(screen: String) -> void:
 		_yard.on_open()
 	elif screen == "shop":
 		_shop.on_open()
+	elif screen == "galley":
+		_galley.on_open()
 	elif screen == "load":
 		_load.open("load", true)
 	else:
@@ -248,7 +262,7 @@ func close() -> void:
 		_yard.end_preview()
 		if not Net.is_client():
 			SaveGame.save(_player())
-	elif _current == "shop":
+	elif _current in ["shop", "galley"]:
 		SaveGame.save(_player())
 	_current = ""
 	_play("close")
@@ -494,8 +508,8 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 const BINDINGS := [
 	["Move", "W A S D"], ["Look", "Mouse"], ["Sprint", "Shift"], ["Jump / double jump", "Space"],
 	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
-	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Emote wheel (hold, mouse to pick)", "T"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 4"],
-	["Ultimate", "R"], ["Quick items (rum...)", "5 - 7"], ["Block (hold)", "Q"],
+	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Emote wheel (hold, mouse to pick)", "T"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 5"],
+	["Ultimate", "R"], ["Eat / drink (hold: choose)", "E"], ["Action wheel (hold: camp...)", "N"], ["Swap weapon loadout (hold: choose)", "X"], ["Crew chat (co-op)", "Enter"],["Block (hold)", "Q"],
 	["Inventory", "Tab / I"], ["Skill map", "K"], ["Map: out / away (click: mark)", "M"], ["Belt lantern on / off", "L"], ["Read the log pose (hold)", "H"], ["Zoan: shift form", "V"], ["Summon your ship (hold)", "B"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
 ]

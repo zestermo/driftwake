@@ -485,7 +485,7 @@ func _kit(id: int, k: Dictionary) -> void:
 	kit_received.emit(id, k)
 
 
-## Name, level, fighting style, fruit, weapons, worn gear and quick items (item refs, SaveGame's).
+## Name, level, fighting style, fruit, weapons, worn gear and the quick item (item refs, SaveGame's).
 func kit_of(p: Node) -> Dictionary:
 	var sg = load(SAVE)
 	var gear := {}
@@ -493,9 +493,7 @@ func kit_of(p: Node) -> Dictionary:
 		if p.equipment.slots[slot]:
 			gear[slot] = sg.item_ref(p.equipment.slots[slot])
 	var inv = p.inventory_component
-	var quick: Array = []
-	for i in range(inv.hotbar.size()):
-		var it = inv.get_hotbar_item(i)
-		quick.append([sg.item_ref(it), inv.count(it.id) if it else 0])
+	var it = inv.quick_item()
+	var quick: Array = [[sg.item_ref(it), inv.count(it.id) if it else 0]]
 	return {"name": p.display_name(), "level": int(p.progression.level), "style": p.style(), "fruit": p.power.fruit,
 		"weapon": sg.item_ref(p.equipped_weapon), "offhand": sg.item_ref(p.offhand_weapon), "gear": gear, "quick": quick}

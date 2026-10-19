@@ -39,7 +39,7 @@ func _setup(args: Dictionary) -> void:
 	max_hp = 36.0
 	xp = 30
 	coins = Vector2i(1, 2)
-	drops = [["jungle_fruit", 0.5, 1]]
+	drops = [["jungle_fruit", 0.5, 1], ["coconut", 0.15, 1]]
 	skin_tex = "fabric"
 	flying = true
 

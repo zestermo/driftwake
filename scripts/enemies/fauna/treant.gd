@@ -28,7 +28,7 @@ func _setup(args: Dictionary) -> void:
 	max_hp = 120.0
 	xp = 55
 	coins = Vector2i(1, 3)
-	drops = [["plume", 0.1, 1]]
+	drops = [["plume", 0.1, 1], ["mushroom", 0.6, 2]]
 	skin_tex = "bark"
 
 
