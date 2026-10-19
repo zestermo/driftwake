@@ -42,6 +42,8 @@ func _process(_d: float) -> bool:
 			p.quick_refused.connect(func(): refused += 1)
 			p.heal_cd = 0.0
 			p.health_component.current_health = 20.0
+			# (mid-fight: no out-of-combat regen muddling the heal)
+			p._since_hit = 0.0
 			hp0 = hp()
 			n0 = p.inventory_component.count("rum")
 			p.use_item(item("rum"))
