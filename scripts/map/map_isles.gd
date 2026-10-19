@@ -111,5 +111,8 @@ static func heights_tex(d: Dictionary) -> ImageTexture:
 	if not d.has("htex"):
 		var w: int = int(d["cells"]) + 1
 		var isl = d["isl"]
-		d["htex"] = ImageTexture.create_from_image(Image.create_from_data(w, w, false, Image.FORMAT_RF, (isl.heights as PackedFloat32Array).to_byte_array()))
+		var img := Image.create_from_data(w, w, false, Image.FORMAT_RF, (isl.heights as PackedFloat32Array).to_byte_array())
+		# (mipmaps: the chart shows a whole island in a few dozen pixels)
+		img.generate_mipmaps()
+		d["htex"] = ImageTexture.create_from_image(img)
 	return d["htex"]

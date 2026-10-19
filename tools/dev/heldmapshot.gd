@@ -1,13 +1,15 @@
 extends SceneTree
-## The held map on Brinehollow: the captain looks round a few places (the harbour, the ruins' path, the
-## lighthouse hill), stands on the quay and takes the map out. Shots: the game camera on the island page
-## (_isle), on the chart (_chart), the captain holding it seen from the front (_front), and half way
-## through unrolling (_unroll). Args: <out_prefix> [psx]
+## The held map. On Brinehollow (after a look round the harbour, the ruins' path and the lighthouse
+## hill, from the quay): half unrolled (_unroll), the game camera on the island page (_isle), zoomed in
+## round the captain (_zoom), out on the chart (_chart), the captain holding it from the front (_front).
+## Then out at sea on the sloop's deck (_sea: it opens on the chart), and on the chain's first island at
+## its pier after a walk up from the dock (_chain, _chain_zoom). Args: <out_prefix> [psx]
 var t := 0.0
 var out := ""
 var step := 0
 var t0 := 0.0
 var p
+var hold
 var cam: Camera3D
 
 
@@ -19,6 +21,20 @@ func _initialize() -> void:
 func _shot(nm: String) -> void:
 	root.get_texture().get_image().save_png("%s_%s.png" % [out, nm])
 	print("shot ", nm)
+
+
+func _wait(s: float) -> bool:
+	if t - t0 < s:
+		return true
+	t0 = t
+	return false
+
+
+func _look_round(d: Dictionary, pts: Array, high: Vector2 = Vector2.INF) -> void:
+	var mf = load("res://scripts/map/map_fog.gd")
+	var o: Vector2 = d["o"]
+	for q in pts:
+		mf.look(root.get_node("GameManager"), d, Vector3(o.x + q.x, 30.0 if q == high else 4.0, o.y + q.y))
 
 
 func _process(d: float) -> bool:
@@ -34,14 +50,11 @@ func _process(d: float) -> bool:
 			for c in root.find_children("*", "CharacterCreator", true, false):
 				c._finish(true)
 			p = get_first_node_in_group("player")
-			var gm = root.get_node("GameManager")
-			var mf = load("res://scripts/map/map_fog.gd")
+			hold = p.get_node("MapHold")
 			var w = get_first_node_in_group("world_gen")
 			var dd: Dictionary = load("res://scripts/map/map_isles.gd").of(w.starter_island)
-			var o: Vector2 = dd["o"]
-			for q in [Vector2(0, -62), Vector2(0, -110), Vector2(-30, -20), Vector2(-62, 58), Vector2(-40, 20), Vector2(40, -45), Vector2(78, -30)]:
-				mf.look(gm, dd, Vector3(o.x + q.x, 30.0 if q == Vector2(78, -30) else 4.0, o.y + q.y))
-			var at: Vector2 = o + Vector2(6, -100)
+			_look_round(dd, [Vector2(0, -62), Vector2(0, -110), Vector2(-30, -20), Vector2(-62, 58), Vector2(-40, 20), Vector2(40, -45), Vector2(78, -30)], Vector2(78, -30))
+			var at: Vector2 = dd["o"] + Vector2(6, -100)
 			p.state_machine.force_state("Idle", {})
 			p.global_position = Vector3(at.x, 6.0, at.y)
 			p.reset_physics_interpolation()
@@ -49,31 +62,30 @@ func _process(d: float) -> bool:
 			get_first_node_in_group("hud").visible = false
 			t0 = t
 		1:
-			if t - t0 < 1.5:
+			if _wait(1.5):
 				return false
-			p.get_node("MapHold").toggle()
-			t0 = t
+			hold.toggle()
 		2:
-			if t - t0 < 0.17:
+			if _wait(0.17):
 				return false
 			_shot("unroll")
-			t0 = t
 		3:
-			if t - t0 < 1.2:
+			if _wait(1.2):
 				return false
 			_shot("isle")
-			var c3 := root.get_viewport().get_camera_3d()
-			var sh = p.body_model.get_node("MapSheet")
-			print("CAM ", c3.global_position - p.global_position, " fwd ", -c3.global_basis.z, " sheet ", sh.global_position - p.global_position,
-				" rig ", c3.get_parent().get_parent().global_position - p.global_position, " facing ", -p.player_model.global_basis.z,
-				" hands ", p.body_model.hand_l.global_position - p.global_position, p.body_model.hand_r.global_position - p.global_position)
-			p.get_node("MapHold").page.show_isle(false)
-			t0 = t
+			hold.page.press(MOUSE_BUTTON_WHEEL_UP, Vector2.ZERO)
+			hold.page.press(MOUSE_BUTTON_WHEEL_UP, Vector2.ZERO)
 		4:
-			if t - t0 < 0.6:
+			if _wait(1.0):
+				return false
+			_shot("zoom")
+			for i in range(3):
+				hold.page.press(MOUSE_BUTTON_WHEEL_DOWN, Vector2.ZERO)
+		5:
+			if _wait(0.6):
 				return false
 			_shot("chart")
-			p.get_node("MapHold").page.show_isle(true)
+			hold.page.press(MOUSE_BUTTON_WHEEL_UP, Vector2.ZERO)
 			cam = Camera3D.new()
 			cam.fov = 50.0
 			root.add_child(cam)
@@ -82,11 +94,67 @@ func _process(d: float) -> bool:
 			cam.global_position = p.global_position + f * 2.2 + r * 0.9 + Vector3.UP * 1.7
 			cam.look_at(p.global_position + Vector3.UP * 1.1, Vector3.UP)
 			cam.current = true
-			t0 = t
-		5:
-			if t - t0 < 0.4:
+		6:
+			if _wait(0.4):
 				return false
 			_shot("front")
+			cam.queue_free()
+			(get_first_node_in_group("player_camera") as Camera3D).current = true
+			hold.toggle()
+		7:
+			if _wait(0.6):
+				return false
+			# out at sea at the sloop's helm; M lets go of the wheel and opens the chart on the deck
+			var ship = get_first_node_in_group("ship")
+			var sc: Vector2 = get_first_node_in_group("world_gen").starter_center
+			ship.set_anchored(false)
+			ship.place(Vector3(sc.x + 700.0, 0.0, sc.y - 500.0), 0.6)
+			p.current_ship = ship
+			p.state_machine.force_state("Helm", {})
+		8:
+			if _wait(2.5):
+				return false
+			hold.toggle()
+			print("from the helm: ", p.current_state_name())
+		9:
+			if _wait(1.2):
+				return false
+			_shot("sea")
+			hold.toggle()
+		10:
+			if _wait(1.0):
+				return false
+			p._debug_to_next_island()
+		11:
+			if _wait(3.0):
+				return false
+			var dd: Dictionary = load("res://scripts/map/map_isles.gd").at(self, Vector2(p.global_position.x, p.global_position.z))
+			if not str(dd.get("key", "")).begins_with("isle"):
+				p._debug_to_next_island()
+				if t > 150.0:
+					quit()
+				return false
+			var isl = dd["isl"]
+			var pts: Array = []
+			var a: Vector2 = isl.sites["dock_end"]
+			var b: Vector2 = isl.sites["village"]
+			for i in range(8):
+				pts.append(a.lerp(b, i / 7.0))
+			_look_round(dd, pts)
+			print("chain island ", dd["name"], " spots ", dd["spots"].size())
+		12:
+			if _wait(1.5):
+				return false
+			hold.toggle()
+		13:
+			if _wait(1.2):
+				return false
+			_shot("chain")
+			hold.page.press(MOUSE_BUTTON_WHEEL_UP, Vector2.ZERO)
+		14:
+			if _wait(1.0):
+				return false
+			_shot("chain_zoom")
 			quit()
 	step += 1
 	return false

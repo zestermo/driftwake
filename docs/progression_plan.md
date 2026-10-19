@@ -31,6 +31,7 @@ points (`points(tree)`). Swimming spends stamina and does `EXHAUST_DAMAGE` when 
 | Old saves | Levels, mastery, gold and gear stay. Every skill point is refunded once on load (a Settings/save VERSION migration). | No progress is lost. | — |
 | Swimming | A non-fruit captain who runs out of stamina in the water drops to a slow float-paddle and gets stamina back, **with no damage**. Danger comes from the sea (sharks, storms, currents, cold water). Only fruit users drown. | Drowning came too easily for a pirate game. | At the swimming grill |
 | Shops | Every shop is a trade (smith, cook/grocer, tailor, chandler) with a short, rotating stock in the island's theme. **Artisans** sometimes turn up on wild islands with a few simple goods. Rare gear comes only from the treasure merchants. Selling pays a fraction of the price, and you can buy back what you just sold. | Makes buying a decision and gives each island its own character. | — |
+| Galley restock | **No free restock** (Zach, 2026-10-19, confirming lane A's change): food is cooked or bought. The Galley & bunks line gives +1 portion per cook per level instead. This replaces todo.md's 2026-10-13 "the galley refills them as now". | Food is worth something, and cooking matters. | — |
 | Numbers | Drop rates, prices, node costs, the carry-over fraction, the regen rate and buff strengths are all **tuned in play**. | Zach judges feel by playing. | — |
 
 ## Decided (2026-10-19, round 2: wheels, loadouts, downtime)

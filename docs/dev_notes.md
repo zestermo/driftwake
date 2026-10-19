@@ -3961,6 +3961,24 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   knocks it away), crew_sheet (a stand-in crewmate's sheet with the sketch, between their hands), map_marks. Render: heldmapshot
   (_unroll, _isle, _chart, _front).
 
+## 2026-10-19: the held map, piece 3: one map that zooms (v1.18 lane C)
+- **Zoom** (MapIsleView.ZOOMS 1, 2, 3.5 x the island's fit; `step_zoom`): the wheel goes in round our captain (the view follows
+  them, kept on the island's square), out to the whole island, then out to the sea chart; in from the chart is the island again
+  (sea_chart.press). The view glides there (GLIDE 12/s); the land, paths and fog redraw only while it moves or the fog changes.
+- **The chart's coasts**: each standing island (MapIsles.all) gets a "Land_<key>" control behind the chart's ink
+  (show_behind_parent, after the "Paper" child that now draws the paper and frame) drawing its heights through map_land.gdshader
+  with `sea_clear` (the sea left as the chart's paper, flat land by height, an inked edge), sized and placed by the chart's own
+  view; shown for Brinehollow, a chain island we've charted ("island:<name>") and the one we're at. Those get no circle
+  (`_landed`). The heights texture has mipmaps now (a whole island in a few dozen chart pixels was speckle without them).
+- Crewmates are dots in their crew colours on the chart (they were on the island page already).
+- Gotcha: `return` in a canvas_item shader's fragment() doesn't compile, and the failed shader drew the raw RF heights in red.
+- Tests: `t/map/` map_zoom (in x2 round the captain, x3.5 and no further, back out to the island, out to the chart, in again),
+  chart_coast (charted: the coast at the island's place and size behind the ink; not charted: none; hidden on the island page).
+  Render: heldmapshot now also _zoom, _sea (from the helm, M lets go of the wheel and opens the chart on deck), _chain and
+  _chain_zoom (the chain's first island, walked up from the dock).
+- Not done: a paper rustle for unrolling (the menu open/close sounds play); the map at the helm lets go of the wheel rather than
+  being read while steering.
+
 ## 2026-10-19: v1.18 controls, piece 2: weapon loadouts (X)
 - **X** (input `loadout`; Y on the web build, where X is crouch): a tap swaps to the next loadout, held 0.2 s it opens the loadout
   wheel (RadialWheel, scripts/ui/loadout_wheel.gd): a plank per slot with its style ("Twin daggers", from inspect_panel's STYLES),
