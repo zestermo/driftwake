@@ -48,6 +48,7 @@ func _process(_d: float) -> bool:
 			duel = Duel.inst
 			p.health_component.current_health = 80.0
 			p.power.energy = 30.0
+			p.fought()
 			duel._challenge(rival.net_id, 1)
 			until = TK.wait_ticks(3)
 		1:

@@ -280,7 +280,8 @@ func _process(d: float) -> bool:
 			check("a shot with the crosshair off the enemy misses", g.health.current_health == float(get_meta("hp1")))
 			check("empty pistol reloads",p.reloading() or p.ammo[0] == p.max_ammo())
 			p.inventory_component.add_item(item("pistol"), 1)
-			check("second pistol = dual pistols", p.style() == "dual_pistol")
+			check("a second pistol only goes into the bag", p.style() == "pistol" and p.offhand_weapon == null)
+			check("...the captain sets it in the off hand: dual pistols", p.set_offhand(item("pistol")) and p.style() == "dual_pistol")
 			wait = 1.8
 			step += 1
 		16:
