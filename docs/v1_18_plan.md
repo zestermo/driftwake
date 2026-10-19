@@ -55,3 +55,13 @@ local full run, a fix pass, the perf gate, then the release.
 - The encounter pool's contents and sizes: **assumed** D proposes them (about 8-12 kinds across themes) and lists them in its report.
 - Quest kinds beyond today's KitQuests: **assumed** D proposes them.
 - The release name and what's-new text: at release time.
+
+## Decided (2026-10-19, round 3: fishing, the N wheel, perf before release)
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| The N wheel | **The same on a ship and on land.** One list everywhere. An entry that can't be done where you are shows greyed, with the reason (Cook: "at a galley or campfire"). Train works anywhere you're free, aboard included, with no lashing needed. | Zach: "there shouldn't be any difference when pressing N." | — |
+| Fishing in 1.18 | Moved up from 1.19: a **Minecraft-style minigame** (cast a bobber, wait, it dips with a splash and bubbles, reel at the right moment, a missed timing loses the fish), a **good fishing animation** (both hands on the rod, a proper cast, reel and landing; the downtime fishing pose read as walking), **bait types** (better bait: faster bites, rarer fish), **fishing rods in tiers** bought from shops, **fish rarities** (common to legendary, by water, bait, rod and time of day), and **fishing skills** (the Fishing life skill's perks and skill entries). | Zach. | After play |
+| Equipment slot | The instrument slot becomes a general **equipment slot** (instruments, fishing rods, later tools). | One slot for "the thing in your off hands". | — |
+| Visibility | A **visibility checkbox** per equipment piece, to hide it on the body (it still works). Shown the same way to crewmates. | Zach: some players don't want their gear showing. | — |
+| Perf before release | The **perf pass moves up from 1.19** and runs now, short: fix what 1.18's additions cost (and Brinehollow's regression since v1.16) without a long campaign, then release. | Zach: release 1.18 soon, but not slow. | — |

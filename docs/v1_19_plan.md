@@ -1,9 +1,9 @@
 # v1.19 (Zach, 2026-10-19)
 
 ## What it is
-The headline is rival pirate crews (docs/rival_crews_plan.md). Bounties and wanted posters come with them, and
-gear upgrading and fishing round it out. A tooling window and a perf pass come first, so the batch starts on a
-fast, green main.
+**Marines and rival crews** (Zach, 2026-10-19, revised): rival pirate crews (docs/rival_crews_plan.md) and the
+Marines with bounties (roadmap phase 6). A tooling window comes first. The perf pass and fishing moved into 1.18,
+and gear upgrading waits for a later release. The table below is the earlier draft, kept as a record.
 
 ## Decided (2026-10-19)
 
