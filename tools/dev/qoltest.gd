@@ -58,7 +58,7 @@ func _process(d: float) -> bool:
 			var top := 0
 			var shops = load("res://scripts/game/shops.gd")
 			for sid in shops.SHOPS.keys():
-				for e in shops.SHOPS[sid]["stock"]:
+				for e in shops.SHOPS[sid]["stock"] + shops.SHOPS[sid].get("pool", []):
 					top = maxi(top, int(shops.item_of(e).rarity))
 			check("everything for sale on Brinehollow is white or green", top <= 1)
 			check("the first level takes 200 XP", p.progression.xp_to_next(1) == 200)
@@ -111,7 +111,7 @@ func _process(d: float) -> bool:
 			menu.open_shop("sela")
 			menu.close()
 			menu.open_shop("marlo")
-			check("Marlo doesn't buy (%s)" % menu._shop._buy_note.text, menu._shop._buy_note.text == "BUYS NOTHING")
+			check("Marlo buys only ingredients (%s)" % menu._shop._buy_note.text, menu._shop._buy_note.text == "BUYS INGREDIENTS")
 			menu._shop.buy(["fish", 5])
 			check("...but sells grilled fish (a meal: heals)", p.inventory_component.count("fish") == 1 and item("fish").heal_amount > 0.0)
 			menu.close()

@@ -26,6 +26,8 @@ scripts/ship/ship_lines.gd              t/economy t/ship
 tools/dev/t/food/*                      t/food
 scripts/items/food.gd                   t/food t/economy
 scripts/ui/galley_screen.gd             t/food
+scripts/island/artisans.gd              t/economy
+scripts/ui/shop_screen.gd               t/economy
 tools/dev/t/fx/*                        t/fx
 assets/textures/fx/flip_*               t/fx
 assets/textures/fx/water_trail*         t/fx

@@ -53,6 +53,8 @@ var build_ms := {}
 var life: IslandLife
 ## The village laid out in prepare (IslandVillage.plan), built in its finish steps.
 var village_plan := {}
+## The artisan camped in the wilds, if any (Artisans.plan in prepare, built in its finish step).
+var artisan := {}
 ## The theme's own land features (ThemeDef.plan_land; ThemeDef.shape reads it): {} for the jungle.
 var land_plan := {}
 
@@ -144,6 +146,7 @@ func prepare(n: Dictionary) -> void:
 	_shore_map()
 	build_ms["shore"] = _lap(t0)
 	_plan_dock()
+	artisan = Artisans.plan(self)
 	_scatter_vegetation()
 	# the villagers' bodies, ready for their NPCs (Humanoid.make picks them up)
 	t0 = Time.get_ticks_usec()
@@ -182,6 +185,7 @@ func finish_steps() -> Array:
 		steps.append_array(_theme.steps(self))
 	steps.append_array(IslandContent.steps(self))
 	steps.append_array(IslandVillage.steps(self))
+	steps.append_array(Artisans.steps(self))
 	steps.append_array(life.steps())
 	# (the last step does whatever's left in one go: a packed town overran 24 into a 700 ms frame)
 	steps.append_array(DrawLOD.steps(self, 64))

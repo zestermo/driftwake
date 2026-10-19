@@ -3762,6 +3762,27 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Finished (second agent): every trait hook is live in play (checked by trait_finisher, trait_roll_fire, trait_gale on the light
   stage). A trait weapon arriving in the bag (found, bought, given) gets the HUD's big banner once a session: its name in the tier's
   colour and its trait line under it, with the chime (`PlayerHUD._on_item_added`, `_announced`).
+## 2026-10-19: v1.18 economy, piece 3: specialist shops with rotating stock, buy-back, artisans in the wilds
+- **Trades** (`scripts/game/shops.gd`): every shop has a `trade` (smith Haldor, armourer Vey, tailor Sela, grocers Ida and Marlo,
+  cook Gus, luthier Corin, treasure merchant Nessa; a village's Trade Goods is its treasure merchant, its Cookpot a grocer; artisans).
+  `stock` is the staples, `pool` + `size` the day's picks: `Shops.stock(id)` = `stock_on(id, Weather.day())`, seeded by the shop id
+  and the day, so a crew sees the same stock (Weather's clock is the host's) and it turns over each in-game day (24 min). Haldor 4
+  staples + 5 of 12, Vey 2 + 4 of 9, Sela 6 + 10 of ~40, Ida 4 + 3 of 6, Marlo 1 + 2 of 4, Gus rum and stew + 1 galley meal.
+- **Rare only at treasure merchants**: smiths, armourers, tailors and grocers stock white and green only. A treasure merchant
+  (`trade` "treasure", `tier`) adds each day one weapon of their tier (a random design with its trait, Loot.weapon's roll written out:
+  naming Loot from shops.gd breaks the tests that preload it) and on 60% of days a piece of rare gear (RARE_GEAR). Nessa's tier is 2
+  (blue); a village's is the island's tier, at least 2. A village trader's tiered staples get a trait from blue up (`with_traits`,
+  its own stream: the village's rng draws are unchanged). Village cookpots stock 3 a day of their theme's grocer goods (THEME_GROCER).
+- **Buy-back** (`Shops.note_sold / sold_back / took_back`, ShopScreen): what a captain sells waits after the stock in a tinted row
+  priced at what the shop paid ("BUY BACK n G"), until the day turns; per captain, not saved.
+- **Artisans** (`scripts/island/artisans.gd`): 45% of generated islands (their seed + 7717, a stream of its own) have a fisher,
+  herbalist, wandering smith, weaver or trapper camped 5 m off a trail point at least 45 m from the village and 35 m from the dock,
+  22 m from every site, on gentle dry ground: `Artisans.plan` in GenIsland.prepare after the dock and before the plants (reserves
+  6 m), `Artisans.steps` after the village (a fire with its crackle, a tent, a crate, a log, the NPC with a shop in Shops.extra under
+  `isle<id>_artisan`: 2-3 of their goods, what they buy). Every machine builds the same camp from the seed.
+- Tests: t/economy/shop_rotation, t/economy/artisan_camp; brinehollow_shops and qoltest read stock + pool (qoltest: Marlo buys
+  ingredients now). Suites likely to notice: qoltest, uitest (shop screens), isletest (the village trader's stock), smoketest /
+  chain suites (islands with an artisan grow their plants round its reserve, so their vegetation differs from before).
 ## 2026-10-19: v1.18 economy, piece 2: food takes over healing, ingredients, galley cooking, meal buffs
 - **Regen** (`Player._tick_body`): out of a fight you mend REGEN_PCT 1% of max health a second once CALM_S 8 s have passed with no
   blow taken (`_since_hit`) or landed (`fought()`, from PowerComponent.on_sword_hit); `in_fight()`. Mend's regen_hp and the Vine
