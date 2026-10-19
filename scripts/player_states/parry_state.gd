@@ -80,4 +80,6 @@ func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 		var combat_mgr := get_node("/root/CombatManager")
 		combat_mgr.apply_hitstop(0.1, [player, attacker])
 		combat_mgr.apply_camera_shake(0.15)
+		if not _hit_data.ranged:
+			TraitMoves.on_parry(player, attacker)
 		# TODO: stagger the attacker

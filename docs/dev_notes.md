@@ -3732,6 +3732,36 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Tests: t/ui/item_wheel, t/ui/action_wheel, t/player/skill_slot_5, t/player/quick_mid_swing, t/items/quick_save; the hotbar's tests and
   suites (rum_quick_slot, heal_timing, heal_kinds, chest_loot, starting_kit, meet_menu, invtest, looptest, powertest, r6test, r7test,
   progtest) follow the new API.
+## 2026-10-19: v1.18 economy, piece 1: scarce loot, per-captain rolls, weapon traits, one price curve
+- **Loot** (`scripts/items/loot.gd`, Loot): every captain rolls their own. Kills: `Net.coins` sends the creature's own count to every
+  machine and each rolls `Loot.kill_gold` (KILL_GOLD_K 0.45 x 0.6-1.4, never none); drops go through `Net.kill_loot(table, at)`
+  (`[[id, chance, count]]`, each machine rolls its own into a plain local bag; a weapon lies alone), used by creature.gd's `drops` and the
+  grunt's sidearm (DROP_PISTOL 0.06, DROP_BLADE 0.04; was 30-45%). Chests: a LootBag with a save id, plunder afloat, or `rolls` (the
+  prize chest) is rolled the first time it's opened (`LootBag.roll()`, `Loot.chest`), seeded by its key and the captain's name, so a
+  reload can't reroll and a crewmate's copy differs. Gold x0.45 (0.7-1.3), treasure kept 35% each, supplies 50% each, a generic weapon
+  30% (always in a boss's hoard: put in with >= HOARD_GOLD 55 gold), rerolled to a design of its kind with a trait from blue up.
+  Uniques, fruits, gear and salvage stay; Brinehollow's hand-placed chests (save ids without "isle") keep their weapons. Never empty.
+  The island generators are untouched (their rng draws are unchanged, so every island builds as before): the roll is downstream.
+- **Weapon traits** (`scripts/items/weapon_traits.gd` data, `trait_moves.gd` what they do): 11 traits, one per Rare+ weapon, each
+  changing a move: serrated (finisher bleeds 5 s), gale (finisher throws a 9 m wind blade), bloodthirsty (finisher heals 5%),
+  thundering (heavy: a 3.5 m knockdown shockwave), headsman (heavy: double on an enemy under a third), rushing (the running cut drives
+  twice as far and knocks down), embered (a roll leaves fire), duellist (a parry ripostes), venomous (hits poison), hair-trigger
+  (a shot within 1 s of a roll crits and knocks down), blasting (the load's last ball bursts 2.5 m). +20% a tier above blue. The trait
+  rides in the id: `"<base>@<tier>+<trait>"` (`ItemDB.with_trait`), named "Serrated Cutlass", a tooltip line in the tier's colour, and
+  its name floats up when it fires. Red Tide is thundering, the Queen's Fang venomous. Hooks: `Player.melee_hit` -> `TraitMoves.shape`,
+  `PowerComponent.on_sword_hit` -> `landed`, Dodge/Parry/Shoot states, LightAttack's running cut (`rush_k`); all on the captain's machine
+  (effects via Net.fx, Projectile/FireZone sync themselves). WeaponTraits has no autoload names (ItemDB reads it; test scripts name ItemDB
+  before the autoloads exist).
+- **One price curve** (`scripts/items/economy.gd`): worth = value x 1.6^tier (ItemData.RARITY_VALUE now exactly that), a trader asks
+  worth x 4 (weapons, gear), x2.5 (food and drink), rounded nice (`Shops.price_of`; the numbers in stock entries aren't read any more),
+  pays worth x their rate. Ship upgrades: level n = the line's "base" x 1.6^n (`ShipLines.price/entry`; the gold column is gone).
+- Tests: t/economy/ (drop_rates, captain_rolls, trait_finisher, price_curve); chest_loot, quiet_areas and r7test mark their chests
+  `rolled` (they test taking, not the economy); yard_buy reads the curve's 95 for armour 2. Suites likely to notice: faunatest
+  (drops via kill_loot), bugtest/netclient (coins rolled per captain, never none), qoltest/uitest (prices on the curve), nettest
+  (`_all_kill_loot` is new co-op traffic, the ruins chest roll).
+- Finished (second agent): every trait hook is live in play (checked by trait_finisher, trait_roll_fire, trait_gale on the light
+  stage). A trait weapon arriving in the bag (found, bought, given) gets the HUD's big banner once a session: its name in the tier's
+  colour and its trait line under it, with the chime (`PlayerHUD._on_item_added`, `_announced`).
 ## 2026-10-19: the held map, piece 1: fog of war, `?` marks, the island page (v1.18 lane C)
 - **Islands** (`scripts/map/map_isles.gd`, MapIsles): Brinehollow and the chain's standing islands as dictionaries made once per
   island node: key ("brinehollow", "isle<chain id>" like GenIsland.save_key), the world origin of island space, the height grid's

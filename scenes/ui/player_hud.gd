@@ -176,6 +176,7 @@ func _process(delta: float) -> void:
 ## Big centered title card, e.g. when arriving at an island.
 func show_banner(title: String, subtitle: String = "", chime: bool = false) -> void:
 	banner_title.text = title
+	banner_title.remove_theme_color_override("font_color")
 	banner_sub.text = subtitle
 	banner_sub.visible = subtitle != ""
 	if _banner_tween:
@@ -384,6 +385,10 @@ func _update_reticle() -> void:
 
 func _on_item_added(item: ItemData, quantity: int) -> void:
 	_feed_add(item, quantity)
+	if item.is_weapon() and item.weapon_trait != "" and not _announced.has(item.id):
+		_announced[item.id] = true
+		show_banner(item.display_name.to_upper(), WeaponTraits.line(item.weapon_trait), true)
+		banner_title.add_theme_color_override("font_color", item.rarity_color())
 
 
 # ---- Pickup feed: "+3 Gold" rows in the top-right corner ----
@@ -392,6 +397,8 @@ const FEED_MAX := 5
 var _feed: VBoxContainer
 ## item id -> [row, quantity, time left]
 var _feed_rows: Dictionary = {}
+## Trait weapons already given their banner this session (a new weapon is an event once).
+var _announced: Dictionary = {}
 
 
 func _build_feed() -> void:

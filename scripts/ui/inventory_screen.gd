@@ -737,6 +737,8 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 	grid.add_theme_constant_override("v_separation", 1)
 	box.add_child(grid)
 	var fx: Array = []
+	if it.is_weapon() and it.weapon_trait != "":
+		fx.append([WeaponTraits.line(it.weapon_trait), it.rarity_color() if it.rarity != ItemData.Rarity.SUPREME else Color(0.85, 0.85, 0.8)])
 	if it.is_weapon():
 		var ws := weapon_stats(it)
 		var cur := pl.equipped_weapon if src in COMPARE and pl.equipped_weapon and pl.equipped_weapon.id != it.id else null

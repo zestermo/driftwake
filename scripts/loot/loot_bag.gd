@@ -30,6 +30,10 @@ const FLOAT_LIFE := 600.0
 ## the window. `label` names it in the window and the prompt.
 var persistent: bool = false
 var label: String = ""
+## Economy: a chest (a save id), plunder afloat, or one marked `rolls` is rolled for this captain the
+## first time they open it (Loot.chest); `rolled` once done (or to keep what's in it as it is).
+var rolls: bool = false
+var rolled: bool = false
 
 @onready var interactable: Interactable = $Interactable
 @onready var mesh: MeshInstance3D = $MeshInstance3D
@@ -107,7 +111,18 @@ func setup(loot: Array[ItemStack], recovery: bool = false) -> void:
 	is_recovery_bag = recovery
 
 
+## The first look inside: rolled for this captain (Loot.chest). A hand-placed chest of the home
+## island (a save id with no island's prefix) keeps its weapons.
+func roll() -> void:
+	if rolled or persistent or is_recovery_bag or shared_id != "" or not (save_id != "" or floating or rolls):
+		return
+	rolled = true
+	contents = Loot.chest(contents, save_id if save_id != "" else str(name), save_id != "" and not save_id.begins_with("isle") and not floating)
+	interactable.prompt_text = _prompt()
+
+
 func _on_interact(player: Player) -> void:
+	roll()
 	# a single item (a dropped sword) is picked up straight away; anything
 	# more opens the loot window (headless test runs just take everything)
 	var gm := get_node_or_null("/root/GameMenu")
@@ -127,6 +142,7 @@ func _on_picked_up(player: Player) -> void:
 
 
 func take_all(player: Player) -> void:
+	roll()
 	for i in range(contents.size() - 1, -1, -1):
 		if i < contents.size():
 			take(i, player)
@@ -134,6 +150,7 @@ func take_all(player: Player) -> void:
 
 ## Move a stack (or `qty` of it) into the player's bag, as far as it fits.
 func take(idx: int, player: Player, qty: int = -1) -> void:
+	roll()
 	if idx < 0 or idx >= contents.size() or player == null:
 		return
 	var st := contents[idx]

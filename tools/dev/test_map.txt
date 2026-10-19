@@ -16,6 +16,13 @@ tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
 tools/dev/t/coop/*                      t/coop
+tools/dev/t/economy/*                   t/economy
+scripts/items/economy.gd                t/economy t/ship
+scripts/items/loot.gd                   t/economy t/items
+scripts/items/weapon_traits.gd          t/economy t/combat
+scripts/loot/*                          t/economy t/items
+scripts/game/shops.gd                   t/economy t/island
+scripts/ship/ship_lines.gd              t/economy t/ship
 tools/dev/t/fx/*                        t/fx
 assets/textures/fx/flip_*               t/fx
 assets/textures/fx/water_trail*         t/fx

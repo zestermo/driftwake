@@ -78,7 +78,7 @@ func _process(d: float) -> bool:
 			check("she buys treasure at full worth", gold() == 10 * gem and gem >= 24 and p.inventory_component.count("treasure") == 0)
 			check("the gold counter shows it", hud._gold_label.text == str(10 * gem) and hud._gold_t > 0.0)
 			shop.buy(["rum", 9])
-			check("buying rum: in the bag, gold gone", gold() == 10 * gem - 9 and p.inventory_component.count("rum") >= 1)
+			check("buying rum: in the bag, gold gone", gold() == 10 * gem - shop.SHOPS.price_of(["rum", 9]) and p.inventory_component.count("rum") >= 1)
 			menu.close()
 			menu.open_shop("sela")
 			var coat: Array = []
@@ -89,10 +89,12 @@ func _process(d: float) -> bool:
 			var g0 := gold()
 			menu._shop.buy(coat)
 			var got = p.inventory_component.items[-1].item
-			check("Sela's captain's coat: a green gear piece, made to order", p.inventory_component.items.size() == before + 1
-				and got.is_gear() and got.rarity == 1 and gold() == g0 - 190)
+			var cost: int = menu._shop.SHOPS.price_of(coat)
+			check("Sela's captain's coat (%d g): a green gear piece, made to order" % cost, p.inventory_component.items.size() == before + 1
+				and got.is_gear() and got.rarity == 1 and gold() == g0 - cost)
+			p.inventory_component.remove_item(item("gold"), gold() - (cost - 1))
 			menu._shop.buy(coat)
-			check("no gold, no coat", gold() == g0 - 190)
+			check("no gold, no coat", gold() == cost - 1 and p.inventory_component.items.size() == before + 1)
 			# selling clothes back to her, and spare steel to Haldor
 			var sold_coat := gold()
 			menu._shop.sell(got, 1)

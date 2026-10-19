@@ -183,6 +183,7 @@ static func make_items(items: Dictionary) -> void:
 			it.damage_mult = base.damage_mult * float(spec["dmg"])
 			it.value = maxi(int(round(base.value * float(spec["worth"]))), 1)
 			it.poison = float(spec.get("poison", 0.0))
+			it.weapon_trait = "venomous" if it.poison > 0.0 else ""
 			it.icon = icon(it.model())
 			items[it.id] = it
 

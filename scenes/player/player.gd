@@ -1865,6 +1865,7 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 		# Armament: Coat - nothing can block it, and it breaks red wind-ups
 		h.unblockable = true
 		h.haki = true
+	TraitMoves.shape(self, h, kind)
 	return h
 
 
