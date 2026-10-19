@@ -3618,3 +3618,24 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - **Stern corners** (hull_builder.gd): the transom was one trapezoid from the quarterdeck rail corners straight to the keel corners, but the hull side kinks at
   the deck line (vertical castle above, slanting below), so a wedge of each stern quarter was open and the transom's UVs were skewed. Now two quads (castle
   rectangle + lower trapezoid) with position-mapped UVs (`_transom_uv`) like the sides'. Checked with modelshot back3/low before and after.
+
+## 2026-10-19: skills rework, piece 2: fewer, bigger nodes
+- **Weapon trees** (skill_tree.gd) cut from 23-27 nodes to 16-19: every move, active and ultimate kept (same ids, so
+  tests and saves of them hold), the small stat and passive nodes folded into a few that change how the weapon plays.
+  One shape on the grid for all: the moveset either side of the root (row 0), defence or grapples up col -2 (deflect
+  -> counter skill -> Return), the stat node, the skills and the top stat up the middle to the ultimate, three style
+  passives up col 2 (e.g. the cutlass's Flourish: finishers and the thrust; Plunder: leech and execute; Swashbuckler:
+  cooldowns and energy), the element's two mastery nodes just left of the skill / top stat they hang off. The damage
+  each tree gave in total is the same (the cutlass's +6/8/10/12% became +14% and +22%).
+- **Costs** (`_add`): a move 1, a stat or passive 2, an active 2, an ultimate 4, a Return / top stat / Last Stand 3
+  (the Devil Fruit tree keeps 1/2/3). A weapon tree costs 31-38 points in all against the 29 its mastery gives, so
+  the last few are a choice; family carry-over is how a second weapon of the family catches up.
+- **The Captain tree** (was Base & Haki, 49 nodes -> 34): a ring of 8 bigger body stats (Agility, Endurance, Vitality,
+  Focus with Quick Learner folded in, Toughness, Strength, Spirit, Sea Legs), Mobility 5 (Swift Step has Slip and Gale
+  Step in it; Sky Walk has Featherfall), Survival 8, Armament 4, Observation 4, Conqueror 2, and the **Seafarer** (off
+  Sea Legs at 180 deg): Sea Born (needs Swimming 4) and Helmsman (needs Seamanship 5): the shared tree's life-skill
+  nodes, paid with level points. No cooking/fishing nodes there until their systems exist.
+- Progression.FORMAT 4: piece 1's format-3 saves are refunded again (with Vey's point and their uses).
+- Tests: t/progression/can_learn (the costs and gates, and the shape: links real, every node reachable, no two on one
+  spot, every skill and all 19 moves still taught, no 1-point weapon filler, sizes). progtest's point sums and
+  techtest's "learn everything" (life skills levelled first) and node-count check updated, not run (world suites).

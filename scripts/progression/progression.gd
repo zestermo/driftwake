@@ -30,9 +30,9 @@ const FAMILY_SHARE := 0.25
 ## Metres swum for a point of Swimming xp, and how often (ticks) the swim is measured.
 const SWIM_M := 4.0
 const SWIM_TICKS := 15
-## Save format: 2 = per-tree points, mastery, tiers; 3 = the reworked trees,
-## families and life skills (older saves are refunded once).
-const FORMAT := 3
+## Save format: 2 = per-tree points, mastery, tiers; 3 = families and life skills;
+## 4 = the trimmed trees (older saves are refunded once).
+const FORMAT := 4
 
 var player: Player
 var level: int = 1
@@ -442,12 +442,12 @@ func from_dict(d: Dictionary) -> void:
 		# the trees were reworked: every skill point and every weapon's mastery point
 		# comes back once (mastery levels, uses, gold and gear stay)
 		_refunded = level > 1 or not ms.is_empty()
-		skill_points = (level - 1) * SP_PER_LEVEL + (1 if fmt == 2 and level > 1 and Story.passed("vey_skills") else 0)
+		skill_points = (level - 1) * SP_PER_LEVEL + (1 if fmt >= 2 and level > 1 and Story.passed("vey_skills") else 0)
 		for t in ms.keys():
 			if SkillTree.is_mastery_tree(str(t)):
 				var lv := int(ms[t].get("lv", 1))
 				mastery[str(t)] = {"lv": lv, "xp": int(ms[t].get("xp", 0)), "pts": lv - 1 if SkillTree.is_weapon_tree(str(t)) else 0}
-		if fmt == 2:
+		if fmt >= 2:
 			uses = (d.get("uses", {}) as Dictionary).duplicate()
 	else:
 		skill_points = int(d.get("sp", 0))

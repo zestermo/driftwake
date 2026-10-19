@@ -128,7 +128,8 @@ func _process(d: float) -> bool:
 			check("Haki locked until level 10", pr.can_learn("h_arm") != "" )
 			check("fruit nodes need the fruit", pr.can_learn("e_root").begins_with("Needs the"))
 			var hp0: float = p.health_component.max_health
-			check("learn Agility", pr.learn("c_agility"))
+			check("learn Agility (both points)", pr.learn("c_agility") and pr.skill_points == 0)
+			pr.skill_points = 2
 			check("learn Geppo", pr.learn("m_geppo"))
 			check("Geppo gives an air jump", p.max_jumps == 2)
 			check("Agility speeds you up", p.move_speed > 6.0)
@@ -138,12 +139,12 @@ func _process(d: float) -> bool:
 			check("Soru goes on the bar", pc.loadout[0] == "soru")
 			# (the level's XP put a share into the cutlass's mastery: none of it spent here)
 			pr.mastery_of("sword")["pts"] = 0
-			check("weapon trees spend mastery points, not skill points", pr.can_learn("s_edge") == "Needs 1 mastery point")
+			check("weapon trees spend mastery points, not skill points", pr.can_learn("s_edge") == "Needs 2 mastery points")
 			pr.mastery_of("sword")["pts"] = 10
 			pr.mastery_of("pistol")["pts"] = 10
 			for nid in ["c_vitality", "v_hardy", "v_tekkai", "v_steadfast", "c_strength", "s_edge", "s_flying", "c_endurance", "g_marks", "g_storm", "g_kata", "g_rain"]:
 				pr.learn(nid)
-			check("mastery points spent from their own tree", int(pr.mastery_of("sword")["pts"]) == 7 and int(pr.mastery_of("pistol")["pts"]) == 5 and pr.skill_points == 11)
+			check("mastery points spent from their own tree", int(pr.mastery_of("sword")["pts"]) == 6 and int(pr.mastery_of("pistol")["pts"]) == 4 and pr.skill_points == 6)
 			check("moveset unlocks", pr.has_move("gun_kata") and pr.has_move("gun_rain") and not pr.has_move("iai_full"))
 			check("skills fill the bar", pc.loadout[1] == "tekkai" and pc.loadout[2] == "flying_slash" and pc.loadout[3] == "bullet_storm")
 			check("stats add up", pr.stat("max_hp") >= 40.0 and pr.has_flag("steadfast"))
@@ -176,7 +177,7 @@ func _process(d: float) -> bool:
 			check("casting counts a use", pr.uses_of("soru") == 1 and pr.skill_tier("soru") == 1)
 			check("next tier needs uses first", pr.can_rank_up("soru").begins_with("Use it"))
 			pr.uses["soru"] = 15
-			check("rank Soru up to Double Step", pr.rank_up("soru") and pr.skill_tier("soru") == 2 and pr.skill_points == 9)
+			check("rank Soru up to Double Step", pr.rank_up("soru") and pr.skill_tier("soru") == 2 and pr.skill_points == 4)
 			# fists: punch a grunt
 			p.unequip_weapon()
 			check("no weapon = fists", p.style() == "fist")
