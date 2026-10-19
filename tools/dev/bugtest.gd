@@ -36,9 +36,25 @@ func _process(d: float) -> bool:
 			check("small bug hp 30", is_equal_approx(bug.health.max_health, 30.0))
 			print("   bug at ", bug.global_position, " on floor ", bug.is_on_floor())
 			gold0 = p.inventory_component.count("gold")
-			# stand 7 m from it
-			var fwd := Vector3(1, 0, 0)
-			p.global_position = bug.global_position + fwd * 7.0 + Vector3.UP * 0.5
+			# stand 7 m from it, on level ground (not off a cliff into the sea)
+			var space := root.world_3d.direct_space_state
+			var stand := Vector3.ZERO
+			for i in 16:
+				var dir := Vector3(cos(i * TAU / 16.0), 0, sin(i * TAU / 16.0))
+				var level := true
+				var spot := Vector3.ZERO
+				for dist in [3.5, 7.0]:
+					var at: Vector3 = bug.global_position + dir * dist
+					var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 30.0, at + Vector3.DOWN * 30.0, 1))
+					if hit.is_empty() or absf(hit["position"].y - bug.global_position.y) > 1.5:
+						level = false
+						break
+					spot = hit["position"]
+				if level:
+					stand = spot
+					break
+			check("level ground 7 m from the bug", stand != Vector3.ZERO)
+			p.global_position = stand + Vector3.UP * 0.5
 			p.reset_physics_interpolation()
 			seen.clear()
 			wait = 4.0

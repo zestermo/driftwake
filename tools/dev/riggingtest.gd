@@ -252,7 +252,14 @@ func _process(d: float) -> bool:
 			wait = 0.4
 			step += 1
 		29:
-			check("by the rope, F grabs it (%s)" % prompt(), prompt().contains("rope"))
+			# (the rope hangs by the second gun: on the ground the gun is the nearer, in the air the rope's prompt wins)
+			if not has_meta("jumped"):
+				set_meta("jumped", true)
+				Input.action_press("jump")
+				wait = 0.25
+				return false
+			Input.action_release("jump")
+			check("jumping by the rope, F grabs it (%s, %s)" % [st(), prompt()], st() in ["Jump", "Fall"] and prompt().contains("rope"))
 			interact()
 			set_meta("x0", local().x)
 			set_meta("min_x", local().x)

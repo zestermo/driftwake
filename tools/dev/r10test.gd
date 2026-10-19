@@ -456,7 +456,7 @@ func _process(d: float) -> bool:
 				["release", "move_back", 0.0], ["press", "move_forward", 0.5], ["sample", 0.8], ["release", "move_forward", 0.0], ["release", "move_right", 0.6],
 				# out of combat, with real input (braking takes a few ticks; a reversal
 				# usually passes through a moment with both keys held)
-				["tap", "ready_weapon", 0.8], ["say", "weapon away"], ["check_unarmed"],
+				["tap", "ready_weapon", 0.8], ["say", "weapon away"], ["check_unarmed"], ["clear_run"],
 				["press", "move_forward", 1.0], ["watch"], ["release", "move_forward", 0.4], ["expect", "stop", "letting go of a jog plants a stop"],
 				["watch"], ["press", "move_forward", 0.3], ["expect", "start", "setting off leans into the first step"],
 				["press", "sprint", 0.8], ["watch"], ["press", "move_back", 0.08], ["release", "move_forward", 0.4],
@@ -490,6 +490,36 @@ func _process(d: float) -> bool:
 					step = 8
 				"check_unarmed":
 					check("weapon put away for the casual moves", not p.armed)
+				"clear_run":
+					var space := root.world_3d.direct_space_state
+					var found := Vector3.ZERO
+					var at0: Vector3 = p.global_position
+					for dz in [0.0, -6.0, -12.0, -18.0, -24.0]:
+						for dx in [0.0, 5.0, -5.0, 10.0, -10.0]:
+							var base := Vector3(at0.x + dx, at0.y + 30.0, at0.z + dz)
+							var ground := space.intersect_ray(PhysicsRayQueryParameters3D.create(base, base + Vector3.DOWN * 60.0, 1))
+							if ground.is_empty():
+								continue
+							var start: Vector3 = ground["position"]
+							var clear := true
+							for h in [0.4, 1.2]:
+								var from: Vector3 = start + Vector3.UP * float(h)
+								if not space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + Vector3(0, 0, 24.0), 1)).is_empty():
+									clear = false
+							for k in 7:
+								var gp := start + Vector3(0, 30.0, k * 4.0)
+								var g := space.intersect_ray(PhysicsRayQueryParameters3D.create(gp, gp + Vector3.DOWN * 60.0, 1))
+								if g.is_empty() or absf(g["position"].y - start.y) > 2.5:
+									clear = false
+							if clear:
+								found = start
+								break
+						if found != Vector3.ZERO:
+							break
+					check("a clear 24 m run ahead for the sprint", found != Vector3.ZERO)
+					p.global_position = found + Vector3.UP * 0.3
+					p.reset_physics_interpolation()
+					wait = 0.5
 				"watch":
 					watch = {"stop": 0.0, "start": 0.0, "skid": 0.0}
 				"expect":

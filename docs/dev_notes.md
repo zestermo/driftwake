@@ -3691,3 +3691,12 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - chaintest: the treasure X check capped distance at 320 m from Brinehollow's centre; LAND_R is 400 now and one of the four spots fell at 391 m. The bound is `starter_island.LAND_R`.
 - lighttest: Brinehollow had 35 NightLights for a budget of 34 (the budget also has Buildings' own lights, the tavern door, harbour office, chapel, forge, tower, outside it). The shrine gate's two stone lanterns (5.8 m apart) both took a light; only the west one does now (the other still glows as a mesh).
 - t/island/forest_fauna: the stag turns on a blow 3 times in 4 from its own rng, seeded by its node name (`@CharacterBody3D@N`, a serial that moves with every node made earlier), so the check passed or failed by chance as code changed. The test seeds the stag's rng before the blow.
+- **Red-main fixes for the ship/player suites (stale expectations, no game change):** riggingtest and t/ship/yard_ropes grabbed the rope from the
+  ground, but the rope hangs by the second gun (x 3.6 vs 3.65) and on the ground the nearer interactable, the gun, wins by design (yard_ropes only
+  passed its first check because the captain was still falling): both now jump into it (the rope wins in the air), and yard_ropes gained a grounded
+  grab with the rope moved clear of the guns. bugtest stood the captain 7 m east of a nest bug, now off a ledge into the sea (the Brinehollow
+  rebuild moved the ground): it picks level ground round the bug. r10test's sprint reversal ran the captain 17 m into a house (speed 0 for 0.3 s,
+  so no skid): it first finds a clear 24 m run. nettest board: the client waited 20 s (from the scene change) for the host's captain; alone it
+  has it in 2-4 s, but under the crew's five test slots its world load alone took ~20 s, so the window closed as the world became ready
+  (world_ready true, no puppet yet; the host's "stalled" line is only the host idling after the client quit). The wait is 60 s now, like the
+  join wait above it.

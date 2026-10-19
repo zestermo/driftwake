@@ -108,7 +108,7 @@ func _process(d: float) -> bool:
 				data["clock_err"] = []
 				tn.ask("calm")
 				go(100 if mode == "chain" else 3)
-			elif st_t > 20.0:
+			elif st_t > 60.0:
 				check("host's captain appeared", false)
 				finish()
 		3:

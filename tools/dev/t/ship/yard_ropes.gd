@@ -75,13 +75,15 @@ func _process(_d: float) -> bool:
 			check("...another refit leaves them hanging", ship._rig.get_node_or_null("RopeS") == rope)
 			# standing under the starboard rope on the deck, looking forward over the guns
 			var at: Vector3 = ship.to_local(rope.interactable.global_position)
-			p.state_machine.force_state("Idle", {})
-			p.global_position = ship.to_global(Vector3(at.x, HB.DECK_Y + 0.1, at.z))
+			p.state_machine.force_state("Fall", {})
+			p.global_position = ship.to_global(Vector3(at.x, HB.DECK_Y + 0.9, at.z))
+			p.velocity = Vector3.ZERO
 			p.reset_physics_interpolation()
 			stage.camera_rig.global_rotation.y = ship.global_rotation.y
-			until = TK.wait_ticks(6)
+			until = TK.wait_ticks(2)
 		1:
-			check("by the rope, F grabs it (%s)" % (wanted().prompt_text if wanted() else "nothing"), wanted() == rope.interactable)
+			check("jumping by the rope (and the second gun), F grabs it (%s, %s)" % [p.current_state_name(), wanted().prompt_text if wanted() else "nothing"],
+				p.current_state_name() == "Fall" and wanted() == rope.interactable)
 			swinging = true
 			TK.act("interact")
 			until = TK.wait_secs(3.0)
@@ -110,6 +112,21 @@ func _process(_d: float) -> bool:
 		4:
 			check("...in the air the rope is (%s, %s)" % [p.current_state_name(), wanted().prompt_text if wanted() else "nothing"],
 				p.current_state_name() == "Fall" and wanted() == rope.interactable)
+			p.state_machine.force_state("Idle", {})
+			var made_fast: Vector3 = ship.to_local(rope.global_position)
+			rope.global_position = ship.to_global(Vector3(made_fast.x, made_fast.y, 1.5))
+			var under: Vector3 = ship.to_local(rope.interactable.global_position)
+			p.global_position = ship.to_global(Vector3(under.x, HB.DECK_Y + 0.05, under.z))
+			p.velocity = Vector3.ZERO
+			p.reset_physics_interpolation()
+			until = TK.wait_secs(0.5)
+		5:
+			check("standing under a rope with no gun near, F grabs it (%s, %s)" % [p.current_state_name(), wanted().prompt_text if wanted() else "nothing"],
+				p.current_state_name() in ["Idle", "Move"] and wanted() == rope.interactable)
+			TK.act("interact")
+			until = TK.wait_secs(0.3)
+		6:
+			check("...and you swing on it (%s)" % p.current_state_name(), p.current_state_name() == "Swing")
 			return TK.done(fails)
 	step += 1
 	return false
