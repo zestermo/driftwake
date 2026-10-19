@@ -46,6 +46,12 @@ release himself (2026-10-19), so no extra confirmation is needed at the tag.
 1. Fishing and the perf pass land; checked on main.
 2. `prepush.ps1 -NoPush` (the full local run, co-op included); one fix pass.
 3. The perf gate (`perf_gate.ps1`): inside the allowance (Zach: up to 15%, stable near 60 fps).
-4. The web roadmap session has landed.
+4. Merge the web roadmap branch `claude/web-timeline-992b26` into main (the session is done and doesn't land it itself;
+   web/site and docs only, so no tests to rerun).
 5. Screenshots/GIFs, the post, the home page, the release commit.
+   - **The roadmap timeline:** in `web/site/roadmap/roadmap.json`, move "you are here" (`"here": "1.18"`) and fill in
+     the version's card: `"status": "shipped"`, its `date`, its release `name`, a one-line `headline`, an `img` from
+     the new site shots (plus `shots` / `clip` if there are more), `added` (everything it added, from the what's new),
+     `news` (the post's path) and `"github": true`. Set the next version (1.19) to `"status": "building"`. Use
+     Driftwake's own names (docs/originality_plan.md).
 6. Push main, tag `v1.18`, push the tag (build-windows.yml on the tag, deploy-web on main).

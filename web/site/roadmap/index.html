@@ -4,23 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Roadmap | Driftwake</title>
-<meta name="description" content="Where Driftwake is sailing next: polish and animations, a cleaner UI, a fairer economy, Devil Fruits done right, new island biomes, and the Marines coming for your bounty.">
+<meta name="description" content="Every Driftwake version from the first prototype to 2.0 on one timeline: what each one added, and where the ship's headed next.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://driftwake.fun/roadmap/">
-<meta property="og:title" content="The Driftwake roadmap">
-<meta property="og:description" content="Where Driftwake is sailing next: polish, Devil Fruits done right, new biomes, and the Marines coming for your bounty.">
+<meta property="og:title" content="The Driftwake timeline">
+<meta property="og:description" content="Every version from the first prototype to 2.0: what shipped, what's being built and what's planned.">
 <meta property="og:image" content="https://driftwake.fun/img/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#12363c">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/roadmap/roadmap.css">
+<link rel="preload" href="/roadmap/roadmap.json" as="fetch" crossorigin>
 </head>
 <body>
-<a class="skip" href="#main">Skip to the roadmap</a>
+<a class="skip" href="#main">Skip to the timeline</a>
 
 <div class="top">
 	<a class="brand" href="/">DRIFTWAKE</a>
 	<nav aria-label="Site">
+		<a href="/">Home</a>
 		<a href="/news/">News</a>
 		<a href="/roadmap/" aria-current="page">Roadmap</a>
 		<a href="/releases/">Releases</a>
@@ -28,70 +31,53 @@
 	</nav>
 </div>
 
-<header class="page-head">
+<header class="page-head tl-head">
 	<h1>Roadmap</h1>
-	<p>Where the ship's headed. Plans change at sea, so treat this as a heading, not a promise.</p>
+	<p>Every version from the first prototype to 2.0. Open a card to see what it added. Past the marker, plans change at sea: treat them as a heading, not a promise.</p>
 </header>
 
-<main id="main" class="article">
-	<section class="panel notes" aria-labelledby="next-h">
-		<h2 id="next-h">Next up: the economy and skills</h2>
-		<p>v1.13 gave the crew something to do ashore: instruments that jam together and duels
-			(<a href="/releases/#v1-13">see what shipped</a>). Next, what you earn and spend.</p>
-		<ul>
-			<li><b>A fairer economy.</b> Gold that means something, shops worth visiting, and treasure you actually want to keep: rare-gear merchants who only take treasure, and quests and crafting that use it.</li>
-			<li><b>Skills that grow evenly.</b> A clearer skill map, even pacing across weapons, and a balance pass so every style has its moment.</li>
+<main id="main" class="tl-main">
+	<div class="tl-bar">
+		<div class="tl-jumps" role="group" aria-label="Jump along the timeline">
+			<button type="button" class="badge" data-jump="first">First build</button>
+			<button type="button" class="badge" data-jump="here">You are here</button>
+			<button type="button" class="badge" data-jump="last">2.0</button>
+		</div>
+		<ul class="tl-legend" aria-label="Key">
+			<li><span class="key key-shipped"></span>Shipped</li>
+			<li><span class="key key-building"></span>Being built</li>
+			<li><span class="key key-planned"></span>Planned</li>
 		</ul>
-	</section>
+		<p class="tl-hint">Scroll, drag or use the arrow keys</p>
+	</div>
 
-	<section class="panel notes" aria-labelledby="islands-h">
-		<h2 id="islands-h">Islands that feel planned, not rolled</h2>
-		<ul>
-			<li><b>District planning.</b> Each island's harbour, village, outskirts and wilds laid out like somewhere people actually built, with a big set piece and a beast's ground on every one.</li>
-			<li><b>Smoother sailing.</b> The islands ahead stay light until you get close, so arriving never hitches.</li>
-			<li><b>More biomes.</b> Snow and desert islands shipped in <a href="/releases/#v1-16">v1.16</a>, autumn forests in <a href="/releases/#v1-17">v1.17</a>. The two cities, a royal capital and a canal city, come next.</li>
-		</ul>
-	</section>
-
-	<section class="panel notes" aria-labelledby="fruit-h">
-		<h2 id="fruit-h">Devil Fruits: coming back, done right</h2>
-		<p>Devil Fruits are the heart of the kind of adventure Driftwake is chasing, which is exactly why they're on the
-			shelf for now. A fruit changes everything about how you fight, move and survive, and it should feel that big.
-			So before putting something that important into the world, I wanted the core of the game properly solid
-			first: movement, combat, the islands, the sea and co-op.</p>
-		<p>When they come back, each fruit gets the same care as the weapons: its own moves, effects and skill tree, real
-			trade-offs (the sea won't be your friend), and how fruit users play together in co-op, including a crewmate
-			diving in to haul a sinking fruit user out of the water.</p>
-	</section>
-
-	<section class="panel notes" aria-labelledby="marines-h">
-		<h2 id="marines-h">Marines, bounties and being hunted</h2>
-		<p>Right now the sea's trouble is other pirates. Later, it's the law.</p>
-		<ul>
-			<li><b>Wanted posters.</b> Everything you sink, raid and beat adds to your bounty. Your poster goes up in towns, and the number on it keeps climbing.</li>
-			<li><b>Marine patrols.</b> Marine ships sail the busier waters. Get spotted with a price on your head and they'll come about.</li>
-			<li><b>The hunt.</b> Once your bounty is high enough, named Marine captains start hunting you personally, tracking your ship down the chain, waiting at harbours and showing up when you least want them.</li>
-			<li><b>Bigger bounty, bigger trouble.</b> The higher it goes, the tougher the people who come for you. Eventually that means the Marines' best.</li>
-		</ul>
-	</section>
-
-	<section class="panel notes" aria-labelledby="crew-h">
-		<h2 id="crew-h">City arenas</h2>
-		<p>Duels and shanties shipped in <a href="/releases/#v1-13">v1.13</a>. Next for the crew:</p>
-		<ul>
-			<li><b>City arenas.</b> Nonlethal tournaments with wooden versions of every weapon, a big crowd, and round after round: one-on-one, team battles where your colours pick your side, and free-for-alls. Enter on your own, or against your own crew.</li>
-		</ul>
-	</section>
-
-	<section class="panel notes" aria-labelledby="later-h">
-		<h2 id="later-h">Further out</h2>
-		<ul>
-			<li><b>More weapons.</b> Twin axes, a two-handed hammer, and ability tiers where a mastered skill really changes how it works: a dodge that shadow-steps, Observation Haki that sidesteps for you.</li>
-			<li><b>More minibosses.</b> A pirate warlord holding a camp, a bat swarm-mother, a carnivorous plant the size of a house.</li>
-		</ul>
-		<p class="small">Want to see what's already shipped? <a href="/releases/">Every version and what changed</a>.</p>
-	</section>
+	<div class="tl" tabindex="-1">
+		<ol class="tl-track" aria-label="Driftwake versions, oldest first"></ol>
+	</div>
+	<noscript><p class="tl-msg">The timeline needs JavaScript. Every shipped version is on the <a href="/releases/">release notes</a> page.</p></noscript>
+	<p class="tl-msg" id="tl-error" hidden>The timeline didn't load. Every shipped version is on the <a href="/releases/">release notes</a> page.</p>
+	<p class="small tl-foot">Screenshots up to v1.6 were taken at the time (v1.5 and v1.6); the rest are from the current build, and planned cards show today's game, faded. Full notes for every version are on the <a href="/releases/">release notes</a> page, and the downloads on <a href="https://github.com/zestermo/driftwake/releases">GitHub</a>.</p>
 </main>
+
+<dialog class="tl-dialog panel" aria-labelledby="tl-d-name">
+	<div class="tl-d-in">
+		<button type="button" class="tl-close" aria-label="Close">Close</button>
+		<p class="tl-d-meta"><span class="tl-v" id="tl-d-v"></span> <span class="tl-d-status" id="tl-d-status"></span> <span id="tl-d-date"></span></p>
+		<h2 id="tl-d-name"></h2>
+		<p class="tl-d-head" id="tl-d-head"></p>
+		<div class="tl-d-media" id="tl-d-media"></div>
+		<div class="notes">
+			<h3 id="tl-d-list-h"></h3>
+			<ul id="tl-d-list"></ul>
+		</div>
+		<p class="tl-d-note" id="tl-d-note"></p>
+		<p class="tl-d-links" id="tl-d-links"></p>
+		<nav class="tl-d-nav" aria-label="Other versions">
+			<button type="button" class="tl-step" data-step="-1"></button>
+			<button type="button" class="tl-step" data-step="1"></button>
+		</nav>
+	</div>
+</dialog>
 
 <footer>
 	<nav aria-label="Footer">
@@ -102,8 +88,8 @@
 		<a href="/releases/">Releases</a>
 	</nav>
 	<p>Driftwake is made by Zilk. Fonts: Pixelify Sans and Silkscreen (SIL Open Font License). Built with Godot.</p>
-	<p class="credit">Inspired by <i>One Piece</i> by Eiichiro Oda, with love. Driftwake is an independent fan-made game, not affiliated with or endorsed by Eiichiro Oda, Shueisha or Toei Animation.</p>
 </footer>
 
+<script src="/roadmap/roadmap.js" defer></script>
 </body>
 </html>

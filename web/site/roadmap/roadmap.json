@@ -1,0 +1,513 @@
+{
+	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
+	"here": "1.17",
+	"versions": [
+		{
+			"v": "0.1",
+			"name": "Prototype",
+			"date": "2026-04",
+			"status": "shipped",
+			"headline": "Where it started: procedural islands, an ocean, a sword and a ship.",
+			"img": "early/island",
+			"alt": "A small green island with a lighthouse, ringed by turquoise shallows in open sea",
+			"added": [
+				["The first prototype", "Procedural islands, an ocean to sail, sword combat, a ship and loot banking."]
+			]
+		},
+		{
+			"v": "1.0",
+			"name": "Brinehollow",
+			"date": "2026-10-04",
+			"status": "shipped",
+			"gap": "Half a year later",
+			"headline": "The first real build: the island of Brinehollow, a sloop and a PS1 renderer.",
+			"img": "early/village",
+			"alt": "Brinehollow's village: timber houses along a dirt lane, the lighthouse on the hill",
+			"shots": [
+				["early/tavern", "Inside the tavern: a bar with bottles on the shelves, plank floors and a lamp"],
+				["early/outfits", "Six captains from the character creator in different outfits"]
+			],
+			"added": [
+				["Brinehollow", "A village, a tavern, a market, a lighthouse, ruins and the smugglers' camp."],
+				["Characters", "A character creator, procedural anime-style bodies, and hair and cloth physics."],
+				["Gear and townsfolk", "An inventory, gear, and villagers with branching dialogue."],
+				["Enemies", "Pirate grunts (swordsmen and riflemen) and scuttlebugs."],
+				["Combat", "Parries, ragdolls and the plunge attack."],
+				["The sea", "The sloop, swimming, and the PSX renderer."]
+			]
+		},
+		{
+			"v": "1.1",
+			"name": "Skills and Crew",
+			"date": "2026-10-04",
+			"status": "shipped",
+			"headline": "Skills, fighting styles and co-op for up to four captains.",
+			"img": "early/fight",
+			"alt": "A crew of captains fighting pirates round a campfire on the beach",
+			"shots": [
+				["coop", "Three captains with swords drawn on the deck of their sloop at sunset (current build)"]
+			],
+			"added": [
+				["Skills", "A skill bar and energy, and the first Driftfruit powers."],
+				["Progression", "Levels and the skill map, with Iron Will and Weather Eye."],
+				["Fighting styles", "Sword, dual swords, boxing, pistol and dual pistols."],
+				["Defence", "Blocking, red unblockable attacks, fall damage and foot IK."],
+				["Saves", "A title screen and three save slots."],
+				["Co-op for up to four captains", "Knocked-out crewmates can be revived, and the crew shares one ship."]
+			]
+		},
+		{
+			"v": "1.2",
+			"name": "Pirates",
+			"date": "2026-10-05",
+			"status": "shipped",
+			"headline": "Ships at war, Redtide Rock and its captain, and music for every place.",
+			"img": "early/fleet",
+			"alt": "Four pirate ships under black and red sails on the open sea",
+			"added": [
+				["Ships at war", "Crew-manned cannons and broadsides, plus pirate ships that hunt, fire and board."],
+				["Redtide Rock", "A fort guarded by Captain Morrow, \"Red Tide\", a three-phase boss."],
+				["Music", "Generated tracks for the island, the sea, combat and boss fights."],
+				["Co-op polish", "Pings and crew markers."],
+				["Inventory", "A loot window, drag-and-drop inventory, and trading between captains."],
+				["Visuals", "A sharper PSX preset."]
+			]
+		},
+		{
+			"v": "1.3",
+			"name": "Weather",
+			"date": "2026-10-05",
+			"status": "shipped",
+			"headline": "A day and night cycle, storms with lightning, and a sea rebuilt from real wave trains.",
+			"img": "early/sailing",
+			"alt": "The sloop running before the wind across rolling waves toward Brinehollow",
+			"added": [
+				["Day and night", "A 24-minute day/night cycle with a sky, sun, moon and stars."],
+				["Weather", "Clear, cloudy, rain and storms, with lightning and rough seas."],
+				["Clouds and light", "3D puff clouds you can fly through, and god rays."],
+				["The sea", "Waves rebuilt from six wave trains so swimmers and ships ride the waves you see, and the sea fades into the horizon."]
+			]
+		},
+		{
+			"v": "1.4",
+			"name": "Steel and Style",
+			"date": "2026-10-06",
+			"status": "shipped",
+			"headline": "The katana, pistols that aim, and bodies that move like bodies.",
+			"img": "early/air-slash",
+			"alt": "The captain leaping into a katana air slash on the beach, a purple arc behind the blade",
+			"added": [
+				["The katana", "A two-handed style with a scabbard, a charged iai draw, a running draw and an air slash."],
+				["Pistols", "Shots follow the crosshair, dual pistols get the Gun Rain air attack, and gun kata works on the move."],
+				["Blood and dismemberment", ""],
+				["Bodies", "Skinned bodies with round knees, elbows and shoulders, and fuller body shapes."],
+				["Movement", "Hip and leg motion, uneven landings, skids and planted stops."],
+				["Ragdolls", "They no longer slide or vibrate, and they collide with themselves."]
+			]
+		},
+		{
+			"v": "1.5",
+			"name": "The Open Sea",
+			"date": "2026-10-07",
+			"status": "shipped",
+			"headline": "Real sailing, sea hazards, plunder, the first Leviathan and enemy fleets.",
+			"img": "early/seaking",
+			"alt": "A Leviathan's coils breaking the waves beside the sloop",
+			"shots": [
+				["early/whirlpool", "A whirlpool spinning in the open sea"],
+				["early/shipwright", "A red-hulled ship at Tackett's pier"],
+				["early/title", "The title screen at sunset with the v1.5 version ribbon"]
+			],
+			"clip": "sail",
+			"clipAlt": "The sloop runs under full sail past dark sea cliffs",
+			"added": [
+				["Sailing", "Wind and sail trim, an anchor on a chain worked at the capstan, and hulls that hole, burn and flood while the crew patches, pumps and douses."],
+				["Sea hazards", "Reefs, fog banks, whirlpools and drifting storm cells."],
+				["Plunder", "Wrecks to loot, messages in bottles and buried treasure."],
+				["The Leviathan", "A serpent at its lair with bites, tail slams and a hoard."],
+				["Enemy fleets", "Sloops, gunboats, brigs and Admiralty ships that ram, flee and surrender. You can board their ships, and their crews are visible on deck."],
+				["Navigation", "A sea chart, a compass strip and map marks."],
+				["Brinehollow's traders and Tackett the shipwright", "Refits, paint, a flag designer and figureheads."],
+				["Gear", "Seven item tiers, 27 weapon designs, new armour (cuirass, mail, morion, greatcoat, gauntlets, greaves and capes), nine more hairstyles, and hats that sit over the hair."],
+				["New moves", "The axe gets its own moveset, and the cutlass is polished with a running cut."],
+				["Visuals", "Foam wakes, turquoise shallows and rain pooling on deck."],
+				["Co-op and pacing", "Smoother co-op sailing, and levels now take twice the XP."],
+				["Title screen", "A What's New pop-up and a version ribbon."]
+			]
+		},
+		{
+			"v": "1.6",
+			"name": "Trees and Timbers",
+			"date": "2026-10-07",
+			"status": "shipped",
+			"headline": "Skill trees, an ultimate for every weapon, and bigger ships with a cabin.",
+			"img": "early/skybreaker",
+			"alt": "The captain swinging an axe technique, a pale blue crescent of force in front",
+			"shots": [
+				["early/whirlwind", "The captain spinning an axe whirlwind through pirates on the beach"]
+			],
+			"added": [
+				["Skill trees (K)", "A tree for every weapon, Base & Will and your Driftfruit, grown with weapon mastery. Old saves get every skill point back."],
+				["26 new techniques", "Riposte, Wind Severer, Blade Dance, Deadeye, Smoke Bomb and more, and an ultimate for every weapon, on R."],
+				["Grapples and martial arts", "Suplex, Shoulder Throw, Giant Swing, Hundred Fists, Rising Dragon and the Leviathan Fist."],
+				["Ability tiers", "Squall Step becomes Shadow Step, Foresight a stance that dodges for you, and Ballast hardens you by itself."],
+				["Cut the bullets", "A parry upgrade that cuts gunshots out of the air, and sends them back once mastered."],
+				["Will", "17 new passives, and Captain's Will at level 20."],
+				["Bigger ships", "A quarterdeck over a crew cabin, a crow's nest, rigging and swing ropes."],
+				["Life aboard", "A bunk, a galley and the crew's shared chest. You wake in the cabin when you fall, and your bag waits on a grave."],
+				["Summon your ship", "Hold B near the water."]
+			]
+		},
+		{
+			"v": "1.7",
+			"name": "Wind and Story",
+			"date": "2026-10-08",
+			"status": "shipped",
+			"headline": "A story to start, Brinehollow's forest and harbour town, and fairer sea fights.",
+			"img": "cave",
+			"alt": "The captain, sword drawn, walking up to a mossy cave mouth, glowing fungus inside",
+			"added": [
+				["A story to start", "Wake on the beach past the quay and follow Old Pell's lead through Brinehollow to Captain Morrow, with your next goal on screen and a marker to follow."],
+				["Brinehollow grows", "A deep western forest, Captain Grell's pirate den, spitters in the canopy and the Brood Queen's cave."],
+				["The harbour town", "A stone quay with piers, trading ships and a harbour tower. The village gets dressed houses, a furnished tavern, a cobbled plaza, a smithy and a sea chapel."],
+				["Morrow's lodestone", "Hold L to see where the islands of the chain lie."],
+				["Combat", "A new cutlass combo and polished techniques (the Kraken's Wake), elements woken by weapon mastery, and heavy attacks that tire you when spammed."],
+				["Fairer sea fights", "Enemy hull bars, far fewer holes, faster pumping, and ships that ram or board up close instead of firing. The wind only ever helps."],
+				["Redtide Rock", "The fort's guns are gone; a stone stair, sea stacks and crags instead."],
+				["Sound and sight of the sea", "Surf, swell, hull wash, creaking timbers, gusting wind and whistling rigging; surf rolling in, whitecaps, wind streaks and spray."],
+				["Climbing by hand", "And interaction prompts only when you're right next to things."]
+			]
+		},
+		{
+			"v": "1.8",
+			"name": "The Chain",
+			"date": "2026-10-09",
+			"status": "shipped",
+			"headline": "Past Redtide, the lodestone leads on to a chain of islands made from your world's seed.",
+			"img": "jungle",
+			"alt": "The captain on an overgrown jungle trail, a stepped stone pyramid rising out of the trees",
+			"github": true,
+			"added": [
+				["The island chain", "Past Redtide, the lodestone leads to islands generated from your world's seed. Jungle isles have a pirate camp and its named captain, a bug lair, ruins and a summit lookout, and each one is tougher than the last."],
+				["Outpost villages", "An inn, a trader and a cook, a job board and an elder on every island."],
+				["The Silverback", "Each jungle isle's beast, with its hoard and the Silverback Pelt."],
+				["Reading the lodestone", "Needles on the compass, each island's theme and danger, forks you pick by sailing, and a chart that follows you along the chain. The needle settles after 15 minutes on an island, or as soon as its beast falls."],
+				["The sea between", "Pirate fleets at the next island's level, hazards, Leviathans, wrecks, bottles and islets on every leg."],
+				["Combat", "The katana and the axe reworked (Thousand Petals, Maelstrom, Earthsplitter), and jumping attacks for every weapon."],
+				["Sound", "Layered hull wash that follows your speed, footsteps by surface, varied hits and shots, and island music that resumes after a fight."],
+				["Pacing", "Slower levelling, weaker long-range pistols, faster and fiercer pirate ships."],
+				["Co-op", "Guests see boarders, and late-built islands catch up on fights."],
+				["In the browser", "Playable at driftwake.fun (co-op stays on desktop)."]
+			]
+		},
+		{
+			"v": "1.9",
+			"name": "Beasts and Blades",
+			"date": "2026-10-12",
+			"status": "shipped",
+			"headline": "The Silverback and the Leviathan rebuilt, and the Corsair's sword and pistol.",
+			"img": "clips/ape",
+			"alt": "The Silverback crouched in its jungle clearing",
+			"github": true,
+			"added": [
+				["The beasts rebuilt", "The Silverback is a real gorilla now, and the Leviathan is a long serpent that circles your ship, rears over the deck and bites."],
+				["Sword and pistol", "The Corsair style puts a blade and a pistol in one combo, with Powder Lunge, Dead Man's Drop, Powder Finale, a butt-strike while you reload, and its own skill tree with an ultimate."],
+				["Dual wield", "Fixed and polished. Pair a sword with a second sword, an axe or a dagger: the off hand changes the weight of each hit, and Twin Spin is in the tree."],
+				["Driftfruits rest for now", "Chests no longer hold them while their powers are reworked. Fruits you've already eaten stay yours."],
+				["Co-op", "A pistol shot fired across your own body no longer vanishes, and a guest who reaches an island that's still building keeps its fights."],
+				["Brinehollow as a kit", "The starter island is built from reusable pieces, the first step to giving every chain island its level of detail."]
+			]
+		},
+		{
+			"v": "1.10",
+			"name": "The Living Isles",
+			"date": "2026-10-13",
+			"status": "shipped",
+			"headline": "The biggest update yet: every island its own adventure, with harbours, villages, caves and jungle bosses.",
+			"img": "harbour",
+			"alt": "Net menders on the beach of a stilt harbour at sunset, the sloop at the pier",
+			"shots": [
+				["temple", "The captain fighting giant bugs in a ruined temple's pillared hall"],
+				["shade", "The Shade, a huge black panther, pouncing at the captain under the canopy"]
+			],
+			"clip": "fangs",
+			"clipAlt": "The captain blinks around a pirate eight times with two daggers, drawing a star of green streaks",
+			"news": "/news/v1-10-the-living-isles/",
+			"github": true,
+			"added": [
+				["Fights with more bite", "The brood queen, Captain Grell and Captain Morrow get gap closers with clear tells, poison leaves puddles, the riflemen's shove has a readable wind-up, and pirates have more moves, flank in groups, and the tougher ones dash out of the way."],
+				["New drip", "23 new pieces of clothing and armour, from a kettle helm and a kimono to sabatons, brass goggles and a fur mantle. Sela sells the cloth and leather, Vey the steel, and the crown is plunder only."],
+				["Grell's den moves up", "A clifftop plateau out of sight of the wake-up beach, reached by a pillar-hopping climb along a knife-edge ledge or a rope ladder from its pier."],
+				["Harbours", "Every chain island's pier is a whole harbour district, in one of five kinds: a stilt port, a smugglers' cove, a busy wharf, a crumbling old harbour, or a bare landing."],
+				["Villages, five ways", "Towns, hamlets, walled trading posts, stilt villages and old ruins. Every one has an inn, a trader, a cook, an elder and a job board, and you can walk into the shops and homes."],
+				["Villagers with lives", "Fifteen to twenty people on each island with daily routines. Three named locals on every island have their own talk, rumours and quests."],
+				["Caves, dungeons and the ruined temple", "One to three caves on every island from seven kinds, each ending in a boss and a reward. Some islands hide a ruined temple: two levers, a bronze gate and the Warden behind it."],
+				["The jungle, grown up", "Six kinds of forest, giant canopy trees and thick undergrowth that slows you down off the trails, with the jungle's own music, ambience and weather."],
+				["Landmarks and set pieces", "Waterfalls, wrecks, great trees, step pyramids, watchtowers, totem groves, mines and gorge bridges, plus one set piece per island, from a sunken village or a volcano vent to a giant skeleton or an old fort."],
+				["Jungle bosses", "The Silverback takes to the canopy and drops on you from above. The Strangler (a giant snake), the Shade (a big cat that stalks you through the brush) and the Mantis Queen share its throne, with an alpha boar and the Thornback as minibosses."],
+				["Jungle creatures", "Boars, leaping and rolling bugs, swarming mites, burrowers, bats, toucans, monkeys, snakes and crabs, with fireflies and butterflies on top."],
+				["New coastlines", "Jagged sea cliffs and sea stacks, and long sandy shelves you can wade out on."],
+				["Daggers", "A new weapon in five designs at every tier. One dagger or two: each set has its own combo, Shadow Lunge, a jump attack, a skill tree and an ultimate (Red Eclipse and Hundred Fangs). Crits, bleeding wounds and backstabs."],
+				["Inventory refresh", "Weapons in your hands no longer take bag space, and tooltips compare damage, speed and range against what you're using."],
+				["Fixes", "Option selectors step both ways, islands load more smoothly, and co-op fixes for ruined villages and crewmates at the helm."]
+			]
+		},
+		{
+			"v": "1.11",
+			"name": "Sea Legs",
+			"date": "2026-10-13",
+			"status": "shipped",
+			"headline": "The feel update: how your captain moves, rests, sneaks, heals and shows off.",
+			"img": "clips/walk",
+			"alt": "The captain jogging across a town plaza at dusk while villagers gather round the fire",
+			"github": true,
+			"added": [
+				["New moves", "Standing, running and sprinting jumps with their own take-offs and landings, a somersaulting double jump, a snappier dash, and the lodestone (L) held up properly."],
+				["Draw and sheathe", "Every weapon kind draws and puts away its own way, with 13 new sounds; axes now hang on your back."],
+				["Healing in a fight", "Food, rum, stew and the new Sea Tonic share an 8 s cooldown and take a moment to eat or drink; a hit, roll or knockdown spills it."],
+				["Sitting", "Benches, stools, logs, crates and Morrow's chair (F), or the ground from the emote wheel; ship seats sail with you."],
+				["Sneaking", "C crouches: quieter steps, and grunts and creatures notice you at half range, much less from behind."],
+				["Emotes", "Hold T for a wheel of twelve, seen by your whole crew."],
+				["Gestures", "Captains and villagers gesture as they talk; chests open with both hands, levers are hauled and items are handed over."],
+				["More drip, less clipping", "Layers sit properly over each other, and nine new pieces, from a slouch hat to cavalier boots and a spyglass."],
+				["Every screen, crisp", "The skill map, shops, dialogue, the chart, saves, the creator and the HUD all draw at a whole-number scale."],
+				["Fixes", "A save made in the first moments after loading could send you back to the dock."]
+			]
+		},
+		{
+			"v": "1.12",
+			"name": "Night Watch",
+			"date": "2026-10-14",
+			"status": "shipped",
+			"headline": "Light, music and a living sea: the world after dark, and how it sounds.",
+			"img": "town",
+			"alt": "A jungle town at night: lit windows and lanterns round a plaza with a fire",
+			"github": true,
+			"added": [
+				["Nights you can see in", "Moonlit blue nights instead of black ones, plus more lamps, lit windows and doorways across every town and harbour."],
+				["The belt lantern", "Every captain wears a brass lantern at the hip that lights itself at dusk and swings as you run; L toggles it."],
+				["Lanterns at sea", "Six on your ship, two on pirate ships, so you can spot them from far off at night."],
+				["New music", "A new title theme, and longer pieces for the open sea, the island wilds and the villages, each with a night version that fades in on the same bar."],
+				["A living sea", "A bow wave that grows with speed, spray and mist, surf that breaks differently on beaches, rocks and quays, spindrift and drifting foam."],
+				["Ocean sound", "A deep swell, lapping, far breakers, rock crashes and wind gusts by distance to the real coast, all muffled when you dive."],
+				["Birds", "Gulls round the harbours and following your ship, high flocks over the islands and parrots in the jungle."],
+				["Rain that lands", "Rain that splashes on ground, roofs and decks, puddles that build up and dry out, and rings on the sea."],
+				["Longer days", "Daylight lasts 14 minutes and the night 10, in the same 24-minute day."],
+				["Small things", "Pixelation is one on/off option (F2), and the lodestone moved to H."]
+			]
+		},
+		{
+			"v": "1.13",
+			"name": "Shore Leave",
+			"date": "2026-10-15",
+			"status": "shipped",
+			"headline": "Instruments, shanties and duels: things to do with your crew when nobody's trying to sink you.",
+			"img": "stilts",
+			"alt": "A stilt village at golden hour, villagers on the raised deck",
+			"github": true,
+			"added": [
+				["Instruments", "A tin whistle, a bodhran, a concertina, a fiddle and a hurdy-gurdy. Wear one in the INST slot and hold T to play."],
+				["Jam with your crew", "Four original shanties, each with a part for every instrument. Join a crewmate who's playing and you come in on their tune at the same spot."],
+				["Duels", "Challenge a crewmate (F): only the two of you can land a blow, the loser just gets knocked down, and the winner gets a little XP."],
+				["Hits you can hear", "Blades slice, axes chop, fists thud, shots smack, and parries ring steel on steel, for every attack, yours and the enemies'."],
+				["Menus that click", "Sounds for hover, confirm, back, equip, buy and sell, level up, and quests."],
+				["Fixes", "The waves no longer jump after a hitch."]
+			]
+		},
+		{
+			"v": "1.14",
+			"name": "Smooth Sailing",
+			"date": "2026-10-15",
+			"status": "shipped",
+			"headline": "The performance update: Brinehollow from about 24 to 108 fps, with the same look.",
+			"img": "crabs",
+			"alt": "The captain on a palm beach squaring up to a colony of purple crabs",
+			"news": "/news/v1-14-smooth-sailing/",
+			"github": true,
+			"added": [
+				["Far-off things nap", "Pirates, bugs, enemy ships and villagers far from every captain stop thinking and animating, and wake up exactly where they were, in co-op too."],
+				["Less to draw", "Characters drawn in about 15 pieces instead of 23, small props fade out at a distance, and fog banks are drawn as one."],
+				["Calmer physics", "Hitboxes stopped constantly checking for overlaps, moored ships rest until you come near, and a slow frame can't snowball."],
+				["Smarter background work", "Weather, birds, clouds, shore sounds, spray and puddles update a little less often."],
+				["The result", "Brinehollow on the dev laptop: about 24 to 108 fps at midday, 28 to 107 at night, 31 to 99 in rain. F8 shows enemies awake and asleep."],
+				["Stances and parries", "Lower, wider twin daggers, dual swords lower, each with its own block, parry and flourish."],
+				["Fixes", "Arms no longer stretch after knockdowns; combos, reloads and buffered inputs count in game time."]
+			]
+		},
+		{
+			"v": "1.15",
+			"name": "Cliffs and Currents",
+			"date": "2026-10-15",
+			"status": "shipped",
+			"headline": "The cliff path to Grell's den, and water that knows where the shore is.",
+			"img": "cliffs",
+			"alt": "The sloop under sail past a dark wall of sea cliffs topped with jungle",
+			"github": true,
+			"added": [
+				["The cliff path to Grell", "A ledge cut into the sea cliff, twice as long, with gaps that drop to the sea, a bug cave with a cave brute, and a broken bridge you cross on a hanging chain."],
+				["The pier ladder", "Grell's pier ladder stays rolled up until someone reaches the top the hard way, then it's a shortcut for the whole crew."],
+				["Water that knows the shore", "Waves calm over the shallows and roll in along the beach, sheltered coasts are calmer, and the sea never comes up through the sand."],
+				["Smoke and fire", "Cannon smoke banks, fireballs on hulls, water plumes and real dust clouds from heavy hits."],
+				["Swings keep your speed", "Letting go of a vine, a ship's rope or a chain keeps your momentum."],
+				["Steadier timing", "Sprint shake, thunder, villager barks and the weather run on game time, so a hitch can't throw them off."]
+			]
+		},
+		{
+			"v": "1.16",
+			"name": "Sand and Snow",
+			"date": "2026-10-17",
+			"status": "shipped",
+			"headline": "The chain goes past the jungle: snow and desert islands, each with its own towns, beasts, weather and music.",
+			"img": "snow",
+			"alt": "The captain walking into a snow village of round pink-brick houses, a castle on the peak behind",
+			"shots": [
+				["desert", "A packed desert medina of pastel houses with domes and minarets"],
+				["sandstorm", "The same medina swallowed by an ochre sandstorm"]
+			],
+			"news": "/news/v1-16-sand-and-snow/",
+			"github": true,
+			"added": [
+				["Snow islands", "A tall peak with frozen lakes and a river, a castle on the summit, pink-brick villages under tiered green roofs, a buried town, a ship frozen into the pack ice, and ice caves."],
+				["Snow wildlife and bosses", "Wolf packs, white bears, walrus bulls, hares and stampeding shagbacks. Bosses: the White Shade, the Bear King and the Ice Golem, with Frostfang and the Rimeback."],
+				["Desert islands", "The biggest islands yet: plateaus, mesas, dunes, canyons and oases, pastel towns and packed medinas, caravan camps, a buried city and a tomb in the cliffs."],
+				["Desert wildlife and bosses", "Scorpions, monitor lizards, fennec foxes and vultures. Bosses: the Sand King (a sandworm that hunts from under the sand), the Dune Emperor, the Basilisk and the Sand Lion."],
+				["Weather to match", "Snow always falling with the odd blizzard; deserts never rain, but sandstorms roll in."],
+				["Footprints", "Boot prints in snow and sand that slowly fill back in, your breath in the cold, and footsteps that sound like the ground on every island."],
+				["New music", "Desert and snow tracks for the wilds and the towns, each with a night version, plus wind, sandstorm and blizzard ambience."],
+				["Hand-drawn effects", "Smoke, dust, sand, snow, mist and blood from a new sprite library; the cutlass's Kraken's Wake pours out ink-drawn water."],
+				["Capes and the cloak", "Tattered capes with painted folds, and a heavy cloak from Sela."],
+				["Fixes", "Minibosses turn up on every kind of island."]
+			]
+		},
+		{
+			"v": "1.17",
+			"name": "Timber and Tide",
+			"date": "2026-10-17",
+			"status": "shipped",
+			"headline": "Forest islands, a sloop you build up, and Brinehollow grown into a real town.",
+			"img": "forest",
+			"alt": "A lumber town of log cabins among autumn woods of red, orange and gold",
+			"shots": [
+				["sloop", "A fully upgraded sloop at Brinehollow's harbour: plated hull, extra guns, lanterns and a tangerine grove"],
+				["brinehollow", "Brinehollow from its harbour: a market street climbing to a shrine terrace and pagoda"]
+			],
+			"news": "/news/v1-17-timber-and-tide/",
+			"github": true,
+			"added": [
+				["Forest islands", "Autumn woodland with rivers that fall into gorges, a lumber town with a water-wheel sawmill and a log flume, a ruined castle and a hollow giant tree."],
+				["Forest wildlife and bosses", "Red deer, foxes, will-o'-wisps, wood sprites and walking stumps. Bosses: the Stag King and the Elder Treant, with the moss golem, the Cursed Huntsman and his hounds, and the Wild Hunt at night."],
+				["Ship upgrades", "Tackett's refits are twelve upgrade lines with levels, each one visible on the sloop, paid with gold and salvage. In co-op anyone can chip in."],
+				["Seamanship", "A SEA skill tree for each captain, earned by sailing, gunnery, repairs and the pump."],
+				["Brinehollow, bigger", "Farmland, a windmill hamlet, a waterfall pool, a wreck and a second cove; a market street, a second row of houses and a shrine terrace with a pagoda."],
+				["Brinehollow, livelier", "Shopkeepers on daily routines, the Salted Gull busy at night, lanterns across the market street, and a busier harbour."],
+				["Doors and steps", "Every building has a proper door and steps you can walk up."],
+				["The katana", "The combo, the air slash and all five skills follow the blade's real path, with drawn steel slashes and a sakura awakening."],
+				["Fixes", "Co-op guests' clocks settle right after joining."]
+			]
+		},
+		{
+			"v": "1.18",
+			"name": "Progression",
+			"status": "building",
+			"headline": "Things worth working toward: loot, cooking, shops, a held map, a crew journal and deeper swimming.",
+			"img": "shelf",
+			"alt": "Turquoise shallows over a sandy shelf (current build)",
+			"plan": [
+				["Economy and loot", "Trait weapons for blue rarity and up, rolled per captain, specialist shops and artisans, and buy-back."],
+				["Food and the galley", "Ingredients, cooking and buffs; food heals."],
+				["Wheels and loadouts", "A consumable wheel, keys 1-5 for abilities, loadout slots, an action wheel and making camp; co-op chat."],
+				["The held map", "The captain unrolls a parchment map in the world, with fog of war the whole crew shares and ? marks near undiscovered places."],
+				["The crew journal", "Quests from people, notice boards and things you find, shared by the crew, with rewards for everyone present."],
+				["People and encounters", "Island roles get their own talk, and travellers, ambushes and festivals turn up on generated islands."],
+				["Deeper swimming", "Diving for loot with a breath meter, currents, surf and cold water, sharks and jellyfish, and better strokes."],
+				["Sailing downtime", "Lash the helm, then read, tinker, fish at the rail, train or sleep in the bunk while she holds her heading."],
+				["Fishing", "A rod, a cast, a bite and the reel, at rails, piers and shores."],
+				["A performance pass", ""]
+			]
+		},
+		{
+			"v": "1.19",
+			"name": "Rivals and Bounties",
+			"status": "planned",
+			"headline": "Rival pirate crews, bounties on your head, and a new opening that shows what's out there.",
+			"img": "coop",
+			"alt": "Three captains with swords drawn on a sloop's deck at sunset (current build)",
+			"plan": [
+				["Rival crews", "Persistent rival captains who fight like you do, with their own crews, lines and matchups, who come back stronger."],
+				["Cutscenes", "A cutscene system for rival intros and story moments."],
+				["Bounties and wanted posters", "Beating rivals raises your bounty, posters show it, and rivals react to it."],
+				["A new opening", "An intro that sets up the world: the Admiralty, the rival crews, the sea's great powers and the end of the First Sea, and gives your captain a reason to go."],
+				["This timeline", "The interactive roadmap you're reading."]
+			]
+		},
+		{
+			"v": "1.20",
+			"name": "The World",
+			"status": "planned",
+			"headline": "A spooky island, the first cities, reworked beasts and bosses, and a polish pass across the chain.",
+			"img": "brinehollow",
+			"alt": "Brinehollow's harbour and market street (current build)",
+			"plan": [
+				["A spooky island", "A fifth island type."],
+				["Cities", "At least two on the first chain: a royal capital and a canal city."],
+				["Beasts and bosses", "Roaming beasts and boss fights reworked, with an arena of its own kind for every island type."],
+				["Life between places", "More creatures and obstacles between points of interest."],
+				["A polish pass", "Fidelity and generation fixes across every chain island."],
+				["Final names", "The game's powers, places and factions get their final names everywhere you see them."]
+			]
+		},
+		{
+			"v": "1.21",
+			"name": "Combat and Gear",
+			"status": "planned",
+			"headline": "Every weapon polished, new weapon kinds, and armour and clothes with stats.",
+			"img": "clips/combo",
+			"alt": "A twin-dagger combo in a jungle clearing (current build)",
+			"plan": [
+				["A weapon pass", "Animation and skill polish for every weapon, and a redesigned drawn-effects pass."],
+				["New weapons", "Polearms, dual axes, a hammer and more."],
+				["New armour and clothes", "With a stat system for armour and clothing."]
+			]
+		},
+		{
+			"v": "1.22",
+			"name": "Strongholds and Driftfruits",
+			"status": "planned",
+			"headline": "Raids on Admiralty strongholds and pirate hideouts, and Driftfruits back, done right.",
+			"img": "post",
+			"alt": "A trading post's palisade gate and watchtower (current build)",
+			"plan": [
+				["Strongholds", "Admiralty strongholds and pirate hideouts as raids."],
+				["Driftfruits return", "Each fruit with its own moves, effects and tree, real trade-offs, and co-op rescues from the sea."],
+				["Fruit-user enemies", "Enemies who wield fruits, from one world pool: a fruit is free again when its user falls."]
+			]
+		},
+		{
+			"v": "later",
+			"name": "The Road to 2.0",
+			"status": "planned",
+			"headline": "More of the sea, more to fight, ships to work toward, and the Admiralty on your trail.",
+			"img": "seaking",
+			"alt": "A Leviathan rearing over the sloop in a storm (current build)",
+			"plan": [
+				["The sea between", "The Kraken at shipwrecks, sea monsters, merchant and treasure ships, storms and whirlpools with purpose."],
+				["Enemies", "More mob variations for every island type."],
+				["Ships to work toward", "A fast caravel, a brig, a galleon and an oddball submarine, bought at the canal city's shipyard, each with its own upgrades."],
+				["Hunted", "Admiralty patrols and pursuit, and named Admiralty captains tracking you down the chain."],
+				["Gear to make your own", "Upgrading, effects and renaming for blue gear and up, and more clothing and looks."]
+			]
+		},
+		{
+			"v": "2.0",
+			"name": "The First Sea",
+			"status": "goal",
+			"headline": "The first official release: a complete First Sea chain, from Brinehollow to a big final boss.",
+			"img": "hero",
+			"alt": "The sloop at sunset (current build)",
+			"plan": [
+				["A complete First Sea", "Every island type, the cities and the sea between them."],
+				["The finale", "The first big, heavy boss fight at the end of the First Sea chain."]
+			]
+		}
+	]
+}

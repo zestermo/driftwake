@@ -4242,3 +4242,20 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   isn't), t/items/instruments. Render: `uishots <out> 1 0 actions,equipment`. Suites likely to notice: invtest (Gear.compose),
   jamtest / nettest jam mode (the slot's name), looptest (cook entry).
 - Per frame/tick: nothing new (the wheel works its reasons out once per open).
+
+## The web roadmap timeline (2026-10-19, docs/v1_19_plan.md)
+- `web/site/roadmap/` is now an interactive timeline: `index.html` + `roadmap.css` + `roadmap.js` (plain JS, no build)
+  read `roadmap.json`, one entry per version (26: v0.1, v1.0-1.17, 1.18 being built, 1.19-1.22, "later", 2.0).
+  `"here"` names the "you are here" version. Statuses: shipped / building / planned / goal; unbuilt cards are dashed,
+  faded and stamped. Shipped entries carry `added`, planned ones `plan` (`[title, text]` pairs), plus `img`, `shots`,
+  `clip`, `news`, `github`, `gap` (a label on the line before it, "Half a year later").
+- Wide screens: one horizontal track (cards alternate above/below the line), an eased scroll position driven by the
+  wheel (vertical wheel scrolls it sideways, handing back to the page at either end), mouse drag with a little
+  momentum (a drag never opens a card), touch swipe natively, arrow keys card to card, jump buttons, a two-speed
+  parallax sea behind. <= 640px: the line turns vertical and the page scrolls; it doesn't jump to the marker on load.
+  A card opens a `<dialog>` (pictures, clip with Play, the list, post / release notes / GitHub links, prev/next and
+  arrow keys); `#v1-10` deep-links a card. `prefers-reduced-motion` stops the bobbing, pulses and glides.
+- Pictures: v0.1-v1.6 use the v1.5/v1.6-era README shots copied from docs/media into `web/site/img/early/` (+ -640),
+  later ones the site's current shots; planned cards reuse current shots, faded. Text uses Driftwake's own names
+  (docs/originality_plan.md); the page drops the old fan-game credit line in its footer.
+- Each release: the step in docs/release_v1_18.md (move `here`, fill the card). Site-wide: a Home link before News.
