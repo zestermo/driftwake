@@ -1673,7 +1673,7 @@ func _build_shrine_terrace() -> void:
 			kit.place(ln, lp, 0.0, 0.0)
 			kit.reserve(lp, 0.6)
 			lanterns.append(ln)
-			if z > 17.0:
+			if z > 17.0 and s < 0.0:
 				KitLights.light(kit, ln, (ln.get_node("Flame") as Node3D).position, 1.3, 9.0)
 	town_spots["lanterns"] = lanterns
 	var shrine := BrinehollowModels.shrine(rng.randi())
