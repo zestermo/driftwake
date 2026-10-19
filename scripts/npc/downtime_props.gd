@@ -1,11 +1,11 @@
 class_name DowntimeProps
 extends Node
-## What a downtime loop holds (DowntimePoses calls ensure() each frame it poses one): an open book, a mallet and
+## What a downtime loop holds (DowntimePoses and ClipPlayer call ensure() each frame they pose one): an open book, a mallet and
 ## a lock to fiddle with, a rod. Made on every screen from the body's action (so a crewmate's puppet holds it
 ## too), and gone the frame the body does something else.
 
 ## action -> the props it holds
-const HOLDS := {"dt_read": ["crate", "book"], "dt_tinker": ["crate", "mallet", "lock"], "dt_fish": ["rod"], "dt_fish_reel": ["rod"]}
+const HOLDS := {"clip_read": ["crate", "book"], "dt_tinker": ["crate", "mallet", "lock"], "dt_fish": ["rod"], "dt_fish_reel": ["rod"]}
 
 ## The open book in the torso's frame.
 const BOOK_AT := Vector3(0, 0.27, -0.36)

@@ -49,7 +49,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(20)
 		2:
 			check("reading: sat on the deck, a book in hand (%s)" % p.body_model.current_action(), p.current_state_name() == "Downtime" and p.body_model.seated \
-				and p.body_model.current_action() == "dt_read" and p.body_model.get_node_or_null("DowntimeProps") != null)
+				and p.body_model.current_action() == "clip_read" and p.body_model.get_node_or_null("DowntimeProps") != null)
 			state()._earned = DT.every(p, "read") - 0.1
 			until = TK.wait_secs(0.3)
 		3:

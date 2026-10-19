@@ -255,7 +255,7 @@ static func _catch(p) -> void:
 	p.call("_toast", "Caught %s%s!" % ["two of " if n == 2 else "", item.display_name])
 
 
-## The body's loop for `kind` (DowntimePoses).
+## The body's loop for `kind` (DowntimePoses; reading is the Blender clip pilot's, ClipPlayer).
 static func pose_of(p, kind: String) -> String:
 	match kind:
 		"train":
@@ -263,6 +263,8 @@ static func pose_of(p, kind: String) -> String:
 			if st in ["pistol", "dual_pistol"]:
 				return "dt_train_gun"
 			return "dt_train_fist" if st == "fist" else "dt_train_blade"
+		"read":
+			return "clip_read"
 	return "dt_" + kind
 
 

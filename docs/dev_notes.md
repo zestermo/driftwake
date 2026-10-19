@@ -4186,3 +4186,33 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   wears off), fish (at the starboard rail facing out, a rod; bites build Fishing and land fish-tagged items; Patient Line shortens
   the wait), sleep (in the bunk, heals, the clock runs on, up beside the bunk). Renders: posebench with PB_SEAT=0.45
   `sword none dt_read:0.1333,dt_tinker:0.0896`, `sword none dt_fish:0.1,dt_sleep:0.1`.
+
+## 2026-10-19: sailing downtime, piece 3: the Blender clip pipeline (v1.18 lane F)
+- **Note:** BlenderBody (2026-10-16 above) was reverted the same day (0ac79b6): no tools/blender scripts, F4 or export were left,
+  and Blender isn't installed on this machine. The pilot rebuilds only what clips need; the how-to is docs/blender_clips.md.
+- **The rig** (`tools/dev/clip_rig.gd` -> `art/clips/rig.glb`; art/ is .gdignored): a Skeleton3D of the 14 Humanoid.JOINTS, each
+  bone named after its joint at its rest (ClipPlayer.rests: a default captain with every joint's rotation and the neck zeroed, as
+  the animator writes them), parents the joint hierarchy, and a stick body skinned to it so Blender shows something.
+- **Blender side** (`tools/blender/`): `rig_setup.py` (import the rig, 30 fps, quaternion bones, a glTF collection exporter to
+  art/clips/, save art/blender/clips.blend, never overwriting), `pilot_clip.py` (key a JSON clip on the rig: each joint Euler R
+  becomes the pose bone's `Mr^-1 (C R C^-1) Mr`, Mr its world rest, C Godot's axes to Blender's; export the glb with the action).
+  Both **untested** (no Blender here). `pilot_read.json` is the pilot's keys: reading, 7 keys over 4 s, a page turned at 2.9 s.
+  `clip_rig.gd <glb> <keys.json>` is the stand-in: it keys the same JSON on the rig in Godot and writes the same kind of glb; the
+  committed `art/clips/read.glb` came from it.
+- **The import** (`tools/dev/clip_import.gd` -> `ClipPlayer.from_scene`): GLTFDocument reads the glb at runtime, its
+  AnimationPlayer is sampled at 30 fps; each joint's global rotation is `bone_now * bone_rest^-1 * source_rest` (the reverse of
+  BlenderBody's), then its rotation against its parent joint, relative to the same at rest, as a YXZ Euler. `natural_euler` picks
+  the solution with less twist (a forearm bent past 90 degrees would otherwise come back as x = PI - x with y, z = PI: a flip
+  under the animator's Euler blending) and keeps each angle continuous. An "upper" clip keeps only Humanoid.UPPER tracks; a "full"
+  one records the pivot bone's movement as lift (scaled by the hip heights). Saved as a **BodyClip** (scripts/npc/body_clip.gd:
+  fps, length, loop, mask, tracks {joint: PackedVector3Array}, lift; `sample(t)` lerps frames). (Gotcha: a PackedVector3Array
+  pulled out of a Dictionary is a copy; append to a local and put it back.)
+- **The player** (`scripts/npc/clip_player.gd`, ClipPlayer): Humanoid._action_pose's one-line hook sends `clip_<name>` actions to
+  `ClipPlayer.pose`, which loads `assets/clips/<name>.tres` once (static cache), samples it on the action's own clock, eases in
+  over BLEND 0.4 s and returns the clip's mask. So clips blend, mask, hold, loop and go to co-op screens like keyed actions.
+- **The downtime loop from a clip:** Read is `clip_read` now (the keyed dt_read is gone): sat on the crate (seated legs from
+  the locomotion, the clip's upper body), the book on the torso (DowntimeProps, ensured by ClipPlayer for names it lists).
+- Per frame while a clip plays: one sample (8 lerps) instead of keyed pose maths. Nothing else.
+- Tests: t/downtime/clip_play (the glb imports to the saved clip frame for frame; every joint as keyed at 2.9 s a loop on, and at
+  1.2 s; the forearm stays a bend; no leg tracks; the held body follows it). read checks clip_read. Render: posebench with
+  PB_SEAT=0.45 `sword none clip_read:0.1333,clip_read:0.23 three`.

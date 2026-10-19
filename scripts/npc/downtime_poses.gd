@@ -5,12 +5,12 @@ extends RefCounted
 ##   dt_train_blade  suburi: the blade raised overhead in both hands, a stepping vertical cut, back to guard
 ##   dt_train_fist   shadowboxing: a jab, a cross, bouncing on the toes
 ##   dt_train_gun    a dry-fire drill: aim, a kick, the next mark across the bow
-##   dt_read         on a crate, a book open at the chest, a page turned each loop
 ##   dt_tinker       on a crate, three taps of the mallet on the lock, a turn of it
 ##   dt_fish         at the rail, the rod out over the side, its tip bobbing; dt_fish_reel (played) a yank, reeling
 ##   dt_sleep        face up in the bunk, breathing
 ##   dt_startle      (played) roused: the head snaps up and round, the hands come up
-## What's held (book, mallet, rod, the crate) is DowntimeProps'.
+## Reading is a Blender clip (clip_read, ClipPlayer: docs/blender_clips.md). What's held (book, mallet, rod, the
+## crate) is DowntimeProps'.
 
 ## Seconds to ease into a loop (the hold's blend: ActionSpecs len).
 const BLEND := 0.4
@@ -48,12 +48,6 @@ const GUN_AIM := {"pivot": Vector3.ZERO, "hips": Vector3(0, -0.15, 0), "torso": 
 	"leg_l": Vector3(0.2, 0, -0.14), "shin_l": Vector3(-0.22, 0, 0), "leg_r": Vector3(-0.15, 0, 0.14), "shin_r": Vector3(-0.25, 0, 0)}
 
 
-## Reading on a crate: the book open in the left hand at the chest, the head down over it, the right hand on
-## the page, turning it once a loop.
-const READ_LOOP := 4.0
-const READ := {"torso": Vector3(-0.16, 0, 0), "head": Vector3(-0.5, 0, 0),
-	"arm_l": Vector3(0.25, 0, 0.1), "fore_l": Vector3(1.45, 0, 0), "hand_l": Vector3.ZERO,
-	"arm_r": Vector3(0.25, 0, -0.1), "fore_r": Vector3(1.45, 0, 0), "hand_r": Vector3.ZERO}
 ## Tinkering on a crate: hunched over the lock in the left hand, the mallet tapping three times, then a turn of it.
 const TINKER_LOOP := 2.4
 const TINKER := {"torso": Vector3(-0.3, 0, 0), "head": Vector3(-0.55, 0, 0),
@@ -105,14 +99,6 @@ static func pose(h, n: String, u: float) -> Array:
 			if h.stance == "dual_pistol":
 				aim["arm_l"] = (aim["arm_l"] as Vector3) + Vector3(kick, 0, 0)
 			return [h._keys(into, [[0.0, {}], [1.0, aim]]), "full", Vector3.ZERO]
-		"dt_read":
-			var k := fposmod(t, READ_LOOP) / READ_LOOP
-			var page := _bump(k, 0.78, 0.1)
-			var p := READ.duplicate()
-			p["head"] = (READ["head"] as Vector3) + Vector3(0.04 * sin(t * 1.3), 0.1 * sin(k * TAU), 0)
-			p["arm_r"] = (READ["arm_r"] as Vector3).lerp(Vector3(0.45, 0.3, -0.3), page)
-			p["fore_r"] = (READ["fore_r"] as Vector3).lerp(Vector3(1.25, 0, 0), page)
-			return [h._keys(into, [[0.0, {}], [1.0, p]]), "upper", Vector3.ZERO]
 		"dt_tinker":
 			var k := fposmod(t, TINKER_LOOP) / TINKER_LOOP
 			var tap := maxf(maxf(_bump(k, 0.12, 0.06), _bump(k, 0.26, 0.06)), _bump(k, 0.4, 0.06))

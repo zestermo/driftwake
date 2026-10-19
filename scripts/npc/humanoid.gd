@@ -2153,6 +2153,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return MapPoses.pose(self, n, u)
 	if n.begins_with("dt_"):
 		return DowntimePoses.pose(self, n, u)
+	if n.begins_with("clip_"):
+		return ClipPlayer.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp

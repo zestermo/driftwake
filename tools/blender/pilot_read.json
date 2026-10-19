@@ -1,0 +1,31 @@
+{
+	"name": "read",
+	"about": "The Blender clip pilot: reading a book sat on a crate (sailing downtime's Read). Joint rotations in the Humanoid's own convention (radians, Euler YXZ like Node3D.rotation, relative to the parent joint; joints as in Humanoid.JOINTS). tools/blender/pilot_clip.py keys them on the rig in Blender; tools/dev/clip_rig.gd stands in for Blender where it isn't installed.",
+	"length": 4.0,
+	"fps": 30,
+	"loop": true,
+	"mask": "upper",
+	"keys": [
+		{"t": 0.0, "pose": {"torso": [-0.16, 0.0, 0.0], "head": [-0.5, 0.06, 0.0],
+			"arm_l": [0.25, 0.0, 0.1], "fore_l": [1.45, 0.0, 0.0], "hand_l": [0.0, 0.0, 0.0],
+			"arm_r": [0.25, 0.0, -0.1], "fore_r": [1.45, 0.0, 0.0], "hand_r": [0.0, 0.0, 0.0]}},
+		{"t": 1.2, "pose": {"torso": [-0.19, 0.03, 0.0], "head": [-0.56, -0.04, 0.0],
+			"arm_l": [0.27, 0.0, 0.1], "fore_l": [1.42, 0.0, 0.0], "hand_l": [0.0, 0.0, 0.0],
+			"arm_r": [0.27, 0.0, -0.1], "fore_r": [1.42, 0.0, 0.0], "hand_r": [0.0, 0.0, 0.0]}},
+		{"t": 2.4, "pose": {"torso": [-0.16, -0.03, 0.0], "head": [-0.46, -0.12, 0.0],
+			"arm_l": [0.25, 0.0, 0.1], "fore_l": [1.45, 0.0, 0.0], "hand_l": [0.0, 0.0, 0.0],
+			"arm_r": [0.25, 0.0, -0.1], "fore_r": [1.45, 0.0, 0.0], "hand_r": [0.0, 0.0, 0.0]}},
+		{"t": 2.9, "pose": {"torso": [-0.18, 0.08, 0.0], "head": [-0.52, 0.14, 0.0],
+			"arm_l": [0.25, 0.0, 0.1], "fore_l": [1.45, 0.0, 0.0], "hand_l": [0.0, 0.0, 0.0],
+			"arm_r": [0.45, 0.3, -0.3], "fore_r": [1.25, 0.0, 0.0], "hand_r": [0.0, 0.0, 0.0]}},
+		{"t": 3.2, "pose": {"torso": [-0.17, -0.04, 0.0], "head": [-0.48, -0.06, 0.0],
+			"arm_l": [0.25, 0.0, 0.1], "fore_l": [1.45, 0.0, 0.0], "hand_l": [0.0, 0.0, 0.0],
+			"arm_r": [0.35, -0.25, 0.05], "fore_r": [1.35, 0.0, 0.0], "hand_r": [0.0, 0.0, 0.0]}},
+		{"t": 3.5, "pose": {"torso": [-0.16, 0.0, 0.0], "head": [-0.5, 0.04, 0.0],
+			"arm_l": [0.25, 0.0, 0.1], "fore_l": [1.45, 0.0, 0.0], "hand_l": [0.0, 0.0, 0.0],
+			"arm_r": [0.25, 0.0, -0.1], "fore_r": [1.45, 0.0, 0.0], "hand_r": [0.0, 0.0, 0.0]}},
+		{"t": 4.0, "pose": {"torso": [-0.16, 0.0, 0.0], "head": [-0.5, 0.06, 0.0],
+			"arm_l": [0.25, 0.0, 0.1], "fore_l": [1.45, 0.0, 0.0], "hand_l": [0.0, 0.0, 0.0],
+			"arm_r": [0.25, 0.0, -0.1], "fore_r": [1.45, 0.0, 0.0], "hand_r": [0.0, 0.0, 0.0]}}
+	]
+}
