@@ -1,0 +1,51 @@
+# v1.18 release plan (Zach, 2026-10-19)
+
+Release v1.18 once the batch is finished (fishing, the perf pass) **and** the website roadmap session
+([Web timeline roadmap], branch `claude/web-timeline-992b26`) has landed its changes. Zach asked for the tag, push and
+release himself (2026-10-19), so no extra confirmation is needed at the tag.
+
+## What's in it (docs/v1_18_plan.md, docs/progression_plan.md)
+- **Skills rework:** a shared Captain tree, smaller weapon trees with bigger nodes, 25% mastery carried within a
+  weapon family, life skills (Swimming, Seamanship, Cooking, Fishing) with milestone perks, refund for old saves.
+- **Economy:** scarcer loot rolled per captain, 11 named weapon traits from blue up, one price curve.
+- **Food:** regen out of fights, ingredients, galley cooking, 8 meals with 12-20 minute buffs, no free restock.
+- **Shops:** a trade per shop with daily stock, buy-back, rare gear only at treasure merchants, artisans on islands.
+- **Controls:** the quick item (E) and its wheel, abilities on 1-5, weapon loadouts (X), the action wheel (N) the
+  same everywhere, making camp, co-op chat (Enter), shift+click moves, no auto-equip on pickup.
+- **The held map:** M unrolls a parchment in the captain's hands; fog of war shared by the crew; ? marks; zooming
+  from the island to the sea chart.
+- **Quests and people:** the crew journal (J), notice boards, multi-step quests turned in to their giver, rewards
+  that aren't XP, varied lines, 10 kinds of island encounters.
+- **Swimming:** diving with a breath meter, dive loot, currents, surf and cold water, sharks, morays and jellyfish,
+  new strokes, climbing out.
+- **Sailing downtime:** lash the helm; train, read, tinker, fish, sleep; the first Blender clip (reading).
+- **Fishing:** an equipment slot with a SHOW box, rods in tiers, a Minecraft-style minigame, bait, fish rarities,
+  fishing perks.
+- **Ships:** yard ropes as an upgrade, the rope wins the prompt in the air, pirates board; the stern corners fixed.
+- **Perf pass:** within the perf gate's allowance, stable near 60 fps (docs/v1_18 perf pass notes in dev_notes).
+
+## The blog post (Zach's points)
+- We've got into a groove of developing effectively and covering more content per release.
+- We built tools and workflows (parallel feature lanes, a landing queue, cached dependency-based tests, the release
+  gates) that keep quality and content consistent.
+- This update solidified much more of the vision, and **the roadmap was rebuilt** to match the new scope and goals
+  (the 1.19-1.22 release plan: the Marines + rival crews + a new intro; the world + cities; combat + gear;
+  strongholds + Devil Fruits).
+- It's genuinely getting very fun to play as the systems come together.
+- A brief mention of the plans and investigation into releasing on **Steam** in the future.
+- Screenshots and GIFs of 1.18's content.
+
+## The site
+- **Home page:** generalise it. A small card/banner at the top linking the newest blog post. Replace the images that
+  are all from 1.10 with ones about the game as it is now (sailing, islands of each theme, Brinehollow, combat,
+  diving, the held map, cooking/fishing, co-op).
+- The news post + news index, releases page, README, `scripts/ui/whats_new.gd`, `project.godot` version 1.18.
+- Images: 1600x900 + 640 JPEGs (themewxshot `TWX_SITE` and the feature render tools); GIFs short and small.
+
+## Steps
+1. Fishing and the perf pass land; checked on main.
+2. `prepush.ps1 -NoPush` (the full local run, co-op included); one fix pass.
+3. The perf gate (`perf_gate.ps1`): inside the allowance (Zach: up to 15%, stable near 60 fps).
+4. The web roadmap session has landed.
+5. Screenshots/GIFs, the post, the home page, the release commit.
+6. Push main, tag `v1.18`, push the tag (build-windows.yml on the tag, deploy-web on main).
