@@ -509,7 +509,7 @@ const BINDINGS := [
 	["Move", "W A S D"], ["Look", "Mouse"], ["Sprint", "Shift"], ["Jump / double jump", "Space"],
 	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
 	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Emote wheel (hold, mouse to pick)", "T"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 5"],
-	["Ultimate", "R"], ["Eat / drink (hold: choose)", "E"], ["Action wheel (hold: camp...)", "N"], ["Block (hold)", "Q"],
+	["Ultimate", "R"], ["Eat / drink (hold: choose)", "E"], ["Action wheel (hold: camp...)", "N"], ["Swap weapon loadout (hold: choose)", "X"], ["Block (hold)", "Q"],
 	["Inventory", "Tab / I"], ["Skill map", "K"], ["Map: out / away (click: mark)", "M"], ["Belt lantern on / off", "L"], ["Read the log pose (hold)", "H"], ["Zoan: shift form", "V"], ["Summon your ship (hold)", "B"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
 ]

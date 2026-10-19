@@ -25,6 +25,7 @@ var _root: Control
 var _plates: Array[PanelContainer] = []
 var _labels: Array[Label] = []
 var _subs: Array[Label] = []
+var _icons: Array[TextureRect] = []
 var _centre: Label
 var _open := false
 var _down := false
@@ -104,6 +105,7 @@ func _build_plates() -> void:
 	_plates.clear()
 	_labels.clear()
 	_subs.clear()
+	_icons.clear()
 	for id in entries:
 		var pc := PanelContainer.new()
 		pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -111,16 +113,14 @@ func _build_plates() -> void:
 		row.add_theme_constant_override("separation", 4)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		pc.add_child(row)
-		var tex := _icon(id)
-		if tex:
-			var ic := TextureRect.new()
-			ic.texture = tex
-			ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			ic.custom_minimum_size = Vector2(16, 16)
-			ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			row.add_child(ic)
+		var ic := TextureRect.new()
+		ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2(16, 16)
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(ic)
+		_icons.append(ic)
 		var col := VBoxContainer.new()
 		col.add_theme_constant_override("separation", 0)
 		row.add_child(col)
@@ -163,6 +163,8 @@ func _open_now() -> void:
 		_labels[i].text = _label(entries[i])
 		_subs[i].text = _sub(entries[i])
 		_subs[i].visible = _subs[i].text != ""
+		_icons[i].texture = _icon(entries[i])
+		_icons[i].visible = _icons[i].texture != null
 	_restyle()
 
 

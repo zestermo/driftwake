@@ -3844,3 +3844,21 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Tests: `t/map/` held_map (out in under a second, the camera on it, the page drawing only then, slow walking, M away fast, a hit
   knocks it away), crew_sheet (a stand-in crewmate's sheet with the sketch, between their hands), map_marks. Render: heldmapshot
   (_unroll, _isle, _chart, _front).
+
+## 2026-10-19: v1.18 controls, piece 2: weapon loadouts (X)
+- **X** (input `loadout`; Y on the web build, where X is crouch): a tap swaps to the next loadout, held 0.2 s it opens the loadout
+  wheel (RadialWheel, scripts/ui/loadout_wheel.gd): a plank per slot with its style ("Twin daggers", from inspect_panel's STYLES),
+  the slot number and weapons, the main weapon's icon, the one in use with the sun rim, a slot whose weapon isn't in the bag greyed,
+  the third "Locked" until the Captain tree's **Quartermaster** (c_quarter: off Focus at 0 degrees, level 3, 2 points,
+  effect `loadout_slots` +1). RadialWheel now refreshes plank icons on every open (a fixed list's icons change).
+- **The model** (Player): `loadouts` (3 slots, each [main id, off id] with "" = fists / none, or [] never set up), `loadout_at`,
+  `loadout_slots()` (LOADOUTS_FREE 2 + the stat). The slot in use is whatever you put in your hands: equip_weapon, unequip_weapon
+  and set_offhand write it (`_loadout_note`), except while a loadout is applied or check_equipped drops a weapon that left the bag
+  (selling, storing, dying keep the slot's ids, for when it's back). Taking up an empty slot sets it up with the hands you have.
+  `swap_loadout(i)` is buffered like the quick item (QUICK_BUFFER 1 s: mid-swing it swaps once the combo window opens, ending the
+  chain); with the weapon out it replays a quick "draw" (0.22 s) so the new blades come out of their sheaths; a toast names the setup.
+  `Player.style_of(main, off)` is style() without holding the weapons.
+- Saves: "loadouts" and "loadout_at" (`set_loadouts`; the hands are the truth for the slot in use, so a save from before loadouts
+  loads with its hands as loadout 1). Co-op: nothing new on the wire: the hands ride in the snapshot (HumanoidSync), the clack goes
+  through Net.fx. Per frame: one more wheel polling its key, and `_loadout_tick` returns at once unless a swap is waiting.
+- Tests: t/player/loadout_swap. Render: `uishots <out> 1 0 items,loadouts` (the item and loadout wheels held open).
