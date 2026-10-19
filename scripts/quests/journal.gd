@@ -19,6 +19,8 @@ signal changed
 ## Captains this close to a turn-in get its reward.
 const REWARD_REACH := 40.0
 const RUMOURS := 40
+## A charted place: the fog lifted this far round it (m).
+const CHART_SEE := 28.0
 const SCREEN := preload("res://scripts/ui/journal_screen.gd")
 
 ## id -> {"id", "title", "giver", "isle", "pos", "src", "goals": [String], "step", "done", "reward", "cost", "order"}
@@ -192,6 +194,7 @@ func decide(op: String, args: Array) -> void:
 		"done":
 			if not at_turnin(args[0]):
 				return
+			args = args + [_chart_pick(entries[args[0]], args[1])]
 		"favour":
 			if not favour_owed(args[0]):
 				return
@@ -199,6 +202,24 @@ func decide(op: String, args: Array) -> void:
 			if rumours.any(func(r): return r["text"] == args[0]["text"]):
 				return
 	Net.everyone("_all_journal", [op, args])
+
+
+## A "chart" reward: the place on the turn-in's island the crew hasn't found that's furthest from them
+## ([fog key, spot id, name, fog cells a side, the cells round it]), or [] (nothing left: gold instead).
+func _chart_pick(e: Dictionary, at: Vector3) -> Array:
+	if not (e["reward"] as Dictionary).get("chart", false):
+		return []
+	var d := MapIsles.at(get_tree(), Vector2(at.x, at.z))
+	if d.is_empty():
+		return []
+	var lp := Vector2(at.x, at.z) - (d["o"] as Vector2)
+	var best := {}
+	for s in d["spots"]:
+		if not MapFog.found(GameManager, str(d["key"]), str(s["id"])) and (best.is_empty() or lp.distance_to(s["at"]) > lp.distance_to(best["at"])):
+			best = s
+	if best.is_empty():
+		return []
+	return [str(d["key"]), str(best["id"]), str(best["name"]), int(d["n"]), MapFog.cells_near(d, best["at"], CHART_SEE)]
 
 
 ## Every machine (Net._all_journal).
@@ -222,7 +243,7 @@ func apply(op: String, args: Array) -> void:
 			if tracked == e["id"]:
 				get_tree().call_group("hud", "show_objective_banner", goal(e["id"]))
 		"done":
-			_finish(args[0], args[1], int(args[2]))
+			_finish(args[0], args[1], int(args[2]), args[3])
 		"favour":
 			var f: Dictionary = perks["favour:" + str(args[0])]
 			perks.erase("favour:" + str(args[0]))
@@ -236,7 +257,7 @@ func apply(op: String, args: Array) -> void:
 	changed.emit()
 
 
-func _finish(id: String, at: Vector3, by: int) -> void:
+func _finish(id: String, at: Vector3, by: int, chart: Array) -> void:
 	var e: Dictionary = entries[id]
 	e["done"] = true
 	_order += 1
@@ -247,12 +268,19 @@ func _finish(id: String, at: Vector3, by: int) -> void:
 		perks[k] = maxf(float(perks.get(k, 0.0)), float(r["discount"][1]))
 	if r.has("favour"):
 		perks["favour:" + id] = r["favour"]
+	if not chart.is_empty():
+		MapFog.apply(GameManager, str(chart[0]), int(chart[3]), chart[4])
+		MapFog.find(GameManager, str(chart[0]), str(chart[1]))
+		_toast("%s marked %s on your map (M)" % [e["giver"], chart[2]])
 	var me := _me()
 	if me:
 		if by == Net.my_id():
 			QuestRewards.pay(e["cost"], me)
 		if me.global_position.distance_to(at) <= REWARD_REACH:
 			var got := QuestRewards.give(r, me)
+			if r.get("chart", false) and chart.is_empty():
+				me.inventory_component.add_item(ItemDB.get_item("gold"), QuestRewards.MAP_GOLD)
+				got += ", %d gold" % QuestRewards.MAP_GOLD
 			get_tree().call_group("hud", "show_banner", "Quest done: %s" % e["title"], got, true)
 	UIStyle.sfx("quest_done")
 	if tracked == id:
@@ -306,7 +334,8 @@ func is_open() -> bool:
 
 func _can_open() -> bool:
 	var p := _me()
-	return p != null and p.is_local and not GameMenu.is_open() and not Dialogue.active and not CharacterCreator.active \
+	return p != null and p.is_local and not p.input_locked and not ChatBox.typing and RadialWheel.shown == null \
+		and not GameMenu.is_open() and not Dialogue.active and not CharacterCreator.active \
 		and get_tree().get_first_node_in_group("title_screen") == null and get_tree().get_first_node_in_group("hud") != null
 
 

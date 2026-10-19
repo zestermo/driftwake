@@ -37,7 +37,7 @@ func _process(_d: float) -> bool:
 			j.apply("take", [entry("t_hunt", ["Find the tracks", "Follow them", "Tell Kai"], {"gold": 20})])
 			j.apply("step", ["t_hunt", 0])
 			j.apply("take", [entry("t_done", ["Tell Kai"], {"gold": 5, "discount": ["t_shop", 0.1, "Wiremu's"], "favour": {"who": "Kai", "gift": [["rum", 1]]}})])
-			j.apply("done", ["t_done", Vector3(9999, 0, 0), 1])
+			j.apply("done", ["t_done", Vector3(9999, 0, 0), 1, []])
 			j.apply("rumour", [{"text": "The reef sings at night.", "who": "Kai", "isle": "Test Isle"}])
 			j.track("t_hunt")
 			var SG = load("res://scripts/game/save_game.gd")

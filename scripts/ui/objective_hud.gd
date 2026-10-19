@@ -9,6 +9,7 @@ const NPC_NEAR := 3.5
 const PLACE_NEAR := 22.0
 const EDGE := 16.0
 const GOLD := Color(1.0, 0.82, 0.3)
+const MARK := "quest"
 
 ## (set while a menu's open: the HUD is paused then, so it hides now)
 var hidden_by_menu: bool = false:
@@ -110,10 +111,12 @@ func _process(delta: float) -> void:
 		_player = get_tree().get_first_node_in_group("player") as Player
 	_t += delta
 	_poll -= delta
-	if _poll <= 0.0 and _obj.get("kind", "") == "quest":
-		# (how many of a fetch's items you've got)
+	if _poll <= 0.0:
+		# (how many of a fetch's items you've got, and where the mark on the held map goes)
 		_poll = 0.25
-		_refresh()
+		if _obj.get("kind", "") == "quest":
+			_refresh()
+		_map_mark()
 	_box.visible = not _obj.is_empty() and not hidden_by_menu and not _wake() and not Dialogue.active
 	_flash = maxf(_flash - delta, 0.0)
 	var pulse := 0.5 + 0.5 * sin(_flash * 9.0) if _flash > 0.0 else 0.0
@@ -124,6 +127,19 @@ func _process(delta: float) -> void:
 	if d >= 0.0 and _box.visible:
 		_head.text += "   %dm" % int(d)
 	queue_redraw()
+
+
+## What's followed, on this screen's held map (MapMarks "quest").
+func _map_mark() -> void:
+	var t := _target()
+	if t == Vector3.INF:
+		MapMarks.clear(MARK)
+	else:
+		MapMarks.put(MARK, t, "quest", str(_obj.get("who", "")))
+
+
+func _exit_tree() -> void:
+	MapMarks.clear(MARK)
 
 
 func _distance() -> float:

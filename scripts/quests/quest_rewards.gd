@@ -2,11 +2,12 @@ class_name QuestRewards
 extends RefCounted
 ## What a quest pays (never XP: that comes from fighting and discovering). A reward is data:
 ## {"gold": n, "items": [[item id, n]], "reveal": true (a treasure map: an X on the sea chart),
-##  "discount": [shop id, fraction, shop name], "favour": {"who": name, "gift": [[item id, n]]}}.
-## Gold, items and the map go to every captain present at the turn-in (each on their own machine);
-## a discount and a favour are the crew's (Journal.perks).
+##  "chart": true (a place on the island the crew hasn't found, put on the held map: Journal picks it),
+##  "recipe": meal id (Food.teach), "discount": [shop id, fraction, shop name], "favour": {"who": name, "gift": [[item id, n]]}}.
+## Gold, items, the treasure map and the recipe go to every captain present at the turn-in (each on their
+## own machine); the charted place, a discount and a favour are the crew's (Journal.perks, MapFog).
 
-## Gold instead of a map once every treasure's map is in hand.
+## Gold instead of a map once every treasure's map is in hand (or a recipe already known).
 const MAP_GOLD := 30
 
 
@@ -18,6 +19,10 @@ static func text(r: Dictionary) -> String:
 		out.append(_item_text(e))
 	if r.get("reveal", false):
 		out.append("a treasure map")
+	if r.get("chart", false):
+		out.append("a hidden place marked on your map")
+	if r.has("recipe"):
+		out.append("the %s recipe" % str(Food.MEALS[r["recipe"]]["name"]))
 	if r.has("discount"):
 		out.append("%d%% off at %s" % [roundi(float(r["discount"][1]) * 100.0), str(r["discount"][2])])
 	if r.has("favour"):
@@ -40,6 +45,11 @@ static func give(r: Dictionary, p: Player) -> String:
 		if t >= 0:
 			p.get_node("/root/GameManager").maps[t] = true
 			got.append("a treasure map (on your sea chart)")
+		else:
+			gold += MAP_GOLD
+	if r.has("recipe"):
+		if Food.teach(p.progression, str(r["recipe"])):
+			got.append("the %s recipe (cook it in the galley)" % str(Food.MEALS[r["recipe"]]["name"]))
 		else:
 			gold += MAP_GOLD
 	if gold > 0:

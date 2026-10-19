@@ -26,9 +26,12 @@ const SITE_KIND :={"camp": "camp", "lair": "lair", "ruins": "ruins", "summit": "
 const POI := {"ruins": [3.5, 0.0, 8.0], "lookout": [4.5, 0.0, 5.0], "camp": [17.0, 26.0, 9.0], "lair": [16.0, 22.0, 8.0], "beast": [30.0, 34.0, 10.0]}
 const Shops := preload("res://scripts/game/shops.gd")
 ## A quest's items: [id, n] (a third entry: one more per tier).
-const REWARD_ITEMS := [["tonic", 1, true], ["rum", 3], ["treasure", 1, true], ["stew", 2], ["biscuit", 4]]
+const REWARD_ITEMS := [["tonic", 1, true], ["rum", 3], ["treasure", 1, true], ["stew", 2], ["biscuit", 4], ["pearl", 1, true], ["pepper", 3],
+	["rice", 4], ["coconut", 3], ["oyster", 2, true], ["salt", 4]]
+## A taught recipe a quest can pay with.
+const REWARD_RECIPES := ["captains_feast"]
 ## What a favour called in gives.
-const FAVOUR_GIFTS := [["tonic", 2], ["stew", 3], ["rum", 4], ["treasure", 2], ["fish", 5]]
+const FAVOUR_GIFTS := [["tonic", 2], ["stew", 3], ["rum", 4], ["treasure", 2], ["fish", 5], ["pearl", 2], ["pepper", 4], ["sea_urchin", 3]]
 const FAVOUR_ASK := "I've come to call in that favour."
 ## What one says as they repay it (a line each, dealt).
 const FAVOUR_THANKS := ["A promise is a promise, Captain. Here.", "Now we're square. Don't make a habit of it.", "I pay my debts. Slowly, but I pay them.",
@@ -588,8 +591,8 @@ func _quest(qi: int) -> Dictionary:
 
 
 ## What quest qi pays (its own stream: the plan's draws stay as they were): gold by the island's tier, and
-## often something else instead of some of it: things to eat and drink or sell, a treasure map, a discount
-## at the island's trader, a favour the giver owes the crew.
+## often something else instead of some of it: things to eat, cook, drink or sell, a treasure map, a hidden
+## place on the island marked on the map, a recipe, a discount at the island's trader, a favour the giver owes.
 func _reward(q: Dictionary, qi: int) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([int(isl.node["seed"]), 5103, qi])
@@ -598,7 +601,7 @@ func _reward(q: Dictionary, qi: int) -> Dictionary:
 	var g := int(gold[0]) + t * int(gold[1])
 	var shop := isl.save_key("trader")
 	var r := {"gold": g}
-	match rng.randi() % 5:
+	match rng.randi() % 8:
 		0:
 			var e: Array = REWARD_ITEMS[rng.randi() % REWARD_ITEMS.size()]
 			r = {"gold": roundi(g * 0.6), "items": [[e[0], int(e[1]) + (t if e.size() > 2 else 0)]]}
@@ -609,6 +612,10 @@ func _reward(q: Dictionary, qi: int) -> Dictionary:
 				r = {"gold": roundi(g * 0.6), "discount": [shop, 0.1 + 0.05 * (rng.randi() % 2), str(Shops.extra[shop]["name"])]}
 		3:
 			r = {"gold": roundi(g * 0.6), "favour": {"who": _short({"name": q["giver"]}), "gift": [FAVOUR_GIFTS[rng.randi() % FAVOUR_GIFTS.size()]]}}
+		4:
+			r = {"gold": roundi(g * 0.6), "chart": true}
+		5:
+			r = {"gold": roundi(g * 0.4), "recipe": REWARD_RECIPES[rng.randi() % REWARD_RECIPES.size()]}
 	return r
 
 

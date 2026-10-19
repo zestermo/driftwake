@@ -457,7 +457,7 @@ func _hermit(e: Dictionary, rng: RandomNumberGenerator) -> void:
 		var at: Vector2 = poi["at"]
 		var q := _quest(e, who, "%s's errand: %s" % [_short(who), poi["name"]], [{"do": "reach", "goal": _cap("Go and see %s for %s" % [poi["name"], _short(who)]),
 			"said": _fill(e["T"]["said"], tok)}, {"do": "turnin", "goal": "Tell %s what you saw" % _short(who)}], tok,
-			{"gold": _gold(15), "reveal": true}, {"point": isl.to_global(Vector3(at.x, isl.hv(at) + 1.0, at.y)), "r": float(poi.get("r", 6.0)) + 8.0})
+			{"gold": _gold(15), "chart": true}, {"point": isl.to_global(Vector3(at.x, isl.hv(at) + 1.0, at.y)), "r": float(poi.get("r", 6.0)) + 8.0})
 		life.quest_node.add(q, isl)
 		life.quest_node.offer(q, choices, nodes)
 	_talk(e, npc.dialogue_id, who, npc.voice, choices, nodes)

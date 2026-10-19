@@ -3779,6 +3779,23 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Tests: t/quests/encounter_rolls (every theme's pool complete, 8+ kinds weighted, feast items real; rolls the same per seed, 0-3, no
   repeats, every kind over 300 seeds; a jungle island with all ten forced builds them all, quests turned in to someone on the island, no
   unfilled tokens, the same places on a second build). unique_lines covers their lines too.
+## 2026-10-19: v1.18 lane D, wiring the journal into main's contracts (map marks, recipes, charts, discounts)
+- **The held map:** ObjectiveHud puts whatever it follows (the tracked quest's current step, else the story) on this screen's
+  map as `MapMarks.put("quest", target, "quest", title)` every 0.25 s (its existing poll), and clears it when there's nothing
+  to follow or the HUD goes. Local per machine, as MapMarks wants.
+- **New rewards** (QuestRewards): `"recipe": meal id` (Food.teach on each captain present; gold MAP_GOLD if they know it),
+  `"chart": true` (a place on the turn-in's island the crew hasn't found: the host picks the unfound MapIsles spot
+  furthest from the turn-in in `Journal.decide` and appends [fog key, spot id, name, n, cells] to the "done" op; every
+  machine marks it found and lifts the fog CHART_SEE 28 m round it through MapFog, so it's shared and saved like any find;
+  none left: gold instead). The "done" op is now [id, at, by, chart]. IslandLife._reward rolls 8 ways now (items with
+  lane A's ingredients and pearls, treasure map, chart, discount, favour, the Captain's Feast recipe, plain gold x2); the
+  hermit's errand pays a chart instead of a treasure map.
+- **Discounts are real:** shop_screen prices stock through `crew_price` (Journal.discount(shop_id) off the curve) and shows
+  "-n% crew" by the shop's name (a small edit in lane A's file).
+- J won't open while the chat line is up (it read the key before the LineEdit), a wheel is out, or input is locked.
+- Tests: t/quests/reward_kinds (new); hud_tracked checks the map mark; rewards_present/journal_save/journalshot pass the
+  4-arg "done".
+
 ## 2026-10-19: v1.18 controls, piece 1: the quick item (E), keys 1-5, the action wheel and making camp
 - **Keys:** 1-5 are ability slots, R the ultimate, nothing on 6+. E is the quick item (tap: eat/drink the selected one; hold: the
   item wheel). N is the action wheel (hold). T is still emotes. Input actions `quick_item`, `action_wheel`, `skill_5`; `hotbar_1..3` are gone.

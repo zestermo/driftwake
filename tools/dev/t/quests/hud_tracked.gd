@@ -4,6 +4,7 @@ extends SceneTree
 ## next goal and flashes; J opens the journal (the tracker hides under it) listing it, T untracks it there and
 ## the tracker goes; J closes it.
 const TK := preload("res://tools/dev/test_kit.gd")
+var marks := load("res://scripts/map/map_marks.gd")
 var stage
 var p
 var j
@@ -53,10 +54,15 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(3)
 		1:
 			check("no story, nothing tracked: no tracker", not hud._box.visible)
+			check("...and no mark on the held map", not marks.has("quest"))
 			j.take("t_look")
-			until = TK.wait_ticks(3)
+			until = TK.wait_ticks(25)
 		2:
 			check("a quest taken is tracked and shown", j.tracked == "t_look" and hud._box.visible)
+			var m: Dictionary = marks.marks.get("quest", {})
+			var pt: Vector3 = src.quests[0]["point"]
+			check("...its mark on the held map, labelled (%s)" % m, not m.is_empty() and m["kind"] == "quest" and m["label"] == "A look at the reef"
+				and (m["at"] as Vector2).distance_to(Vector2(pt.x, pt.z)) < 0.01)
 			check("...as a quest, with its distance (%s)" % hud._head.text, hud._head.text.contains("QUEST") and hud._head.text.contains("60m"))
 			check("...its step's goal (%s)" % hud._goal.text, hud._goal.text == "Scout the reef")
 			check("...the marker on the place", hud._target().distance_to(src.quests[0]["point"]) < 0.01 and not hud._person())
@@ -78,10 +84,11 @@ func _process(_d: float) -> bool:
 			key(KEY_D)
 			check("D: the Done tab", scr.tab == "done" and scr.rows.is_empty())
 			key(KEY_J)
-			until = TK.wait_ticks(3)
+			until = TK.wait_ticks(25)
 		5:
 			check("J closes it", not j.is_open())
 			check("untracked: no tracker", not hud._box.visible)
+			check("...and the map's mark gone", not marks.has("quest"))
 			return TK.done(fails)
 	step += 1
 	return false

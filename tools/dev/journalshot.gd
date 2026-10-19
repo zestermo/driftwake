@@ -51,7 +51,7 @@ func _process(_d: float) -> bool:
 			for e in [entry("q4", "Three fish for Tane", "Carver Tane", "Kalani Reach", "npc", ["Bring three fish to Tane"], 0, {"gold": 35, "reveal": true}),
 					entry("q5", "The view from the summit", "Lookout Ari", "Kalani Reach", "npc", ["Climb to the lookout", "Tell Ari what you saw"], 1, {"gold": 22})]:
 				j.apply("take", [e])
-				j.apply("done", [e["id"], Vector3(9999, 0, 0), 1])
+				j.apply("done", [e["id"], Vector3(9999, 0, 0), 1, []])
 			for r in [["They say Captain Rusk buried something in the jungle before setting up camp.", "Hunter Noa"],
 					["The needle pulls toward Ashfall Key next. A sun-baked desert isle, pack light.", "Storyteller Mele"],
 					["Something big walks the far side of the island at night. We don't go there.", "Elder Mako"]]:

@@ -202,7 +202,8 @@ func gold() -> int:
 func _refresh() -> void:
 	var shop: Dictionary = SHOPS.shop(shop_id)
 	var inv := _player().inventory_component
-	_title.text = str(shop["name"])
+	var off := Journal.discount(shop_id)
+	_title.text = str(shop["name"]) + ("  -%d%% crew" % roundi(off * 100.0) if off > 0.0 else "")
 	_line.text = str(shop["line"])
 	_gold.text = str(gold())
 	var kinds: Array = []
@@ -321,7 +322,12 @@ func _act(all: bool) -> void:
 
 ## What stock slot `i` costs: on the curve, or (the buy-back row) what they paid you.
 func price_at(i: int) -> int:
-	return int(_stock[i][2]) if i >= _back_at else SHOPS.price_of(_stock[i][0])
+	return int(_stock[i][2]) if i >= _back_at else crew_price(_stock[i][0])
+
+
+## On the curve, less the crew's discount here (a quest's reward: Journal.perks).
+func crew_price(entry: Array) -> int:
+	return roundi(SHOPS.price_of(entry) * (1.0 - Journal.discount(shop_id)))
 
 
 ## The stock slot of buy-back entry `k`.
@@ -350,7 +356,7 @@ func buy_back(k: int) -> void:
 
 
 func buy(entry: Array) -> void:
-	var price := SHOPS.price_of(entry)
+	var price := crew_price(entry)
 	var inv = _player().inventory_component
 	if gold() < price:
 		_flash("Not enough gold", true)
