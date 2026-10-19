@@ -11,7 +11,9 @@ extends Node
 
 const TICK := 0.5
 const KINDS := ["lost", "scout", "deliver", "fetch", "clear"]
-const GOLD := {"lost": [25, 12], "scout": [20, 10], "deliver": [15, 8], "fetch": [35, 15], "clear": [45, 20]}
+const GOLD := {"lost": [25, 12], "scout": [20, 10], "deliver": [15, 8], "fetch": [35, 15], "clear": [45, 20], "bounty": [40, 20], "lair": [30, 15], "beast": [80, 35]}
+## The notice board's kinds (IslandVillage.jobs: camp, lair, beast), each turned in to whoever posted it.
+const NOTICES := {"camp": "bounty", "lair": "lair", "beast": "beast"}
 ## Each kind's steps: [what it is, the journal's goal]. The last is the turn-in.
 const STEPS := {
 	"lost": [["pickup", "Find the {thing} {place}"], ["turnin", "Bring the {thing} back to {who}"]],
@@ -19,7 +21,11 @@ const STEPS := {
 	"deliver": [["talk", "Take {parcel} to {recipient}, {where}"], ["turnin", "Tell {who} it's delivered"]],
 	"fetch": [["turnin", "Bring {what} to {who}"]],
 	"clear": [["clear", "{Verb} {name}"], ["turnin", "Tell {who} it's done"]],
+	"bounty": [["clear", "Defeat {name} at the pirate camp"], ["turnin", "Report to {poster}"]],
+	"lair": [["clear", "Clear every creature from {name}"], ["turnin", "Report to {poster}"]],
+	"beast": [["clear", "Slay {name}"], ["turnin", "Report to {poster}"]],
 }
+const NOTICE_TITLE := {"bounty": "Bounty: {name}", "lair": "Clear {name}", "beast": "Slay {name}"}
 ## A person to talk to: the marker floats this far over their head.
 const HEAD := 2.2
 
@@ -52,7 +58,7 @@ func add(q: Dictionary, isl: GenIsland) -> void:
 	Journal.register(q, self)
 	if q["kind"] == "scout":
 		q["point"] = isl.to_global(Vector3(q["at"].x, float(q["y"]), q["at"].y))
-	if q["kind"] == "clear":
+	if q.has("poi_at"):
 		var a: Vector2 = q["poi_at"]
 		q["poi"] = isl.to_global(Vector3(a.x, isl.hv(a) + 1.5, a.y))
 	if q["kind"] != "lost":
@@ -101,9 +107,15 @@ func offer(q: Dictionary, menu: Array, nodes: Dictionary) -> void:
 	nodes[n + "_remind"] = {"text": q["remind"], "next": "menu"}
 	menu.append({"text": q["done"], "next": n + "_pay", "if": func(): return Journal.at_turnin(id) and _can_pay(cost)})
 	nodes[n + "_pay"] = {"text": q["thanks"] + ["(%s)" % QuestRewards.text(q["reward"])], "event": "isle_q:%s:pay" % id, "next": "menu"}
+	_favour(q, menu, nodes)
+
+
+## A quest that left its giver owing the crew a favour: called in once.
+func _favour(q: Dictionary, choices: Array, nodes: Dictionary) -> void:
+	var id: String = q["id"]
 	if q["reward"].has("favour"):
-		menu.append({"text": q["favour_ask"], "next": n + "_favour", "if": func(): return Journal.favour_owed(id)})
-		nodes[n + "_favour"] = {"text": q["favour_thanks"], "event": "isle_q:%s:favour" % id, "next": "menu"}
+		choices.append({"text": q["favour_ask"], "next": "q_%s_favour" % id, "if": func(): return Journal.favour_owed(id)})
+		nodes["q_%s_favour" % id] = {"text": q["favour_thanks"], "event": "isle_q:%s:favour" % id, "next": "menu"}
 
 
 ## A deliver quest's recipient: the parcel handed over.
@@ -113,6 +125,25 @@ func hand_over(q: Dictionary, menu: Array, nodes: Dictionary) -> void:
 	var at := step_index(q, "talk")
 	menu.append({"text": q["hand"], "next": n + "_got", "if": func(): return Journal.step_of(id) == at and not Journal.is_done(id)})
 	nodes[n + "_got"] = {"text": q["got"], "event": "isle_q:%s:step:%d" % [id, at], "next": "menu"}
+
+
+## A notice on the board (into the board's choices and nodes): read it and it's the crew's.
+func post(q: Dictionary, choices: Array, nodes: Dictionary) -> void:
+	var id: String = q["id"]
+	var n := "q_" + id
+	choices.append({"text": "%s  (%s)" % [q["title"], QuestRewards.text(q["reward"])], "next": n + "_notice", "if": func(): return not Journal.has(id)})
+	nodes[n + "_notice"] = {"text": [q["notice"], "You tear the notice down and pocket it."], "event": "isle_q:%s:take" % id, "next": "end"}
+
+
+## Whoever posted a notice: the report once it's done (and a word while it isn't).
+func report(q: Dictionary, choices: Array, nodes: Dictionary) -> void:
+	var id: String = q["id"]
+	var n := "q_" + id
+	choices.append({"text": "About your notice: %s" % q["title"], "next": n + "_remind", "if": func(): return Journal.has(id) and not Journal.is_done(id) and not Journal.at_turnin(id)})
+	nodes[n + "_remind"] = {"text": [q["notice"]], "next": "menu"}
+	choices.append({"text": "Your notice: %s. It's done." % q["title"], "next": n + "_pay", "if": func(): return Journal.at_turnin(id)})
+	nodes[n + "_pay"] = {"text": [q["posted"], "(%s)" % QuestRewards.text(q["reward"])], "event": "isle_q:%s:pay" % id, "next": "menu"}
+	_favour(q, choices, nodes)
 
 
 func _can_pay(cost: Array) -> bool:

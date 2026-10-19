@@ -8,24 +8,14 @@ extends Node3D
 ## (IslandContent's village step) makes the inn and the people; `steps` the rest a piece
 ## a frame.
 ##
-## Jobs (the board offers, the elder pays): the camp's captain, the bug lair, the beast.
-## Per captain, kept in Dialogue flags "isle<id>_<job>_taken / _done / _paid". A deed done
-## before the job was taken counts once it's taken ("isle<id>_<job>_beaten").
+## Jobs: the camp's captain, the bug lair, the beast ({"name", "at", "check"}), posted on the board as
+## notices by IslandLife (the crew's Journal), each turned in to whoever posted it. Everyone's lines
+## come from the theme's pools, dealt by the island's LineDeck (no two people say the same thing).
 
 const ELDERS := ["Elder Mako", "Elder Tavi", "Old Kesi", "Elder Rua", "Grandmother Ilo", "Headman Pakua"]
 const COOKS := ["Nalu", "Ama", "Big Teo", "Siri"]
 const TRADERS := ["Wiremu", "Lani", "Haku", "Moana"]
 const INNKEEPERS := ["Keala", "Pono", "Rangi", "Ulani"]
-const VILLAGER_BARKS := [
-	"Keep to the paths after dark. The trees have eyes, and some of them are hungry.",
-	"We trade fruit for news. You look like you've got news.",
-	"Ships come, ships go. Most of them come back lighter.",
-	"Don't drink from the green pools. Trust me.",
-	"The bugs were never this bold before the pirates came.",
-	"Something big walks the far side of the island at night. We don't go there.",
-	"If you're heading on, ask the elder about the way. The needle's not the only thing that knows.",
-]
-const JOB_STEPS := 0.5
 const Shops := preload("res://scripts/game/shops.gd")
 ## NightLights for the whole village (inn door, the shops' and homes' rooms, the shrine, lamps, torches).
 const LIGHTS := 16
@@ -38,10 +28,10 @@ const ROOMS := ["trade", "cook", "home", "elder"]
 
 var isl: GenIsland
 var ctx: KitContext
-## job id -> {"title", "line", "gold", "check": Callable}
+## job id (camp, lair, beast) -> {"name", "at": island point, "check": Callable (done?)}
 var jobs := {}
 var elder_name := ""
-var _t := 0.0
+var _board_line := ""
 
 # For villagers' routines (island space; filled as the village is built):
 ## Which of VillageLayouts.POOL this is.
@@ -145,7 +135,6 @@ func _build(rng: RandomNumberGenerator) -> void:
 	var to_dock: Vector2 = p["to_dock"]
 	var side := Vector2(-to_dock.y, to_dock.x)
 	var t := IslandContent.tier(isl)
-	var lvl := int(isl.node["level"])
 	layout = p["layout"]
 	plaza = {"c": c, "r": p["plaza_r"], "y": hy}
 	lanes = p["lanes"]
@@ -196,7 +185,7 @@ func _build(rng: RandomNumberGenerator) -> void:
 	read.name = "Read"
 	read.collision_layer = 512
 	read.collision_mask = 0
-	read.prompt_text = "Read the job board"
+	read.prompt_text = "Read the notice board"
 	read.gesture = "reach"
 	var rcs := CollisionShape3D.new()
 	var rsph := SphereShape3D.new()
@@ -208,39 +197,31 @@ func _build(rng: RandomNumberGenerator) -> void:
 	read.interacted.connect(func(_p): Dialogue.start(_key("board"), board))
 	# the people
 	var lks := looks(isl)
+	var deck: LineDeck = isl.life.deck
+	var serve: Dictionary = LifePools.of(isl.theme)["service"]
+	var day: Array = LifePools.of(isl.theme)["barks"]["day"]
 	elder_name = ELDERS[rng.randi() % ELDERS.size()]
 	_npc({"name": elder_name, "dialogue": _key("elder"), "voice": 0.8, "look": lks[0]}, c - to_dock * 3.0 + side * 3.0, to_dock, hy)
-	_npc({"name": "Innkeeper " + INNKEEPERS[rng.randi() % INNKEEPERS.size()], "voice": 1.1, "look": lks[1],
-		"barks": ["A hammock, a roof and a dry night. Rest when you like.", "We don't get many ships. We get fewer that leave."]},
+	_npc({"name": "Innkeeper " + INNKEEPERS[rng.randi() % INNKEEPERS.size()], "voice": 1.1, "look": lks[1], "barks": deck.deal("inn", serve["inn"], 2)},
 		inn_door + Vector2(-inn["face"].y, inn["face"].x) * 1.2, inn["face"], inn.get("floor_y", INF))
 	_keepers = {"trade": {"name": str(Shops.extra[trade_id]["name"]).trim_suffix("'s Trade Goods"), "voice": 0.95, "shop": trade_id, "look": lks[2],
-		"barks": ["Have a look. Everything's for sale, and most of it's for sale cheap."]},
+		"barks": deck.deal("trade", serve["trade"], 2)},
 		"cook": {"name": str(Shops.extra[food_id]["name"]).trim_suffix("'s Cookpot"), "voice": 1.15, "shop": food_id, "look": lks[3],
-		"barks": ["Sit, eat. You look like a ship's biscuit with legs."]}}
+		"barks": deck.deal("cook", serve["cook"], 2)}}
 	var pr: float = p["plaza_r"]
 	for i in range(4, lks.size()):
 		var q := c + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(pr * 0.4, pr * 0.85)
-		_npc({"name": "Villager", "voice": rng.randf_range(0.85, 1.2), "look": lks[i],
-			"barks": [VILLAGER_BARKS[rng.randi() % VILLAGER_BARKS.size()], VILLAGER_BARKS[rng.randi() % VILLAGER_BARKS.size()]]},
-			q, c - q, hy)
-	# the jobs and the talk
+		_npc({"name": "Villager", "voice": rng.randf_range(0.85, 1.2), "look": lks[i], "barks": deck.deal("day", day, 2)}, q, c - q, hy)
+	# the jobs (posted on the board by IslandLife) and the talk
 	var camp = isl.get_node("Site_camp/Camp")
-	var cap_title := str(camp.specs.filter(func(s): return s.get("captain", false))[0]["title"])
-	jobs["camp"] = {"title": "Bounty: %s" % cap_title, "gold": 40 + t * 20,
-		"line": "WANTED: %s. Raids our gardens, burns our boats. Bring word of his end to %s." % [cap_title, elder_name],
+	jobs["camp"] = {"name": str(camp.specs.filter(func(s): return s.get("captain", false))[0]["title"]), "at": isl.sites["camp"],
 		"check": func() -> bool: return camp.grunts.any(func(g): return is_instance_valid(g) and g.captain and g.state == PirateGrunt.S.DEAD)}
 	var burrows = isl.get_node("Site_lair/Burrows")
-	jobs["lair"] = {"title": "Clear the bug lair", "gold": 30 + t * 15,
-		"line": "The burrows inland have spilled into the gardens. Clear every bug from the lair and see %s." % elder_name,
-		"check": func() -> bool: return burrows.alive_count() == 0}
+	jobs["lair"] = {"name": "the bug burrows", "at": isl.sites["lair"], "check": func() -> bool: return burrows.alive_count() == 0}
 	# (by its flag, not the arena: tools rebuild the arena)
 	var beast_flag := _key("boss_beaten")
-	jobs["beast"] = {"title": "Slay the beast", "gold": 80 + t * 35,
-		"line": "Something huge has torn up the far side of the island. It took two of our hunters. Kill it, and %s will see you paid in full." % elder_name,
-		"check": func() -> bool: return Dialogue.has_flag(beast_flag)}
-	_define_board()
-	_define_elder(lvl)
-	Dialogue.dialogue_event.connect(_on_event)
+	jobs["beast"] = {"name": "the beast", "at": isl.sites["boss"], "check": func() -> bool: return Dialogue.has_flag(beast_flag)}
+	define_talk([], null)
 
 
 ## A fire pit at p (on the ground, or on a deck at height y), crackling.
@@ -505,21 +486,21 @@ func _npc(cfg: Dictionary, p: Vector2, face: Vector2, y := INF) -> NPC:
 	return npc
 
 
-func _flag(job: String, state: String) -> String:
-	return "%s_%s" % [_key(job), state]
+## The board's and the elder's talk with the notices posted (`notices`: KitQuests defs, src "board"; `qn` their
+## KitQuests): the board offers each, the elder takes the report of those the elder posted.
+func define_talk(notices: Array, qn: KitQuests) -> void:
+	if _board_line == "":
+		_board_line = isl.life.deck.one("board", LifePools.of(isl.theme)["notices"]["board"])
+	var board: Array = []
+	var nodes := {"start": {"text": _board_line, "choices": board}}
+	for q in notices:
+		qn.post(q, board, nodes)
+	board.append({"text": "Leave it.", "next": "end"})
+	Dialogue.define(_key("board"), {"speaker": "Notice board", "voice": 1.0, "start": "start", "nodes": nodes})
+	_define_elder(notices.filter(func(q): return q["giver"] == elder_name), qn)
 
 
-func _define_board() -> void:
-	var nodes := {"start": {"text": "Notices, nailed up and curling in the damp.", "choices": []}}
-	for job in jobs.keys():
-		var j: Dictionary = jobs[job]
-		nodes["start"]["choices"].append({"text": "%s  (%d gold)" % [j["title"], j["gold"]], "next": job, "hide_if": _flag(job, "taken")})
-		nodes[job] = {"text": [j["line"], "You tear the notice down and pocket it."], "event": "isle_job:%s:take" % _key(job), "set_flag": _flag(job, "taken"), "next": "end"}
-	nodes["start"]["choices"].append({"text": "Leave it.", "next": "end"})
-	Dialogue.define(_key("board"), {"speaker": "Job board", "voice": 1.0, "start": "start", "nodes": nodes})
-
-
-func _define_elder(lvl: int) -> void:
+func _define_elder(notices: Array, qn: KitQuests) -> void:
 	var c: Chain = get_tree().get_first_node_in_group("world_gen").chain()
 	var ahead: Array = c.next_of(int(isl.node["id"])).map(func(id): return c.node(id))
 	var beyond := "Past us? %s." % " or ".join(ahead.map(func(n): return "%s, %s" % [n["name"], IslandThemes.of(n["theme"]).blurb])) if not ahead.is_empty() else "Past us? The end of this sea, they say."
@@ -534,40 +515,7 @@ func _define_elder(lvl: int) -> void:
 		"about": {"text": LifePools.of(isl.theme)["elder_about"], "next": "menu"},
 		"beyond": {"text": [beyond, "Your needle needs time on an island before it sets on the next, or something to happen here worth remembering."], "next": "menu"},
 	}
-	for job in jobs.keys():
-		var j: Dictionary = jobs[job]
-		menu["choices"].append({"text": "About the job: %s" % j["title"], "next": "pay_" + job, "requires": _flag(job, "done"), "hide_if": _flag(job, "paid")})
-		nodes["pay_" + job] = {"text": ["It's done? Truly? The whole village owes you, Captain.", "Here: %d gold, as promised." % j["gold"]],
-			"event": "isle_job:%s:pay" % _key(job), "set_flag": _flag(job, "paid"), "next": "menu"}
+	for q in notices:
+		qn.report(q, menu["choices"], nodes)
 	menu["choices"].append({"text": "Goodbye.", "next": "end"})
 	Dialogue.define(_key("elder"), {"speaker": elder_name, "voice": 0.8, "start": "intro", "return": "menu", "nodes": nodes})
-
-
-func _on_event(ev: String) -> void:
-	if not ev.begins_with("isle_job:"):
-		return
-	var parts := ev.split(":")
-	for job in jobs.keys():
-		if parts[1] != _key(job):
-			continue
-		match parts[2]:
-			"take":
-				_t = 0.0
-			"pay":
-				var me := get_tree().get_first_node_in_group("player") as Player
-				me.inventory_component.add_item(ItemDB.get_item("gold"), int(jobs[job]["gold"]))
-				GameManager.award_xp(roundi((60 + IslandContent.tier(isl) * 30) * Levels.xp_k(IslandContent.level(isl))), me.global_position)
-
-
-## Twice a second: a deed done is remembered; a job taken and done says so.
-func _process(delta: float) -> void:
-	_t -= delta
-	if _t > 0.0:
-		return
-	_t = JOB_STEPS
-	for job in jobs.keys():
-		if not Dialogue.has_flag(_flag(job, "beaten")) and (jobs[job]["check"] as Callable).call():
-			Dialogue.set_flag(_flag(job, "beaten"))
-		if Dialogue.has_flag(_flag(job, "taken")) and Dialogue.has_flag(_flag(job, "beaten")) and not Dialogue.has_flag(_flag(job, "done")):
-			Dialogue.set_flag(_flag(job, "done"))
-			get_tree().call_group("hud", "show_toast", "Job done: %s. %s will pay." % [jobs[job]["title"], elder_name])

@@ -168,6 +168,9 @@ func _bark(dt: float, to_player: float, kind: String) -> void:
 	var h := Weather.hour()
 	var pool: Array = ambient[("day" if h >= 6.0 and h < 18.0 else "evening" if h >= 18.0 and h < 22.0 else "night")].duplicate()
 	pool.append_array(ambient.get(kind, []))
+	# (their own lines only: a person whose pools ran dry on this island keeps quiet)
+	if pool.is_empty():
+		return
 	_last_bark_tick = Engine.get_physics_frames()
 	say(pool[randi() % pool.size()])
 

@@ -3732,6 +3732,29 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   `_world_state` / `_apply_world_sync` for a late joiner. Saves: `journal` (world state: a guest keeps their own world's) and `tracked`.
 - Tests: t/quests multi_step, turnin_giver, rewards_present, journal_save, hud_tracked. lifetest's quest part moved onto the journal (not
   run in this tier). Render: `tools/dev/journalshot.gd`. Expected to affect lifetest, storytest (HUD), savetest, nettest (world sync).
+
+## 2026-10-19: v1.18 lane D, piece 2: notice boards, givers' own lines, roles' small talk, no line said twice on an island
+- **LineDeck** (`scripts/quests/line_deck.gd`, `IslandLife.deck`, seeded `hash([seed, 5104])`): every pool shuffled from the island's seed
+  and dealt from the top; a line dealt once (from any pool) never again on that island; a dry pool deals nothing (that person has fewer lines;
+  Villager._bark keeps quiet on an empty pool). IslandVillage's people deal first (village step: innkeeper/trader/cook from the theme's
+  `service`, the plaza villagers two `day` lines each), then IslandLife (`_own_lines`, in placed order): a day/evening/night line each, one per
+  kind of place their routine visits, a pointer at someone with work, and for named characters a menu greeting, a "quiet" line, three lines
+  of their role's `talk` and their rumours (`_rumours`: island rumours and the way ahead dealt too, so two people never tell the same one;
+  `rumour_hard` once). Quest `taken` lines and favour thanks are dealt as well. Ordinary villagers' talk = their own day + work + pointer
+  lines; their bubbles = their own lines by time and place (+ a named one's small talk).
+- Theme text (`<theme>_life.gd`, all four themes): barks day/evening/night 18-20 each, 6-7 per spot kind (nets forage dock boats stall market
+  home plaza inn workshop field shrine well bench storehouse), pointer 12-15; `menu`, `taken`, `rumour_quiet` now arrays; `work_menu` (the
+  captain's "how's the work" line -> node "work": the role's small talk); every role's `talk` (6-7); `notices` (board, bounty, lair, beast,
+  posted: 5-7 each, tokens {name} {poster}); `service` (inn, trade, cook: 6-7 each).
+- **Notice boards:** IslandVillage.jobs (camp, lair, beast: {name, at, check}) become notices in the journal (`IslandLife._post`, kinds
+  bounty/lair/beast in KitQuests.STEPS/NOTICE_TITLE/GOLD): the bounty posted by the elder, the lair and the beast by the elder (35%) or a
+  named character (seeded `hash([seed, 5105])`); each is a clear step then "Report to {poster}", turned in to that poster only
+  (KitQuests.post on the board, KitQuests.report in the poster's talk). The board and elder talk are defined by
+  `IslandVillage.define_talk(notices, qn)`. The old per-captain job flags, the elder paying for everything, and the job XP are gone.
+- A favour-owing quest from a poster is called in at the poster too (KitQuests._favour).
+- Tests: t/quests/unique_lines (four themes built whole: no line said by two people, ~20 people each with lines, small talk, notices
+  reported to their posters). isletest's bounty part moved onto the journal (not run in this tier). Brinehollow islanddump identical
+  (only the dummies' unseeded sack heads differ).
 ## 2026-10-19: the held map, piece 1: fog of war, `?` marks, the island page (v1.18 lane C)
 - **Islands** (`scripts/map/map_isles.gd`, MapIsles): Brinehollow and the chain's standing islands as dictionaries made once per
   island node: key ("brinehollow", "isle<chain id>" like GenIsland.save_key), the world origin of island space, the height grid's

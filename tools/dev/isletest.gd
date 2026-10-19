@@ -161,8 +161,10 @@ func _process(d: float) -> bool:
 			check("a trader and a cook to buy from (at the island's tier)", shops.extra.has(isl.save_key("trader")) and shops.extra.has(isl.save_key("cook"))
 				and npcs.any(func(x): return x.shop_id == isl.save_key("trader")) and (shops.extra[isl.save_key("trader")]["stock"] as Array).any(func(e): return str(e[0]).contains("@")))
 			var dlg = root.get_node("Dialogue")
-			check("a job board: the camp's captain and the bug lair", dlg._load(isl.save_key("board"))["nodes"].has("camp") and dlg._load(isl.save_key("board"))["nodes"].has("lair"))
-			check("the elder's talk: the island, the way on, pay for jobs done", dlg._load(isl.save_key("elder"))["nodes"].has("beyond") and dlg._load(isl.save_key("elder"))["nodes"].has("pay_camp"))
+			var bn: Dictionary = dlg._load(isl.save_key("board"))["nodes"]
+			check("a notice board: the camp's captain and the bug lair", bn.has("q_%s_notice" % isl.life.key("notice_bounty")) and bn.has("q_%s_notice" % isl.life.key("notice_lair")))
+			check("the elder's talk: the island, the way on, the report of the bounty posted", dlg._load(isl.save_key("elder"))["nodes"].has("beyond")
+				and dlg._load(isl.save_key("elder"))["nodes"].has("q_%s_pay" % isl.life.key("notice_bounty")))
 			# the style tables: every theme has every key the kits read (nested tables too), and its props build
 			var ks = load("res://scripts/island/kit/kit_style.gd")
 			var missing: Array = []
@@ -202,7 +204,7 @@ func _process(d: float) -> bool:
 			_arena(arena, "")
 			arena.free()
 			# take the captain's bounty, then he falls
-			dlg.set_flag(vil._flag("camp", "taken"))
+			root.get_node("Journal").take(isl.life.key("notice_bounty"))
 			var capt = isl.get_node("Site_camp/Camp").grunts.filter(func(g): return g.captain)[0]
 			capt.health.take_damage(999999.0)
 			set_meta("gold0", p.inventory_component.count("gold"))
@@ -228,10 +230,13 @@ func _process(d: float) -> bool:
 			check("a captain stands on its ground (%.2f m over)" % (p.global_position.y - ground), p.is_on_floor() and absf(p.global_position.y - ground) < 0.6)
 			var vil = get_meta("vil")
 			var dlg = root.get_node("Dialogue")
-			check("the bounty taken and the captain dead: the job's done", dlg.has_flag(vil._flag("camp", "done")))
-			dlg.dialogue_event.emit("isle_job:%s:pay" % isl.save_key("camp"))
+			var jn = root.get_node("Journal")
+			var bounty: String = isl.life.key("notice_bounty")
+			check("the bounty taken off the board and the captain dead: on to the report", jn.at_turnin(bounty))
+			check("...to the elder, who posted it", jn.entries[bounty]["giver"] == vil.elder_name)
+			dlg.dialogue_event.emit("isle_q:%s:pay" % bounty)
 			var paid: int = p.inventory_component.count("gold") - int(get_meta("gold0"))
-			check("the elder pays the bounty (%d gold)" % paid, paid == int(vil.jobs["camp"]["gold"]))
+			check("the elder pays the bounty (%d gold)" % paid, jn.is_done(bounty) and paid >= int(jn.entries[bounty]["reward"]["gold"]))
 			p.health_component.current_health = 10.0
 			isl.find_child("Rest", true, false).interacted.emit(p)
 			check("a rest at the inn heals", p.health_component.current_health == p.health_component.max_health)

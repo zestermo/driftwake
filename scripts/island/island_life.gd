@@ -30,7 +30,10 @@ const REWARD_ITEMS := [["tonic", 1, true], ["rum", 3], ["treasure", 1, true], ["
 ## What a favour called in gives.
 const FAVOUR_GIFTS := [["tonic", 2], ["stew", 3], ["rum", 4], ["treasure", 2], ["fish", 5]]
 const FAVOUR_ASK := "I've come to call in that favour."
-const FAVOUR_THANKS := ["A promise is a promise, Captain. Here.", "Now we're square. Don't make a habit of it."]
+## What one says as they repay it (a line each, dealt).
+const FAVOUR_THANKS := ["A promise is a promise, Captain. Here.", "Now we're square. Don't make a habit of it.", "I pay my debts. Slowly, but I pay them.",
+	"Take it before I change my mind. I won't. But take it.", "My mother said never owe a pirate. Here, we're even.", "Good timing. I was starting to forget I owed you.",
+	"Call it thanks twice over. Now off with you.", "Favour for a favour. That's how the sea keeps turning."]
 
 var isl: GenIsland
 var pools: Dictionary
@@ -46,6 +49,10 @@ var placed: Array = []
 var given: Array = []
 var people: Array = []
 var quest_node: KitQuests
+## The island's lines, dealt so no two people say the same one (IslandVillage's people deal from it first).
+var deck: LineDeck
+## The notice board's quests (IslandVillage.jobs posted, each by the elder or a named character).
+var notices: Array = []
 var _blockers: Array = []
 var _made := 0
 
@@ -55,6 +62,7 @@ static func plan(gi: GenIsland) -> IslandLife:
 	var L := IslandLife.new()
 	L.isl = gi
 	L.pools = LifePools.of(gi.theme)
+	L.deck = LineDeck.new(hash([int(gi.node["seed"]), 5104]))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([int(gi.node["seed"]), 5101])
 	var names := _shuffled(L.pools["first"], rng)
@@ -136,12 +144,76 @@ func _setup() -> void:
 	isl.add_child(quest_node)
 	for q in given:
 		quest_node.add(q, isl)
+	var v := isl.get_node_or_null("Site_village/Village") as IslandVillage
+	if v:
+		_post(v)
+	for i in placed:
+		_own_lines(i)
 	for i in placed:
 		var f: Dictionary = folk[i]
 		if f["named"]:
 			_define_talk(i)
 		else:
 			f["barks"] = _barks(i)
+	if v:
+		v.define_talk(notices, quest_node)
+
+
+## The village's jobs as notices on its board: the bounty posted by the elder, the lair and the beast by the
+## elder or a named character (seeded), each turned in to whoever posted it.
+func _post(v: IslandVillage) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(isl.node["seed"]), 5105])
+	var named := placed.filter(func(i): return folk[i]["named"])
+	var N: Dictionary = pools["notices"]
+	var k := 0
+	for job in KitQuests.NOTICES.keys():
+		if not v.jobs.has(job):
+			continue
+		var kind: String = KitQuests.NOTICES[job]
+		var j: Dictionary = v.jobs[job]
+		var by := v.elder_name if job == "camp" or rng.randf() < 0.35 else str(folk[named[rng.randi() % named.size()]]["name"])
+		var nm: String = _site_name("boss") if job == "beast" else str(j["name"])
+		var tok := {"name": nm, "poster": by}
+		var q := {"id": key("notice_" + kind), "kind": kind, "giver": by, "isle": isl.island_name, "pos": isl.position, "src": "board",
+			"title": _cap(LifePools.fill(KitQuests.NOTICE_TITLE[kind], tok)), "clear": j["check"], "poi_at": j["at"],
+			"notice": LifePools.fill(deck.one("notice_" + kind, N[kind]), tok), "posted": deck.one("posted", N["posted"]), "steps": [],
+			"favour_ask": FAVOUR_ASK}
+		q["reward"] = _reward(q, 100 + k)
+		q["favour_thanks"] = deck.deal("favour", FAVOUR_THANKS, 1) if q["reward"].has("favour") else []
+		for s in KitQuests.STEPS[kind]:
+			q["steps"].append({"do": s[0], "goal": _cap(LifePools.fill(s[1], tok))})
+		q["steps"][0]["said"] = "%s: done. Report to %s." % [q["title"], by]
+		quest_node.add(q, isl)
+		notices.append(q)
+		k += 1
+
+
+## A placed person's own lines from the island's deck: one for the day, the evening and the night, one for
+## each kind of place their day takes them, one pointing at someone with work (and a named one's small talk).
+func _own_lines(i: int) -> void:
+	var f: Dictionary = folk[i]
+	var b: Dictionary = pools["barks"]
+	var own := {}
+	for t in ["day", "evening", "night"]:
+		own[t] = deck.deal(t, b[t], 1)
+	for st in f["stays"]:
+		var kind: String = st["kind"]
+		if not own.has(kind) and b.has(kind):
+			own[kind] = deck.deal(kind, b[kind], 1)
+	var givers := given.filter(func(q): return folk[q["giver_i"]] != f)
+	own["pointer"] = []
+	if not givers.is_empty():
+		var g: Dictionary = folk[givers[i % givers.size()]["giver_i"]]
+		own["pointer"] = deck.deal("pointer", b["pointer"], 1).map(func(l): return LifePools.fill(l, {"who": g["name"], "where": _where(g)}))
+	if f["named"]:
+		var role: Dictionary = pools["roles"][f["role"]]
+		own["talk"] = deck.deal("role_" + str(f["role"]), role["talk"], 3)
+		own["menu"] = deck.one("menu", pools["menu"])
+		own["quiet"] = deck.one("quiet", pools["rumour_quiet"])
+	f["own"] = own
+	if f["named"]:
+		_rumours(f)
 
 
 ## Routines and quests from `spots` (data: no node is made).
@@ -358,64 +430,68 @@ func _define_talk(i: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([int(isl.node["seed"]), 5102, i])
 	var tok := {"name": _short(f)}
-	var heard: Array = []
-	var told: Dictionary = pools["rumour_isle"]
-	for poi in _pois():
-		heard.append_array(_fill_all(told.get(poi["kind"], told["any"]), {"name": poi["name"]}))
-	heard = _shuffled(heard, rng).slice(0, 2)
+	var own: Dictionary = f["own"]
+	var heard: Array = own["heard"]
+	var ahead: Array = own["ahead"]
 	var menu: Array = [{"text": pools["rumour_menu"][0], "next": "isle"}, {"text": pools["rumour_menu"][1], "next": "ahead"},
-		{"text": pools["self_menu"], "next": "self"}]
-	var ahead := _ahead(rng)
+		{"text": pools["self_menu"], "next": "self"}, {"text": pools["work_menu"], "next": "work"}]
 	var nodes := {
 		"intro": {"text": _fill_all(role["intro"], tok), "next": "menu"},
-		"menu": {"text": pools["menu"], "choices": menu},
-		"isle": {"text": heard if not heard.is_empty() else [pools["rumour_quiet"]], "next": "menu"},
-		"ahead": {"text": ahead, "next": "menu", "event": "rumour:%s_ahead" % f["talk"]},
+		"menu": {"text": own["menu"], "choices": menu},
+		"isle": {"text": heard if not heard.is_empty() else [own["quiet"]], "next": "menu"},
+		"ahead": {"text": ahead if not ahead.is_empty() else [own["quiet"]], "next": "menu"},
 		"self": {"text": _fill_all(role["self"], tok), "next": "menu"},
+		"work": {"text": own["talk"], "next": "menu"},
 	}
-	Journal.tell(f["talk"] + "_ahead", ahead, f["name"], isl.island_name)
-	if not heard.is_empty():
-		nodes["isle"]["event"] = "rumour:%s_isle" % f["talk"]
-		Journal.tell(f["talk"] + "_isle", heard, f["name"], isl.island_name)
+	for k in [["isle", heard], ["ahead", ahead]]:
+		if not (k[1] as Array).is_empty():
+			nodes[k[0]]["event"] = "rumour:%s_%s" % [f["talk"], k[0]]
+			Journal.tell("%s_%s" % [f["talk"], k[0]], k[1], f["name"], isl.island_name)
 	for q in given:
 		if q["giver_i"] == i:
 			quest_node.offer(q, menu, nodes)
 		if q.get("recipient_i", -1) == i:
 			quest_node.hand_over(q, menu, nodes)
+	for q in notices:
+		if q["giver"] == f["name"]:
+			quest_node.report(q, menu, nodes)
 	menu.append({"text": pools["bye"], "next": "end"})
 	Dialogue.define(f["talk"], {"speaker": f["name"], "voice": f["voice"], "start": "intro", "return": "menu", "nodes": nodes})
 
 
-## What they've heard of the islands the log pose points at from here.
-func _ahead(rng: RandomNumberGenerator) -> Array:
+## Everything that could be said of the islands the log pose points at from here (dealt out, a line each).
+func _ahead_lines() -> Array:
 	var c: Chain = isl.get_tree().get_first_node_in_group("world_gen").chain()
 	var ahead: Array = c.next_of(int(isl.node["id"])).map(func(id): return c.node(id))
 	if ahead.is_empty():
 		return [pools["rumour_end"]]
+	var out: Array = []
 	if ahead.size() > 1:
-		return [LifePools.fill(pools["rumour_fork"], {"a": ahead[0]["name"], "b": ahead[1]["name"]})]
-	var n: Dictionary = ahead[0]
-	var lines: Array = pools["rumour_chain"]
-	var out := [LifePools.fill(lines[rng.randi() % lines.size()], {"name": n["name"], "blurb": _cap(IslandThemes.of(n["theme"]).blurb)})]
-	if rng.randf() < 0.5:
-		out.append(pools["rumour_hard"])
+		out.append(LifePools.fill(pools["rumour_fork"], {"a": ahead[0]["name"], "b": ahead[1]["name"]}))
+	for n in ahead:
+		for l in pools["rumour_chain"]:
+			out.append(LifePools.fill(l, {"name": n["name"], "blurb": _cap(IslandThemes.of(n["theme"]).blurb)}))
 	return out
 
 
-## An ordinary villager's lines when talked to: the day, their work, and who has a problem.
+## The rumours a named character tells: up to two of the island's (by its POIs) and one or two of the way
+## ahead, none that anyone else on the island tells.
+func _rumours(f: Dictionary) -> void:
+	var own: Dictionary = f["own"]
+	var told: Dictionary = pools["rumour_isle"]
+	var isle: Array = []
+	for poi in _pois():
+		isle.append_array(_fill_all(told.get(poi["kind"], told["any"]), {"name": poi["name"]}))
+	own["heard"] = deck.deal("rumour_isle", isle, 2)
+	own["ahead"] = deck.deal("rumour_ahead", _ahead_lines(), 1)
+	if not own["ahead"].is_empty() and not deck.used(pools["rumour_hard"]):
+		own["ahead"].append_array(deck.deal("rumour_hard", [pools["rumour_hard"]], 1))
+
+
+## An ordinary villager's lines when talked to: their own day line, their work's, and who has a problem.
 func _barks(i: int) -> Array:
-	var f: Dictionary = folk[i]
-	var b: Dictionary = pools["barks"]
-	var day: Array = b["day"]
-	var out := [day[i % day.size()], day[(i + 3) % day.size()]]
-	var work: Array = b.get(f["work"], [])
-	if not work.is_empty():
-		out[1] = work[i % work.size()]
-	if not given.is_empty():
-		var g: Dictionary = folk[given[i % given.size()]["giver_i"]]
-		var p: Array = b["pointer"]
-		out.append(LifePools.fill(p[i % p.size()], {"who": g["name"], "where": _where(g)}))
-	return out
+	var own: Dictionary = folk[i]["own"]
+	return own["day"] + own.get(folk[i]["work"], own["evening"]) + own["pointer"]
 
 
 ## Quest qi of the plan as the island can give it ({} if it can't: no POI to send you to, no one to deliver to).
@@ -429,7 +505,7 @@ func _quest(qi: int) -> Dictionary:
 	var gi: int = named[given.size() % named.size()]
 	var T: Dictionary = pools["quests"][kind]
 	var q := {"id": key("q%d" % qi), "kind": kind, "giver_i": gi, "giver": folk[gi]["name"], "isle": isl.island_name, "pos": isl.position, "src": "npc",
-		"accept": pools["accept"], "decline": pools["decline"], "taken": pools["taken"]}
+		"accept": pools["accept"], "decline": pools["decline"], "taken": deck.one("taken", pools["taken"])}
 	q["reward"] = _reward(q, qi)
 	var tok := {"who": _short(folk[gi])}
 	var poi: Dictionary = pois[int(pl["pick"] * pois.size())] if not pois.is_empty() else {}
@@ -472,7 +548,7 @@ func _quest(qi: int) -> Dictionary:
 			continue
 		q[k] = _fill_all(T[k], tok) if T[k] is Array else _cap(LifePools.fill(T[k], tok))
 	q["favour_ask"] = FAVOUR_ASK
-	q["favour_thanks"] = _fill_all(FAVOUR_THANKS, tok)
+	q["favour_thanks"] = deck.deal("favour", FAVOUR_THANKS, 1) if q["reward"].has("favour") else []
 	q["steps"] = []
 	for s in KitQuests.STEPS[kind]:
 		var st := {"do": s[0], "goal": _cap(LifePools.fill(s[1], tok))}
@@ -505,7 +581,7 @@ func _reward(q: Dictionary, qi: int) -> Dictionary:
 			if Shops.extra.has(shop):
 				r = {"gold": roundi(g * 0.6), "discount": [shop, 0.1 + 0.05 * (rng.randi() % 2), str(Shops.extra[shop]["name"])]}
 		3:
-			r = {"gold": roundi(g * 0.6), "favour": {"who": _short(folk[q["giver_i"]]), "gift": [FAVOUR_GIFTS[rng.randi() % FAVOUR_GIFTS.size()]]}}
+			r = {"gold": roundi(g * 0.6), "favour": {"who": _short({"name": q["giver"]}), "gift": [FAVOUR_GIFTS[rng.randi() % FAVOUR_GIFTS.size()]]}}
 	return r
 
 
@@ -541,14 +617,11 @@ func _spawn(i0: int) -> void:
 		_made = i + 1
 
 
+## What they say over their heads: their own lines (_own_lines), by the time of day and the kind of place.
 func _ambient(f: Dictionary) -> Dictionary:
-	var b: Dictionary = pools["barks"]
-	var out := {"day": b["day"].duplicate(), "evening": b["evening"], "night": b["night"]}
-	for k in b.keys():
-		if not k in ["day", "evening", "night", "pointer"]:
-			out[k] = b[k]
-	for q in given:
-		var g: Dictionary = folk[q["giver_i"]]
-		if g != f:
-			out["day"].append(LifePools.fill(b["pointer"][0], {"who": g["name"], "where": _where(g)}))
+	var own: Dictionary = f["own"]
+	var out := {"day": own["day"] + own["pointer"] + own.get("talk", []).slice(0, 1), "evening": own["evening"], "night": own["night"]}
+	for k in own.keys():
+		if not k in ["day", "evening", "night", "pointer", "talk", "menu", "quiet", "heard", "ahead"]:
+			out[k] = own[k]
 	return out
