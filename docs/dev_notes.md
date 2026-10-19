@@ -3732,3 +3732,26 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   `_world_state` / `_apply_world_sync` for a late joiner. Saves: `journal` (world state: a guest keeps their own world's) and `tracked`.
 - Tests: t/quests multi_step, turnin_giver, rewards_present, journal_save, hud_tracked. lifetest's quest part moved onto the journal (not
   run in this tier). Render: `tools/dev/journalshot.gd`. Expected to affect lifetest, storytest (HUD), savetest, nettest (world sync).
+## 2026-10-19: the held map, piece 1: fog of war, `?` marks, the island page (v1.18 lane C)
+- **Islands** (`scripts/map/map_isles.gd`, MapIsles): Brinehollow and the chain's standing islands as dictionaries made once per
+  island node: key ("brinehollow", "isle<chain id>" like GenIsland.save_key), the world origin of island space, the height grid's
+  square (`rect`, the map's square), the fog grid (`n` cells a side of FOG_CELL 12 m: Brinehollow 65, a big desert island 120) and the
+  spots read from the island kit's data, never changed: GenIsland.sites (camp, lair, ruins, summit, boss), Island.places (landmarks,
+  set pieces, theme places; MapIsles.kind_of picks the icon) and GenIsland.interiors (caves, the temple: at the mouth); Brinehollow's
+  from StarterIsland's constants (ruins, lighthouse, queen's cave, Grell's den, smugglers, castaway camp, falls, wreck, fisher's
+  cove, the jungle stash, the yard). `at(tree, p)` = the island whose square holds world point p ({} at sea).
+- **Fog** (`scripts/map/map_fog.gd`, MapFog): GameManager.fog (key -> PackedByteArray n*n, 255 = seen) and found spots in
+  GameManager.charted as "spot:<key>:<id>". GameManager._process ticks it: every 0.5 s (game time) our captain uncovers within
+  34 m + 0.9 m per m above the sea (to +60: hilltops and the lookout see far) and finds a spot within 16 m + its size. Nothing
+  runs per frame. New cells and finds go through Net (its own block, "The held map"): `fog_reveal` / `spot_found` ->
+  everyone("_all_fog"/"_all_spot"), so any captain's exploring uncovers it for the whole crew; the finder's name is in the toast.
+  The world state carries [MapFog.pack, the found spots]; a joining guest takes the host's in place of their own. Saved as "fog"
+  (deflated grids); a guest's save keeps their own world's fog and "spot:" keys.
+- **The island page** (`scripts/map/map_isle_view.gd`, MapIsleView; `shaders/map_land.gdshader`): the land drawn by a canvas
+  shader straight from the island's `heights` (an RF texture, no per-pixel GDScript): sea in two depths with a dotted shallows ring,
+  land in height bands with 6 m contours, the shore inked; paths dashed and the town's blocks under the fog; the fog pass is blank
+  paper with a hatched band and an inked edge (noise-wobbled, hard pixels); over it a red `?` near (MapIsles.rough: 8-24 m off)
+  every spot not found, found spots' icons and names (a label placer keeps names apart), treasure Xs, the crew's marks, the ship and
+  the captains. Layers redraw only when MapFog.version moves; the captains' layer every frame while open.
+- **sea_chart.gd**: M on an island opens on its page, at sea on the chart; the mouse wheel goes between them; marks set on either.
+- Tests: `t/map/` fog_reveal, spot_marks, fog_shared (the stub island `tools/dev/map_stub_isle.gd`). Render: `heldmapshot`.
