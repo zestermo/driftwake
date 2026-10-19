@@ -3685,3 +3685,4 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   (world suite, not run here; its "swings you across the deck > 3 m" and "off your feet" checks should still hold, the swing
   is higher now). Co-op paths touched: the kit apply (every screen), `Net.fx` tracers/sfx and the existing state/bark snapshot of
   EnemyShip; no nettest run.
+- Fix (main red before v1.18): chartest, qoltest, perftest, harbourtest and daggertest stopped with "Identifier not found: FX" at buildings.gd:534. Props has named Buildings since 7bf4bdd, so a suite naming Props compiles buildings.gd before the autoloads exist, and its three static `FX.chimney_smoke` calls didn't compile. `Buildings._smoke` reaches FX through the tree (like NightLight). daggertest's tree check also wanted 20+ nodes; the skills rework cut weapon trees to 16-19, so it checks 14-19 like techtest. All five suites pass.
