@@ -238,7 +238,8 @@ func _process(d: float) -> bool:
 			for k in ["lost", "scout", "deliver", "fetch", "clear"]:
 				if not life.quest_node.quests.any(func(x): return x["kind"] == k):
 					life.add_quest(k, 0.99 if k == "clear" else 0.3, 0.6)
-			todo = life.quest_node.quests.duplicate()
+			# (the villagers' own: the board's notices and the encounters' quests have their own tests)
+			todo = life.given.duplicate()
 			step = 10
 		10:
 			if todo.is_empty():
@@ -299,7 +300,7 @@ func _process(d: float) -> bool:
 			SG.use_test_dir("user://lifetest")
 			SG.slot = 1
 			SG.save(p)
-			var qs: Array = life.quest_node.quests
+			var qs: Array = life.given
 			journal.reset()
 			SG.load_into(p)
 			check("the journal's quests, done, are kept in the save", qs.all(func(x): return journal.is_done(x["id"])))
