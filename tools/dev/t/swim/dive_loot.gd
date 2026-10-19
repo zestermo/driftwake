@@ -12,6 +12,7 @@ var until := 0
 var fails := 0
 var gold0 := 0
 var pearls0 := 0
+var oysters0 := 0
 
 
 func _initialize() -> void:
@@ -41,7 +42,8 @@ func _process(_d: float) -> bool:
 			p.reset_physics_interpolation()
 			p.state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
 			gold0 = p.inventory_component.count("gold")
-			pearls0 = p.inventory_component.count(DIVE.PEARL[0])
+			pearls0 = p.inventory_component.count("pearl")
+			oysters0 = p.inventory_component.count("oyster")
 			until = TK.wait_secs(0.8)
 		1:
 			TK.press("dodge")
@@ -55,7 +57,8 @@ func _process(_d: float) -> bool:
 			TK.act("interact")
 			until = TK.wait_ticks(3)
 		3:
-			check("its gold went in the bag (%d -> %d)" % [gold0, p.inventory_component.count("gold")], p.inventory_component.count("gold") == gold0 + 40)
+			var g: int = p.inventory_component.count("gold") - gold0
+			check("its gold, rolled for this captain, went in the bag (+%d of 40)" % g, g > 0 and g <= 40)
 			check("...and the chest is remembered as opened", stage.get_node("/root/GameManager").opened.has("test_dive_chest"))
 			p.global_position = Vector3(stage.SHORE_X + 10.0, stage.SEA_FLOOR + 0.3, 4.0)
 			p.reset_physics_interpolation()
@@ -67,12 +70,13 @@ func _process(_d: float) -> bool:
 			TK.act("interact")
 			until = TK.wait_ticks(3)
 		5:
-			var got: int = p.inventory_component.count(DIVE.PEARL[0]) - pearls0
-			check("a pearl from the oysters (%d)" % got, got >= int(DIVE.PEARL[1]) and got <= int(DIVE.PEARL[2]))
+			var got: int = p.inventory_component.count("pearl") - pearls0
+			var oy: int = p.inventory_component.count("oyster") - oysters0
+			check("a pearl (%d) and oysters (%d) from the bed" % [got, oy], got == 1 and oy >= 1 and oy <= 3)
 			check("...the pearl's gone from the bed", not (bed[2] as Node3D).visible)
-			var before: int = p.inventory_component.count(DIVE.PEARL[0])
+			var before: int = p.inventory_component.count("pearl")
 			bed[0].get_node("Take").interact(p)
-			check("...and only once", p.inventory_component.count(DIVE.PEARL[0]) == before)
+			check("...and only once", p.inventory_component.count("pearl") == before)
 			TK.release("dodge")
 			return TK.done(fails)
 	step += 1

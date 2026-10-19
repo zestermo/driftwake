@@ -3935,6 +3935,14 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   cost, the sprint after, the dolphin kick, the leap clear of the water and back in, swimming into the ship's ladder takes hold).
   swimtest's ladder and ledge steps (Space at both, no stroke toward the ladder) should hold; riggingtest's climb times may shorten
   if a test holds Shift on the rigging (none does now).
+
+## 2026-10-19: deeper swimming: dive loot on the economy's items (v1.18 lane E, after merging main)
+- dive_sites.gd: an oyster bed gives a `pearl` and 1-3 `oyster` (OYSTERS), a reef garden 1-3 `seaweed`, 0-2 `sea_urchin`, 0-1 `oyster`
+  (REEF), rolled for each captain with `Loot.rng_for(key)` (lane A's per-captain seed: a crewmate's take differs, a reload doesn't
+  reroll). Sunken chests, the wreck's and the ruin's coffer put in pearls too (0-1, 0-2, 1-3); LootBag's first open runs them through
+  `Loot.chest` like every world chest (gold thinned per captain, pearls kept). The toast names what you got. Reef Salad's swim_pct
+  already reaches the stroke, dive and burst speeds through `Progression.stat("swim_pct")` with the Swimming perks.
+- Test: t/swim/dive_loot (chest gold now the per-captain roll, 1-40; the bed's pearl and oysters, once).
 ## 2026-10-19: the held map, piece 2: the map in the captain's hands (v1.18 lane C)
 - **M** (`scripts/map/map_hold.gd`, MapHold, a child of the local captain made by GameManager.register_player): on foot (Idle,
   Move, Crouch, on the ground; at the helm you let go of the wheel) it puts the captain in **MapState**

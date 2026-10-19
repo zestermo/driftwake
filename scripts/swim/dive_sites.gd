@@ -17,13 +17,14 @@ const DOCK_KEEP := 70.0
 const BEARINGS := 64
 ## Seen from this far (m): the fog closes in long before under water.
 const SEE := 140.0
-## Pickups [item id, lo, hi]. Pearls and reef ingredients are the economy's ids once it publishes them;
-## treasure and crab meat stand in.
-const PEARL := ["treasure", 1, 2]
-const REEF := ["crab_meat", 1, 2]
-const CHEST_LOOT := [["gold", 25, 60], ["treasure", 1, 3], ["rum", 0, 1]]
-const WRECK_LOOT := [["gold", 30, 70], ["treasure", 1, 3], ["timber", 1, 3]]
-const RUIN_LOOT := [["gold", 60, 120], ["treasure", 3, 5]]
+## What's gathered [[item id, lo, hi], ...], rolled for each captain (Loot.rng_for): an oyster bed's
+## pearl and oysters, a reef's kelp and urchins (the economy's reef ingredients).
+const OYSTERS := [["pearl", 1, 1], ["oyster", 1, 3]]
+const REEF := [["seaweed", 1, 3], ["sea_urchin", 0, 2], ["oyster", 0, 1]]
+## A chest's contents as put in (Loot.chest thins them per captain the first time it's opened).
+const CHEST_LOOT := [["gold", 25, 60], ["treasure", 1, 3], ["pearl", 0, 1], ["rum", 0, 1]]
+const WRECK_LOOT := [["gold", 30, 70], ["treasure", 1, 3], ["pearl", 0, 2], ["timber", 1, 3]]
+const RUIN_LOOT := [["gold", 60, 120], ["treasure", 3, 5], ["pearl", 1, 3]]
 ## Brinehollow has one of everything, so you meet each kind at home.
 const HOME_KINDS := ["wreck", "ruin", "chest", "chest", "oyster", "oyster", "oyster", "reef", "reef"]
 ## The bubble trail over a chest: how often, and from how far it's drawn.
@@ -272,7 +273,7 @@ static func oyster_bed(parent: Node3D, at: Vector3, key: String, rng: RandomNumb
 	_quiet(pm)
 	holder.add_child(pm)
 	var it := _pickup_area(holder, "Pry open the oysters", 1.7)
-	it.interacted.connect(func(player: Player): _take(player, key, PEARL, holder.global_position + Vector3(0, 0.4, 0), "A pearl!", pm))
+	it.interacted.connect(func(player: Player): _take(player, key, OYSTERS, holder.global_position + Vector3(0, 0.4, 0), "A pearl!", pm))
 	return [holder, key, pm]
 
 
@@ -403,14 +404,19 @@ static func _take(player: Player, key: String, what: Array, at: Vector3, line: S
 	var gm := player.get_node("/root/GameManager")
 	if gm.opened.has(key):
 		return
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash([key, "take"])
-	var item := ItemDB.get_item(str(what[0]))
-	if not player.inventory_component.add_item(item, rng.randi_range(int(what[1]), int(what[2]))):
-		player.call("_toast", "Your bag is full")
-		return
+	var inv: InventoryComponent = player.inventory_component
+	var got := roll(what, Loot.rng_for(key))
+	for e in got:
+		if inv.room_for(ItemDB.get_item(str(e[0]))) < int(e[1]):
+			player.call("_toast", "Your bag is full")
+			return
+	var names: Array = []
+	for e in got:
+		var item := ItemDB.get_item(str(e[0]))
+		inv.add_item(item, int(e[1]))
+		names.append("%s x%d" % [item.display_name, int(e[1])])
 	gm.mark_opened(key)
-	player.call("_toast", line)
+	player.call("_toast", "%s  %s" % [line, ", ".join(names)])
 	FX.sparkle(at, 10, Color(0.85, 0.97, 1.0))
 	FX.bubbles(at, 8)
 	FX.sfx("clack", at, -6.0)
