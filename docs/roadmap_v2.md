@@ -81,7 +81,8 @@ to work toward.
 - **1.19: the Marines + rival crews**, plus a **new intro sequence** built on 1.19's cutscene system. The intro shows
   what's out there (the Marines, rival crews, the sea's great powers, the end of the First Sea) and gives the
   captain a reason to get strong and see it all. Today you don't know what the game's goal is
-  (docs/v1_19_plan.md, docs/rival_crews_plan.md).
+  (docs/v1_19_plan.md, docs/rival_crews_plan.md). Also an interactive timeline roadmap on the website, filled in
+  with every version so far.
 - **1.20: the world.** One more island type (**a spooky island**). A polish, fidelity and generation-fix pass across
   all the chain islands. **Cities**: at least two on the first chain (the royal capital and the canal city, phase 1).
   **Driftwake's own names**: the One Piece terms players see (Devil Fruit, Haki, Log Pose, Sea King, Marines,
