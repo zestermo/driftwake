@@ -167,7 +167,7 @@ func _slot(src: String, i: int):
 			_hover = null
 			_tip.visible = false)
 	s.focus_entered.connect(func(): _pick(src, i))
-	s.pressed.connect(func(): _pick(src, i))
+	s.pressed.connect(func(): quick_act(src, i, Input.is_key_pressed(KEY_SHIFT)))
 	s.gui_input.connect(func(ev: InputEvent):
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
 			_pick(src, i)
@@ -264,6 +264,13 @@ func _pick(src: String, i: int) -> void:
 		return
 	_sel = {"src": src, "i": i}
 	_show_card()
+
+
+## A click; with shift on a bag stack, sell it whole.
+func quick_act(src: String, i: int, shift: bool) -> void:
+	_pick(src, i)
+	if shift and src == "bag" and not _sel.is_empty():
+		_act(true)
 
 
 ## The card: the item, then what it costs or what they'd pay, and the buttons for it.
@@ -394,7 +401,7 @@ func _bounce(it: ItemData) -> void:
 
 func _set_hints() -> void:
 	InventoryScreen._clear(_hints)
-	for p in [["LMB", "PICK"], ["RMB", "BUY / SELL ONE"], ["ESC", "LEAVE"]]:
+	for p in [["LMB", "PICK"], ["RMB", "BUY / SELL ONE"], ["SHIFT", "SELL ALL"], ["ESC", "LEAVE"]]:
 		_hints.add_child(UIStyle.key_hint(p[0], p[1]))
 
 

@@ -210,7 +210,6 @@ func _ready() -> void:
 	power = PowerComponent.new()
 	power.name = "PowerComponent"
 	add_child(power)
-	inventory_component.item_added.connect(_on_item_added)
 	floor_snap_length = 0.1
 	# leaving the ship's deck, _ride_ship carries you instead (the states set
 	# the air velocity from the stick every tick, which dropped what this added)
@@ -1889,16 +1888,6 @@ func drop_from_bag(idx: int, qty: int = -1) -> bool:
 	Net.fx("sfx", ["whoosh", at, -14.0, 0.1, 1.4])
 	_toast("Dropped %s%s" % [st.item.display_name, " x%d" % st.quantity if st.quantity > 1 else ""])
 	return true
-
-
-## Picking up a second sword or pistol: dual wield it right away (a pistol beside
-## a sword waits to be put in the off hand by hand).
-func _on_item_added(item: ItemData, _qty: int) -> void:
-	if not item.is_weapon() or equipped_weapon == null or offhand_weapon != null:
-		return
-	if class_of(item) == class_of(equipped_weapon) and _offhand_valid(item):
-		set_offhand(item)
-		_toast("Dual wielding: %s + %s" % [equipped_weapon.display_name, item.display_name])
 
 
 # --------------------------------------------------------------------------

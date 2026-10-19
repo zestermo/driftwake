@@ -4024,3 +4024,8 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - Tests: t/ui/chat_line (solo Enter opens nothing; typing locks the captain and keeps I/T/Esc from menus and wheels; a sent line comes
   back with your name, a crewmate's with theirs; empty lines dropped; fade and back; six kept). Nettest should check a guest's line
   reaching the host and a third captain with the guest's name (not run: the push gate's job). Render: `uishots <out> 1 0 chat`.
+
+## 2026-10-19: no auto-equip on pickup, shift+click quick-move (v1.18)
+- The only auto-equip path was Player._on_item_added (a second sword/pistol went straight into the off hand, which also rewrote the loadout in use). Every arrival (pickup, chest, dropped bag, shop, quest/NPC gift, co-op bag take) goes through InventoryComponent.add_item, so removing that handler stops them all: it lands in the bag, hands and loadouts untouched. Kept: the weapon-trait banner (player_hud) and the quick item filling itself with the first food picked up. The starting kit and saves still equip.
+- Shift+click (InventoryScreen.quick_move): a bag stack goes whole into the open chest (ship's storage, shared drop bags, loot bags: `_container.store`, the same call a drag makes, so co-op stays host-arbitrated); with no chest open it wears/holds it (food: becomes the quick item). Shift+click the quick slot clears it. A chest slot's plain click already took the whole stack, so shift there stays "take one". Shop: shift+click on a bag stack sells it whole (ShopScreen.quick_act).
+- Tests: t/items/pickup_no_equip, t/items/shop_no_equip, t/ui/shift_click. Expect invtest / r7test / qoltest to notice (none run here); progtest and the wield/dagger suites set their off hands by hand.
