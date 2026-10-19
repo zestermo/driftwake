@@ -90,7 +90,7 @@ func _process(d: float) -> bool:
 			p.sheathe_weapon(true)
 			gm().open("skills")
 			var sm = gm()._skills
-			var home := Vector2(0, -sm.HEADER_H * 0.5)
+			var home := Vector2(0, -sm.HEADER_H * 0.5 - 45.0)
 			check("map opens on the base tree, centered", sm._tab == "base" and sm._pan == home)
 			sm._pan = Vector2(900, 900)
 			sm._sel = "e_root" if false else sm._fruit_root()

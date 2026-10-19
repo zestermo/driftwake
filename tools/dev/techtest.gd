@@ -23,6 +23,7 @@ var went_down := false
 var guard := 0
 var idx := 0
 var phase := 0
+var grunts_parked := false
 func _initialize(): TK.seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
@@ -378,10 +379,16 @@ func _process(d: float) -> bool:
 			wait = 1.6
 			step += 1
 		16:
-			check("...and come back", not p.vanished() and p.body_model.visible)
-			# grapples won't lift a boss-sized foe; nobody in reach = the cast is given back
-			arm("fist")
-			clear_others(null)
+			if not grunts_parked:
+				check("...and come back", not p.vanished() and p.body_model.visible)
+				# grapples won't lift a boss-sized foe; nobody in reach = the cast is given back
+				arm("fist")
+				clear_others(null)
+				grunts_parked = true
+				until = TK.wait_ticks(4)
+				return false
+			if TK.ticking(until):
+				return false
 			pc.equip("suplex", 0)
 			pc.energy = 50.0
 			pc.cooldowns.clear()

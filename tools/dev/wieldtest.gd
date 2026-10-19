@@ -182,7 +182,7 @@ func _process(d: float) -> bool:
 				if SkillTree.nodes()[k]["tree"] == "corsair":
 					n += 1
 					ults += 1 if SkillTree.nodes()[k]["kind"] == "ult" else 0
-			check("the Corsair tree has 18+ nodes and one ultimate (%d)" % n, n >= 18 and ults == 1)
+			check("the Corsair tree has 16-19 nodes and one ultimate (%d)" % n, n >= 16 and n <= 19 and ults == 1)
 			pr.mastery_of("corsair")["pts"] = 99
 			check("no element at first", not pr.elemental("corsair"))
 			pr.owned["cs_grape"] = true

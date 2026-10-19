@@ -3685,3 +3685,4 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   (world suite, not run here; its "swings you across the deck > 3 m" and "off your feet" checks should still hold, the swing
   is higher now). Co-op paths touched: the kit apply (every screen), `Net.fx` tracers/sfx and the existing state/bark snapshot of
   EnemyShip; no nettest run.
+- Skills-rework test fallout (r6test, wieldtest, techtest): r6test's re-centre expectation follows the Captain tree's re-fit pan (-HEADER_H/2 - 45); wieldtest's Corsair size check is 16-19 nodes (17); techtest's "nobody in reach" grapple waits 4 ticks after parking the grunts (their hurtboxes were still in the old spot in the physics server, so a suplex sometimes grabbed one). The counter/dagger checks passed on current main.
