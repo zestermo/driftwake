@@ -192,7 +192,8 @@ func _process(d: float) -> bool:
 			check("an ordinary villager has lines when talked to, and says things over its head", amb.barks.size() >= 2 and amb.get_node("Bubble").visible)
 			# quests: every kind
 			print("   quests: %s" % [life.quest_node.quests.map(func(x): return "%s (%s)" % [x["title"], x["kind"]])])
-			check("2-3 quests from the island's POIs", life.given.size() >= 2 and life.given.size() <= 3 and life.quest_node.quests.size() == life.given.size())
+			check("2-3 quests from the island's POIs, the board's notices and its encounters' quests in the journal's source too",
+				life.given.size() >= 2 and life.given.size() <= 3 and (life.given + life.notices).all(func(x): return life.quest_node.quests.has(x)))
 			check("quests keyed by the island's id and seed (%s)" % life.quest_node.quests[0]["id"], life.quest_node.quests.all(func(x): return str(x["id"]).begins_with("isle%d_%d_" % [int(isl.node["id"]), int(isl.node["seed"])])))
 			var H = load("res://scripts/npc/humanoid.gd")
 			var looks: Array = life.folk.map(func(f): return f["look"])
