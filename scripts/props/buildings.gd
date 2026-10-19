@@ -45,6 +45,10 @@ static func _marker(parent: Node3D, n: String, pos: Vector3, yaw: float = 0.0) -
 	parent.add_child(m)
 
 
+static func _smoke(parent: Node3D, pos: Vector3) -> void:
+	(Engine.get_main_loop() as SceneTree).root.get_node("FX").chimney_smoke(parent, pos)
+
+
 # ==========================================================================
 # Roof helpers
 # ==========================================================================
@@ -531,7 +535,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 		mb.add_box(stone, _xf(Vector3(cx, ct + 0.05, cz)), Vector3(0.86, 0.12, 0.86), 0.6)
 		mb.add_cylinder(PSXMat.lit("plaster", Color(0.72, 0.42, 0.28)), _xf(Vector3(cx, ct + 0.1, cz)), 0.13, 0.11, 0.3, 6, 1.0)
 		if spec.get("smoke", true):
-			FX.chimney_smoke(body, Vector3(cx, ct + 0.5, cz))
+			_smoke(body, Vector3(cx, ct + 0.5, cz))
 		else:
 			_marker(body, "Chimney", Vector3(cx, ct + 0.5, cz))
 
@@ -795,7 +799,7 @@ static func tavern_hall() -> Node3D:
 	var door_light := NightLight.make(Color(1.0, 0.72, 0.4), 1.4, 9.0)
 	door_light.position = Vector3(door_x, fl + 2.6, d * 0.5 + 1.0)
 	body.add_child(door_light)
-	FX.chimney_smoke(body, Vector3(-w * 0.5 - 0.45, y2 + h2 + 4.3, 0.0))
+	_smoke(body, Vector3(-w * 0.5 - 0.45, y2 + h2 + 4.3, 0.0))
 	# outside: a bench under the window, the menu board, kegs stacked by the wall
 	var bench := Props.bench()
 	bench.position = Vector3(w * 0.25, 0.0, d * 0.5 + 0.7)
@@ -1052,7 +1056,7 @@ static func smithy() -> Node3D:
 	mb.add_box(stone, _xf(fp + Vector3(0, 3.6, -0.1)), Vector3(0.7, 2.8, 0.7), 0.5, Color.WHITE, true, false)
 	mb.add_box(stone, _xf(fp + Vector3(0, 5.05, -0.1)), Vector3(0.86, 0.12, 0.86), 0.5)
 	_box_col(body, Vector3(1.8, 0.9, 1.3), fp + Vector3(0, 0.45, 0))
-	FX.chimney_smoke(body, fp + Vector3(0, 5.4, -0.1))
+	_smoke(body, fp + Vector3(0, 5.4, -0.1))
 	# bellows beside it
 	mb.add_box(PSXMat.lit("leather", Color(0.55, 0.38, 0.25)), Transform3D(Basis(Vector3.RIGHT, 0.2), fp + Vector3(-1.25, 0.55, -0.1)), Vector3(0.5, 0.25, 0.9), 1.0)
 	# the anvil on its stump

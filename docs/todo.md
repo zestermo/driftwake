@@ -8,6 +8,11 @@ Zach's list of planned work, in order. Nothing here is started unless it says so
 2026-10-13: the next round is polish and quality of life, then Phase 3 of the islands. Platform: the desktop
 download (co-op by hosted / forwarded address) is the way to play; nothing web or store-related is planned.
 
+- **compilecheck can't see autoload names in static funcs (found 2026-10-19):** it compiles with the autoloads registered, so a
+  static func naming one (`FX.x()` in `Buildings`) passes it and the edit hook, then breaks a --script suite that names the class
+  (the suite compiles before the autoloads exist; no suite had named Props -> Buildings until Props used Buildings). Add a lint
+  to compilecheck: any `FX.`/`Net.`/`Weather.`... use inside a `static func` in scripts/ fails, and reach it through the tree.
+
 ## Now: v1.12, light, music and a living sea (started 2026-10-14)
 
 Three agents, one worktree each:
