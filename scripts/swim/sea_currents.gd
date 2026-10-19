@@ -17,7 +17,7 @@ const RIP_GAP := 80.0
 const DOCK_KEEP := 80.0
 ## The churn: how often, and from how far it's drawn.
 const CHURN_EVERY := 0.3
-const CHURN_RANGE := 90.0
+const CHURN_RANGE := 60.0
 
 ## island key -> [[from (x, z), to (x, z), width], ...] in world space
 var rips := {}
@@ -95,6 +95,9 @@ func _process(delta: float) -> void:
 	var churn := _churn_t <= 0.0
 	if churn:
 		_churn_t = CHURN_EVERY
+	# (the flecks move a frame in FLECK_FRAMES: a PS1 step, and a third of the wave sampling)
+	_frame += 1
+	var move := _frame % FLECK_FRAMES == 0
 	var t: float = Ocean.clock()
 	for key in rips:
 		for i in range((rips[key] as Array).size()):
@@ -105,7 +108,8 @@ func _process(delta: float) -> void:
 			var flecks := _flecks(key, i, near)
 			if not near:
 				continue
-			_drift_flecks(flecks, a, b, float(e[2]), t)
+			if move:
+				_drift_flecks(flecks, a, b, float(e[2]), t)
 			if churn:
 				# foam thrown seaward somewhere along its first half
 				var q := a.lerp(b, randf_range(0.05, 0.5)) + (b - a).normalized().orthogonal() * randf_range(-2.5, 2.5)
@@ -118,7 +122,9 @@ func _process(delta: float) -> void:
 ## The telltale: flecks of foam and churned sand riding out along the rip at its own speed (each screen its
 ## own, near the camera only). One MultiMesh a rip, made the first time it's near.
 const FLECKS := 36
+const FLECK_FRAMES := 3
 var _fleck_nodes := {}
+var _frame := 0
 static var _fleck_mesh: QuadMesh
 
 

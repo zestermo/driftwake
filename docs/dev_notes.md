@@ -3765,8 +3765,8 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   chain island, on beaches (the bottom 1.5-7 m down 30 m out, the shore map's exposure >= 0.35), 80 m from the dock and each other: a
   channel RIP_WIDTH 8 m from 4 m inshore of the waterline to RIP_LEN 50 m out, RIP_SPEED 2.6 m/s full across its middle half, dying away
   over its last 45% (a plain 3.2 m/s stroke barely gains, a 4.6 sprint beats it, swimming along the shore leaves it). Telltale (each
-  screen its own, within 90 m): 36 flecks of foam and churned sand a rip riding out at its speed (one MultiMesh a rip, made when first
-  near), and spray thrown seaward every 0.3 s.
+  screen its own, within 60 m of its middle + 25): 36 flecks of foam and churned sand a rip riding out at its speed (one MultiMesh a
+  rip, made when first near, moved every 3rd frame: each fleck samples the wave), and spray thrown seaward every 0.3 s.
 - **Surf** (scripts/swim/sea_push.gd, read from Ocean's shore maps and shore swell: nothing changes the waves): in the surf zone (shore
   map depth 0.15-3.2 m, faded by how turned the swell is) each breaking crest shoves you toward the beach (SURF_PUSH 4.2 m/s at a full
   crest, crest = shore swell / 0.45 m x amp_mult, squared) and a LONGSHORE 0.5 m/s current runs along the beach the way the swell runs; a

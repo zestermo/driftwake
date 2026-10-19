@@ -404,7 +404,8 @@ var _depth_set := 0.0
 func _check_under(cam: Camera3D) -> void:
 	under_water = false
 	_under_depth = 0.0
-	if cam == null:
+	# (well over the highest crest there's nothing to ask; an inland pool's swimmers are under 2.5 m of it)
+	if cam == null or (cam.global_position.y > 2.5 * Ocean.amp_mult and Ocean.pools.is_empty()):
 		return
 	var surf := float(Ocean.surface_at(cam.global_position))
 	if cam.global_position.y < surf - 0.05:
