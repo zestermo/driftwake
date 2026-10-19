@@ -37,7 +37,7 @@ func setup(s: Ship) -> void:
 		"gilt": PSXMat.lit("", Color(1.0, 0.76, 0.28)),
 		"rope": PSXMat.lit("rope"),
 		"pennant": PSXMat.lit("cloth_red", Color(1.0, 0.85, 0.8)),
-		"glass": PSXMat.glow(Color(1.0, 0.8, 0.45), 2.2),
+		"glass": PSXMat.glow(Color(1.0, 0.76, 0.32), 2.6),
 		"copper": PSXMat.lit("", Color(0.92, 0.48, 0.22)),
 		"canvas": PSXMat.lit("canvas", Color(0.92, 0.88, 0.76)),
 		"roof": PSXMat.lit("planks_dark", Color(0.7, 0.5, 0.38)),

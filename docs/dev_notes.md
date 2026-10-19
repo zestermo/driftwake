@@ -3655,3 +3655,6 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   CUTLASS [K]").
 - Render: tools/dev/skillmapshot.gd (the light stage; it closes the creator and ends the story so the map opens; it
   waits in frames, as the open menu pauses the game's ticks).
+- **t/ship/upgrade_cost back under its cap** (ship_parts.gd): a maxed sloop's parts had a 14th surface (a 4th glow: "glass") and drew 53 surfaces over plain
+  (cap 52). "glass" is now the same cached PSXMat.glow as lamp_gold (nearly the same colour), so 13 surfaces and 52. PSXMat folds tints into vertex colour
+  already, so same-texture materials were never separate surfaces; only glows (emission colour is the material) are.
