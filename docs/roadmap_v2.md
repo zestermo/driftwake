@@ -67,3 +67,6 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 - The katana's animations and effects are redone in the drawn flipbook style (docs/katana_polish_plan.md); the other weapons' awakenings follow one at a time.
 - Ship upgrades come as tiered, visible lines bought at Tackett's yard for gold + salvage, with a per-captain Seamanship tree; the extra ship classes wait for the canal city (docs/ship_upgrades_plan.md).
 - The drawn-awakening series goes weapon by weapon: katana, then the axe (fire and embers, + Skyfall Smash and War Cry; docs/axe_polish_plan.md), after the katana lands.
+
+## Decided (2026-10-19)
+- Phase 3's progression core goes first: fewer, bigger skill nodes (a shared tree on level points, weapon trees by use, mastery carried over within a family), life skills learned by doing, a tighter economy with trait weapons and per-captain loot, food healing + galley buffs, specialist shops and artisans (docs/progression_plan.md). The minimap, journal/quests, NPC encounters and swimming depth get their own grills after it.
