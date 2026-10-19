@@ -510,14 +510,20 @@ func _lod_every() -> int:
 		return 1
 	if not cam.is_position_in_frustum(global_position + Vector3.UP):
 		return 6 if d2 < 60.0 * 60.0 else 12
-	if d2 < 30.0 * 30.0:
+	if d2 < 20.0 * 20.0:
 		return 1
-	if d2 < 60.0 * 60.0:
+	if d2 < 40.0 * 40.0:
 		return 2
-	return 3 if d2 < 120.0 * 120.0 else 6
+	return 3 if d2 < 80.0 * 80.0 else 6
 
 
 var _sims_near: bool = true
+## Hair and cloth swing within this of the camera (m): a captain's, and a villager's or grunt's (lod).
+const SIMS_R := 30.0
+const SIMS_R_LOD := 20.0
+## Feet set on the ground under them within this of the camera (m); past it they keep the last heights.
+const IK_R := 40.0
+const IK_R_LOD := 25.0
 
 
 func _update_physics(delta: float) -> void:
@@ -526,7 +532,8 @@ func _update_physics(delta: float) -> void:
 	# Physics only near the camera; far characters keep their last pose and
 	# snap to rest (once) when they leave range.
 	var cam := _camera()
-	var near := cam == null or cam.global_position.distance_squared_to(global_position) < 30.0 * 30.0
+	var r := SIMS_R_LOD if lod else SIMS_R
+	var near := cam == null or cam.global_position.distance_squared_to(global_position) < r * r
 	if not near and not _sims_near:
 		return
 	_sims_near = near
@@ -3146,7 +3153,8 @@ func _foot_ik(delta: float) -> void:
 		_ik_drop = 0.0
 		return
 	var cam := _camera()
-	if cam and cam.global_position.distance_squared_to(global_position) > 40.0 * 40.0:
+	var ik_r := IK_R_LOD if lod else IK_R
+	if cam and cam.global_position.distance_squared_to(global_position) > ik_r * ik_r:
 		return
 	if not _ik_body_found:
 		_ik_body_found = true

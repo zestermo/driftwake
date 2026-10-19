@@ -1,6 +1,6 @@
 extends Node
 class_name Ambience
-## The sound of where you are, mixed every frame for the local captain (each
+## The sound of where you are, mixed every other frame for the local captain (each
 ## machine hears its own): the sea in layers (a deep slow swell bed, the open
 ## swell, water lapping close by, breakers on a far shore), the shore by how far
 ## the actual coastline is and what it is (surf on a beach, waves crashing on
@@ -45,6 +45,7 @@ const ZONE_EVERY := 0.5
 const PROBE_EVERY := 0.07
 ## Under water: the buses' low-pass closes to this.
 const UNDER_HZ := 480.0
+const MIX_EVERY := 2
 
 var coast := CoastProbe.new()
 var _players := {}
@@ -59,6 +60,7 @@ var _bow_y := INF
 var _surge := 0.0
 ## Game seconds, for the hull loops' slow drift.
 var _clock := 0.0
+var _mix_acc := 0.0
 ## The wind's gusts (0..1 now): with the weather, more and stronger in a blow.
 var gust := 0.0
 var _gust_peak := 0.0
@@ -125,7 +127,13 @@ func _loop_player(path: String) -> AudioStreamPlayer:
 	return p
 
 
-func _process(delta: float) -> void:
+func _process(frame_delta: float) -> void:
+	# (mixed every MIX_EVERY frames with the time since: a level change 30 times a second is still smooth)
+	_mix_acc += frame_delta
+	if Engine.get_process_frames() % MIX_EVERY != 0:
+		return
+	var delta := _mix_acc
+	_mix_acc = 0.0
 	_clock += delta
 	var me := get_tree().get_first_node_in_group("player") as Node3D
 	var want := {}

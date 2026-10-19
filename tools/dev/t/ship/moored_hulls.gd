@@ -1,12 +1,13 @@
 extends SceneTree
 ## A moored hull rides the swell with a captain within MooredHull.NEAR and holds still (no physics moves) past FAR;
 ## (moored_hull.gd loaded by path: it reads Ocean, which a SceneTree script can't name at compile time)
-## it rides again once a captain comes back.
+## it rides again once a captain comes back. The ship near it counts only while she's under way.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
 var near
 var far
+var ship
 var step := 0
 var until := 0
 var fails := 0
@@ -64,6 +65,22 @@ func _process(_d: float) -> bool:
 		4:
 			check("the far hull rides again once a captain comes near", far.riding and not far.global_transform.is_equal_approx(xf_far))
 			check("...and the one left behind holds still", not near.riding)
+			# the ship moored beside the left-behind hull: it holds still till she gets under way
+			var gs := GDScript.new()
+			gs.source_code = "extends Node3D\nvar speed := 0.0\n"
+			gs.reload()
+			ship = Node3D.new()
+			ship.set_script(gs)
+			ship.add_to_group("ship")
+			stage.add_child(ship)
+			ship.global_position = Vector3(60.0, 0.0, 20.0)
+			until = TK.wait_ticks(near.CHECK_TICKS + 2)
+		5:
+			check("a hull beside the moored ship holds still", not near.riding)
+			ship.speed = 4.0
+			until = TK.wait_ticks(near.CHECK_TICKS + 2)
+		6:
+			check("...and rides once she's under way", near.riding)
 			return TK.done(fails)
 	step += 1
 	return false

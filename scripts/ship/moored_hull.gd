@@ -3,7 +3,7 @@ extends AnimatableBody3D
 ## A ship tied up at a pier: rides the swell where it lies (you can walk its deck), and holds still with nobody near.
 
 const HEAVE := 0.7
-## Rides the swell within NEAR of a captain or the ship; holds still past FAR.
+## Rides the swell within NEAR of a captain or the ship under way; holds still past FAR.
 const NEAR := 80.0
 const FAR := 90.0
 const CHECK_TICKS := 15
@@ -43,5 +43,6 @@ func _anyone_within(r: float) -> bool:
 	for c in get_tree().get_nodes_in_group("players"):
 		if (c as Node3D).global_position.distance_squared_to(o) < r * r:
 			return true
+	# (the ship only while she's under way: moored in the harbour she'd keep every hull in it riding)
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
-	return ship != null and ship.global_position.distance_squared_to(o) < r * r
+	return ship != null and absf(float(ship.get("speed"))) > 0.5 and ship.global_position.distance_squared_to(o) < r * r

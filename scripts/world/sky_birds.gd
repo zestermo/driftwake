@@ -33,6 +33,9 @@ const SIZE := {GULL: 1.0, DARK: 1.7, PARROT: 0.65, VULTURE: 2.9}
 const TOP_SPEED := {GULL: 11.0, DARK: 14.0, PARROT: 10.0, VULTURE: 8.0}
 const UNSEEN_EVERY := 3
 const UNSEEN_BEHIND := 4.0
+## Seen past this (m) a bird moves under a pixel a frame: flown every SEEN_FAR_EVERY frames.
+const SEEN_NEAR := 140.0
+const SEEN_FAR_EVERY := 2
 
 enum { GULL, DARK, PARROT, VULTURE }
 enum { WHEEL, VEE, CIRCLE, TRAIL, PERCH, LAND, SCATTER, HOP, LEAVE }
@@ -130,8 +133,11 @@ func _process(delta: float) -> void:
 		var b: Dictionary = birds[i]
 		b["acc"] = float(b["acc"]) + delta
 		var to: Vector3 = (b["pos"] as Vector3) - at
-		# behind the camera or past DRAW: flown every UNSEEN_EVERY frames, a turn each
-		if (to.dot(fwd) > -UNSEEN_BEHIND and to.length_squared() < DRAW * DRAW) or (i + _frame) % UNSEEN_EVERY == 0 or not b.has("xf"):
+		# behind the camera or past DRAW: flown every UNSEEN_EVERY frames, a turn each; seen past SEEN_NEAR every SEEN_FAR_EVERY
+		var d2 := to.length_squared()
+		var seen := to.dot(fwd) > -UNSEEN_BEHIND and d2 < DRAW * DRAW
+		var every := (1 if d2 < SEEN_NEAR * SEEN_NEAR else SEEN_FAR_EVERY) if seen else UNSEEN_EVERY
+		if every == 1 or (i + _frame) % every == 0 or not b.has("xf"):
 			_fly(b, float(b["acc"]), at, ship, ship_xf)
 			b["acc"] = 0.0
 			b["xf"] = _xf(b)
