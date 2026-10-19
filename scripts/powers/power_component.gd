@@ -1,6 +1,6 @@
 class_name PowerComponent
 extends Node
-## Skills and Devil Fruit power: the skill bar loadout (keys 1-4 + R for an
+## Skills and Devil Fruit power: the skill bar loadout (keys 1-5 + R for an
 ## ultimate), energy, cooldowns, the ultimate's charge, timed buffs (Tekkai,
 ## Haki, Howl...), which Devil Fruit you've eaten (if any), and the shared
 ## damage helpers skills use (blasts, burning, rooting, setting brush alight).
@@ -29,7 +29,12 @@ const ULT_PER_DAMAGE := 0.3
 const ULT_LOCK := 6.0
 ## Waist deep: powers fizzle.
 const FIZZLE_DEPTH := 0.9
-const SLOTS := 5
+## Loadout slots: 0-3 on keys 1-4, the ultimate (ULT) on R, slot 5 on key 5 (it came later,
+## so saves keep the ultimate where it was).
+const SLOTS := 6
+const ULT := 4
+## The slot on each number key 1-5.
+const KEYS := [0, 1, 2, 3, 5]
 ## Mastered Foresight (a stance): one automatic dodge every this many seconds,
 ## for this much energy a second.
 const STANCE_EVERY := 3.0
@@ -41,8 +46,8 @@ var player: Player
 var fruit: String = ""
 var energy: float = BASE_ENERGY
 var ult: float = 0.0
-## Skill ids on keys 1-4 and R ("" = empty).
-var loadout: Array[String] = ["", "", "", "", ""]
+## Skill ids on the slots ("" = empty).
+var loadout: Array[String] = ["", "", "", "", "", ""]
 var cooldowns: Dictionary = {}     # skill id -> seconds left
 var cooldown_len: Dictionary = {}  # skill id -> full cooldown
 var buffs: Dictionary = {}         # name -> seconds left
@@ -101,10 +106,15 @@ func cooldown_total(slot: int) -> float:
 	return float(cooldown_len.get(loadout[slot], 1.0)) if slot >= 0 and slot < SLOTS else 1.0
 
 
-## Put a skill on a slot (ultimates only go on R, others only on 1-4). A skill
+## The key a slot is on ("1".."5", "R").
+static func key_of(slot: int) -> String:
+	return "R" if slot == ULT else str(KEYS.find(slot) + 1)
+
+
+## Put a skill on a slot (ultimates only go on R, others only on 1-5). A skill
 ## already on another slot moves.
 func equip(skill_id: String, slot: int) -> bool:
-	if skill_id != "" and (Skills.is_ult(skill_id) != (slot == 4)):
+	if skill_id != "" and (Skills.is_ult(skill_id) != (slot == ULT)):
 		return false
 	if skill_id != "" and player and not player.progression.knows(skill_id):
 		return false
@@ -121,10 +131,10 @@ func auto_equip(skill_id: String) -> void:
 	if skill_id in loadout:
 		return
 	if Skills.is_ult(skill_id):
-		if loadout[4] == "":
-			equip(skill_id, 4)
+		if loadout[ULT] == "":
+			equip(skill_id, ULT)
 		return
-	for i in range(4):
+	for i in KEYS:
 		if loadout[i] == "":
 			equip(skill_id, i)
 			return
@@ -179,7 +189,7 @@ func can_cast(slot: int) -> String:
 	var stance_off := str(sk["id"]) == "foresight" and foresight_stance
 	if cooldown_left(slot) > 0.0 and not free and not stance_off:
 		return "Not ready"
-	if slot == 4:
+	if slot == ULT:
 		if ult < ULT_MAX:
 			return "Ultimate not charged"
 	elif energy < float(sk.get("cost", 0.0)) and not free and not stance_off:
@@ -204,7 +214,7 @@ func try_cast(slot: int) -> bool:
 	if float(_free_recast.get(id, 0.0)) > 0.0:
 		_free_recast.erase(id)
 	else:
-		if slot == 4:
+		if slot == ULT:
 			ult = 0.0
 			_ult_lock = ULT_LOCK
 		else:
@@ -340,7 +350,7 @@ func add_energy(amount: float) -> void:
 
 
 func add_ult(damage: float) -> void:
-	if _ult_lock <= 0.0 and player and loadout[4] != "":
+	if _ult_lock <= 0.0 and player and loadout[ULT] != "":
 		var k := 1.0 + player.progression.stat("ult_charge_pct")
 		ult = minf(ult + damage * ULT_PER_DAMAGE * k, ULT_MAX)
 

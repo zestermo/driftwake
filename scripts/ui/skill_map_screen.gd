@@ -9,7 +9,7 @@ extends Control
 ##
 ## Mouse: drag to pan, wheel to zoom, click a node to select it, click it again
 ## (or Enter / F) to learn it - or, on a learned skill, to rank it up a tier.
-## With a learned active skill selected, 1-4 puts it on the skill bar (R for an
+## With a learned active skill selected, 1-5 puts it on the skill bar (R for an
 ## ultimate). Right-click a bar slot to clear it. WASD / arrows pan, Q / E zoom.
 
 const FONT := preload("res://assets/fonts/Silkscreen-Regular.woff2")
@@ -222,9 +222,14 @@ func _tab_at(sp: Vector2) -> int:
 	return -1
 
 
-func _bar_slot_rect(i: int) -> Rect2:
+## The bar's slots left to right: keys 1-5, then R.
+const BAR_ORDER := [0, 1, 2, 3, 5, 4]
+
+
+## The rect of the bar's j-th slot from the left.
+func _bar_slot_rect(j: int) -> Rect2:
 	var y := size.y - 30.0
-	var x := 64.0 + float(i) * (BAR_SLOT + 4.0) + (6.0 if i == 4 else 0.0)
+	var x := 64.0 + float(j) * (BAR_SLOT + 4.0) + (6.0 if j == 5 else 0.0)
 	return Rect2(x, y, BAR_SLOT, BAR_SLOT)
 
 
@@ -240,9 +245,9 @@ func _gui_input(event: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
 			_zoom_at(mb.position, 1.0 / 1.15)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and pl:
-			for i in range(5):
-				if _bar_slot_rect(i).has_point(mb.position):
-					pl.power.equip("", i)
+			for j in range(BAR_ORDER.size()):
+				if _bar_slot_rect(j).has_point(mb.position):
+					pl.power.equip("", BAR_ORDER[j])
 					menu._play("unequip")
 		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and _tab_at(mb.position) >= 0:
 			set_tab(SkillTree.TAB_ORDER[_tab_at(mb.position)])
@@ -306,18 +311,18 @@ func _input(event: InputEvent) -> void:
 	elif k == KEY_E:
 		_zoom_at(_map_rect().get_center(), 1.2)
 		get_viewport().set_input_as_handled()
-	elif (k >= KEY_1 and k <= KEY_4) or k == KEY_R:
-		var slot := 4 if k == KEY_R else k - KEY_1
+	elif (k >= KEY_1 and k <= KEY_5) or k == KEY_R:
+		var slot: int = PowerComponent.ULT if k == KEY_R else PowerComponent.KEYS[k - KEY_1]
 		var sk := str(SkillTree.get_node_def(_sel).get("skill", ""))
 		if sk == "":
 			_deny("Select a learned active skill first")
 		elif not pl.progression.knows(sk):
 			_deny("Learn it first")
-		elif Skills.is_ult(sk) != (slot == 4):
+		elif Skills.is_ult(sk) != (slot == PowerComponent.ULT):
 			_deny("Ultimates go on R" if Skills.is_ult(sk) else "R is for ultimates")
 		elif pl.power.equip(sk, slot):
 			menu._play("equip")
-			_say("%s on %s" % [Skills.get_skill(sk)["name"], "R" if slot == 4 else str(slot + 1)])
+			_say("%s on %s" % [Skills.get_skill(sk)["name"], PowerComponent.key_of(slot)])
 		get_viewport().set_input_as_handled()
 
 
@@ -737,7 +742,7 @@ func _draw_panel(pl: Player) -> void:
 		if sk != "":
 			var slot := pl.power.loadout.find(sk)
 			if slot >= 0:
-				_text(Vector2(x0 + 8, y), "On the bar: %s" % ("R" if slot == 4 else str(slot + 1)), UIStyle.TEXT_DIM)
+				_text(Vector2(x0 + 8, y), "On the bar: %s" % PowerComponent.key_of(slot), UIStyle.TEXT_DIM)
 			else:
 				_text(Vector2(x0 + 8, y), "Press %s to put it on the bar" % ("R" if Skills.is_ult(sk) else "1-4"), UIStyle.GOOD)
 			y += 14.0
@@ -808,15 +813,16 @@ func _draw_bar(pl: Player) -> void:
 	var y := size.y - 34.0
 	draw_style_box(UIStyle.frame(UIStyle.BG_DARK, UIStyle.BORDER_DIM, 0, "plank"), Rect2(2, y, size.x - PANEL_W - 4, 32))
 	_text(Vector2(8, y + 18), "SKILL BAR", UIStyle.TEXT_DIM)
-	for i in range(5):
-		var r := _bar_slot_rect(i)
+	for j in range(BAR_ORDER.size()):
+		var i: int = BAR_ORDER[j]
+		var r := _bar_slot_rect(j)
 		var sk := pl.power.loadout[i]
 		var sel_sk := str(SkillTree.get_node_def(_sel).get("skill", ""))
 		var hl := sk != "" and sk == sel_sk
 		draw_style_box(UIStyle.frame(Color(UIStyle.OUTLINE, 0.95), UIStyle.ACCENT if hl else UIStyle.BORDER_DIM, 0, "well", hl), r)
 		if sk != "" and _icons.get(sk):
 			draw_texture_rect(_icons[sk], r.grow(-2.0), false)
-		_text(r.position + Vector2(2, 8), "R" if i == 4 else str(i + 1), UIStyle.ACCENT)
-	var hx := _bar_slot_rect(4).end.x + 10
-	UIStyle.draw_hints(self, Vector2(hx, y + 14), [["LMB", "SELECT / LEARN"], ["1-4 R", "ON BAR"]], FONT)
+		_text(r.position + Vector2(2, 8), PowerComponent.key_of(i), UIStyle.ACCENT)
+	var hx := _bar_slot_rect(5).end.x + 10
+	UIStyle.draw_hints(self, Vector2(hx, y + 14), [["LMB", "SELECT / LEARN"], ["1-5 R", "ON BAR"]], FONT)
 	UIStyle.draw_hints(self, Vector2(hx, y + 27), [["RMB", "CLEAR SLOT"], ["TAB", "TREE"], ["K", "CLOSE"]], FONT)

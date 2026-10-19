@@ -69,8 +69,8 @@ func _process(d: float) -> bool:
 			ocean = root.get_node("Ocean")
 			p.power.cast_failed.connect(func(slot, why): failed.append([slot, why]))
 			# bindings
-			check("skills on 1-4, ultimate on R", key_of("skill_1") == KEY_1 and key_of("skill_4") == KEY_4 and key_of("ultimate") == KEY_R)
-			check("quick items on 5-7, ready weapon on Z", key_of("hotbar_1") == KEY_5 and key_of("hotbar_3") == KEY_7 and not InputMap.has_action("hotbar_4") and key_of("ready_weapon") == KEY_Z)
+			check("skills on 1-5, ultimate on R", key_of("skill_1") == KEY_1 and key_of("skill_5") == KEY_5 and key_of("ultimate") == KEY_R)
+			check("the quick item on E, nothing on 6, ready weapon on Z", key_of("quick_item") == KEY_E and not InputMap.has_action("hotbar_1") and not InputMap.has_action("skill_6") and key_of("ready_weapon") == KEY_Z)
 			# fruits are in the world's chests only while DevilFruits.IN_WORLD is on (off for now)
 			var found := false
 			for b in root.find_children("*", "LootBag", true, false):

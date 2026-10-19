@@ -4,7 +4,7 @@ extends Control
 ## PSX canvas:
 ##
 ##   (HP orb) [stamina...........................................] (EN orb)
-##            [1][2][3][4]  [ R ]  | [5][6][7]
+##            [1][2][3][4][5]  [ R ]  | [E]
 ##
 ## * Health orb (left): red liquid with a slosh, a pale "recent damage" chip
 ##   that drains after a hit, and the number.
@@ -14,19 +14,20 @@ extends Control
 ##   skill points pulse next to the level.
 ## * Stamina: a thin bar across the top of the plate (amber when spent, flashes
 ##   red when an action is refused).
-## * Skills 1-4: icon, key, energy cost, cooldown sweep + seconds, dimmed when
+## * Skills 1-5: icon, key, energy cost, cooldown sweep + seconds, dimmed when
 ##   you can't afford them, a white flash when they come off cooldown, a red
 ##   flash when a cast is refused. In the sea they're all doused.
 ## * Ultimate (R): bigger slot with a charge ring that fills from damage dealt
 ##   and pulses when ready.
-## * Quick items 5-7: consumables (rum...), with how many you carry.
+## * The quick item (E): the selected food or drink, with how many you carry (hold E: the item
+##   wheel to pick another).
 
 const W := 352.0
 const H := 70.0
 const ORB_R := 25.0
 const SKILL := 26.0
 const ULT := 34.0
-const ITEM := 22.0
+const ITEM := 26.0
 const GAP := 2.0
 const PLATE_Y := 20.0
 const ROW_Y := 30.0
@@ -49,9 +50,9 @@ var _en_hold: float = 0.0
 var _en_flash: float = 0.0
 var _t: float = 0.0
 var _stamina_flash: float = 0.0
-var _ready_flash: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
-var _fail_flash: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
-var _prev_cd: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0]
+var _ready_flash: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+var _fail_flash: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+var _prev_cd: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var _ult_was_full: bool = false
 var _quick_fail: float = 0.0
 var _quick_ready: float = 0.0
@@ -92,7 +93,7 @@ func bind(p: Player) -> void:
 
 func _load_icons() -> void:
 	_icons.clear()
-	for i in range(5):
+	for i in range(PowerComponent.SLOTS):
 		var sk := player.power.skill(i)
 		if not sk.is_empty():
 			_icons[str(sk["id"])] = Skills.icon(str(sk["id"]))
@@ -130,7 +131,7 @@ func _process(delta: float) -> void:
 		_en_chip = move_toward(_en_chip, _en_shown, delta * 0.7)
 	_en_chip = maxf(_en_chip, _en_shown)
 	_stamina_flash = maxf(_stamina_flash - delta, 0.0)
-	for i in range(5):
+	for i in range(PowerComponent.SLOTS):
 		_fail_flash[i] = maxf(_fail_flash[i] - delta, 0.0)
 		_ready_flash[i] = maxf(_ready_flash[i] - delta, 0.0)
 		var cd := pc.cooldown_left(i)
@@ -164,19 +165,17 @@ func _draw() -> void:
 	var x0 := ORB_R * 2.0 + 8.0
 	_draw_stamina(Rect2(x0, PLATE_Y + 3.0, W - x0 * 2.0, 4.0))
 	# slots
-	var x := x0
-	for i in range(4):
+	var x := x0 + 6.0
+	for i in PowerComponent.KEYS:
 		_draw_skill(Rect2(x, ROW_Y + (ULT - SKILL) * 0.5, SKILL, SKILL), i, fruit_col)
 		x += SKILL + GAP
 	x += 5.0
 	_draw_ult(Rect2(x, ROW_Y, ULT, ULT), fruit_col)
 	x += ULT + 6.0
-	# a thin divider, then the quick items
+	# a thin divider, then the quick item
 	draw_line(Vector2(x, ROW_Y + 6.0), Vector2(x, ROW_Y + ULT - 4.0), UIStyle.BORDER_DIM, 1.0)
 	x += 5.0
-	for i in range(InventoryComponent.HOTBAR_SIZE):
-		_draw_item(Rect2(x, ROW_Y + (ULT - ITEM) * 0.5 + 2.0, ITEM, ITEM), i)
-		x += ITEM + GAP
+	_draw_item(Rect2(x, ROW_Y + (ULT - ITEM) * 0.5, ITEM, ITEM))
 	# orbs
 	var hc := player.health_component
 	_draw_orb(Vector2(ORB_R + 2.0, H - ORB_R - 3.0), _hp_shown, _hp_chip, HP_COL, HP_HI,
@@ -287,7 +286,7 @@ func _cooldown_pie(r: Rect2, frac: float) -> void:
 func _draw_skill(r: Rect2, i: int, fruit_col: Color) -> void:
 	var pc := player.power
 	var sk := pc.skill(i)
-	var key := str(i + 1)
+	var key := PowerComponent.key_of(i)
 	if sk.is_empty():
 		_slot_frame(r, EMPTY_RIM)
 		_text(r.position + Vector2(2, 8), key, EMPTY_RIM)
@@ -359,10 +358,12 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 	_text(r.position + Vector2(2, 9), "R", UIStyle.ACCENT)
 
 
-func _draw_item(r: Rect2, i: int) -> void:
+func _draw_item(r: Rect2) -> void:
 	var inv := player.inventory_component
-	var item: ItemData = ItemDB.get_item(inv.hotbar[i]) if inv.hotbar[i] != "" else null
+	var item := inv.quick_item()
 	var border := UIStyle.BORDER_DIM
+	if player.item_wheel.is_open():
+		border = UIStyle.ACCENT
 	if _quick_fail > 0.0 and item:
 		border = UIStyle.CORAL
 	elif _quick_ready > 0.0 and item:
@@ -377,7 +378,7 @@ func _draw_item(r: Rect2, i: int) -> void:
 		if _quick_ready > 0.0:
 			draw_rect(r.grow(-1.0), Color(1, 1, 1, _quick_ready * 1.2))
 		_text(Vector2(r.position.x, r.end.y - 1.0), str(qty), Color.WHITE if qty > 0 else UIStyle.DANGER_TEXT, 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)
-	_text(r.position + Vector2(2, 8), str(i + 5), UIStyle.TEXT_DIM)
+	_text(r.position + Vector2(2, 8), "E", UIStyle.ACCENT if item else UIStyle.TEXT_DIM)
 
 
 ## Level badge (over the health orb) and the experience bar along the bottom

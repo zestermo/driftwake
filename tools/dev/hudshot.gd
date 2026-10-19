@@ -25,7 +25,7 @@ func _process(d: float) -> bool:
 		var hud = root.get_tree().get_first_node_in_group("hud")
 		p.spend_stamina(45.0)
 		p.inventory_component.add_item(load("res://resources/items/tonic.tres"), 2)
-		p.inventory_component.assign_hotbar(1, "tonic")
+		p.inventory_component.select_quick("tonic")
 		p.heal_cd = 5.2
 		p.health_component.current_health = 61.0
 		hud.show_boss("Grell the Tide-Breaker", 0.55, 2)

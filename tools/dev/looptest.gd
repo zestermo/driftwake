@@ -1,6 +1,6 @@
 extends SceneTree
 ## The gameplay loop (step 2b): the ship's storage chest (store, take back,
-## saved), resting in the bunk, restocking at the galley, dying (your bag on a
+## saved), resting in the bunk, cooking at the galley, dying (your bag on a
 ## grave where you fell, worn gear and weapons in hand kept; waking by the
 ## bunk), the grave saved and loaded, dying again (the old grave sinks), getting
 ## your things back, and summoning the ship (refused inland; to the water by

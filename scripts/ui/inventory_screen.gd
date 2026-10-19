@@ -1,8 +1,8 @@
 class_name InventoryScreen
 extends Control
 ## The inventory over the paused game (built by GameMenu): your captain on the left between
-## the gear and weapon slots, the bag, quick slots and item details in a panel on the right,
-## a chest or bag's contents in place of the paper doll. Weapons in hand and quick-slot items
+## the gear and weapon slots, the bag, the quick item (E) and item details in a panel on the right,
+## a chest or bag's contents in place of the paper doll. Weapons in hand and the quick item
 ## show only in their slots. Drawn into a SubViewport shown at a whole multiple of its pixels
 ## (_fit_canvas), so the pixel fonts and icons stay crisp at any window size.
 
@@ -346,14 +346,12 @@ func _build_panel() -> void:
 	ql.custom_minimum_size = Vector2(SLOT * 2 + GAP, 0)
 	ql.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	qrow.add_child(ql)
-	for k in range(InventoryComponent.HOTBAR_SIZE):
-		var qi := k
-		var q := _slot("", {"src": "quick", "idx": qi})
-		q.gui_input.connect(func(ev: InputEvent):
-			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
-				_clear_quick(qi))
-		qrow.add_child(q)
-		_quick.append(q)
+	var q := _slot("", {"src": "quick", "idx": 0})
+	q.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
+			_clear_quick())
+	qrow.add_child(q)
+	_quick.append(q)
 	_details = VBoxContainer.new()
 	_details.custom_minimum_size = Vector2(INFO_W, 0)
 	_details.add_theme_constant_override("separation", 2)
@@ -370,7 +368,7 @@ func _build_panel() -> void:
 	ch.add_child(_sheet)
 
 
-## Bag cells for at least `n` stacks (more than the bag holds only when quick slots swap).
+## Bag cells for at least `n` stacks (more than the bag holds only when the quick item changes).
 func _grow_bag(n: int) -> void:
 	while _bag.size() < n:
 		var cell := _bag.size()
@@ -604,10 +602,8 @@ func refresh() -> void:
 		_doll[slot].show_item(it, 1 if it else 0)
 	_weapon_slot.show_item(pl.equipped_weapon, 1 if pl.equipped_weapon else 0, "", pl.armed and pl.equipped_weapon != null)
 	_offhand_slot.show_item(pl.offhand_weapon, 1 if pl.offhand_weapon else 0, "", pl.armed and pl.offhand_weapon != null)
-	for k in range(_quick.size()):
-		var qid: String = inv.hotbar[k]
-		var qit: ItemData = inv.get_hotbar_item(k) if qid != "" else null
-		_quick[k].show_item(qit, inv.count(qid) if qit else 0, str(k + 5))
+	var qit := inv.quick_item()
+	_quick[0].show_item(qit, inv.count(inv.quick) if qit else 0, "E")
 	_refresh_loot()
 	_gold_label.text = "%d G" % inv.count("gold")
 	_name_label.text = str(pl.body_model.look.get("name", "Captain")) if pl.body_model else "Captain"
@@ -643,7 +639,7 @@ func _pick(s: Slot) -> void:
 	_show_details()
 
 
-## The tooltip, the hint bar and the bag position X / 5-7 act on, for a slot (null: none).
+## The tooltip, the hint bar and the bag position X / E act on, for a slot (null: none).
 func _show_slot(s: Slot) -> void:
 	var it: ItemData = null
 	var d := {}
@@ -684,9 +680,8 @@ func _locate(it: ItemData) -> Dictionary:
 	for slot in _doll.keys():
 		if pl.equipment.get_item(slot) == it:
 			return {"src": "doll", "slot": slot}
-	var q := inv.hotbar.find(it.id)
-	if q >= 0 and inv.count(it.id) > 0:
-		return {"src": "quick", "idx": q}
+	if inv.quick == it.id and inv.count(it.id) > 0:
+		return {"src": "quick", "idx": 0}
 	for i in _view:
 		if inv.items[i].item == it:
 			return {"src": "bag", "idx": i}
@@ -703,7 +698,7 @@ func _qty_of(d: Dictionary) -> int:
 		"bag":
 			return inv.items[int(d["idx"])].quantity
 		"quick":
-			return inv.count(inv.hotbar[int(d["idx"])])
+			return inv.count(inv.quick)
 		"loot":
 			return _container.contents[int(d["idx"])].quantity
 	return 1
@@ -871,7 +866,7 @@ func _hints_for(src: String, it: ItemData) -> Array:
 			elif it.is_consumable():
 				out = [["LMB", "EAT" if it.devil_fruit != "" else "USE"]]
 				if InventoryComponent.quick_ok(it):
-					out.append(["5-7", "QUICK SLOT"])
+					out.append(["E", "QUICK ITEM"])
 			out.append(["X", "DROP"])
 		"doll":
 			out = [["LMB", "TAKE OFF"]]
@@ -958,10 +953,10 @@ func _put_away(off: bool) -> void:
 	_bounce_item(it)
 
 
-func _clear_quick(k: int) -> void:
+func _clear_quick() -> void:
 	var inv := _player().inventory_component
-	var it: ItemData = inv.get_hotbar_item(k) if inv.hotbar[k] != "" else null
-	inv.clear_hotbar_slot(k)
+	var it := inv.quick_item()
+	inv.select_quick("")
 	menu._play("unequip")
 	refresh()
 	if it:
@@ -1050,18 +1045,18 @@ func _on_doll_pressed(slot: String) -> void:
 		_bounce_item(it)
 
 
-func assign_hotbar(slot: int) -> void:
+## E on a food or drink in the bag: it's the quick item.
+func select_quick() -> void:
 	var pl := _player()
 	if pl == null or _selected < 0 or _selected >= pl.inventory_component.items.size():
 		return
 	var it := pl.inventory_component.items[_selected].item
-	if not InventoryComponent.quick_ok(it):
+	if not pl.inventory_component.select_quick(it.id):
 		return
-	pl.inventory_component.assign_hotbar(slot, it.id)
 	_selected = -1
 	menu._play("equip")
 	refresh()
-	_quick[slot].bounce()
+	_quick[0].bounce()
 
 
 # ==========================================================================
@@ -1107,13 +1102,13 @@ func _fill_sheet() -> void:
 		_sheet.add_child(small("NONE", UIStyle.TEXT_DIM))
 
 	_section("Skill bar")
-	for i in range(5):
+	for i in PowerComponent.KEYS + [PowerComponent.ULT]:
 		var sk := pl.power.skill(i)
-		var key := "R" if i == 4 else str(i + 1)
+		var key := PowerComponent.key_of(i)
 		if sk.is_empty():
 			_row(key, "-")
 		else:
-			var cost := "Ultimate" if i == 4 else "%d energy" % int(sk["cost"])
+			var cost := "Ultimate" if i == PowerComponent.ULT else "%d energy" % int(sk["cost"])
 			_row(key, str(sk["name"]), "%s, %ss" % [cost, str(snappedf(float(sk["cooldown"]), 0.1))])
 
 
@@ -1172,8 +1167,7 @@ func _item_of(data: Dictionary) -> ItemData:
 		"offhand":
 			return pl.offhand_weapon
 		"quick":
-			var q := int(data["idx"])
-			return inv.get_hotbar_item(q) if inv.hotbar[q] != "" else null
+			return inv.quick_item()
 		"loot":
 			var j := int(data["idx"])
 			if has_container() and j < _container.contents.size():
@@ -1253,7 +1247,7 @@ func _drop_on(target: Dictionary, d) -> void:
 					else:
 						pl.set_offhand(null)
 				"quick":
-					inv.clear_hotbar_slot(int(d["idx"]))
+					inv.select_quick("")
 				"loot":
 					if has_container():
 						_container.take(int(d["idx"]), pl)
@@ -1267,14 +1261,7 @@ func _drop_on(target: Dictionary, d) -> void:
 			if not pl.set_offhand(it):
 				_flash("Off hand: a second blade, a second pistol, or a pistol beside a cutlass")
 		"quick":
-			var tq := int(target["idx"])
-			if src == "quick":
-				var other: String = inv.hotbar[tq]
-				inv.assign_hotbar(tq, it.id)
-				if other != "" and other != it.id:
-					inv.assign_hotbar(int(d["idx"]), other)
-			else:
-				inv.assign_hotbar(tq, it.id)
+			inv.select_quick(it.id)
 		"loot":
 			if has_container():
 				_container.store(pl, int(d["idx"]))

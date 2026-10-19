@@ -44,7 +44,7 @@ func _process(_d: float) -> bool:
 				if slot != "extra":
 					mate.equipment.equip(gear[slot], slot)
 			mate.inventory_component.add_item(ItemDB.get_item("rum"), 3)
-			mate.inventory_component.hotbar[0] = "rum"
+			mate.inventory_component.quick = "rum"
 			mate.progression.level = 7
 			mate.player_model.rotation.y = PI
 			p.player_model.rotation.y = 0.0

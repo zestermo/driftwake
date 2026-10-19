@@ -3700,6 +3700,38 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   has it in 2-4 s, but under the crew's five test slots its world load alone took ~20 s, so the window closed as the world became ready
   (world_ready true, no puppet yet; the host's "stalled" line is only the host idling after the client quit). The wait is 60 s now, like the
   join wait above it.
+
+## 2026-10-19: v1.18 controls, piece 1: the quick item (E), keys 1-5, the action wheel and making camp
+- **Keys:** 1-5 are ability slots, R the ultimate, nothing on 6+. E is the quick item (tap: eat/drink the selected one; hold: the
+  item wheel). N is the action wheel (hold). T is still emotes. Input actions `quick_item`, `action_wheel`, `skill_5`; `hotbar_1..3` are gone.
+- **The quick item** (InventoryComponent): `quick` (the selected item id, saved as "quick"; old saves' "hotbar" gives its first food or
+  drink), `select_quick(id) -> bool`, `quick_item()`, `quick_choices()` (every food and drink carried, bag order; the wheel's planks),
+  signal `quick_changed`, `quick_ok(item)`. The first consumable you pick up fills it; when its stack runs out it moves on to the next food you
+  carry (`_quick_ran_out`, from remove_item/take_at/take_all_except); with none left it's remembered. Like a weapon in hand, the selected stack is
+  off the bag grid and takes no bag space; the other food lives in the bag now (the three quick slots no longer hold two extra stacks free).
+  `Player.use_quick()` (the tap): refused at once on the shared heal cooldown (the bar flashes), otherwise wanted for QUICK_BUFFER 1 s: a tap
+  mid-swing drinks the moment the swing's combo window opens (it ends the chain). The galley restocks the first 3 kinds on the wheel, the
+  selected one first.
+- **Keys 1-5** (PowerComponent): SLOTS 6, ULT 4 stays on R (saves keep it there), slot 5 is key 5 (`KEYS = [0, 1, 2, 3, 5]`, `key_of(slot)`).
+  The skill map puts a skill on 1-5 / R; the bar draws [1][2][3][4][5] [R] | [E].
+- **RadialWheel** (scripts/ui/radial_wheel.gd): the emote wheel's ring, planks and picking, shared by the emote (T), item (E) and action (N)
+  wheels; planks can carry an icon, a second line (counts), greyed (out of stock) and a sun rim (the current choice). A `tap_ok` wheel opens
+  only after HOLD 0.2 s held; a quicker press is `_tap()`. One wheel open at a time, none while input is locked (menus; the chat line later).
+  Polls the key (tests drive it with `Input.action_press`).
+- **ActionWheel** (scripts/game/action_wheel.gd, the registry other lanes add to):
+  `ActionWheel.register(id, label, icon, available: Callable(p) -> bool, run: Callable(p), order := 100)`; label may be a Callable(p) ->
+  String; icon a texture path or "". Re-registering an id replaces it; `ensure_builtins()` adds "camp" (10) and the "train" placeholder (20)
+  unless a feature registered those ids first. `ActionWheel.place(p)`: "island" (ashore), "town" (Music.in_village), "ship" (aboard the owned
+  ship), "" (swimming, helm, air).
+- **Camp** (scripts/game/camp.gd): Make camp (ashore, out of town, no enemies fighting within 40 m) lays a campfire 1.25 m ahead on flat ground
+  and sits you by it (the Sit state; "Rest by the fire" turns you to one already there). Sitting within 3 m for REST 3 s rests you
+  (GameManager.rest: full health/stamina/energy and a save). It burns 240 s; one per captain (`Camp_<peer>`, the old one dies down).
+  Co-op: `Net._all_camp` (the controls block at the end of network_manager.gd) builds it on every screen; a crewmate rests at anyone's fire on
+  their own machine. Not in world sync (a captain joining later doesn't see a fire already burning). Respawning at the camp is for later.
+  Perf: one OmniLight (distance fade 45-55 m), meshes to 90 m without shadows, particles to 60 m, a 0.25 s timer, nothing per frame.
+- Tests: t/ui/item_wheel, t/ui/action_wheel, t/player/skill_slot_5, t/player/quick_mid_swing, t/items/quick_save; the hotbar's tests and
+  suites (rum_quick_slot, heal_timing, heal_kinds, chest_loot, starting_kit, meet_menu, invtest, looptest, powertest, r6test, r7test,
+  progtest) follow the new API.
 ## 2026-10-19: v1.18 economy, piece 1: scarce loot, per-captain rolls, weapon traits, one price curve
 - **Loot** (`scripts/items/loot.gd`, Loot): every captain rolls their own. Kills: `Net.coins` sends the creature's own count to every
   machine and each rolls `Loot.kill_gold` (KILL_GOLD_K 0.45 x 0.6-1.4, never none); drops go through `Net.kill_loot(table, at)`
