@@ -286,7 +286,7 @@ func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: 
 		# (not under a hull: the ship's own collider counts as ground here)
 		if float(Ocean.depth_at(p, [], true)) < 1.0:
 			continue
-		_foam.append([p.x, p.z, 0.0, _rng.randf_range(7.0, 14.0), _rng.randf_range(0.7, 1.7), _rng.randf() * TAU])
+		_foam.append([p.x, p.z, 0.0, _rng.randf_range(7.0, 14.0), _rng.randf_range(0.7, 1.7), _rng.randf() * TAU, Vector3.UP, INF])
 	_foam_acc = minf(_foam_acc, 2.0)
 	var v := wdir * (0.3 + wind * 0.8) * delta
 	var c := Vector2(cam.global_position.x, cam.global_position.z)
@@ -306,18 +306,17 @@ func _draw_foam() -> void:
 	var n := mini(_foam.size(), FOAM)
 	_foam_mm.visible_instance_count = n
 	_foam_i = (_foam_i + 1) % 3
+	var odd := Engine.get_process_frames() % 2
 	for i in range(n):
 		var f: Array = _foam[i]
 		var p := Vector3(f[0], 0.0, f[1])
-		p.y = float(Ocean.get_wave_height(p)) + 0.05
-		var up := Vector3.UP
-		# (the tilt every third frame, a third of them at a time)
+		# (the height every other frame, half of them at a time; the tilt every third, a third at a time)
+		if i % 2 == odd or f[7] == INF:
+			f[7] = float(Ocean.get_wave_height(p)) + 0.05
+		p.y = f[7]
 		if i % 3 == _foam_i:
-			up = Ocean.get_wave_normal(p)
-			f.resize(7)
-			f[6] = up
-		elif f.size() > 6:
-			up = f[6]
+			f[6] = Ocean.get_wave_normal(p)
+		var up: Vector3 = f[6]
 		var k := float(f[2]) / float(f[3])
 		var b := Basis(Vector3.UP, float(f[5]))
 		b = Basis(Quaternion(Vector3.UP, up)) * b * Basis(Vector3.RIGHT, -PI * 0.5)

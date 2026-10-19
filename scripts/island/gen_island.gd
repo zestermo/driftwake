@@ -49,6 +49,8 @@ var interiors: Array = []
 ## Which of the theme's forests grows here (IslandTheme "forests": "old growth", "bamboo thicket"...).
 var forest := ""
 var build_ms := {}
+## The longest main-thread build step: [its piece, ms] (the island's worst hitch).
+var worst_step: Array = ["", 0]
 ## Its villagers, named characters and quests (planned in prepare).
 var life: IslandLife
 ## The village laid out in prepare (IslandVillage.plan), built in its finish steps.
@@ -198,6 +200,8 @@ func run_step(s: Array) -> int:
 	(s[1] as Callable).call()
 	var ms := _lap(t0)
 	build_ms[s[0]] = int(build_ms.get(s[0], 0)) + ms
+	if ms > int(worst_step[1]):
+		worst_step = [s[0], ms]
 	return ms
 
 
