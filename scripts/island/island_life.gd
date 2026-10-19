@@ -24,6 +24,13 @@ const VILLAGE_KIND := {"market": "market", "customer": "market", "workshop": "wo
 const SITE_KIND :={"camp": "camp", "lair": "lair", "ruins": "ruins", "summit": "lookout", "boss": "beast"}
 ## POI kind -> [a lost thing: m out toward the village, a scout's point: m out, its radius] (others go by the spot's "r")
 const POI := {"ruins": [3.5, 0.0, 8.0], "lookout": [4.5, 0.0, 5.0], "camp": [17.0, 26.0, 9.0], "lair": [16.0, 22.0, 8.0], "beast": [30.0, 34.0, 10.0]}
+const Shops := preload("res://scripts/game/shops.gd")
+## A quest's items: [id, n] (a third entry: one more per tier).
+const REWARD_ITEMS := [["tonic", 1, true], ["rum", 3], ["treasure", 1, true], ["stew", 2], ["biscuit", 4]]
+## What a favour called in gives.
+const FAVOUR_GIFTS := [["tonic", 2], ["stew", 3], ["rum", 4], ["treasure", 2], ["fish", 5]]
+const FAVOUR_ASK := "I've come to call in that favour."
+const FAVOUR_THANKS := ["A promise is a promise, Captain. Here.", "Now we're square. Don't make a habit of it."]
 
 var isl: GenIsland
 var pools: Dictionary
@@ -358,13 +365,18 @@ func _define_talk(i: int) -> void:
 	heard = _shuffled(heard, rng).slice(0, 2)
 	var menu: Array = [{"text": pools["rumour_menu"][0], "next": "isle"}, {"text": pools["rumour_menu"][1], "next": "ahead"},
 		{"text": pools["self_menu"], "next": "self"}]
+	var ahead := _ahead(rng)
 	var nodes := {
 		"intro": {"text": _fill_all(role["intro"], tok), "next": "menu"},
 		"menu": {"text": pools["menu"], "choices": menu},
 		"isle": {"text": heard if not heard.is_empty() else [pools["rumour_quiet"]], "next": "menu"},
-		"ahead": {"text": _ahead(rng), "next": "menu"},
+		"ahead": {"text": ahead, "next": "menu", "event": "rumour:%s_ahead" % f["talk"]},
 		"self": {"text": _fill_all(role["self"], tok), "next": "menu"},
 	}
+	Journal.tell(f["talk"] + "_ahead", ahead, f["name"], isl.island_name)
+	if not heard.is_empty():
+		nodes["isle"]["event"] = "rumour:%s_isle" % f["talk"]
+		Journal.tell(f["talk"] + "_isle", heard, f["name"], isl.island_name)
 	for q in given:
 		if q["giver_i"] == i:
 			quest_node.offer(q, menu, nodes)
@@ -415,11 +427,10 @@ func _quest(qi: int) -> Dictionary:
 	if named.is_empty() or (kind in ["lost", "scout", "clear"] and pois.is_empty()) or (kind == "deliver" and named.size() < 2):
 		return {}
 	var gi: int = named[given.size() % named.size()]
-	var t := IslandContent.tier(isl)
 	var T: Dictionary = pools["quests"][kind]
-	var gold: Array = KitQuests.GOLD[kind]
-	var q := {"id": key("q%d" % qi), "kind": kind, "giver_i": gi, "gold": int(gold[0]) + t * int(gold[1]),
-		"xp": roundi((40 + t * 20) * Levels.xp_k(IslandContent.level(isl))), "accept": pools["accept"], "decline": pools["decline"], "taken": pools["taken"]}
+	var q := {"id": key("q%d" % qi), "kind": kind, "giver_i": gi, "giver": folk[gi]["name"], "isle": isl.island_name, "pos": isl.position, "src": "npc",
+		"accept": pools["accept"], "decline": pools["decline"], "taken": pools["taken"]}
+	q["reward"] = _reward(q, qi)
 	var tok := {"who": _short(folk[gi])}
 	var poi: Dictionary = pois[int(pl["pick"] * pois.size())] if not pois.is_empty() else {}
 	var at: Vector2 = poi.get("at", Vector2.ZERO)
@@ -434,32 +445,68 @@ func _quest(qi: int) -> Dictionary:
 		"scout":
 			var sc: Dictionary = pools["scout_at"].get(poi["kind"], pools["scout_at"]["any"])
 			var look := LifePools.fill(sc["look"], poi)
-			tok.merge({"look": look})
 			q["at"] = at + away * float(r[1])
 			q["y"] = isl.hv(q["at"]) + (7.0 if poi["kind"] == "lookout" else 1.0)
 			q["r"] = r[2]
 			q["title"] = _cap(LifePools.fill(sc["title"], poi))
+			tok.merge({"look": look, "Look": q["title"]})
 			q["plea"] = [look + "."]
 			q["found"] = LifePools.fill(LifePools.fill(sc["seen"], poi), tok)
 		"deliver":
 			var ri: int = named[(named.find(gi) + 1) % named.size()]
 			q["recipient_i"] = ri
+			q["recipient"] = folk[ri]["name"]
 			tok.merge({"recipient": _short(folk[ri]), "where": _where(folk[ri]), "parcel": T["parcels"][int(pl["pick2"] * T["parcels"].size())]})
 		"fetch":
 			var want: Dictionary = T["wants"][int(pl["pick2"] * T["wants"].size())]
-			q["item"] = want["item"]
-			q["count"] = want["count"]
+			q["cost"] = [[want["item"], int(want["count"])]]
 			q["plea"] = want["plea"]
 			tok.merge({"what": want["what"], "What": _cap(want["what"])})
 		"clear":
 			var verb: String = poi.get("verb", "Clear")
 			tok.merge({"name": poi["name"], "verb": verb.to_lower(), "Verb": verb})
 			q["clear"] = poi["clear"]
+			q["poi_at"] = at
 	for k in ["title", "ask", "plea", "remind_choice", "remind", "search", "found", "done", "thanks", "hand", "got", "short"]:
 		if not T.has(k) or q.has(k):
 			continue
 		q[k] = _fill_all(T[k], tok) if T[k] is Array else _cap(LifePools.fill(T[k], tok))
+	q["favour_ask"] = FAVOUR_ASK
+	q["favour_thanks"] = _fill_all(FAVOUR_THANKS, tok)
+	q["steps"] = []
+	for s in KitQuests.STEPS[kind]:
+		var st := {"do": s[0], "goal": _cap(LifePools.fill(s[1], tok))}
+		if s[0] == "talk":
+			st["who"] = q["recipient"]
+		if s[0] != "turnin":
+			st["said"] = q["found"]
+		q["steps"].append(st)
 	return q
+
+
+## What quest qi pays (its own stream: the plan's draws stay as they were): gold by the island's tier, and
+## often something else instead of some of it: things to eat and drink or sell, a treasure map, a discount
+## at the island's trader, a favour the giver owes the crew.
+func _reward(q: Dictionary, qi: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(isl.node["seed"]), 5103, qi])
+	var t := IslandContent.tier(isl)
+	var gold: Array = KitQuests.GOLD[q["kind"]]
+	var g := int(gold[0]) + t * int(gold[1])
+	var shop := isl.save_key("trader")
+	var r := {"gold": g}
+	match rng.randi() % 5:
+		0:
+			var e: Array = REWARD_ITEMS[rng.randi() % REWARD_ITEMS.size()]
+			r = {"gold": roundi(g * 0.6), "items": [[e[0], int(e[1]) + (t if e.size() > 2 else 0)]]}
+		1:
+			r = {"gold": roundi(g * 0.5), "reveal": true}
+		2:
+			if Shops.extra.has(shop):
+				r = {"gold": roundi(g * 0.6), "discount": [shop, 0.1 + 0.05 * (rng.randi() % 2), str(Shops.extra[shop]["name"])]}
+		3:
+			r = {"gold": roundi(g * 0.6), "favour": {"who": _short(folk[q["giver_i"]]), "gift": [FAVOUR_GIFTS[rng.randi() % FAVOUR_GIFTS.size()]]}}
+	return r
 
 
 ## One more quest of `kind` (given and told to its giver): a POI built later, and tests.

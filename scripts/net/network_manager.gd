@@ -1760,7 +1760,8 @@ func _world_state() -> Dictionary:
 		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state(),
 		"kit": gm.ship_kit.duplicate() if gm else {}, "waypoints": waypoints.duplicate(),
 		"chain": [gm.chain_seed, gm.chain_at, gm.chain_set, gm.chain_since] if gm else [],
-		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else []}
+		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else [],
+		"journal": Journal.to_dict()}
 
 
 func _weather_state() -> Array:
@@ -1807,6 +1808,7 @@ func _apply_world_sync(state: Dictionary) -> void:
 		for f in state.get("flags", []):
 			gm.world_flags[str(f)] = true
 		world_synced = true
+	Journal.from_dict(state["journal"])
 	var sp: Dictionary = state.get("spawners", {})
 	for k in sp.keys():
 		var s := node_of(str(k))
@@ -1889,6 +1891,28 @@ func _isle_state(key: String, spawners: Dictionary, ents: Array) -> void:
 	for n in get_tree().get_nodes_in_group("net_sync"):
 		if isl.is_ancestor_of(n) and not alive.has(key_of(n)):
 			(n as Node).queue_free()
+
+
+# ==========================================================================
+# The crew journal (Journal: quests, rumours, perks). One journal for the crew:
+# a captain asks, the host decides (Journal.decide), everyone applies it.
+# ==========================================================================
+func journal_ask(op: String, args: Array) -> void:
+	_journal_req.rpc_id(1, op, args)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _journal_req(op: String, args: Array) -> void:
+	if not hosting:
+		return
+	# (who turns in or calls a favour in is whoever asked)
+	if op in ["done", "favour"]:
+		args[args.size() - 1] = multiplayer.get_remote_sender_id()
+	Journal.decide(op, args)
+
+
+func _all_journal(op: String, args: Array) -> void:
+	Journal.apply(op, args)
 
 
 # ==========================================================================

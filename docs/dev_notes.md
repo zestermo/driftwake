@@ -3700,3 +3700,35 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   has it in 2-4 s, but under the crew's five test slots its world load alone took ~20 s, so the window closed as the world became ready
   (world_ready true, no puppet yet; the host's "stalled" line is only the host idling after the client quit). The wait is 60 s now, like the
   join wait above it.
+
+## 2026-10-19: v1.18 lane D, piece 1: the crew journal (J), quests in steps, rewards that aren't XP
+- **Journal** (new autoload, `scripts/quests/journal.gd`): one journal for the crew. `entries` (id -> title, giver, isle, `pos` = the island's
+  middle, `src` npc/board/found, `goals` per step, `step`, `done`, `reward`, `cost`, `order`), `rumours` (40 kept), `perks` (`discount:<shop>`,
+  `favour:<quest>`), `tracked` (this captain's: "story", a quest id or ""). Changes are asked of the host (`take`, `advance`, `turn_in`,
+  `call_favour`, `hear`) -> `decide` (still good? nobody beat them to it) -> `Net.everyone("_all_journal")` -> `apply` on every machine. Single
+  player runs the same path locally. Quest defs stay with their maker (`register(def, source)`; KitQuests is the source: `target`, `is_person`,
+  `progress`); an entry carries its own texts so the journal reads the same once the island's gone (target falls back to the island's middle).
+- A quest def: `steps` [{"do": reach / pickup / talk / clear / turnin, "goal", "said"?, "who"?}], the last always the turn-in to the giver;
+  `reward` (QuestRewards: gold, items, `reveal` a treasure map via GameManager.maps (30 gold once all are held), `discount` [shop, fraction, name],
+  `favour` {who, gift}); `cost` items handed over at the turn-in (fetch). **No XP from quests** (progression_plan.md): the old KitQuests XP is gone.
+- **Everyone present gets the reward:** the turn-in's `done` op carries where and by whom; each machine pays its own captain if within
+  `REWARD_REACH` (40 m, like kill XP); only the captain turning in hands over the cost; discount/favour are crew perks, applied everywhere.
+  A favour is called in once at the giver ("I've come to call in that favour."), its gift to the caller.
+- **KitQuests** on the model: lost (pickup -> turnin), scout (reach -> turnin), deliver (talk to the recipient -> turnin), fetch (turnin with
+  cost, the goal counting "(1/3)"), clear (clear, host-checked -> turnin). Dialogue choices gate on the journal through a new `"if": Callable`
+  key on choices (dialogue_manager, code-defined trees only), replacing the per-captain `_taken/_got/_paid` flags (old saves' flags are just
+  ignored). IslandLife builds steps and rewards (`_reward`: its own rng `hash([seed, 5103, qi])`, so the plan's draws and nettest's comparison
+  are unchanged): gold by tier, often part-swapped for items, a map, 10-15% off at the island's trader, or a favour.
+- Rumours: named villagers' island and "ahead" rumours go in the Rumours tab when told (`Journal.tell(key, lines, who, isle)` + the node's
+  `"event": "rumour:<key>"`).
+- **Objective HUD** (`objective_hud.gd`): the tracked quest if it's live, else the story (unless tracked is ""), else nothing; head QUEST /
+  OBJECTIVE, goal with progress, the marker on the step's target (a person: NPC_NEAR), a flash on a new step. Taking a quest tracks it when
+  nothing is being followed. `hidden_by_menu` hides it at once (the HUD is paused under menus).
+- **Screen** (`scripts/ui/journal_screen.gd`, on Journal's own CanvasLayer 29 + PixelCanvas, fits 640x360): tabs ACTIVE/DONE/RUMOURS with
+  counts, list left (the story first while it's on), detail right (giver, island, steps ticked/now/later, reward, the favour still owed),
+  Track. J opens/closes (KEY_J read by Journal itself, no input action: B owns input), A/D or Q/E tabs, W/S pick, T track, Esc closes. It
+  pauses like GameMenu (Net.set_paused, hud set_menu_open, Settings.capture_mouse on close) and won't open over a menu, a talk or the creator.
+- Co-op: `Net.journal_ask` -> `_journal_req` (host; the asker's id for done/favour) in its own block in network_manager; the journal rides
+  `_world_state` / `_apply_world_sync` for a late joiner. Saves: `journal` (world state: a guest keeps their own world's) and `tracked`.
+- Tests: t/quests multi_step, turnin_giver, rewards_present, journal_save, hud_tracked. lifetest's quest part moved onto the journal (not
+  run in this tier). Render: `tools/dev/journalshot.gd`. Expected to affect lifetest, storytest (HUD), savetest, nettest (world sync).

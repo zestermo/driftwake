@@ -21,7 +21,8 @@ extends Node
 ## "story": {"<step id>": "<node>"} starts the talk at that node while the
 ## story is on that step (Story); its "event": "story:<step id>" finishes it.
 ## A choice with "after": "<step>" shows once that step is done (or with no
-## story); "before": "<step>" only while it isn't (Story.allows).
+## story); "before": "<step>" only while it isn't (Story.allows). A conversation made in
+## play (define) may give a choice "if": a Callable, shown only while it returns true.
 ## Esc leaves any conversation.
 
 signal dialogue_started(id: String)
@@ -185,6 +186,8 @@ func _show_page() -> void:
 			if c.has("requires") and not has_flag(str(c["requires"])):
 				continue
 			if c.has("hide_if") and has_flag(str(c["hide_if"])):
+				continue
+			if c.has("if") and not (c["if"] as Callable).call():
 				continue
 			if not Story.allows(c):
 				continue

@@ -146,6 +146,7 @@ static func begin(i: int, fresh: bool, tree: SceneTree = null) -> void:
 			dm.flags.clear()
 			dm._talked.clear()
 		Story.reset()
+		Journal.reset()
 
 
 ## The world was started without the title screen: continue the latest save
@@ -246,6 +247,8 @@ static func save(player: Player) -> bool:
 		"flags": dm.flags.duplicate() if dm else {},
 		"talked": dm._talked.duplicate() if dm else {},
 		"story": Story.to_dict(),
+		"journal": Journal.to_dict(),
+		"tracked": Journal.tracked,
 		"progression": player.progression.to_dict(),
 		"power": player.power.to_dict(),
 		"hybrid": player.hybrid,
@@ -279,7 +282,7 @@ static func save(player: Player) -> bool:
 	if _guest(player):
 		# keep our own world's state, not the host's
 		# (and our own ship's storage and our grave, in our own world)
-		for k in ["burned", "world_flags", "fruit_claims", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave"]:
+		for k in ["journal", "burned", "world_flags", "fruit_claims", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave"]:
 			if old.has(k):
 				data[k] = old[k]
 			else:
@@ -308,6 +311,7 @@ static func load_into(player: Player) -> bool:
 		dm.flags = (data.get("flags", {}) as Dictionary).duplicate()
 		dm._talked = (data.get("talked", {}) as Dictionary).duplicate()
 	Story.from_dict(data.get("story", {}))
+	Journal.tracked = str(data.get("tracked", "story"))
 	# progression first (the skill map decides stats and what's on the bar)
 	player.progression.from_dict(data.get("progression", {}))
 	player.power.from_dict(data.get("power", {}))
@@ -378,6 +382,7 @@ static func load_into(player: Player) -> bool:
 			for k in data.get("world_flags", []):
 				gm.world_flags[str(k)] = true
 			gm.fruit_claims = (data.get("fruit_claims", {}) as Dictionary).duplicate()
+			Journal.from_dict(data.get("journal", {}))
 			gm.ship_kit = ShipKit.merged(data.get("ship_kit", {}))
 			# (a save from before the chain keeps the seed this session rolled)
 			if data.has("chain_seed"):

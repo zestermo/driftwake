@@ -36,6 +36,7 @@ Weather="*res://scripts/world/weather.gd"
 DevCapture="*res://scripts/game/dev_capture.gd"
 Perf="*res://scripts/game/perf_monitor.gd"
 Story="*res://scripts/game/story.gd"
+Journal="*res://scripts/quests/journal.gd"
 
 [display]
 

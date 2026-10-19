@@ -17,6 +17,11 @@ tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
 tools/dev/t/coop/*                      t/coop
 tools/dev/t/fx/*                        t/fx
+tools/dev/t/quests/*                    t/quests
+scripts/quests/*                        t/quests lifetest net
+scripts/ui/journal_screen.gd            t/quests
+scripts/ui/objective_hud.gd             t/quests storytest
+scripts/island/kit/kit_quests.gd        t/quests netchain
 assets/textures/fx/flip_*               t/fx
 assets/textures/fx/water_trail*         t/fx
 scripts/game/water_ribbon.gd            t/fx techtest

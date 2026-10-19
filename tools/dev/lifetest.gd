@@ -2,9 +2,9 @@ extends SceneTree
 ## A chain island's life (IslandLife): 15-20 people, villagers on routines that
 ## follow the world clock (work by day, the inn or the plaza in the evening, home
 ## at night, walking between), named characters whose dialogue trees talk of the
-## island, its beast and the islands ahead, quests of every kind taken, done and
-## paid (each captain's, in Dialogue flags keyed by the island's seed), kept in
-## the save, and the same people and quests from the same seed. The routines again on
+## island, its beast and the islands ahead, quests of every kind taken, their steps
+## done and turned in to the giver (the crew's Journal, ids keyed by the island's
+## seed), kept in the save, and the same people and quests from the same seed. The routines again on
 ## more seeds' first islands (Tikal Atoll's ruins, Mosswater Atoll's walled post).
 const SEEDS := [4242, 1, 37]
 const TK = preload("res://tools/dev/test_kit.gd")
@@ -16,6 +16,7 @@ var p
 var isl
 var life
 var dlg
+var journal
 var wx
 var fails := 0
 var todo: Array = []
@@ -129,6 +130,7 @@ func _process(d: float) -> bool:
 				return false
 			p = get_first_node_in_group("player")
 			dlg = root.get_node("Dialogue")
+			journal = root.get_node("Journal")
 			wx = root.get_node("Weather")
 			var c = w.chain()
 			isl = w.chain_islands[c.start_next[0]]
@@ -242,11 +244,12 @@ func _process(d: float) -> bool:
 				step = 20
 				return false
 			q = todo.pop_front()
-			var qn = life.quest_node
 			var nodes: Dictionary = dlg._load(giver(q))["nodes"]
-			check("%s: offered in %s's talk" % [q["title"], life.folk[q["giver_i"]]["name"]], nodes["menu"]["choices"].any(func(ch): return ch.get("next", "") == "q_%s_offer" % q["id"] and ch.get("hide_if", "") == qn.flag(q, "taken")))
+			var offer: Array = nodes["menu"]["choices"].filter(func(ch): return ch.get("next", "") == "q_%s_offer" % q["id"])
+			check("%s: offered in %s's talk" % [q["title"], life.folk[q["giver_i"]]["name"]], offer.size() == 1 and (offer[0]["if"] as Callable).call())
 			talk(giver(q), "q_%s_take" % q["id"])
-			check("%s: taken" % q["title"], qn.has(q, "taken") and not qn.has(q, "got"))
+			check("%s: taken, in the crew's journal on its first step (%d steps)" % [q["title"], q["steps"].size()], journal.has(q["id"]) and journal.step_of(q["id"]) == 0 and q["steps"].size() >= (1 if q["kind"] == "fetch" else 2))
+			check("...its offer gone from the talk", not (offer[0]["if"] as Callable).call())
 			gold0 = p.inventory_component.count("gold")
 			match str(q["kind"]):
 				"lost":
@@ -257,8 +260,9 @@ func _process(d: float) -> bool:
 				"deliver":
 					talk(life.folk[q["recipient_i"]]["talk"], "q_%s_got" % q["id"])
 				"fetch":
-					have0 = p.inventory_component.count(str(q["item"]))
-					p.inventory_component.add_item(load("res://scripts/loot/item_db.gd").get_item(str(q["item"])), int(q["count"]))
+					var want: Array = q["cost"][0]
+					have0 = p.inventory_component.count(str(want[0]))
+					p.inventory_component.add_item(load("res://scripts/loot/item_db.gd").get_item(str(want[0])), int(want[1]))
 					wait = 0.7
 				"clear":
 					wait = 0.7
@@ -272,15 +276,19 @@ func _process(d: float) -> bool:
 				check("%s: the lost thing shows once it's asked for, %.0f m from the village" % [q["title"], Vector2(m.position.x, m.position.z).distance_to(isl.sites["village"])], m.visible)
 				m.get_node("Search").interacted.emit(p)
 				check("...and goes once it's picked up", not m.visible)
-			check("%s: done" % q["title"], qn.has(q, "got"))
+			check("%s: its steps done, on to the turn-in" % q["title"], journal.at_turnin(q["id"]))
+			var bag: Dictionary = {}
+			for e in q["reward"].get("items", []):
+				bag[e[0]] = p.inventory_component.count(str(e[0]))
 			talk(giver(q), "q_%s_pay" % q["id"])
 			var paid: int = p.inventory_component.count("gold") - gold0
-			check("%s: paid by the giver (%d gold)" % [q["title"], paid], qn.has(q, "paid") and paid == int(q["gold"]))
+			check("%s: turned in to the giver, paid %s (%d gold)" % [q["title"], q["reward"], paid], journal.is_done(q["id"]) and paid >= int(q["reward"]["gold"]))
+			check("...with the reward's items", q["reward"].get("items", []).all(func(e): return p.inventory_component.count(str(e[0])) >= int(bag[e[0]]) + int(e[1])))
 			if q["kind"] == "fetch":
-				check("...who takes the %s" % q["item"], p.inventory_component.count(str(q["item"])) == have0)
+				check("...who takes the %s" % q["cost"][0][0], p.inventory_component.count(str(q["cost"][0][0])) == have0)
 			step = 10
 		12:
-			check("%s: not done while it stands" % q["title"], not life.quest_node.has(q, "got"))
+			check("%s: not done while it stands" % q["title"], journal.step_of(q["id"]) == 0)
 			set_meta("roost_clear", true)
 			wait = 0.7
 			step = 11
@@ -290,15 +298,10 @@ func _process(d: float) -> bool:
 			SG.use_test_dir("user://lifetest")
 			SG.slot = 1
 			SG.save(p)
-			var qn = life.quest_node
-			var qs: Array = qn.quests
-			var keys: Array = []
-			for x in qs:
-				for s in ["taken", "got", "paid"]:
-					keys.append(qn.flag(x, s))
-					dlg.set_flag(qn.flag(x, s), false)
+			var qs: Array = life.quest_node.quests
+			journal.reset()
 			SG.load_into(p)
-			check("quests taken, done and paid are kept in the save", keys.all(func(k): return dlg.has_flag(k)))
+			check("the journal's quests, done, are kept in the save", qs.all(func(x): return journal.is_done(x["id"])))
 			root.get_node("World/Islands").set_process(false)
 			step = 30
 		30:
