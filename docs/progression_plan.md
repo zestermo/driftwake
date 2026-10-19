@@ -33,6 +33,17 @@ points (`points(tree)`). Swimming spends stamina and does `EXHAUST_DAMAGE` when 
 | Shops | Every shop is a trade (smith, cook/grocer, tailor, chandler) with a short, rotating stock in the island's theme. **Artisans** sometimes turn up on wild islands with a few simple goods. Rare gear comes only from the treasure merchants. Selling pays a fraction of the price, and you can buy back what you just sold. | Makes buying a decision and gives each island its own character. | — |
 | Numbers | Drop rates, prices, node costs, the carry-over fraction, the regen rate and buff strengths are all **tuned in play**. | Zach judges feel by playing. | — |
 
+## Decided (2026-10-19, round 2: wheels, loadouts, downtime)
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Consumables | **One key** replaces the item hotbar. A tap uses the selected food or drink, and holding opens a radial (the emote wheel's style) to change the selection. | Healing stays fast in a fight and the HUD stays clean. | — |
+| Number keys | **1-5 are ability slots**. Nothing is bound to 6 and up. | — | — |
+| Weapon loadouts | A **loadout radial**: each slot is a saved weapon setup (twin daggers in 1, a single cutlass in 2, dual pistols in 3...). You start with **2 slots**, and a third is an upgrade. | Makes swapping weapon styles in a fight one gesture, and it works with the family carry-over to encourage trying weapons. | — |
+| Action menu | A **context wheel** on its own key that shows only what fits where you are. On an island: make camp (rest, cook, save, later a respawn point), train. On the ship: train, read, tinker, cook, fish, sleep. In town: the town's own things. | One place for "things the captain can do", without leaving the world. | — |
+| Sailing downtime | Set a course and **lash the helm**, and the ship holds it, even solo. Activities are short animated loops that build skills: train (weapon mastery), read (XP, lore, recipes), tinker (ammo, small gear upgrades), cook (meals), fish (ingredients). **Storms, enemy ships and sea monsters interrupt** you. | The One Piece crew's downtime (Zoro trains, Usopp tinkers, Robin reads). Sailing time becomes progress. | After a play pass |
+| Co-op chat | A text chat for co-op captains. | — | — |
+
 ### Fixes, not grilled (one driftwake-fixer)
 - The sprint jump costs no stamina; give it a cost.
 - Swimming exhaustion: float-paddle, no damage (above).
@@ -45,4 +56,8 @@ points (`points(tree)`). Swimming spends stamina and does `EXHAUST_DAMAGE` when 
 - The trait pool (how many traits, which moves they touch): the building agent proposes a first set of about 8-12
   and shows Zach before it lands.
 - What "favours" and "discounts" mean in detail: at the journal/quests grill.
+- The keys for the item, loadout and action wheels: **assumed** the building agent picks free keys next to T (the emote wheel) and lists them in its report.
+- How the third loadout slot is earned: **assumed** a shared-tree node (level points).
+- Co-op chat: **assumed** Enter opens it, the last few lines fade over the HUD, it's text only and goes through the host (Net), with a captain's name and colour on each line.
+- Where these pieces go in the order: **assumed** the item wheel goes with the items/food piece. The loadouts, the 1-5 ability bar and the action wheel come right after the skills rework. Sailing downtime comes after cooking, because it uses the life skills. Chat is a small piece of its own, any time.
 - The minimap, journal/quests, NPC encounters and swimming depth: their own grills, after the core.
