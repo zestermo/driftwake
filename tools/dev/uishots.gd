@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"skills_tip", "chart", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes"]
+	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes"]
 var si := 0
 
 

@@ -88,6 +88,7 @@ func _ready() -> void:
 func register_player(p: Player) -> void:
 	player = p
 	Net.register_local(p)
+	MapHold.attach(p)
 	if not player.health_component.died.is_connected(_on_player_died):
 		player.health_component.died.connect(_on_player_died)
 	# (a new game is decided now: a save made in the frames before the load, like the bunk's, isn't loaded back over it)

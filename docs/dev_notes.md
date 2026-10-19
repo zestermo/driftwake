@@ -3802,3 +3802,34 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   the captains. Layers redraw only when MapFog.version moves; the captains' layer every frame while open.
 - **sea_chart.gd**: M on an island opens on its page, at sea on the chart; the mouse wheel goes between them; marks set on either.
 - Tests: `t/map/` fog_reveal, spot_marks, fog_shared (the stub island `tools/dev/map_stub_isle.gd`). Render: `heldmapshot`.
+
+## 2026-10-19: the held map, piece 2: the map in the captain's hands (v1.18 lane C)
+- **M** (`scripts/map/map_hold.gd`, MapHold, a child of the local captain made by GameManager.register_player): on foot (Idle,
+  Move, Crouch, on the ground; at the helm you let go of the wheel) it puts the captain in **MapState**
+  (`scripts/player_states/map_state.gd`, node "Map" in player.tscn): the weapon sheathes, the body plays `map_open` (0.34 s;
+  MapPoses, `scripts/map/map_poses.gd`, upper body only, hooked into Humanoid._action_pose by its `map_` prefix, ActionSpecs
+  entries) then holds `map_hold`; walking is SPEED 2.2 m/s the way the camera faces; M again plays `map_away` (0.2 s) and goes
+  to Idle/Move; a jump, a dodge, falling or a hit (Player forces Stagger) ends it at once. The old full-screen chart (GameMenu
+  "chart", its pause button, its M and C keys) is gone; chaintest, qoltest, seatest, uitest and the shot tools use the page.
+- **The sheet**: for every captain whose body plays a `map_*` action (group "players": puppets' come over the wire as Humanoid
+  events), MapHold keeps a "MapSheet" under their body: a 0.6 x 0.34 m bowed grid (map_parchment.gdshader: PSX snap, lit with a
+  little glow for night, browned edges, the page tinted to yellowed stock) and two rolls with wooden knobs, placed every frame
+  between the hands (the right roll in the right hand; `open` = how far apart the hands are, so the pose unrolls it), turned up to
+  the reader's eyes (ours half way to the camera). Hidden, not freed, between actions. Ours shows the page; a crewmate's a sketch.
+  No shadow, visibility range 60 m.
+- **The page** is sea_chart.gd (now SIZE 448x256, plain parchment and an ink frame) in MapHold's SubViewport, drawn only while
+  the map's out (UPDATE_DISABLED and the viewport's processing off otherwise). The camera framing puts one page pixel on about
+  one of the PS1 grid's at the default 640x360 preset, so the 8 px Silkscreen reads.
+- **The camera** (camera_rig.gd, its own "held map" block): `set_map(sheet)` / `set_map(null)`; over 0.25 s the rig's pivot moves
+  onto the sheet, the arm shortens to 0.92 m at pitch -0.9, FOV 31, the yaw turns 0.165 (over the right side of the head) and the
+  combat shoulder offset goes; MapHold hides the captain's head while the camera's anywhere near (it comes in where the head is).
+  Nearly straight on, so the page reads level: an over-the-shoulder angle of 0.75 rad tilted the text 30 deg on the pixel grid.
+- **The pen**: while it's up MapHold takes the mouse in `_input` (before the camera and the input buffer): it moves a nib on the
+  page (sea_chart.pen), pushed past the page's side it turns the captain; LMB sets a mark, RMB takes one off, C clears yours, the
+  wheel goes between the island and the chart (sea_chart.press).
+- **MapMarks** (`scripts/map/map_marks.gd`): `MapMarks.put(id, world Vector3, kind, label)` / `clear(id)` / `has(id)`, kinds
+  "quest" (red ring and star), "spot", "x"; this screen only (call it on every machine that should show it); drawn on the island
+  page and the chart (pinned to the chart's edge). For lane D's tracked quest.
+- Tests: `t/map/` held_map (out in under a second, the camera on it, the page drawing only then, slow walking, M away fast, a hit
+  knocks it away), crew_sheet (a stand-in crewmate's sheet with the sketch, between their hands), map_marks. Render: heldmapshot
+  (_unroll, _isle, _chart, _front).

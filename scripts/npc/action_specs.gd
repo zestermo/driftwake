@@ -272,6 +272,10 @@ const SPECS := {
 	"eat": {"len": 1.0, "stance": "sword", "weapon": "cutlass"},
 	"wave": {"len": 1.5, "stance": "sword", "weapon": "cutlass"},
 	"log_pose": {"len": 0.25, "stance": "sword", "weapon": "cutlass"},
+	# --- the held map (MapPoses) ---
+	"map_open": {"len": 0.34, "stance": "sword", "weapon": ""},
+	"map_hold": {"len": 0.1, "stance": "sword", "weapon": ""},
+	"map_away": {"len": 0.2, "stance": "sword", "weapon": ""},
 	# --- the emote wheel (EmotePoses) ---
 	"emote_wave": {"len": 1.8, "stance": "sword", "weapon": ""},
 	"emote_point": {"len": 1.4, "stance": "sword", "weapon": ""},

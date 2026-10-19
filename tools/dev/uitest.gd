@@ -1,6 +1,6 @@
 extends SceneTree
 ## The crisp UI (v1.11): at 1280x720 every screen draws on a 640x360 canvas shown at 2x, and each
-## one opens and fits it: pause, options, controls, skill map (with a node's tooltip), sea chart,
+## one opens and fits it: pause, options, controls, skill map (with a node's tooltip),
 ## yard, a shop (stock, bag, card, tooltip), save slots, the inventory, a dialogue with choices,
 ## the HUD (skill bar, boss bar, prompt), the emote wheel and the creator.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -9,7 +9,7 @@ var step := 0
 var until := 0
 var p
 var fails := 0
-var screens := ["pause", "options", "controls", "skills", "chart", "yard", "shop", "load"]
+var screens := ["pause", "options", "controls", "skills", "yard", "shop", "load"]
 var si := 0
 
 
