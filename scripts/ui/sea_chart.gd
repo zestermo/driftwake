@@ -6,6 +6,8 @@ extends Control
 ## In Brinehollow's sea it's centred on Brinehollow; out on the chain it fits
 ## the island the crew is at and the ones the log pose points to, each with
 ## its theme, level and danger, and a course line to each.
+## On an island it opens on the island's own page (MapIsleView: the fog of war, `?` marks, what's
+## been found); the mouse wheel goes between that and the chart.
 
 const SIZE := Vector2(560, 320)
 ## World metres from Brinehollow shown to each edge (the chart is square-ish).
@@ -26,6 +28,9 @@ var _font_big: Font
 var _centre := Vector2.ZERO
 var _k := 1.0
 var _pin := true
+## The island page, and whether it's the one showing (the island we're on; else the chart).
+var isle: MapIsleView
+var on_isle := false
 
 
 func _init() -> void:
@@ -37,9 +42,26 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_font = load("res://assets/fonts/Silkscreen-Regular.woff2")
 	_font_big = load("res://assets/fonts/PixelifySans-Regular.woff2")
+	isle = MapIsleView.new()
+	isle.visible = false
+	add_child(isle)
 
 
+## Opens on the island our captain is on, or the chart at sea.
 func on_open() -> void:
+	var me := get_tree().get_first_node_in_group("player") as Node3D
+	var d := MapIsles.at(get_tree(), Vector2(me.global_position.x, me.global_position.z)) if me else {}
+	if d.is_empty():
+		isle.d = {}
+	else:
+		isle.show_isle(d, SIZE)
+	show_isle(not d.is_empty())
+
+
+## The island page (true) or the chart.
+func show_isle(on: bool) -> void:
+	on_isle = on and not isle.d.is_empty()
+	isle.visible = on_isle
 	queue_redraw()
 
 
@@ -108,6 +130,9 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2(9, 9), SIZE - Vector2(18, 18)), Color(UIStyle.TEAL, 0.55), false, 1.0)
 	var ink := Color(0.3, 0.2, 0.12)
 	var sea_ink := Color(0.55, 0.62, 0.62, 0.5)
+	if on_isle:
+		_draw_isle_page(ink)
+		return
 	var w := _world()
 	var gm := get_node_or_null("/root/GameManager")
 	if w == null or gm == null:
@@ -198,11 +223,7 @@ func _draw() -> void:
 		var c := _to_chart(Vector2(me.global_position.x, me.global_position.z))
 		draw_circle(c, 3.0, Color(0.85, 0.15, 0.1))
 		draw_arc(c, 5.0, 0.0, TAU, 12, Color(0.85, 0.15, 0.1), 1.0)
-	# north
-	var nc := Vector2(SIZE.x - 26, 30)
-	draw_line(nc + Vector2(0, 12), nc + Vector2(0, -12), ink, 2.0)
-	draw_colored_polygon(PackedVector2Array([nc + Vector2(0, -14), nc + Vector2(4, -6), nc + Vector2(-4, -6)]), ink)
-	draw_string(_font, nc + Vector2(-3, -17), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	_north(ink)
 	# the crew's marks: numbered flags in their colours
 	for id in Net.waypoints.keys():
 		var col: Color = Net.crew_color(id) if Net.active else Color(0.75, 0.1, 0.08)
@@ -212,7 +233,37 @@ func _draw() -> void:
 			draw_line(c, c + Vector2(0, -10), ink, 1.0)
 			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -10), c + Vector2(7, -7.5), c + Vector2(0, -5)]), col)
 			draw_string(_font, c + Vector2(3, 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
-	UIStyle.draw_hints(self, Vector2(16, SIZE.y - 11), [["LMB", "SET A MARK"], ["RMB", "REMOVE IT"], ["C", "CLEAR YOUR MARKS"], ["M", "CLOSE"]], _font, true)
+	_hints()
+
+
+func _north(ink: Color) -> void:
+	var nc := Vector2(SIZE.x - 26, 30)
+	draw_line(nc + Vector2(0, 12), nc + Vector2(0, -12), ink, 2.0)
+	draw_colored_polygon(PackedVector2Array([nc + Vector2(0, -14), nc + Vector2(4, -6), nc + Vector2(-4, -6)]), ink)
+	draw_string(_font, nc + Vector2(-3, -17), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+
+
+func _hints() -> void:
+	var pairs: Array = [["LMB", "SET A MARK"], ["RMB", "REMOVE IT"], ["C", "CLEAR YOUR MARKS"]]
+	if not isle.d.is_empty():
+		pairs.append(["WHEEL", "SEA CHART" if on_isle else "ISLAND"])
+	pairs.append(["M", "CLOSE"])
+	UIStyle.draw_hints(self, Vector2(16, SIZE.y - 11), pairs, _font, true)
+
+
+## The island page's own: its name and what's found of it, north, the hints (the island's drawn by `isle`).
+func _draw_isle_page(ink: Color) -> void:
+	var d := isle.d
+	var gm := get_node("/root/GameManager")
+	var n := 0
+	for s in d["spots"]:
+		if MapFog.found(gm, str(d["key"]), str(s["id"])):
+			n += 1
+	draw_string(_font_big, Vector2(14, 22), str(d["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ink)
+	var tw := _font_big.get_string_size(str(d["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	draw_string(_font, Vector2(22 + tw, 21), "%d of %d places found" % [n, d["spots"].size()], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+	_north(ink)
+	_hints()
 
 
 ## The chain's islands: the one we're at (marked), where the log pose points
@@ -289,6 +340,10 @@ func _chain_island(n: Dictionary, radius: float, col: Color, here: bool) -> void
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.pressed):
 		return
+	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+		show_isle(event.button_index == MOUSE_BUTTON_WHEEL_UP)
+		accept_event()
+		return
 	var w := _world()
 	if w == null:
 		return
@@ -300,7 +355,7 @@ func _gui_input(event: InputEvent) -> void:
 			return
 		if mine.size() >= Net.MAX_WAYPOINTS:
 			mine.pop_front()
-		mine.append(_centre + (at - SIZE * 0.5) / _k)
+		mine.append(isle.page_to_world(at) if on_isle else _centre + (at - SIZE * 0.5) / _k)
 		Net.set_waypoints(mine)
 		get_node("/root/GameMenu").call("_play")
 		accept_event()
@@ -308,7 +363,7 @@ func _gui_input(event: InputEvent) -> void:
 		var best := -1
 		var best_d := 12.0
 		for i in range(mine.size()):
-			var d := _to_chart(mine[i]).distance_to(at)
+			var d := (isle.world_to_frame(mine[i]) + isle.frame.position if on_isle else _to_chart(mine[i])).distance_to(at)
 			if d < best_d:
 				best_d = d
 				best = i
