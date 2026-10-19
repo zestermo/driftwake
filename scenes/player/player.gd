@@ -235,6 +235,7 @@ func _ready() -> void:
 	emote_wheel = _wheel("res://scripts/ui/emote_wheel.gd", "EmoteWheel")
 	item_wheel = _wheel("res://scripts/ui/item_wheel.gd", "ItemWheel")
 	action_wheel = _wheel("res://scripts/ui/action_wheel_ui.gd", "ActionWheel")
+	loadout_wheel = _wheel("res://scripts/ui/loadout_wheel.gd", "LoadoutWheel")
 	var menu: Node = load("res://scripts/ui/player_menu.gd").new()
 	menu.name = "PlayerMenu"
 	menu.player = self
@@ -730,6 +731,7 @@ func _process(delta: float) -> void:
 	BladePetals.keep(body_model, _petals_on())
 	heal_cd = maxf(heal_cd - delta, 0.0)
 	_quick_tick(delta)
+	_loadout_tick(delta)
 	if _using_item and _using_item.devil_fruit == "" and (current_state_name() not in ["Idle", "Move"] or body_model.current_action() != _use_anim):
 		_spill_use()
 	if _using_item:
@@ -1618,6 +1620,106 @@ func _quick_tick(delta: float) -> void:
 
 
 # --------------------------------------------------------------------------
+# Weapon loadouts (X: a tap swaps to the next, hold for the loadout wheel)
+# --------------------------------------------------------------------------
+## Slots on the wheel: LOADOUTS_FREE from the start, the rest from the Captain tree ("loadout_slots").
+const LOADOUTS := 3
+const LOADOUTS_FREE := 2
+signal loadout_changed
+var loadout_wheel
+## Each slot: [main hand id ("" = fists), off hand id ("" = none)], or [] never set up. The slot in
+## use (loadout_at) is whatever you put in your hands meanwhile (the bag, I).
+var loadouts: Array = [[], [], []]
+var loadout_at := 0
+var _loadout_quiet := false
+var _loadout_want := -1
+var _loadout_want_t := 0.0
+
+
+func loadout_slots() -> int:
+	return LOADOUTS_FREE + int(progression.stat("loadout_slots"))
+
+
+func hands_slot() -> Array:
+	return [equipped_weapon.id if equipped_weapon else "", offhand_weapon.id if offhand_weapon else ""]
+
+
+func _loadout_note() -> void:
+	if not _loadout_quiet:
+		loadouts[loadout_at] = hands_slot()
+
+
+## Is slot i's main weapon in the bag (or it's fists, or empty)?
+func loadout_carried(i: int) -> bool:
+	var l: Array = loadouts[i]
+	return l.is_empty() or l[0] == "" or inventory_component.count(l[0]) > 0
+
+
+## Take up loadout slot i: at once when free, or the moment the swing you're in ends.
+func swap_loadout(i: int) -> void:
+	if i == loadout_at or i < 0 or i >= loadout_slots():
+		return
+	_loadout_want = i
+	_loadout_want_t = QUICK_BUFFER
+	_loadout_tick(0.0)
+
+
+func _loadout_tick(delta: float) -> void:
+	if _loadout_want < 0:
+		return
+	_loadout_want_t -= delta
+	if _loadout_want_t <= 0.0:
+		_loadout_want = -1
+		return
+	if _using_item or context != Context.ON_FOOT:
+		return
+	if state_machine.current_state.get("can_combo") == true:
+		state_machine.force_state("Idle", {})
+	if current_state_name() not in FREE_STATES:
+		return
+	var i := _loadout_want
+	_loadout_want = -1
+	_apply_loadout(i)
+
+
+func _apply_loadout(i: int) -> void:
+	loadout_at = i
+	var l: Array = loadouts[i]
+	if l.is_empty():
+		loadouts[i] = hands_slot()
+		_toast("Loadout %d set up: what's in your hands (change it in the bag, I)" % (i + 1))
+		loadout_changed.emit()
+		return
+	var main: ItemData = inventory_component.find_item(l[0]) if l[0] != "" else null
+	var off: ItemData = inventory_component.find_item(l[1]) if l[1] != "" else null
+	_loadout_quiet = true
+	if main:
+		equip_weapon(main, false)
+	else:
+		unequip_weapon()
+	if off == null or not set_offhand(off):
+		set_offhand(null)
+	_loadout_quiet = false
+	if l[0] != "" and main == null:
+		_toast("Loadout %d: your %s isn't in your bag" % [i + 1, ItemDB.get_item(l[0]).display_name])
+	else:
+		_toast("Loadout %d: %s" % [i + 1, " + ".join(PackedStringArray([main.display_name if main else "Fists"] + ([offhand_weapon.display_name] if offhand_weapon else [])))])
+	if armed and not hybrid:
+		body_model.play("draw" if main else "fists_up", 0.22)
+	Net.fx("sfx", ["clack", global_position + Vector3.UP, -10.0, 0.05, 1.3])
+	loadout_changed.emit()
+
+
+## (a save) the slots, and which is in use; the hands are the truth for that one.
+func set_loadouts(slots: Array, at: int) -> void:
+	loadouts = [[], [], []]
+	for k in range(mini(slots.size(), LOADOUTS)):
+		loadouts[k] = (slots[k] as Array).duplicate()
+	loadout_at = clampi(at, 0, LOADOUTS - 1)
+	loadouts[loadout_at] = hands_slot()
+
+
+# --------------------------------------------------------------------------
 # Weapons
 # --------------------------------------------------------------------------
 func equip_weapon(item: ItemData, draw: bool = true) -> void:
@@ -1630,6 +1732,7 @@ func equip_weapon(item: ItemData, draw: bool = true) -> void:
 		set_offhand(null)
 	_reset_ammo()
 	weapon_changed.emit(item)
+	_loadout_note()
 	if draw and not armed:
 		draw_weapon()
 
@@ -1641,6 +1744,7 @@ func unequip_weapon() -> void:
 	set_offhand(null)
 	body_model.set_weapon(null)
 	weapon_changed.emit(null)
+	_loadout_note()
 
 
 func _hands_changed() -> void:
@@ -1668,17 +1772,22 @@ func weapon_class() -> String:
 ## sword, axe or dagger), dual_dagger (dagger + dagger), sword_pistol (a one-handed
 ## blade and a pistol in the off hand), pistol, dual_pistol or claw.
 func style() -> String:
-	var c := weapon_class()
-	var dual := offhand_weapon != null and not hybrid
+	return "claw" if hybrid else style_of(equipped_weapon, offhand_weapon)
+
+
+## The fighting style a main and off hand make (a loadout's, without holding it).
+static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
+	var c := class_of(main_hand)
+	var dual := off_hand != null
 	match c:
 		"sword":
-			var main := equipped_weapon.weapon_model
+			var main := main_hand.weapon_model
 			if main == "katana":
 				return "katana"
 			if dual:
-				if class_of(offhand_weapon) == "gun":
+				if class_of(off_hand) == "gun":
 					return "sword_pistol"
-				return "dual_dagger" if main == "dagger" and offhand_weapon.weapon_model == "dagger" else "dual_sword"
+				return "dual_dagger" if main == "dagger" and off_hand.weapon_model == "dagger" else "dual_sword"
 			return main if main in ["axe", "dagger"] else "sword"
 		"gun":
 			return "dual_pistol" if dual else "pistol"
@@ -1722,18 +1831,21 @@ func set_offhand(item: ItemData) -> bool:
 	body_model.set_offhand(Props.weapon_mesh(item.model()) if item else null)
 	_reset_ammo()
 	weapon_changed.emit(equipped_weapon)
+	_loadout_note()
 	return true
 
 
 ## Something left the bag (dropped, stored in a chest): stop holding a
-## weapon you no longer carry.
+## weapon you no longer carry. (The loadout keeps it, for when it's back.)
 func check_equipped() -> void:
+	_loadout_quiet = true
 	if equipped_weapon and inventory_component.count(equipped_weapon.id) <= 0:
 		if armed:
 			sheathe_weapon(true)
 		unequip_weapon()
 	if offhand_weapon and not _offhand_valid(offhand_weapon):
 		set_offhand(null)
+	_loadout_quiet = false
 
 
 ## Put a bag stack on the ground at your feet (in co-op everyone sees it and

@@ -255,6 +255,8 @@ static func save(player: Player) -> bool:
 		"worn": worn,
 		"weapon": item_ref(player.equipped_weapon),
 		"offhand": item_ref(player.offhand_weapon),
+		"loadouts": player.loadouts.duplicate(true),
+		"loadout_at": player.loadout_at,
 		"storage": stored,
 		"grave": grave,
 		"opened": gm.opened.keys() if gm else [],
@@ -350,6 +352,8 @@ static func load_into(player: Player) -> bool:
 	var off := item_from(data.get("offhand", []))
 	if off:
 		player.set_offhand(off)
+	# (saves before v1.18's loadouts: the hands are loadout 1)
+	player.set_loadouts(data.get("loadouts", []), int(data.get("loadout_at", 0)))
 	inv.inventory_changed.emit()
 	inv.quick_changed.emit()
 	if data.get("hybrid", false) and player.power.fruit_type() == "zoan":
