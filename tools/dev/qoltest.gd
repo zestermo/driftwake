@@ -28,11 +28,7 @@ func gold() -> int:
 func item(id: String):
 	return load("res://resources/items/%s.tres" % id)
 func click(at: Vector2, right: bool) -> void:
-	var ev := InputEventMouseButton.new()
-	ev.button_index = MOUSE_BUTTON_RIGHT if right else MOUSE_BUTTON_LEFT
-	ev.pressed = true
-	ev.position = at
-	menu._chart._gui_input(ev)
+	p.get_node("MapHold").page.press(MOUSE_BUTTON_RIGHT if right else MOUSE_BUTTON_LEFT, at)
 func _process(d: float) -> bool:
 	t += d
 	if t > 90.0:
@@ -188,7 +184,7 @@ func _process(d: float) -> bool:
 			# --- chart marks
 			p.global_position = ship.global_transform * Vector3(0, 0.6, 2.0)
 			p.reset_physics_interpolation()
-			menu.open("chart")
+			p.get_node("MapHold").page.on_open()
 			click(Vector2(400, 100), false)
 			click(Vector2(150, 220), false)
 			var mine: Array = net.waypoints.get(net.my_id(), [])
@@ -196,9 +192,8 @@ func _process(d: float) -> bool:
 			click(Vector2(401, 101), true)
 			mine = net.waypoints.get(net.my_id(), [])
 			check("right-click on one takes it off", mine.size() == 1)
-			menu._chart.clear_marks()
+			p.get_node("MapHold").page.clear_marks()
 			check("C clears them all", not net.waypoints.has(net.my_id()))
-			menu.close()
 			var far := Vector2(p.global_position.x + 300.0, p.global_position.z)
 			net.set_waypoints([far])
 			p.global_position = Vector3(p.global_position.x, 30.0, p.global_position.z + 200.0)

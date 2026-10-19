@@ -183,9 +183,7 @@ func _process(d: float) -> bool:
 			check("...and so is the log pose (still on the wrist)", p.has_log_pose() and p.body_model.fore_l.get_node_or_null("LogPose") != null)
 			gm.chain_at = -1
 			# the sea chart: Brinehollow's sea as ever; on the chain, fitted round where we are and where it points
-			var menu = root.get_node("GameMenu")
-			menu.open("chart")
-			var ch = menu._chart
+			var ch = p.get_node("MapHold").page
 			var c = world.chain()
 			ch._view(world, gm)
 			check("in Brinehollow's sea the chart is centred on Brinehollow", ch._centre == world.starter_center and ch._pin)
@@ -195,7 +193,6 @@ func _process(d: float) -> bool:
 			ch._view(world, gm)
 			check("on the chain it shows the island we're at and where the log pose points",
 				ch._inside(c.node(at)["pos"]) and c.next_of(at).all(func(id): return ch._inside(c.node(id)["pos"])) and not ch._pin)
-			menu.close()
 			gm.apply_chain(-1, false, 0.0)
 			var rumor: String = root.get_node("Dialogue")._tokens["rumor"].call()
 			print("   rumour: ", rumor)
