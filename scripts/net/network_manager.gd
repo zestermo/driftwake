@@ -1963,3 +1963,34 @@ func set_paused(on: bool) -> void:
 ## A captain made camp (Camp.make): the fire on every screen.
 func _all_camp(id: int, pos: Vector3, yaw: float) -> void:
 	Camp.place(get_tree(), id, pos, yaw)
+
+
+## The crew's chat (ChatBox): a line goes to the host, who sends it to everyone with who said it.
+const CHAT_MAX := 120
+signal chat_line(id: int, who: String, text: String)
+
+
+func chat(text: String) -> void:
+	if is_client():
+		_chat_req.rpc_id(1, text)
+	else:
+		_chat_send(my_id(), text)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _chat_req(text: String) -> void:
+	if hosting:
+		_chat_send(multiplayer.get_remote_sender_id(), text)
+
+
+func _chat_send(id: int, text: String) -> void:
+	var t := text.strip_edges().left(CHAT_MAX)
+	if t != "":
+		everyone("_all_chat", [id, t])
+
+
+func _all_chat(id: int, text: String) -> void:
+	var who := str(roster.get(id, {}).get("name", ""))
+	if who == "":
+		who = local_player.display_name() if id == my_id() and local_player else "A crewmate"
+	chat_line.emit(id, who, text)

@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts"]
+	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat"]
 var si := 0
 
 
@@ -125,6 +125,13 @@ func _process(d: float) -> bool:
 					p.loadouts[1] = ["dagger", "dagger"]
 					p.loadout_wheel._open_now()
 					p.loadout_wheel.point_at(1)
+				"chat":
+					var net = root.get_node("Net")
+					net._all_chat(1, "Land ho! The island off the port bow.")
+					net._all_chat(2, "Aye. Bring her round, I'll take the guns.")
+					net._all_chat(3, "Wait for me, I'm still up the mast with a very long line of text that wraps")
+					p.chat_box.open()
+					p.chat_box._line.text = "On my way"
 				_:
 					gm().open(s)
 			step = 2
