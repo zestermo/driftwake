@@ -3,9 +3,10 @@ extends RefCounted
 ## The action wheel's entries (hold N: the things the captain can do where they are). Features add
 ## their own with register(); the wheel shows those whose `available` says yes, in `order`.
 ##
-##   ActionWheel.register("cook", "Cook", "", func(p): return ActionWheel.place(p) == "ship",
-##       func(p): Galley.start(p), 30)
+##   ActionWheel.register("cook", "Cook", "", _aboard, _cook_aboard, 30)
 ##
+## Callables are methods (a node's, or a script's static funcs), never lambdas: a lambda from another
+## script left in this static table crashes Godot at exit.
 ## label: a String, or a Callable(p) -> String for one that changes ("Make camp" / "Rest by the fire").
 ## icon: a texture path ("" = none). available: Callable(p: Player) -> bool. run: Callable(p: Player).
 ## Registering an id again replaces it (lane F's "train" replaces the placeholder here).
@@ -83,9 +84,22 @@ static func ensure_builtins() -> void:
 		return
 	_built = true
 	if not has("camp"):
-		register("camp", func(p): return "Rest by the fire" if Camp.near(p) else "Make camp", "",
-			func(p): return place(p) == "island" and p.is_free(), Camp.make, 10)
+		register("camp", _camp_label, "", _camp_ok, Camp.make, 10)
 	if not has("train"):
-		register("train", "Train", "",
-			func(p): return place(p) in ["island", "ship"] and p.is_free(),
-			func(p): p.get_tree().call_group("hud", "show_toast", "Training isn't ready yet"), 20)
+		register("train", "Train", "", _train_ok, _train, 20)
+
+
+static func _camp_label(p: Node) -> String:
+	return "Rest by the fire" if Camp.near(p) else "Make camp"
+
+
+static func _camp_ok(p: Node) -> bool:
+	return place(p) == "island" and p.is_free()
+
+
+static func _train_ok(p: Node) -> bool:
+	return place(p) in ["island", "ship"] and p.is_free()
+
+
+static func _train(p: Node) -> void:
+	p.get_tree().call_group("hud", "show_toast", "Training isn't ready yet")
