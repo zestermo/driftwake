@@ -4280,6 +4280,12 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   (`unstock_rest`). Encounters' main-thread time 112-183 -> 4 ms. FaunaSpawner puts the creatures in over SPAWN_STEPS 10
   steps (was 3: ~24 models built in one frame). The build log names the worst step (`the most N ms (<piece> #<step>)`,
   GenIsland.worst_step). Worst step now ~160-170 ms (Tambor: a fauna step; Whitecap: boss): the next ones to split.
+- **Result** (full bench back to back with main, calib 24.63 / 24.66, no other Godots): ALL frame 16.33 -> 14.96 ms (-8%),
+  frame1t 16.80 -> 15.59, p95 22.64 -> 19.21 (-15%); frame1t beach 16.98 -> 15.14, plaza 19.03 -> 18.01, market 18.60 -> 16.67,
+  quay 16.07 -> 15.44, dock 15.17 -> 14.74, den 15.91 -> 14.56, yard 17.05 -> 15.55, aboard 15.60 -> 14.63; draws unchanged.
+  perf_gate (13:00, 1 run, confirmed back to back against 8e7fe77): mean frame +8%, frame1t +7% (pass); plaza frame1t +35.2%
+  (the line is 35; the reference's own plaza read 14.93 and 14.08 in two confirms an hour apart); ticks 0.94 over 0.8, which
+  this PC can't meet at ~15 ms frames (the baseline's commit itself runs 0.87 here: the line is the laptop's).
 - **CROWD stays off** (brinehollow_cast.gd): on, after these fixes, gate mode back to back: ALL frame 15.27 -> 15.86 ms (+4%),
   plaza 17.58 -> 19.65, market 17.28 -> 19.98 (+16%), draws +76; the folk's rigs and routines +0.34 ms. Against the gate's
   confirm run that's +16.7% mean frame, over the 15% line. It wants the townsfolk cheaper first (a far rig LOD for folk, or
