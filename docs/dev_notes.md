@@ -3727,6 +3727,9 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
   `rolled` (they test taking, not the economy); yard_buy reads the curve's 95 for armour 2. Suites likely to notice: faunatest
   (drops via kill_loot), bugtest/netclient (coins rolled per captain, never none), qoltest/uitest (prices on the curve), nettest
   (`_all_kill_loot` is new co-op traffic, the ruins chest roll).
+- Finished (second agent): every trait hook is live in play (checked by trait_finisher, trait_roll_fire, trait_gale on the light
+  stage). A trait weapon arriving in the bag (found, bought, given) gets the HUD's big banner once a session: its name in the tier's
+  colour and its trait line under it, with the chime (`PlayerHUD._on_item_added`, `_announced`).
 ## 2026-10-19: the held map, piece 1: fog of war, `?` marks, the island page (v1.18 lane C)
 - **Islands** (`scripts/map/map_isles.gd`, MapIsles): Brinehollow and the chain's standing islands as dictionaries made once per
   island node: key ("brinehollow", "isle<chain id>" like GenIsland.save_key), the world origin of island space, the height grid's
