@@ -71,7 +71,7 @@ func physics_update(delta: float) -> void:
 	_check -= delta
 	if _check <= 0.0:
 		_check = CHECK_SECS
-		var why := Downtime.danger(player)
+		var why := Downtime.danger(player, kind)
 		if why != "":
 			_stop(why)
 			return

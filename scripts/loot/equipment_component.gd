@@ -6,6 +6,23 @@ class_name EquipmentComponent
 signal equipment_changed
 
 var slots: Dictionary = {}
+## Equipment pieces (item ids) the captain keeps off the body: still carried and usable, just not drawn
+## (the inventory's SHOW box by the equipment slot; it rides in the look, so crewmates see it the same).
+var hidden: Dictionary = {}
+
+
+func is_hidden(item: ItemData) -> bool:
+	return item != null and hidden.has(item.id)
+
+
+func set_hidden(item: ItemData, on: bool) -> void:
+	if on == is_hidden(item):
+		return
+	if on:
+		hidden[item.id] = true
+	else:
+		hidden.erase(item.id)
+	equipment_changed.emit()
 
 
 func get_item(slot: String) -> ItemData:

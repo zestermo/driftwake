@@ -1,6 +1,6 @@
 class_name Instruments
 extends RefCounted
-## The captains' instruments: items (gear for the "instrument" slot, one worn at a time; the look key
+## The captains' instruments: items (gear for the equipment slot, one carried at a time; the look key
 ## "instrument" names the kind, so crewmates' screens know it too), their models (built in code, held
 ## and played by Jam) and their icons. Nobody starts with one: Corin's music shop on Brinehollow's market street sells all five, a chain
 ## island's trader sometimes has one (trader_stock). The tunes they play are gen_psx_music.py's JAM_TUNES.
@@ -24,7 +24,7 @@ static var _meshes: Dictionary = {}
 
 
 static func kind_of(it: ItemData) -> String:
-	return str(it.look.get("instrument", "")) if it and it.gear_slot == "instrument" else ""
+	return str(it.look.get("instrument", "")) if it and it.gear_slot == "equipment" else ""
 
 
 static func item_id(kind: String) -> String:
@@ -41,7 +41,7 @@ static func make_items(items: Dictionary) -> void:
 		it.value = int(e[3])
 		it.description = str(e[4])
 		it.item_type = ItemData.ItemType.GEAR
-		it.gear_slot = "instrument"
+		it.gear_slot = "equipment"
 		it.look = {"instrument": kind}
 		it.icon_kind = kind
 		it.stackable = false

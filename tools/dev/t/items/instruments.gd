@@ -1,6 +1,6 @@
 extends SceneTree
 ## Instruments as items: none in a new captain's kit; five with icons; Corin's music shop sells all five (and a chain
-## island's trader now and then, the same on every machine); worn in the "instrument" slot one at a time (a second
+## island's trader now and then, the same on every machine); carried in the equipment slot one at a time (a second
 ## swaps the first back into the bag), named in the look; carried on the back; saved by id.
 const TK := preload("res://tools/dev/test_kit.gd")
 const SHOPS := preload("res://scripts/game/shops.gd")
@@ -32,12 +32,12 @@ func _process(_d: float) -> bool:
 			var any := false
 			for k in Instruments.KINDS:
 				any = any or inv.count(Instruments.item_id(k)) > 0
-			check("a new captain has no instrument (bag or worn)", not any and p.equipment.get_item("instrument") == null and p.jam.worn() == "")
+			check("a new captain has no instrument (bag or worn)", not any and p.equipment.get_item("equipment") == null and p.jam.worn() == "")
 			var ok := true
 			for k in Instruments.KINDS:
 				var it: ItemData = ItemDB.get_item(Instruments.item_id(k))
-				ok = ok and it != null and it.is_gear() and it.gear_slot == "instrument" and it.icon != null and Instruments.kind_of(it) == k and it.worth() > 0
-			check("five instruments, each gear for the instrument slot with an icon", ok)
+				ok = ok and it != null and it.is_gear() and it.gear_slot == "equipment" and it.icon != null and Instruments.kind_of(it) == k and it.worth() > 0
+			check("five instruments, each gear for the equipment slot with an icon", ok)
 			var music: Array = []
 			for e in SHOPS.SHOPS["corin"]["stock"]:
 				var it: ItemData = SHOPS.item_of(e)
@@ -64,14 +64,14 @@ func _process(_d: float) -> bool:
 			inv.add_item(fid, 1)
 			inv.add_item(whi, 1)
 			p.equip_gear_from_bag(inv.find_index("fiddle"))
-			check("the fiddle goes in the instrument slot", p.equipment.get_item("instrument") == fid and p.body_model.look.get("instrument") == "fiddle")
+			check("the fiddle goes in the equipment slot", p.equipment.get_item("equipment") == fid and p.body_model.look.get("instrument") == "fiddle")
 			p.equip_gear_from_bag(inv.find_index("tin_whistle"))
-			check("the whistle takes its place, the fiddle back in the bag", p.equipment.get_item("instrument") == whi and inv.count("fiddle") == 1 and inv.count("tin_whistle") == 0)
+			check("the whistle takes its place, the fiddle back in the bag", p.equipment.get_item("equipment") == whi and inv.count("fiddle") == 1 and inv.count("tin_whistle") == 0)
 			check("worn instruments don't count as armour", is_equal_approx(whi.armor(), 0.0))
 			var sg = load("res://scripts/game/save_game.gd")
 			var ref: Array = sg.item_ref(whi)
 			check("saved by id (%s)" % str(ref), ref == ["id", "tin_whistle"] and sg.item_from(ref) == whi)
-			p.unequip_gear("instrument")
+			p.unequip_gear("equipment")
 			p.equip_gear_from_bag(inv.find_index("fiddle"))
 			until = TK.wait_ticks(4)
 		1:

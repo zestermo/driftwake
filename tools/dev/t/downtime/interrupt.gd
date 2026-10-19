@@ -1,6 +1,6 @@
 extends SceneTree
-## Downtime aboard needs the ship looked after: under sail with nobody at the wheel, training is refused;
-## lashed, it starts. Danger ends it: a sail coming up close rouses you with a word on why.
+## Downtime aboard needs the ship looked after: under sail with nobody at the wheel, tinkering is refused
+## (training isn't: a swordsman drills under way); lashed, it starts. Danger ends it: a sail coming up close rouses you with a word on why.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -37,11 +37,12 @@ func _process(_d: float) -> bool:
 			ship.speed = 3.0
 			until = TK.wait_ticks(10)
 		1:
-			check("aboard under sail, nobody at the wheel: training refused (%s)" % DT.refuse(p, "train"), DT.refuse(p, "train").begins_with("Lash the helm"))
-			DT.start(p, "train")
+			check("aboard under sail, nobody at the wheel: tinkering refused (%s)" % DT.refuse(p, "tinker"), DT.refuse(p, "tinker").begins_with("Lash the helm"))
+			DT.start(p, "tinker")
 			check("...and doesn't start", p.current_state_name() != "Downtime")
+			check("...training needs no lashing (%s)" % DT.refuse(p, "train"), DT.refuse(p, "train") == "")
 			root.get_node("/root/Net").lash_helm(true, ship._heading)
-			DT.start(p, "train")
+			DT.start(p, "tinker")
 			until = TK.wait_ticks(10)
 		2:
 			check("lashed, it starts (%s)" % p.current_state_name(), p.current_state_name() == "Downtime")
@@ -52,8 +53,8 @@ func _process(_d: float) -> bool:
 			check("a sail close by is danger (%s)" % DT.danger(p), DT.danger(p).begins_with("Sail ho"))
 			until = TK.wait_secs(0.7)
 		3:
-			check("...it rouses you from training (%s)" % p.current_state_name(), p.current_state_name() != "Downtime" and p.body_model.current_action() != "dt_train_blade")
-			check("...and you can't start again while it's there", DT.refuse(p, "train").begins_with("Sail ho"))
+			check("...it rouses you from tinkering (%s)" % p.current_state_name(), p.current_state_name() != "Downtime" and p.body_model.current_action() != "dt_tinker")
+			check("...and you can't start again while it's there", DT.refuse(p, "tinker").begins_with("Sail ho") and DT.refuse(p, "train").begins_with("Sail ho"))
 			ship.sail = 0.0
 			return TK.done(fails)
 	step += 1

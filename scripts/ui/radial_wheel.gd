@@ -33,6 +33,8 @@ var _held := 0.0
 var _vec := Vector2.ZERO
 var _pick := -1
 var _k := 0.0
+## The ring's half-width: R, or wider (an ellipse) when neighbouring planks would overlap (-1: work it out).
+var _rx := -1.0
 
 
 # ---- what a wheel fills in ----
@@ -165,6 +167,7 @@ func _open_now() -> void:
 		_subs[i].visible = _subs[i].text != ""
 		_icons[i].texture = _icon(entries[i])
 		_icons[i].visible = _icons[i].texture != null
+	_rx = -1.0
 	_restyle()
 
 
@@ -271,11 +274,14 @@ func _layout() -> void:
 	var c := _root.size * 0.5
 	var e := _k * _k * (3.0 - 2.0 * _k)
 	var s := e * (1.0 + 0.1 * sin(e * PI))
+	for pc in _plates:
+		pc.size = pc.get_combined_minimum_size()
+	if _rx < 0.0:
+		_rx = _fit_rx()
 	for i in range(_plates.size()):
 		var a := TAU * i / _plates.size()
 		var pc := _plates[i]
-		pc.size = pc.get_combined_minimum_size()
-		pc.position = c + Vector2(sin(a), -cos(a)) * R * s - pc.size * 0.5
+		pc.position = c + Vector2(sin(a) * _rx, -cos(a) * R) * s - pc.size * 0.5
 	var mid := _root.get_node("Centre") as PanelContainer
 	mid.size = mid.get_combined_minimum_size()
 	mid.position = c - mid.size * 0.5
@@ -283,14 +289,42 @@ func _layout() -> void:
 	_root.queue_redraw()
 
 
+## The narrowest ring (R up, in steps) on which no two neighbouring planks overlap.
+func _fit_rx() -> float:
+	var n := _plates.size()
+	var rx := R
+	for _step in range(16):
+		var clear := true
+		for i in range(n):
+			var j := (i + 1) % n
+			if n < 3 or i == j:
+				break
+			var a := TAU * i / n
+			var b := TAU * j / n
+			var ra := Rect2(Vector2(sin(a) * rx, -cos(a) * R) - _plates[i].size * 0.5, _plates[i].size).grow(3.0)
+			var rb := Rect2(Vector2(sin(b) * rx, -cos(b) * R) - _plates[j].size * 0.5, _plates[j].size)
+			if ra.intersects(rb):
+				clear = false
+				break
+		if clear:
+			break
+		rx += 8.0
+	return rx
+
+
 func _draw_ring() -> void:
 	var c := _root.size * 0.5
 	var s := _k * _k * (3.0 - 2.0 * _k)
-	_root.draw_circle(c, (R + 40.0) * s, Color(UIStyle.OUTLINE, 0.55))
-	_root.draw_arc(c, (R + 40.0) * s, 0.0, TAU, 64, UIStyle.BORDER_DIM, 2.0)
-	_root.draw_arc(c, (R - 34.0) * s, 0.0, TAU, 48, Color(UIStyle.BORDER_DIM, 0.6), 1.0)
+	var sx := maxf(_rx, R) / R
+	# (an ellipse when the planks need a wider ring: drawn as a circle stretched across)
+	_root.draw_set_transform(c, 0.0, Vector2(sx, 1.0))
+	_root.draw_circle(Vector2.ZERO, (R + 40.0) * s, Color(UIStyle.OUTLINE, 0.55))
+	_root.draw_arc(Vector2.ZERO, (R + 40.0) * s, 0.0, TAU, 64, UIStyle.BORDER_DIM, 2.0)
+	_root.draw_arc(Vector2.ZERO, (R - 34.0) * s, 0.0, TAU, 48, Color(UIStyle.BORDER_DIM, 0.6), 1.0)
 	if _pick >= 0 and not entries.is_empty():
 		var a := TAU * _pick / entries.size()
-		var d := Vector2(sin(a), -cos(a))
+		_root.draw_arc(Vector2.ZERO, (R + 40.0) * s, a - PI * 0.5 - 0.22, a - PI * 0.5 + 0.22, 8, UIStyle.ACCENT, 4.0)
+		_root.draw_set_transform(Vector2.ZERO)
+		var d := Vector2(sin(a) * sx, -cos(a))
 		_root.draw_line(c + d * 46.0, c + d * (R - 22.0) * s, UIStyle.ACCENT, 3.0)
-		_root.draw_arc(c, (R + 40.0) * s, a - PI * 0.5 - 0.22, a - PI * 0.5 + 0.22, 8, UIStyle.ACCENT, 4.0)
+	_root.draw_set_transform(Vector2.ZERO)

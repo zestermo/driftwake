@@ -4216,3 +4216,29 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - Tests: t/downtime/clip_play (the glb imports to the saved clip frame for frame; every joint as keyed at 2.9 s a loop on, and at
   1.2 s; the forearm stays a bend; no leg tracks; the held body follows it). read checks clip_read. Render: posebench with
   PB_SEAT=0.45 `sword none clip_read:0.1333,clip_read:0.23 three`.
+
+## 2026-10-19: fishing, piece 1: one N wheel everywhere, the equipment slot, hiding equipment (v1.18)
+- **The N wheel is one list** (ActionWheel): on your feet ashore, in town or aboard it shows every entry (camp 10, train 20, cook 30,
+  read 40, tinker 50, fish 60, sleep 70); one that can't be done here is greyed with its reason under it (RadialWheel's sub line).
+  `available` may now return a String: "" / true = can do, a reason = greyed, false = not on this wheel here (the lash entry away
+  from the helm; the on-foot list at the helm or swimming). `why_not(id, p)`, `ready_for(p)`, `on_foot(p)`, `busy(p)` ("Not now"
+  unless free, sat or already at an activity). Reasons: camp "Ashore, out of town" / "Out of town"; cook "At a galley or
+  campfire" (cook_camp merged into cook: aboard the galley's portions, by a fire one); read/tinker "Aboard or at camp" (they now
+  work by a camp's fire too); fish "At the water's edge" (ashore: Fishing.water_ahead finds sea 2.5-9 m ahead); sleep "In a bunk or
+  at camp" (Sleep by the fire lies down where you stand); aboard, read/tinker/fish/sleep "Lash the helm or drop anchor first".
+- **Train aboard needs no lashing** (Downtime.refuse and danger(p, kind) skip the loose-helm check for train); storms, sails, Sea
+  Kings, enemies and blows still rouse you.
+- **RadialWheel**: when neighbouring planks would overlap (7 entries with reason lines), the ring widens into an ellipse (`_fit_rx`,
+  once per open, 8-unit steps) and the backing ring is drawn stretched to match. The other wheels keep their circle.
+- **The equipment slot** (Gear.SLOTS "equipment", was "instrument"): instruments' gear_slot is "equipment"; its look keys are
+  instrument, rod, equip_hidden (Gear.EQUIP_KEYS for the carried kinds). Old saves: `worn["instrument"]` loads into "equipment".
+  Inventory tag EQUIP.
+- **Visibility** (EquipmentComponent.hidden, item ids; Player.show_equipment(on)): a SHOW tick box under the equipment slot in the
+  inventory. Hidden, the piece isn't drawn carried (Jam._show), still usable (played, it's in the hands). Gear.compose writes
+  `equip_hidden` into the look, so crewmates (the look event) hide it the same. Saved as "equip_hidden".
+- Tests: t/ui/wheel_same (same list ashore and aboard with the reasons, Fish at the water's edge, Train aboard under way unlashed and
+  kept going, Read after lashing), t/items/equipment_slot (old save -> equipment, the SHOW box hides it, a crewmate's screen too,
+  still playable, saved). Updated: t/ui/action_wheel, t/food/cook_wheel, t/downtime/interrupt (tinker is refused unlashed, train
+  isn't), t/items/instruments. Render: `uishots <out> 1 0 actions,equipment`. Suites likely to notice: invtest (Gear.compose),
+  jamtest / nettest jam mode (the slot's name), looptest (cook entry).
+- Per frame/tick: nothing new (the wheel works its reasons out once per open).

@@ -350,7 +350,7 @@ func _wear_outfit_of(lk: Dictionary) -> void:
 func refresh_look() -> void:
 	if body_model == null:
 		return
-	var lk := Gear.compose(appearance, equipment.slots)
+	var lk := Gear.compose(appearance, equipment.slots, equipment.hidden)
 	lk["log_pose"] = has_log_pose()
 	body_model.apply_look(lk)
 	CharacterLook.save_look(body_model.look)
@@ -374,6 +374,15 @@ func equip_gear_from_bag(idx: int) -> bool:
 		inventory_component.insert_item(prev, idx)
 	refresh_look()
 	return true
+
+
+## Show or hide the equipment slot's piece on the body (it still works hidden).
+func show_equipment(on: bool) -> void:
+	var it := equipment.get_item("equipment")
+	if it == null:
+		return
+	equipment.set_hidden(it, not on)
+	refresh_look()
 
 
 ## Take off the gear in a paper-doll slot (into the bag, if there's room).
@@ -866,7 +875,7 @@ func set_hybrid(on: bool) -> void:
 	if on == hybrid:
 		return
 	hybrid = on
-	var lk := Gear.compose(appearance, equipment.slots)
+	var lk := Gear.compose(appearance, equipment.slots, equipment.hidden)
 	if on:
 		lk["skin"] = FUR
 		lk["hair"] = "wild"

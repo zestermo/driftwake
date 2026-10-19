@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat"]
+	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment"]
 var si := 0
 
 
@@ -125,6 +125,14 @@ func _process(d: float) -> bool:
 					p.loadouts[1] = ["dagger", "dagger"]
 					p.loadout_wheel._open_now()
 					p.loadout_wheel.point_at(1)
+				"actions":
+					# the action wheel held open, pointing at Cook (greyed ashore with no fire, its reason under it)
+					p.action_wheel._open_now()
+					p.action_wheel.point_at(p.action_wheel.entries.find("cook"))
+				"equipment":
+					p.inventory_component.add_item(ItemDB.get_item("fiddle"), 1)
+					p.equip_gear_from_bag(p.inventory_component.find_index("fiddle"))
+					gm().open("inventory")
 				"chat":
 					var net = root.get_node("Net")
 					net._all_chat(1, "Land ho! The island off the port bow.")

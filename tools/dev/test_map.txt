@@ -12,6 +12,9 @@ tools/dev/test_kit.gd                   t
 tools/dev/t/player/*                    t/player
 tools/dev/t/combat/*                    t/combat
 tools/dev/t/items/*                     t/items
+tools/dev/t/fishing/*                   t/fishing
+scripts/fishing/*                       t/fishing
+scripts/game/action_wheel.gd            t/ui t/downtime t/food
 tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship

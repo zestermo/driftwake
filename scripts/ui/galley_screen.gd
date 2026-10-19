@@ -89,27 +89,20 @@ func _init(menu: Node) -> void:
 	foot.add_child(leave)
 
 
-## Cooking on the action wheel: aboard (the galley's portions) and by a camp's fire (one). (Method callables,
+## Cooking on the action wheel: aboard (the galley's portions) or by a camp's fire (one). (Method callables,
 ## not lambdas: a lambda from another script left in ActionWheel's static table crashes Godot at exit.)
 func register_wheel() -> void:
-	ActionWheel.register("cook", "Cook", "res://assets/textures/icons/fish_stew.png", _aboard, _cook_aboard, 30)
-	ActionWheel.register("cook_camp", "Cook by the fire", "res://assets/textures/icons/fish_stew.png", _by_fire, _cook_by_fire, 30)
+	ActionWheel.register("cook", "Cook", "res://assets/textures/icons/fish_stew.png", _cook_ok, _cook, 30)
 
 
-func _aboard(p) -> bool:
-	return ActionWheel.place(p) == "ship" and p.is_free()
+func _cook_ok(p):
+	if not ActionWheel.on_foot(p):
+		return false
+	return ActionWheel.busy(p) if ActionWheel.place(p) == "ship" or Camp.near(p) != null else "At a galley or campfire"
 
 
-func _by_fire(p) -> bool:
-	return ActionWheel.place(p) == "island" and Camp.near(p) != null and p.is_free()
-
-
-func _cook_aboard(_p) -> void:
-	_menu.open_galley(get_node("/root/GameManager").galley_portions())
-
-
-func _cook_by_fire(_p) -> void:
-	_menu.open_galley(1)
+func _cook(p) -> void:
+	_menu.open_galley(get_node("/root/GameManager").galley_portions() if ActionWheel.place(p) == "ship" else 1)
 
 
 func _player() -> Player:

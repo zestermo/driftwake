@@ -308,9 +308,10 @@ func _models(b: Humanoid, k: String) -> void:
 	_show(playing)
 
 
+## Played, it's in the hands; carried, on the back unless the captain hides their equipment (look "equip_hidden").
 func _show(held: bool) -> void:
 	if _back:
-		_back.visible = not held
+		_back.visible = not held and not _body().look.get("equip_hidden", false)
 	for n in _parts.values():
 		(n as Node3D).visible = held
 

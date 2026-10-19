@@ -1,8 +1,9 @@
 extends SceneTree
-## The action wheel (hold N) shows what fits where you are: ashore, Make camp and Train (and an entry another
-## feature registers). Picking Make camp lays a campfire in front of you and sits you by it; sitting there a
+## The action wheel (hold N) shows the whole list everywhere; ashore with no fire or water Make camp and Train can
+## be done, the rest greyed with why (and an entry another feature registers joins in). Picking Make camp lays a campfire in front of you and sits you by it; sitting there a
 ## moment rests you (health back, the game saved) and the entry reads "Rest by the fire". The fire burns out.
 const TK := preload("res://tools/dev/test_kit.gd")
+const ALL := ["camp", "train", "cook", "read", "tinker", "fish", "sleep"]
 var stage
 var p
 var w
@@ -51,19 +52,22 @@ func _process(_d: float) -> bool:
 			# (a file of its own: every stage test starting meanwhile wipes the shared test slot)
 			save.use_test_file("user://t_action_wheel_%d.dat" % OS.get_process_id())
 			check("ashore: the place is the island", AW.place(p) == "island")
-			check("ashore: Make camp, then Train (%s)" % str(AW.entries_for(p)), AW.entries_for(p) == ["camp", "train"])
+			check("ashore: the whole list (%s)" % str(AW.entries_for(p)), AW.entries_for(p) == ALL)
+			check("...Make camp and Train can be done (%s)" % str(AW.ready_for(p)), AW.ready_for(p) == ["camp", "train"])
 			AW.register("t_wave", "Wave", "", func(pl): return AW.place(pl) == "island", func(_pl): ran += 1, 5)
-			check("a registered entry joins in its order", AW.entries_for(p) == ["t_wave", "camp", "train"])
+			check("a registered entry joins in its order", AW.entries_for(p) == ["t_wave"] + ALL)
 			AW.run("t_wave", p)
 			AW.unregister("t_wave")
-			check("...runs, and leaves when unregistered", ran == 1 and AW.entries_for(p) == ["camp", "train"])
+			check("...runs, and leaves when unregistered", ran == 1 and AW.entries_for(p) == ALL)
 			p.health_component.current_health = 35.0
 			save.delete()
 			Input.action_press("action_wheel")
 			until = TK.wait_ticks(3)
 		1:
-			check("holding N opens the wheel", w.is_open() and w.entries == ["camp", "train"])
+			check("holding N opens the wheel", w.is_open() and w.entries == ALL)
 			check("...the camp entry reads Make camp", w._labels[0].text == "Make camp")
+			var cook: int = ALL.find("cook")
+			check("...Cook greyed, its reason under it (%s)" % w._subs[cook].text, w._dim("cook") and w._subs[cook].text == "At a galley or campfire" and not w._dim("camp"))
 			point_at(0)
 			Input.action_release("action_wheel")
 			until = TK.wait_ticks(4)

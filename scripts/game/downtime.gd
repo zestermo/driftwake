@@ -65,17 +65,57 @@ const SEA_KING := preload("res://scripts/enemies/sea_king.gd")
 
 
 ## The activities on the action wheel (ActionWheel.ensure_builtins). Static method callables, not lambdas.
+## One list ashore and aboard; each says why it can't be done where you are (ActionWheel's greyed reason).
 static func register_wheel() -> void:
 	ActionWheel.register("lash", "Lash the helm", "", _lash_ok, lash, 5)
 	ActionWheel.register("train", _train_label, "", _train_ok, _train, KINDS["train"]["order"])
-	ActionWheel.register("read", KINDS["read"]["label"], "", _aboard_ok, _read, KINDS["read"]["order"])
-	ActionWheel.register("tinker", KINDS["tinker"]["label"], "", _aboard_ok, _tinker, KINDS["tinker"]["order"])
-	ActionWheel.register("fish", KINDS["fish"]["label"], "", _aboard_ok, _fish, KINDS["fish"]["order"])
-	ActionWheel.register("sleep", KINDS["sleep"]["label"], "", _aboard_ok, _sleep, KINDS["sleep"]["order"])
+	ActionWheel.register("read", KINDS["read"]["label"], "", _rest_ok, _read, KINDS["read"]["order"])
+	ActionWheel.register("tinker", KINDS["tinker"]["label"], "", _rest_ok, _tinker, KINDS["tinker"]["order"])
+	ActionWheel.register("fish", KINDS["fish"]["label"], "", _fish_ok, _fish, KINDS["fish"]["order"])
+	ActionWheel.register("sleep", _sleep_label, "", _sleep_ok, _sleep, KINDS["sleep"]["order"])
 
 
 static func _lash_ok(p) -> bool:
 	return ActionWheel.place(p) == "helm"
+
+
+## Aboard, the ship must keep without you (the reason if she won't; "" if she will).
+static func _kept(p) -> String:
+	var ship := ship_under(p)
+	return "Lash the helm or drop anchor first" if ship and not looked_after(ship) else ""
+
+
+## Reading and tinkering: aboard, or by a camp's fire.
+static func _rest_ok(p):
+	if not ActionWheel.on_foot(p):
+		return false
+	if ActionWheel.place(p) == "ship":
+		return _first(_kept(p), ActionWheel.busy(p))
+	return ActionWheel.busy(p) if Camp.near(p) else "Aboard or at camp"
+
+
+static func _fish_ok(p):
+	if not ActionWheel.on_foot(p):
+		return false
+	if ActionWheel.place(p) == "ship":
+		return _first(_kept(p), ActionWheel.busy(p))
+	return ActionWheel.busy(p) if Fishing.water_ahead(p) != Vector3.INF else "At the water's edge"
+
+
+static func _sleep_label(p) -> String:
+	return "Sleep by the fire" if ActionWheel.place(p) != "ship" and Camp.near(p) else KINDS["sleep"]["label"]
+
+
+static func _sleep_ok(p):
+	if not ActionWheel.on_foot(p):
+		return false
+	if ActionWheel.place(p) == "ship":
+		return _first(_kept(p), ActionWheel.busy(p))
+	return ActionWheel.busy(p) if Camp.near(p) else "In a bunk or at camp"
+
+
+static func _first(a: String, b: String) -> String:
+	return a if a != "" else b
 
 
 ## At the wheel: lash her to the heading she's on and step away (she holds it till someone takes the wheel).
@@ -90,12 +130,11 @@ static func _train_label(p) -> String:
 	return "Train (%s)" % SkillTree.TREES[SkillTree.style_tree(p.style())]["name"] if _train_tree(p) != "" else "Train"
 
 
-static func _train_ok(p) -> bool:
-	return ActionWheel.place(p) in ["island", "ship"] and p.is_free()
-
-
-static func _aboard_ok(p) -> bool:
-	return ActionWheel.place(p) == "ship" and p.is_free()
+## Training: anywhere you're on your feet, aboard with nobody at the wheel too.
+static func _train_ok(p):
+	if not ActionWheel.on_foot(p):
+		return false
+	return "Nothing to train in that shape" if _train_tree(p) == "" else ActionWheel.busy(p)
 
 
 static func _train(p) -> void:
@@ -136,9 +175,9 @@ static func refuse(p, kind: String) -> String:
 	if kind == "train" and _train_tree(p) == "":
 		return "Nothing to train with in that shape"
 	var ship := ship_under(p)
-	if ship and not looked_after(ship):
+	if ship and not looked_after(ship) and kind != "train":
 		return "Lash the helm or drop anchor first (N at the wheel)"
-	return danger(p)
+	return danger(p, kind)
 
 
 ## The crew's ship if `p` stands aboard her.
@@ -152,15 +191,16 @@ static func looked_after(ship: Ship) -> bool:
 	return ship.lashed or ship.anchored or ship.helm_other or (ship.sail <= 0.0 and absf(ship.speed) < 0.5)
 
 
-## What ends downtime now ("" = nothing): the reason, said to the captain.
-static func danger(p) -> String:
+## What ends downtime now ("" = nothing): the reason, said to the captain. (Training aboard needs nobody
+## at the wheel: a swordsman drills on a deck under way.)
+static func danger(p, kind := "") -> String:
 	var tree: SceneTree = p.get_tree()
 	var at: Vector3 = p.global_position
 	var ship := ship_under(p)
 	if ship:
 		if p.get_node("/root/Weather").storm > LashedHelm.STORM:
 			return "A storm's coming on - all hands!"
-		if not looked_after(ship):
+		if not looked_after(ship) and kind != "train":
 			return "The helm's loose - she's wandering off!"
 	for es in tree.get_nodes_in_group("enemy_ships"):
 		if es.state not in [EnemyShip.S.SINK, EnemyShip.S.PRIZE] and (es as Node3D).global_position.distance_to(at) < SAIL_NEAR:

@@ -19,7 +19,7 @@ const HEAVY := preload("res://scripts/player_states/heavy_attack_state.gd")
 const SHOOT := preload("res://scripts/player_states/shoot_state.gd")
 const DOLL := [["head", "torso", "vest", "coat", "belt"], ["hands", "legs", "feet", "acc1", "acc2"]]
 const TAGS := {"head": "HEAD", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
-	"legs": "LEGS", "feet": "FEET", "acc1": "ACC", "acc2": "ACC", "weapon": "MAIN", "offhand": "OFF", "instrument": "INST"}
+	"legs": "LEGS", "feet": "FEET", "acc1": "ACC", "acc2": "ACC", "weapon": "MAIN", "offhand": "OFF", "equipment": "EQUIP"}
 const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam"}
 ## Item cards from these places compare with what you hold or wear.
 const COMPARE := ["bag", "loot", "shop"]
@@ -123,6 +123,8 @@ var _quick: Array[Slot] = []
 var _doll: Dictionary = {}  # slot id -> Slot
 var _weapon_slot: Slot
 var _offhand_slot: Slot
+## The equipment piece's visibility box (ticked: drawn on the body).
+var _show_box: Button
 var _doll_nodes: Array[Control] = []
 var _name_label: Label
 var _stats_label: Label
@@ -264,12 +266,14 @@ func _build_doll() -> void:
 	_weapon_slot.pressed.connect(_put_away.bind(false))
 	_offhand_slot = _slot(TAGS["offhand"], {"src": "offhand"})
 	_offhand_slot.pressed.connect(_put_away.bind(true))
-	var inst := _slot(TAGS["instrument"], {"src": "doll", "slot": "instrument"})
-	inst.pressed.connect(func(): _on_doll_pressed("instrument"))
-	_doll["instrument"] = inst
-	for s in [_weapon_slot, _offhand_slot, inst]:
+	var eq := _slot(TAGS["equipment"], {"src": "doll", "slot": "equipment"})
+	eq.pressed.connect(func(): _on_doll_pressed("equipment"))
+	_doll["equipment"] = eq
+	for s in [_weapon_slot, _offhand_slot, eq]:
 		_ui.add_child(s)
 		_doll_nodes.append(s)
+	_show_box = _show_toggle()
+	_ui.add_child(_show_box)
 	_name_label = _text("", UIStyle.ACCENT, BOLD)
 	_name_label.add_theme_font_size_override("font_size", 16)
 	_stats_label = small("", UIStyle.TEXT)
@@ -280,6 +284,35 @@ func _build_doll() -> void:
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ui.add_child(l)
 		_doll_nodes.append(l)
+
+
+## A small tick box under the equipment slot: SHOW (drawn on the body) or not (carried out of sight).
+func _show_toggle() -> Button:
+	var b := Button.new()
+	b.name = "ShowEquipment"
+	b.toggle_mode = true
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(SLOT, 10)
+	b.size = b.custom_minimum_size
+	b.tooltip_text = "Show it on your captain (hidden, it still works)"
+	var l := small("SHOW", UIStyle.TEXT_DIM)
+	l.position = Vector2(10, 0)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(l)
+	b.draw.connect(func():
+		var r := Rect2(1, 1, 7, 7)
+		b.draw_rect(r, UIStyle.BG_DARK)
+		b.draw_rect(r, UIStyle.ACCENT if b.is_hovered() else UIStyle.BORDER_DIM, false, 1.0)
+		if b.button_pressed:
+			b.draw_polyline(PackedVector2Array([Vector2(2.5, 4.5), Vector2(4, 6.5), Vector2(7, 2.5)]), UIStyle.ACCENT, 1.0))
+	b.toggled.connect(func(on: bool):
+		var pl := _player()
+		if pl and pl.equipment.is_hidden(pl.equipment.get_item("equipment")) == on:
+			pl.show_equipment(on)
+			menu._play("equip")
+		b.queue_redraw())
+	return b
 
 
 func _build_panel() -> void:
@@ -415,12 +448,13 @@ func _layout() -> void:
 		for r in range(5):
 			var x := _cx - dx - SLOT if c == 0 else _cx + dx
 			_park(_doll[DOLL[c][r]], Vector2(x, y0 + step * r), 2.0, false)
-	# the hands, and the instrument a little apart
+	# the hands, and the equipment a little apart (its SHOW box under it)
 	var wy := y0 + step * 5
 	var wx := _cx - roundf((SLOT * 3 + 10) * 0.5)
 	_park(_weapon_slot, Vector2(wx, wy), 2.0, false)
 	_park(_offhand_slot, Vector2(wx + SLOT + 2, wy), 2.0, false)
-	_park(_doll["instrument"], Vector2(wx + SLOT * 2 + 10, wy), 2.0, false)
+	_park(_doll["equipment"], Vector2(wx + SLOT * 2 + 10, wy), 2.0, false)
+	_park(_show_box, Vector2(wx + SLOT * 2 + 10, wy + SLOT + 2), 2.0, false)
 	for l in [_name_label, _stats_label]:
 		l.size = Vector2(260, 0)
 	_park(_name_label, Vector2(_cx - 130, y0 - 42), 1.0, false)
@@ -603,6 +637,10 @@ func refresh() -> void:
 	for slot in _doll.keys():
 		var it := pl.equipment.get_item(slot)
 		_doll[slot].show_item(it, 1 if it else 0)
+	var eq := pl.equipment.get_item("equipment")
+	_show_box.visible = eq != null and _container == null
+	_show_box.set_pressed_no_signal(eq != null and not pl.equipment.is_hidden(eq))
+	_show_box.queue_redraw()
 	_weapon_slot.show_item(pl.equipped_weapon, 1 if pl.equipped_weapon else 0, "", pl.armed and pl.equipped_weapon != null)
 	_offhand_slot.show_item(pl.offhand_weapon, 1 if pl.offhand_weapon else 0, "", pl.armed and pl.offhand_weapon != null)
 	var qit := inv.quick_item()
@@ -761,7 +799,7 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 				fx.append(["Finisher knocks them down", Color(1.0, 0.75, 0.45)])
 			"katana":
 				fx.append(["Two-handed", UIStyle.TEXT_DIM])
-	elif it.gear_slot == "instrument":
+	elif Instruments.kind_of(it) != "":
 		fx.append(["Play it: hold T, pick Play", UIStyle.ACCENT])
 	elif it.is_gear():
 		var cur := pl.equipment.get_item(pl.equipment.slot_for(it)) if src in COMPARE else null
@@ -823,7 +861,9 @@ static func _kind(it: ItemData) -> String:
 		ItemData.ItemType.WEAPON:
 			return it.weapon_model
 		ItemData.ItemType.GEAR:
-			return "instrument" if it.gear_slot == "instrument" else Gear.slot_label(it.gear_slot) + " gear"
+			if Instruments.kind_of(it) != "":
+				return "instrument"
+			return "equipment" if it.gear_slot == "equipment" else Gear.slot_label(it.gear_slot) + " gear"
 		ItemData.ItemType.CONSUMABLE:
 			return "devil fruit" if it.devil_fruit != "" else "consumable"
 	return "treasure"

@@ -1,8 +1,10 @@
 extends RadialWheel
-## The action wheel (hold N): what the captain can do where they are, from the ActionWheel registry
-## (ashore: make camp, train; aboard: the downtime activities; in town: the town's own things).
+## The action wheel (hold N): everything a captain can do, the same list ashore and aboard, from the
+## ActionWheel registry; what can't be done here is greyed with the reason under it.
 
 var _where := ""
+## id -> why it's greyed ("" = it can be done), as the wheel opened.
+var _why: Dictionary = {}
 
 
 func _init() -> void:
@@ -11,7 +13,11 @@ func _init() -> void:
 
 func _list() -> Array:
 	_where = ActionWheel.place(player)
-	return ActionWheel.entries_for(player)
+	var ids := ActionWheel.entries_for(player)
+	_why.clear()
+	for id in ids:
+		_why[id] = ActionWheel.why_not(id, player)
+	return ids
 
 
 func _title() -> String:
@@ -20,6 +26,14 @@ func _title() -> String:
 
 func _label(id) -> String:
 	return ActionWheel.label_of(id, player)
+
+
+func _sub(id) -> String:
+	return str(_why.get(id, ""))
+
+
+func _dim(id) -> bool:
+	return str(_why.get(id, "")) != ""
 
 
 func _icon(id) -> Texture2D:

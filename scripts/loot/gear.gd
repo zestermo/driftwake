@@ -13,7 +13,10 @@ const SLOTS := [
 	["head", "Head", "head"], ["torso", "Torso", "torso"], ["vest", "Vest", "vest"],
 	["coat", "Coat", "coat"], ["belt", "Belt", "belt"],
 	["hands", "Hands", "hands"], ["legs", "Legs", "legs"], ["feet", "Feet", "feet"],
-	["acc1", "Accessory", "accessory"], ["acc2", "Accessory", "accessory"], ["instrument", "Instrument", "instrument"]]
+	["acc1", "Accessory", "accessory"], ["acc2", "Accessory", "accessory"], ["equipment", "Equipment", "equipment"]]
+## The equipment slot (was the instrument slot, v1.18): what's carried for the hands (an instrument, a fishing
+## rod, later tools). Its look keys name what's carried; "equip_hidden" keeps it off the body (still usable).
+const EQUIP_KEYS := ["instrument", "rod"]
 
 ## Look keys each slot kind controls.
 const SLOT_KEYS := {
@@ -25,7 +28,7 @@ const SLOT_KEYS := {
 	"legs": ["legs", "legs_color"],
 	"feet": ["feet", "feet_color"],
 	"belt": ["belt", "belt_color", "sash_color"],
-	"instrument": ["instrument"],
+	"equipment": ["instrument", "rod", "equip_hidden"],
 }
 ## Accessories are on/off look flags (+ a color for some).
 const ACCESSORIES := ["scarf", "pauldron", "earring", "eyepatch", "pouch", "apron", "cape", "bandolier", "necklace", "goggles", "mantle",
@@ -349,17 +352,21 @@ static func bare(kind: String, fem: bool) -> Dictionary:
 		"legs": return {"legs": "shorts", "legs_color": CharacterLook.CLOTH[1]}
 		"feet": return {"feet": "barefoot"}
 		"belt": return {"belt": "none"}
-		"instrument": return {"instrument": "none"}
+		"equipment": return {"instrument": "none", "rod": "none", "equip_hidden": false}
 	return {}
 
 
-## Appearance + worn gear -> the full look for the body builder.
-static func compose(appearance: Dictionary, equipped: Dictionary) -> Dictionary:
+## Appearance + worn gear -> the full look for the body builder. `hidden`: item ids kept off the body.
+static func compose(appearance: Dictionary, equipped: Dictionary, hidden: Dictionary = {}) -> Dictionary:
 	var lk := appearance.duplicate(true)
 	var fem := str(lk.get("body", "masc")) == "fem"
 	for kind in SLOT_KEYS.keys():
 		var it: ItemData = equipped.get(kind)
+		if kind == "equipment":
+			lk.merge(bare(kind, fem), true)
 		lk.merge(it.look if it else bare(kind, fem), true)
+	var eq: ItemData = equipped.get("equipment")
+	lk["equip_hidden"] = eq != null and hidden.has(eq.id)
 	for a in ACCESSORIES:
 		lk[a] = false
 	for k in ACC_TATTER.values():

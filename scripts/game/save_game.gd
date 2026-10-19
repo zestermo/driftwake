@@ -181,7 +181,7 @@ static func format_time(secs: float) -> String:
 static func item_ref(item: ItemData) -> Array:
 	if item == null:
 		return []
-	if item.is_gear() and item.gear_slot != "instrument":
+	if item.is_gear() and item.gear_slot != "equipment":
 		return ["gear", item.gear_slot, item.icon_kind, item.look, item.display_name, int(item.rarity)]
 	return ["id", item.id]
 
@@ -256,6 +256,7 @@ static func save(player: Player) -> bool:
 		"items": items,
 		"quick": inv.quick,
 		"worn": worn,
+		"equip_hidden": player.equipment.hidden.keys(),
 		"weapon": item_ref(player.equipped_weapon),
 		"offhand": item_ref(player.offhand_weapon),
 		"loadouts": player.loadouts.duplicate(true),
@@ -346,7 +347,11 @@ static func load_into(player: Player) -> bool:
 	for slot in worn.keys():
 		var it := item_from(worn[slot])
 		if it:
-			player.equipment.slots[slot] = it
+			# (saves before v1.18's equipment slot wore an instrument in "instrument")
+			player.equipment.slots["equipment" if slot == "instrument" else slot] = it
+	player.equipment.hidden.clear()
+	for id in data.get("equip_hidden", []):
+		player.equipment.hidden[str(id)] = true
 	player.refresh_look()
 	var w := item_from(data.get("weapon", []))
 	if w:
