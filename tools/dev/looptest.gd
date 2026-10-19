@@ -1,6 +1,6 @@
 extends SceneTree
 ## The gameplay loop (step 2b): the ship's storage chest (store, take back,
-## saved), resting in the bunk, restocking at the galley, dying (your bag on a
+## saved), resting in the bunk, cooking at the galley, dying (your bag on a
 ## grave where you fell, worn gear and weapons in hand kept; waking by the
 ## bunk), the grave saved and loaded, dying again (the old grave sinks), getting
 ## your things back, and summoning the ship (refused inland; to the water by
@@ -104,13 +104,11 @@ func _process(d: float) -> bool:
 			check("resting in the bunk: back to full (%s)" % msg, p.health_component.current_health == p.health_component.max_health)
 			# --- the galley
 			var inv = p.inventory_component
-			while inv.count("rum") > 0:
-				inv.take_amount(inv.find_index("rum"), 1)
-			inv.assign_hotbar(0, "rum")
-			msg = gm.restock(p)
-			check("the galley restocks the quick-slot rum to %d (%s)" % [gm.RESTOCK_CAP, msg], inv.count("rum") == gm.RESTOCK_CAP)
-			msg = gm.restock(p)
-			check("...and not past it (%s)" % msg, inv.count("rum") == gm.RESTOCK_CAP and msg.contains("full"))
+			give("fish", 1)
+			give("rice", 1)
+			var n: int = gm.galley_portions()
+			msg = Food.cook(p, "fish_stew", n)
+			check("the galley cooks fish and rice into %d stew (%s)" % [n, msg], msg == "" and inv.count("fish_stew") == n and inv.count("rice") == 0)
 			# --- dying ashore
 			give("pistol", 1)
 			stand_ashore()

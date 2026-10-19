@@ -25,7 +25,7 @@ func check(what: String, cond: bool) -> void:
 
 func _kinds(id: String) -> Array:
 	var out: Array = []
-	for e in SHOPS.SHOPS[id]["stock"]:
+	for e in SHOPS.SHOPS[id]["stock"] + SHOPS.SHOPS[id].get("pool", []):
 		var it: ItemData = SHOPS.item_of(e)
 		out.append("instrument" if Instruments.kind_of(it) != "" else ["loot", "weapon", "consumable", "gear"][int(it.item_type)])
 	return out

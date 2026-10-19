@@ -39,6 +39,8 @@ func _process(_d: float) -> bool:
 			check("the captain's interaction zone still looks", p.interaction_component.monitoring)
 			p.global_position = stage.chest.global_position + Vector3(-1.2, 0.05, 0.0)
 			p.reset_physics_interpolation()
+			# (what's in it as it is: the economy's roll is t/economy's)
+			stage.chest.rolled = true
 			until = TK.wait_ticks(10)
 		1:
 			var it = p.interaction_component.current_interactable

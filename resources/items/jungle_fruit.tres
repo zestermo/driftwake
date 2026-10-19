@@ -15,3 +15,4 @@ item_type = 2
 icon = ExtResource("2")
 heal_amount = 15.0
 use_time = 0.6
+ingredient = "fruit"

@@ -269,6 +269,7 @@ const SOUNDS := {
 	"open": ["ui_open", -6.0], "close": ["ui_close", -6.0], "equip": ["equip", -5.0], "unequip": ["unequip", -5.0],
 	"buy": ["ui_buy", -5.0], "sell": ["ui_sell", -5.0], "coin": ["coin", -8.0], "level_up": ["level_up", -3.0],
 	"quest_accept": ["quest_accept", -4.0], "quest_done": ["quest_done", -3.0], "select": ["select", -8.0],
+	"sizzle": ["sizzle", -6.0],
 }
 ## A button whose text is one of these sounds "back" when pressed, the rest "confirm".
 const BACK_WORDS := ["Back", "Cancel", "Close", "Leave", "Resume", "Not yet", "No"]

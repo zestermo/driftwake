@@ -84,6 +84,7 @@ func _ready() -> void:
 	_build_feed()
 	_build_bars()
 	_build_gold()
+	_build_meal()
 	_build_compass()
 	_objective = OBJECTIVE.new()
 	_objective.name = "Objective"
@@ -135,6 +136,7 @@ func _process(delta: float) -> void:
 	_clock_t -= delta
 	if _clock_t <= 0.0:
 		_clock_t = 0.25
+		_update_meal()
 		var wx := get_node_or_null("/root/Weather")
 		var clock := str(wx.clock_text()) if wx and wx.get("_scene") != null else ""
 		if Settings.get_value("video", "show_fps"):
@@ -176,6 +178,7 @@ func _process(delta: float) -> void:
 ## Big centered title card, e.g. when arriving at an island.
 func show_banner(title: String, subtitle: String = "", chime: bool = false) -> void:
 	banner_title.text = title
+	banner_title.remove_theme_color_override("font_color")
 	banner_sub.text = subtitle
 	banner_sub.visible = subtitle != ""
 	if _banner_tween:
@@ -323,6 +326,49 @@ func _build_gold() -> void:
 	add_child(_gold_box)
 
 
+## The meal you ate (Food): its icon, name and time left, top right under the gold.
+var _meal_box: HBoxContainer
+var _meal_icon: TextureRect
+var _meal_label: Label
+
+
+func _build_meal() -> void:
+	_meal_box = HBoxContainer.new()
+	_meal_box.name = "Meal"
+	_meal_box.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_meal_box.offset_left = -200; _meal_box.offset_top = 45; _meal_box.offset_bottom = 58; _meal_box.offset_right = -10
+	_meal_box.alignment = BoxContainer.ALIGNMENT_END
+	_meal_box.add_theme_constant_override("separation", 3)
+	_meal_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_meal_label = _tiny_label()
+	_meal_label.add_theme_font_size_override("font_size", 8)
+	_meal_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.45))
+	_meal_box.add_child(_meal_label)
+	_meal_icon = TextureRect.new()
+	_meal_icon.custom_minimum_size = Vector2(12, 12)
+	_meal_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_meal_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_meal_box.add_child(_meal_icon)
+	_meal_box.visible = false
+	add_child(_meal_box)
+
+
+func _update_meal() -> void:
+	var pr: Progression = player.progression if player else null
+	_meal_box.visible = pr != null and pr.meal != "" and not _menu_open
+	if not _meal_box.visible:
+		return
+	var s := ceili(pr.meal_left)
+	_meal_label.text = "%s  %d:%02d" % [Food.MEALS[pr.meal]["name"], s / 60, s % 60]
+	_meal_icon.texture = ItemDB.get_item(pr.meal).icon
+	# (its last minute blinks)
+	_meal_box.modulate.a = 1.0 if s > 60 or s % 2 == 0 else 0.45
+
+
+func meal_text() -> String:
+	return _meal_label.text if _meal_box.visible else ""
+
+
 func _gold_changed(n: int) -> void:
 	if _gold_box == null or n == _gold_seen:
 		return
@@ -384,6 +430,10 @@ func _update_reticle() -> void:
 
 func _on_item_added(item: ItemData, quantity: int) -> void:
 	_feed_add(item, quantity)
+	if item.is_weapon() and item.weapon_trait != "" and not _announced.has(item.id):
+		_announced[item.id] = true
+		show_banner(item.display_name.to_upper(), WeaponTraits.line(item.weapon_trait), true)
+		banner_title.add_theme_color_override("font_color", item.rarity_color())
 
 
 # ---- Pickup feed: "+3 Gold" rows in the top-right corner ----
@@ -392,6 +442,8 @@ const FEED_MAX := 5
 var _feed: VBoxContainer
 ## item id -> [row, quantity, time left]
 var _feed_rows: Dictionary = {}
+## Trait weapons already given their banner this session (a new weapon is an event once).
+var _announced: Dictionary = {}
 
 
 func _build_feed() -> void:

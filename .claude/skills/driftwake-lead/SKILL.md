@@ -37,8 +37,8 @@ CLAUDE.md's ("Parallel sessions", "Batch rules", "Testing strategy"); this is th
 - **Permission mode.** Agents inherit this session's mode; in auto they prompt Zach. Check
   `get_session "self"` -> permissionMode and, if it isn't bypass, `set_session_permission_mode("self",
   "bypassPermissions")` (one approval card) before the first spawn.
-- **Bench baseline** if the batch touches frame cost: agents bench before/after themselves, but note main's last
-  bench so the batch total can be judged.
+- **Bench baseline:** the lead benches main once as the batch starts (`bench.ps1 label=<batch>_before`). Agents never
+  bench (Zach, 2026-10-19); the second bench is at prepush, after everything is merged and tested.
 
 ## 2. The brief
 

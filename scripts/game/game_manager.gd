@@ -7,9 +7,6 @@ var storage: Array[ItemStack] = []
 ## Your grave (where you last died, holding your bag) - one at a time.
 var grave: LootBag = null
 var loot_bag_scene: PackedScene
-## The galley tops each quick-slot consumable up to this many (and rum if
-## you've nothing on the quick slots).
-const RESTOCK_CAP := 3
 
 var ship: Ship
 var player: Player
@@ -244,7 +241,7 @@ func _storage_contents() -> Array:
 
 
 # --------------------------------------------------------------------------
-# The crew cabin: rest in the bunk, restock at the galley
+# The crew cabin: rest in the bunk, cook at the galley (GalleyScreen)
 # --------------------------------------------------------------------------
 ## A rest in the bunk: health, stamina and energy back to full. Not with
 ## enemies about.
@@ -261,30 +258,11 @@ func rest(p: Player) -> String:
 	return "You rest a while. Fully recovered."
 
 
-## The galley tops up your quick-slot provisions (each to RESTOCK_CAP; tonics are bought, not brewed).
-func restock(p: Player) -> String:
-	var inv := p.inventory_component
-	var ids: Array = []
-	for id in inv.hotbar:
-		if str(id) != "" and not ids.has(str(id)):
-			ids.append(str(id))
-	if ids.is_empty():
-		ids = ["rum"]
-	var got: Array = []
-	# (the galley line stocks more of each; tests restock with no ship about)
+## Portions of each dish the ship's galley cooks from one set of ingredients (its Galley & bunks line;
+## tests cook with no ship about: one).
+func galley_portions() -> int:
 	var s := _get_ship()
-	var cap := RESTOCK_CAP + (int(ShipLines.total(s.kit, "restock")) if s else 0)
-	for id in ids:
-		var it := ItemDB.get_item(id)
-		var have := inv.count(id)
-		if it == null or have >= cap or it.use_anim == "tonic":
-			continue
-		var n := mini(cap - have, inv.room_for(it))
-		if n > 0 and inv.add_item(it, n):
-			got.append("%d %s" % [n, it.display_name])
-	if got.is_empty():
-		return "Your provisions are full"
-	return "Restocked: " + ", ".join(got)
+	return 1 + (int(ShipLines.total(s.kit, "portions")) if s else 0)
 
 
 func _on_player_died() -> void:

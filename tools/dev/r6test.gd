@@ -157,9 +157,9 @@ func _process(d: float) -> bool:
 		3:
 			# --- quick items
 			var inv = p.inventory_component
-			check("3 quick slots, rum first, no weapons", inv.hotbar.size() == 3 and inv.hotbar[0] == "rum" and not inv.hotbar.has("cutlass"))
+			check("rum is the quick item", inv.quick == "rum")
 			inv.add_item(load("res://resources/items/pistol.tres"), 1)
-			check("picked-up weapons don't take a quick slot", not inv.hotbar.has("pistol"))
+			check("a picked-up weapon isn't the quick item", inv.quick == "rum")
 			# --- power aura after a fruit skill
 			var slot: int = pc.loadout.find("vine_snare")
 			pc.energy = pc.max_energy()

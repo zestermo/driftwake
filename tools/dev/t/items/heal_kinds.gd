@@ -1,6 +1,6 @@
 extends SceneTree
 ## Each food plays its own action: stew slurped from a bowl (heals at the end), a biscuit bitten (you walk slower
-## while eating); the galley restocks but doesn't brew tonics.
+## while eating).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -41,8 +41,6 @@ func _process(_d: float) -> bool:
 			p = stage.player
 			for id in ["stew", "biscuit"]:
 				p.inventory_component.add_item(item(id), 3)
-			# (one tonic: short of the galley's cap, so only the rule can keep it from brewing more)
-			p.inventory_component.add_item(item("tonic"), 1)
 			start("stew")
 			check("stew: slurped from a bowl", p.body_model.current_action() == "slurp" and str(p.body_model._left_prop.mesh.get_meta("model")) == "bowl")
 			until = TK.wait_secs(1.2)
@@ -56,8 +54,6 @@ func _process(_d: float) -> bool:
 			var v := Vector2(p.velocity.x, p.velocity.z).length()
 			check("walking while eating is slower (%.2f m/s)" % v, v > 0.5 and v < p.move_speed * 0.6)
 			Input.action_release("move_forward")
-			p.inventory_component.assign_hotbar(2, "tonic")
-			check("the galley doesn't brew tonics", not str(root.get_node("GameManager").restock(p)).contains("Sea Tonic"))
 			return TK.done(fails)
 	step += 1
 	return false
