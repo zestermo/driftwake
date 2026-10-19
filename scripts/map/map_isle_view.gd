@@ -18,11 +18,18 @@ const BOTTOM := 22.0
 const SIDE := 12.0
 ## Metres of sea round the land left out when the page fits an island.
 const TRIM := 50.0
+## The zooms (x the fit): the whole island, then closer in round our captain.
+const ZOOMS := [1.0, 2.0, 3.5]
+## How fast the view moves to a new zoom (1/s).
+const GLIDE := 12.0
 
 var d: Dictionary = {}
-## The island point at the frame's middle, and page px per metre.
+## The island point at the frame's middle, and page px per metre (gliding to the zoom's).
 var centre := Vector2.ZERO
 var k := 1.0
+var zoom := 0
+var _fit_k := 1.0
+var _fit_c := Vector2.ZERO
 var frame: Control
 var _land: Control
 var _under: Control
@@ -72,8 +79,11 @@ func show_isle(isle: Dictionary, page: Vector2) -> void:
 	frame.position = Vector2(SIDE, TOP)
 	frame.size = page - Vector2(SIDE * 2.0, TOP + BOTTOM)
 	var view := (d["rect"] as Rect2).grow(-TRIM)
-	centre = view.get_center()
-	k = minf(frame.size.x / view.size.x, frame.size.y / view.size.y)
+	_fit_c = view.get_center()
+	_fit_k = minf(frame.size.x / view.size.x, frame.size.y / view.size.y)
+	zoom = 0
+	centre = _fit_c
+	k = _fit_k
 	var htex := MapIsles.heights_tex(d)
 	for c in [_land, _fog]:
 		var m := c.material as ShaderMaterial
@@ -92,12 +102,41 @@ func refresh() -> void:
 		(c as Control).queue_redraw()
 
 
-func _process(_delta: float) -> void:
+## One zoom in (+1) or out (-1); false when there's no further that way.
+func step_zoom(by: int) -> bool:
+	var z := zoom + by
+	if z < 0 or z >= ZOOMS.size():
+		return false
+	zoom = z
+	return true
+
+
+## Where the view goes: the whole island, or (zoomed) round our captain, kept on the island's square.
+func _aim() -> Array:
+	var kk: float = _fit_k * ZOOMS[zoom]
+	if zoom == 0:
+		return [_fit_c, kk]
+	var me := get_tree().get_first_node_in_group("player") as Node3D
+	var c := Vector2(me.global_position.x, me.global_position.z) - (d["o"] as Vector2)
+	var half := frame.size * 0.5 / kk
+	var r: Rect2 = d["rect"]
+	return [c.clamp(r.position + half, r.end - half), kk]
+
+
+func _process(delta: float) -> void:
 	if d.is_empty() or not is_visible_in_tree():
 		return
+	var aim := _aim()
+	var w := 1.0 - exp(-GLIDE * delta)
+	var moved: bool = (centre - aim[0]).length() * k > 0.25 or absf(k - aim[1]) > 0.0005
+	if moved:
+		centre = centre.lerp(aim[0], w)
+		k = lerpf(k, aim[1], w)
 	if _fog_v != MapFog.version:
 		_fog_v = MapFog.version
 		_upload_fog()
+		refresh()
+	elif moved:
 		refresh()
 	else:
 		_over.queue_redraw()
@@ -203,7 +242,7 @@ func _draw_over() -> void:
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
 	if ship:
 		arrow(_over, world_to_frame(Vector2(ship.global_position.x, ship.global_position.z)), ship.global_rotation.y, 7.0, SHIP)
-	for p in Net.all_players():
+	for p in get_tree().get_nodes_in_group("players"):
 		var pl := p as Node3D
 		var c := world_to_frame(Vector2(pl.global_position.x, pl.global_position.z))
 		var yaw: float = p.player_model.global_rotation.y

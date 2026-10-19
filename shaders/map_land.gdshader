@@ -3,9 +3,11 @@ shader_type canvas_item;
 // height grid) inked like a sea chart, or with fog_pass the fog of war over what the crew hasn't seen.
 // Hard-edged on purpose: every line is a whole page pixel, no smoothing.
 
-uniform sampler2D heights : filter_linear, repeat_disable;
+uniform sampler2D heights : filter_linear_mipmap, repeat_disable;
 uniform sampler2D fog : filter_linear, repeat_disable;
 uniform bool fog_pass = false;
+// On the sea chart: the sea left as the chart's own paper, only the land and its shore drawn.
+uniform bool sea_clear = false;
 // The height grid's cells a side (the texture is one more), the island's metres a side,
 // and the fog's share of that: the fog grid is a little bigger than the height grid.
 uniform float cells = 260.0;
@@ -51,7 +53,13 @@ void fragment() {
 		float h = texture(heights, (UV * cells + 0.5) / (cells + 1.0)).r;
 		float w = fwidth(h);
 		vec3 c;
-		if (h < 0.0) {
+		if (sea_clear) {
+			// the chart's few pixels an island: flat land by height, an inked edge
+			if (h < 0.0) {
+				discard;
+			}
+			c = h < max(w, 1.5) ? ink.rgb : mix(low.rgb, high.rgb, clamp(h / 40.0, 0.0, 1.0));
+		} else if (h < 0.0) {
 			float band = floor(clamp(-h / 5.0, 0.0, 2.0));
 			c = mix(shallow.rgb, deep.rgb, band * 0.5);
 			// a dotted ring of shallows off the shore
@@ -65,7 +73,7 @@ void fragment() {
 				c = mix(c, ink.rgb, 0.35);
 			}
 		}
-		if (abs(h) < w * 1.1) {
+		if (!sea_clear && abs(h) < w * 1.1) {
 			c = ink.rgb;
 		}
 		COLOR = vec4(c, 1.0);
