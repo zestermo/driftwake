@@ -8,8 +8,9 @@ extends Control
 ## the island the crew is at and the ones the log pose points to, each with
 ## its theme, level and danger, and a course line to each.
 ## On an island it opens on the island's own page (MapIsleView: the fog of war, `?` marks, what's
-## been found); the mouse wheel goes between that and the chart. The mouse is a pen on it (`pen`,
-## `press`): marks are set and taken off where it points.
+## been found); the wheel zooms: in round the captain, out to the whole island, out again to the
+## chart, where the islands standing in the world that we've charted show their real coasts. The
+## mouse is a pen on it (`pen`, `press`): marks are set and taken off where it points.
 
 const SIZE := Vector2(448, 256)
 ## World metres from Brinehollow shown to each edge (the chart is square-ish).
@@ -36,6 +37,11 @@ var on_isle := false
 ## Where the pen points (page px), drawn over everything.
 var pen := Vector2(-20, -20)
 var _nib: Control
+## Behind the chart's ink: the paper, then each standing island's land (key -> Control), and the
+## names of the islands drawn that way this frame (no circle for them).
+var _paper: Control
+var _lands := {}
+var _landed := {}
 
 
 func _init() -> void:
@@ -43,6 +49,17 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_font = load("res://assets/fonts/Silkscreen-Regular.woff2")
 	_font_big = load("res://assets/fonts/PixelifySans-Regular.woff2")
+	_paper = Control.new()
+	_paper.name = "Paper"
+	_paper.show_behind_parent = true
+	_paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_paper.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_paper.draw.connect(func():
+		var ink := Color(0.3, 0.2, 0.12)
+		_paper.draw_rect(Rect2(Vector2.ZERO, SIZE), MapIsleView.PAPER)
+		_paper.draw_rect(Rect2(Vector2(5, 5), SIZE - Vector2(10, 10)), Color(ink, 0.7), false, 1.0)
+		_paper.draw_rect(Rect2(Vector2(8, 8), SIZE - Vector2(16, 16)), Color(ink, 0.35), false, 1.0))
+	add_child(_paper)
 	isle = MapIsleView.new()
 	isle.visible = false
 	add_child(isle)
@@ -75,6 +92,57 @@ func show_isle(on: bool) -> void:
 func _process(_delta: float) -> void:
 	queue_redraw()
 	_nib.queue_redraw()
+	var w := _world()
+	if w:
+		_view(w, get_node("/root/GameManager"))
+		_place_lands()
+
+
+## The standing islands' land on the chart (charted ones, and the one we're at), from their heights
+## through map_land.gdshader with the sea left as the chart's paper.
+func _place_lands() -> void:
+	var gm := get_node("/root/GameManager")
+	var keep := {}
+	_landed.clear()
+	for d in MapIsles.all(get_tree()):
+		var key := str(d["key"])
+		keep[key] = true
+		if not _lands.has(key):
+			_lands[key] = _land_for(d)
+		var c: Control = _lands[key]
+		var r: Rect2 = d["rect"]
+		var o: Vector2 = d["o"]
+		var known: bool = key == "brinehollow" or gm.charted.has("island:" + str(d["name"])) or (gm.chain_at >= 0 and key == "isle%d" % gm.chain_at)
+		c.visible = not on_isle and known and _inside(o + r.get_center())
+		if c.visible:
+			_landed[str(d["name"])] = true
+			var at := SIZE * 0.5 + (o + r.position - _centre) * _k
+			if c.position != at or c.size != r.size * _k:
+				c.position = at
+				c.size = r.size * _k
+				c.queue_redraw()
+	for key in _lands.keys():
+		if not keep.has(key):
+			(_lands[key] as Node).queue_free()
+			_lands.erase(key)
+
+
+func _land_for(d: Dictionary) -> Control:
+	var c := Control.new()
+	c.name = "Land_" + str(d["key"])
+	c.show_behind_parent = true
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var m := ShaderMaterial.new()
+	m.shader = MapIsleView.LAND
+	m.set_shader_parameter("sea_clear", true)
+	m.set_shader_parameter("heights", MapIsles.heights_tex(d))
+	m.set_shader_parameter("cells", float(d["cells"]))
+	m.set_shader_parameter("extent", (d["rect"] as Rect2).size.x)
+	c.material = m
+	c.draw.connect(func(): c.draw_texture_rect(MapIsles.heights_tex(d), Rect2(Vector2.ZERO, c.size), false))
+	add_child(c)
+	move_child(c, 1)
+	return c
 
 
 ## The pen: a nib over the page with its point at `pen`.
@@ -142,9 +210,6 @@ func _shown(p: Vector2) -> bool:
 
 func _draw() -> void:
 	var ink := Color(0.3, 0.2, 0.12)
-	draw_rect(Rect2(Vector2.ZERO, SIZE), MapIsleView.PAPER)
-	draw_rect(Rect2(Vector2(5, 5), SIZE - Vector2(10, 10)), Color(ink, 0.7), false, 1.0)
-	draw_rect(Rect2(Vector2(8, 8), SIZE - Vector2(16, 16)), Color(ink, 0.35), false, 1.0)
 	var sea_ink := Color(0.55, 0.62, 0.62, 0.5)
 	if on_isle:
 		_draw_isle_page(ink)
@@ -239,6 +304,10 @@ func _draw() -> void:
 		var c := _to_chart(Vector2(me.global_position.x, me.global_position.z))
 		draw_circle(c, 3.0, Color(0.85, 0.15, 0.1))
 		draw_arc(c, 5.0, 0.0, TAU, 12, Color(0.85, 0.15, 0.1), 1.0)
+	# the crew: a dot each in their colour
+	for p in get_tree().get_nodes_in_group("players"):
+		if not p.is_local:
+			draw_circle(_to_chart(Vector2(p.global_position.x, p.global_position.z)), 2.5, Net.crew_color(p.net_id).darkened(0.35))
 	_north(ink)
 	# the crew's marks: numbered flags in their colours
 	for id in Net.waypoints.keys():
@@ -263,7 +332,7 @@ func _north(ink: Color) -> void:
 func _hints() -> void:
 	var pairs: Array = [["LMB", "MARK"], ["RMB", "UNMARK"], ["C", "CLEAR"]]
 	if not isle.d.is_empty():
-		pairs.append(["WHEEL", "SEA CHART" if on_isle else "ISLAND"])
+		pairs.append(["WHEEL", "ZOOM"])
 	pairs.append(["M", "PUT AWAY"])
 	UIStyle.draw_hints(self, Vector2(14, SIZE.y - 10), pairs, _font, true)
 
@@ -324,6 +393,8 @@ func _chain_island(n: Dictionary, radius: float, col: Color, here: bool) -> void
 		var s := Vector2(-d.y, d.x)
 		draw_colored_polygon(PackedVector2Array([c + d * 7.0, c - d * 3.0 + s * 5.0, c - d * 3.0 - s * 5.0]), col)
 		r = 6.0
+	elif _landed.has(str(n["name"])):
+		pass
 	elif radius > 0.0:
 		draw_circle(c, r, Color(0.66, 0.55, 0.35))
 		draw_arc(c, r, 0.0, TAU, 24, Color(0.4, 0.3, 0.18), 1.5)
@@ -355,8 +426,15 @@ func _chain_island(n: Dictionary, radius: float, col: Color, here: bool) -> void
 ## A mouse button with the pen at `at` (page px): the wheel goes between the island and the chart; a
 ## click sets a mark there (up to Net.MAX_WAYPOINTS of ours); a right-click near one of ours takes it off.
 func press(button: int, at: Vector2) -> void:
-	if button in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-		show_isle(button == MOUSE_BUTTON_WHEEL_UP)
+	if button == MOUSE_BUTTON_WHEEL_UP:
+		if not on_isle:
+			show_isle(true)
+		else:
+			isle.step_zoom(1)
+		return
+	if button == MOUSE_BUTTON_WHEEL_DOWN:
+		if on_isle and not isle.step_zoom(-1):
+			show_isle(false)
 		return
 	var w := _world()
 	if w == null:
@@ -395,6 +473,7 @@ func _island(pos: Vector2, radius: float, nm: String) -> void:
 		return
 	var c := _to_chart(pos)
 	var r := maxf(radius * _k, 4.0)
-	draw_circle(c, r, Color(0.66, 0.55, 0.35))
-	draw_arc(c, r, 0.0, TAU, 16, Color(0.4, 0.3, 0.18), 1.5)
+	if not _landed.has(nm):
+		draw_circle(c, r, Color(0.66, 0.55, 0.35))
+		draw_arc(c, r, 0.0, TAU, 16, Color(0.4, 0.3, 0.18), 1.5)
 	draw_string(_font, c + Vector2(-r, r + 9.0), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.3, 0.2, 0.12))
