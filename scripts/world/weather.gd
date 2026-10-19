@@ -372,16 +372,45 @@ func _process(delta: float) -> void:
 		_zone_style = KitStyle.of(_zone[0])
 	_update_lightning(t, delta)
 	in_cloud = move_toward(in_cloud, _cloud_target, delta * 2.0)
+	_check_under(cam)
 	_slow_t -= delta
-	if _slow_t <= 0.0 or flash != _flash_set or in_cloud != _cloud_set:
+	if _slow_t <= 0.0 or flash != _flash_set or in_cloud != _cloud_set or under_water != _under_set or absf(_under_depth - _depth_set) > 0.5:
 		_slow_t = SLOW_EVERY
 		_flash_set = flash
 		_cloud_set = in_cloud
+		_under_set = under_water
+		_depth_set = _under_depth
 		_update_slow(t)
 	_drift_sky(delta)
 	_update_rain(delta)
 	_update_rays()
 	_update_audio(delta)
+
+
+## Under the sea (the camera below the waves, on a dive): the fog closes in blue-green, darker and nearer with
+## depth, a tint over the screen, and the sea's underside drawn.
+const UNDER_SHALLOW := Color(0.13, 0.45, 0.47)
+const UNDER_DEEP := Color(0.02, 0.12, 0.2)
+## Depth (m) where it's darkest, and how far you see (m) just under the surface / at that depth.
+const UNDER_DARK := 22.0
+const UNDER_SEE := Vector2(34.0, 13.0)
+const UNDER_TINT := 0.22
+var under_water := false
+var _under_depth := 0.0
+var _under_set := false
+var _depth_set := 0.0
+
+
+func _check_under(cam: Camera3D) -> void:
+	under_water = false
+	_under_depth = 0.0
+	# (well over the highest crest there's nothing to ask; an inland pool's swimmers are under 2.5 m of it)
+	if cam == null or (cam.global_position.y > 2.5 * Ocean.amp_mult and Ocean.pools.is_empty()):
+		return
+	var surf := float(Ocean.surface_at(cam.global_position))
+	if cam.global_position.y < surf - 0.05:
+		under_water = true
+		_under_depth = surf - cam.global_position.y
 
 
 ## The weather's blend, sun, sky, fog and 3D clouds: SLOW_EVERY s apart, every frame while a flash or the whiteout changes.
@@ -563,6 +592,14 @@ func _update_env() -> void:
 		end = lerpf(end, 65.0, murk)
 		begin = lerpf(begin, 0.0, in_cloud)
 		end = lerpf(end, 28.0, in_cloud)
+		if under_water:
+			var deep := clampf(_under_depth / UNDER_DARK, 0.0, 1.0)
+			var wc := UNDER_SHALLOW.lerp(UNDER_DEEP, deep) * lerpf(1.0, 0.22, night) * (1.0 - storm * 0.4)
+			fogc = Color(wc.r, wc.g, wc.b)
+			_env.fog_light_color = fogc
+			begin = 0.5
+			end = lerpf(UNDER_SEE.x, UNDER_SEE.y, deep)
+			_env.ambient_light_energy *= lerpf(0.9, 0.5, deep)
 		_env.fog_depth_begin = begin
 		_env.fog_depth_end = end
 		_env.fog_sky_affect = 0.0
@@ -582,9 +619,12 @@ func _update_env() -> void:
 		_ocean_mat.set_shader_parameter("shallow_color", sc)
 		_ocean_mat.set_shader_parameter("whitecaps", whitecaps())
 		_ocean_mat.set_shader_parameter("wind_dir", wind_dir())
+		_ocean_mat.set_shader_parameter("under_sea", 1.0 if under_water else 0.0)
 	if _overlay:
 		_overlay.color = Color(0.9, 0.92, 0.95, in_cloud * 0.55)
-		_overlay.visible = in_cloud > 0.01
+		if under_water:
+			_overlay.color = Color(fog_color.r, fog_color.g, fog_color.b, UNDER_TINT)
+		_overlay.visible = in_cloud > 0.01 or under_water
 
 
 ## Every frame: the sky's clouds and the cloud shadows on the ground and sea (shaders/world/cloud_shadow.gdshaderinc) drift.

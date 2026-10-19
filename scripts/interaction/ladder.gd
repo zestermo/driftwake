@@ -1,8 +1,8 @@
 class_name Ladder
 extends Node3D
-## Rope ladder hanging down a ship's side, a dock or a tower: swim up to it (or
-## stand at its foot) and press F or Space to grab on, or F at its head on deck
-## to climb down (ClimbState).
+## Rope ladder hanging down a ship's side, a dock or a tower: swim into it and you
+## take hold (or press F or Space by it, or stand at its foot), or F at its head on
+## deck to climb down (ClimbState).
 ## Local frame: the origin is where you step off at the top (deck / dock
 ## surface, at the edge), the ladder hangs down along -Y, +Z faces the water
 ## (where the climber is) and -Z points onto the deck.
@@ -109,7 +109,7 @@ func _build_mesh() -> void:
 ## Close enough (in front of the rungs) to grab on?
 func in_reach(p: Vector3) -> bool:
 	var l := to_local(p)
-	return not _stowed and absf(l.x) < 0.9 and l.z > -0.2 and l.z < 1.5 and l.y < rail - 0.6 and l.y > -length - 2.2
+	return not _stowed and absf(l.x) < 1.1 and l.z > -0.2 and l.z < 1.8 and l.y < rail - 0.6 and l.y > -length - 2.2
 
 
 ## On deck (or the dock) right at its head, inside the rail?

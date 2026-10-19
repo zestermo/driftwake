@@ -73,7 +73,8 @@ func _process(d: float) -> bool:
 			print("   dive depth ", snappedf(p.water_depth() - y0, 0.01))
 			check("Ctrl ducks under", p.water_depth() > y0 + 0.8 and head_above() < 0.0)
 			Input.action_release("dodge")
-			wait = 1.5
+			# (let go, a diver drifts up slowly: a few seconds from where a 1 s dive got to)
+			wait = 5.0
 		5:
 			check("bobs back up", head_above() > -0.05)
 			p.stamina = 0.0

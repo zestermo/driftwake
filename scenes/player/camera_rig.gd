@@ -166,13 +166,17 @@ func _process(delta: float) -> void:
 			target_pos = target_pos.lerp(_map_focus.get_global_transform_interpolated().origin, me)
 		# exponential weight: the same follow at 30 fps and at 165 fps (on the map, held to it)
 		global_position = global_position.lerp(target_pos, lerpf(1.0 - exp(-follow_speed * delta), 1.0, me))
-		# keep the camera above the waves (swimming, diving, falling in)
+		# keep the camera above the waves (swimming, falling in), or under them with a captain deep on a dive
 		var ocean := get_node_or_null("/root/Ocean")
 		if ocean and camera:
 			var cam_p := camera.global_position
-			var wy := float(ocean.call("surface_at", cam_p)) + 0.35
-			if cam_p.y < wy:
-				global_position.y += wy - cam_p.y
+			var surf := float(ocean.call("surface_at", cam_p))
+			var swim := target.get_node_or_null("StateMachine/Swim")
+			if swim and swim.has_method("camera_under") and swim.camera_under():
+				if cam_p.y > surf - 0.35:
+					global_position.y -= cam_p.y - (surf - 0.35)
+			elif cam_p.y < surf + 0.35:
+				global_position.y += surf + 0.35 - cam_p.y
 
 	if e > 0.0:
 		shoulder = lerpf(shoulder, _showcase_offset(), e)

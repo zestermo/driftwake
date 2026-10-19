@@ -18,6 +18,7 @@ const SOUNDS := [
 	"draw_dagger", "sheathe_dagger", "draw_pistol", "gun_spin", "holster",
 	"laugh", "cheer", "hup", "heel_click", "slap",
 	"slice", "slice_heavy", "chop", "punch", "punch_heavy", "shot_hit", "clash",
+	"fin_sting", "jelly_zap",
 ]
 
 var _dust_mat: StandardMaterial3D
@@ -599,6 +600,13 @@ func splash(pos: Vector3, amount: int = 4, size: float = 0.6) -> void:
 	var oc := get_node_or_null("/root/Ocean")
 	if size >= 0.7 and amount >= 5 and oc and absf(pos.y - float(oc.surface_at(pos))) < 1.2:
 		water_ring(pos, size * 1.5 + amount * 0.06)
+
+
+## Bubbles wobbling up through the water (a diver's breath, a gasp, a chest's lid): a few pale specks rising.
+func bubbles(pos: Vector3, amount: int = 3) -> void:
+	_burst(pos, amount, _spark_mat, 0.09, 1.3, {
+		"radius": 0.1, "spread": 20.0, "vel_min": 0.5, "vel_max": 1.1, "gravity": Vector3(0, 1.8, 0), "damping": 0.4,
+		"explosiveness": 0.6, "grow": false, "hold": true, "color": Color(0.82, 0.95, 1.0, 1.0)})
 
 
 ## Foam rings racing out on the water from `pos`, riding the swell as they go.

@@ -315,11 +315,13 @@ static func _perk(id: String, name_: String, region: String, lv: int, row: int, 
 static func _build_life() -> void:
 	_life_root("swim", 0, "Swimming", "Swimming", "Swim to build it: every stretch of open water you cross counts. Its perks come by themselves as it grows.")
 	_perk("sw_strokes", "Strong Strokes", "Swimming", 2, 1, "swim_root", {"swim_pct": 0.1}, "You swim 10% faster.")
-	_perk("sw_lungs", "Deep Lungs", "Swimming", 4, 2, "sw_strokes", {"max_stamina": 10.0}, "+10 max stamina.")
+	_perk("sw_lungs", "Deep Lungs", "Swimming", 4, 2, "sw_strokes", {"max_stamina": 10.0, "breath_pct": 0.5},
+		"You hold your breath half as long again on a dive, and +10 max stamina.")
 	_perk("sw_born", "Sea Born", "Swimming", 7, 3, "sw_lungs", {"swim_pct": 0.15}, "You swim another 15% faster.")
-	_perk("sw_wind", "Second Wind", "Swimming", 10, 4, "sw_born", {"stamina_regen_pct": 0.1}, "Stamina refills 10% faster.")
-	_perk("sw_child", "Child of the Sea", "Swimming", 15, 5, "sw_wind", {"swim_pct": 0.15, "max_stamina": 15.0},
-		"You swim another 15% faster, and +15 max stamina.")
+	_perk("sw_wind", "Second Wind", "Swimming", 10, 4, "sw_born", {"stamina_regen_pct": 0.1, "breath_refill_pct": 1.0},
+		"Stamina refills 10% faster, and your breath comes back twice as fast at the surface.")
+	_perk("sw_child", "Child of the Sea", "Swimming", 15, 5, "sw_wind", {"swim_pct": 0.15, "max_stamina": 15.0, "breath_pct": 0.5, "sea_resist": 0.5},
+		"You swim another 15% faster, hold your breath longer still, +15 max stamina, and currents, surf, swell and cold have half the hold on you.")
 
 	_life_root("sea", 1, "Seamanship", "Seamanship", "Sail her, fight her guns and keep her afloat to build it. Its perks count at the station you're manning: the helm, a gun, the pump, a hole or a fire.")
 	_perk("sea_hand", "Sea Hand", "Seamanship", 2, 1, "sea_root", {"helm_speed": 0.04, "repair": 0.3},

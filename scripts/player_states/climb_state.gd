@@ -13,8 +13,9 @@ const LADDER_UP := 1.9
 const LADDER_DOWN := 2.4
 const RIG_UP := 2.8
 const RIG_DOWN := 3.2
-## Holding on one-handed is slower.
+## Holding on one-handed is slower; Shift held (both hands free) hurries you up and down.
 const ARMED_MULT := 0.6
+const HURRY := 1.45
 const CHOP_TIME := 0.5
 const CHOP_ON := 0.26
 const CHOP_OFF := 0.38
@@ -91,14 +92,16 @@ func enter(data: Dictionary) -> void:
 		var fwd: Vector3 = data["fwd"]
 		var start := player.global_position
 		var hang := Vector3(edge.x, edge.y - 0.95, edge.z) - fwd * 0.42
+		# (a high ledge out of the water: a longer reach and a harder haul)
+		var k := 1.3 if data.get("high", false) else 1.0
 		if anchor:
 			start = anchor.to_local(start)
 			hang = anchor.to_local(hang)
 			var e := anchor.to_local(edge - fwd * 0.1 + Vector3.UP * 0.05)
 			var tp := anchor.to_local(top)
-			_play([[0.0, start], [0.18, hang], [0.5, e], [0.78, tp]], "idle")
+			_play([[0.0, start], [0.18 * k, hang], [0.5 * k, e], [0.78 * k, tp]], "idle")
 			_yaw_local = _local_yaw(anchor, fwd)
-		total = 0.78
+		total = 0.78 * k
 		player.body_model.play("mantle", total)
 		Net.fx("splash", [Vector3(player.global_position.x, player.water_surface(), player.global_position.z), 5, 0.6])
 		Net.fx("sfx", ["splash", player.global_position, -8.0, 0.1, 1.2])
@@ -193,7 +196,7 @@ func _hang(delta: float) -> void:
 	var mv := -get_movement_input().y
 	if _chop_t >= 0.0:
 		mv = 0.0
-	var k := ARMED_MULT if player.armed else 1.0
+	var k := ARMED_MULT if player.armed else (HURRY if Input.is_action_pressed("sprint") else 1.0)
 	if mv > 0.1:
 		s += mv * (LADDER_UP if _lad else RIG_UP) * k * delta
 	elif mv < -0.1:

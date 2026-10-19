@@ -37,6 +37,9 @@ scripts/island/kit/kit_quests.gd        t/quests netchain
 scripts/island/themes/*_life.gd         t/quests
 scripts/island/themes/*_encounters.gd   t/quests
 scripts/island/island_village.gd        t/quests isletest
+tools/dev/t/swim/*                      t/swim
+scripts/swim/*                          t/swim swimtest
+scenes/ocean/ocean.gdshader             t/swim
 assets/textures/fx/flip_*               t/fx
 assets/textures/fx/water_trail*         t/fx
 scripts/game/water_ribbon.gd            t/fx techtest
@@ -69,7 +72,7 @@ scripts/player_states/block*            r6test
 scripts/player_states/parry*            grunttest
 scripts/player_states/stagger*          grunttest
 scripts/player_states/downed*           ragtest decktest net
-scripts/player_states/swim*             swimtest watertest
+scripts/player_states/swim*             swimtest watertest t/swim
 scripts/player_states/climb*            riggingtest swimtest
 scripts/player_states/swing*            vinetest riggingtest
 scripts/player_states/cannon*           r8test

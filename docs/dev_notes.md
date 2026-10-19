@@ -3930,6 +3930,114 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - **sea_chart.gd**: M on an island opens on its page, at sea on the chart; the mouse wheel goes between them; marks set on either.
 - Tests: `t/map/` fog_reveal, spot_marks, fog_shared (the stub island `tools/dev/map_stub_isle.gd`). Render: `heldmapshot`.
 
+## 2026-10-19: deeper swimming, piece 1: breath, diving, dive loot (v1.18 lane E)
+Spec: docs/v1_18_plan.md ("Swimming", "Breath").
+- **Diving** (swim_state.gd): Ctrl is a duck dive (DIVE_KICK 3.6 m/s down, DIVE_COST 6 stamina), then you swim free under water: hold Ctrl
+  to go down (DESCEND 2.6), Space to kick up (ASCEND 3.4), neither drifts up (DRIFT_UP 0.9), DIVE_VACCEL 9; DIVE_SPEED 3.0 / DIVE_FAST 4.3
+  (Shift) x swim_pct. Back through the surface (after DIVE_MIN 0.4 s, rising, at the float height) you surface with a splash. Exhausted: you rise.
+  Strokes cost DRAIN/FAST_DRAIN under water as on top (the old DIVE_DRAIN 8/s and the 2.6 s cap are gone).
+- **Breath** (`breath`, `breath_max()` = BREATH 20 s x (1 + breath_pct)): spent only on a dive with the head under (x FAST_BREATH 1.6 at a
+  sprint), back at BREATH_REFILL 9/s x (1 + breath_refill_pct) otherwise. At BREATH_WARN 0.3 a toast and a blip; at 0 `gasping`: a toast, the
+  peril sting and GASP_DPS 6% of max health a second (0.5 s ticks, a small shake) until the head's out ("Air!"). A wave over a swimmer's head at
+  the surface never counts: plain swimming can't drown a non-fruit captain. Bubbles from the mouth (`FX.bubbles`, new, via Net.fx).
+- **Breath meter** (scripts/swim/breath_meter.gd, added by player_hud.gd): ten bubbles over the skill bar while breath isn't full in the water,
+  amber and pulsing under 30%, empty: red, "SURFACE!" flashing and a red pulse in from the screen's edges.
+- **Perks** (skill_tree.gd): Deep Lungs +50% breath (breath_pct 0.5) besides +10 stamina; Second Wind breath back twice as fast at the surface
+  (breath_refill_pct 1.0); Child of the Sea another +50% breath. Strong Strokes / Sea Born speed count under water too.
+- **Under water** (the camera follows a diver whose head is 0.9 m under, back up at 0.3: `SwimState.camera_under()` read by camera_rig.gd, which
+  otherwise keeps it above the waves as before). Weather.gd `under_water`: the fog closes in blue-green (UNDER_SHALLOW -> UNDER_DEEP by depth to
+  UNDER_DARK 22 m; you see UNDER_SEE 34 m just under, 13 m at depth), ambient dims, the overlay tints (UNDER_TINT 0.22), re-run when the depth
+  moves 0.5 m. ocean.gdshader is `cull_disabled` now: its back faces draw only with `under_sea` set (Weather), as a bright rippling window
+  overhead and a mirror of the deep further off; above water they're discarded. The wave maths is untouched.
+- **Dive sites** (scripts/swim/dive_sites.gd, "DiveSites" under WorldGenerator): off each island's coasts, 4-15 m down, clear of the dock by
+  70 m, 26 m apart: found by marching 64 bearings out from the island (150 m / 0.6 x radius) over the seabed (the island's terrain or the world's
+  under it, whichever is higher), every level point in the open-sea band a candidate. Brinehollow: a wreck, a ruin, two chests, three oyster beds,
+  two reefs (HOME_KINDS; 11 spots found); a chain island: a chest or two, 2-3 oysters, 1-2 reefs, a wreck on half, ruins on a third (its seed),
+  built when it stands, freed with it. The deepest spots take the wreck and the ruin. Kinds: `sunken_chest` (a LootBag with the treasure-chest
+  model and barnacles, usable in water, save id `dive_chest_<i>` through the island's save_key), `oyster_bed` (F: a pearl, PEARL), `reef_garden`
+  (coral and kelp, F: REEF), `sunken_wreck` (a HullBuilder wreck on her side, her chest beside her), `sunken_ruin` (a plinth, columns standing,
+  broken and fallen, an arch, a stone coffer with RUIN_LOOT). Each captain loots each once (chests are world LootBags; oysters/reefs mark
+  GameManager.opened). Bubbles at the surface over a chest still down there, and a glint under water (local, every 1.7 s within 70 m). All from
+  the seed, so a guest builds the same; nothing synced. **Item ids:** PEARL and REEF stand in as treasure and crab meat until economy (A) publishes
+  pearl / reef ingredient ids; the chests' tables move to A's loot API then.
+- Tests: t/swim/ breath_dive, out_of_breath, surface_safe, dive_loot. swimtest (not run during the batch): its "bobs back up" wait is 5 s now
+  (letting go drifts up at 0.9 m/s). Render: tools/dev/diveshot.gd.
+
+## 2026-10-19: deeper swimming, piece 2: the sea pushes back (rips, surf, storm swell, cold water)
+- **The drift** (swim_state.gd `_sea`): your stroke (`hv`) is kept apart from the drift the sea carries you on (`_drift`, easing to
+  the sea's push at DRIFT_EASE 3/s); velocity = stroke + drift. Under water the surf and the swell count DEEP_PUSH 0.35 (a rip all of
+  it). Toasts once per swim: caught in a rip, the cold, a heavy swell. Child of the Sea gains `sea_resist` 0.5 (halves push, cold, swell).
+- **Rips** (scripts/swim/sea_currents.gd, "SeaCurrents" under DiveSites, built with each island's dive spots): 3 off Brinehollow, 2 off a
+  chain island, on beaches (the bottom 1.5-7 m down 30 m out, the shore map's exposure >= 0.35), 80 m from the dock and each other: a
+  channel RIP_WIDTH 8 m from 4 m inshore of the waterline to RIP_LEN 50 m out, RIP_SPEED 2.6 m/s full across its middle half, dying away
+  over its last 45% (a plain 3.2 m/s stroke barely gains, a 4.6 sprint beats it, swimming along the shore leaves it). Telltale (each
+  screen its own, within 60 m of its middle + 25): 36 flecks of foam and churned sand a rip riding out at its speed (one MultiMesh a
+  rip, made when first near, moved every 3rd frame: each fleck samples the wave), and spray thrown seaward every 0.3 s.
+- **Surf** (scripts/swim/sea_push.gd, read from Ocean's shore maps and shore swell: nothing changes the waves): in the surf zone (shore
+  map depth 0.15-3.2 m, faded by how turned the swell is) each breaking crest shoves you toward the beach (SURF_PUSH 4.2 m/s at a full
+  crest, crest = shore swell / 0.45 m x amp_mult, squared) and a LONGSHORE 0.5 m/s current runs along the beach the way the swell runs; a
+  crest over you splashes, plays wave_break and shakes the camera a touch.
+- **Storm swell**: storm_k = (amp_mult - 1) / 0.8 + (local_swell - 1) / 1.1 (0..1.5): you're carried with the swell (STORM_DRIFT 0.9
+  m/s) and shoved down each wave's face (the wave normal x STORM_SHOVE 4), and it costs STORM_DRAIN 3 stamina/s x storm_k.
+- **Cold**: COLD_THEMES {"snow": 1} x KitStyle.around's weight (fading out 140 m past a snow island's coast): COLD_DRAIN 4.5 stamina/s
+  (treading water there it falls instead of coming back); worn out, the cold only slows the float's regen (x 1 - 0.7 cold), so it never
+  drowns you. The breath meter shows "FREEZING".
+- Tests: t/swim/rip_current (carried out treading, barely gains against it, out of it along the shore, the drift stops), cold_water
+  (a stand-in snow island: stamina falls treading where at home it rose, no health lost). The surf and the storm aren't on the stage
+  (no shore maps or storm cells): swimtest/seatest will exercise them once run. Render: diveshot's `_rip`.
+
+## 2026-10-19: deeper swimming, piece 3: sea threats (sharks, morays, jellyfish)
+- **SeaThreats** (scripts/swim/sea_threats.gd, "SeaThreats" under DiveSites, per island with its dive spots): a shark at the
+  wreck / ruin / a chest (Brinehollow 1, a chain island 1-2, size 0.95-1.25), a moray at each reef and wreck on 60%, a jellyfish
+  field or two over unused open seabed. Creatures are named and built in a fixed order from the island's seed (Threats_<key>/Shark0,
+  Moray3...), so every screen has the same ones and Creature's co-op (host runs, puppets elsewhere) applies.
+- **Shark** (scripts/enemies/sea/shark.gd, a Creature that swims: `flying`, held DEEP 2.8 m under the waves, 0.6 m over the
+  seabed it raycasts every 0.5 s): patrols a 13 m circle round home at CRUISE 3. Only a captain in the Swim state within LEASH 48 m
+  of home is fair game. Noticed within NOTICE 22 m: the **fin_sting** (new sound) and a splash, it rises to FIN 0.5 m (the dorsal fin
+  out of the water, a wake), and circles the swimmer at STALK 4.4 m/s closing 10 -> 5.5 m for STALK_FIRST 4.5 s (STALK_AGAIN 2.6 after
+  a bite). Then the tell: square on, a red lane on the water along its line (FX.lane) for TELL 0.85 s, jaw open; the charge at
+  CHARGE 10.5 m/s for 0.7 s with the bite armed (16, knockback 6, stagger 0.45), then it swims off AWAY 3.5 s. Hurt below half, it
+  breaks off once. Out of the water you're left alone. 150 hp, xp 90, drops fish. Dead: belly-up to the surface, then sinks away.
+  No knockdowns. Sleep: SeaThreats sets each shark's and moray's Creature LOD by the nearest captain every 0.4 s (awake within
+  120 m, asleep past 140, hidden past 220), the way FaunaSpawner does the islands' wildlife (Creature's `net_idle` is its LOD, so
+  ActorSleep, which writes net_idle, isn't used for them); asleep, the host sends no snapshots for them.
+- **Moray** (scripts/enemies/sea/moray.gd): in a hole in a heap of stones, head out; a swimmer within REACH 3.6 m in front: TELL 0.65
+  s (draws back, gapes, eyes lit, a burst of bubbles and a hiss), then a 1.8 m lunge (11), back in; COOL 2.4 s. Struck, it hides 5 s.
+- **Jellyfish fields**: 18 jellies over an 11 m field, 0.4-1.6 m under the surface, drifting and pulsing by Weather.world_time (the
+  same on every screen), one MultiMesh a field (a glowing bell + tentacles, brighter at night), moved every 0.08 s within 90 m. A
+  jelly within 0.95 m of a captain's body (a line feet to head) stings on that captain's machine: 7 (less armour), `stung` 2 s (the
+  stroke at x0.55), jelly_zap (new sound), a toast; 1.2 s before the next.
+- Sounds (gen_psx_audio.py): fin_sting (1.7 s: a low bowed cluster swelling with a quickening tremolo, a struck note at 1.08 s;
+  -15.2 LU, centroid 167 Hz), jelly_zap (0.42 s fizzing crackle and a falling whine; -17.3 LU, 76% in 1-2 kHz). In FX.SOUNDS.
+- Tests: t/swim/shark_telegraph (noticed, fin out, 4 s of circling with nothing landing, the 0.85 s tell, then a bite and away; a
+  captain ashore is left alone), jelly_sting (clear of the field nothing, a jelly stings and slows, not again at once). Renders:
+  diveshot `_shark_fin`, `_shark_tell`; modelshot of the shark and moray.
+
+## 2026-10-19: deeper swimming, piece 4: better strokes (burst, dolphin kick and leap, climbing out, the ladder)
+- **Burst** (swim_state.gd): a tap of Shift while stroking: DASH_SPEED 7.2 m/s (x swim_pct) for DASH_TIME 0.32 s, DASH_COST 12
+  stamina, again after DASH_CD 0.7 s (spray on top, bubbles under); held on, it's the sprint stroke as before (4.6). Enough to step
+  out of a shark's charge lane.
+- **Dolphin kick**: Shift held under water is DOLPHIN_SPEED 5.0 (was a 4.3 fast dive); humanoid.gd's dive pose goes to a dolphin
+  kick past 3.8 m/s (legs together, one big beat, the body rippling). **Dolphin leap**: Space at a sprint on top with nothing to
+  climb: up at LEAP_VY 8.2 under LEAP_GRAVITY 20 (feet ~0.15 m clear of the water at the top), carried on at LEAP_FWD 5.5, head
+  first back in with a splash; LEAP_COST 10. Landing on something mid-leap (a rock, a jetty) ends the swim there.
+- **Climbing out**: LEDGE_MAX 1.5 -> 2.2 m over the water, probed 0.5-1.25 m ahead (four probes, was three to 1.05); over LEDGE_HIGH
+  1.4 it's the "high" mantle (climb_state.gd: the ledge keys x1.3 longer). While a ledge or a rock is in reach the HUD prompt says
+  "Space: climb out" (checked every 0.15 s; the state clears only its own prompt).
+- **The ladder**: swim into one (stroking toward it, within its reach) and you take hold, no key; Ladder.in_reach a little wider
+  (0.9 -> 1.1 m to the side, 1.5 -> 1.8 m out); on any ladder or the rigging, Shift held with both hands free climbs x HURRY 1.45.
+- Tests: t/swim/climb_out (the prompt facing a 1.6 m rock, Space hauls you up onto it, the prompt goes), strokes (the burst and its
+  cost, the sprint after, the dolphin kick, the leap clear of the water and back in, swimming into the ship's ladder takes hold).
+  swimtest's ladder and ledge steps (Space at both, no stroke toward the ladder) should hold; riggingtest's climb times may shorten
+  if a test holds Shift on the rigging (none does now).
+
+## 2026-10-19: deeper swimming: dive loot on the economy's items (v1.18 lane E, after merging main)
+- dive_sites.gd: an oyster bed gives a `pearl` and 1-3 `oyster` (OYSTERS), a reef garden 1-3 `seaweed`, 0-2 `sea_urchin`, 0-1 `oyster`
+  (REEF), rolled for each captain with `Loot.rng_for(key)` (lane A's per-captain seed: a crewmate's take differs, a reload doesn't
+  reroll). Sunken chests, the wreck's and the ruin's coffer put in pearls too (0-1, 0-2, 1-3); LootBag's first open runs them through
+  `Loot.chest` like every world chest (gold thinned per captain, pearls kept). The toast names what you got. Reef Salad's swim_pct
+  already reaches the stroke, dive and burst speeds through `Progression.stat("swim_pct")` with the Swimming perks.
+- Test: t/swim/dive_loot (chest gold now the per-captain roll, 1-40; the bed's pearl and oysters, once).
 ## 2026-10-19: the held map, piece 2: the map in the captain's hands (v1.18 lane C)
 - **M** (`scripts/map/map_hold.gd`, MapHold, a child of the local captain made by GameManager.register_player): on foot (Idle,
   Move, Crouch, on the ground; at the helm you let go of the wheel) it puts the captain in **MapState**
