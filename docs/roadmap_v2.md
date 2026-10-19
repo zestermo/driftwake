@@ -70,3 +70,4 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 
 ## Decided (2026-10-19)
 - Phase 3's progression core goes first: fewer, bigger skill nodes (a shared tree on level points, weapon trees by use, mastery carried over within a family), life skills learned by doing, a tighter economy with trait weapons and per-captain loot, food healing + galley buffs, specialist shops and artisans (docs/progression_plan.md). The minimap, journal/quests, NPC encounters and swimming depth get their own grills after it.
+- v1.18 holds the progression core, the held map with fog of war, the crew journal and quests, NPC encounters and deeper swimming (docs/v1_18_plan.md). **Rival pirate crews** (matched One Piece-style duels, recurring and scaling, cutscene intros) are the headline of v1.19 (docs/rival_crews_plan.md).
