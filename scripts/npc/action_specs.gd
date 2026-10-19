@@ -276,6 +276,11 @@ const SPECS := {
 	"map_open": {"len": 0.34, "stance": "sword", "weapon": ""},
 	"map_hold": {"len": 0.1, "stance": "sword", "weapon": ""},
 	"map_away": {"len": 0.2, "stance": "sword", "weapon": ""},
+	# --- sailing downtime (DowntimePoses; held, looping: len is the blend in) ---
+	"dt_train_blade": {"len": 0.4, "stance": "katana", "weapon": "katana"},
+	"dt_train_fist": {"len": 0.4, "stance": "fist", "weapon": ""},
+	"dt_train_gun": {"len": 0.4, "stance": "pistol", "weapon": "pistol"},
+	"dt_startle": {"len": 0.5, "stance": "sword", "weapon": ""},
 	# --- the emote wheel (EmotePoses) ---
 	"emote_wave": {"len": 1.8, "stance": "sword", "weapon": ""},
 	"emote_point": {"len": 1.4, "stance": "sword", "weapon": ""},

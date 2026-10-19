@@ -4126,3 +4126,32 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - Tests: t/items/pickup_no_equip, t/items/shop_no_equip, t/ui/shift_click. Expect invtest / r7test / qoltest to notice (none run here); progtest and the wield/dagger suites set their off hands by hand.
 - duel_win and progtest were red on main, both stale expectations: duel_win set health to 80 while calm, so the out-of-combat regen (1%/s once calm; a player starts calm) healed it past 80 before its checks (now `p.fought()` after the setup); progtest expected a second pistol to dual-wield on pickup, now it checks the pistol stays in the bag and `set_offhand` makes dual pistols.
 - looptest gave items by `load("res://resources/items/<id>.tres")`, but the food economy items (rice, flour, salt, ...) and meals are made in code (Food.make_items, registered by ItemDB._load_all) and have no .tres: its galley check failed on a null item. Its give() now uses ItemDB.get_item. The game itself is fine (every game path that loads a .tres by id uses ids that have one: gold, treasure, rum, weapons).
+## 2026-10-19: sailing downtime, piece 1: the lashed helm, the activity frame, training (v1.18 lane F)
+- **The lashed helm** (scripts/ship/lashed_helm.gd, LashedHelm; Ship `lashed`, `lash_heading`): at the wheel the action wheel
+  (place "helm", "At the helm") has one entry, Lash the helm (`Downtime.lash`): `Net.lash_helm(true, _heading)` and you step off.
+  `Ship._read_helm` on the ship's owner (the host while nobody steers) puts the rudder on the course with a PD on the heading error
+  (GAIN 3, DAMP 2.5 on the turn rate, at most MAX_RUDDER 0.6): knocked 0.4 rad off at a third of sail she's back inside ~5 s.
+  The sails stay as set. A rope from the wheel's rim to its post shows it ("HelmLashing" on ship_model, no shadow, 60 m range).
+  Taking the wheel casts it off (HelmState.enter); place() (moorings, summons) does too; Weather.storm > STORM 0.55 parts it
+  (LashedHelm.watch, owner only, with a word to everyone aboard). An unmanned unlashed ship still just keeps sailing as before
+  (she doesn't wander); what the lash adds is holding the course after seas, shores and whirlpools, and it is what lets you do
+  downtime under sail.
+- **Net** (one marked block by `_ship_anchor`): `lash_helm(on, heading, why)` -> `everyone("_all_lash")` (LashedHelm.apply on every
+  screen; `why` toasts to captains aboard). `_world_state` "lash" for late joiners.
+- **Downtime** (scripts/game/downtime.gd): KINDS (label, where, reward interval `every`, order), `register_wheel()` (static method
+  callables; ActionWheel.ensure_builtins calls it in place of B's train placeholder, same id and order 20), `start/refuse`,
+  `looked_after(ship)` (lashed, anchored, a crewmate at the wheel (`helm_other`), or furled and still), `danger(p)` (aboard: a storm,
+  the helm come loose; anywhere: an enemy ship within SAIL_NEAR 160 m not sinking or struck, a Sea King up within 140 m, enemies in a
+  fight within 30 m), `reward`, `pose_of`. Train: TRAIN_MASTERY 5 to the style's tree every 6 s (50 a minute; a fight lands 4 a hit
+  plus a share of kills), ashore or aboard; a hybrid has nothing to train.
+- **DowntimeState** (scripts/player_states/downtime_state.gd, "Downtime" in player.tscn): holds the loop, earns each interval,
+  checks danger every 0.5 s, a drop in health (a hit that didn't stagger), and move/jump/F/dodge/attack get you up; roused, a toast,
+  a bell and `dt_startle`.
+- **DowntimePoses** (scripts/npc/downtime_poses.gd, `dt_*` in Humanoid._action_pose, ActionSpecs len = the blend): loops on the
+  action's own clock (`_action["t"]`, so posebench shows them at t = u x 30): dt_train_blade (suburi, 2.2 s: raised overhead, a
+  stepping vertical cut stopped level, back to guard; the katana/axe IK puts the left hand on), dt_train_fist (jab, cross, a bounce),
+  dt_train_gun (dry-fire at three marks across the bow, a kick each; the gun hand never keyed), dt_startle.
+- Per tick: Ship._read_helm while lashed (a few float ops on the owner); DowntimeState only while in it (a danger scan of three
+  groups every 0.5 s). Nothing new per frame elsewhere.
+- Tests: t/downtime/lash_helm, train, interrupt. Expect shiptest/seatest/looptest (ship.gd, helm_state.gd), t/ui/action_wheel (passes)
+  and nettest (the new everyone call) to be touched. Renders: posebench `katana katana dt_train_blade:0.0733,0.0983,0.1173`.

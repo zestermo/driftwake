@@ -9,9 +9,9 @@ extends RefCounted
 ## script left in this static table crashes Godot at exit.
 ## label: a String, or a Callable(p) -> String for one that changes ("Make camp" / "Rest by the fire").
 ## icon: a texture path ("" = none). available: Callable(p: Player) -> bool. run: Callable(p: Player).
-## Registering an id again replaces it (lane F's "train" replaces the placeholder here).
+## Registering an id again replaces it.
 ## place(p) says where the captain is: "island" (ashore), "town" (a town's streets), "ship" (aboard
-## the crew's ship), "" (swimming, at the helm or a gun, in the air: the wheel shows nothing).
+## the crew's ship), "helm" (at her wheel: lash it), "" (swimming, at a gun, in the air: the wheel shows nothing).
 
 static var _entries: Dictionary = {}
 static var _built := false
@@ -58,6 +58,8 @@ static func run(id: String, p: Node) -> void:
 
 
 static func place(p: Node) -> String:
+	if p.context == Player.Context.HELM:
+		return "helm"
 	if p.context != Player.Context.ON_FOOT or p.is_swimming():
 		return ""
 	var tree := p.get_tree()
@@ -74,10 +76,10 @@ static func place(p: Node) -> String:
 
 ## The wheel's centre words for a place.
 static func place_name(where: String) -> String:
-	return {"island": "Ashore", "town": "In town", "ship": "Aboard"}.get(where, "Nothing here")
+	return {"island": "Ashore", "town": "In town", "ship": "Aboard", "helm": "At the helm"}.get(where, "Nothing here")
 
 
-## The entries this feature brings: making camp, and the training placeholder lane F fills.
+## The entries this feature brings: making camp, and sailing downtime's (Downtime: lashing the helm, training...).
 ## (A feature that registered one of these ids first keeps its own.)
 static func ensure_builtins() -> void:
 	if _built:
@@ -85,8 +87,7 @@ static func ensure_builtins() -> void:
 	_built = true
 	if not has("camp"):
 		register("camp", _camp_label, "", _camp_ok, Camp.make, 10)
-	if not has("train"):
-		register("train", "Train", "", _train_ok, _train, 20)
+	Downtime.register_wheel()
 
 
 static func _camp_label(p: Node) -> String:
@@ -95,11 +96,3 @@ static func _camp_label(p: Node) -> String:
 
 static func _camp_ok(p: Node) -> bool:
 	return place(p) == "island" and p.is_free()
-
-
-static func _train_ok(p: Node) -> bool:
-	return place(p) in ["island", "ship"] and p.is_free()
-
-
-static func _train(p: Node) -> void:
-	p.get_tree().call_group("hud", "show_toast", "Training isn't ready yet")

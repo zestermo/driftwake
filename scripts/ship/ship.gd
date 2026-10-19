@@ -54,6 +54,9 @@ const FIX_SNAP := 6.0
 const PACK_SIZE := 19
 
 var is_player_steering: bool = false
+## The helm lashed to a course (LashedHelm): she holds lash_heading with nobody steering.
+var lashed: bool = false
+var lash_heading: float = 0.0
 ## Current forward speed (m/s, negative = backing) and smoothed rudder (-1..1).
 var speed: float = 0.0
 var rudder: float = 0.0
@@ -186,6 +189,8 @@ func _ready() -> void:
 func place(world_pos: Vector3, yaw: float) -> void:
 	_pos = Vector3(world_pos.x, 0.0, world_pos.z)
 	_heading = yaw
+	if lashed:
+		LashedHelm.apply(self, false, yaw)
 	_placed = true
 	_init = false
 	speed = 0.0
@@ -342,6 +347,10 @@ func _physics_process(delta: float) -> void:
 func _read_helm() -> void:
 	_turn_in = 0.0
 	_back_in = false
+	if lashed and not is_player_steering:
+		_turn_in = LashedHelm.turn(self)
+		LashedHelm.watch(self)
+		return
 	if not is_player_steering or _helm_locked():
 		return
 	# (someone took the wheel while she was sailing in by herself)

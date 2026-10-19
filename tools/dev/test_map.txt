@@ -423,7 +423,7 @@ scripts/ui/skill_map_screen.gd          t/progression
 scripts/ui/radial_wheel.gd              t/ui t/jam
 scripts/ui/item_wheel.gd                t/ui t/player t/items
 scripts/ui/action_wheel_ui.gd           t/ui
-scripts/game/action_wheel.gd            t/ui
+scripts/game/action_wheel.gd            t/ui t/downtime
 scripts/game/camp.gd                    t/ui
 scripts/loot/inventory_component.gd     t/items t/ui t/player
 scripts/powers/power_component.gd       t/player
@@ -434,3 +434,10 @@ tools/dev/map_stub_isle.gd              t/map
 scripts/map/*                           t/map
 shaders/map_land.gdshader               t/map
 scripts/ui/sea_chart.gd                 t/map
+# --- sailing downtime: the lashed helm, activities, Blender clips (v1.18 lane F) ---
+tools/dev/t/downtime/*                  t/downtime
+scripts/game/downtime.gd                t/downtime
+scripts/player_states/downtime_state.gd t/downtime
+scripts/npc/downtime_poses.gd           t/downtime
+scripts/ship/lashed_helm.gd             t/downtime t/ship
+scripts/player_states/helm_state.gd     t/downtime

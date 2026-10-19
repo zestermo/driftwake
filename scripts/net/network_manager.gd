@@ -1080,6 +1080,22 @@ func _ship_anchor(on: bool) -> void:
 		_ship().set_anchored(on)
 
 
+# --- Sailing downtime (lane F): the lashed helm, everyone's; `why` is told to captains aboard ---
+func lash_helm(on: bool, heading: float, why: String = "") -> void:
+	everyone("_all_lash", [on, heading, why])
+
+
+func _all_lash(on: bool, heading: float, why: String) -> void:
+	var s := _ship()
+	if s == null:
+		return
+	LashedHelm.apply(s, on, heading)
+	var me := local_player as Node3D
+	if why != "" and me and is_instance_valid(me) and s.aboard(me.global_position):
+		get_tree().call_group("hud", "show_toast", why)
+# --- end sailing downtime ---
+
+
 ## The shipwright's work on the ship (the host's ship: the host sets it).
 func set_ship_kit(kit: Dictionary) -> void:
 	everyone("_all_ship_kit", [kit])
@@ -1813,7 +1829,8 @@ func _world_state() -> Dictionary:
 		"fog": [MapFog.pack(gm), MapFog.spots(gm)] if gm else [],
 		"chain": [gm.chain_seed, gm.chain_at, gm.chain_set, gm.chain_since] if gm else [],
 		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else [],
-		"journal": Journal.to_dict()}
+		"journal": Journal.to_dict(),
+		"lash": [ship.lashed, ship.lash_heading] if ship else [false, 0.0]}
 
 
 func _weather_state() -> Array:
@@ -1842,6 +1859,8 @@ func _apply_world_sync(state: Dictionary) -> void:
 		ship.apply_kit(state["kit"])
 	if ship and ship.has_method("net_hull") and state.has("hull"):
 		ship.net_hull(float(state["hull"]))
+	if ship and bool(state["lash"][0]):
+		LashedHelm.apply(ship, true, float(state["lash"][1]))
 	# the crew's storage is the host's
 	var store := ship.get("storage") as LootBag if ship else null
 	if store and state.has("storage"):

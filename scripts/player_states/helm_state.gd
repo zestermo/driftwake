@@ -27,6 +27,9 @@ func enter(_data: Dictionary) -> void:
 	player.body_model.at_helm = true
 	ship.is_player_steering = true
 	ship.cam_yaw = 0.0
+	var was_lashed := ship.lashed
+	if was_lashed:
+		Net.lash_helm(false, 0.0)
 
 	enter_cooldown = 0.3  # Prevent immediate exit from same F press
 
@@ -40,7 +43,7 @@ func enter(_data: Dictionary) -> void:
 		var ship_cam := ship_camera.get_node("SpringArm3D/Camera3D") as Camera3D
 		if ship_cam:
 			ship_cam.current = true
-	player.call("_toast", "W/S: sails   A/D: rudder   Space: anchor   Left click: broadside   F: leave")
+	player.call("_toast", ("Lashing cast off.   " if was_lashed else "") + "W/S: sails   A/D: rudder   Space: anchor   Left click: broadside   N: lash the helm   F: leave")
 
 
 ## Stand at the wheel, facing the bow.
