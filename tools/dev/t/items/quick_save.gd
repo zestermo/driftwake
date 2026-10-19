@@ -36,6 +36,8 @@ func _process(_d: float) -> bool:
 		0:
 			p = stage.player
 			save = load("res://scripts/game/save_game.gd")
+			# (a file of its own: every stage test starting meanwhile wipes the shared test slot)
+			save.use_test_file("user://t_quick_save_%d.dat" % OS.get_process_id())
 			var inv = p.inventory_component
 			inv.add_item(ItemDB.get_item("biscuit"), 2)
 			inv.select_quick("biscuit")
@@ -46,8 +48,10 @@ func _process(_d: float) -> bool:
 			rewrite(func(d):
 				d.erase("quick")
 				d["hotbar"] = ["pistol", "", "biscuit", "rum"])
+			inv.select_quick("rum")
 			check("an old save loads", save.load_into(p))
 			check("...its first food or drink is the quick item (%s)" % inv.quick, inv.quick == "biscuit")
+			save.delete()
 			return TK.done(fails)
 	step += 1
 	return false

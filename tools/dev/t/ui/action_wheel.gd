@@ -48,6 +48,8 @@ func _process(_d: float) -> bool:
 			AW = load("res://scripts/game/action_wheel.gd")
 			camp_script = load("res://scripts/game/camp.gd")
 			save = load("res://scripts/game/save_game.gd")
+			# (a file of its own: every stage test starting meanwhile wipes the shared test slot)
+			save.use_test_file("user://t_action_wheel_%d.dat" % OS.get_process_id())
 			check("ashore: the place is the island", AW.place(p) == "island")
 			check("ashore: Make camp, then Train (%s)" % str(AW.entries_for(p)), AW.entries_for(p) == ["camp", "train"])
 			AW.register("t_wave", "Wave", "", func(pl): return AW.place(pl) == "island", func(_pl): ran += 1, 5)
@@ -85,6 +87,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(1.8)
 		5:
 			check("...and the camp goes", stage.get_node_or_null("Camp_1") == null)
+			save.delete()
 			return TK.done(fails)
 	step += 1
 	return false
