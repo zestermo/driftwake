@@ -84,6 +84,8 @@ to work toward.
   (docs/v1_19_plan.md, docs/rival_crews_plan.md).
 - **1.20: the world.** One more island type (**a spooky island**). A polish, fidelity and generation-fix pass across
   all the chain islands. **Cities**: at least two on the first chain (the royal capital and the canal city, phase 1).
+  **Driftwake's own names**: the One Piece terms players see (Devil Fruit, Haki, Log Pose, Sea King, Marines,
+  Soru/Tekkai...) become Driftwake's own, display text only, ids kept (docs/originality_plan.md).
 - **1.21: combat and gear.** A weapon animation and skill polish pass, the redesigned flipbook FX pass, the remaining
   weapons (polearms, dual axes, hammer...), new armour and clothes, and a **stat system for armour and clothing**.
 - **1.22: strongholds and Devil Fruits**: Marine strongholds and pirate hideouts as raids, Devil Fruits brought back
