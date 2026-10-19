@@ -37,10 +37,16 @@ var _sites := {}
 var _pickups: Array = []
 var _sync_t := 0.0
 var _tell_t := 0.0
+const CURRENTS := preload("res://scripts/swim/sea_currents.gd")
+## The rips off the same islands' beaches.
+var currents: Node3D
 
 
 func _ready() -> void:
 	add_to_group("dive_sites")
+	currents = CURRENTS.new()
+	currents.name = "SeaCurrents"
+	add_child(currents)
 	build_island("brinehollow", gen.get("starter_island"), int(gen.get("world_seed")), HOME_KINDS)
 
 
@@ -72,6 +78,7 @@ func _sync_islands() -> void:
 		if not keep.has(key):
 			(_sites[key] as Node).queue_free()
 			_sites.erase(key)
+			currents.drop_island(key)
 	_pickups = _pickups.filter(func(e): return is_instance_valid(e[0]))
 
 
@@ -102,6 +109,7 @@ func build_island(key: String, isl: Node3D, seed_value: int, kinds: Array) -> vo
 		return maxf(float(isl.call("height_at", x, z)), float(gen.call("height_at", w.x, w.z)))
 	var r_min := 150.0 if isl is StarterIsland else float(isl.get("radius")) * 0.6
 	var spots := find_spots(ground, rng, isl.get("dock_shore"), r_min, r_max)
+	currents.build_island(key, isl, ground, seed_value, CURRENTS.HOME_RIPS if isl is StarterIsland else CURRENTS.GEN_RIPS, isl.get("dock_shore"), r_min, r_max)
 	print("DiveSites: %s: %d spots for %s" % [key, spots.size(), kinds])
 	# (the deepest spots for the wreck and the ruins: they stand tall)
 	spots.sort_custom(func(a, b): return a.y < b.y)

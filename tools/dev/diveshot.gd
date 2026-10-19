@@ -80,7 +80,23 @@ func _process(d: float) -> bool:
 			t0 = t
 		2:
 			if idx >= spots.size():
-				quit()
+				# a rip off a beach, from a swimmer caught in it
+				var sc = root.get_tree().get_first_node_in_group("sea_currents")
+				var rip: Array = sc.rips["brinehollow"][0]
+				var a: Vector2 = rip[0]
+				var b: Vector2 = rip[1]
+				sw._diving = false
+				sw._cam_under = false
+				p.body_model.diving = false
+				p.global_position = Vector3(a.x, 0.0, a.y).lerp(Vector3(b.x, 0.0, b.y), 0.25)
+				p.global_position.y = float(p.water_surface()) - 1.3
+				p.reset_physics_interpolation()
+				p.player_model.rotation.y = atan2(a.x - b.x, a.y - b.y) + PI
+				rig.rotation.y = p.player_model.rotation.y + 0.9
+				rig.get_node("SpringArm3D").rotation.x = -0.75
+				rig.current_zoom = 9.0
+				phase = 3
+				t0 = t
 				return false
 			var big: bool = spots[idx][0] in ["Wreck", "Ruin"]
 			frame(spots[idx][1], 5.0 if big else 2.4, 2.4 if big else 1.6, true)
@@ -89,4 +105,9 @@ func _process(d: float) -> bool:
 			shot("under_%s" % str(spots[idx][0]).to_lower())
 			idx += 1
 			t0 = t
+		3:
+			if e < 2.0:
+				return false
+			shot("rip")
+			quit()
 	return false

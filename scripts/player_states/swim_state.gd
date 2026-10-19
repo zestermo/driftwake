@@ -12,6 +12,10 @@ extends PlayerState
 ## at the surface it comes back fast. Run out on a dive and you take steady
 ## damage until your head is out (warned at a third left, and again at empty).
 ##
+## The sea pushes back (SeaPush): rip currents off beaches carry you out (swim along the shore to break
+## free), the surf shoves you in on each breaking crest, a storm's swell carries you and wears you out, and
+## the water round a snow island is cold enough to sap your stamina.
+##
 ## Devil Fruit users can't swim at all: the sea drags them under. They sink,
 ## struggling weakly, can trudge along the bottom, and drown (health drains
 ## fast once the head is under) unless they reach shallow water or a ladder.
@@ -68,6 +72,19 @@ var _gasp_t: float = 0.0
 var _breath_warned: bool = false
 var _head_under: bool = false
 var _cam_under: bool = false
+# the sea pushing back (SeaPush): rips, surf, storm swell; cold water round a snow island
+const SEA_PUSH := preload("res://scripts/swim/sea_push.gd")
+## How fast the drift you're carried by follows the sea's push (1/s).
+const DRIFT_EASE := 3.0
+## Under water the surf and the swell carry you this much (currents run deep).
+const DEEP_PUSH := 0.35
+## How cold the water is here (0..1; the HUD shows it), and the storm's strength.
+var cold: float = 0.0
+var storm: float = 0.0
+var _drift := Vector3.ZERO
+var _crest: float = 0.0
+var _sea_t: float = 0.0
+var _told := {}
 # the sea's curse
 const SINK_SPEED := 1.6
 const SEABED_SPEED := 1.5
@@ -98,6 +115,9 @@ func enter(data: Dictionary) -> void:
 	_exhausted = player.stamina <= 0.0
 	_move_blend = 0.0
 	_prev_target = INF
+	_drift = Vector3.ZERO
+	_told.clear()
+	_sea_t = 0.0
 	_cursed = player.power.has_fruit()
 	_under_t = 0.0
 	if _cursed:
@@ -132,8 +152,10 @@ func physics_update(delta: float) -> void:
 	if _diving:
 		spd = DIVE_FAST if fast else DIVE_SPEED
 	spd *= clampf(input.length(), 0.0, 1.0) * (1.0 + player.progression.stat("swim_pct"))
-	var hv := Vector3(player.velocity.x, 0.0, player.velocity.z)
+	# your own stroke, apart from the drift the sea carries you on
+	var hv := Vector3(player.velocity.x, 0.0, player.velocity.z) - _drift
 	hv = hv.move_toward(dir * spd, ACCEL * delta)
+	_sea(delta)
 
 	# duck dive (Ctrl), then free under water until you come back up through the surface
 	if not _diving and Input.is_action_just_pressed("dodge") and not tired and player.spend_stamina(DIVE_COST):
@@ -158,11 +180,14 @@ func physics_update(delta: float) -> void:
 	player.body_model.diving = _diving
 	_update_breath(delta, fast)
 
-	# stamina: strokes cost a little, treading water lets it creep back
+	# stamina: strokes cost a little, treading water lets it creep back; cold water and a storm's swell sap it
+	# (worn out, the cold only slows it coming back: a swimmer always gets their breath in the end)
+	var resist := 1.0 - player.progression.stat("sea_resist")
+	var sap := (cold * SEA_PUSH.COLD_DRAIN + storm * SEA_PUSH.STORM_DRAIN) * resist
 	if _exhausted:
-		player.stamina_regen_mult = FLOAT_REGEN
-	elif dir != Vector3.ZERO:
-		player.drain_stamina((FAST_DRAIN if fast else DRAIN) * delta)
+		player.stamina_regen_mult = FLOAT_REGEN * (1.0 - cold * SEA_PUSH.COLD_REGEN * resist)
+	elif dir != Vector3.ZERO or sap > 0.05:
+		player.drain_stamina(((FAST_DRAIN if fast else DRAIN) if dir != Vector3.ZERO else 0.0) * delta + sap * delta)
 		player.stamina_regen_mult = 0.0
 	else:
 		player.stamina_regen_mult = TREAD_REGEN
@@ -187,7 +212,7 @@ func physics_update(delta: float) -> void:
 		_vy = clampf(_vy, -12.0, 6.0)
 	elif y + _vy * delta > target:
 		_vy = (target - y) / maxf(delta, 0.0001)
-	player.velocity = Vector3(hv.x, _vy, hv.z)
+	player.velocity = Vector3(hv.x + _drift.x, _vy, hv.z + _drift.z)
 	player.move_and_slide()
 	if dir != Vector3.ZERO:
 		face_direction(dir, delta * 0.6)
@@ -331,6 +356,43 @@ func _update_breath(delta: float, fast: bool) -> void:
 		CombatManager.apply_camera_shake(0.05)
 
 
+## The sea pushing back: a rip's pull, the surf shoving you in on each breaking crest (with its current
+## along the beach), a storm's swell carrying you, all easing into the drift you're carried on (the sea_resist
+## perk takes the edge off). How cold it is and how stormy are read a few times a second.
+func _sea(delta: float) -> void:
+	var p := player.global_position
+	_sea_t -= delta
+	if _sea_t <= 0.0:
+		_sea_t = 0.25
+		cold = SEA_PUSH.cold(get_tree(), p)
+		storm = SEA_PUSH.storm_k(p)
+		if cold > 0.3:
+			_tell_once("cold", "The water's freezing! It saps your stamina - get out of it")
+		if storm > 0.5:
+			_tell_once("storm", "The swell's too heavy to fight - let it carry you")
+	var deep := DEEP_PUSH if _diving else 1.0
+	var rip := SEA_PUSH.rip(get_tree(), p)
+	var surf: Array = SEA_PUSH.surf(p)
+	var push := rip + ((surf[0] as Vector3) + SEA_PUSH.storm(p, storm)) * deep
+	_drift = _drift.lerp(push * (1.0 - player.progression.stat("sea_resist")), clampf(DRIFT_EASE * delta, 0.0, 1.0))
+	if rip.length() > 1.0:
+		_tell_once("rip", "Caught in a rip current! Swim along the shore to break out")
+	# a breaker coming over you
+	var crest: float = surf[1]
+	if crest > 0.75 and _crest <= 0.75 and not _diving:
+		var at := _surface_point()
+		Net.fx("splash", [at + Vector3(0, 0.4, 0), 9, 0.8])
+		Net.fx("sfx", ["wave_break", at, -6.0, 0.1, 1.1])
+		CombatManager.apply_camera_shake(0.06)
+	_crest = crest
+
+
+func _tell_once(key: String, line: String) -> void:
+	if not _told.has(key):
+		_told[key] = true
+		player.call("_toast", line)
+
+
 ## The camera should be under the waves too (a deep enough dive).
 func camera_under() -> bool:
 	return _cam_under and player.current_state_name() == "Swim"
@@ -389,3 +451,5 @@ func exit() -> void:
 	_cam_under = false
 	gasping = false
 	breath = breath_max()
+	cold = 0.0
+	storm = 0.0

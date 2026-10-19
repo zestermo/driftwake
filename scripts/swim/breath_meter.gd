@@ -2,7 +2,7 @@ extends Control
 ## The breath meter (HUD): a row of bubbles over the skill bar while you hold your breath on a dive or
 ## it's coming back. Each bubble is a tenth of your breath; the last one shrinks as it goes. At a third
 ## left they turn amber and pulse; empty, the row flashes red with "SURFACE!" and the screen's edges
-## pulse red with every hurt (SwimState.gasping).
+## pulse red with every hurt (SwimState.gasping). In cold water "FREEZING" shows over it.
 
 const BUBBLES := 10
 const R := 4.0
@@ -35,7 +35,8 @@ func _process(delta: float) -> void:
 			return
 		_swim = _player.get_node("StateMachine/Swim")
 	var frac := _frac()
-	var want := 1.0 if frac < 0.999 and _player.current_state_name() == "Swim" else 0.0
+	var swimming: bool = _player.current_state_name() == "Swim"
+	var want := 1.0 if swimming and (frac < 0.999 or float(_swim.cold) > 0.3) else 0.0
 	_shown = move_toward(_shown, want, delta * (4.0 if want > _shown else 1.2))
 	visible = _shown > 0.0
 	if visible:
@@ -53,6 +54,10 @@ func _draw() -> void:
 	if gasping:
 		_vignette(0.18 + 0.14 * absf(sin(_t * 5.0)))
 	var c := Vector2(size.x * 0.5, size.y - LIFT)
+	if float(_swim.cold) > 0.3:
+		_text(c + Vector2(-60.0, -9.0 if frac >= 0.999 else -19.0), "FREEZING", Color(0.7, 0.88, 1.0, a * (0.75 + 0.25 * sin(_t * 3.0))), 120.0)
+	if frac >= 0.999:
+		return
 	var x0 := c.x - (BUBBLES - 1) * GAP * 0.5
 	var col := FULL
 	if frac <= 0.3:

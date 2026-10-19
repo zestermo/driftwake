@@ -89,28 +89,31 @@ func _build() -> void:
 	var eye := _glow(Color(0.05, 0.05, 0.06))
 	_body = _part(model, "Body", Vector3(0, 0.5, 0), "body", func(mb: MeshBuilder, _rng2: RandomNumberGenerator):
 		var xf := Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3.ZERO)
-		var rings := [[-1.5, 0.04, 0.03, 0.0], [-1.25, 0.22, 0.17, -0.02], [-0.8, 0.36, 0.3, 0.0], [-0.2, 0.42, 0.36, 0.02],
-			[0.4, 0.34, 0.28, 0.02], [0.9, 0.2, 0.16, 0.02], [1.2, 0.1, 0.08, 0.02]]
+		# (the loft runs along +y, turned to -z: the snout's the last ring)
+		var rings := [[-1.2, 0.1, 0.08, 0.02], [-0.9, 0.2, 0.16, 0.02], [-0.4, 0.34, 0.28, 0.02], [0.2, 0.42, 0.36, 0.02],
+			[0.8, 0.36, 0.3, 0.0], [1.25, 0.22, 0.17, -0.02], [1.5, 0.04, 0.03, 0.0]]
 		mb.add_loft(skin, xf, rings, MeshBuilder.profile_circle(10), 1.2, top, true, true)
 		# the pale belly under it
-		var brings := [[-1.3, 0.16, 0.08, -0.08], [-0.8, 0.3, 0.12, -0.18], [-0.2, 0.35, 0.14, -0.22], [0.4, 0.28, 0.1, -0.18], [0.9, 0.14, 0.05, -0.1]]
+		var brings := [[-0.9, 0.14, 0.05, -0.1], [-0.4, 0.28, 0.1, -0.18], [0.2, 0.35, 0.14, -0.22], [0.8, 0.3, 0.12, -0.18], [1.3, 0.16, 0.08, -0.08]]
 		mb.add_loft(skin, xf, brings, MeshBuilder.profile_circle(8), 1.2, belly, true, true)
 		# the dorsal fin (the one you see cutting the water), pectorals, a small second dorsal
-		mb.add_extrude(skin, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 0.3, -0.15)), PackedVector2Array([Vector2(-0.45, 0), Vector2(0.25, 0), Vector2(0.5, 0.75)]), 0.06, 1.0, top.darkened(0.15))
-		mb.add_extrude(skin, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 0.22, 0.75)), PackedVector2Array([Vector2(-0.12, 0), Vector2(0.08, 0), Vector2(0.16, 0.2)]), 0.04, 1.0, top.darkened(0.15))
+		# (outlines in x/y turned so +x runs back along the body: the fins rake backward)
+		mb.add_extrude(skin, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 0.3, -0.15)), PackedVector2Array([Vector2(-0.45, 0), Vector2(0.25, 0), Vector2(0.5, 0.75)]), 0.06, 1.0, top.darkened(0.15))
+		mb.add_extrude(skin, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 0.22, 0.75)), PackedVector2Array([Vector2(-0.12, 0), Vector2(0.08, 0), Vector2(0.16, 0.2)]), 0.04, 1.0, top.darkened(0.15))
 		for s in [-1.0, 1.0]:
 			mb.add_extrude(skin, Transform3D(Basis(Vector3.FORWARD, s * 0.35) * Basis(Vector3.RIGHT, PI * 0.5), Vector3(s * 0.3, -0.18, -0.55)), PackedVector2Array([Vector2(0, -0.2), Vector2(0, 0.15), Vector2(s * 0.75, 0.35)]), 0.04, 1.0, top)
 			mb.add_box(eye, Transform3D(Basis.IDENTITY, Vector3(s * 0.2, 0.06, -1.1)), Vector3(0.05, 0.05, 0.05), 1.0, Color.WHITE, false, false)
 			# gill slits
 			for k in range(3):
 				mb.add_box(skin, Transform3D(Basis.IDENTITY, Vector3(s * 0.35, -0.02, -0.8 + k * 0.08)), Vector3(0.02, 0.18, 0.015), 1.0, top.darkened(0.45), false, false))
-	_jaw = _part(_body, "Jaw", Vector3(0, -0.14, -0.95), "jaw", func(mb: MeshBuilder, _rng2: RandomNumberGenerator):
-		mb.add_box(skin, Transform3D(Basis.IDENTITY, Vector3(0, -0.04, -0.2)), Vector3(0.36, 0.08, 0.42), 1.0, belly, false, false)
+	# the lower jaw, hinged under the head behind the snout (drops open on the tell and the bite)
+	_jaw = _part(_body, "Jaw", Vector3(0, -0.2, -0.7), "jaw", func(mb: MeshBuilder, _rng2: RandomNumberGenerator):
+		mb.add_box(skin, Transform3D(Basis.IDENTITY, Vector3(0, -0.02, -0.2)), Vector3(0.3, 0.07, 0.4), 1.0, belly, false, false)
 		for k in range(7):
-			var x := -0.15 + k * 0.05
-			mb.add_box(skin, Transform3D(Basis.IDENTITY, Vector3(x, 0.03, -0.36 + absf(x) * 0.5)), Vector3(0.02, 0.06, 0.02), 1.0, Color(0.97, 0.96, 0.9), false, false))
+			var x := -0.12 + k * 0.04
+			mb.add_box(skin, Transform3D(Basis.IDENTITY, Vector3(x, 0.04, -0.34 + absf(x) * 0.6)), Vector3(0.02, 0.06, 0.02), 1.0, Color(0.97, 0.96, 0.9), false, false))
 	_tail = _part(_body, "Tail", Vector3(0, 0.0, 1.15), "tail", func(mb: MeshBuilder, _rng2: RandomNumberGenerator):
-		mb.add_extrude(skin, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 0, 0.0)), PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.55, 0.75), Vector2(0.35, 0.05), Vector2(0.45, -0.45)]), 0.05, 1.0, top.darkened(0.1)))
+		mb.add_extrude(skin, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(0, 0, 0.0)), PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.55, 0.75), Vector2(0.35, 0.05), Vector2(0.45, -0.45)]), 0.05, 1.0, top.darkened(0.1)))
 
 
 # ==========================================================================

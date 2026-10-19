@@ -62,20 +62,21 @@ func _build() -> void:
 	var skin := _skin()
 	var col := Color(0.42, 0.46, 0.2)
 	var spots := Color(0.78, 0.74, 0.4)
-	var rock := PSXMat.lit("rock", Color(0.45, 0.47, 0.45))
+	var rock := PSXMat.lit("rock", Color(0.72, 0.74, 0.7))
 	_part(model, "Rocks", Vector3.ZERO, "rocks", func(mb: MeshBuilder, rng: RandomNumberGenerator):
+		# a heap of stones round the hole's mouth, the hole facing -z
 		for i in range(4):
 			var a := float(i) / 4.0 * TAU + 0.4
-			mb.add_blob(rock, Transform3D(Basis(), Vector3(cos(a) * 0.55, 0.25, sin(a) * 0.45 + 0.35)), Vector3(0.55, 0.45, 0.5), rng, 0.25, 4, 6)
+			mb.add_blob(rock, Transform3D(Basis(), Vector3(cos(a) * 0.45, 0.2, sin(a) * 0.3 + 0.45)), Vector3(0.38, 0.32, 0.34), rng, 0.25, 4, 6)
 		# the hole's dark mouth
 		mb.add_cylinder(PSXMat.flat(Color(0.03, 0.04, 0.05)), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.45, 0.1)), 0.3, 0.3, 0.05, 7, 0.5, Color.WHITE, true, false, false))
 	_neck = _part(model, "Neck", Vector3(0, 0.45, 0.0), "neck", func(mb: MeshBuilder, _rng2: RandomNumberGenerator):
-		mb.add_cylinder(skin, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0, 0.4)), 0.15, 0.13, 0.9, 7, 1.0, col))
+		mb.add_cylinder(skin, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3(0, 0, 0.4)), 0.2, 0.17, 0.9, 7, 1.0, col))
 	_head = _part(_neck, "Head", Vector3(0, 0, -0.5), "head", func(mb: MeshBuilder, rng: RandomNumberGenerator):
-		mb.add_blob(skin, Transform3D(Basis(), Vector3(0, 0.02, -0.1)), Vector3(0.15, 0.17, 0.26), rng, 0.08, 3, 7, 1.0, col)
-		mb.add_blob(skin, Transform3D(Basis(), Vector3(0, -0.07, -0.18)), Vector3(0.12, 0.06, 0.2), rng, 0.08, 3, 6, 1.0, spots)
+		mb.add_blob(skin, Transform3D(Basis(), Vector3(0, 0.03, -0.14)), Vector3(0.21, 0.24, 0.36), rng, 0.08, 3, 7, 1.0, col)
+		mb.add_blob(skin, Transform3D(Basis(), Vector3(0, -0.1, -0.26)), Vector3(0.17, 0.08, 0.28), rng, 0.08, 3, 6, 1.0, spots)
 		for s in [-1.0, 1.0]:
-			mb.add_box(PSXMat.glow(Color(0.9, 0.85, 0.3), 1.2), Transform3D(Basis(), Vector3(s * 0.1, 0.1, -0.22)), Vector3(0.04, 0.04, 0.04), 1.0, Color.WHITE, false, false))
+			mb.add_box(PSXMat.glow(Color(0.9, 0.85, 0.3), 1.2), Transform3D(Basis(), Vector3(s * 0.14, 0.14, -0.3)), Vector3(0.05, 0.05, 0.05), 1.0, Color.WHITE, false, false))
 
 
 func _tick(delta: float) -> void:

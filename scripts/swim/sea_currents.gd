@@ -1,7 +1,8 @@
 extends Node3D
 ## Rip currents off the islands' beaches: a narrow channel of water running straight out to sea from the
 ## surf, strong near the beach and dying away 50 m out. Swim against one and you go nowhere; swim along
-## the shore and you're out of it. Each one churns: foam thrown seaward along it (each screen its own).
+## the shore and you're out of it. Each one shows: flecks of foam and churned sand riding out along it at its
+## speed, and foam thrown seaward (each screen its own, near the camera only).
 ## Placed from the island's seed on gentle, exposed shores clear of the dock (the same on every screen).
 ## DiveSites builds it ("SeaCurrents", group "sea_currents") and keeps its islands in step with its own.
 
@@ -60,6 +61,10 @@ func build_island(key: String, isl: Node3D, ground: Callable, seed_value: int, c
 
 func drop_island(key: String) -> void:
 	rips.erase(key)
+	for id in _fleck_nodes.keys():
+		if str(id).begins_with(key + ":"):
+			(_fleck_nodes[id] as Node).queue_free()
+			_fleck_nodes.erase(id)
 
 
 ## The rips' pull at `p` (m/s, flat).
@@ -82,23 +87,88 @@ func rip_at(p: Vector3) -> Vector3:
 
 
 func _process(delta: float) -> void:
-	_churn_t -= delta
-	if _churn_t > 0.0:
-		return
-	_churn_t = CHURN_EVERY
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
 	var c := Vector2(cam.global_position.x, cam.global_position.z)
-	for list in rips.values():
-		for e in list:
+	_churn_t -= delta
+	var churn := _churn_t <= 0.0
+	if churn:
+		_churn_t = CHURN_EVERY
+	var t: float = Ocean.clock()
+	for key in rips:
+		for i in range((rips[key] as Array).size()):
+			var e: Array = rips[key][i]
 			var a: Vector2 = e[0]
 			var b: Vector2 = e[1]
-			if c.distance_to((a + b) * 0.5) > CHURN_RANGE + RIP_LEN * 0.5:
+			var near := c.distance_to((a + b) * 0.5) < CHURN_RANGE + RIP_LEN * 0.5
+			var flecks := _flecks(key, i, near)
+			if not near:
 				continue
-			# foam thrown seaward somewhere along its first two thirds
-			var q := a.lerp(b, randf_range(0.05, 0.65)) + (b - a).normalized().orthogonal() * randf_range(-2.5, 2.5)
-			var at := Vector3(q.x, 0.0, q.y)
-			at.y = float(Ocean.surface_at(at)) + 0.05
-			var dir := Vector3(b.x - a.x, 0.0, b.y - a.y).normalized()
-			FX.spray(at, (dir + Vector3.UP * 0.6).normalized(), 4, Color(0.9, 0.96, 1.0), 2.4)
+			_drift_flecks(flecks, a, b, float(e[2]), t)
+			if churn:
+				# foam thrown seaward somewhere along its first half
+				var q := a.lerp(b, randf_range(0.05, 0.5)) + (b - a).normalized().orthogonal() * randf_range(-2.5, 2.5)
+				var at := Vector3(q.x, 0.0, q.y)
+				at.y = float(Ocean.surface_at(at)) + 0.05
+				var dir := Vector3(b.x - a.x, 0.0, b.y - a.y).normalized()
+				FX.spray(at, (dir + Vector3.UP * 0.6).normalized(), 4, Color(0.9, 0.96, 1.0), 2.4)
+
+
+## The telltale: flecks of foam and churned sand riding out along the rip at its own speed (each screen its
+## own, near the camera only). One MultiMesh a rip, made the first time it's near.
+const FLECKS := 36
+var _fleck_nodes := {}
+static var _fleck_mesh: QuadMesh
+
+
+func _flecks(key: String, i: int, near: bool) -> MultiMeshInstance3D:
+	var id := "%s:%d" % [key, i]
+	var mmi: MultiMeshInstance3D = _fleck_nodes.get(id)
+	if mmi == null and near:
+		if _fleck_mesh == null:
+			_fleck_mesh = QuadMesh.new()
+			_fleck_mesh.size = Vector2(1.1, 0.7)
+			_fleck_mesh.orientation = PlaneMesh.FACE_Y
+			var mat := StandardMaterial3D.new()
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.albedo_texture = load("res://assets/textures/fx/dust.png")
+			mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+			mat.albedo_color = Color(0.93, 0.97, 1.0, 0.8)
+			mat.vertex_color_use_as_albedo = true
+			_fleck_mesh.material = mat
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.mesh = _fleck_mesh
+		mm.instance_count = FLECKS
+		mmi = MultiMeshInstance3D.new()
+		mmi.name = "Rip_" + id.replace(":", "_")
+		mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_end = CHURN_RANGE + RIP_LEN
+		add_child(mmi)
+		_fleck_nodes[id] = mmi
+	if mmi:
+		mmi.visible = near
+	return mmi
+
+
+func _drift_flecks(mmi: MultiMeshInstance3D, a: Vector2, b: Vector2, w: float, t: float) -> void:
+	var ab := b - a
+	var along := ab.normalized()
+	var across := along.orthogonal()
+	var yaw := atan2(-along.x, -along.y)
+	for k in range(FLECKS):
+		# each fleck has its own lane and phase; it rides out over the rip's length, then starts again
+		var h := float(k) * 0.618034
+		var u := fmod(h + t * RIP_SPEED * 0.8 / RIP_LEN, 1.0)
+		var off := (fmod(h * 7.31, 1.0) - 0.5) * w * 1.1
+		var q := a + ab * u * 0.8 + across * off
+		var p := Vector3(q.x, 0.0, q.y)
+		p.y = float(Ocean.surface_at(p)) + 0.06
+		var fade := sin(u * PI)
+		mmi.multimesh.set_instance_transform(k, Transform3D(Basis(Vector3.UP, yaw + h).scaled(Vector3.ONE * (0.6 + fmod(h * 3.7, 1.0) * 0.8)), p))
+		var sandy := fmod(h * 5.3, 1.0) < 0.35
+		mmi.multimesh.set_instance_color(k, (Color(0.82, 0.74, 0.55) if sandy else Color.WHITE) * Color(1, 1, 1, fade))

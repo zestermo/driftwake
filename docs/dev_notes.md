@@ -3756,3 +3756,26 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   pearl / reef ingredient ids; the chests' tables move to A's loot API then.
 - Tests: t/swim/ breath_dive, out_of_breath, surface_safe, dive_loot. swimtest (not run during the batch): its "bobs back up" wait is 5 s now
   (letting go drifts up at 0.9 m/s). Render: tools/dev/diveshot.gd.
+
+## 2026-10-19: deeper swimming, piece 2: the sea pushes back (rips, surf, storm swell, cold water)
+- **The drift** (swim_state.gd `_sea`): your stroke (`hv`) is kept apart from the drift the sea carries you on (`_drift`, easing to
+  the sea's push at DRIFT_EASE 3/s); velocity = stroke + drift. Under water the surf and the swell count DEEP_PUSH 0.35 (a rip all of
+  it). Toasts once per swim: caught in a rip, the cold, a heavy swell. Child of the Sea gains `sea_resist` 0.5 (halves push, cold, swell).
+- **Rips** (scripts/swim/sea_currents.gd, "SeaCurrents" under DiveSites, built with each island's dive spots): 3 off Brinehollow, 2 off a
+  chain island, on beaches (the bottom 1.5-7 m down 30 m out, the shore map's exposure >= 0.35), 80 m from the dock and each other: a
+  channel RIP_WIDTH 8 m from 4 m inshore of the waterline to RIP_LEN 50 m out, RIP_SPEED 2.6 m/s full across its middle half, dying away
+  over its last 45% (a plain 3.2 m/s stroke barely gains, a 4.6 sprint beats it, swimming along the shore leaves it). Telltale (each
+  screen its own, within 90 m): 36 flecks of foam and churned sand a rip riding out at its speed (one MultiMesh a rip, made when first
+  near), and spray thrown seaward every 0.3 s.
+- **Surf** (scripts/swim/sea_push.gd, read from Ocean's shore maps and shore swell: nothing changes the waves): in the surf zone (shore
+  map depth 0.15-3.2 m, faded by how turned the swell is) each breaking crest shoves you toward the beach (SURF_PUSH 4.2 m/s at a full
+  crest, crest = shore swell / 0.45 m x amp_mult, squared) and a LONGSHORE 0.5 m/s current runs along the beach the way the swell runs; a
+  crest over you splashes, plays wave_break and shakes the camera a touch.
+- **Storm swell**: storm_k = (amp_mult - 1) / 0.8 + (local_swell - 1) / 1.1 (0..1.5): you're carried with the swell (STORM_DRIFT 0.9
+  m/s) and shoved down each wave's face (the wave normal x STORM_SHOVE 4), and it costs STORM_DRAIN 3 stamina/s x storm_k.
+- **Cold**: COLD_THEMES {"snow": 1} x KitStyle.around's weight (fading out 140 m past a snow island's coast): COLD_DRAIN 4.5 stamina/s
+  (treading water there it falls instead of coming back); worn out, the cold only slows the float's regen (x 1 - 0.7 cold), so it never
+  drowns you. The breath meter shows "FREEZING".
+- Tests: t/swim/rip_current (carried out treading, barely gains against it, out of it along the shore, the drift stops), cold_water
+  (a stand-in snow island: stamina falls treading where at home it rose, no health lost). The surf and the storm aren't on the stage
+  (no shore maps or storm cells): swimtest/seatest will exercise them once run. Render: diveshot's `_rip`.
