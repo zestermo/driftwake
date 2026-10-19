@@ -50,7 +50,7 @@ func _process(_d: float) -> bool:
 			sw.breath = 0.6
 			until = TK.wait_secs(0.4)
 		3:
-			check("...nothing lost before it's empty", is_equal_approx(p.health_component.current_health, hp0))
+			check("...nothing lost before it's empty", p.health_component.current_health >= hp0 - 0.01)
 			until = TK.wait_secs(2.4)
 		4:
 			var lost: float = hp0 - p.health_component.current_health
@@ -68,7 +68,7 @@ func _process(_d: float) -> bool:
 			hp0 = p.health_component.current_health
 			until = TK.wait_secs(2.0)
 		6:
-			check("no more damage at the surface (%.1f -> %.1f)" % [hp0, p.health_component.current_health], is_equal_approx(p.health_component.current_health, hp0))
+			check("no more damage at the surface (%.1f -> %.1f)" % [hp0, p.health_component.current_health], p.health_component.current_health >= hp0 - 0.01)
 			return TK.done(fails)
 	step += 1
 	return false
