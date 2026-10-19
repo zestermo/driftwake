@@ -1508,6 +1508,30 @@ func _all_unmark(id: int) -> void:
 
 
 # ==========================================================================
+# The held map (MapFog): what any captain uncovers or finds, uncovered and found for the whole crew
+# ==========================================================================
+func fog_reveal(key: String, n: int, cells: PackedInt32Array) -> void:
+	everyone("_all_fog", [key, n, cells])
+
+
+func _all_fog(key: String, n: int, cells: PackedInt32Array) -> void:
+	MapFog.apply(get_node("/root/GameManager"), key, n, cells)
+
+
+func spot_found(key: String, id: String, spot_name: String) -> void:
+	everyone("_all_spot", [key, id, spot_name, my_id()])
+
+
+func _all_spot(key: String, id: String, spot_name: String, by: int) -> void:
+	var gm := get_node("/root/GameManager")
+	if MapFog.found(gm, key, id):
+		return
+	MapFog.find(gm, key, id)
+	var who := "You" if by == my_id() else str(roster.get(by, {}).get("name", "A crewmate"))
+	get_tree().call_group("hud", "show_toast", "%s found %s (on the map, M)" % [who, spot_name])
+
+
+# ==========================================================================
 # Map markers (G / middle mouse): "look here" for the whole crew
 # ==========================================================================
 ## Mark a spot (or an enemy: `target` follows it) for everyone.
@@ -1786,6 +1810,7 @@ func _world_state() -> Dictionary:
 		"fruits": gm.fruit_claims.duplicate() if gm else {}, "drops": drops, "seats": seats.duplicate(),
 		"hull": float(ship.get("hull")) if ship else 0.0, "weather": _weather_state(),
 		"kit": gm.ship_kit.duplicate() if gm else {}, "waypoints": waypoints.duplicate(),
+		"fog": [MapFog.pack(gm), MapFog.spots(gm)] if gm else [],
 		"chain": [gm.chain_seed, gm.chain_at, gm.chain_set, gm.chain_since] if gm else [],
 		"storage": (ship.get("storage") as LootBag).refs() if ship and ship.get("storage") else []}
 
@@ -1833,6 +1858,8 @@ func _apply_world_sync(state: Dictionary) -> void:
 		gm.chain_since = float(ch[3])
 		for f in state.get("flags", []):
 			gm.world_flags[str(f)] = true
+		MapFog.unpack(gm, state["fog"][0])
+		MapFog.take_spots(gm, state["fog"][1])
 		world_synced = true
 	var sp: Dictionary = state.get("spawners", {})
 	for k in sp.keys():

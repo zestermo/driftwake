@@ -403,3 +403,9 @@ scripts/enemies/huntsman.gd             t/island grunttest
 tools/dev/t/progression/*               t/progression
 scripts/progression/*                   t/progression
 scripts/ui/skill_map_screen.gd          t/progression
+# --- the held map: fog of war, ? marks, the island page (v1.18 lane C) ---
+tools/dev/t/map/*                       t/map
+tools/dev/map_stub_isle.gd              t/map
+scripts/map/*                           t/map
+shaders/map_land.gdshader               t/map
+scripts/ui/sea_chart.gd                 t/map
