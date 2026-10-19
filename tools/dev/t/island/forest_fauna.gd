@@ -106,6 +106,8 @@ func _process(_d: float) -> bool:
 			stag.reset_physics_interpolation()
 			var hit := HitData.new()
 			hit.damage = 1.0
+			# the stag turns on 3 blows in 4 (its rng is seeded by its auto-numbered node name, which moves with every node made before it)
+			stag._rng.seed = 7
 			stag._on_hit(hit, p)
 			seen = {"charge": false}
 			looks = 0

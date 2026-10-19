@@ -127,7 +127,7 @@ func _process(d: float) -> bool:
 			var on_brine: bool = sf.treasures.size() == 4
 			for tr in sf.treasures:
 				var at: Vector3 = tr[0]
-				if Vector2(at.x, at.z).distance_to(world.starter_center) > 320.0 or tr[1] != "Brinehollow":
+				if Vector2(at.x, at.z).distance_to(world.starter_center) > world.starter_island.LAND_R or tr[1] != "Brinehollow":
 					on_brine = false
 			check("4 buried treasures on Brinehollow's beaches, a bottle for each", on_brine and sf.bottles.size() == 4)
 			# --- the log pose
