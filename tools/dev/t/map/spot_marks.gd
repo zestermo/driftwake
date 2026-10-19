@@ -5,7 +5,7 @@ const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
 var gm
-var chart
+var page
 var step := 0
 var until := 0
 var fails := 0
@@ -36,27 +36,28 @@ func _process(_d: float) -> bool:
 			var isle = load("res://tools/dev/map_stub_isle.gd").new()
 			isle.setup(4, 110.0)
 			isle.add_to(self)
-			root.get_node("GameMenu").open("chart")
-			chart = root.get_node("GameMenu")._chart
-			until = TK.wait_ticks(3)
+			page = p.get_node("MapHold").page
+			TK.act("sea_chart")
+			until = TK.wait_secs(0.5)
 		1:
-			check("the map opens on the island we're on", chart.on_isle and str(chart.isle.d["key"]) == "isle4")
-			var q := _ids(chart.isle.question_marks())
+			check("the map opens on the island we're on", page.on_isle and str(page.isle.d["key"]) == "isle4")
+			var q := _ids(page.isle.question_marks())
 			check("a ? for the camp, the waterfall and the cave", q.has("site_camp") and q.has("place0") and q.has("inside0"))
-			root.get_node("GameMenu").close()
+			TK.act("sea_chart")
+			until = TK.wait_secs(0.4)
+		2:
 			p.global_position = Vector3(55, p.global_position.y, 4)
 			p.reset_physics_interpolation()
 			until = TK.wait_secs(1.2)
-		2:
-			check("walking up to the camp finds it", load("res://scripts/map/map_fog.gd").found(gm, "isle4", "site_camp"))
-			root.get_node("GameMenu").open("chart")
-			until = TK.wait_ticks(3)
 		3:
-			var q := _ids(chart.isle.question_marks())
+			check("walking up to the camp finds it", load("res://scripts/map/map_fog.gd").found(gm, "isle4", "site_camp"))
+			TK.act("sea_chart")
+			until = TK.wait_secs(0.5)
+		4:
+			var q := _ids(page.isle.question_marks())
 			check("the camp's ? is gone", not q.has("site_camp"))
 			check("...the others are still there", q.has("place0") and q.has("inside0"))
-			check("...and the camp's on the page by name", _ids(chart.isle.found_spots()).has("site_camp"))
-			root.get_node("GameMenu").close()
+			check("...and the camp's on the page by name", _ids(page.isle.found_spots()).has("site_camp"))
 			return TK.done(fails)
 	step += 1
 	return false

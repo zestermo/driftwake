@@ -51,10 +51,11 @@ func _process(d: float) -> bool:
 			p.state_machine.force_state("Helm", {})
 		4:
 			snap("helm_compass")
-			menu.open("chart")
+			p.get_node("MapHold").preview(true)
 		5:
-			snap("chart_marks")
-			menu.close()
+			p.get_node("MapHold").image().save_png("%s_chart_marks.png" % out)
+			print("shot chart_marks")
+			p.get_node("MapHold").preview(false)
 			p.state_machine.force_state("Idle", {})
 			ship.set_anchored(true)
 			p.global_position = ship.global_transform * Vector3(-1.2, 0.8, -3.0)
