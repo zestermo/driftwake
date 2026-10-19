@@ -2009,6 +2009,36 @@ def peril_sound():
     write_wav("peril", _fade_out(_level(tone * env, -16.0), 0.05))
 
 
+def fin_sting_sound():
+    """A shark's fin rising: a low bowed cluster swelling in with a slow tremolo, a pressure under it,
+    then one cold struck note (the cue to get out of the water)."""
+    rng = np.random.default_rng(2210)
+    n = int(SR * 1.7)
+    t = np.arange(n) / SR
+    swell = np.clip(t / 1.05, 0, 1) ** 2.2 * np.exp(-np.maximum(t - 1.1, 0) * 5.0)
+    trem = 0.7 + 0.3 * np.sin(2 * np.pi * np.interp(t, [0, 1.1], [5.0, 9.0]) * t)
+    bow = np.zeros(n)
+    for f0, a in [(61.7, 1.0), (65.4, 0.8), (92.5, 0.45), (98.0, 0.35)]:
+        ph = 2 * np.pi * np.cumsum(f0 * (1 + 0.004 * np.sin(2 * np.pi * 0.7 * t + f0))) / SR
+        bow += a * sum(np.sin(k * ph) / k ** 1.4 for k in range(1, 9) if k * f0 < 2400)
+    bow = _filt(bow, lambda f: _lp(f, 900, 2)) * swell * trem
+    rumble = _noise(n, rng, 30, 160) * swell * 0.5
+    ting_t = np.maximum(t - 1.08, 0)
+    ting = _modes(ting_t, rng, [(1244.0, 1.0, 5.5), (2489.0, 0.15, 9.0), (1868.0, 0.25, 7.0)]) * (t >= 1.08)
+    _write_shot("fin_sting", bow + rumble + ting * 0.55, -15.0, 0.12)
+
+
+def jelly_zap_sound():
+    """A jellyfish's sting: a fizzing crackle with a thin high whine through it."""
+    rng = np.random.default_rng(2211)
+    n = int(SR * 0.42)
+    t = np.arange(n) / SR
+    src = _noise(n, rng, 500, 2600)
+    crackle = _grains(n, rng, 60, 0.0, 0.3, src, (0.0015, 0.005), 4.0)
+    whine = np.sin(2 * np.pi * np.cumsum(np.interp(t, [0, 0.4], [1500, 1100])) / SR) * np.exp(-t * 9.0) * 0.3
+    _write_shot("jelly_zap", crackle + whine, -17.0, 0.05)
+
+
 def _at(t, at):
     """Time since `at` s (0 before it)."""
     return np.maximum(t - at, 0.0)
@@ -2283,6 +2313,8 @@ SOUNDS = [
     ("haki", haki_sound),
     ("block", block_takes),
     ("peril", peril_sound),
+    ("fin_sting", fin_sting_sound),
+    ("jelly_zap", jelly_zap_sound),
     ("cannon", lambda: [cannon_sound(f"cannon_{k + 1}", 163 + k * 11) for k in range(2)]),
     ("cannon_hit", lambda: [cannon_hit_sound(f"cannon_hit_{k + 1}", 167 + k * 11) for k in range(2)]),
     ("wood_crack", lambda: [wood_crack_sound(f"wood_crack_{k + 1}", 173 + k * 11) for k in range(2)]),
