@@ -3804,3 +3804,21 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - Tests: t/swim/shark_telegraph (noticed, fin out, 4 s of circling with nothing landing, the 0.85 s tell, then a bite and away; a
   captain ashore is left alone), jelly_sting (clear of the field nothing, a jelly stings and slows, not again at once). Renders:
   diveshot `_shark_fin`, `_shark_tell`; modelshot of the shark and moray.
+
+## 2026-10-19: deeper swimming, piece 4: better strokes (burst, dolphin kick and leap, climbing out, the ladder)
+- **Burst** (swim_state.gd): a tap of Shift while stroking: DASH_SPEED 7.2 m/s (x swim_pct) for DASH_TIME 0.32 s, DASH_COST 12
+  stamina, again after DASH_CD 0.7 s (spray on top, bubbles under); held on, it's the sprint stroke as before (4.6). Enough to step
+  out of a shark's charge lane.
+- **Dolphin kick**: Shift held under water is DOLPHIN_SPEED 5.0 (was a 4.3 fast dive); humanoid.gd's dive pose goes to a dolphin
+  kick past 3.8 m/s (legs together, one big beat, the body rippling). **Dolphin leap**: Space at a sprint on top with nothing to
+  climb: up at LEAP_VY 8.2 under LEAP_GRAVITY 20 (feet ~0.15 m clear of the water at the top), carried on at LEAP_FWD 5.5, head
+  first back in with a splash; LEAP_COST 10. Landing on something mid-leap (a rock, a jetty) ends the swim there.
+- **Climbing out**: LEDGE_MAX 1.5 -> 2.2 m over the water, probed 0.5-1.25 m ahead (four probes, was three to 1.05); over LEDGE_HIGH
+  1.4 it's the "high" mantle (climb_state.gd: the ledge keys x1.3 longer). While a ledge or a rock is in reach the HUD prompt says
+  "Space: climb out" (checked every 0.15 s; the state clears only its own prompt).
+- **The ladder**: swim into one (stroking toward it, within its reach) and you take hold, no key; Ladder.in_reach a little wider
+  (0.9 -> 1.1 m to the side, 1.5 -> 1.8 m out); on any ladder or the rigging, Shift held with both hands free climbs x HURRY 1.45.
+- Tests: t/swim/climb_out (the prompt facing a 1.6 m rock, Space hauls you up onto it, the prompt goes), strokes (the burst and its
+  cost, the sprint after, the dolphin kick, the leap clear of the water and back in, swimming into the ship's ladder takes hold).
+  swimtest's ladder and ledge steps (Space at both, no stroke toward the ladder) should hold; riggingtest's climb times may shorten
+  if a test holds Shift on the rigging (none does now).

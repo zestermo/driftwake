@@ -3715,6 +3715,16 @@ func _swim_pose(p: Dictionary, delta: float) -> void:
 			"arm_l": Vector3(lerpf(0.6, 2.95, m), scull * 0.4, -lerpf(0.9, 0.12, m)), "arm_r": Vector3(lerpf(0.6, 2.95, m), -scull * 0.4, lerpf(0.9, 0.12, m)),
 			"fore_l": Vector3(lerpf(0.5, 0.1, m), 0, 0), "fore_r": Vector3(lerpf(0.5, 0.1, m), 0, 0),
 			"leg_l": Vector3(fl * 0.35, 0, -0.04), "leg_r": Vector3(-fl * 0.35, 0, 0.04), "shin_l": Vector3(-0.3 - maxf(fl, 0.0) * 0.3, 0, 0), "shin_r": Vector3(-0.3 - maxf(-fl, 0.0) * 0.3, 0, 0)}
+		# fast under water, a dolphin kick: legs together, one big beat, the body rippling with it
+		var dk := clampf((ground_speed - 3.8) / 1.0, 0.0, 1.0)
+		if dk > 0.0:
+			var beat := sin(_t * 10.0)
+			d["leg_l"] = (d["leg_l"] as Vector3).lerp(Vector3(beat * 0.45, 0, -0.03), dk)
+			d["leg_r"] = (d["leg_r"] as Vector3).lerp(Vector3(beat * 0.45, 0, 0.03), dk)
+			d["shin_l"] = (d["shin_l"] as Vector3).lerp(Vector3(-0.2 - maxf(beat, 0.0) * 0.5, 0, 0), dk)
+			d["shin_r"] = (d["shin_r"] as Vector3).lerp(Vector3(-0.2 - maxf(beat, 0.0) * 0.5, 0, 0), dk)
+			d["pivot"] = (d["pivot"] as Vector3) + Vector3(sin(_t * 10.0 + 1.2) * 0.12 * dk, 0, 0)
+			d["torso"] = Vector3(sin(_t * 10.0 + 0.6) * 0.1 * dk, 0, 0)
 		for j in d.keys():
 			p[j] = d[j]
 

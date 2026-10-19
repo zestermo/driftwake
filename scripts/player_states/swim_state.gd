@@ -1,7 +1,9 @@
 extends PlayerState
 ## Swimming at the surface. You float with your head above the waves and
-## stroke around (Shift: faster but hungrier on stamina). Space pulls you up
-## onto a low ledge in front of you, or up a ladder; F also uses a ladder.
+## stroke around (Shift: faster but hungrier on stamina; a tap of it is a burst
+## of strokes). Space pulls you up onto a ledge or a rock in front of you (the
+## prompt says when one's in reach) or up a ladder; swim into a ladder and you
+## take hold. At a sprint with nothing to climb, Space is a dolphin leap.
 ## Swimming slowly drains stamina and treading water lets it creep back; run
 ## the bar dry and you're exhausted: a slow float-paddle (no sprint, no dive)
 ## until you've got your breath back. No damage.
@@ -28,7 +30,6 @@ const DRAIN := 3.5
 const FAST_DRAIN := 13.0
 const DIVE_COST := 6.0
 const DIVE_SPEED := 3.0
-const DIVE_FAST := 4.3
 const DESCEND := 2.6
 const ASCEND := 3.4
 const DRIFT_UP := 0.9
@@ -51,8 +52,29 @@ const TREAD_REGEN := 0.15
 const FLOAT_REGEN := 0.25
 ## Exhausted until stamina is back to this.
 const RECOVER := 30.0
-## Ledges you can pull yourself onto: top this high above the water at most.
-const LEDGE_MAX := 1.5
+## Ledges and rocks you can pull yourself onto: top this high above the water at most (a high one is a
+## harder haul: ClimbState's "high" mantle).
+const LEDGE_MAX := 2.2
+const LEDGE_HIGH := 1.4
+## Strokes: a tap of Shift is a burst (DASH_SPEED for DASH_TIME s, DASH_COST stamina, again after DASH_CD);
+## held under water, the dolphin kick; Space at a sprint on top with nothing to climb, a dolphin leap.
+const DASH_SPEED := 7.2
+const DASH_TIME := 0.32
+const DASH_COST := 12.0
+const DASH_CD := 0.7
+const DOLPHIN_SPEED := 5.0
+const LEAP_VY := 8.2
+const LEAP_FWD := 5.5
+const LEAP_GRAVITY := 20.0
+const LEAP_COST := 10.0
+var _dash_t: float = 0.0
+var _dash_cd: float = 0.0
+var _dash_dir := Vector3.ZERO
+## Seconds into a dolphin leap (< 0: not leaping).
+var _leap_t: float = -1.0
+var _ledge := {}
+var _ledge_t: float = 0.0
+var _prompt := ""
 
 var _vy: float = 0.0
 var _diving: bool = false
@@ -121,6 +143,10 @@ func enter(data: Dictionary) -> void:
 	_drift = Vector3.ZERO
 	_told.clear()
 	_sea_t = 0.0
+	_dash_t = 0.0
+	_leap_t = -1.0
+	_ledge = {}
+	_ledge_t = 0.0
 	_cursed = player.power.has_fruit()
 	_under_t = 0.0
 	if _cursed:
@@ -153,14 +179,31 @@ func physics_update(delta: float) -> void:
 	var fast := Input.is_action_pressed("sprint") and not tired and dir != Vector3.ZERO
 	var spd := TIRED_SPEED if tired else (FAST_SPEED if fast else SWIM_SPEED)
 	if _diving:
-		spd = DIVE_FAST if fast else DIVE_SPEED
-	spd *= clampf(input.length(), 0.0, 1.0) * (1.0 + player.progression.stat("swim_pct"))
+		spd = DOLPHIN_SPEED if fast else DIVE_SPEED
+	var swim_k := 1.0 + player.progression.stat("swim_pct")
+	spd *= clampf(input.length(), 0.0, 1.0) * swim_k
 	if stung > 0.0:
 		stung -= delta
 		spd *= STUNG_SLOW
 	# your own stroke, apart from the drift the sea carries you on
 	var hv := Vector3(player.velocity.x, 0.0, player.velocity.z) - _drift
 	hv = hv.move_toward(dir * spd, ACCEL * delta)
+	_dash_cd -= delta
+	# a tap of Shift: a burst of strokes (on top, or a dolphin kick under), then on at a sprint while it's held
+	if Input.is_action_just_pressed("sprint") and dir != Vector3.ZERO and not tired and _dash_cd <= 0.0 and _leap_t < 0.0 \
+			and player.spend_stamina(DASH_COST):
+		_dash_t = DASH_TIME
+		_dash_cd = DASH_CD
+		_dash_dir = dir
+		var at := _surface_point() if not _diving else player.global_position + Vector3(0, 0.8, 0)
+		if _diving:
+			Net.fx("bubbles", [at, 10])
+		else:
+			Net.fx("spray", [at + dir * 0.5, (dir + Vector3.UP * 0.5).normalized(), 10, Color(0.9, 0.96, 1.0), 4.0])
+		Net.fx("sfx", ["swim_stroke", player.global_position, -4.0, 0.1, 0.8])
+	if _dash_t > 0.0:
+		_dash_t -= delta
+		hv = _dash_dir * DASH_SPEED * swim_k
 	_sea(delta)
 
 	# duck dive (Ctrl), then free under water until you come back up through the surface
@@ -213,7 +256,21 @@ func physics_update(delta: float) -> void:
 	# so the head doesn't lag under a rising wave
 	var target_v := 0.0 if _prev_target == INF else clampf((target - _prev_target) / maxf(delta, 0.0001), -6.0, 6.0)
 	_prev_target = target
-	if not _diving:
+	if _leap_t >= 0.0:
+		# a dolphin leap: out of the water in an arc, head first back in
+		_leap_t += delta
+		_vy -= LEAP_GRAVITY * delta
+		hv = hv.lerp(_dash_dir * LEAP_FWD * swim_k, clampf(4.0 * delta, 0.0, 1.0))
+		if _leap_t > 0.25 and _vy < 0.0 and y <= target:
+			_leap_t = -1.0
+			player.body_model.diving = false
+			_vy = maxf(_vy, -3.0)
+			var at := _surface_point()
+			Net.fx("splash", [at, 8, 0.75])
+			Net.fx("sfx", ["splash", at, -6.0, 0.1, 1.05])
+		else:
+			player.body_model.diving = true
+	elif not _diving:
 		_vy += ((target - y) * 14.0 + (target_v - _vy) * 7.5) * delta
 		_vy = clampf(_vy, -12.0, 6.0)
 	elif y + _vy * delta > target:
@@ -234,20 +291,54 @@ func physics_update(delta: float) -> void:
 		Net.fx("sfx", ["swim_stroke", player.global_position, -8.0 if fast else -11.0, 0.08])
 
 	# walked out of the water
+	# (or leapt out onto something: a rock, a jetty)
 	if not _diving and player.is_on_floor() and player.water_depth() < Player.SWIM_EXIT_DEPTH:
+		_leap_t = -1.0
 		transitioned.emit(self, "Move" if dir != Vector3.ZERO else "Idle", {})
 		return
+	if _diving or _leap_t >= 0.0:
+		_show_climb("")
+		return
 
-	# climb out: a ladder in reach, or a low ledge in front
-	if Input.is_action_just_pressed("jump") and not _diving:
-		var ladder := _ladder_in_reach()
-		if ladder:
-			player.start_climb({"kind": "ladder", "ladder": ladder})
+	# a ladder you swim into takes you (you grab hold), as does Space by one
+	var ladder := _ladder_in_reach()
+	if ladder and (Input.is_action_just_pressed("jump") or _toward(ladder.global_position, dir)):
+		_show_climb("")
+		player.start_climb({"kind": "ladder", "ladder": ladder})
+		return
+	# a ledge or a rock in front: the prompt says so, Space pulls you up
+	_ledge_t -= delta
+	if _ledge_t <= 0.0:
+		_ledge_t = 0.15
+		_ledge = _find_ledge()
+		_show_climb("Space: climb out" if not _ledge.is_empty() else "")
+	if Input.is_action_just_pressed("jump"):
+		var now := _find_ledge()
+		if not now.is_empty() or not _ledge.is_empty():
+			_show_climb("")
+			player.start_climb(now if not now.is_empty() else _ledge)
 			return
-		var ledge := _find_ledge()
-		if not ledge.is_empty():
-			player.start_climb(ledge)
-			return
+		# nothing to climb: at a sprint, a dolphin leap out of the water
+		if fast and player.spend_stamina(LEAP_COST):
+			_leap_t = 0.0
+			_vy = LEAP_VY
+			_dash_dir = dir
+			Net.fx("spray", [_surface_point(), (dir + Vector3.UP).normalized(), 12, Color(0.9, 0.96, 1.0), 4.0])
+			Net.fx("sfx", ["splash", player.global_position, -7.0, 0.1, 1.3])
+
+
+## Swimming at `at` (flat): the stroke's heading points at it.
+func _toward(at: Vector3, dir: Vector3) -> bool:
+	var to := Vector3(at.x - player.global_position.x, 0.0, at.z - player.global_position.z)
+	return dir != Vector3.ZERO and to.length() > 0.05 and dir.dot(to.normalized()) > 0.55
+
+
+## The climb-out prompt (our own, so it's cleared only if we put it up).
+func _show_climb(text: String) -> void:
+	if text == _prompt:
+		return
+	_prompt = text
+	get_tree().call_group("hud", "show_prompt", text, -1.0)
 
 
 ## Devil Fruit user in deep water: sinking, struggling, drowning.
@@ -421,7 +512,7 @@ func _find_ledge() -> Dictionary:
 	fwd = fwd.normalized()
 	var surf := player.water_surface()
 	var space := player.get_world_3d().direct_space_state
-	for reach in [0.55, 0.8, 1.05]:
+	for reach in [0.5, 0.75, 1.0, 1.25]:
 		var probe: Vector3 = player.global_position + fwd * float(reach)
 		var q := PhysicsRayQueryParameters3D.create(Vector3(probe.x, surf + LEDGE_MAX + 0.4, probe.z), Vector3(probe.x, surf + 0.1, probe.z), 1)
 		q.exclude = [player.get_rid()]
@@ -445,7 +536,7 @@ func _find_ledge() -> Dictionary:
 		if not space.intersect_shape(sq, 1).is_empty():
 			continue
 		var anchor := hit["collider"] as Node3D
-		return {"kind": "ledge", "anchor": anchor, "edge": top, "top": top + fwd * 0.35, "fwd": fwd}
+		return {"kind": "ledge", "anchor": anchor, "edge": top, "top": top + fwd * 0.35, "fwd": fwd, "high": h > LEDGE_HIGH}
 	return {}
 
 
@@ -459,3 +550,5 @@ func exit() -> void:
 	breath = breath_max()
 	cold = 0.0
 	storm = 0.0
+	_leap_t = -1.0
+	_show_climb("")
