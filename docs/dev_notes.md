@@ -3639,3 +3639,19 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Tests: t/progression/can_learn (the costs and gates, and the shape: links real, every node reachable, no two on one
   spot, every skill and all 19 moves still taught, no 1-point weapon filler, sizes). progtest's point sums and
   techtest's "learn everything" (life skills levelled first) and node-count check updated, not run (world suites).
+
+## 2026-10-19: skills rework, piece 3: the skill map says what pays and what's next
+- skill_map_screen.gd: tabs in four groups (Captain | weapons | Life | Fruit, TAB_GAP apart); a third header line
+  (HEADER_H 55) says what pays: "Paid with skill points: 2 every level", or a weapon's own mastery points with its
+  family's share and each kin tree's mastery level ("The blades share 25%: katana 4, dual 4..."), or, on Life, which
+  Seafarer nodes the life skills open. A weapon's header has a mastery bar. Unlearned nodes show their cost (top right,
+  green when you can pay it). Names under every node from zoom 0.5 (k 1.0), but col -1 (elements, Mind's Eye,
+  Bandolier, Smoke Bomb) only from 0.7, where they'd hit the skills' names.
+- The LIFE tab: four columns, each perk with its milestone level inside it and its name to its right; under each root
+  its level, a bar and "next at N: <perk>". The panel shows a perk as "Comes at Swimming 7, free" and the skill's xp.
+  It opens on Life when you're in the water. The Captain tree's frame was re-fit to its smaller size (Survival pulled
+  in to 415).
+- skill_bar.gd: the level badge shows the weapon in hand's unspent mastery points beside skill points ("+2 SP  +3
+  CUTLASS [K]").
+- Render: tools/dev/skillmapshot.gd (the light stage; it closes the creator and ends the story so the map opens; it
+  waits in frames, as the open menu pauses the game's ticks).

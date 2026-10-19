@@ -253,11 +253,11 @@ static func _build_base() -> void:
 	_add("v_iron", "Iron Hide", "stat", "Survival", _p(A, 335.0, -12.0), ["v_tekkai"], {"defense": 10.0}, "+10 defense.", {"level": 5})
 	_add("v_mend", "Mend", "passive", "Survival", _p(A, 335.0, 12.0), ["v_steadfast"], {"regen_hp": 2.5},
 		"Out of combat (no damage for 5 s) you heal 2.5 health a second.")
-	_add("v_adren", "Adrenaline", "passive", "Survival", _p(A, 415.0, -14.0), ["v_iron"], {"adrenaline": 0.25},
+	_add("v_adren", "Adrenaline", "passive", "Survival", _p(A, 415.0, -17.0), ["v_iron"], {"adrenaline": 0.25},
 		"Below 35% health you hit 25% harder.", {"level": 5})
-	_add("v_stomach", "Iron Stomach", "passive", "Survival", _p(A, 415.0, 14.0), ["v_mend"], {"potion_pct": 0.4},
+	_add("v_stomach", "Iron Stomach", "passive", "Survival", _p(A, 415.0, 17.0), ["v_mend"], {"potion_pct": 0.4},
 		"Food and drink heal you 40% more.")
-	_add("v_last", "Last Stand", "passive", "Survival", _p(A, 490.0), ["v_adren", "v_stomach"], {"last_stand": 1},
+	_add("v_last", "Last Stand", "passive", "Survival", _p(A, 415.0), ["v_adren", "v_stomach"], {"last_stand": 1},
 		"Once a minute, a blow that would kill you leaves you at 1 health instead.", {"level": 6}, "", 3)
 
 	# ---- the Seafarer (each node needs a life skill) ----
@@ -302,12 +302,12 @@ static func _build_base() -> void:
 ## fish_double) are read by those systems once they exist.
 static func _life_root(tree: String, col: int, name_: String, region: String, desc: String) -> void:
 	_tree = tree
-	_add(tree + "_root", name_, "root", region, Vector2((col - 1.5) * 150.0, 0.0), [], {}, desc)
+	_add(tree + "_root", name_, "root", region, Vector2((col - 1.5) * 225.0 - 40.0, 0.0), [], {}, desc)
 
 
 static func _perk(id: String, name_: String, region: String, lv: int, row: int, link: String, effects: Dictionary, desc: String) -> void:
 	var root: Vector2 = _nodes[_tree + "_root"]["pos"]
-	_add(id, name_, "perk", region, root + Vector2(0.0, -row * 64.0), [link], effects, desc, {"mastery": lv}, "", 0)
+	_add(id, name_, "perk", region, root + Vector2(0.0, -row * 50.0), [link], effects, desc, {"mastery": lv}, "", 0)
 
 
 static func _build_life() -> void:

@@ -1,10 +1,11 @@
 class_name SkillMapScreen
 extends Control
-## The skill trees (K), one tab each (click them, or Tab / Shift+Tab):
-## Base & Haki, Unarmed, Cutlass, Katana, Axe, the daggers, Dual Wield, Corsair, Pistol, Seamanship, Devil Fruit
-## (SkillTree.TAB_ORDER). It opens on the tree of the weapon in your hand and
-## frames that tree's whole cluster. Weapon trees spend that weapon's mastery
-## points; the others spend skill points.
+## The skill trees (K), one tab each (click them, or Tab / Shift+Tab), in groups:
+## the Captain | Unarmed, Cutlass, Katana, Axe, the daggers, Dual Wield, Corsair, Pistol | Life skills | Devil Fruit
+## (SkillTree.TAB_ORDER). It opens on the tree of the weapon in your hand (Life in the water) and
+## frames that tree's whole cluster. The header says what the tree is for and what pays for it:
+## the Captain and the fruit spend skill points (2 a level), a weapon its own mastery points (shared in
+## part by its family), and the life skills spend nothing: their perks come at mastery milestones.
 ##
 ## Mouse: drag to pan, wheel to zoom, click a node to select it, click it again
 ## (or Enter / F) to learn it - or, on a learned skill, to rank it up a tier.
@@ -16,7 +17,9 @@ const PANEL_W := 160.0
 const BAR_SLOT := 24.0
 const TAB_H := 17.0
 ## The tabs and the tree's own lines over the map.
-const HEADER_H := 44.0
+const HEADER_H := 55.0
+## Space between the tab groups.
+const TAB_GAP := 6.0
 const TIP_W := 150.0
 
 var menu: Node
@@ -59,7 +62,9 @@ func on_open() -> void:
 	grab_focus()
 	var pl := _player()
 	var tab := "base"
-	if pl and pl.armed:
+	if pl and pl.is_swimming():
+		tab = "life"
+	elif pl and pl.armed:
 		tab = "fruit" if pl.hybrid else SkillTree.style_tree(pl.style())
 	set_tab(tab if tab != "" else "base")
 	queue_redraw()
@@ -67,7 +72,7 @@ func on_open() -> void:
 
 func set_tab(tree: String) -> void:
 	_tab = tree
-	_sel = _fruit_root() if _tab == "fruit" else SkillTree.root_of(_tab)
+	_sel = _fruit_root() if _tab == "fruit" else SkillTree.root_of(SkillTree.tab_trees(_tab)[0])
 	_hover = ""
 	_frame_tab()
 
@@ -99,18 +104,22 @@ func _frame_tab() -> void:
 		if _shown(id):
 			pts.append(SkillTree.nodes()[id]["pos"])
 	if _tab == "base" or pts.is_empty():
-		_pan = Vector2(0, -HEADER_H * 0.5)
-		# the base constellation reaches ~560 from the center (region labels)
-		_zoom = clampf(minf(mr.size.x, mr.size.y - HEADER_H) / 2.0 / 560.0, 0.22, 1.6)
+		# (it reaches further up, Mobility and Survival, than down)
+		_pan = Vector2(0, -HEADER_H * 0.5 - 45.0)
+		# the Captain's constellation reaches ~400 from the center (up to the region labels)
+		_zoom = clampf(minf(mr.size.x, mr.size.y - HEADER_H) / 2.0 / 400.0, 0.22, 1.6)
 		return
 	var lo: Vector2 = pts[0]
 	var hi: Vector2 = pts[0]
 	for q in pts:
 		lo = lo.min(q)
 		hi = hi.max(q)
-	var span := (hi - lo) + Vector2(140, 120)
+	# (room for the names under the nodes and, on Life, the bars under the roots)
+	var life := _tab == "life"
+	# (Life's perk names sit to the right of their nodes, and its bars under the roots)
+	var span := (hi - lo) + (Vector2(260, 190) if life else Vector2(140, 120))
 	_zoom = clampf(minf(mr.size.x / span.x, (mr.size.y - HEADER_H - 20.0) / span.y), 0.3, 1.4)
-	_pan = (lo + hi) * 0.5 + Vector2(0, -HEADER_H * 0.5 / _zoom)
+	_pan = (lo + hi) * 0.5 + (Vector2(55, 30) if life else Vector2.ZERO) + Vector2(0, -HEADER_H * 0.5 / _zoom)
 
 func _process(delta: float) -> void:
 	# the screen stays "visible" inside the hidden menu root when closed:
@@ -168,9 +177,9 @@ func _radius(n: Dictionary) -> float:
 			return 14.0
 		"active":
 			return 12.5
-		"passive", "move":
+		"passive", "move", "perk":
 			return 8.5
-	return 6.5
+	return 7.5
 
 
 func _node_at(sp: Vector2) -> String:
@@ -188,9 +197,22 @@ func _node_at(sp: Vector2) -> String:
 	return best
 
 
+## Tabs in groups: the Captain, the weapons, Life, the fruit.
+func _tab_group(i: int) -> int:
+	var t: String = SkillTree.TAB_ORDER[i]
+	match SkillTree.kind_of(t):
+		"shared":
+			return 0
+		"weapon":
+			return 1
+		"tab":
+			return 2
+	return 3
+
+
 func _tab_rect(i: int) -> Rect2:
-	var w := floorf(minf(72.0, (size.x - 6.0) / SkillTree.TAB_ORDER.size()))
-	return Rect2(3.0 + i * w, 2.0, w - 2.0, 14.0)
+	var w := floorf(minf(72.0, (size.x - 6.0 - 3.0 * TAB_GAP) / SkillTree.TAB_ORDER.size()))
+	return Rect2(3.0 + i * w + _tab_group(i) * TAB_GAP, 2.0, w - 2.0, 14.0)
 
 
 func _tab_at(sp: Vector2) -> int:
@@ -355,10 +377,10 @@ func _draw() -> void:
 	var mr := _map_rect()
 	if _tab == "base":
 		# region labels
-		# [region, label, distance out, awakens at level]
-		var labels := [["Mobility", "Mobility", 550.0, 0], ["Survival", "Survival", 550.0, 0],
-			["Armament", "Armament Haki", 480.0, 10], ["Observation", "Observation Haki", 480.0, 10],
-			["Conqueror", "", 400.0, 18]]
+		# [region, label, distance out, awakens at level, or a note]
+		var labels := [["Mobility", "Mobility", 415.0, 0, ""], ["Survival", "Survival", 480.0, 0, ""],
+			["Armament", "Armament Haki", 455.0, 10, ""], ["Observation", "Observation Haki", 455.0, 10, ""],
+			["Conqueror", "", 360.0, 18, ""], ["Seafarer", "Seafarer", 300.0, 0, "grows with life skills"]]
 		for l in labels:
 			var a := deg_to_rad(SkillTree.REGION_ANGLE[l[0]])
 			var lp := _to_screen(Vector2(cos(a), sin(a)) * float(l[2]))
@@ -368,12 +390,14 @@ func _draw() -> void:
 				_text(lp + Vector2(-60, 0), str(l[1]).to_upper(), Color(col.r, col.g, col.b, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 			if pr.level < int(l[3]):
 				_text(lp + Vector2(-60, 10), "awakens at level %d" % int(l[3]), Color(UIStyle.TEXT_DIM, 0.7), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
+			elif str(l[4]) != "":
+				_text(lp + Vector2(-60, 10), str(l[4]), Color(UIStyle.TEXT_DIM, 0.7), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 	elif SkillTree.is_weapon_tree(_tab):
 		var m := pr.mastery_of(_tab)
 		if int(m["lv"]) == 1 and int(m["xp"]) == 0 and int(m["pts"]) == 0:
-			_text(Vector2(0, HEADER_H + 12), "Fight with it to build mastery: every mastery level is a point for this tree.", Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+			_text(Vector2(0, HEADER_H + 12), "Fight with it (or a weapon of its family) to build mastery: every mastery level is a point for this tree.", Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	elif _tab == "life":
-		pass
+		_draw_life(pr)
 	elif pl.power.has_fruit():
 		var fd := pl.power.fruit_data()
 		var fc: Color = fd["color"]
@@ -417,18 +441,25 @@ func _draw() -> void:
 			draw_rect(Rect2(tr.end.x - 5, tr.position.y + 2, 3, 3), UIStyle.CORAL)
 	var tname := str(SkillTree.TREES[_tab]["name"]).to_upper()
 	_text(Vector2(6, TAB_H + 11), tname, UIStyle.ACCENT)
-	var info := ""
-	if SkillTree.is_mastery_tree(_tab):
+	var info_x := 14 + FONT.get_string_size(tname, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	if SkillTree.is_weapon_tree(_tab):
 		var m := pr.mastery_of(_tab)
 		var lv := int(m["lv"])
-		info = "MASTERY %d  %s" % [lv, "MAX" if lv >= Progression.MAX_MASTERY else "%d/%d XP" % [int(m["xp"]), Progression.mastery_to_next(lv)]]
+		var info := "MASTERY %d" % lv
+		_text(Vector2(info_x, TAB_H + 11), info, UIStyle.TEXT)
+		var bx := info_x + FONT.get_string_size(info, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 6.0
+		_bar(Rect2(bx, TAB_H + 6, 70, 4), 1.0 if lv >= Progression.MAX_MASTERY else float(m["xp"]) / Progression.mastery_to_next(lv), SkillTree.REGION_COLORS.get(str(SkillTree.TREES[_tab]["name"]), UIStyle.ACCENT))
+		_text(Vector2(bx + 76, TAB_H + 11), "MAX" if lv >= Progression.MAX_MASTERY else "%d/%d XP" % [int(m["xp"]), Progression.mastery_to_next(lv)], UIStyle.TEXT_DIM)
+	elif _tab == "life":
+		_text(Vector2(info_x, TAB_H + 11), "LEARNED BY DOING", UIStyle.TEXT)
 	else:
-		info = "LEVEL %d  %d/%d XP" % [pr.level, pr.xp, Progression.xp_to_next(pr.level)]
-	_text(Vector2(14 + FONT.get_string_size(tname, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x, TAB_H + 11), info, UIStyle.TEXT)
-	var pts := pr.points(_tab)
-	var pts_name := "POINTS" if SkillTree.is_mastery_tree(_tab) else "SKILL POINTS"
-	_text(Vector2(mr.size.x - 166, TAB_H + 11), "%s %d" % [pts_name, pts], UIStyle.GOOD if pts > 0 else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_RIGHT, 160)
+		_text(Vector2(info_x, TAB_H + 11), "LEVEL %d  %d/%d XP" % [pr.level, pr.xp, Progression.xp_to_next(pr.level)], UIStyle.TEXT)
+	if _tab != "life":
+		var pts := pr.points(_tab)
+		var pts_name := "MASTERY POINTS" if SkillTree.is_weapon_tree(_tab) else "SKILL POINTS"
+		_text(Vector2(mr.size.x - 166, TAB_H + 11), "%s %d" % [pts_name, pts], UIStyle.GOOD if pts > 0 else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_RIGHT, 160)
 	_text(Vector2(6, TAB_H + 22), _fit_line(_tree_blurb(), mr.size.x - 12), UIStyle.TEXT_DIM)
+	_text(Vector2(6, TAB_H + 33), _fit_line(_paid_line(pr), mr.size.x - 12), UIStyle.TEAL_LIGHT)
 	if _tab == "base" and pr.level == 1 and pr.skill_points == 0:
 		_text(Vector2(0, HEADER_H + 12), "Win fights to earn XP. Every level gives 2 skill points.", Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
 	_draw_panel(pl)
@@ -440,10 +471,56 @@ func _draw() -> void:
 
 ## What the open tree is for: its root's own words.
 func _tree_blurb() -> String:
+	if _tab == "base":
+		return "Your body and will, shared by every weapon: stats, movement, survival, Haki, and the Seafarer's nodes."
+	if _tab == "life":
+		return "Swim, sail, cook and fish to grow these. Their perks come by themselves at milestones: nothing to spend."
 	var root := _fruit_root() if _tab == "fruit" else SkillTree.root_of(_tab)
 	if root == "":
 		return "Eat a Devil Fruit and its powers grow here."
 	return str(SkillTree.get_node_def(root)["desc"])
+
+
+## What pays for the open tree, and for a weapon how far along its family is.
+func _paid_line(pr: Progression) -> String:
+	if SkillTree.is_weapon_tree(_tab):
+		var kin: Array = []
+		for t in SkillTree.kin_of(_tab):
+			kin.append("%s %d" % [str(SkillTree.TREES[t]["tab"]).to_lower(), pr.mastery_level(t)])
+		var fam := " and ".join(SkillTree.families_of(_tab))
+		var line := "Its own mastery points, 1 a level."
+		if kin.is_empty():
+			return line + " The only one of the %s so far: no share to or from it." % fam
+		return line + " The %s share %d%%: %s" % [fam, int(Progression.FAMILY_SHARE * 100.0), ", ".join(kin)]
+	if _tab == "life":
+		return "The Seafarer's nodes on the Captain tree open as these grow: Sea Born at Swimming 4, Helmsman at Seamanship 5."
+	return "Paid with skill points: 2 every level."
+
+
+## A thin progress bar.
+func _bar(r: Rect2, frac: float, col: Color) -> void:
+	draw_rect(r.grow(1.0), Color(0, 0, 0, 0.8))
+	draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(frac, 0.0, 1.0), r.size.y)), col)
+
+
+## Under each life skill's root: its level, a bar to the next, and the next perk.
+func _draw_life(pr: Progression) -> void:
+	for t in SkillTree.LIFE_SKILLS:
+		var root := SkillTree.get_node_def(t + "_root")
+		var c := _to_screen(root["pos"])
+		var lv := pr.mastery_level(t)
+		var col: Color = SkillTree.REGION_COLORS[str(root["region"])]
+		var y := c.y + _radius(root) * clampf(_zoom * 2.0, 0.6, 1.6) + 20.0
+		_text(Vector2(c.x - 60, y), "LV %d" % lv, UIStyle.CREAM, 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
+		var m := pr.mastery_of(t)
+		_bar(Rect2(c.x - 40, y + 4, 80, 3), 1.0 if lv >= Progression.MAX_MASTERY else float(m["xp"]) / Progression.mastery_to_next(lv), col)
+		var next := ["every perk", "earned"]
+		for pk in SkillTree.perks_of(t):
+			if lv < int(pk[0]):
+				next = ["next at %d:" % int(pk[0]), str(SkillTree.get_node_def(pk[1])["name"])]
+				break
+		_text(Vector2(c.x - 60, y + 17), next[0], Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
+		_text(Vector2(c.x - 60, y + 27), next[1], Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 
 
 ## One line of `text` cut to `w` pixels (with an ellipsis).
@@ -473,6 +550,8 @@ func _status(id: String, pr: Progression) -> Array:
 			return ["READY TO RANK UP", UIStyle.ACCENT]
 		return ["LEARNED", UIStyle.GOOD]
 	var why := pr.can_learn(id)
+	if str(n["kind"]) == "perk":
+		return [why.to_upper(), UIStyle.TEAL_LIGHT]
 	if why == "":
 		return ["LEARN: %s" % pr.points_word(str(n["tree"]), int(n["cost"])).to_upper(), UIStyle.GOOD]
 	return [why.to_upper(), UIStyle.DANGER_TEXT]
@@ -514,8 +593,9 @@ func _draw_tip(pr: Progression) -> void:
 
 
 func _kind_name(n: Dictionary) -> String:
+	var root := "Devil Fruit" if n["tree"] == "fruit" else ("Life skill" if SkillTree.is_life_tree(str(n["tree"])) else "Weapon")
 	return {"origin": "Start", "stat": "Stat", "passive": "Passive", "move": "Moveset", "active": "Active skill",
-		"ult": "Ultimate", "root": "Devil Fruit" if n["tree"] == "fruit" else "Weapon"}.get(str(n["kind"]), str(n["kind"]))
+		"ult": "Ultimate", "perk": "Milestone perk", "root": root}.get(str(n["kind"]), str(n["kind"]))
 
 
 func _wrap_lines(text: String, w: float, most: int) -> Array:
@@ -534,6 +614,12 @@ func _wrap_lines(text: String, w: float, most: int) -> Array:
 		out.resize(most)
 		out[most - 1] = _fit_line(str(out[most - 1]) + " ...", w)
 	return out
+
+
+## A weapon tree's col -1 (the element nodes, Mind's Eye, Bandolier, Smoke Bomb) sits one column from the
+## skills: its names would run into theirs until you zoom in.
+func _crowded(n: Dictionary) -> bool:
+	return SkillTree.is_weapon_tree(str(n["tree"])) and is_equal_approx(n["pos"].x, -100.0)
 
 
 func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
@@ -594,7 +680,13 @@ func _draw_node(id: String, n: Dictionary, k: float, pr: Progression) -> void:
 			draw_circle(c, r * 0.45, region_col if owned else Color("4c7477"))
 	if id == _sel:
 		draw_arc(c, r + 4.0, 0, TAU, 24, UIStyle.CREAM, 1.0)
-	if id == _hover or kind in ["active", "ult", "root"] or (k >= 1.2 and kind != "stat"):
+	if not owned and int(n["cost"]) > 0 and k >= 1.0:
+		_text(c + Vector2(r - 1.0, -r + 3.0), str(int(n["cost"])), UIStyle.GOOD if avail else Color(UIStyle.TEXT_DIM, 0.9))
+	if kind == "perk":
+		# a perk's milestone inside it and its name to its right, so the columns stay apart
+		_text(c + Vector2(-r, 3), str(int(n["req"]["mastery"])), UIStyle.INK if owned else UIStyle.TEXT_DIM, 8, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, Color(0, 0, 0, 0))
+		_text(c + Vector2(r + 5, 3), str(n["name"]), UIStyle.CREAM if owned or id == _hover else Color(UIStyle.TEXT_DIM, 0.8))
+	elif id == _hover or kind in ["active", "ult", "root"] or k >= (1.4 if _crowded(n) else 1.0):
 		var nc := UIStyle.CREAM if (owned or avail or id == _hover) else Color(UIStyle.TEXT_DIM, 0.75)
 		_text(c + Vector2(-60, r + (13.0 if kind in ["active", "ult"] else 9.0)), str(n["name"]), nc, 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 
@@ -668,6 +760,13 @@ func _draw_panel(pl: Player) -> void:
 				y += 12.0
 			else:
 				y = _wrap(x0 + 8, y, rwhy, PANEL_W - 16, UIStyle.DANGER_TEXT) + 2.0
+	elif str(n["kind"]) == "perk":
+		var t := str(n["tree"])
+		_text(Vector2(x0 + 8, y), "%s, free" % why, UIStyle.TEXT)
+		y += 12.0
+		var m := pr.mastery_of(t)
+		_text(Vector2(x0 + 8, y), "%s %d  %d/%d XP" % [SkillTree.TREES[t]["name"], int(m["lv"]), int(m["xp"]), Progression.mastery_to_next(int(m["lv"]))], UIStyle.TEAL_LIGHT)
+		y += 12.0
 	else:
 		_text(Vector2(x0 + 8, y), "Cost: %s" % pr.points_word(str(n["tree"]), cost), UIStyle.TEXT)
 		y += 12.0

@@ -396,9 +396,16 @@ func _draw_xp() -> void:
 	draw_circle(badge, 8.0, UIStyle.BG_DARK)
 	draw_arc(badge, 8.0, 0.0, TAU, 20, UIStyle.BORDER, 1.0)
 	_text(badge + Vector2(-10.0, 3.0), str(pr.level), UIStyle.ACCENT, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
-	if pr.skill_points > 0:
+	var mt := SkillTree.style_tree(player.style())
+	var mp := pr.points(mt) if mt != "" else 0
+	if pr.skill_points > 0 or mp > 0:
 		var a := 0.6 + 0.4 * sin(_t * 5.0)
-		_text(badge + Vector2(11.0, 3.0), "+%d SP [K]" % pr.skill_points, Color(0.75, 0.95, 0.55, a))
+		var parts: Array = []
+		if pr.skill_points > 0:
+			parts.append("+%d SP" % pr.skill_points)
+		if mp > 0:
+			parts.append("+%d %s" % [mp, str(SkillTree.TREES[mt]["tab"])])
+		_text(badge + Vector2(11.0, 3.0), "%s [K]" % "  ".join(parts), Color(0.75, 0.95, 0.55, a))
 
 
 ## Pistols: loaded shots per gun over the middle of the plate.
