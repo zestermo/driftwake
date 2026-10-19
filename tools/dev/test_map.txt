@@ -444,5 +444,7 @@ scripts/npc/clip_player.gd              t/downtime
 scripts/npc/body_clip.gd                t/downtime
 tools/dev/clip_import.gd                t/downtime
 assets/clips/*                          t/downtime
+art/clips/*                             t/downtime
+tools/blender/*                         t/downtime
 scripts/ship/lashed_helm.gd             t/downtime t/ship
 scripts/player_states/helm_state.gd     t/downtime
