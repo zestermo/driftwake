@@ -50,7 +50,7 @@ func grab() -> void:
 
 
 func give(id: String, n: int) -> void:
-	p.inventory_component.add_item(load("res://resources/items/%s.tres" % id), n)
+	p.inventory_component.add_item(ItemDB.get_item(id), n)
 
 
 ## On dry land: the village, or (inland) the middle of the island.
