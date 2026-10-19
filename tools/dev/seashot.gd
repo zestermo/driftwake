@@ -45,7 +45,9 @@ func _process(d: float) -> bool:
 		return false
 	if i < 0 or t - t0 > 2.5:
 		if i >= 0:
-			root.get_texture().get_image().save_png("%s_%s.png" % [out, shots[i][0]])
+			# (the chart is the held map's page, saved on its own)
+			var img: Image = get_first_node_in_group("player").get_node("MapHold").image() if shots[i][0] == "chart" else root.get_texture().get_image()
+			img.save_png("%s_%s.png" % [out, shots[i][0]])
 			print("shot ", shots[i][0])
 		i += 1
 		if i == shots.size() and not charting:
@@ -59,7 +61,7 @@ func _process(d: float) -> bool:
 				for j in range(kind[1].size()):
 					gm.charted["%s:%d" % [kind[0], j]] = true
 			gm.maps[0] = true
-			root.get_node("GameMenu").open("chart")
+			get_first_node_in_group("player").get_node("MapHold").preview(true)
 			shots.append(["chart", Vector3.ZERO, 0.0, 0.0])
 			t0 = t
 			return false

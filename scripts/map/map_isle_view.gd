@@ -199,6 +199,7 @@ func _draw_over() -> void:
 			_over.draw_line(c, c + Vector2(0, -10), INK, 1.0)
 			_over.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -10), c + Vector2(7, -7.5), c + Vector2(0, -5)]), col)
 			_text(_over, c + Vector2(3, 8), str(i + 1), INK)
+	MapMarks.draw_all(_over, world_to_frame, _font)
 	var ship := get_tree().get_first_node_in_group("ship") as Node3D
 	if ship:
 		arrow(_over, world_to_frame(Vector2(ship.global_position.x, ship.global_position.z)), ship.global_rotation.y, 7.0, SHIP)

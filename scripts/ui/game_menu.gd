@@ -15,9 +15,6 @@ var _inventory: InventoryScreen
 var _skills: SkillMapScreen
 # save slots (Load Game from the pause menu)
 var _load: SaveSlotList
-# sea chart (M)
-const SEA_CHART := preload("res://scripts/ui/sea_chart.gd")
-var _chart: Control
 # the shipwright's yard (talk to Tackett)
 const YARD := preload("res://scripts/ui/shipwright_screen.gd")
 var _yard: Control
@@ -55,8 +52,6 @@ func _ready() -> void:
 	_screens["inventory"] = _inventory
 	_skills = SkillMapScreen.new(self)
 	_screens["skills"] = _skills
-	_chart = SEA_CHART.new()
-	_screens["chart"] = _chart
 	_yard = YARD.new(self)
 	_screens["yard"] = _yard
 	_shop = SHOP.new(self)
@@ -145,20 +140,11 @@ func _input(event: InputEvent) -> void:
 		elif _current == "skills":
 			close()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("sea_chart"):
-		if _current == "":
-			open("chart")
-		elif _current == "chart":
-			close()
-		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("inventory"):
 		if _current == "":
 			open("inventory")
 		elif _current == "inventory":
 			close()
-		get_viewport().set_input_as_handled()
-	elif _current == "chart" and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_C:
-		_chart.clear_marks()
 		get_viewport().set_input_as_handled()
 	elif _current == "inventory" and event.is_action_pressed("interact") and _inventory.has_container():
 		# F in the loot window: take everything
@@ -238,8 +224,6 @@ func open(screen: String) -> void:
 		_inventory.focus_bag()
 	elif screen == "skills":
 		_skills.on_open()
-	elif screen == "chart":
-		_chart.on_open()
 	elif screen == "yard":
 		_yard.on_open()
 	elif screen == "shop":
@@ -323,7 +307,6 @@ func _build_pause() -> Control:
 		["Resume", func(): close()],
 		["Inventory", func(): open("inventory")],
 		["Skill Map", func(): open("skills")],
-		["Sea Chart", func(): open("chart")],
 		["Appearance", func(): _open_appearance()],
 		["Options", func(): open("options")],
 		["Controls", func(): open("controls")],
@@ -513,7 +496,7 @@ const BINDINGS := [
 	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
 	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Emote wheel (hold, mouse to pick)", "T"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 5"],
 	["Ultimate", "R"], ["Eat / drink (hold: choose)", "E"], ["Action wheel (hold: camp...)", "N"], ["Block (hold)", "Q"],
-	["Inventory", "Tab / I"], ["Skill map", "K"], ["Sea chart (click: mark)", "M"], ["Belt lantern on / off", "L"], ["Read the log pose (hold)", "H"], ["Zoan: shift form", "V"], ["Summon your ship (hold)", "B"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
+	["Inventory", "Tab / I"], ["Skill map", "K"], ["Map: out / away (click: mark)", "M"], ["Belt lantern on / off", "L"], ["Read the log pose (hold)", "H"], ["Zoan: shift form", "V"], ["Summon your ship (hold)", "B"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
 ]
 
