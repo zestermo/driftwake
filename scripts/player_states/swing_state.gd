@@ -76,7 +76,7 @@ func _enter_rope(h: Humanoid) -> void:
 	anchor = _rope.global_position
 	# (feet to the yard, less a little hop up: the bottom of the swing clears the deck)
 	rope_len = player.global_position.distance_to(anchor) - 0.6
-	_max_len = 99.0
+	_max_len = _rope.ride_cap
 	var deck := player.get_platform_velocity()
 	var fwd := get_camera_forward()
 	var kick := Vector3(fwd.x, 0.0, fwd.z) * ROPE_KICK + Vector3.UP * 3.5

@@ -65,6 +65,16 @@ const FIRST_VOLLEY := 3.5
 ## After a boarding party's done (or couldn't get alongside), this long before
 ## the rest of her crew try it.
 const BOARD_AGAIN := 20.0
+## Broadsiding the crew this long after the first volley, they close to board at whatever speed the
+## crew sails (before, only a crew slower than them was ever boarded).
+const BOARD_AFTER := 14.0
+## Crowding on every stitch to get alongside (x top speed): a crew at full sail can't just walk away.
+const BOARD_RUSH := 1.15
+## Gives up if she can't get alongside in this long.
+const BOARD_GIVE_UP := 40.0
+## The grapples fly this long before the men leap; lost if she pulls this far off.
+const HOOK_TIME := 1.2
+const HOOK_LOSE := 18.0
 ## No more than this many ships fight the crew at once (the rest keep patrolling).
 const MAX_ATTACKERS := 2
 ## What a ball does to the crew's hull and to men near where it lands.
@@ -143,6 +153,10 @@ var _volleys: int = 0
 var _warn_t: float = -1.0
 var _volley_side: float = 1.0
 var _board_cd: float = 0.0
+## Seconds fought broadside since the first volley (reset when she goes for a boarding or gives up the chase).
+var _fight_t: float = 0.0
+## Seconds since her grapples flew (-1: not thrown).
+var _hook_t: float = -1.0
 ## A replacement ship (and her crew) is worth half the experience.
 var xp_k: float = 1.0
 ## The sea leg's level, set before she's added (Levels: hull, guns, rewards, prize; her men too). 0: unscaled.
@@ -425,6 +439,8 @@ func _physics_process(delta: float) -> void:
 				_try_volley(tgt, to_t, dist)
 				_ram_cd -= delta
 				_board_cd -= delta
+				if _volleys >= 1:
+					_fight_t += delta
 				# up close the guns won't bear: they ram you or board you
 				var close := dist < CLOSE + 6.0
 				# they can run you down: anything slower than them, or nearly stopped
@@ -436,7 +452,7 @@ func _physics_process(delta: float) -> void:
 					bark(["Ramming speed!", "Brace! We're going in!", "Run 'em down!"][_rng.randi() % 3], 2.0)
 					Net.fx("sfx", ["horn", global_position, 4.0, 0.03, 0.8])
 				# board them: close, or after a volley if they can catch you
-				elif spec["boards"] and _can_board() and _warn_t < 0.0 and (close or (_volleys >= 1 and catchable)):
+				elif spec["boards"] and _can_board() and _warn_t < 0.0 and (close or (_volleys >= 1 and (catchable or _fight_t > BOARD_AFTER))):
 					_set_state(S.BOARD)
 					bark("Grapples! Prepare to board!", 2.5)
 		S.RAM:
@@ -469,11 +485,17 @@ func _physics_process(delta: float) -> void:
 					want_heading = atan2(-to_s.x, -to_s.z)
 				else:
 					want_heading = lerp_angle(th, atan2(-to_s.x, -to_s.z), clampf(to_s.length() / 8.0, 0.0, 1.0) * 0.6)
-				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.6, 2.0, _max_speed())
-				# (near enough to leap: grapples bridge the last few metres)
-				if to_s.length() < 6.5 and dist < 13.5:
-					_board(tgt)
-				elif st_t > 25.0:
+				want_speed = clampf(_speed_of(tgt) + to_s.length() * 0.6, 2.0, _max_speed() * BOARD_RUSH)
+				# (near enough: the grapples fly, then the men leap across)
+				if _hook_t >= 0.0:
+					_hook_t += delta
+					if dist > HOOK_LOSE:
+						_hook_t = -1.0
+					elif _hook_t >= HOOK_TIME:
+						_board(tgt)
+				elif to_s.length() < 8.0 and dist < 14.5:
+					_throw_grapples(tgt)
+				elif st_t > BOARD_GIVE_UP:
 					_board_cd = BOARD_AGAIN  # couldn't catch them: back to the guns
 					_set_state(S.BROADSIDE)
 		S.HOLD:
@@ -500,6 +522,9 @@ func _physics_process(delta: float) -> void:
 func _set_state(s: S) -> void:
 	state = s
 	st_t = 0.0
+	_hook_t = -1.0
+	if s in [S.BOARD, S.PATROL]:
+		_fight_t = 0.0
 
 
 ## How many other ships are fighting the crew right now.
@@ -669,6 +694,16 @@ func _surrender() -> void:
 ## Another boarding party: off cooldown, and two men to spare besides the helmsman.
 func _can_board() -> bool:
 	return _board_cd <= 0.0 and _crew.size() - 1 - _crew_gone >= 2
+
+
+## The telegraph: lines and hooks fly across to her rail and the bosun shouts; the men leap HOOK_TIME later.
+func _throw_grapples(tgt: Node3D) -> void:
+	_hook_t = 0.0
+	bark("Grapples away! Over the rail!", HOOK_TIME + 0.4)
+	Net.fx("sfx", ["rope", global_position, 4.0, 0.05, 0.9])
+	var side := 1.0 if (tgt.global_basis.x).dot(_pos - tgt.global_position) > 0.0 else -1.0
+	for z in [-5.0, -1.0, 3.0]:
+		Net.fx("tracer", [global_transform * Vector3(-side * 3.9, 1.6, z), tgt.global_transform * Vector3(side * 3.9, 1.6, z), Color(0.75, 0.6, 0.4)])
 
 
 func _board(tgt: Node3D) -> void:

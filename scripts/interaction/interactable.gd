@@ -10,6 +10,8 @@ signal interacted(player: Player)
 ## Right next to it only: within this flat distance of its origin (and 1.8 m
 ## up or down). 0 = wherever its shape meets yours.
 @export var reach: float = 0.0
+## Airborne, its prompt wins over every other in reach (a rope to grab mid-jump); on the ground it's the nearest as usual.
+var air_first: bool = false
 ## A test of its own instead (feet position -> bool), e.g. a ladder's ends.
 var reach_test: Callable
 ## What the captain's body does on F (Player.gesture: "open", "pickup", "lever", "push", "reach", "hand"); "" none.

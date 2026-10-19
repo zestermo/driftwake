@@ -241,6 +241,8 @@ func _process(d: float) -> bool:
 			step += 1
 		28:
 			# grab the starboard yard rope (its end, at the deck)
+			check("no swing ropes until Tackett has fitted them", ship._rig.get_node_or_null("RopeS") == null)
+			ship.apply_kit(ship.kit.merged({"ropes": 1}, true))
 			var rope = ship._rig.get_node("RopeS")
 			var end: Vector3 = rope.end_point()
 			p.state_machine.force_state("Idle", {})

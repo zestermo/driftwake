@@ -8,6 +8,11 @@ extends Node3D
 @export var length: float = 11.5
 ## The push off goes all along the swing (a long chain across a gap) rather than out and up off a deck.
 var taut := false
+## Feet to the knot when you hang on it.
+const HANG := 1.5
+## Longest the feet may hang from the fastening: a grab lower than this is hauled up to it, so the
+## bottom of the swing is the same whatever height you took hold at.
+var ride_cap := 99.0
 
 var interactable: Interactable
 var _mesh: MeshInstance3D
@@ -27,6 +32,7 @@ func _ready() -> void:
 	interactable.collision_mask = 0
 	interactable.prompt_text = "Grab the rope"
 	interactable.reach = 0.75
+	interactable.air_first = true
 	var cs := CollisionShape3D.new()
 	var sp := SphereShape3D.new()
 	sp.radius = 0.75

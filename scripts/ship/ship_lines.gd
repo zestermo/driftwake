@@ -13,7 +13,8 @@ extends RefCounted
 ##   reef (reef and whirlpool damage cut), chaser (the bow gun), chaser_dmg / chaser_range,
 ##   spot (m: the lookout puts ships and salvage on the compass), night (speed between dusk and dawn),
 ##   steady (a ram throws the crew that much less; 1 = not at all), board (boarders fewer),
-##   fruit (tangerine trees), restock (more of each at the galley), slots (bag slots)
+##   fruit (tangerine trees), restock (more of each at the galley), slots (bag slots),
+##   ropes (the swing ropes at the yard's ends: none until bought)
 
 const GROUPS := ["Hull", "Guns", "Rig", "Helm", "Deck", "Cabin"]
 
@@ -62,6 +63,9 @@ const LINES := {
 		["Lookout cabin", "Boards, windows and a roof aloft", 150, {"timber": 6, "canvas": 2}, {"spot": 150}],
 		["Great spyglass", "A brass spyglass on a swivel", 220, {"copper": 3, "iron": 2}, {"spot": 200}],
 	]},
+	"ropes": {"name": "Yard ropes", "group": "Rig", "legacy": 0, "levels": [
+		["Swinging ropes", "A rope at each end of the yard to swing on", 90, {"timber": 2}, {"ropes": 2}],
+	]},
 	"lanterns": {"name": "Lanterns", "group": "Deck", "legacy": 0, "levels": [
 		["Lantern string", "Paper lanterns from the mast to the bowsprit", 40, {}, {"night": 0.03}],
 		["Stern strings", "Strings aft to the quarterdeck", 70, {"canvas": 2}, {"night": 0.03}],
@@ -89,7 +93,7 @@ const LINES := {
 	]},
 }
 ## The lines in the yard's order (grouped as GROUPS).
-const ORDER := ["armour", "copper", "guns", "chaser", "sails", "nest", "rudder", "lanterns", "rails", "grove", "galley", "chest"]
+const ORDER := ["armour", "copper", "guns", "chaser", "sails", "nest", "ropes", "rudder", "lanterns", "rails", "grove", "galley", "chest"]
 
 ## How an effect reads (percent keys show amount x 100, count keys as they are).
 const EFFECT_TEXT := {
@@ -99,8 +103,9 @@ const EFFECT_TEXT := {
 	"chaser_range": "+%d%% chaser range", "spot": "ships and salvage on the compass +%d m",
 	"night": "+%d%% speed at night", "steady": "%d%% steadier when rammed", "board": "%d fewer boarder",
 	"fruit": "+%d tangerine tree", "restock": "+%d of each at the galley", "slots": "+%d bag slots",
+	"ropes": "%d ropes to swing on",
 }
-const COUNT_KEYS := ["guns", "chaser", "spot", "board", "fruit", "restock", "slots"]
+const COUNT_KEYS := ["guns", "chaser", "spot", "board", "fruit", "restock", "slots", "ropes"]
 
 
 static func line(id: String) -> Dictionary:

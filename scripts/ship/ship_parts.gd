@@ -12,6 +12,10 @@ const RIG_SCALE := [Vector2(1.0, 1.0), Vector2(1.04, 1.03), Vector2(1.04, 1.03),
 ## The rudder, hung on the stern post (ship-local), and how far it swings at full helm.
 const RUDDER_AT := Vector3(0, -0.2, HullBuilder.QD_BACK + 0.12)
 const RUDDER_SWING := 0.45
+## The yard ropes (ShipLines "ropes"): the knot hangs 3.5 m over the deck, so a full swing's low
+## point stays well over the guns' tops; made fast inside the rail, even with the bigger sails' longer yard.
+const ROPE_LENGTH := HullBuilder.YARD_Y - HullBuilder.DECK_Y - 3.6
+const ROPE_X := 3.6
 
 var ship: Ship
 var levels: Dictionary = {}
@@ -20,6 +24,8 @@ var rudder_node: Node3D
 var _mesh: MeshInstance3D
 var _fine: MeshInstance3D
 var _nodes: Array = []
+## The swing ropes, kept apart from _nodes: another line's level mustn't free a rope someone swings on.
+var _ropes: Array = []
 var _sail_mat: Material
 var _m: Dictionary = {}
 
@@ -62,6 +68,7 @@ func apply(kit: Dictionary, sail_mat: Material) -> void:
 	if now != levels:
 		levels = now
 		_rebuild()
+	_fit_ropes()
 	for n in _nodes:
 		if is_instance_valid(n) and n.has_meta("sail"):
 			(n as MeshInstance3D).material_override = _sail_mat
@@ -122,6 +129,25 @@ func _rebuild() -> void:
 		add_child(_fine)
 	_mesh.mesh = mb.commit()
 	_fine.mesh = fine.commit()
+
+
+## A rope at each end of the yard once the line's bought (they turn with the yard as it's braced round).
+func _fit_ropes() -> void:
+	var bought := lv("ropes") >= 1
+	if bought != (_ropes.size() > 0):
+		for r in _ropes:
+			r.free()
+		_ropes.clear()
+		if bought:
+			for sgn in [-1.0, 1.0]:
+				var rope := SwingRope.new()
+				rope.name = "RopeS" if sgn > 0.0 else "RopeP"
+				rope.length = ROPE_LENGTH
+				rope.ride_cap = ROPE_LENGTH + SwingRope.HANG
+				rope.position = Vector3(sgn * ROPE_X, -0.1, 0.0)
+				ship._rig.add_child(rope)
+				_ropes.append(rope)
+	_counts["ropes"] = 1 if bought else 0
 
 
 func _count(id: String, n: int = 1) -> void:

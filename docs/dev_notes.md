@@ -3658,3 +3658,30 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - **t/ship/upgrade_cost back under its cap** (ship_parts.gd): a maxed sloop's parts had a 14th surface (a 4th glow: "glass") and drew 53 surfaces over plain
   (cap 52). "glass" is now the same cached PSXMat.glow as lamp_gold (nearly the same colour), so 13 surfaces and 52. PSXMat folds tints into vertex colour
   already, so same-texture materials were never separate surfaces; only glows (emission colour is the material) are.
+## 2026-10-19: yard ropes, rope prompt in the air, shorter ropes, pirates that board
+- **Ropes are an upgrade now** (ShipLines "ropes", Rig group, one level: 90 gold + 2 timber, a placeholder for the economy pass):
+  the sloop has no swing ropes until bought; ShipParts `_fit_ropes` hangs `RopeS` / `RopeP` under the yard (outside `_nodes`, so
+  another line's rebuild never frees a rope someone swings on) on every screen from the kit, so a guest's purchase through the
+  host-arbitrated yard order (Net.request_upgrade) shows for all. Old saves: `ropes` is 0 (legacy 0). A second tier (more ropes, a
+  longer reach) doesn't fit: stopped at one. upgrade_cost's surface budget 52 -> 55 (the ropes' 3 used to be on the plain sloop).
+- **Airborne, the rope's prompt wins** (`Interactable.air_first`, set by SwingRope; InteractionComponent drops its score by 100 in
+  Jump/Fall): a cannon, ladder or seat beside it no longer takes the F. On the ground the nearest still wins.
+- **Shorter ropes:** `ShipParts.ROPE_LENGTH` = yard - deck - 3.6 = 9.88 m (was 11.28), and the swing no longer takes its length from
+  where you stood (that put the low point 0.6 m over the deck, through the guns): `SwingRope.ride_cap` = length + HANG 1.5, a grab
+  lower than that is hauled up to it in ~0.1 s (SwingState's existing `_max_len` reel). The feet's low point is 2.32 m over the
+  keel line (2.0 m over the deck), the guns' worst top (barrel at full elevation) 1.87: 0.45 m clear (0.9 m of a gun at rest). The
+  rope is made fast to the braced yard, so it moves over the guns as the sail trims: the same clearance everywhere.
+- **Why pirates almost never boarded:** (1) a ship only went for a boarding when the crew was *catchable*, slower than her top speed
+  less 0.5, so any crew at full sail (11 m/s x wind, +15% with sails 5) was never boarded: a brig (10.5) stayed 54 m off for the
+  whole fight, and marines don't board; (2) the "close" trigger (< 26 m) can't happen, the broadside circle pushes her out at < 28-36 m;
+  (3) once in BOARD she needed to be within 6.5 m of the spot and 13.5 m off, and gave up after 25 s. Now: after BOARD_AFTER 14 s
+  broadsiding past the first volley she goes for a boarding whatever the crew's speed; BOARD runs at up to 1.15x her top speed
+  (a crew outrunning her by more than that keeps her off), gives up after 40 s, and the range is looser (8 m / 14.5 m). **Telegraph:**
+  the bosun shouts "Grapples away!" and three lines fly to your rail (`Net.fx` tracers + rope sound, every screen), and the men
+  leap HOOK_TIME 1.2 s later (host-simulated as before, the leap and crew already sync to guests; the bark rides her snapshot).
+  She loses the hook if she's pulled 18 m off.
+- Tests: t/ship/yard_ropes (bought, saved, a swing's low point, the prompt in the air and on the ground), t/ship/enemy_boarding (a
+  sloop boards a too-fast crew within 60 s, grapples first), t/ship/upgrade_* pass. riggingtest fits the ropes before its swing
+  (world suite, not run here; its "swings you across the deck > 3 m" and "off your feet" checks should still hold, the swing
+  is higher now). Co-op paths touched: the kit apply (every screen), `Net.fx` tracers/sfx and the existing state/bark snapshot of
+  EnemyShip; no nettest run.

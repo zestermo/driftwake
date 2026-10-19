@@ -1427,20 +1427,14 @@ func _build_rig(canvas: Material, wood: Material) -> void:
 	_show_sail(0.0)
 
 
-## The rigging up to the crow's nest (both sides), and a rope to swing from at
-## each end of the yard (they turn with it as it's braced round).
+## The rigging up to the crow's nest (both sides). The swing ropes at the yard's
+## ends are the yard ropes upgrade (ShipParts).
 func _build_climbing() -> void:
 	for sgn in [-1.0, 1.0]:
 		var rig := ShipRigging.new()
 		rig.name = "RiggingS" if sgn > 0.0 else "RiggingP"
 		rig.side = sgn
 		ship_model.add_child(rig)
-		var rope := SwingRope.new()
-		rope.name = "RopeS" if sgn > 0.0 else "RopeP"
-		rope.length = HullBuilder.YARD_Y - DECK_Y - 2.2
-		# (inside the rail, even with the bigger sails' longer yard)
-		rope.position = Vector3(sgn * 3.6, -0.1, 0.0)
-		_rig.add_child(rope)
 
 
 ## Canvas let down as far as sail_shown (the rest bundled on the yard); the

@@ -57,6 +57,7 @@ func _physics_process(_delta: float) -> void:
 	var ship := get_tree().get_first_node_in_group("ship")
 	var busy: bool = (ship != null and str(ship.get("local_job")) != "") or player.current_state_name() == "Climb"
 	var fwd := -player.player_model.global_basis.z
+	var airborne := player.current_state_name() in ["Jump", "Fall"]
 	for inter in ([] if busy else nearby_interactables):
 		if not is_instance_valid(inter) or not inter.enabled or inter.is_queued_for_deletion():
 			continue
@@ -68,7 +69,7 @@ func _physics_process(_delta: float) -> void:
 		var to: Vector3 = (inter as Interactable).global_position - player.global_position
 		var flat := Vector3(to.x, 0.0, to.z)
 		var facing := fwd.dot(flat.normalized()) if flat.length() > 0.05 else 1.0
-		var score: float = to.length() + (1.0 - facing) * 0.4
+		var score: float = to.length() + (1.0 - facing) * 0.4 - (100.0 if airborne and inter.air_first else 0.0)
 		if score < best_score:
 			best_score = score
 			best = inter
