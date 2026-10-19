@@ -130,8 +130,11 @@ static func hull(mb: MeshBuilder, m: Dictionary, rig: bool = true) -> void:
 			mb.add_quad(hull_m, q0, q1, q2, q3, _side_uv(q0), _side_uv(q1), _side_uv(q2), _side_uv(q3), Color(0.8, 0.8, 0.8), Vector3(-sgn, 0, 0))
 	# the transom, up to the quarterdeck rail
 	var st: Array = RINGS[0]
-	mb.add_quad(hull_m, Vector3(-st[1], QD_Y + 0.1, st[0]), Vector3(st[1], QD_Y + 0.1, st[0]), Vector3(st[2], st[4], st[0]), Vector3(-st[2], st[4], st[0]),
-		Vector2(0, 0), Vector2(4.0, 0), Vector2(3.0, 2.6), Vector2(1.0, 2.6), Color.WHITE, Vector3.BACK)
+	var t0 := Vector3(-st[1], QD_Y + 0.1, st[0]); var t1 := Vector3(st[1], QD_Y + 0.1, st[0])
+	var t2 := Vector3(st[1], st[3], st[0]); var t3 := Vector3(-st[1], st[3], st[0])
+	var t4 := Vector3(st[2], st[4], st[0]); var t5 := Vector3(-st[2], st[4], st[0])
+	mb.add_quad(hull_m, t0, t1, t2, t3, _transom_uv(t0), _transom_uv(t1), _transom_uv(t2), _transom_uv(t3), Color.WHITE, Vector3.BACK)
+	mb.add_quad(hull_m, t3, t2, t4, t5, _transom_uv(t3), _transom_uv(t2), _transom_uv(t4), _transom_uv(t5), Color.WHITE, Vector3.BACK)
 	# the bow: the sides meet at a stem post (closed outside and in, the rail across)
 	var bw: Array = RINGS[RINGS.size() - 1]
 	var bz := float(bw[0])
@@ -196,6 +199,11 @@ static func _plank_uv(p: Vector3) -> Vector2:
 ## Side planking mapped by position: strakes run fore and aft, 0.25 m high.
 static func _side_uv(p: Vector3) -> Vector2:
 	return Vector2(p.z * 0.25, -p.y * 0.5)
+
+
+## The transom's strakes, mapped by position like the sides' (0.25 m high).
+static func _transom_uv(p: Vector3) -> Vector2:
+	return Vector2(p.x * 0.5, -p.y * 0.5)
 
 
 static func _deck_quad(mb: MeshBuilder, mat: Material, a: Vector3, b: Vector3, c: Vector3, d: Vector3, col: Color, n: Vector3) -> void:

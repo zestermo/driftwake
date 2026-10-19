@@ -81,7 +81,7 @@ func _process(d: float) -> bool:
 			wait = 2.2
 		6:
 			print("   exhausted hp ", hp0, " -> ", p.health_component.current_health)
-			check("exhausted: losing health", p.health_component.current_health < hp0)
+			check("exhausted: no health lost", is_equal_approx(p.health_component.current_health, hp0))
 			p.stamina = 100.0
 			p.health_component.current_health = p.health_component.max_health
 			# swim to the starboard ladder and climb

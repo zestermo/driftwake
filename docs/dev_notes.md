@@ -3608,3 +3608,13 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Debug: Alt+F9 a level of every life skill (F9 still a level and the weapon's mastery).
 - Tests: t/progression/ family_carry, refund_migration, life_mastery; t/ship/seamanship rewritten for perks. Expect
   progtest, techtest, savetest, wieldtest, daggertest, balancetest to need a look once the trees are trimmed (piece 2).
+## 2026-10-19: sprint-jump stamina, swim exhaustion without damage, stern corners
+- **Sprint jump** (jump_state.gd): the sprint bound (take-off `jump_sprint`) spends SPRINT_JUMP_COST 10 through `spend_stamina` (same idiom as dodge:
+  refused below half the cost, HUD denied flash). Too winded: the jump still happens, as a plain `jump_run` with air_speed back to walk speed (no sticky
+  refusal). Standing/running jumps and the double jump stay free. Tested by t/player/sprint_jump_cost.
+- **Swim exhaustion** (swim_state.gd, non-fruit only): no damage any more (EXHAUST_DAMAGE/TICK gone). Stamina at 0.5 -> exhausted: float-paddle at TIRED_SPEED
+  1.1 (was 2.0), no sprint/dive, no stroke drain, regen at FLOAT_REGEN 0.25 of normal moving or not; back to normal at RECOVER 30 (was 25). Toast "Exhausted!
+  Float and catch your breath". Devil Fruit drowning untouched. Tested by t/player/swim_exhaust; swimtest's "losing health" check now expects none.
+- **Stern corners** (hull_builder.gd): the transom was one trapezoid from the quarterdeck rail corners straight to the keel corners, but the hull side kinks at
+  the deck line (vertical castle above, slanting below), so a wedge of each stern quarter was open and the transom's UVs were skewed. Now two quads (castle
+  rectangle + lower trapezoid) with position-mapped UVs (`_transom_uv`) like the sides'. Checked with modelshot back3/low before and after.

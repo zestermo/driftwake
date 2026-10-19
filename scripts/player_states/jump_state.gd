@@ -1,5 +1,9 @@
 extends PlayerState
 ## Jump / double jump. Hold jump for full height, tap for a short hop.
+## A sprint's long bound costs stamina; too winded for it and you jump anyway,
+## as a plain running jump without the sprint's carry.
+
+const SPRINT_JUMP_COST := 10.0
 
 
 func enter(data: Dictionary) -> void:
@@ -14,6 +18,9 @@ func _launch(double: bool) -> void:
 	player.variable_jump_active = true
 	player.squash(4.5 if not double else 3.5)
 	var kind := take_off(double)
+	if kind == "jump_sprint" and not player.spend_stamina(SPRINT_JUMP_COST):
+		kind = "jump_run"
+		player.air_speed = player.move_speed
 	player.body_model.play(kind, ActionSpecs.length(kind))
 	var at := player.global_position
 	if double:

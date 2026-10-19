@@ -4,8 +4,8 @@ extends PlayerState
 ## for a few seconds. Space pulls you up onto a low ledge in front of you, or
 ## up a ladder; F also uses a ladder.
 ## Swimming slowly drains stamina and treading water lets it creep back; run
-## the bar dry and you tire, losing a little health every second until you
-## get out of the water.
+## the bar dry and you're exhausted: a slow float-paddle (no sprint, no dive)
+## until you've got your breath back. No damage.
 ##
 ## Devil Fruit users can't swim at all: the sea drags them under. They sink,
 ## struggling weakly, can trudge along the bottom, and drown (health drains
@@ -13,7 +13,7 @@ extends PlayerState
 
 const SWIM_SPEED := 3.2
 const FAST_SPEED := 4.6
-const TIRED_SPEED := 2.0
+const TIRED_SPEED := 1.1
 const ACCEL := 9.0
 const DRAIN := 3.5
 const FAST_DRAIN := 13.0
@@ -23,10 +23,10 @@ const DIVE_MIN := 0.5
 const DIVE_MAX := 2.6
 const DIVE_DEPTH := 1.7
 const TREAD_REGEN := 0.15
-const EXHAUST_DAMAGE := 5.0
-const EXHAUST_TICK := 1.0
+## Exhausted: a slow float-paddle, stamina creeping back at this share of its regen.
+const FLOAT_REGEN := 0.25
 ## Exhausted until stamina is back to this.
-const RECOVER := 25.0
+const RECOVER := 30.0
 ## Ledges you can pull yourself onto: top this high above the water at most.
 const LEDGE_MAX := 1.5
 
@@ -122,27 +122,20 @@ func physics_update(delta: float) -> void:
 	player.body_model.diving = _diving
 
 	# stamina: strokes cost a little, treading water lets it creep back
-	if dir != Vector3.ZERO or _diving:
+	if _exhausted:
+		player.stamina_regen_mult = FLOAT_REGEN
+	elif dir != Vector3.ZERO or _diving:
 		var rate := DIVE_DRAIN if _diving else (FAST_DRAIN if fast else DRAIN)
 		player.drain_stamina(rate * delta)
 		player.stamina_regen_mult = 0.0
 	else:
 		player.stamina_regen_mult = TREAD_REGEN
 
-	# exhausted: lose health until you get out (or get your breath back)
 	if _exhausted:
-		_tick += delta
 		if not _warned:
 			_warned = true
-			player.call("_toast", "Exhausted! Get out of the water")
-		if _tick >= EXHAUST_TICK:
-			_tick = 0.0
-			player.health_component.take_damage(EXHAUST_DAMAGE)
-			Net.fx("sfx", ["splash", player.global_position, -10.0, 0.1, 0.7])
-			if player.health_component.current_health <= 0.0:
-				return  # the death ragdoll takes over
+			player.call("_toast", "Exhausted! Float and catch your breath")
 	else:
-		_tick = 0.0
 		_warned = false
 
 	# float: hips near the surface, head above it (deeper while diving)
