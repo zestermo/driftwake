@@ -66,6 +66,7 @@ func enter(_data: Dictionary) -> void:
 	_ember_prev = player.global_position
 	_vine = player.power.fruit == "vine" and not player.power.suppressed()
 	_vine_dist = 0.5
+	TraitMoves.on_dodge(player)
 	if player.power.shadow_step():
 		Net.fx("afterimage", [player.body_model, Color(0.6, 0.85, 1.0)])
 		Net.fx("sfx", ["whoosh_big", player.global_position, -5.0, 0.05, 1.5])

@@ -125,8 +125,9 @@ static func item_of(entry: Array) -> ItemData:
 	return Gear.make(str(entry[0]), str(entry[1]), entry[2], "", int(entry[3]))
 
 
+## On the economy's one curve (Economy.price; the number written in a stock entry is no longer read).
 static func price_of(entry: Array) -> int:
-	return int(entry[entry.size() - 1])
+	return Economy.price(item_of(entry))
 
 
 ## What a shop pays for one `item` (0: it won't buy it).

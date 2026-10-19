@@ -299,7 +299,7 @@ func buy(id: String) -> void:
 
 ## Pay for the level after `lv` (the level she has as you pay: the host checks nobody beat you to it).
 func order(id: String, lv: int) -> void:
-	var entry: Array = ShipLines.line(id)["levels"][lv]
+	var entry := ShipLines.entry(id, lv)
 	var short := ShipLines.short_of(_inv(), entry)
 	if short != "":
 		_note.text = "\"%s, Captain, and not a copper less.\" (you need %s)" % [ShipLines.cost_text(entry), short]
@@ -312,7 +312,7 @@ func order(id: String, lv: int) -> void:
 
 ## (Net) The host's answer: done, or a crewmate paid for that level first (the price comes back).
 func upgrade_done(id: String, lv: int, ok: bool) -> void:
-	var entry: Array = ShipLines.line(id)["levels"][lv]
+	var entry := ShipLines.entry(id, lv)
 	if ok:
 		_note.text = "%s: done. %s. She'll thank you for it." % [entry[0], ShipLines.effect_text(entry[4])]
 		UIStyle.sfx("buy")

@@ -26,6 +26,8 @@ func _process(_d: float) -> bool:
 	match step:
 		0:
 			p = stage.player
+			# (what's in it as it is: the economy's roll is t/economy's)
+			stage.chest.rolled = true
 			stage.chest._on_picked_up(p)
 			until = TK.wait_ticks(6)
 		1:

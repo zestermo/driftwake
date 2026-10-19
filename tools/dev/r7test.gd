@@ -125,6 +125,8 @@ func _process(d: float) -> bool:
 				items.append(st)
 			bag.setup(items, false)
 			bag.save_id = "test_chest"
+			# (what's in it as it is: the economy's roll is t/economy's)
+			bag.rolled = true
 			current_scene.add_child(bag)
 			bag.global_position = p.global_position + Vector3(1.5, 0, 0)
 			saw["chest"] = bag

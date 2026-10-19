@@ -1027,9 +1027,11 @@ func _all_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
 		GameManager.award_xp(amount, at)
 
 
+## A kill's coins: `count` is the creature's own roll; every captain rolls their own share of it
+## (Loot.kill_gold) and picks up only their own coins.
 func coins(at: Vector3, count: int) -> void:
 	if not active:
-		CoinPickup.spawn(get_tree(), at, count)
+		_all_coins(at, count)
 		return
 	everyone("_all_coins", [at, count])
 
@@ -1140,7 +1142,32 @@ func _all_ball(ball_id: String, what: String, at: Vector3, vel: Vector3, by_id: 
 
 
 func _all_coins(at: Vector3, count: int) -> void:
-	CoinPickup.spawn(get_tree(), at, count)
+	CoinPickup.spawn(get_tree(), at, Loot.kill_gold(count))
+
+
+# ==========================================================================
+# Economy (lane A): per-captain kill loot
+# ==========================================================================
+## A kill's drops: table [[item id, chance, count], ...], rolled by every captain for themselves
+## (Loot.roll_drops). A weapon lies on the ground on its own; the rest goes in one bag.
+func kill_loot(table: Array, at: Vector3) -> void:
+	if not active:
+		_all_kill_loot(table, at)
+		return
+	everyone("_all_kill_loot", [table, at])
+
+
+func _all_kill_loot(table: Array, at: Vector3) -> void:
+	var rest: Array = []
+	for e in Loot.roll_drops(table):
+		var it := SaveGame.item_from(e[0])
+		if it.is_weapon():
+			_all_drop(it.id, at + Vector3(randf_range(-0.6, 0.6), 0.1, randf_range(-0.6, 0.6)), randf() * TAU)
+		else:
+			rest.append(e)
+	if not rest.is_empty():
+		_local_drop_seq += 1
+		_make_drop("L%d" % _local_drop_seq, rest, at, false)
 
 
 ## A dropped weapon: everyone gets their own to pick up.

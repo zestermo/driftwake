@@ -10,9 +10,27 @@ static var _items: Dictionary = {}
 static func get_item(id: String) -> ItemData:
 	if _items.is_empty():
 		_load_all()
+	if not _items.has(id) and id.contains("+"):
+		return with_trait(id.get_slice("+", 0), id.get_slice("+", 1))
 	if not _items.has(id) and id.contains("@"):
 		return tiered(id.get_slice("@", 0), int(id.get_slice("@", 1)))
 	return _items.get(id)
+
+
+## A copy of weapon `base_id` (any tier: "<id>@<tier>") carrying a named trait (WeaponTraits):
+## "<base_id>+<trait>", saved and sent by that id like any other item.
+static func with_trait(base_id: String, trait_id: String) -> ItemData:
+	var id := "%s+%s" % [base_id, trait_id]
+	if _items.has(id):
+		return _items[id]
+	var base := get_item(base_id)
+	var it := base.duplicate() as ItemData
+	it.id = id
+	it.weapon_trait = trait_id
+	it.display_name = "%s %s" % [WeaponTraits.title(trait_id), base.display_name]
+	if trait_id == "venomous":
+		it.poison = maxf(it.poison, 3.0 * WeaponTraits.power(int(it.rarity)))
+	return register(it)
 
 
 ## A copy of item `base_id` at another tier ("<id>@<tier>": saved and sent
