@@ -19,3 +19,6 @@ and gear upgrading waits for a later release. The table below is the earlier dra
 - How cutscenes are skipped and shared in co-op, and the rivals' first crew roster and look: at the rival crews grill.
 - How a bounty is calculated, and what it changes (prices, who attacks you): at the bounty grill.
 - Gear-upgrade costs, caps and how renaming shows in co-op: in the economy's numbers, tuned in play.
+- **The intro sequence is redesigned in 1.19** (Zach, 2026-10-19), on the cutscene system the rival crews need: it
+  sets up the world (the Marines, rival crews, the sea's great powers, the First Sea's end) and the captain's goal
+  and motivation. Grill it with the rest of 1.19.

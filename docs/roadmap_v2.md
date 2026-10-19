@@ -72,3 +72,20 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 - Phase 3's progression core goes first: fewer, bigger skill nodes (a shared tree on level points, weapon trees by use, mastery carried over within a family), life skills learned by doing, a tighter economy with trait weapons and per-captain loot, food healing + galley buffs, specialist shops and artisans (docs/progression_plan.md). The minimap, journal/quests, NPC encounters and swimming depth get their own grills after it.
 - v1.18 holds the progression core, the held map with fog of war, the crew journal and quests, NPC encounters and deeper swimming (docs/v1_18_plan.md). **Rival pirate crews** (matched One Piece-style duels, recurring and scaling, cutscene intros) are the headline of v1.19 (docs/rival_crews_plan.md).
 - **Strongholds and the Devil Fruits' return** (concept, 1.20 or later; docs/strongholds_plan.md): Marine strongholds (Enies Lobby-style raids up to an Admiral) and Warlord/Emperor hideouts are where Devil Fruits come from; player-style AI enemies can be fruit users, drawn from one world pool of fruits that frees a fruit again when its user dies. Builds on 1.19's Marines, cutscenes and captain AI; to be grilled before it's built.
+
+## Release plan (Zach, 2026-10-19)
+The core gameplay loop and world progression come before the big fruit update, so players always have real things
+to work toward.
+- **1.18** (shipping now): the progression core, held map and fog, crew journal and quests, NPC encounters, deeper
+  swimming, sailing downtime, fishing, and a perf pass (docs/v1_18_plan.md).
+- **1.19: the Marines + rival crews**, plus a **new intro sequence** built on 1.19's cutscene system. The intro shows
+  what's out there (the Marines, rival crews, the sea's great powers, the end of the First Sea) and gives the
+  captain a reason to get strong and see it all. Today you don't know what the game's goal is
+  (docs/v1_19_plan.md, docs/rival_crews_plan.md).
+- **1.20: the world.** One more island type (**a spooky island**). A polish, fidelity and generation-fix pass across
+  all the chain islands. **Cities**: at least two on the first chain (the royal capital and the canal city, phase 1).
+- **1.21: combat and gear.** A weapon animation and skill polish pass, the redesigned flipbook FX pass, the remaining
+  weapons (polearms, dual axes, hammer...), new armour and clothes, and a **stat system for armour and clothing**.
+- **1.22: strongholds and Devil Fruits**: Marine strongholds and pirate hideouts as raids, Devil Fruits brought back
+  properly, fruit-user enemies, the world fruit pool (docs/strongholds_plan.md).
+- Then on toward 2.0: the remaining roadmap phases (more sea encounters, enemies, the First Sea finale).
