@@ -350,6 +350,9 @@ func _build_panel() -> void:
 	q.gui_input.connect(func(ev: InputEvent):
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
 			_clear_quick())
+	q.pressed.connect(func():
+		if Input.is_key_pressed(KEY_SHIFT):
+			_clear_quick())
 	qrow.add_child(q)
 	_quick.append(q)
 	_details = VBoxContainer.new()
@@ -867,6 +870,8 @@ func _hints_for(src: String, it: ItemData) -> Array:
 				out = [["LMB", "EAT" if it.devil_fruit != "" else "USE"]]
 				if InventoryComponent.quick_ok(it):
 					out.append(["E", "QUICK ITEM"])
+			if has_container():
+				out.append(["SHIFT", "STORE"])
 			out.append(["X", "DROP"])
 		"doll":
 			out = [["LMB", "TAKE OFF"]]
@@ -904,8 +909,11 @@ func _flash(text: String) -> void:
 # ==========================================================================
 # Actions
 # ==========================================================================
-func _click_bag(cell: int) -> void:
+func _click_bag(cell: int, shift: bool = Input.is_key_pressed(KEY_SHIFT)) -> void:
 	if cell >= _view.size():
+		return
+	if shift:
+		quick_move(_view[cell])
 		return
 	var pl := _player()
 	var it := pl.inventory_component.items[_view[cell]].item
@@ -913,6 +921,26 @@ func _click_bag(cell: int) -> void:
 	_use(_view[cell])
 	if to:
 		to.bounce()
+
+
+## Shift+click a bag stack: the whole stack into the open chest or bag (the same request a drag
+## makes, so co-op's shared bags stay the host's to arbitrate); with none open, wear or hold it
+## (food and drink: make it the quick item).
+func quick_move(idx: int) -> void:
+	var pl := _player()
+	if pl == null or idx >= pl.inventory_component.items.size():
+		return
+	var it := pl.inventory_component.items[idx].item
+	if has_container():
+		_container.store(pl, idx)
+		menu._play("equip")
+		refresh()
+	elif it.is_consumable() and InventoryComponent.quick_ok(it):
+		pl.inventory_component.select_quick(it.id)
+		menu._play("equip")
+		refresh()
+	else:
+		_use(idx)
 
 
 func _use(idx: int) -> void:
@@ -1352,17 +1380,21 @@ func _grow_loot(n: int) -> void:
 	while _loot_slots.size() < n:
 		var idx := _loot_slots.size()
 		var b := _slot("", {"src": "loot", "idx": idx})
-		b.pressed.connect(func():
-			var pl := _player()
-			if pl and has_container() and idx < _container.contents.size():
-				var it: ItemData = _container.contents[idx].item
-				_container.take(idx, pl, 1 if Input.is_key_pressed(KEY_SHIFT) else -1)
-				menu._play("equip")
-				if has_container():
-					refresh()
-					_bounce_item(it))
+		b.pressed.connect(func(): _click_loot(idx, Input.is_key_pressed(KEY_SHIFT)))
 		_loot_grid.add_child(b)
 		_loot_slots.append(b)
+
+
+## Click a chest slot: the whole stack into your bag (just one with shift).
+func _click_loot(idx: int, one: bool) -> void:
+	var pl := _player()
+	if pl and has_container() and idx < _container.contents.size():
+		var it: ItemData = _container.contents[idx].item
+		_container.take(idx, pl, 1 if one else -1)
+		menu._play("equip")
+		if has_container():
+			refresh()
+			_bounce_item(it)
 
 
 func has_container() -> bool:
