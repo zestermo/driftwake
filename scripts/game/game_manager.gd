@@ -23,6 +23,8 @@ var world_flags: Dictionary = {}
 ## the sea chart ("island:<name>", "reef:<i>", ... -> true).
 var maps: Dictionary = {}
 var charted: Dictionary = {}
+## The held map's fog of war (MapFog): island key -> what the crew has seen of it.
+var fog: Dictionary = {}
 ## Devil Fruits already found in this world (item id -> who found it).
 var fruit_claims: Dictionary = {}
 ## The shipwright's work on our ship (ShipKit; the host's world in co-op).
@@ -54,6 +56,7 @@ func reset_session() -> void:
 	world_flags.clear()
 	maps.clear()
 	charted.clear()
+	fog.clear()
 	fruit_claims.clear()
 	ship_kit = ShipKit.fresh()
 	chain_seed = randi()
@@ -114,6 +117,7 @@ func _process(delta: float) -> void:
 		return
 	play_time += delta
 	_autosave_t += delta
+	MapFog.tick(self, delta)
 	# the moment the log pose sets on the next island(s)
 	var now_set := log_pose_set()
 	if now_set and not _was_set and chain_at >= 0 and player.has_log_pose():

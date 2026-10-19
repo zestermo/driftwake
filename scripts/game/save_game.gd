@@ -260,6 +260,7 @@ static func save(player: Player) -> bool:
 		"opened": gm.opened.keys() if gm else [],
 		"maps": gm.maps.keys() if gm else [],
 		"charted": gm.charted.keys() if gm else [],
+		"fog": MapFog.pack(gm) if gm else {},
 		"burned": gm.burned.keys() if gm else [],
 		"world_flags": gm.world_flags.keys() if gm else [],
 		"fruit_claims": gm.fruit_claims.duplicate() if gm else {},
@@ -279,11 +280,14 @@ static func save(player: Player) -> bool:
 	if _guest(player):
 		# keep our own world's state, not the host's
 		# (and our own ship's storage and our grave, in our own world)
-		for k in ["burned", "world_flags", "fruit_claims", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave"]:
+		for k in ["burned", "world_flags", "fruit_claims", "ship_kit", "chain_seed", "chain_at", "chain_set", "chain_since", "ship_pos", "ship_yaw", "player_pos", "player_yaw", "world_time", "storage", "grave", "fog"]:
 			if old.has(k):
 				data[k] = old[k]
 			else:
 				data.erase(k)
+		# (the map's found spots are our own world's too)
+		data["charted"] = (data["charted"] as Array).filter(func(k): return not str(k).begins_with("spot:")) \
+			+ (old.get("charted", []) as Array).filter(func(k): return str(k).begins_with("spot:"))
 	var f := FileAccess.open(path(), FileAccess.WRITE)
 	if f == null:
 		return false
@@ -377,6 +381,7 @@ static func load_into(player: Player) -> bool:
 			gm.world_flags.clear()
 			for k in data.get("world_flags", []):
 				gm.world_flags[str(k)] = true
+			MapFog.unpack(gm, data.get("fog", {}))
 			gm.fruit_claims = (data.get("fruit_claims", {}) as Dictionary).duplicate()
 			gm.ship_kit = ShipKit.merged(data.get("ship_kit", {}))
 			# (a save from before the chain keeps the seed this session rolled)
