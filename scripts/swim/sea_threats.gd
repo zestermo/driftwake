@@ -125,7 +125,41 @@ func _place(f: Array) -> void:
 		mmi.multimesh.set_instance_transform(i, Transform3D(b, p - mmi.global_position))
 
 
+## Sharks and morays far from every captain sleep (Creature.set_lod): awake within WAKE m, asleep past SLEEP,
+## hidden past HIDE; looked at every LOD_EVERY s.
+const WAKE := 120.0
+const SLEEP := 140.0
+const HIDE := 220.0
+const LOD_EVERY := 0.4
+var _lod_t := 0.0
+
+
+func _update_lod() -> void:
+	var caps: Array = Net.all_players()
+	for holder in _sites.values():
+		for c in (holder as Node).get_children():
+			if not (c is Creature):
+				continue
+			var cr := c as Creature
+			var d := INF
+			for p in caps:
+				d = minf(d, (p as Node3D).global_position.distance_to(cr.global_position))
+			var l: int = cr.lod
+			if d < WAKE:
+				l = Creature.LOD_FULL
+			elif d > HIDE:
+				l = Creature.LOD_HIDDEN
+			elif d > SLEEP:
+				l = Creature.LOD_SLEEP
+			if l != cr.lod:
+				cr.set_lod(l)
+
+
 func _process(delta: float) -> void:
+	_lod_t -= delta
+	if _lod_t <= 0.0:
+		_lod_t = LOD_EVERY
+		_update_lod()
 	_move_t -= delta
 	if _move_t > 0.0:
 		return

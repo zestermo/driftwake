@@ -4,7 +4,8 @@ extends Creature
 ## for a few seconds (time to make for a ladder or the beach); then it turns square on, a lane on the water
 ## shows its line for TELL s, and it charges along that line and bites. It swims on past and away before it
 ## comes round again. Out of the water you're safe; hit it hard and it breaks off. Captains on deck or
-## ashore can shoot or cut at it like any creature. The host runs it (Creature's co-op); it sleeps far off.
+## ashore can shoot or cut at it like any creature. The host runs it (Creature's co-op); far from every captain
+## SeaThreats puts it to sleep (Creature.set_lod, as FaunaSpawner does the island's wildlife).
 
 const CRUISE := 3.0
 const STALK := 4.4
@@ -52,11 +53,6 @@ func _setup(args: Dictionary) -> void:
 func _start() -> void:
 	_circle_a = _rng.randf() * TAU
 	_set_state(S.WANDER)
-	ActorSleep.add(self)
-
-
-func sleep_ok() -> bool:
-	return state in [S.IDLE, S.WANDER]
 
 
 func in_combat() -> bool:

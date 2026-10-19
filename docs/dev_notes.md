@@ -3792,7 +3792,9 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   a bite). Then the tell: square on, a red lane on the water along its line (FX.lane) for TELL 0.85 s, jaw open; the charge at
   CHARGE 10.5 m/s for 0.7 s with the bite armed (16, knockback 6, stagger 0.45), then it swims off AWAY 3.5 s. Hurt below half, it
   breaks off once. Out of the water you're left alone. 150 hp, xp 90, drops fish. Dead: belly-up to the surface, then sinks away.
-  ActorSleep (sleeps when idle and far); no knockdowns.
+  No knockdowns. Sleep: SeaThreats sets each shark's and moray's Creature LOD by the nearest captain every 0.4 s (awake within
+  120 m, asleep past 140, hidden past 220), the way FaunaSpawner does the islands' wildlife (Creature's `net_idle` is its LOD, so
+  ActorSleep, which writes net_idle, isn't used for them); asleep, the host sends no snapshots for them.
 - **Moray** (scripts/enemies/sea/moray.gd): in a hole in a heap of stones, head out; a swimmer within REACH 3.6 m in front: TELL 0.65
   s (draws back, gapes, eyes lit, a burst of bubbles and a hiss), then a 1.8 m lunge (11), back in; COOL 2.4 s. Struck, it hides 5 s.
 - **Jellyfish fields**: 18 jellies over an 11 m field, 0.4-1.6 m under the surface, drifting and pulsing by Weather.world_time (the

@@ -2,7 +2,7 @@ extends Creature
 ## A moray eel in a hole among the rocks by a reef or a wreck, its head out, jaws working. Dive close
 ## in front of it and it tells you first (it draws back, gapes, eyes lit, a burst of bubbles) for TELL s,
 ## then lunges a couple of metres out at you and snaps back into its hole. It never leaves the hole;
-## struck, it pulls in and hides a while. The host runs it (Creature's co-op); it sleeps far off.
+## struck, it pulls in and hides a while. The host runs it (Creature's co-op); SeaThreats puts it to sleep far off.
 
 const REACH := 3.6
 const TELL := 0.65
@@ -29,11 +29,6 @@ func _setup(args: Dictionary) -> void:
 
 func _start() -> void:
 	_set_state(S.IDLE)
-	ActorSleep.add(self)
-
-
-func sleep_ok() -> bool:
-	return state == S.IDLE
 
 
 func in_combat() -> bool:
