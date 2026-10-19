@@ -280,6 +280,11 @@ const SPECS := {
 	"dt_train_blade": {"len": 0.4, "stance": "katana", "weapon": "katana"},
 	"dt_train_fist": {"len": 0.4, "stance": "fist", "weapon": ""},
 	"dt_train_gun": {"len": 0.4, "stance": "pistol", "weapon": "pistol"},
+	"dt_read": {"len": 0.4, "stance": "sword", "weapon": ""},
+	"dt_tinker": {"len": 0.4, "stance": "sword", "weapon": ""},
+	"dt_fish": {"len": 0.4, "stance": "sword", "weapon": ""},
+	"dt_fish_reel": {"len": 0.8, "stance": "sword", "weapon": ""},
+	"dt_sleep": {"len": 0.4, "stance": "sword", "weapon": ""},
 	"dt_startle": {"len": 0.5, "stance": "sword", "weapon": ""},
 	# --- the emote wheel (EmotePoses) ---
 	"emote_wave": {"len": 1.8, "stance": "sword", "weapon": ""},

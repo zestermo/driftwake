@@ -439,5 +439,6 @@ tools/dev/t/downtime/*                  t/downtime
 scripts/game/downtime.gd                t/downtime
 scripts/player_states/downtime_state.gd t/downtime
 scripts/npc/downtime_poses.gd           t/downtime
+scripts/npc/downtime_props.gd           t/downtime
 scripts/ship/lashed_helm.gd             t/downtime t/ship
 scripts/player_states/helm_state.gd     t/downtime

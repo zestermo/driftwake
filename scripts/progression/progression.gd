@@ -63,6 +63,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if meal != "" and player and player.is_local:
 		_tick_meal(delta)
+	if kit_left > 0.0 and player and player.is_local:
+		Downtime.tick_kit(self, delta)
 	if Engine.get_physics_frames() % SWIM_TICKS != 0 or player == null or not player.is_local:
 		return
 	if player.current_state_name() != "Swim":
@@ -329,7 +331,7 @@ func stat(key: String) -> float:
 			if e.has(key):
 				total += float(e[key])
 		_stats[key] = total
-	return _stats[key] + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0)
+	return _stats[key] + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0)
 
 
 # --------------------------------------------------------------------------
@@ -343,6 +345,9 @@ var meal_k := 1.0
 ## Recipes taught (Food.teach) and how often each dish was cooked.
 var recipes: Dictionary = {}
 var cooked: Dictionary = {}
+## Sailing downtime (Downtime): the tinkered kit's seconds left (game time) and the activities' counts.
+var kit_left := 0.0
+var downtime: Dictionary = {}
 
 
 func eat_meal(id: String) -> void:
@@ -461,7 +466,8 @@ func rank_up(skill_id: String) -> bool:
 func to_dict() -> Dictionary:
 	return {"format": FORMAT, "level": level, "xp": xp, "sp": skill_points, "owned": owned.keys(),
 		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate(),
-		"meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate()}
+		"meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate(),
+		"kit": kit_left, "downtime": downtime.duplicate()}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -475,6 +481,8 @@ func from_dict(d: Dictionary) -> void:
 	for k in d.get("recipes", []):
 		recipes[str(k)] = true
 	cooked = (d.get("cooked", {}) as Dictionary).duplicate()
+	kit_left = float(d.get("kit", 0.0))
+	downtime = (d.get("downtime", {}) as Dictionary).duplicate()
 	_reset_owned()
 	mastery = {}
 	tiers = {}

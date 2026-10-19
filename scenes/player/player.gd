@@ -718,7 +718,7 @@ func _process(delta: float) -> void:
 	var local := player_model.global_basis.inverse() * hv
 	body_model.ground_speed = hv.length()
 	body_model.local_move = Vector2(local.x, -local.z).normalized() if hv.length() > 0.2 else Vector2(0, 1)
-	body_model.grounded = is_on_floor() or context != Context.ON_FOOT or current_state_name() == "Sit"
+	body_model.grounded = is_on_floor() or context != Context.ON_FOOT or current_state_name() in ["Sit", "Downtime"]
 	body_model.vertical_speed = velocity.y
 	body_model.armed = armed
 	body_model.sprinting = sprinting
@@ -1057,7 +1057,7 @@ func _ride_ship() -> void:
 
 
 ## States that hold you somewhere else (water, a ladder, a vine, a ragdoll).
-const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon"]
+const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon", "Downtime"]
 
 
 ## States that drop into swimming when the water gets deep enough.

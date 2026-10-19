@@ -4155,3 +4155,34 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   groups every 0.5 s). Nothing new per frame elsewhere.
 - Tests: t/downtime/lash_helm, train, interrupt. Expect shiptest/seatest/looptest (ship.gd, helm_state.gd), t/ui/action_wheel (passes)
   and nettest (the new everyone call) to be touched. Renders: posebench `katana katana dt_train_blade:0.0733,0.0983,0.1173`.
+
+## 2026-10-19: sailing downtime, piece 2: read, tinker, fish, sleep (v1.18 lane F)
+- On the action wheel aboard (Downtime.KINDS, orders 40-70 round the galley's Cook at 30), each refused unless she's looked after:
+  - **Read** (every 8 s): READ_XP 6 experience (45 a minute), a line of sea lore every LORE_EVERY 3 (LORE, 12 lines, in order),
+    and at RECIPE_AT 20 intervals (~2.7 min of reading in all) the Captain's Feast recipe (Food.teach). Counted in
+    `Progression.downtime["read_n"]` (saved with the captain).
+  - **Tinker** (every 10 s): KIT_PER 90 s of "tuned kit" up to KIT_MAX 20 min: KIT on Progression.stat while `kit_left` > 0
+    (extra_shots +1, reload_pct +0.15, damage_pct +0.04): the ammo and small gear upgrades as one timed buff, like a meal and beside
+    it. `kit_left` ticks in Progression._physics_process (game time, local captain), saved as "kit"; _recalc_stats on and off.
+  - **Fish** (every 20 s x (1 - fish_bite_pct)): at the rail of the nearer side, facing out (spot: half_width(z) - 0.62, z clamped
+    to the main deck). A bite plays dt_fish_reel and a splash where the line meets the water (Net.fx); FISH_LOST 0.3 x (1 -
+    fish_reel_pct) get away (+3 Fishing), the rest land from CATCH (fish 60, crab_meat 20, oyster 12, sea_urchin 8; the two rare ones
+    x (1 + fish_rare_pct)), two at once on a fish_double roll, +8 Fishing. So every fish_* perk key now has a reader. About 2 catches a
+    minute: a trickle next to real fishing later.
+  - **Sleep** (every 2 s): lying in the cabin's bunk (spot on the mattress, head to the pillow), SLEEP_HEAL 5% of max health an
+    interval, and solo the day's clock runs SLEEP_TIME 30x (Weather.world_offset; a night in ~20 s). In co-op the clock is the
+    crew's, so only the healing (two captains can share the bunk: not guarded). Getting up puts you on the floor beside it.
+- **DowntimeState**: Downtime.spot() takes you somewhere (eased over 0.35 s, then pinned ship-local with the hull's deck_delta like
+  the helm; Downtime is in Player.NO_RIDE_STATES and counts as grounded), seat_of() sits you on a crate (the bench sit at 0.45);
+  a one-off (the reel) goes back to the loop; leave_spot() on exit.
+- **DowntimeProps** (scripts/npc/downtime_props.gd): what the loop holds, made from the body's current action on every screen
+  (so a crewmate's puppet holds it too) and freed the frame the action changes: the crate (on the body root), the open book (on the
+  torso, BOOK_AT), the mallet and lock (hands), the rod (right hand). No shadows. One node and 1-3 meshes while active.
+- **Poses**: dt_read (crate, book at the chest, a page turned each 4 s loop), dt_tinker (three mallet taps, a turn of the lock,
+  2.4 s), dt_fish (rod out, tip bobbing), dt_fish_reel (played 0.8 s), dt_sleep (face up, arms slack, a knee up, breathing).
+- Per tick: Downtime.tick (sleep's clock), Progression's kit countdown while tuned. Per frame: DowntimeProps._process (one check)
+  while an activity runs.
+- Tests: t/downtime/read (XP, the recipe at RECIPE_AT, saved, the book goes), tinker (the kit: +1 shot, quicker reload, saved,
+  wears off), fish (at the starboard rail facing out, a rod; bites build Fishing and land fish-tagged items; Patient Line shortens
+  the wait), sleep (in the bunk, heals, the clock runs on, up beside the bunk). Renders: posebench with PB_SEAT=0.45
+  `sword none dt_read:0.1333,dt_tinker:0.0896`, `sword none dt_fish:0.1,dt_sleep:0.1`.

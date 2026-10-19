@@ -5,7 +5,12 @@ extends RefCounted
 ##   dt_train_blade  suburi: the blade raised overhead in both hands, a stepping vertical cut, back to guard
 ##   dt_train_fist   shadowboxing: a jab, a cross, bouncing on the toes
 ##   dt_train_gun    a dry-fire drill: aim, a kick, the next mark across the bow
+##   dt_read         on a crate, a book open at the chest, a page turned each loop
+##   dt_tinker       on a crate, three taps of the mallet on the lock, a turn of it
+##   dt_fish         at the rail, the rod out over the side, its tip bobbing; dt_fish_reel (played) a yank, reeling
+##   dt_sleep        face up in the bunk, breathing
 ##   dt_startle      (played) roused: the head snaps up and round, the hands come up
+## What's held (book, mallet, rod, the crate) is DowntimeProps'.
 
 ## Seconds to ease into a loop (the hold's blend: ActionSpecs len).
 const BLEND := 0.4
@@ -43,7 +48,30 @@ const GUN_AIM := {"pivot": Vector3.ZERO, "hips": Vector3(0, -0.15, 0), "torso": 
 	"leg_l": Vector3(0.2, 0, -0.14), "shin_l": Vector3(-0.22, 0, 0), "leg_r": Vector3(-0.15, 0, 0.14), "shin_r": Vector3(-0.25, 0, 0)}
 
 
+## Reading on a crate: the book open in the left hand at the chest, the head down over it, the right hand on
+## the page, turning it once a loop.
+const READ_LOOP := 4.0
+const READ := {"torso": Vector3(-0.16, 0, 0), "head": Vector3(-0.5, 0, 0),
+	"arm_l": Vector3(0.25, 0, 0.1), "fore_l": Vector3(1.45, 0, 0), "hand_l": Vector3.ZERO,
+	"arm_r": Vector3(0.25, 0, -0.1), "fore_r": Vector3(1.45, 0, 0), "hand_r": Vector3.ZERO}
+## Tinkering on a crate: hunched over the lock in the left hand, the mallet tapping three times, then a turn of it.
+const TINKER_LOOP := 2.4
+const TINKER := {"torso": Vector3(-0.3, 0, 0), "head": Vector3(-0.55, 0, 0),
+	"arm_l": Vector3(0.3, 0, 0.2), "fore_l": Vector3(1.4, 0, 0),
+	"arm_r": Vector3(0.4, 0, -0.12), "fore_r": Vector3(1.2, 0, 0)}
+## At the rail: the rod held out over the side in the right hand (its butt at the hip), the left on the reel.
+const FISH := {"torso": Vector3(-0.06, 0, 0), "head": Vector3(-0.2, 0, 0),
+	"arm_r": Vector3(0.62, -0.05, 0.1), "fore_r": Vector3(0.95, 0, 0), "hand_r": Vector3(-1.0, 0, 0),
+	"arm_l": Vector3(0.45, 0.4, -0.05), "fore_l": Vector3(1.35, 0, 0)}
+## Asleep in the bunk, face up (the root faces the foot of the bunk), arms slack at the sides, one knee up.
+const SLEEP := {"pivot": Vector3(PI * 0.5, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.08, 0, 0), "head": Vector3(-0.25, 0.3, 0.05),
+	"arm_l": Vector3(0.15, 0, -0.2), "fore_l": Vector3(0.35, 0, 0), "arm_r": Vector3(0.12, 0, 0.18), "fore_r": Vector3(0.3, 0, 0),
+	"leg_l": Vector3(0.05, 0, -0.08), "shin_l": Vector3(-0.1, 0, 0), "leg_r": Vector3(0.55, 0, 0.1), "shin_r": Vector3(-1.0, 0, 0),
+	"hand_r": Vector3.ZERO, "hand_l": Vector3.ZERO}
+
+
 static func pose(h, n: String, u: float) -> Array:
+	DowntimeProps.ensure(h, n)
 	var t: float = float(h._action["t"])
 	var into := minf(t / BLEND, 1.0)
 	match n:
@@ -77,6 +105,39 @@ static func pose(h, n: String, u: float) -> Array:
 			if h.stance == "dual_pistol":
 				aim["arm_l"] = (aim["arm_l"] as Vector3) + Vector3(kick, 0, 0)
 			return [h._keys(into, [[0.0, {}], [1.0, aim]]), "full", Vector3.ZERO]
+		"dt_read":
+			var k := fposmod(t, READ_LOOP) / READ_LOOP
+			var page := _bump(k, 0.78, 0.1)
+			var p := READ.duplicate()
+			p["head"] = (READ["head"] as Vector3) + Vector3(0.04 * sin(t * 1.3), 0.1 * sin(k * TAU), 0)
+			p["arm_r"] = (READ["arm_r"] as Vector3).lerp(Vector3(0.45, 0.3, -0.3), page)
+			p["fore_r"] = (READ["fore_r"] as Vector3).lerp(Vector3(1.25, 0, 0), page)
+			return [h._keys(into, [[0.0, {}], [1.0, p]]), "upper", Vector3.ZERO]
+		"dt_tinker":
+			var k := fposmod(t, TINKER_LOOP) / TINKER_LOOP
+			var tap := maxf(maxf(_bump(k, 0.12, 0.06), _bump(k, 0.26, 0.06)), _bump(k, 0.4, 0.06))
+			var turn := _bump(k, 0.72, 0.18)
+			var p := TINKER.duplicate()
+			p["arm_r"] = (TINKER["arm_r"] as Vector3) + Vector3(0.35 * (1.0 - tap), 0, 0) * (1.0 - turn)
+			p["fore_r"] = (TINKER["fore_r"] as Vector3) + Vector3(0.5 * (1.0 - tap), 0, 0) * (1.0 - turn)
+			p["hand_l"] = Vector3(0, 0.7 * turn, 0)
+			p["head"] = (TINKER["head"] as Vector3) + Vector3(0.12 * turn, 0, 0)
+			return [h._keys(into, [[0.0, {}], [1.0, p]]), "upper", Vector3.ZERO]
+		"dt_fish":
+			var p := FISH.duplicate()
+			var bob := sin(t * 1.1) * 0.03 + maxf(0.0, sin(t * 0.37)) * sin(t * 9.0) * 0.025
+			p["arm_r"] = (FISH["arm_r"] as Vector3) + Vector3(bob, 0, 0)
+			p["torso"] = (FISH["torso"] as Vector3) + Vector3(sin(t * 0.8) * 0.02, 0, 0)
+			return [h._keys(into, [[0.0, {}], [1.0, p]]), "upper", Vector3.ZERO]
+		"dt_fish_reel":
+			var yank := FISH.merged({"arm_r": Vector3(1.35, -0.05, 0.1), "fore_r": Vector3(1.2, 0, 0), "torso": Vector3(0.14, 0, 0), "head": Vector3(0.05, 0, 0)}, true)
+			var reel := yank.merged({"arm_l": Vector3(0.7, 0.35, -0.05), "fore_l": Vector3(1.6 + 0.3 * sin(u * 30.0), 0, 0)}, true)
+			return [h._keys(u, [[0.0, FISH], [0.18, yank, "out"], [0.35, reel], [0.85, reel], [1.0, FISH]]), "upper", Vector3.ZERO]
+		"dt_sleep":
+			var br := sin(t * 1.4) * 0.04
+			var p := SLEEP.duplicate()
+			p["torso"] = (SLEEP["torso"] as Vector3) + Vector3(br, 0, 0)
+			return [h._keys(into, [[0.0, {}], [1.0, p]]), "full", Vector3(0, h._lift_for(0.13), 0) * into]
 		"dt_startle":
 			var up := {"torso": Vector3(0.12, 0, 0), "head": Vector3(0.3, 0.5, 0), "arm_r": Vector3(0.6, 0, 0.35), "fore_r": Vector3(1.1, 0, 0),
 				"arm_l": Vector3(0.6, 0, -0.35), "fore_l": Vector3(1.1, 0, 0)}
