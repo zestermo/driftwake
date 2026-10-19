@@ -34,8 +34,8 @@ const SHOPS := {
 	},
 	"marlo": {
 		"name": "Marlo's Fish", "line": "Grilled while you wait. Mostly while you wait.",
-		"stock": [["fish", 5]],
-		"buys": {},
+		"stock": [["fish", 5], ["crab_meat", 5], ["seaweed", 3]],
+		"buys": {"ingredient": 0.5},
 	},
 	"sela": {
 		"name": "Sela's Clothier", "line": "Clothes and leathers. I'll take your old ones off your hands, too.",
@@ -88,8 +88,8 @@ const SHOPS := {
 	},
 	"ida": {
 		"name": "Old Ida's Pots", "line": "Hardtack in a jar. Lasts longer than you will.",
-		"stock": [["biscuit", 3], ["rum", 10], ["tonic", 32]],
-		"buys": {},
+		"stock": [["biscuit", 3], ["rum", 10], ["tonic", 32], ["rice", 3], ["flour", 3], ["salt", 3], ["pepper", 6], ["mushroom", 3]],
+		"buys": {"ingredient": 0.5},
 	},
 	"vey": {
 		"name": "Vey's Armoury", "line": "Steel to wear. Blades are Haldor's business; keeping you alive in them is mine.",
@@ -134,5 +134,5 @@ static func price_of(entry: Array) -> int:
 static func offer(shop_id: String, item: ItemData) -> int:
 	if item == null or item.id == "gold" or item.value <= 0:
 		return 0
-	var rate: float = float((shop(shop_id)["buys"] as Dictionary).get(KINDS[int(item.item_type)], 0.0))
+	var rate: float = float((shop(shop_id)["buys"] as Dictionary).get(Economy.kind_of(item), 0.0))
 	return maxi(int(floor(item.worth() * rate)), 1) if rate > 0.0 else 0

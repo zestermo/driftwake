@@ -71,3 +71,4 @@ static func _load_all() -> void:
 			_items[item.id] = item
 	WeaponDesigns.make_items(_items)
 	Instruments.make_items(_items)
+	Food.make_items(_items)

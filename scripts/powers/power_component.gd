@@ -353,6 +353,7 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	var pr := player.progression
 	add_energy(ENERGY_PER_HIT * (1.0 + pr.style_stat("flow", st)))
 	add_ult(hit.damage)
+	player.fought()
 	TraitMoves.landed(player, target, hit)
 	if player.is_local:
 		pr.on_hit()

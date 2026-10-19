@@ -186,7 +186,7 @@ func _build(rng: RandomNumberGenerator) -> void:
 		"buys": {"loot": 0.9, "gear": 0.5, "weapon": 0.5}}
 	Shops.extra[food_id] = {"name": "%s's Cookpot" % COOKS[rng.randi() % COOKS.size()],
 		"line": "Fish from the reef, fruit from the trees, something in the pot. Eat.",
-		"stock": [["fish", 5], ["stew", 16], ["rum", 8]], "buys": {"consumable": 0.4}}
+		"stock": [["fish", 5], ["stew", 16], ["rum", 8], ["rice", 3], ["pepper", 6]], "buys": {"consumable": 0.4, "ingredient": 0.5}}
 	# the job board by the way in
 	var bd: Dictionary = p["board"]
 	var board := ctx.place(KitVillage.notice_board(rng), bd["p"], KitContext.face_yaw(bd["face"]), 1.0, 0.0, false)

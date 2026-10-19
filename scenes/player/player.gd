@@ -739,8 +739,24 @@ func _process(delta: float) -> void:
 	_update_lean(delta)
 
 
+## Out-of-combat regen (Food): a share of max health a second once CALM_S has passed since a blow
+## either way (fought(): a hit you landed).
+const REGEN_PCT := 0.01
+const CALM_S := 8.0
+var _since_fight := 100.0
+
+
+func fought() -> void:
+	_since_fight = 0.0
+
+
+func in_fight() -> bool:
+	return _since_hit <= CALM_S or _since_fight <= CALM_S
+
+
 func _tick_body(delta: float) -> void:
 	_since_hit += delta
+	_since_fight += delta
 	_last_stand_cd = maxf(_last_stand_cd - delta, 0.0)
 	_deflect_cd = maxf(_deflect_cd - delta, 0.0)
 	if _vanish_t > 0.0:
@@ -752,8 +768,11 @@ func _tick_body(delta: float) -> void:
 	var hc := health_component
 	if hc.current_health <= 0.0 or current_state_name() == "Downed":
 		return
-	# Mend: heal out of combat
+	# out of a fight you mend slowly (Food: a meal's regen_pct speeds it; Mend adds its own)
+	var calm := _since_hit > CALM_S and _since_fight > CALM_S
 	var regen := progression.stat("regen_hp")
+	if calm:
+		regen += hc.max_health * REGEN_PCT * (1.0 + progression.stat("regen_pct"))
 	# Vine Fruit: Photosynthesis (out of combat, on land)
 	if power.fruit == "vine" and _since_hit > 4.0 and is_on_floor() and water_depth() < 0.3:
 		var k := 1.0 + progression.stat("photo_mult")
@@ -761,7 +780,7 @@ func _tick_body(delta: float) -> void:
 		power.add_energy(3.0 * k * delta)
 		if randf() < delta * 1.5:
 			Net.fx("sparkle", [global_position + Vector3(randf_range(-0.4, 0.4), randf_range(0.4, 1.6), randf_range(-0.4, 0.4)), 1, Color(0.6, 1.0, 0.4)])
-	if regen > 0.0 and _since_hit > 5.0 and hc.current_health < hc.max_health:
+	if regen > 0.0 and calm and hc.current_health < hc.max_health:
 		hc.heal(regen * delta)
 	# pistols reload by themselves once empty (or put away)
 	if _reload_t > 0.0:
@@ -1915,7 +1934,8 @@ func use_item(item: ItemData) -> void:
 	if heal_cd > 0.0:
 		quick_refused.emit()
 		return
-	if item.heal_amount > 0.0 and health_component.current_health >= health_component.max_health:
+	if item.heal_amount > 0.0 and health_component.current_health >= health_component.max_health \
+			and item.meal == "" and item.stamina_amount <= 0.0 and item.energy_amount <= 0.0:
 		_toast("Already at full health")
 		return
 	if not inventory_component.remove_item(item, 1):
@@ -1991,12 +2011,27 @@ func _finish_use() -> void:
 		get_tree().call_group("hud", "show_banner", "%s (%s)" % [fd.get("name", "Devil Fruit"), DevilFruits.type_name(item.devil_fruit)], line, true)
 		SaveGame.save(self)
 		return
+	var got: Array = []
 	if item.heal_amount > 0.0:
 		var amt := item.heal_amount * (1.0 + progression.stat("potion_pct"))
 		health_component.heal(amt)
 		Net.fx("sparkle", [global_position + Vector3(0, 1.1, 0), 10, Color(0.6, 1.0, 0.55) if item.use_anim != "tonic" else Color(0.45, 1.0, 0.85)])
 		Net.fx("sfx", ["blip_high", global_position + Vector3(0, 1.2, 0), -12.0, 0.05, 1.25])
-		_toast("+%d health" % int(amt))
+		got.append("+%d health" % int(amt))
+	if item.stamina_amount > 0.0:
+		stamina = minf(stamina + item.stamina_amount, max_stamina)
+		got.append("+%d stamina" % int(item.stamina_amount))
+	if item.energy_amount > 0.0:
+		power.add_energy(item.energy_amount)
+		got.append("+%d energy" % int(item.energy_amount))
+	if item.meal != "":
+		progression.eat_meal(item.meal)
+		Net.fx("sparkle", [global_position + Vector3(0, 1.3, 0), 22, Color(1.0, 0.82, 0.4)])
+		Net.fx("float_text", [global_position + Vector3(0, 2.3, 0), item.display_name + "!", Color(1.0, 0.85, 0.45), 20])
+		Net.fx("sfx", ["blip_high", global_position + Vector3(0, 1.2, 0), -9.0, 0.05, 0.95])
+		got = ["%s for %d min" % [Food.buff_text(item.meal, progression.meal_k), roundi(progression.meal_left / 60.0)]]
+	if not got.is_empty():
+		_toast(", ".join(got))
 
 
 func is_using_item() -> bool:

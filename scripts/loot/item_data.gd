@@ -50,6 +50,13 @@ const RARITY_VALUE := [1.0, 1.6, 2.56, 4.1, 6.55, 10.49, 16.78]
 @export var use_anim: String = "bite"
 ## A Devil Fruit (fruit id, see DevilFruits): eating it is permanent.
 @export var devil_fruit: String = ""
+## Drink and food beyond healing: stamina and energy back when it lands.
+@export var stamina_amount: float = 0.0
+@export var energy_amount: float = 0.0
+## A galley meal (Food.MEALS id): eating it gives that buff for its minutes.
+@export var meal: String = ""
+## What it counts as in a recipe (Food.TAGS: fish, meat, fruit, grain, spice, greens); "" none.
+@export var ingredient: String = ""
 
 
 ## Loot is what gets dropped on death and stored when banking.

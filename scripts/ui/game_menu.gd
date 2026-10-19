@@ -21,6 +21,9 @@ var _yard: Control
 # traders' stalls (talk to a vendor)
 const SHOP := preload("res://scripts/ui/shop_screen.gd")
 var _shop: Control
+# cooking (the ship's galley; a camp's fire)
+const GALLEY := preload("res://scripts/ui/galley_screen.gd")
+var _galley: Control
 ## A screen to open once the talking's done: [] or ["yard"] / ["shop", id].
 var _after_talk: Array = []
 
@@ -56,6 +59,8 @@ func _ready() -> void:
 	_screens["yard"] = _yard
 	_shop = SHOP.new(self)
 	_screens["shop"] = _shop
+	_galley = GALLEY.new(self)
+	_screens["galley"] = _galley
 	var dlg := get_node("/root/Dialogue")
 	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
@@ -181,6 +186,12 @@ func open_shop(id: String) -> void:
 	open("shop")
 
 
+## Cooking: `portions` of each dish from one set of ingredients (the ship's galley line; a camp fire 1).
+func open_galley(portions: int) -> void:
+	_galley.portions = portions
+	open("galley")
+
+
 func shop_after_talk(id: String) -> void:
 	_after_talk = ["shop", id]
 
@@ -228,6 +239,8 @@ func open(screen: String) -> void:
 		_yard.on_open()
 	elif screen == "shop":
 		_shop.on_open()
+	elif screen == "galley":
+		_galley.on_open()
 	elif screen == "load":
 		_load.open("load", true)
 	else:
@@ -248,7 +261,7 @@ func close() -> void:
 		_yard.end_preview()
 		if not Net.is_client():
 			SaveGame.save(_player())
-	elif _current == "shop":
+	elif _current in ["shop", "galley"]:
 		SaveGame.save(_player())
 	_current = ""
 	_play("close")

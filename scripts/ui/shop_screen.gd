@@ -11,7 +11,7 @@ const COLS := 5
 const ROWS := 5
 const INFO_W := 142
 const TIP_W := 150
-const KIND_NAMES := {"loot": "treasure", "weapon": "weapons", "consumable": "food and drink", "gear": "clothes and armour"}
+const KIND_NAMES := {"loot": "treasure", "weapon": "weapons", "consumable": "food and drink", "gear": "clothes and armour", "ingredient": "ingredients"}
 
 var shop_id: String = ""
 var _menu: Node

@@ -8,8 +8,13 @@ extends RefCounted
 ## Prices come out rounded to a "nice" number (5s, then 10s, then 50s). Tuned in play.
 
 const STEP := 1.6
-const BUY_K := {"weapon": 4.0, "gear": 4.0, "consumable": 2.5, "loot": 3.0}
+const BUY_K := {"weapon": 4.0, "gear": 4.0, "consumable": 2.5, "loot": 3.0, "ingredient": 3.0}
 const KINDS := ["loot", "weapon", "consumable", "gear"]
+
+
+## What a trader sees an item as: its type, or "ingredient" for a raw one (Food).
+static func kind_of(item: ItemData) -> String:
+	return "ingredient" if item.is_loot() and item.ingredient != "" else KINDS[int(item.item_type)]
 
 
 static func tier_k(tier: int) -> float:
@@ -28,7 +33,7 @@ static func nice(x: float) -> int:
 
 ## What a trader asks for one `item`.
 static func price(item: ItemData) -> int:
-	return nice(item.value * tier_k(int(item.rarity)) * float(BUY_K[KINDS[int(item.item_type)]]))
+	return nice(item.value * tier_k(int(item.rarity)) * float(BUY_K[kind_of(item)]))
 
 
 ## A ship upgrade line's level `lv` (0-based) when its first level costs `base`.

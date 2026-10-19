@@ -3730,6 +3730,34 @@ Spec: docs/progression_plan.md "Decided (2026-10-19)".
 - Finished (second agent): every trait hook is live in play (checked by trait_finisher, trait_roll_fire, trait_gale on the light
   stage). A trait weapon arriving in the bag (found, bought, given) gets the HUD's big banner once a session: its name in the tier's
   colour and its trait line under it, with the chime (`PlayerHUD._on_item_added`, `_announced`).
+## 2026-10-19: v1.18 economy, piece 2: food takes over healing, ingredients, galley cooking, meal buffs
+- **Regen** (`Player._tick_body`): out of a fight you mend REGEN_PCT 1% of max health a second once CALM_S 8 s have passed with no
+  blow taken (`_since_hit`) or landed (`fought()`, from PowerComponent.on_sword_hit); `in_fight()`. Mend's regen_hp and the Vine
+  Fruit's photosynthesis ride the same gate now (Mend's was 5 s). A meal's `regen_pct` multiplies the base.
+- **Food and drink** (ItemData `stamina_amount`, `energy_amount`, `meal`, `ingredient`): the old heal/cooldown/spill flow is
+  unchanged; drinks give back stamina (rum +35) or energy (tonic +30), and an item that does more than heal can be taken at full health.
+- **Ingredients and meals** (`scripts/items/food.gd`, Food; made as items in `Food.make_items` from ItemDB, icons from
+  `gen_psx_textures.py icons`/gen_food_icons): tags fish, meat, fruit, grain, spice, greens. New raw ingredients (LOOT, Economy's kind
+  "ingredient", grocers buy them at half): rice, flour, salt, pepper, mushroom, seaweed, coconut, egg, oyster, sea_urchin; food that
+  counts as a tag too: fish, crab_meat (fish), boar_haunch (meat), tangerine, jungle_fruit (fruit), biscuit (grain). `pearl.tres` is
+  loot for lane E's dives. Sources: Ida (grains, spice, mushrooms), Marlo (fish, crab, kelp), village cookpots (rice, pepper), toucan
+  eggs, treant mushrooms, monkey coconuts; fishing (later) only has to hand out fish-tagged items.
+- **Meals** (Food.MEALS, 10-20 min base): Fisherman's Stew (fish+grain: +20 max hp, +50% regen, 15), Peppered Boar (meat+spice:
+  +8% dmg, 12), Sailor's Porridge (2 grain+fruit: +20 stamina, +15% stamina regen, 20), Citrus Tart (2 fruit+grain: +15 energy, +20%
+  energy regen, 15), Island Skewers (meat+fruit: +6% run and sprint, 15), Reef Salad (fish+greens+spice: +15% swim, +10 stamina, 15),
+  Forest Curry (2 greens+spice+grain: +6% crit, +3% dmg, 12), Captain's Feast (taught: meat+fish+fruit+spice: +25 hp, +5% dmg, +4 def,
+  20). One meal at a time, the newest wins: `Progression.meal / meal_left / meal_k` (saved in its dict, ticked on game time in its
+  `_physics_process`, on the captain's own machine), its buff added in `Progression.stat` outside the node cache, `_recalc_stats` on
+  start and end. Cooking's perks read on eating: meal_time_pct (Ship's Cook +25%), meal_power_pct (Master Chef +20%).
+- **Cooking** (`scripts/ui/galley_screen.gd`, GameMenu "galley", `GameMenu.open_galley(portions)`): the ship's galley opens it
+  (replacing the free restock: GameManager.restock is gone, `galley_portions()` = 1 + the Galley & bunks line's "portions", up to 4).
+  `Food.cook` takes raw ingredients before edible food, the cheapest first; Cooking mastery 20 + 10 an ingredient (twice the first time
+  a dish is cooked: `Progression.cooked`); taught recipes (`Food.teach(pr, id)`, saved in `Progression.recipes`) for quest rewards.
+  The sizzle (`gen_psx_audio.py sizzle`, UIStyle "sizzle"). HUD: the meal's icon, name and m:ss top right under the gold, blinking in
+  its last minute (`PlayerHUD.meal_text()`).
+- Tests: t/food (regen_gating, meal_buff, cooking_gain); t/ship/new_lines (portions), t/items/heal_kinds and looptest lost their
+  restock checks (looptest cooks instead). Suites likely to notice: looptest, qoltest/uitest (galley prompt, shop stock), faunatest
+  (new drop entries), nettest (nothing new on the wire: meals are local).
 ## 2026-10-19: the held map, piece 1: fog of war, `?` marks, the island page (v1.18 lane C)
 - **Islands** (`scripts/map/map_isles.gd`, MapIsles): Brinehollow and the chain's standing islands as dictionaries made once per
   island node: key ("brinehollow", "isle<chain id>" like GenIsland.save_key), the world origin of island space, the height grid's

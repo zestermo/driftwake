@@ -1174,7 +1174,7 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	mb.add_box(glass, Transform3D(Basis(), Vector3(0.2, QD_Y - 0.65, 7.6)), Vector3(0.22, 0.3, 0.22), 1.0)
 	_line_mesh(mb, iron, Vector3(0.2, QD_Y - 0.5, 7.6), Vector3(0.2, QD_Y - 0.2, 7.6))
 	# the storage chest (the crew's bank: GameManager.storage, shared in co-op),
-	# the bunk (rest) and the galley (restock provisions)
+	# the bunk (rest) and the galley (cook: GalleyScreen)
 	storage = (load("res://scenes/loot/loot_bag.tscn") as PackedScene).instantiate() as LootBag
 	storage.name = "Storage"
 	storage.persistent = true
@@ -1193,8 +1193,8 @@ func _build_cabin(mb: MeshBuilder, wood: Material, trim: Material, glass: Materi
 	storage.interactable.reach = 1.1
 	var bunk := _cabin_zone("Bunk", "Rest in the bunk", BED_AT + Vector3(0.85, 0.6, 0.0))
 	bunk.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").rest(p)))
-	var galley := _cabin_zone("Galley", "Restock provisions", COUNTER_AT + Vector3(-0.85, 0.6, 0.3))
-	galley.interacted.connect(func(p: Player): _toast(get_node("/root/GameManager").restock(p)))
+	var galley := _cabin_zone("Galley", "Cook at the galley", COUNTER_AT + Vector3(-0.85, 0.6, 0.3))
+	galley.interacted.connect(func(_p: Player): GameMenu.open_galley(get_node("/root/GameManager").galley_portions()))
 	galley.gesture = "reach"
 	# seats: the cabin's stools (at the table), the crate by the chest, the two crates on deck
 	for sx in [-0.4, 0.5]:

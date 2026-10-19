@@ -16,3 +16,4 @@ icon = ExtResource("2")
 heal_amount = 25.0
 use_time = 0.7
 use_anim = "bite"
+ingredient = "fruit"

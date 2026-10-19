@@ -776,6 +776,14 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 		if it.devil_fruit != "":
 			fx.append(["Eating it is forever", Color(1.0, 0.6, 0.3)])
 			fx.append(["Deep water takes you", DOWN])
+		if it.stamina_amount > 0.0:
+			_stat(grid, "STAMINA", "+%d" % int(it.stamina_amount), 0, false)
+		if it.energy_amount > 0.0:
+			_stat(grid, "ENERGY", "+%d" % int(it.energy_amount), 0, false)
+		if it.meal != "":
+			fx.append(["Meal, %d min: %s" % [roundi(Food.seconds(pl.progression, it.meal) / 60.0), Food.buff_text(it.meal, Food.strength(pl.progression))], Color(1.0, 0.85, 0.45)])
+	if it.ingredient != "":
+		fx.append(["Cooks as " + Food.TAG_NAMES[it.ingredient], Color(0.95, 0.8, 0.55)])
 	if it.id != "gold":
 		_stat(grid, "WORTH", "%d G" % it.worth(), 0, false)
 	for f in fx:
