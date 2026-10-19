@@ -60,7 +60,7 @@ tooltips, ornate borders, no clutter): pause menu, options, skill map, character
 dialogue boxes, the chart, the title screen, and the HUD (bars, skill bar, prompts, boss bars).
 
 **Healing** (decided 2026-10-13): quick-slot items (food, rum, potions) with a short shared cooldown and an
-eat/drink animation you can be hit out of; the ship's galley refills them as now.
+eat/drink animation you can be hit out of. (2026-10-19: no free galley restock; food is cooked or bought, docs/progression_plan.md.)
 
 **Economy** (all four problems, 2026-10-13)
 - Too much gold too easily: tighten drops, chest gold and sale prices.
