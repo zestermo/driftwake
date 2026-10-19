@@ -31,7 +31,7 @@ func _process(_d: float) -> bool:
 		1:
 			var inv = p.inventory_component
 			check("picked up axe", inv.count("boarding_axe") == 1)
-			check("axe stays off the quick slots", not inv.hotbar.has("boarding_axe"))
+			check("axe isn't the quick item", inv.quick != "boarding_axe")
 			check("loot counted", inv.get_loot_count() == 1)
 			p.equip_weapon(inv.find_item("boarding_axe"), true)
 			until = TK.wait_secs(0.6)

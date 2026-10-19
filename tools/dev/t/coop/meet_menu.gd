@@ -1,6 +1,6 @@
 extends SceneTree
 ## Another captain (a stand-in): F with their name only within 2.5 m and facing them; F opens Trade, Inspect,
-## Duel; 2 shows their kit (weapon, worn gear, quick items, level and style); Esc steps back, then closes;
+## Duel; 2 shows their kit (weapon, worn gear, quick item, level and style); Esc steps back, then closes;
 ## walking off closes it.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -50,14 +50,14 @@ func _process(_d: float) -> bool:
 			p = stage.player
 			mate = stage.crew[0]
 			menu = p.get_node("PlayerMenu")
-			# their kit: a cutlass, the default outfit, rum on a quick slot
+			# their kit: a cutlass, the default outfit, rum as the quick item
 			mate.equipped_weapon = ItemDB.get_item("cutlass")
 			var gear: Dictionary = Gear.items_from_look(p.appearance)
 			for slot in gear.keys():
 				if slot != "extra":
 					mate.equipment.equip(gear[slot], slot)
 			mate.inventory_component.add_item(ItemDB.get_item("rum"), 2)
-			mate.inventory_component.hotbar[0] = "rum"
+			mate.inventory_component.quick = "rum"
 			p.player_model.rotation.y = 0.0
 			until = TK.wait_secs(0.4)
 		1:
@@ -96,7 +96,7 @@ func _process(_d: float) -> bool:
 				worn += 1
 				same = same and it.get(slot) != null and it[slot].display_name == mate.equipment.slots[slot].display_name
 			check("...their %d worn pieces" % worn, worn > 0 and same)
-			check("...rum x2 on their first quick slot", it.get("quick0") != null and it["quick0"].id == "rum" and int(it.get("quick0_n", 0)) == 2)
+			check("...rum x2 as their quick item", it.get("quick0") != null and it["quick0"].id == "rum" and int(it.get("quick0_n", 0)) == 2)
 			check("...level and style (%s)" % ins._line.text, ins._line.text.begins_with("LV 1") and "CUTLASS" in ins._line.text)
 			esc()
 			until = TK.wait_ticks(2)

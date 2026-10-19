@@ -7,9 +7,10 @@ var storage: Array[ItemStack] = []
 ## Your grave (where you last died, holding your bag) - one at a time.
 var grave: LootBag = null
 var loot_bag_scene: PackedScene
-## The galley tops each quick-slot consumable up to this many (and rum if
-## you've nothing on the quick slots).
+## The galley tops the food and drink on your item wheel up to this many, the first
+## RESTOCK_KINDS kinds of it (and rum if you carry none).
 const RESTOCK_CAP := 3
+const RESTOCK_KINDS := 3
 
 var ship: Ship
 var player: Player
@@ -256,13 +257,14 @@ func rest(p: Player) -> String:
 	return "You rest a while. Fully recovered."
 
 
-## The galley tops up your quick-slot provisions (each to RESTOCK_CAP; tonics are bought, not brewed).
+## The galley tops up your provisions (each to RESTOCK_CAP; tonics are bought, not brewed).
 func restock(p: Player) -> String:
 	var inv := p.inventory_component
-	var ids: Array = []
-	for id in inv.hotbar:
-		if str(id) != "" and not ids.has(str(id)):
-			ids.append(str(id))
+	var ids: Array = inv.quick_choices().map(func(it: ItemData): return it.id)
+	if inv.quick != "":
+		ids.erase(inv.quick)
+		ids.push_front(inv.quick)
+	ids = ids.slice(0, RESTOCK_KINDS)
 	if ids.is_empty():
 		ids = ["rum"]
 	var got: Array = []

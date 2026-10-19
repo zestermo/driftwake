@@ -166,7 +166,7 @@ var stamina_regen_mult: float = 1.0
 var _last_hit_velocity := Vector3.ZERO
 var _looking_at_cam: bool = false
 
-## States in which the player may draw/sheathe or use the hotbar.
+## States in which the player may draw/sheathe or take the quick item.
 const FREE_STATES := ["Idle", "Move", "Jump", "Fall"]
 
 ## Co-op. false on the other players' captains here (puppets): no brain,
@@ -232,10 +232,9 @@ func _ready() -> void:
 	sword_hitbox.hit_landed.connect(func(target: Node, data: HitData): power.on_sword_hit(target, data))
 	health_component.died.connect(_on_died)
 	_recalc_stats()
-	emote_wheel = preload("res://scripts/ui/emote_wheel.gd").new()
-	emote_wheel.name = "EmoteWheel"
-	emote_wheel.player = self
-	add_child(emote_wheel)
+	emote_wheel = _wheel("res://scripts/ui/emote_wheel.gd", "EmoteWheel")
+	item_wheel = _wheel("res://scripts/ui/item_wheel.gd", "ItemWheel")
+	action_wheel = _wheel("res://scripts/ui/action_wheel_ui.gd", "ActionWheel")
 	var menu: Node = load("res://scripts/ui/player_menu.gd").new()
 	menu.name = "PlayerMenu"
 	menu.player = self
@@ -730,6 +729,7 @@ func _process(delta: float) -> void:
 	BladeWater.keep(body_model, _tide_on())
 	BladePetals.keep(body_model, _petals_on())
 	heal_cd = maxf(heal_cd - delta, 0.0)
+	_quick_tick(delta)
 	if _using_item and _using_item.devil_fruit == "" and (current_state_name() not in ["Idle", "Move"] or body_model.current_action() != _use_anim):
 		_spill_use()
 	if _using_item:
@@ -1484,17 +1484,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		place_marker()
 		get_viewport().set_input_as_handled()
 		return
-	# Devil Fruit skills (1-4) and the ultimate (R)
-	for i in range(5):
-		var act := "ultimate" if i == 4 else "skill_%d" % (i + 1)
+	# skills (1-5) and the ultimate (R)
+	for i in range(PowerComponent.SLOTS):
+		var act := "ultimate" if i == PowerComponent.ULT else "skill_%s" % PowerComponent.key_of(i)
 		if event.is_action_pressed(act):
 			if context == Context.ON_FOOT and current_state_name() not in ["Talk", "Downed", "Skill"]:
 				power.try_cast(i)
-			get_viewport().set_input_as_handled()
-			return
-	for i in range(InventoryComponent.HOTBAR_SIZE):
-		if event.is_action_pressed("hotbar_%d" % (i + 1)):
-			activate_hotbar(i)
 			get_viewport().set_input_as_handled()
 			return
 
@@ -1571,16 +1566,54 @@ func toggle_lantern() -> void:
 	Net.fx("sfx", ["clack", global_position + Vector3.UP, -9.0, 0.05, 1.6])
 
 
-func activate_hotbar(slot: int) -> void:
-	if not is_free():
-		return
-	var item := inventory_component.get_hotbar_item(slot)
+# --------------------------------------------------------------------------
+# The wheels (RadialWheel): emotes T, quick items E, actions N
+# --------------------------------------------------------------------------
+var item_wheel
+var action_wheel
+## A tap of E mid-swing waits this long for the swing to end (its combo window opening).
+const QUICK_BUFFER := 1.0
+var _quick_want := 0.0
+
+
+func _wheel(path: String, n: String) -> Node:
+	var w: Node = load(path).new()
+	w.name = n
+	w.player = self
+	add_child(w)
+	return w
+
+
+## E tapped: take the selected quick item now, or as soon as the swing or dodge you're in ends.
+func use_quick() -> void:
+	var item := inventory_component.quick_item()
 	if item == null:
+		_toast("Nothing to eat or drink (hold E to choose)")
 		return
 	if inventory_component.count(item.id) <= 0:
 		_toast("Out of %s" % item.display_name)
 		return
-	if item.is_consumable() and item.devil_fruit == "":
+	if heal_cd > 0.0:
+		quick_refused.emit()
+		return
+	_quick_want = QUICK_BUFFER
+	_quick_tick(0.0)
+
+
+func _quick_tick(delta: float) -> void:
+	if _quick_want <= 0.0:
+		return
+	_quick_want -= delta
+	if _using_item or context != Context.ON_FOOT:
+		return
+	# a swing's over once its combo window opens: the drink ends the chain
+	if state_machine.current_state.get("can_combo") == true:
+		state_machine.force_state("Idle", {})
+	if current_state_name() not in ["Idle", "Move"]:
+		return
+	_quick_want = 0.0
+	var item := inventory_component.quick_item()
+	if item and inventory_component.count(item.id) > 0:
 		use_item(item)
 
 
@@ -1896,7 +1929,7 @@ const USE_SOUNDS := {"bite": [[0.4, "crunch", -6.0, 1.1], [0.62, "crunch", -12.0
 	"swig": [[0.38, "splash", -16.0, 1.9], [0.55, "splash", -17.0, 2.1]],
 	"slurp": [[0.4, "splash", -15.0, 1.6], [0.6, "splash", -16.0, 1.7]],
 	"tonic": [[0.34, "clack", -6.0, 1.9], [0.56, "splash", -16.0, 2.0]]}
-## A use was refused on the shared cooldown (the HUD flashes the quick slots).
+## A use was refused on the shared cooldown (the HUD flashes the quick slot).
 signal quick_refused
 var heal_cd: float = 0.0
 var _use_anim := ""
@@ -1952,9 +1985,6 @@ func eat_devil_fruit(item: ItemData) -> void:
 		return
 	if not inventory_component.remove_item(item, 1):
 		return
-	for i in range(InventoryComponent.HOTBAR_SIZE):
-		if inventory_component.hotbar[i] == item.id:
-			inventory_component.clear_hotbar_slot(i)
 	_using_item = item
 	_use_timer = item.use_time
 	body_model.show_left_prop(Props.devil_fruit_mesh("devil_fruit_" + item.devil_fruit))

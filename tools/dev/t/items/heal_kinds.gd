@@ -56,7 +56,7 @@ func _process(_d: float) -> bool:
 			var v := Vector2(p.velocity.x, p.velocity.z).length()
 			check("walking while eating is slower (%.2f m/s)" % v, v > 0.5 and v < p.move_speed * 0.6)
 			Input.action_release("move_forward")
-			p.inventory_component.assign_hotbar(2, "tonic")
+			p.inventory_component.select_quick("tonic")
 			check("the galley doesn't brew tonics", not str(root.get_node("GameManager").restock(p)).contains("Sea Tonic"))
 			return TK.done(fails)
 	step += 1

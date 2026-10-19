@@ -106,9 +106,9 @@ func _process(d: float) -> bool:
 			var inv = p.inventory_component
 			while inv.count("rum") > 0:
 				inv.take_amount(inv.find_index("rum"), 1)
-			inv.assign_hotbar(0, "rum")
+			inv.select_quick("rum")
 			msg = gm.restock(p)
-			check("the galley restocks the quick-slot rum to %d (%s)" % [gm.RESTOCK_CAP, msg], inv.count("rum") == gm.RESTOCK_CAP)
+			check("the galley restocks the quick item's rum to %d (%s)" % [gm.RESTOCK_CAP, msg], inv.count("rum") == gm.RESTOCK_CAP)
 			msg = gm.restock(p)
 			check("...and not past it (%s)" % msg, inv.count("rum") == gm.RESTOCK_CAP and msg.contains("full"))
 			# --- dying ashore

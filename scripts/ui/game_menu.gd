@@ -166,8 +166,8 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif _current == "inventory" and event is InputEventKey and event.pressed and not event.echo:
 		var k: int = event.keycode
-		if k >= KEY_5 and k <= KEY_7:
-			_inventory.assign_hotbar(k - KEY_5)
+		if event.is_action_pressed("quick_item"):
+			_inventory.select_quick()
 			get_viewport().set_input_as_handled()
 		elif k == KEY_X or k == KEY_DELETE:
 			# drop the hovered stack (shift: just one)
@@ -511,8 +511,8 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 const BINDINGS := [
 	["Move", "W A S D"], ["Look", "Mouse"], ["Sprint", "Shift"], ["Jump / double jump", "Space"],
 	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
-	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Emote wheel (hold, mouse to pick)", "T"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 4"],
-	["Ultimate", "R"], ["Quick items (rum...)", "5 - 7"], ["Block (hold)", "Q"],
+	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Emote wheel (hold, mouse to pick)", "T"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 5"],
+	["Ultimate", "R"], ["Eat / drink (hold: choose)", "E"], ["Action wheel (hold: camp...)", "N"], ["Block (hold)", "Q"],
 	["Inventory", "Tab / I"], ["Skill map", "K"], ["Sea chart (click: mark)", "M"], ["Belt lantern on / off", "L"], ["Read the log pose (hold)", "H"], ["Zoan: shift form", "V"], ["Summon your ship (hold)", "B"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
 	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
 ]

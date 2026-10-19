@@ -1,6 +1,6 @@
 extends SceneTree
 ## A rum is a swig with the bottle in hand, taken from the bag at the start, healing only at the end; the shared
-## cooldown then refuses the next heal (a tonic, or quick slot 6's biscuit).
+## cooldown then refuses the next heal (a tonic, or a biscuit as the quick item).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -59,10 +59,10 @@ func _process(_d: float) -> bool:
 			var n: int = p.inventory_component.count("tonic")
 			p.use_item(item("tonic"))
 			check("the shared cooldown refuses a tonic", not p.is_using_item() and p.inventory_component.count("tonic") == n and refused == 1)
-			p.inventory_component.assign_hotbar(1, "biscuit")
+			p.inventory_component.select_quick("biscuit")
 			var nb: int = p.inventory_component.count("biscuit")
-			p.activate_hotbar(1)
-			check("...and quick slot 6 (biscuit)", not p.is_using_item() and p.inventory_component.count("biscuit") == nb and refused == 2)
+			p.use_quick()
+			check("...and the quick item (a biscuit)", not p.is_using_item() and p.inventory_component.count("biscuit") == nb and refused == 2)
 			return TK.done(fails)
 	step += 1
 	return false

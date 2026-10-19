@@ -1901,3 +1901,11 @@ func set_paused(on: bool) -> void:
 			local_player.input_locked = on
 	else:
 		get_tree().paused = on
+
+
+# ==========================================================================
+# Controls (v1.18 lane B): camps, loadout swaps, the crew's chat
+# ==========================================================================
+## A captain made camp (Camp.make): the fire on every screen.
+func _all_camp(id: int, pos: Vector3, yaw: float) -> void:
+	Camp.place(get_tree(), id, pos, yaw)
