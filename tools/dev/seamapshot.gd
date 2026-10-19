@@ -16,17 +16,15 @@ func _process(d: float) -> bool:
 			root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 			for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 			gm.open("skills")
-			gm._skills.set_tab("sea")
+			gm._skills.set_tab("life")
 			t0 = t
 			step = 1
 		1:
 			if t - t0 < 1.0: return false
 			root.get_texture().get_image().save_png("%s_fresh.png" % out)
 			var pr = get_first_node_in_group("player").progression
-			pr.mastery_of("sea")["pts"] = 6
-			pr.mastery_of("sea")["lv"] = 6
-			for id in ["sea_trim", "sea_turn", "sea_load", "sea_gunner", "sea_carp"]:
-				pr.learn(id)
+			while pr.mastery_level("sea") < 7:
+				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea")))
 			gm._skills._sel = "sea_gunner"
 			gm._skills.queue_redraw()
 			t0 = t

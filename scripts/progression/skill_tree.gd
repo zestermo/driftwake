@@ -8,15 +8,17 @@ extends RefCounted
 ##            weapon trees, paid for with that weapon's mastery points (earned
 ##            by fighting with it); they hold its passives, its skills, its
 ##            ultimate and the parts of its moveset you have to unlock ("move" nodes)
-##   sea      Seamanship: a mastery tree earned at sea, its bonuses for the station you man
+##   life     the life skills side by side (swim, sea = Seamanship, cook, fish): learned by doing,
+##            their perks come by themselves at mastery milestones
 ##   fruit    your Devil Fruit (only once you've eaten one)
 ## You can learn any node linked to one you own (if you meet its requirements).
 ##
 ## Node: {id, name, kind, tree, region, pos, links, cost, effects, skill, req, desc}
-##   kind: origin | root | stat | passive | move | active | ult
+##   kind: origin | root | stat | passive | move | active | ult | perk
 ##   effects: stat bonuses / flags summed by Progression.stat(); a move node
 ##     carries a flag "mv_<move>" (Progression.has_move)
-##   req: {"level": n} and/or {"fruit": id}
+##   req: {"level": n}, {"fruit": id}, {"node": id}, {"life": tree, "life_lv": n} (a life skill's
+##     mastery), {"mastery": n} (a perk: reached at that level of its own life skill)
 ##
 ## Weapon-tree effect keys (<t> = the tree id, read with Progression.style_stat for
 ## the weapon in hand): dmg_ damage, stam_ attack stamina, flow_ energy per hit,
@@ -29,21 +31,38 @@ extends RefCounted
 ## bleeding wound, backstab_ extra share of a hit landed from behind, evade_ chance a blow
 ## is slipped (the daggers).
 
+## kind: shared (paid with level skill points), weapon (paid with its own mastery points, earned by fighting
+## with it), life (learned by doing: its perks come by themselves at mastery milestones), fruit (skill points),
+## tab (a tab that shows other trees: the life skills side by side).
 const TREES := {
-	"base": {"name": "Base & Haki", "tab": "BASE", "mastery": false},
-	"unarmed": {"name": "Unarmed", "tab": "UNARMED", "mastery": true},
-	"sword": {"name": "Cutlass", "tab": "CUTLASS", "mastery": true},
-	"katana": {"name": "Katana", "tab": "KATANA", "mastery": true},
-	"axe": {"name": "Axe", "tab": "AXE", "mastery": true},
-	"dagger": {"name": "Dagger", "tab": "DAGGER", "mastery": true},
-	"dual": {"name": "Dual Wield", "tab": "DUAL", "mastery": true},
-	"dual_dagger": {"name": "Twin Daggers", "tab": "2 DAGGERS", "mastery": true},
-	"corsair": {"name": "Corsair", "tab": "CORSAIR", "mastery": true},
-	"pistol": {"name": "Pistol", "tab": "PISTOL", "mastery": true},
-	"sea": {"name": "Seamanship", "tab": "SEA", "mastery": true},
-	"fruit": {"name": "Devil Fruit", "tab": "FRUIT", "mastery": false},
+	"base": {"name": "Captain", "tab": "CAPTAIN", "kind": "shared"},
+	"unarmed": {"name": "Unarmed", "tab": "UNARMED", "kind": "weapon"},
+	"sword": {"name": "Cutlass", "tab": "CUTLASS", "kind": "weapon"},
+	"katana": {"name": "Katana", "tab": "KATANA", "kind": "weapon"},
+	"axe": {"name": "Axe", "tab": "AXE", "kind": "weapon"},
+	"dagger": {"name": "Dagger", "tab": "DAGGER", "kind": "weapon"},
+	"dual": {"name": "Dual Wield", "tab": "DUAL", "kind": "weapon"},
+	"dual_dagger": {"name": "Twin Daggers", "tab": "2 DAGGERS", "kind": "weapon"},
+	"corsair": {"name": "Corsair", "tab": "CORSAIR", "kind": "weapon"},
+	"pistol": {"name": "Pistol", "tab": "PISTOL", "kind": "weapon"},
+	"life": {"name": "Life Skills", "tab": "LIFE", "kind": "tab"},
+	"swim": {"name": "Swimming", "tab": "LIFE", "kind": "life"},
+	"sea": {"name": "Seamanship", "tab": "LIFE", "kind": "life"},
+	"cook": {"name": "Cooking", "tab": "LIFE", "kind": "life"},
+	"fish": {"name": "Fishing", "tab": "LIFE", "kind": "life"},
+	"fruit": {"name": "Devil Fruit", "tab": "FRUIT", "kind": "fruit"},
 }
-const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "corsair", "pistol", "sea", "fruit"]
+const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "corsair", "pistol", "life", "fruit"]
+const LIFE_SKILLS := ["swim", "sea", "cook", "fish"]
+
+## Weapon families: mastery earned with one weapon also builds the others of its family
+## (Progression.FAMILY_SHARE of it). The Corsair is a cutlass and a pistol, so it's in both.
+const FAMILIES := {
+	"blades": ["sword", "katana", "dual", "dagger", "dual_dagger", "corsair"],
+	"heavy": ["axe"],
+	"guns": ["pistol", "corsair"],
+	"fists": ["unarmed"],
+}
 
 ## Fighting style (Player.style()) -> the weapon tree it builds mastery in.
 const STYLE_TREE := {"fist": "unarmed", "sword": "sword", "katana": "katana", "axe": "axe", "dagger": "dagger",
@@ -55,7 +74,7 @@ const REGION_COLORS := {
 	"Unarmed": Color(1.0, 0.85, 0.6), "Cutlass": Color(0.85, 0.85, 0.95), "Katana": Color(0.7, 0.85, 1.0),
 	"Axe": Color(1.0, 0.7, 0.45), "Dual Wield": Color(0.55, 0.85, 1.0), "Dagger": Color(1.0, 0.45, 0.58), "Twin Daggers": Color(0.6, 1.0, 0.45), "Corsair": Color(1.0, 0.5, 0.42), "Pistol": Color(0.95, 0.75, 0.4),
 	"Ember": Color(1.0, 0.5, 0.15), "Wolf": Color(0.7, 0.62, 0.5), "Vine": Color(0.45, 0.85, 0.3),
-	"Seamanship": Color(0.45, 0.8, 0.9),
+	"Seamanship": Color(0.45, 0.8, 0.9), "Swimming": Color(0.4, 0.7, 1.0), "Cooking": Color(1.0, 0.72, 0.4), "Fishing": Color(0.55, 0.9, 0.75),
 }
 
 ## Direction (degrees, screen space: 90 = down) each base-tree region grows in.
@@ -79,17 +98,66 @@ static func style_tree(style: String) -> String:
 	return str(STYLE_TREE.get(style, ""))
 
 
+static func kind_of(tree: String) -> String:
+	return str(TREES.get(tree, {}).get("kind", ""))
+
+
+## A tree with a mastery track (a weapon or a life skill).
 static func is_mastery_tree(tree: String) -> bool:
-	return bool(TREES.get(tree, {}).get("mastery", false))
+	return kind_of(tree) in ["weapon", "life"]
 
 
-## Owned from the start: the Origin and every weapon tree's root.
+static func is_weapon_tree(tree: String) -> bool:
+	return kind_of(tree) == "weapon"
+
+
+static func is_life_tree(tree: String) -> bool:
+	return kind_of(tree) == "life"
+
+
+## The tab a tree's nodes show on.
+static func tab_of(tree: String) -> String:
+	return "life" if is_life_tree(tree) else tree
+
+
+## The trees a tab shows.
+static func tab_trees(tab: String) -> Array:
+	return LIFE_SKILLS if tab == "life" else [tab]
+
+
+## The other weapon trees that share a family with `tree`.
+static func kin_of(tree: String) -> Array:
+	var out: Array = []
+	for f in FAMILIES.keys():
+		if tree in FAMILIES[f]:
+			for t in FAMILIES[f]:
+				if t != tree and not (t in out):
+					out.append(t)
+	return out
+
+
+static func families_of(tree: String) -> Array:
+	return FAMILIES.keys().filter(func(f): return tree in FAMILIES[f])
+
+
+## Owned from the start: the Origin and every weapon and life skill's root.
 static func starting_nodes() -> Array:
 	var out: Array = []
 	for k in nodes().keys():
 		var n: Dictionary = nodes()[k]
 		if n["kind"] == "origin" or (n["kind"] == "root" and is_mastery_tree(str(n["tree"]))):
 			out.append(k)
+	return out
+
+
+## A life skill's milestone perks in mastery order: [[level, node id], ...].
+static func perks_of(tree: String) -> Array:
+	var out: Array = []
+	for k in nodes().keys():
+		var n: Dictionary = nodes()[k]
+		if n["tree"] == tree and n["kind"] == "perk":
+			out.append([int(n["req"]["mastery"]), k])
+	out.sort()
 	return out
 
 
@@ -135,7 +203,7 @@ static func _build() -> void:
 	_build_dual_dagger()
 	_build_corsair()
 	_build_pistol()
-	_build_seamanship()
+	_build_life()
 	_build_mastery()
 	_build_fruits()
 
@@ -245,39 +313,60 @@ static func _build_base() -> void:
 	_add("h_conq", "Conqueror's Haki", "ult", "Conqueror", _p(A, 300.0), ["h_will"], {}, "", {"level": 20}, "conquerors_haki")
 
 
-## Seamanship (Seamanship, scripts/ship/seamanship.gd): each captain's own, paid for with its mastery
-## points (sailing at the helm, hitting ships with her guns, repairs and pumping, ships sunk near you).
-## Station bonuses, each counting only while you man that station: helm_speed / helm_turn (her top speed
-## and turning while you steer), helm_flood (less of flooding's slowdown, steering), gun_reload (a gun
-## you man), gun_dmg (balls you fire), repair (patching, dousing), pump (bailing), capstan (the anchor),
-## lookout (m: sails and salvage on your compass aboard), crew (the rest half again while a crewmate mans
-## another station).
-static func _build_seamanship() -> void:
-	_tree = "sea"
-	var R := "Seamanship"
-	_add("sea_root", "Seamanship", "root", R, _g(0, 0), [], {},
-		"Sail her, fight her guns and keep her afloat to build Seamanship. Its bonuses count at the station you're manning: the helm, a gun, the pump, a hole or a fire.")
-	# the helm
-	_add("sea_trim", "Sail Trim", "stat", R, _g(-2, 0), ["sea_root"], {"helm_speed": 0.04}, "At the helm: she sails 4% faster.")
-	_add("sea_turn", "Hard Over", "stat", R, _g(-2, 1), ["sea_trim"], {"helm_turn": 0.08}, "At the helm: she turns 8% sharper.")
-	_add("sea_storm", "Storm Sailing", "passive", R, _g(-3, 2), ["sea_turn"], {"helm_flood": 0.4},
-		"At the helm: water in her costs 40% less of her speed.")
-	_add("sea_wind", "Fair Wind", "stat", R, _g(-2, 3), ["sea_turn"], {"helm_speed": 0.05}, "At the helm: another 5% faster.", {"level": 6})
-	_add("sea_eye", "Weather Eye", "passive", R, _g(-3, 4), ["sea_wind", "sea_storm"], {"lookout": 200.0},
-		"Aboard: enemy sails and floating salvage within 200 m show on your compass (further with her crow's nest).")
-	# the guns
-	_add("sea_load", "Quick Loader", "stat", R, _g(0, 1), ["sea_root"], {"gun_reload": 0.15}, "A gun you man reloads 15% faster.")
-	_add("sea_gunner", "Gun Captain", "stat", R, _g(0, 2), ["sea_load"], {"gun_dmg": 0.1}, "Balls you fire from her guns hit 10% harder.")
-	_add("sea_powder", "Powder Monkey", "stat", R, _g(0, 3), ["sea_gunner"], {"gun_reload": 0.15}, "Another 15% faster reload.", {"level": 5})
-	_add("sea_broad", "Broadside Master", "stat", R, _g(0, 4), ["sea_powder"], {"gun_dmg": 0.15}, "Balls you fire hit another 15% harder.", {"level": 8})
-	# repairs
-	_add("sea_carp", "Carpenter", "stat", R, _g(2, 0), ["sea_root"], {"repair": 0.3}, "You patch holes and beat out fires 30% faster.")
-	_add("sea_pump", "Pump Hand", "stat", R, _g(2, 1), ["sea_carp"], {"pump": 0.4}, "You bail 40% more water at the pump.")
-	_add("sea_cap", "Capstan Hand", "passive", R, _g(3, 2), ["sea_pump"], {"capstan": 1.0}, "You work the anchor at the capstan twice as fast.")
-	_add("sea_mend", "Shipwright's Hands", "stat", R, _g(2, 3), ["sea_pump"], {"repair": 0.3, "pump": 0.3}, "Another 30% faster repairs, 30% more bailed.", {"level": 5})
-	# the crew
-	_add("sea_crew", "Bosun", "passive", R, _g(0, 5), ["sea_broad", "sea_eye", "sea_mend"], {"crew": 0.5},
-		"Your station bonuses count half again while a crewmate mans another station: a crew of specialists beats four of the same.", {"level": 8})
+## Life skills, side by side on the LIFE tab: each is learned by doing (Progression.add_life) and its perks
+## come by themselves at mastery milestones (a "perk" node, req {"mastery": level}), no points spent.
+## Seamanship (scripts/ship/seamanship.gd): sailing at the helm, hitting ships with her guns, repairs and
+## pumping, ships sunk near you. Its perks are station bonuses, each counting only while you man that
+## station: helm_speed / helm_turn (her top speed and turning while you steer), helm_flood (less of
+## flooding's slowdown, steering), gun_reload (a gun you man), gun_dmg (balls you fire), repair (patching,
+## dousing), pump (bailing), capstan (the anchor), lookout (m: sails and salvage on your compass aboard),
+## crew (the rest half again while a crewmate mans another station).
+## Cooking and fishing keys (meal_time_pct, meal_power_pct, fish_bite_pct, fish_reel_pct, fish_rare_pct,
+## fish_double) are read by those systems once they exist.
+static func _life_root(tree: String, col: int, name_: String, region: String, desc: String) -> void:
+	_tree = tree
+	_add(tree + "_root", name_, "root", region, Vector2((col - 1.5) * 150.0, 0.0), [], {}, desc)
+
+
+static func _perk(id: String, name_: String, region: String, lv: int, row: int, link: String, effects: Dictionary, desc: String) -> void:
+	var root: Vector2 = _nodes[_tree + "_root"]["pos"]
+	_add(id, name_, "perk", region, root + Vector2(0.0, -row * 64.0), [link], effects, desc, {"mastery": lv}, "", 0)
+
+
+static func _build_life() -> void:
+	_life_root("swim", 0, "Swimming", "Swimming", "Swim to build it: every stretch of open water you cross counts. Its perks come by themselves as it grows.")
+	_perk("sw_strokes", "Strong Strokes", "Swimming", 2, 1, "swim_root", {"swim_pct": 0.1}, "You swim 10% faster.")
+	_perk("sw_lungs", "Deep Lungs", "Swimming", 4, 2, "sw_strokes", {"max_stamina": 10.0}, "+10 max stamina.")
+	_perk("sw_born", "Sea Born", "Swimming", 7, 3, "sw_lungs", {"swim_pct": 0.15}, "You swim another 15% faster.")
+	_perk("sw_wind", "Second Wind", "Swimming", 10, 4, "sw_born", {"stamina_regen_pct": 0.1}, "Stamina refills 10% faster.")
+	_perk("sw_child", "Child of the Sea", "Swimming", 15, 5, "sw_wind", {"swim_pct": 0.15, "max_stamina": 15.0},
+		"You swim another 15% faster, and +15 max stamina.")
+
+	_life_root("sea", 1, "Seamanship", "Seamanship", "Sail her, fight her guns and keep her afloat to build it. Its perks count at the station you're manning: the helm, a gun, the pump, a hole or a fire.")
+	_perk("sea_hand", "Sea Hand", "Seamanship", 2, 1, "sea_root", {"helm_speed": 0.04, "repair": 0.3},
+		"At the helm she sails 4% faster, and you patch holes and beat out fires 30% faster.")
+	_perk("sea_gunner", "Gun Captain", "Seamanship", 4, 2, "sea_hand", {"gun_reload": 0.15, "gun_dmg": 0.1},
+		"A gun you man reloads 15% faster, and its balls hit 10% harder.")
+	_perk("sea_turn", "Hard Over", "Seamanship", 7, 3, "sea_gunner", {"helm_turn": 0.08, "pump": 0.4, "capstan": 1.0},
+		"At the helm she turns 8% sharper; you bail 40% more and work the capstan twice as fast.")
+	_perk("sea_storm", "Storm Sailing", "Seamanship", 10, 4, "sea_turn", {"helm_flood": 0.4, "lookout": 200.0},
+		"At the helm water in her costs 40% less of her speed, and aboard, sails and salvage within 200 m show on your compass.")
+	_perk("sea_broad", "Broadside Master", "Seamanship", 15, 5, "sea_storm", {"gun_reload": 0.15, "gun_dmg": 0.15, "helm_speed": 0.05},
+		"Another 15% faster reload, balls 15% harder, and she sails another 5% faster for you.")
+	_perk("sea_crew", "Bosun", "Seamanship", 20, 6, "sea_broad", {"crew": 0.5, "repair": 0.3, "pump": 0.3},
+		"Your station bonuses count half again while a crewmate mans another station, and you mend and bail faster still.")
+
+	_life_root("cook", 2, "Cooking", "Cooking", "Cook at a galley to build it. Its perks come by themselves as it grows.")
+	_perk("ck_hand", "Galley Hand", "Cooking", 2, 1, "cook_root", {"potion_pct": 0.1}, "Food and drink heal you 10% more.")
+	_perk("ck_ship", "Ship's Cook", "Cooking", 5, 2, "ck_hand", {"meal_time_pct": 0.25}, "Galley meals last 25% longer.")
+	_perk("ck_stomach", "Iron Stomach", "Cooking", 10, 3, "ck_ship", {"potion_pct": 0.2}, "Food and drink heal you another 20% more.")
+	_perk("ck_chef", "Master Chef", "Cooking", 15, 4, "ck_stomach", {"meal_power_pct": 0.2}, "Galley meals' buffs are 20% stronger.")
+
+	_life_root("fish", 3, "Fishing", "Fishing", "Fish to build it. Its perks come by themselves as it grows.")
+	_perk("fs_patient", "Patient Line", "Fishing", 2, 1, "fish_root", {"fish_bite_pct": 0.2}, "Fish bite 20% sooner.")
+	_perk("fs_hands", "Steady Hands", "Fishing", 5, 2, "fs_patient", {"fish_reel_pct": 0.25}, "Reeling in is 25% easier.")
+	_perk("fs_lore", "Sea Lore", "Fishing", 10, 3, "fs_hands", {"fish_rare_pct": 0.15}, "Rare catches come 15% more often.")
+	_perk("fs_salt", "Old Salt", "Fishing", 15, 4, "fs_lore", {"fish_double": 0.15}, "15% of your catches come up two at once.")
 
 
 ## Weapon trees share a shape: the root at the bottom, the moveset and defence

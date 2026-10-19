@@ -39,8 +39,9 @@ points (`points(tree)`). Swimming spends stamina and does `EXHAUST_DAMAGE` when 
 - Texture problems on the ship's back corners (stern).
 
 ### Open / deferred
-- The weapon families and which weapon belongs to which: **assumed** blades (cutlass, katana...), heavy (axe,
-  hammer...), guns, and fists/fruit. The building agent fixes the list from `Skills.ALL`.
+- ~~The weapon families~~ **Settled 2026-10-19** (SkillTree.FAMILIES): blades (cutlass, katana, dual wield, dagger,
+  twin daggers, Corsair), heavy (axe; hammers join later), guns (pistol, Corsair), fists (unarmed). The Corsair is in
+  blades and guns. The Devil Fruit tree has no mastery, so it's in no family. Carry-over is 25% (FAMILY_SHARE, tune in play).
 - The trait pool (how many traits, which moves they touch): the building agent proposes a first set of about 8-12
   and shows Zach before it lands.
 - What "favours" and "discounts" mean in detail: at the journal/quests grill.

@@ -4,11 +4,14 @@ extends Node
 ##
 ## You start at level 1 with no skills: just the basics (light/heavy attacks,
 ## dodge, parry, jump). Experience comes from combat (defeating enemies); each
-## level gives 2 skill points for the Base & Haki and Devil Fruit trees.
+## level gives 2 skill points for the shared Captain tree and the Devil Fruit's.
 ## Fighting with a weapon builds that weapon's mastery: every mastery level is a
-## point for its own tree (SkillTree). Active skills go on the skill bar
-## (PowerComponent.loadout) and rank up through tiers: using one opens its next
-## tier, then the tier costs points from its tree.
+## point for its own tree (SkillTree), and a share of it goes to the other weapons
+## of its family. Life skills (swimming, Seamanship, cooking, fishing) build
+## mastery by doing, and their perks come by themselves at milestones.
+## Active skills go on the skill bar (PowerComponent.loadout) and rank up through
+## tiers: using one opens its next tier, then the tier costs points from its tree.
+## Each captain's own (a guest's lives and saves on the guest's machine).
 
 signal xp_gained(amount: int, total: int)
 signal leveled_up(level: int)
@@ -22,8 +25,14 @@ const MAX_MASTERY := 30
 ## experience that goes to the weapon in your hand.
 const MASTERY_PER_HIT := 4
 const MASTERY_KILL_SHARE := 0.25
-## Save format: 2 = per-tree points, mastery, tiers (older saves are refunded).
-const FORMAT := 2
+## The share of a weapon's mastery xp that the other weapons of its family get too.
+const FAMILY_SHARE := 0.25
+## Metres swum for a point of Swimming xp, and how often (ticks) the swim is measured.
+const SWIM_M := 4.0
+const SWIM_TICKS := 15
+## Save format: 2 = per-tree points, mastery, tiers; 3 = the reworked trees,
+## families and life skills (older saves are refunded once).
+const FORMAT := 3
 
 var player: Player
 var level: int = 1
@@ -37,6 +46,10 @@ var tiers: Dictionary = {}
 ## skill id -> times cast
 var uses: Dictionary = {}
 var _refunded: bool = false
+## tree -> the fraction of a point of xp carried over from its family, not yet whole
+var _carry: Dictionary = {}
+var _swim_m: float = 0.0
+var _swim_at := Vector3.INF
 
 
 func _init() -> void:
@@ -45,6 +58,21 @@ func _init() -> void:
 
 func _ready() -> void:
 	player = get_parent() as Player
+
+
+func _physics_process(_delta: float) -> void:
+	if Engine.get_physics_frames() % SWIM_TICKS != 0 or player == null or not player.is_local:
+		return
+	if player.current_state_name() != "Swim":
+		_swim_at = Vector3.INF
+		return
+	var at := player.global_position
+	if _swim_at != Vector3.INF:
+		var d := Vector2(at.x - _swim_at.x, at.z - _swim_at.z).length()
+		# (a teleport or a ride isn't swimming)
+		if d < 0.25 * SWIM_TICKS:
+			on_swim(d)
+	_swim_at = at
 
 
 func _reset_owned() -> void:
@@ -117,9 +145,21 @@ func mastery_level(tree: String) -> int:
 	return int(mastery_of(tree)["lv"])
 
 
+## Mastery xp for a weapon or a life skill. A weapon's family gets FAMILY_SHARE of it too.
 func add_mastery(tree: String, amount: int) -> void:
 	if tree == "" or amount <= 0:
 		return
+	_gain(tree, amount, "")
+	for t in SkillTree.kin_of(tree):
+		var share := float(_carry.get(t, 0.0)) + amount * FAMILY_SHARE
+		var whole := int(share)
+		_carry[t] = share - whole
+		if whole > 0:
+			_gain(t, whole, tree)
+	changed.emit()
+
+
+func _gain(tree: String, amount: int, from: String) -> void:
 	var m := mastery_of(tree)
 	if int(m["lv"]) >= MAX_MASTERY:
 		return
@@ -128,22 +168,60 @@ func add_mastery(tree: String, amount: int) -> void:
 	while int(m["lv"]) < MAX_MASTERY and int(m["xp"]) >= mastery_to_next(int(m["lv"])):
 		m["xp"] = int(m["xp"]) - mastery_to_next(int(m["lv"]))
 		m["lv"] = int(m["lv"]) + 1
-		m["pts"] = int(m["pts"]) + 1
+		if SkillTree.is_weapon_tree(tree):
+			m["pts"] = int(m["pts"]) + 1
 		ups += 1
 	if int(m["lv"]) >= MAX_MASTERY:
 		m["xp"] = 0
-	if ups > 0:
-		if player:
+	if ups == 0:
+		return
+	var perks := _sync_perks(tree)
+	if player:
+		var tname := str(SkillTree.TREES[tree]["name"])
+		if SkillTree.is_life_tree(tree):
+			var msg := "%s %d" % [tname, int(m["lv"])]
+			for k in perks:
+				var pn := SkillTree.get_node_def(k)
+				msg += "  -  %s: %s" % [pn["name"], pn["desc"]]
+			player.call("_toast", msg)
+		else:
+			var src := "" if from == "" else " (from %s)" % SkillTree.TREES[from]["name"]
+			player.call("_toast", "%s mastery %d%s  -  +%d point%s (K)" % [tname, int(m["lv"]), src, ups, "" if ups == 1 else "s"])
+		if from == "":
 			Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 12, Color(0.75, 0.9, 1.0)])
-			player.call("_toast", "%s mastery %d  -  +%d point%s (K)" % [SkillTree.TREES[tree]["name"], int(m["lv"]), ups, "" if ups == 1 else "s"])
-		mastery_up.emit(tree, int(m["lv"]))
-	changed.emit()
+	mastery_up.emit(tree, int(m["lv"]))
+
+
+## Own every perk a life skill has reached; returns the ones just reached.
+func _sync_perks(tree: String) -> Array:
+	var got: Array = []
+	if not SkillTree.is_life_tree(tree):
+		return got
+	for pk in SkillTree.perks_of(tree):
+		if mastery_level(tree) >= int(pk[0]) and not owns(pk[1]):
+			_own(pk[1])
+			got.append(pk[1])
+	return got
 
 
 ## A hit landed with the weapon in your hand.
 func on_hit() -> void:
 	if player:
 		add_mastery(SkillTree.style_tree(player.style()), MASTERY_PER_HIT)
+
+
+## Life skills learned by doing: Seamanship (Seamanship.xp), swimming (on_swim, measured
+## here), and cooking and fishing (their systems call add_life when they come).
+func add_life(skill: String, amount: int) -> void:
+	add_mastery(skill, amount)
+
+
+func on_swim(metres: float) -> void:
+	_swim_m += metres
+	if _swim_m >= SWIM_M:
+		var n := int(_swim_m / SWIM_M)
+		_swim_m -= n * SWIM_M
+		add_life("swim", n)
 
 
 # --------------------------------------------------------------------------
@@ -153,16 +231,18 @@ func owns(id: String) -> bool:
 	return owned.has(id)
 
 
-## Points to spend in a tree: its mastery points for a weapon tree, skill
-## points for the rest.
+## Points to spend in a tree: its mastery points for a weapon tree, none for a
+## life skill (its perks come by themselves), skill points for the rest.
 func points(tree: String) -> int:
-	if SkillTree.is_mastery_tree(tree):
+	if SkillTree.is_weapon_tree(tree):
 		return int(mastery_of(tree)["pts"])
+	if SkillTree.kind_of(tree) in ["life", "tab"]:
+		return 0
 	return skill_points
 
 
 func _spend(tree: String, n: int) -> void:
-	if SkillTree.is_mastery_tree(tree):
+	if SkillTree.is_weapon_tree(tree):
 		var m := mastery_of(tree)
 		m["pts"] = int(m["pts"]) - n
 	else:
@@ -170,7 +250,7 @@ func _spend(tree: String, n: int) -> void:
 
 
 func points_word(tree: String, n: int) -> String:
-	var unit := "mastery point" if SkillTree.is_mastery_tree(tree) else "skill point"
+	var unit := "mastery point" if SkillTree.is_weapon_tree(tree) else "skill point"
 	return "%d %s%s" % [n, unit, "" if n == 1 else "s"]
 
 
@@ -182,10 +262,14 @@ func can_learn(id: String) -> String:
 	if owns(id):
 		return "Learned"
 	var req: Dictionary = n["req"]
+	if n["kind"] == "perk":
+		return "Comes at %s %d" % [SkillTree.TREES[n["tree"]]["name"], int(req["mastery"])]
 	if req.has("fruit") and (player == null or player.power.fruit != str(req["fruit"])):
 		return "Needs the %s" % str(DevilFruits.get_fruit(str(req["fruit"])).get("name", "fruit"))
 	if req.has("level") and level < int(req["level"]):
 		return "Needs level %d" % int(req["level"])
+	if req.has("life") and mastery_level(str(req["life"])) < int(req["life_lv"]):
+		return "Needs %s %d" % [SkillTree.TREES[req["life"]]["name"], int(req["life_lv"])]
 	if req.has("node") and not owns(str(req["node"])):
 		return "Needs %s" % str(SkillTree.get_node_def(str(req["node"]))["name"])
 	var linked := false
@@ -351,21 +435,34 @@ func from_dict(d: Dictionary) -> void:
 	mastery = {}
 	tiers = {}
 	uses = {}
-	_refunded = int(d.get("format", 1)) < FORMAT and level > 1
-	if int(d.get("format", 1)) < FORMAT:
-		# the skill map was reworked into separate trees: every point comes back
-		skill_points = (level - 1) * SP_PER_LEVEL
+	_carry = {}
+	var fmt := int(d.get("format", 1))
+	var ms: Dictionary = d.get("mastery", {})
+	if fmt < FORMAT:
+		# the trees were reworked: every skill point and every weapon's mastery point
+		# comes back once (mastery levels, uses, gold and gear stay)
+		_refunded = level > 1 or not ms.is_empty()
+		skill_points = (level - 1) * SP_PER_LEVEL + (1 if fmt == 2 and level > 1 and Story.passed("vey_skills") else 0)
+		for t in ms.keys():
+			if SkillTree.is_mastery_tree(str(t)):
+				var lv := int(ms[t].get("lv", 1))
+				mastery[str(t)] = {"lv": lv, "xp": int(ms[t].get("xp", 0)), "pts": lv - 1 if SkillTree.is_weapon_tree(str(t)) else 0}
+		if fmt == 2:
+			uses = (d.get("uses", {}) as Dictionary).duplicate()
 	else:
 		skill_points = int(d.get("sp", 0))
 		for k in d.get("owned", []):
 			if not SkillTree.get_node_def(str(k)).is_empty():
 				owned[str(k)] = true
-		var ms: Dictionary = d.get("mastery", {})
 		for t in ms.keys():
 			if SkillTree.is_mastery_tree(str(t)):
 				mastery[str(t)] = (ms[t] as Dictionary).duplicate()
 		tiers = (d.get("tiers", {}) as Dictionary).duplicate()
 		uses = (d.get("uses", {}) as Dictionary).duplicate()
+	for t in SkillTree.LIFE_SKILLS:
+		for pk in SkillTree.perks_of(t):
+			if mastery_level(t) >= int(pk[0]):
+				owned[pk[1]] = true
 	_stat_n = -1
 	changed.emit()
 
@@ -383,4 +480,4 @@ func after_load() -> void:
 	if _refunded:
 		_refunded = false
 		get_tree().call_group("hud", "show_banner", "New skill trees!",
-			"Your %d skill points are back - press K to spend them" % skill_points, true)
+			"Your %d skill points and every weapon's mastery points are back - press K to spend them" % skill_points, true)

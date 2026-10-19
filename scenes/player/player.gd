@@ -1405,6 +1405,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				if not nt.is_empty():
 					progression.uses[sk] = maxi(progression.uses_of(sk), int(nt["uses"]))
 			_toast("Debug: next tiers opened")
+		elif (event as InputEventKey).alt_pressed:
+			# Alt+F9: a level of every life skill
+			for t in SkillTree.LIFE_SKILLS:
+				var lm := progression.mastery_of(t)
+				progression.add_life(t, Progression.mastery_to_next(int(lm["lv"])) - int(lm["xp"]))
 		else:
 			var mt := SkillTree.style_tree(style())
 			if mt != "":

@@ -393,3 +393,6 @@ scripts/enemies/beasts/elder_treant.gd  t/island bosstest
 scripts/enemies/beasts/moss_golem.gd    t/island bosstest
 scripts/enemies/beasts/wild_hunt.gd     t/island bosstest
 scripts/enemies/huntsman.gd             t/island grunttest
+tools/dev/t/progression/*               t/progression
+scripts/progression/*                   t/progression
+scripts/ui/skill_map_screen.gd          t/progression

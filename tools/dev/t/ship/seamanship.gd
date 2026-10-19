@@ -1,6 +1,6 @@
 extends SceneTree
-## Seamanship: a tab of its own on the skill map, a mastery tree owned from its root; sailing at the helm and
-## a ship sunk nearby earn its mastery; its bonuses count at the station you man: the helm (faster, sharper,
+## Seamanship: a life skill on the skill map's LIFE tab, its perks reached at mastery milestones (never bought);
+## sailing at the helm and a ship sunk nearby earn its mastery; its bonuses count at the station you man: the helm (faster, sharper,
 ## and on the ship's snapshot for the other screens), a gun (reloads faster, balls hit harder), deck jobs
 ## (patching faster); and it's saved with the captain.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -44,8 +44,8 @@ func _process(_d: float) -> bool:
 			p = stage.player
 			pr = p.progression
 			ship = stage.ship
-			check("Seamanship has its tab, a mastery tree", ST.TAB_ORDER.has("sea") and ST.is_mastery_tree("sea"))
-			check("...its root owned from the start, 15 nodes", pr.owns("sea_root") and ST.nodes().keys().filter(func(k): return ST.nodes()[k]["tree"] == "sea").size() == 15)
+			check("Seamanship is a life skill on the LIFE tab", ST.TAB_ORDER.has("life") and ST.is_life_tree("sea") and ST.tab_of("sea") == "life")
+			check("...its root owned from the start, 6 milestone perks", pr.owns("sea_root") and ST.perks_of("sea").size() == 6)
 			# sailing at the helm
 			xp0 = sea_xp()
 			ship.is_player_steering = true
@@ -55,11 +55,12 @@ func _process(_d: float) -> bool:
 		1:
 			print("   sea xp %d -> %d" % [xp0, sea_xp()])
 			check("sailing at the helm earns Seamanship", sea_xp() > xp0)
-			check("...no bonus at the helm without the tree", ship._helm_k == Vector3.ONE)
-			pr.mastery_of("sea")["pts"] = 20
-			for id in ["sea_trim", "sea_turn", "sea_load", "sea_gunner", "sea_carp"]:
-				pr.learn(id)
-			check("learned with mastery points", pr.owns("sea_trim") and pr.owns("sea_carp") and int(pr.mastery_of("sea")["pts"]) == 15)
+			check("...no bonus at the helm without the perks", ship._helm_k == Vector3.ONE)
+			check("perks can't be bought", not pr.learn("sea_hand") and pr.can_learn("sea_hand").begins_with("Comes at Seamanship"))
+			while pr.mastery_level("sea") < 7:
+				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea")))
+			check("Seamanship 7 brings its first three perks by themselves", pr.owns("sea_hand") and pr.owns("sea_gunner") and pr.owns("sea_turn") and not pr.owns("sea_storm"))
+			check("...and no points to spend", pr.points("sea") == 0)
 			until = TK.wait_ticks(3)
 		2:
 			check("at the helm: 4%% faster, 8%% sharper (%s)" % str(ship._helm_k), is_equal_approx(ship._helm_k.x, 1.04) and is_equal_approx(ship._helm_k.y, 1.08))
@@ -96,9 +97,9 @@ func _process(_d: float) -> bool:
 			check("a brig sunk close by: +60 Seamanship (%d)" % (sea_xp() - xp0), sea_xp() - xp0 == 60)
 			var d: Dictionary = pr.to_dict()
 			pr.from_dict({})
-			check("...forgotten on a blank load", not pr.owns("sea_trim"))
+			check("...forgotten on a blank load", not pr.owns("sea_hand"))
 			pr.from_dict(d)
-			check("Seamanship is saved with the captain", pr.owns("sea_trim") and pr.mastery_of("sea") == d["mastery"]["sea"])
+			check("Seamanship is saved with the captain", pr.owns("sea_turn") and pr.mastery_of("sea") == d["mastery"]["sea"])
 			return TK.done(fails)
 	step += 1
 	return false

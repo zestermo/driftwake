@@ -152,7 +152,7 @@ func _to_map(sp: Vector2) -> Vector2:
 ## Is a node on the current tab? (The Devil Fruit tab shows only your own fruit.)
 func _shown(id: String) -> bool:
 	var n := SkillTree.get_node_def(id)
-	if str(n["tree"]) != _tab:
+	if SkillTree.tab_of(str(n["tree"])) != _tab:
 		return false
 	if _tab != "fruit":
 		return true
@@ -368,10 +368,12 @@ func _draw() -> void:
 				_text(lp + Vector2(-60, 0), str(l[1]).to_upper(), Color(col.r, col.g, col.b, 0.75), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
 			if pr.level < int(l[3]):
 				_text(lp + Vector2(-60, 10), "awakens at level %d" % int(l[3]), Color(UIStyle.TEXT_DIM, 0.7), 8, HORIZONTAL_ALIGNMENT_CENTER, 120)
-	elif _tab != "fruit":
+	elif SkillTree.is_weapon_tree(_tab):
 		var m := pr.mastery_of(_tab)
 		if int(m["lv"]) == 1 and int(m["xp"]) == 0 and int(m["pts"]) == 0:
 			_text(Vector2(0, HEADER_H + 12), "Fight with it to build mastery: every mastery level is a point for this tree.", Color(UIStyle.TEXT_DIM, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, mr.size.x)
+	elif _tab == "life":
+		pass
 	elif pl.power.has_fruit():
 		var fd := pl.power.fruit_data()
 		var fc: Color = fd["color"]

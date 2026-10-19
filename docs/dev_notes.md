@@ -3584,3 +3584,27 @@ Found and fixed (Buildings unless said):
   past; walkers out of the physics (their Body disabled while walking, solid when stopped); hidden past 100 m. HarbourBoat rides the
   swell within 150 m (was 300). A quick re-bench under load wasn't conclusive; the full gate pair needs rerunning. Open: if it's still
   over budget, fewer townsfolk in the street (customers, porters, kids are the cheapest to cut).
+
+## 2026-10-19: skills rework, piece 1: the model (families, life skills, the refund)
+Spec: docs/progression_plan.md "Decided (2026-10-19)".
+- **Tree kinds** (SkillTree.TREES "kind"): shared (the Captain tree, was "Base & Haki": level skill points), weapon (its own
+  mastery points), life (learned by doing, perks by themselves), fruit (skill points), tab (LIFE: shows the four life skills
+  side by side; `tab_of` / `tab_trees`). `is_mastery_tree` = weapon or life; `is_weapon_tree` / `is_life_tree`.
+- **Families** (SkillTree.FAMILIES): blades (cutlass, katana, dual, dagger, twin daggers, Corsair), heavy (axe), guns (pistol,
+  Corsair), fists (unarmed). The fruit tree isn't a weapon (no mastery). `Progression.add_mastery` gives the tree its xp and
+  FAMILY_SHARE (0.25) of it to each kin tree, fractions kept in `_carry` (not saved); a carried share never carries again (no
+  pistol from the cutlass through the Corsair). Carried level-ups toast "(from Cutlass)" and give that tree its points.
+- **Life skills** (swim, sea = Seamanship, cook, fish): mastery in the same `mastery` dict, no points; perks are "perk" nodes
+  (req {"mastery": lv}, cost 0) owned by `_sync_perks` on a level-up and on every load, so they can't be bought (can_learn
+  "Comes at Swimming 2"). `add_life(skill, xp)` is the API for cooking and fishing; Seamanship.xp already calls add_mastery.
+  Swimming is measured in Progression._physics_process (every SWIM_TICKS, the local captain only, while the state is Swim,
+  under 15 m/s so a teleport isn't a swim): SWIM_M metres a point. Nothing in swim_state.gd. Seamanship's 15 bought nodes
+  became 6 milestone perks with the same keys and numbers (Sea Hand 2, Gun Captain 4, Hard Over 7, Storm Sailing 10,
+  Broadside Master 15, Bosun 20). Cooking/fishing perks carry keys their systems will read (meal_time_pct, meal_power_pct,
+  fish_*). A shared-tree node can need a life skill: req {"life": tree, "life_lv": n}.
+- **Refund** (Progression.FORMAT 3): an older progression block keeps level, xp, mastery levels/xp and skill uses (gold and
+  gear are other save sections, untouched); skill points = (level - 1) x 2 (+1 for Vey's on a format-2 save past that step),
+  each weapon's points = its mastery level - 1, nodes and tiers cleared, life perks from the kept mastery. The banner says so.
+- Debug: Alt+F9 a level of every life skill (F9 still a level and the weapon's mastery).
+- Tests: t/progression/ family_carry, refund_migration, life_mastery; t/ship/seamanship rewritten for perks. Expect
+  progtest, techtest, savetest, wieldtest, daggertest, balancetest to need a look once the trees are trimmed (piece 2).
