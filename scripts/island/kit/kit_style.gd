@@ -117,9 +117,13 @@ const BASE_PROPS := ["crate", "barrel", "lantern_post", "notice_board"]
 const REACH := 140.0
 
 
-## Brinehollow's style, or a registered theme's over it.
+## Brinehollow's style, or a registered theme's (or the royal capital's, CapitalStyle) over it.
 static func of(style_name: String) -> Dictionary:
-	var over: Dictionary = BRINEHOLLOW if style_name == "brinehollow" else IslandThemes.of(style_name).style
+	var over: Dictionary = BRINEHOLLOW
+	if style_name == "capital":
+		over = CapitalStyle.STYLE
+	elif style_name != "brinehollow":
+		over = IslandThemes.of(style_name).style
 	var st: Dictionary = BRINEHOLLOW.merged(over, true)
 	st.make_read_only()
 	return st

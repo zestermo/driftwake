@@ -366,7 +366,7 @@ scripts/island/island_theme.gd          t/island
 scripts/island/kit/kit_style.gd         t/island
 scripts/island/kit/life_pools.gd        t/island
 scripts/enemies/beasts/beast_pool.gd    t/island
-scripts/world/chain.gd                  t/island
+scripts/world/chain.gd                  t/island t/capital
 scripts/island/fauna_spawner.gd         t/island
 scripts/ui/chain_marks.gd               t/island
 # --- theme land hooks: radius, plan_land, shape (2026-10-15) ---
@@ -451,3 +451,7 @@ art/clips/*                             t/downtime
 tools/blender/*                         t/downtime
 scripts/ship/lashed_helm.gd             t/downtime t/ship
 scripts/player_states/helm_state.gd     t/downtime
+# --- the royal capital (2026-10-20) ---
+tools/dev/t/capital/*                   t/capital
+scripts/island/capital_*                t/capital
+tools/dev/capitalshot.gd                t/capital

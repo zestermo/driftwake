@@ -14,6 +14,8 @@ scripts/npc/humanoid.gd:play | co-op: a held pose re-played every frame is sent 
 scripts/psx/draw_lod.gd:steps | a build step's 12 ms budget (work sliced by real time so a frame never hitches)
 scripts/island/world_generator.gd | chain island build timing (the "ready in ... ms" log) and its per-frame build steps
 scripts/island/gen_island.gd | build timing (build_ms) per step
+scripts/island/capital_island.gd | build timing (build_ms) per step
+scripts/island/capital_shell.gd | build timing (build_ms) per shell piece
 scripts/island/starter_island.gd | build timing (build_ms)
 scripts/island/island_life.gd | build timing (build_ms)
 scripts/island/kit/kit_context.gd | build timing (build_ms) per kit piece

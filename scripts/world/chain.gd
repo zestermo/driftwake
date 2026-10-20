@@ -33,6 +33,10 @@ const BASE_R := 450.0
 ## (the themes, their names and blurbs are the registry's: IslandThemes, in its declared order)
 const ISLE_WORDS := ["Isle", "Island", "Key", "Atoll", "Rock"]
 const CITY_WORDS := ["Port", "Harbour", "Haven"]
+## The first city is the royal capital (docs/capital_plan.md: CapitalIsland, the same in every world): every path
+## reaches it after exactly two islands (layers 1-2 are one after another or a fork that rejoins there). Its
+## name is rolled from the chain seed apart from the chain's own stream, so the rest of the chain is unchanged.
+const CAPITAL_NAMES := ["Port Solenne", "Highcrown", "Meridian"]
 
 var seed_value: int
 ## Index = node id: {id, sea, layer, branch, theme, role, level, seed, pos, name, next}
@@ -102,9 +106,18 @@ func _build(origin: Vector2, heading: Vector2) -> void:
 				"pos": at + side * off, "next": [],
 			}
 			n["name"] = _name(rng, n)
+			if layer == CITY_LAYERS[0]:
+				n["capital"] = true
+				n["name"] = capital_name(seed_value)
 			nodes.append(n)
 			ids.append(n["id"])
 		at = _make_room(ids, prev, at, dir, side)
+		# (the capital's harbour faces the way the crew comes in: the islands before it)
+		if layer == CITY_LAYERS[0]:
+			var from := Vector2.ZERO
+			for pid in prev:
+				from += nodes[pid]["pos"] / prev.size()
+			nodes[ids[0]]["face"] = (from - nodes[ids[0]]["pos"]).normalized()
 		# link the layer before to this one: branch to branch, everything into a single island
 		if prev.is_empty():
 			start_next = ids.duplicate()
@@ -224,8 +237,23 @@ func _name(rng: RandomNumberGenerator, n: Dictionary) -> String:
 	return "%s %s" % [base, ISLE_WORDS[rng.randi() % ISLE_WORDS.size()]]
 
 
+static func capital_name(chain_seed: int) -> String:
+	return CAPITAL_NAMES[posmod(hash([chain_seed, "capital"]), CAPITAL_NAMES.size())]
+
+
+## The royal capital's node id.
+func capital_id() -> int:
+	for n in nodes:
+		if n.get("capital", false):
+			return int(n["id"])
+	push_error("Chain %d has no capital" % seed_value)
+	return -1
+
+
 ## What the log pose tells of an island (its theme and how dangerous).
 static func describe(n: Dictionary) -> String:
+	if n.get("capital", false):
+		return "The royal capital  Lv %d" % int(n["level"])
 	var kind: String = IslandThemes.of(n["theme"]).display
 	match str(n["role"]):
 		"city":

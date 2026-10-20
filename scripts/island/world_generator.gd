@@ -141,9 +141,13 @@ func _check_arrival() -> void:
 
 
 func _start_chain_island(n: Dictionary) -> void:
-	# (the theme's meshes are made here: prepare only reads them)
-	IslandTheme.meshes(str(n["theme"]))
-	var isl := GenIsland.new()
+	var isl: GenIsland
+	if n.get("capital", false):
+		isl = CapitalIsland.new()
+	else:
+		# (the theme's meshes are made here: prepare only reads them)
+		IslandTheme.meshes(str(n["theme"]))
+		isl = GenIsland.new()
 	isl.name = "Isle%d" % int(n["id"])
 	var p: Vector2 = n["pos"]
 	isl.position = Vector3(p.x, 0.0, p.y)

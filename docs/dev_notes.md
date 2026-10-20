@@ -4392,3 +4392,46 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   loadout. Tested: renders read one by one (no tests: tools only).
 - Seen in the game, not fixed here: the campfire's flame particles (Props.campfire) render as tall pale peach blocks on
   the PS1 grid at dusk; camp.jpg shows it.
+
+## 2026-10-20: the royal capital, piece 1: placement, name, debug jump, the shell (docs/capital_plan.md)
+- **Where:** the chain's first city (layer 3, `Chain.CITY_LAYERS[0]`) is the capital: `node["capital"] = true`, role still
+  "city". Every path already reached layer 3 after exactly two islands (layers 1-2 are one-then-another or a fork that
+  holds for the pair and rejoins), so CITY_LAYERS is unchanged. `node["face"]` = the unit vector to the layer before's
+  islands (the harbour faces the way you come in). The name (`Chain.capital_name`: Port Solenne / Highcrown / Meridian)
+  is `hash([chain seed, "capital"])`, apart from the chain's rng: the base name and city word are still drawn, so every
+  other island, position, theme and beast is what it was. `Chain.capital_id()`, `describe` says "The royal capital".
+- **Old saves mid-chain:** the chain is the same; the layer-3 node now builds as CapitalIsland. A save made there on its
+  old generated island: the last build step moves a ship left on what's land now to the berth and a captain inside the
+  city's stone to the quay (`_in_stone`); opened chests and quests of that island (isle<id>_ keys) just have nothing to
+  point at. Saves further on are untouched.
+- **CapitalIsland extends GenIsland** (WorldGenerator picks it on `node["capital"]`), overriding prepare/finish_steps/
+  hv/walk_height/mooring/undergrowth_at (0: the thicket check crashed on an empty grid); provides `sites` dock/dock_end/
+  village, `dock_dir`, `village_plan` {c, plaza_r 92, buildings along the quay} for Music.in_village, `theme` "capital"
+  (`KitStyle.of("capital")` = CapitalStyle.STYLE over Brinehollow's; not an IslandThemes theme, so SkyBirds now asks a
+  theme's flocks only when an island has crowns). Everything is in CapitalPlan's frame (x along the harbour, +z to sea)
+  under the "City" node turned by `yaw`; the terrain grid stays island-aligned (`to_city`/`from_city`).
+- **CapitalPlan** (data): heights `base(z)` quay 2.0 -> plaza 5.0 -> avenue 8.0, the palace hill (42 m, plateau r 50),
+  the arena flat; `terrain()` drops FLOOR_DROP under the walkable floors (FLOORS: quay, gate, market street, plaza,
+  avenue, arena street, alley, yard, postern: tiling rects), the quay coast to the -8 m basin, the shore under the sea
+  wall, a mound under the moles. `lots()`: blocks of 26 x 22 m with 4 m lanes out from the street, split into 6-10 m
+  plots back to back (+1 storey toward the harbour), KEEP rects round the plaza/avenue/arena street are "keep" lots
+  (piece 2 builds those), `openings()` = every gap a floor's edge opens onto, each closed by a wall with a shut door.
+- **CapitalShell** (a worker, in prepare: PSXMat locks its cache; meshes committed there too): quay + moles + lighthouse +
+  harbour fort, harbour wall + sea gate + postern + cross walls, sea wall (160 pieces, towers every 11), palace grounds wall
+  + its gate (portcullis) + hill road + cypresses, the palace, the arena's outer walls (40 arched bays, two tiers,
+  seating, sand, a portcullis on the street's bay), the bell tower and the temple dome, houses in 72 m chunks
+  (facade texture: a 3 m bay x 3 m storey a tile, `capital_facade_a/_b` + glow masks), barriers, floors. Each piece one
+  mesh after `fold_tints`. Colliders as data, made in the step: walls, towers, front and keep lots only (the backdrop is
+  sealed off by them and the barriers).
+- **Gotcha (Jolt):** one ConcavePolygonShape3D for all the floors (~9k triangles over 300 m) lost rays over half the quay
+  (bodies still stood on it, shape queries hit it): the floors are cut into shapes of 16 columns each.
+- **Windows** glow only at night: CapitalIsland sets the two facade materials' emission every 2 s from Weather.night.
+- **Debug:** Alt+F10 (`Player.debug_to_capital`, host): the crew arrives at the capital, and once it stands the ship is at
+  the berth and you on the quay. Ctrl+F10 also works on it (the generic dock_end).
+- **Cost:** built on the worker ~3.7 s; on the main thread ~130 ms over ~50 frames, worst step 8 ms (a ground collider).
+  Standing: 33 mesh instances, ~200 surfaces (houses ~5 a chunk), 230k triangles (129k of it the terrain grid, as any
+  chain island), ~780 box/cylinder shapes. Nothing runs per frame except the 2 s window check.
+- **Tested by** t/capital/placement (8 seeds: one capital on layer 3, every path two islands then it, the face, the name
+  stable/one of three/all three over seeds), t/capital/shell (the dock, a deep clear berth, every floor solid underfoot,
+  every floor's edge closed, the palace up on its hill, the pieces stand, its style), t/capital/debug_jump. Renders:
+  `capitalshot.gd`.
