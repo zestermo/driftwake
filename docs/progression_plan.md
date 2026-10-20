@@ -79,3 +79,48 @@ skill menu/UI should look and work; then a grill round.
     them.
 - **Waits for:** Zach's references (skill menu/UI look and behaviour). Until then, no agent changes Progression,
   SkillTree or the skill map.
+
+## Redesign (Zach, 2026-10-20): Driftwake_Progression_System_Redesign.pdf
+Zach's design brief replaces the 1.18 rework. Five layers, each answering one question: Captain (overall growth),
+weapon mastery (what this weapon can do), buildcraft (what I bring into a fight), world discoveries (advanced arts
+found in the world), life skills (unchanged). Death never takes permanent progress (already true: only the bag and
+gold go in the grave).
+
+**Key idea for the build:** the existing node ids, effects and `has_move` / `style_stat` / `elemental` / `stat`
+readers stay. Ranks, talents and milestones *grant* the existing nodes instead of selling them for points, so the
+~100 gameplay call sites don't change. Passive slots are a filter on `Progression.stat()`'s sum.
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Weapon mastery | Ranks 1-10 per weapon, earned only by using it; each rank unlocks its moves, techniques, mechanics and passives by itself. Choices at ranks 5 and 9. No mastery points. No family carry-over. | Zach: unlock a weapon's attack patterns by learning it; XP for weapons not in use made no sense. | After the katana prototype |
+| Mastery XP | Hits +4 for the first 12 hits on each foe, kills a quarter of their XP, elites and bosses x3. Rank thresholds (cumulative) 300 / 800 / 1,600 / 3,000 / 5,000 / 8,000 / 12,500 / 18,500 / 26,000 (draft). | Early ranks fast, late ranks commitment, no hit farming. | Tuned in play |
+| Downtime "train" | **Reduced** (Zach): +2 every 6 s (was 5), and only up to rank 4. | Drills teach the basics; mastery comes from fighting. | — |
+| Skill loadouts | **Per weapon loadout** (Zach): each X loadout keeps its own 5 + R skill bar and passive slots, so X swaps weapons and setup together. Editable out of combat, locked in boss fights. | Techniques are weapon-specific anyway. | — |
+| Passives | 3 slots per loadout (a 4th at level 25). Weapon passives come from ranks; "any weapon" passives from levels and Will. A few new behaviour passives (Momentum, Riposte Edge, Skyborne, Slipstream). | Passives reward a style instead of always-on stat piles. | — |
+| Captain levels | Cap 40. No skill points. Captain-tree stat nodes **folded into per-level growth** (Zach): per level +5.5 health, +2% damage, +0.6 stamina, +0.6 energy, +0.5 defense (draft). | 2 points a level felt pointless. | Tuned in play |
+| Comes by itself | Lv 3 Geppo, Lv 8 Soru, Lv 10 third loadout (was Quartermaster), Lv 14 Tekkai, Lv 25 fourth passive slot. | Basic movement shouldn't feel locked away. | — |
+| Captain Talents | One of two at levels 5, 10 ... 40, from the old tree's mechanic passives (Swift Step, Long Stride, Steadfast, Mend, Sky Walk, Adrenaline, Iron Stomach, Focus, Last Stand) plus new ones (Fleetfoot, Iron Body, Battle Instinct). Levels 35 and 40 still to design. | Few, bigger choices that change interactions. | — |
+| Will (Haki, renamed per originality_plan.md) | Earned by bosses and trials, not level: Iron Will (Morrow), Iron Will: Coat, Sense, Foresight, Captain's Will (the First Sea's last boss). Each brings its technique and a Will passive (Hardening, Black Fists, Instinct, Weak Points). Trial places to decide. | Will milestones mark the story. | When trials are placed |
+| Respec | Rank choices, talents and technique variants are switched at **the ship's bunk** (Zach). | — | — |
+| Technique evolutions | The use counters open a free choice between two variants (no points); defensive skills count successful counters, not casts. One per weapon at first. | — | Phase 6 |
+| World discoveries | A weapon master (Vey first), a manual item found in ruins, a feat tracker, and a quest `technique` reward. Each captain earns their own. Never core moves. | Exploration pays in combat knowledge. | Phase 5 |
+| Old saves | Format 5: rank from old mastery xp, Captain picks from level, `uses` kept, owned/SP dropped. | No progress lost. | — |
+
+**Mock (2026-10-20):** the Mastery (katana), Loadout and Captain tabs with these draft numbers, for Zach's OK before
+Phase 1: https://claude.ai/artifact/LtuWdvQws3vYRxNccdWJ8V
+
+**Katana track (draft):** 1 combo, heavy, iai · 2 Quick Draw, Cut the Shot · 3 Wind Severer · 4 Crescent Arc,
+Mind's Eye (passive) · 5 choose Iai Counter or Phantom Step · 6 Tiger Rush, Falling Petals · 7 Bullet Return,
+Clean Line (passive) · 8 Full Draw · 9 choose Through the Guard or Empty Mind · 10 Thousand Petals, Blossom Path.
+The old stat nodes (Folded Steel, Sword Saint) become growth per rank: +28% damage, -15% stamina, +15% crit at 10.
+
+**Phases** (one after another: they share progression.gd, skill_tree.gd and the skill map):
+0. This record and the mock (Zach's OK).
+1. Katana prototype: a rank schema per weapon tree (trees without one keep points meanwhile), family carry-over
+   removed, per-foe hit cap, reduced training, format-5 migration for the katana, its Mastery tab.
+2. Buildcraft: passive slots, a skill bar and passives per weapon loadout, one katana evolution.
+3. The other eight weapons (Corsair first; each weapon's ranks in its own file), then the old weapon points go.
+4. Captain and Will: growth per level, automatic milestones, talents, Will milestones, a new reward for Vey's
+   story step, the Captain tree removed.
+5. World discoveries: a master, a manual, a feat, the quest reward.
+6. Depth: an evolution per weapon, more traits, a balance pass.
