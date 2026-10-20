@@ -95,8 +95,8 @@ readers stay. Ranks, talents and milestones *grant* the existing nodes instead o
 | Weapon mastery | Ranks 1-10 per weapon, earned only by using it; each rank unlocks its moves, techniques, mechanics and passives by itself. Choices at ranks 5 and 9. No mastery points. No family carry-over. | Zach: unlock a weapon's attack patterns by learning it; XP for weapons not in use made no sense. | After the katana prototype |
 | Mastery XP | Hits +4 for the first 12 hits on each foe, kills a quarter of their XP, elites and bosses x3. Rank thresholds (cumulative) 300 / 800 / 1,600 / 3,000 / 5,000 / 8,000 / 12,500 / 18,500 / 26,000 (draft). | Early ranks fast, late ranks commitment, no hit farming. | Tuned in play |
 | Downtime "train" | **Reduced** (Zach): +2 every 6 s (was 5), and only up to rank 4. | Drills teach the basics; mastery comes from fighting. | — |
-| Skill loadouts | **Per weapon loadout** (Zach): each X loadout keeps its own 5 + R skill bar and passive slots, so X swaps weapons and setup together. Editable out of combat, locked in boss fights. | Techniques are weapon-specific anyway. | — |
-| Passives | 3 slots per loadout (a 4th at level 25). Weapon passives come from ranks; "any weapon" passives from levels and Will. A few new behaviour passives (Momentum, Riposte Edge, Skyborne, Slipstream). | Passives reward a style instead of always-on stat piles. | — |
+| Skill bar | **One bar across the weapon loadouts** (Zach, 2026-10-20, replacing "a bar per loadout"): any skill of a weapon in one of your loadouts can go on it, and casting a skill of a weapon you're not holding swaps to that weapon's loadout (a quick draw into the cast) and stays there. A weapon in no loadout can't have skills on the bar. Captain and Will skills work with anything. Editable out of combat, locked in boss fights. | Mix three katana skills with a pistol one; the bar is the build. | After playing it |
+| Passives | 3 slots for the captain (a 4th at level 25); a weapon's passive counts only with that weapon in hand. Weapon passives come from ranks; "any weapon" passives from levels and Will. A few new behaviour passives (Momentum, Riposte Edge, Skyborne, Slipstream). | Passives reward a style instead of always-on stat piles. | — |
 | Captain levels | Cap 40. No skill points. Captain-tree stat nodes **folded into per-level growth** (Zach): per level +5.5 health, +2% damage, +0.6 stamina, +0.6 energy, +0.5 defense (draft). | 2 points a level felt pointless. | Tuned in play |
 | Comes by itself | Lv 3 Geppo, Lv 8 Soru, Lv 10 third loadout (was Quartermaster), Lv 14 Tekkai, Lv 25 fourth passive slot. | Basic movement shouldn't feel locked away. | — |
 | Captain Talents | One of two at levels 5, 10 ... 40, from the old tree's mechanic passives (Swift Step, Long Stride, Steadfast, Mend, Sky Walk, Adrenaline, Iron Stomach, Focus, Last Stand) plus new ones (Fleetfoot, Iron Body, Battle Instinct). Levels 35 and 40 still to design. | Few, bigger choices that change interactions. | — |
@@ -106,8 +106,12 @@ readers stay. Ranks, talents and milestones *grant* the existing nodes instead o
 | World discoveries | A weapon master (Vey first), a manual item found in ruins, a feat tracker, and a quest `technique` reward. Each captain earns their own. Never core moves. | Exploration pays in combat knowledge. | Phase 5 |
 | Old saves | Format 5: rank from old mastery xp, Captain picks from level, `uses` kept, owned/SP dropped. | No progress lost. | — |
 
-**Mock (2026-10-20):** the Mastery (katana), Loadout and Captain tabs with these draft numbers, for Zach's OK before
-Phase 1: https://claude.ai/artifact/LtuWdvQws3vYRxNccdWJ8V
+**Mock (2026-10-20):** https://claude.ai/artifact/LtuWdvQws3vYRxNccdWJ8V. The structure is kept from the first mock
+(ranks, forks, equipped passives); the look follows Zach's references (ARC Raiders' lit branches, a radial pixel-icon
+tree, Skyrim's constellations): node trees on a night sky with the game's own 24 px icons. A weapon's tree grows up
+from its root a rank per row (forks at 5 and 9, passives as diamonds off the trunk, the ultimate at the top); a
+mastery chart branches every weapon from the captain; the Captain tree is a level trunk with talent forks, the
+automatic milestones under it and the Will chain below.
 
 **Katana track (draft):** 1 combo, heavy, iai · 2 Quick Draw, Cut the Shot · 3 Wind Severer · 4 Crescent Arc,
 Mind's Eye (passive) · 5 choose Iai Counter or Phantom Step · 6 Tiger Rush, Falling Petals · 7 Bullet Return,
@@ -118,7 +122,7 @@ The old stat nodes (Folded Steel, Sword Saint) become growth per rank: +28% dama
 0. This record and the mock (Zach's OK).
 1. Katana prototype: a rank schema per weapon tree (trees without one keep points meanwhile), family carry-over
    removed, per-foe hit cap, reduced training, format-5 migration for the katana, its Mastery tab.
-2. Buildcraft: passive slots, a skill bar and passives per weapon loadout, one katana evolution.
+2. Buildcraft: passive slots, the one bar across loadouts with the swap on cast, one katana evolution.
 3. The other eight weapons (Corsair first; each weapon's ranks in its own file), then the old weapon points go.
 4. Captain and Will: growth per level, automatic milestones, talents, Will milestones, a new reward for Vey's
    story step, the Captain tree removed.
