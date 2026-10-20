@@ -52,6 +52,11 @@ var _rng := RandomNumberGenerator.new()
 var _t := 0.0
 var _runners := {}
 var _frame := 0
+## The MultiMesh's buffer, written in one call a frame (`rows`: the last one sent, which the headless renderer
+## can't give back).
+var _buf := PackedFloat32Array()
+var rows := PackedFloat32Array()
+const ROW := 16
 
 
 func _ready() -> void:
@@ -137,16 +142,19 @@ func _process(delta: float) -> void:
 		var d2 := to.length_squared()
 		var seen := to.dot(fwd) > -UNSEEN_BEHIND and d2 < DRAW * DRAW
 		var every := (1 if d2 < SEEN_NEAR * SEEN_NEAR else SEEN_FAR_EVERY) if seen else UNSEEN_EVERY
-		if every == 1 or (i + _frame) % every == 0 or not b.has("xf"):
+		if every == 1 or (i + _frame) % every == 0 or not b.has("row"):
 			_fly(b, float(b["acc"]), at, ship, ship_xf)
 			b["acc"] = 0.0
-			b["xf"] = _xf(b)
+			b["row"] = _row(b)
 		any_dead = any_dead or b["dead"]
-		if b["gone"] or (b["pos"] as Vector3).distance_to(at) > DRAW:
+		if b["gone"] or (b["pos"] as Vector3).distance_squared_to(at) > DRAW * DRAW:
 			continue
-		_mm.set_instance_transform(n, b["xf"])
-		_mm.set_instance_custom_data(n, Color(b["wing"], b["fold"], b["paint"], 0.0))
+		_buf.append_array(b["row"])
 		n += 1
+	_buf.resize(MAX * ROW)
+	_mm.buffer = _buf
+	rows = _buf
+	_buf = PackedFloat32Array()
 	_mm.visible_instance_count = n
 	if any_dead:
 		birds = birds.filter(func(b): return not b["dead"])
@@ -162,9 +170,12 @@ func shown(kind := -1) -> int:
 	return n
 
 
-func _xf(b: Dictionary) -> Transform3D:
-	var basis := Basis.from_euler(Vector3(b["pitch"], b["yaw"], b["bank"]))
-	return Transform3D(basis.scaled(Vector3.ONE * float(SIZE[b["kind"]])), b["pos"])
+## Its MultiMesh row (the buffer's layout: the transform's three rows, then the custom data), made when it flies.
+func _row(b: Dictionary) -> PackedFloat32Array:
+	var t := Basis.from_euler(Vector3(b["pitch"], b["yaw"], b["bank"])).scaled(Vector3.ONE * float(SIZE[b["kind"]]))
+	var p: Vector3 = b["pos"]
+	return PackedFloat32Array([t.x.x, t.y.x, t.z.x, p.x, t.x.y, t.y.y, t.z.y, p.y, t.x.z, t.y.z, t.z.z, p.z,
+		b["wing"], b["fold"], b["paint"], 0.0])
 
 
 # --------------------------------------------------------------------------

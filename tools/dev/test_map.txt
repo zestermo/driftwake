@@ -464,3 +464,9 @@ scripts/island/gen_island.gd            t/island/build_slices
 scripts/enemies/beasts/quad_beast.gd    t/island/beast_prebuild
 scripts/enemies/beasts/jungle_beast.gd  t/island/beast_prebuild
 scripts/enemies/beasts/beast_dens.gd    t/island/beast_prebuild
+# --- the perf session (2026-10-20): occluders in towns, the long tail ---
+scripts/psx/occluders.gd                t/capital/occluders
+scripts/props/buildings.gd              t/capital/occluders
+scripts/world/sky_birds.gd              t/world/sky_long_tail
+scripts/world/sea_spray.gd              t/world/sky_long_tail
+scripts/game/dev_capture.gd             t/world/sky_long_tail

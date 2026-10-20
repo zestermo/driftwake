@@ -18,15 +18,21 @@ const ENEMY_RANGE := 60.0
 const LOG_LINES := 60
 
 var _hist: Array = []   # [t, pos, state, hp, speed]
-var _hist_t: float = 0.0
 var _busy: bool = false
 
 
+## Nothing per tick: a timer samples the movement history (none at all in a release build).
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	if not OS.is_debug_build():
 		set_process_unhandled_input(false)
-		set_physics_process(false)
+		return
+	var t := Timer.new()
+	t.wait_time = HISTORY_STEP
+	t.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	t.timeout.connect(_sample)
+	add_child(t)
+	t.start()
 
 
 func dir_path() -> String:
@@ -41,15 +47,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		capture()
 
 
-func _physics_process(delta: float) -> void:
-	_hist_t += delta
-	if _hist_t < HISTORY_STEP:
-		return
-	_hist_t = 0.0
+func _sample() -> void:
 	var p := _player()
 	if p == null:
 		return
-	var hp = _prop(p, "health_component")
+	var hp = p.get("health_component")
 	_hist.append([Time.get_ticks_msec() / 1000.0, p.global_position, _call(p, "current_state_name", ""),
 		hp.current_health if hp else -1.0, Vector2(p.velocity.x, p.velocity.z).length()])
 	while _hist.size() > int(HISTORY_SECS / HISTORY_STEP):
