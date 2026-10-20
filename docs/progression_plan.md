@@ -117,11 +117,26 @@ branches every weapon from the captain into its own three-branch cluster. The Ca
 vertical level trunk, round nodes that come by themselves, split talent nodes, a legend of how it grows, and Will
 as its own path beside it.
 
-**Menu chrome (mock, 2026-10-20):** a carved teal-lacquer top bar on a gilt rail with brass studs, a compass-rose
-emblem, tabs as chamfered gilt-rimmed plaques with 16 px pixel icons (crown, crossed swords, compass, chest), the
-active one a raised gold plaque; a captain nameplate (gold level coin, XP strip); parchment info panels and slate
-panels in the UIStyle gilt frame with coral/cream corner rivets; swallowtail ribbon headers; diamond-studded rules;
-keycap hints; a faint sea-chart grid and vignette behind it all. Builds on UIStyle's frame_image (rivets, caps).
+**Menu chrome (mock, 2026-10-20; "more whimsical and fantasy, less modern and polished", Zach):** a warm wooden beam
+with knots and grain over a twisted rope; tabs are little wooden signs hanging on ropes, each at its own tilt, with
+16 px pixel icons (crown, crossed swords, compass, chest), the active one a gilded sign hanging lower with a twinkle;
+a parchment scroll nameplate with a gold doubloon for the level; parchment panels with hand-cut corners, burnt
+edges, a coffee ring and a red wax seal; slate panels in a rope border with brass nails; red swallowtail banners;
+rope dividers with a gold star; round wooden keycaps; titles in a pixel blackletter (Jacquarda Bastarda 9); a night
+sky with soft nebula colour and a dashed map border. In Godot this is new UIStyle frame kinds and a title font.
+
+**Acrobatics tree (draft, levels 1-20):** Air: Geppo 2 · Sky Walk 9 · landing variant 15 (Featherfall / Crash
+Landing, new) · Moonstep 20 (new). Dodge: Swift Step 4 · dodge variant 7 (Roll / Sidestep, new) · Fleetfoot 12 ·
+Afterimage 18 (new). Stride: Long Stride 3 · Sprint Jump 6 · Sure Footing 10 · Rigging Monkey 16 (new). Steps:
+Light Step 5, Quick Feet 5, Breakfall 3, Hang Time 3, Spring 5. Grows from jumps and air time, dodges (through a blow
+counts most), sprints and survived falls.
+
+**Defense tree (draft, levels 1-20):** Parry: Clean Parry 2 (a perfect parry staggers, new) · Iron Body 8 · Battle
+Instinct 12 · perfect-parry variant 16 (Disarm / Shove, new). Guard: Brace 3 (new) · guard variant 7 (Planted /
+Rolling Guard, new) · Hold the Line 11 (new) · Iron Wall 20 (new). Grit: Steadfast 4 · Unshaken 9 · Second Skin 14 ·
+Unbreakable 18 (new). Steps: Timing 5, Sturdy Guard 5, Thick Skin 5, Recovery 3, Composure 3. Grows from parrying and
+blocking real blows (perfect parries most) and staying up when hit. Weapon-specific parry tricks stay on the weapon
+trees.
 
 **Katana tree (draft):**
 - Root (mastery 1): combo, heavy, iai.
