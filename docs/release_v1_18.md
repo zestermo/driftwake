@@ -55,3 +55,14 @@ release himself (2026-10-19), so no extra confirmation is needed at the tag.
      `news` (the post's path) and `"github": true`. Set the next version (1.19) to `"status": "building"`. Use
      Driftwake's own names (docs/originality_plan.md).
 6. Push main, tag `v1.18`, push the tag (build-windows.yml on the tag, deploy-web on main).
+
+## Released (2026-10-20, ~00:13)
+Tagged v1.18 at b9d4512 and pushed (main went 8b5bbf1 -> b9d4512, 126 commits). Shipped with the full local run green
+after the fix pass (the four stale or fragile tests fixed in the test; dungeontest's fog grid was a real bug), nettest
+basic, chain, board and jam passing (jam on its second run: the known "host accepted us" startup flake), and the perf
+pass inside Zach's bar (mean frame +8%, frame1t +7% against the gate; plaza frame1t +35.2% on a 35% line and the
+ticks check are this PC's noise; CROWD still off).
+**Known issues for 1.19:** co-op guests can still be dropped under very heavy load (20-55 s world-build freezes; the
+host now sends only to captains whose world is up, with a long ENet timeout while loading); a dropped guest only
+learns after its own timeout; the campfire flame renders as a pale block (v1_20_plan.md); the Captain's Feast-style
+legend recipe borrows the stew's icon; Blender isn't installed here, so the pilot clip came from a Godot stand-in.
