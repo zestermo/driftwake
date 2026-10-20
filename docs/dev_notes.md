@@ -4577,3 +4577,52 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   ships' own materials; pirate_grunt's 3-5 ms ticks (map_get_path on a goal that moved, likely).
 - **Tested by** t/island/free_slices, t/world/perf_log, t/fx/warm_up, perftest (the log under its own dir), chaintest
   (the let-go island), katanatest.
+
+## 2026-10-20: island builds off the main thread (the stutter hunt, part 2)
+- **Where the time went** (`stepprobe`: a chain island's steps one a frame in a window, cold then warm; `spawnprobe`: one
+  enemy or creature put in the world; the build log now lists every step of 4 ms or more, slowest first):
+  - **DrawLOD's fold read every mesh back from the GPU**: `MeshBuilder.from_mesh` is `surface_get_arrays`, a readback under
+    d3d12 (60 ms an island headless, 800-860 ms in a window). The biggest single cost of a build.
+  - **Cold script compiles**: a beast's or creature's script loaded by path compiles on first use on the main thread
+    (50-130 ms each: boss #2 132, beasts 70, the snow village's shagback 65, fauna parts 45-150). Warm, a creature is
+    0.5 ms, a scuttlebug or spitter 4.5, a beast 5-13 (the serpent 13, the ape 25 unstocked).
+  - **Everything spawned at once**: a lair's nests hatched their dozen bugs in one deferred call (a 55-85 ms frame); a
+    camp's first crew (six grunts) turned up in one frame (~40 ms).
+  - Big single steps: tree colliders 33-40 ms (~2000 shapes), fauna zones 30, the market 30, village dressing 21-26 a
+    chunk of 20, the plants' thirds 10-18 (and their upload), camp 18, village 16-23, terrain + coast 20-26.
+- **Moved to workers:**
+  - `GenIsland.warm_scripts` (prepare): the theme's creature scripts and the island's beast scripts loaded on the
+    worker, kept on the island (`_warm`).
+  - **Beasts' models** (`QuadBeast.prebuild`, every QuadBeast kind: 16 of the 20): the rig (plain Node3Ds) and every
+    part's MeshBuilder, painted, keyed by the shared PSXMats, built on a worker while the first steps run
+    (`GenIsland.start_beasts`, from WorldGenerator._finish_ready: the beast objects are made on the main thread since a
+    CharacterBody3D is a physics object, after prepare loaded their scripts); the spawn (`take_beast`: the boss's first,
+    each mini, the roamer) only commits the parts with the beast's own material copies (`MeshBuilder.rekey`) and makes
+    its shapes. Nothing for the servers on the worker: no mesh commit, no MeshInstance3D, no shape.
+  - **The fold without readback**: during a chain island's steps (`GenIsland.run_step` sets `MeshBuilder.keep`), each
+    main-thread `commit()` keeps a copy of what it was built from (its arrays shared copy-on-write; skinned meshes not),
+    DrawLOD folds from that (`MeshBuilder.kept`) and `forget()` drops them when the island is registered.
+- **Split on the main thread** (`GenIsland.sliced(name, count, unit)`: units run until SLICE_US 3 ms a step, the last
+  step finishes them; same order however many frames, so co-op and the islanddump are unchanged): tree colliders 64 a
+  unit into the body before it joins (24 steps + one to add it), fauna zones 150 crowns a unit, village dressing an
+  item a unit; plants 15 steps (was 3; the MultiMeshes in the same child order); coast its own step; the camp in three
+  (fire/tents/shack, stores/tower/flag, chest/crew: one rng in order); the village in three (inn, rest/shops/board,
+  people: "village people", which GenIsland's predelete reads now for the stocked bodies); the market in four; each shop
+  and its keeper. A nest on a building island (`GenIsland.building`) hatches a bug a frame (`ScuttlebugNest._hatching`);
+  a warm-start camp musters a grunt a frame and is manned once all are (`GruntCamp._muster`).
+- Tried and dropped: MultiMesh `buffer` set in one call from prepare (a 125 ms step: the RD uploads it at once, where
+  set_instance_transform batches to the frame).
+- **Same island:** islanddump of Brinehollow (only the dummies' sack heads, as always) and of chain seeds 4242, 1, 12, 36
+  and 9 identical before and after; t/island/beast_prebuild compares every prebuilding kind's model both ways (the dump
+  doesn't walk into CharacterBody3Ds).
+- **The mesh-commit crash** (docs/todo.md): nothing here commits a mesh, makes a visual node or a shape on a worker (the
+  beasts' worker part is GDScript arrays and Node3Ds). A guess for its pass: it's been seen headless only, where the
+  dummy renderer's RID owners aren't thread-safe while villagers' bodies are committed on prepare's worker.
+- **Left** (each 10-30 ms, on the main thread): a village house (Buildings.house / KitHouses.room: 5-21 ms), dungeon
+  dressing steps (15-33), the arena's dressing (13-22), landmarks' first steps (great tree 34, sky wreck, aqueduct,
+  waterfall, snow castle 11-18), the harbour's longest walkway (13-15), terrain mesh commit (9-30), ground colliders
+  (8-9 each x16: Jolt builds the trimesh), the camp's lookout tower (16); the serpent's, mantis', sandworm's and
+  scorpion's models (own _build, not QuadBeast); a scuttlebug 4.5 ms each (hatched one a frame). These want their
+  geometry as data on the worker like the beasts' (a builder's MeshBuilders and transforms, the nodes and commits after).
+- **Tested by** t/island/build_slices (slices in order, the last finishes; a building island's nest hatches a bug a frame,
+  a built one's all at once), t/island/beast_prebuild, t/island, isletest, chaintest, villagetest, smoketest.
