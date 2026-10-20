@@ -4277,3 +4277,54 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - Per frame: FishRod._process per captain carrying a rod (a look read and an action-name check; while fishing: the rod keys, 4
   part transforms, two IK reaches, the line's 11 vertices and one wave sample); the local captain's cast check every 0.25 s (up
   to 6 rays) only while a rod is carried and free. Nothing per tick.
+## The web roadmap timeline (2026-10-19, docs/v1_19_plan.md)
+- `web/site/roadmap/` is now an interactive timeline: `index.html` + `roadmap.css` + `roadmap.js` (plain JS, no build)
+  read `roadmap.json`, one entry per version (26: v0.1, v1.0-1.17, 1.18 being built, 1.19-1.22, "later", 2.0).
+  `"here"` names the "you are here" version. Statuses: shipped / building / planned / goal; unbuilt cards are dashed,
+  faded and stamped. Shipped entries carry `added`, planned ones `plan` (`[title, text]` pairs), plus `img`, `shots`,
+  `clip`, `news`, `github`, `gap` (a label on the line before it, "Half a year later").
+- Wide screens: one horizontal track (cards alternate above/below the line), an eased scroll position driven by the
+  wheel (vertical wheel scrolls it sideways, handing back to the page at either end), mouse drag with a little
+  momentum (a drag never opens a card), touch swipe natively, arrow keys card to card, jump buttons, a two-speed
+  parallax sea behind. <= 640px: the line turns vertical and the page scrolls; it doesn't jump to the marker on load.
+  A card opens a `<dialog>` (pictures, clip with Play, the list, post / release notes / GitHub links, prev/next and
+  arrow keys); `#v1-10` deep-links a card. `prefers-reduced-motion` stops the bobbing, pulses and glides.
+- Pictures: v0.1-v1.6 use the v1.5/v1.6-era README shots copied from docs/media into `web/site/img/early/` (+ -640),
+  later ones the site's current shots; planned cards reuse current shots, faded. Text uses Driftwake's own names
+  (docs/originality_plan.md); the page drops the old fan-game credit line in its footer.
+- Each release: the step in docs/release_v1_18.md (move `here`, fill the card). Site-wide: a Home link before News.
+## 2026-10-19: the 1.18 perf pass (short: inside the gate's allowance, hitches first)
+- **Where it stood** (min-spec PC itself, 5600G + 3080, 13:00 clear): the gate confirmed back to back against the baseline's
+  commit 8e7fe77 (v1.14) on this PC: ALL frame 13.59 -> 16.50 ms (+21%), frame1t 14.25 -> 16.80 (+18%), yard frame1t +35%.
+  Scripts per frame were the same as v1.16's (bench_compare against v1.16's gate run here); the extra was townsfolk rigs and
+  routines (BrinehollowLife), moored hulls, sea spray. Chain islands' worst build step: 240 ms (encounters), 262 ms (fauna).
+- **Rigs** (humanoid.gd): a `lod` rig (villagers, grunts out of a fight, crews) poses every frame within 20 m of the camera
+  (was 30), every 2nd to 40 (was 60), every 3rd to 80 (was 120), every 6th past; its hair and cloth swing within SIMS_R_LOD 20 m
+  (was 30; the player's own SIMS_R 30) and its feet are set on the ground within IK_R_LOD 25 m (was 40). The spring chains run on
+  a fixed step, so their cost goes with the range, not the pose rate.
+- **Routines:** a plain NPC (vendors, wanderers) thinks every 4th frame past 25 m from the captain, with the time since
+  (npc.gd FAR_R / FAR_EVERY); BrinehollowFolk every frame within 15 m (was 20), every 2nd to 35 (was 45), every 4th past.
+- **Moored hulls** ride for a captain within NEAR, or the ship only while she's under way (speed > 0.5): moored in the
+  harbour she kept every hull within 80 m of her riding with nobody near.
+- **Ambience** mixed every other frame with the time since; **SkyBirds** seen past 140 m flown every 2nd frame (under a
+  pixel a frame there); **SeaSpray**'s drifting foam reads its wave height every other frame, half the patches at a time.
+- **Island build hitches:** an encounter's people (IslandEncounters._person) take their look from the encounter's own seed
+  (`person_look(e, k, style)`: the k-th person; the duelist a crew look), so IslandLife.plan builds their bodies on the worker
+  with the villagers' (Humanoid.stock); bodies nobody takes (no place found, the island let go first) are freed
+  (`unstock_rest`). Encounters' main-thread time 112-183 -> 4 ms. FaunaSpawner puts the creatures in over SPAWN_STEPS 10
+  steps (was 3: ~24 models built in one frame). The build log names the worst step (`the most N ms (<piece> #<step>)`,
+  GenIsland.worst_step). Worst step now ~160-170 ms (Tambor: a fauna step; Whitecap: boss): the next ones to split.
+- **Result** (full bench back to back with main, calib 24.63 / 24.66, no other Godots): ALL frame 16.33 -> 14.96 ms (-8%),
+  frame1t 16.80 -> 15.59, p95 22.64 -> 19.21 (-15%); frame1t beach 16.98 -> 15.14, plaza 19.03 -> 18.01, market 18.60 -> 16.67,
+  quay 16.07 -> 15.44, dock 15.17 -> 14.74, den 15.91 -> 14.56, yard 17.05 -> 15.55, aboard 15.60 -> 14.63; draws unchanged.
+  perf_gate (13:00, 1 run, confirmed back to back against 8e7fe77): mean frame +8%, frame1t +7% (pass); plaza frame1t +35.2%
+  (the line is 35; the reference's own plaza read 14.93 and 14.08 in two confirms an hour apart); ticks 0.94 over 0.8, which
+  this PC can't meet at ~15 ms frames (the baseline's commit itself runs 0.87 here: the line is the laptop's).
+- **CROWD stays off** (brinehollow_cast.gd): on, after these fixes, gate mode back to back: ALL frame 15.27 -> 15.86 ms (+4%),
+  plaza 17.58 -> 19.65, market 17.28 -> 19.98 (+16%), draws +76; the folk's rigs and routines +0.34 ms. Against the gate's
+  confirm run that's +16.7% mean frame, over the 15% line. It wants the townsfolk cheaper first (a far rig LOD for folk, or
+  fewer sides on their bodies) or the gate's allowance.
+- **Bench artifact** (not changed in a batch): bench_brinehollow's first base sample of each stop carries the settle phase's
+  screenshot save (~60-70 ms), which is the `worst` column at every stop and ~+0.2 ms on each stop's base mean (both sides).
+- **Tested by** t/ship/moored_hulls (a hull beside the moored ship holds still, rides once she's under way), t/quests/
+  encounter_rolls (every encounter person's body built ahead, none left waiting), t/world/actor_sleep, perftest.

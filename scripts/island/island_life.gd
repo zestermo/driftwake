@@ -63,6 +63,8 @@ var encounters: IslandEncounters
 var found: Array = []
 var _blockers: Array = []
 var _made := 0
+var _enc_done := 0
+var _enc_style: Dictionary
 
 
 static func plan(gi: GenIsland) -> IslandLife:
@@ -84,10 +86,11 @@ static func plan(gi: GenIsland) -> IslandLife:
 		L.quests.append({"kind": k, "pick": rng.randf(), "pick2": rng.randf()})
 	L.quest_count = rng.randi_range(2, 3)
 	L.encounter_kinds = IslandEncounters.roll(int(gi.node["seed"]), gi.theme)
-	for f in L.folk:
+	L._enc_style = KitStyle.get_style(gi.theme)
+	for lk in L.folk.map(func(f): return f["look"]) + IslandEncounters.people_looks(L.encounter_kinds, gi.theme):
 		var h := Humanoid.new()
-		h.setup(f["look"])
-		Humanoid.stock(h, f["look"])
+		h.setup(lk)
+		Humanoid.stock(h, lk)
 	gi.build_ms["bodies"] += int((Time.get_ticks_usec() - t0) / 1000)
 	return L
 
@@ -128,6 +131,8 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
 		for i in range(_made, folk.size()):
 			Humanoid.unstock(folk[i]["look"])
+		for i in range(_enc_done, encounter_kinds.size()):
+			IslandEncounters.unstock_rest(encounter_kinds[i], _enc_style)
 
 
 func steps() -> Array:
@@ -144,6 +149,9 @@ func steps() -> Array:
 ## The encounters' node (none on an island without people: nobody to meet there but the wild).
 func _encounters_start() -> void:
 	if placed.is_empty():
+		_enc_done = encounter_kinds.size()
+		for e in encounter_kinds:
+			IslandEncounters.unstock_rest(e, _enc_style)
 		return
 	encounters = IslandEncounters.new()
 	encounters.setup(self, encounter_kinds)
@@ -152,6 +160,7 @@ func _encounters_start() -> void:
 
 func _encounter(i: int) -> void:
 	if encounters:
+		_enc_done = i + 1
 		encounters.build(encounters.rolled[i])
 
 

@@ -16,6 +16,8 @@ extends Node3D
 ## `ground_func` (Callable(x, z) -> y) keeps wanderers glued to the terrain.
 
 const INTERACT_LAYER := 512
+const FAR_R := 25.0
+const FAR_EVERY := 4
 
 var npc_name: String = "Villager"
 var dialogue_id: String = ""
@@ -37,6 +39,7 @@ var _facing: float = 0.0
 var _in_dialogue: bool = false
 var _player: Node3D
 var _home_yaw: float = 0.0
+var _far_acc: float = 0.0
 
 
 func setup(cfg: Dictionary) -> NPC:
@@ -162,10 +165,16 @@ func set_talking(v: bool) -> void:
 	humanoid.talking = v and _in_dialogue
 
 
-func _process(delta: float) -> void:
+func _process(frame_delta: float) -> void:
 	var dist_to_player := 999.0
 	if _player and is_instance_valid(_player):
 		dist_to_player = global_position.distance_to(_player.global_position)
+	# (far off, every FAR_EVERY frames with the time since)
+	_far_acc += frame_delta
+	if dist_to_player > FAR_R and not _in_dialogue and (Engine.get_process_frames() + get_instance_id()) % FAR_EVERY != 0:
+		return
+	var delta := _far_acc
+	_far_acc = 0.0
 	name_tag.visible = dist_to_player < 7.0 and not _in_dialogue and Settings.get_value("gameplay", "name_tags")
 
 	var want_face_player := _in_dialogue or dist_to_player < 3.5

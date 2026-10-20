@@ -197,8 +197,8 @@ func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int, 
 			bag.queue_free()
 	if Net.is_client():
 		_catch_up.append(isl)
-	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms; on the main thread %d ms over %d frames, the most %d ms %s" % [n["name"], n["theme"], isl.radius, isl.res,
-		(Time.get_ticks_usec() - t0) / 1000, (main_us + Time.get_ticks_usec() - t1) / 1000, frames, worst_ms, isl.build_ms])
+	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms; on the main thread %d ms over %d frames, the most %d ms (%s) %s" % [n["name"], n["theme"], isl.radius, isl.res,
+		(Time.get_ticks_usec() - t0) / 1000, (main_us + Time.get_ticks_usec() - t1) / 1000, frames, worst_ms, isl.worst_step[0], isl.build_ms])
 
 
 func _free_chain_island(id: int) -> void:

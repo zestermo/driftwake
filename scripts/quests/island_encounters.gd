@@ -93,6 +93,7 @@ func build(e: Dictionary) -> void:
 	rng.seed = int(e["seed"])
 	var at := _spot(str(WHERE[e["kind"]]), rng)
 	if at.is_empty():
+		unstock_rest(e, _ctx.style)
 		return
 	var n := Node3D.new()
 	n.name = "Enc_" + str(e["kind"])
@@ -101,6 +102,7 @@ func build(e: Dictionary) -> void:
 	e.merge({"at": at["p"], "node": n, "ctx": _ctx.under(n), "T": text[e["kind"]]}, true)
 	_used.append(at["p"])
 	call("_" + str(e["kind"]), e, rng)
+	unstock_rest(e, _ctx.style)
 	# (a kind that found nothing it needs - no second beach, no wild place, nobody to write to - leaves nothing)
 	if e.get("none", false):
 		n.queue_free()
@@ -212,12 +214,47 @@ func _short(who: String) -> String:
 	return parts[parts.size() - 1]
 
 
-## A person at island point p (on the ground, or at y), facing `face`: a theme villager's look unless cfg gives one.
+## How many people each kind makes (_person), whose bodies IslandLife.plan builds ahead on its worker.
+const PEOPLE := {"traveller": 1, "festival": 1, "shipwreck": 1, "merchant": 1, "lost_child": 2, "hermit": 1, "wounded": 1, "duelist": 1}
+
+
+## The look of the k-th person encounter `e` makes, from its own seed (data: plan builds the body ahead from it).
+static func person_look(e: Dictionary, k: int, style: Dictionary) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([int(e["seed"]), "person", k])
+	var lk: Dictionary
+	if e["kind"] == "duelist":
+		lk = PirateGrunt.crew_look(rng)
+		lk.merge({"coat": "longcoat", "hat": "none", "build": "broad"}, true)
+	else:
+		lk = KitStyle.folk_look(style, rng)
+	lk["name"] = "enc_%d_%d" % [int(e["seed"]), k]
+	return lk
+
+
+## Every look `kinds` (as rolled) will want, in order.
+static func people_looks(kinds: Array, theme: String) -> Array:
+	var style := KitStyle.get_style(theme)
+	var out: Array = []
+	for e in kinds:
+		for k in range(int(PEOPLE.get(e["kind"], 0))):
+			out.append(person_look(e, k, style))
+	return out
+
+
+## Bodies built ahead for people `e` didn't make (it found no place, or the island went first): freed.
+static func unstock_rest(e: Dictionary, style: Dictionary) -> void:
+	for k in range(int(e.get("people", 0)), int(PEOPLE.get(e["kind"], 0))):
+		Humanoid.unstock(person_look(e, k, style))
+	e["people"] = int(PEOPLE.get(e["kind"], 0))
+
+
+## A person at island point p (on the ground, or at y), facing `face`, in the next look of the encounter's own.
 func _person(e: Dictionary, who: String, p: Vector2, face: Vector2, rng: RandomNumberGenerator, cfg := {}, y := INF) -> NPC:
-	var lk := KitStyle.folk_look(_ctx.style, rng)
-	lk["name"] = who
+	var k := int(e.get("people", 0))
+	e["people"] = k + 1
 	var npc := NPC.new()
-	npc.setup({"name": who, "voice": rng.randf_range(0.85, 1.15), "look": lk, "yaw": atan2(-face.x, -face.y)}.merged(cfg, true))
+	npc.setup({"name": who, "voice": rng.randf_range(0.85, 1.15), "look": person_look(e, k, _ctx.style), "yaw": atan2(-face.x, -face.y)}.merged(cfg, true))
 	npc.ground_func = isl.walk_height
 	e["node"].add_child(npc)
 	npc.position = Vector3(p.x, isl.hv(p) if y == INF else y, p.y)
@@ -521,9 +558,8 @@ func _note(e: Dictionary, rng: RandomNumberGenerator) -> void:
 
 func _duelist(e: Dictionary, rng: RandomNumberGenerator) -> void:
 	var who := _one(e, "who")
-	var lk := PirateGrunt.crew_look(rng)
-	lk.merge({"name": who, "coat": "longcoat", "hat": "none", "build": "broad"}, true)
-	var npc := _person(e, who, e["at"], e["face"], rng, {"dialogue": life.key("enc_duelist"), "look": lk})
+	var lk := person_look(e, 0, _ctx.style)
+	var npc := _person(e, who, e["at"], e["face"], rng, {"dialogue": life.key("enc_duelist")})
 	var tok := {"who": _short(who)}
 	e.merge({"duelist": npc, "spec": {"post": Vector3.ZERO, "yaw": KitCamps.look_yaw(e["at"], e["at"] + e["face"]), "mode": "stand", "seed": rng.randi() % 100000,
 		"look": lk, "captain": true, "title": who}}, true)

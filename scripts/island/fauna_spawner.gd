@@ -18,8 +18,9 @@ static func make(theme: String, k: String) -> Creature:
 	return load(IslandThemes.of(theme).creatures[k]).new()
 
 
-## The creatures are put on the island over this many build steps.
-const SPAWN_STEPS := 3
+## The creatures are put on the island over this many build steps (each builds its own model: 3 steps of ~24 were
+## a chain island's worst hitch, 262 ms).
+const SPAWN_STEPS := 10
 const MIN_KINDS := 3
 const MAX_KINDS := 8
 ## Most creatures an island holds (the pool's density is scaled down to fit).

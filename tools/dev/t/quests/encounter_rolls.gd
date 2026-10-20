@@ -133,6 +133,10 @@ func _island(k: int) -> Array:
 	if k == 0:
 		check("most kinds find a place on the island (%d of 10: %s)" % [built.size(), built], built.size() >= 8)
 		check("...wild places among them (a hermit or a lost child)", built.has("hermit") or built.has("lost_child"))
+		var looks: Array = IE.people_looks(enc.rolled, "jungle")
+		var H = load("res://scripts/npc/humanoid.gd")
+		check("their people's bodies were built ahead (%d) and none is left waiting" % looks.size(),
+			looks.size() >= 8 and not looks.any(func(lk): return H.prebuilt_for([lk])))
 		for e in enc.built:
 			var kind: String = e["kind"]
 			var q: Dictionary = isl.life.quest_node.find(isl.life.key("enc_" + kind))

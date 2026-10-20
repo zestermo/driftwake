@@ -4,8 +4,8 @@ extends Villager
 ## floors (the long stair's treads, the tavern's boards) rather than the ground under them (`town.y_at`).
 
 const RAMP := 2.5
-const STEADY_R := 20.0
-const EASY_R := 45.0
+const STEADY_R := 15.0
+const EASY_R := 35.0
 ## Hidden past this (Villager's SHOW_R is 150): a small figure that far is a draw call for a few pixels.
 const SHOW_FAR := 100.0
 
