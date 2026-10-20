@@ -50,3 +50,16 @@ one planned, as **floating, clickable cards** strung along a timeline line.
   fight underwater too** (chasing a captain who dives, duels in the shallows). It's the root of the Seafarer tree's
   "fighting underwater" (docs/devil_fruits_plan.md). Today a swimmer sheathes their weapon (swim_state.gd) and sea
   threats can only be hit from the deck or the shore.
+
+## Perf session before 1.19 (Zach, 2026-10-20)
+After 1.18.1 ships, before the 1.19 batch, in order, each with a before/after bench by the lead:
+1. **Refresh the bench** (a tooling window, no agents running): new stops (Brinehollow's terrace and farmland, the
+   capital's plaza and market street, a chain island village, at sea and in a storm, a crowded fight), CROWD measured,
+   no screenshot in the first sample, hitch counts; re-baseline on the min-spec PC.
+2. **Threaded rendering** (rendering/driver/threads/thread_model): move the render CPU (the bench's "draw", ~35% of
+   the frame) off the main thread; check stability (co-op, island builds, the held map's viewport).
+3. **Occlusion culling in towns** (occluders from the kit's buildings, the capital first) + **a shadow-caster audit**
+   (small props off the sun's shadow pass: 613 of 1,556 draws; shadow distance/cascades).
+4. **Far actors fully off** past a range (processing and bodies off, not only asleep: the "far" ablation's ~1.2 ms).
+Bar: no visible loss of detail; GPU has headroom (1.45 ms), the frame is CPU-bound. Later, if still needed: central
+update managers, and the hottest per-frame code (animator, spring chains, wave sampling) as a GDExtension.
