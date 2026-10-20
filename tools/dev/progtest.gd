@@ -435,7 +435,7 @@ func _process(d: float) -> bool:
 			old.free()
 			check("skill bar restored", pc.loadout == get_meta("bar"))
 			check("weapons restored (dual pistols)", p.style() == "dual_pistol")
-			check("inventory restored", p.inventory_component.count("pistol") == 2 and p.inventory_component.count("cutlass") == 2)
+			check("inventory restored", p.inventory_component.count("pistol") == 3 and p.inventory_component.count("cutlass") == 2)
 			SG.delete()
 			# Zoan: Wolf Fruit
 			p.inventory_component.add_item(item("wolf_fruit"), 1)
