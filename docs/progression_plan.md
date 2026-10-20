@@ -87,42 +87,75 @@ found in the world), life skills (unchanged). Death never takes permanent progre
 gold go in the grave).
 
 **Key idea for the build:** the existing node ids, effects and `has_move` / `style_stat` / `elemental` / `stat`
-readers stay. Ranks, talents and milestones *grant* the existing nodes instead of selling them for points, so the
-~100 gameplay call sites don't change. Passive slots are a filter on `Progression.stat()`'s sum.
+readers stay. Mastery levels, talents and milestones *grant* the existing big nodes instead of selling them for
+points, so the ~100 gameplay call sites don't change. Passive slots are a filter on `Progression.stat()`'s sum.
 
 | Decision | Choice | Why | Revisit when |
 |---|---|---|---|
-| Weapon mastery | Ranks 1-10 per weapon, earned only by using it; each rank unlocks its moves, techniques, mechanics and passives by itself. Choices at ranks 5 and 9. No mastery points. No family carry-over. | Zach: unlock a weapon's attack patterns by learning it; XP for weapons not in use made no sense. | After the katana prototype |
-| Mastery XP | Hits +4 for the first 12 hits on each foe, kills a quarter of their XP, elites and bosses x3. Rank thresholds (cumulative) 300 / 800 / 1,600 / 3,000 / 5,000 / 8,000 / 12,500 / 18,500 / 26,000 (draft). | Early ranks fast, late ranks commitment, no hit farming. | Tuned in play |
-| Downtime "train" | **Reduced** (Zach): +2 every 6 s (was 5), and only up to rank 4. | Drills teach the basics; mastery comes from fighting. | — |
-| Skill bar | **One bar across the weapon loadouts** (Zach, 2026-10-20, replacing "a bar per loadout"): any skill of a weapon in one of your loadouts can go on it, and casting a skill of a weapon you're not holding swaps to that weapon's loadout (a quick draw into the cast) and stays there. A weapon in no loadout can't have skills on the bar. Captain and Will skills work with anything. Editable out of combat, locked in boss fights. | Mix three katana skills with a pistol one; the bar is the build. | After playing it |
-| Passives | 3 slots for the captain (a 4th at level 25); a weapon's passive counts only with that weapon in hand. Weapon passives come from ranks; "any weapon" passives from levels and Will. A few new behaviour passives (Momentum, Riposte Edge, Skyborne, Slipstream). | Passives reward a style instead of always-on stat piles. | — |
+| Weapon mastery | **Mastery 1-30 per weapon** (the existing MAX_MASTERY and curve), earned only by using it. Each weapon's tree has **three branches** (katana: Guard, Iai, Blade). **Big nodes** (moves, techniques, mechanics, passives, element, ultimate) come by themselves at their mastery level. **Small stat nodes** with steps (x/3, x/5) are bought with **mastery points**, one a level, in any order; a full tree takes about all 29. No family carry-over. | Zach: unlock a weapon's attack patterns by learning it, but the trees should feel long and deep (filler stat steps and points too). | After the katana prototype |
+| Tabs and discovery | **Captain · Combat · Adventure · Loadout**, plus **Driftfruit** once a fruit is eaten (Zach, 2026-10-20). Combat holds the weapon trees, Adventure the life skills: sailing, swimming, cooking, tinkering, fishing, acrobatics, stealth, defense (blocking and parrying), more later. **A tree shows only once its first level is earned** (a new captain sees Cutlass and Captain), with a "new skill tree" banner when one appears (e.g. Dual Wield after fighting with two cutlasses). Adventure trees follow the weapon trees' rules (big nodes by level, steps for points, variants), levels 1-20. The Loadout tab stays: the bar, the passive slots and the library of everything known. | Fewer, bigger menus; finding a tree is a reward. Stealth (stealth.gd, crouch), blocking (block_state.gd) and tinkering (Downtime) already exist to grow them from. | — |
+| No lockouts | **Never a choice between two abilities** (Zach, 2026-10-20). Choices are **variants**: two versions of the same move, technique or passive upgrade (two air attacks, two Wind Severers, two iai upgrades, two Iai Counters). You own both once unlocked and pick which one is active. | Losing an ability for good isn't fun. | — |
+| Mastery XP | Hits +4 for the first 12 hits on each foe, kills a quarter of their XP, elites and bosses x3. | Early levels fast, late levels commitment, no hit farming. | Tuned in play |
+| Downtime "train" | **Reduced** (Zach): +2 every 6 s (was 5), and only up to mastery 8. | Drills teach the basics; mastery comes from fighting. | — |
+| Skill bar | **One bar across the weapon loadouts** (Zach, 2026-10-20, replacing "a bar per loadout"): any skill of a weapon in one of your loadouts can go on it. Using a skill of a weapon you're not holding **switches to that weapon, then uses the skill**. Nothing more (no combined movesets, no special swap rules; Zach). A weapon in no loadout can't have skills on the bar. Captain and Will skills work with anything. Editable out of combat, locked in boss fights. | Mix three katana skills with a pistol one; the bar is the build. | After playing it |
+| Passives | 3 slots for the captain (a 4th at level 25); a weapon's passive counts only with that weapon in hand. Weapon passives come from mastery; "any weapon" passives from levels and Will. A few new behaviour passives (Momentum, Riposte Edge, Skyborne, Slipstream). | Passives reward a style instead of always-on stat piles. | — |
 | Captain levels | Cap 40. No skill points. Captain-tree stat nodes **folded into per-level growth** (Zach): per level +5.5 health, +2% damage, +0.6 stamina, +0.6 energy, +0.5 defense (draft). | 2 points a level felt pointless. | Tuned in play |
-| Comes by itself | Lv 3 Geppo, Lv 8 Soru, Lv 10 third loadout (was Quartermaster), Lv 14 Tekkai, Lv 25 fourth passive slot. | Basic movement shouldn't feel locked away. | — |
-| Captain Talents | One of two at levels 5, 10 ... 40, from the old tree's mechanic passives (Swift Step, Long Stride, Steadfast, Mend, Sky Walk, Adrenaline, Iron Stomach, Focus, Last Stand) plus new ones (Fleetfoot, Iron Body, Battle Instinct). Levels 35 and 40 still to design. | Few, bigger choices that change interactions. | — |
+| Comes by itself | Lv 8 Soru, Lv 10 third loadout (was Quartermaster), Lv 14 Tekkai, Lv 25 fourth passive slot. | — | — |
+| Movement and parrying | **Moved out of the Captain tree** (Zach, 2026-10-20): Geppo (early, so basic movement isn't locked away), Swift Step, Long Stride, Sky Walk and Fleetfoot go to the **Acrobatics** tree; Steadfast, Iron Body and Battle Instinct to **Defense**. Both are Adventure trees, grown by jumping, dodging and air attacks, and by blocking and parrying. | Each tree grows from what it's about. | When those trees are built |
+| Captain Talents | One of two at levels 5, 10 ... 40, general picks only (draft): 5 Mend / Iron Stomach · 10 Quick Hands / Sea Dog · 15 Adrenaline / Second Wind · 20 Focus / Bounty Hunter · 25 Rallying Cry / Treasure Sense · 30 Last Stand / Captain's Presence · 35 and 40 to design. New: Quick Hands (eat and drink faster), Sea Dog (stamina twice as fast aboard), Second Wind (once a fight, low health refills stamina and energy), Bounty Hunter (+15% damage to elites and bosses), Rallying Cry (revive crewmates faster, both heal), Treasure Sense (treasure nearby on the compass), Captain's Presence (common foes falter near you). | Few, bigger choices that change interactions. | — |
 | Will (Haki, renamed per originality_plan.md) | Earned by bosses and trials, not level: Iron Will (Morrow), Iron Will: Coat, Sense, Foresight, Captain's Will (the First Sea's last boss). Each brings its technique and a Will passive (Hardening, Black Fists, Instinct, Weak Points). Trial places to decide. | Will milestones mark the story. | When trials are placed |
-| Respec | Rank choices, talents and technique variants are switched at **the ship's bunk** (Zach). | — | — |
+| Respec | Variants, talents and mastery points are switched at **the ship's bunk** (Zach). | — | — |
 | Technique evolutions | The use counters open a free choice between two variants (no points); defensive skills count successful counters, not casts. One per weapon at first. | — | Phase 6 |
 | World discoveries | A weapon master (Vey first), a manual item found in ruins, a feat tracker, and a quest `technique` reward. Each captain earns their own. Never core moves. | Exploration pays in combat knowledge. | Phase 5 |
-| Old saves | Format 5: rank from old mastery xp, Captain picks from level, `uses` kept, owned/SP dropped. | No progress lost. | — |
+| Old saves | Format 5: mastery levels kept as they are (same 1-30 scale), mastery points refunded once, Captain picks from level, `uses` kept, SP dropped. | No progress lost. | — |
 
-**Mock (2026-10-20):** https://claude.ai/artifact/LtuWdvQws3vYRxNccdWJ8V. The structure is kept from the first mock
-(ranks, forks, equipped passives); the look follows Zach's references (ARC Raiders' lit branches, a radial pixel-icon
-tree, Skyrim's constellations): node trees on a night sky with the game's own 24 px icons. A weapon's tree grows up
-from its root a rank per row (forks at 5 and 9, passives as diamonds off the trunk, the ultimate at the top); a
-mastery chart branches every weapon from the captain; the Captain tree is a level trunk with talent forks, the
-automatic milestones under it and the Will chain below.
+**Mock (2026-10-20):** https://claude.ai/artifact/LtuWdvQws3vYRxNccdWJ8V. The look follows Zach's references (ARC
+Raiders' lit branches, a radial pixel-icon tree, Skyrim's constellations): node trees on a night sky with the game's
+own 24 px icons. A weapon's tree grows up from its root in three branches, big nodes on the branches, small stat
+nodes off them with their step counts, variants drawn as one split node (the active half lit). The mastery chart
+branches every weapon from the captain into its own three-branch cluster. The Captain tree reads the same way: a
+vertical level trunk, round nodes that come by themselves, split talent nodes, a legend of how it grows, and Will
+as its own path beside it.
 
-**Katana track (draft):** 1 combo, heavy, iai · 2 Quick Draw, Cut the Shot · 3 Wind Severer · 4 Crescent Arc,
-Mind's Eye (passive) · 5 choose Iai Counter or Phantom Step · 6 Tiger Rush, Falling Petals · 7 Bullet Return,
-Clean Line (passive) · 8 Full Draw · 9 choose Through the Guard or Empty Mind · 10 Thousand Petals, Blossom Path.
-The old stat nodes (Folded Steel, Sword Saint) become growth per rank: +28% damage, -15% stamina, +15% crit at 10.
+**Menu chrome (mock, 2026-10-20; "more whimsical and fantasy, less modern and polished", Zach):** a warm wooden beam
+with knots and grain over a twisted rope; tabs are little wooden signs hanging on ropes, each at its own tilt, with
+16 px pixel icons (crown, crossed swords, compass, chest), the active one a gilded sign hanging lower with a twinkle;
+a parchment scroll nameplate with a gold doubloon for the level; parchment panels with hand-cut corners, burnt
+edges, a coffee ring and a red wax seal; slate panels in a rope border with brass nails; red swallowtail banners;
+rope dividers with a gold star; round wooden keycaps; titles in a pixel blackletter (Jacquarda Bastarda 9); a night
+sky with soft nebula colour and a dashed map border. In Godot this is new UIStyle frame kinds and a title font.
+
+**Acrobatics tree (draft, levels 1-20):** Air: Geppo 2 · Sky Walk 9 · landing variant 15 (Featherfall / Crash
+Landing, new) · Moonstep 20 (new). Dodge: Swift Step 4 · dodge variant 7 (Roll / Sidestep, new) · Fleetfoot 12 ·
+Afterimage 18 (new). Stride: Long Stride 3 · Sprint Jump 6 · Sure Footing 10 · Rigging Monkey 16 (new). Steps:
+Light Step 5, Quick Feet 5, Breakfall 3, Hang Time 3, Spring 5. Grows from jumps and air time, dodges (through a blow
+counts most), sprints and survived falls.
+
+**Defense tree (draft, levels 1-20):** Parry: Clean Parry 2 (a perfect parry staggers, new) · Iron Body 8 · Battle
+Instinct 12 · perfect-parry variant 16 (Disarm / Shove, new). Guard: Brace 3 (new) · guard variant 7 (Planted /
+Rolling Guard, new) · Hold the Line 11 (new) · Iron Wall 20 (new). Grit: Steadfast 4 · Unshaken 9 · Second Skin 14 ·
+Unbreakable 18 (new). Steps: Timing 5, Sturdy Guard 5, Thick Skin 5, Recovery 3, Composure 3. Grows from parrying and
+blocking real blows (perfect parries most) and staying up when hit. Weapon-specific parry tricks stay on the weapon
+trees.
+
+**Katana tree (draft):**
+- Root (mastery 1): combo, heavy, iai.
+- Guard: Cut the Shot 3 · Iai Counter 8 (variants Draw Cut / Side Step, new) · Phantom Step 14 · Bullet Return 20.
+- Iai: Full Draw 6 · Tiger Rush 10 · iai upgrade 12 (variants Through the Guard / Mind's Eye) · Falling Petals 16 ·
+  Blossom Path 25 · Thousand Petals 30.
+- Blade: Quick Draw 2 · Wind Severer 5 (variants Towering Wave / Twin Waves at 18, new) · air attack 7 (variants
+  Crescent Arc / Falling Moon at 15, new) · Clean Line 13 (passive) · Empty Mind 22 (passive).
+- Stat steps (30 in all): Keen Edge 5 (damage), Deep Draw 5 (iai), Whetstone 5 (crit), Steel Nerves 3 (parry),
+  Counterweight 3 (counters), Light Feet 3 (stamina), Flow 3 (energy), Swift Recovery 3 (cooldowns). The old stat
+  nodes (Folded Steel, Sword Saint) become these steps.
 
 **Phases** (one after another: they share progression.gd, skill_tree.gd and the skill map):
 0. This record and the mock (Zach's OK).
-1. Katana prototype: a rank schema per weapon tree (trees without one keep points meanwhile), family carry-over
-   removed, per-foe hit cap, reduced training, format-5 migration for the katana, its Mastery tab.
-2. Buildcraft: passive slots, the one bar across loadouts with the swap on cast, one katana evolution.
+1. Katana prototype: the katana's tree in the new schema (big nodes by mastery level, stat steps for points,
+   variants), family carry-over removed, per-foe hit cap, reduced training, format-5 migration for the katana, its
+   tree on the skill map (other weapons keep the old trees meanwhile).
+2. Buildcraft: passive slots, the one bar across loadouts (a skill switches to its weapon, then fires), one katana
+   evolution.
 3. The other eight weapons (Corsair first; each weapon's ranks in its own file), then the old weapon points go.
 4. Captain and Will: growth per level, automatic milestones, talents, Will milestones, a new reward for Vey's
    story step, the Captain tree removed.
