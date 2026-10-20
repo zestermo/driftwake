@@ -64,5 +64,5 @@ pass inside Zach's bar (mean frame +8%, frame1t +7% against the gate; plaza fram
 ticks check are this PC's noise; CROWD still off).
 **Known issues for 1.19:** co-op guests can still be dropped under very heavy load (20-55 s world-build freezes; the
 host now sends only to captains whose world is up, with a long ENet timeout while loading); a dropped guest only
-learns after its own timeout; the campfire flame renders as a pale block (v1_20_plan.md); the Captain's Feast-style
-legend recipe borrows the stew's icon; Blender isn't installed here, so the pilot clip came from a Godot stand-in.
+learns after its own timeout; the campfire flame renders as a pale block (v1_20_plan.md); Sea Legend's Platter
+(the first-legendary recipe) borrows the stew's icon; Blender isn't installed here, so the pilot clip came from a Godot stand-in.
