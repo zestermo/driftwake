@@ -72,15 +72,21 @@ static func plan(gi: GenIsland) -> Dictionary:
 # ==========================================================================
 # Building it (main thread)
 # ==========================================================================
-static func build(gi: GenIsland, rng: RandomNumberGenerator) -> IslandVillage:
-	var v := IslandVillage.new()
-	v.name = "Village"
-	v.isl = gi
-	var site := gi.site_node("village")
-	site.add_child(v)
-	v.ctx = KitContext.make(gi, int(gi.node["seed"]), gi.theme, LIGHTS, gi.build_ms).under(site)
-	v._build(rng)
-	return v
+## IslandContent's "village" steps (one was 16-23 ms): the fires and the inn; its rest, the shops' stock and the
+## board; the people and their jobs. One random stream through them, in order.
+static func build_steps(gi: GenIsland, rng: RandomNumberGenerator) -> Array:
+	return [
+		["village", func():
+			var v := IslandVillage.new()
+			v.name = "Village"
+			v.isl = gi
+			var site := gi.site_node("village")
+			site.add_child(v)
+			v.ctx = KitContext.make(gi, int(gi.node["seed"]), gi.theme, LIGHTS, gi.build_ms).under(site)
+			v._build(rng)],
+		["village", func(): _of(gi)._build_board(rng)],
+		["village people", func(): _of(gi)._build_people(rng)],
+	]
 
 
 ## The rest of the village after the inn and the people, as GenIsland finish steps
@@ -109,11 +115,14 @@ static func steps(gi: GenIsland) -> Array:
 		out.append(["village walks", func(): _of(gi)._walks()])
 	if ex.has("nest"):
 		out.append(["village ruins", func(): _of(gi)._ruins()])
-	out.append(["village market", func(): _of(gi)._market()])
+	out += _market_steps(gi)
 	var items: Array = p["items"].filter(func(it): return it["k"] != "cargo")
-	for i in range(0, items.size(), 20):
-		var chunk := items.slice(i, i + 20)
-		out.append(["village dressing", func(): _of(gi)._dress(chunk)])
+	var at := [0]
+	out += GenIsland.sliced("village dressing", maxi(1, items.size() / 2), func() -> bool:
+		if at[0] < items.size():
+			_of(gi)._dress([items[at[0]]])
+		at[0] += 1
+		return at[0] < items.size())
 	out.append(["village cargo", func(): KitVillage.build_cargo(_of(gi).ctx, p["items"])])
 	out.append(["village paving", func(): _of(gi)._pave()])
 	return out
@@ -127,25 +136,28 @@ func _key(s: String) -> String:
 	return isl.save_key(s)
 
 
-func _build(rng: RandomNumberGenerator) -> void:
+var _inn := {}
+
+
+func _build(_rng: RandomNumberGenerator) -> void:
 	var p: Dictionary = isl.village_plan
-	var c: Vector2 = p["c"]
-	var hy: float = p["heart_y"]
-	var site := isl.site_node("village")
-	var to_dock: Vector2 = p["to_dock"]
-	var side := Vector2(-to_dock.y, to_dock.x)
-	var t := IslandContent.tier(isl)
 	layout = p["layout"]
-	plaza = {"c": c, "r": p["plaza_r"], "y": hy}
+	plaza = {"c": p["c"], "r": p["plaza_r"], "y": p["heart_y"]}
 	lanes = p["lanes"]
 	streets = p["streets"]
 	hamlets = p["hamlets"]
 	for f in p["fires"]:
 		_fire(f[0], f[1])
-	var inn := {}
 	for b in p["buildings"]:
 		if CORE.has(b["kind"]):
-			inn = _make(b)
+			_inn = _make(b)
+
+
+func _build_board(rng: RandomNumberGenerator) -> void:
+	var p: Dictionary = isl.village_plan
+	var site := isl.site_node("village")
+	var t := IslandContent.tier(isl)
+	var inn := _inn
 	# resting at the inn: at its door
 	var rest := Interactable.new()
 	rest.name = "Rest"
@@ -197,6 +209,18 @@ func _build(rng: RandomNumberGenerator) -> void:
 	read.add_child(rcs)
 	board.add_child(read)
 	read.interacted.connect(func(_p): Dialogue.start(_key("board"), board))
+
+
+func _build_people(rng: RandomNumberGenerator) -> void:
+	var p: Dictionary = isl.village_plan
+	var c: Vector2 = p["c"]
+	var hy: float = p["heart_y"]
+	var to_dock: Vector2 = p["to_dock"]
+	var side := Vector2(-to_dock.y, to_dock.x)
+	var inn := _inn
+	var inn_door: Vector2 = inn["door"]
+	var trade_id := _key("trader")
+	var food_id := _key("cook")
 	# the people
 	var lks := looks(isl)
 	var deck: LineDeck = isl.life.deck
@@ -422,23 +446,32 @@ func _ruins() -> void:
 			[ItemDB.tiered(IslandContent.LOOT_WEAPONS[crng.randi() % IslandContent.LOOT_WEAPONS.size()], t), 1]], 0.9, ctx.ground_max(cp, r) - isl.hv(cp) + 0.37)
 
 
-func _market() -> void:
-	var m: Dictionary = isl.village_plan["market"]
-	var rng := KitVillage._seeded(int(isl.village_plan["bunting"]["seed"]))
+## The plaza's bunting, the market's stalls, the market's own bunting and the merged mesh: a step each (one was 30 ms).
+static func _market_steps(gi: GenIsland) -> Array:
+	var rng := KitVillage._seeded(int(gi.village_plan["bunting"]["seed"]))
 	var mb := MeshBuilder.new()
-	KitVillage.build_bunting(ctx, mb, isl.village_plan["bunting"]["poles"], 4.0, rng)
+	var m: Dictionary = gi.village_plan["market"]
+	var out: Array = [["village market", func(): KitVillage.build_bunting(_of(gi).ctx, mb, gi.village_plan["bunting"]["poles"], 4.0, rng)]]
 	if not m.is_empty():
-		var stalls := KitMarket.build(ctx, m["c"], m["toward"], m["kinds"], KitVillage._seeded(int(m["seed"])))
-		market = {"c": m["c"], "stalls": stalls}
-		for s in stalls:
-			work_spots.append({"kind": "market", "at": ctx.marker_point(s, "Vendor"), "face": ctx.marker_face(s, "Vendor"), "y": INF, "taken": false})
-		var poles: Array = m.get("poles", [])
-		if poles.size() == 2:
-			for q in poles:
-				KitVillage.pole(ctx, mb, q, 3.6)
-			KitVillage.bunting(ctx, mb, KitContext.v3(poles[0], ctx.hv(poles[0]) + 3.4), KitContext.v3(poles[1], ctx.hv(poles[1]) + 3.4), rng)
-	if not mb.is_empty():
-		ctx.add(mb.to_instance("Bunting"))
+		out.append(["village market", func(): _of(gi)._stalls(m)])
+		out.append(["village market", func():
+			var ctx: KitContext = _of(gi).ctx
+			var poles: Array = m.get("poles", [])
+			if poles.size() == 2:
+				for q in poles:
+					KitVillage.pole(ctx, mb, q, 3.6)
+				KitVillage.bunting(ctx, mb, KitContext.v3(poles[0], ctx.hv(poles[0]) + 3.4), KitContext.v3(poles[1], ctx.hv(poles[1]) + 3.4), rng)])
+	out.append(["village market", func():
+		if not mb.is_empty():
+			_of(gi).ctx.add(mb.to_instance("Bunting"))])
+	return out
+
+
+func _stalls(m: Dictionary) -> void:
+	var stalls := KitMarket.build(ctx, m["c"], m["toward"], m["kinds"], KitVillage._seeded(int(m["seed"])))
+	market = {"c": m["c"], "stalls": stalls}
+	for s in stalls:
+		work_spots.append({"kind": "market", "at": ctx.marker_point(s, "Vendor"), "face": ctx.marker_face(s, "Vendor"), "y": INF, "taken": false})
 
 
 ## The cobbles, and the trodden earth a little under them (where they'd meet).

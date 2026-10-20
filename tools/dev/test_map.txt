@@ -459,3 +459,5 @@ tools/dev/capitalshot.gd                t/capital
 scripts/island/world_generator.gd       t/island/free_slices
 scripts/game/perf_monitor.gd            t/world/perf_log perftest
 scripts/game/fx.gd                      katanatest
+scripts/enemies/scuttlebug_nest.gd      t/island/build_slices
+scripts/island/gen_island.gd            t/island/build_slices

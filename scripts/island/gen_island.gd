@@ -159,6 +159,22 @@ func prepare(n: Dictionary) -> void:
 		Humanoid.stock(h, lk)
 	build_ms["bodies"] = _lap(t0)
 	life = IslandLife.plan(self)
+	t0 = Time.get_ticks_usec()
+	_warm = warm_scripts(n)
+	build_ms["warm"] = _lap(t0)
+
+
+## The scripts its build steps make beasts and creatures from (loaded by path: the first load compiles it, 50-150 ms
+## on the main thread), loaded here on the worker and kept while the island stands.
+var _warm: Array = []
+static func warm_scripts(n: Dictionary) -> Array:
+	var th := IslandThemes.of(str(n["theme"]))
+	var paths: Array = th.creatures.values()
+	for k in [n["beast"], n["roamer"]] + (n["minis"] as Array):
+		var info: Dictionary = th.beasts[str(k)]
+		if info.has("script"):
+			paths.append(info["script"])
+	return paths.map(func(p): return load(p))
 
 
 ## The nodes, meshes and colliders from what prepare worked out, all at once
@@ -166,6 +182,15 @@ func prepare(n: Dictionary) -> void:
 func finish() -> void:
 	for s in finish_steps():
 		run_step(s)
+	building = false
+
+
+## Still being put in the world a step a frame (WorldGenerator): what it spawns as it joins comes a piece a frame.
+var building := true
+
+
+## Each third of the plants' MultiMeshes in this many steps (a third in one was 10-18 ms, and its upload in that frame).
+const PLANT_SUBS := 5
 
 
 ## finish's work in pieces ([name, Callable]), in order (main thread, in the tree).
@@ -173,17 +198,15 @@ func finish_steps() -> Array:
 	island_name = str(node["name"])
 	island_type = theme
 	is_generated = true
-	var steps: Array = [["terrain", _terrain_node]]
+	var steps: Array = [["terrain", _terrain_node], ["terrain", _coast]]
 	for i in range(GROUND * GROUND):
 		steps.append(["ground", _terrain_collider.bind(i)])
 	steps.append(["dock", _add_arrival_zone])
 	steps.append_array(harbour.steps())
-	steps += [
-		["plants", _vegetation_meshes.bind(0, 3)],
-		["plants", _vegetation_meshes.bind(1, 3)],
-		["plants", _vegetation_meshes.bind(2, 3)],
-		["colliders", _vegetation_colliders],
-	]
+	for part in range(3):
+		for sub in range(PLANT_SUBS):
+			steps.append(["plants", _vegetation_meshes.bind(part, 3, sub, PLANT_SUBS)])
+	steps += _vegetation_collider_steps()
 	if not land_plan.is_empty():
 		steps.append_array(_theme.steps(self))
 	steps.append_array(IslandContent.steps(self))
@@ -202,22 +225,56 @@ func run_step(s: Array) -> int:
 	var ms := _lap(t0)
 	build_ms[s[0]] = int(build_ms.get(s[0], 0)) + ms
 	_step_n[s[0]] = int(_step_n.get(s[0], 0)) + 1
+	if ms >= SLOW_STEP_MS:
+		slow_steps.append([ms, "%s #%d" % [s[0], _step_n[s[0]]]])
 	if ms > int(worst_step[1]):
 		worst_step = ["%s #%d" % [s[0], _step_n[s[0]]], ms]
 	return ms
+
+
+## Work too long for one frame as `count` steps named `name`: each runs `unit` (one piece of it; false once nothing
+## is left) until SLICE_US has gone, the last one runs it to the end. Steps with nothing left cost nothing, and the
+## world runs those in the same frame (WorldGenerator._finish_step), so `count` can be generous.
+const SLICE_US := 3000
+static func sliced(name: String, count: int, unit: Callable) -> Array:
+	var st := {"done": false}
+	var out: Array = []
+	for k in range(count):
+		out.append([name, func():
+			var t0 := Time.get_ticks_usec()
+			while not st["done"] and (k == count - 1 or Time.get_ticks_usec() - t0 < SLICE_US):
+				st["done"] = not unit.call()])
+	return out
+
+
+## The steps that took SLOW_STEP_MS or more, slowest first ("name #n ms, ...": the build log's).
+const SLOW_STEP_MS := 4
+var slow_steps: Array = []
+func slowest(n: int) -> String:
+	var l := slow_steps.duplicate()
+	l.sort_custom(func(a, b): return int(a[0]) > int(b[0]))
+	return ", ".join(l.slice(0, n).map(func(e): return "%s %d" % [e[1], e[0]]))
 
 
 func _lap(t0: int) -> int:
 	return int((Time.get_ticks_usec() - t0) / 1000)
 
 
+## Nodes the build steps fill before they join the island (let go part way: freed with it).
+var _unparented: Array = []
+
+
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for n in _unparented:
+			if is_instance_valid(n) and (n as Node).get_parent() == null:
+				(n as Node).free()
 	# (let go before its beast or village was made: the bodies prepare built for them would wait forever)
 	if what == NOTIFICATION_PREDELETE and build_ms.has("bodies"):
 		if not build_ms.has("boss"):
 			for lk in BeastPool.stock_looks(node):
 				Humanoid.unstock(lk)
-		if not build_ms.has("village"):
+		if not build_ms.has("village people"):
 			for lk in IslandVillage.looks(self):
 				Humanoid.unstock(lk)
 		if not build_ms.has("artisan"):
@@ -638,6 +695,9 @@ func _terrain_node() -> void:
 	mi.mesh = mesh
 	body.add_child(mi)
 	add_child(body)
+
+
+func _coast() -> void:
 	Coast.build(self, _rocks, KitStyle.of(theme)["ground"]["cliff"])
 	_rocks = {}
 
@@ -961,15 +1021,17 @@ func _scatter_vegetation() -> void:
 
 
 ## One MultiMesh per mesh per VEG_CELL square (only the squares in view are drawn);
-## `part` of `parts` of them a step (a frame each).
-func _vegetation_meshes(part: int, parts: int) -> void:
-	if part == 0:
+## `part` of `parts` of them (every parts-th square), piece `sub` of `subs` of those, a step each (a frame each).
+func _vegetation_meshes(part: int, parts: int, sub: int = 0, subs: int = 1) -> void:
+	if part == 0 and sub == 0:
 		var v := Node3D.new()
 		v.name = "Vegetation"
 		add_child(v)
 	var veg := get_node("Vegetation")
 	var keys := _buckets.keys()
-	for ki in range(part, keys.size(), parts):
+	var mine: Array = range(part, keys.size(), parts)
+	var n := ceili(mine.size() / float(subs))
+	for ki in mine.slice(sub * n, (sub + 1) * n):
 		var key: Array = keys[ki]
 		var xforms: Array = _buckets[key]
 		var mm := MultiMesh.new()
@@ -1003,29 +1065,40 @@ func _vegetation_meshes(part: int, parts: int) -> void:
 		veg.add_child(mmi)
 
 
-## The tree and rock colliders, the grapple crowns.
-func _vegetation_colliders() -> void:
+## The tree and rock colliders, the grapple crowns: the shapes made a slice at a time (~2000 of them were a 35 ms
+## step), the body filled before it joins the tree (each shape added to a body in the tree rebuilds its whole compound).
+func _vegetation_collider_steps() -> Array:
 	var body := StaticBody3D.new()
 	body.name = "VegetationColliders"
 	body.collision_layer = 1
 	body.collision_mask = 0
-	for s in _shapes:
-		var cs := CollisionShape3D.new()
-		if float(s[1]) > 0.0:
-			var cyl := CylinderShape3D.new()
-			cyl.radius = s[0]
-			cyl.height = s[1]
-			cs.shape = cyl
-		else:
-			var sph := SphereShape3D.new()
-			sph.radius = s[0]
-			cs.shape = sph
-		cs.position = s[2]
-		body.add_child(cs)
-	# (filled before it joins the tree: each shape added to a body in the tree rebuilds its whole compound)
-	add_child(body)
-	for c in _crowns:
-		GrapplePoints.add(self, c)
+	_unparented.append(body)
+	var at := [0]
+	var steps := sliced("colliders", 24, func() -> bool:
+		for i in range(at[0], mini(at[0] + 64, _shapes.size())):
+			body.add_child(_tree_shape(_shapes[i]))
+		at[0] += 64
+		return at[0] < _shapes.size())
+	steps.append(["colliders", func():
+		add_child(body)
+		for c in _crowns:
+			GrapplePoints.add(self, c)])
+	return steps
+
+
+func _tree_shape(s: Array) -> CollisionShape3D:
+	var cs := CollisionShape3D.new()
+	if float(s[1]) > 0.0:
+		var cyl := CylinderShape3D.new()
+		cyl.radius = s[0]
+		cyl.height = s[1]
+		cs.shape = cyl
+	else:
+		var sph := SphereShape3D.new()
+		sph.radius = s[0]
+		cs.shape = sph
+	cs.position = s[2]
+	return cs
 
 
 func _bucket(buckets: Dictionary, mesh: Mesh, kind: String, xf: Transform3D) -> void:

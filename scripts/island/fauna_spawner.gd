@@ -88,7 +88,9 @@ static func roll(theme: String, seed_v: int) -> Dictionary:
 static func steps(island: Node3D) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(island.node["seed"]) + 9091
-	var out: Array = [["fauna", func(): _plan_on(island, rng)], ["fauna", func(): (island.get_node("Fauna") as FaunaSpawner)._place(rng)]]
+	var out: Array = [["fauna", func(): _plan_on(island, rng)]]
+	out += GenIsland.sliced("fauna", 12, func() -> bool: return (island.get_node("Fauna") as FaunaSpawner)._zones_part(rng))
+	out.append(["fauna", func(): (island.get_node("Fauna") as FaunaSpawner)._place(rng)])
 	for part in range(SPAWN_STEPS):
 		out.append(["fauna", func(): (island.get_node("Fauna") as FaunaSpawner)._spawn_part(part)])
 	out.append(["fauna", func(): FaunaAmbient.build(island.get_node("Fauna"), rng)])
@@ -104,7 +106,6 @@ static func _plan_on(island: Node3D, rng: RandomNumberGenerator) -> void:
 	f.level = int(island.node["level"])
 	f.pool = roll(f.theme, int(island.node["seed"]))
 	island.add_child(f)
-	f._zones(rng)
 
 
 func _spawn_part(part: int) -> void:
@@ -125,20 +126,37 @@ func _keep_clear(p: Vector2) -> bool:
 	return false
 
 
-func _zones(rng: RandomNumberGenerator) -> void:
-	var floor_pts := PackedVector2Array()
-	var canopy: Array = []
-	for crown in isl.forest_crowns:
+## The zones a piece at a time (the forest's crowns 150 a call, then the rest): false once they're done.
+var _zi := 0
+var _floor_pts := PackedVector2Array()
+var _canopy: Array = []
+func _zones_part(rng: RandomNumberGenerator) -> bool:
+	var crowns: Array = isl.forest_crowns
+	if _zi < crowns.size():
+		_crowns_zones(crowns.slice(_zi, _zi + 150), rng)
+		_zi += 150
+		return true
+	_zones(rng)
+	return false
+
+
+func _crowns_zones(crowns: Array, rng: RandomNumberGenerator) -> void:
+	for crown in crowns:
 		var c := Vector2(crown.x, crown.z)
 		if _keep_clear(c):
 			continue
 		var g: float = isl.hv(c)
 		if crown.y - g > 5.0:
-			canopy.append(crown)
+			_canopy.append(crown)
 		var a := rng.randf() * TAU
 		var q := c + Vector2.from_angle(a) * 2.6
 		if isl.hv(q) > 2.0 and not isl.excluded(q, 0.3, 1.5):
-			floor_pts.append(q)
+			_floor_pts.append(q)
+
+
+func _zones(rng: RandomNumberGenerator) -> void:
+	var floor_pts := _floor_pts
+	var canopy := _canopy
 	# (an island with no forest to speak of - a desert - has its floor out in the open)
 	if floor_pts.size() < 40:
 		for i in range(240):

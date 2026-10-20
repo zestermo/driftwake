@@ -204,6 +204,7 @@ func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int, 
 	var n := isl.node
 	var p: Vector2 = n["pos"]
 	var t1 := Time.get_ticks_usec()
+	isl.building = false
 	chain_islands[int(n["id"])] = isl
 	island_infos.append({"pos": p, "type": n["theme"], "radius": isl.radius, "name": n["name"], "id": int(n["id"])})
 	EnemyShip.no_go.append([p, isl.radius + 30.0])
@@ -216,8 +217,9 @@ func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int, 
 			bag.queue_free()
 	if Net.is_client():
 		_catch_up.append(isl)
-	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms; on the main thread %d ms over %d frames, the most %d ms (%s) %s" % [n["name"], n["theme"], isl.radius, isl.res,
-		(Time.get_ticks_usec() - t0) / 1000, (main_us + Time.get_ticks_usec() - t1) / 1000, frames, worst_ms, isl.worst_step[0], isl.build_ms])
+	print("GenIsland: %s (%s, r %.0f m, %d px) ready in %d ms; on the main thread %d ms over %d frames, the most %d ms (%s) %s; steps of %d ms or more: %d (%s)" % [n["name"], n["theme"], isl.radius, isl.res,
+		(Time.get_ticks_usec() - t0) / 1000, (main_us + Time.get_ticks_usec() - t1) / 1000, frames, worst_ms, isl.worst_step[0], isl.build_ms,
+		GenIsland.SLOW_STEP_MS, isl.slow_steps.size(), isl.slowest(16)])
 
 
 func _free_chain_island(id: int) -> void:
