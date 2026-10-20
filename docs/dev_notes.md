@@ -4731,7 +4731,9 @@ Spec: docs/progression_plan.md "Redesign" and "Build: v1.18.2".
   not using an item, free or in a swing's combo window; knocked down, mid-heavy, stunned are refused) or no loadout holds the
   weapon ("Needs a pistol in a loadout", toasted). A Zoan hybrid's weapon skills stay refused ("Needs a pistol"). Nothing else
   changes: costs, cooldowns and the state are the old ones.
-- **Editing:** `why_not_equip(skill, slot) -> String` ("" = fine): "Ultimates go on R", "Only an ultimate goes on R",
+- **Editing:** `why_not_equip(skill, slot) -> String` ("" = fine): "Not during a boss fight" (`boss_fight()`: a node in group
+  "bosses" in combat within BOSS_LOCK_RANGE 55 m, the boss music's range; clearing a slot is refused then too; outside boss
+  fights the bar can be edited any time, the menu pausing the world), "Ultimates go on R", "Only an ultimate goes on R",
   "Not learned yet", "Needs <weapon> in a loadout"; `equip` refuses whatever it names, so auto_equip (first free slot) only
   places skills that can go on. A slot whose weapon left your loadouts (sold, stored, the loadout changed) **keeps its skill,
   shown unusable** (greyed on the HUD, the cast refused) rather than cleared: simpler, and it comes back with the weapon.
@@ -4742,6 +4744,7 @@ Spec: docs/progression_plan.md "Redesign" and "Build: v1.18.2".
   draw (3 loadouts, a bag count each) and `loadout_for` per slot; nothing in physics ticks.
 - Tests: t/player/bar_switch_cast (a katana in hand, Smoke Bomb from loadout 2 switches and runs, a crewmate's snapshot shows the
   pistol with the cast, Iai Counter switches back, knocked down it's refused), t/player/bar_equip_rules (the refusals and their
-  reasons, a locked loadout doesn't count, a slot whose weapon left the bag kept but refused). progtest now puts a pistol in
+  reasons, a locked loadout doesn't count, a slot whose weapon left the bag kept but refused, a stand-in boss locking the bar
+  near and not far, a skill learned mid-fight left off it). progtest now puts a pistol in
   loadout 2 before its pistol skills fill the bar. Render: `barshot <out_prefix>` (the bar with a katana in hand, pistols in
   loadout 2, a greyed cutlass skill).
