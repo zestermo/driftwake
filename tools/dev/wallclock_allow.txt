@@ -16,6 +16,7 @@ scripts/island/world_generator.gd | chain island build timing (the "ready in ...
 scripts/island/gen_island.gd | build timing (build_ms) per step
 scripts/island/capital_island.gd | build timing (build_ms) per step
 scripts/island/capital_shell.gd | build timing (build_ms) per shell piece
+scripts/island/capital_district.gd | build timing (build_ms) per district piece
 scripts/island/starter_island.gd | build timing (build_ms)
 scripts/island/island_life.gd | build timing (build_ms)
 scripts/island/kit/kit_context.gd | build timing (build_ms) per kit piece

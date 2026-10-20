@@ -84,7 +84,7 @@ static func _gen(isl: GenIsland) -> Dictionary:
 	var rect := Rect2(-isl.half, -isl.half, isl.extent, isl.extent)
 	return {"key": "isle%d" % int(isl.node["id"]), "name": str(isl.node["name"]), "isl": isl, "o": Vector2(isl.position.x, isl.position.z),
 		"rect": rect, "cells": isl.res, "n": ceili(rect.size.x / FOG_CELL), "spots": spots,
-		"town": [isl.sites["village"], "Village"] if isl.sites.has("village") else []}
+		"town": [isl.sites["village"], isl.island_name if isl is CapitalIsland else "Village"] if isl.sites.has("village") else []}
 
 
 ## A landmark's kind as the map draws it.

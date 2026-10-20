@@ -76,6 +76,21 @@ const KEEP := [
 	Rect2(46.0, 6.0, 20.0, 10.0),
 ]
 const TEMPLE := Rect2(-112.0, -60.0, 44.0, 52.0)
+## The plaza's own buildings: [rect, the way their front faces] (CapitalDistrict builds them; no house on them).
+const SPECIAL := {
+	"inn": [Rect2(-46.0, -6.0, 20.0, 22.0), Vector2(1, 0)],
+	"curio": [Rect2(26.0, 6.0, 14.0, 16.0), Vector2(-1, 0)],
+	"guild": [Rect2(-26.0, -44.0, 19.0, 22.0), Vector2(0, 1)],
+	"bank": [Rect2(7.0, -44.0, 19.0, 22.0), Vector2(0, 1)],
+	"bell": [Rect2(34.0, -35.0, 8.0, 8.0), Vector2(-1, 0)],
+}
+
+
+static func special_hit(r: Rect2) -> bool:
+	for k in SPECIAL:
+		if (SPECIAL[k][0] as Rect2).intersects(r):
+			return true
+	return false
 
 
 static func smooth(e0: float, e1: float, x: float) -> float:
@@ -280,7 +295,9 @@ static func _lot_ok(r: Rect2, keep: bool) -> bool:
 ## The gaps where a walkable floor's edge opens onto nothing built (a lane between blocks, a missing lot): each
 ## closed by a wall ([a, b, out]: the barrier's ends just outside the floor, and the way out from the floor).
 static func openings(all_lots: Array) -> Array:
-	var cells: Array = all_lots.map(func(l): return (l["cell"] as Rect2).grow(0.45))
+	var cells: Array = all_lots.filter(func(l): return not special_hit(l["cell"])).map(func(l): return (l["cell"] as Rect2).grow(0.45))
+	for k in SPECIAL:
+		cells.append((SPECIAL[k][0] as Rect2).grow(0.45))
 	var out: Array = []
 	for f in FLOORS:
 		var r: Rect2 = f[1]

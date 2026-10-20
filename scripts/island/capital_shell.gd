@@ -243,12 +243,14 @@ static func _landmarks(out: Array) -> void:
 
 
 # --------------------------------------------------------------------------
-## The town's houses in chunks (one mesh each); the lots that front a floor (and those piece 2 will build over)
-## get colliders, and every gap a floor opens onto a wall with a door shut in it.
+## The town's houses behind the district's in chunks (one mesh each, no colliders: the district's houses and the
+## walls seal them off), and every gap a floor opens onto a wall with a door shut in it.
 static func _massing(out: Array) -> void:
 	var lots := P.lots()
 	var chunks := {}
 	for l in lots:
+		if l["front"] or l["keep"] or P.special_hit(l["cell"]):
+			continue
 		var c: Vector2 = l["c"]
 		var key := Vector2i(floori(c.x / CHUNK), floori(c.y / CHUNK))
 		if not chunks.has(key):
@@ -270,14 +272,11 @@ static func _massing(out: Array) -> void:
 			if top - low > 6.0:
 				continue
 			var sd := int(l["seed"])
-			if not l["front"] and not l["keep"] and sd % 19 == 0 and minf(r.size.x, r.size.y) >= 6.5:
+			if sd % 19 == 0 and minf(r.size.x, r.size.y) >= 6.5:
 				M.square_tower(mb, cols, r.get_center(), top, minf(r.size.x, r.size.y) - 1.2, 16.0 + float(sd % 9), 0.0, sd % 2 == 0, top - low + 0.5)
 				continue
-			var eaves := M.house(mb, l, low - 0.5, top)
-			if l["front"] or l["keep"]:
-				var cell: Rect2 = l["cell"]
-				M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
-		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, cols, MASS, false)
+			M.house(mb, l, low - 0.5, top)
+		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, [], MASS, false)
 	var mb := MeshBuilder.new()
 	var cols: Array = []
 	for o in P.openings(lots):

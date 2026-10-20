@@ -7,8 +7,9 @@ extends GenIsland
 ## harbour faces the way the crew sails in (node "face"). Everything built goes under the "City" node, which
 ## carries that turn, in the plan's frame; the terrain grid stays the island's (the shore map is axis-aligned).
 ##
-## prepare (a worker): the terrain from CapitalPlan.terrain, the shore map, every mesh of the shell (CapitalShell).
-## finish_steps: the terrain, its colliders, the dock, then a piece of the city a frame.
+## prepare (a worker): the terrain from CapitalPlan.terrain, the shore map, every mesh of the shell (CapitalShell) and
+## the district (CapitalDistrict), the bodies of its people (CapitalLife, CapitalCrowd).
+## finish_steps: the terrain, its colliders, the dock, a piece of the city a frame, its lamps, its people, the crowd.
 
 const RADIUS := 300.0
 
@@ -18,9 +19,20 @@ const WINDOWS_GLOW := 0.9
 
 var yaw := 0.0
 var _windows_t := 0.0
-## The shell's pieces from prepare: {"name", "mesh", "range", "shadow", "cols", "faces"}.
+## The shell's and district's pieces from prepare: {"name", "mesh", "range", "shadow", "cols", "faces"}.
 var pieces: Array = []
 var city: Node3D
+## The district's places for its people ({name: [frame Vector3, yaw facing its way]}), its town houses' doors
+## ({"at", "face", "kind"}, frame) and its lamps ([frame Vector3, energy, range, all day]).
+var spots := {}
+var doors: Array = []
+var lights: Array = []
+var life_node: CapitalLife
+var crowd: CapitalCrowd
+## The city's solid boxes ([frame Transform3D, size]) for the toughs' nav zone (nav_faces).
+var _nav_boxes: Array = []
+## The bodies prepare built ahead for the people and the crowd (let go if the island goes first).
+var _stocked: Array = []
 
 
 func build(n: Dictionary) -> void:
@@ -62,6 +74,28 @@ func prepare(n: Dictionary) -> void:
 	t0 = Time.get_ticks_usec()
 	pieces = CapitalShell.build(build_ms)
 	build_ms["shell"] = _lap(t0)
+	t0 = Time.get_ticks_usec()
+	var d := CapitalDistrict.build(build_ms)
+	pieces.append_array(d["pieces"])
+	spots = d["spots"]
+	doors = d["doors"]
+	lights = d["lights"]
+	build_ms["district"] = _lap(t0)
+	t0 = Time.get_ticks_usec()
+	_stocked = CapitalLife.looks() + CapitalCrowd.make_looks()
+	for lk in _stocked:
+		var h := Humanoid.new()
+		h.setup(lk)
+		Humanoid.stock(h, lk)
+	build_ms["townsfolk"] = _lap(t0)
+	var yard: Rect2 = CapitalPlan.FLOORS[7][1]
+	places = [
+		{"kind": "landmark", "title": "The palace gate", "at": from_city(CapitalPlan.PALACE_GATE + Vector2(0, 6)), "r": 10.0},
+		{"kind": "landmark", "title": "The Grand Arena", "at": from_city(CapitalPlan.ARENA_C - Vector2(CapitalPlan.ARENA_R.x + 4.0, 0)), "r": 12.0},
+		{"kind": "lighthouse", "title": "The lighthouse", "at": from_city(CapitalPlan.MOLE_E[2]), "r": 10.0},
+		{"kind": "camp", "title": "Gallows Row", "at": from_city(yard.get_center()), "r": 14.0},
+		{"kind": "landmark", "title": "The Crown and Compass", "at": from_city((CapitalPlan.SPECIAL["inn"][0] as Rect2).get_center() + Vector2(10, 0)), "r": 10.0},
+	]
 
 
 func finish_steps() -> Array:
@@ -74,8 +108,19 @@ func finish_steps() -> Array:
 	steps.append(["dock", _dock])
 	for i in range(pieces.size()):
 		steps.append(["city", _piece.bind(i)])
+	steps.append(["lamps", _lamps])
+	life_node = CapitalLife.new().setup(self)
+	steps.append(["life", add_child.bind(life_node)])
+	steps.append_array(life_node.steps())
+	steps.append(["crowd", _crowd])
 	steps.append(["arrival", _arrival])
 	return steps
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for lk in _stocked:
+			Humanoid.unstock(lk)
 
 
 func _process(delta: float) -> void:
@@ -86,6 +131,7 @@ func _process(delta: float) -> void:
 	var e := WINDOWS_GLOW * clampf(float(Weather.night) * 1.4 - 0.2, 0.0, 1.0)
 	for k in ["facade_a", "facade_b"]:
 		(CapitalModels.mat(k) as ShaderMaterial).set_shader_parameter("emission_energy", e)
+	(CapitalModels.mat("window") as ShaderMaterial).set_shader_parameter("emission_energy", 0.12 + e * 0.6)
 
 
 # --------------------------------------------------------------------------
@@ -233,10 +279,13 @@ func _piece(i: int) -> void:
 		root = body
 		for c in cols:
 			var cs := CollisionShape3D.new()
-			if c.has("box"):
+			if c.has("shape"):
+				cs.shape = c["shape"]
+			elif c.has("box"):
 				var b := BoxShape3D.new()
 				b.size = c["box"]
 				cs.shape = b
+				_nav_boxes.append([c["xf"], c["box"]])
 			else:
 				var cy := CylinderShape3D.new()
 				cy.radius = float(c["cyl"][0])
@@ -260,6 +309,55 @@ func _piece(i: int) -> void:
 	root.add_child(mi)
 	city.add_child(root)
 	pieces[i] = {}
+
+
+## The district's real lights (its budget: CapitalDistrict's list), lit from dusk to dawn (the lighthouse always).
+func _lamps() -> void:
+	for i in range(lights.size()):
+		var l: Array = lights[i]
+		var nl := NightLight.make(CapitalStyle.STYLE["lamp"], float(l[1]), float(l[2]), bool(l[3]))
+		nl.name = "Lamp%d" % i
+		city.add_child(nl)
+		nl.position = l[0]
+
+
+func _crowd() -> void:
+	crowd = CapitalCrowd.new().setup(CapitalCrowd.make_looks())
+	crowd.centre = CapitalModels.v3(CapitalPlan.PLAZA.get_center() + Vector2(0, 40), CapitalPlan.PLAZA_Y)
+	city.add_child(crowd)
+
+
+## World faces of what the toughs can walk on and bump into round world point c (the nav baker's zone): the floors
+## and the solid boxes standing on them.
+func nav_faces(c: Vector3, r: float) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var xf := city.global_transform
+	var l := city.to_local(c)
+	var q0 := Vector2(l.x, l.z)
+	for f in CapitalPlan.FLOORS:
+		var rect: Rect2 = f[1]
+		var x := rect.position.x
+		while x < rect.end.x:
+			var z := rect.position.y
+			while z < rect.end.y:
+				var x1 := minf(x + 2.0, rect.end.x)
+				var z1 := minf(z + 2.0, rect.end.y)
+				if Vector2((x + x1) * 0.5, (z + z1) * 0.5).distance_to(q0) < r:
+					var p: Array = [Vector2(x, z), Vector2(x1, z), Vector2(x1, z1), Vector2(x, z1)].map(func(q): return xf * CapitalModels.v3(q, CapitalPlan.ground(q)))
+					out.append_array([p[0], p[1], p[2], p[0], p[2], p[3]])
+				z += 2.0
+			x += 2.0
+	for b in _nav_boxes:
+		var t: Transform3D = b[0]
+		if Vector2(t.origin.x, t.origin.z).distance_to(q0) > r + 12.0:
+			continue
+		var h: Vector3 = b[1] * 0.5
+		var k: Array = []
+		for s in [Vector3(-1, -1, -1), Vector3(1, -1, -1), Vector3(1, -1, 1), Vector3(-1, -1, 1), Vector3(-1, 1, -1), Vector3(1, 1, -1), Vector3(1, 1, 1), Vector3(-1, 1, 1)]:
+			k.append(xf * (t * (h * s)))
+		for q in [[4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]]:
+			out.append_array([k[q[0]], k[q[1]], k[q[2]], k[q[0]], k[q[2]], k[q[3]]])
+	return out
 
 
 func _dock() -> void:
