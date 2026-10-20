@@ -63,3 +63,19 @@ points (`points(tree)`). Swimming spends stamina and does `EXHAUST_DAMAGE` when 
 - Co-op chat: **assumed** Enter opens it, the last few lines fade over the HUD, it's text only and goes through the host (Net), with a captain's name and colour on each line.
 - Where these pieces go in the order: **assumed** the item wheel goes with the items/food piece. The loadouts, the 1-5 ability bar and the action wheel come right after the skills rework. Sailing downtime comes after cooking, because it uses the life skills. Chat is a small piece of its own, any time.
 - The minimap, journal/quests, NPC encounters and swimming depth: their own grills, after the core.
+
+## Reconsider (Zach, 2026-10-20, after playing 1.18)
+The skills rework did not do what Zach wanted. **To be redesigned from scratch** once he brings references for how the
+skill menu/UI should look and work; then a grill round.
+- **Dislikes:**
+  - The family carry-over: gaining XP for weapon types you aren't using makes no sense.
+  - The trimmed trees: there is far less skill progression now.
+  - The core (Captain) skills as they are, and 2 points a level for them feels pointless.
+  - Most of the rework in general.
+- **Likes / keep:**
+  - The LIFE tab (the life skills page).
+  - The direction of **unlocking more pieces of a weapon's attack patterns by learning that weapon**.
+  - The structure already in place, and the abilities already built for the weapons and skills: the redesign reuses
+    them.
+- **Waits for:** Zach's references (skill menu/UI look and behaviour). Until then, no agent changes Progression,
+  SkillTree or the skill map.
