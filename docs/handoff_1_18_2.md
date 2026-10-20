@@ -21,18 +21,24 @@ other session).
   the serpent/mantis/sandworm/scorpion models) and one unexplained 60 ms frame at a build's end.
 - nettest basic and chain passed after the island-freeing change.
 
-## In flight at the handoff
-- **Occlusion culling + the long tail**: branch `worktree-agent-af6c47ca638b7badf` (3 commits: occluders in the
-  capital's walls/towers/houses/massing and every Buildings.house and desert house, `use_occlusion_culling` on; sky
-  birds and sea spray write their MultiMeshes in one buffer a frame, foam heights a third a frame). The agent was told
-  to land it with land.ps1 and report. **Check whether it reached main** (`git log main`, `land.ps1 -List`); if not,
-  land it from the main checkout: `.\tools\dev\land.ps1 worktree-agent-af6c47ca638b7badf`.
-  Its full benches, back to back: ALL 15.89 -> 14.20 ms (-11%), Brinehollow plaza 17.37 -> 14.67 (-16%), capital plaza
-  16.21 -> 13.70 (-15%), old eight 15.46 -> 13.44 (-13%) (the after run's machine was busier: calib 27.14 vs 25.39).
-  Not yet verified: popping around corners with the occluders (renders/walks).
+## Landed just after the handoff note: occlusion culling + the long tail (1e17311)
+- **Occlusion culling on** (scripts/psx/occluders.gd): boxes kept inside solid stone (the capital's walls, towers,
+  palace, temple, moles, quay, barriers, town houses and 493 massing houses; every Buildings.house and desert house;
+  none on the arena or walk-in rooms), made inside the existing build steps. Visible draws in towns -10 to -25%
+  (cmarket 445 -> ~345, plaza 995 -> 873, bwalk 1171 -> 946); shadow draws unchanged. **Frame time: within noise** in
+  the on/off A/B of the same build (ALL 15.61 -> 15.42, 15.68 -> 15.18). Kept as groundwork for the 1.20 capital.
+- **Long tail:** sky birds and sea spray send their MultiMeshes in one call a frame, foam heights a third of the
+  patches a frame (sea_spray 0.195 -> 0.161 ms; sky_birds unchanged at 0.285, its cost is flight logic);
+  dev_capture runs nothing per tick and nothing in release builds (0.098 -> 0).
+- The full-route before/after (ALL 15.89 -> 14.20, hitches >33 ms 70 -> 18) **can't be credited to this work**: GPU and
+  physics scripts also fell ~25% at every stop, sea included. Treat it as machine noise.
+- Open: popping not checked in-game (walk round corners in the capital and Brinehollow's plaza/market street); no
+  islanddump or nettest after it; a repeat bench on main died at the calib step 3 times (exit 255) and wasn't chased;
+  remaining long tail: sky_birds' flight logic 0.28 ms, ambience 0.13, actor_sleep 0.13, weather 0.11, moored_hull 0.10.
+- New tests: t/capital/occluders, t/world/sky_long_tail.
 
 ## To ship 1.18.2 (Zach's rules: docs/v1_19_plan.md "Ships as 1.18.2")
-1. The occlusion branch on main (above); a look for occluder popping.
+1. A look for occluder popping in-game, plus an islanddump and `nettest.ps1 chain` (both not run after the occluders).
 2. `prepush.ps1 -NoPush` (the stale suites + nettest modes; harbourtest/harbourkindstest can time out at 330 s under
    5-way load: a known load issue).
 3. **Re-baseline the perf gate on the min-spec PC** (this machine): `perf_gate.ps1 -Update` against a fresh full
@@ -45,7 +51,7 @@ other session).
 ## Queued after 1.18.2
 - **The capital grill** and **services after Brinehollow** (a shipwright in the capital and/or harbour vendors with
   one upgrade tree each on chain islands): docs/capital_plan.md "Next".
-- **The progression redesign** (Zach's other session: docs/progression_plan.md and the redesign docs on main).
+- ~~The progression redesign~~ **Moved into 1.18.2** (Zach, 2026-10-20): 1.18.2 is the perf work plus the progression and skills redesign (docs/progression_plan.md "Build: v1.18.2"). It ships once prog-core, menu-ui and bar-swap have landed; the steps above run after that, on the merged main.
 - **1.19**: docs/v1_19_plan.md (the Admiralty + rival crews, the intro, fighting in the water; a tooling window first:
   docs/todo.md "Tooling window").
 - Leftover empty worktree folders under .claude/worktrees/ (locked by exited processes): `tools/dev/unwork.ps1 <name>`

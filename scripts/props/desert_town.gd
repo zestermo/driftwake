@@ -238,6 +238,7 @@ static func house(spec: Dictionary) -> StaticBody3D:
 	_footing(mb, body, w + 0.3, d + 0.3, fl)
 	_block(mb, Vector3(0, fl + h * 0.5, 0), Vector3(w, h, d), col)
 	_box(body, Vector3(w, h, d), Vector3(0, fl + h * 0.5, 0))
+	body.add_child(Occluders.box_node(_xf(Vector3(0, fl + h * 0.5, 0)), Vector3(w, h, d)))
 	var top := fl + h
 	_parapet(mb, w, d, top, col, rng.randf() < 0.35)
 	if rng.randf() < 0.6:

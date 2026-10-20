@@ -34,9 +34,15 @@ var _surf_acc := 0.0
 ## Waves broken so far, by kind (tests).
 var breaks := {"beach": 0, "rock": 0, "wall": 0}
 var _foam_mm: MultiMesh
-var _foam: Array = []   # [x, z, age, life, size, yaw]
+var _foam: Array = []   # [x, z, age, life, size, yaw, normal, height, its rate, when sampled]
 var _foam_acc := 0.0
 var _foam_i := 0
+## A foam patch's height is sampled every FOAM_EVERY frames (its tilt every other time).
+const FOAM_EVERY := 3
+const ROW := 16
+var _buf := PackedFloat32Array()
+## Each MultiMesh's last buffer sent (the headless renderer can't give it back).
+var rows := {}
 var _drift: Array = []   # [emitter, time left]
 
 
@@ -207,7 +213,6 @@ func _update_streaks(delta: float) -> void:
 
 func _draw(cam: Camera3D) -> void:
 	var n := mini(_streaks.size(), STREAKS)
-	_mm.visible_instance_count = n
 	for i in range(n):
 		var s: Array = _streaks[i]
 		var p: Vector3 = s[0]
@@ -215,9 +220,20 @@ func _draw(cam: Camera3D) -> void:
 		var to_cam := (cam.global_position - p).normalized() if cam else Vector3.UP
 		var side := d.cross(to_cam).normalized()
 		var k := float(s[3]) / float(s[4])
-		var b := Basis(d * float(s[2]), side * float(s[6]), d.cross(side))
-		_mm.set_instance_transform(i, Transform3D(b, p))
-		_mm.set_instance_color(i, Color(1.0, 1.0, 1.0, 0.4 * sin(PI * k)))
+		var x := d * float(s[2])
+		var y := side * float(s[6])
+		var z := d.cross(side)
+		_buf.append_array(PackedFloat32Array([x.x, y.x, z.x, p.x, x.y, y.y, z.y, p.y, x.z, y.z, z.z, p.z, 1.0, 1.0, 1.0, 0.4 * sin(PI * k)]))
+	_flush(_mm, STREAKS, n)
+
+
+## The rows written this frame into `mm`'s buffer in one call ([3x4 transform, colour] each).
+func _flush(mm: MultiMesh, count: int, n: int) -> void:
+	_buf.resize(count * ROW)
+	mm.buffer = _buf
+	rows[mm] = _buf
+	_buf = PackedFloat32Array()
+	mm.visible_instance_count = n
 
 
 # --------------------------------------------------------------------------
@@ -286,7 +302,7 @@ func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: 
 		# (not under a hull: the ship's own collider counts as ground here)
 		if float(Ocean.depth_at(p, [], true)) < 1.0:
 			continue
-		_foam.append([p.x, p.z, 0.0, _rng.randf_range(7.0, 14.0), _rng.randf_range(0.7, 1.7), _rng.randf() * TAU, Vector3.UP, INF])
+		_foam.append([p.x, p.z, 0.0, _rng.randf_range(7.0, 14.0), _rng.randf_range(0.7, 1.7), _rng.randf() * TAU, Vector3.UP, INF, 0.0, 0.0])
 	_foam_acc = minf(_foam_acc, 2.0)
 	var v := wdir * (0.3 + wind * 0.8) * delta
 	var c := Vector2(cam.global_position.x, cam.global_position.z)
@@ -304,24 +320,30 @@ func _drift_foam(delta: float, cam: Camera3D, wdir: Vector3, wind: float, caps: 
 
 func _draw_foam() -> void:
 	var n := mini(_foam.size(), FOAM)
-	_foam_mm.visible_instance_count = n
-	_foam_i = (_foam_i + 1) % 3
-	var odd := Engine.get_process_frames() % 2
+	_foam_i += 1
+	var now := Ocean.clock()
 	for i in range(n):
 		var f: Array = _foam[i]
 		var p := Vector3(f[0], 0.0, f[1])
-		# (the height every other frame, half of them at a time; the tilt every third, a third at a time)
-		if i % 2 == odd or f[7] == INF:
-			f[7] = float(Ocean.get_wave_height(p)) + 0.05
-		p.y = f[7]
-		if i % 3 == _foam_i:
-			f[6] = Ocean.get_wave_normal(p)
+		# (the height a third of them a frame, carried on between at the rate it was rising; the tilt with every
+		# other height)
+		var first: bool = f[7] == INF
+		if (i + _foam_i) % FOAM_EVERY == 0 or first:
+			var h := float(Ocean.get_wave_height(p))
+			f[8] = (h - float(f[7])) / (now - float(f[9])) if not first and now > float(f[9]) and now - float(f[9]) < 0.5 else 0.0
+			f[7] = h
+			f[9] = now
+			if ((i + _foam_i) / FOAM_EVERY) % 2 == 0 or first:
+				var e := 0.1
+				f[6] = Vector3(h - float(Ocean.get_wave_height(p + Vector3(e, 0.0, 0.0))), e, h - float(Ocean.get_wave_height(p + Vector3(0.0, 0.0, e)))).normalized()
+		p.y = float(f[7]) + float(f[8]) * clampf(now - float(f[9]), 0.0, 0.2) + 0.05
 		var up: Vector3 = f[6]
 		var k := float(f[2]) / float(f[3])
 		var b := Basis(Vector3.UP, float(f[5]))
-		b = Basis(Quaternion(Vector3.UP, up)) * b * Basis(Vector3.RIGHT, -PI * 0.5)
-		_foam_mm.set_instance_transform(i, Transform3D(b.scaled(Vector3.ONE * float(f[4])), p))
-		_foam_mm.set_instance_color(i, Color(0.9, 0.94, 0.96, clampf(minf(k * 4.0, (1.0 - k) * 2.5), 0.0, 1.0)))
+		b = (Basis(Quaternion(Vector3.UP, up)) * b * Basis(Vector3.RIGHT, -PI * 0.5)).scaled(Vector3.ONE * float(f[4]))
+		_buf.append_array(PackedFloat32Array([b.x.x, b.y.x, b.z.x, p.x, b.x.y, b.y.y, b.z.y, p.y, b.x.z, b.y.z, b.z.z, p.z,
+			0.9, 0.94, 0.96, clampf(minf(k * 4.0, (1.0 - k) * 2.5), 0.0, 1.0)]))
+	_flush(_foam_mm, FOAM, n)
 
 
 # --------------------------------------------------------------------------

@@ -4654,3 +4654,33 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   1280x720 maps at x0.5 there; the 16 px icons and 24 px skill icons stay native.
 - **Tested by** t/ui/chrome_kit; looked at with tools/dev/chromeshot.gd and uishots (pause, options, inventory, shop,
   dialogue).
+## 2026-10-20: perf session steps 3 and 5: occlusion culling in towns, the long tail
+- **Occlusion culling** (project.godot `rendering/occlusion_culling/use_occlusion_culling=true`; `scripts/psx/occluders.gd`,
+  class Occluders): boxes shrunk 0.15 m inside solid stone, kept as data in a capital piece's colliders ({"occ": size, "xf"},
+  split off by `Occluders.take` on the worker) and made one OccluderInstance3D a piece in CapitalIsland._piece (no new step).
+  The capital: wall runs, square towers, round towers (the square inside the shaft), gatehouse sides, the palace hall and
+  wings, the temple, moles and quay blocks, barriers, the district's town houses (behind the door niche), the inn's back,
+  the guild and counting house, and every massing house (493 in 23 chunks). None on the arena (open arcades), the floors,
+  porches or rooms you walk into. Main-thread builders: one box per Buildings.house (Brinehollow's and every chain
+  village's houses and shopfronts) and per DesertTown.house. An occluder only hides whole instances behind it, so it must
+  never cover a gap you see through (an arch, a window through a wall); recesses are harmless.
+- Measured (min-spec PC, quick, same build on/off, two pairs; calib 24.0-26.2): visible draws -10 to -25% at the town stops
+  (cmarket 445 -> 337-356, cwalk 470 -> 365, plaza 995 -> 873, bwalk 1171 -> 946); frame within the run-to-run noise both
+  ways (ALL 15.61 -> 15.42 and 15.68 -> 15.18). Shadow draws (half the total) don't change: occlusion culls the view pass
+  only. Kept on as groundwork for the fuller capital (1.20). The bench screenshots match on/off (plaza, cmarket).
+- **The long tail:** SkyBirds and SeaSpray write their MultiMeshes in one `buffer` call a frame (a bird's 16-float row
+  made when it flies; streaks and foam rows built in the loop) instead of two server calls an instance; foam heights a
+  third of the patches a frame (was half), carried on at the rate they were rising, the tilt with every other height
+  (heights a frame 59 -> ~26 at 40 patches); DevCapture samples on a 0.1 s Timer (no `_physics_process`, no
+  get_property_list) and makes nothing in a release build. Gotcha: the headless renderer gives back nothing from a
+  MultiMesh, so both keep their last buffer (`rows`) for the test.
+- Full route back to back (occ_before2 main / occ_after, calib 25.39 / 27.14, no other Godots): ALL frame 15.89 -> 14.20,
+  frame1t 15.99 -> 14.37, p95 23.6 -> 19.8, h33 70 -> 18, draws 1421 -> 1370; but GPU and physics scripts fell ~25%
+  at every stop, sea included, which no change here explains: treat the pair as noisy. Scripts: sea_spray 0.195 -> 0.161,
+  sky_birds 0.285 -> 0.285 (the buffer didn't move it: its cost is the flying), dev_capture 0.098 -> 0.
+  A rerun of main's before (occ_before3) died at the calib three times (exit 255, no trace; the branch ran fine after a
+  re-import): not chased.
+- Left: sky_birds' flying (dictionary-heavy, 0.28 ms), moored_hull (3 wave heights a tick per riding hull, 0.1),
+  ambience 0.13, actor_sleep 0.13, weather 0.11.
+- **Tested by** t/capital/occluders (every wall's and house's occluder inside its colliders, none over a street, a
+  house's inside its walls), t/world/sky_long_tail (buffer layout, the foam as near the swell as before, DevCapture).
