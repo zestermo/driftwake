@@ -213,30 +213,27 @@ func _update_figures(t: float) -> void:
 		if int(o) >= 0:
 			taken[int(o)] = true
 	var n := walkers.size()
-	var bufs: Array = [PackedFloat32Array(), PackedFloat32Array()]
-	for s in range(2):
-		(bufs[s] as PackedFloat32Array).resize(n * 16)
+	var at: Array = []
 	for i in range(n):
-		var pl := place_of(i, t)
-		var p: Vector3 = pl[0]
-		var d: Vector2 = pl[1]
-		var v := absf(float(walkers[i]["v"]))
-		var phase := t * v * 1.6 + float(i) * 0.37
-		var stride := int(floor(phase)) % 2
-		var bob := absf(sin(phase * PI)) * 0.05
-		var basis := Basis(Vector3.UP, atan2(d.x, d.y))
-		for s in range(2):
-			var show := s == stride and not taken.has(i)
-			var b := basis if show else basis.scaled(Vector3.ZERO)
-			var buf: PackedFloat32Array = bufs[s]
+		at.append(place_of(i, t))
+	for s in range(2):
+		var buf := PackedFloat32Array()
+		buf.resize(n * 16)
+		for i in range(n):
+			var p: Vector3 = at[i][0]
+			var d: Vector2 = at[i][1]
+			var phase := t * absf(float(walkers[i]["v"])) * 1.6 + float(i) * 0.37
+			var show := int(floor(phase)) % 2 == s and not taken.has(i)
+			var b := Basis(Vector3.UP, atan2(d.x, d.y))
+			if not show:
+				b = b.scaled(Vector3.ZERO)
 			var o := i * 16
 			buf[o] = b.x.x; buf[o + 1] = b.y.x; buf[o + 2] = b.z.x; buf[o + 3] = p.x
-			buf[o + 4] = b.x.y; buf[o + 5] = b.y.y; buf[o + 6] = b.z.y; buf[o + 7] = p.y + bob
+			buf[o + 4] = b.x.y; buf[o + 5] = b.y.y; buf[o + 6] = b.z.y; buf[o + 7] = p.y + absf(sin(phase * PI)) * 0.05
 			buf[o + 8] = b.x.z; buf[o + 9] = b.y.z; buf[o + 10] = b.z.z; buf[o + 11] = p.z
 			var c: Color = looks[int(walkers[i]["look"])]["top_color"]
 			buf[o + 12] = c.r; buf[o + 13] = c.g; buf[o + 14] = c.b; buf[o + 15] = 1.0
-	for s in range(2):
-		(_mm[s] as MultiMesh).buffer = bufs[s]
+		(_mm[s] as MultiMesh).buffer = buf
 
 
 ## A townsperson for the far crowd, facing +Z, FIGURE_H tall: legs (the step's two strides), a coat, arms swinging,

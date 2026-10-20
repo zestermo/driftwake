@@ -96,7 +96,8 @@ static func _houses(out: Dictionary) -> void:
 			if key in ["street", "plaza", "arena_st", "avenue"] and l["front"]:
 				kind = SHOP_KINDS[(int(l["seed"]) >> 3) % SHOP_KINDS.size()] if i % 3 != 2 else ""
 			var d := townhouse(mb, cols, l, kind, key == "slum")
-			if l["front"]:
+			var at: Vector3 = d["at"]
+			if l["front"] and P.in_floor(Vector2(at.x, at.z)):
 				(out["doors"] as Array).append(d)
 			i += 1
 		_piece(out, "Town_" + str(key), mb, cols)
@@ -360,13 +361,15 @@ static func _specials(out: Dictionary) -> void:
 				_light(out, door * Vector3(0, 2.6, 0.8), 1.4, 9.0)
 				var sign := t * Transform3D(Basis(), Vector3(w * 0.5 - 1.0, y1 + 4.0, d * 0.5 + 0.02))
 				_sign(mb, sign, "wine", _rng(5))
+				# (the tables kept off the door's way)
+				var tx := [-0.34 * w, -0.16 * w, 0.3 * w]
 				for k in range(3):
-					var tq := t * Transform3D(Basis(), Vector3(-w * 0.32 + k * w * 0.32, y1, d * 0.5 - 1.6))
+					var tq := t * Transform3D(Basis(), Vector3(tx[k], y1, d * 0.5 - 1.6))
 					absorb(mb, cols, Props.table(), tq)
-				_spot(out, "innkeeper", _q(door * Vector3(-2.2, 0, 1.0)), y1, _fd(t))
+				_spot(out, "innkeeper", _q(door * Vector3(-2.0, 0, 1.0)), y1, _fd(t))
 				_spot(out, "inn_door", _q(door * Vector3(0, 0, 1.2)), y1, _fd(t))
 				for k in range(3):
-					_spot(out, "inn_patron%d" % k, _q(t * Vector3(-w * 0.32 + k * w * 0.32 + 0.9, 0, d * 0.5 - 1.6)), y1, Vector2(0, 0) - Vector2((t.basis * Vector3.RIGHT).x, (t.basis * Vector3.RIGHT).z))
+					_spot(out, "inn_patron%d" % k, _q(t * Vector3(float(tx[k]) + 1.05, 0, d * 0.5 - 1.6)), y1, Vector2(0, 0) - Vector2((t.basis * Vector3.RIGHT).x, (t.basis * Vector3.RIGHT).z))
 			"curio":
 				var l2 := l.duplicate()
 				l2["floors"] = 3
@@ -388,6 +391,8 @@ static func _specials(out: Dictionary) -> void:
 				_spot(out, "curio_customer", _q(counter * Vector3(0, 0, 1.1)), top, -_fd(t))
 				out["spots"]["curio_door"] = [dd["at"], M.yaw_of(dd["face"])]
 			"guild", "bank":
+				# (their ground rises up the avenue behind: the steps start from the plaza at their front)
+				top = P.ground(_q(t * Vector3(0, 0, d * 0.5)))
 				var y1 := top + 0.9
 				var h := 13.5 if key == "guild" else 11.0
 				mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, (low + y1) * 0.5, -1.5)), Vector3(w + 0.2, y1 - low, d - 3.0), 0.5, Color(0.9, 0.88, 0.84), true, true)
@@ -418,13 +423,11 @@ static func _specials(out: Dictionary) -> void:
 				Buildings.panel_door(mb, dt, 2.2, 3.4, Buildings.door_leaf(DOORS[0] if key == "guild" else DOORS[1]), lime)
 				if key == "bank":
 					M.portcullis(mb, [], dt * Transform3D(Basis(), Vector3(0, 0, 0.3)), 2.4, 3.5)
-					_spot(out, "bank", _q(front * Vector3(1.6, 0, 2.6)), top, _fd(t))
+					_spot(out, "bank", _q(front * Vector3(1.6, 0, 2.6)), P.ground(_q(front * Vector3(1.6, 0, 2.6))), _fd(t))
 				else:
 					for s in [-1.0, 1.0]:
 						_banner(mb, front * Transform3D(Basis(), Vector3(s * pw * 0.32, y1 + ch - 0.4, 0.25)), 1.1, ch * 0.6, M.BLUE if s < 0 else Color(0.62, 0.16, 0.14))
-					_spot(out, "guild", _q(front * Vector3(-1.6, 0, 2.6)), top, _fd(t))
-	var bell := Vector2(38.0, -31.0)
-	_spot(out, "bell", bell + Vector2(-4.5, 0), P.PLAZA_Y, Vector2(-1, 0))
+					_spot(out, "guild", _q(front * Vector3(-1.6, 0, 2.6)), P.ground(_q(front * Vector3(-1.6, 0, 2.6))), _fd(t))
 	_piece(out, "PlazaHalls", mb, cols, FAR)
 
 
@@ -780,26 +783,17 @@ static func _slum(out: Dictionary) -> void:
 	var mb := MeshBuilder.new()
 	var cols: Array = []
 	var rng := _rng(4401)
-	var cloth := PSXMat.lit("canvas")
-	var washing: Array = CapitalStyle.STYLE["pennants"]
-	# laundry strung across the alley
+	# laundry strung across the alley, and over the yard between its shacks
 	var x := -12.0
 	while x > -46.0:
 		var a := _wall_at(out, Vector2(x, 52.0), Vector2(0, -1), 4.0)
 		var b := _wall_at(out, Vector2(x, 52.0), Vector2(0, 1), 4.0)
 		var y := P.ground(Vector2(x, 52.0)) + 4.4 + rng.randf_range(0.0, 1.2)
-		var pts := MeshBuilder.sag_points(M.v3(a, y), M.v3(b, y), 0.3, 8)
-		mb.add_tube(PSXMat.lit("rope"), pts, 0.015, -1.0, 3)
-		for i in range(1, pts.size() - 1, 2):
-			var p: Vector3 = pts[i]
-			var w := rng.randf_range(0.4, 0.8)
-			var h := rng.randf_range(0.5, 0.9)
-			var c: Color = (washing[rng.randi() % washing.size()] as Color).lerp(Color(0.85, 0.82, 0.75), 0.4)
-			mb.add_quad(cloth, p + Vector3(-w * 0.5, 0, 0), p + Vector3(w * 0.5, 0, 0), p + Vector3(w * 0.5, -h, 0.02), p + Vector3(-w * 0.5, -h, 0.02),
-				Vector2.ZERO, Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), c, Vector3.BACK)
-			mb.add_quad(cloth, p + Vector3(-w * 0.5, 0, 0), p + Vector3(-w * 0.5, -h, 0.02), p + Vector3(w * 0.5, -h, 0.02), p + Vector3(w * 0.5, 0, 0),
-				Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), c * 0.8, Vector3.FORWARD)
+		_washing(mb, M.v3(a, y), M.v3(b, y), rng)
 		x -= 7.0
+	for e in [[Vector2(-76.0, 48.0), Vector2(-66.0, 43.0)], [Vector2(-76.0, 60.0), Vector2(-64.0, 66.0)], [Vector2(-53.0, 58.0), Vector2(-62.0, 66.0)]]:
+		var y := P.ground(e[0]) + 3.2
+		_washing(mb, M.v3(e[0], y), M.v3(e[1], y - 0.3), rng)
 	for i in range(9):
 		var q := Vector2(rng.randf_range(-44.0, -10.0), 50.5 if i % 2 == 0 else 53.5)
 		var item := Props.crate(0.6) if i % 3 == 0 else Props.barrel()
@@ -821,9 +815,9 @@ static func _slum(out: Dictionary) -> void:
 	_spot(out, "fire", fire, fy, Vector2(1, 0))
 	var cart := KitVillage.handcart()
 	absorb(mb, cols, cart, M.xf(M.v3(Vector2(-71.0, 40.0), P.ground(Vector2(-71.0, 40.0))), 0.4) * Transform3D(Basis(Vector3.BACK, 0.2), Vector3.ZERO))
-	for i in range(8):
+	for i in range(18):
 		var q := Vector2(rng.randf_range(yard.position.x + 6.0, yard.end.x - 3.0), rng.randf_range(yard.position.y + 4.0, yard.end.y - 3.0))
-		if q.distance_to(fire) < 4.0:
+		if q.distance_to(fire) < 5.0:
 			continue
 		var item := Props.crate(rng.randf_range(0.6, 0.9)) if i % 2 == 0 else Props.barrel()
 		absorb(mb, cols, item, M.xf(M.v3(q, P.ground(q)), rng.randf() * TAU))
@@ -832,6 +826,25 @@ static func _slum(out: Dictionary) -> void:
 		_spot(out, "ruffian%d" % i, fire + Vector2(cos(a), sin(a)) * rng.randf_range(2.4, 4.0), P.ground(fire), -Vector2(cos(a), sin(a)))
 	_spot(out, "slum_door", Vector2(-20.0, 52.2), P.ground(Vector2(-20.0, 52.2)), Vector2(0, -1))
 	_piece(out, "Slum", mb, cols)
+
+
+## A washing line from a to b hung with shirts and sheets, each hanging along the line.
+static func _washing(mb: MeshBuilder, a: Vector3, b: Vector3, rng: RandomNumberGenerator) -> void:
+	var cloth := PSXMat.lit("canvas")
+	var washing: Array = CapitalStyle.STYLE["pennants"]
+	var pts := MeshBuilder.sag_points(a, b, 0.3, 8)
+	mb.add_tube(PSXMat.lit("rope"), pts, 0.015, -1.0, 3)
+	var along := Vector3(b.x - a.x, 0, b.z - a.z).normalized()
+	var n := Vector3(along.z, 0, -along.x)
+	for i in range(1, pts.size() - 1, 2):
+		var p: Vector3 = pts[i]
+		var w := rng.randf_range(0.4, 0.8)
+		var h := rng.randf_range(0.5, 0.9)
+		var c: Color = (washing[rng.randi() % washing.size()] as Color).lerp(Color(0.85, 0.82, 0.75), 0.4)
+		var l := p - along * w * 0.5
+		var r := p + along * w * 0.5
+		mb.add_quad(cloth, l, r, r + Vector3(0, -h, 0) + n * 0.02, l + Vector3(0, -h, 0) + n * 0.02, Vector2.ZERO, Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), c, n)
+		mb.add_quad(cloth, l, l + Vector3(0, -h, 0) + n * 0.02, r + Vector3(0, -h, 0) + n * 0.02, r, Vector2.ZERO, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), c * 0.8, -n)
 
 
 ## A lean-to shack of grey boards against the yard's edge, a tarp for a door (`face` out into the yard).

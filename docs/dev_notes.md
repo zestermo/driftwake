@@ -4435,3 +4435,54 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   stable/one of three/all three over seeds), t/capital/shell (the dock, a deep clear berth, every floor solid underfoot,
   every floor's edge closed, the palace up on its hill, the pieces stand, its style), t/capital/debug_jump. Renders:
   `capitalshot.gd`.
+
+## 2026-10-21: the royal capital, pieces 2-3: the core district and its life (docs/capital_plan.md)
+- **CapitalDistrict** (built on the worker after the shell, merged a mesh an area, fold_tints): every lot that fronts a
+  floor or stands on KEEP ground is a town house (`townhouse`: a taller ground floor, a shopfront with window, awning,
+  wares and a hanging sign by shop kind, a recessed door up two steps, pilasters, a string course, balconies on some,
+  the facade storeys and roof over; the slum's stained and shabby); the shell now leaves those lots to it. The plaza's
+  own buildings (CapitalPlan.SPECIAL, no lots under them): the Crown and Compass (an arcade and loggia with tables, its
+  door lanterns and sign), Quayle's Curios (a counter of rarities), the guild hall and the shut counting house
+  (porticoes, steps from the plaza's level, a portcullis on the bank's door). The plaza: fountain (basin, two tiers,
+  a crowned figure, spouts), eight Buildings.stall in a broken ring, a cobbled ring, plane trees, four lamps, bunting,
+  the notice board. The street: barrows, wall lanterns, bunting; the sea gate's banners. The quay: cargo stacks, two
+  cranes, the fish market under a tiled roof, nets, the harbourmaster's booth, lamps, boats tied up. The avenue:
+  statues and cypresses, two lamps; the arena street's posters and the crier's booth. The slum: washing lines over
+  the alley and the yard, five lean-to shacks, a fire in a barrel, a broken cart, junk. Existing builders' nodes (stalls,
+  crates, cranes, the board, tables) are `absorb`ed: meshes merged, colliders kept as shapes, the node freed.
+- **Its output** besides the pieces: `spots` (where each person stands, frame), `doors` (the town houses' doorsteps),
+  `lights` (14: plaza 4, street 2, quay 3, avenue 2, the inn's door, the yard's fire, the lighthouse all day; NightLights
+  made in the "lamps" step). Door paints are 4 (a door leaf keeps its picture exact, so each paint is a surface).
+  The shop windows and fanlights share one window material whose glow follows Weather.night with the facades'.
+- **CapitalLife** (scripts/island/capital_life.gd; a node under the island, island space): 22 named people at their
+  spots with their own lines, looks from CapitalStyle's folk by name (guards in blue frock coats and cavaliers);
+  shops in Shops.extra by `save_key("capital_*")`: Quayle's Curios (treasure, tier max(island +1, 3): the islands'
+  merchants are maxi(t, 2)), Hesper's Greengrocery, Gilly's Fish, Lorne & Daughters (city cuts), the inn's cook. The
+  inn's Rest at its door (GameManager.rest), the notice board's Read, four seat benches by the fountain. Quests on
+  KitQuests: the Watch's notice "Clear out Gallows Row" (board, reported to Sergeant Brannoch; clear = the toughs'
+  alive_count 0), Ambrose Pell's "Sealed with wax" (deliver the guild's ledger to Tobin Rook on the quay), Mirela's
+  "My mother's locket" (lost, in the yard among the toughs). The toughs: a GruntCamp "Ruffians" (4: crew looks
+  restyled, one rifle, warm start, respawn 900 s) round the fire; its nav zone from `CapitalIsland.nav_faces` (the
+  floors there and every solid box as faces: the city's colliders aren't under one node to parse).
+- **CapitalCrowd** (under City): 56 walkers on 11 lanes (street, gate, quay, avenue, arena street, the plaza's edges and
+  a ring round the fountain), placed from Ocean.clock (no messages in co-op). Drawn as two MultiMeshes of one figure
+  (the step's two strides, a hidden one scaled to nothing; tinted by instance colour, which psx_lit multiplies in;
+  no shadow, 180 m range), transforms rewritten every 0.1 s. The nearest walker of each of 8 looks within 15 m of the
+  camera is a real Humanoid from a pool of 8 prebuilt bodies (shown, process on; others hidden, process off). Asleep
+  (nothing runs or draws) with the camera 260 m off the district.
+- **Gotcha:** `(arr[i] as PackedFloat32Array).resize()` resizes a copy (packed arrays are values): the crowd's buffers
+  are built as locals.
+- **Cost:** district ~0.8 s and the 30 bodies ~3 s on the worker; on the main thread the new steps are a few ms each.
+  City surfaces (crowd bodies apart) 363 (t/capital/district caps it at 420); 30 humanoids (22 people, 8 crowd bodies
+  of which only the ones by the camera are shown). Per frame: the crowd's 8 bodies' positions; every 0.1 s 56 walkers'
+  transforms (two buffers); every 0.5 s the sleep check; NPCs and grunts as everywhere (ActorSleep, Humanoid.lod).
+  Not benched (the lead benches).
+- **Map:** `places` for the palace gate, the arena, the lighthouse, Gallows Row and the inn; the town label is the city's
+  name (map_isles).
+- **Walled off for 1.20:** the palace (gate shut, guarded), the arena (portcullis), the counting house, every side lane
+  (barrier walls with shut doors), the districts behind the fronts (massing).
+- **Tested by** t/capital/district (doors on floors and clear, the pieces, every spot on the ground, the lights within
+  budget and lit only at night but the lighthouse, surfaces under 420) and t/capital/life (everyone there, the curio
+  dealer's tier and his stock steady for a day and turning over, the shops, the rest heals, three quests, taking the
+  notice, the toughs muster host-side in the yard, the crowd on the floors and where the clock says, no crowd bodies
+  with the camera far). Renders: capitalshot (plaza, street, crowd, inn, halls, quay, slum, yard), by day and 21:30.

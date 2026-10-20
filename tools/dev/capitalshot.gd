@@ -100,6 +100,11 @@ func _setup(island) -> void:
 	var ship = get_first_node_in_group("ship")
 	var moor: Array = isl.mooring()
 	ship.place(moor[0], moor[1])
+	# (the captain in the district, out of sight: its people and the toughs wake for a captain nearby)
+	var me = get_first_node_in_group("player")
+	me.global_position = isl.city_global(Vector2(-30, 52), CapitalPlan.ground(Vector2(-30, 52)) + 0.3)
+	me.reset_physics_interpolation()
+	me.visible = false
 	shots = [
 		["approach", "sailing in from the sea", Vector2(70, 720), 26.0, Vector2(0, -40), 22.0],
 		["approach2", "closer in", Vector2(40, 420), 16.0, Vector2(0, -40), 24.0],
@@ -112,6 +117,10 @@ func _setup(island) -> void:
 		["palace", "the palace on its hill", Vector2(0, -20), 6.8, Vector2(0, -165), 40.0],
 		["arena", "the arena's walls", Vector2(30, 0), 6.8, Vector2(108, 0), 12.0],
 		["slum", "the slum alley", Vector2(-8, 52), 4.0, Vector2(-62, 50), 4.0],
+		["yard", "Gallows Row's yard and its toughs", Vector2(-50.0, 45.0), 2.6, Vector2(-63, 53), 1.0],
+		["inn", "the Crown and Compass", Vector2(-12, 2), 2.4, Vector2(-30, 3), 3.5],
+		["crowd", "the market street at eye height", Vector2(-1.0, 62), 1.7, Vector2(0, 28), 2.0],
+		["halls", "the guild hall and the counting house", Vector2(0, 12), 2.5, Vector2(0, -30), 7.0],
 		["hill", "the town from the palace", Vector2(0, -112), 40.0, Vector2(0, 60), 0.0],
 	]
 	var only := OS.get_environment("CSHOT_ONLY")

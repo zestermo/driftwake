@@ -69,7 +69,8 @@ func _process(_d: float) -> bool:
 					while z < r.end.y:
 						var q2 := Vector2(x, z)
 						var h := _ray(isl.city_global(q2, P.ground(q2) + 3.0), isl.city_global(q2, P.ground(q2) - 3.0))
-						if h.is_empty() or absf(h["position"].y - P.ground(q2)) > 0.15:
+						# (a crate or a stall standing on the floor is fine: falling through to the ground under it isn't)
+						if h.is_empty() or (str(h["collider"].name).begins_with("Ground") and absf(h["position"].y - P.ground(q2)) > 0.15):
 							holes.append("%s %s" % [f[0], q2.round()])
 						z += 5.0
 					x += 5.0
@@ -95,16 +96,18 @@ func _process(_d: float) -> bool:
 					var k := int(a.distance_to(b) / 2.0)
 					for i in range(k):
 						var p: Vector2 = a.lerp(b, (i + 0.5) / k)
-						if P.in_floor(p + n * 1.0):
+						# (another floor, or the plaza's own buildings: the guild's portico opens off the plaza)
+						if P.in_floor(p + n * 1.0, 0.6) or P.special_hit(Rect2(p + n * 1.0, Vector2.ZERO).grow(0.1)):
 							continue
 						var y: float = P.ground(p) + 1.2
 						var from: Vector3 = isl.city_global(p - n * 1.5, y)
 						if _solid_at(from):
 							continue
-						if _ray(from, isl.city_global(p + n * 2.5, y)).is_empty():
+						# (7 m: a portico's steps lead in under its columns before its wall, a closed pocket)
+						if _ray(from, isl.city_global(p + n * 7.0, y)).is_empty():
 							open.append("%s %s" % [f[0], p.round()])
 			check("every floor closed at its edges (%d open: %s)" % [open.size(), open.slice(0, 12)], open.is_empty())
-			var meshes: int = isl.city.find_children("*", "MeshInstance3D", true, false).size()
+			var meshes: int = isl.city.find_children("*", "MeshInstance3D", true, false).filter(func(m): return not isl.crowd.is_ancestor_of(m)).size()
 			check("the city's pieces are few meshes (%d)" % meshes, meshes < 60)
 			isl.queue_free()
 			return TK.done(fails)

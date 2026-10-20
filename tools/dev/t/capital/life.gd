@@ -52,21 +52,21 @@ func _process(_d: float) -> bool:
 			check("his stock is the same for a day and turns over", str(SHOPS.stock_on(curio, 12)) == str(SHOPS.stock_on(curio, 12)) and str(SHOPS.stock_on(curio, 12)) != str(SHOPS.stock_on(curio, 13)))
 			for id in ["capital_grocer", "capital_fish", "capital_tailor", "capital_inn"]:
 				check("the %s shop is open" % id, SHOPS.extra.has(isl.save_key(id)))
-			var rest: Node = life.get_node_or_null("Rest")
+			var rest = life.get_node_or_null("Rest")
 			var odile: Node3D = names.get("Odile Marchbank")
 			check("the inn's rest at its door, by the innkeeper", rest != null and odile != null and (rest as Node3D).global_position.distance_to(odile.global_position) < 5.0)
 			var p = stage.player
 			p.health_component.current_health = p.health_component.max_health * 0.3
-			(rest as Interactable).interacted.emit(p)
+			rest.interacted.emit(p)
 			check("resting at the inn heals", p.health_component.current_health >= p.health_component.max_health - 0.5)
 			check("three city quests in the journal's sources", life.quest_node.quests.size() == 3)
 			var gid: String = isl.save_key("capital_gallows")
-			Dialogue.emit_signal("dialogue_event", "isle_q:%s:take" % gid)
-			check("taking the Watch's notice puts it in the journal", Journal.has(gid))
+			root.get_node("Dialogue").emit_signal("dialogue_event", "isle_q:%s:take" % gid)
+			check("taking the Watch's notice puts it in the journal", root.get_node("Journal").has(gid))
 			until = TK.wait_secs(6.0)
 		3:
 			var life = isl.life_node
-			var camp: GruntCamp = life.ruffians
+			var camp = life.ruffians
 			check("the toughs muster round their fire (%d)" % camp.alive_count(), camp.alive_count() == 4)
 			var fire: Vector3 = life._spot("fire")[0]
 			var near := true

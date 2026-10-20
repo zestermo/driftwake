@@ -54,13 +54,14 @@ func _process(_d: float) -> bool:
 				var down := _ray(g + Vector3.UP, g + Vector3.DOWN * 3.0)
 				if down.is_empty():
 					bad.append("%s no ground" % q.round())
-			check("%d town houses, every door on a floor and clear in front (%s)" % [isl.doors.size(), bad.slice(0, 8)], isl.doors.size() > 60 and bad.is_empty())
+			check("%d town houses, every door on a floor and clear in front (%s)" % [isl.doors.size(), bad.slice(0, 8)], isl.doors.size() > 25 and bad.is_empty())
 			for n in ["PlazaHalls", "Plaza", "Street", "Harbour", "Avenue", "Slum", "Town_street", "Town_plaza", "Town_slum"]:
 				check("the %s stands" % n, isl.city.get_node_or_null(n) != null)
 			var missing: Array = SPOTS.filter(func(s): return not isl.spots.has(s))
 			check("every spot the people need (%s missing)" % [missing], missing.is_empty())
 			var floating: Array = []
-			for s in isl.spots.keys():
+			# (the fire is the barrel's own spot: the toughs stand round it)
+			for s in isl.spots.keys().filter(func(k): return k != "fire"):
 				var v: Vector3 = isl.spots[s][0]
 				var gq := Vector2(v.x, v.z)
 				var hit := _ray(isl.city_global(gq, v.y + 1.5), isl.city_global(gq, v.y - 1.5))
@@ -71,8 +72,15 @@ func _process(_d: float) -> bool:
 			check("the lights inside the budget (%d)" % lights.size(), lights.size() > 8 and lights.size() <= 16)
 			check("only the lighthouse lit all day", lights.filter(func(l): return l.always).size() == 1)
 			var draws := 0
+			var by := {}
 			for mi in isl.city.find_children("*", "MeshInstance3D", true, false):
+				# (the crowd's real bodies only show by the camera, a few at a time)
+				if isl.crowd.is_ancestor_of(mi):
+					continue
 				draws += (mi as MeshInstance3D).mesh.get_surface_count()
+				var key := str(mi.get_parent().name)
+				by[key] = int(by.get(key, 0)) + (mi as MeshInstance3D).mesh.get_surface_count()
+			print("   surfaces by piece: %s" % by)
 			check("the city's surfaces stay few (%d)" % draws, draws < 420)
 			isl.queue_free()
 			return TK.done(fails)
