@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.18-e0b040" alt="Version 1.18">
+  <img src="https://img.shields.io/badge/version-1.18.1-e0b040" alt="Version 1.18.1">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -161,6 +161,13 @@ the equipment slot, face the water and press F to cast, then F again when the bo
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.18.1: A First Look at the Capital (October 20, 2026)
+A sneak peek at the first real city: the chain's first city stop, two islands out from Brinehollow, is a walled royal
+capital (Port Solenne, Highcrown or Meridian, rolled per world). A harbour with a lighthouse and fort, a sea wall with
+towers, a palace on its hill; the market street and plaza with shops and a curio dealer's rare stock, the Crown and
+Compass inn, a notice board and city quests, the palace gate and the arena's walls (closed for now), Gallows Row's
+toughs, and the busiest crowds in the game, the same for the whole crew. The rest of the city comes in v1.20.
 
 ### v1.18: Charted Waters (October 19, 2026)
 Everything you do makes you better at it: reworked skills, a real economy, food and fishing, diving, a map you hold

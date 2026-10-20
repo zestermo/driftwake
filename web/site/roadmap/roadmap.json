@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.18",
+	"here": "1.18.1",
 	"versions": [
 		{
 			"v": "0.1",
@@ -436,6 +436,26 @@
 				["Ships", "Swinging ropes as a yard upgrade, and enemy crews that board you."],
 				["This timeline", "The interactive roadmap you're reading."],
 				["Performance and fixes", "Smoother towns and island loads, steadier co-op joins, and many smaller fixes."]
+			]
+		},
+		{
+			"v": "1.18.1",
+			"name": "A First Look at the Capital",
+			"date": "2026-10-20",
+			"status": "shipped",
+			"headline": "A sneak peek at the first real city: a walled royal capital two islands out from Brinehollow.",
+			"img": "capital",
+			"alt": "A walled white city on the sea at sunset, a lighthouse on the harbour mole and a palace on the hill behind",
+			"shots": [
+				["capital-plaza", "The capital's plaza by day: a fountain, market stalls and banners, the palace on its hill"],
+				["capital-night", "The plaza at night, lit windows on every floor"]
+			],
+			"news": "/news/v1-18-1-the-capital/",
+			"github": true,
+			"added": [
+				["The royal capital", "The chain's first city stop: a walled capital with a harbour, a lighthouse and fort, towers, and a palace on a hill. Its name is rolled per world."],
+				["Its core district", "The market plaza and shops, the Crown and Compass inn, a notice board and city quests, the palace gate and the arena's walls, and Gallows Row's toughs."],
+				["Crowds", "The busiest streets in the game, the same on every crewmate's screen."]
 			]
 		},
 		{
