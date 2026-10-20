@@ -44,3 +44,9 @@ one planned, as **floating, clickable cards** strung along a timeline line.
 - **The intro sequence is redesigned in 1.19** (Zach, 2026-10-19), on the cutscene system the rival crews need: it
   sets up the world (the Marines, rival crews, the sea's great powers, the First Sea's end) and the captain's goal
   and motivation. Grill it with the rest of 1.19.
+- **Fighting in the water** (Zach, 2026-10-19): swimmers get an attack (a knife stab, a short harpoon or similar,
+  plus diving moves), so a captain can fight back against sharks and morays (a shark's break-off at half health
+  comes sooner) and fight in the sea at all. Built with 1.19's captain-style AI so the **rivals and the Admiralty can
+  fight underwater too** (chasing a captain who dives, duels in the shallows). It's the root of the Seafarer tree's
+  "fighting underwater" (docs/devil_fruits_plan.md). Today a swimmer sheathes their weapon (swim_state.gd) and sea
+  threats can only be hit from the deck or the shore.
