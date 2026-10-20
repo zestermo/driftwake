@@ -206,6 +206,7 @@ func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int, 
 	var p: Vector2 = n["pos"]
 	var t1 := Time.get_ticks_usec()
 	isl.building = false
+	MeshBuilder.forget()
 	chain_islands[int(n["id"])] = isl
 	island_infos.append({"pos": p, "type": n["theme"], "radius": isl.radius, "name": n["name"], "id": int(n["id"])})
 	EnemyShip.no_go.append([p, isl.radius + 30.0])

@@ -119,7 +119,9 @@ static func _fold(mi: MeshInstance3D, out: Array, folds: Dictionary) -> void:
 	var m := mi.mesh as ArrayMesh
 	if not folds.has(m):
 		folds[m] = m
-		var mb := MeshBuilder.from_mesh(m)
+		var mb := MeshBuilder.kept(m)
+		if mb == null:
+			mb = MeshBuilder.from_mesh(m)
 		if mb != null:
 			mb.fold_tints()
 			if mb.surface_count() < m.get_surface_count():

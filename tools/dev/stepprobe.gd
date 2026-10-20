@@ -73,6 +73,7 @@ func _process(d: float) -> bool:
 		si += 1
 		return false
 	_report()
+	MeshBuilder.forget()
 	isl.queue_free()
 	isl = null
 	round_n += 1

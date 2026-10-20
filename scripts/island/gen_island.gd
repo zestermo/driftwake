@@ -235,6 +235,7 @@ func finish() -> void:
 	for s in finish_steps():
 		run_step(s)
 	building = false
+	MeshBuilder.forget()
 
 
 ## Still being put in the world a step a frame (WorldGenerator): what it spawns as it joins comes a piece a frame.
@@ -273,7 +274,10 @@ func finish_steps() -> Array:
 ## Runs one of finish_steps; its ms (steps of the same name add up in build_ms).
 func run_step(s: Array) -> int:
 	var t0 := Time.get_ticks_usec()
+	# (DrawLOD folds the meshes from what they were built from: MeshBuilder.keep)
+	MeshBuilder.keep = true
 	(s[1] as Callable).call()
+	MeshBuilder.keep = false
 	var ms := _lap(t0)
 	build_ms[s[0]] = int(build_ms.get(s[0], 0)) + ms
 	_step_n[s[0]] = int(_step_n.get(s[0], 0)) + 1

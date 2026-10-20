@@ -994,7 +994,29 @@ func commit() -> ArrayMesh:
 			arrays[Mesh.ARRAY_WEIGHTS] = s["w"]
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
+	if keep and not skinned and OS.get_thread_caller_id() == OS.get_main_thread_id():
+		var snap := MeshBuilder.new()
+		for mat in _order:
+			if not (_surfaces[mat]["v"] as PackedVector3Array).is_empty():
+				snap._order.append(mat)
+				snap._surfaces[mat] = (_surfaces[mat] as Dictionary).duplicate()
+		_kept[mesh] = snap
 	return mesh
+
+
+## While on (a chain island's build steps, GenIsland.run_step), what each mesh committed on the main thread was built
+## from is kept (its arrays shared, copied only if the builder goes on), so DrawLOD folds its tints from that instead of
+## reading the mesh back (from_mesh: from the GPU in a window). forget() lets them go.
+static var keep := false
+static var _kept := {}
+
+
+static func kept(am: ArrayMesh) -> MeshBuilder:
+	return _kept.get(am)
+
+
+static func forget() -> void:
+	_kept.clear()
 
 
 ## Convenience: commit into a MeshInstance3D.
