@@ -61,5 +61,10 @@ After 1.18.1 ships, before the 1.19 batch, in order, each with a before/after be
 3. **Occlusion culling in towns** (occluders from the kit's buildings, the capital first) + **a shadow-caster audit**
    (small props off the sun's shadow pass: 613 of 1,556 draws; shadow distance/cascades).
 4. **Far actors fully off** past a range (processing and bodies off, not only asleep: the "far" ablation's ~1.2 ms).
-Bar: no visible loss of detail; GPU has headroom (1.45 ms), the frame is CPU-bound. Later, if still needed: central
+5. **The long tail** (quick GDScript wins found in the v1181_before probe): sky_birds.gd 0.38 ms, sea_spray.gd 0.29 ms,
+   dev_capture.gd 0.12 ms/tick (make sure it does nothing in release builds), and whatever else the refreshed probe
+   shows at 0.1-0.4 ms for little visible effect.
+Bar: no visible loss of detail; GPU has headroom (1.45 ms), the frame is CPU-bound. **Not now** (Zach, 2026-10-20): a
+   GDExtension; the animator + skinning is only ~2 ms of a ~20 ms frame, and C++ would slow development (toolchain, the
+   web build, native crashes). Revisit only if one pure-maths kernel dominates after the session. Later, if still needed: central
 update managers, and the hottest per-frame code (animator, spring chains, wave sampling) as a GDExtension.
