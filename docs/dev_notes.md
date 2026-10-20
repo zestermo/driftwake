@@ -4610,6 +4610,14 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   people: "village people", which GenIsland's predelete reads now for the stocked bodies); the market in four; each shop
   and its keeper. A nest on a building island (`GenIsland.building`) hatches a bug a frame (`ScuttlebugNest._hatching`);
   a warm-start camp musters a grunt a frame and is manned once all are (`GruntCamp._muster`).
+- **Measured** (min-spec PC, 13:00 clear, no other Godots): the isles stop (isb_before / isb_after2, calib 23.34 / 23.88)
+  h33 26 -> 13, h50 5 -> 1, worst 87 -> 60 ms, p95 31.4 -> 28.9, frame 20.0 -> 19.1. The build log: the session start's
+  islands 2372 -> 1175 ms on the main thread (Whitecap Key, worst step 120 -> 31) and 2645 -> 1418 (Tambor Key, 158 -> 32),
+  the isles rebuild 1524 ms over 217 frames (worst 35) -> 1023 over 178 (worst 21). The whole route in gate mode back to
+  back with main's scripts (isb_route_main / isb_route, calib 23.95 / 24.08): ALL_OLD 13.45 -> 13.36 ms, ALL_NEW 13.60 ->
+  12.63, the route's h33 178 -> 17 (main's islands were still building into the first stops: bwalk's 1.3 s frame); terrace
+  +15% alone (noise: no script of this branch's in it). The 60 ms frame left in the isles stop comes after the last step
+  with no mark (+80 nodes; it was there before too, 58 ms): not attributed.
 - Tried and dropped: MultiMesh `buffer` set in one call from prepare (a 125 ms step: the RD uploads it at once, where
   set_instance_transform batches to the frame).
 - **Same island:** islanddump of Brinehollow (only the dummies' sack heads, as always) and of chain seeds 4242, 1, 12, 36
