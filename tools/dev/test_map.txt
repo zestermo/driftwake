@@ -179,7 +179,7 @@ scripts/island/world_generator.gd       foresttest r9test perftest chaintest sea
 scripts/island/redtide_fort.gd          r8test perftest
 scripts/world/chain.gd                  chaintest isletest legtest landmarktest
 scripts/island/gen_island.gd            isletest apetest chaintest netchain
-scripts/island/coast.gd                 isletest swimtest shiptest storytest harbourtest
+scripts/island/coast.gd                 isletest swimtest shiptest storytest harbourtest harbourkindstest
 scripts/island/island_content.gd        isletest apetest netchain
 scripts/island/island_village.gd        isletest netchain
 scripts/island/beast_arena.gd           apetest isletest netchain
@@ -198,9 +198,9 @@ scripts/island/island_content.gd        bosstest
 scripts/world/chain.gd                  bosstest
 tools/dev/bosstest.gd                   bosstest
 scripts/island/island_theme.gd          isletest chaintest
-scripts/island/kit/kit_harbour*         harbourtest isletest netchain
-scripts/island/kit/kit_style.gd         harbourtest
-scripts/island/gen_island.gd            harbourtest
+scripts/island/kit/kit_harbour*         harbourtest harbourkindstest isletest netchain
+scripts/island/kit/kit_style.gd         harbourtest harbourkindstest
+scripts/island/gen_island.gd            harbourtest harbourkindstest
 scripts/island/island_theme.gd          isletest chaintest landmarktest
 scripts/island/kit/kit_landmarks.gd     landmarktest isletest netchain
 scripts/island/kit/kit_setpieces.gd     landmarktest isletest chaintest netchain
@@ -237,8 +237,8 @@ scripts/npc/npc.gd                      lifetest
 scripts/dialogue/dialogue_manager.gd    lifetest
 scripts/island/gen_island.gd            villagetest landmarktest bosstest
 scripts/island/kit/kit_style.gd         villagetest
-scripts/island/kit/kit_context.gd       harbourtest villagetest dungeontest isletest qoltest
-scripts/island/kit/kit_lights.gd        harbourtest villagetest isletest
+scripts/island/kit/kit_context.gd       harbourtest harbourkindstest villagetest dungeontest isletest qoltest
+scripts/island/kit/kit_lights.gd        harbourtest harbourkindstest villagetest isletest
 scripts/island/kit/kit_camps.gd         isletest foresttest
 scripts/island/kit/kit_camps.gd         denpathtest storytest
 scripts/island/kit/kit_cliff_path.gd    denpathtest storytest foresttest

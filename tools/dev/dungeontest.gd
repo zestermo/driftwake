@@ -13,9 +13,11 @@ extends SceneTree
 ## warden; the brood mother wakes when you're in her chamber, her hoard comes
 ## once per character; the root cavern's end nest cleared sets its flag.
 const SEEDS := [1, 2, 3, 4, 7, 12]
+const TK = preload("res://tools/dev/test_kit.gd")
 var t := 0.0
 var step := 0
 var wait := 0.0
+var until := 0
 var p
 var gm
 var world
@@ -123,6 +125,8 @@ func _process(d: float) -> bool:
 		check("timed out at step %d" % step, false)
 		finish()
 		return true
+	if TK.ticking(until):
+		return false
 	if wait > 0.0:
 		wait -= d
 		return false
@@ -181,7 +185,7 @@ func _process(d: float) -> bool:
 			# into the middle room, by the crew's fire
 			var mid: Dictionary = KD.room_of(info, "mid")
 			put(cave.to_global(KD.loc(info, mid["c"], float(mid["y"]))))
-			wait = 4.0
+			until = TK.wait_secs(4.0)
 			step = 4
 		4:
 			var crew = cave.get_node("Enemies/Crew")

@@ -165,7 +165,7 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
     the next islands' prepare on the workers); the temple step and vegetation colliders are ~50 ms.
   - Brinehollow's den: check the tower and flag tops aren't visible from far off at the training yard.
 
-- **Tooling window (after v1.18):** `crew_lib.ps1:280` races: it `Get-Item`s a deps file another session deleted between its `Test-Path` and the `Get-Item` (killed a landing attempt, 2026-10-19; the retry passed). Also the lint for an autoload name in a `static func` (f64f82d note).
+- **Tooling window (after v1.18):** Fauna tests that spawn unnamed creatures (their rng is seeded by the node name: any new node shifts Godot's auto-names; desert_fauna broke this way) should name them; Humanoid._rng is never seeded (r10test's jump sides flake). `crew_lib.ps1:280` races: it `Get-Item`s a deps file another session deleted between its `Test-Path` and the `Get-Item` (killed a landing attempt, 2026-10-19; the retry passed). Also the lint for an autoload name in a `static func` (f64f82d note).
 
 ## Later (kept, not scheduled)
 - **Lock hairstyles (parked 2026-10-17):** eight long anime-figure styles built from locks (`scripts/npc/hair_flow.gd`,

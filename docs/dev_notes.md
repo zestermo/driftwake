@@ -4358,3 +4358,8 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   screenshot save (~60-70 ms), which is the `worst` column at every stop and ~+0.2 ms on each stop's base mean (both sides).
 - **Tested by** t/ship/moored_hulls (a hull beside the moored ship holds still, rides once she's under way), t/quests/
   encounter_rolls (every encounter person's body built ahead, none left waiting), t/world/actor_sleep, perftest.
+
+## 2026-10-19: dungeontest and harbourtest red before 1.18
+- **dungeontest**: the suite re-seeds the chain mid-run, so island key `isle0` named a different-sized island while GameManager.fog still held the old island's grid; MapFog.look indexed past it (map_fog.gd:37). MapFog.grid now treats a grid of the wrong size as no fog and apply starts a fresh one instead of resizing the stale one. Its "reaches you across the floor" wait is in physics ticks now (it failed once under load, passed alone).
+- **harbourtest**: not stuck, just over the runner's 330 s: 10 full island builds, then 8 more prepares for the node/kind checks (each ~8-13 s under load). Those last two checks are now `harbourkindstest` (~160 s); harbourtest is ~210 s. No budget raised, no check dropped.
+- **Tested by** t/map/fog_regrown (a stale grid under the key), dungeontest, harbourtest, harbourkindstest.
