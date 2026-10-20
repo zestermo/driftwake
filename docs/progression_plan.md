@@ -161,3 +161,42 @@ trees.
    story step, the Captain tree removed.
 5. World discoveries: a master, a manual, a feat, the quest reward.
 6. Depth: an evolution per weapon, more traits, a balance pass.
+
+## Build: v1.18.2 (Zach, 2026-10-20)
+"Do all this now", shipped in 1.18.2 with the optimization session's work.
+
+| Decision | Choice |
+|---|---|
+| Scope | **Systems now, new moves next.** Every system, menu and tree in 1.18.2, built from abilities that exist plus new numbers-only passives and talents. Trees show only real nodes; a variant whose second version is a new animated move waits (the node shows its one version). The ~30 new animated moves (Falling Moon, Twin Waves, Side Step, Moonstep, Afterimage, Disarm/Shove, Rolling Guard, Crash Landing, Dolphin Kick...) are a follow-up batch (docs/todo.md). |
+| Tree tables | The building agent drafts every tree past the katana (8 weapons, Captain, Adventure) into this doc following the katana's pattern, builds them, and Zach tunes in play. |
+| Title font | Jacquarda Bastarda 9 (Google Fonts, SIL OFL) downloaded into assets/fonts/ with its licence. |
+| Restyle | Other menus and UI in the same whimsical style where it's low-cost (UIStyle frame kinds, so most screens change through the theme). |
+| Phase 5 (world discoveries) | Not in 1.18.2 (needs content: a master, manuals, feats). |
+
+**Agents** (separate areas; names fixed for the batch):
+- **prog-core** owns `scripts/progression/*` (new tree data, Progression), `scripts/game/story.gd` (Vey's reward),
+  `scripts/game/downtime.gd` (training), the XP/mastery grant sites (`power_component.gd:on_sword_hit`'s `pr.on_hit()`
+  call only), and in `scenes/player/player.gd` only the per-level growth lines (`_recalc_stats`, `defense()`,
+  `damage_multiplier`). Adventure trees' XP hooks in block/crouch/stealth/jump/dodge states are small local calls
+  `player.progression.add_life(...)`.
+- **menu-ui** owns `scripts/ui/ui_style.gd`, `scripts/ui/skill_map_screen.gd` (becomes the new menu),
+  `scripts/ui/game_menu.gd`, `assets/fonts/`, and the other menu screens it restyles (pause, options, inventory,
+  shop, journal, galley, shipwright, title, save slots...). Not `skill_bar.gd`.
+- **bar-swap** owns `scripts/powers/power_component.gd` (except prog-core's one call), the loadout functions in
+  `scenes/player/player.gd` (`LOADOUTS`..`set_loadouts`, ~1679-1777) and the cast input lines (~1526),
+  `scripts/ui/skill_bar.gd`, `scripts/ui/loadout_wheel.gd`.
+
+**Contract (prog-core provides in its first landed piece; menu-ui and bar-swap build on it):**
+- `SkillTrees` (static data, replaces `SkillTree`'s layout role): `tree_def(id) -> {id, name, section ("captain" |
+  "combat" | "adventure" | "fruit"), color, max_level, branches: [{name, nodes: [ids]}]}`; `node_def(id) -> {id, name,
+  kind ("root" | "move" | "tech" | "mech" | "passive" | "elem" | "ult" | "step" | "variant" | "auto" | "talent" |
+  "will"), tree, branch, level, pos (Vector2, tree space), links, skill (skill id or ""), desc, max_steps,
+  versions: [{name, desc, level}]}`; `trees_in(section) -> Array`.
+- `Progression`: `visible_trees(section)`, `tree_level(tree)`, `tree_xp(tree)`, `tree_xp_next(tree)`,
+  `points_free(tree)`, `steps_of(node)`, `buy_step(node) -> bool`, `has_node(node)`, `version_of(node) -> int`,
+  `set_version(node, i) -> bool` and `pick_talent(level, i) -> bool` (only where `can_respec()`: the ship's bunk),
+  `talent_at(level) -> int`, `has_will(id)`, `passives: Array[String]` (3, a 4th at level 25), `equip_passive(id,
+  slot) -> bool`, `library() -> {skills: [...], passives: [...]}`; signal `tree_found(tree)` (the banner is shown
+  by prog-core through the hud group). Existing readers (`stat`, `has_move`, `style_stat`, `elemental`,
+  `skill_tier`, `knows`, `known_skills`) keep working.
+- bar-swap needs only `knows(skill)` and `Skills.ALL[id].styles` / `player.loadouts`.

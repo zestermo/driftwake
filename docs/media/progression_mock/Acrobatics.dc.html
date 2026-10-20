@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Acrobatics tree</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&amp;family=Pixelify+Sans:wght@400;600&amp;family=Silkscreen&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#f2c45e}a:hover{color:#f5e8c8}
+.sky{background:
+radial-gradient(1.5px 1.5px at 12% 18%, #f5e8c8 50%, transparent 52%),
+radial-gradient(1px 1px at 27% 64%, #dacca8 50%, transparent 52%),
+radial-gradient(1.5px 1.5px at 41% 9%, #f5e8c8 50%, transparent 52%),
+radial-gradient(1px 1px at 58% 33%, #dacca8 50%, transparent 52%),
+radial-gradient(1.5px 1.5px at 73% 12%, #f5e8c8 50%, transparent 52%),
+radial-gradient(1px 1px at 86% 47%, #dacca8 50%, transparent 52%),
+radial-gradient(ellipse at 45% 60%, #1c5266 0%, #0f2c3a 45%, #081a1f 100%);}
+.px{image-rendering:pixelated}
+.screen{position:relative;isolation:isolate}
+.screen::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(1px 1px at 18% 8%,#fff3c9 50%,transparent 52%),radial-gradient(1.5px 1.5px at 66% 6%,#fff3c9 50%,transparent 52%),radial-gradient(1px 1px at 91% 22%,#fff3c9 50%,transparent 52%),radial-gradient(1.5px 1.5px at 4% 46%,#fff3c9 50%,transparent 52%),radial-gradient(ellipse 40% 30% at 18% 30%,rgba(201,168,255,0.12),transparent 70%),radial-gradient(ellipse 45% 35% at 82% 70%,rgba(101,201,192,0.12),transparent 70%),radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(5,15,18,0.55) 100%);animation:twinkle 4s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.85}50%{opacity:1}}
+.screen::after{content:'';position:absolute;inset:5px;border:2px dashed rgba(218,204,168,0.2);border-radius:16px 10px 18px 12px;pointer-events:none;z-index:9}
+.screen span[style*="font-size: 24px"],.screen span[style*="font-size: 26px"],.screen span[style*="font-size: 28px"],span[style*="font-size: 30px"]{font-family:'Jacquarda Bastarda 9','Pixelify Sans',serif !important;font-weight:400 !important;letter-spacing:0.5px}
+.topbar{position:relative;z-index:3;display:flex;align-items:flex-start;gap:12px;height:56px;padding:0 16px 0 12px;box-sizing:border-box;flex-shrink:0;background:radial-gradient(ellipse 14px 5px at 23% 40%,rgba(43,26,12,0.45),transparent 70%),radial-gradient(ellipse 10px 4px at 71% 62%,rgba(43,26,12,0.4),transparent 70%),repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),repeating-linear-gradient(90deg,transparent 0 141px,rgba(43,26,12,0.35) 141px 143px),linear-gradient(180deg,#86603b 0%,#694627 55%,#4c311a 100%);box-shadow:inset 0 2px 0 rgba(255,230,180,0.18),inset 0 -2px 0 rgba(43,26,12,0.6),0 10px 16px rgba(0,0,0,0.5)}
+.topbar::after{content:'';position:absolute;left:-4px;right:-4px;bottom:-5px;height:8px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c,0 3px 4px rgba(0,0,0,0.4)}
+.emblem{align-self:center;flex-shrink:0;width:40px;height:40px;margin-top:-4px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 40% 35%,#2a6a73,#0f2b30);box-shadow:0 0 0 2px #2b1a0c,0 0 0 5px #c9a15a,0 0 0 6px #2b1a0c,0 0 14px rgba(242,196,94,0.45)}
+.emblem img{width:32px;height:32px}
+.tabs{display:flex;align-items:flex-start;gap:12px;align-self:stretch;padding-left:4px}
+.tab{position:relative;margin-top:11px;padding:2px;border-radius:8px 11px 7px 12px;background:linear-gradient(180deg,#9c7448,#6e4b2b);box-shadow:0 0 0 2px #2b1a0c,0 4px 6px rgba(0,0,0,0.35)}
+.tab::before{content:'';position:absolute;left:14px;right:14px;top:-13px;height:13px;border-left:2px solid #d9b77a;border-right:2px solid #d9b77a}
+.tab:nth-child(1){transform:rotate(-2deg)}.tab:nth-child(2){transform:rotate(1.5deg)}.tab:nth-child(3){transform:rotate(-1deg)}.tab:nth-child(4){transform:rotate(2deg)}
+.tab-in{display:flex;align-items:center;gap:8px;padding:6px 13px 7px;border-radius:6px 9px 5px 10px;font-family:Silkscreen,monospace;font-size:12px;letter-spacing:1px;color:#f3e6c4;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.14) 0 1px,transparent 1px 4px),linear-gradient(180deg,#7a5534,#5a3b22);box-shadow:inset 0 2px 0 rgba(255,230,180,0.2),inset 0 -2px 0 rgba(0,0,0,0.3);text-shadow:0 1px 0 #2b1a0c}
+.tab-in img{width:16px;height:16px;image-rendering:pixelated}
+.tab.on{margin-top:15px;z-index:4;background:linear-gradient(180deg,#fff0b8,#c99a3e);box-shadow:0 0 0 2px #2b1a0c,0 0 16px rgba(255,214,110,0.55),0 6px 8px rgba(0,0,0,0.35)}
+.tab.on::before{top:-17px;height:17px}
+.tab.on::after{content:'';position:absolute;right:-6px;top:-6px;width:11px;height:11px;background:#fff3c9;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.tab.on .tab-in{padding:8px 16px 9px;color:#2b1a0c;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe9a3 0%,#f2c45e 55%,#d9a640 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,0.6),inset 0 -3px 0 rgba(138,106,44,0.55)}
+.plate{align-self:center;margin-top:-3px;display:flex;align-items:center;gap:9px;padding:4px 16px 4px 4px;color:#2b1a0c;background:radial-gradient(ellipse 8px 50% at 100% 50%,rgba(138,106,44,0.45),transparent),repeating-linear-gradient(0deg,rgba(138,106,44,0.07) 0 1px,transparent 1px 3px),#f3e6c4;box-shadow:0 0 0 2px #2b1a0c,0 3px 6px rgba(0,0,0,0.4);border-radius:22px 8px 10px 22px;transform:rotate(-1deg)}
+.coin{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Silkscreen,monospace;font-size:12px;color:#2b1a0c;background:radial-gradient(circle at 35% 30%,#fff3c9 0%,#f2c45e 45%,#a8742a 100%);box-shadow:0 0 0 2px #2b1a0c,0 0 0 4px #e3c487,0 0 0 5px #2b1a0c,inset 0 -2px 0 rgba(0,0,0,0.25)}
+.plate-txt{display:flex;flex-direction:column;gap:4px}
+.plate-k{font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#5a3b22}
+.plate-xp{width:96px;height:5px;border-radius:3px;background:#d9cdb0;box-shadow:0 0 0 1px #8a6a2c}
+.plate-xp div{height:5px;border-radius:3px;background:#277f89}
+.keys{position:relative;z-index:3;display:flex;align-items:center;gap:18px;padding:8px 18px 7px;flex-shrink:0;font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#f3e6c4;text-shadow:0 1px 0 #2b1a0c;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),linear-gradient(180deg,#694627,#4c311a)}
+.keys::before{content:'';position:absolute;left:-4px;right:-4px;top:-4px;height:7px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c}
+.key{display:flex;align-items:center;gap:6px}
+.cap{padding:1px 6px 2px;min-width:10px;text-align:center;color:#2b1a0c;text-shadow:none;background:radial-gradient(circle at 40% 30%,#fbf2da,#d9c79a);border-radius:8px 6px 9px 7px;box-shadow:0 0 0 1px #2b1a0c,0 2px 0 #8a6a2c,0 3px 0 #2b1a0c}
+.rail{position:relative;z-index:3;display:flex;justify-content:center;align-items:center;gap:22px;padding:8px 20px 7px;flex-shrink:0;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),linear-gradient(180deg,#694627,#4c311a)}
+.rail::before{content:'';position:absolute;left:-4px;right:-4px;top:-4px;height:7px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c}
+.rail span{color:#e3d2a8 !important;text-shadow:0 1px 0 #2b1a0c}
+.rail .sel{padding:3px 16px;border-radius:8px 11px 7px 12px;color:#2b1a0c !important;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe9a3,#d9a640);box-shadow:0 0 0 2px #2b1a0c,0 0 12px rgba(255,214,110,0.5);transform:rotate(-2deg)}
+.parch{color:#2b1a0c;border-radius:16px 7px 18px 9px/9px 16px 8px 14px;background-color:#f3e6c4;background-image:radial-gradient(circle at calc(100% - 20px) 18px,#fff 0 1.5px,transparent 2px),radial-gradient(circle at calc(100% - 22px) 20px,#d0453a 0 8px,#9a2e24 8px 10px,transparent 10.5px),radial-gradient(circle at 22% 88%,transparent 0 17px,rgba(138,106,44,0.16) 17px 19px,transparent 20px),radial-gradient(ellipse at 50% 35%,rgba(255,255,255,0.5),transparent 65%),repeating-linear-gradient(0deg,rgba(138,106,44,0.06) 0 1px,transparent 1px 3px);box-shadow:0 0 0 2px #2b1a0c,0 0 0 5px #d9b77a,0 0 0 7px #2b1a0c,0 14px 24px rgba(0,0,0,0.55),inset 0 0 30px rgba(120,80,30,0.45),inset 0 0 6px rgba(90,59,34,0.5);transform:rotate(-0.4deg)}
+.slate{border:4px solid transparent;border-radius:12px 7px 14px 8px;background:radial-gradient(circle at 8px 8px,#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at calc(100% - 8px) 8px,#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at 8px calc(100% - 8px),#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at calc(100% - 8px) calc(100% - 8px),#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,linear-gradient(180deg,rgba(31,96,104,0.92),rgba(14,44,50,0.94)) padding-box,repeating-linear-gradient(45deg,#e3c487 0 3px,#a8823f 3px 6px) border-box;box-shadow:0 0 0 1px #2b1a0c,inset 0 0 0 1px #2b1a0c,inset 0 2px 0 rgba(245,232,200,0.12),0 10px 18px rgba(0,0,0,0.45)}
+.ribbon{position:relative;align-self:flex-start;display:inline-block;flex-shrink:0;font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#fff3e0;text-shadow:0 1px 0 #6e1f17;background:linear-gradient(180deg,#e0644f,#b5402f);padding:3px 18px 4px;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 50%,100% 100%,0 100%,8px 50%);transform:rotate(-1deg)}
+.ribbon.gold{color:#2b1a0c;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe08a,#d9a640)}
+.rule{position:relative;height:11px;flex-shrink:0;background:repeating-linear-gradient(120deg,#c9a15a 0 3px,#8a6a2c 3px 6px) center/100% 3px no-repeat}
+.rule::after{content:'';position:absolute;left:50%;top:0;width:11px;height:11px;margin-left:-5.5px;background:#f2c45e;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.screen [style*="border: 2px"]:not([style*="border-radius"]),.screen [style*="border: 3px"]:not([style*="border-radius"]){border-radius:9px 5px 10px 6px}
+.screen [style*="border: 2px solid"]:not([style*="border-radius"]):not([style*="box-shadow"]){box-shadow:inset 0 2px 0 rgba(245,232,200,0.12),inset 0 -2px 0 rgba(0,0,0,0.3)}
+
+
+</style>
+</helmet>
+<div class="sky screen" style="width: 1280px; height: 720px; box-sizing: border-box; color: #f5e8c8; font-family: 'Pixelify Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+<div class="topbar">
+<div class="emblem"><img src="/_blob/27fef92f6b46999a4acb2873e67516da" alt=""></div>
+<div class="tabs">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+<div class="{{t.cls}}"><div class="tab-in"><img src="{{t.icon}}" alt=""><span>{{t.label}}</span></div></div>
+</sc-for>
+</div>
+<div style="flex-grow: 1"></div>
+<div class="plate"><div class="coin">12</div><div class="plate-txt"><span class="plate-k">CAPTAIN · LEVEL 12</span><div class="plate-xp"><div style="width: 28%;"></div></div></div></div>
+</div>
+
+
+<div style="display: flex; gap: 20px; padding: 0 20px; flex-grow: 1; min-height: 0;">
+
+<div style="display: flex; flex-direction: column; gap: 8px; width: 220px; flex-shrink: 0; margin: 14px 0;">
+<span class="ribbon gold">ADVENTURE</span>
+<span style="font-size: 13px; color: #dacca8; line-height: 1.3;">What your captain does off the battlefield. A tree shows up once you've earned its first level.</span>
+<sc-for list="{{trees}}" as="w" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: {{w.bg}}; border: 2px solid {{w.rim}}; box-shadow: {{w.glow}};">
+<div style="display: flex; align-items: baseline; gap: 6px;">
+<span style="font-size: 17px; flex-grow: 1;">{{w.name}}</span>
+<span style="font-family: Silkscreen, monospace; font-size: 9px; padding: 0 4px; background: {{w.newBg}}; color: #173338;">{{w.isNew}}</span>
+<span style="font-family: Silkscreen, monospace; font-size: 12px; color: {{w.color}};">LV {{w.lv}}</span>
+</div>
+<div style="height: 4px; background: #0c2427;"><div style="height: 4px; width: {{w.pct}}; background: {{w.color}};"></div></div>
+</div>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<span style="font-size: 12px; color: #7f9894; line-height: 1.35;">Keep trying new things: more trees are out there.</span>
+</div>
+
+<div style="position: relative; width: 640px; height: 596px; flex-shrink: 0;">
+<sc-for list="{{segs}}" as="s" hint-placeholder-count="16">
+<div style="position: absolute; left: {{s.l}}px; top: {{s.t}}px; width: {{s.w}}px; height: {{s.h}}px; background: {{s.bg}}; box-shadow: {{s.glow}}; transform: rotate({{s.ang}}deg); transform-origin: 0 50%;"></div>
+</sc-for>
+<sc-for list="{{titles}}" as="b" hint-placeholder-count="3">
+<div style="position: absolute; left: {{b.l}}px; top: {{b.t}}px; width: 150px; text-align: center; font-family: Silkscreen, monospace; font-size: 14px; letter-spacing: 1px; color: {{b.color}};">{{b.name}}</div>
+</sc-for>
+<sc-for list="{{minors}}" as="m" hint-placeholder-count="4">
+<div style="position: absolute; left: {{m.l}}px; top: {{m.t}}px; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; background: {{m.bg}}; border: 2px solid {{m.rim}}; box-shadow: {{m.glow}};"></div>
+<div style="position: absolute; left: {{m.ll}}px; top: {{m.lt}}px; width: 110px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1px;">
+<span style="font-family: Silkscreen, monospace; font-size: 9px; padding: 0 4px; background: {{m.chipBg}}; color: {{m.chipFg}};">{{m.have}}/{{m.max}}</span>
+<span style="font-size: 11px; line-height: 1.1; color: {{m.fg}};">{{m.name}}</span>
+</div>
+</sc-for>
+<sc-for list="{{nodes}}" as="n" hint-placeholder-count="9">
+<div style="position: absolute; left: {{n.l}}px; top: {{n.t}}px; width: {{n.s}}px; height: {{n.s}}px; box-sizing: border-box; background: {{n.bg}}; border: {{n.border}}; border-radius: 50%; box-shadow: {{n.glow}};"></div>
+</sc-for>
+<sc-for list="{{variants}}" as="v" hint-placeholder-count="1">
+<div style="position: absolute; left: {{v.l}}px; top: {{v.t}}px; display: flex; border: 3px solid {{v.rim}}; background: #0c2427;">
+<sc-for list="{{v.halves}}" as="h" hint-placeholder-count="2">
+<div style="width: 40px; height: 32px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: {{h.bg}}; border-right: {{h.split}}; font-family: Silkscreen, monospace; font-size: 11px; color: {{h.fg}};">{{h.glyph}}</div>
+</sc-for>
+</div>
+</sc-for>
+<sc-for list="{{labels}}" as="b" hint-placeholder-count="10">
+<div style="position: absolute; left: {{b.l}}px; top: {{b.t}}px; width: {{b.w}}px; text-align: {{b.align}}; display: flex; flex-direction: column; gap: 1px;">
+<span style="font-size: 13px; line-height: 1.1; color: {{b.fg}};">{{b.name}}</span>
+<span style="font-family: Silkscreen, monospace; font-size: 9px; color: {{b.tagFg}};">{{b.tag}}</span>
+</div>
+</sc-for>
+</div>
+
+<div class="parch" style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; margin: 14px 0; padding: 14px; box-sizing: border-box; ">
+<span style="font-size: 24px; font-weight: 600;">Acrobatics</span>
+<span class="ribbon">LEVEL 8 OF 20</span>
+<div style="height: 8px; background: #d9cdb0; border: 1px solid #b88a3a;"><div style="height: 8px; width: 40%; background: #277f89;"></div></div>
+<div style="display: flex; align-items: center; gap: 8px;">
+<span style="font-family: Silkscreen, monospace; font-size: 12px; padding: 2px 8px; background: #d9cdb0; color: #4f625e;">0 POINTS</span>
+<span style="font-size: 13px; color: #4f625e;">one a level</span>
+</div>
+<div class="rule"></div>
+<span class="ribbon">HOW IT GROWS</span>
+<span style="font-size: 13px; line-height: 1.4;">Jumps and time in the air, dodges (dodging through a blow counts most), sprints, and falls you walk away from.</span>
+<div class="rule"></div>
+<span class="ribbon">COMING NEXT</span>
+<span style="font-size: 13px; line-height: 1.45;">LV 9 · Sky Walk (a third air jump)<br>LV 10 · Sure Footing<br>LV 12 · Fleetfoot</span>
+<div style="flex-grow: 1"></div>
+<span style="font-size: 12px; color: #4f625e; line-height: 1.35;">Geppo comes at level 2: your first jumps teach it.</span>
+</div>
+</div>
+
+<div class="keys">
+<span class="key"><span class="cap">W/S</span>TREE</span><span class="key"><span class="cap">MOUSE</span>INSPECT</span><span class="key"><span class="cap">ENTER</span>BUY A STEP</span><span class="key"><span class="cap">Q/E</span>TAB</span><span class="key"><span class="cap">K</span>CLOSE</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D = { name: 'Acrobatics', color: '#9be08a', lv: 8,
+      pos: { root: [320, 548], a1: [200, 456], a2: [140, 350], a3: [110, 236], a4: [95, 118],
+        d1: [320, 446], d2: [320, 330], d3: [320, 212], d4: [320, 104],
+        s1: [450, 400], s2: [500, 300], s3: [530, 200], s4: [560, 104] },
+      major: { root: ['Acrobatics', 'YOUR FIRST LEAP', 1, 'root'],
+        a1: ['Geppo', 'AIR JUMP · LV 2', 2], a2: ['Sky Walk', 'A THIRD AIR JUMP · LV 9', 9], a4: ['Moonstep', 'A FOURTH · LV 20 · NEW', 20],
+        d1: ['Swift Step', 'LONGER DODGE · LV 4', 4], d3: ['Fleetfoot', 'LV 12 · NEW', 12], d4: ['Afterimage', 'LV 18 · NEW', 18],
+        s1: ['Long Stride', 'SPRINT · LV 3', 3], s2: ['Sprint Jump', 'LV 6 · NEW', 6], s3: ['Sure Footing', 'LV 10 · NEW', 10], s4: ['Rigging Monkey', 'LV 16 · NEW', 16] },
+      variants: { a3: ['Landing', 15, [['Featherfall', 'FF', 15], ['Crash Landing', 'CL', 15]], 0],
+        d2: ['Dodge', 7, [['Roll', 'RL', 7], ['Sidestep', 'SS', 7]], 0] },
+      links: [['root', 'a1'], ['a1', 'a2'], ['a2', 'a3'], ['a3', 'a4'], ['root', 'd1'], ['d1', 'd2'], ['d2', 'd3'], ['d3', 'd4'],
+        ['root', 's1'], ['s1', 's2'], ['s2', 's3'], ['s3', 's4']],
+      minors: [['Light Step', [255, 515], 'root', 3, 5], ['Quick Feet', [420, 505], 'root', 2, 5], ['Breakfall', [62, 410], 'a2', 2, 3],
+        ['Hang Time', [222, 285], 'a2', 0, 3], ['Spring', [604, 350], 's1', 0, 5]],
+      titles: [['AIR', 20, 52], ['DODGE', 245, 44], ['STRIDE', 485, 48]] };
+    const C = D.color, LV = D.lv;
+    const TABI = { CAPTAIN: '/_blob/8831fb5ccb3fc48b76c628ecdbf54296', COMBAT: '/_blob/530da3be9f5c3caec4e3e304c84576ff', ADVENTURE: '/_blob/4c5fb441c9c5ac6bdc328fe130bd73d5', LOADOUT: '/_blob/aa2c7e0f31d3bc6b2293a413f3b3afe1' };
+    const tabs = ['CAPTAIN', 'COMBAT', 'ADVENTURE', 'LOADOUT'].map((label, i) => ({ label, cls: i === 2 ? 'tab on' : 'tab', icon: TABI[label] }));
+    const trees = [['Acrobatics', 8, '#9be08a', 40], ['Defense', 5, '#e8d6ae', 25], ['Sailing', 9, '#73ccd9', 45], ['Swimming', 6, '#66b3ff', 30], ['Cooking', 4, '#ffb866', 20], ['Fishing', 3, '#8ce6bf', 15]]
+      .map(([name, lv, color, pct]) => {
+        const sel = name === D.name;
+        return { name, lv, color, pct: pct + '%', isNew: '', newBg: 'transparent',
+          bg: sel ? '#22707a' : 'rgba(20,63,70,0.85)', rim: sel ? '#f2c45e' : '#0c2427', glow: sel ? '0 0 12px rgba(242,196,94,0.45)' : 'none' };
+      });
+    const P = D.pos;
+    const lvOf = (k) => (D.major[k] ? D.major[k][2] : D.variants[k][1]);
+    const segs = [];
+    const seg = (a, b, st) => {
+      const [x1, y1] = Array.isArray(a) ? a : P[a], [x2, y2] = Array.isArray(b) ? b : P[b];
+      const s = { lit: [4, C, '0 0 8px ' + C], dim: [2, '#2f4c52', 'none'], thin: [2, C, 'none'], thindim: [1, '#2f4c52', 'none'] }[st];
+      segs.push({ l: x1, t: y1 - s[0] / 2, w: Math.hypot(x2 - x1, y2 - y1), h: s[0], bg: s[1], glow: s[2], ang: Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI });
+    };
+    D.links.forEach(([a, b]) => seg(a, b, lvOf(b) <= LV ? 'lit' : 'dim'));
+    const minors = D.minors.map(([name, at, to, have, max]) => {
+      seg(P[to], at, have > 0 ? 'thin' : 'thindim');
+      const full = have === max, some = have > 0;
+      return { name, have, max, l: at[0] - 11, t: at[1] - 11, ll: at[0] - 55, lt: at[1] + 13,
+        bg: some ? C : '#16343a', rim: full ? '#f5e8c8' : (some ? C : '#3c5c5f'), glow: some ? '0 0 8px ' + C : 'none',
+        chipBg: some ? '#277f89' : '#16343a', chipFg: some ? '#f5e8c8' : '#93a8a3', fg: some ? '#f5e8c8' : '#93a8a3' };
+    });
+    const nodes = [], labels = [];
+    Object.keys(D.major).forEach((k) => {
+      const [name, tag, lv, kind] = D.major[k], [x, y] = P[k], lit = lv <= LV, s = kind === 'root' ? 56 : 32;
+      nodes.push({ l: x - s / 2, t: y - s / 2, s, bg: kind === 'root' ? '#143f46' : (lit ? C : '#16343a'),
+        border: kind === 'root' ? '4px solid #f2c45e' : '2px solid ' + (lit ? '#f5e8c8' : '#3c5c5f'), glow: lit ? '0 0 12px ' + C : 'none' });
+      labels.push(kind === 'root'
+        ? { l: x + 36, t: y - 14, w: 160, align: 'left', name, tag, fg: '#f5e8c8', tagFg: '#f2c45e' }
+        : { l: x - 65, t: y + 19, w: 130, align: 'center', name, tag, fg: lit ? '#f5e8c8' : '#93a8a3', tagFg: lit ? C : '#5e7470' });
+    });
+    const variants = Object.keys(D.variants).map((k) => {
+      const [name, lv, halves, pick] = D.variants[k], [x, y] = P[k], on = lv <= LV;
+      labels.push({ l: x - 75, t: y + 22, w: 150, align: 'center', name,
+        tag: halves.map((h) => h[0]).join(' / ').toUpperCase() + ' · LV ' + lv, fg: on ? '#f5e8c8' : '#93a8a3', tagFg: on ? C : '#5e7470' });
+      return { l: x - 43, t: y - 19, rim: on ? C : '#3c5c5f', halves: halves.map((h, i) => {
+        const owned = on && h[2] <= LV, picked = owned && pick === i;
+        return { glyph: h[1], bg: picked ? C : (owned ? '#143f46' : '#0c2427'), fg: picked ? '#173338' : (owned ? '#dacca8' : '#5e7470'),
+          split: i === 0 ? '2px solid ' + (on ? C : '#3c5c5f') : 'none' };
+      }) };
+    });
+    const titles = D.titles.map(([name, l, t]) => ({ name, l, t, color: C }));
+    return { tabs, trees, segs, minors, nodes, variants, labels, titles };
+  }
+}
+</script>
+</body>
+</html>

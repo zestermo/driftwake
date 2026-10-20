@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Captain tree</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&amp;family=Pixelify+Sans:wght@400;600&amp;family=Silkscreen&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#f2c45e}a:hover{color:#f5e8c8}
+.sky{background:
+radial-gradient(1.5px 1.5px at 12% 18%, #f5e8c8 50%, transparent 52%),
+radial-gradient(1px 1px at 27% 64%, #dacca8 50%, transparent 52%),
+radial-gradient(1.5px 1.5px at 41% 9%, #f5e8c8 50%, transparent 52%),
+radial-gradient(1px 1px at 58% 33%, #dacca8 50%, transparent 52%),
+radial-gradient(1.5px 1.5px at 73% 12%, #f5e8c8 50%, transparent 52%),
+radial-gradient(1px 1px at 86% 47%, #dacca8 50%, transparent 52%),
+radial-gradient(1px 1px at 8% 82%, #dacca8 50%, transparent 52%),
+radial-gradient(ellipse at 45% 50%, #1f5560 0%, #10313a 45%, #081a1f 100%);}
+.px{image-rendering:pixelated}
+.screen{position:relative;isolation:isolate}
+.screen::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(1px 1px at 18% 8%,#fff3c9 50%,transparent 52%),radial-gradient(1.5px 1.5px at 66% 6%,#fff3c9 50%,transparent 52%),radial-gradient(1px 1px at 91% 22%,#fff3c9 50%,transparent 52%),radial-gradient(1.5px 1.5px at 4% 46%,#fff3c9 50%,transparent 52%),radial-gradient(ellipse 40% 30% at 18% 30%,rgba(201,168,255,0.12),transparent 70%),radial-gradient(ellipse 45% 35% at 82% 70%,rgba(101,201,192,0.12),transparent 70%),radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(5,15,18,0.55) 100%);animation:twinkle 4s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.85}50%{opacity:1}}
+.screen::after{content:'';position:absolute;inset:5px;border:2px dashed rgba(218,204,168,0.2);border-radius:16px 10px 18px 12px;pointer-events:none;z-index:9}
+.screen span[style*="font-size: 24px"],.screen span[style*="font-size: 26px"],.screen span[style*="font-size: 28px"],span[style*="font-size: 30px"]{font-family:'Jacquarda Bastarda 9','Pixelify Sans',serif !important;font-weight:400 !important;letter-spacing:0.5px}
+.topbar{position:relative;z-index:3;display:flex;align-items:flex-start;gap:12px;height:56px;padding:0 16px 0 12px;box-sizing:border-box;flex-shrink:0;background:radial-gradient(ellipse 14px 5px at 23% 40%,rgba(43,26,12,0.45),transparent 70%),radial-gradient(ellipse 10px 4px at 71% 62%,rgba(43,26,12,0.4),transparent 70%),repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),repeating-linear-gradient(90deg,transparent 0 141px,rgba(43,26,12,0.35) 141px 143px),linear-gradient(180deg,#86603b 0%,#694627 55%,#4c311a 100%);box-shadow:inset 0 2px 0 rgba(255,230,180,0.18),inset 0 -2px 0 rgba(43,26,12,0.6),0 10px 16px rgba(0,0,0,0.5)}
+.topbar::after{content:'';position:absolute;left:-4px;right:-4px;bottom:-5px;height:8px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c,0 3px 4px rgba(0,0,0,0.4)}
+.emblem{align-self:center;flex-shrink:0;width:40px;height:40px;margin-top:-4px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 40% 35%,#2a6a73,#0f2b30);box-shadow:0 0 0 2px #2b1a0c,0 0 0 5px #c9a15a,0 0 0 6px #2b1a0c,0 0 14px rgba(242,196,94,0.45)}
+.emblem img{width:32px;height:32px}
+.tabs{display:flex;align-items:flex-start;gap:12px;align-self:stretch;padding-left:4px}
+.tab{position:relative;margin-top:11px;padding:2px;border-radius:8px 11px 7px 12px;background:linear-gradient(180deg,#9c7448,#6e4b2b);box-shadow:0 0 0 2px #2b1a0c,0 4px 6px rgba(0,0,0,0.35)}
+.tab::before{content:'';position:absolute;left:14px;right:14px;top:-13px;height:13px;border-left:2px solid #d9b77a;border-right:2px solid #d9b77a}
+.tab:nth-child(1){transform:rotate(-2deg)}.tab:nth-child(2){transform:rotate(1.5deg)}.tab:nth-child(3){transform:rotate(-1deg)}.tab:nth-child(4){transform:rotate(2deg)}
+.tab-in{display:flex;align-items:center;gap:8px;padding:6px 13px 7px;border-radius:6px 9px 5px 10px;font-family:Silkscreen,monospace;font-size:12px;letter-spacing:1px;color:#f3e6c4;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.14) 0 1px,transparent 1px 4px),linear-gradient(180deg,#7a5534,#5a3b22);box-shadow:inset 0 2px 0 rgba(255,230,180,0.2),inset 0 -2px 0 rgba(0,0,0,0.3);text-shadow:0 1px 0 #2b1a0c}
+.tab-in img{width:16px;height:16px;image-rendering:pixelated}
+.tab.on{margin-top:15px;z-index:4;background:linear-gradient(180deg,#fff0b8,#c99a3e);box-shadow:0 0 0 2px #2b1a0c,0 0 16px rgba(255,214,110,0.55),0 6px 8px rgba(0,0,0,0.35)}
+.tab.on::before{top:-17px;height:17px}
+.tab.on::after{content:'';position:absolute;right:-6px;top:-6px;width:11px;height:11px;background:#fff3c9;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.tab.on .tab-in{padding:8px 16px 9px;color:#2b1a0c;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe9a3 0%,#f2c45e 55%,#d9a640 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,0.6),inset 0 -3px 0 rgba(138,106,44,0.55)}
+.plate{align-self:center;margin-top:-3px;display:flex;align-items:center;gap:9px;padding:4px 16px 4px 4px;color:#2b1a0c;background:radial-gradient(ellipse 8px 50% at 100% 50%,rgba(138,106,44,0.45),transparent),repeating-linear-gradient(0deg,rgba(138,106,44,0.07) 0 1px,transparent 1px 3px),#f3e6c4;box-shadow:0 0 0 2px #2b1a0c,0 3px 6px rgba(0,0,0,0.4);border-radius:22px 8px 10px 22px;transform:rotate(-1deg)}
+.coin{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Silkscreen,monospace;font-size:12px;color:#2b1a0c;background:radial-gradient(circle at 35% 30%,#fff3c9 0%,#f2c45e 45%,#a8742a 100%);box-shadow:0 0 0 2px #2b1a0c,0 0 0 4px #e3c487,0 0 0 5px #2b1a0c,inset 0 -2px 0 rgba(0,0,0,0.25)}
+.plate-txt{display:flex;flex-direction:column;gap:4px}
+.plate-k{font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#5a3b22}
+.plate-xp{width:96px;height:5px;border-radius:3px;background:#d9cdb0;box-shadow:0 0 0 1px #8a6a2c}
+.plate-xp div{height:5px;border-radius:3px;background:#277f89}
+.keys{position:relative;z-index:3;display:flex;align-items:center;gap:18px;padding:8px 18px 7px;flex-shrink:0;font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#f3e6c4;text-shadow:0 1px 0 #2b1a0c;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),linear-gradient(180deg,#694627,#4c311a)}
+.keys::before{content:'';position:absolute;left:-4px;right:-4px;top:-4px;height:7px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c}
+.key{display:flex;align-items:center;gap:6px}
+.cap{padding:1px 6px 2px;min-width:10px;text-align:center;color:#2b1a0c;text-shadow:none;background:radial-gradient(circle at 40% 30%,#fbf2da,#d9c79a);border-radius:8px 6px 9px 7px;box-shadow:0 0 0 1px #2b1a0c,0 2px 0 #8a6a2c,0 3px 0 #2b1a0c}
+.rail{position:relative;z-index:3;display:flex;justify-content:center;align-items:center;gap:22px;padding:8px 20px 7px;flex-shrink:0;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),linear-gradient(180deg,#694627,#4c311a)}
+.rail::before{content:'';position:absolute;left:-4px;right:-4px;top:-4px;height:7px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c}
+.rail span{color:#e3d2a8 !important;text-shadow:0 1px 0 #2b1a0c}
+.rail .sel{padding:3px 16px;border-radius:8px 11px 7px 12px;color:#2b1a0c !important;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe9a3,#d9a640);box-shadow:0 0 0 2px #2b1a0c,0 0 12px rgba(255,214,110,0.5);transform:rotate(-2deg)}
+.parch{color:#2b1a0c;border-radius:16px 7px 18px 9px/9px 16px 8px 14px;background-color:#f3e6c4;background-image:radial-gradient(circle at calc(100% - 20px) 18px,#fff 0 1.5px,transparent 2px),radial-gradient(circle at calc(100% - 22px) 20px,#d0453a 0 8px,#9a2e24 8px 10px,transparent 10.5px),radial-gradient(circle at 22% 88%,transparent 0 17px,rgba(138,106,44,0.16) 17px 19px,transparent 20px),radial-gradient(ellipse at 50% 35%,rgba(255,255,255,0.5),transparent 65%),repeating-linear-gradient(0deg,rgba(138,106,44,0.06) 0 1px,transparent 1px 3px);box-shadow:0 0 0 2px #2b1a0c,0 0 0 5px #d9b77a,0 0 0 7px #2b1a0c,0 14px 24px rgba(0,0,0,0.55),inset 0 0 30px rgba(120,80,30,0.45),inset 0 0 6px rgba(90,59,34,0.5);transform:rotate(-0.4deg)}
+.slate{border:4px solid transparent;border-radius:12px 7px 14px 8px;background:radial-gradient(circle at 8px 8px,#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at calc(100% - 8px) 8px,#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at 8px calc(100% - 8px),#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at calc(100% - 8px) calc(100% - 8px),#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,linear-gradient(180deg,rgba(31,96,104,0.92),rgba(14,44,50,0.94)) padding-box,repeating-linear-gradient(45deg,#e3c487 0 3px,#a8823f 3px 6px) border-box;box-shadow:0 0 0 1px #2b1a0c,inset 0 0 0 1px #2b1a0c,inset 0 2px 0 rgba(245,232,200,0.12),0 10px 18px rgba(0,0,0,0.45)}
+.ribbon{position:relative;align-self:flex-start;display:inline-block;flex-shrink:0;font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#fff3e0;text-shadow:0 1px 0 #6e1f17;background:linear-gradient(180deg,#e0644f,#b5402f);padding:3px 18px 4px;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 50%,100% 100%,0 100%,8px 50%);transform:rotate(-1deg)}
+.ribbon.gold{color:#2b1a0c;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe08a,#d9a640)}
+.rule{position:relative;height:11px;flex-shrink:0;background:repeating-linear-gradient(120deg,#c9a15a 0 3px,#8a6a2c 3px 6px) center/100% 3px no-repeat}
+.rule::after{content:'';position:absolute;left:50%;top:0;width:11px;height:11px;margin-left:-5.5px;background:#f2c45e;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.screen [style*="border: 2px"]:not([style*="border-radius"]),.screen [style*="border: 3px"]:not([style*="border-radius"]){border-radius:9px 5px 10px 6px}
+.screen [style*="border: 2px solid"]:not([style*="border-radius"]):not([style*="box-shadow"]){box-shadow:inset 0 2px 0 rgba(245,232,200,0.12),inset 0 -2px 0 rgba(0,0,0,0.3)}
+
+
+</style>
+</helmet>
+<div class="sky screen" style="width: 1280px; height: 720px; box-sizing: border-box; color: #f5e8c8; font-family: 'Pixelify Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+<div class="topbar">
+<div class="emblem"><img src="/_blob/27fef92f6b46999a4acb2873e67516da" alt=""></div>
+<div class="tabs">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+<div class="{{t.cls}}"><div class="tab-in"><img src="{{t.icon}}" alt=""><span>{{t.label}}</span></div></div>
+</sc-for>
+</div>
+<div style="flex-grow: 1"></div>
+<div class="plate"><div class="coin">12</div><div class="plate-txt"><span class="plate-k">CAPTAIN · LEVEL 12</span><div class="plate-xp"><div style="width: 28%;"></div></div></div></div>
+</div>
+
+
+<div style="display: flex; gap: 20px; padding: 0 20px; flex-grow: 1; min-height: 0;">
+
+<div class="parch" style="display: flex; flex-direction: column; gap: 10px; width: 270px; flex-shrink: 0; margin: 14px 0; padding: 14px; box-sizing: border-box; ">
+<div style="display: flex; align-items: baseline; gap: 10px;">
+<span style="font-size: 26px; font-weight: 600;">Level 12</span>
+<span style="font-family: Silkscreen, monospace; font-size: 10px; color: #4f625e;">OF 40</span>
+</div>
+<div style="height: 8px; background: #d9cdb0; border: 1px solid #b88a3a;"><div style="height: 8px; width: 28%; background: #b88a3a;"></div></div>
+<span style="font-size: 12px; color: #4f625e;">2,310 / 8,314 XP to level 13</span>
+<div class="rule"></div>
+<span class="ribbon">HOW YOUR CAPTAIN GROWS</span>
+<div style="display: flex; gap: 10px; align-items: flex-start;">
+<span style="font-family: Silkscreen, monospace; font-size: 12px; color: #b88a3a;">1</span>
+<span style="font-size: 13px; line-height: 1.35;">Every level: +5.5 health, +2% damage, +0.6 stamina, +0.6 energy, +0.5 defense. So far +60 health, +22% damage.</span>
+</div>
+<div style="display: flex; gap: 10px; align-items: flex-start;">
+<span style="font-family: Silkscreen, monospace; font-size: 12px; color: #b88a3a;">2</span>
+<span style="font-size: 13px; line-height: 1.35;">Round nodes come by themselves when you reach their level.</span>
+</div>
+<div style="display: flex; gap: 10px; align-items: flex-start;">
+<span style="font-family: Silkscreen, monospace; font-size: 12px; color: #b88a3a;">3</span>
+<span style="font-size: 13px; line-height: 1.35;">Split nodes are talents: every 5 levels, pick one of two. Swap at the ship's bunk. (Moving and parrying grow in Adventure: Acrobatics and Defense.)</span>
+</div>
+<div style="display: flex; gap: 10px; align-items: flex-start;">
+<span style="font-family: Silkscreen, monospace; font-size: 12px; color: #8a6cc9;">4</span>
+<span style="font-size: 13px; line-height: 1.35;">Will is its own path. Levels don't give it: beating great foes and passing trials do.</span>
+</div>
+</div>
+
+<div style="position: relative; flex-grow: 1; height: 596px;">
+<sc-for list="{{segs}}" as="s" hint-placeholder-count="20">
+<div style="position: absolute; left: {{s.l}}px; top: {{s.t}}px; width: {{s.w}}px; height: {{s.h}}px; background: {{s.bg}}; box-shadow: {{s.glow}};"></div>
+</sc-for>
+
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="11">
+<div style="position: absolute; left: 0px; top: {{r.ty}}px; width: 70px; text-align: right; font-family: Silkscreen, monospace; font-size: 12px; color: {{r.lvFg}};">LV {{r.lv}}</div>
+<div style="position: absolute; left: 78px; top: {{r.y}}px; width: 40px; height: 1px; background: {{r.tick}};"></div>
+</sc-for>
+
+<div style="position: absolute; left: 0px; top: {{you.t}}px; width: 70px; text-align: right; font-family: Silkscreen, monospace; font-size: 11px; color: #f2c45e;">YOU 12</div>
+<div style="position: absolute; left: 152px; top: {{you.dot}}px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; background: #f5e8c8; border: 3px solid #f2c45e; box-shadow: 0 0 10px #f2c45e;"></div>
+
+<sc-for list="{{autos}}" as="a" hint-placeholder-count="4">
+<div style="position: absolute; left: 143px; top: {{a.t}}px; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; background: {{a.bg}}; border: 3px solid {{a.rim}}; box-shadow: {{a.glow}}; display: flex; align-items: center; justify-content: center;">
+<sc-if value="{{a.hasIcon}}" hint-placeholder-val="{{false}}">
+<img class="px" src="{{a.icon}}" alt="" style="width: 24px; height: 24px; opacity: {{a.op}};">
+</sc-if>
+</div>
+</sc-for>
+
+<sc-for list="{{talents}}" as="v" hint-placeholder-count="8">
+<div style="position: absolute; left: 118px; top: {{v.t}}px; display: flex; border: 3px solid {{v.rim}}; background: #0c2427; box-shadow: {{v.glow}};">
+<sc-for list="{{v.halves}}" as="h" hint-placeholder-count="2">
+<div style="width: 39px; height: 30px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: {{h.bg}}; border-right: {{h.split}}; font-family: Silkscreen, monospace; font-size: 11px; color: {{h.fg}};">{{h.glyph}}</div>
+</sc-for>
+</div>
+</sc-for>
+
+<sc-for list="{{labels}}" as="b" hint-placeholder-count="11">
+<div style="position: absolute; left: 218px; top: {{b.t}}px; width: 420px; display: flex; flex-direction: column; gap: 1px;">
+<div style="display: flex; gap: 8px; align-items: baseline;">
+<span style="font-size: 15px; color: {{b.fgA}};">{{b.a}}</span>
+<span style="font-family: Silkscreen, monospace; font-size: 10px; color: #7f9894;">{{b.or}}</span>
+<span style="font-size: 15px; color: {{b.fgB}};">{{b.b}}</span>
+</div>
+<span style="font-family: Silkscreen, monospace; font-size: 9px; color: {{b.tagFg}};">{{b.tag}}</span>
+</div>
+</sc-for>
+
+<div style="position: absolute; left: 640px; top: 14px; display: flex; flex-direction: column; gap: 2px;">
+<span style="font-family: Silkscreen, monospace; font-size: 15px; letter-spacing: 1px; color: #c9a8ff;">WILL</span>
+<span style="font-size: 12px; color: #dacca8;">bosses and trials</span>
+</div>
+<sc-for list="{{will}}" as="w" hint-placeholder-count="5">
+<div style="position: absolute; left: 640px; top: {{w.t}}px; width: 44px; height: 44px; box-sizing: border-box; background: #0c2427; border: 3px solid {{w.rim}}; border-radius: {{w.radius}}; box-shadow: {{w.glow}}; display: flex; align-items: center; justify-content: center;">
+<sc-if value="{{w.hasIcon}}" hint-placeholder-val="{{false}}">
+<img class="px" src="{{w.icon}}" alt="" style="width: 24px; height: 24px; opacity: {{w.op}};">
+</sc-if>
+</div>
+<div style="position: absolute; left: 696px; top: {{w.lt}}px; width: 240px; display: flex; flex-direction: column; gap: 1px;">
+<span style="font-size: 15px; font-weight: 600; color: {{w.fg}};">{{w.name}}</span>
+<span style="font-size: 12px; color: #c9a8ff;">{{w.how}}</span>
+<span style="font-size: 12px; line-height: 1.2; color: #dacca8;">{{w.gives}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div class="keys">
+<span class="key"><span class="cap">Q/E</span>TAB</span><span class="key"><span class="cap">MOUSE</span>INSPECT</span><span class="key"><span class="cap">ENTER</span>PICK A TALENT</span><span class="key"><span class="cap">K</span>CLOSE</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = '#f2c45e', LV = 12, TX = 160;
+    const TABI = { CAPTAIN: '/_blob/8831fb5ccb3fc48b76c628ecdbf54296', COMBAT: '/_blob/530da3be9f5c3caec4e3e304c84576ff', ADVENTURE: '/_blob/4c5fb441c9c5ac6bdc328fe130bd73d5', LOADOUT: '/_blob/aa2c7e0f31d3bc6b2293a413f3b3afe1' };
+    const tabs = ['CAPTAIN', 'COMBAT', 'ADVENTURE', 'LOADOUT'].map((label, i) => ({ label, cls: i === 0 ? 'tab on' : 'tab', icon: TABI[label] }));
+    const R = [
+      [5, 'talent', ['Mend', 'MD'], ['Iron Stomach', 'IS'], 0],
+      [8, 'auto', 'Soru', 'Technique for your bar', '/_blob/340c16b28801ebf61419c481ea880b83'],
+      [10, 'talent', ['Quick Hands (new)', 'QH'], ['Sea Dog (new)', 'SD'], 1, '+ A THIRD WEAPON LOADOUT'],
+      [14, 'auto', 'Tekkai', 'Technique for your bar', '/_blob/b7dd2cc2d6c621afaa37e77c0c0d5e4e'],
+      [15, 'talent', ['Adrenaline', 'AD'], ['Second Wind (new)', 'SW']],
+      [20, 'talent', ['Focus', 'FO'], ['Bounty Hunter (new)', 'BH']],
+      [25, 'talent', ['Rallying Cry (new)', 'RC'], ['Treasure Sense (new)', 'TS'], -1, '+ A FOURTH PASSIVE SLOT'],
+      [30, 'talent', ['Last Stand', 'LS'], ["Captain's Presence (new)", 'CP']],
+      [35, 'talent', ['[TO DESIGN]', '?'], ['[TO DESIGN]', '?']],
+      [40, 'talent', ['[TO DESIGN] capstone', '?'], ['[TO DESIGN]', '?']],
+    ];
+    const yOf = (i) => 556 - i * 50;
+    const rows = [], autos = [], talents = [], labels = [], segs = [];
+    let youY = 0;
+    R.forEach((row, i) => {
+      const [lv, kind] = row, y = yOf(i), on = lv <= LV;
+      rows.push({ lv, y, ty: y - 8, lvFg: on ? '#f5e8c8' : '#7f9894', tick: on ? 'rgba(242,196,94,0.5)' : 'rgba(94,116,112,0.4)' });
+      if (kind === 'auto') {
+        const [, , name, desc, icon] = row;
+        autos.push({ t: y - 17, bg: on ? (icon ? '#0c2427' : S) : '#16343a', rim: on ? '#f5e8c8' : '#3c5c5f',
+          glow: on ? '0 0 10px ' + S : 'none', hasIcon: !!icon, icon, op: on ? 1 : 0.4 });
+        labels.push({ t: y - 15, a: name, or: '', b: '', fgA: on ? '#f5e8c8' : '#93a8a3', fgB: '#f5e8c8',
+          tag: (on ? 'GOT IT · ' : 'COMES AT LV ' + lv + ' · ') + desc.toUpperCase(), tagFg: on ? S : '#7f9894' });
+      } else {
+        const [, , A, B, pick, extra] = row;
+        const p = on ? (pick === undefined ? 0 : pick) : -1;
+        const half = (o, idx) => ({ glyph: o[1], bg: p === idx ? S : (on ? '#143f46' : '#0c2427'),
+          fg: p === idx ? '#173338' : (on ? '#dacca8' : '#5e7470'), split: idx === 0 ? '2px solid ' + (on ? S : '#3c5c5f') : 'none' });
+        talents.push({ t: y - 18, rim: on ? S : '#3c5c5f', glow: on ? '0 0 10px rgba(242,196,94,0.5)' : 'none', halves: [half(A, 0), half(B, 1)] });
+        const tag = (on ? 'TALENT · PICKED ' + (p === 0 ? A[0] : B[0]).toUpperCase() : 'TALENT AT LV ' + lv + ' · PICK ONE') + (extra ? '   ' + extra : '');
+        labels.push({ t: y - 15, a: A[0], or: 'OR', b: B[0], tag, tagFg: on ? S : '#7f9894',
+          fgA: !on ? '#93a8a3' : (p === 0 ? '#f5e8c8' : '#93a8a3'), fgB: !on ? '#93a8a3' : (p === 1 ? '#f5e8c8' : '#93a8a3') });
+      }
+      if (lv <= LV) youY = y;
+    });
+    const yYou = youY - 25;
+    const top = yOf(R.length - 1);
+    segs.push({ l: TX - 2, t: yYou, w: 4, h: 590 - yYou, bg: S, glow: '0 0 8px ' + S });
+    segs.push({ l: TX - 1, t: top, w: 2, h: yYou - top, bg: '#2f4c52', glow: 'none' });
+    const you = { t: yYou - 7, dot: yYou - 8 };
+    const P = '#c9a8ff';
+    const W = [
+      ["Captain's Will", "The First Sea's last boss", 'The ultimate', '/_blob/83f8a0f553d3c8a4b14c7c4b0b72ebd9', false],
+      ['Foresight', '[A great beast boss]', 'The Foresight technique; Weak Points passive', '/_blob/9eeeea100da0fb489d3974bd09710895', false],
+      ['Sense', '[Will trial: place TBD]', 'Foes flash before they strike; Instinct passive', '', false],
+      ['Iron Will: Coat', '[Will trial: place TBD]', 'The Coat technique; Black Fists passive', '/_blob/94dbbc10757ce709f6731adae213abe5', false],
+      ['Iron Will', 'Beat Captain Morrow', 'Heavies can’t be blocked; Hardening passive', '', true],
+    ];
+    const will = W.map(([name, how, gives, icon, got], i) => {
+      const t = 76 + i * 104;
+      return { name, how, gives, icon, hasIcon: !!icon, op: got ? 1 : 0.4, t, lt: t - 2, rim: got ? P : '#4a4560',
+        radius: icon ? '0' : '50%', glow: got ? '0 0 12px ' + P : 'none', fg: got ? '#f5e8c8' : '#93a8a3' };
+    });
+    segs.push({ l: 661, t: 76 + 4 * 104 + 44, w: 3, h: 590 - (76 + 4 * 104 + 44), bg: P, glow: '0 0 8px ' + P });
+    for (let i = 0; i < 4; i++) segs.push({ l: 662, t: 76 + i * 104 + 44, w: 1, h: 104 - 44, bg: '#4a4560', glow: 'none' });
+    return { tabs, rows, autos, talents, labels, segs, you, will };
+  }
+}
+</script>
+</body>
+</html>
