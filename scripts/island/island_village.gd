@@ -96,8 +96,11 @@ static func steps(gi: GenIsland) -> Array:
 	var p: Dictionary = gi.village_plan
 	var shops: Array = p["buildings"].filter(func(b): return SHOPS.has(b["kind"]))
 	var out: Array = []
+	# (a step for each shop, then one for its keeper)
+	var made := {}
 	for b in shops:
-		out.append(["village shops", func(): _of(gi)._shops([b])])
+		out.append(["village shops", func(): made[b] = _of(gi)._make(b)["node"]])
+		out.append(["village shops", func(): _of(gi)._keeper(b, made[b])])
 	var rest: Array = p["buildings"].filter(func(b): return not CORE.has(b["kind"]) and not SHOPS.has(b["kind"]))
 	for b in rest:
 		out.append(["village houses", func(): _of(gi)._make(b)])
@@ -365,10 +368,8 @@ func _house(spec: Dictionary, p: Vector2, face: Vector2, y: float) -> Node3D:
 
 
 ## The trader's store and the cookhouse, each keeper behind the counter.
-func _shops(list: Array) -> void:
-	for b in list:
-		var n: Node3D = _make(b)["node"]
-		_npc(_keepers[b["kind"]], ctx.marker_point(n, "Vendor"), ctx.marker_face(n, "Vendor"), ctx.marker_y(n, "Vendor"))
+func _keeper(b: Dictionary, n: Node3D) -> void:
+	_npc(_keepers[b["kind"]], ctx.marker_point(n, "Vendor"), ctx.marker_face(n, "Vendor"), ctx.marker_y(n, "Vendor"))
 	for s in work_spots:
 		if s["kind"] == "shop":
 			s["taken"] = true
