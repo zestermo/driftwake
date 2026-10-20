@@ -56,12 +56,13 @@ static func cells_near(d: Dictionary, p: Vector2, r: float) -> PackedInt32Array:
 	return out
 
 
-## Island d's grid (all fog if nobody's been).
+## Island d's grid (all fog if nobody's been, or if the stored one is of another island under the same key).
 static func grid(gm: Node, d: Dictionary) -> PackedByteArray:
-	if gm.fog.has(d["key"]):
+	var n := int(d["n"])
+	if gm.fog.has(d["key"]) and (gm.fog[d["key"]] as PackedByteArray).size() == n * n:
 		return gm.fog[d["key"]]
 	var g := PackedByteArray()
-	g.resize(int(d["n"]) * int(d["n"]))
+	g.resize(n * n)
 	return g
 
 
@@ -76,6 +77,7 @@ static func seen(gm: Node, d: Dictionary, p: Vector2) -> bool:
 static func apply(gm: Node, key: String, n: int, cells: PackedInt32Array) -> void:
 	var g: PackedByteArray = gm.fog.get(key, PackedByteArray())
 	if g.size() != n * n:
+		g = PackedByteArray()
 		g.resize(n * n)
 	for c in cells:
 		g[c] = 255

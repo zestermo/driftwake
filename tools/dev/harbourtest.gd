@@ -4,8 +4,8 @@ extends SceneTree
 ## buildings, 20+ props in fidelity's harbour district), lamps within the budget,
 ## deep water off the pier's head and the "Board ship" area, the ship's berth
 ## clear of everything built, a captain stands on the pier's head and on the
-## harbour's walkways; the same node plans the same harbour twice; the seeds roll
-## different kinds. Each kind on fixed chain seeds (their coasts differ), not the run's random one.
+## harbour's walkways. Each kind on fixed chain seeds (their coasts differ), not the run's random one.
+## (Which kind a node rolls is harbourkindstest.)
 const KINDS := ["stilts", "cove", "wharf", "ruins", "landing"]
 const SEEDS := [4242, 777]
 const TK = preload("res://tools/dev/test_kit.gd")
@@ -132,30 +132,9 @@ func _process(d: float) -> bool:
 			isl.queue_free()
 			isl = null
 			job += 1
-			step = 1 if job < KINDS.size() * seeds.size() else 4
-			wait = 0.2
-		4:
-			# the same node plans the same harbour; the seeds roll their own kinds
-			var c = w.chain()
-			var n: Dictionary = c.node(int(c.start_next[0]))
-			var a = load("res://scripts/island/gen_island.gd").new()
-			var b = load("res://scripts/island/gen_island.gd").new()
-			a.prepare(n)
-			b.prepare(n)
-			check("the same node plans the same harbour (%s)" % a.harbour.kind, a.harbour.kind == b.harbour.kind and a.harbour.spots == b.harbour.spots
-				and a.harbour.steps().size() == b.harbour.steps().size() and a.exclusions.size() == b.exclusions.size())
-			a.free()
-			b.free()
-			var gm = root.get_node("GameManager")
-			var seen := {}
-			for s in [777, 31337, 4242, 99, 1234, 5150]:
-				gm.chain_seed = s
-				var cc = w.chain()
-				var g = load("res://scripts/island/gen_island.gd").new()
-				g.prepare(cc.node(int(cc.start_next[0])))
-				seen[g.harbour.kind] = true
-				g.free()
-			print("   kinds rolled by six seeds: %s" % [seen.keys()])
-			check("the seeds roll different kinds of harbour", seen.size() >= 2)
-			finish()
+			if job < KINDS.size() * seeds.size():
+				step = 1
+				wait = 0.2
+			else:
+				finish()
 	return false
