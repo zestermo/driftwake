@@ -168,6 +168,7 @@ func _process(d: float) -> bool:
 					pr.mastery_of(tr)["pts"] = 999
 				elif SkillTree.is_life_tree(tr):
 					pr.add_life(tr, 999999)
+			pr.master_all()
 			var grew := true
 			while grew:
 				grew = false
@@ -177,7 +178,7 @@ func _process(d: float) -> bool:
 						grew = true
 			var missing: Array = []
 			for k in SkillTree.nodes().keys():
-				if SkillTree.nodes()[k]["tree"] != "fruit" and not pr.owns(k):
+				if SkillTree.nodes()[k]["tree"] != "fruit" and not pr.owns_node(k) and SkillTree.nodes()[k]["kind"] != "version":
 					missing.append(k)
 			check("every node in every tree can be learned (missing: %s)" % str(missing), missing.is_empty())
 			var trees_ok := true
@@ -185,7 +186,7 @@ func _process(d: float) -> bool:
 				var n := 0
 				var ults := 0
 				for k in SkillTree.nodes().keys():
-					if SkillTree.nodes()[k]["tree"] == tr:
+					if SkillTree.nodes()[k]["tree"] == tr and not (SkillTree.nodes()[k]["kind"] in ["step", "version"]):
 						n += 1
 						if SkillTree.nodes()[k]["kind"] == "ult":
 							ults += 1

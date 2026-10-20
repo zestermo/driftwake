@@ -4684,3 +4684,32 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   ambience 0.13, actor_sleep 0.13, weather 0.11.
 - **Tested by** t/capital/occluders (every wall's and house's occluder inside its colliders, none over a street, a
   house's inside its walls), t/world/sky_long_tail (buffer layout, the foam as near the swell as before, DevCapture).
+## 2026-10-20: progression redesign, piece 1: the engine, the contract, the katana (v1.18.2 prog-core)
+Spec: docs/progression_plan.md "Redesign" and "Build: v1.18.2".
+- **SkillTrees** (scripts/progression/skill_trees.gd, new): the redesigned trees. HEADERS has every tree's header (name,
+  section captain/combat/adventure/fruit, colour, top level: Captain 40, weapons 30, Adventure and fruits 20); a converted
+  tree has a root and three branches of big nodes (`_big`: kind move/tech/mech/passive/elem/ult, a level, linked up its
+  branch), variants (`_variant`: versions that are nodes of their own, kind "version") and steps (`_step`: x/3 or x/5,
+  effects per step, hung off a big node). Positions are computed (tree space, root at 0,0, the left/right branches lean out).
+  Only the katana is converted (Guard / Iai / Blade, 30 steps against 29 points); the old ids and effect keys are kept, so
+  every reader (stat, has_move, style_stat, elemental, knows) works unchanged. Folded Steel and Sword Saint became the
+  Keen Edge / Whetstone / Light Feet steps. Variants whose other version is a new move (Side Step, Twin Waves, Falling
+  Moon) show their one form: k_counter, k_wind and k_arc are plain nodes. SkillTree merges these nodes in its own shape
+  (`_merge_new`, "new": true) so its readers and the old skill map see them.
+- **Progression**: big nodes are granted by level (`_sync_tree` on every level-up and load), steps bought with
+  `points_free` = level - 1 - steps, `buy_step`, `respec_steps` / `set_version` / `pick_talent` (a change) only by the
+  ship's bunk (`can_respec`: within 2.5 m of Ship.BED_AT). Passive slots (`passives`, 3, 4 from level 25): a redesigned
+  tree's "passive" node counts in `stat()` only while slotted; a new one fills a free slot by itself; `library()`.
+  Trees show once found (`found`, saved; the Captain and the Cutlass at the start): the first xp in a tree finds it,
+  `tree_found` fires and the HUD's `show_banner` says "New skill tree!". `owns_node` is the contract's has_node (Node has
+  one). `master_all()` for tests and render tools.
+- **Mastery**: no family carry-over (FAMILY_SHARE 0, kept for the old map). A hit counts for the first 12 hits on each
+  foe (`on_hit(target)`; PowerComponent passes the target), a kill's share x3 for an elite or a boss (`_elite_at`: a dead
+  "bosses" member, captain grunt or brute scuttlebug within 6 m of where the xp came from, among the bosses and the foes
+  we struck). Downtime's Train: +2 every 6 s, only up to mastery 8 (TRAIN_CAP; the wheel greys it with the reason).
+- **Saves** (FORMAT 5): steps, versions, passives, found, will. On every load a converted tree's old purchases are dropped
+  and granted again by level, so its points come back by themselves (no per-piece format bumps); trees not converted
+  keep their nodes and points. A format-4 save gets one banner.
+- Tests: t/progression/ tree_shape, grant_by_level, steps_points, versions_bunk, tree_found, hit_cap, passive_slots,
+  format5_migration (family_carry and can_learn gone); t/downtime/train checks the cap. techtest, abilityshot and
+  siteshot call `master_all()` first. Expect progtest, techtest, balancetest, r6test, katanatest, uitest to want a look.

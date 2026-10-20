@@ -203,7 +203,6 @@ static func _build() -> void:
 	_build_base()
 	_build_unarmed()
 	_build_cutlass()
-	_build_katana()
 	_build_axe()
 	_build_dual()
 	_build_dagger()
@@ -213,6 +212,19 @@ static func _build() -> void:
 	_build_life()
 	_build_mastery()
 	_build_fruits()
+	_merge_new()
+
+
+## The redesigned trees' nodes (SkillTrees), in this registry's shape too, so the readers of both see them.
+static func _merge_new() -> void:
+	var st := SkillTrees.nodes()
+	for k in st.keys():
+		var n: Dictionary = st[k].duplicate()
+		n["region"] = str(SkillTrees.tree_def(str(n["tree"]))["name"])
+		n["req"] = {}
+		n["cost"] = 0
+		n["new"] = true
+		_nodes[k] = n
 
 
 static func _build_base() -> void:
@@ -396,7 +408,6 @@ static func _build_unarmed() -> void:
 ## tree: [prefix, region, link 1, link 2, name 1, name 2, element (for the text)]
 const MASTERY := {
 	"sword": ["s", "Cutlass", "s_flying", "s_captain", "Call of the Tide", "Tidewalker", "the sea: spray and foam, and Kraken's Wake raises the deep under your foes"],
-	"katana": ["k", "Katana", "k_tiger", "k_saint", "Falling Petals", "Blossom Path", "pale steel light and falling petals"],
 	"axe": ["a", "Axe", "a_overhead", "a_warlord", "Ember Heart", "Living Fire", "embers and splintered stone"],
 	"dual": ["d", "Dual Wield", "d_dance", "d_master", "Twin Currents", "Crossing Storm", "twin currents of light, cyan and violet, crossing in an X"],
 	"corsair": ["cs", "Corsair", "cs_grape", "cs_captain", "Black Powder", "Powder Keg", "black powder: scarlet flashes, gold sparks and dark smoke, and Broadside's cannon fire burns"],
@@ -449,43 +460,6 @@ static func _build_cutlass() -> void:
 		"Cutlass hits heal you for 6% of their damage, and a hit that leaves them under 30% health deals 50% more on top.")
 	_add("s_swash", "Swashbuckler", "passive", R, _g(2, 3), ["s_plunder"], {"cdr_sword": 0.2, "flow_sword": 0.4},
 		"Cutlass techniques come back 20% sooner, and cutlass hits give 40% more energy.")
-
-
-static func _build_katana() -> void:
-	_tree = "katana"
-	var R := "Katana"
-	_add("k_root", "Katana", "root", R, _g(0, 0), [], {},
-		"Two hands, slow wide cuts, and iaijutsu on heavy: hold to charge, attack to draw. Fight with a katana (or any blade, a little) to build its mastery.")
-	_add("k_draw", "Quick Draw", "move", R, _g(-2, 0), ["k_root"], {"mv_quick_draw": 1},
-		"Attack at a sprint: a quick cut straight out of the scabbard that breaks wind-ups.")
-	_add("k_folded", "Folded Steel", "stat", R, _g(2, 0), ["k_root"], {"dmg_katana": 0.12, "stam_katana": 0.15},
-		"+12% katana damage, and katana attacks cost 15% less stamina.")
-	_add("k_full", "Full Draw", "move", R, _g(0, 1), ["k_root"], {"mv_iai_full": 1},
-		"Your iai charges to its second level: a gold glint, a longer dash, and everything you cut through crumples.", {}, "", 2)
-	_add("k_eye", "Mind's Eye", "passive", R, _g(-1, 1), ["k_draw", "k_full"], {"iai_speed": 0.3},
-		"Your iai charges 30% faster.")
-	# movement and defence
-	_add("k_deflect", "Cut the Shot", "passive", R, _g(-2, 1), ["k_draw"], {"parryshot_katana": 1, "parry_katana": 0.06},
-		"Parry with a katana and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
-	_add("k_counter", "Iai Counter", "active", R, _g(-2, 2), ["k_deflect"], {}, "", {}, "iai_counter")
-	_add("k_arc", "Crescent Arc", "move", R, _g(-2, 3), ["k_counter"], {"mv_air_slash": 1},
-		"Attack in the air: a little lift and one big arc swept down under you (once per jump).")
-	_add("k_phantom", "Phantom Step", "active", R, _g(-2, 4), ["k_arc"], {}, "", {}, "phantom_step")
-	_add("k_return", "Bullet Return", "passive", R, _g(-2, 5), ["k_phantom"], {"deflect_katana": 1, "return_katana": 1, "deflect_cd_katana": 1.0},
-		"Mastered: with a katana drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.", {"level": 4}, "", 3)
-	# skills
-	_add("k_tiger", "Tiger Rush", "active", R, _g(0, 2), ["k_full"], {}, "", {"level": 4}, "tiger_rush")
-	_add("k_wind", "Wind Severer", "active", R, _g(0, 3), ["k_tiger"], {}, "", {}, "wind_sever")
-	_add("k_saint", "Sword Saint", "stat", R, _g(0, 4), ["k_wind", "k_through"], {"dmg_katana": 0.16, "crit_katana": 0.15},
-		"+16% katana damage, and 15% of your katana hits land 50% harder.", {"level": 10}, "", 3)
-	_add("k_petals", "Thousand Petals", "ult", R, _g(0, 5), ["k_saint"], {}, "", {"level": 12}, "petal_storm")
-	# style
-	_add("k_clean", "Clean Line", "passive", R, _g(2, 1), ["k_folded"], {"heavy_katana": 0.3, "exec_katana": 0.5},
-		"Your iai cuts 30% deeper, and a cut that leaves them under 30% health deals 50% more on top.")
-	_add("k_calm", "Empty Mind", "passive", R, _g(2, 2), ["k_clean"], {"cdr_katana": 0.25},
-		"Katana techniques come back 25% sooner.")
-	_add("k_through", "Through the Guard", "passive", R, _g(2, 3), ["k_calm"], {"unblock_katana": 1},
-		"Your iai can't be blocked.", {"level": 8})
 
 
 static func _build_axe() -> void:

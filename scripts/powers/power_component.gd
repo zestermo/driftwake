@@ -366,7 +366,7 @@ func on_sword_hit(target: Node, hit: HitData) -> void:
 	player.fought()
 	TraitMoves.landed(player, target, hit)
 	if player.is_local:
-		pr.on_hit()
+		pr.on_hit(target)
 		var leech := pr.style_stat("leech", st)
 		if leech > 0.0:
 			player.health_component.heal(hit.damage * leech)
