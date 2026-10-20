@@ -4486,3 +4486,12 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   dealer's tier and his stock steady for a day and turning over, the shops, the rest heals, three quests, taking the
   notice, the toughs muster host-side in the yard, the crowd on the floors and where the clock says, no crowd bodies
   with the camera far). Renders: capitalshot (plaza, street, crowd, inn, halls, quay, slum, yard), by day and 21:30.
+
+## 2026-10-20: 1.18.1 fix pass
+- nettest chain: the chain's third stop is the royal capital, which has no camp/boss/sites of a generated island, so the
+  host's chain report threw (and the guest's reply lacked "ready"). nettest_node's chain_report has a capital_report
+  (the toughs' camp, the people under CapitalLife, quests, five shops' names and stock, the crowd's places at 10:00)
+  and netclient's same_isles checks the guest builds the same of each (and the toughs are puppets).
+- guntest: stale, not the game. The captain's 99999 max health regenerates 1% a second once 8 s have passed since a
+  blow; the shove step came after the third rifle shot's wait, so the 12 hp lost earlier was healed back (hp lost -12)
+  and the shove's 4.8 was swallowed by the cap. The step now holds the captain "in a fight" (_since_hit = 0).

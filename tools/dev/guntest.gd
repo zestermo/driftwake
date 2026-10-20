@@ -124,6 +124,7 @@ func _process(d: float) -> bool:
 			rifle._shot_cd = 99.0
 			p.global_position = rifle.global_position + rifle._fwd() * 1.8
 			p.reset_physics_interpolation()
+			p._since_hit = 0.0
 			hp0 = p.health_component.current_health
 			t0 = t
 			step += 1

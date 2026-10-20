@@ -1036,6 +1036,11 @@ func same_isles(mine: Dictionary, theirs: Dictionary, what: String) -> void:
 		check(tag + " - the camp's crew as on the host (%d / %d)" % [a["crew"].size(), b["crew"].size()], a["crew"] == b["crew"])
 		check(tag + " - the village's people (%d)" % b["people"].size(), a["people"] == b["people"] and b["people"].size() >= 6)
 		check(tag + " - the villagers' routines and the quests as on the host (%d)" % b["life"].size(), a["life"] == b["life"])
+		if b.get("capital", false):
+			check(tag + " - the shops' names and stock as on the host", a["shops"] == b["shops"] and b["shops"].size() == 5)
+			check(tag + " - the crowd's places as on the host (%d)" % b["crowd"][0], a["crowd"] == b["crowd"] and b["crowd"][0] > 0)
+			check(tag + " - the toughs are puppets here", a["crew"].size() == 4 and a["crew"].all(func(e): return net.node_of(e[0]) != null and net.node_of(e[0]).net_puppet))
+			continue
 		# (at "beast" the island we felled it on may have let its body go on both machines by now)
 		var gone: bool = what == "beast" and a["ape"] == "" and b["ape"] == ""
 		check(tag + " - its beast (%s, %s)" % [b["beast"], b["ape"] if not gone else "felled, gone on both"], a["beast"] == b["beast"]

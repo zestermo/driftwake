@@ -41,6 +41,37 @@ func _grip(w) -> float:
 	return (-(w as Node3D).global_basis.z.normalized()).dot(-((w as Node3D).get_parent() as Node3D).global_basis.y.normalized())
 
 
+## The royal capital as this machine has it: the same fields as a generated island's, its beast fields empty, with
+## its shops' stock and its crowd's places at 10:00.
+func capital_report(isl: CapitalIsland) -> Dictionary:
+	var n := net()
+	var life: CapitalLife = isl.life_node
+	var crew: Array = []
+	for g in life.ruffians.grunts:
+		if is_instance_valid(g) and int(g.state) != 14:
+			crew.append([n.key_of(g), str(g.title)])
+	crew.sort()
+	var people: Array = []
+	for c in life.get_children():
+		if c.is_in_group("npcs"):
+			people.append([c.npc_name, c.dialogue_id, c.shop_id])
+	people.sort()
+	var chests: Array = []
+	for b in isl.find_children("*", "LootBag", true, false):
+		if not b.is_queued_for_deletion() and b.save_id != "":
+			chests.append(b.save_id)
+	chests.sort()
+	var quests: Array = life.quest_node.quests.map(func(q): return [q["id"], q["kind"], q["title"]])
+	var shops := {}
+	var SHOPS = load("res://scripts/game/shops.gd")
+	for k in ["curio", "grocer", "fish", "tailor", "inn"]:
+		var s: Dictionary = SHOPS.extra[life._key(k)]
+		shops[k] = [s["name"], str(s["stock"])]
+	var crowd: Array = [isl.crowd.walkers.size()] + range(isl.crowd.walkers.size()).map(func(i): return isl.crowd.place_of(i, 10.0))
+	return {"name": isl.island_name, "pos": isl.position, "radius": isl.radius, "sites": isl.sites, "capital": true,
+		"crew": crew, "people": people, "chests": chests, "life": quests, "shops": shops, "crowd": crowd, "ape": "", "beast": ""}
+
+
 ## The chain as this machine has it: its state and every chain island standing
 ## (the host's and the guest's are compared).
 func chain_report() -> Dictionary:
@@ -50,6 +81,9 @@ func chain_report() -> Dictionary:
 	var isles := {}
 	for id in w.chain_islands.keys():
 		var isl = w.chain_islands[id]
+		if isl is CapitalIsland:
+			isles[int(id)] = capital_report(isl)
+			continue
 		var crew: Array = []
 		for g in isl.get_node("Site_camp/Camp").grunts:
 			if is_instance_valid(g) and int(g.state) != 14:
