@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v1.18: Charted Waters | Driftwake</title>
+<meta name="description" content="Driftwake v1.18: a reworked progression, a real economy, cooking and fishing, diving, a map you hold in your hands, a crew journal, and a rebuilt roadmap.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://driftwake.fun/news/v1-18-charted-waters/">
+<meta property="og:title" content="Driftwake v1.18: Charted Waters">
+<meta property="og:description" content="Everything you do makes you better at it now: skills, food, fishing, diving, a map in your hands and a journal for the crew.">
+<meta property="og:image" content="https://driftwake.fun/img/fishing.jpg">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="900">
+<meta property="og:image:alt" content="The captain fishing off a pier at golden hour, the line out to a bobber on the waves">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://driftwake.fun/img/fishing.jpg">
+<meta name="theme-color" content="#12363c">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the post</a>
+
+<div class="top">
+	<a class="brand" href="/">DRIFTWAKE</a>
+	<nav aria-label="Site">
+		<a href="/">Home</a>
+		<a href="/news/" aria-current="page">News</a>
+		<a href="/roadmap/">Roadmap</a>
+		<a href="/releases/">Releases</a>
+		<a class="nav-dl" href="/#download">Download</a>
+	</nav>
+</div>
+
+<header class="page-head">
+	<p class="date"><a href="/news/">News</a> &middot; October 19, 2026</p>
+	<h1>v1.18: Charted Waters</h1>
+	<p>Everything you do makes you better at it now.</p>
+</header>
+
+<main id="main" class="article">
+	<p>This is the biggest update Driftwake has had, and the reason is a good one: development has found its groove.
+		Over the last few releases I've built a set of tools and workflows around the game: separate lanes of work that
+		run side by side without stepping on each other, a landing queue that checks every change before it goes in, a
+		test suite that knows exactly which tests a change can affect and skips the rest, render tools that film a
+		feature from every angle, and a performance gate every release has to pass. The upshot is more content per
+		update without the quality slipping, and v1.18 is the first release built entirely that way.</p>
+	<p>It also settled a lot of what Driftwake is going to be. More on that at the end, but the short version: the
+		roadmap has been rebuilt from the ground up to match.</p>
+
+	<figure class="art"><img src="/img/fishing.jpg" srcset="/img/fishing-640.jpg 640w, /img/fishing.jpg 1600w" sizes="(max-width: 800px) 100vw, 760px" alt="The captain fishing off a pier at golden hour, the line out to a bobber on the waves" width="1600" height="900"></figure>
+
+	<h2>Getting better at everything</h2>
+	<p>The skill trees were too dense and too walled off from each other, so they've been rebuilt. Each tree is now a
+		handful of big nodes that change how you play instead of a long list of small percentages. A shared Captain tree
+		takes your level-up points, and weapon trees fill as you fight with that weapon. Weapons come in families, so a
+		quarter of the mastery you earn with a cutlass also goes to the katana and the daggers: trying something new
+		doesn't mean starting from nothing.</p>
+	<p>And it's not just fighting any more. Swimming, sailing, cooking and fishing are life skills you level by doing
+		them, each with perks along the way. If you already had a captain, every point you'd spent is handed back once
+		so you can rebuild on the new trees.</p>
+
+	<h2>Gold that means something</h2>
+	<p>Loot was far too generous. Drops are much scarcer now, and in co-op every captain rolls their own, so there's
+		nothing to squabble over. A new weapon is an event again: from blue rarity up, every weapon comes with a named
+		trait that changes how one of its moves plays. A finisher that bleeds, a dodge roll that leaves fire behind, a
+		parry that answers with a free cut, a pistol that always crits right after a roll.</p>
+	<p>Shops are trades now, each with a short stock that changes every day: a smith, an armourer, a tailor, grocers,
+		a cook. Rare gear is only sold by treasure merchants. You can buy back what you just sold, and wandering artisans
+		sometimes camp on the islands' trails with a few goods of their own.</p>
+
+	<figure class="art"><img src="/img/dive.jpg" srcset="/img/dive-640.jpg 640w, /img/dive.jpg 1600w" sizes="(max-width: 800px) 100vw, 760px" alt="The captain diving over a reef beside a sunken chest, light rippling down through the water" width="1600" height="900"></figure>
+
+	<h2>Food, fishing and the sea</h2>
+	<p>Health comes back slowly once a fight is over, but in the thick of it you heal with food and drink: one key uses
+		your chosen item, holding it opens a wheel to pick another. Buy ingredients, cook them in the ship's galley or over
+		a campfire, and a meal gives you a buff for the next 10 to 20 minutes.</p>
+	<p>Fishing is a proper little game now. Buy a rod (there are four, from driftwood to a master's rod), put bait on the
+		hook, cast, watch the bobber ride the swell and strike when it dips. There are 21 kinds of catch from common to
+		legendary, depending on how deep the water is, which island you're off and whether it's day or night. Your first
+		legendary teaches you a recipe.</p>
+	<p>The water itself has more going on. You can dive for sunken chests, oyster beds and reefs with a breath meter
+		ticking down, and rip currents, surf and freezing water near the snow islands all push back. Sharks circle wrecks
+		(you'll see the fin first), morays wait in the rocks and jellyfish drift in fields. On the plus side you can't drown
+		just from swimming too long any more: a tired swimmer floats and gets their breath back.</p>
+
+	<figure class="art"><img src="/img/heldmap.jpg" srcset="/img/heldmap-640.jpg 640w, /img/heldmap.jpg 1600w" sizes="(max-width: 800px) 100vw, 760px" alt="The captain holding a parchment map, the camera looking over their shoulder at an island drawn in ink with fog over the unexplored parts" width="1600" height="900"></figure>
+
+	<h2>A map in your hands, a journal for the crew</h2>
+	<p>Press M and your captain unrolls a parchment map, with the camera looking down at it over their shoulder while the
+		world carries on around you. Unexplored parts of an island are fogged until somebody in the crew walks there, and
+		question marks hint at places nobody has found yet. Scroll out and it turns into the sea chart.</p>
+	<p>Quests got the same treatment. The crew shares a journal with active quests, finished ones and rumours. Quests come
+		from people, notice boards and things you find, can take several steps, and you hand them back to whoever gave
+		them for gold, items, recipes, a discount or a map of somewhere new. The people on the islands say their own things
+		now instead of all repeating the same line, and you'll run into travellers, ambushes, festivals, shipwreck
+		survivors and the odd duelist out on the trails.</p>
+
+	<h2>A few more things in this one</h2>
+	<ul>
+		<li><b>Downtime at sea.</b> Lash the helm and the ship holds her course while you train, read, tinker, fish or
+			sleep in your bunk, until a storm or a sail on the horizon cuts it short.</li>
+		<li><b>Weapon loadouts.</b> Save a couple of weapon setups and swap between them with one key.</li>
+		<li><b>An action wheel</b> for making camp, cooking, training and the rest, the same on land and at sea.</li>
+		<li><b>Crew chat</b> in co-op, and <b>shift+click</b> to move whole stacks between your bag and a chest.</li>
+		<li><b>Ships:</b> swinging ropes are a yard upgrade now, the rope is easier to grab mid-jump, and enemy crews
+			actually board you.</li>
+		<li><b>A performance pass</b>: smoother towns and smaller stutters when the next island loads in.</li>
+	</ul>
+
+	<h2>Where it's heading</h2>
+	<p>Honestly, it's getting really fun to play. The systems are starting to lean on each other: you sail out, dive a
+		wreck, cook what you caught, go after a bounty with a trait weapon you saved up for, and come back stronger. That's
+		the game I've been trying to make, and this update made the shape of it a lot clearer.</p>
+	<p>So the <a href="/roadmap/">roadmap</a> has been rebuilt to match, and it's an interactive timeline now. Next up is
+		v1.19 with the Admiralty and rival pirate crews, who fight with the same weapons and skills you do, plus a new opening
+		that shows you what's out there. After that come a new island type and the first cities, then a big pass on combat and
+		gear, and then strongholds where the Driftfruits are kept.</p>
+	<p>I'm also starting to look into what it would take to put Driftwake on Steam one day. Nothing to announce yet, but
+		it's on the horizon.</p>
+
+	<p>Every change is in the <a href="/releases/#v1-18">release notes</a>. Bring bait.</p>
+	<p><a class="btn btn-big" href="/download" download>Download for Windows<small>Free &middot; co-op for up to 4</small></a></p>
+	<p class="signoff"><img class="avatar" src="/img/zilk.webp" alt="Zilk: a pixel-art captain with round glasses, freckles and a battered brown wizard hat" width="72" height="72" loading="lazy"><span>Fair winds,<br>Zilk</span></p>
+</main>
+<footer>
+	<nav aria-label="Footer">
+		<a href="/download" download>Download</a>
+		<a href="/play/">Play in browser</a>
+		<a href="/news/">News</a>
+		<a href="/roadmap/">Roadmap</a>
+		<a href="/releases/">Releases</a>
+	</nav>
+	<p>Driftwake is made by Zilk. Fonts: Pixelify Sans and Silkscreen (SIL Open Font License). Built with Godot.</p>
+	<p class="credit">Inspired by <i>One Piece</i> by Eiichiro Oda, with love. Driftwake is an independent fan-made game, not affiliated with or endorsed by Eiichiro Oda, Shueisha or Toei Animation.</p>
+</footer>
+
+</body>
+</html>

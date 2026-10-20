@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.17",
+	"here": "1.18",
 	"versions": [
 		{
 			"v": "0.1",
@@ -407,37 +407,50 @@
 		},
 		{
 			"v": "1.18",
-			"name": "Progression",
-			"status": "building",
-			"headline": "Things worth working toward: loot, cooking, shops, a held map, a crew journal and deeper swimming.",
-			"img": "shelf",
-			"alt": "Turquoise shallows over a sandy shelf (current build)",
-			"plan": [
-				["Economy and loot", "Trait weapons for blue rarity and up, rolled per captain, specialist shops and artisans, and buy-back."],
-				["Food and the galley", "Ingredients, cooking and buffs; food heals."],
-				["Wheels and loadouts", "A consumable wheel, keys 1-5 for abilities, loadout slots, an action wheel and making camp; co-op chat."],
-				["The held map", "The captain unrolls a parchment map in the world, with fog of war the whole crew shares and ? marks near undiscovered places."],
-				["The crew journal", "Quests from people, notice boards and things you find, shared by the crew, with rewards for everyone present."],
-				["People and encounters", "Island roles get their own talk, and travellers, ambushes and festivals turn up on generated islands."],
-				["Deeper swimming", "Diving for loot with a breath meter, currents, surf and cold water, sharks and jellyfish, and better strokes."],
-				["Sailing downtime", "Lash the helm, then read, tinker, fish at the rail, train or sleep in the bunk while she holds her heading."],
-				["Fishing", "A rod, a cast, a bite and the reel, at rails, piers and shores."],
-				["A performance pass", ""]
+			"name": "Charted Waters",
+			"date": "2026-10-19",
+			"status": "shipped",
+			"headline": "Everything you do makes you better at it: skills, food, fishing, diving, a map in your hands and a journal for the crew.",
+			"img": "fishing",
+			"alt": "The captain fishing off a pier at golden hour, the line out to a bobber on the waves",
+			"shots": [
+				["dive", "The captain diving over a reef beside a sunken chest"],
+				["heldmap", "The captain holding a parchment map, fog over the unexplored parts of the island"]
+			],
+			"clip": "fish",
+			"clipAlt": "The captain casts, the bobber dips, and a fish comes up on the line",
+			"news": "/news/v1-18-charted-waters/",
+			"github": true,
+			"added": [
+				["Skills, rebuilt", "Fewer, bigger nodes; a shared Captain tree on level points, weapon trees that grow as you fight, and weapon families that share mastery."],
+				["Life skills", "Swimming, Seamanship, Cooking and Fishing level up by doing them, with perks at milestones."],
+				["Loot and weapon traits", "Much scarcer drops, rolled for each captain; from blue rarity up, every weapon has a named trait that changes a move."],
+				["Shops and artisans", "Each shop is a trade with a stock that changes every day, buy-back, rare gear only at treasure merchants, and artisans camped on the islands' trails."],
+				["Food and cooking", "Heal in a fight from the quick item; cook ingredients at the galley or a campfire into meals with 10-20 minute buffs."],
+				["Fishing", "Four rods, four baits, a cast-wait-strike minigame on the real waves, and 21 catches from common to legendary."],
+				["Diving and the sea", "Dive for chests, oysters and reefs with a breath meter; currents, surf and cold water; sharks, morays and jellyfish; new strokes."],
+				["The held map", "A parchment map in your hands, fog over what the crew hasn't explored, ? marks, and a zoom out to the sea chart."],
+				["The crew journal", "Multi-step quests from people, notice boards and things you find, handed back to whoever gave them; villagers' own lines and ten kinds of encounters."],
+				["Downtime at sea", "Lash the helm, then train, read, tinker, fish or sleep while she holds her heading."],
+				["Controls", "Abilities on 1-5, weapon loadouts, an action wheel, making camp, an equipment slot, crew chat and shift+click."],
+				["Ships", "Swinging ropes as a yard upgrade, and enemy crews that board you."],
+				["This timeline", "The interactive roadmap you're reading."],
+				["Performance and fixes", "Smoother towns and island loads, steadier co-op joins, and many smaller fixes."]
 			]
 		},
 		{
 			"v": "1.19",
-			"name": "Rivals and Bounties",
-			"status": "planned",
-			"headline": "Rival pirate crews, bounties on your head, and a new opening that shows what's out there.",
+			"name": "The Admiralty and Rivals",
+			"status": "building",
+			"headline": "The Admiralty and rival pirate crews, fighting in the water, and a new opening that shows what's out there.",
 			"img": "coop",
 			"alt": "Three captains with swords drawn on a sloop's deck at sunset (current build)",
 			"plan": [
 				["Rival crews", "Persistent rival captains who fight like you do, with their own crews, lines and matchups, who come back stronger."],
+				["The Admiralty", "A navy with patrols that hunt you, named captains, bounties that grow and wanted posters."],
 				["Cutscenes", "A cutscene system for rival intros and story moments."],
-				["Bounties and wanted posters", "Beating rivals raises your bounty, posters show it, and rivals react to it."],
-				["A new opening", "An intro that sets up the world: the Admiralty, the rival crews, the sea's great powers and the end of the First Sea, and gives your captain a reason to go."],
-				["This timeline", "The interactive roadmap you're reading."]
+				["Fighting in the water", "Swimmers can fight back against sharks, and rivals and the Admiralty can follow you under."],
+				["A new opening", "An intro that sets up the world: the Admiralty, the rival crews, the sea's great powers and the end of the First Sea, and gives your captain a reason to go."]
 			]
 		},
 		{

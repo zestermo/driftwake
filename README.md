@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.17-e0b040" alt="Version 1.17">
+  <img src="https://img.shields.io/badge/version-1.18-e0b040" alt="Version 1.18">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -143,17 +143,49 @@ wobbly vertices, dithered colour and a chunky pixel grid.
 | Heavy attack | Right click | | Pause menu | Esc |
 | Parry (tap) / block (hold) | Q | | Zoom camera | Mouse wheel |
 | Interact, talk, man a gun (hold for deck jobs) | F | | Pixelation / dither | F2 / F3 |
-| Skills | 1 – 4 | | Fullscreen | F11 / Alt+Enter |
+| Skills | 1 – 5 | | Fullscreen | F11 / Alt+Enter |
 | Ultimate | R | | Summon your ship (hold) | B |
-| Quick items | 5 – 7 | | Read the log pose (hold) | H |
-| Zoan fruit: shift form | V | | Belt lantern | L |
+| Eat / drink (hold for the item wheel) | E | | Read the needle (hold) | H |
+| Weapon loadouts (hold for the wheel) | X | | Belt lantern | L |
+| Action wheel: camp, cook, train, fish... (hold) | N | | Crew journal | J |
+| Crew chat (co-op) | Enter | | Zoan fruit: shift form | V |
 
-**At the helm:** W/S set the sail, A/D steer, left click fires a broadside, and F leaves the wheel.
+The map (M) unrolls in your hands; scroll to zoom from the island out to the sea chart.
+
+**At the helm:** W/S set the sail, A/D steer, left click fires a broadside, F leaves the wheel, and N lashes the helm.
+
+**In the water:** Left Ctrl dives (hold to go deeper), Space surfaces, Shift for a burst. **Fishing:** with a rod in
+the equipment slot, face the water and press F to cast, then F again when the bobber dips.
 
 **Climbing ladders and rigging:** F grabs on, W/S climb, Space jumps off, and F lets go. With a
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.18: Charted Waters (October 19, 2026)
+Everything you do makes you better at it: reworked skills, a real economy, food and fishing, diving, a map you hold
+and a journal for the crew.
+- **Skills:** fewer, bigger nodes; a shared Captain tree on level points, weapon trees by use, a quarter of the mastery
+  shared within a weapon family; life skills (Swimming, Seamanship, Cooking, Fishing) with milestone perks; old
+  captains get every point back once.
+- **Economy:** much scarcer loot, rolled per captain in co-op; one price curve; named weapon traits from blue up that
+  change a move; shops as trades with daily stock, buy-back, rare gear only at treasure merchants, artisans on islands.
+- **Food:** regen after a fight, food and drink in one (E, hold for the wheel), ingredients cooked in the galley or at a
+  campfire into meals with 10-20 minute buffs; no free galley restock.
+- **Fishing:** four rods, four baits, a cast-wait-strike minigame on the real waves, 21 catches from common to legendary
+  by water, island and hour, Fishing perks, a legendary recipe.
+- **The sea:** diving with a breath meter for chests, oyster beds and reefs; rip currents, surf, swell and cold water;
+  sharks, morays and jellyfish; new strokes and climbing out; a tired swimmer floats instead of drowning.
+- **The held map** (M): a parchment in your hands, fog over unexplored ground shared by the crew, ? marks, a zoom out to
+  the sea chart.
+- **Quests and people:** the crew journal (J), notice boards, multi-step quests handed back to their giver, rewards that
+  aren't XP, villagers' own lines, ten kinds of island encounters.
+- **At sea:** lash the helm and train, read, tinker, fish or sleep; the first Blender-made animation clip.
+- **Controls:** abilities on 1-5, loadouts on X, the action wheel on N, making camp, an equipment slot with a show box,
+  crew chat (Enter), shift+click stacks, no auto-equip on pickup.
+- **Ships:** yard ropes as an upgrade, the rope wins the prompt mid-jump, enemy crews board.
+- **Performance and fixes:** smoother towns and island loads; steadier co-op joins; the sprint jump costs stamina; the
+  stern's corners closed.
 
 ### v1.17: Timber and Tide (October 17, 2026)
 Forest islands join the chain, the sloop becomes a ship you build up, and Brinehollow grows into a real town.

@@ -23,6 +23,9 @@ least two cities on the first chain (the royal capital and the canal city). See 
   (it comes out a few feet from the side). It should **cross the arena back and forth in long straight lines, like a
   train**.
 
+### Also noticed (2026-10-20, making the 1.18 site art)
+- The campfire flame renders as a tall pale block at dusk (siteshot camp); the dive has no light shafts.
+
 ### Between points of interest
 - More **ambient creatures** and **obstacles** in the space between places, so travelling an island isn't empty.
 

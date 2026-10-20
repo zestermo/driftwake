@@ -7,12 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Forest islands", "Autumn woods of maple, oak, beech and birch, rivers that tumble into gorges, and a lumber town with a water-wheel sawmill. Climb a hollow giant tree, storm a ruined castle, and watch for the Stag King, the Elder Treant and the Wild Hunt at night."],
-	["Build up your ship", "Tackett's yard sells upgrades in levels now: plating, guns, sails, rudder, copper, a bow chaser, a crow's nest, lanterns, railings, a tangerine grove, galley and bunks, and a bigger hold. Every level shows on the sloop, and higher ones need salvage from ships you sink."],
-	["Seamanship", "A new SEA skill tree, earned at the helm, the guns and the pump. Its bonuses work at the station you're manning, so a crew that splits up sails better."],
-	["A bigger Brinehollow", "The island grew south: farmland and a windmill hamlet, a waterfall pool, a wreck and a second cove. The town has a market street, houses up the hill and a shrine terrace at the top of a long stair, all inside thick woods."],
-	["A livelier town", "Shopkeepers work the market street by day and the Salted Gull fills up at night. Fishing boats work the harbour. Haldor's Forge sells the weapons now and Corin sells instruments."],
-	["The katana, redrawn", "Its cuts follow the blade, with drawn slashes that match the swing. Awakened, they billow into steel-blue cloud and sakura petals, and all five katana skills got the same treatment."],
+	["Get better at everything", "Skill trees are a few big nodes now: a shared Captain tree on level points, weapon trees that grow as you fight, and weapon families that share mastery. Swimming, sailing, cooking and fishing level up by doing them. Old captains get their points back."],
+	["Gold that means something", "Loot is much scarcer and rolled for each captain. Rare weapons carry a named trait that changes a move. Shops are trades with a stock that changes every day, and artisans camp on the islands' trails."],
+	["Food and fishing", "Heal in a fight with E (hold it to pick). Cook ingredients at the galley or a campfire for meals that last 10-20 minutes. Buy a rod and bait, cast with F and strike when the bobber dips: 21 fish, common to legendary."],
+	["Into the water", "Dive for sunken chests, oysters and reefs with a breath meter. Mind the currents, the cold and the sharks. A tired swimmer floats now instead of drowning."],
+	["A map in your hands", "M unrolls a parchment map: fog over what your crew hasn't explored, question marks near hidden places, and a zoom out to the sea chart. J opens the crew journal."],
+	["New controls", "Abilities on 1-5, weapon loadouts on X, and N for the action wheel: make camp, cook, train, read, fish, sleep. Lash the helm at sea and the ship holds her course. Enter chats in co-op."],
 ]
 
 

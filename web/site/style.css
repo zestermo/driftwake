@@ -145,6 +145,27 @@ h2 {
 	color: var(--ink);
 }
 .badge:hover, .badge:focus-visible { border-image-source: url("/img/ui/chip-hover.png"); }
+/* The newest post, a small card at the top of the hero. */
+.latest {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	max-width: 440px;
+	margin: 0 0 16px;
+	padding: 6px 12px 6px 6px;
+	background: rgba(12, 36, 39, 0.82);
+	border: 2px solid var(--border-dim);
+	text-decoration: none;
+	color: var(--text);
+}
+.latest:hover, .latest:focus-visible { border-color: var(--sun); }
+.latest img { width: 104px; height: auto; flex: none; image-rendering: pixelated; }
+.latest span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.latest small { font: 400 10px "Silkscreen", monospace; letter-spacing: 1px; text-transform: uppercase; color: var(--sun); }
+.latest b { font: 600 18px "Pixelify", monospace; color: var(--text); }
+.latest em { font-style: normal; font-size: 13px; color: var(--dim); }
+.latest:hover b { color: var(--sun); }
+@media (max-width: 480px) { .latest img { width: 80px; } .latest em { display: none; } }
 .hook {
 	max-width: 560px;
 	margin: 0 0 12px;
