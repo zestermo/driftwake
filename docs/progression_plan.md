@@ -193,10 +193,11 @@ trees.
   "will"), tree, branch, level, pos (Vector2, tree space), links, skill (skill id or ""), desc, max_steps,
   versions: [{name, desc, level}]}`; `trees_in(section) -> Array`.
 - `Progression`: `visible_trees(section)`, `tree_level(tree)`, `tree_xp(tree)`, `tree_xp_next(tree)`,
-  `points_free(tree)`, `steps_of(node)`, `buy_step(node) -> bool`, `has_node(node)`, `version_of(node) -> int`,
+  `points_free(tree)`, `steps_of(node)`, `buy_step(node) -> bool`, `owns_node(node)` (not has_node: Node has one), `version_of(node) -> int`,
   `set_version(node, i) -> bool` and `pick_talent(level, i) -> bool` (only where `can_respec()`: the ship's bunk),
   `talent_at(level) -> int`, `has_will(id)`, `passives: Array[String]` (3, a 4th at level 25), `equip_passive(id,
   slot) -> bool`, `library() -> {skills: [...], passives: [...]}`; signal `tree_found(tree)` (the banner is shown
   by prog-core through the hud group). Existing readers (`stat`, `has_move`, `style_stat`, `elemental`,
   `skill_tier`, `knows`, `known_skills`) keep working.
+- Extras (prog-core, piece 1): `step_why(node)`, `respec_steps(tree)` (bunk only), `passive_slots()`, `tree_name(tree)`, `SkillTrees.converted(tree)`, `SkillTrees.section_of(tree)`; `node_def.branch` is the branch index (-1 root); versions are their own nodes (kind "version").
 - bar-swap needs only `knows(skill)` and `Skills.ALL[id].styles` / `player.loadouts`.
