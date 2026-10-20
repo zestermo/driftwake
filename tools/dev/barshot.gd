@@ -22,6 +22,11 @@ func learn(p, skill_id: String) -> void:
 
 
 func _process(d: float) -> bool:
+	# (a windowed first launch opens the character creator: accept the default captain)
+	var cc := load("res://scripts/ui/character_creator.gd")
+	for n in root.find_children("*", "", true, false):
+		if n.get_script() == cc and n.is_inside_tree():
+			n._finish(true)
 	if not stage.up:
 		return false
 	t += d
@@ -45,13 +50,12 @@ func _process(d: float) -> bool:
 	elif step == 1 and t > 1.0:
 		step = 2
 		var out := OS.get_cmdline_user_args()[0]
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out.get_base_dir()))
 		var img := root.get_texture().get_image()
 		img.save_png(out + "_screen.png")
-		var sb := load("res://scripts/ui/skill_bar.gd")
-		var bar = root.find_children("*", "Control", true, false).filter(func(n): return n.get_script() == sb)[0]
-		var k := float(img.get_width()) / 800.0
-		var r := Rect2i(Vector2i(bar.global_position * k), Vector2i(bar.size * k))
-		var crop := img.get_region(r)
+		var w := img.get_width()
+		var h := img.get_height()
+		var crop := img.get_region(Rect2i(int(w * 0.31), int(h * 0.86), int(w * 0.38), int(h * 0.14)))
 		crop.resize(crop.get_width() * 3, crop.get_height() * 3, Image.INTERPOLATE_NEAREST)
 		crop.save_png(out + "_bar.png")
 		print("SAVED")

@@ -5,6 +5,9 @@ extends Node
 ## Haki, Howl...), which Devil Fruit you've eaten (if any), and the shared
 ## damage helpers skills use (blasts, burning, rooting, setting brush alight).
 ##
+## One bar across the weapon loadouts: a weapon's skill goes on it while that weapon is in a loadout,
+## and using it with another weapon in hand takes that loadout up first. Locked in a boss fight.
+##
 ## Energy refills over time and with every melee hit; the ultimate charges from
 ## damage dealt. A Devil Fruit user's fruit skills fizzle in the sea (waist
 ## deep or more) and their energy stops refilling there.
@@ -161,8 +164,21 @@ static func loadout_for(sk: Dictionary, styles: Array, at: int) -> int:
 	return NO_LOADOUT
 
 
+## A boss this close in a fight locks the bar (the boss music's range).
+const BOSS_LOCK_RANGE := 55.0
+
+
+func boss_fight() -> bool:
+	for b in player.get_tree().get_nodes_in_group("bosses"):
+		if b.in_combat() and (b as Node3D).global_position.distance_to(player.global_position) < BOSS_LOCK_RANGE:
+			return true
+	return false
+
+
 ## Why a skill can't go on a slot ("" = it can; "" as the skill clears the slot). The menu shows it.
 func why_not_equip(skill_id: String, slot: int) -> String:
+	if boss_fight():
+		return "Not during a boss fight"
 	if skill_id == "":
 		return ""
 	if Skills.is_ult(skill_id) and slot != ULT:
