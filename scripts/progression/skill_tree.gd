@@ -300,8 +300,8 @@ static func _build_base() -> void:
 ## flooding's slowdown, steering), gun_reload (a gun you man), gun_dmg (balls you fire), repair (patching,
 ## dousing), pump (bailing), capstan (the anchor), lookout (m: sails and salvage on your compass aboard),
 ## crew (the rest half again while a crewmate mans another station).
-## Cooking and fishing keys (meal_time_pct, meal_power_pct, fish_bite_pct, fish_reel_pct, fish_rare_pct,
-## fish_double) are read by those systems once they exist.
+## Cooking keys (meal_time_pct, meal_power_pct) are read by Food; fishing's (fish_bite_pct, fish_reel_pct,
+## fish_bait_save, fish_rare_pct, fish_double, fish_legend) by Fishing.
 static func _life_root(tree: String, col: int, name_: String, region: String, desc: String) -> void:
 	_tree = tree
 	_add(tree + "_root", name_, "root", region, Vector2((col - 1.5) * 225.0 - 40.0, 0.0), [], {}, desc)
@@ -345,9 +345,12 @@ static func _build_life() -> void:
 
 	_life_root("fish", 3, "Fishing", "Fishing", "Fish to build it. Its perks come by themselves as it grows.")
 	_perk("fs_patient", "Patient Line", "Fishing", 2, 1, "fish_root", {"fish_bite_pct": 0.2}, "Fish bite 20% sooner.")
-	_perk("fs_hands", "Steady Hands", "Fishing", 5, 2, "fs_patient", {"fish_reel_pct": 0.25}, "Reeling in is 25% easier.")
-	_perk("fs_lore", "Sea Lore", "Fishing", 10, 3, "fs_hands", {"fish_rare_pct": 0.15}, "Rare catches come 15% more often.")
-	_perk("fs_salt", "Old Salt", "Fishing", 15, 4, "fs_lore", {"fish_double": 0.15}, "15% of your catches come up two at once.")
+	_perk("fs_hands", "Steady Hands", "Fishing", 5, 2, "fs_patient", {"fish_reel_pct": 0.25}, "The float stays down 25% longer: more time to reel in a bite.")
+	_perk("fs_saver", "Bait Saver", "Fishing", 8, 3, "fs_hands", {"fish_bait_save": 0.3}, "30% of your catches leave the bait on the hook.")
+	_perk("fs_lore", "Sea Lore", "Fishing", 10, 4, "fs_saver", {"fish_rare_pct": 0.2}, "Rarer fish bite 20% more often.")
+	_perk("fs_salt", "Old Salt", "Fishing", 15, 5, "fs_lore", {"fish_double": 0.15}, "15% of your catches come up two at once.")
+	_perk("fs_master", "Master Angler", "Fishing", 20, 6, "fs_salt", {"fish_legend": 1.0, "fish_reel_pct": 0.15},
+		"Legendary fish come twice as often, and the float stays down another 15% longer.")
 
 
 ## Weapon trees share a shape on the grid: the root at the bottom with the moveset either side of it

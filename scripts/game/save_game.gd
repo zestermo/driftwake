@@ -255,6 +255,7 @@ static func save(player: Player) -> bool:
 		"health": player.health_component.current_health,
 		"items": items,
 		"quick": inv.quick,
+		"bait": inv.bait,
 		"worn": worn,
 		"equip_hidden": player.equipment.hidden.keys(),
 		"weapon": item_ref(player.equipped_weapon),
@@ -339,6 +340,7 @@ static func load_into(player: Player) -> bool:
 		if InventoryComponent.quick_ok(ItemDB.get_item(str(id))):
 			inv.quick = str(id)
 			break
+	inv.bait = str(data.get("bait", ""))
 	var lk = data.get("look", {})
 	if lk is Dictionary and not lk.is_empty():
 		player.appearance = (lk as Dictionary).duplicate(true)

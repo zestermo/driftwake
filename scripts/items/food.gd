@@ -46,9 +46,13 @@ const MEALS := {
 	"captains_feast": {"name": "Captain's Feast", "desc": "A bit of everything, done properly. A crew fights for a cook like this.",
 		"heal": 60.0, "min": 20.0, "buff": {"max_hp": 25.0, "damage_pct": 0.05, "defense": 4.0},
 		"recipe": {"meat": 1, "fish": 1, "fruit": 1, "spice": 1}, "taught": true},
+	# (taught by the first legendary fish a captain lands: FishTable.LEGEND_RECIPE; the stew's icon for now)
+	"sea_legend": {"name": "Sea Legend's Platter", "desc": "Two fine fish, kelp and spice, the way the old sea cooks did it for a captain's table.",
+		"heal": 70.0, "min": 25.0, "buff": {"max_hp": 30.0, "damage_pct": 0.06, "crit_all": 0.05, "swim_pct": 0.1},
+		"recipe": {"fish": 2, "greens": 1, "spice": 1}, "taught": true, "icon": "fish_stew"},
 }
 ## The order the galley lists them.
-const ORDER := ["fish_stew", "peppered_boar", "porridge", "citrus_tart", "island_skewers", "reef_salad", "forest_curry", "captains_feast"]
+const ORDER := ["fish_stew", "peppered_boar", "porridge", "citrus_tart", "island_skewers", "reef_salad", "forest_curry", "captains_feast", "sea_legend"]
 
 ## How a buff key reads (percent keys show x 100).
 const BUFF_TEXT := {"max_hp": "+%d max health", "regen_pct": "+%d%% health regen", "damage_pct": "+%d%% damage",
@@ -90,7 +94,7 @@ static func make_items(items: Dictionary) -> void:
 		it.use_time = 1.1
 		it.use_anim = "slurp"
 		it.meal = id
-		it.icon = load("res://assets/textures/icons/%s.png" % id)
+		it.icon = load("res://assets/textures/icons/%s.png" % m.get("icon", id))
 		items[id] = it
 
 

@@ -35,6 +35,20 @@ func _initialize() -> void:
 		img.resize(24 * 8, 24 * 8, Image.INTERPOLATE_NEAREST)
 		sheet.blend_rect(img, Rect2i(0, 0, 24 * 8, 24 * 8), Vector2i(i * 24 * 8, 0))
 	sheet.save_png("%s_icons.png" % out)
+	# the catches' and baits' icons at 4x, in rows of 8
+	var ids: Array = Bait.ORDER.duplicate()
+	for id in FishTable.CATCHES.keys():
+		if str(FishTable.CATCHES[id][0]) != "":
+			ids.append(id)
+	var rows := ceili(ids.size() / 8.0)
+	var sheet2 := Image.create(24 * 4 * 8, 24 * 4 * rows, false, Image.FORMAT_RGBA8)
+	sheet2.fill(Color(0.16, 0.12, 0.1))
+	for i in range(ids.size()):
+		var tex: Texture2D = Bait.icon(ids[i]) if Bait.ITEMS.has(ids[i]) else FishTable.icon(ids[i])
+		var img: Image = tex.get_image()
+		img.resize(24 * 4, 24 * 4, Image.INTERPOLATE_NEAREST)
+		sheet2.blend_rect(img, Rect2i(0, 0, 24 * 4, 24 * 4), Vector2i((i % 8) * 24 * 4, (i / 8) * 24 * 4))
+	sheet2.save_png("%s_catch_icons.png" % out)
 
 
 func _state():

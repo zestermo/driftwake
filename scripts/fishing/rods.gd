@@ -39,9 +39,9 @@ static var _meshes: Dictionary = {}
 static var _icons: Dictionary = {}
 
 
-## What a fisher's camp (Artisans) picks its day's rods from (Shops' daily stock: a pool and a size).
+## What a fisher's camp (Artisans) picks its day's rod and bait from (Shops' daily stock: a pool and a size).
 static func fisher_pool() -> Array:
-	return [["rod_driftwood"], ["rod_bamboo"], ["rod_steel"]]
+	return [["rod_driftwood"], ["rod_bamboo"], ["rod_steel"], ["bait_worm"], ["bait_shrimp"], ["bait_glow"]]
 
 
 static func item_id(tier: String) -> String:

@@ -39,8 +39,8 @@ const SHOPS := {
 	},
 	"marlo": {
 		"name": "Marlo's Fish", "line": "Grilled while you wait. Mostly while you wait.", "trade": "grocer",
-		"stock": [["fish", 5], ["rod_driftwood"]],
-		"pool": [["crab_meat"], ["seaweed"], ["oyster"], ["salt"], ["rod_bamboo"]], "size": 2,
+		"stock": [["fish", 5], ["rod_driftwood"], ["bait_worm"]],
+		"pool": [["crab_meat"], ["seaweed"], ["oyster"], ["salt"], ["rod_bamboo"], ["bait_shrimp"]], "size": 2,
 		"buys": {"ingredient": 0.5},
 	},
 	"sela": {
@@ -96,7 +96,7 @@ const SHOPS := {
 	"ida": {
 		"name": "Old Ida's Pots", "line": "Hardtack in a jar. Lasts longer than you will.", "trade": "grocer",
 		"stock": [["biscuit", 3], ["rum", 10], ["rice", 3], ["salt", 3]],
-		"pool": [["flour"], ["pepper"], ["mushroom"], ["tonic"], ["egg"], ["coconut"]], "size": 3,
+		"pool": [["flour"], ["pepper"], ["mushroom"], ["tonic"], ["egg"], ["coconut"], ["bait_worm"]], "size": 3,
 		"buys": {"ingredient": 0.5},
 	},
 	"vey": {

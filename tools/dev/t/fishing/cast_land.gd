@@ -31,7 +31,7 @@ func state():
 
 func catches() -> int:
 	var n := 0
-	for id in ["fish", "crab_meat", "oyster", "sea_urchin"]:
+	for id in FishTable.CATCHES.keys():
 		n += p.inventory_component.count(id)
 	return n
 

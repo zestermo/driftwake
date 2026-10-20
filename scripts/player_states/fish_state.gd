@@ -11,6 +11,8 @@ const COOL := 0.25
 var phase := ""
 var _t := 0.0
 var _tier := ""
+## The bait on the hook for this cast ("" a bare hook).
+var _bait := ""
 var _spot := Vector3.ZERO
 var _bite_at := 0.0
 var _nibbles: Array = []
@@ -23,6 +25,7 @@ var _hp := 0.0
 func enter(_data: Dictionary) -> void:
 	_tier = Fishing.rod_of(player)
 	_spot = Fishing.cast_spot(player, _tier)
+	_bait = player.inventory_component.bait_on()
 	player.velocity = Vector3.ZERO
 	player.sprinting = false
 	player.sheathe_weapon(true)
@@ -75,7 +78,8 @@ func physics_update(delta: float) -> void:
 				_go("out")
 		"bite":
 			if reel:
-				_catch = Fishing.roll_catch(player, _tier)
+				# (where the float is now: cast from a deck under way it has trolled along with her)
+				_catch = Fishing.roll_catch(player, _tier, _rod()._bob_at, _bait)
 				_rod().reel()
 				player.body_model.play("rod_reel", Fishing.REEL_LEN)
 				_go("reel")
@@ -91,7 +95,7 @@ func physics_update(delta: float) -> void:
 				_go("land")
 		"land":
 			if _catch != "" and _t >= Fishing.LAND_LEN * Fishing.BAGGED:
-				Fishing.land(player, _catch)
+				Fishing.land(player, _catch, _bait)
 				_catch = ""
 			if _t >= Fishing.LAND_LEN:
 				_end("")
@@ -109,7 +113,7 @@ func physics_update(delta: float) -> void:
 ## The line's in: a bite to come (and a nibble or two first), the float held.
 func _wait() -> void:
 	_go("wait")
-	_bite_at = Fishing.bite_secs(player, _tier)
+	_bite_at = Fishing.bite_secs(player, _tier, _bait)
 	_nibble_count = randi() % (Fishing.NIBBLES_MAX + 1)
 	_nibbles.clear()
 	for i in range(_nibble_count):

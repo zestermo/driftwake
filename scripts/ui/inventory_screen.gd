@@ -630,7 +630,8 @@ func refresh() -> void:
 	for k in range(_bag.size()):
 		if k < _view.size():
 			var st := inv.items[_view[k]]
-			_bag[k].show_item(st.item, st.quantity)
+			# (the bait on the hook is marked B)
+			_bag[k].show_item(st.item, st.quantity, "B" if Bait.is_bait(st.item) and st.item.id == inv.bait_on() else "")
 		else:
 			_bag[k].show_item(null, 0)
 		_bag[k].visible = k < cells
@@ -827,6 +828,8 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 			fx.append(["Meal, %d min: %s" % [roundi(Food.seconds(pl.progression, it.meal) / 60.0), Food.buff_text(it.meal, Food.strength(pl.progression))], Color(1.0, 0.85, 0.45)])
 	if it.ingredient != "":
 		fx.append(["Cooks as " + Food.TAG_NAMES[it.ingredient], Color(0.95, 0.8, 0.55)])
+	if Bait.is_bait(it):
+		fx.append(["Bait: bites x%.2f, rare fish x%.2f. Click: on the hook" % [Bait.bite_k(it.id), Bait.rare_k(it.id, false)], UIStyle.ACCENT])
 	if it.id != "gold":
 		_stat(grid, "WORTH", "%d G" % it.worth(), 0, false)
 	for f in fx:
@@ -919,6 +922,8 @@ func _hints_for(src: String, it: ItemData) -> Array:
 				out = [["LMB", "EAT" if it.devil_fruit != "" else "USE"]]
 				if InventoryComponent.quick_ok(it):
 					out.append(["E", "QUICK ITEM"])
+			elif Bait.is_bait(it):
+				out = [["LMB", "ON THE HOOK"]]
 			if has_container():
 				out.append(["SHIFT", "STORE"])
 			out.append(["X", "DROP"])
@@ -1010,6 +1015,10 @@ func _use(idx: int) -> void:
 	elif it.is_consumable():
 		menu.close()
 		pl.use_item(it)
+	elif Bait.is_bait(it):
+		pl.inventory_component.select_bait(it.id)
+		menu._play("equip")
+		refresh()
 
 
 ## Click a hand slot: back into the bag (the main hand: fight with your fists).

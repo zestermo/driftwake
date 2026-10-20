@@ -4277,6 +4277,36 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - Per frame: FishRod._process per captain carrying a rod (a look read and an action-name check; while fishing: the rod keys, 4
   part transforms, two IK reaches, the line's 11 vertices and one wave sample); the local captain's cast check every 0.25 s (up
   to 6 rays) only while a rod is carried and free. Nothing per tick.
+
+## 2026-10-19: fishing, piece 3: bait, the fish table, rarities, Fishing's perks, the legend recipe (v1.18)
+- **The fish table** (scripts/fishing/fish_table.gd, FishTable): 21 catches, common to legendary (sardine, mackerel, bream;
+  snapper, flounder, sea bass, parrotfish (jungle), sand grouper (desert), ice cod (snow), sea trout (forest); tuna, swordfish,
+  moonfish, lionfish (jungle); ghost ray, golden sea carp; king marlin, abyss eel), plus crab, oysters and urchins (lane A's
+  items). Each from some waters under the float (shore: Ocean depth_at < 4 m; sea; deep: nothing in reach or > 30 m), some only
+  off a theme's coast (KitStyle.around, loaded not named), some only by day or night (19:00-5:30). New fish are LOOT items tagged
+  "fish" (any galley recipe takes them), their rarity their tier (worth x1.6 a tier), icons drawn from FishModels' meshes. The
+  roll: WEIGHT [100, 40, 13, 3.5, 0.6] x rare^rarity, rare = rod x bait x (1 + fish_rare_pct), the legendary x (1 + fish_legend);
+  a stream seeded off the global rng (same seed, same fish). Mastery by rarity: 10/16/26/40/80.
+- **The catch shows** its name over the captain in its rarity's colour (Net.fx float_text, a glint from epic up) and a toast
+  "Caught: Red Snapper (Uncommon)". A big catch (> 0.7 m) stays hanging off the rod instead of the hand.
+- **Bait** (scripts/fishing/bait.gd, Bait, data only): worms (bites x0.8), cut bait (x0.75, rare x1.05), shrimp (x0.9, rare
+  x1.35), glow (x0.9, rare x1.55, x1.4 more by night). InventoryComponent.bait (saved) is the pick: a click on a bait in the bag
+  ("ON THE HOOK", marked B); with none picked or none left, the best carried (Bait.ORDER); none is a bare hook. One is used per
+  catch landed (Bait Saver keeps it 30%). Sold: Marlo's worms (staple) and shrimp (pool), Ida's worms (pool), a fisher's camp
+  (its pool now rods and baits, 2 a day). Cut bait on the action wheel (order 65; Fishing.cut_bait): an urchin and kelp -> 3
+  glow, a crab -> 3 shrimp, a fish -> 4 cut bait; greyed "Needs a crab, a fish, or an urchin and kelp".
+- **Fishing's perks** (skill_tree, life tree): Patient Line 2 (bites 20% sooner), Steady Hands 5 (window +25%), Bait Saver 8
+  (fish_bait_save 0.3, new), Sea Lore 10 (rare +20%, was 15), Old Salt 15 (double 15%), Master Angler 20 (fish_legend 1.0:
+  legendaries twice as often, window +15%, new). All read in Fishing.
+- **The legend recipe**: the first legendary landed teaches Sea Legend's Platter (Food.MEALS "sea_legend": 2 fish, greens,
+  spice; +30 max hp, +6% damage, +5% crit, +10% swim, 25 min; the stew's icon for now: MEALS entries may name an "icon").
+- **Gotcha**: ItemDB names FishTable and Bait (make_items), and test scripts name ItemDB before the autoloads exist, so those two
+  must not name a class that touches autoloads (Bait's wheel entry lives in Fishing; FishTable loads KitStyle by path).
+- Tests: t/fishing/fish_table, bait_perks; cast_land/reel_timing/wheel_fish count the table's catches; rod_shops reads the
+  fisher's rods and baits and Marlo's worms; t/ui/action_wheel and wheel_same list cut_bait. Render: `fishshot` writes
+  `<out>_catch_icons.png`. Suites likely to notice: looptest/qoltest (Marlo's and Ida's stock), progtest/techtest (the fishing
+  perks' count), the galley screen's nine recipes.
+- Per frame/tick: nothing new (the roll and the bait are on the bite and the landing).
 ## The web roadmap timeline (2026-10-19, docs/v1_19_plan.md)
 - `web/site/roadmap/` is now an interactive timeline: `index.html` + `roadmap.css` + `roadmap.js` (plain JS, no build)
   read `roadmap.json`, one entry per version (26: v0.1, v1.0-1.17, 1.18 being built, 1.19-1.22, "later", 2.0).

@@ -112,7 +112,8 @@ static func place_name(where: String) -> String:
 	return {"island": "Ashore", "town": "In town", "ship": "Aboard", "helm": "At the helm"}.get(where, "Nothing here")
 
 
-## The entries this feature brings: making camp, and sailing downtime's (Downtime: lashing the helm, training...).
+## The entries this feature brings: making camp, sailing downtime's (Downtime: lashing the helm, training...) and
+## fishing's Cut bait (Fishing).
 ## (A feature that registered one of these ids first keeps its own.)
 static func ensure_builtins() -> void:
 	if _built:
@@ -121,6 +122,7 @@ static func ensure_builtins() -> void:
 	if not has("camp"):
 		register("camp", _camp_label, "", _camp_ok, Camp.make, 10)
 	Downtime.register_wheel()
+	Fishing.register_wheel()
 
 
 static func _camp_label(p: Node) -> String:

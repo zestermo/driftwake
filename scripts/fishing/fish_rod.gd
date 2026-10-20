@@ -21,6 +21,8 @@ const HAND_L := Vector3(0.0, -0.035, 0.36)
 const HAND_CRANK := Vector3(-0.03, -0.03, 0.03)
 ## The catch held up to look at (torso space), and how fast the crank turns (rad/s).
 const FISH_HOLD := Vector3(-0.32, 0.46, -0.42)
+## A catch longer than this (m) stays on the line under the tip.
+const BIG := 0.7
 const CRANK_SPEED := 16.0
 ## Rod keys per action: [u, grip (torso space), pitch (up), yaw (left), bend (tip down), left hand on the
 ## crank 0..1, left hand on the catch 0..1, "out" (leaves the key before fast)].
@@ -197,6 +199,9 @@ func _hold(b: Humanoid, act: String) -> void:
 	if float(r[4]) > 0.0:
 		var knob := crank * Vector3(Rods.CRANK_X - 0.015, Rods.CRANK_ARM, 0)
 		on_l = on_l.lerp(tg * (Transform3D(grip.basis, knob) * HAND_CRANK), r[4])
+	# (a big fish stays hanging off the rod: it won't hang from one hand)
+	if _catch != "" and float(FishTable.look_of(_catch)[1]) > BIG:
+		r[5] = 0.0
 	if float(r[5]) > 0.0:
 		on_l = on_l.lerp(tg * FISH_HOLD, r[5])
 	b.reach_hand(false, b.hand_l.global_position.lerp(on_l, e), body_b * Vector3(-1.0, -1.0, 0.3))
@@ -276,7 +281,7 @@ func land(id: String) -> void:
 	phase = "land"
 	_pt = 0.0
 	_bob.visible = false
-	var lk: Array = Fishing.LOOKS[id]
+	var lk: Array = FishTable.look_of(id)
 	_fish.mesh = FishModels.fish(str(lk[0]), float(lk[1]), lk[2], lk[3])
 	_fish.visible = true
 	FX.splash(_tip_ground(), 4, 0.4)
@@ -392,7 +397,7 @@ func _line_tick(delta: float) -> void:
 			if fmod(_pt, 0.18) < delta and k < 0.8:
 				FX.splash(at, 1, 0.25)
 		"land":
-			end = _fish.global_position + _fish.global_basis * Vector3(0, 0, -float(Fishing.LOOKS[_catch][1]) * 0.5) if _fish.visible else _tip
+			end = _fish.global_position + _fish.global_basis * Vector3(0, 0, -float(FishTable.look_of(_catch)[1]) * 0.5) if _fish.visible else _tip
 	_bob.visible = phase in ["flight", "float", "bite", "reel"]
 	if _bob.visible:
 		_bob.global_position = _bob_at
@@ -411,7 +416,7 @@ func _draw_line(a: Vector3, b: Vector3, sag: float) -> void:
 
 ## The catch: hanging off the line under the tip, swung in to the left hand, held up (snout up), then bagged.
 func _place_fish(b: Humanoid, act: String, u: float, held: float) -> void:
-	var length := float(Fishing.LOOKS[_catch][1])
+	var length := float(FishTable.look_of(_catch)[1])
 	var hang := _tip + Vector3.DOWN * (0.55 + length * 0.5)
 	var hand: Vector3 = b.hand_l.global_position + Vector3.DOWN * (length * 0.5 + 0.04)
 	var up := Basis(Vector3.RIGHT, PI * 0.5).rotated(Vector3.UP, b.global_rotation.y + 0.5 * sin(_pt * 5.0) * (1.0 - held))

@@ -139,8 +139,8 @@ static func build(gi) -> void:
 	var id := shop_id(gi)
 	Shops.extra[id] = {"name": who, "line": str(k[1]), "trade": "artisan", "stock": stock_of(kind, rng), "buys": k[4]}
 	if kind == "fisher":
-		# a rod a day (Shops' daily stock, seeded by the shop and the day)
-		Shops.extra[id].merge({"pool": Rods.fisher_pool(), "size": 1})
+		# two rods or baits a day (Shops' daily stock, seeded by the shop and the day)
+		Shops.extra[id].merge({"pool": Rods.fisher_pool(), "size": 2})
 	var npc := NPC.new()
 	npc.setup({"name": who, "voice": rng.randf_range(0.85, 1.2), "shop": id, "look": a["look"],
 		"barks": k[5], "yaw": atan2(-face.x, -face.y)})

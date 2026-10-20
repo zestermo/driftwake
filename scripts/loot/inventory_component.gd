@@ -17,6 +17,8 @@ static var bonus_slots: int = 0
 var items: Array[ItemStack] = []
 ## The selected quick item's id ("" = none).
 var quick: String = ""
+## The bait picked for the hook ("" = the best carried; Bait). Saved.
+var bait: String = ""
 ## The weapons in your hands (Player keeps it). Those stacks and the selected quick item's
 ## stay in `items` but live in their slots: off the bag grid and taking no bag space.
 var in_hands: Array[ItemData] = []
@@ -309,6 +311,23 @@ func quick_choices() -> Array[ItemData]:
 		if quick_ok(st.item) and not out.has(st.item):
 			out.append(st.item)
 	return out
+
+
+# ---- Bait ----
+## Pick `item_id` for the hook (a bait; "" goes back to the best carried).
+func select_bait(item_id: String) -> void:
+	bait = item_id
+	inventory_changed.emit()
+
+
+## The bait on the hook: the one picked while there's some left, else the best carried ("" none).
+func bait_on() -> String:
+	if bait != "" and count(bait) > 0:
+		return bait
+	for id in Bait.ORDER:
+		if count(id) > 0:
+			return id
+	return ""
 
 
 func _auto_assign(item_data: ItemData) -> void:

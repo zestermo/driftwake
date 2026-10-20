@@ -4,8 +4,11 @@ extends RefCounted
 ## ship's rail) casts (FishState): the bobber flies out and floats on the real waves, a wait, a nibble or
 ## two, then it dips with a splash and bubbles. Reel (F or a click) inside the window and the fish is yours;
 ## too soon and you pull the hook out of its mouth, too late and it gets away (the line stays in).
-## The rod (Rods) sets the reach, how soon they bite, the window and the rare odds; Fishing's perks
-## (fish_bite_pct, fish_reel_pct, fish_rare_pct, fish_double) are read here. The catch is the captain's own.
+## The rod (Rods) sets the reach, how soon they bite, the window and the rare odds; the bait on the hook (Bait)
+## bites and rare odds too, one used up per catch landed. What bites is FishTable's (the water under the float,
+## the coast, the hour). Fishing's perks are read here: fish_bite_pct (Patient Line), fish_reel_pct (Steady
+## Hands), fish_bait_save (Bait Saver), fish_rare_pct (Sea Lore), fish_double (Old Salt), fish_legend (Master
+## Angler: the legendary odds). The catch is the captain's own; its name rises in its rarity's colour for all.
 
 ## How far ahead a cast can land (m), how deep the water must be there, how far apart the spots tried are.
 const REACH_MIN := 2.5
@@ -25,19 +28,11 @@ const BITE_MIN := 6.0
 const BITE_MAX := 15.0
 const NIBBLES_MAX := 3
 const WINDOW := 0.75
-## Fishing mastery for a landed fish, and for one that got away.
-const XP := 10
+## Fishing mastery for one that got away (a landed catch: FishTable.XP by its rarity).
 const XP_LOST := 3
-## What comes up: [item id, weight]; the rare ones are weighted up by the rod and the rare perk.
-const CATCH := [["fish", 60.0], ["crab_meat", 20.0], ["oyster", 12.0], ["sea_urchin", 8.0]]
-const RARE := ["oyster", "sea_urchin"]
-## How each catch looks on the line: [shape, length m, body, fins] (FishModels.fish).
-const LOOKS := {
-	"fish": ["slim", 0.34, Color(0.45, 0.55, 0.62), Color(0.3, 0.36, 0.42)],
-	"crab_meat": ["flat", 0.22, Color(0.8, 0.3, 0.18), Color(0.6, 0.2, 0.12)],
-	"oyster": ["flat", 0.12, Color(0.6, 0.58, 0.55), Color(0.4, 0.38, 0.36)],
-	"sea_urchin": ["deep", 0.12, Color(0.25, 0.12, 0.3), Color(0.15, 0.08, 0.2)],
-}
+## Night for the fish (Music's dusk and dawn).
+const DUSK := 19.0
+const DAWN := 5.5
 
 
 ## The rod in `p`'s equipment slot ("" = none).
@@ -88,9 +83,15 @@ static func refuse(p) -> String:
 	return ""
 
 
-## Seconds until a fish bites (the rod and Patient Line shorten it).
-static func bite_secs(p, tier: String) -> float:
-	return randf_range(BITE_MIN, BITE_MAX) * Rods.stat(tier, "bite") * (1.0 - p.progression.stat("fish_bite_pct"))
+## Is it night for the fish?
+static func night(p) -> bool:
+	var h: float = p.get_node("/root/Weather").hour()
+	return h >= DUSK or h < DAWN
+
+
+## Seconds until a fish bites (the rod, the bait and Patient Line shorten it).
+static func bite_secs(p, tier: String, bait := "") -> float:
+	return randf_range(BITE_MIN, BITE_MAX) * Rods.stat(tier, "bite") * Bait.bite_k(bait) * (1.0 - p.progression.stat("fish_bite_pct"))
 
 
 ## How long the bobber stays down for a reel to land it (the rod and Steady Hands widen it).
@@ -98,32 +99,75 @@ static func window(p, tier: String) -> float:
 	return WINDOW * Rods.stat(tier, "window") * (1.0 + p.progression.stat("fish_reel_pct"))
 
 
-## What's on the hook (the rod's and the perk's rare odds).
-static func roll_catch(p, tier: String) -> String:
-	var rare: float = Rods.stat(tier, "rare") * (1.0 + p.progression.stat("fish_rare_pct"))
-	var total := 0.0
-	for c in CATCH:
-		total += float(c[1]) * (rare if c[0] in RARE else 1.0)
-	var roll := randf() * total
-	for c in CATCH:
-		roll -= float(c[1]) * (rare if c[0] in RARE else 1.0)
-		if roll <= 0.0:
-			return c[0]
-	return CATCH[0][0]
+## The rare odds (FishTable.roll's `rare`): the rod's, the bait's and Sea Lore's.
+static func rare_k(p, tier: String, bait: String, is_night: bool) -> float:
+	return Rods.stat(tier, "rare") * Bait.rare_k(bait, is_night) * (1.0 + p.progression.stat("fish_rare_pct"))
 
 
-## The catch landed: into the bag (two on a Double Catch roll), Fishing mastery, a word. Returns how many.
-static func land(p, id: String) -> int:
+## What's on the hook for a float at `spot`: FishTable's pool for its water, coast and hour, rolled with the
+## rod, the bait and the perks.
+static func roll_catch(p, tier: String, spot: Vector3, bait := "") -> String:
+	var tree: SceneTree = p.get_tree()
+	var is_night := night(p)
+	var ids := FishTable.pool(FishTable.water_at(tree, spot), FishTable.theme_at(tree, spot), is_night)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = randi()
+	return FishTable.roll(ids, rare_k(p, tier, bait, is_night), 1.0 + p.progression.stat("fish_legend"), rng)
+
+
+## The catch landed: into the bag (two on an Old Salt roll), the bait used (unless Bait Saver keeps it), Fishing
+## mastery by its rarity, its name in its rarity's colour over the captain's head for everyone, and the first
+## legendary teaches a recipe. Returns how many went in the bag.
+static func land(p, id: String, bait := "") -> int:
 	var pr = p.progression
+	var inv = p.inventory_component
 	var item := ItemDB.get_item(id)
+	var r := FishTable.rarity_of(id)
+	pr.add_life("fish", FishTable.XP[r])
+	if bait != "" and inv.count(bait) > 0 and randf() >= pr.stat("fish_bait_save"):
+		inv.remove_item(ItemDB.get_item(bait), 1)
+	Net.fx("float_text", [p.global_position + Vector3.UP * 2.3, item.display_name, item.rarity_color(), 30 if r >= 3 else 24])
+	if r >= 3:
+		Net.fx("glint", [p.global_position + Vector3.UP * 1.6, item.rarity_color(), 1.2])
+	if r == 4 and Food.teach(pr, FishTable.LEGEND_RECIPE):
+		p.call("_toast", "A legend of the sea! The old cooks' recipe comes back to you: %s (the galley)" % Food.MEALS[FishTable.LEGEND_RECIPE]["name"])
 	var n := 2 if randf() < pr.stat("fish_double") else 1
-	pr.add_life("fish", XP)
-	if p.inventory_component.room_for(item) < n:
+	if inv.room_for(item) < n:
 		p.call("_toast", "A %s - but your bag's full, so back it goes" % item.display_name)
 		return 0
-	p.inventory_component.add_item(item, n)
-	p.call("_toast", "Caught %s%s!" % ["two of " if n == 2 else "", item.display_name])
+	inv.add_item(item, n)
+	p.call("_toast", "Caught: %s%s (%s)" % [item.display_name, " x2" if n == 2 else "", item.rarity_name()])
 	return n
+
+
+## The action wheel's Cut bait (order 65; ActionWheel.ensure_builtins). Static method callables, not lambdas.
+static func register_wheel() -> void:
+	ActionWheel.register("cut_bait", "Cut bait", "", _cut_ok, cut_bait, 65)
+
+
+static func _cut_ok(p):
+	if not ActionWheel.on_foot(p):
+		return false
+	return ActionWheel.busy(p) if Bait.recipe_for(p.inventory_component) >= 0 else "Needs a crab, a fish, or an urchin and kelp"
+
+
+## Cut one batch of bait (Bait.CUT) from what `p` carries.
+static func cut_bait(p) -> void:
+	var inv = p.inventory_component
+	var i := Bait.recipe_for(inv)
+	if i < 0:
+		p.call("_toast", "Nothing to cut bait from")
+		return
+	var made: Array = Bait.CUT[i][1]
+	var item := ItemDB.get_item(str(made[0]))
+	if inv.room_for(item) < int(made[1]):
+		p.call("_toast", "No room in your bag")
+		return
+	for need in Bait.CUT[i][0]:
+		inv.remove_item(ItemDB.get_item(str(need[0])), int(need[1]))
+	inv.add_item(item, int(made[1]))
+	p.call("_toast", "Cut %d %s" % [int(made[1]), item.display_name])
+	p.gesture("pickup")
 
 
 ## The fish got away (too soon or too late): a little Fishing all the same.

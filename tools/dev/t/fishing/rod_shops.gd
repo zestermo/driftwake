@@ -1,7 +1,7 @@
 extends SceneTree
 ## Fishing rods: four tiers, each equipment-slot gear with an icon, priced on the economy's curve, every tier
 ## better than the one below (reach, bite time, reel window, rare odds). Marlo (Brinehollow's fish stall) always
-## has the driftwood rod and some days the bamboo; a fisher artisan has a rod in their day's stock; the master's
+## has the driftwood rod and worms, some days the bamboo; a fisher artisan has rods and bait day to day; the master's
 ## rod turns up only at treasure merchants (some days), never at a town grocer, cook, smith, tailor or armourer.
 const TK := preload("res://tools/dev/test_kit.gd")
 const SHOPS := preload("res://scripts/game/shops.gd")
@@ -60,11 +60,17 @@ func _process(_d: float) -> bool:
 	check("...and the bamboo some days (%d of 40)" % marlo_bamboo, marlo_bamboo > 3 and marlo_bamboo < 40)
 	check("a treasure merchant has a master's rod some days (%d of 40)" % master_days, master_days > 1 and master_days < 30)
 	check("...and no town trader ever does", town_master == 0)
-	SHOPS.extra["t_fisher"] = {"name": "t", "line": "", "trade": "artisan", "stock": [["fish"]], "pool": Rods.fisher_pool(), "size": 1, "buys": {}}
-	var fisher := 0
+	SHOPS.extra["t_fisher"] = {"name": "t", "line": "", "trade": "artisan", "stock": [["fish"]], "pool": Rods.fisher_pool(), "size": 2, "buys": {}}
+	var rods := 0
+	var baits := 0
 	for day in range(20):
 		for id in ids_on("t_fisher", day):
-			fisher += 1 if str(id).begins_with("rod_") else 0
+			rods += 1 if str(id).begins_with("rod_") else 0
+			baits += 1 if str(id).begins_with("bait_") else 0
 	SHOPS.extra.erase("t_fisher")
-	check("a fisher's camp has a rod each day (%d over 20 days)" % fisher, fisher == 20)
+	check("a fisher's camp sells rods and bait from day to day (%d rods, %d baits over 20 days)" % [rods, baits], rods > 5 and baits > 5)
+	ok = true
+	for day in range(10):
+		ok = ok and ids_on("marlo", day).has("bait_worm")
+	check("Marlo always has worms", ok)
 	return TK.done(fails)

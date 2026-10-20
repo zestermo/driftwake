@@ -62,7 +62,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(1.0)
 		4:
 			check("a crewmate's cast: their float out on the water", pup.fish_rod.phase == "float" and pup.fish_rod._bob.visible)
-			pup.fish_rod.net_event("land", ["fish"])
+			pup.fish_rod.net_event("land", ["fish_snapper"])
 			until = TK.wait_ticks(3)
 		5:
 			check("...their catch on the line", pup.fish_rod.phase == "land" and pup.fish_rod._fish.visible)
