@@ -4634,3 +4634,23 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   geometry as data on the worker like the beasts' (a builder's MeshBuilders and transforms, the nodes and commits after).
 - **Tested by** t/island/build_slices (slices in order, the last finishes; a building island's nest hatches a bug a frame,
   a built one's all at once), t/island/beast_prebuild, t/island, isletest, chaintest, villagetest, smoketest.
+
+## 2026-10-20: whimsical menu chrome, piece 1 (v1.18.2, menu-ui; docs/progression_plan.md "Menu chrome")
+- **What:** the menus' look from the approved mock (docs/media/progression_mock/chrome.css), as pixel 9-slices painted
+  in code: `scripts/ui/ui_chrome.gd` (UIChrome) paints them one image pixel per canvas pixel, `UIStyle.chrome(kind)`
+  makes the StyleBoxTexture (tiled middles where there's grain or rope, stretched where there's a gradient). Kinds:
+  parchment (hand-cut corners, gilt band, burnt edge, wax seal top right, coffee ring bottom left: needs >= 42 px),
+  paper (small, plain), slate (rope border, brass nails), plank / plank_hover (gilded) / plank_pressed / plank_dim /
+  plank_focus, sign / sign_on (tabs), ribbon / ribbon_gold (12 px swallowtails), keycap, scroll (the nameplate), beam
+  (28 px top bar with knots over a rope), board (18 px key bar, rope on top), well (text fields), rope (rules).
+- **Theme:** `UIStyle.panel()` with its default colours is now slate (other colours keep the old gilt frame); buttons
+  are planks that gild on hover; LineEdit a paper well; separators rope; tooltips paper; keycaps wooden. `title()` is
+  Jacquarda Bastarda 9 (assets/fonts, SIL OFL; a 9 px grid: sizes 9/18/27, outline 2 at most or the counters fill).
+- **Helpers:** `draw_sky` (night sky, nebulae, twinkle, dashed map border), `draw_topbar` (beam, compass-rose emblem,
+  hanging signs via `draw_tabs`, nameplate via `draw_plate` with `draw_coin`), `draw_board` + `draw_hints`, `ribbon()` /
+  `draw_ribbon`, `rule()` / `draw_rule`, `draw_star`, `draw_title`, `parchment()`. Tab icons: `scripts/ui/ui_icons.gd`
+  keeps the mock's SVGs and rasterises them with hard edges (crown, swords, compass, chest, fruit, emblem).
+- **Canvas:** the menus draw in a PixelCanvas, 640x360 at 1280x720 and 1920x1080 (800x450 at 1600x900), so the mock's
+  1280x720 maps at x0.5 there; the 16 px icons and 24 px skill icons stay native.
+- **Tested by** t/ui/chrome_kit; looked at with tools/dev/chromeshot.gd and uishots (pause, options, inventory, shop,
+  dialogue).
