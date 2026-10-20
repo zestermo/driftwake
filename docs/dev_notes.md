@@ -4495,3 +4495,30 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - guntest: stale, not the game. The captain's 99999 max health regenerates 1% a second once 8 s have passed since a
   blow; the shove step came after the third rifle shot's wait, so the 12 hp lost earlier was healed back (hp lost -12)
   and the shove's 4.8 was swallowed by the cap. The step now holds the captain "in a fight" (_since_hit = 0).
+
+## 2026-10-20: the bench refreshed for the v1.19 perf session (step 1; tools only)
+- What: `tools/dev/bench_brinehollow.gd` keeps v1.14's eight stops (group `old`, unchanged spots) and adds eight
+  (`new`): terrace (shrine terrace, UP_X,11), farm (FARM + (4.5,-1.5)), fight (6 m inland of the smugglers' fire, its
+  five grunts alerted, the captain's health topped up each frame), sea and storm (the sloop placed on open water
+  found by `_deep_enough` 750+ m out from Brinehollow, away from Redtide, anchor up and full sail, the captain on deck;
+  storm forces wx=storm for that stop only), village (the first generated chain island's village + (3,3)), cplaza and
+  cmarket (capital frame (0,9.5) and (0,46), reached by `Player.debug_to_capital` and a wait for `chain_ready` +
+  `cwarm` 10 s). Stops always run in ROUTE's order whatever `stops=` lists (groups old new town atsea capital all;
+  `quick` alone = old). The village comes late: standing on a chain island makes the crew arrive there and frees the
+  other island ahead (nodes 34.9k -> 21.1k), and the capital jump frees that one too (14.3k).
+- `crowd`: BrinehollowCast.CROWD is a const, so the bench rewrites its source to true and `reload()`s the script on
+  the first frame (autoloads up), then loads the world; it fails loudly if the line moved.
+- The stop screenshot is saved after the base sample (it was ~65 ms in base's first frame: "worst" read 60-80 ms
+  at every stop; now 15-29 ms, no frame over 33 ms in either run). Summary columns `h33` / `h50` (base frames over
+  33 / 50 ms; ALL sums), rows ALL_OLD / ALL_NEW and a `== scripts_old` table when both groups ran.
+- Gotcha: `Ship.place()` then reading the ship's `global_transform` in the same frame gave the old one (the first
+  sea stop put the captain in the water by Brinehollow's dock); the deck point is built from the placed spot.
+- `perf_gate.ps1` gates only the baseline's stops (ALL = their mean on both sides), prints the others as "no baseline
+  yet", reads scripts from `scripts_old` when present, and benches a confirm's old commit with `stops=<the baseline's>`.
+  bench_compare adds frame1t, h33/h50 and lists stops only one side ran. Exercised offline (perf_gate's functions on
+  v119_bench_base vs perf_baseline.txt): it gates the eight, shows the eight new ones. The current baseline is the
+  laptop's from v1.14, so against it this PC fails (+40% frame): re-baselining on the min-spec PC is the lead's step.
+- Runs (min-spec PC, 13:00 clear, back to back, calib 23.48 / 23.45, no other Godots): v119_bench_base ALL frame 12.42,
+  frame1t 13.13 (ALL_OLD 13.09 / 13.65, ALL_NEW 11.80 / 12.61); v119_bench_crowd ALL 12.40 / 13.16. The crowd (10 more
+  townsfolk, +383 nodes) costs the market +1.25 ms frame (+9%), +1.1 frame1t, +0.8 ms scripts (brinehollow_folk and
+  its rigs); elsewhere it's inside the run-to-run noise (single stops swung +-12% both ways on the same code).
