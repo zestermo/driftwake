@@ -4654,6 +4654,12 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   1280x720 maps at x0.5 there; the 16 px icons and 24 px skill icons stay native.
 - **Tested by** t/ui/chrome_kit; looked at with tools/dev/chromeshot.gd and uishots (pause, options, inventory, shop,
   dialogue).
+- **Piece 2 (the other menus, mostly swaps):** the dialogue box is a parchment page (its right margin clears the wax
+  seal) with a wooden name sign and plank choices that gild; Options' sections are red ribbons with a rope rule between;
+  the inventory's tabs and the journal's are wooden signs (gilt when open), the captain's name blackletter; the
+  shipwright's small buttons planks; the HUD's prompt a wooden sign, the pickup feed wooden chips, the island banner
+  blackletter 27 over a rope rule. New: `PlayerHUD.show_new_tree(name, line)` (through the hud group), the mock's "new
+  skill tree" card (slate, gold ribbon, blackletter name, K OPEN). uishots has `banner` and `tree_banner` shots.
 ## 2026-10-20: perf session steps 3 and 5: occlusion culling in towns, the long tail
 - **Occlusion culling** (project.godot `rendering/occlusion_culling/use_occlusion_culling=true`; `scripts/psx/occluders.gd`,
   class Occluders): boxes shrunk 0.15 m inside solid stone, kept as data in a capital piece's colliders ({"occ": size, "xf"},

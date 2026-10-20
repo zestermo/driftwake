@@ -42,7 +42,22 @@ func _ready() -> void:
 	banner.modulate.a = 0.0
 	toast.modulate.a = 0.0
 	interact_panel.visible = false
-	interact_panel.add_theme_stylebox_override("panel", UIStyle.framed(Color(UIStyle.BG, 0.9), UIStyle.BORDER, "plank", 8, 3))
+	interact_panel.add_theme_stylebox_override("panel", UIStyle.chrome("sign", 8, 3))
+	var ts := LabelSettings.new()
+	ts.font = UIStyle.TITLE_FONT
+	ts.font_size = 27
+	ts.font_color = UIStyle.GILT
+	ts.outline_size = 2
+	ts.outline_color = UIStyle.WOOD_INK
+	ts.shadow_color = Color(UIStyle.CORAL.darkened(0.55), 0.9)
+	ts.shadow_size = 2
+	ts.shadow_offset = Vector2(0, 1)
+	banner_title.label_settings = ts
+	var rule := UIStyle.rule()
+	rule.custom_minimum_size = Vector2(150, 7)
+	rule.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	banner.add_child(rule)
+	banner.move_child(rule, banner_title.get_index() + 1)
 	# held jobs ("Hold F: ...") show in the same panel, with their progress under the words
 	var ivb := VBoxContainer.new()
 	ivb.add_theme_constant_override("separation", 1)
@@ -194,6 +209,55 @@ func show_banner(title: String, subtitle: String = "", chime: bool = false) -> v
 	_banner_tween.tween_property(banner, "modulate:a", 0.0, 1.2)
 	if chime:
 		_chime.play()
+
+
+var _tree_card: PanelContainer
+var _tree_tween: Tween
+
+
+## A skill tree was found (Progression.tree_found): a slate card at the top with a gold "NEW SKILL TREE"
+## ribbon, the tree's name in blackletter, where it went (`line`, e.g. "Added to ADVENTURE · 1 point to spend")
+## and the K key. Call through the hud group.
+func show_new_tree(tree_name: String, line: String) -> void:
+	if _tree_card == null:
+		_tree_card = PanelContainer.new()
+		_tree_card.add_theme_stylebox_override("panel", UIStyle.chrome("slate", 12, 9))
+		_tree_card.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		_tree_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_tree_card.offset_top = 34
+		_tree_card.custom_minimum_size = Vector2(250, 0)
+		_tree_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var vb := VBoxContainer.new()
+		vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		vb.add_theme_constant_override("separation", 3)
+		_tree_card.add_child(vb)
+		var rb := UIStyle.ribbon("New skill tree", true)
+		rb.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		vb.add_child(rb)
+		var nm := UIStyle.title("", 27)
+		nm.name = "Name"
+		vb.add_child(nm)
+		var ln := UIStyle.label("", 12, UIStyle.TEXT_DIM)
+		ln.name = "Line"
+		ln.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(ln)
+		var k := UIStyle.key_hint("K", "OPEN")
+		k.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		vb.add_child(k)
+		_pc.ui.add_child(_tree_card)
+	(_tree_card.find_child("Name", true, false) as Label).text = tree_name
+	(_tree_card.find_child("Line", true, false) as Label).text = line
+	_tree_card.reset_size()
+	_tree_card.offset_left = -_tree_card.get_combined_minimum_size().x * 0.5
+	_tree_card.offset_right = -_tree_card.offset_left
+	if _tree_tween:
+		_tree_tween.kill()
+	_tree_card.modulate.a = 0.0
+	_tree_tween = create_tween()
+	_tree_tween.tween_property(_tree_card, "modulate:a", 1.0, 0.35)
+	_tree_tween.tween_interval(4.0)
+	_tree_tween.tween_property(_tree_card, "modulate:a", 0.0, 1.0)
+	_chime.play()
 
 
 ## The story moved on (Story): the objective flashes, a chime (`done`: the last step's finished too).
@@ -477,7 +541,7 @@ func _feed_add(item: ItemData, quantity: int) -> void:
 		_bump(e[0])
 		return
 	var row := PanelContainer.new()
-	row.add_theme_stylebox_override("panel", UIStyle.framed(Color(UIStyle.BG, 0.7), UIStyle.BORDER_DIM, "chip", 5, 1))
+	row.add_theme_stylebox_override("panel", UIStyle.chrome("plank", 5, 1))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var hb := HBoxContainer.new()

@@ -82,10 +82,8 @@ func _small_button(text: String, w: float) -> Button:
 	var b := UIStyle.button(text, w)
 	b.add_theme_font_override("font", SILK)
 	b.add_theme_font_size_override("font_size", 8)
-	for st in [["normal", UIStyle.BG_LIGHT, UIStyle.BORDER_DIM, "plank"], ["hover", UIStyle.HILITE, UIStyle.SUN, "plank"],
-			["pressed", UIStyle.SUN, UIStyle.BORDER_DIM, "pressed"], ["disabled", UIStyle.DISABLED, UIStyle.DISABLED_RIM, "plank"],
-			["focus", Color(0, 0, 0, 0), UIStyle.SUN, "plank"]]:
-		b.add_theme_stylebox_override(st[0], UIStyle.framed(st[1], st[2], st[3], 4, 1))
+	for st in [["normal", "plank"], ["hover", "plank_hover"], ["pressed", "plank_pressed"], ["disabled", "plank_dim"], ["focus", "plank_focus"]]:
+		b.add_theme_stylebox_override(st[0], UIStyle.chrome(st[1], 4, 1))
 	return b
 
 
