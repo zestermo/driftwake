@@ -149,6 +149,47 @@ trees.
   Counterweight 3 (counters), Light Feet 3 (stamina), Flow 3 (energy), Swift Recovery 3 (cooldowns). The old stat
   nodes (Folded Steel, Sword Saint) become these steps.
 
+**The other weapon trees (drafted by prog-core, 2026-10-20; built in piece 2, tuned in play).** Same pattern as the
+katana: the root at 1, three branches of big nodes, the element at 16 and 25, the ultimate at 30, eight steps (30 in
+all against 29 points; the old stat nodes became the damage / crit / stamina steps). A tree's old style passives are
+either a slotted passive or, two of them, a variant (both owned, one active). Mechanics (mech) always count.
+- **Cutlass** (Guard / Tide / Swagger). Guard: Arrow Cutting 3 (mech) · Riposte 8 · Return to Sender 20 (mech). Tide:
+  Flying Slash 4 · Swordfish Flurry 10 · Call of the Tide 16 · Tidewalker 25 · Kraken's Wake 30. Swagger: Running Cut 2 ·
+  Boarding Dive 6 · Flourish 13 (passive) · Pirate's Way 22 (variant: Plunder / Swashbuckler). Steps: Keen Edge 5 (dmg),
+  Whetstone 5 (crit), Boarding Edge 5 (finisher), Light Feet 3 (stamina), Lunge 3 (thrust), Steady Hand 3 (parry),
+  Flow 3 (energy), Swift Recovery 3 (cooldowns).
+- **Unarmed** (Grapple / Martial / Body). Grapple: Shoulder Throw 3 · Heavy Landing 9 (mech) · Suplex 12 · Giant Swing
+  18. Martial: Shockwave Palm 4 · Rising Dragon 8 · Hundred Fists 13 · Rushing Wind 16 · Gale Fists 25 · Sea King Fist 30.
+  Body: Roundhouse 2 · Meteor Kick 6 · Iron Body 11 (passive) · Chi 15 (passive) · Finishing Blow 22 (passive). Steps:
+  Iron Knuckles 5 (dmg), Pressure Points 5 (crit), Heavy Hands 5 (finisher), Light Feet 3, Grip 3 (grapples and arts),
+  Stone Skin 3 (defense), Flow 3, Breath 3 (cooldowns).
+- **Axe** (Brute / Fury / Blood). Brute: Hatchet Throw 3 · Earthsplitter 9 · Sunder 14 (mech). Fury: Unstoppable 6 (mech)
+  · Berserk 11 · Ember Heart 16 · Living Fire 25 · Maelstrom 30. Blood: Skybreaker 2 · Bloodlust 12 (passive) · Rage 20
+  (variant: Frenzy / Executioner). Steps: Heft 5 (dmg), Overhead 5 (whirlwind), Keen Bite 5 (crit), Light Grip 3, Iron
+  Hide 3 (defense), Cleave 3 (finisher), Flow 3, Recovery 3.
+- **Dual Wield** (Guard / Dance / Edge). Guard: Twin Deflect 3 (mech) · Crossed Counter 8 · Ricochet Steel 20 (mech).
+  Dance: Blade Dance 5 · Cross Fang 10 · Twin Currents 16 · Crossing Storm 25 · Tempest of Steel 30. Edge: Twin Spin 2 ·
+  Twin Cyclone 7 · Whirling Steel 13 (passive) · Dancer's Way 22 (variant: Dancer / Thousand Cuts). Steps: Twin Blades 5,
+  Crossing Edge 5 (crit), Finisher 5, Light Feet 3, Steady Pair 3 (parry), Bite 3 (techniques), Flow 3, Recovery 3.
+- **Dagger** (Guard / Shadow / Blood). Guard: Flick the Shot 3 (mech) · Slip 8 · Knife in the Dark 20 (mech). Shadow:
+  Knife Fan 5 · Cutthroat 10 · Nightfall 16 · Blood Moon 25 · Red Eclipse 30. Blood: Gutting Strike 2 · Fang Dive 7 · Deep
+  Cuts 13 (passive) · Killer's Way 22 (variant: In the Back / Open Vein). Steps: Whetstone 5, Weak Spot 5 (crit),
+  Serrated 5 (bleed), Light Feet 3, Shadow Lunge 3 (right-click), Slippery 3 (evade), Flow 3, Recovery 3.
+- **Twin Daggers** (Guard / Fangs / Venom). Guard: Crossed Knives 3 (mech) · Bleeding Edge 8 · Knives Back 20 (mech).
+  Fangs: Viper Flurry 5 · Scissor Leap 10 · Viper's Kiss 16 · Serpent's Coil 25 · Hundred Fangs 30. Venom: Fang Whirl 2 ·
+  Knife Rain 7 · Open Wounds 13 (passive) · Viper's Way 22 (variant: Two in the Back / Death by Cuts). Steps: Paired
+  Fangs 5, Weak Spot 5, Serrated 5, Light Feet 3, Scissor Rip 3 (right-click), Slippery 3, Flow 3, Recovery 3.
+- **Corsair** (Guard / Powder / Steel). Guard: Steel and Shot 3 (mech) · Parley 8 · Return Fire 20 (mech). Powder:
+  Grapeshot 5 · Bandolier 9 (mech) · Crossfire 12 · Black Powder 16 · Powder Keg 25 · Broadside 30. Steel: Powder Finale
+  2 · Dead Man's Drop 7 · Smoke and Steel 13 (passive) · Corsair's Way 22 (variant: Gunsmoke / No Quarter). Steps:
+  Boarding Steel 5, Dread 5 (crit), Powder Lunge 5 (right-click), Light Feet 3, Quick Load 3 (reload), Steady Parry 3,
+  Flow 3, Recovery 3.
+- **Pistol** (Tricks / Shots / Close). Tricks: Gun Kata 3 · Smoke Bomb 6 · Gun Rain 9 · Hang Time 14 (mech). Shots:
+  Bullet Storm 5 · Deadeye 10 · Golden Powder 16 · Ricochet 20 (mech) · Gilded Gun 25 · Death's Waltz 30. Close: Hang
+  Shot 2 · Extra Powder 7 (mech) · Point Blank 11 · Close Quarters 15 (passive) · Coup de Grace 22 (passive). Steps:
+  Marksman 5 (dmg), Deadeye 5 (crit), Hard Shot 5 (techniques), Quick Load 3 (reload), Close Range 3 (point blank),
+  Light Hand 3, Flow 3, Recovery 3.
+
 **Phases** (one after another: they share progression.gd, skill_tree.gd and the skill map):
 0. This record and the mock (Zach's OK).
 1. Katana prototype: the katana's tree in the new schema (big nodes by mastery level, stat steps for points,
