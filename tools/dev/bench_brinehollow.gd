@@ -341,6 +341,8 @@ func _setup() -> void:
 	st.set_value("video", "perf_overlay", false, false)
 	p = get_first_node_in_group("player")
 	rig = root.get_node("World/CameraRig")
+	# (as the loading screen does before the game is shown)
+	root.get_node("FX").warm_up()
 	sun = root.get_node("World/DirectionalLight3D")
 	wx = root.get_node("Weather")
 	hold = wx.time_at(float(args.get("hour", "13")), 1)

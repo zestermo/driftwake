@@ -11,7 +11,7 @@ extends SceneTree
 ## compass strip shows its needles while L is held, danger reads by level, and
 ## the sea chart stays on Brinehollow there but fits the chain island and where
 ## it points out there.
-## Streaming: an island is put in the world a step a frame and listed only
+## Streaming: an island is put in the world over many frames and listed only
 ## once whole; one let go part way through (or still on its thread) leaves
 ## nothing behind; a new chain seed frees every island of the old one.
 var SG
@@ -206,7 +206,8 @@ func _process(d: float) -> bool:
 			var first: int = c.start_next[0]
 			var seen: Dictionary = steps_seen.get(first, {})
 			print("   %s built in %d steps, seen at %s; %s" % [world.chain_islands[first].island_name, int(steps_of.get(first, 0)), seen.keys(), world.chain_islands[first].build_ms])
-			check("a chain island is put in the world a step a frame (%d of %d steps seen)" % [seen.size(), int(steps_of.get(first, 0))], int(steps_of.get(first, 0)) >= 8 and seen.size() >= int(steps_of.get(first, 0)) - 1)
+			# (a step a frame, the small ones after it in the same frame: WorldGenerator.SMALL_US)
+			check("a chain island is put in the world over many frames (seen at %d of %d steps)" % [seen.size(), int(steps_of.get(first, 0))], int(steps_of.get(first, 0)) >= 8 and seen.size() >= maxi(30, int(steps_of.get(first, 0)) / 4))
 			check("...and only charted, kept clear and given its shallows once it's whole", not listed_early)
 			# an island further on, wanted while the crew's at it, unwanted part way through
 			var far: Array = c.nodes.filter(func(n): return int(n["layer"]) >= 4).map(func(n): return int(n["id"]))

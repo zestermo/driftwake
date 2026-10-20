@@ -4522,3 +4522,54 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   frame1t 13.13 (ALL_OLD 13.09 / 13.65, ALL_NEW 11.80 / 12.61); v119_bench_crowd ALL 12.40 / 13.16. The crowd (10 more
   townsfolk, +383 nodes) costs the market +1.25 ms frame (+9%), +1.1 frame1t, +0.8 ms scripts (brinehollow_folk and
   its rigs); elsewhere it's inside the run-to-run noise (single stops swung +-12% both ways on the same code).
+
+## 2026-10-20: the stutter hunt (why 1.18 felt laggy in fights, at sea and in towns)
+- **Measured** (min-spec PC, 13:00 clear, 1920x1080, vsync off, gate mode, no other Godots; runs stut_ed / stut_ex,
+  calib 24.05 / 23.00):
+  - **Export vs editor:** the same. ALL frame 12.63 -> 12.45 ms, frame1t 13.21 -> 13.07, p95 16.83 -> 16.71; the
+    release build's scripts 10-15% cheaper, its draw ~11% dearer. The exported build isn't the cause.
+  - **Steady fights and walks** are no worse than the panning stops: brawl 14.0 ms / p95 18.8 / worst 25, naval 12.9 /
+    16.5 / 28, Brinehollow walk 14.2 / 17.5 / 25.5, capital walk 11.2 / 14.1 / 20; no base frame over 33 ms (one 36 ms at
+    the fight stop). The probe's longest single calls: pirate_grunt.gd 3-5 ms in a tick in fights, everything else < 1.5.
+  - **Island streaming is the stutter** (the new `isles` stop, and the village arrival): letting a chain island go was one
+    150-270 ms frame (10-14k nodes freed in one queue_free, the "tail"); building one is ~180 frames of 35-45 ms (each
+    step 10-25 ms on top of a 14 ms frame), 35 of them over 33 ms and 6 over 50 in the isles stop, the worst step 40-160 ms
+    (boss, camp, colliders). It happens in the first ~20 s of every session in Brinehollow (the two islands ahead: the
+    perf.log's first line, 26 hitches), on arriving at an island (the other one let go) and in town when the log pose
+    sets (the next ones built).
+  - **Cold shader cache** (a first launch: `bench.ps1 -ColdShaders`, the export, ex_cold): the first fight was a 401 ms
+    frame on reaching the camp (draw 385 ms, 7 surface + 5 specialization pipelines) and an 87 ms one at the first blows;
+    warm, none. The export bakes 90 shaders, only 16 of them scene shaders: the effects' StandardMaterial3Ds are made in
+    code, so the baker never sees them.
+  - The bench sessions' perf.log ("1-2 hitches of 60-80 ms every 30 s") was the bench itself: each stop's screenshot,
+    the probe's start (its find_children over the whole tree) and the calib. Hit-stop and slow motion also hid frames:
+    delta runs at Engine.time_scale (0.05 in a hit-stop), so the bench and Perf now time frames in real time.
+- **Fixed:**
+  - **An island let go** (WorldGenerator._let_go): processing off, hidden, renamed (`FreeingIsleN`, so one built again
+    takes its name and node paths) at once, and freed leaves first, FREE_US 2.5 ms a frame (_free_some). NavBaker drops
+    a let-go island's zones at once. The isles stop: worst 159 -> 86 ms. The village arrival's 273 ms frame is now ~1 s of
+    +1.5 ms frames.
+  - **Build steps:** WorldGenerator._finish_step runs the small steps after the frame's step while the frame's island
+    work is under SMALL_US 1.5 ms (steps with nothing left to do take no frame); DrawLOD slices at 4 ms (was 12) over
+    192 steps (was 64; the last still does whatever's left). The isles stop: h33 35 -> 23, h50 6 -> 4 (isles_before /
+    isles_after2, back to back, calib 24.56 / 23.53).
+  - **Blood splats** pick from 24 shapes made at FX's start (a fresh SurfaceTool mesh per splat was ~1 ms of GDScript,
+    2-5 a bloody hit; its own rng, so the global one isn't drawn on). Brawl: h33 2 -> 0, worst 40 -> 33, p95 20.1 -> 17.8.
+  - **FX.warm_up:** every kind of effect drawn once in front of the camera in the loading screen's last moment (WARM_S
+    0.8 s more under the card; the bench calls it at its setup too). Cold cache: the camp's 401 ms frame is gone; one 70 ms
+    frame is left at the first blow (1 surface + 1 specialization: a trail or technique material it doesn't cover yet).
+- **Tools:** bench stops `bwalk`, `cwalk`, `brawl`, `naval`, `isles` (group `act`, rows ALL_ACT), `== hitches` (every frame
+  over 33 ms in any phase with its split, pipelines compiled canvas/mesh/surface/draw/specialization, nodes made and
+  Perf's marks), the probe's longest single calls per stop. `export_bench.ps1` (the "Windows Bench" preset: Windows
+  Desktop plus tools/dev) and `bench.ps1 -Exe` (an export ignores --script: an override.cfg beside the exe makes
+  `BenchBoot` the main loop, which becomes this checkout's bench script) and `-ColdShaders`.
+  Perf (scripts/game/perf_monitor.gd): `Perf.mark(what)` (island steps, islands let go, autosave, navmesh parses, bodies
+  built on the main thread, ragdolls, music loaded); a line per hitch under each 30 s line (process / physics / render
+  ms, pipelines, nodes, the state, where, the marks); the last five sessions kept (perf.log, perf_1..4.log); tool runs
+  write none. SaveGame.enabled() is off for every tool run (the export bench's BenchBoot too: it read save_1 before).
+- **Left:** the build steps themselves (village houses, dungeons, harbour, ground, plants: 10-25 ms each, the camp's
+  50-75 ms of tail, the beasts' models made on the main thread when they're added: boss 23-160 ms) want moving to
+  the worker (GenIsland.prepare) or splitting; the warm-up doesn't cover blade trails, technique ribbons, enemies' and
+  ships' own materials; pirate_grunt's 3-5 ms ticks (map_get_path on a goal that moved, likely).
+- **Tested by** t/island/free_slices, t/world/perf_log, t/fx/warm_up, perftest (the log under its own dir), chaintest
+  (the let-go island), katanatest.

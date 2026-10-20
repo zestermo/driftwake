@@ -136,6 +136,73 @@ static func _petal_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
+## Every kind of effect once, in front of the camera, behind the loading screen (LoadingScreen's last moment):
+## a material's shader and pipelines are compiled the first time it's drawn, which on a fresh install (no
+## user shader cache) was a 50-400 ms frame at the first blow, splash or blast of a session.
+func warm_up() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var at := cam.global_position - cam.global_basis.z * 6.0
+	var side := cam.global_basis.x
+	var up := Vector3.UP
+	dust(at)
+	dust_ring(at)
+	heavy_dust(at)
+	poison(at)
+	bleed(at, side)
+	# (a splat drawn for a moment, not left lying on the ground where the captain wakes)
+	var splat := MeshInstance3D.new()
+	splat.mesh = _splat_shapes[0][0]
+	splat.material_override = _splat_mat
+	_scene_root().add_child(splat)
+	splat.global_position = at
+	get_tree().create_timer(0.6).timeout.connect(splat.queue_free)
+	sparkle(at)
+	splash(at)
+	bubbles(at)
+	water_ring(at)
+	smoke(at)
+	muzzle_sparks(at, side)
+	impact(at)
+	parry_sparks(at, side)
+	float_text(at, "0")
+	tracer(at - side, at + side)
+	flame(at)
+	ring(at)
+	spray(at, up)
+	petals(at, up)
+	motes(at, up)
+	powder_burst(at, side)
+	cannon_blast(at)
+	blast(at)
+	cannon_hit(at, up)
+	cannon_splash(at)
+	twin_cross(at, side)
+	embers(at, up)
+	debris(at)
+	gather(at)
+	streak(at - side, at + side)
+	glint(at)
+	sakura(at, up)
+	droplets(at, up)
+	for sheet in FLIP_SHEETS:
+		puff(at, sheet)
+	for tree in TREE_FX:
+		elem_hit(tree, at, side)
+	punch_wind(at, side)
+	ground_crack(at, side, 2.0)
+	cut_lines(at, 3)
+	water_wake(at - side, at + side)
+	katana_line(at - side, at + side)
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = at
+	slash(holder, "right")
+	vortex(holder, 0.5)
+	get_tree().create_timer(0.7).timeout.connect(holder.queue_free)
+
+
 func _scene_root() -> Node:
 	var cs := get_tree().current_scene
 	return cs if cs else get_tree().root
