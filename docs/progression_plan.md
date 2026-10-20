@@ -117,6 +117,12 @@ branches every weapon from the captain into its own three-branch cluster. The Ca
 vertical level trunk, round nodes that come by themselves, split talent nodes, a legend of how it grows, and Will
 as its own path beside it.
 
+**Menu chrome (mock, 2026-10-20):** a carved teal-lacquer top bar on a gilt rail with brass studs, a compass-rose
+emblem, tabs as chamfered gilt-rimmed plaques with 16 px pixel icons (crown, crossed swords, compass, chest), the
+active one a raised gold plaque; a captain nameplate (gold level coin, XP strip); parchment info panels and slate
+panels in the UIStyle gilt frame with coral/cream corner rivets; swallowtail ribbon headers; diamond-studded rules;
+keycap hints; a faint sea-chart grid and vignette behind it all. Builds on UIStyle's frame_image (rivets, caps).
+
 **Katana tree (draft):**
 - Root (mastery 1): combo, heavy, iai.
 - Guard: Cut the Shot 3 · Iai Counter 8 (variants Draw Cut / Side Step, new) · Phantom Step 14 · Bullet Return 20.
