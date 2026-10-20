@@ -51,7 +51,7 @@ other session).
 ## Queued after 1.18.2
 - **The capital grill** and **services after Brinehollow** (a shipwright in the capital and/or harbour vendors with
   one upgrade tree each on chain islands): docs/capital_plan.md "Next".
-- **The progression redesign** (Zach's other session: docs/progression_plan.md and the redesign docs on main).
+- ~~The progression redesign~~ **Moved into 1.18.2** (Zach, 2026-10-20): 1.18.2 is the perf work plus the progression and skills redesign (docs/progression_plan.md "Build: v1.18.2"). It ships once prog-core, menu-ui and bar-swap have landed; the steps above run after that, on the merged main.
 - **1.19**: docs/v1_19_plan.md (the Admiralty + rival crews, the intro, fighting in the water; a tooling window first:
   docs/todo.md "Tooling window").
 - Leftover empty worktree folders under .claude/worktrees/ (locked by exited processes): `tools/dev/unwork.ps1 <name>`
