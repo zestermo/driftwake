@@ -39,6 +39,16 @@ func is_empty() -> bool:
 	return _order.is_empty()
 
 
+## The surface built with `from` now drawn with `to`, in its place (geometry built ahead with a shared material,
+## committed with an object's own copy of it).
+func rekey(from: Material, to: Material) -> void:
+	if not _surfaces.has(from):
+		return
+	_surfaces[to] = _surfaces[from]
+	_surfaces.erase(from)
+	_order[_order.find(from)] = to
+
+
 func surface_count() -> int:
 	return _order.filter(func(m): return not (_surfaces[m]["v"] as PackedVector3Array).is_empty()).size()
 

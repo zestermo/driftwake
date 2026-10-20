@@ -40,6 +40,11 @@ func build(n: Dictionary) -> void:
 	finish()
 
 
+## (no beasts in the city)
+func start_beasts() -> void:
+	pass
+
+
 func prepare(n: Dictionary) -> void:
 	node = n
 	theme = "capital"

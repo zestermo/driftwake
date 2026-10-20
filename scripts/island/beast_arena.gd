@@ -331,7 +331,10 @@ func spawn_boss() -> void:
 		ape.level = IslandContent.level(isl)
 		boss = ape
 	else:
-		var b: JungleBeast = load(BeastPool.info(isl.theme, kind)["script"]).new()
+		# (the first one's model built ahead, GenIsland.start_beasts)
+		var b: JungleBeast = isl.take_beast("boss", kind) if boss_gen == 0 else null
+		if b == null:
+			b = load(BeastPool.info(isl.theme, kind)["script"]).new()
 		b.setup({"post": global_position, "yaw": yaw, "level": IslandContent.level(isl), "variant": int(isl.node["beast_look"]),
 			"name": str(isl.node["beast_name"])})
 		boss = b

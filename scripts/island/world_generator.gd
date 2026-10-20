@@ -169,6 +169,7 @@ func _finish_ready() -> void:
 		if _wanted().has(id):
 			var isl: GenIsland = e[0]
 			Perf.mark("%s into the tree" % isl.name)
+			isl.start_beasts()
 			add_child(isl)
 			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0, 0, 0]
 		else:

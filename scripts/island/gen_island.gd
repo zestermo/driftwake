@@ -105,6 +105,8 @@ var _crowns: Array = []
 func build(n: Dictionary) -> void:
 	IslandTheme.meshes(str(n["theme"]))
 	prepare(n)
+	make_beasts(n)
+	_prebuild_beasts()
 	finish()
 
 
@@ -162,6 +164,56 @@ func prepare(n: Dictionary) -> void:
 	t0 = Time.get_ticks_usec()
 	_warm = warm_scripts(n)
 	build_ms["warm"] = _lap(t0)
+
+
+## The island's beasts that can build their models ahead (QuadBeast.prebuild), by slot ("boss", a mini's kind, "roamer"):
+## [kind, the beast]. Made on the main thread once prepare has loaded their scripts (a body is a physics object), their
+## geometry built on a worker while the first steps run (start_beasts); take_beast hands each over once, the rest go
+## with the island.
+var _beasts := {}
+var _beast_task := -1
+func start_beasts() -> void:
+	make_beasts(node)
+	if not _beasts.is_empty():
+		_beast_task = WorkerThreadPool.add_task(_prebuild_beasts, false, "prebuild beasts")
+
+
+func _prebuild_beasts() -> void:
+	for slot in _beasts:
+		(_beasts[slot][1] as Node).prebuild()
+
+
+func _beasts_built() -> void:
+	if _beast_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_beast_task)
+		_beast_task = -1
+
+
+func make_beasts(n: Dictionary) -> void:
+	var th := IslandThemes.of(str(n["theme"]))
+	var slots := {"boss": n["beast"], "roamer": n["roamer"]}
+	for m in n["minis"]:
+		slots[str(m)] = m
+	for slot in slots:
+		var info: Dictionary = th.beasts[str(slots[slot])]
+		if not info.has("script") or info.has("stock") or info.get("camp", false):
+			continue
+		var b: Node = load(info["script"]).new()
+		if not b.has_method("prebuild"):
+			b.free()
+			continue
+		if slot == "boss":
+			b.set("variant", int(n["beast_look"]))
+		_beasts[slot] = [str(slots[slot]), b]
+
+
+func take_beast(slot: String, kind: String) -> Node:
+	if not _beasts.has(slot) or _beasts[slot][0] != kind:
+		return null
+	_beasts_built()
+	var b: Node = _beasts[slot][1]
+	_beasts.erase(slot)
+	return b
 
 
 ## The scripts its build steps make beasts and creatures from (loaded by path: the first load compiles it, 50-150 ms
@@ -266,7 +318,8 @@ var _unparented: Array = []
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
-		for n in _unparented:
+		_beasts_built()
+		for n in _unparented + _beasts.values().map(func(e): return e[1]):
 			if is_instance_valid(n) and (n as Node).get_parent() == null:
 				(n as Node).free()
 	# (let go before its beast or village was made: the bodies prepare built for them would wait forever)
