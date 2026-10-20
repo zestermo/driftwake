@@ -1,5 +1,7 @@
 # The performance gate before a release (prepush.ps1 -Release runs it): the Brinehollow bench (bench.ps1, gate
-# mode: base + probe at the 8 stops, ~4 min a run) against the saved baseline, tools/dev/perf_baseline.txt.
+# mode: base + probe at every stop of the route) against the saved baseline, tools/dev/perf_baseline.txt. Only the
+# baseline's stops are gated (ALL = their mean); stops the route has beyond them (v1.19's terrace, farm, village,
+# fight, sea, storm, capital) are printed, not judged, until -Update takes them into a new baseline.
 #
 #   .\tools\dev\perf_gate.ps1                  # bench this checkout at every light in the baseline, compare
 #   .\tools\dev\perf_gate.ps1 -Update          # bench it and rewrite the baseline (after an intended change), then commit it
@@ -39,11 +41,11 @@ $TARGET_MS = 10.0
 $COLS = @("frame", "frame1t", "ticks", "draws", "sh_draws")
 
 ## Runs one bench in checkout $dir; the result file's path.
-function Invoke-Bench([string]$dir, [string]$label, [int]$hour) {
+function Invoke-Bench([string]$dir, [string]$label, [int]$hour, [string[]]$extra) {
 	$out = Join-Path $dir "tools/dev/out/bench/brinehollow_$label.txt"
 	Remove-Item $out -Force -ErrorAction SilentlyContinue
 	Write-Host ("perf gate: bench {0} (hour {1}) in {2}" -f $label, $hour, $dir) -ForegroundColor DarkGray
-	$a = @("label=$label", "hour=$hour", "wx=clear", "gate") + $BenchArgs
+	$a = @("label=$label", "hour=$hour", "wx=clear", "gate") + $BenchArgs + $extra
 	# (bench.ps1 pipes Godot's stderr, which Windows PowerShell turns into errors under "Stop")
 	$ErrorActionPreference = "Continue"
 	$lines = & (Join-Path $dir "tools/dev/bench.ps1") @a
@@ -63,12 +65,14 @@ function Read-Bench([string]$path) {
 	$hdr = @($lines[$i + 1].Trim() -split '\s+')
 	for ($k = $i + 2; $lines[$k].Trim() -ne ''; $k++) {
 		$f = @($lines[$k].Trim() -split '\s+')
-		if ($f[0] -eq "ALL") { continue }
+		if ($f[0] -like "ALL*") { continue }
 		$row = @{}
 		foreach ($c in $COLS) { $row[$c] = [double]$f[[Array]::IndexOf($hdr, $c)] }
 		$r.stops[$f[0]] = $row
 	}
-	$j = [Array]::IndexOf($lines, "== scripts")
+	# (a run with the new stops has the old route's own scripts table too: the baseline's scripts are the old eight's)
+	$j = [Array]::IndexOf($lines, "== scripts_old")
+	if ($j -lt 0) { $j = [Array]::IndexOf($lines, "== scripts") }
 	$sh = @($lines[$j + 2].Trim() -split '\s+')
 	$ci = [Array]::IndexOf($sh, "cost")
 	for ($k = $j + 3; $lines[$k].Trim() -ne ''; $k++) {
@@ -97,12 +101,12 @@ function Merge-Runs($each) {
 }
 
 ## Bench every light $Runs times in $dir: hour -> merged result.
-function Measure-Lights([string]$dir, [string]$label, [int[]]$hours) {
+function Measure-Lights([string]$dir, [string]$label, [int[]]$hours, [string[]]$extra = @()) {
 	$res = [ordered]@{}
 	foreach ($h in $hours) {
 		# (not $runs: PowerShell names ignore case, that's the -Runs count)
 		$got = @()
-		for ($i = 1; $i -le $Runs; $i++) { $got += , (Read-Bench (Invoke-Bench $dir ("{0}_h{1}_r{2}" -f $label, $h, $i) $h)) }
+		for ($i = 1; $i -le $Runs; $i++) { $got += , (Read-Bench (Invoke-Bench $dir ("{0}_h{1}_r{2}" -f $label, $h, $i) $h $extra)) }
 		# (string keys: an ordered dictionary reads an int key as a position)
 		$res["$h"] = Merge-Runs $got
 	}
@@ -167,16 +171,26 @@ function Read-Baseline() {
 
 function Pct([double]$a, [double]$b) { if ($a -eq 0) { return 0.0 }; return ($b - $a) / $a * 100.0 }
 
-## Prints the comparison of one light; the reasons it fails (none: it passes).
+## The mean of these stops' COLS.
+function Mean-Stops($stops, $names) {
+	$all = @{}
+	foreach ($c in $COLS) { $all[$c] = ($names | ForEach-Object { $stops[$_][$c] } | Measure-Object -Average).Average }
+	return $all
+}
+
+## Prints the comparison of one light; the reasons it fails (none: it passes). Only the baseline's stops are gated
+## (ALL = their mean); stops this run has beyond them (the route grown since) are shown, not judged, until -Update.
 function Compare-Light([int]$h, $base, $now, [string]$what) {
 	$fails = @()
+	$gated = @($base.stops.Keys | Where-Object { $now.stops.Contains($_) })
+	$nowAll = Mean-Stops $now.stops $gated
+	$baseAll = Mean-Stops $base.stops $gated
 	Write-Host ""
 	Write-Host "== $h`:00 clear: $what -> this checkout (ms; d% = change; * = over the line)"
 	Write-Host ("{0,-8} {1,16} {2,6} {3,16} {4,6} {5,12} {6,14}" -f "stop", "frame", "d%", "frame1t", "d%", "ticks", "draws+shadow")
-	foreach ($s in @($base.stops.Keys) + "ALL") {
-		$a = if ($s -eq "ALL") { $base.all } else { $base.stops[$s] }
-		$b = if ($s -eq "ALL") { $now.all } else { $now.stops[$s] }
-		if (-not $b) { continue }
+	foreach ($s in $gated + "ALL") {
+		$a = if ($s -eq "ALL") { $baseAll } else { $base.stops[$s] }
+		$b = if ($s -eq "ALL") { $nowAll } else { $now.stops[$s] }
 		$df = Pct $a.frame $b.frame
 		$d1 = Pct $a.frame1t $b.frame1t
 		$lim = if ($s -eq "ALL") { $FRAME_PCT } else { $STOP_PCT }
@@ -190,7 +204,15 @@ function Compare-Light([int]$h, $base, $now, [string]$what) {
 		if ($bad1) { $fails += ("{0}:00 {1} frame1t {2:N2} -> {3:N2} ms ({4:+0}%)" -f $h, $(if ($s -eq "ALL") { "mean" } else { $s }), $a.frame1t, $b.frame1t, $d1) }
 		if ($badt) { $fails += ("{0}:00 physics ticks per frame {1:N2} (over {2})" -f $h, $b.ticks, $MAX_TICKS) }
 	}
-	if ($now.all.frame -gt $TARGET_MS) { Write-Host ("  (mean frame {0:N2} ms is over the ~{1} ms target for the min-spec PC's 60 fps)" -f $now.all.frame, $TARGET_MS) -ForegroundColor Yellow }
+	if ($nowAll.frame -gt $TARGET_MS) { Write-Host ("  (mean frame {0:N2} ms is over the ~{1} ms target for the min-spec PC's 60 fps)" -f $nowAll.frame, $TARGET_MS) -ForegroundColor Yellow }
+	$extra = @($now.stops.Keys | Where-Object { -not $base.stops.Contains($_) })
+	if ($extra) {
+		Write-Host "  stops with no baseline yet (shown, not gated; perf_gate.ps1 -Update takes them in):"
+		foreach ($s in $extra + "NEW") {
+			$b = if ($s -eq "NEW") { Mean-Stops $now.stops $extra } else { $now.stops[$s] }
+			Write-Host ("  {0,-8} {1,8:N2} {2,7} {3,8:N2} {4,6} {5,11:N2} {6,14:N0}" -f $s, $b.frame, "", $b.frame1t, "", $b.ticks, ($b.draws + $b.sh_draws)) -ForegroundColor $(if ($b.frame -gt $TARGET_MS) { "Yellow" } else { "Gray" })
+		}
+	}
 	$grown = foreach ($n in (@($base.scripts.Keys) + @($now.scripts.Keys) | Select-Object -Unique)) {
 		$va = if ($base.scripts.ContainsKey($n)) { $base.scripts[$n] } else { 0.0 }
 		$vb = if ($now.scripts.ContainsKey($n)) { $now.scripts[$n] } else { 0.0 }
@@ -262,8 +284,10 @@ if ($calibOff -gt $CALIB_PCT) { Write-Host "perf gate: this machine runs scripts
 else { $fails | ForEach-Object { Write-Host "  $_" -ForegroundColor Red } }
 Write-Host "perf gate: benching the baseline's commit $($base.commit.Substring(0, 8)) back to back to confirm..." -ForegroundColor Yellow
 $ref = New-RefTree $base.commit
+# (only the baseline's stops: an older commit's bench doesn't know the stops added since, nor their groups)
+$refStops = if ($BenchArgs | Where-Object { $_ -like "stops=*" }) { @() } else { @("stops=" + (@(@($base.lights.Values)[0].stops.Keys) -join ",")) }
 try {
-	$then = Measure-Lights $ref "${Label}_ref" $Hours
+	$then = Measure-Lights $ref "${Label}_ref" $Hours $refStops
 } finally {
 	Remove-RefTree $ref
 }

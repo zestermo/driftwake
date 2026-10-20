@@ -1,8 +1,9 @@
 # Runs the Brinehollow benchmark (bench_brinehollow.gd) on a quiet machine: it takes every
 # test slot first (other sessions' test runs finish their current suite, then wait), runs one
 # bench in a window, then lets them go. The rest of the arguments go to the bench.
-#   .\tools\dev\bench.ps1 label=before hour=13 wx=clear
-#   .\tools\dev\bench.ps1 -Driver vulkan label=vk quick
+#   .\tools\dev\bench.ps1 label=before hour=13 wx=clear          # the whole route (old + new stops), every phase
+#   .\tools\dev\bench.ps1 -Driver vulkan label=vk quick          # quick: base only, the old eight unless stops= says
+#   .\tools\dev\bench.ps1 label=c stops=old,atsea crowd          # stops= takes names and groups (old new town atsea capital all)
 [CmdletBinding(PositionalBinding = $false)]
 param(
     [string]$Driver = "",

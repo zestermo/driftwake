@@ -1,8 +1,13 @@
 extends SceneTree
-## Brinehollow benchmark (v1.14). A real window, vsync off. Waits until the chain
+## Brinehollow benchmark (v1.14; the route grown in v1.19). A real window, vsync off. Waits until the chain
 ## islands ahead are built and manned (plus `warm` seconds), then walks the captain
-## through fixed stops: the beach you wake on, the plaza, the market, the quay, the
-## dock, the foot of Grell's den, the training yard, aboard the moored ship. At each
+## through fixed stops, in ROUTE's order. The old eight (v1.14's, group "old"): the beach you wake on, the plaza,
+## the market, the quay, the dock, the foot of Grell's den, the training yard, aboard the moored ship. The new ones
+## (group "new"): Brinehollow's shrine terrace and the windmill hamlet, a fight at the smugglers' camp (its five
+## grunts alerted, the captain kept alive), at sea under full sail on open water, the same in a storm, a chain
+## island's village (the crew arrives there, freeing the other island ahead), then the royal capital's plaza and market street (reached the way Alt+F10 does, after the chain
+## islands are put up again round it: `cwarm` s more). Groups: old, new, town (terrace farm village cplaza cmarket),
+## atsea (sea storm), capital (cplaza cmarket), all (the default; `quick` alone runs old). At each
 ## stop the gameplay camera pans a full turn per phase:
 ##   base: frame mean/p95/worst, process/physics/render CPU/GPU ms, draws, shadow pass, nodes, physics;
 ##   probe: every script's _process/_physics_process timed (by script, by distance from the captain), rigs posed;
@@ -11,13 +16,22 @@ extends SceneTree
 ## Each frame is split by timeline marks: physics scripts (the scene's physics pass), physics engine
 ## (Jolt's step and sync), process scripts (the scene's process pass), rest (tweens, transforms, the draw, present).
 ## Args (after --): label=<name> hour=13 wx=clear|cloudy|rain|storm pix=1|0 size=1920x1080
-## warm=20 seed=4242 stops=beach,dock quick (base only) gate (base + probe: the summary and the scripts, no ablations; perf_gate.ps1)
-## nosleep (ActorSleep off: far actors stay awake). Writes tools/dev/out/bench/brinehollow_<label>.txt
-## and a screenshot per stop (brinehollow_<label>_<stop>.png, after its settle); bench.ps1 keeps the whole log beside them.
+## warm=20 cwarm=10 seed=4242 stops=beach,dock|old|new|atsea,fight quick (base only) gate (base + probe: the summary and
+## the scripts, no ablations; perf_gate.ps1) nosleep (ActorSleep off: far actors stay awake) crowd (Brinehollow's
+## market crowd on: BrinehollowCast.CROWD, off as the game ships). Writes tools/dev/out/bench/brinehollow_<label>.txt
+## (the summary has h33 / h50: base frames over 33 / 50 ms, and ALL_OLD / ALL_NEW rows when both groups ran) and a
+## screenshot per stop (brinehollow_<label>_<stop>.png, after its base sample); bench.ps1 keeps the whole log beside them.
 ## Prints "bench: <stop> <phase>" as it goes, and a watchdog thread names the stop, phase and island build step if a frame stalls.
 ## Run it through tools/dev/bench.ps1 (a quiet machine); compare two with bench_compare.ps1.
 const OUT_DIR := "res://tools/dev/out/bench/"
-const ROUTE := ["beach", "plaza", "market", "quay", "dock", "den", "yard", "aboard"]
+const OLD := ["beach", "plaza", "market", "quay", "dock", "den", "yard", "aboard"]
+## (the village late: standing on a chain island makes the crew arrive there, which frees the other one ahead)
+const NEW := ["terrace", "farm", "fight", "sea", "storm", "village", "cplaza", "cmarket"]
+const ROUTE := OLD + NEW
+const GROUPS := {"old": OLD, "new": NEW, "all": ROUTE, "town": ["terrace", "farm", "village", "cplaza", "cmarket"],
+	"atsea": ["sea", "storm"], "capital": ["cplaza", "cmarket"]}
+const CAPITAL := ["cplaza", "cmarket"]
+const WX := ["clear", "cloudy", "rain", "storm"]
 const PHASES := ["settle", "base", "probe", "far", "sun", "lshadow", "lights", "base2"]
 const DUR := {"settle": 4.0, "base": 5.0, "probe": 4.0, "far": 3.0, "sun": 3.0, "lshadow": 3.0, "lights": 3.0, "base2": 4.0}
 const ABLATIONS := ["far", "sun", "lshadow", "lights"]
@@ -26,7 +40,7 @@ const FAR := 120.0
 const BANDS := [30.0, 60.0, 120.0, 250.0]
 const BAND_NAMES := ["<30", "30-60", "60-120", "120-250", ">250"]
 const PITCH := -0.25
-const COLS := ["frame", "p95", "worst", "frame1t", "phys_scr", "phys_eng", "proc_scr", "tail", "draw", "present", "ticks", "tick_scr", "tick_eng",
+const COLS := ["frame", "p95", "worst", "h33", "h50", "frame1t", "phys_scr", "phys_eng", "proc_scr", "tail", "draw", "present", "ticks", "tick_scr", "tick_eng",
 	"rcpu", "gpu", "procmax", "physmax", "draws", "objects", "prims_k", "sh_draws", "sh_objects", "tot_draws", "tot_prims_k", "nodes", "active", "pairs"]
 const SPLIT := ["frame", "frame1t", "tick_scr", "tick_eng", "proc_scr", "tail", "draw", "present", "rcpu", "gpu", "draws", "sh_draws"]
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -52,9 +66,15 @@ var t0 := 0.0
 var ticks := 0
 var rec := {}
 var results := {}
-var all_frames := PackedFloat32Array()
 var census_text := ""
 var calib_ms := 0.0
+var scene_asked := false
+## Waiting for the capital to stand (the jump to it asked at travel_t; up and manned since cap_ready).
+var traveling := false
+var travel_t := 0.0
+var cap_ready := -1.0
+var sea_at := Vector3.INF
+var sea_yaw := 0.0
 
 var lights: Array = []
 var toggled: Array = []
@@ -99,13 +119,46 @@ func _initialize():
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	label = args.get("label", "run")
 	load("res://scripts/world/actor_sleep.gd").enabled = not args.has("nosleep")
-	stops = Array((args["stops"] as String).split(",")) if args.has("stops") else ROUTE.duplicate()
+	stops = _pick_stops(args.get("stops", "old" if args.has("quick") else "all"))
 	TK.use_seed(self, int(args.get("seed", str(TK.DEFAULT_SEED))))
 	RenderingServer.frame_pre_draw.connect(_mark.bind("pre_draw"))
 	RenderingServer.frame_post_draw.connect(_mark.bind("post_draw"))
 	watchdog = Thread.new()
 	watchdog.start(_watch)
-	change_scene_to_file("res://scenes/world/world.tscn")
+	# (the crowd's flag is a const: its script is recompiled once the autoloads are up, before the world loads)
+	if not args.has("crowd"):
+		scene_asked = true
+		change_scene_to_file("res://scenes/world/world.tscn")
+
+
+## Stop names and group names (GROUPS) to the stops, in ROUTE's order (the capital last: going there frees the
+## chain islands round Brinehollow).
+func _pick_stops(spec: String) -> Array:
+	var want := {}
+	# (PowerShell hands `stops=a,b` on as "a b")
+	for s in spec.replace(" ", ",").split(",", false):
+		for x in GROUPS.get(s, [s]):
+			if not x in ROUTE:
+				push_error("bench: no stop or group '%s' (stops: %s; groups: %s)" % [x, ", ".join(ROUTE), ", ".join(GROUPS.keys())])
+				quit(1)
+			want[x] = true
+	return ROUTE.filter(func(x): return want.has(x))
+
+
+func _crowd_on() -> void:
+	var gs: GDScript = load("res://scripts/island/brinehollow_cast.gd")
+	var off := "const CROWD := false"
+	if gs.source_code.find(off) < 0:
+		push_error("bench: crowd: '%s' isn't in brinehollow_cast.gd any more" % off)
+		quit(1)
+		return
+	gs.source_code = gs.source_code.replace(off, "const CROWD := true")
+	var err := gs.reload()
+	if err != OK:
+		push_error("bench: crowd: brinehollow_cast.gd didn't recompile (%s)" % error_string(err))
+		quit(1)
+		return
+	print("bench: Brinehollow's market crowd on (BrinehollowCast.CROWD)")
 
 
 ## A stalled main thread (no timeline mark for STALL_S) is named: the stop, the phase and the last mark.
@@ -126,6 +179,11 @@ func _process(d: float) -> bool:
 		return false
 	_mark("proc")
 	t += d
+	if not scene_asked:
+		scene_asked = true
+		_crowd_on()
+		change_scene_to_file("res://scenes/world/world.tscn")
+		return false
 	var w = root.get_node_or_null("World/Islands")
 	if w != null and not w._finishing.is_empty():
 		var e: Array = w._finishing[w._finishing.keys()[0]]
@@ -157,8 +215,28 @@ func _process(d: float) -> bool:
 		print("bench: calib %.2f ms" % calib_ms)
 		_next_stop()
 		return false
+	if traveling:
+		_travel(w)
+		return false
 	_step(d)
 	return false
+
+
+## Alt+F10's jump asked: wait for the capital (and whatever the log pose points on to) to be up and manned, then cwarm s.
+func _travel(w) -> void:
+	if t - travel_t > 240.0:
+		push_error("bench: the capital never finished building (SCRIPT ERRORs above? the log is beside the results)")
+		done = true
+		quit(1)
+		return
+	if not (w.chain_islands.has(w.chain().capital_id()) and w.chain_ready()):
+		return
+	if cap_ready < 0.0:
+		cap_ready = t
+		print("bench: the capital and its neighbours ready at %.1f s (%.1f s after the jump)" % [t, t - travel_t])
+	if t - cap_ready >= float(args.get("cwarm", "10")):
+		traveling = false
+		_go()
 
 
 func _physics_process(delta: float) -> bool:
@@ -194,7 +272,7 @@ func _setup() -> void:
 	wx = root.get_node("Weather")
 	hold = wx.time_at(float(args.get("hour", "13")), 1)
 	wx.set_world_time(hold)
-	wx.forced = ["clear", "cloudy", "rain", "storm"].find(args.get("wx", "clear"))
+	wx.forced = WX.find(args.get("wx", "clear"))
 	wx.forced_at = hold - 100.0
 	var gs := GDScript.new()
 	gs.source_code = "extends Node\nvar bench\nfunc _process(_d):\n\tbench._late()\nfunc _physics_process(_d):\n\tbench._mark(\"late_phys\")\n"
@@ -258,6 +336,33 @@ func _spot(s: String) -> Vector3:
 			return _g(isl, isl.TRAINING + Vector2(7, 3))
 		"aboard":
 			return get_first_node_in_group("ship").global_transform * Vector3(0, 0.6, 1.0)
+		"terrace":
+			return _g(isl, Vector2(isl.UP_X, 11.0))
+		"farm":
+			return _g(isl, isl.FARM + Vector2(4.5, -1.5))
+		"village":
+			var gi = _chain_isle()
+			return _g(gi, gi.sites["village"] + Vector2(3, 3))
+		"fight":
+			# inland of the smugglers' fire, the five of them alerted
+			for g in isl.smugglers.grunts:
+				if is_instance_valid(g):
+					g.alert(randf_range(0.1, 0.4))
+			return _g(isl, isl.SMUGGLERS - Vector2(1, 0.15).normalized() * 6.0)
+		"sea", "storm":
+			# (the same water both times: the ship put back at the start, under full sail)
+			if sea_at == Vector3.INF:
+				_find_sea()
+			var ship = get_first_node_in_group("ship")
+			ship.place(sea_at, sea_yaw)
+			ship.set_anchored(false)
+			ship.sail = 1.0
+			# (the deck from where she's put: her transform reads back the old one until her next tick)
+			return Transform3D(Basis(Vector3.UP, sea_yaw), Vector3(sea_at.x, ship.global_position.y, sea_at.z)) * Vector3(0, 0.6, 1.0)
+		"cplaza", "cmarket":
+			var ci = root.get_node("World/Islands").chain_islands[root.get_node("World/Islands").chain().capital_id()]
+			var q: Vector2 = ci.from_city(Vector2(0, 9.5) if s == "cplaza" else Vector2(0, 46))
+			return _g(ci, q)
 	push_error("bench: no stop " + s)
 	return Vector3.ZERO
 
@@ -266,12 +371,59 @@ func _g(isl, q: Vector2) -> Vector3:
 	return isl.to_global(Vector3(q.x, isl.hv(q), q.y))
 
 
+## The first generated chain island standing (one the log pose points at from Brinehollow).
+func _chain_isle():
+	var w = root.get_node("World/Islands")
+	var ids: Array = w.chain_islands.keys()
+	ids.sort()
+	for id in ids:
+		if w.chain_islands[id].theme != "capital":
+			return w.chain_islands[id]
+	push_error("bench: no generated chain island standing")
+	return null
+
+
+## Open water clear of every island and Redtide, out from Brinehollow; the ship sails straight out from it.
+func _find_sea() -> void:
+	var w = root.get_node("World/Islands")
+	var home: Vector2 = w.starter_center + Vector2(-20, 110)
+	var rt := Vector2(w.redtide.position.x, w.redtide.position.z)
+	for r: float in [750.0, 900.0, 1050.0]:
+		for k in range(24):
+			var a := (rt - home).angle() + PI + floori((k + 1) * 0.5) * (TAU / 24.0) * (1.0 if k % 2 == 0 else -1.0)
+			var c := home + Vector2.from_angle(a) * r
+			var out := Vector2.from_angle(a)
+			if w._deep_enough(c, 150.0) and w._deep_enough(c + out * 400.0, 150.0) and c.distance_to(rt) > 450.0:
+				sea_at = Vector3(c.x, 0.0, c.y)
+				sea_yaw = atan2(-out.x, -out.y)
+				print("bench: open sea at %s, %.0f m out, sailing %.0f deg" % [str(sea_at), r, rad_to_deg(sea_yaw)])
+				return
+	push_error("bench: no open sea round Brinehollow")
+
+
 func _next_stop() -> void:
 	si += 1
 	if si >= stops.size():
 		_finish()
 		return
+	_go()
+
+
+func _go() -> void:
+	var w = root.get_node("World/Islands")
+	if stops[si] in CAPITAL and not (int(root.get_node("GameManager").chain_at) == w.chain().capital_id() and w.chain_islands.has(w.chain().capital_id())):
+		traveling = true
+		travel_t = t
+		cap_ready = -1.0
+		phase = "travel"
+		print("bench: to the capital (Alt+F10's jump; t %.1f s)" % t)
+		p.debug_to_capital()
+		return
+	wx.forced = WX.find("storm" if stops[si] == "storm" else args.get("wx", "clear"))
+	wx.forced_at = hold - 100.0
 	var at := _spot(stops[si])
+	if p.current_state_name() != "Idle":
+		p.state_machine.force_state("Idle", {})
 	p.global_position = at + Vector3.UP * 0.3
 	p.velocity = Vector3.ZERO
 	p.reset_physics_interpolation()
@@ -313,6 +465,10 @@ func _step(d: float) -> void:
 	var dur: float = DUR[phase]
 	rig.rotation.y = TAU * clampf(e / dur, 0.0, 1.0)
 	rig.spring_arm.rotation.x = PITCH
+	if stops[si] == "fight":
+		var hc = p.health_component
+		if hc.current_health < hc.max_health:
+			hc.current_health = hc.max_health
 	if phase == "probe":
 		var count := e > LEAD
 		_dispatch(false, d, count)
@@ -328,12 +484,12 @@ func _step(d: float) -> void:
 		return
 	var r: Dictionary = results[stops[si]]
 	match phase:
-		"settle":
-			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
-			root.get_texture().get_image().save_png(OUT_DIR + "brinehollow_%s_%s.png" % [label, stops[si]])
 		"base":
 			r["base"] = _summarise()
-			all_frames.append_array(rec["frame"])
+			r["frames"] = rec["frame"].duplicate()
+			# (after the sample: its save was ~65 ms in the base's first frame; the next phase's LEAD or settle skips it)
+			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
+			root.get_texture().get_image().save_png(OUT_DIR + "brinehollow_%s_%s.png" % [label, stops[si]])
 		"base2":
 			r["base2"] = _summarise()
 		"probe":
@@ -427,6 +583,14 @@ func _pct(a: PackedFloat32Array, q: float) -> float:
 	return s[mini(int(s.size() * q), s.size() - 1)]
 
 
+func _over(a: PackedFloat32Array, ms: float) -> int:
+	var n := 0
+	for v in a:
+		if v > ms:
+			n += 1
+	return n
+
+
 func _summarise() -> Dictionary:
 	var out := {}
 	for k in rec:
@@ -434,6 +598,8 @@ func _summarise() -> Dictionary:
 	out["p95"] = _pct(rec["frame"], 0.95)
 	out["worst"] = _pct(rec["frame"], 1.0)
 	out["n"] = rec["frame"].size()
+	out["h33"] = _over(rec["frame"], 33.3)
+	out["h50"] = _over(rec["frame"], 50.0)
 	out["tick_scr"] = out["phys_scr"] / maxf(out["ticks"], 0.01)
 	out["tick_eng"] = out["phys_eng"] / maxf(out["ticks"], 0.01)
 	out["frame1t"] = out["proc_scr"] + out["tail"] + out["draw"] + out["present"] + out["tick_scr"] + out["tick_eng"]
@@ -778,8 +944,9 @@ func _finish() -> void:
 	L.append("version %s  Godot %s  driver %s  %s  CPU %s (%d threads)" % [str(ProjectSettings.get_setting("application/config/version", "")),
 		Engine.get_version_info()["string"], RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_video_adapter_name(),
 		OS.get_processor_name(), OS.get_processor_count()])
-	L.append("window %s  3D scale %.3f  pixelate %s  hour %s  weather %s  vsync off  physics %d Hz  calib %.2f ms" % [str(root.size), root.scaling_3d_scale,
-		args.get("pix", "1"), args.get("hour", "13"), args.get("wx", "clear"), Engine.physics_ticks_per_second, calib_ms])
+	L.append("window %s  3D scale %.3f  pixelate %s  hour %s  weather %s  vsync off  physics %d Hz  calib %.2f ms  crowd %s  sleep %s" % [str(root.size), root.scaling_3d_scale,
+		args.get("pix", "1"), args.get("hour", "13"), args.get("wx", "clear"), Engine.physics_ticks_per_second, calib_ms, "on" if args.has("crowd") else "off",
+		"off" if args.has("nosleep") else "on"])
 	L.append("")
 	L.append(census_text)
 	L.append("== summary")
@@ -787,18 +954,16 @@ func _finish() -> void:
 	for c in COLS:
 		hdr += " %8s" % c
 	L.append(hdr)
-	var tot := {}
 	for s in stops:
-		var b: Dictionary = results[s]["base"]
-		L.append(_row(s, b))
-		for c in COLS:
-			tot[c] = float(tot.get(c, 0.0)) + float(b.get(c, 0.0)) / stops.size()
-	tot["frame"] = _mean(all_frames)
-	tot["p95"] = _pct(all_frames, 0.95)
-	tot["worst"] = _pct(all_frames, 1.0)
-	L.append(_row("ALL", tot))
+		L.append(_row(s, results[s]["base"]))
+	L.append(_row("ALL", _total(stops)))
+	var olds := stops.filter(func(s): return s in OLD)
+	if olds.size() > 0 and olds.size() < stops.size():
+		L.append(_row("ALL_OLD", _total(olds)))
+		L.append(_row("ALL_NEW", _total(stops.filter(func(s): return not s in OLD))))
 	L.append("")
-	L.append("(ms; frame/p95/worst = frame time, split into phys_scr (the scene's physics pass, all ticks: scripts, move_and_slide),")
+	L.append("(ms; frame/p95/worst = frame time, h33/h50 = base frames over 33 / 50 ms (a count; ALL: the sum), split into phys_scr")
+	L.append(" (the scene's physics pass, all ticks: scripts, move_and_slide), ALL_OLD = v1.14's eight stops, ALL_NEW the rest;")
 	L.append(" phys_eng (Jolt's step + sync, all ticks), proc_scr (the scene's process pass), tail (timers, tweens, transform")
 	L.append(" notifications, deferred calls, until the draw), draw (RenderingServer.draw on the main thread), present (after it);")
 	L.append(" frame1t = the frame with exactly one physics tick; tick_scr / tick_eng = phys_scr / phys_eng per tick;")
@@ -823,11 +988,28 @@ func _finish() -> void:
 	quit()
 
 
+## Stops' base summaries as one: the mean of the stops, but frame / p95 / worst over all their frames and hitches summed.
+func _total(list: Array) -> Dictionary:
+	var tot := {}
+	var frames := PackedFloat32Array()
+	for s in list:
+		var b: Dictionary = results[s]["base"]
+		frames.append_array(results[s]["frames"])
+		for c in COLS:
+			tot[c] = float(tot.get(c, 0.0)) + float(b.get(c, 0.0)) / list.size()
+	tot["frame"] = _mean(frames)
+	tot["p95"] = _pct(frames, 0.95)
+	tot["worst"] = _pct(frames, 1.0)
+	tot["h33"] = _over(frames, 33.3)
+	tot["h50"] = _over(frames, 50.0)
+	return tot
+
+
 func _row(name: String, b: Dictionary) -> String:
 	var s := "%-8s" % name
 	for c in COLS:
 		var v := float(b.get(c, 0.0))
-		s += (" %8.0f" % v) if c in ["draws", "objects", "sh_draws", "sh_objects", "tot_draws", "nodes", "active", "pairs"] else (" %8.2f" % v)
+		s += (" %8.0f" % v) if c in ["h33", "h50", "draws", "objects", "sh_draws", "sh_objects", "tot_draws", "nodes", "active", "pairs"] else (" %8.2f" % v)
 	return s
 
 
@@ -871,10 +1053,57 @@ func _report_ablations(L: Array) -> void:
 		L.append(line)
 
 
+## Each script's probe costs, the mean over these stops.
+func _agg(list: Array) -> Dictionary:
+	var agg := {}
+	for s in list:
+		var by: Dictionary = results[s]["probe"]["scripts"]
+		for k in by:
+			if not agg.has(k):
+				agg[k] = {"nodes": 0.0, "proc": 0.0, "phys": 0.0, "posed": 0.0, "bands": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "band_nodes": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+			var a: Dictionary = agg[k]
+			a["nodes"] += float(by[k]["nodes"]) / list.size()
+			a["proc"] += by[k]["proc"] / list.size()
+			a["phys"] += by[k]["phys"] / list.size()
+			a["posed"] += by[k]["posed"] / list.size()
+			for i in range(6):
+				a["bands"][i] += by[k]["bands"][i] / list.size()
+				a["band_nodes"][i] += float(by[k]["band_nodes"][i]) / list.size()
+	return agg
+
+
+## A scripts table (`title`: "scripts", or "scripts_old" for the old eight alone; perf_gate.ps1 reads them).
+func _scripts_table(L: Array, title: String, what: String, agg: Dictionary) -> Array:
+	L.append("")
+	L.append("== " + title)
+	L.append("  (mean over %s; proc = ms/frame, phys = ms/physics tick, cost = proc + phys; by band: cost of the nodes that far from the captain)" % what)
+	var hdr := "%-48s %7s %7s %7s %7s %7s" % ["script", "nodes", "proc", "phys", "cost", "posed"]
+	for bn in ["n/a"] + BAND_NAMES:
+		hdr += " %8s" % bn
+	L.append(hdr)
+	var keys := agg.keys()
+	keys.sort_custom(func(x, y): return agg[x]["proc"] + agg[x]["phys"] > agg[y]["proc"] + agg[y]["phys"])
+	var tp := 0.0
+	var tf := 0.0
+	for k in keys:
+		var a: Dictionary = agg[k]
+		tp += a["proc"]
+		tf += a["phys"]
+		if a["proc"] + a["phys"] < 0.01:
+			continue
+		var line := "%-48s %7.1f %7.3f %7.3f %7.3f %7.1f" % [k, a["nodes"], a["proc"], a["phys"], a["proc"] + a["phys"], a["posed"]]
+		for i in range(6):
+			line += " %8.3f" % a["bands"][i]
+		L.append(line)
+	L.append("")
+	L.append("total scripts: process %.2f ms/frame, physics %.2f ms/tick" % [tp, tf])
+	return keys
+
+
 func _report_scripts(L: Array) -> void:
 	L.append("")
 	L.append("== per stop (probe): scripts' ms, rigs, physics")
-	var agg := {}
+	var agg := _agg(stops)
 	for s in stops:
 		var pr: Dictionary = results[s]["probe"]
 		var by: Dictionary = pr["scripts"]
@@ -886,16 +1115,6 @@ func _report_scripts(L: Array) -> void:
 			sf += by[k]["phys"]
 			if k.begins_with("humanoid.gd"):
 				rigs += by[k]["nodes"]
-			if not agg.has(k):
-				agg[k] = {"nodes": 0.0, "proc": 0.0, "phys": 0.0, "posed": 0.0, "bands": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "band_nodes": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
-			var a: Dictionary = agg[k]
-			a["nodes"] += float(by[k]["nodes"]) / stops.size()
-			a["proc"] += by[k]["proc"] / stops.size()
-			a["phys"] += by[k]["phys"] / stops.size()
-			a["posed"] += by[k]["posed"] / stops.size()
-			for i in range(6):
-				a["bands"][i] += by[k]["bands"][i] / stops.size()
-				a["band_nodes"][i] += float(by[k]["band_nodes"][i]) / stops.size()
 		var c: Dictionary = pr["counts"]
 		L.append("%-8s scripts: process %.2f ms/frame, physics %.2f ms/tick (%.2f ticks/frame); %d timed nodes, %d untimed; rigs %d processing of %d, posed %.1f/frame" % [
 			s, sp, sf, pr["ticks_per_frame"], pr["entries"], pr["untimed"], rigs, c["humanoids"], pr["posed"]])
@@ -922,29 +1141,10 @@ func _report_scripts(L: Array) -> void:
 	L.append("%-60s %7s %7s %7s" % ["owner", "shapes", "areas", "monitor"])
 	for k in pk.slice(0, 25):
 		L.append("%-60s %7d %7d %7d" % [k, ph[k][0], ph[k][1], ph[k][2]])
-	L.append("")
-	L.append("== scripts")
-	L.append("  (mean over stops; proc = ms/frame, phys = ms/physics tick, cost = proc + phys; by band: cost of the nodes that far from the captain)")
-	var hdr := "%-48s %7s %7s %7s %7s %7s" % ["script", "nodes", "proc", "phys", "cost", "posed"]
-	for bn in ["n/a"] + BAND_NAMES:
-		hdr += " %8s" % bn
-	L.append(hdr)
-	var keys := agg.keys()
-	keys.sort_custom(func(x, y): return agg[x]["proc"] + agg[x]["phys"] > agg[y]["proc"] + agg[y]["phys"])
-	var tp := 0.0
-	var tf := 0.0
-	for k in keys:
-		var a: Dictionary = agg[k]
-		tp += a["proc"]
-		tf += a["phys"]
-		if a["proc"] + a["phys"] < 0.01:
-			continue
-		var line := "%-48s %7.1f %7.3f %7.3f %7.3f %7.1f" % [k, a["nodes"], a["proc"], a["phys"], a["proc"] + a["phys"], a["posed"]]
-		for i in range(6):
-			line += " %8.3f" % a["bands"][i]
-		L.append(line)
-	L.append("")
-	L.append("total scripts: process %.2f ms/frame, physics %.2f ms/tick" % [tp, tf])
+	var keys := _scripts_table(L, "scripts", "stops", agg)
+	var olds := stops.filter(func(s): return s in OLD)
+	if olds.size() > 0 and olds.size() < stops.size():
+		_scripts_table(L, "scripts_old", "the old route's stops", _agg(olds))
 	L.append("")
 	L.append("== nodes by band (mean over stops; processing nodes of each script that far from the captain)")
 	var nh := "%-48s %7s" % ["script", "nodes"]
