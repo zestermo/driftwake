@@ -310,9 +310,18 @@ func _on_peer_connected(id: int) -> void:
 		_patient(id)
 
 
-## A joiner's game freezes while it builds the world (longer on a first run, compiling
-## shaders); ENet's default ~5 s timeout dropped them mid-load. Allow 30 s.
+## A captain's game blocks while it builds its world (seconds on a first run compiling shaders, 40-55 s on a
+## loaded machine): ENet's default ~5 s timeout dropped them mid-load, and the packets lost while one side
+## is frozen leave a round-trip estimate so large that a retransmit waits a minute and the peer is timed out.
+## So a peer gets long timeouts from connecting until its world is up (_settled), then a normal pair, so a
+## crashed or disconnected captain doesn't linger as a ghost.
 func _patient(id: int) -> void:
+	var pp := _peer.get_peer(id) if _peer else null
+	if pp:
+		pp.set_timeout(32, 60000, 300000)
+
+
+func _settled(id: int) -> void:
 	var pp := _peer.get_peer(id) if _peer else null
 	if pp:
 		pp.set_timeout(32, 30000, 60000)
@@ -387,6 +396,7 @@ func world_loaded() -> void:
 			_accept(int(h[0]), h[1])
 		_waiting_hello.clear()
 	else:
+		_settled(1)
 		_in_world.rpc_id(1, _player_info())
 	for s in _pending_spawns:
 		_spawn_puppet(int(s[0]), s[1])
@@ -412,6 +422,7 @@ func _in_world(info: Dictionary) -> void:
 	if not hosting:
 		return
 	var id := multiplayer.get_remote_sender_id()
+	_settled(id)
 	roster[id] = info
 	# everyone already here, to the newcomer
 	var me := _player_info()
@@ -531,7 +542,8 @@ func _process(delta: float) -> void:
 		_pings_t -= delta
 		if _pings_t <= 0.0:
 			_pings_t = 2.0
-			_pings.rpc(pings)
+			for id in _targets():
+				_pings.rpc_id(id, pings)
 	if not world_ready:
 		return
 	_snap_t += delta
@@ -630,14 +642,33 @@ func _send_snapshots() -> void:
 	for i in range(0, items.size() - 1, 2):
 		var sz := var_to_bytes([items[i], items[i + 1]]).size()
 		if size + sz > SNAP_BUDGET and not chunk.is_empty():
-			_snap.rpc(t, chunk)
+			_snap_out(t, chunk)
 			chunk = []
 			size = 0
 		chunk.append(items[i])
 		chunk.append(items[i + 1])
 		size += sz
 	if not chunk.is_empty():
-		_snap.rpc(t, chunk)
+		_snap_out(t, chunk)
+
+
+func _snap_out(t: float, chunk: Array) -> void:
+	for id in _targets():
+		_snap.rpc_id(id, t, chunk)
+
+
+## Who a broadcast goes to: the host sends only to captains whose world is up. A joiner blocked building its
+## world can't read anything, the OS drops what overflows its socket, and the lost packets leave ENet's
+## round-trip estimate (so its retransmit wait) so large that the host times the guest out a minute later.
+## A guest's one peer is the host (0 = everyone, relayed by it).
+func _targets() -> Array:
+	if not hosting:
+		return [0]
+	var out: Array = []
+	for id in multiplayer.get_peers():
+		if players.has(id):
+			out.append(id)
+	return out
 
 
 const SNAP_BUDGET := 1100
@@ -724,7 +755,8 @@ func event(n: Node, what: String, args: Array = []) -> void:
 		return
 	var k := key_of(n)
 	if k != "":
-		_ev.rpc(time(), k, what, _enc(args))
+		for id in _targets():
+			_ev.rpc_id(id, time(), k, what, _enc(args))
 
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -736,7 +768,8 @@ func _ev(t: float, key: String, what: String, args: Array) -> void:
 func fx(method: String, args: Array = []) -> Variant:
 	var r = FX.callv(method, args)
 	if active and not _applying and world_ready and method != "wither_vines":
-		_fxr.rpc(time(), method, _enc(args))
+		for id in _targets():
+			_fxr.rpc_id(id, time(), method, _enc(args))
 	return r
 
 
@@ -750,7 +783,8 @@ func _fxr(t: float, method: String, args: Array) -> void:
 func everyone(method: String, args: Array = []) -> void:
 	callv(method, args)
 	if active and world_ready:
-		_allr.rpc(time(), method, args)
+		for id in _targets():
+			_allr.rpc_id(id, time(), method, args)
 
 
 @rpc("any_peer", "call_remote", "reliable")

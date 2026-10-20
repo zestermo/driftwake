@@ -13,6 +13,7 @@ var tn
 var net
 var p
 var fails := 0
+var beat := 0
 var data := {}
 var accepted := false
 var join_failed := false
@@ -56,6 +57,9 @@ func flat(v: Vector3) -> Vector3:
 func _process(d: float) -> bool:
 	t += d
 	st_t += d
+	if int(t / 30.0) > beat:
+		beat = int(t / 30.0)
+		print("CLIENT up %d s, step %d for %.0f s" % [int(t), step, st_t])
 	if t > (450.0 if mode == "chain" else 280.0):
 		print("FAIL timeout at step %d" % step)
 		fails += 1
@@ -115,7 +119,9 @@ func _process(d: float) -> bool:
 			if st_t < 1.0:
 				return false
 			# (the chain's islands are built after the host's world state arrives: wait for them; a CI runner takes ~20 s an island)
-			if not current_scene.get_node("Islands").chain_ready() and st_t < 60.0:
+			# (and their sea threats: DiveSites builds an island's sharks and eels on its half-second poll once the island stands)
+			var isles = current_scene.get_node("Islands")
+			if (not isles.chain_ready() or isles.get_node("DiveSites")._sites.size() < isles.chain_islands.size() + 1) and st_t < 60.0:
 				return false
 			tn.ask("report")
 			go(4)
@@ -131,11 +137,13 @@ func _process(d: float) -> bool:
 			# enemies: every host enemy exists here, at the same spot
 			var worst := 0.0
 			var missing := 0
+			var missing_keys: Array = []
 			var ds: Array = []
 			for k in r["enemies"].keys():
 				var e = net.node_of(k)
 				if e == null:
 					missing += 1
+					missing_keys.append(k)
 					continue
 				var dd: float = e.global_position.distance_to(r["enemies"][k][0])
 				ds.append(dd)
@@ -144,7 +152,7 @@ func _process(d: float) -> bool:
 				worst = maxf(worst, dd)
 			ds.sort()
 			var med: float = ds[ds.size() / 2] if ds.size() > 0 else INF
-			check("all %d host enemies exist here (missing %d)" % [r["enemies"].size(), missing], missing == 0 and r["enemies"].size() >= 8)
+			check("all %d host enemies exist here (missing %d: %s)" % [r["enemies"].size(), missing, str(missing_keys)], missing == 0 and r["enemies"].size() >= 8)
 			# (shown ~0.1 s in the past: a charging bug can be a metre or two behind)
 			check("enemy puppets in place (median %.2f m, worst %.2f m: %s)" % [med, worst, str(data.get("worst_key", ""))], med < 0.4 and worst < 4.0)
 			# far from both captains the host's enemies sleep (ActorSleep, no snapshots): their puppets here sleep too, the near ones don't

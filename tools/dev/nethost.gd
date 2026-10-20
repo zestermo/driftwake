@@ -11,6 +11,7 @@ var tn
 ## camp's captain, then host in the running world (the guest joins late).
 var mode := ""
 var board_t := -1.0
+var beat := 0
 var isl
 var capt
 
@@ -35,6 +36,7 @@ func _process(d: float) -> bool:
 				return false
 			var net = root.get_node("Net")
 			net.my_info = {"name": "Hosty"}
+			net.multiplayer.peer_disconnected.connect(func(id): print("HOST peer %d gone @%.0f" % [id, t]))
 			if mode == "late" or mode == "chain":
 				change_scene_to_file("res://scenes/world/world.tscn")
 				step = 2 if mode == "late" else 3
@@ -80,6 +82,9 @@ func _process(d: float) -> bool:
 		1:
 			if mode == "board":
 				_board_early()
+			if int(t / 30.0) > beat:
+				beat = int(t / 30.0)
+				print("HOST up %d s" % int(t))
 			if t > 480.0:
 				print("HOST timeout")
 				quit()
