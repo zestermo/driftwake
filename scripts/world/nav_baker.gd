@@ -43,8 +43,8 @@ func _process(delta: float) -> void:
 	if _check > 0.0:
 		return
 	_check = 1.0
-	# (a chain island's zones go with it)
-	_zones = _zones.filter(func(z): return is_instance_valid(z["node"]))
+	# (a chain island's zones go with it, from when it's let go: WorldGenerator._let_go)
+	_zones = _zones.filter(func(z): return is_instance_valid(z["node"]) and (not (z["node"] as Node).is_inside_tree() or (z["node"] as Node).can_process()))
 	for z in _zones:
 		if z["baked"]:
 			continue

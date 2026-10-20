@@ -191,7 +191,7 @@ func finish_steps() -> Array:
 	steps.append_array(Artisans.steps(self))
 	steps.append_array(life.steps())
 	# (the last step does whatever's left in one go: a packed town overran 24 into a 700 ms frame)
-	steps.append_array(DrawLOD.steps(self, 64))
+	steps.append_array(DrawLOD.steps(self, 192))
 	return steps
 
 

@@ -32,6 +32,10 @@ var _catch_up: Array = []
 var _sync_t := 0.0
 ## The chain seed the islands standing now were built from.
 var _built_seed := 0
+## Islands let go: out of the game at once (processing off, hidden, renamed), their nodes freed a few ms a frame
+## (a whole island in one queue_free was a 150-270 ms frame: 10-14k nodes).
+var _freeing: Array = []
+const FREE_US := 2500
 
 
 func _ready() -> void:
@@ -43,6 +47,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_finish_ready()
 	_finish_step()
+	_free_some()
 	_send_catch_up()
 	_sync_t -= delta
 	if _sync_t <= 0.0:
@@ -68,7 +73,7 @@ func sync_chain_islands() -> void:
 			(e[0] as Node).free()
 		_pending.clear()
 		for e in _finishing.values():
-			(e[0] as Node).queue_free()
+			_let_go(e[0])
 		_finishing.clear()
 	if not Net.is_client():
 		_check_arrival()
@@ -77,7 +82,7 @@ func sync_chain_islands() -> void:
 			_free_chain_island(id)
 	for id in _finishing.keys():
 		if not _wanted().has(id):
-			(_finishing[id][0] as Node).queue_free()
+			_let_go(_finishing[id][0])
 			_finishing.erase(id)
 	for id in _wanted():
 		if not chain_islands.has(id) and not _pending.has(id) and not _finishing.has(id):
@@ -163,13 +168,16 @@ func _finish_ready() -> void:
 		_pending.erase(id)
 		if _wanted().has(id):
 			var isl: GenIsland = e[0]
+			Perf.mark("%s into the tree" % isl.name)
 			add_child(isl)
-			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0, 0]
+			_finishing[id] = [isl, isl.finish_steps(), 0, int(e[2]), 0, 0, 0]
 		else:
 			(e[0] as Node).free()
 
 
-## One step of the first island being put in the world (a frame each: no big hitch).
+## Steps of the first island being put in the world: one a frame, and the small ones after it while the frame's
+## island work is under SMALL_US (no big hitch; steps with nothing left to do take no frame of their own).
+const SMALL_US := 1500
 func _finish_step() -> void:
 	if _finishing.is_empty():
 		return
@@ -177,12 +185,19 @@ func _finish_step() -> void:
 	var e: Array = _finishing[id]
 	var isl: GenIsland = e[0]
 	var t := Time.get_ticks_usec()
-	e[5] = maxi(int(e[5]), isl.run_step(e[1][e[2]]))
-	e[4] = int(e[4]) + Time.get_ticks_usec() - t
-	e[2] = int(e[2]) + 1
-	if int(e[2]) >= (e[1] as Array).size():
-		_finishing.erase(id)
-		_register_chain_island(isl, int(e[3]), int(e[4]), (e[1] as Array).size(), int(e[5]))
+	e[6] = int(e[6]) + 1
+	while true:
+		Perf.mark("%s step '%s'" % [isl.name, e[1][e[2]][0]])
+		var t1 := Time.get_ticks_usec()
+		e[5] = maxi(int(e[5]), isl.run_step(e[1][e[2]]))
+		e[4] = int(e[4]) + Time.get_ticks_usec() - t1
+		e[2] = int(e[2]) + 1
+		if int(e[2]) >= (e[1] as Array).size():
+			_finishing.erase(id)
+			_register_chain_island(isl, int(e[3]), int(e[4]), int(e[6]), int(e[5]))
+			return
+		if Time.get_ticks_usec() - t >= SMALL_US:
+			return
 
 
 func _register_chain_island(isl: GenIsland, t0: int, main_us: int, frames: int, worst_ms: int) -> void:
@@ -211,8 +226,35 @@ func _free_chain_island(id: int) -> void:
 	var p := Vector2(isl.position.x, isl.position.z)
 	island_infos = island_infos.filter(func(info): return int(info.get("id", -1)) != id)
 	EnemyShip.no_go = EnemyShip.no_go.filter(func(z): return (z[0] as Vector2) != p)
-	isl.queue_free()
+	_let_go(isl)
 	Ocean.set_shore("isle%d" % id, null)
+
+
+## Out of the game now (no processing, bodies out of the space, hidden; renamed so the island built again takes
+## its name and node paths), freed over the next frames.
+func _let_go(isl: Node3D) -> void:
+	Perf.mark("%s let go" % isl.name)
+	isl.process_mode = Node.PROCESS_MODE_DISABLED
+	isl.visible = false
+	isl.name = "Freeing%s" % isl.name
+	_freeing.append(isl)
+
+
+## Frees what's let go, leaves first, for FREE_US a frame.
+func _free_some() -> void:
+	if _freeing.is_empty():
+		return
+	var t := Time.get_ticks_usec()
+	var n := 0
+	while not _freeing.is_empty() and Time.get_ticks_usec() - t < FREE_US:
+		var at: Node = _freeing[0]
+		while at.get_child_count() > 0:
+			at = at.get_child(-1)
+		if at == _freeing[0]:
+			_freeing.pop_front()
+		at.free()
+		n += 1
+	Perf.mark("freed %d nodes of islands let go" % n)
 
 
 ## The island chain from GameManager.chain_seed (remade when a load or a host's world changes it).
