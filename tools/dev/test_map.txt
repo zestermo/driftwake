@@ -455,3 +455,7 @@ scripts/player_states/helm_state.gd     t/downtime
 tools/dev/t/capital/*                   t/capital
 scripts/island/capital_*                t/capital
 tools/dev/capitalshot.gd                t/capital
+# --- the stutter hunt (2026-10-20): islands freed in slices, the perf log's hitch lines, splat shapes ---
+scripts/island/world_generator.gd       t/island/free_slices
+scripts/game/perf_monitor.gd            t/world/perf_log perftest
+scripts/game/fx.gd                      katanatest

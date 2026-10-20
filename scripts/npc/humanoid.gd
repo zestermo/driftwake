@@ -457,6 +457,7 @@ static func make(lk: Dictionary) -> Humanoid:
 	var h: Humanoid = list.pop_back() if not list.is_empty() else null
 	_pool_lock.unlock()
 	if h == null:
+		Perf.mark("a body built on the main thread")
 		h = Humanoid.new()
 		h.setup(lk)
 	return h

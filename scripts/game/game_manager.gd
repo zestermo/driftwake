@@ -124,6 +124,7 @@ func _process(delta: float) -> void:
 	if _autosave_t >= AUTOSAVE_EVERY:
 		_autosave_t = 0.0
 		if player.health_component.current_health > 0.0 and not CharacterCreator.active:
+			Perf.mark("autosave")
 			SaveGame.save(player)
 
 

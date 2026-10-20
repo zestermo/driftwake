@@ -2,15 +2,23 @@ extends Node
 ## Performance readout (autoload "Perf"), in every build. F8 toggles an
 ## overlay (frame times, CPU/GPU ms, draw calls, nodes, enemies). While in the
 ## world it writes a line to user://perf.log every 30 s, so a long session
-## leaves a record (the previous session's log is kept as perf_prev.log).
+## leaves a record, with a line for each hitch (> 50 ms) saying what was going on in it.
+## The last LOG_KEEP sessions are kept (perf.log the newest, then perf_1.log ...). Tests and
+## tools (Settings.tool_run()) write nothing unless they set log_dir.
 
 const KEY := KEY_F8
-const LOG_PATH := "user://perf.log"
-const LOG_PREV := "user://perf_prev.log"
+const LOG_NAME := "perf"
 const LOG_EVERY := 30.0
+const LOG_KEEP := 5
 ## A frame this long is a visible hitch.
 const HITCH_MS := 50.0
+## Hitch lines written per log line at most (the rest are counted).
+const HITCH_LINES := 10
+const PIPES := [Performance.PIPELINE_COMPILATIONS_CANVAS, Performance.PIPELINE_COMPILATIONS_MESH,
+	Performance.PIPELINE_COMPILATIONS_SURFACE, Performance.PIPELINE_COMPILATIONS_DRAW, Performance.PIPELINE_COMPILATIONS_SPECIALIZATION]
 
+## Where the session logs go ("" = none: tool runs).
+var log_dir := "user://"
 var _layer: CanvasLayer
 var _label: Label
 var _frames := PackedFloat32Array()
@@ -20,11 +28,22 @@ var _hitches := 0
 var _worst := 0.0
 var _log: FileAccess
 var _session_t := 0.0
+## What happened since the last frame (mark()), and in the frame before it.
+var _marks: Array = []
+var _marks_prev: Array = []
+var _hitch_lines: Array = []
+var _pipes_at := PackedInt64Array()
+var _nodes_at := 0
+var _last_us := 0
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	process_priority = -1000000
+	if Settings.tool_run():
+		log_dir = ""
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	_pipes_at.resize(PIPES.size())
 	_layer = CanvasLayer.new()
 	_layer.layer = 120
 	add_child(_layer)
@@ -47,11 +66,29 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Names something costly happening now (an island build step, a save, a body built), so a hitch's
+## log line can say what was going on. Cheap: a string appended, cleared every frame.
+func mark(what: String) -> void:
+	if _marks.size() < 12 and OS.get_thread_caller_id() == OS.get_main_thread_id():
+		_marks.append(what)
+
+
 func _process(delta: float) -> void:
-	var ms := delta * 1000.0
+	# (real time: delta runs at Engine.time_scale, 0.05 in a hit-stop)
+	var now := Time.get_ticks_usec()
+	var ms := (now - _last_us) / 1000.0 if _last_us > 0 else delta * 1000.0
+	_last_us = now
 	_frames.append(ms)
+	var pipes := _pipe_counts()
+	var nodes := int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	if ms > HITCH_MS:
 		_hitches += 1
+		if _in_world():
+			_note_hitch(ms, pipes, nodes)
+	_pipes_at = pipes
+	_nodes_at = nodes
+	_marks_prev = _marks
+	_marks = []
 	_worst = maxf(_worst, ms)
 	_show_t -= delta
 	if _layer.visible and _show_t <= 0.0:
@@ -70,6 +107,37 @@ func _process(delta: float) -> void:
 func _in_world() -> bool:
 	var cs := get_tree().current_scene
 	return cs != null and cs.name == "World"
+
+
+func _pipe_counts() -> PackedInt64Array:
+	var out := PackedInt64Array()
+	for m in PIPES:
+		out.append(int(Performance.get_monitor(m)))
+	return out
+
+
+## A hitch's line: when, the frame's split (Godot's last process / physics times, render CPU / GPU),
+## pipelines compiled in it (canvas / mesh / surface / draw / specialization), nodes made or freed, and the marks.
+func hitch_line(ms: float, pipes: PackedInt64Array, nodes: int) -> String:
+	var pd := []
+	for i in range(PIPES.size()):
+		pd.append(str(pipes[i] - _pipes_at[i]))
+	var what: Array = _marks_prev + _marks
+	var p := get_tree().get_first_node_in_group("player") as Node3D
+	return "    hitch %5.1f ms at %.2f min  process %.1f  physics %.1f  rcpu %.1f  gpu %.1f  pipelines %s  nodes %+d  state %s  at %s%s" % [
+		ms, _session_t / 60.0, Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+		RenderingServer.viewport_get_measured_render_time_cpu(get_viewport().get_viewport_rid()), gpu_ms(),
+		"/".join(pd), nodes - _nodes_at, p.call("current_state_name") if p and p.has_method("current_state_name") else "-",
+		"(%.0f, %.0f)" % [p.global_position.x, p.global_position.z] if p else "-",
+		("  marks: " + "; ".join(what)) if not what.is_empty() else ""]
+
+
+func _note_hitch(ms: float, pipes: PackedInt64Array, nodes: int) -> void:
+	if _hitch_lines.size() < HITCH_LINES:
+		_hitch_lines.append(hitch_line(ms, pipes, nodes))
+	elif _hitch_lines.size() == HITCH_LINES:
+		_hitch_lines.append("    (more hitches in this half minute)")
 
 
 ## Frame stats since the last log line: [avg fps, 1% low fps, worst ms].
@@ -122,10 +190,11 @@ func _overlay_text() -> String:
 
 
 func _write_line() -> void:
+	if log_dir == "":
+		_reset_window()
+		return
 	if _log == null:
 		_open_log()
-		if _log == null:
-			return
 	var s := frame_stats()
 	var c := counts()
 	var p := get_tree().get_first_node_in_group("player") as Node3D
@@ -134,20 +203,34 @@ func _write_line() -> void:
 		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 		gpu_ms(), c["draws"], c["nodes"], c["enemies"], c["awake"], c["swimming"], c["loot"],
 		"(%.0f, %.0f)" % [p.global_position.x, p.global_position.z] if p else "-"])
+	for l in _hitch_lines:
+		_log.store_line(l)
 	_log.flush()
+	_reset_window()
+
+
+func _reset_window() -> void:
 	_frames.clear()
 	_hitches = 0
 	_worst = 0.0
+	_hitch_lines = []
 
 
+func log_path(k: int = 0) -> String:
+	return log_dir + LOG_NAME + ("_%d" % k if k > 0 else "") + ".log"
+
+
+## The sessions before move down one (perf.log -> perf_1.log ... the oldest of LOG_KEEP dropped).
 func _open_log() -> void:
-	if FileAccess.file_exists(LOG_PATH):
-		DirAccess.rename_absolute(ProjectSettings.globalize_path(LOG_PATH), ProjectSettings.globalize_path(LOG_PREV))
-	_log = FileAccess.open(LOG_PATH, FileAccess.WRITE)
-	if _log == null:
-		return
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(log_dir))
+	for k in range(LOG_KEEP - 1, 0, -1):
+		if FileAccess.file_exists(log_path(k - 1)):
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(log_path(k - 1)), ProjectSettings.globalize_path(log_path(k)))
+	_log = FileAccess.open(log_path(), FileAccess.WRITE)
 	var psx := get_node_or_null("/root/PSX")
-	_log.store_line("Driftwake %s  %s  %s  %s (%s)  window %s  preset %s" % [
+	_log.store_line("Driftwake %s  %s  %s  %s (%s)  window %s  preset %s  %s" % [
 		str(ProjectSettings.get_setting("application/config/version", "")), Time.get_datetime_string_from_system(),
 		OS.get_name(), RenderingServer.get_video_adapter_name(), RenderingServer.get_current_rendering_driver_name(),
-		str(get_tree().root.size), ("pixelated" if psx.pixelated() else "native") if psx else "?"])
+		str(get_tree().root.size), ("pixelated" if psx.pixelated() else "native") if psx else "?",
+		"debug" if OS.is_debug_build() else "release"])
+	_log.store_line("(hitch lines: Godot's process / physics ms, render cpu / gpu, pipelines compiled canvas/mesh/surface/draw/specialization, nodes made)")

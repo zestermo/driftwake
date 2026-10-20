@@ -23,14 +23,29 @@ extends SceneTree
 ## screenshot per stop (brinehollow_<label>_<stop>.png, after its base sample); bench.ps1 keeps the whole log beside them.
 ## Prints "bench: <stop> <phase>" as it goes, and a watchdog thread names the stop, phase and island build step if a frame stalls.
 ## Run it through tools/dev/bench.ps1 (a quiet machine); compare two with bench_compare.ps1.
-const OUT_DIR := "res://tools/dev/out/bench/"
 const OLD := ["beach", "plaza", "market", "quay", "dock", "den", "yard", "aboard"]
-## (the village late: standing on a chain island makes the crew arrive there, which frees the other one ahead)
 const NEW := ["terrace", "farm", "fight", "sea", "storm", "village", "cplaza", "cmarket"]
-const ROUTE := OLD + NEW
-const GROUPS := {"old": OLD, "new": NEW, "all": ROUTE, "town": ["terrace", "farm", "village", "cplaza", "cmarket"],
-	"atsea": ["sea", "storm"], "capital": ["cplaza", "cmarket"]}
-const CAPITAL := ["cplaza", "cmarket"]
+## Stops where something happens instead of a pan (group "act"): walks through Brinehollow and the capital at a
+## sprint, a brawl at the smugglers' camp, a broadside duel at sea that ends in a boarding and her sinking.
+## isles: standing in Brinehollow's plaza while a chain island ahead is let go and built again (what a captain
+## plays through when the log pose sets: the build's steps a frame each, the old island freed).
+const ACT := ["bwalk", "brawl", "naval", "isles", "cwalk"]
+## (the village late: standing on a chain island makes the crew arrive there, which frees the other one ahead)
+const ROUTE := ["beach", "plaza", "market", "quay", "dock", "den", "yard", "aboard", "terrace", "farm", "bwalk", "fight",
+	"brawl", "sea", "storm", "naval", "isles", "village", "cplaza", "cmarket", "cwalk"]
+const GROUPS := {"old": OLD, "new": NEW, "act": ACT, "all": ROUTE, "town": ["terrace", "farm", "village", "cplaza", "cmarket"],
+	"atsea": ["sea", "storm"], "capital": ["cplaza", "cmarket", "cwalk"], "walk": ["bwalk", "cwalk"], "fights": ["brawl", "naval"]}
+## The isles stop ends this long after the island is standing again (at most ISLES_MAX s).
+const ISLES_MAX := 45.0
+const CAPITAL := ["cplaza", "cmarket", "cwalk"]
+const ACT_DUR := {"brawl": 20.0, "naval": 26.0}
+const WALK_V := 9.0
+## The walks, in each island's frame: Brinehollow's (beach, plaza, market, up to the terrace, back down to the quay)
+## and the capital's (city frame: along the quay, through the sea gate, up the market street, the plaza, the arena
+## street and back, up the avenue).
+const CWALK := [Vector2(60, 100), Vector2(0, 100), Vector2(0, 78), Vector2(0, 50), Vector2(0, 22), Vector2(0, 0),
+	Vector2(40, 0), Vector2(0, 0), Vector2(0, -60)]
+const HITCH_MS := 33.3
 const WX := ["clear", "cloudy", "rain", "storm"]
 const PHASES := ["settle", "base", "probe", "far", "sun", "lshadow", "lights", "base2"]
 const DUR := {"settle": 4.0, "base": 5.0, "probe": 4.0, "far": 3.0, "sun": 3.0, "lshadow": 3.0, "lights": 3.0, "base2": 4.0}
@@ -75,6 +90,26 @@ var travel_t := 0.0
 var cap_ready := -1.0
 var sea_at := Vector3.INF
 var sea_yaw := 0.0
+## Results and screenshots (res://tools/dev/out/bench/, or out=<folder> for an exported build).
+var out_dir := "res://tools/dev/out/bench/"
+## An action stop: seconds since its base began, the walk's island and points (its frame), the enemy ship.
+var act_t := 0.0
+var walk_isl
+var walk_pts: Array = []
+var walk_len := 0.0
+var es
+var _beat := -1
+var _cast_slot := -1
+var _cast_until := 0.0
+## The isles stop: when (act_t) the island stood again (-1 not yet).
+var isles_done := -1.0
+## Hitches (base frames over HITCH_MS): each with its split, pipelines compiled and Perf's marks.
+var hitches: Array = []
+var pipes_at := PackedInt64Array()
+var nodes_at := 0
+var base_pipes := 0
+var last_us := 0
+var real_ms := 0.0
 
 var lights: Array = []
 var toggled: Array = []
@@ -100,6 +135,8 @@ var last_present := 0.0
 var pe: Array = []
 var us_p := PackedFloat64Array()
 var us_f := PackedFloat64Array()
+## Each node's longest single _process / _physics_process call in the probe (us): the spikes, not the mean.
+var us_max := PackedFloat64Array()
 var posed := PackedInt32Array()
 var proc_order: Array = []
 var phys_order: Array = []
@@ -118,6 +155,8 @@ func _initialize():
 		var kv := a.split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	label = args.get("label", "run")
+	if args.has("out"):
+		out_dir = (args["out"] as String).replace("\\", "/").trim_suffix("/") + "/"
 	load("res://scripts/world/actor_sleep.gd").enabled = not args.has("nosleep")
 	stops = _pick_stops(args.get("stops", "old" if args.has("quick") else "all"))
 	TK.use_seed(self, int(args.get("seed", str(TK.DEFAULT_SEED))))
@@ -179,6 +218,11 @@ func _process(d: float) -> bool:
 		return false
 	_mark("proc")
 	t += d
+	# (frames in real time: d runs at Engine.time_scale, 0.05 in a hit-stop)
+	var now := Time.get_ticks_usec()
+	real_ms = (now - last_us) / 1000.0 if last_us > 0 else d * 1000.0
+	last_us = now
+	_frame_counts()
 	if not scene_asked:
 		scene_asked = true
 		_crowd_on()
@@ -220,6 +264,35 @@ func _process(d: float) -> bool:
 		return false
 	_step(d)
 	return false
+
+
+## Pipelines compiled and nodes made since the last frame; a frame over HITCH_MS once the route has begun is kept
+## (any phase, the settle after a jump and the capital's travel too) with its split and what Perf was told about it.
+func _frame_counts() -> void:
+	var perf := root.get_node_or_null("Perf")
+	if perf == null:
+		return
+	var pipes: PackedInt64Array = perf._pipe_counts()
+	var nodes := int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
+	if pipes_at.size() != pipes.size():
+		pipes_at = pipes
+	var pd := PackedInt64Array()
+	var sum := 0
+	for i in range(pipes.size()):
+		pd.append(pipes[i] - pipes_at[i])
+		sum += pd[i]
+	if phase == "base":
+		base_pipes += sum
+	if si >= 0 and phase != "" and real_ms > HITCH_MS:
+		var what: Array = perf._marks_prev + perf._marks
+		var line := "%-8s %-8s t %6.1f  %6.1f ms  phys_scr %5.1f  phys_eng %5.1f  ticks %d  proc_scr %5.1f  tail %5.1f  draw %5.1f  present %5.1f  pipes %s  nodes %+d%s" % [
+			stops[si] if si < stops.size() else "-", phase, t, real_ms, acc_phys_scr, acc_phys_eng, ticks, last_proc_scr, last_tail, last_draw,
+			last_present, "/".join(Array(pd).map(func(x): return str(x))), nodes - nodes_at,
+			("  marks: " + "; ".join(what)) if not what.is_empty() else ""]
+		hitches.append(line)
+		print("bench: hitch " + line)
+	pipes_at = pipes
+	nodes_at = nodes
 
 
 ## Alt+F10's jump asked: wait for the capital (and whatever the log pose points on to) to be up and manned, then cwarm s.
@@ -353,6 +426,9 @@ func _spot(s: String) -> Vector3:
 			# (the same water both times: the ship put back at the start, under full sail)
 			if sea_at == Vector3.INF:
 				_find_sea()
+				# (the naval stop's enemy crew built ahead on a worker, as the fleet does)
+				if "naval" in stops:
+					humanoid_gd.prebuild(load("res://scripts/ship/enemy_ship.gd").crew_plan(7, "sloop").map(func(c): return c[0]))
 			var ship = get_first_node_in_group("ship")
 			ship.place(sea_at, sea_yaw)
 			ship.set_anchored(false)
@@ -363,8 +439,65 @@ func _spot(s: String) -> Vector3:
 			var ci = root.get_node("World/Islands").chain_islands[root.get_node("World/Islands").chain().capital_id()]
 			var q: Vector2 = ci.from_city(Vector2(0, 9.5) if s == "cplaza" else Vector2(0, 46))
 			return _g(ci, q)
+		"bwalk":
+			var to_v := func(g: Vector3) -> Vector2:
+				var l: Vector3 = isl.to_local(g)
+				return Vector2(l.x, l.z)
+			_walk_on(isl, [to_v.call(isl.wake_spot()[0]), v + to_dock * 10.0, isl.MARKET, Vector2(isl.UP_X, 11.0),
+				v + to_dock * 10.0, h.quay_pt(lerpf(h.s0, h.dock_s, 0.5), 6.0)])
+			return _g(isl, walk_pts[0])
+		"cwalk":
+			var ci = root.get_node("World/Islands").chain_islands[root.get_node("World/Islands").chain().capital_id()]
+			_walk_on(ci, CWALK.map(func(q): return ci.from_city(q)))
+			return _g(ci, walk_pts[0])
+		"brawl":
+			_arm()
+			for g in isl.smugglers.grunts:
+				if is_instance_valid(g) and not g.is_dead():
+					g.alert(randf_range(0.1, 0.4))
+			return _g(isl, isl.SMUGGLERS - Vector2(1, 0.15).normalized() * 6.0)
+		"isles":
+			isles_done = -1.0
+			return _g(isl, v + to_dock * 10.0)
+		"naval":
+			_arm()
+			var deck := _spot("sea")
+			es = load("res://scripts/ship/enemy_ship.gd").new().setup(sea_at, 90.0, 0.0, 7, "sloop")
+			es.set_meta("no_sleep", true)
+			root.get_node("World").add_child(es)
+			return deck
 	push_error("bench: no stop " + s)
 	return Vector3.ZERO
+
+
+func _walk_on(isl, pts: Array) -> void:
+	walk_isl = isl
+	walk_pts = pts
+	walk_len = 0.0
+	for i in range(1, pts.size()):
+		walk_len += (pts[i] as Vector2).distance_to(pts[i - 1])
+
+
+func _along(dist: float) -> Vector2:
+	var left := dist
+	for i in range(1, walk_pts.size()):
+		var seg: float = (walk_pts[i] as Vector2).distance_to(walk_pts[i - 1])
+		if left <= seg:
+			return (walk_pts[i - 1] as Vector2).lerp(walk_pts[i], left / maxf(seg, 0.001))
+		left -= seg
+	return walk_pts[-1]
+
+
+## A cutlass drawn, and the cutlass's technique and ultimate on their slots (no learning: the loadout is set).
+func _arm() -> void:
+	if p.current_state_name() != "Idle":
+		p.state_machine.force_state("Idle", {})
+	p.unequip_weapon()
+	p.equip_weapon(load("res://resources/items/cutlass.tres"), false)
+	p.sheathe_weapon(true)
+	p.draw_weapon(true)
+	p.power.loadout[0] = "swordfish"
+	p.power.loadout[p.power.ULT] = "kraken_wake"
 
 
 func _g(isl, q: Vector2) -> Vector3:
@@ -428,7 +561,13 @@ func _go() -> void:
 	p.velocity = Vector3.ZERO
 	p.reset_physics_interpolation()
 	rig.global_position = p.global_position + Vector3(0, 1.2, 0)
-	phases = ["settle", "base"] if args.has("quick") else ["settle", "base", "probe"] if args.has("gate") else PHASES.duplicate()
+	phases = ["settle", "base"] if args.has("quick") else ["settle", "base", "probe"] if args.has("gate") or stops[si] in ACT else PHASES.duplicate()
+	act_t = 0.0
+	_beat = -1
+	_cast_slot = -1
+	ticks = 0
+	acc_phys_scr = 0.0
+	acc_phys_eng = 0.0
 	results[stops[si]] = {"at": at, "enemies": _enemy_line(at)}
 	print("bench: %s at %s" % [stops[si], str(at)])
 	_begin(0)
@@ -441,6 +580,7 @@ func _begin(i: int) -> void:
 	rec = {}
 	toggled = []
 	print("bench: %s %s (t %.1f s)" % [stops[si], phase, t])
+	base_pipes = 0
 	if phase == "probe":
 		_probe_begin()
 	elif phase == "far":
@@ -462,10 +602,13 @@ func _freeze_far() -> void:
 
 func _step(d: float) -> void:
 	var e := t - t0
-	var dur: float = DUR[phase]
-	rig.rotation.y = TAU * clampf(e / dur, 0.0, 1.0)
+	var dur := _dur()
 	rig.spring_arm.rotation.x = PITCH
-	if stops[si] == "fight":
+	if stops[si] in ACT:
+		_act(d)
+	else:
+		rig.rotation.y = TAU * clampf(e / dur, 0.0, 1.0)
+	if stops[si] in ["fight", "brawl", "naval"]:
 		var hc = p.health_component
 		if hc.current_health < hc.max_health:
 			hc.current_health = hc.max_health
@@ -487,9 +630,12 @@ func _step(d: float) -> void:
 		"base":
 			r["base"] = _summarise()
 			r["frames"] = rec["frame"].duplicate()
+			r["pipes"] = base_pipes
+			base_pipes = 0
 			# (after the sample: its save was ~65 ms in the base's first frame; the next phase's LEAD or settle skips it)
-			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
-			root.get_texture().get_image().save_png(OUT_DIR + "brinehollow_%s_%s.png" % [label, stops[si]])
+			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
+			root.get_node("Perf").mark("bench: the stop's screenshot")
+			root.get_texture().get_image().save_png(out_dir + "brinehollow_%s_%s.png" % [label, stops[si]])
 		"base2":
 			r["base2"] = _summarise()
 		"probe":
@@ -508,6 +654,148 @@ func _step(d: float) -> void:
 		_begin(ph_i + 1)
 	else:
 		_next_stop()
+
+
+func _dur() -> float:
+	var s: String = stops[si]
+	if not s in ACT:
+		return DUR[phase]
+	if phase == "settle":
+		return 3.0
+	if phase == "probe":
+		return DUR["probe"]
+	if s == "isles":
+		return minf(isles_done + 1.0, ISLES_MAX) if isles_done >= 0.0 else ISLES_MAX
+	return walk_len / WALK_V if s in ["bwalk", "cwalk"] else ACT_DUR[s]
+
+
+## An action stop's frame: from its base on (through the probe after it), the walk or the fight goes on.
+func _act(d: float) -> void:
+	var s: String = stops[si]
+	if phase == "settle":
+		if s == "naval":
+			_beside()
+		return
+	var was := act_t
+	act_t += d
+	match s:
+		"bwalk", "cwalk":
+			var dist := minf(act_t * WALK_V, walk_len)
+			var q := _along(dist)
+			var at := _g(walk_isl, q)
+			p.global_position = at + Vector3.UP * 0.1
+			p.velocity = Vector3.ZERO
+			var dir := _g(walk_isl, _along(minf(dist + 4.0, walk_len + 4.0))) - at
+			if dist >= walk_len:
+				return
+			dir.y = 0.0
+			if dir.length() > 0.1:
+				var yaw := atan2(-dir.x, -dir.z)
+				rig.rotation.y = lerp_angle(rig.rotation.y, yaw, clampf(5.0 * d, 0.0, 1.0))
+				p.player_model.global_rotation.y = yaw
+		"brawl":
+			_fight(root.get_node("World/Islands/Brinehollow").smugglers.grunts, was, d)
+		"naval":
+			_naval(was, d)
+		"isles":
+			var w = root.get_node("World/Islands")
+			if was == 0.0:
+				var id: int = w.chain_islands.keys().filter(func(k): return w.chain_islands[k].theme != "capital")[0]
+				print("bench: isles: %s let go at %.1f s" % [w.chain_islands[id].name, act_t])
+				w._free_chain_island(id)
+				w.sync_chain_islands()
+			elif isles_done < 0.0 and act_t > 1.0 and w.chain_ready():
+				isles_done = act_t
+				print("bench: isles: standing again at %.1f s" % act_t)
+
+
+## Hold the enemy ship alongside to starboard, 34 m off (the settle: her own steering takes over at the base).
+func _beside() -> void:
+	var ship = get_first_node_in_group("ship")
+	var right: Vector3 = ship.global_basis.x
+	es._pos = ship.global_position + right * 34.0
+	es._heading = ship.global_rotation.y
+	es.speed = ship.speed
+	es.global_transform = Transform3D(Basis(Vector3.UP, es._heading), es._pos + Vector3(0, 1.45, 0))
+
+
+func _crossed(was: float, at: float) -> bool:
+	return was < at and act_t >= at
+
+
+## The captain fights the nearest of `targets`: closes in, a click every 0.2 s within reach, the cutlass's technique
+## at 3 and 13 s, a heavy at 7 and 16, the ultimate at 10.
+func _fight(targets: Array, was: float, d: float) -> void:
+	p.stamina = p.max_stamina
+	var pc = p.power
+	pc.energy = pc.max_energy()
+	var tgt: Node3D = null
+	var best := INF
+	for g in targets:
+		if is_instance_valid(g) and g.is_inside_tree() and not g.is_dead():
+			var dd: float = (g as Node3D).global_position.distance_to(p.global_position)
+			if dd < best:
+				best = dd
+				tgt = g
+	if tgt == null:
+		return
+	var to: Vector3 = tgt.global_position - p.global_position
+	to.y = 0.0
+	var dist := to.length()
+	var yaw := atan2(-to.x, -to.z)
+	rig.rotation.y = lerp_angle(rig.rotation.y, yaw, clampf(4.0 * d, 0.0, 1.0))
+	if p.current_state_name() in ["Idle", "Move"]:
+		p.player_model.global_rotation.y = yaw
+		if dist > 1.8:
+			p.global_position += to.normalized() * minf(6.0 * d, dist - 1.6)
+	var beat := int(act_t / 0.2)
+	if beat != _beat:
+		_beat = beat
+		if dist < 3.0:
+			p.input_buffer.buffer_action("light_attack")
+	for b in [[3.0, "tech"], [7.0, "heavy"], [10.0, "ult"], [13.0, "tech"], [16.0, "heavy"]]:
+		if _crossed(was, b[0]):
+			if b[1] == "heavy":
+				p.state_machine.force_state("HeavyAttack", {})
+			else:
+				_cast_slot = 0 if b[1] == "tech" else pc.ULT
+				_cast_until = act_t + 1.5
+	# (a cast waits for the captain to be free of a hit or a stagger, up to 1.5 s)
+	if _cast_slot >= 0:
+		pc.cooldowns.clear()
+		pc.ult = pc.ULT_MAX if _cast_slot == pc.ULT else pc.ult
+		var why: String = pc.can_cast(_cast_slot)
+		if why == "" or act_t > _cast_until:
+			print("bench: %s %s at %.1f s: %s %s" % [stops[si], "ultimate" if _cast_slot == pc.ULT else "technique", act_t,
+				pc.try_cast(_cast_slot), "" if why == "" else "(%s in %s)" % [why, p.current_state_name()]])
+			_cast_slot = -1
+
+
+## The duel: her broadsides at us (her own AI), ours at her every 4 s; at 12 s she boards and the captain fights her
+## men on deck; at 20 s she goes down.
+func _naval(was: float, d: float) -> void:
+	var ship = get_first_node_in_group("ship")
+	ship.sail = 1.0
+	if was == 0.0 and is_instance_valid(es):
+		es._set_state(es.S.BROADSIDE)
+		es._volley_cd = 0.5
+	if not is_instance_valid(es):
+		return
+	var to: Vector3 = es.global_position - ship.global_position
+	if act_t < 12.0:
+		var yaw := atan2(-to.x, -to.z)
+		rig.rotation.y = lerp_angle(rig.rotation.y, yaw, clampf(3.0 * d, 0.0, 1.0))
+	for k in range(3):
+		if _crossed(was, 1.0 + 4.0 * k):
+			var side := 1.0 if ship.global_basis.x.dot(to) > 0.0 else -1.0
+			print("bench: naval broadside at %.1f s: %d guns" % [act_t, ship.broadside(side, es.global_position, p)])
+	if _crossed(was, 12.0) and not es.is_dead():
+		es._board(ship)
+		print("bench: naval boarders at %.1f s: %d" % [act_t, es.boarders.size()])
+	if act_t >= 12.0:
+		_fight(es.boarders, was, d)
+	if _crossed(was, 20.0) and not es.is_dead():
+		es._start_sink()
 
 
 ## (the last node processed each frame: overrides Weather's sun and NightLight's own toggles)
@@ -546,7 +834,7 @@ func _rec(k: String, v: float) -> void:
 
 func _sample(d: float) -> void:
 	var vp := root.get_viewport_rid()
-	_rec("frame", d * 1000.0)
+	_rec("frame", real_ms)
 	_rec("phys_scr", acc_phys_scr)
 	_rec("phys_eng", acc_phys_eng)
 	_rec("proc_scr", last_proc_scr)
@@ -661,8 +949,10 @@ func _probe_begin() -> void:
 	us_p = PackedFloat64Array()
 	us_f = PackedFloat64Array()
 	posed = PackedInt32Array()
+	us_max = PackedFloat64Array()
 	us_p.resize(pe.size())
 	us_f.resize(pe.size())
+	us_max.resize(pe.size())
 	posed.resize(pe.size())
 	proc_order = []
 	phys_order = []
@@ -750,6 +1040,7 @@ func _dispatch(phys: bool, delta: float, count: bool) -> void:
 			n._process(delta)
 		var dt := Time.get_ticks_usec() - us
 		if count:
+			us_max[idx] = maxf(us_max[idx], dt)
 			if phys:
 				us_f[idx] += dt
 			else:
@@ -825,6 +1116,7 @@ func _probe_end() -> Dictionary:
 		var pm := us_p[j] / 1000.0 / fr
 		var fm := us_f[j] / 1000.0 / tk
 		b["nodes"] += 1
+		b["max"] = maxf(float(b.get("max", 0.0)), us_max[j] / 1000.0)
 		b["proc"] += pm
 		b["phys"] += fm
 		b["posed"] += posed[j] / fr
@@ -944,9 +1236,9 @@ func _finish() -> void:
 	L.append("version %s  Godot %s  driver %s  %s  CPU %s (%d threads)" % [str(ProjectSettings.get_setting("application/config/version", "")),
 		Engine.get_version_info()["string"], RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_video_adapter_name(),
 		OS.get_processor_name(), OS.get_processor_count()])
-	L.append("window %s  3D scale %.3f  pixelate %s  hour %s  weather %s  vsync off  physics %d Hz  calib %.2f ms  crowd %s  sleep %s" % [str(root.size), root.scaling_3d_scale,
+	L.append("window %s  3D scale %.3f  pixelate %s  hour %s  weather %s  vsync off  physics %d Hz  calib %.2f ms  crowd %s  sleep %s  build %s" % [str(root.size), root.scaling_3d_scale,
 		args.get("pix", "1"), args.get("hour", "13"), args.get("wx", "clear"), Engine.physics_ticks_per_second, calib_ms, "on" if args.has("crowd") else "off",
-		"off" if args.has("nosleep") else "on"])
+		"off" if args.has("nosleep") else "on", ("export" if OS.has_feature("template") else "editor") + (" debug" if OS.is_debug_build() else " release")])
 	L.append("")
 	L.append(census_text)
 	L.append("== summary")
@@ -957,10 +1249,10 @@ func _finish() -> void:
 	for s in stops:
 		L.append(_row(s, results[s]["base"]))
 	L.append(_row("ALL", _total(stops)))
-	var olds := stops.filter(func(s): return s in OLD)
-	if olds.size() > 0 and olds.size() < stops.size():
-		L.append(_row("ALL_OLD", _total(olds)))
-		L.append(_row("ALL_NEW", _total(stops.filter(func(s): return not s in OLD))))
+	for g in [["ALL_OLD", OLD], ["ALL_NEW", NEW], ["ALL_ACT", ACT]]:
+		var some := stops.filter(func(s): return s in g[1])
+		if some.size() > 0 and some.size() < stops.size():
+			L.append(_row(g[0], _total(some)))
 	L.append("")
 	L.append("(ms; frame/p95/worst = frame time, h33/h50 = base frames over 33 / 50 ms (a count; ALL: the sum), split into phys_scr")
 	L.append(" (the scene's physics pass, all ticks: scripts, move_and_slide), ALL_OLD = v1.14's eight stops, ALL_NEW the rest;")
@@ -971,14 +1263,18 @@ func _finish() -> void:
 	L.append(" TIME_PROCESS / TIME_PHYSICS_PROCESS (the F8 overlay's numbers: the worst in the last second, process including the draw);")
 	L.append(" draws/objects/prims_k = the visible pass, sh_* the shadow pass, tot_* both (the F8 overlay's DRAWS / PRIMS))")
 	for s in stops:
-		L.append("  %-8s %s" % [s, results[s]["enemies"]])
+		L.append("  %-8s %s; pipelines compiled in base %d" % [s, results[s]["enemies"], results[s]["pipes"]])
+	L.append("")
+	L.append("== hitches (frames over %.0f ms in any phase once the route began: the split of that frame, pipelines compiled" % HITCH_MS)
+	L.append("  canvas/mesh/surface/draw/specialization, nodes made, Perf's marks; settle = just after the jump to the stop)")
+	L.append_array(hitches if not hitches.is_empty() else ["  (none)"])
 	if not args.has("quick"):
 		if not args.has("gate"):
 			_report_ablations(L)
 		_report_scripts(L)
 	var text := "\n".join(L) + "\n"
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
-	var path := OUT_DIR + "brinehollow_%s.txt" % label
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
+	var path := out_dir + "brinehollow_%s.txt" % label
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	f.store_string(text)
 	f.close()
@@ -1022,7 +1318,10 @@ func _report_ablations(L: Array) -> void:
 	for c in SPLIT:
 		hdr += " %8s" % c
 	L.append(hdr)
-	for s in stops:
+	var abl := stops.filter(func(s): return not s in ACT)
+	if abl.is_empty():
+		return
+	for s in abl:
 		var r: Dictionary = results[s]
 		var b := _base_of(r)
 		var line := ""
@@ -1047,8 +1346,8 @@ func _report_ablations(L: Array) -> void:
 		var line := "%-8s %-8s" % ["ALL", k]
 		for c in SPLIT:
 			var dsum := 0.0
-			for s in stops:
-				dsum += (results[s][k][c] - _base_of(results[s])[c]) / stops.size()
+			for s in abl:
+				dsum += (results[s][k][c] - _base_of(results[s])[c]) / abl.size()
 			line += " %+8.2f" % dsum
 		L.append(line)
 
@@ -1123,6 +1422,9 @@ func _report_scripts(L: Array) -> void:
 		keys.sort_custom(func(x, y): return by[x]["proc"] + by[x]["phys"] > by[y]["proc"] + by[y]["phys"])
 		for k in keys.slice(0, 8):
 			L.append("           %-44s %5d  %6.2f + %6.2f" % [k, by[k]["nodes"], by[k]["proc"], by[k]["phys"]])
+		var spiky := by.keys()
+		spiky.sort_custom(func(x, y): return float(by[x].get("max", 0.0)) > float(by[y].get("max", 0.0)))
+		L.append("         longest single calls (ms): " + ", ".join(spiky.slice(0, 6).map(func(k): return "%s %.1f" % [k, float(by[k].get("max", 0.0))])))
 		var geo_s: Dictionary = pr["geo"]
 		var gk := geo_s.keys()
 		gk.sort_custom(func(x, y): return geo_s[x][3] > geo_s[y][3])

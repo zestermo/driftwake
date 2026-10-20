@@ -96,6 +96,7 @@ func _player(n: String) -> AudioStreamPlayer:
 
 func _stream(track: String) -> AudioStream:
 	if not _streams.has(track):
+		Perf.mark("music %s loaded" % track)
 		var s: AudioStreamOggVorbis = load(TRACKS[track][0])
 		s.loop = true
 		_streams[track] = s

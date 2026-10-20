@@ -4,7 +4,7 @@
 # One entry per line: path (the whole file) or path:function, then | and why it needs real time.
 scripts/net/network_manager.gd | the co-op session clock: every machine's wall time plus the host's offset, measured by ping
 scripts/game/music.gd:play | the resume timer: a calm track left less than RESUME_WITHIN ago (menus, loading included) picks up where it was
-scripts/game/perf_monitor.gd | the perf log's date stamp
+scripts/game/perf_monitor.gd | the perf log's date stamp; frames measured in real time (delta is scaled by hit-stop and slow motion)
 scripts/game/dev_capture.gd | F12 captures: file names, the date, the movement history's own timestamps
 scripts/game/save_game.gd | a save's saved_at date
 scripts/ui/save_slot_list.gd | a save slot's date in the local time zone

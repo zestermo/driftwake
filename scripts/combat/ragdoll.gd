@@ -64,6 +64,7 @@ const REST_TIME := 0.3
 
 ## Ragdolls live in the scene root so they don't move with the character.
 static func create(tree: SceneTree) -> Ragdoll:
+	tree.root.get_node("Perf").mark("ragdoll")
 	var r := Ragdoll.new()
 	r.name = "Ragdoll"
 	var root: Node = tree.current_scene if tree.current_scene else tree.root
