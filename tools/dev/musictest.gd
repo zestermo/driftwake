@@ -59,6 +59,11 @@ func square() -> Vector3:
 	return home.to_global(Vector3(home.VILLAGE.x, 0, home.VILLAGE.y))
 
 
+## Audio plays in real time; game time (t, the ticks) falls behind it when a frame is clamped under load.
+func wall() -> float:
+	return Time.get_ticks_msec() * 0.001
+
+
 func pos() -> float:
 	return m._active.get_playback_position()
 
@@ -111,24 +116,24 @@ func _process(d: float) -> bool:
 			keep["left"] = float(m._left["village"][0])
 			check("the village theme was playing a while before we left (%.1f s in)" % keep["left"], keep["left"] > 5.0)
 			keep["day_pos"] = pos()
-			keep["day_at"] = t
+			keep["day_at"] = wall()
 			set_hour(22.0)
 			wait(1.5)
 		6:
 			check("22:00: the night arrangement (%s)" % m.current, m.current == "island_night")
-			var expect: float = fmod(float(keep["day_pos"]) + t - float(keep["day_at"]), m._stream("island").get_length())
+			var expect: float = fmod(float(keep["day_pos"]) + wall() - float(keep["day_at"]), m._stream("island").get_length())
 			print("   day at %.2f s, night now at %.2f s (in step: %.2f s)" % [keep["day_pos"], pos(), expect])
 			check("...carried on from the same moment of the piece", absf(pos() - expect) < 1.0)
 			set_hour(11.0)
 			put(square())
-			keep["back_at"] = t
+			keep["back_at"] = wall()
 			wait(4.0)
 		7:
 			check("back in the square by day: the village theme (%s)" % m.current, m.current == "village")
 			var bar: float = m.bar_len("village")
 			var floor_at: float = floorf(float(keep["left"]) / bar) * bar
-			print("   left at %.2f s, bar %.2f s, now %.2f s, %.2f s since we came back" % [keep["left"], bar, pos(), t - float(keep["back_at"])])
-			check("...resumed at the bar it was left in, not from the top", pos() >= floor_at - 0.2 and pos() < floor_at + t - float(keep["back_at"]) + 0.5)
+			print("   left at %.2f s, bar %.2f s, now %.2f s, %.2f s since we came back" % [keep["left"], bar, pos(), wall() - float(keep["back_at"])])
+			check("...resumed at the bar it was left in, not from the top", pos() >= floor_at - 0.2 and pos() < floor_at + wall() - float(keep["back_at"]) + 0.5)
 			step += 1
 		8:
 			if not w.chain_ready():

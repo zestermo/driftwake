@@ -96,19 +96,25 @@ func _process(d: float) -> bool:
 			check("dies", bug.state == 9)
 			check("death ragdoll", bug._rag != null)
 			check("coins dropped", root.get_tree().current_scene.find_children("Coin*", "", false, false).size() > 0)
-			until = TK.wait_secs(2.5)
+			until = TK.wait_secs(1.5)
 		6:
+			var left := root.get_tree().current_scene.find_children("Coin*", "", false, false)
+			if not left.is_empty():
+				p.global_position = (left[0] as Node3D).global_position + Vector3(1.5, 0.5, 0)
+				p.reset_physics_interpolation()
+			until = TK.wait_secs(2.0)
+		7:
 			print("   gold ", gold0, " -> ", p.inventory_component.count("gold"))
 			check("coins fly to the player", p.inventory_component.count("gold") > gold0)
 			until = TK.wait_secs(2.5)
-		7:
+		8:
 			check("dead bug sinks away", not is_instance_valid(bug))
 			check("the rest still alive", nest.alive_count() == nest.spots.size() - 1)
 			# respawn once far away
 			nest.respawn_time = 0.5
 			p.global_position = p.global_position + Vector3(60, 5, 0)
 			until = TK.wait_secs(1.5)
-		8:
+		9:
 			check("respawns when you're away", nest.alive_count() == nest.spots.size())
 			print("RESULT ", "OK" if fails == 0 else "%d FAILED" % fails)
 			return true
