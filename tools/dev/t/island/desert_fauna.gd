@@ -33,6 +33,8 @@ func check(what: String, cond: bool) -> void:
 
 func _spawn(script: String, at: Vector3, args: Dictionary) -> Node3D:
 	var c = load(script).new()
+	# (a name of its own: a creature's rng is seeded by its name, and an auto-name counts every node made before it)
+	c.name = "%s_%d" % [script.get_file().get_basename(), stage.get_child_count()]
 	c.setup(at, args)
 	c.position = at
 	stage.add_child(c)
