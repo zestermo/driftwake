@@ -62,6 +62,7 @@ static func why_not(id: String, p: Node) -> String:
 
 
 static func _check(id: String, p: Node):
+	ensure_builtins()
 	return (_entries[id]["available"] as Callable).call(p)
 
 

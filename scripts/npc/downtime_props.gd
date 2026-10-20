@@ -1,11 +1,11 @@
 class_name DowntimeProps
 extends Node
 ## What a downtime loop holds (DowntimePoses and ClipPlayer call ensure() each frame they pose one): an open book, a mallet and
-## a lock to fiddle with, a rod. Made on every screen from the body's action (so a crewmate's puppet holds it
+## a lock to fiddle with. Made on every screen from the body's action (so a crewmate's puppet holds it
 ## too), and gone the frame the body does something else.
 
 ## action -> the props it holds
-const HOLDS := {"clip_read": ["crate", "book"], "dt_tinker": ["crate", "mallet", "lock"], "dt_fish": ["rod"], "dt_fish_reel": ["rod"]}
+const HOLDS := {"clip_read": ["crate", "book"], "dt_tinker": ["crate", "mallet", "lock"]}
 
 ## The open book in the torso's frame.
 const BOOK_AT := Vector3(0, 0.27, -0.36)
@@ -72,10 +72,6 @@ func _add(what: String) -> void:
 			mb.add_box(wood, Transform3D(Basis(), Vector3(0, 0.21, 0.08)), Vector3(0.46, 0.42, 0.4), 1.0)
 			mb.add_box(PSXMat.lit("planks", Color(0.6, 0.48, 0.32)), Transform3D(Basis(), Vector3(0, 0.43, 0.08)), Vector3(0.5, 0.03, 0.44), 1.0)
 			parent = body
-		"rod":
-			var tip := Vector3(0, 0.7, -2.3)
-			mb.add_tube(PSXMat.lit("bark"), PackedVector3Array([Vector3(0, 0, 0.25), tip]), 0.025, 0.02, 4, 1.0)
-			mb.add_tube(PSXMat.flat(Color(0.85, 0.85, 0.8)), PackedVector3Array([tip, tip + Vector3(0, -2.6, -0.3)]), 0.006, 0.006, 3, 1.0)
 	var mi := mb.to_instance("Downtime_" + what)
 	mi.transform = xf
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

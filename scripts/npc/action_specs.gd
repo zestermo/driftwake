@@ -282,10 +282,14 @@ const SPECS := {
 	"dt_train_gun": {"len": 0.4, "stance": "pistol", "weapon": "pistol"},
 	"clip_read": {"len": 0.4, "stance": "sword", "weapon": ""},
 	"dt_tinker": {"len": 0.4, "stance": "sword", "weapon": ""},
-	"dt_fish": {"len": 0.4, "stance": "sword", "weapon": ""},
-	"dt_fish_reel": {"len": 0.8, "stance": "sword", "weapon": ""},
 	"dt_sleep": {"len": 0.4, "stance": "sword", "weapon": ""},
 	"dt_startle": {"len": 0.5, "stance": "sword", "weapon": ""},
+	# --- fishing (FishPoses, the rod and both hands on it FishRod's; Fishing's lengths) ---
+	"rod_cast": {"len": 1.1, "stance": "sword", "weapon": ""},
+	"rod_wait": {"len": 0.35, "stance": "sword", "weapon": ""},
+	"rod_reel": {"len": 1.3, "stance": "sword", "weapon": ""},
+	"rod_strike": {"len": 0.8, "stance": "sword", "weapon": ""},
+	"rod_land": {"len": 1.2, "stance": "sword", "weapon": ""},
 	# --- the emote wheel (EmotePoses) ---
 	"emote_wave": {"len": 1.8, "stance": "sword", "weapon": ""},
 	"emote_point": {"len": 1.4, "stance": "sword", "weapon": ""},

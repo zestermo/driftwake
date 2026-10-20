@@ -8,7 +8,7 @@ extends RefCounted
 ##   train   weapon mastery of the weapon in your hand (ashore too)
 ##   read    sat on a crate with a book: experience, sea lore now and then, and in time a recipe
 ##   tinker  sat with mallet and lock: the kit tuned a while (a spare shot, quicker reloads, a little bite)
-##   fish    at the rail with a rod: ingredients tagged fish, Fishing mastery; Fishing's fish_* perks count
+##   fish    (on the same wheel) the rod's minigame with the equipped rod (Fishing, FishState), at the rail aboard
 ##   sleep   in the cabin's bunk: you heal, and (solo) the hours pass quickly
 ## (Cooking is the galley's, lane A's "cook" on the same wheel at order 30.)
 ## Each captain's own: rewards go to the local captain; the loop is seen by the crew (the state and the
@@ -19,7 +19,6 @@ const KINDS := {
 	"train": {"label": "Train", "where": "any", "every": 6.0, "order": 20},
 	"read": {"label": "Read", "where": "ship", "every": 8.0, "order": 40},
 	"tinker": {"label": "Tinker", "where": "ship", "every": 10.0, "order": 50},
-	"fish": {"label": "Fish", "where": "ship", "every": 20.0, "order": 60},
 	"sleep": {"label": "Sleep in the bunk", "where": "ship", "every": 2.0, "order": 70},
 }
 ## Mastery for each interval of training (fighting lands MASTERY_PER_HIT a hit, many hits a minute).
@@ -47,13 +46,6 @@ const LORE := [
 const KIT_PER := 90.0
 const KIT_MAX := 1200.0
 const KIT := {"extra_shots": 1.0, "reload_pct": 0.15, "damage_pct": 0.04}
-## Fishing: a catch (or one that got away) every FISH_SECS less the bite perk; FISH_LOST of them get away
-## (less the reel perk); [item id, weight] (oysters and urchins are the rare ones, more with the rare perk).
-const FISH_LOST := 0.3
-const FISH_XP := 8
-const FISH_LOST_XP := 3
-const CATCH := [["fish", 60.0], ["crab_meat", 20.0], ["oyster", 12.0], ["sea_urchin", 8.0]]
-const RARE := ["oyster", "sea_urchin"]
 ## Sleeping: health back a share of the most an interval; the day's clock runs this many times as fast (solo).
 const SLEEP_HEAL := 0.05
 const SLEEP_TIME := 30.0
@@ -71,7 +63,7 @@ static func register_wheel() -> void:
 	ActionWheel.register("train", _train_label, "", _train_ok, _train, KINDS["train"]["order"])
 	ActionWheel.register("read", KINDS["read"]["label"], "", _rest_ok, _read, KINDS["read"]["order"])
 	ActionWheel.register("tinker", KINDS["tinker"]["label"], "", _rest_ok, _tinker, KINDS["tinker"]["order"])
-	ActionWheel.register("fish", KINDS["fish"]["label"], "", _fish_ok, _fish, KINDS["fish"]["order"])
+	ActionWheel.register("fish", "Fish", "", _fish_ok, _fish, 60)
 	ActionWheel.register("sleep", _sleep_label, "", _sleep_ok, _sleep, KINDS["sleep"]["order"])
 
 
@@ -94,11 +86,13 @@ static func _rest_ok(p):
 	return ActionWheel.busy(p) if Camp.near(p) else "Aboard or at camp"
 
 
+## Fishing (the rod's minigame, FishState): aboard (at her rail; no lashing needed, the float trolls along)
+## or at the water's edge.
 static func _fish_ok(p):
 	if not ActionWheel.on_foot(p):
 		return false
 	if ActionWheel.place(p) == "ship":
-		return _first(_kept(p), ActionWheel.busy(p))
+		return ActionWheel.busy(p)
 	return ActionWheel.busy(p) if Fishing.water_ahead(p) != Vector3.INF else "At the water's edge"
 
 
@@ -149,8 +143,21 @@ static func _tinker(p) -> void:
 	start(p, "tinker")
 
 
+## Fish with the equipped rod: aboard, at the rail of the nearer side facing out first.
 static func _fish(p) -> void:
-	start(p, "fish")
+	if Fishing.rod_of(p) == "":
+		p.call("_toast", Fishing.refuse(p))
+		return
+	if p.current_state_name() != "Idle":
+		p.state_machine.force_state("Idle", {})
+	var ship := ship_under(p)
+	if ship:
+		var s := spot(p, "fish", ship)
+		p.global_position = ship.global_transform * (s[0] as Vector3) + Vector3.UP * 0.05
+		p.player_model.rotation.y = ship.global_rotation.y + float(s[1])
+		p.velocity = Vector3.ZERO
+		p.reset_physics_interpolation()
+	p.fish()
 
 
 static func _sleep(p) -> void:
@@ -214,10 +221,9 @@ static func danger(p, kind := "") -> String:
 	return ""
 
 
-## Seconds between rewards (the bite perk shortens fishing's).
-static func every(p, kind: String) -> float:
-	var s: float = KINDS[kind]["every"]
-	return s * (1.0 - p.progression.stat("fish_bite_pct")) if kind == "fish" else s
+## Seconds between rewards.
+static func every(_p, kind: String) -> float:
+	return KINDS[kind]["every"]
 
 
 ## One interval's reward for `kind` (the local captain's).
@@ -240,8 +246,6 @@ static func reward(p, kind: String) -> void:
 			if was <= 0.0:
 				p.call("_recalc_stats")
 			p.call("_toast", "Kit tuned: a spare shot, quicker reloads, +4%% damage (%d min)" % ceili(pr.kit_left / 60.0))
-		"fish":
-			_catch(p)
 		"sleep":
 			var hc = p.health_component
 			hc.heal(hc.max_health * SLEEP_HEAL)
@@ -264,37 +268,6 @@ static func tick_kit(pr, delta: float) -> void:
 	pr.player.call("_toast", "Your kit's worn back to plain")
 
 
-## A bite: landed (an ingredient tagged fish; the double perk brings two) or lost; Fishing either way.
-static func _catch(p) -> void:
-	var pr = p.progression
-	p.body_model.play("dt_fish_reel", 0.8)
-	var line: Vector3 = p.global_position - p.player_model.global_basis.z * 2.6
-	Net.fx("splash", [Vector3(line.x, 0.0, line.z), 6, 0.5])
-	if randf() < FISH_LOST * (1.0 - pr.stat("fish_reel_pct")):
-		pr.add_life("fish", FISH_LOST_XP)
-		p.call("_toast", "It got away...")
-		return
-	var rare: float = 1.0 + pr.stat("fish_rare_pct")
-	var total := 0.0
-	for c in CATCH:
-		total += float(c[1]) * (rare if c[0] in RARE else 1.0)
-	var roll := randf() * total
-	var id: String = CATCH[0][0]
-	for c in CATCH:
-		roll -= float(c[1]) * (rare if c[0] in RARE else 1.0)
-		if roll <= 0.0:
-			id = c[0]
-			break
-	var n := 2 if randf() < pr.stat("fish_double") else 1
-	var item := ItemDB.get_item(id)
-	pr.add_life("fish", FISH_XP)
-	if p.inventory_component.room_for(item) < n:
-		p.call("_toast", "A %s - but your bag's full, so back it goes" % item.display_name)
-		return
-	p.inventory_component.add_item(item, n)
-	p.call("_toast", "Caught %s%s!" % ["two of " if n == 2 else "", item.display_name])
-
-
 ## The body's loop for `kind` (DowntimePoses; reading is the Blender clip pilot's, ClipPlayer).
 static func pose_of(p, kind: String) -> String:
 	match kind:
@@ -314,7 +287,7 @@ static func seat_of(kind: String) -> float:
 
 
 ## Where `kind` takes you aboard: [ship-local spot, ship-local yaw], or [] to stay where you stand.
-## Fishing: the rail of the side you're nearer, facing out. Sleeping: lying in the cabin's bunk, the head to
+## Fishing (the wheel's Fish puts you there before the cast): the rail of the side you're nearer, facing out. Sleeping: lying in the cabin's bunk, the head to
 ## the pillow (+Z).
 static func spot(p, kind: String, ship: Ship) -> Array:
 	match kind:

@@ -1,7 +1,7 @@
 extends PlayerState
 ## A downtime activity (Downtime, from the action wheel): the body holds its loop (DowntimePoses) and every
-## interval of it the captain earns its reward. Some take you to their spot aboard first (the rail to fish, the
-## bunk to sleep; settled over SETTLE s and carried with the hull), some sit you on a crate. Any move, jump,
+## interval of it the captain earns its reward. Some take you to their spot aboard first (the bunk to
+## sleep; settled over SETTLE s and carried with the hull), some sit you on a crate. Any move, jump,
 ## dodge, attack or F gets you up; so does danger (Downtime.danger, checked twice a second) or a blow, with a
 ## word on why.
 
@@ -61,7 +61,7 @@ func physics_update(delta: float) -> void:
 	if _earned >= Downtime.every(player, kind):
 		_earned = 0.0
 		Downtime.reward(player, kind)
-	# (back to the loop after a one-off, the fish's reel-in)
+	# (back to the loop after a one-off)
 	if player.body_model.current_action() == "":
 		player.body_model.hold(_pose, 0.25)
 	if player.health_component.current_health < _hp:
@@ -103,7 +103,7 @@ func _stop(why: String) -> void:
 
 func exit() -> void:
 	player.body_model.seated = false
-	if player.body_model.current_action() in [_pose, "dt_fish_reel"]:
+	if player.body_model.current_action() == _pose:
 		player.body_model.stop_action()
 	if not _spot.is_empty() and is_instance_valid(_ship):
 		player.global_position = _ship.global_transform * Downtime.leave_spot(kind, _spot[0])

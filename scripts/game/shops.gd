@@ -39,8 +39,8 @@ const SHOPS := {
 	},
 	"marlo": {
 		"name": "Marlo's Fish", "line": "Grilled while you wait. Mostly while you wait.", "trade": "grocer",
-		"stock": [["fish", 5]],
-		"pool": [["crab_meat"], ["seaweed"], ["oyster"], ["salt"]], "size": 2,
+		"stock": [["fish", 5], ["rod_driftwood"]],
+		"pool": [["crab_meat"], ["seaweed"], ["oyster"], ["salt"], ["rod_bamboo"]], "size": 2,
 		"buys": {"ingredient": 0.5},
 	},
 	"sela": {
@@ -138,6 +138,8 @@ const RARE_GEAR := [
 const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger"]
 ## The chance a treasure merchant also has a piece of rare gear on a given day.
 const RARE_GEAR_CHANCE := 0.6
+## The chance a treasure merchant has a fine rod that day (half of them the master's: only ever here).
+const ROD_CHANCE := 0.3
 
 ## Traders made in play (a chain island's village: IslandVillage; an artisan: Artisans), the same shape as SHOPS.
 static var extra := {}
@@ -178,6 +180,9 @@ static func stock_on(id: String, day: int) -> Array:
 		if rng.randf() < RARE_GEAR_CHANCE:
 			var g: Array = RARE_GEAR[rng.randi() % RARE_GEAR.size()]
 			out.append([g[0], g[1], g[2], tier])
+		# (drawn after the rest, so each day's other stock is as it was)
+		if rng.randf() < ROD_CHANCE:
+			out.append(["rod_master" if rng.randf() < 0.5 else "rod_steel"])
 	return out
 
 

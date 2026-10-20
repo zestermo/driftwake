@@ -221,6 +221,10 @@ func _ready() -> void:
 	jam.name = "Jam"
 	jam.player = self
 	add_child(jam)
+	fish_rod = FishRod.new()
+	fish_rod.name = "Rod"
+	fish_rod.player = self
+	add_child(fish_rod)
 	if not is_local:
 		_setup_puppet()
 		return
@@ -2631,6 +2635,17 @@ func sit_ground() -> void:
 var emote_wheel
 ## The worn instrument, carried and played (Jam; "Play" on the wheel).
 var jam: Jam
+## The fishing rod in the equipment slot, carried and fished with (FishRod; F facing water: FishState).
+var fish_rod: FishRod
+
+
+## Cast a line (F facing water with a rod; the action wheel's Fish), or say why not.
+func fish() -> void:
+	var why := Fishing.refuse(self)
+	if why != "":
+		_toast(why)
+		return
+	state_machine.force_state("Fish", {})
 
 
 func emote(id: String) -> void:

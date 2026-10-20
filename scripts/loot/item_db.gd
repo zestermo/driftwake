@@ -72,3 +72,4 @@ static func _load_all() -> void:
 	WeaponDesigns.make_items(_items)
 	Instruments.make_items(_items)
 	Food.make_items(_items)
+	Rods.make_items(_items)

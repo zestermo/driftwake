@@ -19,6 +19,7 @@ const SOUNDS := [
 	"laugh", "cheer", "hup", "heel_click", "slap",
 	"slice", "slice_heavy", "chop", "punch", "punch_heavy", "shot_hit", "clash",
 	"fin_sting", "jelly_zap",
+	"fish_cast", "fish_plop", "fish_bite", "fish_reel", "fish_catch",
 ]
 
 var _dust_mat: StandardMaterial3D

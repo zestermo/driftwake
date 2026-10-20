@@ -2069,6 +2069,78 @@ def _at(t, at):
     return np.maximum(t - at, 0.0)
 
 
+def _ticks(n, rng, rate, t0, modes, amp_fn, tick_len=0.012):
+    """A reel's clicks: one struck tick each time the phase of `rate` (clicks a second, per sample) turns over,
+    from t0 s, scaled by amp_fn(seconds)."""
+    out = np.zeros(n)
+    tt = np.arange(int(SR * tick_len)) / SR
+    for e in np.nonzero(np.diff(np.floor(np.cumsum(rate / SR))) > 0)[0]:
+        if int(SR * t0) < e < n - len(tt):
+            out[e:e + len(tt)] += _modes(tt, rng, [(f * rng.uniform(0.96, 1.04), a, d) for f, a, d in modes]) * amp_fn(e / SR)
+    return out
+
+
+def fish_cast_sound():
+    """A fishing cast: the rod whipping through the air, then the reel's spool paying out line, a fast tick
+    that slows as the float flies."""
+    rng = np.random.default_rng(2240)
+    n = int(SR * 0.95)
+    t = np.arange(n) / SR
+    whip = _svf_sweep(rng.standard_normal(n), np.interp(t, [0, 0.07, 0.2], [700, 2600, 900]), 1.6) * np.exp(-((t - 0.07) / 0.045) ** 2)
+    whip /= np.max(np.abs(whip)) + 1e-9
+    spool = _ticks(n, rng, np.interp(t, [0.08, 0.85], [70.0, 12.0]), 0.08, [(1900.0, 1.0, 380.0), (2900.0, 0.35, 520.0), (900.0, 0.4, 300.0)],
+        lambda s: 0.28 * np.interp(s, [0.08, 0.9], [1.0, 0.25]))
+    _write_shot("fish_cast", _filt(whip, lambda f: _lp(f, 3800, 2)) + spool, -18.0, 0.06)
+
+
+def fish_plop_sound():
+    """The float landing on the water: a small hollow plop and a few drops."""
+    rng = np.random.default_rng(2241)
+    n = int(SR * 0.35)
+    t = np.arange(n) / SR
+    plop = _thump(t, 520, 210, 0.03, 26, 0.0015)
+    drip = _scatter_bursts(n, rng, 5, 0.03, 0.25, 1200, 2400, 40, 120) * 0.25
+    _write_shot("fish_plop", plop + drip, -20.0, 0.05)
+
+
+def fish_bite_sound():
+    """A bite: the float dragged under, a deep gulping bloop and a burst of bubbles."""
+    rng = np.random.default_rng(2242)
+    n = int(SR * 0.6)
+    t = np.arange(n) / SR
+    bloop = _thump(t, 160, 380, 0.06, 11, 0.003) * 1.1 + _thump(_at(t, 0.09), 240, 520, 0.04, 16, 0.002) * (t >= 0.09) * 0.6
+    bubbles = np.zeros(n)
+    for _ in range(9):
+        at = rng.uniform(0.05, 0.45)
+        bt = _at(t, at)
+        bubbles += np.sin(2 * np.pi * np.cumsum(rng.uniform(700, 1400) * (1 + 2.2 * bt)) / SR) * np.exp(-bt * 60) * (t >= at) * rng.uniform(0.15, 0.35)
+    hiss = _noise(n, rng, 500, 2600) * np.exp(-t * 12) * 0.25
+    _write_shot("fish_bite", bloop + bubbles + hiss, -15.0, 0.06)
+
+
+def fish_reel_sound():
+    """Reeling a fish in: the reel's ratchet clicking fast under strain, the line hissing through the guides."""
+    rng = np.random.default_rng(2243)
+    n = int(SR * 1.2)
+    t = np.arange(n) / SR
+    hiss = _noise(n, rng, 1200, 3600) * 0.04 * np.minimum(1, t / 0.05) * np.exp(-np.maximum(t - 1.0, 0) * 12)
+    clicks = _ticks(n, rng, np.interp(t, [0, 0.15, 1.0, 1.2], [8.0, 26.0, 24.0, 6.0]), 0.0, [(1500.0, 1.0, 420.0), (2400.0, 0.35, 600.0), (700.0, 0.5, 260.0)],
+        lambda s: 0.3, 0.01)
+    _write_shot("fish_reel", hiss + clicks, -19.0, 0.05)
+
+
+def fish_catch_sound():
+    """A catch lifted out: water streaming off it and a bright little two-note chime."""
+    rng = np.random.default_rng(2244)
+    n = int(SR * 0.9)
+    t = np.arange(n) / SR
+    stream = _noise(n, rng, 600, 3000) * np.exp(-t * 6) * np.minimum(1, t / 0.01) * 0.6
+    drops = _scatter_bursts(n, rng, 12, 0.02, 0.6, 900, 2400, 50, 160) * 0.3
+    c1 = _soft_tone(_at(t, 0.12), 1046.5, [1.0, 0.3, 0.12], 7.0) * (t >= 0.12)
+    c2 = _soft_tone(_at(t, 0.24), 1568.0, [1.0, 0.25, 0.1], 6.0) * (t >= 0.24)
+    _write_shot("fish_catch", stream + drops + (c1 + c2) * 0.5, -17.0, 0.08)
+
+
 def _scrape(n, rng, t0, t1, f0, f1, grit=90.0, q=2.5):
     """Steel sliding over steel or a scabbard's throat from t0 to t1 s: grainy noise
     through a band that slides f0 -> f1, with a hiss of fine grit over it."""
@@ -2341,6 +2413,11 @@ SOUNDS = [
     ("peril", peril_sound),
     ("fin_sting", fin_sting_sound),
     ("jelly_zap", jelly_zap_sound),
+    ("fish_cast", fish_cast_sound),
+    ("fish_plop", fish_plop_sound),
+    ("fish_bite", fish_bite_sound),
+    ("fish_reel", fish_reel_sound),
+    ("fish_catch", fish_catch_sound),
     ("cannon", lambda: [cannon_sound(f"cannon_{k + 1}", 163 + k * 11) for k in range(2)]),
     ("cannon_hit", lambda: [cannon_hit_sound(f"cannon_hit_{k + 1}", 167 + k * 11) for k in range(2)]),
     ("wood_crack", lambda: [wood_crack_sound(f"wood_crack_{k + 1}", 173 + k * 11) for k in range(2)]),

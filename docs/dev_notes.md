@@ -4242,3 +4242,38 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   isn't), t/items/instruments. Render: `uishots <out> 1 0 actions,equipment`. Suites likely to notice: invtest (Gear.compose),
   jamtest / nettest jam mode (the slot's name), looptest (cook entry).
 - Per frame/tick: nothing new (the wheel works its reasons out once per open).
+
+## 2026-10-19: fishing, piece 2: rods, the minigame, the bobber on the waves (v1.18)
+- **Rods** (scripts/fishing/rods.gd, Rods): equipment-slot gear, look key "rod" = the tier: driftwood (white, 7 m reach),
+  bamboo (green, 9 m, bites x0.85, window x1.15, rare x1.25), steel-tipped (blue, 11 m, x0.72 / x1.3 / x1.6), master's (purple,
+  14 m, x0.6 / x1.5 / x2.2); prices on the curve (20 / 45 / 120 / 330 G). Made in code in three sections (butt with the reel,
+  mid, tip: FishRod bends them), the crank, and broken down for the back (and the icon). Three materials a rod (blank, leather,
+  metal). Shops: Marlo always the driftwood rod, the bamboo in his pool; a fisher artisan's camp gets `pool` Rods.fisher_pool()
+  size 1 (Shops' daily stock); a treasure merchant 30% of days a steel or master's rod (drawn after their other picks, so the
+  rest of each day's stock is unchanged). The master's rod is only there.
+- **The minigame** (Fishing, FishState "Fish" in player.tscn): with a rod and nothing to interact with, InteractionComponent
+  prompts "Cast your line" when FishRod.cast_ready (Fishing.cast_spot: the farthest water ahead within the rod's reach, Ocean
+  depth_at on the calm level > 0.4 m, checked every 0.25 s while a rod is carried) and F calls Player.fish(). Cast 1.1 s (the
+  float leaves at 0.52), the wait (BITE 6-15 s x rod x (1 - fish_bite_pct), 0-3 nibbles first), the bite (window 0.75 s x rod x
+  (1 + fish_reel_pct)): F or a click inside it reels (1.3 s) and lands (1.2 s, bagged at 0.85); before the bite it's a strike at
+  nothing and the line comes in; after the window "It got away" and the line stays in for another bite. Moving, jumping, a dodge,
+  a heavy or a blow ends it. Catches still Fishing.CATCH (piece 3 brings the fish table); Fishing mastery +10 landed, +3 lost.
+- **The body** (FishPoses "rod_*" + FishRod): rod_cast (loaded back over the right shoulder with the weight back, an "out" snap
+  onto the front foot, the follow-through low), rod_wait (held), rod_reel (strike up and back, hunched reeling, the lift),
+  rod_strike, rod_land (the catch swung in to the left hand and held up, the head turned to it). FishRod (the Player's child
+  "Rod", every screen) holds the rod in torso space on the action's own clock (KEYS: grip, pitch, yaw, bend, crank hand, catch
+  hand) and puts both hands on it by IK (right on the fore grip, left on the butt, on the crank while reeling, on the catch when
+  landed), Jam's pattern. The bite bends the tip down and trembles it. The old idle downtime fishing (dt_fish poses, the props
+  rod, Downtime._catch) is gone; the wheel's Fish starts this (aboard at the rail first; tells you to equip a rod).
+- **The bobber and line** (FishRod): flies on an arc, floats at Ocean.get_wave_height with a bob, twitches on nibbles, goes
+  under on the bite (splash, bubbles, water ring), skims in on the reel; cast from a deck it keeps to the ship's frame (trolling,
+  no lashing needed). The line an ImmediateMesh strip of 10 segments with sag. The catch hangs on the line, then in the hand.
+- **Co-op**: no new RPCs. FishRod sends Net.event (throw, nibble, bite, escape, reel, land, stop) from the captain's machine;
+  the puppet's Rod plays the same; body actions mirror as usual. The catch is the local captain's.
+- **Sounds** (gen_psx_audio.py, FX.SOUNDS): fish_cast (whip + spool ticks, -18), fish_plop (-20), fish_bite (bloop + bubbles,
+  -15), fish_reel (ratchet + line hiss, -19), fish_catch (water off it + a two-note chime, -17), played by FishRod on every screen.
+- Tests: t/fishing/ cast_land, reel_timing, rod_shops, wheel_fish (t/downtime/fish removed). Render: `fishshot <out>` (the light
+  stage has no sea surface drawn: it lays a flat one; it closes the character creator a windowed run opens).
+- Per frame: FishRod._process per captain carrying a rod (a look read and an action-name check; while fishing: the rod keys, 4
+  part transforms, two IK reaches, the line's 11 vertices and one wave sample); the local captain's cast check every 0.25 s (up
+  to 6 rays) only while a rod is carried and free. Nothing per tick.

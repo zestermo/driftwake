@@ -19,6 +19,10 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if Dialogue.is_blocking():
 		return
+	if event.is_action_pressed("interact") and current_interactable == null and _cast:
+		get_viewport().set_input_as_handled()
+		player.fish()
+		return
 	if event.is_action_pressed("interact") and current_interactable:
 		get_viewport().set_input_as_handled()
 		var it := current_interactable
@@ -43,9 +47,11 @@ func _physics_process(_delta: float) -> void:
 			current_interactable = null
 			_shown = false
 			prompt_hidden.emit()
-	if player.context != Player.Context.ON_FOOT or Dialogue.active or player.current_state_name() == "Sit":
-		if current_interactable:
+	if player.context != Player.Context.ON_FOOT or Dialogue.active or player.current_state_name() in ["Sit", "Fish"]:
+		if current_interactable or _cast:
 			current_interactable = null
+			_cast = false
+			_shown = false
 			prompt_hidden.emit()
 		return
 
@@ -74,17 +80,24 @@ func _physics_process(_delta: float) -> void:
 			best_score = score
 			best = inter
 
-	if best != current_interactable or (best == null and _shown):
+	# nothing to use here, a rod in the equipment slot and water ahead: F casts (FishRod.cast_ready)
+	var cast: bool = best == null and not busy and player.fish_rod.cast_ready != Vector3.INF
+	if best != current_interactable or (best == null and _shown and not (cast and _cast)) or cast != _cast:
 		current_interactable = best
+		_cast = cast
 		if current_interactable:
 			_shown = true
 			prompt_changed.emit(current_interactable.prompt_text)
+		elif cast:
+			_shown = true
+			prompt_changed.emit("Cast your line")
 		else:
 			_shown = false
 			prompt_hidden.emit()
 
 
 var _shown: bool = false
+var _cast: bool = false
 
 
 func _on_area_entered(area: Area3D) -> void:

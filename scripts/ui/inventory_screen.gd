@@ -801,6 +801,13 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 				fx.append(["Two-handed", UIStyle.TEXT_DIM])
 	elif Instruments.kind_of(it) != "":
 		fx.append(["Play it: hold T, pick Play", UIStyle.ACCENT])
+	elif Rods.tier_of(it) != "":
+		var t := Rods.tier_of(it)
+		_stat(grid, "REACH", "%d M" % int(Rods.stat(t, "range")), 0, false)
+		_stat(grid, "BITES", "x%.2f" % Rods.stat(t, "bite"), 0, false)
+		_stat(grid, "REEL", "x%.2f" % Rods.stat(t, "window"), 0, false)
+		_stat(grid, "RARE", "x%.2f" % Rods.stat(t, "rare"), 0, false)
+		fx.append(["Fish: equip it, F facing water", UIStyle.ACCENT])
 	elif it.is_gear():
 		var cur := pl.equipment.get_item(pl.equipment.slot_for(it)) if src in COMPARE else null
 		var arm := int(round(it.armor()))
@@ -863,6 +870,8 @@ static func _kind(it: ItemData) -> String:
 		ItemData.ItemType.GEAR:
 			if Instruments.kind_of(it) != "":
 				return "instrument"
+			if Rods.tier_of(it) != "":
+				return "fishing rod"
 			return "equipment" if it.gear_slot == "equipment" else Gear.slot_label(it.gear_slot) + " gear"
 		ItemData.ItemType.CONSUMABLE:
 			return "devil fruit" if it.devil_fruit != "" else "consumable"
