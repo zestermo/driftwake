@@ -28,3 +28,14 @@ it builds as an ordinary generated island. The capital is the first real one.
 - The capital's music: **assumed** a new town track for it if there's time, otherwise Brinehollow's town music.
 - The ruffians' look and the city guards: **assumed** existing pirate grunts restyled as ruffians, guards as dressed
   townsfolk (no new enemy kinds for the sneak peek).
+
+## State (2026-10-20 ~02:30, paused for the night)
+- **On main:** piece 1 (64fc710): placement as the chain's first city, the name roll, Alt+F10 jump, the shell
+  (harbour, moles, walls and towers, the palace on its hill, the arena walls, ~1,400 houses as massing).
+- **In progress:** pieces 2 (the district built out) and 3 (life: crowds, shops, inn, board, quests, slum) on branch
+  `worktree-agent-a37cef52d89671a46`, committed as WIP at the pause. Resume by continuing that agent (or a new one
+  merging that branch), then land piece by piece.
+- **Then for 1.18.1:** prepush (harbourtest/harbourkindstest time out at 330 s under 5-way load: a time-boxed look),
+  the after bench (`v1181_after` vs `v1181_before`, 19.76 ms at calib 31.45), a short post, version 1.18.1, tag, push.
+- **Unpushed on main:** the two v1.18 release-notes doc commits, the capital plan and piece 1. Nothing pushed since
+  v1.18.
