@@ -65,7 +65,7 @@ func _process(delta: float) -> void:
 func _bake(z: Dictionary) -> void:
 	z["baked"] = true
 	var node: Node3D = z["node"]
-	Perf.mark("navmesh parse %s" % node.name)
+	get_node("/root/Perf").mark("navmesh parse %s" % node.name)
 	var r: float = z["r"]
 	var nm := NavigationMesh.new()
 	nm.cell_size = CELL
@@ -92,11 +92,12 @@ func _bake(z: Dictionary) -> void:
 	# by id, not the node: the island can be freed before the bake finishes, and a freed capture errors when the lambda runs
 	var region_id := region.get_instance_id()
 	var where := str(node.name)
+	var perf := get_node("/root/Perf")
 	NavigationServer3D.bake_from_source_geometry_data_async(nm, data, func():
 		var reg := instance_from_id(region_id) as NavigationRegion3D
 		if reg:
 			reg.call_deferred("set_navigation_mesh", nm)
-			Perf.call_deferred("mark", "navmesh in " + where))
+			perf.call_deferred("mark", "navmesh in " + where))
 
 
 func _terrain_faces(c: Vector3, r: float) -> PackedVector3Array:

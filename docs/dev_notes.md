@@ -4546,9 +4546,13 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
     delta runs at Engine.time_scale (0.05 in a hit-stop), so the bench and Perf now time frames in real time.
 - **Fixed:**
   - **An island let go** (WorldGenerator._let_go): processing off, hidden, renamed (`FreeingIsleN`, so one built again
-    takes its name and node paths) at once, and freed leaves first, FREE_US 2.5 ms a frame (_free_some). NavBaker drops
-    a let-go island's zones at once. The isles stop: worst 159 -> 86 ms. The village arrival's 273 ms frame is now ~1 s of
-    +1.5 ms frames.
+    takes its name and node paths) at once, and freed FREE_US 2.5 ms a frame (_free_some): anything with a script whole
+    (a scuttlebug's _exit_tree restores its ragdoll's rig: leaves first freed its parts under it, dungeontest), plain
+    containers piece by piece past FREE_WHOLE 24 children. NavBaker drops a let-go island's zones at once. The isles stop:
+    worst 159 -> 82 ms, no let-go frame over 33 ms; the village arrival's 273 ms frame is a 39 ms one, then ~1 s of
+    frames +2-3 ms (village base 13.0 -> 16.1 ms while it's freed, worst 21).
+  - Gotcha: `Perf.mark` by the autoload's name in humanoid.gd broke every suite that preloads it (a --script compiles
+    before the autoloads; compilecheck has them, so it passed): project classes reach Perf by path.
   - **Build steps:** WorldGenerator._finish_step runs the small steps after the frame's step while the frame's island
     work is under SMALL_US 1.5 ms (steps with nothing left to do take no frame); DrawLOD slices at 4 ms (was 12) over
     192 steps (was 64; the last still does whatever's left). The isles stop: h33 35 -> 23, h50 6 -> 4 (isles_before /

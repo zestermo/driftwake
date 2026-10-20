@@ -80,7 +80,7 @@ func _process(delta: float) -> void:
 			# (their shaders compiled now, not at the first blow), then in
 			var p := get_tree().get_first_node_in_group("player")
 			if p and _stage_t > 0.6 and _warmed < 0.0:
-				FX.warm_up()
+				get_node("/root/FX").warm_up()
 				_warmed = _stage_t
 			if _warmed >= 0.0 and _stage_t > _warmed + WARM_S:
 				_go("fade")

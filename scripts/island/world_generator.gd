@@ -240,7 +240,9 @@ func _let_go(isl: Node3D) -> void:
 	_freeing.append(isl)
 
 
-## Frees what's let go, leaves first, for FREE_US a frame.
+## Frees what's let go for FREE_US a frame, a piece at a time: anything with a script whole (an actor, a camp: their
+## _exit_tree wants their own parts still there), plain containers piece by piece once they hold more than FREE_WHOLE.
+const FREE_WHOLE := 24
 func _free_some() -> void:
 	if _freeing.is_empty():
 		return
@@ -249,12 +251,16 @@ func _free_some() -> void:
 	while not _freeing.is_empty() and Time.get_ticks_usec() - t < FREE_US:
 		var at: Node = _freeing[0]
 		while at.get_child_count() > 0:
-			at = at.get_child(-1)
+			var c := at.get_child(-1)
+			if c.get_script() != null or c.get_child_count() <= FREE_WHOLE:
+				at = c
+				break
+			at = c
 		if at == _freeing[0]:
 			_freeing.pop_front()
 		at.free()
 		n += 1
-	Perf.mark("freed %d nodes of islands let go" % n)
+	Perf.mark("freed %d pieces of islands let go" % n)
 
 
 ## The island chain from GameManager.chain_seed (remade when a load or a host's world changes it).
