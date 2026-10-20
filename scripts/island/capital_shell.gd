@@ -28,7 +28,8 @@ static func build(build_ms: Dictionary) -> Array:
 
 static func _piece(out: Array, piece_name: String, mb: MeshBuilder, cols: Array, range_end: float, shadow: bool, faces: Array = []) -> void:
 	mb.fold_tints()
-	out.append({"name": piece_name, "mesh": mb.commit(), "range": range_end, "shadow": shadow, "cols": cols, "faces": faces})
+	var split := Occluders.take(cols)
+	out.append({"name": piece_name, "mesh": mb.commit(), "range": range_end, "shadow": shadow, "cols": split[0], "faces": faces, "occ": split[1]})
 
 
 static func _ground(q: Vector2) -> float:
@@ -52,6 +53,7 @@ static func _quay(out: Array) -> void:
 		var t := M.xf(M.v3(c, (P.QUAY_Y - 10.0) * 0.5))
 		mb.add_box(lime, t, Vector3(w + 0.02, P.QUAY_Y + 10.0, 3.0), 0.5, Color(0.93, 0.9, 0.85) * (0.97 + 0.03 * float(k % 2)), true, true)
 		M.box(cols, t, Vector3(w, P.QUAY_Y + 10.0, 3.0))
+		Occluders.box(cols, t, Vector3(w + 0.3, P.QUAY_Y + 10.0, 3.0))
 		mb.add_box(lime, M.xf(M.v3(Vector2(c.x, P.FRONT_Z - 0.1), P.QUAY_Y + 0.08)), Vector3(w + 0.02, 0.18, 1.0), 0.6, Color(0.82, 0.8, 0.75), false)
 		if k % 2 == 0 and absf(c.x - P.BERTH.x) > 14.0:
 			mb.add_cylinder(M.mat("iron"), M.xf(M.v3(Vector2(c.x, P.FRONT_Z - 0.6), P.QUAY_Y + 0.15)), 0.26, 0.2, 0.55, 8, 1.0, Color(0.5, 0.5, 0.52))
@@ -94,6 +96,7 @@ static func _mole(mb: MeshBuilder, cols: Array, pts: Array) -> void:
 			var t := M.xf(M.v3(c, (P.MOLE_Y - 11.0) * 0.5), M.yaw_of(dir))
 			mb.add_box(lime, t, Vector3(P.MOLE_HW * 2.0, P.MOLE_Y + 11.0, L), 0.5, Color(0.9, 0.88, 0.83) * (0.96 + 0.04 * float(k % 2)), true, false)
 			M.box(cols, t, Vector3(P.MOLE_HW * 2.0, P.MOLE_Y + 11.0, L))
+			Occluders.box(cols, t, Vector3(P.MOLE_HW * 2.0, P.MOLE_Y + 11.0, L))
 			var pc := c + side * (P.MOLE_HW - 0.45)
 			var pt := M.xf(M.v3(pc, P.MOLE_Y + 0.6), M.yaw_of(dir))
 			mb.add_box(lime, pt, Vector3(0.9, 1.2, L), 0.5, Color(0.86, 0.84, 0.8))
@@ -237,6 +240,7 @@ static func _landmarks(out: Array) -> void:
 	M._hip(mb, M.xf(M.v3(tc, ty + 13.2)), 26.0, 32.0, 4.0, 0.3, Color.WHITE)
 	M.dome(mb, M.v3(tc, ty + 15.0), 8.5, 4.0, Color(0.62, 0.75, 0.68))
 	M.box(cols, M.xf(M.v3(tc, ty + 6.0)), Vector3(26.0, 14.0, 32.0))
+	Occluders.box(cols, M.xf(M.v3(tc, ty + 6.8)), Vector3(26.0, 12.0, 32.0))
 	for s in [-1.0, 1.0]:
 		M.square_tower(mb, cols, tc + Vector2(14.5, s * 17.0), ty, 5.0, 19.0, 0.0, true, 2.0)
 	_piece(out, "Landmarks", mb, cols, FAR, true)
@@ -275,8 +279,9 @@ static func _massing(out: Array) -> void:
 			if sd % 19 == 0 and minf(r.size.x, r.size.y) >= 6.5:
 				M.square_tower(mb, cols, r.get_center(), top, minf(r.size.x, r.size.y) - 1.2, 16.0 + float(sd % 9), 0.0, sd % 2 == 0, top - low + 0.5)
 				continue
-			M.house(mb, l, low - 0.5, top)
-		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, [], MASS, false)
+			M.house(mb, cols, l, low - 0.5, top)
+		# (no colliders: only the occluders)
+		_piece(out, "Houses_%d_%d" % [key.x, key.y], mb, cols.filter(func(c): return c.has("occ")), MASS, false)
 	var mb := MeshBuilder.new()
 	var cols: Array = []
 	for o in P.openings(lots):
@@ -295,6 +300,7 @@ static func _barrier(mb: MeshBuilder, cols: Array, a: Vector2, b: Vector2, n: Ve
 	mb.add_box(M.mat("wash"), t, Vector3(L, top - y, 0.8), 0.5, Color(0.95, 0.92, 0.86))
 	mb.add_box(M.mat("lime"), M.xf(M.v3(c, top + 0.1), yaw), Vector3(L + 0.2, 0.25, 1.0), 0.6, Color(0.88, 0.86, 0.82), false)
 	M.box(cols, t, Vector3(L, top - y, 0.8))
+	Occluders.box(cols, t, Vector3(L - 1.0, top - y, 0.8))
 	if L >= 2.4:
 		var door := M.xf(M.v3(c - n * 0.42, P.ground(c)), yaw)
 		Buildings.panel_door(mb, door, minf(L - 1.0, 1.8), 2.4, Buildings.door_leaf(Color(0.42, 0.3, 0.22)), M.mat("lime"))

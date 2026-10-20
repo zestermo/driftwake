@@ -87,7 +87,7 @@ static func facade_box(mb: MeshBuilder, m: Material, t: Transform3D, w: float, d
 
 
 ## A town house as massing: a limestone plinth down to the lowest ground, facade walls, a cornice, its roof.
-static func house(mb: MeshBuilder, lot: Dictionary, low: float, top: float) -> float:
+static func house(mb: MeshBuilder, cols: Array, lot: Dictionary, low: float, top: float) -> float:
 	var r: Rect2 = lot["r"]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(lot["seed"])
@@ -102,6 +102,7 @@ static func house(mb: MeshBuilder, lot: Dictionary, low: float, top: float) -> f
 	mb.add_box(mat("lime"), xf(v3(c, (low + plinth) * 0.5)), Vector3(w + 0.12, plinth - low, d + 0.12), 0.5, Color(0.92, 0.9, 0.86), true, true)
 	var eaves := top + float(lot["floors"]) * STOREY
 	facade_box(mb, fac, t, w, d, plinth, eaves - plinth, col)
+	Occluders.box(cols, xf(v3(c, (low + eaves) * 0.5)), Vector3(w, eaves - low, d))
 	mb.add_box(mat("lime"), xf(v3(c, eaves + 0.12)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
 	roof(mb, str(lot["roof"]), t, w, d, eaves + 0.24, rcol, rng)
 	return eaves
@@ -190,6 +191,7 @@ static func wall_run(mb: MeshBuilder, cols: Array, pts: Array, h: float, t: floa
 			var bt := xf(v3(c, (top + bot) * 0.5), yaw)
 			mb.add_box(m, bt, Vector3(t, top - bot, L), 0.5, Color(0.95, 0.93, 0.89) * (0.96 + 0.04 * float(k % 2)))
 			box(cols, bt, Vector3(t, top - bot, L))
+			Occluders.box(cols, bt, Vector3(t, top - bot, L))
 			mb.add_box(m, xf(v3(c, top - 0.6), yaw), Vector3(t + 0.24, 0.2, L), 0.6, Color(0.86, 0.84, 0.8), false)
 			if not merlons:
 				continue
@@ -205,6 +207,8 @@ static func round_tower(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, r: 
 	var base := y0 - deep
 	mb.add_cylinder(mat("lime"), xf(v3(c, base)), r * 1.08, r, h + deep, 12, 0.5, Color(0.95, 0.93, 0.89), false, false, false)
 	cyl(cols, v3(c, base), r * 1.04, h + deep)
+	# (the square inside the shaft's twelve sides)
+	Occluders.box(cols, xf(v3(c, base + (h + deep) * 0.5)), Vector3(r * 1.36, h + deep, r * 1.36))
 	mb.add_cylinder(mat("lime"), xf(v3(c, y0 + h - 0.2)), r * 1.0, r * 1.16, 0.7, 12, 0.6, Color(0.82, 0.8, 0.76), false, false, false)
 	mb.add_cylinder(mat("lime"), xf(v3(c, y0 + h + 0.5)), r * 1.16, r * 1.16, 1.1, 12, 0.6, Color(0.95, 0.93, 0.9), true, false, false)
 	for k in range(4):
@@ -227,6 +231,7 @@ static func square_tower(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, w:
 	var t := xf(v3(c, 0.0), yaw)
 	mb.add_box(mat("lime"), t * Transform3D(Basis(), Vector3(0, y0 + (h - deep) * 0.5, 0)), Vector3(w, h + deep, w), 0.5, Color(0.95, 0.93, 0.89))
 	box(cols, t * Transform3D(Basis(), Vector3(0, y0 + (h - deep) * 0.5, 0)), Vector3(w, h + deep, w))
+	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, y0 + (h - deep) * 0.5, 0)), Vector3(w, h + deep, w))
 	mb.add_box(mat("lime"), t * Transform3D(Basis(), Vector3(0, y0 + h + 0.4, 0)), Vector3(w + 0.6, 0.8, w + 0.6), 0.6, Color(0.85, 0.83, 0.79), false)
 	for s in [-1.0, 1.0]:
 		for f in [0, 1]:
@@ -283,6 +288,7 @@ static func gatehouse(mb: MeshBuilder, cols: Array, t: Transform3D, w: float, d:
 		var side := (w - aw) * 0.5
 		mb.add_box(lime, t * Transform3D(Basis(), Vector3(s * (aw * 0.5 + side * 0.5), h * 0.5 - 2.0, 0)), Vector3(side, h + 4.0, d - 1.6), 0.5, Color(0.9, 0.88, 0.84))
 		box(cols, t * Transform3D(Basis(), Vector3(s * (aw * 0.5 + side * 0.5), h * 0.5 - 2.0, 0)), Vector3(side, h + 4.0, d))
+		Occluders.box(cols, t * Transform3D(Basis(), Vector3(s * (aw * 0.5 + side * 0.5), h * 0.5 - 2.0, 0)), Vector3(side, h + 4.0, d - 1.6))
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, spring + aw * 0.5 + (h - spring - aw * 0.5) * 0.5, 0)), Vector3(aw, h - spring - aw * 0.5, d - 1.6), 0.5, Color(0.88, 0.86, 0.82), false)
 	mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, h + 0.15, 0)), Vector3(w + 0.4, 0.3, d + 0.4), 0.6, Color(0.86, 0.84, 0.8), false)
 	for k in range(int(w / 1.9)):
@@ -453,6 +459,7 @@ static func palace(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, ground: 
 	_hip(mb, t * Transform3D(Basis(), Vector3(0, y0 + 16.2, 0)), 38.0, 22.0, 6.5, 0.4, Color(0.95, 0.88, 0.84))
 	dome(mb, v3(hall, y0 + 19.0), 7.5, 4.0, Color(0.55, 0.62, 0.78))
 	box(cols, t * Transform3D(Basis(), Vector3(0, y0 + 8.0, 0)), Vector3(38.0, 16.0, 22.0))
+	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, y0 + 8.3, 0)), Vector3(38.0, 15.0, 22.0))
 	for s in [-1.0, 1.0]:
 		var wc := c + Vector2(s * 16.0, 16.0)
 		var wt := xf(v3(wc, 0.0))
@@ -461,6 +468,7 @@ static func palace(mb: MeshBuilder, cols: Array, c: Vector2, y0: float, ground: 
 		mb.add_box(lime, wt * Transform3D(Basis(), Vector3(0, y0 + 12.0, 0)), Vector3(12.8, 0.4, 26.8), 0.6, Color(0.92, 0.9, 0.86), false)
 		_hip(mb, wt * Transform3D(Basis(), Vector3(0, y0 + 12.2, 0)), 12.0, 26.0, 4.2, 0.4, Color.WHITE)
 		box(cols, wt * Transform3D(Basis(), Vector3(0, y0 + 6.0, 0)), Vector3(12.0, 12.0, 26.0))
+		Occluders.box(cols, wt * Transform3D(Basis(), Vector3(0, y0 + 6.3, 0)), Vector3(12.0, 11.0, 26.0))
 		round_tower(mb, cols, c + Vector2(s * 21.5, 30.5), y0, 3.4, 30.0, true, 2.0, true)
 		round_tower(mb, cols, c + Vector2(s * 20.5, -18.5), y0, 3.0, 26.0, true, 2.0, true)
 	var keep := c + Vector2(0, -20.0)
