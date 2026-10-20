@@ -4371,3 +4371,24 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - **"all N host enemies exist here (missing 2-4)"**: a race in the test, not a sync bug. DiveSites builds a chain island's sharks and eels on its half-second poll after the island stands (0.2 s after chain_ready measured); the report was asked in between. netclient step 3 now also waits for DiveSites' sites, and the check lists the missing keys.
 - **host "stalled (no output for 150 s)"**: nethost prints nothing while the client runs its steps, and the run is now longer than 150 s; it prints "HOST up N s" every 30 s. The fruit-trade check passed in every run (the item lookup and pickup are fine).
 - **Guests dropped mid-run (intermittent, heavy load)**: both Godots block 20-55 s building worlds at the start; ENet's round-trip estimate balloons, a packet lost meanwhile waits a minute to retransmit and the peer is timed out (the guest only hears after its own 30-60 s timeout). Net now sends snapshots, pings, events and fx only to captains whose world is up (`_targets()`), and a peer has long ENet timeouts (60/300 s) only until its world is up (`_settled`), then 30/60 s. Left open: the startup freeze length itself, and a drop under very heavy machine load can still happen.
+
+## 2026-10-20: site art for 1.18 "Charted Waters" (render tools only)
+- **siteshot.gd** new shots: `fishing` (Brinehollow's first side pier at 17.4, a driftwood rod so the float lands ~7 m out;
+  `along` = from out past the float looking back at the captain and the harbour, the bite forced via FishState._bite_at),
+  `dive` (a forced duck dive in from the open sea over the reef, the dolphin kick from below; then pinned over the reef,
+  chest and oysters), `shark` (Shark0 at Brinehollow's wreck noticing a swimmer, the fin out ~2.6 s into NOTICE),
+  `galley` (the cabin by night, the captain's "reach" gesture), `heldmap` (MAIN island, dock-to-village charted from 24 m
+  up, the game's camera on the page: `_game_cam`/`own_cam`), `camp` (Camp.place + sit_ground on a beach at 18.3),
+  `snow` / `desert` (`_seed_theme`: first chain seed from 1 opening on it: snow 3, desert 2). Clips: `clip_fish` (cut to a
+  close-up for the landing), `clip_dive`, `clip_map`, `clip_loadout` (the loadout wheel shows with the HUD hidden: its own
+  CanvasLayer). Every still also saves `<name>-640.jpg`; `_clip` waits two frames first (the first frame showed the old
+  camera / grid). Shared helpers: `_beach`, `_dive_at_sea`, `_duck_dive`, `_fish_stand`, `_fish_view`, `_line_out`.
+- Gotchas: Fishing, Ship and Camp touch autoloads, so the tool loads them by path (`_fishing()`); a duck dive started by
+  `Input.action_press("dodge")` from _process can miss the physics tick's just-pressed (set SwimState._diving by hand);
+  the reef's kelp colliders stand ~4 m tall (dive down first, then in); seed 11's first island is snow now, not jungle.
+- **site_gifs.ps1**: `-Poster name=frame`, `-Stills site=shot,...` (copies a still and its 640 into web/site/img).
+- Images: web/site/img fishing, dive, heldmap, galley, shark, camp, snowvillage (+ -640), desert replaced (golden medina);
+  snow.jpg kept (the v1.16 post's caption names its castle); clips fish, dive (10 fps, 80 colours), map (12 fps, 128),
+  loadout. Tested: renders read one by one (no tests: tools only).
+- Seen in the game, not fixed here: the campfire's flame particles (Props.campfire) render as tall pale peach blocks on
+  the PS1 grid at dusk; camp.jpg shows it.

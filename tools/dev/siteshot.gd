@@ -3,7 +3,7 @@ extends SceneTree
 ## weather, ships, fights, the first chain island of a fixed chain seed with its
 ## village layout, harbour kind and temple forced where a shot needs them), HUD and
 ## labels off, the PSX post pass and dither on the game's own 640x360 grid, saved
-## as 1600x900 JPEGs in <out_dir>; action shots come in bursts (<name>_<n>).
+## as 1600x900 JPEGs in <out_dir> (and <name>-640.jpg); action shots come in bursts (<name>_<n>).
 ## Clips (clip_*) are frame runs for GIFs: <out_dir>/clips/<name>/NNN.png on the
 ## 640x360 grid (nearest) plus <name>_poster.jpg; run with --fixed-fps 30 so game
 ## time steps evenly while frames are saved. Ends with sheet.png (every still) and
@@ -12,11 +12,15 @@ extends SceneTree
 ## Shots: hero jungle stilts harbour cliffs shelf canopy beasts fauna daggers coop
 ##   post cove town cave temple seaking; clips: clip_combo clip_fangs clip_ape clip_sail clip_walk;
 ##   bats by name only (a seed with a roost; the canopy's perches are island-local, so they sit off the island)
+## 1.18: fishing dive shark galley (Brinehollow), heldmap camp snow desert (chain islands; snow and desert on the
+##   first seed from 1 that opens on one); clips: clip_fish clip_dive clip_map clip_loadout.
+##   The held map is the game's own camera (own_cam off), the rest a stand-in camera.
 const W := 1600
 const H := 900
 const GRID := Vector2(640, 360)
 const ALL := ["hero", "jungle", "stilts", "harbour", "cliffs", "shelf", "canopy", "beasts", "fauna", "daggers", "coop",
-	"clip_combo", "clip_fangs", "clip_ape", "clip_sail", "post", "cove", "town", "cave", "temple", "clip_walk", "seaking"]
+	"clip_combo", "clip_fangs", "clip_ape", "clip_sail", "post", "cove", "town", "cave", "temple", "clip_walk", "seaking",
+	"fishing", "dive", "shark", "galley", "clip_fish", "clip_dive", "heldmap", "camp", "clip_map", "clip_loadout", "snow", "desert"]
 const OG := "hero_out_c"
 const STAGGER := 9
 const DECK := HullBuilder.DECK_Y
@@ -44,6 +48,7 @@ var aim := Callable()
 var frames: Array = []
 var settings
 var pups := {}
+var own_cam := true
 
 
 func _initialize():
@@ -62,7 +67,7 @@ func _initialize():
 func _process(d: float) -> bool:
 	t += d
 	# (the helm takes its own camera)
-	if cam and not cam.current:
+	if cam and own_cam and not cam.current:
 		cam.current = true
 	if aim.is_valid():
 		aim.call()
@@ -132,8 +137,24 @@ func _run() -> void:
 			"clip_ape": await _clip_ape()
 			"clip_sail": await _clip_sail()
 			"clip_walk": await _clip_walk()
+			"fishing": await _shot_fishing()
+			"dive": await _shot_dive()
+			"shark": await _shot_shark()
+			"galley": await _shot_galley()
+			"heldmap": await _shot_heldmap()
+			"camp": await _shot_camp()
+			"snow": await _shot_theme("snow", [[16.9, 3, "blizzard"], [12.0, 2, "fall"]])
+			"desert": await _shot_theme("desert", [[17.3, 0, "gold"], [10.5, 0, "day"]])
+			"clip_fish": await _clip_fish()
+			"clip_dive": await _clip_dive()
+			"clip_map": await _clip_map()
+			"clip_loadout": await _clip_loadout()
 		aim = Callable()
-		Input.action_release("move_forward")
+		for a in ["move_forward", "dodge"]:
+			Input.action_release(a)
+		_own_cam()
+		if p.equipment.get_item("equipment") != null:
+			p.unequip_gear("equipment")
 	_sheet()
 	print("SAVED")
 	quit()
@@ -175,6 +196,9 @@ func _frame() -> Image:
 func _snap(name: String) -> void:
 	var img: Image = await _frame()
 	img.save_jpg("%s/%s.jpg" % [out, name], 0.86)
+	var small: Image = img.duplicate()
+	small.resize(640, 360, Image.INTERPOLATE_BILINEAR)
+	small.save_jpg("%s/%s-640.jpg" % [out, name], 0.86)
 	frames.append([name, img])
 	print("shot ", name)
 
@@ -189,6 +213,10 @@ func _burst(name: String, n: int, every: float) -> void:
 func _clip(name: String, secs: float, fps := 15.0) -> void:
 	var dir := "%s/clips/%s" % [out, name]
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
+	# (two frames first: the grid and a camera moved this frame show from the next one)
+	_grid()
+	await process_frame
+	await process_frame
 	var t0 := t
 	var n := 0
 	while n < int(secs * fps):
@@ -619,28 +647,36 @@ func _shot_cliffs() -> void:
 func _shot_shelf() -> void:
 	await _isle(MAIN)
 	_time(11.5, 0)
+	var e := _beach(0.0)
+	var shore: Vector2 = e[0]
+	var dir: Vector2 = e[1]
+	var across := Vector2(-dir.y, dir.x)
+	_stand(_ig(shore + dir * 6.0, 0.0), _yaw(_v3(-dir)))
+	_arm("cutlass")
+	p.sheathe_weapon(true)
+	await _wait(1.5)
+	_look(_ig(shore + dir * 70.0 + across * 30.0, 14.0), _ig(shore - dir * 6.0, 0.0))
+	await _wait(0.3)
+	await _snap("shelf_out")
+	_look(_ig(shore + dir * 16.0 + across * 5.0, 1.5), _ig(shore - dir * 18.0, 3.0))
+	await _wait(0.3)
+	await _snap("shelf_wade")
+
+
+## The first beach (no sea cliff near, away from the dock) round the island from bearing `from`: [waterline, out].
+func _beach(from: float) -> Array:
 	var dock: Vector2 = isl.sites["dock"]
 	var r: float = isl.radius
 	for k in range(36):
-		var dir := Vector2.from_angle(k * TAU / 36.0)
+		var dir := Vector2.from_angle(from + k * TAU / 36.0)
 		var wl := r * 0.4
 		while wl < r + 40.0 and isl.height_at(dir.x * wl, dir.y * wl) > 0.0:
 			wl += 1.0
 		var shore := dir * wl
 		if shore.distance_to(dock) < 120.0 or isl.coast_cols.any(func(c): return (c[0] as Vector2).distance_to(shore) < 70.0):
 			continue
-		var across := Vector2(-dir.y, dir.x)
-		_stand(_ig(shore + dir * 6.0, 0.0), _yaw(_v3(-dir)))
-		_arm("cutlass")
-		p.sheathe_weapon(true)
-		await _wait(1.5)
-		_look(_ig(shore + dir * 70.0 + across * 30.0, 14.0), _ig(shore - dir * 6.0, 0.0))
-		await _wait(0.3)
-		await _snap("shelf_out")
-		_look(_ig(shore + dir * 16.0 + across * 5.0, 1.5), _ig(shore - dir * 18.0, 3.0))
-		await _wait(0.3)
-		await _snap("shelf_wade")
-		return
+		return [shore, dir]
+	return []
 
 
 ## The Silverback in its arena, awake and ready to take to the trees, the captain facing it: [ape, way in].
@@ -1000,6 +1036,431 @@ func _feed() -> void:
 
 
 # --------------------------------------------------------------------------
+# 1.18: Charted Waters
+# --------------------------------------------------------------------------
+func _brine():
+	return wg.starter_island
+
+
+## The stand-in camera back in charge (the held map hands it to the game's).
+func _own_cam() -> void:
+	own_cam = true
+	cam.current = true
+
+
+func _game_cam(yaw: float) -> void:
+	own_cam = false
+	cam.current = false
+	var prig = current_scene.find_child("CameraRig", true, false)
+	prig.rotation.y = yaw
+	(get_first_node_in_group("player_camera") as Camera3D).current = true
+
+
+## (by path: the class touches autoloads, and this script compiles before they're up)
+func _fishing():
+	return load("res://scripts/fishing/fishing.gd")
+
+
+func _rod(tier: String) -> void:
+	var it = ItemDB.get_item(Rods.item_id(tier))
+	p.inventory_component.add_item(it, 1)
+	p.equip_gear_from_bag(p.inventory_component.find_index(it.id))
+
+
+func _fish_state():
+	return p.state_machine.get_node("Fish")
+
+
+## The captain at the end of Brinehollow's side pier k, facing out to sea with a rod: [where, out].
+func _fish_stand(k: int) -> Array:
+	var bi = _brine()
+	var piers: Array = load("res://scripts/island/brinehollow_harbour.gd").side_piers(bi)
+	var e: Array = piers[k % piers.size()]
+	var o: Vector2 = e[1]
+	var at := _ground(bi.to_global(Vector3(e[0].x + o.x * (float(e[2]) - 1.1), 0.0, e[0].y + o.y * (float(e[2]) - 1.1))))
+	var f: Vector3 = bi.global_basis * Vector3(o.x, 0.0, o.y)
+	_stand(at, _yaw(f))
+	_rod("driftwood")
+	print("pier %d of %d at %s, out %s" % [k, piers.size(), at, f])
+	return [at, f]
+
+
+## Line out: cast, then the float held on the waves with nothing biting.
+func _line_out() -> bool:
+	var why: String = _fishing().refuse(p)
+	if why != "":
+		print("  can't cast: ", why)
+		return false
+	p.fish()
+	await _wait(_fishing().CAST_LEN + 0.15)
+	_fish_state()._bite_at = 999.0
+	_fish_state()._nibbles.clear()
+	return true
+
+
+func _fish_view(v: String, me: Vector3, f: Vector3) -> void:
+	var r := Vector3.UP.cross(f).normalized() * -1.0
+	match v:
+		"back":
+			_look(me - f * 3.0 + r * 1.3 + Vector3.UP * 1.9, me + f * 7.0 + Vector3.UP * 0.1)
+		"quarter":
+			_look(me - f * 2.4 - r * 3.4 + Vector3.UP * 1.5, me + f * 4.0 - r * 0.6 + Vector3.UP * 0.5)
+		"face":
+			_look(me + f * 2.6 - r * 3.4 + Vector3.UP * 1.1, me + f * 2.2 + Vector3.UP * 0.8)
+		"face_wide":
+			cam.fov = 60.0
+			_look(me + f * 3.5 - r * 6.5 + Vector3.UP * 1.2, me + f * 4.7 + Vector3.UP * 0.5)
+		"catch":
+			_look(me + f * 2.2 - r * 2.3 + Vector3.UP * 1.3, me + f * 0.6 + Vector3.UP * 1.2)
+		"along":
+			# from out past the float, looking back along the line at the captain and the harbour
+			cam.fov = 42.0
+			var c := me + f * 12.5 - r * 2.8
+			_look(Vector3(c.x, me.y + 0.2, c.z), me + f * 5.5 + Vector3.DOWN * 0.6)
+		"along_low":
+			cam.fov = 44.0
+			var c := me + f * 8.5 - r * 2.8
+			_look(Vector3(c.x, me.y - 0.3, c.z), me + f * 3.0 + Vector3.UP * 0.9)
+		"front":
+			var c := me + f * 13.0 + r * 2.6
+			_look(Vector3(c.x, 1.1, c.z), me + Vector3.UP * 0.9)
+		"side":
+			cam.fov = 62.0
+			_look(me + r * 5.5 - f * 1.0 + Vector3.UP * 1.0, me + f * 5.0 + Vector3.UP * 0.4)
+
+
+## Fishing off Brinehollow's side piers at golden hour: the line out to the float, then the bite.
+func _shot_fishing() -> void:
+	_time(17.4, 0)
+	for k in [0]:
+		var e := _fish_stand(k)
+		await _wait(2.0)
+		var cast: bool = await _line_out()
+		if not cast:
+			continue
+		await _wait(1.2)
+		var me: Vector3 = p.global_position
+		for v in ["face", "along", "along_low"]:
+			_fish_view(v, me, e[1])
+			await _wait(0.2)
+			await _snap("fishing_%d_%s" % [k, v])
+			cam.fov = 50.0
+		_fish_state()._bite_at = _fish_state()._t
+		await _wait(0.3)
+		for v in ["along", "along_low"]:
+			_fish_view(v, me, e[1])
+			await _snap("fishing_%d_bite_%s" % [k, v])
+			cam.fov = 50.0
+		p.state_machine.force_state("Idle", {})
+		await _wait(0.5)
+
+
+## Brinehollow's dive spot whose name starts with `prefix` (null: none).
+func _dive_spot(prefix: String):
+	var holder = get_first_node_in_group("dive_sites").get_node("Dive_brinehollow")
+	for c in holder.get_children():
+		if str(c.name).begins_with(prefix):
+			return c
+	return null
+
+
+## The captain diving, held at `at` facing `d` (the swim state would drift them up).
+func _diver(at: Vector3, d: Vector3) -> void:
+	p.current_ship = null
+	p.global_position = at
+	p.reset_physics_interpolation()
+	p.state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
+	var sw = p.state_machine.get_node("Swim")
+	sw._diving = true
+	p.body_model.diving = true
+	p.player_model.rotation.y = _yaw(d)
+	rig.rotation.y = _yaw(d)
+	aim = func():
+		p.global_position = at
+		p.velocity = Vector3.ZERO
+
+
+## A look from `from` (kept under the waves) at `at`, the diver pinned where they are.
+func _under_look(from: Vector3, at: Vector3, pin: Vector3) -> void:
+	aim = func():
+		p.global_position = pin
+		p.velocity = Vector3.ZERO
+		cam.global_position = Vector3(from.x, minf(from.y, float(p.water_surface(from)) - 0.7), from.z)
+		cam.look_at(at, Vector3.UP)
+
+
+## The captain swimming at the surface `back` m out to sea of `c` (the reef's rocks are on its landward
+## side), facing in; returns the way in (toward the island).
+func _dive_at_sea(c: Vector3, back: float) -> Vector3:
+	var bc: Vector3 = _brine().global_position
+	var d := Vector3(bc.x - c.x, 0.0, bc.z - c.z).normalized()
+	var start := c - d * back
+	p.current_ship = null
+	p.global_position = Vector3(start.x, float(p.water_surface(start)) - 1.3, start.z)
+	p.reset_physics_interpolation()
+	p.state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
+	p.player_model.rotation.y = _yaw(d)
+	rig.rotation.y = _yaw(d)
+	await _wait(1.0)
+	return d
+
+
+## Ctrl held, the duck dive started by hand (it reads a just-pressed Ctrl in the physics tick, which a press
+## from here can miss).
+func _duck_dive() -> void:
+	Input.action_press("dodge")
+	var sw = p.state_machine.get_node("Swim")
+	sw._diving = true
+	sw._dive_t = 0.0
+	sw._vy = -sw.DIVE_KICK
+
+
+## Under water at midday: swimming in over Brinehollow's reef (a dolphin kick), then held over the reef, its sunken
+## chest and the oyster beds.
+func _shot_dive() -> void:
+	_time(12.0, 0)
+	var reef = _dive_spot("Reef_")
+	var c: Vector3 = reef.global_position
+	var d: Vector3 = await _dive_at_sea(c, 9.0)
+	var side := Vector3.UP.cross(d).normalized()
+	_duck_dive()
+	var t0 := t
+	while p.global_position.y > c.y + 1.6 and t - t0 < 5.0:
+		p.stamina = p.max_stamina
+		await process_frame
+	Input.action_release("dodge")
+	Input.action_press("move_forward")
+	Input.action_press("sprint")
+	aim = func():
+		var me: Vector3 = p.get_global_transform_interpolated().origin
+		var at := me - side * 3.4 + d * 1.6 + Vector3.DOWN * 0.5
+		cam.global_position = Vector3(at.x, minf(at.y, float(p.water_surface(at)) - 0.6), at.z)
+		cam.look_at(me + d * 0.6 + Vector3.UP * 0.4, Vector3.UP)
+	await _wait(0.5)
+	for i in range(4):
+		p.stamina = p.max_stamina
+		await _snap("dive_swim_%d" % i)
+		await _wait(0.2)
+	for a in ["move_forward", "sprint"]:
+		Input.action_release(a)
+	aim = Callable()
+	for e in [["reef", "Reef_"], ["chest", "Chest_dive_chest"], ["oysters", "Oysters_"]]:
+		var spot = _dive_spot(str(e[1]))
+		var sc: Vector3 = spot.global_position
+		var sd := Vector3(1, 0, 0.3).normalized()
+		var ss := Vector3.UP.cross(sd).normalized()
+		var at := sc - sd * 1.6 + Vector3.UP * 1.3
+		print("%s at %s, %.1f m down" % [e[0], sc, float(p.water_surface(sc)) - sc.y])
+		_diver(at, sd)
+		await _wait(0.4)
+		_under_look(at - sd * 3.4 + ss * 1.6 + Vector3.UP * 1.4, at + sd * 1.6 + Vector3.UP * 0.2, at)
+		await _wait(1.4)
+		await _snap("dive_%s_back" % e[0])
+		_under_look(sc + ss * 3.8 + sd * 1.2 + Vector3.UP * 0.4, at + Vector3.UP * 0.9, at)
+		await _wait(0.8)
+		await _snap("dive_%s_up" % e[0])
+		_under_look(at + sd * 3.6 + ss * 1.2 + Vector3.UP * 1.0, at + Vector3.UP * 0.6, at)
+		await _wait(0.8)
+		await _snap("dive_%s_front" % e[0])
+		aim = Callable()
+
+
+## The shark at Brinehollow's wreck come up with its fin out round a swimmer, from just over the waves and from under them.
+func _shot_shark() -> void:
+	_time(17.6, 0)
+	var shark = get_first_node_in_group("sea_threats").find_child("Shark0", true, false)
+	var to: Vector3 = shark.home + Vector3(9.0, 0.0, 0.0)
+	p.current_ship = null
+	p.global_position = Vector3(to.x, float(p.water_surface(to)) - 1.3, to.z)
+	p.reset_physics_interpolation()
+	p.state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
+	shark.global_position = shark.home + Vector3(-8.0, 0.0, 0.0)
+	shark.reset_physics_interpolation()
+	aim = func():
+		var me: Vector3 = p.get_global_transform_interpolated().origin
+		var s: Vector3 = shark.get_global_transform_interpolated().origin
+		var back := Vector3(me.x - s.x, 0.0, me.z - s.z).normalized()
+		var c := me + back * 3.2 + Vector3.UP.cross(back) * 3.4
+		cam.global_position = Vector3(c.x, float(p.water_surface(c)) + 1.7, c.z)
+		cam.look_at(me.lerp(s, 0.55) + Vector3.UP * 1.1, Vector3.UP)
+	var t0 := t
+	while int(shark.state) != int(shark.S.NOTICE) and t - t0 < 8.0:
+		await process_frame
+	await _wait(2.6)
+	await _burst("shark_fin", 6, 0.3)
+	aim = func():
+		var me: Vector3 = p.get_global_transform_interpolated().origin
+		var s: Vector3 = shark.get_global_transform_interpolated().origin
+		var back := Vector3(me.x - s.x, 0.0, me.z - s.z).normalized()
+		var c := me + back * 5.0 + Vector3.DOWN * 3.2
+		cam.global_position = c
+		cam.look_at(me.lerp(s, 0.6) + Vector3.UP * 0.3, Vector3.UP)
+	await _wait(0.6)
+	await _burst("shark_under", 3, 0.35)
+	aim = Callable()
+	p.state_machine.force_state("Idle", {})
+
+
+## At the galley stove in the sloop's cabin by night, the stove's fire and the lantern.
+func _shot_galley() -> void:
+	_time(21.0, 0)
+	_quiet_seas()
+	ship.set_anchored(true)
+	ship.sail = 0.0
+	ship.sail_shown = 0.0
+	p.current_ship = ship
+	p.state_machine.force_state("Idle", {})
+	var counter: Vector3 = load("res://scripts/ship/ship.gd").COUNTER_AT
+	var stove: Vector3 = load("res://scripts/ship/ship.gd").STOVE_AT
+	p.global_position = ship.global_transform * (counter + Vector3(-0.85, 0.2, 0.3))
+	p.reset_physics_interpolation()
+	p.player_model.rotation.y = _yaw(ship.global_basis.x)
+	p.unequip_weapon()
+	await _wait(1.0)
+	var views := [["door", Vector3(-0.8, DECK + 1.6, 5.7), counter + Vector3(0.0, 1.0, 0.8)],
+		["stern", Vector3(0.4, DECK + 1.4, 9.4), counter + Vector3(-0.2, 1.0, -0.4)],
+		["low", Vector3(0.9, DECK + 1.0, 6.4), stove + Vector3(-0.4, 0.8, -0.4)]]
+	for v in views:
+		_ride(v[1], v[2], true)
+		p.gesture("reach")
+		await _wait(0.45)
+		await _snap("galley_%s" % v[0])
+		await _wait(0.8)
+	aim = Callable()
+
+
+## The held map out on the chain island (the path up from the pier and the village charted, the rest fog and `?`s):
+## the game's camera on the page, zoomed in round the captain and out on the chart; then a wider look from behind.
+func _map_stage() -> void:
+	await _isle(MAIN)
+	_time(10.5, 0)
+	var vil = _village()
+	var c: Vector2 = vil.plaza["c"]
+	var hy: float = vil.plaza["y"] if vil.plaza["y"] != INF else isl.height_at(c.x, c.y)
+	var td: Vector2 = (isl.sites["dock"] - c).normalized()
+	var mf = load("res://scripts/map/map_fog.gd")
+	var dd: Dictionary = load("res://scripts/map/map_isles.gd").of(isl)
+	var a: Vector2 = isl.sites["dock_end"]
+	# from up high (a wider ring): the dock, the road and the village, the rest left to the fog
+	for i in range(10):
+		var q: Vector2 = a.lerp(c, i / 9.0)
+		mf.look(gm, dd, isl.to_global(Vector3(q.x, 24.0, q.y)))
+	for k in range(6):
+		var q: Vector2 = c + Vector2.from_angle(k * TAU / 6.0) * 45.0
+		mf.look(gm, dd, isl.to_global(Vector3(q.x, 24.0, q.y)))
+	_stand(_iy(c + td * 5.0, hy), _yaw(_v3(-td)))
+	p.unequip_weapon()
+	await _wait(1.0)
+	_game_cam(_yaw(_v3(-td)))
+	await _wait(1.2)
+
+
+func _shot_heldmap() -> void:
+	await _map_stage()
+	var hold = p.get_node("MapHold")
+	hold.toggle()
+	await _wait(1.3)
+	await _snap("heldmap_isle")
+	hold.page.press(MOUSE_BUTTON_WHEEL_UP, Vector2.ZERO)
+	await _wait(1.0)
+	await _snap("heldmap_zoom")
+	hold.page.press(MOUSE_BUTTON_WHEEL_DOWN, Vector2.ZERO)
+	hold.page.press(MOUSE_BUTTON_WHEEL_DOWN, Vector2.ZERO)
+	await _wait(1.0)
+	await _snap("heldmap_chart")
+	hold.page.press(MOUSE_BUTTON_WHEEL_UP, Vector2.ZERO)
+	await _wait(0.8)
+	var f: Vector3 = -p.player_model.global_basis.z
+	var r: Vector3 = p.player_model.global_basis.x
+	var me: Vector3 = p.global_position
+	_own_cam()
+	_look(me - f * 1.5 + r * 0.75 + Vector3.UP * 1.85, me + f * 0.5 + Vector3.UP * 1.1)
+	await _wait(0.3)
+	await _snap("heldmap_shoulder")
+	_look(me + f * 2.4 + r * 1.0 + Vector3.UP * 1.6, me + Vector3.UP * 1.2)
+	await _wait(0.3)
+	await _snap("heldmap_front")
+	hold.toggle()
+	await _wait(0.5)
+
+
+## Camp on a beach at dusk: the fire laid, the captain sat by it.
+func _shot_camp() -> void:
+	await _isle(MAIN)
+	_time(18.3, 0)
+	var e := _beach(PI)
+	var shore: Vector2 = e[0]
+	var dir: Vector2 = e[1]
+	var f := _v3(dir)
+	var r := Vector3.UP.cross(f).normalized() * -1.0
+	_stand(_ig(shore - dir * 9.0 + Vector2(-dir.y, dir.x) * 6.0, 0.0), _yaw(f))
+	_arm("cutlass")
+	p.sheathe_weapon(true)
+	await _wait(1.5)
+	var camp_s = load("res://scripts/game/camp.gd")
+	var fire := _ground(p.global_position + f * float(camp_s.AHEAD))
+	camp_s.place(self, 1, fire, atan2(f.x, f.z))
+	p.sit_ground()
+	await _wait(6.0)
+	var me: Vector3 = p.global_position
+	_look(fire + f * 3.6 + r * 1.4 + Vector3.UP * 0.8, me + Vector3.UP * 0.6)
+	await _wait(0.3)
+	await _snap("camp_sea")
+	_look(me - f * 3.0 + r * 1.6 + Vector3.UP * 1.4, fire + f * 30.0 + Vector3.UP * 2.0)
+	await _wait(0.3)
+	await _snap("camp_behind")
+	_look(me + r * 6.0 - f * 1.0 + Vector3.UP * 2.2, me.lerp(fire, 0.5) + Vector3.UP * 0.5)
+	await _wait(0.3)
+	await _snap("camp_wide")
+	_look(me + r * 4.2 - f * 1.2 + Vector3.UP * 1.1, me.lerp(fire, 0.5) + f * 2.5 + Vector3.UP * 0.9)
+	await _wait(0.3)
+	await _snap("camp_low")
+	p.state_machine.force_state("Idle", {})
+
+
+## The first chain seed from 1 whose first island is `theme`.
+func _seed_theme(theme: String) -> int:
+	var was: int = gm.chain_seed
+	var s := 1
+	while true:
+		gm.chain_seed = s
+		var c = wg.chain()
+		if str(c.node(int(c.start_next[0]))["theme"]) == theme:
+			break
+		s += 1
+	gm.chain_seed = was
+	wg.chain()
+	return s
+
+
+## A themed island's village from the road in, the captain in front: [hour, weather, label] each.
+func _shot_theme(theme: String, looks: Array) -> void:
+	await _isle({"seed": _seed_theme(theme)})
+	var v: Vector2 = isl.sites["village"]
+	var dd: Vector2 = (isl.sites["dock"] - v).normalized()
+	var side := Vector2(-dd.y, dd.x)
+	var spot: Vector2 = v + dd * 30.0 + side * 6.0
+	var to := (v - spot).normalized()
+	var ts := Vector2(-to.y, to.x)
+	for e in looks:
+		_time(float(e[0]), int(e[1]))
+		_stand(_ground(_ig(spot, 0.0)), _yaw(_v3(to)))
+		_arm("cutlass")
+		p.sheathe_weapon(true)
+		await _wait(4.0)
+		var me: Vector3 = p.global_position
+		_look(_ground(_ig(spot - to * 3.0 + ts * 1.2, 0.0)) + Vector3.UP * 1.6, _ig(v, 3.0))
+		await _wait(0.3)
+		await _snap("%s_%s_eye" % [theme, e[2]])
+		_look(_ground(_ig(spot + to * 3.5 - ts * 1.5, 0.0)) + Vector3.UP * 1.3, me + Vector3.UP * 1.3)
+		await _wait(0.3)
+		await _snap("%s_%s_face" % [theme, e[2]])
+		_look(_ground(_ig(spot - to * 12.0, 0.0)) + Vector3.UP * 14.0, _ig(v, 0.0))
+		await _wait(0.3)
+		await _snap("%s_%s_wide" % [theme, e[2]])
+
+
+# --------------------------------------------------------------------------
 # Clips (GIFs)
 # --------------------------------------------------------------------------
 ## The twin daggers' light combo on three grunts, clicked through.
@@ -1099,6 +1560,138 @@ func _clip_walk() -> void:
 	await _wait(1.6)
 	await _clip("walk", 2.4)
 	Input.action_release("move_forward")
+
+
+## Fishing off a Brinehollow pier at golden hour: the cast, the wait, a nibble, the bite, the strike, the catch held up.
+func _clip_fish() -> void:
+	_time(17.4, 0)
+	var e := _fish_stand(0)
+	await _wait(2.0)
+	var me: Vector3 = p.global_position
+	_fish_view("along", me, e[1])
+	var drive := func():
+		await _wait(0.15)
+		p.fish()
+		await _wait(_fishing().CAST_LEN + 0.1)
+		var st = _fish_state()
+		st._nibbles = [st._t + 0.7]
+		st._bite_at = st._t + 1.7
+		await _wait(1.95)
+		p.input_buffer.buffer_action("light_attack")
+		await _wait(0.15)
+		st._catch = "fish_parrotfish"
+		# the landing close up, the catch held up
+		await _wait(1.0)
+		cam.fov = 50.0
+		_fish_view("catch", me, e[1])
+	drive.call()
+	await _clip("fish", 6.6)
+	cam.fov = 50.0
+
+
+## Diving down to a reef off Brinehollow and gathering from it.
+func _clip_dive() -> void:
+	_time(12.0, 0)
+	var s = _dive_spot("Reef_")
+	var c: Vector3 = s.global_position
+	print("reef %.1f m down" % (float(p.water_surface(c)) - c.y))
+	var d: Vector3 = await _dive_at_sea(c, 4.5)
+	var side := Vector3.UP.cross(d).normalized()
+	aim = func():
+		var me: Vector3 = p.get_global_transform_interpolated().origin
+		var at := me - d * 2.6 + side * 2.6 + Vector3.UP * 0.2
+		cam.global_position = Vector3(at.x, minf(at.y, float(p.water_surface(at)) - 0.6), at.z)
+		cam.look_at(me + d * 1.2 + Vector3.UP * 0.3, Vector3.UP)
+	var drive := func():
+		await _wait(0.3)
+		_duck_dive()
+		var t0 := t
+		while t - t0 < 5.0:
+			p.stamina = p.max_stamina
+			# down first (the kelp's colliders stand tall over the reef), then in
+			var me: Vector3 = p.global_position
+			var off := Vector2(me.x - c.x, me.z - c.z).length()
+			if me.y < c.y + 1.6:
+				Input.action_release("dodge")
+				Input.action_press("move_forward")
+			if off < 2.4:
+				Input.action_release("move_forward")
+			if off < 2.4 and me.y < c.y + 1.9:
+				break
+			await process_frame
+		Input.action_release("move_forward")
+		Input.action_release("dodge")
+		var pin: Vector3 = p.global_position
+		print("  at the reef after %.1f s: %s (reef %s)" % [t - t0, pin, c])
+		var cam_at := pin.lerp(c, 0.5) - side * 4.6 + Vector3.UP * 0.6
+		aim = func():
+			p.global_position = pin
+			p.velocity = Vector3.ZERO
+			cam.global_position = cam_at
+			cam.look_at(pin.lerp(c, 0.45) + Vector3.UP * 0.3, Vector3.UP)
+		await _wait(0.4)
+		s.find_children("*", "Interactable", true, false)[0].interacted.emit(p)
+	drive.call()
+	await _clip("dive", 6.0)
+	aim = Callable()
+	p.state_machine.force_state("Idle", {})
+
+
+## The held map coming out on the chain island, then the wheel out to the sea chart.
+func _clip_map() -> void:
+	await _map_stage()
+	var hold = p.get_node("MapHold")
+	var drive := func():
+		await _wait(0.3)
+		hold.toggle()
+		await _wait(1.9)
+		hold.page.press(MOUSE_BUTTON_WHEEL_UP, Vector2.ZERO)
+		await _wait(1.2)
+		hold.page.press(MOUSE_BUTTON_WHEEL_DOWN, Vector2.ZERO)
+		await _wait(0.9)
+		hold.page.press(MOUSE_BUTTON_WHEEL_DOWN, Vector2.ZERO)
+	drive.call()
+	await _clip("map", 5.8)
+	hold.toggle()
+	await _wait(0.5)
+
+
+## Mid-fight at the camp: the cutlass's combo, X held for the loadout wheel (its own canvas layer, so it shows
+## with the HUD off), the twin daggers picked, their combo.
+func _clip_loadout() -> void:
+	await _isle(MAIN)
+	_time(14.6, 0)
+	var st := _fight_stage()
+	var base: Vector3 = st[0]
+	var f: Vector3 = st[1]
+	var r: Vector3 = st[2]
+	_stand(base, _yaw(f))
+	p.inventory_component.add_item(_item("dagger"), 2)
+	_arm("cutlass")
+	p.loadouts = [["cutlass", ""], ["dagger", "dagger"], []]
+	p.loadout_at = 0
+	_line_up(_grunts(), base, [f * 2.4, f * 3.6 + r * 1.6, f * 4.8 + r * 0.4])
+	await _wait(0.8)
+	var at := base + f * 1.8
+	_look(at - r * 4.8 - f * 0.4 + Vector3.UP * 1.0, at + Vector3.UP * 1.0)
+	var clicks := func():
+		var t0 := t
+		var swapped := false
+		while t - t0 < 4.4:
+			if not swapped and t - t0 > 1.3:
+				swapped = true
+				var wh = p.loadout_wheel
+				wh._open_now()
+				await _wait(0.25)
+				wh.point_at(1)
+				await _wait(0.7)
+				wh._release()
+				await _wait(0.4)
+			p.stamina = p.max_stamina
+			p.input_buffer.buffer_action("light_attack")
+			await _wait(0.2)
+	clicks.call()
+	await _clip("loadout", 4.6)
 
 
 # --------------------------------------------------------------------------
