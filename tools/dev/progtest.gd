@@ -142,6 +142,9 @@ func _process(d: float) -> bool:
 			check("weapon trees spend mastery points, not skill points", pr.can_learn("s_edge") == "Needs 2 mastery points")
 			pr.mastery_of("sword")["pts"] = 10
 			pr.mastery_of("pistol")["pts"] = 10
+			# (a pistol in loadout 2, so its skills can go on the bar)
+			p.inventory_component.add_item(item("pistol"), 1)
+			p.loadouts[1] = ["pistol", ""]
 			for nid in ["c_vitality", "v_hardy", "v_tekkai", "v_steadfast", "c_strength", "s_edge", "s_flying", "c_endurance", "g_marks", "g_storm", "g_kata", "g_rain"]:
 				pr.learn(nid)
 			check("mastery points spent from their own tree", int(pr.mastery_of("sword")["pts"]) == 6 and int(pr.mastery_of("pistol")["pts"]) == 4 and pr.skill_points == 6)
@@ -411,7 +414,7 @@ func _process(d: float) -> bool:
 			print("   storm dist ", snappedf((g.global_position - p.global_position).length(), 0.01), " gstate ", g.state, " gname ", g.name, " ppos ", p.global_position, " gpos ", g.global_position, " pstate ", p.current_state_name())
 			print("   storm: ", v0, " -> ", g.health.current_health)
 			check("Bullet Storm hits", g.health.current_health < v0)
-			check("sword skill refused with pistols", pc.can_cast(2) == "Needs a sword")
+			check("sword skill refused with pistols", pc.can_cast(2) == "Needs a sword in a loadout")
 			# save + load
 			SG = load("res://scripts/game/save_game.gd")
 			SG.use_test_file("user://progtest_save.dat")

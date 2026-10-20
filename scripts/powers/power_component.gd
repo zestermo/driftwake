@@ -111,12 +111,76 @@ static func key_of(slot: int) -> String:
 	return "R" if slot == ULT else str(KEYS.find(slot) + 1)
 
 
-## Put a skill on a slot (ultimates only go on R, others only on 1-5). A skill
-## already on another slot moves.
+## Where a skill is used from (loadout_for): the hands (it needs no weapon, or the one in hand fits), or
+## no loadout fits; otherwise the loadout it switches to.
+const HANDS := -1
+const NO_LOADOUT := -2
+
+
+## Does a skill work with a fighting style? (Captain, Will and fruit skills work with anything.)
+static func fits(sk: Dictionary, st: String) -> bool:
+	var styles: Array = sk.get("styles", [])
+	if not styles.is_empty():
+		return st in styles
+	match str(sk.get("needs", "")):
+		"sword":
+			return st in ["sword", "katana", "axe", "dagger", "dual_sword", "dual_dagger", "sword_pistol"]
+		"gun":
+			return st in ["pistol", "dual_pistol"]
+	return true
+
+
+static func weapon_skill(sk: Dictionary) -> bool:
+	return str(sk.get("needs", "")) != "" or not (sk.get("styles", []) as Array).is_empty()
+
+
+static func needs_text(sk: Dictionary) -> String:
+	match str(sk.get("needs", "")):
+		"sword":
+			return "a sword"
+		"gun":
+			return "a pistol"
+	return str(sk.get("needs_text", "the right weapon"))
+
+
+## Each weapon loadout's fighting style ("" = it can't be taken up); the one in use is the hands'.
+func loadout_styles() -> Array:
+	var out: Array = []
+	for i in range(Player.LOADOUTS):
+		out.append(Player.style_of(player.equipped_weapon, player.offhand_weapon) if i == player.loadout_at else player.loadout_style(i))
+	return out
+
+
+## HANDS, the first loadout whose weapon fits the skill (it switches to that loadout first), or NO_LOADOUT.
+static func loadout_for(sk: Dictionary, styles: Array, at: int) -> int:
+	if not weapon_skill(sk) or fits(sk, styles[at]):
+		return HANDS
+	for i in range(styles.size()):
+		if styles[i] != "" and fits(sk, styles[i]):
+			return i
+	return NO_LOADOUT
+
+
+## Why a skill can't go on a slot ("" = it can; "" as the skill clears the slot). The menu shows it.
+func why_not_equip(skill_id: String, slot: int) -> String:
+	if skill_id == "":
+		return ""
+	if Skills.is_ult(skill_id) and slot != ULT:
+		return "Ultimates go on R"
+	if not Skills.is_ult(skill_id) and slot == ULT:
+		return "Only an ultimate goes on R"
+	if not player.progression.knows(skill_id):
+		return "Not learned yet"
+	var sk := Skills.get_skill(skill_id)
+	if loadout_for(sk, loadout_styles(), player.loadout_at) == NO_LOADOUT:
+		return "Needs %s in a loadout" % needs_text(sk)
+	return ""
+
+
+## Put a skill on a slot (ultimates only go on R, others only on 1-5; a weapon's skill only while that
+## weapon is in one of your loadouts). A skill already on another slot moves.
 func equip(skill_id: String, slot: int) -> bool:
-	if skill_id != "" and (Skills.is_ult(skill_id) != (slot == ULT)):
-		return false
-	if skill_id != "" and player and not player.progression.knows(skill_id):
+	if why_not_equip(skill_id, slot) != "":
 		return false
 	for i in range(SLOTS):
 		if loadout[i] == skill_id:
@@ -177,14 +241,11 @@ func can_cast(slot: int) -> String:
 		return "Your power fizzles in the sea"
 	if player.is_swimming():
 		return "Not while swimming"
-	var needs := str(sk.get("needs", ""))
-	if needs == "sword" and player.weapon_class() != "sword":
-		return "Needs a sword"
-	if needs == "gun" and player.weapon_class() != "gun":
-		return "Needs a pistol"
-	var styles: Array = sk.get("styles", [])
-	if not styles.is_empty() and not (player.style() in styles):
-		return "Needs %s" % str(sk.get("needs_text", "the right weapon"))
+	if player.hybrid and weapon_skill(sk):
+		return "Needs %s" % needs_text(sk)
+	var at := loadout_for(sk, loadout_styles(), player.loadout_at)
+	if at == NO_LOADOUT:
+		return "Needs %s in a loadout" % needs_text(sk)
 	var free := float(_free_recast.get(str(sk["id"]), 0.0)) > 0.0
 	var stance_off := str(sk["id"]) == "foresight" and foresight_stance
 	if cooldown_left(slot) > 0.0 and not free and not stance_off:
@@ -194,7 +255,10 @@ func can_cast(slot: int) -> String:
 			return "Ultimate not charged"
 	elif energy < float(sk.get("cost", 0.0)) and not free and not stance_off:
 		return "Not enough energy"
-	if not player.is_free() and player.current_state_name() not in ["LightAttack", "HeavyAttack", "Dodge", "Shoot"]:
+	if at != HANDS:
+		if not player.can_swap_now():
+			return "Busy"
+	elif not player.is_free() and player.current_state_name() not in ["LightAttack", "HeavyAttack", "Dodge", "Shoot"]:
 		return "Busy"
 	return ""
 
@@ -206,6 +270,9 @@ func try_cast(slot: int) -> bool:
 		return false
 	var sk := skill(slot)
 	var id := str(sk["id"])
+	var at := loadout_for(sk, loadout_styles(), player.loadout_at)
+	if at != HANDS:
+		player.take_loadout_now(at)
 	if id == "foresight" and foresight_stance:
 		set_stance(false)
 		cast.emit(slot)
