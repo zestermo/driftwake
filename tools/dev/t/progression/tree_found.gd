@@ -1,6 +1,6 @@
 extends SceneTree
 ## Trees show once their first point is earned: a new captain sees the Captain and the Cutlass; the first katana
-## xp finds the Katana tree (tree_found once, a "new skill tree" banner on the HUD), never twice; a save keeps
+## xp finds the Katana tree (tree_found once, the HUD's "new skill tree" card), never twice; a save keeps
 ## what's found.
 const TK := preload("res://tools/dev/test_kit.gd")
 const SAVE := "user://t_tree_found.dat"
@@ -41,7 +41,8 @@ func _process(_d: float) -> bool:
 			check("...once", heard == ["katana"])
 			until = TK.wait_ticks(80)
 		1:
-			check("...with a banner (%s)" % stage.hud.banner_title.text, stage.hud.banner_title.text == "New skill tree!" and stage.hud.banner_sub.text.contains("Katana"))
+			var card = stage.hud._tree_card
+			check("...with the HUD's new-tree card", card != null and card.find_child("Name", true, false).text == "Katana" and card.find_child("Line", true, false).text.begins_with("Added to COMBAT"))
 			var SG = load("res://scripts/game/save_game.gd")
 			SG.use_test_file(SAVE)
 			SG.save(p)

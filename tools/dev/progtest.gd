@@ -137,17 +137,16 @@ func _process(d: float) -> bool:
 			pr.level = 6
 			check("learn Soru (active)", pr.learn("m_soru"))
 			check("Soru goes on the bar", pc.loadout[0] == "soru")
-			# (the level's XP put a share into the cutlass's mastery: none of it spent here)
-			pr.mastery_of("sword")["pts"] = 0
-			check("weapon trees spend mastery points, not skill points", pr.can_learn("s_edge") == "Needs 2 mastery points")
-			pr.mastery_of("sword")["pts"] = 10
-			pr.mastery_of("pistol")["pts"] = 10
+			check("a weapon's nodes come with its mastery, not points (%s)" % pr.can_learn("s_flying"), pr.can_learn("s_flying") == "Comes at Cutlass 4")
 			# (a pistol in loadout 2, so its skills can go on the bar)
 			p.inventory_component.add_item(item("pistol"), 1)
 			p.loadouts[1] = ["pistol", ""]
-			for nid in ["c_vitality", "v_hardy", "v_tekkai", "v_steadfast", "c_strength", "s_edge", "s_flying", "c_endurance", "g_marks", "g_storm", "g_kata", "g_rain"]:
+			for nid in ["c_vitality", "v_hardy", "v_tekkai", "v_steadfast", "c_strength", "c_endurance"]:
 				pr.learn(nid)
-			check("mastery points spent from their own tree", int(pr.mastery_of("sword")["pts"]) == 6 and int(pr.mastery_of("pistol")["pts"]) == 4 and pr.skill_points == 6)
+			for tr_lv in [["sword", 5], ["pistol", 9]]:
+				while pr.mastery_level(tr_lv[0]) < tr_lv[1]:
+					pr.add_mastery(tr_lv[0], pr.mastery_to_next(pr.mastery_level(tr_lv[0])))
+			check("skill points spent on the Captain tree only", pr.skill_points == 6 and pr.points_free("sword") == 4 and pr.points_free("pistol") == 8)
 			check("moveset unlocks", pr.has_move("gun_kata") and pr.has_move("gun_rain") and not pr.has_move("iai_full"))
 			check("skills fill the bar", pc.loadout[1] == "tekkai" and pc.loadout[2] == "flying_slash" and pc.loadout[3] == "bullet_storm")
 			check("stats add up", pr.stat("max_hp") >= 40.0 and pr.has_flag("steadfast"))
@@ -420,14 +419,14 @@ func _process(d: float) -> bool:
 			SG.use_test_file("user://progtest_save.dat")
 			check("save", SG.save(p))
 			set_meta("lv", pr.level); set_meta("owned", pr.owned.size()); set_meta("bar", pc.loadout.duplicate())
-			set_meta("mpts", int(pr.mastery_of("pistol")["pts"]))
+			set_meta("mpts", pr.mastery_level("pistol"))
 			pr.level = 1; pr.owned = {"origin": true}; pr.mastery = {}; pr.tiers = {}
 			for i in range(5): pc.loadout[i] = ""
 			p.unequip_weapon()
 			p.inventory_component.items.clear()
 			check("load", SG.load_into(p))
 			check("level and skill map restored", pr.level == int(get_meta("level" if false else "lv")) and pr.owned.size() == int(get_meta("owned")))
-			check("mastery and tiers restored", int(pr.mastery_of("pistol")["pts"]) == int(get_meta("mpts")) and pr.skill_tier("soru") == 2)
+			check("mastery and tiers restored", pr.mastery_level("pistol") == int(get_meta("mpts")) and pr.skill_tier("soru") == 2)
 			# a save from before the trees: everything refunded
 			var old = load("res://scripts/progression/progression.gd").new()
 			old.from_dict({"level": 5, "xp": 10, "sp": 1, "owned": ["origin", "c_agility", "w_blade"]})

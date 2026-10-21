@@ -1,21 +1,17 @@
 class_name SkillTree
 extends RefCounted
-## The skill trees, one tab each on the skill map:
-##   base     the Captain (shared by every weapon, paid with level skill points): the body's
-##            stats in a ring round the middle; Mobility, Survival, the Seafarer (gated on
-##            the life skills), Armament and Observation Haki (level 10+) and Conqueror's
-##            Haki (level 18+) grow out of it
-##   unarmed, sword (cutlass), katana, axe, dagger, dual, dual_dagger, corsair (sword and pistol), pistol
-##            weapon trees, paid for with that weapon's mastery points (earned by fighting
-##            with it or a weapon of its family); a few big nodes each: its moveset
-##            ("move" nodes), its skills and ultimate, and passives that change how it fights
+## The old skill-tree registry, kept while its last trees move to SkillTrees (the v1.18.2 redesign):
+##   base     the Captain (paid with level skill points): the body's stats in a ring round the middle; Mobility,
+##            Survival, the Seafarer (gated on the life skills), Armament and Observation Haki (level 10+) and
+##            Conqueror's Haki (level 18+) grow out of it
 ##   life     the life skills side by side (swim, sea = Seamanship, cook, fish): learned by doing,
 ##            their perks come by themselves at mastery milestones
 ##   fruit    your Devil Fruit (only once you've eaten one)
-## You can learn any node linked to one you own (if you meet its requirements).
+## The weapon trees are SkillTrees' now; `nodes()` merges SkillTrees' nodes in this shape ("new": true), so a
+## reader of either sees every node.
 ##
 ## Node: {id, name, kind, tree, region, pos, links, cost, effects, skill, req, desc}
-##   kind: origin | root | stat | passive | move | active | ult | perk
+##   kind: origin | root | stat | passive | move | active | ult | perk (and SkillTrees' kinds)
 ##   effects: stat bonuses / flags summed by Progression.stat(); a move node
 ##     carries a flag "mv_<move>" (Progression.has_move)
 ##   req: {"level": n}, {"fruit": id}, {"node": id}, {"life": tree, "life_lv": n} (a life skill's
@@ -32,8 +28,8 @@ extends RefCounted
 ## bleeding wound, backstab_ extra share of a hit landed from behind, evade_ chance a blow
 ## is slipped (the daggers).
 
-## kind: shared (paid with level skill points), weapon (paid with its own mastery points, earned by fighting
-## with it), life (learned by doing: its perks come by themselves at mastery milestones), fruit (skill points),
+## kind: shared (paid with level skill points), weapon (a SkillTrees weapon tree: mastery by fighting with it),
+## life (learned by doing: its perks come by themselves at mastery milestones), fruit (skill points),
 ## tab (a tab that shows other trees: the life skills side by side).
 const TREES := {
 	"base": {"name": "Captain", "tab": "CAPTAIN", "kind": "shared"},
@@ -55,15 +51,6 @@ const TREES := {
 }
 const TAB_ORDER := ["base", "unarmed", "sword", "katana", "axe", "dagger", "dual", "dual_dagger", "corsair", "pistol", "life", "fruit"]
 const LIFE_SKILLS := ["swim", "sea", "cook", "fish"]
-
-## Weapon families: mastery earned with one weapon also builds the others of its family
-## (Progression.FAMILY_SHARE of it). The Corsair is a cutlass and a pistol, so it's in both.
-const FAMILIES := {
-	"blades": ["sword", "katana", "dual", "dagger", "dual_dagger", "corsair"],
-	"heavy": ["axe"],
-	"guns": ["pistol", "corsair"],
-	"fists": ["unarmed"],
-}
 
 ## Fighting style (Player.style()) -> the weapon tree it builds mastery in.
 const STYLE_TREE := {"fist": "unarmed", "sword": "sword", "katana": "katana", "axe": "axe", "dagger": "dagger",
@@ -127,19 +114,13 @@ static func tab_trees(tab: String) -> Array:
 	return LIFE_SKILLS if tab == "life" else [tab]
 
 
-## The other weapon trees that share a family with `tree`.
-static func kin_of(tree: String) -> Array:
-	var out: Array = []
-	for f in FAMILIES.keys():
-		if tree in FAMILIES[f]:
-			for t in FAMILIES[f]:
-				if t != tree and not (t in out):
-					out.append(t)
-	return out
+## No weapon families since 1.18.2 (no carry-over); the old skill map still asks.
+static func kin_of(_tree_id: String) -> Array:
+	return []
 
 
-static func families_of(tree: String) -> Array:
-	return FAMILIES.keys().filter(func(f): return tree in FAMILIES[f])
+static func families_of(_tree_id: String) -> Array:
+	return []
 
 
 ## Owned from the start: the Origin and every weapon and life skill's root.
@@ -176,14 +157,7 @@ static func _p(angle_deg: float, r: float, off_deg: float = 0.0) -> Vector2:
 	return Vector2(cos(a), sin(a)) * r
 
 
-## Weapon trees sit on a grid growing up from the root: column (100 apart),
-## row (72 apart). Skills keep the spot under their name clear.
-static func _g(col: float, row: float) -> Vector2:
-	return Vector2(col * 100.0, -row * 72.0)
-
-
-## Costs (unless given): a move 1, a stat or passive 2, an active 2, an ultimate 4 (a Devil Fruit's
-## tree keeps its own: 1, 2, 3).
+## Costs (unless given): a stat or passive 2, an active 2, an ultimate 4 (a Devil Fruit's tree keeps its own: 1, 2, 3).
 static func _add(id: String, name_: String, kind: String, region: String, pos: Vector2, links: Array,
 		effects: Dictionary = {}, desc: String = "", req: Dictionary = {}, skill: String = "", cost: int = -1) -> void:
 	var c := cost
@@ -201,16 +175,7 @@ static func _add(id: String, name_: String, kind: String, region: String, pos: V
 static func _build() -> void:
 	_nodes = {}
 	_build_base()
-	_build_unarmed()
-	_build_cutlass()
-	_build_axe()
-	_build_dual()
-	_build_dagger()
-	_build_dual_dagger()
-	_build_corsair()
-	_build_pistol()
 	_build_life()
-	_build_mastery()
 	_build_fruits()
 	_merge_new()
 
@@ -363,300 +328,6 @@ static func _build_life() -> void:
 	_perk("fs_salt", "Old Salt", "Fishing", 15, 5, "fs_lore", {"fish_double": 0.15}, "15% of your catches come up two at once.")
 	_perk("fs_master", "Master Angler", "Fishing", 20, 6, "fs_salt", {"fish_legend": 1.0, "fish_reel_pct": 0.15},
 		"Legendary fish come twice as often, and the float stays down another 15% longer.")
-
-
-## Weapon trees share a shape on the grid: the root at the bottom with the moveset either side of it
-## (row 0), defence and grapples up the left (col -2), the stat node and the skills up the middle to the
-## top stat and the ultimate, the passives that shape the style up the right (col 2), the element's two
-## mastery nodes just left of the skill and the top stat they hang off (col -1).
-static func _build_unarmed() -> void:
-	_tree = "unarmed"
-	var R := "Unarmed"
-	_add("u_root", "Unarmed", "root", R, _g(0, 0), [], {},
-		"Bare-handed brawling: jab, cross, hook and a flying kick. Fight with your fists to build unarmed mastery.")
-	_add("u_round", "Roundhouse", "move", R, _g(-2, 0), ["u_root"], {"mv_roundhouse": 1},
-		"Adds a fourth hit to your punch combo: a spinning roundhouse kick.")
-	_add("u_meteor", "Meteor Kick", "move", R, _g(2, 0), ["u_root"], {"mv_meteor_kick": 1},
-		"Attack in the air: a dive kick at the enemy you're looking at that knocks them flat and bounces you back up for another (three in a row); a miss slams the ground.", {"level": 3})
-	_add("u_knuckles", "Iron Knuckles", "stat", R, _g(0, 1), ["u_root"], {"dmg_unarmed": 0.12, "stam_unarmed": 0.2},
-		"+12% unarmed damage, and unarmed attacks cost 20% less stamina.")
-	# grapples
-	_add("u_hip", "Shoulder Throw", "active", R, _g(-2, 1), ["u_round"], {}, "", {}, "hip_toss")
-	_add("u_landing", "Heavy Landing", "passive", R, _g(-2, 2), ["u_hip"], {"throw_splash": 1, "skill_unarmed": 0.25},
-		"Anyone you throw lands like a cannonball: everyone near where they land is knocked flat and hurt. Your grapples and martial arts hit 25% harder.")
-	_add("u_suplex", "Suplex", "active", R, _g(-2, 3), ["u_landing"], {}, "", {}, "suplex")
-	_add("u_swing", "Giant Swing", "active", R, _g(-2, 4), ["u_suplex"], {}, "", {"level": 6}, "giant_swing")
-	# martial arts
-	_add("u_palm", "Shockwave Palm", "active", R, _g(0, 2), ["u_knuckles"], {}, "", {}, "palm_strike")
-	_add("u_dragon", "Rising Dragon", "active", R, _g(0, 3), ["u_palm"], {}, "", {}, "rising_dragon")
-	_add("u_hundred", "Hundred Fists", "active", R, _g(0, 4), ["u_dragon"], {}, "", {"level": 4}, "hundred_fists")
-	_add("u_thousand", "Thousand Fists", "stat", R, _g(0, 5), ["u_hundred", "u_finish"], {"dmg_unarmed": 0.18, "crit_unarmed": 0.12},
-		"+18% unarmed damage, and 12% of your unarmed hits land 50% harder.", {"level": 10}, "", 3)
-	_add("u_seaking", "Sea King Fist", "ult", R, _g(0, 6), ["u_thousand"], {}, "", {"level": 12}, "sea_king_fist")
-	# body
-	_add("u_ironbody", "Iron Body", "passive", R, _g(2, 1), ["u_meteor", "u_knuckles"], {"def_unarmed": 8.0, "parry_unarmed": 0.06},
-		"Fighting bare-handed: +8 defense and a wider parry window.")
-	_add("u_chi", "Chi", "passive", R, _g(2, 2), ["u_ironbody"], {"flow_unarmed": 0.5, "leech_unarmed": 0.06},
-		"Unarmed hits give 50% more energy and heal you for 6% of their damage.")
-	_add("u_finish", "Finishing Blow", "passive", R, _g(2, 3), ["u_chi"], {"finisher_unarmed": 0.4, "cdr_unarmed": 0.2},
-		"The last hit of your combo lands 40% harder, and unarmed techniques come back 20% sooner.")
-
-
-## Each weapon's element, awakened by two mastery passives: the first shows it
-## on the tree's skills and ultimate, the second on every blow. Each sits just
-## left of the node it hangs off: the first by a skill, the second by the top stat.
-## tree: [prefix, region, link 1, link 2, name 1, name 2, element (for the text)]
-const MASTERY := {
-	"sword": ["s", "Cutlass", "s_flying", "s_captain", "Call of the Tide", "Tidewalker", "the sea: spray and foam, and Kraken's Wake raises the deep under your foes"],
-	"axe": ["a", "Axe", "a_overhead", "a_warlord", "Ember Heart", "Living Fire", "embers and splintered stone"],
-	"dual": ["d", "Dual Wield", "d_dance", "d_master", "Twin Currents", "Crossing Storm", "twin currents of light, cyan and violet, crossing in an X"],
-	"corsair": ["cs", "Corsair", "cs_grape", "cs_captain", "Black Powder", "Powder Keg", "black powder: scarlet flashes, gold sparks and dark smoke, and Broadside's cannon fire burns"],
-	"dagger": ["dg", "Dagger", "dg_fan", "dg_night", "Nightfall", "Blood Moon", "shadow: black wisps off the blade and crimson sparks, and Red Eclipse's wounds open in the dark"],
-	"dual_dagger": ["dd", "Twin Daggers", "dd_viper", "dd_master", "Viper's Kiss", "Serpent's Coil", "venom: green motes and poison bubbling off every wound"],
-	"pistol": ["g", "Pistol", "g_storm", "g_legend", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
-	"unarmed": ["u", "Unarmed", "u_palm", "u_thousand", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
-}
-
-static func _build_mastery() -> void:
-	for tr in MASTERY.keys():
-		var m: Array = MASTERY[tr]
-		_tree = tr
-		var p: String = m[0]
-		var left := Vector2(-100.0, 0.0)
-		_add(p + "_elem", m[4], "passive", m[1], _nodes[m[2]]["pos"] + left, [m[2]], {"elem_" + tr: 1},
-			"Mastery. Your %s skills awaken: %s." % [str(m[1]).to_lower(), m[6]], {"level": 8}, "", 2)
-		_add(p + "_elem2", m[5], "passive", m[1], _nodes[m[3]]["pos"] + left, [m[3]], {"elem2_" + tr: 1},
-			"Mastery. The element follows every blow: your %s combo and heavy attack carry it too." % str(m[1]).to_lower(),
-			{"level": 16, "node": p + "_elem"}, "", 3)
-
-
-static func _build_cutlass() -> void:
-	_tree = "sword"
-	var R := "Cutlass"
-	_add("s_root", "Cutlass", "root", R, _g(0, 0), [], {},
-		"The pirate's blade: quick cuts and a lunging thrust. Fight with a cutlass (or any blade, a little) to build its mastery.")
-	_add("s_dash", "Running Cut", "move", R, _g(-2, 0), ["s_root"], {"mv_dash_cut": 1},
-		"Attack at a sprint: one low cut driving through the target, breaking its wind-up.")
-	_add("s_dive", "Boarding Dive", "move", R, _g(2, 0), ["s_root"], {"mv_boarding_dive": 1},
-		"Attack in the air: the blade drawn back, then a point-first dive at the enemy you're looking at and a backflip off them (once per jump).", {"level": 3})
-	_add("s_edge", "Keen Edge", "stat", R, _g(0, 1), ["s_root"], {"dmg_sword": 0.14, "stam_sword": 0.15},
-		"+14% cutlass damage, and cutlass attacks cost 15% less stamina.")
-	# defence
-	_add("s_deflect", "Arrow Cutting", "passive", R, _g(-2, 1), ["s_dash"], {"parryshot_sword": 1, "parry_sword": 0.06},
-		"Parry with a cutlass and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
-	_add("s_riposte", "Riposte", "active", R, _g(-2, 2), ["s_deflect"], {}, "", {}, "riposte")
-	_add("s_return", "Return to Sender", "passive", R, _g(-2, 3), ["s_riposte"], {"deflect_sword": 1, "return_sword": 1, "deflect_cd_sword": 1.0},
-		"Mastered: with a cutlass drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.", {"level": 4}, "", 3)
-	# skills
-	_add("s_flying", "Flying Slash", "active", R, _g(0, 2), ["s_edge"], {}, "", {}, "flying_slash")
-	_add("s_swordfish", "Swordfish Flurry", "active", R, _g(0, 3), ["s_flying"], {}, "", {}, "swordfish")
-	_add("s_captain", "Captain's Blade", "stat", R, _g(0, 4), ["s_swordfish", "s_swash"], {"dmg_sword": 0.22, "crit_sword": 0.1},
-		"+22% cutlass damage, and 10% of your cutlass hits land 50% harder.", {"level": 10}, "", 3)
-	_add("s_kraken", "Kraken's Wake", "ult", R, _g(0, 5), ["s_captain"], {}, "", {"level": 12}, "kraken_wake")
-	# style
-	_add("s_flourish", "Flourish", "passive", R, _g(2, 1), ["s_dive", "s_edge"], {"finisher_sword": 0.3, "heavy_sword": 0.25},
-		"The last cut of your combo lands 30% harder, and your lunging thrust 25%.")
-	_add("s_plunder", "Plunder", "passive", R, _g(2, 2), ["s_flourish"], {"leech_sword": 0.06, "exec_sword": 0.5},
-		"Cutlass hits heal you for 6% of their damage, and a hit that leaves them under 30% health deals 50% more on top.")
-	_add("s_swash", "Swashbuckler", "passive", R, _g(2, 3), ["s_plunder"], {"cdr_sword": 0.2, "flow_sword": 0.4},
-		"Cutlass techniques come back 20% sooner, and cutlass hits give 40% more energy.")
-
-
-static func _build_axe() -> void:
-	_tree = "axe"
-	var R := "Axe"
-	_add("a_root", "Axe", "root", R, _g(0, 0), [], {},
-		"Heavy, deliberate hacks and a whirlwind on heavy. Fight with an axe to build its mastery.")
-	_add("a_sky", "Skybreaker", "move", R, _g(-2, 0), ["a_root"], {"mv_skybreaker": 1},
-		"Attack in the air: spring into a somersault and split the ground in a line ahead, knocking everyone on it flat.")
-	_add("a_heft", "Heft", "stat", R, _g(0, 1), ["a_root"], {"dmg_axe": 0.14, "stam_axe": 0.15},
-		"+14% axe damage, and axe attacks cost 15% less stamina.")
-	# brute force
-	_add("a_throw", "Hatchet Throw", "active", R, _g(-2, 1), ["a_sky"], {}, "", {}, "axe_throw")
-	_add("a_split", "Earthsplitter", "active", R, _g(-2, 2), ["a_throw"], {}, "", {}, "earthsplitter")
-	_add("a_frenzy", "Frenzy", "passive", R, _g(-2, 3), ["a_split"], {"crit_axe": 0.1, "cdr_axe": 0.2},
-		"10% of your axe hits land 50% harder, and axe techniques come back 20% sooner.")
-	# fury
-	_add("a_overhead", "Overhead", "passive", R, _g(0, 2), ["a_heft"], {"heavy_axe": 0.3}, "Your whirlwind hits 30% harder.")
-	_add("a_unstop", "Unstoppable", "passive", R, _g(0, 3), ["a_overhead"], {"armor_axe": 1},
-		"Mid-swing with an axe, blows don't make you flinch or knock you off your feet.", {"level": 4})
-	_add("a_berserk", "Berserk", "active", R, _g(0, 4), ["a_unstop", "a_exec"], {}, "", {}, "berserk")
-	_add("a_warlord", "Warlord", "stat", R, _g(0, 5), ["a_berserk"], {"dmg_axe": 0.22, "def_axe": 8.0},
-		"+22% axe damage, and +8 defense with an axe in hand.", {"level": 10}, "", 3)
-	_add("a_maelstrom", "Maelstrom", "ult", R, _g(0, 6), ["a_warlord"], {}, "", {"level": 12}, "maelstrom")
-	# blood
-	_add("a_blood", "Bloodlust", "passive", R, _g(2, 1), ["a_root", "a_heft"], {"flow_axe": 0.4, "leech_axe": 0.08},
-		"Axe hits give 40% more energy and heal you for 8% of their damage.")
-	_add("a_sunder", "Sunder", "passive", R, _g(2, 2), ["a_blood"], {"unblock_axe": 1}, "Your heavy attacks can't be blocked.")
-	_add("a_exec", "Executioner", "passive", R, _g(2, 3), ["a_sunder"], {"exec_axe": 0.5},
-		"A hit that leaves them under 30% health deals 50% more on top.")
-
-
-static func _build_dual() -> void:
-	_tree = "dual"
-	var R := "Dual Wield"
-	_add("d_root", "Dual Wield", "root", R, _g(0, 0), [], {},
-		"A blade in each hand: fast cuts trading hands and a crashing double overhead. A cutlass with a second sword, an axe or a dagger: an off-hand axe hacks harder but slower, a dagger stabs lighter and quicker. Fight with two blades (or any blade, a little) to build dual-wield mastery.")
-	_add("d_spin", "Twin Spin", "move", R, _g(-2, 0), ["d_root"], {"mv_twin_spin": 1},
-		"Adds a fourth hit to your combo: both blades whirled round in a spin.")
-	_add("d_cyclone", "Twin Cyclone", "move", R, _g(2, 0), ["d_root"], {"mv_twin_cyclone": 1},
-		"Attack in the air: blades crossed, then a drill of turns down and forward cutting everyone close on every turn, and a burst on landing that knocks them flat.", {"level": 3})
-	_add("d_twin", "Twin Blades", "stat", R, _g(0, 1), ["d_root"], {"dmg_dual": 0.16, "stam_dual": 0.15},
-		"+16% damage while dual wielding, and dual-wield attacks cost 15% less stamina.")
-	# guard
-	_add("d_deflect", "Twin Deflect", "passive", R, _g(-2, 1), ["d_spin"], {"parryshot_dual": 1, "parry_dual": 0.06},
-		"Parry with two blades and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
-	_add("d_counter", "Crossed Counter", "active", R, _g(-2, 2), ["d_deflect"], {}, "", {}, "cross_counter")
-	_add("d_return", "Ricochet Steel", "passive", R, _g(-2, 3), ["d_counter"], {"deflect_dual": 1, "return_dual": 1, "deflect_cd_dual": 1.0},
-		"Mastered: with both blades drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.", {"level": 4}, "", 3)
-	# dance
-	_add("d_dance", "Blade Dance", "active", R, _g(0, 2), ["d_twin"], {}, "", {}, "blade_dance")
-	_add("d_cross", "Cross Fang", "active", R, _g(0, 3), ["d_dance"], {}, "", {}, "cross_fang")
-	_add("d_master", "Twin Master", "stat", R, _g(0, 4), ["d_cross", "d_exec"], {"dmg_dual": 0.26, "crit_dual": 0.12},
-		"+26% damage while dual wielding, and 12% of your dual-wield hits land 50% harder.", {"level": 10}, "", 3)
-	_add("d_tempest", "Tempest of Steel", "ult", R, _g(0, 5), ["d_master"], {}, "", {"level": 12}, "steel_tempest")
-	# edge
-	_add("d_whirl", "Whirling Steel", "passive", R, _g(2, 1), ["d_cyclone", "d_twin"], {"flow_dual": 0.4, "finisher_dual": 0.35},
-		"Dual-wield hits give 40% more energy, and the last cut of your combo lands 35% harder.")
-	_add("d_tech", "Dancer", "passive", R, _g(2, 2), ["d_whirl"], {"cdr_dual": 0.2, "leech_dual": 0.06},
-		"Dual-wield techniques come back 20% sooner, and hits heal you for 6% of their damage.")
-	_add("d_exec", "Thousand Cuts", "passive", R, _g(2, 3), ["d_tech"], {"exec_dual": 0.4},
-		"A cut that leaves them under 30% health deals 40% more on top.")
-
-
-## One dagger: the root brings its nature (crits, wounds that bleed, a blade in the back).
-static func _build_dagger() -> void:
-	_tree = "dagger"
-	var R := "Dagger"
-	_add("dg_root", "Dagger", "root", R, _g(0, 0), [], {"crit_dagger": 0.1, "bleed_dagger": 0.15, "backstab_dagger": 0.5},
-		"A short blade for close work: quick stabs and cuts, and on right-click you're gone and out from behind the one in front. 10% of your hits are crits, 15% open a wound that bleeds, and a blade in the back deals half again. Fight with a dagger (or any blade, a little) to build its mastery.")
-	_add("dg_gut", "Gutting Strike", "move", R, _g(-2, 0), ["dg_root"], {"mv_gut_strike": 1},
-		"Adds a fourth hit to your combo: a turn on the heel, the off hand seizes them and the blade goes in low. It bleeds.")
-	_add("dg_fang", "Fang Dive", "move", R, _g(2, 0), ["dg_root"], {"mv_fang_dive": 1},
-		"Attack in the air: knees tucked and the blade drawn back, then a dive at the enemy you're looking at that always finds the gap (a sure crit that bleeds) and a backflip off them (once per jump).", {"level": 3})
-	_add("dg_edge", "Whetstone", "stat", R, _g(0, 1), ["dg_root"], {"dmg_dagger": 0.14, "stam_dagger": 0.15},
-		"+14% dagger damage, and dagger attacks cost 15% less stamina.")
-	# guard
-	_add("dg_deflect", "Flick the Shot", "passive", R, _g(-2, 1), ["dg_gut"], {"parryshot_dagger": 1, "evade_dagger": 0.08},
-		"Parry with a dagger and you flick gunshots aside too (without it, a parry only stops blades), and 8% of the blows that would hit you are slipped by instinct.")
-	_add("dg_slip", "Slip", "active", R, _g(-2, 2), ["dg_deflect"], {}, "", {}, "slip")
-	_add("dg_return", "Knife in the Dark", "passive", R, _g(-2, 3), ["dg_slip"], {"deflect_dagger": 1, "return_dagger": 1, "deflect_cd_dagger": 1.0},
-		"Mastered: with a dagger drawn, a shot from the front is flicked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.", {"level": 4}, "", 3)
-	# skills
-	_add("dg_fan", "Knife Fan", "active", R, _g(0, 2), ["dg_edge"], {}, "", {}, "knife_fan")
-	_add("dg_cut", "Cutthroat", "active", R, _g(0, 3), ["dg_fan"], {}, "", {"level": 4}, "cutthroat")
-	_add("dg_night", "Night Blade", "stat", R, _g(0, 4), ["dg_cut", "dg_open"], {"dmg_dagger": 0.22, "crit_dagger": 0.1},
-		"+22% dagger damage, and another 10% of your dagger hits land 50% harder.", {"level": 10}, "", 3)
-	_add("dg_eclipse", "Red Eclipse", "ult", R, _g(0, 5), ["dg_night"], {}, "", {"level": 12}, "red_eclipse")
-	# blood
-	_add("dg_deep", "Deep Cuts", "passive", R, _g(2, 1), ["dg_fang", "dg_edge"], {"bleed_dagger": 0.15, "flow_dagger": 0.4},
-		"Another 15% of your dagger hits open a wound that bleeds, and dagger hits give 40% more energy.")
-	_add("dg_back", "In the Back", "passive", R, _g(2, 2), ["dg_deep"], {"backstab_dagger": 0.3, "heavy_dagger": 0.3},
-		"A blade in the back deals another 30% on top, and your Shadow Lunge (right-click) hits 30% harder.")
-	_add("dg_open", "Open Vein", "passive", R, _g(2, 3), ["dg_back"], {"exec_dagger": 0.5, "leech_dagger": 0.06},
-		"A hit that leaves them under 30% health deals 50% more on top, and dagger hits heal you for 6% of their damage.")
-
-
-## Two daggers: a set of their own (not the dual-wield tree), venom and speed.
-static func _build_dual_dagger() -> void:
-	_tree = "dual_dagger"
-	var R := "Twin Daggers"
-	_add("dd_root", "Twin Daggers", "root", R, _g(0, 0), [], {"crit_dual_dagger": 0.08, "bleed_dual_dagger": 0.2, "backstab_dual_dagger": 0.35},
-		"A dagger in each hand: the fastest blows you can throw, a scissor rip on right-click. 8% of your hits are crits, 20% open a wound that bleeds, and a blade in the back deals a third again. Fight with two daggers (or any blade, a little) to build their mastery.")
-	_add("dd_whirl", "Fang Whirl", "move", R, _g(-2, 0), ["dd_root"], {"mv_fang_whirl": 1},
-		"Adds a fourth hit to your combo: a whirl with both blades out, then both driven in together. It bleeds.")
-	_add("dd_knives", "Knife Rain", "move", R, _g(2, 0), ["dd_root"], {"mv_knife_rain": 1},
-		"Attack in the air: hang a beat and fling a fistful of knives down at up to four enemies below and ahead; every one cut bleeds (once per jump).", {"level": 3})
-	_add("dd_twin", "Paired Fangs", "stat", R, _g(0, 1), ["dd_root"], {"dmg_dual_dagger": 0.14, "stam_dual_dagger": 0.15},
-		"+14% damage with two daggers, and twin-dagger attacks cost 15% less stamina.")
-	# guard and tricks
-	_add("dd_deflect", "Crossed Knives", "passive", R, _g(-2, 1), ["dd_whirl"], {"parryshot_dual_dagger": 1, "evade_dual_dagger": 0.08},
-		"Parry with two daggers and you knock gunshots aside too (without it, a parry only stops blades), and 8% of the blows that would hit you are slipped by instinct.")
-	_add("dd_edge", "Bleeding Edge", "active", R, _g(-2, 2), ["dd_deflect"], {}, "", {}, "bleeding_edge")
-	_add("dd_return", "Knives Back", "passive", R, _g(-2, 3), ["dd_edge"], {"deflect_dual_dagger": 1, "return_dual_dagger": 1, "deflect_cd_dual_dagger": 1.0},
-		"Mastered: with both daggers drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.", {"level": 4}, "", 3)
-	# fangs
-	_add("dd_viper", "Viper Flurry", "active", R, _g(0, 2), ["dd_twin"], {}, "", {}, "viper_flurry")
-	_add("dd_leap", "Scissor Leap", "active", R, _g(0, 3), ["dd_viper"], {}, "", {"level": 4}, "scissor_leap")
-	_add("dd_master", "Viper King", "stat", R, _g(0, 4), ["dd_leap", "dd_exec"], {"dmg_dual_dagger": 0.24, "crit_dual_dagger": 0.1},
-		"+24% damage with two daggers, and another 10% of your hits land 50% harder.", {"level": 10}, "", 3)
-	_add("dd_fangs", "Hundred Fangs", "ult", R, _g(0, 5), ["dd_master"], {}, "", {"level": 12}, "hundred_fangs")
-	# venom
-	_add("dd_deep", "Open Wounds", "passive", R, _g(2, 1), ["dd_knives", "dd_twin"], {"bleed_dual_dagger": 0.15, "flow_dual_dagger": 0.4},
-		"Another 15% of your twin-dagger hits open a wound that bleeds, and they give 40% more energy.")
-	_add("dd_back", "Two in the Back", "passive", R, _g(2, 2), ["dd_deep"], {"backstab_dual_dagger": 0.25, "heavy_dual_dagger": 0.3},
-		"A blade in the back deals another 25% on top, and your Scissor Rip (right-click) hits 30% harder.")
-	_add("dd_exec", "Death by Cuts", "passive", R, _g(2, 3), ["dd_back"], {"exec_dual_dagger": 0.4, "leech_dual_dagger": 0.06},
-		"A hit that leaves them under 30% health deals 40% more on top, and twin-dagger hits heal you for 6% of their damage.")
-
-
-static func _build_corsair() -> void:
-	_tree = "corsair"
-	var R := "Corsair"
-	_add("cs_root", "Corsair", "root", R, _g(0, 0), [], {},
-		"A cutlass in your hand and a pistol in the other: cuts and point-blank shots, a lunge that ends in a shot on right-click. The pistol holds two balls and reloads itself as you fight. Fight this way (or with any blade or gun, a little) to build Corsair mastery.")
-	_add("cs_finale", "Powder Finale", "move", R, _g(-2, 0), ["cs_root"], {"mv_powder_finale": 1},
-		"Adds a fourth hit to your combo: a full turn with the blade out, then a shot point-blank that knocks them flat.")
-	_add("cs_drop", "Dead Man's Drop", "move", R, _g(2, 0), ["cs_root"], {"mv_deadmans_drop": 1},
-		"Attack in the air: lean over the enemy you're looking at and fire down into them (it pins them), then dive through them point first; the landing knocks everyone close flat (once per jump).", {"level": 3})
-	_add("cs_steel", "Boarding Steel", "stat", R, _g(0, 1), ["cs_root"], {"dmg_corsair": 0.12, "stam_corsair": 0.15},
-		"+12% damage with sword and pistol, and their attacks cost 15% less stamina.")
-	# guard
-	_add("cs_deflect", "Steel and Shot", "passive", R, _g(-2, 1), ["cs_finale"], {"parryshot_corsair": 1, "parry_corsair": 0.06},
-		"Parry with the cutlass and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
-	_add("cs_parley", "Parley", "active", R, _g(-2, 2), ["cs_deflect"], {}, "", {}, "parley")
-	_add("cs_return", "Return Fire", "passive", R, _g(-2, 3), ["cs_parley"], {"deflect_corsair": 1, "return_corsair": 1, "deflect_cd_corsair": 1.0},
-		"Mastered: with the cutlass drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.", {"level": 4}, "", 3)
-	# skills
-	_add("cs_bandolier", "Bandolier", "passive", R, _g(-1, 1), ["cs_steel", "cs_finale"], {"shots_corsair": 1, "reload_corsair": 0.35},
-		"The off-hand pistol holds one more ball and reloads 35% faster.")
-	_add("cs_grape", "Grapeshot", "active", R, _g(0, 2), ["cs_steel"], {}, "", {}, "grapeshot")
-	_add("cs_cross", "Crossfire", "active", R, _g(0, 3), ["cs_grape"], {}, "", {"level": 4}, "crossfire")
-	_add("cs_captain", "Dread Captain", "stat", R, _g(0, 4), ["cs_cross", "cs_noquarter"], {"dmg_corsair": 0.16, "crit_corsair": 0.1},
-		"+16% damage with sword and pistol, and 10% of your hits land 50% harder.", {"level": 10}, "", 3)
-	_add("cs_broadside", "Broadside", "ult", R, _g(0, 5), ["cs_captain"], {}, "", {"level": 12}, "broadside")
-	# powder
-	_add("cs_rhythm", "Smoke and Steel", "passive", R, _g(2, 1), ["cs_drop", "cs_steel"], {"flow_corsair": 0.4, "heavy_corsair": 0.3},
-		"Sword-and-pistol hits give 40% more energy, and your Powder Lunge (right-click) hits 30% harder, the shot too.")
-	_add("cs_smoke", "Gunsmoke", "passive", R, _g(2, 2), ["cs_rhythm"], {"cdr_corsair": 0.2, "leech_corsair": 0.06},
-		"Sword-and-pistol techniques come back 20% sooner, and hits heal you for 6% of their damage.")
-	_add("cs_noquarter", "No Quarter", "passive", R, _g(2, 3), ["cs_smoke"], {"exec_corsair": 0.5},
-		"A hit that leaves them under 30% health deals 50% more on top.")
-
-
-static func _build_pistol() -> void:
-	_tree = "pistol"
-	var R := "Pistol"
-	_add("g_root", "Pistol", "root", R, _g(0, 0), [], {},
-		"Two shots, then reload. A second pistol in the off hand alternates them. Shoot (or fight as a Corsair, a little) to build pistol mastery.")
-	_add("g_kata", "Gun Kata", "move", R, _g(-2, 0), ["g_root"], {"mv_gun_kata": 1},
-		"Dual pistols' heavy: a hop into a double spin, arms crossed, shooting everyone close. (Without it: a pistol-whip.)")
-	_add("g_hangshot", "Hang Shot", "move", R, _g(2, 0), ["g_root"], {"mv_hang_shot": 1},
-		"One pistol in the air: hang a beat drawing a bead, then one heavy shot at the reticle that knocks them flat, the recoil throwing you back (once per jump, uses a shot).", {"level": 3})
-	_add("g_marks", "Marksman", "stat", R, _g(0, 1), ["g_root"], {"dmg_pistol": 0.12, "reload_pct": 0.35},
-		"+12% damage with pistols, and you reload 35% faster.")
-	# tricks
-	_add("g_rain", "Gun Rain", "move", R, _g(-2, 1), ["g_kata"], {"mv_gun_rain": 1},
-		"Dual pistols in the air: fire both guns down at once, the recoil launching you forward.")
-	_add("g_smoke", "Smoke Bomb", "active", R, _g(-1, 1), ["g_kata", "g_marks"], {}, "", {}, "smoke_bomb")
-	_add("g_hang", "Hang Time", "passive", R, _g(-2, 2), ["g_rain"], {"gun_rain_uses": 1},
-		"Gun Rain can be fired twice before you land.", {"level": 6})
-	# shots
-	_add("g_storm", "Bullet Storm", "active", R, _g(0, 2), ["g_marks"], {}, "", {}, "bullet_storm")
-	_add("g_dead", "Deadeye", "active", R, _g(0, 3), ["g_storm", "g_smoke"], {}, "", {}, "deadeye")
-	_add("g_ricochet", "Ricochet", "passive", R, _g(0, 4), ["g_dead"], {"ricochet": 1},
-		"Every pistol ball that hits glances off into the nearest other enemy for 60% damage.", {"level": 6})
-	_add("g_legend", "Legendary Gunman", "stat", R, _g(0, 5), ["g_ricochet", "g_exec"], {"dmg_pistol": 0.2, "crit_pistol": 0.12},
-		"+20% damage with pistols, and 12% of your shots land 50% harder.", {"level": 10}, "", 3)
-	_add("g_waltz", "Death's Waltz", "ult", R, _g(0, 6), ["g_legend"], {}, "", {"level": 12}, "deaths_waltz")
-	# close work
-	_add("g_powder", "Extra Powder", "passive", R, _g(2, 1), ["g_hangshot", "g_marks"], {"extra_shots": 1},
-		"Every pistol holds one more shot.", {"level": 4})
-	_add("g_point", "Point Blank", "active", R, _g(2, 2), ["g_powder"], {}, "", {}, "point_blank")
-	_add("g_close", "Close Quarters", "passive", R, _g(2, 3), ["g_point"], {"pointblank_pct": 0.4, "leech_pistol": 0.05},
-		"Shots from within 5 m hit 40% harder, and pistol hits heal you for 5% of their damage.")
-	_add("g_exec", "Coup de Grace", "passive", R, _g(2, 4), ["g_close"], {"exec_pistol": 0.4, "cdr_pistol": 0.2},
-		"A shot that leaves them under 30% health deals 40% more on top, and pistol techniques come back 20% sooner.")
 
 
 ## Devil Fruits (only the one you've eaten shows; its root comes with the fruit).

@@ -52,7 +52,7 @@ func _process(_d: float) -> bool:
 			check("...what it bought is gone (Folded Steel, the ultimate)", not pr.owns("k_folded") and not pr.owns("k_saint") and not pr.owns("k_petals"))
 			check("...its big nodes back by level (Quick Draw 2 .. Iai Counter 8)", pr.owns("k_draw") and pr.owns("k_wind") and pr.owns("k_full") and pr.owns("k_counter") and not pr.owns("k_tiger"))
 			check("...every point free: 8", pr.points_free("katana") == 8)
-			check("the cutlass (not converted yet) keeps its nodes and points", pr.owns("s_edge") and pr.points("sword") == 2 and pr.skill_points == 3)
+			check("the cutlass too: its old Keen Edge node gone, every point free (4), the Captain's skill points kept", not pr.owns("s_edge") and pr.points_free("sword") == 4 and pr.skill_points == 3)
 			check("uses kept", pr.uses_of("wind_sever") == 7)
 			check("the katana shows", "katana" in pr.visible_trees("combat"))
 			pr.buy_step("k_keen")

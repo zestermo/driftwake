@@ -215,15 +215,13 @@ func _process(d: float) -> bool:
 			pr.owned.erase("s_elem")
 			pr.owned.erase("s_elem2")
 			check("no element at first", not pr.elemental("sword") and not pr.elemental("sword", 2))
-			pr.level = 5
-			pr.owned["s_flying"] = true
-			pr.mastery_of("sword")["pts"] = 10
-			check("tier 1 needs level 8 (%s)" % pr.can_learn("s_elem"), pr.can_learn("s_elem").contains("level"))
-			pr.level = 20
-			pr.owned["s_captain"] = true
-			check("tier 2 needs tier 1 (%s)" % pr.can_learn("s_elem2"), pr.can_learn("s_elem2").contains("Call of the Tide"))
-			check("tier 1 learned", pr.learn("s_elem") and pr.elemental("sword") and not pr.elemental("sword", 2))
-			check("tier 2 learned", pr.learn("s_elem2") and pr.elemental("sword", 2))
+			check("tier 1 comes at cutlass mastery 16, tier 2 at 25 (%s)" % pr.can_learn("s_elem"), pr.can_learn("s_elem") == "Comes at Cutlass 16" and pr.can_learn("s_elem2") == "Comes at Cutlass 25")
+			while pr.mastery_level("sword") < 16:
+				pr.add_mastery("sword", pr.mastery_to_next(pr.mastery_level("sword")))
+			check("tier 1 reached", pr.elemental("sword") and not pr.elemental("sword", 2))
+			while pr.mastery_level("sword") < 25:
+				pr.add_mastery("sword", pr.mastery_to_next(pr.mastery_level("sword")))
+			check("tier 2 reached", pr.elemental("sword", 2))
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 			return true

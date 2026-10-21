@@ -189,7 +189,7 @@ func _process(d: float) -> bool:
 			if t - t0 < 0.8: return false
 			p.progression.level = 10
 			p.progression.skill_points = 9
-			p.progression.mastery_of("sword")["pts"] = 3
+			p.progression.add_mastery("sword", 300)
 			for nid in ["c_agility", "m_geppo", "m_soru", "c_strength", "s_edge", "s_flying", "c_vitality", "v_hardy"]:
 				p.progression.learn(nid)
 			p.progression.xp = 600

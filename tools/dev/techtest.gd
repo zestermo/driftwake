@@ -164,9 +164,7 @@ func _process(d: float) -> bool:
 			pr.level = 30
 			pr.skill_points = 999
 			for tr in SkillTree.TREES.keys():
-				if SkillTree.is_weapon_tree(tr):
-					pr.mastery_of(tr)["pts"] = 999
-				elif SkillTree.is_life_tree(tr):
+				if SkillTree.is_life_tree(tr):
 					pr.add_life(tr, 999999)
 			pr.master_all()
 			var grew := true
@@ -191,8 +189,8 @@ func _process(d: float) -> bool:
 						if SkillTree.nodes()[k]["kind"] == "ult":
 							ults += 1
 				print("   %s: %d nodes" % [tr, n])
-				trees_ok = trees_ok and n >= 14 and n <= 19 and ults == 1
-			check("each weapon tree has a few big nodes (14-19) and one ultimate", trees_ok)
+				trees_ok = trees_ok and n >= 12 and n <= 19 and ults == 1
+			check("each weapon tree has a few big nodes (12-19) and one ultimate", trees_ok)
 			var icons := true
 			for sk in Skills.ALL.keys():
 				icons = icons and Skills.icon(sk) != null
