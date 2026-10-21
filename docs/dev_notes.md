@@ -5199,3 +5199,16 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   tools/dev/out/bl/ (a_*/b_*/c_* animsheets: the kicks, heavy, handstand, mule, cartwheel; ab_last_course, ab_black_leg_heavy).
   Expect techtest/progtest/balancetest/uitest (a new tab), qoltest/storytest (Gus's dialogue), save tests (a new "kicks" key),
   nettest (a new snapshot field) and the loadout tests to want a look at the push.
+## 2026-10-21: v1.18.3 shipped unstable; stable/unstable releases on GitHub and the site
+- What: 1.18.3 (the five new weapon kinds, the stance pass, controller support) released as an **unstable** build after
+  light testing (compile, smoketest, t/weapons, t/progression, t/input, t/combat, t/player, t/ui: 91 passed). No full
+  suite run, nettest or perf gate: the next stable release owes those (docs/weapons_plan.md "Follow-ups after 1.18.3").
+- How unstable works: `tools/release/UNSTABLE` present when a v* tag is pushed -> build-windows.yml publishes a GitHub
+  **pre-release** (`prerelease:` / `make_latest:` from hashFiles). GitHub's releases/latest skips pre-releases, so the
+  site's `/download` (`_redirects` -> releases/latest) stays on the last stable (v1.18). v1.18.1 and v1.18.2 were
+  flipped by hand (`gh release edit v1.18.1 --prerelease`, `gh release edit v1.18 --latest`).
+- Site: roadmap.json versions carry `"unstable": true` (roadmap.js filters them before building; `"here"` names the last
+  stable); releases/index.html has an Unstable section (a download button per build, GitHub's per-tag zip URL) above a
+  Stable section; home's banner and news/index.html list only stable posts (the 1.18.1 capital post is unlisted, still
+  linked from the releases page). For the next stable release: delete tools/release/UNSTABLE, add its roadmap entry
+  without the flag, set "here" to it, update the home banner and news list as usual.

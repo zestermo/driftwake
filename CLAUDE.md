@@ -20,6 +20,19 @@ textures (tools/texture_gen/*.py), music and SFX. There are very few hand-made a
   walk 6, sprint 9, combat stance x0.8; turn_speed 20). Shonen look and animation:
   readable, punchy, not cartoony or arcade. PS1 rendering (vertex snap, dither,
   640x360-style pixel grid), not "retro filter on a modern game".
+- **Feel systems get a preview first** (2026-10-20): for progression, trees, points or economy pacing, a grill where he
+  picks the recommended options isn't enough. Show concrete numbers (a node list with costs over the level curve) or a
+  mock for his OK, then build in small playable pieces. The 1.18 skills rework built from picked options felt wrong.
+- **Suspect the test first** (2026-10-20): a red check is as often a stale test as a game bug. Read it against the diff;
+  if a deliberate change explains it, fix the test in the same landing (or a cheap fixer) instead of stopping the line.
+  A silent process death (no RESULT, no script error) is a crash or a kill: rerun it alone first.
+- **Time-box flaky-test hunts** to ~20-30 min (2026-10-19). If it looks like load or timing, land a hardening, note
+  the rest as a known issue, and check in with Zach rather than extending the hunt.
+- **A release's perf bar** (2026-10-19): inside the perf gate's allowance (15% mean frame, 35% a stop's frame1t) and a
+  stable ~60 fps; fix hitches before the mean, stop once inside the gate. Full optimization is its own later task.
+- **Releases are stable or unstable** (2026-10-21): an unstable build is a GitHub pre-release (`tools/release/UNSTABLE`
+  present when tagging), kept off the site's Download, home, roadmap and news; the releases page lists it with its own
+  button. Delete the file for a stable release. Details: docs/handoff_1_18_2.md "After the tag".
 
 ## Zach's in-game captures (F12)
 

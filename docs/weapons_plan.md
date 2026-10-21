@@ -92,3 +92,22 @@ hips: upright chest, square to the target, weapon arm pushed out to the side. Za
 - **Each kind's colour/element identity**: chosen by the builder per kind, shown in its report.
 - Later: the enemy pass, the flipbook awakenings, the remaining todo kinds (three-sword style, cane sword, staff, whip,
   claws, jitte/tonfa, shields).
+
+## Follow-ups after 1.18.3 (2026-10-21; from the agents' reports, none blocking)
+- **Icons**: the new kinds' techniques (polearm, hammer, twin axes, greatsword, black-leg) have no generated icons yet.
+- **Polearm run trail threshold**: it turns on above 3.2 m/s, and keyboard movement with a polearm out is 4.8 m/s, so on
+  keyboard the two-handed walk guard only shows at a slow stick walk. Zach to judge in play; sprint-only is the fallback.
+- **Wide stances' feet**: in the axe and hammer guards the planted feet sit 3-4 cm high (the shared foot IK ignores the
+  legs' sideways splay); left alone in the stance pass.
+- **Greatsword low guard**: from the side it reads more "blade down between the legs" than Zach's photo's long diagonal
+  across the body; angle it further across if he agrees.
+- **Hammer guard**: the head points up-forward, so the mallet's barrel sits high beside the head (kept so swings don't
+  spin the head round the haft). The plant (Emperor's Bearing) is unchecked on slopes and ship decks.
+- **Twin axes**: the guard holds the heads more level than wanted; the ice spikes look striped (they borrow the metal
+  texture). The hook reuses `vine_yank` with a new optional third argument: run nettest on it.
+- **Black-leg**: Cartwheel Crescent's hand contact isn't measured by a test; the heel kick's flames read slightly orange.
+- **Grunts** use the cutlass stance, so they now guard side-on, but their attacks still start square.
+- **Earthquake**'s shockwave (0.04 s after the direct blow) is unchecked with a guest in co-op.
+- **Suites expected to need a look at the next full run** (none were run for 1.18.3): techtest, progtest, balancetest,
+  uitest (new tabs), daggertest, fixtest, impact_sounds, drop_rates and chest-roll suites (bigger loot pools), qoltest and
+  storytest (Gus's dialogue), save tests (the "kicks" key), loadout tests, nettest (pole_planted and the black-leg sync).
