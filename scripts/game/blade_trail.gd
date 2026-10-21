@@ -61,7 +61,9 @@ func sample(delta: float) -> void:
 		if emitting and w != null and is_instance_valid(w) and w.get_parent() in [body.hand_r, body.hand_l] and not body._guns_out() \
 				and not str(w.mesh.get_meta("model", "")).begins_with("pistol"):
 			var tip_z := w.mesh.get_aabb().position.z
-			pts.append([_clock, w.global_transform * Vector3(0, 0, tip_z * 0.3), w.global_transform * Vector3(0, 0, tip_z)])
+			# (a polearm's ribbon is its head and the end of the shaft, not the whole pole)
+			var base := 0.7 if Humanoid.kind_of(w) == "polearm" else 0.3
+			pts.append([_clock, w.global_transform * Vector3(0, 0, tip_z * base), w.global_transform * Vector3(0, 0, tip_z)])
 		while not pts.is_empty() and _clock - float(pts[0][0]) > life:
 			pts.pop_front()
 		if pts.size() < 2:

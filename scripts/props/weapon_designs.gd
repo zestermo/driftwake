@@ -10,7 +10,7 @@ extends RefCounted
 ## item of its own (id DESIGNS[kind][design]["id"]: ItemDB makes them from
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
-const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger"}
+const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -99,6 +99,23 @@ const DESIGNS := {
 			"dmg": 1.08, "worth": 1.3, "len": 0.2, "tip": 0.07, "w": 0.046, "taper": 0.85, "teeth": true, "guard": "none",
 			"fit": Color(0.9, 0.86, 0.74), "grip": Color(0.95, 0.9, 0.78), "grip_tex": "bark", "pommel": "cap"},
 	},
+	# (the base is a boarding spear: a leaf head on an ash shaft). Polearms add "reach" (x the hitbox's length),
+	# "speed" (x how fast its moves play), "sweep" (x a sweep's width) and "pierce" (thrusts can't be blocked);
+	# "rare" drops less often (Loot)
+	"polearm": {
+		"trident": {"id": "trident", "name": "Trident", "desc": "Three barbed prongs on a long shaft. What it skewers, it holds; its thrusts go through a guard.",
+			"dmg": 1.04, "worth": 1.5, "head": "trident", "pierce": true, "fit": Color(0.62, 0.66, 0.7), "wood": Color(0.42, 0.3, 0.2)},
+		"naginata": {"id": "naginata", "name": "Naginata", "desc": "A curved blade on a lacquered pole. Quick, wide sweeps that keep a crowd at the edge.",
+			"dmg": 1.05, "worth": 1.6, "head": "naginata", "speed": 1.06, "sweep": 1.12, "fit": Color(1.0, 0.78, 0.4), "wood": Color(0.3, 0.1, 0.09),
+			"grip": Color(0.12, 0.1, 0.12)},
+		"bisento": {"id": "bisento", "name": "Bisento", "desc": "A great broad blade on a heavy shaft. Slow, and every sweep clears the deck.",
+			"dmg": 1.24, "worth": 2.4, "head": "bisento", "speed": 0.84, "sweep": 1.35, "reach": 1.05, "rare": true,
+			"fit": Color(0.5, 0.48, 0.46), "wood": Color(0.22, 0.17, 0.13), "tassel": Color(0.75, 0.12, 0.1)},
+		"halberd": {"id": "halberd", "name": "Halberd", "desc": "An axe, a spike and a hook on one shaft. It chops, it stabs, it pulls men off rails.",
+			"dmg": 1.12, "worth": 1.8, "head": "halberd", "speed": 0.92, "reach": 1.05, "fit": Color(0.55, 0.55, 0.58), "wood": Color(0.36, 0.25, 0.16)},
+		"pitchfork": {"id": "pitchfork", "name": "Pitchfork", "desc": "A farmer's fork, three tines and an ash handle. It's held a village gate before.",
+			"dmg": 0.88, "worth": 0.5, "head": "fork", "reach": 0.95, "fit": Color(0.45, 0.42, 0.4), "wood": Color(0.72, 0.56, 0.38)},
+	},
 }
 
 ## Each tier's fittings (guards, bands, locks) and gem; ultra and supreme
@@ -135,6 +152,16 @@ static func item_ids(kind: String) -> Array:
 static func axe_head_z(model: String) -> float:
 	var p: Dictionary = (DESIGNS["axe"] as Dictionary).get(model.get_slice(":", 1), {})
 	return -(_f(p, "haft", 0.9) - 0.22)
+
+
+## A polearm design's number ("reach", "speed", "sweep"; `def` for the base spear and other kinds).
+static func pole(design: String, key: String, def: float = 1.0) -> float:
+	return float((DESIGNS["polearm"] as Dictionary).get(design, {}).get(key, def))
+
+
+## How far the shaft runs ahead of the right hand (the head starts there) and behind it (the butt).
+const POLE_AHEAD := 1.32
+const POLE_BEHIND := 0.42
 
 
 ## A katana's scabbard in the blade's own frame: the same chain of segments
@@ -236,6 +263,8 @@ static func build(model: String) -> ArrayMesh:
 			_pistol(mb, p, tier)
 		"dagger":
 			_dagger(mb, p, tier)
+		"polearm":
+			_polearm(mb, p, tier)
 		_:
 			_sword(mb, p, tier)
 	var m := mb.commit()
@@ -428,6 +457,59 @@ static func dagger_sheath(model: String) -> ArrayMesh:
 	mb.add_box(metal, Transform3D(b, at + b * Vector3(0, 0, 0.012)), Vector3(t + 0.004, h * 0.72, 0.03), 2.0)
 	mb.add_box(metal, Transform3D(Basis(), Vector3(0, 0, -0.068)), Vector3(t + 0.006, h + 0.006, 0.016), 2.0)
 	return mb.commit()
+
+
+## Polearms: held at the origin by the rear (right) hand, the shaft POLE_BEHIND back to its butt and
+## POLE_AHEAD (x "reach") forward to the head, which spreads in the Y plane with its edge toward -Y.
+## Leather wraps mark where the hands go (the left slides along the shaft between them).
+static func _polearm(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := _mats(p, tier, Color(0.6, 0.58, 0.55), Color(0.32, 0.22, 0.15), "leather")
+	var wood := PSXMat.lit("planks", _c(p, "wood", Color(0.62, 0.46, 0.3)))
+	var steel: Material = m["blade"]
+	var edge: Material = m["edge"]
+	var fit: Material = m["fit"]
+	var along := Basis(Vector3.RIGHT, -PI * 0.5)
+	var ahead := POLE_AHEAD * _f(p, "reach", 1.0)
+	var z0 := -ahead
+	mb.add_cylinder(wood, Transform3D(along, Vector3(0, 0, POLE_BEHIND)), 0.021, 0.019, ahead + POLE_BEHIND, 6, 2.0)
+	mb.add_cylinder(fit, Transform3D(along, Vector3(0, 0, POLE_BEHIND + 0.035)), 0.025, 0.023, 0.07, 6, 2.0, Color.WHITE, true, true)
+	for g in [[0.02, 0.17], [-0.5, 0.22]]:
+		mb.add_box(m["grip"], Transform3D(Basis(), Vector3(0, 0, float(g[0]))), Vector3(0.046, 0.046, float(g[1])), 2.0)
+	mb.add_cylinder(fit, Transform3D(along, Vector3(0, 0, z0 + 0.12)), 0.027, 0.023, 0.13, 6, 2.0)
+	var h := z0 - 0.01
+	match str(p.get("head", "leaf")):
+		"trident":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, h)), Vector3(0.03, 0.22, 0.03), 2.0)
+			for y in [-0.095, 0.0, 0.095]:
+				var l := 0.34 if y == 0.0 else 0.26
+				mb.add_box(steel, Transform3D(Basis(), Vector3(0, y, h - l * 0.5)), Vector3(0.018, 0.022, l), 2.0)
+				mb.add_box(edge, Transform3D(Basis(), Vector3(0, y, h - l - 0.025)), Vector3(0.012, 0.014, 0.05), 2.0)
+				var out := signf(y) if y != 0.0 else -1.0
+				mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -out * 0.6), Vector3(0, y + out * 0.018, h - l + 0.04)), Vector3(0.014, 0.012, 0.06), 2.0)
+		"naginata":
+			mb.add_cylinder(fit, Transform3D(along, Vector3(0, 0, h + 0.008)), 0.045, 0.045, 0.014, 8, 2.0)
+			_blade(mb, m, Vector3(0, 0, h - 0.02), 0.5, 0.046, 0.014, 0.4, 1.08, 5, false)
+		"bisento":
+			_blade(mb, m, Vector3(0, -0.03, h - 0.02), 0.58, 0.12, 0.018, 0.24, 1.3, 5, false)
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0.05, h - 0.14)), Vector3(0.024, 0.05, 0.05), 2.0)
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, h + 0.02)), Vector3(0.036, 0.1, 0.03), 2.0)
+			var tassel := PSXMat.lit("fabric", _c(p, "tassel", Color(0.75, 0.12, 0.1)))
+			mb.add_box(tassel, Transform3D(Basis(Vector3.RIGHT, 0.25), Vector3(0, 0.07, h + 0.13)), Vector3(0.03, 0.12, 0.03), 2.0)
+		"halberd":
+			_blade(mb, m, Vector3(0, 0, h - 0.04), 0.26, 0.032, 0.02, 0.0, 0.6, 2, false)
+			mb.add_box(steel, Transform3D(Basis(), Vector3(0, -0.1, h - 0.1)), Vector3(0.022, 0.17, 0.2), 2.0)
+			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, 0.35), Vector3(0, -0.17, h - 0.05)), Vector3(0.02, 0.06, 0.12), 2.0)
+			mb.add_box(edge, Transform3D(Basis(), Vector3(0, -0.19, h - 0.1)), Vector3(0.016, 0.022, 0.26), 2.0)
+			mb.add_box(steel, Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, 0.08, h - 0.06)), Vector3(0.02, 0.14, 0.03), 2.0)
+		"fork":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, h)), Vector3(0.028, 0.17, 0.026), 2.0)
+			for y in [-0.07, 0.0, 0.07]:
+				mb.add_box(fit, Transform3D(Basis(), Vector3(0, y, h - 0.15)), Vector3(0.012, 0.012, 0.3), 2.0)
+		_:
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, h)), Vector3(0.032, 0.034, 0.04), 2.0)
+			_blade(mb, m, Vector3(0, 0, h - 0.02), 0.2, 0.068, 0.02, 0.0, 0.62, 3, false)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, z0 + 0.08)), Vector3(0.058, 0.03, 0.03), 2.0)
 
 
 ## Axes: the haft back past the hand, the head out toward -Y (the knuckle

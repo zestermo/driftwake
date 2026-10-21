@@ -291,6 +291,7 @@ resources/items/dagger.tres             daggertest
 scripts/npc/move_poses.gd               t/player
 scripts/npc/draw_moves.gd               t/player t/weapons grunttest guntest
 assets/audio/draw_*.wav                 t/weapons
+scripts/npc/pole_moves.gd               t/weapons
 scripts/player_states/jump_state.gd     t/player invtest
 scripts/player_states/fall_state.gd     t/player
 scripts/npc/body_builder.gd             cliptest

@@ -1872,8 +1872,8 @@ static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
 	match c:
 		"sword":
 			var main := main_hand.weapon_model
-			if main == "katana":
-				return "katana"
+			if main in ["katana", "polearm"]:
+				return main
 			if dual:
 				if class_of(off_hand) == "gun":
 					return "sword_pistol"
@@ -1904,8 +1904,8 @@ func _offhand_valid(item: ItemData) -> bool:
 		and equipped_weapon.weapon_model != "axe"
 	if class_of(item) != class_of(equipped_weapon) and not blade_gun:
 		return false
-	# (the katana takes both hands)
-	if "katana" in [item.weapon_model, equipped_weapon.weapon_model]:
+	# (the katana and polearms take both hands)
+	if "katana" in [item.weapon_model, equipped_weapon.weapon_model] or "polearm" in [item.weapon_model, equipped_weapon.weapon_model]:
 		return false
 	if item == equipped_weapon and inventory_component.count(item.id) < 2:
 		return false
@@ -2033,7 +2033,7 @@ func can_attack() -> bool:
 
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
-	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot"}
+	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2075,16 +2075,27 @@ const REACH := {
 	"whirl": [Vector3(4.4, 1.5, 4.4), Vector3(0.0, 0.2, 0.0)],
 	# a combo finisher's full turn with a blade out (dual wield, sword and pistol)
 	"spin": [Vector3(3.6, 1.3, 3.6), Vector3(0.0, 0.2, -0.2)],
+	# polearms: a thrust's long narrow reach, a sweep's wide arc, the wheel all round, the heavy's lunge, a sweep at the shins
+	"pole": [Vector3(1.4, 1.3, 3.3), Vector3(-0.3, 0.2, -1.75)],
+	"pole_sweep": [Vector3(3.9, 1.3, 2.9), Vector3(-0.3, 0.2, -1.3)],
+	"pole_spin": [Vector3(5.6, 1.4, 5.6), Vector3(0.0, 0.2, 0.0)],
+	"pole_long": [Vector3(1.5, 1.3, 4.6), Vector3(-0.3, 0.2, -2.4)],
+	"pole_low": [Vector3(4.0, 1.0, 3.0), Vector3(-0.3, -0.25, -1.3)],
 }
 
 
+## A polearm's design stretches its reach (Z) and widens its sweeps (X).
 func set_reach(kind: String) -> void:
 	var cs := sword_hitbox.get_node_or_null("CollisionShape3D") as CollisionShape3D
 	if cs == null or not (cs.shape is BoxShape3D):
 		return
 	var r: Array = REACH.get(kind, REACH["sword"])
-	(cs.shape as BoxShape3D).size = r[0]
-	cs.position = r[1]
+	var k := Vector3.ONE
+	if kind.begins_with("pole") and equipped_weapon:
+		var d := equipped_weapon.design
+		k = Vector3(WeaponDesigns.pole(d, "sweep") if kind != "pole" and kind != "pole_long" else 1.0, 1.0, WeaponDesigns.pole(d, "reach"))
+	(cs.shape as BoxShape3D).size = (r[0] as Vector3) * k
+	cs.position = (r[1] as Vector3) * k
 
 
 func damage_multiplier() -> float:

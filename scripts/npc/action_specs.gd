@@ -37,7 +37,8 @@ class_name ActionSpecs
 ## AnimLab variants override any of this while picked.
 
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
-const PARRIES := {"dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"]}
+const PARRIES := {"dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
+	"polearm": ["pole_parry", "pole_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -159,6 +160,20 @@ const SPECS := {
 		"extras": {"dual": true, "after": "dd_3"}},
 	"dd_heavy": {"len": 0.85, "hit": [0.42, 0.74], "swoosh": [0.4, 0.78], "stance": "dual_dagger", "weapon": "dagger", "extras": {"dual": true}},
 	"knife_rain": {"len": 0.7, "hit": [0.3, 0.34], "stance": "dual_dagger", "weapon": "dagger", "extras": {"dual": true}},
+	# --- polearm (PoleMoves: the body keyed, the two-handed grip solved; no "lead": its offset samples would
+	# overwrite the grip) ---
+	"pole_stance": {"len": 1.0, "stance": "polearm", "weapon": "polearm"},
+	"pole_thrust": {"len": 0.6, "hit": [0.38, 0.6], "chain": 0.42, "swoosh": [0.36, 0.62], "sharp": 50.0, "stance": "polearm", "weapon": "polearm"},
+	"pole_rise": {"len": 0.64, "hit": [0.39, 0.6], "chain": 0.46, "swoosh": [0.36, 0.62], "sharp": 50.0, "stance": "polearm", "weapon": "polearm",
+		"extras": {"after": "pole_thrust"}},
+	"pole_sweep": {"len": 0.78, "hit": [0.4, 0.64], "chain": 0.58, "swoosh": [0.38, 0.66], "sharp": 50.0, "stance": "polearm", "weapon": "polearm",
+		"extras": {"after": "pole_rise"}},
+	"pole_wheel": {"len": 0.95, "hit": [0.3, 0.7], "chain": 0.74, "swoosh": [0.28, 0.72], "sharp": 50.0, "stance": "polearm", "weapon": "polearm",
+		"extras": {"after": "pole_sweep"}},
+	"pole_heavy": {"len": 0.95, "hit": [0.46, 0.62], "swoosh": [0.44, 0.64], "sharp": 50.0, "stance": "polearm", "weapon": "polearm"},
+	"pole_parry": {"len": 0.66, "stance": "polearm", "weapon": "polearm"},
+	"pole_deflect": {"len": 0.42, "stance": "polearm", "weapon": "polearm"},
+	"pole_block": {"len": 0.24, "hold": true, "stance": "polearm", "weapon": "polearm"},
 	# --- unarmed ---
 	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
 	"jab": {"len": 0.34, "hit": [0.21, 0.5], "stance": "fist", "weapon": ""},
