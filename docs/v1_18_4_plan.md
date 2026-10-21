@@ -29,6 +29,23 @@ Garp/Koby-style punching.
 | Order | **Parallel by area**, then the weapons in series: (1) progression and menus (preview first); (2) the air step, freefall tumble and air recovery moves; (3) the fist rework. Once those land: the new weapons' finish, then awakenings and mastered guards weapon by weapon | Separate areas in parallel; the weapon passes share files | — |
 | Co-op | Standing rule: guests see and do all of it (the tumble and air recovery on puppets, guards synced, points per captain) | CLAUDE.md | — |
 
+### Stragglers folded in (Zach, 2026-10-21)
+- **The trees' missing moves** (docs/todo.md "Later": the progression trees' new moves): katana Falling Moon, Twin Waves,
+  Side Step; Acrobatics Moonstep, Afterimage, Roll/Sidestep, Crash Landing (Sprint Jump and Rigging Monkey were built as
+  numbers); Defense Disarm/Shove, Rolling Guard (Hold the Line, Iron Wall as numbers); Swimming Dolphin Kick / Long Glide;
+  the other weapons' variants their tables mark "new move". The Acrobatics ones go with the movement agent; the rest
+  after the first wave, by area.
+- **1.18.3's weapon follow-ups** (docs/weapons_plan.md "Follow-ups after 1.18.3"), in the new weapons' finish: wide-stance
+  feet, the greatsword guard's angle, the twin axes' heads and striped ice, the polearm run threshold, grunts' square
+  attack starts, nettest on Earthquake and the hook.
+- **1.18.2's unfinished checks**, at this batch's prepush: occluder popping in the capital and Brinehollow, an
+  islanddump, `nettest.ps1 chain`, the perf gate re-baselined on this PC (`perf_gate.ps1 -Update`, Zach's OK), and the
+  suites 1.18.3 skipped.
+- **The tooling window now** (docs/todo.md "Tooling window (after v1.18)", moved out of 1.19's first step): the crew_lib
+  deps-file race, the autoload-in-static-func lint, nettest modes' own log/deps names, fauna tests naming their
+  creatures, Humanoid._rng seeded. A quiet window: only the progression agent's number table (no code) runs beside it;
+  the movement and fist agents start once it lands.
+
 ### Open / deferred
 - The Captain-level point rate, node prices and mastery gates: **in the preview**, then tuned in play.
 - **assumed:** the fists' power-punch branch and new big-fist techniques are pitched to Zach as one-liners before they're built (like the new weapons' techniques).
