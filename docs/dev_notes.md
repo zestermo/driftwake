@@ -5245,6 +5245,19 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   recover and step mirror through Humanoid's net events like a knockdown. Per tick: one clamp loop over the 11
   ragdoll parts while a tumble is down, a ground ray in Fall only once past 3.5 s. Tests: t/player/freefall_tumble,
   freefall_reset.
+- **Breakfall and Skyward Dash** (piece 3; Acrobatics Air branch, `ac_breakfall` "move" 12 and `ac_skydash` "move" 18,
+  priced by kind like the rest). DownedState `_recover` on jump while the body is still in the air (not yet landed):
+  a tumble with an air step left takes the step; otherwise the `breakfall` flag with the hips > 1.2 m over the
+  ground (`_hips_up`, a ray from the hips: the root may already be on the ground under a flying body) rights you:
+  `recover_in_air`, the `breakfall` action (MovePoses: a tuck rolling the pivot from the sprawl to level, then open,
+  arms wide), a ring and a whoosh, into Fall. A knockback ragdoll without Breakfall ignores the press. Either recovery
+  calls `Player.air_recovered`: with `skyward_dash`, `Player.skyward_dash` (cleared on landing) and
+  `jumps_remaining += SKYWARD_STEPS` (2; JumpState treats any jump off the floor as an air step, since this can go over
+  max_jumps). Fall/Jump: dodge with `skyward_dash` -> DodgeState `{"air": true}`: input's way or the camera's forward,
+  level (vy 0), `AIR_DASH_DIST` 6.5 m in `AIR_DASH_DUR` 0.32 s on the dodge's burst curve, an afterimage, a ring
+  and a whoosh, then Fall. With Sky Walk + Skyward Dash that's 6.5 m flat plus four air steps (~1.3 m each) to climb
+  back to a deck. Tests: t/player/breakfall (no Breakfall: nothing; with it: upright in Fall, lands on its feet),
+  skyward_dash (two extra steps, 6.4 m dash, level, once).
 ## 2026-10-21: the two points pools (1.18.4 batch, points rework piece 2)
 - What: every node past a root is **bought**. Combat points (`Progression.combat_earned`: 2, then 2/1 alternating to
   Captain 10 = 16, 2 a level to 20 = 36, 3 to 30 = 66, 4 to 40 = 106) buy any weapon tree's nodes and the eaten fruit's
