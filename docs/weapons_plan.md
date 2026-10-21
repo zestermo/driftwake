@@ -75,7 +75,7 @@ hips: upright chest, square to the target, weapon arm pushed out to the side. Za
   axe in the off hand stops counting as dual swords); heavy family.
 - **Greatsword feel** (**assumed**, built that way 2026-10-21; the guard became a low guard 2026-10-21): wide arcs whose momentum carries into the next swing,
   armour/guard breaking, a charged overhead; heavy family. Kept distinct from the hammer by sweeping cuts vs blunt slams.
-- **Black-leg feel** (**assumed**): hands stay free (in the pockets on the guard), kick combos, a handstand spinning kick,
+- **Black-leg feel** (Zach, 2026-10-21; was assumed "hands in the pockets"): kick-focused with ACTIVE arms that swing and counter-rotate to balance every kick; moves with the hands planted on the ground (a handstand spinning kick, a hand-planted cartwheel/mule kick, a one-hand braced sweep); the default guard is springy with the hands loose and up for balance. **Hands in the pockets is a mastery pose** (a big node ~10, like Emperor's Bearing): the combat guard once owned, the hands out instantly for any move and back in as it settles. Kick combos,
   a heated kick as the ultimate's element; fists family.
 - **Long-gun melee** (**assumed**): a butt stroke when foes close in; reload as part of the rhythm.
 - **Families** (**assumed**): polearm in blades; hammer, dual axes, greatsword in heavy; long guns, cannon, slingshot in guns;
