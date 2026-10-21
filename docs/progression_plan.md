@@ -220,6 +220,29 @@ either a slotted passive or, two of them, a variant (both owned, one active). Me
   Steadfast and Iron Hide in Defense, Helmsman in Sailing). Skill tiers open by use alone (no points).
 - Vey's story step (was a skill point): a drill, a level of mastery for the weapon in your hand.
 
+**The other Adventure trees (drafted by prog-core, 2026-10-20; built in piece 4).** Levels 1-20, a point a level for the
+steps (about 20 steps each), the old milestone perks as big nodes at the same levels, "new" ones numbers-only.
+- **Sailing** (was Seamanship; Helm / Guns / Deck): Sea Hand 2 · Helmsman 5 (from the old Captain tree) · Storm Sailing
+  10 | Gun Captain 4 · Broadside Master 15 | Hard Over 7 · Bosun 20. Steps: Steady Helm 5, Gunnery 5, Carpenter 3,
+  Bilge Rat 3, Lookout 3. XP as before (Seamanship.xp).
+- **Swimming** (Stroke / Breath / Sea): Strong Strokes 2 · Sea Born 7 | Deep Lungs 4 · Catch Your Breath 10 (was Second
+  Wind: the name is the Captain talent's now) · Deep Diver 14 (new) | Current Reader 8 (new) · Child of the Sea 15 · Old
+  Salt Lungs 20 (new). The surface-sprint variant (Dolphin Kick / Long Glide) waits for the moves batch. Steps: Long
+  Strokes 5, Big Lungs 5, Tireless 5, Cold Blood 5.
+- **Cooking** (Hearty / Spice / Larder): Galley Hand 2 · Iron Gut 10 | Ship's Cook 5 · Master Chef 15 | Long Feast 8 (new)
+  · Captain's Table 20 (new). Steps: Seasoning 5, Slow Simmer 5, Taster 5, Good Stock 5.
+- **Fishing** (Line / Bait / Lore): Patient Line 2 · Steady Hands 5 · Master Angler 20 | Bait Saver 8 · Old Salt 15 | Sea
+  Lore 10. Steps: Quick Bite 5, Strong Reel 5, Lucky Cast 5, Thrifty 5.
+- **Stealth** (Sneak / Ambush / Shadow; new): Soft Step 2 (sneak 25% faster) · Ghost 12 | Ambush 4 (a blow from a sneak
+  30% harder) · Assassin 15 | Slip Away 8 (a cheaper, longer dodge) · Shadow 20. Steps: Quiet Feet 5, Knife Work 5,
+  Patience 5, Nimble 5. XP: sneaking near foes (a few metres at a time), a blow struck from a sneak.
+- **Tinkering** (Kit / Powder / Hands; new): Tight Fit 2 (a tuned kit lasts 25% longer) · Fine Springs 10 | Dry Powder 5
+  (reload 10% faster, always) · Powder Horn 15 (a shot more, always) | Clever Hands 8 (each spell of tinkering tunes half
+  again as long) · Field Whetstone 20 (+4% damage, always). Steps: Oil 5, Ramrod 5, File 5, Patchwork 5. XP: each spell
+  of tinkering (the action wheel, aboard or at camp).
+- Stealth's notice ranges (Stealth.range_for, judged on the host for a guest's puppet) are left alone: its nodes are
+  all on the sneaking captain's own machine (speed, the blow's damage, the dodge), so they work for a guest.
+
 **Phases** (one after another: they share progression.gd, skill_tree.gd and the skill map):
 0. This record and the mock (Zach's OK).
 1. Katana prototype: the katana's tree in the new schema (big nodes by mastery level, stat steps for points,

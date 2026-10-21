@@ -4768,6 +4768,25 @@ fruits were bought with skill points: the old trees went in one go, so nothing i
 - Tests: t/progression captain_growth, talents, will_bosses, acrobatics; refund_migration rewritten; loadout_swap's
   third slot now at Captain 10. World suites updated, not run: progtest (the Captain section rewritten), storytest
   (Vey's drill), r6test (Coat by Will; its old-map fruit/base tab checks are menu-ui's), powertest (Ember by level).
+
+## 2026-10-20: progression redesign, piece 4: the life trees, Stealth and Tinkering; SkillTree is a reader now
+Spec: docs/progression_plan.md "The other Adventure trees".
+- Sailing (was Seamanship), Swimming, Cooking and Fishing are SkillTrees trees (levels 1-20, the old perks as big nodes
+  at the same levels with the same ids and keys, Helmsman from the old Captain tree in Sailing, a few new numbers-only
+  nodes, ~20 steps each and a point a level). A save past 20 (they went to 30) is clamped to 20.
+- Stealth (new): sneak_pct (CrouchState's speed), ambush_pct (a blow struck within AMBUSH_TICKS 45 of sneaking: an
+  extra dot share in `on_hit`, one per sneak), Slip Away (the dodge's keys). XP: `Progression.sneak(m)` from
+  CrouchState every tick: SNEAK_XP 3 per SNEAK_M 4 m with a live foe within 20 m (the enemies group checked once per 4 m),
+  AMBUSH_XP 10 for a sneak attack. Its nodes are all the sneaking captain's own (the notice ranges are left to
+  Stealth.range_for), so they work for a guest.
+- Tinkering (new): Downtime's tinker gives TINKER_XP 10 an interval; kit_time_pct slows the kit wearing off
+  (`tick_kit`), kit_per_pct lengthens each interval's tuning; Dry Powder / Powder Horn / Field Whetstone are
+  always-on numbers.
+- SkillTree has no trees of its own any more: `nodes()` is SkillTrees' nodes in the old shape, `perks_of` / `kin_of`
+  return [] and TREES / TAB_ORDER / REGION_* stay for the old skill map. Progression reads SkillTrees directly
+  (stat, known_skills, _own, can_learn: big nodes "Comes at <tree> <level>", a Will passive "Comes with <Will>").
+- Tests: t/progression/stealth; life_mastery (a point a level), refund_migration (Sailing's points), t/ship/seamanship
+  (Sailing's nodes: Helmsman at 5, so 10% / 18% at the helm), t/downtime/tinker (its xp).
 ## 2026-10-20: one skill bar across the loadouts (v1.18.2 bar-swap, docs/progression_plan.md "Skill bar")
 - **The rule** (PowerComponent): a weapon's skill (Skills.ALL `styles`, or the old `needs` "sword"/"gun") can go on the bar
   only while a weapon that fits it is in one of your loadouts; Captain, Will and fruit skills go on with anything; R takes the
