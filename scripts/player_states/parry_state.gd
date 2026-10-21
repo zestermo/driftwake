@@ -85,6 +85,9 @@ func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 			# (twin axes: the beards hook their weapon and haul them in a step, reeling)
 			if player.style() == "dual_axe":
 				DualAxeArts.hook(player, attacker)
+			# (a greatsword turns it aside on the flat and shoves the blade out into them)
+			elif player.style() == "greatsword":
+				GreatswordArts.parried(player, attacker)
 		var pr := player.progression
 		player.stamina = minf(player.stamina + pr.stat("parry_stamina"), player.max_stamina)
 		pr.add_life("defense", 15)

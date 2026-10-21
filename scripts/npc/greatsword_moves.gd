@@ -58,6 +58,14 @@ static func pose(h, n: String, u: float) -> Array:
 	return PoleMoves.take_grip(h, _pose(h, n, u))
 
 
+## Tempest Turns: how far through its three turns the body is at `s` seconds (0..1), each turn quicker than the last.
+const TEMPEST := Vector2(0.2, 1.35)
+
+
+static func tempest_k(s: float) -> float:
+	return pow(clampf((s - TEMPEST.x) / (TEMPEST.y - TEMPEST.x), 0.0, 1.0), 1.6)
+
+
 ## Sprinting with the point dragged behind: every SCRAPE_EVERY s, sparks where it scrapes the ground (local to each
 ## screen, like the grip; nothing far off: FX culls bursts out of range).
 static func scrape(h, delta: float) -> void:
@@ -217,6 +225,52 @@ static func _pose(h, n: String, u: float) -> Array:
 			# Falling Cleave's landing: the blade driven down into the ground on impact, crouched deep over it
 			var hit := _cleaved(SQUAT)
 			return [h._keys(u, [[0.0, hit], [0.55, hit.merged({"_scale": Vector3.ONE}, true)], [1.0, g]]), "full", Vector3.ZERO]
+		# --- the techniques (GreatswordArts; keyed in seconds of the length they're played at) ---
+		"gs_guardbreak":
+			# Guardbreaker: a short rising cut that knocks their guard up, the blade wheeled on up overhead, then brought
+			# straight down on them
+			var T: float = float(h._action.get("dur", 0.95))
+			var load := _c1().merged({"hips": Vector3(0, 0.45, 0), "torso": Vector3(-0.2, 0.5, 0), "head": Vector3(0.15, -0.5, 0), "_lift": Vector3(0, -0.22, 0),
+				"_gd": Vector3(-0.85, -0.45, 0.28)}, true)
+			var rise := _k({"pivot": Vector3(-0.02, 0, 0), "hips": Vector3(0, -0.2, 0), "torso": Vector3(0.0, -0.25, 0), "head": Vector3(0.0, 0.25, 0),
+				"_lift": Vector3(0, -0.12, 0), "_scale": Vector3(0.96, 1.06, 1.0), "_smear": Vector3(0.12, 0, 0)}.merged(STEP_R),
+				[Vector3(0.05, -0.15, -0.5), Vector3(0.15, 0.6, -0.79), Vector3(0.2, 0.75, 0.6), 0.2])
+			var up := _raised(SET)
+			var crush := _cleaved({"_smear": Vector3(0.14, 0, 0)})
+			var held := _cleaved({})
+			return [h._keys(u, [[0.0, g], [0.1 / T, load, "out"], [0.22 / T, rise, "out"], [0.36 / T, up, "out"], [0.48 / T, up], [0.55 / T, crush, "in"],
+				[0.75 / T, held], [1.0, g]]), "full", Vector3.ZERO]
+		"gs_crescent":
+			# Crescent Gale: the blade levelled behind on the left, then one huge flat sweep through the front that flings
+			# a crescent of air off its edge, carried out past the right
+			var T: float = float(h._action.get("dur", 0.8))
+			var drop := _k({"pivot": Vector3(0.0, 0, 0), "hips": Vector3(0, 0.75, 0), "torso": Vector3(-0.05, 0.8, 0), "head": Vector3(0.1, -0.95, 0),
+				"_lift": Vector3(0, -0.28, 0), "_scale": Vector3(1.06, 0.93, 1.0), "_smear": Vector3.ZERO}.merged(WIDE),
+				[Vector3(-0.2, -0.32, -0.08), Vector3(-0.75, 0.0, 0.66), Vector3(-0.66, 0, -0.75), 0.2])
+			var strike := _k({"pivot": Vector3(-0.1, 0, 0), "hips": Vector3(0, -0.45, 0), "torso": Vector3(-0.15, -0.5, 0), "head": Vector3(0.1, 0.6, 0),
+				"_lift": Vector3(0, -0.34, 0), "_scale": Vector3(1.06, 0.96, 1.02), "_smear": Vector3(0.16, 0, 0)}.merged(WIDE_R),
+				[Vector3(0.05, -0.28, -0.5), Vector3(0.15, 0.04, -0.99), Vector3(1, 0, 0.1), 0.2])
+			return [h._keys(u, [[0.0, g], [0.18 / T, drop, "out"], [0.24 / T, drop], [0.3 / T, strike, "linear"], [0.45 / T, _c4(), "out"], [0.6 / T, _c4()], [1.0, g]]), "full", Vector3.ZERO]
+		"gs_tempest":
+			# Tempest Turns: the blade let out at arm's length and the body turned round after it three times, each turn
+			# quicker than the last, then brought through level and down into the guard
+			var T: float = float(h._action.get("dur", 1.7))
+			var s := u * T
+			var turn := _k({"pivot": Vector3(-0.06, 0, 0), "hips": Vector3(0, -0.15, 0), "torso": Vector3(-0.18, -0.15, 0), "head": Vector3(0.1, 0.1, 0),
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.05, 0.97, 1.0), "_smear": Vector3(0.12, 0, 0)}.merged(WIDE_R),
+				[Vector3(0.08, -0.3, -0.45), Vector3(0.72, -0.06, -0.69), Vector3(0.66, 0, 0.75), 0.2])
+			var finish := turn.merged({"pivot": Vector3(-0.12, 0, 0), "hips": Vector3(0, -0.6, 0), "torso": Vector3(-0.25, -0.65, 0), "head": Vector3(0.2, 0.75, 0),
+				"_lift": Vector3(0, -0.36, 0), "_smear": Vector3.ZERO, "_gd": Vector3(0.92, -0.1, -0.38), "_ge": Vector3(0.38, 0, 0.92)}, true)
+			var pz: Dictionary = h._keys(u, [[0.0, g], [0.2 / T, turn, "out"], [1.35 / T, turn, "linear"], [1.45 / T, finish, "out"], [1.58 / T, finish], [1.0, g]])
+			pz["pivot"] = (pz["pivot"] as Vector3) + Vector3(0, -TAU * 3.0 * tempest_k(s), 0)
+			return [pz, "full", Vector3.ZERO]
+		"gs_sky":
+			# Skysplitter, the way up: a deep crouch, then up with the knees tucked and the blade heaved overhead, held
+			# there (the landing plays gs_land)
+			var crouch := _k({"pivot": Vector3(-0.1, 0, 0), "hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.3, -0.1, 0), "head": Vector3(0.25, 0.1, 0),
+				"_lift": Vector3(0, -0.38, 0), "_scale": Vector3(1.07, 0.88, 1.0), "_smear": Vector3.ZERO}.merged(SQUAT), GUARD_GRIP)
+			var up := _raised(TUCK)
+			return [h._keys(u, [[0.0, g], [0.15, crouch, "out"], [0.2, crouch], [0.34, up, "out"], [1.0, up]]), "full", Vector3.ZERO]
 		# --- the guard: the flat of the blade as a shield ---
 		"gs_block":
 			return [_k(PoleMoves._p([BLOCK, SET, {"pivot": Vector3.ZERO, "_lift": Vector3(0, -0.2, 0)}]), BLOCK_GRIP), "full", Vector3.ZERO]

@@ -30,6 +30,7 @@ const HEADERS := {
 	"polearm": ["Polearm", "combat", Color(1.0, 0.9, 0.4), 30],
 	"hammer": ["Hammer", "combat", Color(0.88, 0.74, 0.54), 30],
 	"dual_axe": ["Twin Axes", "combat", Color(0.8, 0.88, 1.0), 30],
+	"greatsword": ["Greatsword", "combat", Color(0.72, 0.95, 0.84), 30],
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
@@ -65,6 +66,7 @@ const ELEMENTS := {
 	"polearm": ["pl", "Rolling Thunder", "Storm Bearer", "lightning: bolts crackling off the head and a thunderclap on the big blows"],
 	"hammer": ["hm", "Rumbling Earth", "Mountain's Weight", "earth: rock thrown up off every blow, the shockwaves in sandstone and stone spikes heaving up out of the ground"],
 	"dual_axe": ["dx", "Hoarfrost", "Winter's Bite", "frost: rime and ice chips cracking off every chop, a cold mist, and Fimbulwinter heaves ice up out of the ground under your foes"],
+	"greatsword": ["gs", "Gale Edge", "Tempest Blade", "wind: gusts torn off every swing, crescents of air flung off the big ones in jade, and a cyclone round you when the big turns and Skysplitter land"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 }
@@ -163,6 +165,7 @@ static func _build() -> void:
 	_build_polearm()
 	_build_hammer()
 	_build_dual_axe()
+	_build_greatsword()
 	_build_corsair()
 	_build_pistol()
 	_build_unarmed()
@@ -739,6 +742,44 @@ static func _build_dual_axe() -> void:
 	_step("dx_heave", "Heave", "dx_leap", 3, {"heavy_dual_axe": 0.08}, "Your Berserker Frenzy (right-click) hits 8% harder a step.")
 	_step("dx_flow", "Flow", "dx_frenzy", 3, {"flow_dual_axe": 0.15}, "Twin-axe hits give 15% more energy a step.")
 	_step("dx_recover", "Recovery", "dx_blood", 3, {"cdr_dual_axe": 0.05}, "Twin-axe techniques come back 5% sooner a step.")
+
+
+## Greatswords (greatsword, black greatblade, claymore, sawtooth, greatcleaver, Sea King's Fang): sweeping arcs whose
+## momentum carries into the next, guard breaking, the charged cleave; wind as the element.
+static func _build_greatsword() -> void:
+	_tree("greatsword", ["Bulwark", "Gale", "Momentum"])
+	_root("gs_root", "Greatsword", {},
+		"A blade as long as you are, two hands on it from a low guard: wide sweeping cuts, each flowing out of the last one's follow-through and coming faster and harder as the momentum builds, a flat backhand that breaks a guard, and on right-click the cleave: hold to raise and charge it, let go to bring it down. A full charge flings a crescent of air down the line. Fight with a greatsword in hand to build its mastery.")
+	_big("gs_deflect", "Flat of the Blade", "mech", 0, 3, {"parryshot_greatsword": 1, "parry_greatsword": 0.06},
+		"Parry with a greatsword and you turn gunshots aside on the flat too (without it, a parry only stops blades), and your parry window is wider.")
+	_big("gs_break", "Guardbreaker", "tech", 0, 8, {}, "", "guardbreaker")
+	_big("gs_unyield", "Unyielding", "mech", 0, 20, {"armor_greatsword": 1, "def_greatsword": 5.0},
+		"Mid-swing with a greatsword, blows don't make you flinch or knock you off your feet, and you have 5 more defense with one in hand.")
+	_big("gs_crescent", "Crescent Gale", "tech", 1, 5, {}, "", "crescent_gale")
+	_big("gs_tempest", "Tempest Turns", "tech", 1, 10, {}, "", "tempest_turns")
+	_elem(1)
+	_elem(2)
+	_big("gs_sky", "Skysplitter", "ult", 1, 30, {}, "", "skysplitter")
+	_big("gs_turn", "Gale Turn", "move", 2, 2, {"mv_gale_turn": 1},
+		"Adds a fourth blow to your combo: the backhand's momentum let carry you on round once more with the blade out at arm's length. It hits everyone about you and puts them on the ground.")
+	_big("gs_run", "Running Cleave", "move", 2, 4, {"mv_running_cleave": 1},
+		"Attack at a sprint: the blade dragged behind you swung round in one flat sweep through them as you lunge. It breaks their wind-up and throws them down.")
+	_big("gs_fall", "Falling Cleave", "move", 2, 6, {"mv_falling_cleave": 1},
+		"Attack in the air: heave the blade up overhead and drop with it; landing drives it into the ground and splits a line ahead that knocks everyone on it flat (once per jump).")
+	_big("gs_flow", "Unbroken Momentum", "passive", 2, 13, {"finisher_greatsword": 0.3, "heavy_greatsword": 0.25},
+		"Passive (a slot). The last blow of your combo lands 30% harder, and your cleave (right-click) 25%.")
+	_variant("gs_way", "Swordmaster's Way", 2, [
+		["gs_head", "Headsman", 22, {"exec_greatsword": 0.5, "crit_greatsword": 0.06}, "A hit that leaves them under 30% health deals 50% more on top, and 6% more of your hits are crits."],
+		["gs_tide", "Tidebreaker", 22, {"leech_greatsword": 0.06, "cdr_greatsword": 0.2}, "Greatsword hits heal you for 6% of their damage, and greatsword techniques come back 20% sooner."]],
+		"Two ways to carry a blade this size. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("gs_edge", "Broad Edge", "gs_root", 5, {"dmg_greatsword": 0.05}, "+5% greatsword damage a step.")
+	_step("gs_hide", "Iron Hide", "gs_deflect", 3, {"def_greatsword": 3.0}, "+3 defense with a greatsword in hand a step.")
+	_step("gs_keen", "Keen Wind", "gs_elem", 5, {"crit_greatsword": 0.03}, "3% more of your greatsword hits land 50% harder, a step.")
+	_step("gs_carry", "Carry Through", "gs_tempest", 5, {"finisher_greatsword": 0.06}, "The last blow of your combo lands 6% harder a step.")
+	_step("gs_wind", "Second Wind", "gs_turn", 3, {"stam_greatsword": 0.05}, "Greatsword attacks cost 5% less stamina a step.")
+	_step("gs_heft", "Heft", "gs_run", 3, {"heavy_greatsword": 0.08}, "Your cleave (right-click) hits 8% harder a step.")
+	_step("gs_draw", "Draw Breath", "gs_crescent", 3, {"flow_greatsword": 0.15}, "Greatsword hits give 15% more energy a step.")
+	_step("gs_recover", "Recovery", "gs_flow", 3, {"cdr_greatsword": 0.05}, "Greatsword techniques come back 5% sooner a step.")
 
 
 ## Two daggers: a set of their own (not the dual-wield tree), venom and speed.
