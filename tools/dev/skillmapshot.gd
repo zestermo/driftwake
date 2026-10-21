@@ -56,6 +56,8 @@ func _process(_d: float) -> bool:
 			mastery(pr, "pistol", 6)
 			mastery(pr, "swim", 6)
 			mastery(pr, "sea", 9)
+			mastery(pr, "acrobatics", 8)
+			mastery(pr, "defense", 5)
 			for k in ["k_keen", "k_keen", "k_keen", "k_keen", "k_keen", "k_nerves", "k_deep", "k_deep", "k_deep", "k_feet", "k_feet"]:
 				pr.buy_step(k)
 			p.power.eat("vine")
@@ -65,6 +67,9 @@ func _process(_d: float) -> bool:
 			for s in [["wind_sever", 0], ["tiger_rush", 1], ["phantom_step", 2]]:
 				p.power.equip(s[0], s[1])
 			pr.equip_passive("k_clean", 0)
+			pr.grant_will("h_arm")
+			pr.pick_talent(5, 0)
+			pr.pick_talent(10, 1)
 			# (closing the creator began a new game's story, which locks the menu until Vey)
 			root.get_node("Story").step = "done"
 			var gm = root.get_node("GameMenu")
@@ -89,7 +94,7 @@ func _process(_d: float) -> bool:
 		4:
 			shot("chart")
 			sm.chart = false
-			sm.set_tab("adventure", "swim")
+			sm.set_tab("adventure", "acrobatics")
 			until = 20
 		5:
 			shot("adventure")

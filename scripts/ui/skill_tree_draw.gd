@@ -247,11 +247,11 @@ static func _big(s: Control, n: Dictionary, c: Vector2, col: Color, on: bool) ->
 			s.draw_circle(c, h + 1.0, UIChrome.INK)
 			s.draw_circle(c, h, UIStyle.CREAM if on else rim)
 			s.draw_circle(c, h - 1.5, fill)
-	if ic:
-		var isz := 24.0 if sz >= 26.0 else 0.0
-		if isz > 0.0:
-			s.draw_texture_rect(ic, Rect2(c - Vector2(12, 12), Vector2(24, 24)), false, Color.WHITE if on else Color(0.55, 0.6, 0.62, 0.45))
-	if not on and kind != "root":
+	if ic and sz >= 26.0:
+		s.draw_texture_rect(ic, Rect2(c - Vector2(12, 12), Vector2(24, 24)), false, Color.WHITE if on else Color(0.55, 0.6, 0.62, 0.45))
+	elif sz >= 26.0:
+		s.draw_string(SILK, Vector2(c.x - h, c.y + 3.0), glyph(str(n["name"])), HORIZONTAL_ALIGNMENT_CENTER, sz, 8, col if on else TAG_OFF)
+	if not on and kind not in ["root", "will"]:
 		var lv := str(int(n["level"]))
 		if ic and sz >= 26.0:
 			_outlined(s, Vector2(r.end.x - 1.0 - SILK.get_string_size(lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x, r.end.y - 1.0), lv, UIStyle.TEXT_DIM)

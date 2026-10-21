@@ -818,7 +818,8 @@ func _draw_captain(body: Rect2) -> void:
 		draw_rect(Rect2(tx - 24.0, ry, 14, 1), Color(UIStyle.GILT, 0.5) if on else Color(SkillTreeDraw.TAG_OFF, 0.4))
 		if i < rows.size():
 			_captain_row(rows[i], Vector2(tx, ry), on)
-	_draw_will(Rect2(tx + 196.0, body.position.y, body.end.x - tx - 196.0, body.size.y))
+	var wx := maxf(tx + 196.0, body.end.x - 190.0)
+	_draw_will(Rect2(wx, body.position.y, body.end.x - wx, body.size.y))
 
 
 func _captain_row(id: String, c: Vector2, on: bool) -> void:
@@ -830,14 +831,23 @@ func _captain_row(id: String, c: Vector2, on: bool) -> void:
 		r = SkillTreeDraw.split(self, id, c, UIStyle.GILT, p, on)
 		var vs: Array = n["versions"]
 		var pick := p.version_of(id) if on else -1
+		var room := maxf(size.x - 200.0, c.x + 196.0) - lx - 8.0
+		var whole := " or ".join(vs.map(func(v): return str(v["name"])))
+		var small := _font.get_string_size(whole, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x > room
 		var ax := lx
 		for i in range(vs.size()):
 			if i > 0:
 				draw_string(SILK, Vector2(ax, c.y - 1.0), "OR", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("7f9894"))
 				ax += 16.0
 			var nm := str(vs[i]["name"])
-			draw_string(_font, Vector2(ax, c.y), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.CREAM if i == pick else SkillTreeDraw.TEXT_OFF)
-			ax += _font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 5.0
+			var col := UIStyle.CREAM if i == pick else SkillTreeDraw.TEXT_OFF
+			if small:
+				nm = nm.to_upper()
+				draw_string(SILK, Vector2(ax, c.y - 1.0), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
+				ax += SILK.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 5.0
+			else:
+				draw_string(_font, Vector2(ax, c.y), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, col)
+				ax += _font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 5.0
 		var tag := ("TALENT · PICKED %s" % str(vs[pick]["name"]).to_upper()) if pick >= 0 else ("TALENT AT LV %d · PICK ONE" % int(n["level"]))
 		draw_string(SILK, Vector2(lx, c.y + 9.0), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.GILT if on else Color("7f9894"))
 	else:
@@ -869,9 +879,12 @@ func _draw_will(r: Rect2) -> void:
 		var nr := SkillTreeDraw._big(self, n, c, WILL, got)
 		hit(nr.grow(2.0), "n:" + id)
 		draw_string(_font, Vector2(c.x + 20.0, c.y - 2.0), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 12, UIStyle.CREAM if got else SkillTreeDraw.TEXT_OFF)
-		var l: Array = _wrap(str(n["desc"]), r.size.x - 34.0, SILK, 8)
-		for j in range(mini(l.size(), 2)):
-			draw_string(SILK, Vector2(c.x + 20.0, c.y + 8.0 + j * 9.0), l[j], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, WILL if j == 0 else UIStyle.TEXT_DIM)
+		var desc := str(n["desc"])
+		var how := desc.get_slice(". ", 0)
+		draw_string(SILK, Vector2(c.x + 20.0, c.y + 8.0), how.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, WILL)
+		var l: Array = _wrap(desc.substr(how.length() + 2), r.size.x - 34.0, SILK, 8)
+		for j in range(mini(l.size(), int(step / 9.0) - 2)):
+			draw_string(SILK, Vector2(c.x + 20.0, c.y + 17.0 + j * 9.0), l[j], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.TEXT_DIM)
 		if inspected() == "n:" + id:
 			draw_rect(nr.grow(3.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
 
