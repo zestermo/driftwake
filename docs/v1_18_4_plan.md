@@ -46,6 +46,193 @@ Garp/Koby-style punching.
   creatures, Humanoid._rng seeded. A quiet window: only the progression agent's number table (no code) runs beside it;
   the movement and fist agents start once it lands.
 
+## Preview: the numbers (points rework, piece 1, 2026-10-21; for Zach's OK, no code yet)
+
+### The level curve, from the code
+- Captain: `xp_to_next(lv) = 200 x lv^1.5` (level 2 at 200 xp, level 10 at 22k, 20 at 134k, 40 at 784k in all).
+- Foes scale with their level (`Levels.xp_k = (lv/4)^1.5`), so **every Captain level costs the same ~36 kills of a
+  same-level grunt** (45 base xp), from level 1 to 40. Elites, bosses, ships and Sea Kings shorten it. Each level is
+  about the same stretch of play; 40 levels is ~1,400 grunt-equivalents.
+- Mastery: `mastery_to_next(lv) = 60 x lv^1.3` (62.6k for mastery 30). A grunt kill teaches ~32 (8 counted hits x 4)
+  plus a quarter of its xp. Estimate: fighting with **one** weapon only, mastery runs ahead of the Captain:
+  Captain 5 -> mastery ~10, 10 -> ~16, 15 -> ~22, 20 -> ~28, 22 -> 30. Split between **two** weapons: 10 -> ~12,
+  20 -> ~21, 30 -> 30. So mastery gates are rarely what stops you; **the pool is the choice**, which is the point.
+- Adventure trees: the same mastery curve to level 20 (24k xp).
+
+### Combat points (one pool, from Captain levels)
+| Captain levels | Points each | Pool at the end of the band |
+|---|---|---|
+| 1 (a new captain) | 3 | 3 |
+| 2-10 | 2 | 21 |
+| 11-20 | 3 | 51 |
+| 21-30 | 4 | 91 |
+| 31-40 | 5 | **141** |
+Rising per level, because a level is the same length of play all the way and late nodes cost more.
+
+**Prices (derived, so other blocks need no numbers):** `price = BASE[kind] + gate level / 10` (integer division).
+BASE in a weapon (or fruit) tree: move 2, mech 2, tech 3, passive 3, variant 4 (both versions), element 5, ultimate 8;
+a step 1 a step. A node may carry `"cost"` to override (`_big(...)["cost"] = 4`), so the movement and fists agents'
+blocks add nodes without touching prices. **Gate:** the tree's mastery >= the node's level. **assumed:** a step also
+needs the node it hangs on (steps off the root need nothing), the second element needs the first; no other path rule.
+The root (the basics) stays free.
+
+**Each weapon tree** (name gate/price; then steps, all 1 a step). Totals: big nodes + steps = all of it.
+- **Cutlass** 54+30 = 84: Running Cut 2/2, Arrow Cutting 3/2, Flying Slash 4/3, Boarding Dive 6/2, Riposte 8/3,
+  Swordfish Flurry 10/4, Flourish 13/4, Call of the Tide 16/6, Return to Sender 20/4, Pirate's Way 22/6, Tidewalker 25/7,
+  Kraken's Wake 30/11. Steps: Keen Edge 5, Whetstone 5, Boarding Edge 5, Steady Hand 3, Light Feet 3, Lunge 3, Flow 3, Swift Recovery 3.
+- **Katana** 64+30 = 94: Quick Draw 2/2, Cut the Shot 3/2, Wind Severer 5/3, Full Draw 6/2, Crescent Arc 7/2,
+  Iai Counter 8/3, Tiger Rush 10/4, Iai Upgrade 12/5, Clean Line 13/4, Phantom Step 14/4, Falling Petals 16/6,
+  Bullet Return 20/4, Empty Mind 22/5, Blossom Path 25/7, Thousand Petals 30/11. Steps: Keen Edge 5, Deep Draw 5,
+  Whetstone 5, Steel Nerves 3, Counterweight 3, Light Feet 3, Flow 3, Swift Recovery 3.
+- **Dual Wield** 54+30 = 84: Twin Spin 2/2, Twin Deflect 3/2, Blade Dance 5/3, Twin Cyclone 7/2, Crossed Counter 8/3,
+  Cross Fang 10/4, Whirling Steel 13/4, Twin Currents 16/6, Ricochet Steel 20/4, Dancer's Way 22/6, Crossing Storm 25/7,
+  Tempest of Steel 30/11.
+- **Axe** 51+30 = 81: Skybreaker 2/2, Hatchet Throw 3/3, Unstoppable 6/2, Earthsplitter 9/3, Berserk 11/4,
+  Bloodlust 12/4, Sunder 14/3, Ember Heart 16/6, Rage 20/6, Living Fire 25/7, Maelstrom 30/11.
+- **Dagger** 54+30 = 84: Gutting Strike 2/2, Flick the Shot 3/2, Knife Fan 5/3, Fang Dive 7/2, Slip 8/3, Cutthroat 10/4,
+  Deep Cuts 13/4, Nightfall 16/6, Knife in the Dark 20/4, Killer's Way 22/6, Blood Moon 25/7, Red Eclipse 30/11.
+- **Twin Daggers** 54+30 = 84: Fang Whirl 2/2, Crossed Knives 3/2, Viper Flurry 5/3, Knife Rain 7/2, Bleeding Edge 8/3,
+  Scissor Leap 10/4, Open Wounds 13/4, Viper's Kiss 16/6, Knives Back 20/4, Viper's Way 22/6, Serpent's Coil 25/7,
+  Hundred Fangs 30/11.
+- **Polearm** 61+30 = 91: Wheel Sweep 2/2, Turn the Shot 3/2, Pole Vault 4/2, Hundred Thrusts 5/3, Leg Sweep 6/2,
+  Vaulting Strike 8/3, Falling Spear 9/2, Emperor's Bearing 10/3, Dragon Sweep 10/4, Long Reach 13/4,
+  Rolling Thunder 16/6, Spear Wall 20/4, Lancer's Way 22/6, Storm Bearer 25/7, Raijin's Wheel 30/11.
+- **Hammer** 56+30 = 86: Wrecking Spin 2/2, Iron Wall 3/2, Rising Crush 4/2, Rolling Quake 5/3, Hammerfall 6/2,
+  Skullcracker 8/3, Cyclone Crusher 10/4, Aftershock 13/4, Rumbling Earth 16/6, Immovable 20/4, Smith's Way 22/6,
+  Mountain's Weight 25/7, Titan's Fall 30/11.
+- **Twin Axes** 56+30 = 86: Reaping Whirl 2/2, Hooked Guard 3/2, Raider's Leap 4/2, Hewing Frenzy 5/3, Buzzsaw 6/2,
+  Gallows Hook 8/3, Axestorm 10/4, Red Rhythm 13/4, Hoarfrost 16/6, Bloodrage 20/4, Reaver's Way 22/6,
+  Winter's Bite 25/7, Fimbulwinter 30/11.
+- **Greatsword** 56+30 = 86: Gale Turn 2/2, Flat of the Blade 3/2, Running Cleave 4/2, Crescent Gale 5/3,
+  Falling Cleave 6/2, Guardbreaker 8/3, Tempest Turns 10/4, Unbroken Momentum 13/4, Gale Edge 16/6, Unyielding 20/4,
+  Swordmaster's Way 22/6, Tempest Blade 25/7, Skysplitter 30/11.
+- **Corsair** 56+30 = 86: Powder Finale 2/2, Steel and Shot 3/2, Grapeshot 5/3, Dead Man's Drop 7/2, Parley 8/3,
+  Bandolier 9/2, Crossfire 12/4, Smoke and Steel 13/4, Black Powder 16/6, Return Fire 20/4, Corsair's Way 22/6,
+  Powder Keg 25/7, Broadside 30/11.
+- **Pistol** 62+30 = 92: Hang Shot 2/2, Gun Kata 3/2, Bullet Storm 5/3, Smoke Bomb 6/3, Extra Powder 7/2, Gun Rain 9/2,
+  Deadeye 10/4, Point Blank 11/4, Hang Time 14/3, Close Quarters 15/4, Golden Powder 16/6, Ricochet 20/4,
+  Coup de Grace 22/5, Gilded Gun 25/7, Death's Waltz 30/11.
+- **Unarmed** 64+30 = 94 (today's tree; the fists agent reshapes it, prices follow by kind): Roundhouse 2/2,
+  Shoulder Throw 3/3, Shockwave Palm 4/3, Meteor Kick 6/2, Rising Dragon 8/3, Heavy Landing 9/2, Iron Body 11/4,
+  Suplex 12/4, Hundred Fists 13/4, Chi 15/4, Rushing Wind 16/6, Giant Swing 18/4, Finishing Blow 22/5, Gale Fists 25/7,
+  Sea King Fist 30/11.
+- **Black Leg** 59+30 = 89: Handstand Spin 2/2, Shin Guard 3/2, Arrow Kick 4/2, Hailstorm Heels 5/3, Cyclone Heel 6/2,
+  Mule Kick 8/3, Nonchalance 10/3, Cartwheel Crescent 10/4, Galley Tempo 13/4, Searing Heel 16/6, Kick Back 20/4,
+  Cook's Way 22/6, Red-Hot Leg 25/7, Last Course 30/11.
+- Every weapon's steps are the same shape: three x5 and five x3 (30 points).
+
+**What a captain can afford** (katana as the main weapon; any tree reads the same, they're 81-94 each):
+| Captain | Pool | Main weapon's mastery (est.) | One way to spend it | Another |
+|---|---|---|---|---|
+| 10 | 21 | ~16 | The katana's whole early kit to mastery 10 (Quick Draw, Cut the Shot, Wind Severer, Full Draw, Crescent Arc, Iai Counter, Tiger Rush = 18) + 3 steps | Cutlass's first four (9) + pistol's first four (10) + 2 steps |
+| 20 | 51 | ~28 | Every katana big node to 22 (46) + 5 steps | Katana to 16 (37) + the cutlass's first four (9) + 5 steps |
+| 30 | 91 | 30 | The katana all but 3 steps (one tree full) | Katana's big nodes (64) + pistol's to 10 (18) + 9 steps |
+| 40 | 141 | 30 | **One tree full (94) + about half another** (e.g. the pistol's big nodes to 16, 35, + 12 steps) | **Two trees' every big node** (64 + 62) + 15 steps |
+Nobody owns everything; a second weapon is a real choice from about level 20, a third is a dabble.
+
+### Adventure points (one pool, from Adventure levels)
+- **A point for each level any Adventure tree gains** (Acrobatics 1 -> 2 is a point). Eight trees x 19 = 152 at
+  everything maxed.
+- **Prices:** Adventure big nodes are numbers, not moves: `BASE = 1 (mech/move), 2 (tech/passive/variant)` +
+  level / 10; steps 1 each. Gate: that tree's own level. Same step rule as the weapons.
+
+| Tree | Big nodes (gate/price) | Steps | Total |
+|---|---|---|---|
+| Acrobatics | Geppo 2/1, Long Stride 3/1, Swift Step 4/1, Sprint Jump 6/1, Sky Walk 9/1, Sure Footing 10/2, Fleetfoot 12/2, Featherfall 15/2, Rigging Monkey 16/2 (+ Breakfall ~12, Skyward Dash ~18 from the movement agent) | Light Step 5, Quick Feet 5, Hang Time 3, Spring 3, Wind 3 | 13+19 = 32 |
+| Defense | Clean Parry 2/1, Brace 3/1, Steadfast 4/1, Iron Body 8/1, Unshaken 9/1, Hold the Line 11/2, Battle Instinct 12/2, Second Skin 14/2, Unbreakable 18/2, Iron Wall 20/3 | Timing 5, Sturdy Guard 5, Thick Skin 5, Recovery 3, Composure 3 | 16+21 = 37 |
+| Sailing | Sea Hand 2/1, Gun Captain 4/1, Helmsman 5/1, Hard Over 7/1, Storm Sailing 10/2, Broadside Master 15/2, Bosun 20/3 | Steady Helm 5, Gunnery 5, Carpenter 3, Bilge Rat 3, Lookout 3 | 11+19 = 30 |
+| Swimming | Strong Strokes 2/1, Deep Lungs 4/1, Sea Born 7/1, Current Reader 8/1, Catch Your Breath 10/2, Deep Diver 14/2, Child of the Sea 15/2, Old Salt Lungs 20/3 | Long Strokes 5, Big Lungs 5, Tireless 5, Cold Blood 5 | 13+20 = 33 |
+| Cooking | Galley Hand 2/1, Ship's Cook 5/1, Long Feast 8/1, Iron Gut 10/2, Master Chef 15/2, Captain's Table 20/3 | Seasoning 5, Slow Simmer 5, Taster 5, Good Stock 5 | 10+20 = 30 |
+| Fishing | Patient Line 2/1, Steady Hands 5/1, Bait Saver 8/1, Sea Lore 10/2, Old Salt 15/2, Master Angler 20/3 | Quick Bite 5, Strong Reel 5, Lucky Cast 5, Thrifty 5 | 10+20 = 30 |
+| Stealth | Soft Step 2/1, Ambush 4/1, Slip Away 8/1, Ghost 12/2, Assassin 15/2, Shadow 20/3 | Quiet Feet 5, Knife Work 5, Patience 5, Nimble 5 | 10+20 = 30 |
+| Tinkering | Tight Fit 2/1, Dry Powder 5/1, Clever Hands 8/1, Fine Springs 10/2, Powder Horn 15/2, Field Whetstone 20/3 | Oil 5, Ramrod 5, File 5, Patchwork 5 | 10+20 = 30 |
+
+- The flow: the trees that grow from fighting (Acrobatics, Defense) fund the quiet ones too, so a fisher's points
+  can buy Geppo. Example mid-game: Acrobatics 10, Defense 8, Swimming 6, Sailing 6 = 26 points: every Acrobatics node
+  to 10 (7), Defense to 8 (4), Swimming to 6 (2), Sailing to 6 (4) = 17, and 9 steps.
+- All of Adventure costs 252 against 152 at everything maxed: about 60%. **Option** if that's too tight: Adventure
+  steps x5 become x3 (all of it ~190).
+
+### Fruit trees (**assumed**)
+The fruit's level-1 powers (Fire Fist + Blazing Ring, Rending Fang + Pounce, Vine Snare + Vine Swing) come with eating
+it, like a weapon's root basics; the rest is bought with **Combat** points at the weapon prices, gated by the fruit's
+level (Ember 41 for the rest, Wolf 28, Vine 28).
+
+### Captain tree: unchanged
+Talents (picked every 5 levels), milestones (Soru 8, third loadout 10, Tekkai 14, fourth slot 25) and Will stay as
+they are; the per-level growth stays. The Captain tree's only change is that its levels feed the Combat pool.
+
+### Respec (**assumed**)
+At the ship's bunk, a tree's purchases come back whole into their pool, free (today only steps can). With a shared
+pool this is what makes trying a second weapon safe.
+
+### Old saves (format 5 -> 6)
+Kept: Captain level and xp, every mastery and Adventure level, uses and tiers, talents, Will, versions picked.
+The pools are rebuilt from levels (Combat from the Captain level, Adventure from every Adventure level). What the save
+owns (all of which came free by level, and the per-tree steps) is then **bought back for the player, in order, while
+the pool affords it**: (1) the skills on the bar and the slotted passives, (2) the rest of the weapon in hand's tree
+and the Adventure trees' big nodes, lowest gate first, (3) other trees' big nodes, lowest gate first, (4) steps.
+What doesn't fit is refunded (left unbought, buyable later). One banner on load: "The skill trees are new: N Combat and
+M Adventure points to spend (K)", only if something is left to spend.
+- Example: Captain 18 (45 Combat points), katana 24, cutlass 12, both trees' steps bought. Kept: the katana's big nodes
+  to 20 (41; Empty Mind at 22 doesn't fit), then the 4 left buy back the cutlass's Running Cut and Arrow Cutting. The
+  rest of the cutlass and every step are refunded (buyable again as the pool grows).
+- **Option** instead: keep everything owned and let the pool start in debt (new points pay it off before any is
+  free). Nothing ever disappears, but the menu shows a negative pool for a while.
+
+### The menu, slimmed (mock)
+```
+ [Captain] [Combat] [Adventure] [Loadout] [Driftfruit*]        LV 18  COMBAT 6  ADVENTURE 3      <- beam: both pools, always
+ ------------------------------------------------------------------------------------------------
+ |                                                          |  KATANA          MASTERY 24 ====-  |
+ |        (Thousand Petals)                                 |  ------------------------------    |
+ |   (Bullet Return)   (Blossom Path)   (Empty Mind)        |  Iai Upgrade        VARIANT        |
+ |          |            (Iai Upgrade)        |             |  Needs mastery 12  -  yours: 24    |
+ |   (Phantom Step)      (Tiger Rush)   (Clean Line)        |  Price 5   [ENTER  BUY]            |
+ |   (Iai Counter)       (Full Draw)    (Crescent Arc)      |  Through the Guard: your iai...    |
+ |   (Cut the Shot)  o o              o (Wind Severer)  o   |  Mind's Eye: charges 30% faster    |
+ |                     \   (KATANA)  /                      |                                    |
+ |   icons + names only; steps are pips that fill           |  (one panel, only for the picked)  |
+ ------------------------------------------------------------------------------------------------
+   CUTLASS   [KATANA]   PISTOL                <- rail: only found weapons (none greyed or locked)
+```
+- **On the tree:** each node's icon and name; owned lit, buyable now a soft glow, out of reach dim. Steps are small
+  pips that fill (no "2/5" chips); no level numbers on nodes, no "coming next" list, no points chip on the card.
+- **Hover tooltip** (small, by the cursor): name, price and the gate in one line ("Iai Upgrade - 5 pts - mastery 12").
+- **The select panel** (the right card, slimmer): name and kind, the gate against your level, the price, what it does,
+  and the one action (Buy / Switch / Pick). A variant's two versions side by side; at the bunk Enter opens a small
+  modal to switch. An Adventure tree's "how it grows" goes in the root's panel, not always on screen.
+- **Hidden entirely:** unfound weapons (not on the rail or the Tab chart), unfound Adventure trees (not in the list),
+  the Driftfruit tab without a fruit. The chart (Tab) draws found weapons only, bigger.
+- **Pools:** on the beam beside the level ("COMBAT 6 ADVENTURE 3"), coral only when something is buyable now.
+
+### The stale prompts: diagnosis
+No stored counter goes stale: `points_free(tree)` is computed fresh each time (progression.gd:454). The prompts are
+wrong about **what** they announce:
+1. **progression.gd:330**, `_gain`: every level-up of **any** tree toasts "+N point(s) (K)", where N is the levels just
+   gained (`ups`), not what's unspent and not whether anything is buyable. Adventure trees level from jumps, dodges,
+   blocks, swims and helm time (jump_state.gd:28, dodge_state.gd:39, block_state.gd:52, seamanship.gd:27), so after
+   spending the katana's points Zach still gets "+1 point (K)" every few minutes for a tree he wasn't thinking about.
+   That reads as "points I already spent". With 22 per-tree wallets there is always one with a point in it.
+2. **skill_bar.gd:427-431**: the "+N KATANA [K]" pulse by the level badge shows whenever the hand weapon's own wallet
+   has a point, every frame, forever, if he chooses not to buy a step.
+3. **progression.gd:431-435** (the new-tree card's "N points to spend") and **skill_map_screen.gd:570-575** (the card's
+   points chip) repeat the per-tree count.
+4. The Captain level-up's "a talent to pick (K)" (progression.gd:182-185) is correct (only while one is unpicked).
+**Fix (piece 2):** the per-tree wallets go (two pools); the mastery/Adventure level toast is just "Katana mastery 12"
+(and what it opens to buy, by name); one short line "N Combat points (K)" / "N Adventure points (K)" only on the level
+that **earned** points and only when that pool has points **and** a node it can afford is open; the HUD pulse follows
+the same test. Not verified against Zach's capture (none named); if he saw a line with a pool truly empty, that capture
+would point at a fifth source.
+
+### Tests and readers (pieces 2-3)
+The readers (has_move, owns_node, stat, style_stat, skill_tier, knows, elemental, known_skills) keep their signatures;
+`points_free(tree)` becomes `pool(section)`; `buy_step` becomes `buy(node)` (steps and big nodes). t/progression's
+grant_by_level, steps_points, refund_migration and format5_migration change with it; new atomic tests: pools,
+prices, gates, buy and respec, the format 6 migration, the prompt only with something to buy. t/ui: skills_buy_step,
+skills_tabs (hidden trees). Suites likely affected at prepush: storytest (Vey's drill), techtest, any suite that calls
+`master_all()` (it will buy everything).
+
 ### Open / deferred
 - The Captain-level point rate, node prices and mastery gates: **in the preview**, then tuned in play.
 - **assumed:** the fists' power-punch branch and new big-fist techniques are pitched to Zach as one-liners before they're built (like the new weapons' techniques).
