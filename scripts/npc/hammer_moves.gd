@@ -6,11 +6,11 @@ class_name HammerMoves
 ## the chest's frame: x right, y up, z back), solved each frame by PoleMoves.hands. A power swing slides the
 ## top hand down to meet the bottom one at contact. Same joint conventions as humanoid.gd.
 
-## [right hand, haft, face, left hand's slide] (chest frame). At rest: the haft on the right shoulder, the head
-## behind it, both hands low in front.
-const GUARD_GRIP := [Vector3(0.2, -0.4, -0.25), Vector3(0.17, 0.72, 0.67), Vector3(0, 0.67, -0.72), 0.32]
+## [right hand, haft, face, left hand's slide] (chest frame). At rest: the haft lying on top of the right shoulder
+## (~0.1 m over the joint), angled out a little so the head sits up behind it clear of the head, both hands in front.
+const GUARD_GRIP := [Vector3(0.1, -0.19, -0.3), Vector3(0.2, 0.78, 0.59), Vector3(0, 0.6, -0.8), 0.24]
 ## Sprinting: carried on the shoulder in the right hand, the left arm free.
-const TRAIL_GRIP := [Vector3(0.22, -0.12, -0.22), Vector3(0.12, 0.62, 0.78), Vector3(0, 1, 0), -1.0]
+const TRAIL_GRIP := [Vector3(0.17, -0.12, -0.22), Vector3(0.13, 0.7, 0.7), Vector3(0, 0.7, -0.7), -1.0]
 ## The guard (block, parry): the haft up across the front, the head high to the left, the hands wide.
 const BLOCK_GRIP := [Vector3(0.3, -0.2, -0.4), Vector3(-0.82, 0.55, -0.15), Vector3(0, 0, -1), 0.55]
 const GRIPS := [GUARD_GRIP, BLOCK_GRIP, TRAIL_GRIP]
