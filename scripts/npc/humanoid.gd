@@ -138,6 +138,8 @@ var stance: String = "sword"
 ## hand's slide], the chest's frame), whether a pose set it, and the grip as it eases there.
 var pole_grip: Array = []
 var pole_set := false
+## A sprinting greatsword's next scrape of sparks off the ground (s; GreatswordMoves.scrape).
+var gs_scrape := 0.0
 var pole_cur: Array = []
 var pole_w := 0.0
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll

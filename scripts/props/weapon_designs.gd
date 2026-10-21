@@ -150,7 +150,7 @@ const DESIGNS := {
 			"dmg": 1.12, "worth": 2.0, "len": 1.22, "w": 0.1, "taper": 0.8, "curve": 0.05, "guard": "long", "pommel": "drop",
 			"blade": Color(0.34, 0.35, 0.42), "fit": Color(0.86, 0.68, 0.32), "grip": Color(0.12, 0.1, 0.12), "speed": 0.96, "reach": 1.06},
 		"claymore": {"id": "claymore", "name": "Claymore", "desc": "A highlander's two-hander, its quillons swept forward to quatrefoils. Wide sweeps that clear a deck.",
-			"dmg": 1.04, "worth": 1.5, "len": 1.14, "w": 0.085, "taper": 0.85, "guard": "claymore", "pommel": "wheel",
+			"dmg": 1.04, "worth": 1.5, "len": 1.14, "w": 0.1, "taper": 0.85, "guard": "claymore", "pommel": "wheel",
 			"fit": Color(0.62, 0.62, 0.66), "grip": Color(0.42, 0.18, 0.12), "speed": 1.02, "reach": 1.04, "sweep": 1.12},
 		"saw": {"id": "sawtooth_greatblade", "name": "Sawtooth Greatblade", "desc": "A broad blade with teeth filed into its edge. It doesn't cut so much as rip, and the wounds bleed.",
 			"dmg": 1.0, "worth": 1.6, "len": 1.06, "w": 0.13, "taper": 0.9, "teeth": true, "guard": "block", "pommel": "disc",
@@ -703,7 +703,7 @@ static func _hammer(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 static func _greatsword(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 	var m := _mats(p, tier, Color(0.6, 0.58, 0.55), Color(0.3, 0.2, 0.14), "leather")
 	var fit: Material = m["fit"]
-	var w := _f(p, "w", 0.1)
+	var w := _f(p, "w", 0.12)
 	var th := _f(p, "th", 0.026)
 	var length := _f(p, "len", GREAT_LEN)
 	var taper := _f(p, "taper", 0.85)

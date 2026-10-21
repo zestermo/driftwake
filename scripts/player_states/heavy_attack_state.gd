@@ -15,6 +15,8 @@ extends PlayerState
 ## * polearm (Skewer): a lunge driving the shaft through the line in front
 ## * hammer (Earthquake): heaved overhead and slammed into the ground, a shockwave knocking everyone round it down
 ## * twin axes (Berserker Frenzy): chop, chop, chop stepping in, then both crashed down crossed
+## * greatsword (the charged cleave): held overhead charging, let go to bring it down; a full charge flings a
+##   crescent of air down the line
 ## * fists: a flying kick
 ## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
 ##   spin, arms crossed, shooting everyone close)
@@ -72,6 +74,13 @@ const STYLES := {
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "twin_axe",
 		"color": Color(0.86, 0.92, 1.0), "color_l": Color(0.7, 0.8, 0.98), "tree": "dual_axe", "pair": true,
 		"chops": [0.184, 0.368, 0.621], "chop_damages": [9.0, 9.0, 24.0]},
+	# greatsword (the charged cleave): held, the blade raised overhead charging (CHARGE_AT); let go, it comes straight
+	# down through them into the ground. Harder by the level (CHARGE_DAMAGE), always through a wind-up; a full charge
+	# can't be blocked, knocks them flat and flings a crescent of air on down the line (GreatswordArts.cleave_fx)
+	"cleave": {"anim": "gs_heavy", "impulse": 7.0,
+		"damage": 30.0, "hitstop": 0.1, "shake": 0.22, "knockback": 10.0, "stagger": 0.8,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.8, "impact_fx": false, "reach": "great_cleave",
+		"color": Color(0.9, 0.96, 1.0), "tree": "greatsword", "great": true, "charge": true},
 	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
 		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
@@ -88,6 +97,13 @@ const STYLES := {
 		"damage": 35.0, "hitstop": 0.1, "shake": 0.2, "knockback": 10.0, "stagger": 0.5,
 		"trail": "overhead", "trail_len": 0.3, "sfx": "whoosh_big", "pitch": 1.0, "impact_fx": true},
 }
+
+## The cleave's charge: seconds held to reach levels 1 and 2, each level's damage, the longest hold before it goes
+## by itself, and the creep while it's held (x move speed).
+const CHARGE_AT := [0.45, 1.0]
+const CHARGE_DAMAGE := [30.0, 42.0, 58.0]
+const CHARGE_MAX := 1.8
+const CHARGE_CREEP := 0.25
 
 ## Gun kata hop (m/s up).
 const KATA_HOP := 5.0
@@ -120,6 +136,10 @@ var _quaked := false
 var _spd := 1.0
 ## The frenzy's blows landed after the first.
 var _chop := 0
+## The cleave: held and charging, the level reached, how long it's been held.
+var _charging := false
+var _level := 0
+var _charge_t := 0.0
 
 
 static func style_for(weapon_model: String) -> String:
@@ -130,12 +150,14 @@ static func style_for(weapon_model: String) -> String:
 			return "skewer"
 		"hammer":
 			return "quake"
+		"greatsword":
+			return "cleave"
 		"cutlass", "sword", "rapier", "dagger":
 			return "thrust"
 	return "slam"
 
 
-func enter(_data: Dictionary) -> void:
+func enter(data: Dictionary) -> void:
 	timer = 0.0
 	phase = 0
 	hitbox_activated = false
@@ -180,6 +202,8 @@ func enter(_data: Dictionary) -> void:
 		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
 	elif cfg.get("pair", false):
 		_spd = DualAxeArts.pair(player, "speed")
+	elif cfg.get("great", false):
+		_spd = WeaponDesigns.great(player.equipped_weapon.design, "speed")
 	_chop = 0
 	var length := ActionSpecs.length(anim) / _spd
 	var w := ActionSpecs.hit_seconds(anim) / _spd
@@ -194,11 +218,25 @@ func enter(_data: Dictionary) -> void:
 	_seen = not cfg.has("blink")
 	if cfg.has("blink"):
 		player.hurtbox.set_deferred("monitorable", false)
+	_charging = cfg.has("charge")
+	_level = 0
+	_charge_t = 0.0
+	if _charging:
+		# (out of a combo blow's follow-through the blade's already moving: the charge starts a level up)
+		if int(data.get("momentum", 0)) > 0:
+			_level = 1
+			_charge_t = float(CHARGE_AT[0])
+			GreatswordArts.charged(player, _level)
+		player.body_model.hold("gs_charge", 0.12 if _level > 0 else 0.2)
+		return
 	player.body_model.play(anim, length)
 
 
 func physics_update(delta: float) -> void:
 	apply_gravity(delta)
+	if _charging:
+		_charge_update(delta)
+		return
 	if cfg.get("kata", false):
 		_kata_move(delta)
 	elif cfg.has("steer") and phase == 1:
@@ -254,8 +292,11 @@ func physics_update(delta: float) -> void:
 					player.velocity.z = face_dir.z * float(cfg["impulse"])
 				# (the whirlwind's first turn only staggers: the second knocks them flat;
 				# Powder Lunge's thrust holds them up for the shot)
-				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot") and not cfg.has("chops"))
+				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot") and not cfg.has("chops") and not cfg.has("charge"))
 				hit.breaker = hit.breaker or cfg.has("quake")
+				if cfg.has("charge"):
+					hit.damage *= float(CHARGE_DAMAGE[_level]) / float(cfg["damage"])
+					GreatswordArts.cleave_hit(player, hit, _level)
 				if not cfg.get("kata", false):
 					player.sword_hitbox.activate(hit)
 				hitbox_activated = true
@@ -408,6 +449,9 @@ func _strike_fx(second: bool = false) -> void:
 	# (the hammer's is its shockwave, a moment later: HammerArts.quake)
 	if cfg["tree"] == "hammer":
 		return
+	if cfg["tree"] == "greatsword":
+		GreatswordArts.cleave_fx(player, _level)
+		return
 	if cfg["tree"] == "dual_axe":
 		# each chop a ring where it bites; the crossed crash an X on the ground and a ring round it
 		var at := player.global_position + face * 1.3
@@ -503,6 +547,30 @@ func _hit(knockdown: bool, base: float = -1.0) -> HitData:
 	return hit
 
 
+## The cleave held: creeping, turning with the camera, the charge climbing its levels; let go (or held too long) it
+## comes down. A dodge drops it.
+func _charge_update(delta: float) -> void:
+	var mi := get_movement_input()
+	var want := get_camera_relative_direction(mi) * player.move_speed * CHARGE_CREEP if mi.length() > 0.1 else Vector3.ZERO
+	player.velocity.x = move_toward(player.velocity.x, want.x, 30.0 * delta)
+	player.velocity.z = move_toward(player.velocity.z, want.z, 30.0 * delta)
+	player.move_and_slide()
+	face_camera(delta)
+	_charge_t += delta
+	while _level < CHARGE_AT.size() and _charge_t >= float(CHARGE_AT[_level]):
+		_level += 1
+		GreatswordArts.charged(player, _level)
+	if wants_dodge():
+		transitioned.emit(self, "Dodge", {})
+		return
+	if not Input.is_action_pressed("heavy_attack") or _charge_t >= CHARGE_MAX:
+		_charging = false
+		var forward := get_camera_forward()
+		player.player_model.rotation.y = atan2(-forward.x, -forward.z)
+		var anim := str(cfg["anim"])
+		player.body_model.play(anim, ActionSpecs.length(anim) / _spd)
+
+
 ## Steered with the stick at a fraction of walking pace (the whirlwind).
 func _steer(delta: float, k: float) -> void:
 	var input := get_movement_input()
@@ -571,3 +639,5 @@ func exit() -> void:
 	player.align_hold = false
 	player.sword_hitbox.deactivate()
 	player.sword_pivot.rotation_degrees.z = 0.0
+	if player.body_model.current_action() == "gs_charge":
+		player.body_model.stop_action()

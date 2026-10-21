@@ -227,10 +227,10 @@ const SPECS := {
 	# --- greatsword (GreatswordMoves: keyed like the hammer, its grip solved by PoleMoves.hands; "carry": a chained
 	# blow starts where the one "after" it left off, Humanoid._begin_action) ---
 	"gs_stance": {"len": 1.0, "stance": "greatsword", "weapon": "greatsword"},
-	"gs_1": {"len": 0.8, "hit": [0.3, 0.46], "chain": 0.48, "swoosh": [0.27, 0.52], "sharp": 50.0, "stance": "greatsword", "weapon": "greatsword"},
-	"gs_2": {"len": 0.76, "hit": [0.22, 0.4], "chain": 0.4, "swoosh": [0.2, 0.46], "sharp": 50.0, "carry": true, "stance": "greatsword", "weapon": "greatsword",
+	"gs_1": {"len": 0.8, "hit": [0.24, 0.42], "chain": 0.42, "swoosh": [0.22, 0.46], "sharp": 50.0, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_2": {"len": 0.78, "hit": [0.25, 0.42], "chain": 0.42, "swoosh": [0.23, 0.46], "sharp": 50.0, "carry": true, "stance": "greatsword", "weapon": "greatsword",
 		"extras": {"after": "gs_1"}},
-	"gs_3": {"len": 0.84, "hit": [0.32, 0.5], "chain": 0.5, "swoosh": [0.3, 0.54], "sharp": 50.0, "carry": true, "stance": "greatsword", "weapon": "greatsword",
+	"gs_3": {"len": 0.84, "hit": [0.28, 0.48], "chain": 0.48, "swoosh": [0.26, 0.52], "sharp": 50.0, "carry": true, "stance": "greatsword", "weapon": "greatsword",
 		"extras": {"after": "gs_2"}},
 	"gs_4": {"len": 1.1, "hit": [0.14, 0.72], "chain": 0.95, "swoosh": [0.12, 0.74], "sharp": 50.0, "carry": true, "stance": "greatsword", "weapon": "greatsword",
 		"extras": {"after": "gs_3"}},

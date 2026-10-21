@@ -327,6 +327,8 @@ static func hands(h, delta: float) -> void:
 		want = grips[1]
 	elif h.sprinting and act == "":
 		want = grips[2]
+		if on and st == "greatsword":
+			GreatswordMoves.scrape(h, delta)
 	h.pole_set = false
 	h.pole_w = move_toward(h.pole_w, 1.0 if on else 0.0, delta / 0.12)
 	if h.pole_cur.is_empty():

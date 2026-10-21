@@ -14,7 +14,10 @@ extends PlayerState
 ##               (Wrecking Spin); at a sprint, Rising Crush
 ##   dual_axe    right chop -> left chop -> the hook (drags them in) -> two turns with both axes out
 ##               (Reaping Whirl); at a sprint, Raider's Leap
-##   fist        jab -> cross -> hook -> spinning roundhouse kick
+##   greatsword  rising diagonal -> falling diagonal -> flat backhand (breaks a guard) -> a full turn (Gale Turn),
+##               each out of the last one's follow-through, faster and harder as the momentum builds; at a sprint,
+##               Running Cleave
+##   fist       jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
 ## (move, even jump) and the next click continues the combo instead of restarting.
@@ -120,8 +123,8 @@ const STYLES := {
 		"durations": [0.56], "impulses": [11.0],
 		"damages": [16.0], "hitstops": [0.08], "shakes": [0.18], "lefts": [false],
 		"reach": "twin_axe", "color": Color(0.86, 0.92, 1.0), "color_l": Color(0.7, 0.8, 0.98), "breaker": true, "trip": true, "pair": true},
-	# greatsword: off the shoulder down to the left, back up to high right, flat round to the left (breaks a guard) and
-	# (Gale Turn) on round in a full turn that puts them down; each blow flows out of the last one's follow-through
+	# greatsword: out of the low guard up across to high right, back down to low left, flat round to the right (breaks a
+	# guard) and (Gale Turn) on round in a full turn that puts them down; each blow flows out of the last one's follow-through
 	# ("momentum": chained straight on, it plays MOMENTUM_SPEED faster and lands MOMENTUM_DAMAGE harder per blow built);
 	# "great": the design's speed, reach, weight and bleed (WeaponDesigns.great)
 	"greatsword": {"anims": ["gs_1", "gs_2", "gs_3", "gs_4"], "trails": ["", "", "", ""],
