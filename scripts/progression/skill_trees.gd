@@ -28,6 +28,7 @@ const HEADERS := {
 	"dagger": ["Dagger", "combat", Color(1.0, 0.45, 0.58), 30],
 	"dual_dagger": ["Twin Daggers", "combat", Color(0.6, 1.0, 0.45), 30],
 	"polearm": ["Polearm", "combat", Color(1.0, 0.9, 0.4), 30],
+	"hammer": ["Hammer", "combat", Color(0.88, 0.74, 0.54), 30],
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
@@ -61,6 +62,7 @@ const ELEMENTS := {
 	"dagger": ["dg", "Nightfall", "Blood Moon", "shadow: black wisps off the blade and crimson sparks, and Red Eclipse's wounds open in the dark"],
 	"dual_dagger": ["dd", "Viper's Kiss", "Serpent's Coil", "venom: green motes and poison bubbling off every wound"],
 	"polearm": ["pl", "Rolling Thunder", "Storm Bearer", "lightning: bolts crackling off the head and a thunderclap on the big blows"],
+	"hammer": ["hm", "Rumbling Earth", "Mountain's Weight", "earth: rock thrown up off every blow, the shockwaves in sandstone and stone spikes heaving up out of the ground"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 }
@@ -157,6 +159,7 @@ static func _build() -> void:
 	_build_dagger()
 	_build_dual_dagger()
 	_build_polearm()
+	_build_hammer()
 	_build_corsair()
 	_build_pistol()
 	_build_unarmed()
@@ -658,6 +661,43 @@ static func _build_polearm() -> void:
 	_step("pl_lunge", "Lunge", "pl_legs", 3, {"heavy_polearm": 0.08}, "Your Skewer (right-click) hits 8% harder a step.")
 	_step("pl_flow", "Flow", "pl_thrusts", 3, {"flow_polearm": 0.15}, "Polearm hits give 15% more energy a step.")
 	_step("pl_recover", "Recovery", "pl_long", 3, {"cdr_polearm": 0.05}, "Polearm techniques come back 5% sooner a step.")
+
+
+## Hammers (warhammer, kanabo, mallet, maul, anchor hammer): weight, stagger and shockwaves, earth as the element.
+static func _build_hammer() -> void:
+	_tree("hammer", ["Iron", "Quake", "Weight"])
+	_root("hm_root", "Hammer", {},
+		"Two hands on a heavy head: slow swings that shove them back and stagger them, a flat swing that breaks a guard, and on right-click the hammer slammed into the ground with a shockwave that knocks everyone round it flat. Fight with a hammer in hand to build its mastery.")
+	_big("hm_deflect", "Iron Wall", "mech", 0, 3, {"parryshot_hammer": 1, "parry_hammer": 0.06},
+		"Parry with a hammer and you swat gunshots aside with the head too (without it, a parry only stops blades), and your parry window is wider.")
+	_big("hm_skull", "Skullcracker", "tech", 0, 8, {}, "", "skullcracker")
+	_big("hm_unstop", "Immovable", "mech", 0, 20, {"armor_hammer": 1, "def_hammer": 6.0},
+		"Mid-swing with a hammer, blows don't make you flinch or knock you off your feet, and you have 6 more defense with one in hand.")
+	_big("hm_quakes", "Rolling Quake", "tech", 1, 5, {}, "", "rolling_quake")
+	_big("hm_cyclone", "Cyclone Crusher", "tech", 1, 10, {}, "", "cyclone_crusher")
+	_elem(1)
+	_elem(2)
+	_big("hm_titan", "Titan's Fall", "ult", 1, 30, {}, "", "titans_fall")
+	_big("hm_spin", "Wrecking Spin", "move", 2, 2, {"mv_wrecking_spin": 1},
+		"Adds a fourth blow to your combo: the hammer let out at arm's length, the whole body turned round once behind it, and the head brought down at the end. It hits everyone about you and puts them on the ground.")
+	_big("hm_rush", "Rising Crush", "move", 2, 4, {"mv_rising_crush": 1},
+		"Attack at a sprint: drag the head low behind you, then swing it up off the ground through them. It breaks their wind-up and throws them down.")
+	_big("hm_fall", "Hammerfall", "move", 2, 6, {"mv_hammerfall": 1},
+		"Attack in the air: heave the hammer up overhead and drop with it; landing drives it into the ground in a shockwave that knocks everyone close flat (once per jump).")
+	_big("hm_after", "Aftershock", "passive", 2, 13, {"finisher_hammer": 0.3, "heavy_hammer": 0.25},
+		"Passive (a slot). The last blow of your combo lands 30% harder, and your Earthquake (right-click) 25%.")
+	_variant("hm_way", "Smith's Way", 2, [
+		["hm_bones", "Bonebreaker", 22, {"exec_hammer": 0.5, "crit_hammer": 0.06}, "A hit that leaves them under 30% health deals 50% more on top, and 6% more of your hits are crits."],
+		["hm_anvil", "Anvil", 22, {"leech_hammer": 0.06, "cdr_hammer": 0.2}, "Hammer hits heal you for 6% of their damage, and hammer techniques come back 20% sooner."]],
+		"Two ways to swing it. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("hm_heft", "Heft", "hm_root", 5, {"dmg_hammer": 0.05}, "+5% hammer damage a step.")
+	_step("hm_hide", "Iron Hide", "hm_deflect", 3, {"def_hammer": 3.0}, "+3 defense with a hammer in hand a step.")
+	_step("hm_crush", "Crushing", "hm_elem", 5, {"crit_hammer": 0.03}, "3% more of your hammer hits land 50% harder, a step.")
+	_step("hm_momentum", "Momentum", "hm_cyclone", 5, {"finisher_hammer": 0.06}, "The last blow of your combo lands 6% harder a step.")
+	_step("hm_back", "Strong Back", "hm_spin", 3, {"stam_hammer": 0.05}, "Hammer attacks cost 5% less stamina a step.")
+	_step("hm_overhead", "Overhead", "hm_rush", 3, {"heavy_hammer": 0.08}, "Your Earthquake (right-click) hits 8% harder a step.")
+	_step("hm_flow", "Flow", "hm_quakes", 3, {"flow_hammer": 0.15}, "Hammer hits give 15% more energy a step.")
+	_step("hm_recover", "Recovery", "hm_after", 3, {"cdr_hammer": 0.05}, "Hammer techniques come back 5% sooner a step.")
 
 
 ## Two daggers: a set of their own (not the dual-wield tree), venom and speed.

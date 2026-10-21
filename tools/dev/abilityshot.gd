@@ -3,7 +3,7 @@ extends SceneTree
 ## films it, effects and all, as a contact sheet (one row per view, frames along
 ## game time, so hit-stop and slow motion show as held frames).
 ## Args: <out_prefix> <skill_id> [style: sword|katana|axe|dual_sword|sword_axe|sword_pistol|pistol|fist|
-##       dagger|dual_dagger|sword_dagger|polearm]
+##       dagger|dual_dagger|sword_dagger|polearm|hammer]
 ##       [views: game,side,front3,top,close] [frames=8] [span s=1.2] [start s=0.0]
 ## skill_id may also be "heavy" (the right-click), "combo" (the light combo, clicked
 ## through every 0.2 s), "air" (the jump attack from 2.5 m up) or "riposte_counter".
@@ -89,6 +89,8 @@ func arm() -> void:
 			p.set_offhand(item("dagger"))
 		"polearm":
 			p.equip_weapon(item("spear"), false)
+		"hammer":
+			p.equip_weapon(item("warhammer"), false)
 	if style != "fist":
 		p.sheathe_weapon(true)
 		p.draw_weapon(true)

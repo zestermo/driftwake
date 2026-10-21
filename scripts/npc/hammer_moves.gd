@@ -156,6 +156,66 @@ static func _pose(h, n: String, u: float) -> Array:
 			# Hammerfall's landing: the hammer driven into the ground on impact, crouched deep over it
 			var hit := _slammed(SQUAT)
 			return [h._keys(u, [[0.0, hit], [0.55, hit.merged({"_scale": Vector3.ONE}, true)], [1.0, g]]), "full", Vector3.ZERO]
+		# --- the techniques (HammerArts; keyed in seconds of the length they're played at) ---
+		"ham_skull":
+			# Skullcracker: a crouch, a hop with the hammer heaved up overhead, the head brought straight down on
+			# the one in front at the top of it, then down into a crouch
+			var T: float = float(h._action.get("dur", 0.9))
+			var crouch := _k({"pivot": Vector3(-0.08, 0, 0), "hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.25, -0.1, 0), "head": Vector3(0.2, 0.1, 0),
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.05, 0.9, 1.0), "_smear": Vector3.ZERO}.merged(SQUAT), GUARD_GRIP)
+			var up := _raised(TUCK)
+			var smash := _k({"pivot": Vector3(-0.15, 0, 0), "hips": Vector3(0, 0.05, 0), "torso": Vector3(-0.3, 0.05, 0), "head": Vector3(0.3, 0, 0),
+				"leg_l": Vector3(0.9, 0, -0.2), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(0.3, 0, 0.2), "shin_r": Vector3(-1.1, 0, 0),
+				"_lift": Vector3(0, -0.05, 0), "_scale": Vector3(1.05, 0.92, 1.03), "_smear": Vector3(0.14, 0, 0)},
+				[Vector3(0.0, -0.15, -0.5), Vector3(0.0, 0.1, -0.99), Vector3(0, -0.99, 0.1), 0.2])
+			var land := _slammed(SQUAT).merged({"_gd": Vector3(0.0, 0.3, -0.95)}, true)
+			return [h._keys(u, [[0.0, g], [0.08 / T, crouch, "out"], [0.26 / T, up, "out"], [0.36 / T, up], [0.44 / T, smash, "in"], [0.62 / T, smash],
+				[0.74 / T, land, "out"], [1.0, g]]), "full", Vector3.ZERO]
+		"ham_quakes":
+			# Rolling Quake: heaved over the right shoulder and slammed down to the left, over the left and down to
+			# the right, then up overhead and straight down, each slam stepping in
+			var T: float = float(h._action.get("dur", 1.5))
+			var up_r := _k({"pivot": Vector3(0.05, 0, 0), "hips": Vector3(0, -0.4, 0), "torso": Vector3(0.12, -0.45, 0.05), "head": Vector3(-0.05, 0.6, 0),
+				"_lift": Vector3(0, -0.12, 0), "_scale": Vector3(0.98, 1.04, 1.0), "_smear": Vector3.ZERO}.merged(SET),
+				[Vector3(0.18, 0.12, -0.12), Vector3(0.3, 0.75, 0.6), Vector3(-0.2, 0.3, -0.93), 0.42])
+			var down_l := _k({"pivot": Vector3(-0.1, 0, 0), "hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.3, 0.3, 0), "head": Vector3(0.28, -0.35, 0),
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.06, 0.92, 1.02), "_smear": Vector3.ZERO}.merged(LUNGE),
+				[Vector3(-0.05, -0.32, -0.45), Vector3(-0.45, -0.03, -0.89), Vector3(-0.1, -0.92, -0.39), 0.2])
+			var up_l := _k({"pivot": Vector3(0.05, 0, 0), "hips": Vector3(0, 0.35, 0), "torso": Vector3(0.12, 0.45, -0.05), "head": Vector3(-0.05, -0.55, 0),
+				"_lift": Vector3(0, -0.12, 0), "_scale": Vector3(0.98, 1.04, 1.0), "_smear": Vector3.ZERO}.merged(SET),
+				[Vector3(-0.12, 0.12, -0.15), Vector3(-0.3, 0.75, 0.6), Vector3(0.2, 0.3, -0.93), 0.42])
+			var down_r := _k({"pivot": Vector3(-0.1, 0, 0), "hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.3, -0.3, 0), "head": Vector3(0.28, 0.35, 0),
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.06, 0.92, 1.02), "_smear": Vector3.ZERO}.merged(STEP_R),
+				[Vector3(0.1, -0.32, -0.45), Vector3(0.4, -0.03, -0.91), Vector3(0.1, -0.92, -0.39), 0.2])
+			return [h._keys(u, [[0.0, g], [0.22 / T, up_r, "out"], [0.29 / T, up_r], [0.36 / T, down_l, "in"], [0.48 / T, down_l],
+				[0.62 / T, up_l, "out"], [0.69 / T, up_l], [0.76 / T, down_r, "in"], [0.88 / T, down_r],
+				[1.02 / T, _raised(SET), "out"], [1.09 / T, _raised(SET)], [1.16 / T, _slammed({}), "in"], [1.36 / T, _slammed({})], [1.0, g]]), "full", Vector3.ZERO]
+		"ham_cyclone":
+			# Cyclone Crusher: wound right, the hammer let out at arm's length and the body turned round three
+			# times behind it, walking, then the head brought down onto the ground at the end of the last turn
+			var T: float = float(h._action.get("dur", 1.7))
+			var s := u * T
+			var load := _k({"pivot": Vector3(0.05, 0, 0), "hips": Vector3(0, -0.5, 0), "torso": Vector3(-0.05, -0.55, 0), "head": Vector3(0.1, 0.8, 0),
+				"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.04, 0.94, 1.0), "_smear": Vector3.ZERO}.merged(WIDE),
+				[Vector3(0.22, -0.32, -0.1), Vector3(0.8, -0.05, 0.6), Vector3(0.6, 0, -0.8), 0.22])
+			var turn := _k({"pivot": Vector3(-0.05, 0, 0), "hips": Vector3(0, 0.15, 0), "torso": Vector3(-0.15, 0.15, 0), "head": Vector3(0.1, -0.1, 0),
+				"_lift": Vector3(0, -0.26, 0), "_scale": Vector3(1.04, 0.97, 1.0), "_smear": Vector3(0.1, 0, 0)}.merged(WIDE),
+				[Vector3(0.0, -0.28, -0.42), Vector3(-0.8, 0.0, -0.6), Vector3(-0.6, 0, 0.8), 0.2])
+			var land := turn.merged({"pivot": Vector3(-0.2, 0, 0), "hips": Vector3(0, 0.5, 0), "torso": Vector3(-0.4, 0.5, 0), "head": Vector3(0.3, -0.6, 0),
+				"_lift": Vector3(0, -0.4, 0), "_scale": Vector3(1.08, 0.9, 1.03), "_smear": Vector3.ZERO,
+				"_gd": Vector3(-0.55, 0.13, -0.82), "_ge": Vector3(0, -0.83, -0.56)}, true)
+			var pz: Dictionary = h._keys(u, [[0.0, g], [0.2 / T, load, "out"], [0.26 / T, load], [0.34 / T, turn, "in"], [1.28 / T, turn, "linear"],
+				[1.38 / T, land, "in"], [1.56 / T, land], [1.0, g]])
+			var k := clampf((s - 0.26) / 1.06, 0.0, 1.0)
+			pz["pivot"] = (pz["pivot"] as Vector3) + Vector3(0, TAU * 3.0 * k, 0)
+			return [pz, "full", Vector3.ZERO]
+		"ham_titan":
+			# Titan's Fall, the way up: a deep crouch, then up with the knees tucked and the hammer heaved overhead,
+			# held there (the landing plays ham_land)
+			var crouch := _k({"pivot": Vector3(-0.1, 0, 0), "hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.3, -0.1, 0), "head": Vector3(0.25, 0.1, 0),
+				"_lift": Vector3(0, -0.38, 0), "_scale": Vector3(1.07, 0.88, 1.0), "_smear": Vector3.ZERO}.merged(SQUAT), GUARD_GRIP)
+			var up := _raised(TUCK)
+			return [h._keys(u, [[0.0, g], [0.15, crouch, "out"], [0.2, crouch], [0.34, up, "out"], [1.0, up]]), "full", Vector3.ZERO]
 		# --- the guard ---
 		"ham_block":
 			return [_k(PoleMoves._p([BLOCK, SET, {"pivot": Vector3.ZERO, "_lift": Vector3(0, -0.18, 0)}]), BLOCK_GRIP), "full", Vector3.ZERO]

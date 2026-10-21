@@ -1899,7 +1899,7 @@ func rock_spikes(pos: Vector3, radius: float = 2.5, count: int = 8, seed_v: int 
 		return
 	if _spike_mesh == null:
 		var mb := MeshBuilder.new()
-		var rock := PSXMat.lit("rock", Color(0.66, 0.58, 0.5))
+		var rock := PSXMat.lit("rock", Color(0.92, 0.82, 0.7))
 		mb.add_cone(rock, Transform3D(), 0.2, 1.0, 5, 1.0)
 		mb.add_cone(rock, Transform3D(Basis(Vector3.BACK, 0.35), Vector3(0.12, 0, 0.05)), 0.12, 0.6, 4, 1.0)
 		_spike_mesh = mb.commit()

@@ -146,6 +146,15 @@ const ALL := {
 		"desc": "Plant the butt and vault over the enemy you're facing (up to 9 m), driving the point down into them as you come over: it breaks their guard, and you land behind them."},
 	"raijin_wheel": {"name": "Raijin's Wheel", "tree": "polearm", "cost": 0.0, "cooldown": 3.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Leap up spinning the spear over your head into a wheel, come down in its middle cutting everyone around you on every turn, then drive the point into the ground: the wheel bursts and throws them all down."},
+	# --- Hammer ---
+	"skullcracker": {"name": "Skullcracker", "tree": "hammer", "cost": 18.0, "cooldown": 6.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
+		"desc": "A hop up with the hammer raised and the head brought straight down on the enemy in front: it goes through any guard, breaks their wind-up and leaves them reeling."},
+	"rolling_quake": {"name": "Rolling Quake", "tree": "hammer", "cost": 22.0, "cooldown": 8.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
+		"desc": "Three slams stepping forward, left, right and overhead, each a shockwave wider than the last; the third knocks everyone within four paces flat."},
+	"cyclone_crusher": {"name": "Cyclone Crusher", "tree": "hammer", "cost": 24.0, "cooldown": 9.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
+		"desc": "Let the hammer out at arm's length and spin three times, walking with it, battering everyone about you; the last turn ends in the ground with a shockwave."},
+	"titans_fall": {"name": "Titan's Fall", "tree": "hammer", "cost": 0.0, "cooldown": 3.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique", "ult": true,
+		"desc": "Ultimate. Leap high with the hammer heaved overhead and come down with the whole weight of it: the ground breaks in a great ring that throws everyone down, stone heaves up under them, and two aftershocks follow."},
 	# --- Pistol ---
 	"deadeye": {"name": "Deadeye", "tree": "pistol", "cost": 20.0, "cooldown": 7.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique",
 		"desc": "A breath, a steady aim, and one shot that punches through every enemy in a line."},
