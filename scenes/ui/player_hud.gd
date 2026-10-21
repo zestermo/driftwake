@@ -246,11 +246,14 @@ func show_new_tree(tree_name: String, line: String) -> void:
 		ln.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(ln)
 		var k := UIStyle.key_hint("K", "OPEN")
+		k.name = "Key"
 		k.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		vb.add_child(k)
 		_pc.ui.add_child(_tree_card)
 	(_tree_card.find_child("Name", true, false) as Label).text = tree_name
 	(_tree_card.find_child("Line", true, false) as Label).text = line
+	# the skill map's key for the device in use (Glyphs: K, or LB+VIEW on a pad)
+	(_tree_card.find_child("Key", true, false).get_child(0).get_child(0) as Label).text = Glyphs.of("skill_map").to_upper()
 	_tree_card.reset_size()
 	_tree_card.offset_left = -_tree_card.get_combined_minimum_size().x * 0.5
 	_tree_card.offset_right = -_tree_card.offset_left

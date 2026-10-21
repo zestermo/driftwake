@@ -4516,6 +4516,10 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   (A drawn pad with labels was tried first: too large and distracting, Zach.)
 - Settings: controls.pad_look_sensitivity / pad_look_deadzone / pad_move_deadzone, gameplay.pad_skills.
 - Tests: t/input (7). Render: padshot.
+- Merged with main after v1.18.2 (2026-10-21): the round wheels keep the stick/A/B (the mouse and stick share
+  _aim/_confirm/_cancel); the new skill-tree card's key is Glyphs' (LB+VIEW on a pad). The skills menu already moves
+  on ui_* (d-pad, A) and its LB/RB tabs read raw buttons, which Pad's layer leaves alone; its hints stay keyboard
+  (menu phase).
 ## 2026-10-20: the bench refreshed for the v1.19 perf session (step 1; tools only)
 - What: `tools/dev/bench_brinehollow.gd` keeps v1.14's eight stops (group `old`, unchanged spots) and adds eight
   (`new`): terrace (shrine terrace, UP_X,11), farm (FARM + (4.5,-1.5)), fight (6 m inland of the smugglers' fire, its
