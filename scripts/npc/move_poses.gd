@@ -1,5 +1,5 @@
 class_name MovePoses
-## Getting about: the take-offs (standing, running, sprinting), the double jump and the dash.
+## Getting about: the take-offs (standing, running, sprinting), the air step and the dash.
 
 ## How long each take-off's landing takes (s); a running jump (and a walk off a ledge) keeps
 ## Humanoid's staggered one-foot landing.
@@ -186,21 +186,7 @@ static func _jump(h, n: String, u: float) -> Array:
 				"_scale": Vector3.ONE}
 			keys = [[0.0, {}], [0.1, launch, "out"], [0.45, launch], [0.85, flight], [1.0, flight]]
 		_:
-			# kicking off the air: legs snap down, arms flung up, then a tucked forward somersault
-			# that opens out with the feet under you
-			var kick := {"hips": Vector3.ZERO, "torso": Vector3(0.15, 0, 0), "head": Vector3(0.1, 0, 0),
-				"leg_l": Vector3(0.15, 0, -0.06), "shin_l": Vector3(-0.1, 0, 0), "leg_r": Vector3(-0.25, 0, 0.06), "shin_r": Vector3(-0.5, 0, 0),
-				"arm_l": Vector3(2.4, 0, -0.4), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(2.4, 0, 0.4), "fore_r": Vector3(0.3, 0, 0),
-				"_scale": Vector3(0.94, 1.1, 0.94)}
-			var tuck := {"hips": Vector3.ZERO, "torso": Vector3(-0.6, 0, 0), "head": Vector3(-0.4, 0, 0),
-				"leg_l": Vector3(1.9, 0, -0.1), "shin_l": Vector3(-2.3, 0, 0), "leg_r": Vector3(1.9, 0, 0.1), "shin_r": Vector3(-2.3, 0, 0),
-				"arm_l": Vector3(1.0, 0, -0.3), "fore_l": Vector3(1.5, 0, 0), "arm_r": Vector3(1.0, 0, 0.3), "fore_r": Vector3(1.5, 0, 0),
-				"_scale": Vector3(1.05, 0.95, 1.05)}
-			var open := {"hips": Vector3.ZERO, "torso": Vector3(-0.1, 0, 0), "head": Vector3(0.1, 0, 0),
-				"leg_l": Vector3(0.7, 0, -0.12), "shin_l": Vector3(-1.1, 0, 0), "leg_r": Vector3(0.4, 0, 0.12), "shin_r": Vector3(-0.8, 0, 0),
-				"arm_l": Vector3(0.6, 0, -1.2), "fore_l": Vector3(0.4, 0, 0), "arm_r": Vector3(0.6, 0, 1.2), "fore_r": Vector3(0.4, 0, 0),
-				"_scale": Vector3.ONE}
-			keys = [[0.0, kick], [0.1, kick], [0.24, tuck, "out"], [0.62, tuck], [0.85, open], [1.0, open]]
+			keys = _air_step(h)
 	if h.armed:
 		# the weapon hand keeps the air pose's grip (pistols tucked, the katana trailed)
 		for k in keys:
@@ -208,10 +194,41 @@ static func _jump(h, n: String, u: float) -> Array:
 			for j in ["arm_r", "fore_r", "hand_r"] + (["arm_l", "fore_l"] if h._guns_out() else []):
 				d.erase(j)
 			k[1] = d
-	var p: Dictionary = h._keys(u, keys)
-	if n == "double_jump":
-		p["pivot"] = Vector3(-TAU * Humanoid._ease((u - 0.12) / 0.66), 0, 0)
-	return [p, "full", Vector3.ZERO]
+	return [h._keys(u, keys), "full", Vector3.ZERO]
+
+
+## When the air step's foot stamps down (s into the action): the puff goes under it then.
+const STAMP_S := 0.15
+
+
+## The air walk (Geppo, Sky Walk): upright, the knee driven high, then the foot stamped straight down onto the air
+## while the other knee comes up for the next step, the arms pumping against the legs. No flip. Each step takes the
+## other foot; the pivot eases in from wherever the body was (a tumble's sprawl, righted).
+static func _air_step(h) -> Array:
+	if not h._action["events"].has("side"):
+		h.air_foot = -h.air_foot
+		h._action["events"]["side"] = h.air_foot
+		h._action["events"]["p0"] = h._cur["pivot"]
+	var s: float = h._action["events"]["side"]
+	h._jside = s
+	var ls := "l" if s > 0.0 else "r"
+	var ts := "r" if s > 0.0 else "l"
+	var lo := -1.0 if ls == "l" else 1.0
+	var to := -lo
+	var start := {"pivot": h._action["events"]["p0"]}
+	var knee := {"pivot": Vector3(0.06, 0, 0), "hips": Vector3(0, 0.1 * s, 0), "torso": Vector3(-0.12, -0.12 * s, 0), "head": Vector3(0.12, 0.08 * s, 0),
+		"leg_" + ls: Vector3(1.8, 0, 0.06 * lo), "shin_" + ls: Vector3(-2.15, 0, 0), "leg_" + ts: Vector3(-0.2, 0, 0.05 * to), "shin_" + ts: Vector3(-0.55, 0, 0),
+		"arm_" + ts: Vector3(1.35, 0, 0.2 * to), "fore_" + ts: Vector3(1.25, 0, 0), "arm_" + ls: Vector3(-0.75, 0, 0.3 * lo), "fore_" + ls: Vector3(0.45, 0, 0),
+		"_scale": Vector3(1.05, 0.92, 1.05)}
+	var stamp := {"pivot": Vector3(-0.04, 0, 0), "hips": Vector3(0, -0.08 * s, 0), "torso": Vector3(0.06, 0.1 * s, 0), "head": Vector3(-0.02, -0.06 * s, 0),
+		"leg_" + ls: Vector3(0.02, 0, 0.04 * lo), "shin_" + ls: Vector3(-0.1, 0, 0), "leg_" + ts: Vector3(1.3, 0, 0.06 * to), "shin_" + ts: Vector3(-1.7, 0, 0),
+		"arm_" + ls: Vector3(1.2, 0, 0.25 * lo), "fore_" + ls: Vector3(1.15, 0, 0), "arm_" + ts: Vector3(-0.65, 0, 0.3 * to), "fore_" + ts: Vector3(0.5, 0, 0),
+		"_scale": Vector3(0.94, 1.1, 0.94)}
+	var drift := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(-0.08, 0.04 * s, 0), "head": Vector3(0.08, 0, 0),
+		"leg_" + ls: Vector3(0.55, 0, 0.08 * lo), "shin_" + ls: Vector3(-0.95, 0, 0), "leg_" + ts: Vector3(1.05, 0, 0.08 * to), "shin_" + ts: Vector3(-1.5, 0, 0),
+		"arm_" + ls: Vector3(0.7, 0, 0.75 * lo), "fore_" + ls: Vector3(0.6, 0, 0), "arm_" + ts: Vector3(0.4, 0, 0.85 * to), "fore_" + ts: Vector3(0.5, 0, 0),
+		"_scale": Vector3.ONE}
+	return [[0.0, start], [0.1, knee, "out"], [0.17, knee], [0.3, stamp, "out"], [0.46, stamp], [0.8, drift], [1.0, drift]]
 
 
 ## The landing for the jump just finished, added onto the ground pose `p` at strength `k`

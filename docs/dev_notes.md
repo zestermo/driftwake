@@ -5220,3 +5220,14 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - forest_fauna and snow_wolves name the creatures they spawn (desert_fauna already did): a creature's rng is seeded by its node name.
 - `Humanoid._rng` is seeded from the global rng (`randi()`): fixed per suite seed in tests, random in a live game (its seed is random at start-up).
 - Known: r10test fails on main at "strafing (0.7071, 0.7071): the planted foot barely slides (1.64 m/s)" against a 1.6 limit, with or without the rng change (deterministic): from the stance pass (armed default stance); it stops the suite before the jump-side checks.
+
+## 2026-10-21: the air walk, freefall tumble and air recovery (docs/v1_18_4_plan.md "Air step", "Freefall tumble", "Air recovery")
+- **Air walk** (piece 1): Geppo's and Sky Walk's air jumps (action still named `double_jump`) are One Piece's air walk,
+  not a somersault: `MovePoses._air_step` keys the knee driven high (held a beat), the foot stamped straight down onto
+  the air while the other knee comes up, the arms pumping against the legs, upright (pivot eased in from wherever the
+  body was, so a tumble rights into it). Each step takes the other foot (`Humanoid.air_foot`, flipped on the step's
+  first pose; puppets flip theirs the same way). Out of SPIN_ACTIONS and GAZE_FREE; spec `sharp` 50. JumpState fires
+  the ring, a mist puff ring and motes under the stamping foot at `MovePoses.STAMP_S` (0.15 s, when the foot lands in
+  the pose), through Net.fx. Landing is still the kneel. Test: t/player/air_step (was double_jump: no flip, knee
+  high, +1.2 m, alternating feet under Sky Walk). Render: animsheet `double_jump` at yaw 90 and 125. animsheet now
+  poses the skinned arms (ArmBody._pose) per frame as well as the legs: before, every sheet showed the arms frozen.
