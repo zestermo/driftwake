@@ -38,7 +38,7 @@ class_name ActionSpecs
 
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
 const PARRIES := {"dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
-	"polearm": ["pole_parry", "pole_deflect"]}
+	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -182,6 +182,22 @@ const SPECS := {
 	"pole_parry": {"len": 0.66, "stance": "polearm", "weapon": "polearm"},
 	"pole_deflect": {"len": 0.42, "stance": "polearm", "weapon": "polearm"},
 	"pole_block": {"len": 0.24, "hold": true, "stance": "polearm", "weapon": "polearm"},
+	# --- hammer (HammerMoves: keyed like the polearm, its grip solved by PoleMoves.hands) ---
+	"ham_stance": {"len": 1.0, "stance": "hammer", "weapon": "hammer"},
+	"ham_smash": {"len": 0.8, "hit": [0.45, 0.62], "chain": 0.58, "swoosh": [0.42, 0.64], "sharp": 50.0, "stance": "hammer", "weapon": "hammer"},
+	"ham_upper": {"len": 0.76, "hit": [0.38, 0.58], "chain": 0.56, "swoosh": [0.36, 0.62], "sharp": 50.0, "stance": "hammer", "weapon": "hammer",
+		"extras": {"after": "ham_smash"}},
+	"ham_sweep": {"len": 0.9, "hit": [0.44, 0.62], "chain": 0.7, "swoosh": [0.42, 0.66], "sharp": 50.0, "stance": "hammer", "weapon": "hammer",
+		"extras": {"after": "ham_upper"}},
+	"ham_spin": {"len": 1.15, "hit": [0.3, 0.76], "chain": 0.95, "swoosh": [0.28, 0.76], "sharp": 50.0, "stance": "hammer", "weapon": "hammer",
+		"extras": {"after": "ham_sweep"}},
+	"ham_heavy": {"len": 1.0, "hit": [0.5, 0.64], "swoosh": [0.46, 0.6], "sharp": 50.0, "stance": "hammer", "weapon": "hammer"},
+	"ham_rush": {"len": 0.8, "hit": [0.36, 0.56], "swoosh": [0.34, 0.6], "sharp": 50.0, "stance": "hammer", "weapon": "hammer"},
+	"ham_dive": {"len": 0.7, "stance": "hammer", "weapon": "hammer", "extras": {"grounded": false}},
+	"ham_land": {"len": 0.55, "stance": "hammer", "weapon": "hammer"},
+	"ham_parry": {"len": 0.66, "stance": "hammer", "weapon": "hammer"},
+	"ham_deflect": {"len": 0.45, "stance": "hammer", "weapon": "hammer"},
+	"ham_block": {"len": 0.24, "hold": true, "stance": "hammer", "weapon": "hammer"},
 	# --- unarmed ---
 	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
 	"jab": {"len": 0.34, "hit": [0.21, 0.5], "stance": "fist", "weapon": ""},

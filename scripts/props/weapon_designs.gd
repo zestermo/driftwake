@@ -1,6 +1,6 @@
 class_name WeaponDesigns
 extends RefCounted
-## Every look a cutlass, katana, axe, pistol or dagger comes in, built from a handful of
+## Every look a cutlass, katana, axe, pistol, dagger, polearm or hammer comes in, built from a handful of
 ## numbers (blade length and curve, guard, head, barrels, colours), and its
 ## tier worn on it: blued fittings at rare, a purple gem at epic, gold at
 ## legendary, a crimson blade at ultra, an obsidian one at supreme.
@@ -10,7 +10,8 @@ extends RefCounted
 ## item of its own (id DESIGNS[kind][design]["id"]: ItemDB makes them from
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
-const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear"}
+const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear",
+	"hammer": "warhammer"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -116,6 +117,23 @@ const DESIGNS := {
 		"pitchfork": {"id": "pitchfork", "name": "Pitchfork", "desc": "A farmer's fork, three tines and an ash handle. It's held a village gate before.",
 			"dmg": 0.88, "worth": 0.5, "head": "fork", "reach": 0.95, "fit": Color(0.45, 0.42, 0.4), "wood": Color(0.72, 0.56, 0.38)},
 	},
+	# (the base is an iron warhammer: a square face and a back spike). Hammers add "haft" (m from the right hand
+	# to the head), "speed" (x how fast its moves play), "reach" (x the hitbox's length) and "weight" (x the
+	# knockback and the shockwaves' size); "rare" drops less often (Loot)
+	"hammer": {
+		"kanabo": {"id": "kanabo", "name": "Kanabo", "desc": "An iron-studded oak club as long as a man's leg. It doesn't cut armour; it folds it.",
+			"dmg": 1.06, "worth": 1.5, "head": "kanabo", "haft": 1.08, "reach": 1.08, "speed": 0.96, "wood": Color(0.2, 0.15, 0.13),
+			"fit": Color(0.55, 0.53, 0.5)},
+		"mallet": {"id": "shipwrights_mallet", "name": "Shipwright's Mallet", "desc": "A barrel of oak bound in iron on a stout handle. Built to drive pegs; drives pirates just as well.",
+			"dmg": 0.86, "worth": 0.5, "head": "mallet", "haft": 0.82, "reach": 0.94, "speed": 1.1, "weight": 0.9, "wood": Color(0.66, 0.5, 0.33),
+			"fit": Color(0.42, 0.4, 0.38)},
+		"maul": {"id": "maul", "name": "Iron Maul", "desc": "A long sledge of black iron, a face at each end. Every swing is a door being kicked in.",
+			"dmg": 1.14, "worth": 1.8, "head": "maul", "haft": 1.0, "speed": 0.9, "weight": 1.15, "wood": Color(0.36, 0.26, 0.18),
+			"blade": Color(0.48, 0.47, 0.47), "fit": Color(0.55, 0.53, 0.5)},
+		"anchor": {"id": "anchor_hammer", "name": "Anchor Hammer", "desc": "A ship's anchor on a chain-wrapped shank. Only the strongest lift it; nothing stands where it lands.",
+			"dmg": 1.26, "worth": 2.4, "head": "anchor", "haft": 1.08, "reach": 1.06, "speed": 0.82, "weight": 1.3, "rare": true,
+			"blade": Color(0.5, 0.52, 0.55), "fit": Color(0.62, 0.6, 0.56), "grip": Color(0.8, 0.72, 0.55), "grip_tex": "fabric"},
+	},
 }
 
 ## Each tier's fittings (guards, bands, locks) and gem; ultra and supreme
@@ -162,6 +180,20 @@ static func pole(design: String, key: String, def: float = 1.0) -> float:
 ## How far the shaft runs ahead of the right hand (the head starts there) and behind it (the butt).
 const POLE_AHEAD := 1.32
 const POLE_BEHIND := 0.42
+
+
+## A hammer design's number ("speed", "reach", "weight"; `def` for the base warhammer).
+static func hammer(design: String, key: String, def: float = 1.0) -> float:
+	return float((DESIGNS["hammer"] as Dictionary).get(design, {}).get(key, def))
+
+
+static func hammer_haft(design: String) -> float:
+	return hammer(design, "haft", HAMMER_HAFT)
+
+
+## The warhammer's haft from the right hand to the head's middle (the butt runs HAMMER_BUTT behind the hand).
+const HAMMER_HAFT := 0.95
+const HAMMER_BUTT := 0.12
 
 
 ## A katana's scabbard in the blade's own frame: the same chain of segments
@@ -286,6 +318,8 @@ static func build(model: String) -> ArrayMesh:
 			_dagger(mb, p, tier)
 		"polearm":
 			_polearm(mb, p, tier)
+		"hammer":
+			_hammer(mb, p, tier)
 		_:
 			_sword(mb, p, tier)
 	var m := mb.commit()
@@ -531,6 +565,75 @@ static func _polearm(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 			_blade(mb, m, Vector3(0, 0, h - 0.02), 0.2, 0.068, 0.02, 0.0, 0.62, 3, false)
 	if m["gem"]:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, z0 + 0.08)), Vector3(0.058, 0.03, 0.03), 2.0)
+
+
+## Hammers: held at the origin by the right hand near the butt (HAMMER_BUTT behind it), the haft "haft" on
+## to the head's middle; the head spreads in the Y plane, its striking face toward -Y (as a polearm's edge).
+## The left hand slides along the wrap above the right.
+static func _hammer(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := _mats({"blade": Color(0.56, 0.55, 0.54)}.merged(p, true), tier, Color(0.5, 0.48, 0.46), Color(0.3, 0.2, 0.13), "leather")
+	var wood := PSXMat.lit("planks_dark", _c(p, "wood", Color(0.5, 0.36, 0.24)))
+	var iron: Material = m["blade"]
+	var face: Material = m["edge"]
+	var fit: Material = m["fit"]
+	var along := Basis(Vector3.RIGHT, -PI * 0.5)
+	var haft := _f(p, "haft", HAMMER_HAFT)
+	var hz := -haft
+	var head := str(p.get("head", "war"))
+	if head != "kanabo":
+		mb.add_cylinder(iron if head == "anchor" else wood, Transform3D(along, Vector3(0, 0, HAMMER_BUTT)), 0.025, 0.022, haft + HAMMER_BUTT, 6, 2.0)
+	mb.add_cylinder(fit, Transform3D(along, Vector3(0, 0, HAMMER_BUTT + 0.03)), 0.033, 0.029, 0.06, 6, 2.0, Color.WHITE, true, true)
+	mb.add_box(m["grip"], Transform3D(Basis(), Vector3(0, 0, -0.12)), Vector3(0.056, 0.056, 0.4), 2.0, Color.WHITE, false, false)
+	match head:
+		"kanabo":
+			# an octagonal club thickening to its end, iron studs in staggered rings over its upper half
+			var top := hz - 0.12
+			mb.add_cylinder(wood, Transform3D(along, Vector3(0, 0, HAMMER_BUTT)), 0.026, 0.03, 0.42 + HAMMER_BUTT, 8, 2.0)
+			mb.add_cylinder(wood, Transform3D(along, Vector3(0, 0, -0.3)), 0.03, 0.074, -0.3 - top, 8, 2.0)
+			mb.add_cylinder(fit, Transform3D(along, Vector3(0, 0, top + 0.03)), 0.078, 0.07, 0.045, 8, 2.0)
+			for i in 6:
+				var z := lerpf(-0.44, top + 0.07, i / 5.0)
+				var r := lerpf(0.03, 0.074, (-0.3 - z) / (-0.3 - top))
+				for k in 8:
+					var a := TAU * (k + 0.5 * (i % 2)) / 8.0
+					mb.add_box(fit, Transform3D(Basis(), Vector3(cos(a), sin(a), 0) * (r + 0.008) + Vector3(0, 0, z)), Vector3(0.026, 0.026, 0.026), 2.0, Color.WHITE, false, false)
+		"mallet":
+			# a barrel of oak across the end, an iron hoop near each face
+			mb.add_cylinder(wood, Transform3D(Basis(), Vector3(0, -0.17, hz)), 0.105, 0.105, 0.34, 8, 2.0, Color.WHITE, true, true)
+			for y in [-0.15, 0.12]:
+				mb.add_cylinder(fit, Transform3D(Basis(), Vector3(0, y, hz)), 0.113, 0.113, 0.03, 8, 2.0, Color.WHITE, false, false)
+		"maul":
+			# a long block of black iron, a face at each end
+			mb.add_box(iron, Transform3D(Basis(), Vector3(0, 0, hz)), Vector3(0.14, 0.36, 0.14), 2.0, Color.WHITE, false, false)
+			for s in [-1.0, 1.0]:
+				mb.add_box(face, Transform3D(Basis(), Vector3(0, s * 0.19, hz)), Vector3(0.152, 0.03, 0.152), 2.0, Color.WHITE, false, false)
+				mb.add_box(fit, Transform3D(Basis(), Vector3(0, s * 0.08, hz)), Vector3(0.15, 0.025, 0.15), 2.0, Color.WHITE, false, false)
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, hz + 0.1)), Vector3(0.05, 0.05, 0.08), 2.0)
+		"anchor":
+			# an anchor's crown on an iron shank: the arms curving back to the flukes, a ring at the butt, chain
+			# wound round the shank above the hands
+			mb.add_box(iron, Transform3D(Basis(), Vector3(0, 0, hz - 0.02)), Vector3(0.1, 0.13, 0.11), 2.0, Color.WHITE, false, false)
+			for s in [-1.0, 1.0]:
+				var arm := PackedVector3Array([Vector3(0, 0, hz - 0.04), Vector3(0, s * 0.13, hz - 0.05), Vector3(0, s * 0.22, hz + 0.04), Vector3(0, s * 0.25, hz + 0.16)])
+				mb.add_tube(iron, arm, 0.032, 0.022, 6)
+				mb.add_box(face, Transform3D(Basis(Vector3.RIGHT, s * 0.35), Vector3(0, s * 0.262, hz + 0.17)), Vector3(0.028, 0.11, 0.15), 2.0, Color.WHITE, false, false)
+			var ring := PackedVector3Array()
+			for k in 9:
+				var a := TAU * k / 8.0
+				ring.append(Vector3(0, sin(a) * 0.05, HAMMER_BUTT + 0.1 + cos(a) * 0.05))
+			mb.add_tube(fit, ring, 0.012, -1.0, 4)
+			for i in 7:
+				mb.add_box(fit, Transform3D(Basis(Vector3.BACK, PI * 0.5 * (i % 2)), Vector3(0, 0, -0.38 - i * 0.065)), Vector3(0.06, 0.016, 0.075), 2.0, Color.WHITE, false, false)
+		_:
+			# the warhammer: a square face on an iron block, a spike behind and one on top, langets down the haft
+			mb.add_box(iron, Transform3D(Basis(), Vector3(0, -0.04, hz)), Vector3(0.12, 0.2, 0.12), 2.0, Color.WHITE, false, false)
+			mb.add_box(face, Transform3D(Basis(), Vector3(0, -0.15, hz)), Vector3(0.135, 0.03, 0.135), 2.0, Color.WHITE, false, false)
+			mb.add_cone(iron, Transform3D(Basis(), Vector3(0, 0.06, hz)), 0.05, 0.17, 4)
+			mb.add_cone(iron, Transform3D(along, Vector3(0, 0, hz - 0.06)), 0.03, 0.09, 4)
+			for s in [-1.0, 1.0]:
+				mb.add_box(fit, Transform3D(Basis(), Vector3(s * 0.026, 0, hz + 0.16)), Vector3(0.01, 0.036, 0.22), 2.0)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, hz + 0.12)), Vector3(0.062, 0.03, 0.03), 2.0)
 
 
 ## Axes: the haft back past the hand, the head out toward -Y (the knuckle

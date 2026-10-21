@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "warhammer"
+display_name = "Iron Warhammer"
+description = "A square iron head on an oak haft, two hands on it. Slow, and every blow staggers; the big ones break a guard and shake the ground."
+value = 16
+stackable = false
+max_stack = 1
+item_type = 1
+weapon_model = "hammer"
+damage_mult = 1.0

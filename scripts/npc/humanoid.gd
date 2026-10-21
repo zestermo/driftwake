@@ -132,9 +132,9 @@ var _katana_socket: Node3D
 ## Sprinting with the katana out: it rides in its scabbard, hands on it, ready to draw.
 var _run_sheath: bool = false
 ## Fighting stance for the guard pose: sword, dual_sword, fist, pistol,
-## dual_pistol, claw, katana, dagger, dual_dagger, polearm.
+## dual_pistol, claw, katana, dagger, dual_dagger, polearm, hammer.
 var stance: String = "sword"
-## A polearm's two-handed grip (PoleMoves): what this frame's pose asked for ([right hand, shaft, edge, left
+## A polearm's or hammer's two-handed grip (PoleMoves): what this frame's pose asked for ([right hand, shaft, edge, left
 ## hand's slide], the chest's frame), whether a pose set it, and the grip as it eases there.
 var pole_grip: Array = []
 var pole_set := false
@@ -649,7 +649,7 @@ func _attach_weapon(in_hand: bool) -> void:
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
-	if kind_of(weapon) in ["axe", "polearm"]:
+	if kind_of(weapon) in ["axe", "polearm", "hammer"]:
 		sheath = DrawMoves.back_socket(self)
 	var target := hand_r if in_hand else sheath
 	if weapon.get_parent() != target:
@@ -800,6 +800,8 @@ func _guard() -> Dictionary:
 			return KATANA_GUARD
 		"polearm":
 			return PoleMoves.GUARD
+		"hammer":
+			return HammerMoves.GUARD
 		"sword":
 			return SWORD_GUARD
 		"dual_pistol":
@@ -818,6 +820,7 @@ const STANCE_LEGS := {
 	"dual_sword": {"leg_l": Vector3(0.5, 0, -0.2), "leg_r": Vector3(-0.28, 0, 0.2), "shin_l": Vector3(-0.9, 0, 0), "shin_r": Vector3(-0.42, 0, 0), "_lift": Vector3(0, -0.14, 0)},
 	"dual_dagger": {"leg_l": Vector3(0.6, 0, -0.28), "leg_r": Vector3(-0.22, 0, 0.28), "shin_l": Vector3(-1.15, 0, 0), "shin_r": Vector3(-0.55, 0, 0), "_lift": Vector3(0, -0.195, 0)},
 	"polearm": PoleMoves.LEGS,
+	"hammer": HammerMoves.LEGS,
 }
 
 
@@ -983,6 +986,8 @@ func _block_pose() -> Dictionary:
 			return DaggerMoves.block(stance == "dual_dagger")
 		"polearm":
 			return PoleMoves.BLOCK
+		"hammer":
+			return HammerMoves.BLOCK
 	# one blade held level across the body, the off hand bracing it
 	return {"torso": Vector3(-0.08, -0.2, 0), "head": Vector3(0.08, 0.2, 0),
 		"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),
@@ -2179,6 +2184,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return ClipPlayer.pose(self, n, u)
 	if n.begins_with("pole_"):
 		return PoleMoves.pose(self, n, u)
+	if n.begins_with("ham_"):
+		return HammerMoves.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp
@@ -2352,14 +2359,21 @@ func _locomotion(delta: float) -> Dictionary:
 			lift.y += _feral(p, walk, maxf(jog * 0.6, run), s)
 		# combat stance: guard arms, wide knees, boxer-style hop
 		elif armed and not sprinting:
-			var hop := absf(sin(_t * 4.5))
+			# (a hammer's weight: a slow sway instead of the hop, the chest rolling over each planted foot)
+			var heavy := stance == "hammer"
+			var hf := 2.4 if heavy else 4.5
+			var hop := absf(sin(_t * hf))
 			var gd := _guard()
 			for j in gd.keys():
 				if j == "hips":
 					# the bladed hips relax while moving so the legs stride straight
 					p[j] = (gd[j] as Vector3) * (1.0 - clampf(walk, 0.0, 1.0) * 0.6)
 					continue
-				p[j] = gd[j] + Vector3(hop * 0.06, 0, sin(_t * 4.5) * 0.03)
+				p[j] = gd[j] + Vector3(hop * 0.06, 0, sin(_t * hf) * 0.03)
+			if heavy:
+				p["torso"] += Vector3(-0.08 * walk, 0, s * 0.07 * walk)
+				p["head"] += Vector3(0.05 * walk, 0, -s * 0.05 * walk)
+				lift.y -= 0.03 * walk + absf(s) * 0.025 * walk
 			if walk < 0.5:
 				var st := 1.0 - walk * 2.0
 				var ss: Dictionary = STANCE_LEGS.get(stance, STANCE_LEGS[""])
@@ -2765,7 +2779,7 @@ func _process(delta: float) -> void:
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
 	if auto_point_guns:
 		point_guns()
-	if stance == "polearm" or pole_w > 0.0:
+	if stance == "polearm" or stance == "hammer" or pole_w > 0.0:
 		PoleMoves.hands(self, delta)
 	_apply_smear()
 	_katana_hands()

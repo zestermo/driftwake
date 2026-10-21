@@ -75,7 +75,11 @@ static func _whip(a: Dictionary, b: Dictionary, k: float, sc: Vector3, smear: fl
 
 ## [pose, mask, lift] for a pole move (the grip taken off into the body's pole_grip).
 static func pose(h, n: String, u: float) -> Array:
-	var res := _pose(h, n, u)
+	return take_grip(h, _pose(h, n, u))
+
+
+## A grip-keyed pose's four channels taken off into the body's pole_grip (HammerMoves too).
+static func take_grip(h, res: Array) -> Array:
 	var p: Dictionary = res[0]
 	h.pole_grip = [p["_gr"], p["_gd"], p["_ge"], (p["_gs"] as Vector3).x]
 	h.pole_set = true
@@ -304,18 +308,21 @@ static func _pose(h, n: String, u: float) -> Array:
 # --------------------------------------------------------------------------
 # The grip, solved each frame
 # --------------------------------------------------------------------------
+## (the hammer's grip is solved here too, from its own guard, block and carry: HammerMoves.GRIPS)
 static func hands(h, delta: float) -> void:
 	var act: String = h.current_action()
-	var on: bool = h.stance == "polearm" and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
-		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and Humanoid.kind_of(h.weapon) == "polearm" \
-		and (act == "" or act.begins_with("pole_") or act in HELD)
-	var want: Array = GUARD_GRIP
+	var st: String = h.stance
+	var grips: Array = HammerMoves.GRIPS if st == "hammer" else [GUARD_GRIP, BLOCK_GRIP, TRAIL_GRIP]
+	var on: bool = st in ["polearm", "hammer"] and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
+		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and Humanoid.kind_of(h.weapon) == st \
+		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act in HELD)
+	var want: Array = grips[0]
 	if h.pole_set:
 		want = h.pole_grip
 	elif act in ["guard_block", "guard_block_hit"]:
-		want = BLOCK_GRIP
+		want = grips[1]
 	elif h.sprinting and act == "":
-		want = TRAIL_GRIP
+		want = grips[2]
 	h.pole_set = false
 	h.pole_w = move_toward(h.pole_w, 1.0 if on else 0.0, delta / 0.12)
 	if h.pole_cur.is_empty():

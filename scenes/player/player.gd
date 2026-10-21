@@ -1877,7 +1877,7 @@ static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
 	match c:
 		"sword":
 			var main := main_hand.weapon_model
-			if main in ["katana", "polearm"]:
+			if main in ["katana", "polearm", "hammer"]:
 				return main
 			if dual:
 				if class_of(off_hand) == "gun":
@@ -1909,9 +1909,10 @@ func _offhand_valid(item: ItemData) -> bool:
 		and equipped_weapon.weapon_model != "axe"
 	if class_of(item) != class_of(equipped_weapon) and not blade_gun:
 		return false
-	# (the katana and polearms take both hands)
-	if "katana" in [item.weapon_model, equipped_weapon.weapon_model] or "polearm" in [item.weapon_model, equipped_weapon.weapon_model]:
-		return false
+	# (the katana, polearms and hammers take both hands)
+	for two in ["katana", "polearm", "hammer"]:
+		if two in [item.weapon_model, equipped_weapon.weapon_model]:
+			return false
 	if item == equipped_weapon and inventory_component.count(item.id) < 2:
 		return false
 	return inventory_component.count(item.id) > 0
@@ -2038,7 +2039,8 @@ func can_attack() -> bool:
 
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
-	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice"}
+	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
+	"hammer": "punch_heavy"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2086,10 +2088,17 @@ const REACH := {
 	"pole_spin": [Vector3(5.6, 1.4, 5.6), Vector3(0.0, 0.2, 0.0)],
 	"pole_long": [Vector3(1.5, 1.3, 4.6), Vector3(-0.3, 0.2, -2.4)],
 	"pole_low": [Vector3(4.0, 1.0, 3.0), Vector3(-0.3, -0.25, -1.3)],
+	# hammers: a broad arc in front, a flat swing wider still, a full turn, an overhead blow tall and long, the
+	# running upswing low and long
+	"hammer": [Vector3(2.4, 1.6, 2.3), Vector3(-0.2, 0.25, -1.2)],
+	"hammer_wide": [Vector3(3.6, 1.4, 2.5), Vector3(-0.2, 0.2, -1.15)],
+	"hammer_spin": [Vector3(4.8, 1.5, 4.8), Vector3(0.0, 0.2, 0.0)],
+	"hammer_slam": [Vector3(1.8, 2.4, 2.8), Vector3(0.0, 0.0, -1.5)],
+	"hammer_low": [Vector3(2.6, 1.4, 3.0), Vector3(-0.2, -0.1, -1.4)],
 }
 
 
-## A polearm's design stretches its reach (Z) and widens its sweeps (X).
+## A polearm's design stretches its reach (Z) and widens its sweeps (X); a hammer's its reach.
 func set_reach(kind: String) -> void:
 	var cs := sword_hitbox.get_node_or_null("CollisionShape3D") as CollisionShape3D
 	if cs == null or not (cs.shape is BoxShape3D):
@@ -2099,6 +2108,9 @@ func set_reach(kind: String) -> void:
 	if kind.begins_with("pole") and equipped_weapon:
 		var d := equipped_weapon.design
 		k = Vector3(WeaponDesigns.pole(d, "sweep") if kind != "pole" and kind != "pole_long" else 1.0, 1.0, WeaponDesigns.pole(d, "reach"))
+	elif kind.begins_with("hammer") and equipped_weapon:
+		var rk := WeaponDesigns.hammer(equipped_weapon.design, "reach")
+		k = Vector3(rk, 1.0, rk)
 	(cs.shape as BoxShape3D).size = (r[0] as Vector3) * k
 	cs.position = (r[1] as Vector3) * k
 

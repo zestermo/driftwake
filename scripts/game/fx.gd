@@ -1304,6 +1304,8 @@ const TREE_FX := {
 	"dual_dagger": [Color(0.95, 1.0, 0.9), Color(0.45, 0.95, 0.3), Color(0.82, 1.0, 0.35)],
 	# polearm: storm - lemon-white lightning with a violet afterglow, a thunderclap on the big blows
 	"polearm": [Color(1.0, 1.0, 0.9), Color(1.0, 0.9, 0.32), Color(0.62, 0.48, 1.0)],
+	# hammer: earth - sandstone shockwaves, rock thrown up, the ground cracking and stone spikes heaving up
+	"hammer": [Color(1.0, 0.95, 0.82), Color(0.92, 0.8, 0.58), Color(0.55, 0.46, 0.36)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1392,7 +1394,7 @@ func petals(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1
 
 
 ## A tree's element thrown along `dir`: sea spray (cutlass), drawn sakura (katana: bigger, so
-## fewer), embers (axe).
+## fewer), embers (axe), rock and dust (hammer).
 func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
 	var c := tree_col(tree, ACCENT)
 	match tree:
@@ -1416,6 +1418,9 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			motes(pos, dir, maxi(amount / 3, 2), c, speed * 0.7)
 			bolt(pos, pos + (dir.normalized() + Vector3(randf_range(-0.4, 0.4), randf_range(0.0, 0.5), randf_range(-0.4, 0.4))) * 1.1,
 				tree_col(tree, EDGE), 0.06, 0.16, randi() % 1000)
+		"hammer":
+			debris(pos, dir, amount, c, speed)
+			dust(pos, maxi(amount / 3, 2), 0.6)
 		_:
 			spray(pos, dir, amount, c, speed)
 
@@ -1882,6 +1887,50 @@ func ground_crack(from: Vector3, dir: Vector3, length: float = 6.0, glow: Color 
 	tw.tween_callback(holder.queue_free)
 
 
+static var _spike_mesh: ArrayMesh
+
+
+## Stone spikes heaving up out of the ground in a ring round `pos` (the hammer's element, its ultimate's
+## signature): `count` shards of rock leaning outward, up in a snap, held, sunk back. Seeded, so every screen
+## raises the same ring. One shared mesh (the "rock" material), no shadows, one tween.
+func rock_spikes(pos: Vector3, radius: float = 2.5, count: int = 8, seed_v: int = 0, height: float = 1.2, life: float = 0.9) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
+		return
+	if _spike_mesh == null:
+		var mb := MeshBuilder.new()
+		var rock := PSXMat.lit("rock", Color(0.66, 0.58, 0.5))
+		mb.add_cone(rock, Transform3D(), 0.2, 1.0, 5, 1.0)
+		mb.add_cone(rock, Transform3D(Basis(Vector3.BACK, 0.35), Vector3(0.12, 0, 0.05)), 0.12, 0.6, 4, 1.0)
+		_spike_mesh = mb.commit()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = pos
+	for i in count:
+		var a := TAU * (i + rng.randf_range(-0.3, 0.3)) / count
+		var out := Vector3(cos(a), 0, sin(a))
+		var h := height * rng.randf_range(0.6, 1.15)
+		var mi := MeshInstance3D.new()
+		mi.mesh = _spike_mesh
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(mi)
+		var at := _ground_at(pos + out * radius * rng.randf_range(0.75, 1.1)) - pos
+		var b := Basis(Vector3.UP.cross(out).normalized(), rng.randf_range(0.2, 0.5)) * Basis(Vector3.UP, rng.randf() * TAU)
+		mi.transform = Transform3D(b * Basis.from_scale(Vector3(h * 0.9, h, h * 0.9)), at - Vector3(0, h, 0))
+		mi.set_meta("y0", at.y - h)
+		mi.set_meta("h", h)
+	var rise := func(k: float) -> void:
+		for c in holder.get_children():
+			(c as Node3D).position.y = float(c.get_meta("y0")) + float(c.get_meta("h")) * k
+	var tw := holder.create_tween()
+	tw.tween_method(rise, 0.0, 0.92, 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(life * 0.55)
+	tw.tween_method(rise, 0.92, 0.0, life * 0.35).set_ease(Tween.EASE_IN)
+	tw.tween_callback(holder.queue_free)
+
+
 func _ground_at(p: Vector3) -> Vector3:
 	var h := _ray(p + Vector3.UP * 2.0, p + Vector3.DOWN * 3.0)
 	return (h["position"] as Vector3) + Vector3(0, 0.03, 0) if not h.is_empty() else p
@@ -2298,6 +2347,10 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 			bolt(pos, pos + (dir + Vector3.UP * 0.6).normalized() * 0.9, edge, 0.06, 0.14, randi() % 1000)
 			muzzle_sparks(pos, dir, 6, edge)
 			ring(pos, dir, 0.8, accent, 0.16, 0.14)
+		"hammer":
+			debris(pos, dir + Vector3.UP * 0.5, 5, accent, 4.0)
+			ring(pos, dir, 1.0, edge, 0.2, 0.22)
+			dust(pos, 3, 0.5)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

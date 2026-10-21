@@ -21,7 +21,7 @@ const SOUND := {"katana": ["draw_katana", "sheathe_katana"], "blade": ["draw_bla
 static func kind(h) -> String:
 	var model: String = str(h.weapon.mesh.get_meta("model", "")) if h.weapon != null and is_instance_valid(h.weapon) and h.weapon.mesh != null else ""
 	var k := model.get_slice(":", 0)
-	if (k == "axe" and model.get_slice(":", 1) in GREAT) or k == "polearm":
+	if (k == "axe" and model.get_slice(":", 1) in GREAT) or k in ["polearm", "hammer"]:
 		return "great"
 	if k in ["katana", "axe", "dagger", "pistol"]:
 		return k
@@ -34,6 +34,10 @@ static func on_back(w: MeshInstance3D) -> Transform3D:
 	# (a polearm slung across the back, its head up over the right shoulder and the butt by the left calf)
 	if str(w.mesh.get_meta("model", "")).get_slice(":", 0) == "polearm":
 		return Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0, -0.55))
+	# (a hammer the same way up, its head behind the right shoulder turned flat across the back)
+	if str(w.mesh.get_meta("model", "")).get_slice(":", 0) == "hammer":
+		var haft := WeaponDesigns.hammer_haft(str(w.mesh.get_meta("model", "")).get_slice(":", 1))
+		return Transform3D(Basis(Vector3.RIGHT, PI) * Basis(Vector3.BACK, PI * 0.5), Vector3(0, 0, 0.3 - haft))
 	if str(w.mesh.get_meta("model", "")).get_slice(":", 1) in GREAT:
 		return Transform3D(Basis(Vector3(0, 0, 1), PI * 0.5), Vector3(0, 0, 0.28))
 	return Transform3D.IDENTITY

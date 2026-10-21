@@ -12,6 +12,8 @@ extends PlayerState
 ## * one dagger (Shadow Lunge): sunk low, then out from behind the one in front with
 ##   the blade in their back, untouchable on the way; the wound bleeds
 ## * two daggers (Scissor Rip): both driven in side by side, then ripped apart
+## * polearm (Skewer): a lunge driving the shaft through the line in front
+## * hammer (Earthquake): heaved overhead and slammed into the ground, a shockwave knocking everyone round it down
 ## * fists: a flying kick
 ## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
 ##   spin, arms crossed, shooting everyone close)
@@ -55,6 +57,12 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.09, "shake": 0.2, "knockback": 13.0, "stagger": 0.6,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.15, "impact_fx": false, "reach": "pole_long",
 		"color": Color(1.0, 0.93, 0.72), "tree": "polearm", "pole": true},
+	# hammer (Earthquake): heaved overhead, a beat, then slammed into the ground ahead: the one under it knocked
+	# flat through any guard, and a shockwave ("quake" m, x the design's weight) knocks down everyone round it
+	"quake": {"anim": "ham_heavy", "impulse": 3.0,
+		"damage": 34.0, "hitstop": 0.13, "shake": 0.3, "knockback": 12.0, "stagger": 0.8,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.75, "impact_fx": false, "reach": "hammer_slam",
+		"color": Color(0.92, 0.86, 0.74), "tree": "hammer", "hammer": true, "quake": 3.6, "quake_damage": 14.0},
 	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
 		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
@@ -98,7 +106,8 @@ var _swooshed := false
 var _blinked := false
 var _seen := false
 var _blink_from := Vector3.ZERO
-## A polearm design's speed (1: other weapons).
+var _quaked := false
+## A polearm or hammer design's speed (1: other weapons).
 var _spd := 1.0
 
 
@@ -108,6 +117,8 @@ static func style_for(weapon_model: String) -> String:
 			return "whirl"
 		"polearm":
 			return "skewer"
+		"hammer":
+			return "quake"
 		"cutlass", "sword", "rapier", "dagger":
 			return "thrust"
 	return "slam"
@@ -143,12 +154,17 @@ func enter(_data: Dictionary) -> void:
 	_kata_shots = 0
 	_rehit_done = false
 	_glinted = false
+	_quaked = false
 
 	# Snap to camera forward
 	var forward := get_camera_forward()
 	player.player_model.rotation.y = atan2(-forward.x, -forward.z)
 	var anim := str(cfg["anim"])
-	_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed") if cfg.get("pole", false) else 1.0
+	_spd = 1.0
+	if cfg.get("pole", false):
+		_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed")
+	elif cfg.get("hammer", false):
+		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
 	var length := ActionSpecs.length(anim) / _spd
 	var w := ActionSpecs.hit_seconds(anim) / _spd
 	_windup = w.x
@@ -223,11 +239,25 @@ func physics_update(delta: float) -> void:
 				# (the whirlwind's first turn only staggers: the second knocks them flat;
 				# Powder Lunge's thrust holds them up for the shot)
 				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot"))
+				hit.breaker = hit.breaker or cfg.has("quake")
 				if not cfg.get("kata", false):
 					player.sword_hitbox.activate(hit)
 				hitbox_activated = true
 
 		1:  # Active
+			# the hammer's shockwave, a moment after the blow (so the one it landed on is already struck)
+			if cfg.has("quake") and not _quaked and timer >= 0.04:
+				_quaked = true
+				var wt := WeaponDesigns.hammer(player.equipped_weapon.design, "weight")
+				var wave := player.melee_hit(float(cfg["quake_damage"]), "heavy")
+				wave.knockdown = true
+				wave.breaker = true
+				wave.knockback_force = 9.0 * wt
+				wave.stagger_duration = 0.6
+				wave.hitstop_duration = 0.06
+				wave.camera_shake_intensity = 0.0
+				HammerArts.quake(player, HammerArts.head_ground(player), float(cfg["quake"]) * wt, wave,
+					player.sword_hitbox.hit_targets.duplicate(), player.progression.elemental("hammer", 2))
 			# the whirlwind's second turn: a fresh hit on everyone about you (the
 			# hitbox off for a few frames first, so those already inside it register again)
 			if cfg.has("rehit") and not _rehit_done and timer >= float(cfg["rehit"]) - 0.06:
@@ -339,6 +369,9 @@ func _strike_fx(second: bool = false) -> void:
 	var face := -player.player_model.global_basis.z
 	face.y = 0.0
 	face = face.normalized()
+	# (the hammer's is its shockwave, a moment later: HammerArts.quake)
+	if cfg["tree"] == "hammer":
+		return
 	if cfg["tree"] == "dagger":
 		var at := player.global_position + Vector3(0, 1.1, 0) + face * 0.9
 		Net.fx("ring", [at, face, 0.9, FX.tree_col(tree, FX.EDGE), 0.2, 0.16])

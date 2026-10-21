@@ -9,6 +9,9 @@ extends PlayerState
 ##               that knocks them flat (Powder Finale); no ball loaded, a shot is a butt-strike
 ##   dagger      stab -> flat slash -> rising cut -> a turn into a low stab that bleeds (Gutting Strike)
 ##   dual_dagger slash -> off-hand stab -> scissor across -> whirl into both driven in (Fang Whirl)
+##   polearm     thrust -> rising cut -> flat sweep -> a full turn (Wheel Sweep); at a sprint, Leg Sweep
+##   hammer      overhead smash -> upswing -> flat swing (breaks a guard) -> a full turn into the ground
+##               (Wrecking Spin); at a sprint, Rising Crush
 ##   fist        jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
@@ -85,6 +88,22 @@ const STYLES := {
 		"durations": [0.62], "impulses": [11.0],
 		"damages": [13.0], "hitstops": [0.06], "shakes": [0.14],
 		"reach": "pole_low", "color": Color(1.0, 0.93, 0.72), "breaker": true, "trip": true, "pole": true},
+	# hammer: off the shoulder and down across the front into the ground, an upswing, a flat swing at the waist
+	# that breaks a guard, and (Wrecking Spin) one full turn ending in the head brought down; slow, every blow
+	# shoves them back ("knocks", x the design's weight: WeaponDesigns.hammer), the big ones are "breakers"
+	# and the spin puts them down ("downs"); the head thuds into the ground on HammerMoves.THUD
+	"hammer": {"anims": ["ham_smash", "ham_upper", "ham_sweep", "ham_spin"], "trails": ["", "", "", ""],
+		"durations": [0.58, 0.56, 0.7, 0.95], "impulses": [4.0, 4.0, 3.5, 2.5],
+		"damages": [14.0, 15.0, 21.0, 26.0], "hitstops": [0.08, 0.08, 0.11, 0.14], "shakes": [0.13, 0.13, 0.2, 0.28],
+		"knocks": [7.0, 7.5, 11.0, 12.0], "breakers": [false, false, true, true], "downs": [false, false, false, true],
+		"reach": "hammer", "reaches": ["hammer", "hammer", "hammer_wide", "hammer_spin"], "color": Color(0.92, 0.86, 0.74), "hammer": true},
+	# hammer, attacked at a sprint (Rising Crush): the head dragged low, then swung up off the ground through
+	# them; it breaks a wind-up and throws them down
+	"ham_dash": {"anims": ["ham_rush"], "trails": [""],
+		"durations": [0.62], "impulses": [10.0],
+		"damages": [17.0], "hitstops": [0.1], "shakes": [0.2],
+		"knocks": [11.0], "breakers": [true], "downs": [true],
+		"reach": "hammer_low", "color": Color(0.92, 0.86, 0.74), "breaker": true, "hammer": true},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -102,7 +121,7 @@ const STYLES := {
 const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], "dagger": [0.85, 0.8, 0.8, -0.06]}
 ## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
 const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
-	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep"}
+	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep", "hammer": "wrecking_spin"}
 
 var cfg: Dictionary = STYLES["sword"]
 var combo_count: int = 3
@@ -128,14 +147,16 @@ var _shot_done := false
 var _off: Array = OFFHAND["sword"]
 ## The running cut's reach with a Rushing weapon (TraitMoves.rush_k; 1: plain).
 var _rush := 1.0
-## A polearm design's speed (its moves play that much faster; 1: other weapons).
+## A polearm or hammer design's speed (its moves play that much faster; 1: other weapons).
 var _spd := 1.0
+## When a hammer's head thuds into the ground (s; < 0: it doesn't).
+var _thud_t := -1.0
 
 
 func enter(data: Dictionary) -> void:
 	var st := player.style()
 	if player.quick_draw:
-		st = {"katana": "katana_draw", "polearm": "pole_dash"}.get(st, "sword_dash")
+		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash"}.get(st, "sword_dash")
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
@@ -164,9 +185,14 @@ func enter(data: Dictionary) -> void:
 	player.velocity.x = forward.x * float(cfg["impulses"][combo_index]) * _rush
 	player.velocity.z = forward.z * float(cfg["impulses"][combo_index]) * _rush
 	var anim := str(cfg["anims"][combo_index])
-	_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed") if cfg.get("pole", false) else 1.0
+	_spd = 1.0
+	if cfg.get("pole", false):
+		_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed")
+	elif cfg.get("hammer", false):
+		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
 	_window = ActionSpecs.hit_seconds(anim) / _spd
 	_swoosh = ActionSpecs.swoosh_seconds(anim) / _spd
+	_thud_t = float(HammerMoves.THUD[anim]) * ActionSpecs.length(anim) / _spd if HammerMoves.THUD.has(anim) else -1.0
 	_swooshed = false
 	_shot_t = ActionSpecs.shot_seconds(anim) if _kind != "cut" else -1.0
 	player.body_model.play(anim, ActionSpecs.length(anim) / _spd)
@@ -215,6 +241,11 @@ func physics_update(delta: float) -> void:
 		if cfg.get("pole", false) and str(cfg["anims"][combo_index]) == "pole_thrust":
 			hit.knockback_force = 6.5
 			hit.unblockable = hit.unblockable or WeaponDesigns.pole(player.equipped_weapon.design, "pierce", 0.0) > 0.0
+		if cfg.has("knocks"):
+			hit.knockback_force = float(cfg["knocks"][combo_index]) * WeaponDesigns.hammer(player.equipped_weapon.design, "weight")
+			hit.breaker = hit.breaker or bool(cfg["breakers"][combo_index])
+			hit.knockdown = hit.knockdown or bool(cfg["downs"][combo_index])
+			hit.stagger_duration = 0.6
 		player.sword_hitbox.activate(hit)
 		if last and cfg.get("slam", false):
 			var fwd := -player.player_model.global_basis.z
@@ -250,6 +281,10 @@ func physics_update(delta: float) -> void:
 		player.squash(1.5)
 		if last:
 			Net.fx("dust_ring", [player.global_position, 8, 0.6])
+
+	if _thud_t >= 0.0 and timer >= _thud_t:
+		_thud_t = -1.0
+		HammerArts.thud(player, str(cfg["anims"][combo_index]) == "ham_spin")
 
 	if timer >= _window.y and not hitbox_deactivated:
 		hitbox_deactivated = true

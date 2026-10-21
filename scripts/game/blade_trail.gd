@@ -62,7 +62,7 @@ func sample(delta: float) -> void:
 				and not str(w.mesh.get_meta("model", "")).begins_with("pistol"):
 			var tip_z := w.mesh.get_aabb().position.z
 			# (a polearm's ribbon is its head and the end of the shaft, not the whole pole)
-			var base := 0.7 if Humanoid.kind_of(w) == "polearm" else 0.3
+			var base := 0.7 if Humanoid.kind_of(w) in ["polearm", "hammer"] else 0.3
 			pts.append([_clock, w.global_transform * Vector3(0, 0, tip_z * base), w.global_transform * Vector3(0, 0, tip_z)])
 		while not pts.is_empty() and _clock - float(pts[0][0]) > life:
 			pts.pop_front()
