@@ -27,6 +27,7 @@ const HEADERS := {
 	"axe": ["Axe", "combat", Color(1.0, 0.7, 0.45), 30],
 	"dagger": ["Dagger", "combat", Color(1.0, 0.45, 0.58), 30],
 	"dual_dagger": ["Twin Daggers", "combat", Color(0.6, 1.0, 0.45), 30],
+	"polearm": ["Polearm", "combat", Color(1.0, 0.9, 0.4), 30],
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
@@ -59,6 +60,7 @@ const ELEMENTS := {
 	"corsair": ["cs", "Black Powder", "Powder Keg", "black powder: scarlet flashes, gold sparks and dark smoke, and Broadside's cannon fire burns"],
 	"dagger": ["dg", "Nightfall", "Blood Moon", "shadow: black wisps off the blade and crimson sparks, and Red Eclipse's wounds open in the dark"],
 	"dual_dagger": ["dd", "Viper's Kiss", "Serpent's Coil", "venom: green motes and poison bubbling off every wound"],
+	"polearm": ["pl", "Rolling Thunder", "Storm Bearer", "lightning: bolts crackling off the head and a thunderclap on the big blows"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 }
@@ -154,6 +156,7 @@ static func _build() -> void:
 	_build_axe()
 	_build_dagger()
 	_build_dual_dagger()
+	_build_polearm()
 	_build_corsair()
 	_build_pistol()
 	_build_unarmed()
@@ -617,6 +620,44 @@ static func _build_dagger() -> void:
 	_step("dg_feet", "Light Feet", "dg_gut", 3, {"stam_dagger": 0.05}, "Dagger attacks cost 5% less stamina a step.")
 	_step("dg_flow", "Flow", "dg_fan", 3, {"flow_dagger": 0.15}, "Dagger hits give 15% more energy a step.")
 	_step("dg_recover", "Recovery", "dg_deep", 3, {"cdr_dagger": 0.05}, "Dagger techniques come back 5% sooner a step.")
+
+
+## Polearms (spear, trident, naginata, bisento, halberd, pitchfork): reach and sweeps, lightning as the element.
+static func _build_polearm() -> void:
+	_tree("polearm", ["Guard", "Storm", "Reach"])
+	_root("pl_root", "Polearm", {},
+		"Two hands on a long shaft: thrusts that hit from three paces off, wide sweeps that clear a crowd, and on right-click a lunge that skewers the whole line. Keep them at the point. Fight with a polearm in hand to build its mastery.")
+	_big("pl_deflect", "Turn the Shot", "mech", 0, 3, {"parryshot_polearm": 1, "parry_polearm": 0.06},
+		"Parry with a polearm and you knock gunshots aside on the shaft too (without it, a parry only stops blades), and your parry window is wider.")
+	_big("pl_vstrike", "Vaulting Strike", "tech", 0, 8, {}, "", "vault_strike")
+	_big("pl_return", "Spear Wall", "mech", 0, 20, {"deflect_polearm": 1, "return_polearm": 1, "deflect_cd_polearm": 1.0},
+		"With a polearm drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
+	_big("pl_thrusts", "Hundred Thrusts", "tech", 1, 5, {}, "", "hundred_thrusts")
+	_big("pl_dragon", "Dragon Sweep", "tech", 1, 10, {}, "", "dragon_sweep")
+	_elem(1)
+	_elem(2)
+	_big("pl_wheel_ult", "Raijin's Wheel", "ult", 1, 30, {}, "", "raijin_wheel")
+	_big("pl_wheel", "Wheel Sweep", "move", 2, 2, {"mv_wheel_sweep": 1}, "Adds a fourth hit to your combo: the spear laid out at the waist and swung round once all about you.")
+	_big("pl_vault", "Pole Vault", "move", 2, 4, {"mv_pole_vault": 1},
+		"Jump at a sprint with a polearm drawn: plant the point and vault, half again as high and far as a running bound.")
+	_big("pl_legs", "Leg Sweep", "move", 2, 6, {"mv_leg_sweep": 1},
+		"Attack at a sprint: drop into a kneeling slide and sweep the head through their shins. It breaks their wind-up and puts them on the ground.")
+	_big("pl_fall", "Falling Spear", "move", 2, 9, {"mv_falling_spear": 1},
+		"Attack in the air: the spear raised overhead, point down, then a straight drop onto it and a ring off the landing that knocks everyone close flat (once per jump).")
+	_big("pl_long", "Long Reach", "passive", 2, 13, {"finisher_polearm": 0.3, "heavy_polearm": 0.25},
+		"Passive (a slot). The last blow of your combo lands 30% harder, and your Skewer (right-click) 25%.")
+	_variant("pl_way", "Lancer's Way", 2, [
+		["pl_keep", "Keep Away", 22, {"leech_polearm": 0.06, "cdr_polearm": 0.2}, "Polearm hits heal you for 6% of their damage, and polearm techniques come back 20% sooner."],
+		["pl_skewer", "Skewer", 22, {"exec_polearm": 0.5, "crit_polearm": 0.06}, "A hit that leaves them under 30% health deals 50% more on top, and 6% more of your hits are crits."]],
+		"Two ways to hold the line. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("pl_shaft", "Long Shaft", "pl_root", 5, {"dmg_polearm": 0.05}, "+5% polearm damage a step.")
+	_step("pl_nerves", "Steady Shaft", "pl_deflect", 3, {"parry_polearm": 0.02}, "A polearm parry's window a little wider a step.")
+	_step("pl_point", "Spearpoint", "pl_elem", 5, {"crit_polearm": 0.03}, "3% more of your polearm hits land 50% harder, a step.")
+	_step("pl_sweeping", "Sweeping", "pl_dragon", 5, {"finisher_polearm": 0.06}, "The last blow of your combo lands 6% harder a step.")
+	_step("pl_feet", "Light Feet", "pl_wheel", 3, {"stam_polearm": 0.05}, "Polearm attacks cost 5% less stamina a step.")
+	_step("pl_lunge", "Lunge", "pl_legs", 3, {"heavy_polearm": 0.08}, "Your Skewer (right-click) hits 8% harder a step.")
+	_step("pl_flow", "Flow", "pl_thrusts", 3, {"flow_polearm": 0.15}, "Polearm hits give 15% more energy a step.")
+	_step("pl_recover", "Recovery", "pl_long", 3, {"cdr_polearm": 0.05}, "Polearm techniques come back 5% sooner a step.")
 
 
 ## Two daggers: a set of their own (not the dual-wield tree), venom and speed.

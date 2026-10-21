@@ -79,6 +79,12 @@ const STYLES := {
 		"durations": [0.42, 0.46, 0.58, 0.74], "impulses": [5.5, 4.5, 4.0, 3.0],
 		"damages": [10.0, 11.0, 15.0, 20.0], "hitstops": [0.05, 0.05, 0.07, 0.1], "shakes": [0.08, 0.09, 0.13, 0.2],
 		"reach": "pole", "reaches": ["pole", "pole_sweep", "pole_sweep", "pole_spin"], "color": Color(1.0, 0.93, 0.72), "pole": true},
+	# polearm, attacked at a sprint (Leg Sweep): dropped into a kneeling slide, the head swept flat through their
+	# shins; it breaks a wind-up and puts them on the ground
+	"pole_dash": {"anims": ["pole_legsweep"], "trails": [""],
+		"durations": [0.62], "impulses": [11.0],
+		"damages": [13.0], "hitstops": [0.06], "shakes": [0.14],
+		"reach": "pole_low", "color": Color(1.0, 0.93, 0.72), "breaker": true, "trip": true, "pole": true},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -129,7 +135,7 @@ var _spd := 1.0
 func enter(data: Dictionary) -> void:
 	var st := player.style()
 	if player.quick_draw:
-		st = "katana_draw" if st == "katana" else "sword_dash"
+		st = {"katana": "katana_draw", "polearm": "pole_dash"}.get(st, "sword_dash")
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
@@ -204,7 +210,7 @@ func physics_update(delta: float) -> void:
 		if cfg.has("bleeds") and float(cfg["bleeds"][combo_index]) > 0.0:
 			hit.set_meta("bleed", float(cfg["bleeds"][combo_index]))
 		# (the axe's finisher puts them on the ground)
-		hit.knockdown = (last and cfg.get("slam", false)) or _rush > 1.0
+		hit.knockdown = (last and cfg.get("slam", false)) or _rush > 1.0 or cfg.get("trip", false)
 		# (a polearm's thrust shoves them back to the point; a trident's goes through a guard)
 		if cfg.get("pole", false) and str(cfg["anims"][combo_index]) == "pole_thrust":
 			hit.knockback_force = 6.5

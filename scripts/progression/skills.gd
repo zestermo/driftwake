@@ -137,6 +137,15 @@ const ALL := {
 		"desc": "Whet the blades against each other: for 8 s every hit you land makes them bleed, and 20% more of your hits are crits."},
 	"hundred_fangs": {"name": "Hundred Fangs", "tree": "dual_dagger", "cost": 0.0, "cooldown": 3.0, "styles": ["dual_dagger"], "needs_text": "two daggers", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Flash round the enemy you pick from every side, cutting everyone close each time until your path draws a star; then the star bursts and they all fall, bleeding."},
+	# --- Polearm ---
+	"hundred_thrusts": {"name": "Hundred Thrusts", "tree": "polearm", "cost": 20.0, "cooldown": 7.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique",
+		"desc": "Plant your feet and drive the point out seven times in a second, every thrust reaching four paces ahead; the last drives through them and throws them back."},
+	"dragon_sweep": {"name": "Dragon Sweep", "tree": "polearm", "cost": 22.0, "cooldown": 8.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique",
+		"desc": "Drop low and swing the spear round twice at the shins: everyone within five paces is cut, and the second turn takes their legs out from under them."},
+	"vault_strike": {"name": "Vaulting Strike", "tree": "polearm", "cost": 18.0, "cooldown": 6.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique",
+		"desc": "Plant the butt and vault over the enemy you're facing (up to 9 m), driving the point down into them as you come over: it breaks their guard, and you land behind them."},
+	"raijin_wheel": {"name": "Raijin's Wheel", "tree": "polearm", "cost": 0.0, "cooldown": 3.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique", "ult": true,
+		"desc": "Ultimate. Leap up spinning the spear over your head into a wheel, come down in its middle cutting everyone around you on every turn, then drive the point into the ground: the wheel bursts and throws them all down."},
 	# --- Pistol ---
 	"deadeye": {"name": "Deadeye", "tree": "pistol", "cost": 20.0, "cooldown": 7.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique",
 		"desc": "A breath, a steady aim, and one shot that punches through every enemy in a line."},

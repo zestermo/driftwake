@@ -100,6 +100,13 @@ const KNIVES_REACH := 11.0
 const KNIVES_MAX := 4
 const KNIVES_DAMAGE := 12.0
 
+const SPEAR_LIFT := 3.5
+const SPEAR_HANG := 0.24
+const SPEAR_SPEED := 24.0
+const SPEAR_DAMAGE := 24.0
+const SPEAR_LAND_R := 3.2
+const SPEAR_LAND_DAMAGE := 16.0
+
 ## Which tree's colours each dive wears.
 const DIVE_TREE := {"meteor_kick": "unarmed", "boarding_dive": "sword", "fang_dive": "dagger"}
 
@@ -179,6 +186,13 @@ func enter(_data: Dictionary) -> void:
 				player.body_model.aim_pitch = clampf(asin(clampf(-cam.global_basis.z.y, -1.0, 1.0)), -0.9, 0.6)
 			player.body_model.play("hang_shot", HANGSHOT_LEN)
 			Net.fx("sfx", ["blip", player.global_position, -10.0, 0.05, 0.6])
+		"falling_spear":
+			player.variable_jump_active = false
+			player.velocity = Vector3(player.velocity.x * 0.3, SPEAR_LIFT, player.velocity.z * 0.3)
+			player.body_model.play("pole_dive", 0.6)
+			player.set_reach("pole_sweep")
+			player.squash(2.0)
+			Net.fx("sfx", ["whoosh", player.global_position, -7.0, 0.06, 0.75])
 		"deadmans_drop":
 			player.variable_jump_active = false
 			player.velocity = Vector3(player.velocity.x * 0.25, maxf(player.velocity.y, 0.0) * 0.2, player.velocity.z * 0.25)
@@ -222,30 +236,38 @@ func physics_update(delta: float) -> void:
 			_drop_update(delta)
 			return
 	var axe := _mode == "skybreaker"
+	var spear := _mode == "falling_spear"
 	match phase:
 		0:
-			# brief hang at the top (the axe: rising through its somersault)
-			player.velocity.y = move_toward(player.velocity.y, 0.0, (12.0 if axe else 30.0) * delta)
+			# brief hang at the top (the axe: rising through its somersault; the spear: raised, point down)
+			player.velocity.y = move_toward(player.velocity.y, 0.0, (12.0 if axe or spear else 30.0) * delta)
 			player.move_and_slide()
-			if timer >= (AXE_HANG if axe else HANG):
+			if spear and timer >= SPEAR_HANG - 0.07 and not _fired:
+				_fired = true
+				var w: MeshInstance3D = player.body_model.weapon
+				Net.fx("glint", [w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z * 0.9), Color.WHITE, 0.8])
+			if timer >= (AXE_HANG if axe else (SPEAR_HANG if spear else HANG)):
 				phase = 1
 				timer = 0.0
 				player.velocity = _dir * 3.5 + Vector3.DOWN * DIVE_SPEED
 				if axe:
 					Net.fx("slash", [player.player_model, "overhead", 0.3, _axe_col()])
+				elif spear:
+					player.velocity = _dir * 1.5 + Vector3.DOWN * SPEAR_SPEED
+					Net.fx("blade_swoosh", [player.body_model, 0.3, _spear_col()])
 				else:
 					Net.fx("slash", [player.player_model, "overhead", 0.3])
 				Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 1.1])
 				var hit := HitData.new()
 				hit.sever = player.weapon_class() == "sword"
-				hit.damage = 22.0 * player.damage_multiplier()
+				hit.damage = (SPEAR_DAMAGE if spear else 22.0) * player.damage_multiplier()
 				hit.knockback_force = 7.0
 				hit.stagger_duration = 0.45
 				hit.hitstop_duration = 0.07
 				hit.camera_shake_intensity = 0.16
 				player.sword_hitbox.activate(hit)
 		1:
-			player.velocity.y = -DIVE_SPEED
+			player.velocity.y = -(SPEAR_SPEED if spear else DIVE_SPEED)
 			player.move_and_slide()
 			if player.is_on_floor() or timer > 2.5:
 				_land()
@@ -272,6 +294,9 @@ func _land() -> void:
 	if _mode == "skybreaker":
 		_split_ground()
 		return
+	if _mode == "falling_spear":
+		_spear_land()
+		return
 	player.body_model.play("plunge_land", RECOVER + 0.1)
 	player.squash(-4.0)
 	var at := player.global_position - player.player_model.global_basis.z * 0.9
@@ -287,6 +312,43 @@ func _land() -> void:
 	wave.hitstop_duration = 0.05
 	wave.camera_shake_intensity = 0.0
 	_burst(at, 2.4, wave, player.sword_hitbox.hit_targets.duplicate())
+
+
+## Falling Spear's landing: the point driven into the ground ahead, a ring thrown out from it that knocks
+## everyone close flat (not those already struck on the way down); with the element on every blow, lightning
+## comes down the shaft into the spot.
+func _spear_land() -> void:
+	player.body_model.play("pole_land", RECOVER + 0.12)
+	player.squash(-4.5)
+	var at := player.global_position - player.player_model.global_basis.z * 1.1
+	var col := _spear_col()
+	Net.fx("dust_ring", [at, 20, 1.1])
+	Net.fx("ring", [at + Vector3(0, 0.1, 0), Vector3.UP, SPEAR_LAND_R, col, 0.3, 0.12])
+	Net.fx("debris", [at + Vector3(0, 0.1, 0), Vector3.UP, 5, Color(0.36, 0.31, 0.26), 4.0])
+	Net.fx("impact", [at + Vector3(0, 0.2, 0), col])
+	Net.fx("sfx", ["thud", at, 1.0, 0.05, 0.7])
+	if player.progression.elemental("polearm", 2):
+		Net.fx("bolt", [at + Vector3(0.3, 7.0, -0.2), at, FX.tree_col("polearm", FX.EDGE), 0.14, 0.3, randi() % 1000])
+		Net.fx("element", ["polearm", at + Vector3(0, 0.3, 0), Vector3.UP, 12, 5.0])
+		Net.fx("sfx", ["jelly_zap", at, -2.0, 0.05, 0.7])
+	CombatManager.apply_camera_shake(0.26)
+	CombatManager.apply_camera_kick(0.14, 0.3)
+	var wave := HitData.new()
+	wave.damage = SPEAR_LAND_DAMAGE * player.damage_multiplier()
+	wave.knockdown = true
+	wave.knockback_force = 9.0
+	wave.stagger_duration = 0.5
+	wave.hitstop_duration = 0.07
+	wave.camera_shake_intensity = 0.0
+	wave.sever = true
+	_burst(at, SPEAR_LAND_R, wave, player.sword_hitbox.hit_targets.duplicate())
+
+
+## Falling Spear's colour: plain steel, its tree's once the element is on every blow.
+func _spear_col() -> Color:
+	if player.power.buff("coat"):
+		return Player.HAKI_TRAIL
+	return FX.tree_col("polearm", FX.EDGE) if player.progression.elemental("polearm", 2) else Color(1.0, 0.93, 0.72)
 
 
 ## Everyone within `r` of `at` (not in `already`) takes `hit`.

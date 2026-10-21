@@ -4,6 +4,9 @@ extends PlayerState
 ## as a plain running jump without the sprint's carry.
 
 const SPRINT_JUMP_COST := 10.0
+## The polearm's vault (Pole Vault): x the jump's height speed, x the sprint's carry.
+const VAULT_UP := 1.3
+const VAULT_FAR := 1.3
 
 
 func enter(data: Dictionary) -> void:
@@ -23,9 +26,20 @@ func _launch(double: bool) -> void:
 		kind = "jump_run"
 		player.air_speed = player.move_speed
 	pr.add_life("acrobatics", 6 if double else 3)
+	# (a polearm drawn: the sprint's bound is a pole vault, higher and further)
+	if kind == "jump_sprint" and player.armed and player.style() == "polearm" and pr.has_move("pole_vault"):
+		kind = "pole_vault"
+		player.velocity.y = player.jump_force * VAULT_UP
+		player.air_speed = maxf(player.air_speed, player.sprint_speed) * VAULT_FAR
 	player.body_model.play(kind, ActionSpecs.length(kind))
 	var at := player.global_position
-	if double:
+	if kind == "pole_vault":
+		var plant := at - player.player_model.global_basis.z * 1.2
+		Net.fx("dust", [plant + Vector3(0, 0.05, 0), 8, 0.6])
+		Net.fx("dust", [at + Vector3(0, 0.05, 0), 6, 0.6])
+		Net.fx("sfx", ["thud", plant, -10.0, 0.05, 1.3])
+		Net.fx("sfx", ["whoosh_big", at, -9.0, 0.06, 0.95])
+	elif double:
 		# a kick off the air itself: a flat ring of wind under the feet
 		Net.fx("ring", [at + Vector3(0, 0.05, 0), Vector3.UP, 0.85, Color(1.0, 0.98, 0.9, 0.8), 0.28, 0.08])
 		Net.fx("motes", [at + Vector3(0, 0.1, 0), Vector3.DOWN, 8, Color(1.0, 0.97, 0.88), 4.0])
