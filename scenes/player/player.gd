@@ -1500,6 +1500,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif (event as InputEventKey).alt_pressed:
 			# Alt+F10: the crew to the royal capital, the ship and you at its quay once it's built
 			debug_to_capital()
+		elif (event as InputEventKey).shift_pressed:
+			# Shift+F10: one of every polearm design into the bag (the newest weapon kind, to try)
+			for id in WeaponDesigns.item_ids("polearm"):
+				inventory_component.add_item(ItemDB.get_item(str(id)), 1)
+			_toast("Debug: every polearm in your bag")
 		elif is_free():
 			knock_down(player_model.global_basis.z * 6.0 + Vector3.UP * 3.5)
 		get_viewport().set_input_as_handled()

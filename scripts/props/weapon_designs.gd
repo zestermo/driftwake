@@ -191,8 +191,29 @@ static func saya(model: String) -> ArrayMesh:
 
 ## Any weapon's item id: a kind, then one of its designs.
 static func random_item(rng: RandomNumberGenerator) -> String:
-	var ids := item_ids(str(BASE_ITEM.keys()[rng.randi() % BASE_ITEM.size()]))
-	return str(ids[rng.randi() % ids.size()])
+	return pick_id(str(BASE_ITEM.keys()[rng.randi() % BASE_ITEM.size()]), rng)
+
+
+## How often a "rare" design (the bisento) stays when it's rolled; otherwise a common design of its kind.
+const RARE_KEEP := 0.35
+
+
+## One of `kind`'s item ids at random (the base's too), a "rare" design kept only RARE_KEEP of the times it comes
+## up. (Kinds with no rare design draw once, as they always did.)
+static func pick_id(kind: String, rng: RandomNumberGenerator) -> String:
+	var ids := item_ids(kind)
+	var id := str(ids[rng.randi() % ids.size()])
+	if is_rare(kind, id) and rng.randf() > RARE_KEEP:
+		var common := ids.filter(func(x): return not is_rare(kind, str(x)))
+		id = str(common[rng.randi() % common.size()])
+	return id
+
+
+static func is_rare(kind: String, id: String) -> bool:
+	for d in (DESIGNS.get(kind, {}) as Dictionary).values():
+		if str(d["id"]) == id:
+			return bool(d.get("rare", false))
+	return false
 
 
 ## (ItemDB, loading) the design items, made from each kind's base item.

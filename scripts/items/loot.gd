@@ -79,8 +79,7 @@ static func generic(it: ItemData) -> bool:
 
 ## A weapon of `kind` at `tier` (a random design), with a trait from blue up.
 static func weapon(kind: String, tier: int, rng: RandomNumberGenerator) -> ItemData:
-	var ids := WeaponDesigns.item_ids(kind)
-	var it := ItemDB.tiered(str(ids[rng.randi() % ids.size()]), tier)
+	var it := ItemDB.tiered(WeaponDesigns.pick_id(kind, rng), tier)
 	if tier >= WeaponTraits.MIN_TIER:
 		it = ItemDB.with_trait(it.id.get_slice("+", 0), WeaponTraits.roll(kind, rng))
 	return it

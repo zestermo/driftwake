@@ -4894,3 +4894,47 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   near and not far, a skill learned mid-fight left off it). progtest now puts a pistol in
   loadout 2 before its pistol skills fill the bar. Render: `barshot <out_prefix>` (the bar with a katana in hand, pistols in
   loadout 2, a greyed cutlass skill).
+
+## 2026-10-21: the polearm (1.21 remaining weapons, kind 1 of 8; docs/weapons_plan.md)
+- **Item and models** (WeaponDesigns kind "polearm", base resources/items/spear.tres "Boarding Spear"): `_polearm` builds a
+  shaft from POLE_BEHIND 0.42 behind the right hand to POLE_AHEAD 1.32 ahead (x the design's "reach"), grip wraps where the
+  hands go, and a head: leaf (spear), trident, naginata, bisento (broad, tassel), halberd, fork (pitchfork); ~2.0-2.5 m long.
+  Design numbers read by `WeaponDesigns.pole(design, key)`: "speed" (its moves play that much faster: naginata 1.06,
+  halberd 0.92, bisento 0.84), "sweep" (sweep hitboxes wider: naginata 1.12, bisento 1.35), "reach", "pierce" (trident: its
+  thrusts can't be blocked), "rare" (bisento: `pick_id` keeps it RARE_KEEP 0.35 of the times it's rolled). Two-handed
+  (`_offhand_valid`), slung across the back in the BackSocket head up over the right shoulder (`DrawMoves.on_back`), drawn with
+  the two-hander's heave ("great"). Debug: **Shift+F10** puts one of every design in the bag.
+- **The grip** (scripts/npc/pole_moves.gd, PoleMoves): every "pole_*" action keys the body as usual plus four channels in the
+  chest's frame (from the shoulders' middle): `_gr` the right hand, `_gd` the shaft, `_ge` the edge (leads a sweep), `_gs` the
+  left hand's slide up the shaft (< 0 one-handed). `PoleMoves.hands` (Humanoid._process, before the smear) eases toward them
+  (SHARP 34 / 16 idle), reaches the right arm by IK, turns the weapon along the shaft and reaches the left hand to it, sliding it
+  back to wherever the arm reaches (`_slide`). Outside pole actions it holds GUARD_GRIP, BLOCK_GRIP for the held block,
+  TRAIL_GRIP sprinting (one hand, head trailing low), and through HELD actions (parry, hits, dodges, jumps); anything else
+  (draw, eat...) fades it off in 0.12 s. No "lead" in pole specs (its offset samples would overwrite the grip).
+- **Moveset** (style "polearm", SkillTree.STYLE_TREE -> tree "polearm"): combo pole_thrust 10 (shoves back, REACH "pole"
+  3.4 m) / pole_rise 11 / pole_sweep 15 ("pole_sweep" 3.9 wide) / Wheel Sweep 20 (move, one full turn, "pole_spin");
+  heavy Skewer (pole_heavy 30, "pole_long" 4.6 m, knocks down, streak down the line); Leg Sweep at a sprint (move: kneeling slide
+  through the shins, breaker, knockdown, "pole_low"); Pole Vault (move: a sprint's jump x1.3 up and x1.3 carry, pole planted
+  one-handed); Falling Spear (move, air: hang raised point-down, 24 m/s drop, landing ring 3.2 m knockdown); parry/deflect on a
+  level shaft (ActionSpecs.PARRIES). Traits: serrated, gale, thundering, rushing, duellist roll on polearms.
+- **Tree** (SkillTrees "polearm": Guard / Storm / Reach, element lightning "pl": Rolling Thunder 16 / Storm Bearer 25):
+  Turn the Shot 3 · Vaulting Strike 8 · Spear Wall 20; Hundred Thrusts 5 · Dragon Sweep 10 · Raijin's Wheel 30; Wheel Sweep 2 ·
+  Pole Vault 4 · Leg Sweep 6 · Falling Spear 9 · Long Reach 13 (passive) · Lancer's Way 22 (Keep Away / Skewer). Steps 30.
+- **Techniques** (scripts/player_states/pole_arts.gd, PoleArts in TechniqueState._arts): Hundred Thrusts (seven thrusts on
+  0.1 s at 4.2 m in a narrow cone, the last 15 and a push), Dragon Sweep (two low turns 5 m, the second knocks down), Vaulting
+  Strike (leap over the aimed foe within 9 m, the point driven down at 0.4 s: 28 unblockable breaker, land behind facing them),
+  Raijin's Wheel (ult, untouchable: up spinning the spear overhead, the moment, two turns of `_spin_hits` 5.5 m, the point driven
+  in at 1.8 s: 40 knockdown 6.5 m, lightning on every foe with the element).
+- **FX**: TREE_FX "polearm" (lemon-white edge, violet accent); `FX.bolt(from, to, color, width, life, seed)` (a jagged seeded
+  bolt with forks, two shared materials, one flicker tween); element/elem_hit branches; BladeTrail samples a polearm from 0.7 of
+  its length (the head, not the pole).
+- **Co-op**: nothing new on the wire: the stance, actions and weapon model already sync; every screen solves the grip from the
+  same pose. Hits go through the usual hurtboxes and Net.fx.
+- **Per frame**: `PoleMoves.hands` only on bodies in the polearm stance (or fading out): two arm IK solves and a quaternion a
+  posed frame (LOD bodies skip frames as before). Effects are one-shots.
+- **Sources**: IslandContent.LOOT_WEAPONS and IslandEncounters.LOOT have "spear" (its design rolled by Loot.weapon),
+  Shops.RARE_KINDS "polearm" (treasure merchants), Haldor's pool spear / pitchfork / trident / naginata / halberd@1;
+  WeaponDesigns.random_item (Sea King, enemy prizes) includes the kind.
+- Tests: t/weapons polearm_combo, polearm_moves, polearm_tree, polearm_loot; t/progression/tree_shape counts at least the 19
+  older moves. Renders: tools/dev/out/polearm/ (rack_side, pb_* guard/thrust/sweep, anim_* sheets, ab_raijin_wheel).
+  Expect daggertest/techtest/progtest/balancetest/uitest (the skill map's tabs) to want a look at the push.

@@ -24,6 +24,11 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 | Enemies | Player only for now; one enemy pass after all kinds land (spearmen, hammer brutes, cannoneers...) | Zach's pick | After the eighth kind |
 | Co-op | Standing rule: everything works for a guest (puppets show the stance and moves, hits go through Net) | CLAUDE.md | — |
 
+### Built
+- **Polearm** (2026-10-21): spear + trident, naginata, bisento (rare), halberd, pitchfork; stance with a solved two-handed grip
+  (PoleMoves), combo, Skewer heavy, Leg Sweep, Pole Vault, Falling Spear, parry/block; the Polearm tree (Guard / Storm / Reach,
+  lightning: TREE_FX "polearm"), Hundred Thrusts, Dragon Sweep, Vaulting Strike, Raijin's Wheel; loot and shops. dev_notes 2026-10-21.
+
 ### Open / deferred
 - **Hammer/kanabo feel** (**assumed**): slow, two-handed, staggering; guard breaks and ground slams with a shockwave; heavy family.
 - **Dual axes feel** (**assumed**): fast chained chops from both hands, a whirl, hooking pulls; own style and tree (an axe + an

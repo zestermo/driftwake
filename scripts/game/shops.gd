@@ -33,7 +33,8 @@ const SHOPS := {
 		"name": "Haldor's Forge", "line": "Every blade on the rack came out of that fire. I'll buy your spares, too.", "trade": "smith",
 		"stock": [["cutlass", 45], ["dagger", 28], ["pistol", 90], ["hatchet", 30]],
 		"pool": [["hunting_hanger", 40], ["naval_sabre", 70], ["boarding_axe", 70], ["duelling_pistol", 130], ["wakizashi", 120],
-			["stiletto", 45], ["main_gauche", 60], ["kukri@1", 110], ["scimitar@1", 140], ["bearded_axe@1", 160], ["cutlass@1", 110], ["katana", 180]],
+			["stiletto", 45], ["main_gauche", 60], ["kukri@1", 110], ["scimitar@1", 140], ["bearded_axe@1", 160], ["cutlass@1", 110], ["katana", 180],
+			["spear", 50], ["pitchfork", 25], ["trident", 95], ["naginata", 110], ["halberd@1", 170]],
 		"size": 5,
 		"buys": {"weapon": 0.6},
 	},
@@ -135,7 +136,7 @@ const RARE_GEAR := [
 	["feet", "cavalier_boots", {"feet": "cavalier_boots", "feet_color": Color(0.24, 0.12, 0.08)}],
 	["accessory", "cloak", {"cloak": true, "cloak_color": Color(0.3, 0.08, 0.1)}],
 ]
-const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger"]
+const RARE_KINDS := ["cutlass", "katana", "axe", "pistol", "dagger", "polearm"]
 ## The chance a treasure merchant also has a piece of rare gear on a given day.
 const RARE_GEAR_CHANCE := 0.6
 ## The chance a treasure merchant has a fine rod that day (half of them the master's: only ever here).
@@ -175,8 +176,7 @@ static func stock_on(id: String, day: int) -> Array:
 		var tier := int(s["tier"])
 		# (Loot.weapon's roll written out: Loot names SaveGame, which names autoloads, and tests preload this script)
 		var kind: String = RARE_KINDS[rng.randi() % RARE_KINDS.size()]
-		var designs := WeaponDesigns.item_ids(kind)
-		out.append([ItemDB.tiered(str(designs[rng.randi() % designs.size()]), tier).id + "+" + WeaponTraits.roll(kind, rng)])
+		out.append([ItemDB.tiered(WeaponDesigns.pick_id(kind, rng), tier).id + "+" + WeaponTraits.roll(kind, rng)])
 		if rng.randf() < RARE_GEAR_CHANCE:
 			var g: Array = RARE_GEAR[rng.randi() % RARE_GEAR.size()]
 			out.append([g[0], g[1], g[2], tier])
