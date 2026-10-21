@@ -413,7 +413,8 @@
 			return r.json();
 		})
 		.then((data) => {
-			versions = data.versions;
+			// unstable releases (early builds) stay off the timeline: it shows the stable line
+			versions = data.versions.filter((v) => !v.unstable);
 			hereIdx = Math.max(0, versions.findIndex((v) => v.v === data.here));
 			build();
 			const i = fromHash();

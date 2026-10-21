@@ -3,6 +3,9 @@
 # - A version tag (git tag v1.8 && git push origin v1.8): also a GitHub Release with
 #   Driftwake-windows.zip, which https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-windows.zip
 #   always points at (the website's download button).
+# - Unstable versions: while tools/release/UNSTABLE exists, a version tag publishes a GitHub *pre-release*.
+#   GitHub's "latest" (and so the site's /download) skips pre-releases, so the download stays on the last
+#   stable version; the site lists unstable builds with their own buttons. Delete the file for a stable release.
 # - The exes' version (Properties > Details) is project.godot's config/version: the preset leaves
 #   application/file_version and product_version empty, so Godot fills them in (1.11 -> 1.11.0.0).
 #   A release is: bump config/version, commit, tag v<version>, push the tag. Keep them empty.
@@ -86,3 +89,5 @@ jobs:
         with:
           files: build/Driftwake-windows.zip
           generate_release_notes: true
+          prerelease: ${{ hashFiles('tools/release/UNSTABLE') != '' }}
+          make_latest: ${{ hashFiles('tools/release/UNSTABLE') == '' }}

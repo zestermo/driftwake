@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.18.2-e0b040" alt="Version 1.18.2">
+  <img src="https://img.shields.io/badge/version-1.18.3-e0b040" alt="Version 1.18.3">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -161,6 +161,18 @@ the equipment slot, face the water and press F to cast, then F again when the bo
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
+always the last stable version (v1.18); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.18.3: New Ways to Fight (October 21, 2026), unstable
+Five new weapon kinds, each with its own stance, moves, three-branch tree, element and ultimate: polearms (spear,
+trident, naginata, bisento, halberd, pitchfork; lightning), hammers and kanabo (earth), twin axes (frost), greatswords
+(wind; a low guard and a charged overhead) and Black Leg kicks (heat; taught by Gus at the Salted Gull, with
+hand-planted spins). A stance pass gives every weapon its own guard, run and breathing: a side-on cutlass, a
+reverse-grip dagger, a pistol at low ready. Mastery stances: Whitebeard's planted polearm, hands in pockets for Black
+Leg. Full Xbox controller support: right-stick look, LB skills, the radial wheels on the stick, and prompts for the
+device in use.
 
 ### v1.18.2: Every Wake a Lesson (October 20, 2026)
 Skills rebuilt from the ground up. Each weapon has its own tree in three branches that grows only while you fight

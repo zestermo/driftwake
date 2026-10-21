@@ -316,6 +316,13 @@ footer .credit { margin-top: 6px; font-size: 12px; opacity: 0.85; }
 .version h2 { font-size: 13px; }
 .version .tagline { font: 600 22px "Pixelify", monospace; color: var(--text); margin: 0 0 4px; }
 .toc { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 24px; padding: 0; list-style: none; font-size: 15px; }
+.toc-unstable { margin-bottom: 8px; }
+.toc-label { font: 400 11px "Silkscreen", monospace; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); align-self: center; }
+/* the releases page: unstable builds above the stable line, each with its own download */
+.rel-group { margin: 28px 0 6px; font: 400 13px "Silkscreen", monospace; letter-spacing: 1px; text-transform: uppercase; color: var(--teal-light); }
+.rel-note { margin: 0 0 14px; max-width: 680px; color: var(--dim); }
+.version .badge { display: inline-block; margin-left: 8px; padding: 1px 6px; font: 400 10px "Silkscreen", monospace; letter-spacing: 1px; vertical-align: middle; color: var(--ink); background: var(--coral); border-radius: 3px; }
+.version.unstable { opacity: 0.94; }
 
 footer { padding: 16px 16px 32px; text-align: center; font-size: 13px; color: var(--dim); }
 footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin-bottom: 8px; font-size: 15px; }

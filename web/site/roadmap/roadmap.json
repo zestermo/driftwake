@@ -1,6 +1,6 @@
 {
-	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.18.2",
+	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
+	"here": "1.18",
 	"versions": [
 		{
 			"v": "0.1",
@@ -442,6 +442,7 @@
 			"v": "1.18.1",
 			"name": "A First Look at the Capital",
 			"date": "2026-10-20",
+			"unstable": true,
 			"status": "shipped",
 			"headline": "A sneak peek at the first real city: a walled royal capital two islands out from Brinehollow.",
 			"img": "capital",
@@ -462,6 +463,7 @@
 			"v": "1.18.2",
 			"name": "Every Wake a Lesson",
 			"date": "2026-10-20",
+			"unstable": true,
 			"status": "shipped",
 			"headline": "Skills rebuilt: weapon trees that grow as you fight, captain talents and Will, adventure trees, one skill bar for every weapon, and a new hand-made look.",
 			"img": "skill-trees",
@@ -478,6 +480,22 @@
 				["One skill bar", "Any weapon's skills from your loadouts on 1-5 and R (using one switches to that weapon), three passive slots and a library."],
 				["A new look", "Menus, dialogue, signs and round wheels in a hand-made seafaring style."],
 				["Performance", "Islands built off the main thread, no freezes when islands are let go or fights start, occlusion in towns."]
+			]
+		},
+		{
+			"v": "1.18.3",
+			"name": "New Ways to Fight",
+			"date": "2026-10-21",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "Five new weapon kinds, a stance for every weapon, and controller support.",
+			"img": "skill-trees",
+			"alt": "The skills menu: a weapon's tree of glowing nodes in three branches on a night sky",
+			"github": true,
+			"added": [
+				["New weapon kinds", "Polearms, hammers and kanabo, twin axes, greatswords and Black Leg kicks, each with a stance, moves, a tree, an element and an ultimate."],
+				["Stances", "Every weapon's own guard, run and breathing; mastery stances for the polearm and Black Leg."],
+				["Controller", "Full Xbox pad support with prompts for the device in use."]
 			]
 		},
 		{

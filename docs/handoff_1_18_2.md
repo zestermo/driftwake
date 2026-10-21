@@ -64,7 +64,7 @@ first, docs/weapons plan for 1.21's kinds) hold their landings until v1.18.2 is 
 and menus for the controller, the new weapons' trees and moves), and release **1.18.3 as an unstable version** once
 all the weapon additions and the controller work are finished. New weapons build their trees in SkillTrees
 (scripts/progression/skill_trees.gd) like the nine in docs/progression_plan.md.
-- **Website: stable vs unstable releases (Zach, 2026-10-21), done when 1.18.3 is finished and released, not before:**
+- **Website: stable vs unstable releases (Zach, 2026-10-21): built with 1.18.3.** How it works: `tools/release/UNSTABLE` present = a version tag publishes a GitHub pre-release (build-windows.yml), and GitHub's "latest" (the site's /download) skips those; roadmap.json entries get `"unstable": true` (roadmap.js leaves them off the timeline, "here" stays on the last stable); the releases page has an Unstable section with a download button per build; home and the news list show only stable posts. Old releases 1.18.1 and 1.18.2 are marked pre-release by hand (`gh release edit v1.18.1 --prerelease`, then `gh release edit v1.18 --latest`). The original ask:
   - **1.18 is the last stable release.** 1.18.1, 1.18.2 and 1.18.3 are all marked **unstable**.
   - Releases page (web/site/releases): a separate **Unstable** section listing those versions, each with its own
     manual download button for that exact version.
