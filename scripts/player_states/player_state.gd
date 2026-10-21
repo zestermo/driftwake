@@ -94,7 +94,7 @@ func apply_gravity(delta: float) -> void:
 		elif player.variable_jump_active and not Input.is_action_pressed("jump"):
 			g *= player.short_hop_gravity_mult  # let go early = shorter hop
 		player.velocity.y -= g * delta
-		player.velocity.y = maxf(player.velocity.y, -34.0)
+		player.velocity.y = maxf(player.velocity.y, -Player.MAX_FALL_SPEED)
 
 
 ## Attack/parry input: first press draws the weapon, later presses attack.

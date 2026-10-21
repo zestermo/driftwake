@@ -13,6 +13,10 @@ var _stamp_at := -1.0
 
 func enter(data: Dictionary) -> void:
 	_stamp_at = -1.0
+	player.freefall_from = now_s()
+	# (out of a tumble: an air step, and the ground jump is long gone)
+	if data.get("air", false) and player.jumps_remaining == player.max_jumps:
+		player.jumps_remaining -= 1
 	var double: bool = player.jumps_remaining < player.max_jumps and not data.get("coyote", false)
 	player.air_speed = maxf(Vector2(player.velocity.x, player.velocity.z).length(), player.move_speed)
 	_launch(double)
@@ -101,8 +105,9 @@ func physics_update(delta: float) -> void:
 
 	# Double jump
 	if Input.is_action_just_pressed("jump") and player.jumps_remaining > 0:
+		player.freefall_from = now_s()
 		_launch(true)
 		return
 
 	if player.velocity.y < 0.0:
-		transitioned.emit(self, "Fall", {})
+		transitioned.emit(self, "Fall", {"from_jump": true})

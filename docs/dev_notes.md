@@ -5231,3 +5231,17 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   the pose), through Net.fx. Landing is still the kneel. Test: t/player/air_step (was double_jump: no flip, knee
   high, +1.2 m, alternating feet under Sky Walk). Render: animsheet `double_jump` at yaw 90 and 125. animsheet now
   poses the skinned arms (ArmBody._pose) per frame as well as the legs: before, every sheet showed the arms frozen.
+- **Freefall tumble** (piece 2): `Player.freefall_from` (PlayerState.now_s) is set by every jump and air step
+  (JumpState) and by FallState.enter unless it comes from JumpState (`{"from_jump": true}`), so an ability, attack,
+  plunge or anything else that drops back into Fall restarts it. FallState: past `FREEFALL_TUMBLE` (3.5 s) with more
+  than 3 m under you -> DownedState `{"tumble": true, "velocity"}`: a limp ragdoll (no muscles) with a head-over-heels
+  spin (`TUMBLE_SPIN`) falling at the captain's own gravity (32 m/s^2) and top speed (`Ragdoll.fall_like`,
+  `Player.MAX_FALL_SPEED` 34; knockdown ragdolls still fall at 9.8). The root rides the body vertically while it falls
+  (camera follows), and the get-up waits for the landing. Landing: `Player.tumble_landed` = the usual fall damage
+  (~85 from terminal speed) with no stagger (Downed's own get-up instead); in deep water the usual float-up. Jump in
+  the tumble with an air step left: `Player.recover_in_air` (root to the body, its speed kept, the body eased upright
+  from the sprawl over 0.25 s) and JumpState `{"air": true}` (the step's pivot keys in from the sprawl). At this
+  gravity 3.5 s is a ~100 m drop (a 5 m drop takes ~0.6 s): tune `FREEFALL_TUMBLE` in play. Co-op: the ragdoll,
+  recover and step mirror through Humanoid's net events like a knockdown. Per tick: one clamp loop over the 11
+  ragdoll parts while a tumble is down, a ground ray in Fall only once past 3.5 s. Tests: t/player/freefall_tumble,
+  freefall_reset.
