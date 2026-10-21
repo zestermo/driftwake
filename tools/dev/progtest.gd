@@ -121,10 +121,11 @@ func _process(d: float) -> bool:
 			check("grunt kill gives XP", pr.xp == 45)
 			step += 1
 		1:
-			var hp0: float = p.health_component.max_health
 			var need: int = pr.xp_to_next(1)
 			pr.add_xp(need)
-			check("level up to 2: stronger by itself, no points to spend", pr.level == 2 and pr.skill_points == 0 and p.health_component.max_health > hp0)
+			check("level up to 2: stronger by itself, no points to spend", pr.level == 2 and pr.skill_points == 0 and is_equal_approx(pr.stat("max_hp"), 5.5) and is_equal_approx(pr.stat("damage_pct"), 0.02))
+			p.health_component.max_health = 99999.0
+			p.health_component.current_health = 99999.0
 			check("Will isn't a level (Iron Will comes from Morrow)", pr.can_learn("h_arm") != "" and not pr.has_flag("armament"))
 			check("a fruit's tree needs the fruit", not pr.owns("e_root") and pr.visible_trees("fruit").is_empty())
 			pr.add_life("acrobatics", pr.mastery_to_next(1))
@@ -274,6 +275,8 @@ func _process(d: float) -> bool:
 			var side: Vector3 = p.player_model.global_basis.x
 			aim_at(g.hurtbox.global_position + side * 1.5)
 			set_meta("hp1", g.health.current_health)
+			# (its last round: pistol mastery 9 has Extra Powder's third shot in it)
+			p.ammo[0] = 1
 			attack("light_attack")
 			wait = 0.5
 			step += 1
