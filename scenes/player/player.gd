@@ -1739,6 +1739,35 @@ func _loadout_tick(delta: float) -> void:
 	_apply_loadout(i)
 
 
+## Could the hands change to another loadout this moment (free, or in a swing's combo window)?
+func can_swap_now() -> bool:
+	return not _using_item and context == Context.ON_FOOT \
+		and (current_state_name() in FREE_STATES or state_machine.current_state.get("can_combo") == true)
+
+
+## Take up loadout slot i this moment (a skill of its weapon is about to be used; can_swap_now first).
+func take_loadout_now(i: int) -> void:
+	_loadout_want = -1
+	if current_state_name() not in FREE_STATES:
+		state_machine.force_state("Idle", {})
+	_apply_loadout(i)
+
+
+## Loadout i's fighting style, or "" when it can't be taken up (not set up, locked, or its main weapon
+## isn't in the bag; an off hand not in the bag is left out, as taking it up would).
+func loadout_style(i: int) -> String:
+	var l: Array = loadouts[i]
+	if l.is_empty() or i >= loadout_slots():
+		return ""
+	if l[0] != "" and inventory_component.count(l[0]) <= 0:
+		return ""
+	var main: ItemData = ItemDB.get_item(l[0]) if l[0] != "" else null
+	var off: ItemData = null
+	if main and l[1] != "" and inventory_component.count(l[1]) >= (2 if l[1] == l[0] else 1):
+		off = ItemDB.get_item(l[1])
+	return style_of(main, off)
+
+
 func _apply_loadout(i: int) -> void:
 	loadout_at = i
 	var l: Array = loadouts[i]

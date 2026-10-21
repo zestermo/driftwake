@@ -16,7 +16,9 @@ extends Control
 ##   red when an action is refused).
 ## * Skills 1-5: icon, key, energy cost, cooldown sweep + seconds, dimmed when
 ##   you can't afford them, a white flash when they come off cooldown, a red
-##   flash when a cast is refused. In the sea they're all doused.
+##   flash when a cast is refused. In the sea they're all doused. A weapon skill
+##   has its weapon's colour in the corner, with the loadout number when using it
+##   switches loadouts; grey when none of your loadouts holds its weapon.
 ## * Ultimate (R): bigger slot with a charge ring that fills from damage dealt
 ##   and pulses when ready.
 ## * The quick item (E): the selected food or drink, with how many you carry (hold E: the item
@@ -39,6 +41,7 @@ const ST_COL := Color(0.36, 0.78, 0.32)
 const ST_EMPTY := Color(0.85, 0.62, 0.18)
 const PLATE := Color("1d5e66e0")
 const EMPTY_RIM := Color("5e7470")
+const UNUSABLE := Color(0.4, 0.4, 0.4, 0.6)
 
 var player: Player
 var _hp_shown: float = 1.0      # fraction, eases toward the real value
@@ -60,6 +63,8 @@ var _prev_heal_cd: float = 0.0
 ## Skill icons, loaded outside _draw (a texture first loaded while drawing
 ## comes out blank).
 var _icons: Dictionary = {}
+## Each loadout's style this frame (PowerComponent.loadout_styles).
+var _styles: Array = []
 
 
 func _ready() -> void:
@@ -77,7 +82,7 @@ func bind(p: Player) -> void:
 	player.quick_refused.connect(func(): _quick_fail = 0.35)
 	player.power.cast_failed.connect(func(slot: int, why: String):
 		_fail_flash[slot] = 0.35
-		if why in ["Not enough energy", "Ultimate not charged", "Your power fizzles in the sea"]:
+		if why in ["Not enough energy", "Ultimate not charged", "Your power fizzles in the sea"] or why.ends_with("in a loadout"):
 			get_tree().call_group("hud", "show_toast", why))
 	player.power.fruit_changed.connect(func(_id):
 		_load_icons()
@@ -165,6 +170,7 @@ func _draw() -> void:
 	var x0 := ORB_R * 2.0 + 8.0
 	_draw_stamina(Rect2(x0, PLATE_Y + 3.0, W - x0 * 2.0, 4.0))
 	# slots
+	_styles = pc.loadout_styles()
 	var x := x0 + 6.0
 	for i in PowerComponent.KEYS:
 		_draw_skill(Rect2(x, ROW_Y + (ULT - SKILL) * 0.5, SKILL, SKILL), i, fruit_col)
@@ -306,11 +312,12 @@ func _draw_skill(r: Rect2, i: int, fruit_col: Color) -> void:
 		tint = Color(0.35, 0.45, 0.6, 0.8)
 	elif not afford:
 		tint = Color(0.45, 0.45, 0.7)
-	var needs := str(sk.get("needs", ""))
-	if needs != "" and player.weapon_class() != needs:
-		tint = Color(0.5, 0.45, 0.45, 0.7)
+	var at := _slot_loadout(sk)
+	if at == PowerComponent.NO_LOADOUT or (player.hybrid and PowerComponent.weapon_skill(sk)):
+		tint = UNUSABLE
 	if tex:
 		draw_texture_rect(tex, r.grow(-1.0), false, tint)
+	_weapon_tag(r, sk, at)
 	var cd := pc.cooldown_left(i)
 	if cd > 0.0:
 		_cooldown_pie(r.grow(-1.0), cd / maxf(pc.cooldown_total(i), 0.01))
@@ -319,6 +326,22 @@ func _draw_skill(r: Rect2, i: int, fruit_col: Color) -> void:
 		draw_rect(r.grow(-1.0), Color(1, 1, 1, _ready_flash[i] * 1.2))
 	_text(r.position + Vector2(2, 8), key, UIStyle.ACCENT)
 	_text(Vector2(r.position.x, r.end.y - 1.0), str(int(cost)), Color(1.0, 0.75, 0.4) if afford else Color(1.0, 0.35, 0.3), 8, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 1.0)
+
+
+func _slot_loadout(sk: Dictionary) -> int:
+	return PowerComponent.loadout_for(sk, _styles, player.loadout_at)
+
+
+## A weapon skill's tag in the slot's top-right corner: its weapon's colour, and the loadout number when
+## using it switches to another loadout (grey when no loadout holds its weapon).
+func _weapon_tag(r: Rect2, sk: Dictionary, at: int) -> void:
+	if not PowerComponent.weapon_skill(sk):
+		return
+	var col := FX.tree_col(str(sk["tree"])) if at != PowerComponent.NO_LOADOUT else UNUSABLE
+	var tr := Vector2(r.end.x - 1.0, r.position.y + 1.0)
+	draw_colored_polygon(PackedVector2Array([tr, tr + Vector2(-7.0, 0.0), tr + Vector2(0.0, 7.0)]), col)
+	if at >= 0:
+		_text(Vector2(r.end.x - 9.0, r.position.y + 15.0), str(at + 1), col, 8, HORIZONTAL_ALIGNMENT_RIGHT, 8.0)
 
 
 func _draw_ult(r: Rect2, fruit_col: Color) -> void:
@@ -346,8 +369,12 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 	var tex: Texture2D = _icons.get(str(sk["id"]))
 	var doused := pc.suppressed() and str(sk.get("fruit", "")) != ""
 	var tint := Color.WHITE if full and not doused else (Color(0.35, 0.45, 0.6, 0.8) if doused else Color(0.5, 0.42, 0.38))
+	var at := _slot_loadout(sk)
+	if at == PowerComponent.NO_LOADOUT or (player.hybrid and PowerComponent.weapon_skill(sk)):
+		tint = UNUSABLE
 	if tex:
 		draw_texture_rect(tex, r.grow(-2.0), false, tint)
+	_weapon_tag(r, sk, at)
 	var cd := pc.cooldown_left(4)
 	if cd > 0.0:
 		_cooldown_pie(r.grow(-2.0), cd / maxf(pc.cooldown_total(4), 0.01))

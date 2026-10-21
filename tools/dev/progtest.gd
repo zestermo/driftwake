@@ -138,6 +138,9 @@ func _process(d: float) -> bool:
 			check("learn Soru (active)", pr.learn("m_soru"))
 			check("Soru goes on the bar", pc.loadout[0] == "soru")
 			check("a weapon's nodes come with its mastery, not points (%s)" % pr.can_learn("s_flying"), pr.can_learn("s_flying") == "Comes at Cutlass 4")
+			# (a pistol in loadout 2, so its skills can go on the bar)
+			p.inventory_component.add_item(item("pistol"), 1)
+			p.loadouts[1] = ["pistol", ""]
 			for nid in ["c_vitality", "v_hardy", "v_tekkai", "v_steadfast", "c_strength", "c_endurance"]:
 				pr.learn(nid)
 			for tr_lv in [["sword", 5], ["pistol", 9]]:
@@ -410,7 +413,7 @@ func _process(d: float) -> bool:
 			print("   storm dist ", snappedf((g.global_position - p.global_position).length(), 0.01), " gstate ", g.state, " gname ", g.name, " ppos ", p.global_position, " gpos ", g.global_position, " pstate ", p.current_state_name())
 			print("   storm: ", v0, " -> ", g.health.current_health)
 			check("Bullet Storm hits", g.health.current_health < v0)
-			check("sword skill refused with pistols", pc.can_cast(2) == "Needs a sword")
+			check("sword skill refused with pistols", pc.can_cast(2) == "Needs a sword in a loadout")
 			# save + load
 			SG = load("res://scripts/game/save_game.gd")
 			SG.use_test_file("user://progtest_save.dat")
@@ -431,7 +434,7 @@ func _process(d: float) -> bool:
 			old.free()
 			check("skill bar restored", pc.loadout == get_meta("bar"))
 			check("weapons restored (dual pistols)", p.style() == "dual_pistol")
-			check("inventory restored", p.inventory_component.count("pistol") == 2 and p.inventory_component.count("cutlass") == 2)
+			check("inventory restored", p.inventory_component.count("pistol") == 3 and p.inventory_component.count("cutlass") == 2)
 			SG.delete()
 			# Zoan: Wolf Fruit
 			p.inventory_component.add_item(item("wolf_fruit"), 1)

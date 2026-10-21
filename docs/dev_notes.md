@@ -4732,3 +4732,32 @@ Spec: docs/progression_plan.md "Redesign" and "Build: v1.18.2".
 - The found-tree card is menu-ui's `show_new_tree(name, line)` on the HUD ("Added to COMBAT · n points to spend").
 - Tests: tree_shape now checks all nine weapon trees; refund/format5 migrations for the cutlass converted too. World
   suites' tree checks updated for the new shape (techtest, daggertest, wieldtest, balancetest, progtest), not run.
+## 2026-10-20: one skill bar across the loadouts (v1.18.2 bar-swap, docs/progression_plan.md "Skill bar")
+- **The rule** (PowerComponent): a weapon's skill (Skills.ALL `styles`, or the old `needs` "sword"/"gun") can go on the bar
+  only while a weapon that fits it is in one of your loadouts; Captain, Will and fruit skills go on with anything; R takes the
+  ultimate of any loadout's weapon. `loadout_styles()` gives each loadout's style (the hands' for the one in use;
+  `Player.loadout_style(i)`: "" when it's not set up, locked, or its main weapon isn't in the bag), `loadout_for(sk, styles, at)`
+  says HANDS (no weapon needed, or the one in hand fits), the first loadout that fits, or NO_LOADOUT.
+- **Switch, then cast:** `try_cast` on a skill whose weapon is in another loadout takes that loadout up at once
+  (`Player.take_loadout_now`: the same `_apply_loadout` as X, so the toast, the quick draw and the clack) and then casts as
+  before. `can_cast` refuses it like any other reason when the switch can't happen now ("Busy": `Player.can_swap_now()` = on foot,
+  not using an item, free or in a swing's combo window; knocked down, mid-heavy, stunned are refused) or no loadout holds the
+  weapon ("Needs a pistol in a loadout", toasted). A Zoan hybrid's weapon skills stay refused ("Needs a pistol"). Nothing else
+  changes: costs, cooldowns and the state are the old ones.
+- **Editing:** `equip_why(skill, slot) -> String` ("" = fine): "Not during a boss fight" (`boss_fight()`: a node in group
+  "bosses" in combat within BOSS_LOCK_RANGE 55 m, the boss music's range; clearing a slot is refused then too; outside boss
+  fights the bar can be edited any time, the menu pausing the world), "Ultimates go on R", "Only an ultimate goes on R",
+  "Not learned yet", "Needs <weapon> in a loadout"; `equip` refuses whatever it names, so auto_equip (first free slot) only
+  places skills that can go on. A slot whose weapon left your loadouts (sold, stored, the loadout changed) **keeps its skill,
+  shown unusable** (greyed on the HUD, the cast refused) rather than cleared: simpler, and it comes back with the weapon.
+- **HUD** (skill_bar.gd): a weapon skill has a small corner flag in its tree's colour (FX.tree_col), with the loadout number
+  when using it switches loadouts; grey icon and flag when no loadout holds its weapon.
+- Saves: the bar is saved as before (old saves load as they were). Co-op: nothing new on the wire; the hands ride the snapshot
+  (HumanoidSync) with the Technique state, both from the caster's machine. Per frame: the HUD reads `loadout_styles()` once a
+  draw (3 loadouts, a bag count each) and `loadout_for` per slot; nothing in physics ticks.
+- Tests: t/player/bar_switch_cast (a katana in hand, Smoke Bomb from loadout 2 switches and runs, a crewmate's snapshot shows the
+  pistol with the cast, Iai Counter switches back, knocked down it's refused), t/player/bar_equip_rules (the refusals and their
+  reasons, a locked loadout doesn't count, a slot whose weapon left the bag kept but refused, a stand-in boss locking the bar
+  near and not far, a skill learned mid-fight left off it). progtest now puts a pistol in
+  loadout 2 before its pistol skills fill the bar. Render: `barshot <out_prefix>` (the bar with a katana in hand, pistols in
+  loadout 2, a greyed cutlass skill).
