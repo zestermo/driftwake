@@ -91,6 +91,7 @@ func _process(d: float) -> bool:
 			gm().open("skills")
 			var sm = gm()._skills
 			check("the skills menu opens on Combat (sheathed: the first weapon found)", sm.tab == "combat" and not sm.chart)
+			check("only your fruit's tree shows (%s)" % str(p.progression.visible_trees("fruit")), p.progression.visible_trees("fruit") == ["vine"])
 			sm.set_tab("fruit")
 			check("the Driftfruit tab opens your fruit's tree", sm.tree == "vine")
 			sm.set_tab("combat", "katana")

@@ -294,6 +294,7 @@ func _learn_all() -> void:
 				pr.learn(k)
 				grew = true
 	pr.owned.erase("h_instinct")
+	pr.owned.erase("df_instinct")
 
 
 func _cast(id: String) -> void:

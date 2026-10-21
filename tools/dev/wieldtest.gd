@@ -185,12 +185,11 @@ func _process(d: float) -> bool:
 			check("the Corsair tree has 13-19 big nodes and one ultimate (%d)" % n, n >= 13 and n <= 19 and ults == 1)
 			check("no element at first", not pr.elemental("corsair"))
 			check("Black Powder comes at Corsair 16, Powder Keg at 25 (%s)" % pr.can_learn("cs_elem"), pr.can_learn("cs_elem") == "Comes at Corsair 16" and pr.can_learn("cs_elem2") == "Comes at Corsair 25")
-			while pr.mastery_level("corsair") < 16:
-				pr.add_mastery("corsair", pr.mastery_to_next(pr.mastery_level("corsair")))
-			check("Black Powder wakes the element on its skills", pr.owns("cs_elem") and pr.elemental("corsair") and not pr.elemental("corsair", 2))
-			while pr.mastery_level("corsair") < 25:
-				pr.add_mastery("corsair", pr.mastery_to_next(pr.mastery_level("corsair")))
-			check("Powder Keg puts it on every blow", pr.owns("cs_elem2") and pr.elemental("corsair", 2))
+			# (owned by hand: levelling the Corsair would bring Powder Finale before the combo checks below)
+			pr.owned["cs_elem"] = true
+			check("Black Powder wakes the element on its skills", pr.elemental("corsair") and not pr.elemental("corsair", 2))
+			pr.owned["cs_elem2"] = true
+			check("Powder Keg puts it on every blow", pr.elemental("corsair", 2))
 			# --- balance: combo damage per second against the cutlass's
 			var cut := dps("sword", 3)
 			var sp4 := dps("sword_pistol", 4)
