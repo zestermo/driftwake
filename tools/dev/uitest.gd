@@ -1,6 +1,6 @@
 extends SceneTree
 ## The crisp UI (v1.11): at 1280x720 every screen draws on a 640x360 canvas shown at 2x, and each
-## one opens and fits it: pause, options, controls, skill map (with a node's tooltip),
+## one opens and fits it: pause, options, controls, the skills menu (its signs, the open tree's nodes on screen),
 ## yard, a shop (stock, bag, card, tooltip), save slots, the inventory, a dialogue with choices,
 ## the HUD (skill bar, boss bar, prompt), the emote wheel and the creator.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -77,12 +77,9 @@ func _process(d: float) -> bool:
 			match s:
 				"skills":
 					check("skill map fills the canvas", c.size == Vector2(640, 360))
-					var id := ""
-					for nid in SkillTree.nodes().keys():
-						if id == "" and c._shown(nid) and SkillTree.nodes()[nid]["kind"] == "passive":
-							id = nid
-					c._hover = id
-					check("a node's tooltip says what it is and whether you can learn it", c._status(id, p.progression)[0] != "" and c._kind_name(SkillTree.get_node_def(id)) != "")
+					check("a sign per tab hangs from the beam", c._tab_rects.size() == c.tabs().size() and c._tab_rects.size() >= 4)
+					check("the open tree's nodes are on screen inside the canvas", c._drawn.any(func(h): return str(h[1]).begins_with("n:"))
+						and c._drawn.all(func(h): return Rect2(Vector2.ZERO, c.size).grow(4.0).encloses(h[0])))
 				"shop":
 					check("Vey's stall: his stock in slots with prices", c._stock_slots.size() >= c._stock.size() and c._stock_slots[0].count.text == str(c.SHOPS.price_of(c._stock[0][0])))
 					c._pick("shop", 0)
