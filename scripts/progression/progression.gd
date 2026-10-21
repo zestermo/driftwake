@@ -634,7 +634,16 @@ func _sync_tree(tree: String, quiet: bool) -> Array:
 
 
 ## Tests and render tools: every converted tree at its top level with every big node and every step.
+## The Captain at the top level with every talent's first pick and every Will; the fruit you ate at its top.
 func master_all() -> void:
+	level = MAX_LEVEL
+	xp = 0
+	for lv in range(5, MAX_LEVEL + 1, 5):
+		if talent_at(lv) < 0:
+			pick_talent(lv, 0)
+	for id in SkillTrees.WILL.keys():
+		if not has_will(id):
+			grant_will(id)
 	for t in SkillTrees.HEADERS.keys():
 		if SkillTrees.converted(t) and t != "captain":
 			mastery_of(t)["lv"] = max_of(t)
@@ -643,6 +652,8 @@ func master_all() -> void:
 			for k in SkillTrees.nodes_of(t):
 				if SkillTrees.node_def(k)["kind"] == "step":
 					steps[k] = int(SkillTrees.node_def(k)["max_steps"])
+	_sync_tree("captain", false)
+	_fit_passives()
 	_dirty()
 
 

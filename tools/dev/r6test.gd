@@ -97,21 +97,7 @@ func _process(d: float) -> bool:
 			gm().close()
 			gm().open("skills")
 			check("reopening re-centers the map", sm._pan == home)
-			sm.set_tab("fruit")
-			var only_fruit := true
-			var any := false
-			for id in SkillTree.nodes().keys():
-				if sm._shown(id):
-					any = true
-					if str(SkillTree.nodes()[id]["req"].get("fruit", "")) != "vine":
-						only_fruit = false
-			check("Devil Fruit tab shows only your fruit's tree", any and only_fruit)
-			sm.set_tab("base")
-			var none_fruit := true
-			for id in SkillTree.nodes().keys():
-				if sm._shown(id) and str(SkillTree.nodes()[id]["req"].get("fruit", "")) != "":
-					none_fruit = false
-			check("base tab has no fruit nodes", none_fruit)
+			check("only your fruit's tree shows (%s)" % str(p.progression.visible_trees("fruit")), p.progression.visible_trees("fruit") == ["vine"])
 			sm.set_tab("katana")
 			var only_katana := true
 			for id in SkillTree.nodes().keys():

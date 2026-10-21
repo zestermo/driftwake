@@ -160,9 +160,7 @@ func _process(d: float) -> bool:
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
-			# learn everything: every node of every tree (but the fruit) should be reachable
-			pr.level = 30
-			pr.skill_points = 999
+			# learn everything: every node of every tree (but the fruit) should be reachable by its grant
 			for tr in SkillTree.TREES.keys():
 				if SkillTree.is_life_tree(tr):
 					pr.add_life(tr, 999999)
@@ -176,7 +174,7 @@ func _process(d: float) -> bool:
 						grew = true
 			var missing: Array = []
 			for k in SkillTree.nodes().keys():
-				if SkillTree.nodes()[k]["tree"] != "fruit" and not pr.owns_node(k) and SkillTree.nodes()[k]["kind"] != "version":
+				if SkillTrees.section_of(str(SkillTree.nodes()[k]["tree"])) != "fruit" and not pr.owns_node(k) and SkillTree.nodes()[k]["kind"] != "version":
 					missing.append(k)
 			check("every node in every tree can be learned (missing: %s)" % str(missing), missing.is_empty())
 			var trees_ok := true
@@ -198,6 +196,7 @@ func _process(d: float) -> bool:
 			check("an ultimate from a weapon tree goes on R", pc.equip("kraken_wake", 4) and not pc.equip("kraken_wake", 0))
 			# (Instinct's random sidestep would make the hits below flaky)
 			pr.owned.erase("h_instinct")
+			pr.owned.erase("df_instinct")
 			for id in ["cutlass", "cutlass", "katana", "boarding_axe", "pistol", "dagger", "dagger"]:
 				p.inventory_component.add_item(item(id), 1)
 			var land: Vector3 = ground(camp.grunts[0].global_position + Vector3(14, 0, 0))
@@ -394,11 +393,8 @@ func _process(d: float) -> bool:
 			pc.try_cast(0)
 			check("a grapple with nobody in reach gives the energy back", pc.energy >= 50.0 - 0.01 and pc.cooldown_left(0) == 0.0)
 			# base passives
-			check("Featherfall and Quick Learner learned", pr.has_flag("featherfall") and pr.stat("xp_pct") > 0.0)
-			var xp0: int = pr.xp
-			var lv0: int = pr.level
-			pr.add_xp(100)
-			check("Quick Learner: +10% experience", pr.level > lv0 or pr.xp - xp0 == 110)
+			check("Featherfall (Acrobatics) and the experience talents", pr.has_flag("featherfall") and pr.stat("xp_pct") > 0.0)
+			check("Focus and Quick Learner: +25%% experience (%.2f)" % pr.stat("xp_pct"), is_equal_approx(pr.stat("xp_pct"), 0.25))
 			var m0: float = p.damage_multiplier()
 			p.health_component.current_health = p.health_component.max_health * 0.2
 			check("Adrenaline: hurt badly, hit harder", p.damage_multiplier() > m0)

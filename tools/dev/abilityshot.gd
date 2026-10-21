@@ -119,6 +119,7 @@ func _process(d: float) -> bool:
 						pr.learn(k)
 						grew = true
 			pr.owned.erase("h_instinct")
+			pr.owned.erase("df_instinct")
 			# AB_TIER=0: no weapon's element awakened; 1: on skills only; 2 (default): on every blow
 			var tier := int(OS.get_environment("AB_TIER")) if OS.get_environment("AB_TIER") != "" else 2
 			for k in pr.owned.keys():
