@@ -106,7 +106,7 @@ static func node_rect(id: String, c: Vector2) -> Rect2:
 			return Rect2(c - Vector2(12, 6), Vector2(24, 22))
 		"variant", "talent":
 			var icons: bool = n["versions"].any(func(v): return str(v["skill"]) != "")
-			var w := (26.0 if icons else 17.0) * n["versions"].size()
+			var w: float = (26.0 if icons else 17.0) * n["versions"].size()
 			var h := 26.0 if icons else 16.0
 			return Rect2(c - Vector2(w, h) * 0.5, Vector2(w, h)).grow(2.0)
 	var sz := float(SIZE.get(str(n["kind"]), 16))
@@ -117,22 +117,38 @@ static func node_rect(id: String, c: Vector2) -> Rect2:
 ## names (bottom of the tree first). Returns {id: the name's rect}.
 static func place_labels(at: Dictionary, area: Rect2, taken: Array) -> Dictionary:
 	var out := {}
+	var segs: Array = []
+	for k in at.keys():
+		for l in SkillTrees.node_def(k)["links"]:
+			if at.has(l):
+				segs.append([at[k], at[l]])
 	var order := at.keys().filter(func(k): return SkillTrees.node_def(k)["kind"] != "step")
 	order.sort_custom(func(a, b): return at[a].y > at[b].y)
 	for k in order:
 		var tw := SILK.get_string_size(str(SkillTrees.node_def(k)["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		var r := node_rect(k, at[k])
 		var c: Vector2 = at[k]
-		var cands := [Rect2(roundf(c.x - tw * 0.5), r.end.y + 2.0, tw, 9), Rect2(r.end.x + 4.0, c.y - 4.0, tw, 9),
-			Rect2(r.position.x - 4.0 - tw, c.y - 4.0, tw, 9), Rect2(roundf(c.x - tw * 0.5), r.position.y - 11.0, tw, 9)]
-		var pick: Rect2 = cands[0]
-		for cand in cands:
-			if area.encloses(cand) and not taken.any(func(o): return (o as Rect2).intersects(cand)):
-				pick = cand
-				break
+		var xs := [roundf(c.x - tw * 0.5), roundf(c.x + 10.0 - tw), roundf(c.x - 10.0)]
+		var cands: Array = xs.map(func(x): return Rect2(x, r.end.y + 2.0, tw, 9))
+		cands.append(Rect2(r.end.x + 4.0, c.y - 4.0, tw, 9))
+		cands.append(Rect2(r.position.x - 4.0 - tw, c.y - 4.0, tw, 9))
+		cands.append_array(xs.map(func(x): return Rect2(x, r.position.y - 11.0, tw, 9)))
+		var free := cands.filter(func(cand): return area.encloses(cand) and not taken.any(func(o): return (o as Rect2).intersects(cand)))
+		var clear := free.filter(func(cand): return not segs.any(func(sg): return _seg_hits(sg[0], sg[1], cand)))
+		var pick: Rect2 = clear[0] if not clear.is_empty() else (free[0] if not free.is_empty() else cands[0])
 		taken.append(pick)
 		out[k] = pick
 	return out
+
+
+static func _seg_hits(a: Vector2, b: Vector2, r: Rect2) -> bool:
+	if r.has_point(a) or r.has_point(b):
+		return true
+	var p := [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]
+	for i in range(4):
+		if Geometry2D.segment_intersects_segment(a, b, p[i], p[(i + 1) % 4]) != null:
+			return true
+	return false
 
 
 ## A tree whose paths aren't drawn yet: its root and a note.
