@@ -35,8 +35,13 @@ func check(what: String, cond: bool) -> void:
 		fails += 1
 
 
+var _spawned := 0
+
+
 func _spawn(script: String, at: Vector3, args: Dictionary) -> Node3D:
 	var c = load(script).new()
+	_spawned += 1
+	c.name = "%s_%d" % [script.get_file().get_basename(), _spawned]
 	c.setup(at, args)
 	c.position = at
 	stage.add_child(c)
