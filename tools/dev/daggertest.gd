@@ -134,11 +134,11 @@ func tree_ok(tr: String) -> bool:
 	var n := 0
 	var ults := 0
 	for k in SkillTree.nodes().keys():
-		if SkillTree.nodes()[k]["tree"] == tr:
+		if SkillTree.nodes()[k]["tree"] == tr and not (SkillTree.nodes()[k]["kind"] in ["step", "version"]):
 			n += 1
 			ults += 1 if SkillTree.nodes()[k]["kind"] == "ult" else 0
 	print("   %s tree: %d nodes" % [tr, n])
-	return n >= 14 and n <= 19 and ults == 1
+	return n >= 12 and n <= 19 and ults == 1
 
 
 func _physics_process(_d: float) -> bool:
@@ -202,15 +202,13 @@ func _process(d: float) -> bool:
 				p.style() == "dual_sword" and p.offhand_kind() == "dagger" and WieldMoves.offhand_kind(p.body_model) == "dagger")
 			check("...reversed in the off hand", p.body_model.offhand.transform.basis.z.z < -0.9)
 			# --- trees
-			check("the dagger tree: a few big nodes (14-19) and one ultimate", tree_ok("dagger"))
-			check("the twin-dagger tree: a few big nodes (14-19) and one ultimate", tree_ok("dual_dagger"))
+			check("the dagger tree: a few big nodes (12-19) and one ultimate", tree_ok("dagger"))
+			check("the twin-dagger tree: a few big nodes (12-19) and one ultimate", tree_ok("dual_dagger"))
 			check("both have a tab", "dagger" in SkillTree.TAB_ORDER and "dual_dagger" in SkillTree.TAB_ORDER)
-			pr.mastery_of("dagger")["pts"] = 99
-			pr.level = 5
-			pr.owned["dg_fan"] = true
-			check("Nightfall needs level 8 (%s)" % pr.can_learn("dg_elem"), pr.can_learn("dg_elem").contains("level"))
-			pr.level = 20
-			check("Nightfall wakes the element", pr.learn("dg_elem") and pr.elemental("dagger") and not pr.elemental("dagger", 2))
+			check("Nightfall comes at dagger mastery 16 (%s)" % pr.can_learn("dg_elem"), pr.can_learn("dg_elem") == "Comes at Dagger 16")
+			pr.owned["dg_elem"] = true
+			pr._stat_n = -1
+			check("Nightfall wakes the element", pr.elemental("dagger") and not pr.elemental("dagger", 2))
 			pr.owned.erase("dg_fan")
 			pr.owned.erase("dg_elem")
 			pr._stat_n = -1

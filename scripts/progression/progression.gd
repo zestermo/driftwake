@@ -50,7 +50,7 @@ var level: int = 1
 var xp: int = 0
 var skill_points: int = 0
 var owned: Dictionary = {}
-## tree -> {"lv", "xp", "pts"} ("pts" only for trees not converted yet)
+## tree -> {"lv", "xp"}
 var mastery: Dictionary = {}
 ## skill id -> tier (2+; a known skill without an entry is tier 1)
 var tiers: Dictionary = {}
@@ -188,7 +188,7 @@ static func is_elite(e: Node) -> bool:
 # --------------------------------------------------------------------------
 func mastery_of(tree: String) -> Dictionary:
 	if not mastery.has(tree):
-		mastery[tree] = {"lv": 1, "xp": 0, "pts": 0}
+		mastery[tree] = {"lv": 1, "xp": 0}
 	return mastery[tree]
 
 
@@ -227,8 +227,6 @@ func _gain(tree: String, amount: int) -> void:
 	while int(m["lv"]) < max_of(tree) and int(m["xp"]) >= mastery_to_next(int(m["lv"])):
 		m["xp"] = int(m["xp"]) - mastery_to_next(int(m["lv"]))
 		m["lv"] = int(m["lv"]) + 1
-		if SkillTree.is_weapon_tree(tree) and not SkillTrees.converted(tree):
-			m["pts"] = int(m["pts"]) + 1
 		ups += 1
 	if int(m["lv"]) >= max_of(tree):
 		m["xp"] = 0
@@ -553,24 +551,18 @@ func owns(id: String) -> bool:
 	return owned.has(id)
 
 
-## Points to spend in a tree: a converted tree's free points, an old weapon tree's mastery points, none for a
-## life skill (its perks come by themselves), skill points for the rest.
+## Points to spend in a tree: a converted tree's free points, none for a life skill (its perks come by
+## themselves), skill points for the rest.
 func points(tree: String) -> int:
 	if SkillTrees.converted(tree):
 		return points_free(tree)
-	if SkillTree.is_weapon_tree(tree):
-		return int(mastery_of(tree)["pts"])
 	if SkillTree.kind_of(tree) in ["life", "tab"]:
 		return 0
 	return skill_points
 
 
-func _spend(tree: String, n: int) -> void:
-	if SkillTree.is_weapon_tree(tree):
-		var m := mastery_of(tree)
-		m["pts"] = int(m["pts"]) - n
-	else:
-		skill_points -= n
+func _spend(n: int) -> void:
+	skill_points -= n
 
 
 func points_word(tree: String, n: int) -> String:
@@ -620,7 +612,7 @@ func learn(id: String) -> bool:
 	var n := SkillTree.get_node_def(id)
 	if n.get("new", false):
 		return buy_step(id)
-	_spend(str(n["tree"]), int(n["cost"]))
+	_spend(int(n["cost"]))
 	_own(id)
 	return true
 
@@ -791,7 +783,8 @@ func rank_up(skill_id: String) -> bool:
 		return false
 	var t := skill_tier(skill_id) + 1
 	var tree := str(SkillTree.get_node_def(SkillTree.node_for_skill(skill_id))["tree"])
-	_spend(tree, int(Skills.tier_def(skill_id, t)["cost"]))
+	if not SkillTrees.converted(tree):
+		_spend(int(Skills.tier_def(skill_id, t)["cost"]))
 	tiers[skill_id] = t
 	if player:
 		player.call("_recalc_stats")
@@ -833,6 +826,7 @@ func from_dict(d: Dictionary) -> void:
 	_foe_hits = {}
 	var fmt := int(d.get("format", 1))
 	var ms: Dictionary = d.get("mastery", {})
+	var gone := 0
 	if fmt < 4:
 		# the trees were reworked: every skill point and every weapon's mastery point
 		# comes back once (mastery levels, uses, gold and gear stay)
@@ -840,7 +834,7 @@ func from_dict(d: Dictionary) -> void:
 		for t in ms.keys():
 			if is_track(str(t)):
 				var lv := int(ms[t].get("lv", 1))
-				mastery[str(t)] = {"lv": lv, "xp": int(ms[t].get("xp", 0)), "pts": lv - 1 if SkillTree.is_weapon_tree(str(t)) else 0}
+				mastery[str(t)] = {"lv": lv, "xp": int(ms[t].get("xp", 0))}
 		if fmt >= 2:
 			uses = (d.get("uses", {}) as Dictionary).duplicate()
 	else:
@@ -848,6 +842,8 @@ func from_dict(d: Dictionary) -> void:
 		for k in d.get("owned", []):
 			if not SkillTree.get_node_def(str(k)).is_empty():
 				owned[str(k)] = true
+			else:
+				gone += 1
 		for t in ms.keys():
 			if is_track(str(t)):
 				mastery[str(t)] = (ms[t] as Dictionary).duplicate()
@@ -880,7 +876,7 @@ func from_dict(d: Dictionary) -> void:
 			if mastery_level(t) >= int(pk[0]):
 				owned[pk[1]] = true
 	_fit_passives()
-	_refunded = fmt < FORMAT and (level > 1 or not ms.is_empty())
+	_refunded = (fmt < FORMAT and (level > 1 or not ms.is_empty())) or gone > 0
 	_rev += 1
 	changed.emit()
 

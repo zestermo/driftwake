@@ -179,21 +179,18 @@ func _process(d: float) -> bool:
 			var n := 0
 			var ults := 0
 			for k in SkillTree.nodes().keys():
-				if SkillTree.nodes()[k]["tree"] == "corsair":
+				if SkillTree.nodes()[k]["tree"] == "corsair" and not (SkillTree.nodes()[k]["kind"] in ["step", "version"]):
 					n += 1
 					ults += 1 if SkillTree.nodes()[k]["kind"] == "ult" else 0
-			check("the Corsair tree has 16-19 nodes and one ultimate (%d)" % n, n >= 16 and n <= 19 and ults == 1)
-			pr.mastery_of("corsair")["pts"] = 99
+			check("the Corsair tree has 13-19 big nodes and one ultimate (%d)" % n, n >= 13 and n <= 19 and ults == 1)
 			check("no element at first", not pr.elemental("corsair"))
-			pr.owned["cs_grape"] = true
-			pr.level = 5
-			check("Black Powder needs level 8 (%s)" % pr.can_learn("cs_elem"), pr.can_learn("cs_elem").contains("level"))
-			pr.level = 20
-			pr.owned["cs_captain"] = true
-			check("Powder Keg needs Black Powder (%s)" % pr.can_learn("cs_elem2"), pr.can_learn("cs_elem2").contains("Black Powder"))
-			check("Black Powder wakes the element on its skills", pr.learn("cs_elem") and pr.elemental("corsair") and not pr.elemental("corsair", 2))
-			check("Powder Keg puts it on every blow", pr.learn("cs_elem2") and pr.elemental("corsair", 2))
-			pr.level = 10
+			check("Black Powder comes at Corsair 16, Powder Keg at 25 (%s)" % pr.can_learn("cs_elem"), pr.can_learn("cs_elem") == "Comes at Corsair 16" and pr.can_learn("cs_elem2") == "Comes at Corsair 25")
+			while pr.mastery_level("corsair") < 16:
+				pr.add_mastery("corsair", pr.mastery_to_next(pr.mastery_level("corsair")))
+			check("Black Powder wakes the element on its skills", pr.owns("cs_elem") and pr.elemental("corsair") and not pr.elemental("corsair", 2))
+			while pr.mastery_level("corsair") < 25:
+				pr.add_mastery("corsair", pr.mastery_to_next(pr.mastery_level("corsair")))
+			check("Powder Keg puts it on every blow", pr.owns("cs_elem2") and pr.elemental("corsair", 2))
 			# --- balance: combo damage per second against the cutlass's
 			var cut := dps("sword", 3)
 			var sp4 := dps("sword_pistol", 4)

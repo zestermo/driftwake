@@ -64,7 +64,7 @@ func _process(_d: float) -> bool:
 			pr.add_life("swim", pr.mastery_to_next(1))
 			check("Swimming 2 brings Strong Strokes by itself", pr.mastery_level("swim") == 2 and pr.owns("sw_strokes"))
 			check("...swimming 10% faster", is_equal_approx(pr.stat("swim_pct") - sp0, 0.1))
-			check("life skills give no points", pr.points("swim") == 0 and int(pr.mastery_of("swim")["pts"]) == 0)
+			check("life skills give no points", pr.points("swim") == 0)
 			pr.add_life("cook", 60)
 			pr.add_life("fish", 60)
 			check("cooking and fishing take xp the same way, their first perks with it", pr.owns("ck_hand") and pr.owns("fs_patient"))

@@ -110,9 +110,6 @@ func _process(d: float) -> bool:
 			p.health_component.current_health = 99999.0
 			pr.level = 30
 			pr.skill_points = 999
-			for tr in SkillTree.TREES.keys():
-				if SkillTree.is_mastery_tree(tr):
-					pr.mastery_of(tr)["pts"] = 999
 			pr.master_all()
 			var grew := true
 			while grew:
