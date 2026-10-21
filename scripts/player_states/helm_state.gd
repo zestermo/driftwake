@@ -96,6 +96,20 @@ func _broadside(ship: Ship) -> void:
 		player.call("_toast", "Those guns are still reloading")
 
 
+## The right stick looks round the ship camera (each frame, real time), as the mouse does.
+func update(delta: float) -> void:
+	if not ship_camera or not player.current_ship or player.input_locked:
+		return
+	var l: Vector2 = Pad.look(delta / maxf(Engine.time_scale, 0.01))
+	if l == Vector2.ZERO:
+		return
+	player.current_ship.cam_yaw -= l.x
+	var spring_arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
+	if spring_arm:
+		spring_arm.rotate_x(-l.y)
+		spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(-60), deg_to_rad(30))
+
+
 func handle_input(event: InputEvent) -> void:
 	# Mouse look for ship camera
 	if event is InputEventMouseMotion and ship_camera and player.current_ship:

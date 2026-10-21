@@ -6,6 +6,8 @@ extends PlayerState
 ## you down knocks you off the gun too.
 
 const SENS := 0.0022
+## The pad lays the gun at this share of the camera's turn rate.
+const PAD_AIM := 0.5
 
 var cannon: ShipCannon
 var camera_rig: Node3D
@@ -63,6 +65,15 @@ func physics_update(delta: float) -> void:
 	if Input.is_action_just_pressed("light_attack") and not player.input_locked:
 		if cannon.fire(player):
 			player.body_model.play("hit", 0.25)
+
+
+## The right stick lays the gun (each frame, real time), slower than the camera for a careful aim.
+func update(delta: float) -> void:
+	if not cannon or player.input_locked:
+		return
+	var l: Vector2 = Pad.look(delta / maxf(Engine.time_scale, 0.01)) * PAD_AIM
+	cannon.yaw -= l.x
+	cannon.pitch -= l.y * 0.7
 
 
 func handle_input(event: InputEvent) -> void:
