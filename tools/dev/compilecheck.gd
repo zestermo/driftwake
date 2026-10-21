@@ -10,6 +10,7 @@ extends SceneTree
 ## tools/dev/wallclock_allow.txt lists its file (or file:function) with a reason.
 
 const ALLOW := "res://tools/dev/wallclock_allow.txt"
+const STATIC_ALLOW := "res://tools/dev/static_autoload_allow.txt"
 const LINT_DIRS := ["res://scripts/", "res://scenes/"]
 
 var bad: Array = []
@@ -18,6 +19,9 @@ var _wall: RegEx
 var _func: RegEx
 ## "path" or "path:func" -> times it matched
 var _allow := {}
+var _static_allow := {}
+var _autoload: RegEx
+var _strings: RegEx
 
 
 func _initialize() -> void:
@@ -27,12 +31,26 @@ func _initialize() -> void:
 		var l := line.strip_edges()
 		if l != "" and not l.begins_with("#"):
 			_allow[l.get_slice("|", 0).strip_edges()] = 0
+	_strings = RegEx.create_from_string("\"[^\"]*\"")
+	var names := []
+	for p in ProjectSettings.get_property_list():
+		if str(p.name).begins_with("autoload/"):
+			names.append(str(p.name).trim_prefix("autoload/"))
+	_autoload = RegEx.create_from_string("(?<![\\w.])(%s)\\." % "|".join(names))
+	if FileAccess.file_exists(STATIC_ALLOW):
+		for line in FileAccess.get_file_as_string(STATIC_ALLOW).split("\n"):
+			var l := line.strip_edges()
+			if l != "" and not l.begins_with("#"):
+				_static_allow[l.get_slice("|", 0).strip_edges()] = 0
 	var args := OS.get_cmdline_user_args()
 	if args.is_empty():
 		_walk("res://")
 		for k in _allow:
 			if _allow[k] == 0:
 				print("WALL CLOCK allow-list entry matches nothing now (drop it from %s): %s" % [ALLOW.get_file(), k])
+		for k in _static_allow:
+			if _static_allow[k] == 0:
+				print("STATIC AUTOLOAD allow-list entry matches nothing now (drop it from %s): %s" % [STATIC_ALLOW.get_file(), k])
 	else:
 		for a in args:
 			_check(a if a.begins_with("res://") else "res://" + a.replace("\\", "/").trim_prefix("./"))
@@ -75,11 +93,28 @@ func _lint(path: String, src: String) -> bool:
 	var fn := ""
 	var ok := true
 	var lines := src.split("\n")
+	var static_indent := -1
 	for i in range(lines.size()):
 		var code := lines[i].get_slice("#", 0)
 		var fm := _func.search(code)
 		if fm:
 			fn = fm.get_string(2)
+		if code.strip_edges() != "":
+			var indent := code.length() - code.lstrip("\t ").length()
+			if static_indent >= 0 and indent <= static_indent:
+				static_indent = -1
+			if fm and fm.get_string(1) != "":
+				static_indent = indent
+		if static_indent >= 0:
+			var am := _autoload.search(_strings.sub(code, "\"\"", true))
+			if am:
+				var akey := rel if _static_allow.has(rel) else "%s:%s" % [rel, fn]
+				if _static_allow.has(akey):
+					_static_allow[akey] += 1
+				else:
+					ok = false
+					print("STATIC AUTOLOAD %s:%d (in static func %s): %s. A static func can't see the autoloads in a --script suite; reach it through the tree (Engine.get_main_loop().root.get_node(\"%s\")), or list it in %s with a reason." % [
+						rel, i + 1, fn, am.get_string(1), am.get_string(1), STATIC_ALLOW.trim_prefix("res://")])
 		var m := _wall.search(code)
 		if m == null:
 			continue
