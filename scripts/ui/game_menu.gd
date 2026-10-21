@@ -168,10 +168,14 @@ func _input(event: InputEvent) -> void:
 
 
 ## Dialogue events: "shipwright" and "shop:<id>" open their screen when the
-## talk ends; "rumour_king" puts the Sea King's waters on the chart.
+## talk ends; "rumour_king" puts the Sea King's waters on the chart; "learn_black_leg" (Gus) teaches the kicks.
 func _on_dialogue_event(ev: String) -> void:
 	if ev == "shipwright":
 		_after_talk = ["yard"]
+	elif ev == "learn_black_leg":
+		var pl := _player()
+		if pl:
+			pl.learn_black_leg()
 	elif ev.begins_with("shop:"):
 		_after_talk = ["shop", ev.substr(5)]
 	elif ev == "rumour_king":

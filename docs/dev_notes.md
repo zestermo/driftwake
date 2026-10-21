@@ -5142,3 +5142,60 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   tools/dev/out/stance/before/ (guard, run, sprint) and p1/ (guards), p2/ (run, sprint).
 - **Tests**: t/weapons/pistol_low_ready (new); t/combat, t/weapons, t/player draw_sheathe / quick_mid_swing / rig_drift / sprint /
   dodge. Expect daggertest, techtest, fixtest, feat, progtest and nettest (puppets) to want a look at the push.
+
+## 2026-10-21: black-leg (1.21 remaining weapons, kind 5 of 8, the last for now; docs/weapons_plan.md)
+- **Learned, not found** (no item): `Player.kicks` - an empty main hand fights with kicks instead of fists while it's set, only
+  once black-leg is known (`knows_black_leg()` = the Black Leg tree found: `progression.discover("black_leg")`, saved with the
+  trees). **Taught by Gus Brannock** at the Salted Gull (a navy galley cook who fights with his legs; his menu's "You fight with
+  your feet, don't you?" after Vey's training, once: Dialogue event "learn_black_leg", flag "gus_black_leg"; GameMenu calls
+  `Player.learn_black_leg`). **Chosen** by clicking the empty main-hand slot in the bag (I): fists <-> kicks (the slot reads
+  KICK). A loadout keeps it as main hand id `Player.BLACK_LEG` ("black_leg"), so swapping stays one gesture (X tap or the
+  wheel, "Black Leg"), works the same on a pad (the bag's slot is a button) and the one skill bar sees the style
+  (`loadout_style`, PowerComponent.loadout_styles). Equipping a weapon clears `kicks`; the save keeps "kicks". Why this over a
+  separate radial toggle: loadouts already are the swap gesture, the bar already reasons per loadout, nothing new to learn.
+  Debug: Shift+F10 also teaches it.
+- **Stance** (scripts/npc/black_leg_moves.gd, BlackLegMoves; stance "black_leg"): light and upright, the left a little ahead,
+  the hands open, loose and up a little (GUARD), the fist's springy bounce (StanceLife). **Nonchalance** (Black Leg tree,
+  Guard, 10, mech `pockets_black_leg`; Player._recalc_stats sets `Humanoid.kick_pockets`, in HumanoidSync.FIELDS): the guard
+  is hands in the pockets (POCKETS); every move starts and ends on `_guard()`, so the hands come out on the move's 0.06 s blend
+  and go back in as it settles - no added delay.
+- **Kicks**: the right leg's roundhouse authored once at a height k (chamber, strike, recoil) and mirrored for the left; the
+  whole body yaws on the standing foot (pivot y + hips: ~1.5 rad turned over) and leans away (pivot z), the kicking side's arm
+  thrown down and back, the other out ahead (t/weapons/black_leg_combo measures both). Combo (style "black_leg", REACH "kick"):
+  bl_1 low left 8 / bl_2 mid right 11 / bl_3 high left 14 (breaker) / Handstand Spin 22 (move: down on both hands, legs
+  split flat, two turns, knockdown, "kick_spin", then a walkover out over the front). Heavy **Guillotine Heel** (bl_heavy, axe
+  kick: the leg straight up over the head, the heel down, 30, breaker, knockdown, "kick_axe"). Arrow Kick at a sprint (move:
+  bl_rush, side-on flying kick, breaker, knockdown); Cyclone Heel in the air (move: bl_air turning flat with a leg out, the
+  Buzzsaw's drop; `BlackLegArts.air_land`: down on a knee and a hand, a 3 m knockdown ring); the parry raises the lead shin
+  (bl_parry; the held block is the same raised shin, the standing leg keeps the gait), a landed parry drops onto a hand and
+  sweeps them down (bl_deflect, `BlackLegArts.parried`). Kicks don't sever.
+- **Hands on the ground**: `BlackLegMoves.hands` (Humanoid._process, black-leg bodies only, after the arm solvers): PLANTS
+  windows per action ([u from, u to, hands, latched]); a hand inside one is reached by IK to the floor under it (latched: kept
+  where it touched down; the spins follow the posed hand along the floor). Handstand Spin (both), Mule Kick (both), Cartwheel
+  Crescent (hand over hand, WHEEL_PLANTS), the deflect's sweep and Cyclone Heel's landing (one). Upside-down moves skip foot IK
+  (INVERTED); `_finish_action` now also wraps the pivot's pitch (a walkover ends a turn round). Gotcha: animsheet's frames
+  don't show the planted IK (the arms stay as keyed there); the in-game test and abilityshot do.
+- **Tree** (SkillTrees "black_leg": Guard / Fire / Flow, element heat "bl": Searing Heel 16 / Red-Hot Leg 25): Shin Guard 3 ·
+  Mule Kick 8 · Nonchalance 10 · Kick Back 20; Hailstorm Heels 5 · Cartwheel Crescent 10 · Last Course 30; Handstand Spin 2 ·
+  Arrow Kick 4 · Cyclone Heel 6 · Galley Tempo 13 (passive) · Cook's Way 22 (Head Chef / Carver). Steps 30. Tab "BLACK LEG".
+- **Techniques** (scripts/player_states/black_leg_arts.gd, BlackLegArts in TechniqueState._arts; their timings live in
+  BlackLegMoves, which mustn't load BlackLegArts - it touches autoloads, and Humanoid loads BlackLegMoves): Mule Kick (your back
+  to the aimed foe within 4.5 m, down on both hands, both heels at 0.42 s: 28 unblockable breaker, thrown clear), Hailstorm
+  Heels (nine kicks off one foot at every height 0.09 s apart walking in, a full roundhouse at 1.08 s knocks down), Cartwheel
+  Crescent (two cartwheels forward hand over hand, a ring hit every 0.12 s, the heel down at 1.15 s), Last Course (ult,
+  untouchable: a spin on one foot heating the leg, the moment at 0.55 s, seven burning kicks driving in, a leap and the heel
+  down at 1.95 s: 45 knockdown 6.5 m, a ring of crimson fire).
+- **FX**: TREE_FX "black_leg" (white-hot core, cherry red edge, deep crimson accent; green 0.17 vs the axe's 0.5);
+  `FX.heat` (white-hot sparks, fire licks tinted HEAT_TINT, a red flash light), `FX.hot_leg(body, right, secs)` (an additive glow
+  over the shin and foot with crimson licks; on every kick once Red-Hot Leg is owned, on the techniques with the element, the
+  whole ult), `FX.heat_ring` (Last Course), `FX.kick_swoosh` (BladeTrail `legs`: traces the shins). Before the element: plain
+  rings and dust.
+- **Co-op**: the stance and Nonchalance sync (stance, kick_pockets); actions mirror; every screen solves the planted hands from
+  the same pose. Hits through hurtboxes / `_strike`, effects through Net.fx (hot_leg and kick_swoosh take the body by key).
+  Learning and choosing are the captain's own (their progression and hands).
+- **Per frame**: `BlackLegMoves.hands` on black-leg bodies - a dictionary lookup, and only inside a plant window one or two
+  arm IK solves; `kick_pockets` is a guard lookup. Effects are one-shots (hot_leg: one capsule and one emitter for its seconds).
+- Tests: t/weapons black_leg_combo, black_leg_moves, black_leg_tree, black_leg_learn; t/progression/tree_shape. Renders:
+  tools/dev/out/bl/ (a_*/b_*/c_* animsheets: the kicks, heavy, handstand, mule, cartwheel; ab_last_course, ab_black_leg_heavy).
+  Expect techtest/progtest/balancetest/uitest (a new tab), qoltest/storytest (Gus's dialogue), save tests (a new "kicks" key),
+  nettest (a new snapshot field) and the loadout tests to want a look at the push.

@@ -38,6 +38,7 @@
 				{ "text": "What's out in the deep water?", "next": "seaking", "after": "tackett_ship" },
 				{ "text": "Who runs these waters?", "next": "redtide", "after": "see_gus_redtide" },
 				{ "text": "Tell me about Brinehollow.", "next": "town" },
+				{ "text": "You fight with your feet, don't you?", "next": "legs", "after": "vey_skills", "hide_if": "gus_black_leg" },
 				{ "text": "Something to eat and drink.", "next": "drink" },
 				{ "text": "Just passing through.", "next": "bye" }
 			]
@@ -94,6 +95,31 @@
 			],
 			"event": "shop:gus",
 			"next": "end"
+		},
+		"legs": {
+			"text": [
+				"Ha! Noticed the way I stand, did you? Twenty years cooking in a navy galley. A cook's hands are for the pot, {captain}. Never for a fight.",
+				"So I learned to fight with my legs. A kick low, a kick high, and when they crowd you, down on your hands and sweep the lot of them off their feet.",
+				"I could show you. Costs nothing but bruises."
+			],
+			"next": "legs_ask"
+		},
+		"legs_ask": {
+			"text": "Well?",
+			"choices": [
+				{ "text": "Teach me.", "next": "legs_taught" },
+				{ "text": "Another time.", "next": "menu" }
+			]
+		},
+		"legs_taught": {
+			"text": [
+				"Right. Feet closer. Lighter. You're not a hammer, you're a whip. Turn the hip over and the leg comes with it.",
+				"...There. Black leg. Empty your hands and it's yours: click your empty hand in your bag to pick feet or fists. Master it and you'll keep your hands in your pockets like a gentleman.",
+				"And don't kick my barrels."
+			],
+			"event": "learn_black_leg",
+			"set_flag": "gus_black_leg",
+			"next": "menu"
 		},
 		"bye": {
 			"text": "Come back alive and I'll pour you something worth bragging about."

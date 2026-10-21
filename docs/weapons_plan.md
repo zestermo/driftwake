@@ -67,6 +67,13 @@ hips: upright chest, square to the target, weapon arm pushed out to the side. Za
   (Bulwark / Gale / Momentum, wind: TREE_FX "greatsword", FX.gust, gale crescents), Guardbreaker, Crescent Gale, Tempest Turns,
   Skysplitter; rarer than the others (no island pool: a kept chest blade sometimes becomes one, a boss's hoard ~30%), Haldor's
   forge and the treasure merchants. dev_notes 2026-10-21 (the greatsword).
+- **Black-leg** (2026-10-21): style "black_leg", learned not found: Gus Brannock at the Salted Gull teaches it (after Vey's
+  training); chosen by clicking the empty hand in the bag (fists <-> kicks), kept by a loadout so X swaps to it. A springy guard
+  with the hands loose and up; Nonchalance (Guard 10) puts them in the pockets, out for every move. Combo (low, mid, high kicks,
+  the hips turned over the standing foot, the arms countering the leg; Handstand Spin on both hands), Guillotine Heel (axe kick)
+  heavy, Arrow Kick, Cyclone Heel, the shin parry and a hand-planted sweep on a landed one; the Black Leg tree (Guard / Fire / Flow,
+  heat: TREE_FX "black_leg", FX.heat, a red-hot leg), Mule Kick and Cartwheel Crescent (hands planted), Hailstorm Heels, Last
+  Course. dev_notes 2026-10-21 (black-leg).
 
 ### Open / deferred
 - **Hammer/kanabo feel** (**assumed**, built that way 2026-10-21): slow, two-handed, staggering; guard breaks and ground slams
@@ -75,7 +82,7 @@ hips: upright chest, square to the target, weapon arm pushed out to the side. Za
   axe in the off hand stops counting as dual swords); heavy family.
 - **Greatsword feel** (**assumed**, built that way 2026-10-21; the guard became a low guard 2026-10-21): wide arcs whose momentum carries into the next swing,
   armour/guard breaking, a charged overhead; heavy family. Kept distinct from the hammer by sweeping cuts vs blunt slams.
-- **Black-leg feel** (Zach, 2026-10-21; was assumed "hands in the pockets"): kick-focused with ACTIVE arms that swing and counter-rotate to balance every kick; moves with the hands planted on the ground (a handstand spinning kick, a hand-planted cartwheel/mule kick, a one-hand braced sweep); the default guard is springy with the hands loose and up for balance. **Hands in the pockets is a mastery pose** (a big node ~10, like Emperor's Bearing): the combat guard once owned, the hands out instantly for any move and back in as it settles. Kick combos,
+- **Black-leg feel** (Zach, 2026-10-21; was assumed "hands in the pockets"; built that way 2026-10-21): kick-focused with ACTIVE arms that swing and counter-rotate to balance every kick; moves with the hands planted on the ground (a handstand spinning kick, a hand-planted cartwheel/mule kick, a one-hand braced sweep); the default guard is springy with the hands loose and up for balance. **Hands in the pockets is a mastery pose** (a big node ~10, like Emperor's Bearing): the combat guard once owned, the hands out instantly for any move and back in as it settles. Kick combos,
   a heated kick as the ultimate's element; fists family.
 - **Long-gun melee** (**assumed**): a butt stroke when foes close in; reload as part of the rhythm.
 - **Families** (**assumed**): polearm in blades; hammer, dual axes, greatsword in heavy; long guns, cannon, slingshot in guns;
