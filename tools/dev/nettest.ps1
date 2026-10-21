@@ -67,7 +67,7 @@ if ($CI) {
 	$slots = Wait-Slots $crew $names.Count "$me $key"
 }
 ## Where a Godot of this run writes what it loaded (none under -CI).
-function Get-DepsOut([string]$n) { if ($CI) { return "" }; return Join-Path $logs "net$n.deps" }
+function Get-DepsOut([string]$n) { if ($CI) { return "" }; return Join-Path $logs "$key.$n.deps" }
 
 $port = 24700 + (Get-Random -Maximum 250)
 $delay = "2.5"
@@ -80,10 +80,10 @@ $modeArg = if ($Mode) { $Mode } else { "" }
 ## One go: host, client (and watcher) until the client and host are done. True if it passed.
 function Invoke-Once() {
 	$jobs = [ordered]@{}
-	$jobs["host"] = Start-GodotJob $Godot $root "nethost.gd" "$port $modeArg" (Join-Path $logs "nethost.log") "" (Get-DepsOut "host") $true
-	if ($Mode -eq "three") { $jobs["watch"] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10" (Join-Path $logs "netwatch.log") "" (Get-DepsOut "watch") $true }
+	$jobs["host"] = Start-GodotJob $Godot $root "nethost.gd" "$port $modeArg" (Join-Path $logs "$key.host.log") "" (Get-DepsOut "host") $true
+	if ($Mode -eq "three") { $jobs["watch"] = Start-GodotJob $Godot $root "netwatch.gd" "$port 10" (Join-Path $logs "$key.watch.log") "" (Get-DepsOut "watch") $true }
 	Start-Sleep -Milliseconds 300
-	$jobs["client"] = Start-GodotJob $Godot $root "netclient.gd" "$port $delay $modeArg" (Join-Path $logs "netclient.log") "" (Get-DepsOut "client") $true
+	$jobs["client"] = Start-GodotJob $Godot $root "netclient.gd" "$port $delay $modeArg" (Join-Path $logs "$key.client.log") "" (Get-DepsOut "client") $true
 	foreach ($n in $jobs.Keys) { Set-LiveSuite $run $n @{ state = "running"; log = $jobs[$n].Log; pid = $jobs[$n].Proc.Id; why = "" } }
 	$trouble = @{}
 	while ($true) {
