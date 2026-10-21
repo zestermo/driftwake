@@ -34,6 +34,17 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 | Polearm planted stance | **Whitebeard's pose**: the butt planted on the ground beside you, the pole upright, one hand high on the shaft, chest out. A big node in the Polearm tree at mastery ~10; before it, standing still shows the guard. **Built** 2026-10-21: Emperor's Bearing (Guard, 10, mech) | A visible sign of mastery, free in balance | — |
 | Plant vs guard | Planted when standing still with no attack, block or parry in the last ~3 s; anything comes straight out of it with no delay, and the readied guard holds for ~3 s after. **Built** 2026-10-21 | Calm confidence without costing responsiveness | Play |
 
+## Decided (2026-10-21): the stance pass over every weapon
+A guard render of every weapon (posebench, three-quarter + side) showed the one-handed guards nearly identical above the
+hips: upright chest, square to the target, weapon arm pushed out to the side. Zach picked three of four proposals:
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Distinct guards | Each weapon its own silhouette (foot width, weight, chest turn and lean). Cutlass: side-on swashbuckler, lead shoulder to the target, blade forward and low, off hand up behind. Katana: sunk, knees bent, hips back. Axe: wide brawler's stance, hunched, the head on the shoulder or hung low. Dagger: **reverse grip**, blade along the forearm, low crouch on the balls of the feet. Twin daggers: one reverse, one forward, crossed low. Twin axes: hung low and out to the sides, shoulders forward. Pistol: **low ready** (angled down-forward, up only to aim or fire). Corsair: side-on, cutlass forward, pistol back across the chest. Fist: a light bounce | They read alike today; shonen stances read from the silhouette first | Play |
+| Run poses | A run/sprint carry for every weapon without one: cutlass trailed low by the hip, axe and hammer on the shoulder, daggers reverse-grip with the arms pumping (katana, polearm, greatsword already have theirs) | Zach's pick | Play |
+| Breathing + settle | A per-weapon breathing sway in the guard (heavy slow and deep, daggers quick), and a small overshoot settle back into the guard after every attack | Life in the stance; the punch lands on the settle | Play |
+| Calm poses per weapon | **Not now** (Zach skipped it); the polearm's Emperor's Bearing stays the only one | — | After the stance pass |
+
 ### Built
 - **Polearm** (2026-10-21): spear + trident, naginata, bisento (rare), halberd, pitchfork; stance with a solved two-handed grip
   (PoleMoves), combo, Skewer heavy, Leg Sweep, Pole Vault, Falling Spear, parry/block; the Polearm tree (Guard / Storm / Reach,
