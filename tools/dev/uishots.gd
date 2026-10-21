@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment"]
+	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment", "banner", "tree_banner"]
 var si := 0
 
 
@@ -75,7 +75,7 @@ func _process(d: float) -> bool:
 					gm()._skills.set_tab("fruit")
 				"skills_sword":
 					gm().open("skills")
-					gm()._skills.set_tab("sword")
+					gm()._skills.set_tab("combat", "sword")
 				"container":
 					gm().open_container(root.get_tree().get_first_node_in_group("ship").storage)
 				"shop":
@@ -83,13 +83,8 @@ func _process(d: float) -> bool:
 				"skills_tip":
 					gm().open("skills")
 					var sm = gm()._skills
-					sm.set_tab("sword")
-					var id := ""
-					for nid in SkillTree.nodes().keys():
-						if id == "" and SkillTree.nodes()[nid]["tree"] == "sword" and SkillTree.nodes()[nid]["kind"] == "passive":
-							id = nid
-					sm._hover = id
-					hover(sm._to_screen(SkillTree.get_node_def(id)["pos"]))
+					sm.set_tab("loadout")
+					sm.sel = "bar:0"
 				"shop_tip":
 					p.inventory_component.add_item(load("res://resources/items/cutlass.tres"), 1)
 					gm().open_shop("vey")
@@ -108,12 +103,22 @@ func _process(d: float) -> bool:
 					root.get_node("Dialogue").say("Odile", ["Welcome to Brinehollow, captain. Mind the smugglers down at the cove, they've been bold of late and the lighthouse keeper swears he saw lights on the water."])
 				"hud":
 					pass
+				"banner":
+					var hud = root.get_tree().get_first_node_in_group("hud")
+					hud.show_banner("Brinehollow", "A quiet fishing village")
+					hud._banner_tween.kill()
+					hud.banner.modulate.a = 1.0
+				"tree_banner":
+					var hud = root.get_tree().get_first_node_in_group("hud")
+					hud.show_new_tree("Swimming", "Added to ADVENTURE · 1 point to spend")
+					hud._tree_tween.kill()
+					hud._tree_card.modulate.a = 1.0
 				"emotes":
 					# the emote wheel held open, pointing at the fourth (Laugh)
 					Input.action_press("emote")
-					p.emote_wheel._open = true
-					p.emote_wheel._pick = 3
-					p.emote_wheel._restyle()
+					p.emote_wheel._down = true
+					p.emote_wheel._open_now()
+					p.emote_wheel.point_at(3)
 				"items":
 					p.inventory_component.add_item(load("res://resources/items/biscuit.tres"), 2)
 					p.inventory_component.add_item(load("res://resources/items/stew.tres"), 1)

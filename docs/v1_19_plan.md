@@ -68,3 +68,6 @@ Bar: no visible loss of detail; GPU has headroom (1.45 ms), the frame is CPU-bou
    GDExtension; the animator + skinning is only ~2 ms of a ~20 ms frame, and C++ would slow development (toolchain, the
    web build, native crashes). Revisit only if one pure-maths kernel dominates after the session. Later, if still needed: central
 update managers, and the hottest per-frame code (animator, spring chains, wave sampling) as a GDExtension.
+**Ships as 1.18.2** (Zach, 2026-10-20): a simple, short release: no blog/news post; a brief entry in the release
+notes and the README history; on the roadmap timeline, fold it into the 1.18.1 card (one card for 1.18.1-1.18.2, an
+"added" line for the performance work) rather than a card of its own; version 1.18.2, what's new one line; tag and push.

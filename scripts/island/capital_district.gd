@@ -31,7 +31,8 @@ static func build(build_ms: Dictionary) -> Dictionary:
 
 static func _piece(out: Dictionary, piece_name: String, mb: MeshBuilder, cols: Array, range_end := RANGE, shadow := true) -> void:
 	mb.fold_tints()
-	(out["pieces"] as Array).append({"name": piece_name, "mesh": mb.commit(), "range": range_end, "shadow": shadow, "cols": cols, "faces": []})
+	var split := Occluders.take(cols)
+	(out["pieces"] as Array).append({"name": piece_name, "mesh": mb.commit(), "range": range_end, "shadow": shadow, "cols": split[0], "faces": [], "occ": split[1]})
 
 
 static func _light(out: Dictionary, at: Vector3, energy := 1.6, rng_ := 11.0, always := false) -> void:
@@ -177,6 +178,8 @@ static func townhouse(mb: MeshBuilder, cols: Array, l: Dictionary, kind: String,
 	M.roof(mb, str(l["roof"]), t, w, d, eaves + 0.24, rcol, rng)
 	var cell: Rect2 = l["cell"]
 	M.box(cols, M.xf(M.v3(cell.get_center(), (low + eaves) * 0.5)), Vector3(cell.size.x, eaves - low, cell.size.y))
+	# (behind the door's niche)
+	Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -0.4)), Vector3(w, eaves - low, d - 0.8))
 	# the front: a recessed door, a shop window or a window, pilasters at the corners
 	var door_x := clampf(rng.randf_range(-hw * 0.4, hw * 0.4), -hw + 1.4, hw - 1.4)
 	var dw := 1.3
@@ -350,6 +353,7 @@ static func _specials(out: Dictionary) -> void:
 				mb.add_box(lime, t * Transform3D(Basis(), Vector3(0, eaves + 0.12, 0)), Vector3(w + 0.3, 0.24, d + 0.3), 0.6, Color(0.95, 0.93, 0.9), false)
 				M._hip(mb, t * Transform3D(Basis(), Vector3(0, eaves + 0.24, 0)), w, d, 4.5, 0.4, Color(0.96, 0.88, 0.82))
 				M.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -1.6)), Vector3(w, eaves - low, d - 3.2))
+				Occluders.box(cols, t * Transform3D(Basis(), Vector3(0, (low + eaves) * 0.5, -1.6)), Vector3(w, eaves - low, d - 3.2))
 				M.box(cols, t * Transform3D(Basis(), Vector3(0, (low + y1) * 0.5, d * 0.5 - 1.6)), Vector3(w, y1 - low, 3.2))
 				for k in range(n + 1):
 					var x := -w * 0.5 + w * k / n
@@ -401,6 +405,7 @@ static func _specials(out: Dictionary) -> void:
 				mb.add_box(lime, body_t * Transform3D(Basis(), Vector3(0, y1 + h + 0.2, 0)), Vector3(w + 0.4, 0.4, d - 3.6), 0.6, Color(0.92, 0.9, 0.86), false)
 				M._hip(mb, body_t * Transform3D(Basis(), Vector3(0, y1 + h + 0.4, 0)), w, d - 4.0, 3.6, 0.3, Color.WHITE)
 				M.box(cols, body_t * Transform3D(Basis(), Vector3(0, (low + y1 + h) * 0.5, 0)), Vector3(w, y1 + h - low, d - 4.0))
+				Occluders.box(cols, body_t * Transform3D(Basis(), Vector3(0, (y1 + y1 + h) * 0.5, 0)), Vector3(w, h, d - 4.0))
 				# the portico: steps the width of it, columns, an entablature and a pediment
 				var front := t * Transform3D(Basis(), Vector3(0, 0, d * 0.5 - 2.0))
 				var nc := 6 if key == "guild" else 4

@@ -39,6 +39,10 @@ const SPLAT := Color(0.42, 0.02, 0.03)
 ## Ground splats kept at once (the oldest go first) and how long each lasts.
 const MAX_SPLATS := 120
 const SPLAT_LIFE := 40.0
+## Splat shapes made at start ([round, directed]), each splat one of them turned and stretched its own way
+## (a fresh mesh per splat was ~1 ms of GDScript, 2-5 of them a bloody hit).
+const SPLAT_SHAPES := 12
+var _splat_shapes := [[], []]
 var _streams: Dictionary = {}
 var _slash_meshes: Dictionary = {}
 
@@ -75,6 +79,11 @@ func _ready() -> void:
 	_splat_mat.vertex_color_use_as_albedo = true
 	_splat_mat.roughness = 0.25
 	_splat_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var srng := RandomNumberGenerator.new()
+	srng.seed = 7
+	for i in range(SPLAT_SHAPES):
+		_splat_shapes[0].append(_splat_mesh(false, srng))
+		_splat_shapes[1].append(_splat_mesh(true, srng))
 	for k in SOUNDS:
 		_streams[k] = _sound_set(k)
 	var dim := Timer.new()
@@ -125,6 +134,73 @@ static func _petal_texture() -> ImageTexture:
 				var shade := 0.8 + 0.2 * (1.0 - y / 7.0)
 				img.set_pixel(x, y, Color(shade, shade, shade, 1.0))
 	return ImageTexture.create_from_image(img)
+
+
+## Every kind of effect once, in front of the camera, behind the loading screen (LoadingScreen's last moment):
+## a material's shader and pipelines are compiled the first time it's drawn, which on a fresh install (no
+## user shader cache) was a 50-400 ms frame at the first blow, splash or blast of a session.
+func warm_up() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var at := cam.global_position - cam.global_basis.z * 6.0
+	var side := cam.global_basis.x
+	var up := Vector3.UP
+	dust(at)
+	dust_ring(at)
+	heavy_dust(at)
+	poison(at)
+	bleed(at, side)
+	# (a splat drawn for a moment, not left lying on the ground where the captain wakes)
+	var splat := MeshInstance3D.new()
+	splat.mesh = _splat_shapes[0][0]
+	splat.material_override = _splat_mat
+	_scene_root().add_child(splat)
+	splat.global_position = at
+	get_tree().create_timer(0.6).timeout.connect(splat.queue_free)
+	sparkle(at)
+	splash(at)
+	bubbles(at)
+	water_ring(at)
+	smoke(at)
+	muzzle_sparks(at, side)
+	impact(at)
+	parry_sparks(at, side)
+	float_text(at, "0")
+	tracer(at - side, at + side)
+	flame(at)
+	ring(at)
+	spray(at, up)
+	petals(at, up)
+	motes(at, up)
+	powder_burst(at, side)
+	cannon_blast(at)
+	blast(at)
+	cannon_hit(at, up)
+	cannon_splash(at)
+	twin_cross(at, side)
+	embers(at, up)
+	debris(at)
+	gather(at)
+	streak(at - side, at + side)
+	glint(at)
+	sakura(at, up)
+	droplets(at, up)
+	for sheet in FLIP_SHEETS:
+		puff(at, sheet)
+	for tree in TREE_FX:
+		elem_hit(tree, at, side)
+	punch_wind(at, side)
+	ground_crack(at, side, 2.0)
+	cut_lines(at, 3)
+	water_wake(at - side, at + side)
+	katana_line(at - side, at + side)
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = at
+	slash(holder, "right")
+	vortex(holder, 0.5)
+	get_tree().create_timer(0.7).timeout.connect(holder.queue_free)
 
 
 func _scene_root() -> Node:
@@ -509,7 +585,7 @@ func _place_splat(at: Vector3, n: Vector3, size: float, along: Vector3 = Vector3
 	var x := along - up * along.dot(up)
 	var directed := x.length() > 0.05
 	var mi := MeshInstance3D.new()
-	mi.mesh = _splat_mesh(directed)
+	mi.mesh = (_splat_shapes[1] if directed else _splat_shapes[0]).pick_random()
 	mi.material_override = _splat_mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_scene_root().add_child(mi)
@@ -540,28 +616,28 @@ func _place_splat(at: Vector3, n: Vector3, size: float, along: Vector3 = Vector3
 ## An uneven unit splat (flat, +Y up): a few lumpy blobs run together, thin
 ## fingers out of it and droplets flung round it - mostly onward (+X) when
 ## `directed`. Vertex colours darken the middle (the albedo multiplies them).
-func _splat_mesh(directed: bool) -> ArrayMesh:
+func _splat_mesh(directed: bool, rng: RandomNumberGenerator) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	st.set_normal(Vector3.UP)
 	var blobs := [[Vector2.ZERO, 1.0]]
-	for i in range(randi_range(1, 3)):
-		var a := randf() * TAU
-		blobs.append([Vector2(cos(a), sin(a)) * randf_range(0.35, 0.7), randf_range(0.45, 0.8)])
-	for i in range(randi_range(4, 10)):
-		var a := randf_range(-0.9, 0.9) if directed and randf() < 0.75 else randf() * TAU
-		blobs.append([Vector2(cos(a), sin(a)) * randf_range(1.1, 2.6), randf_range(0.06, 0.26)])
+	for i in range(rng.randi_range(1, 3)):
+		var a := rng.randf() * TAU
+		blobs.append([Vector2(cos(a), sin(a)) * rng.randf_range(0.35, 0.7), rng.randf_range(0.45, 0.8)])
+	for i in range(rng.randi_range(4, 10)):
+		var a := rng.randf_range(-0.9, 0.9) if directed and rng.randf() < 0.75 else rng.randf() * TAU
+		blobs.append([Vector2(cos(a), sin(a)) * rng.randf_range(1.1, 2.6), rng.randf_range(0.06, 0.26)])
 	for bl in blobs:
 		var c: Vector2 = bl[0]
 		var r: float = bl[1]
 		var seg := 14 if r > 0.4 else 6
-		var ph1 := randf() * TAU
-		var ph2 := randf() * TAU
+		var ph1 := rng.randf() * TAU
+		var ph2 := rng.randf() * TAU
 		var rim: Array = []
 		for k in range(seg):
 			var a := float(k) / seg * TAU
 			var lump := 1.0 + 0.22 * sin(3.0 * a + ph1) + 0.12 * sin(5.0 * a + ph2)
-			rim.append(c + Vector2(cos(a), sin(a)) * r * lump * randf_range(0.9, 1.08))
+			rim.append(c + Vector2(cos(a), sin(a)) * r * lump * rng.randf_range(0.9, 1.08))
 		var mid := Color(0.9, 0.9, 0.9)
 		for k in range(seg):
 			var p0: Vector2 = rim[k]
@@ -571,11 +647,11 @@ func _splat_mesh(directed: bool) -> ArrayMesh:
 			st.set_color(Color.WHITE)
 			st.add_vertex(Vector3(p1.x, 0, p1.y))
 			st.add_vertex(Vector3(p0.x, 0, p0.y))
-	for i in range(randi_range(2, 5)):
-		var a := randf_range(-0.7, 0.7) if directed else randf() * TAU
+	for i in range(rng.randi_range(2, 5)):
+		var a := rng.randf_range(-0.7, 0.7) if directed else rng.randf() * TAU
 		var dv := Vector2(cos(a), sin(a))
-		var side := Vector2(-dv.y, dv.x) * randf_range(0.08, 0.16)
-		var tip := dv * randf_range(1.25, 1.75)
+		var side := Vector2(-dv.y, dv.x) * rng.randf_range(0.08, 0.16)
+		var tip := dv * rng.randf_range(1.25, 1.75)
 		st.set_color(Color.WHITE)
 		for p in [dv * 0.7 + side, tip, dv * 0.7 - side]:
 			st.add_vertex(Vector3(p.x, 0, p.y))

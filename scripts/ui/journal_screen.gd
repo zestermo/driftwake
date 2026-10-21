@@ -158,8 +158,8 @@ func refresh() -> void:
 		var n: int = _count(str(b.name))
 		(b as Button).text = NAMES[str(b.name)] + ("  %d" % n if n > 0 else "")
 		(b as Button).button_pressed = str(b.name) == tab
-		b.add_theme_stylebox_override("normal", UIStyle.frame(UIStyle.SUN if str(b.name) == tab else UIStyle.BG_LIGHT, UIStyle.BORDER_DIM, 5, "plank"))
-		b.add_theme_color_override("font_color", UIStyle.INK if str(b.name) == tab else UIStyle.TEXT)
+		b.add_theme_stylebox_override("normal", UIStyle.chrome("sign_on" if str(b.name) == tab else "sign", 5, 3))
+		b.add_theme_color_override("font_color", UIStyle.WOOD_INK if str(b.name) == tab else UIStyle.PARCH)
 	InventoryScreen._clear(_list)
 	InventoryScreen._clear(_info)
 	_scroll.custom_minimum_size.x = LIST_W if tab != "rumours" else LIST_W + INFO_W + 8

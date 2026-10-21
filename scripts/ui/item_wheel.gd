@@ -23,7 +23,11 @@ func _label(id) -> String:
 
 
 func _sub(id) -> String:
-	return "x%d" % player.inventory_component.count(id)
+	return "%d in your bag" % player.inventory_component.count(id)
+
+
+func _badge(id) -> String:
+	return str(player.inventory_component.count(id))
 
 
 func _icon(id) -> Texture2D:

@@ -83,16 +83,16 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(0.4)
 		8:
 			check("held, X opens the loadout wheel with three slots", w.is_open() and w.entries == [0, 1, 2])
-			check("...named for their styles (%s / %s)" % [w._labels[0].text, w._labels[1].text], w._labels[0].text == "Cutlass" and w._labels[1].text == "Twin daggers")
-			check("...the third locked", w._labels[2].text == "Locked" and w._dim(2))
+			check("...named for their styles (%s / %s)" % [w.shown_text(0)[0], w.shown_text(1)[0]], w.shown_text(0)[0] == "Cutlass" and w.shown_text(1)[0] == "Twin daggers")
+			check("...the third locked", w.shown_text(2)[0] == "Locked" and w._dim(2))
 			point_at(0)
 			Input.action_release("loadout")
 			until = TK.wait_ticks(3)
 		9:
 			check("letting go on loadout 1 takes up the cutlass", not w.is_open() and p.loadout_at == 0 and p.style() == "sword")
-			p.progression.level = 3
-			p.progression.skill_points = 10
-			check("the Quartermaster can be learned", p.progression.learn("c_focus") and p.progression.learn("c_quarter"))
+			while p.progression.level < 10:
+				p.progression.add_xp(p.progression.xp_to_next(p.progression.level) - p.progression.xp)
+			check("the Quartermaster comes at Captain level 10", p.progression.owns("c_quarter"))
 			check("...and opens a third loadout", p.loadout_slots() == 3)
 			TK.act("loadout")
 			until = TK.wait_secs(0.4)

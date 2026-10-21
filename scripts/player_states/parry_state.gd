@@ -82,4 +82,6 @@ func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 		combat_mgr.apply_camera_shake(0.15)
 		if not _hit_data.ranged:
 			TraitMoves.on_parry(player, attacker)
-		# TODO: stagger the attacker
+		var pr := player.progression
+		player.stamina = minf(player.stamina + pr.stat("parry_stamina"), player.max_stamina)
+		pr.add_life("defense", 15)

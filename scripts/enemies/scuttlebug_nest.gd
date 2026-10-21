@@ -28,7 +28,27 @@ var start_empty := false
 func _ready() -> void:
 	add_to_group("net_spawner")
 	if not start_empty:
-		_spawn_all.call_deferred()
+		_first_hatch.call_deferred()
+
+
+## On a chain island still being built, a bug a frame (a lair's dozen at once was a 50-80 ms frame); else all now.
+var _hatching := false
+func _first_hatch() -> void:
+	var p := get_parent()
+	while p != null and not p is GenIsland:
+		p = p.get_parent()
+	if p != null and (p as GenIsland).building:
+		_hatching = true
+	else:
+		_spawn_all()
+
+
+func _hatch_one() -> void:
+	for s in spots:
+		if s["bug"] == null:
+			_spawn(s)
+			return
+	_hatching = false
 
 
 ## Host: every empty spot hatches now.
@@ -74,6 +94,9 @@ func _spawn(s: Dictionary) -> void:
 
 
 func _process(delta: float) -> void:
+	if _hatching:
+		_hatch_one()
+		return
 	if Net.is_client():
 		return  # the host decides when bugs come back
 	for s in spots:

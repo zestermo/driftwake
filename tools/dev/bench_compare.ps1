@@ -42,7 +42,8 @@ Write-Host ""
 
 $sa = Read-Section $la 'summary'
 $sb = Read-Section $lb 'summary'
-$cols = @('frame', 'p95', 'worst', 'phys_scr', 'phys_eng', 'proc_scr', 'tail', 'draw', 'rcpu', 'gpu', 'tot_draws', 'nodes')
+# (h33 / h50: base frames over 33 / 50 ms, a count; a result from before v1.19 has none: shown as -)
+$cols = @('frame', 'frame1t', 'p95', 'worst', 'h33', 'h50', 'phys_scr', 'phys_eng', 'proc_scr', 'tail', 'draw', 'rcpu', 'gpu', 'tot_draws', 'nodes')
 $line = '{0,-8} {1,-3}' -f 'stop', ''
 foreach ($c in $cols) { $line += ' {0,9}' -f $c }
 Write-Host $line
@@ -54,12 +55,25 @@ foreach ($stop in $sa.rows.Keys) {
     $l3 = '{0,-8} {1,-3}' -f '', 'd%'
     foreach ($c in $cols) {
         $ia = [Array]::IndexOf($sa.hdr, $c); $ib = [Array]::IndexOf($sb.hdr, $c)
+        if ($ia -lt 0 -or $ib -lt 0) {
+            $l1 += ' {0,9}' -f $(if ($ia -lt 0) { '-' } else { '{0:N2}' -f [double]$ra[$ia] })
+            $l2 += ' {0,9}' -f $(if ($ib -lt 0) { '-' } else { '{0:N2}' -f [double]$rb[$ib] })
+            $l3 += ' {0,9}' -f '-'
+            continue
+        }
         $va = [double]$ra[$ia]; $vb = [double]$rb[$ib]
         $l1 += ' {0,9:N2}' -f $va
         $l2 += ' {0,9:N2}' -f $vb
-        $l3 += ' {0,9}' -f $(if ($va -ne 0) { '{0:+0;-0;0}' -f (($vb - $va) / $va * 100) } else { '-' })
+        $l3 += ' {0,9}' -f $(if ($c -in @('h33', 'h50')) { '{0:+0;-0;0}' -f ($vb - $va) } elseif ($va -ne 0) { '{0:+0;-0;0}' -f (($vb - $va) / $va * 100) } else { '-' })
     }
     Write-Host $l1; Write-Host $l2; Write-Host $l3
+}
+$onlyA = @($sa.rows.Keys | Where-Object { -not $sb.rows.Contains($_) })
+$onlyB = @($sb.rows.Keys | Where-Object { -not $sa.rows.Contains($_) })
+if ($onlyA) { Write-Host ("(only in A: {0})" -f ($onlyA -join ', ')) }
+if ($onlyB) { Write-Host ("(only in B: {0})" -f ($onlyB -join ', ')) }
+if ($sa.rows.Contains('ALL_OLD') -ne $sb.rows.Contains('ALL_OLD')) {
+    Write-Host "(ALL is over different stops in A and B: compare the old eight with ALL_OLD against an old-route run's ALL)" -ForegroundColor Yellow
 }
 
 $ca = Read-Section $la 'scripts'

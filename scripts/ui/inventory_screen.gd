@@ -274,13 +274,13 @@ func _build_doll() -> void:
 		_doll_nodes.append(s)
 	_show_box = _show_toggle()
 	_ui.add_child(_show_box)
-	_name_label = _text("", UIStyle.ACCENT, BOLD)
-	_name_label.add_theme_font_size_override("font_size", 16)
+	_name_label = _text("", UIStyle.GILT, UIStyle.TITLE_FONT)
+	_name_label.add_theme_font_size_override("font_size", 18)
 	_stats_label = small("", UIStyle.TEXT)
 	for l in [_name_label, _stats_label]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.add_theme_color_override("font_outline_color", Color(0.05, 0.03, 0.02))
-		l.add_theme_constant_override("outline_size", 4)
+		l.add_theme_constant_override("outline_size", 2 if l == _name_label else 4)
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ui.add_child(l)
 		_doll_nodes.append(l)
@@ -334,21 +334,16 @@ func _build_panel() -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		b.add_theme_font_override("font", SMALL)
 		b.add_theme_font_size_override("font_size", 8)
-		var flat := StyleBoxEmpty.new()
-		flat.content_margin_bottom = 2
-		var line := StyleBoxFlat.new()
-		line.bg_color = Color(0, 0, 0, 0)
-		line.border_width_bottom = 1
-		line.border_color = UIStyle.ACCENT
-		line.content_margin_bottom = 2
-		b.add_theme_stylebox_override("normal", flat)
-		b.add_theme_stylebox_override("hover", flat)
-		b.add_theme_stylebox_override("pressed", line)
-		b.add_theme_stylebox_override("hover_pressed", line)
+		var wood := UIStyle.chrome("sign", 6, 2)
+		var gilt := UIStyle.chrome("sign_on", 6, 2)
+		b.add_theme_stylebox_override("normal", wood)
+		b.add_theme_stylebox_override("hover", wood)
+		b.add_theme_stylebox_override("pressed", gilt)
+		b.add_theme_stylebox_override("hover_pressed", gilt)
 		b.add_theme_color_override("font_color", UIStyle.TEXT_DIM)
-		b.add_theme_color_override("font_hover_color", UIStyle.TEXT)
-		b.add_theme_color_override("font_pressed_color", UIStyle.ACCENT)
-		b.add_theme_color_override("font_hover_pressed_color", UIStyle.ACCENT)
+		b.add_theme_color_override("font_hover_color", UIStyle.PARCH)
+		b.add_theme_color_override("font_pressed_color", UIStyle.WOOD_INK)
+		b.add_theme_color_override("font_hover_pressed_color", UIStyle.WOOD_INK)
 		b.pressed.connect(func(): menu._play("select"); show_tab(id))
 		head.add_child(b)
 		_tab_buttons[id] = b
@@ -1171,7 +1166,9 @@ func _fill_sheet() -> void:
 	_section("Progress")
 	var pr := pl.progression
 	_row("Level", str(pr.level), "%d / %d XP" % [pr.xp, Progression.xp_to_next(pr.level)])
-	_row("Skill points", str(pr.skill_points), "Skill map: K")
+	var hand := SkillTree.style_tree(pl.style())
+	if hand != "":
+		_row("Mastery", str(pr.tree_level(hand)), "%s  (skills: K)" % Progression.tree_name(hand))
 	_row("Air jumps", str(pl.max_jumps - 1))
 	_row("Style", pl.style().replace("_", " ").capitalize())
 	var gm := get_node_or_null("/root/GameManager")

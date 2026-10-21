@@ -454,9 +454,9 @@ func _build_options() -> Control:
 
 
 func _section(list: VBoxContainer, text: String) -> void:
-	var l := UIStyle.label(text, 14, UIStyle.ACCENT)
-	list.add_child(l)
-	list.add_child(HSeparator.new())
+	if list.get_child_count() > 0:
+		list.add_child(UIStyle.rule())
+	list.add_child(UIStyle.ribbon(text))
 
 
 func _row(list: VBoxContainer, text: String) -> HBoxContainer:

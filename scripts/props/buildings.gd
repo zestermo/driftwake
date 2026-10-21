@@ -650,6 +650,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	_box_col(body, Vector3(w + 0.3, fl + h + found, d + 0.3), Vector3(0, (fl + h - found) * 0.5, 0))
 	if floors > 1:
 		_box_col(body, Vector3(uw, h2, ud), Vector3(0, fl + h + h2 * 0.5 + 0.1, 0))
+	body.add_child(Occluders.box_node(_xf(Vector3(0, (fl + top) * 0.5, 0)), Vector3(w, top - fl, d)))
 	return body
 
 

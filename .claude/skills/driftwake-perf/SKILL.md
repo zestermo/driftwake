@@ -35,25 +35,42 @@ are the history: v1.13 ran 42 ms a frame in Brinehollow, v1.14 9.2 ms.
 ## The bench: tools/dev/bench.ps1
 
 ```powershell
-.\tools\dev\bench.ps1 label=myfeat_before                 # ~5 min, a real window, 1920x1080, vsync off
+.\tools\dev\bench.ps1 label=myfeat_before                 # ~10 min, the whole route, a real window, 1920x1080, vsync off
 .\tools\dev\bench.ps1 label=myfeat_after hour=21 wx=clear
-.\tools\dev\bench.ps1 label=q quick stops=plaza,market     # base phase only, chosen stops
+.\tools\dev\bench.ps1 label=q quick                        # base phase only, the old eight (~2 min)
+.\tools\dev\bench.ps1 label=q quick stops=plaza,atsea      # chosen stops and groups
+.\tools\dev\bench.ps1 label=c crowd stops=old              # Brinehollow's market crowd on
 ```
 
 - Always through bench.ps1, never Godot directly: it takes **every test slot** first (other sessions'
   suites finish their current one, then wait), refreshes a stale import cache (a missing `class_name`
   breaks the world and hangs the bench) and keeps the whole log.
 - Args (after the script, `key=value`): `label=` (the result name), `hour=13`, `wx=clear|cloudy|rain|storm`,
-  `pix=1|0`, `size=WxH`, `warm=20` (s after the chain islands are built), `seed=4242`, `stops=a,b`;
-  modes `quick` (settle + base), `gate` (+ probe: the summary and scripts table, what perf_gate uses),
+  `pix=1|0`, `size=WxH`, `warm=20` (s after the chain islands are built), `cwarm=10` (s after the capital is
+  up, before its stops), `seed=4242`, `stops=` (names and groups, below); modes `quick` (settle + base;
+  alone it runs `old`), `gate` (+ probe: the summary and scripts table, what perf_gate uses),
   default = everything incl. ablations (`far` actors past 120 m disabled, `sun` shadows off, `lshadow`,
-  `lights` off); `nosleep` turns ActorSleep off (a before/after of sleep on the same code).
-  `-Driver vulkan` goes before the args.
-- **Stops** (in order): beach (where you wake), plaza, market, quay, dock, den (foot of Grell's den),
-  yard (training yard), aboard (the moored sloop). The camera pans a full turn per phase at each.
+  `lights` off); `nosleep` turns ActorSleep off (a before/after of sleep on the same code); `crowd` turns
+  Brinehollow's market crowd on (BrinehollowCast.CROWD, a const the bench recompiles before the world loads; off
+  as the game ships). `-Driver vulkan` goes before the args.
+- **Stops** (always run in this order, whatever order `stops=` lists them). The old eight, v1.14's (group
+  `old`): beach (where you wake), plaza, market, quay, dock, den (foot of Grell's den), yard (training yard),
+  aboard (the moored sloop). The new eight, v1.19's (group `new`): terrace (Brinehollow's shrine terrace),
+  farm (the windmill hamlet), fight (the smugglers' camp: its five grunts alerted on the captain, whose health
+  is kept full), sea (the sloop under full sail on open water out from Brinehollow, the captain on deck), storm
+  (the same water and course in wx=storm), village (the first generated chain island's: standing there makes the
+  crew arrive, which frees the other island ahead, so it comes after the sea), cplaza and cmarket (the royal
+  capital's plaza by the fountain and its market street). The capital comes last: the bench
+  makes Alt+F10's jump (`Player.debug_to_capital`), which frees the chain islands round Brinehollow, and waits
+  until the capital and its neighbours are up and manned plus `cwarm`. Other groups: `town` (terrace farm
+  village cplaza cmarket), `atsea` (sea storm), `capital` (cplaza cmarket), `all` (the default).
+  The camera pans a full turn per phase at each.
 - Output in `tools/dev/out/bench/`: `brinehollow_<label>.txt` (results), `.log` (the whole Godot log),
-  `brinehollow_<label>_<stop>.png` (one screenshot per stop: check the world looked right).
-- **Columns** (the `== summary` table, per stop and ALL): `frame` (mean ms), `p95`, `worst`, **`frame1t`**
+  `brinehollow_<label>_<stop>.png` (one screenshot per stop, taken after its base sample so the save never
+  lands in a measured frame: check the world looked right).
+- **Columns** (the `== summary` table, per stop and ALL; `ALL_OLD` / `ALL_NEW` too when both groups ran: compare
+  ALL_OLD with a pre-v1.19 run's ALL): `frame` (mean ms), `p95`, `worst`, `h33` / `h50` (base frames over 33 /
+  50 ms: hitches, a count; ALL sums them), **`frame1t`**
   (the frame with exactly one physics tick: the stable one), `phys_scr` / `phys_eng` (scripts / Jolt over
   all ticks), `proc_scr` (the process pass), `tail` (timers, tweens, transform notifications, deferred
   calls), `draw` (RenderingServer.draw on the main thread), `ticks` (per frame), `rcpu` / `gpu`,
@@ -88,8 +105,9 @@ hours (v1.13 measured 42 ms one morning and 25 ms later the same day on the same
 .\tools\dev\bench_compare.ps1 myfeat_before myfeat_after       # labels or paths; -Top 25 scripts
 ```
 
-Prints both headers (check calib), then per stop three rows: `A`, `B` and `d%` for frame, p95, worst,
-phys_scr, phys_eng, proc_scr, tail, draw, rcpu, gpu, tot_draws, nodes. Then the scripts table: A, B, B-A ms
+Prints both headers (check calib), then per stop three rows: `A`, `B` and `d%` for frame, frame1t, p95, worst,
+h33, h50 (their change as a count), phys_scr, phys_eng, proc_scr, tail, draw, rcpu, gpu, tot_draws, nodes; stops
+only one side ran are listed below it. Then the scripts table: A, B, B-A ms
 (sorted by the bigger cost). Read it as: is the ALL `frame` / `frame1t` change bigger than the noise above;
 which column moved (scripts? Jolt? tail = moving transforms? draw = draw calls?); which script grew (your
 file at the top of B-A is the cost; a script you didn't touch growing is load). `tot_draws` and `nodes` are
@@ -117,7 +135,10 @@ as the flipbook and ultimate rounds did.
 - Benches each light in `tools/dev/perf_baseline.txt` (13:00 and 21:00 clear) in `gate` mode, `-Runs` 2
   times, keeps each stop's best (interference only adds). ~10 min a light.
 - **Fails** (exit 1) when, against the baseline: the mean of the stops' `frame` or `frame1t` is >15% worse;
-  one stop's `frame1t` is >35% worse; or mean ticks/frame > 0.8. Prints each stop (base, now, d%, ticks,
+  one stop's `frame1t` is >35% worse; or mean ticks/frame > 0.8. Only the baseline's stops are judged (today's
+  baseline has the old eight; ALL = their mean); the route's other stops are printed under them, not gated,
+  until `-Update` writes a baseline with them. The scripts it compares are the old route's (`== scripts_old`)
+  when the run has more stops. A confirm benches the baseline's commit on the baseline's stops only. Prints each stop (base, now, d%, ticks,
   draws+shadow; red over the line, yellow over 10%), the scripts that grew most, and a note when mean frame
   is over the 10 ms target.
 - A fail, or calib >15% off the baseline's, is **confirmed back to back**: it checks out the baseline's commit

@@ -195,8 +195,10 @@ func _ready() -> void:
 	collision_mask = 1 | 2 | 2048
 	floor_snap_length = 0.4
 	floor_max_angle = deg_to_rad(50.0)
-	model = Node3D.new()
-	model.name = "Model"
+	# (a kind that can prebuild() made its model's geometry ahead, on a worker)
+	if model == null:
+		model = Node3D.new()
+		model.name = "Model"
 	add_child(model)
 	health = HealthComponent.new()
 	health.name = "HealthComponent"
@@ -215,6 +217,12 @@ func _ready() -> void:
 	model.rotation.y = _yaw
 	if Net.hosting:
 		net_rescale(Net.hp_scale())
+
+
+func _notification(what: int) -> void:
+	# (made ahead and never put in the world: its model never joined it)
+	if what == NOTIFICATION_PREDELETE and model != null and model.get_parent() == null:
+		model.free()
 
 
 func _max_hp() -> float:

@@ -29,8 +29,9 @@ static func apply(root: Node) -> Array:
 
 
 ## apply as `count` build steps ([name, Callable], GenIsland.finish_steps) of about BUDGET_MS each:
-## the first finds the geometry, the last does whatever is left.
-const BUDGET_MS := 12
+## the first finds the geometry, the last does whatever is left. (12 ms slices were ~50 frames of 35 ms while a
+## captain played on; steps left with nothing to do cost nothing, and WorldGenerator runs those in the same frame.)
+const BUDGET_MS := 4
 static func steps(root: Node, count: int) -> Array:
 	var st := {"list": null, "i": 0, "out": [0, 0, 0, 0], "folds": {}}
 	var out: Array = []
@@ -118,7 +119,9 @@ static func _fold(mi: MeshInstance3D, out: Array, folds: Dictionary) -> void:
 	var m := mi.mesh as ArrayMesh
 	if not folds.has(m):
 		folds[m] = m
-		var mb := MeshBuilder.from_mesh(m)
+		var mb := MeshBuilder.kept(m)
+		if mb == null:
+			mb = MeshBuilder.from_mesh(m)
 		if mb != null:
 			mb.fold_tints()
 			if mb.surface_count() < m.get_surface_count():

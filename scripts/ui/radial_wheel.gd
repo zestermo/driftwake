@@ -1,9 +1,12 @@
 class_name RadialWheel
 extends CanvasLayer
 ## The radial wheels: emotes (T), quick items (E), loadouts (X), actions (N). Hold the key, move the
-## mouse (or right stick) toward a plank (the camera holds still), let go (or click, or A) to pick it; right
-## click, B or Esc puts it away. Gilt planks round a dark ring (UIStyle, on a crisp PixelCanvas), the one you point at
-## lit in light teal, its name in the ornate plate in the middle; the current choice has a sun rim.
+## mouse (or the right stick) toward a segment (the camera holds still), let go (or click, or A) to pick it;
+## right click, B or Esc puts it away. A round wheel in the whimsical style (UIStyle, on a crisp PixelCanvas): a dark donut of
+## segments in a twisted rope ring with brass nails, each segment a symbol (the entry's 24 px icon, or its
+## initial in a medallion) over a short label, the one you point at gilded, greyed ones dim, the current
+## choice starred, a count badge where there is one; the hub in the middle names the wheel, or the pointed
+## entry in full with its second line.
 ## A wheel with a tap (tap_ok) opens only once its key is held HOLD s, and a quicker press is _tap().
 ## One wheel is open at a time, and none while input is locked (a menu, the chat line).
 ## Subclasses set action, title and tap_ok and fill in _list / _label / _do (and the optional ones).
@@ -11,9 +14,11 @@ extends CanvasLayer
 const R := 118.0
 const DEAD := 26.0
 const HOLD := 0.2
-## How far the right stick must lean to point at a plank.
+## How far the right stick must lean to point at a segment.
 const STICK := 0.5
-const SUB_FONT := preload("res://assets/fonts/Silkscreen-Regular.woff2")
+const SILK := preload("res://assets/fonts/Silkscreen-Regular.woff2")
+const DIM_FILL := Color("102d33")
+const SEG_FILL := Color("16404a")
 
 static var shown: RadialWheel
 
@@ -24,19 +29,15 @@ var tap_ok := false
 var entries: Array = []
 var _canvas: PixelCanvas
 var _root: Control
-var _plates: Array[PanelContainer] = []
-var _labels: Array[Label] = []
-var _subs: Array[Label] = []
-var _icons: Array[TextureRect] = []
-var _centre: Label
+var _font: Font
 var _open := false
 var _down := false
 var _held := 0.0
 var _vec := Vector2.ZERO
 var _pick := -1
 var _k := 0.0
-## The ring's half-width: R, or wider (an ellipse) when neighbouring planks would overlap (-1: work it out).
-var _rx := -1.0
+## What each entry shows, read as the wheel opens: [label, sub, icon, badge].
+var _shown: Array = []
 
 
 # ---- what a wheel fills in ----
@@ -48,7 +49,7 @@ func _label(_id) -> String:
 	return ""
 
 
-## A second, smaller line under the label ("" = none).
+## A second line, shown in the hub when the entry is pointed at ("" = none).
 func _sub(_id) -> String:
 	return ""
 
@@ -57,12 +58,17 @@ func _icon(_id) -> Texture2D:
 	return null
 
 
+## A small count on the segment ("" = none).
+func _badge(_id) -> String:
+	return ""
+
+
 ## Shown but greyed (out of stock).
 func _dim(_id) -> bool:
 	return false
 
 
-## The current choice (a sun rim).
+## The current choice (starred).
 func _current(_id) -> bool:
 	return false
 
@@ -75,7 +81,7 @@ func _tap() -> void:
 	pass
 
 
-## The centre plate's words with nothing picked.
+## The hub's words with nothing picked.
 func _title() -> String:
 	return title
 
@@ -86,59 +92,14 @@ func _ready() -> void:
 	_root.name = "Wheel"
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.draw.connect(_draw_ring)
+	_root.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_root.draw.connect(_draw_wheel)
 	_canvas = PixelCanvas.new()
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_canvas)
 	_canvas.ui.add_child(_root)
-	var mid := PanelContainer.new()
-	mid.name = "Centre"
-	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mid.add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.BG, UIStyle.BORDER, 8))
-	_centre = UIStyle.label(title, 12, UIStyle.ACCENT)
-	_centre.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_centre.custom_minimum_size = Vector2(84, 0)
-	mid.add_child(_centre)
-	_root.add_child(mid)
+	_font = UIStyle.get_theme().default_font
 	_root.visible = false
-
-
-func _build_plates() -> void:
-	for pc in _plates:
-		pc.queue_free()
-	_plates.clear()
-	_labels.clear()
-	_subs.clear()
-	_icons.clear()
-	for id in entries:
-		var pc := PanelContainer.new()
-		pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 4)
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pc.add_child(row)
-		var ic := TextureRect.new()
-		ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ic.custom_minimum_size = Vector2(16, 16)
-		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(ic)
-		_icons.append(ic)
-		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", 0)
-		row.add_child(col)
-		var l := UIStyle.label(_label(id), 12)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(l)
-		var s := UIStyle.label("", 8, UIStyle.TEXT_DIM)
-		s.add_theme_font_override("font", SUB_FONT)
-		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(s)
-		_root.add_child(pc)
-		_plates.append(pc)
-		_labels.append(l)
-		_subs.append(s)
 
 
 func is_open() -> bool:
@@ -159,18 +120,14 @@ func _open_now() -> void:
 	shown = self
 	_vec = Vector2.ZERO
 	_pick = -1
-	var want := _list()
-	if want != entries or _plates.size() != want.size():
-		entries = want
-		_build_plates()
-	for i in range(entries.size()):
-		_labels[i].text = _label(entries[i])
-		_subs[i].text = _sub(entries[i])
-		_subs[i].visible = _subs[i].text != ""
-		_icons[i].texture = _icon(entries[i])
-		_icons[i].visible = _icons[i].texture != null
-	_rx = -1.0
+	entries = _list()
+	_shown = entries.map(func(id): return [_label(id), _sub(id), _icon(id), _badge(id)])
 	_restyle()
+
+
+## The label and sub line each entry shows now ([label, sub]).
+func shown_text(i: int) -> Array:
+	return [_shown[i][0], _shown[i][1]]
 
 
 func _release() -> void:
@@ -210,7 +167,8 @@ func _process(delta: float) -> void:
 	_k = move_toward(_k, 1.0 if _open else 0.0, delta * (9.0 if _open else 12.0))
 	_root.visible = _k > 0.0
 	if _root.visible:
-		_layout()
+		_root.modulate.a = clampf(_k * 1.5, 0.0, 1.0)
+		_root.queue_redraw()
 
 
 func _close() -> void:
@@ -289,73 +247,177 @@ func point_at(i: int) -> void:
 
 
 func _restyle() -> void:
-	for i in range(_plates.size()):
-		var on := i == _pick
-		var id = entries[i]
-		var dim := _dim(id)
-		var rim := UIStyle.ACCENT if on or _current(id) else UIStyle.BORDER_DIM
-		_plates[i].add_theme_stylebox_override("panel", UIStyle.frame(UIStyle.HILITE if on else (UIStyle.DISABLED if dim else UIStyle.BG_LIGHT), rim, 6, "plank", on))
-		_labels[i].add_theme_color_override("font_color", UIStyle.INK if on else (UIStyle.TEXT_DISABLED if dim else UIStyle.TEXT))
-		_subs[i].add_theme_color_override("font_color", UIStyle.INK_DIM if on else UIStyle.TEXT_DIM)
-	_centre.text = _label(entries[_pick]) if _pick >= 0 else _title()
-
-
-## The planks round the ring (popping out from the middle as it opens).
-func _layout() -> void:
-	var c := _root.size * 0.5
-	var e := _k * _k * (3.0 - 2.0 * _k)
-	var s := e * (1.0 + 0.1 * sin(e * PI))
-	for pc in _plates:
-		pc.size = pc.get_combined_minimum_size()
-	if _rx < 0.0:
-		_rx = _fit_rx()
-	for i in range(_plates.size()):
-		var a := TAU * i / _plates.size()
-		var pc := _plates[i]
-		pc.position = c + Vector2(sin(a) * _rx, -cos(a) * R) * s - pc.size * 0.5
-	var mid := _root.get_node("Centre") as PanelContainer
-	mid.size = mid.get_combined_minimum_size()
-	mid.position = c - mid.size * 0.5
-	_root.modulate.a = clampf(_k * 1.5, 0.0, 1.0)
 	_root.queue_redraw()
 
 
-## The narrowest ring (R up, in steps) on which no two neighbouring planks overlap.
-func _fit_rx() -> float:
-	var n := _plates.size()
-	var rx := R
-	for _step in range(16):
-		var clear := true
+# --------------------------------------------------------------------------
+# Drawing
+# --------------------------------------------------------------------------
+## The ring's middle radius: room for every segment's symbol and label.
+func _mid_r() -> float:
+	return maxf(64.0, entries.size() * 50.0 / TAU)
+
+
+## A label cut to `w` px: whole if it fits, else its first word, else letters off the end.
+func _short(s: String, w: float) -> String:
+	s = s.to_upper()
+	if SILK.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x <= w:
+		return s
+	var first := s.get_slice(" ", 0)
+	if SILK.get_string_size(first, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x <= w:
+		return first
+	while s.length() > 1 and SILK.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x > w:
+		s = s.left(-1)
+	return s
+
+
+func _arc_pts(c: Vector2, r: float, a0: float, a1: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in range(n + 1):
+		var a := lerpf(a0, a1, float(i) / n)
+		out.append(c + Vector2(sin(a), -cos(a)) * r)
+	return out
+
+
+## A twisted rope circle of radius r (3 px thick, dark edges).
+func _rope(c: Vector2, r: float) -> void:
+	_root.draw_arc(c, r, 0.0, TAU, 96, UIChrome.INK, 5.0)
+	_root.draw_arc(c, r, 0.0, TAU, 96, UIChrome.ROPE_LO, 3.0)
+	var n := int(TAU * r / 6.0)
+	for i in range(n):
+		var a := TAU * i / n
+		_root.draw_arc(c, r, a, a + TAU / n * 0.5, 3, UIChrome.ROPE_HI, 3.0)
+
+
+func _draw_wheel() -> void:
+	var n := entries.size()
+	var c := (_root.size * 0.5).round()
+	var e := _k * _k * (3.0 - 2.0 * _k)
+	var s := e * (1.0 + 0.08 * sin(e * PI))
+	_root.draw_set_transform(c * (1.0 - s), 0.0, Vector2(s, s))
+	var rm := _mid_r()
+	var ri := rm - 24.0
+	var ro := rm + 24.0
+	var hub := minf(ri - 6.0, 44.0)
+	_root.draw_circle(c, ro + 6.0, Color(0, 0, 0, 0.35))
+	_root.draw_circle(c, ri, Color(UIStyle.OUTLINE, 0.8))
+	for i in range(n):
+		var id = entries[i]
+		var a := TAU * i / n
+		var half := PI / n
+		var pts := _arc_pts(c, ro, a - half, a + half, 10)
+		var inner := _arc_pts(c, ri, a + half, a - half, 6)
+		pts.append_array(inner)
+		var on := i == _pick
+		var fill := UIStyle.GILT if on else (DIM_FILL if _dim(id) else SEG_FILL)
+		_root.draw_colored_polygon(pts, Color(fill, 0.96))
+		if on:
+			var glow := _arc_pts(c, ro - 3.0, a - half, a + half, 10)
+			glow.append_array(_arc_pts(c, rm + 6.0, a + half, a - half, 8))
+			_root.draw_colored_polygon(glow, UIChrome.GILT_TOP)
+	if n > 1:
 		for i in range(n):
-			var j := (i + 1) % n
-			if n < 3 or i == j:
-				break
-			var a := TAU * i / n
-			var b := TAU * j / n
-			var ra := Rect2(Vector2(sin(a) * rx, -cos(a) * R) - _plates[i].size * 0.5, _plates[i].size).grow(3.0)
-			var rb := Rect2(Vector2(sin(b) * rx, -cos(b) * R) - _plates[j].size * 0.5, _plates[j].size)
-			if ra.intersects(rb):
-				clear = false
-				break
-		if clear:
-			break
-		rx += 8.0
-	return rx
-
-
-func _draw_ring() -> void:
-	var c := _root.size * 0.5
-	var s := _k * _k * (3.0 - 2.0 * _k)
-	var sx := maxf(_rx, R) / R
-	# (an ellipse when the planks need a wider ring: drawn as a circle stretched across)
-	_root.draw_set_transform(c, 0.0, Vector2(sx, 1.0))
-	_root.draw_circle(Vector2.ZERO, (R + 40.0) * s, Color(UIStyle.OUTLINE, 0.55))
-	_root.draw_arc(Vector2.ZERO, (R + 40.0) * s, 0.0, TAU, 64, UIStyle.BORDER_DIM, 2.0)
-	_root.draw_arc(Vector2.ZERO, (R - 34.0) * s, 0.0, TAU, 48, Color(UIStyle.BORDER_DIM, 0.6), 1.0)
-	if _pick >= 0 and not entries.is_empty():
-		var a := TAU * _pick / entries.size()
-		_root.draw_arc(Vector2.ZERO, (R + 40.0) * s, a - PI * 0.5 - 0.22, a - PI * 0.5 + 0.22, 8, UIStyle.ACCENT, 4.0)
-		_root.draw_set_transform(Vector2.ZERO)
-		var d := Vector2(sin(a) * sx, -cos(a))
-		_root.draw_line(c + d * 46.0, c + d * (R - 22.0) * s, UIStyle.ACCENT, 3.0)
+			var a := TAU * (i + 0.5) / n
+			var d := Vector2(sin(a), -cos(a))
+			_root.draw_line(c + d * ri, c + d * ro, UIChrome.INK, 3.0)
+			_root.draw_line(c + d * ri, c + d * ro, UIChrome.ROPE_LO, 1.0)
+	_rope(c, ro)
+	_rope(c, ri)
+	if n > 1:
+		for i in range(n):
+			var a := TAU * (i + 0.5) / n
+			_draw_nail((c + Vector2(sin(a), -cos(a)) * ro).round())
+	for i in range(n):
+		_draw_entry(i, c, rm, minf(TAU * rm / maxf(n, 3) - 6.0, 70.0))
+	_draw_hub(c, hub)
 	_root.draw_set_transform(Vector2.ZERO)
+
+
+func _draw_nail(p: Vector2) -> void:
+	_root.draw_rect(Rect2(p - Vector2(2, 2), Vector2(4, 4)), UIChrome.INK)
+	_root.draw_rect(Rect2(p - Vector2(1, 1), Vector2(2, 2)), UIChrome.GILT)
+	_root.draw_rect(Rect2(p - Vector2(1, 1), Vector2(1, 1)), UIChrome.TWINKLE)
+
+
+## A segment's symbol over its short label, its count badge and the current-choice star.
+func _draw_entry(i: int, c: Vector2, rm: float, w: float) -> void:
+	var id = entries[i]
+	var a := TAU * i / entries.size()
+	var p := (c + Vector2(sin(a), -cos(a)) * rm).round()
+	var on := i == _pick
+	var dim := _dim(id)
+	var tex: Texture2D = _shown[i][2]
+	var sym := Rect2(p + Vector2(-12, -17), Vector2(24, 24))
+	if tex:
+		_root.draw_texture_rect(tex, sym, false, Color(0.55, 0.6, 0.62, 0.5) if dim and not on else Color.WHITE)
+	else:
+		var mc := sym.get_center()
+		_root.draw_circle(mc, 11.0, UIChrome.INK)
+		_root.draw_circle(mc, 10.0, UIChrome.WOOD_LO if on else (SkillTreeDraw.DIM_RIM if dim else UIChrome.ROPE_DIM))
+		_root.draw_circle(mc, 9.0, SkillTreeDraw.NODE_BG if not on else UIChrome.WOOD)
+		var letter := str(_shown[i][0]).left(1).to_upper()
+		_root.draw_string(_font, Vector2(mc.x - 11.0, mc.y + 5.0), letter, HORIZONTAL_ALIGNMENT_CENTER, 22.0, 12,
+			SkillTreeDraw.TEXT_OFF if dim else UIStyle.GILT)
+	var label := _short(str(_shown[i][0]), w)
+	var lp := Vector2(p.x - w * 0.5, p.y + 16.0)
+	if on:
+		_root.draw_string(SILK, lp, label, HORIZONTAL_ALIGNMENT_CENTER, w, 8, UIChrome.INK)
+	else:
+		_root.draw_string_outline(SILK, lp, label, HORIZONTAL_ALIGNMENT_CENTER, w, 8, 2, UIStyle.OUTLINE)
+		_root.draw_string(SILK, lp, label, HORIZONTAL_ALIGNMENT_CENTER, w, 8, SkillTreeDraw.TEXT_OFF if dim else UIStyle.CREAM)
+	var badge := str(_shown[i][3])
+	if badge != "":
+		var bw := SILK.get_string_size(badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 4.0
+		var br := Rect2(sym.end.x - bw + 4.0, sym.end.y - 8.0, bw, 9)
+		_root.draw_rect(br.grow(1.0), UIChrome.INK)
+		_root.draw_rect(br, UIStyle.CORAL if dim else UIStyle.CREAM)
+		_root.draw_string(SILK, br.position + Vector2(2, 8), badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIChrome.INK)
+	if _current(id):
+		UIStyle.draw_star(_root, sym.position + Vector2(1, 1), 7, UIChrome.TWINKLE, true)
+
+
+## The hub: the wheel's name in blackletter, or the pointed entry's full name and second line.
+func _draw_hub(c: Vector2, r: float) -> void:
+	_root.draw_circle(c, r + 2.0, UIChrome.INK)
+	_root.draw_circle(c, r + 1.0, UIStyle.GILT)
+	_root.draw_circle(c, r - 1.0, UIChrome.INK)
+	_root.draw_circle(c, r - 2.0, Color("143f46"))
+	_root.draw_circle(c + Vector2(-2, -3), r - 8.0, Color("1a4a52"))
+	var w := r * 1.7
+	if _pick < 0 or _pick >= entries.size():
+		var t := _title()
+		if UIStyle.TITLE_FONT.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x <= w:
+			UIStyle.draw_title(_root, Vector2(c.x - w * 0.5, c.y + 5.0), t, 18, HORIZONTAL_ALIGNMENT_CENTER, w)
+		else:
+			var lines := _wrap(t, w, _font, 12)
+			for j in range(mini(lines.size(), 3)):
+				_root.draw_string(_font, Vector2(c.x - w * 0.5, c.y + 4.0 + (j - (mini(lines.size(), 3) - 1) * 0.5) * 11.0), lines[j], HORIZONTAL_ALIGNMENT_CENTER, w, 12, UIStyle.GILT)
+		return
+	var name_lines := _wrap(str(_shown[_pick][0]), w, _font, 12)
+	var sub_lines := _wrap(str(_shown[_pick][1]).to_upper(), w, SILK, 8)
+	name_lines.resize(mini(name_lines.size(), 2))
+	sub_lines.resize(mini(sub_lines.size(), 3))
+	var h := name_lines.size() * 11.0 + sub_lines.size() * 9.0
+	var y := c.y - h * 0.5 + 9.0
+	for l in name_lines:
+		_root.draw_string(_font, Vector2(c.x - w * 0.5, y), l, HORIZONTAL_ALIGNMENT_CENTER, w, 12, UIStyle.CREAM)
+		y += 11.0
+	var dim := _dim(entries[_pick])
+	for l in sub_lines:
+		_root.draw_string(SILK, Vector2(c.x - w * 0.5, y - 1.0), l, HORIZONTAL_ALIGNMENT_CENTER, w, 8, UIStyle.DANGER_TEXT if dim else UIStyle.TEXT_DIM)
+		y += 9.0
+
+
+func _wrap(text: String, w: float, font: Font, sz: int) -> Array:
+	var out: Array = []
+	var line := ""
+	for wd in text.split(" ", false):
+		var trial := wd if line == "" else line + " " + wd
+		if font.get_string_size(trial, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x > w and line != "":
+			out.append(line)
+			line = wd
+		else:
+			line = trial
+	if line != "":
+		out.append(line)
+	return out

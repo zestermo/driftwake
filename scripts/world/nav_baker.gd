@@ -43,8 +43,8 @@ func _process(delta: float) -> void:
 	if _check > 0.0:
 		return
 	_check = 1.0
-	# (a chain island's zones go with it)
-	_zones = _zones.filter(func(z): return is_instance_valid(z["node"]))
+	# (a chain island's zones go with it, from when it's let go: WorldGenerator._let_go)
+	_zones = _zones.filter(func(z): return is_instance_valid(z["node"]) and (not (z["node"] as Node).is_inside_tree() or (z["node"] as Node).can_process()))
 	for z in _zones:
 		if z["baked"]:
 			continue
@@ -65,6 +65,7 @@ func _process(delta: float) -> void:
 func _bake(z: Dictionary) -> void:
 	z["baked"] = true
 	var node: Node3D = z["node"]
+	get_node("/root/Perf").mark("navmesh parse %s" % node.name)
 	var r: float = z["r"]
 	var nm := NavigationMesh.new()
 	nm.cell_size = CELL
@@ -90,10 +91,13 @@ func _bake(z: Dictionary) -> void:
 	node.add_child(region)
 	# by id, not the node: the island can be freed before the bake finishes, and a freed capture errors when the lambda runs
 	var region_id := region.get_instance_id()
+	var where := str(node.name)
+	var perf := get_node("/root/Perf")
 	NavigationServer3D.bake_from_source_geometry_data_async(nm, data, func():
 		var reg := instance_from_id(region_id) as NavigationRegion3D
 		if reg:
-			reg.call_deferred("set_navigation_mesh", nm))
+			reg.call_deferred("set_navigation_mesh", nm)
+			perf.call_deferred("mark", "navmesh in " + where))
 
 
 func _terrain_faces(c: Vector3, r: float) -> PackedVector3Array:

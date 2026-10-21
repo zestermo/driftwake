@@ -40,6 +40,11 @@ func build(n: Dictionary) -> void:
 	finish()
 
 
+## (no beasts in the city)
+func start_beasts() -> void:
+	pass
+
+
 func prepare(n: Dictionary) -> void:
 	node = n
 	theme = "capital"
@@ -307,6 +312,9 @@ func _piece(i: int) -> void:
 	if not pc["shadow"]:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(mi)
+	var oi := Occluders.node(pc["occ"])
+	if oi:
+		root.add_child(oi)
 	city.add_child(root)
 	pieces[i] = {}
 

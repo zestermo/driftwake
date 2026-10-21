@@ -58,6 +58,8 @@ func _process(_d: float) -> bool:
 		4:
 			TK.release("move_forward")
 			check("moving gets you up (%s)" % p.current_state_name(), p.current_state_name() in ["Idle", "Move"] and p.body_model.current_action() != "dt_train_blade")
+			p.progression.mastery_of("sword")["lv"] = DT.TRAIN_CAP
+			check("drills teach only up to mastery %d (%s)" % [DT.TRAIN_CAP, DT.refuse(p, "train")], DT.refuse(p, "train") != "" and DT._train_ok(p) is String)
 			return TK.done(fails)
 	step += 1
 	return false

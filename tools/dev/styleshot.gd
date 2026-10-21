@@ -189,7 +189,7 @@ func _process(d: float) -> bool:
 			if t - t0 < 0.8: return false
 			p.progression.level = 10
 			p.progression.skill_points = 9
-			p.progression.mastery_of("sword")["pts"] = 3
+			p.progression.add_mastery("sword", 300)
 			for nid in ["c_agility", "m_geppo", "m_soru", "c_strength", "s_edge", "s_flying", "c_vitality", "v_hardy"]:
 				p.progression.learn(nid)
 			p.progression.xp = 600
@@ -197,22 +197,19 @@ func _process(d: float) -> bool:
 			p.progression.add_mastery("sword", 150)
 			var gm = root.get_node("GameMenu")
 			gm.open("skills")
-			gm._skills.set_tab("base")
+			gm._skills.set_tab("captain")
 			phase = 25; t0 = t
 		25:
 			if t - t0 < 0.5: return false
 			shot("15_skill_map")
 			var gm = root.get_node("GameMenu")
-			gm._skills._zoom = 0.9
-			gm._skills._pan = Vector2(-170, -170)
-			gm._skills._sel = "m_soru"
+			gm._skills.set_tab("loadout")
 			phase = 26; t0 = t
 		26:
 			if t - t0 < 0.3: return false
 			shot("16_skill_map_zoom")
 			var gm = root.get_node("GameMenu")
-			gm._skills.set_tab("sword")
-			gm._skills._sel = "s_flying"
+			gm._skills.set_tab("combat", "sword")
 			phase = 27; t0 = t
 		27:
 			if t - t0 < 0.3: return false

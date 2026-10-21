@@ -4516,3 +4516,377 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   (A drawn pad with labels was tried first: too large and distracting, Zach.)
 - Settings: controls.pad_look_sensitivity / pad_look_deadzone / pad_move_deadzone, gameplay.pad_skills.
 - Tests: t/input (7). Render: padshot.
+## 2026-10-20: the bench refreshed for the v1.19 perf session (step 1; tools only)
+- What: `tools/dev/bench_brinehollow.gd` keeps v1.14's eight stops (group `old`, unchanged spots) and adds eight
+  (`new`): terrace (shrine terrace, UP_X,11), farm (FARM + (4.5,-1.5)), fight (6 m inland of the smugglers' fire, its
+  five grunts alerted, the captain's health topped up each frame), sea and storm (the sloop placed on open water
+  found by `_deep_enough` 750+ m out from Brinehollow, away from Redtide, anchor up and full sail, the captain on deck;
+  storm forces wx=storm for that stop only), village (the first generated chain island's village + (3,3)), cplaza and
+  cmarket (capital frame (0,9.5) and (0,46), reached by `Player.debug_to_capital` and a wait for `chain_ready` +
+  `cwarm` 10 s). Stops always run in ROUTE's order whatever `stops=` lists (groups old new town atsea capital all;
+  `quick` alone = old). The village comes late: standing on a chain island makes the crew arrive there and frees the
+  other island ahead (nodes 34.9k -> 21.1k), and the capital jump frees that one too (14.3k).
+- `crowd`: BrinehollowCast.CROWD is a const, so the bench rewrites its source to true and `reload()`s the script on
+  the first frame (autoloads up), then loads the world; it fails loudly if the line moved.
+- The stop screenshot is saved after the base sample (it was ~65 ms in base's first frame: "worst" read 60-80 ms
+  at every stop; now 15-29 ms, no frame over 33 ms in either run). Summary columns `h33` / `h50` (base frames over
+  33 / 50 ms; ALL sums), rows ALL_OLD / ALL_NEW and a `== scripts_old` table when both groups ran.
+- Gotcha: `Ship.place()` then reading the ship's `global_transform` in the same frame gave the old one (the first
+  sea stop put the captain in the water by Brinehollow's dock); the deck point is built from the placed spot.
+- `perf_gate.ps1` gates only the baseline's stops (ALL = their mean on both sides), prints the others as "no baseline
+  yet", reads scripts from `scripts_old` when present, and benches a confirm's old commit with `stops=<the baseline's>`.
+  bench_compare adds frame1t, h33/h50 and lists stops only one side ran. Exercised offline (perf_gate's functions on
+  v119_bench_base vs perf_baseline.txt): it gates the eight, shows the eight new ones. The current baseline is the
+  laptop's from v1.14, so against it this PC fails (+40% frame): re-baselining on the min-spec PC is the lead's step.
+- Runs (min-spec PC, 13:00 clear, back to back, calib 23.48 / 23.45, no other Godots): v119_bench_base ALL frame 12.42,
+  frame1t 13.13 (ALL_OLD 13.09 / 13.65, ALL_NEW 11.80 / 12.61); v119_bench_crowd ALL 12.40 / 13.16. The crowd (10 more
+  townsfolk, +383 nodes) costs the market +1.25 ms frame (+9%), +1.1 frame1t, +0.8 ms scripts (brinehollow_folk and
+  its rigs); elsewhere it's inside the run-to-run noise (single stops swung +-12% both ways on the same code).
+
+## 2026-10-20: the stutter hunt (why 1.18 felt laggy in fights, at sea and in towns)
+- **Measured** (min-spec PC, 13:00 clear, 1920x1080, vsync off, gate mode, no other Godots; runs stut_ed / stut_ex,
+  calib 24.05 / 23.00):
+  - **Export vs editor:** the same. ALL frame 12.63 -> 12.45 ms, frame1t 13.21 -> 13.07, p95 16.83 -> 16.71; the
+    release build's scripts 10-15% cheaper, its draw ~11% dearer. The exported build isn't the cause.
+  - **Steady fights and walks** are no worse than the panning stops: brawl 14.0 ms / p95 18.8 / worst 25, naval 12.9 /
+    16.5 / 28, Brinehollow walk 14.2 / 17.5 / 25.5, capital walk 11.2 / 14.1 / 20; no base frame over 33 ms (one 36 ms at
+    the fight stop). The probe's longest single calls: pirate_grunt.gd 3-5 ms in a tick in fights, everything else < 1.5.
+  - **Island streaming is the stutter** (the new `isles` stop, and the village arrival): letting a chain island go was one
+    150-270 ms frame (10-14k nodes freed in one queue_free, the "tail"); building one is ~180 frames of 35-45 ms (each
+    step 10-25 ms on top of a 14 ms frame), 35 of them over 33 ms and 6 over 50 in the isles stop, the worst step 40-160 ms
+    (boss, camp, colliders). It happens in the first ~20 s of every session in Brinehollow (the two islands ahead: the
+    perf.log's first line, 26 hitches), on arriving at an island (the other one let go) and in town when the log pose
+    sets (the next ones built).
+  - **Cold shader cache** (a first launch: `bench.ps1 -ColdShaders`, the export, ex_cold): the first fight was a 401 ms
+    frame on reaching the camp (draw 385 ms, 7 surface + 5 specialization pipelines) and an 87 ms one at the first blows;
+    warm, none. The export bakes 90 shaders, only 16 of them scene shaders: the effects' StandardMaterial3Ds are made in
+    code, so the baker never sees them.
+  - The bench sessions' perf.log ("1-2 hitches of 60-80 ms every 30 s") was the bench itself: each stop's screenshot,
+    the probe's start (its find_children over the whole tree) and the calib. Hit-stop and slow motion also hid frames:
+    delta runs at Engine.time_scale (0.05 in a hit-stop), so the bench and Perf now time frames in real time.
+- **Fixed:**
+  - **An island let go** (WorldGenerator._let_go): processing off, hidden, renamed (`FreeingIsleN`, so one built again
+    takes its name and node paths) at once, and freed FREE_US 2.5 ms a frame (_free_some): anything with a script whole
+    (a scuttlebug's _exit_tree restores its ragdoll's rig: leaves first freed its parts under it, dungeontest), plain
+    containers piece by piece past FREE_WHOLE 24 children. NavBaker drops a let-go island's zones at once. The isles stop:
+    worst 159 -> 82 ms, no let-go frame over 33 ms; the village arrival's 273 ms frame is a 39 ms one, then ~1 s of
+    frames +2-3 ms (village base 13.0 -> 16.1 ms while it's freed, worst 21).
+  - Gotcha: `Perf.mark` by the autoload's name in humanoid.gd broke every suite that preloads it (a --script compiles
+    before the autoloads; compilecheck has them, so it passed): project classes reach Perf by path.
+  - **Build steps:** WorldGenerator._finish_step runs the small steps after the frame's step while the frame's island
+    work is under SMALL_US 1.5 ms (steps with nothing left to do take no frame); DrawLOD slices at 4 ms (was 12) over
+    192 steps (was 64; the last still does whatever's left). The isles stop: h33 35 -> 23, h50 6 -> 4 (isles_before /
+    isles_after2, back to back, calib 24.56 / 23.53).
+  - **Blood splats** pick from 24 shapes made at FX's start (a fresh SurfaceTool mesh per splat was ~1 ms of GDScript,
+    2-5 a bloody hit; its own rng, so the global one isn't drawn on). Brawl: h33 2 -> 0, worst 40 -> 33, p95 20.1 -> 17.8.
+  - **FX.warm_up:** every kind of effect drawn once in front of the camera in the loading screen's last moment (WARM_S
+    0.8 s more under the card; the bench calls it at its setup too). Cold cache: the camp's 401 ms frame is gone; one 70 ms
+    frame is left at the first blow (1 surface + 1 specialization: a trail or technique material it doesn't cover yet).
+- **Tools:** bench stops `bwalk`, `cwalk`, `brawl`, `naval`, `isles` (group `act`, rows ALL_ACT), `== hitches` (every frame
+  over 33 ms in any phase with its split, pipelines compiled canvas/mesh/surface/draw/specialization, nodes made and
+  Perf's marks), the probe's longest single calls per stop. `export_bench.ps1` (the "Windows Bench" preset: Windows
+  Desktop plus tools/dev) and `bench.ps1 -Exe` (an export ignores --script: an override.cfg beside the exe makes
+  `BenchBoot` the main loop, which becomes this checkout's bench script) and `-ColdShaders`.
+  Perf (scripts/game/perf_monitor.gd): `Perf.mark(what)` (island steps, islands let go, autosave, navmesh parses, bodies
+  built on the main thread, ragdolls, music loaded); a line per hitch under each 30 s line (process / physics / render
+  ms, pipelines, nodes, the state, where, the marks); the last five sessions kept (perf.log, perf_1..4.log); tool runs
+  write none. SaveGame.enabled() is off for every tool run (the export bench's BenchBoot too: it read save_1 before).
+- **Left:** the build steps themselves (village houses, dungeons, harbour, ground, plants: 10-25 ms each, the camp's
+  50-75 ms of tail, the beasts' models made on the main thread when they're added: boss 23-160 ms) want moving to
+  the worker (GenIsland.prepare) or splitting; the warm-up doesn't cover blade trails, technique ribbons, enemies' and
+  ships' own materials; pirate_grunt's 3-5 ms ticks (map_get_path on a goal that moved, likely).
+- **Tested by** t/island/free_slices, t/world/perf_log, t/fx/warm_up, perftest (the log under its own dir), chaintest
+  (the let-go island), katanatest.
+
+## 2026-10-20: island builds off the main thread (the stutter hunt, part 2)
+- **Where the time went** (`stepprobe`: a chain island's steps one a frame in a window, cold then warm; `spawnprobe`: one
+  enemy or creature put in the world; the build log now lists every step of 4 ms or more, slowest first):
+  - **DrawLOD's fold read every mesh back from the GPU**: `MeshBuilder.from_mesh` is `surface_get_arrays`, a readback under
+    d3d12 (60 ms an island headless, 800-860 ms in a window). The biggest single cost of a build.
+  - **Cold script compiles**: a beast's or creature's script loaded by path compiles on first use on the main thread
+    (50-130 ms each: boss #2 132, beasts 70, the snow village's shagback 65, fauna parts 45-150). Warm, a creature is
+    0.5 ms, a scuttlebug or spitter 4.5, a beast 5-13 (the serpent 13, the ape 25 unstocked).
+  - **Everything spawned at once**: a lair's nests hatched their dozen bugs in one deferred call (a 55-85 ms frame); a
+    camp's first crew (six grunts) turned up in one frame (~40 ms).
+  - Big single steps: tree colliders 33-40 ms (~2000 shapes), fauna zones 30, the market 30, village dressing 21-26 a
+    chunk of 20, the plants' thirds 10-18 (and their upload), camp 18, village 16-23, terrain + coast 20-26.
+- **Moved to workers:**
+  - `GenIsland.warm_scripts` (prepare): the theme's creature scripts and the island's beast scripts loaded on the
+    worker, kept on the island (`_warm`).
+  - **Beasts' models** (`QuadBeast.prebuild`, every QuadBeast kind: 16 of the 20): the rig (plain Node3Ds) and every
+    part's MeshBuilder, painted, keyed by the shared PSXMats, built on a worker while the first steps run
+    (`GenIsland.start_beasts`, from WorldGenerator._finish_ready: the beast objects are made on the main thread since a
+    CharacterBody3D is a physics object, after prepare loaded their scripts); the spawn (`take_beast`: the boss's first,
+    each mini, the roamer) only commits the parts with the beast's own material copies (`MeshBuilder.rekey`) and makes
+    its shapes. Nothing for the servers on the worker: no mesh commit, no MeshInstance3D, no shape.
+  - **The fold without readback**: during a chain island's steps (`GenIsland.run_step` sets `MeshBuilder.keep`), each
+    main-thread `commit()` keeps a copy of what it was built from (its arrays shared copy-on-write; skinned meshes not),
+    DrawLOD folds from that (`MeshBuilder.kept`) and `forget()` drops them when the island is registered.
+- **Split on the main thread** (`GenIsland.sliced(name, count, unit)`: units run until SLICE_US 3 ms a step, the last
+  step finishes them; same order however many frames, so co-op and the islanddump are unchanged): tree colliders 64 a
+  unit into the body before it joins (24 steps + one to add it), fauna zones 150 crowns a unit, village dressing an
+  item a unit; plants 15 steps (was 3; the MultiMeshes in the same child order); coast its own step; the camp in three
+  (fire/tents/shack, stores/tower/flag, chest/crew: one rng in order); the village in three (inn, rest/shops/board,
+  people: "village people", which GenIsland's predelete reads now for the stocked bodies); the market in four; each shop
+  and its keeper. A nest on a building island (`GenIsland.building`) hatches a bug a frame (`ScuttlebugNest._hatching`);
+  a warm-start camp musters a grunt a frame and is manned once all are (`GruntCamp._muster`).
+- **Measured** (min-spec PC, 13:00 clear, no other Godots): the isles stop (isb_before / isb_after2, calib 23.34 / 23.88)
+  h33 26 -> 13, h50 5 -> 1, worst 87 -> 60 ms, p95 31.4 -> 28.9, frame 20.0 -> 19.1. The build log: the session start's
+  islands 2372 -> 1175 ms on the main thread (Whitecap Key, worst step 120 -> 31) and 2645 -> 1418 (Tambor Key, 158 -> 32),
+  the isles rebuild 1524 ms over 217 frames (worst 35) -> 1023 over 178 (worst 21). The whole route in gate mode back to
+  back with main's scripts (isb_route_main / isb_route, calib 23.95 / 24.08): ALL_OLD 13.45 -> 13.36 ms, ALL_NEW 13.60 ->
+  12.63, the route's h33 178 -> 17 (main's islands were still building into the first stops: bwalk's 1.3 s frame); terrace
+  +15% alone (noise: no script of this branch's in it). The 60 ms frame left in the isles stop comes after the last step
+  with no mark (+80 nodes; it was there before too, 58 ms): not attributed.
+- Tried and dropped: MultiMesh `buffer` set in one call from prepare (a 125 ms step: the RD uploads it at once, where
+  set_instance_transform batches to the frame).
+- **Same island:** islanddump of Brinehollow (only the dummies' sack heads, as always) and of chain seeds 4242, 1, 12, 36
+  and 9 identical before and after; t/island/beast_prebuild compares every prebuilding kind's model both ways (the dump
+  doesn't walk into CharacterBody3Ds).
+- **The mesh-commit crash** (docs/todo.md): nothing here commits a mesh, makes a visual node or a shape on a worker (the
+  beasts' worker part is GDScript arrays and Node3Ds). A guess for its pass: it's been seen headless only, where the
+  dummy renderer's RID owners aren't thread-safe while villagers' bodies are committed on prepare's worker.
+- **Left** (each 10-30 ms, on the main thread): a village house (Buildings.house / KitHouses.room: 5-21 ms), dungeon
+  dressing steps (15-33), the arena's dressing (13-22), landmarks' first steps (great tree 34, sky wreck, aqueduct,
+  waterfall, snow castle 11-18), the harbour's longest walkway (13-15), terrain mesh commit (9-30), ground colliders
+  (8-9 each x16: Jolt builds the trimesh), the camp's lookout tower (16); the serpent's, mantis', sandworm's and
+  scorpion's models (own _build, not QuadBeast); a scuttlebug 4.5 ms each (hatched one a frame). These want their
+  geometry as data on the worker like the beasts' (a builder's MeshBuilders and transforms, the nodes and commits after).
+- **Tested by** t/island/build_slices (slices in order, the last finishes; a building island's nest hatches a bug a frame,
+  a built one's all at once), t/island/beast_prebuild, t/island, isletest, chaintest, villagetest, smoketest.
+
+## 2026-10-20: whimsical menu chrome, piece 1 (v1.18.2, menu-ui; docs/progression_plan.md "Menu chrome")
+- **What:** the menus' look from the approved mock (docs/media/progression_mock/chrome.css), as pixel 9-slices painted
+  in code: `scripts/ui/ui_chrome.gd` (UIChrome) paints them one image pixel per canvas pixel, `UIStyle.chrome(kind)`
+  makes the StyleBoxTexture (tiled middles where there's grain or rope, stretched where there's a gradient). Kinds:
+  parchment (hand-cut corners, gilt band, burnt edge, wax seal top right, coffee ring bottom left: needs >= 42 px),
+  paper (small, plain), slate (rope border, brass nails), plank / plank_hover (gilded) / plank_pressed / plank_dim /
+  plank_focus, sign / sign_on (tabs), ribbon / ribbon_gold (12 px swallowtails), keycap, scroll (the nameplate), beam
+  (28 px top bar with knots over a rope), board (18 px key bar, rope on top), well (text fields), rope (rules).
+- **Theme:** `UIStyle.panel()` with its default colours is now slate (other colours keep the old gilt frame); buttons
+  are planks that gild on hover; LineEdit a paper well; separators rope; tooltips paper; keycaps wooden. `title()` is
+  Jacquarda Bastarda 9 (assets/fonts, SIL OFL; a 9 px grid: sizes 9/18/27, outline 2 at most or the counters fill).
+- **Helpers:** `draw_sky` (night sky, nebulae, twinkle, dashed map border), `draw_topbar` (beam, compass-rose emblem,
+  hanging signs via `draw_tabs`, nameplate via `draw_plate` with `draw_coin`), `draw_board` + `draw_hints`, `ribbon()` /
+  `draw_ribbon`, `rule()` / `draw_rule`, `draw_star`, `draw_title`, `parchment()`. Tab icons: `scripts/ui/ui_icons.gd`
+  keeps the mock's SVGs and rasterises them with hard edges (crown, swords, compass, chest, fruit, emblem).
+- **Canvas:** the menus draw in a PixelCanvas, 640x360 at 1280x720 and 1920x1080 (800x450 at 1600x900), so the mock's
+  1280x720 maps at x0.5 there; the 16 px icons and 24 px skill icons stay native.
+- **Tested by** t/ui/chrome_kit; looked at with tools/dev/chromeshot.gd and uishots (pause, options, inventory, shop,
+  dialogue).
+- **Piece 2 (the other menus, mostly swaps):** the dialogue box is a parchment page (its right margin clears the wax
+  seal) with a wooden name sign and plank choices that gild; Options' sections are red ribbons with a rope rule between;
+  the inventory's tabs and the journal's are wooden signs (gilt when open), the captain's name blackletter; the
+  shipwright's small buttons planks; the HUD's prompt a wooden sign, the pickup feed wooden chips, the island banner
+  blackletter 27 over a rope rule. New: `PlayerHUD.show_new_tree(name, line)` (through the hud group), the mock's "new
+  skill tree" card (slate, gold ribbon, blackletter name, K OPEN). uishots has `banner` and `tree_banner` shots.
+
+## 2026-10-20: the skills menu, piece 3 (v1.18.2, menu-ui; docs/media/progression_mock, the prog-core contract)
+- **What:** `scripts/ui/skill_map_screen.gd` (SkillMapScreen, still K, still GameMenu's "skills") is rewritten on
+  prog-core's API: night sky, the beam with a hanging sign per tab (`UIStyle.draw_topbar`; signs hang on rope stubs
+  at staggered heights, the active one 4 px lower), the key board. Tabs: **Captain** (parchment legend, the level trunk
+  with round `auto` nodes and split `talent` nodes from SkillTrees' captain tree, YOU on it, Will nodes beside it;
+  without captain data yet it draws the trunk's level ticks), **Combat** (a weapon's tree + its parchment card + the
+  weapon rail; Tab: the chart of every found weapon around the captain hub with its branches' big nodes),
+  **Adventure** (found trees listed, the open one, its card with "how it grows"), **Loadout** (loadout cards, the one
+  bar 1-5 + R, passive slots, the library grouped by tree with ON n / SLOT n / NEEDS A LOADOUT), **Driftfruit** once
+  `visible_trees("fruit")` has one. A tree not converted yet draws its root and "still being charted".
+- `scripts/ui/skill_tree_draw.gd` (SkillTreeDraw) draws a tree: SkillTrees positions fitted to the area, links lit in
+  the tree colour, big nodes by kind (root circle with the weapon's item icon, technique / ultimate squares with the
+  24 px skill icons, move / element circles, mechanic double ring, passive diamond), steps with x/5 chips (a coral dot:
+  buyable now), variants and talents as one split node (`split`, its halves hit "v:<id>:<i>" for the mouse), branch
+  titles with "n OF m". `place_labels` puts each big node's name below, right, left or above, clear of nodes, steps,
+  titles and links (the menus' 640x360 canvas is half the mock's size: there's no room for the mock's tag lines, the
+  card shows the inspected node's kind, level, words and what Enter does).
+- **Hits:** everything clickable registers `hit(rect, id, nav)` while drawn ("n:<node>", "w:<tree>", "bar:<slot>",
+  "pas:<i>", "lib:<id>"); the mouse reads last frame's hits; arrows / d-pad move the pick to the nearest hit that way
+  (a 60-degree cone, distance plus 2.5x the sideways offset). Enter / F / pad A acts: buy a step (`buy_step`, else
+  `step_why`), switch a version (`set_version`, refused away from the bunk: "Switch versions at the ship's bunk"), pick a
+  talent (`pick_talent`), put a library skill on the first free key, a passive in the first free slot. 1-5 / R with a
+  skill picked: `PowerComponent.equip`, refused with `equip_why`'s own words; 1-4 with a passive: `equip_passive`.
+  Q / E or the shoulder buttons change tab, A / D weapon, W / S Adventure tree, Tab the chart, right-click clears.
+- **Loadout trees** come from `PowerComponent.loadout_styles()` (the bar's own view: a loadout whose weapon left the bag
+  counts as none); a bar slot or library row whose skill `equip_why` says "Needs ..." is greyed, NO LOADOUT.
+- The inventory's character sheet drops "Skill points" for the weapon-in-hand's mastery.
+- **Per frame:** only while the menu is open (the game is paused), the screen redraws every frame (sky twinkle, pulses):
+  ~100-200 draw calls of 2D primitives; nothing runs while it's closed.
+- **Tested by** t/ui/skills_tabs, skills_buy_step, skills_version_bunk, skills_loadout (each sets the root to 1280x720:
+  the runner's window is 64x64), t/ui/chrome_kit; filmed with skillmapshot (every tab, 640x360 and 800x450).
+  r6test's skill-map checks now ask the new screen (opens on Combat, Driftfruit shows your fruit, a weapon opens on its
+  root); uishots, styleshot, seamapshot and r6shot open the new tabs.
+- **Lead's pass:** steps show their names under their counters where there's room (all of them on the 800x450
+  canvas; on 640x360 the ones that would overlap show on inspect); the middle branch's title sits above its top node;
+  the Will column wraps "how" and "what it gives"; the library puts the Captain's and Will's skills and passives in one
+  CAPTAIN AND WILL group.
+
+## 2026-10-20: the radial wheels redrawn round (v1.18.2, menu-ui; Zach: "small labels and symbols in the wheel")
+- **What:** `scripts/ui/radial_wheel.gd` (RadialWheel, the base of the emote T, item E, loadout X and action N wheels)
+  no longer lays wide plank "plates" on a stretched ellipse. It draws a round wheel itself: a dark donut of N segments
+  in a twisted rope ring (outer and inner) with rope dividers and brass nails, each segment the entry's 24 px icon (or
+  its initial in a wooden medallion) over a short Silkscreen 8 label cut to the segment (whole, else the first word,
+  else letters off the end); the pointed segment gilded, greyed ones dim, the current choice starred, a count badge
+  (`_badge`, the item wheel's quantity). The hub names the wheel in blackletter (Pixelify when long), or shows the
+  pointed entry's full name and its second line (`_sub`: the action wheel's reason, the loadout's weapons, "3 in your
+  bag"), coral when it's greyed. The ring's radius grows with the entry count (50 px of arc each, at least 64).
+- Behaviour unchanged: hold to open, tap (tap_ok), the dead zone, picking by angle (entry i at TAU*i/n clockwise from
+  up), point_at, right-click / Esc. `shown_text(i)` gives [label, sub] as the wheel opened (tests read it instead of
+  the old plates' labels).
+- **Per frame:** only while a wheel is open or fading: one redraw of ~N*30 polygon points and a few arcs.
+- **Tested by** t/ui (emote_wheel, item_wheel, action_wheel, wheel_same), t/player/loadout_swap, t/jam/play_solo,
+  t/food, t/downtime; filmed with uishots emotes,items,loadouts,actions.
+## 2026-10-20: perf session steps 3 and 5: occlusion culling in towns, the long tail
+- **Occlusion culling** (project.godot `rendering/occlusion_culling/use_occlusion_culling=true`; `scripts/psx/occluders.gd`,
+  class Occluders): boxes shrunk 0.15 m inside solid stone, kept as data in a capital piece's colliders ({"occ": size, "xf"},
+  split off by `Occluders.take` on the worker) and made one OccluderInstance3D a piece in CapitalIsland._piece (no new step).
+  The capital: wall runs, square towers, round towers (the square inside the shaft), gatehouse sides, the palace hall and
+  wings, the temple, moles and quay blocks, barriers, the district's town houses (behind the door niche), the inn's back,
+  the guild and counting house, and every massing house (493 in 23 chunks). None on the arena (open arcades), the floors,
+  porches or rooms you walk into. Main-thread builders: one box per Buildings.house (Brinehollow's and every chain
+  village's houses and shopfronts) and per DesertTown.house. An occluder only hides whole instances behind it, so it must
+  never cover a gap you see through (an arch, a window through a wall); recesses are harmless.
+- Measured (min-spec PC, quick, same build on/off, two pairs; calib 24.0-26.2): visible draws -10 to -25% at the town stops
+  (cmarket 445 -> 337-356, cwalk 470 -> 365, plaza 995 -> 873, bwalk 1171 -> 946); frame within the run-to-run noise both
+  ways (ALL 15.61 -> 15.42 and 15.68 -> 15.18). Shadow draws (half the total) don't change: occlusion culls the view pass
+  only. Kept on as groundwork for the fuller capital (1.20). The bench screenshots match on/off (plaza, cmarket).
+- **The long tail:** SkyBirds and SeaSpray write their MultiMeshes in one `buffer` call a frame (a bird's 16-float row
+  made when it flies; streaks and foam rows built in the loop) instead of two server calls an instance; foam heights a
+  third of the patches a frame (was half), carried on at the rate they were rising, the tilt with every other height
+  (heights a frame 59 -> ~26 at 40 patches); DevCapture samples on a 0.1 s Timer (no `_physics_process`, no
+  get_property_list) and makes nothing in a release build. Gotcha: the headless renderer gives back nothing from a
+  MultiMesh, so both keep their last buffer (`rows`) for the test.
+- Full route back to back (occ_before2 main / occ_after, calib 25.39 / 27.14, no other Godots): ALL frame 15.89 -> 14.20,
+  frame1t 15.99 -> 14.37, p95 23.6 -> 19.8, h33 70 -> 18, draws 1421 -> 1370; but GPU and physics scripts fell ~25%
+  at every stop, sea included, which no change here explains: treat the pair as noisy. Scripts: sea_spray 0.195 -> 0.161,
+  sky_birds 0.285 -> 0.285 (the buffer didn't move it: its cost is the flying), dev_capture 0.098 -> 0.
+  A rerun of main's before (occ_before3) died at the calib three times (exit 255, no trace; the branch ran fine after a
+  re-import): not chased.
+- Left: sky_birds' flying (dictionary-heavy, 0.28 ms), moored_hull (3 wave heights a tick per riding hull, 0.1),
+  ambience 0.13, actor_sleep 0.13, weather 0.11.
+- **Tested by** t/capital/occluders (every wall's and house's occluder inside its colliders, none over a street, a
+  house's inside its walls), t/world/sky_long_tail (buffer layout, the foam as near the swell as before, DevCapture).
+## 2026-10-20: progression redesign, piece 1: the engine, the contract, the katana (v1.18.2 prog-core)
+Spec: docs/progression_plan.md "Redesign" and "Build: v1.18.2".
+- **SkillTrees** (scripts/progression/skill_trees.gd, new): the redesigned trees. HEADERS has every tree's header (name,
+  section captain/combat/adventure/fruit, colour, top level: Captain 40, weapons 30, Adventure and fruits 20); a converted
+  tree has a root and three branches of big nodes (`_big`: kind move/tech/mech/passive/elem/ult, a level, linked up its
+  branch), variants (`_variant`: versions that are nodes of their own, kind "version") and steps (`_step`: x/3 or x/5,
+  effects per step, hung off a big node). Positions are computed (tree space, root at 0,0, the left/right branches lean out).
+  Only the katana is converted (Guard / Iai / Blade, 30 steps against 29 points); the old ids and effect keys are kept, so
+  every reader (stat, has_move, style_stat, elemental, knows) works unchanged. Folded Steel and Sword Saint became the
+  Keen Edge / Whetstone / Light Feet steps. Variants whose other version is a new move (Side Step, Twin Waves, Falling
+  Moon) show their one form: k_counter, k_wind and k_arc are plain nodes. SkillTree merges these nodes in its own shape
+  (`_merge_new`, "new": true) so its readers and the old skill map see them.
+- **Progression**: big nodes are granted by level (`_sync_tree` on every level-up and load), steps bought with
+  `points_free` = level - 1 - steps, `buy_step`, `respec_steps` / `set_version` / `pick_talent` (a change) only by the
+  ship's bunk (`can_respec`: within 2.5 m of Ship.BED_AT). Passive slots (`passives`, 3, 4 from level 25): a redesigned
+  tree's "passive" node counts in `stat()` only while slotted; a new one fills a free slot by itself; `library()`.
+  Trees show once found (`found`, saved; the Captain and the Cutlass at the start): the first xp in a tree finds it,
+  `tree_found` fires and the HUD's `show_banner` says "New skill tree!". `owns_node` is the contract's has_node (Node has
+  one). `master_all()` for tests and render tools.
+- **Mastery**: no family carry-over (FAMILY_SHARE 0, kept for the old map). A hit counts for the first 12 hits on each
+  foe (`on_hit(target)`; PowerComponent passes the target), a kill's share x3 for an elite or a boss (`_elite_at`: a dead
+  "bosses" member, captain grunt or brute scuttlebug within 6 m of where the xp came from, among the bosses and the foes
+  we struck). Downtime's Train: +2 every 6 s, only up to mastery 8 (TRAIN_CAP; the wheel greys it with the reason).
+- **Saves** (FORMAT 5): steps, versions, passives, found, will. On every load a converted tree's old purchases are dropped
+  and granted again by level, so its points come back by themselves (no per-piece format bumps); trees not converted
+  keep their nodes and points. A format-4 save gets one banner.
+- Tests: t/progression/ tree_shape, grant_by_level, steps_points, versions_bunk, tree_found, hit_cap, passive_slots,
+  format5_migration (family_carry and can_learn gone); t/downtime/train checks the cap. techtest, abilityshot and
+  siteshot call `master_all()` first. Expect progtest, techtest, balancetest, r6test, katanatest, uitest to want a look.
+
+## 2026-10-20: progression redesign, piece 2: every weapon tree in the new shape
+- The other eight weapon trees (Cutlass, Dual Wield, Axe, Dagger, Twin Daggers, Corsair, Pistol, Unarmed) are SkillTrees
+  trees, drafted in docs/progression_plan.md ("The other weapon trees"): the old ids, moves, skills and effect keys kept,
+  big nodes by mastery level, 30 steps each (the old stat nodes became the damage / crit / stamina steps; a few old ids
+  like s_edge, g_marks, d_twin, a_heft are steps now), the element at 16 / 25 (`_elem`, SkillTrees.ELEMENTS), the
+  ultimate at 30, and two of the old style passives as a variant (Pirate's Way, Rage, Dancer's Way, Killer's Way,
+  Viper's Way, Corsair's Way); the rest are slotted passives.
+- Gone: the weapon trees in SkillTree, SkillTree.MASTERY, FAMILIES (kin_of / families_of return [] for the old map),
+  mastery "pts", weapon `_spend`. A save holding node ids that no longer exist gets the refund banner once.
+- The found-tree card is menu-ui's `show_new_tree(name, line)` on the HUD ("Added to COMBAT · n points to spend").
+- Tests: tree_shape now checks all nine weapon trees; refund/format5 migrations for the cutlass converted too. World
+  suites' tree checks updated for the new shape (techtest, daggertest, wieldtest, balancetest, progtest), not run.
+
+## 2026-10-20: progression redesign, piece 3: the Captain, Will, the fruits, Acrobatics and Defense
+Spec: docs/progression_plan.md "Captain tree"; the Acrobatics and Defense drafts. Acrobatics, Defense and the fruits came
+into this piece (not piece 4) because the old Captain tree held Geppo, Swift Step, Steadfast and Iron Hide and the
+fruits were bought with skill points: the old trees went in one go, so nothing is missing on main in between.
+- **Captain** (SkillTrees "captain"): growth by level (SkillTrees.GROWTH x (level - 1), folded into `stat()`: +5.5 health,
+  +2% damage, +0.6 stamina, +0.6 energy, +0.5 defense; player.gd's own 4 health / 2% a level gone), milestones (kind
+  "auto": Soru 8, Quartermaster 10 = a third loadout through "loadout_slots", Tekkai 14, c_slot4 25 = passive_slots 4),
+  talents (kind "talent" at 5..40, two versions each; `pick_talent`: the first pick anywhere, a change at the bunk),
+  Will (kind "will", the Will column, each with its Will passive linked to it, "will": id). No skill points
+  (`skill_points` stays 0 for the old map/inventory), tiers rank up by use alone (`note_use` -> `rank_up`, and on load).
+- **Will**: `add_xp(amount, at)` finds the foe that fell there (`_fallen_at`: bosses, Sea Kings, the fort's captain and
+  the foes we struck, `is_dead()` within 6 m, 60 for a Sea King); `boss_kind` (morrow = the Redtide fort's boss, ape =
+  JungleApe, queen = BroodQueen, arena = a JungleBeast in "bosses", sea_king) -> `beat` -> `beaten` (saved) ->
+  `_open_wills` (SkillTrees.WILL: boss + the Wills needed first) -> `grant_will` (node, its passive, a banner).
+  Assumed bosses marked in the plan. Co-op: each captain's own machine runs this from its own `_all_xp`.
+- **Talent hooks**: Quick Hands (player.gd use_item: use_speed_pct), Sea Dog (stat("stamina_regen_pct") +1 while
+  Downtime.ship_under), Second Wind (Progression's tick, once per in_fight), Bounty Hunter (`on_hit(target, hit)`: an
+  extra dot hit on an elite; PowerComponent passes the hit), Rallying Cry (player.gd _revive_tick: revive_pct, the
+  reviver heals rally x max health; the revived gets the usual share: Net.revive has no talent data), Treasure Sense
+  (compass_strip.gd `_draw_treasure`: loot bags with a save id not rolled yet, within treasure_sense m), Captain's
+  Presence (player.gd _on_hit_received: a non-elite foe's blow x (1 - presence)), Quick Learner (mastery_pct in
+  add_mastery). Approved by the lead (player.gd hooks).
+- **Driftfruit**: the fruit trees are SkillTrees trees (ember, wolf, vine; levels 1-20), granted only with that fruit
+  (`_sync_tree` checks power.fruit; `grant_fruit` syncs it; after_load drops another fruit's nodes). A cast of one of its
+  powers is FRUIT_PER_CAST mastery; the Wolf's claws learn like a weapon (`hand_tree()` "claw" -> "wolf"; claw_pct in
+  damage_multiplier).
+- **Acrobatics / Defense**: the drafts minus the new moves (Moonstep, Afterimage, Roll/Sidestep, Crash Landing,
+  Disarm/Shove, Rolling Guard); Clean Parry is numbers (a wider window, 10 stamina back), the rest new numbers or
+  tiny hooks: sprint_jump_pct (jump_state), climb_pct (climb_state), block_cost_pct / block_move_pct (block_state),
+  parry_stamina (parry_state). XP: a jump 3, an air jump 6, a dodge 5; a parry 15, a blocked blow 5.
+- Vey's story step: `drill()`, a level of mastery for the weapon in hand (vey.json says so).
+- skill_bar.gd's level badge: the hand tree's free points (no "+SP").
+- Tests: t/progression captain_growth, talents, will_bosses, acrobatics; refund_migration rewritten; loadout_swap's
+  third slot now at Captain 10. World suites updated, not run: progtest (the Captain section rewritten), storytest
+  (Vey's drill), r6test (Coat by Will; its old-map fruit/base tab checks are menu-ui's), powertest (Ember by level).
+
+## 2026-10-20: progression redesign, piece 4: the life trees, Stealth and Tinkering; SkillTree is a reader now
+Spec: docs/progression_plan.md "The other Adventure trees".
+- Sailing (was Seamanship), Swimming, Cooking and Fishing are SkillTrees trees (levels 1-20, the old perks as big nodes
+  at the same levels with the same ids and keys, Helmsman from the old Captain tree in Sailing, a few new numbers-only
+  nodes, ~20 steps each and a point a level). A save past 20 (they went to 30) is clamped to 20.
+- Stealth (new): sneak_pct (CrouchState's speed), ambush_pct (a blow struck within AMBUSH_TICKS 45 of sneaking: an
+  extra dot share in `on_hit`, one per sneak), Slip Away (the dodge's keys). XP: `Progression.sneak(m)` from
+  CrouchState every tick: SNEAK_XP 3 per SNEAK_M 4 m with a live foe within 20 m (the enemies group checked once per 4 m),
+  AMBUSH_XP 10 for a sneak attack. Its nodes are all the sneaking captain's own (the notice ranges are left to
+  Stealth.range_for), so they work for a guest.
+- Tinkering (new): Downtime's tinker gives TINKER_XP 10 an interval; kit_time_pct slows the kit wearing off
+  (`tick_kit`), kit_per_pct lengthens each interval's tuning; Dry Powder / Powder Horn / Field Whetstone are
+  always-on numbers.
+- SkillTree has no trees of its own any more: `nodes()` is SkillTrees' nodes in the old shape, `perks_of` / `kin_of`
+  return [] and TREES / TAB_ORDER / REGION_* stay for the old skill map. Progression reads SkillTrees directly
+  (stat, known_skills, _own, can_learn: big nodes "Comes at <tree> <level>", a Will passive "Comes with <Will>").
+- Tests: t/progression/stealth; life_mastery (a point a level), refund_migration (Sailing's points), t/ship/seamanship
+  (Sailing's nodes: Helmsman at 5, so 10% / 18% at the helm), t/downtime/tinker (its xp).
+## 2026-10-20: one skill bar across the loadouts (v1.18.2 bar-swap, docs/progression_plan.md "Skill bar")
+- **The rule** (PowerComponent): a weapon's skill (Skills.ALL `styles`, or the old `needs` "sword"/"gun") can go on the bar
+  only while a weapon that fits it is in one of your loadouts; Captain, Will and fruit skills go on with anything; R takes the
+  ultimate of any loadout's weapon. `loadout_styles()` gives each loadout's style (the hands' for the one in use;
+  `Player.loadout_style(i)`: "" when it's not set up, locked, or its main weapon isn't in the bag), `loadout_for(sk, styles, at)`
+  says HANDS (no weapon needed, or the one in hand fits), the first loadout that fits, or NO_LOADOUT.
+- **Switch, then cast:** `try_cast` on a skill whose weapon is in another loadout takes that loadout up at once
+  (`Player.take_loadout_now`: the same `_apply_loadout` as X, so the toast, the quick draw and the clack) and then casts as
+  before. `can_cast` refuses it like any other reason when the switch can't happen now ("Busy": `Player.can_swap_now()` = on foot,
+  not using an item, free or in a swing's combo window; knocked down, mid-heavy, stunned are refused) or no loadout holds the
+  weapon ("Needs a pistol in a loadout", toasted). A Zoan hybrid's weapon skills stay refused ("Needs a pistol"). Nothing else
+  changes: costs, cooldowns and the state are the old ones.
+- **Editing:** `equip_why(skill, slot) -> String` ("" = fine): "Not during a boss fight" (`boss_fight()`: a node in group
+  "bosses" in combat within BOSS_LOCK_RANGE 55 m, the boss music's range; clearing a slot is refused then too; outside boss
+  fights the bar can be edited any time, the menu pausing the world), "Ultimates go on R", "Only an ultimate goes on R",
+  "Not learned yet", "Needs <weapon> in a loadout"; `equip` refuses whatever it names, so auto_equip (first free slot) only
+  places skills that can go on. A slot whose weapon left your loadouts (sold, stored, the loadout changed) **keeps its skill,
+  shown unusable** (greyed on the HUD, the cast refused) rather than cleared: simpler, and it comes back with the weapon.
+- **HUD** (skill_bar.gd): a weapon skill has a small corner flag in its tree's colour (FX.tree_col), with the loadout number
+  when using it switches loadouts; grey icon and flag when no loadout holds its weapon.
+- Saves: the bar is saved as before (old saves load as they were). Co-op: nothing new on the wire; the hands ride the snapshot
+  (HumanoidSync) with the Technique state, both from the caster's machine. Per frame: the HUD reads `loadout_styles()` once a
+  draw (3 loadouts, a bag count each) and `loadout_for` per slot; nothing in physics ticks.
+- Tests: t/player/bar_switch_cast (a katana in hand, Smoke Bomb from loadout 2 switches and runs, a crewmate's snapshot shows the
+  pistol with the cast, Iai Counter switches back, knocked down it's refused), t/player/bar_equip_rules (the refusals and their
+  reasons, a locked loadout doesn't count, a slot whose weapon left the bag kept but refused, a stand-in boss locking the bar
+  near and not far, a skill learned mid-fight left off it). progtest now puts a pistol in
+  loadout 2 before its pistol skills fill the bar. Render: `barshot <out_prefix>` (the bar with a katana in hand, pistols in
+  loadout 2, a greyed cutlass skill).

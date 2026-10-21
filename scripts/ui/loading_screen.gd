@@ -27,6 +27,9 @@ var _shown: float = 0.0
 var _packed: PackedScene
 var _card: Control
 var _tip: String = ""
+## When (stage time) FX.warm_up ran, and how long the card stays up after it (the bursts are drawn and gone).
+var _warmed: float = -1.0
+const WARM_S := 0.8
 
 
 ## Load `scene_path` behind a loading screen.
@@ -73,9 +76,13 @@ func _process(delta: float) -> void:
 				_go("wait")
 		"wait":
 			_shown = move_toward(_shown, 0.95, delta * 0.5)
-			# the captain is in the world and the save has been applied
+			# the captain is in the world and the save has been applied: every effect drawn once under the card
+			# (their shaders compiled now, not at the first blow), then in
 			var p := get_tree().get_first_node_in_group("player")
-			if p and _stage_t > 0.6:
+			if p and _stage_t > 0.6 and _warmed < 0.0:
+				get_node("/root/FX").warm_up()
+				_warmed = _stage_t
+			if _warmed >= 0.0 and _stage_t > _warmed + WARM_S:
 				_go("fade")
 		"fade":
 			_shown = move_toward(_shown, 1.0, delta * 2.0)

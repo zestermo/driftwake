@@ -21,8 +21,10 @@ const KINDS := {
 	"tinker": {"label": "Tinker", "where": "ship", "every": 10.0, "order": 50},
 	"sleep": {"label": "Sleep in the bunk", "where": "ship", "every": 2.0, "order": 70},
 }
-## Mastery for each interval of training (fighting lands MASTERY_PER_HIT a hit, many hits a minute).
-const TRAIN_MASTERY := 5
+## Mastery for each interval of training (fighting lands MASTERY_PER_HIT a hit, many hits a minute), and only up
+## to TRAIN_CAP: drills teach the basics, mastery comes from fighting.
+const TRAIN_MASTERY := 2
+const TRAIN_CAP := 8
 ## Reading: experience an interval, a piece of lore every LORE_EVERY intervals, the recipe at RECIPE_AT.
 const READ_XP := 6
 const LORE_EVERY := 3
@@ -46,6 +48,8 @@ const LORE := [
 const KIT_PER := 90.0
 const KIT_MAX := 1200.0
 const KIT := {"extra_shots": 1.0, "reload_pct": 0.15, "damage_pct": 0.04}
+## Tinkering xp for each interval of it.
+const TINKER_XP := 10
 ## Sleeping: health back a share of the most an interval; the day's clock runs this many times as fast (solo).
 const SLEEP_HEAL := 0.05
 const SLEEP_TIME := 30.0
@@ -128,7 +132,14 @@ static func _train_label(p) -> String:
 static func _train_ok(p):
 	if not ActionWheel.on_foot(p):
 		return false
-	return "Nothing to train in that shape" if _train_tree(p) == "" else ActionWheel.busy(p)
+	if _train_tree(p) == "":
+		return "Nothing to train in that shape"
+	return _first(_drilled(p), ActionWheel.busy(p))
+
+
+## "" while drills still teach the weapon in hand.
+static func _drilled(p) -> String:
+	return "Drills teach up to mastery %d - fight to learn more" % TRAIN_CAP if p.progression.mastery_level(_train_tree(p)) >= TRAIN_CAP else ""
 
 
 static func _train(p) -> void:
@@ -181,6 +192,8 @@ static func start(p, kind: String) -> void:
 static func refuse(p, kind: String) -> String:
 	if kind == "train" and _train_tree(p) == "":
 		return "Nothing to train with in that shape"
+	if kind == "train" and _drilled(p) != "":
+		return _drilled(p)
 	var ship := ship_under(p)
 	if ship and not looked_after(ship) and kind != "train":
 		return "Lash the helm or drop anchor first (N at the wheel)"
@@ -231,7 +244,8 @@ static func reward(p, kind: String) -> void:
 	var pr = p.progression
 	match kind:
 		"train":
-			pr.add_mastery(_train_tree(p), TRAIN_MASTERY)
+			if pr.mastery_level(_train_tree(p)) < TRAIN_CAP:
+				pr.add_mastery(_train_tree(p), TRAIN_MASTERY)
 		"read":
 			pr.add_xp(READ_XP)
 			var n := int(pr.downtime.get("read_n", 0)) + 1
@@ -242,7 +256,8 @@ static func reward(p, kind: String) -> void:
 				p.call("_toast", LORE[(n / LORE_EVERY - 1) % LORE.size()])
 		"tinker":
 			var was: float = pr.kit_left
-			pr.kit_left = minf(was + KIT_PER, KIT_MAX)
+			pr.kit_left = minf(was + KIT_PER * (1.0 + pr.stat("kit_per_pct")), KIT_MAX)
+			pr.add_life("tinker", TINKER_XP)
 			if was <= 0.0:
 				p.call("_recalc_stats")
 			p.call("_toast", "Kit tuned: a spare shot, quicker reloads, +4%% damage (%d min)" % ceili(pr.kit_left / 60.0))
@@ -258,9 +273,9 @@ static func tick(p, kind: String, delta: float) -> void:
 		p.get_node("/root/Weather").world_offset += delta * (SLEEP_TIME - 1.0)
 
 
-## The tinkered kit wearing off (Progression._physics_process, game time).
+## The tinkered kit wearing off (Progression._physics_process, game time; Tinkering's kit_time_pct slows it).
 static func tick_kit(pr, delta: float) -> void:
-	pr.kit_left -= delta
+	pr.kit_left -= delta / (1.0 + pr.stat("kit_time_pct"))
 	if pr.kit_left > 0.0:
 		return
 	pr.kit_left = 0.0

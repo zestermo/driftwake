@@ -285,9 +285,7 @@ func _learn_all() -> void:
 	var pr = p.progression
 	pr.level = 30
 	pr.skill_points = 999
-	for tr in SkillTree.TREES.keys():
-		if SkillTree.is_mastery_tree(tr):
-			pr.mastery_of(tr)["pts"] = 999
+	pr.master_all()
 	var grew := true
 	while grew:
 		grew = false
@@ -296,6 +294,7 @@ func _learn_all() -> void:
 				pr.learn(k)
 				grew = true
 	pr.owned.erase("h_instinct")
+	pr.owned.erase("df_instinct")
 
 
 func _cast(id: String) -> void:

@@ -197,6 +197,7 @@ func _hang(delta: float) -> void:
 	if _chop_t >= 0.0:
 		mv = 0.0
 	var k := ARMED_MULT if player.armed else (HURRY if Input.is_action_pressed("sprint") else 1.0)
+	k *= 1.0 + player.progression.stat("climb_pct")
 	if mv > 0.1:
 		s += mv * (LADDER_UP if _lad else RIG_UP) * k * delta
 	elif mv < -0.1:

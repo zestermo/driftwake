@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Loadout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&amp;family=Pixelify+Sans:wght@400;600&amp;family=Silkscreen&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#f2c45e}a:hover{color:#f5e8c8}
+.sky{background:
+radial-gradient(1.5px 1.5px at 12% 18%, #f5e8c8 50%, transparent 52%),
+radial-gradient(1px 1px at 27% 64%, #dacca8 50%, transparent 52%),
+radial-gradient(1.5px 1.5px at 41% 9%, #f5e8c8 50%, transparent 52%),
+radial-gradient(1px 1px at 58% 33%, #dacca8 50%, transparent 52%),
+radial-gradient(1px 1px at 86% 47%, #dacca8 50%, transparent 52%),
+radial-gradient(1px 1px at 8% 82%, #dacca8 50%, transparent 52%),
+radial-gradient(ellipse at 35% 40%, #1f5560 0%, #10313a 45%, #081a1f 100%);}
+.px{image-rendering:pixelated}
+.screen{position:relative;isolation:isolate}
+.screen::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(1px 1px at 18% 8%,#fff3c9 50%,transparent 52%),radial-gradient(1.5px 1.5px at 66% 6%,#fff3c9 50%,transparent 52%),radial-gradient(1px 1px at 91% 22%,#fff3c9 50%,transparent 52%),radial-gradient(1.5px 1.5px at 4% 46%,#fff3c9 50%,transparent 52%),radial-gradient(ellipse 40% 30% at 18% 30%,rgba(201,168,255,0.12),transparent 70%),radial-gradient(ellipse 45% 35% at 82% 70%,rgba(101,201,192,0.12),transparent 70%),radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(5,15,18,0.55) 100%);animation:twinkle 4s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.85}50%{opacity:1}}
+.screen::after{content:'';position:absolute;inset:5px;border:2px dashed rgba(218,204,168,0.2);border-radius:16px 10px 18px 12px;pointer-events:none;z-index:9}
+.screen span[style*="font-size: 24px"],.screen span[style*="font-size: 26px"],.screen span[style*="font-size: 28px"],span[style*="font-size: 30px"]{font-family:'Jacquarda Bastarda 9','Pixelify Sans',serif !important;font-weight:400 !important;letter-spacing:0.5px}
+.topbar{position:relative;z-index:3;display:flex;align-items:flex-start;gap:12px;height:56px;padding:0 16px 0 12px;box-sizing:border-box;flex-shrink:0;background:radial-gradient(ellipse 14px 5px at 23% 40%,rgba(43,26,12,0.45),transparent 70%),radial-gradient(ellipse 10px 4px at 71% 62%,rgba(43,26,12,0.4),transparent 70%),repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),repeating-linear-gradient(90deg,transparent 0 141px,rgba(43,26,12,0.35) 141px 143px),linear-gradient(180deg,#86603b 0%,#694627 55%,#4c311a 100%);box-shadow:inset 0 2px 0 rgba(255,230,180,0.18),inset 0 -2px 0 rgba(43,26,12,0.6),0 10px 16px rgba(0,0,0,0.5)}
+.topbar::after{content:'';position:absolute;left:-4px;right:-4px;bottom:-5px;height:8px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c,0 3px 4px rgba(0,0,0,0.4)}
+.emblem{align-self:center;flex-shrink:0;width:40px;height:40px;margin-top:-4px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 40% 35%,#2a6a73,#0f2b30);box-shadow:0 0 0 2px #2b1a0c,0 0 0 5px #c9a15a,0 0 0 6px #2b1a0c,0 0 14px rgba(242,196,94,0.45)}
+.emblem img{width:32px;height:32px}
+.tabs{display:flex;align-items:flex-start;gap:12px;align-self:stretch;padding-left:4px}
+.tab{position:relative;margin-top:11px;padding:2px;border-radius:8px 11px 7px 12px;background:linear-gradient(180deg,#9c7448,#6e4b2b);box-shadow:0 0 0 2px #2b1a0c,0 4px 6px rgba(0,0,0,0.35)}
+.tab::before{content:'';position:absolute;left:14px;right:14px;top:-13px;height:13px;border-left:2px solid #d9b77a;border-right:2px solid #d9b77a}
+.tab:nth-child(1){transform:rotate(-2deg)}.tab:nth-child(2){transform:rotate(1.5deg)}.tab:nth-child(3){transform:rotate(-1deg)}.tab:nth-child(4){transform:rotate(2deg)}
+.tab-in{display:flex;align-items:center;gap:8px;padding:6px 13px 7px;border-radius:6px 9px 5px 10px;font-family:Silkscreen,monospace;font-size:12px;letter-spacing:1px;color:#f3e6c4;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.14) 0 1px,transparent 1px 4px),linear-gradient(180deg,#7a5534,#5a3b22);box-shadow:inset 0 2px 0 rgba(255,230,180,0.2),inset 0 -2px 0 rgba(0,0,0,0.3);text-shadow:0 1px 0 #2b1a0c}
+.tab-in img{width:16px;height:16px;image-rendering:pixelated}
+.tab.on{margin-top:15px;z-index:4;background:linear-gradient(180deg,#fff0b8,#c99a3e);box-shadow:0 0 0 2px #2b1a0c,0 0 16px rgba(255,214,110,0.55),0 6px 8px rgba(0,0,0,0.35)}
+.tab.on::before{top:-17px;height:17px}
+.tab.on::after{content:'';position:absolute;right:-6px;top:-6px;width:11px;height:11px;background:#fff3c9;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.tab.on .tab-in{padding:8px 16px 9px;color:#2b1a0c;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe9a3 0%,#f2c45e 55%,#d9a640 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,0.6),inset 0 -3px 0 rgba(138,106,44,0.55)}
+.plate{align-self:center;margin-top:-3px;display:flex;align-items:center;gap:9px;padding:4px 16px 4px 4px;color:#2b1a0c;background:radial-gradient(ellipse 8px 50% at 100% 50%,rgba(138,106,44,0.45),transparent),repeating-linear-gradient(0deg,rgba(138,106,44,0.07) 0 1px,transparent 1px 3px),#f3e6c4;box-shadow:0 0 0 2px #2b1a0c,0 3px 6px rgba(0,0,0,0.4);border-radius:22px 8px 10px 22px;transform:rotate(-1deg)}
+.coin{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Silkscreen,monospace;font-size:12px;color:#2b1a0c;background:radial-gradient(circle at 35% 30%,#fff3c9 0%,#f2c45e 45%,#a8742a 100%);box-shadow:0 0 0 2px #2b1a0c,0 0 0 4px #e3c487,0 0 0 5px #2b1a0c,inset 0 -2px 0 rgba(0,0,0,0.25)}
+.plate-txt{display:flex;flex-direction:column;gap:4px}
+.plate-k{font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#5a3b22}
+.plate-xp{width:96px;height:5px;border-radius:3px;background:#d9cdb0;box-shadow:0 0 0 1px #8a6a2c}
+.plate-xp div{height:5px;border-radius:3px;background:#277f89}
+.keys{position:relative;z-index:3;display:flex;align-items:center;gap:18px;padding:8px 18px 7px;flex-shrink:0;font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#f3e6c4;text-shadow:0 1px 0 #2b1a0c;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),linear-gradient(180deg,#694627,#4c311a)}
+.keys::before{content:'';position:absolute;left:-4px;right:-4px;top:-4px;height:7px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c}
+.key{display:flex;align-items:center;gap:6px}
+.cap{padding:1px 6px 2px;min-width:10px;text-align:center;color:#2b1a0c;text-shadow:none;background:radial-gradient(circle at 40% 30%,#fbf2da,#d9c79a);border-radius:8px 6px 9px 7px;box-shadow:0 0 0 1px #2b1a0c,0 2px 0 #8a6a2c,0 3px 0 #2b1a0c}
+.rail{position:relative;z-index:3;display:flex;justify-content:center;align-items:center;gap:22px;padding:8px 20px 7px;flex-shrink:0;background:repeating-linear-gradient(0deg,rgba(43,26,12,0.16) 0 1px,transparent 1px 5px),linear-gradient(180deg,#694627,#4c311a)}
+.rail::before{content:'';position:absolute;left:-4px;right:-4px;top:-4px;height:7px;border-radius:4px;background:repeating-linear-gradient(120deg,#e3c487 0 4px,#a8823f 4px 8px);box-shadow:0 0 0 1px #2b1a0c}
+.rail span{color:#e3d2a8 !important;text-shadow:0 1px 0 #2b1a0c}
+.rail .sel{padding:3px 16px;border-radius:8px 11px 7px 12px;color:#2b1a0c !important;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe9a3,#d9a640);box-shadow:0 0 0 2px #2b1a0c,0 0 12px rgba(255,214,110,0.5);transform:rotate(-2deg)}
+.parch{color:#2b1a0c;border-radius:16px 7px 18px 9px/9px 16px 8px 14px;background-color:#f3e6c4;background-image:radial-gradient(circle at calc(100% - 20px) 18px,#fff 0 1.5px,transparent 2px),radial-gradient(circle at calc(100% - 22px) 20px,#d0453a 0 8px,#9a2e24 8px 10px,transparent 10.5px),radial-gradient(circle at 22% 88%,transparent 0 17px,rgba(138,106,44,0.16) 17px 19px,transparent 20px),radial-gradient(ellipse at 50% 35%,rgba(255,255,255,0.5),transparent 65%),repeating-linear-gradient(0deg,rgba(138,106,44,0.06) 0 1px,transparent 1px 3px);box-shadow:0 0 0 2px #2b1a0c,0 0 0 5px #d9b77a,0 0 0 7px #2b1a0c,0 14px 24px rgba(0,0,0,0.55),inset 0 0 30px rgba(120,80,30,0.45),inset 0 0 6px rgba(90,59,34,0.5);transform:rotate(-0.4deg)}
+.slate{border:4px solid transparent;border-radius:12px 7px 14px 8px;background:radial-gradient(circle at 8px 8px,#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at calc(100% - 8px) 8px,#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at 8px calc(100% - 8px),#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,radial-gradient(circle at calc(100% - 8px) calc(100% - 8px),#f2c45e 0 1.5px,#2b1a0c 1.5px 2.5px,transparent 3px) padding-box,linear-gradient(180deg,rgba(31,96,104,0.92),rgba(14,44,50,0.94)) padding-box,repeating-linear-gradient(45deg,#e3c487 0 3px,#a8823f 3px 6px) border-box;box-shadow:0 0 0 1px #2b1a0c,inset 0 0 0 1px #2b1a0c,inset 0 2px 0 rgba(245,232,200,0.12),0 10px 18px rgba(0,0,0,0.45)}
+.ribbon{position:relative;align-self:flex-start;display:inline-block;flex-shrink:0;font-family:Silkscreen,monospace;font-size:10px;letter-spacing:1px;color:#fff3e0;text-shadow:0 1px 0 #6e1f17;background:linear-gradient(180deg,#e0644f,#b5402f);padding:3px 18px 4px;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 50%,100% 100%,0 100%,8px 50%);transform:rotate(-1deg)}
+.ribbon.gold{color:#2b1a0c;text-shadow:0 1px 0 rgba(255,255,255,0.5);background:linear-gradient(180deg,#ffe08a,#d9a640)}
+.rule{position:relative;height:11px;flex-shrink:0;background:repeating-linear-gradient(120deg,#c9a15a 0 3px,#8a6a2c 3px 6px) center/100% 3px no-repeat}
+.rule::after{content:'';position:absolute;left:50%;top:0;width:11px;height:11px;margin-left:-5.5px;background:#f2c45e;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.screen [style*="border: 2px"]:not([style*="border-radius"]),.screen [style*="border: 3px"]:not([style*="border-radius"]){border-radius:9px 5px 10px 6px}
+.screen [style*="border: 2px solid"]:not([style*="border-radius"]):not([style*="box-shadow"]){box-shadow:inset 0 2px 0 rgba(245,232,200,0.12),inset 0 -2px 0 rgba(0,0,0,0.3)}
+
+
+</style>
+</helmet>
+<div class="sky screen" style="width: 1280px; height: 720px; box-sizing: border-box; color: #f5e8c8; font-family: 'Pixelify Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+<div class="topbar">
+<div class="emblem"><img src="/_blob/27fef92f6b46999a4acb2873e67516da" alt=""></div>
+<div class="tabs">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+<div class="{{t.cls}}"><div class="tab-in"><img src="{{t.icon}}" alt=""><span>{{t.label}}</span></div></div>
+</sc-for>
+</div>
+<div style="flex-grow: 1"></div>
+<div class="plate"><div class="coin">12</div><div class="plate-txt"><span class="plate-k">CAPTAIN · LEVEL 12</span><div class="plate-xp"><div style="width: 28%;"></div></div></div></div>
+</div>
+
+
+<div style="display: flex; gap: 18px; padding: 14px 20px; flex-grow: 1; min-height: 0;">
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 842px; flex-shrink: 0;">
+
+<div style="display: flex; gap: 10px; align-items: stretch;">
+<sc-for list="{{loadouts}}" as="l" hint-placeholder-count="3">
+<div style="flex: 1 1 0; display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: {{l.bg}}; border: 2px {{l.line}} {{l.rim}}; box-shadow: {{l.glow}};">
+<div style="width: 48px; height: 48px; box-sizing: border-box; background: #0c2427; border: 2px solid {{l.color}}; display: flex; align-items: center; justify-content: center;">
+<sc-if value="{{l.hasIcon}}" hint-placeholder-val="{{false}}">
+<img class="px" src="{{l.icon}}" alt="" style="width: 40px; height: 40px;">
+</sc-if>
+</div>
+<div style="display: flex; flex-direction: column; gap: 1px;">
+<span style="font-family: Silkscreen, monospace; font-size: 10px; color: {{l.color}};">LOADOUT {{l.n}} {{l.flag}}</span>
+<span style="font-size: 18px; color: {{l.fg}};">{{l.name}}</span>
+<span style="font-size: 12px; color: #dacca8;">{{l.sub}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div class="slate" style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; ">
+<div style="display: flex; align-items: baseline; gap: 10px;">
+<span class="ribbon gold">SKILL BAR</span>
+<span style="font-size: 14px; color: #dacca8;">One bar for all your loadouts. Using another weapon's skill switches to that weapon, then uses it.</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px;">
+<sc-for list="{{bar}}" as="s" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 6px 6px; background: {{s.bg}}; border: 2px {{s.line}} {{s.rim}};">
+<span style="font-family: Silkscreen, monospace; font-size: 13px; color: #173338; background: #f5e8c8; padding: 1px 7px;">{{s.key}}</span>
+<div style="width: 56px; height: 56px; box-sizing: border-box; background: #0c2427; border: 3px solid {{s.color}}; display: flex; align-items: center; justify-content: center;">
+<sc-if value="{{s.hasIcon}}" hint-placeholder-val="{{false}}">
+<img class="px" src="{{s.icon}}" alt="" style="width: 48px; height: 48px; opacity: {{s.op}};">
+</sc-if>
+</div>
+<span style="font-size: 14px; text-align: center; line-height: 1.1; color: {{s.fg}};">{{s.name}}</span>
+<div style="align-self: stretch; height: 4px; background: {{s.color}};"></div>
+<span style="font-family: Silkscreen, monospace; font-size: 9px; color: {{s.color}}; text-align: center;">{{s.from}}</span>
+<span style="font-family: Silkscreen, monospace; font-size: 9px; color: #f2c45e; text-align: center;">{{s.swap}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div class="slate" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; ">
+<div style="display: flex; align-items: baseline; gap: 10px;">
+<span style="font-family: Silkscreen, monospace; font-size: 12px; color: #ffb39e;">PASSIVES</span>
+<span style="font-size: 14px; color: #dacca8;">3 slots. A weapon's passive counts only with that weapon in hand.</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;">
+<sc-for list="{{passives}}" as="p" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #143f46; border: 2px solid {{p.color}};">
+<div style="width: 18px; height: 18px; flex-shrink: 0; transform: rotate(45deg); background: #ffb39e; border: 2px solid #f5e8c8;"></div>
+<div style="display: flex; flex-direction: column; gap: 1px;">
+<span style="font-size: 15px;">{{p.name}}</span>
+<span style="font-family: Silkscreen, monospace; font-size: 9px; color: {{p.color}};">{{p.from}}</span>
+<span style="font-size: 12px; line-height: 1.25; color: #dacca8;">{{p.desc}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div class="parch" style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1; padding: 12px 14px;  min-width: 0;">
+<span class="ribbon">LIBRARY · WHAT YOU KNOW</span>
+<sc-for list="{{library}}" as="g" hint-placeholder-count="4">
+<div style="display: flex; align-items: baseline; gap: 8px; margin-top: 7px; padding-bottom: 2px; border-bottom: 2px solid {{g.color}};">
+<span style="font-family: Silkscreen, monospace; font-size: 11px; color: #173338; flex-grow: 1;">{{g.title}}</span>
+<span style="font-family: Silkscreen, monospace; font-size: 9px; color: #4f625e;">{{g.note}}</span>
+</div>
+<sc-for list="{{g.rows}}" as="row" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+<div style="width: 28px; height: 28px; box-sizing: border-box; background: #173338; border: 2px solid {{row.rim}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+<sc-if value="{{row.hasIcon}}" hint-placeholder-val="{{false}}">
+<img class="px" src="{{row.icon}}" alt="" style="width: 24px; height: 24px; opacity: {{row.op}};">
+</sc-if>
+</div>
+<span style="flex-grow: 1; color: {{row.fg}};">{{row.name}}</span>
+<span style="font-family: Silkscreen, monospace; font-size: 9px; padding: 1px 5px; background: {{row.chipBg}}; color: {{row.chipFg}};">{{row.state}}</span>
+</div>
+</sc-for>
+</sc-for>
+</div>
+</div>
+
+<div class="keys">
+<span class="key"><span class="cap">Q/E</span>TAB</span><span class="key"><span class="cap">ENTER</span>PUT ON BAR</span><span class="key"><span class="cap">1-5 / R</span>SLOT</span><span class="key"><span class="cap">RMB</span>CLEAR</span><span class="key"><span class="cap">K</span>CLOSE</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const KT = '#b3d9ff', PS = '#f2bf66', CP = '#f5e8c8', CT = '#d9d9f2';
+    const IC = {
+      kat: '/_blob/2cef7cfc33b71652608a4d2e84dcb5e5', pis: '/_blob/dcabdfcb2eed3fbb1d58e3e90aa081ee',
+      ws: '/_blob/41af9ab92f87bccdaea34f484e40c61f', tr: '/_blob/e2fe22b23273137b5d89e2e0b8914db0',
+      ps: '/_blob/57f7889f1172e2c4a8b06c17eee645ac', ic: '/_blob/5683fbcffd8f21750f4594020ae270b0',
+      tp: '/_blob/920eb7b54a8cd548484155cfc6ab1827', soru: '/_blob/340c16b28801ebf61419c481ea880b83',
+      tek: '/_blob/b7dd2cc2d6c621afaa37e77c0c0d5e4e', coat: '/_blob/94dbbc10757ce709f6731adae213abe5',
+      de: '/_blob/c7d1f41bb30c77f7ccc57c44efba61b7', sb: '/_blob/ca5f0bff0b178eba69b96c31128d011c',
+      pb: '/_blob/e523455f68ce4fe51ec9b6ac067b8f2f', dw: '/_blob/2bc166a14e49989cbb9ccdba0303e0ea',
+    };
+    const TABI = { CAPTAIN: '/_blob/8831fb5ccb3fc48b76c628ecdbf54296', COMBAT: '/_blob/530da3be9f5c3caec4e3e304c84576ff', ADVENTURE: '/_blob/4c5fb441c9c5ac6bdc328fe130bd73d5', LOADOUT: '/_blob/aa2c7e0f31d3bc6b2293a413f3b3afe1' };
+    const tabs = ['CAPTAIN', 'COMBAT', 'ADVENTURE', 'LOADOUT'].map((label, i) => ({ label, cls: i === 3 ? 'tab on' : 'tab', icon: TABI[label] }));
+    const loadouts = [
+      { n: 1, flag: '· IN HAND', name: 'Katana', sub: 'Mastery 14', color: KT, icon: IC.kat, hasIcon: true, bg: '#22707a', rim: '#f2c45e', line: 'solid', fg: '#f5e8c8', glow: '0 0 12px rgba(242,196,94,0.45)' },
+      { n: 2, flag: '', name: 'Dual pistols', sub: 'Mastery 6', color: PS, icon: IC.pis, hasIcon: true, bg: 'rgba(20,63,70,0.9)', rim: '#0c2427', line: 'solid', fg: '#f5e8c8', glow: 'none' },
+      { n: 3, flag: '', name: 'Locked', sub: 'Comes at captain level 10', color: '#7f9894', icon: '', hasIcon: false, bg: 'rgba(16,47,53,0.8)', rim: '#3c5c5f', line: 'dashed', fg: '#93a8a3', glow: 'none' },
+    ];
+    const slot = (key, name, icon, color, from, swap, state) => ({ key, name, icon, hasIcon: !!icon, color, from, swap,
+      op: state === 'locked' ? 0.35 : 1, fg: state === 'locked' ? '#93a8a3' : '#f5e8c8',
+      bg: state === 'locked' ? 'rgba(16,47,53,0.8)' : '#143f46', rim: state === 'locked' ? '#3c5c5f' : '#0c2427',
+      line: state === 'locked' ? 'dashed' : 'solid' });
+    const bar = [
+      slot('1', 'Wind Severer', IC.ws, KT, 'KATANA · L1', '', 'on'),
+      slot('2', 'Tiger Rush', IC.tr, KT, 'KATANA · L1', '', 'on'),
+      slot('3', 'Phantom Step', IC.ps, KT, 'KATANA · L1', '', 'on'),
+      slot('4', 'Deadeye', IC.de, PS, 'PISTOL · L2', '', 'on'),
+      slot('5', 'Soru', IC.soru, CP, 'CAPTAIN', 'ANY WEAPON', 'on'),
+      slot('R', 'Thousand Petals', IC.tp, '#5e7470', 'KATANA LV 30', '', 'locked'),
+    ];
+    const passives = [
+      { name: 'Clean Line', from: 'KATANA · LV 13', color: KT, desc: 'Iai cuts 30% deeper, finishes the wounded.' },
+      { name: 'Momentum', from: 'ANY WEAPON · LEVEL 5', color: CP, desc: '4 hits in a row unhurt: next technique is free.' },
+      { name: 'Riposte Edge', from: 'ANY WEAPON · LEVEL 10', color: CP, desc: 'A perfect parry makes your next hit stagger.' },
+    ];
+    const chip = { on: ['#277f89', '#f5e8c8'], free: ['#e8d6ae', '#173338'], locked: ['#d9cdb0', '#4f625e'], bunk: ['#f2c45e', '#173338'], no: ['#c9a49a', '#173338'] };
+    const r = (name, icon, rim, state, kind) => ({ name, icon, hasIcon: !!icon, rim, state,
+      op: kind === 'locked' || kind === 'no' ? 0.4 : 1, fg: kind === 'locked' || kind === 'no' ? '#6b7d79' : '#173338',
+      chipBg: chip[kind][0], chipFg: chip[kind][1] });
+    const library = [
+      { title: 'KATANA · LOADOUT 1', note: 'MASTERY 14', color: KT, rows: [
+        r('Wind Severer', IC.ws, KT, 'ON 1', 'on'), r('Tiger Rush', IC.tr, KT, 'ON 2', 'on'), r('Phantom Step', IC.ps, KT, 'ON 3', 'on'),
+        r('Iai Counter', IC.ic, KT, 'KNOWN', 'free'), r('Thousand Petals', IC.tp, KT, 'LV 30', 'locked') ] },
+      { title: 'PISTOL · LOADOUT 2', note: 'MASTERY 6', color: PS, rows: [
+        r('Deadeye', IC.de, PS, 'ON 4', 'on'), r('Point Blank', IC.pb, PS, 'LV 9', 'locked'), r('Smoke Bomb', IC.sb, PS, 'LV 12', 'locked') ] },
+      { title: 'CAPTAIN AND WILL', note: 'ANY WEAPON', color: '#b88a3a', rows: [
+        r('Soru', IC.soru, CP, 'ON 5', 'on'), r('Tekkai', IC.tek, CP, 'LEVEL 14', 'locked'), r('Iron Will: Coat', IC.coat, CP, 'WILL TRIAL', 'locked') ] },
+      { title: 'CUTLASS · NO LOADOUT', note: 'MASTERY 7', color: CT, rows: [
+        r('Flying Slash', '', CT, 'NEEDS A LOADOUT', 'no') ] },
+    ];
+    return { tabs, loadouts, bar, passives, library };
+  }
+}
+</script>
+</body>
+</html>

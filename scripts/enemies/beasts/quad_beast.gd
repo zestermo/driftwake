@@ -39,10 +39,18 @@ func mb(node: String) -> MeshBuilder:
 	return _parts[n]
 
 
+## The model's geometry ahead of time, off the main thread (GenIsland.prepare's worker): the rig (plain nodes) and every
+## part's MeshBuilder, painted, keyed by the shared materials. Nothing for the servers: _build commits it in the world.
+func prebuild() -> void:
+	model = Node3D.new()
+	model.name = "Model"
+	_geometry()
+
+
 func _build() -> void:
-	spec = _spec()
+	if spec.is_empty():
+		_geometry()
 	var hh: float = spec["hip_h"]
-	var ln: float = spec["len"]
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = maxf(float(spec["chest_r"]), 0.4)
@@ -50,8 +58,33 @@ func _build() -> void:
 	col.shape = cap
 	col.position = Vector3(0, cap.height * 0.5, 0)
 	add_child(col)
-	var coat := own(PSXMat.lit(str(spec["tex"]), Color(1.15, 1.15, 1.15)))
-	var bare := own(PSXMat.lit("leather", Color(1.0, 1.0, 1.0)))
+	var shared_coat: Material = spec["coat_mat"]
+	var shared_bare: Material = spec["bare_mat"]
+	var coat := own(shared_coat)
+	var bare := own(shared_bare)
+	spec["coat_mat"] = coat
+	spec["bare_mat"] = bare
+	_eye_mi = _eye_mb.to_instance("Eyes")
+	(rig["Head"] as Node3D).add_child(_eye_mi)
+	for n in _parts.keys():
+		var part: MeshBuilder = _parts[n]
+		part.rekey(shared_coat, coat)
+		part.rekey(shared_bare, bare)
+		var mi := part.to_instance("Mesh")
+		(n as Node3D).add_child(mi)
+		_skin_mis.append(mi)
+	_last = global_position
+
+
+var _eye_mb: MeshBuilder
+
+
+func _geometry() -> void:
+	spec = _spec()
+	var hh: float = spec["hip_h"]
+	var ln: float = spec["len"]
+	var coat := PSXMat.lit(str(spec["tex"]), Color(1.15, 1.15, 1.15))
+	var bare := PSXMat.lit("leather", Color(1.0, 1.0, 1.0))
 	var eye := PSXMat.glow(spec.get("eye", Color(1.0, 0.75, 0.15)), 2.6)
 	spec["coat_mat"] = coat
 	spec["bare_mat"] = bare
@@ -91,8 +124,7 @@ func _build() -> void:
 	for s in [-1.0, 1.0]:
 		em.add_box(eye, Transform3D(Basis(Vector3.UP, s * 0.35), Vector3(s * hd.x * 0.62, hd.y * 0.25, -hd.z * 0.72)), Vector3(hd.x * 0.16, hd.y * 0.13, hd.x * 0.1), 1.0)
 		mb("Head").add_cylinder(coat, Transform3D(Basis(Vector3.FORWARD, s * 0.35), Vector3(s * hd.x * 0.55, hd.y * 0.75, hd.z * 0.15)), hd.x * 0.2, 0.02, hd.y * float(spec.get("ears", 0.6)), 4, 1.0, Color(0.85, 0.85, 0.85))
-	_eye_mi = em.to_instance("Eyes")
-	(rig["Head"] as Node3D).add_child(_eye_mi)
+	_eye_mb = em
 	# the tail: four links
 	var parent: Node3D = rig["Hips"]
 	var tl: float = float(spec["tail"]) / 4.0
@@ -106,12 +138,7 @@ func _build() -> void:
 		at = Vector3(0, 0, tl)
 	_extras()
 	for n in _parts.keys():
-		var part: MeshBuilder = _parts[n]
-		_paint(part, coat)
-		var mi := part.to_instance("Mesh")
-		(n as Node3D).add_child(mi)
-		_skin_mis.append(mi)
-	_last = global_position
+		_paint(_parts[n], coat)
 
 
 func _node(n: String, pos: Vector3, parent: Node3D) -> Node3D:

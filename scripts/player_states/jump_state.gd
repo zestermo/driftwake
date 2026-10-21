@@ -18,9 +18,11 @@ func _launch(double: bool) -> void:
 	player.variable_jump_active = true
 	player.squash(4.5 if not double else 3.5)
 	var kind := take_off(double)
-	if kind == "jump_sprint" and not player.spend_stamina(SPRINT_JUMP_COST):
+	var pr := player.progression
+	if kind == "jump_sprint" and not player.spend_stamina(SPRINT_JUMP_COST * (1.0 - pr.stat("sprint_jump_pct"))):
 		kind = "jump_run"
 		player.air_speed = player.move_speed
+	pr.add_life("acrobatics", 6 if double else 3)
 	player.body_model.play(kind, ActionSpecs.length(kind))
 	var at := player.global_position
 	if double:

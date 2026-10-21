@@ -218,9 +218,9 @@ func _process(d: float) -> bool:
 		5:
 			check("smugglers beaten: back to Vey", story().step == "vey_skills")
 			check("  the skill map's still locked", not story().skills_open())
-			points0 = p.progression.skill_points
+			points0 = p.progression.mastery_level(p.progression.hand_tree())
 			check("Vey: skills", _talk("vey", "Sergeant Vey").begins_with("Back already"))
-			check("  a free skill point", p.progression.skill_points == points0 + 1)
+			check("  his drill: a level of mastery for the weapon in hand", p.progression.mastery_level(p.progression.hand_tree()) == points0 + 1)
 			check("  the skill map opens", story().skills_open())
 			root.get_node("GameMenu").open("skills")
 			check("  (K works)", root.get_node("GameMenu")._current == "skills")

@@ -7,7 +7,7 @@ extends CanvasLayer
 signal choice_made(choice: Dictionary)
 
 const CHARS_PER_SEC := 42.0
-const TEXT_COLOR := UIStyle.INK
+const TEXT_COLOR := UIStyle.PARCH_INK
 
 var _canvas: PixelCanvas
 var _root: Control
@@ -56,7 +56,9 @@ func _build() -> void:
 	_canvas.ui.add_child(_root)
 
 	_panel = PanelContainer.new()
-	_panel.add_theme_stylebox_override("panel", UIStyle.panel(Color(UIStyle.CREAM, 0.97), UIStyle.BORDER, 9))
+	var page := UIStyle.parchment(10).duplicate() as StyleBoxTexture
+	page.content_margin_right = 20
+	_panel.add_theme_stylebox_override("panel", page)
 	_panel.anchor_left = 0.5
 	_panel.anchor_right = 0.5
 	_panel.anchor_top = 1.0
@@ -100,11 +102,11 @@ func _build() -> void:
 	foot.add_child(_arrow)
 
 	_name_panel = PanelContainer.new()
-	_name_panel.add_theme_stylebox_override("panel", UIStyle.frame(Color(UIStyle.TEAL, 1.0), UIStyle.BORDER, 6, "plank"))
+	_name_panel.add_theme_stylebox_override("panel", UIStyle.chrome("sign", 7, 2))
 	_root.add_child(_name_panel)
 	_name_label = Label.new()
-	_name_label.add_theme_color_override("font_color", UIStyle.SUN)
-	_name_label.add_theme_color_override("font_outline_color", UIStyle.OUTLINE)
+	_name_label.add_theme_color_override("font_color", UIStyle.GILT)
+	_name_label.add_theme_color_override("font_outline_color", UIStyle.WOOD_INK)
 	_name_label.add_theme_constant_override("outline_size", 3)
 	_name_label.add_theme_font_override("font", load("res://assets/fonts/PixelifySans-SemiBold.woff2"))
 	_name_panel.add_child(_name_label)
@@ -225,13 +227,13 @@ func _select(i: int) -> void:
 		b.text = "%s %d.  %s" % [">" if on else " ", j + 1, str(_choices[j].get("text", "..."))]
 		b.add_theme_stylebox_override("normal", _plank(on))
 		b.add_theme_stylebox_override("hover", _plank(true))
-		b.add_theme_color_override("font_color", UIStyle.INK if on else UIStyle.TEXT)
+		b.add_theme_color_override("font_color", UIStyle.WOOD_INK if on else UIStyle.PARCH)
 	UIStyle.sfx("move")
 
 
-## A choice's plank: light teal with ink when it's the one picked.
+## A choice's plank: wood, gilded with ink when it's the one picked.
 static func _plank(on: bool) -> StyleBoxTexture:
-	return UIStyle.framed(UIStyle.HILITE if on else UIStyle.BG_LIGHT, UIStyle.SUN if on else UIStyle.BORDER_DIM, "plank", 6, 1)
+	return UIStyle.chrome("plank_hover" if on else "plank", 6, 1)
 
 
 func _clear_choices() -> void:
@@ -249,7 +251,7 @@ func _on_typing_done() -> void:
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_color_override("font_hover_color", UIStyle.INK)
+		b.add_theme_color_override("font_hover_color", UIStyle.WOOD_INK)
 		b.mouse_entered.connect(func(): _select(j))
 		b.pressed.connect(func():
 			_select(j)

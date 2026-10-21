@@ -197,7 +197,7 @@ func _process(d: float) -> bool:
 			step += 1
 		15:
 			shot("map_main")
-			root.get_node("GameMenu")._skills.set_tab(1)
+			root.get_node("GameMenu")._skills.set_tab("fruit")
 			wait = 0.3
 			step += 1
 		16:

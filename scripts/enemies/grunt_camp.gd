@@ -28,6 +28,7 @@ func add_grunt(cfg: Dictionary) -> void:
 ## island's camp, put in the world mid-game: no hitch).
 var warm_start := false
 var _warming: Array = []
+var _muster := -1
 
 
 func _ready() -> void:
@@ -42,28 +43,30 @@ func _ready() -> void:
 func _spawn_all() -> void:
 	grunts.clear()
 	_tokens.clear()
-	var i := 0
-	for cfg in specs:
-		var c: Dictionary = (cfg as Dictionary).duplicate()
-		c["post"] = to_global(c["post"])
-		var patrol: Array = []
-		for q in c.get("patrol", []):
-			patrol.append(to_global(q))
-		c["patrol"] = patrol
-		if c.has("hold"):
-			c["hold"] = [to_global(c["hold"][0]), c["hold"][1]]
-		# (a setup's "script": a grunt of its own kind, the desert's bandit chief)
-		var g: PirateGrunt = load(c["script"]).new() if c.has("script") else PirateGrunt.new()
-		g.name = "G%d_%d" % [gen, i]
-		i += 1
-		g.setup(c)
-		g.camp = self
-		g.xp_k = 0.5 if gen > 0 else 1.0
-		g.level = level
-		add_child(g)
-		g.global_position = c["post"] + Vector3.UP * 0.2
-		g.reset_physics_interpolation()
-		grunts.append(g)
+	for i in range(specs.size()):
+		_spawn_one(i)
+
+
+func _spawn_one(i: int) -> void:
+	var c: Dictionary = (specs[i] as Dictionary).duplicate()
+	c["post"] = to_global(c["post"])
+	var patrol: Array = []
+	for q in c.get("patrol", []):
+		patrol.append(to_global(q))
+	c["patrol"] = patrol
+	if c.has("hold"):
+		c["hold"] = [to_global(c["hold"][0]), c["hold"][1]]
+	# (a setup's "script": a grunt of its own kind, the desert's bandit chief)
+	var g: PirateGrunt = load(c["script"]).new() if c.has("script") else PirateGrunt.new()
+	g.name = "G%d_%d" % [gen, i]
+	g.setup(c)
+	g.camp = self
+	g.xp_k = 0.5 if gen > 0 else 1.0
+	g.level = level
+	add_child(g)
+	g.global_position = c["post"] + Vector3.UP * 0.2
+	g.reset_physics_interpolation()
+	grunts.append(g)
 
 
 func request_token(g: Node) -> bool:
@@ -104,9 +107,18 @@ func alive_count() -> int:
 
 func _process(delta: float) -> void:
 	if not _warming.is_empty():
-		if Humanoid.prebuilt_for(_warming):
+		# its bodies built, the first crew turns up a grunt a frame (six at once was a 40 ms frame); manned once all are
+		if _muster < 0:
+			if not Humanoid.prebuilt_for(_warming):
+				return
+			_muster = 0
+			grunts.clear()
+			_tokens.clear()
+		_spawn_one(_muster)
+		_muster += 1
+		if _muster >= specs.size():
+			_muster = -1
 			_warming = []
-			_spawn_all()
 		return
 	if specs.is_empty() or alive_count() > 0:
 		_empty_t = 0.0
@@ -139,6 +151,7 @@ func net_set_gen(g) -> void:
 		return
 	gen = int(g)
 	_warming = []
+	_muster = -1
 	for old in grunts:
 		if is_instance_valid(old) and (old as PirateGrunt).state != PirateGrunt.S.DEAD:
 			(old as Node).queue_free()

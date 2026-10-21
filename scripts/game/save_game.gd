@@ -55,7 +55,8 @@ static func path() -> String:
 static func enabled() -> bool:
 	if _test_path != "" or _test_dir != "":
 		return true
-	return not ("--script" in OS.get_cmdline_args() or "-s" in OS.get_cmdline_args())
+	# (a tool run: --script, or an exported bench build's BenchBoot)
+	return not Settings.tool_run()
 
 
 static func exists() -> bool:

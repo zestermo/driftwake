@@ -430,7 +430,7 @@ func _recalc_stats() -> void:
 	if hc:
 		var mh := 100.0 + (attribute("endurance") - 5) * 10.0
 		if pr:
-			mh += pr.stat("max_hp") + float(pr.level - 1) * 4.0
+			mh += pr.stat("max_hp")
 		if not is_equal_approx(hc.max_health, mh):
 			hc.max_health = mh
 			hc.current_health = minf(hc.current_health, mh)
@@ -527,6 +527,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 		dmg *= 0.3
 	if power.buff("berserk"):
 		dmg *= 1.15
+	# Captain's Presence: common foes' blows land softer
+	if attacker and not attacker.is_in_group("players") and not Progression.is_elite(attacker):
+		dmg *= 1.0 - progression.stat("presence")
 	# Last Stand: once a minute, a killing blow leaves you at 1
 	if progression.has_flag("last_stand") and _last_stand_cd <= 0.0 and dmg >= health_component.current_health and health_component.current_health > 1.0:
 		dmg = health_component.current_health - 1.0
@@ -1740,6 +1743,35 @@ func _loadout_tick(delta: float) -> void:
 	_apply_loadout(i)
 
 
+## Could the hands change to another loadout this moment (free, or in a swing's combo window)?
+func can_swap_now() -> bool:
+	return not _using_item and context == Context.ON_FOOT \
+		and (current_state_name() in FREE_STATES or state_machine.current_state.get("can_combo") == true)
+
+
+## Take up loadout slot i this moment (a skill of its weapon is about to be used; can_swap_now first).
+func take_loadout_now(i: int) -> void:
+	_loadout_want = -1
+	if current_state_name() not in FREE_STATES:
+		state_machine.force_state("Idle", {})
+	_apply_loadout(i)
+
+
+## Loadout i's fighting style, or "" when it can't be taken up (not set up, locked, or its main weapon
+## isn't in the bag; an off hand not in the bag is left out, as taking it up would).
+func loadout_style(i: int) -> String:
+	var l: Array = loadouts[i]
+	if l.is_empty() or i >= loadout_slots():
+		return ""
+	if l[0] != "" and inventory_component.count(l[0]) <= 0:
+		return ""
+	var main: ItemData = ItemDB.get_item(l[0]) if l[0] != "" else null
+	var off: ItemData = null
+	if main and l[1] != "" and inventory_component.count(l[1]) >= (2 if l[1] == l[0] else 1):
+		off = ItemDB.get_item(l[1])
+	return style_of(main, off)
+
+
 func _apply_loadout(i: int) -> void:
 	loadout_at = i
 	var l: Array = loadouts[i]
@@ -2059,10 +2091,10 @@ func damage_multiplier() -> float:
 	var w := equipped_weapon.power() if (equipped_weapon and not hybrid) else 1.0
 	var pr := progression
 	var st := style()
-	var k := 1.0 + (attribute("strength") - 5) * 0.05 + pr.stat("damage_pct") + float(pr.level - 1) * 0.02
+	var k := 1.0 + (attribute("strength") - 5) * 0.05 + pr.stat("damage_pct")
 	k += pr.style_stat("dmg", st)
 	if st == "claw":
-		k += 0.25
+		k += 0.25 + pr.stat("claw_pct")
 	if power.buff("berserk"):
 		k += 0.25
 	# Adrenaline: hurt badly, you hit harder
@@ -2117,14 +2149,15 @@ func use_item(item: ItemData) -> void:
 	_using_item = item
 	_use_anim = item.use_anim
 	_use_id += 1
-	_use_timer = item.use_time * HEAL_AT
+	var use_t := item.use_time * (1.0 - progression.stat("use_speed_pct"))
+	_use_timer = use_t * HEAL_AT
 	heal_cd = HEAL_CD
 	body_model.show_left_prop(Props.provision_mesh(USE_PROP[item.use_anim]))
-	body_model.play(item.use_anim, item.use_time)
+	body_model.play(item.use_anim, use_t)
 	var id := _use_id
 	for s in USE_SOUNDS[item.use_anim]:
 		var beat: Array = s
-		get_tree().create_timer(item.use_time * float(beat[0])).timeout.connect(func():
+		get_tree().create_timer(use_t * float(beat[0])).timeout.connect(func():
 			if _use_id == id and _using_item:
 				Net.fx("sfx", [beat[1], global_position + Vector3(0, 1.5, 0), beat[2], 0.08, beat[3]]))
 
@@ -2586,7 +2619,7 @@ func _revive_tick(delta: float) -> void:
 	_revive_target = target
 	var holding := Input.is_action_pressed("interact")
 	if holding:
-		_revive_t += delta
+		_revive_t += delta * (1.0 + progression.stat("revive_pct"))
 		velocity.x = 0.0
 		velocity.z = 0.0
 		# kneel down facing them
@@ -2603,6 +2636,7 @@ func _revive_tick(delta: float) -> void:
 		_revive_t = 0.0
 		body_model.kneeling = false
 		Net.revive(int(target.net_id))
+		health_component.heal(health_component.max_health * progression.stat("rally"))
 		get_tree().call_group("hud", "show_prompt", "", -1.0)
 		_toast("%s is back on their feet" % nm)
 

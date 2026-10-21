@@ -164,9 +164,11 @@ func _process(d: float) -> bool:
 			check("...one in front of you is", fx._burst(cam.global_position - cam.global_basis.z * 4.0, 4, fx._spark_mat, 0.1, 0.3, {}) != null)
 			# --- the perf log writes a line (exported builds too)
 			var perf = root.get_node("Perf")
+			check("a tool run writes no perf log", perf.log_dir == "")
+			perf.log_dir = "user://perftest/"
 			perf._write_line()
-			var txt := FileAccess.get_file_as_string("user://perf.log")
-			check("user://perf.log gets a header and a line", txt.begins_with("Driftwake") and txt.contains(" min  fps "))
+			var txt := FileAccess.get_file_as_string("user://perftest/perf.log")
+			check("the perf log gets a header and a line", txt.begins_with("Driftwake") and txt.contains(" min  fps "))
 			# --- skill bar: an empty or full orb's sliver is skipped, not triangulated
 			var SB = load("res://scripts/ui/skill_bar.gd")
 			check("orb slivers are skipped", not SB._drawable(PackedVector2Array([Vector2(0, 0), Vector2(10, 0), Vector2(20, 0.01)])))

@@ -11,7 +11,7 @@ extends SceneTree
 ## compass strip shows its needles while L is held, danger reads by level, and
 ## the sea chart stays on Brinehollow there but fits the chain island and where
 ## it points out there.
-## Streaming: an island is put in the world a step a frame and listed only
+## Streaming: an island is put in the world over many frames and listed only
 ## once whole; one let go part way through (or still on its thread) leaves
 ## nothing behind; a new chain seed frees every island of the old one.
 var SG
@@ -206,7 +206,8 @@ func _process(d: float) -> bool:
 			var first: int = c.start_next[0]
 			var seen: Dictionary = steps_seen.get(first, {})
 			print("   %s built in %d steps, seen at %s; %s" % [world.chain_islands[first].island_name, int(steps_of.get(first, 0)), seen.keys(), world.chain_islands[first].build_ms])
-			check("a chain island is put in the world a step a frame (%d of %d steps seen)" % [seen.size(), int(steps_of.get(first, 0))], int(steps_of.get(first, 0)) >= 8 and seen.size() >= int(steps_of.get(first, 0)) - 1)
+			# (a step a frame, the small ones after it in the same frame: WorldGenerator.SMALL_US)
+			check("a chain island is put in the world over many frames (seen at %d of %d steps)" % [seen.size(), int(steps_of.get(first, 0))], int(steps_of.get(first, 0)) >= 8 and seen.size() >= maxi(30, int(steps_of.get(first, 0)) / 4))
 			check("...and only charted, kept clear and given its shallows once it's whole", not listed_early)
 			# an island further on, wanted while the crew's at it, unwanted part way through
 			var far: Array = c.nodes.filter(func(n): return int(n["layer"]) >= 4).map(func(n): return int(n["id"]))
@@ -238,11 +239,13 @@ func _process(d: float) -> bool:
 			print("   %s let go after %d of %d steps" % [half.island_name, int(world._finishing[x][2]), (world._finishing[x][1] as Array).size()])
 			gm.apply_chain(get_meta("y"), false, root.get_node("Weather").world_time())
 			world.sync_chain_islands()
-			check("let go part way through its build: dropped at once", not world._finishing.has(x) and not world.chain_islands.has(x) and half.is_queued_for_deletion())
-			wait = 1.2
+			check("let go part way through its build: dropped at once (out of the game, freed over the next frames)", not world._finishing.has(x)
+				and not world.chain_islands.has(x) and world._freeing.has(half) and not half.can_process() and world.get_node_or_null("Isle%d" % x) == null)
 			step = 5
 		5:
 			var x: int = get_meta("x")
+			if is_instance_valid(get_meta("half")):
+				return false
 			var at: Vector2 = get_meta("half_pos")
 			check("...nothing of it left in the world", not is_instance_valid(get_meta("half")) and world.get_node_or_null("Isle%d" % x) == null)
 			check("...nor on the chart, in the ships' no-go list or the sea's shallows", not world.island_infos.any(func(i): return int(i["id"]) == x)
@@ -282,7 +285,7 @@ func _process(d: float) -> bool:
 			gm.chain_seed += 1
 			world.sync_chain_islands()
 			check("a new chain (a load): the old chain's islands all go, half-built ones too", world.chain_islands.is_empty() and world._finishing.is_empty()
-				and (get_meta("old") as Node).is_queued_for_deletion() and world._pending.has(y))
+				and world._freeing.has(get_meta("old")) and world._pending.has(y))
 			step = 8
 		8:
 			var y: int = get_meta("y")

@@ -1,6 +1,6 @@
 extends SceneTree
 ## The crisp UI (v1.11): at 1280x720 every screen draws on a 640x360 canvas shown at 2x, and each
-## one opens and fits it: pause, options, controls, skill map (with a node's tooltip),
+## one opens and fits it: pause, options, controls, the skills menu (its signs, the open tree's nodes on screen),
 ## yard, a shop (stock, bag, card, tooltip), save slots, the inventory, a dialogue with choices,
 ## the HUD (skill bar, boss bar, prompt), the emote wheel and the creator.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -77,12 +77,9 @@ func _process(d: float) -> bool:
 			match s:
 				"skills":
 					check("skill map fills the canvas", c.size == Vector2(640, 360))
-					var id := ""
-					for nid in SkillTree.nodes().keys():
-						if id == "" and c._shown(nid) and SkillTree.nodes()[nid]["kind"] == "passive":
-							id = nid
-					c._hover = id
-					check("a node's tooltip says what it is and whether you can learn it", c._status(id, p.progression)[0] != "" and c._kind_name(SkillTree.get_node_def(id)) != "")
+					check("a sign per tab hangs from the beam", c._tab_rects.size() == c.tabs().size() and c._tab_rects.size() >= 4)
+					check("the open tree's nodes are on screen inside the canvas", c._drawn.any(func(h): return str(h[1]).begins_with("n:"))
+						and c._drawn.all(func(h): return Rect2(Vector2.ZERO, c.size).grow(4.0).encloses(h[0])))
 				"shop":
 					check("Vey's stall: his stock in slots with prices", c._stock_slots.size() >= c._stock.size() and c._stock_slots[0].count.text == str(c.SHOPS.price_of(c._stock[0][0])))
 					c._pick("shop", 0)
@@ -124,15 +121,9 @@ func _process(d: float) -> bool:
 			check("the prompt has its key cap", fits(hud.interact_panel) and (hud._interact_key.get_child(0) as Label).text == "F")
 			hud.hide_boss()
 			var w = p.emote_wheel
-			w._k = 1.0
-			w._root.visible = true
-			w._layout()
-			var inside := crisp(w._canvas)
-			for c in w._plates + [w._root.get_node("Centre")]:
-				inside = inside and fits(c)
-			check("the emote wheel's planks are on a crisp canvas, inside it", inside)
-			w._k = 0.0
-			w._root.visible = false
+			w.entries = w._list()
+			var ro: float = w._mid_r() + 30.0
+			check("the emote wheel is on a crisp canvas, its ring inside it", crisp(w._canvas) and ro * 2.0 <= minf(w._root.size.x, w._root.size.y))
 			p.open_creator(false)
 			until = TK.wait_ticks(10)
 			step = 8

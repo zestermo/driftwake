@@ -21,18 +21,18 @@ const LOOT_WEAPONS := ["cutlass", "boarding_axe", "katana", "pistol", "dagger"]
 static func steps(isl: GenIsland) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(isl.node["seed"]) + 4049
+	var camp := {}
 	return [
-		["camp", func(): _camp(isl, rng)],
+		["camp", func(): _camp(isl, rng, camp)],
+		["camp", func(): _camp_props(isl, rng, camp)],
+		["camp", func(): _camp_crew(isl, rng, camp)],
 		["lair", func(): _lair(isl, rng)],
 		["ruins", func(): _ruins(isl, rng)],
 		["summit", func(): _summit(isl)],
 		["boss", func(): BeastArena.build(isl, rng)],
 		["boss", func(): BeastArena.of(isl).spawn_boss()],
-	] + BeastDens.steps(isl) + [
-		# (after the camp, the lair and the beast: its jobs watch them)
-		["village", func(): IslandVillage.build(isl, rng)],
-		# (its own seeded stream: the sites above roll the same as before)
-	] + FaunaSpawner.steps(isl) + KitLandmarks.steps(isl) + KitDungeons.steps(isl)
+	# (the village after the camp, the lair and the beast: its jobs watch them; the fauna on a seeded stream of its own)
+	] + BeastDens.steps(isl) + IslandVillage.build_steps(isl, rng) + FaunaSpawner.steps(isl) + KitLandmarks.steps(isl) + KitDungeons.steps(isl)
 
 
 ## The island's level (chain.gd): its enemies' (Levels) and its loot's.
@@ -71,7 +71,9 @@ static func _fire(isl: GenIsland, parent: Node3D, p: Vector2) -> void:
 # ==========================================================================
 # The camp
 # ==========================================================================
-static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
+## The camp in three steps (one was 18 ms): the fire, seats, tents and shack; the stores, the tower and the flag;
+## the captain's strongbox and the crew. `k` carries what the later ones need.
+static func _camp(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionary) -> void:
 	var c: Vector2 = isl.sites["camp"]
 	var site := isl.site_node("camp")
 	var f: Vector2 = (isl.sites["village"] - c).normalized()
@@ -90,11 +92,21 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 		isl.house({"w": 5.5, "d": 4.5, "h": 2.5, "roof": "gable", "wall": "planks_weathered", "roof_tex": "thatch", "porch": 1.4}.merged(st["rough"]), site, shack_p, f)
 	else:
 		isl.place(KitStyle.model(st["camp_shack"], KitVillage._seeded(int(isl.node["seed"]) + 61), 5.5), site, shack_p, StarterIsland.face_yaw(f), 3.4)
+	k.merge({"c": c, "site": site, "f": f, "s": s, "at": at, "log_a": log_a, "log_b": log_b, "st": st, "shack_p": shack_p})
+
+
+static func _camp_props(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionary) -> void:
+	var c: Vector2 = k["c"]
+	var site: Node3D = k["site"]
+	var f: Vector2 = k["f"]
+	var s: Vector2 = k["s"]
+	var at: Callable = k["at"]
+	var st: Dictionary = k["st"]
 	var stash: Vector2 = at.call(4.5, 5.0)
 	isl.place(KitStyle.prop(st, "crate", rng, 1.1), site, stash, 0.3, 1.0)
 	isl.place(KitStyle.prop(st, "crate", rng, 0.9), site, stash + s * 1.0, 0.9, 1.0)
-	for k in range(3):
-		isl.place(KitStyle.prop(st, "barrel", rng), site, at.call(6.0 + (k % 2) * 0.9, 2.0 - k * 0.8))
+	for i in range(3):
+		isl.place(KitStyle.prop(st, "barrel", rng), site, at.call(6.0 + (i % 2) * 0.9, 2.0 - i * 0.8))
 	isl.place(Props.weapon_rack(), site, at.call(-3.0, 6.0), StarterIsland.face_yaw(c - at.call(-3.0, 6.0)))
 	for lp in [at.call(3.0, -3.0), at.call(-7.0, 4.5)]:
 		isl.place(KitStyle.prop(st, "lamp", rng), site, lp)
@@ -106,6 +118,19 @@ static func _camp(isl: GenIsland, rng: RandomNumberGenerator) -> void:
 	pole.add_card(jolly, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.01, 5.5, 0.6)), 0.9, 0.55, Rect2(0, 0, 1, 1))
 	pole.add_card(jolly, Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(-0.01, 5.5, 0.6)), 0.9, 0.55, Rect2(0, 0, 1, 1))
 	isl.place(pole.to_instance("CampFlag"), site, at.call(4.0, -6.0), 0.3)
+	k["tower_p"] = tower_p
+
+
+static func _camp_crew(isl: GenIsland, rng: RandomNumberGenerator, k: Dictionary) -> void:
+	var c: Vector2 = k["c"]
+	var site: Node3D = k["site"]
+	var f: Vector2 = k["f"]
+	var s: Vector2 = k["s"]
+	var at: Callable = k["at"]
+	var log_a: Vector2 = k["log_a"]
+	var log_b: Vector2 = k["log_b"]
+	var shack_p: Vector2 = k["shack_p"]
+	var tower_p: Vector2 = k["tower_p"]
 	# the captain and his strongbox
 	var cap_name := "%s %s" % [EPITHET[rng.randi() % EPITHET.size()], FIRST[rng.randi() % FIRST.size()]]
 	var t := tier(isl)

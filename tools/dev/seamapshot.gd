@@ -16,7 +16,7 @@ func _process(d: float) -> bool:
 			root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 			for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 			gm.open("skills")
-			gm._skills.set_tab("life")
+			gm._skills.set_tab("adventure", "sea")
 			t0 = t
 			step = 1
 		1:
@@ -25,8 +25,7 @@ func _process(d: float) -> bool:
 			var pr = get_first_node_in_group("player").progression
 			while pr.mastery_level("sea") < 7:
 				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea")))
-			gm._skills._sel = "sea_gunner"
-			gm._skills.queue_redraw()
+			gm._skills.set_tab("adventure", "sea")
 			t0 = t
 			step = 2
 		2:

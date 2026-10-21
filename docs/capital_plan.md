@@ -39,3 +39,12 @@ it builds as an ordinary generated island. The capital is the first real one.
   the after bench (`v1181_after` vs `v1181_before`, 19.76 ms at calib 31.45), a short post, version 1.18.1, tag, push.
 - **Unpushed on main:** the two v1.18 release-notes doc commits, the capital plan and piece 1. Nothing pushed since
   v1.18.
+
+## Next (Zach, 2026-10-20)
+- **After the stutter work lands:** a grill round on fleshing out the capital now (more to do and see in the core
+  district, before the 1.20 full-city pass).
+- **Services after Brinehollow** (a gap Zach found): once you leave Brinehollow, nothing on the chain upgrades the ship
+  or offers Brinehollow's other services, because chain islands don't have those vendors. Options for the grill: a
+  **shipwright in the capital** (Tackett's lines and more), and/or a **harbour vendor on some chain islands** offering
+  one upgrade tree each (sails at one port, guns at another...), plus which other Brinehollow-only services
+  (training/respec, the yard, music, storage...) need a home on the chain.
