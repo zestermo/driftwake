@@ -95,10 +95,8 @@ func _process(d: float) -> bool:
 			check("logia starts with Fire Fist + Blazing Ring", pc.loadout[0] == "fire_fist" and pc.loadout[1] == "fire_ring")
 			# learn the rest of the Ember tree
 			var pr = p.progression
-			pr.level = 10
-			pr.skill_points = 99
-			for nid in ["e_dash", "e_field", "e_kindled", "e_smolder", "e_heat", "e_inferno"]:
-				pr.learn(nid)
+			while pr.mastery_level("ember") < 20:
+				pr.add_mastery("ember", pr.mastery_to_next(pr.mastery_level("ember")))
 			check("learned the Ember tree", pr.knows("flame_dash") and pr.knows("inferno") and pr.has_flag("kindled_blade"))
 			check("auto-equipped onto the bar", pc.loadout[2] == "flame_dash" and pc.loadout[3] == "ember_field" and pc.loadout[4] == "inferno")
 			# fire fist at a grunt 7 m away

@@ -1,13 +1,10 @@
 class_name SkillTree
 extends RefCounted
 ## The old skill-tree registry, kept while its last trees move to SkillTrees (the v1.18.2 redesign):
-##   base     the Captain (paid with level skill points): the body's stats in a ring round the middle; Mobility,
-##            Survival, the Seafarer (gated on the life skills), Armament and Observation Haki (level 10+) and
-##            Conqueror's Haki (level 18+) grow out of it
-##   life     the life skills side by side (swim, sea = Seamanship, cook, fish): learned by doing,
+##   life    the life skills side by side (swim, sea = Seamanship, cook, fish): learned by doing,
 ##            their perks come by themselves at mastery milestones
 ##   fruit    your Devil Fruit (only once you've eaten one)
-## The weapon trees are SkillTrees' now; `nodes()` merges SkillTrees' nodes in this shape ("new": true), so a
+## The Captain and weapon trees are SkillTrees' now; `nodes()` merges SkillTrees' nodes in this shape ("new": true), so a
 ## reader of either sees every node.
 ##
 ## Node: {id, name, kind, tree, region, pos, links, cost, effects, skill, req, desc}
@@ -174,9 +171,7 @@ static func _add(id: String, name_: String, kind: String, region: String, pos: V
 
 static func _build() -> void:
 	_nodes = {}
-	_build_base()
 	_build_life()
-	_build_fruits()
 	_merge_new()
 
 
@@ -190,83 +185,6 @@ static func _merge_new() -> void:
 		n["cost"] = 0
 		n["new"] = true
 		_nodes[k] = n
-
-
-static func _build_base() -> void:
-	_tree = "base"
-	_add("origin", "Pirate's Spirit", "origin", "Core", Vector2.ZERO, [], {}, "Where every captain starts. Learn the nodes linked to the ones you own.")
-	# ---- the body: a ring of eight round the middle, each opening a region ----
-	var ring := [
-		[-135.0, "c_agility", "Agility", {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed."],
-		[-90.0, "c_endurance", "Endurance", {"max_stamina": 25.0, "stamina_regen_pct": 0.1}, "+25 max stamina, and it refills 10% faster."],
-		[-45.0, "c_vitality", "Vitality", {"max_hp": 35.0}, "+35 max health."],
-		[0.0, "c_focus", "Focus", {"ult_charge_pct": 0.15, "xp_pct": 0.1}, "Your ultimate charges 15% faster, and you win 10% more experience from every fight."],
-		[45.0, "c_toughness", "Toughness", {"defense": 6.0}, "+6 defense."],
-		[90.0, "c_strength", "Strength", {"damage_pct": 0.1}, "+10% damage with everything."],
-		[135.0, "c_spirit", "Spirit", {"max_energy": 25.0, "energy_regen_pct": 0.12}, "+25 max energy, and it refills 12% faster."],
-		[180.0, "c_legs", "Sea Legs", {"stamina_regen_pct": 0.1, "swim_pct": 0.1}, "Stamina refills 10% faster and you swim 10% faster. Opens the Seafarer's nodes, which grow with your life skills."],
-	]
-	for d in ring:
-		_add(d[1], d[2], "stat", "Core", _p(d[0], 90.0), ["origin"], d[3], d[4])
-	_add("c_quarter", "Quartermaster", "passive", "Core", _p(0.0, 175.0), ["c_focus"], {"loadout_slots": 1},
-		"A third weapon loadout on the loadout wheel (X): three setups to swap between mid-fight.", {"level": 3})
-
-	# ---- Mobility ----
-	var A: float = REGION_ANGLE["Mobility"]
-	_add("m_geppo", "Geppo", "passive", "Mobility", _p(A, 175.0), ["c_agility"], {"air_jumps": 1},
-		"Kick off the air itself: a second jump in mid-air.")
-	_add("m_soru", "Soru", "active", "Mobility", _p(A, 255.0, -12.0), ["m_geppo"], {}, "", {}, "soru")
-	_add("m_swift", "Swift Step", "passive", "Mobility", _p(A, 255.0, 12.0), ["m_geppo"], {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
-		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.", {"level": 4})
-	_add("m_skywalk", "Sky Walk", "passive", "Mobility", _p(A, 335.0, -10.0), ["m_soru"], {"air_jumps": 1, "featherfall": 1},
-		"One more jump in mid-air (three in all), and falls hurt a quarter as much with no stumble on landing.", {"level": 4})
-	_add("m_sprinter", "Long Stride", "passive", "Mobility", _p(A, 335.0, 10.0), ["m_swift"], {"sprint_cost_pct": 0.35, "sprint_pct": 0.1},
-		"Sprinting burns 35% less stamina and you sprint 10% faster.")
-
-	# ---- Survival ----
-	A = REGION_ANGLE["Survival"]
-	_add("v_hardy", "Hardy", "stat", "Survival", _p(A, 175.0), ["c_vitality"], {"max_hp": 25.0, "defense": 4.0}, "+25 max health, +4 defense.")
-	_add("v_tekkai", "Tekkai", "active", "Survival", _p(A, 255.0, -12.0), ["v_hardy"], {}, "", {}, "tekkai")
-	_add("v_steadfast", "Steadfast", "passive", "Survival", _p(A, 255.0, 12.0), ["v_hardy"], {"steadfast": 1},
-		"Light hits no longer make you flinch.")
-	_add("v_iron", "Iron Hide", "stat", "Survival", _p(A, 335.0, -12.0), ["v_tekkai"], {"defense": 10.0}, "+10 defense.", {"level": 5})
-	_add("v_mend", "Mend", "passive", "Survival", _p(A, 335.0, 12.0), ["v_steadfast"], {"regen_hp": 2.5},
-		"Out of combat (no damage for 5 s) you heal 2.5 health a second.")
-	_add("v_adren", "Adrenaline", "passive", "Survival", _p(A, 415.0, -17.0), ["v_iron"], {"adrenaline": 0.25},
-		"Below 35% health you hit 25% harder.", {"level": 5})
-	_add("v_stomach", "Iron Stomach", "passive", "Survival", _p(A, 415.0, 17.0), ["v_mend"], {"potion_pct": 0.4},
-		"Food and drink heal you 40% more.")
-	_add("v_last", "Last Stand", "passive", "Survival", _p(A, 415.0), ["v_adren", "v_stomach"], {"last_stand": 1},
-		"Once a minute, a blow that would kill you leaves you at 1 health instead.", {"level": 6}, "", 3)
-
-	# ---- the Seafarer (each node needs a life skill) ----
-	A = REGION_ANGLE["Seafarer"]
-	_add("f_swim", "Sea Born", "passive", "Seafarer", _p(A, 175.0, -14.0), ["c_legs"], {"swim_pct": 0.25},
-		"You swim 25% faster.", {"life": "swim", "life_lv": 4})
-	_add("f_helm", "Helmsman", "passive", "Seafarer", _p(A, 175.0, 14.0), ["c_legs"], {"helm_speed": 0.06, "helm_turn": 0.1},
-		"At the helm she sails 6% faster and turns 10% sharper.", {"life": "sea", "life_lv": 5})
-
-	# ---- Haki (level-gated) ----
-	A = REGION_ANGLE["Armament"]
-	_add("h_arm", "Armament Haki", "passive", "Armament", _p(A, 175.0), ["c_spirit"], {"armament": 1, "damage_pct": 0.08},
-		"Will made armor: +8% damage, and your heavy attacks can't be blocked.", {"level": 10})
-	_add("h_coat", "Armament: Coat", "active", "Armament", _p(A, 255.0), ["h_arm"], {}, "", {"level": 12}, "armament_coat")
-	_add("h_harden", "Hardening", "stat", "Armament", _p(A, 335.0, -10.0), ["h_coat"], {"defense": 8.0, "energy_regen_pct": 0.2},
-		"Haki under the skin: +8 defense, and energy refills 20% faster.", {"level": 12})
-	_add("h_black", "Black Fists", "stat", "Armament", _p(A, 335.0, 10.0), ["h_coat"], {"dmg_unarmed": 0.15},
-		"Your bare fists are iron: +15% unarmed damage.", {"level": 14})
-	A = REGION_ANGLE["Observation"]
-	_add("h_obs", "Observation Haki", "passive", "Observation", _p(A, 175.0), ["c_toughness"], {"observation": 1},
-		"Sense intent: enemies flash red the moment they start an attack, and your parry window is a little wider.", {"level": 10})
-	_add("h_fore", "Foresight", "active", "Observation", _p(A, 255.0), ["h_obs"], {}, "", {"level": 12}, "foresight")
-	_add("h_instinct", "Instinct", "passive", "Observation", _p(A, 335.0, -10.0), ["h_fore"], {"evade_chance": 0.08, "parry_all": 0.04},
-		"8% of the blows that would hit you are sidestepped on instinct, and your parry window is wider still.", {"level": 12})
-	_add("h_weak", "Weak Points", "passive", "Observation", _p(A, 335.0, 10.0), ["h_fore"], {"crit_all": 0.06},
-		"You see where to strike: 6% more of your hits land 50% harder.", {"level": 14})
-	A = REGION_ANGLE["Conqueror"]
-	_add("h_will", "King's Will", "passive", "Conqueror", _p(A, 195.0), ["c_strength"], {"damage_pct": 0.06, "max_hp": 20.0},
-		"A will that bends others: +6% damage, +20 max health.", {"level": 18})
-	_add("h_conq", "Conqueror's Haki", "ult", "Conqueror", _p(A, 285.0), ["h_will"], {}, "", {"level": 20}, "conquerors_haki")
 
 
 ## Life skills, side by side on the LIFE tab: each is learned by doing (Progression.add_life) and its perks
@@ -328,47 +246,6 @@ static func _build_life() -> void:
 	_perk("fs_salt", "Old Salt", "Fishing", 15, 5, "fs_lore", {"fish_double": 0.15}, "15% of your catches come up two at once.")
 	_perk("fs_master", "Master Angler", "Fishing", 20, 6, "fs_salt", {"fish_legend": 1.0, "fish_reel_pct": 0.15},
 		"Legendary fish come twice as often, and the float stays down another 15% longer.")
-
-
-## Devil Fruits (only the one you've eaten shows; its root comes with the fruit).
-static func _build_fruits() -> void:
-	_tree = "fruit"
-	var A := 90.0
-	var root := _p(A, 190.0)
-	# Ember (Logia)
-	_add("e_root", "Ember Fruit (Logia)", "root", "Ember", root, [], {},
-		"Logia: your body is fire. Your dodge turns you to flame - fully untouchable, passing straight through enemies and gunfire.", {"fruit": "ember"})
-	_add("e_fist", "Fire Fist", "active", "Ember", _p(A, 265.0, -16.0), ["e_root"], {}, "", {"fruit": "ember"}, "fire_fist", 0)
-	_add("e_ring", "Blazing Ring", "active", "Ember", _p(A, 265.0, 16.0), ["e_root"], {}, "", {"fruit": "ember"}, "fire_ring", 0)
-	_add("e_kindled", "Kindled Blade", "passive", "Ember", _p(A, 330.0, -26.0), ["e_fist"], {"kindled_blade": 1},
-		"Every melee hit sears: the target burns for a moment.", {"fruit": "ember"})
-	_add("e_dash", "Flame Dash", "active", "Ember", _p(A, 345.0, -9.0), ["e_fist"], {}, "", {"fruit": "ember", "level": 3}, "flame_dash")
-	_add("e_field", "Ember Field", "active", "Ember", _p(A, 345.0, 9.0), ["e_ring"], {}, "", {"fruit": "ember", "level": 3}, "ember_field")
-	_add("e_smolder", "Smoldering Body", "passive", "Ember", _p(A, 330.0, 26.0), ["e_ring"], {"smoldering": 1},
-		"Your flame-form dodge leaves burning embers behind.", {"fruit": "ember"})
-	_add("e_heat", "Searing Heat", "stat", "Ember", _p(A, 420.0, -8.0), ["e_dash", "e_field"], {"fire_pct": 0.15},
-		"+15% fire damage.", {"fruit": "ember"})
-	_add("e_inferno", "Great Inferno", "ult", "Ember", _p(A, 495.0), ["e_heat"], {}, "", {"fruit": "ember", "level": 8}, "inferno", 3)
-	# Wolf (Zoan)
-	_add("z_root", "Wolf Fruit (Zoan)", "root", "Wolf", root, [], {},
-		"Zoan: press V to shift between your human and hybrid wolf form. Hybrid: claws instead of weapons, 25% more damage and 15% faster.", {"fruit": "wolf"})
-	_add("z_fang", "Rending Fang", "active", "Wolf", _p(A, 265.0, -16.0), ["z_root"], {}, "", {"fruit": "wolf"}, "rending_fang", 0)
-	_add("z_pounce", "Pounce", "active", "Wolf", _p(A, 265.0, 16.0), ["z_root"], {}, "", {"fruit": "wolf"}, "pounce", 0)
-	_add("z_pelt", "Thick Pelt", "passive", "Wolf", _p(A, 345.0, -10.0), ["z_fang"], {"hybrid_defense": 8.0},
-		"+8 defense in hybrid form.", {"fruit": "wolf"})
-	_add("z_hunt", "Predator", "passive", "Wolf", _p(A, 345.0, 10.0), ["z_pounce"], {"hybrid_speed_pct": 0.1},
-		"Hybrid form is another 10% faster.", {"fruit": "wolf"})
-	_add("z_howl", "Alpha Howl", "active", "Wolf", _p(A, 420.0), ["z_pelt", "z_hunt"], {}, "", {"fruit": "wolf", "level": 4}, "howl")
-	# Vine (Paramecia)
-	_add("p_root", "Vine Fruit (Paramecia)", "root", "Vine", root, [], {},
-		"Paramecia: Photosynthesis - out of combat you slowly heal and regain energy while on land.", {"fruit": "vine"})
-	_add("p_snare", "Vine Snare", "active", "Vine", _p(A, 265.0, -16.0), ["p_root"], {}, "", {"fruit": "vine"}, "vine_snare", 0)
-	_add("p_swing", "Vine Swing", "active", "Vine", _p(A, 265.0, 16.0), ["p_root"], {}, "", {"fruit": "vine"}, "vine_swing", 0)
-	_add("p_roots", "Deep Roots", "passive", "Vine", _p(A, 345.0, -10.0), ["p_snare"], {"photo_mult": 1.0},
-		"Photosynthesis works twice as fast.", {"fruit": "vine"})
-	_add("p_thorns", "Thorn Hide", "passive", "Vine", _p(A, 345.0, 10.0), ["p_swing"], {"thorn_hide": 6.0},
-		"Enemies that hit you in melee take 6 damage from your thorns.", {"fruit": "vine"})
-	_add("p_whip", "Thorn Whip", "active", "Vine", _p(A, 420.0), ["p_roots", "p_thorns"], {}, "", {"fruit": "vine", "level": 4}, "thorn_whip")
 
 
 ## Nodes linked to `id` (links are stored on one side; this makes them two-way).

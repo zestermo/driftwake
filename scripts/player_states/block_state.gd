@@ -23,7 +23,7 @@ func physics_update(delta: float) -> void:
 	t += delta
 	apply_gravity(delta)
 	var mi := get_movement_input()
-	var want := get_camera_relative_direction(mi) * MOVE_SPEED if mi.length() > 0.1 else Vector3.ZERO
+	var want := get_camera_relative_direction(mi) * MOVE_SPEED * (1.0 + player.progression.stat("block_move_pct")) if mi.length() > 0.1 else Vector3.ZERO
 	player.velocity.x = move_toward(player.velocity.x, want.x, 30.0 * delta)
 	player.velocity.z = move_toward(player.velocity.z, want.z, 30.0 * delta)
 	player.move_and_slide()
@@ -46,9 +46,10 @@ func physics_update(delta: float) -> void:
 ## A blocked blow (called by the player when a frontal hit lands on the
 ## guard). Returns false when the guard breaks instead.
 func absorb(hit: HitData, dir: Vector3) -> bool:
-	var cost := maxf(hit.damage * COST_PER_DAMAGE, MIN_COST)
+	var cost := maxf(hit.damage * COST_PER_DAMAGE, MIN_COST) * maxf(1.0 - player.progression.stat("block_cost_pct"), 0.1)
 	if player.stamina < cost * 0.5:
 		return false
+	player.progression.add_life("defense", 5)
 	player.stamina = maxf(player.stamina - cost, 0.0)
 	player.stamina_changed.emit(player.stamina, player.max_stamina)
 	player.velocity += dir * minf(hit.knockback_force * 0.5, 3.0)

@@ -90,9 +90,9 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(3)
 		9:
 			check("letting go on loadout 1 takes up the cutlass", not w.is_open() and p.loadout_at == 0 and p.style() == "sword")
-			p.progression.level = 3
-			p.progression.skill_points = 10
-			check("the Quartermaster can be learned", p.progression.learn("c_focus") and p.progression.learn("c_quarter"))
+			while p.progression.level < 10:
+				p.progression.add_xp(p.progression.xp_to_next(p.progression.level) - p.progression.xp)
+			check("the Quartermaster comes at Captain level 10", p.progression.owns("c_quarter"))
 			check("...and opens a third loadout", p.loadout_slots() == 3)
 			TK.act("loadout")
 			until = TK.wait_secs(0.4)

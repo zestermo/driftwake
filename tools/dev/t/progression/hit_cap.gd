@@ -56,7 +56,7 @@ func _process(_d: float) -> bool:
 			pr.add_xp(100, (a as Node3D).global_position + Vector3(0, 2, 0))
 			check("a plain kill (it's alive, or no elite): a quarter of its xp (%d)" % (total() - t0), total() - t0 == 25)
 			b.captain = true
-			b.health.current_health = 0.0
+			b.state = b.S.DEAD
 			t0 = total()
 			pr.add_xp(100, (b as Node3D).global_position + Vector3(0, 2, 0))
 			check("an elite's kill: three times that (%d)" % (total() - t0), total() - t0 == 75)

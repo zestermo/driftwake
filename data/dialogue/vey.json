@@ -22,8 +22,8 @@
 		"story_skills": {
 			"text": [
 				"Back already, and bleeding about the right amount. The smugglers are done? Good.",
-				"Listen. Every fight you live through teaches you something, whether you like it or not. That's experience. Enough of it and you grow: a level, and a skill point to spend.",
-				"Open your skill map with K. Put points into what suits your hand: the blade, the axe, the pistols, your own two fists. Here, a head start: one point, on the house.",
+				"Listen. Every fight you live through teaches you something, whether you like it or not. Enough of it and you grow. And every weapon you swing learns you back: use it and it opens up, new cuts, new tricks.",
+				"Open your skill map with K and see what your hand's learned. Here, a head start: one of my drills. Again. Again. There. Feel that?",
 				"Next lesson's a hard one. Captain Grell's crew holds the old harbour on the north-west beach. A real pirate captain, not some smuggler. He's been bleeding this town for years.",
 				"Train up. Then go and put him down."
 			],
@@ -31,7 +31,7 @@
 			"next": "menu"
 		},
 		"story_grell": {
-			"text": "Grell's at the old harbour on the north-west beach. He won't come to you, and he won't go easy. Spend your points first.",
+			"text": "Grell's at the old harbour on the north-west beach. He won't come to you, and he won't go easy. Get some fights under your belt first.",
 			"next": "menu"
 		},
 		"intro": {

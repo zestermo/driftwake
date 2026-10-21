@@ -138,6 +138,14 @@ Unbreakable 18 (new). Steps: Timing 5, Sturdy Guard 5, Thick Skin 5, Recovery 3,
 blocking real blows (perfect parries most) and staying up when hit. Weapon-specific parry tricks stay on the weapon
 trees.
 
+**Built (prog-core piece 3, 2026-10-20):** Acrobatics and Defense without the new moves (Moonstep, Afterimage,
+Roll / Sidestep, Crash Landing, Disarm / Shove, Rolling Guard / Planted wait for the moves batch); Featherfall is its
+own node at 15 (out of Sky Walk). New nodes as numbers: Fleetfoot (the old Agility), Sprint Jump (half the bound's
+stamina), Sure Footing (stamina 10% faster), Rigging Monkey (climb 40% faster), Clean Parry (a wider window and 10
+stamina back; the stagger waits for the moves batch), Brace / Iron Wall (blocks cheaper), Hold the Line (shuffle faster
+behind the guard), Unshaken / Second Skin / Unbreakable (health and defense). XP: a jump 3, an air jump 6, a dodge 5;
+a parry 15, a blocked blow 5 (tune in play).
+
 **Katana tree (draft):**
 - Root (mastery 1): combo, heavy, iai.
 - Guard: Cut the Shot 3 · Iai Counter 8 (variants Draw Cut / Side Step, new) · Phantom Step 14 · Bullet Return 20.
@@ -189,6 +197,28 @@ either a slotted passive or, two of them, a variant (both owned, one active). Me
   Shot 2 · Extra Powder 7 (mech) · Point Blank 11 · Close Quarters 15 (passive) · Coup de Grace 22 (passive). Steps:
   Marksman 5 (dmg), Deadeye 5 (crit), Hard Shot 5 (techniques), Quick Load 3 (reload), Close Range 3 (point blank),
   Light Hand 3, Flow 3, Recovery 3.
+
+**Captain tree (drafted by prog-core, 2026-10-20; built in piece 3).** Levels 1-40, no points.
+- Growth per level, by itself: +5.5 health, +2% damage, +0.6 stamina, +0.6 energy, +0.5 defense (the old Vitality,
+  Strength, Endurance, Spirit, Toughness and Hardy nodes and the old 4 health / 2% a level folded in).
+- Milestones (branch "Milestones"): Soru 8, Quartermaster (a third loadout) 10, Tekkai 14, a fourth passive slot 25.
+- Talents (branch "Talents", one of two, the first pick anywhere, a change only at the bunk): 5 Mend / Iron Stomach ·
+  10 Quick Hands (eat and drink 35% faster) / Sea Dog (aboard, stamina refills twice as fast) · 15 Adrenaline / Second
+  Wind (once a fight, dropping under 30% health refills stamina and energy) · 20 Focus / Bounty Hunter (+15% damage to
+  elites and bosses) · 25 Rallying Cry (get a crewmate up 50% faster, both heal a quarter) / Treasure Sense (closed chests
+  within 60 m on the compass) · 30 Last Stand / Captain's Presence (common foes' blows hit you 25% softer; not elites
+  or bosses; the mock's "falter") · **35 (new) Quick Learner** (+15% experience, every tree learns 15% faster) / **Thick
+  Hide** (+10 defense, +30 health) · **40 (new) Warlord** (+12% damage, 6% more crits) / **Living Legend** (+60 health, +8
+  defense, stamina 20% faster).
+- Will (branch "Will"; Haki in code): Iron Will (Captain Morrow; heavies can't be blocked, +8% damage; passive
+  Hardening) · Iron Will: Coat (**assumed: a jungle ape boss**; the Coat technique; passive Black Fists) · Sense
+  (**assumed: the Brood Queen**; foes flash before they strike; passive Instinct) · Foresight (**assumed: a great beast
+  in its arena**; the Foresight technique; passive Weak Points) · Captain's Will (**assumed: a Sea King**, with the other
+  four; Conqueror's Will; passive King's Will). Coat, Sense and Foresight need Iron Will; a boss beaten earlier counts
+  once its Will opens. Each captain earns their own (the kill near you).
+- Gone: the Captain tree's skill points and nodes (Agility and Sea Legs live on as Acrobatics' Fleetfoot and Swimming,
+  Steadfast and Iron Hide in Defense, Helmsman in Sailing). Skill tiers open by use alone (no points).
+- Vey's story step (was a skill point): a drill, a level of mastery for the weapon in your hand.
 
 **Phases** (one after another: they share progression.gd, skill_tree.gd and the skill map):
 0. This record and the mock (Zach's OK).
