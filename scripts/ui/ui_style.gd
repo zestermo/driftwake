@@ -461,6 +461,7 @@ static func _draw_emblem(ci: CanvasItem, c: Vector2) -> void:
 static func draw_tabs(ci: CanvasItem, x: float, top: float, tabs: Array, active: int, t: float) -> Array:
 	var rects: Array = []
 	var tilts := [-2.0, 1.5, -1.0, 2.0, -1.5]
+	var drops := [0.0, 2.0, 1.0, 3.0, 1.0]
 	for i in range(tabs.size()):
 		var on := i == active
 		var label_s := str(tabs[i][0]).to_upper()
@@ -468,11 +469,13 @@ static func draw_tabs(ci: CanvasItem, x: float, top: float, tabs: Array, active:
 		var tw := SILK.get_string_size(label_s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		var w := roundf(tw + 16.0 + 4.0 + (16.0 if on else 12.0))
 		var h := 22.0 if on else 20.0
-		var y := top + (6.0 if on else 4.0)
+		var y: float = top + 4.0 + drops[i % drops.size()] + (4.0 if on else 0.0)
 		var r := Rect2(x, y, w, h)
-		for rx in [x + 6.0, x + w - 7.0]:
-			ci.draw_rect(Rect2(rx + 1.0, top, 1, y - top + 2.0), Color(WOOD_INK, 0.55))
-			ci.draw_rect(Rect2(rx, top, 1, y - top + 2.0), UIChrome.PARCH_RIM)
+		for rx in [x + 6.0, x + w - 8.0]:
+			ci.draw_rect(Rect2(rx + 2.0, top, 1, y - top + 1.0), Color(WOOD_INK, 0.6))
+			for ry in range(int(top), int(y) + 2):
+				ci.draw_rect(Rect2(rx, ry, 2, 1), UIChrome.ROPE_HI if (ry + (1 if rx > x + 10.0 else 0)) % 2 == 0 else UIChrome.ROPE_LO)
+			ci.draw_rect(Rect2(rx - 1.0, top, 4, 1), WOOD_INK)
 		var c := r.get_center()
 		ci.draw_set_transform(c + Vector2(0, 2), deg_to_rad(tilts[i % tilts.size()]), Vector2.ONE)
 		ci.draw_rect(Rect2(-r.size * 0.5 + Vector2(1, 0), r.size), Color(0, 0, 0, 0.3))
