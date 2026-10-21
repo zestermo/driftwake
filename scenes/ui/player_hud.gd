@@ -51,7 +51,9 @@ func _ready() -> void:
 	var irow := HBoxContainer.new()
 	irow.add_theme_constant_override("separation", 5)
 	irow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_interact_key = UIStyle.key_cap("F")
+	_interact_key = UIStyle.key_cap(Glyphs.of("interact").to_upper())
+	# the key cap follows the device in use (Glyphs)
+	Pad.device_changed.connect(func(_pad: bool): _show_interact())
 	irow.add_child(_interact_key)
 	irow.add_child(interact_label)
 	ivb.add_child(irow)
@@ -235,12 +237,12 @@ func _on_prompt_hidden() -> void:
 	_show_interact()
 
 
-## One prompt panel for both: [F] Man the cannon, [HOLD F] Patch the hole.
+## One prompt panel for both: [F] Man the cannon, [HOLD F] Patch the hole (X / HOLD X on a pad).
 func _show_interact() -> void:
 	var text := _hold_text if _hold_text != "" else _interact_text
 	interact_panel.visible = text != ""
 	_hold_bar.visible = _hold_text != ""
-	var key := "HOLD F" if _hold_text != "" else "F"
+	var key := ("HOLD " if _hold_text != "" else "") + Glyphs.of("interact").to_upper()
 	if text == "" or (text == interact_label.text and key == (_interact_key.get_child(0) as Label).text):
 		return
 	interact_label.text = text

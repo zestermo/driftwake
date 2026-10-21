@@ -505,14 +505,33 @@ func _slider_row(list: VBoxContainer, text: String, section: String, key: String
 # ==========================================================================
 # Controls reference
 # ==========================================================================
+## [what, keyboard and mouse, pad]: the pad's is an action Glyphs names (so it follows Pad's layout) or the
+## words themselves. The page shows the device in use (Pad.using_pad) and flips with it.
 const BINDINGS := [
-	["Move", "W A S D"], ["Look", "Mouse"], ["Sprint", "Shift"], ["Jump / double jump", "Space"],
-	["Ready / sheathe weapon", "Z"], ["Light attack (3-hit combo)", "Left click"], ["Heavy attack", "Right click"],
-	["Dodge roll", "Left Ctrl"], ["Sneak (toggle)", "C"], ["Emote wheel (hold, mouse to pick)", "T"], ["Parry", "Q"], ["Interact / talk", "F"], ["Skills", "1 - 5"],
-	["Ultimate", "R"], ["Eat / drink (hold: choose)", "E"], ["Action wheel (hold: camp...)", "N"], ["Swap weapon loadout (hold: choose)", "X"], ["Crew chat (co-op)", "Enter"],["Block (hold)", "Q"],
-	["Inventory", "Tab / I"], ["Skill map", "K"], ["Map: out / away (click: mark)", "M"], ["Belt lantern on / off", "L"], ["Read the log pose (hold)", "H"], ["Zoan: shift form", "V"], ["Summon your ship (hold)", "B"], ["Pause menu", "Esc"], ["Zoom camera", "Mouse wheel"],
-	["PSX resolution / dither", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter"],
+	["Move", "W A S D", "move"], ["Look", "Mouse", "look"], ["Sprint", "Shift", "L3 (click: run)"], ["Jump / double jump", "Space", "jump"],
+	["Ready / sheathe weapon", "Z", "ready_weapon"], ["Light attack (3-hit combo)", "Left click", "light_attack"], ["Heavy attack", "Right click", "heavy_attack"],
+	["Dodge roll", "Left Ctrl", "dodge"], ["Sneak (toggle)", "C", "crouch"], ["Emote wheel (hold, point to pick)", "T", "emote"], ["Parry", "Q", "parry"], ["Interact / talk", "F", "interact"], ["Skills", "1 - 5", "LB+X Y B A RB"],
+	["Ultimate", "R", "ultimate"], ["Eat / drink (hold: choose)", "E", "quick_item"], ["Action wheel (hold: camp...)", "N", "action_wheel"], ["Swap weapon loadout (hold: choose)", "X", "loadout"], ["Crew chat (co-op)", "Enter", "-"],["Block (hold)", "Q", "parry"],
+	["Inventory", "Tab / I", "inventory"], ["Skill map", "K", "skill_map"], ["Map: out / away (click: mark)", "M", "sea_chart"], ["Belt lantern on / off", "L", "lantern"], ["Read the log pose (hold)", "H", "log_pose"], ["Zoan: shift form", "V", "transform"], ["Summon your ship (hold)", "B", "summon_ship"], ["Pause menu", "Esc", "pause"], ["Zoom camera", "Mouse wheel", "-"],
+	["PSX resolution / dither", "F2 / F3", "F2 / F3"], ["Fullscreen", "F11 / Alt+Enter", "F11 / Alt+Enter"],
 ]
+var _binding_keys: Array[Label] = []
+
+
+## Row i's button(s) for the device in use.
+func _binding_key(i: int) -> String:
+	if Pad.using_pad:
+		var a: String = BINDINGS[i][2]
+		return Glyphs.pad_of(a) if InputMap.has_action(a) or Glyphs.PAD_PSEUDO.has(a) else a
+	var key: String = BINDINGS[i][1]
+	if OS.has_feature("web") and key == "Left Ctrl":
+		key = "C"   # (Settings: Ctrl+W would close the browser tab)
+	return key
+
+
+func _refresh_bindings() -> void:
+	for i in range(_binding_keys.size()):
+		_binding_keys[i].text = _binding_key(i)
 
 
 func _build_controls() -> Control:
@@ -528,14 +547,15 @@ func _build_controls() -> Control:
 	grid.add_theme_constant_override("v_separation", 0)
 	vb.add_child(grid)
 	var half := ceili(BINDINGS.size() / 2.0)
+	_binding_keys.resize(BINDINGS.size())
 	for i in range(half):
 		for j in [i, i + half]:
 			if j < BINDINGS.size():
-				var key: String = BINDINGS[j][1]
-				if OS.has_feature("web") and key == "Left Ctrl":
-					key = "C"   # (Settings: Ctrl+W would close the browser tab)
 				grid.add_child(UIStyle.label(BINDINGS[j][0], 12))
-				grid.add_child(UIStyle.label(key, 12, UIStyle.ACCENT))
+				_binding_keys[j] = UIStyle.label("", 12, UIStyle.ACCENT)
+				grid.add_child(_binding_keys[j])
+	_refresh_bindings()
+	Pad.device_changed.connect(func(_pad: bool): _refresh_bindings())
 	var back := UIStyle.button("Back", 120)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.pressed.connect(_back)

@@ -23,6 +23,7 @@ config/windows_native_icon="res://assets/branding/icon.ico"
 [autoload]
 
 Settings="*res://scripts/game/settings.gd"
+Pad="*res://scripts/input/pad.gd"
 FX="*res://scripts/game/fx.gd"
 CombatManager="*res://scripts/combat/combat_manager.gd"
 Ocean="*res://scripts/ocean/ocean_manager.gd"
@@ -37,7 +38,6 @@ DevCapture="*res://scripts/game/dev_capture.gd"
 Perf="*res://scripts/game/perf_monitor.gd"
 Story="*res://scripts/game/story.gd"
 Journal="*res://scripts/quests/journal.gd"
-Pad="*res://scripts/input/pad.gd"
 
 [display]
 

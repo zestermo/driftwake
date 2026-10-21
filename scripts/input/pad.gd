@@ -43,8 +43,23 @@ var _lb_real := false
 var _edge := {}
 
 
+## The base layer as project.godot binds it: action -> its first pad input (a button index or [axis, sign]),
+## taken before any swap (Glyphs names buttons from this and LAYER).
+var base := {}
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	for a in InputMap.get_actions():
+		if str(a).begins_with("ui_"):
+			continue
+		for e in InputMap.action_get_events(a):
+			if e is InputEventJoypadButton:
+				base[str(a)] = (e as InputEventJoypadButton).button_index
+				break
+			if e is InputEventJoypadMotion:
+				base[str(a)] = [(e as InputEventJoypadMotion).axis, signf((e as InputEventJoypadMotion).axis_value)]
+				break
 	_apply_deadzones()
 	Settings.changed.connect(func(section: String, key: String, _v):
 		if section == "controls" and key.ends_with("_deadzone"):

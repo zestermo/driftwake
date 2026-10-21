@@ -2598,7 +2598,7 @@ func _revive_tick(delta: float) -> void:
 		_revive_t = maxf(_revive_t - delta * 2.0, 0.0)
 	body_model.kneeling = holding and is_on_floor()
 	var nm := str(target.display_name())
-	get_tree().call_group("hud", "show_prompt", "Hold F: get %s up" % nm, _revive_t / REVIVE_TIME)
+	get_tree().call_group("hud", "show_prompt", "Hold %s: get %s up" % [Glyphs.of("interact"), nm], _revive_t / REVIVE_TIME)
 	if _revive_t >= REVIVE_TIME:
 		_revive_t = 0.0
 		body_model.kneeling = false

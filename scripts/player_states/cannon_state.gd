@@ -35,7 +35,7 @@ func enter(data: Dictionary) -> void:
 		camera_rig.set_process_unhandled_input(false)
 	if cannon.camera:
 		cannon.camera.current = true
-	player.call("_toast", "Mouse: aim   Left click: fire   F: leave the gun")
+	player.call("_toast", "   ".join([Glyphs.hint("look", "aim"), Glyphs.hint("light_attack", "fire"), Glyphs.hint("interact", "leave the gun")]))
 
 
 ## Stand at the breech, facing along the barrel.
@@ -55,7 +55,7 @@ func physics_update(delta: float) -> void:
 	_pin()
 	player.velocity = Vector3.ZERO
 	var f := cannon.reload_frac()
-	get_tree().call_group("hud", "show_prompt", "Left click: fire   F: leave" if cannon.loaded() else "Reloading...", f)
+	get_tree().call_group("hud", "show_prompt", "   ".join([Glyphs.hint("light_attack", "fire"), Glyphs.hint("interact", "leave")]) if cannon.loaded() else "Reloading...", f)
 	if _cooldown > 0.0:
 		_cooldown -= delta
 		return
