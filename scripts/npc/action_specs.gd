@@ -9,7 +9,8 @@ class_name ActionSpecs
 ## "variants" = more extras dicts, each rendered as another row.
 ## Feel (optional): "lead" {joint: s} samples that joint's keys ahead (+, leads) or behind
 ## (-, trails) in time, for overlap (hips lead, hands whip after); "sharp" how hard joints
-## chase their keys (default 38; higher snaps); "step" fps the pose is sampled at (anime
+## chase their keys (default 38; higher snaps); "snap": no blend in from the stance (a shot from the
+## low ready is up at once); "step" fps the pose is sampled at (anime
 ## "on twos": hold each drawing, 0 = smooth). Pose keys may carry "_scale" (body squash/
 ## stretch about the feet: x side, y up, z forward) and "_smear" (Vector3, x = blade stretch).
 ## "chain" (s): when the next light attack can follow (overrides the state's durations).
@@ -254,11 +255,11 @@ const SPECS := {
 	"roundhouse": {"len": 0.56, "hit": [0.34, 0.59], "stance": "fist", "weapon": ""},
 	"flying_kick": {"len": 0.85, "hit": [0.39, 0.65], "stance": "fist", "weapon": ""},
 	# --- pistols ---
-	"shoot_r": {"len": 0.6, "stance": "pistol", "weapon": "pistol"},
+	"shoot_r": {"len": 0.6, "stance": "pistol", "weapon": "pistol", "sharp": 90.0, "snap": true},
 	"pistol_whip": {"len": 0.62, "hit": [0.32, 0.52], "stance": "pistol", "weapon": "pistol"},
 	"reload": {"len": 1.0, "stance": "pistol", "weapon": "pistol"},
 	"bullet_storm": {"len": 0.75, "stance": "pistol", "weapon": "pistol"},
-	"shoot_l": {"len": 0.6, "stance": "dual_pistol", "weapon": "pistol", "extras": {"dual": true}},
+	"shoot_l": {"len": 0.6, "stance": "dual_pistol", "weapon": "pistol", "sharp": 90.0, "snap": true, "extras": {"dual": true}},
 	"gun_kata": {"len": 0.82, "hit": [0.15, 0.76], "stance": "dual_pistol", "weapon": "pistol", "extras": {"dual": true}},
 	"gun_rain": {"len": 0.6, "stance": "dual_pistol", "weapon": "pistol", "extras": {"dual": true}},
 	# --- Zoan hybrid ---

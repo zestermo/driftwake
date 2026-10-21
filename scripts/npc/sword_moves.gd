@@ -19,10 +19,10 @@ const SLASH_R_SWING := {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02, "plan
 	[0.5, {"dir": Vector3(0.05, -0.05, -1.0), "r": 0.713, "break": 0.7}],
 	[0.62, {"dir": Vector3(-0.7, -0.45, -0.45), "r": 0.598, "break": 0.1}],
 	[0.76, {"dir": Vector3(-0.65, -0.55, 0.0), "r": 0.483, "break": 0.3}, "out"]]}
-## The off hand (offsets from the left shoulder in the chest's frame): from the guard (low,
-## out at the left side) raised above the eyes reaching toward the target on the wind-up,
+## The off hand (offsets from the left shoulder in the chest's frame): from the guard (up
+## behind the left shoulder) raised above the eyes reaching toward the target on the wind-up,
 ## pulled in to the chest through the cut and kept tucked.
-const OFF_GUARD := Vector3(-0.34, -0.33, -0.15)
+const OFF_GUARD := Vector3(-0.27, 0.26, 0.23)
 const SLASH_R_REACH := {"hand": "l", "follow": 1.0, "from_shoulder": true, "lag": 0.04, "pole": Vector3(-1.0, -0.35, 0.25),
 	"center": Vector3.ZERO, "keys": [
 	[0.06, {"dir": OFF_GUARD}],
