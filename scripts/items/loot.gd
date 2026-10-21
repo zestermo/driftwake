@@ -19,6 +19,10 @@ const SUPPLY_KEEP := 0.5
 const ARMS_KEEP := 0.3
 ## A chest put in with at least this much gold is a boss's hoard: its weapons always stay.
 const HOARD_GOLD := 55
+## Greatswords are rarer than the other kinds and in no island's pool: a blade weapon a chest keeps is one this
+## often (a boss's hoard more often). Drawn from the chest's own second stream, so the rest of its roll is unchanged.
+const GREAT_CHANCE := 0.1
+const GREAT_HOARD := 0.3
 
 
 ## The local captain's name: what makes a chest's roll theirs.
@@ -105,7 +109,10 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 			n = _keep(n, SUPPLY_KEEP, rng)
 		elif generic(it) and not placed:
 			if hoard or rng.randf() < ARMS_KEEP:
-				it = weapon(it.weapon_model, int(it.rarity), rng)
+				var kind := it.weapon_model
+				if kind != "pistol" and rng_for(key + "|great").randf() < (GREAT_HOARD if hoard else GREAT_CHANCE):
+					kind = "greatsword"
+				it = weapon(kind, int(it.rarity), rng)
 				# (tomahawks and reavers' axes are carried in pairs: found two at a time, ready for both hands)
 				if WeaponDesigns.comes_paired(it.id.get_slice("+", 0).get_slice("@", 0)):
 					n = 2

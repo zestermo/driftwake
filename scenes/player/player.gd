@@ -1429,7 +1429,7 @@ func try_summon() -> String:
 
 ## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
 ## a pair for the twin axes). Each new kind adds its line.
-const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2}
+const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1}
 
 
 func _unhandled_input(event: InputEvent) -> void:

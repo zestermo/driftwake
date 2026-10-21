@@ -49,13 +49,20 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
   Frenzy heavy, Raider's Leap, Buzzsaw, parry/block with crossed axes (a landed parry hooks them in); the Twin Axes tree (Hook /
   Frenzy / Reaver, frost: TREE_FX "dual_axe", FX.frost, ice spikes), Gallows Hook, Hewing Frenzy, Axestorm, Fimbulwinter; loot
   and Haldor's forge. dev_notes 2026-10-21 (the twin axes).
+- **Greatsword** (2026-10-21): greatsword + black greatblade, claymore, sawtooth greatblade (bleeds), greatcleaver, Sea King's
+  Fang (rare); the low guard from Zach's reference, the point dragged and sparking at a sprint (GreatswordMoves, its grip solved
+  by PoleMoves.hands); combo (rising, falling, flat backhand, Gale Turn) with the momentum carry; the charged cleave (hold to
+  charge, a full charge flings a gale crescent); Running Cleave, Falling Cleave, parry/block on the flat; the Greatsword tree
+  (Bulwark / Gale / Momentum, wind: TREE_FX "greatsword", FX.gust, gale crescents), Guardbreaker, Crescent Gale, Tempest Turns,
+  Skysplitter; rarer than the others (no island pool: a kept chest blade sometimes becomes one, a boss's hoard ~30%), Haldor's
+  forge and the treasure merchants. dev_notes 2026-10-21 (the greatsword).
 
 ### Open / deferred
 - **Hammer/kanabo feel** (**assumed**, built that way 2026-10-21): slow, two-handed, staggering; guard breaks and ground slams
   with a shockwave; heavy family.
 - **Dual axes feel** (**assumed**, built that way 2026-10-21): fast chained chops from both hands, a whirl, hooking pulls; own style and tree (an axe + an
   axe in the off hand stops counting as dual swords); heavy family.
-- **Greatsword feel** (**assumed**; the guard became a low guard 2026-10-21): wide arcs whose momentum carries into the next swing,
+- **Greatsword feel** (**assumed**, built that way 2026-10-21; the guard became a low guard 2026-10-21): wide arcs whose momentum carries into the next swing,
   armour/guard breaking, a charged overhead; heavy family. Kept distinct from the hammer by sweeping cuts vs blunt slams.
 - **Black-leg feel** (**assumed**): hands stay free (in the pockets on the guard), kick combos, a handstand spinning kick,
   a heated kick as the ultimate's element; fists family.
