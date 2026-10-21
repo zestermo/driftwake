@@ -1313,7 +1313,7 @@ const TREE_FX := {
 	"greatsword": [Color(1.0, 1.0, 1.0), Color(0.74, 1.0, 0.88), Color(0.28, 0.8, 0.62)],
 	# black-leg: heat - a white-hot core, cherry-red edge, a deep crimson (not the axe's ember orange): the kicking leg
 	# glowing red-hot, crimson flames bursting off the big kicks
-	"black_leg": [Color(1.0, 0.95, 0.82), Color(1.0, 0.24, 0.14), Color(0.7, 0.04, 0.1)],
+	"black_leg": [Color(1.0, 0.95, 0.82), Color(1.0, 0.17, 0.16), Color(0.7, 0.04, 0.1)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1441,7 +1441,7 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 
 ## Heat thrown off a kick (black-leg's element): crimson flames tinted off the fire sheet (not the axe's orange
 ## embers), white-hot sparks flung hard along `dir`, and a brief red light.
-const HEAT_TINT := Color(1.0, 0.42, 0.36)
+const HEAT_TINT := Color(1.0, 0.3, 0.3)
 
 
 func heat(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:

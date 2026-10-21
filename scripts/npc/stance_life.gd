@@ -14,8 +14,8 @@ const BREATH := {"": [2.4, 1.0], "sword": [2.4, 1.0], "sword_pistol": [2.4, 1.0]
 ## The settle after an attack: its last segment back to the guard overshoots it a little and comes back
 ## (Humanoid._keys; the move's own length, nothing added). Stance -> the overshoot (Humanoid._back's c1).
 const SETTLE := {"": 1.7, "dagger": 1.3, "dual_dagger": 1.3, "fist": 1.4, "axe": 2.2, "dual_axe": 2.2, "hammer": 2.5,
-	"greatsword": 2.4, "polearm": 1.9, "katana": 1.8}
-## The fist's bounce: hops a second (rad/s of |sin|), how high the hips rise, how far the feet leave the floor.
+	"greatsword": 2.4, "polearm": 1.9, "katana": 1.8, "black_leg": 1.5}
+## The fist's (and black-leg's) bounce: hops a second (rad/s of |sin|), how high the hips rise, how far the feet leave the floor.
 const BOUNCE := [4.4, 0.034, 0.02]
 
 
@@ -85,7 +85,7 @@ static func breathe(h, p: Dictionary, still: float) -> float:
 	if still <= 0.0:
 		h.plant_up = 0.0
 		return 0.0
-	if h.stance == "fist":
+	if h.stance in ["fist", "black_leg"]:
 		var hop := absf(sin(h._t * BOUNCE[0]))
 		h.plant_up = hop * BOUNCE[2] * still
 		p["torso"] += Vector3(0.03 * hop, 0, 0) * still
