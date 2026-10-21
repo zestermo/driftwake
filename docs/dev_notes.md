@@ -5048,3 +5048,57 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   dual_axe_loot; t/progression/tree_shape. Renders: tools/dev/out/dualaxe_anim_* (every dx_ pose), dualaxe_ult_fimbulwinter.png.
   Expect techtest/progtest/balancetest/uitest (a new tab), the chest-roll suites (new axe designs shift the axe rolls) and the
   vine suites (vine_yank's signature) to want a look at the push.
+
+## 2026-10-21: the greatsword (1.21 remaining weapons, kind 4 of 8; docs/weapons_plan.md)
+- **Item and models** (WeaponDesigns kind "greatsword", base resources/items/greatsword.tres): `_greatsword` holds the right hand at
+  the pommel end of a long grip (the left slides up it toward the guard, GREAT_GUARD 0.36 ahead), a broad blade "len" on along -Z,
+  edge -Y, a fuller down its first half (or teeth filed into the edge). Designs by `WeaponDesigns.great(design, key)`: black
+  greatblade (dark steel, a long gilt cross), claymore (quillons swept to quatrefoils; "sweep" 1.12), sawtooth greatblade ("bleed"
+  3 s on every cut, `GreatswordArts.shape_hit`), greatcleaver (a slab, a hanging hole; "weight" 1.25, slower), Sea King's Fang (an
+  ivory tooth, curved; RARE). "speed", "reach", "sweep", "weight", "bleed". Two-handed; on the back hilt up behind the right
+  shoulder, the blade flat down to the left (`DrawMoves.on_back`); drawn with the two-hander's heave.
+- **The low guard** (Zach's reference photo, weapons_plan "stance poses"): both hands at the right hip, the blade a long diagonal
+  down and forward across the body, its point near the ground on the left (GreatswordMoves.GUARD_GRIP, the polearm's grip
+  channels solved by `PoleMoves.hands`, GRIPS = guard, block, sprint). Sprinting it's in the right hand, the point dragged
+  behind, and `GreatswordMoves.scrape` throws sparks where it touches the ground every 0.07 s (each screen its own, local FX,
+  FX culls far bursts). The walk is a quicker, forward-leaning version of the hammer's sway (Humanoid._locomotion `great`).
+- **The momentum carry**: the combo (style "greatsword": gs_1 rising diagonal from the low guard to high right / gs_2 falling
+  diagonal to low left / gs_3 flat backhand, a breaker / Gale Turn: a full turn right, knockdown, move "gale_turn") is keyed so
+  each blow's follow-through pose (C2, C1, C4) is the next one's first key. Two parts: (1) the animation: ActionSpecs "carry" +
+  extras "after": `Humanoid._begin_action` starts a carry move at full weight when the action it replaces is the one it follows,
+  so there's no blend back toward the guard between arcs; (2) the gameplay: LightAttackState counts `_mom` (blows built in an
+  unbroken flow: chained while the body is still in the last blow's follow-through); each plays MOMENTUM_SPEED 7% faster and
+  lands MOMENTUM_DAMAGE 6% harder per blow built, with a growing ring of air, a rising whoosh and a camera kick
+  (`GreatswordArts.swing_fx`). A right-click out of a follow-through goes straight into the cleave already a level charged.
+- **The charged cleave** (HeavyAttackState "cleave", `_charge_update`): pressed, the blade's raised overhead and held
+  (Humanoid.hold "gs_charge", a slight tremble), creeping at x0.25 and turning with the camera; levels at CHARGE_AT 0.45 / 1.0 s
+  (gather, glint, a rising note; a ring at the top), let go or 1.8 s and gs_heavy brings it down (hit 0.1 s after release).
+  CHARGE_DAMAGE 30 / 42 / 58, always a breaker, longer stagger x weight; a full charge can't be blocked, knocks down and flings a
+  gale crescent (Projectile "gale": the slash crescent stood on its edge, 26 m/s, 10 m, 18 damage, in the tree's colours with the
+  element). A tap gives the quick level-0 drop. The cleave's ground: a crack down its line, dust, a ring (`cleave_fx`).
+- **Moves** (tree): Running Cleave at a sprint (gs_rush: the dragged blade swung flat through them, breaker, knockdown, "great_low"),
+  Falling Cleave in the air (gs_dive, the hammer's drop; landing `fall_land`: a 4.5 m line ahead knocked flat), the parry and
+  block stand the blade up in front, its flat to them (a landed parry: `GreatswordArts.parried`, a ring of air).
+  REACH "great" / "great_wide" / "great_spin" / "great_cleave" / "great_low" (x the design's reach and sweep).
+- **Tree** (SkillTrees "greatsword": Bulwark / Gale / Momentum, element wind "gs": Gale Edge 16 / Tempest Blade 25): Flat of the
+  Blade 3 · Guardbreaker 8 · Unyielding 20; Crescent Gale 5 · Tempest Turns 10 · Skysplitter 30; Gale Turn 2 · Running Cleave 4 ·
+  Falling Cleave 6 · Unbroken Momentum 13 (passive) · Swordmaster's Way 22 (Headsman / Tidebreaker). Steps 30. Tab "GREATSWORD".
+- **Techniques** (GreatswordArts in TechniqueState._arts): Guardbreaker (a step in, a rising cut at 0.22 s that knocks the guard
+  up, the blade down at 0.55 s: 30 unblockable breaker, stagger 1.3), Crescent Gale (a flat sweep at 0.3 s: 3.2 m cone and a
+  flat gale crescent, "gale_flat"), Tempest Turns (three turns, each quicker: `GreatswordMoves.tempest_k`, a ring hit every half
+  turn, a 4.4 m knockdown burst at 1.42 s, a vortex with the element), Skysplitter (ult, untouchable: up, the moment at 0.55 s,
+  down at 30 m/s: a 12 m split line 48 knockdown, a 4 m ring, three gale crescents fanned down the line, a cyclone with the element).
+- **FX**: TREE_FX "greatsword" gale (white core, pale jade edge, deep sea-green accent); `FX.gust` (fast pale streaks, jade motes,
+  two rushing lines of air, a breath of mist) for element / elem_hit. Not lightning, earth, frost or fire.
+- **Co-op**: the stance, actions, held charge and model sync as before (hold goes over the wire); hits through hurtboxes and
+  `_strike`, effects through Net.fx, crescents through `net_power("projectile")`. The spark scrape is each screen's own.
+- **Per frame**: `PoleMoves.hands` on bodies in the greatsword stance (as the polearm's and hammer's); the scrape is a timer
+  check a frame while sprinting with one drawn (a transform and a compare every 0.07 s). The charge's hold is the state's tick.
+- **Sources**: rarer than the others: in no island's pool; a chest that keeps a blade weapon turns it into a greatsword
+  GREAT_CHANCE 0.1 of the time (a boss's hoard GREAT_HOARD 0.3), drawn from the chest's own second stream (`rng_for(key|great)`)
+  so the rest of every chest rolls as before; Shops.RARE_KINDS (treasure merchants); Haldor's pool greatsword / claymore@1 /
+  sawtooth_greatblade@1; WeaponDesigns.random_item (Sea King, ship prizes). Traits: serrated, gale, headsman's, rushing,
+  duellist's. Debug: Shift+F10's rack has every greatsword design.
+- Tests: t/weapons greatsword_combo, greatsword_moves, greatsword_tree, greatsword_loot; t/progression/tree_shape. Renders:
+  tools/dev/out/gs/ (rack_side, pb_* / pb2_* poses, ab_sky_skysplitter). Expect techtest/progtest/balancetest/uitest (a new
+  tab), the chest-roll suites (drop_rates: a kept blade can now be a greatsword) and inventory/card tests to want a look.
