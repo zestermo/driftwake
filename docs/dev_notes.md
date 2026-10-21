@@ -5212,3 +5212,11 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   Stable section; home's banner and news/index.html list only stable posts (the 1.18.1 capital post is unlisted, still
   linked from the releases page). For the next stable release: delete tools/release/UNSTABLE, add its roadmap entry
   without the flag, set "here" to it, update the home banner and news list as usual.
+
+## 2026-10-21: tooling window (after v1.18)
+- crew_lib `Get-TestKey` reads the deps file's stamp with `[IO.File]::GetLastWriteTimeUtc` and its lines in a try, so a file another session deletes between the check and the read counts as "no deps recorded" instead of killing the run.
+- compilecheck lints an autoload name (from project.godot `[autoload]`) used inside a `static func` in scripts/ or scenes/ ("STATIC AUTOLOAD file:line ... reach it through the tree"): a --script suite that names the class compiles without the autoloads. 30 files already did it (474 lines), so they are listed by file in `tools/dev/static_autoload_allow.txt` as a ratchet: new files fail, and an entry that matches nothing is reported. Reach the autoload with `(Engine.get_main_loop() as SceneTree).root.get_node("Net")` when a file is next reworked.
+- nettest.ps1: each mode writes `net[-mode].host|client|watch.log` and `.deps` in tools/dev/out/logs, so modes can run at once (board + jam, board + chain pass together).
+- forest_fauna and snow_wolves name the creatures they spawn (desert_fauna already did): a creature's rng is seeded by its node name.
+- `Humanoid._rng` is seeded from the global rng (`randi()`): fixed per suite seed in tests, random in a live game (its seed is random at start-up).
+- Known: r10test fails on main at "strafing (0.7071, 0.7071): the planted foot barely slides (1.64 m/s)" against a 1.6 limit, with or without the rng change (deterministic): from the stance pass (armed default stance); it stops the suite before the jump-side checks.

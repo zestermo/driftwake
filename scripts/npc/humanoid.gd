@@ -334,7 +334,7 @@ var _getup_face_up := true
 func setup(look_dict: Dictionary) -> Humanoid:
 	look = look_dict
 	_build()
-	_rng.randomize()
+	_rng.seed = randi()
 	_glance_t = _rng.randf_range(0.5, 2.5)
 	_idle_seed = _rng.randf() * TAU
 	for j in JOINTS:
