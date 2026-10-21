@@ -315,8 +315,11 @@ func _find(tree: String) -> void:
 	found[tree] = true
 	tree_found.emit(tree)
 	if player and player.is_local and is_inside_tree():
-		UIStyle.sfx("level_up")
-		get_tree().call_group("hud", "show_banner", "New skill tree!", "%s  -  press K to see it" % tree_name(tree), true)
+		var line := "Added to %s" % SkillTrees.section_of(tree).to_upper()
+		var pts := points_free(tree)
+		if pts > 0:
+			line += " · %d point%s to spend" % [pts, "" if pts == 1 else "s"]
+		get_tree().call_group("hud", "show_new_tree", tree_name(tree), line)
 
 
 func tree_level(tree: String) -> int:

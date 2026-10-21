@@ -4719,3 +4719,16 @@ Spec: docs/progression_plan.md "Redesign" and "Build: v1.18.2".
 - Tests: t/progression/ tree_shape, grant_by_level, steps_points, versions_bunk, tree_found, hit_cap, passive_slots,
   format5_migration (family_carry and can_learn gone); t/downtime/train checks the cap. techtest, abilityshot and
   siteshot call `master_all()` first. Expect progtest, techtest, balancetest, r6test, katanatest, uitest to want a look.
+
+## 2026-10-20: progression redesign, piece 2: every weapon tree in the new shape
+- The other eight weapon trees (Cutlass, Dual Wield, Axe, Dagger, Twin Daggers, Corsair, Pistol, Unarmed) are SkillTrees
+  trees, drafted in docs/progression_plan.md ("The other weapon trees"): the old ids, moves, skills and effect keys kept,
+  big nodes by mastery level, 30 steps each (the old stat nodes became the damage / crit / stamina steps; a few old ids
+  like s_edge, g_marks, d_twin, a_heft are steps now), the element at 16 / 25 (`_elem`, SkillTrees.ELEMENTS), the
+  ultimate at 30, and two of the old style passives as a variant (Pirate's Way, Rage, Dancer's Way, Killer's Way,
+  Viper's Way, Corsair's Way); the rest are slotted passives.
+- Gone: the weapon trees in SkillTree, SkillTree.MASTERY, FAMILIES (kin_of / families_of return [] for the old map),
+  mastery "pts", weapon `_spend`. A save holding node ids that no longer exist gets the refund banner once.
+- The found-tree card is menu-ui's `show_new_tree(name, line)` on the HUD ("Added to COMBAT · n points to spend").
+- Tests: tree_shape now checks all nine weapon trees; refund/format5 migrations for the cutlass converted too. World
+  suites' tree checks updated for the new shape (techtest, daggertest, wieldtest, balancetest, progtest), not run.
