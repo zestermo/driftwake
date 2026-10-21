@@ -132,9 +132,9 @@ var _katana_socket: Node3D
 ## Sprinting with the katana out: it rides in its scabbard, hands on it, ready to draw.
 var _run_sheath: bool = false
 ## Fighting stance for the guard pose: sword, dual_sword, fist, pistol,
-## dual_pistol, claw, katana, dagger, dual_dagger, polearm, hammer, dual_axe.
+## dual_pistol, claw, katana, dagger, dual_dagger, polearm, hammer, dual_axe, greatsword.
 var stance: String = "sword"
-## A polearm's or hammer's two-handed grip (PoleMoves): what this frame's pose asked for ([right hand, shaft, edge, left
+## A polearm's, hammer's or greatsword's two-handed grip (PoleMoves): what this frame's pose asked for ([right hand, shaft, edge, left
 ## hand's slide], the chest's frame), whether a pose set it, and the grip as it eases there.
 var pole_grip: Array = []
 var pole_set := false
@@ -649,7 +649,7 @@ func _attach_weapon(in_hand: bool) -> void:
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
-	if kind_of(weapon) in ["axe", "polearm", "hammer"]:
+	if kind_of(weapon) in ["axe", "polearm", "hammer", "greatsword"]:
 		sheath = DrawMoves.back_socket(self)
 	var target := hand_r if in_hand else sheath
 	if weapon.get_parent() != target:
@@ -804,6 +804,8 @@ func _guard() -> Dictionary:
 			return PoleMoves.GUARD
 		"hammer":
 			return HammerMoves.GUARD
+		"greatsword":
+			return GreatswordMoves.GUARD
 		"sword":
 			return SWORD_GUARD
 		"dual_pistol":
@@ -824,6 +826,7 @@ const STANCE_LEGS := {
 	"polearm": PoleMoves.LEGS,
 	"hammer": HammerMoves.LEGS,
 	"dual_axe": DualAxeMoves.LEGS,
+	"greatsword": GreatswordMoves.LEGS,
 }
 
 
@@ -993,6 +996,8 @@ func _block_pose() -> Dictionary:
 			return HammerMoves.BLOCK
 		"dual_axe":
 			return DualAxeMoves.block()
+		"greatsword":
+			return GreatswordMoves.BLOCK
 	# one blade held level across the body, the off hand bracing it
 	return {"torso": Vector3(-0.08, -0.2, 0), "head": Vector3(0.08, 0.2, 0),
 		"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),
@@ -1084,11 +1089,16 @@ func react(action_name: String, duration: float, push: Vector3 = Vector3.ZERO) -
 
 
 func _begin_action(action_name: String, duration: float, held: bool) -> void:
+	var prev := current_action()
 	if not _action.is_empty() and _action["name"] != action_name:
 		_finish_action()
-	_action = {"name": action_name, "t": 0.0, "dur": maxf(duration, 0.01), "events": {}, "hold": held, "spec": AnimLab.spec(action_name)}
+	var sp: Dictionary = AnimLab.spec(action_name)
+	_action = {"name": action_name, "t": 0.0, "dur": maxf(duration, 0.01), "events": {}, "hold": held, "spec": sp}
 	_action_id += 1
-	_action_w = 1.0 if action_name in SPIN_ACTIONS else 0.0
+	# (a "carry" move straight after the one it follows starts where that one's follow-through left the body: the
+	# greatsword's combo, each arc out of the last, no blend back toward the guard between them)
+	var carried: bool = sp.get("carry", false) and prev != "" and prev == str((sp.get("extras", {}) as Dictionary).get("after", ""))
+	_action_w = 1.0 if action_name in SPIN_ACTIONS or carried else 0.0
 
 
 func stop_action() -> void:
@@ -2193,6 +2203,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return HammerMoves.pose(self, n, u)
 	if n.begins_with("dx_"):
 		return DualAxeMoves.pose(self, n, u)
+	if n.begins_with("gs_"):
+		return GreatswordMoves.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp
@@ -2367,8 +2379,12 @@ func _locomotion(delta: float) -> Dictionary:
 		# combat stance: guard arms, wide knees, boxer-style hop
 		elif armed and not sprinting:
 			# (a hammer's weight: a slow sway instead of the hop, the chest rolling over each planted foot)
-			var heavy := stance == "hammer"
-			var hf := 2.4 if heavy else 4.5
+			# (a greatsword's: a quicker sway, driven, leaning into the walk under the blade)
+			var great := stance == "greatsword"
+			var heavy := stance == "hammer" or great
+			var hf := 4.5
+			if heavy:
+				hf = 3.1 if great else 2.4
 			var hop := absf(sin(_t * hf))
 			var gd := _guard()
 			for j in gd.keys():
@@ -2377,7 +2393,12 @@ func _locomotion(delta: float) -> Dictionary:
 					p[j] = (gd[j] as Vector3) * (1.0 - clampf(walk, 0.0, 1.0) * 0.6)
 					continue
 				p[j] = gd[j] + Vector3(hop * 0.06, 0, sin(_t * hf) * 0.03)
-			if heavy:
+			if great:
+				p["pivot"] += Vector3(-0.07 * walk, 0, 0)
+				p["torso"] += Vector3(-0.06 * walk, s * 0.06 * walk, s * 0.04 * walk)
+				p["head"] += Vector3(0.1 * walk, -s * 0.05 * walk, -s * 0.03 * walk)
+				lift.y -= 0.02 * walk + absf(s) * 0.02 * walk
+			elif heavy:
 				p["torso"] += Vector3(-0.08 * walk, 0, s * 0.07 * walk)
 				p["head"] += Vector3(0.05 * walk, 0, -s * 0.05 * walk)
 				lift.y -= 0.03 * walk + absf(s) * 0.025 * walk
@@ -2786,7 +2807,7 @@ func _process(delta: float) -> void:
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
 	if auto_point_guns:
 		point_guns()
-	if stance == "polearm" or stance == "hammer" or pole_w > 0.0:
+	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0:
 		PoleMoves.hands(self, delta)
 	_apply_smear()
 	_katana_hands()

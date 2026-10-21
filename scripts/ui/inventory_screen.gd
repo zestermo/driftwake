@@ -20,7 +20,7 @@ const SHOOT := preload("res://scripts/player_states/shoot_state.gd")
 const DOLL := [["head", "torso", "vest", "coat", "belt"], ["hands", "legs", "feet", "acc1", "acc2"]]
 const TAGS := {"head": "HEAD", "torso": "BODY", "vest": "VEST", "coat": "COAT", "belt": "BELT", "hands": "HAND",
 	"legs": "LEGS", "feet": "FEET", "acc1": "ACC", "acc2": "ACC", "weapon": "MAIN", "offhand": "OFF", "equipment": "EQUIP"}
-const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam", "skewer": "Skewer", "quake": "Earthquake"}
+const HEAVY_NAMES := {"thrust": "Lunging thrust", "whirl": "Whirlwind", "slam": "Leaping slam", "skewer": "Skewer", "quake": "Earthquake", "cleave": "Charged cleave"}
 ## Item cards from these places compare with what you hold or wear.
 const COMPARE := ["bag", "loot", "shop"]
 const UP := Color(0.45, 0.95, 0.4)
@@ -802,6 +802,11 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 			"hammer":
 				fx.append(["Staggers; big blows break a guard", Color(0.92, 0.8, 0.58)])
 				fx.append(["Two-handed", UIStyle.TEXT_DIM])
+			"greatsword":
+				fx.append(["Each swing carries into the next", Color(0.8, 0.98, 0.9)])
+				if WeaponDesigns.great(it.design, "bleed", 0.0) > 0.0:
+					fx.append(["Its cuts bleed", Color(1.0, 0.45, 0.4)])
+				fx.append(["Two-handed", UIStyle.TEXT_DIM])
 	elif Instruments.kind_of(it) != "":
 		fx.append(["Play it: hold T, pick Play", UIStyle.ACCENT])
 	elif Rods.tier_of(it) != "":
@@ -888,7 +893,7 @@ static func weapon_stats(it: ItemData) -> Dictionary:
 	if it.weapon_model in ["pistol", "rifle"]:
 		var rate := 1.0 / 0.34
 		return {"gun": true, "damage": SHOOT.SINGLE_DAMAGE * it.power(), "rate": rate, "speed": _speed_word(rate)}
-	var st: Dictionary = LIGHT.STYLES[{"katana": "katana", "axe": "axe", "dagger": "dagger", "polearm": "polearm", "hammer": "hammer"}.get(it.weapon_model, "sword")]
+	var st: Dictionary = LIGHT.STYLES[{"katana": "katana", "axe": "axe", "dagger": "dagger", "polearm": "polearm", "hammer": "hammer", "greatsword": "greatsword"}.get(it.weapon_model, "sword")]
 	var dmg := 0.0
 	for x in st["damages"]:
 		dmg += float(x)

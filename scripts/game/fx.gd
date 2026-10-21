@@ -1308,6 +1308,9 @@ const TREE_FX := {
 	"hammer": [Color(1.0, 0.95, 0.82), Color(0.92, 0.8, 0.58), Color(0.55, 0.46, 0.36)],
 	# twin axes: frost - white rime, pale ice-blue edges, a deep glacier blue; ice chips, a cold mist, ice heaving up
 	"dual_axe": [Color(0.96, 1.0, 1.0), Color(0.68, 0.9, 1.0), Color(0.36, 0.55, 1.0)],
+	# greatsword: gale - white air pressure, a pale jade edge, a deep sea-green; gusts torn off every swing, crescents of
+	# wind flung off the big ones, a cyclone round the ultimate
+	"greatsword": [Color(1.0, 1.0, 1.0), Color(0.74, 1.0, 0.88), Color(0.28, 0.8, 0.62)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1425,8 +1428,25 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			dust(pos, maxi(amount / 3, 2), 0.6)
 		"dual_axe":
 			frost(pos, dir, amount, speed)
+		"greatsword":
+			gust(pos, dir, amount, speed)
 		_:
 			spray(pos, dir, amount, c, speed)
+
+
+## Wind torn off a blade (the greatsword's element): pale streaks of air flung hard along `dir`, jade motes riding
+## them, a couple of rushing lines of air and a breath of mist.
+func gust(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	var d := dir.normalized() if dir.length() > 0.01 else Vector3.UP
+	var edge := tree_col("greatsword", EDGE)
+	_burst(pos, amount, _spark_mat, 0.1, 0.32, {"radius": 0.2, "direction": d, "spread": 28.0, "vel_min": speed * 1.3, "vel_max": speed * 2.3,
+		"gravity": Vector3.ZERO, "damping": 4.0, "grow": false, "color": Color(edge.r, edge.g, edge.b, 0.9)})
+	motes(pos, d, maxi(amount / 3, 2), tree_col("greatsword", ACCENT), speed * 0.7)
+	for i in 2:
+		var off := Vector3(randf_range(-0.35, 0.35), randf_range(-0.2, 0.35), randf_range(-0.35, 0.35))
+		punch_wind(pos, (d + off).normalized(), 0.8 + speed * 0.1, tree_col("greatsword", CORE))
+	if flipbooks:
+		puff(pos, "mist", 1, 0.8, 0.45, Color(0.85, 1.0, 0.93, 0.4), speed * 0.2, d)
 
 
 ## Frost thrown along `dir` (the twin axes' element): chips of ice that fly and fall hard, white rime motes that
@@ -2375,6 +2395,9 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"dual_axe":
 			frost(pos, dir + Vector3.UP * 0.4, 7, 3.5)
 			ring(pos, dir, 0.8, edge, 0.16, 0.18)
+		"greatsword":
+			gust(pos, dir + Vector3.UP * 0.2, 7, 4.0)
+			ring(pos, dir, 1.0, edge, 0.18, 0.14)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

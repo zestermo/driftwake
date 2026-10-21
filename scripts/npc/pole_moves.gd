@@ -308,14 +308,18 @@ static func _pose(h, n: String, u: float) -> Array:
 # --------------------------------------------------------------------------
 # The grip, solved each frame
 # --------------------------------------------------------------------------
-## (the hammer's grip is solved here too, from its own guard, block and carry: HammerMoves.GRIPS)
+## (the hammer's and the greatsword's grips are solved here too, from their own guard, block and carry: GRIPS)
 static func hands(h, delta: float) -> void:
 	var act: String = h.current_action()
 	var st: String = h.stance
-	var grips: Array = HammerMoves.GRIPS if st == "hammer" else [GUARD_GRIP, BLOCK_GRIP, TRAIL_GRIP]
-	var on: bool = st in ["polearm", "hammer"] and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
+	var grips: Array = [GUARD_GRIP, BLOCK_GRIP, TRAIL_GRIP]
+	if st == "hammer":
+		grips = HammerMoves.GRIPS
+	elif st == "greatsword":
+		grips = GreatswordMoves.GRIPS
+	var on: bool = st in ["polearm", "hammer", "greatsword"] and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
 		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and Humanoid.kind_of(h.weapon) == st \
-		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act in HELD)
+		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD)
 	var want: Array = grips[0]
 	if h.pole_set:
 		want = h.pole_grip
