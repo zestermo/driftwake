@@ -17,7 +17,7 @@ extends PlayerState
 ## * twin axes (Berserker Frenzy): chop, chop, chop stepping in, then both crashed down crossed
 ## * greatsword (the charged cleave): held overhead charging, let go to bring it down; a full charge flings a
 ##   crescent of air down the line
-## * fists: a flying kick
+## * fists (the haymaker): a huge overhand right, over the top and down through them
 ## * black-leg (Guillotine Heel): the axe kick, the heel brought down from over the head through a guard
 ## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
 ##   spin, arms crossed, shooting everyone close)
@@ -88,9 +88,12 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.12, "shake": 0.26, "knockback": 6.0, "stagger": 0.8,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.0, "impact_fx": false, "reach": "kick_axe",
 		"color": Color(1.0, 0.94, 0.86), "tree": "black_leg", "legs": true, "breaker": true},
-	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
-		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
-		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
+	# fists (the haymaker): rocked back with the fist drawn up behind the head, then a long step in and the overhand
+	# brought over the top and down through them; breaks a wind-up, knocks them flat
+	"haymaker": {"anim": "fs_hay", "impulse": 7.5, "wind": true,
+		"damage": 30.0, "hitstop": 0.13, "shake": 0.26, "knockback": 14.0, "stagger": 0.7,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false, "reach": "fist",
+		"color": Color(1.0, 0.95, 0.8), "tree": "unarmed", "breaker": true},
 	"whip": {"anim": "pistol_whip", "impulse": 5.0,
 		"damage": 18.0, "hitstop": 0.07, "shake": 0.14, "knockback": 10.0, "stagger": 0.4,
 		"trail": "left", "trail_len": 0.2, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "fist"},
@@ -183,7 +186,7 @@ func enter(data: Dictionary) -> void:
 		"dual_axe":
 			cfg = STYLES["frenzy"]
 		"fist":
-			cfg = STYLES["kick"]
+			cfg = STYLES["haymaker"]
 		"black_leg":
 			cfg = STYLES["axe_kick"]
 		"pistol":

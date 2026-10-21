@@ -208,11 +208,11 @@ func _process(d: float) -> bool:
 			if frames == 18:
 				p.state_machine.force_state("LightAttack", {"combo_index": 3, "chain": true})
 			if frames == 21:
-				shot("roundhouse")
+				shot("uppercut")
 			if frames == 28:
 				p.state_machine.force_state("HeavyAttack", {})
 			if frames == 32:
-				shot("flying_kick")
+				shot("haymaker")
 			if frames >= 33:
 				quit()
 	return false

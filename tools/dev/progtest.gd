@@ -202,7 +202,7 @@ func _process(d: float) -> bool:
 			step += 1
 		6:
 			print("   action ", p.body_model.current_action(), " state ", p.current_state_name(), " dist ", snappedf((g.global_position - p.global_position).length(), 0.01), " gstate ", g.state, " hb active ", p.sword_hitbox.active, " g hurt ", g.hurtbox.monitorable, " gpos ", g.global_position, " ppos ", p.global_position)
-			check("unarmed light attack is a jab", p.body_model.current_action() == "jab")
+			check("unarmed light attack is a jab", p.body_model.current_action() == "fs_jab")
 			wait = 0.4
 			step += 1
 		7:
