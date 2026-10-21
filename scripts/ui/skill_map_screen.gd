@@ -2,11 +2,13 @@ class_name SkillMapScreen
 extends Control
 ## The skills menu (K), as docs/media/progression_mock: a night sky under a wooden beam with a hanging sign per tab.
 ##   Captain     the level trunk (round nodes that come by themselves, split talent nodes), a legend, the Will path
-##   Combat      a found weapon's tree (three branches up from its root, steps for points), or the chart of them all
+##   Combat      a found weapon's tree (three branches up from its root, everything bought), or the chart of them all
+## Trees show icons and names; the card has the picked node in full (gate, price, what it does), the hover a one-line
+## tip, the beam both pools. Only found trees show anywhere. At the bunk the card refunds the tree for gold.
 ##   Adventure   the found Adventure trees beside the open one
 ##   Loadout     the weapon loadouts, the one skill bar (1-5 + R), the passive slots, the library of what you know
 ##   Driftfruit  the eaten fruit's tree (once there is one)
-## Keys: Q / E (shoulder buttons) change tab; arrows / d-pad move between nodes; Enter / F (pad A) buys a step,
+## Keys: Q / E (shoulder buttons) change tab; arrows / d-pad move between nodes; Enter / F (pad A) buys a node,
 ## switches a version or picks a talent (versions and changed talents only at the ship's bunk); A / D change weapon,
 ## Tab the chart; W / S change Adventure tree; 1-5 / R put the picked skill on the bar, 1-4 the picked passive in
 ## its slot. Mouse: hover inspects, click picks, click again acts, right-click clears a bar or passive slot.
@@ -47,6 +49,9 @@ var _t := 0.0
 var _msg := ""
 var _msg_t := 0.0
 var _font: Font
+var _mouse := Vector2.ZERO
+## The tree whose refund was clicked once (a second click pays for it).
+var _respec_armed := ""
 
 
 func _init(owner_menu: Node) -> void:
@@ -90,6 +95,7 @@ func set_tab(t: String, which: String = "") -> void:
 	tab = t
 	hover = ""
 	sel = ""
+	_respec_armed = ""
 	if t in ["combat", "adventure", "fruit"]:
 		var vis := _pr().visible_trees(t)
 		var keep := str(_trees.get(t, ""))
@@ -189,7 +195,8 @@ func _nav(d: Vector2) -> void:
 # --------------------------------------------------------------------------
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
-		var h := _hit_at((event as InputEventMouseMotion).position)
+		_mouse = (event as InputEventMouseMotion).position
+		var h := _hit_at(_mouse)
 		hover = ("n:" + h.get_slice(":", 1)) if h.begins_with("v:") else h
 		accept_event()
 	elif event is InputEventMouseButton and event.pressed:
@@ -207,7 +214,7 @@ func _gui_input(event: InputEvent) -> void:
 				_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 			elif id != "" and id == sel:
 				_act(id)
-			elif id.begins_with("w:"):
+			elif id.begins_with("w:") or id == "respec":
 				_act(id)
 			elif id != "":
 				sel = id
@@ -344,6 +351,25 @@ func _act(id: String) -> void:
 			equip_skill(lid, PowerComponent.ULT if Skills.is_ult(lid) else (free if free >= 0 else PowerComponent.KEYS[0]))
 	elif id.begins_with("bar:") or id.begins_with("pas:"):
 		_say("Pick something in the library, then its key")
+	elif id == "respec":
+		_respec()
+
+
+## The tree's refund at the bunk: a first click asks, a second pays.
+func _respec() -> void:
+	var p := _pr()
+	if _respec_armed != tree:
+		_respec_armed = tree
+		_say("Refund everything bought in %s for %d gold? Click again" % [Progression.tree_name(tree), p.respec_price()])
+		menu._play("select")
+		return
+	_respec_armed = ""
+	var why := p.respec_why(tree)
+	if not p.respec_tree(tree):
+		_deny(why)
+		return
+	menu._play("coin")
+	_say("%s refunded: its points are back" % Progression.tree_name(tree))
 
 
 func _buy(nid: String) -> void:
@@ -414,8 +440,10 @@ func _draw() -> void:
 			_draw_tree_page(body, false)
 	var tl := tabs()
 	var frac := float(p.xp) / maxf(Progression.xp_to_next(p.level), 1.0) if p.level < Progression.MAX_LEVEL else 1.0
-	_tab_rects = UIStyle.draw_topbar(self, size.x, tl.map(func(x): return [x[1], UIStyle.tab_icon(x[2])]), tl.map(func(x): return x[0]).find(tab), _t, p.level, frac)
+	var pools := "COMBAT %d  ·  ADVENTURE %d" % [p.pool("combat"), p.pool("adventure")]
+	_tab_rects = UIStyle.draw_topbar(self, size.x, tl.map(func(x): return [x[1], UIStyle.tab_icon(x[2])]), tl.map(func(x): return x[0]).find(tab), _t, p.level, frac, pools)
 	UIStyle.draw_board(self, bottom, size.x, _hints())
+	_draw_tip()
 	if _msg_t > 0.0:
 		var w := SILK.get_string_size(_msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 16.0
 		var r := Rect2(roundf((size.x - w) * 0.5), bottom - 20.0, w, 15)
@@ -429,14 +457,14 @@ func _hints() -> Array:
 		"combat":
 			if chart:
 				return [["Q/E", "TAB"], ["ARROWS", "PICK A WEAPON"], ["ENTER", "OPEN ITS TREE"], ["TAB", "ONE TREE"], ["K", "CLOSE"]]
-			return [["Q/E", "TAB"], ["A/D", "WEAPON"], ["ARROWS", "INSPECT"], ["ENTER", "BUY A STEP"], ["TAB", "CHART"], ["K", "CLOSE"]]
+			return [["Q/E", "TAB"], ["A/D", "WEAPON"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["TAB", "CHART"], ["K", "CLOSE"]]
 		"adventure":
-			return [["Q/E", "TAB"], ["W/S", "TREE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY A STEP"], ["K", "CLOSE"]]
+			return [["Q/E", "TAB"], ["W/S", "TREE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["K", "CLOSE"]]
 		"captain":
 			return [["Q/E", "TAB"], ["ARROWS", "INSPECT"], ["ENTER", "PICK A TALENT"], ["K", "CLOSE"]]
 		"loadout":
 			return [["Q/E", "TAB"], ["ENTER", "PUT ON BAR"], ["1-5/R", "SLOT"], ["RMB", "CLEAR"], ["K", "CLOSE"]]
-	return [["Q/E", "TAB"], ["ARROWS", "INSPECT"], ["ENTER", "BUY A STEP"], ["K", "CLOSE"]]
+	return [["Q/E", "TAB"], ["ARROWS", "INSPECT"], ["ENTER", "BUY"], ["K", "CLOSE"]]
 
 
 func _out(pos: Vector2, s: String, col: Color, al := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
@@ -547,7 +575,7 @@ func _draw_rail(r: Rect2) -> void:
 		x += w
 
 
-## The open tree's parchment card: its name and level, points, the inspected node, what comes next.
+## The open tree's parchment card: its name and level, the inspected node in full, and at the bunk the tree's refund.
 func _draw_card(card: Rect2) -> void:
 	var p := _pr()
 	var td := SkillTrees.tree_def(tree)
@@ -570,84 +598,104 @@ func _draw_card(card: Rect2) -> void:
 	UIStyle.draw_ribbon(self, Vector2(x + 29.0, y + 15.0), "%s %d OF %d" % [word, p.tree_level(tree), int(td["max_level"])])
 	y += 32.0
 	_bar(Rect2(x, y, w, 3), _frac(tree), UIStyle.TEAL)
-	y += 8.0
-	if SkillTrees.converted(tree):
-		var pts := p.points_free(tree)
-		var chip := "%d POINT%s" % [pts, "" if pts == 1 else "S"]
-		var cw := SILK.get_string_size(chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 8.0
-		draw_rect(Rect2(x, y, cw, 11), UIStyle.CORAL if pts > 0 else Color("d9cdb0"))
-		draw_string(SILK, Vector2(x + 4.0, y + 9.0), chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.INK if pts > 0 else UIStyle.PARCH_DIM)
-		draw_string(SILK, Vector2(x + cw + 5.0, y + 9.0), "ONE A LEVEL", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
-		y += 14.0
+	y += 6.0
 	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
 	y += 18.0
+	var respec := p.can_respec() and p.respec_why(tree) != "Nothing bought"
 	var ins := inspected()
 	if ins.begins_with("n:") and SkillTrees.node_def(ins.substr(2)).get("tree", "") == tree:
-		y = _node_info(ins.substr(2), x, y, w, limit - 40.0, col)
-		y += 2.0
-		if y < limit - 40.0:
-			UIStyle.draw_rule(self, Rect2(x, y, w, 7))
-			y += 11.0
-	if td["section"] == "adventure" and y < limit - 34.0:
-		UIStyle.draw_ribbon(self, Vector2(x - 2.0, y), "How it grows")
-		y = _para(Vector2(x, y + 24.0), str(GROWS.get(tree, "")), w, UIStyle.PARCH_INK, limit) + 2.0
-	if y < limit - 30.0:
-		var next := SkillTrees.nodes_of(tree).filter(func(k):
-			var n := SkillTrees.node_def(k)
-			return n["kind"] not in ["step", "version"] and not p.owns_node(k))
-		next.sort_custom(func(a, b): return int(SkillTrees.node_def(a)["level"]) < int(SkillTrees.node_def(b)["level"]))
-		if not next.is_empty():
-			UIStyle.draw_ribbon(self, Vector2(x - 2.0, y), "Coming next")
-			y += 24.0
-			for k in next.slice(0, 3):
-				if y > limit:
-					break
-				var n := SkillTrees.node_def(k)
-				draw_string(SILK, Vector2(x, y), "LV %d" % int(n["level"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
-				draw_string(_font, Vector2(x + 30.0, y + 1.0), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, w - 30.0, 12, UIStyle.PARCH_INK)
-				y += 12.0
+		_node_info(ins.substr(2), x, y, w, limit - (30.0 if respec else 0.0), col)
+	else:
+		_para(Vector2(x, y), "Pick a node to see what it does, what it needs and what it costs.", w, UIStyle.PARCH_DIM, limit)
+	if respec:
+		var br := Rect2(x, limit - 16.0, w, 15)
+		var armed := _respec_armed == tree
+		draw_rect(br, UIStyle.CORAL if armed else Color("d9cdb0"))
+		draw_rect(br, UIStyle.BORDER_DIM, false, 1.0)
+		var label := ("CLICK AGAIN: %d GOLD" if armed else "REFUND THIS TREE: %d GOLD") % p.respec_price()
+		draw_string(SILK, Vector2(br.position.x, br.position.y + 11.0), label, HORIZONTAL_ALIGNMENT_CENTER, br.size.x, 8, UIStyle.INK)
+		hit(br, "respec", false)
 
 
-## The inspected node on parchment: name, kind and level, what it does, what Enter does. Returns the y under it.
+## The inspected node on parchment: name and kind, its gate against your level and its price, what it does, what
+## Enter does. Returns the y under it.
 func _node_info(nid: String, x: float, y: float, w: float, limit: float, col: Color) -> float:
 	var p := _pr()
 	var n := SkillTrees.node_def(nid)
 	var kind := str(n["kind"])
 	draw_string(_font, Vector2(x, y), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, w, 12, UIStyle.PARCH_INK)
 	y += 10.0
+	var t := str(n["tree"])
 	var tag := str(SkillTreeDraw.KIND_NAME.get(kind, kind)).to_upper()
-	if kind != "step" and kind != "root":
-		tag += " · LV %d" % int(n["level"])
+	if kind == "step":
+		tag += " · %d OF %d" % [p.steps_of(nid), int(n["max_steps"])]
 	draw_string(SILK, Vector2(x, y), tag, HORIZONTAL_ALIGNMENT_LEFT, w, 8, SkillTreeDraw.kind_color(kind, col).darkened(0.5))
-	y += 13.0
-	var desc := str(n["desc"])
+	y += 11.0
+	var price := SkillTrees.price(nid)
+	if price > 0 and not (p.owns(nid) and kind != "step"):
+		var met := p.tree_level(t) >= int(n["level"])
+		draw_string(SILK, Vector2(x, y), "NEEDS %s %d%s" % [Progression.tree_name(t).to_upper(), int(n["level"]), "" if met else " · NOW %d" % p.tree_level(t)],
+			HORIZONTAL_ALIGNMENT_LEFT, w, 8, Color("2f7a3a") if met else UIStyle.CORAL.darkened(0.35))
+		y += 9.0
+		var pool := SkillTrees.pool_of(t)
+		draw_string(SILK, Vector2(x, y), "PRICE %d%s  ·  %d %s LEFT" % [price, " A STEP" if kind == "step" else "", p.pool(pool), Progression.pool_name(pool).to_upper()],
+			HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
+		y += 9.0
+	y += 4.0
 	if kind == "variant" or kind == "talent":
-		var vi := maxi(p.version_of(nid), 0)
-		desc = "%s: %s" % [n["versions"][vi]["name"], n["versions"][vi]["desc"]]
-	y = _para(Vector2(x, y), desc, w, UIStyle.PARCH_INK, limit)
+		for i in range(n["versions"].size()):
+			var v: Dictionary = n["versions"][i]
+			var on: bool = (p.owns(nid) and maxi(p.version_of(nid), 0) == i) if kind == "variant" else p.version_of(nid) == i
+			y = _para(Vector2(x, y), "%s%s: %s" % ["> " if on else "", v["name"], v["desc"]], w, UIStyle.PARCH_INK if on else UIStyle.PARCH_DIM, limit) + 2.0
+	else:
+		y = _para(Vector2(x, y), str(n["desc"]), w, UIStyle.PARCH_INK, limit)
+	if kind == "root" and GROWS.has(t):
+		y = _para(Vector2(x, y + 2.0), "How it grows: " + str(GROWS[t]), w, UIStyle.PARCH_DIM, limit)
+	var why := p.buy_why(nid)
 	var status := ""
-	var good := false
-	match kind:
-		"step":
-			var why := p.step_why(nid)
-			status = "%d/%d  ·  %s" % [p.steps_of(nid), int(n["max_steps"]), "ENTER: BUY A STEP" if why == "" else why.to_upper()]
-			good = why == ""
-		"variant", "talent":
-			if int(n["level"]) > p.tree_level(str(n["tree"])):
-				status = "COMES AT LV %d" % int(n["level"])
-			else:
-				status = "BOTH YOURS. SWITCH AT THE BUNK" if kind == "variant" else ("PICK ONE: ENTER" if p.version_of(nid) < 0 else "CHANGE AT THE BUNK")
-				good = p.can_respec() or (kind == "talent" and p.version_of(nid) < 0)
-		_:
-			if p.owns_node(nid):
-				status = "YOURS" + ("  ·  1-5/R: ON THE BAR" if str(n["skill"]) != "" else "")
-				good = true
-			else:
-				status = "COMES AT %s %d" % ["MASTERY" if SkillTrees.section_of(str(n["tree"])) == "combat" else "LV", int(n["level"])]
+	var good := why == ""
+	if (kind == "variant" and p.owns(nid)) or kind == "talent":
+		if kind == "talent" and p.version_of(nid) < 0:
+			good = int(n["level"]) <= p.level
+			status = "PICK ONE: ENTER" if good else "AT CAPTAIN %d" % int(n["level"])
+		else:
+			status = "BOTH YOURS: SWITCH AT THE BUNK" if kind == "variant" else "CHANGE AT THE BUNK"
+			good = p.can_respec()
+	elif kind != "step" and p.owns_node(nid):
+		status = "YOURS" + ("  ·  1-5/R: ON THE BAR" if str(n["skill"]) != "" else "")
+		good = true
+	elif good:
+		status = "ENTER: BUY"
+	else:
+		status = why.to_upper()
 	for l in _wrap(status, w, SILK, 8):
 		draw_string(SILK, Vector2(x, y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("2f7a3a") if good else UIStyle.CORAL.darkened(0.35))
 		y += 9.0
 	return y
+
+
+## A small note by the cursor for the hovered node: its name and, if it's not yours yet, its price and gate.
+func _draw_tip() -> void:
+	if not hover.begins_with("n:"):
+		return
+	var nid := hover.substr(2)
+	var n := SkillTrees.node_def(nid)
+	if n.is_empty():
+		return
+	var p := _pr()
+	var line := str(n["name"]).to_upper()
+	var price := SkillTrees.price(nid)
+	if n["kind"] == "step":
+		line += "  ·  %d/%d" % [p.steps_of(nid), int(n["max_steps"])]
+	if p.owns(nid) and n["kind"] != "step":
+		line += "  ·  YOURS"
+	elif price > 0 and p.buy_why(nid) != "Full":
+		line += "  ·  %d PT%s  ·  %s %d" % [price, "" if price == 1 else "S", Progression.tree_name(str(n["tree"])).to_upper(), int(n["level"])]
+	var tw := SILK.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 10.0
+	var at := _mouse + Vector2(12, 14)
+	var r := Rect2(minf(at.x, size.x - tw - 4.0), minf(at.y, size.y - 40.0), tw, 13)
+	draw_style_box(UIStyle.chrome("paper", 0, 0), r)
+	draw_string(SILK, r.position + Vector2(5, 10), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_INK)
 
 
 # --------------------------------------------------------------------------
