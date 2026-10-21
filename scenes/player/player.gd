@@ -1374,8 +1374,9 @@ func is_free() -> bool:
 ## carries the OS's real Shift state: when it says Shift is up, let go of sprint.
 ## (Godot's own key state can be stuck as well, so it isn't asked.)
 func _input(event: InputEvent) -> void:
+	# (a pad's sprint is Pad's L3 latch, not Shift: leave it be)
 	if is_local and event is InputEventWithModifiers and not event.shift_pressed \
-			and Input.is_action_pressed("sprint") \
+			and Input.is_action_pressed("sprint") and not Pad.sprint_latched \
 			and not (event is InputEventKey and event.physical_keycode == KEY_SHIFT):
 		Input.action_release("sprint")
 
@@ -1528,7 +1529,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# skills (1-5) and the ultimate (R)
 	for i in range(PowerComponent.SLOTS):
 		var act := "ultimate" if i == PowerComponent.ULT else "skill_%s" % PowerComponent.key_of(i)
-		if event.is_action_pressed(act):
+		if Pad.pressed(event, act):
 			if context == Context.ON_FOOT and current_state_name() not in ["Talk", "Downed", "Skill"]:
 				power.try_cast(i)
 			get_viewport().set_input_as_handled()
@@ -2641,7 +2642,7 @@ func _revive_tick(delta: float) -> void:
 		_revive_t = maxf(_revive_t - delta * 2.0, 0.0)
 	body_model.kneeling = holding and is_on_floor()
 	var nm := str(target.display_name())
-	get_tree().call_group("hud", "show_prompt", "Hold F: get %s up" % nm, _revive_t / REVIVE_TIME)
+	get_tree().call_group("hud", "show_prompt", "Hold %s: get %s up" % [Glyphs.of("interact"), nm], _revive_t / REVIVE_TIME)
 	if _revive_t >= REVIVE_TIME:
 		_revive_t = 0.0
 		body_model.kneeling = false

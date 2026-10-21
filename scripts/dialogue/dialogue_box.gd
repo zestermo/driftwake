@@ -28,6 +28,8 @@ var _choices: Array = []
 ## The choice planks (Buttons).
 var _choice_labels: Array = []
 var _sel: int = 0
+## The left stick's last step (-1 up, 0 centred, 1 down): it moves the choice once per push.
+var _stick := 0
 var _voice: float = 1.0
 var _blip_counter: int = 0
 var _t: float = 0.0
@@ -178,6 +180,17 @@ func confirm_choice() -> void:
 func handle_input(event: InputEvent) -> bool:
 	if _choice_labels.is_empty() or _typing:
 		return false
+	# the left stick: a step each time it passes half way (its motion events repeat while held, and each
+	# would count as a press of move_forward/back)
+	if event is InputEventJoypadMotion:
+		var m := event as InputEventJoypadMotion
+		if m.axis != JOY_AXIS_LEFT_Y:
+			return false
+		var d := 0 if absf(m.axis_value) < 0.5 else int(signf(m.axis_value))
+		if d != 0 and d != _stick:
+			_select(_sel + d)
+		_stick = d
+		return true
 	if event.is_action_pressed("move_forward") or event.is_action_pressed("ui_up"):
 		_select(_sel - 1)
 		return true

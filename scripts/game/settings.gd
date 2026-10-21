@@ -28,11 +28,15 @@ const DEFAULTS := {
 	"controls": {
 		"mouse_sensitivity": 1.0,
 		"invert_y": false,
+		"pad_look_sensitivity": 1.0,
+		"pad_look_deadzone": 0.15,
+		"pad_move_deadzone": 0.2,
 	},
 	"gameplay": {
 		"camera_shake": 1.0,    # 0..1 (was a toggle: saved true/false load as 1/0)
 		"name_tags": true,
 		"reticle": true,
+		"pad_skills": true,    # on a pad: which skill is on which LB button, bottom left
 	},
 }
 

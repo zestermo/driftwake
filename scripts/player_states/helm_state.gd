@@ -43,7 +43,9 @@ func enter(_data: Dictionary) -> void:
 		var ship_cam := ship_camera.get_node("SpringArm3D/Camera3D") as Camera3D
 		if ship_cam:
 			ship_cam.current = true
-	player.call("_toast", ("Lashing cast off.   " if was_lashed else "") + "W/S: sails   A/D: rudder   Space: anchor   Left click: broadside   N: lash the helm   F: leave")
+	var steer := "Left stick: sails and rudder" if Glyphs.pad() else "W/S: sails   A/D: rudder"
+	player.call("_toast", ("Lashing cast off.   " if was_lashed else "") + "   ".join([steer, Glyphs.hint("jump", "anchor"),
+		Glyphs.hint("light_attack", "broadside"), Glyphs.hint("action_wheel", "lash the helm"), Glyphs.hint("interact", "leave")]))
 
 
 ## Stand at the wheel, facing the bow.
@@ -94,6 +96,20 @@ func _broadside(ship: Ship) -> void:
 	var n := ship.broadside(side, target, player)
 	if n == 0:
 		player.call("_toast", "Those guns are still reloading")
+
+
+## The right stick looks round the ship camera (each frame, real time), as the mouse does.
+func update(delta: float) -> void:
+	if not ship_camera or not player.current_ship or player.input_locked:
+		return
+	var l: Vector2 = Pad.look(delta / maxf(Engine.time_scale, 0.01))
+	if l == Vector2.ZERO:
+		return
+	player.current_ship.cam_yaw -= l.x
+	var spring_arm := ship_camera.get_node("SpringArm3D") as SpringArm3D
+	if spring_arm:
+		spring_arm.rotate_x(-l.y)
+		spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(-60), deg_to_rad(30))
 
 
 func handle_input(event: InputEvent) -> void:

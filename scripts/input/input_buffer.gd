@@ -7,13 +7,13 @@ var buffer: Array[Dictionary] = []
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("light_attack"):
+	if Pad.pressed(event, "light_attack"):
 		buffer_action("light_attack")
-	elif event.is_action_pressed("heavy_attack"):
+	elif Pad.pressed(event, "heavy_attack"):
 		buffer_action("heavy_attack")
-	elif event.is_action_pressed("dodge"):
+	elif Pad.pressed(event, "dodge"):
 		buffer_action("dodge")
-	elif event.is_action_pressed("parry"):
+	elif Pad.pressed(event, "parry"):
 		buffer_action("parry")
 
 

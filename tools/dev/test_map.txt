@@ -18,6 +18,8 @@ scripts/game/action_wheel.gd            t/ui t/downtime t/food
 tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
+tools/dev/t/input/*                     t/input
+scripts/input/*                         t/input t/player t/combat
 tools/dev/t/coop/*                      t/coop
 tools/dev/t/economy/*                   t/economy
 scripts/items/economy.gd                t/economy t/ship

@@ -1,8 +1,8 @@
 class_name RadialWheel
 extends CanvasLayer
 ## The radial wheels: emotes (T), quick items (E), loadouts (X), actions (N). Hold the key, move the
-## mouse toward a segment (the camera holds still), let go (or click) to pick it; right click or Esc
-## puts it away. A round wheel in the whimsical style (UIStyle, on a crisp PixelCanvas): a dark donut of
+## mouse (or the right stick) toward a segment (the camera holds still), let go (or click, or A) to pick it;
+## right click, B or Esc puts it away. A round wheel in the whimsical style (UIStyle, on a crisp PixelCanvas): a dark donut of
 ## segments in a twisted rope ring with brass nails, each segment a symbol (the entry's 24 px icon, or its
 ## initial in a medallion) over a short label, the one you point at gilded, greyed ones dim, the current
 ## choice starred, a count badge where there is one; the hub in the middle names the wheel, or the pointed
@@ -14,6 +14,8 @@ extends CanvasLayer
 const R := 118.0
 const DEAD := 26.0
 const HOLD := 0.2
+## How far the right stick must lean to point at a segment.
+const STICK := 0.5
 const SILK := preload("res://assets/fonts/Silkscreen-Regular.woff2")
 const DIM_FILL := Color("102d33")
 const SEG_FILL := Color("16404a")
@@ -157,6 +159,11 @@ func _process(delta: float) -> void:
 	if _open and not _can_open():
 		_close()
 		_down = false
+	# the right stick points straight at a plank (the camera holds still meanwhile); let go and the pick stays
+	if _open:
+		var st: Vector2 = Pad.stick()
+		if st.length() > STICK:
+			_aim(st.normalized() * R)
 	_k = move_toward(_k, 1.0 if _open else 0.0, delta * (9.0 if _open else 12.0))
 	_root.visible = _k > 0.0
 	if _root.visible:
@@ -179,31 +186,55 @@ func _input(event: InputEvent) -> void:
 	if not _open:
 		return
 	if event is InputEventMouseMotion:
-		_vec = (_vec + (event as InputEventMouseMotion).screen_relative).limit_length(R)
-		var was := _pick
-		_pick = -1
-		if _vec.length() > DEAD and not entries.is_empty():
-			var a := fposmod(atan2(_vec.x, -_vec.y), TAU)
-			_pick = int(round(a / (TAU / entries.size()))) % entries.size()
-		if _pick != was:
-			_restyle()
+		_aim((_vec + (event as InputEventMouseMotion).screen_relative).limit_length(R))
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		var b := (event as InputEventMouseButton).button_index
-		if b == MOUSE_BUTTON_LEFT and _pick >= 0:
-			var id = entries[_pick]
-			_close()
-			_down = false
-			if not _dim(id):
-				_do(id)
+		if b == MOUSE_BUTTON_LEFT:
+			_confirm()
 		elif b == MOUSE_BUTTON_RIGHT:
-			_close()
-			_down = false
+			_cancel()
 		get_viewport().set_input_as_handled()
+	elif event is InputEventJoypadButton and (event as InputEventJoypadButton).pressed:
+		# the pad: A picks (as a click), B puts it away (the wheel has the face buttons while it's open)
+		var j := (event as InputEventJoypadButton).button_index
+		if j == JOY_BUTTON_A:
+			_confirm()
+		elif j == JOY_BUTTON_B:
+			_cancel()
+		if j in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_Y]:
+			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("pause"):
 		_close()
 		_down = false
 		get_viewport().set_input_as_handled()
+
+
+## Point the wheel along vec (the mouse's running sum, or the stick): past DEAD it picks the plank that way.
+func _aim(vec: Vector2) -> void:
+	_vec = vec
+	var was := _pick
+	_pick = -1
+	if _vec.length() > DEAD and not entries.is_empty():
+		var a := fposmod(atan2(_vec.x, -_vec.y), TAU)
+		_pick = int(round(a / (TAU / entries.size()))) % entries.size()
+	if _pick != was:
+		_restyle()
+
+
+func _confirm() -> void:
+	if _pick < 0:
+		return
+	var id = entries[_pick]
+	_close()
+	_down = false
+	if not _dim(id):
+		_do(id)
+
+
+func _cancel() -> void:
+	_close()
+	_down = false
 
 
 ## Point at an entry (tests, and the wheels that open on their current choice).

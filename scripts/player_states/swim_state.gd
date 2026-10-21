@@ -311,7 +311,7 @@ func physics_update(delta: float) -> void:
 	if _ledge_t <= 0.0:
 		_ledge_t = 0.15
 		_ledge = _find_ledge()
-		_show_climb("Space: climb out" if not _ledge.is_empty() else "")
+		_show_climb(Glyphs.hint("jump", "climb out") if not _ledge.is_empty() else "")
 	if Input.is_action_just_pressed("jump"):
 		var now := _find_ledge()
 		if not now.is_empty() or not _ledge.is_empty():
@@ -437,7 +437,7 @@ func _update_breath(delta: float, fast: bool) -> void:
 		Net.fx("bubbles", [head + Vector3(0, 0.1, 0) - player.player_model.global_basis.z * 0.12, 6 if gasping else 3])
 	if not _breath_warned and breath <= breath_max() * BREATH_WARN:
 		_breath_warned = true
-		player.call("_toast", "Running out of air! Space to surface")
+		player.call("_toast", "Running out of air! %s to surface" % Glyphs.of("jump"))
 		FX.sfx("blip_low", head, -4.0, 0.0, 0.8)
 	if breath > 0.0:
 		return

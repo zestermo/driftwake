@@ -114,6 +114,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	_pad_look(delta)
 	# Combat stance pulls the camera in over the right shoulder
 	var in_combat := target is Player and (target as Player).armed and not (target as Player).sprinting
 	_combat_blend = move_toward(_combat_blend, 1.0 if in_combat else 0.0, delta * 3.0)
@@ -257,3 +258,20 @@ func kick(amount: float, secs: float = 0.5) -> void:
 
 func shake(intensity: float, _duration: float = 0.2) -> void:
 	trauma = minf(trauma + intensity * SHAKE_PER * float(Settings.get_value("gameplay", "camera_shake")), 1.0)
+
+
+## The right stick turns the view (real time: a hit-stop doesn't slow it), curved and at the pad's
+## sensitivity (Pad.look), invert Y shared with the mouse; not while a wheel, the map, the showcase or a
+## menu has the stick, or the captain's input is locked (chat).
+func _pad_look(delta: float) -> void:
+	if _show_target != 0.0 or _map_on or RadialWheel.shown != null or GameMenu.is_open():
+		return
+	if target is Player and (target as Player).input_locked:
+		return
+	var l: Vector2 = Pad.look(delta / maxf(Engine.time_scale, 0.01))
+	if l == Vector2.ZERO:
+		return
+	var inv_y := -1.0 if Settings.get_value("controls", "invert_y") else 1.0
+	rotate_y(-l.x)
+	spring_arm.rotate_x(-l.y * inv_y)
+	spring_arm.rotation.x = clamp(spring_arm.rotation.x, deg_to_rad(min_pitch), deg_to_rad(max_pitch))

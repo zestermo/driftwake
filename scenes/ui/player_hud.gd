@@ -66,7 +66,9 @@ func _ready() -> void:
 	var irow := HBoxContainer.new()
 	irow.add_theme_constant_override("separation", 5)
 	irow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_interact_key = UIStyle.key_cap("F")
+	_interact_key = UIStyle.key_cap(Glyphs.of("interact").to_upper())
+	# the key cap follows the device in use (Glyphs)
+	Pad.device_changed.connect(func(_pad: bool): _show_interact())
 	irow.add_child(_interact_key)
 	irow.add_child(interact_label)
 	ivb.add_child(irow)
@@ -107,6 +109,8 @@ func _ready() -> void:
 	var breath := preload("res://scripts/swim/breath_meter.gd").new()
 	breath.name = "BreathMeter"
 	add_child(breath)
+	# on a pad: which skill is on which LB button
+	add_child(preload("res://scripts/ui/pad_skills.gd").new())
 	# all of it on a crisp canvas (whole screen pixels per canvas pixel)
 	_pc = PixelCanvas.new()
 	_pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -242,11 +246,14 @@ func show_new_tree(tree_name: String, line: String) -> void:
 		ln.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(ln)
 		var k := UIStyle.key_hint("K", "OPEN")
+		k.name = "Key"
 		k.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		vb.add_child(k)
 		_pc.ui.add_child(_tree_card)
 	(_tree_card.find_child("Name", true, false) as Label).text = tree_name
 	(_tree_card.find_child("Line", true, false) as Label).text = line
+	# the skill map's key for the device in use (Glyphs: K, or LB+VIEW on a pad)
+	(_tree_card.find_child("Key", true, false).get_child(0).get_child(0) as Label).text = Glyphs.of("skill_map").to_upper()
 	_tree_card.reset_size()
 	_tree_card.offset_left = -_tree_card.get_combined_minimum_size().x * 0.5
 	_tree_card.offset_right = -_tree_card.offset_left
@@ -299,12 +306,12 @@ func _on_prompt_hidden() -> void:
 	_show_interact()
 
 
-## One prompt panel for both: [F] Man the cannon, [HOLD F] Patch the hole.
+## One prompt panel for both: [F] Man the cannon, [HOLD F] Patch the hole (X / HOLD X on a pad).
 func _show_interact() -> void:
 	var text := _hold_text if _hold_text != "" else _interact_text
 	interact_panel.visible = text != ""
 	_hold_bar.visible = _hold_text != ""
-	var key := "HOLD F" if _hold_text != "" else "F"
+	var key := ("HOLD " if _hold_text != "" else "") + Glyphs.of("interact").to_upper()
 	if text == "" or (text == interact_label.text and key == (_interact_key.get_child(0) as Label).text):
 		return
 	interact_label.text = text

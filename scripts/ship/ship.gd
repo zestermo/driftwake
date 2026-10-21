@@ -782,7 +782,7 @@ func _damage_view(delta: float) -> void:
 					Net.ship_work("bail", 0, BAIL_RATE * _bail_t * (1.0 + Seamanship.station(get_tree(), "pump", self)))
 					_bail_t = 0.0
 					Seamanship.xp(get_tree(), Seamanship.BAIL)
-			_set_work("Hold F: work the pump", flood)
+			_set_work("Hold %s: work the pump" % Glyphs.of("interact"), flood)
 		"anchor":
 			var need := job_time("anchor")
 			_work_t = _work_t + delta if holding else 0.0
@@ -793,7 +793,7 @@ func _damage_view(delta: float) -> void:
 				Net.ship_anchor(not anchored)
 				FX.sfx("rope", global_transform * CAPSTAN_AT, -2.0, 0.05, 0.75)
 				Seamanship.xp(get_tree(), Seamanship.CAPSTAN)
-			_set_work("Hold F: weigh anchor" if anchored else "Hold F: let go the anchor", _work_t / need)
+			_set_work(("Hold %s: weigh anchor" if anchored else "Hold %s: let go the anchor") % Glyphs.of("interact"), _work_t / need)
 		_:
 			var need := job_time(job)
 			_work_t = _work_t + delta if holding else 0.0
@@ -804,7 +804,7 @@ func _damage_view(delta: float) -> void:
 				Net.ship_work(job, id, 0.0)
 				Seamanship.xp(get_tree(), Seamanship.PATCH)
 				FX.sfx("wood_crack" if job == "patch" else "splash", me.global_position, -6.0, 0.05, 1.3)
-			_set_work("Hold F: patch the hole" if job == "patch" else "Hold F: beat out the fire", _work_t / need)
+			_set_work(("Hold %s: patch the hole" if job == "patch" else "Hold %s: beat out the fire") % Glyphs.of("interact"), _work_t / need)
 
 
 ## How long our captain takes over a deck job ("patch", "douse", "anchor"), with their Seamanship.
