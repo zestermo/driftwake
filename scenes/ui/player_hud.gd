@@ -94,6 +94,8 @@ func _ready() -> void:
 	var breath := preload("res://scripts/swim/breath_meter.gd").new()
 	breath.name = "BreathMeter"
 	add_child(breath)
+	# on a pad: which skill is on which LB button
+	add_child(preload("res://scripts/ui/pad_skills.gd").new())
 	# all of it on a crisp canvas (whole screen pixels per canvas pixel)
 	_pc = PixelCanvas.new()
 	_pc.mouse_filter = Control.MOUSE_FILTER_IGNORE

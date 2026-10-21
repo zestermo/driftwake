@@ -4495,3 +4495,24 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
 - guntest: stale, not the game. The captain's 99999 max health regenerates 1% a second once 8 s have passed since a
   blow; the shove step came after the third rifle shot's wait, so the 12 hp lost earlier was healed back (hp lost -12)
   and the shove's 4.8 was swallowed by the cap. The step now holds the captain "in a fight" (_since_hit = 0).
+
+## 2026-10-20: controller support (Xbox pad), pieces 1-5 (branch claude/controller-support-612108)
+- Layout (Zach's): A jump, B dodge, X interact, Y ready/sheathe, RB light, RT heavy (hold: charge), LT parry/block,
+  L3 sprint latch, R3 sneak, d-pad up item / left loadout / down action wheel / right sea chart, View inventory, Menu
+  pause. Hold LB: X/Y/B/A skills 1-4, RB skill 5, RT ultimate, d-pad lantern / summon / log pose / emotes, R3 ping,
+  L3 Zoan shift, View skill map. Unbound: chat, zoom.
+- Pad autoload (scripts/input/pad.gd, right after Settings): base pad events live in project.godot; LB swaps the
+  InputMap (Input marks actions pressed at parse time, before any node, so a button on two actions would press both).
+  A held input is let go on a swap. Pad.pressed(event, action) counts a trigger/stick once per press (their motion
+  events repeat while held: the input buffer chained heavies). L3 latch ends when the stick centres 0.15 s or stamina
+  runs out; player.gd's Shift-up sprint release skips it. look_* actions on the right stick; Pad.look() = radial
+  deadzone + squared curve, 3.5/2.4 rad/s at sensitivity 1, real time (hit-stop doesn't slow it).
+- Look in the camera rig (_process), HelmState/CannonState.update (cannon at half rate). The rig holds still while a
+  wheel, the held map, the showcase or a menu has the stick. RadialWheel: the stick points (pick stays), A picks, B
+  cancels, face buttons eaten while open. Dialogue choices step on the stick's edge.
+- Glyphs (class_name): button names for the device in use (Pad.using_pad, Pad.device_changed). Swim, helm, cannon,
+  ship jobs, revive, HUD key cap, controls page. Menu hints (LMB/RMB) wait for the menu phase.
+- PadSkills (scripts/ui/pad_skills.gd, HUD bottom left): the skills by LB button as words, dim, bright with LB held.
+  (A drawn pad with labels was tried first: too large and distracting, Zach.)
+- Settings: controls.pad_look_sensitivity / pad_look_deadzone / pad_move_deadzone, gameplay.pad_skills.
+- Tests: t/input (7). Render: padshot.

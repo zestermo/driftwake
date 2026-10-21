@@ -36,6 +36,7 @@ const DEFAULTS := {
 		"camera_shake": 1.0,    # 0..1 (was a toggle: saved true/false load as 1/0)
 		"name_tags": true,
 		"reticle": true,
+		"pad_skills": true,    # on a pad: which skill is on which LB button, bottom left
 	},
 }
 
