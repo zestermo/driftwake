@@ -9,10 +9,11 @@ extends Node
 ## The redesigned trees (SkillTrees, docs/progression_plan.md "Redesign"): big nodes come by themselves at their
 ## level, small stat steps are bought with the tree's points (one a level), a variant's versions are both owned and
 ## one is active, and passives count only in a passive slot. Steps, versions and talents are switched only at the
-## ship's bunk (can_respec). A tree shows once its first point is earned (tree_found, with a banner).
-## Trees not converted yet keep SkillTree's nodes and points (the Captain's skill points: 2 a level).
-## Life skills (swimming, Seamanship, cooking, fishing) build mastery by doing, their perks at milestones.
-## Active skills go on the skill bar (PowerComponent.loadout) and rank up through tiers by use.
+## ship's bunk (can_respec). A tree shows once its first point is earned (tree_found, with the HUD's card).
+## The Captain: every level adds SkillTrees.GROWTH by itself (in stat()), milestones come at their level, a talent
+## is picked every 5 levels, and Will comes from bosses (boss_kind, beaten, grant_will). No skill points.
+## Trees not converted yet keep SkillTree's nodes (life perks at milestones, the fruit's nodes).
+## Active skills go on the skill bar (PowerComponent.loadout) and rank up through tiers by use alone.
 ## Each captain's own (a guest's lives and saves on the guest's machine).
 
 signal xp_gained(amount: int, total: int)
@@ -22,7 +23,6 @@ signal changed
 signal tree_found(tree: String)
 
 const MAX_LEVEL := 40
-const SP_PER_LEVEL := 2
 const MAX_MASTERY := 30
 ## Mastery xp for a hit with the weapon in your hand, for the first HITS_PER_FOE hits on each foe.
 const MASTERY_PER_HIT := 4
@@ -30,6 +30,8 @@ const HITS_PER_FOE := 12
 ## The share of a kill's experience that goes to the weapon in your hand, times ELITE_SHARE for elites and bosses.
 const MASTERY_KILL_SHARE := 0.25
 const ELITE_SHARE := 3.0
+## Fruit mastery for each cast of one of its powers (and the Wolf's claws learn like a weapon in hand).
+const FRUIT_PER_CAST := 6
 ## No family carry-over since 1.18.2 (only the old skill map still reads it).
 const FAMILY_SHARE := 0.0
 ## Metres swum for a point of Swimming xp, and how often (ticks) the swim is measured.
@@ -48,6 +50,7 @@ const FORMAT := 5
 var player: Player
 var level: int = 1
 var xp: int = 0
+## Always 0 since 1.18.2 (no skill points); the old skill map, inventory and skill bar still read it.
 var skill_points: int = 0
 var owned: Dictionary = {}
 ## tree -> {"lv", "xp"}
@@ -64,9 +67,11 @@ var versions: Dictionary = {}
 var passives: Array[String] = ["", "", ""]
 ## tree -> true once its first point is earned (it shows in the menu)
 var found: Dictionary = {}
-## Will milestones earned (id -> true)
+## Will milestones earned (id -> true), and the bosses beaten that teach them (boss_kind -> true)
 var will: Dictionary = {}
+var beaten: Dictionary = {}
 var _refunded: bool = false
+var _wind_used := false
 ## foe instance id -> hits that taught mastery
 var _foe_hits: Dictionary = {}
 var _swim_m: float = 0.0
@@ -90,6 +95,8 @@ func _physics_process(delta: float) -> void:
 		Downtime.tick_kit(self, delta)
 	if Engine.get_physics_frames() % SWIM_TICKS != 0 or player == null or not player.is_local:
 		return
+	if has_flag("second_wind"):
+		_second_wind()
 	if player.current_state_name() != "Swim":
 		_swim_at = Vector3.INF
 		return
@@ -106,6 +113,9 @@ func _reset_owned() -> void:
 	owned = {}
 	for k in SkillTree.starting_nodes():
 		owned[k] = true
+	for t in SkillTrees.HEADERS.keys():
+		if SkillTrees.converted(t) and SkillTrees.section_of(t) != "fruit":
+			owned[SkillTrees.tree_def(t)["root"]] = true
 	_stat_n = -1
 
 
@@ -124,8 +134,11 @@ func add_xp(amount: int, at: Vector3 = Vector3.INF) -> void:
 		return
 	amount = int(round(amount * (1.0 + stat("xp_pct"))))
 	if player:
-		var share := MASTERY_KILL_SHARE * (ELITE_SHARE if _elite_at(at) else 1.0)
-		add_mastery(SkillTree.style_tree(player.style()), int(round(amount * share)))
+		var foe := _fallen_at(at)
+		var share := MASTERY_KILL_SHARE * (ELITE_SHARE if foe and is_elite(foe) else 1.0)
+		add_mastery(hand_tree(), int(round(amount * share)))
+		if foe and boss_kind(foe) != "":
+			beat(boss_kind(foe))
 	if level >= MAX_LEVEL:
 		return
 	xp += amount
@@ -136,7 +149,6 @@ func add_xp(amount: int, at: Vector3 = Vector3.INF) -> void:
 	while level < MAX_LEVEL and xp >= xp_to_next(level):
 		xp -= xp_to_next(level)
 		level += 1
-		skill_points += SP_PER_LEVEL
 		ups += 1
 	if level >= MAX_LEVEL:
 		xp = 0
@@ -146,9 +158,10 @@ func add_xp(amount: int, at: Vector3 = Vector3.INF) -> void:
 
 
 func _on_level_up() -> void:
+	var got := _sync_tree("captain", false)
 	_fit_passives()
+	_dirty()
 	if player:
-		player.call("_recalc_stats")
 		var hc := player.health_component
 		hc.heal(hc.max_health)
 		player.stamina = player.max_stamina
@@ -156,31 +169,99 @@ func _on_level_up() -> void:
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 24, Color(1.0, 0.92, 0.5)])
 		Net.fx("dust_ring", [player.global_position, 14, 0.9])
 		UIStyle.sfx("level_up")
-		get_tree().call_group("hud", "show_banner", "Level %d!" % level, "+%d skill points  -  press K to open the skill map" % SP_PER_LEVEL)
+		var sub := "Stronger: more health, damage, stamina, energy and defense"
+		if not got.is_empty():
+			sub = ", ".join(got.map(func(k): return str(SkillTrees.node_def(k)["name"]))) + " - yours now"
+		for lv in range(5, level + 1, 5):
+			if talent_at(lv) < 0:
+				sub += "  -  a talent to pick (K)"
+				break
+		get_tree().call_group("hud", "show_banner", "Level %d!" % level, sub)
 		SaveGame.save(player)
 	leveled_up.emit(level)
 
 
-## Did the kill at `at` fell an elite or a boss (one of the foes we struck, or a boss)?
-func _elite_at(at: Vector3) -> bool:
+## The foe that fell where the kill's xp came from (`at`): one we struck, a boss, a Sea King or the fort's
+## captain; null for none.
+func _fallen_at(at: Vector3) -> Node3D:
 	if at == Vector3.INF or not is_inside_tree():
-		return false
-	var foes: Array = get_tree().get_nodes_in_group("bosses")
+		return null
+	var foes: Array = get_tree().get_nodes_in_group("bosses") + get_tree().get_nodes_in_group("sea_kings")
+	var fort := get_tree().get_first_node_in_group("forts")
+	if fort and is_instance_valid(fort.get("boss")):
+		foes.append(fort.get("boss"))
 	for id in _foe_hits.keys():
 		if is_instance_id_valid(id):
 			foes.append(instance_from_id(id))
 	for e in foes:
-		if not (e is Node3D) or not is_elite(e):
+		if not (e is Node3D) or not e.has_method("is_dead") or not e.is_dead():
 			continue
-		var hc = e.get("health")
 		var p := (e as Node3D).global_position
-		if hc is HealthComponent and hc.current_health <= 0.0 and Vector2(p.x - at.x, p.z - at.z).length() < 6.0:
-			return true
-	return false
+		if Vector2(p.x - at.x, p.z - at.z).length() < (60.0 if e.is_in_group("sea_kings") else 6.0):
+			return e
+	return null
 
 
 static func is_elite(e: Node) -> bool:
-	return e.is_in_group("bosses") or e.get("captain") == true or e.get("brute") == true
+	return e.is_in_group("bosses") or e.is_in_group("sea_kings") or e.get("captain") == true or e.get("brute") == true
+
+
+## The boss a Will is learned from ("" for any other foe): see SkillTrees.WILL.
+func boss_kind(e: Node) -> String:
+	var fort := get_tree().get_first_node_in_group("forts")
+	if fort and fort.get("boss") == e:
+		return "morrow"
+	if e is JungleApe:
+		return "ape"
+	if e is BroodQueen:
+		return "queen"
+	if e is JungleBeast and e.is_in_group("bosses"):
+		return "arena"
+	if e.is_in_group("sea_kings"):
+		return "sea_king"
+	return ""
+
+
+## A boss of `kind` beaten near us: remembered, and any Will it opens is ours.
+func beat(kind: String) -> void:
+	beaten[kind] = true
+	_open_wills()
+
+
+func _open_wills() -> void:
+	for id in SkillTrees.WILL.keys():
+		var w: Array = SkillTrees.WILL[id]
+		if not has_will(id) and beaten.has(w[0]) and (w[1] as Array).all(func(n): return has_will(n)):
+			grant_will(id)
+
+
+## A Will milestone and its Will passive.
+func grant_will(id: String) -> void:
+	will[id] = true
+	_own(id)
+	for k in SkillTrees.nodes_of("captain"):
+		if SkillTrees.node_def(k).get("will", "") == id:
+			_own(k)
+	if player and player.is_local and is_inside_tree():
+		var n := SkillTrees.node_def(id)
+		get_tree().call_group("hud", "show_banner", "Will awakened: %s" % n["name"], str(n["desc"]), true)
+		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 30, Color(0.79, 0.66, 1.0)])
+	_dirty()
+	_open_wills()
+
+
+func _second_wind() -> void:
+	if not player.in_fight():
+		_wind_used = false
+		return
+	var hc := player.health_component
+	if _wind_used or hc.current_health <= 0.0 or hc.current_health >= hc.max_health * 0.3:
+		return
+	_wind_used = true
+	player.stamina = player.max_stamina
+	player.power.energy = player.power.max_energy()
+	player.call("_toast", "Second Wind!")
+	Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 16, Color(0.6, 1.0, 0.8)])
 
 
 # --------------------------------------------------------------------------
@@ -209,11 +290,11 @@ func max_of(tree: String) -> int:
 	return SkillTrees.max_level(tree) if SkillTrees.converted(tree) else MAX_MASTERY
 
 
-## Mastery xp for a weapon or a life skill (only that tree's: no carry-over).
+## Mastery xp for a weapon or a life skill (only that tree's: no carry-over; Quick Learner's mastery_pct on top).
 func add_mastery(tree: String, amount: int) -> void:
 	if tree == "" or amount <= 0:
 		return
-	_gain(tree, amount)
+	_gain(tree, int(round(amount * (1.0 + stat("mastery_pct")))))
 	changed.emit()
 
 
@@ -264,10 +345,19 @@ func _sync_perks(tree: String) -> Array:
 	return got
 
 
-## A hit landed with the weapon in your hand on `target` (each foe teaches its first HITS_PER_FOE hits).
-func on_hit(target: Node = null) -> void:
+## A hit landed with the weapon in your hand on `target` (each foe teaches its first HITS_PER_FOE hits), and
+## Bounty Hunter's share of `hit` again on an elite or a boss.
+func on_hit(target: Node = null, hit: HitData = null) -> void:
 	if player == null:
 		return
+	var bounty := stat("bounty_pct")
+	if hit and target and bounty > 0.0 and not hit.dot and is_elite(target):
+		var hb := target.get("hurtbox") as Hurtbox
+		if hb:
+			var extra := HitData.new()
+			extra.dot = true
+			extra.damage = roundf(hit.damage * bounty)
+			hb.take_hit(extra, player)
 	if target:
 		var id := target.get_instance_id()
 		var n := int(_foe_hits.get(id, 0))
@@ -278,7 +368,20 @@ func on_hit(target: Node = null) -> void:
 				if not is_instance_id_valid(k):
 					_foe_hits.erase(k)
 		_foe_hits[id] = n + 1
-	add_mastery(SkillTree.style_tree(player.style()), MASTERY_PER_HIT)
+	add_mastery(hand_tree(), MASTERY_PER_HIT)
+
+
+## Sergeant Vey's drill (his story step): a level of mastery for the weapon in hand.
+func drill() -> void:
+	var t := hand_tree()
+	if t != "":
+		add_mastery(t, mastery_to_next(mastery_level(t)) - int(mastery_of(t)["xp"]))
+
+
+## The tree the weapon in hand learns in (the Wolf Fruit's claws in hybrid form; "" for none).
+func hand_tree() -> String:
+	var st := player.style()
+	return "wolf" if st == "claw" else SkillTree.style_tree(st)
 
 
 ## Life skills learned by doing: Seamanship (Seamanship.xp), swimming (on_swim, measured
@@ -471,7 +574,7 @@ func can_respec() -> bool:
 
 
 func passive_slots() -> int:
-	return PASSIVE_SLOTS + (1 if level >= 25 else 0)
+	return PASSIVE_SLOTS + (1 if owns("c_slot4") else 0)
 
 
 func is_passive(id: String) -> bool:
@@ -505,18 +608,21 @@ func _fit_passives() -> void:
 	passives = keep
 
 
-## A converted tree's big nodes up to its level (a variant with its active version); returns the ones just granted.
+## A converted tree's big nodes up to its level (a variant with its active version, a picked talent with its pick,
+## an earned Will with its passive); returns the ones just granted.
 func _sync_tree(tree: String, quiet: bool) -> Array:
 	var got: Array = []
-	if not SkillTrees.converted(tree):
+	if not SkillTrees.converted(tree) or (SkillTrees.section_of(tree) == "fruit" and (player == null or player.power.fruit != tree)):
 		return got
 	var lv := tree_level(tree)
 	for k in SkillTrees.nodes_of(tree):
 		var n := SkillTrees.node_def(k)
-		if n["kind"] in ["step", "version", "talent", "will"] or int(n["level"]) > lv or owns(k):
+		if n["kind"] in ["step", "version"] or int(n["level"]) > lv or owns(k):
+			continue
+		if (n["kind"] == "will" and not has_will(k)) or (n.has("will") and not has_will(n["will"])) or (n["kind"] == "talent" and version_of(k) < 0):
 			continue
 		var id: String = k
-		if n["kind"] == "variant":
+		if n["kind"] in ["variant", "talent"]:
 			owned[k] = true
 			id = str(n["versions"][version_of(k)]["id"])
 		if quiet:
@@ -633,24 +739,21 @@ func _own(id: String) -> void:
 	changed.emit()
 
 
-## A Devil Fruit's root and starting skills come free when you eat it.
+## A Devil Fruit's tree opens when you eat it: its root and first powers, and the rest as its level grows.
 func grant_fruit(fruit_id: String) -> void:
-	for k in SkillTree.nodes().keys():
-		var n: Dictionary = SkillTree.nodes()[k]
-		if str(n["req"].get("fruit", "")) == fruit_id and (n["kind"] == "root" or int(n["cost"]) == 0):
-			if not owns(k):
-				_own(k)
+	_sync_tree(fruit_id, false)
 
 
 ## Sum of an effect over every owned node and bought step (asked several times a frame: remembered until
 ## something changes), and the meal you ate (Food). A redesigned tree's passive counts only in a passive slot.
 func stat(key: String) -> float:
-	if owned.size() != _stat_n or _rev != _stat_rev:
+	if owned.size() != _stat_n or _rev != _stat_rev or level != _stat_lv:
 		_stat_n = owned.size()
 		_stat_rev = _rev
+		_stat_lv = level
 		_stats.clear()
 	if not _stats.has(key):
-		var total := 0.0
+		var total := float(SkillTrees.GROWTH.get(key, 0.0)) * (level - 1)
 		for k in owned.keys():
 			var n := SkillTree.get_node_def(k)
 			if n.get("new", false) and (n["kind"] == "step" or (n["kind"] == "passive" and not (k in passives))):
@@ -663,7 +766,11 @@ func stat(key: String) -> float:
 			if e.has(key):
 				total += float(e[key]) * int(steps[k])
 		_stats[key] = total
-	return _stats[key] + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0)
+	var v: float = _stats[key] + (Food.bonus(meal, key, meal_k) if meal != "" else 0.0) + (float(Downtime.KIT.get(key, 0.0)) if kit_left > 0.0 else 0.0)
+	# Sea Dog: stamina twice as fast aboard
+	if key == "stamina_regen_pct" and stat("sea_dog") > 0.0 and player and Downtime.ship_under(player) != null:
+		v += 1.0
+	return v
 
 
 # --------------------------------------------------------------------------
@@ -707,6 +814,7 @@ var _stats: Dictionary = {}
 var _stat_n: int = -1
 var _rev: int = 0
 var _stat_rev: int = -1
+var _stat_lv: int = -1
 
 
 func has_flag(key: String) -> bool:
@@ -757,15 +865,18 @@ func uses_of(skill_id: String) -> int:
 	return int(uses.get(skill_id, 0))
 
 
+## A cast counted: enough of them and the skill ranks up by itself (no points).
 func note_use(skill_id: String) -> void:
 	uses[skill_id] = uses_of(skill_id) + 1
-	var nt := Skills.tier_def(skill_id, skill_tier(skill_id) + 1)
-	if not nt.is_empty() and uses_of(skill_id) == int(nt["uses"]) and player:
-		player.call("_toast", "%s can rank up: %s (K)" % [Skills.get_skill(skill_id)["name"], nt["name"]])
+	var fruit := str(Skills.get_skill(skill_id).get("fruit", ""))
+	if fruit != "":
+		add_mastery(fruit, FRUIT_PER_CAST)
+	if rank_up(skill_id) and player:
+		player.call("_toast", "%s ranks up: %s" % [Skills.get_skill(skill_id)["name"], Skills.tier_def(skill_id, skill_tier(skill_id))["name"]])
 	changed.emit()
 
 
-## Why a skill can't go up a tier right now ("" = it can).
+## Why a skill can't go up a tier right now ("" = it can: it will on its next use or load).
 func can_rank_up(skill_id: String) -> String:
 	var t := skill_tier(skill_id)
 	if t == 0:
@@ -775,20 +886,13 @@ func can_rank_up(skill_id: String) -> String:
 	var nt := Skills.tier_def(skill_id, t + 1)
 	if uses_of(skill_id) < int(nt["uses"]):
 		return "Use it %d more time%s" % [int(nt["uses"]) - uses_of(skill_id), "" if int(nt["uses"]) - uses_of(skill_id) == 1 else "s"]
-	var tree := str(SkillTree.get_node_def(SkillTree.node_for_skill(skill_id))["tree"])
-	if points(tree) < int(nt["cost"]):
-		return "Needs %s" % points_word(tree, int(nt["cost"]))
 	return ""
 
 
 func rank_up(skill_id: String) -> bool:
 	if can_rank_up(skill_id) != "":
 		return false
-	var t := skill_tier(skill_id) + 1
-	var tree := str(SkillTree.get_node_def(SkillTree.node_for_skill(skill_id))["tree"])
-	if not SkillTrees.converted(tree):
-		_spend(int(Skills.tier_def(skill_id, t)["cost"]))
-	tiers[skill_id] = t
+	tiers[skill_id] = skill_tier(skill_id) + 1
 	if player:
 		player.call("_recalc_stats")
 	changed.emit()
@@ -799,10 +903,10 @@ func rank_up(skill_id: String) -> bool:
 # Save / load
 # --------------------------------------------------------------------------
 func to_dict() -> Dictionary:
-	return {"format": FORMAT, "level": level, "xp": xp, "sp": skill_points, "owned": owned.keys(),
+	return {"format": FORMAT, "level": level, "xp": xp, "owned": owned.keys(),
 		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate(),
 		"steps": steps.duplicate(), "versions": versions.duplicate(), "passives": Array(passives), "found": found.keys(),
-		"will": will.keys(), "meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate(),
+		"will": will.keys(), "beaten": beaten.keys(), "meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate(),
 		"kit": kit_left, "downtime": downtime.duplicate()}
 
 
@@ -826,14 +930,14 @@ func from_dict(d: Dictionary) -> void:
 	steps = {}
 	versions = {}
 	will = {}
+	beaten = {}
 	_foe_hits = {}
+	skill_points = 0
 	var fmt := int(d.get("format", 1))
 	var ms: Dictionary = d.get("mastery", {})
 	var gone := 0
 	if fmt < 4:
-		# the trees were reworked: every skill point and every weapon's mastery point
-		# comes back once (mastery levels, uses, gold and gear stay)
-		skill_points = (level - 1) * SP_PER_LEVEL + (1 if fmt >= 2 and level > 1 and Story.passed("vey_skills") else 0)
+		# older trees: mastery levels and uses kept (gold and gear are other sections), every node refunded
 		for t in ms.keys():
 			if is_track(str(t)):
 				var lv := int(ms[t].get("lv", 1))
@@ -841,7 +945,6 @@ func from_dict(d: Dictionary) -> void:
 		if fmt >= 2:
 			uses = (d.get("uses", {}) as Dictionary).duplicate()
 	else:
-		skill_points = int(d.get("sp", 0))
 		for k in d.get("owned", []):
 			if not SkillTree.get_node_def(str(k)).is_empty():
 				owned[str(k)] = true
@@ -863,7 +966,10 @@ func from_dict(d: Dictionary) -> void:
 		if n.get("kind", "") in ["variant", "talent"] and int(vd[k]) >= 0 and int(vd[k]) < n["versions"].size():
 			versions[str(k)] = int(vd[k])
 	for k in d.get("will", []):
-		will[str(k)] = true
+		if SkillTrees.WILL.has(str(k)):
+			will[str(k)] = true
+	for k in d.get("beaten", []):
+		beaten[str(k)] = true
 	found = {}
 	for t in FOUND_AT_START + Array(d.get("found", [])):
 		found[str(t)] = true
@@ -878,6 +984,9 @@ func from_dict(d: Dictionary) -> void:
 		for pk in SkillTree.perks_of(t):
 			if mastery_level(t) >= int(pk[0]):
 				owned[pk[1]] = true
+	for sk in known_skills():
+		while rank_up(sk):
+			pass
 	_fit_passives()
 	_refunded = (fmt < FORMAT and (level > 1 or not ms.is_empty())) or gone > 0
 	_rev += 1
@@ -902,6 +1011,10 @@ func _refit_converted() -> void:
 ## After the power component has loaded too: give back the fruit's free nodes
 ## and clear bar slots holding skills you no longer know (a refunded save).
 func after_load() -> void:
+	for t in SkillTrees.trees_in("fruit"):
+		if t != player.power.fruit:
+			for k in SkillTrees.nodes_of(t):
+				owned.erase(k)
 	if player.power.has_fruit():
 		grant_fruit(player.power.fruit)
 	for i in range(PowerComponent.SLOTS):

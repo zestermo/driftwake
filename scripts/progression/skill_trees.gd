@@ -63,6 +63,12 @@ const ELEMENTS := {
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 }
 
+## What every Captain level past the first adds by itself (the old Captain tree's stat nodes, folded in).
+const GROWTH := {"max_hp": 5.5, "damage_pct": 0.02, "max_stamina": 0.6, "max_energy": 0.6, "defense": 0.5}
+## Will milestones: id -> [the boss that teaches it (Progression.boss_kind), the Wills it needs first].
+const WILL := {"h_arm": ["morrow", []], "h_coat": ["ape", ["h_arm"]], "h_obs": ["queen", ["h_arm"]], "h_fore": ["arena", ["h_arm"]],
+	"h_conq": ["sea_king", ["h_arm", "h_coat", "h_obs", "h_fore"]]}
+
 static var _trees: Dictionary = {}
 static var _nodes: Dictionary = {}
 static var _t: String = ""
@@ -133,6 +139,9 @@ static func _build() -> void:
 	for t in HEADERS.keys():
 		var h: Array = HEADERS[t]
 		_trees[t] = {"id": t, "name": h[0], "section": h[1], "color": h[2], "max_level": h[3], "root": "", "branches": []}
+	_build_captain()
+	_build_acrobatics()
+	_build_defense()
 	_build_cutlass()
 	_build_katana()
 	_build_dual()
@@ -142,6 +151,9 @@ static func _build() -> void:
 	_build_corsair()
 	_build_pistol()
 	_build_unarmed()
+	_build_ember()
+	_build_wolf()
+	_build_vine()
 
 
 static func _tree(id: String, branch_names: Array) -> void:
@@ -205,6 +217,109 @@ static func _step(id: String, name_: String, on: String, max_steps: int, effects
 	var n := _node(id, name_, "step", branch if branch >= 0 else 1, 1, effects, desc, "", [on], at)
 	n["max_steps"] = max_steps
 	_trees[_t]["branches"][int(n["branch"])]["nodes"].append(id)
+
+
+# --------------------------------------------------------------------------
+# The Captain: growth by level, milestones, talents, Will
+# --------------------------------------------------------------------------
+static func _build_captain() -> void:
+	_tree("captain", ["Milestones", "Talents", "Will"])
+	_root("c_root", "Captain", {},
+		"Every level makes you a little stronger by itself: +5.5 health, +2% damage, +0.6 stamina and energy, +0.5 defense. Milestones come at their level; every 5 levels you pick one of two talents; Will comes from the bosses you beat.")
+	_big("m_soru", "Soru", "auto", 0, 8, {}, "", "soru")
+	_big("c_quarter", "Quartermaster", "auto", 0, 10, {"loadout_slots": 1}, "A third weapon loadout on the loadout wheel (X): three setups to swap between mid-fight.")
+	_big("v_tekkai", "Tekkai", "auto", 0, 14, {}, "", "tekkai")
+	_big("c_slot4", "Fourth Slot", "auto", 0, 25, {}, "A fourth passive slot.")
+	_talent(5, ["v_mend", "Mend", {"regen_hp": 2.5}, "Out of combat (no damage for 5 s) you heal 2.5 health a second."],
+		["v_stomach", "Iron Stomach", {"potion_pct": 0.4}, "Food and drink heal you 40% more."])
+	_talent(10, ["t_hands", "Quick Hands", {"use_speed_pct": 0.35}, "You eat and drink 35% faster."],
+		["t_seadog", "Sea Dog", {"sea_dog": 1}, "Aboard a ship your stamina refills twice as fast."])
+	_talent(15, ["v_adren", "Adrenaline", {"adrenaline": 0.25}, "Below 35% health you hit 25% harder."],
+		["t_wind", "Second Wind", {"second_wind": 1}, "Once a fight, dropping below 30% health refills your stamina and energy."])
+	_talent(20, ["c_focus", "Focus", {"ult_charge_pct": 0.15, "xp_pct": 0.1}, "Your ultimate charges 15% faster, and you win 10% more experience from every fight."],
+		["t_bounty", "Bounty Hunter", {"bounty_pct": 0.15}, "+15% damage to elites and bosses."])
+	_talent(25, ["t_rally", "Rallying Cry", {"revive_pct": 0.5, "rally": 0.25}, "You get a crewmate up 50% faster, and both of you heal a quarter of your health."],
+		["t_treasure", "Treasure Sense", {"treasure_sense": 60.0}, "Closed chests within 60 m show on your compass."])
+	_talent(30, ["v_last", "Last Stand", {"last_stand": 1}, "Once a minute, a blow that would kill you leaves you at 1 health instead."],
+		["t_presence", "Captain's Presence", {"presence": 0.25}, "Common foes' blows hit you 25% softer (not elites or bosses)."])
+	_talent(35, ["t_learner", "Quick Learner", {"xp_pct": 0.15, "mastery_pct": 0.15}, "15% more experience, and every tree learns 15% faster."],
+		["t_hide", "Thick Hide", {"defense": 10.0, "max_hp": 30.0}, "+10 defense and +30 max health."])
+	_talent(40, ["t_warlord", "Warlord", {"damage_pct": 0.12, "crit_all": 0.06}, "+12% damage with everything, and 6% of your hits land 50% harder."],
+		["t_legend", "Living Legend", {"max_hp": 60.0, "defense": 8.0, "stamina_regen_pct": 0.2}, "+60 max health, +8 defense, and stamina refills 20% faster."])
+	_will("h_arm", "Iron Will", {"armament": 1, "damage_pct": 0.08}, "", "Beat Captain Morrow. Will made armor: +8% damage, and your heavy attacks can't be blocked.",
+		["h_harden", "Hardening", {"defense": 8.0, "energy_regen_pct": 0.2}, "Passive (a slot). Will under the skin: +8 defense, and energy refills 20% faster."])
+	_will("h_coat", "Iron Will: Coat", {}, "armament_coat", "Beat a great ape. Coat your weapon or fists in Will.",
+		["h_black", "Black Fists", {"dmg_unarmed": 0.15}, "Passive (a slot). Your bare fists are iron: +15% unarmed damage."])
+	_will("h_obs", "Sense", {"observation": 1}, "", "Beat the Brood Queen. Sense intent: enemies flash red the moment they start an attack, and your parry window is a little wider.",
+		["h_instinct", "Instinct", {"evade_chance": 0.08, "parry_all": 0.04}, "Passive (a slot). 8% of the blows that would hit you are sidestepped on instinct, and your parry window is wider still."])
+	_will("h_fore", "Foresight", {}, "foresight", "Beat a great beast in its arena. Sense what's coming before it comes.",
+		["h_weak", "Weak Points", {"crit_all": 0.06}, "Passive (a slot). You see where to strike: 6% more of your hits land 50% harder."])
+	_will("h_conq", "Captain's Will", {}, "conquerors_haki", "Beat a Sea King, with every other Will yours. A will that bends others.",
+		["h_will", "King's Will", {"damage_pct": 0.06, "max_hp": 20.0}, "Passive (a slot). +6% damage, +20 max health."])
+
+
+## A talent: one of two versions at `lv`, picked (not given); each [id, name, effects, desc].
+static func _talent(lv: int, a: Array, b: Array) -> void:
+	var id := "talent_%d" % lv
+	var n := _big(id, "Talent %d" % lv, "talent", 1, lv)
+	for v in [a, b]:
+		var vn := _node(v[0], v[1], "version", 1, lv, v[2], v[3], "", [id], n["pos"])
+		vn["parent"] = id
+		n["versions"].append({"id": v[0], "name": v[1], "desc": v[3], "level": lv, "effects": v[2], "skill": ""})
+
+
+## A Will milestone (its boss beaten, not a level) and the Will passive that comes with it ([id, name, effects, desc]).
+static func _will(id: String, name_: String, effects: Dictionary, skill: String, desc: String, passive: Array) -> void:
+	var n := _big(id, name_, "will", 2, 1, effects, desc, skill)
+	n["boss"] = WILL[id][0]
+	n["needs"] = WILL[id][1]
+	var p := _node(passive[0], passive[1], "passive", 2, 1, passive[2], passive[3], "", [id], n["pos"] + Vector2(84, -28))
+	p["will"] = id
+	_trees[_t]["branches"][2]["nodes"].append(passive[0])
+
+
+# --------------------------------------------------------------------------
+# Adventure: learned by doing (levels 1-20)
+# --------------------------------------------------------------------------
+static func _build_acrobatics() -> void:
+	_tree("acrobatics", ["Air", "Dodge", "Stride"])
+	_root("ac_root", "Acrobatics", {}, "Jump, dodge and sprint to build it: air jumps and dodges count most.")
+	_big("m_geppo", "Geppo", "mech", 0, 2, {"air_jumps": 1}, "Kick off the air itself: a second jump in mid-air.")
+	_big("m_skywalk", "Sky Walk", "mech", 0, 9, {"air_jumps": 1}, "One more jump in mid-air (three in all).")
+	_big("ac_feather", "Featherfall", "mech", 0, 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing.")
+	_big("m_swift", "Swift Step", "mech", 1, 4, {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
+		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.")
+	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
+	_big("m_sprinter", "Long Stride", "mech", 2, 3, {"sprint_cost_pct": 0.35, "sprint_pct": 0.1}, "Sprinting burns 35% less stamina and you sprint 10% faster.")
+	_big("ac_bound", "Sprint Jump", "mech", 2, 6, {"sprint_jump_pct": 0.5}, "A sprint's long bound costs half the stamina.")
+	_big("ac_sure", "Sure Footing", "mech", 2, 10, {"stamina_regen_pct": 0.1}, "Stamina refills 10% faster.")
+	_big("ac_monkey", "Rigging Monkey", "mech", 2, 16, {"climb_pct": 0.4}, "You climb ladders and the rigging 40% faster.")
+	_step("ac_light", "Light Step", "ac_root", 5, {"dodge_cost_pct": 0.04}, "Your dodge costs 4% less stamina a step.")
+	_step("ac_quick", "Quick Feet", "m_swift", 5, {"move_pct": 0.01, "sprint_pct": 0.015}, "+1% movement and +1.5% sprint speed a step.")
+	_step("ac_hang", "Hang Time", "m_skywalk", 3, {"dodge_iframe_pct": 0.08}, "Untouchable 8% longer in a dodge, a step.")
+	_step("ac_spring", "Spring", "m_sprinter", 3, {"sprint_cost_pct": 0.05}, "Sprinting burns 5% less stamina a step.")
+	_step("ac_wind", "Wind", "ac_bound", 3, {"max_stamina": 4.0}, "+4 max stamina a step.")
+
+
+static func _build_defense() -> void:
+	_tree("defense", ["Parry", "Guard", "Grit"])
+	_root("df_root", "Defense", {}, "Parry and block real blows to build it: a parry counts most.")
+	_big("df_clean", "Clean Parry", "mech", 0, 2, {"parry_all": 0.03, "parry_stamina": 10.0}, "A wider parry window, and a parry gives you 10 stamina back.")
+	_big("v_iron", "Iron Body", "mech", 0, 8, {"defense": 10.0}, "+10 defense.")
+	_big("df_instinct", "Battle Instinct", "mech", 0, 12, {"evade_chance": 0.04, "parry_all": 0.02},
+		"4% of the blows that would hit you are slipped by instinct, and your parry window is wider still.")
+	_big("df_brace", "Brace", "mech", 1, 3, {"block_cost_pct": 0.3}, "Blocking a blow costs 30% less stamina.")
+	_big("df_hold", "Hold the Line", "mech", 1, 11, {"block_move_pct": 0.5}, "Behind your guard you shuffle half again as fast.")
+	_big("df_wall", "Iron Wall", "mech", 1, 20, {"block_cost_pct": 0.3}, "Blocking costs another 30% less stamina.")
+	_big("v_steadfast", "Steadfast", "mech", 2, 4, {"steadfast": 1}, "Light hits no longer make you flinch.")
+	_big("df_unshaken", "Unshaken", "mech", 2, 9, {"max_hp": 25.0}, "+25 max health.")
+	_big("df_skin", "Second Skin", "mech", 2, 14, {"defense": 6.0}, "+6 defense.")
+	_big("df_unbreak", "Unbreakable", "mech", 2, 18, {"max_hp": 40.0, "defense": 4.0}, "+40 max health and +4 defense.")
+	_step("df_timing", "Timing", "df_root", 5, {"parry_all": 0.008}, "A slightly wider parry window a step.")
+	_step("df_sturdy", "Sturdy Guard", "df_brace", 5, {"block_cost_pct": 0.03}, "Blocking costs 3% less stamina a step.")
+	_step("df_thick", "Thick Skin", "v_steadfast", 5, {"defense": 1.5}, "+1.5 defense a step.")
+	_step("df_recover", "Recovery", "v_iron", 3, {"regen_hp": 0.5}, "Out of a fight you heal 0.5 health a second more, a step.")
+	_step("df_calm", "Composure", "df_hold", 3, {"stamina_regen_pct": 0.03}, "Stamina refills 3% faster a step.")
 
 
 # --------------------------------------------------------------------------
@@ -522,3 +637,53 @@ static func _build_unarmed() -> void:
 	_step("u_feet", "Light Feet", "u_round", 3, {"stam_unarmed": 0.07}, "Unarmed attacks cost 7% less stamina a step.")
 	_step("u_flow", "Flow", "u_palm", 3, {"flow_unarmed": 0.15}, "Unarmed hits give 15% more energy a step.")
 	_step("u_breath", "Breath", "u_ironbody", 3, {"cdr_unarmed": 0.05}, "Unarmed techniques come back 5% sooner a step.")
+
+
+# --------------------------------------------------------------------------
+# Driftfruit: the fruit you ate (levels 1-20, grown by using its powers)
+# --------------------------------------------------------------------------
+static func _build_ember() -> void:
+	_tree("ember", ["Fist", "Body", "Blaze"])
+	_root("e_root", "Ember Fruit (Logia)", {},
+		"Logia: your body is fire. Your dodge turns you to flame - fully untouchable, passing straight through enemies and gunfire. Use its powers to grow it.")
+	_big("e_fist", "Fire Fist", "tech", 0, 1, {}, "", "fire_fist")
+	_big("e_dash", "Flame Dash", "tech", 0, 6, {}, "", "flame_dash")
+	_big("e_kindled", "Kindled Blade", "mech", 1, 4, {"kindled_blade": 1}, "Every melee hit sears: the target burns for a moment.")
+	_big("e_smolder", "Smoldering Body", "mech", 1, 11, {"smoldering": 1}, "Your flame-form dodge leaves burning embers behind.")
+	_big("e_inferno", "Great Inferno", "ult", 1, 20, {}, "", "inferno")
+	_big("e_ring", "Blazing Ring", "tech", 2, 1, {}, "", "fire_ring")
+	_big("e_field", "Ember Field", "tech", 2, 8, {}, "", "ember_field")
+	_step("e_heat", "Searing Heat", "e_root", 5, {"fire_pct": 0.04}, "+4% fire damage a step.")
+	_step("e_fuel", "Fuel", "e_fist", 5, {"energy_regen_pct": 0.03}, "Energy refills 3% faster a step.")
+	_step("e_core", "Hot Core", "e_kindled", 5, {"max_energy": 3.0}, "+3 max energy a step.")
+	_step("e_quick", "Quick Flame", "e_ring", 5, {"cdr_Ember": 0.03}, "Ember powers come back 3% sooner a step.")
+
+
+static func _build_wolf() -> void:
+	_tree("wolf", ["Fang", "Pelt", "Pack"])
+	_root("z_root", "Wolf Fruit (Zoan)", {},
+		"Zoan: press V to shift between your human and hybrid wolf form. Hybrid: claws instead of weapons, 25% more damage and 15% faster. Fight in hybrid form and use its powers to grow it.")
+	_big("z_fang", "Rending Fang", "tech", 0, 1, {}, "", "rending_fang")
+	_big("z_hunt", "Predator", "mech", 0, 9, {"hybrid_speed_pct": 0.1}, "Hybrid form is another 10% faster.")
+	_big("z_pelt", "Thick Pelt", "mech", 1, 5, {"hybrid_defense": 8.0}, "+8 defense in hybrid form.")
+	_big("z_howl", "Alpha Howl", "tech", 1, 12, {}, "", "howl")
+	_big("z_pounce", "Pounce", "tech", 2, 1, {}, "", "pounce")
+	_step("z_claw", "Sharp Claws", "z_root", 5, {"claw_pct": 0.05}, "+5% damage in hybrid form a step.")
+	_step("z_hide", "Tough Hide", "z_pelt", 5, {"hybrid_defense": 1.5}, "+1.5 defense in hybrid form a step.")
+	_step("z_lope", "Lope", "z_hunt", 5, {"hybrid_speed_pct": 0.02}, "Hybrid form 2% faster a step.")
+	_step("z_pack", "Pack Instinct", "z_pounce", 5, {"cdr_Wolf": 0.03}, "Wolf powers come back 3% sooner a step.")
+
+
+static func _build_vine() -> void:
+	_tree("vine", ["Snare", "Root", "Thorn"])
+	_root("p_root", "Vine Fruit (Paramecia)", {},
+		"Paramecia: Photosynthesis - out of combat you slowly heal and regain energy while on land. Use its powers to grow it.")
+	_big("p_snare", "Vine Snare", "tech", 0, 1, {}, "", "vine_snare")
+	_big("p_roots", "Deep Roots", "mech", 1, 5, {"photo_mult": 1.0}, "Photosynthesis works twice as fast.")
+	_big("p_whip", "Thorn Whip", "tech", 1, 12, {}, "", "thorn_whip")
+	_big("p_swing", "Vine Swing", "tech", 2, 1, {}, "", "vine_swing")
+	_big("p_thorns", "Thorn Hide", "mech", 2, 9, {"thorn_hide": 6.0}, "Enemies that hit you in melee take 6 damage from your thorns.")
+	_step("p_sun", "Sunlight", "p_root", 5, {"photo_mult": 0.15}, "Photosynthesis 15% faster a step.")
+	_step("p_bark", "Bark", "p_roots", 5, {"defense": 1.5}, "+1.5 defense a step.")
+	_step("p_spines", "Spines", "p_thorns", 5, {"thorn_hide": 1.5}, "Your thorns deal 1.5 more a step.")
+	_step("p_growth", "Quick Growth", "p_snare", 5, {"cdr_Vine": 0.03}, "Vine powers come back 3% sooner a step.")

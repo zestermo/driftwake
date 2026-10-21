@@ -36,6 +36,7 @@ func enter(_data: Dictionary) -> void:
 	_speed = dodge_speed * (1.0 + pr.stat("dodge_dist_pct"))
 	_dur = dodge_duration
 	_iframes = iframes_duration * (1.0 + pr.stat("dodge_iframe_pct"))
+	pr.add_life("acrobatics", 5)
 	_logia = player.power.fruit_type() == "logia" and not player.power.suppressed()
 	if _logia:
 		_iframes = _dur + 0.05

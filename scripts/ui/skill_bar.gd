@@ -10,8 +10,8 @@ extends Control
 ##   that drains after a hit, and the number.
 ## * Energy orb (right): energy for skills (blue; your Devil Fruit's color
 ##   once you've eaten one).
-## * Level badge and experience bar along the bottom of the plate; unspent
-##   skill points pulse next to the level.
+## * Level badge and experience bar along the bottom of the plate; the weapon
+##   in hand's unspent points pulse next to the level.
 ## * Stamina: a thin bar across the top of the plate (amber when spent, flashes
 ##   red when an action is refused).
 ## * Skills 1-5: icon, key, energy cost, cooldown sweep + seconds, dimmed when
@@ -409,7 +409,7 @@ func _draw_item(r: Rect2) -> void:
 
 
 ## Level badge (over the health orb) and the experience bar along the bottom
-## of the plate; unspent skill points pulse beside the level.
+## of the plate; the weapon in hand's unspent points pulse beside the level.
 func _draw_xp() -> void:
 	var pr := player.progression
 	if pr == null:
@@ -424,16 +424,11 @@ func _draw_xp() -> void:
 	draw_circle(badge, 8.0, UIStyle.BG_DARK)
 	draw_arc(badge, 8.0, 0.0, TAU, 20, UIStyle.BORDER, 1.0)
 	_text(badge + Vector2(-10.0, 3.0), str(pr.level), UIStyle.ACCENT, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
-	var mt := SkillTree.style_tree(player.style())
-	var mp := pr.points(mt) if mt != "" else 0
-	if pr.skill_points > 0 or mp > 0:
+	var mt := pr.hand_tree()
+	var mp := pr.points_free(mt) if mt != "" else 0
+	if mp > 0:
 		var a := 0.6 + 0.4 * sin(_t * 5.0)
-		var parts: Array = []
-		if pr.skill_points > 0:
-			parts.append("+%d SP" % pr.skill_points)
-		if mp > 0:
-			parts.append("+%d %s" % [mp, str(SkillTree.TREES[mt]["tab"])])
-		_text(badge + Vector2(11.0, 3.0), "%s [K]" % "  ".join(parts), Color(0.75, 0.95, 0.55, a))
+		_text(badge + Vector2(11.0, 3.0), "+%d %s [K]" % [mp, Progression.tree_name(mt).to_upper()], Color(0.75, 0.95, 0.55, a))
 
 
 ## Pistols: loaded shots per gun over the middle of the plate.

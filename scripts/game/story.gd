@@ -118,8 +118,7 @@ func complete(id: String) -> void:
 	match id:
 		"vey_skills":
 			if p:
-				p.progression.skill_points += 1
-				p.progression.changed.emit()
+				p.progression.drill()
 		"tackett_ship":
 			Dialogue.set_flag("ship_not_owned", false)
 			var gm := get_node("/root/GameManager")

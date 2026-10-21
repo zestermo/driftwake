@@ -54,7 +54,8 @@ func shape(t: String) -> void:
 			spots[spot] = k
 	check("%s: a root and three branches" % t, STS.node_def(td["root"]).get("kind", "") == "root" and td["branches"].size() == 3)
 	check("%s: links real, levels in 1..%d, steps of 3 or 5, versions real, no stacked spots %s" % [t, top, str(bad)], bad.is_empty())
-	check("%s: the steps take about all the points (%d steps, %d points)" % [t, steps, top - 1], steps >= top - 1 and steps <= top + 3)
+	if t != "captain":
+		check("%s: the steps take about all the points (%d steps, %d points)" % [t, steps, top - 1], steps >= top - 1 and steps <= top + 3)
 	if STS.section_of(t) == "combat":
 		check("%s: one ultimate, at the top" % t, ults == 1 and STS.nodes_of(t).any(func(k): return STS.node_def(k)["kind"] == "ult" and int(STS.node_def(k)["level"]) == top))
 

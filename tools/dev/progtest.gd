@@ -109,8 +109,8 @@ func _process(d: float) -> bool:
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
-			check("start at level 1 with nothing learned (origin + weapon roots)", pr.level == 1 and pr.skill_points == 0
-				and pr.owned.size() == SkillTree.starting_nodes().size() and pr.owns("origin") and pr.owns("s_root") and not pr.owns("e_root"))
+			check("start at level 1 with nothing learned (the trees' roots)", pr.level == 1 and pr.owns("c_root") and pr.owns("s_root")
+				and not pr.owns("e_root") and not pr.owns("m_soru") and not pr.owns("s_flying"))
 			check("empty skill bar", pc.loadout == ["", "", "", "", "", ""])
 			check("no double jump at the start", p.max_jumps == 1)
 			check("everyone has energy", pc.max_energy() >= 100.0)
@@ -121,32 +121,30 @@ func _process(d: float) -> bool:
 			check("grunt kill gives XP", pr.xp == 45)
 			step += 1
 		1:
+			var hp0: float = p.health_component.max_health
 			var need: int = pr.xp_to_next(1)
 			pr.add_xp(need)
-			check("level up to 2 with 2 skill points", pr.level == 2 and pr.skill_points == 2)
-			check("can't learn an unlinked node", pr.can_learn("m_geppo") == "Learn a linked node first")
-			check("Haki locked until level 10", pr.can_learn("h_arm") != "" )
-			check("fruit nodes need the fruit", pr.can_learn("e_root").begins_with("Needs the"))
-			var hp0: float = p.health_component.max_health
-			check("learn Agility (both points)", pr.learn("c_agility") and pr.skill_points == 0)
-			pr.skill_points = 2
-			check("learn Geppo", pr.learn("m_geppo"))
-			check("Geppo gives an air jump", p.max_jumps == 2)
-			check("Agility speeds you up", p.move_speed > 6.0)
-			pr.skill_points = 20
-			pr.level = 6
-			check("learn Soru (active)", pr.learn("m_soru"))
-			check("Soru goes on the bar", pc.loadout[0] == "soru")
+			check("level up to 2: stronger by itself, no points to spend", pr.level == 2 and pr.skill_points == 0 and p.health_component.max_health > hp0)
+			check("Will isn't a level (Iron Will comes from Morrow)", pr.can_learn("h_arm") != "" and not pr.has_flag("armament"))
+			check("a fruit's tree needs the fruit", not pr.owns("e_root") and pr.visible_trees("fruit").is_empty())
+			pr.add_life("acrobatics", pr.mastery_to_next(1))
+			check("Acrobatics 2 brings Geppo: an air jump", pr.owns("m_geppo") and p.max_jumps == 2)
+			while pr.mastery_level("acrobatics") < 12:
+				pr.add_life("acrobatics", pr.mastery_to_next(pr.mastery_level("acrobatics")))
+			check("Fleetfoot (Acrobatics 12) speeds you up", p.move_speed > 6.0)
+			pr.level = 14
+			pr._on_level_up()
+			check("Soru and Tekkai come at Captain 8 and 14, onto the bar", pc.loadout[0] == "soru" and pc.loadout[1] == "tekkai")
 			check("a weapon's nodes come with its mastery, not points (%s)" % pr.can_learn("s_flying"), pr.can_learn("s_flying") == "Comes at Cutlass 4")
 			# (a pistol in loadout 2, so its skills can go on the bar)
 			p.inventory_component.add_item(item("pistol"), 1)
 			p.loadouts[1] = ["pistol", ""]
-			for nid in ["c_vitality", "v_hardy", "v_tekkai", "v_steadfast", "c_strength", "c_endurance"]:
-				pr.learn(nid)
+			while pr.mastery_level("defense") < 4:
+				pr.add_life("defense", pr.mastery_to_next(pr.mastery_level("defense")))
 			for tr_lv in [["sword", 5], ["pistol", 9]]:
 				while pr.mastery_level(tr_lv[0]) < tr_lv[1]:
 					pr.add_mastery(tr_lv[0], pr.mastery_to_next(pr.mastery_level(tr_lv[0])))
-			check("skill points spent on the Captain tree only", pr.skill_points == 6 and pr.points_free("sword") == 4 and pr.points_free("pistol") == 8)
+			check("each weapon's points its own", pr.points_free("sword") == 4 and pr.points_free("pistol") == 8)
 			check("moveset unlocks", pr.has_move("gun_kata") and pr.has_move("gun_rain") and not pr.has_move("iai_full"))
 			check("skills fill the bar", pc.loadout[1] == "tekkai" and pc.loadout[2] == "flying_slash" and pc.loadout[3] == "bullet_storm")
 			check("stats add up", pr.stat("max_hp") >= 40.0 and pr.has_flag("steadfast"))
@@ -175,11 +173,12 @@ func _process(d: float) -> bool:
 			var dist = Vector2(p.global_position.x - pos0.x, p.global_position.z - pos0.z).length()
 			print("   soru distance ", snappedf(dist, 0.1))
 			check("Soru covers ground fast (>5 m)", dist > 5.0)
-			# tiers: uses open the next one, then it costs points
+			# tiers: uses open the next one by themselves
 			check("casting counts a use", pr.uses_of("soru") == 1 and pr.skill_tier("soru") == 1)
 			check("next tier needs uses first", pr.can_rank_up("soru").begins_with("Use it"))
-			pr.uses["soru"] = 15
-			check("rank Soru up to Double Step", pr.rank_up("soru") and pr.skill_tier("soru") == 2 and pr.skill_points == 4)
+			pr.uses["soru"] = 14
+			pr.note_use("soru")
+			check("the 15th use ranks Soru up to Double Step by itself", pr.skill_tier("soru") == 2)
 			# fists: punch a grunt
 			p.unequip_weapon()
 			check("no weapon = fists", p.style() == "fist")
@@ -430,7 +429,7 @@ func _process(d: float) -> bool:
 			# a save from before the trees: everything refunded
 			var old = load("res://scripts/progression/progression.gd").new()
 			old.from_dict({"level": 5, "xp": 10, "sp": 1, "owned": ["origin", "c_agility", "w_blade"]})
-			check("old saves get every skill point back", old.skill_points == 8 and old.owned.size() == SkillTree.starting_nodes().size())
+			check("old saves: every old node refunded, no skill points", old.skill_points == 0 and not old.owns("c_agility") and old.owns("c_root"))
 			old.free()
 			check("skill bar restored", pc.loadout == get_meta("bar"))
 			check("weapons restored (dual pistols)", p.style() == "dual_pistol")

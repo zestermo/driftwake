@@ -4732,6 +4732,42 @@ Spec: docs/progression_plan.md "Redesign" and "Build: v1.18.2".
 - The found-tree card is menu-ui's `show_new_tree(name, line)` on the HUD ("Added to COMBAT · n points to spend").
 - Tests: tree_shape now checks all nine weapon trees; refund/format5 migrations for the cutlass converted too. World
   suites' tree checks updated for the new shape (techtest, daggertest, wieldtest, balancetest, progtest), not run.
+
+## 2026-10-20: progression redesign, piece 3: the Captain, Will, the fruits, Acrobatics and Defense
+Spec: docs/progression_plan.md "Captain tree"; the Acrobatics and Defense drafts. Acrobatics, Defense and the fruits came
+into this piece (not piece 4) because the old Captain tree held Geppo, Swift Step, Steadfast and Iron Hide and the
+fruits were bought with skill points: the old trees went in one go, so nothing is missing on main in between.
+- **Captain** (SkillTrees "captain"): growth by level (SkillTrees.GROWTH x (level - 1), folded into `stat()`: +5.5 health,
+  +2% damage, +0.6 stamina, +0.6 energy, +0.5 defense; player.gd's own 4 health / 2% a level gone), milestones (kind
+  "auto": Soru 8, Quartermaster 10 = a third loadout through "loadout_slots", Tekkai 14, c_slot4 25 = passive_slots 4),
+  talents (kind "talent" at 5..40, two versions each; `pick_talent`: the first pick anywhere, a change at the bunk),
+  Will (kind "will", the Will column, each with its Will passive linked to it, "will": id). No skill points
+  (`skill_points` stays 0 for the old map/inventory), tiers rank up by use alone (`note_use` -> `rank_up`, and on load).
+- **Will**: `add_xp(amount, at)` finds the foe that fell there (`_fallen_at`: bosses, Sea Kings, the fort's captain and
+  the foes we struck, `is_dead()` within 6 m, 60 for a Sea King); `boss_kind` (morrow = the Redtide fort's boss, ape =
+  JungleApe, queen = BroodQueen, arena = a JungleBeast in "bosses", sea_king) -> `beat` -> `beaten` (saved) ->
+  `_open_wills` (SkillTrees.WILL: boss + the Wills needed first) -> `grant_will` (node, its passive, a banner).
+  Assumed bosses marked in the plan. Co-op: each captain's own machine runs this from its own `_all_xp`.
+- **Talent hooks**: Quick Hands (player.gd use_item: use_speed_pct), Sea Dog (stat("stamina_regen_pct") +1 while
+  Downtime.ship_under), Second Wind (Progression's tick, once per in_fight), Bounty Hunter (`on_hit(target, hit)`: an
+  extra dot hit on an elite; PowerComponent passes the hit), Rallying Cry (player.gd _revive_tick: revive_pct, the
+  reviver heals rally x max health; the revived gets the usual share: Net.revive has no talent data), Treasure Sense
+  (compass_strip.gd `_draw_treasure`: loot bags with a save id not rolled yet, within treasure_sense m), Captain's
+  Presence (player.gd _on_hit_received: a non-elite foe's blow x (1 - presence)), Quick Learner (mastery_pct in
+  add_mastery). Approved by the lead (player.gd hooks).
+- **Driftfruit**: the fruit trees are SkillTrees trees (ember, wolf, vine; levels 1-20), granted only with that fruit
+  (`_sync_tree` checks power.fruit; `grant_fruit` syncs it; after_load drops another fruit's nodes). A cast of one of its
+  powers is FRUIT_PER_CAST mastery; the Wolf's claws learn like a weapon (`hand_tree()` "claw" -> "wolf"; claw_pct in
+  damage_multiplier).
+- **Acrobatics / Defense**: the drafts minus the new moves (Moonstep, Afterimage, Roll/Sidestep, Crash Landing,
+  Disarm/Shove, Rolling Guard); Clean Parry is numbers (a wider window, 10 stamina back), the rest new numbers or
+  tiny hooks: sprint_jump_pct (jump_state), climb_pct (climb_state), block_cost_pct / block_move_pct (block_state),
+  parry_stamina (parry_state). XP: a jump 3, an air jump 6, a dodge 5; a parry 15, a blocked blow 5.
+- Vey's story step: `drill()`, a level of mastery for the weapon in hand (vey.json says so).
+- skill_bar.gd's level badge: the hand tree's free points (no "+SP").
+- Tests: t/progression captain_growth, talents, will_bosses, acrobatics; refund_migration rewritten; loadout_swap's
+  third slot now at Captain 10. World suites updated, not run: progtest (the Captain section rewritten), storytest
+  (Vey's drill), r6test (Coat by Will; its old-map fruit/base tab checks are menu-ui's), powertest (Ember by level).
 ## 2026-10-20: one skill bar across the loadouts (v1.18.2 bar-swap, docs/progression_plan.md "Skill bar")
 - **The rule** (PowerComponent): a weapon's skill (Skills.ALL `styles`, or the old `needs` "sword"/"gun") can go on the bar
   only while a weapon that fits it is in one of your loadouts; Captain, Will and fruit skills go on with anything; R takes the

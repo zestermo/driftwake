@@ -88,6 +88,7 @@ func _draw() -> void:
 					draw_string(_font, Vector2(x - 8, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
 		_draw_log_pose(heading, here)
 		_draw_lookout(heading, here, me)
+		_draw_treasure(heading, here, me)
 	# where we're facing
 	draw_colored_polygon(PackedVector2Array([Vector2(W * 0.5, 12), Vector2(W * 0.5 - 3, 15), Vector2(W * 0.5 + 3, 15)]), UIStyle.ACCENT)
 	draw_line(Vector2(W * 0.5, 0), Vector2(W * 0.5, 12), UIStyle.ACCENT, 1.0)
@@ -148,6 +149,23 @@ func _draw_lookout(heading: float, here: Vector2, me: Node3D) -> void:
 		if to.length() > reach or x == INF:
 			continue
 		draw_rect(Rect2(x - 1.5, 13.0, 3.0, 3.0), Color(1.0, 0.85, 0.4))
+
+
+## Treasure Sense (a Captain talent, Progression "treasure_sense" m): chests not opened yet within reach, a gold coin.
+func _draw_treasure(heading: float, here: Vector2, me: Node3D) -> void:
+	var pr = me.get("progression")
+	var reach: float = pr.stat("treasure_sense") if pr else 0.0
+	if reach <= 0.0:
+		return
+	for b in get_tree().get_nodes_in_group("loot_bags"):
+		var bag := b as LootBag
+		if bag.save_id == "" or bag.rolled:
+			continue
+		var to := Vector2(bag.global_position.x, bag.global_position.z) - here
+		var x := _x(bearing(to), heading)
+		if to.length() > reach or x == INF:
+			continue
+		draw_circle(Vector2(x, 15.0), 2.5, Color(1.0, 0.82, 0.3))
 
 
 ## A needle standing on the strip: the coloured point up, the dark tail down.

@@ -182,11 +182,9 @@ func _process(d: float) -> bool:
 			Input.action_release("move_forward")
 			check("dashing with the Vine Fruit sprouts vines on the ground", saw.get("ground_vines", false))
 			# --- Armament: Coat
-			p.progression.level = 12
-			p.progression.skill_points = 20
-			for nid in ["c_spirit", "h_arm", "h_coat"]:
-				p.progression.learn(nid)
-			check("learned Armament: Coat", p.progression.knows("armament_coat"))
+			p.progression.grant_will("h_arm")
+			p.progression.grant_will("h_coat")
+			check("learned Armament: Coat (Will: Coat)", p.progression.knows("armament_coat"))
 			pc.equip("armament_coat", 3)
 			pc.energy = pc.max_energy()
 			check("haki sound loaded", root.get_node("FX")._streams.has("haki"))
