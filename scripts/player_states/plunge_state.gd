@@ -127,7 +127,7 @@ const DIVE_TREE := {"meteor_kick": "unarmed", "boarding_dive": "sword", "fang_di
 
 ## Which: "" (the plain plunge), "rain", "air_slash", "skybreaker", "twin_cyclone",
 ## "meteor_kick", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain", "falling_spear",
-## "hammerfall", "buzzsaw".
+## "hammerfall", "buzzsaw", "falling_cleave".
 var _mode := ""
 var phase: int = 0   # 0 hang/wind-up, 1 dive, 2 land, 3 off (bounced / vaulted / fired)
 var timer: float = 0.0
@@ -216,6 +216,13 @@ func enter(_data: Dictionary) -> void:
 			player.set_reach("hammer_slam")
 			player.squash(2.5)
 			Net.fx("sfx", ["whoosh_big", player.global_position, -7.0, 0.06, 0.6])
+		"falling_cleave":
+			player.variable_jump_active = false
+			player.velocity = Vector3(player.velocity.x * 0.3, HAMMER_LIFT, player.velocity.z * 0.3)
+			player.body_model.play("gs_dive", 0.7)
+			player.set_reach("great_cleave")
+			player.squash(2.5)
+			Net.fx("sfx", ["whoosh_big", player.global_position, -7.0, 0.06, 0.7])
 		"buzzsaw":
 			player.variable_jump_active = false
 			player.velocity = Vector3(player.velocity.x * 0.3, SAW_LIFT, player.velocity.z * 0.3)
@@ -267,7 +274,8 @@ func physics_update(delta: float) -> void:
 			return
 	var axe := _mode == "skybreaker"
 	var spear := _mode == "falling_spear"
-	var hammer := _mode == "hammerfall"
+	# (the greatsword's Falling Cleave drops like the hammer's: heaved up overhead, down hard)
+	var hammer := _mode in ["hammerfall", "falling_cleave"]
 	var saw := _mode == "buzzsaw"
 	match phase:
 		0:
@@ -297,7 +305,7 @@ func physics_update(delta: float) -> void:
 					Net.fx("slash", [player.player_model, "overhead", 0.3])
 				Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 0.8 if hammer else 1.1])
 				var hit := HitData.new()
-				hit.sever = player.weapon_class() == "sword" and not hammer
+				hit.sever = player.weapon_class() == "sword" and _mode != "hammerfall"
 				hit.damage = (SPEAR_DAMAGE if spear else (HAMMER_DAMAGE if hammer else (SAW_DAMAGE if saw else 22.0))) * player.damage_multiplier()
 				hit.knockback_force = 7.0
 				hit.stagger_duration = 0.45
@@ -338,6 +346,9 @@ func _land() -> void:
 		return
 	if _mode == "buzzsaw":
 		_saw_land()
+		return
+	if _mode == "falling_cleave":
+		GreatswordArts.fall_land(player, player.sword_hitbox.hit_targets.duplicate(), RECOVER + 0.15)
 		return
 	if _mode == "hammerfall":
 		# the hammer driven into the ground on landing: a shockwave knocks everyone round it flat (not those

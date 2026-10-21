@@ -5,6 +5,9 @@ extends Node3D
 ##            its path (pierces), stopped by walls.
 ##   "wave"   Wind Severer: a tall crescent standing on its edge, bigger and
 ##            slower, knocking down everything it passes.
+##   "gale"   a greatsword's crescent of air pressure (a full-charge cleave, its techniques): the slash's crescent
+##            stood on its edge, faster and shorter-lived, staggering everything it passes ("gale_flat": lying flat,
+##            wider, off a flat sweep).
 ##   "axe"    Hatchet Throw: the thrower's axe spinning out and back to the hand,
 ##            cutting everything on the way out and again on the way back.
 ##   "seed"   Vine Snare: a seed that bursts into grasping vines on the first
@@ -42,6 +45,9 @@ static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3
 		"wave":
 			p.speed = 19.0
 			p.range_m = 18.0
+		"gale", "gale_flat":
+			p.speed = 26.0
+			p.range_m = 10.0
 		"axe":
 			p.speed = 20.0
 			p.range_m = 13.0
@@ -67,9 +73,9 @@ func _ready() -> void:
 		_mat.vertex_color_use_as_albedo = false
 		_mesh.mesh = _wave_mesh()
 		_mesh.material_override = _mat
-	elif kind == "slash":
+	elif kind in ["slash", "gale", "gale_flat"]:
 		# a thin crescent lying across the flight path (stood on its edge for the
-		# wave): a coloured sheath round a hot white core
+		# gale): a coloured sheath round a hot white core
 		var mb := MeshBuilder.new()
 		_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
@@ -90,6 +96,13 @@ func _ready() -> void:
 				mb.add_quad(m, p0 + Vector3(0, 0, -w0), p1 + Vector3(0, 0, -w1), p1 + Vector3(0, 0, w1), p0 + Vector3(0, 0, w0), Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1))
 		_mesh.mesh = mb.commit()
 		_mesh.material_override = _mat
+		if kind == "gale":
+			# (stood on its edge: the cleave's own plane, racing along the ground)
+			_mesh.rotation = Vector3(0, 0, PI * 0.5)
+			_mesh.scale = Vector3(1.0, 1.0, 1.3)
+		elif kind == "gale_flat":
+			# (a flat sweep's: lying across the line, half again as wide)
+			_mesh.scale = Vector3(1.6, 1.0, 1.3)
 	elif kind == "axe":
 		_mesh.mesh = Props.weapon_mesh(model.trim_prefix("elem|"))
 	else:
@@ -216,6 +229,8 @@ func _cut(at: Vector3) -> void:
 	var r := 1.3
 	if kind == "wave":
 		r = 1.9
+	elif kind in ["gale", "gale_flat"]:
+		r = 1.8
 	elif kind == "axe":
 		r = 1.1
 	for e in pc.enemies_in(at + Vector3.UP * (0.6 if kind == "wave" else 0.0), r):
@@ -227,7 +242,7 @@ func _cut(at: Vector3) -> void:
 			continue
 		var hd := (source as Player).melee_hit(damage, "skill")
 		hd.knockback_force = 9.0 if kind == "wave" else 6.0
-		hd.stagger_duration = 0.35
+		hd.stagger_duration = 0.6 if kind.begins_with("gale") else 0.35
 		hd.hitstop_duration = 0.05
 		hd.camera_shake_intensity = 0.08
 		hd.knockdown = kind == "wave"
@@ -316,11 +331,11 @@ func _finish() -> void:
 ## only when launched with model "elem" (the element awakened), a thrown axe when
 ## its model starts "elem|"; plain steel otherwise.
 func _tree() -> String:
-	if kind in ["slash", "wave"] and model != "elem":
+	if kind in ["slash", "wave", "gale", "gale_flat"] and model != "elem":
 		return "plain"
 	if kind == "axe" and not model.begins_with("elem|"):
 		return "plain"
-	return {"slash": "sword", "wave": "katana", "axe": "axe"}.get(kind, "unarmed")
+	return {"slash": "sword", "wave": "katana", "axe": "axe", "gale": "greatsword", "gale_flat": "greatsword"}.get(kind, "unarmed")
 
 
 func _elemental() -> bool:

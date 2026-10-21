@@ -39,7 +39,7 @@ class_name ActionSpecs
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
 const PARRIES := {"dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
 	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
-	"dual_axe": ["dx_parry", "dx_deflect"]}
+	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -224,6 +224,28 @@ const SPECS := {
 	"dx_frenzy": {"len": 1.2, "hit": [0.08, 0.82], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
 	"dx_storm": {"len": 1.8, "hit": [0.18, 0.92], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
 	"dx_winter": {"len": 2.6, "hit": [0.25, 0.78], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	# --- greatsword (GreatswordMoves: keyed like the hammer, its grip solved by PoleMoves.hands; "carry": a chained
+	# blow starts where the one "after" it left off, Humanoid._begin_action) ---
+	"gs_stance": {"len": 1.0, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_1": {"len": 0.8, "hit": [0.24, 0.42], "chain": 0.42, "swoosh": [0.22, 0.46], "sharp": 50.0, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_2": {"len": 0.78, "hit": [0.25, 0.42], "chain": 0.42, "swoosh": [0.23, 0.46], "sharp": 50.0, "carry": true, "stance": "greatsword", "weapon": "greatsword",
+		"extras": {"after": "gs_1"}},
+	"gs_3": {"len": 0.84, "hit": [0.28, 0.48], "chain": 0.48, "swoosh": [0.26, 0.52], "sharp": 50.0, "carry": true, "stance": "greatsword", "weapon": "greatsword",
+		"extras": {"after": "gs_2"}},
+	"gs_4": {"len": 1.1, "hit": [0.14, 0.72], "chain": 0.95, "swoosh": [0.12, 0.74], "sharp": 50.0, "carry": true, "stance": "greatsword", "weapon": "greatsword",
+		"extras": {"after": "gs_3"}},
+	"gs_charge": {"len": 0.2, "hold": true, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_heavy": {"len": 0.8, "hit": [0.13, 0.3], "swoosh": [0.1, 0.3], "sharp": 55.0, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_rush": {"len": 0.8, "hit": [0.38, 0.56], "swoosh": [0.36, 0.6], "sharp": 50.0, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_dive": {"len": 0.7, "stance": "greatsword", "weapon": "greatsword", "extras": {"grounded": false}},
+	"gs_land": {"len": 0.55, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_guardbreak": {"len": 0.95, "hit": [0.23, 0.6], "stance": "greatsword", "weapon": "greatsword"},
+	"gs_crescent": {"len": 0.8, "hit": [0.3, 0.45], "stance": "greatsword", "weapon": "greatsword"},
+	"gs_tempest": {"len": 1.7, "hit": [0.12, 0.85], "stance": "greatsword", "weapon": "greatsword"},
+	"gs_sky": {"len": 1.0, "stance": "greatsword", "weapon": "greatsword", "extras": {"grounded": false}},
+	"gs_parry": {"len": 0.66, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_deflect": {"len": 0.45, "stance": "greatsword", "weapon": "greatsword"},
+	"gs_block": {"len": 0.24, "hold": true, "stance": "greatsword", "weapon": "greatsword"},
 	# --- unarmed ---
 	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
 	"jab": {"len": 0.34, "hit": [0.21, 0.5], "stance": "fist", "weapon": ""},

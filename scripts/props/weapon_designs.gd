@@ -11,7 +11,7 @@ extends RefCounted
 ## the kind's base item); tiers come on top (ItemDB.tiered).
 
 const BASE_ITEM := {"cutlass": "cutlass", "katana": "katana", "axe": "boarding_axe", "pistol": "pistol", "dagger": "dagger", "polearm": "spear",
-	"hammer": "warhammer"}
+	"hammer": "warhammer", "greatsword": "greatsword"}
 
 ## design -> {id, name, desc, dmg (x the base item's), worth (x its value), build numbers...}
 const DESIGNS := {
@@ -142,6 +142,29 @@ const DESIGNS := {
 			"dmg": 1.26, "worth": 2.4, "head": "anchor", "haft": 1.08, "reach": 1.06, "speed": 0.82, "weight": 1.3, "rare": true,
 			"blade": Color(0.5, 0.52, 0.55), "fit": Color(0.62, 0.6, 0.56), "grip": Color(0.8, 0.72, 0.55), "grip_tex": "fabric"},
 	},
+	# (the base is a plain greatsword: a broad straight blade and a cross guard). Greatswords add "len" (the blade's
+	# length), "speed" (x how fast its moves play), "reach" (x the hitbox), "sweep" (x a sweep's width), "weight" (x the
+	# knockback and a guard break's stagger) and "bleed" (s: its cuts open a wound); "rare" drops less often (Loot)
+	"greatsword": {
+		"black": {"id": "black_greatblade", "name": "Black Greatblade", "desc": "Dark steel from guard to point, a long cross guard edged in old gold. It cuts the air before it cuts you.",
+			"dmg": 1.12, "worth": 2.0, "len": 1.22, "w": 0.1, "taper": 0.8, "curve": 0.05, "guard": "long", "pommel": "drop",
+			"blade": Color(0.34, 0.35, 0.42), "fit": Color(0.86, 0.68, 0.32), "grip": Color(0.12, 0.1, 0.12), "speed": 0.96, "reach": 1.06},
+		"claymore": {"id": "claymore", "name": "Claymore", "desc": "A highlander's two-hander, its quillons swept forward to quatrefoils. Wide sweeps that clear a deck.",
+			"dmg": 1.04, "worth": 1.5, "len": 1.14, "w": 0.1, "taper": 0.85, "guard": "claymore", "pommel": "wheel",
+			"fit": Color(0.62, 0.62, 0.66), "grip": Color(0.42, 0.18, 0.12), "speed": 1.02, "reach": 1.04, "sweep": 1.12},
+		"saw": {"id": "sawtooth_greatblade", "name": "Sawtooth Greatblade", "desc": "A broad blade with teeth filed into its edge. It doesn't cut so much as rip, and the wounds bleed.",
+			"dmg": 1.0, "worth": 1.6, "len": 1.06, "w": 0.13, "taper": 0.9, "teeth": true, "guard": "block", "pommel": "disc",
+			"fit": Color(0.42, 0.4, 0.38), "grip": Color(0.3, 0.22, 0.15), "grip_tex": "planks_dark", "speed": 0.98, "bleed": 3.0},
+		"cleaver": {"id": "greatcleaver", "name": "Butcher's Greatcleaver", "desc": "A slab of iron with a square end and a handle for two. Slow; whatever it meets, it goes through.",
+			"dmg": 1.16, "worth": 1.8, "len": 0.98, "w": 0.21, "taper": 1.12, "clip": true, "guard": "block", "pommel": "disc",
+			"blade": Color(0.58, 0.57, 0.56), "fit": Color(0.4, 0.38, 0.36), "grip": Color(0.36, 0.25, 0.16), "grip_tex": "planks_dark",
+			"speed": 0.88, "reach": 0.96, "weight": 1.25},
+		# (rare: kept a third of the times it's rolled)
+		"fang": {"id": "sea_kings_fang", "name": "Sea King's Fang", "desc": "A Sea King's tooth as long as a man, bound to a whalebone grip. Nothing on the waves has a longer reach.",
+			"dmg": 1.26, "worth": 2.6, "len": 1.3, "w": 0.15, "taper": 0.42, "curve": 0.34, "guard": "bone", "pommel": "drop",
+			"blade": Color(1.12, 1.05, 0.88), "fit": Color(0.92, 0.88, 0.78), "grip": Color(0.25, 0.4, 0.42), "grip_tex": "fabric",
+			"speed": 0.86, "reach": 1.12, "weight": 1.15, "rare": true},
+	},
 }
 
 ## Each tier's fittings (guards, bands, locks) and gem; ultra and supreme
@@ -215,6 +238,22 @@ static func hammer_haft(design: String) -> float:
 ## The warhammer's haft from the right hand to the head's middle (the butt runs HAMMER_BUTT behind the hand).
 const HAMMER_HAFT := 0.95
 const HAMMER_BUTT := 0.12
+
+
+## A greatsword design's number ("speed", "reach", "sweep", "weight", "bleed"; `def` for the base greatsword).
+static func great(design: String, key: String, def: float = 1.0) -> float:
+	return float((DESIGNS["greatsword"] as Dictionary).get(design, {}).get(key, def))
+
+
+## A greatsword's blade length (m from the guard to the point).
+static func great_len(design: String) -> float:
+	return great(design, "len", GREAT_LEN)
+
+
+## The base greatsword's blade, and where its guard sits ahead of the right hand (the hand rides at the pommel end
+## of a long grip; the left slides up it toward the guard).
+const GREAT_LEN := 1.12
+const GREAT_GUARD := 0.36
 
 
 ## A katana's scabbard in the blade's own frame: the same chain of segments
@@ -341,6 +380,8 @@ static func build(model: String) -> ArrayMesh:
 			_polearm(mb, p, tier)
 		"hammer":
 			_hammer(mb, p, tier)
+		"greatsword":
+			_greatsword(mb, p, tier)
 		_:
 			_sword(mb, p, tier)
 	var m := mb.commit()
@@ -655,6 +696,82 @@ static func _hammer(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 				mb.add_box(fit, Transform3D(Basis(), Vector3(s * 0.026, 0, hz + 0.16)), Vector3(0.01, 0.036, 0.22), 2.0)
 	if m["gem"]:
 		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, hz + 0.12)), Vector3(0.062, 0.03, 0.03), 2.0)
+
+
+## Greatswords: held at the origin by the right hand at the pommel end of a long two-hand grip (the left slides up it
+## toward the guard), the guard GREAT_GUARD ahead and a broad blade "len" on along -Z, its edge toward -Y.
+static func _greatsword(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
+	var m := _mats(p, tier, Color(0.6, 0.58, 0.55), Color(0.3, 0.2, 0.14), "leather")
+	var fit: Material = m["fit"]
+	var w := _f(p, "w", 0.12)
+	var th := _f(p, "th", 0.026)
+	var length := _f(p, "len", GREAT_LEN)
+	var taper := _f(p, "taper", 0.85)
+	var curve := _f(p, "curve", 0.0)
+	var gz := -GREAT_GUARD
+	var z0 := gz - 0.025
+	_blade(mb, m, Vector3(0, 0, z0), length, w, th, curve, taper, 6, bool(p.get("clip", false)))
+	# the fuller down the first half of each face, or teeth filed into the edge (the same segments as the blade)
+	var bt: Color = _c(p, "blade", Color.WHITE) * (TIER_BLADE[tier] if tier >= 5 else Color.WHITE)
+	var groove := PSXMat.lit("metal", bt * 0.55)
+	var seg := length / 6.0
+	var at := Vector3(0, 0, z0)
+	for i in 6:
+		var k := (i + 0.5) / 6.0
+		var b := Basis(Vector3.RIGHT, curve * pow(k, 1.6))
+		var dir := b * Vector3(0, 0, -1)
+		var bw := w * lerpf(1.0, taper, k)
+		if i < 3 and not bool(p.get("clip", false)):
+			mb.add_box(groove, Transform3D(b, at + dir * seg * 0.5), Vector3(th + 0.004, bw * 0.22, seg + 0.01), 2.0, Color.WHITE, false, false)
+		if bool(p.get("teeth", false)) and i > 0:
+			for t in 2:
+				var c := at + dir * seg * (0.25 + 0.5 * t) + b * Vector3(0, -bw * 0.5 - 0.012, 0)
+				mb.add_box(m["edge"], Transform3D(b * Basis(Vector3.RIGHT, 0.5), c), Vector3(th * 0.85, 0.034, 0.03), 2.0)
+		at += dir * seg
+	if bool(p.get("clip", false)):
+		# (the cleaver's hanging hole near its end)
+		mb.add_cylinder(groove, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3((th + 0.006) * 0.5, w * 0.22, z0 - length + 0.13)), 0.032, 0.032, th + 0.006, 8, 2.0)
+	match str(p.get("guard", "cross")):
+		"long":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, gz)), Vector3(0.032, 0.46, 0.036), 2.0)
+			mb.add_box(fit, Transform3D(Basis(Vector3.BACK, PI * 0.25), Vector3(0, 0, gz)), Vector3(0.05, 0.06, 0.06), 2.0)
+			for s in [-1.0, 1.0]:
+				mb.add_box(fit, Transform3D(Basis(Vector3.RIGHT, s * 0.7), Vector3(0, s * 0.235, gz - 0.035)), Vector3(0.03, 0.028, 0.09), 2.0)
+		"claymore":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, gz)), Vector3(0.05, 0.09, 0.06), 2.0)
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, gz - 0.07)), Vector3(0.02, 0.05, 0.1), 2.0)
+			for s in [-1.0, 1.0]:
+				mb.add_box(fit, Transform3D(Basis(Vector3.RIGHT, -s * 0.6), Vector3(0, s * 0.083, gz - 0.056)), Vector3(0.03, 0.2, 0.03), 2.0)
+				var tip := Vector3(0, s * 0.165, gz - 0.113)
+				for o in [Vector3(0, 0.026, 0), Vector3(0, -0.026, 0), Vector3(0, 0, 0.026), Vector3(0, 0, -0.026)]:
+					mb.add_box(fit, Transform3D(Basis(), tip + o * Vector3(1, s, 1)), Vector3(0.028, 0.028, 0.028), 2.0, Color.WHITE, false, false)
+		"block":
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, gz)), Vector3(0.06, w + 0.07, 0.07), 2.0)
+		"bone":
+			mb.add_cylinder(fit, Transform3D(Basis(), Vector3(0, -0.14, gz)), 0.034, 0.03, 0.28, 6, 2.0)
+			for s in [-1.0, 1.0]:
+				mb.add_box(fit, Transform3D(Basis(Vector3.RIGHT, s * 0.4), Vector3(0, s * 0.15, gz + 0.01)), Vector3(0.06, 0.055, 0.065), 2.0)
+		_:
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, gz)), Vector3(0.036, 0.34, 0.04), 2.0)
+			mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, gz)), Vector3(0.05, 0.08, 0.055), 2.0)
+			for s in [-1.0, 1.0]:
+				mb.add_box(fit, Transform3D(Basis(), Vector3(0, s * 0.17, gz)), Vector3(0.048, 0.036, 0.05), 2.0)
+	mb.add_box(m["grip"], Transform3D(Basis(), Vector3(0, 0, (0.06 + gz + 0.03) * 0.5)), Vector3(0.042, 0.046, 0.06 - gz - 0.03), 2.0)
+	mb.add_box(fit, Transform3D(Basis(), Vector3(0, 0, -0.12)), Vector3(0.048, 0.052, 0.018), 2.0, Color.WHITE, false, false)
+	var end := Vector3(0, 0, 0.085)
+	match str(p.get("pommel", "ball")):
+		"disc":
+			mb.add_cylinder(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), end - Vector3(0, 0, 0.015)), 0.048, 0.048, 0.03, 8, 2.0)
+		"wheel":
+			mb.add_cylinder(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), end - Vector3(0, 0, 0.02)), 0.055, 0.055, 0.035, 8, 2.0)
+			mb.add_box(fit, Transform3D(Basis(), end + Vector3(0, 0, 0.025)), Vector3(0.03, 0.03, 0.03), 2.0)
+		"drop":
+			mb.add_box(fit, Transform3D(Basis(), end), Vector3(0.046, 0.05, 0.06), 2.0)
+			mb.add_cone(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), end + Vector3(0, 0, 0.03)), 0.03, 0.06, 4)
+		_:
+			mb.add_cylinder(fit, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), end - Vector3(0, 0, 0.02)), 0.036, 0.036, 0.045, 6, 2.0)
+	if m["gem"]:
+		mb.add_box(m["gem"], Transform3D(Basis(), Vector3(0, 0, gz)), Vector3(0.058, 0.032, 0.032), 2.0)
 
 
 ## Axes: the haft back past the hand, the head out toward -Y (the knuckle

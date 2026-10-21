@@ -1893,7 +1893,7 @@ static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
 	match c:
 		"sword":
 			var main := main_hand.weapon_model
-			if main in ["katana", "polearm", "hammer"]:
+			if main in ["katana", "polearm", "hammer", "greatsword"]:
 				return main
 			if dual:
 				if class_of(off_hand) == "gun":
@@ -1927,8 +1927,8 @@ func _offhand_valid(item: ItemData) -> bool:
 		and equipped_weapon.weapon_model != "axe"
 	if class_of(item) != class_of(equipped_weapon) and not blade_gun:
 		return false
-	# (the katana, polearms and hammers take both hands)
-	for two in ["katana", "polearm", "hammer"]:
+	# (the katana, polearms, hammers and greatswords take both hands)
+	for two in ["katana", "polearm", "hammer", "greatsword"]:
 		if two in [item.weapon_model, equipped_weapon.weapon_model]:
 			return false
 	if item == equipped_weapon and inventory_component.count(item.id) < 2:
@@ -2058,7 +2058,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy", "dual_axe": "chop"}
+	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2116,6 +2116,13 @@ const REACH := {
 	# twin axes: the chops a little wider and longer than a cutlass's, the hook long and narrow (x the pair's "hook")
 	"twin_axe": [Vector3(2.3, 1.3, 1.85), Vector3(-0.3, 0.2, -1.0)],
 	"hook": [Vector3(1.8, 1.3, 2.9), Vector3(-0.2, 0.2, -1.5)],
+	# greatswords: a long wide arc in front, the flat sweep wider still, the turn all round, the cleave tall and long
+	# down the line, the running sweep low and long
+	"great": [Vector3(3.0, 1.6, 2.6), Vector3(-0.2, 0.25, -1.35)],
+	"great_wide": [Vector3(4.4, 1.4, 2.8), Vector3(-0.2, 0.2, -1.25)],
+	"great_spin": [Vector3(5.4, 1.5, 5.4), Vector3(0.0, 0.2, 0.0)],
+	"great_cleave": [Vector3(1.9, 2.6, 3.4), Vector3(0.0, 0.1, -1.8)],
+	"great_low": [Vector3(4.2, 1.3, 3.2), Vector3(-0.2, 0.0, -1.5)],
 }
 
 
@@ -2132,6 +2139,9 @@ func set_reach(kind: String) -> void:
 	elif kind.begins_with("hammer") and equipped_weapon:
 		var rk := WeaponDesigns.hammer(equipped_weapon.design, "reach")
 		k = Vector3(rk, 1.0, rk)
+	elif kind.begins_with("great") and equipped_weapon:
+		var d := equipped_weapon.design
+		k = Vector3(WeaponDesigns.great(d, "sweep") if kind in ["great_wide", "great_spin", "great_low"] else 1.0, 1.0, WeaponDesigns.great(d, "reach"))
 	elif kind == "hook" and equipped_weapon:
 		k = Vector3(1.0, 1.0, 1.0 + (DualAxeArts.pair(self, "hook") - 1.0) * 0.5)
 	(cs.shape as BoxShape3D).size = (r[0] as Vector3) * k

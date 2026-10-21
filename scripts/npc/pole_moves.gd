@@ -328,14 +328,18 @@ static func _pose(h, n: String, u: float) -> Array:
 # --------------------------------------------------------------------------
 # The grip, solved each frame
 # --------------------------------------------------------------------------
-## (the hammer's grip is solved here too, from its own guard, block and carry: HammerMoves.GRIPS)
+## (the hammer's and the greatsword's grips are solved here too, from their own guard, block and carry: GRIPS)
 static func hands(h, delta: float) -> void:
 	var act: String = h.current_action()
 	var st: String = h.stance
-	var grips: Array = HammerMoves.GRIPS if st == "hammer" else [GUARD_GRIP, BLOCK_GRIP, _run_grip(h)]
-	var on: bool = st in ["polearm", "hammer"] and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
+	var grips: Array = [GUARD_GRIP, BLOCK_GRIP, _run_grip(h)]
+	if st == "hammer":
+		grips = HammerMoves.GRIPS
+	elif st == "greatsword":
+		grips = GreatswordMoves.GRIPS
+	var on: bool = st in ["polearm", "hammer", "greatsword"] and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
 		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and Humanoid.kind_of(h.weapon) == st \
-		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act in HELD)
+		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD)
 	var pole: bool = st == "polearm" and on and act == ""
 	var run: bool = pole and h.grounded and not h._gait_back and h.ground_speed > (RUN_OFF if h.pole_run_w > 0.5 else RUN_ON)
 	h.pole_run_w = move_toward(h.pole_run_w, 1.0 if run else 0.0, delta / 0.15)
@@ -352,10 +356,12 @@ static func hands(h, delta: float) -> void:
 		planting = true
 	elif act == "" and (h.sprinting or h.pole_run_w > 0.5):
 		want = grips[2]
+		if on and st == "greatsword":
+			GreatswordMoves.scrape(h, delta)
 	h.pole_set = false
 	h.pole_w = move_toward(h.pole_w, 1.0 if on else 0.0, delta / 0.12)
 	var two := float(want[3]) > 0.0
-	h.pole_lw = move_toward(h.pole_lw, 1.0 if two else 0.0, delta / 0.1)
+	h.pole_lw = move_toward(h.pole_lw, 1.0 if two else 0.0, delta / 0.1) if st == "polearm" else (1.0 if two else 0.0)
 	if h.pole_cur.is_empty():
 		h.pole_cur = want.duplicate()
 	if on:

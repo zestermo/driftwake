@@ -164,6 +164,15 @@ const ALL := {
 		"desc": "Hook everyone close in, then whirl four times with both axes out, walking, cutting everyone about you, and finish with both crashed down crossed."},
 	"fimbulwinter": {"name": "Fimbulwinter", "tree": "dual_axe", "cost": 0.0, "cooldown": 3.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique", "ult": true,
 		"desc": "Ultimate. A roar, every enemy close hooked in at once, three turns with both axes out, then up and both crashed into the ground: a great ring throws them all down, and with the frost, ice heaves up under every one of them."},
+	# --- Greatsword ---
+	"guardbreaker": {"name": "Guardbreaker", "tree": "greatsword", "cost": 16.0, "cooldown": 6.0, "styles": ["greatsword"], "needs_text": "a greatsword", "state": "Technique",
+		"desc": "Step in on the enemy you're facing with a short rising cut that knocks their guard up, then bring the blade straight down on them: neither can be blocked, and it leaves them reeling."},
+	"crescent_gale": {"name": "Crescent Gale", "tree": "greatsword", "cost": 20.0, "cooldown": 7.0, "styles": ["greatsword"], "needs_text": "a greatsword", "state": "Technique",
+		"desc": "One huge flat sweep that cuts everyone close in front and flings a crescent of air off the edge, ten paces down the line, cutting everything it passes."},
+	"tempest_turns": {"name": "Tempest Turns", "tree": "greatsword", "cost": 24.0, "cooldown": 9.0, "styles": ["greatsword"], "needs_text": "a greatsword", "state": "Technique",
+		"desc": "Let the blade carry you round three times, walking, each turn quicker than the last and cutting everyone about you, until the momentum breaks in a burst that throws them all down."},
+	"skysplitter": {"name": "Skysplitter", "tree": "greatsword", "cost": 0.0, "cooldown": 3.0, "styles": ["greatsword"], "needs_text": "a greatsword", "state": "Technique", "ult": true,
+		"desc": "Ultimate. Leap high with the blade heaved overhead and come down in one cleave: the ground splits in a line twelve paces long, everyone on it is thrown down, and three crescents of air tear on down the line."},
 	# --- Pistol ---
 	"deadeye": {"name": "Deadeye", "tree": "pistol", "cost": 20.0, "cooldown": 7.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique",
 		"desc": "A breath, a steady aim, and one shot that punches through every enemy in a line."},

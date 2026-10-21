@@ -14,7 +14,10 @@ extends PlayerState
 ##               (Wrecking Spin); at a sprint, Rising Crush
 ##   dual_axe    right chop -> left chop -> the hook (drags them in) -> two turns with both axes out
 ##               (Reaping Whirl); at a sprint, Raider's Leap
-##   fist        jab -> cross -> hook -> spinning roundhouse kick
+##   greatsword  rising diagonal -> falling diagonal -> flat backhand (breaks a guard) -> a full turn (Gale Turn),
+##               each out of the last one's follow-through, faster and harder as the momentum builds; at a sprint,
+##               Running Cleave
+##   fist       jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
 ## (move, even jump) and the next click continues the combo instead of restarting.
@@ -120,6 +123,22 @@ const STYLES := {
 		"durations": [0.56], "impulses": [11.0],
 		"damages": [16.0], "hitstops": [0.08], "shakes": [0.18], "lefts": [false],
 		"reach": "twin_axe", "color": Color(0.86, 0.92, 1.0), "color_l": Color(0.7, 0.8, 0.98), "breaker": true, "trip": true, "pair": true},
+	# greatsword: out of the low guard up across to high right, back down to low left, flat round to the right (breaks a
+	# guard) and (Gale Turn) on round in a full turn that puts them down; each blow flows out of the last one's follow-through
+	# ("momentum": chained straight on, it plays MOMENTUM_SPEED faster and lands MOMENTUM_DAMAGE harder per blow built);
+	# "great": the design's speed, reach, weight and bleed (WeaponDesigns.great)
+	"greatsword": {"anims": ["gs_1", "gs_2", "gs_3", "gs_4"], "trails": ["", "", "", ""],
+		"durations": [0.48, 0.4, 0.5, 0.95], "impulses": [4.5, 4.0, 3.5, 3.0],
+		"damages": [14.0, 15.0, 19.0, 24.0], "hitstops": [0.07, 0.07, 0.1, 0.13], "shakes": [0.12, 0.12, 0.18, 0.26],
+		"knocks": [6.5, 7.0, 10.0, 12.0], "breakers": [false, false, true, true], "downs": [false, false, false, true],
+		"reach": "great", "reaches": ["great", "great", "great_wide", "great_spin"], "color": Color(0.9, 0.96, 1.0), "great": true, "momentum": true},
+	# greatsword, attacked at a sprint (Running Cleave): the blade trailed low, then one flat sweep through them in a
+	# long lunge; it breaks a wind-up and throws them down
+	"gs_dash": {"anims": ["gs_rush"], "trails": [""],
+		"durations": [0.62], "impulses": [11.0],
+		"damages": [17.0], "hitstops": [0.1], "shakes": [0.2],
+		"knocks": [11.0], "breakers": [true], "downs": [true],
+		"reach": "great_low", "color": Color(0.9, 0.96, 1.0), "breaker": true, "great": true},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -138,7 +157,11 @@ const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], 
 ## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
 const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
 	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep", "hammer": "wrecking_spin",
-	"dual_axe": "reaping_whirl"}
+	"dual_axe": "reaping_whirl", "greatsword": "gale_turn"}
+## A greatsword blow chained straight out of the last one's follow-through: this much faster and harder per blow
+## built (the second x1, the third x2, the turn x3).
+const MOMENTUM_SPEED := 0.07
+const MOMENTUM_DAMAGE := 0.06
 
 var cfg: Dictionary = STYLES["sword"]
 var combo_count: int = 3
@@ -168,12 +191,14 @@ var _rush := 1.0
 var _spd := 1.0
 ## When a hammer's head thuds into the ground (s; < 0: it doesn't).
 var _thud_t := -1.0
+## A greatsword's momentum: blows built in an unbroken flow (0: this one started from the guard).
+var _mom := 0
 
 
 func enter(data: Dictionary) -> void:
 	var st := player.style()
 	if player.quick_draw:
-		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash", "dual_axe": "dx_dash"}.get(st, "sword_dash")
+		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash", "dual_axe": "dx_dash", "greatsword": "gs_dash"}.get(st, "sword_dash")
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
@@ -211,6 +236,14 @@ func enter(data: Dictionary) -> void:
 		_spd = DualAxeArts.pair(player, "speed")
 		if bool(cfg["lefts"][combo_index]):
 			_off = [DualAxeArts.off_k(player), 1.0, 1.0, 0.0]
+	elif cfg.get("great", false):
+		_spd = WeaponDesigns.great(player.equipped_weapon.design, "speed")
+	# (momentum: chained while the body is still in the last blow's follow-through, this one flows out of it)
+	_mom = 0
+	if cfg.get("momentum", false) and data.get("chain", false) and combo_index > 0 \
+			and player.body_model.current_action() == str(cfg["anims"][combo_index - 1]):
+		_mom = int(data.get("momentum", 0)) + 1
+		_spd *= 1.0 + MOMENTUM_SPEED * _mom
 	_window = ActionSpecs.hit_seconds(anim) / _spd
 	_swoosh = ActionSpecs.swoosh_seconds(anim) / _spd
 	_thud_t = float(HammerMoves.THUD[anim]) * ActionSpecs.length(anim) / _spd if HammerMoves.THUD.has(anim) else -1.0
@@ -248,7 +281,7 @@ func physics_update(delta: float) -> void:
 	if timer >= _window.x and not hitbox_activated:
 		hitbox_activated = true
 		var last := combo_index == combo_count - 1
-		var hit := player.melee_hit(float(cfg["damages"][combo_index]) * float(_off[0]), "finisher" if last else "")
+		var hit := player.melee_hit(float(cfg["damages"][combo_index]) * float(_off[0]) * (1.0 + MOMENTUM_DAMAGE * _mom), "finisher" if last else "")
 		hit.hitstop_duration = float(cfg["hitstops"][combo_index]) * float(_off[2])
 		hit.camera_shake_intensity = float(cfg["shakes"][combo_index]) * float(_off[2])
 		hit.knockback_force = (8.0 if last else 4.0) * float(_off[1])
@@ -263,10 +296,14 @@ func physics_update(delta: float) -> void:
 			hit.knockback_force = 6.5
 			hit.unblockable = hit.unblockable or WeaponDesigns.pole(player.equipped_weapon.design, "pierce", 0.0) > 0.0
 		if cfg.has("knocks"):
-			hit.knockback_force = float(cfg["knocks"][combo_index]) * WeaponDesigns.hammer(player.equipped_weapon.design, "weight")
+			var d := player.equipped_weapon.design
+			var wt := WeaponDesigns.great(d, "weight") if cfg.get("great", false) else WeaponDesigns.hammer(d, "weight")
+			hit.knockback_force = float(cfg["knocks"][combo_index]) * wt
 			hit.breaker = hit.breaker or bool(cfg["breakers"][combo_index])
 			hit.knockdown = hit.knockdown or bool(cfg["downs"][combo_index])
-			hit.stagger_duration = 0.6
+			hit.stagger_duration = 0.6 * (wt if cfg.get("great", false) else 1.0)
+		if cfg.get("great", false):
+			GreatswordArts.shape_hit(player, hit)
 		# (the twin axes' whirl puts them down)
 		if cfg.get("pair", false) and str(cfg["anims"][combo_index]) == "dx_4":
 			hit.knockdown = true
@@ -305,6 +342,8 @@ func physics_update(delta: float) -> void:
 		player.squash(1.5)
 		if last:
 			Net.fx("dust_ring", [player.global_position, 8, 0.6])
+		if cfg.get("great", false):
+			GreatswordArts.swing_fx(player, _mom, last or cfg.get("breaker", false))
 
 	if _thud_t >= 0.0 and timer >= _thud_t:
 		_thud_t = -1.0
@@ -327,7 +366,13 @@ func physics_update(delta: float) -> void:
 		combo_timer -= delta
 		if input_buffer.consume_action("light_attack") and player.spend_stamina(player.LIGHT_COST * player.attack_cost_k()):
 			chained = true
-			transitioned.emit(self, "LightAttack", {"combo_index": (combo_index + 1) % combo_count, "chain": true})
+			transitioned.emit(self, "LightAttack", {"combo_index": (combo_index + 1) % combo_count, "chain": true, "momentum": _mom})
+			return
+		# (a greatsword's momentum carries into the heavy too: right-click out of the follow-through and the cleave is
+		# already part charged)
+		if cfg.get("momentum", false) and input_buffer.consume_action("heavy_attack") and player.spend_stamina(heavy_cost()):
+			_heavy_used("HeavyAttack:" + player.style())
+			transitioned.emit(self, "HeavyAttack", {"momentum": _mom + 1 if player.body_model.current_action() == str(cfg["anims"][combo_index]) else 0})
 			return
 		if wants_dodge():
 			transitioned.emit(self, "Dodge", {})
