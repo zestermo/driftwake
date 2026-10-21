@@ -2471,7 +2471,7 @@ func _locomotion(delta: float) -> Dictionary:
 				p["shin_l"] += Vector3(ss["shin_l"].x, 0, 0) * st
 				p["shin_r"] += Vector3(ss["shin_r"].x, 0, 0) * st
 				lift.y += ss["_lift"].y * st
-			_stance_hips = (StanceLife.HIPS.get(stance, Vector3.ZERO) as Vector3) * (1.0 - clampf(walk, 0.0, 1.0) * 0.6) * (1.0 - carry_w)
+			_stance_hips = (StanceLife.HIPS.get(stance, Vector3.ZERO) as Vector3) * (1.0 - clampf(walk, 0.0, 1.0)) * (1.0 - carry_w)
 			p["hips"] += _stance_hips
 			_plant_k = 1.0 - smoothstep(0.05, 0.35, walk)
 			lift.y += StanceLife.breathe(self, p, _plant_k)

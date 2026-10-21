@@ -5246,3 +5246,5 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   refund_migration, acrobatics, stealth, life_mastery, passive_slots, tree_shape (every node priced); t/ship/seamanship;
   t/ui skills_loadout, skills_version_bunk. Suites edited, not run (prepush): progtest, balancetest, daggertest,
   wieldtest, powertest; renders skillmapshot and seamapshot buy their nodes.
+
+- 2026-10-21 r10test strafe slide: two stance-pass causes. The run carry took the 45 deg forward diagonal (`StanceLife.carry_weight` travel < 0.9 rad), so the strafe's chest/hips went to the run's and the planted foot slid 1.64 m/s (was 0.93); it now stops at 0.6 rad (34 deg). The cutlass's side-on hips (`HIPS` 0.55) were only relaxed 60% at a walk, adding slide to the lateral strafe (2.49 m/s vs 1.85) and back-diagonal; `_stance_hips` now relaxes fully with `walk`. r10test's straight reference walks at 2.4 m/s (a carried run has its own chest). Limits unchanged.
