@@ -421,7 +421,10 @@ scripts/enemies/beasts/wild_hunt.gd     t/island bosstest
 scripts/enemies/huntsman.gd             t/island grunttest
 tools/dev/t/progression/*               t/progression
 scripts/progression/*                   t/progression
-scripts/ui/skill_map_screen.gd          t/progression
+scripts/ui/skill_map_screen.gd          t/progression t/ui
+scripts/ui/skill_tree_draw.gd           t/ui
+scripts/ui/ui_chrome.gd                 t/ui
+scripts/ui/ui_icons.gd                  t/ui
 # --- v1.18 controls: the quick item, the wheels, 1-5, camps ---
 scripts/ui/radial_wheel.gd              t/ui t/jam
 scripts/ui/item_wheel.gd                t/ui t/player t/items

@@ -481,14 +481,10 @@ func _node_any(id: String) -> Dictionary:
 	return n if not n.is_empty() else SkillTree.get_node_def(id)
 
 
-## The weapon tree each loadout builds ("" for a slot never set up).
+## The weapon tree each loadout builds, as the bar sees it ("" for a slot not set up, locked, or its weapon gone).
 func _loadout_tree(i: int) -> String:
-	var lo: Array = _player().loadouts[i]
-	if lo.is_empty():
-		return ""
-	var main: ItemData = ItemDB.get_item(lo[0]) if str(lo[0]) != "" else null
-	var off: ItemData = ItemDB.get_item(lo[1]) if lo.size() > 1 and str(lo[1]) != "" else null
-	return SkillTree.style_tree(Player.style_of(main, off))
+	var st: String = _player().power.loadout_styles()[i]
+	return "" if st == "" else SkillTree.style_tree(st)
 
 
 func _loadouts_of(tree_id: String) -> Array:
@@ -554,7 +550,7 @@ func _draw_card(card: Rect2) -> void:
 	draw_style_box(UIStyle.parchment(), card)
 	var x := card.position.x + 10.0
 	var w := card.size.x - 20.0
-	var y := card.position.y + 9.0
+	var y := card.position.y + 14.0
 	var limit := card.end.y - 12.0
 	var ib := Rect2(x, y, 26, 26)
 	draw_rect(ib.grow(1.0), UIStyle.BORDER_DIM)
@@ -570,13 +566,14 @@ func _draw_card(card: Rect2) -> void:
 	y += 32.0
 	_bar(Rect2(x, y, w, 3), _frac(tree), UIStyle.TEAL)
 	y += 8.0
-	var pts := p.points_free(tree)
-	var chip := "%d POINT%s" % [pts, "" if pts == 1 else "S"]
-	var cw := SILK.get_string_size(chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 8.0
-	draw_rect(Rect2(x, y, cw, 11), UIStyle.CORAL if pts > 0 else Color("d9cdb0"))
-	draw_string(SILK, Vector2(x + 4.0, y + 9.0), chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.INK if pts > 0 else UIStyle.PARCH_DIM)
-	draw_string(SILK, Vector2(x + cw + 5.0, y + 9.0), "ONE A LEVEL", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
-	y += 14.0
+	if SkillTrees.converted(tree):
+		var pts := p.points_free(tree)
+		var chip := "%d POINT%s" % [pts, "" if pts == 1 else "S"]
+		var cw := SILK.get_string_size(chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 8.0
+		draw_rect(Rect2(x, y, cw, 11), UIStyle.CORAL if pts > 0 else Color("d9cdb0"))
+		draw_string(SILK, Vector2(x + 4.0, y + 9.0), chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.INK if pts > 0 else UIStyle.PARCH_DIM)
+		draw_string(SILK, Vector2(x + cw + 5.0, y + 9.0), "ONE A LEVEL", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
+		y += 14.0
 	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
 	y += 18.0
 	var ins := inspected()
@@ -943,14 +940,14 @@ func _draw_loadout(body: Rect2) -> void:
 			draw_string(SILK, Vector2(sr.position.x, sr.position.y + 44.0), "EMPTY", HORIZONTAL_ALIGNMENT_CENTER, sw, 8, SkillTreeDraw.TAG_OFF)
 		hit(sr, "bar:%d" % slot)
 	y += 102.0
-	var pas := Rect2(x, y, lw, body.end.y - y - 2.0)
+	var pas := Rect2(x, y, lw, minf(body.end.y - y - 2.0, 64.0))
 	draw_style_box(UIStyle.chrome("slate"), pas)
 	draw_string(SILK, pas.position + Vector2(9, 15), "PASSIVES", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, SkillTreeDraw.PASSIVE)
 	draw_string(SILK, pas.position + Vector2(62, 15), "%d SLOTS. A WEAPON'S COUNTS ONLY IN HAND" % p.passive_slots(), HORIZONTAL_ALIGNMENT_LEFT, lw - 70.0, 8, UIStyle.TEXT_DIM)
 	var n := p.passive_slots()
 	var pw := (lw - 16.0 - (n - 1) * 5.0) / n
 	for i in range(n):
-		var pr_ := Rect2(pas.position.x + 8.0 + i * (pw + 5.0), pas.position.y + 22.0, pw, minf(pas.size.y - 30.0, 34.0))
+		var pr_ := Rect2(pas.position.x + 8.0 + i * (pw + 5.0), pas.position.y + 22.0, pw, clampf(pas.size.y - 30.0, 1.0, 34.0))
 		var id: String = p.passives[i] if i < p.passives.size() else ""
 		draw_style_box(UIStyle.frame(Color(UIStyle.BG, 1.0), UIStyle.SUN if inspected() == "pas:%d" % i else (_tree_color(str(_node_any(id).get("tree", ""))) if id != "" else UIStyle.OUTLINE), 0, "chip"), pr_)
 		var dc := pr_.position + Vector2(11, pr_.size.y * 0.5)

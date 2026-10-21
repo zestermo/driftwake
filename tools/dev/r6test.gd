@@ -90,36 +90,13 @@ func _process(d: float) -> bool:
 			p.sheathe_weapon(true)
 			gm().open("skills")
 			var sm = gm()._skills
-			var home := Vector2(0, -sm.HEADER_H * 0.5 - 45.0)
-			check("map opens on the base tree, centered", sm._tab == "base" and sm._pan == home)
-			sm._pan = Vector2(900, 900)
-			sm._sel = "e_root" if false else sm._fruit_root()
-			gm().close()
-			gm().open("skills")
-			check("reopening re-centers the map", sm._pan == home)
+			check("the skills menu opens on Combat (sheathed: the first weapon found)", sm.tab == "combat" and not sm.chart)
 			sm.set_tab("fruit")
-			var only_fruit := true
-			var any := false
-			for id in SkillTree.nodes().keys():
-				if sm._shown(id):
-					any = true
-					if str(SkillTree.nodes()[id]["req"].get("fruit", "")) != "vine":
-						only_fruit = false
-			check("Devil Fruit tab shows only your fruit's tree", any and only_fruit)
-			sm.set_tab("base")
-			var none_fruit := true
-			for id in SkillTree.nodes().keys():
-				if sm._shown(id) and str(SkillTree.nodes()[id]["req"].get("fruit", "")) != "":
-					none_fruit = false
-			check("base tab has no fruit nodes", none_fruit)
-			sm.set_tab("katana")
-			var only_katana := true
-			for id in SkillTree.nodes().keys():
-				if sm._shown(id) and str(SkillTree.nodes()[id]["tree"]) != "katana":
-					only_katana = false
-			check("a weapon tab shows only its tree", only_katana and sm._shown("k_full") and sm._sel == "k_root")
-			# select a learned active, close, then press 1 in the world
-			sm._sel = SkillTree.node_for_skill(pc.loadout[0])
+			check("the Driftfruit tab opens your fruit's tree", sm.tree == "vine")
+			sm.set_tab("combat", "katana")
+			check("a weapon's tree opens on its root", sm.tree == "katana" and sm.sel == "n:k_root")
+			# pick a skill, close, then press 1 in the world
+			sm.sel = "lib:" + pc.loadout[0]
 			gm().close()
 			saw["casts"] = 0
 			pc.cast.connect(func(_s): saw["casts"] = int(saw["casts"]) + 1)

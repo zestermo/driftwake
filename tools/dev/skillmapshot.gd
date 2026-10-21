@@ -2,7 +2,7 @@ extends SceneTree
 ## The skills menu (K) on the light stage, a captain part way along: level 12, katana mastery 14 with some steps
 ## bought, cutlass 7 and pistol 6, Swimming and Sailing found, the Vine Fruit eaten, katana and pistol loadouts, three
 ## katana skills on the bar and a katana passive slotted. Saves <out>_captain, _combat (the katana tree, Wind Severer
-## inspected), _variant (the iai upgrade inspected), _chart, _adventure, _loadout, _fruit PNGs.
+## inspected), _variant (the iai upgrade inspected), _chart, _adventure, _loadout, _fruit, _pistol PNGs.
 ## Args: <out_prefix> [WxH] (default tools/dev/out/skillmap at 1280x720, the 640x360 canvas; 1600x900 is 800x450).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -61,6 +61,7 @@ func _process(_d: float) -> bool:
 			p.power.eat("vine")
 			p.loadouts[0] = ["katana", ""]
 			p.loadouts[1] = ["pistol", ""]
+			p.inventory_component.add_item(ItemDB.get_item("pistol"), 1)
 			for s in [["wind_sever", 0], ["tiger_rush", 1], ["phantom_step", 2]]:
 				p.power.equip(s[0], s[1])
 			pr.equip_passive("k_clean", 0)
@@ -101,6 +102,10 @@ func _process(_d: float) -> bool:
 			until = 20
 		7:
 			shot("fruit")
+			sm.set_tab("combat", "pistol")
+			until = 20
+		8:
+			shot("pistol")
 			quit()
 	step += 1
 	return false

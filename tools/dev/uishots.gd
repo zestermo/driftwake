@@ -75,7 +75,7 @@ func _process(d: float) -> bool:
 					gm()._skills.set_tab("fruit")
 				"skills_sword":
 					gm().open("skills")
-					gm()._skills.set_tab("sword")
+					gm()._skills.set_tab("combat", "sword")
 				"container":
 					gm().open_container(root.get_tree().get_first_node_in_group("ship").storage)
 				"shop":
@@ -83,13 +83,8 @@ func _process(d: float) -> bool:
 				"skills_tip":
 					gm().open("skills")
 					var sm = gm()._skills
-					sm.set_tab("sword")
-					var id := ""
-					for nid in SkillTree.nodes().keys():
-						if id == "" and SkillTree.nodes()[nid]["tree"] == "sword" and SkillTree.nodes()[nid]["kind"] == "passive":
-							id = nid
-					sm._hover = id
-					hover(sm._to_screen(SkillTree.get_node_def(id)["pos"]))
+					sm.set_tab("loadout")
+					sm.sel = "bar:0"
 				"shop_tip":
 					p.inventory_component.add_item(load("res://resources/items/cutlass.tres"), 1)
 					gm().open_shop("vey")

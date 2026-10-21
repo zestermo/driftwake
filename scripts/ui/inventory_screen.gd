@@ -1166,7 +1166,9 @@ func _fill_sheet() -> void:
 	_section("Progress")
 	var pr := pl.progression
 	_row("Level", str(pr.level), "%d / %d XP" % [pr.xp, Progression.xp_to_next(pr.level)])
-	_row("Skill points", str(pr.skill_points), "Skill map: K")
+	var hand := SkillTree.style_tree(pl.style())
+	if hand != "":
+		_row("Mastery", str(pr.tree_level(hand)), "%s  (skills: K)" % Progression.tree_name(hand))
 	_row("Air jumps", str(pl.max_jumps - 1))
 	_row("Style", pl.style().replace("_", " ").capitalize())
 	var gm := get_node_or_null("/root/GameManager")

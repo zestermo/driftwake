@@ -4660,6 +4660,40 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   shipwright's small buttons planks; the HUD's prompt a wooden sign, the pickup feed wooden chips, the island banner
   blackletter 27 over a rope rule. New: `PlayerHUD.show_new_tree(name, line)` (through the hud group), the mock's "new
   skill tree" card (slate, gold ribbon, blackletter name, K OPEN). uishots has `banner` and `tree_banner` shots.
+
+## 2026-10-20: the skills menu, piece 3 (v1.18.2, menu-ui; docs/media/progression_mock, the prog-core contract)
+- **What:** `scripts/ui/skill_map_screen.gd` (SkillMapScreen, still K, still GameMenu's "skills") is rewritten on
+  prog-core's API: night sky, the beam with a hanging sign per tab (`UIStyle.draw_topbar`; signs hang on rope stubs
+  at staggered heights, the active one 4 px lower), the key board. Tabs: **Captain** (parchment legend, the level trunk
+  with round `auto` nodes and split `talent` nodes from SkillTrees' captain tree, YOU on it, Will nodes beside it;
+  without captain data yet it draws the trunk's level ticks), **Combat** (a weapon's tree + its parchment card + the
+  weapon rail; Tab: the chart of every found weapon around the captain hub with its branches' big nodes),
+  **Adventure** (found trees listed, the open one, its card with "how it grows"), **Loadout** (loadout cards, the one
+  bar 1-5 + R, passive slots, the library grouped by tree with ON n / SLOT n / NEEDS A LOADOUT), **Driftfruit** once
+  `visible_trees("fruit")` has one. A tree not converted yet draws its root and "still being charted".
+- `scripts/ui/skill_tree_draw.gd` (SkillTreeDraw) draws a tree: SkillTrees positions fitted to the area, links lit in
+  the tree colour, big nodes by kind (root circle with the weapon's item icon, technique / ultimate squares with the
+  24 px skill icons, move / element circles, mechanic double ring, passive diamond), steps with x/5 chips (a coral dot:
+  buyable now), variants and talents as one split node (`split`, its halves hit "v:<id>:<i>" for the mouse), branch
+  titles with "n OF m". `place_labels` puts each big node's name below, right, left or above, clear of nodes, steps,
+  titles and links (the menus' 640x360 canvas is half the mock's size: there's no room for the mock's tag lines, the
+  card shows the inspected node's kind, level, words and what Enter does).
+- **Hits:** everything clickable registers `hit(rect, id, nav)` while drawn ("n:<node>", "w:<tree>", "bar:<slot>",
+  "pas:<i>", "lib:<id>"); the mouse reads last frame's hits; arrows / d-pad move the pick to the nearest hit that way
+  (a 60-degree cone, distance plus 2.5x the sideways offset). Enter / F / pad A acts: buy a step (`buy_step`, else
+  `step_why`), switch a version (`set_version`, refused away from the bunk: "Switch versions at the ship's bunk"), pick a
+  talent (`pick_talent`), put a library skill on the first free key, a passive in the first free slot. 1-5 / R with a
+  skill picked: `PowerComponent.equip`, refused with `equip_why`'s own words; 1-4 with a passive: `equip_passive`.
+  Q / E or the shoulder buttons change tab, A / D weapon, W / S Adventure tree, Tab the chart, right-click clears.
+- **Loadout trees** come from `PowerComponent.loadout_styles()` (the bar's own view: a loadout whose weapon left the bag
+  counts as none); a bar slot or library row whose skill `equip_why` says "Needs ..." is greyed, NO LOADOUT.
+- The inventory's character sheet drops "Skill points" for the weapon-in-hand's mastery.
+- **Per frame:** only while the menu is open (the game is paused), the screen redraws every frame (sky twinkle, pulses):
+  ~100-200 draw calls of 2D primitives; nothing runs while it's closed.
+- **Tested by** t/ui/skills_tabs, skills_buy_step, skills_version_bunk, skills_loadout (each sets the root to 1280x720:
+  the runner's window is 64x64), t/ui/chrome_kit; filmed with skillmapshot (every tab, 640x360 and 800x450).
+  r6test's skill-map checks now ask the new screen (opens on Combat, Driftfruit shows your fruit, a weapon opens on its
+  root); uishots, styleshot, seamapshot and r6shot open the new tabs.
 ## 2026-10-20: perf session steps 3 and 5: occlusion culling in towns, the long tail
 - **Occlusion culling** (project.godot `rendering/occlusion_culling/use_occlusion_culling=true`; `scripts/psx/occluders.gd`,
   class Occluders): boxes shrunk 0.15 m inside solid stone, kept as data in a capital piece's colliders ({"occ": size, "xf"},
