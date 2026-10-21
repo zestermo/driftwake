@@ -111,3 +111,6 @@ hips: upright chest, square to the target, weapon arm pushed out to the side. Za
 - **Suites expected to need a look at the next full run** (none were run for 1.18.3): techtest, progtest, balancetest,
   uitest (new tabs), daggertest, fixtest, impact_sounds, drop_rates and chest-roll suites (bigger loot pools), qoltest and
   storytest (Gus's dialogue), save tests (the "kicks" key), loadout tests, nettest (pole_planted and the black-leg sync).
+
+## Next (Zach, 2026-10-21): docs/v1_18_4_plan.md
+Icons, a polish pass and two new techniques for each of the five new kinds; the drawn awakening for every weapon without one; a mastered guard per weapon (~mastery 15, toggled). The fists become Garp/Koby-style punching.

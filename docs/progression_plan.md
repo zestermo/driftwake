@@ -295,3 +295,6 @@ steps (about 20 steps each), the old milestone perks as big nodes at the same le
   `skill_tier`, `knows`, `known_skills`) keep working.
 - Extras (prog-core, piece 1): `step_why(node)`, `respec_steps(tree)` (bunk only), `passive_slots()`, `tree_name(tree)`, `SkillTrees.converted(tree)`, `SkillTrees.section_of(tree)`; `node_def.branch` is the branch index (-1 root); versions are their own nodes (kind "version").
 - bar-swap needs only `knows(skill)` and `Skills.ALL[id].styles` / `player.loadouts`.
+
+## Superseded in part (Zach, 2026-10-21)
+The points model changes in docs/v1_18_4_plan.md: one shared Combat pool from Captain levels, one Adventure pool from Adventure tree levels, and **every node bought** (mastery only gates). That replaces the per-weapon mastery points, "Captain levels give no points" and "big nodes come by themselves" above. The menu hides locked trees and moves detail into a select panel and tooltips.
