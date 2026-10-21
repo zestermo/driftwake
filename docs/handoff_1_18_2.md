@@ -64,6 +64,15 @@ first, docs/weapons plan for 1.21's kinds) hold their landings until v1.18.2 is 
 and menus for the controller, the new weapons' trees and moves), and release **1.18.3 as an unstable version** once
 all the weapon additions and the controller work are finished. New weapons build their trees in SkillTrees
 (scripts/progression/skill_trees.gd) like the nine in docs/progression_plan.md.
+- **Website: stable vs unstable releases (Zach, 2026-10-21), done when 1.18.3 is finished and released, not before:**
+  - **1.18 is the last stable release.** 1.18.1, 1.18.2 and 1.18.3 are all marked **unstable**.
+  - Releases page (web/site/releases): a separate **Unstable** section listing those versions, each with its own
+    manual download button for that exact version.
+  - Home page, roadmap and blog/news act as if unstable releases don't exist: the version shown, the main
+    Download button and anything "latest" point to the last stable release (1.18 now). A player who just hits
+    Download gets the most recent polished version.
+  - Make it a rule the site follows (a stable/unstable flag per release), so a later stable release takes over
+    the main Download by flipping one flag, without hand-editing every page.
 - Small fix for 1.18.3: `scripts/world/sky_birds.gd:155` sets the birds' MultiMesh buffer in `_process` while physics
   interpolation is on; Godot warns "MultiMesh interpolation is being triggered from outside physics process" (23 times
   in a bench run; "possibly benign", birds may jitter). From the long-tail change (one buffer call a frame): move the
