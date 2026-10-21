@@ -663,7 +663,7 @@ func _draw_chart(body: Rect2) -> void:
 		var dir := Vector2(cos(a), sin(a))
 		var hp := (c + dir * hub).round()
 		var grown := p.tree_level(t) > 1
-		SkillTreeDraw._link(self, c + dir * 26.0, hp, col, grown, false)
+		SkillTreeDraw._link(self, c + dir * 29.0, hp, col, grown, false)
 		var td := SkillTrees.tree_def(t)
 		for b in range(td["branches"].size()):
 			var ba := deg_to_rad(deg + [-24.0, 0.0, 24.0][mini(b, 2)])
@@ -672,7 +672,7 @@ func _draw_chart(body: Rect2) -> void:
 			var bigs: Array = td["branches"][b]["nodes"].filter(func(k): return SkillTrees.node_def(k)["kind"] != "step")
 			var most := mini(bigs.size(), 5)
 			for j in range(most):
-				var q := (hp + bd * (20.0 + j * (reach - 20.0) / maxf(most - 1, 1))).round()
+				var q := (hp + bd * (24.0 + j * (reach - 24.0) / maxf(most - 1, 1))).round()
 				var on := p.owns_node(bigs[j])
 				SkillTreeDraw._link(self, prev, q, col, on, true)
 				draw_rect(Rect2(q - Vector2(3, 3), Vector2(7, 7)), UIChrome.INK)
@@ -704,9 +704,9 @@ func _draw_chart(body: Rect2) -> void:
 		_out(Vector2(lx, lp.y + 3.0), "MASTERY %d / %d" % [p.tree_level(t), SkillTrees.max_level(t)], UIStyle.CREAM, al, 100.0)
 		if not los.is_empty():
 			_out(Vector2(lx, lp.y + 12.0), " · ".join(los), UIStyle.GILT, al, 100.0)
-	draw_circle(c, 25.0, UIChrome.INK)
-	draw_circle(c, 24.0, UIStyle.GILT)
-	draw_circle(c, 22.0, SkillTreeDraw.ROOT_BG)
+	draw_circle(c, 28.0, UIChrome.INK)
+	draw_circle(c, 27.0, UIStyle.GILT)
+	draw_circle(c, 25.0, SkillTreeDraw.ROOT_BG)
 	draw_string(SILK, Vector2(c.x - 30.0, c.y - 6.0), "CAPTAIN", HORIZONTAL_ALIGNMENT_CENTER, 60, 8, UIStyle.TEXT_DIM)
 	UIStyle.draw_title(self, Vector2(c.x - 30.0, c.y + 10.0), "Lv %d" % p.level, 18, HORIZONTAL_ALIGNMENT_CENTER, 60)
 	var sl := Rect2(body.position + Vector2(0, 2), Vector2(150, 72))
