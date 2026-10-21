@@ -920,7 +920,7 @@ static func _build_pistol() -> void:
 
 static func _build_unarmed() -> void:
 	_tree("unarmed", ["Grapple", "Martial", "Body"])
-	_root("u_root", "Unarmed", {}, "Bare-handed brawling: jab, cross, hook and a flying kick. Fight with your fists to build unarmed mastery.")
+	_root("u_root", "Unarmed", {}, "Bare-handed boxing: jab, cross and hook, each out of the last, and on right-click a huge overhand haymaker that knocks them flat. Fight with your fists to build unarmed mastery.")
 	_big("u_hip", "Shoulder Throw", "tech", 0, 3, {}, "", "hip_toss")
 	_big("u_landing", "Heavy Landing", "mech", 0, 9, {"throw_splash": 1, "skill_unarmed": 0.25},
 		"Anyone you throw lands like a cannonball: everyone near where they land is knocked flat and hurt. Your grapples and martial arts hit 25% harder.")
@@ -932,7 +932,7 @@ static func _build_unarmed() -> void:
 	_elem(1)
 	_elem(2)
 	_big("u_seaking", "Sea King Fist", "ult", 1, 30, {}, "", "sea_king_fist")
-	_big("u_round", "Roundhouse", "move", 2, 2, {"mv_roundhouse": 1}, "Adds a fourth hit to your punch combo: a spinning roundhouse kick.")
+	_big("u_round", "Uppercut", "move", 2, 2, {"mv_roundhouse": 1}, "Adds a fourth hit to your punch combo: a dipping rear uppercut that lifts them off their feet.")
 	_big("u_meteor", "Meteor Kick", "move", 2, 6, {"mv_meteor_kick": 1},
 		"Attack in the air: a dive kick at the enemy you're looking at that knocks them flat and bounces you back up for another (three in a row); a miss slams the ground.")
 	_big("u_ironbody", "Iron Body", "passive", 2, 11, {"def_unarmed": 8.0, "parry_unarmed": 0.06}, "Passive (a slot). Fighting bare-handed: +8 defense and a wider parry window.")

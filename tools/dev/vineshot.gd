@@ -1,6 +1,6 @@
 extends SceneTree
 ## Renders: vine swing from a tree (+ release), grapple pull on a grunt,
-## punches with wind, flying kick. Args: <out_prefix>
+## punches with wind, the haymaker. Args: <out_prefix>
 var t := 0.0
 var step := 0
 var wait := 0.0
