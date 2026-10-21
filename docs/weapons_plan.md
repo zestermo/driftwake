@@ -33,11 +33,17 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
   Wrecking Spin), Earthquake heavy (a shockwave), Rising Crush, Hammerfall, parry/block on the haft; the Hammer tree (Iron / Quake /
   Weight, earth: TREE_FX "hammer", FX.rock_spikes), Skullcracker, Rolling Quake, Cyclone Crusher, Titan's Fall; loot and shops.
   dev_notes 2026-10-21 (the hammer).
+- **Dual axes** (2026-10-21): style "dual_axe" (any axe + any axe; an axe beside another blade is still dual wield), two axes
+  equipped main + off hand (no pair item); every axe design pairs, plus the tomahawk and reaver's axe (found two at a time);
+  a berserker's guard (DualAxeMoves), combo (right chop, left chop, the hook that hauls them in, Reaping Whirl), Berserker
+  Frenzy heavy, Raider's Leap, Buzzsaw, parry/block with crossed axes (a landed parry hooks them in); the Twin Axes tree (Hook /
+  Frenzy / Reaver, frost: TREE_FX "dual_axe", FX.frost, ice spikes), Gallows Hook, Hewing Frenzy, Axestorm, Fimbulwinter; loot
+  and Haldor's forge. dev_notes 2026-10-21 (the twin axes).
 
 ### Open / deferred
 - **Hammer/kanabo feel** (**assumed**, built that way 2026-10-21): slow, two-handed, staggering; guard breaks and ground slams
   with a shockwave; heavy family.
-- **Dual axes feel** (**assumed**): fast chained chops from both hands, a whirl, hooking pulls; own style and tree (an axe + an
+- **Dual axes feel** (**assumed**, built that way 2026-10-21): fast chained chops from both hands, a whirl, hooking pulls; own style and tree (an axe + an
   axe in the off hand stops counting as dual swords); heavy family.
 - **Greatsword feel** (**assumed**): rests on the shoulder, wide arcs whose momentum carries into the next swing,
   armour/guard breaking, a charged overhead; heavy family. Kept distinct from the hammer by sweeping cuts vs blunt slams.

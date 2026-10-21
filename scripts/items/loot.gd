@@ -106,6 +106,9 @@ static func chest(contents: Array[ItemStack], key: String, placed: bool) -> Arra
 		elif generic(it) and not placed:
 			if hoard or rng.randf() < ARMS_KEEP:
 				it = weapon(it.weapon_model, int(it.rarity), rng)
+				# (tomahawks and reavers' axes are carried in pairs: found two at a time, ready for both hands)
+				if WeaponDesigns.comes_paired(it.id.get_slice("+", 0).get_slice("@", 0)):
+					n = 2
 			else:
 				n = 0
 		if n > 0:

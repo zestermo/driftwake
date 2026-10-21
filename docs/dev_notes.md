@@ -4985,3 +4985,44 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - Tests: t/weapons hammer_combo, hammer_moves, hammer_tree, hammer_loot; t/progression/tree_shape. Renders: tools/dev/out/hammer/
   (pb_* poses, ab_titan_titans_fall, ab_heavy_hammer_heavy). Expect techtest/progtest/balancetest/uitest (a new tab),
   impact/islanddump-style chest rolls to want a look at the push.
+
+## 2026-10-21: the twin axes (1.21 remaining weapons, kind 3 of 8; docs/weapons_plan.md)
+- **The style**: `Player.style_of` makes any axe + any axe "dual_axe" (an axe beside a cutlass or a dagger stays "dual_sword",
+  one axe stays "axe", untouched). **The pair is two items, main + off hand**, not one "pair" item: the loadouts, the off-hand
+  slot, the inventory's dual-wield rules and co-op's off-hand mesh already carry it, any two axe designs mix (a reaver's axe and a
+  tomahawk), and a single axe from the pair still works on its own. Designs: every axe design pairs, and two new ones, the
+  tomahawk (light, quick) and the reaver's axe (its beard swept into a hook), are "pair": true (`WeaponDesigns.comes_paired`):
+  a chest that rolls one gives two (Loot.chest). Axe designs gained "speed" (x how fast the twin moves play) and "hook" (x the
+  hook's reach); a pair's numbers are the two axes' average (`DualAxeArts.pair`); a blow from the off hand hits at the off axe's
+  power (`DualAxeArts.off_k`). Put away, the main axe goes on the back and the off one on the left hip (as before).
+- **Stance and moves** (scripts/npc/dual_axe_moves.gd, DualAxeMoves, "dx_*" from Humanoid._action_pose): a berserker's guard,
+  low and wide with both heads up and forward. Combo dx_1 right chop 10 / dx_2 left chop 10 / dx_3 the hook 12 (the left axe
+  flung round them and yanked back: `DualAxeArts.hook` hauls everyone it caught in via `vine_yank(to, dmg, wrap=false)` on the
+  grunt / creature / scuttlebug: light foes only, bosses and big beasts just take the blow) / Reaping Whirl 24 (move: two turns,
+  knockdown); chain windows 0.28 s, so the rhythm is chop-chop-hook-whirl. Heavy **Berserker Frenzy** (dx_heavy: chop, chop,
+  chop stepping in, then both crashed down crossed, HeavyAttackState "chops": the hitbox off and on per blow, the last knocks
+  down). Raider's Leap at a sprint (dx_rush: leap, crossed crash, breaker, knockdown); Buzzsaw in the air (dx_dive: forward flips
+  with both axes out, 18 m/s drop, a 3 m ring on landing); the parry crosses the axes (dx_parry) and a landed one hooks the
+  attacker in a step (ParryState). REACH "twin_axe" and "hook" (x the pair's hook).
+- **Tree** (SkillTrees "dual_axe": Hook / Frenzy / Reaver, element frost "dx": Hoarfrost 16 / Winter's Bite 25): Hooked Guard 3 ·
+  Gallows Hook 8 · Bloodrage 20; Hewing Frenzy 5 · Axestorm 10 · Fimbulwinter 30; Reaping Whirl 2 · Raider's Leap 4 · Buzzsaw 6 ·
+  Red Rhythm 13 (passive) · Reaver's Way 22 (Berserker / Raider). Steps 30. Tab "2 AXES".
+- **Techniques** (scripts/player_states/dual_axe_arts.gd, DualAxeArts in TechniqueState._arts): Gallows Hook (aimed foe within
+  7 m hauled in at 0.22 s, or you hauled to a heavy one; the chop at 0.5 s: 26 unblockable breaker, stagger 1 s), Hewing Frenzy
+  (eight chops 0.1 s apart walking in, cone 2.6 m, then a crossed crash 2.8 m knockdown at 0.95 s), Axestorm (everyone 2-6 m
+  hooked in, four turns walking with `_spin_hits` 3.3 m, a crossed crash at 1.6 s), Fimbulwinter (ult, untouchable: a roar and
+  the moment at 0.3 s, every foe within 10 m hooked in at 0.52 s, three turns, the crossed crash at 1.95 s: 45 knockdown 6.5 m,
+  four cracks; with the frost, a ring of ice spikes and one under each foe).
+- **FX**: TREE_FX "dual_axe" frost (white rime core, pale ice-blue edge, glacier-blue accent; in TWIN_TREES so the off hand trails
+  in the accent); `FX.frost` (ice chips, rime motes, a cold mist) for element / elem_hit; `FX.rock_spikes(..., ice=true)` uses a
+  second shared mesh (pale "metal" ice). Not lightning (polearm), earth (hammer) or fire (the single axe).
+- **Co-op**: the stance, actions and both meshes sync as before; hits go through hurtboxes / `_strike`, effects through Net.fx;
+  the hook's `vine_yank` is already a HOST_CALLS forward (its new third argument rides along).
+- **Per frame**: nothing new; the stance is keyed poses like the daggers'. Effects are one-shots.
+- **Sources**: chests that roll an axe (boarding_axe in the loot pools) now roll the two new designs too, paired; Haldor's pool
+  tomahawk / reavers_axe@1 / ships_cleaver; shops sell one at a time (buy two). Debug: **Shift+F10** is now the new kinds' rack
+  (`Player.DEBUG_RACK`: every polearm and hammer, every axe twice; what doesn't fit lands at your feet); Ctrl+Shift+F10 retired.
+- Duellist's now rolls on axes too (it's a parry trait). Tests: t/weapons dual_axe_combo, dual_axe_moves, dual_axe_tree,
+  dual_axe_loot; t/progression/tree_shape. Renders: tools/dev/out/dualaxe_anim_* (every dx_ pose), dualaxe_ult_fimbulwinter.png.
+  Expect techtest/progtest/balancetest/uitest (a new tab), the chest-roll suites (new axe designs shift the axe rolls) and the
+  vine suites (vine_yank's signature) to want a look at the push.

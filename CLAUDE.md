@@ -32,7 +32,8 @@ of movement with state changes), camera, time/weather/sea, ship, co-op peers, en
 within 60 m and the tail of the Godot log (errors/warnings). Code: `scripts/game/dev_capture.gd`
 (autoload DevCapture; `capture()` can also be called from a test). Other debug keys:
 F6 cycle weather, F7 +2 hours, F9 level up, F10 knock yourself down, F2 pixelation on/off,
-F3 dither, Ctrl+F9 Morrow's log pose, Ctrl+F10 the ship and you to the next chain island's pier.
+F3 dither, Ctrl+F9 Morrow's log pose, Ctrl+F10 the ship and you to the next chain island's pier,
+Shift+F10 the new weapon kinds' rack.
 
 ## Running things (PowerShell, from the repo root)
 

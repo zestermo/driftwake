@@ -1427,6 +1427,11 @@ func try_summon() -> String:
 	return "Your ship is coming"
 
 
+## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
+## a pair for the twin axes). Each new kind adds its line.
+const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2}
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_local or input_locked:
 		return
@@ -1494,22 +1499,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	# debug builds: F10 knocks you over (try the ragdoll + get-up)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:
-		if (event as InputEventKey).ctrl_pressed and (event as InputEventKey).shift_pressed:
-			# Ctrl+Shift+F10: one of every hammer design into the bag
-			for id in WeaponDesigns.item_ids("hammer"):
-				inventory_component.add_item(ItemDB.get_item(str(id)), 1)
-			_toast("Debug: every hammer in your bag")
-		elif (event as InputEventKey).ctrl_pressed:
+		if (event as InputEventKey).ctrl_pressed:
 			# Ctrl+F10: the ship alongside the next chain island's pier, you on the pier
 			_debug_to_next_island()
 		elif (event as InputEventKey).alt_pressed:
 			# Alt+F10: the crew to the royal capital, the ship and you at its quay once it's built
 			debug_to_capital()
 		elif (event as InputEventKey).shift_pressed:
-			# Shift+F10: one of every polearm design into the bag (the newest weapon kind, to try)
-			for id in WeaponDesigns.item_ids("polearm"):
-				inventory_component.add_item(ItemDB.get_item(str(id)), 1)
-			_toast("Debug: every polearm in your bag")
+			# Shift+F10: the new weapon kinds' rack, every design of each into the bag (DEBUG_RACK)
+			# (what doesn't fit in the bag lands at your feet)
+			var spill: Array = []
+			for kind in DEBUG_RACK:
+				for id in WeaponDesigns.item_ids(kind):
+					var n := int(DEBUG_RACK[kind])
+					if inventory_component.used_slots() + n <= inventory_component.slots():
+						inventory_component.add_item(ItemDB.get_item(str(id)), n)
+					else:
+						spill.append([SaveGame.item_ref(ItemDB.get_item(str(id))), n])
+			if not spill.is_empty():
+				Net.drop_items(spill, global_position - player_model.global_basis.z * 0.9)
+			_toast("Debug: the new weapon kinds' rack in your bag%s" % (" and at your feet" if not spill.is_empty() else ""))
 		elif is_free():
 			knock_down(player_model.global_basis.z * 6.0 + Vector3.UP * 3.5)
 		get_viewport().set_input_as_handled()
