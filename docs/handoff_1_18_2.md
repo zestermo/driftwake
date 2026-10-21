@@ -56,3 +56,11 @@ other session).
   docs/todo.md "Tooling window").
 - Leftover empty worktree folders under .claude/worktrees/ (locked by exited processes): `tools/dev/unwork.ps1 <name>`
   once nothing holds them.
+
+## After the tag: 1.18.3, an unstable release (Zach, 2026-10-20)
+The controller-support session (branch claude/controller-support-612108) and the remaining-weapons session (polearm
+first, docs/weapons plan for 1.21's kinds) hold their landings until v1.18.2 is tagged. Then: merge both into main,
+**light testing only** (compile, smoketest, the affected systems' own tests and a brief review of those systems: input
+and menus for the controller, the new weapons' trees and moves), and release **1.18.3 as an unstable version** once
+all the weapon additions and the controller work are finished. New weapons build their trees in SkillTrees
+(scripts/progression/skill_trees.gd) like the nine in docs/progression_plan.md.
