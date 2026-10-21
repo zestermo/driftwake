@@ -5102,3 +5102,43 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - Tests: t/weapons greatsword_combo, greatsword_moves, greatsword_tree, greatsword_loot; t/progression/tree_shape. Renders:
   tools/dev/out/gs/ (rack_side, pb_* / pb2_* poses, ab_sky_skysplitter). Expect techtest/progtest/balancetest/uitest (a new
   tab), the chest-roll suites (drop_rates: a kept blade can now be a greatsword) and inventory/card tests to want a look.
+
+## 2026-10-21: the stance pass (docs/weapons_plan.md "the stance pass over every weapon")
+- **Why every guard looked mid-stride** (posebench was right, it was the game): the combat stance's boxer hop (|sin| at 4.5
+  rad/s on every guard joint, the shins and the lift) and the idle bob on top of STANCE_LEGS left the back foot 5-18 cm off the
+  floor and the front one sunk, every weapon. The hop is gone; the guard's feet are **planted**: `Humanoid._foot_ik` moves each
+  ankle to the floor (`foot_y`, the rig's standing ankle height, + `plant_up`) by `_plant_w`, which eases in (`_plant_k` from the
+  guard, standing) and out under any full-body move. Upper-body moves (shots, blocks) keep it.
+- **StanceLife** (scripts/npc/stance_life.gd): the stance's life over each guard. `breathe`: a breathing sway per weapon (BREATH:
+  rate, depth; the hammer 1.5 rad/s deep, daggers 3.6-3.8 shallow; the chest rises and opens, shoulders lift, the hips sink on
+  the exhale over planted feet) or the fist's light bounce (BOUNCE: the feet leave the floor 2 cm). `HIPS`: side-on hip turns
+  (cutlass 0.55, Corsair 0.5, pistol 0.25) added to the guard and taken back out under a full-body move that doesn't key the hips
+  (`_stance_hips`), so every move keeps the square start it was made from. `SETTLE`: an attack's last segment back to the guard
+  (`_keys`: the last key at u 1, no mode, the spec has "hit") eases with `_back` instead of a smoothstep: it overshoots the guard
+  a little and settles (c1 1.3 daggers .. 2.5 hammer: ~6-21% of the recovery), inside the move's own length.
+- **Guards**: cutlass (SWORD_GUARD + STANCE_LEGS "sword") side on, the right foot and shoulder to the foe, the blade forward and
+  low, the off hand up behind the shoulder (SwordMoves.OFF_GUARD, slash_r's reach start, moved there). Katana sunk (knees ~1.0,
+  hips 0.26 down). Axe (AXE_GUARD, was the generic GUARD) hunched over wide feet, the axe hung low out by the right knee, the left
+  fist up; the axe's own moves start and end on `_guard()` now (they keyed the generic GUARD). Dagger (DaggerMoves.GUARD) a low crouch,
+  the knife forearm up before the chest in a **reverse grip**, the blade down out of the fist, the open hand out low. Twin daggers
+  (DUAL_GUARD, now `aim`ed) wrists crossed low before the hips, the right forward, the left reversed. Pistol (PISTOL_GUARD) a low
+  ready, the barrel ~40 deg down; shoot_r/shoot_l snap up (spec "snap": no blend in, "sharp" 90). Corsair (SP_GUARD) side on as
+  the cutlass, the pistol back across the chest, muzzle up by the right shoulder. Fist keeps its guard, with the bounce. The
+  four new kinds keep theirs (breathing and settle only).
+- **The dagger's grip decision**: reversed only in the guard and the run; every dagger move was keyed for the normal grip (stabs
+  along the forearm, the trails), so `StanceLife.grip` twirls the main-hand dagger (`grip_flip`, a half turn about the hand's up)
+  to the normal grip in the first 0.06 s of any move (before any swoosh window opens: the trail reads the blade's transform) and
+  back over 0.16 s after it. The moves are unchanged. Twin daggers: the right reversed too while running.
+- **Run carries** (`StanceLife.carry`, `carry_w`): forward over 3.2 m/s (down to 2.6; not a strafe or backpedal) or sprinting,
+  no move playing: cutlass (and Corsair, both of dual swords) trailed low behind the hip point back; the axe over the right
+  shoulder, head behind; daggers reversed, arms pumping 1.35x; the pistol low at the side, muzzle down. The guard's chest and head
+  go back to the run's. Any move takes over at once (the carry's weight only covers the no-move pose).
+- **Co-op**: everything reads synced inputs (stance, armed, ground_speed, local_move, sprinting, the mirrored actions) and the
+  body's own clock: a puppet breathes, plants, carries and twirls the same.
+- **Per frame**: on posed frames only (LOD bodies on their pose rate): breathing a few Vector3 adds; the plant adds one transform
+  and a subtraction per foot to the foot IK that already ran (inside the IK's 40 m / 25 m LOD radius); the carry weight a compare,
+  the carry a dozen lerps while running; the grip one basis write on dagger bodies. No new nodes, meshes or raycasts.
+- **Tool**: tools/dev/guardsheet.gd (every weapon's stance side by side, three/side/back views, FEET and HAND_L lines). Renders:
+  tools/dev/out/stance/before/ (guard, run, sprint) and p1/ (guards), p2/ (run, sprint).
+- **Tests**: t/weapons/pistol_low_ready (new); t/combat, t/weapons, t/player draw_sheathe / quick_mid_swing / rig_drift / sprint /
+  dodge. Expect daggertest, techtest, fixtest, feat, progtest and nettest (puppets) to want a look at the push.

@@ -9,11 +9,11 @@ class_name WieldMoves
 ## arm aims. Moves keyed in seconds read the played length from _action["dur"].
 
 
-## The sword-and-pistol guard: side on with the cutlass angled forward as in the
-## cutlass guard, the pistol held low and forward in the off hand.
-const SP_GUARD := {"arm_r": Vector3(0.7, -0.2, 0.18), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3(-0.6, 0, 0),
-	"arm_l": Vector3(0.5, 0.2, -0.28), "fore_l": Vector3(0.75, 0, 0), "hand_l": Vector3.ZERO,
-	"torso": Vector3(-0.1, 0.22, 0), "head": Vector3(0.05, -0.24, 0)}
+## The sword-and-pistol guard: side on as in the cutlass guard (the hips: StanceLife.HIPS), the cutlass forward,
+## the pistol drawn back across the chest, muzzle up by the right shoulder.
+const SP_GUARD := {"arm_r": Vector3(0.8, 0.0, 0.66), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(-1.0, 0, 0),
+	"arm_l": Vector3(0.6, -0.9, 0.1), "fore_l": Vector3(1.9, 0, 0), "hand_l": Vector3.ZERO,
+	"torso": Vector3(-0.06, 0.28, 0.04), "head": Vector3(0.04, -0.7, 0)}
 
 
 ## The dual guard: elbows in, the right blade a little above level, the left lower and out; an off-hand axe low, a dagger close.

@@ -10,7 +10,7 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 | Decision | Choice | Why | Revisit when |
 |---|---|---|---|
 | Kinds in this push | Polearm, hammer/kanabo, dual axes, greatsword, black-leg kicks, long guns, cannon, slingshot | Zach picked all of the candidates offered, plus a cannon/large firearm | After all eight land |
-| Order | Polearm, hammer/kanabo, dual axes, greatsword, black-leg, long guns, cannon, slingshot (melee then ranged) | Melee kinds reuse the swing/hand-path tooling back to back; the guns share aiming and ammo work | — |
+| Order | Polearm, hammer/kanabo, dual axes, greatsword, black-leg. **Black-leg is the last for now** (Zach, 2026-10-21): long guns, cannon and slingshot moved to docs/todo.md ("The ranged weapon kinds"); their rows below stay as the decided spec for when they come back | Melee kinds reuse the swing/hand-path tooling back to back | When the ranged kinds are picked up |
 | Stances | **One stance per kind** (its guard pose, gait and moveset), as today; no switching within a weapon | Zach's pick | — |
 | Landing | One kind at a time, end to end, landed before the next starts; keep moving through all eight without stopping for a check-in | Zach: "one at a time ... just continue moving through all the remaining weapons" | — |
 | Testing | **Minimal until all eight are in:** per kind, one small atomic test group (`t/weapons/<kind>`: equip it, the light combo and heavy land on a dummy, the tree's entries are valid), `land.ps1 -NoTests`. No world suites and no nettest until the end; then one `prepush.ps1` run and a fix pass | Zach: keep testing straightforward and very minimal until we finish all of them | When all eight are landed |
@@ -21,7 +21,7 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 | Slingshot | Its own light ranged kind with trick ammo (fire, smoke, explosive, sticky) as its identity. Throwing knives/chakrams are dagger-tree techniques later, not a kind | Zach's pick | — |
 | Depth per kind | Moveset (light combo, heavy, running and air attacks, block/parry), a three-branch mastery tree with its techniques and an ultimate, a colour identity in `FX.TREE_FX`. No drawn flipbook awakening: that joins the katana/axe series later | Zach's pick | — |
 | Sources | Into the existing loot pools and weapon shops. Polearm, hammer, long guns, slingshot drop like cutlasses; cannon and greatsword are rarer (bosses, chests, specialist shops). Black-leg is learned (a trainer or manual), not found | Zach's pick | Economy pass |
-| Enemies | Player only for now; one enemy pass after all kinds land (spearmen, hammer brutes, cannoneers...) | Zach's pick | After the eighth kind |
+| Enemies | Player only for now; one enemy pass after black-leg lands (spearmen, hammer brutes, cannoneers...) | Zach's pick | After black-leg |
 | Co-op | Standing rule: everything works for a guest (puppets show the stance and moves, hits go through Net) | CLAUDE.md | — |
 
 ## Decided (2026-10-21): stance poses from Zach's reference images
@@ -40,9 +40,9 @@ hips: upright chest, square to the target, weapon arm pushed out to the side. Za
 
 | Decision | Choice | Why | Revisit when |
 |---|---|---|---|
-| Distinct guards | Each weapon its own silhouette (foot width, weight, chest turn and lean). Cutlass: side-on swashbuckler, lead shoulder to the target, blade forward and low, off hand up behind. Katana: sunk, knees bent, hips back. Axe: wide brawler's stance, hunched, the head on the shoulder or hung low. Dagger: **reverse grip**, blade along the forearm, low crouch on the balls of the feet. Twin daggers: one reverse, one forward, crossed low. Twin axes: hung low and out to the sides, shoulders forward. Pistol: **low ready** (angled down-forward, up only to aim or fire). Corsair: side-on, cutlass forward, pistol back across the chest. Fist: a light bounce | They read alike today; shonen stances read from the silhouette first | Play |
-| Run poses | A run/sprint carry for every weapon without one: cutlass trailed low by the hip, axe and hammer on the shoulder, daggers reverse-grip with the arms pumping (katana, polearm, greatsword already have theirs) | Zach's pick | Play |
-| Breathing + settle | A per-weapon breathing sway in the guard (heavy slow and deep, daggers quick), and a small overshoot settle back into the guard after every attack | Life in the stance; the punch lands on the settle | Play |
+| Distinct guards | Each weapon its own silhouette (foot width, weight, chest turn and lean). Cutlass: side-on swashbuckler, lead shoulder to the target, blade forward and low, off hand up behind. Katana: sunk, knees bent, hips back. Axe: wide brawler's stance, hunched, the head on the shoulder or hung low. Dagger: **reverse grip**, blade along the forearm, low crouch on the balls of the feet. Twin daggers: one reverse, one forward, crossed low. Twin axes: hung low and out to the sides, shoulders forward. Pistol: **low ready** (angled down-forward, up only to aim or fire). Corsair: side-on, cutlass forward, pistol back across the chest. Fist: a light bounce. **Built** 2026-10-21 (axe hung low; the dagger reversed in the guard and run only, twirled to the normal grip as a move starts; twin axes kept their berserker's guard; the feet planted in every guard) | They read alike today; shonen stances read from the silhouette first | Play |
+| Run poses | A run/sprint carry for every weapon without one: cutlass trailed low by the hip, axe and hammer on the shoulder, daggers reverse-grip with the arms pumping (katana, polearm, greatsword already have theirs). **Built** 2026-10-21 (also the Corsair's and dual swords' blades trailed, the pistol low at the side; the hammer already rode the shoulder) | Zach's pick | Play |
+| Breathing + settle | A per-weapon breathing sway in the guard (heavy slow and deep, daggers quick), and a small overshoot settle back into the guard after every attack. **Built** 2026-10-21 (StanceLife; the settle is inside each move's own length) | Life in the stance; the punch lands on the settle | Play |
 | Calm poses per weapon | **Not now** (Zach skipped it); the polearm's Emperor's Bearing stays the only one | — | After the stance pass |
 
 ### Built
@@ -75,7 +75,7 @@ hips: upright chest, square to the target, weapon arm pushed out to the side. Za
   axe in the off hand stops counting as dual swords); heavy family.
 - **Greatsword feel** (**assumed**, built that way 2026-10-21; the guard became a low guard 2026-10-21): wide arcs whose momentum carries into the next swing,
   armour/guard breaking, a charged overhead; heavy family. Kept distinct from the hammer by sweeping cuts vs blunt slams.
-- **Black-leg feel** (**assumed**): hands stay free (in the pockets on the guard), kick combos, a handstand spinning kick,
+- **Black-leg feel** (Zach, 2026-10-21; was assumed "hands in the pockets"): kick-focused with ACTIVE arms that swing and counter-rotate to balance every kick; moves with the hands planted on the ground (a handstand spinning kick, a hand-planted cartwheel/mule kick, a one-hand braced sweep); the default guard is springy with the hands loose and up for balance. **Hands in the pockets is a mastery pose** (a big node ~10, like Emperor's Bearing): the combat guard once owned, the hands out instantly for any move and back in as it settles. Kick combos,
   a heated kick as the ultimate's element; fists family.
 - **Long-gun melee** (**assumed**): a butt stroke when foes close in; reload as part of the rhythm.
 - **Families** (**assumed**): polearm in blades; hammer, dual axes, greatsword in heavy; long guns, cannon, slingshot in guns;

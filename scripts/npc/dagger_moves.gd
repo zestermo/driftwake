@@ -8,12 +8,16 @@ class_name DaggerMoves
 ## _action["dur"]. Short blades: the strikes are short, close and quick; the body
 ## does the travelling (steps, turns, lunges), the arm only the last of it.
 
-const GUARD := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.2, 0.28, 0), "head": Vector3(0.12, -0.28, 0),
-	"arm_r": Vector3(0.75, -0.1, 0.25), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3(-1.45, 0, 0),
-	"arm_l": Vector3(0.45, 0.15, -0.45), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3.ZERO}
-const DUAL_GUARD := {"hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.28, 0.08, 0), "head": Vector3(0.2, -0.08, 0),
-	"arm_r": Vector3(0.8, -0.3, 0.38), "fore_r": Vector3(1.35, 0, 0), "hand_r": Vector3(-1.6, 0, 0),
-	"arm_l": Vector3(0.95, 0.35, -0.36), "fore_l": Vector3(1.4, 0, 0), "hand_l": Vector3(-0.53, 0, 0)}
+## One dagger, held reversed in the guard (StanceLife twirls it to the normal grip as a move starts): crouched low,
+## the knife forearm up before the chest with the blade laid back along it, the open left hand out low ahead.
+const GUARD := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.36, 0.2, 0), "head": Vector3(0.3, -0.2, 0),
+	"arm_r": Vector3(0.6, -0.25, 0.3), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+	"arm_l": Vector3(0.75, 0.2, -0.3), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3.ZERO}
+## Two daggers, the right forward and the left reversed, wrists crossed low before the hips, the blades out of the
+## cross, the chest down over them.
+static var DUAL_GUARD := aim({"hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.34, 0, 0), "head": Vector3(0.26, 0, 0),
+	"arm_r": Vector3(0.5, 0.55, 0.0), "fore_r": Vector3(1.0, 0, 0), "blade_r": Vector3(0.3, 0.2, -0.93),
+	"arm_l": Vector3(0.45, -0.55, 0.0), "fore_l": Vector3(1.05, 0, 0), "blade_l": Vector3(-0.35, -0.35, -0.87)}, true)
 
 const SET := {"leg_l": Vector3(0.35, 0, -0.14), "shin_l": Vector3(-0.65, 0, 0), "leg_r": Vector3(-0.25, 0, 0.14), "shin_r": Vector3(-0.5, 0, 0)}
 const STEP_L := {"leg_l": Vector3(0.8, 0, -0.12), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(-0.55, 0, 0.14), "shin_r": Vector3(-0.25, 0, 0)}

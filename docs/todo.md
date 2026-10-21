@@ -196,14 +196,16 @@ Ties into the economy's "treasure gets uses" and crafting above. Custom names an
   - **Coming down:** find the way back to the Blue Sea, a second cinematic, and the ship comes down past the island
     you were heading to when you entered the stream.
   - Works in co-op (the whole crew goes, seeded so everyone sees the same sky islands).
-- **Polearms** (Zach, 2026-10-14): one long-weapon kind with its own moveset and tree: spears, tridents, a
-  naginata/bisento (the Whitebeard-style great poleaxe), halberds, a pitchfork, anything long. Reach, sweeps, thrusts,
-  a vault and pole spins.
-- **More weapon kinds to consider** (One Piece-flavoured, after polearms; see the list in the 2026-10-14 chat):
-  three-sword style (a blade in the mouth, from dual swords), greatswords (a black great blade, a saw blade),
-  kanabo and big clubs (merges with the planned hammer), the cane sword (a blade in a walking stick, iai), black-leg
-  kicks (an unarmed kick style), the slingshot and ranged kit (musket, blunderbuss, hand cannon, harpoon gun, thrown
-  chakrams), claws and wrist blades, jitte and tonfa (parry/disarm), a staff, a whip or chain, and off-hand shields.
+- ~~Polearms, hammer/kanabo, twin axes, greatsword, black-leg kicks~~ **Built for 1.18.3** (docs/weapons_plan.md).
+- **The ranged weapon kinds** (grilled 2026-10-20, moved out of the 1.18.3 batch by Zach 2026-10-21; the decisions are
+  in docs/weapons_plan.md): **long guns** (musket/rifle aimed shot + blunderbuss spread, one two-handed kind, a butt
+  stroke up close, reload in the rhythm), the **cannon** (hand cannon / shoulder bazooka: explosive splash, knockback,
+  recoil, long reload; its own kind) and the **slingshot** (light, trick ammo: fire, smoke, explosive, sticky). Guns
+  family, each with a moveset, tree and ultimate like the melee kinds.
+- **More weapon kinds to consider** (One Piece-flavoured; see the list in the 2026-10-14 chat):
+  three-sword style (a blade in the mouth, from dual swords), the cane sword (a blade in a walking stick, iai),
+  harpoon gun and thrown chakrams, claws and wrist blades, jitte and tonfa (parry/disarm), a staff, a whip or chain,
+  and off-hand shields.
 - **Devil Fruits back:** polish them to the rest of the game's level, switch `DevilFruits.IN_WORLD` back on
   (off since 2026-10-09); a captain can dive in and haul up a fruit-user crewmate who falls in the sea (works
   for a guest).
