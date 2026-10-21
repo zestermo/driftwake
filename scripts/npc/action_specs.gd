@@ -372,6 +372,7 @@ const SPECS := {
 	"jump_sprint": {"len": 0.48, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0, "ground_speed": 9.0}},
 	"double_jump": {"len": 0.5, "sharp": 50.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0},
 		"variants": [{"armed": true}]},
+	"breakfall": {"len": 0.45, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": -4.0}},
 	"hit": {"len": 0.32, "react": true, "stance": "sword", "weapon": "cutlass", "extras": {"push": Vector3(0, 0, 1)},
 		"variants": [{"push": Vector3(0, 0, -1)}, {"push": Vector3(1, 0, 0)}]},
 	"stagger": {"len": 1.0, "react": true, "stance": "sword", "weapon": "cutlass", "extras": {"push": Vector3(0, 0, 1)},

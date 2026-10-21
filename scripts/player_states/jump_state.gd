@@ -17,7 +17,8 @@ func enter(data: Dictionary) -> void:
 	# (out of a tumble: an air step, and the ground jump is long gone)
 	if data.get("air", false) and player.jumps_remaining == player.max_jumps:
 		player.jumps_remaining -= 1
-	var double: bool = player.jumps_remaining < player.max_jumps and not data.get("coyote", false)
+	# (Skyward Dash's extra steps put you over max_jumps: still air steps)
+	var double: bool = (player.jumps_remaining < player.max_jumps or data.get("air", false) or not player.is_on_floor()) and not data.get("coyote", false)
 	player.air_speed = maxf(Vector2(player.velocity.x, player.velocity.z).length(), player.move_speed)
 	_launch(double)
 
@@ -101,6 +102,10 @@ func physics_update(delta: float) -> void:
 	var air := air_attack_input()
 	if air != "":
 		transitioned.emit(self, air, {})
+		return
+
+	if player.skyward_dash and wants_dodge():
+		transitioned.emit(self, "Dodge", {"air": true})
 		return
 
 	# Double jump

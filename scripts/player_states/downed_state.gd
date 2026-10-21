@@ -16,6 +16,8 @@ const FLOAT_DEPTH := 0.45
 const MAX_UNDER := 4.0
 ## The root more than this behind the hips (it couldn't follow): it jumps there.
 const FOLLOW_GAP := 1.0
+## Breakfall needs the hips this high over the ground (a standing captain's are ~0.9; lower, the body's as good as down).
+const BREAKFALL_CLEAR := 1.2
 
 var timer: float = 0.0
 var dead: bool = false
@@ -141,13 +143,34 @@ func physics_update(delta: float) -> void:
 		getup_time = player.get_up_from_ragdoll()
 
 
-## Jump pressed in mid-air: out of a tumble an air step (one of yours) rights you into the step. Returns whether it did.
+## Jump pressed in mid-air: out of a tumble an air step (one of yours) rights you into the step; with Breakfall
+## (Acrobatics) a tumble or a heavy blow's knockback rights you and you fall on your feet. Returns whether it did.
 func _recover() -> bool:
 	if tumble and player.jumps_remaining > 0:
 		player.recover_in_air()
+		player.air_recovered()
 		transitioned.emit(self, "Jump", {"air": true})
 		return true
+	if player.progression.has_flag("breakfall") and _hips_up() > BREAKFALL_CLEAR:
+		player.recover_in_air()
+		player.body_model.play("breakfall", ActionSpecs.length("breakfall"))
+		var at := player.global_position + Vector3(0, 0.9, 0)
+		Net.fx("ring", [at, Vector3.UP, 1.1, Color(1.0, 0.98, 0.9, 0.8), 0.3, 0.08])
+		Net.fx("sfx", ["whoosh_big", at, -7.0, 0.06, 1.25])
+		player.squash(3.0)
+		player.air_recovered()
+		transitioned.emit(self, "Fall", {})
+		return true
 	return false
+
+
+## How high the body's hips are over the ground (INF over nothing within 30 m).
+func _hips_up() -> float:
+	var hips := player.body_model.hips.global_position
+	var q := PhysicsRayQueryParameters3D.create(hips, hips + Vector3.DOWN * 30.0, 1)
+	q.exclude = [player.get_rid()]
+	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+	return INF if hit.is_empty() else hips.y - (hit["position"] as Vector3).y
 
 
 ## The velocity of whatever deck you're standing on (a ship under way).

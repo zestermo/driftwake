@@ -35,6 +35,10 @@ func physics_update(delta: float) -> void:
 		transitioned.emit(self, air, {})
 		return
 
+	if player.skyward_dash and wants_dodge():
+		transitioned.emit(self, "Dodge", {"air": true})
+		return
+
 	if now_s() - player.freefall_from > FREEFALL_TUMBLE and player.height_above_ground() > TUMBLE_CLEAR:
 		transitioned.emit(self, "Downed", {"tumble": true, "velocity": player.velocity})
 		return

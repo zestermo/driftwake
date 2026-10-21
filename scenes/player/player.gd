@@ -90,6 +90,9 @@ var air_slashes: int = 0
 var air_uses: Dictionary = {}
 ## When the freefall began (PlayerState.now_s): the last jump, air step, ability or attack (FallState's tumble).
 var freefall_from: float = 0.0
+## Skyward Dash (Acrobatics): an air dash left from the last mid-air recovery (until you land or use it).
+var skyward_dash: bool = false
+const SKYWARD_STEPS := 2
 ## The next light attack is the katana's running draw (attacked while sprinting).
 var quick_draw: bool = false
 var body_model: Humanoid
@@ -1049,6 +1052,7 @@ func _physics_process(delta: float) -> void:
 		gun_rains = 0
 		air_slashes = 0
 		air_uses.clear()
+		skyward_dash = false
 		if not _was_on_floor:
 			_on_landed(_last_air_vy)
 	else:
@@ -1163,6 +1167,15 @@ func recover_in_air() -> void:
 	velocity = v
 	air_speed = Vector2(v.x, v.z).length()
 	body_model.recover_from_ragdoll(face_up, info["hips_xform"], 0.25)
+
+
+## Righted in mid-air (Breakfall, or an air step out of a tumble): Skyward Dash gives an air dash and extra steps.
+func air_recovered() -> void:
+	if not progression.has_flag("skyward_dash"):
+		return
+	skyward_dash = true
+	jumps_remaining += SKYWARD_STEPS
+	Net.fx("sparkle", [global_position + Vector3(0, 1.0, 0), 10, Color(0.85, 0.95, 1.0)])
 
 
 func is_swimming() -> bool:

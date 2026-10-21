@@ -12,6 +12,8 @@ static func pose(h, n: String, u: float) -> Array:
 			return _jump(h, n, u)
 		"dash":
 			return _dash(h, u)
+		"breakfall":
+			return _breakfall(h, u)
 		"log_pose":
 			return _log_pose(h, u)
 		"draw", "sheathe":
@@ -189,6 +191,30 @@ static func _jump(h, n: String, u: float) -> Array:
 			keys = _air_step(h)
 	if h.armed:
 		# the weapon hand keeps the air pose's grip (pistols tucked, the katana trailed)
+		for k in keys:
+			var d: Dictionary = (k[1] as Dictionary).duplicate()
+			for j in ["arm_r", "fore_r", "hand_r"] + (["arm_l", "fore_l"] if h._guns_out() else []):
+				d.erase(j)
+			k[1] = d
+	return [h._keys(u, keys), "full", Vector3.ZERO]
+
+
+## Breakfall: thrown limp through the air, the body snaps into a tuck and rolls upright from the sprawl the ragdoll
+## left (the pivot from there to level), then opens out, arms wide, feet under it to land.
+static func _breakfall(h, u: float) -> Array:
+	if not h._action["events"].has("p0"):
+		h._action["events"]["p0"] = h._cur["pivot"]
+	var p0: Vector3 = h._action["events"]["p0"]
+	var tuck := {"pivot": p0 * 0.4, "hips": Vector3.ZERO, "torso": Vector3(-0.55, 0, 0), "head": Vector3(-0.25, 0, 0),
+		"leg_l": Vector3(1.75, 0, -0.1), "shin_l": Vector3(-2.2, 0, 0), "leg_r": Vector3(1.65, 0, 0.1), "shin_r": Vector3(-2.15, 0, 0),
+		"arm_l": Vector3(1.0, 0, -0.3), "fore_l": Vector3(1.7, 0, 0), "arm_r": Vector3(1.0, 0, 0.3), "fore_r": Vector3(1.7, 0, 0),
+		"_scale": Vector3(1.06, 0.92, 1.06)}
+	var open := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(0.05, 0, 0), "head": Vector3(0.05, 0, 0),
+		"leg_l": Vector3(0.55, 0, -0.16), "shin_l": Vector3(-0.95, 0, 0), "leg_r": Vector3(0.3, 0, 0.16), "shin_r": Vector3(-0.65, 0, 0),
+		"arm_l": Vector3(0.65, 0, -1.35), "fore_l": Vector3(0.3, 0, 0), "arm_r": Vector3(0.65, 0, 1.35), "fore_r": Vector3(0.3, 0, 0),
+		"_scale": Vector3(0.96, 1.06, 0.96)}
+	var keys := [[0.0, {"pivot": p0}], [0.28, tuck, "out"], [0.6, open, "out"], [1.0, open]]
+	if h.armed:
 		for k in keys:
 			var d: Dictionary = (k[1] as Dictionary).duplicate()
 			for j in ["arm_r", "fore_r", "hand_r"] + (["arm_l", "fore_l"] if h._guns_out() else []):
