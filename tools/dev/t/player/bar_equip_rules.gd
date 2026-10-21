@@ -43,13 +43,13 @@ func _process(_d: float) -> bool:
 			var pistol = ItemDB.get_item("pistol")
 			p.inventory_component.add_item(pistol, 1)
 			p.loadouts[2] = ["pistol", ""]
-			check("a pistol skill with no pistol loadout is refused (%s)" % pc.why_not_equip("deadeye", 0),
-				pc.why_not_equip("deadeye", 0) == "Needs a pistol in a loadout" and not pc.equip("deadeye", 0) and pc.loadout[0] == "")
+			check("a pistol skill with no pistol loadout is refused (%s)" % pc.equip_why("deadeye", 0),
+				pc.equip_why("deadeye", 0) == "Needs a pistol in a loadout" and not pc.equip("deadeye", 0) and pc.loadout[0] == "")
 			check("...a pistol in the locked third loadout doesn't count", p.loadout_slots() == 2)
 			check("a Captain skill goes on with anything", pc.equip("soru", 1))
-			check("an ultimate only on R (%s)" % pc.why_not_equip("kraken_wake", 0), pc.why_not_equip("kraken_wake", 0) == "Ultimates go on R" and not pc.equip("kraken_wake", 0))
-			check("...and only an ultimate on R (%s)" % pc.why_not_equip("soru", 4), pc.why_not_equip("soru", 4) == "Only an ultimate goes on R")
-			check("nothing unlearned (%s)" % pc.why_not_equip("berserk", 0), pc.why_not_equip("berserk", 0) == "Not learned yet")
+			check("an ultimate only on R (%s)" % pc.equip_why("kraken_wake", 0), pc.equip_why("kraken_wake", 0) == "Ultimates go on R" and not pc.equip("kraken_wake", 0))
+			check("...and only an ultimate on R (%s)" % pc.equip_why("soru", 4), pc.equip_why("soru", 4) == "Only an ultimate goes on R")
+			check("nothing unlearned (%s)" % pc.equip_why("berserk", 0), pc.equip_why("berserk", 0) == "Not learned yet")
 			p.loadouts[2] = []
 			p.loadouts[1] = ["pistol", ""]
 			check("pistol in loadout 2: its skill goes on with the cutlass in hand", pc.equip("deadeye", 0) and pc.loadout[0] == "deadeye")
@@ -71,7 +71,7 @@ func _process(_d: float) -> bool:
 			boss.add_to_group("bosses")
 			stage.add_child(boss)
 			boss.global_position = p.global_position + Vector3(0, 0, -20)
-			check("a boss fight locks the bar (%s)" % pc.why_not_equip("soru", 3), pc.why_not_equip("soru", 3) == "Not during a boss fight" and not pc.equip("soru", 3) and pc.loadout[1] == "soru")
+			check("a boss fight locks the bar (%s)" % pc.equip_why("soru", 3), pc.equip_why("soru", 3) == "Not during a boss fight" and not pc.equip("soru", 3) and pc.loadout[1] == "soru")
 			check("...clearing a slot too", not pc.equip("", 1) and pc.loadout[1] == "soru")
 			learn("tekkai")
 			pc.auto_equip("tekkai")

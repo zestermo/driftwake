@@ -4731,7 +4731,7 @@ Spec: docs/progression_plan.md "Redesign" and "Build: v1.18.2".
   not using an item, free or in a swing's combo window; knocked down, mid-heavy, stunned are refused) or no loadout holds the
   weapon ("Needs a pistol in a loadout", toasted). A Zoan hybrid's weapon skills stay refused ("Needs a pistol"). Nothing else
   changes: costs, cooldowns and the state are the old ones.
-- **Editing:** `why_not_equip(skill, slot) -> String` ("" = fine): "Not during a boss fight" (`boss_fight()`: a node in group
+- **Editing:** `equip_why(skill, slot) -> String` ("" = fine): "Not during a boss fight" (`boss_fight()`: a node in group
   "bosses" in combat within BOSS_LOCK_RANGE 55 m, the boss music's range; clearing a slot is refused then too; outside boss
   fights the bar can be edited any time, the menu pausing the world), "Ultimates go on R", "Only an ultimate goes on R",
   "Not learned yet", "Needs <weapon> in a loadout"; `equip` refuses whatever it names, so auto_equip (first free slot) only

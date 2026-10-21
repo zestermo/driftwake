@@ -176,7 +176,7 @@ func boss_fight() -> bool:
 
 
 ## Why a skill can't go on a slot ("" = it can; "" as the skill clears the slot). The menu shows it.
-func why_not_equip(skill_id: String, slot: int) -> String:
+func equip_why(skill_id: String, slot: int) -> String:
 	if boss_fight():
 		return "Not during a boss fight"
 	if skill_id == "":
@@ -196,7 +196,7 @@ func why_not_equip(skill_id: String, slot: int) -> String:
 ## Put a skill on a slot (ultimates only go on R, others only on 1-5; a weapon's skill only while that
 ## weapon is in one of your loadouts). A skill already on another slot moves.
 func equip(skill_id: String, slot: int) -> bool:
-	if why_not_equip(skill_id, slot) != "":
+	if equip_why(skill_id, slot) != "":
 		return false
 	for i in range(SLOTS):
 		if loadout[i] == skill_id:
