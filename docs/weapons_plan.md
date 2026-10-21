@@ -24,6 +24,16 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 | Enemies | Player only for now; one enemy pass after all kinds land (spearmen, hammer brutes, cannoneers...) | Zach's pick | After the eighth kind |
 | Co-op | Standing rule: everything works for a guest (puppets show the stance and moves, hits go through Net) | CLAUDE.md | — |
 
+## Decided (2026-10-21): stance poses from Zach's reference images
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Greatsword guard | A **low guard**: both hands on the hilt at the right hip, the blade angled down and forward across the body, its tip near the ground on the left (Zach's photo of a swordsman holding a long blade down). Replaces the shoulder rest | Zach's reference | Play |
+| Greatsword moving | Low guard standing and walking; **at a sprint the tip drags behind and scrapes sparks off the ground** | Zach's pick | Play |
+| Hammer guard | Raised so the head **rests on top of the shoulder**: today it sits too low and clips into the shoulder/chest with some designs | Zach's report | — |
+| Polearm run | **Running and sprinting**: one hand, the polearm trailed low at the side, head forward and down (Zach's anime reference of a runner with a naginata). Walking keeps the two-handed guard. Not gated | Zach's pick | Play |
+| Polearm planted stance | **Whitebeard's pose**: the butt planted on the ground beside you, the pole upright, one hand high on the shaft, chest out. A big node in the Polearm tree at mastery ~10; before it, standing still shows the guard | A visible sign of mastery, free in balance | — |
+| Plant vs guard | Planted when standing still with no attack, block or parry in the last ~3 s; anything comes straight out of it with no delay, and the readied guard holds for ~3 s after | Calm confidence without costing responsiveness | Play |
+
 ### Built
 - **Polearm** (2026-10-21): spear + trident, naginata, bisento (rare), halberd, pitchfork; stance with a solved two-handed grip
   (PoleMoves), combo, Skewer heavy, Leg Sweep, Pole Vault, Falling Spear, parry/block; the Polearm tree (Guard / Storm / Reach,
@@ -45,7 +55,7 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
   with a shockwave; heavy family.
 - **Dual axes feel** (**assumed**, built that way 2026-10-21): fast chained chops from both hands, a whirl, hooking pulls; own style and tree (an axe + an
   axe in the off hand stops counting as dual swords); heavy family.
-- **Greatsword feel** (**assumed**): rests on the shoulder, wide arcs whose momentum carries into the next swing,
+- **Greatsword feel** (**assumed**; the guard became a low guard 2026-10-21): wide arcs whose momentum carries into the next swing,
   armour/guard breaking, a charged overhead; heavy family. Kept distinct from the hammer by sweeping cuts vs blunt slams.
 - **Black-leg feel** (**assumed**): hands stay free (in the pockets on the guard), kick combos, a handstand spinning kick,
   a heated kick as the ultimate's element; fists family.
