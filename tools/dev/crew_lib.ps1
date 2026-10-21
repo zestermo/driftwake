@@ -277,14 +277,17 @@ function Get-DirListing($ctx, [string]$dir) {
 ## the key until then) and Manifest (the hashed lines).
 function Get-TestKey($ctx, [string]$test) {
 	$f = Get-DepsFile $ctx.Crew $test
-	$stamp = if (Test-Path $f) { (Get-Item $f).LastWriteTimeUtc.Ticks } else { 0 }
+	$stamp = if (Test-Path $f) { [System.IO.File]::GetLastWriteTimeUtc($f).Ticks } else { 0 }
+	if ($stamp -le 0 -or $stamp -eq 504911232000000000) { $stamp = 0 }
 	$c = $ctx.Keys[$test]
 	if ($c -and $c.Stamp -eq $stamp) { return $c }
+	$recorded = $null
+	if ($stamp -ne 0) { try { $recorded = [System.IO.File]::ReadAllLines($f) } catch [System.IO.IOException] { $stamp = 0 } }
 	if ($stamp -eq 0) {
 		$r = [pscustomobject]@{ Key = $ctx.Tree; Deps = $false; Manifest = @(); Stamp = 0 }
 	} else {
 		$set = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
-		foreach ($p in @([System.IO.File]::ReadAllLines($f)) + (Get-AlwaysDeps $test)) { if ($p) { [void]$set.Add($p) } }
+		foreach ($p in @($recorded) + (Get-AlwaysDeps $test)) { if ($p) { [void]$set.Add($p) } }
 		$paths = [string[]]@($set)
 		[Array]::Sort($paths, [StringComparer]::Ordinal)
 		$lines = New-Object System.Collections.Generic.List[string]
