@@ -127,7 +127,7 @@ static func fits(sk: Dictionary, st: String) -> bool:
 		return st in styles
 	match str(sk.get("needs", "")):
 		"sword":
-			return st in ["sword", "katana", "axe", "dagger", "dual_sword", "dual_dagger", "sword_pistol"]
+			return st in ["sword", "katana", "axe", "dagger", "dual_sword", "dual_dagger", "dual_axe", "sword_pistol"]
 		"gun":
 			return st in ["pistol", "dual_pistol"]
 	return true

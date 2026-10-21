@@ -1869,7 +1869,7 @@ func weapon_class() -> String:
 
 
 ## Fighting style: fist, sword, axe, katana, dagger, dual_sword (two blades: sword +
-## sword, axe or dagger), dual_dagger (dagger + dagger), sword_pistol (a one-handed
+## sword, axe or dagger), dual_dagger (dagger + dagger), dual_axe (axe + axe), sword_pistol (a one-handed
 ## blade and a pistol in the off hand), pistol, dual_pistol or claw.
 func style() -> String:
 	return "claw" if hybrid else style_of(equipped_weapon, offhand_weapon)
@@ -1887,6 +1887,8 @@ static func style_of(main_hand: ItemData, off_hand: ItemData) -> String:
 			if dual:
 				if class_of(off_hand) == "gun":
 					return "sword_pistol"
+				if main == "axe" and off_hand.weapon_model == "axe":
+					return "dual_axe"
 				return "dual_dagger" if main == "dagger" and off_hand.weapon_model == "dagger" else "dual_sword"
 			return main if main in ["axe", "dagger"] else "sword"
 		"gun":
@@ -2045,7 +2047,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy"}
+	"hammer": "punch_heavy", "dual_axe": "chop"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2100,6 +2102,9 @@ const REACH := {
 	"hammer_spin": [Vector3(4.8, 1.5, 4.8), Vector3(0.0, 0.2, 0.0)],
 	"hammer_slam": [Vector3(1.8, 2.4, 2.8), Vector3(0.0, 0.0, -1.5)],
 	"hammer_low": [Vector3(2.6, 1.4, 3.0), Vector3(-0.2, -0.1, -1.4)],
+	# twin axes: the chops a little wider and longer than a cutlass's, the hook long and narrow (x the pair's "hook")
+	"twin_axe": [Vector3(2.3, 1.3, 1.85), Vector3(-0.3, 0.2, -1.0)],
+	"hook": [Vector3(1.8, 1.3, 2.9), Vector3(-0.2, 0.2, -1.5)],
 }
 
 
@@ -2116,6 +2121,8 @@ func set_reach(kind: String) -> void:
 	elif kind.begins_with("hammer") and equipped_weapon:
 		var rk := WeaponDesigns.hammer(equipped_weapon.design, "reach")
 		k = Vector3(rk, 1.0, rk)
+	elif kind == "hook" and equipped_weapon:
+		k = Vector3(1.0, 1.0, 1.0 + (DualAxeArts.pair(self, "hook") - 1.0) * 0.5)
 	(cs.shape as BoxShape3D).size = (r[0] as Vector3) * k
 	cs.position = (r[1] as Vector3) * k
 

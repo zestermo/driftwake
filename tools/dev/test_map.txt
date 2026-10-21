@@ -294,6 +294,8 @@ assets/audio/draw_*.wav                 t/weapons
 scripts/npc/pole_moves.gd               t/weapons
 scripts/npc/hammer_moves.gd             t/weapons
 scripts/player_states/hammer_arts.gd    t/weapons
+scripts/npc/dual_axe_moves.gd           t/weapons
+scripts/player_states/dual_axe_arts.gd  t/weapons
 scripts/player_states/jump_state.gd     t/player invtest
 scripts/player_states/fall_state.gd     t/player
 scripts/npc/body_builder.gd             cliptest

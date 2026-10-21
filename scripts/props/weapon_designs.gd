@@ -58,17 +58,25 @@ const DESIGNS := {
 		"ninjato": {"id": "ninjato", "name": "Ninjato", "desc": "A straight blade with a square guard. Made for the dark, not for show.",
 			"dmg": 1.0, "worth": 1.3, "len": 0.74, "curve": 0.0, "tsuba": "square", "wrap": Color(0.1, 0.1, 0.11), "fit": Color(0.3, 0.3, 0.3)},
 	},
+	# (two axes in hand fight as twin axes: "speed" x how fast that style's moves play, "hook" x how far its hooks
+	# reach; a pair's numbers are the two axes' average, DualAxeArts.pair. "pair": found and sold two at a time)
 	"axe": {
 		"hatchet": {"id": "hatchet", "name": "Hatchet", "desc": "A carpenter's axe. Short, light, and it's seen more pirates than planks.",
-			"dmg": 0.92, "worth": 0.6, "haft": 0.58, "head": "hatchet", "wood": Color(0.78, 0.6, 0.4)},
+			"dmg": 0.92, "worth": 0.6, "haft": 0.58, "head": "hatchet", "wood": Color(0.78, 0.6, 0.4), "speed": 1.1, "hook": 0.9},
 		"bearded": {"id": "bearded_axe", "name": "Bearded Axe", "desc": "Its long beard hooks a shield or a rail and pulls.",
-			"dmg": 1.04, "worth": 1.2, "head": "bearded", "wood": Color(0.55, 0.38, 0.24)},
+			"dmg": 1.04, "worth": 1.2, "head": "bearded", "wood": Color(0.55, 0.38, 0.24), "hook": 1.3},
 		"double": {"id": "double_axe", "name": "Double Axe", "desc": "Two heads, back to back. Every swing is a forehand.",
-			"dmg": 1.1, "worth": 1.5, "head": "double", "wood": Color(0.45, 0.3, 0.2), "bands": true},
+			"dmg": 1.1, "worth": 1.5, "head": "double", "wood": Color(0.45, 0.3, 0.2), "bands": true, "speed": 0.92, "hook": 0.8},
 		"cleaver": {"id": "ships_cleaver", "name": "Ship's Cleaver", "desc": "The cook's, once. A slab of iron on a short handle.",
-			"dmg": 1.0, "worth": 0.9, "haft": 0.62, "head": "cleaver", "wood": Color(0.3, 0.22, 0.16)},
+			"dmg": 1.0, "worth": 0.9, "haft": 0.62, "head": "cleaver", "wood": Color(0.3, 0.22, 0.16), "speed": 1.04, "hook": 0.85},
 		"war": {"id": "war_axe", "name": "War Axe", "desc": "A crescent blade, a spike behind and a spike ahead, on a banded haft.",
-			"dmg": 1.12, "worth": 1.8, "haft": 1.0, "head": "war", "wood": Color(0.35, 0.24, 0.16), "bands": true},
+			"dmg": 1.12, "worth": 1.8, "haft": 1.0, "head": "war", "wood": Color(0.35, 0.24, 0.16), "bands": true, "speed": 0.88, "hook": 1.1},
+		"tomahawk": {"id": "tomahawk", "name": "Tomahawk", "desc": "A raider's light axe, a spike behind the bit. Carried in pairs and never still.",
+			"dmg": 0.96, "worth": 0.9, "haft": 0.64, "head": "tomahawk", "wood": Color(0.62, 0.44, 0.28), "speed": 1.16, "hook": 0.9, "pair": true,
+			"fit": Color(0.5, 0.48, 0.46)},
+		"reaver": {"id": "reavers_axe", "name": "Reaver's Axe", "desc": "Its beard sweeps back into a hook. Made to catch a guard or a collar and haul it in. Carried in pairs.",
+			"dmg": 1.06, "worth": 1.5, "haft": 0.78, "head": "reaver", "wood": Color(0.3, 0.22, 0.17), "bands": true, "speed": 0.98, "hook": 1.4,
+			"pair": true, "fit": Color(0.42, 0.42, 0.44)},
 	},
 	"pistol": {
 		"duelling": {"id": "duelling_pistol", "name": "Duelling Pistol", "desc": "A long, true barrel and a silver lock. Made for one shot that counts.",
@@ -170,6 +178,19 @@ static func item_ids(kind: String) -> Array:
 static func axe_head_z(model: String) -> float:
 	var p: Dictionary = (DESIGNS["axe"] as Dictionary).get(model.get_slice(":", 1), {})
 	return -(_f(p, "haft", 0.9) - 0.22)
+
+
+## An axe design's number ("speed", "hook"; `def` for the base boarding axe).
+static func axe(design: String, key: String, def: float = 1.0) -> float:
+	return float((DESIGNS["axe"] as Dictionary).get(design, {}).get(key, def))
+
+
+## Found and sold two at a time (an item id of any kind).
+static func comes_paired(id: String) -> bool:
+	for d in (DESIGNS["axe"] as Dictionary).values():
+		if str(d["id"]) == id:
+			return bool(d.get("pair", false))
+	return false
 
 
 ## A polearm design's number ("reach", "speed", "sweep"; `def` for the base spear and other kinds).
@@ -672,6 +693,22 @@ static func _axe(mb: MeshBuilder, p: Dictionary, tier: int) -> void:
 		"cleaver":
 			hb.call(steel, 0.0, Vector3(0, 0.1, hz - 0.06), Vector3(0.03, 0.22, 0.3))
 			hb.call(edge, 0.0, Vector3(0, 0.215, hz - 0.06), Vector3(0.02, 0.02, 0.3))
+		"tomahawk":
+			# a narrow bit flaring at the edge, a spike out behind it
+			hb.call(steel, 0.0, Vector3(0, 0.065, hz), Vector3(0.032, 0.13, 0.065))
+			hb.call(steel, 0.0, Vector3(0, 0.12, hz), Vector3(0.028, 0.04, 0.11))
+			hb.call(edge, 0.0, Vector3(0, 0.145, hz), Vector3(0.022, 0.02, 0.12))
+			hb.call(fit, 0.0, Vector3(0, -0.03, hz), Vector3(0.045, 0.06, 0.06))
+			hb.call(steel, 0.0, Vector3(0, -0.1, hz), Vector3(0.022, 0.1, 0.024))
+			hb.call(steel, 0.0, Vector3(0, -0.165, hz), Vector3(0.012, 0.04, 0.014))
+		"reaver":
+			# a bearded head whose beard sweeps back down the haft into a hook
+			hb.call(steel, 0.0, Vector3(0, 0.07, hz), Vector3(0.04, 0.14, 0.11))
+			hb.call(steel, 0.5, Vector3(0, 0.16, hz + 0.08), Vector3(0.035, 0.1, 0.26))
+			hb.call(edge, 0.22, Vector3(0, 0.215, hz + 0.04), Vector3(0.025, 0.02, 0.32))
+			hb.call(steel, 0.0, Vector3(0, 0.17, hz + 0.21), Vector3(0.032, 0.05, 0.06))
+			hb.call(edge, -0.7, Vector3(0, 0.135, hz + 0.25), Vector3(0.024, 0.075, 0.03))
+			hb.call(fit, 0.0, Vector3(0, -0.03, hz), Vector3(0.05, 0.06, 0.08))
 		"war":
 			hb.call(steel, 0.0, Vector3(0, 0.07, hz), Vector3(0.04, 0.13, 0.1))
 			for s in [-1.0, 1.0]:

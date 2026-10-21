@@ -202,6 +202,18 @@ const SPECS := {
 	"ham_parry": {"len": 0.66, "stance": "hammer", "weapon": "hammer"},
 	"ham_deflect": {"len": 0.45, "stance": "hammer", "weapon": "hammer"},
 	"ham_block": {"len": 0.24, "hold": true, "stance": "hammer", "weapon": "hammer"},
+	# --- twin axes (DualAxeMoves): quick chops trading hands, the hook, the whirl ---
+	"dx_stance": {"len": 1.0, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_1": {"len": 0.44, "hit": [0.3, 0.46], "chain": 0.28, "swoosh": [0.24, 0.5], "sharp": 50.0, "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_2": {"len": 0.44, "hit": [0.3, 0.46], "chain": 0.28, "swoosh": [0.24, 0.5], "sharp": 50.0, "lead": {"hips": 0.03, "torso": 0.015},
+		"stance": "dual_axe", "weapon": "axe", "extras": {"dual": true, "after": "dx_1"}},
+	"dx_3": {"len": 0.56, "hit": [0.3, 0.48], "chain": 0.36, "swoosh": [0.26, 0.5], "sharp": 50.0,
+		"stance": "dual_axe", "weapon": "axe", "extras": {"dual": true, "after": "dx_2"}},
+	"dx_4": {"len": 0.8, "hit": [0.2, 0.78], "chain": 0.62, "swoosh": [0.2, 0.8], "sharp": 50.0,
+		"stance": "dual_axe", "weapon": "axe", "extras": {"dual": true, "after": "dx_3"}},
+	"dx_heavy": {"len": 1.15, "hit": [0.2, 0.84], "swoosh": [0.18, 0.86], "sharp": 50.0, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_block": {"len": 0.24, "hold": true, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
 	# --- unarmed ---
 	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
 	"jab": {"len": 0.34, "hit": [0.21, 0.5], "stance": "fist", "weapon": ""},

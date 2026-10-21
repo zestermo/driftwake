@@ -12,6 +12,8 @@ extends PlayerState
 ##   polearm     thrust -> rising cut -> flat sweep -> a full turn (Wheel Sweep); at a sprint, Leg Sweep
 ##   hammer      overhead smash -> upswing -> flat swing (breaks a guard) -> a full turn into the ground
 ##               (Wrecking Spin); at a sprint, Rising Crush
+##   dual_axe    right chop -> left chop -> the hook (drags them in) -> two turns with both axes out
+##               (Reaping Whirl)
 ##   fist        jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
@@ -104,6 +106,14 @@ const STYLES := {
 		"damages": [17.0], "hitstops": [0.1], "shakes": [0.2],
 		"knocks": [11.0], "breakers": [true], "downs": [true],
 		"reach": "hammer_low", "color": Color(0.92, 0.86, 0.74), "breaker": true, "hammer": true},
+	# twin axes: quick chops trading hands (right, left), the hook (the left axe round them and yanked back: it
+	# drags them in) and (Reaping Whirl) both axes out level and two turns that put them down; "lefts": the off
+	# hand's axe strikes (its own power); "pair": the pair's speed (DualAxeArts.pair)
+	"dual_axe": {"anims": ["dx_1", "dx_2", "dx_3", "dx_4"], "trails": ["", "", "", ""],
+		"durations": [0.28, 0.28, 0.36, 0.62], "impulses": [4.5, 4.5, 3.0, 4.0],
+		"damages": [10.0, 10.0, 12.0, 24.0], "hitstops": [0.05, 0.05, 0.07, 0.1], "shakes": [0.1, 0.1, 0.13, 0.2],
+		"reach": "twin_axe", "reaches": ["twin_axe", "twin_axe", "hook", "spin"], "lefts": [false, true, true, false],
+		"color": Color(0.86, 0.92, 1.0), "color_l": Color(0.7, 0.8, 0.98), "pair": true},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -121,7 +131,8 @@ const STYLES := {
 const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], "dagger": [0.85, 0.8, 0.8, -0.06]}
 ## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
 const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
-	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep", "hammer": "wrecking_spin"}
+	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep", "hammer": "wrecking_spin",
+	"dual_axe": "reaping_whirl"}
 
 var cfg: Dictionary = STYLES["sword"]
 var combo_count: int = 3
@@ -147,7 +158,7 @@ var _shot_done := false
 var _off: Array = OFFHAND["sword"]
 ## The running cut's reach with a Rushing weapon (TraitMoves.rush_k; 1: plain).
 var _rush := 1.0
-## A polearm or hammer design's speed (its moves play that much faster; 1: other weapons).
+## A polearm, hammer or axe pair's speed (its moves play that much faster; 1: other weapons).
 var _spd := 1.0
 ## When a hammer's head thuds into the ground (s; < 0: it doesn't).
 var _thud_t := -1.0
@@ -190,6 +201,10 @@ func enter(data: Dictionary) -> void:
 		_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed")
 	elif cfg.get("hammer", false):
 		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
+	elif cfg.get("pair", false):
+		_spd = DualAxeArts.pair(player, "speed")
+		if bool(cfg["lefts"][combo_index]):
+			_off = [DualAxeArts.off_k(player), 1.0, 1.0, 0.0]
 	_window = ActionSpecs.hit_seconds(anim) / _spd
 	_swoosh = ActionSpecs.swoosh_seconds(anim) / _spd
 	_thud_t = float(HammerMoves.THUD[anim]) * ActionSpecs.length(anim) / _spd if HammerMoves.THUD.has(anim) else -1.0
@@ -246,6 +261,9 @@ func physics_update(delta: float) -> void:
 			hit.breaker = hit.breaker or bool(cfg["breakers"][combo_index])
 			hit.knockdown = hit.knockdown or bool(cfg["downs"][combo_index])
 			hit.stagger_duration = 0.6
+		# (the twin axes' whirl puts them down)
+		if cfg.get("pair", false) and str(cfg["anims"][combo_index]) == "dx_4":
+			hit.knockdown = true
 		player.sword_hitbox.activate(hit)
 		if last and cfg.get("slam", false):
 			var fwd := -player.player_model.global_basis.z

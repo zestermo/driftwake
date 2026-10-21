@@ -14,6 +14,7 @@ extends PlayerState
 ## * two daggers (Scissor Rip): both driven in side by side, then ripped apart
 ## * polearm (Skewer): a lunge driving the shaft through the line in front
 ## * hammer (Earthquake): heaved overhead and slammed into the ground, a shockwave knocking everyone round it down
+## * twin axes (Berserker Frenzy): chop, chop, chop stepping in, then both crashed down crossed
 ## * fists: a flying kick
 ## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
 ##   spin, arms crossed, shooting everyone close)
@@ -63,6 +64,14 @@ const STYLES := {
 		"damage": 34.0, "hitstop": 0.13, "shake": 0.3, "knockback": 12.0, "stagger": 0.8,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.75, "impact_fx": false, "reach": "hammer_slam",
 		"color": Color(0.92, 0.86, 0.74), "tree": "hammer", "hammer": true, "quake": 3.6, "quake_damage": 14.0},
+	# twin axes (Berserker Frenzy): right, left, right in quick chops stepping in, then both raised and crashed
+	# down crossed; "chops": the later blows (s after the first, at the pair's speed 1) and their damage, the
+	# last puts them down
+	"frenzy": {"anim": "dx_heavy", "impulse": 4.0,
+		"damage": 9.0, "hitstop": 0.05, "shake": 0.12, "knockback": 3.5, "stagger": 0.5,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.1, "impact_fx": false, "reach": "twin_axe",
+		"color": Color(0.86, 0.92, 1.0), "color_l": Color(0.7, 0.8, 0.98), "tree": "dual_axe", "pair": true,
+		"chops": [0.184, 0.368, 0.621], "chop_damages": [9.0, 9.0, 24.0]},
 	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
 		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
@@ -107,8 +116,10 @@ var _blinked := false
 var _seen := false
 var _blink_from := Vector3.ZERO
 var _quaked := false
-## A polearm or hammer design's speed (1: other weapons).
+## A polearm, hammer or axe pair's speed (1: other weapons).
 var _spd := 1.0
+## The frenzy's blows landed after the first.
+var _chop := 0
 
 
 static func style_for(weapon_model: String) -> String:
@@ -140,6 +151,8 @@ func enter(_data: Dictionary) -> void:
 			cfg = STYLES["shadow_lunge"]
 		"dual_dagger":
 			cfg = STYLES["scissor_rip"]
+		"dual_axe":
+			cfg = STYLES["frenzy"]
 		"fist":
 			cfg = STYLES["kick"]
 		"pistol":
@@ -165,6 +178,9 @@ func enter(_data: Dictionary) -> void:
 		_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed")
 	elif cfg.get("hammer", false):
 		_spd = WeaponDesigns.hammer(player.equipped_weapon.design, "speed")
+	elif cfg.get("pair", false):
+		_spd = DualAxeArts.pair(player, "speed")
+	_chop = 0
 	var length := ActionSpecs.length(anim) / _spd
 	var w := ActionSpecs.hit_seconds(anim) / _spd
 	_windup = w.x
@@ -238,7 +254,7 @@ func physics_update(delta: float) -> void:
 					player.velocity.z = face_dir.z * float(cfg["impulse"])
 				# (the whirlwind's first turn only staggers: the second knocks them flat;
 				# Powder Lunge's thrust holds them up for the shot)
-				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot"))
+				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot") and not cfg.has("chops"))
 				hit.breaker = hit.breaker or cfg.has("quake")
 				if not cfg.get("kata", false):
 					player.sword_hitbox.activate(hit)
@@ -258,6 +274,26 @@ func physics_update(delta: float) -> void:
 				wave.camera_shake_intensity = 0.0
 				HammerArts.quake(player, HammerArts.head_ground(player), float(cfg["quake"]) * wt, wave,
 					player.sword_hitbox.hit_targets.duplicate(), player.progression.elemental("hammer", 2))
+			# the frenzy's next chop: a fresh hit (the hitbox off a few frames first), a step in behind it
+			if cfg.has("chops") and _chop < (cfg["chops"] as Array).size():
+				var at := float(cfg["chops"][_chop]) / _spd
+				if timer >= at - 0.05:
+					player.sword_hitbox.deactivate()
+				if timer >= at:
+					var last := _chop == (cfg["chops"] as Array).size() - 1
+					var hd := _hit(last, float(cfg["chop_damages"][_chop]) * (DualAxeArts.off_k(player) if _chop == 0 else 1.0))
+					if last:
+						hd.hitstop_duration = 0.11
+						hd.camera_shake_intensity = 0.24
+						hd.knockback_force = 10.0
+					player.sword_hitbox.activate(hd)
+					_chop += 1
+					var f := -player.player_model.global_basis.z
+					player.velocity.x = f.x * float(cfg["impulse"]) * (0.9 if last else 0.6)
+					player.velocity.z = f.z * float(cfg["impulse"]) * (0.9 if last else 0.6)
+					Net.fx("sfx", ["whoosh_big" if last else "whoosh", player.global_position, -5.0, 0.08, 0.9 if last else 1.1 + 0.08 * _chop])
+					player.squash(-3.0 if last else -1.5)
+					_strike_fx(last)
 			# the whirlwind's second turn: a fresh hit on everyone about you (the
 			# hitbox off for a few frames first, so those already inside it register again)
 			if cfg.has("rehit") and not _rehit_done and timer >= float(cfg["rehit"]) - 0.06:
@@ -306,7 +342,7 @@ func _trail_col(left: bool = false) -> Color:
 	if player.power.buff("coat"):
 		return Player.HAKI_TRAIL
 	if cfg.has("tree") and player.progression.elemental(str(cfg["tree"]), 2):
-		return FX.tree_col(str(cfg["tree"]), FX.ACCENT if left and cfg["tree"] == "dual" else FX.EDGE)
+		return FX.tree_col(str(cfg["tree"]), FX.ACCENT if left and FX.TWIN_TREES.has(cfg["tree"]) else FX.EDGE)
 	if left:
 		return cfg.get("color_l", cfg.get("color", Color(0.45, 0.75, 1.0)))
 	return cfg.get("color", Color(0.45, 0.75, 1.0))
@@ -371,6 +407,21 @@ func _strike_fx(second: bool = false) -> void:
 	face = face.normalized()
 	# (the hammer's is its shockwave, a moment later: HammerArts.quake)
 	if cfg["tree"] == "hammer":
+		return
+	if cfg["tree"] == "dual_axe":
+		# each chop a ring where it bites; the crossed crash an X on the ground and a ring round it
+		var at := player.global_position + face * 1.3
+		if second:
+			Net.fx("twin_cross", [at + Vector3(0, 0.12, 0), face, 1.0, FX.tree_col(tree, FX.EDGE), FX.tree_col(tree, FX.ACCENT if elem else FX.CORE), 0.35, true])
+			Net.fx("ring", [at, Vector3.UP, 2.2, FX.tree_col(tree, FX.EDGE), 0.26, 0.12])
+			Net.fx("debris", [at + Vector3(0, 0.1, 0), Vector3.UP + face * 0.3, 6, Color(0.35, 0.3, 0.25), 4.5])
+			if elem:
+				Net.fx("element", [tree, at + Vector3(0, 0.4, 0), Vector3.UP + face * 0.3, 12, 4.5])
+			CombatManager.apply_camera_kick(0.16, 0.3)
+		else:
+			Net.fx("ring", [at + Vector3(0, 1.0, 0), face, 0.8, FX.tree_col(tree, FX.EDGE), 0.16, 0.18])
+			if elem:
+				Net.fx("element", [tree, at + Vector3(0, 1.0, 0), face + Vector3.UP * 0.3, 5, 3.5])
 		return
 	if cfg["tree"] == "dagger":
 		var at := player.global_position + Vector3(0, 1.1, 0) + face * 0.9

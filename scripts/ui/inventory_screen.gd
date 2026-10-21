@@ -793,6 +793,7 @@ static func fill_info(box: VBoxContainer, it: ItemData, qty: int, src: String, w
 				fx.append(["Finisher makes them bleed", DOWN])
 			"axe":
 				fx.append(["Finisher knocks them down", Color(1.0, 0.75, 0.45)])
+				fx.append(["An axe in each hand: twin axes", UIStyle.TEXT_DIM])
 			"katana":
 				fx.append(["Two-handed", UIStyle.TEXT_DIM])
 			"polearm":
