@@ -86,16 +86,26 @@ static func draw_tree(s: SkillMapScreen, tree: String, area: Rect2, pr: Progress
 		var name_s := str(td["branches"][b]["name"]).to_upper()
 		var sub := "%d OF %d" % [got, bigs.size()]
 		var tw := maxf(SILK.get_string_size(name_s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x, SILK.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
-		var tr := Rect2(top.x - 22.0 - tw if b == 0 else (top.x + 22.0 if b == 1 else top.x + 8.0), top.y - (32.0 if b != 1 else 12.0), tw, 17)
-		_outlined(s, tr.position + Vector2(0, 8), name_s, col.lightened(0.25), HORIZONTAL_ALIGNMENT_RIGHT if b == 0 else HORIZONTAL_ALIGNMENT_LEFT, tw)
-		_outlined(s, tr.position + Vector2(0, 17), sub, UIStyle.TEXT_DIM, HORIZONTAL_ALIGNMENT_RIGHT if b == 0 else HORIZONTAL_ALIGNMENT_LEFT, tw)
+		var nr := node_rect(bigs[-1], top)
+		var tr := Rect2(top.x - 22.0 - tw, top.y - 32.0, tw, 17)
+		if b == 1:
+			tr = Rect2(roundf(top.x - tw * 0.5), nr.position.y - 21.0, tw, 17)
+		elif b == 2:
+			tr = Rect2(top.x + 8.0, top.y - 32.0, tw, 17)
+		var al: HorizontalAlignment = [HORIZONTAL_ALIGNMENT_RIGHT, HORIZONTAL_ALIGNMENT_CENTER, HORIZONTAL_ALIGNMENT_LEFT][mini(b, 2)]
+		_outlined(s, tr.position + Vector2(0, 8), name_s, col.lightened(0.25), al, tw)
+		_outlined(s, tr.position + Vector2(0, 17), sub, UIStyle.TEXT_DIM, al, tw)
 		taken.append(tr)
 	var labels := place_labels(at, area, taken)
 	for k in at.keys():
 		draw_node(s, k, at[k], col, pr, t)
+		var nm := str(SkillTrees.node_def(k)["name"])
+		var lit: bool = pr.owns_node(k) or s.inspected() == "n:" + k
 		if labels.has(k):
 			var lr: Rect2 = labels[k]
-			_outlined(s, lr.position + Vector2(0, 8), str(SkillTrees.node_def(k)["name"]), UIStyle.CREAM if pr.owns_node(k) else TEXT_OFF)
+			_outlined(s, lr.position + Vector2(0, 8), nm, UIStyle.CREAM if lit else TEXT_OFF)
+		elif s.inspected() == "n:" + k:
+			_outlined(s, Vector2(at[k].x - 50.0, at[k].y + 25.0), nm, UIStyle.CREAM, HORIZONTAL_ALIGNMENT_CENTER, 100.0)
 
 
 ## The space a node takes (a step's counter included).
@@ -114,7 +124,7 @@ static func node_rect(id: String, c: Vector2) -> Rect2:
 
 
 ## A name for every big node where it fits best: under it, else right, left or above, clear of the other nodes and
-## names (bottom of the tree first). Returns {id: the name's rect}.
+## names (bottom of the tree first); then each step's name where there's room. Returns {id: the name's rect}.
 static func place_labels(at: Dictionary, area: Rect2, taken: Array) -> Dictionary:
 	var out := {}
 	var segs: Array = []
@@ -138,6 +148,17 @@ static func place_labels(at: Dictionary, area: Rect2, taken: Array) -> Dictionar
 		var pick: Rect2 = clear[0] if not clear.is_empty() else (free[0] if not free.is_empty() else cands[0])
 		taken.append(pick)
 		out[k] = pick
+	# then the steps' names under their counters (or over their circles), only where there's room
+	var steps := at.keys().filter(func(k): return SkillTrees.node_def(k)["kind"] == "step")
+	steps.sort_custom(func(a, b): return at[a].y > at[b].y)
+	for k in steps:
+		var tw := SILK.get_string_size(str(SkillTrees.node_def(k)["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		var c: Vector2 = at[k]
+		for cand in [Rect2(roundf(c.x - tw * 0.5), c.y + 17.0, tw, 9), Rect2(roundf(c.x - tw * 0.5), c.y - 17.0, tw, 9)]:
+			if area.encloses(cand) and not taken.any(func(o): return (o as Rect2).intersects(cand)):
+				taken.append(cand)
+				out[k] = cand
+				break
 	return out
 
 
@@ -199,8 +220,6 @@ static func draw_node(s: SkillMapScreen, id: String, c: Vector2, col: Color, pr:
 	if s.inspected() == "n:" + id:
 		var pulse := 0.6 + 0.4 * sin(t * 5.0)
 		s.draw_rect(r.grow(3.0), Color(UIStyle.CREAM, pulse), false, 1.0)
-	if kind == "step" and s.inspected() == "n:" + id:
-		_outlined(s, Vector2(c.x - 50.0, r.end.y + 19.0), str(n["name"]), UIStyle.CREAM, HORIZONTAL_ALIGNMENT_CENTER, 100.0)
 
 
 ## A big node: the root, a move, technique, mechanic, passive, element or ultimate.

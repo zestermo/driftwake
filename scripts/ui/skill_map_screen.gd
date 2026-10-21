@@ -881,10 +881,10 @@ func _draw_will(r: Rect2) -> void:
 		draw_string(_font, Vector2(c.x + 20.0, c.y - 2.0), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 12, UIStyle.CREAM if got else SkillTreeDraw.TEXT_OFF)
 		var desc := str(n["desc"])
 		var how := desc.get_slice(". ", 0)
-		draw_string(SILK, Vector2(c.x + 20.0, c.y + 8.0), how.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, WILL)
-		var l: Array = _wrap(desc.substr(how.length() + 2), r.size.x - 34.0, SILK, 8)
-		for j in range(mini(l.size(), int(step / 9.0) - 2)):
-			draw_string(SILK, Vector2(c.x + 20.0, c.y + 17.0 + j * 9.0), l[j], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.TEXT_DIM)
+		var lines: Array = _wrap(how.to_upper(), r.size.x - 34.0, SILK, 8).map(func(x): return [x, WILL])
+		lines.append_array(_wrap(desc.substr(how.length() + 2), r.size.x - 34.0, SILK, 8).map(func(x): return [x, UIStyle.TEXT_DIM]))
+		for j in range(mini(lines.size(), maxi(int(step / 9.0) - 1, 2))):
+			draw_string(SILK, Vector2(c.x + 20.0, c.y + 8.0 + j * 9.0), lines[j][0], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, lines[j][1])
 		if inspected() == "n:" + id:
 			draw_rect(nr.grow(3.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
 
@@ -991,12 +991,12 @@ func _draw_library(card: Rect2) -> void:
 	var lib := p.library()
 	var groups := {}
 	for sk in lib["skills"]:
-		var t := _skill_tree(sk)
+		var t := _group_of(_skill_tree(sk))
 		if not groups.has(t):
 			groups[t] = []
 		groups[t].append(sk)
 	for id in lib["passives"]:
-		var t := str(_node_any(id).get("tree", "base"))
+		var t := _group_of(str(_node_any(id).get("tree", "base")))
 		if not groups.has(t):
 			groups[t] = []
 		groups[t].append(id)
@@ -1075,6 +1075,11 @@ func _loadout_tip(card: Rect2) -> void:
 	draw_string(_font, r.position + Vector2(7, 13), title, HORIZONTAL_ALIGNMENT_LEFT, w - 14.0, 12, UIStyle.PARCH_INK)
 	for i in range(lines.size()):
 		draw_string(_font, r.position + Vector2(7, 25.0 + i * 11.0), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.PARCH_DIM)
+
+
+## The library group a tree's skills and passives go in (the Captain's and Will's together).
+func _group_of(t: String) -> String:
+	return "captain" if t in ["base", "captain", "will"] else t
 
 
 func _group_rank(t: String) -> int:

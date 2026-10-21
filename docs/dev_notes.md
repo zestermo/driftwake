@@ -4694,6 +4694,10 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   the runner's window is 64x64), t/ui/chrome_kit; filmed with skillmapshot (every tab, 640x360 and 800x450).
   r6test's skill-map checks now ask the new screen (opens on Combat, Driftfruit shows your fruit, a weapon opens on its
   root); uishots, styleshot, seamapshot and r6shot open the new tabs.
+- **Lead's pass:** steps show their names under their counters where there's room (all of them on the 800x450
+  canvas; on 640x360 the ones that would overlap show on inspect); the middle branch's title sits above its top node;
+  the Will column wraps "how" and "what it gives"; the library puts the Captain's and Will's skills and passives in one
+  CAPTAIN AND WILL group.
 ## 2026-10-20: perf session steps 3 and 5: occlusion culling in towns, the long tail
 - **Occlusion culling** (project.godot `rendering/occlusion_culling/use_occlusion_culling=true`; `scripts/psx/occluders.gd`,
   class Occluders): boxes shrunk 0.15 m inside solid stone, kept as data in a capital piece's colliders ({"occ": size, "xf"},
