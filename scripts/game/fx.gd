@@ -1311,6 +1311,9 @@ const TREE_FX := {
 	# greatsword: gale - white air pressure, a pale jade edge, a deep sea-green; gusts torn off every swing, crescents of
 	# wind flung off the big ones, a cyclone round the ultimate
 	"greatsword": [Color(1.0, 1.0, 1.0), Color(0.74, 1.0, 0.88), Color(0.28, 0.8, 0.62)],
+	# black-leg: heat - a white-hot core, cherry-red edge, a deep crimson (not the axe's ember orange): the kicking leg
+	# glowing red-hot, crimson flames bursting off the big kicks
+	"black_leg": [Color(1.0, 0.95, 0.82), Color(1.0, 0.24, 0.14), Color(0.7, 0.04, 0.1)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1430,8 +1433,92 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 			frost(pos, dir, amount, speed)
 		"greatsword":
 			gust(pos, dir, amount, speed)
+		"black_leg":
+			heat(pos, dir, amount, speed)
 		_:
 			spray(pos, dir, amount, c, speed)
+
+
+## Heat thrown off a kick (black-leg's element): crimson flames tinted off the fire sheet (not the axe's orange
+## embers), white-hot sparks flung hard along `dir`, and a brief red light.
+const HEAT_TINT := Color(1.0, 0.42, 0.36)
+
+
+func heat(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	var d := dir.normalized() if dir.length() > 0.01 else Vector3.UP
+	var core := tree_col("black_leg", CORE)
+	_burst(pos, maxi(amount * 2 / 3, 2), _spark_mat, 0.12, 0.35, {"radius": 0.12, "direction": d, "spread": 30.0, "vel_min": speed * 1.1,
+		"vel_max": speed * 2.0, "gravity": Vector3(0, -6.0, 0), "damping": 2.5, "grow": false, "color": Color(core.r, core.g, core.b, 1.0)})
+	flash_light(pos, Color(1.0, 0.35, 0.25), 1.2 + amount * 0.1, 3.0 + amount * 0.1, 0.2)
+	if flipbooks:
+		flipbook(pos, "fire", maxi(amount / 3, 2), 0.9, 0.45, {"radius": 0.15, "direction": (d + Vector3.UP * 0.6).normalized(), "spread": 35.0,
+			"vel_min": speed * 0.3, "vel_max": speed * 0.7, "gravity": Vector3(0, 2.5, 0), "damping": 2.0, "explosiveness": 0.9, "start": 0.1,
+			"spin": 20.0, "fade": 0.7, "color": HEAT_TINT})
+	else:
+		embers(pos, d, amount, tree_col("black_leg", EDGE), speed)
+
+
+## A ring of crimson fire racing out along the ground (black-leg's Last Course): fire_ring's shape in the heat's tint,
+## a pillar of it where the heel came down.
+func heat_ring(pos: Vector3, radius: float = 6.0) -> void:
+	var speed := radius / 0.35
+	flash_light(pos + Vector3(0, 0.8, 0), Color(1.0, 0.3, 0.2), 6.0, radius * 1.8, 0.5)
+	if flipbooks:
+		flipbook(pos + Vector3(0, 0.3, 0), "fireball", 14, 1.4, 0.55, {"ring_radius": 0.4, "spread": 8.0, "direction": Vector3(0, 0.15, 0),
+			"vel_min": speed * 0.85, "vel_max": speed, "gravity": Vector3(0, 3.0, 0), "damping": speed * 1.6, "start": 0.1, "spin": 180.0,
+			"fade": 0.6, "color": HEAT_TINT})
+		plume(pos, Vector3.UP, "fire", 6, 1.8, 0.8, HEAT_TINT, 7.0, 10.0)
+	else:
+		fire_ring(pos, radius, 50)
+	heat(pos + Vector3(0, 0.5, 0), Vector3.UP, 14, 5.0)
+
+
+## A kick's trail traced by the legs themselves (black-leg; as blade_swoosh is a blade's): `legs` "r", "l" or "lr".
+func kick_swoosh(body: Node3D, secs: float, color: Color = Color.WHITE, color_l: Color = Color(0, 0, 0, 0), legs: String = "r") -> void:
+	if not body is Humanoid:
+		return
+	var t := BladeTrail.new()
+	t.body = body
+	t.legs = legs
+	t.emit = secs
+	t.color = color
+	t.color_l = color_l if color_l.a > 0.0 else color
+	t.life = 0.16
+	body.add_child(t)
+
+
+## A leg glowing red-hot for `secs` (black-leg's heated kicks): a glow laid along the shin and foot, licks of crimson
+## flame off it. One shared mesh; its own material (it fades).
+static var _hot_mesh: CapsuleMesh
+
+
+func hot_leg(body: Node3D, right: bool, secs: float = 0.6, color: Color = Color(1.0, 0.24, 0.14)) -> void:
+	if not body is Humanoid or (body as Humanoid).ragdoll != null:
+		return
+	var shin: Node3D = (body as Humanoid).shin_r if right else (body as Humanoid).shin_l
+	if shin == null:
+		return
+	if _hot_mesh == null:
+		_hot_mesh = CapsuleMesh.new()
+		_hot_mesh.radius = 0.09
+		_hot_mesh.height = 0.62
+		_hot_mesh.radial_segments = 6
+		_hot_mesh.rings = 1
+	var mi := MeshInstance3D.new()
+	mi.mesh = _hot_mesh
+	var mat := _glow_mat(color, 0.75)
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	shin.add_child(mi)
+	mi.position = Vector3(0, -0.24, -0.02)
+	var fl := flip_emitter(mi, "fire", 6, 0.45, 0.35, {"radius": 0.1, "spread": 25.0, "vel_min": 0.3, "vel_max": 0.9, "gravity": Vector3(0, 2.0, 0),
+		"damping": 0.8, "start": 0.15, "spin": 10.0, "fade": 0.7, "world": true, "color": HEAT_TINT}) if flipbooks else null
+	var tw := mi.create_tween()
+	tw.tween_property(mat, "albedo_color", Color(1.0, 0.9, 0.75, 0.85), secs * 0.25)
+	tw.tween_property(mat, "albedo_color", Color(color.r, color.g, color.b, 0.0), secs * 0.75).set_ease(Tween.EASE_IN)
+	if fl:
+		tw.parallel().tween_callback(func(): fl.emitting = false).set_delay(secs * 0.4)
+	tw.tween_callback(mi.queue_free)
 
 
 ## Wind torn off a blade (the greatsword's element): pale streaks of air flung hard along `dir`, jade motes riding
@@ -2398,6 +2485,9 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 		"greatsword":
 			gust(pos, dir + Vector3.UP * 0.2, 7, 4.0)
 			ring(pos, dir, 1.0, edge, 0.18, 0.14)
+		"black_leg":
+			heat(pos, dir + Vector3.UP * 0.3, 6, 3.5)
+			ring(pos, dir, 0.9, edge, 0.16, 0.2)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

@@ -39,7 +39,7 @@ class_name ActionSpecs
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
 const PARRIES := {"dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
 	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
-	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"]}
+	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -246,6 +246,27 @@ const SPECS := {
 	"gs_parry": {"len": 0.66, "stance": "greatsword", "weapon": "greatsword"},
 	"gs_deflect": {"len": 0.45, "stance": "greatsword", "weapon": "greatsword"},
 	"gs_block": {"len": 0.24, "hold": true, "stance": "greatsword", "weapon": "greatsword"},
+	# --- black-leg (BlackLegMoves): kicks low, mid, high, the handstand spin; "legs": which leg's trail is drawn ---
+	"bl_stance": {"len": 1.0, "stance": "black_leg", "weapon": ""},
+	"bl_1": {"len": 0.42, "hit": [0.26, 0.5], "chain": 0.3, "swoosh": [0.2, 0.5], "legs": "l", "sharp": 46.0, "lead": {"hips": 0.03, "torso": 0.012},
+		"stance": "black_leg", "weapon": ""},
+	"bl_2": {"len": 0.5, "hit": [0.3, 0.54], "chain": 0.34, "swoosh": [0.24, 0.54], "legs": "r", "sharp": 46.0, "lead": {"hips": 0.03, "torso": 0.012},
+		"stance": "black_leg", "weapon": "", "extras": {"after": "bl_1"}},
+	"bl_3": {"len": 0.56, "hit": [0.34, 0.6], "chain": 0.4, "swoosh": [0.3, 0.6], "legs": "l", "sharp": 46.0, "lead": {"hips": 0.03, "torso": 0.012},
+		"stance": "black_leg", "weapon": "", "extras": {"after": "bl_2"}},
+	"bl_4": {"len": 1.1, "hit": [0.24, 0.78], "chain": 0.95, "swoosh": [0.24, 0.78], "legs": "lr", "sharp": 46.0,
+		"stance": "black_leg", "weapon": "", "extras": {"after": "bl_3"}},
+	"bl_heavy": {"len": 0.95, "hit": [0.5, 0.64], "swoosh": [0.4, 0.62], "legs": "r", "sharp": 48.0, "stance": "black_leg", "weapon": ""},
+	"bl_rush": {"len": 0.75, "hit": [0.28, 0.6], "swoosh": [0.26, 0.6], "legs": "r", "sharp": 46.0, "stance": "black_leg", "weapon": ""},
+	"bl_air": {"len": 1.2, "hit": [0.1, 0.95], "stance": "black_leg", "weapon": "", "extras": {"grounded": false}},
+	"bl_air_land": {"len": 0.55, "stance": "black_leg", "weapon": ""},
+	"bl_parry": {"len": 0.66, "stance": "black_leg", "weapon": ""},
+	"bl_deflect": {"len": 0.55, "stance": "black_leg", "weapon": ""},
+	"bl_block": {"len": 0.24, "hold": true, "stance": "black_leg", "weapon": ""},
+	"bl_mule": {"len": 0.95, "hit": [0.42, 0.5], "sharp": 46.0, "stance": "black_leg", "weapon": ""},
+	"bl_hail": {"len": 1.3, "hit": [0.12, 0.86], "sharp": 64.0, "stance": "black_leg", "weapon": ""},
+	"bl_wheel": {"len": 1.45, "hit": [0.07, 0.8], "sharp": 46.0, "stance": "black_leg", "weapon": ""},
+	"bl_last": {"len": 2.7, "hit": [0.26, 0.73], "sharp": 50.0, "stance": "black_leg", "weapon": ""},
 	# --- unarmed ---
 	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
 	"jab": {"len": 0.34, "hit": [0.21, 0.5], "stance": "fist", "weapon": ""},

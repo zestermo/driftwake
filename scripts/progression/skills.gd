@@ -173,6 +173,15 @@ const ALL := {
 		"desc": "Let the blade carry you round three times, walking, each turn quicker than the last and cutting everyone about you, until the momentum breaks in a burst that throws them all down."},
 	"skysplitter": {"name": "Skysplitter", "tree": "greatsword", "cost": 0.0, "cooldown": 3.0, "styles": ["greatsword"], "needs_text": "a greatsword", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Leap high with the blade heaved overhead and come down in one cleave: the ground splits in a line twelve paces long, everyone on it is thrown down, and three crescents of air tear on down the line."},
+	# --- Black Leg ---
+	"mule_kick": {"name": "Mule Kick", "tree": "black_leg", "cost": 16.0, "cooldown": 6.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
+		"desc": "Spin your back to the enemy you're facing, drop onto both hands and drive both heels into them: it can't be blocked, breaks their wind-up and throws them clear."},
+	"hailstorm_heels": {"name": "Hailstorm Heels", "tree": "black_leg", "cost": 20.0, "cooldown": 7.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
+		"desc": "Up on one foot, a hail of snapping kicks at every height into whoever's in front, walking in, and a last big one that knocks them flat."},
+	"cartwheel_crescent": {"name": "Cartwheel Crescent", "tree": "black_leg", "cost": 22.0, "cooldown": 8.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
+		"desc": "Two cartwheels forward, hand over hand, the legs wheeling over in wide arcs that kick everyone along the way, and a heel brought down at the end that knocks them flat."},
+	"last_course": {"name": "Last Course", "tree": "black_leg", "cost": 0.0, "cooldown": 3.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique", "ult": true,
+		"desc": "Ultimate. Spin on one foot until your leg glows red-hot, then a storm of burning kicks through everyone in front, a leap, and the heel brought down: the ground bursts into a ring of crimson fire that throws them all down."},
 	# --- Pistol ---
 	"deadeye": {"name": "Deadeye", "tree": "pistol", "cost": 20.0, "cooldown": 7.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique",
 		"desc": "A breath, a steady aim, and one shot that punches through every enemy in a line."},

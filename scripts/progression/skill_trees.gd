@@ -34,6 +34,7 @@ const HEADERS := {
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
+	"black_leg": ["Black Leg", "combat", Color(1.0, 0.45, 0.35), 30],
 	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 20],
 	"defense": ["Defense", "adventure", Color(0.91, 0.84, 0.68), 20],
 	"sea": ["Sailing", "adventure", Color(0.45, 0.8, 0.85), 20],
@@ -69,6 +70,7 @@ const ELEMENTS := {
 	"greatsword": ["gs", "Gale Edge", "Tempest Blade", "wind: gusts torn off every swing, crescents of air flung off the big ones in jade, and a cyclone round you when the big turns and Skysplitter land"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
+	"black_leg": ["bl", "Searing Heel", "Red-Hot Leg", "heat: the kicking leg glows red-hot, crimson flames burst off the big kicks and white-hot sparks off every one, and Last Course sets the ground burning"],
 }
 
 ## What every Captain level past the first adds by itself (the old Captain tree's stat nodes, folded in).
@@ -169,6 +171,7 @@ static func _build() -> void:
 	_build_corsair()
 	_build_pistol()
 	_build_unarmed()
+	_build_black_leg()
 	_build_ember()
 	_build_wolf()
 	_build_vine()
@@ -915,6 +918,46 @@ static func _build_unarmed() -> void:
 	_step("u_feet", "Light Feet", "u_round", 3, {"stam_unarmed": 0.07}, "Unarmed attacks cost 7% less stamina a step.")
 	_step("u_flow", "Flow", "u_palm", 3, {"flow_unarmed": 0.15}, "Unarmed hits give 15% more energy a step.")
 	_step("u_breath", "Breath", "u_ironbody", 3, {"cdr_unarmed": 0.05}, "Unarmed techniques come back 5% sooner a step.")
+
+
+## Black-leg (learned from its trainer, not found: empty hands fight with kicks once it's chosen): kicks only, the
+## hands down on the ground in the flashiest, heat as the element; Nonchalance puts the hands in the pockets.
+static func _build_black_leg() -> void:
+	_tree("black_leg", ["Guard", "Fire", "Flow"])
+	_root("bl_root", "Black Leg", {},
+		"Kicks only, the hands kept free: a low kick, a mid kick and a high kick flowing into each other, and on right-click the heel brought down from over your head through a guard. Taught, not found; choose it by clicking your empty hand in the bag (I). Fight with your kicks to build its mastery.")
+	_big("bl_deflect", "Shin Guard", "mech", 0, 3, {"parryshot_black_leg": 1, "parry_black_leg": 0.06},
+		"Parry with a raised shin and you kick gunshots aside too (without it, a parry only stops blades), and your parry window is wider.")
+	_big("bl_mule", "Mule Kick", "tech", 0, 8, {}, "", "mule_kick")
+	_big("bl_pockets", "Nonchalance", "mech", 0, 10, {"pockets_black_leg": 1},
+		"A master's ease: your hands stay in your pockets on guard. They come out the moment you kick and go back in as you settle; nothing waits on them.")
+	_big("bl_return", "Kick Back", "mech", 0, 20, {"deflect_black_leg": 1, "return_black_leg": 1, "deflect_cd_black_leg": 1.0},
+		"Kicking, a shot from the front is kicked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
+	_big("bl_hail", "Hailstorm Heels", "tech", 1, 5, {}, "", "hailstorm_heels")
+	_big("bl_wheel", "Cartwheel Crescent", "tech", 1, 10, {}, "", "cartwheel_crescent")
+	_elem(1)
+	_elem(2)
+	_big("bl_last", "Last Course", "ult", 1, 30, {}, "", "last_course")
+	_big("bl_spin", "Handstand Spin", "move", 2, 2, {"mv_handstand_spin": 1},
+		"Adds a fourth kick to your combo: down on both hands, the legs split out flat and two turns round, sweeping everyone about you off their feet.")
+	_big("bl_arrow", "Arrow Kick", "move", 2, 4, {"mv_arrow_kick": 1},
+		"Attack at a sprint: launch side-on and shoot one leg straight through them. It breaks their wind-up and throws them down.")
+	_big("bl_cyclone", "Cyclone Heel", "move", 2, 6, {"mv_cyclone_heel": 1},
+		"Attack in the air: turn flat like a top with one leg out, kicking everyone you pass, and come down on one hand in a ring that knocks them flat (once per jump).")
+	_big("bl_tempo", "Galley Tempo", "passive", 2, 13, {"finisher_black_leg": 0.3, "heavy_black_leg": 0.25},
+		"Passive (a slot). The last kick of your combo lands 30% harder, and your Guillotine Heel (right-click) 25%.")
+	_variant("bl_way", "Cook's Way", 2, [
+		["bl_chef", "Head Chef", 22, {"leech_black_leg": 0.06, "cdr_black_leg": 0.2}, "Kicks heal you for 6% of their damage, and black-leg techniques come back 20% sooner."],
+		["bl_carver", "Carver", 22, {"exec_black_leg": 0.5, "crit_black_leg": 0.06}, "A kick that leaves them under 30% health deals 50% more on top, and 6% more of your kicks are crits."]],
+		"Two ways to run a galley. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("bl_shins", "Iron Shins", "bl_root", 5, {"dmg_black_leg": 0.05}, "+5% kick damage a step.")
+	_step("bl_nerves", "Light Check", "bl_deflect", 3, {"parry_black_leg": 0.02}, "A shin parry's window a little wider a step.")
+	_step("bl_sear", "Searing", "bl_elem", 5, {"crit_black_leg": 0.03}, "3% more of your kicks land 50% harder, a step.")
+	_step("bl_heel", "Heavy Heel", "bl_wheel", 5, {"finisher_black_leg": 0.06}, "The last kick of your combo lands 6% harder a step.")
+	_step("bl_feet", "Light Feet", "bl_spin", 3, {"stam_black_leg": 0.05}, "Kicks cost 5% less stamina a step.")
+	_step("bl_drop", "Guillotine", "bl_arrow", 3, {"heavy_black_leg": 0.08}, "Your Guillotine Heel (right-click) hits 8% harder a step.")
+	_step("bl_flow", "Flow", "bl_hail", 3, {"flow_black_leg": 0.15}, "Kicks give 15% more energy a step.")
+	_step("bl_recover", "Recovery", "bl_tempo", 3, {"cdr_black_leg": 0.05}, "Black-leg techniques come back 5% sooner a step.")
 
 
 # --------------------------------------------------------------------------

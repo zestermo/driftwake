@@ -28,6 +28,8 @@ func _label(id) -> String:
 		return "Empty"
 	if l[0] == "":
 		return "Fists"
+	if l[0] == Player.BLACK_LEG:
+		return STYLES["black_leg"]
 	return STYLES[Player.style_of(ItemDB.get_item(l[0]), ItemDB.get_item(l[1]) if l[1] != "" else null)]
 
 
@@ -37,7 +39,7 @@ func _sub(id) -> String:
 	var l: Array = player.loadouts[id]
 	if l.is_empty():
 		return "%d  set it up" % (id + 1)
-	if l[0] == "":
+	if l[0] == "" or l[0] == Player.BLACK_LEG:
 		return str(id + 1)
 	var main := ItemDB.get_item(l[0]).display_name
 	if l[1] == "":
@@ -51,7 +53,7 @@ func _icon(id) -> Texture2D:
 	if _locked(id):
 		return null
 	var l: Array = player.loadouts[id]
-	return ItemDB.get_item(l[0]).icon if not l.is_empty() and l[0] != "" else null
+	return ItemDB.get_item(l[0]).icon if not l.is_empty() and l[0] != "" and l[0] != Player.BLACK_LEG else null
 
 
 func _dim(id) -> bool:

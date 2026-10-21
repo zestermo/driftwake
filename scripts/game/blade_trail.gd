@@ -17,6 +17,8 @@ var color_l := Color(1, 1, 1)
 var life := LIFE
 ## Seconds left to sample (-1: for good); when it runs out the trail fades and frees itself.
 var emit := -1.0
+## Kicks (FX.kick_swoosh): trace the shins instead of the blades, "r" / "l" / "lr" (the right leg in `color`).
+var legs := ""
 var _im := ImmediateMesh.new()
 var _clock := 0.0
 ## per hand: [[time, base, tip], ...]
@@ -58,7 +60,12 @@ func sample(delta: float) -> void:
 		var w: MeshInstance3D = blades[i]
 		var pts: Array = _pts[i]
 		var col := color if i == 0 else color_l
-		if emitting and w != null and is_instance_valid(w) and w.get_parent() in [body.hand_r, body.hand_l] and not body._guns_out() \
+		if legs != "":
+			var shin: Node3D = body.shin_r if i == 0 else body.shin_l
+			if emitting and legs.contains("r" if i == 0 else "l"):
+				var foot := Vector3(0, body.shin_l.position.y * 1.05, 0)
+				pts.append([_clock, shin.global_transform * (foot * 0.45), shin.global_transform * foot])
+		elif emitting and w != null and is_instance_valid(w) and w.get_parent() in [body.hand_r, body.hand_l] and not body._guns_out() \
 				and not str(w.mesh.get_meta("model", "")).begins_with("pistol"):
 			var tip_z := w.mesh.get_aabb().position.z
 			# (a polearm's ribbon is its head and the end of the shaft, not the whole pole)

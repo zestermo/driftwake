@@ -2,7 +2,7 @@ extends PanelContainer
 ## Inspect (the player menu): another captain's name, level, fighting style and fruit, and what they carry:
 ## weapons, the ten worn slots, the quick item. Read only; the inventory's slots and item cards (hover a slot).
 
-const STYLES := {"fist": "Brawler", "sword": "Cutlass", "axe": "Axe", "katana": "Katana", "dagger": "Dagger", "polearm": "Polearm", "hammer": "Hammer", "greatsword": "Greatsword",
+const STYLES := {"fist": "Brawler", "black_leg": "Black Leg","sword": "Cutlass", "axe": "Axe", "katana": "Katana", "dagger": "Dagger", "polearm": "Polearm", "hammer": "Hammer", "greatsword": "Greatsword",
 	"dual_sword": "Twin blades", "dual_dagger": "Twin daggers", "dual_axe": "Twin axes", "sword_pistol": "Blade and pistol",
 	"pistol": "Pistol", "dual_pistol": "Twin pistols", "claw": "Beast claws"}
 const TIP_W := 150

@@ -152,6 +152,8 @@ var pole_planted := false
 var pole_calm := 0.0
 var pole_still := 0.0
 var pole_plant_w := 0.0
+## Black-leg's Nonchalance (BlackLegMoves): the guard is hands in the pockets (set by the player, synced to puppets).
+var kick_pockets := false
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
 ## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
@@ -799,6 +801,8 @@ func _guard() -> Dictionary:
 			return DaggerMoves.DUAL_GUARD
 		"dual_axe":
 			return DualAxeMoves.GUARD
+		"black_leg":
+			return BlackLegMoves.guard(self)
 		"fist":
 			return FIST_GUARD
 		"claw":
@@ -839,6 +843,7 @@ const STANCE_LEGS := {
 	"hammer": HammerMoves.LEGS,
 	"dual_axe": DualAxeMoves.LEGS,
 	"greatsword": GreatswordMoves.LEGS,
+	"black_leg": BlackLegMoves.LEGS,
 }
 
 
@@ -1143,8 +1148,9 @@ func _finish_action() -> void:
 	if n in SPIN_ACTIONS:
 		_cur["pivot"] = Vector3.ZERO
 	else:
-		# (a keyed full turn ends a turn round: the gait's smoothing would unwind it backwards)
+		# (a keyed full turn ends a turn round: the gait's smoothing would unwind it backwards; a walkover too)
 		_cur["pivot"].y = wrapf(_cur["pivot"].y, -PI, PI)
+		_cur["pivot"].x = wrapf(_cur["pivot"].x, -PI, PI)
 	_action = {}
 	action_finished.emit(n)
 
@@ -1366,6 +1372,8 @@ func _action_pose(n: String, u: float) -> Array:
 		var lab := AnimLab.pose(self, n, u)
 		if not lab.is_empty():
 			return lab
+	if n.begins_with("bl_") or (stance == "black_leg" and n in BlackLegMoves.OWN):
+		return BlackLegMoves.pose(self, n, u)
 	var lift := Vector3.ZERO
 	match n:
 		# --- cutlass: the wrist does the cutting - the blade cocks back in each
@@ -2824,6 +2832,8 @@ func _process(delta: float) -> void:
 		point_guns()
 	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0:
 		PoleMoves.hands(self, delta)
+	if stance == "black_leg":
+		BlackLegMoves.hands(self, delta)
 	_apply_smear()
 	_katana_hands()
 	_axe_hands()
@@ -3222,7 +3232,7 @@ func _keep_gaze(target: Dictionary) -> void:
 ## changes.
 func _foot_ik(delta: float) -> void:
 	var want := foot_ik and grounded and not swimming and not climbing and not seated and not at_helm and not kneeling and not manning \
-		and ragdoll == null and current_action() not in ["getup", "wake"] and is_inside_tree()
+		and ragdoll == null and current_action() not in ["getup", "wake"] and not (current_action() in BlackLegMoves.INVERTED) and is_inside_tree()
 	_ik_w = move_toward(_ik_w, 1.0 if want else 0.0, delta * 6.0)
 	if _ik_w <= 0.0:
 		_ik_h = Vector2.ZERO

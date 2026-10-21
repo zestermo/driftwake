@@ -18,6 +18,7 @@ extends PlayerState
 ## * greatsword (the charged cleave): held overhead charging, let go to bring it down; a full charge flings a
 ##   crescent of air down the line
 ## * fists: a flying kick
+## * black-leg (Guillotine Heel): the axe kick, the heel brought down from over the head through a guard
 ## * one pistol: a pistol-whip; two pistols: gun kata (a hop into a double
 ##   spin, arms crossed, shooting everyone close)
 ## * claws (Zoan hybrid): a pouncing maul
@@ -81,6 +82,12 @@ const STYLES := {
 		"damage": 30.0, "hitstop": 0.1, "shake": 0.22, "knockback": 10.0, "stagger": 0.8,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.8, "impact_fx": false, "reach": "great_cleave",
 		"color": Color(0.9, 0.96, 1.0), "tree": "greatsword", "great": true, "charge": true},
+	# black-leg (Guillotine Heel): a skip in, the leg swung straight up over the head and the heel brought down through
+	# them into the ground: through a guard, flat on their back
+	"axe_kick": {"anim": "bl_heavy", "impulse": 3.5,
+		"damage": 30.0, "hitstop": 0.12, "shake": 0.26, "knockback": 6.0, "stagger": 0.8,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.0, "impact_fx": false, "reach": "kick_axe",
+		"color": Color(1.0, 0.94, 0.86), "tree": "black_leg", "legs": true, "breaker": true},
 	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
 		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
@@ -177,6 +184,8 @@ func enter(data: Dictionary) -> void:
 			cfg = STYLES["frenzy"]
 		"fist":
 			cfg = STYLES["kick"]
+		"black_leg":
+			cfg = STYLES["axe_kick"]
 		"pistol":
 			cfg = STYLES["whip"]
 		"dual_pistol":
@@ -252,7 +261,10 @@ func physics_update(delta: float) -> void:
 	var sw := ActionSpecs.swoosh_seconds(str(cfg["anim"])) / _spd
 	if sw.x >= 0.0 and _t_all >= sw.x and not _swooshed:
 		_swooshed = true
-		Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, _trail_col(), _trail_col(true)])
+		if cfg.get("legs", false):
+			BlackLegArts.swoosh(player, str(cfg["anim"]), sw.y - sw.x, _trail_col())
+		else:
+			Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, _trail_col(), _trail_col(true)])
 	if _shot_t >= 0.0 and _t_all >= _shot_t and not _shot_done:
 		_shot_done = true
 		_powder_shot()
@@ -293,7 +305,7 @@ func physics_update(delta: float) -> void:
 				# (the whirlwind's first turn only staggers: the second knocks them flat;
 				# Powder Lunge's thrust holds them up for the shot)
 				var hit := _hit(not cfg.has("rehit") and not cfg.has("shot") and not cfg.has("chops") and not cfg.has("charge"))
-				hit.breaker = hit.breaker or cfg.has("quake")
+				hit.breaker = hit.breaker or cfg.has("quake") or cfg.get("breaker", false)
 				if cfg.has("charge"):
 					hit.damage *= float(CHARGE_DAMAGE[_level]) / float(cfg["damage"])
 					GreatswordArts.cleave_hit(player, hit, _level)
@@ -449,6 +461,9 @@ func _strike_fx(second: bool = false) -> void:
 	# (the hammer's is its shockwave, a moment later: HammerArts.quake)
 	if cfg["tree"] == "hammer":
 		return
+	if cfg["tree"] == "black_leg":
+		BlackLegArts.heel_fx(player)
+		return
 	if cfg["tree"] == "greatsword":
 		GreatswordArts.cleave_fx(player, _level)
 		return
@@ -543,7 +558,7 @@ func _hit(knockdown: bool, base: float = -1.0) -> HitData:
 	hit.knockback_force = float(cfg["knockback"])
 	hit.stagger_duration = float(cfg["stagger"])
 	hit.knockdown = knockdown
-	hit.sever = str(cfg.get("reach", "sword")) != "fist" and not cfg.get("kata", false)
+	hit.sever = str(cfg.get("reach", "sword")) != "fist" and not cfg.get("kata", false) and not cfg.get("legs", false)
 	return hit
 
 

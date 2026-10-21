@@ -638,6 +638,9 @@ func refresh() -> void:
 	_show_box.set_pressed_no_signal(eq != null and not pl.equipment.is_hidden(eq))
 	_show_box.queue_redraw()
 	_weapon_slot.show_item(pl.equipped_weapon, 1 if pl.equipped_weapon else 0, "", pl.armed and pl.equipped_weapon != null)
+	_weapon_slot.tag.text = "KICK" if pl.kicks else TAGS["weapon"]
+	_weapon_slot.tooltip_text = ("Black Leg: click for fists" if pl.kicks else "Fists: click for black-leg kicks") \
+		if pl.equipped_weapon == null and pl.knows_black_leg() else ""
 	_offhand_slot.show_item(pl.offhand_weapon, 1 if pl.offhand_weapon else 0, "", pl.armed and pl.offhand_weapon != null)
 	var qit := inv.quick_item()
 	_quick[0].show_item(qit, inv.count(inv.quick) if qit else 0, "E")
@@ -1028,10 +1031,17 @@ func _use(idx: int) -> void:
 		refresh()
 
 
-## Click a hand slot: back into the bag (the main hand: fight with your fists).
+## Click a hand slot: back into the bag (the main hand: fight with your fists). The empty main hand, once black-leg
+## is learned, switches fists and kicks.
 func _put_away(off: bool) -> void:
 	var pl := _player()
 	var it := pl.offhand_weapon if off else pl.equipped_weapon
+	if it == null and not off and pl.knows_black_leg():
+		pl.set_kicks(not pl.kicks)
+		menu._play("equip")
+		_flash("Black Leg: kicks, hands free" if pl.kicks else "Fists")
+		refresh()
+		return
 	if it == null:
 		return
 	if not pl.inventory_component.has_room():
@@ -1170,7 +1180,7 @@ func _fill_sheet() -> void:
 	_row("Health", "%d / %d" % [int(hc.current_health), int(hc.max_health)])
 	_row("Stamina", "%d" % int(pl.max_stamina))
 	var w := pl.equipped_weapon
-	_row("Weapon", w.display_name if w else "Fists")
+	_row("Weapon", w.display_name if w else ("Black Leg" if pl.kicks else "Fists"))
 	_row("Damage", "x%.2f" % pl.damage_multiplier())
 	_row("Defense", "%d" % int(pl.defense()), "Blocks %d%%" % int(round(pl.damage_reduction() * 100.0)))
 	_row("Speed", "%.1f m/s" % pl.move_speed, "Sprint %.1f" % pl.sprint_speed)

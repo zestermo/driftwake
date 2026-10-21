@@ -918,7 +918,7 @@ func _draw_loadout(body: Rect2) -> void:
 		if item:
 			draw_texture_rect(item.icon, ib, false)
 		draw_string(SILK, r.position + Vector2(32, 10), "LOADOUT %d%s" % [i + 1, " · IN HAND" if inhand else ""], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, col)
-		var nm := "Locked" if locked else (item.display_name if item else ("Fists" if not lo.is_empty() else "Empty"))
+		var nm := "Locked" if locked else (item.display_name if item else (("Black Leg" if lo[0] == Player.BLACK_LEG else "Fists") if not lo.is_empty() else "Empty"))
 		draw_string(_font, r.position + Vector2(32, 21), nm, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 12, SkillTreeDraw.TEXT_OFF if locked else UIStyle.CREAM)
 		draw_string(SILK, r.position + Vector2(32, 29), "WITH CAPTAIN LEVELS" if locked else ("MASTERY %d" % p.tree_level(t) if t != "" else ""), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 8, UIStyle.TEXT_DIM)
 	y += 38.0

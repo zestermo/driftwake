@@ -417,6 +417,11 @@ func _visible(tree: String) -> bool:
 	return found.has(tree)
 
 
+## A tree taught outright (black-leg, from its trainer): found now, with the HUD's card.
+func discover(tree: String) -> void:
+	_find(tree)
+
+
 func _find(tree: String) -> void:
 	if found.has(tree) or not SkillTrees.has_tree(tree) or SkillTrees.section_of(tree) == "fruit":
 		return

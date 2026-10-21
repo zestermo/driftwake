@@ -29,6 +29,8 @@ extends PlayerState
 ##   and it bleeds.
 ## * Knife Rain (two daggers): hang a beat, then a fistful of knives flung down at up
 ##   to four enemies below and ahead; every wound bleeds.
+## * Cyclone Heel (black-leg): turning flat like a top with a leg out on the way down, landing on one hand in a
+##   ring that knocks them flat (BlackLegArts.air_land).
 
 const HANG := 0.16
 const DIVE_SPEED := 22.0
@@ -127,7 +129,7 @@ const DIVE_TREE := {"meteor_kick": "unarmed", "boarding_dive": "sword", "fang_di
 
 ## Which: "" (the plain plunge), "rain", "air_slash", "skybreaker", "twin_cyclone",
 ## "meteor_kick", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain", "falling_spear",
-## "hammerfall", "buzzsaw", "falling_cleave".
+## "hammerfall", "buzzsaw", "falling_cleave", "cyclone_heel".
 var _mode := ""
 var phase: int = 0   # 0 hang/wind-up, 1 dive, 2 land, 3 off (bounced / vaulted / fired)
 var timer: float = 0.0
@@ -223,6 +225,13 @@ func enter(_data: Dictionary) -> void:
 			player.set_reach("great_cleave")
 			player.squash(2.5)
 			Net.fx("sfx", ["whoosh_big", player.global_position, -7.0, 0.06, 0.7])
+		"cyclone_heel":
+			player.variable_jump_active = false
+			player.velocity = Vector3(player.velocity.x * 0.3, SAW_LIFT, player.velocity.z * 0.3)
+			player.body_model.play("bl_air", 1.2)
+			player.set_reach("kick_spin")
+			player.squash(2.0)
+			Net.fx("sfx", ["whoosh", player.global_position, -7.0, 0.06, 1.0])
 		"buzzsaw":
 			player.variable_jump_active = false
 			player.velocity = Vector3(player.velocity.x * 0.3, SAW_LIFT, player.velocity.z * 0.3)
@@ -276,7 +285,8 @@ func physics_update(delta: float) -> void:
 	var spear := _mode == "falling_spear"
 	# (the greatsword's Falling Cleave drops like the hammer's: heaved up overhead, down hard)
 	var hammer := _mode in ["hammerfall", "falling_cleave"]
-	var saw := _mode == "buzzsaw"
+	# (black-leg's Cyclone Heel drops like the twin axes' Buzzsaw: turning, carried on ahead)
+	var saw := _mode in ["buzzsaw", "cyclone_heel"]
 	match phase:
 		0:
 			# brief hang at the top (the axe: rising through its somersault; the spear: raised, point down; the
@@ -298,6 +308,9 @@ func physics_update(delta: float) -> void:
 					Net.fx("blade_swoosh", [player.body_model, 0.3, _spear_col()])
 				elif hammer:
 					player.velocity = _dir * 2.0 + Vector3.DOWN * HAMMER_SPEED
+				elif _mode == "cyclone_heel":
+					player.velocity = _dir * SAW_AHEAD + Vector3.DOWN * SAW_SPEED
+					BlackLegArts.swoosh(player, "bl_air", 0.6, BlackLegArts.col(player, FX.EDGE, 2))
 				elif saw:
 					player.velocity = _dir * SAW_AHEAD + Vector3.DOWN * SAW_SPEED
 					Net.fx("blade_swoosh", [player.body_model, 0.6, DualAxeArts.col(player, FX.EDGE, 2), DualAxeArts.col(player, FX.ACCENT, 2)])
@@ -346,6 +359,9 @@ func _land() -> void:
 		return
 	if _mode == "buzzsaw":
 		_saw_land()
+		return
+	if _mode == "cyclone_heel":
+		BlackLegArts.air_land(player, player.sword_hitbox.hit_targets.duplicate(), RECOVER + 0.15)
 		return
 	if _mode == "falling_cleave":
 		GreatswordArts.fall_land(player, player.sword_hitbox.hit_targets.duplicate(), RECOVER + 0.15)

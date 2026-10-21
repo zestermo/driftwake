@@ -456,6 +456,7 @@ func _recalc_stats() -> void:
 	max_jumps = 1 + air
 	if body_model:
 		body_model.pole_plant_ok = pr != null and pr.has_flag("plant_polearm")
+		body_model.kick_pockets = pr != null and pr.has_flag("pockets_black_leg")
 	stamina_changed.emit(stamina, max_stamina)
 	stats_changed.emit()
 
@@ -1430,7 +1431,7 @@ func try_summon() -> String:
 
 
 ## Debug builds, Shift+F10: the new weapon kinds (1.21) and how many of each design go in the bag (axes in twos:
-## a pair for the twin axes). Each new kind adds its line.
+## a pair for the twin axes). Each new kind adds its line. It also teaches black-leg (no item: learned).
 const DEBUG_RACK := {"polearm": 1, "hammer": 1, "axe": 2, "greatsword": 1}
 
 
@@ -1520,7 +1521,8 @@ func _unhandled_input(event: InputEvent) -> void:
 						spill.append([SaveGame.item_ref(ItemDB.get_item(str(id))), n])
 			if not spill.is_empty():
 				Net.drop_items(spill, global_position - player_model.global_basis.z * 0.9)
-			_toast("Debug: the new weapon kinds' rack in your bag%s" % (" and at your feet" if not spill.is_empty() else ""))
+			learn_black_leg()
+			_toast("Debug: the new weapon kinds' rack in your bag%s, and black-leg learned (click the empty hand in the bag, I)" % (" and at your feet" if not spill.is_empty() else ""))
 		elif is_free():
 			knock_down(player_model.global_basis.z * 6.0 + Vector3.UP * 3.5)
 		get_viewport().set_input_as_handled()
@@ -1709,9 +1711,13 @@ const LOADOUTS := 3
 const LOADOUTS_FREE := 2
 signal loadout_changed
 var loadout_wheel
-## Each slot: [main hand id ("" = fists), off hand id ("" = none)], or [] never set up. The slot in
+## Each slot: [main hand id ("" = fists, BLACK_LEG = kicks), off hand id ("" = none)], or [] never set up. The slot in
 ## use (loadout_at) is whatever you put in your hands meanwhile (the bag, I).
 var loadouts: Array = [[], [], []]
+## The black-leg kick style is learned, not an item: an empty main hand fights with kicks instead of fists while
+## `kicks` is set (switched by clicking the empty hand slot in the bag, I; a loadout keeps it as BLACK_LEG).
+const BLACK_LEG := "black_leg"
+var kicks := false
 var loadout_at := 0
 var _loadout_quiet := false
 var _loadout_want := -1
@@ -1723,7 +1729,30 @@ func loadout_slots() -> int:
 
 
 func hands_slot() -> Array:
-	return [equipped_weapon.id if equipped_weapon else "", offhand_weapon.id if offhand_weapon else ""]
+	return [equipped_weapon.id if equipped_weapon else (BLACK_LEG if kicks else ""), offhand_weapon.id if offhand_weapon else ""]
+
+
+func knows_black_leg() -> bool:
+	return progression.found.has("black_leg")
+
+
+## Taught black-leg (its trainer, the debug rack): the tree shows, and empty hands take up the kicks.
+func learn_black_leg() -> void:
+	progression.discover("black_leg")
+	if equipped_weapon == null:
+		set_kicks(true)
+
+
+## Kicks (true) or fists with the main hand empty; only once black-leg is learned.
+func set_kicks(on: bool) -> void:
+	on = on and knows_black_leg()
+	if on == kicks:
+		return
+	kicks = on
+	weapon_changed.emit(equipped_weapon)
+	_loadout_note()
+	if armed and equipped_weapon == null and not hybrid:
+		body_model.play("fists_up", 0.22)
 
 
 func _loadout_note() -> void:
@@ -1734,6 +1763,8 @@ func _loadout_note() -> void:
 ## Is slot i's main weapon in the bag (or it's fists, or empty)?
 func loadout_carried(i: int) -> bool:
 	var l: Array = loadouts[i]
+	if not l.is_empty() and l[0] == BLACK_LEG:
+		return knows_black_leg()
 	return l.is_empty() or l[0] == "" or inventory_component.count(l[0]) > 0
 
 
@@ -1784,6 +1815,8 @@ func loadout_style(i: int) -> String:
 	var l: Array = loadouts[i]
 	if l.is_empty() or i >= loadout_slots():
 		return ""
+	if l[0] == BLACK_LEG:
+		return "black_leg" if knows_black_leg() else ""
 	if l[0] != "" and inventory_component.count(l[0]) <= 0:
 		return ""
 	var main: ItemData = ItemDB.get_item(l[0]) if l[0] != "" else null
@@ -1801,20 +1834,22 @@ func _apply_loadout(i: int) -> void:
 		_toast("Loadout %d set up: what's in your hands (change it in the bag, I)" % (i + 1))
 		loadout_changed.emit()
 		return
-	var main: ItemData = inventory_component.find_item(l[0]) if l[0] != "" else null
+	var legs: bool = l[0] == BLACK_LEG
+	var main: ItemData = inventory_component.find_item(l[0]) if l[0] != "" and not legs else null
 	var off: ItemData = inventory_component.find_item(l[1]) if l[1] != "" else null
 	_loadout_quiet = true
 	if main:
 		equip_weapon(main, false)
 	else:
+		kicks = legs and knows_black_leg()
 		unequip_weapon()
 	if off == null or not set_offhand(off):
 		set_offhand(null)
 	_loadout_quiet = false
-	if l[0] != "" and main == null:
+	if l[0] != "" and main == null and not legs:
 		_toast("Loadout %d: your %s isn't in your bag" % [i + 1, ItemDB.get_item(l[0]).display_name])
 	else:
-		_toast("Loadout %d: %s" % [i + 1, " + ".join(PackedStringArray([main.display_name if main else "Fists"] + ([offhand_weapon.display_name] if offhand_weapon else [])))])
+		_toast("Loadout %d: %s" % [i + 1, " + ".join(PackedStringArray([main.display_name if main else ("Black Leg" if kicks else "Fists")] + ([offhand_weapon.display_name] if offhand_weapon else [])))])
 	if armed and not hybrid:
 		body_model.play("draw" if main else "fists_up", 0.22)
 	Net.fx("sfx", ["clack", global_position + Vector3.UP, -10.0, 0.05, 1.3])
@@ -1837,6 +1872,7 @@ func equip_weapon(item: ItemData, draw: bool = true) -> void:
 	if item == null or not item.is_weapon():
 		return
 	equipped_weapon = item
+	kicks = false
 	_hands_changed()
 	body_model.set_weapon(Props.weapon_mesh(item.model()))
 	if offhand_weapon and not _offhand_valid(offhand_weapon):
@@ -1879,11 +1915,13 @@ func weapon_class() -> String:
 	return class_of(equipped_weapon)
 
 
-## Fighting style: fist, sword, axe, katana, dagger, dual_sword (two blades: sword +
-## sword, axe or dagger), dual_dagger (dagger + dagger), dual_axe (axe + axe), sword_pistol (a one-handed
-## blade and a pistol in the off hand), pistol, dual_pistol or claw.
+## Fighting style: fist, black_leg (empty hands with the kicks learned and chosen), sword, axe, katana, dagger,
+## dual_sword (two blades: sword + sword, axe or dagger), dual_dagger (dagger + dagger), dual_axe (axe + axe),
+## sword_pistol (a one-handed blade and a pistol in the off hand), pistol, dual_pistol or claw.
 func style() -> String:
-	return "claw" if hybrid else style_of(equipped_weapon, offhand_weapon)
+	if hybrid:
+		return "claw"
+	return "black_leg" if kicks and equipped_weapon == null else style_of(equipped_weapon, offhand_weapon)
 
 
 ## The fighting style a main and off hand make (a loadout's, without holding it).
@@ -2058,7 +2096,7 @@ func can_attack() -> bool:
 ## What each style's blows sound like on a body (HitData.impact); gunfire from a blade style sets "shot" itself.
 const IMPACT := {"fist": "punch", "claw": "slice", "sword": "slice", "katana": "slice", "dagger": "slice",
 	"dual_sword": "slice", "dual_dagger": "slice", "sword_pistol": "slice", "axe": "chop", "pistol": "shot", "dual_pistol": "shot", "polearm": "slice",
-	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy"}
+	"hammer": "punch_heavy", "dual_axe": "chop", "greatsword": "slice_heavy", "black_leg": "punch"}
 
 
 ## A melee hit for `base` damage with your bonuses (and Haki coating). `kind`
@@ -2123,6 +2161,12 @@ const REACH := {
 	"great_spin": [Vector3(5.4, 1.5, 5.4), Vector3(0.0, 0.2, 0.0)],
 	"great_cleave": [Vector3(1.9, 2.6, 3.4), Vector3(0.0, 0.1, -1.8)],
 	"great_low": [Vector3(4.2, 1.3, 3.2), Vector3(-0.2, 0.0, -1.5)],
+	# black-leg: a leg's reach (longer than a fist's, from the shin to the head), a kick round you (the handstand
+	# spin, the air spin), the axe kick's line, the running kick's long flight
+	"kick": [Vector3(1.8, 1.7, 1.7), Vector3(0.0, 0.0, -0.95)],
+	"kick_spin": [Vector3(4.0, 1.6, 4.0), Vector3(0.0, -0.1, 0.0)],
+	"kick_axe": [Vector3(1.6, 2.4, 2.3), Vector3(0.0, 0.0, -1.2)],
+	"kick_fly": [Vector3(1.8, 1.5, 2.4), Vector3(0.0, 0.1, -1.3)],
 }
 
 

@@ -17,6 +17,8 @@ extends PlayerState
 ##   greatsword  rising diagonal -> falling diagonal -> flat backhand (breaks a guard) -> a full turn (Gale Turn),
 ##               each out of the last one's follow-through, faster and harder as the momentum builds; at a sprint,
 ##               Running Cleave
+##   black_leg   low kick -> mid kick -> high kick -> down on the hands spinning (Handstand Spin); at a sprint,
+##               Arrow Kick
 ##   fist       jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
@@ -139,6 +141,21 @@ const STYLES := {
 		"damages": [17.0], "hitstops": [0.1], "shakes": [0.2],
 		"knocks": [11.0], "breakers": [true], "downs": [true],
 		"reach": "great_low", "color": Color(0.9, 0.96, 1.0), "breaker": true, "great": true},
+	# black-leg: kicks only, flowing low (the left leg at the knee) -> mid (the right at the ribs) -> high (the left at
+	# the head, a breaker) and (Handstand Spin) down on the hands, legs split, two turns that put everyone round you
+	# down; "legs": BlackLegArts shapes the hits and draws the legs' trails
+	"black_leg": {"anims": ["bl_1", "bl_2", "bl_3", "bl_4"], "trails": ["", "", "", ""],
+		"durations": [0.3, 0.34, 0.4, 0.95], "impulses": [3.5, 4.5, 4.0, 2.5],
+		"damages": [8.0, 11.0, 14.0, 22.0], "hitstops": [0.04, 0.055, 0.08, 0.1], "shakes": [0.06, 0.1, 0.14, 0.2],
+		"reach": "kick", "reaches": ["kick", "kick", "kick", "kick_spin"], "color": Color(1.0, 0.94, 0.86), "legs": true,
+		"winds": [[-0.35, 0.55, 0.5, false], [0.3, 0.95, -0.6, false], [-0.3, 1.45, 0.55, false], [0.0, 0.5, 0.0, true]]},
+	# black-leg, attacked at a sprint (Arrow Kick): launched side-on, the right leg shot straight out through them; it
+	# breaks a wind-up and throws them down
+	"bl_dash": {"anims": ["bl_rush"], "trails": [""],
+		"durations": [0.6], "impulses": [12.5],
+		"damages": [16.0], "hitstops": [0.08], "shakes": [0.18],
+		"reach": "kick_fly", "color": Color(1.0, 0.94, 0.86), "breaker": true, "trip": true, "legs": true,
+		"winds": [[0.0, 1.0, 0.0, true]]},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -157,7 +174,7 @@ const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], 
 ## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
 const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
 	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep", "hammer": "wrecking_spin",
-	"dual_axe": "reaping_whirl", "greatsword": "gale_turn"}
+	"dual_axe": "reaping_whirl", "greatsword": "gale_turn", "black_leg": "handstand_spin"}
 ## A greatsword blow chained straight out of the last one's follow-through: this much faster and harder per blow
 ## built (the second x1, the third x2, the turn x3).
 const MOMENTUM_SPEED := 0.07
@@ -198,7 +215,8 @@ var _mom := 0
 func enter(data: Dictionary) -> void:
 	var st := player.style()
 	if player.quick_draw:
-		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash", "dual_axe": "dx_dash", "greatsword": "gs_dash"}.get(st, "sword_dash")
+		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash", "dual_axe": "dx_dash", "greatsword": "gs_dash",
+			"black_leg": "bl_dash"}.get(st, "sword_dash")
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
@@ -267,7 +285,9 @@ func physics_update(delta: float) -> void:
 		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col()
 		var sl: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col(true)
 		# (the awakened katana's cloud is its trail: the thin line of light under it went)
-		if not cfg.get("drawn", false) or not KatanaFx.awake(player) or player.power.buff("coat"):
+		if cfg.get("legs", false):
+			BlackLegArts.swoosh(player, str(cfg["anims"][combo_index]), _swoosh.y - _swoosh.x, sc)
+		elif not cfg.get("drawn", false) or not KatanaFx.awake(player) or player.power.buff("coat"):
 			Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc, sl])
 		if cfg.get("drawn", false):
 			KatanaFx.slash(player, _swoosh.y - _swoosh.x, str(cfg["anims"][combo_index]) == "katana_stab")
@@ -286,7 +306,7 @@ func physics_update(delta: float) -> void:
 		hit.camera_shake_intensity = float(cfg["shakes"][combo_index]) * float(_off[2])
 		hit.knockback_force = (8.0 if last else 4.0) * float(_off[1])
 		hit.breaker = cfg.get("breaker", false)
-		hit.sever = str(cfg["reach"]) != "fist"
+		hit.sever = str(cfg["reach"]) != "fist" and not cfg.get("legs", false)
 		if cfg.has("bleeds") and float(cfg["bleeds"][combo_index]) > 0.0:
 			hit.set_meta("bleed", float(cfg["bleeds"][combo_index]))
 		# (the axe's finisher puts them on the ground)
@@ -307,6 +327,8 @@ func physics_update(delta: float) -> void:
 		# (the twin axes' whirl puts them down)
 		if cfg.get("pair", false) and str(cfg["anims"][combo_index]) == "dx_4":
 			hit.knockdown = true
+		if cfg.get("legs", false):
+			BlackLegArts.shape_hit(player, hit, str(cfg["anims"][combo_index]))
 		player.sword_hitbox.activate(hit)
 		if last and cfg.get("slam", false):
 			var fwd := -player.player_model.global_basis.z
@@ -344,6 +366,8 @@ func physics_update(delta: float) -> void:
 			Net.fx("dust_ring", [player.global_position, 8, 0.6])
 		if cfg.get("great", false):
 			GreatswordArts.swing_fx(player, _mom, last or cfg.get("breaker", false))
+		if cfg.get("legs", false):
+			BlackLegArts.kick_fx(player, str(cfg["anims"][combo_index]))
 
 	if _thud_t >= 0.0 and timer >= _thud_t:
 		_thud_t = -1.0

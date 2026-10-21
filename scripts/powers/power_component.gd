@@ -150,7 +150,8 @@ static func needs_text(sk: Dictionary) -> String:
 func loadout_styles() -> Array:
 	var out: Array = []
 	for i in range(Player.LOADOUTS):
-		out.append(Player.style_of(player.equipped_weapon, player.offhand_weapon) if i == player.loadout_at else player.loadout_style(i))
+		var hands := "black_leg" if player.kicks and player.equipped_weapon == null else Player.style_of(player.equipped_weapon, player.offhand_weapon)
+		out.append(hands if i == player.loadout_at else player.loadout_style(i))
 	return out
 
 
