@@ -16,7 +16,11 @@ Garp/Koby-style punching.
 | Nothing free | **Everything in a weapon tree costs Combat points**: moves, techniques, mechanics, passives, the element, the ultimate and the stat steps. Mastery level only unlocks the right to buy. **Replaces** "big nodes come by themselves" (progression_plan.md, Redesign) | Zach: no automatically levelling skills | Preview |
 | Adventure points | **One shared Adventure pool**, a point for each level any Adventure tree gains (sailing, swimming, cooking, fishing, acrobatics, defense, stealth, tinkering); spent in any Adventure tree, each node gated by its own tree's level, all of it bought like the weapon trees | Two point types in all | Preview |
 | Preview first | The progression agent's **first piece is a number table** (points per Captain level against the level curve, each weapon tree's node costs and mastery gates, what a level-20 and a level-40 captain can afford, the Adventure pool's flow) for Zach's OK **before any code** (CLAUDE.md "Feel systems get a preview first") | The 1.18 rework built from picked options felt wrong | — |
-| Old saves | **assumed:** every point spent under the old scheme refunded into the new pools once (owned nodes kept only if the migration can price them; otherwise refunded) | No progress lost | Preview |
+| Old saves | **Buy-back, then refund** (Zach, preview OK): the pools rebuilt from levels, what the save owned bought back in order (bar skills and slotted passives, then each tree's big nodes lowest gate first, most-used tree first, then steps) while the pool affords it; the rest refunded | No progress lost that the new pools can carry | — |
+| Combat pool size | **~25% under the preview's draft: 106 at Captain 40** (2 at level 1; 2/1 alternating to 10, 2 to 20, 3 to 30, 4 to 40). Prices unchanged | Zach: commit to one weapon | Play |
+| Respec | **Costs gold at the ship's bunk**: a tree's purchases back whole for 100 + 40 x Captain level gold, shown in the confirm | Stings, doesn't block | Play |
+| Adventure share | **~60% of all Adventure nodes buyable** at everything maxed (152 of 252), as previewed | Choices in Adventure too | Play |
+| Unanswered | **assumed:** fruit trees spend Combat points, their level-1 powers free with the fruit; a step needs the node it hangs on, the second element needs the first | Kept from the preview | Play |
 | Notifications | Fix the stale prompts (a "+N points (K)" or "points to spend" line when nothing is left to spend): one short line **only when the pool really has unspent points**; none for a tree's mastery level-up alone | Zach's report | — |
 | Skill menu | **Locked trees hidden entirely** (not in the tab strip or the tree list), so the unlocked weapons have room. Trees show **icons and names only**; descriptions, numbers, costs and gates go in **one detail panel on select**, and more in **hover tooltips/modals** wherever the info suits it | Zach: each page has too much to take in | Play |
 | New weapons' finish | Polearm, hammer, twin axes, greatsword, black-leg: **icons** for every technique; a **katana-pass polish** of their existing techniques (animation, timing, hit reliability, effects); **two new techniques each**, each pitched to Zach in one line before it's built | Zach: polish + new abilities | Play |
@@ -62,12 +66,13 @@ Garp/Koby-style punching.
 ### Combat points (one pool, from Captain levels)
 | Captain levels | Points each | Pool at the end of the band |
 |---|---|---|
-| 1 (a new captain) | 3 | 3 |
-| 2-10 | 2 | 21 |
-| 11-20 | 3 | 51 |
-| 21-30 | 4 | 91 |
-| 31-40 | 5 | **141** |
-Rising per level, because a level is the same length of play all the way and late nodes cost more.
+| 1 (a new captain) | 2 | 2 |
+| 2-10 | 2 on even levels, 1 on odd | 16 |
+| 11-20 | 2 | 36 |
+| 21-30 | 3 | 66 |
+| 31-40 | 4 | **106** |
+Rising per level, because a level is the same length of play all the way and late nodes cost more. (Zach's OK,
+2026-10-21: about 25% under the first draft's 141, prices unchanged, so a captain commits to one weapon.)
 
 **Prices (derived, so other blocks need no numbers):** `price = BASE[kind] + gate level / 10` (integer division).
 BASE in a weapon (or fruit) tree: move 2, mech 2, tech 3, passive 3, variant 4 (both versions), element 5, ultimate 8;
@@ -124,11 +129,11 @@ The root (the basics) stays free.
 **What a captain can afford** (katana as the main weapon; any tree reads the same, they're 81-94 each):
 | Captain | Pool | Main weapon's mastery (est.) | One way to spend it | Another |
 |---|---|---|---|---|
-| 10 | 21 | ~16 | The katana's whole early kit to mastery 10 (Quick Draw, Cut the Shot, Wind Severer, Full Draw, Crescent Arc, Iai Counter, Tiger Rush = 18) + 3 steps | Cutlass's first four (9) + pistol's first four (10) + 2 steps |
-| 20 | 51 | ~28 | Every katana big node to 22 (46) + 5 steps | Katana to 16 (37) + the cutlass's first four (9) + 5 steps |
-| 30 | 91 | 30 | The katana all but 3 steps (one tree full) | Katana's big nodes (64) + pistol's to 10 (18) + 9 steps |
-| 40 | 141 | 30 | **One tree full (94) + about half another** (e.g. the pistol's big nodes to 16, 35, + 12 steps) | **Two trees' every big node** (64 + 62) + 15 steps |
-Nobody owns everything; a second weapon is a real choice from about level 20, a third is a dabble.
+| 10 | 16 | ~16 | The katana's early kit to mastery 8 (Quick Draw, Cut the Shot, Wind Severer, Full Draw, Crescent Arc, Iai Counter = 14) + 2 steps | The cutlass's first four (9) + the pistol's first two (4) + 3 steps |
+| 20 | 36 | ~28 | Every katana big node to 14 (31) + 5 steps | Katana to 10 (18) + the cutlass's first four (9) + 9 steps |
+| 30 | 66 | 30 | Every katana big node (64) + 2 steps | The katana's big nodes to 22 (46) + 20 steps |
+| 40 | 106 | 30 | **One tree full (94)** + a second tree's first four nodes (10) + 2 steps | Every katana big node (64) + the pistol's to 11 (22) + 20 steps |
+One weapon, mastered over the whole game; a second is a dabble.
 
 ### Adventure points (one pool, from Adventure levels)
 - **A point for each level any Adventure tree gains** (Acrobatics 1 -> 2 is a point). Eight trees x 19 = 152 at
@@ -153,7 +158,7 @@ Nobody owns everything; a second weapon is a real choice from about level 20, a 
 - All of Adventure costs 252 against 152 at everything maxed: about 60%. **Option** if that's too tight: Adventure
   steps x5 become x3 (all of it ~190).
 
-### Fruit trees (**assumed**)
+### Fruit trees (**assumed**, not answered)
 The fruit's level-1 powers (Fire Fist + Blazing Ring, Rending Fang + Pounce, Vine Snare + Vine Swing) come with eating
 it, like a weapon's root basics; the rest is bought with **Combat** points at the weapon prices, gated by the fruit's
 level (Ember 41 for the rest, Wolf 28, Vine 28).
@@ -162,23 +167,22 @@ level (Ember 41 for the rest, Wolf 28, Vine 28).
 Talents (picked every 5 levels), milestones (Soru 8, third loadout 10, Tekkai 14, fourth slot 25) and Will stay as
 they are; the per-level growth stays. The Captain tree's only change is that its levels feed the Combat pool.
 
-### Respec (**assumed**)
-At the ship's bunk, a tree's purchases come back whole into their pool, free (today only steps can). With a shared
-pool this is what makes trying a second weapon safe.
+### Respec (Zach, 2026-10-21: it costs gold)
+At the ship's bunk, a tree's purchases come back whole into their pool for **100 + 40 x Captain level gold** (500 at
+10, 900 at 20, 1,700 at 40: about half to two-thirds of the gold a level of fighting brings in; tune in play). The
+confirm shows the price; versions and talents still switch free there.
 
 ### Old saves (format 5 -> 6)
 Kept: Captain level and xp, every mastery and Adventure level, uses and tiers, talents, Will, versions picked.
 The pools are rebuilt from levels (Combat from the Captain level, Adventure from every Adventure level). What the save
 owns (all of which came free by level, and the per-tree steps) is then **bought back for the player, in order, while
-the pool affords it**: (1) the skills on the bar and the slotted passives, (2) the rest of the weapon in hand's tree
-and the Adventure trees' big nodes, lowest gate first, (3) other trees' big nodes, lowest gate first, (4) steps.
-What doesn't fit is refunded (left unbought, buyable later). One banner on load: "The skill trees are new: N Combat and
-M Adventure points to spend (K)", only if something is left to spend.
-- Example: Captain 18 (45 Combat points), katana 24, cutlass 12, both trees' steps bought. Kept: the katana's big nodes
-  to 20 (41; Empty Mind at 22 doesn't fit), then the 4 left buy back the cutlass's Running Cut and Arrow Cutting. The
-  rest of the cutlass and every step are refunded (buyable again as the pool grows).
-- **Option** instead: keep everything owned and let the pool start in debt (new points pay it off before any is
-  free). Nothing ever disappears, but the menu shows a negative pool for a while.
+the pool affords it**: (1) the skills on the bar and the slotted passives, (2) each tree's big nodes, lowest gate
+first, the trees in order of their level (the most-used weapon first), (3) steps. What doesn't fit is refunded (left
+unbought, buyable later). One banner on load: "The skill trees are new: N Combat and M Adventure points to spend
+(K)", only if something is left to spend. (Zach picked this over starting in debt.)
+- Example: Captain 18 (32 Combat points), katana 24, cutlass 12, both trees' steps bought. Kept: the katana's big
+  nodes to 14 (31; Tiger Rush and Iai Counter first if they're on the bar), then the 1 left buys back a step. The
+  rest of the katana, the cutlass and the steps are refunded (buyable again as the pool grows).
 
 ### The menu, slimmed (mock)
 ```

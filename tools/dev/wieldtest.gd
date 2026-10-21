@@ -184,7 +184,7 @@ func _process(d: float) -> bool:
 					ults += 1 if SkillTree.nodes()[k]["kind"] == "ult" else 0
 			check("the Corsair tree has 13-19 big nodes and one ultimate (%d)" % n, n >= 13 and n <= 19 and ults == 1)
 			check("no element at first", not pr.elemental("corsair"))
-			check("Black Powder comes at Corsair 16, Powder Keg at 25 (%s)" % pr.can_learn("cs_elem"), pr.can_learn("cs_elem") == "Comes at Corsair 16" and pr.can_learn("cs_elem2") == "Comes at Corsair 25")
+			check("Black Powder needs Corsair 16, Powder Keg 25 (%s)" % pr.can_learn("cs_elem"), pr.can_learn("cs_elem") == "Needs Corsair 16" and pr.can_learn("cs_elem2") == "Needs Corsair 25")
 			# (owned by hand: levelling the Corsair would bring Powder Finale before the combo checks below)
 			pr.owned["cs_elem"] = true
 			check("Black Powder wakes the element on its skills", pr.elemental("corsair") and not pr.elemental("corsair", 2))

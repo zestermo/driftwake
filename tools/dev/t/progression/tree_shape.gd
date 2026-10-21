@@ -1,7 +1,7 @@
 extends SceneTree
 ## The redesigned trees' shape (SkillTrees): every section's trees have a header, a converted tree has a root and
 ## three branches, big nodes at levels 1..its top (an ultimate at the top for a weapon), links real and on its own
-## tree, steps adding up to about the points its levels give, versions with a level each, no two nodes on one spot;
+## tree, every node past the root priced (but the Captain's), versions with a level each, no two nodes on one spot;
 ## and across both registries every active skill is still taught and the 19 older unlockable moves are still on a tree.
 const TK := preload("res://tools/dev/test_kit.gd")
 var STS
@@ -54,8 +54,9 @@ func shape(t: String) -> void:
 			spots[spot] = k
 	check("%s: a root and three branches" % t, STS.node_def(td["root"]).get("kind", "") == "root" and td["branches"].size() == 3)
 	check("%s: links real, levels in 1..%d, steps of 3 or 5, versions real, no stacked spots %s" % [t, top, str(bad)], bad.is_empty())
-	if t != "captain":
-		check("%s: the steps take about all the points (%d steps, %d points)" % [t, steps, top - 1], steps >= top - 1 and steps <= top + 3)
+	if STS.pool_of(t) != "":
+		var free: Array = STS.nodes_of(t).filter(func(k): return not (STS.node_def(k)["kind"] in ["root", "version"]) and STS.price(k) <= 0)
+		check("%s: every node past the root has a price %s (%d steps)" % [t, str(free), steps], free.is_empty())
 	if STS.section_of(t) == "combat":
 		check("%s: one ultimate, at the top" % t, ults == 1 and STS.nodes_of(t).any(func(k): return STS.node_def(k)["kind"] == "ult" and int(STS.node_def(k)["level"]) == top))
 

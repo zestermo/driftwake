@@ -58,13 +58,15 @@ func _process(_d: float) -> bool:
 			mastery(pr, "sea", 9)
 			mastery(pr, "acrobatics", 8)
 			mastery(pr, "defense", 5)
-			for k in ["k_keen", "k_keen", "k_keen", "k_keen", "k_keen", "k_nerves", "k_deep", "k_deep", "k_deep", "k_feet", "k_feet"]:
-				pr.buy_step(k)
+			for k in ["k_draw", "k_deflect", "k_wind", "k_full", "k_arc", "k_counter", "k_tiger", "k_keen", "k_nerves",
+					"m_geppo", "m_sprinter", "m_swift", "ac_bound", "ac_light", "sea_hand", "sea_gunner", "f_helm", "sw_strokes", "sw_lungs",
+					"df_clean", "df_brace", "v_steadfast"]:
+				pr.buy(k)
 			p.power.eat("vine")
 			p.loadouts[0] = ["katana", ""]
 			p.loadouts[1] = ["pistol", ""]
 			p.inventory_component.add_item(ItemDB.get_item("pistol"), 1)
-			for s in [["wind_sever", 0], ["tiger_rush", 1], ["phantom_step", 2]]:
+			for s in [["wind_sever", 0], ["tiger_rush", 1], ["iai_counter", 2]]:
 				p.power.equip(s[0], s[1])
 			pr.equip_passive("k_clean", 0)
 			pr.grant_will("h_arm")

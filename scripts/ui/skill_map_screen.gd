@@ -319,18 +319,12 @@ func _act(id: String) -> void:
 	if id.begins_with("n:"):
 		var nid := id.substr(2)
 		var n := SkillTrees.node_def(nid)
-		match str(n["kind"]):
-			"step":
-				if p.buy_step(nid):
-					menu._play("coin")
-					_say("%s %d/%d" % [n["name"], p.steps_of(nid), int(n["max_steps"])])
-				else:
-					_deny(p.step_why(nid))
-			"variant", "talent":
-				_act_split(nid, (maxi(p.version_of(nid), 0) + (1 if p.version_of(nid) >= 0 else 0)) % n["versions"].size())
-			_:
-				if str(n["skill"]) != "" and p.knows(str(n["skill"])):
-					_say("1-5 or R puts it on the bar")
+		if n["kind"] == "talent" or (n["kind"] == "variant" and p.owns(nid)):
+			_act_split(nid, (maxi(p.version_of(nid), 0) + (1 if p.version_of(nid) >= 0 else 0)) % n["versions"].size())
+		elif n["kind"] == "step" or not p.owns(nid):
+			_buy(nid)
+		elif str(n["skill"]) != "" and p.knows(str(n["skill"])):
+			_say("1-5 or R puts it on the bar")
 	elif id.begins_with("w:"):
 		var t := id.substr(2)
 		if tab == "combat":
@@ -350,6 +344,17 @@ func _act(id: String) -> void:
 			equip_skill(lid, PowerComponent.ULT if Skills.is_ult(lid) else (free if free >= 0 else PowerComponent.KEYS[0]))
 	elif id.begins_with("bar:") or id.begins_with("pas:"):
 		_say("Pick something in the library, then its key")
+
+
+func _buy(nid: String) -> void:
+	var p := _pr()
+	var n := SkillTrees.node_def(nid)
+	var why := p.buy_why(nid)
+	if not p.buy(nid):
+		_deny(why)
+		return
+	menu._play("coin")
+	_say("%s %d/%d" % [n["name"], p.steps_of(nid), int(n["max_steps"])] if n["kind"] == "step" else "%s is yours" % n["name"])
 
 
 ## Make version `i` of a variant (or talent) the active one.

@@ -10,8 +10,8 @@ extends Control
 ##   that drains after a hit, and the number.
 ## * Energy orb (right): energy for skills (blue; your Devil Fruit's color
 ##   once you've eaten one).
-## * Level badge and experience bar along the bottom of the plate; the weapon
-##   in hand's unspent points pulse next to the level.
+## * Level badge and experience bar along the bottom of the plate; a pool's
+##   points pulse next to the level while something can be bought with them.
 ## * Stamina: a thin bar across the top of the plate (amber when spent, flashes
 ##   red when an action is refused).
 ## * Skills 1-5: icon, key, energy cost, cooldown sweep + seconds, dimmed when
@@ -409,7 +409,7 @@ func _draw_item(r: Rect2) -> void:
 
 
 ## Level badge (over the health orb) and the experience bar along the bottom
-## of the plate; the weapon in hand's unspent points pulse beside the level.
+## of the plate; a pool's points pulse beside the level while they can buy something.
 func _draw_xp() -> void:
 	var pr := player.progression
 	if pr == null:
@@ -424,11 +424,11 @@ func _draw_xp() -> void:
 	draw_circle(badge, 8.0, UIStyle.BG_DARK)
 	draw_arc(badge, 8.0, 0.0, TAU, 20, UIStyle.BORDER, 1.0)
 	_text(badge + Vector2(-10.0, 3.0), str(pr.level), UIStyle.ACCENT, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
-	var mt := pr.hand_tree()
-	var mp := pr.points_free(mt) if mt != "" else 0
-	if mp > 0:
+	var spend: Array = ["combat", "adventure"].filter(func(p): return pr.can_spend(p))
+	if not spend.is_empty():
 		var a := 0.6 + 0.4 * sin(_t * 5.0)
-		_text(badge + Vector2(11.0, 3.0), "+%d %s [K]" % [mp, Progression.tree_name(mt).to_upper()], Color(0.75, 0.95, 0.55, a))
+		var line: String = " ".join(spend.map(func(p): return "+%d %s" % [pr.pool(p), Progression.pool_name(p).to_upper()]))
+		_text(badge + Vector2(11.0, 3.0), line + " [K]", Color(0.75, 0.95, 0.55, a))
 
 
 ## Pistols: loaded shots per gun over the middle of the plate.

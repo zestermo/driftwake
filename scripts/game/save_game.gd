@@ -322,9 +322,9 @@ static func load_into(player: Player) -> bool:
 		dm._talked = (data.get("talked", {}) as Dictionary).duplicate()
 	Story.from_dict(data.get("story", {}))
 	Journal.tracked = str(data.get("tracked", "story"))
-	# progression first (the skill map decides stats and what's on the bar)
-	player.progression.from_dict(data.get("progression", {}))
+	# the bar and the fruit first (an older save's skills on the bar are bought back first), then progression
 	player.power.from_dict(data.get("power", {}))
+	player.progression.from_dict(data.get("progression", {}))
 	player.progression.after_load()
 	# inventory, gear, weapons
 	var inv := player.inventory_component

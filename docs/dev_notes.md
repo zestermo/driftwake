@@ -5245,3 +5245,29 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   recover and step mirror through Humanoid's net events like a knockdown. Per tick: one clamp loop over the 11
   ragdoll parts while a tumble is down, a ground ray in Fall only once past 3.5 s. Tests: t/player/freefall_tumble,
   freefall_reset.
+## 2026-10-21: the two points pools (1.18.4 batch, points rework piece 2)
+- What: every node past a root is **bought**. Combat points (`Progression.combat_earned`: 2, then 2/1 alternating to
+  Captain 10 = 16, 2 a level to 20 = 36, 3 to 30 = 66, 4 to 40 = 106) buy any weapon tree's nodes and the eaten fruit's
+  (its level-1 powers still come free); Adventure points (a point a level any Adventure tree gains) buy Adventure nodes.
+  A tree's level only gates (`buy_why`: "Needs Katana 12", a step needs the node it hangs on, the second element the
+  first, "Needs 5 Combat points"). Prices: `SkillTrees.price` = PRICE / PRICE_ADVENTURE by kind + gate / 10, a step 1,
+  or a node's own `"cost"` (so the movement/fists blocks add nodes with no price edits). The Captain's nodes (milestones,
+  talents, Will) are unchanged. Numbers and why: docs/v1_18_4_plan.md "Preview: the numbers" (Zach's OK).
+- Where: progression.gd (`bought`, `earned/spent/pool`, `buy/buy_why`, `can_spend` remembered per `_rev`, `respec_tree`
+  for 100 + 40 x level gold at the bunk, `gift` for tests and tools, `master_all` buys everything and gifts the points);
+  skill_trees.gd (`pool_of`, `price`); save_game.gd loads the power component **before** progression now (the bar
+  decides what a migrated save buys back first).
+- Saves: format 6 stores `bought`. Every load buys the saved purchases back in order (bar skills and slotted passives,
+  then each tree's big nodes lowest gate first, the highest-level tree first, then steps) while the pool affords them;
+  a format-5 save's owned big nodes go through the same path, so what doesn't fit is refunded. One banner after a
+  migration, only if a pool can buy something.
+- The stale prompts: the mastery toast said "+N points (K)" from the levels gained on every tree's level-up (Adventure
+  trees level from jumps and dodges), and the HUD pulsed the hand weapon's own points forever. Now the mastery toast
+  names what the level opens; "N Adventure/Combat points (K)" is added only to a level-up that earned points and only
+  while that pool can buy something (`can_spend`); the skill bar's pulse uses the same test.
+- Per frame: the skill bar asks `can_spend` (remembered until `_rev` changes; a recompute walks the found trees' nodes
+  once) and, while it's true, `pool()` (a walk over the bought nodes and steps, under 100 entries).
+- Tests: t/progression gate_and_buy, pools, prompts, buy_back (new or rewritten), versions_bunk (gold respec),
+  refund_migration, acrobatics, stealth, life_mastery, passive_slots, tree_shape (every node priced); t/ship/seamanship;
+  t/ui skills_loadout, skills_version_bunk. Suites edited, not run (prepush): progtest, balancetest, daggertest,
+  wieldtest, powertest; renders skillmapshot and seamapshot buy their nodes.
