@@ -121,15 +121,9 @@ func _process(d: float) -> bool:
 			check("the prompt has its key cap", fits(hud.interact_panel) and (hud._interact_key.get_child(0) as Label).text == "F")
 			hud.hide_boss()
 			var w = p.emote_wheel
-			w._k = 1.0
-			w._root.visible = true
-			w._layout()
-			var inside := crisp(w._canvas)
-			for c in w._plates + [w._root.get_node("Centre")]:
-				inside = inside and fits(c)
-			check("the emote wheel's planks are on a crisp canvas, inside it", inside)
-			w._k = 0.0
-			w._root.visible = false
+			w.entries = w._list()
+			var ro: float = w._mid_r() + 30.0
+			check("the emote wheel is on a crisp canvas, its ring inside it", crisp(w._canvas) and ro * 2.0 <= minf(w._root.size.x, w._root.size.y))
 			p.open_creator(false)
 			until = TK.wait_ticks(10)
 			step = 8
