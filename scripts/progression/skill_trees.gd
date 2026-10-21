@@ -5,10 +5,12 @@ extends RefCounted
 ##   combat     a tree per weapon (mastery 1-30, earned only with that weapon in hand)
 ##   adventure  Acrobatics, Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
 ##   fruit      the Driftfruit you ate (levels 1-20)
-## A tree grows up from its root in three branches. Big nodes (moves, techniques, mechanics, passives, the element,
-## the ultimate) come by themselves at their level; small stat "steps" (x/3, x/5) are bought with the tree's points
-## (one a level) in any order. A variant is two versions of one node: both owned once reached, one active (switched
-## at the ship's bunk). Progression reads the effects (same keys as SkillTree's, so the game's readers don't change).
+## A tree grows up from its root in three branches. Every node past the root is bought (1.18.4, docs/v1_18_4_plan.md):
+## weapon and fruit trees from the Combat pool (Captain levels), Adventure trees from the Adventure pool (their levels);
+## the tree's level only gates it (price: PRICE by kind, or a node's own "cost"). Small stat "steps" (x/3, x/5) are
+## bought a step at a time. A variant is two versions of one node: both owned once bought, one active (switched at the
+## ship's bunk). The Captain's nodes and a fruit's level-1 powers still come by themselves. Progression reads the
+## effects (same keys as SkillTree's, so the game's readers don't change).
 ##
 ## tree_def: {id, name, section, color, max_level, root, branches: [{name, nodes: [ids, big nodes then steps]}]}
 ## node_def: {id, name, kind, tree, branch (index, -1 the root), level, pos (tree space, y up is -), links, skill,
@@ -79,6 +81,10 @@ const GROWTH := {"max_hp": 5.5, "damage_pct": 0.02, "max_stamina": 0.6, "max_ene
 const WILL := {"h_arm": ["morrow", []], "h_coat": ["ape", ["h_arm"]], "h_obs": ["queen", ["h_arm"]], "h_fore": ["arena", ["h_arm"]],
 	"h_conq": ["sea_king", ["h_arm", "h_coat", "h_obs", "h_fore"]]}
 
+## A node's price by kind, plus a point for every 10 levels of its gate (a step: 1 a step); Adventure's are cheaper.
+const PRICE := {"move": 2, "mech": 2, "tech": 3, "passive": 3, "variant": 4, "elem": 5, "ult": 8}
+const PRICE_ADVENTURE := {"move": 1, "mech": 1, "tech": 2, "passive": 2, "variant": 2, "elem": 3, "ult": 4}
+
 static var _trees: Dictionary = {}
 static var _nodes: Dictionary = {}
 static var _t: String = ""
@@ -124,6 +130,29 @@ static func section_of(tree: String) -> String:
 
 static func max_level(tree: String) -> int:
 	return int(HEADERS[tree][3])
+
+
+## The points a tree's nodes are bought with: "combat" (weapons and the fruit), "adventure", "" (the Captain).
+static func pool_of(tree: String) -> String:
+	match section_of(tree):
+		"combat", "fruit":
+			return "combat"
+		"adventure":
+			return "adventure"
+	return ""
+
+
+## A node's price in its pool's points (a step's is per step); 0 for one that isn't bought.
+static func price(id: String) -> int:
+	var n := node_def(id)
+	if n.has("cost"):
+		return int(n["cost"])
+	if n["kind"] == "step":
+		return 1
+	var base: Dictionary = PRICE_ADVENTURE if section_of(str(n["tree"])) == "adventure" else PRICE
+	if not base.has(n["kind"]) or pool_of(str(n["tree"])) == "":
+		return 0
+	return int(base[n["kind"]]) + int(n["level"]) / 10
 
 
 ## Every node of a tree (root, big nodes, steps, versions).
