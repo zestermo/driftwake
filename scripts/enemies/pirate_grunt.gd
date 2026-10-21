@@ -1888,9 +1888,9 @@ func vine_weight() -> String:
 	return "light"
 
 
-## Vine grapple: reeled in to land just in front of `to`.
-func vine_yank(to: Vector3, dmg: float = 4.0) -> void:
-	if Net.forward(self, "vine_yank", [to, dmg]):
+## Vine grapple: reeled in to land just in front of `to` (`wrap` false: hauled in by an axe's hook, no vines).
+func vine_yank(to: Vector3, dmg: float = 4.0, wrap: bool = true) -> void:
+	if Net.forward(self, "vine_yank", [to, dmg, wrap]):
 		return
 	if state in [S.DEAD, S.DOWN, S.GETUP, S.SWIM]:
 		return
@@ -1907,7 +1907,8 @@ func vine_yank(to: Vector3, dmg: float = 4.0) -> void:
 	humanoid.react("stagger", _stagger_len, d)
 	_set_state(S.STAGGER)
 	health.take_damage(dmg)
-	Net.fx("vine_wrap", [self, secs + 0.3, 0.32])
+	if wrap:
+		Net.fx("vine_wrap", [self, secs + 0.3, 0.32])
 
 
 func rooted(secs: float) -> void:

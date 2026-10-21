@@ -38,7 +38,8 @@ class_name ActionSpecs
 
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
 const PARRIES := {"dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
-	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"]}
+	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
+	"dual_axe": ["dx_parry", "dx_deflect"]}
 
 const SPECS := {
 	# --- cutlass ---
@@ -213,7 +214,16 @@ const SPECS := {
 	"dx_4": {"len": 0.8, "hit": [0.2, 0.78], "chain": 0.62, "swoosh": [0.2, 0.8], "sharp": 50.0,
 		"stance": "dual_axe", "weapon": "axe", "extras": {"dual": true, "after": "dx_3"}},
 	"dx_heavy": {"len": 1.15, "hit": [0.2, 0.84], "swoosh": [0.18, 0.86], "sharp": 50.0, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_rush": {"len": 0.72, "hit": [0.36, 0.56], "swoosh": [0.36, 0.56], "sharp": 50.0, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_dive": {"len": 1.2, "hit": [0.1, 0.95], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true, "grounded": false}},
+	"dx_land": {"len": 0.52, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_parry": {"len": 0.66, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_deflect": {"len": 0.45, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
 	"dx_block": {"len": 0.24, "hold": true, "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_gallows": {"len": 0.9, "hit": [0.53, 0.6], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_frenzy": {"len": 1.2, "hit": [0.08, 0.82], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_storm": {"len": 1.8, "hit": [0.18, 0.92], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_winter": {"len": 2.6, "hit": [0.25, 0.78], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
 	# --- unarmed ---
 	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
 	"jab": {"len": 0.34, "hit": [0.21, 0.5], "stance": "fist", "weapon": ""},

@@ -29,6 +29,7 @@ const HEADERS := {
 	"dual_dagger": ["Twin Daggers", "combat", Color(0.6, 1.0, 0.45), 30],
 	"polearm": ["Polearm", "combat", Color(1.0, 0.9, 0.4), 30],
 	"hammer": ["Hammer", "combat", Color(0.88, 0.74, 0.54), 30],
+	"dual_axe": ["Twin Axes", "combat", Color(0.8, 0.88, 1.0), 30],
 	"corsair": ["Corsair", "combat", Color(1.0, 0.5, 0.42), 30],
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
@@ -63,6 +64,7 @@ const ELEMENTS := {
 	"dual_dagger": ["dd", "Viper's Kiss", "Serpent's Coil", "venom: green motes and poison bubbling off every wound"],
 	"polearm": ["pl", "Rolling Thunder", "Storm Bearer", "lightning: bolts crackling off the head and a thunderclap on the big blows"],
 	"hammer": ["hm", "Rumbling Earth", "Mountain's Weight", "earth: rock thrown up off every blow, the shockwaves in sandstone and stone spikes heaving up out of the ground"],
+	"dual_axe": ["dx", "Hoarfrost", "Winter's Bite", "frost: rime and ice chips cracking off every chop, a cold mist, and Fimbulwinter heaves ice up out of the ground under your foes"],
 	"pistol": ["g", "Golden Powder", "Gilded Gun", "gold flashes and powder smoke"],
 	"unarmed": ["u", "Rushing Wind", "Gale Fists", "rushing wind and rings of air"],
 }
@@ -160,6 +162,7 @@ static func _build() -> void:
 	_build_dual_dagger()
 	_build_polearm()
 	_build_hammer()
+	_build_dual_axe()
 	_build_corsair()
 	_build_pistol()
 	_build_unarmed()
@@ -698,6 +701,44 @@ static func _build_hammer() -> void:
 	_step("hm_overhead", "Overhead", "hm_rush", 3, {"heavy_hammer": 0.08}, "Your Earthquake (right-click) hits 8% harder a step.")
 	_step("hm_flow", "Flow", "hm_quakes", 3, {"flow_hammer": 0.15}, "Hammer hits give 15% more energy a step.")
 	_step("hm_recover", "Recovery", "hm_after", 3, {"cdr_hammer": 0.05}, "Hammer techniques come back 5% sooner a step.")
+
+
+## Twin axes (an axe in each hand, any two designs): a berserker's rhythm of chops, hooks that haul them in, frost as
+## the element.
+static func _build_dual_axe() -> void:
+	_tree("dual_axe", ["Hook", "Frenzy", "Reaver"])
+	_root("dx_root", "Twin Axes", {},
+		"An axe in each hand: quick chops trading hands, a hook on the third that hauls them in, and on right-click a frenzy of chops ending in both crashed down crossed. A parry catches the blow in the crossed axes and hooks them in a step. Fight with two axes in hand to build its mastery.")
+	_big("dx_deflect", "Hooked Guard", "mech", 0, 3, {"parryshot_dual_axe": 1, "parry_dual_axe": 0.06},
+		"Parry with two axes and you knock gunshots aside with the heads too (without it, a parry only stops blades), and your parry window is wider.")
+	_big("dx_gallows", "Gallows Hook", "tech", 0, 8, {}, "", "gallows_hook")
+	_big("dx_rage", "Bloodrage", "mech", 0, 20, {"armor_dual_axe": 1, "def_dual_axe": 4.0},
+		"Mid-swing with twin axes, blows don't make you flinch or knock you off your feet, and you have 4 more defense with them in hand.")
+	_big("dx_frenzy", "Hewing Frenzy", "tech", 1, 5, {}, "", "hewing_frenzy")
+	_big("dx_storm", "Axestorm", "tech", 1, 10, {}, "", "axestorm")
+	_elem(1)
+	_elem(2)
+	_big("dx_winter", "Fimbulwinter", "ult", 1, 30, {}, "", "fimbulwinter")
+	_big("dx_whirl", "Reaping Whirl", "move", 2, 2, {"mv_reaping_whirl": 1},
+		"Adds a fourth blow to your combo: both axes flung out level and two turns behind them. It hits everyone about you and puts them on the ground.")
+	_big("dx_leap", "Raider's Leap", "move", 2, 4, {"mv_raiders_leap": 1},
+		"Attack at a sprint: leap with both axes raised and crash them down crossed into the one in front. It breaks their wind-up and throws them down.")
+	_big("dx_saw", "Buzzsaw", "move", 2, 6, {"mv_buzzsaw": 1},
+		"Attack in the air: tuck up with both axes out and drop turning over and over like a saw blade, cutting everything under you, then bite both into the ground in a ring that knocks them flat (once per jump).")
+	_big("dx_blood", "Red Rhythm", "passive", 2, 13, {"flow_dual_axe": 0.3, "finisher_dual_axe": 0.3},
+		"Passive (a slot). Twin-axe hits give 30% more energy, and the last blow of your combo lands 30% harder.")
+	_variant("dx_way", "Reaver's Way", 2, [
+		["dx_berserk", "Berserker", 22, {"crit_dual_axe": 0.08, "leech_dual_axe": 0.06}, "8% more of your hits are crits, and twin-axe hits heal you for 6% of their damage."],
+		["dx_raider", "Raider", 22, {"cdr_dual_axe": 0.2, "exec_dual_axe": 0.4}, "Twin-axe techniques come back 20% sooner, and a hit that leaves them under 30% health deals 40% more on top."]],
+		"Two ways to run a raid. Both are yours; pick the one you carry at the ship's bunk.")
+	_step("dx_keen", "Keen Bits", "dx_root", 5, {"dmg_dual_axe": 0.05}, "+5% twin-axe damage a step.")
+	_step("dx_hide", "Iron Hide", "dx_deflect", 3, {"def_dual_axe": 3.0}, "+3 defense with twin axes in hand a step.")
+	_step("dx_bite", "Biting Cold", "dx_elem", 5, {"crit_dual_axe": 0.03}, "3% more of your twin-axe hits land 50% harder, a step.")
+	_step("dx_pace", "Relentless", "dx_storm", 5, {"finisher_dual_axe": 0.06}, "The last blow of your combo lands 6% harder a step.")
+	_step("dx_feet", "Light Feet", "dx_whirl", 3, {"stam_dual_axe": 0.05}, "Twin-axe attacks cost 5% less stamina a step.")
+	_step("dx_heave", "Heave", "dx_leap", 3, {"heavy_dual_axe": 0.08}, "Your Berserker Frenzy (right-click) hits 8% harder a step.")
+	_step("dx_flow", "Flow", "dx_frenzy", 3, {"flow_dual_axe": 0.15}, "Twin-axe hits give 15% more energy a step.")
+	_step("dx_recover", "Recovery", "dx_blood", 3, {"cdr_dual_axe": 0.05}, "Twin-axe techniques come back 5% sooner a step.")
 
 
 ## Two daggers: a set of their own (not the dual-wield tree), venom and speed.

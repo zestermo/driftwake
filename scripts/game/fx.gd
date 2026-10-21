@@ -1306,6 +1306,8 @@ const TREE_FX := {
 	"polearm": [Color(1.0, 1.0, 0.9), Color(1.0, 0.9, 0.32), Color(0.62, 0.48, 1.0)],
 	# hammer: earth - sandstone shockwaves, rock thrown up, the ground cracking and stone spikes heaving up
 	"hammer": [Color(1.0, 0.95, 0.82), Color(0.92, 0.8, 0.58), Color(0.55, 0.46, 0.36)],
+	# twin axes: frost - white rime, pale ice-blue edges, a deep glacier blue; ice chips, a cold mist, ice heaving up
+	"dual_axe": [Color(0.96, 1.0, 1.0), Color(0.68, 0.9, 1.0), Color(0.36, 0.55, 1.0)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1315,7 +1317,7 @@ const CORE := 0
 const EDGE := 1
 const ACCENT := 2
 ## Two-weapon trees: the off hand's blade trails in the accent colour.
-const TWIN_TREES := ["dual", "dual_dagger"]
+const TWIN_TREES := ["dual", "dual_dagger", "dual_axe"]
 ## The dagger's shadow (dark wisps: alpha-blended, so they read against light ground).
 const SHADOW_SMOKE := Color(0.1, 0.03, 0.09, 0.85)
 
@@ -1421,8 +1423,21 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 		"hammer":
 			debris(pos, dir, amount, c, speed)
 			dust(pos, maxi(amount / 3, 2), 0.6)
+		"dual_axe":
+			frost(pos, dir, amount, speed)
 		_:
 			spray(pos, dir, amount, c, speed)
+
+
+## Frost thrown along `dir` (the twin axes' element): chips of ice that fly and fall hard, white rime motes that
+## hang a moment, and a puff of cold mist.
+func frost(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
+	debris(pos, dir, maxi(amount * 2 / 3, 2), tree_col("dual_axe", EDGE).lightened(0.25), speed)
+	motes(pos, dir, maxi(amount / 3, 2), tree_col("dual_axe", CORE), speed * 0.6)
+	if flipbooks:
+		puff(pos, "mist", maxi(amount / 5, 1), 0.7, 0.6, Color(0.85, 0.94, 1.0, 0.55), speed * 0.15, dir)
+	else:
+		dust(pos, maxi(amount / 4, 2), 0.45)
 
 
 ## Shadow coming off a blade (the dagger's element): black wisps that rise and thin,
@@ -1888,21 +1903,27 @@ func ground_crack(from: Vector3, dir: Vector3, length: float = 6.0, glow: Color 
 
 
 static var _spike_mesh: ArrayMesh
+static var _ice_mesh: ArrayMesh
+
+
+static func _spike(mat: Material) -> ArrayMesh:
+	var mb := MeshBuilder.new()
+	mb.add_cone(mat, Transform3D(), 0.2, 1.0, 5, 1.0)
+	mb.add_cone(mat, Transform3D(Basis(Vector3.BACK, 0.35), Vector3(0.12, 0, 0.05)), 0.12, 0.6, 4, 1.0)
+	return mb.commit()
 
 
 ## Stone spikes heaving up out of the ground in a ring round `pos` (the hammer's element, its ultimate's
 ## signature): `count` shards of rock leaning outward, up in a snap, held, sunk back. Seeded, so every screen
-## raises the same ring. One shared mesh (the "rock" material), no shadows, one tween.
-func rock_spikes(pos: Vector3, radius: float = 2.5, count: int = 8, seed_v: int = 0, height: float = 1.2, life: float = 0.9) -> void:
+## raises the same ring. One shared mesh (the "rock" material), no shadows, one tween. `ice`: shards of ice
+## instead (the twin axes' frost: its own shared mesh, pale and cold).
+func rock_spikes(pos: Vector3, radius: float = 2.5, count: int = 8, seed_v: int = 0, height: float = 1.2, life: float = 0.9, ice: bool = false) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
 		return
 	if _spike_mesh == null:
-		var mb := MeshBuilder.new()
-		var rock := PSXMat.lit("rock", Color(0.92, 0.82, 0.7))
-		mb.add_cone(rock, Transform3D(), 0.2, 1.0, 5, 1.0)
-		mb.add_cone(rock, Transform3D(Basis(Vector3.BACK, 0.35), Vector3(0.12, 0, 0.05)), 0.12, 0.6, 4, 1.0)
-		_spike_mesh = mb.commit()
+		_spike_mesh = _spike(PSXMat.lit("rock", Color(0.92, 0.82, 0.7)))
+		_ice_mesh = _spike(PSXMat.lit("metal", Color(0.82, 0.96, 1.15)))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_v
 	var holder := Node3D.new()
@@ -1913,7 +1934,7 @@ func rock_spikes(pos: Vector3, radius: float = 2.5, count: int = 8, seed_v: int 
 		var out := Vector3(cos(a), 0, sin(a))
 		var h := height * rng.randf_range(0.6, 1.15)
 		var mi := MeshInstance3D.new()
-		mi.mesh = _spike_mesh
+		mi.mesh = _ice_mesh if ice else _spike_mesh
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		holder.add_child(mi)
 		var at := _ground_at(pos + out * radius * rng.randf_range(0.75, 1.1)) - pos
@@ -2351,6 +2372,9 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 			debris(pos, dir + Vector3.UP * 0.5, 5, accent, 4.0)
 			ring(pos, dir, 1.0, edge, 0.2, 0.22)
 			dust(pos, 3, 0.5)
+		"dual_axe":
+			frost(pos, dir + Vector3.UP * 0.4, 7, 3.5)
+			ring(pos, dir, 0.8, edge, 0.16, 0.18)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

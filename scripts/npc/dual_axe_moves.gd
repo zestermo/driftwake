@@ -26,6 +26,7 @@ const SET := {"leg_l": Vector3(0.45, 0, -0.22), "shin_l": Vector3(-0.85, 0, 0), 
 const STEP_L := {"leg_l": Vector3(1.0, 0, -0.16), "shin_l": Vector3(-1.05, 0, 0), "leg_r": Vector3(-0.65, 0, 0.18), "shin_r": Vector3(-0.25, 0, 0)}
 const WIDE := {"leg_l": Vector3(0.5, 0, -0.32), "shin_l": Vector3(-0.85, 0, 0), "leg_r": Vector3(0.35, 0, 0.32), "shin_r": Vector3(-0.75, 0, 0)}
 const LOW := {"leg_l": Vector3(0.8, 0, -0.2), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.2, 0, 0.2), "shin_r": Vector3(-0.95, 0, 0)}
+const TUCK := {"leg_l": Vector3(1.5, 0, -0.14), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(1.1, 0, 0.14), "shin_r": Vector3(-1.7, 0, 0)}
 
 
 static func block() -> Dictionary:
@@ -73,6 +74,7 @@ static func _chop_r() -> Dictionary:
 static func pose(h, n: String, u: float) -> Array:
 	var lift := Vector3.ZERO
 	var g: Dictionary = h._guard()
+	var T: float = float(h._action.get("dur", 1.0))
 	match n:
 		# --- the combo: right, left, the hook, the whirl ---
 		"dx_1":
@@ -89,34 +91,18 @@ static func pose(h, n: String, u: float) -> Array:
 		"dx_3":
 			# the hook: the left axe drawn across the chest, flung out round the far side of them, then yanked
 			# back to the hip (the beard dragging them in) as the right axe goes up for the next chop
-			var coil := _p([{"pivot": Vector3.ZERO, "hips": Vector3(0, -0.35, 0), "torso": Vector3(0.05, -0.55, 0.05), "head": Vector3(0.0, 0.45, 0),
-				"arm_l": Vector3(1.2, -0.45, 0.45), "fore_l": Vector3(1.6, 0, 0), "hand_l": Vector3(-0.3, 0, 0),
-				"arm_r": Vector3(0.6, -0.05, 0.4), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3(-0.4, 0, 0),
-				"_lift": Vector3(0, -0.14, 0), "_scale": Vector3(1.04, 0.95, 1.0), "_smear": Vector3.ZERO}, SET])
-			var reach := _p([{"pivot": Vector3(-0.08, 0, 0), "hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.4, 0.45, -0.05), "head": Vector3(0.28, -0.4, 0),
-				"arm_l": Vector3(1.6, 0.25, -0.45), "fore_l": Vector3(0.12, 0, 0), "blade_l": Vector3(0.55, -0.35, -0.75),
-				"arm_r": Vector3(0.5, 0.0, 0.5), "fore_r": Vector3(1.5, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
-				"_lift": Vector3(0, -0.26, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}, STEP_L])
-			var yank := _p([{"pivot": Vector3(0.04, 0, 0), "hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.1, -0.5, 0.06), "head": Vector3(0.12, 0.4, 0),
-				"arm_l": Vector3(0.1, 0.2, -0.55), "fore_l": Vector3(1.55, 0, 0), "blade_l": Vector3(0.35, 0.55, -0.75),
-				"arm_r": Vector3(2.35, 0.4, 1.1), "fore_r": Vector3(1.15, 0, 0), "hand_r": Vector3(0.85, 0, 0),
-				"_lift": Vector3(0, -0.16, 0), "_scale": Vector3(0.97, 1.04, 0.97), "_smear": Vector3.ZERO}, SET])
-			return [h._keys(u, [[0.0, g], [0.18, coil, "out"], [0.24, coil], [0.34, DaggerMoves.aim(_whip(reach, Vector3(0.97, 1.0, 1.08)), false), "out"],
+			var reach := _reach_l()
+			var yank := _yank()
+			return [h._keys(u, [[0.0, g], [0.18, _coil_l(), "out"], [0.24, _coil_l()], [0.34, DaggerMoves.aim(_whip(reach, Vector3(0.97, 1.0, 1.08)), false), "out"],
 				[0.42, DaggerMoves.aim(reach, false)], [0.56, DaggerMoves.aim(yank, false), "out"], [0.74, DaggerMoves.aim(yank, false)], [1.0, g]]), "full", lift]
 		"dx_4":
 			# Reaping Whirl: coiled left, both axes flung out level at arm's length and the body whirled round
 			# twice behind them, stretched out along the turn
-			var coil := _p([{"pivot": Vector3.ZERO, "hips": Vector3(0, 0.4, 0), "torso": Vector3(-0.22, 0.7, 0.05), "head": Vector3(0.15, -0.5, 0),
-				"arm_r": Vector3(0.9, 0.6, 1.2), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.6, 0, 0),
-				"arm_l": Vector3(1.0, 0.5, -0.6), "fore_l": Vector3(1.0, 0, 0), "hand_l": Vector3(0.5, 0, 0),
-				"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.05, 0.93, 1.02), "_smear": Vector3.ZERO}, LOW])
-			var out := _p([{"pivot": Vector3(-0.08, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.25, 0, 0.1), "head": Vector3(0.15, 0, 0),
-				"arm_r": Vector3(1.4, 0.0, 1.45), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.45, 0, 0),
-				"arm_l": Vector3(1.4, 0.0, -1.45), "fore_l": Vector3(0.05, 0, 0), "hand_l": Vector3(-1.45, 0, 0),
-				"_lift": Vector3(0, -0.14, 0), "_scale": Vector3(1.04, 0.97, 1.03), "_smear": Vector3(0.5, 0, 0)}, WIDE])
+			var coil := _coil()
+			var out := _out()
 			var pz: Dictionary = h._keys(u, [[0.0, g], [0.12, coil, "out"], [0.18, coil], [0.26, out, "out"], [0.76, out.merged({"_smear": Vector3.ZERO}, true)], [1.0, g]])
 			var k := clampf((u - 0.18) / 0.6, 0.0, 1.0)
-			pz["pivot"] = (pz["pivot"] as Vector3) + Vector3(0, -2.0 * TAU * (1.0 - pow(1.0 - k, 1.6)), 0)
+			pz["pivot"] = (pz.get("pivot", Vector3.ZERO) as Vector3) + Vector3(0, -2.0 * TAU * (1.0 - pow(1.0 - k, 1.6)), 0)
 			return [pz, "full", lift]
 		# --- the heavy (Berserker Frenzy): right, left, right, then both up and crashed down crossed ---
 		"dx_heavy":
@@ -124,19 +110,108 @@ static func pose(h, n: String, u: float) -> Array:
 			var cr := _chop_r()
 			var wl := _mir(wr)
 			var cl := _mir(cr)
-			var up := _p([{"pivot": Vector3(0.08, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.38, 0, 0), "head": Vector3(-0.22, 0, 0),
-				"arm_r": Vector3(2.95, 0.25, 0.5), "fore_r": Vector3(0.8, 0, 0), "hand_r": Vector3(0.8, 0, 0),
-				"arm_l": Vector3(2.95, -0.25, -0.5), "fore_l": Vector3(0.8, 0, 0), "hand_l": Vector3(0.8, 0, 0),
-				"_lift": Vector3(0, -0.1, 0), "_scale": Vector3(0.96, 1.07, 1.0), "_smear": Vector3.ZERO}, SET])
-			var cross := _p([{"pivot": Vector3(-0.15, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.62, 0, 0), "head": Vector3(0.38, 0, 0),
-				"arm_r": Vector3(1.1, -0.8, -0.55), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
-				"arm_l": Vector3(1.1, 0.8, 0.55), "fore_l": Vector3(0.1, 0, 0), "hand_l": Vector3(-1.3, 0, 0),
-				"_lift": Vector3(0, -0.36, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}, STEP_L])
+			var up := _up(SET)
+			var cross := _cross(STEP_L)
 			var sq := Vector3(1.06, 0.95, 1.03)
 			return [h._keys(u, [[0.0, g], [0.13, wr, "out"], [0.16, wr], [0.2, _whip(cr, sq), "out"], [0.24, cr],
 				[0.3, wl, "out"], [0.32, wl], [0.36, _whip(cl, sq), "out"], [0.4, cl],
 				[0.46, wr, "out"], [0.48, wr], [0.52, _whip(cr, sq), "out"], [0.56, cr],
 				[0.66, up, "out"], [0.69, up], [0.74, _whip(cross, Vector3(1.08, 0.9, 1.04), 0.7), "in"], [0.8, cross], [0.9, cross], [1.0, g]]), "full", lift]
+		# --- moving: the running attack, the air attack and its landing ---
+		"dx_rush":
+			# Raider's Leap (attacked at a sprint): sunk low with both axes trailed back by the hips, launched up with
+			# both raised overhead, then crashed down crossed into whoever's in front
+			var low := _p([{"pivot": Vector3(-0.2, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.35, 0, 0), "head": Vector3(0.3, 0, 0),
+				"arm_r": Vector3(-0.35, 0.2, 0.45), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+				"arm_l": Vector3(-0.35, -0.2, -0.45), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3(0.6, 0, 0),
+				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.05, 0.92, 1.0), "_smear": Vector3.ZERO}, LOW])
+			var air := _up(TUCK).merged({"_lift": Vector3(0, 0.15, 0)}, true)
+			var cross := _cross(STEP_L)
+			return [h._keys(u, [[0.0, g], [0.14, low, "out"], [0.2, low], [0.32, air, "out"], [0.38, air], [0.44, _whip(cross, Vector3(1.08, 0.9, 1.04), 0.7), "in"],
+				[0.5, cross], [0.7, cross], [1.0, g]]), "full", lift]
+		"dx_dive":
+			# Buzzsaw: knees tucked, both axes out ahead, and the whole body turned over and over forward on the
+			# way down like a saw blade (played longer than it falls; the landing cuts it short)
+			var saw := _p([{"hips": Vector3.ZERO, "torso": Vector3(-0.3, 0, 0), "head": Vector3(0.2, 0, 0),
+				"arm_r": Vector3(1.7, -0.15, 0.75), "fore_r": Vector3(0.2, 0, 0), "hand_r": Vector3(-1.1, 0, 0),
+				"arm_l": Vector3(1.7, 0.15, -0.75), "fore_l": Vector3(0.2, 0, 0), "hand_l": Vector3(-1.1, 0, 0),
+				"_lift": Vector3.ZERO, "_scale": Vector3(1.03, 0.97, 1.03), "_smear": Vector3(0.4, 0, 0)}, TUCK])
+			var pz: Dictionary = h._keys(u, [[0.0, {}], [0.12 / T, saw, "out"], [1.0, saw]])
+			var s := maxf(u * T - 0.1, 0.0)
+			pz["pivot"] = Vector3(-TAU * 2.4 * s, 0, 0)
+			return [pz, "full", lift]
+		"dx_land":
+			# both axes bitten into the ground ahead, crouched over them, then wrenched free
+			var bury := _cross(LOW).merged({"torso": Vector3(-0.85, 0, 0), "head": Vector3(0.5, 0, 0), "_lift": Vector3(0, -0.42, 0),
+				"_scale": Vector3(1.06, 0.92, 1.03)}, true)
+			return [h._keys(u, [[0.0, bury], [0.45, bury.merged({"_scale": Vector3.ONE}, true)], [1.0, g]]), "full", lift]
+		# --- the guard: the parry catches the blow in the crossed axes; landed, the beards hook their weapon and
+		# wrench it down and aside ---
+		"dx_parry":
+			var c := _p([BLOCK_X, {"hips": Vector3(0, 0.15, 0), "_lift": Vector3(0, -0.16, 0)}, SET])
+			var snap := c.merged({"_scale": Vector3(1.03, 0.95, 1.0)}, true)
+			return [h._keys(u, [[0.0, g], [0.1, DaggerMoves.aim(snap, false), "out"], [0.17, DaggerMoves.aim(c, false)], [0.6, DaggerMoves.aim(c, false)], [1.0, g]]), "full", lift]
+		"dx_deflect":
+			var c := _p([BLOCK_X, {"hips": Vector3(0, 0.15, 0), "_lift": Vector3(0, -0.16, 0)}, SET])
+			var wrench := _p([{"hips": Vector3(0, -0.35, 0), "torso": Vector3(-0.3, -0.55, 0.05), "head": Vector3(0.2, 0.45, 0),
+				"arm_r": Vector3(0.55, -0.2, 0.7), "fore_r": Vector3(0.9, 0, 0), "blade_r": Vector3(0.65, -0.6, -0.45),
+				"arm_l": Vector3(0.75, -0.55, 0.25), "fore_l": Vector3(0.8, 0, 0), "blade_l": Vector3(0.55, -0.5, -0.65),
+				"_lift": Vector3(0, -0.22, 0)}, SET])
+			return [h._keys(u, [[0.0, DaggerMoves.aim(c, false)], [0.3, DaggerMoves.aim(_whip(wrench, Vector3(1.05, 0.96, 1.02), 0.4), false), "out"],
+				[0.4, DaggerMoves.aim(wrench, false)], [0.66, DaggerMoves.aim(wrench, false)], [1.0, g]]), "full", lift]
+		# --- the techniques (DualAxeArts; keyed in seconds of the length they're played at) ---
+		"dx_gallows":
+			# Gallows Hook: the left axe drawn across, flung out at them (0.18 s), yanked back hauling them in
+			# (to 0.36 s) as the right axe goes up, then the right chop down into them (0.5 s)
+			var k_c := 0.5 / T
+			return [h._keys(u, [[0.0, g], [0.1 / T, _coil_l(), "out"], [0.13 / T, _coil_l()], [0.18 / T, DaggerMoves.aim(_whip(_reach_l(), Vector3(0.97, 1.0, 1.1)), false), "out"],
+				[0.24 / T, DaggerMoves.aim(_reach_l(), false)], [0.36 / T, DaggerMoves.aim(_yank(), false), "out"], [0.42 / T, DaggerMoves.aim(_yank(), false)],
+				[k_c, _whip(_chop_r(), Vector3(1.07, 0.93, 1.04), 0.7), "in"], [k_c + 0.05, _chop_r()], [0.88, _chop_r()], [1.0, g]]), "full", lift]
+		"dx_frenzy":
+			# Hewing Frenzy: chop after chop trading hands every 0.1 s walking in (0.1 to 0.8 s), then both up and
+			# crashed down crossed (0.95 s)
+			var keys: Array = [[0.0, g]]
+			var sq := Vector3(1.04, 0.96, 1.02)
+			for i in 8:
+				var a := (0.06 + 0.1 * i) / T
+				var right := i % 2 == 0
+				keys.append([a, _wind_r() if right else _mir(_wind_r()), "out"])
+				keys.append([a + 0.05 / T, _whip(_chop_r() if right else _mir(_chop_r()), sq), "out"])
+			keys.append([0.88 / T, _up(SET), "out"])
+			keys.append([0.95 / T, _whip(_cross(STEP_L), Vector3(1.08, 0.9, 1.04), 0.7), "in"])
+			keys.append([1.0 - 0.1 / T, _cross(STEP_L)])
+			keys.append([1.0, g])
+			return [h._keys(u, keys), "full", lift]
+		"dx_storm":
+			# Axestorm: coiled, both axes flung out level and four turns walking behind them (0.28 to 1.42 s), then
+			# both up and crashed down crossed (1.6 s)
+			var pz: Dictionary = h._keys(u, [[0.0, g], [0.16 / T, _coil(), "out"], [0.24 / T, _coil()], [0.32 / T, _out(), "out"], [1.42 / T, _out()],
+				[1.5 / T, _up(SET), "out"], [1.6 / T, _whip(_cross(STEP_L), Vector3(1.08, 0.9, 1.04), 0.7), "in"], [1.0 - 0.12 / T, _cross(STEP_L)], [1.0, g]])
+			var k := clampf((u * T - 0.24) / 1.18, 0.0, 1.0)
+			pz["pivot"] = (pz.get("pivot", Vector3.ZERO) as Vector3) + Vector3(0, -4.0 * TAU * k, 0)
+			return [pz, "full", lift]
+		"dx_winter":
+			# Fimbulwinter: a roar, arms flung wide and low (0.12-0.45 s); both axes hooked out and hauled back
+			# (0.5-0.62 s); three turns with both out (0.66-1.6 s); up with both raised (1.75 s) and crashed down
+			# crossed into the ground (1.95 s)
+			var roar := _p([{"pivot": Vector3(0.12, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.35, 0, 0), "head": Vector3(-0.4, 0, 0),
+				"arm_r": Vector3(0.5, 0.0, 1.25), "fore_r": Vector3(0.5, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+				"arm_l": Vector3(0.5, 0.0, -1.25), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3(-0.9, 0, 0),
+				"_lift": Vector3(0, -0.2, 0), "_scale": Vector3(1.06, 0.97, 1.0), "_smear": Vector3.ZERO}, WIDE])
+			var haul := _p([{"pivot": Vector3(0.04, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.1, 0, 0), "head": Vector3(0.05, 0, 0),
+				"arm_r": Vector3(0.15, -0.2, 0.55), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(0.4, 0, 0),
+				"arm_l": Vector3(0.15, 0.2, -0.55), "fore_l": Vector3(1.6, 0, 0), "hand_l": Vector3(0.4, 0, 0),
+				"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(0.96, 1.04, 0.96), "_smear": Vector3.ZERO}, SET])
+			var reach := _p([{"pivot": Vector3(-0.1, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.35, 0, 0), "head": Vector3(0.25, 0, 0),
+				"arm_r": Vector3(1.7, -0.2, 0.6), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+				"arm_l": Vector3(1.7, 0.2, -0.6), "fore_l": Vector3(0.1, 0, 0), "hand_l": Vector3(-0.9, 0, 0),
+				"_lift": Vector3(0, -0.28, 0), "_scale": Vector3(0.97, 1.0, 1.08), "_smear": Vector3(0.5, 0, 0)}, STEP_L])
+			var pz: Dictionary = h._keys(u, [[0.0, g], [0.12 / T, roar, "out"], [0.42 / T, roar], [0.5 / T, reach, "out"], [0.55 / T, reach],
+				[0.62 / T, haul, "out"], [0.68 / T, _out(), "out"], [1.6 / T, _out()], [1.75 / T, _up(TUCK).merged({"_lift": Vector3(0, 0.2, 0)}, true), "out"],
+				[1.88 / T, _up(SET)], [1.95 / T, _whip(_cross(LOW), Vector3(1.1, 0.88, 1.05), 0.8), "in"], [1.0 - 0.3 / T, _cross(LOW)], [1.0, g]])
+			var k := clampf((u * T - 0.66) / 0.94, 0.0, 1.0)
+			pz["pivot"] = (pz.get("pivot", Vector3.ZERO) as Vector3) + Vector3(0, -3.0 * TAU * k, 0)
+			return [pz, "full", lift]
 		# (previews: the stance itself and the held block)
 		"dx_stance":
 			return [{}, "upper", lift]
@@ -144,3 +219,59 @@ static func pose(h, n: String, u: float) -> Array:
 			return h._action_pose("guard_block", u)
 	push_error("DualAxeMoves: no pose for \"%s\"" % n)
 	return [g, "full", lift]
+
+
+## Both axes raised high overhead, the back arched (the crossed crash's wind-up).
+static func _up(legs: Dictionary) -> Dictionary:
+	return _p([{"pivot": Vector3(0.08, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.38, 0, 0), "head": Vector3(-0.22, 0, 0),
+		"arm_r": Vector3(2.95, 0.25, 0.5), "fore_r": Vector3(0.8, 0, 0), "hand_r": Vector3(0.8, 0, 0),
+		"arm_l": Vector3(2.95, -0.25, -0.5), "fore_l": Vector3(0.8, 0, 0), "hand_l": Vector3(0.8, 0, 0),
+		"_lift": Vector3(0, -0.1, 0), "_scale": Vector3(0.96, 1.07, 1.0), "_smear": Vector3.ZERO}, legs])
+
+
+## Both axes crashed down crossed in front, bent deep over them.
+static func _cross(legs: Dictionary) -> Dictionary:
+	return _p([{"pivot": Vector3(-0.15, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.62, 0, 0), "head": Vector3(0.38, 0, 0),
+		"arm_r": Vector3(1.1, -0.8, -0.55), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-1.3, 0, 0),
+		"arm_l": Vector3(1.1, 0.8, 0.55), "fore_l": Vector3(0.1, 0, 0), "hand_l": Vector3(-1.3, 0, 0),
+		"_lift": Vector3(0, -0.36, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}, legs])
+
+
+## Coiled to the left before a whirl.
+static func _coil() -> Dictionary:
+	return _p([{"pivot": Vector3.ZERO, "hips": Vector3(0, 0.4, 0), "torso": Vector3(-0.22, 0.7, 0.05), "head": Vector3(0.15, -0.5, 0),
+		"arm_r": Vector3(0.9, 0.6, 1.2), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+		"arm_l": Vector3(1.0, 0.5, -0.6), "fore_l": Vector3(1.0, 0, 0), "hand_l": Vector3(0.5, 0, 0),
+		"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.05, 0.93, 1.02), "_smear": Vector3.ZERO}, LOW])
+
+
+## Both axes out level at arm's length, the body set to turn behind them.
+static func _out() -> Dictionary:
+	return _p([{"pivot": Vector3(-0.08, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.25, 0, 0.1), "head": Vector3(0.15, 0, 0),
+		"arm_r": Vector3(1.4, 0.0, 1.45), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-1.45, 0, 0),
+		"arm_l": Vector3(1.4, 0.0, -1.45), "fore_l": Vector3(0.05, 0, 0), "hand_l": Vector3(-1.45, 0, 0),
+		"_lift": Vector3(0, -0.14, 0), "_scale": Vector3(1.04, 0.97, 1.03), "_smear": Vector3(0.5, 0, 0)}, WIDE])
+
+
+## The hook: the left axe drawn across the chest...
+static func _coil_l() -> Dictionary:
+	return _p([{"pivot": Vector3.ZERO, "hips": Vector3(0, -0.35, 0), "torso": Vector3(0.05, -0.55, 0.05), "head": Vector3(0.0, 0.45, 0),
+		"arm_l": Vector3(1.2, -0.45, 0.45), "fore_l": Vector3(1.6, 0, 0), "hand_l": Vector3(-0.3, 0, 0),
+		"arm_r": Vector3(0.6, -0.05, 0.4), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3(-0.4, 0, 0),
+		"_lift": Vector3(0, -0.14, 0), "_scale": Vector3(1.04, 0.95, 1.0), "_smear": Vector3.ZERO}, SET])
+
+
+## ...flung out at full reach, the head beyond them ("blade_l": DaggerMoves.aim)...
+static func _reach_l() -> Dictionary:
+	return _p([{"pivot": Vector3(-0.08, 0, 0), "hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.4, 0.45, -0.05), "head": Vector3(0.28, -0.4, 0),
+		"arm_l": Vector3(1.6, 0.25, -0.45), "fore_l": Vector3(0.12, 0, 0), "blade_l": Vector3(0.55, -0.35, -0.75),
+		"arm_r": Vector3(0.5, 0.0, 0.5), "fore_r": Vector3(1.5, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
+		"_lift": Vector3(0, -0.26, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}, STEP_L])
+
+
+## ...and yanked back to the hip as the right axe goes up for the next chop.
+static func _yank() -> Dictionary:
+	return _p([{"pivot": Vector3(0.04, 0, 0), "hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.1, -0.5, 0.06), "head": Vector3(0.12, 0.4, 0),
+		"arm_l": Vector3(0.1, 0.2, -0.55), "fore_l": Vector3(1.55, 0, 0), "blade_l": Vector3(0.35, 0.55, -0.75),
+		"arm_r": Vector3(2.35, 0.4, 1.1), "fore_r": Vector3(1.15, 0, 0), "hand_r": Vector3(0.85, 0, 0),
+		"_lift": Vector3(0, -0.16, 0), "_scale": Vector3(0.97, 1.04, 0.97), "_smear": Vector3.ZERO}, SET])

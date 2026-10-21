@@ -22,7 +22,7 @@ const TRAITS := {
 		"desc": "The running cut drives twice as far and knocks them down."},
 	"embered": {"name": "Embered", "move": "Roll", "kinds": ["cutlass", "katana", "axe", "dagger"],
 		"desc": "Your roll leaves a trail of fire that burns for 3 s."},
-	"duellist": {"name": "Duellist's", "move": "Parry", "kinds": ["cutlass", "katana", "dagger", "polearm", "hammer"],
+	"duellist": {"name": "Duellist's", "move": "Parry", "kinds": ["cutlass", "katana", "dagger", "polearm", "hammer", "axe"],
 		"desc": "A clean parry ripostes at once: a free cut that staggers them."},
 	"venomous": {"name": "Venomous", "move": "Every hit", "kinds": ["cutlass", "dagger"],
 		"desc": "Every hit poisons them for 4 s."},

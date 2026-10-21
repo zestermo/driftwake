@@ -13,7 +13,7 @@ extends PlayerState
 ##   hammer      overhead smash -> upswing -> flat swing (breaks a guard) -> a full turn into the ground
 ##               (Wrecking Spin); at a sprint, Rising Crush
 ##   dual_axe    right chop -> left chop -> the hook (drags them in) -> two turns with both axes out
-##               (Reaping Whirl)
+##               (Reaping Whirl); at a sprint, Raider's Leap
 ##   fist        jab -> cross -> hook -> spinning roundhouse kick
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
@@ -113,7 +113,13 @@ const STYLES := {
 		"durations": [0.28, 0.28, 0.36, 0.62], "impulses": [4.5, 4.5, 3.0, 4.0],
 		"damages": [10.0, 10.0, 12.0, 24.0], "hitstops": [0.05, 0.05, 0.07, 0.1], "shakes": [0.1, 0.1, 0.13, 0.2],
 		"reach": "twin_axe", "reaches": ["twin_axe", "twin_axe", "hook", "spin"], "lefts": [false, true, true, false],
-		"color": Color(0.86, 0.92, 1.0), "color_l": Color(0.7, 0.8, 0.98), "pair": true},
+		"color": Color(0.86, 0.92, 1.0), "color_l": Color(0.7, 0.8, 0.98), "pair": true, "hooks": [false, false, true, false]},
+	# twin axes, attacked at a sprint (Raider's Leap): launched up with both raised, crashed down crossed into
+	# them; it breaks a wind-up and puts them down
+	"dx_dash": {"anims": ["dx_rush"], "trails": [""],
+		"durations": [0.56], "impulses": [11.0],
+		"damages": [16.0], "hitstops": [0.08], "shakes": [0.18], "lefts": [false],
+		"reach": "twin_axe", "color": Color(0.86, 0.92, 1.0), "color_l": Color(0.7, 0.8, 0.98), "breaker": true, "trip": true, "pair": true},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -167,7 +173,7 @@ var _thud_t := -1.0
 func enter(data: Dictionary) -> void:
 	var st := player.style()
 	if player.quick_draw:
-		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash"}.get(st, "sword_dash")
+		st = {"katana": "katana_draw", "polearm": "pole_dash", "hammer": "ham_dash", "dual_axe": "dx_dash"}.get(st, "sword_dash")
 		player.quick_draw = false
 	cfg = STYLES.get(st, STYLES["sword"])
 	combo_count = (cfg["anims"] as Array).size()
@@ -306,6 +312,10 @@ func physics_update(delta: float) -> void:
 
 	if timer >= _window.y and not hitbox_deactivated:
 		hitbox_deactivated = true
+		# (the twin axes' hook hauls in whoever it caught)
+		if cfg.has("hooks") and bool(cfg["hooks"][combo_index]):
+			for e in player.sword_hitbox.hit_targets.duplicate():
+				DualAxeArts.hook(player, e)
 		player.sword_hitbox.deactivate()
 
 	var duration := float(AnimLab.spec(str(cfg["anims"][combo_index])).get("chain", cfg["durations"][combo_index])) / _spd + float(_off[3])

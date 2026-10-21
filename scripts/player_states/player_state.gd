@@ -113,7 +113,7 @@ func combat_input() -> String:
 			var st := player.style()
 			player.quick_draw = player.sprinting and ((st == "katana" and player.progression.has_move("quick_draw"))
 				or (st == "sword" and player.progression.has_move("dash_cut")) or (st == "polearm" and player.progression.has_move("leg_sweep"))
-				or (st == "hammer" and player.progression.has_move("rising_crush")))
+				or (st == "hammer" and player.progression.has_move("rising_crush")) or (st == "dual_axe" and player.progression.has_move("raiders_leap")))
 			return "LightAttack"
 		player.draw_weapon()
 		return ""
@@ -168,9 +168,10 @@ func air_attack_input() -> String:
 ## dual pistols' Gun Rain is handled on its own).
 const AIR_MOVES := {"katana": "air_slash", "axe": "skybreaker", "dual_sword": "twin_cyclone",
 	"fist": "meteor_kick", "pistol": "hang_shot", "sword": "boarding_dive", "sword_pistol": "deadmans_drop",
-	"dagger": "fang_dive", "dual_dagger": "knife_rain", "polearm": "falling_spear", "hammer": "hammerfall"}
+	"dagger": "fang_dive", "dual_dagger": "knife_rain", "polearm": "falling_spear", "hammer": "hammerfall", "dual_axe": "buzzsaw"}
 ## The learned air attacks you get once per jump.
-const ONCE_PER_JUMP := ["twin_cyclone", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain", "falling_spear", "hammerfall"]
+const ONCE_PER_JUMP := ["twin_cyclone", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain", "falling_spear", "hammerfall",
+	"buzzsaw"]
 const METEOR_CHAIN := 3
 
 func air_move() -> String:

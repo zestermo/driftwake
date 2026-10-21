@@ -155,6 +155,15 @@ const ALL := {
 		"desc": "Let the hammer out at arm's length and spin three times, walking with it, battering everyone about you; the last turn ends in the ground with a shockwave."},
 	"titans_fall": {"name": "Titan's Fall", "tree": "hammer", "cost": 0.0, "cooldown": 3.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Leap high with the hammer heaved overhead and come down with the whole weight of it: the ground breaks in a great ring that throws everyone down, stone heaves up under them, and two aftershocks follow."},
+	# --- Twin axes ---
+	"gallows_hook": {"name": "Gallows Hook", "tree": "dual_axe", "cost": 16.0, "cooldown": 6.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique",
+		"desc": "Fling the left axe round the enemy you're facing (up to 7 m) and haul them in by the beard (too heavy to move, and you're hauled to them), then chop down through their guard: it can't be blocked and leaves them reeling."},
+	"hewing_frenzy": {"name": "Hewing Frenzy", "tree": "dual_axe", "cost": 20.0, "cooldown": 7.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique",
+		"desc": "Eight chops trading hands as fast as you can swing them, walking in, then both axes crashed down crossed: everyone in front is knocked flat."},
+	"axestorm": {"name": "Axestorm", "tree": "dual_axe", "cost": 24.0, "cooldown": 9.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique",
+		"desc": "Hook everyone close in, then whirl four times with both axes out, walking, cutting everyone about you, and finish with both crashed down crossed."},
+	"fimbulwinter": {"name": "Fimbulwinter", "tree": "dual_axe", "cost": 0.0, "cooldown": 3.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique", "ult": true,
+		"desc": "Ultimate. A roar, every enemy close hooked in at once, three turns with both axes out, then up and both crashed into the ground: a great ring throws them all down, and with the frost, ice heaves up under every one of them."},
 	# --- Pistol ---
 	"deadeye": {"name": "Deadeye", "tree": "pistol", "cost": 20.0, "cooldown": 7.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique",
 		"desc": "A breath, a steady aim, and one shot that punches through every enemy in a line."},

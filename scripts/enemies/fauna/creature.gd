@@ -616,8 +616,8 @@ func vine_weight() -> String:
 	return "heavy" if size_k > 1.3 else "light"
 
 
-func vine_yank(to: Vector3, dmg: float = 4.0) -> void:
-	if Net.forward(self, "vine_yank", [to, dmg]):
+func vine_yank(to: Vector3, dmg: float = 4.0, wrap: bool = true) -> void:
+	if Net.forward(self, "vine_yank", [to, dmg, wrap]):
 		return
 	if state in [S.DEAD, S.DOWN]:
 		return
@@ -632,7 +632,8 @@ func vine_yank(to: Vector3, dmg: float = 4.0) -> void:
 	_set_state(S.RECOVER)
 	health.take_damage(dmg)
 	_number(dmg)
-	Net.fx("vine_wrap", [self, secs + 0.3, 0.45 * size_k])
+	if wrap:
+		Net.fx("vine_wrap", [self, secs + 0.3, 0.45 * size_k])
 
 
 func rooted(secs: float) -> void:
