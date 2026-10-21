@@ -116,9 +116,9 @@ func _process(d: float) -> bool:
 				"emotes":
 					# the emote wheel held open, pointing at the fourth (Laugh)
 					Input.action_press("emote")
-					p.emote_wheel._open = true
-					p.emote_wheel._pick = 3
-					p.emote_wheel._restyle()
+					p.emote_wheel._down = true
+					p.emote_wheel._open_now()
+					p.emote_wheel.point_at(3)
 				"items":
 					p.inventory_component.add_item(load("res://resources/items/biscuit.tres"), 2)
 					p.inventory_component.add_item(load("res://resources/items/stew.tres"), 1)

@@ -65,9 +65,9 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(3)
 		1:
 			check("holding N opens the wheel", w.is_open() and w.entries == ALL)
-			check("...the camp entry reads Make camp", w._labels[0].text == "Make camp")
+			check("...the camp entry reads Make camp", w.shown_text(0)[0] == "Make camp")
 			var cook: int = ALL.find("cook")
-			check("...Cook greyed, its reason under it (%s)" % w._subs[cook].text, w._dim("cook") and w._subs[cook].text == "At a galley or campfire" and not w._dim("camp"))
+			check("...Cook greyed, its reason with it (%s)" % w.shown_text(cook)[1], w._dim("cook") and w.shown_text(cook)[1] == "At a galley or campfire" and not w._dim("camp"))
 			point_at(0)
 			Input.action_release("action_wheel")
 			until = TK.wait_ticks(4)

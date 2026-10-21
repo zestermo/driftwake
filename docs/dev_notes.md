@@ -4698,6 +4698,22 @@ Spec: docs/v1_18_plan.md ("Swimming", "Breath").
   canvas; on 640x360 the ones that would overlap show on inspect); the middle branch's title sits above its top node;
   the Will column wraps "how" and "what it gives"; the library puts the Captain's and Will's skills and passives in one
   CAPTAIN AND WILL group.
+
+## 2026-10-20: the radial wheels redrawn round (v1.18.2, menu-ui; Zach: "small labels and symbols in the wheel")
+- **What:** `scripts/ui/radial_wheel.gd` (RadialWheel, the base of the emote T, item E, loadout X and action N wheels)
+  no longer lays wide plank "plates" on a stretched ellipse. It draws a round wheel itself: a dark donut of N segments
+  in a twisted rope ring (outer and inner) with rope dividers and brass nails, each segment the entry's 24 px icon (or
+  its initial in a wooden medallion) over a short Silkscreen 8 label cut to the segment (whole, else the first word,
+  else letters off the end); the pointed segment gilded, greyed ones dim, the current choice starred, a count badge
+  (`_badge`, the item wheel's quantity). The hub names the wheel in blackletter (Pixelify when long), or shows the
+  pointed entry's full name and its second line (`_sub`: the action wheel's reason, the loadout's weapons, "3 in your
+  bag"), coral when it's greyed. The ring's radius grows with the entry count (50 px of arc each, at least 64).
+- Behaviour unchanged: hold to open, tap (tap_ok), the dead zone, picking by angle (entry i at TAU*i/n clockwise from
+  up), point_at, right-click / Esc. `shown_text(i)` gives [label, sub] as the wheel opened (tests read it instead of
+  the old plates' labels).
+- **Per frame:** only while a wheel is open or fading: one redraw of ~N*30 polygon points and a few arcs.
+- **Tested by** t/ui (emote_wheel, item_wheel, action_wheel, wheel_same), t/player/loadout_swap, t/jam/play_solo,
+  t/food, t/downtime; filmed with uishots emotes,items,loadouts,actions.
 ## 2026-10-20: perf session steps 3 and 5: occlusion culling in towns, the long tail
 - **Occlusion culling** (project.godot `rendering/occlusion_culling/use_occlusion_culling=true`; `scripts/psx/occluders.gd`,
   class Occluders): boxes shrunk 0.15 m inside solid stone, kept as data in a capital piece's colliders ({"occ": size, "xf"},
