@@ -249,7 +249,7 @@ wavegrid, cloudshot, strafeview, hairdist, gaitview, gaitpose, coopshot, invshot
 - `topview`: High-angle and close views of a few looks to find holes. Args: <out.png> <cam: top|front|side>
 - `tour`: Takes a series of screenshots around Brinehollow (island-local coords + center offset).
 - `ui_shots`: (no description)
-- `uishots`: Screenshots of every menu at the current window size. Args: <out_prefix> [pixelate 1|0] [WxH or 0] [only these screens: e.g. emotes,items,loadouts,actions (the wheels), chat, equipment (the inventory with a fiddle in the equipment slot)]
+- `uishots`: Screenshots of every menu at the current window size. Args: <out_prefix> [pixelate 1|0] [WxH or 0] [only these screens: e.g. emotes,items,loadouts,actions (the wheels), chat, equipment (the inventory with a fiddle in the equipment slot), banner (the island title card), tree_banner (the "new skill tree" card)]
 - `village`: (no description)
 - `vineshot`: Renders: vine swing from a tree (+ release), grapple pull on a grunt, punches with wind, flying kick. Args: <out_prefix>
 - `watershot`: Water shots: a grunt shoved off the beach into the sea (plunge, float, swim back), then the player knocked under while swimming. Args: <out_prefix>

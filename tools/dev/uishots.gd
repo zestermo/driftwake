@@ -7,7 +7,7 @@ var out := ""
 var step := 0
 var t0 := 0.0
 var screens := ["pause", "options", "controls", "inventory", "inventory_char", "container", "skills", "skills_sword", "skills_fruit",
-	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment"]
+	"skills_tip", "yard", "shop", "shop_tip", "load", "dialogue", "dialogue_choice", "hud", "emotes", "items", "loadouts", "chat", "actions", "equipment", "banner", "tree_banner"]
 var si := 0
 
 
@@ -108,6 +108,16 @@ func _process(d: float) -> bool:
 					root.get_node("Dialogue").say("Odile", ["Welcome to Brinehollow, captain. Mind the smugglers down at the cove, they've been bold of late and the lighthouse keeper swears he saw lights on the water."])
 				"hud":
 					pass
+				"banner":
+					var hud = root.get_tree().get_first_node_in_group("hud")
+					hud.show_banner("Brinehollow", "A quiet fishing village")
+					hud._banner_tween.kill()
+					hud.banner.modulate.a = 1.0
+				"tree_banner":
+					var hud = root.get_tree().get_first_node_in_group("hud")
+					hud.show_new_tree("Swimming", "Added to ADVENTURE · 1 point to spend")
+					hud._tree_tween.kill()
+					hud._tree_card.modulate.a = 1.0
 				"emotes":
 					# the emote wheel held open, pointing at the fourth (Laugh)
 					Input.action_press("emote")
