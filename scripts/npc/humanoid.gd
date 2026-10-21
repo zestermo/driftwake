@@ -132,8 +132,14 @@ var _katana_socket: Node3D
 ## Sprinting with the katana out: it rides in its scabbard, hands on it, ready to draw.
 var _run_sheath: bool = false
 ## Fighting stance for the guard pose: sword, dual_sword, fist, pistol,
-## dual_pistol, claw, katana, dagger, dual_dagger.
+## dual_pistol, claw, katana, dagger, dual_dagger, polearm.
 var stance: String = "sword"
+## A polearm's two-handed grip (PoleMoves): what this frame's pose asked for ([right hand, shaft, edge, left
+## hand's slide], the chest's frame), whether a pose set it, and the grip as it eases there.
+var pole_grip: Array = []
+var pole_set := false
+var pole_cur: Array = []
+var pole_w := 0.0
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
 ## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
@@ -643,7 +649,7 @@ func _attach_weapon(in_hand: bool) -> void:
 	if weapon == null:
 		return
 	var sheath := _katana_socket if _katana_socket != null and is_instance_valid(_katana_socket) else hip_socket
-	if kind_of(weapon) == "axe":
+	if kind_of(weapon) in ["axe", "polearm"]:
 		sheath = DrawMoves.back_socket(self)
 	var target := hand_r if in_hand else sheath
 	if weapon.get_parent() != target:
@@ -792,6 +798,8 @@ func _guard() -> Dictionary:
 				"torso": Vector3(-0.05, 0.25, 0), "head": Vector3(0.05, -0.2, 0)}
 		"katana":
 			return KATANA_GUARD
+		"polearm":
+			return PoleMoves.GUARD
 		"sword":
 			return SWORD_GUARD
 		"dual_pistol":
@@ -809,6 +817,7 @@ const STANCE_LEGS := {
 	"fist": {"leg_l": Vector3(0.12, 0, -0.2), "leg_r": Vector3(-0.12, 0, 0.2), "shin_l": Vector3(-0.45, 0, 0), "shin_r": Vector3(-0.35, 0, 0), "_lift": Vector3(0, -0.1, 0)},
 	"dual_sword": {"leg_l": Vector3(0.5, 0, -0.2), "leg_r": Vector3(-0.28, 0, 0.2), "shin_l": Vector3(-0.9, 0, 0), "shin_r": Vector3(-0.42, 0, 0), "_lift": Vector3(0, -0.14, 0)},
 	"dual_dagger": {"leg_l": Vector3(0.6, 0, -0.28), "leg_r": Vector3(-0.22, 0, 0.28), "shin_l": Vector3(-1.15, 0, 0), "shin_r": Vector3(-0.55, 0, 0), "_lift": Vector3(0, -0.195, 0)},
+	"polearm": PoleMoves.LEGS,
 }
 
 
@@ -972,6 +981,8 @@ func _block_pose() -> Dictionary:
 			return WieldMoves.dual_block(WieldMoves.offhand_kind(self))
 		"dagger", "dual_dagger":
 			return DaggerMoves.block(stance == "dual_dagger")
+		"polearm":
+			return PoleMoves.BLOCK
 	# one blade held level across the body, the off hand bracing it
 	return {"torso": Vector3(-0.08, -0.2, 0), "head": Vector3(0.08, 0.2, 0),
 		"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),
@@ -2166,6 +2177,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return FishPoses.pose(self, n, u)
 	if n.begins_with("clip_"):
 		return ClipPlayer.pose(self, n, u)
+	if n.begins_with("pole_"):
+		return PoleMoves.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp
@@ -2752,6 +2765,8 @@ func _process(delta: float) -> void:
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
 	if auto_point_guns:
 		point_guns()
+	if stance == "polearm" or pole_w > 0.0:
+		PoleMoves.hands(self, delta)
 	_apply_smear()
 	_katana_hands()
 	_axe_hands()

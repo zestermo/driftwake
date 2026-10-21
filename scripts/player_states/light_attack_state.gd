@@ -73,6 +73,12 @@ const STYLES := {
 		"damages": [6.0, 6.0, 11.0, 17.0], "hitstops": [0.03, 0.03, 0.05, 0.08], "shakes": [0.05, 0.05, 0.1, 0.16],
 		"reach": "dagger", "reaches": ["dagger", "dagger", "wide", "spin"], "color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7),
 		"tree": "dual_dagger", "bleeds": [0.0, 0.0, 0.0, 4.0]},
+	# polearm: a thrust that hits from three paces, a rising cut, a wide flat sweep and (Wheel Sweep) the spear
+	# swung round once all about you; "pole": a design's speed and pierce apply (WeaponDesigns.pole)
+	"polearm": {"anims": ["pole_thrust", "pole_rise", "pole_sweep", "pole_wheel"], "trails": ["", "", "", ""],
+		"durations": [0.42, 0.46, 0.58, 0.74], "impulses": [5.5, 4.5, 4.0, 3.0],
+		"damages": [10.0, 11.0, 15.0, 20.0], "hitstops": [0.05, 0.05, 0.07, 0.1], "shakes": [0.08, 0.09, 0.13, 0.2],
+		"reach": "pole", "reaches": ["pole", "pole_sweep", "pole_sweep", "pole_spin"], "color": Color(1.0, 0.93, 0.72), "pole": true},
 	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
 		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
 		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
@@ -90,7 +96,7 @@ const STYLES := {
 const OFFHAND := {"sword": [1.0, 1.0, 1.0, 0.0], "axe": [1.25, 1.4, 1.4, 0.06], "dagger": [0.85, 0.8, 0.8, -0.06]}
 ## The combo's last hit is a skill-tree unlock (a "move" node) for these styles.
 const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol": "powder_finale",
-	"dagger": "gut_strike", "dual_dagger": "fang_whirl"}
+	"dagger": "gut_strike", "dual_dagger": "fang_whirl", "polearm": "wheel_sweep"}
 
 var cfg: Dictionary = STYLES["sword"]
 var combo_count: int = 3
@@ -116,6 +122,8 @@ var _shot_done := false
 var _off: Array = OFFHAND["sword"]
 ## The running cut's reach with a Rushing weapon (TraitMoves.rush_k; 1: plain).
 var _rush := 1.0
+## A polearm design's speed (its moves play that much faster; 1: other weapons).
+var _spd := 1.0
 
 
 func enter(data: Dictionary) -> void:
@@ -150,11 +158,12 @@ func enter(data: Dictionary) -> void:
 	player.velocity.x = forward.x * float(cfg["impulses"][combo_index]) * _rush
 	player.velocity.z = forward.z * float(cfg["impulses"][combo_index]) * _rush
 	var anim := str(cfg["anims"][combo_index])
-	_window = ActionSpecs.hit_seconds(anim)
-	_swoosh = ActionSpecs.swoosh_seconds(anim)
+	_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed") if cfg.get("pole", false) else 1.0
+	_window = ActionSpecs.hit_seconds(anim) / _spd
+	_swoosh = ActionSpecs.swoosh_seconds(anim) / _spd
 	_swooshed = false
 	_shot_t = ActionSpecs.shot_seconds(anim) if _kind != "cut" else -1.0
-	player.body_model.play(anim, ActionSpecs.length(anim))
+	player.body_model.play(anim, ActionSpecs.length(anim) / _spd)
 	player.squash(-1.5 if combo_index < 2 else -2.5)
 
 
@@ -196,6 +205,10 @@ func physics_update(delta: float) -> void:
 			hit.set_meta("bleed", float(cfg["bleeds"][combo_index]))
 		# (the axe's finisher puts them on the ground)
 		hit.knockdown = (last and cfg.get("slam", false)) or _rush > 1.0
+		# (a polearm's thrust shoves them back to the point; a trident's goes through a guard)
+		if cfg.get("pole", false) and str(cfg["anims"][combo_index]) == "pole_thrust":
+			hit.knockback_force = 6.5
+			hit.unblockable = hit.unblockable or WeaponDesigns.pole(player.equipped_weapon.design, "pierce", 0.0) > 0.0
 		player.sword_hitbox.activate(hit)
 		if last and cfg.get("slam", false):
 			var fwd := -player.player_model.global_basis.z
@@ -236,7 +249,7 @@ func physics_update(delta: float) -> void:
 		hitbox_deactivated = true
 		player.sword_hitbox.deactivate()
 
-	var duration := float(AnimLab.spec(str(cfg["anims"][combo_index])).get("chain", cfg["durations"][combo_index])) + float(_off[3])
+	var duration := float(AnimLab.spec(str(cfg["anims"][combo_index])).get("chain", cfg["durations"][combo_index])) / _spd + float(_off[3])
 	if timer >= duration and not can_combo:
 		can_combo = true
 		combo_timer = combo_window

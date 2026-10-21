@@ -49,6 +49,12 @@ const STYLES := {
 		"damage": 14.0, "hitstop": 0.06, "shake": 0.12, "knockback": 8.0, "stagger": 0.8,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.3, "impact_fx": false, "reach": "dagger",
 		"color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7), "tree": "dual_dagger", "bleed": 4.0},
+	# polearm (Skewer): coiled deep, then a lunge driving the whole shaft through the line in front, knocking
+	# down everyone on it (the point holds them off at its full reach)
+	"skewer": {"anim": "pole_heavy", "impulse": 10.5,
+		"damage": 30.0, "hitstop": 0.09, "shake": 0.2, "knockback": 13.0, "stagger": 0.6,
+		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.15, "impact_fx": false, "reach": "pole_long",
+		"color": Color(1.0, 0.93, 0.72), "tree": "polearm", "pole": true},
 	"kick": {"anim": "flying_kick", "impulse": 9.5, "wind": true,
 		"damage": 26.0, "hitstop": 0.09, "shake": 0.2, "knockback": 12.0, "stagger": 0.5,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.2, "impact_fx": false, "reach": "fist"},
@@ -92,12 +98,16 @@ var _swooshed := false
 var _blinked := false
 var _seen := false
 var _blink_from := Vector3.ZERO
+## A polearm design's speed (1: other weapons).
+var _spd := 1.0
 
 
 static func style_for(weapon_model: String) -> String:
 	match weapon_model:
 		"axe":
 			return "whirl"
+		"polearm":
+			return "skewer"
 		"cutlass", "sword", "rapier", "dagger":
 			return "thrust"
 	return "slam"
@@ -138,8 +148,9 @@ func enter(_data: Dictionary) -> void:
 	var forward := get_camera_forward()
 	player.player_model.rotation.y = atan2(-forward.x, -forward.z)
 	var anim := str(cfg["anim"])
-	var length := ActionSpecs.length(anim)
-	var w := ActionSpecs.hit_seconds(anim)
+	_spd = WeaponDesigns.pole(player.equipped_weapon.design, "speed") if cfg.get("pole", false) else 1.0
+	var length := ActionSpecs.length(anim) / _spd
+	var w := ActionSpecs.hit_seconds(anim) / _spd
 	_windup = w.x
 	_active = w.y - w.x
 	_recovery = length - w.y
@@ -168,7 +179,7 @@ func physics_update(delta: float) -> void:
 	timer += delta
 	_t_all += delta
 	# (moves keyed with a "swoosh" draw the real blades' trails, both hands' for two blades)
-	var sw := ActionSpecs.swoosh_seconds(str(cfg["anim"]))
+	var sw := ActionSpecs.swoosh_seconds(str(cfg["anim"])) / _spd
 	if sw.x >= 0.0 and _t_all >= sw.x and not _swooshed:
 		_swooshed = true
 		Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, _trail_col(), _trail_col(true)])
@@ -346,6 +357,18 @@ func _strike_fx(second: bool = false) -> void:
 			CombatManager.apply_camera_kick(0.16, 0.3)
 		else:
 			Net.fx("ring", [at, face, 0.7, FX.tree_col(tree, FX.EDGE), 0.16, 0.18])
+		return
+	if cfg["tree"] == "polearm":
+		# the line it drives through: a streak of air down its whole length, a ring where the point stops
+		var from := player.global_position + Vector3(0, 1.15, 0) + face * 0.8
+		var tip := from + face * 3.6 * WeaponDesigns.pole(player.equipped_weapon.design, "reach")
+		Net.fx("streak", [from, tip, FX.tree_col(tree, FX.EDGE), 0.16, 0.3])
+		Net.fx("ring", [tip, face, 1.1, FX.tree_col(tree, FX.EDGE), 0.22, 0.16])
+		Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0) - face * 0.3, 7, 0.6])
+		if elem:
+			Net.fx("bolt", [from, tip, FX.tree_col(tree, FX.EDGE), 0.1, 0.25, randi() % 1000])
+			Net.fx("element", [tree, tip, face + Vector3.UP * 0.2, 10, 5.0])
+		CombatManager.apply_camera_kick(0.14, 0.3)
 		return
 	if cfg.has("rehit"):
 		var c := player.global_position

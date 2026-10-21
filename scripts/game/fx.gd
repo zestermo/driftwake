@@ -1302,6 +1302,8 @@ const TREE_FX := {
 	"dagger": [Color(1.0, 0.92, 0.95), Color(0.95, 0.15, 0.38), Color(0.55, 0.12, 0.45)],
 	# two daggers: venom - viper green, a sickly yellow-green, poison bubbling off the wounds
 	"dual_dagger": [Color(0.95, 1.0, 0.9), Color(0.45, 0.95, 0.3), Color(0.82, 1.0, 0.35)],
+	# polearm: storm - lemon-white lightning with a violet afterglow, a thunderclap on the big blows
+	"polearm": [Color(1.0, 1.0, 0.9), Color(1.0, 0.9, 0.32), Color(0.62, 0.48, 1.0)],
 	"unarmed": [Color(1.0, 1.0, 1.0), Color(1.0, 0.95, 0.85), Color(0.95, 0.75, 0.45)],
 	"haki": [Color(1.0, 0.85, 0.85), Color(0.9, 0.12, 0.18), Color(0.1, 0.02, 0.04)],
 	# a weapon whose element isn't awakened yet (its tree's mastery passive): steel and dust
@@ -1409,6 +1411,11 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 		"dual_dagger":
 			poison(pos, maxi(amount / 3, 2), 0.32)
 			motes(pos, dir, maxi(amount / 2, 2), c, speed)
+		"polearm":
+			muzzle_sparks(pos, dir, amount, tree_col(tree, EDGE))
+			motes(pos, dir, maxi(amount / 3, 2), c, speed * 0.7)
+			bolt(pos, pos + (dir.normalized() + Vector3(randf_range(-0.4, 0.4), randf_range(0.0, 0.5), randf_range(-0.4, 0.4))) * 1.1,
+				tree_col(tree, EDGE), 0.06, 0.16, randi() % 1000)
 		_:
 			spray(pos, dir, amount, c, speed)
 
@@ -1998,6 +2005,63 @@ func streak(from: Vector3, to: Vector3, color: Color = Color(0.4, 0.8, 1.0), wid
 	tw.chain().tween_callback(holder.queue_free)
 
 
+## Lightning (the polearm's element): a jagged bolt from `from` to `to`, kinked at random (seeded) every ~0.35 m,
+## a hot core in a coloured sheath, flickering once and gone. A few small forks off it on the longer ones.
+func bolt(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.32), width: float = 0.08, life: float = 0.2, seed_v: int = 0) -> void:
+	var seg := to - from
+	var l := seg.length()
+	if l < 0.1:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(from) > BURST_RANGE:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var dir := seg / l
+	var side := dir.cross(Vector3.UP if absf(dir.y) < 0.95 else Vector3.RIGHT).normalized()
+	var up := side.cross(dir).normalized()
+	var n := clampi(int(l / 0.35), 2, 14)
+	var pts: Array = [from]
+	for i in range(1, n):
+		var jag := l * 0.08
+		pts.append(from + seg * (float(i) / n) + side * rng.randf_range(-jag, jag) + up * rng.randf_range(-jag, jag))
+	pts.append(to)
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = from
+	var box := _box()
+	var mats: Array = [_glow_mat(color, 0.6), _glow_mat(color.lerp(Color.WHITE, 0.75), 1.0)]
+	var lines: Array = [pts]
+	if l > 1.5:
+		for f in range(2):
+			var at: Vector3 = pts[rng.randi_range(1, pts.size() - 2)]
+			var fork_to := at + (dir * 0.5 + side * rng.randf_range(-0.5, 0.5) + up * rng.randf_range(-0.3, 0.4)).normalized() * l * 0.25
+			lines.append([at, at.lerp(fork_to, 0.5) + up * rng.randf_range(-0.08, 0.08), fork_to])
+	for li in range(lines.size()):
+		var line: Array = lines[li]
+		var w := width * (1.0 if li == 0 else 0.55)
+		for i in range(line.size() - 1):
+			var a: Vector3 = line[i]
+			var b: Vector3 = line[i + 1]
+			var s := b - a
+			if s.length() < 0.01:
+				continue
+			for layer in [[w, 0], [w * 0.4, 1]]:
+				var mi := MeshInstance3D.new()
+				mi.mesh = box
+				mi.material_override = mats[layer[1]]
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				holder.add_child(mi)
+				mi.global_transform = Transform3D(Basis.looking_at(s.normalized(), up), a + s * 0.5).scaled_local(Vector3(layer[0], layer[0], s.length() + float(layer[0]) * 0.5))
+	# (a flicker: bright, a dip, bright again, then gone)
+	var tw := holder.create_tween()
+	tw.tween_method(func(x: float):
+		var k := (1.0 - x * x) * (0.35 if x > 0.15 and x < 0.3 else 1.0)
+		mats[0].albedo_color.a = 0.6 * k
+		mats[1].albedo_color.a = k, 0.0, 1.0, life)
+	tw.tween_callback(holder.queue_free)
+
+
 ## A star of light (a blade's edge catching it before a strike, a hit landing).
 func glint(pos: Vector3, color: Color = Color.WHITE, size: float = 0.8) -> void:
 	if flipbooks:
@@ -2230,6 +2294,10 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 			poison(pos, 3, 0.3)
 			motes(pos, dir + Vector3.UP * 0.3, 5, accent, 3.5)
 			ring(pos, dir, 0.8, edge, 0.16, 0.14)
+		"polearm":
+			bolt(pos, pos + (dir + Vector3.UP * 0.6).normalized() * 0.9, edge, 0.06, 0.14, randi() % 1000)
+			muzzle_sparks(pos, dir, 6, edge)
+			ring(pos, dir, 0.8, accent, 0.16, 0.14)
 		_:
 			sparkle(pos, 6, accent)
 			ring(pos, dir, 0.8, edge, 0.18, 0.2)

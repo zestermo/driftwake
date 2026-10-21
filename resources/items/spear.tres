@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/loot/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spear"
+display_name = "Boarding Spear"
+description = "A leaf-bladed spear on an ash shaft, two hands on it. Thrusts that hit from three paces off and sweeps that clear the deck; sprint and jump to vault on it."
+value = 14
+stackable = false
+max_stack = 1
+item_type = 1
+weapon_model = "polearm"
+damage_mult = 1.0
