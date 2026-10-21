@@ -10,7 +10,7 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 | Decision | Choice | Why | Revisit when |
 |---|---|---|---|
 | Kinds in this push | Polearm, hammer/kanabo, dual axes, greatsword, black-leg kicks, long guns, cannon, slingshot | Zach picked all of the candidates offered, plus a cannon/large firearm | After all eight land |
-| Order | Polearm, hammer/kanabo, dual axes, greatsword, black-leg, long guns, cannon, slingshot (melee then ranged) | Melee kinds reuse the swing/hand-path tooling back to back; the guns share aiming and ammo work | — |
+| Order | Polearm, hammer/kanabo, dual axes, greatsword, black-leg. **Black-leg is the last for now** (Zach, 2026-10-21): long guns, cannon and slingshot moved to docs/todo.md ("The ranged weapon kinds"); their rows below stay as the decided spec for when they come back | Melee kinds reuse the swing/hand-path tooling back to back | When the ranged kinds are picked up |
 | Stances | **One stance per kind** (its guard pose, gait and moveset), as today; no switching within a weapon | Zach's pick | — |
 | Landing | One kind at a time, end to end, landed before the next starts; keep moving through all eight without stopping for a check-in | Zach: "one at a time ... just continue moving through all the remaining weapons" | — |
 | Testing | **Minimal until all eight are in:** per kind, one small atomic test group (`t/weapons/<kind>`: equip it, the light combo and heavy land on a dummy, the tree's entries are valid), `land.ps1 -NoTests`. No world suites and no nettest until the end; then one `prepush.ps1` run and a fix pass | Zach: keep testing straightforward and very minimal until we finish all of them | When all eight are landed |
@@ -21,7 +21,7 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 | Slingshot | Its own light ranged kind with trick ammo (fire, smoke, explosive, sticky) as its identity. Throwing knives/chakrams are dagger-tree techniques later, not a kind | Zach's pick | — |
 | Depth per kind | Moveset (light combo, heavy, running and air attacks, block/parry), a three-branch mastery tree with its techniques and an ultimate, a colour identity in `FX.TREE_FX`. No drawn flipbook awakening: that joins the katana/axe series later | Zach's pick | — |
 | Sources | Into the existing loot pools and weapon shops. Polearm, hammer, long guns, slingshot drop like cutlasses; cannon and greatsword are rarer (bosses, chests, specialist shops). Black-leg is learned (a trainer or manual), not found | Zach's pick | Economy pass |
-| Enemies | Player only for now; one enemy pass after all kinds land (spearmen, hammer brutes, cannoneers...) | Zach's pick | After the eighth kind |
+| Enemies | Player only for now; one enemy pass after black-leg lands (spearmen, hammer brutes, cannoneers...) | Zach's pick | After black-leg |
 | Co-op | Standing rule: everything works for a guest (puppets show the stance and moves, hits go through Net) | CLAUDE.md | — |
 
 ## Decided (2026-10-21): stance poses from Zach's reference images
