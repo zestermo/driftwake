@@ -50,6 +50,10 @@ one planned, as **floating, clickable cards** strung along a timeline line.
   fight underwater too** (chasing a captain who dives, duels in the shallows). It's the root of the Seafarer tree's
   "fighting underwater" (docs/devil_fruits_plan.md). Today a swimmer sheathes their weapon (swim_state.gd) and sea
   threats can only be hit from the deck or the shore.
+- **The weapons' enemy pass** (Zach, 2026-10-21; moved out of 1.18.3): grunt roles for the kinds built in 1.18.3
+  (spearman, hammer brute, twin-axe berserker, greatsword, black-leg fighter), each a cut-down moveset you learn to
+  read, dropping its weapon. Built alongside 1.19's captain-style AI, so the Admiralty and rival crews can field them
+  too (docs/weapons_plan.md).
 
 ## Perf session before 1.19 (Zach, 2026-10-20)
 After 1.18.1 ships, before the 1.19 batch, in order, each with a before/after bench by the lead:

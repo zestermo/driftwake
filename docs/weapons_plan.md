@@ -21,7 +21,7 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 | Slingshot | Its own light ranged kind with trick ammo (fire, smoke, explosive, sticky) as its identity. Throwing knives/chakrams are dagger-tree techniques later, not a kind | Zach's pick | — |
 | Depth per kind | Moveset (light combo, heavy, running and air attacks, block/parry), a three-branch mastery tree with its techniques and an ultimate, a colour identity in `FX.TREE_FX`. No drawn flipbook awakening: that joins the katana/axe series later | Zach's pick | — |
 | Sources | Into the existing loot pools and weapon shops. Polearm, hammer, long guns, slingshot drop like cutlasses; cannon and greatsword are rarer (bosses, chests, specialist shops). Black-leg is learned (a trainer or manual), not found | Zach's pick | Economy pass |
-| Enemies | Player only for now; one enemy pass after black-leg lands (spearmen, hammer brutes, cannoneers...) | Zach's pick | After black-leg |
+| Enemies | Player only for now; the enemy pass ships with **1.19** (Zach, 2026-10-21; docs/v1_19_plan.md), alongside its captain-style AI | Zach's pick | 1.19 |
 | Co-op | Standing rule: everything works for a guest (puppets show the stance and moves, hits go through Net) | CLAUDE.md | — |
 
 ## Decided (2026-10-21): stance poses from Zach's reference images
