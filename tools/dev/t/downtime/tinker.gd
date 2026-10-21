@@ -51,6 +51,7 @@ func _process(_d: float) -> bool:
 			check("an interval of tinkering tunes the kit (%.0f s)" % pr.kit_left, absf(pr.kit_left - DT.KIT_PER) < 1.0)
 			check("...a spare shot (%d -> %d)" % [shots0, p.max_ammo()], p.max_ammo() == shots0 + 1)
 			check("...quicker reloads (%.2f -> %.2f)" % [reload0, p.reload_time()], p.reload_time() < reload0 - 0.05)
+			check("...and it teaches Tinkering (%d)" % int(pr.mastery_of("tinker")["xp"]), int(pr.mastery_of("tinker")["xp"]) == DT.TINKER_XP and "tinker" in pr.visible_trees("adventure"))
 			var d: Dictionary = pr.to_dict()
 			pr.from_dict({})
 			check("...forgotten on a blank load", pr.kit_left == 0.0)

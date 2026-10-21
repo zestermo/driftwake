@@ -1,5 +1,5 @@
 extends SceneTree
-## Seamanship: a life skill on the skill map's LIFE tab, its perks reached at mastery milestones (never bought);
+## Seamanship (the Sailing tree): an Adventure tree, its big nodes reached at their level (never bought);
 ## sailing at the helm and a ship sunk nearby earn its mastery; its bonuses count at the station you man: the helm (faster, sharper,
 ## and on the ship's snapshot for the other screens), a gun (reloads faster, balls hit harder), deck jobs
 ## (patching faster); and it's saved with the captain.
@@ -44,8 +44,9 @@ func _process(_d: float) -> bool:
 			p = stage.player
 			pr = p.progression
 			ship = stage.ship
-			check("Seamanship is a life skill on the LIFE tab", ST.TAB_ORDER.has("life") and ST.is_life_tree("sea") and ST.tab_of("sea") == "life")
-			check("...its root owned from the start, 6 milestone perks", pr.owns("sea_root") and ST.perks_of("sea").size() == 6)
+			var STS = load("res://scripts/progression/skill_trees.gd")
+			check("Sailing (Seamanship) is an Adventure tree", STS.section_of("sea") == "adventure" and STS.tree_def("sea")["name"] == "Sailing")
+			check("...its root owned from the start, 7 big nodes", pr.owns("sea_root") and STS.nodes_of("sea").filter(func(k): return STS.node_def(k)["kind"] == "mech").size() == 7)
 			# sailing at the helm
 			xp0 = sea_xp()
 			ship.is_player_steering = true
@@ -56,16 +57,16 @@ func _process(_d: float) -> bool:
 			print("   sea xp %d -> %d" % [xp0, sea_xp()])
 			check("sailing at the helm earns Seamanship", sea_xp() > xp0)
 			check("...no bonus at the helm without the perks", ship._helm_k == Vector3.ONE)
-			check("perks can't be bought", not pr.learn("sea_hand") and pr.can_learn("sea_hand").begins_with("Comes at Seamanship"))
+			check("its big nodes can't be bought (%s)" % pr.can_learn("sea_hand"), not pr.learn("sea_hand") and pr.can_learn("sea_hand") == "Comes at Sailing 2")
 			while pr.mastery_level("sea") < 7:
 				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea")))
-			check("Seamanship 7 brings its first three perks by themselves", pr.owns("sea_hand") and pr.owns("sea_gunner") and pr.owns("sea_turn") and not pr.owns("sea_storm"))
-			check("...and no points to spend", pr.points("sea") == 0)
+			check("Sailing 7 brings Sea Hand, Gun Captain, Helmsman and Hard Over by themselves", pr.owns("sea_hand") and pr.owns("sea_gunner") and pr.owns("f_helm") and pr.owns("sea_turn") and not pr.owns("sea_storm"))
+			check("...and 6 points for its steps", pr.points_free("sea") == 6)
 			until = TK.wait_ticks(3)
 		2:
-			check("at the helm: 4%% faster, 8%% sharper (%s)" % str(ship._helm_k), is_equal_approx(ship._helm_k.x, 1.04) and is_equal_approx(ship._helm_k.y, 1.08))
+			check("at the helm: 10%% faster, 18%% sharper (%s)" % str(ship._helm_k), is_equal_approx(ship._helm_k.x, 1.10) and is_equal_approx(ship._helm_k.y, 1.18))
 			var pack: Array = ship.net_pack()
-			check("...on her snapshot for the other screens", is_equal_approx(float(pack[15]), 1.04) and bool(pack[18]))
+			check("...on her snapshot for the other screens", is_equal_approx(float(pack[15]), 1.10) and bool(pack[18]))
 			ship.is_player_steering = false
 			ship.speed = 0.0
 			ship.sail = 0.0

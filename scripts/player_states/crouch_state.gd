@@ -17,7 +17,7 @@ func physics_update(delta: float) -> void:
 	var input := get_movement_input()
 	if input.length() > 0.1:
 		var dir := get_camera_relative_direction(input)
-		var speed := SPEED * player.wade_mult()
+		var speed := SPEED * (1.0 + player.progression.stat("sneak_pct")) * player.wade_mult()
 		player.velocity.x = dir.x * speed
 		player.velocity.z = dir.z * speed
 		if player.armed:
@@ -30,6 +30,7 @@ func physics_update(delta: float) -> void:
 		if player.armed:
 			face_camera(delta)
 	player.move_and_slide()
+	player.progression.sneak(Vector2(player.velocity.x, player.velocity.z).length() * delta)
 
 	if not player.is_on_floor():
 		transitioned.emit(self, "Fall", {})

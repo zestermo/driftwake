@@ -32,6 +32,13 @@ const MASTERY_KILL_SHARE := 0.25
 const ELITE_SHARE := 3.0
 ## Fruit mastery for each cast of one of its powers (and the Wolf's claws learn like a weapon in hand).
 const FRUIT_PER_CAST := 6
+## Stealth: SNEAK_XP for each SNEAK_M metres sneaked with a foe within SNEAK_NEAR m; a blow struck within
+## AMBUSH_TICKS of sneaking is a sneak attack worth AMBUSH_XP.
+const SNEAK_M := 4.0
+const SNEAK_NEAR := 20.0
+const SNEAK_XP := 3
+const AMBUSH_TICKS := 45
+const AMBUSH_XP := 10
 ## No family carry-over since 1.18.2 (only the old skill map still reads it).
 const FAMILY_SHARE := 0.0
 ## Metres swum for a point of Swimming xp, and how often (ticks) the swim is measured.
@@ -72,6 +79,8 @@ var will: Dictionary = {}
 var beaten: Dictionary = {}
 var _refunded: bool = false
 var _wind_used := false
+var _sneak_frame := -AMBUSH_TICKS
+var _sneak_m := 0.0
 ## foe instance id -> hits that taught mastery
 var _foe_hits: Dictionary = {}
 var _swim_m: float = 0.0
@@ -111,10 +120,8 @@ func _physics_process(delta: float) -> void:
 
 func _reset_owned() -> void:
 	owned = {}
-	for k in SkillTree.starting_nodes():
-		owned[k] = true
 	for t in SkillTrees.HEADERS.keys():
-		if SkillTrees.converted(t) and SkillTrees.section_of(t) != "fruit":
+		if SkillTrees.section_of(t) != "fruit":
 			owned[SkillTrees.tree_def(t)["root"]] = true
 	_stat_n = -1
 
@@ -279,15 +286,15 @@ func mastery_level(tree: String) -> int:
 
 ## A tree with a mastery track (a weapon, a life skill, an Adventure tree).
 static func is_track(tree: String) -> bool:
-	return SkillTree.is_mastery_tree(tree) or (SkillTrees.has_tree(tree) and tree != "captain")
+	return SkillTrees.has_tree(tree) and tree != "captain"
 
 
 static func tree_name(tree: String) -> String:
-	return str(SkillTrees.tree_def(tree)["name"]) if SkillTrees.has_tree(tree) else str(SkillTree.TREES[tree]["name"])
+	return str(SkillTrees.tree_def(tree)["name"])
 
 
 func max_of(tree: String) -> int:
-	return SkillTrees.max_level(tree) if SkillTrees.converted(tree) else MAX_MASTERY
+	return SkillTrees.max_level(tree) if SkillTrees.has_tree(tree) else MAX_MASTERY
 
 
 ## Mastery xp for a weapon or a life skill (only that tree's: no carry-over; Quick Learner's mastery_pct on top).
@@ -313,36 +320,16 @@ func _gain(tree: String, amount: int) -> void:
 		m["xp"] = 0
 	if ups == 0:
 		return
-	var perks := _sync_perks(tree)
 	var got := _sync_tree(tree, false)
 	_dirty()
 	if player:
-		var tname := tree_name(tree)
-		if SkillTree.is_life_tree(tree) and not SkillTrees.converted(tree):
-			var msg := "%s %d" % [tname, int(m["lv"])]
-			for k in perks:
-				var pn := SkillTree.get_node_def(k)
-				msg += "  -  %s: %s" % [pn["name"], pn["desc"]]
-			player.call("_toast", msg)
-		else:
-			var msg := "%s mastery %d" % [tname, int(m["lv"])]
-			for k in got:
-				msg += "  -  %s" % SkillTree.get_node_def(k)["name"]
-			player.call("_toast", msg + "  -  +%d point%s (K)" % [ups, "" if ups == 1 else "s"])
+		var msg := "%s %s%d" % [tree_name(tree), "mastery " if SkillTrees.section_of(tree) == "combat" else "", int(m["lv"])]
+		for k in got:
+			var n := SkillTrees.node_def(k)
+			msg += "  -  %s" % n["name"] + (": %s" % n["desc"] if n["kind"] == "mech" else "")
+		player.call("_toast", msg + "  -  +%d point%s (K)" % [ups, "" if ups == 1 else "s"])
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 12, Color(0.75, 0.9, 1.0)])
 	mastery_up.emit(tree, int(m["lv"]))
-
-
-## Own every perk a life skill has reached; returns the ones just reached.
-func _sync_perks(tree: String) -> Array:
-	var got: Array = []
-	if not SkillTree.is_life_tree(tree) or SkillTrees.converted(tree):
-		return got
-	for pk in SkillTree.perks_of(tree):
-		if mastery_level(tree) >= int(pk[0]) and not owns(pk[1]):
-			_own(pk[1])
-			got.append(pk[1])
-	return got
 
 
 ## A hit landed with the weapon in your hand on `target` (each foe teaches its first HITS_PER_FOE hits), and
@@ -350,13 +337,17 @@ func _sync_perks(tree: String) -> Array:
 func on_hit(target: Node = null, hit: HitData = null) -> void:
 	if player == null:
 		return
-	var bounty := stat("bounty_pct")
-	if hit and target and bounty > 0.0 and not hit.dot and is_elite(target):
+	var extra_k := stat("bounty_pct") if target and is_elite(target) else 0.0
+	if Engine.get_physics_frames() - _sneak_frame < AMBUSH_TICKS:
+		_sneak_frame = -AMBUSH_TICKS
+		extra_k += stat("ambush_pct")
+		add_life("stealth", AMBUSH_XP)
+	if hit and target and extra_k > 0.0 and not hit.dot:
 		var hb := target.get("hurtbox") as Hurtbox
 		if hb:
 			var extra := HitData.new()
 			extra.dot = true
-			extra.damage = roundf(hit.damage * bounty)
+			extra.damage = roundf(hit.damage * extra_k)
 			hb.take_hit(extra, player)
 	if target:
 		var id := target.get_instance_id()
@@ -369,6 +360,20 @@ func on_hit(target: Node = null, hit: HitData = null) -> void:
 					_foe_hits.erase(k)
 		_foe_hits[id] = n + 1
 	add_mastery(hand_tree(), MASTERY_PER_HIT)
+
+
+## CrouchState's tick: sneaking, `metres` moved. Every SNEAK_M metres with a foe within SNEAK_NEAR teaches Stealth,
+## and a blow struck within AMBUSH_TICKS of it is a sneak attack (on_hit: Ambush's damage and more Stealth).
+func sneak(metres: float) -> void:
+	_sneak_frame = Engine.get_physics_frames()
+	_sneak_m += metres
+	if _sneak_m < SNEAK_M:
+		return
+	_sneak_m = 0.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not e.is_dead() and (e as Node3D).global_position.distance_to(player.global_position) < SNEAK_NEAR:
+			add_life("stealth", SNEAK_XP)
+			return
 
 
 ## Sergeant Vey's drill (his story step): a level of mastery for the weapon in hand.
@@ -578,8 +583,7 @@ func passive_slots() -> int:
 
 
 func is_passive(id: String) -> bool:
-	var n := SkillTree.get_node_def(id)
-	return n.get("new", false) and n["kind"] == "passive"
+	return SkillTrees.node_def(id).get("kind", "") == "passive"
 
 
 ## Put an owned passive in a slot ("" empties it; one already slotted moves).
@@ -671,76 +675,37 @@ func owns(id: String) -> bool:
 	return owned.has(id)
 
 
-## Points to spend in a tree: a converted tree's free points, none for a life skill (its perks come by
-## themselves), skill points for the rest.
+## The old skill map's name for points_free (0 for a tree that isn't SkillTrees').
 func points(tree: String) -> int:
-	if SkillTrees.converted(tree):
-		return points_free(tree)
-	if SkillTree.kind_of(tree) in ["life", "tab"]:
-		return 0
-	return skill_points
-
-
-func _spend(n: int) -> void:
-	skill_points -= n
+	return points_free(tree) if SkillTrees.has_tree(tree) else 0
 
 
 func points_word(tree: String, n: int) -> String:
-	var unit := "mastery point" if SkillTree.is_weapon_tree(tree) else "skill point"
-	return "%d %s%s" % [n, unit, "" if n == 1 else "s"]
+	return "%d %s point%s" % [n, "mastery" if SkillTrees.section_of(tree) == "combat" else "skill", "" if n == 1 else "s"]
 
 
-## Why a node can't be learned right now ("" = it can). A converted tree's big nodes come at their level, its
-## steps are bought (learn buys one).
+## Why a node can't be learned right now ("" = it can): big nodes come at their level (a talent is picked, a Will
+## earned), steps are bought (learn buys one).
 func can_learn(id: String) -> String:
-	var n := SkillTree.get_node_def(id)
+	var n := SkillTrees.node_def(id)
 	if n.is_empty():
 		return "Unknown"
-	if n.get("new", false):
-		if n["kind"] == "step":
-			return step_why(id)
-		return "Learned" if owns(id) else "Comes at %s %d" % [tree_name(str(n["tree"])), int(n["level"])]
+	if n["kind"] == "step":
+		return step_why(id)
 	if owns(id):
 		return "Learned"
-	var req: Dictionary = n["req"]
-	if n["kind"] == "perk":
-		return "Comes at %s %d" % [SkillTree.TREES[n["tree"]]["name"], int(req["mastery"])]
-	if req.has("fruit") and (player == null or player.power.fruit != str(req["fruit"])):
-		return "Needs the %s" % str(DevilFruits.get_fruit(str(req["fruit"])).get("name", "fruit"))
-	if req.has("level") and level < int(req["level"]):
-		return "Needs level %d" % int(req["level"])
-	if req.has("life") and mastery_level(str(req["life"])) < int(req["life_lv"]):
-		return "Needs %s %d" % [SkillTree.TREES[req["life"]]["name"], int(req["life_lv"])]
-	if req.has("node") and not owns(str(req["node"])):
-		return "Needs %s" % str(SkillTree.get_node_def(str(req["node"]))["name"])
-	var linked := false
-	for l in SkillTree.neighbors(id):
-		if owns(l):
-			linked = true
-			break
-	if not linked:
-		return "Learn a linked node first"
-	var tree := str(n["tree"])
-	if points(tree) < int(n["cost"]):
-		return "Needs %s" % points_word(tree, int(n["cost"]))
-	return ""
+	if n["kind"] == "will" or n.has("will"):
+		return str(n["desc"]).get_slice(".", 0) if n["kind"] == "will" else "Comes with %s" % SkillTrees.node_def(n["will"])["name"]
+	return "Comes at %s %d" % [tree_name(str(n["tree"])), int(n["level"])]
 
 
 func learn(id: String) -> bool:
-	if can_learn(id) != "":
-		return false
-	var n := SkillTree.get_node_def(id)
-	if n.get("new", false):
-		return buy_step(id)
-	_spend(int(n["cost"]))
-	_own(id)
-	return true
+	return can_learn(id) == "" and buy_step(id)
 
 
 func _own(id: String) -> void:
 	owned[id] = true
-	var n := SkillTree.get_node_def(id)
-	var sk: String = n.get("skill", "")
+	var sk: String = SkillTrees.node_def(id).get("skill", "")
 	if sk != "" and player:
 		player.power.auto_equip(sk)
 	if is_passive(id) and not (id in passives) and passives.has(""):
@@ -766,8 +731,8 @@ func stat(key: String) -> float:
 	if not _stats.has(key):
 		var total := float(SkillTrees.GROWTH.get(key, 0.0)) * (level - 1)
 		for k in owned.keys():
-			var n := SkillTree.get_node_def(k)
-			if n.get("new", false) and (n["kind"] == "step" or (n["kind"] == "passive" and not (k in passives))):
+			var n := SkillTrees.node_def(k)
+			if n.get("kind", "") == "step" or (n.get("kind", "") == "passive" and not (k in passives)):
 				continue
 			var e: Dictionary = n.get("effects", {})
 			if e.has(key):
@@ -853,7 +818,7 @@ func style_stat(prefix: String, style: String) -> float:
 func known_skills() -> Array:
 	var out: Array = []
 	for k in owned.keys():
-		var sk: String = SkillTree.get_node_def(k).get("skill", "")
+		var sk: String = SkillTrees.node_def(k).get("skill", "")
 		if sk != "":
 			out.append(sk)
 	return out
@@ -957,7 +922,7 @@ func from_dict(d: Dictionary) -> void:
 			uses = (d.get("uses", {}) as Dictionary).duplicate()
 	else:
 		for k in d.get("owned", []):
-			if not SkillTree.get_node_def(str(k)).is_empty():
+			if not SkillTrees.node_def(str(k)).is_empty():
 				owned[str(k)] = true
 			else:
 				gone += 1
@@ -990,11 +955,11 @@ func from_dict(d: Dictionary) -> void:
 	passives.clear()
 	for p in d.get("passives", []):
 		passives.append(str(p))
+	# (the life skills went to 30 before they became 20-level Adventure trees)
+	for t in mastery.keys():
+		if mastery_level(t) >= max_of(t):
+			mastery[t] = {"lv": max_of(t), "xp": 0}
 	_refit_converted()
-	for t in SkillTree.LIFE_SKILLS:
-		for pk in SkillTree.perks_of(t):
-			if mastery_level(t) >= int(pk[0]):
-				owned[pk[1]] = true
 	for sk in known_skills():
 		while rank_up(sk):
 			pass

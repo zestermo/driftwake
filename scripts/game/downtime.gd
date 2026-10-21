@@ -48,6 +48,8 @@ const LORE := [
 const KIT_PER := 90.0
 const KIT_MAX := 1200.0
 const KIT := {"extra_shots": 1.0, "reload_pct": 0.15, "damage_pct": 0.04}
+## Tinkering xp for each interval of it.
+const TINKER_XP := 10
 ## Sleeping: health back a share of the most an interval; the day's clock runs this many times as fast (solo).
 const SLEEP_HEAL := 0.05
 const SLEEP_TIME := 30.0
@@ -254,7 +256,8 @@ static func reward(p, kind: String) -> void:
 				p.call("_toast", LORE[(n / LORE_EVERY - 1) % LORE.size()])
 		"tinker":
 			var was: float = pr.kit_left
-			pr.kit_left = minf(was + KIT_PER, KIT_MAX)
+			pr.kit_left = minf(was + KIT_PER * (1.0 + pr.stat("kit_per_pct")), KIT_MAX)
+			pr.add_life("tinker", TINKER_XP)
 			if was <= 0.0:
 				p.call("_recalc_stats")
 			p.call("_toast", "Kit tuned: a spare shot, quicker reloads, +4%% damage (%d min)" % ceili(pr.kit_left / 60.0))
@@ -270,9 +273,9 @@ static func tick(p, kind: String, delta: float) -> void:
 		p.get_node("/root/Weather").world_offset += delta * (SLEEP_TIME - 1.0)
 
 
-## The tinkered kit wearing off (Progression._physics_process, game time).
+## The tinkered kit wearing off (Progression._physics_process, game time; Tinkering's kit_time_pct slows it).
 static func tick_kit(pr, delta: float) -> void:
-	pr.kit_left -= delta
+	pr.kit_left -= delta / (1.0 + pr.stat("kit_time_pct"))
 	if pr.kit_left > 0.0:
 		return
 	pr.kit_left = 0.0

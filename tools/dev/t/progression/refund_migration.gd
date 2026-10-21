@@ -56,7 +56,7 @@ func _process(_d: float) -> bool:
 			check("level and xp kept", pr.level == 9 and pr.xp == 120)
 			check("no skill points any more", pr.skill_points == 0)
 			check("weapon mastery kept, its points back (one a level)", pr.mastery_level("sword") == 5 and int(pr.mastery_of("sword")["xp"]) == 30 and pr.points_free("sword") == 4)
-			check("Seamanship's mastery kept, its perk owned by itself, no points", pr.mastery_level("sea") == 3 and pr.owns("sea_hand") and pr.points("sea") == 0)
+			check("Sailing's mastery kept, its Sea Hand owned by itself, a point a level", pr.mastery_level("sea") == 3 and pr.owns("sea_hand") and pr.points_free("sea") == 2)
 			check("old nodes gone, the weapon's nodes back by mastery", not pr.owns("c_agility") and pr.owns("s_flying") and not pr.owns("s_swordfish"))
 			check("the Captain's milestone by level: Soru at 8", pr.owns("m_soru") and pr.knows("soru") and not pr.owns("c_quarter"))
 			check("tiers by use alone: Soru's 16 uses rank it up (no points)", pr.skill_tier("soru") == 2)

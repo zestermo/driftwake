@@ -1,8 +1,8 @@
 extends SceneTree
 ## Life skills are learned by doing: swimming across open water builds Swimming (a point a few metres, and
 ## only while swimming), its first milestone brings its perk by itself (faster strokes, on the swim speed
-## stat), perks can't be bought, life skills give no points, and cooking and fishing take xp through the same
-## call their systems will make. A crewmate's puppet earns nothing on our machine.
+## stat), big nodes can't be bought, a level gives a point for a step, and cooking and fishing take xp through
+## the same call. A crewmate's puppet earns nothing on our machine.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -64,7 +64,7 @@ func _process(_d: float) -> bool:
 			pr.add_life("swim", pr.mastery_to_next(1))
 			check("Swimming 2 brings Strong Strokes by itself", pr.mastery_level("swim") == 2 and pr.owns("sw_strokes"))
 			check("...swimming 10% faster", is_equal_approx(pr.stat("swim_pct") - sp0, 0.1))
-			check("life skills give no points", pr.points("swim") == 0)
+			check("a point a level for its steps (%d)" % pr.points_free("swim"), pr.points_free("swim") == 1 and pr.buy_step("sw_long") and pr.points_free("swim") == 0)
 			pr.add_life("cook", 60)
 			pr.add_life("fish", 60)
 			check("cooking and fishing take xp the same way, their first perks with it", pr.owns("ck_hand") and pr.owns("fs_patient"))

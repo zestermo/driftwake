@@ -142,6 +142,12 @@ static func _build() -> void:
 	_build_captain()
 	_build_acrobatics()
 	_build_defense()
+	_build_sailing()
+	_build_swimming()
+	_build_cooking()
+	_build_fishing()
+	_build_stealth()
+	_build_tinkering()
 	_build_cutlass()
 	_build_katana()
 	_build_dual()
@@ -320,6 +326,113 @@ static func _build_defense() -> void:
 	_step("df_thick", "Thick Skin", "v_steadfast", 5, {"defense": 1.5}, "+1.5 defense a step.")
 	_step("df_recover", "Recovery", "v_iron", 3, {"regen_hp": 0.5}, "Out of a fight you heal 0.5 health a second more, a step.")
 	_step("df_calm", "Composure", "df_hold", 3, {"stamina_regen_pct": 0.03}, "Stamina refills 3% faster a step.")
+
+
+## Sailing (Seamanship, scripts/ship/seamanship.gd): its keys count at the station you man (helm_speed / helm_turn /
+## helm_flood steering, gun_reload / gun_dmg a gun you man, repair, pump, capstan; lookout m on the compass aboard;
+## crew: half again while a crewmate mans another station).
+static func _build_sailing() -> void:
+	_tree("sea", ["Helm", "Guns", "Deck"])
+	_root("sea_root", "Sailing", {}, "Sail her, fight her guns and keep her afloat to build it. Its nodes count at the station you're manning: the helm, a gun, the pump, a hole or a fire.")
+	_big("sea_hand", "Sea Hand", "mech", 0, 2, {"helm_speed": 0.04, "repair": 0.3}, "At the helm she sails 4% faster, and you patch holes and beat out fires 30% faster.")
+	_big("f_helm", "Helmsman", "mech", 0, 5, {"helm_speed": 0.06, "helm_turn": 0.1}, "At the helm she sails 6% faster and turns 10% sharper.")
+	_big("sea_storm", "Storm Sailing", "mech", 0, 10, {"helm_flood": 0.4, "lookout": 200.0},
+		"At the helm water in her costs 40% less of her speed, and aboard, sails and salvage within 200 m show on your compass.")
+	_big("sea_gunner", "Gun Captain", "mech", 1, 4, {"gun_reload": 0.15, "gun_dmg": 0.1}, "A gun you man reloads 15% faster, and its balls hit 10% harder.")
+	_big("sea_broad", "Broadside Master", "mech", 1, 15, {"gun_reload": 0.15, "gun_dmg": 0.15, "helm_speed": 0.05},
+		"Another 15% faster reload, balls 15% harder, and she sails another 5% faster for you.")
+	_big("sea_turn", "Hard Over", "mech", 2, 7, {"helm_turn": 0.08, "pump": 0.4, "capstan": 1.0}, "At the helm she turns 8% sharper; you bail 40% more and work the capstan twice as fast.")
+	_big("sea_crew", "Bosun", "mech", 2, 20, {"crew": 0.5, "repair": 0.3, "pump": 0.3},
+		"Your station bonuses count half again while a crewmate mans another station, and you mend and bail faster still.")
+	_step("sea_steady", "Steady Helm", "sea_root", 5, {"helm_speed": 0.01}, "At the helm she sails 1% faster a step.")
+	_step("sea_gunnery", "Gunnery", "sea_gunner", 5, {"gun_reload": 0.03}, "A gun you man reloads 3% faster a step.")
+	_step("sea_carpenter", "Carpenter", "sea_hand", 3, {"repair": 0.1}, "You patch and douse 10% faster a step.")
+	_step("sea_bilge", "Bilge Rat", "sea_turn", 3, {"pump": 0.1}, "You bail 10% more a step.")
+	_step("sea_lookout", "Lookout", "sea_storm", 3, {"lookout": 40.0}, "Aboard, sails and salvage show 40 m further a step.")
+
+
+static func _build_swimming() -> void:
+	_tree("swim", ["Stroke", "Breath", "Sea"])
+	_root("swim_root", "Swimming", {}, "Swim to build it: every stretch of open water you cross counts.")
+	_big("sw_strokes", "Strong Strokes", "mech", 0, 2, {"swim_pct": 0.1}, "You swim 10% faster.")
+	_big("sw_born", "Sea Born", "mech", 0, 7, {"swim_pct": 0.15}, "You swim another 15% faster.")
+	_big("sw_lungs", "Deep Lungs", "mech", 1, 4, {"max_stamina": 10.0, "breath_pct": 0.5}, "You hold your breath half as long again on a dive, and +10 max stamina.")
+	_big("sw_wind", "Catch Your Breath", "mech", 1, 10, {"stamina_regen_pct": 0.1, "breath_refill_pct": 1.0},
+		"Stamina refills 10% faster, and your breath comes back twice as fast at the surface.")
+	_big("sw_diver", "Deep Diver", "mech", 1, 14, {"breath_pct": 0.5}, "You hold your breath half as long again.")
+	_big("sw_current", "Current Reader", "mech", 2, 8, {"sea_resist": 0.25}, "Currents, surf, swell and cold have a quarter less hold on you.")
+	_big("sw_child", "Child of the Sea", "mech", 2, 15, {"swim_pct": 0.15, "max_stamina": 15.0, "breath_pct": 0.5, "sea_resist": 0.25},
+		"You swim another 15% faster, hold your breath longer still, +15 max stamina, and the sea's hold on you weakens again.")
+	_big("sw_salt", "Old Salt Lungs", "mech", 2, 20, {"breath_pct": 0.5, "breath_refill_pct": 0.5}, "Your breath lasts longer still and comes back faster.")
+	_step("sw_long", "Long Strokes", "swim_root", 5, {"swim_pct": 0.03}, "You swim 3% faster a step.")
+	_step("sw_big", "Big Lungs", "sw_lungs", 5, {"breath_pct": 0.08}, "You hold your breath 8% longer a step.")
+	_step("sw_tireless", "Tireless", "sw_born", 5, {"max_stamina": 3.0}, "+3 max stamina a step.")
+	_step("sw_cold", "Cold Blood", "sw_current", 5, {"sea_resist": 0.05}, "The sea's hold on you 5% weaker a step.")
+
+
+## Cooking keys (meal_time_pct, meal_power_pct) are read by Food.
+static func _build_cooking() -> void:
+	_tree("cook", ["Hearty", "Spice", "Larder"])
+	_root("cook_root", "Cooking", {}, "Cook at a galley to build it.")
+	_big("ck_hand", "Galley Hand", "mech", 0, 2, {"potion_pct": 0.1}, "Food and drink heal you 10% more.")
+	_big("ck_stomach", "Iron Gut", "mech", 0, 10, {"potion_pct": 0.2}, "Food and drink heal you another 20% more.")
+	_big("ck_ship", "Ship's Cook", "mech", 1, 5, {"meal_time_pct": 0.25}, "Galley meals last 25% longer.")
+	_big("ck_chef", "Master Chef", "mech", 1, 15, {"meal_power_pct": 0.2}, "Galley meals' buffs are 20% stronger.")
+	_big("ck_feast", "Long Feast", "mech", 2, 8, {"meal_time_pct": 0.25}, "Galley meals last another 25% longer.")
+	_big("ck_banquet", "Captain's Table", "mech", 2, 20, {"meal_power_pct": 0.15, "potion_pct": 0.15}, "Meals' buffs 15% stronger again, and food heals 15% more.")
+	_step("ck_season", "Seasoning", "cook_root", 5, {"meal_power_pct": 0.03}, "Galley meals' buffs 3% stronger a step.")
+	_step("ck_simmer", "Slow Simmer", "ck_ship", 5, {"meal_time_pct": 0.04}, "Galley meals last 4% longer a step.")
+	_step("ck_taster", "Taster", "ck_hand", 5, {"potion_pct": 0.03}, "Food and drink heal you 3% more a step.")
+	_step("ck_stock", "Good Stock", "ck_feast", 5, {"regen_pct": 0.05}, "Out of a fight you mend 5% faster a step.")
+
+
+## Fishing keys (fish_bite_pct, fish_reel_pct, fish_bait_save, fish_rare_pct, fish_double, fish_legend) are read by Fishing.
+static func _build_fishing() -> void:
+	_tree("fish", ["Line", "Bait", "Lore"])
+	_root("fish_root", "Fishing", {}, "Fish to build it.")
+	_big("fs_patient", "Patient Line", "mech", 0, 2, {"fish_bite_pct": 0.2}, "Fish bite 20% sooner.")
+	_big("fs_hands", "Steady Hands", "mech", 0, 5, {"fish_reel_pct": 0.25}, "The float stays down 25% longer: more time to reel in a bite.")
+	_big("fs_master", "Master Angler", "mech", 0, 20, {"fish_legend": 1.0, "fish_reel_pct": 0.15}, "Legendary fish come twice as often, and the float stays down another 15% longer.")
+	_big("fs_saver", "Bait Saver", "mech", 1, 8, {"fish_bait_save": 0.3}, "30% of your catches leave the bait on the hook.")
+	_big("fs_salt", "Old Salt", "mech", 1, 15, {"fish_double": 0.15}, "15% of your catches come up two at once.")
+	_big("fs_lore", "Sea Lore", "mech", 2, 10, {"fish_rare_pct": 0.2}, "Rarer fish bite 20% more often.")
+	_step("fs_bite", "Quick Bite", "fish_root", 5, {"fish_bite_pct": 0.04}, "Fish bite 4% sooner a step.")
+	_step("fs_reel", "Strong Reel", "fs_hands", 5, {"fish_reel_pct": 0.04}, "The float stays down 4% longer a step.")
+	_step("fs_luck", "Lucky Cast", "fs_lore", 5, {"fish_rare_pct": 0.03}, "Rarer fish bite 3% more often a step.")
+	_step("fs_thrift", "Thrifty", "fs_saver", 5, {"fish_bait_save": 0.03}, "3% more catches leave the bait on the hook, a step.")
+
+
+## Stealth: everything on the sneaking captain's own machine (sneak_pct: CrouchState's speed; ambush_pct: a blow
+## struck within moments of sneaking, Progression.on_hit; the dodge's keys).
+static func _build_stealth() -> void:
+	_tree("stealth", ["Sneak", "Ambush", "Shadow"])
+	_root("st_root", "Stealth", {}, "Sneak (C) near foes and strike from hiding to build it.")
+	_big("st_soft", "Soft Step", "mech", 0, 2, {"sneak_pct": 0.25}, "You sneak 25% faster.")
+	_big("st_ghost", "Ghost", "mech", 0, 12, {"sneak_pct": 0.25}, "You sneak another 25% faster.")
+	_big("st_ambush", "Ambush", "mech", 1, 4, {"ambush_pct": 0.3}, "A blow struck from a sneak lands 30% harder.")
+	_big("st_assassin", "Assassin", "mech", 1, 15, {"ambush_pct": 0.4}, "A blow struck from a sneak lands another 40% harder.")
+	_big("st_vanish", "Slip Away", "mech", 2, 8, {"dodge_cost_pct": 0.1, "dodge_iframe_pct": 0.15}, "Your dodge costs 10% less and leaves you untouchable 15% longer.")
+	_big("st_shadow", "Shadow", "mech", 2, 20, {"ambush_pct": 0.3, "sneak_pct": 0.15}, "Sneak attacks 30% harder again, and you sneak 15% faster.")
+	_step("st_quiet", "Quiet Feet", "st_root", 5, {"sneak_pct": 0.04}, "You sneak 4% faster a step.")
+	_step("st_knife", "Knife Work", "st_ambush", 5, {"ambush_pct": 0.05}, "A blow from a sneak lands 5% harder a step.")
+	_step("st_patience", "Patience", "st_soft", 5, {"stamina_regen_pct": 0.02}, "Stamina refills 2% faster a step.")
+	_step("st_nimble", "Nimble", "st_vanish", 5, {"dodge_cost_pct": 0.02}, "Your dodge costs 2% less a step.")
+
+
+## Tinkering (Downtime's tinker): kit_time_pct (the tuned kit wears off slower), kit_per_pct (each spell tunes longer).
+static func _build_tinkering() -> void:
+	_tree("tinker", ["Kit", "Powder", "Hands"])
+	_root("tk_root", "Tinkering", {}, "Tinker with your kit (the action wheel, aboard or at camp) to build it.")
+	_big("tk_tight", "Tight Fit", "mech", 0, 2, {"kit_time_pct": 0.25}, "A tuned kit stays tuned 25% longer.")
+	_big("tk_spring", "Fine Springs", "mech", 0, 10, {"kit_time_pct": 0.5}, "Another 50% longer.")
+	_big("tk_powder", "Dry Powder", "mech", 1, 5, {"reload_pct": 0.1}, "You reload 10% faster, always.")
+	_big("tk_horn", "Powder Horn", "mech", 1, 15, {"extra_shots": 1}, "Every pistol holds one more shot, always.")
+	_big("tk_hands", "Clever Hands", "mech", 2, 8, {"kit_per_pct": 0.5}, "Each spell of tinkering tunes the kit half again as long.")
+	_big("tk_whet", "Field Whetstone", "mech", 2, 20, {"damage_pct": 0.04}, "+4% damage with everything, always.")
+	_step("tk_oil", "Oil", "tk_root", 5, {"kit_time_pct": 0.05}, "A tuned kit stays tuned 5% longer a step.")
+	_step("tk_ram", "Ramrod", "tk_powder", 5, {"reload_pct": 0.02}, "You reload 2% faster a step.")
+	_step("tk_file", "File", "tk_hands", 5, {"kit_per_pct": 0.05}, "Each spell of tinkering tunes 5% longer a step.")
+	_step("tk_patch", "Patchwork", "tk_tight", 5, {"repair": 0.05}, "You patch and douse 5% faster a step.")
 
 
 # --------------------------------------------------------------------------

@@ -197,6 +197,12 @@ func _process(d: float) -> bool:
 			# (Instinct's random sidestep would make the hits below flaky)
 			pr.owned.erase("h_instinct")
 			pr.owned.erase("df_instinct")
+			# (and the daggers' own slips: Flick the Shot, Crossed Knives and their Slippery steps)
+			for k in ["dg_deflect", "dd_deflect"]:
+				pr.owned.erase(k)
+			for k in ["dg_slippery", "dd_slippery"]:
+				pr.steps.erase(k)
+			pr._dirty()
 			for id in ["cutlass", "cutlass", "katana", "boarding_axe", "pistol", "dagger", "dagger"]:
 				p.inventory_component.add_item(item(id), 1)
 			var land: Vector3 = ground(camp.grunts[0].global_position + Vector3(14, 0, 0))
