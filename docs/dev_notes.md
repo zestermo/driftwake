@@ -4938,3 +4938,50 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - Tests: t/weapons polearm_combo, polearm_moves, polearm_tree, polearm_loot; t/progression/tree_shape counts at least the 19
   older moves. Renders: tools/dev/out/polearm/ (rack_side, pb_* guard/thrust/sweep, anim_* sheets, ab_raijin_wheel).
   Expect daggertest/techtest/progtest/balancetest/uitest (the skill map's tabs) to want a look at the push.
+
+## 2026-10-21: the hammer (1.21 remaining weapons, kind 2 of 8; docs/weapons_plan.md)
+- **Item and models** (WeaponDesigns kind "hammer", base resources/items/warhammer.tres "Iron Warhammer"): `_hammer` holds the
+  right hand at the origin near the butt (HAMMER_BUTT 0.12 behind it), the haft "haft" (0.95 warhammer) to the head's middle, the
+  striking face toward -Y (as the polearm's edge), a grip wrap where both hands go. Heads: warhammer (square face, back spike, top
+  spike, langets), kanabo (an octagonal club thickening to the end, 48 iron studs), shipwright's mallet (an iron-hooped oak barrel,
+  cheap, quicker), iron maul (a long block, a face each end), anchor hammer (an anchor's crown and flukes on an iron shank, a ring
+  at the butt, chain wound above the hands; RARE: `pick_id` keeps it 0.35 of the times). Design numbers by
+  `WeaponDesigns.hammer(design, key)`: "speed" (moves play that much faster: mallet 1.1, anchor 0.82), "reach" (the hitbox),
+  "weight" (x knockback and shockwave radius: maul 1.15, anchor 1.3). Two-handed; slung across the back head-up behind the right
+  shoulder, turned flat (`DrawMoves.on_back`), drawn with the two-hander's heave. Debug: **Ctrl+Shift+F10** puts one of each in
+  the bag (Shift+F10 is still the polearms).
+- **The grip**: the same four channels as the polearm (HammerMoves keys them, `PoleMoves.take_grip` takes them off, and
+  `PoleMoves.hands` solves both kinds: HammerMoves.GRIPS = guard, block, sprint carry). Gotcha: the channels are in the chest's
+  frame, so a body leaning 0.4-0.75 rad into a slam already points them down: a slam's `_gd` is near level in that frame
+  (`_slammed`, the smash's strike), or the head goes through the ground. A power swing slides the top hand down to meet the bottom.
+- **Stance**: the guard rests the haft on the right shoulder, head behind it, both hands low in front; wide planted feet
+  (HammerMoves.LEGS); the combat stance's hop is a slow sway for the hammer (2.4 Hz) with the chest rolling over each foot while
+  walking (Humanoid._locomotion, `heavy`). Movement speed is untouched: the weight is in hit-stop, shake and stagger.
+- **Moveset** (style "hammer", SkillTree.STYLE_TREE -> "hammer"): combo ham_smash 14 / ham_upper 15 / ham_sweep 21 (breaker:
+  through a guard, a 1 s stagger) / Wrecking Spin 26 (move: one full turn, the head into the ground, knockdown, "hammer_spin");
+  every blow a "knock" (7-12 x weight) and hit-stop 0.08-0.14; the head thuds into the ground on HammerMoves.THUD (smash, spin:
+  `HammerArts.thud`: dust, stones, a dust ring, a crack on the spin). Heavy **Earthquake** (ham_heavy 34, breaker, knockdown, then
+  0.04 s later `HammerArts.quake` 3.6 m x weight: 14 knockdown on everyone the blow missed). Rising Crush at a sprint (move:
+  ham_rush, breaker, knockdown); Hammerfall in the air (move: raised overhead, 26 m/s drop, `quake` 4 m on landing); parry/deflect
+  on the haft up across the front (ActionSpecs.PARRIES; the deflect shoves the head's face into them). Impact sound
+  "punch_heavy" (a guard knocks, not clashes). Traits: bloodthirsty, thundering, headsman's, rushing, duellist's.
+- **Tree** (SkillTrees "hammer": Iron / Quake / Weight, element earth "hm": Rumbling Earth 16 / Mountain's Weight 25): Iron Wall 3 ·
+  Skullcracker 8 · Immovable 20 (armor_ + def_); Rolling Quake 5 · Cyclone Crusher 10 · Titan's Fall 30; Wrecking Spin 2 · Rising
+  Crush 4 · Hammerfall 6 · Aftershock 13 (passive) · Smith's Way 22 (Bonebreaker / Anvil). Steps 30.
+- **Techniques** (scripts/player_states/hammer_arts.gd, HammerArts in TechniqueState._arts): Skullcracker (a hop onto the aimed
+  foe within 4 m, the head down at 0.44 s: 30 unblockable breaker), Rolling Quake (three slams stepping in at 0.36/0.76/1.16 s,
+  shockwaves 2.6/3.2/4.2 m, the third knocks down), Cyclone Crusher (three turns walking, `_spin_hits` 3.4 m every 0.2 s, the head
+  into the ground at 1.38 s: 18 knockdown), Titan's Fall (ult, untouchable: up 2.4 m, the moment at the top, a 32 m/s drop, a 7 m
+  ring: 45 knockdown, six cracks, two aftershocks at +0.4/+0.8 s; with the element a ring of stone spikes and one under each foe).
+- **FX**: TREE_FX "hammer" (cream core, sandstone edge, rock-brown accent); `FX.rock_spikes(pos, radius, count, seed, height,
+  life)`: shards of rock heaving up in a ring, leaning out, sunk back (one shared mesh, no shadows, one tween; seeded); element /
+  elem_hit branches (debris, a ring, dust). Before the element the shockwaves are dust-coloured (`HammerArts._ring_col`).
+- **Co-op**: nothing new on the wire: the stance, actions and model sync as before; hits go through hurtboxes / `_strike`, effects
+  through Net.fx (rock_spikes is seeded).
+- **Per frame**: `PoleMoves.hands` on bodies in the hammer stance (two arm IK solves and a quaternion a posed frame, as the
+  polearm's); the sway is a few adds in the existing locomotion. Effects are one-shots.
+- **Sources**: IslandContent.LOOT_WEAPONS and IslandEncounters.LOOT have "warhammer" (this shifts the islands' chest rolls, as the
+  spear did), Shops.RARE_KINDS "hammer", Haldor's pool warhammer / mallet / kanabo / maul@1; WeaponDesigns.random_item includes it.
+- Tests: t/weapons hammer_combo, hammer_moves, hammer_tree, hammer_loot; t/progression/tree_shape. Renders: tools/dev/out/hammer/
+  (pb_* poses, ab_titan_titans_fall, ab_heavy_hammer_heavy). Expect techtest/progtest/balancetest/uitest (a new tab),
+  impact/islanddump-style chest rolls to want a look at the push.

@@ -28,9 +28,15 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 - **Polearm** (2026-10-21): spear + trident, naginata, bisento (rare), halberd, pitchfork; stance with a solved two-handed grip
   (PoleMoves), combo, Skewer heavy, Leg Sweep, Pole Vault, Falling Spear, parry/block; the Polearm tree (Guard / Storm / Reach,
   lightning: TREE_FX "polearm"), Hundred Thrusts, Dragon Sweep, Vaulting Strike, Raijin's Wheel; loot and shops. dev_notes 2026-10-21.
+- **Hammer** (2026-10-21): warhammer + kanabo, shipwright's mallet, iron maul, anchor hammer (rare); stance with the head on the
+  shoulder and a heavy sway (HammerMoves, its grip solved by PoleMoves.hands), combo (smash, upswing, guard-breaking flat swing,
+  Wrecking Spin), Earthquake heavy (a shockwave), Rising Crush, Hammerfall, parry/block on the haft; the Hammer tree (Iron / Quake /
+  Weight, earth: TREE_FX "hammer", FX.rock_spikes), Skullcracker, Rolling Quake, Cyclone Crusher, Titan's Fall; loot and shops.
+  dev_notes 2026-10-21 (the hammer).
 
 ### Open / deferred
-- **Hammer/kanabo feel** (**assumed**): slow, two-handed, staggering; guard breaks and ground slams with a shockwave; heavy family.
+- **Hammer/kanabo feel** (**assumed**, built that way 2026-10-21): slow, two-handed, staggering; guard breaks and ground slams
+  with a shockwave; heavy family.
 - **Dual axes feel** (**assumed**): fast chained chops from both hands, a whirl, hooking pulls; own style and tree (an axe + an
   axe in the off hand stops counting as dual swords); heavy family.
 - **Greatsword feel** (**assumed**): rests on the shoulder, wide arcs whose momentum carries into the next swing,

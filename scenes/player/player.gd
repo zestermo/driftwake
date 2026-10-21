@@ -1494,7 +1494,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	# debug builds: F10 knocks you over (try the ragdoll + get-up)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F10:
-		if (event as InputEventKey).ctrl_pressed:
+		if (event as InputEventKey).ctrl_pressed and (event as InputEventKey).shift_pressed:
+			# Ctrl+Shift+F10: one of every hammer design into the bag
+			for id in WeaponDesigns.item_ids("hammer"):
+				inventory_component.add_item(ItemDB.get_item(str(id)), 1)
+			_toast("Debug: every hammer in your bag")
+		elif (event as InputEventKey).ctrl_pressed:
 			# Ctrl+F10: the ship alongside the next chain island's pier, you on the pier
 			_debug_to_next_island()
 		elif (event as InputEventKey).alt_pressed:

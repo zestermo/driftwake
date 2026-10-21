@@ -28,7 +28,7 @@ const GIFT_WORDS := [["tonic", ["tonic", 1]], ["tangerine", ["tangerine", 3]], [
 	["fish", ["fish", 2]], ["snapper", ["fish", 2]], ["biscuit", ["biscuit", 3]], ["hardtack", ["biscuit", 3]], ["bread", ["biscuit", 3]],
 	["pasty", ["biscuit", 3]], ["stew", ["stew", 1]], ["soup", ["stew", 1]], ["rum", ["rum", 2]], ["wine", ["rum", 2]], ["cider", ["rum", 2]],
 	["venison", ["boar_haunch", 1]], ["hare", ["boar_haunch", 1]], ["meat", ["boar_haunch", 1]], ["haunch", ["boar_haunch", 1]], ["crab", ["crab_meat", 2]]]
-const LOOT := ["cutlass", "dagger", "katana", "boarding_axe", "spear"]
+const LOOT := ["cutlass", "dagger", "katana", "boarding_axe", "spear", "warhammer"]
 
 ## Tools and tests: these kinds on every island instead of the roll.
 static var force: Array = []
