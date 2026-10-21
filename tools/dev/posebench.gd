@@ -97,6 +97,9 @@ func _initialize():
 		h.local_move = Vector2(0, 1)
 		h.sprinting = OS.get_environment("PB_SPRINT") != ""
 	# PB_SEAT=0.47 (a bench) / 0.1 (the ground): seated at that height; PB_CROUCH=1: sneaking
+	# body properties, e.g. PB_SET="pole_planted=true" (values parsed as GDScript literals)
+	for kv in OS.get_environment("PB_SET").split(";", false):
+		h.set(kv.get_slice("=", 0), str_to_var(kv.get_slice("=", 1)))
 	if OS.get_environment("PB_SEAT") != "":
 		h.seated = true
 		h.seat_y = float(OS.get_environment("PB_SEAT"))

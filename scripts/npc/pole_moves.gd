@@ -10,8 +10,27 @@ class_name PoleMoves
 
 ## [right hand, shaft, edge, left hand's slide] (chest frame).
 const GUARD_GRIP := [Vector3(0.05, -0.44, -0.3), Vector3(-0.5, 0.36, -0.79), Vector3(0, -1, 0), 0.46]
-## Sprinting: the spear trailed low behind in the right hand, the head back, the left arm free.
+## The pole vault's way down: the spear trailed low behind in the right hand, the head back, the left arm free.
 const TRAIL_GRIP := [Vector3(0.3, -0.5, 0.02), Vector3(0.12, -0.3, 0.95), Vector3(0, -1, 0), -1.0]
+## Running (above a walk, not backing off) and sprinting: one hand, low at the right side, the head out ahead and
+## angled down toward the ground in front, the left arm free to pump.
+const RUN_GRIP := [Vector3(0.32, -0.5, -0.12), Vector3(0.12, -0.3, -0.95), Vector3(0, -1, 0), -1.0]
+## Emperor's Bearing (planted): the right hand high on the shaft out at the side, the pole upright and leaning out a
+## little, its butt on the ground beside the right foot (hands() slides the shaft down through the hand to reach it).
+const PLANT_GRIP := [Vector3(0.56, -0.06, -0.04), Vector3(0.12, 0.99, -0.03), Vector3(1, 0, 0), -1.0]
+## Its body: square on, chest out, feet apart, the free arm hanging easy (the right arm only seeds the IK).
+const PLANT := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(0.07, 0, 0), "head": Vector3(-0.05, 0, 0),
+	"arm_l": Vector3(0.05, 0, -0.16), "fore_l": Vector3(0.3, 0, 0), "hand_l": Vector3.ZERO, "arm_r": Vector3(0.1, 0, 0.9), "fore_r": Vector3(1.1, 0, 0),
+	"leg_l": Vector3(0.0, 0, -0.17), "shin_l": Vector3(-0.08, 0, 0), "leg_r": Vector3(0.0, 0, 0.17), "shin_r": Vector3(-0.08, 0, 0)}
+const PLANT_LIFT := -0.03
+## Planted once nothing (attack, block, parry, dodge, hit...) has played for CALM s and the body has stood still for
+## STILL s; it eases in over PLANT_IN s and is gone in 0.1 s.
+const CALM := 3.0
+const STILL := 0.4
+const PLANT_IN := 0.3
+## Ground speed the run trail comes on above (and goes off under).
+const RUN_ON := 3.2
+const RUN_OFF := 2.6
 ## The guard (block, parry): the shaft held level across the front in both hands, the edge out.
 const BLOCK_GRIP := [Vector3(0.34, -0.14, -0.4), Vector3(-0.99, 0.12, -0.05), Vector3(0, 0, -1), 0.62]
 
@@ -32,6 +51,7 @@ const HELD := ["parry", "guard_block", "guard_block_hit", "hit", "stagger", "das
 ## How hard the grip chases its keys (the guard's softer).
 const SHARP := 34.0
 const SHARP_IDLE := 16.0
+const SHARP_PLANT := 9.0
 
 # action-key legs
 const SET := {"leg_l": Vector3(0.5, 0, -0.18), "shin_l": Vector3(-0.75, 0, 0), "leg_r": Vector3(-0.4, 0, 0.18), "shin_r": Vector3(-0.45, 0, 0)}
@@ -312,33 +332,49 @@ static func _pose(h, n: String, u: float) -> Array:
 static func hands(h, delta: float) -> void:
 	var act: String = h.current_action()
 	var st: String = h.stance
-	var grips: Array = HammerMoves.GRIPS if st == "hammer" else [GUARD_GRIP, BLOCK_GRIP, TRAIL_GRIP]
+	var grips: Array = HammerMoves.GRIPS if st == "hammer" else [GUARD_GRIP, BLOCK_GRIP, _run_grip(h)]
 	var on: bool = st in ["polearm", "hammer"] and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
 		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and Humanoid.kind_of(h.weapon) == st \
 		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act in HELD)
+	var pole: bool = st == "polearm" and on and act == ""
+	var run: bool = pole and h.grounded and not h._gait_back and h.ground_speed > (RUN_OFF if h.pole_run_w > 0.5 else RUN_ON)
+	h.pole_run_w = move_toward(h.pole_run_w, 1.0 if run else 0.0, delta / 0.15)
+	var was: float = h.pole_plant_w
+	_calm(h, act, pole, delta)
 	var want: Array = grips[0]
+	var planting := false
 	if h.pole_set:
 		want = h.pole_grip
 	elif act in ["guard_block", "guard_block_hit"]:
 		want = grips[1]
-	elif h.sprinting and act == "":
+	elif h.pole_plant_w > 0.0 and h.pole_planted:
+		want = PLANT_GRIP
+		planting = true
+	elif act == "" and (h.sprinting or h.pole_run_w > 0.5):
 		want = grips[2]
 	h.pole_set = false
 	h.pole_w = move_toward(h.pole_w, 1.0 if on else 0.0, delta / 0.12)
+	var two := float(want[3]) > 0.0
+	h.pole_lw = move_toward(h.pole_lw, 1.0 if two else 0.0, delta / 0.1)
 	if h.pole_cur.is_empty():
 		h.pole_cur = want.duplicate()
 	if on:
-		var k := 1.0 - exp(-(SHARP if act != "" else SHARP_IDLE) * delta)
+		var k := 1.0 - exp(-(SHARP if act != "" else (SHARP_PLANT if planting else SHARP_IDLE)) * delta)
 		var cur: Array = h.pole_cur
 		cur[0] = (cur[0] as Vector3).lerp(want[0], k)
 		cur[1] = (cur[1] as Vector3).lerp(want[1], k).normalized()
 		cur[2] = (cur[2] as Vector3).lerp(want[2], k)
-		cur[3] = lerpf(float(cur[3]), float(want[3]), k) if float(want[3]) > 0.0 and float(cur[3]) > 0.0 else float(want[3])
+		# (the left hand lets go over pole_lw, at the slide it had)
+		if two:
+			cur[3] = lerpf(float(cur[3]), float(want[3]), k) if float(cur[3]) > 0.0 else float(want[3])
+		elif h.pole_lw <= 0.0:
+			cur[3] = float(want[3])
 	var w: float = h.pole_w
 	if h.weapon == null or not is_instance_valid(h.weapon) or h.weapon.get_parent() != h.hand_r:
 		return
 	if w <= 0.0:
 		h.weapon.quaternion = Quaternion.IDENTITY
+		h.weapon.position = Vector3.ZERO
 		return
 	var sc: float = h.global_basis.get_scale().x
 	var body: Basis = h.global_basis.orthonormalized()
@@ -359,12 +395,61 @@ static func hands(h, delta: float) -> void:
 	var want_b := Basis(y.cross(z).normalized(), y, z)
 	var local: Basis = h.hand_r.global_basis.orthonormalized().inverse() * want_b
 	h.weapon.quaternion = Quaternion.IDENTITY.slerp(Quaternion(local.orthonormalized()), w)
+	h.weapon.position = Vector3.ZERO
+	var pw: float = h.pole_plant_w
+	if pw > 0.0:
+		# planted: the shaft slid down through the hand until its butt meets the ground
+		var dw: Vector3 = -(h.weapon.global_basis.z as Vector3).normalized()
+		var a0: Vector3 = h.hand_r.global_position
+		var slide := maxf((a0.y - h.global_position.y) / maxf(dw.y, 0.3) - WeaponDesigns.POLE_BEHIND * sc, 0.0)
+		h.weapon.global_position = a0 - dw * slide * pw
+		if was < 0.9 and pw >= 0.9 and h.is_inside_tree():
+			var butt: Vector3 = h.weapon.global_transform * Vector3(0, 0, WeaponDesigns.POLE_BEHIND)
+			var fx: Node = h.get_node("/root/FX")
+			fx.call("dust", butt, 3, 0.3)
+			fx.call("sfx", "thud", butt, -12.0, 0.08, 1.3)
 	var s := float(g[3])
-	if s > 0.0:
+	if s > 0.0 and h.pole_lw > 0.0:
 		var a: Vector3 = h.hand_r.global_position
 		var grip := a + d * _slide(h, a, d, s * sc)
-		h.reach_hand(false, h.hand_l.global_position.lerp(grip, w), body * Vector3(-0.7, -1.0, 0.45))
+		h.reach_hand(false, h.hand_l.global_position.lerp(grip, w * h.pole_lw), body * Vector3(-0.7, -1.0, 0.45))
 		h.arm_l.basis = h.arm_l.basis.orthonormalized()
+
+
+## The run trail's grip, the hand swinging a little with the stride.
+static func _run_grip(h) -> Array:
+	var g := RUN_GRIP.duplicate()
+	g[0] = (g[0] as Vector3) + Vector3(0, 0, -0.06 * sin(h._phase))
+	return g
+
+
+## Emperor's Bearing: on the body that owns the node, planted once it's been calm and still long enough (puppets
+## get `pole_planted` from their owner); the weight eases toward it on every screen.
+static func _calm(h, act: String, pole: bool, delta: float) -> void:
+	if h.pole_plant_ok:
+		h.pole_calm = 0.0 if act != "" else h.pole_calm + delta
+		h.pole_still = h.pole_still + delta if pole and h.grounded and h.ground_speed < 0.3 else 0.0
+		h.pole_planted = h.pole_calm >= CALM and h.pole_still >= STILL
+	var up: bool = h.pole_planted and pole and h.ground_speed < 0.6
+	h.pole_plant_w = move_toward(h.pole_plant_w, 1.0 if up else 0.0, delta / (PLANT_IN if up else 0.1))
+
+
+## The polearm's bodies over the combat stance's (Humanoid._locomotion, armed and not sprinting; `gait` the pose
+## before the guard went on): running, the chest, head and free arm back to the gait's; planted, Emperor's Bearing.
+## Returns the hips' height.
+static func locomote(h, p: Dictionary, gait: Dictionary, lift_y: float) -> float:
+	var r: float = h.pole_run_w
+	if r > 0.0:
+		for j in ["hips", "torso", "head", "arm_l", "fore_l"]:
+			p[j] = (p[j] as Vector3).lerp(gait[j], r)
+	var w: float = h.pole_plant_w
+	if w <= 0.0:
+		return lift_y
+	var k := w * w * (3.0 - 2.0 * w)
+	for j in PLANT.keys():
+		p[j] = (p[j] as Vector3).lerp(PLANT[j], k)
+	p["torso"] += Vector3(0.012 * sin(h._t * 1.3) * k, 0, 0)
+	return lerpf(lift_y, PLANT_LIFT, k)
 
 
 ## How far up the shaft (from the right hand `a`, along `d`) the left hand takes it: `s`, or as far as the left

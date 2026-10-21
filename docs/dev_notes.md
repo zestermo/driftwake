@@ -4986,6 +4986,28 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   (pb_* poses, ab_titan_titans_fall, ab_heavy_hammer_heavy). Expect techtest/progtest/balancetest/uitest (a new tab),
   impact/islanddump-style chest rolls to want a look at the push.
 
+## 2026-10-21: polearm and hammer stance poses (Zach's references; docs/weapons_plan.md "stance poses")
+- **Hammer guard on the shoulder** (HammerMoves.GUARD_GRIP, TRAIL_GRIP): the haft lies ~0.1 m over the right shoulder joint
+  (it went through it), angled out a little, the head up behind it; the face still looks up-forward so the blends into the
+  combo's heave don't roll the head round. t/weapons/hammer_shoulder measures every design (warhammer, kanabo, mallet, maul,
+  anchor): the head clear of the head sphere, chest line and upper arm, the haft on top of the joint.
+- **Polearm run trail** (PoleMoves.RUN_GRIP): above 3.2 m/s (off under 2.6; not backing off) and sprinting, one hand low at the
+  right side, the head out ahead and ~30 deg down (0.28 m off the ground at a jog, lower at a sprint's lean), the hand swinging a
+  little with the stride (`_phase`); `locomote` hands the chest, head and free arm back to the gait's (it pumps). Walking keeps
+  the guard. TRAIL_GRIP (head back) is only the vault's way down now. The left hand now lets go and takes hold over 0.1 s
+  (`pole_lw`) instead of snapping, which also smooths a run's attack.
+- **Emperor's Bearing** (pl_bearing, Polearm tree Guard branch, mastery 10, mech: `plant_polearm`; Player._recalc_stats sets
+  `body.pole_plant_ok`): standing still 0.4 s with nothing played for 3 s (`pole_calm`, `pole_still`: game time, reset by any
+  action: attacks, blocks, parries, dodges, hits), the body eases (0.3 s) into Whitebeard's pose (PoleMoves.PLANT: square, chest
+  out, feet apart, free arm hanging) and the grip to PLANT_GRIP (right hand out at shoulder height, pole upright leaning out a
+  little); `hands()` slides the shaft down through the hand until the butt meets the ground (weapon position along its axis),
+  with a small local dust puff and a soft "thud" as it lands. Any action drops it in 0.1 s; the attack itself starts that tick.
+- **Co-op**: the owner decides (`pole_planted`, now in HumanoidSync.FIELDS); a puppet shows it from that, easing on its own.
+- **Per frame** (polearm bodies only, in the existing hands()): a few compares and move_towards, a 5-joint lerp while running,
+  a 12-joint lerp and one weapon placement while planted. Puff and thud are one-shots.
+- Tests: t/weapons/polearm_stance, hammer_shoulder (new); polearm_*/hammer_* and t/progression/tree_shape pass. posebench takes
+  PB_SET="pole_planted=true". Renders: tools/dev/out/poses/ (ham1_* guards, pl_run_*, pl_sprint_*, pl_plant*_*, ham_sprint_*).
+
 ## 2026-10-21: the twin axes (1.21 remaining weapons, kind 3 of 8; docs/weapons_plan.md)
 - **The style**: `Player.style_of` makes any axe + any axe "dual_axe" (an axe beside a cutlass or a dagger stays "dual_sword",
   one axe stays "axe", untouched). **The pair is two items, main + off hand**, not one "pair" item: the loadouts, the off-hand

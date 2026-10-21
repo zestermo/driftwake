@@ -29,10 +29,10 @@ Corsair (cutlass + pistol), pistol and dual pistols (plus the hybrid's claw). Gr
 |---|---|---|---|
 | Greatsword guard | A **low guard**: both hands on the hilt at the right hip, the blade angled down and forward across the body, its tip near the ground on the left (Zach's photo of a swordsman holding a long blade down). Replaces the shoulder rest | Zach's reference | Play |
 | Greatsword moving | Low guard standing and walking; **at a sprint the tip drags behind and scrapes sparks off the ground** | Zach's pick | Play |
-| Hammer guard | Raised so the head **rests on top of the shoulder**: today it sits too low and clips into the shoulder/chest with some designs | Zach's report | — |
-| Polearm run | **Running and sprinting**: one hand, the polearm trailed low at the side, head forward and down (Zach's anime reference of a runner with a naginata). Walking keeps the two-handed guard. Not gated | Zach's pick | Play |
-| Polearm planted stance | **Whitebeard's pose**: the butt planted on the ground beside you, the pole upright, one hand high on the shaft, chest out. A big node in the Polearm tree at mastery ~10; before it, standing still shows the guard | A visible sign of mastery, free in balance | — |
-| Plant vs guard | Planted when standing still with no attack, block or parry in the last ~3 s; anything comes straight out of it with no delay, and the readied guard holds for ~3 s after | Calm confidence without costing responsiveness | Play |
+| Hammer guard | Raised so the head **rests on top of the shoulder**: today it sits too low and clips into the shoulder/chest with some designs. **Built** 2026-10-21 | Zach's report | — |
+| Polearm run | **Running and sprinting**: one hand, the polearm trailed low at the side, head forward and down (Zach's anime reference of a runner with a naginata). Walking keeps the two-handed guard. Not gated. **Built** 2026-10-21 (above 3.2 m/s, not backing off) | Zach's pick | Play |
+| Polearm planted stance | **Whitebeard's pose**: the butt planted on the ground beside you, the pole upright, one hand high on the shaft, chest out. A big node in the Polearm tree at mastery ~10; before it, standing still shows the guard. **Built** 2026-10-21: Emperor's Bearing (Guard, 10, mech) | A visible sign of mastery, free in balance | — |
+| Plant vs guard | Planted when standing still with no attack, block or parry in the last ~3 s; anything comes straight out of it with no delay, and the readied guard holds for ~3 s after. **Built** 2026-10-21 | Calm confidence without costing responsiveness | Play |
 
 ### Built
 - **Polearm** (2026-10-21): spear + trident, naginata, bisento (rare), halberd, pitchfork; stance with a solved two-handed grip

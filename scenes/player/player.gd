@@ -454,6 +454,8 @@ func _recalc_stats() -> void:
 	if has_ability("double_jump"):
 		air = maxi(air, 1)
 	max_jumps = 1 + air
+	if body_model:
+		body_model.pole_plant_ok = pr != null and pr.has_flag("plant_polearm")
 	stamina_changed.emit(stamina, max_stamina)
 	stats_changed.emit()
 

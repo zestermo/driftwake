@@ -636,6 +636,8 @@ static func _build_polearm() -> void:
 	_big("pl_deflect", "Turn the Shot", "mech", 0, 3, {"parryshot_polearm": 1, "parry_polearm": 0.06},
 		"Parry with a polearm and you knock gunshots aside on the shaft too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("pl_vstrike", "Vaulting Strike", "tech", 0, 8, {}, "", "vault_strike")
+	_big("pl_bearing", "Emperor's Bearing", "mech", 0, 10, {"plant_polearm": 1},
+		"A master's ease: stand still with a polearm drawn and nothing happening for a few seconds, and you plant its butt on the ground beside you, the pole upright in one hand, chest out. Anything you do comes straight out of it.")
 	_big("pl_return", "Spear Wall", "mech", 0, 20, {"deflect_polearm": 1, "return_polearm": 1, "deflect_cd_polearm": 1.0},
 		"With a polearm drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("pl_thrusts", "Hundred Thrusts", "tech", 1, 5, {}, "", "hundred_thrusts")

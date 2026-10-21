@@ -140,6 +140,16 @@ var pole_grip: Array = []
 var pole_set := false
 var pole_cur: Array = []
 var pole_w := 0.0
+## The left hand's weight on the shaft, the polearm's run trail and Emperor's Bearing (PoleMoves): `pole_plant_ok` the
+## node (set by the player), `pole_planted` whether its owner shows it (synced to puppets), the calm and stillness
+## timers behind it (game time) and the weights easing in.
+var pole_lw := 0.0
+var pole_run_w := 0.0
+var pole_plant_ok := false
+var pole_planted := false
+var pole_calm := 0.0
+var pole_still := 0.0
+var pole_plant_w := 0.0
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
 ## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
@@ -2368,6 +2378,7 @@ func _locomotion(delta: float) -> Dictionary:
 		elif armed and not sprinting:
 			# (a hammer's weight: a slow sway instead of the hop, the chest rolling over each planted foot)
 			var heavy := stance == "hammer"
+			var gait := p.duplicate() if stance == "polearm" else {}
 			var hf := 2.4 if heavy else 4.5
 			var hop := absf(sin(_t * hf))
 			var gd := _guard()
@@ -2389,6 +2400,8 @@ func _locomotion(delta: float) -> Dictionary:
 				p["shin_l"] += Vector3(ss["shin_l"].x - hop * 0.15, 0, 0) * st
 				p["shin_r"] += Vector3(ss["shin_r"].x - hop * 0.15, 0, 0) * st
 				lift.y += (ss["_lift"].y + hop * 0.045) * st
+			if stance == "polearm":
+				lift.y = PoleMoves.locomote(self, p, gait, lift.y)
 		# strafing: hips (and legs) turned into the travel line, chest square
 		# (_hip_yaw is toward +X = the body's right; a positive Y turn is left)
 		# (the pelvis and chest are rigid, so a big twist between them shears the

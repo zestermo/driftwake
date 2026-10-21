@@ -68,14 +68,8 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(0.8)
 		2:
 			var m := measure()
-			if di == 0:
-				var o: Vector3 = (b.arm_r.global_position + b.arm_l.global_position) * 0.5
-				var tb: Basis = b.torso.global_basis.orthonormalized().inverse()
-				print("GEOM arm_r %s head %s neck %s hips %s hand %s tip %s" % [tb * (b.arm_r.global_position - o), tb * (b.head.global_transform * Vector3(0, 0.11, 0) - o),
-					tb * (b.neck.global_position - o), tb * (b.hips.global_position - o), tb * (b.weapon.global_position - o), tb * (b.weapon.global_transform * Vector3(0, 0, -0.95) - o)])
 			m.push_front(DESIGNS[di])
 			got.append(m)
-			print("MEASURE %s %s" % [DESIGNS[di], str(m)])
 			di += 1
 			if di < DESIGNS.size():
 				step = 1
