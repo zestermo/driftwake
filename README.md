@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.18.1-e0b040" alt="Version 1.18.1">
+  <img src="https://img.shields.io/badge/version-1.18.2-e0b040" alt="Version 1.18.2">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -161,6 +161,18 @@ the equipment slot, face the water and press F to cast, then F again when the bo
 one-handed blade, Z draws it and left click chops while you hang on.
 
 ## Version history
+
+### v1.18.2: Every Wake a Lesson (October 20, 2026)
+Skills rebuilt from the ground up. Each weapon has its own tree in three branches that grows only while you fight
+with it: moves, techniques and its element come by themselves at their mastery level (1-30), stat steps are bought with
+the points each level gives, and choices are versions you own both of and switch at the ship's bunk. Your captain grows
+stronger every level, with milestones (Soru, a third loadout, Tekkai, a fourth passive slot) and a talent every five
+levels; Will (armament, sense, foresight, the captain's will) comes from beating great foes. Adventure trees for
+sailing, swimming, cooking, fishing, acrobatics, defense, stealth and tinkering appear the first time you earn them. One
+skill bar across your weapon loadouts (using another weapon's skill switches to it), three passive slots and a library;
+new menus, dialogue and round wheels in a hand-made seafaring look; and a performance pass (islands built off the main
+thread, no freezes when an island is let go or a fight starts, occlusion in towns). Old captains keep their mastery and
+get their points back.
 
 ### v1.18.1: A First Look at the Capital (October 20, 2026)
 A sneak peek at the first real city: the chain's first city stop, two islands out from Brinehollow, is a walled royal

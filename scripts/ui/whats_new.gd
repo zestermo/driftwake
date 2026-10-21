@@ -7,8 +7,9 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
+	["Skill trees, rebuilt", "Every weapon has its own tree that grows only while you fight with it: moves and techniques come by themselves at their mastery level, stat steps cost points, and choices are versions you keep both of (switch them at the ship's bunk). Captain levels make you tougher with talents every 5 levels; Will comes from beating great foes. Adventure trees (sailing, swimming, cooking, fishing, acrobatics, defense, stealth, tinkering) show up as you do them. K opens it all."],
+	["One skill bar, any weapon", "Put any weapon's skills from your loadouts on 1-5 and R: using one switches to that weapon and fires. Three passive slots, a library of everything you know, and new menus and wheels with a seafaring look. Smoother island loads and fights too."],
 	["A first look at the capital", "Two islands down the chain from Brinehollow lies the First Sea's royal capital: a walled city with a palace on its hill. Walk the market street and plaza, rest at the Crown and Compass, take on city quests, and steer clear of Gallows Row. More of the city to come."],
-	["Get better at everything", "Skill trees are a few big nodes now: a shared Captain tree on level points, weapon trees that grow as you fight, and weapon families that share mastery. Swimming, sailing, cooking and fishing level up by doing them. Old captains get their points back."],
 	["Gold that means something", "Loot is much scarcer and rolled for each captain. Rare weapons carry a named trait that changes a move. Shops are trades with a stock that changes every day, and artisans camp on the islands' trails."],
 	["Food and fishing", "Heal in a fight with E (hold it to pick). Cook ingredients at the galley or a campfire for meals that last 10-20 minutes. Buy a rod and bait, cast with F and strike when the bobber dips: 21 fish, common to legendary."],
 	["Into the water", "Dive for sunken chests, oysters and reefs with a breath meter. Mind the currents, the cold and the sharks. A tired swimmer floats now instead of drowning."],

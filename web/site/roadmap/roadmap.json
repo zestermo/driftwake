@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.18.1",
+	"here": "1.18.2",
 	"versions": [
 		{
 			"v": "0.1",
@@ -456,6 +456,28 @@
 				["The royal capital", "The chain's first city stop: a walled capital with a harbour, a lighthouse and fort, towers, and a palace on a hill. Its name is rolled per world."],
 				["Its core district", "The market plaza and shops, the Crown and Compass inn, a notice board and city quests, the palace gate and the arena's walls, and Gallows Row's toughs."],
 				["Crowds", "The busiest streets in the game, the same on every crewmate's screen."]
+			]
+		},
+		{
+			"v": "1.18.2",
+			"name": "Every Wake a Lesson",
+			"date": "2026-10-20",
+			"status": "shipped",
+			"headline": "Skills rebuilt: weapon trees that grow as you fight, captain talents and Will, adventure trees, one skill bar for every weapon, and a new hand-made look.",
+			"img": "skill-trees",
+			"alt": "The skills menu: a katana's tree of glowing nodes in three branches on a night sky, under wooden sign tabs",
+			"shots": [
+				["skill-trees-captain", "The Captain tab: a level trunk with talent choices and the Will path beside it"],
+				["radial-wheel", "The action wheel, round with icons, over Brinehollow's square"]
+			],
+			"github": true,
+			"added": [
+				["Weapon trees", "Nine weapons, each with its own tree in three branches that grows only while you fight with it: moves and techniques by mastery level, stat steps for points, versions you switch at the ship's bunk."],
+				["Captain and Will", "Tougher every level, milestones and a talent every five levels; Will from beating great foes."],
+				["Adventure trees", "Sailing, swimming, cooking, fishing, acrobatics, defense, stealth and tinkering, each appearing the first time you earn it."],
+				["One skill bar", "Any weapon's skills from your loadouts on 1-5 and R (using one switches to that weapon), three passive slots and a library."],
+				["A new look", "Menus, dialogue, signs and round wheels in a hand-made seafaring style."],
+				["Performance", "Islands built off the main thread, no freezes when islands are let go or fights start, occlusion in towns."]
 			]
 		},
 		{
