@@ -1354,7 +1354,7 @@ const GUARD := {
 ## blade forward and low at them, the off hand up behind.
 const SWORD_GUARD := {
 	"arm_r": Vector3(0.8, 0.0, 0.7), "fore_r": Vector3(0.45, 0, 0), "hand_r": Vector3(-1.0, 0, 0),
-	"arm_l": Vector3(1.4, 2.3, 0.0), "fore_l": Vector3(1.55, 0, 0),
+	"arm_l": Vector3(1.15, 1.0, 0.0), "fore_l": Vector3(1.55, 0, 0),
 	"torso": Vector3(-0.06, 0.3, 0.04), "head": Vector3(0.04, -0.75, 0),
 }
 ## The pistol at low ready: angled down ahead of you, a little side on, up only to fire (shoot_r snaps it up).
