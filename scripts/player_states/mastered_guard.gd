@@ -5,7 +5,8 @@ class_name MasteredGuard
 
 const TAP := 0.32
 ## tree -> [the first guard's name, the mastered guard's].
-const NAMES := {"axe": ["Brawler's Guard", "Bearded Guard"], "katana": ["Middle Guard", "Waki Guard"], "sword": ["Swashbuckler's Guard", "Easy Guard"]}
+const NAMES := {"axe": ["Brawler's Guard", "Bearded Guard"], "katana": ["Middle Guard", "Waki Guard"], "sword": ["Swashbuckler's Guard", "Easy Guard"],
+	"dagger": ["Knife Fighter's Crouch", "Hidden Knife"], "dual": ["Paired Guard", "Wings"]}
 
 
 static func owns(p: Player) -> bool:

@@ -21,29 +21,22 @@ static var _GUARD_R := DaggerMoves.wrist_to(Vector3(0.6, 0.05, 0.2), 1.0, Vector
 static var _GUARD_L := DaggerMoves.wrist_to(Vector3(0.45, 0.1, -0.3), 0.85, Vector3(-0.25, -0.12, -1.0))
 
 
-## The mastered guard (Humanoid.guard2), keyed (two blades: no held grips). Two candidates for Zach's pick
-## (`preview`): "a" upper and lower, the right blade raised high over the head with its point hung forward at them, the
-## left low ahead pointing at their belly; "b" wings, chest down and forward, both arms out wide to the sides, the
-## blades swept out and back like wings.
-static var preview := "a"
-static var GUARD2 := {
-	"a": {"hips": Vector3(0, 0.35, 0), "torso": Vector3(-0.05, 0.3, 0.03), "head": Vector3(0.05, -0.45, 0),
-		"arm_r": Vector3(2.6, 0.3, 0.35), "fore_r": Vector3(0.7, 0, 0), "hand_r": DaggerMoves.wrist_to(Vector3(2.6, 0.3, 0.35), 0.7, Vector3(-0.1, -0.35, -0.93)),
-		"arm_l": Vector3(0.75, -0.1, -0.15), "fore_l": Vector3(0.45, 0, 0), "hand_l": DaggerMoves.wrist_to(Vector3(0.75, -0.1, -0.15), 0.45, Vector3(0.1, -0.15, -0.98))},
-	"b": {"hips": Vector3.ZERO, "torso": Vector3(-0.35, 0, 0), "head": Vector3(0.35, 0, 0),
-		"arm_r": Vector3(0.35, 0.0, 1.15), "fore_r": Vector3(0.4, 0, 0), "hand_r": DaggerMoves.wrist_to(Vector3(0.35, 0.0, 1.15), 0.4, Vector3(0.75, -0.35, 0.55)),
-		"arm_l": Vector3(0.35, 0.0, -1.15), "fore_l": Vector3(0.4, 0, 0), "hand_l": DaggerMoves.wrist_to(Vector3(0.35, 0.0, -1.15), 0.4, Vector3(-0.75, -0.35, 0.55))}}
-static var LEGS2 := {
-	"a": {"leg_l": Vector3(-0.15, 0, -0.2), "leg_r": Vector3(0.35, 0, 0.2), "shin_l": Vector3(-0.55, 0, 0), "shin_r": Vector3(-0.65, 0, 0), "_lift": Vector3(0, -0.12, 0)},
-	"b": {"leg_l": Vector3(0.55, 0, -0.3), "leg_r": Vector3(-0.3, 0, 0.3), "shin_l": Vector3(-1.0, 0, 0), "shin_r": Vector3(-0.75, 0, 0), "_lift": Vector3(0, -0.24, 0)}}
+## The mastered guard (Humanoid.guard2), keyed (two blades: no held grips). Wings (Zach's pick, 2026-10-22): chest
+## pitched down and forward over a deep crouch, elbows bent and both arms swept back and out (the wings half-folded),
+## the blades angled back and a little down.
+static var GUARD2 := {"hips": Vector3.ZERO, "torso": Vector3(-0.6, 0, 0), "head": Vector3(0.55, 0, 0),
+	"arm_r": Vector3(-0.15, 0.0, 0.85), "fore_r": Vector3(1.0, 0, 0), "hand_r": DaggerMoves.wrist_to(Vector3(-0.15, 0.0, 0.85), 1.0, Vector3(0.45, -0.3, 0.84)),
+	"arm_l": Vector3(-0.15, 0.0, -0.85), "fore_l": Vector3(1.0, 0, 0), "hand_l": DaggerMoves.wrist_to(Vector3(-0.15, 0.0, -0.85), 1.0, Vector3(-0.45, -0.3, 0.84))}
+const LEGS2 := {"leg_l": Vector3(0.65, 0, -0.3), "leg_r": Vector3(-0.3, 0, 0.3), "shin_l": Vector3(-1.25, 0, 0), "shin_r": Vector3(-0.95, 0, 0),
+	"_lift": Vector3(0, -0.33, 0)}
 
 
 static func guard(h) -> Dictionary:
-	return GUARD2[preview] if h.guard2 else dual_guard(offhand_kind(h))
+	return GUARD2 if h.guard2 else dual_guard(offhand_kind(h))
 
 
 static func legs(h) -> Dictionary:
-	return LEGS2[preview] if h.guard2 else Humanoid.STANCE_LEGS["dual_sword"]
+	return LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["dual_sword"]
 
 
 static func grips2(_h) -> Array:

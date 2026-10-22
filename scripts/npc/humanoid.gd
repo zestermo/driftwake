@@ -632,6 +632,22 @@ func _build_sockets() -> void:
 
 
 var _sheaths: Array = []
+## A dagger's sheath hangs from the belt (the hips' frame: down, a little back and out to its side), whatever the
+## chest does: hung off the chest, a crouch's lean stood it out stiffly from the hip.
+const SHEATH_HANG := Vector3(0.12, -0.9, 0.42)
+
+
+func _hang_sheaths() -> void:
+	if _sheaths.is_empty() or ragdoll != null:
+		return
+	var hb: Basis = hips.global_basis.orthonormalized()
+	var sc: float = global_basis.get_scale().x
+	for s in _sheaths:
+		var n := s as Node3D
+		if not is_instance_valid(n):
+			continue
+		var d := SHEATH_HANG * Vector3(signf((n.get_parent() as Node3D).position.x), 1, 1)
+		n.global_basis = Basis.looking_at((hb * d).normalized(), hb.y) * Basis.from_scale(Vector3.ONE * sc)
 
 
 func is_katana() -> bool:
@@ -2827,6 +2843,7 @@ func _process(delta: float) -> void:
 	_axe_hands()
 	SwordMoves.brace(self)
 	SwordMoves.easy(self)
+	_hang_sheaths()
 	_update_physics(delta)
 
 
