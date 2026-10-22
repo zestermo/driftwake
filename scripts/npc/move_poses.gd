@@ -3,7 +3,7 @@ class_name MovePoses
 
 ## How long each take-off's landing takes (s); a running jump (and a walk off a ledge) keeps
 ## Humanoid's staggered one-foot landing.
-const LAND_SECS := {"stand": 0.32, "sprint": 0.2, "double": 0.42}
+const LAND_SECS := {"stand": 0.32, "sprint": 0.2, "double": 0.42, "leap": 0.55}
 
 
 static func pose(h, n: String, u: float) -> Array:
@@ -14,6 +14,10 @@ static func pose(h, n: String, u: float) -> Array:
 			return _dash(h, u)
 		"breakfall":
 			return _breakfall(h, u)
+		"sky_leap_charge":
+			return _leap_charge(h, u)
+		"sky_leap":
+			return _leap(h, u)
 		"log_pose":
 			return _log_pose(h, u)
 		"draw", "sheathe":
@@ -221,6 +225,44 @@ static func _breakfall(h, u: float) -> Array:
 				d.erase(j)
 			k[1] = d
 	return [h._keys(u, keys), "full", Vector3.ZERO]
+
+
+## (held) Sky Leap's charge: sunk into a deep wide squat, chest over the knees, arms swept back, chin up at the sky,
+## the whole body trembling a little more as the charge builds.
+static func _leap_charge(h, u: float) -> Array:
+	var shake: float = sin(h._t * 47.0) * 0.025 * u
+	var squat := {"pivot": Vector3(-0.08, 0, shake), "hips": Vector3.ZERO, "torso": Vector3(-0.5, 0, shake), "head": Vector3(0.42, 0, 0),
+		"leg_l": Vector3(1.05, 0, -0.2), "shin_l": Vector3(-1.8, 0, 0), "leg_r": Vector3(1.05, 0, 0.2), "shin_r": Vector3(-1.8, 0, 0),
+		"arm_l": Vector3(-0.85, 0, -0.35), "fore_l": Vector3(0.5, 0, 0), "arm_r": Vector3(-0.85, 0, 0.35), "fore_r": Vector3(0.5, 0, 0),
+		"_lift": Vector3(0, -0.36 - 0.03 * u, 0), "_scale": Vector3(1.04 + 0.04 * u, 0.94 - 0.05 * u, 1.04 + 0.04 * u)}
+	return [h._keys(u, _unarmed_keys(h, [[0.0, {}], [0.35, squat, "out"], [1.0, squat]])), "full", Vector3.ZERO]
+
+
+## (held through the rise) Sky Leap: everything thrown up out of the squat, arms overhead and the body stretched,
+## then the rocket: one knee drawn up, the other leg trailing straight, the arms swept down and back, chin up.
+static func _leap(h, u: float) -> Array:
+	h._jkind = "leap"
+	var burst := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(0.12, 0, 0), "head": Vector3(0.3, 0, 0),
+		"leg_l": Vector3(0.05, 0, -0.05), "shin_l": Vector3(-0.05, 0, 0), "leg_r": Vector3(0.05, 0, 0.05), "shin_r": Vector3(-0.05, 0, 0),
+		"arm_l": Vector3(2.7, 0, -0.3), "fore_l": Vector3(0.2, 0, 0), "arm_r": Vector3(2.7, 0, 0.3), "fore_r": Vector3(0.2, 0, 0),
+		"_lift": Vector3(0, 0.05, 0), "_scale": Vector3(0.9, 1.16, 0.9)}
+	var rocket := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(0.08, 0, 0), "head": Vector3(0.35, 0, 0),
+		"leg_l": Vector3(-0.1, 0, -0.05), "shin_l": Vector3(-0.25, 0, 0), "leg_r": Vector3(1.35, 0, 0.08), "shin_r": Vector3(-1.9, 0, 0),
+		"arm_l": Vector3(-0.55, 0, -0.3), "fore_l": Vector3(0.35, 0, 0), "arm_r": Vector3(-0.55, 0, 0.3), "fore_r": Vector3(0.35, 0, 0),
+		"_lift": Vector3.ZERO, "_scale": Vector3(0.97, 1.05, 0.97)}
+	return [h._keys(u, _unarmed_keys(h, [[0.0, {}], [0.12, burst, "out"], [0.55, rocket], [1.0, rocket]])), "full", Vector3.ZERO]
+
+
+## Armed: the weapon hand keeps its grip (pistols tucked too).
+static func _unarmed_keys(h, keys: Array) -> Array:
+	if not h.armed:
+		return keys
+	for k in keys:
+		var d: Dictionary = (k[1] as Dictionary).duplicate()
+		for j in ["arm_r", "fore_r", "hand_r"] + (["arm_l", "fore_l"] if h._guns_out() else []):
+			d.erase(j)
+		k[1] = d
+	return keys
 
 
 ## When the air step's foot stamps down (s into the action): the puff goes under it then.

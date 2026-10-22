@@ -2479,7 +2479,7 @@ func _locomotion(delta: float) -> Dictionary:
 			"arm_" + ts: Vector3(0.3, 0, (1.35 * fall_k + flail) * to), "fore_" + ts: Vector3(0.5, 0, 0),
 			"arm_" + ls: Vector3(0.65, 0, (1.05 * fall_k + flail) * lo), "fore_" + ls: Vector3(0.75, 0, 0),
 			"torso": Vector3(-0.12, 0.06 * _jside, 0.04 * _jv[6]), "head": Vector3(0.22, 0, 0)}
-		if _jkind in ["stand", "double"]:
+		if _jkind in ["stand", "double", "leap"]:
 			# both knees drawn up together, arms out wide
 			fall.merge({"leg_l": Vector3(1.45 + flail * 0.15, 0, -0.14), "shin_l": Vector3(-2.05, 0, 0), "leg_r": Vector3(1.4 - flail * 0.15, 0, 0.14), "shin_r": Vector3(-2.0, 0, 0),
 				"arm_l": Vector3(0.55, 0, -(1.2 * fall_k + flail)), "arm_r": Vector3(0.55, 0, 1.2 * fall_k + flail), "torso": Vector3(-0.15, 0, 0)}, true)

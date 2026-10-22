@@ -5329,3 +5329,30 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   haymaker's cock over the shoulder and its damage). progtest's "unarmed light attack is a jab" check reads `fs_jab`.
   Suites expected to be touched: progtest, techtest, balancetest, stamtest (fist combo/heavy names and timings).
 - Per frame: nothing new (one reach solve on the punching arm during a punch, as the cutlass's free hand).
+## 2026-10-21: Sky Leap (docs/v1_18_4_plan.md "Sky Leap")
+- **Nodes** (Acrobatics Air branch; **Acrobatics now goes to 30**, the other Adventure trees stay at 20, so it earns
+  10 more Adventure points): `ac_skyleap` Sky Leap "move" 22 (`sky_leap`), `ac_hakilegs` Haki Legs, 3 steps hanging off
+  it, gated at 23 (`sky_leap_steps`; steps have no per-step gates, so all three open at 23), `ac_heavenward`
+  Heavenward "move" 28 (`heavenward`). SkillTrees.LEFT got a 7th slot for the Air branch's seventh big node.
+- **SkyLeapState** (`scripts/player_states/sky_leap_state.gd`, node "SkyLeap" in player.tscn): Idle sends a jump press
+  there while jump is still held and Sky Leap is owned. Released under `TAP` (0.2 s): JumpState `{"full": true}` (the
+  jump fires on release, so variable-jump is off: a full standing jump). Held: the `sky_leap_charge` hold (deep
+  squat, trembling), `FX.haki_legs` (a dark glossy sheen, metallic with a crimson rim, over both shins and feet: four
+  MeshInstances under the shins sharing one material of their own that fades; a second call carries on from it), a
+  `gather`, the haki sound, a dust puff ring every 0.3 s growing with the charge, a ring + glint at full (`CHARGE`
+  1.2 s). Release: k = held / 1.2; height `reach().x * k` (25 + 5 a Haki Legs step + 20 Heavenward), forward
+  `reach().y * k` at the apex (5 + 2 + 4), stamina `cost() * lerp(0.5, 1, k)` (40, Heavenward 50; refused = a plain
+  jump). v0 = sqrt(2 g h) at the rise gravity (Player.gravity 20, no short-hop), the forward speed constant over the
+  rise; the state rises itself (no air steps, attacks or tumble clock), and at the apex goes to Fall `from_jump` with
+  `freefall_from` = now (the tumble's 3.5 s counts from the top; a 60 m fall takes ~2 s), the air steps left
+  (`max_jumps - 1`) and, with Skyward Dash owned, the air dash.
+- **Landing**: `Player.sky_leap_fall` (set on launch, cleared by the landing, a tumble's landing or swimming):
+  `_on_landed` skips the fall damage and calls `SkyLeapState.crater` above the safe speed (puff ring, ring, debris,
+  five seeded ground cracks off wood/water, rock_crash + thud, local shake); the body lands in the kneel
+  (`_jkind` "leap", MovePoses.LAND_SECS 0.55); no stagger.
+- **Co-op**: the holds mirror through Humanoid's net events, every effect through Net.fx (haki_legs takes the body).
+- **Per tick**: nothing while not leaping; during a leap the state's own move_and_slide (as Jump/Fall). The sheen is 4
+  small meshes on the leaping body only while it shows, no shadows.
+- **Tests**: t/player/sky_leap (a tap is a 1.7 m jump; full charge 25.0/40.0/60.0 m up and 5/11/15 m forward with
+  no nodes / Haki Legs x3 / + Heavenward; stamina 40/40/50; never Downed; no damage; lands on its feet).
+  Render: animsheet `sky_leap_charge,sky_leap`. The fists' dive-punch height scaling is the fists agent's.

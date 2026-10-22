@@ -3,7 +3,7 @@ extends RefCounted
 ## The skill trees of the v1.18.2 redesign (docs/progression_plan.md "Redesign"), grouped in sections:
 ##   captain    the Captain (levels 1-40)
 ##   combat     a tree per weapon (mastery 1-30, earned only with that weapon in hand)
-##   adventure  Acrobatics, Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
+##   adventure  Acrobatics (1-30), Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
 ##   fruit      the Driftfruit you ate (levels 1-20)
 ## A tree grows up from its root in three branches. Every node past the root is bought (1.18.4, docs/v1_18_4_plan.md):
 ## weapon and fruit trees from the Combat pool (Captain levels), Adventure trees from the Adventure pool (their levels);
@@ -37,7 +37,7 @@ const HEADERS := {
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
 	"black_leg": ["Black Leg", "combat", Color(1.0, 0.45, 0.35), 30],
-	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 20],
+	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 30],
 	"defense": ["Defense", "adventure", Color(0.91, 0.84, 0.68), 20],
 	"sea": ["Sailing", "adventure", Color(0.45, 0.8, 0.85), 20],
 	"swim": ["Swimming", "adventure", Color(0.4, 0.7, 1.0), 20],
@@ -52,7 +52,7 @@ const HEADERS := {
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
 ## one goes straight up. A step sits off the node it hangs on.
-const LEFT := [Vector2(-120, -78), Vector2(-192, -162), Vector2(-252, -248), Vector2(-300, -336), Vector2(-336, -420), Vector2(-362, -500)]
+const LEFT := [Vector2(-120, -78), Vector2(-192, -162), Vector2(-252, -248), Vector2(-300, -336), Vector2(-336, -420), Vector2(-362, -500), Vector2(-380, -580)]
 const MID_STEP := 84.0
 const STEP_OFF := {0: [Vector2(-84, -28), Vector2(-64, 40)], 1: [Vector2(76, -30), Vector2(-76, -30)], 2: [Vector2(84, -28), Vector2(64, 40)],
 	-1: [Vector2(72, -18), Vector2(-72, -18), Vector2(104, 34), Vector2(-104, 34)]}
@@ -341,6 +341,10 @@ static func _build_acrobatics() -> void:
 	_big("ac_feather", "Featherfall", "mech", 0, 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing.")
 	_big("ac_skydash", "Skyward Dash", "move", 0, 18, {"skyward_dash": 1},
 		"Righted in mid-air (Breakfall, or an air step out of a tumble): dodge for an air dash, and two more air steps. Enough to get back aboard after a blow throws you off the ship.")
+	_big("ac_skyleap", "Sky Leap", "move", 0, 22, {"sky_leap": 1},
+		"Stand still and hold jump: Will hardens your legs, then let go to leap 25 m into the sky (40 stamina; a shorter hold, a shorter leap). You land in a crater, unhurt, with your air steps still to use.")
+	_big("ac_heavenward", "Heavenward", "move", 0, 28, {"heavenward": 1},
+		"Sky Leap's full charge carries you 20 m higher and 4 m further (50 stamina): 60 m with Haki Legs.")
 	_big("m_swift", "Swift Step", "mech", 1, 4, {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
 		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.")
 	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
@@ -353,6 +357,8 @@ static func _build_acrobatics() -> void:
 	_step("ac_hang", "Hang Time", "m_skywalk", 3, {"dodge_iframe_pct": 0.08}, "Untouchable 8% longer in a dodge, a step.")
 	_step("ac_spring", "Spring", "m_sprinter", 3, {"sprint_cost_pct": 0.05}, "Sprinting burns 5% less stamina a step.")
 	_step("ac_wind", "Wind", "ac_bound", 3, {"max_stamina": 4.0}, "+4 max stamina a step.")
+	_step("ac_hakilegs", "Haki Legs", "ac_skyleap", 3, {"sky_leap_steps": 1}, "Sky Leap goes 5 m higher and 2 m further a step.")
+	_nodes["ac_hakilegs"]["level"] = 23
 
 
 static func _build_defense() -> void:

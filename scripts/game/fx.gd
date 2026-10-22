@@ -1521,6 +1521,65 @@ func hot_leg(body: Node3D, right: bool, secs: float = 0.6, color: Color = Color(
 	tw.tween_callback(mi.queue_free)
 
 
+## Will hardening the legs (Sky Leap): a dark glossy sheen over both shins and feet, up over `grow` s, held `hold` s,
+## then fading. Called again on the same body it carries on from the sheen already there (0, 0 fades it now).
+static var _haki_shin: CapsuleMesh
+static var _haki_foot: BoxMesh
+
+
+func haki_legs(body: Node3D, grow: float = 1.0, hold: float = 1.0) -> void:
+	if not body is Humanoid:
+		return
+	var h := body as Humanoid
+	var held: Array = h.get_meta("haki_legs") if h.has_meta("haki_legs") else []
+	if held.is_empty():
+		if _haki_shin == null:
+			_haki_shin = CapsuleMesh.new()
+			_haki_shin.radius = 0.085
+			_haki_shin.height = absf(h.shin_l.position.y) + 0.12
+			_haki_shin.radial_segments = 8
+			_haki_shin.rings = 2
+			_haki_foot = BoxMesh.new()
+			_haki_foot.size = Vector3(0.13, 0.11, 0.27)
+		var mat := StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(0.05, 0.035, 0.06, 0.0)
+		mat.metallic = 0.75
+		mat.roughness = 0.16
+		mat.rim_enabled = true
+		mat.rim = 0.9
+		mat.rim_tint = 0.2
+		mat.emission_enabled = true
+		mat.emission = Color(0.28, 0.02, 0.06)
+		mat.emission_energy_multiplier = 0.6
+		var parts := []
+		var ankle := h.shin_l.position.y
+		for shin in [h.shin_l, h.shin_r]:
+			for m in [[_haki_shin, Vector3(0, ankle * 0.5, -0.005)], [_haki_foot, Vector3(0, ankle - 0.03, -0.07)]]:
+				var mi := MeshInstance3D.new()
+				mi.mesh = m[0]
+				mi.material_override = mat
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				(shin as Node3D).add_child(mi)
+				mi.position = m[1]
+				parts.append(mi)
+		held = [mat, parts, null]
+		h.set_meta("haki_legs", held)
+	var mat: StandardMaterial3D = held[0]
+	if held[2] != null:
+		(held[2] as Tween).kill()
+	var tw := h.create_tween()
+	held[2] = tw
+	if grow > 0.0:
+		tw.tween_property(mat, "albedo_color:a", 0.92, grow)
+		tw.tween_interval(hold)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.35)
+	tw.tween_callback(func():
+		for mi in held[1]:
+			(mi as Node).queue_free()
+		h.remove_meta("haki_legs"))
+
+
 ## Wind torn off a blade (the greatsword's element): pale streaks of air flung hard along `dir`, jade motes riding
 ## them, a couple of rushing lines of air and a breath of mist.
 func gust(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:

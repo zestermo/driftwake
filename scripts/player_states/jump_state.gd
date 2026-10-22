@@ -21,6 +21,9 @@ func enter(data: Dictionary) -> void:
 	var double: bool = (player.jumps_remaining < player.max_jumps or data.get("air", false) or not player.is_on_floor()) and not data.get("coyote", false)
 	player.air_speed = maxf(Vector2(player.velocity.x, player.velocity.z).length(), player.move_speed)
 	_launch(double)
+	# (Sky Leap's tap: the jump fires on release, so it's a full one)
+	if data.get("full", false):
+		player.variable_jump_active = false
 
 
 func _launch(double: bool) -> void:
