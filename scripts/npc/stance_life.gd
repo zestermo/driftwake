@@ -35,6 +35,10 @@ const CARRY_IN := 0.15
 ## Stances that keep the guard at any walking speed and direction and carry only at a sprint, the guard staying under
 ## the sprint (Humanoid._locomotion) so the carry blends in from it.
 const SPRINT_ONLY := ["sword", "sword_pistol", "dual_sword", "axe"]
+## Stances that carry whenever they move (over MOVE_ON m/s, kept down to MOVE_OFF), the same carry every way they go.
+const ANY_WAY := ["greatsword"]
+const MOVE_ON := 1.2
+const MOVE_OFF := 0.8
 ## Stance -> the carry's arms (the chest's frame; `swing` scales the stride's swing added to the shoulders' x).
 const CARRIES := {
 	# the cutlass in the hand hanging at the right side, the blade trailed back and out from the hip, its flat turned
@@ -58,8 +62,9 @@ const CARRIES := {
 
 ## Each frame (locomotion, on the ground): eases `carry_w` toward carrying.
 static func carry_weight(h, delta: float) -> void:
-	var on: bool = h.stance in CARRIES and h.armed and h._action.is_empty() and not h._gait_back \
-		and absf(h._travel_ang) < 0.6 and h.ground_speed > (RUN_OFF if h.carry_w > 0.5 else RUN_ON) \
+	var any: bool = h.stance in ANY_WAY
+	var on: bool = h.stance in CARRIES and h.armed and h._action.is_empty() and (any or not h._gait_back and absf(h._travel_ang) < 0.6) \
+		and h.ground_speed > ((MOVE_OFF if any else RUN_OFF) if h.carry_w > 0.5 else (MOVE_ON if any else RUN_ON)) \
 		and (h.sprinting or h.stance not in SPRINT_ONLY)
 	h.carry_w = move_toward(h.carry_w, 1.0 if on else 0.0, delta / CARRY_IN)
 

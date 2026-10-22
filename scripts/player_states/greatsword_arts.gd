@@ -254,6 +254,11 @@ static func _guardbreak(s, delta: float) -> void:
 	else:
 		s._rooted(delta, 0.0)
 	var alive: bool = s._target != null and is_instance_valid(s._target)
+	# (the real blade's trail over the rising cut and over the crush, as gs_guardbreak keys them)
+	if s._once("rise_trail", 0.12):
+		Net.fx("blade_swoosh", [p.body_model, 0.18, s._col()])
+	if s._once("crush_trail", 0.47):
+		Net.fx("blade_swoosh", [p.body_model, 0.14, s._col()])
 	if s._once("lift", BREAK_LIFT) and alive:
 		var hd: HitData = s._hd(BREAK_DAMAGE[0], 1.0, false)
 		hd.unblockable = true

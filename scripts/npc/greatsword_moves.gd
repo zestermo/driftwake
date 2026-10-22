@@ -19,9 +19,9 @@ class_name GreatswordMoves
 ## and forward across the body to the left (clear of the left knee), the edge down.
 const GUARD_GRIP := [Vector3(0.25, -0.58, -0.2), Vector3(-0.64, -0.5, -0.58), Vector3(0, -1, 0), 0.2]
 ## Sprinting: in the right hand alone down at the side, the point dragged along the ground behind.
-const TRAIL_GRIP := [Vector3(0.36, -0.5, -0.02), Vector3(0.45, -0.7, 0.55), Vector3(0, -1, 0), -1.0]
+const TRAIL_GRIP := [Vector3(0.36, -0.5, -0.02), Vector3(0.28, -0.86, 0.42), Vector3(0, -1, 0), -1.0]
 ## Moving (any direction, StanceLife's carry): the same, the point trailing low just off the ground.
-const CARRY_GRIP := [Vector3(0.36, -0.5, 0.0), Vector3(0.48, -0.6, 0.64), Vector3(0, -1, 0), -1.0]
+const CARRY_GRIP := [Vector3(0.36, -0.5, 0.0), Vector3(0.36, -0.74, 0.57), Vector3(0, -1, 0), -1.0]
 ## The guard (block, parry): the blade stood up in front, point high, the flat turned to them like a shield.
 const BLOCK_GRIP := [Vector3(0.06, -0.42, -0.42), Vector3(-0.22, 0.96, 0.12), Vector3(1, 0, 0), 0.18]
 const GRIPS := [GUARD_GRIP, BLOCK_GRIP, TRAIL_GRIP, CARRY_GRIP]

@@ -5471,3 +5471,32 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   r10test's strafe check uses a stance-less body, so it isn't affected. Renders: guardsheet `run` (cutlass, axe,
   corsair, dual_sword), animsheet `ham_heavy`.
 - Per frame added: nothing (one extra `in` test on a 4-item array in carry_weight and guard_up).
+
+## 2026-10-21: greatsword rework (Zach's play-test; 1.18.4 new weapons' finish)
+- **Bigger, rounder arcs** (`scripts/npc/greatsword_moves.gd`): every gs_* move now goes through `_arc`, Humanoid._keys
+  with the grip swung on arcs (the right hand round ARC_C, about the breastbone, its distance eased; the blade slerped
+  the short way). The old straight blends cut chords through the body and shrank every swing. Far-apart blade
+  directions get an authored mid key (`_mid`: _whip's body + its own grip) instead of a blend through zero.
+- **The left hand lets go** on hit 1's follow-through (carried on over the right shoulder one-handed into C2, taken
+  again on hit 2's wind-up), hit 3 (a wide one-handed backhand: the free arm points on the wind-up, flings back on
+  the cut), Gale Turn and Tempest Turns (arm's length, the free arm out for balance), Running Cleave and Crescent
+  Gale. Hit 2, the heavy and Guardbreaker stay two-handed. Free-arm poses FLING / OUT / POINT / PULL. The left hand
+  now eases off and on over 0.1 s for the greatsword too (PoleMoves.hands' pole_lw; the hammer still snaps).
+- **No blade through the body:** the guard's point a little further forward (it touched the left knee), loads out of
+  the guard lift the point forward first (LIFT_GRIP, else it swept back through the left thigh), the heavy/charge/
+  Guardbreaker go over the top through TOP_GRIP / an up-front key, returns from the right lower through the front
+  (`_lowering`). Hit lengths 0.9/0.85/0.9 (were 0.8/0.78/0.84), chains after the follow-through (0.52/0.5/0.52).
+- **Carry:** moving any way (StanceLife.ANY_WAY, over MOVE_ON 1.2 m/s) it's one-handed down at the right side, the
+  point trailing low behind (CARRY_GRIP); a sprint lowers it to drag (TRAIL_GRIP). Guard <-> carry swings round
+  through the front (PoleMoves._round_front: the heading never wraps through straight back), not down the legs.
+- **Sparks on the point:** scrape() now runs after the grip is solved (it read last frame's blade, ~0.15 m behind at a
+  sprint) on the interpolated transform, at the point (or where the blade dips under the feet), only within 0.12 m.
+- **Trails:** specs' swoosh windows moved with the new keys (launch to end of follow-through); Guardbreaker draws the
+  real blade's trail over its rise and its crush (it had none).
+- **Tested:** new `t/weapons/greatsword_clear` (blade guard-to-point segment vs chest/head/thigh/shin capsules, every
+  frame of the chained combo, charge+heavy, rush, Guardbreaker, Crescent, Tempest, deflect: closest 0.04-0.27 m, was
+  down to -0.09 on 8 of 11; the hand out >= 0.5-0.6 m on the big swings, was 0.39-0.47), new `t/weapons/greatsword_carry`
+  (forward/back/strafe carry the same, sprint drag, sparks within 0.15 m of the point: 0.08), greatsword_combo/moves.
+  Renders: animsheet gs_1..gs_rush (`tools/dev/out/gs_before_*`, `gs_after_*`), guardsheet walk greatsword.
+- Per frame added: the grip's arc (two slerps) while a gs_ move plays; an atan2/asin steer only while the blade is
+  turned far round between grips at rest.

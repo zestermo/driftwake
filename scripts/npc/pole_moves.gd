@@ -370,9 +370,8 @@ static func hands(h, delta: float) -> void:
 		var cur: Array = h.pole_cur
 		cur[0] = (cur[0] as Vector3).lerp(want[0], k)
 		var wd: Vector3 = (want[1] as Vector3).normalized()
-		if st == "greatsword" and (cur[1] as Vector3).dot(wd) < 0.2:
-			# (a long blade turned far round, guard to carry: swung round in front, not down through the legs)
-			wd = ((cur[1] as Vector3) + wd + Vector3(0, 0.3, -1.2)).normalized()
+		if st == "greatsword" and act == "" and (cur[1] as Vector3).dot(wd) < 0.2:
+			wd = _round_front(cur[1], wd)
 		cur[1] = (cur[1] as Vector3).lerp(wd, k).normalized()
 		cur[2] = (cur[2] as Vector3).lerp(want[2], k)
 		# (the left hand lets go over pole_lw, at the slide it had)
@@ -427,6 +426,19 @@ static func hands(h, delta: float) -> void:
 		var grip := a + d * _slide(h, a, d, s * sc)
 		h.reach_hand(false, h.hand_l.global_position.lerp(grip, w * h.pole_lw), body * Vector3(-0.7, -1.0, 0.45))
 		h.arm_l.basis = h.arm_l.basis.orthonormalized()
+
+
+## A long blade turned far round between grips (the greatsword's guard across the front to its carry trailed behind):
+## the next direction to steer `d` toward on its way to `to`, swung round through the front (its heading in the
+## chest's frame never wraps through straight back), not by the short way straight down through the legs.
+static func _round_front(d: Vector3, to: Vector3) -> Vector3:
+	var a := atan2(d.x, -d.z)
+	var b := atan2(to.x, -to.z)
+	var step := clampf(b - a, -0.6, 0.6)
+	var k := absf(step) / maxf(absf(b - a), 0.001)
+	var yaw := a + step
+	var pitch := lerpf(asin(clampf(d.y, -1.0, 1.0)), asin(clampf(to.y, -1.0, 1.0)), k)
+	return Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch))
 
 
 ## The run trail's grip, the hand swinging a little with the stride.
