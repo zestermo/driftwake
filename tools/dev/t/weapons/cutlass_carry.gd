@@ -1,7 +1,8 @@
 extends SceneTree
 ## The cutlass out of a move: in the guard the free (left) hand is up by the side, not back behind the shoulder; walking
 ## keeps that guard in every direction (forward and a diagonal give the same arms, no carry: Zach 2026-10-21); a sprint
-## eases into the carry, the sword hand moving there without a snap.
+## eases into the carry, the sword hand moving there without a snap, then holds the blade up and back at one angle to the
+## chest through the stride (no swinging round with the run: Zach 2026-10-21).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -15,6 +16,8 @@ var max_jump := 0.0
 var jump_tick := 0
 var mid_w := -1.0
 var ticks := 0
+var blades := []
+var min_clear := 9.0
 
 
 func _initialize() -> void:
@@ -101,6 +104,26 @@ func _process(_d: float) -> bool:
 			check("the carry eases in (%.2f after 5 ticks)" % mid_w, mid_w > 0.05 and mid_w < 0.95)
 			check("the sword hand eases into the carry, no snap (largest step %.3f m a tick, on tick %d)" % [max_jump, jump_tick],
 				max_jump < 0.15 and jump_tick > 2)
+			ticks = 0
+			until = TK.wait_ticks(1)
+		6:
+			var bl: Vector3 = arms()[2]
+			blades.append(bl)
+			min_clear = minf(min_clear, b._blade_clear(b.hand_r)[0])
+			ticks += 1
+			if ticks < 60:
+				until = TK.wait_ticks(1)
+				return false
+			var mean := Vector3.ZERO
+			for v in blades:
+				mean += v
+			mean = mean.normalized()
+			var worst := 0.0
+			for v in blades:
+				worst = maxf(worst, (v as Vector3).angle_to(mean))
+			check("the blade held steady through the stride (%.2f rad at most off its mean over 60 ticks)" % worst, worst < 0.12)
+			check("the blade up and back, not dangling (chest frame %s)" % mean, mean.y > 0.6 and mean.z > 0.1 and mean.x > -0.05)
+			check("the blade clear of the head and chest (%.2f m)" % min_clear, min_clear > -0.05)
 			TK.release("sprint")
 			TK.release("move_forward")
 			return TK.done(fails)
