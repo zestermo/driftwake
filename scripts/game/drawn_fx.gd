@@ -7,6 +7,10 @@ class_name DrawnFx
 const WIDTHS := {"katana": [0.32, 0.72], "axe": [0.44, 0.9]}
 
 
+static func net() -> Node:
+	return (Engine.get_main_loop() as SceneTree).root.get_node("Net")
+
+
 static func awake(player, kind: String) -> bool:
 	return player.progression.elemental(kind)
 
@@ -15,4 +19,4 @@ static func awake(player, kind: String) -> bool:
 ## its line); `big` scales it.
 static func slash(player, kind: String, secs: float, thrust: bool = false, big: float = 1.0) -> void:
 	var a := awake(player, kind)
-	Net.fx("drawn_slash", [player.body_model, kind, secs, a, float(WIDTHS[kind][1 if a else 0]) * big, thrust, randi() % 1000])
+	net().fx("drawn_slash",[player.body_model, kind, secs, a, float(WIDTHS[kind][1 if a else 0]) * big, thrust, randi() % 1000])
