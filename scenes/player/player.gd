@@ -1820,7 +1820,7 @@ func set_kicks(on: bool) -> void:
 	weapon_changed.emit(equipped_weapon)
 	_loadout_note()
 	if armed and equipped_weapon == null and not hybrid:
-		body_model.play("fists_up", 0.22)
+		body_model.play("fists_up", 0.3)
 
 
 func _loadout_note() -> void:
@@ -1920,7 +1920,7 @@ func _apply_loadout(i: int) -> void:
 	else:
 		_toast("Loadout %d: %s" % [i + 1, " + ".join(PackedStringArray([main.display_name if main else ("Black Leg" if kicks else "Fists")] + ([offhand_weapon.display_name] if offhand_weapon else [])))])
 	if armed and not hybrid:
-		body_model.play("draw" if main else "fists_up", 0.22)
+		body_model.play("draw" if main else "fists_up", 0.22 if main else 0.3)
 	Net.fx("sfx", ["clack", global_position + Vector3.UP, -10.0, 0.05, 1.3])
 	loadout_changed.emit()
 
@@ -2136,7 +2136,7 @@ func draw_weapon(quick: bool = false) -> void:
 		return
 	armed = true
 	if equipped_weapon == null or hybrid:
-		body_model.play("fists_up", 0.25)
+		body_model.play("fists_up", ActionSpecs.length("fists_up"))
 	elif quick:
 		body_model._attach_weapon(true)
 	else:
@@ -2152,6 +2152,8 @@ func sheathe_weapon(instant: bool = false) -> void:
 	if instant:
 		body_model.stop_action()
 		body_model._attach_weapon(false)
+	elif equipped_weapon == null or hybrid:
+		body_model.play("fists_down", ActionSpecs.length("fists_down"))
 	else:
 		body_model.play("sheathe", 0.4)
 	armed_changed.emit(false)

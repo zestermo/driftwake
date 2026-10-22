@@ -193,7 +193,7 @@ static func _jump(h, n: String, u: float) -> Array:
 			keys = [[0.0, {}], [0.1, launch, "out"], [0.45, launch], [0.85, flight], [1.0, flight]]
 		_:
 			keys = _air_step(h)
-	if h.armed:
+	if h._weapon_out():
 		# the weapon hand keeps the air pose's grip (pistols tucked, the katana trailed)
 		for k in keys:
 			var d: Dictionary = (k[1] as Dictionary).duplicate()
@@ -255,7 +255,7 @@ static func _leap(h, u: float) -> Array:
 
 ## Armed: the weapon hand keeps its grip (pistols tucked too).
 static func _unarmed_keys(h, keys: Array) -> Array:
-	if not h.armed:
+	if not h._weapon_out():
 		return keys
 	for k in keys:
 		var d: Dictionary = (k[1] as Dictionary).duplicate()
@@ -309,7 +309,7 @@ static func land(h, p: Dictionary, k: float) -> float:
 				var side := "l" if s < 0.0 else "r"
 				p["leg_" + side] += Vector3(0.6 * k, 0, 0.08 * k * s)
 				p["shin_" + side] += Vector3(-1.25 * k, 0, 0)
-				if side == "l" or not h.armed:
+				if side == "l" or not h._weapon_out():
 					p["arm_" + side] += Vector3(0.45 * k, 0, 0.35 * k * s)
 			p["torso"] += Vector3(-0.35 * k, 0, 0)
 			p["head"] += Vector3(0.2 * k, 0, 0)
@@ -325,8 +325,8 @@ static func land(h, p: Dictionary, k: float) -> float:
 			p["torso"] += Vector3(-0.3 * k, 0, 0)
 			return 0.16 * k
 	# down from the double jump: one knee to the deck, the free hand on the ground, chin up
-	var fs := "r" if h.armed else "l"
-	var bs := "l" if h.armed else "r"
+	var fs := "r" if h._weapon_out() else "l"
+	var bs := "l" if h._weapon_out() else "r"
 	var fo := 1.0 if fs == "r" else -1.0
 	p["leg_" + fs] += Vector3(1.0 * k, 0, 0.1 * k * fo)
 	p["shin_" + fs] += Vector3(-1.5 * k, 0, 0)

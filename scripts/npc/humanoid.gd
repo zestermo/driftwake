@@ -873,6 +873,17 @@ func _guns_out() -> bool:
 	return armed and stance in ["pistol", "dual_pistol"]
 
 
+## An upper-body pose with the chest turned back square to the front over the stance's turned hips.
+func _square(p: Dictionary) -> Dictionary:
+	var t: Vector3 = p.get("torso", Vector3.ZERO)
+	return p.merged({"torso": Vector3(t.x, t.y - (_base.get("hips", Vector3.ZERO) as Vector3).y, t.z)}, true)
+
+
+## A weapon in hand and ready (the fists' and kicks' stance holds nothing: jumps and landings move like the plain ones).
+func _weapon_out() -> bool:
+	return armed and stance not in ["fist", "black_leg"]
+
+
 ## Pistols carried in close to the chest, elbows bent, barrels up (dashes, rolls, jumps).
 func _gun_tuck(p: Dictionary, k: float) -> void:
 	var tuck := {"arm_r": Vector3(0.4, 0.2, -0.05), "fore_r": Vector3(2.25, 0, 0), "hand_r": Vector3.ZERO,
@@ -1383,6 +1394,15 @@ const E_REACH := {"arm_r": Vector3(1.5, 0.05, 0.12), "fore_r": Vector3(0.02, 0, 
 const E_BLOCK := {"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2), "arm_l": Vector3(1.1, 0.5, -0.1), "fore_l": Vector3(1.6, 0, 0),
 	"torso": Vector3(0.1, -0.35, 0), "head": Vector3(0.05, 0.3, 0), "leg_l": Vector3(0.35, 0, -0.12), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.35, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0)}
 const REST_ARMS := {"arm_r": Vector3(0, 0, 0.08), "fore_r": Vector3(0.15, 0, 0), "arm_l": Vector3(0, 0, -0.08), "fore_l": Vector3(0.15, 0, 0)}
+## Readying or dropping the fists (fists_up, fists_down): both arms thrown out ahead and wide, a little below the
+## shoulders, the elbows nearly straight, the chest square; then (up) both forearms raised together before the chin.
+const FIST_CHAMBER := {"torso": Vector3(0.05, 0, 0), "head": Vector3(-0.04, 0, 0),
+	"arm_l": Vector3(1.1, 0, -0.48), "fore_l": Vector3(0.2, 0, 0), "hand_l": Vector3(-0.25, 0, 0),
+	"arm_r": Vector3(1.1, 0, 0.48), "fore_r": Vector3(0.2, 0, 0), "hand_r": Vector3(-0.25, 0, 0),
+	"_scale": Vector3(1.02, 0.98, 1.02)}
+const FIST_RAISE := {"torso": Vector3(-0.06, 0, 0), "head": Vector3(0.06, 0, 0),
+	"arm_l": Vector3(1.05, 0, 0.12), "fore_l": Vector3(1.9, 0, 0), "hand_l": Vector3.ZERO,
+	"arm_r": Vector3(1.05, 0, -0.12), "fore_r": Vector3(1.9, 0, 0), "hand_r": Vector3.ZERO}
 # Katana (two-handed; the left hand is put on the hilt by _katana_hands, its
 # arm values here only seed the IK): blade angled up and forward in front.
 const KATANA_GUARD := {"arm_r": Vector3(0.8, 0.35, -0.05), "fore_r": Vector3(0.8, 0, 0), "hand_r": Vector3(-1.0, 0, 0),
@@ -1914,7 +1934,16 @@ func _action_pose(n: String, u: float) -> Array:
 			return [_keys(u, [[0.0, {}], [1.0, bp, "out"]]), "upper", lift]
 		# --- unarmed ---
 		"fists_up":
-			return [_keys(u, [[0.0, REST_ARMS], [1.0, _guard()]]), "upper", lift]
+			# chambered: both hands thrown out and a little down, then drawn up together in front of the chin and
+			# settled into the guard
+			var ch := _square(FIST_CHAMBER)
+			return [_keys(u, [[0.0, {}], [0.34, ch, "out"], [0.46, ch.merged({"_scale": Vector3.ONE}, true)],
+				[0.76, _square(FIST_RAISE), "out"], [1.0, _guard()]]), "upper", lift]
+		"fists_down":
+			# the same chamber out of the guard, then the hands let fall to the sides
+			var ch := _square(FIST_CHAMBER)
+			return [_keys(u, [[0.0, _guard()], [0.36, ch, "out"], [0.5, ch.merged({"_scale": Vector3.ONE}, true)],
+				[1.0, REST_ARMS.merged({"torso": Vector3.ZERO, "head": Vector3.ZERO, "hand_l": Vector3.ZERO, "hand_r": Vector3.ZERO}, true)]]), "upper", lift]
 		# (the boxing combo and the haymaker are FistMoves "fs_*")
 		# (the dual-wield and sword-and-pistol moves live in WieldMoves)
 		"gun_kata":
@@ -2497,7 +2526,7 @@ func _locomotion(delta: float) -> Dictionary:
 			p["arm_r"] = KATANA_TRAIL["arm_r"]
 			p["fore_r"] = KATANA_TRAIL["fore_r"]
 			p["hand_r"] = KATANA_TRAIL["hand_r"]
-		elif armed:
+		elif _weapon_out():
 			p["arm_r"] = _guard()["arm_r"] + Vector3(0.5, 0, 0)
 			p["fore_r"] = _guard()["fore_r"]
 

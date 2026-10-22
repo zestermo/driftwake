@@ -268,7 +268,8 @@ const SPECS := {
 	"bl_wheel": {"len": 1.45, "hit": [0.07, 0.8], "sharp": 46.0, "stance": "black_leg", "weapon": ""},
 	"bl_last": {"len": 2.7, "hit": [0.26, 0.73], "sharp": 50.0, "stance": "black_leg", "weapon": ""},
 	# --- unarmed ---
-	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
+	"fists_up": {"len": 0.42, "stance": "fist", "weapon": ""},
+	"fists_down": {"len": 0.4, "stance": "fist", "weapon": ""},
 	# (boxing: the body keyed, the punching hand on a reach path; FistMoves)
 	"fs_jab": {"len": 0.36, "hit": [0.24, 0.46], "chain": 0.2, "sharp": 50.0, "lead": {"hips": 0.03, "torso": 0.015},
 		"reach": FistMoves.JAB_REACH, "stance": "fist", "weapon": ""},
@@ -375,8 +376,10 @@ const SPECS := {
 	"roll": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
 	"flip": {"len": 0.45, "stance": "sword", "weapon": "cutlass"},
 	# v1.11 moves: the take-offs and the double jump (MovePoses)
-	"jump_stand": {"len": 0.42, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0}},
-	"jump_run": {"len": 0.42, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0, "ground_speed": 6.0}},
+	"jump_stand": {"len": 0.42, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0},
+		"variants": [{"armed": true, "stance": "fist"}]},
+	"jump_run": {"len": 0.42, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0, "ground_speed": 6.0},
+		"variants": [{"armed": true, "stance": "fist"}]},
 	"jump_sprint": {"len": 0.48, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0, "ground_speed": 9.0}},
 	"double_jump": {"len": 0.5, "sharp": 50.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0},
 		"variants": [{"armed": true}]},
