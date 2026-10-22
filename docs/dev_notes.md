@@ -5545,3 +5545,5 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   k2_* (posebench front/back; one view per run: the tool's later views catch the camera mid-move).
 - Per frame added: nothing new while sprinting (the same carry lerps); the brace (three reach_hand IKs and a slerp)
   only while a cutlass block, parry or deflect plays.
+- t/weapons/fist_sea_king hardened: the stage grunt is disabled until the parry steps (it reached the airborne captain:
+  Stagger), and the air unleash is polled up to 20 ticks for Technique/Plunge instead of a fixed 4.

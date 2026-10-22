@@ -10,6 +10,7 @@ var taken := 0.0
 var hp_g := 0.0
 var step := 0
 var until := 0
+var polls := 0
 var fails := 0
 
 
@@ -52,6 +53,7 @@ func _process(_d: float) -> bool:
 			check("a grunt", grunt != null)
 			if grunt == null:
 				return TK.done(fails)
+			grunt.process_mode = Node.PROCESS_MODE_DISABLED
 			check("Sea King Fist on R", p.power.equip("sea_king_fist", 4))
 			until = TK.wait_secs(0.6)
 		1:
@@ -74,11 +76,16 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(3)
 		5:
 			TK.act("light_attack")
-			until = TK.wait_ticks(4)
+			until = TK.wait_ticks(2)
+			polls = 0
 		6:
 			var tech = p.state_machine.get_node("Technique")
-			# the air unleash hands off to the dive (Plunge) within a few ticks
 			var st: String = p.current_state_name()
+			var let_go: bool = (st == "Technique" and tech.id == "sea_king_unleash") or st == "Plunge"
+			if not let_go and polls < 20:
+				polls += 1
+				until = TK.wait_ticks(1)
+				return false
 			check("armed in the air, attack lets it go (%s %s)" % [st, tech.id], (st == "Technique" and tech.id == "sea_king_unleash") or st == "Plunge")
 			until = TK.wait_secs(1.6)
 		7:
@@ -88,6 +95,7 @@ func _process(_d: float) -> bool:
 		8:
 			if not p.is_free():
 				return false
+			grunt.process_mode = Node.PROCESS_MODE_INHERIT
 			arm()
 			until = TK.wait_secs(0.8)
 		9:
