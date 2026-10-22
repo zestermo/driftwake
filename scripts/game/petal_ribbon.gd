@@ -21,13 +21,18 @@ const SUB := 3
 ## How far out along the blade the strip runs (1 = the tip).
 const OUT := 1.04
 ## kind -> [plain strip, awakened strip] (assets/textures/fx/<name>.png).
-const LOOKS := {"katana": ["steel_trail", "petal_trail"], "axe": ["axe_trail", "ember_trail"]}
+const LOOKS := {"katana": ["steel_trail", "petal_trail"], "axe": ["axe_trail", "ember_trail"], "dagger": ["steel_trail", "shadow_trail"],
+	"dual": ["steel_trail", "twin_trail"], "dual_dagger": ["steel_trail", "venom_trail"], "corsair": ["steel_trail", "powder_trail"]}
+## The other elements' bursts (gen_drawn_fx.py): kind -> the cloud let off the head as the cut ends.
+const CLOUDS := {"dagger": "shadow_cloud", "dual": "twin_cloud", "dual_dagger": "venom_cloud", "corsair": "powder_cloud"}
 
 var body: Humanoid
 var kind := "katana"
 var emit := 0.2
 var awake := false
 var thrust := false
+## The off hand's blade (dual wield).
+var left := false
 var width := 0.34
 ## Seconds it lasts after the sampling ends (holding, then breaking up from the tail).
 var linger := 0.32
@@ -98,7 +103,7 @@ func _sample() -> void:
 		while samples.size() < due:
 			samples.append(fixed[samples.size()])
 		return
-	var w := body.weapon
+	var w := body.offhand if left else body.weapon
 	if w == null or not is_instance_valid(w) or w.get_parent() not in [body.hand_r, body.hand_l]:
 		return
 	var box := w.mesh.get_aabb()
@@ -221,8 +226,10 @@ func _build() -> void:
 		_am.surface_set_material(0, material(awake, kind))
 	if kind == "axe":
 		_shed_axe(pts, lens, tail, k)
-	elif awake:
+	elif awake and kind == "katana":
 		_shed(pts, lens, total, tail, k)
+	elif awake:
+		_shed_drawn(pts, lens, tail, k)
 
 
 ## The thickness along it (0 = the tail, 1 = the head): fattest past the middle, thin at both
@@ -275,6 +282,20 @@ func _shed_axe(pts: Array, lens: Array, tail: float, k: float) -> void:
 	if awake and _left > 0.0 and _cloud_at > 0.08:
 		_cloud_at = 0.0
 		FX.cinders(head, Vector3.UP * 0.5 + way, 2, 2.0)
+
+
+## The other awakened elements': a burst of the element off the head once the cut's drawn, its material thrown off it,
+## and a smaller one off the tail as it breaks.
+func _shed_drawn(pts: Array, lens: Array, tail: float, k: float) -> void:
+	var head: Vector3 = pts[pts.size() - 1]
+	var way := (head - (pts[maxi(pts.size() - 4, 0)] as Vector3)).normalized()
+	if _puffs == 0 and _left <= 0.0:
+		_puffs = 1
+		FX.drawn_burst(head, CLOUDS[kind], width * 2.0, 0.45)
+		FX.element(kind, head, way + Vector3.UP * 0.4, 4, 2.5)
+	elif _puffs == 1 and k > 0.35:
+		_puffs = 2
+		FX.drawn_burst(_at(pts, lens, tail), CLOUDS[kind], width * 1.3, 0.4)
 
 
 func _at(pts: Array, lens: Array, l: float) -> Vector3:
