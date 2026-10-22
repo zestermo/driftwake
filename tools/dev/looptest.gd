@@ -8,6 +8,7 @@ extends SceneTree
 var t := 0.0
 var step := 0
 var t0 := 0.0
+var up_at := 0.0
 var fails := 0
 var SG
 var p
@@ -67,7 +68,8 @@ func stand_ashore(inland: bool = false) -> void:
 
 func _process(d: float) -> bool:
 	t += d
-	if t > 150.0:
+	# (150 s from the captain coming up: the world builds a step a frame, thousands of frames headless)
+	if t - up_at > (150.0 if up_at > 0.0 else 900.0):
 		check("timed out at step %d" % step, false)
 		print("RESULT FAILED (%d)" % fails)
 		quit()
@@ -83,6 +85,7 @@ func _process(d: float) -> bool:
 			if not wait(3.0): return false
 			grab()
 			if p == null or p.health_component == null: return false
+			up_at = t
 			for c in root.find_children("*", "CharacterCreator", true, false): c._finish(true)
 			p.health_component.max_health = 500.0
 			p.health_component.current_health = 500.0
