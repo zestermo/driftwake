@@ -5371,3 +5371,7 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   through the tree and FX's colours through a preload, so the static-autoload lint passes), FistMoves `fs_catch`.
 - **Tested:** `t/weapons/fist_counter` (cast -> fs_catch; a grunt's blow does no harm and becomes shoulder_throw; the
   thrower and the grunt where he lands are hurt; uncaught it times out). techtest lost its hip_toss grab row.
+
+## 2026-10-21: F9 crash report (not reproduced)
+
+- Zach reported plain F9 crashing a debug run. t/progression/debug_level_up sends F9 to the light-stage player (unarmed, katana, fruit eaten, saving on, level 1 to the cap, every weapon tree to its top): no crash on main at 7815eeee. Kept as a guard; needs his console output or an F12 capture to go further.
