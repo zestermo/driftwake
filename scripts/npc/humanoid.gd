@@ -565,6 +565,42 @@ func _lod_every() -> int:
 	return 3 if d2 < 80.0 * 80.0 else 6
 
 
+## A lod rig casts no shadow past this from the camera (m; back on inside SHADOW_R - 4): a body is ~19 parts, so
+## ~19 shadow draws for a few pixels of shadow at the PS1 grid. Brinehollow's townsfolk were ~300 of the plaza's.
+const SHADOW_R := 28.0
+var _shadow_t: float = 0.0
+var _shadows_on: bool = true
+## [GeometryInstance3D, its own cast_shadow] for the parts that cast, taken when the shadows go off
+var _shadow_parts: Array = []
+
+
+func _shadow_lod(delta: float) -> void:
+	_shadow_t -= delta
+	if _shadow_t > 0.0:
+		return
+	_shadow_t = 0.4
+	var cam := _camera()
+	if cam == null:
+		return
+	var d2 := cam.global_position.distance_squared_to(global_position)
+	var r := SHADOW_R if _shadows_on else SHADOW_R - 4.0
+	var on := d2 < r * r
+	if on == _shadows_on:
+		return
+	_shadows_on = on
+	if not on:
+		_shadow_parts.clear()
+		for g in find_children("*", "GeometryInstance3D", true, false):
+			if g.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+				_shadow_parts.append([g, g.cast_shadow])
+				g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	else:
+		for e in _shadow_parts:
+			if is_instance_valid(e[0]):
+				e[0].cast_shadow = e[1]
+		_shadow_parts.clear()
+
+
 var _sims_near: bool = true
 ## Hair and cloth swing within this of the camera (m): a captain's, and a villager's or grunt's (lod).
 const SIMS_R := 30.0
@@ -2725,6 +2761,7 @@ func _process(delta: float) -> void:
 		_freeze -= delta
 		return
 	if lod and ragdoll == null:
+		_shadow_lod(delta)
 		if _lod_phase < 0:
 			_lod_phase = get_instance_id() % 12
 		_lod_acc += delta
