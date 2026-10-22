@@ -252,7 +252,7 @@ static func _pose(h, n: String, u: float) -> Array:
 			var T: float = float(h._action.get("dur", 1.1))
 			var top := _k({"pivot": Vector3(0.0, 0, 0), "hips": Vector3(0, -0.5, 0), "torso": Vector3(0.05, -0.8, 0.05), "head": Vector3(0.15, 0.85, 0),
 				"_lift": Vector3(0, -0.24, 0), "_scale": Vector3(1.03, 0.95, 1.0), "_smear": Vector3.ZERO}.merged(WIDE),
-				[Vector3(0.3, 0.12, 0.0), Vector3(0.35, 0.3, 0.89), Vector3(0.9, 0.2, -0.4), 0.3])
+				[Vector3(0.3, 0.18, 0.0), Vector3(0.35, 0.6, 0.72), Vector3(0.9, 0.2, -0.4), 0.3])
 			var low := _k({"pivot": Vector3(-0.12, 0, 0), "hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.3, -0.2, 0), "head": Vector3(0.25, 0.3, 0),
 				"_lift": Vector3(0, -0.34, 0), "_scale": Vector3(0.97, 1.02, 1.06), "_smear": Vector3(0.14, 0, 0)}.merged(WIDE),
 				[Vector3(0.15, -0.45, -0.2), Vector3(0.2, -0.95, -0.1), Vector3(0, 0.1, -1), 0.15])

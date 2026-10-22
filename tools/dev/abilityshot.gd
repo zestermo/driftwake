@@ -10,7 +10,7 @@ extends SceneTree
 ## Fist let go on the ground, armed for it).
 ## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night; AB_TIER=0/1/2
 ## with no weapon element awakened / on skills only / on every blow (default 2); AB_HOLD=s holds a held
-## technique's key that long.
+## technique's key that long; AB_STRIKE=s lands the nearest grunt's blow on you at that time.
 const STAGGER := 9
 var t := 0.0
 var step := 0
@@ -239,6 +239,10 @@ func _process(d: float) -> bool:
 			if skill == "combo" and int(since / 0.2) != int((since - d) / 0.2):
 				p.stamina = p.max_stamina
 				p.input_buffer.buffer_action("light_attack")
+			# AB_STRIKE=s: the nearest grunt's blow lands on you then (Anvil Counter)
+			var strike_at := float(OS.get_environment("AB_STRIKE")) if OS.get_environment("AB_STRIKE") != "" else -1.0
+			if strike_at >= 0.0 and since >= strike_at and since - d < strike_at:
+				p._on_hit_received(camp.grunts[0]._hit_light, camp.grunts[0])
 			if not busy and shot_i < frames and since >= start + span * float(shot_i) / maxf(frames - 1, 1):
 				busy = true
 				_grab()

@@ -5709,6 +5709,39 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   the way home) only while in flight; Windmill Guard's clip query every 0.15 s while held. Nothing idle.
 - Tests: t/weapons/thunder_javelin, windmill_guard, polearm_tree (six techniques). Renders: tools/dev/out/pole/ in the
   new-weapons-finish worktree (jav_/javc_ abilityshot, wm_ windmill, as_/wmf_/pol_ animsheets).
+
+## 2026-10-22: the hammer's finish (new weapons' techniques, piece 2)
+- **Cannonball Swing** (Weight 12, `hm_drive`, 4 pts; 20 energy, 7 s; HammerArts `_drive`, pose `ham_drive`): a golf
+  drive, contact at 0.5 s (stepping in to 1.8 m). The blow is unblockable and breaks wind-ups. A light foe
+  (`FistArts.throwable`) is thrown with the new enemy call **`launched(v)`** (pirate_grunt, scuttlebug, creature; in
+  `Net.HOST_CALLS`, so a guest's launch is run by the host), at DRIVE_LAUNCH (12.5 along, 6.5 up). It's a real ragdoll
+  on every screen and flies about 8-10 m. A virtual ball runs down DRIVE_LINE 10 m at the along speed and knocks flat
+  everyone within 1.7 m of it (14). A boss or anything heavier takes a 2.2 s stagger instead.
+- **Anvil Counter** (Iron 14, `hm_anvil_c`, 4 pts; 16 energy, 6 s; `_anvil`, poses `ham_anvil` + `ham_rip`): the head
+  is planted at 0.16 s and `is_parrying` stays on for 1 s. The first parried melee blow (`Player.parried_tick` from the
+  cast's tick on) gets a ring-off (rings, sparks, a low parry note), and the attacker reels through their own
+  `parried()`. Then a 0.62 s rip: at 0.16 s the head comes up into them (28, unblockable, knocked down) with
+  `quake_fx` at your feet, which also knocks down everyone else within 3 m (10). If nothing comes, half the cost comes
+  back at 1 s. exit() clears is_parrying (as for every technique).
+- Polish:
+  - Skullcracker hops at 4 m/s, timed to land at SKULL_AT 0.46. The blow lands on landing (or at 0.52 at the latest)
+    with the impact at the real head, then the head goes into the ground at 0.6 (`thud`).
+  - Rolling Quake's three blows are now: a flat sweep into the ground at the left; a backhand uppercut looped over
+    the right shoulder into the right; a real hop (3.4 m/s at 0.84) and the overhead on landing.
+  - Cyclone Crusher passes `arc = true` (no flat spin disc). Its head orbit tilts with the turn (rising behind,
+    dipping in front), so the three turns read.
+  - Head trails (`blade_swoosh`) on Skullcracker, Rolling Quake, Cannonball Swing and the rip. Titan's Fall was
+    checked by code: the landing triggers on the floor and the hits fire there; unchanged.
+- Earthquake for a guest (code path): `HammerArts.burst` hits through `Hurtbox.take_hit`, so `Net.route_hit` sends
+  the wave to the host with the guest captain as the attacker. The blow's own target is excluded through
+  `sword_hitbox.hit_targets`, which also records hits that were routed away. Nothing there needed fixing.
+  t/weapons/earthquake_wave covers it offline (the wave reaches a grunt behind you once, through take_hit, by the
+  captain, knockdown + breaker, and survives hit_pack). nettest runs the real guest at prepush.
+- Per frame/tick: Cannonball Swing's bowl query (one sphere) per tick only for the ~0.8 s the ball flies; nothing
+  idle. Anvil Counter compares an int each tick of the brace.
+- Tests: t/weapons/cannonball_swing, anvil_counter, earthquake_wave, hammer_tree (six techniques). abilityshot
+  `AB_STRIKE=s` lands the nearest grunt's blow on you then. Renders in the worktree: tools/dev/out/ham/ (drive_, anv_,
+  cyc_ abilityshot; as_00_* animsheets).
 ## 2026-10-22: the Adventure trees' moves, piece 4: Swimming's Surface Sprint (Dolphin Kick / Long Glide)
 
 - **Tree:** `sw_sprint` "Surface Sprint" (variant, Stroke branch, level 12) in `_build_swimming`: `sw_dolphin` (`dolphin_kick`) and
