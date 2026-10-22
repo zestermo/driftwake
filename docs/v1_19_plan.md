@@ -15,6 +15,15 @@ and gear upgrading waits for a later release. The table below is the earlier dra
 | Gear upgrading | Smiths (and treasure merchants) **upgrade blue-and-up weapons**, re-roll or name their trait (todo.md "Gear upgrading and customizing"), paid with treasure and materials. | Builds on 1.18's traits; a rival captain's weapon is the prize. | — |
 | Fishing | A **fishing minigame** (rod, cast, bite, reel) at rails, piers and shores, feeding the Fishing life skill, its perks and the fish-tagged ingredients. Lane F's downtime fishing stays as the idle version. | The fishing perks and fish ingredients already exist. | — |
 
+## Carried over from 1.18.4 (Zach, 2026-10-22)
+1.18.4 ships with what was built when the batch paused (docs/v1_18_4_plan.md "Paused 2026-10-22"). Moved here:
+- **Greatsword finish:** Updraft and Gatekeeper, Guardbreaker's and Crescent Gale's polish (the handover in the 1.18.4
+  plan has the details and patterns).
+- **Black-leg finish:** icons, a katana-pass polish, two new techniques (pitched in one line each first).
+- **Corsair and pistol mastered guards** (pictures for Zach's pick first).
+- **How 1.19 is worked** (Zach, 2026-10-22, to save usage): one feature at a time in the main session, no subagents
+  or parallel feature agents unless Zach asks; atomic tests while building, the suites once at the end.
+
 ## The web roadmap timeline (Zach, 2026-10-19)
 Replace `web/site/roadmap/` with an **interactive scrolling timeline**: every version Driftwake has shipped and every
 one planned, as **floating, clickable cards** strung along a timeline line.
