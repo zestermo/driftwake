@@ -2720,8 +2720,23 @@ func katana_arc(center: Vector3, u: Vector3, v: Vector3, radius: float = 2.0, sw
 	_katana_path(path, width, awake, secs, seed_v)
 
 
-func _katana_path(path: Array, width: float, awake: bool, secs: float, seed_v: int) -> void:
+## A weapon's drawn strip (PetalRibbon.LOOKS: "katana", "axe") swept round an arc like katana_arc, the crest outside.
+func drawn_arc(kind: String, center: Vector3, u: Vector3, v: Vector3, radius: float = 2.0, sweep: float = PI, width: float = 0.8,
+		awake: bool = false, secs: float = 0.12, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(center) > BURST_RANGE:
+		return
+	var path: Array = []
+	var n := clampi(int(absf(sweep) * radius / 0.35), 8, 64)
+	for i in n + 1:
+		var a := sweep * float(i) / n
+		path.append([center, center + (u.normalized() * cos(a) + v.normalized() * sin(a)) * radius])
+	_katana_path(path, width, awake, secs, seed_v, kind)
+
+
+func _katana_path(path: Array, width: float, awake: bool, secs: float, seed_v: int, kind: String = "katana") -> void:
 	var r := PetalRibbon.new()
+	r.kind = kind
 	r.fixed = path
 	r.emit = secs
 	r.awake = awake

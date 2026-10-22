@@ -402,6 +402,10 @@ func physics_update(delta: float) -> void:
 				_spray(c + Vector3(0, 1.0, 0), Vector3.UP, 16, 4.0)
 				if _elem():
 					Net.fx("power_aura", [player.body_model, "ember", 8.0])
+					# the roar blows a ring of fire out round you
+					for k in range(5):
+						var b := TAU * k / 5.0
+						Net.fx("drawn_burst", [c + Vector3(cos(b) * 1.4, 0.7, sin(b) * 1.4), "ember_cloud", 1.4, 0.5, 40.0])
 				Net.fx("sfx", ["thud", c, 2.0, 0.05, 0.6])
 				CombatManager.apply_camera_shake(0.25)
 				CombatManager.apply_camera_kick(0.2, 0.4)
@@ -945,6 +949,10 @@ func _split(length: float, width: float, base: float) -> void:
 		_spray(p + Vector3(0, 0.2, 0), Vector3.UP, 5, 3.0)
 	Net.fx("dust_ring", [start, 14, 1.0])
 	Net.fx("ring", [start, Vector3.UP, 2.4, _col(), 0.3, 0.12])
+	# the bite drawn standing up where the axe went in (iron, or a crescent of fire), a gout of it down the line
+	Net.fx("drawn_burst", [start + Vector3(0, 0.7, 0), "ember_slash" if _elem() else "axe_slash", 2.6, 0.4, 20.0])
+	if _elem():
+		Net.fx("drawn_burst", [start + _dir * length * 0.6 + Vector3(0, 0.6, 0), "ember_cloud", 1.8, 0.5, 40.0])
 	Net.fx("impact", [start + Vector3(0, 0.2, 0), _col(FX.ACCENT) if _elem() else Color(1.0, 0.85, 0.55)])
 	Net.fx("sfx", ["thud", start, 3.0, 0.05, 0.65])
 	Net.fx("sfx", ["crunch", start + _dir * 3.0, -1.0, 0.05, 0.55])
@@ -967,15 +975,22 @@ func _split(length: float, width: float, base: float) -> void:
 ## it, and a last turn that throws everyone down.
 const MAEL_GATHER := 0.38
 const MAEL_BURST := 2.8
+## A turn's drawn crescent (s apart).
+const MAEL_TURN := 0.34
 
 func _maelstrom(delta: float) -> void:
 	_rooted(delta, 0.6 if t >= MAEL_GATHER else 0.0)
 	if _once("go", MAEL_GATHER):
-		Net.fx("vortex", [player.player_model, MAEL_BURST - MAEL_GATHER, 2.8, 2.6, _col(), randi() % 10000])
 		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 0.9])
 		CombatManager.apply_camera_kick(0.2, 0.4)
 	if t < MAEL_GATHER:
 		return
+	# the storm round you: a drawn crescent (iron, or fire once awakened) laid round you every turn, at three heights
+	var turn := int((t - MAEL_GATHER) / MAEL_TURN)
+	if t < MAEL_BURST - 0.1 and _once("arc%d" % turn, MAEL_GATHER + turn * MAEL_TURN):
+		var u := (player.player_model.global_basis * Vector3(sin(turn * 2.4), 0, -cos(turn * 2.4))).normalized()
+		Net.fx("drawn_arc", ["axe", player.global_position + Vector3(0, 0.7 + 0.3 * (turn % 3), 0), u, u.cross(Vector3.UP), 2.7,
+			PI * 1.3, 1.0, _elem(), MAEL_TURN * 0.8, randi() % 1000])
 	var before := _hits
 	_spin_hits(3.2, 0.25, 9.0, MAEL_BURST, 30.0, MAEL_GATHER)
 	if _hits != before and _hits % 2 == 0:
@@ -984,12 +999,13 @@ func _maelstrom(delta: float) -> void:
 		var at := player.global_position + out * 2.6 + Vector3(0, 0.3, 0)
 		Net.fx("dust", [at, 4, 0.7])
 		Net.fx("debris", [at, out + Vector3.UP * 1.2, 4, Color(0.35, 0.3, 0.25), 4.0])
-		if _elem():
-			Net.fx("flame", [at + Vector3.UP * 0.5, 6, 0.7, 0.5, 0.3])
+		_spray(at + Vector3.UP * 0.5, Vector3.UP + out, 8, 3.0)
 	if _once("burst_fx", MAEL_BURST):
 		player.hurtbox.set_deferred("monitorable", true)
 		var c := player.global_position
 		Net.fx("ring", [c, Vector3.UP, 7.0, _col(), 0.5, 0.08])
+		var f := -player.player_model.global_basis.z
+		Net.fx("drawn_arc", ["axe", c + Vector3(0, 0.5, 0), f, f.cross(Vector3.UP), 3.6, TAU, 1.6, _elem(), 0.14, randi() % 1000])
 		for k in range(6):
 			var b := TAU * k / 6.0
 			Net.fx("debris", [c + Vector3(cos(b), 0.2, sin(b)) * 1.5, Vector3(cos(b), 1.0, sin(b)), 6, Color(0.35, 0.3, 0.25), 7.0])

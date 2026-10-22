@@ -496,3 +496,9 @@ scripts/world/sky_birds.gd              t/world/sky_long_tail
 scripts/world/sea_spray.gd              t/world/sky_long_tail
 scripts/game/dev_capture.gd             t/world/sky_long_tail
 scripts/npc/hammer_moves.gd             t/weapons/hammer_heavy_clear t/weapons/hammer_combo
+scripts/game/blade_embers.gd            t/fx
+scripts/game/drawn_fx.gd                t/fx t/combat
+assets/textures/fx/axe_trail*           t/fx t/combat
+assets/textures/fx/ember_trail*         t/fx t/combat
+scripts/npc/axe_moves.gd                t/combat t/weapons
+scripts/player_states/mastered_guard.gd t/weapons
