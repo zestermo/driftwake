@@ -9,7 +9,8 @@ extends SceneTree
 ## through every 0.2 s), "air" (the jump attack from 2.5 m up), "riposte_counter" or "sea_king_unleash" (Sea King
 ## Fist let go on the ground, armed for it).
 ## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night; AB_TIER=0/1/2
-## with no weapon element awakened / on skills only / on every blow (default 2).
+## with no weapon element awakened / on skills only / on every blow (default 2); AB_HOLD=s holds a held
+## technique's key that long.
 const STAGGER := 9
 var t := 0.0
 var step := 0
@@ -225,6 +226,9 @@ func _process(d: float) -> bool:
 				pc.ult = 100.0
 				pc.cooldowns.clear()
 				print("cast ", skill, ": ", pc.try_cast(slot))
+				# AB_HOLD=s: a held technique's key kept down that long (Windmill Guard)
+				if OS.get_environment("AB_HOLD") != "":
+					p.state_machine.current_state.set("_hold", float(OS.get_environment("AB_HOLD")))
 			basis_at = p.player_model.global_basis.orthonormalized()
 			origin_at = p.global_position
 			since = 0.0

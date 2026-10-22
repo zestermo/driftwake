@@ -5670,3 +5670,26 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - Tests: t/weapons/katana_guard, cutlass_guard, dagger_guard, dual_guard; t/fx/drawn. Per frame: the auras step one
   material per tree once a frame; `_hang_sheaths` sets at most two sheaths' bases; MasteredGuard.on is a cached stat.
   Renders: tools/dev/out/guards2/, picked/, *_guard2/ (candidates), drawn/ (abilityshot combos), in the side worktree.
+
+## 2026-10-22: the polearm's finish (new weapons' techniques, piece 1)
+- **Thunder Javelin** (Reach 12, 4 pts; 20 energy, 7 s; PoleArts `_javelin`, pose `pole_javelin`): at 0.26 s the spear
+  is hurled at the enemy you face (else the reticle) as Projectile kind **"javelin"**: 36 m/s point-first down 16 m
+  (stops at a wall), pierces (breaker, ranged), a 0.18 s beat quivering, then yanked back to the right hand butt-first
+  on a crackle of lightning (a bolt from hand to spear every 0.07 s) cutting the line again at 70%. With the storm
+  awakened a bolt drops on each one it pierced (8 more, Net.fx from the thrower's machine). The projectile hides the
+  held spear itself, so it's hidden on every screen while it flies.
+- **Windmill Guard** (Guard 14, 4 pts; 18 energy, 8 s; `_windmill`, poses `pole_windmill` + `pole_lunge`): held (the
+  slot's key, `TechniqueState._key_held`; tests and abilityshot force `"hold": s` / AB_HOLD) 0.3-1.5 s, the pole spun
+  one-handed by its middle in the frontal plane (PoleMoves.WINDMILL_SPIN 18 rad/s, shaft slid 0.45 m through the hand)
+  walking at 45%: `is_parrying` plus a "bat_shots" buff (`Player.parries_shots`) turn blows and shots from the front
+  only (Player._on_hit_received skips the parry from behind while it's on); every 0.15 s anyone within 2.6 m ahead is
+  clipped (4) and shoved out. Release: a 0.55 s lunge, an unblockable 26 cone at 4.8 m. exit() clears is_parrying and
+  the buff for every technique.
+- Polish: Hundred Thrusts' streaks start at the spearhead; Dragon Sweep in a wide horse stance, two turns from 0.2 to
+  0.95 s with the hits at each turn's end (0.58, 0.95); Vaulting Strike plants the point and launches at 0.14 s (dur
+  1.14, strike 0.54); Raijin's Wheel's overhead spin one turn at 21 rad/s with its own blade trail, and
+  `_spin_hits(..., arc = true)` drops the flat spin disc (the blade_swoosh is the trail).
+- Per frame/tick: the javelin projectile (one ray + a sphere query a step, a streak every 1.6 m, a bolt every 0.07 s on
+  the way home) only while in flight; Windmill Guard's clip query every 0.15 s while held. Nothing idle.
+- Tests: t/weapons/thunder_javelin, windmill_guard, polearm_tree (six techniques). Renders: tools/dev/out/pole/ in the
+  new-weapons-finish worktree (jav_/javc_ abilityshot, wm_ windmill, as_/wmf_/pol_ animsheets).

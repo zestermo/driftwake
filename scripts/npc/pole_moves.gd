@@ -54,6 +54,8 @@ const ONE_HAND_GUARDS := ["sword", "katana", "dagger"]
 const SHARP := 34.0
 const SHARP_IDLE := 16.0
 const SHARP_PLANT := 9.0
+## Windmill Guard's turn rate (rad/s).
+const WINDMILL_SPIN := 18.0
 
 # action-key legs
 const SET := {"leg_l": Vector3(0.5, 0, -0.18), "shin_l": Vector3(-0.75, 0, 0), "leg_r": Vector3(-0.4, 0, 0.18), "shin_r": Vector3(-0.45, 0, 0)}
@@ -357,13 +359,13 @@ static func _pose(h, n: String, u: float) -> Array:
 				[0.75 / T, wait], [1.2 / T, wait], [1.3 / T, catch, "out"], [1.38 / T, catch], [1.0, g]]), "full", Vector3.ZERO]
 		"pole_windmill":
 			# Windmill Guard: square on, knees soft, the spear held by its middle in the right hand before the chest and
-			# spun in the upright plane facing them (PoleArts.WINDMILL_SPIN), the free arm out for balance
+			# spun in the upright plane facing them (WINDMILL_SPIN), the free arm out for balance
 			var T: float = float(h._action.get("dur", 1.5))
 			var s := u * T
-			var body := {"pivot": Vector3(-0.06, 0, 0), "hips": Vector3(0, -0.08, 0), "torso": Vector3(-0.1, -0.12, 0), "head": Vector3(0.08, 0.12, 0),
+			var body := {"pivot": Vector3(-0.06, 0, 0), "hips": Vector3(0, 0.12, 0), "torso": Vector3(-0.1, 0.18, 0), "head": Vector3(0.08, -0.25, 0),
 				"arm_l": Vector3(0.35, 0, -0.7), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3.ZERO,
 				"_lift": Vector3(0, -0.2, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}.merged(WIDE)
-			var a := s * PoleArts.WINDMILL_SPIN
+			var a := s * WINDMILL_SPIN
 			var spin := _ks(body, [Vector3(0.02, -0.08, -0.46), Vector3(cos(a), sin(a), -0.06), Vector3(-sin(a), cos(a), 0), -1.0], 0.45)
 			var pz: Dictionary = h._keys(u, [[0.0, g], [0.1 / T, spin, "out"], [1.0, spin]])
 			if s > 0.06:

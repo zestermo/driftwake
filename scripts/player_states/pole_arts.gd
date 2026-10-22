@@ -46,8 +46,6 @@ const JAVELIN_DAMAGE := 22.0
 
 const WINDMILL_MAX := 1.5
 const WINDMILL_MIN := 0.3
-## Its turn rate (rad/s; PoleMoves keys the pole's spin from it).
-const WINDMILL_SPIN := 18.0
 const WINDMILL_CLIP := 2.6
 const WINDMILL_EVERY := 0.15
 const WINDMILL_DAMAGE := 4.0
