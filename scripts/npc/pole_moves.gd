@@ -339,10 +339,12 @@ static func hands(h, delta: float) -> void:
 		grips = HammerMoves.GRIPS
 	elif st == "greatsword":
 		grips = GreatswordMoves.GRIPS
-	elif h.guard2 and st in Humanoid.MASTERED:
+	# (a mastered guard with grips is held here; one without (two blades) is keyed)
+	var held2: bool = h.guard2 and st in Humanoid.MASTERED and not Humanoid.MASTERED[st].grips2().is_empty()
+	if held2:
 		grips = Humanoid.MASTERED[st].grips2()
-	var on: bool = (st in ["polearm", "hammer", "greatsword"] or h.guard2 and st in Humanoid.MASTERED) and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
-		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and (Humanoid.kind_of(h.weapon) == st or h.guard2 and st in Humanoid.MASTERED) \
+	var on: bool = (st in ["polearm", "hammer", "greatsword"] or held2) and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
+		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and (Humanoid.kind_of(h.weapon) == st or held2) \
 		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD and st not in ONE_HAND_GUARDS)
 	var pole: bool = st == "polearm" and on and act == ""
 	var run: bool = pole and h.grounded and not h._gait_back and h.ground_speed > (RUN_OFF if h.pole_run_w > 0.5 else RUN_ON)
