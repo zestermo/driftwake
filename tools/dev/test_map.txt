@@ -488,3 +488,4 @@ scripts/props/buildings.gd              t/capital/occluders
 scripts/world/sky_birds.gd              t/world/sky_long_tail
 scripts/world/sea_spray.gd              t/world/sky_long_tail
 scripts/game/dev_capture.gd             t/world/sky_long_tail
+scripts/npc/hammer_moves.gd             t/weapons/hammer_heavy_clear t/weapons/hammer_combo

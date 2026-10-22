@@ -55,6 +55,14 @@ one planned, as **floating, clickable cards** strung along a timeline line.
   read, dropping its weapon. Built alongside 1.19's captain-style AI, so the Admiralty and rival crews can field them
   too (docs/weapons_plan.md).
 
+- **Two- and three-sword style for the katana** (Zach, 2026-10-21): a late katana passive lets the off hand carry a
+  second katana (two-sword style becomes the katana's default pattern once owned); a very late passive adds a third
+  slot only for three-sword style (the third blade held in the mouth). Three-sword style is **not** a new default
+  pattern: you fight two-sword until you toggle it on; while on it drains energy, buffs you slightly and swaps in a
+  few move variants, and a few katana skills need it on to use. Design it with the katana's mastered guard (1.18.4)
+  and preview the numbers first (gates, drain, buff, which skills need it). New tech: a mouth attach point, its guard
+  and carry, the variants' poses, the toggle synced in co-op.
+
 ## Perf session before 1.19 (Zach, 2026-10-20)
 After 1.18.1 ships, before the 1.19 batch, in order, each with a before/after bench by the lead:
 1. **Refresh the bench** (a tooling window, no agents running): new stops (Brinehollow's terrace and farmland, the

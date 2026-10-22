@@ -1,7 +1,7 @@
 extends SceneTree
 ## The cutlass out of a move: in the guard the free (left) hand is up by the side, not back behind the shoulder; walking
-## straight forward the run carry hangs the sword arm at the side (the hand not swung back behind the hip) with the
-## blade trailed back, down and out to the right, so from the camera behind it reads as a diagonal.
+## keeps that guard in every direction (forward and a diagonal give the same arms, no carry: Zach 2026-10-21); a sprint
+## eases into the carry, the sword hand moving there without a snap.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -9,6 +9,12 @@ var b
 var step := 0
 var until := 0
 var fails := 0
+var fwd_pose := []
+var last_hand := Vector3.ZERO
+var max_jump := 0.0
+var jump_tick := 0
+var mid_w := -1.0
+var ticks := 0
 
 
 func _initialize() -> void:
@@ -30,6 +36,17 @@ func right() -> Vector3:
 	return (p.global_basis.x as Vector3).normalized()
 
 
+func local(v: Vector3) -> Vector3:
+	return Vector3(v.dot(right()), v.y, v.dot(fwd()))
+
+
+## The arms in the chest's frame: each hand from its shoulder, the blade's direction.
+func arms() -> Array:
+	var c: Basis = b.torso.global_basis.orthonormalized().inverse()
+	return [c * (b.hand_r.global_position - b.arm_r.global_position), c * (b.hand_l.global_position - b.arm_l.global_position),
+		(c * (b.weapon.global_basis * Vector3(0, 0, -1))).normalized()]
+
+
 func _process(_d: float) -> bool:
 	if not stage.up or TK.ticking(until):
 		return false
@@ -49,12 +66,42 @@ func _process(_d: float) -> bool:
 			TK.press("move_forward")
 			until = TK.wait_secs(1.0)
 		2:
-			check("walking forward (%.1f m/s): the run carry (%.2f)" % [b.ground_speed, b.carry_w], b.ground_speed > 3.2 and b.carry_w > 0.95)
-			var hand: Vector3 = b.hand_r.global_position - b.arm_r.global_position
-			check("the sword hand at the side, not swung back behind the hip (%.2f m behind its shoulder)" % -hand.dot(fwd()), -hand.dot(fwd()) < 0.18)
-			var blade: Vector3 = (b.weapon.global_basis * Vector3(0, 0, -1)).normalized()
-			check("the blade trailed back, down and out to the right (back %.2f, down %.2f, out %.2f)" % [-blade.dot(fwd()), -blade.y, blade.dot(right())],
-				-blade.dot(fwd()) > 0.35 and blade.y < -0.2 and blade.dot(right()) > 0.2)
+			check("walking forward (%.1f m/s): no carry (%.2f)" % [b.ground_speed, b.carry_w], b.ground_speed > 3.2 and b.carry_w < 0.02)
+			fwd_pose = arms()
+			TK.press("move_right")
+			until = TK.wait_secs(1.0)
+		3:
+			check("walking diagonally (%.1f m/s, travel %.2f rad): no carry (%.2f)" % [b.ground_speed, b._travel_ang, b.carry_w],
+				absf(b._travel_ang) > 0.5 and b.carry_w < 0.02)
+			var d := arms()
+			var dh: float = ((d[0] as Vector3) - (fwd_pose[0] as Vector3)).length()
+			var dl: float = ((d[1] as Vector3) - (fwd_pose[1] as Vector3)).length()
+			var db: float = (d[2] as Vector3).dot(fwd_pose[2])
+			check("the same guard forward and diagonal (sword hand %.2f m, free hand %.2f m apart, blade dot %.2f)" % [dh, dl, db],
+				dh < 0.12 and dl < 0.12 and db > 0.95)
+			TK.release("move_right")
+			until = TK.wait_secs(1.0)
+		4:
+			last_hand = arms()[0]
+			TK.press("sprint")
+			until = TK.wait_ticks(1)
+		5:
+			var h: Vector3 = arms()[0]
+			ticks += 1
+			if (h - last_hand).length() > max_jump:
+				max_jump = (h - last_hand).length()
+				jump_tick = ticks
+			last_hand = h
+			if ticks == 5:
+				mid_w = b.carry_w
+			if ticks < 45:
+				until = TK.wait_ticks(1)
+				return false
+			check("sprinting (%.1f m/s): the carry (%.2f)" % [b.ground_speed, b.carry_w], b.sprinting and b.carry_w > 0.95)
+			check("the carry eases in (%.2f after 5 ticks)" % mid_w, mid_w > 0.05 and mid_w < 0.95)
+			check("the sword hand eases into the carry, no snap (largest step %.3f m a tick, on tick %d)" % [max_jump, jump_tick],
+				max_jump < 0.15 and jump_tick > 2)
+			TK.release("sprint")
 			TK.release("move_forward")
 			return TK.done(fails)
 	step += 1

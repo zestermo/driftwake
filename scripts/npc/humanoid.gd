@@ -2314,7 +2314,7 @@ func _locomotion(delta: float) -> Dictionary:
 
 		# bouncy idle: a rhythmic knee-bend bob with swinging arms (the combat guard breathes instead: StanceLife)
 		var idle := 1.0 - walk
-		var guard_up := armed and not sprinting and stance not in ["ape", "claw"]
+		var guard_up := armed and (not sprinting or stance in StanceLife.SPRINT_ONLY) and stance not in ["ape", "claw"]
 		_plant_k = 0.0
 		_stance_hips = Vector3.ZERO
 		var gait := {}
