@@ -5348,3 +5348,17 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 ## 2026-10-21: F9 crash report (not reproduced)
 
 - Zach reported plain F9 crashing a debug run. t/progression/debug_level_up sends F9 to the light-stage player (unarmed, katana, fruit eaten, saving on, level 1 to the cap, every weapon tree to its top): no crash on main at 7815eeee. Kept as a guard; needs his console output or an F12 capture to go further.
+## 2026-10-21: the skills menu clarity pass (1.18.4 batch, "Skill menu" row; Zach: "the skill trees are still not very clear")
+- **Locked trees hidden:** visible_trees already kept unfound weapons, an uneaten fruit and an untaught black-leg off the
+  rail, chart and A/D; the gap was the **Adventure sign**, shown empty before any Adventure tree was found.
+  `SkillMapScreen.tabs()` now drops it (like Driftfruit) until one is found.
+- **One header plate** (`_draw_header`, HEAD_H 32) across the top of every tree page, the Adventure page and the chart:
+  the tree's icon, name, a "MASTERY n OF max" ribbon with its xp bar, and on the right both pools as big numbers
+  (COMBAT / ADVENTURE POINTS), the pool this tree spends lit (coral with points, tan at 0). The beam's plate is back to
+  "CAPTAIN · LEVEL n"; the card lost its title, ribbon and bar (it's only the picked node now); the chart lost its
+  "trees found" slate (the header says how many weapons).
+- **Every path drawn:** `SkillTreeDraw._link` draws an untaken path as a hollow grey channel (LINK_OFF 4 px with a dark
+  2 px core) and a step's as a 2 px grey line (was 1 px DIM_LINK, invisible on the sky); taken paths are unchanged.
+  `SkillMapScreen.links` records [from, to, taken] each draw for tests.
+- Tests: t/ui/skills_hidden_trees, t/ui/skills_grey_links (new); skills_tabs finds Swimming first so Adventure shows.
+  Renders: skillmapshot at 1600x900.
