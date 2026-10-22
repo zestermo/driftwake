@@ -65,7 +65,8 @@ func _process(_d: float) -> bool:
 			var fwd := -(p.player_model.global_basis.z as Vector3).normalized()
 			var hand: Vector3 = b.hand_r.global_position
 			var hip: Vector3 = b.hips.global_position
-			check("the knife held behind the back (%.2f m behind the hips)" % -(hand - hip).dot(fwd), (hand - hip).dot(fwd) < -0.05)
+			check("the knife hand at the back of the hip (%.2f m behind the hips)" % -(hand - hip).dot(fwd), (hand - hip).dot(fwd) < -0.03)
+			check("the knife hand out to the side (%.2f m right of the hips)" % (hand - hip).dot(right), (hand - hip).dot(right) > 0.15)
 			check("its point out past the right hip (%.2f m right of the hips)" % (tip() - hip).dot(right), (tip() - hip).dot(right) > 0.2)
 			check("the sheath still hangs down (%.2f down)" % sheath_down(), sheath_down() > 0.75)
 			check("the snapshot carries it", bool(HumanoidSync.pack(b)[HumanoidSync.FIELDS.find("guard2")]))

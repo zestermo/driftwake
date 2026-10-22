@@ -15,17 +15,18 @@ const GUARD := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.36, 0.2, 0), "h
 	"arm_l": Vector3(0.75, 0.2, -0.3), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3.ZERO}
 ## The mastered guard (Humanoid.guard2): the knife hand and blade held by PoleMoves.hands from its grips ([hand, the
 ## blade's way, its edge's way, -1: one hand], the chest's frame), the free arm keyed here. The Hidden Knife (Zach's
-## pick, 2026-10-22): stood easy and a little side on, the dagger held at the small of the back with its point out past
-## the right hip (a glint of it shows from the front), the free hand out low and open.
+## pick, 2026-10-22): stood easy and a little side on, the knife hand at the back of the right hip, a little out from the
+## body (Zach: not wholly behind the back), its point out past the right hip (a glint
+## of it shows from the front), the free hand out low and open.
 const GUARD2 := {"hips": Vector3(0, 0.25, 0), "torso": Vector3(-0.08, 0.25, 0.02), "head": Vector3(0.1, -0.3, 0),
 	"arm_r": Vector3(-0.4, 0.3, 0.3), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3.ZERO,
 	"arm_l": Vector3(0.8, -0.2, -0.2), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(0, 0, 1.4)}
 const LEGS2 := {"leg_l": Vector3(0.15, 0, -0.12), "leg_r": Vector3(-0.1, 0, 0.14), "shin_l": Vector3(-0.25, 0, 0), "shin_r": Vector3(-0.35, 0, 0),
 	"_lift": Vector3(0, -0.06, 0)}
 ## [guard, block, run] grips.
-const GRIPS2 := [[Vector3(0.02, -0.48, 0.24), Vector3(0.85, -0.45, 0.12), Vector3(0, 0, 1), -1.0],
+const GRIPS2 := [[Vector3(0.2, -0.46, 0.22), Vector3(0.8, -0.5, 0.3), Vector3(0, 0, 1), -1.0],
 	[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
-	[Vector3(0.02, -0.48, 0.24), Vector3(0.85, -0.45, 0.12), Vector3(0, 0, 1), -1.0]]
+	[Vector3(0.2, -0.46, 0.22), Vector3(0.8, -0.5, 0.3), Vector3(0, 0, 1), -1.0]]
 
 
 static func guard(h) -> Dictionary:
