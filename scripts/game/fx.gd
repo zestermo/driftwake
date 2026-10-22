@@ -827,6 +827,49 @@ func decoy(body: Node3D, secs: float) -> void:
 	sfx("whoosh_big", body.global_position, -9.0, 0.05, 1.7)
 
 
+## Disarm (Defense): a weapon (its `mesh`, from `xf`) knocked spinning out of a hand at `vel`, falling to the ground
+## FLUNG_DROP m below the hand, lying there a few seconds, then gone. A glint and a clang where it leaves the hand.
+const FLUNG_DROP := 1.15
+const FLUNG_LIE := 4.0
+
+
+func flung_weapon(mesh: Mesh, xf: Transform3D, vel: Vector3) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if mesh == null or (cam and cam.global_position.distance_to(xf.origin) > BURST_RANGE):
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 60.0
+	_scene_root().add_child(mi)
+	mi.global_transform = xf
+	var g := 18.0
+	var from := xf.origin
+	var floor_y := from.y - FLUNG_DROP
+	# time to come down to the floor: from + vel.y t - g t^2 / 2 = floor_y
+	var t_land := (vel.y + sqrt(vel.y * vel.y + 2.0 * g * FLUNG_DROP)) / g
+	var spin := Vector3(randf_range(-1, 1), 1.0, randf_range(-1, 1)).normalized()
+	var b0 := xf.basis
+	var tw := mi.create_tween()
+	tw.tween_method(func(t: float) -> void:
+		if not is_instance_valid(mi):
+			return
+		var p := from + vel * t + Vector3.DOWN * 0.5 * g * t * t
+		p.y = maxf(p.y, floor_y)
+		mi.global_transform = Transform3D(b0.rotated(spin, 18.0 * t), p), 0.0, t_land, t_land)
+	tw.tween_callback(func() -> void:
+		if not is_instance_valid(mi):
+			return
+		# (the blade runs along -Z: lying flat on the ground, pointing the way it flew)
+		mi.global_transform = Transform3D(Basis(Vector3.UP, atan2(-vel.x, -vel.z)), Vector3(mi.global_position.x, floor_y + 0.03, mi.global_position.z))
+		sfx("clash", mi.global_position, -10.0, 0.08, 0.7)
+		dust(mi.global_position + Vector3(0, 0.05, 0), 4, 0.4))
+	tw.tween_interval(FLUNG_LIE)
+	tw.tween_callback(mi.queue_free)
+	glint(xf.origin, Color(1.0, 0.95, 0.8), 0.9)
+	sfx("clash", xf.origin, -4.0, 0.06, 1.25)
+
+
 ## A foe's blow landed on the decoy near `at`: it shatters.
 func decoy_break(at: Vector3) -> void:
 	var d := Decoy.near(get_tree(), at, 2.0)

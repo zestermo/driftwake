@@ -400,6 +400,11 @@ const SPECS := {
 		"variants": [{"armed": true}]},
 	"sky_leap_charge": {"len": 1.2, "stance": "sword", "weapon": "", "extras": {"armed": false}},
 	"sky_leap": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 20.0}},
+	# Defense's moves (MovePoses)
+	"parry_disarm": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "cutlass"},
+	"parry_shove": {"len": 0.5, "sharp": 45.0, "stance": "sword", "weapon": "cutlass", "variants": [{"stance": "fist"}]},
+	"guard_roll": {"len": 0.42, "sharp": 50.0, "stance": "fist", "weapon": "", "extras": {"dash_dir": Vector2(1, 0)},
+		"variants": [{"dash_dir": Vector2(0, -1)}, {"dash_dir": Vector2(0, 1)}]},
 	"moonstep": {"len": 0.5, "sharp": 50.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 12.0}},
 	"crash_land": {"len": 0.6, "sharp": 45.0, "snap": true, "stance": "sword", "weapon": "", "extras": {"armed": false}},
 	"breakfall": {"len": 0.45, "sharp": 45.0, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": -4.0}},

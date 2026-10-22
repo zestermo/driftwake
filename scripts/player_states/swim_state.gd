@@ -67,7 +67,20 @@ const LEAP_VY := 8.2
 const LEAP_FWD := 5.5
 const LEAP_GRAVITY := 20.0
 const LEAP_COST := 10.0
+## Surface Sprint (Swimming): Dolphin Kick swims 1.3x faster at 1.3x the drain with a surge every SURGE_EVERY s;
+## Long Glide takes a stroke (STROKE_FOR s a GLIDE_EVERY s cycle at STROKE_K x speed) then glides at GLIDE_K x for half the drain.
+const DOLPHIN_K := 1.3
+const DOLPHIN_DRAIN_K := 1.3
+const SURGE_EVERY := 0.55
+const SURGE_FOR := 0.18
+const SURGE_K := 1.25
+const GLIDE_EVERY := 1.6
+const STROKE_FOR := 0.4
+const STROKE_K := 1.3
+const GLIDE_K := 1.1
+const GLIDE_DRAIN_K := 0.5
 var _dash_t: float = 0.0
+var _sprint_t: float = 0.0
 var _dash_cd: float = 0.0
 var _dash_dir := Vector3.ZERO
 ## Seconds into a dolphin leap (< 0: not leaping).
@@ -181,6 +194,27 @@ func physics_update(delta: float) -> void:
 	if _diving:
 		spd = DOLPHIN_SPEED if fast else DIVE_SPEED
 	var swim_k := 1.0 + player.progression.stat("swim_pct")
+	var style := ""
+	var drain_k := 1.0
+	if fast and not _diving:
+		style = "dolphin" if player.progression.has_flag("dolphin_kick") else ("glide" if player.progression.has_flag("long_glide") else "")
+	if style == "":
+		_sprint_t = 0.0
+	else:
+		var prev := _sprint_t
+		_sprint_t += delta
+		if style == "dolphin":
+			spd *= DOLPHIN_K * (SURGE_K if fmod(_sprint_t, SURGE_EVERY) < SURGE_FOR else 1.0)
+			drain_k = DOLPHIN_DRAIN_K
+			if int(prev / SURGE_EVERY) != int(_sprint_t / SURGE_EVERY) or prev == 0.0:
+				Net.fx("spray", [_surface_point() + dir * 0.4, (dir + Vector3.UP * 0.6).normalized(), 8, Color(0.9, 0.96, 1.0), 3.5])
+		else:
+			var stroking := fmod(_sprint_t, GLIDE_EVERY) < STROKE_FOR
+			spd *= STROKE_K if stroking else GLIDE_K
+			drain_k = 1.0 if stroking else GLIDE_DRAIN_K
+			if stroking and (int(prev / GLIDE_EVERY) != int(_sprint_t / GLIDE_EVERY) or prev == 0.0):
+				Net.fx("spray", [_surface_point() + dir * 0.4, (dir + Vector3.UP * 0.6).normalized(), 8, Color(0.9, 0.96, 1.0), 3.5])
+	player.body_model.swim_style = style
 	spd *= clampf(input.length(), 0.0, 1.0) * swim_k
 	if stung > 0.0:
 		stung -= delta
@@ -236,7 +270,7 @@ func physics_update(delta: float) -> void:
 	if _exhausted:
 		player.stamina_regen_mult = FLOAT_REGEN * (1.0 - cold * SEA_PUSH.COLD_REGEN * resist)
 	elif dir != Vector3.ZERO or sap > 0.05:
-		player.drain_stamina(((FAST_DRAIN if fast else DRAIN) if dir != Vector3.ZERO else 0.0) * delta + sap * delta)
+		player.drain_stamina(((FAST_DRAIN * drain_k if fast else DRAIN) if dir != Vector3.ZERO else 0.0) * delta + sap * delta)
 		player.stamina_regen_mult = 0.0
 	else:
 		player.stamina_regen_mult = TREAD_REGEN
@@ -542,6 +576,7 @@ func _find_ledge() -> Dictionary:
 
 func exit() -> void:
 	player.body_model.swimming = false
+	player.body_model.swim_style = ""
 	player.body_model.diving = false
 	player.stamina_regen_mult = 1.0
 	_diving = false

@@ -88,6 +88,8 @@ var kneeling: bool = false
 var manning: bool = false
 ## Sneaking (the player's CrouchState): low on bent knees, chest forward.
 var crouching: bool = false
+## Planted (Defense): the held block sunk into a wide rooted stance (MovePoses.planted).
+var planted: bool = false
 ## In the water: breaststroke when moving, treading water otherwise; `diving`
 ## ducks under head first. `climbing` = hand over hand up a ladder, with
 ## `climb_phase` = how high you are (drives the arm/leg cycle).
@@ -97,6 +99,8 @@ var carry: String = ""
 ## Gun elevation while aiming (radians, + = up).
 var aim_pitch: float = 0.0
 var diving: bool = false
+## Surface Sprint's stroke at the surface ("dolphin", "glide"; "" = the plain breaststroke): MovePoses.swim_style.
+var swim_style: String = ""
 var climbing: bool = false
 ## Plant the feet on uneven ground (stairs, slopes, the deck): two-bone leg IK
 ## with the hips dropping to the lower foot. Off while airborne, swimming,
@@ -1217,6 +1221,7 @@ func _finish_action() -> void:
 		# (a keyed full turn ends a turn round: the gait's smoothing would unwind it backwards; a walkover too)
 		_cur["pivot"].y = wrapf(_cur["pivot"].y, -PI, PI)
 		_cur["pivot"].x = wrapf(_cur["pivot"].x, -PI, PI)
+		_cur["pivot"].z = wrapf(_cur["pivot"].z, -PI, PI)
 	_action = {}
 	action_finished.emit(n)
 
@@ -1931,6 +1936,8 @@ func _action_pose(n: String, u: float) -> Array:
 				rock["torso"] = (bp["torso"] as Vector3) + Vector3(0.22, 0, 0)
 				rock["head"] = (bp["head"] as Vector3) + Vector3(-0.15, 0, 0)
 				return [_keys(u, [[0.0, bp], [0.25, rock, "out"], [1.0, bp]]), "upper", lift]
+			if planted:
+				return MovePoses.planted(self, u, bp)
 			return [_keys(u, [[0.0, {}], [1.0, bp, "out"]]), "upper", lift]
 		# --- unarmed ---
 		"fists_up":
@@ -3819,6 +3826,8 @@ func _swim_pose(p: Dictionary, delta: float) -> void:
 		"shin_l": Vector3(-0.95 + tc * 0.4, 0, 0), "shin_r": Vector3(-0.95 - tc * 0.4, 0, 0)}
 	for j in b.keys():
 		p[j] = (tr[j] as Vector3).lerp(b[j], m)
+	if swim_style != "" and not diving:
+		MovePoses.swim_style(p, swim_style, _t)
 	if diving:
 		# under water the body points where it's going: head down going deeper, up kicking for the surface,
 		# level swimming along, nearly upright sculling in place

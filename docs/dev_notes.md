@@ -5648,6 +5648,22 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - **Tests**: t/player/moonstep, crash_landing (its grunt's physics process off, not the node: a disabled node's
   hurtbox leaves the physics world). Render: animsheet `moonstep,crash_land`.
 
+## 2026-10-22: the Adventure trees' moves, piece 3: Defense (Perfect Parry, Guard Style)
+- **Nodes** (skill_trees.gd): `df_clean` Clean Parry now carries `clean_parry`; variant `df_perfect` "Perfect Parry" (16,
+  Parry branch): Disarm (`parry_disarm`) / Shove (`parry_shove`); variant `df_guard` "Guard Style" (7, Guard branch):
+  Rolling Guard (`rolling_guard`) / Planted (`guard_planted`).
+- **Perfect parry**: ParryState `PERFECT` 0.12 s after the guard goes up (needs `clean_parry`, a melee blow, an attacker
+  with `perfect_parried`) -> `PirateGrunt.perfect_parried(player, how)` on the host (`Net.forward`, `HOST_CALLS`): clean =
+  2.4 s stagger (a plain parry 1.5), shove = knockdown, disarm = blade gone 7 s (it can't guard, a spare after; the
+  "disarm" net event shows the flung blade, `FX.flung_weapon`); blade grunts only, never bosses. Flash, ring, "Perfect!"
+  text, +10 Defense life; actions `parry_disarm` (blade flicked overhead), `parry_shove` (palm shove).
+- **Guard style** (BlockState): Rolling Guard, a dodge while blocking is a 0.42 s, 3 m roll inside BlockState (60% of a
+  dodge's stamina; `rolling()`); frontal blows still glance off mid-roll. Planted, `body_model.planted` (HumanoidSync
+  FIELDS, `guard_block` uses MovePoses.planted): blocks cost 0.7x, no push-back, half-speed shuffle.
+- **Per tick**: nothing new.
+- **Tests**: t/player/perfect_parry (hitstop slows the clock, so the late parry sets the state's timer instead of
+  waiting), t/player/guard_styles. Render: animsheet `parry_disarm,parry_shove,guard_roll,guard_block` (the planted
+  pose isn't in the sheet).
 ## 2026-10-22: the weapon mastery pass, the mastered guards (katana, cutlass, dagger, dual wield, twin daggers) and the drawn blades
 - **Guards** (Zach's picks from posebench sheets; each at its tree's Guard branch, mastery 15, toggled by a double-tap
   of block like the axe's): katana **Waki Guard** (k_guard2), cutlass **Easy Guard** (s_guard2; the free hand on the
@@ -5693,3 +5709,15 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   the way home) only while in flight; Windmill Guard's clip query every 0.15 s while held. Nothing idle.
 - Tests: t/weapons/thunder_javelin, windmill_guard, polearm_tree (six techniques). Renders: tools/dev/out/pole/ in the
   new-weapons-finish worktree (jav_/javc_ abilityshot, wm_ windmill, as_/wmf_/pol_ animsheets).
+## 2026-10-22: the Adventure trees' moves, piece 4: Swimming's Surface Sprint (Dolphin Kick / Long Glide)
+
+- **Tree:** `sw_sprint` "Surface Sprint" (variant, Stroke branch, level 12) in `_build_swimming`: `sw_dolphin` (`dolphin_kick`) and
+  `sw_glide` (`long_glide`), icons `move_dolphin` / `move_glide`. Switched at the bunk like the other variants.
+- **SwimState** (`fast and not _diving` only): Dolphin Kick 1.3x speed (x1.25 for SURGE_FOR 0.18 s every 0.55 s) at 1.3x FAST_DRAIN, with a
+  spray per surge; Long Glide a 0.4 s stroke at 1.3x (full drain) then a glide at 1.1x for half the drain, a 1.6 s cycle. All are multipliers on
+  the target speed, so velocity stays input x speed (no momentum). `_sprint_t` restarts when the sprint stops.
+- **Pose:** Humanoid `swim_style` ("", "dolphin", "glide"; in HumanoidSync.FIELDS), set by SwimState (cleared on exit) and applied in
+  `_swim_pose` by `MovePoses.swim_style` (butterfly: arms heaving together, hips rolling a wave; glide: flat, arms stretched ahead, slow scissor kick).
+- **Test:** `t/swim/surface_sprint` (speed and drain against the plain sprint for each version, `swim_style`, switching, clearing).
+  Render: posebench with `PB_SPEED=4.6 PB_SET='swimming=true;swim_style="dolphin"'` -> tools/dev/out/swim_dolphin_*.png, swim_glide_*.png.
+- Per frame: a few float ops in the swim state; the spray is one Net.fx per surge / stroke. Not run: nettest with a guest (swim_style sync).

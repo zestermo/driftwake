@@ -397,11 +397,24 @@ static func _build_acrobatics() -> void:
 static func _build_defense() -> void:
 	_tree("defense", ["Parry", "Guard", "Grit"])
 	_root("df_root", "Defense", {}, "Parry and block real blows to build it: a parry counts most.")
-	_big("df_clean", "Clean Parry", "mech", 0, 2, {"parry_all": 0.03, "parry_stamina": 10.0}, "A wider parry window, and a parry gives you 10 stamina back.")
+	_big("df_clean", "Clean Parry", "mech", 0, 2, {"parry_all": 0.03, "parry_stamina": 10.0, "clean_parry": 1},
+		"A wider parry window, and a parry gives you 10 stamina back. A perfect parry (caught the moment the guard goes up) staggers them longer and wide open.")
 	_big("v_iron", "Iron Body", "mech", 0, 8, {"defense": 10.0}, "+10 defense.")
 	_big("df_instinct", "Battle Instinct", "mech", 0, 12, {"evade_chance": 0.04, "parry_all": 0.02},
 		"4% of the blows that would hit you are slipped by instinct, and your parry window is wider still.")
+	_variant("df_perfect", "Perfect Parry", 0, [
+		["df_disarm", "Disarm", 16, {"parry_disarm": 1}, "A perfect parry twists the weapon out of their hand: it goes flying, and they can't attack or guard until they find another (7 s)."],
+		["df_shove", "Shove", 16, {"parry_shove": 1}, "A perfect parry turns into a shove that throws them off their feet."]],
+		"Two answers to a perfect parry (with Clean Parry). Both are yours; pick the one you carry at the ship's bunk.")
 	_big("df_brace", "Brace", "mech", 1, 3, {"block_cost_pct": 0.3}, "Blocking a blow costs 30% less stamina.")
+	_variant("df_guard", "Guard Style", 1, [
+		["df_rolling", "Rolling Guard", 7, {"rolling_guard": 1}, "Dodge behind your guard and you roll with it still up: blows from the front glance off mid-roll, and you come up guarding."],
+		["df_planted", "Planted", 7, {"guard_planted": 1}, "Your guard sinks into a wide, rooted stance: blows don't push you back and cost 30% less to block, but you shuffle slower behind it."]],
+		"Two ways to hold a guard. Both are yours; pick the one you carry at the ship's bunk.")
+	_icon("df_disarm", "move_disarm")
+	_icon("df_shove", "move_shove")
+	_icon("df_rolling", "move_rolling_guard")
+	_icon("df_planted", "move_planted")
 	_big("df_hold", "Hold the Line", "mech", 1, 11, {"block_move_pct": 0.5}, "Behind your guard you shuffle half again as fast.")
 	_big("df_wall", "Iron Wall", "mech", 1, 20, {"block_cost_pct": 0.3}, "Blocking costs another 30% less stamina.")
 	_big("v_steadfast", "Steadfast", "mech", 2, 4, {"steadfast": 1}, "Light hits no longer make you flinch.")
@@ -443,6 +456,12 @@ static func _build_swimming() -> void:
 	_root("swim_root", "Swimming", {}, "Swim to build it: every stretch of open water you cross counts.")
 	_big("sw_strokes", "Strong Strokes", "mech", 0, 2, {"swim_pct": 0.1}, "You swim 10% faster.")
 	_big("sw_born", "Sea Born", "mech", 0, 7, {"swim_pct": 0.15}, "You swim another 15% faster.")
+	_variant("sw_sprint", "Surface Sprint", 0, [
+		["sw_dolphin", "Dolphin Kick", 12, {"dolphin_kick": 1}, "Sprinting at the surface becomes the butterfly: 30% faster, with a surge of spray every half second, for 30% more stamina."],
+		["sw_glide", "Long Glide", 12, {"long_glide": 1}, "Sprinting at the surface is a stroke and a long streamlined glide: a touch faster, for half the stamina."]],
+		"Two ways to sprint on top of the water. Both are yours; pick the one you carry at the ship's bunk.")
+	_icon("sw_dolphin", "move_dolphin")
+	_icon("sw_glide", "move_glide")
 	_big("sw_lungs", "Deep Lungs", "mech", 1, 4, {"max_stamina": 10.0, "breath_pct": 0.5}, "You hold your breath half as long again on a dive, and +10 max stamina.")
 	_big("sw_wind", "Catch Your Breath", "mech", 1, 10, {"stamina_regen_pct": 0.1, "breath_refill_pct": 1.0},
 		"Stamina refills 10% faster, and your breath comes back twice as fast at the surface.")

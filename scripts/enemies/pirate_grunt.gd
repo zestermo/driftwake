@@ -644,6 +644,7 @@ func _physics_process(delta: float) -> void:
 	_rush_cd -= delta
 	_dash_cd -= delta
 	_backoff_t -= delta
+	_disarm_tick(delta)
 	if state == S.DEAD:
 		_dead_update(delta)
 		return
@@ -1657,7 +1658,7 @@ func _on_hit(hit: HitData, attacker: Node) -> void:
 			Net.fx("sparkle", [global_position + Vector3(0, 1.6, 0), 4, Color(1.0, 0.3, 0.2)])
 		return
 	var from_front := _fwd().dot(-dir) > 0.3
-	var guarding := role == "sword" and state in [S.CIRCLE, S.CHASE, S.ALERT, S.BLOCK, S.CLOSE]
+	var guarding := role == "sword" and state in [S.CIRCLE, S.CHASE, S.ALERT, S.BLOCK, S.CLOSE] and _disarm_t <= 0.0
 	if state == S.IDLE or state == S.RETURN:
 		hold = []
 		alert()
@@ -1760,6 +1761,60 @@ func parried(by: Node) -> void:
 	_stagger_len = 1.5
 	humanoid.react("stagger", 1.5, dir)
 	_set_state(S.STAGGER)
+
+
+## Defense (Clean Parry): a perfect parry, after parried(): "clean" reels it longer, "disarm" (Disarm) also knocks
+## the blade out of its hand, "shove" (Shove) throws it off its feet instead.
+const CLEAN_STAGGER := 2.4
+const DISARM_SECS := 7.0
+var _disarm_t: float = 0.0
+
+
+func perfect_parried(by: Node, how: String) -> void:
+	if Net.forward(self, "perfect_parried", [by, how]):
+		return
+	if state in [S.DEAD, S.DOWN, S.AIM]:
+		return
+	var dir := -_fwd()
+	if by is Node3D:
+		dir = _flat(global_position - (by as Node3D).global_position).normalized()
+	if how == "shove":
+		_knock_down(dir * 7.5 + Vector3.UP * 3.5)
+		return
+	hitbox.deactivate()
+	velocity = dir * 4.5
+	_stagger_len = CLEAN_STAGGER
+	humanoid.react("stagger", CLEAN_STAGGER, dir)
+	_set_state(S.STAGGER)
+	if how == "disarm" and role == "sword" and _disarm_t <= 0.0 and not is_in_group("bosses"):
+		_disarm_t = DISARM_SECS
+		_backoff_t = DISARM_SECS
+		bark(["My blade!", "Hey! Give that back!", "Curse you!"], 1.0)
+		var fling := (dir * -0.4 + Vector3.UP + _flat(Vector3(dir.z, 0, -dir.x)) * 0.5).normalized()
+		_show_disarm(true, fling)
+		Net.event(self, "disarm", [true, fling])
+
+
+## Disarmed: the blade flung away spinning (or back in hand).
+func _show_disarm(on: bool, fling: Vector3) -> void:
+	var w := humanoid.weapon
+	if w == null:
+		return
+	if on:
+		FX.flung_weapon(w.mesh, w.global_transform, fling * 6.0)
+	w.visible = not on
+
+
+## (host, a tick) Its hands empty until DISARM_SECS run out: then a spare blade, back in the fight.
+func _disarm_tick(delta: float) -> void:
+	if _disarm_t <= 0.0:
+		return
+	_disarm_t -= delta
+	_cooldown = maxf(_cooldown, 0.3)
+	if _disarm_t <= 0.0:
+		bark(["Spare blade!", "Now you're for it!"], 1.0)
+		_show_disarm(false, Vector3.ZERO)
+		Net.event(self, "disarm", [false, Vector3.ZERO])
 
 
 func _knock_down(v: Vector3) -> void:
@@ -2199,7 +2254,7 @@ func _leave_water() -> void:
 # ==========================================================================
 ## Out of sword reach: now and then a swordsman pulls his pistol.
 func _want_pistol(p: Node3D, dist: float, delta: float) -> bool:
-	if role != "sword" or _pistol_cd > 0.0 or dist < PISTOL_RANGE or dist > GUN_RANGE * 0.5:
+	if role != "sword" or _pistol_cd > 0.0 or _disarm_t > 0.0 or dist < PISTOL_RANGE or dist > GUN_RANGE * 0.5:
 		return false
 	if not _player_ok(p) or _rng.randf() > PISTOL_CHANCE * delta:
 		return false
@@ -2673,6 +2728,8 @@ func net_event(what: String, args: Array) -> void:
 	match what:
 		"die":
 			_net_die()
+		"disarm":
+			_show_disarm(bool(args[0]), args[1])
 		"vanish":
 			_vanish(bool(args[0]))
 		"sense":
