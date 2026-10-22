@@ -27,7 +27,7 @@ const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r", "hand_l"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
 const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "gun_kata", "axe_whirl", "axe_flip",
-	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "giant_swing", "twin_cyclone", "vault_back", "double_jump"]
+	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "giant_swing", "twin_cyclone", "vault_back"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r", "hand_l"]
 
 var look: Dictionary = {}
@@ -209,6 +209,8 @@ const TIP_MAX := 0.5
 var _jside: float = 1.0
 var _jv: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var _air_vy: float = 0.0
+## The foot the last air step stamped with (+1 = left); each step takes the other.
+var air_foot: float = 1.0
 ## The take-off this jump began with (MovePoses: "stand", "run", "sprint", "double"; "" walked off
 ## a ledge), and the one the last landing came from.
 var _jkind: String = ""
@@ -285,7 +287,7 @@ var _clear_push := Vector3.ZERO
 ## pitch), except in GAZE_FREE moves, which mean to look up.
 const GAZE_UP_MAX := 0.3
 const GAZE_FREE := ["howl", "hit", "stagger", "roll", "flip", "axe_flip", "getup", "wake", "vine_hang", "vine_shoot", "vine_release", "drink",
-	"berserk_roar", "suplex", "rising_dragon", "conqueror", "vault_back", "double_jump"]
+	"berserk_roar", "suplex", "rising_dragon", "conqueror", "vault_back"]
 ## Taking a quick-slot item (Player.use_item): the left hand holds its prop, the head may tip back to drink.
 const HEAL_ACTIONS := ["bite", "swig", "slurp", "tonic"]
 var _freeze: float = 0.0

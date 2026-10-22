@@ -5220,6 +5220,44 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - forest_fauna and snow_wolves name the creatures they spawn (desert_fauna already did): a creature's rng is seeded by its node name.
 - `Humanoid._rng` is seeded from the global rng (`randi()`): fixed per suite seed in tests, random in a live game (its seed is random at start-up).
 - Known: r10test fails on main at "strafing (0.7071, 0.7071): the planted foot barely slides (1.64 m/s)" against a 1.6 limit, with or without the rng change (deterministic): from the stance pass (armed default stance); it stops the suite before the jump-side checks.
+
+## 2026-10-21: the air walk, freefall tumble and air recovery (docs/v1_18_4_plan.md "Air step", "Freefall tumble", "Air recovery")
+- **Air walk** (piece 1): Geppo's and Sky Walk's air jumps (action still named `double_jump`) are One Piece's air walk,
+  not a somersault: `MovePoses._air_step` keys the knee driven high (held a beat), the foot stamped straight down onto
+  the air while the other knee comes up, the arms pumping against the legs, upright (pivot eased in from wherever the
+  body was, so a tumble rights into it). Each step takes the other foot (`Humanoid.air_foot`, flipped on the step's
+  first pose; puppets flip theirs the same way). Out of SPIN_ACTIONS and GAZE_FREE; spec `sharp` 50. JumpState fires
+  the ring, a mist puff ring and motes under the stamping foot at `MovePoses.STAMP_S` (0.15 s, when the foot lands in
+  the pose), through Net.fx. Landing is still the kneel. Test: t/player/air_step (was double_jump: no flip, knee
+  high, +1.2 m, alternating feet under Sky Walk). Render: animsheet `double_jump` at yaw 90 and 125. animsheet now
+  poses the skinned arms (ArmBody._pose) per frame as well as the legs: before, every sheet showed the arms frozen.
+- **Freefall tumble** (piece 2): `Player.freefall_from` (PlayerState.now_s) is set by every jump and air step
+  (JumpState) and by FallState.enter unless it comes from JumpState (`{"from_jump": true}`), so an ability, attack,
+  plunge or anything else that drops back into Fall restarts it. FallState: past `FREEFALL_TUMBLE` (3.5 s) with more
+  than 3 m under you -> DownedState `{"tumble": true, "velocity"}`: a limp ragdoll (no muscles) with a head-over-heels
+  spin (`TUMBLE_SPIN`) falling at the captain's own gravity (32 m/s^2) and top speed (`Ragdoll.fall_like`,
+  `Player.MAX_FALL_SPEED` 34; knockdown ragdolls still fall at 9.8). The root rides the body vertically while it falls
+  (camera follows), and the get-up waits for the landing. Landing: `Player.tumble_landed` = the usual fall damage
+  (~85 from terminal speed) with no stagger (Downed's own get-up instead); in deep water the usual float-up. Jump in
+  the tumble with an air step left: `Player.recover_in_air` (root to the body, its speed kept, the body eased upright
+  from the sprawl over 0.25 s) and JumpState `{"air": true}` (the step's pivot keys in from the sprawl). At this
+  gravity 3.5 s is a ~100 m drop (a 5 m drop takes ~0.6 s): tune `FREEFALL_TUMBLE` in play. Co-op: the ragdoll,
+  recover and step mirror through Humanoid's net events like a knockdown. Per tick: one clamp loop over the 11
+  ragdoll parts while a tumble is down, a ground ray in Fall only once past 3.5 s. Tests: t/player/freefall_tumble,
+  freefall_reset.
+- **Breakfall and Skyward Dash** (piece 3; Acrobatics Air branch, `ac_breakfall` "move" 12 and `ac_skydash` "move" 18,
+  priced by kind like the rest). DownedState `_recover` on jump while the body is still in the air (not yet landed):
+  a tumble with an air step left takes the step; otherwise the `breakfall` flag with the hips > 1.2 m over the
+  ground (`_hips_up`, a ray from the hips: the root may already be on the ground under a flying body) rights you:
+  `recover_in_air`, the `breakfall` action (MovePoses: a tuck rolling the pivot from the sprawl to level, then open,
+  arms wide), a ring and a whoosh, into Fall. A knockback ragdoll without Breakfall ignores the press. Either recovery
+  calls `Player.air_recovered`: with `skyward_dash`, `Player.skyward_dash` (cleared on landing) and
+  `jumps_remaining += SKYWARD_STEPS` (2; JumpState treats any jump off the floor as an air step, since this can go over
+  max_jumps). Fall/Jump: dodge with `skyward_dash` -> DodgeState `{"air": true}`: input's way or the camera's forward,
+  level (vy 0), `AIR_DASH_DIST` 6.5 m in `AIR_DASH_DUR` 0.32 s on the dodge's burst curve, an afterimage, a ring
+  and a whoosh, then Fall. With Sky Walk + Skyward Dash that's 6.5 m flat plus four air steps (~1.3 m each) to climb
+  back to a deck. Tests: t/player/breakfall (no Breakfall: nothing; with it: upright in Fall, lands on its feet),
+  skyward_dash (two extra steps, 6.4 m dash, level, once).
 ## 2026-10-21: the two points pools (1.18.4 batch, points rework piece 2)
 - What: every node past a root is **bought**. Combat points (`Progression.combat_earned`: 2, then 2/1 alternating to
   Captain 10 = 16, 2 a level to 20 = 36, 3 to 30 = 66, 4 to 40 = 106) buy any weapon tree's nodes and the eaten fruit's

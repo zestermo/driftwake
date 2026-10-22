@@ -336,7 +336,11 @@ static func _build_acrobatics() -> void:
 	_root("ac_root", "Acrobatics", {}, "Jump, dodge and sprint to build it: air jumps and dodges count most.")
 	_big("m_geppo", "Geppo", "mech", 0, 2, {"air_jumps": 1}, "Kick off the air itself: a second jump in mid-air.")
 	_big("m_skywalk", "Sky Walk", "mech", 0, 9, {"air_jumps": 1}, "One more jump in mid-air (three in all).")
+	_big("ac_breakfall", "Breakfall", "move", 0, 12, {"breakfall": 1},
+		"Knocked flying by a heavy blow, or tumbling from a long fall: press jump in the air to right yourself and come down on your feet.")
 	_big("ac_feather", "Featherfall", "mech", 0, 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing.")
+	_big("ac_skydash", "Skyward Dash", "move", 0, 18, {"skyward_dash": 1},
+		"Righted in mid-air (Breakfall, or an air step out of a tumble): dodge for an air dash, and two more air steps. Enough to get back aboard after a blow throws you off the ship.")
 	_big("m_swift", "Swift Step", "mech", 1, 4, {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
 		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.")
 	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
