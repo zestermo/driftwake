@@ -361,6 +361,7 @@ const SPECS := {
 	"deaths_waltz": {"len": 2.0, "hit": [0.1, 0.85], "stance": "dual_pistol", "weapon": "pistol", "extras": {"dual": true}},
 	"suplex": {"len": 1.1, "hit": [0.58, 0.64], "stance": "fist", "weapon": ""},
 	"shoulder_throw": {"len": 0.95, "hit": [0.51, 0.56], "stance": "fist", "weapon": ""},
+	"fs_catch": {"len": 1.0, "stance": "fist", "weapon": ""},
 	"giant_swing": {"len": 2.1, "hit": [0.19, 0.78], "stance": "fist", "weapon": ""},
 	"hundred_fists": {"len": 1.3, "hit": [0.08, 0.85], "stance": "fist", "weapon": ""},
 	"rising_dragon": {"len": 0.9, "hit": [0.17, 0.26], "stance": "fist", "weapon": ""},

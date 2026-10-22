@@ -919,11 +919,11 @@ static func _build_pistol() -> void:
 
 
 static func _build_unarmed() -> void:
-	_tree("unarmed", ["Grapple", "Martial", "Body"])
+	_tree("unarmed", ["Power", "Martial", "Body"])
 	_root("u_root", "Unarmed", {}, "Bare-handed boxing: jab, cross and hook, each out of the last, and on right-click a huge overhand haymaker that knocks them flat. Fight with your fists to build unarmed mastery.")
 	_big("u_hip", "Shoulder Throw", "tech", 0, 3, {}, "", "hip_toss")
-	_big("u_landing", "Heavy Landing", "mech", 0, 9, {"throw_splash": 1, "skill_unarmed": 0.25},
-		"Anyone you throw lands like a cannonball: everyone near where they land is knocked flat and hurt. Your grapples and martial arts hit 25% harder.")
+	_big("u_landing", "Heavy Landing", "mech", 0, 9, {"throw_splash": 1, "dmg_unarmed": 0.25},
+		"Anyone your haymaker or a throw knocks flat lands like a cannonball: everyone near where they come down is knocked flat and hurt. Your punches hit 25% harder.")
 	_big("u_suplex", "Suplex", "tech", 0, 12, {}, "", "suplex")
 	_big("u_swing", "Giant Swing", "tech", 0, 18, {}, "", "giant_swing")
 	_big("u_palm", "Shockwave Palm", "tech", 1, 4, {}, "", "palm_strike")
@@ -940,7 +940,7 @@ static func _build_unarmed() -> void:
 	_big("u_finish", "Finishing Blow", "passive", 2, 22, {"finisher_unarmed": 0.4, "cdr_unarmed": 0.2},
 		"Passive (a slot). The last hit of your combo lands 40% harder, and unarmed techniques come back 20% sooner.")
 	_step("u_knuckles", "Iron Knuckles", "u_root", 5, {"dmg_unarmed": 0.05}, "+5% unarmed damage a step.")
-	_step("u_grip", "Grip", "u_hip", 3, {"skill_unarmed": 0.06}, "Your grapples and martial arts hit 6% harder a step.")
+	_step("u_grip", "Grip", "u_hip", 3, {"skill_unarmed": 0.06}, "Your fist techniques hit 6% harder a step.")
 	_step("u_skin", "Stone Skin", "u_suplex", 3, {"def_unarmed": 2.0}, "+2 defense bare-handed a step.")
 	_step("u_points", "Pressure Points", "u_elem", 5, {"crit_unarmed": 0.03}, "3% more of your unarmed hits land 50% harder, a step.")
 	_step("u_hands", "Heavy Hands", "u_hundred", 5, {"finisher_unarmed": 0.06}, "The last hit of your combo lands 6% harder a step.")

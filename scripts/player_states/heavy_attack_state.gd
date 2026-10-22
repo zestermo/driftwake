@@ -378,6 +378,8 @@ func physics_update(delta: float) -> void:
 			if timer >= _active:
 				phase = 2
 				timer = 0.0
+				if cfg.get("tree", "") == "unarmed":
+					FistArts.haymaker_landed(player, player.sword_hitbox.hit_targets.duplicate())
 				player.sword_hitbox.deactivate()
 				if not cfg["impact_fx"]:
 					Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 5, 0.5])
