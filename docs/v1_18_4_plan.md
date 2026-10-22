@@ -335,3 +335,19 @@ side + close, element on); all of them also get "trails in sync" (effects on the
 Awakenings and mastered guards (the mastery agent, after each kind); the stance follow-ups (wide-stance feet, the
 greatsword guard's angle, the twin axes' guard, the polearm walk threshold, the hammer head: also the mastery agent);
 grunts' square attack starts (enemies, 1.19).
+
+## Paused 2026-10-22 (resume here)
+Landed today: weapon mastery guards (katana, cutlass, dagger, dual, twin daggers Viper) and the four drawn awakenings;
+Defense (Perfect Parry, Guard Style) and Swimming Surface Sprint; polearm, hammer and twin axes finishes; the Captain /
+Will menu pages (fork rows + star chart). Main is not pushed (prepush runs once the batch is done).
+- **Left:** greatsword and black-leg finishes (worktree `new-weapons-finish`, `git merge main` first); the corsair and
+  pistol mastered guards (pictures for Zach's pick first); then prepush (nettest matters: javelin/raven projectiles, the
+  hook's `wrap` arg and Raider's Haul as a guest, Cannonball's `launched`, Disarm/decoy, `swim_style`), fix pass, 1.18.4.
+- **Greatsword handover:** Updraft (Momentum 12): a rising cut throws the foe up, you follow and cleave them down
+  (`launched(v)` or a vertical variant; Titan's Fall's jump/hang timing in `HammerArts._titan`). Gatekeeper (Bulwark 14):
+  a held guard (`_key_held()`, abilityshot `AB_HOLD`, like Windmill Guard) releasing a crescent (Projectile `gale`).
+  Polish: Guardbreaker's crush overshoots into a sprawl and its trail is a flat sheet; Crescent Gale's crescent is a
+  hairline. Patterns: shared timing constants in the Moves file; `Projectile.launch()` places after adding to the tree,
+  so read the launch position on the first physics tick; tests turn the captain's hurtbox off for long techniques.
+- **Known:** `run_tests.ps1 -Force` once reported a cached pass instead of rerunning (seen by the menu agent); look at it
+  in a quiet window.
