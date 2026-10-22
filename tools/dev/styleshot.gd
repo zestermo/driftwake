@@ -87,7 +87,7 @@ func _process(d: float) -> bool:
 			phase = 4; t0 = t
 		4:
 			if t - t0 < 0.22: return false
-			shot("03_roundhouse")
+			shot("03_uppercut")
 			phase = 5; t0 = t
 		5:
 			if t - t0 < 0.8: return false
@@ -95,7 +95,7 @@ func _process(d: float) -> bool:
 			phase = 6; t0 = t
 		6:
 			if t - t0 < 0.3: return false
-			shot("04_flying_kick")
+			shot("04_haymaker")
 			phase = 7; t0 = t
 		7:
 			if t - t0 < 1.0: return false

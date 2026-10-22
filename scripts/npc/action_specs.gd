@@ -270,11 +270,17 @@ const SPECS := {
 	"bl_last": {"len": 2.7, "hit": [0.26, 0.73], "sharp": 50.0, "stance": "black_leg", "weapon": ""},
 	# --- unarmed ---
 	"fists_up": {"len": 0.25, "stance": "fist", "weapon": ""},
-	"jab": {"len": 0.34, "hit": [0.21, 0.5], "stance": "fist", "weapon": ""},
-	"cross": {"len": 0.36, "hit": [0.22, 0.5], "stance": "fist", "weapon": ""},
-	"hook": {"len": 0.42, "hit": [0.29, 0.57], "stance": "fist", "weapon": ""},
-	"roundhouse": {"len": 0.56, "hit": [0.34, 0.59], "stance": "fist", "weapon": ""},
-	"flying_kick": {"len": 0.85, "hit": [0.39, 0.65], "stance": "fist", "weapon": ""},
+	# (boxing: the body keyed, the punching hand on a reach path; FistMoves)
+	"fs_jab": {"len": 0.36, "hit": [0.24, 0.46], "chain": 0.2, "sharp": 50.0, "lead": {"hips": 0.03, "torso": 0.015},
+		"reach": FistMoves.JAB_REACH, "stance": "fist", "weapon": ""},
+	"fs_cross": {"len": 0.42, "hit": [0.28, 0.5], "chain": 0.25, "sharp": 50.0, "lead": {"hips": 0.03, "torso": 0.015},
+		"reach": FistMoves.CROSS_REACH, "stance": "fist", "weapon": "", "extras": {"after": "fs_jab"}},
+	"fs_hook": {"len": 0.46, "hit": [0.32, 0.54], "chain": 0.3, "sharp": 50.0, "lead": {"hips": 0.04, "torso": 0.02},
+		"reach": FistMoves.HOOK_REACH, "stance": "fist", "weapon": "", "extras": {"after": "fs_cross"}},
+	"fs_upper": {"len": 0.6, "hit": [0.36, 0.56], "chain": 0.44, "sharp": 50.0, "lead": {"hips": 0.04, "torso": 0.02},
+		"reach": FistMoves.UPPER_REACH, "stance": "fist", "weapon": "", "extras": {"after": "fs_hook"}},
+	"fs_hay": {"len": 1.0, "hit": [0.44, 0.56], "sharp": 50.0, "lead": {"hips": 0.04, "torso": 0.02},
+		"reach": FistMoves.HAY_REACH, "stance": "fist", "weapon": ""},
 	# --- pistols ---
 	"shoot_r": {"len": 0.6, "stance": "pistol", "weapon": "pistol", "sharp": 90.0, "snap": true},
 	"pistol_whip": {"len": 0.62, "hit": [0.32, 0.52], "stance": "pistol", "weapon": "pistol"},

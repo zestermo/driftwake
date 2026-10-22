@@ -5286,3 +5286,46 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   wieldtest, powertest; renders skillmapshot and seamapshot buy their nodes.
 
 - 2026-10-21 r10test strafe slide: two stance-pass causes. The run carry took the 45 deg forward diagonal (`StanceLife.carry_weight` travel < 0.9 rad), so the strafe's chest/hips went to the run's and the planted foot slid 1.64 m/s (was 0.93); it now stops at 0.6 rad (34 deg). The cutlass's side-on hips (`HIPS` 0.55) were only relaxed 60% at a walk, adding slide to the lateral strafe (2.49 m/s vs 1.85) and back-diagonal; `_stance_hips` now relaxes fully with `walk`. r10test's straight reference walks at 2.4 m/s (a carried run has its own chest). Limits unchanged.
+## 2026-10-21: the skills menu slimmed (1.18.4 batch, points rework piece 3)
+- What: trees show icons and names only. Gone from the tree: level numbers on nodes, the steps' "2/5" chips (now a pip
+  a step under the node), the branches' "n OF m" counts. Gone from the card: the per-tree points chip and "ONE A LEVEL",
+  the "Coming next" list and the always-on "How it grows" (now in the root's panel). What can be bought right now has
+  a soft pulsing ring in the tree's colour. A variant is lit only once bought.
+- The card (select panel) has the picked or hovered node in full: kind (a step's count), "NEEDS KATANA 12" (green when
+  met, else with the level you're at), the price and what's left in its pool, what it does (a variant's two versions,
+  the active one marked), and the one action (ENTER: BUY / the reason / YOURS / switch at the bunk). A hovered node
+  also gets a one-line tip by the cursor (name, price, gate). Both pools are on the beam's plate
+  ("COMBAT 6 · ADVENTURE 3", the coin keeps the level).
+- At the ship's bunk the card shows "REFUND THIS TREE: N GOLD" for a tree with purchases: a first click asks (the price
+  in the line), a second pays (Progression.respec_tree).
+- Locked trees were already hidden (the rail, the chart and the Adventure list draw only found trees; the Driftfruit
+  sign only with a fruit); skills_buy_node checks it.
+- Per frame (only while the menu is open): `buy_why` for each drawn node, for the glow.
+- Tests: t/ui skills_buy_node, skills_respec (new); the other skills_* and t/progression pass. Renders:
+  tools/dev/skillmapshot.gd (its _variant shot hovers the iai upgrade for the tip and the card).
+
+## 2026-10-21: fists redone as boxing, piece 1 (docs/v1_18_4_plan.md "Fists")
+- **What:** the unarmed light combo is boxing now, each blow out of the last one's turn: jab (lead straight, the lead
+  shoulder rolled over) -> cross (rear straight, the back heel turned, hips past square) -> lead hook (out of the
+  cross's turn, the elbow up and out, the body swung through) -> rear uppercut (a dip, then the legs driven up; the
+  tree's fourth-hit move, node id `u_round` / flag `mv_roundhouse` kept for saves, now named Uppercut; it knocks
+  them down via LightAttackState cfg `"launch"`). The right-click is the **haymaker** (HeavyAttackState "haymaker",
+  `fs_hay`): rocked back with the fist drawn up over the right shoulder and the left arm out measuring, then a long
+  step in and the overhand over the top and down through them; breaker, knockdown, 30 damage, the unarmed ring/dust.
+  The roundhouse kick and the flying kick are gone (black-leg keeps its own kicks).
+- **Where:** `scripts/npc/fist_moves.gd` (FistMoves: GUARD, LEGS, every `fs_*` pose, the reach paths), reached from
+  `Humanoid._action_pose` by the `fs_` prefix; `_guard()` "fist" and STANCE_LEGS "fist" point at it. ActionSpecs
+  `fs_jab/fs_cross/fs_hook/fs_upper/fs_hay` (len, hit, chain, sharp 50, lead). The old jab/cross/hook/roundhouse/
+  flying_kick poses and FIST_GUARD left humanoid.gd.
+- **How it's built:** the body keyed (hips lead, chest turns through, head on the target, the off fist tucked to the
+  chin), the punching fist on a **reach path** in the body's own frame (`follow` 0, `from_shoulder`: points are
+  offsets from the punching shoulder, ~0.66 m = straight), so straights go out straight at the target ahead and the
+  hook sweeps flat round the front; every path starts and ends on the guard fist's spot (AT_L / AT_R, measured from
+  the keyed guard) so the hand leaves and rejoins the guard without a pop. A chest-frame (`follow` 1) try put the
+  uppercut and the haymaker's fist behind the head: the bladed chest's yaw swings the frame too far.
+- **Guard:** bladed orthodox, chin down, lead fist out at chin height, rear fist by the cheek; the stance pass's
+  bounce kept (StanceLife.BOUNCE).
+- **Tested:** `t/weapons/fist_combo` (guard shape, each blow lands on the dummy, the jab's arm reaches 0.65 m, the
+  haymaker's cock over the shoulder and its damage). progtest's "unarmed light attack is a jab" check reads `fs_jab`.
+  Suites expected to be touched: progtest, techtest, balancetest, stamtest (fist combo/heavy names and timings).
+- Per frame: nothing new (one reach solve on the punching arm during a punch, as the cutlass's free hand).

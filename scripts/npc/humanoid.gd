@@ -26,7 +26,7 @@ signal footstep(strength: float)
 const PIVOT_Y := 0.9
 const JOINTS := ["pivot", "hips", "torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "leg_l", "shin_l", "leg_r", "shin_r", "hand_r", "hand_l"]
 ## Actions that spin the whole body (applied instantly, pivot reset after).
-const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "roundhouse", "gun_kata", "axe_whirl", "axe_flip",
+const SPIN_ACTIONS := ["roll", "flip", "spin_slash", "gun_kata", "axe_whirl", "axe_flip",
 	"maelstrom", "blade_dance", "steel_tempest", "deaths_waltz", "giant_swing", "twin_cyclone", "vault_back"]
 const UPPER := ["torso", "head", "arm_l", "fore_l", "arm_r", "fore_r", "hand_r", "hand_l"]
 
@@ -817,7 +817,7 @@ func _guard() -> Dictionary:
 		"black_leg":
 			return BlackLegMoves.guard(self)
 		"fist":
-			return FIST_GUARD
+			return FistMoves.GUARD
 		"claw":
 			# hunched forward, claws held out low at the sides
 			return {"arm_r": Vector3(0.3, -0.25, 0.75), "fore_r": Vector3(1.25, 0, 0),
@@ -849,7 +849,7 @@ func _guard() -> Dictionary:
 ## The combat stance's feet, standing (added to the idle; the hip drop matches the bent knees so the feet stay down).
 const STANCE_LEGS := {
 	"": {"leg_l": Vector3(0.35, 0, -0.14), "leg_r": Vector3(-0.3, 0, 0.14), "shin_l": Vector3(-0.45, 0, 0), "shin_r": Vector3(-0.35, 0, 0), "_lift": Vector3(0, -0.1, 0)},
-	"fist": {"leg_l": Vector3(0.12, 0, -0.2), "leg_r": Vector3(-0.12, 0, 0.2), "shin_l": Vector3(-0.45, 0, 0), "shin_r": Vector3(-0.35, 0, 0), "_lift": Vector3(0, -0.1, 0)},
+	"fist": FistMoves.LEGS,
 	# (side on: the feet apart across the turned hips, so the right one leads at the foe)
 	"sword": {"leg_l": Vector3(-0.15, 0, -0.2), "leg_r": Vector3(0.3, 0, 0.18), "shin_l": Vector3(-0.5, 0, 0), "shin_r": Vector3(-0.5, 0, 0), "_lift": Vector3(0, -0.11, 0)},
 	"sword_pistol": {"leg_l": Vector3(-0.15, 0, -0.2), "leg_r": Vector3(0.3, 0, 0.18), "shin_l": Vector3(-0.5, 0, 0), "shin_r": Vector3(-0.5, 0, 0), "_lift": Vector3(0, -0.11, 0)},
@@ -1382,14 +1382,6 @@ const E_REACH := {"arm_r": Vector3(1.5, 0.05, 0.12), "fore_r": Vector3(0.02, 0, 
 	"leg_r": Vector3(1.2, 0, 0.04), "shin_r": Vector3(-1.3, 0, 0), "leg_l": Vector3(-0.95, 0, -0.06), "shin_l": Vector3(-0.08, 0, 0)}
 const E_BLOCK := {"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2), "arm_l": Vector3(1.1, 0.5, -0.1), "fore_l": Vector3(1.6, 0, 0),
 	"torso": Vector3(0.1, -0.35, 0), "head": Vector3(0.05, 0.3, 0), "leg_l": Vector3(0.35, 0, -0.12), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.35, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0)}
-# Bare-handed boxing guard (orthodox): hips and shoulders turned so the left
-# side leads, lead fist out at chin height, rear fist tucked by the cheek,
-# elbows down, chin tucked and eyes forward.
-const FIST_GUARD := {
-	"hips": Vector3(0, -0.5, 0), "torso": Vector3(-0.14, -0.12, 0), "head": Vector3(0.14, 0.58, 0),
-	"arm_l": Vector3(1.15, 0.5, -0.12), "fore_l": Vector3(1.45, 0, 0),
-	"arm_r": Vector3(0.75, 0.75, 0.12), "fore_r": Vector3(2.3, 0, 0),
-}
 const REST_ARMS := {"arm_r": Vector3(0, 0, 0.08), "fore_r": Vector3(0.15, 0, 0), "arm_l": Vector3(0, 0, -0.08), "fore_l": Vector3(0.15, 0, 0)}
 # Katana (two-handed; the left hand is put on the hilt by _katana_hands, its
 # arm values here only seed the IK): blade angled up and forward in front.
@@ -1920,87 +1912,10 @@ func _action_pose(n: String, u: float) -> Array:
 				rock["head"] = (bp["head"] as Vector3) + Vector3(-0.15, 0, 0)
 				return [_keys(u, [[0.0, bp], [0.25, rock, "out"], [1.0, bp]]), "upper", lift]
 			return [_keys(u, [[0.0, {}], [1.0, bp, "out"]]), "upper", lift]
-		# --- unarmed: jab, cross, hook, roundhouse; heavy flying kick ---
+		# --- unarmed ---
 		"fists_up":
 			return [_keys(u, [[0.0, REST_ARMS], [1.0, _guard()]]), "upper", lift]
-		"jab":
-			# lead (left) straight: the shoulder rolls forward and the fist snaps
-			# out to full reach at chin height as the lead foot steps in
-			var g := _guard()
-			var load_ := {"hips": Vector3(0, -0.4, 0), "torso": Vector3(-0.1, -0.05, 0), "head": Vector3(0.14, 0.45, 0),
-				"arm_l": Vector3(0.9, 0.55, -0.1), "fore_l": Vector3(1.95, 0, 0), "arm_r": g["arm_r"], "fore_r": g["fore_r"]}
-			var hit := {"hips": Vector3(0, -0.72, 0), "torso": Vector3(-0.22, -0.32, 0.06), "head": Vector3(0.12, 1.0, 0),
-				"arm_l": Vector3(1.58, 1.04, 0.0), "fore_l": Vector3(0.02, 0, 0),
-				"arm_r": Vector3(0.8, 0.95, 0.15), "fore_r": Vector3(2.35, 0, 0),
-				"leg_l": Vector3(0.55, 0, -0.22), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.42, 0, 0.22), "shin_r": Vector3(-0.22, 0, 0)}
-			lift.y = -0.1 * sin(clampf(u * 1.4, 0, 1) * PI)
-			return [_keys(u, [[0.0, g], [0.12, load_], [0.3, hit, "out"], [0.52, hit], [1.0, g]]), "full", lift]
-		"cross":
-			# rear (right) straight: the back heel spins, hips and shoulders whip
-			# round and the right fist drives through the middle; the left hand
-			# snaps back to the chin
-			var g := _guard()
-			var load_ := {"hips": Vector3(0, -0.65, 0), "torso": Vector3(-0.08, -0.2, 0), "head": Vector3(0.14, 0.8, 0),
-				"arm_r": Vector3(0.55, 0.8, 0.2), "fore_r": Vector3(2.4, 0, 0), "arm_l": g["arm_l"], "fore_l": g["fore_l"]}
-			var hit := {"hips": Vector3(0, 0.32, 0), "torso": Vector3(-0.32, 0.42, -0.06), "head": Vector3(0.12, -0.72, 0),
-				"arm_r": Vector3(1.6, -0.72, 0.0), "fore_r": Vector3(0.02, 0, 0),
-				"arm_l": Vector3(0.75, -0.55, -0.05), "fore_l": Vector3(2.35, 0, 0),
-				"leg_l": Vector3(0.62, 0, -0.24), "shin_l": Vector3(-0.72, 0, 0), "leg_r": Vector3(-0.6, 0, 0.26), "shin_r": Vector3(-0.12, 0, 0)}
-			lift.y = -0.14 * sin(clampf(u * 1.4, 0, 1) * PI)
-			return [_keys(u, [[0.0, g], [0.12, load_], [0.3, hit, "out"], [0.52, hit], [1.0, g]]), "full", lift]
-		"hook":
-			# lead hook: load onto the lead side, then the whole body turns and
-			# the bent arm (elbow at shoulder height) swings round into the target
-			var g := _guard()
-			var load_ := {"hips": Vector3(0, -0.2, 0), "torso": Vector3(-0.1, 0.25, 0.1), "head": Vector3(0.14, 0.0, 0),
-				"arm_l": Vector3(0.55, 0.3, -0.75), "fore_l": Vector3(1.75, 0, 0), "arm_r": g["arm_r"], "fore_r": g["fore_r"],
-				"leg_l": Vector3(0.3, 0, -0.2), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.15, 0, 0.2), "shin_r": Vector3(-0.55, 0, 0)}
-			var hit := {"hips": Vector3(0, -0.9, 0), "torso": Vector3(-0.2, -0.5, -0.1), "head": Vector3(0.12, 1.3, 0),
-				"arm_l": Vector3(0.12, 0.1, -1.5), "fore_l": Vector3(1.6, 0, 0),
-				"arm_r": Vector3(0.75, 0.95, 0.12), "fore_r": Vector3(2.35, 0, 0),
-				"leg_l": Vector3(0.45, 0, -0.22), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.35, 0, 0.22), "shin_r": Vector3(-0.35, 0, 0)}
-			lift.y = -0.12 * sin(clampf(u * 1.3, 0, 1) * PI)
-			return [_keys(u, [[0.0, g], [0.16, load_, "out"], [0.36, hit, "out"], [0.56, hit], [1.0, g]]), "full", lift]
-		"roundhouse":
-			# rear-leg roundhouse: chamber the knee up and out while pivoting on
-			# the lead foot, then the shin whips round level with the ribs; the
-			# body leans away and the right arm swings down for balance
-			var g2 := _guard()
-			var chamber := {"leg_r": Vector3(1.0, 0, 1.15), "shin_r": Vector3(-2.1, 0, 0),
-				"leg_l": Vector3(0.05, 0, -0.08), "shin_l": Vector3(-0.3, 0, 0),
-				"hips": Vector3.ZERO, "torso": Vector3(0.0, 0.0, 0.3), "head": Vector3(0.1, -0.7, -0.2),
-				"arm_l": Vector3(1.0, 0.5, -0.2), "fore_l": Vector3(1.8, 0, 0), "arm_r": Vector3(0.2, 0, 0.7), "fore_r": Vector3(1.2, 0, 0)}
-			var kick := {"leg_r": Vector3(0.25, 0, 1.6), "shin_r": Vector3(-0.08, 0, 0),
-				"leg_l": Vector3(0.0, 0, -0.1), "shin_l": Vector3(-0.2, 0, 0),
-				"hips": Vector3.ZERO, "torso": Vector3(0.05, 0.0, 0.62), "head": Vector3(0.1, -1.25, -0.45),
-				"arm_l": Vector3(1.2, 0.6, -0.3), "fore_l": Vector3(1.6, 0, 0), "arm_r": Vector3(-0.45, 0, 0.9), "fore_r": Vector3(0.5, 0, 0)}
-			var pose := _keys(u, [[0.0, g2], [0.22, chamber, "out"], [0.42, kick, "out"], [0.64, kick], [1.0, g2]])
-			var turn := 0.0
-			if u < 0.42:
-				turn = 1.35 * (1.0 - pow(1.0 - u / 0.42, 2.2))
-			else:
-				turn = 1.35 * (1.0 - _ease((u - 0.64) / 0.36))
-			pose["pivot"] = Vector3(0, turn, 0)
-			lift.y = 0.04 * sin(clampf(u / 0.7, 0, 1) * PI)
-			return [pose, "full", lift]
-		"flying_kick":
-			# crouch, spring up with the left knee tucked, then shoot the right
-			# leg out straight, leaning back behind it, arms flung back
-			var g3 := _guard()
-			var crouch := {"leg_l": Vector3(0.95, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.5, 0, 0.12), "shin_r": Vector3(-1.4, 0, 0),
-				"hips": Vector3.ZERO, "torso": Vector3(-0.5, 0, 0), "head": Vector3(0.35, 0, 0),
-				"arm_l": Vector3(-0.6, 0, -0.35), "fore_l": Vector3(0.4, 0, 0), "arm_r": Vector3(-0.6, 0, 0.35), "fore_r": Vector3(0.4, 0, 0)}
-			var tuck := {"pivot": Vector3(0.15, 0, 0), "leg_l": Vector3(1.6, 0, -0.1), "shin_l": Vector3(-2.3, 0, 0),
-				"leg_r": Vector3(1.4, 0, 0.1), "shin_r": Vector3(-2.2, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.2, 0, 0), "head": Vector3(0.1, 0, 0),
-				"arm_l": Vector3(1.3, 0, -0.5), "fore_l": Vector3(1.4, 0, 0), "arm_r": Vector3(0.9, 0, 0.5), "fore_r": Vector3(1.6, 0, 0)}
-			var fly := {"pivot": Vector3(0.34, 0, 0), "leg_r": Vector3(1.3, 0, 0.04), "shin_r": Vector3(-0.02, 0, 0),
-				"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-2.3, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.05, 0, 0), "head": Vector3(-0.3, 0, 0),
-				"arm_l": Vector3(0.9, 0.3, -0.75), "fore_l": Vector3(1.3, 0, 0), "arm_r": Vector3(-0.9, 0, 0.55), "fore_r": Vector3(0.3, 0, 0)}
-			if u < 0.25:
-				lift.y = -0.26 * _ease(u / 0.25)
-			elif u < 0.72:
-				lift.y = lerpf(-0.26, 0.0, _ease((u - 0.25) / 0.1)) + 0.38 * sin(clampf((u - 0.25) / 0.47, 0, 1) * PI)
-			return [_keys(u, [[0.0, g3], [0.24, crouch, "out"], [0.34, tuck, "out"], [0.44, fly, "out"], [0.68, fly], [1.0, g3]]), "full", lift]
+		# (the boxing combo and the haymaker are FistMoves "fs_*")
 		# (the dual-wield and sword-and-pistol moves live in WieldMoves)
 		"gun_kata":
 			# crouch, hop up into a double spin with the arms crossed, each gun
@@ -2265,6 +2180,8 @@ func _action_pose(n: String, u: float) -> Array:
 		return DualAxeMoves.pose(self, n, u)
 	if n.begins_with("gs_"):
 		return GreatswordMoves.pose(self, n, u)
+	if n.begins_with("fs_"):
+		return FistMoves.pose(self, n, u)
 	var mp := MovePoses.pose(self, n, u)
 	if not mp.is_empty():
 		return mp
