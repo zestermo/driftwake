@@ -1,4 +1,4 @@
-﻿class_name FistArts
+class_name FistArts
 ## Bare fists' techniques (style "fist", tree "unarmed"): Shoulder Throw's counter (a blow caught in its guard, then
 ## its owner over your shoulder) and Heavy Landing (whoever a throw or the haymaker knocks flat lands like a
 ## cannonball). Run by TechniqueState (`s`: its helpers and timeline); enter() and update() return false for ids that
