@@ -129,14 +129,14 @@ func _process(d: float) -> bool:
 			check("Will isn't a level (Iron Will comes from Morrow)", pr.can_learn("h_arm") != "" and not pr.has_flag("armament"))
 			check("a fruit's tree needs the fruit", not pr.owns("e_root") and pr.visible_trees("fruit").is_empty())
 			pr.add_life("acrobatics", pr.mastery_to_next(1))
-			check("Acrobatics 2 brings Geppo: an air jump", pr.owns("m_geppo") and p.max_jumps == 2)
+			check("Acrobatics 2: Geppo bought with its Adventure point, an air jump", pr.buy("m_geppo") and p.max_jumps == 2)
 			while pr.mastery_level("acrobatics") < 12:
 				pr.add_life("acrobatics", pr.mastery_to_next(pr.mastery_level("acrobatics")))
-			check("Fleetfoot (Acrobatics 12) speeds you up", p.move_speed > 6.0)
+			check("Fleetfoot (Acrobatics 12) bought speeds you up", pr.buy("ac_fleet") and p.move_speed > 6.0)
 			pr.level = 14
 			pr._on_level_up()
 			check("Soru and Tekkai come at Captain 8 and 14, onto the bar", pc.loadout[0] == "soru" and pc.loadout[1] == "tekkai")
-			check("a weapon's nodes come with its mastery, not points (%s)" % pr.can_learn("s_flying"), pr.can_learn("s_flying") == "Comes at Cutlass 4")
+			check("a weapon's nodes are bought once its mastery gates them (%s)" % pr.can_learn("s_flying"), pr.can_learn("s_flying") == "Needs Cutlass 4")
 			# (a pistol in loadout 2, so its skills can go on the bar)
 			p.inventory_component.add_item(item("pistol"), 1)
 			p.loadouts[1] = ["pistol", ""]
@@ -145,7 +145,9 @@ func _process(d: float) -> bool:
 			for tr_lv in [["sword", 5], ["pistol", 9]]:
 				while pr.mastery_level(tr_lv[0]) < tr_lv[1]:
 					pr.add_mastery(tr_lv[0], pr.mastery_to_next(pr.mastery_level(tr_lv[0])))
-			check("each weapon's points its own", pr.points_free("sword") == 4 and pr.points_free("pistol") == 8)
+			check("one Combat pool for every weapon: Captain 14's 24 points", pr.pool("combat") == 24 and pr.points_free("sword") == 24 and pr.points_free("pistol") == 24)
+			check("...spent on the cutlass and the pistol alike", ["s_flying", "g_kata", "g_rain", "g_storm"].all(func(k): return pr.buy(k)) and pr.pool("combat") == 24 - 3 - 2 - 2 - 3)
+			check("Steadfast bought at Defense 4", pr.buy("v_steadfast"))
 			check("moveset unlocks", pr.has_move("gun_kata") and pr.has_move("gun_rain") and not pr.has_move("iai_full"))
 			check("skills fill the bar", pc.loadout[1] == "tekkai" and pc.loadout[2] == "flying_slash" and pc.loadout[3] == "bullet_storm")
 			check("stats add up", pr.stat("max_hp") >= 40.0 and pr.has_flag("steadfast"))
@@ -200,7 +202,7 @@ func _process(d: float) -> bool:
 			step += 1
 		6:
 			print("   action ", p.body_model.current_action(), " state ", p.current_state_name(), " dist ", snappedf((g.global_position - p.global_position).length(), 0.01), " gstate ", g.state, " hb active ", p.sword_hitbox.active, " g hurt ", g.hurtbox.monitorable, " gpos ", g.global_position, " ppos ", p.global_position)
-			check("unarmed light attack is a jab", p.body_model.current_action() == "jab")
+			check("unarmed light attack is a jab", p.body_model.current_action() == "fs_jab")
 			wait = 0.4
 			step += 1
 		7:

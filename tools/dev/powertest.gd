@@ -97,6 +97,8 @@ func _process(d: float) -> bool:
 			var pr = p.progression
 			while pr.mastery_level("ember") < 20:
 				pr.add_mastery("ember", pr.mastery_to_next(pr.mastery_level("ember")))
+			pr.gift("combat", 30)
+			check("the Ember tree bought with Combat points", ["e_kindled", "e_dash", "e_field", "e_smolder", "e_inferno"].all(func(k): return pr.buy(k)))
 			check("learned the Ember tree", pr.knows("flame_dash") and pr.knows("inferno") and pr.has_flag("kindled_blade"))
 			check("auto-equipped onto the bar", pc.loadout[2] == "flame_dash" and pc.loadout[3] == "ember_field" and pc.loadout[4] == "inferno")
 			# fire fist at a grunt 7 m away

@@ -88,6 +88,11 @@ var air_slashes: int = 0
 ## The other styles' air attacks since leaving the ground: {move: uses}, and
 ## "bounce" for Meteor Kicks that connected (each one earns another).
 var air_uses: Dictionary = {}
+## When the freefall began (PlayerState.now_s): the last jump, air step, ability or attack (FallState's tumble).
+var freefall_from: float = 0.0
+## Skyward Dash (Acrobatics): an air dash left from the last mid-air recovery (until you land or use it).
+var skyward_dash: bool = false
+const SKYWARD_STEPS := 2
 ## The next light attack is the katana's running draw (attacked while sprinting).
 var quick_draw: bool = false
 var body_model: Humanoid
@@ -1047,6 +1052,7 @@ func _physics_process(delta: float) -> void:
 		gun_rains = 0
 		air_slashes = 0
 		air_uses.clear()
+		skyward_dash = false
 		if not _was_on_floor:
 			_on_landed(_last_air_vy)
 	else:
@@ -1137,6 +1143,39 @@ func recover_into_swim() -> void:
 	velocity = Vector3.ZERO
 	body_model.recover_from_ragdoll(face_up, info["hips_xform"], 0.7)
 	state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
+
+
+## A tumbling body hit the ground at `speed`: the usual fall damage (the get-up is DownedState's).
+func tumble_landed(speed: float) -> void:
+	if speed > SAFE_FALL_SPEED and context == Context.ON_FOOT:
+		_fall_damage(speed)
+
+
+## Out of the ragdoll in mid-air (an air step out of a tumble, a Breakfall): the root jumps to the body, carrying
+## its speed, and the body eases upright from where the physics left it.
+func recover_in_air() -> void:
+	var info := body_model.ragdoll_rest_info()
+	var face_up: bool = info["face_up"]
+	var head_dir: Vector3 = info["head_dir"]
+	var f := -head_dir if face_up else head_dir
+	var rb := body_model.ragdoll.root_body()
+	var v := rb.linear_velocity
+	player_model.rotation.y = atan2(-f.x, -f.z)
+	reset_lean()
+	global_position = body_model.hips.global_position - Vector3(0, body_model.hip_y * body_model.scale.y, 0)
+	reset_physics_interpolation()
+	velocity = v
+	air_speed = Vector2(v.x, v.z).length()
+	body_model.recover_from_ragdoll(face_up, info["hips_xform"], 0.25)
+
+
+## Righted in mid-air (Breakfall, or an air step out of a tumble): Skyward Dash gives an air dash and extra steps.
+func air_recovered() -> void:
+	if not progression.has_flag("skyward_dash"):
+		return
+	skyward_dash = true
+	jumps_remaining += SKYWARD_STEPS
+	Net.fx("sparkle", [global_position + Vector3(0, 1.0, 0), 10, Color(0.85, 0.95, 1.0)])
 
 
 func is_swimming() -> bool:
@@ -1252,6 +1291,7 @@ func _update_lean_target(delta: float) -> void:
 ## 20 m or more - and a long drop leaves you reeling. A plunge attack's dive
 ## doesn't count. (Falling is 1.6x gravity, so a 5 m drop lands at ~18 m/s.)
 const SAFE_FALL_SPEED := 18.0
+const MAX_FALL_SPEED := 34.0
 const FALL_DAMAGE_PER_MS := 5.3
 
 
@@ -1286,7 +1326,7 @@ func _fall_damage(speed: float) -> void:
 	Net.fx("dust_ring", [global_position, 18, 1.2])
 	CombatManager.apply_camera_shake(clampf(dmg / 60.0, 0.1, 0.4))
 	Net.damage_number(roundf(dmg), global_position + Vector3(0, 1.9, 0))
-	if health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai"):
+	if health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai") and current_state_name() != "Downed":
 		state_machine.force_state("Stagger", {"stagger_duration": 0.55, "knockback_dir": Vector3.ZERO, "knockback_force": 0.0, "flinch": false})
 
 

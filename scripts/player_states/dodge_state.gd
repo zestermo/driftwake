@@ -27,12 +27,18 @@ var _speed: float = 13.0
 ## Vine Fruit: little vines sprout along the ground where you dash.
 var _vine: bool = false
 var _vine_dist: float = 0.0
+## Skyward Dash (Acrobatics): the air dash after a mid-air recovery, level through the air, AIR_DASH_DIST m
+## (input's way, or the camera's forward) in AIR_DASH_DUR s.
+const AIR_DASH_DIST := 6.5
+const AIR_DASH_DUR := 0.32
+var _air: bool = false
 
 
-func enter(_data: Dictionary) -> void:
+func enter(data: Dictionary) -> void:
 	timer = 0.0
 	iframes_ended = false
 	var pr := player.progression
+	_air = bool(data.get("air", false))
 	_speed = dodge_speed * (1.0 + pr.stat("dodge_dist_pct"))
 	_dur = dodge_duration
 	_iframes = iframes_duration * (1.0 + pr.stat("dodge_iframe_pct"))
@@ -47,9 +53,13 @@ func enter(_data: Dictionary) -> void:
 	var move_input := get_movement_input()
 	if move_input.length() > 0.1:
 		dodge_direction = get_camera_relative_direction(move_input)
+	elif _air:
+		dodge_direction = get_camera_forward()
 	else:
 		dodge_direction = player.player_model.global_basis.z.normalized()  # backstep
 		dodge_direction.y = 0.0
+	if _air:
+		_air_dash()
 
 	player.hurtbox.set_deferred("monitorable", false)
 
@@ -81,8 +91,24 @@ func enter(_data: Dictionary) -> void:
 		Net.fx("sfx", ["fire_burst", player.global_position, -8.0, 0.1, 1.4])
 
 
+## Skyward Dash: one burst the way you're going, level, the body stretched along it, an afterimage left behind.
+func _air_dash() -> void:
+	player.skyward_dash = false
+	_dur = AIR_DASH_DUR
+	_speed = AIR_DASH_DIST / (0.85 * AIR_DASH_DUR)
+	player.velocity.y = 0.0
+	face_direction(dodge_direction, 1.0)
+	var at := player.global_position + Vector3(0, 0.9, 0)
+	Net.fx("afterimage", [player.body_model, Color(0.8, 0.92, 1.0), 0.3])
+	Net.fx("ring", [at - dodge_direction * 0.4, dodge_direction, 0.9, Color(1.0, 0.98, 0.92, 0.8), 0.25, 0.08])
+	Net.fx("sfx", ["whoosh_big", at, -6.0, 0.05, 1.35])
+
+
 func physics_update(delta: float) -> void:
-	apply_gravity(delta)
+	if _air:
+		player.velocity.y = 0.0
+	else:
+		apply_gravity(delta)
 	timer += delta
 
 	# burst then ease out (average ~0.85x dodge_speed)
@@ -117,6 +143,9 @@ func physics_update(delta: float) -> void:
 		player.hurtbox.set_deferred("monitorable", true)
 
 	if timer >= _dur:
+		if _air:
+			transitioned.emit(self, "Fall", {})
+			return
 		var move_input := get_movement_input()
 		if move_input.length() > 0.1:
 			transitioned.emit(self, "Move", {})
