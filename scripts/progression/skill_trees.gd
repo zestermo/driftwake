@@ -888,6 +888,8 @@ static func _build_dual_dagger() -> void:
 	_big("dd_deflect", "Crossed Knives", "mech", 0, 3, {"parryshot_dual_dagger": 1, "evade_dual_dagger": 0.08},
 		"Parry with two daggers and you knock gunshots aside too (without it, a parry only stops blades), and 8% of the blows that would hit you are slipped by instinct.")
 	_big("dd_edge", "Bleeding Edge", "tech", 0, 8, {}, "", "bleeding_edge")
+	_big("dd_guard2", "Viper", "mech", 0, 15, {"guard2_dual_dagger": 1},
+		"A second guard: sunk low and side on, one dagger reared up by your face with its point down at them like a fang, the other low ahead. Double-tap block to switch between it and the low cross; your cuts come out of either.")
 	_big("dd_return", "Knives Back", "mech", 0, 20, {"deflect_dual_dagger": 1, "return_dual_dagger": 1, "deflect_cd_dual_dagger": 1.0},
 		"With both daggers drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("dd_viper", "Viper Flurry", "tech", 1, 5, {}, "", "viper_flurry")

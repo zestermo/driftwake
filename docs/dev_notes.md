@@ -5648,11 +5648,12 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - **Tests**: t/player/moonstep, crash_landing (its grunt's physics process off, not the node: a disabled node's
   hurtbox leaves the physics world). Render: animsheet `moonstep,crash_land`.
 
-## 2026-10-22: the weapon mastery pass, the mastered guards (katana, cutlass, dagger, dual wield) and the drawn blades
+## 2026-10-22: the weapon mastery pass, the mastered guards (katana, cutlass, dagger, dual wield, twin daggers) and the drawn blades
 - **Guards** (Zach's picks from posebench sheets; each at its tree's Guard branch, mastery 15, toggled by a double-tap
   of block like the axe's): katana **Waki Guard** (k_guard2), cutlass **Easy Guard** (s_guard2; the free hand on the
-  sash by IK, SwordMoves.easy), dagger **Hidden Knife** (dg_guard2; the knife at the small of the back, its point out
-  past the right hip), dual wield **Wings** (d_guard2; keyed: chest forward over a crouch, both arms swept back, the
+  sash by IK, SwordMoves.easy), dagger **Hidden Knife** (dg_guard2; the knife hand at the back of the right hip, a little out from the body, its point out
+  past the right hip), twin daggers **Viper** (dd_guard2; keyed: sunk low and side on, the right dagger reared up by
+  the face point down, the left low ahead; the first guard named Low Cross), dual wield **Wings** (d_guard2; keyed: chest forward over a crouch, both arms swept back, the
   blades back and a little down). One-hand guards are held by PoleMoves.hands from their GRIPS2 only standing
   (ONE_HAND_GUARDS: the weapon's own parry, block and jumps play as always); a guard with no grips (two blades) is keyed.
   `Humanoid.MASTERED` maps a stance to its moves file (guard(h), legs(h), grips2(h)); a mastered guard drops the
