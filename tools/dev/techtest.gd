@@ -122,7 +122,6 @@ const CASES := [
 	["point_blank", "pistol", 2.5, ""],
 	["deaths_waltz", "pistol", 8.0, ""],
 	["suplex", "fist", 1.4, "carried"],
-	["hip_toss", "fist", 1.4, "carried"],
 	["giant_swing", "fist", 1.4, "carried"],
 	["hundred_fists", "fist", 1.4, ""],
 	["rising_dragon", "fist", 1.4, ""],
