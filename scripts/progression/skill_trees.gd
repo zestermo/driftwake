@@ -554,6 +554,8 @@ static func _build_cutlass() -> void:
 	_big("s_deflect", "Arrow Cutting", "mech", 0, 3, {"parryshot_sword": 1, "parry_sword": 0.06},
 		"Parry with a cutlass and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("s_riposte", "Riposte", "tech", 0, 8, {}, "", "riposte")
+	_big("s_guard2", "Easy Guard", "mech", 0, 15, {"guard2_sword": 1},
+		"A second guard: stood tall and easy, the blade hanging loose out at your side, a thumb in your sash. Double-tap block to switch between it and the swashbuckler's guard; your cuts come out of either.")
 	_big("s_return", "Return to Sender", "mech", 0, 20, {"deflect_sword": 1, "return_sword": 1, "deflect_cd_sword": 1.0},
 		"With a cutlass drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
 	_big("s_flying", "Flying Slash", "tech", 1, 4, {}, "", "flying_slash")
@@ -594,6 +596,8 @@ static func _build_katana() -> void:
 		["k_sidestep", "Side Step", 8, {}, "", "side_step"]],
 		"Two ways to meet a blow from the scabbard. Both are yours; pick the one you carry at the ship's bunk.")["cost"] = 3
 	_big("k_phantom", "Phantom Step", "tech", 0, 14, {}, "", "phantom_step")
+	_big("k_guard2", "Waki Guard", "mech", 0, 15, {"guard2_katana": 1},
+		"A second guard: side on and low, the blade held back behind the right hip, its length hidden from the foe. Double-tap block to switch between it and the middle guard; your cuts come out of either.")
 	_big("k_return", "Bullet Return", "mech", 0, 20, {"deflect_katana": 1, "return_katana": 1, "deflect_cd_katana": 1.0},
 		"With a katana drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
 	# Iai
@@ -641,6 +645,8 @@ static func _build_dual() -> void:
 	_big("d_deflect", "Twin Deflect", "mech", 0, 3, {"parryshot_dual": 1, "parry_dual": 0.06},
 		"Parry with two blades and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("d_counter", "Crossed Counter", "tech", 0, 8, {}, "", "cross_counter")
+	_big("d_guard2", "Wings", "mech", 0, 15, {"guard2_dual": 1},
+		"A second guard: pitched down and forward over a deep crouch, both arms swept back with the blades like half-folded wings. Double-tap block to switch between it and the paired guard; your cuts come out of either.")
 	_big("d_return", "Ricochet Steel", "mech", 0, 20, {"deflect_dual": 1, "return_dual": 1, "deflect_cd_dual": 1.0},
 		"With both blades drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
 	_big("d_dance", "Blade Dance", "tech", 1, 5, {}, "", "blade_dance")
@@ -705,6 +711,8 @@ static func _build_dagger() -> void:
 	_big("dg_deflect", "Flick the Shot", "mech", 0, 3, {"parryshot_dagger": 1, "evade_dagger": 0.08},
 		"Parry with a dagger and you flick gunshots aside too (without it, a parry only stops blades), and 8% of the blows that would hit you are slipped by instinct.")
 	_big("dg_slip", "Slip", "tech", 0, 8, {}, "", "slip")
+	_big("dg_guard2", "Hidden Knife", "mech", 0, 15, {"guard2_dagger": 1},
+		"A second guard: stood easy, the dagger held low at the back of your hip, the free hand out open. Double-tap block to switch between it and the knife fighter's crouch; your cuts come out of either.")
 	_big("dg_return", "Knife in the Dark", "mech", 0, 20, {"deflect_dagger": 1, "return_dagger": 1, "deflect_cd_dagger": 1.0},
 		"With a dagger drawn, a shot from the front is flicked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("dg_fan", "Knife Fan", "tech", 1, 5, {}, "", "knife_fan")
@@ -893,6 +901,8 @@ static func _build_dual_dagger() -> void:
 	_big("dd_deflect", "Crossed Knives", "mech", 0, 3, {"parryshot_dual_dagger": 1, "evade_dual_dagger": 0.08},
 		"Parry with two daggers and you knock gunshots aside too (without it, a parry only stops blades), and 8% of the blows that would hit you are slipped by instinct.")
 	_big("dd_edge", "Bleeding Edge", "tech", 0, 8, {}, "", "bleeding_edge")
+	_big("dd_guard2", "Viper", "mech", 0, 15, {"guard2_dual_dagger": 1},
+		"A second guard: sunk low and side on, one dagger reared up by your face with its point down at them like a fang, the other low ahead. Double-tap block to switch between it and the low cross; your cuts come out of either.")
 	_big("dd_return", "Knives Back", "mech", 0, 20, {"deflect_dual_dagger": 1, "return_dual_dagger": 1, "deflect_cd_dual_dagger": 1.0},
 		"With both daggers drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("dd_viper", "Viper Flurry", "tech", 1, 5, {}, "", "viper_flurry")

@@ -502,3 +502,7 @@ assets/textures/fx/axe_trail*           t/fx t/combat
 assets/textures/fx/ember_trail*         t/fx t/combat
 scripts/npc/axe_moves.gd                t/combat t/weapons
 scripts/player_states/mastered_guard.gd t/weapons
+scripts/game/blade_aura.gd              t/fx
+tools/texture_gen/gen_drawn_fx.py       t/fx
+scripts/npc/wield_moves.gd              t/weapons
+scripts/npc/dagger_moves.gd             t/weapons

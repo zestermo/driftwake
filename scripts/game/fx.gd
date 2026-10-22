@@ -1461,10 +1461,18 @@ func petals(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1
 		p.angular_velocity_max = 420.0
 
 
+## The weapon trees whose element is drawn by gen_drawn_fx.py: tree -> its sheets' name (flip_<name>_slash,
+## flip_<name>_cloud, <name>_trail).
+const DRAWN := {"dagger": "shadow", "dual": "twin", "dual_dagger": "venom", "corsair": "powder", "pistol": "gold", "unarmed": "gale"}
+
+
 ## A tree's element thrown along `dir`: sea spray (cutlass), drawn sakura (katana: bigger, so
 ## fewer), drawn cinders and a lick of fire (axe: cinders are bigger, so fewer), rock and dust (hammer).
 func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
 	var c := tree_col(tree, ACCENT)
+	# (the drawn elements: a burst of the element on the bigger throws, under the tree's own material)
+	if flipbooks and amount >= 8 and DRAWN.has(tree):
+		drawn_burst(pos, DRAWN[tree] + "_cloud", 0.5 + amount * 0.05, 0.45, 40.0)
 	match tree:
 		"katana":
 			sakura(pos, dir, maxi(amount * 2 / 3, 2), speed)
@@ -2681,9 +2689,10 @@ func katana_slash(body: Node3D, secs: float, awake: bool = false, width: float =
 	drawn_slash(body, "katana", secs, awake, width, thrust, seed_v)
 
 
-## A weapon's drawn slash (PetalRibbon.LOOKS: "katana", "axe") laid along the path the blade in
-## `body`'s hand takes over the next `secs`; the axe's along its bit.
-func drawn_slash(body: Node3D, kind: String, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0) -> void:
+## A weapon's drawn slash (PetalRibbon.LOOKS: a tree's id) laid along the path the blade in `body`'s hand (`left`:
+## the off hand's) takes over the next `secs`; the axe's along its bit.
+func drawn_slash(body: Node3D, kind: String, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0,
+		left: bool = false) -> void:
 	if AnimLab.clean or not body is Humanoid:
 		return
 	var cam := get_viewport().get_camera_3d()
@@ -2697,6 +2706,7 @@ func drawn_slash(body: Node3D, kind: String, secs: float, awake: bool = false, w
 	r.width = width
 	r.thrust = thrust
 	r.seed_v = seed_v
+	r.left = left
 	r.linger = (0.48 if awake else 0.3) if kind == "axe" else (0.42 if awake else 0.26)
 	body.add_child(r)
 
@@ -2849,6 +2859,11 @@ func droplets(pos: Vector3, dir: Vector3, amount: int = 6, color: Color = Color(
 func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 	var edge := tree_col(tree, EDGE)
 	var accent := tree_col(tree, ACCENT)
+	# (the drawn elements: their slash cut through them and a ring in place of the old material)
+	if flipbooks and DRAWN.has(tree):
+		drawn_burst(pos + dir * 0.15, DRAWN[tree] + "_slash", 1.5, 0.32, 180.0)
+		ring(pos, dir, 0.8, edge, 0.16, 0.16)
+		return
 	match tree:
 		"sword":
 			spray(pos, dir + Vector3.UP * 0.3, 8, accent, 5.0)

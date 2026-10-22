@@ -6,6 +6,44 @@ class_name SwordMoves
 ## every new swing is built from (trained over 8 anim lab rounds, docs/anim_lab.md).
 ## Turns: y- faces right, y+ left; the head counters the chest to stay on the target.
 
+## The mastered guard (Humanoid.guard2): the sword hand and blade held by PoleMoves.hands from its grips ([hand, the
+## blade's way, its edge's way, -1: one hand], the chest's frame), the free hand put on the belt (easy). The Easy Guard
+## (Zach's pick, 2026-10-22, Shanks-like): stood tall and square, the sword arm let hang open from the side, the blade
+## loose out and down away from the leg with its point toward the deck, the free hand's thumb hooked in the sash.
+const GUARD2 := {"hips": Vector3(0, 0.15, 0), "torso": Vector3(0.06, 0.1, 0.03), "head": Vector3(0.04, -0.15, 0),
+	"arm_r": Vector3(0.1, 0.0, 0.45), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3.ZERO,
+	"arm_l": Vector3(-0.1, 0.3, -0.6), "fore_l": Vector3(1.6, 0, 0), "hand_l": Vector3.ZERO}
+const LEGS2 := {"leg_l": Vector3(0.12, 0, -0.1), "leg_r": Vector3(-0.08, 0, 0.14), "shin_l": Vector3(-0.15, 0, 0), "shin_r": Vector3(-0.35, 0, 0),
+	"_lift": Vector3(0, -0.04, 0)}
+## [guard, block, run] grips.
+const GRIPS2 := [[Vector3(0.44, -0.5, -0.06), Vector3(0.4, -0.86, -0.3), Vector3(0, 0, -1), -1.0],
+	[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
+	[Vector3(0.44, -0.5, -0.06), Vector3(0.4, -0.86, -0.3), Vector3(0, 0, -1), -1.0]]
+## The free hand on the sash (the hips' frame: left of the buckle, a little forward), the elbow out to the side.
+const SASH := Vector3(-0.14, 0.04, -0.11)
+
+
+static func guard(h) -> Dictionary:
+	return GUARD2 if h.guard2 else Humanoid.SWORD_GUARD
+
+
+static func legs(h) -> Dictionary:
+	return LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["sword"]
+
+
+static func grips2(_h) -> Array:
+	return GRIPS2
+
+
+## Each frame after posing: the Easy Guard's free hand onto the sash while standing in it.
+static func easy(h) -> void:
+	if not h.guard2 or h.stance != "sword" or not h._action.is_empty() or h.pole_w <= 0.0 or h.ragdoll != null:
+		return
+	var hips: Node3D = h.hips
+	var at: Vector3 = hips.global_transform * SASH
+	h.reach_hand(false, h.hand_l.global_position.lerp(at, h.pole_w), h.global_basis * Vector3(-1.0, -0.2, 0.5))
+
+
 ## Hit 1, the diagonal forehand: from the guard the hand arcs out and up round the right
 ## shoulder (wide and high, so the elbow opens), cocks, then cuts down through the space in
 ## front and wraps low round the left side. Path points: centre + dir * r (body space at the

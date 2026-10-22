@@ -5664,3 +5664,25 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - **Tests**: t/player/perfect_parry (hitstop slows the clock, so the late parry sets the state's timer instead of
   waiting), t/player/guard_styles. Render: animsheet `parry_disarm,parry_shove,guard_roll,guard_block` (the planted
   pose isn't in the sheet).
+## 2026-10-22: the weapon mastery pass, the mastered guards (katana, cutlass, dagger, dual wield, twin daggers) and the drawn blades
+- **Guards** (Zach's picks from posebench sheets; each at its tree's Guard branch, mastery 15, toggled by a double-tap
+  of block like the axe's): katana **Waki Guard** (k_guard2), cutlass **Easy Guard** (s_guard2; the free hand on the
+  sash by IK, SwordMoves.easy), dagger **Hidden Knife** (dg_guard2; the knife hand at the back of the right hip, a little out from the body, its point out
+  past the right hip), twin daggers **Viper** (dd_guard2; keyed: sunk low and side on, the right dagger reared up by
+  the face point down, the left low ahead; the first guard named Low Cross), dual wield **Wings** (d_guard2; keyed: chest forward over a crouch, both arms swept back, the
+  blades back and a little down). One-hand guards are held by PoleMoves.hands from their GRIPS2 only standing
+  (ONE_HAND_GUARDS: the weapon's own parry, block and jumps play as always); a guard with no grips (two blades) is keyed.
+  `Humanoid.MASTERED` maps a stance to its moves file (guard(h), legs(h), grips2(h)); a mastered guard drops the
+  side-on hip turn (StanceLife.HIPS).
+- **Hangs:** the katana's scabbard hangs well down at the back of the hip (SAYA_HANG; under the Waki's turned chest,
+  SAYA_HANG_WAKI by the guard's weight); a dagger's sheath is hung each frame from the hips (SHEATH_HANG) instead of the
+  chest, so a crouch's lean no longer stands it out stiffly from the hip.
+- **The drawn blades** (`tools/texture_gen/gen_drawn_fx.py`: one generator, a palette and a decoration per element):
+  dagger shadow, dual wield twin currents, twin daggers venom, corsair powder (and gold and gale made for the pistol and
+  fists). PetalRibbon LOOKS/CLOUDS for the four (steel plain), the off hand's blade (`left`); `DrawnFx.blow` picks the
+  cutting hands (HANDS) and stabs (THRUSTS) by move; the combos and heavies lay them. `BladeAura` (scripts/game/
+  blade_aura.gd): the tree's strip along each drawn blade, one shared material per tree; Player NF_AURA (256).
+  FX.DRAWN: an awakened hit plays the element's slash and a ring (the old material with flipbooks off).
+- Tests: t/weapons/katana_guard, cutlass_guard, dagger_guard, dual_guard; t/fx/drawn. Per frame: the auras step one
+  material per tree once a frame; `_hang_sheaths` sets at most two sheaths' bases; MasteredGuard.on is a cached stat.
+  Renders: tools/dev/out/guards2/, picked/, *_guard2/ (candidates), drawn/ (abilityshot combos), in the side worktree.
