@@ -5547,6 +5547,33 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   only while a cutlass block, parry or deflect plays.
 - t/weapons/fist_sea_king hardened: the stage grunt is disabled until the parry steps (it reached the airborne captain:
   Stagger), and the air unleash is polled up to 20 ticks for Technique/Plunge instead of a fixed 4.
+
+## 2026-10-22: the weapon mastery pass, the axe (awakening resumed, the Bearded Guard)
+- **Resumed** the paused axe pass (docs/axe_polish_plan.md): piece 1 (b5ecb5d: the combo on swing paths, AxeMoves, the
+  drawn iron crescent, DrawnFx) back by reverting its revert; DrawnFx reaches Net through the tree (the static-autoload lint).
+- **The drawn fire awakening** (Progression.elemental("axe")): `BladeEmbers` (scripts/game/blade_embers.gd, the BladePetals
+  pattern: two crossed sheets of ember_trail.png off the bit's edge, one shared stepped material, 5 world-space cinders;
+  Player NF_EMBERS 128 for puppets). `FX.elem_hit("axe")`: ember_slash + ember_cloud + cinders; `FX.element("axe")`: drawn
+  cinders (and a gout of ember_cloud from 8 up), so the finisher's crack, Skybreaker's line, Earthsplitter's line and the
+  techniques' `_spray` are drawn. The whirlwind heavy lays a drawn slash along the bit each turn (HeavyAttackState
+  "drawn"; the fixed spin arc went); Skybreaker's dive is a drawn slash, its landing a fire crescent. `FX.drawn_arc(kind, ...)`
+  (katana_arc for any drawn kind): Maelstrom's turns are drawn crescents round you at three heights (the geometry vortex
+  went) and a flat ring of it at the burst; the thrown axe leaves a drawn crescent of its spin every 2 m; Earthsplitter's
+  bite a standing crescent; Berserk's roar a ring of fire puffs (awakened).
+- **The mastered guard** (every weapon gets one, docs/v1_18_4_plan.md "Mastered guard"): `Humanoid.guard2` (synced in
+  HumanoidSync), `MasteredGuard` (scripts/player_states/mastered_guard.gd): the tree's node `guard2_<tree>`, a double-tap of
+  block (two parry presses within 0.32 s, InputBuffer.pressed) toggles it any time on foot, the pick per tree in
+  Progression.guards (saved). The axe's is the **Bearded Guard** (Zach's pick of two, 2026-10-22; Brute 15, a_guard2): square,
+  choked up two-handed across the front, the head up past the left shoulder (opened so the bit shows from the game camera).
+  Its grips (guard, a two-handed haft block, port-arms sprint) are held by PoleMoves.hands from AxeMoves.GRIPS2; its body
+  AxeMoves.GUARD2 / LEGS2. The combo's first key already sits at its right hand, so the hack comes straight out of it.
+- **Tools:** guardsheet rows `<weapon>2` (a mastered guard), env GS_AURA=1 (the awakened auras). Renders:
+  tools/dev/out/axe_guard2/ (the candidates in candidates/), tools/dev/out/axe_awake/ (combo, heavy, maelstrom,
+  earthsplitter, auras).
+- **Tests:** t/weapons/axe_guard, t/fx/embers, t/combat/axe_slash. Per frame added: BladeEmbers steps one shared material
+  once a frame while an awakened axe is drawn; nothing else per frame (MasteredGuard.on is a cached stat read).
+- Open: Skyfall Smash and War Cry (the axe plan's piece 4) are the next axe piece; the aura is small when the axe hangs
+  low in the brawler's guard (bigger from the Bearded Guard).
 - Skill icons for the polearm, hammer, twin-axe, greatsword and black-leg techniques (20, 24 px, each tree's FX.TREE_FX
   colours) from `gen_technique_icons` (`py tools/texture_gen/gen_psx_textures.py technique_icons` regenerates only those);
   techtest's "every skill has an icon" passes again, t/ui too.
@@ -5581,6 +5608,23 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   shadow, visibility range 60 m).
 - **Tests**: t/player/dodge_styles, sidestep_slip, afterimage. Render: animsheet `dodge_roll,sidestep`.
 
+## 2026-10-22: the weapon mastery pass, the katana's variant moves (Side Step, Twin Waves, Falling Moon)
+- **The tree** (skill_trees.gd): Iai Counter, Wind Severer and the air attack are variants now (docs/progression_plan.md's
+  katana draft): k_counter (Draw Cut = iai_counter / Side Step = side_step, 8), k_wind (Towering Wave = wind_sever, 5 /
+  Twin Waves = twin_waves, 18), k_arc "Air Cut" (Crescent Arc = mv_air_slash, 7 / Falling Moon = mv_falling_moon, 15). The
+  node ids are kept, so an old save owns the variant with its first version active (the old node); prices stay the old
+  nodes' (`_variant` returns the node, `["cost"]`). Switched at the ship's bunk like every variant.
+- **Side Step** (TechniqueState: the iai guard, `_guard_id`): the caught blow meets an afterimage; you're out at the
+  attacker's side (the camera's side, `_blink_side`, a streak; a line of cloud and petals awakened), then the same
+  unblockable drawing cut. **Twin Waves**: Wind Severer's rising cut, then the kesa out of its top (katana_r at 0.42 s): a
+  wave off each (0.3 / 0.72 s), sent from 1.2 m either side to cross 7 m ahead, 26 each (`_twin_wave`).
+  **Falling Moon** (PlungeState "falling_moon", once per jump; `air_move` picks it for the katana): a spring up, the blade
+  raised, one forward turn with it held out (KatanaMoves.moon; the drawn slash along the blade draws the full moon),
+  a dive, then down on one knee (moon_land) and a crescent of the drawn strip run 5 m along the ground ahead
+  (katana_line; cloud and petals awakened) that knocks everyone on it flat (a box like Skybreaker's line).
+- Icons: skill_twin_waves, skill_side_step, skill_falling_moon (gen_psx_textures.py techniques).
+- Test: t/weapons/katana_variants. The mastered guard's candidates (hasso / waki) are in KatanaMoves for Zach's pick
+  (`preview`; not on a node yet).
 ## 2026-10-22: the Adventure trees' moves, piece 2: Moonstep and Crash Landing
 - **Nodes** (Acrobatics Air branch): Featherfall became the landing variant `ac_feather` "Landing" at 15 (same id, so
   a save that bought Featherfall owns the variant with Featherfall active): versions `ac_featherfall` Featherfall

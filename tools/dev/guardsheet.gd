@@ -3,6 +3,7 @@ extends SceneTree
 ## several views, one sheet per view (five weapons to a row): <out_dir>/sheet_<mode>_<view>.png.
 ## Args: <out_dir> [mode: guard | walk | run | sprint | after:<action> (played, then shot `GS_AT` s after it
 ## ends: the settle)] [only: row names, comma separated] [views: three,side,back].
+## A row's fifth field (true): the stance's mastered guard (Humanoid.guard2), rows named <weapon>2.
 ## Env GS_AT: seconds to step before the shot (default 1.5; after:<action>, seconds after its end, default 0.1).
 ## Env GS_MOVE="x,y": the travel direction relative to the facing (Humanoid.local_move, y+ forward; default 0,1).
 ## Prints FEET <row> l=<m> r=<m>: each ankle's height off the floor (the sole sits ~0.06 under it).
@@ -12,7 +13,10 @@ const ROWS := [
 	["dual_pistol", "dual_pistol", "pistol", "pistol"], ["corsair", "sword_pistol", "cutlass", "pistol"],
 	["dual_dagger", "dual_dagger", "dagger", "dagger"], ["dual_sword", "dual_sword", "cutlass", "cutlass"],
 	["polearm", "polearm", "polearm", ""], ["hammer", "hammer", "hammer", ""], ["greatsword", "greatsword", "greatsword", ""],
-	["dual_axe", "dual_axe", "axe", "axe"], ["unarmed", "", "", ""]]
+	["dual_axe", "dual_axe", "axe", "axe"], ["unarmed", "", "", ""],
+	["axe2", "axe", "axe", "", true], ["katana2a", "katana", "katana", "", "a"], ["katana2b", "katana", "katana", "", "b"]]
+## Env GS_AURA=1: the awakened weapon's aura on it (stance -> its class).
+var AURAS := {"sword": BladeWater, "katana": BladePetals, "axe": BladeEmbers}
 const COLS := 5
 const FW := 300
 const FH := 400
@@ -113,6 +117,10 @@ func _shoot(r: Array, mode: String, views: Array) -> Dictionary:
 		h._attach_weapon(true)
 		h.auto_point_guns = true
 	h.armed = r[1] != ""
+	if r.size() > 4 and r[4]:
+		h.guard2 = true
+		if r[4] is String:
+			KatanaMoves.preview = r[4]
 	var spd: float = SPEED.get(mode, 0.0)
 	h.ground_speed = spd
 	h.local_move = Vector2(0, 1)
@@ -121,6 +129,8 @@ func _shoot(r: Array, mode: String, views: Array) -> Dictionary:
 		h.local_move = Vector2(float(mv[0]), float(mv[1])).normalized()
 	h.sprinting = mode == "sprint"
 	await process_frame
+	if OS.get_environment("GS_AURA") != "" and r[1] in AURAS:
+		AURAS[r[1]].keep(h, true)
 	h.set_process(false)
 	var at := float(OS.get_environment("GS_AT")) if OS.get_environment("GS_AT") != "" else -1.0
 	if mode.begins_with("after:"):

@@ -6,7 +6,6 @@ scripts/enemies/beasts/beast_fx.gd | existing before the lint (2026-10-21): reac
 scripts/fishing/fishing.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
 scripts/game/camp.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
 scripts/game/downtime.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
-scripts/game/katana_fx.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
 scripts/game/save_game.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
 scripts/island/kit/kit_houses.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
 scripts/island/kit/kit_landmarks.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked

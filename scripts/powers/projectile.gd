@@ -266,11 +266,12 @@ func _element(at: Vector3, d: Vector3, amount: int, spd: float) -> void:
 	FX.element(_tree(), at, d, amount, spd * (0.8 if kind == "wave" else 1.0))
 
 
-## The thrown axe's wake: a ring of air every turn or so, embers once its element is awakened.
+## The thrown axe's wake: a drawn crescent every turn or so, cinders once its element is awakened.
 func _axe_wake(moved: float) -> void:
 	if int(_travel / 2.0) == int((_travel - moved) / 2.0):
 		return
-	FX.ring(global_position, dir if not _back else Vector3.UP, 0.7, FX.tree_col(_tree(), FX.EDGE), 0.18, 0.12)
+	# (a drawn crescent of its spin: iron, or fire once awakened)
+	FX.drawn_arc("axe", global_position, Vector3.UP, -dir if not _back else dir, 0.55, PI * 1.2, 0.4, _elemental(), 0.08, int(_travel * 10.0) % 1000)
 	if _elemental():
 		_element(global_position, -dir + Vector3.UP * 0.5, 4, 2.0)
 

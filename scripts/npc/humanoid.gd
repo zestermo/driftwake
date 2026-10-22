@@ -167,6 +167,11 @@ var pole_still := 0.0
 var pole_plant_w := 0.0
 ## Black-leg's Nonchalance (BlackLegMoves): the guard is hands in the pockets (set by the player, synced to puppets).
 var kick_pockets := false
+## The weapon's mastered guard (its tree's big node, toggled by the player; synced to puppets): the second stance.
+var guard2 := false
+## Stances with a mastered guard -> the moves file holding it (GUARD2, LEGS2, GRIPS2 [guard, block, run]; guard(h),
+## legs(h)); its grips are held by PoleMoves.hands.
+static var MASTERED := {"axe": AxeMoves, "katana": KatanaMoves}
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
 ## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
@@ -828,9 +833,9 @@ func _guard() -> Dictionary:
 		"pistol":
 			return PISTOL_GUARD
 		"axe":
-			return AXE_GUARD
+			return AxeMoves.guard(self)
 		"katana":
-			return KATANA_GUARD
+			return KatanaMoves.guard(self)
 		"polearm":
 			return PoleMoves.GUARD
 		"hammer":
@@ -1502,6 +1507,10 @@ func _action_pose(n: String, u: float) -> Array:
 			return KatanaMoves.iai(self, u)
 		"tiger_rush":
 			return KatanaMoves.tiger(self, u)
+		"falling_moon":
+			return KatanaMoves.moon(self, u)
+		"moon_land":
+			return KatanaMoves.moon_land(self, u)
 		"air_slash":
 			# katana air attack: a swing path (KatanaMoves.AIR_SWING) on this body
 			return KatanaMoves.air(self, u)
@@ -1577,52 +1586,13 @@ func _action_pose(n: String, u: float) -> Array:
 				lift.y = -0.32 * (1.0 - _ease(clampf((u - 0.58) / 0.42, 0.0, 1.0)))
 			return [_keys(u, [[0.0, _guard()], [0.27, coil, "out"], [0.31, coil], [0.4, lunge, "out"], [0.47, reach], [0.58, reach], [1.0, _guard()]]), "full", lift]
 		# --- axe: heavy hacks with the body behind them ---
+		# (the combo: swing paths and body keys in AxeMoves)
 		"axe_hack":
-			# combo 1: the axe hauled up over the right shoulder, then hacked down
-			# across the body to the lower left through a lunge
-			var lunge := {"leg_l": Vector3(0.95, 0, -0.1), "shin_l": Vector3(-0.95, 0, 0), "leg_r": Vector3(-0.7, 0, 0.1), "shin_r": Vector3(-0.3, 0, 0)}
-			var wind := {"arm_r": Vector3(2.4, 0.6, 1.3), "fore_r": Vector3(1.3, 0, 0), "hand_r": Vector3(0.35, 0, 0),
-				"torso": Vector3(0.15, 1.0, 0.12), "head": Vector3(0.0, -0.7, 0), "arm_l": Vector3(0.8, 0, -0.5), "fore_l": Vector3(1.1, 0, 0)}
-			var hit := {"arm_r": Vector3(0.9, -0.85, -0.95), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-0.6, 0, 0),
-				"torso": Vector3(-0.5, -0.95, -0.12), "head": Vector3(-0.05, 0.75, 0), "arm_l": Vector3(0.25, 0, -1.25), "fore_l": Vector3(0.45, 0, 0)}
-			lift.y = _strike_lift(u, 0.36, 0.48, 0.68, -0.06, -0.3)
-			return [_keys(u, [[0.0, _guard()], [0.3, wind.merged(lunge), "out"], [0.36, wind.merged(lunge)], [0.48, hit.merged(lunge), "in"], [0.68, hit.merged(lunge)], [1.0, _guard()]]), "full", lift]
+			return AxeMoves.hack(self, u)
 		"axe_hook":
-			# combo 2: dropped low on the left, then ripped up and across to the
-			# right, the beard leading, stepping through with the other foot
-			var crouch := {"leg_l": Vector3(0.5, 0, -0.14), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.2, 0, 0.14), "shin_r": Vector3(-0.8, 0, 0)}
-			var stride := {"leg_l": Vector3(-0.55, 0, -0.1), "shin_l": Vector3(-0.35, 0, 0), "leg_r": Vector3(0.95, 0, 0.1), "shin_r": Vector3(-0.9, 0, 0)}
-			var low := {"arm_r": Vector3(0.35, -0.7, -0.85), "fore_r": Vector3(1.1, 0, 0), "hand_r": Vector3(-0.3, 0, 0),
-				"torso": Vector3(0.3, -1.05, -0.1), "head": Vector3(-0.1, 0.8, 0), "arm_l": Vector3(0.5, 0, -0.5), "fore_l": Vector3(1.3, 0, 0)}
-			var rise := {"arm_r": Vector3(2.5, 0.55, 1.3), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-0.7, 0, 0),
-				"torso": Vector3(-0.3, 1.0, 0.12), "head": Vector3(0.1, -0.7, 0), "arm_l": Vector3(0.4, 0, -1.4), "fore_l": Vector3(0.3, 0, 0)}
-			if u < 0.34:
-				lift.y = -0.22 * _ease(u / 0.34)
-			elif u < 0.46:
-				lift.y = lerpf(-0.22, 0.02, 1.0 - pow(1.0 - (u - 0.34) / 0.12, 3.0))
-			else:
-				lift.y = 0.02 * (1.0 - _ease(clampf((u - 0.66) / 0.34, 0.0, 1.0)))
-			return [_keys(u, [[0.0, _guard()], [0.28, low.merged(crouch), "out"], [0.34, low.merged(crouch)], [0.46, rise.merged(stride), "in"], [0.66, rise.merged(stride)], [1.0, _guard()]]), "full", lift]
+			return AxeMoves.hook(self, u)
 		"axe_split":
-			# combo 3: both hands on the haft, the axe raised high over the head,
-			# a little hop, then smashed down into the ground through a deep lunge
-			var coil := {"leg_l": Vector3(0.6, 0, -0.15), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(0.3, 0, 0.15), "shin_r": Vector3(-1.1, 0, 0)}
-			var air := {"leg_l": Vector3(1.0, 0, -0.1), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(0.2, 0, 0.1), "shin_r": Vector3(-0.9, 0, 0)}
-			var raise := {"arm_r": Vector3(3.15, 0.15, 0.2), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0.5, 0, 0),
-				"arm_l": Vector3(3.0, -0.15, 0.2), "fore_l": Vector3(1.35, 0, 0), "torso": Vector3(0.45, 0.1, 0), "head": Vector3(0.3, 0, 0)}
-			# (arms reaching out ahead of the bent body: the head bites the ground in front)
-			var smash := {"arm_r": Vector3(1.3, 0, 0.0), "fore_r": Vector3(-0.1, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
-				"arm_l": Vector3(1.4, 0, 0.12), "fore_l": Vector3(0.2, 0, 0), "torso": Vector3(-0.9, 0, 0), "head": Vector3(-0.35, 0, 0),
-				"leg_l": Vector3(1.15, 0, -0.1), "shin_l": Vector3(-1.25, 0, 0), "leg_r": Vector3(-0.85, 0, 0.1), "shin_r": Vector3(-0.15, 0, 0)}
-			if u < 0.3:
-				lift.y = -0.2 * _ease(u / 0.3)
-			elif u < 0.42:
-				lift.y = lerpf(-0.2, 0.18, _ease((u - 0.3) / 0.12))
-			elif u < 0.5:
-				lift.y = lerpf(0.18, -0.4, (u - 0.42) / 0.08)
-			else:
-				lift.y = -0.4 * (1.0 - _ease(clampf((u - 0.72) / 0.28, 0.0, 1.0)))
-			return [_keys(u, [[0.0, _guard()], [0.3, raise.merged(coil), "out"], [0.42, raise.merged(air)], [0.5, smash, "in"], [0.72, smash], [1.0, _guard()]]), "full", lift]
+			return AxeMoves.split(self, u)
 		"axe_whirl":
 			# heavy: the axe swung out wide in both hands and the whole body turned
 			# round twice with it, feet set wide and low
@@ -2422,7 +2392,7 @@ func _locomotion(delta: float) -> Dictionary:
 				lift.y -= 0.03 * walk + absf(s) * 0.025 * walk
 			if walk < 0.5:
 				var st := 1.0 - walk * 2.0
-				var ss: Dictionary = STANCE_LEGS.get(stance, STANCE_LEGS[""])
+				var ss: Dictionary = MASTERED[stance].legs(self) if stance in MASTERED else STANCE_LEGS.get(stance, STANCE_LEGS[""])
 				p["leg_l"] += (ss["leg_l"] as Vector3) * st
 				p["leg_r"] += (ss["leg_r"] as Vector3) * st
 				p["shin_l"] += Vector3(ss["shin_l"].x, 0, 0) * st
@@ -2847,7 +2817,7 @@ func _process(delta: float) -> void:
 	if auto_point_guns:
 		point_guns()
 	StanceLife.grip(self, delta)
-	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0:
+	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0 or guard2 and stance in MASTERED:
 		PoleMoves.hands(self, delta)
 	if stance == "black_leg":
 		BlackLegMoves.hands(self, delta)

@@ -213,6 +213,10 @@ const NF_TIDE := 16
 const NF_PETALS := 32
 ## Sea King Fist armed: the galaxy glow on the fist.
 const NF_GALAXY := 64
+## The axe drawn with its fire awakened (BladeEmbers: flames licking off the bit).
+const NF_EMBERS := 128
+## The last parry press (game time), for the mastered guard's double-tap (MasteredGuard).
+var parry_tap := -10.0
 
 
 func _ready() -> void:
@@ -247,6 +251,9 @@ func _ready() -> void:
 	_give_starting_items()
 	GameManager.register_player(self)
 	hurtbox.hit_received.connect(_on_hit_received)
+	input_buffer.pressed.connect(func(a: String, at: float) -> void:
+		if a == "parry" and context == Context.ON_FOOT:
+			MasteredGuard.tapped(self, at))
 	sword_hitbox.hit_landed.connect(func(target: Node, data: HitData): power.on_sword_hit(target, data))
 	health_component.died.connect(_on_died)
 	_recalc_stats()
@@ -760,6 +767,7 @@ func _process(delta: float) -> void:
 	body_model.armed = armed
 	body_model.sprinting = sprinting
 	body_model.stance = style()
+	body_model.guard2 = MasteredGuard.on(self)
 	_update_head_look()
 	_tick_body(delta)
 	_emote_tick()
@@ -767,6 +775,7 @@ func _process(delta: float) -> void:
 	_lantern_tick()
 	BladeWater.keep(body_model, _tide_on())
 	BladePetals.keep(body_model, _petals_on())
+	BladeEmbers.keep(body_model, _embers_on())
 	FistArts.keep_glow(body_model, fist_armed > 0.0)
 	heal_cd = maxf(heal_cd - delta, 0.0)
 	_quick_tick(delta)
@@ -2534,6 +2543,10 @@ func _petals_on() -> bool:
 	return armed and not hybrid and style() == "katana" and progression.elemental("katana")
 
 
+func _embers_on() -> bool:
+	return armed and not hybrid and style() == "axe" and progression.elemental("axe")
+
+
 ## Our snapshot (~20 times a second): where, how, and the body's state.
 func net_pack() -> Array:
 	var pos := global_position
@@ -2556,6 +2569,8 @@ func net_pack() -> Array:
 		flags |= NF_TIDE
 	if _petals_on():
 		flags |= NF_PETALS
+	if _embers_on():
+		flags |= NF_EMBERS
 	if fist_armed > 0.0:
 		flags |= NF_GALAXY
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
@@ -2631,6 +2646,7 @@ func _puppet_process(delta: float) -> void:
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	BladeWater.keep(body_model, bool(_net_flags & NF_TIDE))
 	BladePetals.keep(body_model, bool(_net_flags & NF_PETALS))
+	BladeEmbers.keep(body_model, bool(_net_flags & NF_EMBERS))
 	FistArts.keep_glow(body_model, bool(_net_flags & NF_GALAXY))
 	# knocked down: the body lies (or floats) exactly where theirs does
 	if body_model.ragdoll and (b[11] as Array).size() > 0:
