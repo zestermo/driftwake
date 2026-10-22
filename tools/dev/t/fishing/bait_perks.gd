@@ -1,7 +1,7 @@
 extends SceneTree
 ## Bait and Fishing's perks: with no bait picked the best carried goes on the hook; a click in the bag picks one
 ## (marked B, saved); worms bring bites sooner; a landed catch uses one up, Bait Saver keeps some; Cut bait on the
-## action wheel turns a crab into shrimp bait. Fishing's perks come at their levels (Bait Saver at 8, Master Angler
+## action wheel turns a crab into shrimp bait. Fishing's perks are bought at their levels (Bait Saver at 8, Master Angler
 ## at 20) and are read: the window, the legendary odds.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -67,7 +67,8 @@ func _process(_d: float) -> bool:
 			var pr = p.progression
 			while pr.mastery_level("fish") < 8:
 				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish")))
-			check("Bait Saver at Fishing 8 (%.2f)" % pr.stat("fish_bait_save"), pr.owned.has("fs_saver") and pr.stat("fish_bait_save") > 0.0)
+			pr.buy("fs_saver")
+			check("Bait Saver bought at Fishing 8 (%.2f, %s)" % [pr.stat("fish_bait_save"), pr.buy_why("fs_saver")], pr.owned.has("fs_saver") and pr.stat("fish_bait_save") > 0.0)
 			give("bait_worm", 30)
 			var had: int = inv.count("bait_worm")
 			for i in range(30):
@@ -78,6 +79,7 @@ func _process(_d: float) -> bool:
 			var w0: float = F.window(p, "driftwood")
 			while pr.mastery_level("fish") < 20:
 				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish")))
+			pr.buy("fs_master")
 			check("Master Angler at Fishing 20: twice the legendary odds and a longer window (%.2f -> %.2f s)" % [w0, F.window(p, "driftwood")],
 				pr.owned.has("fs_master") and is_equal_approx(pr.stat("fish_legend"), 1.0) and F.window(p, "driftwood") > w0)
 			var AW = load("res://scripts/game/action_wheel.gd")
