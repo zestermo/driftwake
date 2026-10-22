@@ -5500,3 +5500,27 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   Renders: animsheet gs_1..gs_rush (`tools/dev/out/gs_before_*`, `gs_after_*`), guardsheet walk greatsword.
 - Per frame added: the grip's arc (two slerps) while a gs_ move plays; an atan2/asin steer only while the blade is
   turned far round between grips at rest.
+
+## 2026-10-21: unarmed polish (Zach's play-test of the fists and black-leg)
+- **Kick and punch loadouts** already worked (taught black-leg; in the bag, I, click the empty main-hand slot to
+  switch fists/kicks; that's what the loadout in use keeps; X onto the next loadout sets it up with what's in your
+  hands, click the slot again there). Fixed: a swap carried the combo's place over (fists' jab, then X, the kicks
+  started on bl_2): `Player._apply_loadout` resets the combo. The new-loadout toast names the hand slot once
+  black-leg is known. Test `t/weapons/kick_loadouts` sets it up that way and swaps both ways.
+- **Handstand Spin** (black-leg's fourth, `bl_4`; the fists' old roundhouse path is gone, their fourth is the
+  uppercut): 0.95 s (was 1.1; hit, trail and chain are in u so they scale together: hit = swoosh = the spin's
+  window). The legs' plane is tipped up to `BlackLegMoves.SPIN_TILT` (0.24 rad, eased in/out over the spin) with its
+  direction held against the turn and wandering (`SPIN_PRECESS` -0.3 turn per turn): pivot x/z get
+  `tilt * cos/sin(dir)`, the y spin stays unwrapped for the smoothing. Steerable at a creep: LightAttack's per-hit
+  `"steers"` (m/s at full stick, `STEER_SPIN` 1.3) is the velocity target instead of 0 until the chain opens.
+- **Fist-stance jumps:** the air pose and MovePoses' jumps/landings kept the right arm at the guard whenever
+  `armed`; now only with a weapon out (`Humanoid._weapon_out()`: armed, stance not fist/black_leg), so a jump with
+  the fists up is the plain jump.
+- **Readying/dropping the fists** (fists and kicks): `fists_up` (0.42 s, swaps 0.3) and new `fists_down` (0.4 s;
+  was the blade's hip sheathe, one arm): both arms thrown out ahead and wide a little below the shoulders
+  (`Humanoid.FIST_CHAMBER`), the chest squared over the stance's turned hips (`_square`), then up together
+  (`FIST_RAISE`) into the guard, or down to the sides.
+- **Tested:** new `t/weapons/kick_loadouts`, `black_leg_spin` (slope of the feet's line -0.18..0.26, high-foot bearing
+  0.89 rad apart between turns, 1.3 m/s held forward), `fists_ready` (chamber hands mirrored within 0.1 m; stance jump
+  hands equal the plain jump's); black_leg_*, fist_combo, draw_sheathe, loadout_swap. Renders `tools/dev/out/unarmed/`
+  (fists_00, jumps_00/01, spin_00). Per frame added: nothing new (a few trig calls in bl_4's pose while it plays).
