@@ -46,7 +46,7 @@ static func legs(h) -> Dictionary:
 	return LEGS2[preview] if h.guard2 else Humanoid.STANCE_LEGS["dual_sword"]
 
 
-static func grips2() -> Array:
+static func grips2(_h) -> Array:
 	return []
 
 

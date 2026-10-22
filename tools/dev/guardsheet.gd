@@ -14,7 +14,7 @@ const ROWS := [
 	["dual_dagger", "dual_dagger", "dagger", "dagger"], ["dual_sword", "dual_sword", "cutlass", "cutlass"],
 	["polearm", "polearm", "polearm", ""], ["hammer", "hammer", "hammer", ""], ["greatsword", "greatsword", "greatsword", ""],
 	["dual_axe", "dual_axe", "axe", "axe"], ["unarmed", "", "", ""],
-	["axe2", "axe", "axe", "", true], ["katana2", "katana", "katana", "", true], ["cutlass2", "sword", "cutlass", "", true], ["dagger2a", "dagger", "dagger", "", "a"], ["dagger2b", "dagger", "dagger", "", "b"], ["dual2a", "dual_sword", "cutlass", "cutlass", "a"], ["dual2b", "dual_sword", "cutlass", "cutlass", "b"]]
+	["axe2", "axe", "axe", "", true], ["katana2", "katana", "katana", "", true], ["cutlass2", "sword", "cutlass", "", true], ["dagger2a", "dagger", "dagger", "", "a"], ["dagger2b", "dagger", "dagger", "", "b"], ["dual2a", "dual_sword", "cutlass", "cutlass", "a"], ["dual2b", "dual_sword", "cutlass", "cutlass", "b"], ["twin2a", "dual_dagger", "dagger", "dagger", "a"], ["twin2b", "dual_dagger", "dagger", "dagger", "b"]]
 ## Env GS_AURA=1: the awakened weapon's aura on it (stance -> its class).
 var AURAS := {"sword": BladeWater, "katana": BladePetals, "axe": BladeEmbers}
 const COLS := 5
@@ -122,6 +122,7 @@ func _shoot(r: Array, mode: String, views: Array) -> Dictionary:
 		if r[4] is String:
 			DaggerMoves.preview = r[4]
 			WieldMoves.preview = r[4]
+			DaggerMoves.twin_preview = r[4]
 	var spd: float = SPEED.get(mode, 0.0)
 	h.ground_speed = spd
 	h.local_move = Vector2(0, 1)

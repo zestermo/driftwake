@@ -169,7 +169,7 @@ var kick_pockets := false
 var guard2 := false
 ## Stances with a mastered guard -> the moves file holding it (GUARD2, LEGS2, GRIPS2 [guard, block, run]; guard(h),
 ## legs(h)); its grips are held by PoleMoves.hands.
-static var MASTERED := {"axe": AxeMoves, "katana": KatanaMoves, "sword": SwordMoves, "dagger": DaggerMoves, "dual_sword": WieldMoves}
+static var MASTERED := {"axe": AxeMoves, "katana": KatanaMoves, "sword": SwordMoves, "dagger": DaggerMoves, "dual_sword": WieldMoves, "dual_dagger": DaggerMoves}
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
 ## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
@@ -820,7 +820,7 @@ func _guard() -> Dictionary:
 		"dagger":
 			return DaggerMoves.guard(self)
 		"dual_dagger":
-			return DaggerMoves.DUAL_GUARD
+			return DaggerMoves.guard(self)
 		"dual_axe":
 			return DualAxeMoves.GUARD
 		"black_leg":

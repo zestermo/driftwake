@@ -340,9 +340,9 @@ static func hands(h, delta: float) -> void:
 	elif st == "greatsword":
 		grips = GreatswordMoves.GRIPS
 	# (a mastered guard with grips is held here; one without (two blades) is keyed)
-	var held2: bool = h.guard2 and st in Humanoid.MASTERED and not Humanoid.MASTERED[st].grips2().is_empty()
+	var held2: bool = h.guard2 and st in Humanoid.MASTERED and not Humanoid.MASTERED[st].grips2(h).is_empty()
 	if held2:
-		grips = Humanoid.MASTERED[st].grips2()
+		grips = Humanoid.MASTERED[st].grips2(h)
 	var on: bool = (st in ["polearm", "hammer", "greatsword"] or held2) and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
 		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and (Humanoid.kind_of(h.weapon) == st or held2) \
 		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD and st not in ONE_HAND_GUARDS)

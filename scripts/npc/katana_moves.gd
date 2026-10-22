@@ -29,7 +29,7 @@ static func legs(h) -> Dictionary:
 	return LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["katana"]
 
 
-static func grips2() -> Array:
+static func grips2(_h) -> Array:
 	return GRIPS2
 
 
