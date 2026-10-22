@@ -39,14 +39,17 @@ const SPRINT_ONLY := ["sword", "sword_pistol", "dual_sword", "axe"]
 const ANY_WAY := ["greatsword"]
 const MOVE_ON := 1.2
 const MOVE_OFF := 0.8
-## Stance -> the carry's arms (the chest's frame; `swing` scales the stride's swing added to the shoulders' x).
+const CUTLASS_RUN := {"arm_r": Vector3(0.35, 0, 0.25), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(0.45, -0.45, 0), "swing": 1.0, "steady": true}
+## Stance -> the carry's arms (the chest's frame; `swing` scales the stride's swing added to the shoulders' x; `steady`:
+## the wrists take the swing back out, so the blade holds one angle to the chest through the stride).
 const CARRIES := {
-	# the cutlass in the hand hanging at the right side, the blade trailed back and out from the hip, its flat turned
-	# up to the camera behind (2026-10-21: the arm swung back behind the hip read as the sword dragged down behind)
-	"sword": {"arm_r": Vector3(-0.2, 0, 0.3), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(-2.6, 0.5, 1.0), "swing": 0.35},
-	"sword_pistol": {"arm_r": Vector3(-0.2, 0, 0.3), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(-2.6, 0.5, 1.0), "swing": 0.35},
-	"dual_sword": {"arm_r": Vector3(-0.2, 0, 0.3), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(-2.6, 0.5, 1.0),
-		"arm_l": Vector3(-0.2, 0, -0.3), "fore_l": Vector3(0.4, 0, 0), "hand_l": Vector3(-2.6, -0.5, -1.0), "swing": 0.35},
+	# the cutlass sprint: the sword arm pumping bent in front of the chest, the blade held steady up and back past the
+	# right shoulder (2026-10-21: the trailed blade read as dangling down behind and turned round with the stride)
+	"sword": CUTLASS_RUN,
+	"sword_pistol": CUTLASS_RUN,
+	"dual_sword": {"arm_r": CUTLASS_RUN["arm_r"], "fore_r": CUTLASS_RUN["fore_r"], "hand_r": CUTLASS_RUN["hand_r"],
+		"arm_l": CUTLASS_RUN["arm_r"] * Vector3(1, -1, -1), "fore_l": CUTLASS_RUN["fore_r"], "hand_l": CUTLASS_RUN["hand_r"] * Vector3(1, -1, -1),
+		"swing": CUTLASS_RUN["swing"], "steady": true},
 	# the axe over the right shoulder, the head behind it
 	"axe": {"arm_r": Vector3(0.35, 0.25, 0.3), "fore_r": Vector3(2.2, 0, 0), "hand_r": Vector3(0.1, 0, 0), "swing": 0.0},
 	# reverse grip, the blades back along the forearms, arms pumping hard
@@ -80,12 +83,16 @@ static func carry(h, p: Dictionary, gait: Dictionary, s: float) -> void:
 			p[j] = (p[j] as Vector3).lerp(gait[j], k)
 	var c: Dictionary = CARRIES[h.stance]
 	var sw := float(c["swing"])
+	var steady: bool = c.get("steady", false)
 	for j in c.keys():
-		if j == "swing":
+		if j in ["swing", "steady"]:
 			continue
 		var v: Vector3 = c[j]
+		var side := 1.0 if j.ends_with("_r") else -1.0
 		if j.begins_with("arm_"):
-			v.x += s * 0.35 * sw * (1.0 if j == "arm_r" else -1.0)
+			v.x += s * 0.35 * sw * side
+		elif steady and j.begins_with("hand_"):
+			v.x -= s * 0.35 * sw * side
 		p[j] = (p[j] as Vector3).lerp(v, k)
 	# (the pumping arms: the run's own swing, made bigger)
 	if sw > 1.0:

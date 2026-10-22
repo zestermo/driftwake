@@ -38,7 +38,7 @@ class_name ActionSpecs
 ## AnimLab variants override any of this while picked.
 
 ## Stances with their own parry pose (Humanoid "parry" plays it) and flourish (ParryState plays it when a parry lands).
-const PARRIES := {"dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
+const PARRIES := {"sword": ["sw_parry", "sw_deflect"], "dual_sword": ["dual_parry", "dual_deflect"], "dagger": ["dg_parry", "dg_deflect"], "dual_dagger": ["dd_parry", "dd_deflect"],
 	"polearm": ["pole_parry", "pole_deflect"], "hammer": ["ham_parry", "ham_deflect"],
 	"dual_axe": ["dx_parry", "dx_deflect"], "greatsword": ["gs_parry", "gs_deflect"], "black_leg": ["bl_parry", "bl_deflect"]}
 
@@ -68,6 +68,8 @@ const SPECS := {
 	"parry": {"len": 0.66, "stance": "sword", "weapon": "cutlass"},
 	"guard_block": {"len": 0.24, "hold": true, "stance": "sword", "weapon": "cutlass"},
 	"guard_block_hit": {"len": 0.2, "stance": "sword", "weapon": "cutlass"},
+	"sw_parry": {"len": 0.66, "stance": "sword", "weapon": "cutlass"},
+	"sw_deflect": {"len": 0.42, "stance": "sword", "weapon": "cutlass"},
 	# (the stances with their own parry and flourish, PARRIES; *_stance and *_block are previews:
 	# the stance as it stands, the held guard_block)
 	"dual_parry": {"len": 0.66, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
