@@ -1335,6 +1335,9 @@ func _on_landed(impact_vy: float) -> void:
 		if speed > SAFE_FALL_SPEED:
 			state_machine.states["skyleap"].crater(speed)
 			return
+	elif speed > state_machine.states["fall"].CRASH_SPEED and progression.has_flag("crash_landing") and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
+		state_machine.states["fall"].crash(speed)
+		return
 	elif speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
 		_fall_damage(speed)
 	if k < 0.15:
@@ -1349,8 +1352,9 @@ func _on_landed(impact_vy: float) -> void:
 	Net.fx("sfx", ["step_" + surf, global_position, -6.0 + 6.0 * k, 0.05, 0.85])
 
 
-func _fall_damage(speed: float) -> void:
-	var dmg := (speed - SAFE_FALL_SPEED) * FALL_DAMAGE_PER_MS
+## (`k` scales it; `reel` false: no stagger, as in a Crash Landing)
+func _fall_damage(speed: float, k: float = 1.0, reel: bool = true) -> void:
+	var dmg := (speed - SAFE_FALL_SPEED) * FALL_DAMAGE_PER_MS * k
 	if power.buff("tekkai"):
 		dmg *= 0.3
 	if progression.has_flag("featherfall"):
@@ -1363,7 +1367,7 @@ func _fall_damage(speed: float) -> void:
 	Net.fx("dust_ring", [global_position, 18, 1.2])
 	CombatManager.apply_camera_shake(clampf(dmg / 60.0, 0.1, 0.4))
 	Net.damage_number(roundf(dmg), global_position + Vector3(0, 1.9, 0))
-	if health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai") and current_state_name() != "Downed":
+	if reel and health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai") and current_state_name() != "Downed":
 		state_machine.force_state("Stagger", {"stagger_duration": 0.55, "knockback_dir": Vector3.ZERO, "knockback_force": 0.0, "flinch": false})
 
 

@@ -5625,3 +5625,25 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - Icons: skill_twin_waves, skill_side_step, skill_falling_moon (gen_psx_textures.py techniques).
 - Test: t/weapons/katana_variants. The mastered guard's candidates (hasso / waki) are in KatanaMoves for Zach's pick
   (`preview`; not on a node yet).
+## 2026-10-22: the Adventure trees' moves, piece 2: Moonstep and Crash Landing
+- **Nodes** (Acrobatics Air branch): Featherfall became the landing variant `ac_feather` "Landing" at 15 (same id, so
+  a save that bought Featherfall owns the variant with Featherfall active): versions `ac_featherfall` Featherfall
+  (`featherfall`, as before) and `ac_crash` Crash Landing (`crash_landing`). `ac_moonstep` Moonstep "move" 20
+  (`moonstep`), between Skyward Dash and Sky Leap; SkillTrees.LEFT got an 8th slot for the Air branch.
+- **Moonstep**: dodge in mid-air (Jump or Fall; after Skyward Dash's air dash, which takes the dodge first while it's
+  up) -> `PlayerState.wants_moonstep` (owned, not used this jump: `Player.air_uses["moonstep"]`, cleared on landing,
+  `MOON_COST` 18 stamina) -> JumpState `_moonstep` (Fall sends Jump `{"moon": true}`): vy = sqrt(2 g 4.5 m), no
+  variable jump, no air step spent, the freefall clock restarted. Action `moonstep` (MovePoses: both knees snatched up,
+  both feet stamped straight down together, arms flung overhead and the body stretched, then one knee up, arms wide);
+  at `MOON_STAMP` 0.13 s a pale crescent ring under the feet, a wider ring, a mist puff ring, motes and a streak down,
+  the thump, a light shake.
+- **Crash Landing**: `Player._on_landed` above `FallState.CRASH_SPEED` (16 m/s, a ~4 m drop) with the flag, on foot,
+  not plunging/swimming/downed: `FallState.crash(speed)`: `_fall_damage(speed, 0.5, false)` (half, no stagger; the new
+  k/reel arguments), action `crash_land` (snapped in: one knee and the left fist to the ground, head up, the right arm
+  flung back, held, up), a puff ring, a ring, debris, an impact and four seeded ground cracks off the fist (not on wood
+  or water), rock_crash + thud, shake; a knockdown wave (10-30 x damage multiplier, radius 2.6-4.6 m, knockback 6-11 by
+  the drop) through the enemies' hurtboxes (Hurtbox.take_hit, so a guest's lands on the host). Sky Leap's crater
+  still takes precedence.
+- **Per tick**: nothing new while not doing them (one flag read in Jump/Fall when a dodge is pressed).
+- **Tests**: t/player/moonstep, crash_landing (its grunt's physics process off, not the node: a disabled node's
+  hurtbox leaves the physics world). Render: animsheet `moonstep,crash_land`.
