@@ -12,6 +12,10 @@ static func pose(h, n: String, u: float) -> Array:
 			return _jump(h, n, u)
 		"dash":
 			return _dash(h, u)
+		"dodge_roll":
+			return _roll(h, u)
+		"sidestep":
+			return _sidestep(h, u)
 		"breakfall":
 			return _breakfall(h, u)
 		"sky_leap_charge":
@@ -103,6 +107,61 @@ static func _dash(h, u: float) -> Array:
 		phases.append(p)
 	var keys := [[0.0, {}], [0.12, phases[0], "out"], [0.42, phases[1]], [0.66, phases[2], "out"], [1.0, {}]]
 	return [h._keys(u, keys), "full", Vector3.ZERO]
+
+
+## Roll (Acrobatics): turned into it, a dive onto the leading shoulder, tucked tight over the top in one full turn of
+## the pivot, up into a crouch with the feet under you and the arms out ahead, then standing. The pivot is keyed to
+## -TAU at the end (wrapped to 0 when the action finishes), so there's no unspin.
+static func _roll(h, u: float) -> Array:
+	var dive := {"pivot": Vector3(-0.75, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.55, 0, 0), "head": Vector3(-0.3, 0, 0),
+		"leg_l": Vector3(1.1, 0, -0.08), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.45, 0, 0.08), "shin_r": Vector3(-0.25, 0, 0),
+		"arm_l": Vector3(1.55, 0, -0.25), "fore_l": Vector3(0.45, 0, 0), "arm_r": Vector3(1.55, 0, 0.25), "fore_r": Vector3(0.45, 0, 0),
+		"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(0.95, 0.95, 1.14)}
+	var tuck := {"pivot": Vector3(-2.3, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.75, 0, 0), "head": Vector3(-0.6, 0, 0),
+		"leg_l": Vector3(1.75, 0, -0.1), "shin_l": Vector3(-2.25, 0, 0), "leg_r": Vector3(1.65, 0, 0.1), "shin_r": Vector3(-2.2, 0, 0),
+		"arm_l": Vector3(1.0, 0, -0.3), "fore_l": Vector3(1.75, 0, 0), "arm_r": Vector3(1.0, 0, 0.3), "fore_r": Vector3(1.75, 0, 0),
+		"_lift": Vector3(0, -0.52, 0), "_scale": Vector3(1.05, 0.92, 1.05)}
+	var over := tuck.duplicate()
+	over["pivot"] = Vector3(-4.3, 0, 0)
+	var up := {"pivot": Vector3(-5.95, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.5, 0, 0), "head": Vector3(0.05, 0, 0),
+		"leg_l": Vector3(1.35, 0, -0.12), "shin_l": Vector3(-2.05, 0, 0), "leg_r": Vector3(1.2, 0, 0.12), "shin_r": Vector3(-2.1, 0, 0),
+		"arm_l": Vector3(0.8, 0, -0.35), "fore_l": Vector3(0.9, 0, 0), "arm_r": Vector3(0.8, 0, 0.35), "fore_r": Vector3(0.9, 0, 0),
+		"_lift": Vector3(0, -0.46, 0), "_scale": Vector3(1.05, 0.93, 1.05)}
+	var rise := {"pivot": Vector3(-TAU, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.28, 0, 0), "head": Vector3(0.18, 0, 0),
+		"leg_l": Vector3(0.8, 0, -0.1), "shin_l": Vector3(-1.15, 0, 0), "leg_r": Vector3(0.15, 0, 0.1), "shin_r": Vector3(-0.95, 0, 0),
+		"arm_l": Vector3(0.65, 0, -0.45), "fore_l": Vector3(0.6, 0, 0), "arm_r": Vector3(0.5, 0, 0.45), "fore_r": Vector3(0.7, 0, 0),
+		"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.04, 0.95, 1.04)}
+	var keys := [[0.0, {}], [0.14, dive, "out"], [0.3, tuck], [0.5, over, "linear"], [0.68, up, "linear"], [0.84, rise, "out"],
+		[1.0, {"pivot": Vector3(-TAU, 0, 0)}]]
+	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
+
+
+## Sidestep (Acrobatics): a boxer's slip off the line, still facing them: the body tips and drops away over the lead
+## leg, the trail foot pushing off, the head ducked off the line and the hands up (or the weapon kept at the guard),
+## then a quick settle. Forward or back on the stick it ducks in or sways back instead.
+static func _sidestep(h, u: float) -> Array:
+	var d: Vector2 = h.dash_dir.normalized() if h.dash_dir.length() > 0.1 else Vector2(1, 0)
+	var sx := signf(d.x) if absf(d.x) > 0.05 else 1.0
+	var w := absf(d.x)
+	var fy := d.y
+	var ld := "r" if sx > 0.0 else "l"
+	var tr := "l" if sx > 0.0 else "r"
+	var guard := {"arm_l": Vector3(1.15, 0, -0.15), "fore_l": Vector3(2.05, 0, 0), "arm_r": Vector3(1.15, 0, 0.15), "fore_r": Vector3(2.05, 0, 0)}
+	var slip := {"pivot": Vector3(-0.22 * fy, 0, -0.58 * sx * w), "hips": Vector3(0, 0.12 * sx * w, 0),
+		"torso": Vector3(-0.2 - 0.2 * maxf(fy, 0.0), 0.22 * sx * w, 0.18 * sx * w), "head": Vector3(0.15, -0.15 * sx * w, 0.32 * sx * w),
+		"leg_" + ld: Vector3(0.25 + 0.4 * maxf(fy, 0.0), 0, 0.5 * sx * w), "shin_" + ld: Vector3(-0.7, 0, 0),
+		"leg_" + tr: Vector3(-0.2 - 0.3 * maxf(-fy, 0.0), 0, -0.3 * sx * w), "shin_" + tr: Vector3(-0.2, 0, 0),
+		"_lift": Vector3(0, -0.24, 0), "_scale": Vector3(1.08, 0.95, 1.0)}
+	var dip := {"pivot": Vector3(-0.16 * fy, 0, -0.3 * sx * w), "hips": Vector3(0, 0.08 * sx * w, 0),
+		"torso": Vector3(-0.25 - 0.15 * maxf(fy, 0.0), 0.12 * sx * w, 0.06 * sx * w), "head": Vector3(0.2, -0.08 * sx * w, 0.16 * sx * w),
+		"leg_" + ld: Vector3(0.4 + 0.3 * maxf(fy, 0.0), 0, 0.38 * sx * w), "shin_" + ld: Vector3(-1.0, 0, 0),
+		"leg_" + tr: Vector3(0.0, 0, -0.18 * sx * w), "shin_" + tr: Vector3(-0.5, 0, 0),
+		"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.03, 0.95, 1.03)}
+	if not h._weapon_out():
+		slip.merge(guard)
+		dip.merge(guard)
+	var keys := [[0.0, {}], [0.22, slip, "out"], [0.5, dip], [1.0, {}]]
+	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
 
 
 ## Armed: the weapon hand stays at the guard (pistols tucked, the katana trailed behind), the

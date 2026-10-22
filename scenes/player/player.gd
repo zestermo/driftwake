@@ -477,7 +477,7 @@ func _recalc_stats() -> void:
 
 
 func dodge_cost() -> float:
-	return DODGE_COST * (1.0 - progression.stat("dodge_cost_pct"))
+	return DODGE_COST * (1.0 - progression.stat("dodge_cost_pct")) * (0.7 if progression.has_flag("dodge_sidestep") else 1.0)
 
 
 ## Stamina scale for attacks with the weapon in hand (its tree's stam_ nodes).
@@ -2182,7 +2182,10 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 		h.impact = CombatManager.HEAVY_IMPACT.get(h.impact, h.impact)
 	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0)
 	h.damage = base * damage_multiplier() * k
-	if randf() < pr.style_stat("crit", st) + pr.stat("crit_all") + (0.2 if power.buff("bleeding_edge") else 0.0):
+	# (Sidestep: a blow slipped makes the next one a sure crit)
+	var slipped := power.buff("slipped")
+	power.buffs.erase("slipped")
+	if slipped or randf() < pr.style_stat("crit", st) + pr.stat("crit_all") + (0.2 if power.buff("bleeding_edge") else 0.0):
 		h.damage *= 1.5
 		h.set_meta("crit", true)
 	if kind == "heavy" and pr.style_stat("unblock", st) > 0.0:

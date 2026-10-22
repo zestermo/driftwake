@@ -376,6 +376,10 @@ const SPECS := {
 	"dash": {"len": 0.3, "sharp": 50.0, "stance": "sword", "weapon": "cutlass", "extras": {"dash_dir": Vector2(0, 1)},
 		"variants": [{"dash_dir": Vector2(1, 0)}, {"dash_dir": Vector2(0, -1)}, {"dash_dir": Vector2(-1, 0), "armed": false}]},
 	"roll": {"len": 0.6, "stance": "sword", "weapon": "cutlass"},
+	# Acrobatics' dodge styles (MovePoses)
+	"dodge_roll": {"len": 0.5, "sharp": 50.0, "stance": "sword", "weapon": "", "extras": {"armed": false}},
+	"sidestep": {"len": 0.34, "sharp": 50.0, "stance": "fist", "weapon": "", "extras": {"dash_dir": Vector2(1, 0)},
+		"variants": [{"dash_dir": Vector2(-1, 0)}, {"dash_dir": Vector2(0, -1)}]},
 	"flip": {"len": 0.45, "stance": "sword", "weapon": "cutlass"},
 	# v1.11 moves: the take-offs and the double jump (MovePoses)
 	"jump_stand": {"len": 0.42, "stance": "sword", "weapon": "", "extras": {"armed": false, "grounded": false, "vertical_speed": 6.0},

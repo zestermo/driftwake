@@ -668,7 +668,11 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 
 	var p := _target()
-	var to_p := _flat(p.global_position - global_position) if p else Vector3.ZERO
+	# (an Afterimage decoy: it goes for that instead)
+	var lured := _lure != null and is_instance_valid(_lure) and _lure.alive()
+	if not lured:
+		_lure = null
+	var to_p := _flat((_lure.spot if lured else p.global_position) - global_position) if p else Vector3.ZERO
 	var dist := to_p.length() if p else INF
 	var dir_p := to_p.normalized() if dist > 0.01 else _fwd()
 	var hv := _flat(velocity)
@@ -698,7 +702,7 @@ func _physics_process(delta: float) -> void:
 			if _lost(p, dist):
 				_go_home()
 			else:
-				var nd := _nav_dir(p.global_position, delta)
+				var nd := _nav_dir(_lure.spot if lured else p.global_position, delta)
 				_face(nd)
 				if _want_rush(p, dist):
 					_start_rush()
@@ -731,7 +735,7 @@ func _physics_process(delta: float) -> void:
 					_start_aim("pistol")
 				elif dist > CIRCLE_RANGE + 3.0:
 					_set_state(S.CHASE)
-				elif _cooldown <= 0.0 and _player_ok(p) and _get_token():
+				elif _cooldown <= 0.0 and _player_ok(p) and (lured or _get_token()):
 					_attack = _choose_attack(dist)
 					_swing_i = 0
 					_begin_attack(dist)
@@ -996,6 +1000,11 @@ func _physics_process(delta: float) -> void:
 					humanoid.play("sheathe", 0.5)
 				health.heal(health.max_health)
 				_enter_idle()
+
+	# its blow came down on the decoy: that shatters it
+	if lured and state == S.SWING and st_t > 0.24 and dist < COMBO_RANGE + 1.2:
+		Net.fx("decoy_break", [_lure.spot])
+		_lure = null
 
 	# walked into something (tent, crate, rock): sidestep around it for a bit
 	if _detour_t > 0.0:
@@ -1875,6 +1884,18 @@ func _drop_weapon() -> void:
 	if role == "sword":
 		table.append([_blade_id, DROP_BLADE, 1])
 	Net.kill_loot(table, global_position)
+
+
+## Afterimage (Acrobatics): a captain's decoy it swings at instead of them, until it's struck or gone.
+var _lure: Decoy = null
+
+
+## (host) A decoy of the captain it's after appeared close by: a blade grunt in the fight goes for it.
+func lure(d: Decoy) -> void:
+	if role != "sword" or state not in [S.ALERT, S.CHASE, S.CIRCLE, S.CLOSE, S.WIND] or _target() != d.captain:
+		return
+	_lure = d
+	_cooldown = minf(_cooldown, 0.1)
 
 
 ## Vine Snare: tied in place for a while.

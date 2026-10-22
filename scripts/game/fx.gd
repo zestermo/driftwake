@@ -817,6 +817,23 @@ func afterimage(body: Node3D, color: Color = Color(0.6, 0.8, 1.0), life: float =
 	tw.tween_callback(holder.queue_free)
 
 
+## Afterimage (Acrobatics): a copy of `body` left standing for `secs` that the foes after its captain swing at
+## (Decoy; the host does the luring), with a pale flash where it appears.
+func decoy(body: Node3D, secs: float) -> void:
+	if body == null:
+		return
+	Decoy.spawn(_scene_root(), body, secs)
+	afterimage(body, Decoy.COLOR, 0.2)
+	sfx("whoosh_big", body.global_position, -9.0, 0.05, 1.7)
+
+
+## A foe's blow landed on the decoy near `at`: it shatters.
+func decoy_break(at: Vector3) -> void:
+	var d := Decoy.near(get_tree(), at, 2.0)
+	if d:
+		d.shatter()
+
+
 ## Vines wrapped round a rooted enemy's legs for `secs` (Vine Snare).
 func vine_wrap(target: Node3D, secs: float, radius: float = 0.35) -> void:
 	if target == null or not is_instance_valid(target):

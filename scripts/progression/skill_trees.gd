@@ -259,6 +259,15 @@ static func _variant(id: String, name_: String, branch: int, versions: Array, de
 		n["versions"].append({"id": v[0], "name": v[1], "desc": vn["desc"], "level": int(v[2]), "effects": v[3], "skill": sk})
 
 
+## The picture a node without a skill shows on the tree (Skills.icon(icon): gen_psx_textures.py "moves").
+static func _icon(id: String, icon: String) -> void:
+	_nodes[id]["icon"] = icon
+	if _nodes[id].has("parent"):
+		for v in _nodes[_nodes[id]["parent"]]["versions"]:
+			if v["id"] == id:
+				v["icon"] = icon
+
+
 ## A step node (bought a step at a time, `max_steps` of them), hanging off big node `on`; its effects are per step.
 static func _step(id: String, name_: String, on: String, max_steps: int, effects: Dictionary, desc: String) -> void:
 	var parent: Dictionary = _nodes[on]
@@ -350,7 +359,17 @@ static func _build_acrobatics() -> void:
 		"Sky Leap's full charge carries you 20 m higher and 4 m further (50 stamina): 60 m with Haki Legs.")
 	_big("m_swift", "Swift Step", "mech", 1, 4, {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
 		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.")
+	_variant("ac_dodge", "Dodge Style", 1, [
+		["ac_roll", "Roll", 7, {"dodge_roll": 1}, "Your dodge is a tumbling roll: you turn into it and go under the blow, further and untouchable longer, a beat slower to come up."],
+		["ac_sidestep", "Sidestep", 7, {"dodge_sidestep": 1},
+			"Your dodge is a short, sharp slip aside: cheaper and quicker to strike out of, and slipping a blow as it lands makes your next hit land 50% harder."]],
+		"Two ways to get out of the way. Both are yours; pick the one you carry at the ship's bunk.")
 	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
+	_big("ac_afterimage", "Afterimage", "move", 1, 18, {"afterimage": 1},
+		"Your dodge leaves a copy of you standing where you were, and the foes coming for you swing at it instead (once every 6 s).")
+	_icon("ac_roll", "move_roll")
+	_icon("ac_sidestep", "move_sidestep")
+	_icon("ac_afterimage", "move_afterimage")
 	_big("m_sprinter", "Long Stride", "mech", 2, 3, {"sprint_cost_pct": 0.35, "sprint_pct": 0.1}, "Sprinting burns 35% less stamina and you sprint 10% faster.")
 	_big("ac_bound", "Sprint Jump", "mech", 2, 6, {"sprint_jump_pct": 0.5}, "A sprint's long bound costs half the stamina.")
 	_big("ac_sure", "Sure Footing", "mech", 2, 10, {"stamina_regen_pct": 0.1}, "Stamina refills 10% faster.")
