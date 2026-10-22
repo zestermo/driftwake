@@ -1,6 +1,6 @@
 extends SceneTree
 ## Acrobatics is learned by doing: a jump teaches it (and finds the tree: it shows under Adventure), a dodge
-## teaches more; at Acrobatics 2 Geppo comes by itself (a second jump in mid-air), Swift Step at 4.
+## teaches more; Acrobatics 2 lets Geppo be bought (a second jump in mid-air), 4 Swift Step.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var p
@@ -44,10 +44,10 @@ func _process(_d: float) -> bool:
 		2:
 			check("a dodge teaches more (%d)" % (xp() - x0), xp() - x0 == 5)
 			pr.add_life("acrobatics", pr.mastery_to_next(1))
-			check("Acrobatics 2: Geppo, a second jump in mid-air", pr.owns("m_geppo") and p.max_jumps == 2)
+			check("Acrobatics 2: Geppo bought with its Adventure point, a second jump in mid-air", pr.buy("m_geppo") and p.max_jumps == 2)
 			while pr.mastery_level("acrobatics") < 4:
 				pr.add_life("acrobatics", pr.mastery_to_next(pr.mastery_level("acrobatics")))
-			check("Acrobatics 4: Swift Step (a cheaper dodge)", pr.owns("m_swift") and p.dodge_cost() < p.DODGE_COST)
+			check("Acrobatics 4: Swift Step bought (a cheaper dodge)", pr.buy("m_swift") and p.dodge_cost() < p.DODGE_COST)
 			return TK.done(fails)
 	step += 1
 	return false

@@ -96,7 +96,7 @@ host's; a guest's own storage stays in their save.
 ## Testing
 
 - `.\tools\dev\nettest.ps1` runs a headless host and client on localhost (modes: `late` join,
-  `three` with a watcher, `hostquit`, `water`). Logs: `tools/dev/out/logs/net*.log`.
+  `three` with a watcher, `hostquit`, `water`). Logs: `tools/dev/out/logs/net[-mode].{host,client}.log` (one set per mode).
 - The client side is `tools/dev/netclient.gd` (a step machine: `go(n)`, `st_t`, `check()`);
   it asks the host things through `tools/dev/nettest_node.gd`: `tn.ask("name", args)`, wait
   for `tn.got("name")`, read `tn.replies["name"]`. Add a command by adding a `"name":` branch

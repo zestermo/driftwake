@@ -51,14 +51,14 @@ func rig_snapshot() -> Dictionary:
 
 ## A lone armed body moving along `mv` (relative to its facing) at combat
 ## speed: [planted-foot slide m/s, hips' yaw off the facing, chest's yaw off it]
-func strafe_slide(mv: Vector2) -> Array:
+func strafe_slide(mv: Vector2, spd: float = 4.8) -> Array:
 	var h := Humanoid.new()
 	h.setup(CharacterLook.default_look())
 	root.add_child(h)
 	h.global_position = Vector3(5000, 0, 5000)
 	h.armed = true
 	h.grounded = true
-	h.ground_speed = 4.8
+	h.ground_speed = spd
 	h.local_move = mv
 	h.set_process(false)
 	var dt := 1.0 / 60.0
@@ -69,7 +69,7 @@ func strafe_slide(mv: Vector2) -> Array:
 	var cy := 0.0
 	var ly := 0.0
 	for f in range(240):
-		h.global_position += Vector3(mv.x, 0, -mv.y) * 4.8 * dt
+		h.global_position += Vector3(mv.x, 0, -mv.y) * spd * dt
 		h._process(dt)
 		if f < 60:
 			continue
@@ -350,7 +350,8 @@ func _process(d: float) -> bool:
 			check("6 knockdowns later the limbs are the same length (worst joint moved %.4f m)" % wp, wp < 0.002)
 			check("...and the same shape (worst scale change %.5f)" % ws, ws < 0.001)
 			# --- combat-stance strafing: feet stay planted on diagonals and backpedals
-			var base := strafe_slide(Vector2(0, 1))
+			# (the reference walks under the run carry's speed: a carried run has its own chest, the strafes keep the guard's)
+			var base := strafe_slide(Vector2(0, 1), 2.4)
 			for mv in [Vector2(0.7071, 0.7071), Vector2(0.7071, -0.7071), Vector2(0, -1), Vector2(1, 0), Vector2(-1, 0)]:
 				var r := strafe_slide(mv)
 				var lim := 2.0 if absf(mv.y) < 0.1 else 1.6

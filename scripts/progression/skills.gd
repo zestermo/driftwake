@@ -195,7 +195,7 @@ const ALL := {
 	"suplex": {"name": "Suplex", "tree": "unarmed", "cost": 18.0, "cooldown": 6.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Grab the enemy in front of you, arch back and slam them head-first into the ground behind you."},
 	"hip_toss": {"name": "Shoulder Throw", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
-		"desc": "Grab the enemy in front of you and hurl them over your shoulder; anyone they land on goes down too."},
+		"desc": "Hands open to catch for a second: a blow caught in them is turned aside and whoever threw it goes over your shoulder, knocking down anyone they land on. A boss or a heavy gets a straight right back instead."},
 	"giant_swing": {"name": "Giant Swing", "tree": "unarmed", "cost": 24.0, "cooldown": 10.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Grab an enemy and spin, smashing everyone around you with them, then let them fly."},
 	# --- Unarmed: martial arts ---

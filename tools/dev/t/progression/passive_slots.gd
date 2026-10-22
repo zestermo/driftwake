@@ -1,5 +1,5 @@
 extends SceneTree
-## Passives count only in a passive slot: at katana 22 Clean Line and Empty Mind come and go into free slots by
+## Passives count only in a passive slot: Clean Line and Empty Mind bought at katana 22 go into free slots by
 ## themselves (the library lists them), Empty Mind's cooldown cut counts while slotted and not once it's taken
 ## out, an unowned passive or a slot past the last can't be filled, and a fourth slot opens at level 25.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -33,7 +33,10 @@ func _process(_d: float) -> bool:
 			while pr.mastery_level("katana") < 22:
 				var m: Dictionary = pr.mastery_of("katana")
 				pr.add_mastery("katana", pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
-			check("katana 22: both passives in the library %s" % str(pr.library()["passives"]), pr.library()["passives"].has("k_clean") and pr.library()["passives"].has("k_calm"))
+			while pr.level < 6:
+				pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
+			check("katana 22, Captain 6: Clean Line and Empty Mind bought", pr.buy("k_clean") and pr.buy("k_calm"))
+			check("...both passives in the library %s" % str(pr.library()["passives"]), pr.library()["passives"].has("k_clean") and pr.library()["passives"].has("k_calm"))
 			check("...slotted by themselves %s" % str(pr.passives), pr.passives.has("k_clean") and pr.passives.has("k_calm"))
 			check("...Empty Mind counts: katana techniques 25%% sooner (%.2f)" % pr.stat("cdr_katana"), is_equal_approx(pr.stat("cdr_katana"), 0.25))
 			check("taken out", pr.equip_passive("", pr.passives.find("k_calm")) and not pr.passives.has("k_calm"))

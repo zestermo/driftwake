@@ -5231,3 +5231,134 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   slash_dummy, polearm_moves/combo, draw_sheathe, quick_mid_swing, sprint, rig_drift pass. Expect fixtest/feat/stamtest
   (slash_r's reach start moved) and wieldtest (Corsair, twin swords' carry) to want a look at the push.
 - Tool: guardsheet env GS_MOVE="x,y" (the travel direction). Renders: tools/dev/out/carry/before, it6 (guard), after.
+## 2026-10-21: tooling window (after v1.18)
+- crew_lib `Get-TestKey` reads the deps file's stamp with `[IO.File]::GetLastWriteTimeUtc` and its lines in a try, so a file another session deletes between the check and the read counts as "no deps recorded" instead of killing the run.
+- compilecheck lints an autoload name (from project.godot `[autoload]`) used inside a `static func` in scripts/ or scenes/ ("STATIC AUTOLOAD file:line ... reach it through the tree"): a --script suite that names the class compiles without the autoloads. 30 files already did it (474 lines), so they are listed by file in `tools/dev/static_autoload_allow.txt` as a ratchet: new files fail, and an entry that matches nothing is reported. Reach the autoload with `(Engine.get_main_loop() as SceneTree).root.get_node("Net")` when a file is next reworked.
+- nettest.ps1: each mode writes `net[-mode].host|client|watch.log` and `.deps` in tools/dev/out/logs, so modes can run at once (board + jam, board + chain pass together).
+- forest_fauna and snow_wolves name the creatures they spawn (desert_fauna already did): a creature's rng is seeded by its node name.
+- `Humanoid._rng` is seeded from the global rng (`randi()`): fixed per suite seed in tests, random in a live game (its seed is random at start-up).
+- Known: r10test fails on main at "strafing (0.7071, 0.7071): the planted foot barely slides (1.64 m/s)" against a 1.6 limit, with or without the rng change (deterministic): from the stance pass (armed default stance); it stops the suite before the jump-side checks.
+
+## 2026-10-21: the air walk, freefall tumble and air recovery (docs/v1_18_4_plan.md "Air step", "Freefall tumble", "Air recovery")
+- **Air walk** (piece 1): Geppo's and Sky Walk's air jumps (action still named `double_jump`) are One Piece's air walk,
+  not a somersault: `MovePoses._air_step` keys the knee driven high (held a beat), the foot stamped straight down onto
+  the air while the other knee comes up, the arms pumping against the legs, upright (pivot eased in from wherever the
+  body was, so a tumble rights into it). Each step takes the other foot (`Humanoid.air_foot`, flipped on the step's
+  first pose; puppets flip theirs the same way). Out of SPIN_ACTIONS and GAZE_FREE; spec `sharp` 50. JumpState fires
+  the ring, a mist puff ring and motes under the stamping foot at `MovePoses.STAMP_S` (0.15 s, when the foot lands in
+  the pose), through Net.fx. Landing is still the kneel. Test: t/player/air_step (was double_jump: no flip, knee
+  high, +1.2 m, alternating feet under Sky Walk). Render: animsheet `double_jump` at yaw 90 and 125. animsheet now
+  poses the skinned arms (ArmBody._pose) per frame as well as the legs: before, every sheet showed the arms frozen.
+- **Freefall tumble** (piece 2): `Player.freefall_from` (PlayerState.now_s) is set by every jump and air step
+  (JumpState) and by FallState.enter unless it comes from JumpState (`{"from_jump": true}`), so an ability, attack,
+  plunge or anything else that drops back into Fall restarts it. FallState: past `FREEFALL_TUMBLE` (3.5 s) with more
+  than 3 m under you -> DownedState `{"tumble": true, "velocity"}`: a limp ragdoll (no muscles) with a head-over-heels
+  spin (`TUMBLE_SPIN`) falling at the captain's own gravity (32 m/s^2) and top speed (`Ragdoll.fall_like`,
+  `Player.MAX_FALL_SPEED` 34; knockdown ragdolls still fall at 9.8). The root rides the body vertically while it falls
+  (camera follows), and the get-up waits for the landing. Landing: `Player.tumble_landed` = the usual fall damage
+  (~85 from terminal speed) with no stagger (Downed's own get-up instead); in deep water the usual float-up. Jump in
+  the tumble with an air step left: `Player.recover_in_air` (root to the body, its speed kept, the body eased upright
+  from the sprawl over 0.25 s) and JumpState `{"air": true}` (the step's pivot keys in from the sprawl). At this
+  gravity 3.5 s is a ~100 m drop (a 5 m drop takes ~0.6 s): tune `FREEFALL_TUMBLE` in play. Co-op: the ragdoll,
+  recover and step mirror through Humanoid's net events like a knockdown. Per tick: one clamp loop over the 11
+  ragdoll parts while a tumble is down, a ground ray in Fall only once past 3.5 s. Tests: t/player/freefall_tumble,
+  freefall_reset.
+- **Breakfall and Skyward Dash** (piece 3; Acrobatics Air branch, `ac_breakfall` "move" 12 and `ac_skydash` "move" 18,
+  priced by kind like the rest). DownedState `_recover` on jump while the body is still in the air (not yet landed):
+  a tumble with an air step left takes the step; otherwise the `breakfall` flag with the hips > 1.2 m over the
+  ground (`_hips_up`, a ray from the hips: the root may already be on the ground under a flying body) rights you:
+  `recover_in_air`, the `breakfall` action (MovePoses: a tuck rolling the pivot from the sprawl to level, then open,
+  arms wide), a ring and a whoosh, into Fall. A knockback ragdoll without Breakfall ignores the press. Either recovery
+  calls `Player.air_recovered`: with `skyward_dash`, `Player.skyward_dash` (cleared on landing) and
+  `jumps_remaining += SKYWARD_STEPS` (2; JumpState treats any jump off the floor as an air step, since this can go over
+  max_jumps). Fall/Jump: dodge with `skyward_dash` -> DodgeState `{"air": true}`: input's way or the camera's forward,
+  level (vy 0), `AIR_DASH_DIST` 6.5 m in `AIR_DASH_DUR` 0.32 s on the dodge's burst curve, an afterimage, a ring
+  and a whoosh, then Fall. With Sky Walk + Skyward Dash that's 6.5 m flat plus four air steps (~1.3 m each) to climb
+  back to a deck. Tests: t/player/breakfall (no Breakfall: nothing; with it: upright in Fall, lands on its feet),
+  skyward_dash (two extra steps, 6.4 m dash, level, once).
+## 2026-10-21: the two points pools (1.18.4 batch, points rework piece 2)
+- What: every node past a root is **bought**. Combat points (`Progression.combat_earned`: 2, then 2/1 alternating to
+  Captain 10 = 16, 2 a level to 20 = 36, 3 to 30 = 66, 4 to 40 = 106) buy any weapon tree's nodes and the eaten fruit's
+  (its level-1 powers still come free); Adventure points (a point a level any Adventure tree gains) buy Adventure nodes.
+  A tree's level only gates (`buy_why`: "Needs Katana 12", a step needs the node it hangs on, the second element the
+  first, "Needs 5 Combat points"). Prices: `SkillTrees.price` = PRICE / PRICE_ADVENTURE by kind + gate / 10, a step 1,
+  or a node's own `"cost"` (so the movement/fists blocks add nodes with no price edits). The Captain's nodes (milestones,
+  talents, Will) are unchanged. Numbers and why: docs/v1_18_4_plan.md "Preview: the numbers" (Zach's OK).
+- Where: progression.gd (`bought`, `earned/spent/pool`, `buy/buy_why`, `can_spend` remembered per `_rev`, `respec_tree`
+  for 100 + 40 x level gold at the bunk, `gift` for tests and tools, `master_all` buys everything and gifts the points);
+  skill_trees.gd (`pool_of`, `price`); save_game.gd loads the power component **before** progression now (the bar
+  decides what a migrated save buys back first).
+- Saves: format 6 stores `bought`. Every load buys the saved purchases back in order (bar skills and slotted passives,
+  then each tree's big nodes lowest gate first, the highest-level tree first, then steps) while the pool affords them;
+  a format-5 save's owned big nodes go through the same path, so what doesn't fit is refunded. One banner after a
+  migration, only if a pool can buy something.
+- The stale prompts: the mastery toast said "+N points (K)" from the levels gained on every tree's level-up (Adventure
+  trees level from jumps and dodges), and the HUD pulsed the hand weapon's own points forever. Now the mastery toast
+  names what the level opens; "N Adventure/Combat points (K)" is added only to a level-up that earned points and only
+  while that pool can buy something (`can_spend`); the skill bar's pulse uses the same test.
+- Per frame: the skill bar asks `can_spend` (remembered until `_rev` changes; a recompute walks the found trees' nodes
+  once) and, while it's true, `pool()` (a walk over the bought nodes and steps, under 100 entries).
+- Tests: t/progression gate_and_buy, pools, prompts, buy_back (new or rewritten), versions_bunk (gold respec),
+  refund_migration, acrobatics, stealth, life_mastery, passive_slots, tree_shape (every node priced); t/ship/seamanship;
+  t/ui skills_loadout, skills_version_bunk. Suites edited, not run (prepush): progtest, balancetest, daggertest,
+  wieldtest, powertest; renders skillmapshot and seamapshot buy their nodes.
+
+- 2026-10-21 r10test strafe slide: two stance-pass causes. The run carry took the 45 deg forward diagonal (`StanceLife.carry_weight` travel < 0.9 rad), so the strafe's chest/hips went to the run's and the planted foot slid 1.64 m/s (was 0.93); it now stops at 0.6 rad (34 deg). The cutlass's side-on hips (`HIPS` 0.55) were only relaxed 60% at a walk, adding slide to the lateral strafe (2.49 m/s vs 1.85) and back-diagonal; `_stance_hips` now relaxes fully with `walk`. r10test's straight reference walks at 2.4 m/s (a carried run has its own chest). Limits unchanged.
+## 2026-10-21: the skills menu slimmed (1.18.4 batch, points rework piece 3)
+- What: trees show icons and names only. Gone from the tree: level numbers on nodes, the steps' "2/5" chips (now a pip
+  a step under the node), the branches' "n OF m" counts. Gone from the card: the per-tree points chip and "ONE A LEVEL",
+  the "Coming next" list and the always-on "How it grows" (now in the root's panel). What can be bought right now has
+  a soft pulsing ring in the tree's colour. A variant is lit only once bought.
+- The card (select panel) has the picked or hovered node in full: kind (a step's count), "NEEDS KATANA 12" (green when
+  met, else with the level you're at), the price and what's left in its pool, what it does (a variant's two versions,
+  the active one marked), and the one action (ENTER: BUY / the reason / YOURS / switch at the bunk). A hovered node
+  also gets a one-line tip by the cursor (name, price, gate). Both pools are on the beam's plate
+  ("COMBAT 6 · ADVENTURE 3", the coin keeps the level).
+- At the ship's bunk the card shows "REFUND THIS TREE: N GOLD" for a tree with purchases: a first click asks (the price
+  in the line), a second pays (Progression.respec_tree).
+- Locked trees were already hidden (the rail, the chart and the Adventure list draw only found trees; the Driftfruit
+  sign only with a fruit); skills_buy_node checks it.
+- Per frame (only while the menu is open): `buy_why` for each drawn node, for the glow.
+- Tests: t/ui skills_buy_node, skills_respec (new); the other skills_* and t/progression pass. Renders:
+  tools/dev/skillmapshot.gd (its _variant shot hovers the iai upgrade for the tip and the card).
+
+## 2026-10-21: fists redone as boxing, piece 1 (docs/v1_18_4_plan.md "Fists")
+- **What:** the unarmed light combo is boxing now, each blow out of the last one's turn: jab (lead straight, the lead
+  shoulder rolled over) -> cross (rear straight, the back heel turned, hips past square) -> lead hook (out of the
+  cross's turn, the elbow up and out, the body swung through) -> rear uppercut (a dip, then the legs driven up; the
+  tree's fourth-hit move, node id `u_round` / flag `mv_roundhouse` kept for saves, now named Uppercut; it knocks
+  them down via LightAttackState cfg `"launch"`). The right-click is the **haymaker** (HeavyAttackState "haymaker",
+  `fs_hay`): rocked back with the fist drawn up over the right shoulder and the left arm out measuring, then a long
+  step in and the overhand over the top and down through them; breaker, knockdown, 30 damage, the unarmed ring/dust.
+  The roundhouse kick and the flying kick are gone (black-leg keeps its own kicks).
+- **Where:** `scripts/npc/fist_moves.gd` (FistMoves: GUARD, LEGS, every `fs_*` pose, the reach paths), reached from
+  `Humanoid._action_pose` by the `fs_` prefix; `_guard()` "fist" and STANCE_LEGS "fist" point at it. ActionSpecs
+  `fs_jab/fs_cross/fs_hook/fs_upper/fs_hay` (len, hit, chain, sharp 50, lead). The old jab/cross/hook/roundhouse/
+  flying_kick poses and FIST_GUARD left humanoid.gd.
+- **How it's built:** the body keyed (hips lead, chest turns through, head on the target, the off fist tucked to the
+  chin), the punching fist on a **reach path** in the body's own frame (`follow` 0, `from_shoulder`: points are
+  offsets from the punching shoulder, ~0.66 m = straight), so straights go out straight at the target ahead and the
+  hook sweeps flat round the front; every path starts and ends on the guard fist's spot (AT_L / AT_R, measured from
+  the keyed guard) so the hand leaves and rejoins the guard without a pop. A chest-frame (`follow` 1) try put the
+  uppercut and the haymaker's fist behind the head: the bladed chest's yaw swings the frame too far.
+- **Guard:** bladed orthodox, chin down, lead fist out at chin height, rear fist by the cheek; the stance pass's
+  bounce kept (StanceLife.BOUNCE).
+- **Tested:** `t/weapons/fist_combo` (guard shape, each blow lands on the dummy, the jab's arm reaches 0.65 m, the
+  haymaker's cock over the shoulder and its damage). progtest's "unarmed light attack is a jab" check reads `fs_jab`.
+  Suites expected to be touched: progtest, techtest, balancetest, stamtest (fist combo/heavy names and timings).
+- Per frame: nothing new (one reach solve on the punching arm during a punch, as the cutlass's free hand).
+
+## 2026-10-21: fists piece 2, the Power branch (docs/v1_18_4_plan.md "Fists"; Zach's six pitches)
+- **(a) Shoulder Throw is a counter, Heavy Landing extended.** The Grapple branch is **Power**. `hip_toss` (Shoulder
+  Throw, node `u_hip`, ids kept for saves) is a guard skill now, like Riposte: a second with the hands open to catch
+  (`fs_catch`, buff "riposte"); a blow caught in it comes to TechniqueState as `riposte_counter`, which a fist style
+  turns into `shoulder_throw` (FistArts): a hitstop/slow beat, then the old carry-and-heave over the shoulder (the
+  `shoulder_throw` pose) on whoever threw it; a boss or a non-light enemy gets a breaker straight right instead.
+  **Heavy Landing** (`u_landing`, flag `throw_splash`, now `dmg_unarmed` +25%: all punches) also covers the haymaker:
+  HeavyAttackState hands the haymaker's victims to `FistArts.haymaker_landed`, which lands each 0.45 s later where
+  their body is (`landing`: ring 3.4 m, 22 damage, knocked flat, rock and a crack); without the node a throw still
+  splashes 1.8 m for 10. TechniqueState's `_landing` (still used by Suplex/Giant Swing until piece b) calls it.
+- **Where:** `scripts/player_states/fist_arts.gd` (FistArts, in TechniqueState `_arts`; reaches Net/CombatManager
+  through the tree and FX's colours through a preload, so the static-autoload lint passes), FistMoves `fs_catch`.
+- **Tested:** `t/weapons/fist_counter` (cast -> fs_catch; a grunt's blow does no harm and becomes shoulder_throw; the
+  thrower and the grunt where he lands are hurt; uncaught it times out). techtest lost its hip_toss grab row.

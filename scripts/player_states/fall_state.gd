@@ -1,6 +1,17 @@
 extends PlayerState
 ## Airborne and descending. Coyote time lets you still jump just after
 ## running off a ledge; a jump pressed just before landing is buffered.
+## A long freefall (FREEFALL_TUMBLE s since the last jump, air step, ability or attack) goes limp and tumbles:
+## DownedState with "tumble".
+
+const FREEFALL_TUMBLE := 3.5
+## Not when the ground is this close anyway.
+const TUMBLE_CLEAR := 3.0
+
+
+func enter(data: Dictionary) -> void:
+	if not data.get("from_jump", false):
+		player.freefall_from = now_s()
 
 
 func physics_update(delta: float) -> void:
@@ -22,6 +33,14 @@ func physics_update(delta: float) -> void:
 	var air := air_attack_input()
 	if air != "":
 		transitioned.emit(self, air, {})
+		return
+
+	if player.skyward_dash and wants_dodge():
+		transitioned.emit(self, "Dodge", {"air": true})
+		return
+
+	if now_s() - player.freefall_from > FREEFALL_TUMBLE and player.height_above_ground() > TUMBLE_CLEAR:
+		transitioned.emit(self, "Downed", {"tumble": true, "velocity": player.velocity})
 		return
 
 	# ran off a ledge and coyote time is over: the ground jump is gone, only

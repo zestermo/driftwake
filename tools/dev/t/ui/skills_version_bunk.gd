@@ -1,5 +1,5 @@
 extends SceneTree
-## A variant in the skills menu: at katana mastery 12 the Iai Upgrade is drawn split in two with its first version
+## A variant in the skills menu: the Iai Upgrade bought at katana mastery 12 is drawn split in two with its first version
 ## active; Enter (or a click on the other half) away from the ship's bunk is refused and says to switch at the bunk,
 ## and nothing changes.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -31,6 +31,9 @@ func _process(_d: float) -> bool:
 			pr = stage.player.progression
 			pr.mastery_of("katana")["lv"] = 11
 			pr.add_mastery("katana", pr.mastery_to_next(11))
+			while pr.level < 4:
+				pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
+			pr.buy("k_iai")
 			# (the runner's window is tiny: the menu lays out for a 640x360 canvas)
 			root.size = Vector2i(1280, 720)
 			root.get_node("Story").step = "done"
@@ -40,7 +43,7 @@ func _process(_d: float) -> bool:
 			sm.set_tab("combat", "katana")
 			until = TK.wait_ticks(4)
 		1:
-			check("the variant is reached and owned", pr.owns("k_iai") and pr.version_of("k_iai") == 0)
+			check("the variant is bought and owned", pr.owns("k_iai") and pr.version_of("k_iai") == 0)
 			check("drawn as two halves", sm._drawn.any(func(h): return h[1] == "v:k_iai:0") and sm._drawn.any(func(h): return h[1] == "v:k_iai:1"))
 			check("away from the bunk", not pr.can_respec())
 			sm.sel = "n:k_iai"
