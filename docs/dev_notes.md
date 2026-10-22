@@ -5387,3 +5387,25 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   fist_meteor_fist.png. **techtest's "every skill has an icon" fails on main already** (the five new weapons'
   techniques have none yet: the new weapons' finish), so pieces land with `-NoTests`.
 - Per frame: `fall_top` (one max a tick on the local captain); the techniques run only while cast.
+- **(c) Diving Fist and Sea King Fist.** Diving Fist is the old Meteor Kick (node `u_meteor`, flag `mv_meteor_kick`
+  and PlungeState mode `"meteor_kick"` kept for saves) with a punch: `fs_dive` (the fist drawn back by the ear, then
+  the body pitched down behind it), landing `fs_meteor_land`; the meteor_kick/meteor_land poses and specs are gone
+  (airtest reads `fs_dive`). **Sea King Fist arms the fist** (Zach's design, 2026-10-21): the ult (R) plays a 0.6 s
+  charge (`sea_king_charge`), then `Player.fist_armed` = 8 s with the galaxy glow on the fist (`FistArts.keep_glow`,
+  every screen through the snapshot flag `NF_GALAXY`) and a gold draining ring with the seconds on the HUD's ult slot
+  (skill_bar `_draw_armed`). Attack (PlayerState.combat_input / air_attack_input / DodgeState) or R
+  (PowerComponent.try_cast) lets it go: `FistArts.unleash` -> TechniqueState `sea_king_unleash`. Run out: half the
+  ult back, "The fist cools". The unleash adapts: **ground** a straight (`fs_cannon` played at 0.82 s, the punch at
+  0.3 s) with a huge red-orange cross flare, coloured stars, speed lines and the moment; a comet 16 m down the line
+  (2.8 m wide, 60, struck as it reaches them) and the blast at its end (light pillar, orange dome, rings, debris,
+  cracks, 5 m, 40); **air** (over 1.5 m up) a hang and a straight dive at 30 m/s, the blast where you land (6 m, 80,
+  +2% a metre fallen over 5 m up to +80%, the radius up to +40%); **counter** within 60 ticks of a landed parry
+  (`Player.parried_by/parried_tick`, set in the parry branch of _on_hit_received) the attacker takes 45 point-blank
+  first; **out of a dash** the horizontal speed carries through the wind-up. Invulnerable from the unleash to the blast;
+  the fist glows 3 s after (AFTERGLOW). Constants at the top of FistArts (ARMED_SECS, ARMED_REFUND, SEA_*).
+- **Tested:** `t/weapons/fist_dive`, `t/weapons/fist_sea_king` (arm -> timer and glow -> run out, half back; armed ->
+  in the air -> attack -> lands on the dummy; armed -> parry -> R -> the counter hits the grunt). techtest's
+  sea_king_fist row went (it only arms now). Render: tools/dev/out/fist_sea_king_unleash.png (abilityshot takes
+  `sea_king_unleash`).
+- Per frame added: Player `fist_armed` countdown (one subtraction a tick while armed), `keep_glow` a meta check a frame
+  per captain; the glow is one sphere pair and two small emitters only while armed.

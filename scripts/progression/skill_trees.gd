@@ -940,8 +940,8 @@ static func _build_unarmed() -> void:
 	_elem(2)
 	_big("u_seaking", "Sea King Fist", "ult", 1, 30, {}, "", "sea_king_fist")
 	_big("u_round", "Uppercut", "move", 2, 2, {"mv_roundhouse": 1}, "Adds a fourth hit to your punch combo: a dipping rear uppercut that lifts them off their feet.")
-	_big("u_meteor", "Meteor Kick", "move", 2, 6, {"mv_meteor_kick": 1},
-		"Attack in the air: a dive kick at the enemy you're looking at that knocks them flat and bounces you back up for another (three in a row); a miss slams the ground.")
+	_big("u_meteor", "Diving Fist", "move", 2, 6, {"mv_meteor_kick": 1},
+		"Attack in the air: dive fist-first at the enemy you're looking at, a punch that knocks them flat and bounces you back up for another (three in a row); a miss drives the fist into the ground.")
 	_big("u_ironbody", "Iron Body", "passive", 2, 11, {"def_unarmed": 8.0, "parry_unarmed": 0.06}, "Passive (a slot). Fighting bare-handed: +8 defense and a wider parry window.")
 	_big("u_chi", "Chi", "passive", 2, 15, {"flow_unarmed": 0.5, "leech_unarmed": 0.06}, "Passive (a slot). Unarmed hits give 50% more energy and heal you for 6% of their damage.")
 	_big("u_finish", "Finishing Blow", "passive", 2, 22, {"finisher_unarmed": 0.4, "cdr_unarmed": 0.2},

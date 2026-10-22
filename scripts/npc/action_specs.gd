@@ -87,8 +87,7 @@ const SPECS := {
 	# the learned air attacks (PlungeState)
 	"twin_cyclone": {"len": 0.8, "hit": [0.18, 0.85], "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
 	"cyclone_land": {"len": 0.48, "stance": "dual_sword", "weapon": "cutlass", "extras": {"dual": true}},
-	"meteor_kick": {"len": 0.6, "hit": [0.2, 0.6], "stance": "fist", "weapon": ""},
-	"meteor_land": {"len": 0.44, "stance": "fist", "weapon": ""},
+	"fs_dive": {"len": 0.6, "hit": [0.2, 0.6], "stance": "fist", "weapon": ""},
 	"boarding_dive": {"len": 0.6, "hit": [0.27, 0.6], "stance": "sword", "weapon": "cutlass"},
 	"vault_back": {"len": 0.45, "stance": "sword", "weapon": "cutlass"},
 	"hang_shot": {"len": 0.62, "hit": [0.48, 0.52], "stance": "pistol", "weapon": "pistol"},
@@ -368,7 +367,7 @@ const SPECS := {
 	"hundred_fists": {"len": 1.3, "hit": [0.08, 0.85], "stance": "fist", "weapon": ""},
 	"rising_dragon": {"len": 0.9, "hit": [0.17, 0.26], "stance": "fist", "weapon": ""},
 	"palm_strike": {"len": 0.55, "hit": [0.35, 0.42], "stance": "fist", "weapon": ""},
-	"sea_king_fist": {"len": 1.45, "hit": [0.53, 0.58], "stance": "fist", "weapon": ""},
+	"sea_king_charge": {"len": 0.6, "stance": "fist", "weapon": ""},
 	"conqueror": {"len": 1.2, "hit": [0.31, 0.36], "stance": "fist", "weapon": ""},
 	# --- moving, reacting, everyday ---
 	"dash": {"len": 0.3, "sharp": 50.0, "stance": "sword", "weapon": "cutlass", "extras": {"dash_dir": Vector2(0, 1)},

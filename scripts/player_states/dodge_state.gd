@@ -105,6 +105,10 @@ func _air_dash() -> void:
 
 
 func physics_update(delta: float) -> void:
+	# Sea King Fist armed: let it go out of the dash, carrying its speed
+	if player.fist_armed > 0.0 and input_buffer.consume_action("light_attack"):
+		FistArts.unleash(player)
+		return
 	if _air:
 		player.velocity.y = 0.0
 	else:

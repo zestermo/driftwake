@@ -14,9 +14,9 @@ extends PlayerState
 ## * Twin Cyclone (dual swords): a little lift with the blades crossed, then a
 ##   drill of turns down and forward, both blades out, cutting everyone close
 ##   on every turn, and a burst on landing that knocks them flat.
-## * Meteor Kick (unarmed): a chambered beat, then a dive kick at the aimed
-##   enemy that knocks them flat and bounces you back up for another (a few in
-##   a row); a miss slams the ground.
+## * Diving Fist (unarmed; mode "meteor_kick" kept for the flag mv_meteor_kick): the fist drawn back a beat,
+##   then a fist-first dive at the aimed enemy that knocks them flat and bounces you back up for another (a few
+##   in a row); a miss drives the fist into the ground.
 ## * Hang Shot (one pistol): hang in the air drawing a bead, one heavy shot at
 ##   the reticle that knocks them flat, and the recoil throws you back.
 ## * Boarding Dive (cutlass): the blade drawn back, then a point-first dive at
@@ -186,7 +186,7 @@ func enter(_data: Dictionary) -> void:
 			if _target:
 				var to := _target.global_position - player.global_position
 				player.player_model.rotation.y = atan2(-to.x, -to.z)
-			player.body_model.play(_mode, 0.6)
+			player.body_model.play("fs_dive" if _mode == "meteor_kick" else _mode, 0.6)
 			player.squash(1.5)
 			if _mode != "meteor_kick":
 				Net.fx("sfx", ["parry", player.global_position, -14.0, 0.05, 1.4 if _mode == "boarding_dive" else 1.8])
@@ -749,7 +749,7 @@ func _cyclone_update(delta: float) -> void:
 		transitioned.emit(self, "Fall", {})
 
 
-## Meteor Kick and Boarding Dive: a cocked beat, a straight dive at the aimed
+## Diving Fist and Boarding Dive: a cocked beat, a straight dive at the aimed
 ## enemy (or down ahead), off them on contact.
 func _dive_update(delta: float) -> void:
 	var kick := _mode == "meteor_kick"
@@ -858,8 +858,8 @@ func _dive_land(kick: bool, tree: String) -> void:
 	Net.fx("sfx", ["thud", at, 0.0 if kick else -3.0, 0.05, 0.8])
 	CombatManager.apply_camera_shake(0.18 if kick else 0.12)
 	if kick:
-		# the heel into the ground: a small shockwave
-		player.body_model.play("meteor_land", 0.44)
+		# the fist into the ground: a small shockwave
+		player.body_model.play("fs_meteor_land", 0.44)
 		Net.fx("ring", [at + Vector3(0, 0.12, 0), Vector3.UP, 2.4, _look(tree, FX.EDGE), 0.28, 0.14])
 		var wave := player.melee_hit(8.0)
 		wave.knockback_force = 7.0

@@ -258,10 +258,6 @@ func enter(data: Dictionary) -> void:
 		"palm_strike":
 			dur = 0.55
 			player.body_model.play("palm_strike", dur)
-		"sea_king_fist":
-			dur = 1.45
-			player.body_model.play("sea_king_fist", dur)
-			Net.fx("sfx", ["haki", player.global_position, -4.0, 0.0, 0.6])
 		"conquerors_haki":
 			dur = 1.2
 			player.body_model.play("conqueror", dur)
@@ -478,13 +474,6 @@ func physics_update(delta: float) -> void:
 			_rooted(delta, 0.0)
 			if _once("palm", 0.2):
 				_palm()
-		"sea_king_fist":
-			_rooted(delta, 0.0)
-			if t < 0.75 and int(t * 20.0) % 3 == 0:
-				Net.fx("dust", [player.global_position + Vector3(randf_range(-1.2, 1.2), 0.05, randf_range(-1.2, 1.2)), 2, 0.5])
-				CombatManager.apply_camera_shake(0.03 + t * 0.05)
-			if _once("punch", 0.78):
-				_sea_king()
 		"conquerors_haki":
 			_rooted(delta, 0.0)
 			if _once("will", 0.38):
@@ -498,7 +487,7 @@ func physics_update(delta: float) -> void:
 # --------------------------------------------------------------------------
 ## The tree whose colours this technique wears (FX.TREE_FX).
 func _tree() -> String:
-	if id == "shoulder_throw":
+	if id in ["shoulder_throw", "sea_king_unleash"]:
 		return "unarmed"
 	if id == "riposte_counter":
 		return {"katana": "katana", "dual_sword": "dual", "sword_pistol": "corsair", "dagger": "dagger"}.get(player.style(), "sword")
@@ -1414,30 +1403,6 @@ func _palm() -> void:
 	Net.fx("dust", [player.global_position + _dir * 1.5, 10, 0.8])
 	Net.fx("sfx", ["whoosh_big", player.global_position, -1.0, 0.05, 1.3])
 	CombatManager.apply_camera_shake(0.2)
-
-
-func _sea_king() -> void:
-	var start := player.global_position
-	var length := 14.0
-	for e in _pc.enemies_in(start + _dir * length * 0.5 + Vector3(0, 0.9, 0), length * 0.6):
-		var rel := (e as Node3D).global_position - start
-		rel.y = 0.0
-		var along := rel.dot(_dir)
-		if along < -0.5 or along > length or (rel - _dir * along).length() > 2.6:
-			continue
-		var hd := _hd(60.0, 16.0, true)
-		hd.unblockable = true
-		_strike_toward(e, hd, _dir)
-	for i in range(7):
-		var p := start + _dir * (1.0 + i * 2.0)
-		Net.fx("dust", [p + Vector3(0, 0.05, 0), 8, 0.9])
-		Net.fx("punch_wind", [p + Vector3(0, 1.1, 0), _dir, 2.0, Color(1.0, 0.97, 0.9), true])
-	Net.fx("dust_ring", [start, 18, 1.4])
-	Net.fx("sfx", ["thud", start, 4.0, 0.03, 0.55])
-	Net.fx("sfx", ["whoosh_big", start, 2.0, 0.05, 0.6])
-	CombatManager.apply_camera_shake(0.5)
-	CombatManager.apply_hitstop(0.1, [player])
-	player.squash(-3.5)
 
 
 # --------------------------------------------------------------------------

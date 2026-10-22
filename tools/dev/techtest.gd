@@ -126,7 +126,6 @@ const CASES := [
 	["hundred_fists", "fist", 1.4, ""],
 	["rising_dragon", "fist", 1.4, ""],
 	["palm_strike", "fist", 2.5, ""],
-	["sea_king_fist", "fist", 6.0, "down"],
 	["cutthroat", "dagger", 5.0, "blink"],
 	["knife_fan", "dagger", 5.0, ""],
 	["red_eclipse", "dagger", 5.0, "down"],

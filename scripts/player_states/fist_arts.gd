@@ -54,6 +54,37 @@ const METEOR_FIRE := Color(1.0, 0.62, 0.18)
 const METEOR_RIM := Color(1.0, 0.16, 0.1)
 const METEOR_LINES := Color(0.8, 0.4, 1.0)
 
+## Sea King Fist (the ult) arms the fist instead of punching: a short charge, then ARMED_SECS to let it go (attack
+## or the ult key) while you move freely; run out and the glow fades with ARMED_REFUND of the ult back. The unleash
+## adapts: on the ground a straight Galaxy punch down a line (SEA_LINE m, wide SEA_W) that blows up where it lands;
+## in the air a dive onto the ground (harder by the height fallen, at most SEA_FALL_MAX, the blast a little wider);
+## within COUNTER_TICKS of a landed parry it hits that attacker point-blank first; out of a dash it carries the speed.
+const ARM_DUR := 0.6
+const ARM_AT := 0.45
+const ARMED_SECS := 8.0
+const ARMED_REFUND := 0.5
+const SEA_DUR := 1.25
+const SEA_AT := 0.3
+const SEA_LINE := 16.0
+const SEA_W := 2.8
+const SEA_TRAVEL := 0.35
+const SEA_DAMAGE := 60.0
+const SEA_BLAST_R := 5.0
+const SEA_BLAST_DAMAGE := 40.0
+const SEA_DIVE := 30.0
+const SEA_AIR_R := 6.0
+const SEA_AIR_DAMAGE := 80.0
+const SEA_FALL_MAX := 0.8
+const COUNTER_TICKS := 60
+const COUNTER_DAMAGE := 45.0
+## After the unleash the fist keeps glowing this long.
+const AFTERGLOW := 3.0
+## Its look (Zach's reference: an old marine hero's galaxy punch): a white-gold core, a red/orange cross flare,
+## stars in every colour, a white-hot pillar and an orange dome where it lands.
+const SEA_GOLD := Color(1.0, 0.82, 0.4)
+const SEA_FLARE := Color(1.0, 0.35, 0.12)
+const STARS := [Color(1.0, 0.85, 0.3), Color(0.35, 0.95, 1.0), Color(1.0, 0.35, 0.85), Color(1.0, 1.0, 1.0)]
+
 
 static func _net() -> Node:
 	return (Engine.get_main_loop() as SceneTree).root.get_node("Net")
@@ -105,6 +136,13 @@ static func enter(s, id: String) -> bool:
 			p.body_model.play("fs_meteor", METEOR_MAX_FALL + 1.0)
 			_net().fx("hot_fist", [p.body_model, true, 1.2, METEOR_FIRE, "fire", 1.1])
 			_net().fx("sfx", ["whoosh", p.global_position, -7.0, 0.05, 0.7])
+		"sea_king_fist":
+			s.dur = ARM_DUR
+			p.body_model.play("sea_king_charge", s.dur)
+			_net().fx("gather", [_fist(p), 1.6, SEA_GOLD, ARM_AT, 18])
+			_net().fx("sfx", ["haki", p.global_position, -6.0, 0.0, 0.8])
+		"sea_king_unleash":
+			_unleash_enter(s)
 		_:
 			return false
 	return true
@@ -122,6 +160,18 @@ static func update(s, delta: float) -> bool:
 			_cannon(s, delta)
 		"meteor_fist":
 			_meteor(s, delta)
+		"sea_king_fist":
+			s._rooted(delta, 0.0)
+			if s.t < ARM_AT and s._once("dust%d" % int(s.t / 0.1), s.t):
+				_net().fx("dust", [s.player.global_position + Vector3(randf_range(-1.0, 1.0), 0.05, randf_range(-1.0, 1.0)), 2, 0.5])
+				_cm().apply_camera_shake(0.03 + s.t * 0.06)
+			if s._once("armed", ARM_AT):
+				s.player.fist_armed = ARMED_SECS
+				_net().fx("star_glint", [_fist(s.player), 1.2, SEA_GOLD, 0.35])
+				_net().fx("ring", [_fist(s.player), Vector3.UP, 1.4, SEA_GOLD, 0.3, 0.14])
+				_net().fx("sfx", ["blip_high", s.player.global_position, -6.0, 0.0, 0.7])
+		"sea_king_unleash":
+			_unleash_update(s, delta)
 		_:
 			return false
 	return true
@@ -306,6 +356,195 @@ static func _meteor_slam(s, bonus: float) -> void:
 	_cm().apply_hitstop(0.1, [p])
 	_cm().apply_camera_shake(0.3 + 0.2 * bonus)
 	_cm().apply_camera_kick(0.2, 0.35)
+
+
+# --------------------------------------------------------------------------
+# Sea King Fist: armed, then unleashed
+# --------------------------------------------------------------------------
+## Let the armed fist go (attack or the ult key while armed): false when the body can't punch right now.
+static func unleash(p: Player) -> bool:
+	if p.fist_armed <= 0.0 or p.context != Player.Context.ON_FOOT or p.is_swimming():
+		return false
+	if not p.is_free() and p.current_state_name() not in ["Jump", "Fall", "Dodge", "Parry", "Block", "LightAttack", "HeavyAttack", "Plunge", "Crouch", "Shoot"]:
+		return false
+	p.state_machine.force_state("Technique", {"id": "sea_king_unleash"})
+	return true
+
+
+## The fist ran out of time: the glow fades and half the ult comes back.
+static func armed_out(p: Player) -> void:
+	p.fist_armed = 0.0
+	p.power.ult = minf(p.power.ult + PowerComponent.ULT_MAX * ARMED_REFUND, PowerComponent.ULT_MAX)
+	_net().fx("smoke", [_fist(p), 3, 0.4, 0.8, Color(0.9, 0.85, 0.75, 0.6)])
+	_net().fx("sfx", ["blip_low", p.global_position, -8.0, 0.0, 0.7])
+	p.call("_toast", "The fist cools")
+
+
+## The galaxy glow kept on the fist while it's armed (every screen: the snapshot's NF_GALAXY on a crewmate's).
+static func keep_glow(h: Humanoid, on: bool) -> void:
+	var g = h.get_meta("galaxy_fist") if h.has_meta("galaxy_fist") else null
+	if on and (g == null or not is_instance_valid(g)):
+		var fx := (Engine.get_main_loop() as SceneTree).root.get_node("FX")
+		h.set_meta("galaxy_fist", fx.hot_fist(h, true, -1.0, SEA_GOLD, "galaxy", 1.3))
+	elif not on and g != null:
+		h.remove_meta("galaxy_fist")
+		if is_instance_valid(g):
+			(g as Node).queue_free()
+
+
+static func _unleash_enter(s) -> void:
+	var p: Player = s.player
+	p.fist_armed = 0.0
+	var hv := Vector3(p.velocity.x, 0.0, p.velocity.z)
+	s._done["carry"] = hv if hv.length() > p.move_speed * 1.1 else Vector3.ZERO
+	s._done["air"] = not p.is_on_floor() and p.height_above_ground() > 1.5
+	s._done["top"] = maxf(p.fall_top, p.global_position.y)
+	var foe = p.parried_by
+	s._done["counter"] = is_instance_valid(foe) and Engine.get_physics_frames() - p.parried_tick <= COUNTER_TICKS \
+		and foe.global_position.distance_to(p.global_position) < 4.0 and not s._done["air"]
+	if s._done["counter"]:
+		s._target = foe
+		s._dir = s._flat_to(foe)
+		s.face_direction(s._dir, 1.0)
+	elif (s._done["carry"] as Vector3).length() > 0.1:
+		s._dir = (s._done["carry"] as Vector3).normalized()
+		s.face_direction(s._dir, 1.0)
+	p.hurtbox.set_deferred("monitorable", false)
+	if s._done["air"]:
+		s.dur = METEOR_MAX_FALL
+		p.body_model.play("fs_meteor", METEOR_MAX_FALL + 1.0)
+	else:
+		s.dur = SEA_DUR
+		p.body_model.play("fs_cannon", SEA_AT / FistMoves.CANNON_AT * FistMoves.CANNON_LEN)
+	_net().fx("hot_fist", [p.body_model, true, SEA_DUR, SEA_GOLD, "galaxy", 1.6])
+	_net().fx("sfx", ["whoosh_big", p.global_position, -2.0, 0.05, 0.55])
+
+
+static func _unleash_update(s, delta: float) -> void:
+	var p: Player = s.player
+	if s._done["air"]:
+		_sea_dive(s, delta)
+		return
+	var carry: Vector3 = s._done["carry"]
+	if carry.length() > 0.1 and s.t < SEA_AT + 0.2:
+		var k: float = 1.0 - s.t / (SEA_AT + 0.2)
+		p.velocity.x = carry.x * k
+		p.velocity.z = carry.z * k
+		s.apply_gravity(delta)
+		p.move_and_slide()
+	else:
+		s._rooted(delta, 0.0)
+	if s._once("glint", SEA_AT - 0.1):
+		_net().fx("star_glint", [_fist(p), 1.0, SEA_GOLD, 0.2])
+	if s._once("punch", SEA_AT):
+		var at: Vector3 = s._chest() + s._dir * 0.9
+		if s._done["counter"] and s._target and is_instance_valid(s._target):
+			var hd: HitData = s._hd(COUNTER_DAMAGE, 14.0, true)
+			hd.unblockable = true
+			hd.impact = "punch_heavy"
+			s._strike_toward(s._target, hd, s._dir)
+			s._hit.append(s._target)
+			_net().fx("impact", [s._body_center(s._target), SEA_GOLD])
+		_flare(s, at)
+		var end: Vector3 = p.global_position + s._dir * SEA_LINE
+		_net().fx("comet", [at, end + Vector3(0, 0.9, 0), 2.0, SEA_TRAVEL, SEA_GOLD])
+		_net().fx("ground_crack", [p.global_position + s._dir * 1.0, s._dir, SEA_LINE * 0.8, SEA_FLARE if s._elem() else Color(0, 0, 0, 0), randi() % 10000, SEA_TRAVEL])
+		s._done["blast_at"] = end
+	# the line: everyone on it struck as the punch reaches them; the blast where it lands
+	if s._done.has("blast_at") and not s._done.has("blasted"):
+		var gone: float = clampf((s.t - SEA_AT) / SEA_TRAVEL, 0.0, 1.0) * SEA_LINE
+		for e in s._pc.enemies_in(p.global_position + s._dir * SEA_LINE * 0.5 + Vector3(0, 0.9, 0), SEA_LINE * 0.6):
+			if e in s._hit:
+				continue
+			var rel: Vector3 = e.global_position - p.global_position
+			rel.y = 0.0
+			var along: float = rel.dot(s._dir)
+			if along < -0.5 or along > gone or (rel - s._dir * along).length() > SEA_W:
+				continue
+			s._hit.append(e)
+			var hd: HitData = s._hd(SEA_DAMAGE, 16.0, true)
+			hd.unblockable = true
+			hd.impact = "punch_heavy"
+			s._strike_toward(e, hd, s._dir)
+			_net().fx("star_glint", [s._body_center(e), 0.9, STARS[s._hit.size() % STARS.size()], 0.3])
+		if s.t >= SEA_AT + SEA_TRAVEL:
+			s._done["blasted"] = true
+			var b: Vector3 = s._done["blast_at"]
+			_blast(s, Vector3(b.x, p.global_position.y, b.z), SEA_BLAST_R, SEA_BLAST_DAMAGE, 0.0)
+	if s._once("afterglow", s.dur - 0.05):
+		_net().fx("hot_fist", [p.body_model, true, AFTERGLOW, SEA_GOLD, "galaxy", 1.0])
+
+
+## In the air: hang a beat with the fist up, then straight down onto the ground, the blast where you land.
+static func _sea_dive(s, delta: float) -> void:
+	var p: Player = s.player
+	s._done["top"] = maxf(float(s._done["top"]), p.global_position.y)
+	if s._done.has("landed"):
+		s._rooted(delta, 0.0)
+		return
+	if s.t < FistMoves.METEOR_DRIVE:
+		p.velocity = p.velocity.move_toward(Vector3.ZERO, 40.0 * delta)
+	else:
+		if s._once("drive", FistMoves.METEOR_DRIVE):
+			_flare(s, _fist(p))
+		p.velocity = Vector3(0, -SEA_DIVE, 0)
+		if int(s.t * 12.0) != int((s.t - delta) * 12.0):
+			_net().fx("star_glint", [_fist(p) + Vector3(randf_range(-0.8, 0.8), randf_range(0.3, 1.5), randf_range(-0.8, 0.8)),
+				randf_range(0.4, 0.8), STARS[randi() % STARS.size()], 0.3])
+	p.move_and_slide()
+	if (s.t > FistMoves.METEOR_DRIVE - 0.05 and p.is_on_floor()) or s.t > METEOR_MAX_FALL - METEOR_RECOVER:
+		s._done["landed"] = true
+		p.velocity = Vector3.ZERO
+		s.dur = s.t + METEOR_RECOVER + 0.2
+		p.body_model.play("fs_meteor_land", METEOR_RECOVER + 0.3)
+		var bonus := fall_bonus(float(s._done["top"]), p.global_position.y, SEA_FALL_MAX)
+		_blast(s, p.global_position + s._dir * 0.6, SEA_AIR_R * (1.0 + bonus * 0.5), SEA_AIR_DAMAGE * (1.0 + bonus), bonus)
+		_net().fx("hot_fist", [p.body_model, true, AFTERGLOW, SEA_GOLD, "galaxy", 1.0])
+
+
+## The throw of the Galaxy punch: a huge cross flare at the fist (red-orange beams, a white-hot centre), stars in
+## every colour, speed lines, the moment.
+static func _flare(s, at: Vector3) -> void:
+	var p: Player = s.player
+	_net().fx("star_glint", [at, 2.6, SEA_FLARE, 0.45, false, 2.6])
+	_net().fx("star_glint", [at, 1.4, SEA_GOLD, 0.3])
+	for k in 5:
+		_net().fx("star_glint", [at + Vector3(randf_range(-1.2, 1.2), randf_range(-0.6, 1.0), randf_range(-1.2, 1.2)), randf_range(0.4, 0.8), STARS[k % STARS.size()], 0.4])
+	_net().fx("speed_lines", [at, s._dir, Color(1.0, 0.9, 0.7), 12, 3.0, 0.3, randi() % 1000])
+	_net().fx("punch_wind", [at - s._dir * 0.4, s._dir, 2.6, SEA_GOLD, true])
+	_net().fx("sfx", ["punch_heavy", at, 2.0, 0.05, 0.55])
+	_net().fx("sfx", ["whoosh_big", at, 2.0, 0.05, 0.5])
+	p.squash(-4.0)
+	s._moment(0.3, 0.3, 0.6, 0.35)
+
+
+## Where it lands: a white-hot pillar, an orange dome swelling over the ground, a shockwave ring, rock flung, cracks;
+## everyone within `r` knocked flat.
+static func _blast(s, at: Vector3, r: float, damage: float, bonus: float) -> void:
+	var p: Player = s.player
+	for e in s._pc.enemies_in(at + Vector3(0, 0.9, 0), r):
+		if e in s._hit:
+			continue
+		s._hit.append(e)
+		var hd: HitData = s._hd(damage, 14.0, true)
+		hd.unblockable = true
+		hd.impact = "punch_heavy"
+		strike_from(p, e, hd, at)
+	_net().fx("light_pillar", [at, 12.0 + 6.0 * bonus, r, 0.9, SEA_FLARE])
+	_net().fx("ring", [at, Vector3.UP, r * 1.4, SEA_FLARE, 0.5, 0.1])
+	_net().fx("ring", [at + Vector3(0, 0.4, 0), Vector3.UP, r * 0.7, SEA_GOLD, 0.35, 0.18])
+	_net().fx("dust_ring", [at, 22, 1.6])
+	_net().fx("debris", [at + Vector3(0, 0.2, 0), Vector3.UP, 14, Color(0.35, 0.3, 0.25), 8.0])
+	for k in 6:
+		_net().fx("ground_crack", [at, s._dir.rotated(Vector3.UP, TAU * k / 6.0 + randf_range(-0.2, 0.2)), r * 0.8, SEA_FLARE if s._elem() else Color(0, 0, 0, 0), randi() % 10000, 0.14])
+	for k in 6:
+		var a := TAU * k / 6.0 + randf()
+		_net().fx("star_glint", [at + Vector3(cos(a) * r * 0.5, randf_range(0.8, 3.0), sin(a) * r * 0.5), randf_range(0.5, 1.0), STARS[k % STARS.size()], 0.45])
+	_net().fx("sfx", ["thud", at, 6.0, 0.03, 0.45])
+	_net().fx("sfx", ["cannon", at, 0.0, 0.05, 0.6])
+	p.hurtbox.set_deferred("monitorable", true)
+	_cm().apply_hitstop(0.12, [p])
+	_cm().apply_camera_shake(0.5 + 0.2 * bonus)
 
 
 ## A body come down at `at`: dust and a thud, and everyone close (not those in `skip`) knocked flat; with Heavy

@@ -357,6 +357,9 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 		return
 	var frac := pc.ult / PowerComponent.ULT_MAX
 	var full := frac >= 1.0
+	if player.fist_armed > 0.0:
+		_draw_armed(r, sk)
+		return
 	var ring_col := fruit_col if not full else fruit_col.lerp(Color(1.0, 0.95, 0.6), 0.5 + 0.5 * sin(_t * 8.0))
 	if frac > 0.0:
 		draw_arc(c, rad, -PI * 0.5, -PI * 0.5 + TAU * frac, maxi(int(32 * frac), 2), ring_col, 3.0)
@@ -382,6 +385,21 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 		_text(Vector2(r.position.x, c.y + 4.0), "%d%%" % int(frac * 100.0), Color(1, 1, 1, 0.85), 8, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	if _ready_flash[4] > 0.0:
 		draw_rect(r.grow(-2.0), Color(1, 0.9, 0.6, _ready_flash[4]))
+	_text(r.position + Vector2(2, 9), "R", UIStyle.ACCENT)
+
+
+## Sea King Fist armed: a gold ring draining with the time left to let it go, and the seconds.
+func _draw_armed(r: Rect2, sk: Dictionary) -> void:
+	var c := r.get_center()
+	var rad := r.size.x * 0.5 + 3.0
+	var k := clampf(player.fist_armed / FistArts.ARMED_SECS, 0.0, 1.0)
+	var gold := FistArts.SEA_GOLD.lerp(Color.WHITE, 0.3 + 0.3 * sin(_t * 10.0))
+	draw_arc(c, rad, -PI * 0.5, -PI * 0.5 + TAU * k, maxi(int(32 * k), 2), gold, 3.0)
+	_slot_frame(r, gold, 2.0)
+	var tex: Texture2D = _icons.get(str(sk["id"]))
+	if tex:
+		draw_texture_rect(tex, r.grow(-2.0), false, Color.WHITE)
+	_text(Vector2(r.position.x, c.y + 4.0), "%d" % ceili(player.fist_armed), Color(1.0, 0.95, 0.7), 12, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	_text(r.position + Vector2(2, 9), "R", UIStyle.ACCENT)
 
 

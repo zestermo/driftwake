@@ -208,7 +208,7 @@ const ALL := {
 	"palm_strike": {"name": "Shockwave Palm", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Drive an open palm forward: a burst of air hurls everything in a cone in front of you."},
 	"sea_king_fist": {"name": "Sea King Fist", "tree": "unarmed", "cost": 0.0, "cooldown": 3.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique", "ult": true,
-		"desc": "Ultimate. Draw your fist back as the air trembles, then punch: a shockwave as wide as a ship tears 14 m ahead, knocking everything flat."},
+		"desc": "Ultimate. Your fist takes the power and glows: for 8 s move as you like, then attack (or R) to let it go. On the ground a punch that tears 16 m ahead and blows up where it lands; in the air a dive onto the ground, harder the further you fall; right after a parry it hits the attacker first; out of a dash it carries your speed. Unused, it fades and half the ultimate comes back."},
 	# --- Haki ---
 	"conquerors_haki": {"name": "Conqueror's Haki", "tree": "base", "cost": 0.0, "cooldown": 3.0, "state": "Technique", "ult": true,
 		"desc": "Ultimate. Unleash the will of a king: weak foes around you (common pirates and bugs below 40% health) faint on the spot; everyone else is thrown back, reeling."},

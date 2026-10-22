@@ -206,6 +206,20 @@ static func pose(h, n: String, u: float) -> Array:
 			return [h._keys(u, [[0.0, g], [METEOR_HOP / T, _sq(crouch, Vector3(1.05, 0.92, 1.03)), "out"],
 				[METEOR_TOP / T, _sq(top, Vector3(0.96, 1.07, 0.98)), "out"], [(METEOR_DRIVE - 0.04) / T, top],
 				[METEOR_DRIVE / T, _sq(drive, Vector3(0.95, 1.08, 1.0)), "in"], [1.0, drive]]), "full", lift]
+		"fs_dive":
+			# Diving Fist: knees tucked, the right fist drawn back by the ear (0.12 s), then the body pitched down the
+			# dive behind the fist shot straight out, the left arm thrown back, the legs trailing
+			var T: float = float(h._action.get("dur", 1.0))
+			var k_go := 0.12 / T
+			var cock := {"pivot": Vector3(-0.1, 0, 0), "hips": Vector3(0, -0.35, 0), "torso": Vector3(-0.2, -0.4, 0), "head": Vector3(0.2, 0.4, 0),
+				"arm_r": Vector3(0.6, 0.6, 0.6), "fore_r": Vector3(2.2, 0, 0), "arm_l": Vector3(1.4, 0.3, -0.2), "fore_l": Vector3(0.4, 0, 0),
+				"leg_l": Vector3(1.5, 0, -0.12), "shin_l": Vector3(-2.1, 0, 0), "leg_r": Vector3(1.1, 0, 0.12), "shin_r": Vector3(-1.9, 0, 0),
+				"_scale": Vector3(1.04, 0.94, 1.02)}
+			var punch := {"pivot": Vector3(-0.6, 0, 0), "hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.3, 0.35, 0), "head": Vector3(0.45, -0.3, 0),
+				"arm_r": Vector3(1.75, -0.25, 0.0), "fore_r": Vector3(0.02, 0, 0), "arm_l": Vector3(-0.7, 0, -0.6), "fore_l": Vector3(0.5, 0, 0),
+				"leg_l": Vector3(-0.3, 0, -0.1), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(0.1, 0, 0.1), "shin_r": Vector3(-0.9, 0, 0),
+				"_scale": Vector3(0.95, 1.0, 1.08)}
+			return [h._keys(u, [[0.0, g], [k_go * 0.85, cock, "out"], [k_go, cock], [k_go + 0.08, punch, "out"], [1.0, punch]]), "full", lift]
 		"fs_meteor_land":
 			# the fist sunk in the ground, crouched deep over it, then up to the guard
 			var plant := {"pivot": Vector3(-0.25, 0, 0), "hips": Vector3(0, 0.25, 0), "torso": Vector3(-0.85, 0.25, -0.05), "head": Vector3(0.6, -0.25, 0),

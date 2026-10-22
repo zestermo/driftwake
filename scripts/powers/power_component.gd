@@ -281,6 +281,9 @@ func can_cast(slot: int) -> String:
 
 
 func try_cast(slot: int) -> bool:
+	# Sea King Fist armed: the ult key lets it go
+	if slot == ULT and player.fist_armed > 0.0 and str(skill(slot).get("id", "")) == "sea_king_fist":
+		return FistArts.unleash(player)
 	var why := can_cast(slot)
 	if why != "":
 		cast_failed.emit(slot, why)

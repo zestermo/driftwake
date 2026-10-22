@@ -102,6 +102,9 @@ func apply_gravity(delta: float) -> void:
 func combat_input() -> String:
 	if player.is_using_item():
 		return ""
+	if player.fist_armed > 0.0 and input_buffer.consume_action("light_attack"):
+		FistArts.unleash(player)
+		return ""
 	if input_buffer.consume_action("light_attack"):
 		if player.can_attack():
 			if player.weapon_class() == "gun":
@@ -140,6 +143,9 @@ func combat_input() -> String:
 ## Attack pressed in the air: the plunging jump attack (needs a drawn weapon,
 ## a bit of height under you and the stamina); unarmed it draws the weapon.
 func air_attack_input() -> String:
+	if player.fist_armed > 0.0 and input_buffer.consume_action("light_attack"):
+		FistArts.unleash(player)
+		return ""
 	# too close to the ground: leave the press buffered for a landing attack
 	if player.can_attack() and player.height_above_ground() < 0.9:
 		return ""

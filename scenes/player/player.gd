@@ -92,6 +92,10 @@ var air_uses: Dictionary = {}
 var freefall_from: float = 0.0
 ## The highest point (y) since the feet last touched the ground: a dive's height fallen (FistArts.fallen).
 var fall_top: float = 0.0
+## Sea King Fist armed: seconds left to unleash it (FistArts), and who we last parried and on which tick (its counter).
+var fist_armed: float = 0.0
+var parried_by: Node3D = null
+var parried_tick: int = -1000
 ## Skyward Dash (Acrobatics): an air dash left from the last mid-air recovery (until you land or use it).
 var skyward_dash: bool = false
 const SKYWARD_STEPS := 2
@@ -205,6 +209,8 @@ const NF_LANTERN := 8
 const NF_TIDE := 16
 ## The katana drawn with its element awakened (BladePetals: cloud and sakura on the blade).
 const NF_PETALS := 32
+## Sea King Fist armed: the galaxy glow on the fist.
+const NF_GALAXY := 64
 
 
 func _ready() -> void:
@@ -500,6 +506,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 			_cut_shot(hit, dir, attacker)
 		if attacker and attacker.has_method("parried"):
 			attacker.call("parried", self)
+		if attacker is Node3D and not hit.ranged:
+			parried_by = attacker
+			parried_tick = Engine.get_physics_frames()
 		return
 	if is_blocking and not hit.unblockable and not hit.dot and current_state_name() == "Block":
 		var fwd := -player_model.global_basis.z
@@ -756,6 +765,7 @@ func _process(delta: float) -> void:
 	_lantern_tick()
 	BladeWater.keep(body_model, _tide_on())
 	BladePetals.keep(body_model, _petals_on())
+	FistArts.keep_glow(body_model, fist_armed > 0.0)
 	heal_cd = maxf(heal_cd - delta, 0.0)
 	_quick_tick(delta)
 	_loadout_tick(delta)
@@ -1035,6 +1045,10 @@ func _physics_process(delta: float) -> void:
 	if not is_local:
 		return
 	fall_top = global_position.y if is_on_floor() else maxf(fall_top, global_position.y)
+	if fist_armed > 0.0:
+		fist_armed -= delta
+		if fist_armed <= 0.0:
+			FistArts.armed_out(self)
 	if bleeding:
 		_bleed_tick(delta)
 	elif Net.coop():
@@ -2521,6 +2535,8 @@ func net_pack() -> Array:
 		flags |= NF_TIDE
 	if _petals_on():
 		flags |= NF_PETALS
+	if fist_armed > 0.0:
+		flags |= NF_GALAXY
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else []]
@@ -2594,6 +2610,7 @@ func _puppet_process(delta: float) -> void:
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	BladeWater.keep(body_model, bool(_net_flags & NF_TIDE))
 	BladePetals.keep(body_model, bool(_net_flags & NF_PETALS))
+	FistArts.keep_glow(body_model, bool(_net_flags & NF_GALAXY))
 	# knocked down: the body lies (or floats) exactly where theirs does
 	if body_model.ragdoll and (b[11] as Array).size() > 0:
 		body_model.ragdoll.net_follow(a[11], b[11], f)
