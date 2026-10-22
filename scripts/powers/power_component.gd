@@ -532,7 +532,7 @@ func from_dict(d: Dictionary) -> void:
 	ult = float(d.get("ult", 0.0))
 	var lo: Array = d.get("loadout", [])
 	for i in range(SLOTS):
-		loadout[i] = str(lo[i]) if i < lo.size() else ""
+		loadout[i] = str(Skills.RENAMED.get(str(lo[i]), lo[i])) if i < lo.size() else ""
 	fruit_changed.emit(fruit)
 	loadout_changed.emit()
 

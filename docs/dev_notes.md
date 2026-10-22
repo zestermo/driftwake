@@ -5362,3 +5362,28 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   `SkillMapScreen.links` records [from, to, taken] each draw for tests.
 - Tests: t/ui/skills_hidden_trees, t/ui/skills_grey_links (new); skills_tabs finds Swimming first so Adventure shows.
   Renders: skillmapshot at 1600x900.
+- **(b) Cannonball Fist (12) and Meteor Fist (18) replace Suplex and Giant Swing.** Nodes `u_cannon` / `u_meteor_fist`,
+  skills `cannonball_fist` / `meteor_fist`. **Old saves are mapped, not refunded:** `SkillTrees.RENAMED` (u_suplex ->
+  u_cannon, u_swing -> u_meteor_fist, same gates and prices) is applied as Progression.from_dict reads bought/owned,
+  and `Skills.RENAMED` as PowerComponent.from_dict reads the bar. Stone Skin (`u_skin`) hangs on u_cannon. The
+  suplex/giant_swing poses, specs, SPIN_ACTIONS/GAZE_FREE entries, TechniqueState's grab and the icons are gone
+  (nothing else used them: no enemy or puppet plays them).
+  - Cannonball Fist (`fs_cannon`, 0.8 s, reach path CANNON_REACH): drifts in on the target (aimed or nearest in 4.5 m,
+    else refunded), chambered low by the hip, the straight at 0.29 s (34, breaker, unblockable, knocked flat); the body
+    then flies 18 m/s down the line 9 m and everyone within 1.4 m of it is bowled over (18, knocked flat). Streak,
+    punch wind, speed lines, dust along the line.
+  - Meteor Fist (`fs_meteor` keyed in seconds -> `fs_meteor_land`): on the ground a hop (6 m/s), the fist raised high
+    at 0.3 s, the overhand driven down at 0.42 s (18 m/s); cast in the air it hangs, then dives straight down at 26
+    m/s. On landing: a 4.5 m shockwave (30, x1.25 within 2 m, unblockable, knocked flat), six cracks, rings, debris,
+    a light. **Height fallen** (`Player.fall_top`: the highest y since the feet last touched ground, kept every tick in
+    Player._physics_process; the dive's top is max(that, where it starts)): +2% a metre above 5 m, at most +50%
+    (FistArts FALL_FREE / FALL_PER_M / METEOR_FALL_MAX). Look after Zach's reference (an honest rookie's big punch):
+    orange-yellow fire on the fist (`FX.hot_fist` "fire"), dark four-point stars rimmed red (`FX.star_glint` dark),
+    black-red crackle (`FX.bolt` dark), purple speed lines (`FX.speed_lines`).
+  - New FX (fx.gd, by hot_leg): hot_fist (fire / galaxy, secs < 0 kept until freed), star_glint (bright or dark,
+    stretchable into a flare), speed_lines, comet, light_pillar; bolt takes `dark`.
+- **Tested:** `t/weapons/fist_power`, `t/progression/fist_rename`; techtest's rows now cannonball_fist/meteor_fist
+  ("down") and its nobody-in-reach refund uses Cannonball Fist. Renders: tools/dev/out/fist_cannonball_fist.png,
+  fist_meteor_fist.png. **techtest's "every skill has an icon" fails on main already** (the five new weapons'
+  techniques have none yet: the new weapons' finish), so pieces land with `-NoTests`.
+- Per frame: `fall_top` (one max a tick on the local captain); the techniques run only while cast.

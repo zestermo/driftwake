@@ -1681,23 +1681,35 @@ def gen_technique_icons():
             d.line([pts[k], pts[k + 1]], fill=VENOM if k % 2 else VENOM_L, width=1)
         d.ellipse([10, 10, 14, 14], fill=W_)
 
-    def suplex(d):
-        d.arc([3, 2, 21, 22], 180, 360, fill=W_, width=1)
-        body(d, 3, 10, hexc("3a5a8a") + (255,))
-        d.ellipse([16, 4, 20, 8], fill=SKIN)
-        d.rectangle([15, 8, 21, 12], fill=RED_D)
-        d.line([(1, 22), (23, 22)], fill=DUST, width=1)
-
     def hip_toss(d):
         body(d, 4, 10, hexc("3a5a8a") + (255,))
         d.arc([4, 0, 22, 18], 200, 340, fill=W_, width=1)
         d.ellipse([16, 2, 20, 6], fill=SKIN)
         d.rectangle([16, 6, 22, 9], fill=RED_D)
 
-    def giant_swing(d):
-        d.arc([1, 1, 23, 23], 0, 360, fill=SMOKE_L, width=1)
-        body(d, 10, 7, hexc("3a5a8a") + (255,))
-        d.rectangle([14, 11, 22, 13], fill=RED_D)
+    def cannonball(d):
+        # a straight punch, and a body bowled down the line into two more
+        fist(d, 1, 9)
+        d.line([(8, 12), (11, 12)], fill=W_)
+        d.ellipse([11, 8, 17, 14], fill=RED_D)
+        for x in (18, 21):
+            d.line([(x, 7), (x + 2, 17)], fill=SMOKE_L, width=2)
+        for y in (6, 18):
+            d.line([(9, y), (16, y)], fill=W_)
+
+    def meteor(d):
+        # an overhand driven into cracked ground under dark star glints, a ring going out
+        EMB = hexc("ffb030") + (255,)
+        d.ellipse([2, 18, 22, 23], outline=EMB)
+        for x0, x1 in ((12, 5), (12, 19), (12, 9), (12, 16)):
+            d.line([(x0, 20), (x1, 23)], fill=BLACK)
+        d.rectangle([10, 3, 14, 12], fill=SKIN_D)
+        fist(d, 8, 11)
+        d.ellipse([7, 10, 17, 19], outline=EMB)
+        for cx, cy in ((4, 6), (20, 8)):
+            d.line([(cx - 3, cy), (cx + 3, cy)], fill=RED)
+            d.line([(cx, cy - 3), (cx, cy + 3)], fill=RED)
+            d.point((cx, cy), fill=BLACK)
 
     def hundred(d):
         for x, y in ((2, 3), (9, 6), (3, 11), (10, 14), (4, 18)):
@@ -1740,7 +1752,7 @@ def gen_technique_icons():
                      ("blade_dance", blade_dance), ("cross_fang", cross_fang), ("steel_tempest", tempest),
                      ("parley", parley), ("grapeshot", grapeshot), ("crossfire", crossfire), ("broadside", broadside),
                      ("deadeye", deadeye), ("smoke_bomb", smoke_bomb), ("point_blank", point_blank), ("deaths_waltz", waltz),
-                     ("suplex", suplex), ("hip_toss", hip_toss), ("giant_swing", giant_swing),
+                     ("hip_toss", hip_toss), ("cannonball_fist", cannonball), ("meteor_fist", meteor),
                      ("hundred_fists", hundred), ("rising_dragon", rising_dragon), ("palm_strike", palm),
                      ("sea_king_fist", sea_king), ("conquerors_haki", conqueror),
                      ("slip", slip), ("cutthroat", cutthroat), ("knife_fan", knife_fan), ("red_eclipse", red_eclipse),

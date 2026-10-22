@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwya5el08xq83"
-path="res://.godot/imported/skill_suplex.png-e73364f826ed392d4c6a195dd18f46c4.ctex"
+uid="uid://b7iheywqoqg8j"
+path="res://.godot/imported/skill_cannonball_fist.png-c61ee20a206ce3dfaf4edb87ba29859b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/icons/skill_suplex.png"
-dest_files=["res://.godot/imported/skill_suplex.png-e73364f826ed392d4c6a195dd18f46c4.ctex"]
+source_file="res://assets/textures/icons/skill_cannonball_fist.png"
+dest_files=["res://.godot/imported/skill_cannonball_fist.png-c61ee20a206ce3dfaf4edb87ba29859b.ctex"]
 
 [params]
 

@@ -1099,10 +1099,11 @@ func from_dict(d: Dictionary) -> void:
 			uses = (d.get("uses", {}) as Dictionary).duplicate()
 	else:
 		# (format 5 owned its big nodes by level: they're bought back below like a format 6 save's)
-		for k in d.get("bought" if fmt >= 6 else "owned", []):
-			var n := SkillTrees.node_def(str(k))
-			if not n.is_empty() and n["kind"] != "step" and SkillTrees.price(str(k)) > 0:
-				want.append(str(k))
+		for k0 in d.get("bought" if fmt >= 6 else "owned", []):
+			var k := str(SkillTrees.RENAMED.get(str(k0), k0))
+			var n := SkillTrees.node_def(k)
+			if not n.is_empty() and n["kind"] != "step" and SkillTrees.price(k) > 0 and not (k in want):
+				want.append(k)
 		for t in ms.keys():
 			if is_track(str(t)):
 				mastery[str(t)] = (ms[t] as Dictionary).duplicate()
