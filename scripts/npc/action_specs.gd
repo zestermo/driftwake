@@ -111,9 +111,13 @@ const SPECS := {
 	"tiger_rush": {"len": 0.55, "hit": [0.3, 0.76], "swoosh": [0.6, 0.78], "sharp": 55.0, "swing": KatanaMoves.TIGER_SWING, "stance": "katana", "weapon": "katana"},
 	"air_slash": {"len": 0.6, "hit": [0.34, 0.6], "swoosh": [0.34, 0.62], "sharp": 55.0, "swing": KatanaMoves.AIR_SWING, "stance": "katana", "weapon": "katana"},
 	# --- axe ---
-	"axe_hack": {"len": 0.62, "hit": [0.39, 0.56], "stance": "axe", "weapon": "axe"},
-	"axe_hook": {"len": 0.62, "hit": [0.35, 0.53], "stance": "axe", "weapon": "axe"},
-	"axe_split": {"len": 0.9, "hit": [0.42, 0.6], "stance": "axe", "weapon": "axe"},
+	# (the combo rides swing paths: AxeMoves)
+	"axe_hack": {"len": 0.62, "hit": [0.4, 0.56], "chain": 0.46, "swoosh": [0.37, 0.62], "sharp": 55.0, "lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
+		"swing": AxeMoves.HACK_SWING, "reach": AxeMoves.HACK_REACH, "stance": "axe", "weapon": "axe"},
+	"axe_hook": {"len": 0.62, "hit": [0.35, 0.53], "chain": 0.46, "swoosh": [0.31, 0.6], "sharp": 55.0, "lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
+		"swing": AxeMoves.HOOK_SWING, "reach": AxeMoves.HOOK_REACH, "stance": "axe", "weapon": "axe", "extras": {"after": "axe_hack"}},
+	"axe_split": {"len": 0.9, "hit": [0.44, 0.6], "chain": 0.72, "swoosh": [0.42, 0.6], "sharp": 55.0, "lead": {"pivot": 0.02, "hips": 0.04, "torso": 0.02},
+		"swing": AxeMoves.SPLIT_SWING, "stance": "axe", "weapon": "axe", "extras": {"after": "axe_hook"}},
 	"axe_whirl": {"len": 1.24, "hit": [0.18, 0.76], "stance": "axe", "weapon": "axe"},
 	"axe_flip": {"len": 0.58, "stance": "axe", "weapon": "axe"},
 	"axe_land": {"len": 0.53, "stance": "axe", "weapon": "axe"},
