@@ -238,6 +238,9 @@ const SPECS := {
 	"dx_frenzy": {"len": 1.2, "hit": [0.08, 0.82], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
 	"dx_storm": {"len": 1.8, "hit": [0.18, 0.92], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
 	"dx_winter": {"len": 2.6, "hit": [0.25, 0.78], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_ravens": {"len": 1.75, "hit": [0.14, 0.82], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_haul": {"len": 1.45, "hit": [0.2, 0.72], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
+	"dx_circle": {"len": 1.45, "hit": [0.35, 0.82], "stance": "dual_axe", "weapon": "axe", "extras": {"dual": true}},
 	# --- greatsword (GreatswordMoves: keyed like the hammer, its grip solved by PoleMoves.hands; "carry": a chained
 	# blow starts where the one "after" it left off, Humanoid._begin_action) ---
 	"gs_stance": {"len": 1.0, "stance": "greatsword", "weapon": "greatsword"},

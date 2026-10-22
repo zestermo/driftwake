@@ -1952,6 +1952,27 @@ def gen_technique_icons():
         blade(d, (18, 18), (6, 6))
         d.ellipse([10, 10, 14, 14], fill=ICE_D)
 
+    def ravens_return(d):
+        # two loops fanning out from the bottom, crossing at the top, an axe flying on each
+        d.ellipse([2, 2, 14, 22], outline=ICE_D, width=1)
+        d.ellipse([10, 2, 22, 22], outline=SMOKE_L, width=1)
+        axe_icon(d, 6, 9)
+        axe_icon(d, 18, 9)
+        d.ellipse([10, 19, 14, 23], fill=SKIN)
+        for x, y in ((12, 3), (10, 5), (14, 5)):
+            d.point((x, y), fill=FROST)
+
+    def raiders_haul(d):
+        # a body swung round at the end of a hooked haft, the circle of the swing round you, a foe bowled over ahead
+        d.arc([3, 3, 21, 21], 200, 520, fill=ICE_D, width=1)
+        d.ellipse([10, 10, 14, 14], fill=SKIN)
+        d.line([(12, 12), (19, 6)], fill=WOOD, width=2)
+        d.polygon([(18, 4), (22, 5), (20, 8)], fill=STEEL)
+        d.ellipse([18, 1, 23, 6], fill=SKIN)
+        d.line([(2, 19), (7, 22)], fill=SMOKE_L, width=2)
+        for x, y in ((4, 17), (8, 20), (3, 22)):
+            d.point((x, y), fill=FROST)
+
     def greatblade(d, a, b, col=STEEL):
         ax, ay = a
         bx, by = b
@@ -2058,6 +2079,7 @@ def gen_technique_icons():
                      ("cyclone_crusher", cyclone_crusher), ("titans_fall", titans_fall),
                      ("cannonball_swing", cannonball_swing), ("anvil_counter", anvil_counter), ("gallows_hook", gallows_hook),
                      ("hewing_frenzy", hewing_frenzy), ("axestorm", axestorm), ("fimbulwinter", fimbulwinter),
+                     ("ravens_return", ravens_return), ("raiders_haul", raiders_haul),
                      ("guardbreaker", guardbreaker), ("crescent_gale", crescent_gale), ("tempest_turns", tempest_turns),
                      ("skysplitter", skysplitter), ("mule_kick", mule_kick), ("hailstorm_heels", hailstorm_heels),
                      ("cartwheel_crescent", cartwheel_crescent), ("last_course", last_course)):

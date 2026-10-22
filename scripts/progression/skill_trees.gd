@@ -836,6 +836,7 @@ static func _build_dual_axe() -> void:
 	_big("dx_deflect", "Hooked Guard", "mech", 0, 3, {"parryshot_dual_axe": 1, "parry_dual_axe": 0.06},
 		"Parry with two axes and you knock gunshots aside with the heads too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("dx_gallows", "Gallows Hook", "tech", 0, 8, {}, "", "gallows_hook")
+	_big("dx_haul", "Raider's Haul", "tech", 0, 14, {}, "", "raiders_haul")
 	_big("dx_rage", "Bloodrage", "mech", 0, 20, {"armor_dual_axe": 1, "def_dual_axe": 4.0},
 		"Mid-swing with twin axes, blows don't make you flinch or knock you off your feet, and you have 4 more defense with them in hand.")
 	_big("dx_frenzy", "Hewing Frenzy", "tech", 1, 5, {}, "", "hewing_frenzy")
@@ -849,6 +850,7 @@ static func _build_dual_axe() -> void:
 		"Attack at a sprint: leap with both axes raised and crash them down crossed into the one in front. It breaks their wind-up and throws them down.")
 	_big("dx_saw", "Buzzsaw", "move", 2, 6, {"mv_buzzsaw": 1},
 		"Attack in the air: tuck up with both axes out and drop turning over and over like a saw blade, cutting everything under you, then bite both into the ground in a ring that knocks them flat (once per jump).")
+	_big("dx_ravens", "Ravens' Return", "tech", 2, 12, {}, "", "ravens_return")
 	_big("dx_blood", "Red Rhythm", "passive", 2, 13, {"flow_dual_axe": 0.3, "finisher_dual_axe": 0.3},
 		"Passive (a slot). Twin-axe hits give 30% more energy, and the last blow of your combo lands 30% harder.")
 	_variant("dx_way", "Reaver's Way", 2, [

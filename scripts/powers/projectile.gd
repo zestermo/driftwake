@@ -13,6 +13,12 @@ extends Node3D
 ##   "javelin" Thunder Javelin: the thrower's spear point-first down a 16 m line (piercing, breaking
 ##            wind-ups), a beat at the end, then yanked back to the hand on a crackle of lightning,
 ##            cutting the line again; the held spear is hidden while it flies (on every screen).
+##   "raven_l" / "raven_r" Ravens' Return: a twin axe (the off hand's / the right's) thrown out on a loop that fans
+##            out to its side RAVEN_W m, reaches RAVEN_L m ahead, crosses the other at the tip and curves home to
+##            its hand in RAVEN_T s; it only shows the flight (the technique cuts on the sweep, DualAxeArts).
+##   "hook"   Gallows Hook: the off hand's axe flung straight out (`direction`'s length is how far) and back to the
+##            hand, slower, with whoever it hooked; shown only.
+##            Thrown twin axes hide the one held in that hand while they fly and leave a ribbon along their path.
 ##   "seed"   Vine Snare: a seed that bursts into grasping vines on the first
 ##            enemy or surface it hits, rooting everyone close.
 
@@ -30,6 +36,12 @@ var _hit: Array = []
 var _hang := -1.0
 var _crackle := 0.0
 var _held: Node3D
+var _from := Vector3.ZERO
+var _age := 0.0
+var _fade := -1.0
+var _ribbon: MeshInstance3D
+var _rim := ImmediateMesh.new()
+var _rpts: Array = []
 var _mesh: MeshInstance3D
 var _mat: StandardMaterial3D
 var _core: StandardMaterial3D
@@ -39,6 +51,13 @@ signal returned
 const JAVELIN_RANGE := 16.0
 const JAVELIN_HANG := 0.18
 const JAVELIN_BOLT := 8.0
+const RAVEN_L := 10.0
+const RAVEN_W := 4.5
+const RAVEN_T := 1.2
+const HOOK_OUT := 60.0
+const HOOK_BACK := 20.0
+const RIBBON_LIFE := 0.2
+static var _ribbon_mat: StandardMaterial3D
 
 
 static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3, src: Node3D, dmg: float, weapon_model: String = "") -> Projectile:
@@ -64,6 +83,9 @@ static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3
 		"javelin":
 			p.speed = 36.0
 			p.range_m = JAVELIN_RANGE
+		"hook":
+			p.speed = HOOK_OUT
+			p.range_m = direction.length()
 	var root: Node = tree.current_scene if tree.current_scene else tree.root
 	root.add_child(p)
 	p.global_position = from
@@ -122,6 +144,27 @@ func _ready() -> void:
 			_held = (source as Player).body_model.weapon
 			if _held:
 				_held.visible = false
+	elif _thrown():
+		_mesh.mesh = Props.weapon_mesh(model.trim_prefix("elem|"))
+		_from = global_position
+		if source is Player and (source as Player).body_model:
+			var body := (source as Player).body_model
+			_held = body.weapon if kind == "raven_r" else body.offhand
+			if _held:
+				_held.visible = false
+		if _ribbon_mat == null:
+			_ribbon_mat = StandardMaterial3D.new()
+			_ribbon_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			_ribbon_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			_ribbon_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			_ribbon_mat.vertex_color_use_as_albedo = true
+			_ribbon_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_ribbon = MeshInstance3D.new()
+		_ribbon.top_level = true
+		_ribbon.mesh = _rim
+		_ribbon.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_ribbon)
+		_ribbon.global_transform = Transform3D.IDENTITY
 	else:
 		var sm := SphereMesh.new()
 		sm.radius = 0.13
@@ -137,7 +180,17 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _fade >= 0.0:
+		_fade -= delta
+		_age += delta
+		_draw_ribbon(false)
+		if _fade < 0.0:
+			queue_free()
+		return
 	if _done:
+		return
+	if _thrown():
+		_fly_update(delta)
 		return
 	if kind in ["axe", "javelin"] and _back:
 		_return_update(delta)
@@ -338,11 +391,90 @@ func _hang_update(delta: float) -> void:
 	_turn_back()
 
 
-## Where a returning weapon flies to: the javelin to the thrower's right hand, the axe to the chest.
+## Where a returning weapon flies to: the javelin and the right raven to the thrower's right hand, the left raven
+## and the hook to the left, the axe to the chest.
 func _home() -> Vector3:
-	if kind == "javelin" and source is Player and (source as Player).body_model:
-		return (source as Player).body_model.hand_r.global_position
+	if kind in ["javelin", "raven_r", "raven_l", "hook"] and source is Player and (source as Player).body_model:
+		var body := (source as Player).body_model
+		return (body.hand_r if kind in ["javelin", "raven_r"] else body.hand_l).global_position
 	return source.global_position + Vector3.UP * 1.2
+
+
+func _thrown() -> bool:
+	return kind in ["raven_l", "raven_r", "hook"]
+
+
+## Where a raven is `s` (0-1) of the way round its loop, from the hand it left: out on its own side
+## (`side` 1 right), across the other at the tip RAVEN_L ahead, and home on the far side, a little rise mid-flight.
+static func raven_offset(s: float, side: float, fwd: Vector3) -> Vector3:
+	var th := TAU * s
+	var right := fwd.cross(Vector3.UP).normalized()
+	return fwd * RAVEN_L * (1.0 - cos(th)) * 0.5 + right * side * RAVEN_W * sin(th) + Vector3.UP * 0.6 * sin(th * 0.5)
+
+
+## A thrown twin axe's flight: the ravens round their loops (eased home into the hand as it moves), the hook
+## straight out and back; spinning, the ribbon laid along where it really went.
+func _fly_update(delta: float) -> void:
+	if source == null or not is_instance_valid(source):
+		_land()
+		return
+	_age += delta
+	var was := global_position
+	var pos := was
+	var home := false
+	if kind == "hook":
+		if not _back:
+			pos = was + dir * minf(speed * delta, range_m - _travel)
+			_travel += pos.distance_to(was)
+			if _travel >= range_m - 0.01:
+				_back = true
+		else:
+			var to := _home() - was
+			pos = was + to.normalized() * minf(HOOK_BACK * delta, to.length())
+			home = to.length() < 0.5
+	else:
+		var s := minf(_age / RAVEN_T, 1.0)
+		pos = _from + raven_offset(s, 1.0 if kind == "raven_r" else -1.0, dir) + (_home() - _from) * smoothstep(0.7, 1.0, s)
+		home = s >= 1.0
+	var v := pos - was
+	if v.length() > 0.01 and absf(v.normalized().y) < 0.98:
+		global_basis = Basis.looking_at(v.normalized(), Vector3.UP)
+	global_position = pos
+	_mesh.rotation.x -= (18.0 if kind == "hook" else 24.0) * delta
+	_draw_ribbon(true)
+	if home:
+		_land()
+
+
+func _land() -> void:
+	_done = true
+	_finish_held()
+	returned.emit()
+	_mesh.visible = false
+	_fade = RIBBON_LIFE
+	FX.sfx("clack", global_position, -9.0, 0.06, 1.1)
+
+
+## The ribbon behind a thrown axe: its spun disc's height laid along the real path, fading over RIBBON_LIFE.
+func _draw_ribbon(sample: bool) -> void:
+	if sample:
+		var at := global_position
+		_rpts.append([_age, at + Vector3.UP * 0.28, at - Vector3.UP * 0.28])
+	while not _rpts.is_empty() and _age - float(_rpts[0][0]) > RIBBON_LIFE:
+		_rpts.pop_front()
+	_rim.clear_surfaces()
+	if _rpts.size() < 2:
+		return
+	var col := _col()
+	var tip := col.lerp(Color.WHITE, 0.5)
+	_rim.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP, _ribbon_mat)
+	for p in _rpts:
+		var a := 1.0 - (_age - float(p[0])) / RIBBON_LIFE
+		_rim.surface_set_color(Color(col.r, col.g, col.b, 0.25 * a))
+		_rim.surface_add_vertex(p[2])
+		_rim.surface_set_color(Color(tip.r, tip.g, tip.b, 0.85 * a))
+		_rim.surface_add_vertex(p[1])
+	_rim.surface_end()
 
 
 ## The weapon flies back to the thrower's hand, cutting on the way (the javelin butt first, on its tether).
@@ -427,9 +559,10 @@ func _finish() -> void:
 func _tree() -> String:
 	if kind in ["slash", "wave", "gale", "gale_flat"] and model != "elem":
 		return "plain"
-	if kind in ["axe", "javelin"] and not model.begins_with("elem|"):
+	if (kind in ["axe", "javelin"] or _thrown()) and not model.begins_with("elem|"):
 		return "plain"
-	return {"slash": "sword", "wave": "katana", "axe": "axe", "javelin": "polearm", "gale": "greatsword", "gale_flat": "greatsword"}.get(kind, "unarmed")
+	return {"slash": "sword", "wave": "katana", "axe": "axe", "javelin": "polearm", "gale": "greatsword", "gale_flat": "greatsword",
+		"raven_l": "dual_axe", "raven_r": "dual_axe", "hook": "dual_axe"}.get(kind, "unarmed")
 
 
 func _elemental() -> bool:

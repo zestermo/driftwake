@@ -178,6 +178,10 @@ const ALL := {
 		"desc": "Hook everyone close in, then whirl four times with both axes out, walking, cutting everyone about you, and finish with both crashed down crossed."},
 	"fimbulwinter": {"name": "Fimbulwinter", "tree": "dual_axe", "cost": 0.0, "cooldown": 3.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique", "ult": true,
 		"desc": "Ultimate. A roar, every enemy close hooked in at once, three turns with both axes out, then up and both crashed into the ground: a great ring throws them all down, and with the frost, ice heaves up under every one of them."},
+	"ravens_return": {"name": "Ravens' Return", "tree": "dual_axe", "cost": 22.0, "cooldown": 8.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique",
+		"desc": "Throw both axes at once: they fly out on two crossing arcs, left and right, ten paces ahead, cutting everyone in a wide cone, then curve back to your hands and cut them again on the way home. With the frost, ice chips burst off everyone they cut."},
+	"raiders_haul": {"name": "Raider's Haul", "tree": "dual_axe", "cost": 20.0, "cooldown": 8.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique",
+		"desc": "Hook the enemy in front by the beard and swing them round you once at arm's length, battering everyone close flat, then fling them eight paces into whoever's behind. Too heavy to swing (a boss or a big brute), and you swing round them instead with three chops."},
 	# --- Greatsword ---
 	"guardbreaker": {"name": "Guardbreaker", "tree": "greatsword", "cost": 16.0, "cooldown": 6.0, "styles": ["greatsword"], "needs_text": "a greatsword", "state": "Technique",
 		"desc": "Step in on the enemy you're facing with a short rising cut that knocks their guard up, then bring the blade straight down on them: neither can be blocked, and it leaves them reeling."},

@@ -28,6 +28,23 @@ const WIDE := {"leg_l": Vector3(0.5, 0, -0.32), "shin_l": Vector3(-0.85, 0, 0), 
 const LOW := {"leg_l": Vector3(0.8, 0, -0.2), "shin_l": Vector3(-1.3, 0, 0), "leg_r": Vector3(-0.2, 0, 0.2), "shin_r": Vector3(-0.95, 0, 0)}
 const TUCK := {"leg_l": Vector3(1.5, 0, -0.14), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(1.1, 0, 0.14), "shin_r": Vector3(-1.7, 0, 0)}
 
+## Raider's Haul: the one turn with them hooked at arm's length (s), when they're flung, and the chops round a
+## heavy one (DualAxeArts reads these, so the body and the carried foe turn together).
+const HAUL_SWING := Vector2(0.3, 1.0)
+const HAUL_FLING := 1.04
+const CIRCLE_SWING := Vector2(0.3, 1.3)
+const CIRCLE_CHOPS := [0.52, 0.84, 1.16]
+## Ravens' Return: both axes away (s), and back in the hands.
+const RAVENS_THROW := 0.24
+const RAVENS_CATCH := 1.44
+
+
+## How far round the haul has turned `t` s in (radians, clockwise from above like the pivot's spin), eased in
+## and out of the turn.
+static func haul_turn(t: float, span: Vector2 = HAUL_SWING) -> float:
+	var k := clampf((t - span.x) / (span.y - span.x), 0.0, 1.0)
+	return -TAU * k * k * (3.0 - 2.0 * k)
+
 
 static func block() -> Dictionary:
 	return DaggerMoves.aim(BLOCK_X, false)
@@ -168,15 +185,14 @@ static func pose(h, n: String, u: float) -> Array:
 				[0.24 / T, DaggerMoves.aim(_reach_l(), false)], [0.36 / T, DaggerMoves.aim(_yank(), false), "out"], [0.42 / T, DaggerMoves.aim(_yank(), false)],
 				[k_c, _whip(_chop_r(), Vector3(1.07, 0.93, 1.04), 0.7), "in"], [k_c + 0.05, _chop_r()], [0.88, _chop_r()], [1.0, g]]), "full", lift]
 		"dx_frenzy":
-			# Hewing Frenzy: chop after chop trading hands every 0.1 s walking in (0.1 to 0.8 s), then both up and
-			# crashed down crossed (0.95 s)
-			var keys: Array = [[0.0, g]]
+			# Hewing Frenzy: chop after chop trading hands every 0.1 s walking in (0.11 to 0.81 s): as one axe comes
+			# down the other is already up behind its shoulder; then both up and crashed down crossed (0.95 s)
+			var keys: Array = [[0.0, g], [0.05 / T, _wind_r(), "out"]]
 			var sq := Vector3(1.04, 0.96, 1.02)
 			for i in 8:
-				var a := (0.06 + 0.1 * i) / T
-				var right := i % 2 == 0
-				keys.append([a, _wind_r() if right else _mir(_wind_r()), "out"])
-				keys.append([a + 0.05 / T, _whip(_chop_r() if right else _mir(_chop_r()), sq), "out"])
+				var a := (0.11 + 0.1 * i) / T
+				keys.append([a, _whip(_alt(i % 2 == 0), sq), "out"])
+				keys.append([a + 0.04 / T, _alt(i % 2 == 0)])
 			keys.append([0.88 / T, _up(SET), "out"])
 			keys.append([0.95 / T, _whip(_cross(STEP_L), Vector3(1.08, 0.9, 1.04), 0.7), "in"])
 			keys.append([1.0 - 0.1 / T, _cross(STEP_L)])
@@ -212,6 +228,54 @@ static func pose(h, n: String, u: float) -> Array:
 			var k := clampf((u * T - 0.66) / 0.94, 0.0, 1.0)
 			pz["pivot"] = (pz.get("pivot", Vector3.ZERO) as Vector3) + Vector3(0, -3.0 * TAU * k, 0)
 			return [pz, "full", lift]
+		"dx_ravens":
+			# Ravens' Return: both axes cocked back over the shoulders (0.16 s), flung out wide together (0.24 s),
+			# the arms held open while they fly round, and both caught back in with a jolt (1.44 s)
+			var cock := _p([{"pivot": Vector3(0.1, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.42, 0, 0), "head": Vector3(-0.25, 0, 0),
+				"arm_r": Vector3(2.75, 0.2, 0.75), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3(1.0, 0, 0),
+				"arm_l": Vector3(2.75, -0.2, -0.75), "fore_l": Vector3(1.2, 0, 0), "hand_l": Vector3(1.0, 0, 0),
+				"_lift": Vector3(0, -0.14, 0), "_scale": Vector3(0.96, 1.06, 1.0), "_smear": Vector3.ZERO}, SET])
+			var fling := _p([{"pivot": Vector3(-0.14, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.5, 0, 0), "head": Vector3(0.32, 0, 0),
+				"arm_r": Vector3(1.45, -0.1, 0.95), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-0.6, 0, 0),
+				"arm_l": Vector3(1.45, 0.1, -0.95), "fore_l": Vector3(0.1, 0, 0), "hand_l": Vector3(-0.6, 0, 0),
+				"_lift": Vector3(0, -0.26, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}, STEP_L])
+			var wait := _p([{"pivot": Vector3(-0.04, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.2, 0, 0), "head": Vector3(0.12, 0, 0),
+				"arm_r": Vector3(0.95, -0.1, 0.7), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3(0.2, 0, 0),
+				"arm_l": Vector3(0.95, 0.1, -0.7), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(0.2, 0, 0),
+				"_lift": Vector3(0, -0.2, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}, SET])
+			var catch := wait.merged({"arm_r": Vector3(0.8, -0.05, 0.4), "fore_r": Vector3(1.3, 0, 0), "arm_l": Vector3(0.7, 0.05, -0.4),
+				"fore_l": Vector3(1.2, 0, 0), "torso": Vector3(-0.3, 0, 0), "_lift": Vector3(0, -0.26, 0), "_scale": Vector3(1.04, 0.95, 1.02)}, true)
+			return [h._keys(u, [[0.0, g], [0.16 / T, cock, "out"], [0.2 / T, cock], [RAVENS_THROW / T, _whip(fling, Vector3(0.97, 1.0, 1.08), 0.0), "out"],
+				[0.5 / T, fling], [0.85 / T, wait], [(RAVENS_CATCH - 0.06) / T, wait], [RAVENS_CATCH / T, catch, "out"], [(RAVENS_CATCH + 0.1) / T, catch], [1.0, g]]), "full", lift]
+		"dx_haul":
+			# Raider's Haul: the left axe flung out round their neck (0.16 s), yanked in, then leaning back with both
+			# hands out at arm's length the body turns once round (0.3 to 1.0 s) and both arms whip them away (1.04 s)
+			var hold := _p([{"pivot": Vector3(0.1, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.28, 0, 0), "head": Vector3(-0.1, 0, 0),
+				"arm_r": Vector3(1.4, 0.0, 0.2), "fore_r": Vector3(0.15, 0, 0), "hand_r": Vector3(-0.4, 0, 0),
+				"arm_l": Vector3(1.5, 0.0, -0.15), "fore_l": Vector3(0.1, 0, 0), "hand_l": Vector3(-0.5, 0, 0),
+				"_lift": Vector3(0, -0.24, 0), "_scale": Vector3(1.03, 0.97, 1.0), "_smear": Vector3.ZERO}, WIDE])
+			var throw := _p([{"pivot": Vector3(-0.15, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.5, 0, 0), "head": Vector3(0.3, 0, 0),
+				"arm_r": Vector3(2.1, -0.1, 0.35), "fore_r": Vector3(0.05, 0, 0), "hand_r": Vector3(-0.8, 0, 0),
+				"arm_l": Vector3(2.1, 0.1, -0.35), "fore_l": Vector3(0.05, 0, 0), "hand_l": Vector3(-0.8, 0, 0),
+				"_lift": Vector3(0, -0.26, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}, STEP_L])
+			var pz: Dictionary = h._keys(u, [[0.0, g], [0.08 / T, _coil_l(), "out"], [0.16 / T, DaggerMoves.aim(_whip(_reach_l(), Vector3(0.97, 1.0, 1.08)), false), "out"],
+				[0.24 / T, DaggerMoves.aim(_yank(), false), "out"], [HAUL_SWING.x / T, hold, "out"], [(HAUL_SWING.y - 0.06) / T, hold.merged({"_scale": Vector3(1.0, 1.0, 1.06)}, true)],
+				[HAUL_FLING / T, _whip(throw, Vector3(0.97, 1.0, 1.1), 0.0), "out"], [(HAUL_FLING + 0.16) / T, throw], [1.0, g]])
+			pz["pivot"] = (pz.get("pivot", Vector3.ZERO) as Vector3) + Vector3(0, haul_turn(u * T), 0)
+			return [pz, "full", lift]
+		"dx_circle":
+			# Raider's Haul on one too heavy to swing: the hook flung out round them (0.16 s), the left hand keeps
+			# the haft taut at the hip while you run once round them, the right chopping in three times
+			var held := DaggerMoves.aim(_yank(), false)
+			var keys: Array = [[0.0, g], [0.08 / T, _coil_l(), "out"], [0.16 / T, DaggerMoves.aim(_whip(_reach_l(), Vector3(0.97, 1.0, 1.08)), false), "out"],
+				[0.28 / T, held, "out"]]
+			for i in CIRCLE_CHOPS.size():
+				var c: float = CIRCLE_CHOPS[i]
+				keys.append([(c - 0.12) / T, _held_l(_wind_r(), held), "out"])
+				keys.append([c / T, _whip(_held_l(_chop_r(), held), Vector3(1.06, 0.94, 1.03)), "out"])
+				keys.append([(c + 0.08) / T, _held_l(_chop_r(), held)])
+			keys.append([1.0, g])
+			return [h._keys(u, keys), "full", lift]
 		# (previews: the stance itself and the held block)
 		"dx_stance":
 			return [{}, "upper", lift]
@@ -219,6 +283,26 @@ static func pose(h, n: String, u: float) -> Array:
 			return h._action_pose("guard_block", u)
 	push_error("DualAxeMoves: no pose for \"%s\"" % n)
 	return [g, "full", lift]
+
+
+## One of Hewing Frenzy's chops: one axe down across the front (`right`: the right), the other already hauled up
+## behind its shoulder for the next.
+static func _alt(right: bool) -> Dictionary:
+	var out := _chop_r() if right else _mir(_chop_r())
+	var up := _mir(_wind_r()) if right else _wind_r()
+	var side := "l" if right else "r"
+	for j in ["arm_", "fore_", "hand_"]:
+		out[j + side] = up[j + side]
+	return out
+
+
+## `p` with the left arm as `held` has it (the hooked haft kept taut).
+static func _held_l(p: Dictionary, held: Dictionary) -> Dictionary:
+	var out := p.duplicate()
+	for j in ["arm_l", "fore_l", "hand_l"]:
+		if held.has(j):
+			out[j] = held[j]
+	return out
 
 
 ## Both axes raised high overhead, the back arched (the crossed crash's wind-up).

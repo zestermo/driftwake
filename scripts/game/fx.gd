@@ -2368,7 +2368,7 @@ func rock_spikes(pos: Vector3, radius: float = 2.5, count: int = 8, seed_v: int 
 		return
 	if _spike_mesh == null:
 		_spike_mesh = _spike(PSXMat.lit("rock", Color(0.92, 0.82, 0.7)))
-		_ice_mesh = _spike(PSXMat.lit("metal", Color(0.82, 0.96, 1.15)))
+		_ice_mesh = _spike(PSXMat.lit("ice", Color(0.95, 1.05, 1.15), {"emission": Color(0.35, 0.55, 0.7), "emission_energy": 0.35}))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_v
 	var holder := Node3D.new()
