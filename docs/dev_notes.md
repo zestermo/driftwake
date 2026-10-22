@@ -5574,3 +5574,36 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   once a frame while an awakened axe is drawn; nothing else per frame (MasteredGuard.on is a cached stat read).
 - Open: Skyfall Smash and War Cry (the axe plan's piece 4) are the next axe piece; the aura is small when the axe hangs
   low in the brawler's guard (bigger from the Bearded Guard).
+- Skill icons for the polearm, hammer, twin-axe, greatsword and black-leg techniques (20, 24 px, each tree's FX.TREE_FX
+  colours) from `gen_technique_icons` (`py tools/texture_gen/gen_psx_textures.py technique_icons` regenerates only those);
+  techtest's "every skill has an icon" passes again, t/ui too.
+
+## 2026-10-22: the Adventure trees' moves, piece 1: Roll / Sidestep and Afterimage (docs/v1_18_4_plan.md "Wave 2")
+- **Nodes** (Acrobatics Dodge branch): `ac_dodge` "Dodge Style", a variant at 7 (Roll `dodge_roll` / Sidestep
+  `dodge_sidestep`, both owned once bought, picked at the bunk), `ac_afterimage` Afterimage "move" 18 (`afterimage`).
+  Prices by kind (variant 2+0, move 1+1).
+- **DodgeState** `mode`: "dash" (no node, or the air dash / a logia), "roll", "sidestep".
+  Roll: turned into the roll (the one dodge that doesn't keep facing the camera), `ROLL_DIST` 4.6 m in `ROLL_DUR` 0.5 s
+  (held speed, then eased off as you come up), untouchable `ROLL_IFRAMES` 0.34 s (+Swift Step/Hang Time), action
+  `dodge_roll` (MovePoses: dive onto the shoulder, tucked over in one keyed turn of the pivot to -TAU, wrapped to 0 at
+  the finish, up into a crouch, standing), a dust puff when the back meets the ground.
+  Sidestep: facing kept, `SIDE_DIST` 2.1 m in 0.22 s, untouchable 0.18 s, 70% of the dodge's stamina
+  (`Player.dodge_cost`), attacks out of it after 0.1 s, action `sidestep` (a boxer's slip: tipped and dropped off the
+  line over the lead leg, hands up or the weapon at the guard). Slip: while untouchable, a foe's hitbox active within
+  2.8 m = "Slipped!" (glint, float text, a 0.05 s hit-stop) and the PowerComponent buff `slipped` (1.2 s): the next
+  `Player.melee_hit` is a sure crit and spends it.
+- **Afterimage**: a dodge on the ground with the node, once every `DECOY_EVERY` 6 s, sends `Net.fx("decoy")`:
+  `Decoy` (scripts/combat/decoy.gd, group "decoys") is a pale unshaded copy of the body's meshes standing 1.6 s (held,
+  then flickering out). On the host it calls `lure(decoy)` on enemies within 7 m: a blade `PirateGrunt` fighting that
+  decoy's captain (ALERT/CHASE/CIRCLE/CLOSE/WIND) aims at `decoy.spot` instead (its to_p/dist/nav; no attack token
+  needed, cooldown cut to 0.1), and once its swing is 0.24 s in within reach it sends `Net.fx("decoy_break")`: the decoy
+  shatters (flash, ring, sparkle) on every screen and the grunt goes back to the captain. Other enemies ignore decoys.
+  Co-op: the dodge and its poses mirror as before; the decoy is made by Net.fx on every screen, so the host has the
+  guest's decoy and lures its own grunts.
+- **Icons**: tree nodes without a skill can carry an `icon` (`SkillTrees._icon`, also on a variant's version; read by
+  `SkillTreeDraw.pic`): `skill_move_*.png` from `gen_psx_textures.py moves` (`gen_move_icons`; all twelve Adventure
+  move icons of this batch).
+- **Per tick**: the sidestep's slip check walks the "enemies" group while it's untouchable (0.18 s); a decoy's
+  `_process` (an alpha) for its 1.6 s; a lured grunt's few vector ops. No new meshes beyond the decoy's copies (no
+  shadow, visibility range 60 m).
+- **Tests**: t/player/dodge_styles, sidestep_slip, afterimage. Render: animsheet `dodge_roll,sidestep`.

@@ -265,3 +265,73 @@ and cutlass reworks). Zach chose to finish the rest before the prepush and the 1
   Disarm/Shove, Rolling Guard; Swimming Dolphin Kick / Long Glide. Player states, not weapons.
 - Then: prepush (the full local run, nettest, the 1.18.2 checks, the perf gate re-baseline with Zach's OK), the fix
   pass, release 1.18.4 (stable unless the run says otherwise).
+
+## Pitch: the new weapons' techniques (2026-10-22, for Zach's OK; nothing built yet)
+Two new techniques per kind, added to the tree (nothing replaced). Prices follow the points rework: tech = 3 + gate/10,
+so every one below costs **4 points**. Each tree today has one technique in its first branch (at 8), two in the middle
+(5, 10) and none in the third, so one new technique goes in the third branch at **12** and one in the first at **14**
+(black-leg's second goes in the middle, before its element). Energy and cooldown sit with the existing ones (16-24, 6-9 s).
+Polish lines come from abilityshot sheets of every existing technique (`tools/dev/out/pitch/` in the finish worktree,
+side + close, element on); all of them also get "trails in sync" (effects on the real blade/foot path).
+
+### Polearm (Guard / Storm / Reach; lightning)
+- **Thunder Javelin** (Reach, 12, 4 pts; 20 energy, 7 s): hurl the spear point-first down a 16 m line, piercing everyone on
+  it (breaks wind-ups); a beat later a crackle of lightning yanks it back to your hand, cutting the line again on the way
+  home. With Storm awakened a bolt drops on each one it pierced.
+- **Windmill Guard** (Guard, 14, 4 pts; 18 energy, 8 s): hold to spin the pole before you like a windmill, walking (up to
+  1.5 s): shots and blows from the front are batted aside, anyone who steps in is clipped and shoved back out to the tip;
+  let go into a lunging thrust that can't be blocked.
+- **Polish:** Hundred Thrusts' streaks start at the chest, not the spearhead, and the body never drives into the thrusts
+  (no step or shoulder); Dragon Sweep sits on the ground (seat down, one knee up) and the body doesn't turn with its two
+  sweeps, so only the spear moves; Vaulting Strike never plants the pole (a plain jump, spear held back); Raijin's Wheel's
+  overhead spin doesn't read on the way up and its wheel is a flat yellow disc.
+
+### Hammer (Iron / Quake / Weight; earth)
+- **Cannonball Swing** (Weight, 12, 4 pts; 20 energy, 7 s): a low swing up from behind like a golf drive: the one in front
+  (a light foe) is launched 10 m flying, and everyone they hit on the way is knocked flat; bosses take a long stagger.
+- **Anvil Counter** (Iron, 14, 4 pts; 16 energy, 6 s): plant the head and brace on the haft for 1 s: the first blow rings
+  off you like a hammer on an anvil (no damage, they reel), and you rip the head up out of the ground into their chin,
+  throwing them back with a shockwave at your feet (nothing comes: a short refund).
+- **Polish:** Skullcracker strikes in mid-air (before the landing) with its impact floating at head height: the blow should
+  land with the feet; Rolling Quake's left, right and overhead read as three alike overheads; Cyclone Crusher's trail is a
+  solid cream disc that hides the body, and its turns don't show; Titan's Fall reads well (timing check only).
+  **Follow-up:** Earthquake's shockwave (0.04 s after the blow) for a guest: the code path checked and an atomic test of
+  the hit routing; nettest itself at the prepush.
+
+### Twin axes (Hook / Frenzy / Reaver; frost)
+- **Ravens' Return** (Reaver, 12, 4 pts; 22 energy, 8 s): both axes thrown at once on two crossing arcs that fan out left
+  and right 10 m, cutting everyone in a wide cone, and curve back to your hands, cutting again on the way home; with the
+  frost, ice chips burst off everyone cut.
+- **Raider's Haul** (Hook, 14, 4 pts; 20 energy, 8 s): hook the one in front by the beard and swing them round you once at
+  arm's length, battering everyone close flat, then fling them 8 m into whoever's behind; too heavy (a boss): you swing
+  round them instead with three chops.
+- **Polish:** Gallows Hook's axe never leaves the hand (only a streak flies): the axe itself flies and comes back; Hewing
+  Frenzy's chops read as arm flails with small rings at the chest and no trail off the axes; Axestorm's and Fimbulwinter's
+  spin trails are flat white sheets across the screen; Fimbulwinter hauls grunts into your body (they overlap you).
+  **Follow-ups:** the ice spikes' stripes (their own ice material, not the metal texture); the hook's `vine_yank` third
+  argument checked for a guest (Net.HOST_CALLS), nettest at the prepush.
+
+### Greatsword (Bulwark / Gale / Momentum; wind; reworked 2026-10-21, so light polish)
+- **Updraft** (Momentum, 12, 4 pts; 22 energy, 8 s): a rising cut that tears a gust up under the one in front and throws
+  them high (bosses stagger), you ride the wind up after them and cleave them back down into a crash that knocks everyone
+  close flat.
+- **Gatekeeper** (Bulwark, 14, 4 pts; 18 energy, 8 s): hold to drive the blade point-down before you like a gate (up to
+  1.5 s): every shot and blow from the front stops on the flat; let go and wrench it up out of the ground in a rising cut
+  that flings a crescent of air up the line.
+- **Polish:** Guardbreaker's crush overshoots into a near-prone sprawl, and its trail is a translucent flat sheet high
+  overhead; Crescent Gale's flung crescent is a hairline, hard to see; Tempest Turns and Skysplitter read well (kept).
+
+### Black-leg (Guard / Fire / Flow; heat)
+- **Cleaver Kick** (Flow, 12, 4 pts; 18 energy, 7 s): a high crescent kick so fast it cuts the air: a blade of air shoots
+  off the foot 12 m down the line, cutting everyone it passes; with the heat it's red-hot and sets them burning.
+- **Flambe Dash** (Fire, 14, 4 pts; 22 energy, 8 s): a hop as the leg heats, then a flying side kick that streaks 9 m
+  through the line in a trail of crimson fire, kicking everyone on it aside; with the heat they're left burning.
+- **Polish:** Mule Kick lies face-down on the ground instead of a handstand with both heels driven up and back; Hailstorm
+  Heels' rings sit at fixed heights beside the foot, not on it; Last Course reads well. **Follow-ups:** the heel kicks'
+  flames read orange (toward cherry and crimson, the tree's colours); Cartwheel Crescent's hands measured on the ground by
+  a test (and fixed if they float).
+
+### Not in this pass
+Awakenings and mastered guards (the mastery agent, after each kind); the stance follow-ups (wide-stance feet, the
+greatsword guard's angle, the twin axes' guard, the polearm walk threshold, the hammer head: also the mastery agent);
+grunts' square attack starts (enemies, 1.19).

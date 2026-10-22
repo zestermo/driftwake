@@ -35,6 +35,11 @@ static func kind_color(kind: String, col: Color) -> Color:
 		"root": UIStyle.GILT, "variant": col, "step": col, "auto": UIStyle.GILT, "talent": UIStyle.GILT, "will": Color("c9a8ff")}.get(kind, col)
 
 
+## A node's or version's picture: its skill's icon, or its own "icon" (the Adventure moves); "" for none.
+static func pic(d: Dictionary) -> String:
+	return str(d["skill"]) if str(d["skill"]) != "" else str(d.get("icon", ""))
+
+
 ## Two letters for a node with no icon ("Through the Guard" -> "TG").
 static func glyph(name_: String) -> String:
 	var words := Array(name_.replace("'", "").split(" ", false)).filter(func(w): return w.length() > 2 or w == w.to_upper())
@@ -115,7 +120,7 @@ static func node_rect(id: String, c: Vector2) -> Rect2:
 		"step":
 			return Rect2(c - Vector2(9, 6), Vector2(18, 16))
 		"variant", "talent":
-			var icons: bool = n["versions"].any(func(v): return str(v["skill"]) != "")
+			var icons: bool = n["versions"].any(func(v): return pic(v) != "")
 			var w: float = (26.0 if icons else 17.0) * n["versions"].size()
 			var h := 26.0 if icons else 16.0
 			return Rect2(c - Vector2(w, h) * 0.5, Vector2(w, h)).grow(2.0)
@@ -235,7 +240,7 @@ static func _big(s: Control, n: Dictionary, c: Vector2, col: Color, on: bool) ->
 	var h := sz * 0.5
 	var r := Rect2(c - Vector2(h, h), Vector2(sz, sz))
 	var rim := col if on else DIM_RIM
-	var ic: Texture2D = Skills.icon(str(n["skill"])) if str(n["skill"]) != "" else null
+	var ic: Texture2D = Skills.icon(pic(n)) if pic(n) != "" else null
 	if kind == "root":
 		ic = tree_icon(str(n["tree"]))
 	if on and kind in ["move", "mech", "elem", "root"]:
@@ -303,7 +308,7 @@ static func _step(s: Control, id: String, n: Dictionary, c: Vector2, col: Color,
 static func split(s: SkillMapScreen, id: String, c: Vector2, col: Color, pr: Progression, reached: bool) -> Rect2:
 	var n := SkillTrees.node_def(id)
 	var vs: Array = n["versions"]
-	var icons := vs.any(func(v): return str(v["skill"]) != "")
+	var icons := vs.any(func(v): return pic(v) != "")
 	var hw := 26.0 if icons else 17.0
 	var hh := 26.0 if icons else 16.0
 	var w := hw * vs.size()
@@ -322,7 +327,7 @@ static func split(s: SkillMapScreen, id: String, c: Vector2, col: Color, pr: Pro
 		s.draw_rect(hr, (UIStyle.TEAL if icons else col) if lit else (ROOT_BG if owned else NODE_BG))
 		if i > 0:
 			s.draw_rect(Rect2(hr.position.x, hr.position.y, 1, hh), rim)
-		var sk := str(v["skill"])
+		var sk := pic(v)
 		if sk != "":
 			s.draw_texture_rect(Skills.icon(sk), Rect2(hr.get_center() - Vector2(12, 12), Vector2(24, 24)), false,
 				Color.WHITE if lit else (Color(1, 1, 1, 0.55) if owned else Color(0.55, 0.6, 0.62, 0.3)))
