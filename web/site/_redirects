@@ -3,3 +3,4 @@
 # /releases is the site's own page now (web/site/releases/), linking to the GitHub list.
 /download           https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-windows.zip  302
 /download/windows   https://github.com/zestermo/driftwake/releases/latest/download/Driftwake-windows.zip  302
+/download/android   /app/driftwake-companion.apk  302
