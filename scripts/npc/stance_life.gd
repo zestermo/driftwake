@@ -44,6 +44,9 @@ const CARRIES := {
 	# reverse grip, the blades back along the forearms, arms pumping hard
 	"dagger": {"fore_r": Vector3(1.55, 0, 0), "hand_r": Vector3(-1.1, 0, 0), "fore_l": Vector3(1.45, 0, 0), "swing": 1.35},
 	"dual_dagger": {"fore_r": Vector3(1.55, 0, 0), "hand_r": Vector3(-1.1, 0, 0), "fore_l": Vector3(1.55, 0, 0), "hand_l": Vector3(-1.1, 0, 0), "swing": 1.35},
+	# the greatsword in the right hand down at the side, the point trailed low behind (PoleMoves.hands takes the
+	# hand there: GreatswordMoves.CARRY_GRIP), the free arm swinging with the stride
+	"greatsword": {"arm_r": Vector3(-0.1, 0, 0.3), "fore_r": Vector3(0.3, 0, 0), "swing": 0.0},
 	# the gun low at the side, muzzle down, swinging with the stride
 	"pistol": {"arm_r": Vector3(-0.05, 0, 0.16), "fore_r": Vector3(0.45, 0, 0), "swing": 0.5},
 }

@@ -354,21 +354,26 @@ static func hands(h, delta: float) -> void:
 	elif h.pole_plant_w > 0.0 and h.pole_planted:
 		want = PLANT_GRIP
 		planting = true
+	elif act == "" and st == "greatsword" and (h.sprinting or h.carry_w > 0.5):
+		want = grips[2] if h.sprinting else grips[3]
 	elif act == "" and (h.sprinting or h.pole_run_w > 0.5):
 		want = grips[2]
-		if on and st == "greatsword":
-			GreatswordMoves.scrape(h, delta)
+	var scraping: bool = on and st == "greatsword" and act == "" and h.sprinting
 	h.pole_set = false
 	h.pole_w = move_toward(h.pole_w, 1.0 if on else 0.0, delta / 0.12)
 	var two := float(want[3]) > 0.0
-	h.pole_lw = move_toward(h.pole_lw, 1.0 if two else 0.0, delta / 0.1) if st == "polearm" else (1.0 if two else 0.0)
+	h.pole_lw = move_toward(h.pole_lw, 1.0 if two else 0.0, delta / 0.1) if st != "hammer" else (1.0 if two else 0.0)
 	if h.pole_cur.is_empty():
 		h.pole_cur = want.duplicate()
 	if on:
 		var k := 1.0 - exp(-(SHARP if act != "" else (SHARP_PLANT if planting else SHARP_IDLE)) * delta)
 		var cur: Array = h.pole_cur
 		cur[0] = (cur[0] as Vector3).lerp(want[0], k)
-		cur[1] = (cur[1] as Vector3).lerp(want[1], k).normalized()
+		var wd: Vector3 = (want[1] as Vector3).normalized()
+		if st == "greatsword" and (cur[1] as Vector3).dot(wd) < 0.2:
+			# (a long blade turned far round, guard to carry: swung round in front, not down through the legs)
+			wd = ((cur[1] as Vector3) + wd + Vector3(0, 0.3, -1.2)).normalized()
+		cur[1] = (cur[1] as Vector3).lerp(wd, k).normalized()
 		cur[2] = (cur[2] as Vector3).lerp(want[2], k)
 		# (the left hand lets go over pole_lw, at the slide it had)
 		if two:
@@ -402,6 +407,8 @@ static func hands(h, delta: float) -> void:
 	var local: Basis = h.hand_r.global_basis.orthonormalized().inverse() * want_b
 	h.weapon.quaternion = Quaternion.IDENTITY.slerp(Quaternion(local.orthonormalized()), w)
 	h.weapon.position = Vector3.ZERO
+	if scraping:
+		GreatswordMoves.scrape(h, delta)
 	var pw: float = h.pole_plant_w
 	if pw > 0.0:
 		# planted: the shaft slid down through the hand until its butt meets the ground
