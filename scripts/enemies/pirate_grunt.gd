@@ -1763,6 +1763,15 @@ func parried(by: Node) -> void:
 	_set_state(S.STAGGER)
 
 
+## Thrown off its feet along `v`, further than any knockdown (Cannonball Swing).
+func launched(v: Vector3) -> void:
+	if Net.forward(self, "launched", [v]):
+		return
+	if state in [S.DEAD, S.DOWN]:
+		return
+	_knock_down(v)
+
+
 ## Defense (Clean Parry): a perfect parry, after parried(): "clean" reels it longer, "disarm" (Disarm) also knocks
 ## the blade out of its hand, "shove" (Shove) throws it off its feet instead.
 const CLEAN_STAGGER := 2.4

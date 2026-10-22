@@ -796,6 +796,7 @@ static func _build_hammer() -> void:
 	_big("hm_deflect", "Iron Wall", "mech", 0, 3, {"parryshot_hammer": 1, "parry_hammer": 0.06},
 		"Parry with a hammer and you swat gunshots aside with the head too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("hm_skull", "Skullcracker", "tech", 0, 8, {}, "", "skullcracker")
+	_big("hm_anvil_c", "Anvil Counter", "tech", 0, 14, {}, "", "anvil_counter")
 	_big("hm_unstop", "Immovable", "mech", 0, 20, {"armor_hammer": 1, "def_hammer": 6.0},
 		"Mid-swing with a hammer, blows don't make you flinch or knock you off your feet, and you have 6 more defense with one in hand.")
 	_big("hm_quakes", "Rolling Quake", "tech", 1, 5, {}, "", "rolling_quake")
@@ -809,6 +810,7 @@ static func _build_hammer() -> void:
 		"Attack at a sprint: drag the head low behind you, then swing it up off the ground through them. It breaks their wind-up and throws them down.")
 	_big("hm_fall", "Hammerfall", "move", 2, 6, {"mv_hammerfall": 1},
 		"Attack in the air: heave the hammer up overhead and drop with it; landing drives it into the ground in a shockwave that knocks everyone close flat (once per jump).")
+	_big("hm_drive", "Cannonball Swing", "tech", 2, 12, {}, "", "cannonball_swing")
 	_big("hm_after", "Aftershock", "passive", 2, 13, {"finisher_hammer": 0.3, "heavy_hammer": 0.25},
 		"Passive (a slot). The last blow of your combo lands 30% harder, and your Earthquake (right-click) 25%.")
 	_variant("hm_way", "Smith's Way", 2, [

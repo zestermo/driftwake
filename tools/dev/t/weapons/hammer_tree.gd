@@ -3,7 +3,9 @@ extends SceneTree
 ## real (each skill a hammer Technique), its steps 30, one ultimate at 30, earth as its element, the style mapped
 ## to it; and with it mastered each technique and the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["titans_fall", "skullcracker", "rolling_quake", "cyclone_crusher"]
+const TECHS := ["titans_fall", "skullcracker", "rolling_quake", "cyclone_crusher", "cannonball_swing", "anvil_counter"]
+## (Anvil Counter answers a blow: t/weapons/anvil_counter)
+const LANDS := ["titans_fall", "skullcracker", "rolling_quake", "cyclone_crusher", "cannonball_swing"]
 var stage
 var p
 var taken := 0.0
@@ -59,11 +61,11 @@ func _process(_d: float) -> bool:
 			check("one ultimate, at 30 (%s)" % str(ults), ults == [30])
 			check("its moves: Wrecking Spin, Rising Crush, Hammerfall (%s)" % str(moves),
 				moves.size() == 3 and "wrecking_spin" in moves and "rising_crush" in moves and "hammerfall" in moves)
-			var techs_ok := skills.size() == 4
+			var techs_ok := skills.size() == 6
 			for sk in skills:
 				var d: Dictionary = SK.get_skill(sk)
 				techs_ok = techs_ok and d.get("styles", []) == ["hammer"] and d.get("state", "") == "Technique" and d.get("tree", "") == "hammer"
-			check("its four skills are hammer techniques %s" % str(skills), techs_ok and skills.all(func(x): return x in TECHS))
+			check("its six skills are hammer techniques %s" % str(skills), techs_ok and skills.all(func(x): return x in TECHS))
 			check("its element (earth) at 16 and 25", STS.node_def("hm_elem").get("level", 0) == 16 and STS.node_def("hm_elem2").get("level", 0) == 25
 				and load("res://scripts/game/fx.gd").TREE_FX.has("hammer"))
 			check("the hammer style builds its mastery", ST.style_tree("hammer") == "hammer")
@@ -82,12 +84,12 @@ func _process(_d: float) -> bool:
 			p.power.ult = p.power.ULT_MAX
 			p.power.energy = 999.0
 			taken = 0.0
-			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if TECHS[ti] == "titans_fall" else 0})
-			until = TK.wait_secs(2.8 if TECHS[ti] == "titans_fall" else 1.8)
+			p.state_machine.force_state("Technique", {"id": LANDS[ti], "slot": 4 if LANDS[ti] == "titans_fall" else 0})
+			until = TK.wait_secs(2.8 if LANDS[ti] == "titans_fall" else 1.8)
 		2:
-			check("%s lands on the dummy (%.0f damage)" % [TECHS[ti], taken], taken > 0.0)
+			check("%s lands on the dummy (%.0f damage)" % [LANDS[ti], taken], taken > 0.0)
 			ti += 1
-			if ti < TECHS.size():
+			if ti < LANDS.size():
 				step = 1
 				until = TK.wait_secs(0.4)
 				return false

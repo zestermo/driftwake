@@ -165,6 +165,10 @@ const ALL := {
 		"desc": "Let the hammer out at arm's length and spin three times, walking with it, battering everyone about you; the last turn ends in the ground with a shockwave."},
 	"titans_fall": {"name": "Titan's Fall", "tree": "hammer", "cost": 0.0, "cooldown": 3.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Leap high with the hammer heaved overhead and come down with the whole weight of it: the ground breaks in a great ring that throws everyone down, stone heaves up under them, and two aftershocks follow."},
+	"cannonball_swing": {"name": "Cannonball Swing", "tree": "hammer", "cost": 20.0, "cooldown": 7.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
+		"desc": "Take the hammer back high and drive it low and up through the enemy in front like a golf swing: it can't be blocked, a light foe is launched ten paces flying and everyone it comes down on is knocked flat. Anyone heavier, or a boss, is left reeling a long while."},
+	"anvil_counter": {"name": "Anvil Counter", "tree": "hammer", "cost": 16.0, "cooldown": 6.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
+		"desc": "Plant the head and brace on the haft for a second: the first blow rings off you like a hammer on an anvil and leaves them reeling, and you rip the head up into their chin, throwing them back with a shockwave at your feet. If nothing comes, you get half the energy back."},
 	# --- Twin axes ---
 	"gallows_hook": {"name": "Gallows Hook", "tree": "dual_axe", "cost": 16.0, "cooldown": 6.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique",
 		"desc": "Fling the left axe round the enemy you're facing (up to 7 m) and haul them in by the beard (too heavy to move, and you're hauled to them), then chop down through their guard: it can't be blocked and leaves them reeling."},

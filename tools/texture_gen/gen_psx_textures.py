@@ -1888,6 +1888,29 @@ def gen_technique_icons():
         for x, y in ((3, 15), (20, 14), (6, 11), (18, 9)):
             d.rectangle([x, y, x + 2, y + 2], fill=SAND_D)
 
+    def cannonball_swing(d):
+        # the head swept up from low behind in an arc, a body flying off it up and away, dust where it scraped
+        d.arc([2, 4, 22, 28], 120, 250, fill=SAND_D, width=1)
+        d.line([(9, 21), (3, 15)], fill=WOOD, width=2)
+        hammer_head(d, 3, 13, 5, 6)
+        d.ellipse([16, 3, 21, 8], fill=SKIN)
+        d.line([(18, 8), (14, 12)], fill=SMOKE_L, width=2)
+        for x, y in ((9, 10), (12, 8), (11, 12)):
+            d.point((x, y), fill=W_)
+        d.line([(1, 23), (8, 23)], fill=SAND, width=1)
+        d.point((10, 22), fill=ROCK)
+
+    def anvil_counter(d):
+        # the hammer planted head-down, a blow ringing off the haft, the ground cracked under the head
+        d.line([(12, 2), (12, 16)], fill=WOOD, width=2)
+        hammer_head(d, 12, 18, 10, 5)
+        d.rectangle([10, 1, 14, 3], fill=SKIN)
+        d.arc([4, 4, 20, 14], 200, 340, fill=W_, width=1)
+        d.line([(20, 7), (15, 9)], fill=STEEL, width=1)
+        for x, y in ((16, 6), (17, 10), (14, 7)):
+            d.point((x, y), fill=W_)
+        d.line([(3, 23), (8, 21), (12, 23), (17, 21), (22, 23)], fill=ROCK, width=1)
+
     def chain(d, a, b, col=SMOKE_L):
         for k in range(1, 7):
             t = k / 7
@@ -2032,7 +2055,8 @@ def gen_technique_icons():
                      ("hundred_thrusts", hundred_thrusts), ("dragon_sweep", dragon_sweep), ("vault_strike", vault_strike),
                      ("raijin_wheel", raijin_wheel), ("thunder_javelin", thunder_javelin), ("windmill_guard", windmill_guard),
                      ("skullcracker", skullcracker), ("rolling_quake", rolling_quake),
-                     ("cyclone_crusher", cyclone_crusher), ("titans_fall", titans_fall), ("gallows_hook", gallows_hook),
+                     ("cyclone_crusher", cyclone_crusher), ("titans_fall", titans_fall),
+                     ("cannonball_swing", cannonball_swing), ("anvil_counter", anvil_counter), ("gallows_hook", gallows_hook),
                      ("hewing_frenzy", hewing_frenzy), ("axestorm", axestorm), ("fimbulwinter", fimbulwinter),
                      ("guardbreaker", guardbreaker), ("crescent_gale", crescent_gale), ("tempest_turns", tempest_turns),
                      ("skysplitter", skysplitter), ("mule_kick", mule_kick), ("hailstorm_heels", hailstorm_heels),
