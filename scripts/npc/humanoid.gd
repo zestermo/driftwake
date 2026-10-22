@@ -153,6 +153,10 @@ var pole_set := false
 var gs_scrape := 0.0
 var pole_cur: Array = []
 var pole_w := 0.0
+## How far a pole move slides the shaft back through the right hand (the "_gs" channel's y: held nearer the middle,
+## a javelin's or a twirl's grip), asked for and eased.
+var pole_shift := 0.0
+var pole_shift_cur := 0.0
 ## The left hand's weight on the shaft, the polearm's run trail and Emperor's Bearing (PoleMoves): `pole_plant_ok` the
 ## node (set by the player), `pole_planted` whether its owner shows it (synced to puppets), the calm and stillness
 ## timers behind it (game time) and the weights easing in.

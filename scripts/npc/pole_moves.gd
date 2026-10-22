@@ -102,6 +102,7 @@ static func pose(h, n: String, u: float) -> Array:
 static func take_grip(h, res: Array) -> Array:
 	var p: Dictionary = res[0]
 	h.pole_grip = [p["_gr"], p["_gd"], p["_ge"], (p["_gs"] as Vector3).x]
+	h.pole_shift = (p["_gs"] as Vector3).y
 	h.pole_set = true
 	for c in ["_gr", "_gd", "_ge", "_gs"]:
 		p.erase(c)
@@ -237,13 +238,21 @@ static func _pose(h, n: String, u: float) -> Array:
 				[Vector3(0.12, -0.36, 0.0), Vector3(-0.33, 0.38, -0.88), Vector3(0, -1, 0), 0.52])
 			var pz: Dictionary = h._keys(u, [[0.0, g], [0.07 / T, lunge, "out"], [0.82 / T, lunge], [1.0, g]])
 			if s > 0.06 and s < 0.82:
+				# (each thrust driven from the back foot: the hips and the right shoulder turn into it and the body
+				# drops and pitches onto the front knee, then draws back for the next)
 				var x := (s - 0.14) / 0.1
 				var ext := clampf(1.0 - absf(x - roundf(x)) * 2.4, 0.0, 1.0)
 				var deep := 1.15 if s > 0.68 else 1.0
 				pz["_gr"] = Vector3(0.12, -0.36, 0.0).lerp(Vector3(-0.04, -0.27, -0.52 * deep), ext)
 				pz["_gs"] = Vector3(lerpf(0.52, 0.2, ext), 0, 0)
 				pz["_smear"] = Vector3(0.1 * ext, 0, 0)
-				pz["torso"] = (pz["torso"] as Vector3) + Vector3(-0.08 * ext, 0.12 * ext, 0)
+				pz["_scale"] = Vector3(1.0 - 0.03 * ext, 1.0, 1.0 + 0.06 * ext * deep)
+				pz["torso"] = (pz["torso"] as Vector3) + Vector3(-0.12 * ext, 0.24 * ext * deep, 0)
+				pz["hips"] = (pz["hips"] as Vector3) + Vector3(0, 0.16 * ext * deep, 0)
+				pz["pivot"] = (pz["pivot"] as Vector3) + Vector3(-0.07 * ext * deep, 0, 0)
+				pz["head"] = (pz["head"] as Vector3) + Vector3(0.08 * ext, -0.2 * ext * deep, 0)
+				pz["shin_l"] = (pz["shin_l"] as Vector3) + Vector3(-0.18 * ext, 0, 0)
+				pz["_lift"] = (pz["_lift"] as Vector3) + Vector3(0, -0.05 * ext * deep, 0)
 			return [pz, "full", Vector3.ZERO]
 		"pole_dragon":
 			# Dragon Sweep: dropped onto the back knee with the spear out low to the left, then the whole body turned
@@ -359,6 +368,7 @@ static func hands(h, delta: float) -> void:
 	elif act == "" and (h.sprinting or h.pole_run_w > 0.5):
 		want = grips[2]
 	var scraping: bool = on and st == "greatsword" and act == "" and h.sprinting
+	var shift: float = h.pole_shift if h.pole_set else 0.0
 	h.pole_set = false
 	h.pole_w = move_toward(h.pole_w, 1.0 if on else 0.0, delta / 0.12)
 	var two := float(want[3]) > 0.0
@@ -374,6 +384,7 @@ static func hands(h, delta: float) -> void:
 			wd = _round_front(cur[1], wd)
 		cur[1] = (cur[1] as Vector3).lerp(wd, k).normalized()
 		cur[2] = (cur[2] as Vector3).lerp(want[2], k)
+		h.pole_shift_cur = lerpf(h.pole_shift_cur, shift, k)
 		# (the left hand lets go over pole_lw, at the slide it had)
 		if two:
 			cur[3] = lerpf(float(cur[3]), float(want[3]), k) if float(cur[3]) > 0.0 else float(want[3])
@@ -406,6 +417,8 @@ static func hands(h, delta: float) -> void:
 	var local: Basis = h.hand_r.global_basis.orthonormalized().inverse() * want_b
 	h.weapon.quaternion = Quaternion.IDENTITY.slerp(Quaternion(local.orthonormalized()), w)
 	h.weapon.position = Vector3.ZERO
+	if h.pole_shift_cur > 0.005:
+		h.weapon.global_position -= d * h.pole_shift_cur * sc
 	if scraping:
 		GreatswordMoves.scrape(h, delta)
 	var pw: float = h.pole_plant_w
