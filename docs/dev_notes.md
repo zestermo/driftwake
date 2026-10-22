@@ -5212,3 +5212,29 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   Stable section; home's banner and news/index.html list only stable posts (the 1.18.1 capital post is unlisted, still
   linked from the releases page). For the next stable release: delete tools/release/UNSTABLE, add its roadmap entry
   without the flag, set "here" to it, update the home banner and news list as usual.
+
+## 2026-10-22: the skills menu's Captain tab as two pages (fork rows, Will star chart)
+
+- Zach's picks from tools/dev/out/mock_captain (layout A and W). UI only: no tree data, save or balance change.
+  scripts/ui/skill_map_screen.gd, `_draw_captain` and below. A strip under the tabs switches pages: C / W (Tab
+  toggles; pad Y), a click on it too. `will_page`, `_first` (lowest fork row in view), `_rows` (rows the canvas fits).
+- **Captain page:** the parchment level card (level, next fork, the per-level gains from `SkillTrees.GROWTH`, talents and
+  milestones so far) and a spine with the talent forks as rows, levels rising: option 1's card left, option 2's right,
+  an LV badge with OR between. Picked: gold with PICKED; its sibling dimmed; reached but unpicked: a coral dot. Milestones
+  ("auto" nodes) sit as round dots in the gap below the row whose level reaches them, labels beside ("LV10
+  QUARTERMASTER · GOT IT"); "YOU · LV n >" in the gap your level falls in, the spine gold below it. Selection ids
+  `f:<talent node>:<option>`: up / down a fork (`_fork_nav`, scrolls in whole rows), left / right an option, Enter
+  goes through the old `_act_split` (pick rules and the bunk swap unchanged); a mouse click selects, a second picks;
+  the wheel scrolls. Opens on the lowest unpicked fork, scrolled to it.
+- **The canvas is 640x360 at 1280x720 and 1920x1080** (PixelCanvas: whole-number scale, at least 360 tall), 800x450
+  only at 1600x900: the mocks were drawn at 800x450, so card widths, heights (the longest description's lines) and the
+  rows in view (4 at 640x360, 6-7 at 800x450) size to the canvas, and the Will chart's stars are fractions of its field.
+- **Will page:** a diamond per Will (`WILL_AT`, dashed links `WILL_LINKS` up to Captain's Will), each passive a moon off
+  it; won ones violet and glowing, unwon dim with the boss line from the desc's first sentence. The parchment card
+  shows the selected star's (or moon's) Will, its effect chips (`CHIPS`: a few common effect keys, plus the skill it
+  gives), its passive boxed with chips and its slot, and NEXT (the unwon Wills). Enter on a Will or its moon now puts
+  the passive in the first free slot (`_slot_will`; refused before it's won); 1-5 on a moon still picks the slot.
+- Tests: `t/ui/skills_captain_forks` (page switch by key and click, opening fork, fork and option nav, scrolling the
+  top fork in, Enter picking a reached fork and refusing an unreached one or a change away from the bunk, Enter
+  slotting a won Will's passive). Renders: skillmapshot's `_captain`, `_will`, `_captain40`, `_captain40_low`,
+  `_captain1` (default 640x360; `800x450` arg for the larger canvas). Per frame: the menu only, while open.

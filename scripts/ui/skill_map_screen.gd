@@ -1,14 +1,15 @@
 class_name SkillMapScreen
 extends Control
 ## The skills menu (K), as docs/media/progression_mock: a night sky under a wooden beam with a hanging sign per tab.
-##   Captain     the level trunk (round nodes that come by themselves, split talent nodes), a legend, the Will path
+##   Captain     two pages (C / W, Tab, pad Y): the talent forks as rows up a level spine (both options' cards side by
+##               side, milestones on the spine; scrolls, up/down a fork, left/right an option), and the Will star chart
 ##   Combat      a found weapon's tree (three branches up from its root, steps for points), or the chart of them all
 ##   Adventure   the found Adventure trees beside the open one
 ##   Loadout     the weapon loadouts, the one skill bar (1-5 + R), the passive slots, the library of what you know
 ##   Driftfruit  the eaten fruit's tree (once there is one)
 ## Keys: Q / E (shoulder buttons) change tab; arrows / d-pad move between nodes; Enter / F (pad A) buys a step,
 ## switches a version or picks a talent (versions and changed talents only at the ship's bunk); A / D change weapon,
-## Tab the chart; W / S change Adventure tree; 1-5 / R put the picked skill on the bar, 1-4 the picked passive in
+## Tab the chart; C / W (or Tab) the Captain's page; W / S change Adventure tree; 1-5 / R put the picked skill on the bar, 1-4 the picked passive in
 ## its slot. Mouse: hover inspects, click picks, click again acts, right-click clears a bar or passive slot.
 ## Everything is drawn here; clickable things register a hit (id, rect) as they're drawn.
 
@@ -18,6 +19,17 @@ const TABS := [["captain", "Captain", "crown"], ["combat", "Combat", "swords"], 
 const CARD_W := 152.0
 const RAIL_H := 14.0
 const WILL := Color("c9a8ff")
+const WILL_DIM := Color("4b3d78")
+const WILL_DARK := Color("120f22")
+## The Will chart's stars, as fractions of the star field, and the dashed links between them.
+const WILL_AT := {"h_arm": Vector2(0.22, 0.78), "h_coat": Vector2(0.17, 0.44), "h_obs": Vector2(0.66, 0.78), "h_fore": Vector2(0.7, 0.44),
+	"h_conq": Vector2(0.45, 0.15)}
+const WILL_LINKS := [["h_arm", "h_coat"], ["h_obs", "h_fore"], ["h_coat", "h_conq"], ["h_fore", "h_conq"], ["h_arm", "h_obs"]]
+## Chips for an effects dict's common keys: [format, scale] (scale 0: the text as it is).
+const CHIPS := {"damage_pct": ["+%d%% DMG", 100], "defense": ["+%d DEF", 1], "max_hp": ["+%d HP", 1],
+	"energy_regen_pct": ["+%d%% ENERGY", 100], "stamina_regen_pct": ["+%d%% STAMINA", 100], "crit_all": ["+%d%% CRIT", 100],
+	"evade_chance": ["+%d%% EVADE", 100], "parry_all": ["+%d%% PARRY", 100], "dmg_unarmed": ["+%d%% UNARMED", 100],
+	"xp_pct": ["+%d%% XP", 100], "armament": ["HEAVIES UNBLOCKABLE", 0], "observation": ["SENSE INTENT", 0]}
 ## How each Adventure tree grows (shown on its card).
 const GROWS := {
 	"acrobatics": "Jump, dodge and attack in the air. A dodge through a blow counts most, and a fall you live through.",
@@ -34,6 +46,11 @@ var menu: Node
 var tab := "combat"
 ## Combat: the chart of every weapon instead of one tree.
 var chart := false
+## Captain: the Will page instead of the talent forks.
+var will_page := false
+## Captain: the lowest fork row in view, and how many rows the canvas fits (4 at 640x360, 6 at 800x450).
+var _first := 0
+var _rows := 4
 ## The open tree (Combat, Adventure, Driftfruit).
 var tree := ""
 ## The picked hit: "n:<node>", "w:<tree>", "bar:<slot>", "pas:<i>", "lib:<skill or passive>".
@@ -98,6 +115,65 @@ func set_tab(t: String, which: String = "") -> void:
 		_pick_root()
 	elif t == "loadout":
 		sel = "bar:0"
+	elif t == "captain":
+		_captain_home()
+
+
+func _forks() -> Array:
+	return _captain_kind("talent")
+
+
+func _captain_kind(kind: String) -> Array:
+	var out := SkillTrees.nodes_of("captain").filter(func(k): return SkillTrees.node_def(k)["kind"] == kind)
+	out.sort_custom(func(a, b): return int(SkillTrees.node_def(a)["level"]) < int(SkillTrees.node_def(b)["level"]))
+	return out
+
+
+## The Captain page's pick: the lowest fork not picked yet (else the top one), scrolled into view; the Will page's: the
+## first Will won (else the first).
+func _captain_home() -> void:
+	var p := _pr()
+	if will_page:
+		var wills := _captain_kind("will")
+		var won := wills.filter(func(k): return p.has_will(k))
+		sel = "n:" + str(won[0] if not won.is_empty() else wills[0])
+		return
+	var f := _forks()
+	var k := f.size() - 1
+	for i in range(f.size() - 1, -1, -1):
+		if p.version_of(f[i]) < 0:
+			k = i
+	sel = "f:%s:%d" % [f[k], maxi(p.version_of(f[k]), 0)]
+	_first = clampi(k - _rows / 2, 0, maxi(f.size() - _rows, 0))
+
+
+func _set_page(w: bool) -> void:
+	if will_page == w:
+		return
+	will_page = w
+	hover = ""
+	_captain_home()
+	menu._play("select")
+
+
+## Up / down a fork, left / right its option; keeps the fork in view.
+func _fork_nav(d: Vector2) -> void:
+	var f := _forks()
+	var k := f.find(sel.get_slice(":", 1))
+	var i := int(sel.get_slice(":", 2))
+	if not sel.begins_with("f:") or k < 0:
+		_captain_home()
+		return
+	if d.y != 0.0:
+		k = clampi(k - int(d.y), 0, f.size() - 1)
+	else:
+		i = 0 if d.x < 0.0 else 1
+	var to := "f:%s:%d" % [f[k], i]
+	if to != sel:
+		sel = to
+		hover = ""
+		UIStyle.sfx("move")
+	_first = clampi(clampi(_first, k - _rows + 1, k), 0, maxi(f.size() - _rows, 0))
 
 
 func _pick_root() -> void:
@@ -195,7 +271,9 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.pressed:
 		var mb := event as InputEventMouseButton
 		accept_event()
-		if mb.button_index == MOUSE_BUTTON_LEFT:
+		if tab == "captain" and not will_page and mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			_first = clampi(_first + (1 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else -1), 0, maxi(_forks().size() - _rows, 0))
+		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			for i in range(_tab_rects.size()):
 				if (_tab_rects[i] as Rect2).has_point(mb.position):
 					set_tab(tabs()[i][0])
@@ -207,7 +285,7 @@ func _gui_input(event: InputEvent) -> void:
 				_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
 			elif id != "" and id == sel:
 				_act(id)
-			elif id.begins_with("w:"):
+			elif id.begins_with("w:") or id.begins_with("page:"):
 				_act(id)
 			elif id != "":
 				sel = id
@@ -231,9 +309,16 @@ func _input(event: InputEvent) -> void:
 			_cycle_tab(-1 if jb.button_index == JOY_BUTTON_LEFT_SHOULDER else 1)
 			get_viewport().set_input_as_handled()
 			return
+		if jb.button_index == JOY_BUTTON_Y and tab == "captain":
+			_set_page(not will_page)
+			get_viewport().set_input_as_handled()
+			return
 	for d in [["ui_left", Vector2.LEFT], ["ui_right", Vector2.RIGHT], ["ui_up", Vector2.UP], ["ui_down", Vector2.DOWN]]:
 		if event.is_action_pressed(d[0], true) and not (event is InputEventKey and (event as InputEventKey).keycode in [KEY_A, KEY_D, KEY_W, KEY_S]):
-			_nav(d[1])
+			if tab == "captain" and not will_page:
+				_fork_nav(d[1])
+			else:
+				_nav(d[1])
 			get_viewport().set_input_as_handled()
 			return
 	if event.is_action_pressed("ui_accept") and not (event is InputEventKey and (event as InputEventKey).keycode == KEY_SPACE):
@@ -248,6 +333,8 @@ func _input(event: InputEvent) -> void:
 		_cycle_tab(-1 if k == KEY_Q else 1)
 	elif k == KEY_F:
 		_act(sel)
+	elif (k == KEY_C or k == KEY_W or k == KEY_TAB) and tab == "captain":
+		_set_page(not will_page if k == KEY_TAB else k == KEY_W)
 	elif k == KEY_TAB and tab == "combat":
 		chart = not chart
 		if chart:
@@ -328,9 +415,17 @@ func _act(id: String) -> void:
 					_deny(p.step_why(nid))
 			"variant", "talent":
 				_act_split(nid, (maxi(p.version_of(nid), 0) + (1 if p.version_of(nid) >= 0 else 0)) % n["versions"].size())
+			"will":
+				_slot_will(_will_passive(nid))
+			"passive" when n.has("will"):
+				_slot_will(nid)
 			_:
 				if str(n["skill"]) != "" and p.knows(str(n["skill"])):
 					_say("1-5 or R puts it on the bar")
+	elif id.begins_with("f:"):
+		_act_split(id.get_slice(":", 1), int(id.get_slice(":", 2)))
+	elif id.begins_with("page:"):
+		_set_page(id == "page:w")
 	elif id.begins_with("w:"):
 		var t := id.substr(2)
 		if tab == "combat":
@@ -369,6 +464,28 @@ func _act_split(nid: String, i: int) -> void:
 		_deny("Change talents at the ship's bunk")
 	else:
 		_deny("Switch versions at the ship's bunk")
+
+
+func _will_passive(wid: String) -> String:
+	for k in SkillTrees.nodes_of("captain"):
+		if SkillTrees.node_def(k).get("will", "") == wid:
+			return k
+	return ""
+
+
+## Enter on a Will or its passive: the passive into the first free slot.
+func _slot_will(pid: String) -> void:
+	var p := _pr()
+	var pn := SkillTrees.node_def(pid)
+	if not p.owns_node(pid):
+		_deny("%s comes with %s" % [pn["name"], SkillTrees.node_def(str(pn["will"]))["name"]])
+	elif pid in p.passives:
+		_say("%s is in passive slot %d" % [pn["name"], p.passives.find(pid) + 1])
+	else:
+		var at := maxi(p.passives.find(""), 0)
+		if p.equip_passive(pid, at):
+			menu._play("equip")
+			_say("%s in passive slot %d" % [pn["name"], at + 1])
 
 
 func _deny(m: String) -> void:
@@ -428,7 +545,9 @@ func _hints() -> Array:
 		"adventure":
 			return [["Q/E", "TAB"], ["W/S", "TREE"], ["ARROWS", "INSPECT"], ["ENTER", "BUY A STEP"], ["K", "CLOSE"]]
 		"captain":
-			return [["Q/E", "TAB"], ["ARROWS", "INSPECT"], ["ENTER", "PICK A TALENT"], ["K", "CLOSE"]]
+			if will_page:
+				return [["Q/E", "TAB"], ["C/W", "PAGE"], ["ARROWS", "INSPECT"], ["ENTER", "SLOT PASSIVE"], ["K", "CLOSE"]]
+			return [["Q/E", "TAB"], ["C/W", "PAGE"], ["UP/DOWN", "FORK"], ["LEFT/RIGHT", "OPTION"], ["ENTER", "PICK"], ["K", "CLOSE"]]
 		"loadout":
 			return [["Q/E", "TAB"], ["ENTER", "PUT ON BAR"], ["1-5/R", "SLOT"], ["RMB", "CLEAR"], ["K", "CLOSE"]]
 	return [["Q/E", "TAB"], ["ARROWS", "INSPECT"], ["ENTER", "BUY A STEP"], ["K", "CLOSE"]]
@@ -761,11 +880,47 @@ func _draw_adventure(body: Rect2) -> void:
 
 
 # --------------------------------------------------------------------------
-# Captain: the level trunk, the legend, Will
+# Captain: the talent forks up the level spine (page C), the Will star chart (page W)
 # --------------------------------------------------------------------------
 func _draw_captain(body: Rect2) -> void:
+	var x := body.position.x + 20.0
+	var y := body.position.y + 2.0
+	for pg in [["page:c", "C · CAPTAIN", false], ["page:w", "W · WILL", true]]:
+		var w := SILK.get_string_size(pg[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 20.0
+		var r := Rect2(x, y, w, 13)
+		var on: bool = pg[2] == will_page
+		_box(r, SkillTreeDraw.NODE_BG, UIStyle.GILT if on else SkillTreeDraw.DIM_RIM)
+		draw_string(SILK, Vector2(x, y + 10.0), pg[1], HORIZONTAL_ALIGNMENT_CENTER, w, 8, UIStyle.GILT if on else SkillTreeDraw.TEXT_OFF)
+		hit(r, pg[0], false)
+		x += w + 4.0
+	var rest := Rect2(body.position.x, y + 17.0, body.size.x, body.end.y - y - 17.0)
+	if will_page:
+		_draw_will(rest)
+	else:
+		_draw_forks(rest)
+
+
+func _box(r: Rect2, fill: Color, rim: Color) -> void:
+	draw_rect(r, rim)
+	draw_rect(r.grow(-1.0), fill)
+
+
+func _diamond(c: Vector2, h: float, col: Color) -> void:
+	draw_colored_polygon(PackedVector2Array([c + Vector2(0, -h), c + Vector2(h, 0), c + Vector2(0, h), c + Vector2(-h, 0)]), col)
+
+
+## Wrapped Silkscreen 8 capitals from `pos` (the first baseline), at most `most` lines; returns the y under them.
+func _lines(pos: Vector2, text: String, w: float, col: Color, step: float = 9.0, most: int = 99) -> float:
+	var y := pos.y
+	for l in _wrap(text.to_upper(), w, SILK, 8).slice(0, most):
+		draw_string(SILK, Vector2(pos.x, y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
+		y += step
+	return y
+
+
+## The level card: level, next fork, what a level gives, talents and milestones so far.
+func _draw_level_card(card: Rect2, forks: Array, miles: Array) -> void:
 	var p := _pr()
-	var card := Rect2(body.position + Vector2(0, 2), Vector2(CARD_W, body.size.y - 4.0))
 	draw_style_box(UIStyle.parchment(), card)
 	var x := card.position.x + 10.0
 	var w := card.size.x - 20.0
@@ -773,120 +928,277 @@ func _draw_captain(body: Rect2) -> void:
 	UIStyle.draw_title(self, Vector2(x, y), "Level %d" % p.level, 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
 	var lw := UIStyle.TITLE_FONT.get_string_size("Level %d" % p.level, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
 	draw_string(SILK, Vector2(x + lw + 5.0, y), "OF %d" % Progression.MAX_LEVEL, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_DIM)
-	y += 7.0
+	var next := forks.filter(func(k): return int(SkillTrees.node_def(k)["level"]) > p.level)
+	y += 11.0
+	if not next.is_empty():
+		draw_string(SILK, Vector2(x, y), "NEXT FORK AT LV %d" % int(SkillTrees.node_def(next[0])["level"]), HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
+	y += 6.0
 	_bar(Rect2(x, y, w, 3), _frac("captain"), UIStyle.BORDER_DIM)
 	y += 13.0
 	if p.level < Progression.MAX_LEVEL:
-		draw_string(SILK, Vector2(x, y), "%d / %d XP TO LV %d" % [p.xp, Progression.xp_to_next(p.level), p.level + 1], HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
+		draw_string(SILK, Vector2(x, y), "%d / %d XP" % [p.xp, Progression.xp_to_next(p.level)], HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
 	y += 6.0
 	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
-	y += 12.0
-	UIStyle.draw_ribbon(self, Vector2(x - 2.0, y), "How it grows")
-	y += 25.0
-	var legend := [["1", "Every level makes your captain tougher: health, damage, stamina, energy, defense."],
-		["2", "Round nodes come by themselves at their level."],
-		["3", "Split nodes are talents: pick one of two. Change them at the ship's bunk."],
-		["4", "Will is its own path: great foes and trials give it, not levels."]]
-	for l in legend:
-		draw_string(SILK, Vector2(x, y), l[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, WILL.darkened(0.3) if l[0] == "4" else UIStyle.BORDER_DIM)
-		y = _para(Vector2(x + 9.0, y), l[1], w - 9.0, UIStyle.PARCH_INK, card.end.y - 14.0) + 3.0
-	var rows := SkillTrees.nodes_of("captain").filter(func(k): return SkillTrees.node_def(k)["kind"] in ["auto", "talent"])
-	rows.sort_custom(func(a, b): return int(SkillTrees.node_def(a)["level"]) < int(SkillTrees.node_def(b)["level"]))
-	var levels: Array = rows.map(func(k): return int(SkillTrees.node_def(k)["level"]))
-	if levels.is_empty():
-		levels = [5, 10, 15, 20, 25, 30, 35, 40]
-	var tx := card.end.x + 58.0
-	var top := body.position.y + 18.0
-	var bot := body.end.y - 18.0
-	var step := (bot - top) / maxf(levels.size() - 1, 1)
-	var you := bot + 14.0
-	for i in range(levels.size()):
-		if int(levels[i]) <= p.level:
-			you = bot - i * step - step * 0.5
-	you = clampf(you, top - 8.0, bot + 14.0)
-	draw_rect(Rect2(tx - 2.0, you, 4, body.end.y - you), UIStyle.GILT)
-	draw_rect(Rect2(tx - 3.0, you, 6, body.end.y - you), Color(UIStyle.GILT, 0.25))
-	draw_rect(Rect2(tx, top - 10.0, 1, you - top + 10.0), SkillTreeDraw.DIM_LINK)
-	draw_circle(Vector2(tx, you), 5.0, UIStyle.GILT)
-	draw_circle(Vector2(tx, you), 3.0, UIStyle.CREAM)
-	_out(Vector2(tx - 58.0, you + 3.0), "YOU %d" % p.level, UIStyle.GILT, HORIZONTAL_ALIGNMENT_RIGHT, 46.0)
-	for i in range(levels.size()):
-		var lv := int(levels[i])
-		var ry := roundf(bot - i * step)
-		var on := lv <= p.level
-		_out(Vector2(tx - 62.0, ry + 3.0), "LV %d" % lv, UIStyle.CREAM if on else Color("7f9894"), HORIZONTAL_ALIGNMENT_RIGHT, 34.0)
-		draw_rect(Rect2(tx - 24.0, ry, 14, 1), Color(UIStyle.GILT, 0.5) if on else Color(SkillTreeDraw.TAG_OFF, 0.4))
-		if i < rows.size():
-			_captain_row(rows[i], Vector2(tx, ry), on)
-	var wx := maxf(tx + 196.0, body.end.x - 190.0)
-	_draw_will(Rect2(wx, body.position.y, body.end.x - wx, body.size.y))
+	y += 20.0
+	var g := SkillTrees.GROWTH
+	y = _lines(Vector2(x, y), "Every level: +%s HP, +%d%% dmg, +%s stamina and energy, +%s def." % [g["max_hp"], roundi(g["damage_pct"] * 100.0),
+		g["max_stamina"], g["defense"]], w, UIStyle.PARCH_DIM, 10.0) + 8.0
+	y = _lines(Vector2(x, y), "Every 5 levels pick one of two talents. Change it at the ship's bunk.", w, UIStyle.PARCH_DIM, 10.0) + 8.0
+	for row in [["TALENTS", forks.filter(func(k): return p.version_of(k) >= 0).size(), forks.size()],
+			["MILESTONES", miles.filter(func(k): return p.owns_node(k)).size(), miles.size()]]:
+		draw_string(SILK, Vector2(x, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_INK)
+		draw_string(SILK, Vector2(x, y), "%d / %d" % [row[1], row[2]], HORIZONTAL_ALIGNMENT_RIGHT, w, 8, UIStyle.PARCH_INK)
+		y += 10.0
 
 
-func _captain_row(id: String, c: Vector2, on: bool) -> void:
+## The forks as rows up a spine (levels rising), as many as fit from `_first`; the milestones and you in the gaps.
+## Cards size to the canvas (640x360 at 1280x720, 800x450 at 1600x900): as tall as the longest description needs.
+func _draw_forks(r: Rect2) -> void:
 	var p := _pr()
-	var n := SkillTrees.node_def(id)
-	var r: Rect2
-	var lx := c.x + 34.0
-	if n["kind"] == "talent":
-		r = SkillTreeDraw.split(self, id, c, UIStyle.GILT, p, on)
-		var vs: Array = n["versions"]
-		var pick := p.version_of(id) if on else -1
-		var room := maxf(size.x - 200.0, c.x + 196.0) - lx - 8.0
-		var whole := " or ".join(vs.map(func(v): return str(v["name"])))
-		var small := _font.get_string_size(whole, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x > room
-		var ax := lx
-		for i in range(vs.size()):
-			if i > 0:
-				draw_string(SILK, Vector2(ax, c.y - 1.0), "OR", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("7f9894"))
-				ax += 16.0
-			var nm := str(vs[i]["name"])
-			var col := UIStyle.CREAM if i == pick else SkillTreeDraw.TEXT_OFF
-			if small:
-				nm = nm.to_upper()
-				draw_string(SILK, Vector2(ax, c.y - 1.0), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, col)
-				ax += SILK.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 5.0
-			else:
-				draw_string(_font, Vector2(ax, c.y), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, col)
-				ax += _font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 5.0
-		var tag := ("TALENT · PICKED %s" % str(vs[pick]["name"]).to_upper()) if pick >= 0 else ("TALENT AT LV %d · PICK ONE" % int(n["level"]))
-		draw_string(SILK, Vector2(lx, c.y + 9.0), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.GILT if on else Color("7f9894"))
+	var forks := _forks()
+	var miles := _captain_kind("auto")
+	var lw := 148.0 if r.size.x > 700.0 else 124.0
+	_draw_level_card(Rect2(r.position, Vector2(lw, r.size.y)), forks, miles)
+	var area := Rect2(r.position.x + lw + 8.0, r.position.y, r.size.x - lw - 8.0, r.size.y)
+	var cx := roundf(area.get_center().x)
+	var fw := floorf(area.size.x * 0.5 - 18.0)
+	var most := 1
+	for k in forks:
+		for v in SkillTrees.node_def(k)["versions"]:
+			most = maxi(most, _wrap(str(v["desc"]).to_upper(), fw - 40.0, SILK, 8).size())
+	var fh := 25.0 + 9.0 * most
+	var pitch := fh + 13.0
+	_rows = clampi(int((area.size.y - 16.0 - fh) / pitch) + 1, 1, forks.size())
+	_first = clampi(_first, 0, maxi(forks.size() - _rows, 0))
+	var last := mini(_first + _rows, forks.size()) - 1
+	var top := area.end.y - 14.0 - fh - (last - _first) * pitch
+	var lv: Array = forks.map(func(k): return int(SkillTrees.node_def(k)["level"]))
+	var gap := (pitch - fh) * 0.5
+	# (gap g is between fork g and fork g + 1; -1 is under the first)
+	var you_g := -1
+	for g in range(lv.size()):
+		if p.level >= lv[g]:
+			you_g = g
+	var you_y := area.end.y if you_g < _first - 1 else (area.position.y - 12.0 if you_g > last else roundf(top + (last - you_g) * pitch - gap))
+	draw_rect(Rect2(cx - 1.0, area.position.y - 12.0, 2, area.size.y + 12.0), SkillTreeDraw.DIM_LINK)
+	draw_rect(Rect2(cx - 1.0, you_y, 2, area.end.y - you_y), UIStyle.GILT)
+	for k in range(_first, last + 1):
+		var ty := top + (last - k) * pitch
+		var vs: Array = SkillTrees.node_def(forks[k])["versions"]
+		var reached: bool = lv[k] <= p.level
+		for i in range(2):
+			_fork_card(Rect2(cx - 18.0 - fw if i == 0 else cx + 18.0, ty, fw, fh), forks[k], i, vs[i], reached, p.version_of(forks[k]))
+		var b := Rect2(cx - 15.0, roundf(ty + fh * 0.5 - 12.0), 30, 16)
+		_box(b, SkillTreeDraw.NODE_BG.lerp(UIStyle.GILT, 0.2) if reached else SkillTreeDraw.NODE_BG, UIStyle.GILT if reached else SkillTreeDraw.DIM_RIM)
+		draw_string(SILK, Vector2(b.position.x, b.position.y + 12.0), "LV%d" % lv[k], HORIZONTAL_ALIGNMENT_CENTER, 30, 8, UIStyle.GILT if reached else SkillTreeDraw.TEXT_OFF)
+		draw_string(SILK, Vector2(b.position.x, b.end.y + 11.0), "OR", HORIZONTAL_ALIGNMENT_CENTER, 30, 8, SkillTreeDraw.TAG_OFF)
+	for g in range(_first - 1, last + 1):
+		var lo: int = 1 if g < 0 else lv[g]
+		var hi: int = Progression.MAX_LEVEL + 1 if g >= lv.size() - 1 else lv[g + 1]
+		var here := miles.filter(func(m): return int(SkillTrees.node_def(m)["level"]) > lo and int(SkillTrees.node_def(m)["level"]) <= hi)
+		if here.is_empty() and g != you_g:
+			continue
+		here.reverse()
+		var gy := roundf(top + (last - g) * pitch - gap)
+		var tags: Array = []
+		for m in here:
+			var mn := SkillTrees.node_def(m)
+			var own := p.owns_node(m)
+			tags.append(["LV%d %s%s" % [int(mn["level"]), str(mn["name"]).to_upper(), " · GOT IT" if own else ""], UIStyle.GILT if own else SkillTreeDraw.TEXT_OFF])
+		if here.is_empty():
+			draw_circle(Vector2(cx, gy), 3.0, UIStyle.GILT)
+		else:
+			var got := here.all(func(m): return p.owns_node(m))
+			draw_circle(Vector2(cx, gy), 6.0, UIStyle.GILT if got else SkillTreeDraw.DIM_RIM)
+			draw_circle(Vector2(cx, gy), 5.0, UIStyle.GILT if got else SkillTreeDraw.NODE_BG)
+		var left: Array = ["YOU · LV %d >" % p.level, UIStyle.GILT] if g == you_g else (tags.pop_front() if tags.size() > 1 else [])
+		if not left.is_empty():
+			_out(Vector2(cx - 212.0, gy + 3.0), left[0], left[1], HORIZONTAL_ALIGNMENT_RIGHT, 200.0)
+		var tx := cx + 12.0
+		for t in tags:
+			_out(Vector2(tx, gy + 3.0), t[0], t[1])
+			tx += SILK.get_string_size(t[0] + "   ", HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	if last < forks.size() - 1:
+		var s := ", ".join(lv.slice(last + 1).map(func(l): return str(l)))
+		_more(Vector2(cx + 18.0 + fw - SILK.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x - 9.0, area.position.y - 3.0), s, true)
+	if _first > 0:
+		_more(Vector2(cx - 18.0 - fw, area.end.y - 1.0), ", ".join(lv.slice(0, _first).map(func(l): return str(l))), false)
+
+
+## The forks out of view above (`up`) or below: an arrow and their levels.
+func _more(pos: Vector2, levels: String, up: bool) -> void:
+	var a := PackedVector2Array([pos + Vector2(0, -1), pos + Vector2(6, -1), pos + Vector2(3, -6)]) if up else \
+		PackedVector2Array([pos + Vector2(0, -6), pos + Vector2(6, -6), pos + Vector2(3, -1)])
+	draw_colored_polygon(a, SkillTreeDraw.TEXT_OFF)
+	_out(pos + Vector2(9, 0), levels, SkillTreeDraw.TEXT_OFF)
+
+
+## One option of a fork: icon box, name, what it does. Picked: lit gold; its sibling dimmed; one you can pick now: a dot.
+func _fork_card(r: Rect2, nid: String, i: int, v: Dictionary, reached: bool, pick: int) -> void:
+	var id := "f:%s:%d" % [nid, i]
+	var picked := pick == i
+	var other := pick >= 0 and not picked
+	var open := reached and pick < 0
+	_box(r, SkillTreeDraw.NODE_BG.lerp(UIStyle.GILT, 0.14) if picked else SkillTreeDraw.NODE_BG,
+		UIStyle.GILT if picked else (UIStyle.BORDER_DIM if open else SkillTreeDraw.DIM_LINK))
+	var ib := Rect2(r.position + Vector2(6, 6), Vector2(20, 20))
+	_box(ib, UIStyle.OUTLINE, UIStyle.GILT if picked else SkillTreeDraw.DIM_RIM)
+	if str(v["skill"]) != "":
+		draw_texture_rect(Skills.icon(str(v["skill"])), ib.grow(-1.0), false)
 	else:
-		r = SkillTreeDraw._big(self, n, c, UIStyle.GILT, on)
-		draw_string(_font, Vector2(lx, c.y), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.CREAM if on else SkillTreeDraw.TEXT_OFF)
-		draw_string(SILK, Vector2(lx, c.y + 9.0), ("GOT IT" if on else "COMES AT LV %d" % int(n["level"])), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.GILT if on else Color("7f9894"))
-	hit(r.grow(2.0), "n:" + id)
-	if inspected() == "n:" + id:
-		draw_rect(r.grow(3.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
+		draw_string(SILK, Vector2(ib.position.x, ib.position.y + 13.0), SkillTreeDraw.glyph(str(v["name"])), HORIZONTAL_ALIGNMENT_CENTER, 20, 8,
+			UIStyle.GILT if picked else SkillTreeDraw.TEXT_OFF)
+	var name_col := UIStyle.GILT if picked else (UIStyle.CREAM if open else (Color("7d918d") if other else Color("b5c7c6")))
+	var text_col := UIStyle.TEXT_DIM if picked else (Color("a9bfc0") if open else (Color("6e8285") if other else Color("7f9aa0")))
+	draw_string(_font, Vector2(r.position.x + 32.0, r.position.y + 16.0), str(v["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 84.0, 12, name_col)
+	_lines(Vector2(r.position.x + 32.0, r.position.y + 27.0), str(v["desc"]), r.size.x - 40.0, text_col)
+	if picked:
+		var tag := Rect2(r.end.x - 48.0, r.position.y + 4.0, 44, 11)
+		draw_rect(tag, UIStyle.GILT)
+		draw_string(SILK, Vector2(tag.position.x, tag.position.y + 9.0), "PICKED", HORIZONTAL_ALIGNMENT_CENTER, 44, 8, UIStyle.INK)
+	elif open:
+		draw_circle(Vector2(r.end.x - 7.0, r.position.y + 7.0), 2.0, UIStyle.CORAL)
+	hit(r, id, false)
+	if inspected() == id:
+		draw_rect(r.grow(2.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
 
 
-## Will: its own path of milestones beside the trunk (bosses and trials).
+## The Will chart: a star per Will linked up to Captain's Will, each one's passive a moon off it; the parchment card.
 func _draw_will(r: Rect2) -> void:
-	if r.size.x < 90.0:
-		return
 	var p := _pr()
-	_out(r.position + Vector2(0, 8), "WILL", WILL)
-	draw_string(_font, r.position + Vector2(30, 9), "bosses and trials", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UIStyle.TEXT_DIM)
-	var ids := SkillTrees.nodes().keys().filter(func(k): return SkillTrees.node_def(k)["kind"] == "will")
-	if ids.is_empty():
-		_para(r.position + Vector2(0, 26), "Beat a great foe to awaken it.", r.size.x, Color("7f9894"))
-		return
-	var step := minf(50.0, (r.size.y - 30.0) / ids.size())
-	for i in range(ids.size()):
-		var id: String = ids[ids.size() - 1 - i]
-		var n := SkillTrees.node_def(id)
-		var got := p.has_will(id) or p.owns_node(id)
-		var c := Vector2(r.position.x + 13.0, roundf(r.position.y + 34.0 + i * step))
-		var nr := SkillTreeDraw._big(self, n, c, WILL, got)
-		hit(nr.grow(2.0), "n:" + id)
-		draw_string(_font, Vector2(c.x + 20.0, c.y - 2.0), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 34.0, 12, UIStyle.CREAM if got else SkillTreeDraw.TEXT_OFF)
-		var desc := str(n["desc"])
-		var how := desc.get_slice(". ", 0)
-		var lines: Array = _wrap(how.to_upper(), r.size.x - 34.0, SILK, 8).map(func(x): return [x, WILL])
-		lines.append_array(_wrap(desc.substr(how.length() + 2), r.size.x - 34.0, SILK, 8).map(func(x): return [x, UIStyle.TEXT_DIM]))
-		for j in range(mini(lines.size(), maxi(int(step / 9.0) - 1, 2))):
-			draw_string(SILK, Vector2(c.x + 20.0, c.y + 8.0 + j * 9.0), lines[j][0], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, lines[j][1])
-		if inspected() == "n:" + id:
-			draw_rect(nr.grow(3.0), Color(UIStyle.CREAM, 0.6 + 0.4 * sin(_t * 5.0)), false, 1.0)
+	var pw := 286.0 if r.size.x > 700.0 else 232.0
+	var panel := Rect2(r.end.x - pw, r.position.y - 4.0, pw, r.size.y + 4.0)
+	var field := Rect2(r.position, Vector2(panel.position.x - r.position.x - 8.0, r.size.y))
+	for i in range(150):
+		draw_rect(Rect2(field.position + Vector2((i * 97) % int(field.size.x), (i * 53) % int(field.size.y)), Vector2.ONE), Color("3f6874"))
+	var wills := SkillTrees.nodes_of("captain").filter(func(k): return SkillTrees.node_def(k)["kind"] == "will")
+	var at := {}
+	for wid in WILL_AT:
+		at[wid] = (field.position + field.size * WILL_AT[wid]).round()
+	var tw := 200.0 if r.size.x > 700.0 else 130.0
+	for l in WILL_LINKS:
+		if p.has_will(l[0]) and p.has_will(l[1]):
+			draw_line(at[l[0]], at[l[1]], WILL, 1.0)
+		else:
+			draw_dashed_line(at[l[0]], at[l[1]], WILL_DIM, 1.0, 3.0)
+	for wid: String in wills:
+		var c: Vector2 = at[wid]
+		var n := SkillTrees.node_def(wid)
+		var won := p.has_will(wid)
+		var h := 21.0 if n["needs"].size() > 1 else 15.0
+		var pid := _will_passive(wid)
+		var moon := c + Vector2(38, -12)
+		var ms := inspected() == "n:" + pid
+		draw_line(c, moon, WILL if won else Color("33295a"), 1.0)
+		draw_circle(moon, 7.0 if ms else 5.0, Color.WHITE if ms else (WILL if won else WILL_DIM))
+		draw_circle(moon, 4.0, WILL if p.owns_node(pid) else WILL_DARK)
+		hit(Rect2(moon - Vector2(7, 7), Vector2(14, 14)), "n:" + pid)
+		_out(moon + Vector2(10, 3), str(SkillTrees.node_def(pid)["name"]).to_upper(), WILL if won else Color("6b5ca0"))
+		if won:
+			_diamond(c, h + 8.0, Color(WILL, 0.1 + 0.05 * sin(_t * 2.0)))
+			_diamond(c, h + 4.0, Color(WILL, 0.25))
+		var on := inspected() == "n:" + wid
+		_diamond(c, h + (1.0 if on else 0.0), Color.WHITE if on else (WILL if won else WILL_DIM))
+		_diamond(c, h - (2.0 if on else 1.5), WILL_DIM if won else WILL_DARK)
+		hit(Rect2(c - Vector2(h, h), Vector2(h, h) * 2.0), "n:" + wid)
+		var y := c.y + h + 11.0
+		_out(Vector2(c.x - 110.0, y), str(n["name"]).to_upper(), WILL if won else Color("8b80b0"), HORIZONTAL_ALIGNMENT_CENTER, 220.0)
+		for l in _wrap("WON" if won else str(n["desc"]).get_slice(". ", 0).to_upper(), tw, SILK, 8):
+			y += 9.0
+			draw_string(SILK, Vector2(c.x - 110.0, y), l, HORIZONTAL_ALIGNMENT_CENTER, 220.0, 8, Color("6b6890"))
+	_draw_will_card(panel, _will_shown(wills))
+
+
+## The Will the card shows: the inspected star or moon's, else the first.
+func _will_shown(wills: Array) -> String:
+	for id in [inspected(), sel]:
+		var n: Dictionary = SkillTrees.node_def(str(id).substr(2)) if str(id).begins_with("n:") else {}
+		if n.get("kind", "") == "will":
+			return n["id"]
+		if n.has("will"):
+			return n["will"]
+	return wills[0]
+
+
+## The Will's parchment card: where it was won, what it does, its passive, and what wins the ones still to come.
+func _draw_will_card(panel: Rect2, wid: String) -> void:
+	var p := _pr()
+	var n := SkillTrees.node_def(wid)
+	var won := p.has_will(wid)
+	draw_style_box(UIStyle.parchment(), panel)
+	var x := panel.position.x + 12.0
+	var w := panel.size.x - 24.0
+	var desc := str(n["desc"])
+	var how := desc.get_slice(". ", 0)
+	var y := _lines(Vector2(x, panel.position.y + 20.0), ("Will · won from " + how.get_slice(",", 0).substr(5)) if won else ("Will · " + how), w, WILL.darkened(0.55))
+	UIStyle.draw_title(self, Vector2(x, y + 9.0), str(n["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, w, true)
+	y = _lines(Vector2(x, y + 24.0), desc.substr(how.length() + 2), w, UIStyle.PARCH_INK, 10.0)
+	y = _chips(Vector2(x, y - 4.0), w, _chips_of(n), UIStyle.PARCH.lerp(UIStyle.GOOD, 0.35), UIStyle.GOOD.darkened(0.3)) + 2.0
+	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
+	y += 20.0
+	draw_string(SILK, Vector2(x, y), "ITS PASSIVE (A SLOT)", HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
+	y += 6.0
+	var pid := _will_passive(wid)
+	var pn := SkillTrees.node_def(pid)
+	var owned := p.owns_node(pid)
+	var pdesc := str(pn["desc"]).trim_prefix("Passive (a slot). ")
+	var pchips := _chips_of(pn)
+	var chip_fill := UIStyle.PARCH.lerp(UIStyle.BORDER_DIM, 0.3)
+	var bh := 38.0 + _wrap(pdesc.to_upper(), w - 20.0, SILK, 8).size() * 9.0 + _chips(Vector2.ZERO, w - 20.0, pchips, chip_fill, UIStyle.BORDER_DIM, false)
+	var box := Rect2(x, y, w, bh)
+	draw_rect(box, UIStyle.BORDER_DIM if owned else Color(UIStyle.PARCH_DIM, 0.5))
+	draw_rect(box.grow(-2.0), UIStyle.CREAM)
+	draw_string(_font, Vector2(x + 10.0, y + 16.0), str(pn["name"]), HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, 12, UIStyle.PARCH_INK)
+	var by := _chips(Vector2(x + 10.0, _lines(Vector2(x + 10.0, y + 28.0), pdesc, w - 20.0, UIStyle.PARCH_INK) - 4.0), w - 20.0, pchips, chip_fill, UIStyle.BORDER_DIM)
+	var slot := p.passives.find(pid)
+	var status := ("IN PASSIVE SLOT %d" % (slot + 1)) if slot >= 0 else ("ENTER: PUT IT IN A SLOT" if owned else "COMES WITH THE WILL")
+	draw_string(SILK, Vector2(x + 10.0, by + 8.0), status, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, 8, Color("2f7a3a") if owned else UIStyle.CORAL.darkened(0.35))
+	y += bh + 10.0
+	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
+	y += 20.0
+	draw_string(SILK, Vector2(x, y), "NEXT", HORIZONTAL_ALIGNMENT_LEFT, w, 8, UIStyle.PARCH_DIM)
+	y += 11.0
+	var unwon := SkillTrees.nodes_of("captain").filter(func(k): return SkillTrees.node_def(k)["kind"] == "will" and not p.has_will(k))
+	if unwon.is_empty():
+		_lines(Vector2(x, y), "Every Will is yours.", w, UIStyle.PARCH_INK)
+	for k in unwon:
+		if y > panel.end.y - 14.0:
+			break
+		var kn := SkillTrees.node_def(k)
+		var needs: Array = kn["needs"]
+		var line := ("%s needs every other Will." % kn["name"]) if needs.size() > 1 and not needs.all(func(q): return p.has_will(q)) \
+			else ("%s · %s." % [kn["name"], str(kn["desc"]).get_slice(". ", 0)])
+		y = _lines(Vector2(x, y), line, w, UIStyle.PARCH_INK, 10.0) + 2.0
+
+
+## A node's numbers as chip texts (its effects' common keys, and the skill it gives).
+func _chips_of(n: Dictionary) -> Array:
+	var out: Array = []
+	for k in n["effects"]:
+		if CHIPS.has(k):
+			var c: Array = CHIPS[k]
+			out.append(str(c[0]) if int(c[1]) == 0 else str(c[0]) % roundi(float(n["effects"][k]) * int(c[1])))
+	if str(n["skill"]) != "":
+		out.append("SKILL: " + str(Skills.get_skill(str(n["skill"]))["name"]).to_upper())
+	return out
+
+
+## Chips left to right from `pos` (their top), wrapping at `w`; returns the y under them (`pos.y` if none). `paint` off: measures.
+func _chips(pos: Vector2, w: float, texts: Array, fill: Color, rim: Color, paint: bool = true) -> float:
+	if texts.is_empty():
+		return pos.y
+	var x := pos.x
+	var y := pos.y
+	for t in texts:
+		var cw := SILK.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 8.0
+		if x + cw > pos.x + w and x > pos.x:
+			x = pos.x
+			y += 14.0
+		if paint:
+			_box(Rect2(x, y, cw, 12), fill, rim)
+			draw_string(SILK, Vector2(x + 4.0, y + 9.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.PARCH_INK)
+		x += cw + 4.0
+	return y + 16.0
 
 
 # --------------------------------------------------------------------------
