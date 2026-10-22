@@ -653,7 +653,7 @@ func _build_saya() -> void:
 	_katana_socket.name = "KatanaSocket"
 	hip_socket.get_parent().add_child(_katana_socket)
 	_katana_socket.position = hip_socket.position + Vector3(0.0, 0.03, -0.09)
-	_katana_socket.basis = Basis.looking_at(Vector3(-0.2, -0.42, 0.88).normalized(), Vector3.UP)
+	_katana_socket.basis = Basis.looking_at(SAYA_HANG, Vector3.UP)
 	var saya := MeshInstance3D.new()
 	saya.name = "Saya"
 	saya.mesh = WeaponDesigns.saya(str(weapon.mesh.get_meta("model", "")))
@@ -661,6 +661,10 @@ func _build_saya() -> void:
 	_katana_socket.add_child(saya)
 
 
+## The scabbard's hang from the chest (hung well down at the back: flatter, it read as sticking straight out sideways
+## under a turned chest), and under the Waki Guard's chest turned well right (the hang turned back to the hips' back).
+const SAYA_HANG := Vector3(-0.06, -0.72, 0.69)
+const SAYA_HANG_WAKI := Vector3(0.45, -0.78, 0.43)
 ## A sheathed katana (and its scabbard) in the katana socket: guard just outside the mouth.
 const KATANA_SHEATHED := Vector3(0, 0, 0.04)
 ## A dagger in the off hand is held reversed: the blade out of the bottom of the fist,
@@ -935,6 +939,8 @@ func _iai_pose() -> Dictionary:
 func _katana_hands() -> void:
 	if stance != "katana" or ragdoll != null or not is_katana() or not weapon.is_inside_tree() or current_action() in HEAL_ACTIONS:
 		return
+	if _katana_socket and (guard2 or pole_w > 0.0):
+		_katana_socket.basis = Basis.looking_at(SAYA_HANG.lerp(SAYA_HANG_WAKI, pole_w if guard2 else 0.0), Vector3.UP)
 	var pole_l := global_basis * Vector3(-0.7, -1.0, 0.2)
 	match current_action():
 		"iai_ready":
@@ -2820,6 +2826,7 @@ func _process(delta: float) -> void:
 	_katana_hands()
 	_axe_hands()
 	SwordMoves.brace(self)
+	SwordMoves.easy(self)
 	_update_physics(delta)
 
 
