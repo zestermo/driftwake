@@ -1899,9 +1899,10 @@ func _apply_loadout(i: int) -> void:
 	var l: Array = loadouts[i]
 	if l.is_empty():
 		loadouts[i] = hands_slot()
-		_toast("Loadout %d set up: what's in your hands (change it in the bag, I)" % (i + 1))
+		_toast("Loadout %d set up: what's in your hands (change it in the bag, I%s)" % [i + 1, ": the empty hand slot switches fists and kicks" if knows_black_leg() else ""])
 		loadout_changed.emit()
 		return
+	reset_combo()
 	var legs: bool = l[0] == BLACK_LEG
 	var main: ItemData = inventory_component.find_item(l[0]) if l[0] != "" and not legs else null
 	var off: ItemData = inventory_component.find_item(l[1]) if l[1] != "" else null
