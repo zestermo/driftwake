@@ -145,7 +145,7 @@ const STYLES := {
 	# the head, a breaker) and (Handstand Spin) down on the hands, legs split, two turns that put everyone round you
 	# down; "legs": BlackLegArts shapes the hits and draws the legs' trails
 	"black_leg": {"anims": ["bl_1", "bl_2", "bl_3", "bl_4"], "trails": ["", "", "", ""],
-		"durations": [0.3, 0.34, 0.4, 0.95], "impulses": [3.5, 4.5, 4.0, 2.5],
+		"durations": [0.3, 0.34, 0.4, 0.82], "impulses": [3.5, 4.5, 4.0, 2.5], "steers": [0.0, 0.0, 0.0, STEER_SPIN],
 		"damages": [8.0, 11.0, 14.0, 22.0], "hitstops": [0.04, 0.055, 0.08, 0.1], "shakes": [0.06, 0.1, 0.14, 0.2],
 		"reach": "kick", "reaches": ["kick", "kick", "kick", "kick_spin"], "color": Color(1.0, 0.94, 0.86), "legs": true,
 		"winds": [[-0.35, 0.55, 0.5, false], [0.3, 0.95, -0.6, false], [-0.3, 1.45, 0.55, false], [0.0, 0.5, 0.0, true]]},
@@ -179,6 +179,8 @@ const FOURTH := {"fist": "roundhouse", "dual_sword": "twin_spin", "sword_pistol"
 ## A greatsword blow chained straight out of the last one's follow-through: this much faster and harder per blow
 ## built (the second x1, the third x2, the turn x3).
 const MOMENTUM_SPEED := 0.07
+## A hit you can steer a little while it plays ("steers": m/s at full stick; the Handstand Spin creeps where you push).
+const STEER_SPIN := 1.3
 const MOMENTUM_DAMAGE := 0.06
 
 var cfg: Dictionary = STYLES["sword"]
@@ -274,8 +276,13 @@ func enter(data: Dictionary) -> void:
 
 func physics_update(delta: float) -> void:
 	apply_gravity(delta)
-	player.velocity.x = move_toward(player.velocity.x, 0.0, 15.0 * delta)
-	player.velocity.z = move_toward(player.velocity.z, 0.0, 15.0 * delta)
+	var steer := Vector3.ZERO
+	if cfg.has("steers") and float(cfg["steers"][combo_index]) > 0.0 and not can_combo:
+		var input := get_movement_input()
+		if input.length() > 0.1:
+			steer = get_camera_relative_direction(input) * float(cfg["steers"][combo_index]) * minf(input.length(), 1.0)
+	player.velocity.x = move_toward(player.velocity.x, steer.x, 15.0 * delta)
+	player.velocity.z = move_toward(player.velocity.z, steer.z, 15.0 * delta)
 	player.move_and_slide()
 
 	timer += delta

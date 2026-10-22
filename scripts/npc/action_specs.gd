@@ -254,7 +254,7 @@ const SPECS := {
 		"stance": "black_leg", "weapon": "", "extras": {"after": "bl_1"}},
 	"bl_3": {"len": 0.56, "hit": [0.34, 0.6], "chain": 0.4, "swoosh": [0.3, 0.6], "legs": "l", "sharp": 46.0, "lead": {"hips": 0.03, "torso": 0.012},
 		"stance": "black_leg", "weapon": "", "extras": {"after": "bl_2"}},
-	"bl_4": {"len": 1.1, "hit": [0.24, 0.78], "chain": 0.95, "swoosh": [0.24, 0.78], "legs": "lr", "sharp": 46.0,
+	"bl_4": {"len": 0.95, "hit": [0.24, 0.78], "chain": 0.82, "swoosh": [0.24, 0.78], "legs": "lr", "sharp": 46.0,
 		"stance": "black_leg", "weapon": "", "extras": {"after": "bl_3"}},
 	"bl_heavy": {"len": 0.95, "hit": [0.5, 0.64], "swoosh": [0.4, 0.62], "legs": "r", "sharp": 48.0, "stance": "black_leg", "weapon": ""},
 	"bl_rush": {"len": 0.75, "hit": [0.28, 0.6], "swoosh": [0.26, 0.6], "legs": "r", "sharp": 46.0, "stance": "black_leg", "weapon": ""},
