@@ -77,7 +77,9 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(4)
 		6:
 			var tech = p.state_machine.get_node("Technique")
-			check("armed in the air, attack lets it go (%s %s)" % [p.current_state_name(), tech.id], p.current_state_name() == "Technique" and tech.id == "sea_king_unleash")
+			# the air unleash hands off to the dive (Plunge) within a few ticks
+			var st: String = p.current_state_name()
+			check("armed in the air, attack lets it go (%s %s)" % [st, tech.id], (st == "Technique" and tech.id == "sea_king_unleash") or st == "Plunge")
 			until = TK.wait_secs(1.6)
 		7:
 			check("the dive's blast lands on the dummy (%.0f)" % taken, taken > 0.0)
