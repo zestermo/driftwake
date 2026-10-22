@@ -99,6 +99,8 @@ var parried_tick: int = -1000
 ## Skyward Dash (Acrobatics): an air dash left from the last mid-air recovery (until you land or use it).
 var skyward_dash: bool = false
 const SKYWARD_STEPS := 2
+## Up from a Sky Leap: the next landing is a crater, with no fall damage.
+var sky_leap_fall: bool = false
 ## The next light attack is the katana's running draw (attacked while sprinting).
 var quick_draw: bool = false
 var body_model: Humanoid
@@ -1081,6 +1083,7 @@ func _physics_process(delta: float) -> void:
 	_regen_stamina(delta)
 	# deep enough water: swim (from walking, falling, attacking...)
 	if context == Context.ON_FOOT and current_state_name() in SWIM_FROM_STATES and water_depth() > SWIM_ENTER_DEPTH:
+		sky_leap_fall = false
 		state_machine.force_state("Swim", {"entry_vy": velocity.y})
 
 
@@ -1103,7 +1106,7 @@ const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon", "
 
 
 ## States that drop into swimming when the water gets deep enough.
-const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
+const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "SkyLeap","LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
 
 
 ## Distance down to the ground (or INF over nothing within 30 m).
@@ -1164,6 +1167,9 @@ func recover_into_swim() -> void:
 
 ## A tumbling body hit the ground at `speed`: the usual fall damage (the get-up is DownedState's).
 func tumble_landed(speed: float) -> void:
+	if sky_leap_fall:
+		sky_leap_fall = false
+		return
 	if speed > SAFE_FALL_SPEED and context == Context.ON_FOOT:
 		_fall_damage(speed)
 
@@ -1315,7 +1321,12 @@ const FALL_DAMAGE_PER_MS := 5.3
 func _on_landed(impact_vy: float) -> void:
 	var k := clampf(-impact_vy / 16.0, 0.0, 1.0)
 	var speed := -impact_vy
-	if speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
+	if sky_leap_fall:
+		sky_leap_fall = false
+		if speed > SAFE_FALL_SPEED:
+			state_machine.states["skyleap"].crater(speed)
+			return
+	elif speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
 		_fall_damage(speed)
 	if k < 0.15:
 		return
