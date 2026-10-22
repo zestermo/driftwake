@@ -121,8 +121,8 @@ const CASES := [
 	["deadeye", "pistol", 8.0, ""],
 	["point_blank", "pistol", 2.5, ""],
 	["deaths_waltz", "pistol", 8.0, ""],
-	["suplex", "fist", 1.4, "carried"],
-	["giant_swing", "fist", 1.4, "carried"],
+	["cannonball_fist", "fist", 2.5, "down"],
+	["meteor_fist", "fist", 2.0, "down"],
 	["hundred_fists", "fist", 1.4, ""],
 	["rising_dragon", "fist", 1.4, ""],
 	["palm_strike", "fist", 2.5, ""],
@@ -249,7 +249,7 @@ func _process(d: float) -> bool:
 					pc.cooldowns.clear()
 					check("cast %s" % c[0], pc.try_cast(slot))
 					phase = 2
-					wait = 3.4 if str(c[0]) in ["maelstrom", "steel_tempest", "deaths_waltz", "giant_swing", "broadside", "red_eclipse", "hundred_fangs"] else 1.8
+					wait = 3.4 if str(c[0]) in ["maelstrom", "steel_tempest", "deaths_waltz", "broadside", "red_eclipse", "hundred_fangs"] else 1.8
 				2:
 					var hurt: bool = not is_instance_valid(g) or g.health.current_health < v0
 					check("%s lands (%.0f -> %.0f)" % [c[0], v0, g.health.current_health if is_instance_valid(g) else 0.0], hurt)
@@ -384,7 +384,7 @@ func _process(d: float) -> bool:
 		16:
 			if not grunts_parked:
 				check("...and come back", not p.vanished() and p.body_model.visible)
-				# grapples won't lift a boss-sized foe; nobody in reach = the cast is given back
+				# nobody in reach = the cast is given back
 				arm("fist")
 				clear_others(null)
 				grunts_parked = true
@@ -392,11 +392,11 @@ func _process(d: float) -> bool:
 				return false
 			if TK.ticking(until):
 				return false
-			pc.equip("suplex", 0)
+			pc.equip("cannonball_fist", 0)
 			pc.energy = 50.0
 			pc.cooldowns.clear()
 			pc.try_cast(0)
-			check("a grapple with nobody in reach gives the energy back", pc.energy >= 50.0 - 0.01 and pc.cooldown_left(0) == 0.0)
+			check("Cannonball Fist with nobody in reach gives the energy back", pc.energy >= 50.0 - 0.01 and pc.cooldown_left(0) == 0.0)
 			# base passives
 			check("Featherfall (Acrobatics) and the experience talents", pr.has_flag("featherfall") and pr.stat("xp_pct") > 0.0)
 			check("Focus and Quick Learner: +25%% experience (%.2f)" % pr.stat("xp_pct"), is_equal_approx(pr.stat("xp_pct"), 0.25))

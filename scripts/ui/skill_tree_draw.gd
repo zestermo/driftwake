@@ -11,6 +11,7 @@ const ROOT_BG := Color("143f46")
 const DIM_FILL := Color("16343a")
 const DIM_RIM := Color("3c5c5f")
 const DIM_LINK := Color("2f4c52")
+const LINK_OFF := Color("6f8a86")
 const TEXT_OFF := Color("93a8a3")
 const TAG_OFF := Color("5e7470")
 const PASSIVE := Color("ffb39e")
@@ -77,6 +78,7 @@ static func draw_tree(s: SkillMapScreen, tree: String, area: Rect2, pr: Progress
 		for l in n["links"]:
 			if at.has(l):
 				_link(s, at[l], at[k], col, pr.owns_node(k), n["kind"] == "step")
+				s.links.append([l, k, pr.owns_node(k)])
 	var taken: Array = at.keys().map(func(k): return node_rect(k, at[k]).grow(1.0))
 	for b in range(td["branches"].size()):
 		var bigs: Array = td["branches"][b]["nodes"].filter(func(k): return SkillTrees.node_def(k)["kind"] != "step")
@@ -187,14 +189,16 @@ static func _uncharted(s: SkillMapScreen, tree: String, area: Rect2, pr: Progres
 	_outlined(s, Vector2(area.position.x, c.y - 30.0), "%s %d  -  YOUR PROGRESS IS KEPT" % [Progression.tree_name(tree).to_upper(), pr.tree_level(tree)], col, HORIZONTAL_ALIGNMENT_CENTER, area.size.x)
 
 
+## A path: filled in the tree's colour once taken, else a hollow grey channel (a step's thin and grey).
 static func _link(s: Control, a: Vector2, b: Vector2, col: Color, on: bool, thin: bool) -> void:
 	if thin:
-		s.draw_line(a, b, col if on else DIM_LINK, 1.0)
+		s.draw_line(a, b, col if on else Color(LINK_OFF, 0.75), 2.0)
 	elif on:
 		s.draw_line(a, b, Color(col, 0.28), 4.0)
 		s.draw_line(a, b, col, 2.0)
 	else:
-		s.draw_line(a, b, DIM_LINK, 1.0)
+		s.draw_line(a, b, LINK_OFF, 4.0)
+		s.draw_line(a, b, NODE_BG, 2.0)
 
 
 static func _outlined(s: Control, p: Vector2, text: String, col: Color, al := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:

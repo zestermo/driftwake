@@ -90,6 +90,8 @@ var air_slashes: int = 0
 var air_uses: Dictionary = {}
 ## When the freefall began (PlayerState.now_s): the last jump, air step, ability or attack (FallState's tumble).
 var freefall_from: float = 0.0
+## The highest point (y) since the feet last touched the ground: a dive's height fallen (FistArts.fallen).
+var fall_top: float = 0.0
 ## Skyward Dash (Acrobatics): an air dash left from the last mid-air recovery (until you land or use it).
 var skyward_dash: bool = false
 const SKYWARD_STEPS := 2
@@ -1032,6 +1034,7 @@ func _update_lean(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if not is_local:
 		return
+	fall_top = global_position.y if is_on_floor() else maxf(fall_top, global_position.y)
 	if bleeding:
 		_bleed_tick(delta)
 	elif Net.coop():

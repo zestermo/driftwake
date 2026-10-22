@@ -297,19 +297,7 @@ static func pose(h, n: String, u: float) -> Array:
 			var p: Dictionary = h._keys(u, [[0.0, g], [0.08, arms, "out"], [0.92, arms], [1.0, g]])
 			p["pivot"] = Vector3(0, -TAU * 2.0 * _ease_io(clampf((s - 0.15) / 1.7, 0.0, 1.0)), 0)
 			return [p, "full", lift]
-		# --- unarmed: grapples ---
-		"suplex":
-			# arms locked round their waist in a crouch, then the back arched into a
-			# bridge carrying them overhead (slam at u 0.6), and up again
-			var grab := {"hips": Vector3.ZERO, "pivot": Vector3.ZERO, "arm_r": Vector3(1.3, 0.5, -0.1), "fore_r": Vector3(1.3, 0, 0), "arm_l": Vector3(1.3, -0.5, 0.1), "fore_l": Vector3(1.3, 0, 0),
-				"torso": Vector3(-0.35, 0, 0), "head": Vector3(0.3, 0, 0),
-				"leg_l": Vector3(0.5, 0, -0.15), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(0.3, 0, 0.15), "shin_r": Vector3(-0.9, 0, 0),
-				"_lift": Vector3(0, -0.26, 0)}
-			var arch := {"hips": Vector3.ZERO, "pivot": Vector3(1.05, 0, 0), "arm_r": Vector3(2.8, 0.3, 0.1), "fore_r": Vector3(0.8, 0, 0), "arm_l": Vector3(2.8, -0.3, -0.1), "fore_l": Vector3(0.8, 0, 0),
-				"torso": Vector3(0.55, 0, 0), "head": Vector3(0.6, 0, 0),
-				"leg_l": Vector3(-0.55, 0, -0.15), "shin_l": Vector3(-1.6, 0, 0), "leg_r": Vector3(-0.55, 0, 0.15), "shin_r": Vector3(-1.6, 0, 0),
-				"_lift": Vector3(0, -0.4, 0)}
-			return [h._keys(u, [[0.0, g], [0.2, grab, "out"], [0.27, grab], [0.6, arch, "in"], [0.72, arch], [0.88, grab], [1.0, g]]), "full", lift]
+		# --- unarmed: Shoulder Throw (the counter) ---
 		"shoulder_throw":
 			# reach in and grab, turn your back into them bending low with their arm over
 			# your shoulder, then heave them over in front (the throw at u 0.53)
@@ -326,22 +314,6 @@ static func pose(h, n: String, u: float) -> Array:
 				"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(-0.6, 0, 0.12), "shin_r": Vector3(-0.3, 0, 0),
 				"_lift": Vector3(0, -0.3, 0)}
 			return [h._keys(u, [[0.0, g], [0.2, grab, "out"], [0.26, grab], [0.42, load_], [0.53, heave, "out"], [0.75, heave], [1.0, g]]), "full", lift]
-		"giant_swing":
-			# leaning back against their weight, arms out low holding them, three turns,
-			# then the arms flung forward as they go
-			var hold := {"hips": Vector3.ZERO, "arm_r": Vector3(1.0, 0.2, 0.0), "fore_r": Vector3(0.2, 0, 0), "arm_l": Vector3(1.0, -0.2, 0.0), "fore_l": Vector3(0.2, 0, 0),
-				"torso": Vector3(0.35, 0, 0), "head": Vector3(-0.1, 0, 0),
-				"leg_l": Vector3(0.3, 0, -0.25), "shin_l": Vector3(-0.7, 0, 0), "leg_r": Vector3(0.3, 0, 0.25), "shin_r": Vector3(-0.7, 0, 0),
-				"_lift": Vector3(0, -0.16, 0)}
-			var fling := {"hips": Vector3.ZERO, "arm_r": Vector3(1.7, -0.3, 0.3), "fore_r": Vector3(0.05, 0, 0), "arm_l": Vector3(1.5, -0.4, -0.2), "fore_l": Vector3(0.1, 0, 0),
-				"torso": Vector3(-0.3, -0.4, 0), "head": Vector3(0.2, 0.3, 0),
-				"leg_l": Vector3(0.8, 0, -0.15), "shin_l": Vector3(-0.9, 0, 0), "leg_r": Vector3(-0.5, 0, 0.15), "shin_r": Vector3(-0.3, 0, 0),
-				"_lift": Vector3(0, -0.18, 0)}
-			var k_go := 1.6 / T
-			var p: Dictionary = h._keys(u, [[0.0, g], [0.12, hold, "out"], [k_go - 0.02, hold], [k_go + 0.05, fling, "out"], [0.85, fling], [1.0, g]])
-			var k := clampf((s - 0.3) / 1.3, 0.0, 1.0)
-			p["pivot"] = Vector3(0, -TAU * 3.0 * (1.0 - pow(1.0 - k, 1.6)), 0)
-			return [p, "full", lift]
 		# --- unarmed: martial arts ---
 		"hundred_fists":
 			# a planted stance and a blur of alternating straights, then one big cross

@@ -82,6 +82,9 @@ const WILL := {"h_arm": ["morrow", []], "h_coat": ["ape", ["h_arm"]], "h_obs": [
 	"h_conq": ["sea_king", ["h_arm", "h_coat", "h_obs", "h_fore"]]}
 
 ## A node's price by kind, plus a point for every 10 levels of its gate (a step: 1 a step); Adventure's are cheaper.
+## Nodes that became others (an old save's purchase is bought back as the new one, same gate and price): the fists'
+## wrestling moves went in 1.18.4.
+const RENAMED := {"u_suplex": "u_cannon", "u_swing": "u_meteor_fist"}
 const PRICE := {"move": 2, "mech": 2, "tech": 3, "passive": 3, "variant": 4, "elem": 5, "ult": 8}
 const PRICE_ADVENTURE := {"move": 1, "mech": 1, "tech": 2, "passive": 2, "variant": 2, "elem": 3, "ult": 4}
 
@@ -928,8 +931,8 @@ static func _build_unarmed() -> void:
 	_big("u_hip", "Shoulder Throw", "tech", 0, 3, {}, "", "hip_toss")
 	_big("u_landing", "Heavy Landing", "mech", 0, 9, {"throw_splash": 1, "dmg_unarmed": 0.25},
 		"Anyone your haymaker or a throw knocks flat lands like a cannonball: everyone near where they come down is knocked flat and hurt. Your punches hit 25% harder.")
-	_big("u_suplex", "Suplex", "tech", 0, 12, {}, "", "suplex")
-	_big("u_swing", "Giant Swing", "tech", 0, 18, {}, "", "giant_swing")
+	_big("u_cannon", "Cannonball Fist", "tech", 0, 12, {}, "", "cannonball_fist")
+	_big("u_meteor_fist", "Meteor Fist", "tech", 0, 18, {}, "", "meteor_fist")
 	_big("u_palm", "Shockwave Palm", "tech", 1, 4, {}, "", "palm_strike")
 	_big("u_dragon", "Rising Dragon", "tech", 1, 8, {}, "", "rising_dragon")
 	_big("u_hundred", "Hundred Fists", "tech", 1, 13, {}, "", "hundred_fists")
@@ -945,7 +948,7 @@ static func _build_unarmed() -> void:
 		"Passive (a slot). The last hit of your combo lands 40% harder, and unarmed techniques come back 20% sooner.")
 	_step("u_knuckles", "Iron Knuckles", "u_root", 5, {"dmg_unarmed": 0.05}, "+5% unarmed damage a step.")
 	_step("u_grip", "Grip", "u_hip", 3, {"skill_unarmed": 0.06}, "Your fist techniques hit 6% harder a step.")
-	_step("u_skin", "Stone Skin", "u_suplex", 3, {"def_unarmed": 2.0}, "+2 defense bare-handed a step.")
+	_step("u_skin", "Stone Skin", "u_cannon", 3, {"def_unarmed": 2.0}, "+2 defense bare-handed a step.")
 	_step("u_points", "Pressure Points", "u_elem", 5, {"crit_unarmed": 0.03}, "3% more of your unarmed hits land 50% harder, a step.")
 	_step("u_hands", "Heavy Hands", "u_hundred", 5, {"finisher_unarmed": 0.06}, "The last hit of your combo lands 6% harder a step.")
 	_step("u_feet", "Light Feet", "u_round", 3, {"stam_unarmed": 0.07}, "Unarmed attacks cost 7% less stamina a step.")
