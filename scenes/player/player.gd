@@ -513,7 +513,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	dir = dir.normalized() if dir.length() > 0.01 else player_model.global_basis.z
 	# an unblockable attack (the enemy flashed red) gets through parries and blocks;
 	# a shot only if the blade's tree taught you to cut shots (parryshot_ nodes)
-	if is_parrying and not hit.unblockable and not hit.dot and (not hit.ranged or parries_shots()):
+	# (Windmill Guard's spinning pole only turns what comes from the front)
+	var windmill_miss := power.buff("bat_shots") and (-player_model.global_basis.z).dot(-dir) < 0.0
+	if is_parrying and not windmill_miss and not hit.unblockable and not hit.dot and (not hit.ranged or parries_shots()):
 		if hit.ranged:
 			_cut_shot(hit, dir, attacker)
 		if attacker and attacker.has_method("parried"):
@@ -624,7 +626,7 @@ func _foresight_dodge(dir: Vector3, label: String = "Foresight!") -> void:
 
 ## Parrying cuts shots out of the air (a blade tree's early parryshot_ node).
 func parries_shots() -> bool:
-	return progression.style_stat("parryshot", style()) > 0.0
+	return progression.style_stat("parryshot", style()) > 0.0 or power.buff("bat_shots")
 
 
 ## Mastered deflection (the blade tree's deflect_ node): with the blade out, a shot

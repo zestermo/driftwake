@@ -152,6 +152,10 @@ const ALL := {
 		"desc": "Plant the butt and vault over the enemy you're facing (up to 9 m), driving the point down into them as you come over: it breaks their guard, and you land behind them."},
 	"raijin_wheel": {"name": "Raijin's Wheel", "tree": "polearm", "cost": 0.0, "cooldown": 3.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Leap up spinning the spear over your head into a wheel, come down in its middle cutting everyone around you on every turn, then drive the point into the ground: the wheel bursts and throws them all down."},
+	"thunder_javelin": {"name": "Thunder Javelin", "tree": "polearm", "cost": 20.0, "cooldown": 7.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique",
+		"desc": "Hurl the spear point-first where you aim, piercing everyone on a 16 m line and breaking their wind-ups; a beat later a crackle of lightning yanks it back to your hand, cutting the line again. With the storm awakened, a bolt drops on each one it pierced."},
+	"windmill_guard": {"name": "Windmill Guard", "tree": "polearm", "cost": 18.0, "cooldown": 8.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique",
+		"desc": "Hold to spin the pole before you like a windmill as you walk (up to 1.5 s): blows and shots from the front are batted aside, and anyone who steps in is clipped and shoved back out to the tip. Let go to lunge into a thrust that can't be blocked."},
 	# --- Hammer ---
 	"skullcracker": {"name": "Skullcracker", "tree": "hammer", "cost": 18.0, "cooldown": 6.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
 		"desc": "A hop up with the hammer raised and the head brought straight down on the enemy in front: it goes through any guard, breaks their wind-up and leaves them reeling."},

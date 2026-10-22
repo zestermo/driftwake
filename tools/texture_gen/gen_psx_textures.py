@@ -1827,6 +1827,25 @@ def gen_technique_icons():
         spear(d, (21, 3), (3, 21))
         bolt(d, 10, 7, LEM_W, 0.8)
 
+    def thunder_javelin(d):
+        # the spear flying point-first along a line, the lightning tether jagging back from its butt
+        for x, c in ((2, VIO), (5, LEM)):
+            d.line([(x, 16), (x + 6, 13)], fill=c, width=1)
+        spear(d, (7, 14), (22, 7))
+        d.line([(7, 14), (5, 17), (8, 18), (4, 22)], fill=LEM_W, width=1)
+        for x, y in ((15, 13), (18, 12), (12, 15)):
+            d.point((x, y), fill=VIO)
+        d.point((22, 7), fill=LEM_W)
+
+    def windmill_guard(d):
+        # the pole spun upright in a ring before you, a shot glancing off it
+        d.ellipse([3, 3, 21, 21], outline=VIO, width=1)
+        d.arc([5, 5, 19, 19], 200, 340, fill=LEM, width=2)
+        spear(d, (5, 19), (19, 5))
+        d.line([(20, 20), (23, 23)], fill=LEM_W, width=1)
+        d.line([(17, 15), (20, 20)], fill=STEEL, width=1)
+        d.point((16, 14), fill=LEM_W)
+
     def hammer_head(d, cx, cy, w=10, h=6, col=SAND, shade=SAND_D):
         d.rectangle([cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2], fill=col)
         d.rectangle([cx - w // 2, cy + h // 2 - 1, cx + w // 2, cy + h // 2], fill=shade)
@@ -2011,7 +2030,8 @@ def gen_technique_icons():
                      ("viper_flurry", viper_flurry), ("scissor_leap", scissor_leap), ("bleeding_edge", bleeding_edge),
                      ("hundred_fangs", hundred_fangs),
                      ("hundred_thrusts", hundred_thrusts), ("dragon_sweep", dragon_sweep), ("vault_strike", vault_strike),
-                     ("raijin_wheel", raijin_wheel), ("skullcracker", skullcracker), ("rolling_quake", rolling_quake),
+                     ("raijin_wheel", raijin_wheel), ("thunder_javelin", thunder_javelin), ("windmill_guard", windmill_guard),
+                     ("skullcracker", skullcracker), ("rolling_quake", rolling_quake),
                      ("cyclone_crusher", cyclone_crusher), ("titans_fall", titans_fall), ("gallows_hook", gallows_hook),
                      ("hewing_frenzy", hewing_frenzy), ("axestorm", axestorm), ("fimbulwinter", fimbulwinter),
                      ("guardbreaker", guardbreaker), ("crescent_gale", crescent_gale), ("tempest_turns", tempest_turns),

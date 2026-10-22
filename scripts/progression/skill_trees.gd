@@ -737,6 +737,7 @@ static func _build_polearm() -> void:
 	_big("pl_vstrike", "Vaulting Strike", "tech", 0, 8, {}, "", "vault_strike")
 	_big("pl_bearing", "Emperor's Bearing", "mech", 0, 10, {"plant_polearm": 1},
 		"A master's ease: stand still with a polearm drawn and nothing happening for a few seconds, and you plant its butt on the ground beside you, the pole upright in one hand, chest out. Anything you do comes straight out of it.")
+	_big("pl_windmill", "Windmill Guard", "tech", 0, 14, {}, "", "windmill_guard")
 	_big("pl_return", "Spear Wall", "mech", 0, 20, {"deflect_polearm": 1, "return_polearm": 1, "deflect_cd_polearm": 1.0},
 		"With a polearm drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("pl_thrusts", "Hundred Thrusts", "tech", 1, 5, {}, "", "hundred_thrusts")
@@ -751,6 +752,7 @@ static func _build_polearm() -> void:
 		"Attack at a sprint: drop into a kneeling slide and sweep the head through their shins. It breaks their wind-up and puts them on the ground.")
 	_big("pl_fall", "Falling Spear", "move", 2, 9, {"mv_falling_spear": 1},
 		"Attack in the air: the spear raised overhead, point down, then a straight drop onto it and a ring off the landing that knocks everyone close flat (once per jump).")
+	_big("pl_javelin", "Thunder Javelin", "tech", 2, 12, {}, "", "thunder_javelin")
 	_big("pl_long", "Long Reach", "passive", 2, 13, {"finisher_polearm": 0.3, "heavy_polearm": 0.25},
 		"Passive (a slot). The last blow of your combo lands 30% harder, and your Skewer (right-click) 25%.")
 	_variant("pl_way", "Lancer's Way", 2, [

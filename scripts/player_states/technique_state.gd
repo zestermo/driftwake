@@ -50,6 +50,8 @@ var _hit: Array = []
 var _slot: int = -1
 var _from := Vector3.ZERO
 var _axe: Projectile
+## A held technique's hold in seconds when a test or tool forces it (else the slot's key, `_key_held`).
+var _hold := -1.0
 ## The last guard put up (riposte_counter answers it: Side Step's answer is out at their side).
 var _guard_id := ""
 
@@ -60,6 +62,7 @@ func enter(data: Dictionary) -> void:
 	if id == "riposte_counter" and player.style() == "fist":
 		id = "shoulder_throw"
 	_slot = int(data.get("slot", -1))
+	_hold = float(data.get("hold", -1.0))
 	_pc = player.power
 	t = 0.0
 	_hits = 0
@@ -556,6 +559,13 @@ func _moment(slow: float, secs: float, kick: float, flash: float = 0.3) -> void:
 	Net.fx("screen_flash", [player.global_position, Color(c.r, c.g, c.b, flash), 0.3])
 
 
+## The technique's key still held (a forced hold: until t passes it).
+func _key_held() -> bool:
+	if _hold >= 0.0:
+		return t < _hold
+	return _slot >= 0 and Input.is_action_pressed("ultimate" if _slot == PowerComponent.ULT else "skill_%s" % PowerComponent.key_of(_slot))
+
+
 ## True the first frame t passes `at` (one-shot events).
 func _once(key: String, at: float) -> bool:
 	if _done.has(key) or t < at:
@@ -673,12 +683,14 @@ func _ring(reach: float, base: float, knock: float, down: bool, inward: bool) ->
 
 
 ## Spinning ultimates: a hit all round every `every` s from `start` (dragging them
-## in), then a last burst at `end_t` that throws them out.
-func _spin_hits(reach: float, every: float, base: float, end_t: float, final: float, start: float = 0.15) -> void:
+## in), then a last burst at `end_t` that throws them out. `arc`: the move draws its own trail on the blade, so no
+## flat spin disc.
+func _spin_hits(reach: float, every: float, base: float, end_t: float, final: float, start: float = 0.15, arc: bool = false) -> void:
 	if t < end_t and t >= start + _hits * every:
 		_hits += 1
 		_ring(reach, base, 2.5, false, true)
-		Net.fx("slash", [player.player_model, "spin", 0.18, _col()])
+		if not arc:
+			Net.fx("slash", [player.player_model, "spin", 0.18, _col()])
 		Net.fx("sfx", ["whoosh", player.global_position, -6.0, 0.1, 1.0 + 0.04 * (_hits % 5)])
 	if _once("burst", end_t):
 		_ring(reach + 0.5, final, 11.0, true, false)
@@ -1527,6 +1539,8 @@ func _conquer() -> void:
 
 func exit() -> void:
 	player.hurtbox.set_deferred("monitorable", true)
+	player.is_parrying = false
+	_pc.buffs["bat_shots"] = 0.0
 	# Thousand Petals ends sheathed
 	if id == "petal_storm" and not player.body_model.weapon_in_hand:
 		player.body_model.play("draw", 0.3)
