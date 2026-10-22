@@ -24,6 +24,9 @@ var _shop: Control
 # cooking (the ship's galley; a camp's fire)
 const GALLEY := preload("res://scripts/ui/galley_screen.gd")
 var _galley: Control
+# suggest an idea (a QR for the companion app)
+const IDEA := preload("res://scripts/ui/idea_screen.gd")
+var _idea: Control
 ## A screen to open once the talking's done: [] or ["yard"] / ["shop", id].
 var _after_talk: Array = []
 
@@ -62,6 +65,8 @@ func _ready() -> void:
 	_galley = GALLEY.new(self)
 	_screens["galley"] = _galley
 	_galley.register_wheel()
+	_idea = IDEA.new(_back)
+	_screens["idea"] = _idea
 	var dlg := get_node("/root/Dialogue")
 	dlg.dialogue_event.connect(_on_dialogue_event)
 	dlg.dialogue_ended.connect(func(_id: String):
@@ -132,7 +137,7 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
 		if _current == "":
 			open("pause")
-		elif _current in ["options", "controls", "load"]:
+		elif _current in ["options", "controls", "load", "idea"]:
 			_play("back")
 			open("pause")
 		elif _current == "pause" and Time.get_ticks_msec() - _lock_lost_ms < 300:
@@ -235,6 +240,8 @@ func open(screen: String) -> void:
 	elif screen == "options":
 		for r in _opt_refreshers:
 			r.call()
+	elif screen == "idea":
+		_idea.on_open()
 	_fit_current.call_deferred()
 	if screen == "inventory":
 		_inventory.focus_bag()
@@ -254,7 +261,7 @@ func open(screen: String) -> void:
 
 ## Shrink the open panel if it wouldn't fit (small or odd-shaped windows).
 func _fit_current() -> void:
-	if _current in ["pause", "options", "controls", "load"]:
+	if _current in ["pause", "options", "controls", "load", "idea"]:
 		UIStyle.fit_to_screen(_screens[_current] as Control)
 
 
@@ -328,6 +335,7 @@ func _build_pause() -> Control:
 		["Appearance", func(): _open_appearance()],
 		["Options", func(): open("options")],
 		["Controls", func(): open("controls")],
+		["Suggest an Idea", func(): open("idea")],
 		["Save Game", func():
 			var pl := _player()
 			if pl:

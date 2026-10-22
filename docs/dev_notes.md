@@ -5812,3 +5812,18 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - **Test:** `t/swim/surface_sprint` (speed and drain against the plain sprint for each version, `swim_style`, switching, clearing).
   Render: posebench with `PB_SPEED=4.6 PB_SET='swimming=true;swim_style="dolphin"'` -> tools/dev/out/swim_dolphin_*.png, swim_glide_*.png.
 - Per frame: a few float ops in the swim state; the spray is one Net.fx per surge / stroke. Not run: nettest with a guest (swim_style sync).
+## 2026-10-22: Suggest an Idea (a QR for the companion app)
+
+- **What:** the pause menu's "Suggest an Idea" plank opens GameMenu screen "idea" (`scripts/ui/idea_screen.gd`): a
+  QR of `driftwake://idea?v=<application/config/version>&t=<int(GameManager.play_time)>`, one line to scan it and
+  the link as text. The companion Android app (separate repo, `fun.zestermo.driftwake`) opens that link as its Ideas
+  form with the version and hours filled in. Local only: no RPC, the same for a co-op guest. Rebuilt on every open.
+- **Encoder:** `scripts/ui/qr_code.gd`, no plugins: byte mode, level M, versions 1-4 (62 bytes max; longer asserts),
+  Reed-Solomon over GF(256)/0x11D, two-block interleave for v4, the spec's mask penalties (rule 3 as segno scores it,
+  edges count as light). `QR.image()` draws one pixel a module with a 4-module quiet zone; the screen shows it at
+  5 UI px a module with nearest filtering (37 modules for the usual v3 link: 185 px on the 640x360 menu canvas).
+- **Gotcha:** segno 1.6.6 adds a stray 0x00 codeword whenever the bit stream is already byte-aligned (always, in byte
+  mode) and scores masks before drawing the format bits, so its stock output differs from ours (both scan). The
+  reference matrices in t/ui/qr_reference came from segno with the padding fixed, forced to our mask.
+- **Tests:** t/ui/qr_reference (module-for-module against those references, v1/v3/v4), t/ui/idea_qr (the plank,
+  the link from version and play_time, the QR on screen is the link's, Esc back to pause).

@@ -280,6 +280,7 @@ figcaption b { color: var(--text); }
 .ticks li::before { content: ""; position: absolute; left: 2px; top: 0.5em; width: 9px; height: 5px; border: solid var(--teal-light); border-width: 0 0 3px 3px; transform: rotate(-45deg); }
 .browser { padding: 16px 18px; border: 2px dashed var(--border-dim); border-radius: 10px; background: #0e2c3166; }
 .browser h2 { color: var(--text); }
+#app-h { margin-top: 22px; padding-top: 16px; border-top: 2px dashed var(--border-dim); }
 
 /* inner pages: news, posts, release notes, the roadmap */
 .page-head { width: min(1100px, 100%); margin: 0 auto; padding: 28px 16px 0; }

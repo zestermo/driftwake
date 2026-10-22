@@ -3,8 +3,9 @@
 # have no Godot, so they'd publish the site without the game.
 #
 # Secrets in the repo's "live" environment: NETLIFY_AUTH_TOKEN (Netlify > User settings >
-# Applications > Personal access tokens) and NETLIFY_SITE_ID (Site configuration > Site
-# details > Site ID).
+# Applications > Personal access tokens), NETLIFY_SITE_ID (Site configuration > Site
+# details > Site ID) and FIREBASE_SERVICE_ACCOUNT (the companion app's Firebase service
+# account JSON, pasted whole; tools/dev/notify_app.mjs pushes new posts and versions).
 name: Deploy web build
 
 on:
@@ -51,8 +52,26 @@ jobs:
           cp -r web/build web/site/play
           ls -la web/site/play
 
+      - name: Build the app's feeds
+        run: node tools/dev/build_feeds.mjs
+
+      # what's live before this deploy, so the app is only told about what the deploy adds (a 404: no feeds yet)
+      - name: Save the live feeds
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/live"
+          for f in posts releases; do
+            code=$(curl -sS -o "$RUNNER_TEMP/live/$f.json" -w '%{http_code}' "https://driftwake.fun/feeds/$f.json")
+            if [ "$code" = 404 ]; then rm "$RUNNER_TEMP/live/$f.json"; elif [ "$code" != 200 ]; then echo "live $f.json: HTTP $code"; exit 1; fi
+          done
+
       - name: Deploy to Netlify
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         run: npx --yes netlify-cli@17 deploy --dir=web/site --prod --message "${{ github.sha }}"
+
+      - name: Tell the app what's new
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node tools/dev/notify_app.mjs "$RUNNER_TEMP/live"
