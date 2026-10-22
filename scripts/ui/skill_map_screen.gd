@@ -4,7 +4,8 @@ extends Control
 ##   Captain     the level trunk (round nodes that come by themselves, split talent nodes), a legend, the Will path
 ##   Combat      a found weapon's tree (three branches up from its root, everything bought), or the chart of them all
 ## Trees show icons and names; the card has the picked node in full (gate, price, what it does), the hover a one-line
-## tip, the beam both pools. Only found trees show anywhere. At the bunk the card refunds the tree for gold.
+## tip, one plate over the page the tree's mastery and both pools; every path is drawn, grey and hollow until taken.
+## Only found trees show anywhere (no Adventure sign before one is found). At the bunk the card refunds the tree for gold.
 ##   Adventure   the found Adventure trees beside the open one
 ##   Loadout     the weapon loadouts, the one skill bar (1-5 + R), the passive slots, the library of what you know
 ##   Driftfruit  the eaten fruit's tree (once there is one)
@@ -19,6 +20,7 @@ const TABS := [["captain", "Captain", "crown"], ["combat", "Combat", "swords"], 
 	["loadout", "Loadout", "chest"], ["fruit", "Driftfruit", "fruit"]]
 const CARD_W := 152.0
 const RAIL_H := 14.0
+const HEAD_H := 32.0
 const WILL := Color("c9a8ff")
 ## How each Adventure tree grows (shown on its card).
 const GROWS := {
@@ -44,6 +46,8 @@ var hover := ""
 var _trees: Dictionary = {}
 var _hits: Array = []
 var _drawn: Array = []
+## The open tree's paths drawn this frame: [from, to, taken].
+var links: Array = []
 var _tab_rects: Array = []
 var _t := 0.0
 var _msg := ""
@@ -71,9 +75,9 @@ func _pr() -> Progression:
 	return _player().progression
 
 
-## The tabs that show (Driftfruit once you've eaten one).
+## The tabs that show (Adventure once a tree of it is found, Driftfruit once you've eaten one).
 func tabs() -> Array:
-	return TABS.filter(func(t): return t[0] != "fruit" or not _pr().visible_trees("fruit").is_empty())
+	return TABS.filter(func(t): return t[0] not in ["adventure", "fruit"] or not _pr().visible_trees(t[0]).is_empty())
 
 
 ## Opens on the tree of the weapon in your hand (Swimming in the water), else the first weapon found.
@@ -420,6 +424,7 @@ func _draw() -> void:
 	if pl == null:
 		return
 	_hits = []
+	links = []
 	var p := _pr()
 	UIStyle.draw_sky(self, Rect2(Vector2.ZERO, size), _t)
 	var bottom := size.y - UIChrome.BOARD_H
@@ -440,8 +445,7 @@ func _draw() -> void:
 			_draw_tree_page(body, false)
 	var tl := tabs()
 	var frac := float(p.xp) / maxf(Progression.xp_to_next(p.level), 1.0) if p.level < Progression.MAX_LEVEL else 1.0
-	var pools := "COMBAT %d  ·  ADVENTURE %d" % [p.pool("combat"), p.pool("adventure")]
-	_tab_rects = UIStyle.draw_topbar(self, size.x, tl.map(func(x): return [x[1], UIStyle.tab_icon(x[2])]), tl.map(func(x): return x[0]).find(tab), _t, p.level, frac, pools)
+	_tab_rects = UIStyle.draw_topbar(self, size.x, tl.map(func(x): return [x[1], UIStyle.tab_icon(x[2])]), tl.map(func(x): return x[0]).find(tab), _t, p.level, frac)
 	UIStyle.draw_board(self, bottom, size.x, _hints())
 	_draw_tip()
 	if _msg_t > 0.0:
@@ -541,16 +545,67 @@ func _tree_color(tree_id: String) -> Color:
 # A tree with its card (Combat, Driftfruit) and the weapon rail
 # --------------------------------------------------------------------------
 func _draw_tree_page(body: Rect2, rail: bool) -> void:
-	var h := body.size.y - (RAIL_H + 4.0 if rail else 0.0)
-	var card := Rect2(body.end.x - CARD_W, body.position.y + 2.0, CARD_W, h - 4.0)
-	var area := Rect2(body.position, Vector2(body.size.x - CARD_W - 8.0, h))
-	if tree == "":
-		_out(Vector2(area.position.x, area.get_center().y), "NO TREE HERE YET", UIStyle.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER, area.size.x)
-	else:
-		SkillTreeDraw.draw_tree(self, tree, area, _pr(), _t)
-		_draw_card(card)
 	if rail:
 		_draw_rail(Rect2(0, body.end.y - RAIL_H, size.x, RAIL_H))
+	if tree == "":
+		_out(Vector2(body.position.x, body.get_center().y), "NO TREE HERE YET", UIStyle.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER, body.size.x)
+		return
+	var page := _draw_header(body, tree)
+	var h := page.size.y - (RAIL_H + 4.0 if rail else 0.0)
+	var card := Rect2(page.end.x - CARD_W, page.position.y, CARD_W, h - 2.0)
+	SkillTreeDraw.draw_tree(self, tree, Rect2(page.position, Vector2(page.size.x - CARD_W - 8.0, h)), _pr(), _t)
+	_draw_card(card)
+
+
+## The one plate over a page: the open tree's icon, name and mastery with its bar (the chart's: how many weapons),
+## and both pools of points, the one this tree spends lit. Returns the body under it.
+func _draw_header(body: Rect2, tree_id: String) -> Rect2:
+	var p := _pr()
+	var r := Rect2(body.position, Vector2(body.size.x, HEAD_H))
+	draw_rect(Rect2(r.position + Vector2(2, 2), r.size), Color(0, 0, 0, 0.3))
+	draw_style_box(UIStyle.chrome("paper", 0, 0), r)
+	var cy := roundf(r.get_center().y)
+	var x := r.position.x + 8.0
+	var mine := SkillTrees.pool_of(tree_id) if tree_id != "" else ""
+	if tree_id != "":
+		var td := SkillTrees.tree_def(tree_id)
+		var ib := Rect2(x, cy - 13.0, 26, 26)
+		draw_rect(ib.grow(1.0), UIStyle.BORDER_DIM)
+		draw_rect(ib, UIStyle.INK)
+		var ic := SkillTreeDraw.tree_icon(tree_id)
+		if ic:
+			draw_texture_rect(ic, Rect2(ib.position + Vector2(1, 1), Vector2(24, 24)), false)
+		else:
+			draw_string(SILK, Vector2(ib.position.x, ib.position.y + 17.0), SkillTreeDraw.glyph(str(td["name"])), HORIZONTAL_ALIGNMENT_CENTER, 26, 8, td["color"])
+		x += 34.0
+		UIStyle.draw_title(self, Vector2(x, cy + 6.0), str(td["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
+		x += UIStyle.TITLE_FONT.get_string_size(str(td["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 10.0
+		var word := "LEVEL" if td["section"] == "adventure" else "MASTERY"
+		var rb := UIStyle.draw_ribbon(self, Vector2(x, cy - 10.0), "%s %d of %d" % [word, p.tree_level(tree_id), SkillTrees.max_level(tree_id)])
+		_bar(Rect2(x + 2.0, cy + 6.0, rb.size.x - 4.0, 3), _frac(tree_id), UIStyle.TEAL)
+	else:
+		UIStyle.draw_title(self, Vector2(x, cy + 6.0), "Weapon chart", 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
+		x += UIStyle.TITLE_FONT.get_string_size("Weapon chart", HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 10.0
+		var n := p.visible_trees("combat").size()
+		UIStyle.draw_ribbon(self, Vector2(x, cy - 6.0), "%d weapon%s found" % [n, "" if n == 1 else "s"])
+	var rx := r.end.x - 8.0
+	for which in ["adventure", "combat"]:
+		var pts := p.pool(which)
+		var lit: bool = which == mine
+		var num := str(pts)
+		var nw := UIStyle.TITLE_FONT.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+		var word := Progression.pool_name(which).to_upper()
+		var cw := nw + SILK.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 18.0
+		var cr := Rect2(rx - cw, r.position.y + 4.0, cw, r.size.y - 8.0)
+		if lit:
+			draw_rect(cr, UIStyle.CORAL if pts > 0 else Color("d9cdb0"))
+			draw_rect(cr, UIStyle.BORDER_DIM, false, 1.0)
+		var ink := UIStyle.PARCH_INK if lit or mine == "" else UIStyle.PARCH_DIM
+		draw_string(UIStyle.TITLE_FONT, Vector2(cr.position.x + 6.0, cy + 6.0), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, ink)
+		draw_string(SILK, Vector2(cr.position.x + nw + 12.0, cy - 1.0), word, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+		draw_string(SILK, Vector2(cr.position.x + nw + 12.0, cy + 8.0), "POINTS", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, ink)
+		rx = cr.position.x - 6.0
+	return Rect2(body.position.x, r.end.y + 6.0, body.size.x, body.end.y - r.end.y - 6.0)
 
 
 func _draw_rail(r: Rect2) -> void:
@@ -575,32 +630,15 @@ func _draw_rail(r: Rect2) -> void:
 		x += w
 
 
-## The open tree's parchment card: its name and level, the inspected node in full, and at the bunk the tree's refund.
+## The open tree's parchment card: the inspected node in full, and at the bunk the tree's refund.
 func _draw_card(card: Rect2) -> void:
 	var p := _pr()
-	var td := SkillTrees.tree_def(tree)
-	var col: Color = td["color"]
+	var col: Color = SkillTrees.tree_def(tree)["color"]
 	draw_style_box(UIStyle.parchment(), card)
 	var x := card.position.x + 10.0
 	var w := card.size.x - 20.0
-	var y := card.position.y + 14.0
+	var y := card.position.y + 24.0
 	var limit := card.end.y - 12.0
-	var ib := Rect2(x, y, 26, 26)
-	draw_rect(ib.grow(1.0), UIStyle.BORDER_DIM)
-	draw_rect(ib, UIStyle.INK)
-	var ic := SkillTreeDraw.tree_icon(tree)
-	if ic:
-		draw_texture_rect(ic, Rect2(ib.position + Vector2(1, 1), Vector2(24, 24)), false)
-	else:
-		draw_string(SILK, Vector2(ib.position.x, ib.position.y + 17.0), SkillTreeDraw.glyph(str(td["name"])), HORIZONTAL_ALIGNMENT_CENTER, 26, 8, col)
-	UIStyle.draw_title(self, Vector2(x + 31.0, y + 12.0), str(td["name"]), 18, HORIZONTAL_ALIGNMENT_LEFT, -1, true)
-	var word := "MASTERY" if td["section"] == "combat" else "LEVEL"
-	UIStyle.draw_ribbon(self, Vector2(x + 29.0, y + 15.0), "%s %d OF %d" % [word, p.tree_level(tree), int(td["max_level"])])
-	y += 32.0
-	_bar(Rect2(x, y, w, 3), _frac(tree), UIStyle.TEAL)
-	y += 6.0
-	UIStyle.draw_rule(self, Rect2(x, y, w, 7))
-	y += 18.0
 	var respec := p.can_respec() and p.respec_why(tree) != "Nothing bought"
 	var ins := inspected()
 	if ins.begins_with("n:") and SkillTrees.node_def(ins.substr(2)).get("tree", "") == tree:
@@ -701,8 +739,9 @@ func _draw_tip() -> void:
 # --------------------------------------------------------------------------
 # Combat: the chart of every weapon
 # --------------------------------------------------------------------------
-func _draw_chart(body: Rect2) -> void:
+func _draw_chart(whole: Rect2) -> void:
 	var p := _pr()
+	var body := _draw_header(whole, "")
 	var vis := p.visible_trees("combat")
 	var c := (body.get_center() + Vector2(0, 6)).round()
 	var hub := clampf(body.size.y * 0.22, 56.0, 110.0)
@@ -762,11 +801,7 @@ func _draw_chart(body: Rect2) -> void:
 	draw_circle(c, 25.0, SkillTreeDraw.ROOT_BG)
 	draw_string(SILK, Vector2(c.x - 30.0, c.y - 6.0), "CAPTAIN", HORIZONTAL_ALIGNMENT_CENTER, 60, 8, UIStyle.TEXT_DIM)
 	UIStyle.draw_title(self, Vector2(c.x - 30.0, c.y + 10.0), "Lv %d" % p.level, 18, HORIZONTAL_ALIGNMENT_CENTER, 60)
-	var sl := Rect2(body.position + Vector2(0, 2), Vector2(150, 72))
-	draw_style_box(UIStyle.chrome("slate"), sl)
-	UIStyle.draw_ribbon(self, sl.position + Vector2(7, 7), "%d tree%s found" % [vis.size(), "" if vis.size() == 1 else "s"], true)
-	_para(sl.position + Vector2(9, 32), "Every weapon you fight with branches from your captain.", sl.size.x - 18.0, UIStyle.TEXT_DIM)
-	var key := Rect2(Vector2(body.end.x - 132.0, body.position.y + 2.0), Vector2(132, 66))
+	var key := Rect2(Vector2(body.end.x - 132.0, body.position.y), Vector2(132, 66))
 	draw_style_box(UIStyle.chrome("slate"), key)
 	UIStyle.draw_ribbon(self, key.position + Vector2(7, 7), "Key", true)
 	var ky := key.position.y + 30.0
@@ -785,13 +820,12 @@ func _draw_chart(body: Rect2) -> void:
 # --------------------------------------------------------------------------
 # Adventure: the found trees beside the open one
 # --------------------------------------------------------------------------
-func _draw_adventure(body: Rect2) -> void:
+func _draw_adventure(whole: Rect2) -> void:
 	var p := _pr()
+	var body := _draw_header(whole, tree)
 	var lw := 112.0
 	var x := body.position.x
-	var y := body.position.y + 4.0
-	UIStyle.draw_ribbon(self, Vector2(x, y), "Adventure", true)
-	y += 18.0
+	var y := body.position.y
 	var vis := p.visible_trees("adventure")
 	for t in vis:
 		var on: bool = t == tree
@@ -803,11 +837,8 @@ func _draw_adventure(body: Rect2) -> void:
 		_bar(Rect2(x + 5.0, y + 19.0, lw - 10.0, 2), _frac(t), col, false)
 		hit(r, "w:" + t, false)
 		y += 29.0
-	_para(Vector2(x, maxf(y + 8.0, body.end.y - 26.0)), "Keep trying new things: more trees are out there." if not vis.is_empty()
-		else "Swim, sail, cook, fish, sneak, jump and block: a tree shows up once you earn its first level.", lw, Color("7f9894"))
-	if tree == "":
-		return
-	var card := Rect2(body.end.x - CARD_W, body.position.y + 2.0, CARD_W, body.size.y - 4.0)
+	_para(Vector2(x, maxf(y + 8.0, body.end.y - 26.0)), "Keep trying new things: more trees are out there.", lw, Color("7f9894"))
+	var card := Rect2(body.end.x - CARD_W, body.position.y, CARD_W, body.size.y - 2.0)
 	var area := Rect2(x + lw + 6.0, body.position.y, card.position.x - x - lw - 12.0, body.size.y)
 	SkillTreeDraw.draw_tree(self, tree, area, p, _t)
 	_draw_card(card)

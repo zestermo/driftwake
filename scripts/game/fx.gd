@@ -1580,6 +1580,212 @@ func haki_legs(body: Node3D, grow: float = 1.0, hold: float = 1.0) -> void:
 		h.remove_meta("haki_legs"))
 
 
+## A fist wreathed in power (the fists' big punches): a glow round the hand with a hot core, and off it `kind`'s
+## matter: "fire" (orange-yellow licks: Meteor Fist) or "galaxy" (star motes in every colour and embers: Sea King
+## Fist, armed and after). Fades over `secs`; secs < 0 keeps it until the caller frees it (returned).
+static var _fist_mesh: SphereMesh
+
+
+func hot_fist(body: Node3D, right: bool, secs: float = 0.6, color: Color = Color(1.0, 0.62, 0.2), kind: String = "fire", size: float = 1.0) -> Node3D:
+	if not body is Humanoid or (body as Humanoid).ragdoll != null:
+		return null
+	var hand: Node3D = (body as Humanoid).hand_r if right else (body as Humanoid).hand_l
+	if hand == null:
+		return null
+	if _fist_mesh == null:
+		_fist_mesh = SphereMesh.new()
+		_fist_mesh.radius = 0.15
+		_fist_mesh.height = 0.3
+		_fist_mesh.radial_segments = 8
+		_fist_mesh.rings = 4
+	var mi := MeshInstance3D.new()
+	mi.mesh = _fist_mesh
+	var mat := _glow_mat(color, 0.7)
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.scale = Vector3.ONE * size
+	hand.add_child(mi)
+	var core := MeshInstance3D.new()
+	core.mesh = _fist_mesh
+	var cmat := _glow_mat(Color(1.0, 0.97, 0.85), 0.9)
+	core.material_override = cmat
+	core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	core.scale = Vector3.ONE * 0.55
+	mi.add_child(core)
+	if flipbooks:
+		if kind == "galaxy":
+			var st := flip_emitter(mi, "glint", 8, 0.2 * size, 0.5, {"radius": 0.22, "spread": 180.0, "vel_min": 0.4, "vel_max": 1.3,
+				"gravity": Vector3.ZERO, "damping": 1.0, "fade": 0.6, "world": true, "color": Color(1.0, 0.55, 0.85)})
+			st.hue_variation_min = -0.5
+			st.hue_variation_max = 0.5
+			flip_emitter(mi, "sparks", 5, 0.22 * size, 0.6, {"radius": 0.15, "spread": 40.0, "vel_min": 0.3, "vel_max": 0.9,
+				"gravity": Vector3(0, 1.5, 0), "damping": 0.6, "fade": 0.6, "world": true, "color": Color(1.0, 0.7, 0.3)})
+		else:
+			flip_emitter(mi, "fire", 7, 0.42 * size, 0.35, {"radius": 0.12, "spread": 25.0, "vel_min": 0.3, "vel_max": 0.9,
+				"gravity": Vector3(0, 2.0, 0), "damping": 0.8, "start": 0.15, "spin": 10.0, "fade": 0.7, "world": true, "color": color})
+	if secs < 0.0:
+		return mi
+	var tw := mi.create_tween()
+	tw.tween_property(mi, "scale", Vector3.ONE * size * 1.25, minf(0.12, secs * 0.2)).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mi, "scale", Vector3.ONE * size, minf(0.12, secs * 0.2))
+	tw.tween_interval(secs * 0.4)
+	tw.tween_property(mat, "albedo_color:a", 0.0, secs * 0.4).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(cmat, "albedo_color:a", 0.0, secs * 0.4).set_ease(Tween.EASE_IN)
+	tw.tween_callback(mi.queue_free)
+	return mi
+
+
+## A four-pointed star of light at `pos`, facing the camera, popping open and fading over `life`: bright (a coloured
+## rim round a white core) or `dark` (a black star rimmed in `color`: Meteor Fist's). `stretch` > 1 draws the rays
+## out sideways (a flare).
+static var _star_mesh: ArrayMesh
+
+
+func _star() -> ArrayMesh:
+	if _star_mesh == null:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var pts: Array = []
+		for k in 8:
+			var a := k * PI / 4.0
+			var r := 1.0 if k % 2 == 0 else 0.16
+			pts.append(Vector3(cos(a) * r, sin(a) * r, 0.0))
+		for k in 8:
+			st.add_vertex(Vector3.ZERO)
+			st.add_vertex(pts[k])
+			st.add_vertex(pts[(k + 1) % 8])
+		_star_mesh = st.commit()
+	return _star_mesh
+
+
+func _star_mat(color: Color, alpha: float, dark: bool) -> StandardMaterial3D:
+	var m := _glow_mat(color, alpha)
+	if dark:
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+		m.render_priority = 1
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	return m
+
+
+func star_glint(pos: Vector3, size: float = 0.8, color: Color = Color(1.0, 0.85, 0.5), life: float = 0.3, dark: bool = false, stretch: float = 1.0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
+		return
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = pos
+	var tw := holder.create_tween().set_parallel(true)
+	var layers: Array = [[color, 0.85, false, 1.3], [Color(0.02, 0.0, 0.02) if dark else Color(1.0, 0.98, 0.9), 0.95, dark, 0.7]]
+	for l in layers:
+		var mi := MeshInstance3D.new()
+		mi.mesh = _star()
+		var mat := _star_mat(l[0], l[1], l[2])
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var full := Vector3(size * float(l[3]) * stretch, size * float(l[3]), 1.0)
+		mi.scale = full * 0.2
+		holder.add_child(mi)
+		tw.tween_property(mi, "scale", full, life * 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(mat, "albedo_color:a", 0.0, life * 0.6).set_delay(life * 0.4).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(holder.queue_free)
+
+
+## Anime speed lines: thin streaks along `dir` round `pos` (a punch or a dive going that way), behind it.
+func speed_lines(pos: Vector3, dir: Vector3, color: Color = Color(0.85, 0.45, 1.0), count: int = 10, length: float = 2.5, life: float = 0.25, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var d := dir.normalized()
+	var side := d.cross(Vector3.UP if absf(d.y) < 0.95 else Vector3.RIGHT).normalized()
+	var up := side.cross(d).normalized()
+	for i in count:
+		var a := TAU * (i + rng.randf_range(-0.3, 0.3)) / count
+		var from := pos + (side * cos(a) + up * sin(a)) * rng.randf_range(0.5, 1.5) - d * rng.randf_range(0.0, 0.8)
+		streak(from, from - d * length * rng.randf_range(0.6, 1.0), color, 0.05, life * rng.randf_range(0.8, 1.2))
+
+
+## A comet of light flung from `from` to `to` over `secs` (Sea King Fist's Galaxy punch): a stretched white-gold
+## glow racing down the line, coloured stars thrown off it as it goes.
+func comet(from: Vector3, to: Vector3, size: float = 1.6, secs: float = 0.4, color: Color = Color(1.0, 0.8, 0.4)) -> void:
+	var seg := to - from
+	if seg.length() < 0.5:
+		return
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_transform = Transform3D(Basis.looking_at(seg.normalized(), Vector3.UP if absf(seg.normalized().y) < 0.95 else Vector3.FORWARD), from)
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.radial_segments = 8
+	sm.rings = 4
+	var tw := holder.create_tween()
+	for l in [[color, 0.75, 1.0], [Color(1.0, 0.98, 0.92), 0.95, 0.5]]:
+		var mat := _glow_mat(l[0], l[1])
+		var ball := MeshInstance3D.new()
+		ball.mesh = sm
+		ball.material_override = mat
+		ball.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ball.scale = Vector3(size, size, size * 3.0) * float(l[2])
+		holder.add_child(ball)
+		tw.parallel().tween_property(mat, "albedo_color:a", 0.0, secs * 0.5).set_delay(secs * 0.7)
+	tw.parallel().tween_property(holder, "global_position", to, secs).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var cols := [Color(1.0, 0.85, 0.3), Color(0.35, 0.95, 1.0), Color(1.0, 0.35, 0.85), Color.WHITE]
+	for k in 6:
+		var at := from + seg * (k + 1) / 7.0 + Vector3(randf_range(-0.6, 0.6), randf_range(-0.3, 0.9), randf_range(-0.6, 0.6))
+		tw.parallel().tween_callback(star_glint.bind(at, randf_range(0.5, 0.9), cols[k % cols.size()], 0.35)).set_delay(secs * (k + 1) / 7.0)
+	tw.chain().tween_interval(0.05)
+	tw.tween_callback(holder.queue_free)
+
+
+## A blast of light where a great blow lands (Sea King Fist): a white-hot pillar shooting up, an orange dome
+## swelling out over the ground, the ground lit.
+func light_pillar(pos: Vector3, height: float = 10.0, radius: float = 4.0, life: float = 0.8, color: Color = Color(1.0, 0.55, 0.15)) -> void:
+	flash_light(pos + Vector3(0, 1.5, 0), Color(1.0, 0.75, 0.4), 8.0, radius * 3.0, life)
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE * 1.5:
+		return
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = pos
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 1.0
+	cyl.bottom_radius = 1.0
+	cyl.height = 1.0
+	cyl.radial_segments = 10
+	cyl.rings = 1
+	cyl.cap_top = false
+	cyl.cap_bottom = false
+	var dome := SphereMesh.new()
+	dome.radius = 1.0
+	dome.height = 2.0
+	dome.radial_segments = 12
+	dome.rings = 6
+	var tw := holder.create_tween().set_parallel(true)
+	for l in [[cyl, Color(1.0, 0.98, 0.9), 0.9, radius * 0.35], [cyl, Color(1.0, 0.85, 0.5), 0.6, radius * 0.6], [dome, color, 0.55, radius]]:
+		var mi := MeshInstance3D.new()
+		mi.mesh = l[0]
+		var mat := _glow_mat(l[1], l[2])
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(mi)
+		var r: float = l[3]
+		if l[0] == cyl:
+			mi.scale = Vector3(r, 0.1, r)
+			mi.position.y = 0.05
+			tw.tween_property(mi, "scale", Vector3(r, height, r), life * 0.15).set_ease(Tween.EASE_OUT)
+			tw.tween_property(mi, "position:y", height * 0.5, life * 0.15).set_ease(Tween.EASE_OUT)
+			tw.tween_property(mi, "scale:x", r * 0.1, life * 0.85).set_delay(life * 0.15).set_ease(Tween.EASE_IN)
+			tw.tween_property(mi, "scale:z", r * 0.1, life * 0.85).set_delay(life * 0.15).set_ease(Tween.EASE_IN)
+		else:
+			mi.scale = Vector3.ONE * r * 0.2
+			tw.tween_property(mi, "scale", Vector3(r, r * 0.6, r), life * 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tw.tween_property(mat, "albedo_color:a", 0.0, life * 0.6).set_delay(life * 0.4).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(holder.queue_free)
+
+
 ## Wind torn off a blade (the greatsword's element): pale streaks of air flung hard along `dir`, jade motes riding
 ## them, a couple of rushing lines of air and a breath of mist.
 func gust(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
@@ -2243,7 +2449,7 @@ func streak(from: Vector3, to: Vector3, color: Color = Color(0.4, 0.8, 1.0), wid
 
 ## Lightning (the polearm's element): a jagged bolt from `from` to `to`, kinked at random (seeded) every ~0.35 m,
 ## a hot core in a coloured sheath, flickering once and gone. A few small forks off it on the longer ones.
-func bolt(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.32), width: float = 0.08, life: float = 0.2, seed_v: int = 0) -> void:
+func bolt(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.32), width: float = 0.08, life: float = 0.2, seed_v: int = 0, dark: bool = false) -> void:
 	var seg := to - from
 	var l := seg.length()
 	if l < 0.1:
@@ -2266,7 +2472,10 @@ func bolt(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.32), widt
 	_scene_root().add_child(holder)
 	holder.global_position = from
 	var box := _box()
-	var mats: Array = [_glow_mat(color, 0.6), _glow_mat(color.lerp(Color.WHITE, 0.75), 1.0)]
+	# (`dark`: a black core in the coloured sheath, Meteor Fist's crackle)
+	var mats: Array = [_glow_mat(color, 0.6), _star_mat(Color(0.02, 0.0, 0.02), 1.0, true) if dark else _glow_mat(color.lerp(Color.WHITE, 0.75), 1.0)]
+	if dark:
+		mats[1].billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
 	var lines: Array = [pts]
 	if l > 1.5:
 		for f in range(2):

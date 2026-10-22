@@ -19,13 +19,12 @@ extends PlayerState
 ##   dual_axe gallows_hook, hewing_frenzy, axestorm, fimbulwinter (ult) in DualAxeArts
 ##   greatsword guardbreaker, crescent_gale, tempest_turns, skysplitter (ult) in GreatswordArts
 ##   black_leg mule_kick, hailstorm_heels, cartwheel_crescent, last_course (ult) in BlackLegArts
-##   unarmed  hip_toss (guard -> shoulder_throw, FistArts), suplex, giant_swing (grapples), hundred_fists,
+##   unarmed  hip_toss (guard -> shoulder_throw), cannonball_fist, meteor_fist in FistArts; hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
 ##   haki     conquerors_haki (ult)
-## Grapples hold a light enemy (not bosses or big bugs) and carry it with the
-## body; in co-op only the host moves it (a guest's grab throws it from where it stands).
+## Shoulder Throw carries a light enemy (not bosses or big bugs) with the body; in co-op only the host moves
+## it (a guest's throw throws it from where it stands).
 
-const GRAB_REACH := 2.3
 ## The guard skills (Riposte, Iai Counter, Crossed Counter): the waiting pose, and
 ## per fighting style the answer [pose, length, damage].
 const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard", "parley": "riposte_guard",
@@ -249,16 +248,6 @@ func enter(data: Dictionary) -> void:
 			dur = 2.0
 			_victims = _closest(18.0, 99)
 			player.body_model.play("deaths_waltz", dur)
-		"suplex", "giant_swing":
-			_target = _grab_target()
-			if _target == null:
-				_refund("Nobody to grab")
-				return
-			_dir = _flat_to(_target)
-			face_direction(_dir, 1.0)
-			dur = {"suplex": 1.1, "giant_swing": 2.1}[id]
-			_target.call("grabbed", dur + 0.3)
-			player.body_model.play(id, dur)
 			Net.fx("sfx", ["hit", player.global_position, -6.0, 0.05, 0.7])
 		"hundred_fists":
 			dur = 1.3
@@ -471,12 +460,6 @@ func physics_update(delta: float) -> void:
 		"deaths_waltz":
 			_rooted(delta, 0.0)
 			_waltz()
-		"suplex":
-			_rooted(delta, 0.0)
-			_suplex()
-		"giant_swing":
-			_rooted(delta, 0.0)
-			_giant_swing()
 		"hundred_fists":
 			_drift(delta, 1.2)
 			if t >= 0.1 and t < 1.0 and t >= 0.1 + _hits * 0.07:
@@ -599,16 +582,6 @@ func _aimed(reach: float) -> Node3D:
 			best_dot = dt
 			best = e
 	return best
-
-
-## A light enemy right in front of you (bosses and big bugs are too heavy).
-func _grab_target() -> Node3D:
-	for e in _closest(GRAB_REACH, 6):
-		if _flat_to(e).dot(_dir) < 0.3 or e.is_in_group("bosses"):
-			continue
-		if e.has_method("vine_weight") and str(e.call("vine_weight")) == "light" and e.has_method("grabbed"):
-			return e
-	return null
 
 
 ## Nothing to use it on: the cast is given back.
@@ -1395,7 +1368,7 @@ func _broadside(delta: float) -> void:
 
 
 # --------------------------------------------------------------------------
-# Unarmed: grapples
+# Unarmed: Shoulder Throw's carry (FistArts)
 # --------------------------------------------------------------------------
 ## Carry the grabbed enemy (the host moves it; a guest's stays where it stood).
 func _carry(p: Vector3) -> void:
@@ -1407,54 +1380,6 @@ func _carry(p: Vector3) -> void:
 	_target.reset_physics_interpolation()
 
 
-func _landing(at: Vector3) -> void:
-	FistArts.landing(player, at, [_target])
-
-
-func _suplex() -> void:
-	var fwd := _dir
-	if t < 0.3:
-		_carry(player.global_position + fwd * 0.75 + Vector3.UP * 0.15)
-	elif t < 0.66:
-		# over your head in an arch and down behind you
-		var k := clampf((t - 0.3) / 0.36, 0.0, 1.0)
-		var a := PI * k
-		_carry(player.global_position + fwd * cos(a) * 0.8 + Vector3.UP * (0.15 + 1.5 * sin(a)))
-	if _once("slam", 0.66) and _target and is_instance_valid(_target):
-		var behind := player.global_position - fwd * 1.0
-		var hd := _hd(40.0, 5.0, true)
-		hd.unblockable = true
-		hd.hitstop_duration = 0.12
-		_strike_toward(_target, hd, -fwd)
-		_landing(behind)
-		player.squash(-4.0)
-		CombatManager.apply_camera_shake(0.3)
-
-
-func _giant_swing() -> void:
-	var fwd := _dir
-	if t < 0.3:
-		_carry(player.global_position + fwd * 0.75 + Vector3.UP * 0.1)
-		return
-	if t < 1.6:
-		# matches the pose: three turns, the body swung out at arm's length
-		var k := clampf((t - 0.3) / 1.3, 0.0, 1.0)
-		var ang := TAU * 3.0 * (1.0 - pow(1.0 - k, 1.6))
-		var out := fwd.rotated(Vector3.UP, -ang)
-		_carry(player.global_position + out * 1.7 + Vector3.UP * 0.75)
-		if t >= 0.4 + _hits * 0.15:
-			_hits += 1
-			for e in _pc.enemies_in(player.global_position + Vector3(0, 0.9, 0), 2.8):
-				if e != _target and not (e in _hit):
-					_hit.append(e)
-					_strike_toward(e, _hd(14.0, 8.0, true), (e as Node3D).global_position - player.global_position)
-			Net.fx("sfx", ["whoosh", player.global_position, -5.0, 0.1, 0.9])
-	if _once("let_go", 1.6) and _target and is_instance_valid(_target):
-		var hd := _hd(30.0, 14.0, true)
-		hd.unblockable = true
-		_strike_toward(_target, hd, fwd.rotated(Vector3.UP, -TAU * 3.0 - 0.6))
-		Net.fx("sfx", ["whoosh_big", player.global_position, 0.0, 0.05, 0.8])
-		CombatManager.apply_camera_shake(0.25)
 
 
 # --------------------------------------------------------------------------
