@@ -42,6 +42,9 @@ Garp/Koby-style punching.
 - **1.18.3's weapon follow-ups** (docs/weapons_plan.md "Follow-ups after 1.18.3"), in the new weapons' finish: wide-stance
   feet, the greatsword guard's angle, the twin axes' heads and striped ice, the polearm run threshold, grunts' square
   attack starts, nettest on Earthquake and the hook.
+- **Trails in sync (Zach, 2026-10-21), in every weapon polish pass:** the swing, the weapon trail and the slash fx must
+  match (today they drift apart and land in the wrong place). Some newer swing-path attacks are too quick and jittery,
+  so their trails look choppy: slow or smooth the motion through the cut so the trail draws a clean arc.
 - **1.18.2's unfinished checks**, at this batch's prepush: occluder popping in the capital and Brinehollow, an
   islanddump, `nettest.ps1 chain`, the perf gate re-baselined on this PC (`perf_gate.ps1 -Update`, Zach's OK), and the
   suites 1.18.3 skipped.
