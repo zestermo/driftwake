@@ -5607,3 +5607,21 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   `_process` (an alpha) for its 1.6 s; a lured grunt's few vector ops. No new meshes beyond the decoy's copies (no
   shadow, visibility range 60 m).
 - **Tests**: t/player/dodge_styles, sidestep_slip, afterimage. Render: animsheet `dodge_roll,sidestep`.
+
+## 2026-10-22: the weapon mastery pass, the katana's variant moves (Side Step, Twin Waves, Falling Moon)
+- **The tree** (skill_trees.gd): Iai Counter, Wind Severer and the air attack are variants now (docs/progression_plan.md's
+  katana draft): k_counter (Draw Cut = iai_counter / Side Step = side_step, 8), k_wind (Towering Wave = wind_sever, 5 /
+  Twin Waves = twin_waves, 18), k_arc "Air Cut" (Crescent Arc = mv_air_slash, 7 / Falling Moon = mv_falling_moon, 15). The
+  node ids are kept, so an old save owns the variant with its first version active (the old node); prices stay the old
+  nodes' (`_variant` returns the node, `["cost"]`). Switched at the ship's bunk like every variant.
+- **Side Step** (TechniqueState: the iai guard, `_guard_id`): the caught blow meets an afterimage; you're out at the
+  attacker's side (the camera's side, `_blink_side`, a streak; a line of cloud and petals awakened), then the same
+  unblockable drawing cut. **Twin Waves**: Wind Severer's rising cut, then the kesa out of its top (katana_r at 0.42 s): a
+  wave off each (0.3 / 0.72 s), sent from 1.2 m either side to cross 7 m ahead, 26 each (`_twin_wave`).
+  **Falling Moon** (PlungeState "falling_moon", once per jump; `air_move` picks it for the katana): a spring up, the blade
+  raised, one forward turn with it held out (KatanaMoves.moon; the drawn slash along the blade draws the full moon),
+  a dive, then down on one knee (moon_land) and a crescent of the drawn strip run 5 m along the ground ahead
+  (katana_line; cloud and petals awakened) that knocks everyone on it flat (a box like Skybreaker's line).
+- Icons: skill_twin_waves, skill_side_step, skill_falling_moon (gen_psx_textures.py techniques).
+- Test: t/weapons/katana_variants. The mastered guard's candidates (hasso / waki) are in KatanaMoves for Zach's pick
+  (`preview`; not on a node yet).

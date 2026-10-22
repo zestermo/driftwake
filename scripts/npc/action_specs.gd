@@ -109,6 +109,8 @@ const SPECS := {
 	"iai_slash": {"len": 0.6, "hit": [0.05, 0.2], "swoosh": [0.03, 0.3], "sharp": 55.0, "swing": KatanaMoves.IAI_SWING, "stance": "katana", "weapon": "katana"},
 	# (Tiger Rush with a katana: SkillState plays it in place of the cutlass's thrust)
 	"tiger_rush": {"len": 0.55, "hit": [0.3, 0.76], "swoosh": [0.6, 0.78], "sharp": 55.0, "swing": KatanaMoves.TIGER_SWING, "stance": "katana", "weapon": "katana"},
+	"falling_moon": {"len": 0.5, "stance": "katana", "weapon": "katana"},
+	"moon_land": {"len": 0.55, "stance": "katana", "weapon": "katana"},
 	"air_slash": {"len": 0.6, "hit": [0.34, 0.6], "swoosh": [0.34, 0.62], "sharp": 55.0, "swing": KatanaMoves.AIR_SWING, "stance": "katana", "weapon": "katana"},
 	# --- axe ---
 	# (the combo rides swing paths: AxeMoves)

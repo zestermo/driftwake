@@ -1426,6 +1426,9 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 		"katana":
 			sakura(pos, dir, maxi(amount * 2 / 3, 2), speed)
 		"axe":
+			if not flipbooks:
+				embers(pos, dir, amount, c, speed)
+				return
 			cinders(pos, dir, maxi(amount * 2 / 3, 2), speed)
 			if amount >= 8:
 				drawn_burst(pos, "ember_cloud", 0.5 + amount * 0.05, 0.45, 40.0)

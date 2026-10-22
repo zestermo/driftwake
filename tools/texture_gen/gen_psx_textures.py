@@ -1486,6 +1486,30 @@ def gen_technique_icons():
         d.line([(1, 22), (23, 22)], fill=DUST, width=1)
         d.line([(3, 20), (8, 15)], fill=STEEL, width=2)
 
+    def twin_waves(d):
+        # two blades of wind crossing in an X along the ground
+        d.arc([1, 2, 19, 26], 210, 330, fill=W_, width=2)
+        d.arc([5, 2, 23, 26], 210, 330, fill=BLUE, width=2)
+        d.line([(4, 20), (20, 6)], fill=W_, width=1)
+        d.line([(4, 6), (20, 20)], fill=BLUE, width=1)
+        d.line([(1, 22), (23, 22)], fill=DUST, width=1)
+
+    def side_step(d):
+        # a fading figure on the left, the swordsman out to the side, the drawing cut across
+        d.ellipse([3, 4, 7, 8], fill=(150, 200, 255, 90))
+        d.rectangle([3, 8, 7, 18], fill=(150, 200, 255, 90))
+        d.line([(8, 13), (13, 13)], fill=W_, width=1)
+        d.ellipse([15, 5, 19, 9], fill=SKIN)
+        d.rectangle([15, 9, 19, 18], fill=hexc("3a5a8a") + (255,))
+        d.arc([4, 6, 22, 22], 150, 230, fill=STEEL, width=2)
+
+    def falling_moon(d):
+        # a full moon drawn by the blade over a figure turning, a crescent along the ground
+        d.arc([3, 1, 21, 19], 0, 360, fill=W_, width=1)
+        d.arc([5, 3, 19, 17], 200, 340, fill=BLUE, width=2)
+        blade(d, (12, 10), (12, 2))
+        d.arc([2, 18, 22, 26], 180, 360, fill=W_, width=2)
+
     def phantom(d):
         for i, x in enumerate((3, 8)):
             d.ellipse([x, 4, x + 4, 8], fill=(150, 200, 255, 80 + i * 60))
@@ -1975,6 +1999,7 @@ def gen_technique_icons():
     for name, fn in (("riposte", riposte), ("iai_counter", iai_counter), ("cross_counter", cross_counter),
                      ("swordfish", swordfish), ("kraken_wake", kraken),
                      ("wind_sever", wind_sever), ("phantom_step", phantom), ("petal_storm", petals),
+                     ("twin_waves", twin_waves), ("side_step", side_step), ("falling_moon", falling_moon),
                      ("axe_throw", axe_throw), ("earthsplitter", earthsplitter), ("berserk", berserk), ("maelstrom", maelstrom),
                      ("blade_dance", blade_dance), ("cross_fang", cross_fang), ("steel_tempest", tempest),
                      ("parley", parley), ("grapeshot", grapeshot), ("crossfire", crossfire), ("broadside", broadside),

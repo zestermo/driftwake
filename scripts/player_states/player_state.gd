@@ -179,10 +179,13 @@ const AIR_MOVES := {"katana": "air_slash", "axe": "skybreaker", "dual_sword": "t
 	"greatsword": "falling_cleave", "black_leg": "cyclone_heel"}
 ## The learned air attacks you get once per jump.
 const ONCE_PER_JUMP := ["twin_cyclone", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain", "falling_spear", "hammerfall",
-	"buzzsaw", "falling_cleave", "cyclone_heel"]
+	"buzzsaw", "falling_cleave", "cyclone_heel", "falling_moon"]
 const METEOR_CHAIN := 3
 
 func air_move() -> String:
+	# (the katana's air attack is a variant: Crescent Arc or Falling Moon)
+	if player.style() == "katana" and player.progression.has_move("falling_moon"):
+		return "falling_moon"
 	var mv: String = AIR_MOVES.get(player.style(), "")
 	return mv if mv != "" and player.progression.has_move(mv) else ""
 

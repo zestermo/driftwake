@@ -29,6 +29,9 @@ extends PlayerState
 ##   and it bleeds.
 ## * Knife Rain (two daggers): hang a beat, then a fistful of knives flung down at up
 ##   to four enemies below and ahead; every wound bleeds.
+## * Falling Moon (katana, the air attack's second version): the blade raised overhead, one forward turn with it held
+##   out (the point draws a full moon), a dive, and a crescent run out along the ground ahead that knocks everyone on
+##   it flat.
 ## * Cyclone Heel (black-leg): turning flat like a top with a leg out on the way down, landing on one hand in a
 ##   ring that knocks them flat (BlackLegArts.air_land).
 
@@ -124,12 +127,20 @@ const SAW_DAMAGE := 18.0
 const SAW_LAND_R := 3.0
 const SAW_LAND_DAMAGE := 14.0
 
+const MOON_LIFT := 5.0                   # m/s up as the blade goes up
+const MOON_HANG := 0.42                  # s of the turn (the point draws the moon), then the dive
+const MOON_SPEED := 22.0
+const MOON_DAMAGE := 24.0
+const MOON_LINE := 5.0                   # m: the crescent run out along the ground ahead on landing
+const MOON_LINE_W := 1.4
+const MOON_LAND_DAMAGE := 18.0
+
 ## Which tree's colours each dive wears.
 const DIVE_TREE := {"meteor_kick": "unarmed", "boarding_dive": "sword", "fang_dive": "dagger"}
 
 ## Which: "" (the plain plunge), "rain", "air_slash", "skybreaker", "twin_cyclone",
 ## "meteor_kick", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain", "falling_spear",
-## "hammerfall", "buzzsaw", "falling_cleave", "cyclone_heel".
+## "hammerfall", "buzzsaw", "falling_cleave", "cyclone_heel", "falling_moon".
 var _mode := ""
 var phase: int = 0   # 0 hang/wind-up, 1 dive, 2 land, 3 off (bounced / vaulted / fired)
 var timer: float = 0.0
@@ -225,6 +236,14 @@ func enter(_data: Dictionary) -> void:
 			player.set_reach("great_cleave")
 			player.squash(2.5)
 			Net.fx("sfx", ["whoosh_big", player.global_position, -7.0, 0.06, 0.7])
+		"falling_moon":
+			player.variable_jump_active = false
+			player.velocity = Vector3(player.velocity.x * 0.3, MOON_LIFT, player.velocity.z * 0.3)
+			player.body_model.play("falling_moon", MOON_HANG + 0.12)
+			player.set_reach("under")
+			player.squash(2.0)
+			DrawnFx.slash(player, "katana", MOON_HANG + 0.08, false, 1.3)
+			Net.fx("sfx", ["whoosh_big", player.global_position, -6.0, 0.06, 1.1])
 		"cyclone_heel":
 			player.variable_jump_active = false
 			player.velocity = Vector3(player.velocity.x * 0.3, SAW_LIFT, player.velocity.z * 0.3)
@@ -287,22 +306,25 @@ func physics_update(delta: float) -> void:
 	var hammer := _mode in ["hammerfall", "falling_cleave"]
 	# (black-leg's Cyclone Heel drops like the twin axes' Buzzsaw: turning, carried on ahead)
 	var saw := _mode in ["buzzsaw", "cyclone_heel"]
+	var moon := _mode == "falling_moon"
 	match phase:
 		0:
 			# brief hang at the top (the axe: rising through its somersault; the spear: raised, point down; the
 			# hammer: heaved up overhead; twin axes: tucked and turning over)
-			player.velocity.y = move_toward(player.velocity.y, 0.0, (12.0 if axe or spear or hammer or saw else 30.0) * delta)
+			player.velocity.y = move_toward(player.velocity.y, 0.0, (12.0 if axe or spear or hammer or saw or moon else 30.0) * delta)
 			player.move_and_slide()
 			if (spear or hammer) and timer >= (HAMMER_HANG if hammer else SPEAR_HANG) - 0.07 and not _fired:
 				_fired = true
 				var w: MeshInstance3D = player.body_model.weapon
 				Net.fx("glint", [w.global_transform * Vector3(0, 0, w.mesh.get_aabb().position.z * 0.9), Color.WHITE, 0.8])
-			if timer >= (AXE_HANG if axe else (SPEAR_HANG if spear else (HAMMER_HANG if hammer else (SAW_HANG if saw else HANG)))):
+			if timer >= (AXE_HANG if axe else (SPEAR_HANG if spear else (HAMMER_HANG if hammer else (SAW_HANG if saw else (MOON_HANG if moon else HANG))))):
 				phase = 1
 				timer = 0.0
 				player.velocity = _dir * 3.5 + Vector3.DOWN * DIVE_SPEED
 				if axe:
 					DrawnFx.slash(player, "axe", 0.3, false, 1.3)
+				elif moon:
+					player.velocity = _dir * 4.0 + Vector3.DOWN * MOON_SPEED
 				elif spear:
 					player.velocity = _dir * 1.5 + Vector3.DOWN * SPEAR_SPEED
 					Net.fx("blade_swoosh", [player.body_model, 0.3, _spear_col()])
@@ -319,7 +341,7 @@ func physics_update(delta: float) -> void:
 				Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.06, 0.8 if hammer else 1.1])
 				var hit := HitData.new()
 				hit.sever = player.weapon_class() == "sword" and _mode != "hammerfall"
-				hit.damage = (SPEAR_DAMAGE if spear else (HAMMER_DAMAGE if hammer else (SAW_DAMAGE if saw else 22.0))) * player.damage_multiplier()
+				hit.damage = (SPEAR_DAMAGE if spear else (HAMMER_DAMAGE if hammer else (SAW_DAMAGE if saw else (MOON_DAMAGE if moon else 22.0)))) * player.damage_multiplier()
 				hit.knockback_force = 7.0
 				hit.stagger_duration = 0.45
 				hit.hitstop_duration = 0.07
@@ -327,7 +349,7 @@ func physics_update(delta: float) -> void:
 				hit.breaker = hammer
 				player.sword_hitbox.activate(hit)
 		1:
-			player.velocity.y = -(SPEAR_SPEED if spear else (HAMMER_SPEED if hammer else (SAW_SPEED if saw else DIVE_SPEED)))
+			player.velocity.y = -(SPEAR_SPEED if spear else (HAMMER_SPEED if hammer else (SAW_SPEED if saw else (MOON_SPEED if moon else DIVE_SPEED))))
 			player.move_and_slide()
 			if player.is_on_floor() or timer > 2.5:
 				_land()
@@ -356,6 +378,9 @@ func _land() -> void:
 		return
 	if _mode == "falling_spear":
 		_spear_land()
+		return
+	if _mode == "falling_moon":
+		_moon_land()
 		return
 	if _mode == "buzzsaw":
 		_saw_land()
@@ -399,6 +424,50 @@ func _land() -> void:
 	wave.hitstop_duration = 0.05
 	wave.camera_shake_intensity = 0.0
 	_burst(at, 2.4, wave, player.sword_hitbox.hit_targets.duplicate())
+
+
+## Falling Moon's landing: down on one knee, the blade laid out low ahead, and the moon's crescent run out along the
+## ground from it (standing up off it, so it reads from behind): everyone on the line (not cut on the way down) is
+## knocked flat. Cloud and sakura once the element's awake, steel before.
+func _moon_land() -> void:
+	player.body_model.play("moon_land", RECOVER + 0.2)
+	player.squash(-4.0)
+	var f := -player.player_model.global_basis.z
+	f.y = 0.0
+	f = f.normalized()
+	var start := player.global_position + f * 0.7
+	var awake := DrawnFx.awake(player, "katana")
+	Net.fx("katana_line", [start + Vector3(0, 0.45, 0), start + f * MOON_LINE + Vector3(0, 0.45, 0), 0.9 if awake else 0.55, awake, 0.12, randi() % 1000])
+	Net.fx("katana_burst", [start + f * 0.4 + Vector3(0, 0.8, 0), "katana_slash" if awake else "steel_slash", 2.4, 0.4, 180.0])
+	if awake:
+		Net.fx("sakura", [start + f * MOON_LINE * 0.5 + Vector3(0, 0.4, 0), Vector3.UP + f * 0.4, 8, 3.0])
+	Net.fx("dust_ring", [start, 14, 0.9])
+	Net.fx("puff_ring", [start + f * MOON_LINE * 0.6, "dust_low", 5, 0.4, 0.9, 0.7, Color.WHITE, 4.0])
+	Net.fx("sfx", ["thud", start, -2.0, 0.05, 1.0])
+	Net.fx("sfx", ["whoosh_big", start + f * 2.0, -4.0, 0.05, 1.3])
+	CombatManager.apply_camera_shake(0.22)
+	CombatManager.apply_camera_kick(0.16, 0.3)
+	var wave := player.melee_hit(MOON_LAND_DAMAGE)
+	wave.knockdown = true
+	wave.sever = true
+	wave.knockback_force = 8.0
+	wave.stagger_duration = 0.5
+	wave.hitstop_duration = 0.07
+	wave.camera_shake_intensity = 0.0
+	var already: Array = player.sword_hitbox.hit_targets.duplicate()
+	var q := PhysicsShapeQueryParameters3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(MOON_LINE_W * 2.0, 1.8, MOON_LINE)
+	q.shape = box
+	q.transform = Transform3D(Basis.looking_at(f, Vector3.UP), start + f * (MOON_LINE * 0.5) + Vector3(0, 0.8, 0))
+	q.collision_mask = 32
+	q.collide_with_areas = true
+	q.collide_with_bodies = false
+	for r in player.get_world_3d().direct_space_state.intersect_shape(q, 16):
+		var area := r["collider"] as Hurtbox
+		if area and area.owner and area.owner != player and not (area.owner in already):
+			already.append(area.owner)
+			area.take_hit(wave, player)
 
 
 ## Falling Spear's landing: the point driven into the ground ahead, a ring thrown out from it that knocks

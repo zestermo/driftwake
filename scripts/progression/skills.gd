@@ -92,6 +92,10 @@ const ALL := {
 	# --- Katana ---
 	"wind_sever": {"name": "Wind Severer", "tree": "katana", "cost": 20.0, "cooldown": 7.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
 		"desc": "A rising two-handed cut that sends a towering blade of wind tearing along the ground, knocking down everything it passes."},
+	"twin_waves": {"name": "Twin Waves", "tree": "katana", "cost": 22.0, "cooldown": 7.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
+		"desc": "A rising cut and a falling one: two blades of wind sent out from either side, crossing ahead of you, knocking down everything either passes (a little lighter each than Wind Severer's one)."},
+	"side_step": {"name": "Side Step", "tree": "katana", "cost": 16.0, "cooldown": 6.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
+		"desc": "Slip the blade home and wait, hand on the hilt: the first melee blow aimed at you meets empty air. You're already out at their side, drawing across them. The cut can't be blocked."},
 	"phantom_step": {"name": "Phantom Step", "tree": "katana", "cost": 18.0, "cooldown": 6.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
 		"desc": "Blink behind the nearest enemy (up to 9 m) and cut them down from behind before they can turn. It can't be blocked."},
 	"petal_storm": {"name": "Thousand Petals", "tree": "katana", "cost": 0.0, "cooldown": 3.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique", "ult": true,

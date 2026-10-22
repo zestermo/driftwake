@@ -167,6 +167,9 @@ var pole_plant_w := 0.0
 var kick_pockets := false
 ## The weapon's mastered guard (its tree's big node, toggled by the player; synced to puppets): the second stance.
 var guard2 := false
+## Stances with a mastered guard -> the moves file holding it (GUARD2, LEGS2, GRIPS2 [guard, block, run]; guard(h),
+## legs(h)); its grips are held by PoleMoves.hands.
+static var MASTERED := {"axe": AxeMoves, "katana": KatanaMoves}
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
 ## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
@@ -830,7 +833,7 @@ func _guard() -> Dictionary:
 		"axe":
 			return AxeMoves.guard(self)
 		"katana":
-			return KATANA_GUARD
+			return KatanaMoves.guard(self)
 		"polearm":
 			return PoleMoves.GUARD
 		"hammer":
@@ -1501,6 +1504,10 @@ func _action_pose(n: String, u: float) -> Array:
 			return KatanaMoves.iai(self, u)
 		"tiger_rush":
 			return KatanaMoves.tiger(self, u)
+		"falling_moon":
+			return KatanaMoves.moon(self, u)
+		"moon_land":
+			return KatanaMoves.moon_land(self, u)
 		"air_slash":
 			# katana air attack: a swing path (KatanaMoves.AIR_SWING) on this body
 			return KatanaMoves.air(self, u)
@@ -2380,7 +2387,7 @@ func _locomotion(delta: float) -> Dictionary:
 				lift.y -= 0.03 * walk + absf(s) * 0.025 * walk
 			if walk < 0.5:
 				var st := 1.0 - walk * 2.0
-				var ss: Dictionary = AxeMoves.legs(self) if stance == "axe" else STANCE_LEGS.get(stance, STANCE_LEGS[""])
+				var ss: Dictionary = MASTERED[stance].legs(self) if stance in MASTERED else STANCE_LEGS.get(stance, STANCE_LEGS[""])
 				p["leg_l"] += (ss["leg_l"] as Vector3) * st
 				p["leg_r"] += (ss["leg_r"] as Vector3) * st
 				p["shin_l"] += Vector3(ss["shin_l"].x, 0, 0) * st
@@ -2805,7 +2812,7 @@ func _process(delta: float) -> void:
 	if auto_point_guns:
 		point_guns()
 	StanceLife.grip(self, delta)
-	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0 or guard2 and stance == "axe":
+	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0 or guard2 and stance in MASTERED:
 		PoleMoves.hands(self, delta)
 	if stance == "black_leg":
 		BlackLegMoves.hands(self, delta)

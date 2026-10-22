@@ -29,6 +29,10 @@ static func legs(h) -> Dictionary:
 	return LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["axe"]
 
 
+static func grips2() -> Array:
+	return GRIPS2
+
+
 ## Hit 1, the hack: from the guard the axe is hauled up round the right side and over the right
 ## shoulder (the head laid back behind it), a beat, then hacked down through the front at a
 ## slant and on low past the left hip.

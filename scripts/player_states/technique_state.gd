@@ -27,7 +27,7 @@ extends PlayerState
 
 ## The guard skills (Riposte, Iai Counter, Crossed Counter): the waiting pose, and
 ## per fighting style the answer [pose, length, damage].
-const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard", "parley": "riposte_guard",
+const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "side_step": "iai_ready", "cross_counter": "cross_guard", "parley": "riposte_guard",
 	"slip": "dg_slip_guard", "hip_toss": "fs_catch"}
 ## (Parley's answer is a turning cut and then a shot: PARLEY_SHOT more at 0.3 s; Slip's
 ## is out from behind them, a sure crit that bleeds)
@@ -50,6 +50,8 @@ var _hit: Array = []
 var _slot: int = -1
 var _from := Vector3.ZERO
 var _axe: Projectile
+## The last guard put up (riposte_counter answers it: Side Step's answer is out at their side).
+var _guard_id := ""
 
 
 func enter(data: Dictionary) -> void:
@@ -78,9 +80,10 @@ func enter(data: Dictionary) -> void:
 		if a.enter(self, id):
 			return
 	match id:
-		"riposte", "iai_counter", "cross_counter", "parley", "slip", "hip_toss":
+		"riposte", "iai_counter", "side_step", "cross_counter", "parley", "slip", "hip_toss":
 			# guard up for a second; the buff outlasts it a touch so exit() can tell a
 			# guard that timed out from one that was answered (the hit clears the buff)
+			_guard_id = id
 			dur = 1.0
 			_pc.add_buff("riposte", 1.05)
 			player.body_model.play(GUARD_POSE[id], dur)
@@ -93,6 +96,8 @@ func enter(data: Dictionary) -> void:
 				face_direction(_dir, 1.0)
 				if player.style() == "dagger":
 					_blink_behind(_target)
+				elif _guard_id == "side_step" and player.style() == "katana":
+					_blink_side(_target)
 			player.body_model.play(str(cp[0]), dur)
 			if player.style() == "katana":
 				# (the drawing cut's whole path, from the scabbard on)
@@ -131,6 +136,11 @@ func enter(data: Dictionary) -> void:
 			dur = 0.75
 			player.body_model.play("wind_sever", dur)
 			Net.fx("sfx", ["whoosh", player.global_position, -9.0, 0.05, 0.7])
+		"twin_waves":
+			# Wind Severer's rising cut, then the kesa straight down out of its top: a wave off each (TWIN_FIRE)
+			dur = 1.05
+			player.body_model.play("wind_sever", 0.6)
+			Net.fx("sfx", ["whoosh", player.global_position, -9.0, 0.05, 0.75])
 		"phantom_step":
 			dur = 0.6
 			_target = _aimed(9.0)
@@ -277,13 +287,13 @@ func physics_update(delta: float) -> void:
 			_finish()
 		return
 	match id:
-		"riposte", "iai_counter", "cross_counter", "parley", "slip", "hip_toss":
+		"riposte", "iai_counter", "side_step", "cross_counter", "parley", "slip", "hip_toss":
 			_rooted(delta, 0.15)
 			# the waiting blade catches the light (the katana's waits in its scabbard: the hilt)
 			if _once("glint", 0.12) or _once("glint2", 0.55):
-				Net.fx("glint", [_hilt() if id == "iai_counter" else _blade_tip(), _col(FX.CORE), 0.7])
+				Net.fx("glint", [_hilt() if id in ["iai_counter", "side_step"] else _blade_tip(), _col(FX.CORE), 0.7])
 				# (the katana's waits in stillness, a petal or two adrift round the hilt)
-				if id == "iai_counter" and _elem():
+				if id in ["iai_counter", "side_step"] and _elem():
 					Net.fx("sakura", [_hilt(), Vector3.UP, 2, 0.8])
 		"riposte_counter":
 			_rooted(delta, 0.0)
@@ -343,6 +353,20 @@ func physics_update(delta: float) -> void:
 				CombatManager.apply_camera_shake(0.15)
 				CombatManager.apply_camera_kick(0.15, 0.3)
 				player.squash(-2.0)
+		"twin_waves":
+			_rooted(delta, 0.0)
+			if _once("gather", 0.06):
+				Net.fx("gather", [_blade_tip(), 1.4, _col(FX.ACCENT) if _elem() else _col(), 0.2, 14])
+			if _once("swoosh", 0.24):
+				KatanaFx.slash(player, 0.12, false, 1.3)
+			if _once("fire", TWIN_FIRE[0]):
+				_twin_wave(-1.0)
+			if _once("second", 0.42):
+				player.body_model.play("katana_r", 0.55)
+			if _once("swoosh2", 0.62):
+				KatanaFx.slash(player, 0.14, false, 1.3)
+			if _once("fire2", TWIN_FIRE[1]):
+				_twin_wave(1.0)
 		"phantom_step":
 			_rooted(delta, 0.0)
 			# arrived crouched behind them: the edge catches the light, then the cut (pose key 0.16 s)
@@ -687,6 +711,52 @@ func _place(p: Vector3) -> void:
 
 
 ## Blink to just behind `e` (on its far side from you), facing it.
+## Twin Waves: when each wave goes (s), how far ahead they cross (m), how far apart they start (m), each one's damage.
+const TWIN_FIRE := [0.3, 0.72]
+const TWIN_CROSS := 7.0
+const TWIN_APART := 2.4
+const TWIN_DAMAGE := 26.0
+
+
+## One of Twin Waves' blades of wind, sent from `side` (-1 left, 1 right) across to cross the other ahead.
+func _twin_wave(side: float) -> void:
+	var right := _dir.cross(Vector3.UP).normalized()
+	var from := player.global_position + Vector3(0, 0.2, 0) + _dir * 0.8 + right * side * TWIN_APART * 0.5
+	var d := ((player.global_position + _dir * TWIN_CROSS) - (from - Vector3(0, 0.2, 0))) * Vector3(1, 0, 1)
+	Projectile.launch(player.get_tree(), "wave", from, d.normalized(), player, TWIN_DAMAGE, "elem" if _elem() else "")
+	Net.fx("sfx", ["whoosh_big", from, -1.0, 0.05, 0.85 + side * 0.06])
+	Net.fx("puff_ring", [from, "dust_low", 5, 0.3, 0.9, 0.7, Color.WHITE, 4.5])
+	if _elem():
+		Net.fx("katana_burst", [from + Vector3(0, 0.6, 0), "katana_cloud", 1.6, 0.45, 30.0])
+	Net.fx("ring", [from + Vector3(0, 0.9, 0) + d.normalized() * 1.0, d.normalized(), 1.0, _col(), 0.22, 0.14])
+	_spray(from + Vector3(0, 0.6, 0), d.normalized() + Vector3.UP * 0.8, 7, 4.0)
+	CombatManager.apply_camera_shake(0.13)
+	CombatManager.apply_camera_kick(0.13, 0.28)
+	player.squash(-2.0)
+
+
+## Side Step: the blow meets an afterimage; you're out at their side (the side the camera's on, so it reads), turned
+## to cut across them.
+func _blink_side(e: Node3D) -> void:
+	var d := _flat_to(e)
+	var side := d.cross(Vector3.UP).normalized()
+	var cam := player.get_viewport().get_camera_3d()
+	if cam and (cam.global_position - e.global_position).dot(side) < 0.0:
+		side = -side
+	var from := _chest()
+	Net.fx("afterimage", [player.body_model, _col(), 0.45])
+	Net.fx("sfx", ["whoosh_big", player.global_position, -3.0, 0.05, 1.5])
+	_place(e.global_position + side * 1.25 - d * 0.35)
+	_dir = (e.global_position - player.global_position) * Vector3(1, 0, 1)
+	_dir = _dir.normalized() if _dir.length() > 0.05 else d
+	face_direction(_dir, 1.0)
+	Net.fx("streak", [from, _chest(), _col(), 0.1, 0.25])
+	if _elem():
+		Net.fx("katana_line", [from - Vector3(0, 0.6, 0), player.global_position + Vector3(0, 0.4, 0), 0.45, true, 0.06, randi() % 1000])
+		Net.fx("sakura", [from, Vector3.UP, 4, 1.5])
+	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0), 5, 0.5])
+
+
 func _blink_behind(e: Node3D) -> void:
 	var d := _flat_to(e)
 	var from := _chest()
@@ -1462,6 +1532,6 @@ func exit() -> void:
 		player.body_model.play("draw", 0.3)
 	if GUARD_POSE.has(id):
 		# Iai Counter sheathed the blade to wait: nobody came, so draw it again
-		if id == "iai_counter" and _pc.buff("riposte"):
+		if id in ["iai_counter", "side_step"] and _pc.buff("riposte"):
 			player.body_model.play("draw", 0.3)
 		_pc.buffs["riposte"] = 0.0

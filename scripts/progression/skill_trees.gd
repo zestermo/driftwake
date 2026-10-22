@@ -247,7 +247,7 @@ static func _big(id: String, name_: String, kind: String, branch: int, level: in
 
 
 ## A variant: two versions of one node (each [id, name, level, effects, desc, skill]), the first active by default.
-static func _variant(id: String, name_: String, branch: int, versions: Array, desc: String = "") -> void:
+static func _variant(id: String, name_: String, branch: int, versions: Array, desc: String = "") -> Dictionary:
 	var lv := 99
 	for v in versions:
 		lv = mini(lv, int(v[2]))
@@ -257,6 +257,7 @@ static func _variant(id: String, name_: String, branch: int, versions: Array, de
 		var vn := _node(v[0], v[1], "version", branch, int(v[2]), v[3], str(v[4]), sk, [id], n["pos"])
 		vn["parent"] = id
 		n["versions"].append({"id": v[0], "name": v[1], "desc": vn["desc"], "level": int(v[2]), "effects": v[3], "skill": sk})
+	return n
 
 
 ## The picture a node without a skill shows on the tree (Skills.icon(icon): gen_psx_textures.py "moves").
@@ -563,7 +564,12 @@ static func _build_katana() -> void:
 	# Guard
 	_big("k_deflect", "Cut the Shot", "mech", 0, 3, {"parryshot_katana": 1, "parry_katana": 0.06},
 		"Parry with a katana and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
-	_big("k_counter", "Iai Counter", "tech", 0, 8, {}, "", "iai_counter")
+	# (Iai Counter, Wind Severer and the air attack became variants in 1.18.4: the first version is the old node, kept
+	# owned and active in old saves; the price stays the old node's)
+	_variant("k_counter", "Iai Counter", 0, [
+		["k_drawcut", "Draw Cut", 8, {}, "", "iai_counter"],
+		["k_sidestep", "Side Step", 8, {}, "", "side_step"]],
+		"Two ways to meet a blow from the scabbard. Both are yours; pick the one you carry at the ship's bunk.")["cost"] = 3
 	_big("k_phantom", "Phantom Step", "tech", 0, 14, {}, "", "phantom_step")
 	_big("k_return", "Bullet Return", "mech", 0, 20, {"deflect_katana": 1, "return_katana": 1, "deflect_cd_katana": 1.0},
 		"With a katana drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
@@ -581,9 +587,15 @@ static func _build_katana() -> void:
 	# Blade
 	_big("k_draw", "Quick Draw", "move", 2, 2, {"mv_quick_draw": 1},
 		"Attack at a sprint: a quick cut straight out of the scabbard that breaks wind-ups.")
-	_big("k_wind", "Wind Severer", "tech", 2, 5, {}, "", "wind_sever")
-	_big("k_arc", "Crescent Arc", "move", 2, 7, {"mv_air_slash": 1},
-		"Attack in the air: a little lift and one big arc swept down under you (once per jump).")
+	_variant("k_wind", "Wind Severer", 2, [
+		["k_tower", "Towering Wave", 5, {}, "", "wind_sever"],
+		["k_twin", "Twin Waves", 18, {}, "", "twin_waves"]],
+		"Two ways to send the wind. Both are yours (Twin Waves from mastery 18); pick the one you carry at the ship's bunk.")["cost"] = 3
+	_variant("k_arc", "Air Cut", 2, [
+		["k_crescent", "Crescent Arc", 7, {"mv_air_slash": 1}, "Attack in the air: a little lift and one big arc swept down under you (once per jump)."],
+		["k_moon", "Falling Moon", 15, {"mv_falling_moon": 1}, "Attack in the air: the blade raised, one turn over forward with it held out (the point draws a full moon), a dive, and a crescent run out along the ground ahead that knocks everyone on it flat (once per jump)."]],
+		"Two ways to cut from the air. Both are yours (Falling Moon from mastery 15); pick the one you carry at the ship's bunk.")["cost"] = 2
+	_icon("k_moon", "falling_moon")
 	_big("k_clean", "Clean Line", "passive", 2, 13, {"heavy_katana": 0.3, "exec_katana": 0.5},
 		"Passive (a slot). Your iai cuts 30% deeper, and a cut that leaves them under 30% health deals 50% more on top.")
 	_big("k_calm", "Empty Mind", "passive", 2, 22, {"cdr_katana": 0.25},
