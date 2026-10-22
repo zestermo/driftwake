@@ -88,6 +88,19 @@ var air_slashes: int = 0
 ## The other styles' air attacks since leaving the ground: {move: uses}, and
 ## "bounce" for Meteor Kicks that connected (each one earns another).
 var air_uses: Dictionary = {}
+## When the freefall began (PlayerState.now_s): the last jump, air step, ability or attack (FallState's tumble).
+var freefall_from: float = 0.0
+## The highest point (y) since the feet last touched the ground: a dive's height fallen (FistArts.fallen).
+var fall_top: float = 0.0
+## Sea King Fist armed: seconds left to unleash it (FistArts), and who we last parried and on which tick (its counter).
+var fist_armed: float = 0.0
+var parried_by: Node3D = null
+var parried_tick: int = -1000
+## Skyward Dash (Acrobatics): an air dash left from the last mid-air recovery (until you land or use it).
+var skyward_dash: bool = false
+const SKYWARD_STEPS := 2
+## Up from a Sky Leap: the next landing is a crater, with no fall damage.
+var sky_leap_fall: bool = false
 ## The next light attack is the katana's running draw (attacked while sprinting).
 var quick_draw: bool = false
 var body_model: Humanoid
@@ -198,6 +211,8 @@ const NF_LANTERN := 8
 const NF_TIDE := 16
 ## The katana drawn with its element awakened (BladePetals: cloud and sakura on the blade).
 const NF_PETALS := 32
+## Sea King Fist armed: the galaxy glow on the fist.
+const NF_GALAXY := 64
 
 
 func _ready() -> void:
@@ -493,6 +508,9 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 			_cut_shot(hit, dir, attacker)
 		if attacker and attacker.has_method("parried"):
 			attacker.call("parried", self)
+		if attacker is Node3D and not hit.ranged:
+			parried_by = attacker
+			parried_tick = Engine.get_physics_frames()
 		return
 	if is_blocking and not hit.unblockable and not hit.dot and current_state_name() == "Block":
 		var fwd := -player_model.global_basis.z
@@ -749,6 +767,7 @@ func _process(delta: float) -> void:
 	_lantern_tick()
 	BladeWater.keep(body_model, _tide_on())
 	BladePetals.keep(body_model, _petals_on())
+	FistArts.keep_glow(body_model, fist_armed > 0.0)
 	heal_cd = maxf(heal_cd - delta, 0.0)
 	_quick_tick(delta)
 	_loadout_tick(delta)
@@ -1027,6 +1046,11 @@ func _update_lean(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if not is_local:
 		return
+	fall_top = global_position.y if is_on_floor() else maxf(fall_top, global_position.y)
+	if fist_armed > 0.0:
+		fist_armed -= delta
+		if fist_armed <= 0.0:
+			FistArts.armed_out(self)
 	if bleeding:
 		_bleed_tick(delta)
 	elif Net.coop():
@@ -1047,6 +1071,7 @@ func _physics_process(delta: float) -> void:
 		gun_rains = 0
 		air_slashes = 0
 		air_uses.clear()
+		skyward_dash = false
 		if not _was_on_floor:
 			_on_landed(_last_air_vy)
 	else:
@@ -1058,6 +1083,7 @@ func _physics_process(delta: float) -> void:
 	_regen_stamina(delta)
 	# deep enough water: swim (from walking, falling, attacking...)
 	if context == Context.ON_FOOT and current_state_name() in SWIM_FROM_STATES and water_depth() > SWIM_ENTER_DEPTH:
+		sky_leap_fall = false
 		state_machine.force_state("Swim", {"entry_vy": velocity.y})
 
 
@@ -1080,7 +1106,7 @@ const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon", "
 
 
 ## States that drop into swimming when the water gets deep enough.
-const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
+const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "SkyLeap","LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
 
 
 ## Distance down to the ground (or INF over nothing within 30 m).
@@ -1137,6 +1163,42 @@ func recover_into_swim() -> void:
 	velocity = Vector3.ZERO
 	body_model.recover_from_ragdoll(face_up, info["hips_xform"], 0.7)
 	state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
+
+
+## A tumbling body hit the ground at `speed`: the usual fall damage (the get-up is DownedState's).
+func tumble_landed(speed: float) -> void:
+	if sky_leap_fall:
+		sky_leap_fall = false
+		return
+	if speed > SAFE_FALL_SPEED and context == Context.ON_FOOT:
+		_fall_damage(speed)
+
+
+## Out of the ragdoll in mid-air (an air step out of a tumble, a Breakfall): the root jumps to the body, carrying
+## its speed, and the body eases upright from where the physics left it.
+func recover_in_air() -> void:
+	var info := body_model.ragdoll_rest_info()
+	var face_up: bool = info["face_up"]
+	var head_dir: Vector3 = info["head_dir"]
+	var f := -head_dir if face_up else head_dir
+	var rb := body_model.ragdoll.root_body()
+	var v := rb.linear_velocity
+	player_model.rotation.y = atan2(-f.x, -f.z)
+	reset_lean()
+	global_position = body_model.hips.global_position - Vector3(0, body_model.hip_y * body_model.scale.y, 0)
+	reset_physics_interpolation()
+	velocity = v
+	air_speed = Vector2(v.x, v.z).length()
+	body_model.recover_from_ragdoll(face_up, info["hips_xform"], 0.25)
+
+
+## Righted in mid-air (Breakfall, or an air step out of a tumble): Skyward Dash gives an air dash and extra steps.
+func air_recovered() -> void:
+	if not progression.has_flag("skyward_dash"):
+		return
+	skyward_dash = true
+	jumps_remaining += SKYWARD_STEPS
+	Net.fx("sparkle", [global_position + Vector3(0, 1.0, 0), 10, Color(0.85, 0.95, 1.0)])
 
 
 func is_swimming() -> bool:
@@ -1252,13 +1314,19 @@ func _update_lean_target(delta: float) -> void:
 ## 20 m or more - and a long drop leaves you reeling. A plunge attack's dive
 ## doesn't count. (Falling is 1.6x gravity, so a 5 m drop lands at ~18 m/s.)
 const SAFE_FALL_SPEED := 18.0
+const MAX_FALL_SPEED := 34.0
 const FALL_DAMAGE_PER_MS := 5.3
 
 
 func _on_landed(impact_vy: float) -> void:
 	var k := clampf(-impact_vy / 16.0, 0.0, 1.0)
 	var speed := -impact_vy
-	if speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
+	if sky_leap_fall:
+		sky_leap_fall = false
+		if speed > SAFE_FALL_SPEED:
+			state_machine.states["skyleap"].crater(speed)
+			return
+	elif speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
 		_fall_damage(speed)
 	if k < 0.15:
 		return
@@ -1286,7 +1354,7 @@ func _fall_damage(speed: float) -> void:
 	Net.fx("dust_ring", [global_position, 18, 1.2])
 	CombatManager.apply_camera_shake(clampf(dmg / 60.0, 0.1, 0.4))
 	Net.damage_number(roundf(dmg), global_position + Vector3(0, 1.9, 0))
-	if health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai"):
+	if health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai") and current_state_name() != "Downed":
 		state_machine.force_state("Stagger", {"stagger_duration": 0.55, "knockback_dir": Vector3.ZERO, "knockback_force": 0.0, "flinch": false})
 
 
@@ -2478,6 +2546,8 @@ func net_pack() -> Array:
 		flags |= NF_TIDE
 	if _petals_on():
 		flags |= NF_PETALS
+	if fist_armed > 0.0:
+		flags |= NF_GALAXY
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else []]
@@ -2551,6 +2621,7 @@ func _puppet_process(delta: float) -> void:
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	BladeWater.keep(body_model, bool(_net_flags & NF_TIDE))
 	BladePetals.keep(body_model, bool(_net_flags & NF_PETALS))
+	FistArts.keep_glow(body_model, bool(_net_flags & NF_GALAXY))
 	# knocked down: the body lies (or floats) exactly where theirs does
 	if body_model.ragdoll and (b[11] as Array).size() > 0:
 		body_model.ragdoll.net_follow(a[11], b[11], f)

@@ -10,8 +10,8 @@ extends Control
 ##   that drains after a hit, and the number.
 ## * Energy orb (right): energy for skills (blue; your Devil Fruit's color
 ##   once you've eaten one).
-## * Level badge and experience bar along the bottom of the plate; the weapon
-##   in hand's unspent points pulse next to the level.
+## * Level badge and experience bar along the bottom of the plate; a pool's
+##   points pulse next to the level while something can be bought with them.
 ## * Stamina: a thin bar across the top of the plate (amber when spent, flashes
 ##   red when an action is refused).
 ## * Skills 1-5: icon, key, energy cost, cooldown sweep + seconds, dimmed when
@@ -357,6 +357,9 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 		return
 	var frac := pc.ult / PowerComponent.ULT_MAX
 	var full := frac >= 1.0
+	if player.fist_armed > 0.0:
+		_draw_armed(r, sk)
+		return
 	var ring_col := fruit_col if not full else fruit_col.lerp(Color(1.0, 0.95, 0.6), 0.5 + 0.5 * sin(_t * 8.0))
 	if frac > 0.0:
 		draw_arc(c, rad, -PI * 0.5, -PI * 0.5 + TAU * frac, maxi(int(32 * frac), 2), ring_col, 3.0)
@@ -385,6 +388,21 @@ func _draw_ult(r: Rect2, fruit_col: Color) -> void:
 	_text(r.position + Vector2(2, 9), "R", UIStyle.ACCENT)
 
 
+## Sea King Fist armed: a gold ring draining with the time left to let it go, and the seconds.
+func _draw_armed(r: Rect2, sk: Dictionary) -> void:
+	var c := r.get_center()
+	var rad := r.size.x * 0.5 + 3.0
+	var k := clampf(player.fist_armed / FistArts.ARMED_SECS, 0.0, 1.0)
+	var gold := FistArts.SEA_GOLD.lerp(Color.WHITE, 0.3 + 0.3 * sin(_t * 10.0))
+	draw_arc(c, rad, -PI * 0.5, -PI * 0.5 + TAU * k, maxi(int(32 * k), 2), gold, 3.0)
+	_slot_frame(r, gold, 2.0)
+	var tex: Texture2D = _icons.get(str(sk["id"]))
+	if tex:
+		draw_texture_rect(tex, r.grow(-2.0), false, Color.WHITE)
+	_text(Vector2(r.position.x, c.y + 4.0), "%d" % ceili(player.fist_armed), Color(1.0, 0.95, 0.7), 12, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	_text(r.position + Vector2(2, 9), "R", UIStyle.ACCENT)
+
+
 func _draw_item(r: Rect2) -> void:
 	var inv := player.inventory_component
 	var item := inv.quick_item()
@@ -409,7 +427,7 @@ func _draw_item(r: Rect2) -> void:
 
 
 ## Level badge (over the health orb) and the experience bar along the bottom
-## of the plate; the weapon in hand's unspent points pulse beside the level.
+## of the plate; a pool's points pulse beside the level while they can buy something.
 func _draw_xp() -> void:
 	var pr := player.progression
 	if pr == null:
@@ -424,11 +442,11 @@ func _draw_xp() -> void:
 	draw_circle(badge, 8.0, UIStyle.BG_DARK)
 	draw_arc(badge, 8.0, 0.0, TAU, 20, UIStyle.BORDER, 1.0)
 	_text(badge + Vector2(-10.0, 3.0), str(pr.level), UIStyle.ACCENT, 8, HORIZONTAL_ALIGNMENT_CENTER, 20.0)
-	var mt := pr.hand_tree()
-	var mp := pr.points_free(mt) if mt != "" else 0
-	if mp > 0:
+	var spend: Array = ["combat", "adventure"].filter(func(p): return pr.can_spend(p))
+	if not spend.is_empty():
 		var a := 0.6 + 0.4 * sin(_t * 5.0)
-		_text(badge + Vector2(11.0, 3.0), "+%d %s [K]" % [mp, Progression.tree_name(mt).to_upper()], Color(0.75, 0.95, 0.55, a))
+		var line: String = " ".join(spend.map(func(p): return "+%d %s" % [pr.pool(p), Progression.pool_name(p).to_upper()]))
+		_text(badge + Vector2(11.0, 3.0), line + " [K]", Color(0.75, 0.95, 0.55, a))
 
 
 ## Pistols: loaded shots per gun over the middle of the plate.

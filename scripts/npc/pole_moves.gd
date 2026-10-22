@@ -12,9 +12,9 @@ class_name PoleMoves
 const GUARD_GRIP := [Vector3(0.05, -0.44, -0.3), Vector3(-0.5, 0.36, -0.79), Vector3(0, -1, 0), 0.46]
 ## The pole vault's way down: the spear trailed low behind in the right hand, the head back, the left arm free.
 const TRAIL_GRIP := [Vector3(0.3, -0.5, 0.02), Vector3(0.12, -0.3, 0.95), Vector3(0, -1, 0), -1.0]
-## Running (above a walk, not backing off) and sprinting: one hand, low at the right side, the head out ahead and
-## angled down toward the ground in front, the left arm free to pump.
-const RUN_GRIP := [Vector3(0.32, -0.5, -0.12), Vector3(0.12, -0.3, -0.95), Vector3(0, -1, 0), -1.0]
+## Running (above a walk, not backing off) and sprinting: port arms, both hands on it slanted across the front, the
+## right low by the hip, the left before the chest, the head up past the left shoulder.
+const RUN_GRIP := [Vector3(0.26, -0.48, -0.22), Vector3(-0.74, 0.64, -0.18), Vector3(0, 0, -1), 0.5]
 ## Emperor's Bearing (planted): the right hand high on the shaft out at the side, the pole upright and leaning out a
 ## little, its butt on the ground beside the right foot (hands() slides the shaft down through the hand to reach it).
 const PLANT_GRIP := [Vector3(0.56, -0.06, -0.04), Vector3(0.12, 0.99, -0.03), Vector3(1, 0, 0), -1.0]

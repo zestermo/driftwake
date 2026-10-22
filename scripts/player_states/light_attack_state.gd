@@ -19,7 +19,7 @@ extends PlayerState
 ##               Running Cleave
 ##   black_leg   low kick -> mid kick -> high kick -> down on the hands spinning (Handstand Spin); at a sprint,
 ##               Arrow Kick
-##   fist       jab -> cross -> hook -> spinning roundhouse kick
+##   fist       jab -> cross -> lead hook -> rear uppercut that knocks them down (boxing, FistMoves)
 ##   claw        (Zoan hybrid) right rake -> left rake -> double rake
 ## The chain is remembered for a moment after each hit, so you can reposition
 ## (move, even jump) and the next click continues the combo instead of restarting.
@@ -156,12 +156,13 @@ const STYLES := {
 		"damages": [16.0], "hitstops": [0.08], "shakes": [0.18],
 		"reach": "kick_fly", "color": Color(1.0, 0.94, 0.86), "breaker": true, "trip": true, "legs": true,
 		"winds": [[0.0, 1.0, 0.0, true]]},
-	"fist": {"anims": ["jab", "cross", "hook", "roundhouse"], "trails": ["", "", "", ""],
-		"durations": [0.2, 0.22, 0.28, 0.42], "impulses": [3.0, 3.5, 3.5, 4.5],
-		"damages": [6.0, 7.0, 9.0, 16.0], "hitstops": [0.03, 0.035, 0.05, 0.08], "shakes": [0.05, 0.06, 0.09, 0.15],
-		"reach": "fist", "color": Color(1.0, 0.95, 0.8),
+	# fists (boxing, FistMoves): each punch out of the last one's turn; the uppercut (a tree move) knocks them off their feet
+	"fist": {"anims": ["fs_jab", "fs_cross", "fs_hook", "fs_upper"], "trails": ["", "", "", ""],
+		"durations": [0.2, 0.25, 0.3, 0.44], "impulses": [3.0, 3.8, 3.2, 4.0],
+		"damages": [6.0, 8.0, 9.0, 15.0], "hitstops": [0.035, 0.045, 0.055, 0.09], "shakes": [0.05, 0.07, 0.09, 0.16],
+		"reach": "fist", "color": Color(1.0, 0.95, 0.8), "launch": [false, false, false, true],
 		# rush of air for each hit: [side (m, + = right), height, sideways slant, big]
-		"winds": [[-0.16, 1.32, 0.0, false], [0.16, 1.3, 0.0, false], [-0.5, 1.28, 0.55, false], [0.35, 1.0, -0.35, true]]},
+		"winds": [[-0.12, 1.4, 0.0, false], [0.1, 1.38, 0.0, false], [-0.45, 1.36, 0.6, false], [0.1, 1.25, 0.0, true]]},
 	"claw": {"anims": ["claw_r", "claw_l", "claw_double"], "trails": ["right", "left", "cross"],
 		"durations": [0.28, 0.28, 0.44], "impulses": [6.5, 6.5, 9.0],
 		"damages": [12.0, 12.0, 22.0], "hitstops": [0.05, 0.05, 0.09], "shakes": [0.1, 0.1, 0.2],
@@ -310,7 +311,8 @@ func physics_update(delta: float) -> void:
 		if cfg.has("bleeds") and float(cfg["bleeds"][combo_index]) > 0.0:
 			hit.set_meta("bleed", float(cfg["bleeds"][combo_index]))
 		# (the axe's finisher puts them on the ground)
-		hit.knockdown = (last and cfg.get("slam", false)) or _rush > 1.0 or cfg.get("trip", false)
+		hit.knockdown = (last and cfg.get("slam", false)) or _rush > 1.0 or cfg.get("trip", false) \
+			or (cfg.has("launch") and bool(cfg["launch"][combo_index]))
 		# (a polearm's thrust shoves them back to the point; a trident's goes through a guard)
 		if cfg.get("pole", false) and str(cfg["anims"][combo_index]) == "pole_thrust":
 			hit.knockback_force = 6.5

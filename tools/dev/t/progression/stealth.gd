@@ -1,6 +1,6 @@
 extends SceneTree
 ## Stealth is learned by sneaking near foes: crouch-walking a few metres with a grunt about teaches it (and finds
-## the tree); Soft Step (Stealth 2) sneaks faster; with Ambush (Stealth 4) a blow struck straight out of a sneak
+## the tree); Soft Step (bought at Stealth 2) sneaks faster; with Ambush (Stealth 4) a blow struck straight out of a sneak
 ## lands harder (an extra share on the foe) and teaches more; a second blow isn't a sneak attack.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -46,10 +46,10 @@ func _process(_d: float) -> bool:
 			print("   sneaked %.1f m (%s): stealth xp %d" % [walked, p.current_state_name(), xp()])
 			check("sneaking near a foe teaches Stealth and finds its tree", xp() > 0 and "stealth" in pr.visible_trees("adventure"))
 			pr.add_life("stealth", pr.mastery_to_next(pr.mastery_level("stealth")) - int(pr.mastery_of("stealth")["xp"]))
-			check("Stealth 2: Soft Step, a faster sneak", pr.owns("st_soft") and is_equal_approx(pr.stat("sneak_pct"), 0.25))
+			check("Stealth 2: Soft Step bought, a faster sneak", pr.buy("st_soft") and is_equal_approx(pr.stat("sneak_pct"), 0.25))
 			while pr.mastery_level("stealth") < 4:
 				pr.add_life("stealth", pr.mastery_to_next(pr.mastery_level("stealth")))
-			check("Stealth 4: Ambush", pr.owns("st_ambush"))
+			check("Stealth 4: Ambush bought", pr.buy("st_ambush"))
 			var hp0: float = g.health.current_health
 			var x1 := xp()
 			var hit := HitData.new()

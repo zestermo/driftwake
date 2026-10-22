@@ -1,5 +1,5 @@
 extends SceneTree
-## Seamanship (the Sailing tree): an Adventure tree, its big nodes reached at their level (never bought);
+## Seamanship (the Sailing tree): an Adventure tree, its big nodes bought with Adventure points once its level gates them;
 ## sailing at the helm and a ship sunk nearby earn its mastery; its bonuses count at the station you man: the helm (faster, sharper,
 ## and on the ship's snapshot for the other screens), a gun (reloads faster, balls hit harder), deck jobs
 ## (patching faster); and it's saved with the captain.
@@ -57,11 +57,11 @@ func _process(_d: float) -> bool:
 			print("   sea xp %d -> %d" % [xp0, sea_xp()])
 			check("sailing at the helm earns Seamanship", sea_xp() > xp0)
 			check("...no bonus at the helm without the perks", ship._helm_k == Vector3.ONE)
-			check("its big nodes can't be bought (%s)" % pr.can_learn("sea_hand"), not pr.learn("sea_hand") and pr.can_learn("sea_hand") == "Comes at Sailing 2")
+			check("Sea Hand needs Sailing 2 (%s)" % pr.can_learn("sea_hand"), not pr.learn("sea_hand") and pr.can_learn("sea_hand") == "Needs Sailing 2")
 			while pr.mastery_level("sea") < 7:
 				pr.add_mastery("sea", pr.mastery_to_next(pr.mastery_level("sea")))
-			check("Sailing 7 brings Sea Hand, Gun Captain, Helmsman and Hard Over by themselves", pr.owns("sea_hand") and pr.owns("sea_gunner") and pr.owns("f_helm") and pr.owns("sea_turn") and not pr.owns("sea_storm"))
-			check("...and 6 points for its steps", pr.points_free("sea") == 6)
+			check("Sailing 7: 6 Adventure points, nothing by itself", pr.pool("adventure") == 6 and not pr.owns("sea_hand"))
+			check("...Sea Hand, Gun Captain, Helmsman and Hard Over bought with 4 of them", ["sea_hand", "sea_gunner", "f_helm", "sea_turn"].all(func(k): return pr.buy(k)) and pr.pool("adventure") == 2 and not pr.owns("sea_storm"))
 			until = TK.wait_ticks(3)
 		2:
 			check("at the helm: 10%% faster, 18%% sharper (%s)" % str(ship._helm_k), is_equal_approx(ship._helm_k.x, 1.10) and is_equal_approx(ship._helm_k.y, 1.18))

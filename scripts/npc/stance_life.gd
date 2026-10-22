@@ -26,9 +26,9 @@ const TWIRL_OUT := 0.06
 const TWIRL_IN := 0.16
 
 
-## Run carries: the weapon carried while running forward (over RUN_ON m/s, kept down to RUN_OFF; a strafe or a
-## backpedal keeps the guard; SPRINT_ONLY stances only at a sprint), instead of the guard or the swinging run arms.
-## Any move takes over at once.
+## Run carries: the weapon carried while running forward (over RUN_ON m/s, kept down to RUN_OFF; a strafe, a 45 deg
+## diagonal or a backpedal keeps the guard; SPRINT_ONLY stances carry only at a sprint), instead of the guard or the
+## swinging run arms. Any move takes over at once.
 const RUN_ON := 3.2
 const RUN_OFF := 2.6
 const CARRY_IN := 0.15
@@ -37,11 +37,12 @@ const CARRY_IN := 0.15
 const SPRINT_ONLY := ["sword", "sword_pistol", "dual_sword", "axe"]
 ## Stance -> the carry's arms (the chest's frame; `swing` scales the stride's swing added to the shoulders' x).
 const CARRIES := {
-	# the cutlass trailed low behind the right hip, point back
-	"sword": {"arm_r": Vector3(-0.55, 0, 0.3), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3(-2.1, 0, 0), "swing": 0.35},
-	"sword_pistol": {"arm_r": Vector3(-0.55, 0, 0.3), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3(-2.1, 0, 0), "swing": 0.35},
-	"dual_sword": {"arm_r": Vector3(-0.55, 0, 0.3), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3(-2.1, 0, 0),
-		"arm_l": Vector3(-0.55, 0, -0.3), "fore_l": Vector3(0.25, 0, 0), "hand_l": Vector3(-2.1, 0, 0), "swing": 0.35},
+	# the cutlass in the hand hanging at the right side, the blade trailed back and out from the hip, its flat turned
+	# up to the camera behind (2026-10-21: the arm swung back behind the hip read as the sword dragged down behind)
+	"sword": {"arm_r": Vector3(-0.2, 0, 0.3), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(-2.6, 0.5, 1.0), "swing": 0.35},
+	"sword_pistol": {"arm_r": Vector3(-0.2, 0, 0.3), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(-2.6, 0.5, 1.0), "swing": 0.35},
+	"dual_sword": {"arm_r": Vector3(-0.2, 0, 0.3), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(-2.6, 0.5, 1.0),
+		"arm_l": Vector3(-0.2, 0, -0.3), "fore_l": Vector3(0.4, 0, 0), "hand_l": Vector3(-2.6, -0.5, -1.0), "swing": 0.35},
 	# the axe over the right shoulder, the head behind it
 	"axe": {"arm_r": Vector3(0.35, 0.25, 0.3), "fore_r": Vector3(2.2, 0, 0), "hand_r": Vector3(0.1, 0, 0), "swing": 0.0},
 	# reverse grip, the blades back along the forearms, arms pumping hard
@@ -55,7 +56,7 @@ const CARRIES := {
 ## Each frame (locomotion, on the ground): eases `carry_w` toward carrying.
 static func carry_weight(h, delta: float) -> void:
 	var on: bool = h.stance in CARRIES and h.armed and h._action.is_empty() and not h._gait_back \
-		and absf(h._travel_ang) < 0.9 and h.ground_speed > (RUN_OFF if h.carry_w > 0.5 else RUN_ON) \
+		and absf(h._travel_ang) < 0.6 and h.ground_speed > (RUN_OFF if h.carry_w > 0.5 else RUN_ON) \
 		and (h.sprinting or h.stance not in SPRINT_ONLY)
 	h.carry_w = move_toward(h.carry_w, 1.0 if on else 0.0, delta / CARRY_IN)
 

@@ -19,23 +19,22 @@ extends PlayerState
 ##   dual_axe gallows_hook, hewing_frenzy, axestorm, fimbulwinter (ult) in DualAxeArts
 ##   greatsword guardbreaker, crescent_gale, tempest_turns, skysplitter (ult) in GreatswordArts
 ##   black_leg mule_kick, hailstorm_heels, cartwheel_crescent, last_course (ult) in BlackLegArts
-##   unarmed  suplex, hip_toss, giant_swing (grapples), hundred_fists,
+##   unarmed  hip_toss (guard -> shoulder_throw), cannonball_fist, meteor_fist in FistArts; hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
 ##   haki     conquerors_haki (ult)
-## Grapples hold a light enemy (not bosses or big bugs) and carry it with the
-## body; in co-op only the host moves it (a guest's grab throws it from where it stands).
+## Shoulder Throw carries a light enemy (not bosses or big bugs) with the body; in co-op only the host moves
+## it (a guest's throw throws it from where it stands).
 
-const GRAB_REACH := 2.3
 ## The guard skills (Riposte, Iai Counter, Crossed Counter): the waiting pose, and
 ## per fighting style the answer [pose, length, damage].
 const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard", "parley": "riposte_guard",
-	"slip": "dg_slip_guard"}
+	"slip": "dg_slip_guard", "hip_toss": "fs_catch"}
 ## (Parley's answer is a turning cut and then a shot: PARLEY_SHOT more at 0.3 s; Slip's
 ## is out from behind them, a sure crit that bleeds)
 const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0],
 	"sword_pistol": ["parley_shot", 0.6, 16.0], "dagger": ["dg_slip", 0.55, 28.0]}
 ## Techniques that live in their own files (enter/update return false for ids not theirs).
-var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts]
+var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts]
 const PARLEY_SHOT := 28.0
 
 var id: String = ""
@@ -55,6 +54,9 @@ var _axe: Projectile
 
 func enter(data: Dictionary) -> void:
 	id = str(data.get("id", ""))
+	# (bare fists answer a caught blow with Shoulder Throw)
+	if id == "riposte_counter" and player.style() == "fist":
+		id = "shoulder_throw"
 	_slot = int(data.get("slot", -1))
 	_pc = player.power
 	t = 0.0
@@ -76,7 +78,7 @@ func enter(data: Dictionary) -> void:
 		if a.enter(self, id):
 			return
 	match id:
-		"riposte", "iai_counter", "cross_counter", "parley", "slip":
+		"riposte", "iai_counter", "cross_counter", "parley", "slip", "hip_toss":
 			# guard up for a second; the buff outlasts it a touch so exit() can tell a
 			# guard that timed out from one that was answered (the hit clears the buff)
 			dur = 1.0
@@ -246,16 +248,6 @@ func enter(data: Dictionary) -> void:
 			dur = 2.0
 			_victims = _closest(18.0, 99)
 			player.body_model.play("deaths_waltz", dur)
-		"suplex", "hip_toss", "giant_swing":
-			_target = _grab_target()
-			if _target == null:
-				_refund("Nobody to grab")
-				return
-			_dir = _flat_to(_target)
-			face_direction(_dir, 1.0)
-			dur = {"suplex": 1.1, "hip_toss": 0.95, "giant_swing": 2.1}[id]
-			_target.call("grabbed", dur + 0.3)
-			player.body_model.play({"suplex": "suplex", "hip_toss": "shoulder_throw", "giant_swing": "giant_swing"}[id], dur)
 			Net.fx("sfx", ["hit", player.global_position, -6.0, 0.05, 0.7])
 		"hundred_fists":
 			dur = 1.3
@@ -266,10 +258,6 @@ func enter(data: Dictionary) -> void:
 		"palm_strike":
 			dur = 0.55
 			player.body_model.play("palm_strike", dur)
-		"sea_king_fist":
-			dur = 1.45
-			player.body_model.play("sea_king_fist", dur)
-			Net.fx("sfx", ["haki", player.global_position, -4.0, 0.0, 0.6])
 		"conquerors_haki":
 			dur = 1.2
 			player.body_model.play("conqueror", dur)
@@ -289,7 +277,7 @@ func physics_update(delta: float) -> void:
 			_finish()
 		return
 	match id:
-		"riposte", "iai_counter", "cross_counter", "parley", "slip":
+		"riposte", "iai_counter", "cross_counter", "parley", "slip", "hip_toss":
 			_rooted(delta, 0.15)
 			# the waiting blade catches the light (the katana's waits in its scabbard: the hilt)
 			if _once("glint", 0.12) or _once("glint2", 0.55):
@@ -468,15 +456,6 @@ func physics_update(delta: float) -> void:
 		"deaths_waltz":
 			_rooted(delta, 0.0)
 			_waltz()
-		"suplex":
-			_rooted(delta, 0.0)
-			_suplex()
-		"hip_toss":
-			_rooted(delta, 0.0)
-			_hip_toss()
-		"giant_swing":
-			_rooted(delta, 0.0)
-			_giant_swing()
 		"hundred_fists":
 			_drift(delta, 1.2)
 			if t >= 0.1 and t < 1.0 and t >= 0.1 + _hits * 0.07:
@@ -495,13 +474,6 @@ func physics_update(delta: float) -> void:
 			_rooted(delta, 0.0)
 			if _once("palm", 0.2):
 				_palm()
-		"sea_king_fist":
-			_rooted(delta, 0.0)
-			if t < 0.75 and int(t * 20.0) % 3 == 0:
-				Net.fx("dust", [player.global_position + Vector3(randf_range(-1.2, 1.2), 0.05, randf_range(-1.2, 1.2)), 2, 0.5])
-				CombatManager.apply_camera_shake(0.03 + t * 0.05)
-			if _once("punch", 0.78):
-				_sea_king()
 		"conquerors_haki":
 			_rooted(delta, 0.0)
 			if _once("will", 0.38):
@@ -515,6 +487,8 @@ func physics_update(delta: float) -> void:
 # --------------------------------------------------------------------------
 ## The tree whose colours this technique wears (FX.TREE_FX).
 func _tree() -> String:
+	if id in ["shoulder_throw", "sea_king_unleash"]:
+		return "unarmed"
 	if id == "riposte_counter":
 		return {"katana": "katana", "dual_sword": "dual", "sword_pistol": "corsair", "dagger": "dagger"}.get(player.style(), "sword")
 	var tr := str(Skills.get_skill(id).get("tree", "base"))
@@ -597,16 +571,6 @@ func _aimed(reach: float) -> Node3D:
 			best_dot = dt
 			best = e
 	return best
-
-
-## A light enemy right in front of you (bosses and big bugs are too heavy).
-func _grab_target() -> Node3D:
-	for e in _closest(GRAB_REACH, 6):
-		if _flat_to(e).dot(_dir) < 0.3 or e.is_in_group("bosses"):
-			continue
-		if e.has_method("vine_weight") and str(e.call("vine_weight")) == "light" and e.has_method("grabbed"):
-			return e
-	return null
 
 
 ## Nothing to use it on: the cast is given back.
@@ -1393,7 +1357,7 @@ func _broadside(delta: float) -> void:
 
 
 # --------------------------------------------------------------------------
-# Unarmed: grapples
+# Unarmed: Shoulder Throw's carry (FistArts)
 # --------------------------------------------------------------------------
 ## Carry the grabbed enemy (the host moves it; a guest's stays where it stood).
 func _carry(p: Vector3) -> void:
@@ -1405,79 +1369,6 @@ func _carry(p: Vector3) -> void:
 	_target.reset_physics_interpolation()
 
 
-## Where a thrown body lands: everyone close goes down too (more with Heavy Landing).
-func _landing(at: Vector3) -> void:
-	var big := player.progression.has_flag("throw_splash")
-	var r := 3.2 if big else 1.8
-	Net.fx("dust_ring", [at, 14 if big else 8, 1.2 if big else 0.8])
-	Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.8])
-	for e in _pc.enemies_in(at + Vector3(0, 0.8, 0), r):
-		if e == _target:
-			continue
-		var hd := _hd(20.0 if big else 10.0, 7.0, true)
-		_strike_toward(e, hd, (e as Node3D).global_position - at)
-
-
-func _suplex() -> void:
-	var fwd := _dir
-	if t < 0.3:
-		_carry(player.global_position + fwd * 0.75 + Vector3.UP * 0.15)
-	elif t < 0.66:
-		# over your head in an arch and down behind you
-		var k := clampf((t - 0.3) / 0.36, 0.0, 1.0)
-		var a := PI * k
-		_carry(player.global_position + fwd * cos(a) * 0.8 + Vector3.UP * (0.15 + 1.5 * sin(a)))
-	if _once("slam", 0.66) and _target and is_instance_valid(_target):
-		var behind := player.global_position - fwd * 1.0
-		var hd := _hd(40.0, 5.0, true)
-		hd.unblockable = true
-		hd.hitstop_duration = 0.12
-		_strike_toward(_target, hd, -fwd)
-		_landing(behind)
-		player.squash(-4.0)
-		CombatManager.apply_camera_shake(0.3)
-
-
-func _hip_toss() -> void:
-	var fwd := _dir
-	if t < 0.25:
-		_carry(player.global_position + fwd * 0.7 + Vector3.UP * 0.1)
-	elif t < 0.5:
-		var k := clampf((t - 0.25) / 0.25, 0.0, 1.0)
-		_carry(player.global_position + fwd * (0.4 + 1.6 * k) + Vector3.UP * (0.1 + 1.6 * sin(k * PI * 0.8)))
-	if _once("throw", 0.5) and _target and is_instance_valid(_target):
-		var hd := _hd(28.0, 12.0, true)
-		hd.unblockable = true
-		_strike_toward(_target, hd, fwd)
-		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 1.1])
-	if _once("land", 0.82):
-		_landing(player.global_position + fwd * 4.5)
-
-
-func _giant_swing() -> void:
-	var fwd := _dir
-	if t < 0.3:
-		_carry(player.global_position + fwd * 0.75 + Vector3.UP * 0.1)
-		return
-	if t < 1.6:
-		# matches the pose: three turns, the body swung out at arm's length
-		var k := clampf((t - 0.3) / 1.3, 0.0, 1.0)
-		var ang := TAU * 3.0 * (1.0 - pow(1.0 - k, 1.6))
-		var out := fwd.rotated(Vector3.UP, -ang)
-		_carry(player.global_position + out * 1.7 + Vector3.UP * 0.75)
-		if t >= 0.4 + _hits * 0.15:
-			_hits += 1
-			for e in _pc.enemies_in(player.global_position + Vector3(0, 0.9, 0), 2.8):
-				if e != _target and not (e in _hit):
-					_hit.append(e)
-					_strike_toward(e, _hd(14.0, 8.0, true), (e as Node3D).global_position - player.global_position)
-			Net.fx("sfx", ["whoosh", player.global_position, -5.0, 0.1, 0.9])
-	if _once("let_go", 1.6) and _target and is_instance_valid(_target):
-		var hd := _hd(30.0, 14.0, true)
-		hd.unblockable = true
-		_strike_toward(_target, hd, fwd.rotated(Vector3.UP, -TAU * 3.0 - 0.6))
-		Net.fx("sfx", ["whoosh_big", player.global_position, 0.0, 0.05, 0.8])
-		CombatManager.apply_camera_shake(0.25)
 
 
 # --------------------------------------------------------------------------
@@ -1512,30 +1403,6 @@ func _palm() -> void:
 	Net.fx("dust", [player.global_position + _dir * 1.5, 10, 0.8])
 	Net.fx("sfx", ["whoosh_big", player.global_position, -1.0, 0.05, 1.3])
 	CombatManager.apply_camera_shake(0.2)
-
-
-func _sea_king() -> void:
-	var start := player.global_position
-	var length := 14.0
-	for e in _pc.enemies_in(start + _dir * length * 0.5 + Vector3(0, 0.9, 0), length * 0.6):
-		var rel := (e as Node3D).global_position - start
-		rel.y = 0.0
-		var along := rel.dot(_dir)
-		if along < -0.5 or along > length or (rel - _dir * along).length() > 2.6:
-			continue
-		var hd := _hd(60.0, 16.0, true)
-		hd.unblockable = true
-		_strike_toward(e, hd, _dir)
-	for i in range(7):
-		var p := start + _dir * (1.0 + i * 2.0)
-		Net.fx("dust", [p + Vector3(0, 0.05, 0), 8, 0.9])
-		Net.fx("punch_wind", [p + Vector3(0, 1.1, 0), _dir, 2.0, Color(1.0, 0.97, 0.9), true])
-	Net.fx("dust_ring", [start, 18, 1.4])
-	Net.fx("sfx", ["thud", start, 4.0, 0.03, 0.55])
-	Net.fx("sfx", ["whoosh_big", start, 2.0, 0.05, 0.6])
-	CombatManager.apply_camera_shake(0.5)
-	CombatManager.apply_hitstop(0.1, [player])
-	player.squash(-3.5)
 
 
 # --------------------------------------------------------------------------

@@ -3,12 +3,14 @@ extends RefCounted
 ## The skill trees of the v1.18.2 redesign (docs/progression_plan.md "Redesign"), grouped in sections:
 ##   captain    the Captain (levels 1-40)
 ##   combat     a tree per weapon (mastery 1-30, earned only with that weapon in hand)
-##   adventure  Acrobatics, Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
+##   adventure  Acrobatics (1-30), Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
 ##   fruit      the Driftfruit you ate (levels 1-20)
-## A tree grows up from its root in three branches. Big nodes (moves, techniques, mechanics, passives, the element,
-## the ultimate) come by themselves at their level; small stat "steps" (x/3, x/5) are bought with the tree's points
-## (one a level) in any order. A variant is two versions of one node: both owned once reached, one active (switched
-## at the ship's bunk). Progression reads the effects (same keys as SkillTree's, so the game's readers don't change).
+## A tree grows up from its root in three branches. Every node past the root is bought (1.18.4, docs/v1_18_4_plan.md):
+## weapon and fruit trees from the Combat pool (Captain levels), Adventure trees from the Adventure pool (their levels);
+## the tree's level only gates it (price: PRICE by kind, or a node's own "cost"). Small stat "steps" (x/3, x/5) are
+## bought a step at a time. A variant is two versions of one node: both owned once bought, one active (switched at the
+## ship's bunk). The Captain's nodes and a fruit's level-1 powers still come by themselves. Progression reads the
+## effects (same keys as SkillTree's, so the game's readers don't change).
 ##
 ## tree_def: {id, name, section, color, max_level, root, branches: [{name, nodes: [ids, big nodes then steps]}]}
 ## node_def: {id, name, kind, tree, branch (index, -1 the root), level, pos (tree space, y up is -), links, skill,
@@ -35,7 +37,7 @@ const HEADERS := {
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
 	"black_leg": ["Black Leg", "combat", Color(1.0, 0.45, 0.35), 30],
-	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 20],
+	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 30],
 	"defense": ["Defense", "adventure", Color(0.91, 0.84, 0.68), 20],
 	"sea": ["Sailing", "adventure", Color(0.45, 0.8, 0.85), 20],
 	"swim": ["Swimming", "adventure", Color(0.4, 0.7, 1.0), 20],
@@ -50,7 +52,7 @@ const HEADERS := {
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
 ## one goes straight up. A step sits off the node it hangs on.
-const LEFT := [Vector2(-120, -78), Vector2(-192, -162), Vector2(-252, -248), Vector2(-300, -336), Vector2(-336, -420), Vector2(-362, -500)]
+const LEFT := [Vector2(-120, -78), Vector2(-192, -162), Vector2(-252, -248), Vector2(-300, -336), Vector2(-336, -420), Vector2(-362, -500), Vector2(-380, -580)]
 const MID_STEP := 84.0
 const STEP_OFF := {0: [Vector2(-84, -28), Vector2(-64, 40)], 1: [Vector2(76, -30), Vector2(-76, -30)], 2: [Vector2(84, -28), Vector2(64, 40)],
 	-1: [Vector2(72, -18), Vector2(-72, -18), Vector2(104, 34), Vector2(-104, 34)]}
@@ -78,6 +80,13 @@ const GROWTH := {"max_hp": 5.5, "damage_pct": 0.02, "max_stamina": 0.6, "max_ene
 ## Will milestones: id -> [the boss that teaches it (Progression.boss_kind), the Wills it needs first].
 const WILL := {"h_arm": ["morrow", []], "h_coat": ["ape", ["h_arm"]], "h_obs": ["queen", ["h_arm"]], "h_fore": ["arena", ["h_arm"]],
 	"h_conq": ["sea_king", ["h_arm", "h_coat", "h_obs", "h_fore"]]}
+
+## A node's price by kind, plus a point for every 10 levels of its gate (a step: 1 a step); Adventure's are cheaper.
+## Nodes that became others (an old save's purchase is bought back as the new one, same gate and price): the fists'
+## wrestling moves went in 1.18.4.
+const RENAMED := {"u_suplex": "u_cannon", "u_swing": "u_meteor_fist"}
+const PRICE := {"move": 2, "mech": 2, "tech": 3, "passive": 3, "variant": 4, "elem": 5, "ult": 8}
+const PRICE_ADVENTURE := {"move": 1, "mech": 1, "tech": 2, "passive": 2, "variant": 2, "elem": 3, "ult": 4}
 
 static var _trees: Dictionary = {}
 static var _nodes: Dictionary = {}
@@ -124,6 +133,29 @@ static func section_of(tree: String) -> String:
 
 static func max_level(tree: String) -> int:
 	return int(HEADERS[tree][3])
+
+
+## The points a tree's nodes are bought with: "combat" (weapons and the fruit), "adventure", "" (the Captain).
+static func pool_of(tree: String) -> String:
+	match section_of(tree):
+		"combat", "fruit":
+			return "combat"
+		"adventure":
+			return "adventure"
+	return ""
+
+
+## A node's price in its pool's points (a step's is per step); 0 for one that isn't bought.
+static func price(id: String) -> int:
+	var n := node_def(id)
+	if n.has("cost"):
+		return int(n["cost"])
+	if n["kind"] == "step":
+		return 1
+	var base: Dictionary = PRICE_ADVENTURE if section_of(str(n["tree"])) == "adventure" else PRICE
+	if not base.has(n["kind"]) or pool_of(str(n["tree"])) == "":
+		return 0
+	return int(base[n["kind"]]) + int(n["level"]) / 10
 
 
 ## Every node of a tree (root, big nodes, steps, versions).
@@ -307,7 +339,15 @@ static func _build_acrobatics() -> void:
 	_root("ac_root", "Acrobatics", {}, "Jump, dodge and sprint to build it: air jumps and dodges count most.")
 	_big("m_geppo", "Geppo", "mech", 0, 2, {"air_jumps": 1}, "Kick off the air itself: a second jump in mid-air.")
 	_big("m_skywalk", "Sky Walk", "mech", 0, 9, {"air_jumps": 1}, "One more jump in mid-air (three in all).")
+	_big("ac_breakfall", "Breakfall", "move", 0, 12, {"breakfall": 1},
+		"Knocked flying by a heavy blow, or tumbling from a long fall: press jump in the air to right yourself and come down on your feet.")
 	_big("ac_feather", "Featherfall", "mech", 0, 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing.")
+	_big("ac_skydash", "Skyward Dash", "move", 0, 18, {"skyward_dash": 1},
+		"Righted in mid-air (Breakfall, or an air step out of a tumble): dodge for an air dash, and two more air steps. Enough to get back aboard after a blow throws you off the ship.")
+	_big("ac_skyleap", "Sky Leap", "move", 0, 22, {"sky_leap": 1},
+		"Stand still and hold jump: Will hardens your legs, then let go to leap 25 m into the sky (40 stamina; a shorter hold, a shorter leap). You land in a crater, unhurt, with your air steps still to use.")
+	_big("ac_heavenward", "Heavenward", "move", 0, 28, {"heavenward": 1},
+		"Sky Leap's full charge carries you 20 m higher and 4 m further (50 stamina): 60 m with Haki Legs.")
 	_big("m_swift", "Swift Step", "mech", 1, 4, {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
 		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.")
 	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
@@ -320,6 +360,8 @@ static func _build_acrobatics() -> void:
 	_step("ac_hang", "Hang Time", "m_skywalk", 3, {"dodge_iframe_pct": 0.08}, "Untouchable 8% longer in a dodge, a step.")
 	_step("ac_spring", "Spring", "m_sprinter", 3, {"sprint_cost_pct": 0.05}, "Sprinting burns 5% less stamina a step.")
 	_step("ac_wind", "Wind", "ac_bound", 3, {"max_stamina": 4.0}, "+4 max stamina a step.")
+	_step("ac_hakilegs", "Haki Legs", "ac_skyleap", 3, {"sky_leap_steps": 1}, "Sky Leap goes 5 m higher and 2 m further a step.")
+	_nodes["ac_hakilegs"]["level"] = 23
 
 
 static func _build_defense() -> void:
@@ -890,29 +932,29 @@ static func _build_pistol() -> void:
 
 
 static func _build_unarmed() -> void:
-	_tree("unarmed", ["Grapple", "Martial", "Body"])
-	_root("u_root", "Unarmed", {}, "Bare-handed brawling: jab, cross, hook and a flying kick. Fight with your fists to build unarmed mastery.")
+	_tree("unarmed", ["Power", "Martial", "Body"])
+	_root("u_root", "Unarmed", {}, "Bare-handed boxing: jab, cross and hook, each out of the last, and on right-click a huge overhand haymaker that knocks them flat. Fight with your fists to build unarmed mastery.")
 	_big("u_hip", "Shoulder Throw", "tech", 0, 3, {}, "", "hip_toss")
-	_big("u_landing", "Heavy Landing", "mech", 0, 9, {"throw_splash": 1, "skill_unarmed": 0.25},
-		"Anyone you throw lands like a cannonball: everyone near where they land is knocked flat and hurt. Your grapples and martial arts hit 25% harder.")
-	_big("u_suplex", "Suplex", "tech", 0, 12, {}, "", "suplex")
-	_big("u_swing", "Giant Swing", "tech", 0, 18, {}, "", "giant_swing")
+	_big("u_landing", "Heavy Landing", "mech", 0, 9, {"throw_splash": 1, "dmg_unarmed": 0.25},
+		"Anyone your haymaker or a throw knocks flat lands like a cannonball: everyone near where they come down is knocked flat and hurt. Your punches hit 25% harder.")
+	_big("u_cannon", "Cannonball Fist", "tech", 0, 12, {}, "", "cannonball_fist")
+	_big("u_meteor_fist", "Meteor Fist", "tech", 0, 18, {}, "", "meteor_fist")
 	_big("u_palm", "Shockwave Palm", "tech", 1, 4, {}, "", "palm_strike")
 	_big("u_dragon", "Rising Dragon", "tech", 1, 8, {}, "", "rising_dragon")
 	_big("u_hundred", "Hundred Fists", "tech", 1, 13, {}, "", "hundred_fists")
 	_elem(1)
 	_elem(2)
 	_big("u_seaking", "Sea King Fist", "ult", 1, 30, {}, "", "sea_king_fist")
-	_big("u_round", "Roundhouse", "move", 2, 2, {"mv_roundhouse": 1}, "Adds a fourth hit to your punch combo: a spinning roundhouse kick.")
-	_big("u_meteor", "Meteor Kick", "move", 2, 6, {"mv_meteor_kick": 1},
-		"Attack in the air: a dive kick at the enemy you're looking at that knocks them flat and bounces you back up for another (three in a row); a miss slams the ground.")
+	_big("u_round", "Uppercut", "move", 2, 2, {"mv_roundhouse": 1}, "Adds a fourth hit to your punch combo: a dipping rear uppercut that lifts them off their feet.")
+	_big("u_meteor", "Diving Fist", "move", 2, 6, {"mv_meteor_kick": 1},
+		"Attack in the air: dive fist-first at the enemy you're looking at, a punch that knocks them flat and bounces you back up for another (three in a row); a miss drives the fist into the ground.")
 	_big("u_ironbody", "Iron Body", "passive", 2, 11, {"def_unarmed": 8.0, "parry_unarmed": 0.06}, "Passive (a slot). Fighting bare-handed: +8 defense and a wider parry window.")
 	_big("u_chi", "Chi", "passive", 2, 15, {"flow_unarmed": 0.5, "leech_unarmed": 0.06}, "Passive (a slot). Unarmed hits give 50% more energy and heal you for 6% of their damage.")
 	_big("u_finish", "Finishing Blow", "passive", 2, 22, {"finisher_unarmed": 0.4, "cdr_unarmed": 0.2},
 		"Passive (a slot). The last hit of your combo lands 40% harder, and unarmed techniques come back 20% sooner.")
 	_step("u_knuckles", "Iron Knuckles", "u_root", 5, {"dmg_unarmed": 0.05}, "+5% unarmed damage a step.")
-	_step("u_grip", "Grip", "u_hip", 3, {"skill_unarmed": 0.06}, "Your grapples and martial arts hit 6% harder a step.")
-	_step("u_skin", "Stone Skin", "u_suplex", 3, {"def_unarmed": 2.0}, "+2 defense bare-handed a step.")
+	_step("u_grip", "Grip", "u_hip", 3, {"skill_unarmed": 0.06}, "Your fist techniques hit 6% harder a step.")
+	_step("u_skin", "Stone Skin", "u_cannon", 3, {"def_unarmed": 2.0}, "+2 defense bare-handed a step.")
 	_step("u_points", "Pressure Points", "u_elem", 5, {"crit_unarmed": 0.03}, "3% more of your unarmed hits land 50% harder, a step.")
 	_step("u_hands", "Heavy Hands", "u_hundred", 5, {"finisher_unarmed": 0.06}, "The last hit of your combo lands 6% harder a step.")
 	_step("u_feet", "Light Feet", "u_round", 3, {"stam_unarmed": 0.07}, "Unarmed attacks cost 7% less stamina a step.")

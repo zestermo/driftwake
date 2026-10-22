@@ -94,13 +94,16 @@ func apply_gravity(delta: float) -> void:
 		elif player.variable_jump_active and not Input.is_action_pressed("jump"):
 			g *= player.short_hop_gravity_mult  # let go early = shorter hop
 		player.velocity.y -= g * delta
-		player.velocity.y = maxf(player.velocity.y, -34.0)
+		player.velocity.y = maxf(player.velocity.y, -Player.MAX_FALL_SPEED)
 
 
 ## Attack/parry input: first press draws the weapon, later presses attack.
 ## Returns the state to enter, or "" if nothing should happen.
 func combat_input() -> String:
 	if player.is_using_item():
+		return ""
+	if player.fist_armed > 0.0 and input_buffer.consume_action("light_attack"):
+		FistArts.unleash(player)
 		return ""
 	if input_buffer.consume_action("light_attack"):
 		if player.can_attack():
@@ -140,6 +143,9 @@ func combat_input() -> String:
 ## Attack pressed in the air: the plunging jump attack (needs a drawn weapon,
 ## a bit of height under you and the stamina); unarmed it draws the weapon.
 func air_attack_input() -> String:
+	if player.fist_armed > 0.0 and input_buffer.consume_action("light_attack"):
+		FistArts.unleash(player)
+		return ""
 	# too close to the ground: leave the press buffered for a landing attack
 	if player.can_attack() and player.height_above_ground() < 0.9:
 		return ""

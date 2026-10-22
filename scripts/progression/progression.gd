@@ -6,13 +6,15 @@ extends Node
 ## from combat (defeating enemies). Fighting with a weapon builds that weapon's mastery (1-30), and only that
 ## weapon's: a hit counts for the first HITS_PER_FOE hits on each foe, a kill gives MASTERY_KILL_SHARE of its
 ## experience (ELITE_SHARE times that for elites and bosses).
-## The redesigned trees (SkillTrees, docs/progression_plan.md "Redesign"): big nodes come by themselves at their
-## level, small stat steps are bought with the tree's points (one a level), a variant's versions are both owned and
-## one is active, and passives count only in a passive slot. Steps, versions and talents are switched only at the
-## ship's bunk (can_respec). A tree shows once its first point is earned (tree_found, with the HUD's card).
+## The trees (SkillTrees; points model of docs/v1_18_4_plan.md): two pools. Combat points come from Captain levels
+## (combat_earned) and buy any weapon tree's or the eaten fruit's nodes; Adventure points, one a level any Adventure
+## tree gains, buy any Adventure tree's. Everything past a root is bought (buy, buy_why); a tree's level only gates
+## it. A variant's versions are both owned and one is active, and passives count only in a passive slot. Versions
+## and talents are switched at the ship's bunk (can_respec), and a tree's purchases come back there for gold
+## (respec_tree). A tree shows once its first xp is earned (tree_found, with the HUD's card).
 ## The Captain: every level adds SkillTrees.GROWTH by itself (in stat()), milestones come at their level, a talent
-## is picked every 5 levels, and Will comes from bosses (boss_kind, beaten, grant_will). No skill points.
-## Trees not converted yet keep SkillTree's nodes (life perks at milestones, the fruit's nodes).
+## is picked every 5 levels, and Will comes from bosses (boss_kind, beaten, grant_will). A fruit's level-1 powers
+## come with eating it.
 ## Active skills go on the skill bar (PowerComponent.loadout) and rank up through tiers by use alone.
 ## Each captain's own (a guest's lives and saves on the guest's machine).
 
@@ -50,9 +52,12 @@ const BUNK_REACH := 2.5
 ## Trees a new captain sees.
 const FOUND_AT_START := ["captain", "sword"]
 ## Save format: 2 = per-tree points, mastery, tiers; 3 = families and life skills; 4 = the trimmed trees (older
-## saves are refunded once); 5 = the redesign (steps, versions, passive slots, found trees; a converted tree's
-## old purchases are dropped on every load and its points come back by themselves).
-const FORMAT := 5
+## saves are refunded once); 5 = the redesign (steps, versions, passive slots, found trees); 6 = the two pools
+## (bought nodes; an older save's nodes and steps are bought back while the pools afford them, the rest refunded).
+const FORMAT := 6
+## Respec at the bunk: RESPEC_GOLD + RESPEC_PER_LEVEL x the Captain's level, a tree.
+const RESPEC_GOLD := 100
+const RESPEC_PER_LEVEL := 40
 
 var player: Player
 var level: int = 1
@@ -68,6 +73,8 @@ var tiers: Dictionary = {}
 var uses: Dictionary = {}
 ## step node -> steps bought
 var steps: Dictionary = {}
+## big node -> true, bought with its pool's points
+var bought: Dictionary = {}
 ## variant or talent node -> the active version (a variant without an entry: 0; a talent: not picked)
 var versions: Dictionary = {}
 ## The passive slots: node ids ("" empty), PASSIVE_SLOTS of them (a fourth at level 25).
@@ -77,7 +84,12 @@ var found: Dictionary = {}
 ## Will milestones earned (id -> true), and the bosses beaten that teach them (boss_kind -> true)
 var will: Dictionary = {}
 var beaten: Dictionary = {}
-var _refunded: bool = false
+## An older save was bought back on load (after_load's banner).
+var _migrated: bool = false
+## Tests and render tools (master_all): points given on top of the earned ones, so the pools read 0.
+var _gift: Dictionary = {}
+var _spend_rev := -1
+var _spend: Dictionary = {}
 var _wind_used := false
 var _sneak_frame := -AMBUSH_TICKS
 var _sneak_m := 0.0
@@ -183,6 +195,8 @@ func _on_level_up() -> void:
 			if talent_at(lv) < 0:
 				sub += "  -  a talent to pick (K)"
 				break
+		if can_spend("combat"):
+			sub += "  -  " + points_line("combat")
 		get_tree().call_group("hud", "show_banner", "Level %d!" % level, sub)
 		SaveGame.save(player)
 	leveled_up.emit(level)
@@ -320,14 +334,19 @@ func _gain(tree: String, amount: int) -> void:
 		m["xp"] = 0
 	if ups == 0:
 		return
-	var got := _sync_tree(tree, false)
+	var lv := int(m["lv"])
+	_sync_tree(tree, false)
 	_dirty()
 	if player:
-		var msg := "%s %s%d" % [tree_name(tree), "mastery " if SkillTrees.section_of(tree) == "combat" else "", int(m["lv"])]
-		for k in got:
+		var msg := "%s %s%d" % [tree_name(tree), "mastery " if SkillTrees.section_of(tree) == "combat" else "", lv]
+		var opens: Array = SkillTrees.nodes_of(tree).filter(func(k):
 			var n := SkillTrees.node_def(k)
-			msg += "  -  %s" % n["name"] + (": %s" % n["desc"] if n["kind"] == "mech" else "")
-		player.call("_toast", msg + "  -  +%d point%s (K)" % [ups, "" if ups == 1 else "s"])
+			return SkillTrees.price(k) > 0 and n["kind"] != "step" and int(n["level"]) > lv - ups and int(n["level"]) <= lv)
+		if not opens.is_empty():
+			msg += "  -  opens " + ", ".join(opens.slice(0, 2).map(func(k): return str(SkillTrees.node_def(k)["name"])))
+		if SkillTrees.pool_of(tree) == "adventure" and can_spend("adventure"):
+			msg += "  -  " + points_line("adventure")
+		player.call("_toast", msg)
 		Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 12, Color(0.75, 0.9, 1.0)])
 	mastery_up.emit(tree, int(m["lv"]))
 
@@ -426,13 +445,10 @@ func _find(tree: String) -> void:
 	if found.has(tree) or not SkillTrees.has_tree(tree) or SkillTrees.section_of(tree) == "fruit":
 		return
 	found[tree] = true
+	_rev += 1
 	tree_found.emit(tree)
 	if player and player.is_local and is_inside_tree():
-		var line := "Added to %s" % SkillTrees.section_of(tree).to_upper()
-		var pts := points_free(tree)
-		if pts > 0:
-			line += " · %d point%s to spend" % [pts, "" if pts == 1 else "s"]
-		get_tree().call_group("hud", "show_new_tree", tree_name(tree), line)
+		get_tree().call_group("hud", "show_new_tree", tree_name(tree), "Added to %s" % SkillTrees.section_of(tree).to_upper())
 
 
 func tree_level(tree: String) -> int:
@@ -450,52 +466,208 @@ func tree_xp_next(tree: String) -> int:
 	return mastery_to_next(tree_level(tree)) if tree_level(tree) < max_of(tree) else 0
 
 
-## Points to buy steps with: one a level past the first, less the steps bought (old trees: their stored points).
-func points_free(tree: String) -> int:
-	if not SkillTrees.converted(tree):
-		return points(tree)
-	if tree == "captain":
-		return 0
-	var spent := 0
+## Combat points earned by Captain level `lv`: 2 at the start; then 2 on even levels and 1 on odd ones to 10, 2 a
+## level to 20, 3 to 30, 4 to 40 (106 in all).
+static func combat_earned(lv: int) -> int:
+	var n := 2
+	for l in range(2, lv + 1):
+		if l <= 10:
+			n += 2 if l % 2 == 0 else 1
+		else:
+			n += 2 if l <= 20 else (3 if l <= 30 else 4)
+	return n
+
+
+## Points earned into `pool` ("combat": Captain levels; "adventure": a point a level any Adventure tree gains).
+func earned(pool: String) -> int:
+	var n := int(_gift.get(pool, 0))
+	if pool == "combat":
+		return n + combat_earned(level)
+	for t in SkillTrees.trees_in("adventure"):
+		if mastery.has(t):
+			n += int(mastery[t]["lv"]) - 1
+	return n
+
+
+func spent(pool: String) -> int:
+	var n := 0
+	for k in bought.keys():
+		if SkillTrees.pool_of(str(SkillTrees.node_def(k)["tree"])) == pool:
+			n += SkillTrees.price(k)
 	for k in steps.keys():
-		if SkillTrees.node_def(k)["tree"] == tree:
-			spent += int(steps[k])
-	return tree_level(tree) - 1 - spent
+		if SkillTrees.pool_of(str(SkillTrees.node_def(k)["tree"])) == pool:
+			n += SkillTrees.price(k) * int(steps[k])
+	return n
+
+
+## Tests and render tools: `n` points into a pool on top of the earned ones (not saved).
+func gift(which: String, n: int) -> void:
+	_gift[which] = int(_gift.get(which, 0)) + n
+	_dirty()
+
+
+## Unspent points in "combat" or "adventure".
+func pool(which: String) -> int:
+	return earned(which) - spent(which)
+
+
+## The unspent points `tree`'s nodes are bought with (0 for the Captain).
+func points_free(tree: String) -> int:
+	var p := SkillTrees.pool_of(tree)
+	return pool(p) if p != "" else 0
+
+
+static func pool_name(which: String) -> String:
+	return "Combat" if which == "combat" else "Adventure"
+
+
+## The one short prompt: "5 Combat points (K)".
+func points_line(which: String) -> String:
+	var n := pool(which)
+	return "%d %s point%s (K)" % [n, pool_name(which), "" if n == 1 else "s"]
+
+
+## Something in a found tree of `which` can be bought right now (remembered until something changes).
+func can_spend(which: String) -> bool:
+	if _spend_rev != _rev:
+		_spend_rev = _rev
+		_spend.clear()
+	if not _spend.has(which):
+		_spend[which] = false
+		if pool(which) > 0:
+			var trees := visible_trees("adventure") if which == "adventure" else visible_trees("combat") + visible_trees("fruit")
+			for t in trees:
+				if SkillTrees.nodes_of(t).any(func(k): return buy_why(k) == ""):
+					_spend[which] = true
+					break
+	return _spend[which]
 
 
 func steps_of(node: String) -> int:
 	return int(steps.get(node, 0))
 
 
-## Why a step can't be bought now ("" = it can).
-func step_why(node: String) -> String:
-	var n := SkillTrees.node_def(node)
-	if n.is_empty() or n["kind"] != "step":
-		return "Not a step"
-	if steps_of(node) >= int(n["max_steps"]):
-		return "Full"
-	if points_free(str(n["tree"])) < 1:
-		return "Needs a point (one every %s level)" % tree_name(str(n["tree"]))
+## Nodes that come by themselves: the roots, the Captain's, a fruit's level-1 powers.
+func _free(n: Dictionary) -> bool:
+	return n["kind"] in ["root", "version"] or SkillTrees.pool_of(str(n["tree"])) == "" or (SkillTrees.section_of(str(n["tree"])) == "fruit" and int(n["level"]) <= 1 and n["kind"] != "step")
+
+
+## Why a node can't be bought now ("" = it can): its tree's level gates it, a step needs the node it hangs on, the
+## second element the first, and its price must be in the pool.
+func buy_why(id: String) -> String:
+	var n := SkillTrees.node_def(id)
+	if n.is_empty():
+		return "Unknown"
+	var tree := str(n["tree"])
+	var kind := str(n["kind"])
+	if _free(n):
+		if owns(id):
+			return "Learned"
+		if kind == "will" or n.has("will"):
+			return str(n["desc"]).get_slice(".", 0) if kind == "will" else "Comes with %s" % SkillTrees.node_def(n["will"])["name"]
+		if kind == "talent":
+			return "Pick it at Captain %d" % int(n["level"])
+		return "Comes at %s %d" % [tree_name(tree), int(n["level"])]
+	if kind == "step":
+		if steps_of(id) >= int(n["max_steps"]):
+			return "Full"
+	elif owns(id):
+		return "Learned"
+	if tree_level(tree) < int(n["level"]):
+		return "Needs %s %d" % [tree_name(tree), int(n["level"])]
+	if not _visible(tree):
+		return "Eat the fruit first" if SkillTrees.section_of(tree) == "fruit" else "Not found yet"
+	var on := str(n["links"][0]) if not n["links"].is_empty() else ""
+	if kind == "step" and SkillTrees.node_def(on)["kind"] != "root" and not owns(on):
+		return "Needs %s first" % SkillTrees.node_def(on)["name"]
+	if kind == "elem":
+		for k in SkillTrees.nodes_of(tree):
+			var e := SkillTrees.node_def(k)
+			if e["kind"] == "elem" and int(e["level"]) < int(n["level"]) and not owns(k):
+				return "Needs %s first" % e["name"]
+	var p := SkillTrees.pool_of(tree)
+	if SkillTrees.price(id) > pool(p):
+		return "Needs %d %s point%s" % [SkillTrees.price(id), pool_name(p), "" if SkillTrees.price(id) == 1 else "s"]
 	return ""
 
 
-func buy_step(node: String) -> bool:
-	if step_why(node) != "":
+## Buy a node with its pool's points (a step: one step).
+func buy(id: String) -> bool:
+	if buy_why(id) != "":
 		return false
-	steps[node] = steps_of(node) + 1
+	_take(id)
 	_dirty()
 	return true
 
 
-## At the ship's bunk: every step of `tree` back as points.
-func respec_steps(tree: String) -> bool:
+## (`quiet`: a load, nothing put on the bar or in a passive slot)
+func _take(id: String, quiet: bool = false) -> void:
+	var n := SkillTrees.node_def(id)
+	if n["kind"] == "step":
+		steps[id] = steps_of(id) + 1
+		return
+	bought[id] = true
+	var own_id := id
+	if n["kind"] == "variant":
+		owned[id] = true
+		own_id = str(n["versions"][version_of(id)]["id"])
+	if quiet:
+		owned[own_id] = true
+	else:
+		_own(own_id)
+
+
+func step_why(node: String) -> String:
+	return buy_why(node)
+
+
+func buy_step(node: String) -> bool:
+	return SkillTrees.node_def(node).get("kind", "") == "step" and buy(node)
+
+
+## What a tree's respec costs at the bunk (gold).
+func respec_price() -> int:
+	return RESPEC_GOLD + RESPEC_PER_LEVEL * level
+
+
+## Why `tree` can't be refunded now ("" = it can).
+func respec_why(tree: String) -> String:
+	if not bought.keys().any(func(k): return SkillTrees.node_def(k)["tree"] == tree) and not steps.keys().any(func(k): return SkillTrees.node_def(k)["tree"] == tree):
+		return "Nothing bought"
 	if not can_respec():
+		return "Only at the ship's bunk"
+	if player.inventory_component.count("gold") < respec_price():
+		return "Needs %d gold" % respec_price()
+	return ""
+
+
+## At the ship's bunk, for respec_price() gold: everything bought in `tree` back into its pool.
+func respec_tree(tree: String) -> bool:
+	if respec_why(tree) != "":
 		return false
+	player.inventory_component.remove_item(ItemDB.get_item("gold"), respec_price())
+	_drop_tree(tree)
+	return true
+
+
+func _drop_tree(tree: String) -> void:
+	for k in bought.keys():
+		var n := SkillTrees.node_def(k)
+		if n["tree"] != tree:
+			continue
+		bought.erase(k)
+		owned.erase(k)
+		for v in n["versions"]:
+			owned.erase(v["id"])
 	for k in steps.keys():
 		if SkillTrees.node_def(k)["tree"] == tree:
 			steps.erase(k)
+	_fit_passives()
+	if player:
+		for i in range(PowerComponent.SLOTS):
+			if player.power.loadout[i] != "" and not knows(player.power.loadout[i]):
+				player.power.equip("", i)
 	_dirty()
-	return true
 
 
 ## (the contract's has_node: Node already has one)
@@ -617,8 +789,8 @@ func _fit_passives() -> void:
 	passives = keep
 
 
-## A converted tree's big nodes up to its level (a variant with its active version, a picked talent with its pick,
-## an earned Will with its passive); returns the ones just granted.
+## The nodes of a tree that come by themselves up to its level (the Captain's: a picked talent with its pick, an
+## earned Will with its passive; a fruit's level-1 powers); returns the ones just granted.
 func _sync_tree(tree: String, quiet: bool) -> Array:
 	var got: Array = []
 	if not SkillTrees.converted(tree) or (SkillTrees.section_of(tree) == "fruit" and (player == null or player.power.fruit != tree)):
@@ -626,7 +798,7 @@ func _sync_tree(tree: String, quiet: bool) -> Array:
 	var lv := tree_level(tree)
 	for k in SkillTrees.nodes_of(tree):
 		var n := SkillTrees.node_def(k)
-		if n["kind"] in ["step", "version"] or int(n["level"]) > lv or owns(k):
+		if n["kind"] in ["step", "version"] or int(n["level"]) > lv or owns(k) or not _free(n):
 			continue
 		if (n["kind"] == "will" and not has_will(k)) or (n.has("will") and not has_will(n["will"])) or (n["kind"] == "talent" and version_of(k) < 0):
 			continue
@@ -642,7 +814,7 @@ func _sync_tree(tree: String, quiet: bool) -> Array:
 	return got
 
 
-## Tests and render tools: every converted tree at its top level with every big node and every step.
+## Tests and render tools: every tree at its top level with everything bought (the points given, so the pools read 0).
 ## The Captain at the top level with every talent's first pick and every Will; the fruit you ate at its top.
 func master_all() -> void:
 	level = MAX_LEVEL
@@ -654,14 +826,23 @@ func master_all() -> void:
 		if not has_will(id):
 			grant_will(id)
 	for t in SkillTrees.HEADERS.keys():
-		if SkillTrees.converted(t) and t != "captain":
-			mastery_of(t)["lv"] = max_of(t)
-			mastery_of(t)["xp"] = 0
-			_sync_tree(t, false)
-			for k in SkillTrees.nodes_of(t):
-				if SkillTrees.node_def(k)["kind"] == "step":
-					steps[k] = int(SkillTrees.node_def(k)["max_steps"])
+		if not SkillTrees.converted(t) or t == "captain":
+			continue
+		mastery_of(t)["lv"] = max_of(t)
+		mastery_of(t)["xp"] = 0
+		_sync_tree(t, false)
+		if SkillTrees.section_of(t) == "fruit" and (player == null or player.power.fruit != t):
+			continue
+		for k in SkillTrees.nodes_of(t):
+			var n := SkillTrees.node_def(k)
+			if n["kind"] == "step":
+				steps[k] = int(n["max_steps"])
+			elif SkillTrees.price(k) > 0 and not _free(n) and not owns(k):
+				_take(k)
 	_sync_tree("captain", false)
+	_gift = {}
+	for p in ["combat", "adventure"]:
+		_gift[p] = maxi(spent(p) - earned(p), 0)
 	_fit_passives()
 	_dirty()
 
@@ -680,32 +861,13 @@ func owns(id: String) -> bool:
 	return owned.has(id)
 
 
-## The old skill map's name for points_free (0 for a tree that isn't SkillTrees').
-func points(tree: String) -> int:
-	return points_free(tree) if SkillTrees.has_tree(tree) else 0
-
-
-func points_word(tree: String, n: int) -> String:
-	return "%d %s point%s" % [n, "mastery" if SkillTrees.section_of(tree) == "combat" else "skill", "" if n == 1 else "s"]
-
-
-## Why a node can't be learned right now ("" = it can): big nodes come at their level (a talent is picked, a Will
-## earned), steps are bought (learn buys one).
+## (the old skill map's names for buy_why and buy)
 func can_learn(id: String) -> String:
-	var n := SkillTrees.node_def(id)
-	if n.is_empty():
-		return "Unknown"
-	if n["kind"] == "step":
-		return step_why(id)
-	if owns(id):
-		return "Learned"
-	if n["kind"] == "will" or n.has("will"):
-		return str(n["desc"]).get_slice(".", 0) if n["kind"] == "will" else "Comes with %s" % SkillTrees.node_def(n["will"])["name"]
-	return "Comes at %s %d" % [tree_name(str(n["tree"])), int(n["level"])]
+	return buy_why(id)
 
 
 func learn(id: String) -> bool:
-	return can_learn(id) == "" and buy_step(id)
+	return buy(id)
 
 
 func _own(id: String) -> void:
@@ -720,9 +882,17 @@ func _own(id: String) -> void:
 	changed.emit()
 
 
-## A Devil Fruit's tree opens when you eat it: its root and first powers, and the rest as its level grows.
+## A Devil Fruit's tree opens when you eat it: its root and first powers (the rest is bought as its level grows);
+## another fruit's purchases go back into the pool.
 func grant_fruit(fruit_id: String) -> void:
+	for t in SkillTrees.trees_in("fruit"):
+		if t != fruit_id:
+			for k in SkillTrees.nodes_of(t):
+				owned.erase(k)
+				bought.erase(k)
+				steps.erase(k)
 	_sync_tree(fruit_id, false)
+	_dirty()
 
 
 ## Sum of an effect over every owned node and bought step (asked several times a frame: remembered until
@@ -884,7 +1054,7 @@ func rank_up(skill_id: String) -> bool:
 # Save / load
 # --------------------------------------------------------------------------
 func to_dict() -> Dictionary:
-	return {"format": FORMAT, "level": level, "xp": xp, "owned": owned.keys(),
+	return {"format": FORMAT, "level": level, "xp": xp, "owned": owned.keys(), "bought": bought.keys(),
 		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate(),
 		"steps": steps.duplicate(), "versions": versions.duplicate(), "passives": Array(passives), "found": found.keys(),
 		"will": will.keys(), "beaten": beaten.keys(), "meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate(),
@@ -914,9 +1084,11 @@ func from_dict(d: Dictionary) -> void:
 	beaten = {}
 	_foe_hits = {}
 	skill_points = 0
+	bought = {}
+	_gift = {}
 	var fmt := int(d.get("format", 1))
 	var ms: Dictionary = d.get("mastery", {})
-	var gone := 0
+	var want: Array = []
 	if fmt < 4:
 		# older trees: mastery levels and uses kept (gold and gear are other sections), every node refunded
 		for t in ms.keys():
@@ -926,21 +1098,23 @@ func from_dict(d: Dictionary) -> void:
 		if fmt >= 2:
 			uses = (d.get("uses", {}) as Dictionary).duplicate()
 	else:
-		for k in d.get("owned", []):
-			if not SkillTrees.node_def(str(k)).is_empty():
-				owned[str(k)] = true
-			else:
-				gone += 1
+		# (format 5 owned its big nodes by level: they're bought back below like a format 6 save's)
+		for k0 in d.get("bought" if fmt >= 6 else "owned", []):
+			var k := str(SkillTrees.RENAMED.get(str(k0), k0))
+			var n := SkillTrees.node_def(k)
+			if not n.is_empty() and n["kind"] != "step" and SkillTrees.price(k) > 0 and not (k in want):
+				want.append(k)
 		for t in ms.keys():
 			if is_track(str(t)):
 				mastery[str(t)] = (ms[t] as Dictionary).duplicate()
 		tiers = (d.get("tiers", {}) as Dictionary).duplicate()
 		uses = (d.get("uses", {}) as Dictionary).duplicate()
+	var want_steps := {}
 	var sd: Dictionary = d.get("steps", {})
 	for k in sd.keys():
 		var n := SkillTrees.node_def(str(k))
 		if n.get("kind", "") == "step":
-			steps[str(k)] = clampi(int(sd[k]), 0, int(n["max_steps"]))
+			want_steps[str(k)] = clampi(int(sd[k]), 0, int(n["max_steps"]))
 	var vd: Dictionary = d.get("versions", {})
 	for k in vd.keys():
 		var n := SkillTrees.node_def(str(k))
@@ -964,38 +1138,59 @@ func from_dict(d: Dictionary) -> void:
 	for t in mastery.keys():
 		if mastery_level(t) >= max_of(t):
 			mastery[t] = {"lv": max_of(t), "xp": 0}
-	_refit_converted()
+	for t in SkillTrees.HEADERS.keys():
+		_sync_tree(t, true)
+	_buy_back(want, want_steps)
 	for sk in known_skills():
 		while rank_up(sk):
 			pass
 	_fit_passives()
-	_refunded = (fmt < FORMAT and (level > 1 or not ms.is_empty())) or gone > 0
+	_migrated = fmt < FORMAT and (level > 1 or not ms.is_empty())
 	_rev += 1
 	changed.emit()
 
 
-## A converted tree's nodes come from its level: what an older save bought there is dropped and granted again
-## by level, and its points (the level less the steps) come back by themselves.
-func _refit_converted() -> void:
-	for k in owned.keys():
+## A save's purchases bought again while the pools afford them, the rest left in the pools: first what's on the bar
+## (the power component loads before us) or in a passive slot, then each tree's big nodes lowest gate first (the
+## highest-level trees first), then the steps.
+func _buy_back(want: Array, want_steps: Dictionary) -> void:
+	var bar: Array = Array(player.power.loadout) if player else []
+	var in_use := func(k: String) -> bool:
 		var n := SkillTrees.node_def(k)
-		if not n.is_empty() and n["kind"] != "root":
-			owned.erase(k)
-	for t in SkillTrees.HEADERS.keys():
-		_sync_tree(t, true)
-		if SkillTrees.converted(t) and points_free(t) < 0:
-			for k in steps.keys():
-				if SkillTrees.node_def(k)["tree"] == t:
-					steps.erase(k)
+		var ids: Array = [k]
+		var sks: Array = [str(n["skill"])]
+		for v in n["versions"]:
+			ids.append(str(v["id"]))
+			sks.append(str(v["skill"]))
+		return ids.any(func(i): return i in passives) or sks.any(func(s): return s != "" and s in bar)
+	var first := want.filter(in_use)
+	var rest := want.filter(func(k): return not (k in first))
+	var by_tree := func(a: String, b: String) -> bool:
+		var na := SkillTrees.node_def(a)
+		var nb := SkillTrees.node_def(b)
+		var la := tree_level(str(na["tree"]))
+		var lb := tree_level(str(nb["tree"]))
+		if la != lb:
+			return la > lb
+		if na["tree"] != nb["tree"]:
+			return str(na["tree"]) < str(nb["tree"])
+		return int(na["level"]) < int(nb["level"])
+	rest.sort_custom(by_tree)
+	for k in first + rest:
+		if buy_why(k) == "":
+			_take(k, true)
+	var ks: Array = want_steps.keys()
+	ks.sort_custom(by_tree)
+	for k in ks:
+		for i in range(int(want_steps[k])):
+			if buy_why(k) != "":
+				break
+			_take(k, true)
 
 
-## After the power component has loaded too: give back the fruit's free nodes
-## and clear bar slots holding skills you no longer know (a refunded save).
+## After the power component has loaded too: the fruit's free nodes, and clear bar slots holding skills you no
+## longer know (a refunded save).
 func after_load() -> void:
-	for t in SkillTrees.trees_in("fruit"):
-		if t != player.power.fruit:
-			for k in SkillTrees.nodes_of(t):
-				owned.erase(k)
 	if player.power.has_fruit():
 		grant_fruit(player.power.fruit)
 	for i in range(PowerComponent.SLOTS):
@@ -1003,11 +1198,13 @@ func after_load() -> void:
 		if sk != "" and not knows(sk):
 			player.power.equip("", i)
 	player.call("_recalc_stats")
-	if _refunded:
-		_refunded = false
+	if _migrated:
+		_migrated = false
 		for p in library()["passives"]:
 			if passives.has("") and not (p in passives):
 				passives[passives.find("")] = p
 		_rev += 1
-		get_tree().call_group("hud", "show_banner", "The skill trees are new!",
-			"Every reworked tree's points are back, and its moves come with mastery - press K to see", true)
+		var left: Array = ["combat", "adventure"].filter(func(p): return can_spend(p))
+		if not left.is_empty():
+			get_tree().call_group("hud", "show_banner", "The skill trees are new!",
+				"Everything is bought with points now: " + " and ".join(left.map(func(p): return points_line(p))), true)

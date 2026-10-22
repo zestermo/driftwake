@@ -1,7 +1,7 @@
 extends SceneTree
 ## The learned air attacks: without the move a style plunges; Twin Cyclone (dual
 ## swords: several cuts on the way down, a burst on landing that knocks flat),
-## Meteor Kick (unarmed: knocks flat, bounces you up, a second kick allowed
+## Diving Fist (unarmed: knocks flat, bounces you up, a second dive allowed
 ## after the bounce), Hang Shot (one pistol: hangs, one heavy shot knocks flat,
 ## uses a ball), Boarding Dive (cutlass: a point-first dive that lands, a
 ## backflip off them).
@@ -28,7 +28,7 @@ var press_in_air := false
 var case_i := 0
 const CASES := [
 	{"name": "Twin Cyclone", "node": "d_cyclone", "items": ["cutlass", "cutlass"], "style": "dual_sword", "anim": "twin_cyclone", "off": 2.2, "up": 2.0},
-	{"name": "Meteor Kick", "node": "u_meteor", "items": [], "style": "fist", "anim": "meteor_kick", "off": 3.5, "up": 3.0},
+	{"name": "Diving Fist", "node": "u_meteor", "items": [], "style": "fist", "anim": "fs_dive", "off": 3.5, "up": 3.0},
 	{"name": "Hang Shot", "node": "g_hangshot", "items": ["pistol"], "style": "pistol", "anim": "hang_shot", "off": 9.0, "up": 2.5},
 	{"name": "Boarding Dive", "node": "s_dive", "items": ["cutlass"], "style": "sword", "anim": "boarding_dive", "off": 3.5, "up": 3.0},
 ]
@@ -230,7 +230,7 @@ func _process(d: float) -> bool:
 				p.current_state_name() == "Plunge" and p.body_model.current_action() == c["anim"])
 			if c["anim"] == "hang_shot":
 				check("...hanging, not falling (%.2f m dropped)" % hang_drop, hang_drop < 0.3)
-			wait = 0.5 if c["anim"] == "meteor_kick" else 1.3
+			wait = 0.5 if c["anim"] == "fs_dive" else 1.3
 			step = 14
 		14:
 			var c: Dictionary = CASES[case_i]
@@ -238,8 +238,8 @@ func _process(d: float) -> bool:
 				"twin_cyclone":
 					check("...cuts on the way down and a burst on landing (%d hits, %.0f -> %.0f)" % [drops, hp0, g.health.current_health], drops >= 2)
 					check("...the landing burst knocks them flat", downed)
-				"meteor_kick":
-					check("...kicks them flat (%.0f -> %.0f)" % [hp0, g.health.current_health], downed and g.health.current_health < hp0)
+				"fs_dive":
+					check("...punches them flat (%.0f -> %.0f)" % [hp0, g.health.current_health], downed and g.health.current_health < hp0)
 					check("...and bounces you back up (%s)" % str(saw.keys()), bounced and saw.has("vault_back"))
 					# another kick off the bounce
 					p.input_buffer.buffer_action("light_attack")

@@ -13,6 +13,8 @@ extends RefCounted
 ##     its tree (Progression.rank_up). The top tier changes how it works.
 
 const ICON_DIR := "res://assets/textures/icons/"
+## Skills that became others (an old save's bar keeps the slot): the fists' wrestling moves went in 1.18.4.
+const RENAMED := {"suplex": "cannonball_fist", "giant_swing": "meteor_fist"}
 
 const ALL := {
 	# --- Mobility / Survival (Rokushiki-style body techniques) ---
@@ -191,13 +193,13 @@ const ALL := {
 		"desc": "Shove the barrel into the nearest enemy and fire: a blast that throws them off their feet."},
 	"deaths_waltz": {"name": "Death's Waltz", "tree": "pistol", "cost": 0.0, "cooldown": 3.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Turn through a deadly waltz, shooting every enemy within 18 m three times; the last shot knocks them down."},
-	# --- Unarmed: grapples ---
-	"suplex": {"name": "Suplex", "tree": "unarmed", "cost": 18.0, "cooldown": 6.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
-		"desc": "Grab the enemy in front of you, arch back and slam them head-first into the ground behind you."},
+	# --- Unarmed: power ---
 	"hip_toss": {"name": "Shoulder Throw", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
-		"desc": "Grab the enemy in front of you and hurl them over your shoulder; anyone they land on goes down too."},
-	"giant_swing": {"name": "Giant Swing", "tree": "unarmed", "cost": 24.0, "cooldown": 10.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
-		"desc": "Grab an enemy and spin, smashing everyone around you with them, then let them fly."},
+		"desc": "Hands open to catch for a second: a blow caught in them is turned aside and whoever threw it goes over your shoulder, knocking down anyone they land on. A boss or a heavy gets a straight right back instead."},
+	"cannonball_fist": {"name": "Cannonball Fist", "tree": "unarmed", "cost": 18.0, "cooldown": 6.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
+		"desc": "Plant your feet and drive a straight right through the enemy in front: they're launched down the line like a cannonball, bowling over everyone behind them."},
+	"meteor_fist": {"name": "Meteor Fist", "tree": "unarmed", "cost": 24.0, "cooldown": 9.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
+		"desc": "A short hop and a burning overhand driven into the ground: the earth cracks and a shockwave knocks everyone around you flat. Used in the air you dive onto the ground instead, harder the further you fall."},
 	# --- Unarmed: martial arts ---
 	"hundred_fists": {"name": "Hundred Fists", "tree": "unarmed", "cost": 20.0, "cooldown": 7.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "A blur of punches for a second, then a last straight that blows them away."},
@@ -206,7 +208,7 @@ const ALL := {
 	"palm_strike": {"name": "Shockwave Palm", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Drive an open palm forward: a burst of air hurls everything in a cone in front of you."},
 	"sea_king_fist": {"name": "Sea King Fist", "tree": "unarmed", "cost": 0.0, "cooldown": 3.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique", "ult": true,
-		"desc": "Ultimate. Draw your fist back as the air trembles, then punch: a shockwave as wide as a ship tears 14 m ahead, knocking everything flat."},
+		"desc": "Ultimate. Your fist takes the power and glows: for 8 s move as you like, then attack (or R) to let it go. On the ground a punch that tears 16 m ahead and blows up where it lands; in the air a dive onto the ground, harder the further you fall; right after a parry it hits the attacker first; out of a dash it carries your speed. Unused, it fades and half the ultimate comes back."},
 	# --- Haki ---
 	"conquerors_haki": {"name": "Conqueror's Haki", "tree": "base", "cost": 0.0, "cooldown": 3.0, "state": "Technique", "ult": true,
 		"desc": "Ultimate. Unleash the will of a king: weak foes around you (common pirates and bugs below 40% health) faint on the spot; everyone else is thrown back, reeling."},

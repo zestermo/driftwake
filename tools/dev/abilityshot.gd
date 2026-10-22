@@ -6,7 +6,8 @@ extends SceneTree
 ##       dagger|dual_dagger|sword_dagger|polearm|hammer|dual_axe|greatsword|black_leg]
 ##       [views: game,side,front3,top,close] [frames=8] [span s=1.2] [start s=0.0]
 ## skill_id may also be "heavy" (the right-click), "combo" (the light combo, clicked
-## through every 0.2 s), "air" (the jump attack from 2.5 m up) or "riposte_counter".
+## through every 0.2 s), "air" (the jump attack from 2.5 m up), "riposte_counter" or "sea_king_unleash" (Sea King
+## Fist let go on the ground, armed for it).
 ## Writes <out_prefix>_<skill>.png. Env AB_HOUR=21 films it at night; AB_TIER=0/1/2
 ## with no weapon element awakened / on skills only / on every blow (default 2).
 const STAGGER := 9
@@ -210,6 +211,10 @@ func _process(d: float) -> bool:
 				p.reset_physics_interpolation()
 				p.state_machine.force_state("Plunge", {})
 				print("cast air: true (%s)" % p.state_machine.current_state.get("_mode"))
+			elif skill == "sea_king_unleash":
+				p.fist_armed = 1.0
+				p.state_machine.force_state("Technique", {"id": "sea_king_unleash"})
+				print("cast sea_king_unleash: true")
 			elif skill == "riposte_counter":
 				p.state_machine.force_state("Technique", {"id": "riposte_counter", "target": camp.grunts[0]})
 				print("cast riposte_counter: true")

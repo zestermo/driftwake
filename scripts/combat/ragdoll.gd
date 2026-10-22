@@ -251,6 +251,17 @@ func set_targets(targets: Dictionary, wiggle: Dictionary = {}) -> void:
 	_wiggle = wiggle
 
 
+## Fall at a character's own gravity (m/s^2) up to its top fall speed (a tumbling captain falls as the captain does).
+var _fall_cap: float = 0.0
+
+
+func fall_like(g: float, cap: float) -> void:
+	_fall_cap = cap
+	var k := g / float(ProjectSettings.get_setting("physics/3d/default_gravity", 9.8))
+	for p in parts:
+		(p["body"] as RigidBody3D).gravity_scale = k
+
+
 ## Go limp (death).
 func relax() -> void:
 	stiffness = 0.0
@@ -428,6 +439,11 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_muscles(delta)
+	if _fall_cap > 0.0:
+		for p in parts:
+			var fb: RigidBody3D = p["body"]
+			if fb.linear_velocity.y < -_fall_cap:
+				fb.linear_velocity.y = -_fall_cap
 	if _ocean == null:
 		_ocean = get_node_or_null("/root/Ocean")
 		if _ocean == null:

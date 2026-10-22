@@ -77,7 +77,7 @@ func _process(d: float) -> bool:
 			match s:
 				"skills":
 					check("skill map fills the canvas", c.size == Vector2(640, 360))
-					check("a sign per tab hangs from the beam", c._tab_rects.size() == c.tabs().size() and c._tab_rects.size() >= 4)
+					check("a sign per tab hangs from the beam", c._tab_rects.size() == c.tabs().size() and c._tab_rects.size() >= 3)
 					check("the open tree's nodes are on screen inside the canvas", c._drawn.any(func(h): return str(h[1]).begins_with("n:"))
 						and c._drawn.all(func(h): return Rect2(Vector2.ZERO, c.size).grow(4.0).encloses(h[0])))
 				"shop":

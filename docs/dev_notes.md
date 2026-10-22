@@ -5212,3 +5212,245 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   Stable section; home's banner and news/index.html list only stable posts (the 1.18.1 capital post is unlisted, still
   linked from the releases page). For the next stable release: delete tools/release/UNSTABLE, add its roadmap entry
   without the flag, set "here" to it, update the home banner and news list as usual.
+
+## 2026-10-21: walk carry and guard pose fixes (1.18.4 batch, Zach's play)
+- **Cutlass guard's free arm** (`Humanoid.SWORD_GUARD` arm_l y 2.3 -> 1.0, x 1.4 -> 1.15): the left fist up by the side
+  at about shoulder-to-head height instead of the elbow and fist back behind the shoulder (world: 0.1 m behind the
+  shoulder, 0.41 out). `SwordMoves.OFF_GUARD` (slash_r's reach start) moved to the new hand (-0.34, 0.17, -0.22).
+- **Cutlass run carry** (`StanceLife.CARRIES` sword, sword_pistol, dual_sword mirrored): the arm hangs at the side (was
+  swung back -0.55 behind the hip), the blade trailed back, down and out to the right with its flat rolled up to the
+  camera behind. Straight forward from the game camera the old carry read as the sword dragged down behind the player;
+  a diagonal showed it side on, which Zach liked; now forward shows that diagonal line too.
+- **Polearm run/sprint carry** (`PoleMoves.RUN_GRIP`): port arms, both hands on the shaft (slide 0.5), slanted up across
+  the front from the right hip to past the left shoulder (was one hand low at the side, head out ahead and down). The
+  other option (one hand mid-shaft, slanted behind the back) needs the shaft shifted through the hand and its butt would
+  sit in front of the stepping thigh; port arms reads cleaner from behind at PS1 resolution.
+- Checked: hammer, greatsword and twin axes walk in their guards (no carry under a sprint), none trails behind.
+- Tests: t/weapons/cutlass_carry (new: the guard's free hand, the forward carry's hand and blade), t/weapons/polearm_stance
+  (the run check now wants both hands on the shaft, slanted up left, the head over the left shoulder); cutlass_combo,
+  slash_dummy, polearm_moves/combo, draw_sheathe, quick_mid_swing, sprint, rig_drift pass. Expect fixtest/feat/stamtest
+  (slash_r's reach start moved) and wieldtest (Corsair, twin swords' carry) to want a look at the push.
+- Tool: guardsheet env GS_MOVE="x,y" (the travel direction). Renders: tools/dev/out/carry/before, it6 (guard), after.
+## 2026-10-21: tooling window (after v1.18)
+- crew_lib `Get-TestKey` reads the deps file's stamp with `[IO.File]::GetLastWriteTimeUtc` and its lines in a try, so a file another session deletes between the check and the read counts as "no deps recorded" instead of killing the run.
+- compilecheck lints an autoload name (from project.godot `[autoload]`) used inside a `static func` in scripts/ or scenes/ ("STATIC AUTOLOAD file:line ... reach it through the tree"): a --script suite that names the class compiles without the autoloads. 30 files already did it (474 lines), so they are listed by file in `tools/dev/static_autoload_allow.txt` as a ratchet: new files fail, and an entry that matches nothing is reported. Reach the autoload with `(Engine.get_main_loop() as SceneTree).root.get_node("Net")` when a file is next reworked.
+- nettest.ps1: each mode writes `net[-mode].host|client|watch.log` and `.deps` in tools/dev/out/logs, so modes can run at once (board + jam, board + chain pass together).
+- forest_fauna and snow_wolves name the creatures they spawn (desert_fauna already did): a creature's rng is seeded by its node name.
+- `Humanoid._rng` is seeded from the global rng (`randi()`): fixed per suite seed in tests, random in a live game (its seed is random at start-up).
+- Known: r10test fails on main at "strafing (0.7071, 0.7071): the planted foot barely slides (1.64 m/s)" against a 1.6 limit, with or without the rng change (deterministic): from the stance pass (armed default stance); it stops the suite before the jump-side checks.
+
+## 2026-10-21: the air walk, freefall tumble and air recovery (docs/v1_18_4_plan.md "Air step", "Freefall tumble", "Air recovery")
+- **Air walk** (piece 1): Geppo's and Sky Walk's air jumps (action still named `double_jump`) are One Piece's air walk,
+  not a somersault: `MovePoses._air_step` keys the knee driven high (held a beat), the foot stamped straight down onto
+  the air while the other knee comes up, the arms pumping against the legs, upright (pivot eased in from wherever the
+  body was, so a tumble rights into it). Each step takes the other foot (`Humanoid.air_foot`, flipped on the step's
+  first pose; puppets flip theirs the same way). Out of SPIN_ACTIONS and GAZE_FREE; spec `sharp` 50. JumpState fires
+  the ring, a mist puff ring and motes under the stamping foot at `MovePoses.STAMP_S` (0.15 s, when the foot lands in
+  the pose), through Net.fx. Landing is still the kneel. Test: t/player/air_step (was double_jump: no flip, knee
+  high, +1.2 m, alternating feet under Sky Walk). Render: animsheet `double_jump` at yaw 90 and 125. animsheet now
+  poses the skinned arms (ArmBody._pose) per frame as well as the legs: before, every sheet showed the arms frozen.
+- **Freefall tumble** (piece 2): `Player.freefall_from` (PlayerState.now_s) is set by every jump and air step
+  (JumpState) and by FallState.enter unless it comes from JumpState (`{"from_jump": true}`), so an ability, attack,
+  plunge or anything else that drops back into Fall restarts it. FallState: past `FREEFALL_TUMBLE` (3.5 s) with more
+  than 3 m under you -> DownedState `{"tumble": true, "velocity"}`: a limp ragdoll (no muscles) with a head-over-heels
+  spin (`TUMBLE_SPIN`) falling at the captain's own gravity (32 m/s^2) and top speed (`Ragdoll.fall_like`,
+  `Player.MAX_FALL_SPEED` 34; knockdown ragdolls still fall at 9.8). The root rides the body vertically while it falls
+  (camera follows), and the get-up waits for the landing. Landing: `Player.tumble_landed` = the usual fall damage
+  (~85 from terminal speed) with no stagger (Downed's own get-up instead); in deep water the usual float-up. Jump in
+  the tumble with an air step left: `Player.recover_in_air` (root to the body, its speed kept, the body eased upright
+  from the sprawl over 0.25 s) and JumpState `{"air": true}` (the step's pivot keys in from the sprawl). At this
+  gravity 3.5 s is a ~100 m drop (a 5 m drop takes ~0.6 s): tune `FREEFALL_TUMBLE` in play. Co-op: the ragdoll,
+  recover and step mirror through Humanoid's net events like a knockdown. Per tick: one clamp loop over the 11
+  ragdoll parts while a tumble is down, a ground ray in Fall only once past 3.5 s. Tests: t/player/freefall_tumble,
+  freefall_reset.
+- **Breakfall and Skyward Dash** (piece 3; Acrobatics Air branch, `ac_breakfall` "move" 12 and `ac_skydash` "move" 18,
+  priced by kind like the rest). DownedState `_recover` on jump while the body is still in the air (not yet landed):
+  a tumble with an air step left takes the step; otherwise the `breakfall` flag with the hips > 1.2 m over the
+  ground (`_hips_up`, a ray from the hips: the root may already be on the ground under a flying body) rights you:
+  `recover_in_air`, the `breakfall` action (MovePoses: a tuck rolling the pivot from the sprawl to level, then open,
+  arms wide), a ring and a whoosh, into Fall. A knockback ragdoll without Breakfall ignores the press. Either recovery
+  calls `Player.air_recovered`: with `skyward_dash`, `Player.skyward_dash` (cleared on landing) and
+  `jumps_remaining += SKYWARD_STEPS` (2; JumpState treats any jump off the floor as an air step, since this can go over
+  max_jumps). Fall/Jump: dodge with `skyward_dash` -> DodgeState `{"air": true}`: input's way or the camera's forward,
+  level (vy 0), `AIR_DASH_DIST` 6.5 m in `AIR_DASH_DUR` 0.32 s on the dodge's burst curve, an afterimage, a ring
+  and a whoosh, then Fall. With Sky Walk + Skyward Dash that's 6.5 m flat plus four air steps (~1.3 m each) to climb
+  back to a deck. Tests: t/player/breakfall (no Breakfall: nothing; with it: upright in Fall, lands on its feet),
+  skyward_dash (two extra steps, 6.4 m dash, level, once).
+## 2026-10-21: the two points pools (1.18.4 batch, points rework piece 2)
+- What: every node past a root is **bought**. Combat points (`Progression.combat_earned`: 2, then 2/1 alternating to
+  Captain 10 = 16, 2 a level to 20 = 36, 3 to 30 = 66, 4 to 40 = 106) buy any weapon tree's nodes and the eaten fruit's
+  (its level-1 powers still come free); Adventure points (a point a level any Adventure tree gains) buy Adventure nodes.
+  A tree's level only gates (`buy_why`: "Needs Katana 12", a step needs the node it hangs on, the second element the
+  first, "Needs 5 Combat points"). Prices: `SkillTrees.price` = PRICE / PRICE_ADVENTURE by kind + gate / 10, a step 1,
+  or a node's own `"cost"` (so the movement/fists blocks add nodes with no price edits). The Captain's nodes (milestones,
+  talents, Will) are unchanged. Numbers and why: docs/v1_18_4_plan.md "Preview: the numbers" (Zach's OK).
+- Where: progression.gd (`bought`, `earned/spent/pool`, `buy/buy_why`, `can_spend` remembered per `_rev`, `respec_tree`
+  for 100 + 40 x level gold at the bunk, `gift` for tests and tools, `master_all` buys everything and gifts the points);
+  skill_trees.gd (`pool_of`, `price`); save_game.gd loads the power component **before** progression now (the bar
+  decides what a migrated save buys back first).
+- Saves: format 6 stores `bought`. Every load buys the saved purchases back in order (bar skills and slotted passives,
+  then each tree's big nodes lowest gate first, the highest-level tree first, then steps) while the pool affords them;
+  a format-5 save's owned big nodes go through the same path, so what doesn't fit is refunded. One banner after a
+  migration, only if a pool can buy something.
+- The stale prompts: the mastery toast said "+N points (K)" from the levels gained on every tree's level-up (Adventure
+  trees level from jumps and dodges), and the HUD pulsed the hand weapon's own points forever. Now the mastery toast
+  names what the level opens; "N Adventure/Combat points (K)" is added only to a level-up that earned points and only
+  while that pool can buy something (`can_spend`); the skill bar's pulse uses the same test.
+- Per frame: the skill bar asks `can_spend` (remembered until `_rev` changes; a recompute walks the found trees' nodes
+  once) and, while it's true, `pool()` (a walk over the bought nodes and steps, under 100 entries).
+- Tests: t/progression gate_and_buy, pools, prompts, buy_back (new or rewritten), versions_bunk (gold respec),
+  refund_migration, acrobatics, stealth, life_mastery, passive_slots, tree_shape (every node priced); t/ship/seamanship;
+  t/ui skills_loadout, skills_version_bunk. Suites edited, not run (prepush): progtest, balancetest, daggertest,
+  wieldtest, powertest; renders skillmapshot and seamapshot buy their nodes.
+
+- 2026-10-21 r10test strafe slide: two stance-pass causes. The run carry took the 45 deg forward diagonal (`StanceLife.carry_weight` travel < 0.9 rad), so the strafe's chest/hips went to the run's and the planted foot slid 1.64 m/s (was 0.93); it now stops at 0.6 rad (34 deg). The cutlass's side-on hips (`HIPS` 0.55) were only relaxed 60% at a walk, adding slide to the lateral strafe (2.49 m/s vs 1.85) and back-diagonal; `_stance_hips` now relaxes fully with `walk`. r10test's straight reference walks at 2.4 m/s (a carried run has its own chest). Limits unchanged.
+## 2026-10-21: the skills menu slimmed (1.18.4 batch, points rework piece 3)
+- What: trees show icons and names only. Gone from the tree: level numbers on nodes, the steps' "2/5" chips (now a pip
+  a step under the node), the branches' "n OF m" counts. Gone from the card: the per-tree points chip and "ONE A LEVEL",
+  the "Coming next" list and the always-on "How it grows" (now in the root's panel). What can be bought right now has
+  a soft pulsing ring in the tree's colour. A variant is lit only once bought.
+- The card (select panel) has the picked or hovered node in full: kind (a step's count), "NEEDS KATANA 12" (green when
+  met, else with the level you're at), the price and what's left in its pool, what it does (a variant's two versions,
+  the active one marked), and the one action (ENTER: BUY / the reason / YOURS / switch at the bunk). A hovered node
+  also gets a one-line tip by the cursor (name, price, gate). Both pools are on the beam's plate
+  ("COMBAT 6 · ADVENTURE 3", the coin keeps the level).
+- At the ship's bunk the card shows "REFUND THIS TREE: N GOLD" for a tree with purchases: a first click asks (the price
+  in the line), a second pays (Progression.respec_tree).
+- Locked trees were already hidden (the rail, the chart and the Adventure list draw only found trees; the Driftfruit
+  sign only with a fruit); skills_buy_node checks it.
+- Per frame (only while the menu is open): `buy_why` for each drawn node, for the glow.
+- Tests: t/ui skills_buy_node, skills_respec (new); the other skills_* and t/progression pass. Renders:
+  tools/dev/skillmapshot.gd (its _variant shot hovers the iai upgrade for the tip and the card).
+
+## 2026-10-21: fists redone as boxing, piece 1 (docs/v1_18_4_plan.md "Fists")
+- **What:** the unarmed light combo is boxing now, each blow out of the last one's turn: jab (lead straight, the lead
+  shoulder rolled over) -> cross (rear straight, the back heel turned, hips past square) -> lead hook (out of the
+  cross's turn, the elbow up and out, the body swung through) -> rear uppercut (a dip, then the legs driven up; the
+  tree's fourth-hit move, node id `u_round` / flag `mv_roundhouse` kept for saves, now named Uppercut; it knocks
+  them down via LightAttackState cfg `"launch"`). The right-click is the **haymaker** (HeavyAttackState "haymaker",
+  `fs_hay`): rocked back with the fist drawn up over the right shoulder and the left arm out measuring, then a long
+  step in and the overhand over the top and down through them; breaker, knockdown, 30 damage, the unarmed ring/dust.
+  The roundhouse kick and the flying kick are gone (black-leg keeps its own kicks).
+- **Where:** `scripts/npc/fist_moves.gd` (FistMoves: GUARD, LEGS, every `fs_*` pose, the reach paths), reached from
+  `Humanoid._action_pose` by the `fs_` prefix; `_guard()` "fist" and STANCE_LEGS "fist" point at it. ActionSpecs
+  `fs_jab/fs_cross/fs_hook/fs_upper/fs_hay` (len, hit, chain, sharp 50, lead). The old jab/cross/hook/roundhouse/
+  flying_kick poses and FIST_GUARD left humanoid.gd.
+- **How it's built:** the body keyed (hips lead, chest turns through, head on the target, the off fist tucked to the
+  chin), the punching fist on a **reach path** in the body's own frame (`follow` 0, `from_shoulder`: points are
+  offsets from the punching shoulder, ~0.66 m = straight), so straights go out straight at the target ahead and the
+  hook sweeps flat round the front; every path starts and ends on the guard fist's spot (AT_L / AT_R, measured from
+  the keyed guard) so the hand leaves and rejoins the guard without a pop. A chest-frame (`follow` 1) try put the
+  uppercut and the haymaker's fist behind the head: the bladed chest's yaw swings the frame too far.
+- **Guard:** bladed orthodox, chin down, lead fist out at chin height, rear fist by the cheek; the stance pass's
+  bounce kept (StanceLife.BOUNCE).
+- **Tested:** `t/weapons/fist_combo` (guard shape, each blow lands on the dummy, the jab's arm reaches 0.65 m, the
+  haymaker's cock over the shoulder and its damage). progtest's "unarmed light attack is a jab" check reads `fs_jab`.
+  Suites expected to be touched: progtest, techtest, balancetest, stamtest (fist combo/heavy names and timings).
+- Per frame: nothing new (one reach solve on the punching arm during a punch, as the cutlass's free hand).
+## 2026-10-21: Sky Leap (docs/v1_18_4_plan.md "Sky Leap")
+- **Nodes** (Acrobatics Air branch; **Acrobatics now goes to 30**, the other Adventure trees stay at 20, so it earns
+  10 more Adventure points): `ac_skyleap` Sky Leap "move" 22 (`sky_leap`), `ac_hakilegs` Haki Legs, 3 steps hanging off
+  it, gated at 23 (`sky_leap_steps`; steps have no per-step gates, so all three open at 23), `ac_heavenward`
+  Heavenward "move" 28 (`heavenward`). SkillTrees.LEFT got a 7th slot for the Air branch's seventh big node.
+- **SkyLeapState** (`scripts/player_states/sky_leap_state.gd`, node "SkyLeap" in player.tscn): Idle sends a jump press
+  there while jump is still held and Sky Leap is owned. Released under `TAP` (0.2 s): JumpState `{"full": true}` (the
+  jump fires on release, so variable-jump is off: a full standing jump). Held: the `sky_leap_charge` hold (deep
+  squat, trembling), `FX.haki_legs` (a dark glossy sheen, metallic with a crimson rim, over both shins and feet: four
+  MeshInstances under the shins sharing one material of their own that fades; a second call carries on from it), a
+  `gather`, the haki sound, a dust puff ring every 0.3 s growing with the charge, a ring + glint at full (`CHARGE`
+  1.2 s). Release: k = held / 1.2; height `reach().x * k` (25 + 5 a Haki Legs step + 20 Heavenward), forward
+  `reach().y * k` at the apex (5 + 2 + 4), stamina `cost() * lerp(0.5, 1, k)` (40, Heavenward 50; refused = a plain
+  jump). v0 = sqrt(2 g h) at the rise gravity (Player.gravity 20, no short-hop), the forward speed constant over the
+  rise; the state rises itself (no air steps, attacks or tumble clock), and at the apex goes to Fall `from_jump` with
+  `freefall_from` = now (the tumble's 3.5 s counts from the top; a 60 m fall takes ~2 s), the air steps left
+  (`max_jumps - 1`) and, with Skyward Dash owned, the air dash.
+- **Landing**: `Player.sky_leap_fall` (set on launch, cleared by the landing, a tumble's landing or swimming):
+  `_on_landed` skips the fall damage and calls `SkyLeapState.crater` above the safe speed (puff ring, ring, debris,
+  five seeded ground cracks off wood/water, rock_crash + thud, local shake); the body lands in the kneel
+  (`_jkind` "leap", MovePoses.LAND_SECS 0.55); no stagger.
+- **Co-op**: the holds mirror through Humanoid's net events, every effect through Net.fx (haki_legs takes the body).
+- **Per tick**: nothing while not leaping; during a leap the state's own move_and_slide (as Jump/Fall). The sheen is 4
+  small meshes on the leaping body only while it shows, no shadows.
+- **Tests**: t/player/sky_leap (a tap is a 1.7 m jump; full charge 25.0/40.0/60.0 m up and 5/11/15 m forward with
+  no nodes / Haki Legs x3 / + Heavenward; stamina 40/40/50; never Downed; no damage; lands on its feet).
+  Render: animsheet `sky_leap_charge,sky_leap`. The fists' dive-punch height scaling is the fists agent's.
+
+## 2026-10-21: fists piece 2, the Power branch (docs/v1_18_4_plan.md "Fists"; Zach's six pitches)
+- **(a) Shoulder Throw is a counter, Heavy Landing extended.** The Grapple branch is **Power**. `hip_toss` (Shoulder
+  Throw, node `u_hip`, ids kept for saves) is a guard skill now, like Riposte: a second with the hands open to catch
+  (`fs_catch`, buff "riposte"); a blow caught in it comes to TechniqueState as `riposte_counter`, which a fist style
+  turns into `shoulder_throw` (FistArts): a hitstop/slow beat, then the old carry-and-heave over the shoulder (the
+  `shoulder_throw` pose) on whoever threw it; a boss or a non-light enemy gets a breaker straight right instead.
+  **Heavy Landing** (`u_landing`, flag `throw_splash`, now `dmg_unarmed` +25%: all punches) also covers the haymaker:
+  HeavyAttackState hands the haymaker's victims to `FistArts.haymaker_landed`, which lands each 0.45 s later where
+  their body is (`landing`: ring 3.4 m, 22 damage, knocked flat, rock and a crack); without the node a throw still
+  splashes 1.8 m for 10. TechniqueState's `_landing` (still used by Suplex/Giant Swing until piece b) calls it.
+- **Where:** `scripts/player_states/fist_arts.gd` (FistArts, in TechniqueState `_arts`; reaches Net/CombatManager
+  through the tree and FX's colours through a preload, so the static-autoload lint passes), FistMoves `fs_catch`.
+- **Tested:** `t/weapons/fist_counter` (cast -> fs_catch; a grunt's blow does no harm and becomes shoulder_throw; the
+  thrower and the grunt where he lands are hurt; uncaught it times out). techtest lost its hip_toss grab row.
+
+## 2026-10-21: F9 crash report (not reproduced)
+
+- Zach reported plain F9 crashing a debug run. t/progression/debug_level_up sends F9 to the light-stage player (unarmed, katana, fruit eaten, saving on, level 1 to the cap, every weapon tree to its top): no crash on main at 7815eeee. Kept as a guard; needs his console output or an F12 capture to go further.
+## 2026-10-21: the skills menu clarity pass (1.18.4 batch, "Skill menu" row; Zach: "the skill trees are still not very clear")
+- **Locked trees hidden:** visible_trees already kept unfound weapons, an uneaten fruit and an untaught black-leg off the
+  rail, chart and A/D; the gap was the **Adventure sign**, shown empty before any Adventure tree was found.
+  `SkillMapScreen.tabs()` now drops it (like Driftfruit) until one is found.
+- **One header plate** (`_draw_header`, HEAD_H 32) across the top of every tree page, the Adventure page and the chart:
+  the tree's icon, name, a "MASTERY n OF max" ribbon with its xp bar, and on the right both pools as big numbers
+  (COMBAT / ADVENTURE POINTS), the pool this tree spends lit (coral with points, tan at 0). The beam's plate is back to
+  "CAPTAIN · LEVEL n"; the card lost its title, ribbon and bar (it's only the picked node now); the chart lost its
+  "trees found" slate (the header says how many weapons).
+- **Every path drawn:** `SkillTreeDraw._link` draws an untaken path as a hollow grey channel (LINK_OFF 4 px with a dark
+  2 px core) and a step's as a 2 px grey line (was 1 px DIM_LINK, invisible on the sky); taken paths are unchanged.
+  `SkillMapScreen.links` records [from, to, taken] each draw for tests.
+- Tests: t/ui/skills_hidden_trees, t/ui/skills_grey_links (new); skills_tabs finds Swimming first so Adventure shows.
+  Renders: skillmapshot at 1600x900.
+- **(b) Cannonball Fist (12) and Meteor Fist (18) replace Suplex and Giant Swing.** Nodes `u_cannon` / `u_meteor_fist`,
+  skills `cannonball_fist` / `meteor_fist`. **Old saves are mapped, not refunded:** `SkillTrees.RENAMED` (u_suplex ->
+  u_cannon, u_swing -> u_meteor_fist, same gates and prices) is applied as Progression.from_dict reads bought/owned,
+  and `Skills.RENAMED` as PowerComponent.from_dict reads the bar. Stone Skin (`u_skin`) hangs on u_cannon. The
+  suplex/giant_swing poses, specs, SPIN_ACTIONS/GAZE_FREE entries, TechniqueState's grab and the icons are gone
+  (nothing else used them: no enemy or puppet plays them).
+  - Cannonball Fist (`fs_cannon`, 0.8 s, reach path CANNON_REACH): drifts in on the target (aimed or nearest in 4.5 m,
+    else refunded), chambered low by the hip, the straight at 0.29 s (34, breaker, unblockable, knocked flat); the body
+    then flies 18 m/s down the line 9 m and everyone within 1.4 m of it is bowled over (18, knocked flat). Streak,
+    punch wind, speed lines, dust along the line.
+  - Meteor Fist (`fs_meteor` keyed in seconds -> `fs_meteor_land`): on the ground a hop (6 m/s), the fist raised high
+    at 0.3 s, the overhand driven down at 0.42 s (18 m/s); cast in the air it hangs, then dives straight down at 26
+    m/s. On landing: a 4.5 m shockwave (30, x1.25 within 2 m, unblockable, knocked flat), six cracks, rings, debris,
+    a light. **Height fallen** (`Player.fall_top`: the highest y since the feet last touched ground, kept every tick in
+    Player._physics_process; the dive's top is max(that, where it starts)): +2% a metre above 5 m, at most +50%
+    (FistArts FALL_FREE / FALL_PER_M / METEOR_FALL_MAX). Look after Zach's reference (an honest rookie's big punch):
+    orange-yellow fire on the fist (`FX.hot_fist` "fire"), dark four-point stars rimmed red (`FX.star_glint` dark),
+    black-red crackle (`FX.bolt` dark), purple speed lines (`FX.speed_lines`).
+  - New FX (fx.gd, by hot_leg): hot_fist (fire / galaxy, secs < 0 kept until freed), star_glint (bright or dark,
+    stretchable into a flare), speed_lines, comet, light_pillar; bolt takes `dark`.
+- **Tested:** `t/weapons/fist_power`, `t/progression/fist_rename`; techtest's rows now cannonball_fist/meteor_fist
+  ("down") and its nobody-in-reach refund uses Cannonball Fist. Renders: tools/dev/out/fist_cannonball_fist.png,
+  fist_meteor_fist.png. **techtest's "every skill has an icon" fails on main already** (the five new weapons'
+  techniques have none yet: the new weapons' finish), so pieces land with `-NoTests`.
+- Per frame: `fall_top` (one max a tick on the local captain); the techniques run only while cast.
+- **(c) Diving Fist and Sea King Fist.** Diving Fist is the old Meteor Kick (node `u_meteor`, flag `mv_meteor_kick`
+  and PlungeState mode `"meteor_kick"` kept for saves) with a punch: `fs_dive` (the fist drawn back by the ear, then
+  the body pitched down behind it), landing `fs_meteor_land`; the meteor_kick/meteor_land poses and specs are gone
+  (airtest reads `fs_dive`). **Sea King Fist arms the fist** (Zach's design, 2026-10-21): the ult (R) plays a 0.6 s
+  charge (`sea_king_charge`), then `Player.fist_armed` = 8 s with the galaxy glow on the fist (`FistArts.keep_glow`,
+  every screen through the snapshot flag `NF_GALAXY`) and a gold draining ring with the seconds on the HUD's ult slot
+  (skill_bar `_draw_armed`). Attack (PlayerState.combat_input / air_attack_input / DodgeState) or R
+  (PowerComponent.try_cast) lets it go: `FistArts.unleash` -> TechniqueState `sea_king_unleash`. Run out: half the
+  ult back, "The fist cools". The unleash adapts: **ground** a straight (`fs_cannon` played at 0.82 s, the punch at
+  0.3 s) with a huge red-orange cross flare, coloured stars, speed lines and the moment; a comet 16 m down the line
+  (2.8 m wide, 60, struck as it reaches them) and the blast at its end (light pillar, orange dome, rings, debris,
+  cracks, 5 m, 40); **air** (over 1.5 m up) a hang and a straight dive at 30 m/s, the blast where you land (6 m, 80,
+  +2% a metre fallen over 5 m up to +80%, the radius up to +40%); **counter** within 60 ticks of a landed parry
+  (`Player.parried_by/parried_tick`, set in the parry branch of _on_hit_received) the attacker takes 45 point-blank
+  first; **out of a dash** the horizontal speed carries through the wind-up. Invulnerable from the unleash to the blast;
+  the fist glows 3 s after (AFTERGLOW). Constants at the top of FistArts (ARMED_SECS, ARMED_REFUND, SEA_*).
+- **Tested:** `t/weapons/fist_dive`, `t/weapons/fist_sea_king` (arm -> timer and glow -> run out, half back; armed ->
+  in the air -> attack -> lands on the dummy; armed -> parry -> R -> the counter hits the grunt). techtest's
+  sea_king_fist row went (it only arms now). Render: tools/dev/out/fist_sea_king_unleash.png (abilityshot takes
+  `sea_king_unleash`).
+- Per frame added: Player `fist_armed` countdown (one subtraction a tick while armed), `keep_glow` a meta check a frame
+  per captain; the glow is one sphere pair and two small emitters only while armed.

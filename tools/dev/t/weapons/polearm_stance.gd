@@ -1,6 +1,6 @@
 extends SceneTree
-## The polearm's stance poses: standing it's the two-handed guard; running (above a walk) it's trailed low in the
-## right hand, the head out ahead and down; Emperor's Bearing (Guard, mastery 10) plants it upright, butt on the
+## The polearm's stance poses: standing it's the two-handed guard; running (above a walk) it's carried at port arms in
+## both hands, slanted up across the front to the left; Emperor's Bearing (Guard, mastery 10) plants it upright, butt on the
 ## ground, only after ~3 s with nothing played and never before the node; an attack comes straight out of it and the
 ## readied guard holds for a while after.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -49,11 +49,17 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(1.0)
 		2:
 			var s := shaft()
-			check("running (%.1f m/s): one hand, the head out ahead and down (run %.2f, left hand %.2f, shaft ahead %.2f, down %.2f)"
-				% [b.ground_speed, b.pole_run_w, b.pole_lw, s.dot(fwd()), s.y],
-				b.ground_speed > 3.2 and b.pole_run_w > 0.9 and b.pole_lw < 0.1 and s.dot(fwd()) > 0.6 and s.y < -0.15)
+			var right := (p.global_basis.x as Vector3).normalized()
+			check("running (%.1f m/s): port arms, both hands on it, slanted up to the left (run %.2f, left hand %.2f, up %.2f, left %.2f)"
+				% [b.ground_speed, b.pole_run_w, b.pole_lw, s.y, -s.dot(right)],
+				b.ground_speed > 3.2 and b.pole_run_w > 0.9 and b.pole_lw > 0.9 and s.y > 0.45 and s.dot(right) < -0.4)
+			var a: Vector3 = b.weapon.global_position
+			var off: Vector3 = b.hand_l.global_position - a
+			var miss := (off - s * off.dot(s)).length()
+			check("the left hand on the shaft (%.2f m off it)" % miss, miss < 0.15)
 			var head: Vector3 = b.weapon.global_transform * Vector3(0, 0, -WeaponDesigns.POLE_AHEAD)
-			check("the head off the ground ahead (%.2f m up)" % (head.y - p.global_position.y), head.y - p.global_position.y > 0.03)
+			check("the head up past the left shoulder (%.2f m over the shoulder, %.2f m left of it)" % [head.y - b.arm_l.global_position.y,
+				-(head - b.arm_l.global_position).dot(right)], head.y > b.arm_l.global_position.y + 0.2 and (head - b.arm_l.global_position).dot(right) < 0.0)
 			TK.release("move_forward")
 			until = TK.wait_secs(0.8)
 		3:
