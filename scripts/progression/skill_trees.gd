@@ -456,6 +456,12 @@ static func _build_swimming() -> void:
 	_root("swim_root", "Swimming", {}, "Swim to build it: every stretch of open water you cross counts.")
 	_big("sw_strokes", "Strong Strokes", "mech", 0, 2, {"swim_pct": 0.1}, "You swim 10% faster.")
 	_big("sw_born", "Sea Born", "mech", 0, 7, {"swim_pct": 0.15}, "You swim another 15% faster.")
+	_variant("sw_sprint", "Surface Sprint", 0, [
+		["sw_dolphin", "Dolphin Kick", 12, {"dolphin_kick": 1}, "Sprinting at the surface becomes the butterfly: 30% faster, with a surge of spray every half second, for 30% more stamina."],
+		["sw_glide", "Long Glide", 12, {"long_glide": 1}, "Sprinting at the surface is a stroke and a long streamlined glide: a touch faster, for half the stamina."]],
+		"Two ways to sprint on top of the water. Both are yours; pick the one you carry at the ship's bunk.")
+	_icon("sw_dolphin", "move_dolphin")
+	_icon("sw_glide", "move_glide")
 	_big("sw_lungs", "Deep Lungs", "mech", 1, 4, {"max_stamina": 10.0, "breath_pct": 0.5}, "You hold your breath half as long again on a dive, and +10 max stamina.")
 	_big("sw_wind", "Catch Your Breath", "mech", 1, 10, {"stamina_regen_pct": 0.1, "breath_refill_pct": 1.0},
 		"Stamina refills 10% faster, and your breath comes back twice as fast at the surface.")

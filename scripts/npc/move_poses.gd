@@ -281,6 +281,43 @@ static func planted(h, u: float, bp: Dictionary) -> Array:
 	return [h._keys(u, [[0.0, {}], [1.0, root, "out"]]), "full", Vector3.ZERO]
 
 
+## (swimming at the surface) Surface Sprint's strokes, written over the swim pose `p` at time `t`. "dolphin": the
+## butterfly, both arms heaving over together, the hips rolling a wave through the body, the legs beating as one.
+## "glide": streamline, arms stretched ahead and together, the body flat, a slow scissor kick.
+static func swim_style(p: Dictionary, style: String, t: float) -> void:
+	if style == "dolphin":
+		var w := sin(t * 7.0)
+		var rec := maxf(0.0, -w)
+		var arms := Vector3(1.9 + w * 1.1, 0, 0)
+		p["pivot"] = Vector3(-1.25 + w * 0.15, 0, 0)
+		p["hips"] = Vector3(sin(t * 7.0 - 0.9) * 0.3, 0, 0)
+		p["torso"] = Vector3(sin(t * 7.0 - 0.5) * 0.25, 0, 0)
+		p["head"] = Vector3(0.7 - w * 0.2, 0, 0)
+		p["arm_l"] = arms + Vector3(0, 0, -(0.35 + rec * 0.5))
+		p["arm_r"] = arms + Vector3(0, 0, 0.35 + rec * 0.5)
+		p["fore_l"] = Vector3(0.2 + rec * 0.9, 0, 0)
+		p["fore_r"] = Vector3(0.2 + rec * 0.9, 0, 0)
+		var beat := sin(t * 7.0 - 1.4)
+		p["leg_l"] = Vector3(beat * 0.4, 0, -0.03)
+		p["leg_r"] = Vector3(beat * 0.4, 0, 0.03)
+		p["shin_l"] = Vector3(-0.2 - maxf(beat, 0.0) * 0.6, 0, 0)
+		p["shin_r"] = Vector3(-0.2 - maxf(beat, 0.0) * 0.6, 0, 0)
+	elif style == "glide":
+		var s := sin(t * 2.6)
+		p["pivot"] = Vector3(-1.4, 0, 0)
+		p["hips"] = Vector3.ZERO
+		p["torso"] = Vector3(0.05, 0, 0)
+		p["head"] = Vector3(0.95, 0, 0)
+		p["arm_l"] = Vector3(3.0, 0, -0.08)
+		p["arm_r"] = Vector3(3.0, 0, 0.08)
+		p["fore_l"] = Vector3(0.05, 0, 0)
+		p["fore_r"] = Vector3(0.05, 0, 0)
+		p["leg_l"] = Vector3(0.1 + s * 0.45, 0, -0.04)
+		p["leg_r"] = Vector3(0.1 - s * 0.45, 0, 0.04)
+		p["shin_l"] = Vector3(-0.15 - maxf(-s, 0.0) * 0.5, 0, 0)
+		p["shin_r"] = Vector3(-0.15 - maxf(s, 0.0) * 0.5, 0, 0)
+
+
 ## Armed: the weapon hand stays at the guard (pistols tucked, the katana trailed behind), the
 ## free hand opens out for balance (reaching ahead going forward or left, flung out otherwise).
 ## Unarmed: the lead hand reaches out ahead on the push.

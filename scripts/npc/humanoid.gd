@@ -99,6 +99,8 @@ var carry: String = ""
 ## Gun elevation while aiming (radians, + = up).
 var aim_pitch: float = 0.0
 var diving: bool = false
+## Surface Sprint's stroke at the surface ("dolphin", "glide"; "" = the plain breaststroke): MovePoses.swim_style.
+var swim_style: String = ""
 var climbing: bool = false
 ## Plant the feet on uneven ground (stairs, slopes, the deck): two-bone leg IK
 ## with the hips dropping to the lower foot. Off while airborne, swimming,
@@ -3820,6 +3822,8 @@ func _swim_pose(p: Dictionary, delta: float) -> void:
 		"shin_l": Vector3(-0.95 + tc * 0.4, 0, 0), "shin_r": Vector3(-0.95 - tc * 0.4, 0, 0)}
 	for j in b.keys():
 		p[j] = (tr[j] as Vector3).lerp(b[j], m)
+	if swim_style != "" and not diving:
+		MovePoses.swim_style(p, swim_style, _t)
 	if diving:
 		# under water the body points where it's going: head down going deeper, up kicking for the surface,
 		# level swimming along, nearly upright sculling in place

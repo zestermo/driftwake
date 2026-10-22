@@ -5686,3 +5686,16 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - Tests: t/weapons/katana_guard, cutlass_guard, dagger_guard, dual_guard; t/fx/drawn. Per frame: the auras step one
   material per tree once a frame; `_hang_sheaths` sets at most two sheaths' bases; MasteredGuard.on is a cached stat.
   Renders: tools/dev/out/guards2/, picked/, *_guard2/ (candidates), drawn/ (abilityshot combos), in the side worktree.
+
+## 2026-10-22: the Adventure trees' moves, piece 4: Swimming's Surface Sprint (Dolphin Kick / Long Glide)
+
+- **Tree:** `sw_sprint` "Surface Sprint" (variant, Stroke branch, level 12) in `_build_swimming`: `sw_dolphin` (`dolphin_kick`) and
+  `sw_glide` (`long_glide`), icons `move_dolphin` / `move_glide`. Switched at the bunk like the other variants.
+- **SwimState** (`fast and not _diving` only): Dolphin Kick 1.3x speed (x1.25 for SURGE_FOR 0.18 s every 0.55 s) at 1.3x FAST_DRAIN, with a
+  spray per surge; Long Glide a 0.4 s stroke at 1.3x (full drain) then a glide at 1.1x for half the drain, a 1.6 s cycle. All are multipliers on
+  the target speed, so velocity stays input x speed (no momentum). `_sprint_t` restarts when the sprint stops.
+- **Pose:** Humanoid `swim_style` ("", "dolphin", "glide"; in HumanoidSync.FIELDS), set by SwimState (cleared on exit) and applied in
+  `_swim_pose` by `MovePoses.swim_style` (butterfly: arms heaving together, hips rolling a wave; glide: flat, arms stretched ahead, slow scissor kick).
+- **Test:** `t/swim/surface_sprint` (speed and drain against the plain sprint for each version, `swim_style`, switching, clearing).
+  Render: posebench with `PB_SPEED=4.6 PB_SET='swimming=true;swim_style="dolphin"'` -> tools/dev/out/swim_dolphin_*.png, swim_glide_*.png.
+- Per frame: a few float ops in the swim state; the spray is one Net.fx per surge / stroke. Not run: nettest with a guest (swim_style sync).
