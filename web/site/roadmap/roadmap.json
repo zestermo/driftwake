@@ -499,6 +499,22 @@
 			]
 		},
 		{
+			"v": "1.18.4",
+			"name": "Masters of the Craft",
+			"date": "2026-10-22",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "Simpler skill points, a second guard for your weapon, new techniques, and new ways through the air.",
+			"img": "skill-trees",
+			"alt": "The skills menu: a weapon's tree of glowing nodes in three branches on a night sky",
+			"github": true,
+			"added": [
+				["Skill points", "One Combat pool and one Adventure pool; everything bought, gated by mastery; a lighter menu."],
+				["Mastered guards", "A second stance per weapon, toggled once owned, and drawn awakenings for five more weapons."],
+				["Techniques and movement", "Two new techniques each for the polearm, hammer and twin axes; an air walk, a freefall tumble and new Acrobatics."]
+			]
+		},
+		{
 			"v": "1.19",
 			"name": "The Admiralty and Rivals",
 			"status": "building",

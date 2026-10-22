@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.18.3-e0b040" alt="Version 1.18.3">
+  <img src="https://img.shields.io/badge/version-1.18.4-e0b040" alt="Version 1.18.4">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -164,6 +164,16 @@ one-handed blade, Z draws it and left click chops while you hang on.
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.18); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.18.4: Masters of the Craft (October 22, 2026), unstable
+Skill points made simple: one Combat pool from Captain levels, spent on any weapon's tree, and one Adventure pool;
+everything in a tree is bought, and a weapon's mastery decides what you may buy. A lighter skills menu (locked trees
+hidden, details on select) with Captain and Will pages. Mastered guards: a second stance for the katana, cutlass,
+dagger, dual swords, twin daggers and axe, toggled once owned. Drawn awakenings for the axe, daggers, dual swords,
+twin daggers and corsair. Two new techniques each for the polearm, hammer and twin axes (among them Thunder Javelin,
+Windmill Guard, Ravens' Return and Raider's Haul). The air step redone as an upright air walk, a tumble after a long
+fall, and Acrobatics' Breakfall, Skyward Dash, Sky Leap, Moonstep and Crash Landing. Fists reworked into heavy
+straight punching. Perfect Parry and Guard Style in Defense, Surface Sprint in Swimming.
 
 ### v1.18.3: New Ways to Fight (October 21, 2026), unstable
 Five new weapon kinds, each with its own stance, moves, three-branch tree, element and ultimate: polearms (spear,
