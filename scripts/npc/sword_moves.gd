@@ -6,6 +6,44 @@ class_name SwordMoves
 ## every new swing is built from (trained over 8 anim lab rounds, docs/anim_lab.md).
 ## Turns: y- faces right, y+ left; the head counters the chest to stay on the target.
 
+## The mastered guard (Humanoid.guard2): the sword hand and blade held by PoleMoves.hands from its grips ([hand, the
+## blade's way, its edge's way, -1: one hand], the chest's frame), the free arm keyed here. Two candidates for Zach's
+## pick (`preview`): "a" the hanging guard, the hand up over the right temple and the point hung down at their face,
+## the off hand out low in front; "b" the easy guard, stood tall and square, the blade hanging loose at the right side
+## with its point toward the deck ahead, the free hand on the belt.
+static var preview := "a"
+const GUARD2 := {
+	"a": {"hips": Vector3(0, 0.45, 0), "torso": Vector3(-0.06, 0.25, 0.03), "head": Vector3(0.05, -0.6, 0),
+		"arm_r": Vector3(2.2, 0.3, 0.6), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3.ZERO,
+		"arm_l": Vector3(0.95, 0.3, -0.25), "fore_l": Vector3(0.55, 0, 0), "hand_l": Vector3.ZERO},
+	"b": {"hips": Vector3(0, 0.15, 0), "torso": Vector3(0.06, 0.1, 0.03), "head": Vector3(0.04, -0.15, 0),
+		"arm_r": Vector3(0.1, 0.0, 0.25), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3.ZERO,
+		"arm_l": Vector3(-0.25, 0.5, -0.6), "fore_l": Vector3(1.6, 0, 0), "hand_l": Vector3.ZERO}}
+const LEGS2 := {
+	"a": {"leg_l": Vector3(-0.2, 0, -0.2), "leg_r": Vector3(0.4, 0, 0.18), "shin_l": Vector3(-0.6, 0, 0), "shin_r": Vector3(-0.7, 0, 0), "_lift": Vector3(0, -0.14, 0)},
+	"b": {"leg_l": Vector3(0.12, 0, -0.1), "leg_r": Vector3(-0.08, 0, 0.14), "shin_l": Vector3(-0.15, 0, 0), "shin_r": Vector3(-0.35, 0, 0), "_lift": Vector3(0, -0.04, 0)}}
+## [guard, block, run] grips.
+const GRIPS2 := {
+	"a": [[Vector3(0.34, 0.38, -0.2), Vector3(-0.22, -0.38, -0.9), Vector3(0, -1, 0), -1.0],
+		[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
+		[Vector3(0.24, 0.22, -0.3), Vector3(-0.2, -0.35, -0.91), Vector3(0, -1, 0), -1.0]],
+	"b": [[Vector3(0.27, -0.55, -0.08), Vector3(0.05, -0.93, -0.36), Vector3(0, 0, -1), -1.0],
+		[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
+		[Vector3(0.27, -0.55, -0.08), Vector3(0.05, -0.93, -0.36), Vector3(0, 0, -1), -1.0]]}
+
+
+static func guard(h) -> Dictionary:
+	return GUARD2[preview] if h.guard2 else Humanoid.SWORD_GUARD
+
+
+static func legs(h) -> Dictionary:
+	return LEGS2[preview] if h.guard2 else Humanoid.STANCE_LEGS["sword"]
+
+
+static func grips2() -> Array:
+	return GRIPS2[preview]
+
+
 ## Hit 1, the diagonal forehand: from the guard the hand arcs out and up round the right
 ## shoulder (wide and high, so the elbow opens), cocks, then cuts down through the space in
 ## front and wraps low round the left side. Path points: centre + dir * r (body space at the

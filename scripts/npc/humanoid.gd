@@ -169,7 +169,7 @@ var kick_pockets := false
 var guard2 := false
 ## Stances with a mastered guard -> the moves file holding it (GUARD2, LEGS2, GRIPS2 [guard, block, run]; guard(h),
 ## legs(h)); its grips are held by PoleMoves.hands.
-static var MASTERED := {"axe": AxeMoves, "katana": KatanaMoves}
+static var MASTERED := {"axe": AxeMoves, "katana": KatanaMoves, "sword": SwordMoves}
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
 ## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
@@ -841,7 +841,7 @@ func _guard() -> Dictionary:
 		"greatsword":
 			return GreatswordMoves.GUARD
 		"sword":
-			return SWORD_GUARD
+			return SwordMoves.guard(self)
 		"dual_pistol":
 			# held low and close, uneven: the right a little higher with the elbow
 			# bent more, the left lower and straighter (raised to fire: shoot_r/l)
@@ -2393,7 +2393,7 @@ func _locomotion(delta: float) -> Dictionary:
 				p["shin_l"] += Vector3(ss["shin_l"].x, 0, 0) * st
 				p["shin_r"] += Vector3(ss["shin_r"].x, 0, 0) * st
 				lift.y += ss["_lift"].y * st
-			_stance_hips = (StanceLife.HIPS.get(stance, Vector3.ZERO) as Vector3) * (1.0 - clampf(walk, 0.0, 1.0)) * (1.0 - carry_w)
+			_stance_hips = (Vector3.ZERO if guard2 and stance in MASTERED else StanceLife.HIPS.get(stance, Vector3.ZERO) as Vector3) * (1.0 - clampf(walk, 0.0, 1.0)) * (1.0 - carry_w)
 			p["hips"] += _stance_hips
 			_plant_k = 1.0 - smoothstep(0.05, 0.35, walk)
 			lift.y += StanceLife.breathe(self, p, _plant_k)
