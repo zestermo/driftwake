@@ -49,7 +49,7 @@ const BLOCK := {"hips": Vector3(0, -0.15, 0), "torso": Vector3(-0.1, -0.1, 0), "
 const HELD := ["parry", "guard_block", "guard_block_hit", "hit", "stagger", "dash", "roll", "flip", "jump_stand", "jump_run", "jump_sprint",
 	"double_jump", "plunge_air", "plunge_land"]
 ## Mastered guards held only standing: their weapon's own parry, block, dodges and jumps play as they always did.
-const ONE_HAND_GUARDS := ["sword", "katana"]
+const ONE_HAND_GUARDS := ["sword", "katana", "dagger"]
 ## How hard the grip chases its keys (the guard's softer).
 const SHARP := 34.0
 const SHARP_IDLE := 16.0
