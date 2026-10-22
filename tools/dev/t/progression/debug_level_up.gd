@@ -12,7 +12,7 @@ var fails := 0
 
 func _initialize() -> void:
 	TK.seed_of(self)
-	stage = TK.stage(self, {"weapon": "katana"})
+	stage = TK.stage(self, {})
 
 
 func check(what: String, cond: bool) -> void:
@@ -35,6 +35,7 @@ func _process(_d: float) -> bool:
 		0:
 			p = stage.player
 			pr = p.progression
+			load("res://scripts/game/save_game.gd").use_test_file("user://debug_level_up_test.dat")
 			var l0: int = pr.level
 			f9()
 			check("F9 at level 1 grants a level (%d -> %d)" % [l0, pr.level], pr.level == l0 + 1)
@@ -45,6 +46,31 @@ func _process(_d: float) -> bool:
 			check("twelve more F9s (level %d) survive" % pr.level, pr.level >= 13)
 			until = TK.wait_ticks(2)
 		2:
+			for i in 70:
+				f9()
+			check("F9 past the level cap survives (level %d)" % pr.level, pr.level == pr.MAX_LEVEL)
+			until = TK.wait_ticks(2)
+		3:
+			var ok := 0
+			for tree in SkillTree.STYLE_TREE.values():
+				for i in 45:
+					var m: Dictionary = pr.mastery_of(tree)
+					pr.add_mastery(tree, pr.mastery_to_next(int(m["lv"])) - int(m["xp"]))
+				ok += 1
+			check("every weapon tree levels to its top with the toasts (%d)" % ok, ok == SkillTree.STYLE_TREE.size())
+			until = TK.wait_ticks(2)
+		4:
+			p.power.eat("vine")
+			until = TK.wait_ticks(3)
+		5:
+			var l1: int = pr.level
+			pr.level = 1
+			pr.xp = 0
+			for i in 12:
+				f9()
+			check("F9 with a fruit eaten survives (level %d)" % pr.level, pr.level == 13 and l1 == pr.MAX_LEVEL)
+			until = TK.wait_ticks(2)
+		6:
 			return TK.done(fails)
 	step += 1
 	return false
