@@ -1,5 +1,5 @@
 // The site's JSON feeds for the companion app, built from the hand-written pages (no dependencies):
-//   node tools/dev/build_feeds.mjs        writes web/site/feeds/{posts,releases,home}.json
+//   node tools/dev/build_feeds.mjs        writes web/site/feeds/{posts,releases,home,guide}.json
 // deploy-web.yml runs it before every deploy. It throws when a page doesn't match the pattern it reads.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -140,11 +140,37 @@ function buildHome() {
 	};
 }
 
+// the app's field guide: the home page's clips, screenshots, features and controls
+function buildGuide() {
+	const where = 'index.html';
+	const html = readFileSync(join(site, 'index.html'), 'utf8');
+	const section = (cls) => one(html, new RegExp(`<div class="${cls}">([\\s\\S]*?)</div>\\s*</section>`), where, `.${cls}`);
+	const attr = (tag, name, at) => one(tag, new RegExp(`\\s${name}="([^"]*)"`), at, name);
+	const clips = [...section('clips').matchAll(/<figure class="clip">(<img[^>]+>)<figcaption><b>([\s\S]*?)<\/b>([\s\S]*?)<\/figcaption><\/figure>/g)].map(([, img, title, rest]) => ({
+		poster: SITE_URL + attr(img, 'src', 'clip'),
+		gif: SITE_URL + attr(img, 'data-gif', 'clip'),
+		alt: text(attr(img, 'alt', 'clip')),
+		title: text(title).replace(/\.$/, ''),
+		text: text(rest),
+	}));
+	const shots = [...section('shots').matchAll(/<figure>(<img[^>]+>)<figcaption>([\s\S]*?)<\/figcaption><\/figure>/g)].map(([, img, caption]) => {
+		const src = attr(img, 'src', 'shot');
+		return { image: SITE_URL + src, thumb: SITE_URL + src.replace(/\.jpg$/, '-640.jpg'), alt: text(attr(img, 'alt', 'shot')), caption: text(caption) };
+	});
+	const features = [...section('grid').matchAll(/<div><h3>([\s\S]*?)<\/h3><p>([\s\S]*?)<\/p><\/div>/g)].map(([, title, body]) => ({ title: text(title), text: text(body) }));
+	const table = one(html, /<section class="panel controls"[\s\S]*?<table>([\s\S]*?)<\/table>/, where, 'controls table');
+	const controls = [...table.matchAll(/<th>([\s\S]*?)<\/th><td>([\s\S]*?)<\/td>/g)].map(([, action, keys]) => ({ action: text(action), keys: text(keys) }));
+	const notes = text(one(html, /<\/table>\s*<p class="small">([\s\S]*?)<\/p>/, where, 'controls note'));
+	if (!clips.length || !shots.length || !features.length || !controls.length) fail(where, 'an empty guide section');
+	return { clips, shots, features, controls, notes };
+}
+
 const releases = buildReleases();
 const posts = buildPosts(releases);
 const home = buildHome();
+const guide = buildGuide();
 mkdirSync(out, { recursive: true });
-for (const [name, data] of Object.entries({ posts, releases, home })) {
+for (const [name, data] of Object.entries({ posts, releases, home, guide })) {
 	writeFileSync(join(out, `${name}.json`), JSON.stringify(data, null, '\t') + '\n');
 }
 console.log(`build_feeds: ${posts.length} posts, ${releases.length} releases -> web/site/feeds/`);

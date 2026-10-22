@@ -262,7 +262,8 @@ the same top bar (Download, News, Releases) and footer, and paths are absolute (
   clip's poster (`<name>.jpg`) and swaps in the GIF once it's on screen, never with
   prefers-reduced-motion; a Play/Pause button on each.
 - `play/`: the export, copied in by `build_web.ps1`.
-- `feeds/`: `posts.json`, `releases.json` and `home.json` for the companion app (driftwake-app repo), built from
+- `feeds/`: `posts.json`, `releases.json`, `home.json` and `guide.json` (the home page's clips, screenshots,
+  features and controls) for the companion app (driftwake-app repo), built from
   the news posts, `releases/index.html` and `index.html` by `node tools/dev/build_feeds.mjs` (deploy-web.yml runs
   it; gitignored). It reads the pages' fixed pattern (a post's `page-head` and `main.article`, a release's
   `section.version` with tagline, date and list) and stops the deploy if a page breaks it. The app also reads
