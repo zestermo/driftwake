@@ -247,3 +247,21 @@ skills_tabs (hidden trees). Suites likely affected at prepush: storytest (Vey's 
 - **assumed:** Breakfall and Skyward Dash count for the air-step agent; their tree entries go through the progression agent's data.
 - **assumed:** the mastered guard is the same node pattern on every weapon; the first one (on the axe, with its awakening) is checked by Zach before the rest.
 - 1.19 (docs/v1_19_plan.md) starts after this batch.
+
+## Wave 2 (Zach, 2026-10-22): finish the batch, then test and ship
+Wave 1 is on main (points rework, menu, air walk, tumble, Breakfall/Skyward Dash, Sky Leap, Garp fists, greatsword
+and cutlass reworks). Zach chose to finish the rest before the prepush and the 1.18.4 release. Agents, by area:
+- **Icons fixer** (first, small): every skill without an icon gets one (gen_icon.py); techtest's "every skill has an
+  icon" green again.
+- **New weapons' finish**: polearm, hammer, twin axes, greatsword, black-leg one at a time: two new techniques each
+  (pitched first), the katana-pass polish of their existing ones, 1.18.3's follow-ups. Owns those kinds' move/arts files
+  and their tree blocks.
+- **Weapon mastery pass**: per older weapon, its drawn awakening, its mastered guard (~15, toggled) and the "new move"
+  variants its tree lists: axe (resume b5ecb5d; first, with the guard shown to Zach before the rest), katana (guard +
+  Falling Moon / Twin Waves / Side Step; its awakening exists), cutlass (guard + variants; awakening exists), daggers,
+  dual swords, twin daggers, corsair, pistol, fists. The five new kinds' awakenings and guards follow once the
+  finish agent is done with each kind.
+- **Movement and defense moves**: Acrobatics Moonstep, Afterimage, Roll/Sidestep, Crash Landing; Defense
+  Disarm/Shove, Rolling Guard; Swimming Dolphin Kick / Long Glide. Player states, not weapons.
+- Then: prepush (the full local run, nettest, the 1.18.2 checks, the perf gate re-baseline with Zach's OK), the fix
+  pass, release 1.18.4 (stable unless the run says otherwise).
