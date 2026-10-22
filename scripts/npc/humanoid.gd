@@ -88,6 +88,8 @@ var kneeling: bool = false
 var manning: bool = false
 ## Sneaking (the player's CrouchState): low on bent knees, chest forward.
 var crouching: bool = false
+## Planted (Defense): the held block sunk into a wide rooted stance (MovePoses.planted).
+var planted: bool = false
 ## In the water: breaststroke when moving, treading water otherwise; `diving`
 ## ducks under head first. `climbing` = hand over hand up a ladder, with
 ## `climb_phase` = how high you are (drives the arm/leg cycle).
@@ -1186,6 +1188,7 @@ func _finish_action() -> void:
 		# (a keyed full turn ends a turn round: the gait's smoothing would unwind it backwards; a walkover too)
 		_cur["pivot"].y = wrapf(_cur["pivot"].y, -PI, PI)
 		_cur["pivot"].x = wrapf(_cur["pivot"].x, -PI, PI)
+		_cur["pivot"].z = wrapf(_cur["pivot"].z, -PI, PI)
 	_action = {}
 	action_finished.emit(n)
 
@@ -1935,6 +1938,8 @@ func _action_pose(n: String, u: float) -> Array:
 				rock["torso"] = (bp["torso"] as Vector3) + Vector3(0.22, 0, 0)
 				rock["head"] = (bp["head"] as Vector3) + Vector3(-0.15, 0, 0)
 				return [_keys(u, [[0.0, bp], [0.25, rock, "out"], [1.0, bp]]), "upper", lift]
+			if planted:
+				return MovePoses.planted(self, u, bp)
 			return [_keys(u, [[0.0, {}], [1.0, bp, "out"]]), "upper", lift]
 		# --- unarmed ---
 		"fists_up":

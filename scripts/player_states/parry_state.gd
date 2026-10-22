@@ -2,6 +2,8 @@ extends PlayerState
 
 @export var parry_window: float = 0.26
 @export var recovery_time: float = 0.4
+## A parry this soon after the guard goes up is perfect (Clean Parry and its variant act on it).
+const PERFECT := 0.12
 
 var timer: float = 0.0
 var parry_active: bool = false
@@ -94,3 +96,26 @@ func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 		var pr := player.progression
 		player.stamina = minf(player.stamina + pr.stat("parry_stamina"), player.max_stamina)
 		pr.add_life("defense", 15)
+		if timer <= PERFECT and not _hit_data.ranged and pr.has_flag("clean_parry") and attacker and attacker.has_method("perfect_parried"):
+			_perfect(attacker, at, to_att)
+
+
+## Clean Parry: caught the moment the guard went up. Disarm twists the weapon out of their hand, Shove throws them
+## off their feet, otherwise they reel longer (PirateGrunt.perfect_parried, on the host). A white flash and a ring.
+func _perfect(attacker: Node, at: Vector3, to_att: Vector3) -> void:
+	var pr := player.progression
+	var how := "disarm" if pr.has_flag("parry_disarm") else ("shove" if pr.has_flag("parry_shove") else "clean")
+	attacker.call("perfect_parried", player, how)
+	pr.add_life("defense", 10)
+	Net.fx("flash", [at, 1.3, Color(1.0, 0.98, 0.9), "glint", 0.18])
+	Net.fx("ring", [at, to_att, 0.8, Color(1.0, 0.97, 0.85, 0.9), 0.22, 0.07])
+	Net.fx("float_text", [at + Vector3.UP * 0.6, {"disarm": "Disarmed!", "shove": "Shoved!"}.get(how, "Perfect!"), Color(1.0, 0.95, 0.75)])
+	Net.fx("sfx", ["parry", at, -3.0, 0.04, 1.3])
+	CombatManager.apply_hitstop(0.06, [player])
+	CombatManager.apply_camera_kick(0.12, 0.25)
+	if how == "disarm":
+		player.body_model.play("parry_disarm", ActionSpecs.length("parry_disarm"))
+	elif how == "shove":
+		player.body_model.play("parry_shove", ActionSpecs.length("parry_shove"))
+		player.velocity += to_att * 2.0
+		Net.fx("punch_wind", [at, to_att])

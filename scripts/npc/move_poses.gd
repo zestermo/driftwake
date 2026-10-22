@@ -20,6 +20,12 @@ static func pose(h, n: String, u: float) -> Array:
 			return _moonstep(h, u)
 		"crash_land":
 			return _crash_land(h, u)
+		"parry_disarm":
+			return _parry_disarm(h, u)
+		"parry_shove":
+			return _parry_shove(h, u)
+		"guard_roll":
+			return _guard_roll(h, u)
 		"breakfall":
 			return _breakfall(h, u)
 		"sky_leap_charge":
@@ -201,6 +207,78 @@ static func _crash_land(h, u: float) -> Array:
 	held["torso"] = Vector3(-0.6, -0.1, 0)
 	var keys := [[0.0, slam], [0.16, held, "out"], [0.58, held], [1.0, {}]]
 	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
+
+
+## Disarm (Defense): out of the parry the weapon hand binds their blade, winds it round low (wrist cocked, chest
+## turned away), then whips up and out across the body, flinging it from their grip; the free arm swings out against
+## it. A beat held at the top so the flick reads, then back to the guard.
+static func _parry_disarm(h, u: float) -> Array:
+	var bind := {"torso": Vector3(-0.15, -0.35, 0), "head": Vector3(0.1, 0.3, 0),
+		"arm_r": Vector3(1.2, -0.35, 0.15), "fore_r": Vector3(1.0, 0, 0), "hand_r": Vector3(0.6, 0, 0),
+		"arm_l": Vector3(0.9, 0.3, -0.2), "fore_l": Vector3(1.2, 0, 0), "_scale": Vector3(1.04, 0.95, 1.04)}
+	var flick := {"torso": Vector3(0.12, 0.35, 0), "head": Vector3(-0.1, -0.25, 0),
+		"arm_r": Vector3(2.25, 0.35, 0.35), "fore_r": Vector3(0.3, 0, 0), "hand_r": Vector3(-0.85, 0, 0),
+		"arm_l": Vector3(0.35, 0, -1.2), "fore_l": Vector3(0.35, 0, 0), "_scale": Vector3(0.96, 1.06, 0.96)}
+	var keys := [[0.0, {}], [0.22, bind, "out"], [0.42, flick, "out"], [0.62, flick], [1.0, h._guard()]]
+	if h._guns_out():
+		for k in keys:
+			var d: Dictionary = (k[1] as Dictionary).duplicate()
+			for j in ["arm_r", "fore_r", "hand_r"]:
+				d.erase(j)
+			k[1] = d
+	return [h._keys(u, keys), "upper", Vector3.ZERO]
+
+
+## Shove (Defense): out of the parry a step in on the front foot and the free palm driven straight into their chest,
+## the chest turned into it and the weapon arm pulled back, stretched along the push; held, then back to the guard.
+static func _parry_shove(h, u: float) -> Array:
+	var load := {"pivot": Vector3(0.05, 0, 0), "hips": Vector3(0, -0.2, 0), "torso": Vector3(0.05, -0.4, 0), "head": Vector3(0.0, 0.35, 0),
+		"leg_l": Vector3(0.35, 0, -0.08), "shin_l": Vector3(-0.6, 0, 0), "leg_r": Vector3(-0.15, 0, 0.1), "shin_r": Vector3(-0.45, 0, 0),
+		"arm_l": Vector3(0.9, 0.2, -0.1), "fore_l": Vector3(1.9, 0, 0), "hand_l": Vector3(0.9, 0, 0),
+		"arm_r": Vector3(0.6, 0, 0.35), "fore_r": Vector3(1.3, 0, 0),
+		"_lift": Vector3(0, -0.1, 0), "_scale": Vector3(1.05, 0.95, 1.0)}
+	var push := {"pivot": Vector3(-0.18, 0, 0), "hips": Vector3(0, 0.15, 0), "torso": Vector3(-0.3, 0.35, 0), "head": Vector3(0.22, -0.3, 0),
+		"leg_l": Vector3(0.9, 0, -0.08), "shin_l": Vector3(-0.95, 0, 0), "leg_r": Vector3(-0.55, 0, 0.1), "shin_r": Vector3(-0.2, 0, 0),
+		"arm_l": Vector3(1.55, 0, 0.12), "fore_l": Vector3(0.12, 0, 0), "hand_l": Vector3(1.1, 0, 0),
+		"arm_r": Vector3(-0.3, 0, 0.45), "fore_r": Vector3(1.1, 0, 0),
+		"_lift": Vector3(0, -0.16, 0), "_scale": Vector3(0.96, 0.97, 1.1)}
+	var keys := [[0.0, {}], [0.2, load, "out"], [0.36, push, "out"], [0.62, push], [1.0, {}]]
+	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
+
+
+## Rolling Guard (Defense): a roll out of the block with the guard kept up (forearms crossed before the face, or the
+## weapon held tight), still facing them: tucked over forward, backward, or sideways over a shoulder by `dash_dir`,
+## one keyed turn of the pivot ending at a full turn (wrapped at the finish), up into the guard.
+static func _guard_roll(h, u: float) -> Array:
+	var d: Vector2 = h.dash_dir.normalized() if h.dash_dir.length() > 0.1 else Vector2(0, -1)
+	var side := absf(d.x) > absf(d.y)
+	var s := (signf(d.x) if side else signf(d.y))
+	# forward rolls pitch the pivot over x-, back rolls x+, a roll to the right tips over z- (the dash's lean)
+	var axis := Vector3(0, 0, -s) if side else Vector3(-s, 0, 0)
+	var tuck := {"hips": Vector3.ZERO, "torso": Vector3(-0.7, 0, 0), "head": Vector3(-0.5, 0, 0),
+		"leg_l": Vector3(1.7, 0, -0.12), "shin_l": Vector3(-2.2, 0, 0), "leg_r": Vector3(1.6, 0, 0.12), "shin_r": Vector3(-2.2, 0, 0),
+		"arm_l": Vector3(1.4, -0.4, -0.05), "fore_l": Vector3(2.1, 0, 0), "arm_r": Vector3(1.4, 0.4, 0.05), "fore_r": Vector3(2.1, 0, 0),
+		"_lift": Vector3(0, -0.5, 0), "_scale": Vector3(1.05, 0.92, 1.05)}
+	var k1 := tuck.duplicate()
+	k1["pivot"] = axis * 1.1
+	var k2 := tuck.duplicate()
+	k2["pivot"] = axis * 3.3
+	var k3 := tuck.duplicate()
+	k3["pivot"] = axis * 5.4
+	k3["_lift"] = Vector3(0, -0.4, 0)
+	var up: Dictionary = h._guard().merged({"pivot": axis * TAU, "hips": Vector3.ZERO, "leg_l": Vector3(0.7, 0, -0.15), "shin_l": Vector3(-1.1, 0, 0),
+		"leg_r": Vector3(0.2, 0, 0.15), "shin_r": Vector3(-0.9, 0, 0), "_lift": Vector3(0, -0.2, 0)}, true)
+	var keys := [[0.0, {}], [0.16, k1, "out"], [0.42, k2, "linear"], [0.66, k3, "linear"], [0.86, up, "out"], [1.0, {"pivot": axis * TAU}]]
+	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
+
+
+## (held) Planted (Defense): the stance's block `bp` over a wide, deep stance, front knee bent over the toes, the
+## back leg braced long behind, the hips low and square, so the whole body is behind the guard. Settles in.
+static func planted(h, u: float, bp: Dictionary) -> Array:
+	var root := bp.merged({"pivot": Vector3(-0.08, 0, 0), "hips": Vector3(0, -0.15, 0),
+		"leg_l": Vector3(0.75, 0, -0.32), "shin_l": Vector3(-1.05, 0, 0), "leg_r": Vector3(-0.45, 0, 0.36), "shin_r": Vector3(-0.35, 0, 0),
+		"_lift": Vector3(0, -0.26, 0), "_scale": Vector3(1.04, 0.96, 1.04)}, true)
+	return [h._keys(u, [[0.0, {}], [1.0, root, "out"]]), "full", Vector3.ZERO]
 
 
 ## Armed: the weapon hand stays at the guard (pistols tucked, the katana trailed behind), the
