@@ -5454,3 +5454,20 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   `sea_king_unleash`).
 - Per frame added: Player `fist_armed` countdown (one subtraction a tick while armed), `keep_glow` a meta check a frame
   per captain; the glow is one sphere pair and two small emitters only while armed.
+
+## 2026-10-21: one walking pose in every direction (sword, axe); the Earthquake clears the head (Zach's play)
+- **Walk:** the cutlass, corsair, twin swords and the axe walked forward in the run carry (blade trailing at the side)
+  but on diagonals in the guard: jarring. `StanceLife.SPRINT_ONLY` stances now carry only at a sprint; walking at any
+  speed or direction keeps the guard. Humanoid._locomotion keeps `guard_up` under a sprint for them, so the carry eases in
+  from the guard over CARRY_IN (the gait's chest and head come back through `carry`), not from the run's arms (a snap).
+  Daggers and the pistol keep their forward run carry.
+- **Earthquake (ham_heavy):** the overhead raise put the hands at brow height right over the face with the haft
+  running back through the head on the way up. The heavy now has its own grips (HammerMoves.QUAKE_GRIP: hands higher
+  and further out front, haft steeper, the left hand lower on the haft to stay in reach; HEAVE_GRIP at u 0.14: the haft
+  stood up in front of the face first). The air slam and the ultimate keep RAISE_GRIP. Slam and recovery unchanged.
+- **Tested:** `t/weapons/cutlass_carry` (forward and diagonal walks give the same arms in the chest's frame, no carry;
+  a sprint eases into it, the biggest hand step mid-blend), new `t/weapons/hammer_heavy_clear` (the haft's segment and
+  the head's vertices vs the head sphere every tick of the heavy, all five designs: haft >= 0.087 m, was -0.07).
+  r10test's strafe check uses a stance-less body, so it isn't affected. Renders: guardsheet `run` (cutlass, axe,
+  corsair, dual_sword), animsheet `ham_heavy`.
+- Per frame added: nothing (one extra `in` test on a 4-item array in carry_weight and guard_up).

@@ -51,10 +51,16 @@ static func pose(h, n: String, u: float) -> Array:
 
 ## The overhead raise shared by the heavy, the air slam and the ultimate: both hands up over the head, the head
 ## of the hammer hanging behind it, the back arched.
-static func _raised(body: Dictionary) -> Dictionary:
+static func _raised(body: Dictionary, grip: Array = RAISE_GRIP) -> Dictionary:
 	return _k({"pivot": Vector3(0.1, 0, 0), "hips": Vector3(0, -0.05, 0), "torso": Vector3(0.25, -0.05, 0), "head": Vector3(-0.2, 0.05, 0),
-		"_lift": Vector3(0, -0.06, 0), "_scale": Vector3(0.96, 1.07, 1.0), "_smear": Vector3.ZERO}.merged(body, true),
-		[Vector3(0.02, 0.28, -0.08), Vector3(0.0, 0.55, 0.83), Vector3(0, 0.83, -0.55), 0.4])
+		"_lift": Vector3(0, -0.06, 0), "_scale": Vector3(0.96, 1.07, 1.0), "_smear": Vector3.ZERO}.merged(body, true), grip)
+
+
+const RAISE_GRIP := [Vector3(0.02, 0.28, -0.08), Vector3(0.0, 0.55, 0.83), Vector3(0, 0.83, -0.55), 0.4]
+## The Earthquake's heave: the hands higher and further out in front of the face, the haft steeper, so it passes
+## over the head instead of through it; reached through HEAVE_GRIP, the haft stood up in front of the face first.
+const QUAKE_GRIP := [Vector3(0.04, 0.42, -0.24), Vector3(0.0, 0.75, 0.66), Vector3(0, 0.66, -0.75), 0.12]
+const HEAVE_GRIP := [Vector3(0.1, 0.22, -0.38), Vector3(0.15, 0.95, 0.25), Vector3(0, 0.25, -0.97), 0.2]
 
 
 ## The blow driven into the ground ahead: bent deep over it, the head flat on the ground.
@@ -128,11 +134,12 @@ static func _pose(h, n: String, u: float) -> Array:
 		"ham_heavy":
 			# Earthquake: heaved up over the head with the back arched, a beat (the arms shaking under the
 			# weight), then slammed straight down into the ground ahead
-			var raise := _raised(SET)
+			var raise := _raised(SET, QUAKE_GRIP)
+			var heave := PoleMoves._whip(g, raise, 0.5, Vector3(0.98, 1.035, 1.0), 0.0).merged(_k({}, HEAVE_GRIP), true)
 			var tremble := raise.merged({"_gr": (raise["_gr"] as Vector3) + Vector3(0.006 * sin(h._t * 64.0), 0.008 * sin(h._t * 81.0), 0)}, true)
 			var slam := _slammed({})
 			var whoosh := PoleMoves._whip(raise, slam, 0.55, Vector3(0.96, 1.04, 1.06), 0.16)
-			return [h._keys(u, [[0.0, g], [0.28, raise, "out"], [0.44, tremble], [0.5, whoosh, "in"], [0.55, slam, "out"], [0.8, slam], [1.0, g]]), "full", Vector3.ZERO]
+			return [h._keys(u, [[0.0, g], [0.14, heave, "linear"], [0.28, raise, "out"], [0.44, tremble], [0.5, whoosh, "in"], [0.55, slam, "out"], [0.8, slam], [1.0, g]]), "full", Vector3.ZERO]
 		# --- moving ---
 		"ham_rush":
 			# Rising Crush (attacked at a sprint): the head dragged low behind, then swung up off the ground in
