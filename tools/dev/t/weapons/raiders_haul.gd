@@ -62,6 +62,8 @@ func _process(_d: float) -> bool:
 			for g in [g0, g1, g2]:
 				g._enter_idle()
 			p.power.energy = 999.0
+			# (a grunt's blow landing on you would end the technique early: not what's tested here)
+			p.hurtbox.monitorable = false
 			p.state_machine.force_state("Technique", {"id": "raiders_haul", "slot": 0})
 			until = TK.wait_secs(0.3)
 		2:

@@ -55,6 +55,8 @@ func _process(_d: float) -> bool:
 			for g in [g0, g1, g2]:
 				g._enter_idle()
 			p.power.energy = 999.0
+			# (the cut grunt comes at you while the axes are away: a blow landing on you would end the technique early)
+			p.hurtbox.monitorable = false
 			p.state_machine.force_state("Technique", {"id": "ravens_return", "slot": 0})
 			until = TK.wait_secs(0.7)
 		2:

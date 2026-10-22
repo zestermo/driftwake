@@ -5775,9 +5775,11 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   `Projectile.raven_offset`: a loop out on its own side RAVEN_W 4.5 m, RAVEN_L 10 m ahead where the two cross, home on
   the far side in RAVEN_T 1.2 s, eased into the moving hand over the last 30%. The cuts are the state's
   (`_raven_sweep`): everyone inside the loops' ellipse (plus 1 m) is cut once as the tips pass their depth on the way out
-  (16) and again on the way home (x0.7), ranged + sever + unblockable (they come round from the side and from behind;
-  blockable, a guarding grunt shrugged off the out cut about half the time), pushed away from the axe on their side; frost: ice chips
-  (`_spray`). Caught at 1.44 s.
+  (16) and again on the way home (x0.7), ranged + sever + unblockable (they come round from the side and from behind),
+  pushed away from the axe on their side; frost: ice chips
+  (`_spray`). Caught at 1.44 s. A blow that flinches you while the axes are away ends the technique (the axes still
+  fly home, but the homeward cuts are lost), like any technique without armour; t/weapons/ravens_return turns your
+  hurtbox off for that reason (it flaked under load when the cut grunt reached you first).
 - **Raider's Haul** (Hook 14, `dx_haul`, 4 pts; 20 energy, 8 s; `_haul` / `_circle`, poses `dx_haul` / `dx_circle`):
   the one in front (3.5 m). Light (`FistArts.throwable` + `launched`): `grabbed` at 0.16, carried by `_carry` round you
   at HAUL_ARM 1.9 m along `DualAxeMoves.haul_turn` (the same eased angle the pose's pivot spins by, 0.3-1.0 s), its
