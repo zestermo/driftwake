@@ -5547,3 +5547,6 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   only while a cutlass block, parry or deflect plays.
 - t/weapons/fist_sea_king hardened: the stage grunt is disabled until the parry steps (it reached the airborne captain:
   Stagger), and the air unleash is polled up to 20 ticks for Technique/Plunge instead of a fixed 4.
+- Skill icons for the polearm, hammer, twin-axe, greatsword and black-leg techniques (20, 24 px, each tree's FX.TREE_FX
+  colours) from `gen_technique_icons` (`py tools/texture_gen/gen_psx_textures.py technique_icons` regenerates only those);
+  techtest's "every skill has an icon" passes again, t/ui too.
