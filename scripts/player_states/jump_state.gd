@@ -8,12 +8,23 @@ const SPRINT_JUMP_COST := 10.0
 const VAULT_UP := 1.3
 const VAULT_FAR := 1.3
 
+## Moonstep (Acrobatics): how high the burst carries you (m), and when its feet meet the air (s into the action).
+const MOON_UP := 4.5
+const MOON_STAMP := 0.13
+const MOON_COL := Color(1.0, 0.97, 0.82, 0.9)
+
 var _stamp_at := -1.0
+var _moon_at := -1.0
 
 
 func enter(data: Dictionary) -> void:
 	_stamp_at = -1.0
+	_moon_at = -1.0
 	player.freefall_from = now_s()
+	if data.get("moon", false):
+		player.air_speed = maxf(Vector2(player.velocity.x, player.velocity.z).length(), player.move_speed)
+		_moonstep()
+		return
 	# (out of a tumble: an air step, and the ground jump is long gone)
 	if data.get("air", false) and player.jumps_remaining == player.max_jumps:
 		player.jumps_remaining -= 1
@@ -84,9 +95,39 @@ func _stamp() -> void:
 	Net.fx("sfx", ["jump", at, -8.0, 0.05, 1.15])
 
 
+## Moonstep: both knees drawn up, both feet stamped down on the air together, and up you go (no air step spent).
+func _moonstep() -> void:
+	player.air_uses["moonstep"] = 1
+	player.freefall_from = now_s()
+	player.velocity.y = sqrt(2.0 * player.gravity * MOON_UP)
+	player.variable_jump_active = false
+	player.squash(5.5)
+	player.body_model.play("moonstep", ActionSpecs.length("moonstep"))
+	player.progression.add_life("acrobatics", 8)
+	_moon_at = now_s() + MOON_STAMP
+	Net.fx("sfx", ["whoosh_big", player.global_position, -9.0, 0.05, 0.8])
+
+
+## The Moonstep's stamp: a pale crescent ring of air under both feet, a wider one racing out, mist and motes
+## driven down, a streak below, and the thump.
+func _moon_fx() -> void:
+	_moon_at = -1.0
+	var at := player.global_position + Vector3(0, 0.04, 0)
+	Net.fx("ring", [at, Vector3.UP, 1.3, MOON_COL, 0.3, 0.12])
+	Net.fx("ring", [at - Vector3(0, 0.1, 0), Vector3.UP, 2.6, Color(1.0, 1.0, 0.95, 0.6), 0.38, 0.05])
+	Net.fx("puff_ring", [at - Vector3(0, 0.15, 0), "mist", 10, 0.2, 0.7, 0.55, Color(1.0, 0.98, 0.92, 0.75), 3.4])
+	Net.fx("motes", [at, Vector3.DOWN, 10, MOON_COL, 5.0])
+	Net.fx("streak", [at, at - Vector3(0, 2.2, 0), Color(1.0, 0.98, 0.9), 0.14, 0.25])
+	Net.fx("sfx", ["jump", at, -5.0, 0.05, 0.75])
+	Net.fx("sfx", ["thud", at, -10.0, 0.05, 1.2])
+	CombatManager.apply_camera_shake(0.08)
+
+
 func physics_update(delta: float) -> void:
 	if _stamp_at > 0.0 and now_s() >= _stamp_at:
 		_stamp()
+	if _moon_at > 0.0 and now_s() >= _moon_at:
+		_moon_fx()
 	apply_gravity(delta)
 
 	var input := get_movement_input()
@@ -109,6 +150,10 @@ func physics_update(delta: float) -> void:
 
 	if player.skyward_dash and wants_dodge():
 		transitioned.emit(self, "Dodge", {"air": true})
+		return
+
+	if wants_moonstep():
+		_moonstep()
 		return
 
 	# Double jump

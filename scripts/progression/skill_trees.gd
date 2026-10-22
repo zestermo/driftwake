@@ -52,7 +52,7 @@ const HEADERS := {
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
 ## one goes straight up. A step sits off the node it hangs on.
-const LEFT := [Vector2(-120, -78), Vector2(-192, -162), Vector2(-252, -248), Vector2(-300, -336), Vector2(-336, -420), Vector2(-362, -500), Vector2(-380, -580)]
+const LEFT := [Vector2(-120, -78), Vector2(-192, -162), Vector2(-252, -248), Vector2(-300, -336), Vector2(-336, -420), Vector2(-362, -500), Vector2(-380, -580), Vector2(-392, -660)]
 const MID_STEP := 84.0
 const STEP_OFF := {0: [Vector2(-84, -28), Vector2(-64, 40)], 1: [Vector2(76, -30), Vector2(-76, -30)], 2: [Vector2(84, -28), Vector2(64, 40)],
 	-1: [Vector2(72, -18), Vector2(-72, -18), Vector2(104, 34), Vector2(-104, 34)]}
@@ -350,9 +350,19 @@ static func _build_acrobatics() -> void:
 	_big("m_skywalk", "Sky Walk", "mech", 0, 9, {"air_jumps": 1}, "One more jump in mid-air (three in all).")
 	_big("ac_breakfall", "Breakfall", "move", 0, 12, {"breakfall": 1},
 		"Knocked flying by a heavy blow, or tumbling from a long fall: press jump in the air to right yourself and come down on your feet.")
-	_big("ac_feather", "Featherfall", "mech", 0, 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing.")
+	# (the landing variant keeps Featherfall's old id, so a save that bought it owns the variant)
+	_variant("ac_feather", "Landing", 0, [
+		["ac_featherfall", "Featherfall", 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing."],
+		["ac_crash", "Crash Landing", 15, {"crash_landing": 1},
+			"Come down hard from a long drop and you land on one knee and a fist: the ground cracks and the foes round you are thrown off their feet. The fall hurts you half as much, with no stumble."]],
+		"Two ways to come down. Both are yours; pick the one you carry at the ship's bunk.")
 	_big("ac_skydash", "Skyward Dash", "move", 0, 18, {"skyward_dash": 1},
 		"Righted in mid-air (Breakfall, or an air step out of a tumble): dodge for an air dash, and two more air steps. Enough to get back aboard after a blow throws you off the ship.")
+	_big("ac_moonstep", "Moonstep", "move", 0, 20, {"moonstep": 1},
+		"In mid-air, dodge to stamp both feet down on the air itself and burst straight up, far higher than an air step (once a jump, 18 stamina).")
+	_icon("ac_featherfall", "move_featherfall")
+	_icon("ac_crash", "move_crash")
+	_icon("ac_moonstep", "move_moonstep")
 	_big("ac_skyleap", "Sky Leap", "move", 0, 22, {"sky_leap": 1},
 		"Stand still and hold jump: Will hardens your legs, then let go to leap 25 m into the sky (40 stamina; a shorter hold, a shorter leap). You land in a crater, unhurt, with your air steps still to use.")
 	_big("ac_heavenward", "Heavenward", "move", 0, 28, {"heavenward": 1},

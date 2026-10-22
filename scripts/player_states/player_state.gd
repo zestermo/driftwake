@@ -187,6 +187,16 @@ func air_move() -> String:
 	return mv if mv != "" and player.progression.has_move(mv) else ""
 
 
+## Moonstep (Acrobatics): dodge in mid-air, once a jump, for MOON_COST stamina.
+const MOON_COST := 18.0
+
+
+func wants_moonstep() -> bool:
+	if not player.progression.has_flag("moonstep") or player.air_uses.has("moonstep") or not input_buffer.consume_action("dodge"):
+		return false
+	return player.spend_stamina(MOON_COST)
+
+
 ## Dodge pressed (or buffered) and there's stamina for it.
 func wants_dodge() -> bool:
 	return input_buffer.consume_action("dodge") and player.spend_stamina(player.dodge_cost())

@@ -16,6 +16,10 @@ static func pose(h, n: String, u: float) -> Array:
 			return _roll(h, u)
 		"sidestep":
 			return _sidestep(h, u)
+		"moonstep":
+			return _moonstep(h, u)
+		"crash_land":
+			return _crash_land(h, u)
 		"breakfall":
 			return _breakfall(h, u)
 		"sky_leap_charge":
@@ -161,6 +165,41 @@ static func _sidestep(h, u: float) -> Array:
 		slip.merge(guard)
 		dip.merge(guard)
 	var keys := [[0.0, {}], [0.22, slip, "out"], [0.5, dip], [1.0, {}]]
+	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
+
+
+## Moonstep (Acrobatics): both knees snatched up to the chest, then both feet stamped straight down on the air
+## together (JumpState's ring goes under them on that key, MOON_STAMP), the arms flung up overhead and the body
+## stretched tall as it shoots up, then the rise: one knee carried up, arms opening out wide.
+static func _moonstep(h, u: float) -> Array:
+	h._jkind = "double"
+	var gather := {"pivot": Vector3(0.05, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.3, 0, 0), "head": Vector3(0.25, 0, 0),
+		"leg_l": Vector3(1.75, 0, -0.12), "shin_l": Vector3(-2.15, 0, 0), "leg_r": Vector3(1.65, 0, 0.12), "shin_r": Vector3(-2.15, 0, 0),
+		"arm_l": Vector3(-0.65, 0, -0.35), "fore_l": Vector3(0.45, 0, 0), "arm_r": Vector3(-0.65, 0, 0.35), "fore_r": Vector3(0.45, 0, 0),
+		"_scale": Vector3(1.07, 0.88, 1.07)}
+	var stamp := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(0.12, 0, 0), "head": Vector3(0.32, 0, 0),
+		"leg_l": Vector3(0.02, 0, -0.07), "shin_l": Vector3(-0.08, 0, 0), "leg_r": Vector3(0.02, 0, 0.07), "shin_r": Vector3(-0.08, 0, 0),
+		"arm_l": Vector3(2.65, 0, -0.38), "fore_l": Vector3(0.25, 0, 0), "arm_r": Vector3(2.65, 0, 0.38), "fore_r": Vector3(0.25, 0, 0),
+		"_scale": Vector3(0.9, 1.16, 0.9)}
+	var rise := {"pivot": Vector3.ZERO, "hips": Vector3.ZERO, "torso": Vector3(-0.05, 0, 0), "head": Vector3(0.18, 0, 0),
+		"leg_l": Vector3(0.25, 0, -0.08), "shin_l": Vector3(-0.45, 0, 0), "leg_r": Vector3(1.2, 0, 0.1), "shin_r": Vector3(-1.7, 0, 0),
+		"arm_l": Vector3(0.9, 0, -1.25), "fore_l": Vector3(0.35, 0, 0), "arm_r": Vector3(0.9, 0, 1.25), "fore_r": Vector3(0.35, 0, 0),
+		"_scale": Vector3.ONE}
+	var keys := [[0.0, {}], [0.14, gather, "out"], [0.2, gather], [0.28, stamp, "out"], [0.5, stamp], [0.78, rise], [1.0, rise]]
+	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
+
+
+## Crash Landing (Acrobatics): slammed down onto one knee and a fist (the three-point landing), head up and the free
+## arm flung out behind, held while the dust goes out, then up. Snaps in on its first key (spec "snap").
+static func _crash_land(h, u: float) -> Array:
+	var slam := {"pivot": Vector3(-0.32, 0, 0), "hips": Vector3(0, 0.12, 0), "torso": Vector3(-0.7, -0.12, 0), "head": Vector3(0.6, 0.08, 0),
+		"leg_r": Vector3(1.3, 0, 0.18), "shin_r": Vector3(-2.0, 0, 0), "leg_l": Vector3(-0.35, 0, -0.22), "shin_l": Vector3(-2.15, 0, 0),
+		"arm_l": Vector3(0.75, 0, -0.3), "fore_l": Vector3(0.15, 0, 0), "arm_r": Vector3(-0.55, 0, 1.0), "fore_r": Vector3(0.35, 0, 0),
+		"_lift": Vector3(0, -0.44, 0), "_scale": Vector3(1.1, 0.88, 1.1)}
+	var held := slam.duplicate()
+	held["_scale"] = Vector3(1.04, 0.95, 1.04)
+	held["torso"] = Vector3(-0.6, -0.1, 0)
+	var keys := [[0.0, slam], [0.16, held, "out"], [0.58, held], [1.0, {}]]
 	return [h._keys(u, _unarmed_keys(h, keys)), "full", Vector3.ZERO]
 
 
