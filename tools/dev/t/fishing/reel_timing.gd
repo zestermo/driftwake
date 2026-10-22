@@ -79,8 +79,10 @@ func _process(_d: float) -> bool:
 			var w0: float = F.window(p, "driftwood")
 			check("a better rod: a longer window (%.2f -> %.2f s)" % [w0, F.window(p, "master")], F.window(p, "master") > w0 * 1.3)
 			var pr = p.progression
-			while pr.stat("fish_reel_pct") <= 0.0 and pr.mastery_level("fish") < 30:
+			# (Adventure nodes are bought since 1.18.4: level to Steady Hands' gate, then buy it)
+			while pr.mastery_level("fish") < 5:
 				pr.add_life("fish", pr.mastery_to_next(pr.mastery_level("fish")))
+			pr.buy("fs_hands")
 			check("Fishing's Steady Hands: a longer window (%.2f -> %.2f s)" % [w0, F.window(p, "driftwood")], F.window(p, "driftwood") > w0)
 			seed(7)
 			var b0: float = F.bite_secs(p, "driftwood")
