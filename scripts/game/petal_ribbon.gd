@@ -1,10 +1,13 @@
 class_name PetalRibbon
 extends MeshInstance3D
-## The katana's drawn slash (FX.katana_slash): the blade in `body`'s hand is sampled every
+## A weapon's drawn slash (FX.drawn_slash): the blade in `body`'s hand is sampled every
 ## frame for `emit` seconds and the pixel-art strip is laid along the path its tip really
-## took, so the slash always runs the way the swing went. Plain: steel_trail.png, a thin
-## crescent of steel; awakened (the katana tree's mastery): petal_trail.png, a big billowing
-## cloud that curls over at the head, breaks into puffs from the tail and sheds petals.
+## took, so the slash always runs the way the swing went. `kind` picks the look (LOOKS):
+## the katana's (plain: steel_trail.png, a thin crescent of steel; awakened by its tree's
+## mastery: petal_trail.png, a billowing cloud that curls over at the head, breaks into puffs
+## from the tail and sheds petals) or the axe's (plain: axe_trail.png, a heavy crescent of
+## iron shedding dust, laid along the bit's path; awakened: ember_trail.png, fire licking off
+## a crescent with a charred edge, throwing embers and ash).
 ## `thrust`: laid along the blade's line instead (a stab), reaching out past the point.
 ## `fixed`: no blade, a given path drawn on over `emit` (FX.katana_line, FX.katana_arc).
 ## Camera-facing, the crest on the outside (away from the hilt); in world space, on game time;
@@ -17,11 +20,19 @@ const FPS := 14.0
 const SUB := 3
 ## How far out along the blade the strip runs (1 = the tip).
 const OUT := 1.04
+## kind -> [plain strip, awakened strip] (assets/textures/fx/<name>.png).
+const LOOKS := {"katana": ["steel_trail", "petal_trail"], "axe": ["axe_trail", "ember_trail"], "dagger": ["steel_trail", "shadow_trail"],
+	"dual": ["steel_trail", "twin_trail"], "dual_dagger": ["steel_trail", "venom_trail"], "corsair": ["steel_trail", "powder_trail"]}
+## The other elements' bursts (gen_drawn_fx.py): kind -> the cloud let off the head as the cut ends.
+const CLOUDS := {"dagger": "shadow_cloud", "dual": "twin_cloud", "dual_dagger": "venom_cloud", "corsair": "powder_cloud"}
 
 var body: Humanoid
+var kind := "katana"
 var emit := 0.2
 var awake := false
 var thrust := false
+## The off hand's blade (dual wield).
+var left := false
 var width := 0.34
 ## Seconds it lasts after the sampling ends (holding, then breaking up from the tail).
 var linger := 0.32
@@ -43,18 +54,19 @@ var _am := ArrayMesh.new()
 static var _mats: Dictionary = {}
 
 
-static func material(awakened: bool) -> StandardMaterial3D:
-	if not _mats.has(awakened):
+static func material(awakened: bool, look: String = "katana") -> StandardMaterial3D:
+	var strip: String = LOOKS[look][1 if awakened else 0]
+	if not _mats.has(strip):
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		m.albedo_texture = load("res://assets/textures/fx/%s.png" % ("petal_trail" if awakened else "steel_trail"))
+		m.albedo_texture = load("res://assets/textures/fx/%s.png" % strip)
 		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
 		m.texture_repeat = true
 		m.vertex_color_use_as_albedo = true
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
-		_mats[awakened] = m
-	return _mats[awakened]
+		_mats[strip] = m
+	return _mats[strip]
 
 
 func _ready() -> void:
@@ -91,12 +103,17 @@ func _sample() -> void:
 		while samples.size() < due:
 			samples.append(fixed[samples.size()])
 		return
-	var w := body.weapon
+	var w := body.offhand if left else body.weapon
 	if w == null or not is_instance_valid(w) or w.get_parent() not in [body.hand_r, body.hand_l]:
 		return
-	var z := w.mesh.get_aabb().position.z
-	var base := w.global_transform * Vector3(0, 0, z * 0.3)
-	var tip := w.global_transform * Vector3(0, 0, z * OUT)
+	var box := w.mesh.get_aabb()
+	var base := w.global_transform * Vector3(0, 0, box.position.z * 0.3)
+	var tip := w.global_transform * Vector3(0, 0, box.position.z * OUT)
+	if kind == "axe":
+		# (the bit's edge: out on the knuckle side (-y) at the head; the crest away from the hand)
+		var hz := WeaponDesigns.axe_head_z(str(w.mesh.get_meta("model", "")))
+		base = w.global_transform * Vector3(0, 0, hz * 0.3)
+		tip = w.global_transform * Vector3(0, box.position.y * 0.95, hz)
 	if not samples.is_empty() and (samples[-1][1] as Vector3).distance_to(tip) < 0.01:
 		return
 	samples.append([base, tip])
@@ -206,9 +223,13 @@ func _build() -> void:
 		arr[Mesh.ARRAY_TEX_UV] = uvs
 		arr[Mesh.ARRAY_COLOR] = cols
 		_am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-		_am.surface_set_material(0, material(awake))
-	if awake:
+		_am.surface_set_material(0, material(awake, kind))
+	if kind == "axe":
+		_shed_axe(pts, lens, tail, k)
+	elif awake and kind == "katana":
 		_shed(pts, lens, total, tail, k)
+	elif awake:
+		_shed_drawn(pts, lens, tail, k)
 
 
 ## The thickness along it (0 = the tail, 1 = the head): fattest past the middle, thin at both
@@ -235,6 +256,46 @@ func _shed(pts: Array, lens: Array, total: float, tail: float, k: float) -> void
 	if _left > 0.0 and _cloud_at > 0.07:
 		_cloud_at = 0.0
 		FX.sakura(head, Vector3.UP * 0.4 + (head - (pts[maxi(pts.size() - 4, 0)] as Vector3)).normalized(), 2, 1.6)
+
+
+## The axe's: plain, a puff of dust off the head once the bite's drawn and one off the tail as
+## it breaks; awakened, a gout of fire at the head, cinders flying off it as it goes and ash
+## drifting off the tail as it chars away.
+func _shed_axe(pts: Array, lens: Array, tail: float, k: float) -> void:
+	var head: Vector3 = pts[pts.size() - 1]
+	var way := (head - (pts[maxi(pts.size() - 4, 0)] as Vector3)).normalized()
+	if _puffs == 0 and _left <= 0.0:
+		_puffs = 1
+		if awake:
+			FX.drawn_burst(head, "ember_cloud", width * 2.0, 0.5)
+			FX.cinders(head, way + Vector3.UP * 0.5, 5, 3.0)
+		else:
+			FX.puff(head, "dust", 2, width * 1.8, 0.6, Color.WHITE, 0.7, way + Vector3.UP)
+	elif _puffs == 1 and k > 0.35:
+		_puffs = 2
+		var at := _at(pts, lens, tail)
+		if awake:
+			FX.ash(at, Vector3.UP, 4, 1.0)
+		else:
+			FX.puff(at, "dust", 1, width * 1.4, 0.55, Color.WHITE, 0.4)
+	_cloud_at += get_process_delta_time()
+	if awake and _left > 0.0 and _cloud_at > 0.08:
+		_cloud_at = 0.0
+		FX.cinders(head, Vector3.UP * 0.5 + way, 2, 2.0)
+
+
+## The other awakened elements': a burst of the element off the head once the cut's drawn, its material thrown off it,
+## and a smaller one off the tail as it breaks.
+func _shed_drawn(pts: Array, lens: Array, tail: float, k: float) -> void:
+	var head: Vector3 = pts[pts.size() - 1]
+	var way := (head - (pts[maxi(pts.size() - 4, 0)] as Vector3)).normalized()
+	if _puffs == 0 and _left <= 0.0:
+		_puffs = 1
+		FX.drawn_burst(head, CLOUDS[kind], width * 2.0, 0.45)
+		FX.element(kind, head, way + Vector3.UP * 0.4, 4, 2.5)
+	elif _puffs == 1 and k > 0.35:
+		_puffs = 2
+		FX.drawn_burst(_at(pts, lens, tail), CLOUDS[kind], width * 1.3, 0.4)
 
 
 func _at(pts: Array, lens: Array, l: float) -> Vector3:

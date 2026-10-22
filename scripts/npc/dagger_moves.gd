@@ -13,6 +13,47 @@ class_name DaggerMoves
 const GUARD := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.36, 0.2, 0), "head": Vector3(0.3, -0.2, 0),
 	"arm_r": Vector3(0.6, -0.25, 0.3), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
 	"arm_l": Vector3(0.75, 0.2, -0.3), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3.ZERO}
+## The mastered guard (Humanoid.guard2): the knife hand and blade held by PoleMoves.hands from its grips ([hand, the
+## blade's way, its edge's way, -1: one hand], the chest's frame), the free arm keyed here. The Hidden Knife (Zach's
+## pick, 2026-10-22): stood easy and a little side on, the knife hand at the back of the right hip, a little out from the
+## body (Zach: not wholly behind the back), its point out past the right hip (a glint
+## of it shows from the front), the free hand out low and open.
+const GUARD2 := {"hips": Vector3(0, 0.25, 0), "torso": Vector3(-0.08, 0.25, 0.02), "head": Vector3(0.1, -0.3, 0),
+	"arm_r": Vector3(-0.4, 0.3, 0.3), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3.ZERO,
+	"arm_l": Vector3(0.8, -0.2, -0.2), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(0, 0, 1.4)}
+const LEGS2 := {"leg_l": Vector3(0.15, 0, -0.12), "leg_r": Vector3(-0.1, 0, 0.14), "shin_l": Vector3(-0.25, 0, 0), "shin_r": Vector3(-0.35, 0, 0),
+	"_lift": Vector3(0, -0.06, 0)}
+## [guard, block, run] grips.
+const GRIPS2 := [[Vector3(0.2, -0.46, 0.22), Vector3(0.8, -0.5, 0.3), Vector3(0, 0, 1), -1.0],
+	[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
+	[Vector3(0.2, -0.46, 0.22), Vector3(0.8, -0.5, 0.3), Vector3(0, 0, 1), -1.0]]
+
+
+static func guard(h) -> Dictionary:
+	if h.stance == "dual_dagger":
+		return TWIN2 if h.guard2 else DUAL_GUARD
+	return GUARD2 if h.guard2 else GUARD
+
+
+static func legs(h) -> Dictionary:
+	if h.stance == "dual_dagger":
+		return TWIN_LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["dual_dagger"]
+	return LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["dagger"]
+
+
+static func grips2(h) -> Array:
+	return [] if h.stance == "dual_dagger" else GRIPS2
+
+
+## The twin daggers' mastered guard, keyed: the Viper (Zach's pick, 2026-10-22), sunk very low and side on, the right
+## dagger up by the face, its point down at them like a fang reared to strike, the left low ahead like its tongue.
+static var TWIN2 := aim({"hips": Vector3(0, 0.55, 0), "torso": Vector3(-0.32, 0.4, 0.04), "head": Vector3(0.25, -0.65, 0),
+	"arm_r": Vector3(1.5, 0.3, 0.6), "fore_r": Vector3(1.9, 0, 0), "blade_r": Vector3(0.0, -0.5, -0.85),
+	"arm_l": Vector3(0.8, -0.1, -0.15), "fore_l": Vector3(0.4, 0, 0), "blade_l": Vector3(0.1, -0.1, -0.99)}, true)
+const TWIN_LEGS2 := {"leg_l": Vector3(-0.35, 0, -0.3), "leg_r": Vector3(0.9, 0, 0.3), "shin_l": Vector3(-1.0, 0, 0), "shin_r": Vector3(-1.6, 0, 0),
+	"_lift": Vector3(0, -0.38, 0)}
+
+
 ## Two daggers, the right forward and the left reversed, wrists crossed low before the hips, the blades out of the
 ## cross, the chest down over them.
 static var DUAL_GUARD := aim({"hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.34, 0, 0), "head": Vector3(0.26, 0, 0),

@@ -38,51 +38,51 @@ const STYLES := {
 		"durations": [0.5], "impulses": [12.0],
 		"damages": [14.0], "hitstops": [0.06], "shakes": [0.12],
 		"reach": "wide", "color": Color(0.45, 0.75, 1.0), "breaker": true},
-	# two-handed: slow, wide cuts with a held wind-up, hitting hard; "drawn": the katana's drawn
-	# slash laid along the blade (FX.katana_slash)
+	# two-handed: slow, wide cuts with a held wind-up, hitting hard; "drawn": the weapon's drawn
+	# slash laid along the blade (DrawnFx)
 	"katana": {"anims": ["katana_r", "katana_l", "katana_stab"], "trails": ["", "", ""],
 		"durations": [0.62, 0.62, 0.7], "impulses": [5.0, 5.0, 9.0],
 		"damages": [18.0, 20.0, 30.0], "hitstops": [0.06, 0.06, 0.1], "shakes": [0.1, 0.1, 0.18],
-		"reach": "katana", "color": Color(0.85, 0.92, 1.0), "drawn": true},
+		"reach": "katana", "color": Color(0.85, 0.92, 1.0), "drawn": "katana"},
 	# katana, attacked at a sprint: a quick cut straight out of the scabbard,
 	# stepping in a little; catches the target mid-move (breaks wind-ups, staggers)
 	# (the follow-through is held about a second before you can move on)
 	"katana_draw": {"anims": ["quick_draw"], "trails": [""],
 		"durations": [0.95], "impulses": [9.0],
 		"damages": [14.0], "hitstops": [0.05], "shakes": [0.1],
-		"reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true, "drawn": true},
+		"reach": "katana", "color": Color(0.85, 0.92, 1.0), "breaker": true, "drawn": "katana"},
 	# axe: heavy, deliberate hacks with the weight behind them; the finisher
 	# smashes down two-handed into the ground and knocks them flat
-	"axe": {"anims": ["axe_hack", "axe_hook", "axe_split"], "trails": ["kesa_r", "left", "overhead"],
+	"axe": {"anims": ["axe_hack", "axe_hook", "axe_split"], "trails": ["", "", ""],
 		"durations": [0.46, 0.46, 0.72], "impulses": [4.0, 4.5, 6.0],
 		"damages": [14.0, 15.0, 30.0], "hitstops": [0.065, 0.065, 0.13], "shakes": [0.11, 0.11, 0.28],
-		"reach": "sword", "color": Color(1.0, 0.78, 0.5), "slam": true},
+		"reach": "sword", "color": Color(1.0, 0.78, 0.5), "slam": true, "drawn": "axe"},
 	# two blades, quick and alternating: the blades draw their own paired trails;
 	# "hands": which hand cuts ("l": the off hand's weapon changes it, OFFHAND)
 	"dual_sword": {"anims": ["dual_1", "dual_2", "dual_cross", "dual_spin"], "trails": ["", "", "", ""],
 		"durations": [0.34, 0.34, 0.42, 0.56], "impulses": [4.0, 4.0, 5.0, 6.0],
 		"damages": [9.0, 9.0, 15.0, 22.0], "hitstops": [0.045, 0.045, 0.07, 0.1], "shakes": [0.08, 0.08, 0.14, 0.2],
 		"reach": "wide", "reaches": ["wide", "wide", "wide", "spin"], "hands": ["r", "l", "x", "x"],
-		"color": Color(0.55, 0.85, 1.0), "color_l": Color(0.75, 0.65, 1.0), "tree": "dual"},
+		"color": Color(0.55, 0.85, 1.0), "color_l": Color(0.75, 0.65, 1.0), "tree": "dual", "drawn": "dual"},
 	# a cutlass and a pistol: cuts and point-blank shots ("kinds"); "shots": a ball's damage
 	"sword_pistol": {"anims": ["sp_cut", "sp_shot", "sp_rise", "sp_finale"], "trails": ["", "", "", ""],
 		"kinds": ["cut", "shot", "cut", "cut_shot"], "durations": [0.46, 0.4, 0.48, 0.86], "impulses": [4.5, 3.0, 4.5, 5.0],
 		"damages": [10.0, 0.0, 12.0, 11.0], "shots": [0.0, 14.0, 0.0, 20.0],
 		"hitstops": [0.05, 0.05, 0.06, 0.08], "shakes": [0.09, 0.1, 0.11, 0.16],
-		"reach": "sword", "reaches": ["sword", "sword", "sword", "spin"], "color": Color(1.0, 0.85, 0.7), "tree": "corsair"},
+		"reach": "sword", "reaches": ["sword", "sword", "sword", "spin"], "color": Color(1.0, 0.85, 0.7), "tree": "corsair", "drawn": "corsair"},
 	# one dagger: quick and close - a stab, a slash, a rising cut, and (Gutting Strike)
 	# a turn into a low stab that bleeds them; "bleeds": seconds a hit makes them bleed
 	"dagger": {"anims": ["dg_stab", "dg_slash", "dg_rise", "dg_gut"], "trails": ["", "", "", ""],
 		"durations": [0.26, 0.28, 0.3, 0.5], "impulses": [4.5, 4.0, 4.5, 6.0],
 		"damages": [7.0, 7.0, 9.0, 15.0], "hitstops": [0.035, 0.035, 0.045, 0.08], "shakes": [0.06, 0.06, 0.08, 0.16],
-		"reach": "dagger", "color": Color(1.0, 0.78, 0.82), "tree": "dagger", "bleeds": [0.0, 0.0, 0.0, 4.0]},
+		"reach": "dagger", "color": Color(1.0, 0.78, 0.82), "tree": "dagger", "bleeds": [0.0, 0.0, 0.0, 4.0], "drawn": "dagger"},
 	# two daggers: a slash, a stab with the other, a scissor across, and (Fang Whirl) a
 	# whirl into both driven in
 	"dual_dagger": {"anims": ["dd_1", "dd_2", "dd_3", "dd_4"], "trails": ["", "", "", ""],
 		"durations": [0.24, 0.24, 0.32, 0.52], "impulses": [4.0, 4.0, 5.0, 5.5],
 		"damages": [6.0, 6.0, 11.0, 17.0], "hitstops": [0.03, 0.03, 0.05, 0.08], "shakes": [0.05, 0.05, 0.1, 0.16],
 		"reach": "dagger", "reaches": ["dagger", "dagger", "wide", "spin"], "color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7),
-		"tree": "dual_dagger", "bleeds": [0.0, 0.0, 0.0, 4.0]},
+		"tree": "dual_dagger", "bleeds": [0.0, 0.0, 0.0, 4.0], "drawn": "dual_dagger"},
 	# polearm: a thrust that hits from three paces, a rising cut, a wide flat sweep and (Wheel Sweep) the spear
 	# swung round once all about you; "pole": a design's speed and pierce apply (WeaponDesigns.pole)
 	"polearm": {"anims": ["pole_thrust", "pole_rise", "pole_sweep", "pole_wheel"], "trails": ["", "", "", ""],
@@ -292,13 +292,14 @@ func physics_update(delta: float) -> void:
 		_swooshed = true
 		var sc: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col()
 		var sl: Color = Player.HAKI_TRAIL if player.power.buff("coat") else _trail_col(true)
-		# (the awakened katana's cloud is its trail: the thin line of light under it went)
+		# (an awakened drawn element is its trail: the thin line of light under it went)
+		var dk := str(cfg.get("drawn", ""))
 		if cfg.get("legs", false):
 			BlackLegArts.swoosh(player, str(cfg["anims"][combo_index]), _swoosh.y - _swoosh.x, sc)
-		elif not cfg.get("drawn", false) or not KatanaFx.awake(player) or player.power.buff("coat"):
+		elif dk == "" or not DrawnFx.awake(player, dk) or player.power.buff("coat"):
 			Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc, sl])
-		if cfg.get("drawn", false):
-			KatanaFx.slash(player, _swoosh.y - _swoosh.x, str(cfg["anims"][combo_index]) == "katana_stab")
+		if dk != "":
+			DrawnFx.blow(player, dk, str(cfg["anims"][combo_index]), _swoosh.y - _swoosh.x, 1.25 if combo_index == combo_count - 1 and dk == "axe" else 1.0)
 
 	if _shot_t >= 0.0 and timer >= _shot_t and not _shot_done:
 		_shot_done = true
@@ -347,7 +348,7 @@ func physics_update(delta: float) -> void:
 			Net.fx("ground_crack", [at - fwd * 0.3, fwd, 1.8, FX.tree_col("axe", FX.ACCENT) if hot else Color(0, 0, 0, 0), randi() % 10000, 0.08])
 			Net.fx("debris", [at + Vector3(0, 0.1, 0), Vector3.UP + fwd * 0.2, 6, Color(0.35, 0.3, 0.25), 4.5])
 			if hot:
-				Net.fx("embers", [at + Vector3(0, 0.2, 0), Vector3.UP, 8, FX.tree_col("axe", FX.ACCENT), 3.5])
+				Net.fx("element", ["axe", at + Vector3(0, 0.2, 0), Vector3.UP, 8, 3.5])
 			Net.fx("dust_ring", [at, 16, 1.1])
 			Net.fx("impact", [at + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
 			Net.fx("sfx", ["thud", at, -2.0, 0.05, 0.75])

@@ -1418,15 +1418,28 @@ func petals(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1
 		p.angular_velocity_max = 420.0
 
 
+## The weapon trees whose element is drawn by gen_drawn_fx.py: tree -> its sheets' name (flip_<name>_slash,
+## flip_<name>_cloud, <name>_trail).
+const DRAWN := {"dagger": "shadow", "dual": "twin", "dual_dagger": "venom", "corsair": "powder", "pistol": "gold", "unarmed": "gale"}
+
+
 ## A tree's element thrown along `dir`: sea spray (cutlass), drawn sakura (katana: bigger, so
-## fewer), embers (axe), rock and dust (hammer).
+## fewer), drawn cinders and a lick of fire (axe: cinders are bigger, so fewer), rock and dust (hammer).
 func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
 	var c := tree_col(tree, ACCENT)
+	# (the drawn elements: a burst of the element on the bigger throws, under the tree's own material)
+	if flipbooks and amount >= 8 and DRAWN.has(tree):
+		drawn_burst(pos, DRAWN[tree] + "_cloud", 0.5 + amount * 0.05, 0.45, 40.0)
 	match tree:
 		"katana":
 			sakura(pos, dir, maxi(amount * 2 / 3, 2), speed)
 		"axe":
-			embers(pos, dir, amount, c, speed)
+			if not flipbooks:
+				embers(pos, dir, amount, c, speed)
+				return
+			cinders(pos, dir, maxi(amount * 2 / 3, 2), speed)
+			if amount >= 8:
+				drawn_burst(pos, "ember_cloud", 0.5 + amount * 0.05, 0.45, 40.0)
 		"dual":
 			motes(pos, dir, maxi(amount / 2, 2), tree_col(tree, EDGE), speed)
 			motes(pos, dir, maxi(amount / 2, 2), c, speed * 0.8)
@@ -2630,6 +2643,13 @@ func water_burst(pos: Vector3, sheet: String, size: float = 2.0, life: float = 0
 ## element awakened a billowing cloud that sheds petals. `thrust`: along the blade's line (a
 ## stab). Other screens lay their own along their copy of the body, which plays the same swing.
 func katana_slash(body: Node3D, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0) -> void:
+	drawn_slash(body, "katana", secs, awake, width, thrust, seed_v)
+
+
+## A weapon's drawn slash (PetalRibbon.LOOKS: a tree's id) laid along the path the blade in `body`'s hand (`left`:
+## the off hand's) takes over the next `secs`; the axe's along its bit.
+func drawn_slash(body: Node3D, kind: String, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0,
+		left: bool = false) -> void:
 	if AnimLab.clean or not body is Humanoid:
 		return
 	var cam := get_viewport().get_camera_3d()
@@ -2637,20 +2657,69 @@ func katana_slash(body: Node3D, secs: float, awake: bool = false, width: float =
 		return
 	var r := PetalRibbon.new()
 	r.body = body
+	r.kind = kind
 	r.emit = secs
 	r.awake = awake
 	r.width = width
 	r.thrust = thrust
 	r.seed_v = seed_v
-	r.linger = 0.42 if awake else 0.26
+	r.left = left
+	r.linger = (0.48 if awake else 0.3) if kind == "axe" else (0.42 if awake else 0.26)
 	body.add_child(r)
 
 
 ## One of the katana's drawn sheets (gen_katana_fx.py: steel_slash, katana_slash, katana_cloud)
 ## played once at `pos`, rolled up to `spin` degrees either way. Unlit, like the drawn water.
 func katana_burst(pos: Vector3, sheet: String, size: float = 1.6, life: float = 0.45, spin: float = 30.0) -> void:
+	drawn_burst(pos, sheet, size, life, spin)
+
+
+## One drawn sheet (the katana's, gen_katana_fx.py; the axe's, gen_axe_fx.py: axe_slash,
+## ember_slash, ember_cloud) played once at `pos`, rolled up to `spin` degrees either way. Unlit.
+func drawn_burst(pos: Vector3, sheet: String, size: float = 1.6, life: float = 0.45, spin: float = 30.0) -> void:
 	flipbook(pos, sheet, 1, size, life, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 		"damping": 0.0, "spin": spin, "fade": 0.9, "lit": false})
+
+
+## Drawn cinders thrown along `dir` (the axe's element): each flares white-hot and cools to a
+## dull red speck as it slows and drifts up. One burst, unlit.
+func cinders(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, size: float = 0.16) -> void:
+	flipbook(pos, "cinder", amount, size, 0.85, {"radius": 0.18, "direction": dir.normalized(), "spread": 45.0,
+		"vel_min": speed * 0.4, "vel_max": speed, "gravity": Vector3(0, 1.4, 0), "damping": 2.6, "hold": true,
+		"scale_min": 0.7, "scale_max": 1.3, "explosiveness": 0.9, "fade": 0.85, "lit": false})
+
+
+var _ash_mat: StandardMaterial3D
+
+
+## The drawn cinder on a quad of `size` (BladeEmbers' emitter): each plays the sheet once over its life.
+func cinder_quad(size: float) -> QuadMesh:
+	return _quad(size, _flip_mat("cinder"))
+
+
+func _ash() -> StandardMaterial3D:
+	if _ash_mat == null:
+		_ash_mat = _flip_mat("ash").duplicate()
+		_ash_mat.particles_anim_loop = true
+	return _ash_mat
+
+
+## The drawn ash flake on a quad of `size` (BladeEmbers' emitter).
+func ash_quad(size: float) -> QuadMesh:
+	return _quad(size, _ash())
+
+
+## Flakes of ash let go along `dir`, tumbling as they drift slowly down (dimmed at night).
+func ash(pos: Vector3, dir: Vector3, amount: int = 4, speed: float = 1.0, size: float = 0.16) -> void:
+	var k := _night_k()
+	var cfg := {"radius": 0.3, "direction": dir.normalized(), "spread": 60.0, "vel_min": speed * 0.3, "vel_max": speed,
+		"gravity": Vector3(0, -0.5, 0), "damping": 2.0, "hold": true, "scale_min": 0.7, "scale_max": 1.2, "explosiveness": 0.7,
+		"ramp": _flip_ramp(Color(k, k, k), 0.0, 0.7), "start": 1.0, "spin": 180.0}
+	var p := _burst(pos, amount, _ash(), size, 2.0, cfg)
+	if p:
+		_flip_setup(p, cfg)
+		p.anim_speed_min = 1.0
+		p.anim_speed_max = 2.0
 
 
 ## A run of the katana's drawn strip along `from` to `to` (the path of a dash or a blink), drawn on
@@ -2681,8 +2750,23 @@ func katana_arc(center: Vector3, u: Vector3, v: Vector3, radius: float = 2.0, sw
 	_katana_path(path, width, awake, secs, seed_v)
 
 
-func _katana_path(path: Array, width: float, awake: bool, secs: float, seed_v: int) -> void:
+## A weapon's drawn strip (PetalRibbon.LOOKS: "katana", "axe") swept round an arc like katana_arc, the crest outside.
+func drawn_arc(kind: String, center: Vector3, u: Vector3, v: Vector3, radius: float = 2.0, sweep: float = PI, width: float = 0.8,
+		awake: bool = false, secs: float = 0.12, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(center) > BURST_RANGE:
+		return
+	var path: Array = []
+	var n := clampi(int(absf(sweep) * radius / 0.35), 8, 64)
+	for i in n + 1:
+		var a := sweep * float(i) / n
+		path.append([center, center + (u.normalized() * cos(a) + v.normalized() * sin(a)) * radius])
+	_katana_path(path, width, awake, secs, seed_v, kind)
+
+
+func _katana_path(path: Array, width: float, awake: bool, secs: float, seed_v: int, kind: String = "katana") -> void:
 	var r := PetalRibbon.new()
+	r.kind = kind
 	r.fixed = path
 	r.emit = secs
 	r.awake = awake
@@ -2732,6 +2816,11 @@ func droplets(pos: Vector3, dir: Vector3, amount: int = 6, color: Color = Color(
 func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 	var edge := tree_col(tree, EDGE)
 	var accent := tree_col(tree, ACCENT)
+	# (the drawn elements: their slash cut through them and a ring in place of the old material)
+	if flipbooks and DRAWN.has(tree):
+		drawn_burst(pos + dir * 0.15, DRAWN[tree] + "_slash", 1.5, 0.32, 180.0)
+		ring(pos, dir, 0.8, edge, 0.16, 0.16)
+		return
 	match tree:
 		"sword":
 			spray(pos, dir + Vector3.UP * 0.3, 8, accent, 5.0)
@@ -2742,8 +2831,10 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 			katana_burst(pos + dir * 0.4 + Vector3.UP * 0.2, "katana_cloud", 1.1, 0.45, 40.0)
 			sakura(pos, dir + Vector3.UP * 0.4, 5, 3.0)
 		"axe":
-			embers(pos, dir + Vector3.UP * 0.4, 9, accent, 4.0)
-			ring(pos, dir, 0.9, edge, 0.18, 0.2)
+			# a drawn crescent of fire bitten through them, a gout of it, cinders thrown off
+			drawn_burst(pos + dir * 0.15, "ember_slash", 1.9, 0.35, 180.0)
+			drawn_burst(pos + dir * 0.4 + Vector3.UP * 0.2, "ember_cloud", 1.1, 0.45, 40.0)
+			cinders(pos, dir + Vector3.UP * 0.4, 5, 3.5)
 		"dual":
 			twin_cross(pos, dir, 0.45, edge, accent, 0.2)
 			motes(pos, dir + Vector3.UP * 0.3, 6, accent, 3.5)
