@@ -63,7 +63,7 @@ func _process(_d: float) -> bool:
 			check("both held axes hidden while they fly", not p.body_model.weapon.visible and not p.body_model.offhand.visible)
 			until = TK.wait_secs(1.4)
 		3:
-			check("the grunt ahead is cut out and home (%d)" % hits[g0].size(), hits[g0].size() == 2)
+			check("the grunt ahead is cut out and home (%d, at %s, %s)" % [hits[g0].size(), str(g0.global_position.snapped(Vector3.ONE * 0.1)), str(g0.state)], hits[g0].size() == 2)
 			check("the grunt out front left too (%d)" % hits[g1].size(), hits[g1].size() == 2)
 			check("the one behind you isn't touched (%d)" % hits[g2].size(), hits[g2].is_empty())
 			check("the cuts are missiles, the way home lighter", hits[g0].size() == 2 and hits[g0][0].ranged and hits[g0][1].damage < hits[g0][0].damage)

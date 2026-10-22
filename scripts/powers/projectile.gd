@@ -146,7 +146,6 @@ func _ready() -> void:
 				_held.visible = false
 	elif _thrown():
 		_mesh.mesh = Props.weapon_mesh(model.trim_prefix("elem|"))
-		_from = global_position
 		if source is Player and (source as Player).body_model:
 			var body := (source as Player).body_model
 			_held = body.weapon if kind == "raven_r" else body.offhand
@@ -418,6 +417,9 @@ func _fly_update(delta: float) -> void:
 	if source == null or not is_instance_valid(source):
 		_land()
 		return
+	# (launch() places it after _ready: where it left from is only known here)
+	if _age == 0.0:
+		_from = global_position
 	_age += delta
 	var was := global_position
 	var pos := was
@@ -459,7 +461,7 @@ func _land() -> void:
 func _draw_ribbon(sample: bool) -> void:
 	if sample:
 		var at := global_position
-		_rpts.append([_age, at + Vector3.UP * 0.28, at - Vector3.UP * 0.28])
+		_rpts.append([_age, at + Vector3.UP * 0.17, at - Vector3.UP * 0.12])
 	while not _rpts.is_empty() and _age - float(_rpts[0][0]) > RIBBON_LIFE:
 		_rpts.pop_front()
 	_rim.clear_surfaces()
@@ -470,9 +472,9 @@ func _draw_ribbon(sample: bool) -> void:
 	_rim.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP, _ribbon_mat)
 	for p in _rpts:
 		var a := 1.0 - (_age - float(p[0])) / RIBBON_LIFE
-		_rim.surface_set_color(Color(col.r, col.g, col.b, 0.25 * a))
+		_rim.surface_set_color(Color(col.r, col.g, col.b, 0.0))
 		_rim.surface_add_vertex(p[2])
-		_rim.surface_set_color(Color(tip.r, tip.g, tip.b, 0.85 * a))
+		_rim.surface_set_color(Color(tip.r, tip.g, tip.b, 0.75 * a * a))
 		_rim.surface_add_vertex(p[1])
 	_rim.surface_end()
 

@@ -5742,6 +5742,37 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - Tests: t/weapons/cannonball_swing, anvil_counter, earthquake_wave, hammer_tree (six techniques). abilityshot
   `AB_STRIKE=s` lands the nearest grunt's blow on you then. Renders in the worktree: tools/dev/out/ham/ (drive_, anv_,
   cyc_ abilityshot; as_00_* animsheets).
+
+## 2026-10-22: the twin axes' finish (new weapons' techniques, piece 3)
+- **Ravens' Return** (Reaver 12, `dx_ravens`, 4 pts; 22 energy, 8 s; DualAxeArts `_ravens`, pose `dx_ravens`): both
+  axes cocked back over the shoulders, thrown at 0.24 s (DualAxeMoves.RAVENS_THROW) as Projectile `raven_r` / `raven_l`
+  (shown only, replicated like the javelin; the held axe in that hand is hidden while it flies). Each runs
+  `Projectile.raven_offset`: a loop out on its own side RAVEN_W 4.5 m, RAVEN_L 10 m ahead where the two cross, home on
+  the far side in RAVEN_T 1.2 s, eased into the moving hand over the last 30%. The cuts are the state's
+  (`_raven_sweep`): everyone inside the loops' ellipse (plus 1 m) is cut once as the tips pass their depth on the way out
+  (16) and again on the way home (x0.7), ranged + sever + unblockable (they come round from the side and from behind;
+  blockable, a guarding grunt shrugged off the out cut about half the time), pushed away from the axe on their side; frost: ice chips
+  (`_spray`). Caught at 1.44 s.
+- **Raider's Haul** (Hook 14, `dx_haul`, 4 pts; 20 energy, 8 s; `_haul` / `_circle`, poses `dx_haul` / `dx_circle`):
+  the one in front (3.5 m). Light (`FistArts.throwable` + `launched`): `grabbed` at 0.16, carried by `_carry` round you
+  at HAUL_ARM 1.9 m along `DualAxeMoves.haul_turn` (the same eased angle the pose's pivot spins by, 0.3-1.0 s), its
+  body battering everyone within 1.5 m flat (12); flung at 1.04 (18, unblockable, breaker) with `launched` at 9.5 / 5.5
+  (about 8-9 m), and a ball down HAUL_LINE 8 m bowls over everyone within 1.7 m (14). Heavy or boss: hooked into a 1.4 s
+  stagger, you run once round them at 2 m facing in (0.3-1.3 s) while the right axe chops at 0.52 / 0.84 / 1.16 (10, 10,
+  20; all unblockable, the last a breaker).
+- **Polish:** Gallows Hook throws the real axe (Projectile `hook`: out at 60 m/s to their chest, back at 20 m/s), the
+  haul when it arrives, a swoosh on the chop. Hewing Frenzy's pose alternates real chops (one axe down while the other is
+  already up, `_alt`) under one 0.8 s two-colour swoosh, impacts on the cut instead of the chest rings. Axestorm and
+  Fimbulwinter pass `arc = true` and their hooks stop foes HOOK_STAND 2.3 m off along their own line (`hook(..., stand)`)
+  instead of in your body. Ice spikes use the `ice` texture (faint cold emission), not metal. BladeTrail skips a hidden
+  weapon (a thrown axe leaves no ribbon in the hand).
+- **Co-op:** `vine_yank(to, dmg, wrap)` forwards all three args; the bool survives `_enc/_dec` (t/weapons/axe_hook_yank).
+  `_carry` (Haul's swing) runs only where the foe is simulated: a guest's Haul hooks (grabbed, a host call) and flings
+  (launched) but the foe isn't swung round on the guest's cast, the same as the fist throw. nettest at prepush.
+- Per frame/tick: Ravens' Return: two projectiles (a few vector ops + an ImmediateMesh ribbon of ~12 points) and one
+  sphere query per tick for 1.2 s; Haul: one or two sphere queries per tick for ~1 s. Nothing idle.
+- Tests: t/weapons/ravens_return, raiders_haul, axe_hook_yank, dual_axe_tree (six techniques). Renders (worktree):
+  tools/dev/out/abil/dx_ravens_return.png, dx_raiders_haul.png, dx_hewing_frenzy.png, dx_gallows_hook.png.
 ## 2026-10-22: the Adventure trees' moves, piece 4: Swimming's Surface Sprint (Dolphin Kick / Long Glide)
 
 - **Tree:** `sw_sprint` "Surface Sprint" (variant, Stroke branch, level 12) in `_build_swimming`: `sw_dolphin` (`dolphin_kick`) and

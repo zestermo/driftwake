@@ -406,6 +406,8 @@ static func _raven_cut(s, e: Node3D, axe: Vector3, back: bool) -> void:
 	hd.ranged = true
 	hd.sever = true
 	hd.stagger_duration = 0.45
+	# (the axes come round at them from the side going out and from behind coming home: a guard ahead doesn't cover it)
+	hd.unblockable = true
 	var at: Vector3 = s._body_center(e)
 	var push := at - axe
 	push.y = 0.0
