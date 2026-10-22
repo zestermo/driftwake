@@ -5603,3 +5603,20 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - **Per tick**: nothing new while not doing them (one flag read in Jump/Fall when a dodge is pressed).
 - **Tests**: t/player/moonstep, crash_landing (its grunt's physics process off, not the node: a disabled node's
   hurtbox leaves the physics world). Render: animsheet `moonstep,crash_land`.
+
+## 2026-10-22: the Adventure trees' moves, piece 3: Defense (Perfect Parry, Guard Style)
+- **Nodes** (skill_trees.gd): `df_clean` Clean Parry now carries `clean_parry`; variant `df_perfect` "Perfect Parry" (16,
+  Parry branch): Disarm (`parry_disarm`) / Shove (`parry_shove`); variant `df_guard` "Guard Style" (7, Guard branch):
+  Rolling Guard (`rolling_guard`) / Planted (`guard_planted`).
+- **Perfect parry**: ParryState `PERFECT` 0.12 s after the guard goes up (needs `clean_parry`, a melee blow, an attacker
+  with `perfect_parried`) -> `PirateGrunt.perfect_parried(player, how)` on the host (`Net.forward`, `HOST_CALLS`): clean =
+  2.4 s stagger (a plain parry 1.5), shove = knockdown, disarm = blade gone 7 s (it can't guard, a spare after; the
+  "disarm" net event shows the flung blade, `FX.flung_weapon`); blade grunts only, never bosses. Flash, ring, "Perfect!"
+  text, +10 Defense life; actions `parry_disarm` (blade flicked overhead), `parry_shove` (palm shove).
+- **Guard style** (BlockState): Rolling Guard, a dodge while blocking is a 0.42 s, 3 m roll inside BlockState (60% of a
+  dodge's stamina; `rolling()`); frontal blows still glance off mid-roll. Planted, `body_model.planted` (HumanoidSync
+  FIELDS, `guard_block` uses MovePoses.planted): blocks cost 0.7x, no push-back, half-speed shuffle.
+- **Per tick**: nothing new.
+- **Tests**: t/player/perfect_parry (hitstop slows the clock, so the late parry sets the state's timer instead of
+  waiting), t/player/guard_styles. Render: animsheet `parry_disarm,parry_shove,guard_roll,guard_block` (the planted
+  pose isn't in the sheet).

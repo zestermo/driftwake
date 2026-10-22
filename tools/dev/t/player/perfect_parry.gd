@@ -68,6 +68,7 @@ func _process(_d: float) -> bool:
 			parry()
 			until = TK.wait_secs(0.2)
 		2:
+			p.state_machine.current_state.timer = 0.2
 			blow()
 			check("a late parry: the usual 1.5 s (%.1f)" % g._stagger_len, absf(g._stagger_len - 1.5) < 0.01)
 			reset()
