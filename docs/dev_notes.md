@@ -5500,3 +5500,24 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   Renders: animsheet gs_1..gs_rush (`tools/dev/out/gs_before_*`, `gs_after_*`), guardsheet walk greatsword.
 - Per frame added: the grip's arc (two slerps) while a gs_ move plays; an atan2/asin steer only while the blade is
   turned far round between grips at rest.
+## 2026-10-21: cutlass sprint and block (Zach's play-test)
+- **Sprint** (`StanceLife.CUTLASS_RUN`, cutlass, corsair; twin swords mirrored): the sword arm pumps bent in front of the
+  chest and the blade is held steady up and back past the right shoulder (new CARRIES flag `steady`: the wrist takes the
+  shoulder's pump back out, so the blade keeps one angle to the chest; 0.03 rad over a stride). Was trailed down behind
+  the hip and turned with the run ("wonky, all down behind"). A low-forward "ready" option was rendered too: from the game
+  camera the blade was a stub by the hip, so up-and-back it is. Gotcha: hand_r's z is a roll about the blade (no tilt);
+  the blade leans out with the wrist's y. The axe's over-the-shoulder carry is unchanged. Walk -> sprint still eases from
+  the guard over CARRY_IN (largest hand step 0.065 m a tick).
+- **Block/parry** (`SwordMoves.BLOCK`, `sw_parry`, `sw_deflect`, `brace`; ActionSpecs.PARRIES "sword"): the blade
+  braced across the body, hand low right, point high left, edge out to the front, the free palm on the flat (both hands
+  by IK each frame after the pose, in the chest's frame, weighted by the action's time: `brace_w`); the held block sinks
+  over a bent front knee (Humanoid._locomotion, less while shuffling); a landed parry's deflect shoves the blade 0.16 m out
+  off the front foot. Parry windows and timings unchanged. sword_pistol keeps the generic block (its off hand holds a
+  gun). The boss's roar plays "parry" with a cutlass, so it now braces too.
+- Tests: `t/weapons/cutlass_carry` (blade steady across 60 ticks of sprint, up and back, clear of the head), new
+  `t/weapons/cutlass_block`; t/combat cutlass_combo, slash_dummy, t/fx/blocks, t/combat/impact_sounds pass. Expect
+  wieldtest (twin swords' and corsair's carry) and grunttest/fixtest (parry) to want a look at prepush.
+- Renders: tools/dev/out/csprint/{before_a,optA,optB}/sheet_sprint_*.png (guardsheet sprint), tools/dev/out/cblock/f2_*,
+  k2_* (posebench front/back; one view per run: the tool's later views catch the camera mid-move).
+- Per frame added: nothing new while sprinting (the same carry lerps); the brace (three reach_hand IKs and a slerp)
+  only while a cutlass block, parry or deflect plays.

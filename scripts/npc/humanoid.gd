@@ -1037,6 +1037,8 @@ func _block_pose() -> Dictionary:
 			return DualAxeMoves.block()
 		"greatsword":
 			return GreatswordMoves.BLOCK
+		"sword":
+			return SwordMoves.BLOCK
 	# one blade held level across the body, the off hand bracing it
 	return {"torso": Vector3(-0.08, -0.2, 0), "head": Vector3(0.08, 0.2, 0),
 		"arm_r": Vector3(1.35, -0.6, -0.15), "fore_r": Vector3(1.25, 0, 0), "hand_r": Vector3(0, 0, 1.2),
@@ -1417,6 +1419,8 @@ func _action_pose(n: String, u: float) -> Array:
 			return SwordMoves.slash_l(self, u)
 		"slash_spin":
 			return SwordMoves.slash_spin(self, u)
+		"sw_parry", "sw_deflect":
+			return SwordMoves.pose(self, n, u)
 		"dash_cut":
 			# cutlass, attacked at a sprint: low and fast past the target - the blade
 			# trailed back by the right hip, then whipped across to the left as the
@@ -2422,6 +2426,13 @@ func _locomotion(delta: float) -> Dictionary:
 		if stance == "katana" and current_action() in ["guard_block", "guard_block_hit"]:
 			p["leg_l"] += Vector3(0, 0, -KATANA_SPREAD)
 			p["leg_r"] += Vector3(0, 0, KATANA_SPREAD)
+		# (the cutlass block sinks over a bent front knee, less while shuffling)
+		if stance == "sword" and current_action() in ["guard_block", "guard_block_hit"]:
+			var sink := 1.0 - clampf(walk, 0.0, 1.0) * 0.6
+			p["leg_l"] += Vector3(0.3, 0, -0.04) * sink
+			p["shin_l"] += Vector3(-0.45, 0, 0) * sink
+			p["leg_r"] += Vector3(-0.15, 0, 0.04) * sink
+			lift.y -= 0.09 * sink
 		if _run_sheath:
 			# running with the katana sheathed: chest a little forward, hands on
 			# the hilt and scabbard (_katana_hands; these only seed it)
@@ -2809,6 +2820,7 @@ func _process(delta: float) -> void:
 	_apply_smear()
 	_katana_hands()
 	_axe_hands()
+	SwordMoves.brace(self)
 	_update_physics(delta)
 
 
