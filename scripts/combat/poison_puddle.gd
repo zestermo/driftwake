@@ -19,10 +19,9 @@ var dps: float = 3.0
 var _t: float = 0.0
 var _check: float = 0.0
 var _bub: float = 0.0
-var _mat: StandardMaterial3D
+var _mat: ShaderMaterial
 var _disc: MeshInstance3D
 
-static var _base_mat: StandardMaterial3D
 static var _meshes: Array = []
 static var _all: Array = []
 
@@ -50,16 +49,10 @@ static func live() -> Array:
 
 
 func _ready() -> void:
-	if _base_mat == null:
-		_base_mat = StandardMaterial3D.new()
-		_base_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_base_mat.vertex_color_use_as_albedo = true
-		_base_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_base_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	if _meshes.is_empty():
 		for i in range(3):
 			_meshes.append(_blob_mesh())
-	_mat = _base_mat.duplicate() as StandardMaterial3D
-	_mat.albedo_color = Color(1, 1, 1, 0.85)
+	_mat = PSXMat.decal(Color(1, 1, 1, 0.85), {"unshaded": true})
 	_disc = MeshInstance3D.new()
 	_disc.mesh = _meshes[randi() % _meshes.size()]
 	_disc.material_override = _mat
@@ -75,7 +68,7 @@ func _physics_process(delta: float) -> void:
 	var k := clampf((LIFE - _t) / FADE, 0.0, 1.0)
 	if _t > 0.2:
 		_disc.scale = Vector3.ONE * radius * lerpf(0.7, 1.0, k)
-	_mat.albedo_color.a = 0.85 * k
+	_mat.set_shader_parameter("albedo_color", Color(1, 1, 1, 0.85 * k))
 	if _t >= LIFE:
 		queue_free()
 		return

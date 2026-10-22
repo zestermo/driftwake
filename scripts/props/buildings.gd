@@ -685,8 +685,13 @@ static func tavern_hall() -> Node3D:
 	var window := PSXMat.lit("window", Color.WHITE, {"emission": Color(1.0, 0.75, 0.35), "emission_energy": 1.0, "emission_tex": "window"})
 	var sign_m := PSXMat.lit("sign_tavern", Color.WHITE, {"vertex_color": false})
 
-	# floor + footing
-	mb.add_box(stone, _xf(Vector3(0, fl - 1.0, 0)), Vector3(w + 0.4, 2.0, d + 0.4), 0.5, Color.WHITE, true, false)
+	# floor + footing: the footing's top is only the rim round the planks (a full top 1.5 cm under
+	# them showed through as the camera moved: vertex snap tilts the two differently)
+	mb.add_box(stone, _xf(Vector3(0, fl - 1.0, 0)), Vector3(w + 0.4, 2.0, d + 0.4), 0.5, Color.WHITE, true, true)
+	var rim_x := 0.2 + t
+	for s in [-1.0, 1.0]:
+		mb.add_box(stone, _xf(Vector3(0, fl - 0.05, s * (d * 0.5 + 0.2 - rim_x * 0.5))), Vector3(w + 0.4, 0.1, rim_x), 0.5)
+		mb.add_box(stone, _xf(Vector3(s * (w * 0.5 + 0.2 - rim_x * 0.5), fl - 0.05, 0)), Vector3(rim_x, 0.1, d - t * 2), 0.5)
 	tiled_box(mb, planks, Vector3(0, fl - 0.005, 0), Vector3(w - t * 2, 0.04, d - t * 2), 2.0, 0.6, true, false)
 	_box_col(body, Vector3(w + 0.4, 2.0, d + 0.4), Vector3(0, fl - 1.0, 0))
 	# steps up to the door, and its two leaves standing open against the wall inside
@@ -937,9 +942,11 @@ static func tavern_hall() -> Node3D:
 static func _tavern_inside(body: StaticBody3D, mb: MeshBuilder, w: float, d: float, t: float, fl: float, h1: float, beam: Material, planks: Material, rng: RandomNumberGenerator) -> void:
 	var xi := w * 0.5 - t
 	var zi := d * 0.5 - t
-	# rug under the front tables
-	var rug := PSXMat.lit("cloth_red", Color(0.85, 0.75, 0.7), {"affine": 0.6})
-	mb.add_quad(rug, Vector3(-3.6, fl + 0.015, 0.0), Vector3(-3.6, fl + 0.015, 2.9), Vector3(0.6, fl + 0.015, 2.9), Vector3(0.6, fl + 0.015, 0.0),
+	# rug under the front tables: 1 cm over the planks' top (fl + 0.015; it sat right on it) and pulled
+	# toward the camera so the snapped planks never show through
+	var rug := PSXMat.lit("cloth_red", Color(0.85, 0.75, 0.7), {"affine": 0.6, "pull": 0.03})
+	var ry := fl + 0.025
+	mb.add_quad(rug, Vector3(-3.6, ry, 0.0), Vector3(-3.6, ry, 2.9), Vector3(0.6, ry, 2.9), Vector3(0.6, ry, 0.0),
 		Vector2.ZERO, Vector2(0, 1.5), Vector2(2, 1.5), Vector2(2, 0), Color.WHITE, Vector3.UP)
 	# a swordfish mounted over the mantel
 	var fish := PSXMat.lit("metal", Color(0.42, 0.55, 0.7))

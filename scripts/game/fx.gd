@@ -31,7 +31,7 @@ var _flame_ramp: Gradient
 var _slash_mat: ShaderMaterial
 var _blood_mat: StandardMaterial3D
 var _streak_mesh: BoxMesh
-var _splat_mat: StandardMaterial3D
+var _splat_mat: ShaderMaterial
 var _splats: Array = []
 ## Spray (flecks, streaks, mist) is darker than what lands: it reads lighter in the air.
 const BLOOD := Color(0.2, 0.0, 0.012)
@@ -74,11 +74,8 @@ func _ready() -> void:
 	_streak_mesh = BoxMesh.new()
 	_streak_mesh.size = Vector3(0.022, 0.16, 0.022)
 	_streak_mesh.material = streak_mat
-	_splat_mat = StandardMaterial3D.new()
-	_splat_mat.albedo_color = SPLAT
-	_splat_mat.vertex_color_use_as_albedo = true
-	_splat_mat.roughness = 0.25
-	_splat_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# a decal (no depth writes, pulled toward the camera): splats overlap and lie on snapped ground
+	_splat_mat = PSXMat.decal(SPLAT, {"roughness": 0.25})
 	var srng := RandomNumberGenerator.new()
 	srng.seed = 7
 	for i in range(SPLAT_SHAPES):

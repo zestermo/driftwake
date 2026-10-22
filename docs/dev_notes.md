@@ -5827,3 +5827,16 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   reference matrices in t/ui/qr_reference came from segno with the padding fixed, forced to our mask.
 - **Tests:** t/ui/qr_reference (module-for-module against those references, v1/v3/v4), t/ui/idea_qr (the plank,
   the link from version and play_time, the QR on screen is the link's, Esc back to pause).
+
+## 2026-10-22: ground flicker (tavern rug and floor, blood, puddles)
+
+- The tavern's rug sat exactly on the planks' top (both fl + 0.015) and the stone footing's full top 1.5 cm under
+  the planks: coplanar or near-coplanar surfaces whose triangles the PSX vertex snap tilts differently, so they
+  traded places as the camera moved. The footing's top is now only the rim round the planks; the rug sits 1 cm
+  over them with psx_lit's depth_pull (0.03) (`Buildings.tavern_hall` / `_tavern_inside`).
+- Blood splats, rain puddles and poison puddles use `PSXMat.decal(color, opts)` (`shaders/psx/psx_decal*.gdshader`,
+  body in psx_decal_body.gdshaderinc): snapped to the same grid as the ground, no depth writes (overlapping splats
+  used to z-fight, they were opaque), pulled toward the camera by `pull` m at 5 m (x0.6..x5 with depth), since the
+  snap's tilt grows with distance and beat the old fixed 1.5 cm / 10 cm lifts. Rain puddles now lie 5 cm up.
+- Checked: modelshot through the tavern door at grazing angles (MS_PSX=1), the three decals on the ground; t/fx,
+  t/island/house_doors. Renders with project.godot's threaded rendering need `--render-thread safe`.

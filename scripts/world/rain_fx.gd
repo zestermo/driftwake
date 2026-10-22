@@ -139,15 +139,10 @@ func _pock_mat() -> StandardMaterial3D:
 
 
 ## Standing water: dark and glossy, faded in by its instance's alpha.
-func _puddle_mat() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.vertex_color_use_as_albedo = true
-	m.albedo_color = Color(0.1, 0.11, 0.13)
-	m.roughness = 0.06
-	m.metallic_specular = 0.9
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	return m
+## A decal (PSXMat.decal): pulled toward the camera rather than floated, so slopes and the snapped ground
+## don't poke through it.
+func _puddle_mat() -> ShaderMaterial:
+	return PSXMat.decal(Color(0.1, 0.11, 0.13), {"roughness": 0.06, "specular": 0.9})
 
 
 ## A ragged flat blot, 1 m across.
@@ -272,7 +267,7 @@ func _puddles(c: Vector3, delta: float) -> void:
 			var size := float(e[1]) * clampf(wet * 1.4 - 0.15, 0.0, 1.0)
 			if size < 0.05:
 				continue
-			_puddle_mm.set_instance_transform(n, Transform3D(Basis(Vector3.UP, float(e[2])).scaled(Vector3(size, 1.0, size * float(e[3]))), at + Vector3.UP * 0.1))
+			_puddle_mm.set_instance_transform(n, Transform3D(Basis(Vector3.UP, float(e[2])).scaled(Vector3(size, 1.0, size * float(e[3]))), at + Vector3.UP * 0.05))
 			_puddle_mm.set_instance_color(n, Color(1, 1, 1, clampf(wet * 2.0, 0.0, 0.8)))
 			n += 1
 	_puddle_mm.visible_instance_count = n

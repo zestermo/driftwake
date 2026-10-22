@@ -6,6 +6,8 @@ extends RefCounted
 const TEX_DIR := "res://assets/textures/psx/"
 const LIT_SHADER := preload("res://shaders/psx/psx_lit.gdshader")
 const CUTOUT_SHADER := preload("res://shaders/psx/psx_cutout.gdshader")
+const DECAL_SHADER := preload("res://shaders/psx/psx_decal.gdshader")
+const DECAL_UNSHADED_SHADER := preload("res://shaders/psx/psx_decal_unshaded.gdshader")
 const SNOW_LAYER_SHADER := preload("res://shaders/world/snow_layer.gdshader")
 ## What a footprint multiplies the ground's colour by (terrain's prints), by ground: a blue shadow in snow, darker sand.
 const PRINT_TINT := {"snow": Vector3(0.52, 0.62, 0.82), "sand": Vector3(0.6, 0.46, 0.32)}
@@ -122,6 +124,19 @@ static func flat(color: Color) -> ShaderMaterial:
 ## Glowing surface (lanterns, windows, fire).
 static func glow(color: Color, energy: float = 2.0, tex_name: String = "") -> ShaderMaterial:
 	return lit(tex_name, color, {"emission": color, "emission_energy": energy, "affine": 0.3})
+
+
+## A flat mark lying on a surface (blood, puddles; psx_decal_body.gdshaderinc): blended over it, never
+## written to depth, pulled toward the camera so the snapped ground never pokes through. Not cached: each
+## caller owns its copy (to fade it). opts: unshaded, roughness, specular, pull (metres at 5 m).
+static func decal(color: Color, opts: Dictionary = {}) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = DECAL_UNSHADED_SHADER if opts.get("unshaded", false) else DECAL_SHADER
+	m.set_shader_parameter("albedo_color", color)
+	for k in ["roughness", "specular", "pull"]:
+		if opts.has(k):
+			m.set_shader_parameter(k, float(opts[k]))
+	return m
 
 
 static var _white_tex: ImageTexture
