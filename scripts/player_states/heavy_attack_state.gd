@@ -39,23 +39,23 @@ const STYLES := {
 	"dual_heavy": {"anim": "dual_heavy", "impulse": 6.0,
 		"damage": 42.0, "hitstop": 0.12, "shake": 0.28, "knockback": 11.0, "stagger": 0.6,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 0.95, "impact_fx": true, "reach": "wide",
-		"color": Color(0.55, 0.85, 1.0), "color_l": Color(0.75, 0.65, 1.0), "tree": "dual"},
+		"color": Color(0.55, 0.85, 1.0), "color_l": Color(0.75, 0.65, 1.0), "tree": "dual", "drawn": "dual"},
 	# sword + pistol: the thrust, then a ball fired into them as the blade comes out
 	"powder_lunge": {"anim": "sp_lunge", "impulse": 10.0,
 		"damage": 22.0, "hitstop": 0.08, "shake": 0.14, "knockback": 4.0, "stagger": 0.7,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.2, "impact_fx": false,
-		"shot": 20.0, "color": Color(1.0, 0.85, 0.7), "tree": "corsair"},
+		"shot": 20.0, "color": Color(1.0, 0.85, 0.7), "tree": "corsair", "drawn": "corsair"},
 	# one dagger (Shadow Lunge): sunk low, then gone - out from behind the one in front
 	# (within "blink" m) with the blade in their back; untouchable until you're there
 	"shadow_lunge": {"anim": "dg_shadow", "impulse": 0.0, "blink": 5.5,
 		"damage": 26.0, "hitstop": 0.08, "shake": 0.14, "knockback": 3.0, "stagger": 0.9,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh_big", "pitch": 1.45, "impact_fx": false, "reach": "dagger",
-		"color": Color(1.0, 0.78, 0.82), "tree": "dagger", "bleed": 4.0},
+		"color": Color(1.0, 0.78, 0.82), "tree": "dagger", "bleed": 4.0, "drawn": "dagger"},
 	# two daggers (Scissor Rip): both driven in side by side, then ripped apart outward
 	"scissor_rip": {"anim": "dd_heavy", "impulse": 7.5, "rehit": 0.243, "rehit_damage": 22.0, "rehit_down": false,
 		"damage": 14.0, "hitstop": 0.06, "shake": 0.12, "knockback": 8.0, "stagger": 0.8,
 		"trail": "", "trail_len": 0.0, "sfx": "whoosh", "pitch": 1.3, "impact_fx": false, "reach": "dagger",
-		"color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7), "tree": "dual_dagger", "bleed": 4.0},
+		"color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7), "tree": "dual_dagger", "bleed": 4.0, "drawn": "dual_dagger"},
 	# polearm (Skewer): coiled deep, then a lunge driving the whole shaft through the line in front, knocking
 	# down everyone on it (the point holds them off at its full reach)
 	"skewer": {"anim": "pole_heavy", "impulse": 10.5,
@@ -269,6 +269,8 @@ func physics_update(delta: float) -> void:
 			BlackLegArts.swoosh(player, str(cfg["anim"]), sw.y - sw.x, _trail_col())
 		else:
 			Net.fx("blade_swoosh", [player.body_model, sw.y - sw.x, _trail_col(), _trail_col(true)])
+			if cfg.has("drawn"):
+				DrawnFx.blow(player, str(cfg["drawn"]), str(cfg["anim"]), sw.y - sw.x, 1.2)
 	if _shot_t >= 0.0 and _t_all >= _shot_t and not _shot_done:
 		_shot_done = true
 		_powder_shot()

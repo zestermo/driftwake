@@ -8,40 +8,29 @@ class_name KatanaMoves
 
 ## The mastered guard (Humanoid.guard2): the right hand and the blade held by PoleMoves.hands from its grips ([right
 ## hand, the blade's way, its edge's way, -1: one hand], the chest's frame), _katana_hands putting the left on the hilt
-## behind it; the arms here only seed the IK. Two candidates for Zach's pick (`preview`): "a" hasso, the hilt by the
-## right cheek and the blade standing up and back, left foot forward; "b" waki, side on, the blade low and back behind
-## the right hip, its point trailing, its length hidden from the foe.
-static var preview := "a"
-const GUARD2 := {
-	"a": {"hips": Vector3(0, -0.3, 0), "torso": Vector3(0.02, -0.25, 0), "head": Vector3(0.0, 0.4, 0),
-		"arm_r": Vector3(1.6, 0.4, 0.5), "fore_r": Vector3(1.8, 0, 0), "hand_r": Vector3.ZERO,
-		"arm_l": Vector3(1.4, -0.4, -0.1), "fore_l": Vector3(1.6, 0, 0)},
-	"b": {"hips": Vector3(0, -0.55, 0), "torso": Vector3(-0.12, -0.45, 0), "head": Vector3(0.08, 0.75, 0),
-		"arm_r": Vector3(-0.2, 0.0, 0.3), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3.ZERO,
-		"arm_l": Vector3(0.2, 0.3, -0.1), "fore_l": Vector3(1.2, 0, 0)}}
-const LEGS2 := {
-	"a": {"leg_l": Vector3(0.45, 0, -0.18), "leg_r": Vector3(-0.3, 0, 0.18), "shin_l": Vector3(-0.85, 0, 0), "shin_r": Vector3(-0.7, 0, 0), "_lift": Vector3(0, -0.2, 0)},
-	"b": {"leg_l": Vector3(0.55, 0, -0.26), "leg_r": Vector3(-0.4, 0, 0.26), "shin_l": Vector3(-1.1, 0, 0), "shin_r": Vector3(-0.6, 0, 0), "_lift": Vector3(0, -0.27, 0)}}
+## behind it; the arms here only seed the IK. The Waki Guard (Zach's pick, 2026-10-22): side on and low, the blade
+## held back behind the right hip, its point trailing toward the ground, its length hidden from the foe.
+const GUARD2 := {"hips": Vector3(0, -0.55, 0), "torso": Vector3(-0.12, -0.45, 0), "head": Vector3(0.08, 0.75, 0),
+	"arm_r": Vector3(-0.2, 0.0, 0.3), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3.ZERO,
+	"arm_l": Vector3(0.2, 0.3, -0.1), "fore_l": Vector3(1.2, 0, 0)}
+const LEGS2 := {"leg_l": Vector3(0.55, 0, -0.26), "leg_r": Vector3(-0.4, 0, 0.26), "shin_l": Vector3(-1.1, 0, 0), "shin_r": Vector3(-0.6, 0, 0),
+	"_lift": Vector3(0, -0.27, 0)}
 ## [guard, block, run] grips.
-const GRIPS2 := {
-	"a": [[Vector3(0.14, 0.06, -0.2), Vector3(0.12, 0.95, 0.28), Vector3(0, 0, -1), -1.0],
-		[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
-		[Vector3(0.14, 0.06, -0.2), Vector3(0.12, 0.95, 0.28), Vector3(0, 0, -1), -1.0]],
-	"b": [[Vector3(0.22, -0.48, 0.08), Vector3(0.25, -0.45, 0.86), Vector3(0, 1, 0), -1.0],
-		[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
-		[Vector3(0.22, -0.48, 0.08), Vector3(0.25, -0.45, 0.86), Vector3(0, 1, 0), -1.0]]}
+const GRIPS2 := [[Vector3(0.22, -0.48, 0.08), Vector3(0.25, -0.45, 0.86), Vector3(0, 1, 0), -1.0],
+	[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
+	[Vector3(0.22, -0.48, 0.08), Vector3(0.25, -0.45, 0.86), Vector3(0, 1, 0), -1.0]]
 
 
 static func guard(h) -> Dictionary:
-	return GUARD2[preview] if h.guard2 else Humanoid.KATANA_GUARD
+	return GUARD2 if h.guard2 else Humanoid.KATANA_GUARD
 
 
 static func legs(h) -> Dictionary:
-	return LEGS2[preview] if h.guard2 else Humanoid.STANCE_LEGS["katana"]
+	return LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["katana"]
 
 
 static func grips2() -> Array:
-	return GRIPS2[preview]
+	return GRIPS2
 
 
 ## Hit 1, the overhead diagonal (kesa-giri): from the guard the hands rise up over the right

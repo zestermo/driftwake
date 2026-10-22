@@ -65,9 +65,11 @@ func _process(_d: float) -> bool:
 			check("both hands on the haft (the left %.2f m off it)" % miss, miss < 0.12 and b.pole_lw > 0.9)
 			check("the snapshot carries it", bool(HumanoidSync.pack(b)[HumanoidSync.FIELDS.find("guard2")]))
 			var d: Dictionary = p.progression.to_dict()
-			p.progression.guards = {}
-			p.progression.from_dict(d)
-			check("the save keeps it", p.progression.guards.has("axe"))
+			# (loaded into a fresh record: the live one would buy its nodes back against a level-1 captain's pool)
+			var pr2 = load("res://scripts/progression/progression.gd").new()
+			pr2.from_dict(d)
+			check("the save keeps it", pr2.guards.has("axe"))
+			pr2.free()
 			p.state_machine.force_state("LightAttack", {})
 			until = TK.wait_ticks(2)
 		6:

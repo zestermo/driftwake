@@ -541,6 +541,8 @@ static func _build_cutlass() -> void:
 	_big("s_deflect", "Arrow Cutting", "mech", 0, 3, {"parryshot_sword": 1, "parry_sword": 0.06},
 		"Parry with a cutlass and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("s_riposte", "Riposte", "tech", 0, 8, {}, "", "riposte")
+	_big("s_guard2", "Easy Guard", "mech", 0, 15, {"guard2_sword": 1},
+		"A second guard: stood tall and easy, the blade hanging loose out at your side, a thumb in your sash. Double-tap block to switch between it and the swashbuckler's guard; your cuts come out of either.")
 	_big("s_return", "Return to Sender", "mech", 0, 20, {"deflect_sword": 1, "return_sword": 1, "deflect_cd_sword": 1.0},
 		"With a cutlass drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
 	_big("s_flying", "Flying Slash", "tech", 1, 4, {}, "", "flying_slash")
@@ -581,6 +583,8 @@ static func _build_katana() -> void:
 		["k_sidestep", "Side Step", 8, {}, "", "side_step"]],
 		"Two ways to meet a blow from the scabbard. Both are yours; pick the one you carry at the ship's bunk.")["cost"] = 3
 	_big("k_phantom", "Phantom Step", "tech", 0, 14, {}, "", "phantom_step")
+	_big("k_guard2", "Waki Guard", "mech", 0, 15, {"guard2_katana": 1},
+		"A second guard: side on and low, the blade held back behind the right hip, its length hidden from the foe. Double-tap block to switch between it and the middle guard; your cuts come out of either.")
 	_big("k_return", "Bullet Return", "mech", 0, 20, {"deflect_katana": 1, "return_katana": 1, "deflect_cd_katana": 1.0},
 		"With a katana drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
 	# Iai

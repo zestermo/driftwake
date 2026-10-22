@@ -48,6 +48,8 @@ const BLOCK := {"hips": Vector3(0, -0.15, 0), "torso": Vector3(-0.1, -0.1, 0), "
 ## Actions the grip holds through (anything else: the hands do what that action keys, the spear in the right).
 const HELD := ["parry", "guard_block", "guard_block_hit", "hit", "stagger", "dash", "roll", "flip", "jump_stand", "jump_run", "jump_sprint",
 	"double_jump", "plunge_air", "plunge_land"]
+## Mastered guards held only standing: their weapon's own parry, block, dodges and jumps play as they always did.
+const ONE_HAND_GUARDS := ["sword", "katana"]
 ## How hard the grip chases its keys (the guard's softer).
 const SHARP := 34.0
 const SHARP_IDLE := 16.0
@@ -340,8 +342,8 @@ static func hands(h, delta: float) -> void:
 	elif h.guard2 and st in Humanoid.MASTERED:
 		grips = Humanoid.MASTERED[st].grips2()
 	var on: bool = (st in ["polearm", "hammer", "greatsword"] or h.guard2 and st in Humanoid.MASTERED) and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
-		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and Humanoid.kind_of(h.weapon) == st \
-		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD)
+		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and (Humanoid.kind_of(h.weapon) == st or h.guard2 and st in Humanoid.MASTERED) \
+		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD and st not in ONE_HAND_GUARDS)
 	var pole: bool = st == "polearm" and on and act == ""
 	var run: bool = pole and h.grounded and not h._gait_back and h.ground_speed > (RUN_OFF if h.pole_run_w > 0.5 else RUN_ON)
 	h.pole_run_w = move_toward(h.pole_run_w, 1.0 if run else 0.0, delta / 0.15)

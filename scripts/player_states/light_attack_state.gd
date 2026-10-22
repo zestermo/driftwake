@@ -63,26 +63,26 @@ const STYLES := {
 		"durations": [0.34, 0.34, 0.42, 0.56], "impulses": [4.0, 4.0, 5.0, 6.0],
 		"damages": [9.0, 9.0, 15.0, 22.0], "hitstops": [0.045, 0.045, 0.07, 0.1], "shakes": [0.08, 0.08, 0.14, 0.2],
 		"reach": "wide", "reaches": ["wide", "wide", "wide", "spin"], "hands": ["r", "l", "x", "x"],
-		"color": Color(0.55, 0.85, 1.0), "color_l": Color(0.75, 0.65, 1.0), "tree": "dual"},
+		"color": Color(0.55, 0.85, 1.0), "color_l": Color(0.75, 0.65, 1.0), "tree": "dual", "drawn": "dual"},
 	# a cutlass and a pistol: cuts and point-blank shots ("kinds"); "shots": a ball's damage
 	"sword_pistol": {"anims": ["sp_cut", "sp_shot", "sp_rise", "sp_finale"], "trails": ["", "", "", ""],
 		"kinds": ["cut", "shot", "cut", "cut_shot"], "durations": [0.46, 0.4, 0.48, 0.86], "impulses": [4.5, 3.0, 4.5, 5.0],
 		"damages": [10.0, 0.0, 12.0, 11.0], "shots": [0.0, 14.0, 0.0, 20.0],
 		"hitstops": [0.05, 0.05, 0.06, 0.08], "shakes": [0.09, 0.1, 0.11, 0.16],
-		"reach": "sword", "reaches": ["sword", "sword", "sword", "spin"], "color": Color(1.0, 0.85, 0.7), "tree": "corsair"},
+		"reach": "sword", "reaches": ["sword", "sword", "sword", "spin"], "color": Color(1.0, 0.85, 0.7), "tree": "corsair", "drawn": "corsair"},
 	# one dagger: quick and close - a stab, a slash, a rising cut, and (Gutting Strike)
 	# a turn into a low stab that bleeds them; "bleeds": seconds a hit makes them bleed
 	"dagger": {"anims": ["dg_stab", "dg_slash", "dg_rise", "dg_gut"], "trails": ["", "", "", ""],
 		"durations": [0.26, 0.28, 0.3, 0.5], "impulses": [4.5, 4.0, 4.5, 6.0],
 		"damages": [7.0, 7.0, 9.0, 15.0], "hitstops": [0.035, 0.035, 0.045, 0.08], "shakes": [0.06, 0.06, 0.08, 0.16],
-		"reach": "dagger", "color": Color(1.0, 0.78, 0.82), "tree": "dagger", "bleeds": [0.0, 0.0, 0.0, 4.0]},
+		"reach": "dagger", "color": Color(1.0, 0.78, 0.82), "tree": "dagger", "bleeds": [0.0, 0.0, 0.0, 4.0], "drawn": "dagger"},
 	# two daggers: a slash, a stab with the other, a scissor across, and (Fang Whirl) a
 	# whirl into both driven in
 	"dual_dagger": {"anims": ["dd_1", "dd_2", "dd_3", "dd_4"], "trails": ["", "", "", ""],
 		"durations": [0.24, 0.24, 0.32, 0.52], "impulses": [4.0, 4.0, 5.0, 5.5],
 		"damages": [6.0, 6.0, 11.0, 17.0], "hitstops": [0.03, 0.03, 0.05, 0.08], "shakes": [0.05, 0.05, 0.1, 0.16],
 		"reach": "dagger", "reaches": ["dagger", "dagger", "wide", "spin"], "color": Color(0.78, 1.0, 0.62), "color_l": Color(0.92, 1.0, 0.7),
-		"tree": "dual_dagger", "bleeds": [0.0, 0.0, 0.0, 4.0]},
+		"tree": "dual_dagger", "bleeds": [0.0, 0.0, 0.0, 4.0], "drawn": "dual_dagger"},
 	# polearm: a thrust that hits from three paces, a rising cut, a wide flat sweep and (Wheel Sweep) the spear
 	# swung round once all about you; "pole": a design's speed and pierce apply (WeaponDesigns.pole)
 	"polearm": {"anims": ["pole_thrust", "pole_rise", "pole_sweep", "pole_wheel"], "trails": ["", "", "", ""],
@@ -299,7 +299,7 @@ func physics_update(delta: float) -> void:
 		elif dk == "" or not DrawnFx.awake(player, dk) or player.power.buff("coat"):
 			Net.fx("blade_swoosh", [player.body_model, _swoosh.y - _swoosh.x, sc, sl])
 		if dk != "":
-			DrawnFx.slash(player, dk, _swoosh.y - _swoosh.x, str(cfg["anims"][combo_index]) == "katana_stab", 1.25 if combo_index == combo_count - 1 and dk == "axe" else 1.0)
+			DrawnFx.blow(player, dk, str(cfg["anims"][combo_index]), _swoosh.y - _swoosh.x, 1.25 if combo_index == combo_count - 1 and dk == "axe" else 1.0)
 
 	if _shot_t >= 0.0 and timer >= _shot_t and not _shot_done:
 		_shot_done = true
