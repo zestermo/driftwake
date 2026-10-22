@@ -165,6 +165,8 @@ var pole_still := 0.0
 var pole_plant_w := 0.0
 ## Black-leg's Nonchalance (BlackLegMoves): the guard is hands in the pockets (set by the player, synced to puppets).
 var kick_pockets := false
+## The weapon's mastered guard (its tree's big node, toggled by the player; synced to puppets): the second stance.
+var guard2 := false
 ## Hanging from a vine: the free arm and both legs swing loose, ragdoll
 ## style, driven by what the body feels - `dangle_g` (gravity minus the
 ## body's own acceleration) and `dangle_v` (its velocity, for air drag), both
@@ -826,7 +828,7 @@ func _guard() -> Dictionary:
 		"pistol":
 			return PISTOL_GUARD
 		"axe":
-			return AXE_GUARD
+			return AxeMoves.guard(self)
 		"katana":
 			return KATANA_GUARD
 		"polearm":
@@ -2378,7 +2380,7 @@ func _locomotion(delta: float) -> Dictionary:
 				lift.y -= 0.03 * walk + absf(s) * 0.025 * walk
 			if walk < 0.5:
 				var st := 1.0 - walk * 2.0
-				var ss: Dictionary = STANCE_LEGS.get(stance, STANCE_LEGS[""])
+				var ss: Dictionary = AxeMoves.legs(self) if stance == "axe" else STANCE_LEGS.get(stance, STANCE_LEGS[""])
 				p["leg_l"] += (ss["leg_l"] as Vector3) * st
 				p["leg_r"] += (ss["leg_r"] as Vector3) * st
 				p["shin_l"] += Vector3(ss["shin_l"].x, 0, 0) * st
@@ -2803,7 +2805,7 @@ func _process(delta: float) -> void:
 	if auto_point_guns:
 		point_guns()
 	StanceLife.grip(self, delta)
-	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0:
+	if stance in ["polearm", "hammer", "greatsword"] or pole_w > 0.0 or guard2 and stance == "axe":
 		PoleMoves.hands(self, delta)
 	if stance == "black_leg":
 		BlackLegMoves.hands(self, delta)

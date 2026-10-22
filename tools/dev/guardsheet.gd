@@ -3,6 +3,7 @@ extends SceneTree
 ## several views, one sheet per view (five weapons to a row): <out_dir>/sheet_<mode>_<view>.png.
 ## Args: <out_dir> [mode: guard | walk | run | sprint | after:<action> (played, then shot `GS_AT` s after it
 ## ends: the settle)] [only: row names, comma separated] [views: three,side,back].
+## A row's fifth field: the stance's mastered guard (Humanoid.guard2; for the axe, AxeMoves.preview's candidate).
 ## Env GS_AT: seconds to step before the shot (default 1.5; after:<action>, seconds after its end, default 0.1).
 ## Env GS_MOVE="x,y": the travel direction relative to the facing (Humanoid.local_move, y+ forward; default 0,1).
 ## Prints FEET <row> l=<m> r=<m>: each ankle's height off the floor (the sole sits ~0.06 under it).
@@ -12,7 +13,8 @@ const ROWS := [
 	["dual_pistol", "dual_pistol", "pistol", "pistol"], ["corsair", "sword_pistol", "cutlass", "pistol"],
 	["dual_dagger", "dual_dagger", "dagger", "dagger"], ["dual_sword", "dual_sword", "cutlass", "cutlass"],
 	["polearm", "polearm", "polearm", ""], ["hammer", "hammer", "hammer", ""], ["greatsword", "greatsword", "greatsword", ""],
-	["dual_axe", "dual_axe", "axe", "axe"], ["unarmed", "", "", ""]]
+	["dual_axe", "dual_axe", "axe", "axe"], ["unarmed", "", "", ""],
+	["axe_guard2_a", "axe", "axe", "", "a"], ["axe_guard2_b", "axe", "axe", "", "b"]]
 const COLS := 5
 const FW := 300
 const FH := 400
@@ -113,6 +115,9 @@ func _shoot(r: Array, mode: String, views: Array) -> Dictionary:
 		h._attach_weapon(true)
 		h.auto_point_guns = true
 	h.armed = r[1] != ""
+	if r.size() > 4:
+		h.guard2 = true
+		AxeMoves.preview = r[4]
 	var spd: float = SPEED.get(mode, 0.0)
 	h.ground_speed = spd
 	h.local_move = Vector2(0, 1)

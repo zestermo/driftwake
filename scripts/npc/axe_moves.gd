@@ -6,6 +6,40 @@ class_name AxeMoves
 ## "r" is the reach. Heavier than the katana: deeper lunges, more squash, a longer hold.
 ## Turns: y- faces right, y+ left; the head counters the chest to stay on the target.
 
+## The mastered guard (Humanoid.guard2), held in both hands by PoleMoves.hands from its grips ([right hand, haft
+## toward the head, the bit's way, the left hand's slide], the chest's frame), the arms here only seeding the IK.
+## Two candidates for Zach's pick (`preview`): "a" the Headsman's Guard, the axe up two-handed beside the right
+## shoulder, the bit at the foe, ready to chop; "b" the Bearded Guard, choked up across the front, the head at the
+## left shoulder and the right hand low by the hip.
+static var preview := "a"
+const GUARD2 := {
+	"a": {"hips": Vector3(0, -0.2, 0), "torso": Vector3(0.06, -0.12, 0), "head": Vector3(-0.04, 0.22, 0),
+		"arm_r": Vector3(2.6, 0.2, 0.3), "fore_r": Vector3(1.4, 0, 0), "hand_r": Vector3.ZERO,
+		"arm_l": Vector3(2.6, -0.2, -0.1), "fore_l": Vector3(1.4, 0, 0), "hand_l": Vector3.ZERO},
+	"b": {"hips": Vector3(0, 0.12, 0), "torso": Vector3(-0.14, 0.08, 0), "head": Vector3(0.12, -0.12, 0),
+		"arm_r": Vector3(0.4, 0.0, 0.3), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3.ZERO,
+		"arm_l": Vector3(1.2, 0.3, -0.2), "fore_l": Vector3(1.4, 0, 0), "hand_l": Vector3.ZERO}}
+const LEGS2 := {
+	"a": {"leg_l": Vector3(0.5, 0, -0.25), "leg_r": Vector3(-0.35, 0, 0.25), "shin_l": Vector3(-0.8, 0, 0), "shin_r": Vector3(-0.6, 0, 0), "_lift": Vector3(0, -0.18, 0)},
+	"b": {"leg_l": Vector3(0.3, 0, -0.26), "leg_r": Vector3(-0.15, 0, 0.26), "shin_l": Vector3(-0.7, 0, 0), "shin_r": Vector3(-0.6, 0, 0), "_lift": Vector3(0, -0.16, 0)}}
+## [guard, block, run] grips.
+const GRIPS2 := {
+	"a": [[Vector3(0.1, 0.24, -0.26), Vector3(0.12, 0.6, 0.79), Vector3(0, 1, 0), 0.2],
+		[Vector3(0.3, -0.2, -0.4), Vector3(-0.82, 0.55, -0.15), Vector3(0, 0, -1), 0.45],
+		[Vector3(0.2, -0.3, -0.2), Vector3(0.1, 0.75, 0.65), Vector3(0, 0.6, -0.8), 0.2]],
+	"b": [[Vector3(0.2, -0.5, -0.25), Vector3(-0.55, 0.8, -0.2), Vector3(0, 0, -1), 0.5],
+		[Vector3(0.3, -0.2, -0.4), Vector3(-0.82, 0.55, -0.15), Vector3(0, 0, -1), 0.45],
+		[Vector3(0.26, -0.48, -0.22), Vector3(-0.74, 0.64, -0.18), Vector3(0, 0, -1), 0.5]]}
+
+
+static func guard(h) -> Dictionary:
+	return GUARD2[preview] if h.guard2 else Humanoid.AXE_GUARD
+
+
+static func legs(h) -> Dictionary:
+	return LEGS2[preview] if h.guard2 else Humanoid.STANCE_LEGS["axe"]
+
+
 ## Hit 1, the hack: from the guard the axe is hauled up round the right side and over the right
 ## shoulder (the head laid back behind it), a beat, then hacked down through the front at a
 ## slant and on low past the left hip.

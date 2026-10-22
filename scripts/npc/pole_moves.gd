@@ -337,7 +337,9 @@ static func hands(h, delta: float) -> void:
 		grips = HammerMoves.GRIPS
 	elif st == "greatsword":
 		grips = GreatswordMoves.GRIPS
-	var on: bool = st in ["polearm", "hammer", "greatsword"] and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
+	elif st == "axe":
+		grips = AxeMoves.GRIPS2[AxeMoves.preview]
+	var on: bool = (st in ["polearm", "hammer", "greatsword"] or st == "axe" and h.guard2) and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
 		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and Humanoid.kind_of(h.weapon) == st \
 		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD)
 	var pole: bool = st == "polearm" and on and act == ""
