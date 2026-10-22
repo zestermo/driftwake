@@ -155,5 +155,14 @@ static func pose(h, n: String, u: float) -> Array:
 			var out := _hay_out()
 			return [h._keys(u, [[0.0, g], [0.3, _sq(cock, Vector3(1.03, 0.96, 0.98)), "out"], [0.36, cock], [0.42, over, "in"],
 				[0.47, _sq(out, Vector3(1.04, 0.94, 1.06))], [0.56, out.merged({"_scale": Vector3(1.02, 0.97, 1.02)}, true), "out"], [0.72, out], [1.0, g]]), "full", lift]
+		"fs_catch":
+			# Shoulder Throw's guard: sunk on the back foot, both hands open and out to catch the blow, the lead one high
+			var c := {"pivot": Vector3(0.05, 0, 0), "hips": Vector3(0, -0.5, 0), "torso": Vector3(0.04, -0.3, 0.02 * sin(h._t * 6.0)),
+				"head": Vector3(0.1, 0.45, 0),
+				"arm_l": Vector3(1.45, 0.3, -0.2), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(-0.7, 0, 0),
+				"arm_r": Vector3(1.0, 0.55, 0.15), "fore_r": Vector3(1.3, 0, 0), "hand_r": Vector3(-0.6, 0, 0),
+				"leg_l": Vector3(0.4, 0, -0.16), "shin_l": Vector3(-0.35, 0, 0), "leg_r": Vector3(-0.18, 0, 0.16), "shin_r": Vector3(-0.85, 0, 0),
+				"_lift": Vector3(0, -0.18, 0)}
+			return [h._keys(u, [[0.0, g], [0.14, _sq(c, Vector3(1.03, 0.97, 1.0)), "out"], [0.22, c], [0.86, c], [1.0, g]]), "full", lift]
 	push_error("FistMoves: no pose for \"%s\"" % n)
 	return [g, "full", lift]

@@ -5356,3 +5356,18 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - **Tests**: t/player/sky_leap (a tap is a 1.7 m jump; full charge 25.0/40.0/60.0 m up and 5/11/15 m forward with
   no nodes / Haki Legs x3 / + Heavenward; stamina 40/40/50; never Downed; no damage; lands on its feet).
   Render: animsheet `sky_leap_charge,sky_leap`. The fists' dive-punch height scaling is the fists agent's.
+
+## 2026-10-21: fists piece 2, the Power branch (docs/v1_18_4_plan.md "Fists"; Zach's six pitches)
+- **(a) Shoulder Throw is a counter, Heavy Landing extended.** The Grapple branch is **Power**. `hip_toss` (Shoulder
+  Throw, node `u_hip`, ids kept for saves) is a guard skill now, like Riposte: a second with the hands open to catch
+  (`fs_catch`, buff "riposte"); a blow caught in it comes to TechniqueState as `riposte_counter`, which a fist style
+  turns into `shoulder_throw` (FistArts): a hitstop/slow beat, then the old carry-and-heave over the shoulder (the
+  `shoulder_throw` pose) on whoever threw it; a boss or a non-light enemy gets a breaker straight right instead.
+  **Heavy Landing** (`u_landing`, flag `throw_splash`, now `dmg_unarmed` +25%: all punches) also covers the haymaker:
+  HeavyAttackState hands the haymaker's victims to `FistArts.haymaker_landed`, which lands each 0.45 s later where
+  their body is (`landing`: ring 3.4 m, 22 damage, knocked flat, rock and a crack); without the node a throw still
+  splashes 1.8 m for 10. TechniqueState's `_landing` (still used by Suplex/Giant Swing until piece b) calls it.
+- **Where:** `scripts/player_states/fist_arts.gd` (FistArts, in TechniqueState `_arts`; reaches Net/CombatManager
+  through the tree and FX's colours through a preload, so the static-autoload lint passes), FistMoves `fs_catch`.
+- **Tested:** `t/weapons/fist_counter` (cast -> fs_catch; a grunt's blow does no harm and becomes shoulder_throw; the
+  thrower and the grunt where he lands are hurt; uncaught it times out). techtest lost its hip_toss grab row.

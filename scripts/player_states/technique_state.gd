@@ -19,7 +19,7 @@ extends PlayerState
 ##   dual_axe gallows_hook, hewing_frenzy, axestorm, fimbulwinter (ult) in DualAxeArts
 ##   greatsword guardbreaker, crescent_gale, tempest_turns, skysplitter (ult) in GreatswordArts
 ##   black_leg mule_kick, hailstorm_heels, cartwheel_crescent, last_course (ult) in BlackLegArts
-##   unarmed  suplex, hip_toss, giant_swing (grapples), hundred_fists,
+##   unarmed  hip_toss (guard -> shoulder_throw, FistArts), suplex, giant_swing (grapples), hundred_fists,
 ##            rising_dragon, palm_strike, sea_king_fist (ult)
 ##   haki     conquerors_haki (ult)
 ## Grapples hold a light enemy (not bosses or big bugs) and carry it with the
@@ -29,13 +29,13 @@ const GRAB_REACH := 2.3
 ## The guard skills (Riposte, Iai Counter, Crossed Counter): the waiting pose, and
 ## per fighting style the answer [pose, length, damage].
 const GUARD_POSE := {"riposte": "riposte_guard", "iai_counter": "iai_ready", "cross_counter": "cross_guard", "parley": "riposte_guard",
-	"slip": "dg_slip_guard"}
+	"slip": "dg_slip_guard", "hip_toss": "fs_catch"}
 ## (Parley's answer is a turning cut and then a shot: PARLEY_SHOT more at 0.3 s; Slip's
 ## is out from behind them, a sure crit that bleeds)
 const COUNTER_POSE := {"sword": ["riposte_cut", 0.5, 35.0], "katana": ["iai_slash", 0.6, 45.0], "dual_sword": ["dual_cross", 0.5, 40.0],
 	"sword_pistol": ["parley_shot", 0.6, 16.0], "dagger": ["dg_slip", 0.55, 28.0]}
 ## Techniques that live in their own files (enter/update return false for ids not theirs).
-var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts]
+var _arts: Array = [DaggerArts, PoleArts, HammerArts, DualAxeArts, GreatswordArts, BlackLegArts, FistArts]
 const PARLEY_SHOT := 28.0
 
 var id: String = ""
@@ -55,6 +55,9 @@ var _axe: Projectile
 
 func enter(data: Dictionary) -> void:
 	id = str(data.get("id", ""))
+	# (bare fists answer a caught blow with Shoulder Throw)
+	if id == "riposte_counter" and player.style() == "fist":
+		id = "shoulder_throw"
 	_slot = int(data.get("slot", -1))
 	_pc = player.power
 	t = 0.0
@@ -76,7 +79,7 @@ func enter(data: Dictionary) -> void:
 		if a.enter(self, id):
 			return
 	match id:
-		"riposte", "iai_counter", "cross_counter", "parley", "slip":
+		"riposte", "iai_counter", "cross_counter", "parley", "slip", "hip_toss":
 			# guard up for a second; the buff outlasts it a touch so exit() can tell a
 			# guard that timed out from one that was answered (the hit clears the buff)
 			dur = 1.0
@@ -246,16 +249,16 @@ func enter(data: Dictionary) -> void:
 			dur = 2.0
 			_victims = _closest(18.0, 99)
 			player.body_model.play("deaths_waltz", dur)
-		"suplex", "hip_toss", "giant_swing":
+		"suplex", "giant_swing":
 			_target = _grab_target()
 			if _target == null:
 				_refund("Nobody to grab")
 				return
 			_dir = _flat_to(_target)
 			face_direction(_dir, 1.0)
-			dur = {"suplex": 1.1, "hip_toss": 0.95, "giant_swing": 2.1}[id]
+			dur = {"suplex": 1.1, "giant_swing": 2.1}[id]
 			_target.call("grabbed", dur + 0.3)
-			player.body_model.play({"suplex": "suplex", "hip_toss": "shoulder_throw", "giant_swing": "giant_swing"}[id], dur)
+			player.body_model.play(id, dur)
 			Net.fx("sfx", ["hit", player.global_position, -6.0, 0.05, 0.7])
 		"hundred_fists":
 			dur = 1.3
@@ -289,7 +292,7 @@ func physics_update(delta: float) -> void:
 			_finish()
 		return
 	match id:
-		"riposte", "iai_counter", "cross_counter", "parley", "slip":
+		"riposte", "iai_counter", "cross_counter", "parley", "slip", "hip_toss":
 			_rooted(delta, 0.15)
 			# the waiting blade catches the light (the katana's waits in its scabbard: the hilt)
 			if _once("glint", 0.12) or _once("glint2", 0.55):
@@ -471,9 +474,6 @@ func physics_update(delta: float) -> void:
 		"suplex":
 			_rooted(delta, 0.0)
 			_suplex()
-		"hip_toss":
-			_rooted(delta, 0.0)
-			_hip_toss()
 		"giant_swing":
 			_rooted(delta, 0.0)
 			_giant_swing()
@@ -515,6 +515,8 @@ func physics_update(delta: float) -> void:
 # --------------------------------------------------------------------------
 ## The tree whose colours this technique wears (FX.TREE_FX).
 func _tree() -> String:
+	if id == "shoulder_throw":
+		return "unarmed"
 	if id == "riposte_counter":
 		return {"katana": "katana", "dual_sword": "dual", "sword_pistol": "corsair", "dagger": "dagger"}.get(player.style(), "sword")
 	var tr := str(Skills.get_skill(id).get("tree", "base"))
@@ -1405,17 +1407,8 @@ func _carry(p: Vector3) -> void:
 	_target.reset_physics_interpolation()
 
 
-## Where a thrown body lands: everyone close goes down too (more with Heavy Landing).
 func _landing(at: Vector3) -> void:
-	var big := player.progression.has_flag("throw_splash")
-	var r := 3.2 if big else 1.8
-	Net.fx("dust_ring", [at, 14 if big else 8, 1.2 if big else 0.8])
-	Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.8])
-	for e in _pc.enemies_in(at + Vector3(0, 0.8, 0), r):
-		if e == _target:
-			continue
-		var hd := _hd(20.0 if big else 10.0, 7.0, true)
-		_strike_toward(e, hd, (e as Node3D).global_position - at)
+	FistArts.landing(player, at, [_target])
 
 
 func _suplex() -> void:
@@ -1436,22 +1429,6 @@ func _suplex() -> void:
 		_landing(behind)
 		player.squash(-4.0)
 		CombatManager.apply_camera_shake(0.3)
-
-
-func _hip_toss() -> void:
-	var fwd := _dir
-	if t < 0.25:
-		_carry(player.global_position + fwd * 0.7 + Vector3.UP * 0.1)
-	elif t < 0.5:
-		var k := clampf((t - 0.25) / 0.25, 0.0, 1.0)
-		_carry(player.global_position + fwd * (0.4 + 1.6 * k) + Vector3.UP * (0.1 + 1.6 * sin(k * PI * 0.8)))
-	if _once("throw", 0.5) and _target and is_instance_valid(_target):
-		var hd := _hd(28.0, 12.0, true)
-		hd.unblockable = true
-		_strike_toward(_target, hd, fwd)
-		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 1.1])
-	if _once("land", 0.82):
-		_landing(player.global_position + fwd * 4.5)
 
 
 func _giant_swing() -> void:
