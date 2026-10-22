@@ -619,6 +619,8 @@ static func _build_axe() -> void:
 	_big("a_throw", "Hatchet Throw", "tech", 0, 3, {}, "", "axe_throw")
 	_big("a_split", "Earthsplitter", "tech", 0, 9, {}, "", "earthsplitter")
 	_big("a_sunder", "Sunder", "mech", 0, 14, {"unblock_axe": 1}, "Your heavy attacks can't be blocked.")
+	_big("a_guard2", "Bearded Guard", "mech", 0, 15, {"guard2_axe": 1},
+		"A second guard: choked up two-handed across the front, the head up by the left shoulder, and a block on the haft in both hands. Double-tap block to switch between it and the brawler's guard; your combo comes out of either.")
 	_big("a_unstop", "Unstoppable", "mech", 1, 6, {"armor_axe": 1}, "Mid-swing with an axe, blows don't make you flinch or knock you off your feet.")
 	_big("a_berserk", "Berserk", "tech", 1, 11, {}, "", "berserk")
 	_elem(1)

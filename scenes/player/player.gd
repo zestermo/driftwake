@@ -213,6 +213,8 @@ const NF_TIDE := 16
 const NF_PETALS := 32
 ## Sea King Fist armed: the galaxy glow on the fist.
 const NF_GALAXY := 64
+## The last parry press (game time), for the mastered guard's double-tap (MasteredGuard).
+var parry_tap := -10.0
 
 
 func _ready() -> void:
@@ -247,6 +249,9 @@ func _ready() -> void:
 	_give_starting_items()
 	GameManager.register_player(self)
 	hurtbox.hit_received.connect(_on_hit_received)
+	input_buffer.pressed.connect(func(a: String, at: float) -> void:
+		if a == "parry" and context == Context.ON_FOOT:
+			MasteredGuard.tapped(self, at))
 	sword_hitbox.hit_landed.connect(func(target: Node, data: HitData): power.on_sword_hit(target, data))
 	health_component.died.connect(_on_died)
 	_recalc_stats()
@@ -760,6 +765,7 @@ func _process(delta: float) -> void:
 	body_model.armed = armed
 	body_model.sprinting = sprinting
 	body_model.stance = style()
+	body_model.guard2 = MasteredGuard.on(self)
 	_update_head_look()
 	_tick_body(delta)
 	_emote_tick()

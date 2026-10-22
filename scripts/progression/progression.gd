@@ -938,6 +938,8 @@ var cooked: Dictionary = {}
 ## Sailing downtime (Downtime): the tinkered kit's seconds left (game time) and the activities' counts.
 var kit_left := 0.0
 var downtime: Dictionary = {}
+## Weapon trees whose mastered guard (the "guard2_<tree>" node) is the one up (MasteredGuard): tree -> true.
+var guards: Dictionary = {}
 
 
 func eat_meal(id: String) -> void:
@@ -1058,7 +1060,7 @@ func to_dict() -> Dictionary:
 		"mastery": mastery.duplicate(true), "tiers": tiers.duplicate(), "uses": uses.duplicate(),
 		"steps": steps.duplicate(), "versions": versions.duplicate(), "passives": Array(passives), "found": found.keys(),
 		"will": will.keys(), "beaten": beaten.keys(), "meal": [meal, meal_left, meal_k], "recipes": recipes.keys(), "cooked": cooked.duplicate(),
-		"kit": kit_left, "downtime": downtime.duplicate()}
+		"kit": kit_left, "downtime": downtime.duplicate(), "guards": guards.keys()}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -1074,6 +1076,9 @@ func from_dict(d: Dictionary) -> void:
 	cooked = (d.get("cooked", {}) as Dictionary).duplicate()
 	kit_left = float(d.get("kit", 0.0))
 	downtime = (d.get("downtime", {}) as Dictionary).duplicate()
+	guards = {}
+	for k in d.get("guards", []):
+		guards[str(k)] = true
 	_reset_owned()
 	mastery = {}
 	tiers = {}

@@ -4,6 +4,7 @@ class_name InputBuffer
 @export var buffer_window: float = 0.15
 
 var buffer: Array[Dictionary] = []
+signal pressed(action: String, at: float)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -23,6 +24,7 @@ func _now() -> float:
 
 func buffer_action(action: String) -> void:
 	buffer.append({"action": action, "time": _now()})
+	pressed.emit(action, _now())
 
 
 func consume_action(action: String) -> bool:
