@@ -5213,6 +5213,24 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   linked from the releases page). For the next stable release: delete tools/release/UNSTABLE, add its roadmap entry
   without the flag, set "here" to it, update the home banner and news list as usual.
 
+## 2026-10-21: walk carry and guard pose fixes (1.18.4 batch, Zach's play)
+- **Cutlass guard's free arm** (`Humanoid.SWORD_GUARD` arm_l y 2.3 -> 1.0, x 1.4 -> 1.15): the left fist up by the side
+  at about shoulder-to-head height instead of the elbow and fist back behind the shoulder (world: 0.1 m behind the
+  shoulder, 0.41 out). `SwordMoves.OFF_GUARD` (slash_r's reach start) moved to the new hand (-0.34, 0.17, -0.22).
+- **Cutlass run carry** (`StanceLife.CARRIES` sword, sword_pistol, dual_sword mirrored): the arm hangs at the side (was
+  swung back -0.55 behind the hip), the blade trailed back, down and out to the right with its flat rolled up to the
+  camera behind. Straight forward from the game camera the old carry read as the sword dragged down behind the player;
+  a diagonal showed it side on, which Zach liked; now forward shows that diagonal line too.
+- **Polearm run/sprint carry** (`PoleMoves.RUN_GRIP`): port arms, both hands on the shaft (slide 0.5), slanted up across
+  the front from the right hip to past the left shoulder (was one hand low at the side, head out ahead and down). The
+  other option (one hand mid-shaft, slanted behind the back) needs the shaft shifted through the hand and its butt would
+  sit in front of the stepping thigh; port arms reads cleaner from behind at PS1 resolution.
+- Checked: hammer, greatsword and twin axes walk in their guards (no carry under a sprint), none trails behind.
+- Tests: t/weapons/cutlass_carry (new: the guard's free hand, the forward carry's hand and blade), t/weapons/polearm_stance
+  (the run check now wants both hands on the shaft, slanted up left, the head over the left shoulder); cutlass_combo,
+  slash_dummy, polearm_moves/combo, draw_sheathe, quick_mid_swing, sprint, rig_drift pass. Expect fixtest/feat/stamtest
+  (slash_r's reach start moved) and wieldtest (Corsair, twin swords' carry) to want a look at the push.
+- Tool: guardsheet env GS_MOVE="x,y" (the travel direction). Renders: tools/dev/out/carry/before, it6 (guard), after.
 ## 2026-10-21: tooling window (after v1.18)
 - crew_lib `Get-TestKey` reads the deps file's stamp with `[IO.File]::GetLastWriteTimeUtc` and its lines in a try, so a file another session deletes between the check and the read counts as "no deps recorded" instead of killing the run.
 - compilecheck lints an autoload name (from project.godot `[autoload]`) used inside a `static func` in scripts/ or scenes/ ("STATIC AUTOLOAD file:line ... reach it through the tree"): a --script suite that names the class compiles without the autoloads. 30 files already did it (474 lines), so they are listed by file in `tools/dev/static_autoload_allow.txt` as a ratchet: new files fail, and an entry that matches nothing is reported. Reach the autoload with `(Engine.get_main_loop() as SceneTree).root.get_node("Net")` when a file is next reworked.

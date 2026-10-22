@@ -4,6 +4,7 @@ extends SceneTree
 ## Args: <out_dir> [mode: guard | walk | run | sprint | after:<action> (played, then shot `GS_AT` s after it
 ## ends: the settle)] [only: row names, comma separated] [views: three,side,back].
 ## Env GS_AT: seconds to step before the shot (default 1.5; after:<action>, seconds after its end, default 0.1).
+## Env GS_MOVE="x,y": the travel direction relative to the facing (Humanoid.local_move, y+ forward; default 0,1).
 ## Prints FEET <row> l=<m> r=<m>: each ankle's height off the floor (the sole sits ~0.06 under it).
 const ROWS := [
 	["cutlass", "sword", "cutlass", ""], ["katana", "katana", "katana", ""], ["axe", "axe", "axe", ""],
@@ -115,6 +116,9 @@ func _shoot(r: Array, mode: String, views: Array) -> Dictionary:
 	var spd: float = SPEED.get(mode, 0.0)
 	h.ground_speed = spd
 	h.local_move = Vector2(0, 1)
+	if OS.get_environment("GS_MOVE") != "":
+		var mv := OS.get_environment("GS_MOVE").split(",")
+		h.local_move = Vector2(float(mv[0]), float(mv[1])).normalized()
 	h.sprinting = mode == "sprint"
 	await process_frame
 	h.set_process(false)
