@@ -699,7 +699,7 @@ static func _build_dagger() -> void:
 		"Parry with a dagger and you flick gunshots aside too (without it, a parry only stops blades), and 8% of the blows that would hit you are slipped by instinct.")
 	_big("dg_slip", "Slip", "tech", 0, 8, {}, "", "slip")
 	_big("dg_guard2", "Hidden Knife", "mech", 0, 15, {"guard2_dagger": 1},
-		"A second guard: stood easy, the dagger hidden at the small of your back, the free hand out open. Double-tap block to switch between it and the knife fighter's crouch; your cuts come out of either.")
+		"A second guard: stood easy, the dagger held low at the back of your hip, the free hand out open. Double-tap block to switch between it and the knife fighter's crouch; your cuts come out of either.")
 	_big("dg_return", "Knife in the Dark", "mech", 0, 20, {"deflect_dagger": 1, "return_dagger": 1, "deflect_cd_dagger": 1.0},
 		"With a dagger drawn, a shot from the front is flicked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("dg_fan", "Knife Fan", "tech", 1, 5, {}, "", "knife_fan")
