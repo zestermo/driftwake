@@ -15,6 +15,8 @@ const ROWS := [
 	["polearm", "polearm", "polearm", ""], ["hammer", "hammer", "hammer", ""], ["greatsword", "greatsword", "greatsword", ""],
 	["dual_axe", "dual_axe", "axe", "axe"], ["unarmed", "", "", ""],
 	["axe2", "axe", "axe", "", true]]
+## Env GS_AURA=1: the awakened weapon's aura on it (stance -> its class).
+var AURAS := {"sword": BladeWater, "katana": BladePetals, "axe": BladeEmbers}
 const COLS := 5
 const FW := 300
 const FH := 400
@@ -125,6 +127,8 @@ func _shoot(r: Array, mode: String, views: Array) -> Dictionary:
 		h.local_move = Vector2(float(mv[0]), float(mv[1])).normalized()
 	h.sprinting = mode == "sprint"
 	await process_frame
+	if OS.get_environment("GS_AURA") != "" and r[1] in AURAS:
+		AURAS[r[1]].keep(h, true)
 	h.set_process(false)
 	var at := float(OS.get_environment("GS_AT")) if OS.get_environment("GS_AT") != "" else -1.0
 	if mode.begins_with("after:"):

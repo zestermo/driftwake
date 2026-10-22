@@ -348,7 +348,7 @@ func physics_update(delta: float) -> void:
 			Net.fx("ground_crack", [at - fwd * 0.3, fwd, 1.8, FX.tree_col("axe", FX.ACCENT) if hot else Color(0, 0, 0, 0), randi() % 10000, 0.08])
 			Net.fx("debris", [at + Vector3(0, 0.1, 0), Vector3.UP + fwd * 0.2, 6, Color(0.35, 0.3, 0.25), 4.5])
 			if hot:
-				Net.fx("embers", [at + Vector3(0, 0.2, 0), Vector3.UP, 8, FX.tree_col("axe", FX.ACCENT), 3.5])
+				Net.fx("element", ["axe", at + Vector3(0, 0.2, 0), Vector3.UP, 8, 3.5])
 			Net.fx("dust_ring", [at, 16, 1.1])
 			Net.fx("impact", [at + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
 			Net.fx("sfx", ["thud", at, -2.0, 0.05, 0.75])

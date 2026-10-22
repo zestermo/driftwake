@@ -1402,14 +1402,16 @@ func petals(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1
 
 
 ## A tree's element thrown along `dir`: sea spray (cutlass), drawn sakura (katana: bigger, so
-## fewer), embers (axe), rock and dust (hammer).
+## fewer), drawn cinders and a lick of fire (axe: cinders are bigger, so fewer), rock and dust (hammer).
 func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
 	var c := tree_col(tree, ACCENT)
 	match tree:
 		"katana":
 			sakura(pos, dir, maxi(amount * 2 / 3, 2), speed)
 		"axe":
-			embers(pos, dir, amount, c, speed)
+			cinders(pos, dir, maxi(amount * 2 / 3, 2), speed)
+			if amount >= 8:
+				drawn_burst(pos, "ember_cloud", 0.5 + amount * 0.05, 0.45, 40.0)
 		"dual":
 			motes(pos, dir, maxi(amount / 2, 2), tree_col(tree, EDGE), speed)
 			motes(pos, dir, maxi(amount / 2, 2), c, speed * 0.8)
@@ -2660,6 +2662,11 @@ func cinders(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, si
 var _ash_mat: StandardMaterial3D
 
 
+## The drawn cinder on a quad of `size` (BladeEmbers' emitter): each plays the sheet once over its life.
+func cinder_quad(size: float) -> QuadMesh:
+	return _quad(size, _flip_mat("cinder"))
+
+
 func _ash() -> StandardMaterial3D:
 	if _ash_mat == null:
 		_ash_mat = _flip_mat("ash").duplicate()
@@ -2774,8 +2781,10 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 			katana_burst(pos + dir * 0.4 + Vector3.UP * 0.2, "katana_cloud", 1.1, 0.45, 40.0)
 			sakura(pos, dir + Vector3.UP * 0.4, 5, 3.0)
 		"axe":
-			embers(pos, dir + Vector3.UP * 0.4, 9, accent, 4.0)
-			ring(pos, dir, 0.9, edge, 0.18, 0.2)
+			# a drawn crescent of fire bitten through them, a gout of it, cinders thrown off
+			drawn_burst(pos + dir * 0.15, "ember_slash", 1.9, 0.35, 180.0)
+			drawn_burst(pos + dir * 0.4 + Vector3.UP * 0.2, "ember_cloud", 1.1, 0.45, 40.0)
+			cinders(pos, dir + Vector3.UP * 0.4, 5, 3.5)
 		"dual":
 			twin_cross(pos, dir, 0.45, edge, accent, 0.2)
 			motes(pos, dir + Vector3.UP * 0.3, 6, accent, 3.5)

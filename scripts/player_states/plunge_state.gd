@@ -302,7 +302,7 @@ func physics_update(delta: float) -> void:
 				timer = 0.0
 				player.velocity = _dir * 3.5 + Vector3.DOWN * DIVE_SPEED
 				if axe:
-					Net.fx("slash", [player.player_model, "overhead", 0.3, _axe_col()])
+					DrawnFx.slash(player, "axe", 0.3, false, 1.3)
 				elif spear:
 					player.velocity = _dir * 1.5 + Vector3.DOWN * SPEAR_SPEED
 					Net.fx("blade_swoosh", [player.body_model, 0.3, _spear_col()])
@@ -513,7 +513,10 @@ func _split_ground() -> void:
 		if i % 2 == 0:
 			Net.fx("debris", [p + Vector3(0, 0.1, 0), Vector3.UP + f * 0.3, 4, Color(0.35, 0.3, 0.25), 5.0])
 		if elem:
-			Net.fx("embers", [p + Vector3(0, 0.2, 0), Vector3.UP, 4, FX.tree_col("axe", FX.ACCENT), 3.0])
+			Net.fx("element", ["axe", p + Vector3(0, 0.2, 0), Vector3.UP, 4, 3.0])
+	if DrawnFx.awake(player, "axe"):
+		Net.fx("drawn_burst", [start + Vector3(0, 0.5, 0), "ember_slash", 2.4, 0.4, 180.0])
+		Net.fx("drawn_burst", [start + f * 1.2 + Vector3(0, 0.6, 0), "ember_cloud", 1.6, 0.5, 40.0])
 	Net.fx("dust_ring", [start, 14, 0.9])
 	Net.fx("ring", [start, Vector3.UP, 2.2, _axe_col(), 0.28, 0.12])
 	Net.fx("impact", [start + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])

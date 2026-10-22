@@ -31,9 +31,10 @@ const STYLES := {
 		"damage": 32.0, "hitstop": 0.08, "shake": 0.16, "knockback": 12.0, "stagger": 0.4,
 		"trail": "thrust", "trail_len": 0.22, "sfx": "whoosh", "pitch": 1.25, "impact_fx": false,
 		"tree": "sword"},
-	"whirl": {"anim": "axe_whirl", "impulse": 2.5,
+	# (each turn's drawn slash is laid along the bit's real path: "drawn")
+	"whirl": {"anim": "axe_whirl", "impulse": 2.5, "drawn": "axe",
 		"damage": 22.0, "hitstop": 0.06, "shake": 0.16, "knockback": 9.0, "stagger": 0.5,
-		"trail": "spin", "trail_len": 0.36, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false,
+		"trail": "", "trail_len": 0.36, "sfx": "whoosh_big", "pitch": 0.85, "impact_fx": false,
 		"reach": "whirl", "color": Color(1.0, 0.78, 0.5), "rehit": 0.36, "steer": 0.45, "tree": "axe"},
 	"dual_heavy": {"anim": "dual_heavy", "impulse": 6.0,
 		"damage": 42.0, "hitstop": 0.12, "shake": 0.28, "knockback": 11.0, "stagger": 0.6,
@@ -288,6 +289,8 @@ func physics_update(delta: float) -> void:
 				var col := _trail_col()
 				if str(cfg["trail"]) != "":
 					Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), col])
+				if cfg.has("drawn"):
+					DrawnFx.slash(player, str(cfg["drawn"]), float(cfg["trail_len"]), false, 1.1)
 				Net.fx("sfx", [str(cfg["sfx"]), player.global_position, -4.0, 0.08, float(cfg["pitch"])])
 				if cfg.get("wind", false):
 					var b := player.player_model.global_basis
@@ -359,6 +362,8 @@ func physics_update(delta: float) -> void:
 				player.sword_hitbox.activate(_hit(cfg.get("rehit_down", true), float(cfg.get("rehit_damage", cfg["damage"]))))
 				if str(cfg["trail"]) != "":
 					Net.fx("slash", [player.player_model, str(cfg["trail"]), float(cfg["trail_len"]), _trail_col()])
+				if cfg.has("drawn"):
+					DrawnFx.slash(player, str(cfg["drawn"]), float(cfg["trail_len"]), false, 1.25)
 				Net.fx("sfx", [str(cfg["sfx"]), player.global_position, -4.0, 0.08, float(cfg["pitch"]) * 1.1])
 				_strike_fx(true)
 			if _blinked and timer >= 0.15 and not _seen:
