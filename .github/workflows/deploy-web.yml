@@ -51,6 +51,9 @@ jobs:
           cp -r web/build web/site/play
           ls -la web/site/play
 
+      - name: Build the app's feeds
+        run: node tools/dev/build_feeds.mjs
+
       - name: Deploy to Netlify
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}

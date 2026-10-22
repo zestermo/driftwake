@@ -16,6 +16,8 @@ __pycache__/
 # the web export, and its copy in the site (tools/dev/build_web.ps1)
 /web/build/
 /web/site/play/
+# the app's feeds, built from the pages at deploy (tools/dev/build_feeds.mjs)
+/web/site/feeds/
 
 # Claude Code worktrees (one per parallel session)
 /.claude/worktrees/

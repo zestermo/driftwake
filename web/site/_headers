@@ -20,6 +20,14 @@
 /img/*
   Cache-Control: public, max-age=86400
 
+# read by the companion app, which runs on its own origin
+/feeds/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300
+
+/roadmap/roadmap.json
+  Access-Control-Allow-Origin: *
+
 # Only for a threaded export (variant/thread_support=true): uncomment so the
 # game page gets SharedArrayBuffer. The thread-less build needs neither.
 # /play/*
