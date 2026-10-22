@@ -2,14 +2,16 @@ class_name SkillTreeDraw
 extends RefCounted
 ## Draws the skills menu's node trees (docs/media/progression_mock): a tree grows up from its root in three
 ## branches, big nodes on the branches (the game's 24 px skill icons in the technique and ultimate squares), small
-## stat steps off them with x/5 counters, a variant as one split node with its active half lit. Lit links and
-## nodes in the tree's colour, the rest slate-dim. Every node registers a hit ("n:<id>") on the screen it draws on.
+## stat steps off them with a pip a step, a variant as one split node with its active half lit. Icons and names only:
+## prices, gates and counts are in the card and the tooltip. Owned nodes and links in the tree's colour, what can be
+## bought now with a soft pulsing ring, the rest slate-dim. Every node registers a hit ("n:<id>") on the screen.
 
 const NODE_BG := Color("0c2427")
 const ROOT_BG := Color("143f46")
 const DIM_FILL := Color("16343a")
 const DIM_RIM := Color("3c5c5f")
 const DIM_LINK := Color("2f4c52")
+const LINK_OFF := Color("6f8a86")
 const TEXT_OFF := Color("93a8a3")
 const TAG_OFF := Color("5e7470")
 const PASSIVE := Color("ffb39e")
@@ -31,6 +33,11 @@ static func tree_icon(tree: String) -> Texture2D:
 static func kind_color(kind: String, col: Color) -> Color:
 	return {"move": col, "tech": UIStyle.GILT, "mech": UIStyle.CREAM, "passive": PASSIVE, "elem": ELEM, "ult": UIStyle.GILT,
 		"root": UIStyle.GILT, "variant": col, "step": col, "auto": UIStyle.GILT, "talent": UIStyle.GILT, "will": Color("c9a8ff")}.get(kind, col)
+
+
+## A node's or version's picture: its skill's icon, or its own "icon" (the Adventure moves); "" for none.
+static func pic(d: Dictionary) -> String:
+	return str(d["skill"]) if str(d["skill"]) != "" else str(d.get("icon", ""))
 
 
 ## Two letters for a node with no icon ("Through the Guard" -> "TG").
@@ -76,25 +83,23 @@ static func draw_tree(s: SkillMapScreen, tree: String, area: Rect2, pr: Progress
 		for l in n["links"]:
 			if at.has(l):
 				_link(s, at[l], at[k], col, pr.owns_node(k), n["kind"] == "step")
+				s.links.append([l, k, pr.owns_node(k)])
 	var taken: Array = at.keys().map(func(k): return node_rect(k, at[k]).grow(1.0))
 	for b in range(td["branches"].size()):
 		var bigs: Array = td["branches"][b]["nodes"].filter(func(k): return SkillTrees.node_def(k)["kind"] != "step")
 		if bigs.is_empty():
 			continue
 		var top: Vector2 = at[bigs[-1]]
-		var got := bigs.filter(func(k): return pr.owns_node(k)).size()
 		var name_s := str(td["branches"][b]["name"]).to_upper()
-		var sub := "%d OF %d" % [got, bigs.size()]
-		var tw := maxf(SILK.get_string_size(name_s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x, SILK.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x)
+		var tw := SILK.get_string_size(name_s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		var nr := node_rect(bigs[-1], top)
-		var tr := Rect2(top.x - 22.0 - tw, top.y - 32.0, tw, 17)
+		var tr := Rect2(top.x - 22.0 - tw, top.y - 23.0, tw, 9)
 		if b == 1:
-			tr = Rect2(roundf(top.x - tw * 0.5), nr.position.y - 21.0, tw, 17)
+			tr = Rect2(roundf(top.x - tw * 0.5), nr.position.y - 12.0, tw, 9)
 		elif b == 2:
-			tr = Rect2(top.x + 8.0, top.y - 32.0, tw, 17)
+			tr = Rect2(top.x + 8.0, top.y - 23.0, tw, 9)
 		var al: HorizontalAlignment = [HORIZONTAL_ALIGNMENT_RIGHT, HORIZONTAL_ALIGNMENT_CENTER, HORIZONTAL_ALIGNMENT_LEFT][mini(b, 2)]
 		_outlined(s, tr.position + Vector2(0, 8), name_s, col.lightened(0.25), al, tw)
-		_outlined(s, tr.position + Vector2(0, 17), sub, UIStyle.TEXT_DIM, al, tw)
 		taken.append(tr)
 	var labels := place_labels(at, area, taken)
 	for k in at.keys():
@@ -113,9 +118,9 @@ static func node_rect(id: String, c: Vector2) -> Rect2:
 	var n := SkillTrees.node_def(id)
 	match str(n["kind"]):
 		"step":
-			return Rect2(c - Vector2(12, 6), Vector2(24, 22))
+			return Rect2(c - Vector2(9, 6), Vector2(18, 16))
 		"variant", "talent":
-			var icons: bool = n["versions"].any(func(v): return str(v["skill"]) != "")
+			var icons: bool = n["versions"].any(func(v): return pic(v) != "")
 			var w: float = (26.0 if icons else 17.0) * n["versions"].size()
 			var h := 26.0 if icons else 16.0
 			return Rect2(c - Vector2(w, h) * 0.5, Vector2(w, h)).grow(2.0)
@@ -189,14 +194,16 @@ static func _uncharted(s: SkillMapScreen, tree: String, area: Rect2, pr: Progres
 	_outlined(s, Vector2(area.position.x, c.y - 30.0), "%s %d  -  YOUR PROGRESS IS KEPT" % [Progression.tree_name(tree).to_upper(), pr.tree_level(tree)], col, HORIZONTAL_ALIGNMENT_CENTER, area.size.x)
 
 
+## A path: filled in the tree's colour once taken, else a hollow grey channel (a step's thin and grey).
 static func _link(s: Control, a: Vector2, b: Vector2, col: Color, on: bool, thin: bool) -> void:
 	if thin:
-		s.draw_line(a, b, col if on else DIM_LINK, 1.0)
+		s.draw_line(a, b, col if on else Color(LINK_OFF, 0.75), 2.0)
 	elif on:
 		s.draw_line(a, b, Color(col, 0.28), 4.0)
 		s.draw_line(a, b, col, 2.0)
 	else:
-		s.draw_line(a, b, DIM_LINK, 1.0)
+		s.draw_line(a, b, LINK_OFF, 4.0)
+		s.draw_line(a, b, NODE_BG, 2.0)
 
 
 static func _outlined(s: Control, p: Vector2, text: String, col: Color, al := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0) -> void:
@@ -209,11 +216,15 @@ static func draw_node(s: SkillMapScreen, id: String, c: Vector2, col: Color, pr:
 	var n := SkillTrees.node_def(id)
 	var kind := str(n["kind"])
 	var on := pr.owns_node(id)
+	if pr.buy_why(id) == "":
+		var rr := node_rect(id, c) if kind != "step" else Rect2(c - Vector2(6, 6), Vector2(12, 12))
+		s.draw_circle(c, rr.size.x * 0.5 + 4.0, Color(col, 0.16 + 0.12 * sin(t * 4.0)))
+		s.draw_arc(c, rr.size.x * 0.5 + 3.0, 0.0, TAU, 24, Color(col, 0.55 + 0.3 * sin(t * 4.0)), 1.0)
 	var r: Rect2
 	if kind == "step":
 		r = _step(s, id, n, c, col, pr)
 	elif kind in ["variant", "talent"]:
-		r = split(s, id, c, col, pr, int(n["level"]) <= pr.tree_level(str(n["tree"])))
+		r = split(s, id, c, col, pr, pr.owns(id) if kind == "variant" else int(n["level"]) <= pr.tree_level(str(n["tree"])))
 	else:
 		r = _big(s, n, c, col, on)
 	s.hit(r.grow(2.0), "n:" + id)
@@ -229,7 +240,7 @@ static func _big(s: Control, n: Dictionary, c: Vector2, col: Color, on: bool) ->
 	var h := sz * 0.5
 	var r := Rect2(c - Vector2(h, h), Vector2(sz, sz))
 	var rim := col if on else DIM_RIM
-	var ic: Texture2D = Skills.icon(str(n["skill"])) if str(n["skill"]) != "" else null
+	var ic: Texture2D = Skills.icon(pic(n)) if pic(n) != "" else null
 	if kind == "root":
 		ic = tree_icon(str(n["tree"]))
 	if on and kind in ["move", "mech", "elem", "root"]:
@@ -270,16 +281,10 @@ static func _big(s: Control, n: Dictionary, c: Vector2, col: Color, on: bool) ->
 		s.draw_texture_rect(ic, Rect2(c - Vector2(12, 12), Vector2(24, 24)), false, Color.WHITE if on else Color(0.55, 0.6, 0.62, 0.45))
 	elif sz >= 26.0:
 		s.draw_string(SILK, Vector2(c.x - h, c.y + 3.0), glyph(str(n["name"])), HORIZONTAL_ALIGNMENT_CENTER, sz, 8, col if on else TAG_OFF)
-	if not on and kind not in ["root", "will"]:
-		var lv := str(int(n["level"]))
-		if ic and sz >= 26.0:
-			_outlined(s, Vector2(r.end.x - 1.0 - SILK.get_string_size(lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x, r.end.y - 1.0), lv, UIStyle.TEXT_DIM)
-		elif sz >= 14.0:
-			s.draw_string(SILK, Vector2(c.x - 10.0, c.y + 3.0), lv, HORIZONTAL_ALIGNMENT_CENTER, 20.0, 8, TAG_OFF)
 	return r
 
 
-## A stat step: a small round node, its x/5 counter under it.
+## A stat step: a small round node, a pip under it for each step (lit as they're bought).
 static func _step(s: Control, id: String, n: Dictionary, c: Vector2, col: Color, pr: Progression) -> Rect2:
 	var have := pr.steps_of(id)
 	var most := int(n["max_steps"])
@@ -290,13 +295,11 @@ static func _step(s: Control, id: String, n: Dictionary, c: Vector2, col: Color,
 	s.draw_circle(c, 6.0, UIChrome.INK)
 	s.draw_circle(c, 5.0, UIStyle.CREAM if full else (col if some else DIM_RIM))
 	s.draw_circle(c, 3.5, col if some else DIM_FILL)
-	var chip := "%d/%d" % [have, most]
-	var cw := SILK.get_string_size(chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 4.0
-	var cr := Rect2(roundf(c.x - cw * 0.5), c.y + 7.0, cw, 9.0)
-	s.draw_rect(cr, UIStyle.GILT if full else (UIStyle.TEAL if some else DIM_FILL))
-	s.draw_string(SILK, cr.position + Vector2(2, 8), chip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, UIStyle.INK if full else (UIStyle.CREAM if some else TEXT_OFF))
-	if not full and pr.step_why(id) == "":
-		s.draw_circle(c + Vector2(5, -5), 1.5, UIStyle.CORAL)
+	var x0 := roundf(c.x - (most * 3.0 - 1.0) * 0.5)
+	for i in range(most):
+		var pr_ := Rect2(x0 + i * 3.0, c.y + 8.0, 2, 2)
+		s.draw_rect(pr_.grow(1.0), UIChrome.INK)
+		s.draw_rect(pr_, (UIStyle.GILT if full else col) if i < have else DIM_RIM)
 	return Rect2(c - Vector2(6, 6), Vector2(12, 12))
 
 
@@ -305,7 +308,7 @@ static func _step(s: Control, id: String, n: Dictionary, c: Vector2, col: Color,
 static func split(s: SkillMapScreen, id: String, c: Vector2, col: Color, pr: Progression, reached: bool) -> Rect2:
 	var n := SkillTrees.node_def(id)
 	var vs: Array = n["versions"]
-	var icons := vs.any(func(v): return str(v["skill"]) != "")
+	var icons := vs.any(func(v): return pic(v) != "")
 	var hw := 26.0 if icons else 17.0
 	var hh := 26.0 if icons else 16.0
 	var w := hw * vs.size()
@@ -324,7 +327,7 @@ static func split(s: SkillMapScreen, id: String, c: Vector2, col: Color, pr: Pro
 		s.draw_rect(hr, (UIStyle.TEAL if icons else col) if lit else (ROOT_BG if owned else NODE_BG))
 		if i > 0:
 			s.draw_rect(Rect2(hr.position.x, hr.position.y, 1, hh), rim)
-		var sk := str(v["skill"])
+		var sk := pic(v)
 		if sk != "":
 			s.draw_texture_rect(Skills.icon(sk), Rect2(hr.get_center() - Vector2(12, 12), Vector2(24, 24)), false,
 				Color.WHITE if lit else (Color(1, 1, 1, 0.55) if owned else Color(0.55, 0.6, 0.62, 0.3)))

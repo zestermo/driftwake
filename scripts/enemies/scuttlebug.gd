@@ -577,6 +577,15 @@ func parried(by: Node) -> void:
 	_knock_down(dir * 3.5 + Vector3.UP * 4.8, model.global_basis.z.normalized() * 11.0)
 
 
+## Thrown tumbling along `v` (Cannonball Swing).
+func launched(v: Vector3) -> void:
+	if Net.forward(self, "launched", [v]):
+		return
+	if state in [S.DEAD, S.DOWN]:
+		return
+	_knock_down(v, model.global_basis.x.normalized() * 9.0)
+
+
 ## Vine Snare: tied in place for a while.
 var _yank: float = 0.0
 var _yank_v := Vector3.ZERO

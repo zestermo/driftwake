@@ -53,7 +53,7 @@ func _process(_d: float) -> bool:
 			until = TK.wait_ticks(6)
 		2:
 			check("left click: the rising cut (%s)" % p.body_model.current_action(), p.body_model.current_action() == "gs_1")
-			until = TK.wait_secs(0.44)
+			until = TK.wait_secs(0.5)
 		3:
 			check("the rising cut lands (%d)" % hits, hits >= 1)
 			hits = 0
@@ -63,7 +63,7 @@ func _process(_d: float) -> bool:
 			var st = p.state_machine.current_state
 			check("chained straight on: the falling cut (%s)" % p.body_model.current_action(), p.body_model.current_action() == "gs_2")
 			check("it flows out of the follow-through with momentum (%s)" % str(st.get("_mom")), int(st.get("_mom")) == 1)
-			until = TK.wait_secs(0.4)
+			until = TK.wait_secs(0.48)
 		5:
 			check("the falling cut lands (%d)" % hits, hits >= 1)
 			hits = 0

@@ -6,6 +6,33 @@ class_name KatanaMoves
 ## ~1.1 rad) and the chest's turn carries the hands through the cut.
 ## Turns: y- faces right, y+ left; the head counters the chest to stay on the target.
 
+## The mastered guard (Humanoid.guard2): the right hand and the blade held by PoleMoves.hands from its grips ([right
+## hand, the blade's way, its edge's way, -1: one hand], the chest's frame), _katana_hands putting the left on the hilt
+## behind it; the arms here only seed the IK. The Waki Guard (Zach's pick, 2026-10-22): side on and low, the blade
+## held back behind the right hip, its point trailing toward the ground, its length hidden from the foe.
+const GUARD2 := {"hips": Vector3(0, -0.55, 0), "torso": Vector3(-0.12, -0.45, 0), "head": Vector3(0.08, 0.75, 0),
+	"arm_r": Vector3(-0.2, 0.0, 0.3), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3.ZERO,
+	"arm_l": Vector3(0.2, 0.3, -0.1), "fore_l": Vector3(1.2, 0, 0)}
+const LEGS2 := {"leg_l": Vector3(0.55, 0, -0.26), "leg_r": Vector3(-0.4, 0, 0.26), "shin_l": Vector3(-1.1, 0, 0), "shin_r": Vector3(-0.6, 0, 0),
+	"_lift": Vector3(0, -0.27, 0)}
+## [guard, block, run] grips.
+const GRIPS2 := [[Vector3(0.22, -0.48, 0.08), Vector3(0.25, -0.45, 0.86), Vector3(0, 1, 0), -1.0],
+	[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
+	[Vector3(0.22, -0.48, 0.08), Vector3(0.25, -0.45, 0.86), Vector3(0, 1, 0), -1.0]]
+
+
+static func guard(h) -> Dictionary:
+	return GUARD2 if h.guard2 else Humanoid.KATANA_GUARD
+
+
+static func legs(h) -> Dictionary:
+	return LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["katana"]
+
+
+static func grips2(_h) -> Array:
+	return GRIPS2
+
+
 ## Hit 1, the overhead diagonal (kesa-giri): from the guard the hands rise up over the right
 ## shoulder, the blade laid back over it, a beat, then one long cut down through the front at a
 ## slant (arms out, the blade on their line) and on low past the left hip.
@@ -70,6 +97,37 @@ static func air(h, u: float) -> Array:
 	var settle := {"leg_l": Vector3(1.0, 0, -0.12), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.6, 0, 0.14), "shin_r": Vector3(-1.1, 0, 0)}.merged(h._guard())
 	return [h._keys(u, [[0.0, {}], [0.2, wind, "out"], [0.3, wind], [0.44, under, "in"], [0.5, under, "out"], [0.64, after, "out"],
 		[0.78, after], [1.0, settle]]), "full", Vector3.ZERO]
+
+
+## Falling Moon (the air attack's second version): both hands raise the blade straight up overhead, then the body
+## turns over forward once with the arms and blade held out along it, so the point draws a full circle (the moon),
+## and opens out of the turn with the blade cut down ahead, knees tucked under, falling.
+static func moon(h, u: float) -> Array:
+	var tuck := {"leg_l": Vector3(1.4, 0, -0.14), "shin_l": Vector3(-2.0, 0, 0), "leg_r": Vector3(1.2, 0, 0.14), "shin_r": Vector3(-1.9, 0, 0)}
+	var raise := {"hips": Vector3.ZERO, "torso": Vector3(0.2, 0, 0), "head": Vector3(-0.2, 0, 0),
+		"arm_r": Vector3(2.95, 0.1, 0.15), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3(-0.35, 0, 0),
+		"arm_l": Vector3(2.85, -0.15, -0.1), "fore_l": Vector3(0.35, 0, 0), "_scale": Vector3(0.96, 1.07, 0.98), "_smear": Vector3.ZERO}.merged(tuck)
+	var out := raise.merged({"torso": Vector3(-0.1, 0, 0), "head": Vector3(0.1, 0, 0), "arm_r": Vector3(2.6, 0.05, 0.12),
+		"arm_l": Vector3(2.5, -0.1, -0.1), "_scale": Vector3(1.0, 1.0, 1.0), "_smear": Vector3(0.5, 0, 0)}, true)
+	var cut := {"hips": Vector3.ZERO, "torso": Vector3(-0.55, 0, 0), "head": Vector3(0.35, 0, 0),
+		"arm_r": Vector3(1.35, 0.05, 0.1), "fore_r": Vector3(0.1, 0, 0), "hand_r": Vector3(-0.7, 0, 0),
+		"arm_l": Vector3(1.4, -0.1, -0.05), "fore_l": Vector3(0.25, 0, 0), "_scale": Vector3(1.03, 0.96, 1.04), "_smear": Vector3.ZERO,
+		"leg_l": Vector3(1.0, 0, -0.14), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(0.5, 0, 0.14), "shin_r": Vector3(-1.2, 0, 0)}
+	var pose: Dictionary = h._keys(u, [[0.0, {}], [0.18, raise, "out"], [0.26, raise], [0.5, out, "linear"], [0.72, cut, "in"], [1.0, cut]])
+	pose["pivot"] = Vector3(-TAU * Humanoid._ease(clampf((u - 0.24) / 0.5, 0.0, 1.0)), 0, 0)
+	return [pose, "full", Vector3.ZERO]
+
+
+## Falling Moon's landing: down on one knee with the blade laid out low along the ground ahead (the crescent goes
+## out from it), held, then up to the guard.
+static func moon_land(h, u: float) -> Array:
+	var kneel := {"pivot": Vector3(-0.1, 0, 0), "hips": Vector3(0, 0.15, 0), "torso": Vector3(-0.45, 0.2, 0), "head": Vector3(0.35, -0.2, 0),
+		"arm_r": Vector3(1.0, 0.1, 0.25), "fore_r": Vector3(0.15, 0, 0), "hand_r": Vector3(-0.9, 0, 0),
+		"arm_l": Vector3(1.05, -0.15, -0.05), "fore_l": Vector3(0.35, 0, 0),
+		"leg_l": Vector3(1.2, 0, -0.14), "shin_l": Vector3(-1.4, 0, 0), "leg_r": Vector3(-0.2, 0, 0.14), "shin_r": Vector3(-2.0, 0, 0),
+		"_lift": Vector3(0, -0.42, 0), "_scale": Vector3(1.06, 0.9, 1.04)}
+	var held := kneel.merged({"_scale": Vector3.ONE}, true)
+	return [h._keys(u, [[0.0, kneel], [0.12, held], [0.55, held], [1.0, h._guard()]]), "full", Vector3.ZERO]
 
 
 ## Hit 1's body: load right with the blade overhead, then turn left down through the cut onto the

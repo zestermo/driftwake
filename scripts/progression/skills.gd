@@ -13,6 +13,8 @@ extends RefCounted
 ##     its tree (Progression.rank_up). The top tier changes how it works.
 
 const ICON_DIR := "res://assets/textures/icons/"
+## Skills that became others (an old save's bar keeps the slot): the fists' wrestling moves went in 1.18.4.
+const RENAMED := {"suplex": "cannonball_fist", "giant_swing": "meteor_fist"}
 
 const ALL := {
 	# --- Mobility / Survival (Rokushiki-style body techniques) ---
@@ -90,6 +92,10 @@ const ALL := {
 	# --- Katana ---
 	"wind_sever": {"name": "Wind Severer", "tree": "katana", "cost": 20.0, "cooldown": 7.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
 		"desc": "A rising two-handed cut that sends a towering blade of wind tearing along the ground, knocking down everything it passes."},
+	"twin_waves": {"name": "Twin Waves", "tree": "katana", "cost": 22.0, "cooldown": 7.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
+		"desc": "A rising cut and a falling one: two blades of wind sent out from either side, crossing ahead of you, knocking down everything either passes (a little lighter each than Wind Severer's one)."},
+	"side_step": {"name": "Side Step", "tree": "katana", "cost": 16.0, "cooldown": 6.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
+		"desc": "Slip the blade home and wait, hand on the hilt: the first melee blow aimed at you meets empty air. You're already out at their side, drawing across them. The cut can't be blocked."},
 	"phantom_step": {"name": "Phantom Step", "tree": "katana", "cost": 18.0, "cooldown": 6.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique",
 		"desc": "Blink behind the nearest enemy (up to 9 m) and cut them down from behind before they can turn. It can't be blocked."},
 	"petal_storm": {"name": "Thousand Petals", "tree": "katana", "cost": 0.0, "cooldown": 3.0, "styles": ["katana"], "needs_text": "a katana", "state": "Technique", "ult": true,
@@ -146,6 +152,10 @@ const ALL := {
 		"desc": "Plant the butt and vault over the enemy you're facing (up to 9 m), driving the point down into them as you come over: it breaks their guard, and you land behind them."},
 	"raijin_wheel": {"name": "Raijin's Wheel", "tree": "polearm", "cost": 0.0, "cooldown": 3.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Leap up spinning the spear over your head into a wheel, come down in its middle cutting everyone around you on every turn, then drive the point into the ground: the wheel bursts and throws them all down."},
+	"thunder_javelin": {"name": "Thunder Javelin", "tree": "polearm", "cost": 20.0, "cooldown": 7.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique",
+		"desc": "Hurl the spear point-first where you aim, piercing everyone on a 16 m line and breaking their wind-ups; a beat later a crackle of lightning yanks it back to your hand, cutting the line again. With the storm awakened, a bolt drops on each one it pierced."},
+	"windmill_guard": {"name": "Windmill Guard", "tree": "polearm", "cost": 18.0, "cooldown": 8.0, "styles": ["polearm"], "needs_text": "a polearm", "state": "Technique",
+		"desc": "Hold to spin the pole before you like a windmill as you walk (up to 1.5 s): blows and shots from the front are batted aside, and anyone who steps in is clipped and shoved back out to the tip. Let go to lunge into a thrust that can't be blocked."},
 	# --- Hammer ---
 	"skullcracker": {"name": "Skullcracker", "tree": "hammer", "cost": 18.0, "cooldown": 6.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
 		"desc": "A hop up with the hammer raised and the head brought straight down on the enemy in front: it goes through any guard, breaks their wind-up and leaves them reeling."},
@@ -155,6 +165,10 @@ const ALL := {
 		"desc": "Let the hammer out at arm's length and spin three times, walking with it, battering everyone about you; the last turn ends in the ground with a shockwave."},
 	"titans_fall": {"name": "Titan's Fall", "tree": "hammer", "cost": 0.0, "cooldown": 3.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Leap high with the hammer heaved overhead and come down with the whole weight of it: the ground breaks in a great ring that throws everyone down, stone heaves up under them, and two aftershocks follow."},
+	"cannonball_swing": {"name": "Cannonball Swing", "tree": "hammer", "cost": 20.0, "cooldown": 7.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
+		"desc": "Take the hammer back high and drive it low and up through the enemy in front like a golf swing: it can't be blocked, a light foe is launched ten paces flying and everyone it comes down on is knocked flat. Anyone heavier, or a boss, is left reeling a long while."},
+	"anvil_counter": {"name": "Anvil Counter", "tree": "hammer", "cost": 16.0, "cooldown": 6.0, "styles": ["hammer"], "needs_text": "a hammer", "state": "Technique",
+		"desc": "Plant the head and brace on the haft for a second: the first blow rings off you like a hammer on an anvil and leaves them reeling, and you rip the head up into their chin, throwing them back with a shockwave at your feet. If nothing comes, you get half the energy back."},
 	# --- Twin axes ---
 	"gallows_hook": {"name": "Gallows Hook", "tree": "dual_axe", "cost": 16.0, "cooldown": 6.0, "styles": ["dual_axe"], "needs_text": "two axes", "state": "Technique",
 		"desc": "Fling the left axe round the enemy you're facing (up to 7 m) and haul them in by the beard (too heavy to move, and you're hauled to them), then chop down through their guard: it can't be blocked and leaves them reeling."},
@@ -191,13 +205,13 @@ const ALL := {
 		"desc": "Shove the barrel into the nearest enemy and fire: a blast that throws them off their feet."},
 	"deaths_waltz": {"name": "Death's Waltz", "tree": "pistol", "cost": 0.0, "cooldown": 3.0, "styles": ["pistol", "dual_pistol"], "needs_text": "a pistol", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Turn through a deadly waltz, shooting every enemy within 18 m three times; the last shot knocks them down."},
-	# --- Unarmed: grapples ---
-	"suplex": {"name": "Suplex", "tree": "unarmed", "cost": 18.0, "cooldown": 6.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
-		"desc": "Grab the enemy in front of you, arch back and slam them head-first into the ground behind you."},
+	# --- Unarmed: power ---
 	"hip_toss": {"name": "Shoulder Throw", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
-		"desc": "Grab the enemy in front of you and hurl them over your shoulder; anyone they land on goes down too."},
-	"giant_swing": {"name": "Giant Swing", "tree": "unarmed", "cost": 24.0, "cooldown": 10.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
-		"desc": "Grab an enemy and spin, smashing everyone around you with them, then let them fly."},
+		"desc": "Hands open to catch for a second: a blow caught in them is turned aside and whoever threw it goes over your shoulder, knocking down anyone they land on. A boss or a heavy gets a straight right back instead."},
+	"cannonball_fist": {"name": "Cannonball Fist", "tree": "unarmed", "cost": 18.0, "cooldown": 6.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
+		"desc": "Plant your feet and drive a straight right through the enemy in front: they're launched down the line like a cannonball, bowling over everyone behind them."},
+	"meteor_fist": {"name": "Meteor Fist", "tree": "unarmed", "cost": 24.0, "cooldown": 9.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
+		"desc": "A short hop and a burning overhand driven into the ground: the earth cracks and a shockwave knocks everyone around you flat. Used in the air you dive onto the ground instead, harder the further you fall."},
 	# --- Unarmed: martial arts ---
 	"hundred_fists": {"name": "Hundred Fists", "tree": "unarmed", "cost": 20.0, "cooldown": 7.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "A blur of punches for a second, then a last straight that blows them away."},
@@ -206,7 +220,7 @@ const ALL := {
 	"palm_strike": {"name": "Shockwave Palm", "tree": "unarmed", "cost": 16.0, "cooldown": 5.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique",
 		"desc": "Drive an open palm forward: a burst of air hurls everything in a cone in front of you."},
 	"sea_king_fist": {"name": "Sea King Fist", "tree": "unarmed", "cost": 0.0, "cooldown": 3.0, "styles": ["fist"], "needs_text": "empty hands", "state": "Technique", "ult": true,
-		"desc": "Ultimate. Draw your fist back as the air trembles, then punch: a shockwave as wide as a ship tears 14 m ahead, knocking everything flat."},
+		"desc": "Ultimate. Your fist takes the power and glows: for 8 s move as you like, then attack (or R) to let it go. On the ground a punch that tears 16 m ahead and blows up where it lands; in the air a dive onto the ground, harder the further you fall; right after a parry it hits the attacker first; out of a dash it carries your speed. Unused, it fades and half the ultimate comes back."},
 	# --- Haki ---
 	"conquerors_haki": {"name": "Conqueror's Haki", "tree": "base", "cost": 0.0, "cooldown": 3.0, "state": "Technique", "ult": true,
 		"desc": "Ultimate. Unleash the will of a king: weak foes around you (common pirates and bugs below 40% health) faint on the spot; everyone else is thrown back, reeling."},

@@ -10,6 +10,9 @@ extends Node3D
 ##            wider, off a flat sweep).
 ##   "axe"    Hatchet Throw: the thrower's axe spinning out and back to the hand,
 ##            cutting everything on the way out and again on the way back.
+##   "javelin" Thunder Javelin: the thrower's spear point-first down a 16 m line (piercing, breaking
+##            wind-ups), a beat at the end, then yanked back to the hand on a crackle of lightning,
+##            cutting the line again; the held spear is hidden while it flies (on every screen).
 ##   "seed"   Vine Snare: a seed that bursts into grasping vines on the first
 ##            enemy or surface it hits, rooting everyone close.
 
@@ -24,11 +27,18 @@ var _travel: float = 0.0
 var _done: bool = false
 var _back: bool = false
 var _hit: Array = []
+var _hang := -1.0
+var _crackle := 0.0
+var _held: Node3D
 var _mesh: MeshInstance3D
 var _mat: StandardMaterial3D
 var _core: StandardMaterial3D
 
 signal returned
+
+const JAVELIN_RANGE := 16.0
+const JAVELIN_HANG := 0.18
+const JAVELIN_BOLT := 8.0
 
 
 static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3, src: Node3D, dmg: float, weapon_model: String = "") -> Projectile:
@@ -51,6 +61,9 @@ static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3
 		"axe":
 			p.speed = 20.0
 			p.range_m = 13.0
+		"javelin":
+			p.speed = 36.0
+			p.range_m = JAVELIN_RANGE
 	var root: Node = tree.current_scene if tree.current_scene else tree.root
 	root.add_child(p)
 	p.global_position = from
@@ -103,8 +116,12 @@ func _ready() -> void:
 		elif kind == "gale_flat":
 			# (a flat sweep's: lying across the line, half again as wide)
 			_mesh.scale = Vector3(1.6, 1.0, 1.3)
-	elif kind == "axe":
+	elif kind in ["axe", "javelin"]:
 		_mesh.mesh = Props.weapon_mesh(model.trim_prefix("elem|"))
+		if kind == "javelin" and source is Player and (source as Player).body_model:
+			_held = (source as Player).body_model.weapon
+			if _held:
+				_held.visible = false
 	else:
 		var sm := SphereMesh.new()
 		sm.radius = 0.13
@@ -122,8 +139,11 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _done:
 		return
-	if kind == "axe" and _back:
+	if kind in ["axe", "javelin"] and _back:
 		_return_update(delta)
+		return
+	if _hang >= 0.0:
+		_hang_update(delta)
 		return
 	var step := dir * speed * delta
 	var from := global_position
@@ -137,6 +157,9 @@ func _physics_process(delta: float) -> void:
 		global_position = (wall["position"] as Vector3) - dir * 0.1
 		if kind == "axe":
 			_turn_back()
+			return
+		if kind == "javelin":
+			_hang = JAVELIN_HANG
 			return
 		_finish()
 		return
@@ -156,6 +179,8 @@ func _physics_process(delta: float) -> void:
 		"axe":
 			_mesh.rotation.x -= 22.0 * delta
 			_axe_wake(step.length())
+		"javelin":
+			_javelin_wake(step.length())
 		_:
 			if kind == "wave":
 				_mat.uv1_offset = Vector3(-floorf(_travel * 0.3 * 64.0) / 64.0, float(int(_travel * 1.4) % 8) / 8.0, 0.0)
@@ -169,6 +194,8 @@ func _physics_process(delta: float) -> void:
 	if _travel >= range_m:
 		if kind == "axe":
 			_turn_back()
+		elif kind == "javelin":
+			_hang = JAVELIN_HANG
 		else:
 			_finish()
 
@@ -231,7 +258,7 @@ func _cut(at: Vector3) -> void:
 		r = 1.9
 	elif kind in ["gale", "gale_flat"]:
 		r = 1.8
-	elif kind == "axe":
+	elif kind in ["axe", "javelin"]:
 		r = 1.1
 	for e in pc.enemies_in(at + Vector3.UP * (0.6 if kind == "wave" else 0.0), r):
 		if e in _hit:
@@ -240,15 +267,16 @@ func _cut(at: Vector3) -> void:
 		var hb := (e as Node).get("hurtbox") as Hurtbox
 		if hb == null:
 			continue
-		var hd := (source as Player).melee_hit(damage, "skill")
+		var hd := (source as Player).melee_hit(damage * (0.7 if kind == "javelin" and _back else 1.0), "skill")
 		hd.knockback_force = 9.0 if kind == "wave" else 6.0
-		hd.stagger_duration = 0.6 if kind.begins_with("gale") else 0.35
+		hd.stagger_duration = 0.6 if kind.begins_with("gale") or kind == "javelin" else 0.35
+		hd.breaker = kind == "javelin"
 		hd.hitstop_duration = 0.05
 		hd.camera_shake_intensity = 0.08
 		hd.knockdown = kind == "wave"
 		hd.sever = true
 		# a thrown axe is a missile: a sword guard doesn't stop it
-		hd.ranged = kind == "axe"
+		hd.ranged = kind in ["axe", "javelin"]
 		hb.take_hit(hd, source)
 		pc.add_ult(hd.damage)
 		pc.on_sword_hit(e, hd)
@@ -266,11 +294,12 @@ func _element(at: Vector3, d: Vector3, amount: int, spd: float) -> void:
 	FX.element(_tree(), at, d, amount, spd * (0.8 if kind == "wave" else 1.0))
 
 
-## The thrown axe's wake: a ring of air every turn or so, embers once its element is awakened.
+## The thrown axe's wake: a drawn crescent every turn or so, cinders once its element is awakened.
 func _axe_wake(moved: float) -> void:
 	if int(_travel / 2.0) == int((_travel - moved) / 2.0):
 		return
-	FX.ring(global_position, dir if not _back else Vector3.UP, 0.7, FX.tree_col(_tree(), FX.EDGE), 0.18, 0.12)
+	# (a drawn crescent of its spin: iron, or fire once awakened)
+	FX.drawn_arc("axe", global_position, Vector3.UP, -dir if not _back else dir, 0.55, PI * 1.2, 0.4, _elemental(), 0.08, int(_travel * 10.0) % 1000)
 	if _elemental():
 		_element(global_position, -dir + Vector3.UP * 0.5, 4, 2.0)
 
@@ -281,15 +310,51 @@ func _turn_back() -> void:
 	FX.sfx("whoosh", global_position, -6.0, 0.1, 0.9)
 
 
-## The axe flies back to the thrower's hand, cutting on the way.
+## The javelin's beat at the end of its line, quivering, the lightning finding it; then the yank home (with the
+## element awakened, a bolt drops on everyone it pierced first: from the thrower's machine, seen on every one).
+func _hang_update(delta: float) -> void:
+	_hang -= delta
+	_mesh.position = Vector3(0, 0.025 * sin(_hang * 90.0), 0)
+	if _hang > 0.0:
+		return
+	_hang = -1.0
+	_mesh.position = Vector3.ZERO
+	var pc := _pc()
+	if _elemental() and pc and (source as Player).is_local:
+		for e in _hit:
+			if not is_instance_valid(e):
+				continue
+			var c := (e as Node3D).global_position + Vector3(0, 1.0, 0)
+			Net.fx("bolt", [c + Vector3(randf_range(-0.5, 0.5), 7.0, randf_range(-0.5, 0.5)), c, FX.tree_col("polearm", FX.EDGE), 0.1, 0.28, randi() % 1000])
+			Net.fx("element", ["polearm", c, Vector3.UP, 6, 3.5])
+			var hb := (e as Node).get("hurtbox") as Hurtbox
+			if hb:
+				var hd := (source as Player).melee_hit(JAVELIN_BOLT, "skill")
+				hd.knockback_force = 2.0
+				hd.stagger_duration = 0.5
+				hb.take_hit(hd, source)
+				pc.add_ult(hd.damage)
+	FX.sfx("jelly_zap", global_position, -6.0, 0.08, 1.3)
+	_turn_back()
+
+
+## Where a returning weapon flies to: the javelin to the thrower's right hand, the axe to the chest.
+func _home() -> Vector3:
+	if kind == "javelin" and source is Player and (source as Player).body_model:
+		return (source as Player).body_model.hand_r.global_position
+	return source.global_position + Vector3.UP * 1.2
+
+
+## The weapon flies back to the thrower's hand, cutting on the way (the javelin butt first, on its tether).
 func _return_update(delta: float) -> void:
 	if source == null or not is_instance_valid(source):
+		_finish_held()
 		queue_free()
 		return
-	var hand := source.global_position + Vector3.UP * 1.2
-	var to_hand := hand - global_position
-	if to_hand.length() < 0.8:
+	var to_hand := _home() - global_position
+	if to_hand.length() < (0.6 if kind == "javelin" else 0.8):
 		_done = true
+		_finish_held()
 		returned.emit()
 		queue_free()
 		return
@@ -297,8 +362,37 @@ func _return_update(delta: float) -> void:
 	_cut_along(global_position, global_position + step)
 	global_position += step
 	_travel += step.length()
+	if kind == "javelin":
+		if to_hand.length() > 0.3:
+			global_basis = Basis.looking_at(-to_hand.normalized(), Vector3.UP) if absf(to_hand.normalized().y) < 0.98 else global_basis
+		_javelin_wake(step.length())
+		_crackle -= delta
+		if _crackle <= 0.0:
+			_crackle = 0.07
+			FX.bolt(_home(), global_position, _col(), 0.04, 0.09, randi() % 1000)
+		return
 	_mesh.rotation.x -= 22.0 * delta
 	_axe_wake(step.length())
+
+
+## The javelin's wake: a thin streak behind the point, sparks off it once its element is awakened.
+func _javelin_wake(moved: float) -> void:
+	if int(_travel / 1.6) == int((_travel - moved) / 1.6):
+		return
+	var back := -dir if not _back else (_home() - global_position).normalized()
+	FX.streak(global_position + back * 1.8, global_position, _col(), 0.04, 0.12)
+	if _elemental():
+		_element(global_position, back + Vector3.UP * 0.3, 3, 2.0)
+
+
+func _col() -> Color:
+	return FX.tree_col(_tree(), FX.EDGE)
+
+
+## The spear back in the thrower's hand (or wherever it was, if they let go of it).
+func _finish_held() -> void:
+	if _held and is_instance_valid(_held):
+		_held.visible = true
 
 
 func _finish() -> void:
@@ -333,9 +427,9 @@ func _finish() -> void:
 func _tree() -> String:
 	if kind in ["slash", "wave", "gale", "gale_flat"] and model != "elem":
 		return "plain"
-	if kind == "axe" and not model.begins_with("elem|"):
+	if kind in ["axe", "javelin"] and not model.begins_with("elem|"):
 		return "plain"
-	return {"slash": "sword", "wave": "katana", "axe": "axe", "gale": "greatsword", "gale_flat": "greatsword"}.get(kind, "unarmed")
+	return {"slash": "sword", "wave": "katana", "axe": "axe", "javelin": "polearm", "gale": "greatsword", "gale_flat": "greatsword"}.get(kind, "unarmed")
 
 
 func _elemental() -> bool:

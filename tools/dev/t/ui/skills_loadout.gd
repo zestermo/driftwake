@@ -1,5 +1,5 @@
 extends SceneTree
-## The skills menu's Loadout tab: at katana mastery 13 the library lists Tiger Rush and the Clean Line passive; with
+## The skills menu's Loadout tab: Tiger Rush and Clean Line bought at katana mastery 13 are in the library; with
 ## Clean Line picked, 2 puts it in passive slot 2; with Tiger Rush picked, 3 puts it on the bar's key 3; right-click
 ## clears that bar slot; an ultimate not learned yet is refused with PowerComponent's reason.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -40,6 +40,9 @@ func _process(_d: float) -> bool:
 			pr = p.progression
 			pr.mastery_of("katana")["lv"] = 12
 			pr.add_mastery("katana", pr.mastery_to_next(12))
+			while pr.level < 5:
+				pr.add_xp(pr.xp_to_next(pr.level) - pr.xp)
+			check("Tiger Rush and Clean Line bought", pr.buy("k_tiger") and pr.buy("k_clean"))
 			p.loadouts[0] = ["katana", ""]
 			# (the runner's window is tiny: the menu lays out for a 640x360 canvas)
 			root.size = Vector2i(1280, 720)

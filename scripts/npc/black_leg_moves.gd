@@ -33,6 +33,10 @@ const PLANTS := {
 	"bl_mule": [[0.27, 0.66, "lr", true]],
 }
 static var WHEEL_PLANTS := _wheel_plants()
+## Handstand Spin (bl_4): how far the split legs' plane tips off flat (rad) at the middle of the spin, and how fast
+## the way it tips wanders round (turns of the tip per turn of the body, against the spin).
+const SPIN_TILT := 0.24
+const SPIN_PRECESS := -0.3
 
 ## The techniques' timings (s at the length they're played; BlackLegArts runs them): Hailstorm Heels' kicks and their
 ## heights (_kick_r k), Cartwheel Crescent's two turns and its heel, Last Course's heat spin, kicks and heel.
@@ -198,7 +202,12 @@ static func pose(h, n: String, u: float) -> Array:
 			var pz: Dictionary = h._keys(u, [[0.0, g], [0.12, _dip(), "out"], [0.24, stand, "out"], [0.76, stand],
 				[0.9, _walkover_land(), "out"], [1.0, g]])
 			var k := clampf((u - 0.22) / 0.56, 0.0, 1.0)
-			pz["pivot"] = Vector3(_over(u, [0.12, 0.24], [0.76, 1.0]), -2.0 * TAU * (1.0 - pow(1.0 - k, 1.3)), 0)
+			var spin := -2.0 * TAU * (1.0 - pow(1.0 - k, 1.3))
+			# the legs' plane tipped off flat (SPIN_TILT, eased in and out), the tip's direction held still against the
+			# turn and itself wandering round (SPIN_PRECESS), so the feet never ride one flat circle
+			var tilt := SPIN_TILT * sin(PI * k)
+			var dir := SPIN_PRECESS * spin + spin
+			pz["pivot"] = Vector3(_over(u, [0.12, 0.24], [0.76, 1.0]) + tilt * cos(dir), spin, -tilt * sin(dir))
 			return [pz, "full", lift]
 		# --- the heavy: the axe kick (Guillotine Heel) ---
 		"bl_heavy":

@@ -1,0 +1,32 @@
+# Autoload names used inside a `static func` in game code (scripts/, scenes/) that are deliberate.
+# tools/dev/compilecheck.gd fails on any other: a --script suite that names the class compiles without the autoloads.
+# One entry per line: path (the whole file) or path:function, then | and why.
+scripts/combat/bleed_status.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/enemies/beasts/beast_fx.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/fishing/fishing.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/game/camp.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/game/downtime.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/game/save_game.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/island/kit/kit_houses.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/island/kit/kit_landmarks.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/island/kit/kit_setpieces.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/items/trait_moves.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/map/map_fog.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/player_states/black_leg_arts.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/player_states/corsair_gun.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/player_states/dagger_arts.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/player_states/dual_axe_arts.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/player_states/greatsword_arts.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/player_states/hammer_arts.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/player_states/pole_arts.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/props/desert_town.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/props/forest_town.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/props/snow_props.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/ship/lashed_helm.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/ship/seamanship.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/swim/dive_sites.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/swim/sea_push.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/swim/sea_threats.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/world/ground_layer.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/world/sea_features.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked
+scripts/world/sea_legs.gd | existing before the lint (2026-10-21): reaches an autoload by name in a static func; reach it through the tree when the file is next reworked

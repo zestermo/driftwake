@@ -1486,6 +1486,30 @@ def gen_technique_icons():
         d.line([(1, 22), (23, 22)], fill=DUST, width=1)
         d.line([(3, 20), (8, 15)], fill=STEEL, width=2)
 
+    def twin_waves(d):
+        # two blades of wind crossing in an X along the ground
+        d.arc([1, 2, 19, 26], 210, 330, fill=W_, width=2)
+        d.arc([5, 2, 23, 26], 210, 330, fill=BLUE, width=2)
+        d.line([(4, 20), (20, 6)], fill=W_, width=1)
+        d.line([(4, 6), (20, 20)], fill=BLUE, width=1)
+        d.line([(1, 22), (23, 22)], fill=DUST, width=1)
+
+    def side_step(d):
+        # a fading figure on the left, the swordsman out to the side, the drawing cut across
+        d.ellipse([3, 4, 7, 8], fill=(150, 200, 255, 90))
+        d.rectangle([3, 8, 7, 18], fill=(150, 200, 255, 90))
+        d.line([(8, 13), (13, 13)], fill=W_, width=1)
+        d.ellipse([15, 5, 19, 9], fill=SKIN)
+        d.rectangle([15, 9, 19, 18], fill=hexc("3a5a8a") + (255,))
+        d.arc([4, 6, 22, 22], 150, 230, fill=STEEL, width=2)
+
+    def falling_moon(d):
+        # a full moon drawn by the blade over a figure turning, a crescent along the ground
+        d.arc([3, 1, 21, 19], 0, 360, fill=W_, width=1)
+        d.arc([5, 3, 19, 17], 200, 340, fill=BLUE, width=2)
+        blade(d, (12, 10), (12, 2))
+        d.arc([2, 18, 22, 26], 180, 360, fill=W_, width=2)
+
     def phantom(d):
         for i, x in enumerate((3, 8)):
             d.ellipse([x, 4, x + 4, 8], fill=(150, 200, 255, 80 + i * 60))
@@ -1681,23 +1705,35 @@ def gen_technique_icons():
             d.line([pts[k], pts[k + 1]], fill=VENOM if k % 2 else VENOM_L, width=1)
         d.ellipse([10, 10, 14, 14], fill=W_)
 
-    def suplex(d):
-        d.arc([3, 2, 21, 22], 180, 360, fill=W_, width=1)
-        body(d, 3, 10, hexc("3a5a8a") + (255,))
-        d.ellipse([16, 4, 20, 8], fill=SKIN)
-        d.rectangle([15, 8, 21, 12], fill=RED_D)
-        d.line([(1, 22), (23, 22)], fill=DUST, width=1)
-
     def hip_toss(d):
         body(d, 4, 10, hexc("3a5a8a") + (255,))
         d.arc([4, 0, 22, 18], 200, 340, fill=W_, width=1)
         d.ellipse([16, 2, 20, 6], fill=SKIN)
         d.rectangle([16, 6, 22, 9], fill=RED_D)
 
-    def giant_swing(d):
-        d.arc([1, 1, 23, 23], 0, 360, fill=SMOKE_L, width=1)
-        body(d, 10, 7, hexc("3a5a8a") + (255,))
-        d.rectangle([14, 11, 22, 13], fill=RED_D)
+    def cannonball(d):
+        # a straight punch, and a body bowled down the line into two more
+        fist(d, 1, 9)
+        d.line([(8, 12), (11, 12)], fill=W_)
+        d.ellipse([11, 8, 17, 14], fill=RED_D)
+        for x in (18, 21):
+            d.line([(x, 7), (x + 2, 17)], fill=SMOKE_L, width=2)
+        for y in (6, 18):
+            d.line([(9, y), (16, y)], fill=W_)
+
+    def meteor(d):
+        # an overhand driven into cracked ground under dark star glints, a ring going out
+        EMB = hexc("ffb030") + (255,)
+        d.ellipse([2, 18, 22, 23], outline=EMB)
+        for x0, x1 in ((12, 5), (12, 19), (12, 9), (12, 16)):
+            d.line([(x0, 20), (x1, 23)], fill=BLACK)
+        d.rectangle([10, 3, 14, 12], fill=SKIN_D)
+        fist(d, 8, 11)
+        d.ellipse([7, 10, 17, 19], outline=EMB)
+        for cx, cy in ((4, 6), (20, 8)):
+            d.line([(cx - 3, cy), (cx + 3, cy)], fill=RED)
+            d.line([(cx, cy - 3), (cx, cy + 3)], fill=RED)
+            d.point((cx, cy), fill=BLACK)
 
     def hundred(d):
         for x, y in ((2, 3), (9, 6), (3, 11), (10, 14), (4, 18)):
@@ -1733,20 +1769,437 @@ def gen_technique_icons():
             d.line([(12 + math.cos(a) * 7, 12 + math.sin(a) * 7), (12 + math.cos(a) * 11, 12 + math.sin(a) * 11)], fill=RED)
         d.ellipse([10, 10, 14, 14], fill=RED)
 
+    # storm (polearm), earth (hammer), frost (twin axes), gale (greatsword), heat (black-leg): FX.TREE_FX identities
+    LEM = hexc("ffe652") + (255,)
+    LEM_W = hexc("fffbd8") + (255,)
+    VIO = hexc("9f7aff") + (255,)
+    SAND = hexc("ebcd96") + (255,)
+    SAND_D = hexc("8c765c") + (255,)
+    ROCK = hexc("5a4a3a") + (255,)
+    ICE = hexc("aee6ff") + (255,)
+    ICE_D = hexc("5c8cff") + (255,)
+    FROST = hexc("f5ffff") + (255,)
+    JADE = hexc("bdffe1") + (255,)
+    SEA = hexc("48cc9e") + (255,)
+    HEAT = hexc("ff2c29") + (255,)
+    HEAT_D = hexc("b50a1a") + (255,)
+    HEAT_W = hexc("fff2d2") + (255,)
+
+    def spear(d, a, b):
+        ax, ay = a
+        bx, by = b
+        n = max(math.hypot(bx - ax, by - ay), 1.0)
+        ux, uy = (bx - ax) / n, (by - ay) / n
+        d.line([(ax, ay), (bx - ux * 4, by - uy * 4)], fill=WOOD, width=2)
+        hx, hy = bx - ux * 5, by - uy * 5
+        d.polygon([(hx - uy * 2, hy + ux * 2), (bx, by), (hx + uy * 2, hy - ux * 2)], fill=STEEL)
+
+    def bolt(d, x, y, col, s=1.0):
+        d.line([(x + 2 * s, y), (x - 1 * s, y + 4 * s), (x + 2 * s, y + 4 * s), (x - 1 * s, y + 9 * s)], fill=col, width=1)
+
+    def hundred_thrusts(d):
+        spear(d, (3, 12), (22, 12))
+        for y, x0, x1 in ((6, 8, 17), (9, 4, 14), (15, 4, 14), (18, 8, 17)):
+            d.line([(x0, y), (x1, y)], fill=LEM if y in (9, 15) else VIO, width=1)
+        d.point((21, 6), fill=LEM_W)
+        d.point((21, 18), fill=LEM_W)
+
+    def dragon_sweep(d):
+        d.line([(1, 20), (23, 20)], fill=DUST, width=1)
+        d.arc([1, 8, 23, 24], 190, 350, fill=LEM, width=2)
+        d.arc([4, 11, 20, 23], 200, 340, fill=VIO, width=1)
+        spear(d, (3, 18), (20, 14))
+        d.point((20, 22), fill=LEM_W)
+
+    def vault_strike(d):
+        d.line([(1, 22), (23, 22)], fill=DUST, width=1)
+        d.line([(4, 22), (7, 13)], fill=WOOD, width=2)
+        d.arc([3, 1, 21, 21], 200, 310, fill=VIO, width=1)
+        spear(d, (12, 3), (18, 18))
+        for x, y in ((16, 21), (20, 20), (14, 20)):
+            d.point((x, y), fill=LEM)
+        d.ellipse([17, 17, 20, 20], fill=LEM_W)
+
+    def raijin_wheel(d):
+        for r, c in ((10, VIO), (7, LEM)):
+            d.arc([12 - r, 12 - r, 12 + r, 12 + r], 20, 330, fill=c, width=2 if r == 10 else 1)
+        spear(d, (3, 3), (21, 21))
+        spear(d, (21, 3), (3, 21))
+        bolt(d, 10, 7, LEM_W, 0.8)
+
+    def thunder_javelin(d):
+        # the spear flying point-first along a line, the lightning tether jagging back from its butt
+        for x, c in ((2, VIO), (5, LEM)):
+            d.line([(x, 16), (x + 6, 13)], fill=c, width=1)
+        spear(d, (7, 14), (22, 7))
+        d.line([(7, 14), (5, 17), (8, 18), (4, 22)], fill=LEM_W, width=1)
+        for x, y in ((15, 13), (18, 12), (12, 15)):
+            d.point((x, y), fill=VIO)
+        d.point((22, 7), fill=LEM_W)
+
+    def windmill_guard(d):
+        # the pole spun upright in a ring before you, a shot glancing off it
+        d.ellipse([3, 3, 21, 21], outline=VIO, width=1)
+        d.arc([5, 5, 19, 19], 200, 340, fill=LEM, width=2)
+        spear(d, (5, 19), (19, 5))
+        d.line([(20, 20), (23, 23)], fill=LEM_W, width=1)
+        d.line([(17, 15), (20, 20)], fill=STEEL, width=1)
+        d.point((16, 14), fill=LEM_W)
+
+    def hammer_head(d, cx, cy, w=10, h=6, col=SAND, shade=SAND_D):
+        d.rectangle([cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2], fill=col)
+        d.rectangle([cx - w // 2, cy + h // 2 - 1, cx + w // 2, cy + h // 2], fill=shade)
+        d.line([(cx - w // 2, cy - h // 2), (cx - w // 2, cy + h // 2)], fill=ROCK, width=1)
+
+    def skullcracker(d):
+        d.line([(12, 1), (12, 10)], fill=WOOD, width=2)
+        hammer_head(d, 12, 10, 12, 5)
+        d.ellipse([6, 14, 18, 22], fill=W_)
+        d.rectangle([9, 21, 15, 23], fill=SMOKE_L)
+        for x, y in ((9, 17), (9, 18), (15, 17), (15, 18)):
+            d.point((x, y), fill=BLACK)
+        d.line([(12, 14), (11, 17), (13, 19)], fill=ROCK)
+        for x in (3, 21):
+            d.line([(x, 8), (x, 13)], fill=SAND)
+
+    def rolling_quake(d):
+        for i, (x, r) in enumerate(((5, 3), (12, 5), (19, 7))):
+            d.ellipse([x - r, 21 - r // 2, x + r, 23], outline=SAND if i < 2 else W_)
+            d.line([(x, 20), (x - 1, 20 - 2 - i * 2)], fill=ROCK, width=2)
+            hammer_head(d, x, 17 - i * 2 - 2, 4 + i * 2, 3 + i, SAND, SAND_D)
+        d.point((3, 15), fill=SAND_D)
+        d.point((22, 9), fill=SAND_D)
+
+    def cyclone_crusher(d):
+        d.arc([2, 2, 22, 22], 30, 300, fill=SAND, width=1)
+        d.arc([5, 5, 19, 19], 60, 330, fill=SAND_D, width=1)
+        d.line([(12, 12), (19, 6)], fill=WOOD, width=2)
+        hammer_head(d, 19, 6, 7, 6)
+        d.ellipse([9, 9, 15, 15], fill=SKIN)
+        d.line([(2, 20), (7, 21)], fill=ROCK, width=2)
+
+    def titans_fall(d):
+        d.line([(11, 2), (11, 12)], fill=WOOD, width=3)
+        hammer_head(d, 11, 5, 16, 8)
+        d.rectangle([3, 3, 19, 4], fill=W_)
+        d.ellipse([1, 17, 23, 23], outline=SAND)
+        for x0, x1 in ((11, 3), (11, 19), (11, 7), (11, 15)):
+            d.line([(x0, 19), (x1, 23)], fill=BLACK)
+        for x, y in ((3, 15), (20, 14), (6, 11), (18, 9)):
+            d.rectangle([x, y, x + 2, y + 2], fill=SAND_D)
+
+    def cannonball_swing(d):
+        # the head swept up from low behind in an arc, a body flying off it up and away, dust where it scraped
+        d.arc([2, 4, 22, 28], 120, 250, fill=SAND_D, width=1)
+        d.line([(9, 21), (3, 15)], fill=WOOD, width=2)
+        hammer_head(d, 3, 13, 5, 6)
+        d.ellipse([16, 3, 21, 8], fill=SKIN)
+        d.line([(18, 8), (14, 12)], fill=SMOKE_L, width=2)
+        for x, y in ((9, 10), (12, 8), (11, 12)):
+            d.point((x, y), fill=W_)
+        d.line([(1, 23), (8, 23)], fill=SAND, width=1)
+        d.point((10, 22), fill=ROCK)
+
+    def anvil_counter(d):
+        # the hammer planted head-down, a blow ringing off the haft, the ground cracked under the head
+        d.line([(12, 2), (12, 16)], fill=WOOD, width=2)
+        hammer_head(d, 12, 18, 10, 5)
+        d.rectangle([10, 1, 14, 3], fill=SKIN)
+        d.arc([4, 4, 20, 14], 200, 340, fill=W_, width=1)
+        d.line([(20, 7), (15, 9)], fill=STEEL, width=1)
+        for x, y in ((16, 6), (17, 10), (14, 7)):
+            d.point((x, y), fill=W_)
+        d.line([(3, 23), (8, 21), (12, 23), (17, 21), (22, 23)], fill=ROCK, width=1)
+
+    def chain(d, a, b, col=SMOKE_L):
+        for k in range(1, 7):
+            t = k / 7
+            d.point((a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t + math.sin(t * math.pi) * 3), fill=col)
+
+    def gallows_hook(d):
+        axe_icon(d, 6, 14)
+        chain(d, (10, 12), (17, 8))
+        d.arc([15, 3, 23, 12], 270, 120, fill=ICE_D, width=2)
+        d.ellipse([18, 10, 22, 14], fill=SKIN)
+        d.line([(19, 14), (22, 14)], fill=ICE, width=1)
+        d.point((20, 16), fill=FROST)
+
+    def hewing_frenzy(d):
+        axe_icon(d, 7, 11)
+        axe_icon(d, 17, 13)
+        for x0, y0, x1, y1 in ((2, 4, 9, 2), (13, 3, 21, 5), (3, 20, 10, 22)):
+            d.line([(x0, y0), (x1, y1)], fill=ICE, width=1)
+        for x, y in ((12, 19), (14, 21), (11, 22)):
+            d.point((x, y), fill=FROST)
+        d.line([(10, 8), (16, 16)], fill=ICE_D, width=1)
+
+    def axestorm(d):
+        d.arc([2, 2, 22, 22], 0, 360, fill=ICE, width=1)
+        d.arc([6, 6, 18, 18], 40, 320, fill=ICE_D, width=1)
+        axe_icon(d, 5, 7)
+        axe_icon(d, 19, 17)
+        d.ellipse([10, 10, 14, 14], fill=FROST)
+
+    def fimbulwinter(d):
+        for k in range(6):
+            a = k * math.pi / 3
+            x2, y2 = 12 + math.cos(a) * 11, 12 + math.sin(a) * 11
+            d.line([(12, 12), (x2, y2)], fill=ICE if k % 2 else FROST, width=1)
+            mx, my = 12 + math.cos(a) * 7, 12 + math.sin(a) * 7
+            for s in (-1, 1):
+                d.line([(mx, my), (mx + math.cos(a + s * 0.9) * 3, my + math.sin(a + s * 0.9) * 3)], fill=ICE_D)
+        blade(d, (6, 18), (18, 6))
+        blade(d, (18, 18), (6, 6))
+        d.ellipse([10, 10, 14, 14], fill=ICE_D)
+
+    def greatblade(d, a, b, col=STEEL):
+        ax, ay = a
+        bx, by = b
+        n = max(math.hypot(bx - ax, by - ay), 1.0)
+        ux, uy = (bx - ax) / n, (by - ay) / n
+        d.line([(ax, ay), (bx, by)], fill=col, width=4)
+        d.line([(ax, ay), (bx, by)], fill=W_, width=1)
+        gx, gy = ax + ux * 4, ay + uy * 4
+        d.line([(gx - uy * 5, gy + ux * 5), (gx + uy * 5, gy - ux * 5)], fill=GOLD, width=2)
+        d.line([(ax, ay), (ax - ux * 4, ay - uy * 4)], fill=WOOD, width=2)
+
+    def guardbreaker(d):
+        greatblade(d, (12, 10), (12, 1))
+        d.polygon([(4, 14), (20, 14), (18, 21), (12, 23), (6, 21)], fill=STEEL_D)
+        d.line([(12, 13), (10, 18), (13, 22)], fill=BLACK)
+        for x, y in ((3, 18), (21, 17), (7, 23), (17, 23)):
+            d.rectangle([x, y, x + 1, y + 1], fill=JADE)
+        d.line([(2, 12), (6, 14)], fill=SEA)
+        d.line([(22, 12), (18, 14)], fill=SEA)
+
+    def crescent_gale(d):
+        greatblade(d, (2, 18), (13, 8))
+        d.arc([4, 1, 22, 21], 285, 75, fill=JADE, width=2)
+        d.arc([7, 4, 19, 18], 290, 70, fill=SEA, width=1)
+        for y in (6, 12, 21):
+            d.line([(2, y), (8, y)], fill=SEA)
+
+    def tempest_turns(d):
+        for r, c in ((10, SEA), (7, JADE), (4, W_)):
+            d.arc([12 - r, 12 - r, 12 + r, 12 + r], 20 + r * 12, 300 + r * 12, fill=c, width=1)
+        greatblade(d, (4, 20), (19, 5))
+        d.ellipse([10, 10, 14, 14], fill=SKIN)
+        d.point((12, 12), fill=W_)
+
+    def skysplitter(d):
+        greatblade(d, (12, 12), (12, 0))
+        d.line([(12, 15), (10, 18), (13, 20), (11, 23)], fill=BLACK, width=2)
+        d.line([(12, 15), (10, 18), (13, 20), (11, 23)], fill=JADE, width=1)
+        for x in (3, 20):
+            d.arc([x - 6, 14, x + 6, 28], 200, 340, fill=SEA if x < 10 else JADE, width=1)
+        d.line([(4, 6), (8, 8)], fill=SEA)
+        d.line([(20, 6), (16, 8)], fill=SEA)
+
+    def leg(d, hip, foot, col=HEAT_D, boot=BLACK):
+        d.line([hip, foot], fill=col, width=4)
+        fx, fy = foot
+        d.rectangle([fx - 1, fy - 2, fx + 4, fy + 2], fill=boot)
+
+    def mule_kick(d):
+        d.rectangle([2, 14, 6, 17], fill=SKIN)
+        d.rectangle([1, 18, 7, 20], fill=SKIN_D)
+        d.line([(5, 14), (8, 8)], fill=BLUE, width=3)
+        leg(d, (7, 8), (17, 8))
+        leg(d, (7, 11), (17, 12), HEAT)
+        for y in (6, 10, 14):
+            d.line([(19, y), (23, y)], fill=HEAT_W)
+        d.ellipse([20, 9, 23, 13], fill=HEAT)
+
+    def hailstorm_heels(d):
+        leg(d, (3, 20), (4, 12), HEAT_D)
+        for a in (-0.9, -0.45, 0.0, 0.45):
+            ex, ey = 6 + math.cos(a) * 14, 12 + math.sin(a) * 14
+            d.line([(6, 12), (ex, ey)], fill=HEAT if a else HEAT_W, width=1)
+            d.ellipse([ex - 1, ey - 1, ex + 1, ey + 1], fill=HEAT_W)
+        d.ellipse([18, 16, 23, 21], fill=HEAT_D)
+        d.line([(9, 21), (16, 21)], fill=HEAT_W)
+
+    def cartwheel_crescent(d):
+        d.line([(1, 22), (23, 22)], fill=DUST, width=1)
+        d.arc([2, 2, 22, 22], 190, 20, fill=HEAT, width=2)
+        d.arc([5, 5, 19, 19], 200, 10, fill=HEAT_W, width=1)
+        d.line([(12, 12), (6, 4)], fill=HEAT_D, width=3)
+        d.line([(12, 12), (18, 20)], fill=HEAT_D, width=3)
+        d.rectangle([4, 2, 8, 4], fill=BLACK)
+        d.ellipse([10, 10, 14, 14], fill=SKIN)
+
+    def last_course(d):
+        d.ellipse([1, 17, 23, 23], outline=HEAT)
+        for x, h in ((4, 5), (8, 7), (12, 9), (16, 7), (20, 5)):
+            d.polygon([(x - 2, 20), (x, 20 - h), (x + 2, 20)], fill=HEAT if h < 9 else HEAT_W)
+        leg(d, (6, 2), (14, 13), HEAT)
+        d.line([(6, 2), (14, 13)], fill=HEAT_W, width=1)
+        d.rectangle([13, 12, 18, 16], fill=BLACK)
+        for x, y in ((3, 8), (20, 6), (19, 12)):
+            d.line([(x, y), (x + 2, y - 4)], fill=HEAT)
+
     for name, fn in (("riposte", riposte), ("iai_counter", iai_counter), ("cross_counter", cross_counter),
                      ("swordfish", swordfish), ("kraken_wake", kraken),
                      ("wind_sever", wind_sever), ("phantom_step", phantom), ("petal_storm", petals),
+                     ("twin_waves", twin_waves), ("side_step", side_step), ("falling_moon", falling_moon),
                      ("axe_throw", axe_throw), ("earthsplitter", earthsplitter), ("berserk", berserk), ("maelstrom", maelstrom),
                      ("blade_dance", blade_dance), ("cross_fang", cross_fang), ("steel_tempest", tempest),
                      ("parley", parley), ("grapeshot", grapeshot), ("crossfire", crossfire), ("broadside", broadside),
                      ("deadeye", deadeye), ("smoke_bomb", smoke_bomb), ("point_blank", point_blank), ("deaths_waltz", waltz),
-                     ("suplex", suplex), ("hip_toss", hip_toss), ("giant_swing", giant_swing),
+                     ("hip_toss", hip_toss), ("cannonball_fist", cannonball), ("meteor_fist", meteor),
                      ("hundred_fists", hundred), ("rising_dragon", rising_dragon), ("palm_strike", palm),
                      ("sea_king_fist", sea_king), ("conquerors_haki", conqueror),
                      ("slip", slip), ("cutthroat", cutthroat), ("knife_fan", knife_fan), ("red_eclipse", red_eclipse),
                      ("viper_flurry", viper_flurry), ("scissor_leap", scissor_leap), ("bleeding_edge", bleeding_edge),
-                     ("hundred_fangs", hundred_fangs)):
+                     ("hundred_fangs", hundred_fangs),
+                     ("hundred_thrusts", hundred_thrusts), ("dragon_sweep", dragon_sweep), ("vault_strike", vault_strike),
+                     ("raijin_wheel", raijin_wheel), ("thunder_javelin", thunder_javelin), ("windmill_guard", windmill_guard),
+                     ("skullcracker", skullcracker), ("rolling_quake", rolling_quake),
+                     ("cyclone_crusher", cyclone_crusher), ("titans_fall", titans_fall),
+                     ("cannonball_swing", cannonball_swing), ("anvil_counter", anvil_counter), ("gallows_hook", gallows_hook),
+                     ("hewing_frenzy", hewing_frenzy), ("axestorm", axestorm), ("fimbulwinter", fimbulwinter),
+                     ("guardbreaker", guardbreaker), ("crescent_gale", crescent_gale), ("tempest_turns", tempest_turns),
+                     ("skysplitter", skysplitter), ("mule_kick", mule_kick), ("hailstorm_heels", hailstorm_heels),
+                     ("cartwheel_crescent", cartwheel_crescent), ("last_course", last_course)):
         _icon("skill_" + name, fn)
+
+
+def gen_move_icons():
+    """The Adventure trees' moves (Acrobatics, Defense, Swimming): a node's "icon" in SkillTrees (skill_move_<name>)."""
+    W_ = (255, 255, 245, 255)
+    SKY = hexc("a8dcff") + (255,)
+    BLUE = hexc("5aa8e8") + (255,)
+    SEA = hexc("2e6ea8") + (255,)
+    FOAM = hexc("e8f6ff") + (255,)
+    MOON = hexc("f4eec0") + (255,)
+    DUST = hexc("c8a878") + (255,)
+    DUST_D = hexc("8a6e4c") + (255,)
+    STEEL = hexc("d0d8e0") + (255,)
+    STEEL_D = hexc("7a8490") + (255,)
+    GOLD = hexc("e8b850") + (255,)
+    WOOD = hexc("7a4a28") + (255,)
+    SKIN = hexc("e8b088") + (255,)
+    BODY = hexc("3a5aa0") + (255,)
+    GHOST = hexc("b8dcff") + (255,)
+    GREEN = hexc("9ce08a") + (255,)
+
+    def figure(d, x, y, col=BODY):
+        # a little standing body: head, trunk, legs
+        d.ellipse([x - 2, y, x + 2, y + 4], fill=SKIN)
+        d.rectangle([x - 2, y + 5, x + 2, y + 11], fill=col)
+        d.line([(x - 1, y + 12), (x - 2, y + 17)], fill=col, width=2)
+        d.line([(x + 1, y + 12), (x + 2, y + 17)], fill=col, width=2)
+
+    def roll(d):
+        # a body tucked into a ball, the arc of the roll over it, dust behind
+        d.arc([3, 3, 21, 21], 200, 20, fill=W_, width=1)
+        d.ellipse([7, 9, 17, 19], fill=BODY)
+        d.ellipse([9, 10, 13, 14], fill=SKIN)
+        d.polygon([(19, 4), (22, 7), (18, 8)], fill=W_)
+        for x in (2, 4, 6):
+            d.point((x, 20), fill=DUST)
+        d.line([(1, 21), (22, 21)], fill=DUST_D)
+
+    def sidestep(d):
+        # a body leaning off the line, a blade passing through where it stood
+        figure(d, 15, 4)
+        d.line([(10, 3), (10, 21)], fill=STEEL_D)
+        d.line([(3, 10), (12, 13)], fill=STEEL, width=2)
+        for y in (8, 12, 16):
+            d.line([(18, y), (22, y)], fill=W_)
+
+    def afterimage(d):
+        # a pale copy struck through, the body already gone to the side
+        figure(d, 8, 4, GHOST)
+        d.line([(2, 4), (14, 18)], fill=W_, width=1)
+        figure(d, 18, 4)
+
+    def moonstep(d):
+        # a crescent moon under two stamping feet, a ring of air
+        d.arc([4, 12, 20, 22], 200, 340, fill=MOON, width=2)
+        d.rectangle([8, 4, 10, 12], fill=BODY)
+        d.rectangle([14, 4, 16, 12], fill=BODY)
+        d.rectangle([7, 12, 11, 14], fill=WOOD)
+        d.rectangle([13, 12, 17, 14], fill=WOOD)
+        for x, y in ((3, 6), (21, 6), (12, 2)):
+            d.line([(x, y), (x, y + 3)], fill=W_)
+
+    def featherfall(d):
+        d.line([(16, 3), (7, 20)], fill=W_, width=1)
+        for k in range(5):
+            y = 6 + k * 3
+            x = 15 - k * 2
+            d.line([(x, y), (x + 5, y - 2)], fill=SKY)
+            d.line([(x, y), (x - 4, y + 1)], fill=SKY)
+
+    def crash(d):
+        # a fist planted in cracked ground, a ring thrown out
+        d.ellipse([1, 16, 23, 23], outline=DUST)
+        for x1, y1 in ((4, 22), (20, 22), (8, 23), (16, 23)):
+            d.line([(12, 19), (x1, y1)], fill=DUST_D)
+        d.rectangle([10, 4, 14, 14], fill=BODY)
+        d.rectangle([9, 14, 15, 18], fill=SKIN)
+        for x in (5, 19):
+            d.line([(x, 6), (x, 12)], fill=W_)
+
+    def disarm(d):
+        # a blade knocked spinning up out of a hand, a spark where the parry met it
+        d.line([(4, 20), (10, 14)], fill=STEEL, width=2)
+        d.line([(14, 4), (20, 10)], fill=STEEL, width=2)
+        d.line([(19, 2), (22, 5)], fill=GOLD, width=2)
+        d.arc([10, 0, 24, 14], 120, 300, fill=W_)
+        for x, y in ((12, 12), (10, 10), (14, 12), (12, 15)):
+            d.point((x, y), fill=GOLD)
+
+    def shove(d):
+        # an open palm and the rings of the shove ahead of it
+        d.rectangle([2, 8, 8, 16], fill=SKIN)
+        for k in range(4):
+            d.line([(8, 8 + k * 2), (11, 8 + k * 2)], fill=SKIN)
+        for r in (5, 8, 11):
+            d.arc([10 - r, 12 - r, 10 + r, 12 + r], -50, 50, fill=W_, width=1)
+        d.polygon([(20, 9), (23, 12), (20, 15)], fill=W_)
+
+    def rolling_guard(d):
+        # a blade held across, the curl of a roll round it
+        d.arc([2, 2, 22, 22], 30, 300, fill=W_, width=1)
+        d.line([(5, 15), (19, 9)], fill=STEEL, width=2)
+        d.line([(4, 16), (6, 14)], fill=WOOD, width=2)
+        d.polygon([(20, 4), (23, 8), (18, 8)], fill=W_)
+
+    def planted(d):
+        # feet set wide in the ground behind a blade held across, sparks off its edge
+        d.line([(1, 22), (23, 22)], fill=DUST_D)
+        d.line([(9, 14), (4, 21)], fill=BODY, width=2)
+        d.line([(15, 14), (20, 21)], fill=BODY, width=2)
+        d.rectangle([9, 7, 15, 14], fill=BODY)
+        d.line([(5, 6), (19, 6)], fill=STEEL, width=2)
+        for x, y in ((3, 4), (2, 7), (4, 9)):
+            d.point((x, y), fill=GOLD)
+
+    def dolphin(d):
+        # a swimmer arcing up out of a wave, spray off the kick
+        d.arc([2, 14, 22, 26], 180, 360, fill=SEA, width=2)
+        d.arc([4, 4, 20, 22], 200, 330, fill=BODY, width=3)
+        d.ellipse([16, 6, 20, 10], fill=SKIN)
+        for x, y in ((3, 12), (5, 10), (2, 15)):
+            d.point((x, y), fill=FOAM)
+        d.line([(2, 19), (22, 19)], fill=BLUE)
+
+    def glide(d):
+        # a long, flat streamline on the water, a wake drawn out behind
+        d.line([(1, 16), (23, 16)], fill=BLUE)
+        d.line([(6, 12), (20, 12)], fill=BODY, width=3)
+        d.line([(20, 12), (23, 11)], fill=SKIN, width=2)
+        d.ellipse([16, 9, 20, 13], fill=SKIN)
+        for y, x1 in ((18, 14), (20, 9)):
+            d.line([(1, y), (x1, y)], fill=FOAM)
+        d.point((22, 15), fill=GREEN)
+
+    for name, fn in (("roll", roll), ("sidestep", sidestep), ("afterimage", afterimage), ("moonstep", moonstep),
+                     ("featherfall", featherfall), ("crash", crash), ("disarm", disarm), ("shove", shove),
+                     ("rolling_guard", rolling_guard), ("planted", planted), ("dolphin", dolphin), ("glide", glide)):
+        _icon("skill_move_" + name, fn)
 
 
 def gen_fruit_skins():
@@ -2067,11 +2520,17 @@ def main():
     if "techniques" in sys.argv[1:]:
         gen_technique_icons()
         return
+    if "moves" in sys.argv[1:]:
+        gen_move_icons()
+        return
     if "village" in sys.argv[1:]:
         gen_cobbles(); gen_sign_smithy()
         return
     if "doors" in sys.argv[1:]:
         gen_door_panel()
+        return
+    if "technique_icons" in sys.argv[1:]:
+        gen_technique_icons()
         return
     if "jungle" in sys.argv[1:]:
         gen_bamboo(); gen_woven(); gen_palm_thatch(); gen_flagstones(); gen_vines(); gen_broadleaf()
@@ -2098,6 +2557,7 @@ def main():
     gen_power_icons()
     gen_skill_icons()
     gen_technique_icons()
+    gen_move_icons()
     gen_fruit_skins()
     gen_thornbrush()
     gen_devil_fruit_tex()

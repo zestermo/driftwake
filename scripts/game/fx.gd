@@ -817,6 +817,66 @@ func afterimage(body: Node3D, color: Color = Color(0.6, 0.8, 1.0), life: float =
 	tw.tween_callback(holder.queue_free)
 
 
+## Afterimage (Acrobatics): a copy of `body` left standing for `secs` that the foes after its captain swing at
+## (Decoy; the host does the luring), with a pale flash where it appears.
+func decoy(body: Node3D, secs: float) -> void:
+	if body == null:
+		return
+	Decoy.spawn(_scene_root(), body, secs)
+	afterimage(body, Decoy.COLOR, 0.2)
+	sfx("whoosh_big", body.global_position, -9.0, 0.05, 1.7)
+
+
+## Disarm (Defense): a weapon (its `mesh`, from `xf`) knocked spinning out of a hand at `vel`, falling to the ground
+## FLUNG_DROP m below the hand, lying there a few seconds, then gone. A glint and a clang where it leaves the hand.
+const FLUNG_DROP := 1.15
+const FLUNG_LIE := 4.0
+
+
+func flung_weapon(mesh: Mesh, xf: Transform3D, vel: Vector3) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if mesh == null or (cam and cam.global_position.distance_to(xf.origin) > BURST_RANGE):
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 60.0
+	_scene_root().add_child(mi)
+	mi.global_transform = xf
+	var g := 18.0
+	var from := xf.origin
+	var floor_y := from.y - FLUNG_DROP
+	# time to come down to the floor: from + vel.y t - g t^2 / 2 = floor_y
+	var t_land := (vel.y + sqrt(vel.y * vel.y + 2.0 * g * FLUNG_DROP)) / g
+	var spin := Vector3(randf_range(-1, 1), 1.0, randf_range(-1, 1)).normalized()
+	var b0 := xf.basis
+	var tw := mi.create_tween()
+	tw.tween_method(func(t: float) -> void:
+		if not is_instance_valid(mi):
+			return
+		var p := from + vel * t + Vector3.DOWN * 0.5 * g * t * t
+		p.y = maxf(p.y, floor_y)
+		mi.global_transform = Transform3D(b0.rotated(spin, 18.0 * t), p), 0.0, t_land, t_land)
+	tw.tween_callback(func() -> void:
+		if not is_instance_valid(mi):
+			return
+		# (the blade runs along -Z: lying flat on the ground, pointing the way it flew)
+		mi.global_transform = Transform3D(Basis(Vector3.UP, atan2(-vel.x, -vel.z)), Vector3(mi.global_position.x, floor_y + 0.03, mi.global_position.z))
+		sfx("clash", mi.global_position, -10.0, 0.08, 0.7)
+		dust(mi.global_position + Vector3(0, 0.05, 0), 4, 0.4))
+	tw.tween_interval(FLUNG_LIE)
+	tw.tween_callback(mi.queue_free)
+	glint(xf.origin, Color(1.0, 0.95, 0.8), 0.9)
+	sfx("clash", xf.origin, -4.0, 0.06, 1.25)
+
+
+## A foe's blow landed on the decoy near `at`: it shatters.
+func decoy_break(at: Vector3) -> void:
+	var d := Decoy.near(get_tree(), at, 2.0)
+	if d:
+		d.shatter()
+
+
 ## Vines wrapped round a rooted enemy's legs for `secs` (Vine Snare).
 func vine_wrap(target: Node3D, secs: float, radius: float = 0.35) -> void:
 	if target == null or not is_instance_valid(target):
@@ -1401,15 +1461,28 @@ func petals(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = Color(1
 		p.angular_velocity_max = 420.0
 
 
+## The weapon trees whose element is drawn by gen_drawn_fx.py: tree -> its sheets' name (flip_<name>_slash,
+## flip_<name>_cloud, <name>_trail).
+const DRAWN := {"dagger": "shadow", "dual": "twin", "dual_dagger": "venom", "corsair": "powder", "pistol": "gold", "unarmed": "gale"}
+
+
 ## A tree's element thrown along `dir`: sea spray (cutlass), drawn sakura (katana: bigger, so
-## fewer), embers (axe), rock and dust (hammer).
+## fewer), drawn cinders and a lick of fire (axe: cinders are bigger, so fewer), rock and dust (hammer).
 func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
 	var c := tree_col(tree, ACCENT)
+	# (the drawn elements: a burst of the element on the bigger throws, under the tree's own material)
+	if flipbooks and amount >= 8 and DRAWN.has(tree):
+		drawn_burst(pos, DRAWN[tree] + "_cloud", 0.5 + amount * 0.05, 0.45, 40.0)
 	match tree:
 		"katana":
 			sakura(pos, dir, maxi(amount * 2 / 3, 2), speed)
 		"axe":
-			embers(pos, dir, amount, c, speed)
+			if not flipbooks:
+				embers(pos, dir, amount, c, speed)
+				return
+			cinders(pos, dir, maxi(amount * 2 / 3, 2), speed)
+			if amount >= 8:
+				drawn_burst(pos, "ember_cloud", 0.5 + amount * 0.05, 0.45, 40.0)
 		"dual":
 			motes(pos, dir, maxi(amount / 2, 2), tree_col(tree, EDGE), speed)
 			motes(pos, dir, maxi(amount / 2, 2), c, speed * 0.8)
@@ -1519,6 +1592,271 @@ func hot_leg(body: Node3D, right: bool, secs: float = 0.6, color: Color = Color(
 	if fl:
 		tw.parallel().tween_callback(func(): fl.emitting = false).set_delay(secs * 0.4)
 	tw.tween_callback(mi.queue_free)
+
+
+## Will hardening the legs (Sky Leap): a dark glossy sheen over both shins and feet, up over `grow` s, held `hold` s,
+## then fading. Called again on the same body it carries on from the sheen already there (0, 0 fades it now).
+static var _haki_shin: CapsuleMesh
+static var _haki_foot: BoxMesh
+
+
+func haki_legs(body: Node3D, grow: float = 1.0, hold: float = 1.0) -> void:
+	if not body is Humanoid:
+		return
+	var h := body as Humanoid
+	var held: Array = h.get_meta("haki_legs") if h.has_meta("haki_legs") else []
+	if held.is_empty():
+		if _haki_shin == null:
+			_haki_shin = CapsuleMesh.new()
+			_haki_shin.radius = 0.085
+			_haki_shin.height = absf(h.shin_l.position.y) + 0.12
+			_haki_shin.radial_segments = 8
+			_haki_shin.rings = 2
+			_haki_foot = BoxMesh.new()
+			_haki_foot.size = Vector3(0.13, 0.11, 0.27)
+		var mat := StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(0.05, 0.035, 0.06, 0.0)
+		mat.metallic = 0.75
+		mat.roughness = 0.16
+		mat.rim_enabled = true
+		mat.rim = 0.9
+		mat.rim_tint = 0.2
+		mat.emission_enabled = true
+		mat.emission = Color(0.28, 0.02, 0.06)
+		mat.emission_energy_multiplier = 0.6
+		var parts := []
+		var ankle := h.shin_l.position.y
+		for shin in [h.shin_l, h.shin_r]:
+			for m in [[_haki_shin, Vector3(0, ankle * 0.5, -0.005)], [_haki_foot, Vector3(0, ankle - 0.03, -0.07)]]:
+				var mi := MeshInstance3D.new()
+				mi.mesh = m[0]
+				mi.material_override = mat
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				(shin as Node3D).add_child(mi)
+				mi.position = m[1]
+				parts.append(mi)
+		held = [mat, parts, null]
+		h.set_meta("haki_legs", held)
+	var mat: StandardMaterial3D = held[0]
+	if held[2] != null:
+		(held[2] as Tween).kill()
+	var tw := h.create_tween()
+	held[2] = tw
+	if grow > 0.0:
+		tw.tween_property(mat, "albedo_color:a", 0.92, grow)
+		tw.tween_interval(hold)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.35)
+	tw.tween_callback(func():
+		for mi in held[1]:
+			(mi as Node).queue_free()
+		h.remove_meta("haki_legs"))
+
+
+## A fist wreathed in power (the fists' big punches): a glow round the hand with a hot core, and off it `kind`'s
+## matter: "fire" (orange-yellow licks: Meteor Fist) or "galaxy" (star motes in every colour and embers: Sea King
+## Fist, armed and after). Fades over `secs`; secs < 0 keeps it until the caller frees it (returned).
+static var _fist_mesh: SphereMesh
+
+
+func hot_fist(body: Node3D, right: bool, secs: float = 0.6, color: Color = Color(1.0, 0.62, 0.2), kind: String = "fire", size: float = 1.0) -> Node3D:
+	if not body is Humanoid or (body as Humanoid).ragdoll != null:
+		return null
+	var hand: Node3D = (body as Humanoid).hand_r if right else (body as Humanoid).hand_l
+	if hand == null:
+		return null
+	if _fist_mesh == null:
+		_fist_mesh = SphereMesh.new()
+		_fist_mesh.radius = 0.15
+		_fist_mesh.height = 0.3
+		_fist_mesh.radial_segments = 8
+		_fist_mesh.rings = 4
+	var mi := MeshInstance3D.new()
+	mi.mesh = _fist_mesh
+	var mat := _glow_mat(color, 0.7)
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.scale = Vector3.ONE * size
+	hand.add_child(mi)
+	var core := MeshInstance3D.new()
+	core.mesh = _fist_mesh
+	var cmat := _glow_mat(Color(1.0, 0.97, 0.85), 0.9)
+	core.material_override = cmat
+	core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	core.scale = Vector3.ONE * 0.55
+	mi.add_child(core)
+	if flipbooks:
+		if kind == "galaxy":
+			var st := flip_emitter(mi, "glint", 8, 0.2 * size, 0.5, {"radius": 0.22, "spread": 180.0, "vel_min": 0.4, "vel_max": 1.3,
+				"gravity": Vector3.ZERO, "damping": 1.0, "fade": 0.6, "world": true, "color": Color(1.0, 0.55, 0.85)})
+			st.hue_variation_min = -0.5
+			st.hue_variation_max = 0.5
+			flip_emitter(mi, "sparks", 5, 0.22 * size, 0.6, {"radius": 0.15, "spread": 40.0, "vel_min": 0.3, "vel_max": 0.9,
+				"gravity": Vector3(0, 1.5, 0), "damping": 0.6, "fade": 0.6, "world": true, "color": Color(1.0, 0.7, 0.3)})
+		else:
+			flip_emitter(mi, "fire", 7, 0.42 * size, 0.35, {"radius": 0.12, "spread": 25.0, "vel_min": 0.3, "vel_max": 0.9,
+				"gravity": Vector3(0, 2.0, 0), "damping": 0.8, "start": 0.15, "spin": 10.0, "fade": 0.7, "world": true, "color": color})
+	if secs < 0.0:
+		return mi
+	var tw := mi.create_tween()
+	tw.tween_property(mi, "scale", Vector3.ONE * size * 1.25, minf(0.12, secs * 0.2)).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mi, "scale", Vector3.ONE * size, minf(0.12, secs * 0.2))
+	tw.tween_interval(secs * 0.4)
+	tw.tween_property(mat, "albedo_color:a", 0.0, secs * 0.4).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(cmat, "albedo_color:a", 0.0, secs * 0.4).set_ease(Tween.EASE_IN)
+	tw.tween_callback(mi.queue_free)
+	return mi
+
+
+## A four-pointed star of light at `pos`, facing the camera, popping open and fading over `life`: bright (a coloured
+## rim round a white core) or `dark` (a black star rimmed in `color`: Meteor Fist's). `stretch` > 1 draws the rays
+## out sideways (a flare).
+static var _star_mesh: ArrayMesh
+
+
+func _star() -> ArrayMesh:
+	if _star_mesh == null:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var pts: Array = []
+		for k in 8:
+			var a := k * PI / 4.0
+			var r := 1.0 if k % 2 == 0 else 0.16
+			pts.append(Vector3(cos(a) * r, sin(a) * r, 0.0))
+		for k in 8:
+			st.add_vertex(Vector3.ZERO)
+			st.add_vertex(pts[k])
+			st.add_vertex(pts[(k + 1) % 8])
+		_star_mesh = st.commit()
+	return _star_mesh
+
+
+func _star_mat(color: Color, alpha: float, dark: bool) -> StandardMaterial3D:
+	var m := _glow_mat(color, alpha)
+	if dark:
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+		m.render_priority = 1
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	return m
+
+
+func star_glint(pos: Vector3, size: float = 0.8, color: Color = Color(1.0, 0.85, 0.5), life: float = 0.3, dark: bool = false, stretch: float = 1.0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
+		return
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = pos
+	var tw := holder.create_tween().set_parallel(true)
+	var layers: Array = [[color, 0.85, false, 1.3], [Color(0.02, 0.0, 0.02) if dark else Color(1.0, 0.98, 0.9), 0.95, dark, 0.7]]
+	for l in layers:
+		var mi := MeshInstance3D.new()
+		mi.mesh = _star()
+		var mat := _star_mat(l[0], l[1], l[2])
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var full := Vector3(size * float(l[3]) * stretch, size * float(l[3]), 1.0)
+		mi.scale = full * 0.2
+		holder.add_child(mi)
+		tw.tween_property(mi, "scale", full, life * 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(mat, "albedo_color:a", 0.0, life * 0.6).set_delay(life * 0.4).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(holder.queue_free)
+
+
+## Anime speed lines: thin streaks along `dir` round `pos` (a punch or a dive going that way), behind it.
+func speed_lines(pos: Vector3, dir: Vector3, color: Color = Color(0.85, 0.45, 1.0), count: int = 10, length: float = 2.5, life: float = 0.25, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var d := dir.normalized()
+	var side := d.cross(Vector3.UP if absf(d.y) < 0.95 else Vector3.RIGHT).normalized()
+	var up := side.cross(d).normalized()
+	for i in count:
+		var a := TAU * (i + rng.randf_range(-0.3, 0.3)) / count
+		var from := pos + (side * cos(a) + up * sin(a)) * rng.randf_range(0.5, 1.5) - d * rng.randf_range(0.0, 0.8)
+		streak(from, from - d * length * rng.randf_range(0.6, 1.0), color, 0.05, life * rng.randf_range(0.8, 1.2))
+
+
+## A comet of light flung from `from` to `to` over `secs` (Sea King Fist's Galaxy punch): a stretched white-gold
+## glow racing down the line, coloured stars thrown off it as it goes.
+func comet(from: Vector3, to: Vector3, size: float = 1.6, secs: float = 0.4, color: Color = Color(1.0, 0.8, 0.4)) -> void:
+	var seg := to - from
+	if seg.length() < 0.5:
+		return
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_transform = Transform3D(Basis.looking_at(seg.normalized(), Vector3.UP if absf(seg.normalized().y) < 0.95 else Vector3.FORWARD), from)
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.radial_segments = 8
+	sm.rings = 4
+	var tw := holder.create_tween()
+	for l in [[color, 0.75, 1.0], [Color(1.0, 0.98, 0.92), 0.95, 0.5]]:
+		var mat := _glow_mat(l[0], l[1])
+		var ball := MeshInstance3D.new()
+		ball.mesh = sm
+		ball.material_override = mat
+		ball.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ball.scale = Vector3(size, size, size * 3.0) * float(l[2])
+		holder.add_child(ball)
+		tw.parallel().tween_property(mat, "albedo_color:a", 0.0, secs * 0.5).set_delay(secs * 0.7)
+	tw.parallel().tween_property(holder, "global_position", to, secs).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var cols := [Color(1.0, 0.85, 0.3), Color(0.35, 0.95, 1.0), Color(1.0, 0.35, 0.85), Color.WHITE]
+	for k in 6:
+		var at := from + seg * (k + 1) / 7.0 + Vector3(randf_range(-0.6, 0.6), randf_range(-0.3, 0.9), randf_range(-0.6, 0.6))
+		tw.parallel().tween_callback(star_glint.bind(at, randf_range(0.5, 0.9), cols[k % cols.size()], 0.35)).set_delay(secs * (k + 1) / 7.0)
+	tw.chain().tween_interval(0.05)
+	tw.tween_callback(holder.queue_free)
+
+
+## A blast of light where a great blow lands (Sea King Fist): a white-hot pillar shooting up, an orange dome
+## swelling out over the ground, the ground lit.
+func light_pillar(pos: Vector3, height: float = 10.0, radius: float = 4.0, life: float = 0.8, color: Color = Color(1.0, 0.55, 0.15)) -> void:
+	flash_light(pos + Vector3(0, 1.5, 0), Color(1.0, 0.75, 0.4), 8.0, radius * 3.0, life)
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(pos) > BURST_RANGE * 1.5:
+		return
+	var holder := Node3D.new()
+	_scene_root().add_child(holder)
+	holder.global_position = pos
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 1.0
+	cyl.bottom_radius = 1.0
+	cyl.height = 1.0
+	cyl.radial_segments = 10
+	cyl.rings = 1
+	cyl.cap_top = false
+	cyl.cap_bottom = false
+	var dome := SphereMesh.new()
+	dome.radius = 1.0
+	dome.height = 2.0
+	dome.radial_segments = 12
+	dome.rings = 6
+	var tw := holder.create_tween().set_parallel(true)
+	for l in [[cyl, Color(1.0, 0.98, 0.9), 0.9, radius * 0.35], [cyl, Color(1.0, 0.85, 0.5), 0.6, radius * 0.6], [dome, color, 0.55, radius]]:
+		var mi := MeshInstance3D.new()
+		mi.mesh = l[0]
+		var mat := _glow_mat(l[1], l[2])
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(mi)
+		var r: float = l[3]
+		if l[0] == cyl:
+			mi.scale = Vector3(r, 0.1, r)
+			mi.position.y = 0.05
+			tw.tween_property(mi, "scale", Vector3(r, height, r), life * 0.15).set_ease(Tween.EASE_OUT)
+			tw.tween_property(mi, "position:y", height * 0.5, life * 0.15).set_ease(Tween.EASE_OUT)
+			tw.tween_property(mi, "scale:x", r * 0.1, life * 0.85).set_delay(life * 0.15).set_ease(Tween.EASE_IN)
+			tw.tween_property(mi, "scale:z", r * 0.1, life * 0.85).set_delay(life * 0.15).set_ease(Tween.EASE_IN)
+		else:
+			mi.scale = Vector3.ONE * r * 0.2
+			tw.tween_property(mi, "scale", Vector3(r, r * 0.6, r), life * 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+		tw.tween_property(mat, "albedo_color:a", 0.0, life * 0.6).set_delay(life * 0.4).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(holder.queue_free)
 
 
 ## Wind torn off a blade (the greatsword's element): pale streaks of air flung hard along `dir`, jade motes riding
@@ -2184,7 +2522,7 @@ func streak(from: Vector3, to: Vector3, color: Color = Color(0.4, 0.8, 1.0), wid
 
 ## Lightning (the polearm's element): a jagged bolt from `from` to `to`, kinked at random (seeded) every ~0.35 m,
 ## a hot core in a coloured sheath, flickering once and gone. A few small forks off it on the longer ones.
-func bolt(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.32), width: float = 0.08, life: float = 0.2, seed_v: int = 0) -> void:
+func bolt(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.32), width: float = 0.08, life: float = 0.2, seed_v: int = 0, dark: bool = false) -> void:
 	var seg := to - from
 	var l := seg.length()
 	if l < 0.1:
@@ -2207,7 +2545,10 @@ func bolt(from: Vector3, to: Vector3, color: Color = Color(1.0, 0.9, 0.32), widt
 	_scene_root().add_child(holder)
 	holder.global_position = from
 	var box := _box()
-	var mats: Array = [_glow_mat(color, 0.6), _glow_mat(color.lerp(Color.WHITE, 0.75), 1.0)]
+	# (`dark`: a black core in the coloured sheath, Meteor Fist's crackle)
+	var mats: Array = [_glow_mat(color, 0.6), _star_mat(Color(0.02, 0.0, 0.02), 1.0, true) if dark else _glow_mat(color.lerp(Color.WHITE, 0.75), 1.0)]
+	if dark:
+		mats[1].billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
 	var lines: Array = [pts]
 	if l > 1.5:
 		for f in range(2):
@@ -2345,6 +2686,13 @@ func water_burst(pos: Vector3, sheet: String, size: float = 2.0, life: float = 0
 ## element awakened a billowing cloud that sheds petals. `thrust`: along the blade's line (a
 ## stab). Other screens lay their own along their copy of the body, which plays the same swing.
 func katana_slash(body: Node3D, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0) -> void:
+	drawn_slash(body, "katana", secs, awake, width, thrust, seed_v)
+
+
+## A weapon's drawn slash (PetalRibbon.LOOKS: a tree's id) laid along the path the blade in `body`'s hand (`left`:
+## the off hand's) takes over the next `secs`; the axe's along its bit.
+func drawn_slash(body: Node3D, kind: String, secs: float, awake: bool = false, width: float = 0.34, thrust: bool = false, seed_v: int = 0,
+		left: bool = false) -> void:
 	if AnimLab.clean or not body is Humanoid:
 		return
 	var cam := get_viewport().get_camera_3d()
@@ -2352,20 +2700,69 @@ func katana_slash(body: Node3D, secs: float, awake: bool = false, width: float =
 		return
 	var r := PetalRibbon.new()
 	r.body = body
+	r.kind = kind
 	r.emit = secs
 	r.awake = awake
 	r.width = width
 	r.thrust = thrust
 	r.seed_v = seed_v
-	r.linger = 0.42 if awake else 0.26
+	r.left = left
+	r.linger = (0.48 if awake else 0.3) if kind == "axe" else (0.42 if awake else 0.26)
 	body.add_child(r)
 
 
 ## One of the katana's drawn sheets (gen_katana_fx.py: steel_slash, katana_slash, katana_cloud)
 ## played once at `pos`, rolled up to `spin` degrees either way. Unlit, like the drawn water.
 func katana_burst(pos: Vector3, sheet: String, size: float = 1.6, life: float = 0.45, spin: float = 30.0) -> void:
+	drawn_burst(pos, sheet, size, life, spin)
+
+
+## One drawn sheet (the katana's, gen_katana_fx.py; the axe's, gen_axe_fx.py: axe_slash,
+## ember_slash, ember_cloud) played once at `pos`, rolled up to `spin` degrees either way. Unlit.
+func drawn_burst(pos: Vector3, sheet: String, size: float = 1.6, life: float = 0.45, spin: float = 30.0) -> void:
 	flipbook(pos, sheet, 1, size, life, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 		"damping": 0.0, "spin": spin, "fade": 0.9, "lit": false})
+
+
+## Drawn cinders thrown along `dir` (the axe's element): each flares white-hot and cools to a
+## dull red speck as it slows and drifts up. One burst, unlit.
+func cinders(pos: Vector3, dir: Vector3, amount: int = 6, speed: float = 3.0, size: float = 0.16) -> void:
+	flipbook(pos, "cinder", amount, size, 0.85, {"radius": 0.18, "direction": dir.normalized(), "spread": 45.0,
+		"vel_min": speed * 0.4, "vel_max": speed, "gravity": Vector3(0, 1.4, 0), "damping": 2.6, "hold": true,
+		"scale_min": 0.7, "scale_max": 1.3, "explosiveness": 0.9, "fade": 0.85, "lit": false})
+
+
+var _ash_mat: StandardMaterial3D
+
+
+## The drawn cinder on a quad of `size` (BladeEmbers' emitter): each plays the sheet once over its life.
+func cinder_quad(size: float) -> QuadMesh:
+	return _quad(size, _flip_mat("cinder"))
+
+
+func _ash() -> StandardMaterial3D:
+	if _ash_mat == null:
+		_ash_mat = _flip_mat("ash").duplicate()
+		_ash_mat.particles_anim_loop = true
+	return _ash_mat
+
+
+## The drawn ash flake on a quad of `size` (BladeEmbers' emitter).
+func ash_quad(size: float) -> QuadMesh:
+	return _quad(size, _ash())
+
+
+## Flakes of ash let go along `dir`, tumbling as they drift slowly down (dimmed at night).
+func ash(pos: Vector3, dir: Vector3, amount: int = 4, speed: float = 1.0, size: float = 0.16) -> void:
+	var k := _night_k()
+	var cfg := {"radius": 0.3, "direction": dir.normalized(), "spread": 60.0, "vel_min": speed * 0.3, "vel_max": speed,
+		"gravity": Vector3(0, -0.5, 0), "damping": 2.0, "hold": true, "scale_min": 0.7, "scale_max": 1.2, "explosiveness": 0.7,
+		"ramp": _flip_ramp(Color(k, k, k), 0.0, 0.7), "start": 1.0, "spin": 180.0}
+	var p := _burst(pos, amount, _ash(), size, 2.0, cfg)
+	if p:
+		_flip_setup(p, cfg)
+		p.anim_speed_min = 1.0
+		p.anim_speed_max = 2.0
 
 
 ## A run of the katana's drawn strip along `from` to `to` (the path of a dash or a blink), drawn on
@@ -2396,8 +2793,23 @@ func katana_arc(center: Vector3, u: Vector3, v: Vector3, radius: float = 2.0, sw
 	_katana_path(path, width, awake, secs, seed_v)
 
 
-func _katana_path(path: Array, width: float, awake: bool, secs: float, seed_v: int) -> void:
+## A weapon's drawn strip (PetalRibbon.LOOKS: "katana", "axe") swept round an arc like katana_arc, the crest outside.
+func drawn_arc(kind: String, center: Vector3, u: Vector3, v: Vector3, radius: float = 2.0, sweep: float = PI, width: float = 0.8,
+		awake: bool = false, secs: float = 0.12, seed_v: int = 0) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam and cam.global_position.distance_to(center) > BURST_RANGE:
+		return
+	var path: Array = []
+	var n := clampi(int(absf(sweep) * radius / 0.35), 8, 64)
+	for i in n + 1:
+		var a := sweep * float(i) / n
+		path.append([center, center + (u.normalized() * cos(a) + v.normalized() * sin(a)) * radius])
+	_katana_path(path, width, awake, secs, seed_v, kind)
+
+
+func _katana_path(path: Array, width: float, awake: bool, secs: float, seed_v: int, kind: String = "katana") -> void:
 	var r := PetalRibbon.new()
+	r.kind = kind
 	r.fixed = path
 	r.emit = secs
 	r.awake = awake
@@ -2447,6 +2859,11 @@ func droplets(pos: Vector3, dir: Vector3, amount: int = 6, color: Color = Color(
 func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 	var edge := tree_col(tree, EDGE)
 	var accent := tree_col(tree, ACCENT)
+	# (the drawn elements: their slash cut through them and a ring in place of the old material)
+	if flipbooks and DRAWN.has(tree):
+		drawn_burst(pos + dir * 0.15, DRAWN[tree] + "_slash", 1.5, 0.32, 180.0)
+		ring(pos, dir, 0.8, edge, 0.16, 0.16)
+		return
 	match tree:
 		"sword":
 			spray(pos, dir + Vector3.UP * 0.3, 8, accent, 5.0)
@@ -2457,8 +2874,10 @@ func elem_hit(tree: String, pos: Vector3, dir: Vector3) -> void:
 			katana_burst(pos + dir * 0.4 + Vector3.UP * 0.2, "katana_cloud", 1.1, 0.45, 40.0)
 			sakura(pos, dir + Vector3.UP * 0.4, 5, 3.0)
 		"axe":
-			embers(pos, dir + Vector3.UP * 0.4, 9, accent, 4.0)
-			ring(pos, dir, 0.9, edge, 0.18, 0.2)
+			# a drawn crescent of fire bitten through them, a gout of it, cinders thrown off
+			drawn_burst(pos + dir * 0.15, "ember_slash", 1.9, 0.35, 180.0)
+			drawn_burst(pos + dir * 0.4 + Vector3.UP * 0.2, "ember_cloud", 1.1, 0.45, 40.0)
+			cinders(pos, dir + Vector3.UP * 0.4, 5, 3.5)
 		"dual":
 			twin_cross(pos, dir, 0.45, edge, accent, 0.2)
 			motes(pos, dir + Vector3.UP * 0.3, 6, accent, 3.5)

@@ -566,6 +566,15 @@ func parried(by: Node) -> void:
 	knock(dir * 3.5 + Vector3.UP * 4.5)
 
 
+## Thrown tumbling along `v` (Cannonball Swing).
+func launched(v: Vector3) -> void:
+	if Net.forward(self, "launched", [v]):
+		return
+	if state in [S.DEAD, S.DOWN]:
+		return
+	knock(v)
+
+
 ## Bowled over: tumbles, lies a moment kicking, gets back up.
 func knock(v: Vector3) -> void:
 	if state == S.DEAD:

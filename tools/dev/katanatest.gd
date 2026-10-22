@@ -80,8 +80,8 @@ func _process(d: float) -> bool:
 			if t < 1.5: return false
 			p = root.get_tree().get_first_node_in_group("player")
 			camp = root.get_node("World/Islands/Brinehollow/SmugglersCamp")
-			# the katana tree's moveset unlocks (Full Draw, Quick Draw, Crescent Arc)
-			for nid in ["k_full", "k_draw", "k_arc"]:
+			# the katana tree's moveset unlocks (Full Draw, Quick Draw, Crescent Arc: the air attack variant's first version)
+			for nid in ["k_full", "k_draw", "k_arc", "k_crescent"]:
 				p.progression._own(nid)
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0

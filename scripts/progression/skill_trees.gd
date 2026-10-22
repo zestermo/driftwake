@@ -3,12 +3,14 @@ extends RefCounted
 ## The skill trees of the v1.18.2 redesign (docs/progression_plan.md "Redesign"), grouped in sections:
 ##   captain    the Captain (levels 1-40)
 ##   combat     a tree per weapon (mastery 1-30, earned only with that weapon in hand)
-##   adventure  Acrobatics, Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
+##   adventure  Acrobatics (1-30), Defense, Sailing, Swimming, Cooking, Fishing, Stealth, Tinkering (levels 1-20)
 ##   fruit      the Driftfruit you ate (levels 1-20)
-## A tree grows up from its root in three branches. Big nodes (moves, techniques, mechanics, passives, the element,
-## the ultimate) come by themselves at their level; small stat "steps" (x/3, x/5) are bought with the tree's points
-## (one a level) in any order. A variant is two versions of one node: both owned once reached, one active (switched
-## at the ship's bunk). Progression reads the effects (same keys as SkillTree's, so the game's readers don't change).
+## A tree grows up from its root in three branches. Every node past the root is bought (1.18.4, docs/v1_18_4_plan.md):
+## weapon and fruit trees from the Combat pool (Captain levels), Adventure trees from the Adventure pool (their levels);
+## the tree's level only gates it (price: PRICE by kind, or a node's own "cost"). Small stat "steps" (x/3, x/5) are
+## bought a step at a time. A variant is two versions of one node: both owned once bought, one active (switched at the
+## ship's bunk). The Captain's nodes and a fruit's level-1 powers still come by themselves. Progression reads the
+## effects (same keys as SkillTree's, so the game's readers don't change).
 ##
 ## tree_def: {id, name, section, color, max_level, root, branches: [{name, nodes: [ids, big nodes then steps]}]}
 ## node_def: {id, name, kind, tree, branch (index, -1 the root), level, pos (tree space, y up is -), links, skill,
@@ -35,7 +37,7 @@ const HEADERS := {
 	"pistol": ["Pistol", "combat", Color(0.95, 0.75, 0.4), 30],
 	"unarmed": ["Unarmed", "combat", Color(1.0, 0.85, 0.6), 30],
 	"black_leg": ["Black Leg", "combat", Color(1.0, 0.45, 0.35), 30],
-	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 20],
+	"acrobatics": ["Acrobatics", "adventure", Color(0.61, 0.88, 0.54), 30],
 	"defense": ["Defense", "adventure", Color(0.91, 0.84, 0.68), 20],
 	"sea": ["Sailing", "adventure", Color(0.45, 0.8, 0.85), 20],
 	"swim": ["Swimming", "adventure", Color(0.4, 0.7, 1.0), 20],
@@ -50,7 +52,7 @@ const HEADERS := {
 
 ## Where a branch's big nodes sit (tree space, the root at 0,0): the left and right branches lean out, the middle
 ## one goes straight up. A step sits off the node it hangs on.
-const LEFT := [Vector2(-120, -78), Vector2(-192, -162), Vector2(-252, -248), Vector2(-300, -336), Vector2(-336, -420), Vector2(-362, -500)]
+const LEFT := [Vector2(-120, -78), Vector2(-192, -162), Vector2(-252, -248), Vector2(-300, -336), Vector2(-336, -420), Vector2(-362, -500), Vector2(-380, -580), Vector2(-392, -660)]
 const MID_STEP := 84.0
 const STEP_OFF := {0: [Vector2(-84, -28), Vector2(-64, 40)], 1: [Vector2(76, -30), Vector2(-76, -30)], 2: [Vector2(84, -28), Vector2(64, 40)],
 	-1: [Vector2(72, -18), Vector2(-72, -18), Vector2(104, 34), Vector2(-104, 34)]}
@@ -78,6 +80,13 @@ const GROWTH := {"max_hp": 5.5, "damage_pct": 0.02, "max_stamina": 0.6, "max_ene
 ## Will milestones: id -> [the boss that teaches it (Progression.boss_kind), the Wills it needs first].
 const WILL := {"h_arm": ["morrow", []], "h_coat": ["ape", ["h_arm"]], "h_obs": ["queen", ["h_arm"]], "h_fore": ["arena", ["h_arm"]],
 	"h_conq": ["sea_king", ["h_arm", "h_coat", "h_obs", "h_fore"]]}
+
+## A node's price by kind, plus a point for every 10 levels of its gate (a step: 1 a step); Adventure's are cheaper.
+## Nodes that became others (an old save's purchase is bought back as the new one, same gate and price): the fists'
+## wrestling moves went in 1.18.4.
+const RENAMED := {"u_suplex": "u_cannon", "u_swing": "u_meteor_fist"}
+const PRICE := {"move": 2, "mech": 2, "tech": 3, "passive": 3, "variant": 4, "elem": 5, "ult": 8}
+const PRICE_ADVENTURE := {"move": 1, "mech": 1, "tech": 2, "passive": 2, "variant": 2, "elem": 3, "ult": 4}
 
 static var _trees: Dictionary = {}
 static var _nodes: Dictionary = {}
@@ -124,6 +133,29 @@ static func section_of(tree: String) -> String:
 
 static func max_level(tree: String) -> int:
 	return int(HEADERS[tree][3])
+
+
+## The points a tree's nodes are bought with: "combat" (weapons and the fruit), "adventure", "" (the Captain).
+static func pool_of(tree: String) -> String:
+	match section_of(tree):
+		"combat", "fruit":
+			return "combat"
+		"adventure":
+			return "adventure"
+	return ""
+
+
+## A node's price in its pool's points (a step's is per step); 0 for one that isn't bought.
+static func price(id: String) -> int:
+	var n := node_def(id)
+	if n.has("cost"):
+		return int(n["cost"])
+	if n["kind"] == "step":
+		return 1
+	var base: Dictionary = PRICE_ADVENTURE if section_of(str(n["tree"])) == "adventure" else PRICE
+	if not base.has(n["kind"]) or pool_of(str(n["tree"])) == "":
+		return 0
+	return int(base[n["kind"]]) + int(n["level"]) / 10
 
 
 ## Every node of a tree (root, big nodes, steps, versions).
@@ -215,7 +247,7 @@ static func _big(id: String, name_: String, kind: String, branch: int, level: in
 
 
 ## A variant: two versions of one node (each [id, name, level, effects, desc, skill]), the first active by default.
-static func _variant(id: String, name_: String, branch: int, versions: Array, desc: String = "") -> void:
+static func _variant(id: String, name_: String, branch: int, versions: Array, desc: String = "") -> Dictionary:
 	var lv := 99
 	for v in versions:
 		lv = mini(lv, int(v[2]))
@@ -225,6 +257,16 @@ static func _variant(id: String, name_: String, branch: int, versions: Array, de
 		var vn := _node(v[0], v[1], "version", branch, int(v[2]), v[3], str(v[4]), sk, [id], n["pos"])
 		vn["parent"] = id
 		n["versions"].append({"id": v[0], "name": v[1], "desc": vn["desc"], "level": int(v[2]), "effects": v[3], "skill": sk})
+	return n
+
+
+## The picture a node without a skill shows on the tree (Skills.icon(icon): gen_psx_textures.py "moves").
+static func _icon(id: String, icon: String) -> void:
+	_nodes[id]["icon"] = icon
+	if _nodes[id].has("parent"):
+		for v in _nodes[_nodes[id]["parent"]]["versions"]:
+			if v["id"] == id:
+				v["icon"] = icon
 
 
 ## A step node (bought a step at a time, `max_steps` of them), hanging off big node `on`; its effects are per step.
@@ -307,10 +349,38 @@ static func _build_acrobatics() -> void:
 	_root("ac_root", "Acrobatics", {}, "Jump, dodge and sprint to build it: air jumps and dodges count most.")
 	_big("m_geppo", "Geppo", "mech", 0, 2, {"air_jumps": 1}, "Kick off the air itself: a second jump in mid-air.")
 	_big("m_skywalk", "Sky Walk", "mech", 0, 9, {"air_jumps": 1}, "One more jump in mid-air (three in all).")
-	_big("ac_feather", "Featherfall", "mech", 0, 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing.")
+	_big("ac_breakfall", "Breakfall", "move", 0, 12, {"breakfall": 1},
+		"Knocked flying by a heavy blow, or tumbling from a long fall: press jump in the air to right yourself and come down on your feet.")
+	# (the landing variant keeps Featherfall's old id, so a save that bought it owns the variant)
+	_variant("ac_feather", "Landing", 0, [
+		["ac_featherfall", "Featherfall", 15, {"featherfall": 1}, "Falls hurt a quarter as much, with no stumble on landing."],
+		["ac_crash", "Crash Landing", 15, {"crash_landing": 1},
+			"Come down hard from a long drop and you land on one knee and a fist: the ground cracks and the foes round you are thrown off their feet. The fall hurts you half as much, with no stumble."]],
+		"Two ways to come down. Both are yours; pick the one you carry at the ship's bunk.")
+	_big("ac_skydash", "Skyward Dash", "move", 0, 18, {"skyward_dash": 1},
+		"Righted in mid-air (Breakfall, or an air step out of a tumble): dodge for an air dash, and two more air steps. Enough to get back aboard after a blow throws you off the ship.")
+	_big("ac_moonstep", "Moonstep", "move", 0, 20, {"moonstep": 1},
+		"In mid-air, dodge to stamp both feet down on the air itself and burst straight up, far higher than an air step (once a jump, 18 stamina).")
+	_icon("ac_featherfall", "move_featherfall")
+	_icon("ac_crash", "move_crash")
+	_icon("ac_moonstep", "move_moonstep")
+	_big("ac_skyleap", "Sky Leap", "move", 0, 22, {"sky_leap": 1},
+		"Stand still and hold jump: Will hardens your legs, then let go to leap 25 m into the sky (40 stamina; a shorter hold, a shorter leap). You land in a crater, unhurt, with your air steps still to use.")
+	_big("ac_heavenward", "Heavenward", "move", 0, 28, {"heavenward": 1},
+		"Sky Leap's full charge carries you 20 m higher and 4 m further (50 stamina): 60 m with Haki Legs.")
 	_big("m_swift", "Swift Step", "mech", 1, 4, {"dodge_cost_pct": 0.4, "dodge_dist_pct": 0.3, "dodge_iframe_pct": 0.5},
 		"Your dodge costs 40% less stamina, carries you 30% further and leaves you untouchable 50% longer.")
+	_variant("ac_dodge", "Dodge Style", 1, [
+		["ac_roll", "Roll", 7, {"dodge_roll": 1}, "Your dodge is a tumbling roll: you turn into it and go under the blow, further and untouchable longer, a beat slower to come up."],
+		["ac_sidestep", "Sidestep", 7, {"dodge_sidestep": 1},
+			"Your dodge is a short, sharp slip aside: cheaper and quicker to strike out of, and slipping a blow as it lands makes your next hit land 50% harder."]],
+		"Two ways to get out of the way. Both are yours; pick the one you carry at the ship's bunk.")
 	_big("ac_fleet", "Fleetfoot", "mech", 1, 12, {"move_pct": 0.06, "sprint_pct": 0.08}, "+6% movement speed, +8% sprint speed.")
+	_big("ac_afterimage", "Afterimage", "move", 1, 18, {"afterimage": 1},
+		"Your dodge leaves a copy of you standing where you were, and the foes coming for you swing at it instead (once every 6 s).")
+	_icon("ac_roll", "move_roll")
+	_icon("ac_sidestep", "move_sidestep")
+	_icon("ac_afterimage", "move_afterimage")
 	_big("m_sprinter", "Long Stride", "mech", 2, 3, {"sprint_cost_pct": 0.35, "sprint_pct": 0.1}, "Sprinting burns 35% less stamina and you sprint 10% faster.")
 	_big("ac_bound", "Sprint Jump", "mech", 2, 6, {"sprint_jump_pct": 0.5}, "A sprint's long bound costs half the stamina.")
 	_big("ac_sure", "Sure Footing", "mech", 2, 10, {"stamina_regen_pct": 0.1}, "Stamina refills 10% faster.")
@@ -320,16 +390,31 @@ static func _build_acrobatics() -> void:
 	_step("ac_hang", "Hang Time", "m_skywalk", 3, {"dodge_iframe_pct": 0.08}, "Untouchable 8% longer in a dodge, a step.")
 	_step("ac_spring", "Spring", "m_sprinter", 3, {"sprint_cost_pct": 0.05}, "Sprinting burns 5% less stamina a step.")
 	_step("ac_wind", "Wind", "ac_bound", 3, {"max_stamina": 4.0}, "+4 max stamina a step.")
+	_step("ac_hakilegs", "Haki Legs", "ac_skyleap", 3, {"sky_leap_steps": 1}, "Sky Leap goes 5 m higher and 2 m further a step.")
+	_nodes["ac_hakilegs"]["level"] = 23
 
 
 static func _build_defense() -> void:
 	_tree("defense", ["Parry", "Guard", "Grit"])
 	_root("df_root", "Defense", {}, "Parry and block real blows to build it: a parry counts most.")
-	_big("df_clean", "Clean Parry", "mech", 0, 2, {"parry_all": 0.03, "parry_stamina": 10.0}, "A wider parry window, and a parry gives you 10 stamina back.")
+	_big("df_clean", "Clean Parry", "mech", 0, 2, {"parry_all": 0.03, "parry_stamina": 10.0, "clean_parry": 1},
+		"A wider parry window, and a parry gives you 10 stamina back. A perfect parry (caught the moment the guard goes up) staggers them longer and wide open.")
 	_big("v_iron", "Iron Body", "mech", 0, 8, {"defense": 10.0}, "+10 defense.")
 	_big("df_instinct", "Battle Instinct", "mech", 0, 12, {"evade_chance": 0.04, "parry_all": 0.02},
 		"4% of the blows that would hit you are slipped by instinct, and your parry window is wider still.")
+	_variant("df_perfect", "Perfect Parry", 0, [
+		["df_disarm", "Disarm", 16, {"parry_disarm": 1}, "A perfect parry twists the weapon out of their hand: it goes flying, and they can't attack or guard until they find another (7 s)."],
+		["df_shove", "Shove", 16, {"parry_shove": 1}, "A perfect parry turns into a shove that throws them off their feet."]],
+		"Two answers to a perfect parry (with Clean Parry). Both are yours; pick the one you carry at the ship's bunk.")
 	_big("df_brace", "Brace", "mech", 1, 3, {"block_cost_pct": 0.3}, "Blocking a blow costs 30% less stamina.")
+	_variant("df_guard", "Guard Style", 1, [
+		["df_rolling", "Rolling Guard", 7, {"rolling_guard": 1}, "Dodge behind your guard and you roll with it still up: blows from the front glance off mid-roll, and you come up guarding."],
+		["df_planted", "Planted", 7, {"guard_planted": 1}, "Your guard sinks into a wide, rooted stance: blows don't push you back and cost 30% less to block, but you shuffle slower behind it."]],
+		"Two ways to hold a guard. Both are yours; pick the one you carry at the ship's bunk.")
+	_icon("df_disarm", "move_disarm")
+	_icon("df_shove", "move_shove")
+	_icon("df_rolling", "move_rolling_guard")
+	_icon("df_planted", "move_planted")
 	_big("df_hold", "Hold the Line", "mech", 1, 11, {"block_move_pct": 0.5}, "Behind your guard you shuffle half again as fast.")
 	_big("df_wall", "Iron Wall", "mech", 1, 20, {"block_cost_pct": 0.3}, "Blocking costs another 30% less stamina.")
 	_big("v_steadfast", "Steadfast", "mech", 2, 4, {"steadfast": 1}, "Light hits no longer make you flinch.")
@@ -371,6 +456,12 @@ static func _build_swimming() -> void:
 	_root("swim_root", "Swimming", {}, "Swim to build it: every stretch of open water you cross counts.")
 	_big("sw_strokes", "Strong Strokes", "mech", 0, 2, {"swim_pct": 0.1}, "You swim 10% faster.")
 	_big("sw_born", "Sea Born", "mech", 0, 7, {"swim_pct": 0.15}, "You swim another 15% faster.")
+	_variant("sw_sprint", "Surface Sprint", 0, [
+		["sw_dolphin", "Dolphin Kick", 12, {"dolphin_kick": 1}, "Sprinting at the surface becomes the butterfly: 30% faster, with a surge of spray every half second, for 30% more stamina."],
+		["sw_glide", "Long Glide", 12, {"long_glide": 1}, "Sprinting at the surface is a stroke and a long streamlined glide: a touch faster, for half the stamina."]],
+		"Two ways to sprint on top of the water. Both are yours; pick the one you carry at the ship's bunk.")
+	_icon("sw_dolphin", "move_dolphin")
+	_icon("sw_glide", "move_glide")
 	_big("sw_lungs", "Deep Lungs", "mech", 1, 4, {"max_stamina": 10.0, "breath_pct": 0.5}, "You hold your breath half as long again on a dive, and +10 max stamina.")
 	_big("sw_wind", "Catch Your Breath", "mech", 1, 10, {"stamina_regen_pct": 0.1, "breath_refill_pct": 1.0},
 		"Stamina refills 10% faster, and your breath comes back twice as fast at the surface.")
@@ -469,6 +560,8 @@ static func _build_cutlass() -> void:
 	_big("s_deflect", "Arrow Cutting", "mech", 0, 3, {"parryshot_sword": 1, "parry_sword": 0.06},
 		"Parry with a cutlass and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("s_riposte", "Riposte", "tech", 0, 8, {}, "", "riposte")
+	_big("s_guard2", "Easy Guard", "mech", 0, 15, {"guard2_sword": 1},
+		"A second guard: stood tall and easy, the blade hanging loose out at your side, a thumb in your sash. Double-tap block to switch between it and the swashbuckler's guard; your cuts come out of either.")
 	_big("s_return", "Return to Sender", "mech", 0, 20, {"deflect_sword": 1, "return_sword": 1, "deflect_cd_sword": 1.0},
 		"With a cutlass drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
 	_big("s_flying", "Flying Slash", "tech", 1, 4, {}, "", "flying_slash")
@@ -502,8 +595,15 @@ static func _build_katana() -> void:
 	# Guard
 	_big("k_deflect", "Cut the Shot", "mech", 0, 3, {"parryshot_katana": 1, "parry_katana": 0.06},
 		"Parry with a katana and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
-	_big("k_counter", "Iai Counter", "tech", 0, 8, {}, "", "iai_counter")
+	# (Iai Counter, Wind Severer and the air attack became variants in 1.18.4: the first version is the old node, kept
+	# owned and active in old saves; the price stays the old node's)
+	_variant("k_counter", "Iai Counter", 0, [
+		["k_drawcut", "Draw Cut", 8, {}, "", "iai_counter"],
+		["k_sidestep", "Side Step", 8, {}, "", "side_step"]],
+		"Two ways to meet a blow from the scabbard. Both are yours; pick the one you carry at the ship's bunk.")["cost"] = 3
 	_big("k_phantom", "Phantom Step", "tech", 0, 14, {}, "", "phantom_step")
+	_big("k_guard2", "Waki Guard", "mech", 0, 15, {"guard2_katana": 1},
+		"A second guard: side on and low, the blade held back behind the right hip, its length hidden from the foe. Double-tap block to switch between it and the middle guard; your cuts come out of either.")
 	_big("k_return", "Bullet Return", "mech", 0, 20, {"deflect_katana": 1, "return_katana": 1, "deflect_cd_katana": 1.0},
 		"With a katana drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
 	# Iai
@@ -520,9 +620,15 @@ static func _build_katana() -> void:
 	# Blade
 	_big("k_draw", "Quick Draw", "move", 2, 2, {"mv_quick_draw": 1},
 		"Attack at a sprint: a quick cut straight out of the scabbard that breaks wind-ups.")
-	_big("k_wind", "Wind Severer", "tech", 2, 5, {}, "", "wind_sever")
-	_big("k_arc", "Crescent Arc", "move", 2, 7, {"mv_air_slash": 1},
-		"Attack in the air: a little lift and one big arc swept down under you (once per jump).")
+	_variant("k_wind", "Wind Severer", 2, [
+		["k_tower", "Towering Wave", 5, {}, "", "wind_sever"],
+		["k_twin", "Twin Waves", 18, {}, "", "twin_waves"]],
+		"Two ways to send the wind. Both are yours (Twin Waves from mastery 18); pick the one you carry at the ship's bunk.")["cost"] = 3
+	_variant("k_arc", "Air Cut", 2, [
+		["k_crescent", "Crescent Arc", 7, {"mv_air_slash": 1}, "Attack in the air: a little lift and one big arc swept down under you (once per jump)."],
+		["k_moon", "Falling Moon", 15, {"mv_falling_moon": 1}, "Attack in the air: the blade raised, one turn over forward with it held out (the point draws a full moon), a dive, and a crescent run out along the ground ahead that knocks everyone on it flat (once per jump)."]],
+		"Two ways to cut from the air. Both are yours (Falling Moon from mastery 15); pick the one you carry at the ship's bunk.")["cost"] = 2
+	_icon("k_moon", "falling_moon")
 	_big("k_clean", "Clean Line", "passive", 2, 13, {"heavy_katana": 0.3, "exec_katana": 0.5},
 		"Passive (a slot). Your iai cuts 30% deeper, and a cut that leaves them under 30% health deals 50% more on top.")
 	_big("k_calm", "Empty Mind", "passive", 2, 22, {"cdr_katana": 0.25},
@@ -545,6 +651,8 @@ static func _build_dual() -> void:
 	_big("d_deflect", "Twin Deflect", "mech", 0, 3, {"parryshot_dual": 1, "parry_dual": 0.06},
 		"Parry with two blades and you cut gunshots out of the air too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("d_counter", "Crossed Counter", "tech", 0, 8, {}, "", "cross_counter")
+	_big("d_guard2", "Wings", "mech", 0, 15, {"guard2_dual": 1},
+		"A second guard: pitched down and forward over a deep crouch, both arms swept back with the blades like half-folded wings. Double-tap block to switch between it and the paired guard; your cuts come out of either.")
 	_big("d_return", "Ricochet Steel", "mech", 0, 20, {"deflect_dual": 1, "return_dual": 1, "deflect_cd_dual": 1.0},
 		"With both blades drawn, a shot from the front is cut down by itself (once every 3 s), and every shot you cut flies back at whoever fired it, twice as hard.")
 	_big("d_dance", "Blade Dance", "tech", 1, 5, {}, "", "blade_dance")
@@ -577,6 +685,8 @@ static func _build_axe() -> void:
 	_big("a_throw", "Hatchet Throw", "tech", 0, 3, {}, "", "axe_throw")
 	_big("a_split", "Earthsplitter", "tech", 0, 9, {}, "", "earthsplitter")
 	_big("a_sunder", "Sunder", "mech", 0, 14, {"unblock_axe": 1}, "Your heavy attacks can't be blocked.")
+	_big("a_guard2", "Bearded Guard", "mech", 0, 15, {"guard2_axe": 1},
+		"A second guard: choked up two-handed across the front, the head up by the left shoulder, and a block on the haft in both hands. Double-tap block to switch between it and the brawler's guard; your combo comes out of either.")
 	_big("a_unstop", "Unstoppable", "mech", 1, 6, {"armor_axe": 1}, "Mid-swing with an axe, blows don't make you flinch or knock you off your feet.")
 	_big("a_berserk", "Berserk", "tech", 1, 11, {}, "", "berserk")
 	_elem(1)
@@ -607,6 +717,8 @@ static func _build_dagger() -> void:
 	_big("dg_deflect", "Flick the Shot", "mech", 0, 3, {"parryshot_dagger": 1, "evade_dagger": 0.08},
 		"Parry with a dagger and you flick gunshots aside too (without it, a parry only stops blades), and 8% of the blows that would hit you are slipped by instinct.")
 	_big("dg_slip", "Slip", "tech", 0, 8, {}, "", "slip")
+	_big("dg_guard2", "Hidden Knife", "mech", 0, 15, {"guard2_dagger": 1},
+		"A second guard: stood easy, the dagger held low at the back of your hip, the free hand out open. Double-tap block to switch between it and the knife fighter's crouch; your cuts come out of either.")
 	_big("dg_return", "Knife in the Dark", "mech", 0, 20, {"deflect_dagger": 1, "return_dagger": 1, "deflect_cd_dagger": 1.0},
 		"With a dagger drawn, a shot from the front is flicked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("dg_fan", "Knife Fan", "tech", 1, 5, {}, "", "knife_fan")
@@ -644,6 +756,7 @@ static func _build_polearm() -> void:
 	_big("pl_vstrike", "Vaulting Strike", "tech", 0, 8, {}, "", "vault_strike")
 	_big("pl_bearing", "Emperor's Bearing", "mech", 0, 10, {"plant_polearm": 1},
 		"A master's ease: stand still with a polearm drawn and nothing happening for a few seconds, and you plant its butt on the ground beside you, the pole upright in one hand, chest out. Anything you do comes straight out of it.")
+	_big("pl_windmill", "Windmill Guard", "tech", 0, 14, {}, "", "windmill_guard")
 	_big("pl_return", "Spear Wall", "mech", 0, 20, {"deflect_polearm": 1, "return_polearm": 1, "deflect_cd_polearm": 1.0},
 		"With a polearm drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("pl_thrusts", "Hundred Thrusts", "tech", 1, 5, {}, "", "hundred_thrusts")
@@ -658,6 +771,7 @@ static func _build_polearm() -> void:
 		"Attack at a sprint: drop into a kneeling slide and sweep the head through their shins. It breaks their wind-up and puts them on the ground.")
 	_big("pl_fall", "Falling Spear", "move", 2, 9, {"mv_falling_spear": 1},
 		"Attack in the air: the spear raised overhead, point down, then a straight drop onto it and a ring off the landing that knocks everyone close flat (once per jump).")
+	_big("pl_javelin", "Thunder Javelin", "tech", 2, 12, {}, "", "thunder_javelin")
 	_big("pl_long", "Long Reach", "passive", 2, 13, {"finisher_polearm": 0.3, "heavy_polearm": 0.25},
 		"Passive (a slot). The last blow of your combo lands 30% harder, and your Skewer (right-click) 25%.")
 	_variant("pl_way", "Lancer's Way", 2, [
@@ -682,6 +796,7 @@ static func _build_hammer() -> void:
 	_big("hm_deflect", "Iron Wall", "mech", 0, 3, {"parryshot_hammer": 1, "parry_hammer": 0.06},
 		"Parry with a hammer and you swat gunshots aside with the head too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("hm_skull", "Skullcracker", "tech", 0, 8, {}, "", "skullcracker")
+	_big("hm_anvil_c", "Anvil Counter", "tech", 0, 14, {}, "", "anvil_counter")
 	_big("hm_unstop", "Immovable", "mech", 0, 20, {"armor_hammer": 1, "def_hammer": 6.0},
 		"Mid-swing with a hammer, blows don't make you flinch or knock you off your feet, and you have 6 more defense with one in hand.")
 	_big("hm_quakes", "Rolling Quake", "tech", 1, 5, {}, "", "rolling_quake")
@@ -695,6 +810,7 @@ static func _build_hammer() -> void:
 		"Attack at a sprint: drag the head low behind you, then swing it up off the ground through them. It breaks their wind-up and throws them down.")
 	_big("hm_fall", "Hammerfall", "move", 2, 6, {"mv_hammerfall": 1},
 		"Attack in the air: heave the hammer up overhead and drop with it; landing drives it into the ground in a shockwave that knocks everyone close flat (once per jump).")
+	_big("hm_drive", "Cannonball Swing", "tech", 2, 12, {}, "", "cannonball_swing")
 	_big("hm_after", "Aftershock", "passive", 2, 13, {"finisher_hammer": 0.3, "heavy_hammer": 0.25},
 		"Passive (a slot). The last blow of your combo lands 30% harder, and your Earthquake (right-click) 25%.")
 	_variant("hm_way", "Smith's Way", 2, [
@@ -795,6 +911,8 @@ static func _build_dual_dagger() -> void:
 	_big("dd_deflect", "Crossed Knives", "mech", 0, 3, {"parryshot_dual_dagger": 1, "evade_dual_dagger": 0.08},
 		"Parry with two daggers and you knock gunshots aside too (without it, a parry only stops blades), and 8% of the blows that would hit you are slipped by instinct.")
 	_big("dd_edge", "Bleeding Edge", "tech", 0, 8, {}, "", "bleeding_edge")
+	_big("dd_guard2", "Viper", "mech", 0, 15, {"guard2_dual_dagger": 1},
+		"A second guard: sunk low and side on, one dagger reared up by your face with its point down at them like a fang, the other low ahead. Double-tap block to switch between it and the low cross; your cuts come out of either.")
 	_big("dd_return", "Knives Back", "mech", 0, 20, {"deflect_dual_dagger": 1, "return_dual_dagger": 1, "deflect_cd_dual_dagger": 1.0},
 		"With both daggers drawn, a shot from the front is knocked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("dd_viper", "Viper Flurry", "tech", 1, 5, {}, "", "viper_flurry")
@@ -890,29 +1008,29 @@ static func _build_pistol() -> void:
 
 
 static func _build_unarmed() -> void:
-	_tree("unarmed", ["Grapple", "Martial", "Body"])
-	_root("u_root", "Unarmed", {}, "Bare-handed brawling: jab, cross, hook and a flying kick. Fight with your fists to build unarmed mastery.")
+	_tree("unarmed", ["Power", "Martial", "Body"])
+	_root("u_root", "Unarmed", {}, "Bare-handed boxing: jab, cross and hook, each out of the last, and on right-click a huge overhand haymaker that knocks them flat. Fight with your fists to build unarmed mastery.")
 	_big("u_hip", "Shoulder Throw", "tech", 0, 3, {}, "", "hip_toss")
-	_big("u_landing", "Heavy Landing", "mech", 0, 9, {"throw_splash": 1, "skill_unarmed": 0.25},
-		"Anyone you throw lands like a cannonball: everyone near where they land is knocked flat and hurt. Your grapples and martial arts hit 25% harder.")
-	_big("u_suplex", "Suplex", "tech", 0, 12, {}, "", "suplex")
-	_big("u_swing", "Giant Swing", "tech", 0, 18, {}, "", "giant_swing")
+	_big("u_landing", "Heavy Landing", "mech", 0, 9, {"throw_splash": 1, "dmg_unarmed": 0.25},
+		"Anyone your haymaker or a throw knocks flat lands like a cannonball: everyone near where they come down is knocked flat and hurt. Your punches hit 25% harder.")
+	_big("u_cannon", "Cannonball Fist", "tech", 0, 12, {}, "", "cannonball_fist")
+	_big("u_meteor_fist", "Meteor Fist", "tech", 0, 18, {}, "", "meteor_fist")
 	_big("u_palm", "Shockwave Palm", "tech", 1, 4, {}, "", "palm_strike")
 	_big("u_dragon", "Rising Dragon", "tech", 1, 8, {}, "", "rising_dragon")
 	_big("u_hundred", "Hundred Fists", "tech", 1, 13, {}, "", "hundred_fists")
 	_elem(1)
 	_elem(2)
 	_big("u_seaking", "Sea King Fist", "ult", 1, 30, {}, "", "sea_king_fist")
-	_big("u_round", "Roundhouse", "move", 2, 2, {"mv_roundhouse": 1}, "Adds a fourth hit to your punch combo: a spinning roundhouse kick.")
-	_big("u_meteor", "Meteor Kick", "move", 2, 6, {"mv_meteor_kick": 1},
-		"Attack in the air: a dive kick at the enemy you're looking at that knocks them flat and bounces you back up for another (three in a row); a miss slams the ground.")
+	_big("u_round", "Uppercut", "move", 2, 2, {"mv_roundhouse": 1}, "Adds a fourth hit to your punch combo: a dipping rear uppercut that lifts them off their feet.")
+	_big("u_meteor", "Diving Fist", "move", 2, 6, {"mv_meteor_kick": 1},
+		"Attack in the air: dive fist-first at the enemy you're looking at, a punch that knocks them flat and bounces you back up for another (three in a row); a miss drives the fist into the ground.")
 	_big("u_ironbody", "Iron Body", "passive", 2, 11, {"def_unarmed": 8.0, "parry_unarmed": 0.06}, "Passive (a slot). Fighting bare-handed: +8 defense and a wider parry window.")
 	_big("u_chi", "Chi", "passive", 2, 15, {"flow_unarmed": 0.5, "leech_unarmed": 0.06}, "Passive (a slot). Unarmed hits give 50% more energy and heal you for 6% of their damage.")
 	_big("u_finish", "Finishing Blow", "passive", 2, 22, {"finisher_unarmed": 0.4, "cdr_unarmed": 0.2},
 		"Passive (a slot). The last hit of your combo lands 40% harder, and unarmed techniques come back 20% sooner.")
 	_step("u_knuckles", "Iron Knuckles", "u_root", 5, {"dmg_unarmed": 0.05}, "+5% unarmed damage a step.")
-	_step("u_grip", "Grip", "u_hip", 3, {"skill_unarmed": 0.06}, "Your grapples and martial arts hit 6% harder a step.")
-	_step("u_skin", "Stone Skin", "u_suplex", 3, {"def_unarmed": 2.0}, "+2 defense bare-handed a step.")
+	_step("u_grip", "Grip", "u_hip", 3, {"skill_unarmed": 0.06}, "Your fist techniques hit 6% harder a step.")
+	_step("u_skin", "Stone Skin", "u_cannon", 3, {"def_unarmed": 2.0}, "+2 defense bare-handed a step.")
 	_step("u_points", "Pressure Points", "u_elem", 5, {"crit_unarmed": 0.03}, "3% more of your unarmed hits land 50% harder, a step.")
 	_step("u_hands", "Heavy Hands", "u_hundred", 5, {"finisher_unarmed": 0.06}, "The last hit of your combo lands 6% harder a step.")
 	_step("u_feet", "Light Feet", "u_round", 3, {"stam_unarmed": 0.07}, "Unarmed attacks cost 7% less stamina a step.")

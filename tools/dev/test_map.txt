@@ -55,6 +55,10 @@ scripts/game/petal_ribbon.gd            t/fx t/combat katanatest techtest
 scripts/game/katana_fx.gd               t/fx t/combat katanatest techtest
 scripts/game/blade_petals.gd            t/fx
 scripts/npc/katana_moves.gd             t/combat katanatest techtest
+scripts/npc/axe_moves.gd                t/combat axetest techtest
+scripts/game/drawn_fx.gd                t/fx t/combat katanatest axetest techtest
+assets/textures/fx/axe_trail*           t/fx t/combat
+assets/textures/fx/ember_trail*         t/fx t/combat
 scripts/game/duel.gd                    t/coop net
 scripts/ui/player_menu.gd               t/coop net
 scripts/ui/inspect_panel.gd             t/coop
@@ -301,6 +305,12 @@ scripts/player_states/greatsword_arts.gd t/weapons
 scripts/npc/black_leg_moves.gd          t/weapons
 scripts/player_states/black_leg_arts.gd t/weapons
 data/dialogue/gus.json                  t/weapons
+scripts/npc/stance_life.gd              t/weapons/cutlass_carry t/weapons/pistol_low_ready
+scripts/npc/sword_moves.gd              t/weapons/cutlass_block t/combat/cutlass_combo t/combat/slash_dummy
+scripts/player_states/block_state.gd    t/weapons/cutlass_block
+scripts/player_states/parry_state.gd    t/weapons/cutlass_block
+scripts/npc/fist_moves.gd               t/weapons
+scripts/player_states/fist_arts.gd      t/weapons techtest
 scripts/player_states/jump_state.gd     t/player invtest
 scripts/player_states/fall_state.gd     t/player
 scripts/npc/body_builder.gd             cliptest
@@ -485,3 +495,14 @@ scripts/props/buildings.gd              t/capital/occluders
 scripts/world/sky_birds.gd              t/world/sky_long_tail
 scripts/world/sea_spray.gd              t/world/sky_long_tail
 scripts/game/dev_capture.gd             t/world/sky_long_tail
+scripts/npc/hammer_moves.gd             t/weapons/hammer_heavy_clear t/weapons/hammer_combo
+scripts/game/blade_embers.gd            t/fx
+scripts/game/drawn_fx.gd                t/fx t/combat
+assets/textures/fx/axe_trail*           t/fx t/combat
+assets/textures/fx/ember_trail*         t/fx t/combat
+scripts/npc/axe_moves.gd                t/combat t/weapons
+scripts/player_states/mastered_guard.gd t/weapons
+scripts/game/blade_aura.gd              t/fx
+tools/texture_gen/gen_drawn_fx.py       t/fx
+scripts/npc/wield_moves.gd              t/weapons
+scripts/npc/dagger_moves.gd             t/weapons

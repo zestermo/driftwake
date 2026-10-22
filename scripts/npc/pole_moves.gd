@@ -12,9 +12,9 @@ class_name PoleMoves
 const GUARD_GRIP := [Vector3(0.05, -0.44, -0.3), Vector3(-0.5, 0.36, -0.79), Vector3(0, -1, 0), 0.46]
 ## The pole vault's way down: the spear trailed low behind in the right hand, the head back, the left arm free.
 const TRAIL_GRIP := [Vector3(0.3, -0.5, 0.02), Vector3(0.12, -0.3, 0.95), Vector3(0, -1, 0), -1.0]
-## Running (above a walk, not backing off) and sprinting: one hand, low at the right side, the head out ahead and
-## angled down toward the ground in front, the left arm free to pump.
-const RUN_GRIP := [Vector3(0.32, -0.5, -0.12), Vector3(0.12, -0.3, -0.95), Vector3(0, -1, 0), -1.0]
+## Running (above a walk, not backing off) and sprinting: port arms, both hands on it slanted across the front, the
+## right low by the hip, the left before the chest, the head up past the left shoulder.
+const RUN_GRIP := [Vector3(0.26, -0.48, -0.22), Vector3(-0.74, 0.64, -0.18), Vector3(0, 0, -1), 0.5]
 ## Emperor's Bearing (planted): the right hand high on the shaft out at the side, the pole upright and leaning out a
 ## little, its butt on the ground beside the right foot (hands() slides the shaft down through the hand to reach it).
 const PLANT_GRIP := [Vector3(0.56, -0.06, -0.04), Vector3(0.12, 0.99, -0.03), Vector3(1, 0, 0), -1.0]
@@ -48,10 +48,14 @@ const BLOCK := {"hips": Vector3(0, -0.15, 0), "torso": Vector3(-0.1, -0.1, 0), "
 ## Actions the grip holds through (anything else: the hands do what that action keys, the spear in the right).
 const HELD := ["parry", "guard_block", "guard_block_hit", "hit", "stagger", "dash", "roll", "flip", "jump_stand", "jump_run", "jump_sprint",
 	"double_jump", "plunge_air", "plunge_land"]
+## Mastered guards held only standing: their weapon's own parry, block, dodges and jumps play as they always did.
+const ONE_HAND_GUARDS := ["sword", "katana", "dagger"]
 ## How hard the grip chases its keys (the guard's softer).
 const SHARP := 34.0
 const SHARP_IDLE := 16.0
 const SHARP_PLANT := 9.0
+## Windmill Guard's turn rate (rad/s).
+const WINDMILL_SPIN := 18.0
 
 # action-key legs
 const SET := {"leg_l": Vector3(0.5, 0, -0.18), "shin_l": Vector3(-0.75, 0, 0), "leg_r": Vector3(-0.4, 0, 0.18), "shin_r": Vector3(-0.45, 0, 0)}
@@ -68,6 +72,13 @@ static func _k(body: Dictionary, grip: Array) -> Dictionary:
 	out["_gd"] = grip[1]
 	out["_ge"] = grip[2]
 	out["_gs"] = Vector3(float(grip[3]), 0, 0)
+	return out
+
+
+## A key with the shaft slid `shift` m back through the right hand (held nearer its middle).
+static func _ks(body: Dictionary, grip: Array, shift: float) -> Dictionary:
+	var out := _k(body, grip)
+	out["_gs"] = Vector3(float(grip[3]), shift, 0)
 	return out
 
 
@@ -102,6 +113,7 @@ static func pose(h, n: String, u: float) -> Array:
 static func take_grip(h, res: Array) -> Array:
 	var p: Dictionary = res[0]
 	h.pole_grip = [p["_gr"], p["_gd"], p["_ge"], (p["_gs"] as Vector3).x]
+	h.pole_shift = (p["_gs"] as Vector3).y
 	h.pole_set = true
 	for c in ["_gr", "_gd", "_ge", "_gs"]:
 		p.erase(c)
@@ -237,32 +249,47 @@ static func _pose(h, n: String, u: float) -> Array:
 				[Vector3(0.12, -0.36, 0.0), Vector3(-0.33, 0.38, -0.88), Vector3(0, -1, 0), 0.52])
 			var pz: Dictionary = h._keys(u, [[0.0, g], [0.07 / T, lunge, "out"], [0.82 / T, lunge], [1.0, g]])
 			if s > 0.06 and s < 0.82:
+				# (each thrust driven from the back foot: the hips and the right shoulder turn into it and the body
+				# drops and pitches onto the front knee, then draws back for the next)
 				var x := (s - 0.14) / 0.1
 				var ext := clampf(1.0 - absf(x - roundf(x)) * 2.4, 0.0, 1.0)
 				var deep := 1.15 if s > 0.68 else 1.0
 				pz["_gr"] = Vector3(0.12, -0.36, 0.0).lerp(Vector3(-0.04, -0.27, -0.52 * deep), ext)
 				pz["_gs"] = Vector3(lerpf(0.52, 0.2, ext), 0, 0)
 				pz["_smear"] = Vector3(0.1 * ext, 0, 0)
-				pz["torso"] = (pz["torso"] as Vector3) + Vector3(-0.08 * ext, 0.12 * ext, 0)
+				pz["_scale"] = Vector3(1.0 - 0.03 * ext, 1.0, 1.0 + 0.06 * ext * deep)
+				pz["torso"] = (pz["torso"] as Vector3) + Vector3(-0.12 * ext, 0.24 * ext * deep, 0)
+				pz["hips"] = (pz["hips"] as Vector3) + Vector3(0, 0.16 * ext * deep, 0)
+				pz["pivot"] = (pz["pivot"] as Vector3) + Vector3(-0.07 * ext * deep, 0, 0)
+				pz["head"] = (pz["head"] as Vector3) + Vector3(0.08 * ext, -0.2 * ext * deep, 0)
+				pz["shin_l"] = (pz["shin_l"] as Vector3) + Vector3(-0.18 * ext, 0, 0)
+				pz["_lift"] = (pz["_lift"] as Vector3) + Vector3(0, -0.05 * ext * deep, 0)
 			return [pz, "full", Vector3.ZERO]
 		"pole_dragon":
-			# Dragon Sweep: dropped onto the back knee with the spear out low to the left, then the whole body turned
-			# round twice behind it, the head skimming the ground
-			var kneel := {"leg_l": Vector3(1.1, 0, -0.3), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(-0.4, 0, 0.3), "shin_r": Vector3(-1.85, 0, 0)}
+			# Dragon Sweep: sunk into a wide low horse stance with the spear out low to the left, then the whole body
+			# turned round twice behind it (0.2 s to 0.95 s, a hit at the end of each turn), the head skimming the shins
+			var T: float = float(h._action.get("dur", 1.2))
+			var s := u * T
+			var horse := {"leg_l": Vector3(0.6, 0, -0.5), "shin_l": Vector3(-1.15, 0, 0), "leg_r": Vector3(-0.35, 0, 0.5), "shin_r": Vector3(-1.05, 0, 0)}
 			var low := _k({"pivot": Vector3(-0.12, 0, 0), "hips": Vector3(0, 0.1, 0), "torso": Vector3(-0.3, 0.1, 0), "head": Vector3(0.25, -0.1, 0),
-				"_lift": Vector3(0, -0.48, 0), "_scale": Vector3(1.05, 0.94, 1.0), "_smear": Vector3(0.08, 0, 0)}.merged(kneel),
+				"_lift": Vector3(0, -0.36, 0), "_scale": Vector3(1.05, 0.94, 1.0), "_smear": Vector3(0.08, 0, 0)}.merged(horse),
 				[Vector3(0.0, -0.3, -0.3), Vector3(-0.85, -0.22, -0.48), Vector3(-0.48, 0, 0.85), 0.42])
-			var pz: Dictionary = h._keys(u, [[0.0, g], [0.15, low, "out"], [0.8, low], [1.0, g]])
-			var k := clampf((u - 0.17) / 0.62, 0.0, 1.0)
+			var pz: Dictionary = h._keys(u, [[0.0, g], [0.18 / T, low, "out"], [0.96 / T, low], [1.0, g]])
+			var k := clampf((s - 0.2) / 0.75, 0.0, 1.0)
 			pz["pivot"] = Vector3(-0.12 * sin(k * PI), TAU * 2.0 * k, 0)
 			return [pz, "full", Vector3.ZERO]
 		"pole_vstrike":
-			# Vaulting Strike: crouched with the point planted, up and over with the knees tucked and the spear raised
-			# point down, driven straight down into them at the top, then down behind them
-			var T: float = float(h._action.get("dur", 1.0))
-			var plant := _k({"pivot": Vector3(-0.15, 0, 0), "hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.35, -0.1, 0), "head": Vector3(0.3, 0.1, 0),
+			# Vaulting Strike: the point planted in the ground ahead and the weight thrown onto it (0.14 s, the launch),
+			# up and over with the knees tucked and the spear raised point down, driven straight down into them at the
+			# top (0.54 s), then down behind them
+			var T: float = float(h._action.get("dur", 1.14))
+			var plant := _k({"pivot": Vector3(-0.22, 0, 0), "hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.35, -0.1, 0), "head": Vector3(0.3, 0.1, 0),
 				"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(1.04, 0.92, 1.0), "_smear": Vector3.ZERO}.merged(DEEP),
-				[Vector3(0.12, -0.38, -0.3), Vector3(-0.1, -0.7, -0.7), Vector3(0, 0, 1), 0.4])
+				[Vector3(0.14, -0.2, -0.34), Vector3(-0.05, -0.8, -0.6), Vector3(0, 0, 1), 0.36])
+			var spring := _k({"pivot": Vector3(-0.3, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.3, -0.05, 0), "head": Vector3(0.3, 0.05, 0),
+				"leg_l": Vector3(1.2, 0, -0.15), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(-0.2, 0, 0.15), "shin_r": Vector3(-0.3, 0, 0),
+				"_lift": Vector3(0, -0.1, 0), "_scale": Vector3(0.96, 1.06, 1.0), "_smear": Vector3.ZERO},
+				[Vector3(0.14, 0.05, -0.3), Vector3(-0.05, -0.92, -0.38), Vector3(0, 0, 1), 0.36])
 			var raise := _k({"pivot": Vector3(0.1, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(0.1, -0.1, 0), "head": Vector3(-0.05, 0.1, 0),
 				"leg_l": Vector3(1.5, 0, -0.15), "shin_l": Vector3(-2.05, 0, 0), "leg_r": Vector3(1.2, 0, 0.15), "shin_r": Vector3(-1.8, 0, 0),
 				"_lift": Vector3.ZERO, "_scale": Vector3(1.03, 0.94, 1.0), "_smear": Vector3.ZERO},
@@ -274,8 +301,8 @@ static func _pose(h, n: String, u: float) -> Array:
 			var land := _k({"pivot": Vector3(-0.15, 0, 0), "hips": Vector3(0, -0.2, 0), "torso": Vector3(-0.4, -0.2, 0), "head": Vector3(0.35, 0.2, 0),
 				"_lift": Vector3(0, -0.4, 0), "_scale": Vector3(1.05, 0.92, 1.03), "_smear": Vector3.ZERO}.merged(DEEP),
 				[Vector3(0.05, -0.38, -0.36), Vector3(-0.3, 0.1, -0.95), Vector3(0, -1, 0), 0.42])
-			return [h._keys(u, [[0.0, g], [0.1 / T, plant, "out"], [0.16 / T, plant], [0.3 / T, raise, "out"], [0.36 / T, raise], [0.42 / T, stab, "in"],
-				[0.52 / T, stab], [0.68 / T, land, "out"], [0.85 / T, land], [1.0, g]]), "full", Vector3.ZERO]
+			return [h._keys(u, [[0.0, g], [0.07 / T, plant, "out"], [0.13 / T, plant], [0.24 / T, spring, "out"], [0.42 / T, raise, "out"], [0.48 / T, raise],
+				[0.55 / T, stab, "in"], [0.66 / T, stab], [0.82 / T, land, "out"], [0.99 / T, land], [1.0, g]]), "full", Vector3.ZERO]
 		"pole_raijin":
 			# Raijin's Wheel: a crouch, up with the spear spun flat over the head like a wheel, down into a low wide
 			# stance turning round and round behind it, then up and the point driven into the ground
@@ -297,14 +324,66 @@ static func _pose(h, n: String, u: float) -> Array:
 				"_gr": Vector3(0.05, 0.25, -0.2), "_gd": Vector3(-0.05, -0.6, -0.8)}, true)
 			var pz: Dictionary = h._keys(u, [[0.0, g], [0.12 / T, crouch, "out"], [0.18 / T, crouch], [0.3 / T, air, "out"], [0.46 / T, air],
 				[0.56 / T, wheel, "out"], [1.66 / T, wheel], [1.74 / T, rise, "out"], [1.8 / T, slam, "in"], [2.15 / T, slam], [1.0, g]])
-			if s > 0.22 and s < 0.5:
-				var a := s * 26.0
+			if s > 0.2 and s < 0.5:
+				# (slow enough for the grip to follow: one turn, its trail drawn on the blade)
+				var a := (s - 0.2) * 21.0 - PI * 0.5
 				pz["_gd"] = Vector3(cos(a), 0.12, sin(a))
 				pz["_ge"] = Vector3(-sin(a), 0, cos(a))
 			if s >= 0.5 and s < 1.74:
 				# (two whole turns, so the body is square again when the slam begins)
 				pz["pivot"] = (pz["pivot"] as Vector3) + Vector3(0, (s - 0.5) / 1.24 * TAU * 2.0, 0)
 			return [pz, "full", Vector3.ZERO]
+		"pole_javelin":
+			# Thunder Javelin: the spear taken back over the right shoulder by its middle, the left arm pointing the
+			# line, then hurled through a stride onto the front foot (0.26 s), the arm following across; the open hand
+			# held out for it, and the catch (about 1.28 s) rocking the body back a little
+			var T: float = float(h._action.get("dur", 1.5))
+			var wind := _ks({"pivot": Vector3(0.06, 0, 0), "hips": Vector3(0, -0.5, 0), "torso": Vector3(0.12, -0.55, 0.04), "head": Vector3(-0.08, 0.85, 0),
+				"arm_l": Vector3(1.45, 0.25, -0.25), "fore_l": Vector3(0.15, 0, 0), "hand_l": Vector3.ZERO,
+				"leg_l": Vector3(0.45, 0, -0.2), "shin_l": Vector3(-0.5, 0, 0), "leg_r": Vector3(-0.3, 0, 0.2), "shin_r": Vector3(-0.75, 0, 0),
+				"_lift": Vector3(0, -0.14, 0), "_scale": Vector3(1.02, 0.97, 1.0), "_smear": Vector3.ZERO},
+				[Vector3(0.36, 0.3, 0.2), Vector3(-0.06, 0.2, -0.98), Vector3(0, -1, 0), -1.0], 0.32)
+			var hurl := _ks({"pivot": Vector3(-0.14, 0, 0), "hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.22, 0.45, 0), "head": Vector3(0.18, -0.4, 0),
+				"arm_l": Vector3(0.2, 0, -0.45), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3.ZERO,
+				"_lift": Vector3(0, -0.26, 0), "_scale": Vector3(0.97, 1.0, 1.08), "_smear": Vector3(0.14, 0, 0)}.merged(LUNGE),
+				[Vector3(0.04, 0.1, -0.62), Vector3(0.0, 0.06, -1.0), Vector3(0, -1, 0), -1.0], 0.32)
+			var follow := hurl.merged({"torso": Vector3(-0.32, 0.6, 0), "head": Vector3(0.22, -0.55, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO,
+				"_gr": Vector3(-0.18, -0.22, -0.46), "_gd": Vector3(-0.1, -0.35, -0.93)}, true)
+			var wait := _ks({"pivot": Vector3(-0.05, 0, 0), "hips": Vector3(0, -0.1, 0), "torso": Vector3(-0.08, -0.1, 0), "head": Vector3(0.05, 0.15, 0),
+				"arm_l": Vector3(0.7, 0.2, -0.3), "fore_l": Vector3(0.8, 0, 0), "hand_l": Vector3.ZERO,
+				"_lift": Vector3(0, -0.16, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}.merged(SET),
+				[Vector3(0.16, 0.0, -0.5), Vector3(-0.05, 0.12, -0.99), Vector3(0, -1, 0), -1.0], 0.32)
+			var catch := wait.merged({"pivot": Vector3(0.06, 0, 0), "torso": Vector3(0.06, -0.2, 0), "head": Vector3(-0.04, 0.2, 0),
+				"_gr": Vector3(0.18, -0.06, -0.34), "_scale": Vector3(1.03, 0.96, 1.0)}, true)
+			return [h._keys(u, [[0.0, g], [0.18 / T, wind, "out"], [0.21 / T, wind], [0.26 / T, hurl, "in"], [0.34 / T, follow, "out"], [0.5 / T, follow],
+				[0.75 / T, wait], [1.2 / T, wait], [1.3 / T, catch, "out"], [1.38 / T, catch], [1.0, g]]), "full", Vector3.ZERO]
+		"pole_windmill":
+			# Windmill Guard: square on, knees soft, the spear held by its middle in the right hand before the chest and
+			# spun in the upright plane facing them (WINDMILL_SPIN), the free arm out for balance
+			var T: float = float(h._action.get("dur", 1.5))
+			var s := u * T
+			var body := {"pivot": Vector3(-0.06, 0, 0), "hips": Vector3(0, 0.12, 0), "torso": Vector3(-0.1, 0.18, 0), "head": Vector3(0.08, -0.25, 0),
+				"arm_l": Vector3(0.35, 0, -0.7), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3.ZERO,
+				"_lift": Vector3(0, -0.2, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}.merged(WIDE)
+			var a := s * WINDMILL_SPIN
+			var spin := _ks(body, [Vector3(0.02, -0.08, -0.46), Vector3(cos(a), sin(a), -0.06), Vector3(-sin(a), cos(a), 0), -1.0], 0.45)
+			var pz: Dictionary = h._keys(u, [[0.0, g], [0.1 / T, spin, "out"], [1.0, spin]])
+			if s > 0.06:
+				pz["_gd"] = spin["_gd"]
+				pz["_ge"] = spin["_ge"]
+			return [pz, "full", Vector3.ZERO]
+		"pole_lunge":
+			# Windmill Guard's release: the spin caught short in both hands, coiled back for a blink, then a long lunge
+			# driving the point through (0.16 s), held, back to the guard
+			var T: float = float(h._action.get("dur", 0.55))
+			var coil := _ks({"pivot": Vector3(0.05, 0, 0), "hips": Vector3(0, -0.45, 0), "torso": Vector3(0.0, -0.45, 0.03), "head": Vector3(0.0, 0.8, 0),
+				"_lift": Vector3(0, -0.24, 0), "_scale": Vector3(1.04, 0.94, 0.97), "_smear": Vector3.ZERO}.merged(SET),
+				[Vector3(0.18, -0.36, 0.08), Vector3(-0.6, 0.22, -0.77), Vector3(0, -1, 0), 0.52], 0.2)
+			var drive := _k({"pivot": Vector3(-0.2, 0, 0), "hips": Vector3(0, -0.05, 0), "torso": Vector3(-0.32, -0.15, 0), "head": Vector3(0.38, 0.2, 0),
+				"_lift": Vector3(0, -0.4, 0), "_scale": Vector3.ONE, "_smear": Vector3.ZERO}.merged(DEEP),
+				[Vector3(-0.08, -0.26, -0.6), Vector3(-0.22, 0.48, -0.85), Vector3(0, -1, 0), 0.16])
+			var whoosh := _whip(coil, drive, 0.6, Vector3(0.95, 1.0, 1.14), 0.18)
+			return [h._keys(u, [[0.0, coil], [0.07 / T, coil], [0.12 / T, whoosh, "in"], [0.16 / T, drive, "out"], [0.36 / T, drive], [1.0, g]]), "full", Vector3.ZERO]
 		# --- the guard ---
 		"pole_block":
 			return [_k(_p([BLOCK, SET, {"pivot": Vector3.ZERO, "_lift": Vector3(0, -0.16, 0)}]), BLOCK_GRIP), "full", Vector3.ZERO]
@@ -337,9 +416,13 @@ static func hands(h, delta: float) -> void:
 		grips = HammerMoves.GRIPS
 	elif st == "greatsword":
 		grips = GreatswordMoves.GRIPS
-	var on: bool = st in ["polearm", "hammer", "greatsword"] and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
-		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and Humanoid.kind_of(h.weapon) == st \
-		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD)
+	# (a mastered guard with grips is held here; one without (two blades) is keyed)
+	var held2: bool = h.guard2 and st in Humanoid.MASTERED and not Humanoid.MASTERED[st].grips2(h).is_empty()
+	if held2:
+		grips = Humanoid.MASTERED[st].grips2(h)
+	var on: bool = (st in ["polearm", "hammer", "greatsword"] or held2) and h.ragdoll == null and h.armed and h.weapon_in_hand and h.weapon != null \
+		and is_instance_valid(h.weapon) and h.weapon.get_parent() == h.hand_r and (Humanoid.kind_of(h.weapon) == st or held2) \
+		and (act == "" or act.begins_with("pole_") or act.begins_with("ham_") or act.begins_with("gs_") or act in HELD and st not in ONE_HAND_GUARDS)
 	var pole: bool = st == "polearm" and on and act == ""
 	var run: bool = pole and h.grounded and not h._gait_back and h.ground_speed > (RUN_OFF if h.pole_run_w > 0.5 else RUN_ON)
 	h.pole_run_w = move_toward(h.pole_run_w, 1.0 if run else 0.0, delta / 0.15)
@@ -354,22 +437,28 @@ static func hands(h, delta: float) -> void:
 	elif h.pole_plant_w > 0.0 and h.pole_planted:
 		want = PLANT_GRIP
 		planting = true
+	elif act == "" and st == "greatsword" and (h.sprinting or h.carry_w > 0.5):
+		want = grips[2] if h.sprinting else grips[3]
 	elif act == "" and (h.sprinting or h.pole_run_w > 0.5):
 		want = grips[2]
-		if on and st == "greatsword":
-			GreatswordMoves.scrape(h, delta)
+	var scraping: bool = on and st == "greatsword" and act == "" and h.sprinting
+	var shift: float = h.pole_shift if h.pole_set else 0.0
 	h.pole_set = false
 	h.pole_w = move_toward(h.pole_w, 1.0 if on else 0.0, delta / 0.12)
 	var two := float(want[3]) > 0.0
-	h.pole_lw = move_toward(h.pole_lw, 1.0 if two else 0.0, delta / 0.1) if st == "polearm" else (1.0 if two else 0.0)
+	h.pole_lw = move_toward(h.pole_lw, 1.0 if two else 0.0, delta / 0.1) if st != "hammer" else (1.0 if two else 0.0)
 	if h.pole_cur.is_empty():
 		h.pole_cur = want.duplicate()
 	if on:
 		var k := 1.0 - exp(-(SHARP if act != "" else (SHARP_PLANT if planting else SHARP_IDLE)) * delta)
 		var cur: Array = h.pole_cur
 		cur[0] = (cur[0] as Vector3).lerp(want[0], k)
-		cur[1] = (cur[1] as Vector3).lerp(want[1], k).normalized()
+		var wd: Vector3 = (want[1] as Vector3).normalized()
+		if st == "greatsword" and act == "" and (cur[1] as Vector3).dot(wd) < 0.2:
+			wd = _round_front(cur[1], wd)
+		cur[1] = (cur[1] as Vector3).lerp(wd, k).normalized()
 		cur[2] = (cur[2] as Vector3).lerp(want[2], k)
+		h.pole_shift_cur = lerpf(h.pole_shift_cur, shift, k)
 		# (the left hand lets go over pole_lw, at the slide it had)
 		if two:
 			cur[3] = lerpf(float(cur[3]), float(want[3]), k) if float(cur[3]) > 0.0 else float(want[3])
@@ -402,6 +491,10 @@ static func hands(h, delta: float) -> void:
 	var local: Basis = h.hand_r.global_basis.orthonormalized().inverse() * want_b
 	h.weapon.quaternion = Quaternion.IDENTITY.slerp(Quaternion(local.orthonormalized()), w)
 	h.weapon.position = Vector3.ZERO
+	if h.pole_shift_cur > 0.005:
+		h.weapon.global_position -= d * h.pole_shift_cur * sc
+	if scraping:
+		GreatswordMoves.scrape(h, delta)
 	var pw: float = h.pole_plant_w
 	if pw > 0.0:
 		# planted: the shaft slid down through the hand until its butt meets the ground
@@ -420,6 +513,19 @@ static func hands(h, delta: float) -> void:
 		var grip := a + d * _slide(h, a, d, s * sc)
 		h.reach_hand(false, h.hand_l.global_position.lerp(grip, w * h.pole_lw), body * Vector3(-0.7, -1.0, 0.45))
 		h.arm_l.basis = h.arm_l.basis.orthonormalized()
+
+
+## A long blade turned far round between grips (the greatsword's guard across the front to its carry trailed behind):
+## the next direction to steer `d` toward on its way to `to`, swung round through the front (its heading in the
+## chest's frame never wraps through straight back), not by the short way straight down through the legs.
+static func _round_front(d: Vector3, to: Vector3) -> Vector3:
+	var a := atan2(d.x, -d.z)
+	var b := atan2(to.x, -to.z)
+	var step := clampf(b - a, -0.6, 0.6)
+	var k := absf(step) / maxf(absf(b - a), 0.001)
+	var yaw := a + step
+	var pitch := lerpf(asin(clampf(d.y, -1.0, 1.0)), asin(clampf(to.y, -1.0, 1.0)), k)
+	return Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch))
 
 
 ## The run trail's grip, the hand swinging a little with the stride.

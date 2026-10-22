@@ -75,6 +75,8 @@ func _ready() -> void:
 	mmi.multimesh = _mm
 	mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# rows are flown and written every frame in _process (the ship's interpolated transform): no tick interpolation
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mmi.custom_aabb = AABB(Vector3(-1e5, -1e5, -1e5), Vector3(2e5, 2e5, 2e5))
 	add_child(mmi)
 

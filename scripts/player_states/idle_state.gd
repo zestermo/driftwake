@@ -22,7 +22,8 @@ func physics_update(delta: float) -> void:
 		return
 
 	if wants_jump():
-		transitioned.emit(self, "Jump", {})
+		var leap: bool = player.progression.has_flag("sky_leap") and Input.is_action_pressed("jump")
+		transitioned.emit(self, "SkyLeap" if leap else "Jump", {})
 		return
 
 	if player.armed:

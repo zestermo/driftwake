@@ -88,6 +88,19 @@ var air_slashes: int = 0
 ## The other styles' air attacks since leaving the ground: {move: uses}, and
 ## "bounce" for Meteor Kicks that connected (each one earns another).
 var air_uses: Dictionary = {}
+## When the freefall began (PlayerState.now_s): the last jump, air step, ability or attack (FallState's tumble).
+var freefall_from: float = 0.0
+## The highest point (y) since the feet last touched the ground: a dive's height fallen (FistArts.fallen).
+var fall_top: float = 0.0
+## Sea King Fist armed: seconds left to unleash it (FistArts), and who we last parried and on which tick (its counter).
+var fist_armed: float = 0.0
+var parried_by: Node3D = null
+var parried_tick: int = -1000
+## Skyward Dash (Acrobatics): an air dash left from the last mid-air recovery (until you land or use it).
+var skyward_dash: bool = false
+const SKYWARD_STEPS := 2
+## Up from a Sky Leap: the next landing is a crater, with no fall damage.
+var sky_leap_fall: bool = false
 ## The next light attack is the katana's running draw (attacked while sprinting).
 var quick_draw: bool = false
 var body_model: Humanoid
@@ -198,6 +211,15 @@ const NF_LANTERN := 8
 const NF_TIDE := 16
 ## The katana drawn with its element awakened (BladePetals: cloud and sakura on the blade).
 const NF_PETALS := 32
+## Sea King Fist armed: the galaxy glow on the fist.
+const NF_GALAXY := 64
+## The axe drawn with its fire awakened (BladeEmbers: flames licking off the bit).
+const NF_EMBERS := 128
+## The drawn blades' style tree awakened (BladeAura: dagger, dual wield, twin daggers, corsair).
+const NF_AURA := 256
+const AURA_TREES := ["dagger", "dual", "dual_dagger", "corsair"]
+## The last parry press (game time), for the mastered guard's double-tap (MasteredGuard).
+var parry_tap := -10.0
 
 
 func _ready() -> void:
@@ -232,6 +254,9 @@ func _ready() -> void:
 	_give_starting_items()
 	GameManager.register_player(self)
 	hurtbox.hit_received.connect(_on_hit_received)
+	input_buffer.pressed.connect(func(a: String, at: float) -> void:
+		if a == "parry" and context == Context.ON_FOOT:
+			MasteredGuard.tapped(self, at))
 	sword_hitbox.hit_landed.connect(func(target: Node, data: HitData): power.on_sword_hit(target, data))
 	health_component.died.connect(_on_died)
 	_recalc_stats()
@@ -462,7 +487,7 @@ func _recalc_stats() -> void:
 
 
 func dodge_cost() -> float:
-	return DODGE_COST * (1.0 - progression.stat("dodge_cost_pct"))
+	return DODGE_COST * (1.0 - progression.stat("dodge_cost_pct")) * (0.7 if progression.has_flag("dodge_sidestep") else 1.0)
 
 
 ## Stamina scale for attacks with the weapon in hand (its tree's stam_ nodes).
@@ -488,11 +513,16 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	dir = dir.normalized() if dir.length() > 0.01 else player_model.global_basis.z
 	# an unblockable attack (the enemy flashed red) gets through parries and blocks;
 	# a shot only if the blade's tree taught you to cut shots (parryshot_ nodes)
-	if is_parrying and not hit.unblockable and not hit.dot and (not hit.ranged or parries_shots()):
+	# (Windmill Guard's spinning pole only turns what comes from the front)
+	var windmill_miss := power.buff("bat_shots") and (-player_model.global_basis.z).dot(-dir) < 0.0
+	if is_parrying and not windmill_miss and not hit.unblockable and not hit.dot and (not hit.ranged or parries_shots()):
 		if hit.ranged:
 			_cut_shot(hit, dir, attacker)
 		if attacker and attacker.has_method("parried"):
 			attacker.call("parried", self)
+		if attacker is Node3D and not hit.ranged:
+			parried_by = attacker
+			parried_tick = Engine.get_physics_frames()
 		return
 	if is_blocking and not hit.unblockable and not hit.dot and current_state_name() == "Block":
 		var fwd := -player_model.global_basis.z
@@ -596,7 +626,7 @@ func _foresight_dodge(dir: Vector3, label: String = "Foresight!") -> void:
 
 ## Parrying cuts shots out of the air (a blade tree's early parryshot_ node).
 func parries_shots() -> bool:
-	return progression.style_stat("parryshot", style()) > 0.0
+	return progression.style_stat("parryshot", style()) > 0.0 or power.buff("bat_shots")
 
 
 ## Mastered deflection (the blade tree's deflect_ node): with the blade out, a shot
@@ -742,6 +772,7 @@ func _process(delta: float) -> void:
 	body_model.armed = armed
 	body_model.sprinting = sprinting
 	body_model.stance = style()
+	body_model.guard2 = MasteredGuard.on(self)
 	_update_head_look()
 	_tick_body(delta)
 	_emote_tick()
@@ -749,6 +780,9 @@ func _process(delta: float) -> void:
 	_lantern_tick()
 	BladeWater.keep(body_model, _tide_on())
 	BladePetals.keep(body_model, _petals_on())
+	BladeEmbers.keep(body_model, _embers_on())
+	_keep_aura(_aura_on())
+	FistArts.keep_glow(body_model, fist_armed > 0.0)
 	heal_cd = maxf(heal_cd - delta, 0.0)
 	_quick_tick(delta)
 	_loadout_tick(delta)
@@ -1027,6 +1061,11 @@ func _update_lean(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if not is_local:
 		return
+	fall_top = global_position.y if is_on_floor() else maxf(fall_top, global_position.y)
+	if fist_armed > 0.0:
+		fist_armed -= delta
+		if fist_armed <= 0.0:
+			FistArts.armed_out(self)
 	if bleeding:
 		_bleed_tick(delta)
 	elif Net.coop():
@@ -1047,6 +1086,7 @@ func _physics_process(delta: float) -> void:
 		gun_rains = 0
 		air_slashes = 0
 		air_uses.clear()
+		skyward_dash = false
 		if not _was_on_floor:
 			_on_landed(_last_air_vy)
 	else:
@@ -1058,6 +1098,7 @@ func _physics_process(delta: float) -> void:
 	_regen_stamina(delta)
 	# deep enough water: swim (from walking, falling, attacking...)
 	if context == Context.ON_FOOT and current_state_name() in SWIM_FROM_STATES and water_depth() > SWIM_ENTER_DEPTH:
+		sky_leap_fall = false
 		state_machine.force_state("Swim", {"entry_vy": velocity.y})
 
 
@@ -1080,7 +1121,7 @@ const NO_RIDE_STATES := ["Swim", "Climb", "Swing", "Downed", "Helm", "Cannon", "
 
 
 ## States that drop into swimming when the water gets deep enough.
-const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
+const SWIM_FROM_STATES := ["Idle", "Move", "Jump", "Fall", "SkyLeap","LightAttack", "HeavyAttack", "Dodge", "Parry", "Stagger", "Plunge", "Skill", "Shoot", "Swing", "Iai", "Crouch"]
 
 
 ## Distance down to the ground (or INF over nothing within 30 m).
@@ -1137,6 +1178,42 @@ func recover_into_swim() -> void:
 	velocity = Vector3.ZERO
 	body_model.recover_from_ragdoll(face_up, info["hips_xform"], 0.7)
 	state_machine.force_state("Swim", {"entry_vy": 0.0, "quiet": true})
+
+
+## A tumbling body hit the ground at `speed`: the usual fall damage (the get-up is DownedState's).
+func tumble_landed(speed: float) -> void:
+	if sky_leap_fall:
+		sky_leap_fall = false
+		return
+	if speed > SAFE_FALL_SPEED and context == Context.ON_FOOT:
+		_fall_damage(speed)
+
+
+## Out of the ragdoll in mid-air (an air step out of a tumble, a Breakfall): the root jumps to the body, carrying
+## its speed, and the body eases upright from where the physics left it.
+func recover_in_air() -> void:
+	var info := body_model.ragdoll_rest_info()
+	var face_up: bool = info["face_up"]
+	var head_dir: Vector3 = info["head_dir"]
+	var f := -head_dir if face_up else head_dir
+	var rb := body_model.ragdoll.root_body()
+	var v := rb.linear_velocity
+	player_model.rotation.y = atan2(-f.x, -f.z)
+	reset_lean()
+	global_position = body_model.hips.global_position - Vector3(0, body_model.hip_y * body_model.scale.y, 0)
+	reset_physics_interpolation()
+	velocity = v
+	air_speed = Vector2(v.x, v.z).length()
+	body_model.recover_from_ragdoll(face_up, info["hips_xform"], 0.25)
+
+
+## Righted in mid-air (Breakfall, or an air step out of a tumble): Skyward Dash gives an air dash and extra steps.
+func air_recovered() -> void:
+	if not progression.has_flag("skyward_dash"):
+		return
+	skyward_dash = true
+	jumps_remaining += SKYWARD_STEPS
+	Net.fx("sparkle", [global_position + Vector3(0, 1.0, 0), 10, Color(0.85, 0.95, 1.0)])
 
 
 func is_swimming() -> bool:
@@ -1252,13 +1329,22 @@ func _update_lean_target(delta: float) -> void:
 ## 20 m or more - and a long drop leaves you reeling. A plunge attack's dive
 ## doesn't count. (Falling is 1.6x gravity, so a 5 m drop lands at ~18 m/s.)
 const SAFE_FALL_SPEED := 18.0
+const MAX_FALL_SPEED := 34.0
 const FALL_DAMAGE_PER_MS := 5.3
 
 
 func _on_landed(impact_vy: float) -> void:
 	var k := clampf(-impact_vy / 16.0, 0.0, 1.0)
 	var speed := -impact_vy
-	if speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
+	if sky_leap_fall:
+		sky_leap_fall = false
+		if speed > SAFE_FALL_SPEED:
+			state_machine.states["skyleap"].crater(speed)
+			return
+	elif speed > state_machine.states["fall"].CRASH_SPEED and progression.has_flag("crash_landing") and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
+		state_machine.states["fall"].crash(speed)
+		return
+	elif speed > SAFE_FALL_SPEED and context == Context.ON_FOOT and current_state_name() not in ["Plunge", "Swim", "Downed"]:
 		_fall_damage(speed)
 	if k < 0.15:
 		return
@@ -1272,8 +1358,9 @@ func _on_landed(impact_vy: float) -> void:
 	Net.fx("sfx", ["step_" + surf, global_position, -6.0 + 6.0 * k, 0.05, 0.85])
 
 
-func _fall_damage(speed: float) -> void:
-	var dmg := (speed - SAFE_FALL_SPEED) * FALL_DAMAGE_PER_MS
+## (`k` scales it; `reel` false: no stagger, as in a Crash Landing)
+func _fall_damage(speed: float, k: float = 1.0, reel: bool = true) -> void:
+	var dmg := (speed - SAFE_FALL_SPEED) * FALL_DAMAGE_PER_MS * k
 	if power.buff("tekkai"):
 		dmg *= 0.3
 	if progression.has_flag("featherfall"):
@@ -1286,7 +1373,7 @@ func _fall_damage(speed: float) -> void:
 	Net.fx("dust_ring", [global_position, 18, 1.2])
 	CombatManager.apply_camera_shake(clampf(dmg / 60.0, 0.1, 0.4))
 	Net.damage_number(roundf(dmg), global_position + Vector3(0, 1.9, 0))
-	if health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai"):
+	if reel and health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai") and current_state_name() != "Downed":
 		state_machine.force_state("Stagger", {"stagger_duration": 0.55, "knockback_dir": Vector3.ZERO, "knockback_force": 0.0, "flinch": false})
 
 
@@ -1752,7 +1839,7 @@ func set_kicks(on: bool) -> void:
 	weapon_changed.emit(equipped_weapon)
 	_loadout_note()
 	if armed and equipped_weapon == null and not hybrid:
-		body_model.play("fists_up", 0.22)
+		body_model.play("fists_up", 0.3)
 
 
 func _loadout_note() -> void:
@@ -1831,9 +1918,10 @@ func _apply_loadout(i: int) -> void:
 	var l: Array = loadouts[i]
 	if l.is_empty():
 		loadouts[i] = hands_slot()
-		_toast("Loadout %d set up: what's in your hands (change it in the bag, I)" % (i + 1))
+		_toast("Loadout %d set up: what's in your hands (change it in the bag, I%s)" % [i + 1, ": the empty hand slot switches fists and kicks" if knows_black_leg() else ""])
 		loadout_changed.emit()
 		return
+	reset_combo()
 	var legs: bool = l[0] == BLACK_LEG
 	var main: ItemData = inventory_component.find_item(l[0]) if l[0] != "" and not legs else null
 	var off: ItemData = inventory_component.find_item(l[1]) if l[1] != "" else null
@@ -1851,7 +1939,7 @@ func _apply_loadout(i: int) -> void:
 	else:
 		_toast("Loadout %d: %s" % [i + 1, " + ".join(PackedStringArray([main.display_name if main else ("Black Leg" if kicks else "Fists")] + ([offhand_weapon.display_name] if offhand_weapon else [])))])
 	if armed and not hybrid:
-		body_model.play("draw" if main else "fists_up", 0.22)
+		body_model.play("draw" if main else "fists_up", 0.22 if main else 0.3)
 	Net.fx("sfx", ["clack", global_position + Vector3.UP, -10.0, 0.05, 1.3])
 	loadout_changed.emit()
 
@@ -2067,7 +2155,7 @@ func draw_weapon(quick: bool = false) -> void:
 		return
 	armed = true
 	if equipped_weapon == null or hybrid:
-		body_model.play("fists_up", 0.25)
+		body_model.play("fists_up", ActionSpecs.length("fists_up"))
 	elif quick:
 		body_model._attach_weapon(true)
 	else:
@@ -2083,6 +2171,8 @@ func sheathe_weapon(instant: bool = false) -> void:
 	if instant:
 		body_model.stop_action()
 		body_model._attach_weapon(false)
+	elif equipped_weapon == null or hybrid:
+		body_model.play("fists_down", ActionSpecs.length("fists_down"))
 	else:
 		body_model.play("sheathe", 0.4)
 	armed_changed.emit(false)
@@ -2111,7 +2201,10 @@ func melee_hit(base: float, kind: String = "") -> HitData:
 		h.impact = CombatManager.HEAVY_IMPACT.get(h.impact, h.impact)
 	var k := 1.0 + (pr.style_stat(kind, st) if kind != "" else 0.0)
 	h.damage = base * damage_multiplier() * k
-	if randf() < pr.style_stat("crit", st) + pr.stat("crit_all") + (0.2 if power.buff("bleeding_edge") else 0.0):
+	# (Sidestep: a blow slipped makes the next one a sure crit)
+	var slipped := power.buff("slipped")
+	power.buffs.erase("slipped")
+	if slipped or randf() < pr.style_stat("crit", st) + pr.stat("crit_all") + (0.2 if power.buff("bleeding_edge") else 0.0):
 		h.damage *= 1.5
 		h.set_meta("crit", true)
 	if kind == "heavy" and pr.style_stat("unblock", st) > 0.0:
@@ -2456,6 +2549,22 @@ func _petals_on() -> bool:
 	return armed and not hybrid and style() == "katana" and progression.elemental("katana")
 
 
+func _aura_on() -> bool:
+	var tree := SkillTree.style_tree(style())
+	return armed and not hybrid and tree in AURA_TREES and progression.elemental(tree)
+
+
+## The drawn blades' aura for the stance's tree (puppets: from the snapshot's flag and the synced stance).
+func _keep_aura(on: bool) -> void:
+	var tree := SkillTree.style_tree(body_model.stance)
+	if tree in AURA_TREES:
+		BladeAura.keep(body_model, tree, on)
+
+
+func _embers_on() -> bool:
+	return armed and not hybrid and style() == "axe" and progression.elemental("axe")
+
+
 ## Our snapshot (~20 times a second): where, how, and the body's state.
 func net_pack() -> Array:
 	var pos := global_position
@@ -2478,6 +2587,12 @@ func net_pack() -> Array:
 		flags |= NF_TIDE
 	if _petals_on():
 		flags |= NF_PETALS
+	if _embers_on():
+		flags |= NF_EMBERS
+	if _aura_on():
+		flags |= NF_AURA
+	if fist_armed > 0.0:
+		flags |= NF_GALAXY
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
 		body_model.ragdoll.net_pack() if body_model.ragdoll else []]
@@ -2551,6 +2666,9 @@ func _puppet_process(delta: float) -> void:
 	HumanoidSync.apply(body_model, a[9], b[9], f)
 	BladeWater.keep(body_model, bool(_net_flags & NF_TIDE))
 	BladePetals.keep(body_model, bool(_net_flags & NF_PETALS))
+	BladeEmbers.keep(body_model, bool(_net_flags & NF_EMBERS))
+	_keep_aura(bool(_net_flags & NF_AURA))
+	FistArts.keep_glow(body_model, bool(_net_flags & NF_GALAXY))
 	# knocked down: the body lies (or floats) exactly where theirs does
 	if body_model.ragdoll and (b[11] as Array).size() > 0:
 		body_model.ragdoll.net_follow(a[11], b[11], f)

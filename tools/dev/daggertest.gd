@@ -205,7 +205,7 @@ func _process(d: float) -> bool:
 			check("the dagger tree: a few big nodes (12-19) and one ultimate", tree_ok("dagger"))
 			check("the twin-dagger tree: a few big nodes (12-19) and one ultimate", tree_ok("dual_dagger"))
 			check("both have a tab", "dagger" in SkillTree.TAB_ORDER and "dual_dagger" in SkillTree.TAB_ORDER)
-			check("Nightfall comes at dagger mastery 16 (%s)" % pr.can_learn("dg_elem"), pr.can_learn("dg_elem") == "Comes at Dagger 16")
+			check("Nightfall needs dagger mastery 16 (%s)" % pr.can_learn("dg_elem"), pr.can_learn("dg_elem") == "Needs Dagger 16")
 			pr.owned["dg_elem"] = true
 			pr._stat_n = -1
 			check("Nightfall wakes the element", pr.elemental("dagger") and not pr.elemental("dagger", 2))

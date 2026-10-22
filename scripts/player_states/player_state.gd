@@ -94,13 +94,16 @@ func apply_gravity(delta: float) -> void:
 		elif player.variable_jump_active and not Input.is_action_pressed("jump"):
 			g *= player.short_hop_gravity_mult  # let go early = shorter hop
 		player.velocity.y -= g * delta
-		player.velocity.y = maxf(player.velocity.y, -34.0)
+		player.velocity.y = maxf(player.velocity.y, -Player.MAX_FALL_SPEED)
 
 
 ## Attack/parry input: first press draws the weapon, later presses attack.
 ## Returns the state to enter, or "" if nothing should happen.
 func combat_input() -> String:
 	if player.is_using_item():
+		return ""
+	if player.fist_armed > 0.0 and input_buffer.consume_action("light_attack"):
+		FistArts.unleash(player)
 		return ""
 	if input_buffer.consume_action("light_attack"):
 		if player.can_attack():
@@ -140,6 +143,9 @@ func combat_input() -> String:
 ## Attack pressed in the air: the plunging jump attack (needs a drawn weapon,
 ## a bit of height under you and the stamina); unarmed it draws the weapon.
 func air_attack_input() -> String:
+	if player.fist_armed > 0.0 and input_buffer.consume_action("light_attack"):
+		FistArts.unleash(player)
+		return ""
 	# too close to the ground: leave the press buffered for a landing attack
 	if player.can_attack() and player.height_above_ground() < 0.9:
 		return ""
@@ -173,12 +179,25 @@ const AIR_MOVES := {"katana": "air_slash", "axe": "skybreaker", "dual_sword": "t
 	"greatsword": "falling_cleave", "black_leg": "cyclone_heel"}
 ## The learned air attacks you get once per jump.
 const ONCE_PER_JUMP := ["twin_cyclone", "hang_shot", "boarding_dive", "deadmans_drop", "fang_dive", "knife_rain", "falling_spear", "hammerfall",
-	"buzzsaw", "falling_cleave", "cyclone_heel"]
+	"buzzsaw", "falling_cleave", "cyclone_heel", "falling_moon"]
 const METEOR_CHAIN := 3
 
 func air_move() -> String:
+	# (the katana's air attack is a variant: Crescent Arc or Falling Moon)
+	if player.style() == "katana" and player.progression.has_move("falling_moon"):
+		return "falling_moon"
 	var mv: String = AIR_MOVES.get(player.style(), "")
 	return mv if mv != "" and player.progression.has_move(mv) else ""
+
+
+## Moonstep (Acrobatics): dodge in mid-air, once a jump, for MOON_COST stamina.
+const MOON_COST := 18.0
+
+
+func wants_moonstep() -> bool:
+	if not player.progression.has_flag("moonstep") or player.air_uses.has("moonstep") or not input_buffer.consume_action("dodge"):
+		return false
+	return player.spend_stamina(MOON_COST)
 
 
 ## Dodge pressed (or buffered) and there's stamina for it.

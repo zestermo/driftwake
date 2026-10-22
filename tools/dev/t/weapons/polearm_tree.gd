@@ -3,7 +3,7 @@ extends SceneTree
 ## real (each skill a polearm Technique), its steps 30, one ultimate at 30, lightning as its element, the style
 ## mapped to it; and with it mastered each technique and the ultimate lands on the dummy.
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["raijin_wheel", "hundred_thrusts", "dragon_sweep", "vault_strike"]
+const TECHS := ["raijin_wheel", "hundred_thrusts", "dragon_sweep", "vault_strike", "thunder_javelin", "windmill_guard"]
 var stage
 var p
 var hc
@@ -60,11 +60,11 @@ func _process(_d: float) -> bool:
 			check("one ultimate, at 30 (%s)" % str(ults), ults == [30])
 			check("its moves: Wheel Sweep, Pole Vault, Leg Sweep, Falling Spear (%s)" % str(moves),
 				moves.size() == 4 and "wheel_sweep" in moves and "pole_vault" in moves and "leg_sweep" in moves and "falling_spear" in moves)
-			var techs_ok := skills.size() == 4
+			var techs_ok := skills.size() == 6
 			for sk in skills:
 				var d: Dictionary = SK.get_skill(sk)
 				techs_ok = techs_ok and d.get("styles", []) == ["polearm"] and d.get("state", "") == "Technique" and d.get("tree", "") == "polearm"
-			check("its four skills are polearm techniques %s" % str(skills), techs_ok and skills.all(func(x): return x in TECHS))
+			check("its six skills are polearm techniques %s" % str(skills), techs_ok and skills.all(func(x): return x in TECHS))
 			check("its element (lightning) at 16 and 25", STS.node_def("pl_elem").get("level", 0) == 16 and STS.node_def("pl_elem2").get("level", 0) == 25
 				and load("res://scripts/game/fx.gd").TREE_FX.has("polearm"))
 			check("the polearm style builds its mastery", ST.style_tree("polearm") == "polearm")
@@ -85,7 +85,7 @@ func _process(_d: float) -> bool:
 			p.power.energy = 999.0
 			taken = 0.0
 			p.state_machine.force_state("Technique", {"id": TECHS[ti], "slot": 4 if TECHS[ti] == "raijin_wheel" else 0})
-			until = TK.wait_secs(2.6 if TECHS[ti] == "raijin_wheel" else 1.3)
+			until = TK.wait_secs(2.6 if TECHS[ti] == "raijin_wheel" else 1.7)
 		2:
 			check("%s lands on the dummy (%.0f damage)" % [TECHS[ti], taken], taken > 0.0)
 			ti += 1

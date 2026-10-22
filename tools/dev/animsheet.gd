@@ -192,6 +192,8 @@ func _strip(n: String, s: Dictionary, ex: Dictionary, yaw: float) -> Array:
 				trail.sample(1.0 / 120.0)
 		# (the skinned legs only follow on frames the rig posed itself: stepped by hand, skin them here)
 		h.hips.get_node("LowerBody")._pose()
+		if h.torso.get_node_or_null("ArmBody"):
+			h.torso.get_node("ArmBody")._pose()
 		# (the viewport image lags a frame behind: wait two draws for this pose)
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw

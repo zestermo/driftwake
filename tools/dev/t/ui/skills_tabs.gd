@@ -39,6 +39,7 @@ func _process(_d: float) -> bool:
 				TK.act("ready_weapon")
 			p.progression.add_mastery("sword", 200)
 			p.progression.add_mastery("katana", 200)
+			p.progression.add_life("swim", p.progression.mastery_to_next(1))
 			# (the runner's window is tiny: the menu lays out for a 640x360 canvas)
 			root.size = Vector2i(1280, 720)
 			root.get_node("Story").step = "done"

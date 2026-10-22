@@ -6,6 +6,44 @@ class_name SwordMoves
 ## every new swing is built from (trained over 8 anim lab rounds, docs/anim_lab.md).
 ## Turns: y- faces right, y+ left; the head counters the chest to stay on the target.
 
+## The mastered guard (Humanoid.guard2): the sword hand and blade held by PoleMoves.hands from its grips ([hand, the
+## blade's way, its edge's way, -1: one hand], the chest's frame), the free hand put on the belt (easy). The Easy Guard
+## (Zach's pick, 2026-10-22, Shanks-like): stood tall and square, the sword arm let hang open from the side, the blade
+## loose out and down away from the leg with its point toward the deck, the free hand's thumb hooked in the sash.
+const GUARD2 := {"hips": Vector3(0, 0.15, 0), "torso": Vector3(0.06, 0.1, 0.03), "head": Vector3(0.04, -0.15, 0),
+	"arm_r": Vector3(0.1, 0.0, 0.45), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3.ZERO,
+	"arm_l": Vector3(-0.1, 0.3, -0.6), "fore_l": Vector3(1.6, 0, 0), "hand_l": Vector3.ZERO}
+const LEGS2 := {"leg_l": Vector3(0.12, 0, -0.1), "leg_r": Vector3(-0.08, 0, 0.14), "shin_l": Vector3(-0.15, 0, 0), "shin_r": Vector3(-0.35, 0, 0),
+	"_lift": Vector3(0, -0.04, 0)}
+## [guard, block, run] grips.
+const GRIPS2 := [[Vector3(0.44, -0.5, -0.06), Vector3(0.4, -0.86, -0.3), Vector3(0, 0, -1), -1.0],
+	[Vector3(0.1, 0.0, -0.4), Vector3(-0.9, 0.4, -0.1), Vector3(0, 1, 0), -1.0],
+	[Vector3(0.44, -0.5, -0.06), Vector3(0.4, -0.86, -0.3), Vector3(0, 0, -1), -1.0]]
+## The free hand on the sash (the hips' frame: left of the buckle, a little forward), the elbow out to the side.
+const SASH := Vector3(-0.14, 0.04, -0.11)
+
+
+static func guard(h) -> Dictionary:
+	return GUARD2 if h.guard2 else Humanoid.SWORD_GUARD
+
+
+static func legs(h) -> Dictionary:
+	return LEGS2 if h.guard2 else Humanoid.STANCE_LEGS["sword"]
+
+
+static func grips2(_h) -> Array:
+	return GRIPS2
+
+
+## Each frame after posing: the Easy Guard's free hand onto the sash while standing in it.
+static func easy(h) -> void:
+	if not h.guard2 or h.stance != "sword" or not h._action.is_empty() or h.pole_w <= 0.0 or h.ragdoll != null:
+		return
+	var hips: Node3D = h.hips
+	var at: Vector3 = hips.global_transform * SASH
+	h.reach_hand(false, h.hand_l.global_position.lerp(at, h.pole_w), h.global_basis * Vector3(-1.0, -0.2, 0.5))
+
+
 ## Hit 1, the diagonal forehand: from the guard the hand arcs out and up round the right
 ## shoulder (wide and high, so the elbow opens), cocks, then cuts down through the space in
 ## front and wraps low round the left side. Path points: centre + dir * r (body space at the
@@ -22,7 +60,7 @@ const SLASH_R_SWING := {"center": Vector3(0.08, 1.32, -0.05), "lag": 0.02, "plan
 ## The off hand (offsets from the left shoulder in the chest's frame): from the guard (up
 ## behind the left shoulder) raised above the eyes reaching toward the target on the wind-up,
 ## pulled in to the chest through the cut and kept tucked.
-const OFF_GUARD := Vector3(-0.27, 0.26, 0.23)
+const OFF_GUARD := Vector3(-0.34, 0.17, -0.22)
 const SLASH_R_REACH := {"hand": "l", "follow": 1.0, "from_shoulder": true, "lag": 0.04, "pole": Vector3(-1.0, -0.35, 0.25),
 	"center": Vector3.ZERO, "keys": [
 	[0.06, {"dir": OFF_GUARD}],
@@ -196,3 +234,80 @@ static func _mix(a: Dictionary, b: Dictionary, k: float) -> Dictionary:
 		if not out.has(j):
 			out[j] = b[j]
 	return out
+
+
+# --- the block and parry: the blade braced across the body, low right to high left, edge out, the free palm on its flat ---
+
+## The brace (the chest's frame): the sword hand from its shoulder, the blade's direction, where the free palm sits on
+## it (m from the hand) and how far behind the flat.
+const BRACE_HAND := Vector3(0.0, -0.3, -0.44)
+const BRACE_DIR := Vector3(-0.74, 0.6, -0.28)
+const BRACE_PALM := 0.45
+const BRACE_BEHIND := 0.05
+## How far the deflect shoves the blade out (m, the chest's forward).
+const SHOVE := 0.16
+## The held block (upper body: the legs keep shuffling; Humanoid._locomotion sinks them over a bent front knee). The
+## arms only seed the braced hands (`brace`), close to where it puts them so letting go doesn't pop.
+const BLOCK := {"torso": Vector3(-0.12, -0.12, 0), "head": Vector3(0.14, 0.12, 0),
+	"arm_r": Vector3(0.75, -0.35, 0.35), "fore_r": Vector3(1.35, 0, 0), "hand_r": Vector3(0.2, 0, 0.6),
+	"arm_l": Vector3(1.05, 0.45, -0.25), "fore_l": Vector3(1.45, 0, 0), "hand_l": Vector3.ZERO}
+## The parry's legs: front knee bent and the weight sunk over it, the back leg long.
+const BRACE_LEGS := {"pivot": Vector3(-0.06, 0, 0), "hips": Vector3(0, -0.1, 0),
+	"leg_l": Vector3(0.65, 0, -0.16), "shin_l": Vector3(-1.0, 0, 0), "leg_r": Vector3(-0.45, 0, 0.16), "shin_r": Vector3(-0.3, 0, 0),
+	"_lift": Vector3(0, -0.17, 0)}
+
+
+## The parry (Humanoid "parry" for the cutlass; ActionSpecs.PARRIES) and the deflect when one lands.
+static func pose(h, n: String, u: float) -> Array:
+	var g: Dictionary = h._guard()
+	var brace := BLOCK.merged(BRACE_LEGS).merged({"_scale": Vector3(1.03, 0.96, 1.0)})
+	match n:
+		"sw_parry":
+			var held := brace.merged({"_scale": Vector3.ONE}, true)
+			return [h._keys(u, [[0.0, g], [0.12, brace, "out"], [0.22, held], [0.6, held], [1.0, g]]), "full", Vector3.ZERO]
+		"sw_deflect":
+			# the blow taken, then the blade shoved out into them off the front foot
+			var shove := brace.merged({"pivot": Vector3(-0.14, 0, 0), "torso": Vector3(-0.2, -0.05, 0), "head": Vector3(0.2, 0.05, 0),
+				"leg_l": Vector3(0.85, 0, -0.16), "shin_l": Vector3(-1.2, 0, 0), "leg_r": Vector3(-0.6, 0, 0.16), "shin_r": Vector3(-0.2, 0, 0),
+				"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(0.98, 1.0, 1.06)}, true)
+			return [h._keys(u, [[0.0, brace], [0.25, shove, "out"], [0.5, shove], [1.0, g]]), "full", Vector3.ZERO]
+	push_error("SwordMoves: no pose for \"%s\"" % n)
+	return [g, "full", Vector3.ZERO]
+
+
+## [weight, shove] of the brace now: how far the hands are on it, and how far the deflect has shoved it out.
+static func brace_w(h) -> Vector2:
+	if h.stance != "sword" or h._action.is_empty():
+		return Vector2.ZERO
+	var t := float(h._action["t"])
+	var u := t / maxf(float(h._action["dur"]), 0.001)
+	match h.current_action():
+		"parry":
+			return Vector2(smoothstep(0.0, 0.12, u) * (1.0 - smoothstep(0.6, 1.0, u)), 0.0)
+		"sw_deflect":
+			return Vector2(1.0 - smoothstep(0.5, 0.9, u), smoothstep(0.0, 0.25, u) * (1.0 - smoothstep(0.5, 0.9, u)))
+		"guard_block":
+			return Vector2(smoothstep(0.0, 0.1, t), 0.0)
+		"guard_block_hit":
+			return Vector2(1.0, -0.4 * sin(clampf(u, 0.0, 1.0) * PI))
+	return Vector2.ZERO
+
+
+## Each frame after the pose: the sword hand onto the brace (the blade set across the body, edge out to the front), the
+## free palm on the flat behind it.
+static func brace(h) -> void:
+	var ws: Vector2 = brace_w(h)
+	if ws.x <= 0.0 or h.weapon == null or not h.weapon_in_hand or h.ragdoll != null:
+		return
+	var w := ws.x
+	var sc: float = h.global_basis.get_scale().x
+	var c: Basis = h.torso.global_basis.orthonormalized()
+	var at: Vector3 = h.arm_r.global_position + c * (BRACE_HAND + Vector3(0, 0, -SHOVE * ws.y)) * sc
+	h.reach_hand(true, (h.hand_r.global_position as Vector3).lerp(at, w), c * Vector3(1.0, -0.6, 0.3))
+	var want := (c * BRACE_DIR).normalized()
+	var target := Quaternion(Basis.looking_at(want, c.z))
+	var cur := Quaternion(h.hand_r.global_basis.orthonormalized())
+	var parent_q := Quaternion(h.hand_r.get_parent_node_3d().global_basis.orthonormalized())
+	h.hand_r.basis = Basis(parent_q.inverse() * cur.slerp(target, w)) * Basis.from_scale(h.hand_r.basis.get_scale())
+	var palm: Vector3 = h.hand_r.global_position + (want * BRACE_PALM + c.z * BRACE_BEHIND) * sc
+	h.reach_hand(false, (h.hand_l.global_position as Vector3).lerp(palm, w), c * Vector3(-1.0, -0.6, 0.3))
