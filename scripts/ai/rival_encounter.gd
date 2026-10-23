@@ -17,6 +17,12 @@ const PLUNDER := 0.25
 const ARRIVE_AT := 14.0
 ## A watching rival barks a taunt every so often (seconds).
 const TAUNT_EVERY := Vector2(4.0, 8.0)
+## Alone, the gauntlet is this many mates at most (the best matches for your style), then their captain.
+const SOLO_MATES := 2
+## The waiting crew's corner: this far off to the side of the duel; a mate just watches at this chance (else side work),
+## at most half of them.
+const CORNER := 12.0
+const WATCH_CHANCE := 0.4
 ## Gold for a won fight per crew member, and the chance of a trait weapon.
 const GOLD_EACH := 18
 const WEAPON_CHANCE := 0.35
@@ -203,8 +209,10 @@ func _captains() -> Array:
 	return get_tree().get_nodes_in_group("players").filter(func(c): return c is Player and is_instance_valid(c))
 
 
+## Still in it: health left and not bleeding out (Player.is_standing). A knockdown (Downed, getting up) is still in
+## it: counting it as beaten ended a solo fight (plundered) or a squad fight (arrested) on one heavy hit.
 func _standing(c: Player) -> bool:
-	return c.health_component.current_health > 0.0 and c.current_state_name() != "Downed" and not c.bleeding
+	return c.is_standing()
 
 
 ## The duels begin: the queue (the best match for the lead captain's fighting style first, the captain last).
@@ -222,12 +230,98 @@ func _fight() -> void:
 	var wc := lead.style() if lead else ""
 	_queue = rivals.slice(0, rivals.size() - 1)
 	_queue.sort_custom(func(a, b): return int(a.style() == wc) > int(b.style() == wc))
+	# alone, a shorter gauntlet: the best one or two matches, then their captain (the rest stay at their work)
+	if _captains().size() <= 1:
+		_queue = _queue.slice(0, SOLO_MATES if _queue.size() > SOLO_MATES else 1)
 	_queue.append(rivals[-1])
-	for r in rivals:
-		var b = r.get_node("Brain")
-		b.order = "watch"
-		b.watch_r = rng.randf_range(8.0, 11.0)
+	_crew_corner(lead)
 	_taunt_at = rng.randf_range(TAUNT_EVERY.x, TAUNT_EVERY.y)
+
+
+## The crew waits its turn together, CORNER m off to one side of the duel: each on a spot in a loose line facing the
+## fight, at their own side work (CaptainBrain.REST_KINDS, no two the same) or just standing watching (their captain
+## always); the head on the fight.
+func _crew_corner(lead: Player) -> void:
+	if lead == null:
+		return
+	var fwd := Vector3.ZERO
+	for r in rivals:
+		fwd += r.global_position - lead.global_position
+	fwd.y = 0.0
+	fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
+	var side := fwd.cross(Vector3.UP).normalized() * (1.0 if rng.randf() < 0.5 else -1.0)
+	var n := rivals.size()
+	# the first corner (either side, nearer if need be) with ground under every spot near the fight's height (not off
+	# a dock, a cliff or into the sea); none: they wait where they stand
+	var spots: Array = []
+	for dist in [CORNER, CORNER * 0.75, CORNER * 0.5]:
+		for s in [side, -side]:
+			for ahead in [3.0, 7.0, -1.0]:
+				var tryc: Vector3 = lead.global_position + fwd * ahead + s * dist
+				var try_spots := _corner_spots(lead, tryc, n)
+				if try_spots.all(func(sp): return _ground_ok(sp, lead.global_position.y)):
+					spots = try_spots
+					break
+			if not spots.is_empty():
+				break
+		if not spots.is_empty():
+			break
+	if spots.is_empty():
+		for r in rivals:
+			spots.append(r.global_position)
+	var kinds: Array = CaptainBrain.REST_KINDS.duplicate()
+	for i in range(kinds.size() - 1, 0, -1):
+		var j := rng.randi() % (i + 1)
+		var tmp = kinds[i]
+		kinds[i] = kinds[j]
+		kinds[j] = tmp
+	# (watching is common, but at most half the mates: the corner reads as a crew at their own work)
+	var watchers_left := (n - 1) / 2
+	for i in range(n):
+		var r = rivals[i]
+		var b = r.get_node("Brain")
+		b.rest_at = spots[i]
+		b.look_node = lead
+		b.activity = "watch"
+		var watches := watchers_left > 0 and rng.randf() < WATCH_CHANCE
+		if watches and r != rivals[-1]:
+			watchers_left -= 1
+		if r != rivals[-1] and not kinds.is_empty() and not watches:
+			b.activity = kinds.pop_back()
+			if b.activity == "music":
+				r.body_model.look["instrument"] = Instruments.KINDS[rng.randi() % Instruments.KINDS.size()]
+		b.order = "rest"
+
+
+## A corner's spots round `centre`: a gentle arc facing the fight, the crew's captain in it a step nearer the fight (last).
+func _corner_spots(lead: Player, centre: Vector3, n: int) -> Array:
+	var to_fight := (lead.global_position - centre)
+	to_fight.y = 0.0
+	to_fight = to_fight.normalized()
+	var along := to_fight.cross(Vector3.UP).normalized()
+	var out: Array = []
+	for i in range(n):
+		var k := float(i) - (n - 1) * 0.5
+		out.append(centre + along * k * 1.7 - to_fight * absf(k) * 0.5)
+	out[n - 1] = centre + to_fight * 1.2
+	return out
+
+
+## Solid ground under `at` within a couple of metres of `y` (the fight's footing), and room to stand and sit there
+## (nothing within a stride of a body: crates, barrels, walls, trees).
+func _ground_ok(at: Vector3, y: float) -> bool:
+	var space := get_viewport().get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(Vector3(at.x, y + 3.0, at.z), Vector3(at.x, y - 3.0, at.z), 1)
+	var hit := space.intersect_ray(q)
+	if hit.is_empty() or absf(float(hit["position"].y) - y) >= 2.0:
+		return false
+	var room := PhysicsShapeQueryParameters3D.new()
+	var ball := SphereShape3D.new()
+	ball.radius = 1.1
+	room.shape = ball
+	room.collision_mask = 1
+	room.transform = Transform3D(Basis(), hit["position"] + Vector3.UP * 1.4)
+	return space.intersect_shape(room, 1).is_empty()
 
 
 func _physics_process(delta: float) -> void:
@@ -283,13 +377,15 @@ func _fight_tick(delta: float) -> void:
 		b.target = c
 		if rivals.find(next) == rivals.size() - 1:
 			_say(next, RivalCrews.line(crew_id, "taunt", rng))
+			_crew_react("turn")
 	for r in rivals:
 		if not is_instance_valid(r) or not _standing(r):
 			continue
 		var b = r.get_node("Brain")
-		if b.order == "watch":
-			var fighting = _active.values()
-			b.watch_center = fighting[0] if not fighting.is_empty() else up[0]
+		if b.order == "rest":
+			# (the head on a captain in a duel: the fight the crew's watching)
+			var dueling = _active.keys()
+			b.look_node = dueling[0] if not dueling.is_empty() else up[0]
 		_react(r, b)
 	# the captain hurt badly enough: retreat
 	var cap = rivals[-1]
@@ -299,7 +395,7 @@ func _fight_tick(delta: float) -> void:
 	_taunt_at -= delta
 	if _taunt_at <= 0.0:
 		_taunt_at = rng.randf_range(TAUNT_EVERY.x, TAUNT_EVERY.y)
-		var watching := rivals.filter(func(r): return is_instance_valid(r) and _standing(r) and r.get_node("Brain").order == "watch")
+		var watching := rivals.filter(func(r): return is_instance_valid(r) and _standing(r) and r.get_node("Brain").order == "rest")
 		if not watching.is_empty():
 			var w = watching[rng.randi() % watching.size()]
 			_say(w, RivalCrews.line(crew_id, "taunt", rng, w == rivals[-1]))
@@ -358,9 +454,18 @@ func _react(r: Player, b) -> void:
 	if hp < was - 1.0 and rng.randf() < 0.3:
 		_say(r, RivalCrews.line(crew_id, "hurt", rng, is_cap))
 	var casts := int(b.casts)
+	if casts > int(_casts_seen.get(r, 0)) and r.power.ult < PowerComponent.ULT_MAX * 0.05:
+		_crew_react("ult")
 	if casts > int(_casts_seen.get(r, 0)) and is_cap and r.power.ult < PowerComponent.ULT_MAX * 0.05:
 		_say(r, RivalCrews.line(crew_id, "ult", rng))
 	_casts_seen[r] = casts
+
+
+## Something big in the duel: the resting crew looks up, the watchers answer it (CaptainBrain.react).
+func _crew_react(what: String) -> void:
+	for r in rivals:
+		if is_instance_valid(r) and _standing(r):
+			r.get_node("Brain").react(what)
 
 
 func _say(r: Player, text: String) -> void:
@@ -386,6 +491,7 @@ func _on_defeated(r: Player) -> void:
 	_say(r, RivalCrews.line(crew_id, "down", rng, false))
 	if is_instance_valid(rivals[-1]):
 		_say(rivals[-1], RivalCrews.line(crew_id, "mate_down", rng))
+	_crew_react("down")
 
 
 ## Their captain calls it: everyone runs for the shore and the captains are paid.

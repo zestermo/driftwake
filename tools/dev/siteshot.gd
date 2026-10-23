@@ -1820,12 +1820,44 @@ func _nearest_rival():
 ## A rival crew (the Gilded Gulls) turns up at golden hour: the meeting's shots, then the duel, the crew ringing it.
 func _shot_rivals() -> void:
 	var st: Array = await _rival_stage(17.2)
+	# (a notorious captain: the bigger crew, more of them at their work by the side)
+	p.bounty = 160000
+	root.get_node("GameManager").rivals.clear()
 	_encounter().start(p, "gilded_gulls", st[0] + st[1] * 12.0)
 	await _cut_frames("rivals", [0, 1, 2, 3])
-	_swing_for(6.0)
+	_swing_for(14.0)
 	await _wait(2.5)
 	await _fight_looks("rivals_duel", 6, 0.3)
+	# the rest of the crew at their own work off to the side (they walk over and settle first)
+	await _wait(5.0)
+	await _crew_looks("rivals_crew")
 	await _rivals_gone()
+	p.bounty = 0
+
+
+## The resting crew in their corner, from the fight's side: close, wider, and across them.
+func _crew_looks(tag: String) -> void:
+	var rest: Array = []
+	for e in get_nodes_in_group("rival_encounter"):
+		rest = e.rivals.filter(func(r): return is_instance_valid(r) and r.get_node("Brain").order == "rest")
+	print("  crew at rest: ", rest.map(func(r): return "%s %s (settled %s)" % [r.name, r.get_node("Brain").activity, r.get_node("Brain")._settled]))
+	if rest.is_empty():
+		return
+	var corner := Vector3.ZERO
+	for r in rest:
+		corner += r.global_position / rest.size()
+	var to_fight: Vector3 = p.global_position - corner
+	to_fight.y = 0.0
+	to_fight = to_fight.normalized()
+	var across := to_fight.cross(Vector3.UP)
+	var views := [[corner + to_fight * 5.0 + across * 1.5 + Vector3.UP * 1.5, corner + Vector3.UP * 0.7],
+		[corner + to_fight * 6.0 + across * 0.5 + Vector3.UP * 3.6, corner + Vector3.UP * 0.4],
+		[corner + to_fight * 1.5 + across * 6.0 + Vector3.UP * 1.2, corner + Vector3.UP * 0.8]]
+	for i in range(views.size()):
+		_look(views[i][0], views[i][1])
+		await _wait(0.2)
+		await _snap("%s_%d" % [tag, i])
+		await _wait(0.6)
 
 
 ## An Admiralty squad (Commodore Vael's) in the afternoon: the meeting, then all of them at once.

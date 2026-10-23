@@ -1005,8 +1005,11 @@ func set_hybrid(on: bool) -> void:
 ## than halfway around (in front of the character), the face turns to track
 ## the camera instead (with a little hysteresis so it doesn't flicker).
 func _update_head_look() -> void:
+	# (an AI captain's head is its brain's: a resting rival follows the duel, CaptainBrain._look_at_fight)
+	if is_ai:
+		return
 	var cam := get_viewport().get_camera_3d()
-	if is_ai or cam == null or body_model.head == null or context != Context.ON_FOOT or current_state_name() == "Talk":
+	if cam == null or body_model.head == null or context != Context.ON_FOOT or current_state_name() == "Talk":
 		body_model.look_weight = 0.0
 		return
 	var head_pos := body_model.head.global_position

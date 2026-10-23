@@ -33,6 +33,14 @@ Zach settled the whole version in one grill so it can be built in one go. This s
 | Build order | Tooling, the captain-style AI (on a debug duel key), the cutscene system, rival crews, bounties and posters, the Admiralty at sea and hunters, arrest and escape, the intro, fighting in the water, the enemy pass. Each lands in playable pieces. | The AI is the root the rest builds on. | — |
 | Unknowns while building | **Decide, note, keep going**: the option that fits this record, marked **assumed** in "Assumed while building" below, for Zach's review. | Uninterrupted build. | Zach's review |
 
+### Decided after release (2026-10-23), folded into 1.19
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| The waiting crew | **Side work, not circling**: the crew waits off to one side of the duel, each at their own activity (drills, a book, tinkering, an instrument, sitting; never two the same) or just watching, heads on the fight. | Zach: they look like they're working on their own skills. | After play |
+| Solo fights | **A shorter gauntlet**: one or two mates (the best matches for your style), then their captain; co-op keeps a rival per captain. | Not a 5-duel grind alone. | After play |
+| Their spot | **Just the crew**, no camp props (their own crates and books only). | Works anywhere. | - |
+| Reactions | **Brief**: they look up at a mate down, their captain's turn or an ultimate; watchers groan or cheer; the next one gets up and walks in. | - | - |
+
 ### Assumed while building
 - **Tooling window: already done on main** (checked 2026-10-23): compilecheck has the STATIC AUTOLOAD lint, crew_lib
   reads a deps file inside a try/catch (a file deleted mid-read is a miss), nettest's logs and deps are named per mode

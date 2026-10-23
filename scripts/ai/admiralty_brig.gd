@@ -250,8 +250,8 @@ func _physics_process(delta: float) -> void:
 	if inside.is_empty():
 		net.everyone("_all_brig_gone", [])
 		return
-	# everyone in here down: back in the cell
-	if inside.all(func(c): return c.health_component.current_health <= 0.0 or c.current_state_name() == "Downed"):
+	# everyone in here beaten (not just knocked down: Player.is_standing): back in the cell
+	if inside.all(func(c): return not c.is_standing()):
 		net.everyone("_all_brig_door", [false])
 
 

@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.19.1-e0b040" alt="Version 1.19.1">
+  <img src="https://img.shields.io/badge/version-1.19-e0b040" alt="Version 1.19">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -165,18 +165,14 @@ one-handed blade, Z draws it and left click chops while you hang on.
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.19); unstable ones are on [the releases page](https://driftwake.fun/releases/).
 
-### v1.19.1: Fair Matches (October 23, 2026), unstable
-Fixes for v1.19. Each captain in a co-op crew now duels the rival who fights in their own style (before, everyone
-was matched on the host's weapon, and any blade counted as a match); the crew's captain still comes last. A
-dungeon far from the crew no longer falls asleep while its bugs are still hatching, which left a co-op guest
-missing some of the host's dungeon bugs.
-
 ### v1.19: Wanted (October 23, 2026)
 Rival captains run by the game, built like yours: the same weapons, moves, skills and ultimates, reading your spacing,
 blocking, rolling and punishing whiffs. Four rival crews (the Gilded Gulls, the Brine Wolves, the Lantern Saints and
-the Mudlark Brigade) turn up on chain islands for a meeting and duels while the crew watches; they remember who won
-and come back stronger. A cutscene system (letterboxed subtitles, voice blips, a co-op skip vote). Bounties for each
-captain with wanted posters, townsfolk who know your face and shops that change their prices; the Admiralty as grey
+the Mudlark Brigade) turn up on chain islands for a meeting, then duels: alone you face one or two of their best
+matches for your style, then their captain; in co-op each captain gets a rival in their own style. The rest of the crew waits off to
+the side at their own work (drilling, reading, tinkering, playing an instrument, sitting) or watching the fight.
+They remember who won and come back stronger. A knockdown is never a loss: only being beaten is. A cutscene system
+(letterboxed subtitles, voice blips, a co-op skip vote). Bounties for each captain with wanted posters, townsfolk who know your face and shops that change their prices; the Admiralty as grey
 ironclad patrols, bounty hunters ashore and three named officers with squads. Lose to the Admiralty and break out of
 their brig. A new opening: a narrated storm at sea and a fight on Captain Maren Holt's deck. Fighting in the water
 with your own weapon, and spear, hammer, greatsword, twin-axe and black-leg pirates on the chain islands.

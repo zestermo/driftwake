@@ -7,8 +7,7 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["1.19.1: fair matches", "In a rival crew's duels, each captain now faces the rival who fights in their own style. Co-op guests see every dungeon bug the host has. This is an unstable build: tell us what breaks."],
-	["Rival crews", "Four pirate crews sail the first chain: the Gilded Gulls, the Brine Wolves, the Lantern Saints and the Mudlark Brigade. Their captains fight with your weapons, skills and ultimates. Meet them, duel them one at a time, and they'll remember who won."],
+	["Rival crews", "Four pirate crews sail the first chain: the Gilded Gulls, the Brine Wolves, the Lantern Saints and the Mudlark Brigade. Their captains fight with your weapons, skills and ultimates. Meet them and duel them one at a time while the rest of the crew waits at the side, drilling, reading, playing music or watching. They'll remember who won."],
 	["A price on your head", "Every captain has a bounty now. Climb it and your poster goes up, townsfolk know your face, and shops pick a side. The Admiralty's grey ships come about for you, bounty hunters wait ashore, and named officers bring their squads."],
 	["Arrested", "Lose to the Admiralty (the whole crew, in co-op) and you wake in their brig with your weapons in a chest past the guards. Pick the lock and fight your way out."],
 	["A new opening", "New games start on a stormy night at sea, on Captain Maren Holt's deck. Cutscenes can be skipped (in co-op, once everyone presses skip)."],

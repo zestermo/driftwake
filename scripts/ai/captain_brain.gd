@@ -32,12 +32,25 @@ var answers := {}
 ## Skills and ultimates it got off.
 var casts := 0
 ## Orders from a crew fight (RivalEncounter): "fight" (its foe: `target`, or the nearest captain), "watch" (ring the
-## duel `watch_r` m from `watch_center`, facing it, no blows), "flee" (sprint for `flee_to`), "hold" (stand).
+## duel `watch_r` m from `watch_center`, facing it, no blows), "rest" (a waiting crewmate: walk to `rest_at`, settle
+## facing `look_node` and keep at `activity`, the head on the fight), "flee" (sprint for `flee_to`), "hold" (stand).
 var order := "fight"
 var target: Node3D
 var watch_center: Node3D
 var watch_r := 9.0
 var flee_to := Vector3.ZERO
+## "rest": what it does while it waits. "watch" stands and follows the fight with its head; the rest are side work
+## (REST_KINDS: drills, a book, tinkering, an instrument, sat on the ground) with a glance up now and then.
+const REST_KINDS := ["train", "read", "tinker", "music", "sit"]
+var rest_at := Vector3.INF
+var activity := "watch"
+var look_node: Node3D
+var _settled := false
+var _rest_ticks := 0
+var _glance_until := 0
+var _next_glance := 0
+## Walking to its spot gives up (settles where it stands) after this long: a rock or a wall in the way.
+const REST_WALK_S := 8.0
 
 const FOE_ATTACKS := ["LightAttack", "HeavyAttack", "Technique", "Skill", "Plunge", "Iai", "Shoot"]
 ## The ultimate waits for one of these (or a missed swing); combos only for a missed swing, never a stagger (no stunlocks).
@@ -88,11 +101,16 @@ func _physics_process(_d: float) -> void:
 		bi.hold("parry", false)
 		return   # (a scene playing: it holds still, like the captains)
 	bi.hold("parry", _holding_block_until > _now())
+	if order != "rest" and (_settled or _rest_ticks > 0):
+		_unsettle()
 	match order:
 		"hold":
 			return
 		"flee":
 			_flee(bi)
+			return
+		"rest":
+			_rest(bi)
 			return
 	foe = target if target and is_instance_valid(target) and _standing(target) else _pick_foe()
 	if foe == null:
@@ -129,6 +147,108 @@ func _watch(bi: CaptainInput.BrainInput) -> void:
 	var d := off.length()
 	var radial := clampf((d - watch_r) / 3.0, -1.0, 1.0)   # + = too far: in (stick forward faces the foe)
 	bi.move = Vector2(_strafe * 0.35, -radial).limit_length(1.0)
+
+
+## Waiting its turn: to its spot, then settled at its activity, facing the fight.
+func _rest(bi: CaptainInput.BrainInput) -> void:
+	_rest_ticks += 1
+	if not _settled:
+		var to := rest_at - p.global_position
+		to.y = 0.0
+		if rest_at != Vector3.INF and to.length() > 0.5 and _rest_ticks < _ticks(REST_WALK_S):
+			if p.armed and p.is_free():
+				p.sheathe_weapon(true)
+			bi.yaw = atan2(-to.x, -to.z)
+			bi.move = Vector2(0, -clampf(to.length() / 2.0, 0.3, 0.55))
+			return
+		if not p.is_free() or not p.is_on_floor():
+			return
+		_settle()
+	_face_fight()
+	_look_at_fight()
+	# (back to the loop after a one-off: a reaction, a flinch)
+	if activity in ["train", "read", "tinker"] and p.body_model.current_action() == "":
+		p.body_model.hold(Downtime.pose_of(p, activity), 0.25)
+
+
+func _settle() -> void:
+	_settled = true
+	p.velocity = Vector3.ZERO
+	match activity:
+		"train":
+			if not p.armed:
+				p.draw_weapon(true)
+			p.body_model.hold(Downtime.pose_of(p, "train"), 0.4)
+		"read", "tinker":
+			p.body_model.seated = true
+			p.body_model.seat_y = Downtime.seat_of(activity)
+			p.body_model.hold(Downtime.pose_of(p, activity), 0.4)
+		"sit":
+			p.sit_ground()
+		"music":
+			p.jam.start()
+	_next_glance = _now() + _ticks(rng.randf_range(2.0, 6.0))
+
+
+## Called in (its turn, the retreat): up from whatever it was doing.
+func _unsettle() -> void:
+	if _settled:
+		match activity:
+			"music":
+				p.jam.stop()
+			"sit":
+				if p.current_state_name() == "Sit":
+					p.state_machine.force_state("Idle", {})
+			"read", "tinker", "train":
+				p.body_model.seated = false
+				if p.body_model.current_action() == Downtime.pose_of(p, activity):
+					p.body_model.stop_action()
+	_settled = false
+	_rest_ticks = 0
+	p.body_model.look_weight = 0.0
+
+
+## Eased round to face the fight (an activity faces it too: the crew on the side, all turned to the duel).
+func _face_fight() -> void:
+	if look_node == null or not is_instance_valid(look_node) or activity == "sit":
+		return
+	var d := look_node.global_position - p.global_position
+	d.y = 0.0
+	if d.length() < 0.5:
+		return
+	var want := atan2(-d.x, -d.z)
+	p.player_model.rotation.y = lerp_angle(p.player_model.rotation.y, want, 0.06)
+
+
+## The head on the fight: always for a watcher, now and then (a glance up) for the rest.
+func _look_at_fight() -> void:
+	var b := p.body_model
+	if look_node == null or not is_instance_valid(look_node):
+		b.look_weight = 0.0
+		return
+	b.look_target = look_node.global_position + Vector3.UP * 1.4
+	var now := _now()
+	if activity != "watch" and now >= _next_glance:
+		_glance_until = now + _ticks(rng.randf_range(1.2, 2.4))
+		_next_glance = _glance_until + _ticks(rng.randf_range(3.0, 8.0))
+	var want := 1.0 if activity == "watch" or now < _glance_until else 0.0
+	b.look_weight = move_toward(b.look_weight, want, 0.06)
+
+
+## Something big in the duel: "down" (a mate beaten), "turn" (their captain steps up), "ult" (an ultimate). Resting,
+## it looks up; a watcher answers it (a facepalm for a mate down, a cheer for the captain's turn).
+func react(what: String) -> void:
+	if order != "rest" or not _settled:
+		return
+	_glance_until = _now() + _ticks(rng.randf_range(2.0, 3.0))
+	if activity != "watch" or not p.is_free():
+		return
+	match what:
+		"down":
+			if rng.randf() < 0.6:
+				p.emote("facepalm")
+		"turn":
+			p.emote("cheer")
 
 
 ## Run for flee_to (the ship), sprinting; the yaw faces it.

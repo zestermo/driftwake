@@ -1,6 +1,7 @@
 extends SceneTree
 ## A rival crew's visit (RivalEncounter, RivalCrews): the crew turns up (mates, the captain last, tougher), the meeting
-## plays as a cutscene and skips; duels in turn (one on the captain, the rest watching, the captain last); their
+## plays as a cutscene and skips; duels in turn (one on the captain, the rest resting; alone, a short gauntlet: one mate
+## of two, then the captain); their
 ## captain hurt badly enough calls the retreat (they flee, the record says won, they're gone after); met again it
 ## picks the grudge lines, and beating the captain spares them (downed, not dead), plunders a quarter of the gold and
 ## they get back up once the crew's gone.
@@ -67,10 +68,12 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(0.6)
 		3:
 			var f := fighting()
-			check("one down, the next steps up (not the captain yet) (first %s %.0f hp, fighting %s)" % [first.current_state_name(), first.health_component.current_health, str(f.map(func(r): return r.name))],
-				first.current_state_name() == "Downed" and f.size() == 1 and f[0] != first and f[0] != e.rivals[-1])
-			f[0].health_component.take_damage(99999.0)
-			until = TK.wait_secs(0.6)
+			# (alone, a shorter gauntlet: with two mates, one of them, then their captain; the other stays at their work)
+			var other = e.rivals[0] if e.rivals[0] != first else e.rivals[1]
+			check("one down: alone, their captain's next (first %s %.0f hp, fighting %s), the other mate still resting (%s)" % [first.current_state_name(),
+				first.health_component.current_health, str(f.map(func(r): return r.name)), other.get_node("Brain").order],
+				first.current_state_name() == "Downed" and f.size() == 1 and f[0] == e.rivals[-1] and other.get_node("Brain").order == "rest")
+			until = TK.wait_ticks(2)
 		4:
 			var f := fighting()
 			check("their captain comes last", f.size() == 1 and f[0] == e.rivals[-1])

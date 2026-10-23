@@ -6032,7 +6032,24 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - **Not done (later, Zach's call):** one Godot process per atomic group. A bare boot of the project is ~21 s
   (compiling ~438 scripts / 149k lines) of each atomic test's ~30 s: ~95 min machine per full run.
 
-## v1.19.1: fair matches and co-op dungeon bugs (2026-10-23, unstable)
+## v1.19, re-released: the waiting crew, fair matches, knockdowns, co-op dungeon bugs (2026-10-23)
+Folded into v1.19 (the tag moved; the version stays 1.19) the same day, after Zach played it.
+- **The waiting crew** (Zach: "I don't want them to run around in circles round the fight"): CaptainBrain's "rest" order
+  replaces "watch" for a crew fight. RivalEncounter._crew_corner puts the crew in a loose arc CORNER (12) m to one side
+  of the duel (either side, nearer, a little ahead or behind: the first with ground at the fight's height and 1.1 m of
+  room at every spot, `_ground_ok`; none: where they stand), facing it. Each walks there and settles at an activity:
+  "watch" (stands, the head on the duel: Humanoid.look_target, synced) or side work from REST_KINDS, no two the same
+  (train: DowntimePoses' drill; read and tinker: seated on their crate with the downtime props; sit: Player.sit_ground;
+  music: Jam with an instrument put in their look, heard by guests). Watching at WATCH_CHANCE, at most half the mates;
+  their captain always watches. Side workers glance up every 3-8 s; big moments (`_crew_react`: a mate down, their
+  captain's turn, an ultimate) turn every head, and a watcher facepalms or cheers. Called in, it unsettles (up, the
+  pose or tune stopped) and walks in. Player._update_head_look leaves an AI's head to its brain.
+- **Solo is a shorter gauntlet** (Zach): one or two mates (SOLO_MATES; one of a crew of two), the best matches for
+  your style, then their captain. Co-op unchanged (a rival per standing captain).
+- **A knockdown isn't a loss**: RivalEncounter._standing and the brig's "everyone down" counted Downed (also a heavy
+  hit's knockdown) as beaten, so one knockdown lost a solo fight (plundered), a squad fight (arrested) or threw an
+  escaping crew back in the cell, and a rival knocked down was replaced mid-duel. Both use Player.is_standing now.
+  Test: t/combat/rival_rest (the corner, the activities, the heads, staying put, a knockdown, the next walking in).
 - **Co-op dungeon bugs** (nettest's "all host enemies exist here" missing `Isle0/Dungeon0/Enemies/Bugs/B3_0`, `B4_0`
   in 2 of 5 runs): on a chain island being built a ScuttlebugNest hatches a bug a frame (`_hatching`), and
   `Dungeon._sleep_check` put a far dungeon's Enemies to sleep (PROCESS_MODE_DISABLED) mid-way, so the last spots

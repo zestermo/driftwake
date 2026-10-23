@@ -521,10 +521,10 @@
 			"status": "shipped",
 			"headline": "Rival crews who fight with your weapons and skills, an Admiralty that puts a price on your head, and a new opening.",
 			"img": "rivals_duel",
-			"alt": "The captain trading blows with a rival crew's spearman in the snow at sunset",
+			"alt": "The captain trading blows with a rival crew's mate in the snow at sunset",
 			"shots": [
-				["wanted", "A wanted poster on a village notice board: Wren Calloway, 64,000 gold"],
-				["admiralty", "An Admiralty squad in grey coats lined up on a snowy island"]
+				["rivals_crew", "A rival crew waiting their turn at the side of a duel: one reading on a crate, one watching, their captain watching"],
+				["wanted", "A wanted poster on a village notice board: Wren Calloway, 64,000 gold"]
 			],
 			"clip": "squad",
 			"clipAlt": "The captain fights an Admiralty squad in grey coats on a snowy island",
@@ -532,7 +532,7 @@
 			"github": true,
 			"added": [
 				["Rival captains", "Captains run by the game with your weapons, moves, skills and ultimates, who read your spacing and punish whiffs."],
-				["Rival crews", "Four crews with their own captains and lines: a meeting, duels while the crew watches, and a grudge either way."],
+				["Rival crews", "Four crews with their own captains and lines: a meeting, duels in your style while the rest of the crew waits at the side at their own work, and a grudge either way."],
 				["Cutscenes", "Camera shots, letterboxed subtitles and voice blips; in co-op everyone presses skip."],
 				["Bounties", "Each captain's own, with wanted posters, townsfolk who know your face and shops that change their prices."],
 				["The Admiralty", "Grey ironclad patrols, bounty hunters ashore and three named officers with squads."],
@@ -540,21 +540,6 @@
 				["A new opening", "A narrated storm at sea, then a fight on Captain Maren Holt's deck."],
 				["Fighting in the water", "Strike with your own weapon while swimming; sharks and morays can be fought."],
 				["New enemy weapons", "Spear, hammer, greatsword, twin-axe and black-leg pirates, each with its own moves."]
-			]
-		},
-		{
-			"v": "1.19.1",
-			"name": "Fair Matches",
-			"date": "2026-10-23",
-			"unstable": true,
-			"status": "shipped",
-			"headline": "Fixes for v1.19: each captain duels a rival in their own style, and co-op guests see every dungeon bug.",
-			"img": "rivals_duel",
-			"alt": "The captain trading blows with a rival crew's spearman in the snow at sunset",
-			"github": true,
-			"added": [
-				["Fair matches", "Each captain faces the rival who fights in their own style; the crew's captain still comes last."],
-				["Dungeon bugs in co-op", "A far dungeon waits for its bugs to finish hatching before it sleeps."]
 			]
 		},
 		{
