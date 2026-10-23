@@ -303,14 +303,32 @@ func _burst(pos: Vector3, amount: int, mat: Material, size: float, life: float, 
 	return p
 
 
-static var _tele_mat: StandardMaterial3D
-static var _ring_mesh: ArrayMesh
-static var _disc_mesh: ArrayMesh
-
-
-## Opacity of the dither telegraph (kept quiet: Zach, 1.19, "more subtle").
+## Opacity of the dither ground warnings (kept quiet: Zach, 1.19, "more subtle").
 const TELE_ALPHA := 0.6
+const WARN_SHADER := preload("res://shaders/psx/psx_ground_warn.gdshader")
 static var _tele_quad: QuadMesh
+
+
+## The dither warnings' four tones from a warning's colour: [outline, speckle, body, highlight].
+static func warn_palette(color: Color) -> Array:
+	var c := Color(color.r, color.g, color.b, 1.0)
+	return [c * Color(0.18, 0.18, 0.18), c * Color(0.5, 0.5, 0.5), c, c.lerp(Color.WHITE, 0.55)]
+
+
+## A material for psx_ground_warn.gdshader (fans and lanes of any size on a world-space pixel grid):
+## shape 0 a lane `size` = (width, length), 1 a fan of `size.y` radius `angle` rad wide. Sweep it out
+## by setting "reveal" (m).
+static func warn_mat(color: Color, shape: int, size: Vector2, angle: float = 0.0) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = WARN_SHADER
+	m.set_shader_parameter("shape", shape)
+	m.set_shader_parameter("size", size)
+	m.set_shader_parameter("angle", angle)
+	m.set_shader_parameter("opacity", TELE_ALPHA)
+	var pal := warn_palette(color)
+	for i in range(4):
+		m.set_shader_parameter(["pal_dark", "pal_deep", "pal_body", "pal_hi"][i], pal[i])
+	return m
 
 
 ## A warning on the ground where a big attack will land: the dither sheet (gen_dither_fx.py) charging up
@@ -330,9 +348,8 @@ func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.
 	else:
 		_scene_root().add_child(holder)
 	holder.global_position = pos + Vector3(0, 0.04, 0)
-	var c := Color(color.r, color.g, color.b, 1.0)
 	var mat := PSXMat.decal_sheet("dither_telegraph", Color(1, 1, 1, TELE_ALPHA), {"unshaded": true,
-		"palette": [c * Color(0.18, 0.18, 0.18), c * Color(0.5, 0.5, 0.5), c, c.lerp(Color.WHITE, 0.55)]})
+		"palette": warn_palette(color)})
 	var mi := MeshInstance3D.new()
 	mi.mesh = _tele_quad
 	mi.material_override = mat
@@ -347,46 +364,27 @@ func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.
 static var _arc_meshes: Dictionary = {}
 
 
-func _tele_init() -> void:
-	if _tele_mat != null:
-		return
-	_tele_mat = StandardMaterial3D.new()
-	_tele_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_tele_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_tele_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_tele_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_tele_mat.vertex_color_use_as_albedo = true
-	_ring_mesh = _annulus(0.88, 1.0)
-	_disc_mesh = _annulus(0.0, 1.0)
-
-
 ## A small fan on the ground in front of an attacker, `radius` m out over
-## `angle` rad about `dir`: the rim shows at once and the fill sweeps out to
-## it over `secs` (a close blow on its way: the rifle butt, a low sweep).
+## `angle` rad about `dir`: its rails and rim show at once and a dithered front
+## sweeps out to the rim over `secs` (a close blow on its way: the rifle butt, a low sweep).
 func arc_warn(pos: Vector3, dir: Vector3, radius: float, angle: float, secs: float, color: Color = Color(1.0, 0.9, 0.6)) -> void:
-	_tele_init()
 	var key := snappedf(angle, 0.05)
 	if not _arc_meshes.has(key):
-		_arc_meshes[key] = [_fan(0.86, 1.0, key), _fan(0.0, 1.0, key)]
+		_arc_meshes[key] = _fan(0.0, 1.0, key)
 	var d := Vector3(dir.x, 0.0, dir.z).normalized()
 	var holder := Node3D.new()
 	holder.name = "ArcWarn"
 	_scene_root().add_child(holder)
-	holder.global_transform = Transform3D(Basis.looking_at(d, Vector3.UP), pos + Vector3(0, 0.07, 0))
-	var rim := MeshInstance3D.new()
-	rim.mesh = _arc_meshes[key][0]
-	rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	rim.scale = Vector3(radius, 1.0, radius)
-	holder.add_child(rim)
-	var fill := MeshInstance3D.new()
-	fill.mesh = _arc_meshes[key][1]
-	fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	fill.scale = Vector3(0.05, 1.0, 0.05)
-	holder.add_child(fill)
-	_tint(rim, Color(color.r, color.g, color.b, 0.85))
-	_tint(fill, Color(color.r, color.g, color.b, 0.35))
+	holder.global_transform = Transform3D(Basis.looking_at(d, Vector3.UP), pos + Vector3(0, 0.04, 0))
+	var mat := warn_mat(color, 1, Vector2(0.0, radius), key)
+	var mi := MeshInstance3D.new()
+	mi.mesh = _arc_meshes[key]
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.scale = Vector3(radius, 1.0, radius)
+	holder.add_child(mi)
 	var tw := holder.create_tween()
-	tw.tween_property(fill, "scale", Vector3(radius, 1.0, radius), maxf(secs, 0.05))
+	tw.tween_method(func(r: float): mat.set_shader_parameter("reveal", r), 0.0, radius, maxf(secs, 0.05))
 	tw.tween_callback(holder.queue_free)
 
 
@@ -409,12 +407,6 @@ func _fan(inner: float, outer: float, angle: float) -> ArrayMesh:
 ## A strip on the ground where a charge or a dash will run (BeastFX.lane, sendable through Net.fx).
 func lane(from: Vector3, to: Vector3, width: float, secs: float, color: Color = Color(1.0, 0.18, 0.12)) -> void:
 	BeastFX.lane(from, to, width, secs, color)
-
-
-func _tint(mi: MeshInstance3D, c: Color) -> void:
-	var m := _tele_mat.duplicate() as StandardMaterial3D
-	m.albedo_color = c
-	mi.material_override = m
 
 
 func _annulus(inner: float, outer: float) -> ArrayMesh:

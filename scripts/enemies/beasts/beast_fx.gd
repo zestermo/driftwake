@@ -10,7 +10,6 @@ const LEAF_DRY := Color(0.55, 0.48, 0.22)
 static var _streams := {}
 static var _leaf_mat: StandardMaterial3D
 static var _leaf_quad: QuadMesh
-static var _lane_mat: StandardMaterial3D
 static var _lane_mesh: ArrayMesh
 
 
@@ -120,12 +119,7 @@ static func _leaf_shades() -> Gradient:
 ## A strip on the ground where a charge or a lunge will run, from `from` to `to`
 ## (`w` m wide), filling in from the start over `secs`.
 static func lane(from: Vector3, to: Vector3, w: float, secs: float, color: Color = Color(1.0, 0.18, 0.12)) -> void:
-	if _lane_mat == null:
-		_lane_mat = StandardMaterial3D.new()
-		_lane_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_lane_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_lane_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		_lane_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	if _lane_mesh == null:
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		for v in [Vector3(-0.5, 0, 0), Vector3(0.5, 0, 0), Vector3(0.5, 0, -1), Vector3(-0.5, 0, 0), Vector3(0.5, 0, -1), Vector3(-0.5, 0, -1)]:
@@ -138,26 +132,17 @@ static func lane(from: Vector3, to: Vector3, w: float, secs: float, color: Color
 	var holder := Node3D.new()
 	holder.name = "Lane"
 	_root().add_child(holder)
-	holder.global_transform = Transform3D(Basis.looking_at(d / l, Vector3.UP), from + Vector3(0, 0.08, 0))
-	var edge := MeshInstance3D.new()
-	edge.mesh = _lane_mesh
-	var em := _lane_mat.duplicate() as StandardMaterial3D
-	em.albedo_color = Color(color.r, color.g, color.b, 0.3)
-	edge.material_override = em
-	edge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	edge.scale = Vector3(w, 1.0, l)
-	holder.add_child(edge)
-	var fill := MeshInstance3D.new()
-	fill.mesh = _lane_mesh
-	var fm := _lane_mat.duplicate() as StandardMaterial3D
-	fm.albedo_color = Color(color.r, color.g, color.b, 0.55)
-	fill.material_override = fm
-	fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	fill.position.y = 0.01
-	fill.scale = Vector3(w * 0.8, 1.0, 0.01)
-	holder.add_child(fill)
+	holder.global_transform = Transform3D(Basis.looking_at(d / l, Vector3.UP), from + Vector3(0, 0.04, 0))
+	# the dither warning (FX.warn_mat): rails and the far end at once, chevrons behind a front sweeping along
+	var mat := FX.warn_mat(color, 0, Vector2(w, l))
+	var mi := MeshInstance3D.new()
+	mi.mesh = _lane_mesh
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.scale = Vector3(w, 1.0, l)
+	holder.add_child(mi)
 	var tw := holder.create_tween()
-	tw.tween_property(fill, "scale", Vector3(w * 0.8, 1.0, l), maxf(secs, 0.05))
+	tw.tween_method(func(r: float): mat.set_shader_parameter("reveal", r), 0.0, l, maxf(secs, 0.05))
 	tw.tween_callback(holder.queue_free)
 
 

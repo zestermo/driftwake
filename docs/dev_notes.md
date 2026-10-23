@@ -5853,3 +5853,13 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   `TELE_ALPHA` 0.6: a thin ring dark outside, sparse speckle, a dithered edge closing in, small chevrons.
   `arc_warn` and `lane` are still the old plain shapes. Rain puddles (cap 0.65) and poison puddles (0.75) loop
   their sheets; blood splats keep their spatter shapes for now.
+
+## 2026-10-22: dither effects, piece 2 (fans and lanes)
+
+- `FX.arc_warn` fans and `BeastFX.lane` strips are drawn by `shaders/psx/psx_ground_warn.gdshader`: the
+  telegraph's look made procedurally on a world-space pixel grid (`texel` 0.09 m, the telegraph's density), since
+  their sizes vary too much for a sheet. Thin rails and far end (a dark outer pixel), boiling every 1/6 s; a
+  sparse Bayer speckle; a dithered front sweeping to `reveal` m over the wind-up; small chevrons marching along
+  behind it. One mesh each (was a rim and a growing fill, additive). `FX.warn_mat` / `FX.warn_palette` share
+  the telegraph's tones and TELE_ALPHA. Node names (ArcWarn, Lane, Telegraph) unchanged for the suites.
+- Tested by t/fx/ground_warn; grunttest, guntest, foresttest and r8test check the nodes appear.
