@@ -5863,3 +5863,14 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   behind it. One mesh each (was a rim and a growing fill, additive). `FX.warn_mat` / `FX.warn_palette` share
   the telegraph's tones and TELE_ALPHA. Node names (ArcWarn, Lane, Telegraph) unchanged for the suites.
 - Tested by t/fx/ground_warn; grunttest, guntest, foresttest and r8test check the nodes appear.
+
+## 2026-10-22: dither effects, piece 3 (rings and hit bursts)
+
+- `FX.ring` (~160 callers: shockwaves, rings of air round thrusts and punches) is the dither shockwave: a quad
+  on `dither_ring` (or `dither_ring_wide` for a width >= 0.2), index sheets coloured by `warn_palette(color)`,
+  frame 0 -> 7 over its life while it scales out as before: a band with a bright leading pixel and a dark one
+  outside, thinning and breaking into dashes. RING_ALPHA 0.7 (was an additive glow at 0.85).
+- `impact` and `parry_sparks` flash `flip_dither_hit` (a 17th FLIP_SHEETS sheet, 4x4 frames): an uneven
+  nine-spike impact with a white-hot core opening and dithering away (a five-point star read too cartoony).
+  Their spark particles are unchanged.
+- Not converted: water_ring (own bands), elem_hit / drawn bursts (already hand-drawn), muzzle and cannon blasts.

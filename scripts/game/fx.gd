@@ -728,7 +728,7 @@ func muzzle_sparks(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = 
 ## Hit impact: a flash plus a spray of sparks.
 func impact(pos: Vector3, color: Color = Color(1.0, 0.9, 0.55)) -> void:
 	if flipbooks:
-		flash(pos, 1.7, Color.WHITE, "glint", 0.14)
+		flash(pos, 1.3, Color.WHITE, "dither_hit", 0.3)
 	else:
 		_burst(pos, 1, _impact_mat, 0.9, 0.12, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 			"grow": true, "color": Color(1, 1, 1, 1)})
@@ -740,7 +740,7 @@ func impact(pos: Vector3, color: Color = Color(1.0, 0.9, 0.55)) -> void:
 ## back toward the attacker (`dir`) and a few slow glints hanging in the air.
 func parry_sparks(pos: Vector3, dir: Vector3) -> void:
 	if flipbooks:
-		flash(pos, 2.2, Color.WHITE, "glint", 0.12)
+		flash(pos, 1.7, Color.WHITE, "dither_hit", 0.28)
 	else:
 		_burst(pos, 1, _impact_mat, 1.25, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 			"grow": true, "color": Color(1, 1, 1, 1)})
@@ -1402,15 +1402,26 @@ func _band(width: float) -> ArrayMesh:
 	return _bands[key]
 
 
-## A ring racing out from `pos` and fading, flat to `normal` (UP: along the
-## ground; a direction: a ring of air round a thrust or a punch).
+## Opacity of the dither rings (FX.ring): quieter than the old additive glow.
+const RING_ALPHA := 0.7
+static var _ring_quad: QuadMesh
+
+
+## A ring racing out from `pos` and fading, flat to `normal` (UP: along the ground; a direction: a ring of air
+## round a thrust or a punch). The dither shockwave (gen_dither_fx.py's dither_ring, dither_ring_wide from a
+## `width` of 0.2): a band in `color`'s tones with a bright leading pixel, thinning and breaking into dashes.
 func ring(pos: Vector3, normal: Vector3 = Vector3.UP, radius: float = 3.0, color: Color = Color.WHITE, life: float = 0.35, width: float = 0.12) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
 		return
+	if _ring_quad == null:
+		_ring_quad = QuadMesh.new()
+		_ring_quad.size = Vector2(2.0, 2.0)
+		_ring_quad.orientation = PlaneMesh.FACE_Y
 	var mi := MeshInstance3D.new()
-	mi.mesh = _band(width)
-	var mat := _glow_mat(color)
+	mi.mesh = _ring_quad
+	var mat := PSXMat.decal_sheet("dither_ring_wide" if width >= 0.2 else "dither_ring", Color(1, 1, 1, RING_ALPHA * color.a),
+		{"unshaded": true, "palette": warn_palette(color)})
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var holder := Node3D.new()
@@ -1423,7 +1434,7 @@ func ring(pos: Vector3, normal: Vector3 = Vector3.UP, radius: float = 3.0, color
 	mi.scale = Vector3(radius * 0.12, 1.0, radius * 0.12)
 	var tw := holder.create_tween()
 	tw.tween_property(mi, "scale", Vector3(radius, 1.0, radius), life).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tw.parallel().tween_property(mat, "albedo_color:a", 0.0, life * 0.7).set_delay(life * 0.3)
+	tw.parallel().tween_method(func(f: float): mat.set_shader_parameter("frame", f), 0.0, 7.99, life)
 	tw.tween_callback(holder.queue_free)
 
 
@@ -1951,7 +1962,7 @@ func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 
 var flipbooks := true
 ## Every sheet in assets/textures/fx/flip_<name>.png, all 4x4 frames of 64 px.
 const FLIP_SHEETS := ["smoke", "explosion", "dust", "dust_low", "sand", "snow", "mist", "blood", "splash", "fire",
-	"fireball", "muzzle", "sparks", "glint", "magic", "wisp"]
+	"fireball", "muzzle", "sparks", "glint", "magic", "wisp", "dither_hit"]
 ## Light: grey-white sheets drawn additive, so the burst's colour tints them. The rest is matter.
 const FLIP_ADD := ["sparks", "glint", "magic"]
 ## Matter that doesn't glow: dimmed with the night (unshaded, it would shine white in the dark).
