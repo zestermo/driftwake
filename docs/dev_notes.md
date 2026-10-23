@@ -5942,3 +5942,10 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - Next if fights still dip: grunt AI at a lower think rate (physics scripts now ~1.5 ms in the fight), hair/cloth sims
   only on the nearest fighters, then the skinned single-mesh bodies.
 - Tests: t/world/actor_sleep's pedestals moved for the enemy ranges (45 / 75 / 140 / 650 m).
+- **Then (2026-10-23):** grunts think every other tick in the moving-about states (`THINK_STATES`: idle, alert, chase,
+  circle, reposition, keep, return; staggered by instance id) and move every tick on the last decision (`_move_tail`);
+  the thinking tick gets both ticks' delta so the states' clocks keep pace; attacks, blocks, dashes, stagger think every
+  tick. Hair/cloth springs on lod rigs only for the 4 nearest the camera (`Humanoid.SIMS_N`, ranked on last frame's
+  distances, 15% slack for the ones swinging). Bench (off/on back to back): grunt AI 0.90 -> 0.51 ms, grunt rigs 1.12 ->
+  0.82 ms a frame in the five-grunt fight; whole-frame change within calib noise. The brawl stop plays out a real fight
+  and isn't comparable run to run (one run ended in the camp's middle: +630 draws of scenery).

@@ -602,6 +602,24 @@ func _shadow_lod(delta: float) -> void:
 
 
 var _sims_near: bool = true
+## Hair and cloth on lod rigs (villagers, grunts) only for the SIMS_N nearest the camera: in a fight every grunt was
+## inside SIMS_R_LOD and the springs were a third of a grunt's rig (2026-10-22). Ranked on last frame's distances.
+const SIMS_N := 4
+static var _sims_frame: int = -1
+static var _sims_cut: float = INF
+static var _sims_seen: PackedFloat32Array = PackedFloat32Array()
+
+
+func _sims_rank(d2: float) -> bool:
+	var f := Engine.get_process_frames()
+	if f != _sims_frame:
+		_sims_frame = f
+		_sims_seen.sort()
+		_sims_cut = _sims_seen[SIMS_N - 1] if _sims_seen.size() >= SIMS_N else INF
+		_sims_seen.clear()
+	_sims_seen.append(d2)
+	# (a little slack for the ones already swinging, so two at the edge don't trade places every frame)
+	return d2 <= _sims_cut * (1.15 if _sims_near else 1.0)
 ## Hair and cloth swing within this of the camera (m): a captain's, and a villager's or grunt's (lod).
 const SIMS_R := 30.0
 const SIMS_R_LOD := 20.0
@@ -617,7 +635,10 @@ func _update_physics(delta: float) -> void:
 	# snap to rest (once) when they leave range.
 	var cam := _camera()
 	var r := SIMS_R_LOD if lod else SIMS_R
-	var near := cam == null or cam.global_position.distance_squared_to(global_position) < r * r
+	var d2 := cam.global_position.distance_squared_to(global_position) if cam else 0.0
+	var near := cam == null or d2 < r * r
+	if near and lod:
+		near = _sims_rank(d2)
 	if not near and not _sims_near:
 		return
 	_sims_near = near

@@ -668,6 +668,15 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y -= GRAVITY * delta
 
+	# (moving about, it thinks every other tick and moves on its last decision in between; the thinking tick gets
+	# both ticks' time, so the states' own clocks keep their pace)
+	if _think_skip(delta):
+		_move_tail(_last_want, _last_accel, _last_turn, _last_running, _flat(velocity), delta)
+		return
+	var tick := delta
+	delta += _think_acc
+	_think_acc = 0.0
+
 	var p := _target()
 	# (an Afterimage decoy: it goes for that instead)
 	var lured := _lure != null and is_instance_valid(_lure) and _lure.alive()
@@ -1007,6 +1016,37 @@ func _physics_process(delta: float) -> void:
 		Net.fx("decoy_break", [_lure.spot])
 		_lure = null
 
+	_last_want = want
+	_last_accel = accel
+	_last_turn = turn
+	_last_running = running
+	_move_tail(want, accel, turn, running, hv, tick)
+
+
+
+## Thinks every other tick in these (no blow, guard or stagger on the line): THINK_STATES, _think_skip().
+const THINK_STATES := [S.IDLE, S.ALERT, S.CHASE, S.CIRCLE, S.REPOSITION, S.KEEP, S.RETURN]
+var _think_odd := false
+var _think_acc := 0.0
+var _last_want := Vector3.ZERO
+var _last_accel := 18.0
+var _last_turn := 9.0
+var _last_running := false
+
+
+func _think_skip(delta: float) -> bool:
+	if state not in THINK_STATES or _yank > 0.0:
+		_think_odd = get_instance_id() % 2 == 0
+		_think_acc = 0.0
+		return false
+	_think_odd = not _think_odd
+	if _think_odd:
+		_think_acc += delta
+	return _think_odd
+
+
+## Every tick: on toward `want` (around what it walked into, out of the sea), moved, turned, the body fed.
+func _move_tail(want: Vector3, accel: float, turn: float, running: bool, hv: Vector3, delta: float) -> void:
 	# walked into something (tent, crate, rock): sidestep around it for a bit
 	if _detour_t > 0.0:
 		_detour_t -= delta
@@ -1042,7 +1082,6 @@ func _physics_process(delta: float) -> void:
 		_stuck = 0.0
 
 	_feed_body(hv, running)
-
 
 func _feed_body(hv: Vector3, running: bool) -> void:
 	humanoid.ground_speed = hv.length()
