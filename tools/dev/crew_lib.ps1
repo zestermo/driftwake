@@ -272,6 +272,51 @@ function Get-DirListing($ctx, [string]$dir) {
 	return $ctx.Dirs[$dir]
 }
 
+## tools/dev/key_ignore.txt: path -> @(first-line regex, last-line regex or "").
+function Get-KeyIgnore() {
+	if ($null -eq $script:keyIgnore) {
+		$script:keyIgnore = @{}
+		foreach ($l in Get-Content (Join-Path $PSScriptRoot "key_ignore.txt")) {
+			$t = $l.Trim()
+			if (-not $t -or $t.StartsWith("#")) { continue }
+			$p = @($t -split "\s+\|\s*")
+			$script:keyIgnore[$p[0]] = @($p[1].Trim(), $(if ($p.Count -gt 2) { $p[2].Trim() } else { "" }))
+		}
+	}
+	return $script:keyIgnore
+}
+
+## A dependency's content hash in a key: its blob, or for a file in key_ignore.txt "n" + the hash of its
+## contents without the lines listed there (so a version bump keeps every pass). Also takes an old manifest's
+## raw blob for such a file and gives what it would be now (test_status compares them).
+function Get-KeyBlob($ctx, [string]$path, [string]$blob) {
+	$rules = Get-KeyIgnore
+	if (-not $rules.ContainsKey($path) -or $blob.Length -ne 40) { return $blob }
+	if ($null -eq $script:normBlobs) { $script:normBlobs = @{} }
+	if (-not $script:normBlobs.ContainsKey($blob)) {
+		$text = @(git -C $ctx.Root cat-file -p $blob 2>$null)
+		if ($LASTEXITCODE) { return $blob }
+		$from, $to = $rules[$path]
+		$kept = New-Object System.Collections.Generic.List[string]
+		$skip = $false
+		foreach ($l in $text) {
+			if (-not $skip -and $l -match $from) { $skip = [bool]$to; continue }
+			if ($skip) { if ($l -match $to) { $skip = $false }; continue }
+			$kept.Add($l)
+		}
+		$sha = [System.Security.Cryptography.SHA1]::Create()
+		$script:normBlobs[$blob] = "n" + (($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes(($kept -join "`n"))) | ForEach-Object { $_.ToString("x2") }) -join "")
+	}
+	return $script:normBlobs[$blob]
+}
+
+## An old manifest line ("path hash") as Get-TestKey would write it now (key_ignore.txt applied).
+function Get-KeyLine($ctx, [string]$line) {
+	$p, $h = $line -split " ", 2
+	if ($h -and (Get-KeyIgnore).ContainsKey($p)) { return "$p " + (Get-KeyBlob $ctx $p $h) }
+	return $line
+}
+
 ## The key `test`'s pass is kept under in this tree: Key ("d" + the hash of its dependencies' paths and
 ## contents, their .import files with them, a listed folder's names), Deps (recorded or not: the tree is
 ## the key until then) and Manifest (the hashed lines).
@@ -293,7 +338,7 @@ function Get-TestKey($ctx, [string]$test) {
 		$lines = New-Object System.Collections.Generic.List[string]
 		foreach ($p in $paths) {
 			if ($p.EndsWith("/")) { $lines.Add("$p " + (Get-DirListing $ctx $p)); continue }
-			$lines.Add("$p " + $(if ($ctx.Blobs.ContainsKey($p)) { $ctx.Blobs[$p] } else { "-" }))
+			$lines.Add("$p " + $(if ($ctx.Blobs.ContainsKey($p)) { Get-KeyBlob $ctx $p $ctx.Blobs[$p] } else { "-" }))
 			if ($ctx.Blobs.ContainsKey("$p.import")) { $lines.Add("$p.import " + $ctx.Blobs["$p.import"]) }
 		}
 		$sha = [System.Security.Cryptography.SHA1]::Create()

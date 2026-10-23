@@ -300,7 +300,7 @@ $env:MS_GROUND='none'; $env:MS_ROW='y'; $env:MS_PSX='0'; & $env:GODOT --path . -
 ## Finishing
 
 Render with modelshot (sheet + MS lines) and in place (day, and 21:00 if it has lights),
-run the suites that touch where it lives (village: `qoltest`, `r7test`, `perftest`; forest
+run the suites that touch where it lives (village: `qoltest`, `invtest`, `perftest`; forest
 and den: `foresttest`; ships: `riggingtest`, `seatest`, `yardtest`; weapons: `qoltest`,
 `katanatest`, `axetest`), tell Zach where to go in game to see it, add a dated
 `docs/dev_notes.md` entry for anything substantial, commit. A shape or technique that

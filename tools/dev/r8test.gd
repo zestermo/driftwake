@@ -13,7 +13,7 @@ var es
 var boss
 var fails := 0
 var saw := {}
-var t0 := 0.0
+var t0 := 0  # physics tick a timed window started on (see secs_since_t0)
 var c
 var until := 0
 var hp0 := 0.0
@@ -55,7 +55,7 @@ func _dash_setup() -> void:
 	boss.reset_physics_interpolation()
 	hp0 = p.health_component.current_health
 	boss._start_rush()
-	t0 = t
+	t0 = Engine.get_physics_frames()
 
 
 func music():
@@ -69,6 +69,12 @@ func siege(dmg: float) -> HitData:
 	h.unblockable = true
 	h.ranged = true
 	return h
+
+
+## Simulated seconds since t0 (the ship and boss AI run on physics ticks: under load a frame runs fewer
+## ticks than its process time, so a window in process seconds ran short and "fires a broadside" flaked).
+func secs_since_t0() -> float:
+	return (Engine.get_physics_frames() - t0) / float(Engine.physics_ticks_per_second)
 
 
 func _process(d: float) -> bool:
@@ -223,14 +229,14 @@ func _process(d: float) -> bool:
 			saw["balls_enemy"] = 0
 			wait = 0.5
 			step = 8
-			t0 = t
+			t0 = Engine.get_physics_frames()
 		8:
 			if es.state in [1, 2]:
 				saw["hunt"] = true
 			for b in root.find_children("*", "Cannonball", true, false):
 				if b.team == "enemy":
 					saw["balls_enemy"] = int(saw["balls_enemy"]) + 1
-			if t - t0 < 14.0 and not (saw.has("hunt") and int(saw["balls_enemy"]) > 0):
+			if secs_since_t0() < 14.0 and not (saw.has("hunt") and int(saw["balls_enemy"]) > 0):
 				return false
 			check("a pirate ship spots the crew's ship and gives chase", saw.has("hunt"))
 			check("...and fires a broadside", int(saw["balls_enemy"]) > 0)
@@ -360,7 +366,7 @@ func _process(d: float) -> bool:
 			_dash_setup()
 			step = 40
 		40:
-			if boss._rush_dir == Vector3.ZERO and t - t0 < 3.0:
+			if boss._rush_dir == Vector3.ZERO and secs_since_t0() < 3.0:
 				return false
 			check("Tide Rush: he sinks into his draw and an amber lane shows where he'll dash", boss.state == 5 and root.find_children("Lane", "", true, false).size() > 0)
 			check("...before the cut", p.health_component.current_health >= hp0 - 0.01)
@@ -374,7 +380,7 @@ func _process(d: float) -> bool:
 			_dash_setup()
 			step = 43
 		43:
-			if boss._rush_dir == Vector3.ZERO and t - t0 < 3.0:
+			if boss._rush_dir == Vector3.ZERO and secs_since_t0() < 3.0:
 				return false
 			p.global_position = fort.to_global(Vector3(4.0, 6.4, 2.0))
 			p.reset_physics_interpolation()

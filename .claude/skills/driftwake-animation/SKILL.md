@@ -345,8 +345,8 @@ For "which is better" questions: 2-3 variants of one action, ranked by Zach.
 
 ## Finishing
 
-Run the suites that cover the move (`fixtest`, `feat`, `stamtest` for the cutlass combo;
-`axetest`, `katanatest`, `progtest`, `vinetest`, `r7test` reference actions by name), plus
+Run the suites that cover the move (`guntest`, `feat`, `stamtest` for the cutlass combo;
+`axetest`, `katanatest`, `progtest`, `vinetest`, `invtest` reference actions by name), plus
 `nettest.ps1` if sync changed. Tell Zach what to try in game (weapon, clicks, slow motion,
 which camera side), log rounds in `docs/anim_lab.md` and substantial changes in
 `docs/dev_notes.md`, commit.

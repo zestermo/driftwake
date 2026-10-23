@@ -8,7 +8,12 @@
 #
 #   .\tools\dev\test_status.ps1          # summary
 #   .\tools\dev\test_status.ps1 -Stale   # just the names that need to run (stale, failing or never run), on one line
-param([switch]$Stale)
+#   .\tools\dev\test_status.ps1 -Carry   # the release tier (prepush.ps1): a stale test whose newest pass is since the
+#                                        # last release tag counts as ok when none of the files changed since it are
+#                                        # test-side (tools/dev/*) or tied to it by test_map.txt ("carried"); smoketest
+#                                        # and net always need their exact pass; full_only.txt's carry from any pass.
+#                                        # Leaves status.json (the pane's) alone.
+param([switch]$Stale, [switch]$Carry)
 $ErrorActionPreference = "Stop"
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 . (Join-Path $PSScriptRoot "crew_lib.ps1")
@@ -77,8 +82,24 @@ foreach ($d in Get-ChildItem (Join-Path $crew "results") -Directory -ErrorAction
 }
 function Get-By($p) { return (Get-Content $p.File -TotalCount 1).Trim() }
 
+# the carry tier: passes since the newest release tag (v*), and the tests that never carry
+$carryFrom = [datetime]::MaxValue
+if ($Carry) {
+	$tag = @(git -C $root tag --list "v*" --sort=-creatordate | Select-Object -First 1)
+	if ($tag) { $carryFrom = [datetime](git -C $root log -1 --format=%cI $tag[0]).Trim() }
+}
+$alwaysRun = @("smoketest", "net")
+$fullOnly = @(Get-Content (Join-Path $PSScriptRoot "full_only.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })
+## Of `files` (changed since `test`'s pass), the ones that make it run in the carry tier: test-side or mapped to it.
+function Get-Covering([string]$test, [string[]]$files) {
+	$mapped = Get-Touching $test $files
+	return @($files | Where-Object { $_ -like "tools/dev/*" -or $mapped -contains $_ })
+}
+
 $rows = @()
 foreach ($s in $all) {
+	$since = $null
+	$last = $null
 	$ledger = $null
 	$lf = Join-Path $crew "ledger\$s.json"
 	if (Test-Path $lf) { $ledger = Get-Content $lf -Raw | ConvertFrom-Json }
@@ -86,7 +107,6 @@ foreach ($s in $all) {
 	$k = Get-TestKey $ctx $s
 	$mine = @($passes[$s] | Sort-Object At -Descending)
 	$exact = $mine | Where-Object { $_.Key -eq $k.Key } | Select-Object -First 1
-	$since = $null
 	if ($exact) {
 		$row.state = "ok"; $row.passedOn = Get-By $exact
 	} elseif ($k.Deps) {
@@ -94,7 +114,7 @@ foreach ($s in $all) {
 		$last = $mine | Where-Object { $_.Key.StartsWith("d") } | Select-Object -First 1
 		if ($last) {
 			$was = @{}
-			foreach ($l in @(Get-Content $last.File | Select-Object -Skip 1)) { $was[$l] = $true }
+			foreach ($l in @(Get-Content $last.File | Select-Object -Skip 1)) { $was[(Get-KeyLine $ctx $l)] = $true }
 			$since = @($k.Manifest | Where-Object { -not $was.ContainsKey($_) } | ForEach-Object { ($_ -split " ", 2)[0] })
 		}
 		if ($mine.Count -gt 0) {
@@ -128,6 +148,14 @@ foreach ($s in $all) {
 			$row.state = "stale"; $row.why = "$($ledger.state) last time; files it loads changed since"
 		}
 	}
+	$dev = $fullOnly -contains $s
+	if ($Carry -and $row.state -eq "stale" -and $null -ne $since -and $last -and ($dev -or $last.At -gt $carryFrom) -and $alwaysRun -notcontains $s) {
+		$failedSince = $ledger -and $ledger.state -ne "passed" -and [datetime]$ledger.at -gt $last.At
+		if (-not $failedSince -and ($dev -or (Get-Covering $s $since).Count -eq 0)) {
+			$row.state = "ok"; $row.why = ""; $row.files = @()
+			$row.passedOn = (Get-By $last) + " (carried: $($since.Count) file(s) it loads changed, none it covers)"
+		}
+	}
 	$rows += [pscustomobject]$row
 }
 
@@ -135,8 +163,10 @@ $counts = [ordered]@{}
 foreach ($c in @("ok", "stale", "failing", "never")) { $counts[$c] = @($rows | Where-Object { $_.state -eq $c }).Count }
 $landing = [ordered]@{ now = (Get-Landing $crew); queue = @(Get-LandQueue $crew) }
 $status = [ordered]@{ at = (Get-Date).ToString("o"); root = $root; branch = (Get-CrewBranch $root); tree = $tree; counts = $counts; groups = $groups; suites = $rows; landing = $landing }
-[System.IO.File]::WriteAllText((Join-Path $crew "status.json.tmp"), ($status | ConvertTo-Json -Depth 6 -Compress))
-Move-Item -Force (Join-Path $crew "status.json.tmp") (Join-Path $crew "status.json")
+if (-not $Carry) {
+	[System.IO.File]::WriteAllText((Join-Path $crew "status.json.tmp"), ($status | ConvertTo-Json -Depth 6 -Compress))
+	Move-Item -Force (Join-Path $crew "status.json.tmp") (Join-Path $crew "status.json")
+}
 
 if ($Stale) {
 	($rows | Where-Object { $_.state -ne "ok" } | ForEach-Object { $_.name }) -join " "

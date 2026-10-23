@@ -6003,3 +6003,31 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   seatest's Marine-whites check (the restyle).
 - **Not yet run:** the world suites and nettest (prepush: `rival` is a new nettest mode); the trigger of rival/hunter/
   officer meetings on a real chain island; the Admiralty hull is still wood-brown (needs a grey plank texture).
+
+## 2026-10-23: cheaper release testing (the release tier, version out of the keys, four suites retired)
+- **Why:** v1.19's prepush ran ~361 tests twice. A pass is keyed by every file a test loads, every test loads
+  ~343+ files through the autoloads, so a core-file change (or the version bump: 56 tests in one estimate) made
+  everything stale, and each fix after a red run did it again.
+- **The release tier** (`test_status.ps1 -Carry`, used by `prepush.ps1` and `run_needed.ps1 -Carry`): a stale test
+  whose newest pass is since the last `v*` tag counts as ok ("carried") when none of the files changed since that
+  pass (from its .ok manifest) are tools/dev/* or tied to it by test_map.txt. smoketest and net always need their
+  exact pass; a failure newer than the pass blocks the carry; `full_only.txt` (capturetest) carries from any pass.
+  `-Carry` leaves status.json (the Tests pane's strict view) alone. `prepush.ps1 -Full` is the strict run. prepush
+  prints the changed scripts/scenes/shaders since the tag that no map line covers.
+  Estimate on HEAD 2c0cd76c with only the passes from before the v1.19 prepush: strict 361 tests / 17,400 s machine
+  (~58 min wall at 5 slots) vs carry 97 tests / 5,400 s (~18 min).
+- **Key exclusions:** `tools/dev/key_ignore.txt` (path | first-line regex | block-end regex): the version line in
+  project.godot and the NOTES block in whats_new.gd are dropped before hashing (crew_lib `Get-KeyBlob`: "n" + the
+  hash of the rest). Old manifests' raw blobs are normalised the same way when test_status compares them
+  (`Get-KeyLine`), so carry sees through it; strict keys changed once with this landing.
+- **Retired suites** (checks moved, setup saved): fixtest -> guntest (both hands on the rifle, a downed rifleman
+  stays down, never aims once dead; plunge is airtest's, shove guntest's); r6test -> powertest (skill keys after
+  closing the skills menu, Armament: Coat, block, red unblockable heavy, fall damage) + vinetest (aura, leg vines,
+  dash vines); its skills-menu / menus-fit / quick-item / pixelation checks were already t/ui, uitest, invtest's;
+  r7test -> invtest (drag and drop, quick slot, drop + pick up, chest window, wolf stance, PSX default);
+  hairtest -> cliptest. qoltest's chart marks stay (t/map/map_marks is quest marks, not the player's waypoints).
+- **r8test "...and fires a broadside":** its 14 s window (and the boss's 3 s ones) counted process seconds while
+  the ship AI runs on physics ticks (max 4 a frame): under a full run's load the window ran short. Now
+  `secs_since_t0()` in physics ticks. The other flaky.txt checks already wait in ticks; their flakes are something else.
+- **Not done (later, Zach's call):** one Godot process per atomic group. A bare boot of the project is ~21 s
+  (compiling ~438 scripts / 149k lines) of each atomic test's ~30 s: ~95 min machine per full run.

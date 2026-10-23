@@ -1,0 +1,3 @@
+# Tests the release tier (prepush.ps1, test_status.ps1 -Carry) never reruns once they have a pass on record:
+# they cover dev tools, not the game. `prepush.ps1 -Full` and run_needed.ps1 still run them. One per line.
+capturetest

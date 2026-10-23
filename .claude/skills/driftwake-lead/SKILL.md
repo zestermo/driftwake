@@ -6,7 +6,7 @@ description: >
   template (claim and areas, who else is working, the spec, Zach's bars, pieces in order, tests, docs,
   report), watch the crew board and the landing queue, relay cross-agent changes, resume stopped agents,
   verify each report on main before passing it on, clean up landed worktrees, then the one-pass-after
-  shared work, prepush.ps1 -CI, the fix pass and the push. Use when Zach says "start the batch", "spawn
+  shared work, prepush.ps1, the fix pass and the push. Use when Zach says "start the batch", "spawn
   agents for X and Y", "run these in parallel", after a driftwake-grill hands off a decided feature, or
   whenever this session is coordinating more than one feature agent. Not for building a feature yourself
   (that's the agent's job) or a single narrow fix (brief one driftwake-fixer).
@@ -112,9 +112,10 @@ A report is the agent's account, not proof. Before telling Zach anything is done
 
 ## 6. After the batch
 
-- **The gate:** `.\tools\dev\prepush.ps1 -CI` from the main checkout: GitHub runs every suite, the heavy ones and
-  the co-op modes on HEAD's commit (`ci/<branch>`), and a green run pushes that commit. `-NoPush` to just check.
-  Local `prepush.ps1` is the fallback when CI is down.
+- **The gate:** `.\tools\dev\prepush.ps1` from the main checkout, locally (never on GitHub): the release tier,
+  every failing, never-run or stale test except the carried ones (nothing tied to them by test_map.txt changed
+  since their pass this version), smoketest and net always; a green run pushes. `-NoPush` to just check, `-Full`
+  for the strict run (only when Zach asks). Add map lines for the "Not in test_map.txt" files it prints.
 - **The fix pass:** one `driftwake-fixer` per red suite (or a feature agent if it needs design), the known bugs from
   the agents' reports listed first in its brief. A red run keeps its ci/ branch for `gh run rerun --failed`.
 - **The push** is prepush's own on green (standing OK to land and push finished work; never tags, force pushes or
@@ -137,4 +138,4 @@ A report is the agent's account, not proof. Before telling Zach anything is done
 4. Watch the board and the queue; relay contract/hook changes; resume stopped agents; remind re-claims.
 5. Verify each report on main (log, merged, test_status, renders) before relaying.
 6. unwork.ps1 the landed worktrees; the one shared pass after.
-7. prepush.ps1 -CI, the fix pass, the push; notes and what to play.
+7. prepush.ps1, the fix pass, the push; notes and what to play.

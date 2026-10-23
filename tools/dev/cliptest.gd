@@ -7,7 +7,7 @@ extends SceneTree
 ## up past the outer layer's surface by more than TOL. Bodies are built at rest.
 ## Layers are found by material: the colours below are unique per slot, and the extra materials a
 ## slot brings (steel, studs, trim) are learnt by building it alone on a bare body.
-## Prints the worst offender per pair; CLIP_ALL=1 lists every combo.
+## Prints the worst offender per pair; CLIP_ALL=1 lists every combo. Also hair under hats (the retired hairtest).
 const TOL := 0.004
 const C := {"top_color": Color(0.9, 0.88, 0.8), "vest_color": Color(0.18, 0.34, 0.2), "coat_color": Color(0.2, 0.32, 0.62),
 	"trim_color": Color(0.75, 0.76, 0.78), "belt_color": Color(0.62, 0.44, 0.26), "sash_color": Color(0.8, 0.62, 0.2),
@@ -36,6 +36,7 @@ func _process(_d: float) -> bool:
 	f += 1
 	if f < 2:
 		return false
+	_hair_checks()
 	var torso := []
 	var belts := ["belt", "sash", "wide_belt", "belt_sash"]
 	var i := 0
@@ -88,6 +89,79 @@ func _process(_d: float) -> bool:
 	print("RESULT fails=", fails)
 	quit()
 	return false
+
+
+## Hair-material vertices of the head (head-local, unscaled), the strands included
+## (HairFlow's locks are untextured: all of a lock style's chain mesh counts).
+func _hair_verts(h, style: String) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var locks := HairFlow.has(style)
+	for mi in h.head.find_children("*", "MeshInstance3D", true, false):
+		var m: Mesh = (mi as MeshInstance3D).mesh
+		if m == null:
+			continue
+		var on_chains: bool = (mi as Node).get_parent() is Skeleton3D and (mi as Node).get_parent().get_parent() is SpringChains
+		for s in range(m.get_surface_count()):
+			var mat := m.surface_get_material(s) as ShaderMaterial
+			if mat == null:
+				continue
+			var tex = mat.get_shader_parameter("albedo_tex")
+			var textured_hair: bool = tex != null and str((tex as Texture2D).resource_path).contains("hair")
+			if not textured_hair and not (locks and on_chains):
+				continue
+			var v: PackedVector3Array = m.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
+			var xf: Transform3D = h.head.global_transform.affine_inverse() * (mi as Node3D).global_transform
+			for p in v:
+				out.append(xf * p)
+	return out
+
+
+
+## Every hair style builds for both bodies, and under every hat no hair reaches out past the scalp
+## (from the retired hairtest).
+func _hair_checks() -> void:
+	var built := 0
+	var styles: Array = CharacterLook.HAIR
+	for body in ["masc", "fem"]:
+		for hs in styles:
+			var lk := CharacterLook.base_look()
+			lk["body"] = body
+			lk["hair"] = hs
+			var h := Humanoid.new()
+			h.setup(lk)
+			root.add_child(h)
+			if hs == "bald" or _hair_verts(h, hs).size() > 0:
+				built += 1
+			h.free()
+	check("every hair style builds for both bodies (%d / %d)" % [built, styles.size() * 2], built == styles.size() * 2)
+	# under a hat, hair above the brim hugs the scalp: within the round head's
+	# top ring (its real profile, 0.162 x 0.158 m) plus a few millimetres, and
+	# no higher than the crown
+	var bb := BodyBuilder.new()
+	var ring := [0.268, 0.162, 0.158, 0.004, 0.0, BodyBuilder.P_HEAD()]
+	var worst := ""
+	var worst_r := 0.0
+	for hat in CharacterLook.HATS:
+		if hat == "none" or hat in CharacterLook.OVER_HAIR:
+			continue
+		for hs in styles:
+			var lk := CharacterLook.base_look()
+			lk["hair"] = hs
+			lk["hat"] = hat
+			var h := Humanoid.new()
+			h.setup(lk)
+			root.add_child(h)
+			for p in _hair_verts(h, hs):
+				if p.y < 0.285:
+					continue
+				var d := Vector2(p.x, p.z - 0.004)
+				var lim: float = bb._surf_r(ring, atan2(d.x, -d.y)) + 0.008
+				var r := maxf(d.length() / lim, (p.y - 0.392) / 0.01 + 1.0 if p.y > 0.392 else 0.0)
+				if r > worst_r:
+					worst_r = r
+					worst = "%s + %s at (%.3f, %.3f, %.3f)" % [hat, hs, p.x, p.y, p.z]
+			h.free()
+	check("no hair pokes out under any hat (worst %.2f of the limit: %s)" % [worst_r, worst], worst_r <= 1.0)
 
 
 func _run(what: String, combos: Array, pairs: Array, mode: String, parts: Array) -> void:

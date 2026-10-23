@@ -3,9 +3,10 @@
 #
 #   .\tools\dev\run_needed.ps1          # run them
 #   .\tools\dev\run_needed.ps1 -List    # just say what it would run
-param([switch]$List)
+#   .\tools\dev\run_needed.ps1 -Carry   # the release tier's set (test_status.ps1 -Carry; prepush.ps1 uses it)
+param([switch]$List, [switch]$Carry)
 $ErrorActionPreference = "Stop"
-$need = @((& (Join-Path $PSScriptRoot "test_status.ps1") -Stale) -split "\s+" | Where-Object { $_ })
+$need = @((& (Join-Path $PSScriptRoot "test_status.ps1") -Stale -Carry:$Carry) -split "\s+" | Where-Object { $_ })
 $suites = @($need | Where-Object { $_ -notmatch "^net(-\w+)?$" })
 $nets = @($need | Where-Object { $_ -match "^net(-\w+)?$" } | ForEach-Object { if ($_ -eq "net") { "" } else { $_.Substring(4) } })
 Write-Host ("Needs running: " + $(if ($need) { $need -join " " } else { "nothing" })) -ForegroundColor Cyan

@@ -82,11 +82,11 @@ scripts/player_states/player_state.gd   t/player t/items balancetest airtest
 scripts/player_states/light_attack*     t/combat axetest katanatest techtest wieldtest
 scripts/player_states/heavy_attack*     t/player axetest techtest balancetest wieldtest
 scripts/player_states/iai*              katanatest balancetest
-scripts/player_states/plunge*           fixtest katanatest axetest airtest wieldtest
+scripts/player_states/plunge*           katanatest axetest airtest wieldtest
 scripts/player_states/technique*        techtest wieldtest
 scripts/player_states/corsair_gun.gd    wieldtest techtest net
 scripts/player_states/dodge*            t/player
-scripts/player_states/block*            r6test
+scripts/player_states/block*            powertest
 scripts/player_states/parry*            grunttest
 scripts/player_states/stagger*          grunttest
 scripts/player_states/downed*           ragtest decktest net
@@ -102,11 +102,11 @@ scripts/input/*                         t/player t/combat
 
 # --- bodies and animation ---
 scripts/npc/humanoid.gd                 chartest t/player t/combat ragtest r10test katanatest axetest techtest chaintest
-scripts/npc/body_builder.gd             chartest t/player hairtest katanatest qoltest
+scripts/npc/body_builder.gd             chartest t/player cliptest katanatest qoltest
 scripts/npc/character_look.gd           chartest t/player savetest
 scripts/npc/face_painter.gd             chartest
-scripts/npc/spring_chains.gd            hairtest chartest
-scripts/npc/hair_flow.gd                t/player/flow_hair hairtest
+scripts/npc/spring_chains.gd            cliptest chartest
+scripts/npc/hair_flow.gd                t/player/flow_hair cliptest
 scripts/npc/arm_body.gd                 chartest t/player perftest
 scripts/npc/lower_body.gd               chartest t/player perftest
 scripts/npc/npc.gd                      qoltest
@@ -122,26 +122,26 @@ scripts/net/network_manager.gd          net netchain
 scenes/combat/*                         grunttest t/combat techtest
 scripts/combat/*                        grunttest ragtest t/combat
 scripts/combat/ragdoll.gd               ragtest watertest r10test decktest
-scripts/enemies/pirate_grunt.gd         grunttest guntest fixtest watertest perftest balancetest leveltest
+scripts/enemies/pirate_grunt.gd         grunttest guntest watertest perftest balancetest leveltest
 scripts/enemies/grunt_camp.gd           grunttest perftest leveltest
 scripts/enemies/levels.gd               leveltest isletest apetest
 scripts/enemies/pirate_boss.gd          r8test
 scripts/enemies/scuttlebug*             bugtest leveltest
 scripts/enemies/sea_king.gd             seatest legtest
 scripts/enemies/*                       grunttest foresttest
-scripts/powers/*                        powertest vinetest r6test techtest
-scripts/progression/*                   progtest techtest r6test balancetest
-scripts/ui/skill_map*                   progtest r6test techtest
+scripts/powers/*                        powertest vinetest techtest
+scripts/progression/*                   progtest techtest powertest balancetest
+scripts/ui/skill_map*                   progtest powertest techtest
 
 # --- items, inventory, saves, game ---
-scripts/loot/*                          r7test invtest t/items looptest
+scripts/loot/*                          invtest t/items looptest
 scripts/loot/gear*                      invtest qoltest
 scripts/loot/equipment*                 invtest
 scripts/game/save_game.gd               savetest progtest looptest yardtest r9test
 scripts/game/game_manager.gd            looptest ragtest savetest chaintest isletest netchain
 scripts/game/dev_capture.gd             capturetest
 scripts/game/perf_monitor.gd            perftest
-scripts/game/settings.gd                savetest r6test
+scripts/game/settings.gd                savetest powertest
 scripts/game/shops.gd                   qoltest
 scripts/game/*                          t/items t/ui
 scripts/props/weapon_designs.gd         qoltest katanatest axetest
@@ -177,7 +177,7 @@ shaders/sky_bird.gdshader               skytest
 scripts/ship/ship_spray.gd              skytest shiptest
 assets/audio/*_loop.wav                 ambiencetest
 scripts/game/footsteps.gd               ambiencetest
-scripts/game/fx.gd                      powertest r6test t/fx
+scripts/game/fx.gd                      powertest t/fx
 scripts/game/blade_trail.gd             t/combat wieldtest
 scripts/game/music.gd                   r8test musictest
 assets/audio/music_*                    musictest
@@ -185,7 +185,7 @@ scripts/world/cloud_spawner.gd          r9test r10test
 scripts/world/grapple_points.gd         vinetest
 scripts/world/burnable.gd               powertest
 scripts/world/nav_baker.gd              grunttest
-scripts/interaction/*                   r7test riggingtest swimtest qoltest
+scripts/interaction/*                   invtest riggingtest swimtest qoltest
 scripts/interaction/ladder.gd           swimtest riggingtest
 
 # --- world ---
@@ -271,20 +271,20 @@ scripts/props/jungle_plants.gd          isletest fidelitytest
 scripts/props/jungle_props.gd           villagetest
 
 # --- UI ---
-scenes/ui/*                             r6test r7test r8test
-scripts/ui/inventory*                   invtest r7test looptest
+scenes/ui/*                             uitest invtest r8test
+scripts/ui/inventory*                   invtest looptest
 scripts/ui/shop*                        qoltest
 scripts/ui/title*                       savetest
-scripts/ui/game_menu.gd                 savetest r6test
+scripts/ui/game_menu.gd                 savetest uitest
 scripts/ui/character_creator.gd         chartest
-scripts/ui/*                            r6test
+scripts/ui/*                            uitest
 
 # --- rendering ---
-scripts/psx/*                           r9test hairtest
+scripts/psx/*                           r9test cliptest
 scripts/psx/draw_lod.gd                 isletest chartest fidelitytest villagetest
 scripts/psx/mesh_builder.gd             chartest isletest cliptest
 shaders/*                               r9test r10test
-project.godot                           t r6test
+project.godot                           t
 scripts/enemies/fauna/*                 faunatest netchain
 scripts/island/fauna_spawner.gd         faunatest netchain
 shaders/fauna_swarm.gdshader            faunatest

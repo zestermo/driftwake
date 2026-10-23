@@ -1,8 +1,8 @@
 # The Tests pane's groups: "Group: suite suite ...", in the order the pane shows them. A suite on no
 # line shows under "Other". Merges by union (.gitattributes), like suites.txt.
-Combat: katanatest axetest airtest wieldtest daggertest techtest balancetest guntest fixtest
+Combat: katanatest axetest airtest wieldtest daggertest techtest balancetest guntest
 Player: swimtest ragtest looptest
-Character & UI: chartest hairtest invtest r6test r7test savetest capturetest qoltest uitest
+Character & UI: chartest invtest savetest capturetest qoltest uitest
 Powers & progression: powertest vinetest progtest leveltest
 Enemies: bugtest grunttest apetest bosstest watertest faunatest
 Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest skytest shoretest

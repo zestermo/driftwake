@@ -1,0 +1,5 @@
+# Lines left out of every test's cache key (crew_lib.ps1 Get-KeyBlob): data no test checks, so changing it
+# (a version bump, the What's new text) doesn't make every cached pass stale.
+#   <repo path> | <regex: first line left out> | <regex: last line of the block, or nothing for that one line>
+project.godot | ^config/version=
+scripts/ui/whats_new.gd | ^const NOTES := \[ | ^\]

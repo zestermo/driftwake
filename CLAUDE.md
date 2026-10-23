@@ -113,12 +113,17 @@ described here (Zach's choice). Tests are how agents prove their work before it 
      fixed chain seeds built and run: script errors, non-finite transforms, missing services; `-Exact`, so never
      carried over the rebase).
   3. **Once every feature of the batch is merged onto main and its conflicts resolved, before a push:** the
-     suites run **locally**, once: `tools/dev/prepush.ps1` (every test test_status calls stale, failing or never
-     run, atomic, heavy and co-op included, up to 5 at a time in the shared slots; it pushes main if all pass;
-     `-NoPush` to just check). **Never on GitHub:** no `-CI` / `ci.ps1` (Zach, 2026-10-17). This is the only place
-     the suites, nettest and the chain/fidelity/perf suites run. The Tests panel (`/tests`) shows what's cached,
-     what each task will need and the push set, and starts this run.
-  Run the full suite only when Zach asks.
+     suites run **locally**, once: `tools/dev/prepush.ps1`, the **release tier** (2026-10-23): every failing or
+     never-run test, and every stale one *unless carried*: its newest pass is since the last release tag and none
+     of the files changed since are test-side (tools/dev/*) or tied to it by `test_map.txt`. smoketest and `net`
+     always need their exact pass. Up to 5 at a time in the shared slots; it pushes main if all pass; `-NoPush`
+     to just check. It prints the changed game files no map line covers: add map lines for them (carried tests
+     don't rerun for those). A fix after a red run reruns only what the fix's files map to. **Never on GitHub:**
+     no `-CI` / `ci.ps1` (Zach, 2026-10-17). This is the only place the suites, nettest and the chain/fidelity/perf
+     suites run. The Tests panel (`/tests`) shows the strict view (what's cached, what each task will need).
+  `prepush.ps1 -Full` is the strict run (every stale test, nothing carried): only when Zach asks (e.g. once per
+  major version). Data-only lines (the version in project.godot, the What's new NOTES) are out of the cache keys
+  (`tools/dev/key_ignore.txt`), so a version bump doesn't invalidate passes.
 - **Don't rerun a test "to be sure":** a pass is cached against the exact contents of what it loads.
 - **Landing re-tests only what the rebase could change:** a pass whose loads the rebase didn't change has
   the same key on the rebased branch, so it counts there.

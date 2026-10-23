@@ -142,7 +142,7 @@ locks 3 targets then reloads; the full iai draw costs 20 extra; a hit breaks a c
 & $env:GODOT --path . --script res://tools/dev/animsheet.gd -- res://tools/dev/out/anim swordfish,kraken_cut
 ```
 
-Suites: `techtest` (every technique lands, knockdowns, grapples, guards), `fixtest`, `feat`,
+Suites: `techtest` (every technique lands, knockdowns, grapples, guards), `airtest`, `feat`,
 `stamtest` (combo, heavies), `progtest` (trees, costs), `powertest` (skills), `axetest`,
 `katanatest`, and `nettest.ps1`. Tell Zach what to equip (weapon, slot, R for ults), where to try
 it, and to watch from behind in slow motion; log it in `docs/dev_notes.md`; commit.

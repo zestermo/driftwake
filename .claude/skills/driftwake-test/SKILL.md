@@ -108,4 +108,4 @@ takes minutes, and a README line. Island suites loop a small fixed list with `TK
 - `test_status.ps1`: every test's state against this checkout (ok, stale with the files that changed,
   failing with why, never run). `-Stale` prints just the names.
 - `run_needed.ps1`: runs everything stale, failing or never run (the Tests pane's "Run needed").
-- `prepush.ps1 -CI`: the push gate on GitHub. Lead only, after a batch; it pushes.
+- `prepush.ps1`: the push gate, the release tier (`test_status.ps1 -Carry`; `-Full` strict). Lead only, after a batch; it pushes.

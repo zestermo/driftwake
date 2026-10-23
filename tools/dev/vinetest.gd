@@ -2,7 +2,8 @@ extends SceneTree
 ## Vine Fruit round 2: energy drain, grapple points on trees, swing body
 ## alignment + loose limbs + release tilt that rights itself, arm vines,
 ## grapple pull (light enemy) and zip (heavy enemy), fists in the fist stance,
-## punch wind FX.
+## punch wind FX; from the retired r6test: the power aura and leg vines after Vine Snare, vines on the
+## ground behind a dash.
 var t := 0.0
 var step := 0
 var wait := 0.0
@@ -91,6 +92,8 @@ func _process(d: float) -> bool:
 			saw["hang"] = true
 		if p.body_model.arm_r.find_children("ArmVines*", "", false, false).size() > 0 or p.body_model.fore_r.find_children("ArmVines*", "", false, false).size() > 0:
 			saw["arm_vines"] = true
+	if p and root.find_children("GroundVines*", "", true, false).size() > 0:
+		saw["ground_vines"] = true
 	if bug and p and saw.has("bug_start"):
 		saw["bug_min"] = minf(float(saw.get("bug_min", 99.0)), bug.global_position.distance_to(p.global_position))
 	# (waits are game time, in physics ticks: under load frames run fewer ticks than seconds pass)
@@ -266,6 +269,26 @@ func _process(d: float) -> bool:
 			step += 1
 		14:
 			check("hands open again when the guard drops", not p.body_model.fists)
+			# --- the power aura after a fruit skill
+			saw.erase("ground_vines")
+			p.state_machine.force_state("Idle", {})
+			pc.energy = pc.max_energy()
+			pc.cooldowns.clear()
+			check("cast Vine Snare", pc.try_cast(pc.loadout.find("vine_snare")))
+			wait = 0.8
+			step += 1
+		15:
+			var aura = p.body_model.get_node_or_null("PowerAura")
+			check("power aura lingers after a vine skill", aura != null and aura.get_child_count() > 0)
+			check("vines linger on the legs", p.body_model.leg_l.find_children("ArmVines*", "", false, false).size() > 0)
+			p.state_machine.force_state("Idle", {})
+			Input.action_press("move_forward")
+			p.state_machine.force_state("Dodge", {})
+			wait = 0.4
+			step += 1
+		16:
+			Input.action_release("move_forward")
+			check("dashing with the Vine Fruit sprouts vines on the ground", saw.get("ground_vines", false))
 			print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 			quit()
 	return false

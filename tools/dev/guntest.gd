@@ -1,7 +1,8 @@
 extends SceneTree
 ## Grunt firearms: rifle shots on a line (hit when standing on it, miss when dodging/sidestepping),
-## reposition, shove, pistol swap, heavy-attack glow, wider parry window.
-const AIM := 15; const KEEP := 16; const REPOSITION := 17; const SHOVE := 18; const STAGGER := 9; const CIRCLE := 3; const DEAD := 14
+## reposition, shove, pistol swap, heavy-attack glow, wider parry window, both hands on the rifle, a downed
+## rifleman stays down under hits and never aims again once dead (from the retired fixtest).
+const AIM := 15; const KEEP := 16; const REPOSITION := 17; const SHOVE := 18; const STAGGER := 9; const CIRCLE := 3; const DEAD := 14; const DOWN := 11
 var t := 0.0
 var step := 0
 var wait := 0.0
@@ -13,6 +14,7 @@ var hp0 := 0.0
 var seen := {}
 var t0 := 0.0
 var sword
+var aimed_dead := false
 func _initialize(): load("res://tools/dev/test_kit.gd").seed_of(self); change_scene_to_file("res://scenes/world/world.tscn")
 func check(name: String, cond: bool) -> void:
 	print(("PASS " if cond else "FAIL ") + name)
@@ -20,6 +22,7 @@ func check(name: String, cond: bool) -> void:
 func _process(d: float) -> bool:
 	t += d
 	if rifle: seen[rifle.state] = true
+	if step == 20 and rifle.state == AIM: aimed_dead = true
 	if step > 0 and step < 13:
 		for x in camp.grunts:
 			if x != rifle: x.process_mode = Node.PROCESS_MODE_DISABLED
@@ -49,6 +52,11 @@ func _process(d: float) -> bool:
 		1:
 			if rifle.state == AIM:
 				check("aims at you, line visible", rifle._aim_line.visible)
+				var hand: Vector3 = rifle.humanoid.hand_l.global_transform * Vector3(0, -0.05, 0)
+				var wx: Transform3D = rifle.humanoid.weapon.global_transform
+				var w: Vector3 = wx * Vector3(0, -0.01, clampf((wx.affine_inverse() * hand).z, -0.6, -0.15))
+				print("   off hand to stock ", snappedf(hand.distance_to(w), 0.01))
+				check("both hands on the rifle", hand.distance_to(w) < 0.15)
 				step += 1
 			elif t - t0 > 8.0:
 				check("rifleman takes aim", false); step = 99
@@ -173,6 +181,27 @@ func _process(d: float) -> bool:
 			check("glow lasts about a second", sword.humanoid.weapon.material_override == null)
 			var ps = p.state_machine.states["parry"]
 			check("parry window widened (0.26 s)", is_equal_approx(ps.parry_window, 0.26))
+			# the rifleman again: knocked down, hit on the ground, killed there
+			sword.process_mode = Node.PROCESS_MODE_DISABLED
+			rifle.process_mode = Node.PROCESS_MODE_INHERIT
+			p.global_position = rifle.global_position + rifle._fwd() * 6.0 + Vector3.UP * 0.5
+			p.reset_physics_interpolation()
+			var h := HitData.new(); h.damage = 10.0; h.knockdown = true; h.knockback_force = 8.0
+			rifle.hurtbox.take_hit(h, p)
+			wait = 0.3
+		18:
+			check("rifleman knocked down", rifle.state == DOWN)
+			var h := HitData.new(); h.damage = 8.0; h.knockback_force = 4.0
+			rifle.hurtbox.take_hit(h, p)
+			check("hit on the ground: stays down (no hitstun)", rifle.state == DOWN)
+			var h2 := HitData.new(); h2.damage = 999.0; h2.knockback_force = 4.0
+			rifle.hurtbox.take_hit(h2, p)
+			check("killed on the ground: dead", rifle.state == DEAD)
+			step = 20
+			wait = 3.0
+			return false
+		20:
+			check("dead rifleman never aims again", not aimed_dead)
 			print("RESULT ", "OK" if fails == 0 else "%d FAILED" % fails)
 			return true
 		99:

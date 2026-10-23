@@ -1,6 +1,8 @@
 extends SceneTree
-## Devil Fruit (Ember) + skill bar + bindings + braced ragdolls + foot IK + parry sound.
-const IDLE := 0; const HITSTUN := 10; const DOWN := 11; const GETUP := 12; const DEAD := 14
+## Devil Fruit (Ember) + skill bar + bindings + braced ragdolls + foot IK + parry sound; from the retired
+## r6test: skill keys after closing the skills menu, Armament: Coat, the block, the red unblockable grunt
+## heavy and fall damage.
+const IDLE := 0; const HITSTUN := 10; const DOWN := 11; const GETUP := 12; const DEAD := 14; const STAGGER := 9; const WIND := 5
 var t := 0.0
 var step := 0
 var wait := 0.0
@@ -41,6 +43,12 @@ func park_grunt(x, at: Vector3) -> void:
 	x.global_position = at + Vector3.UP * 0.3
 	x.velocity = Vector3.ZERO
 	x.reset_physics_interpolation()
+func key(k: int, pressed: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = k
+	ev.physical_keycode = k
+	ev.pressed = pressed
+	Input.parse_input_event(ev)
 func key_of(action: String) -> int:
 	var evs := InputMap.action_get_events(action)
 	return (evs[0] as InputEventKey).physical_keycode if evs.size() > 0 and evs[0] is InputEventKey else -1
@@ -256,13 +264,146 @@ func _process(d: float) -> bool:
 			check("fire burns the thornbrush away", thorn.burned)
 			check("collision gone once burned", thorn.get_child(0).disabled)
 			check("other walls untouched", not other.burned)
+			step = 50
+		50:
+			# --- the skills menu no longer eats skill keys once closed (r6)
+			p.state_machine.force_state("Idle", {})
+			var lo0: Array = pc.loadout.duplicate()
+			var gm = root.get_node("GameMenu")
+			gm.open("skills")
+			gm._skills.sel = "lib:" + pc.loadout[0]
+			gm.close()
+			pc.energy = pc.max_energy()
+			pc.cooldowns.clear()
+			saw["casts"] = 0
+			pc.cast.connect(func(_s): saw["casts"] = int(saw["casts"]) + 1)
+			pc.cast_failed.connect(func(_s, _w): saw["casts"] = int(saw["casts"]) + 1)
+			saw["lo0"] = lo0
+			key(KEY_1, true)
+			wait = 0.05
+			step += 1
+		51:
+			key(KEY_1, false)
+			check("closed skills menu doesn't reassign skills on 1", pc.loadout == saw["lo0"])
+			check("1 reaches the skill bar after closing the menu", int(saw["casts"]) > 0)
+			# --- Armament: Coat
+			p.state_machine.force_state("Idle", {})
+			p.progression.grant_will("h_arm")
+			p.progression.grant_will("h_coat")
+			check("learned Armament: Coat (Will: Coat)", p.progression.knows("armament_coat"))
+			pc.equip("armament_coat", 3)
+			pc.energy = pc.max_energy()
+			pc.cooldowns.clear()
+			check("haki sound loaded", root.get_node("FX")._streams.has("haki"))
+			check("cast Armament: Coat", pc.try_cast(3))
+			wait = 0.6
+			step += 1
+		52:
+			var ab = p.body_model.torso.get_node("ArmBody")
+			check("the weapon arm turns haki black", ab.arm_mesh(true).material_override != null and (p.weapon_class() in ["fist", "claw"] or ab.arm_mesh(false).material_override == null))
+			var h = p.melee_hit(10.0)
+			check("coated hits are haki + unblockable", h.haki and h.unblockable)
+			p.state_machine.force_state("Idle", {})
+			wait = 0.2
+			step += 1
+		53:
+			# --- the block
+			g = camp.grunts[0]
+			var spot: Vector3 = ground(g.global_position + Vector3(6, 0, 0))
+			put(spot + Vector3.UP * 0.2)
+			park_grunt(g, ground(spot + Vector3(-1.8, 0, 0)))
+			face(g.global_position)
+			Input.action_press("parry")
+			p.state_machine.force_state("Parry", {})
+			wait = 0.5
+			step += 1
+		54:
+			check("holding parry settles into a block", p.current_state_name() == "Block" and p.is_blocking)
+			var hp0: float = p.health_component.current_health
+			var st0: float = p.stamina
+			var hd := HitData.new()
+			hd.damage = 12.0
+			p.hurtbox.take_hit(hd, g)
+			check("a frontal hit glances off the guard", p.health_component.current_health == hp0 and p.stamina < st0)
+			var hd2 := HitData.new()
+			hd2.damage = 12.0
+			hd2.unblockable = true
+			p.hurtbox.take_hit(hd2, g)
+			check("an unblockable hit gets through the block", p.health_component.current_health < hp0)
+			Input.action_release("parry")
+			wait = 0.3
+			step += 1
+		55:
+			check("letting go drops the block", p.current_state_name() != "Block")
+			# --- the red unblockable grunt heavy
+			p.state_machine.force_state("Idle", {})
+			g._attack = "peril"
+			g._start_wind()
+			check("red wind-up: flashing, unblockable hit data", g._peril_on and g.hitbox.hit_data.unblockable and g.state == WIND)
+			var red := false
+			for mi in g.humanoid.find_children("*", "MeshInstance3D", true, false):
+				if mi.material_overlay != null:
+					red = true
+			check("the grunt flashes red", red)
+			var hd := HitData.new()
+			hd.damage = 5.0
+			g.hurtbox.take_hit(hd, p)
+			check("normal hits don't stop the red wind-up", g.state == WIND)
+			var hk := HitData.new()
+			hk.damage = 5.0
+			hk.haki = true
+			g.hurtbox.take_hit(hk, p)
+			check("a haki hit breaks it (staggered, no longer red)", g.state == STAGGER and not g._peril_on)
+			p.is_parrying = true
+			var hp0: float = p.health_component.current_health
+			var hp := HitData.new()
+			hp.damage = 20.0
+			hp.unblockable = true
+			p._on_hit_received(hp, g)
+			check("a parry can't stop an unblockable hit", p.health_component.current_health < hp0)
+			p.is_parrying = false
+			wait = 1.0
+			step += 1
+		56:
+			# --- fall damage
+			p.state_machine.force_state("Fall", {})
+			p.health_component.max_health = 200.0
+			p.health_component.current_health = 200.0
+			put(ground(p.global_position + Vector3(4, 0, 0)) + Vector3.UP * 12.0)
+			wait = 0.2
+			step += 1
+		57:
+			if not p.is_on_floor() and not saw.has("fall_landed"):
+				saw["fall_t"] = float(saw.get("fall_t", 0.0)) + d
+				if float(saw["fall_t"]) < 10.0:
+					return false
+			if not saw.has("fall_landed"):
+				saw["fall_landed"] = true
+				wait = 0.25
+				return false
+			var dmg: float = 200.0 - p.health_component.current_health
+			check("a 12 m fall hurts (%.0f)" % dmg, dmg > 25.0 and dmg < 90.0)
+			p.health_component.current_health = 200.0
+			put(ground(p.global_position) + Vector3.UP * 3.0)
+			wait = 0.1
+			step += 1
+		58:
+			if not p.is_on_floor() and not saw.has("drop_landed"):
+				saw["drop_t"] = float(saw.get("drop_t", 0.0)) + d
+				if float(saw["drop_t"]) < 10.0:
+					return false
+			if not saw.has("drop_landed"):
+				saw["drop_landed"] = true
+				wait = 0.25
+				return false
+			check("a 3 m drop is free", p.health_component.current_health == 200.0)
 			# the sea's curse
 			var ship = root.get_tree().get_first_node_in_group("ship")
 			put(ship.global_transform * Vector3(7.0, 2.0, 0.6))
 			p.health_component.max_health = 200.0
 			p.health_component.current_health = 200.0
 			wait = 1.5
-			step += 1
+			step = 17
 		17:
 			check("deep water: swim state (sinking)", p.current_state_name() == "Swim")
 			var head: Vector3 = p.body_model.head.global_position
