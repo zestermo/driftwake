@@ -311,7 +311,8 @@ var _role_seed := 1
 
 ## (before the body's armed) an ordinary sword grunt on a chain island: one of ROLES a share of the time.
 func _roll_role() -> void:
-	if role != "sword" or level <= 0 or captain or elite_rank or is_in_group("bosses"):
+	# (a ship's crew stay cutlass boarders: their bodies were built with their blades, PirateGrunt._body)
+	if role != "sword" or level <= 0 or captain or elite_rank or is_in_group("bosses") or _body != null or boarder:
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(["role", _role_seed, level])

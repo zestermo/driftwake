@@ -179,7 +179,7 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   reach 2.6, x1.35, slow), twin axes (two quick chops, a heavy; reach 1.9, x0.85, quick), black-leg (two kicks, a
   heavy kick; no weapon to drop). The weapon's own move plays whole (its wind-up the tell); no flurries, feints,
   blocks or pistols (a cut-down moveset you learn to read); each drops its weapon. On chain islands 30% of
-  ordinary sword grunts (seeded: the same on every machine); Brinehollow's sea untouched. Test:
+  ordinary sword grunts (seeded: the same on every machine); Brinehollow's sea untouched; ships' crews (boarders) keep their cutlasses. Test:
   t/combat/grunt_roles (t/combat green). **Assumed:** the numbers; the rivals and the Admiralty field these
   weapons through their own captain-style AIs (RivalCrews' mate weapons), not through grunts; the grunts' looks
   unchanged (only the weapon and stance); not rendered (try a chain island's camp).
