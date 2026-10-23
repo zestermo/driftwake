@@ -22,28 +22,50 @@ func _init() -> void:
 	stomp_r = 6.5
 
 
+## (1.20: rebuilt on the quadruped rig's new keys, docs/v1_20_beasts.md 7: high humped shoulders over thick forelegs,
+## broad pads, the head carried low, a stub tail, a heavy lumbering walk)
 func _spec() -> Dictionary:
 	var c: Array = BEAR_COATS[variant % BEAR_COATS.size()]
-	return {"hip_h": 1.7, "len": 2.4, "chest_r": 1.15, "hip_r": 1.0, "neck": Vector3(0, -0.05, -0.55), "head": Vector3(0.6, 0.55, 0.62),
-		"snout": 0.5, "tail": 0.3, "tail_r": 0.12, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur_white", "ears": 0.25,
-		"eye": Color(0.3, 0.75, 1.0)}
+	return {"hip_h": 1.6, "front_h": 1.95, "len": 2.8, "chest_r": 0.95, "hip_r": 0.8, "neck": Vector3(0, -0.15, -0.7), "head": Vector3(0.55, 0.47, 0.55),
+		"snout": 0.42, "tail": 0.32, "tail_r": 0.16, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur_white", "ears": 0.0,
+		"eye": Color(0.3, 0.75, 1.0), "hump": 1.0, "leg_k": 1.35, "front_k": 1.15, "foot": "pad", "tail_kind": "stub", "gait": "lumber"}
 
 
-## A shaggy hump, a ruff round the neck, black claws, a black nose.
+## A shaggy hump and ruff, a brow, small round ears, a black nose and lip, a fringe of fur under the belly,
+## black sickle claws on every pad.
 func _extras() -> void:
 	var hd: Vector3 = spec["head"]
 	var sn: float = spec["snout"]
 	var cr: float = spec["chest_r"]
+	var hr: float = spec["hip_r"]
 	var ln: float = spec["len"]
+	var hh: float = spec["hip_h"]
+	var lift: float = float(spec["front_h"]) - hh
+	var coat: Material = spec["coat_mat"]
 	var black := PSXMat.flat(Color(0.06, 0.05, 0.05))
-	mb("Head").add_box(black, Transform3D(Basis(), Vector3(0, -hd.y * 0.15, -hd.z * 0.95 - sn * 0.95)), Vector3(0.22, 0.14, 0.08), 1.0)
-	mb("Body").add_blob(spec["coat_mat"], Transform3D(Basis(), Vector3(0, cr * 0.95, -ln * 0.35)), Vector3(cr * 0.7, cr * 0.42, ln * 0.3), _rng_fixed(), 0.2, 3, 7, 1.0, Color(0.95, 0.95, 0.95))
+	# the face: a black nose and lip, a brow ridge over the eyes, small round ears
+	mb("Head").add_box(black, Transform3D(Basis(), Vector3(0, -hd.y * 0.12, -hd.z * 0.95 - sn * 0.95)), Vector3(0.26, 0.16, 0.1), 1.0)
+	mb("Jaw").add_box(black, Transform3D(Basis(), Vector3(0, -hd.y * 0.1, -hd.z * 0.7 - sn * 0.7)), Vector3(0.2, 0.05, 0.08), 1.0)
+	mb("Head").add_blob(coat, Transform3D(Basis(), Vector3(0, hd.y * 0.42, -hd.z * 0.45)), Vector3(hd.x * 0.85, hd.y * 0.28, hd.z * 0.4), _rng_fixed(), 0.12, 3, 6, 1.0, Color(0.92, 0.92, 0.92))
+	for s in [-1.0, 1.0]:
+		mb("Head").add_blob(coat, Transform3D(Basis(), Vector3(s * hd.x * 0.72, hd.y * 0.72, hd.z * 0.05)), Vector3(hd.x * 0.24, hd.x * 0.24, hd.x * 0.12), _rng_fixed(), 0.05, 3, 6, 1.0, Color(0.8, 0.8, 0.8))
+	# the hump over the shoulders and the ruff round the neck
+	mb("Chest").add_blob(coat, Transform3D(Basis(), Vector3(0, cr * 0.95, cr * 0.15)), Vector3(cr * 0.75, cr * 0.5, cr * 0.85), _rng_fixed(), 0.22, 3, 7, 1.0, Color(0.96, 0.96, 0.96))
 	for k in range(9):
 		var a := -1.2 + k * 0.3
-		mb("Neck").add_blob(spec["coat_mat"], Transform3D(Basis(), Vector3(sin(a) * cr * 0.6, cos(a) * cr * 0.45, -0.1)), Vector3(cr * 0.28, cr * 0.36, cr * 0.3), _rng_fixed(), 0.3, 3, 5, 1.0, Color(0.9, 0.9, 0.9))
+		mb("Neck").add_blob(coat, Transform3D(Basis(), Vector3(sin(a) * cr * 0.62, cos(a) * cr * 0.48, -0.1)), Vector3(cr * 0.3, cr * 0.38, cr * 0.32), _rng_fixed(), 0.3, 3, 5, 1.0, Color(0.9, 0.9, 0.9))
+	# the belly's fringe: shaggy fur hanging between the legs
+	for k in range(6):
+		var z := -ln * 0.42 + k * ln * 0.17
+		var y := -cr * 0.85 + lift * clampf(0.5 - float(k) / 5.0, 0.0, 0.5)
+		mb("Body").add_blob(coat, Transform3D(Basis(Vector3.FORWARD, (k % 2) * 0.3 - 0.15), Vector3(0, y, z)), Vector3(cr * 0.62, cr * 0.22, ln * 0.11), _rng_fixed(), 0.35, 3, 5, 1.0, Color(0.86, 0.86, 0.86))
+	# sickle claws on each pad
 	for leg in ["FL", "FR", "BL", "BR"]:
+		var front: bool = str(leg).begins_with("F")
+		var lo: float = ((hh + lift) if front else hh) * 0.5
+		var thick: float = (cr if front else hr) * 0.36 * 1.35 * (1.15 if front else 1.0)
 		for k in range(4):
-			mb("Knee" + leg).add_cylinder(black, Transform3D(Basis(Vector3.RIGHT, -1.7), Vector3((k - 1.5) * 0.09, -float(spec["hip_h"]) * 0.5 + 0.08, -0.32)), 0.035, 0.0, 0.24, 3, 1.0, Color.WHITE, false, false, false)
+			mb("Knee" + leg).add_cylinder(black, Transform3D(Basis(Vector3.RIGHT, -1.75), Vector3((k - 1.5) * thick * 0.42, -lo + thick * 0.22, -thick * 1.75)), thick * 0.1, 0.0, thick * 0.75, 3, 1.0, Color.WHITE, false, false, false)
 
 
 func _coat_at(p: Vector3) -> Color:

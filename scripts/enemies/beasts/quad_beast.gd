@@ -10,6 +10,15 @@ extends JungleBeast
 
 ## kind -> its body: hip_h, len, chest_r, hip_r, neck (Vector3 from the chest),
 ## head (Vector3 half sizes), snout, tail, tail_r, coat, under, mark, tex.
+## Optional (1.20's rig, docs/v1_20_beasts.md; each defaults to the body as it was):
+##   front_h    the shoulders' height (hip_h): a bear's stand higher, a hyena's lower
+##   hump       0..1 the shoulders raised and filled out (a bear's, a bison's)
+##   leg_k      the legs' thickness (1); front_k the front legs' on top of that (1)
+##   foot       "paw" | "pad" (a broad flat bear's) | "hoof" | "claw" (a lizard's splayed toes)
+##   sprawl     0..1 the legs set out to the sides and angled (a lizard's)
+##   tail_kind  "long" | "stub" (a short blob) | "tuft" (a tassel at the end)
+##   gait       "trot" | "lumber" (heavy: the shoulders roll, the head sways) | "bound" (a cat's)
+## Every kind pitches its body to the ground under its front and back feet (slopes: SLOPE_EVERY).
 var spec := {}
 var pose := {}
 var rig := {}
@@ -88,29 +97,39 @@ func _geometry() -> void:
 	var eye := PSXMat.glow(spec.get("eye", Color(1.0, 0.75, 0.15)), 2.6)
 	spec["coat_mat"] = coat
 	spec["bare_mat"] = bare
+	# the shoulders' height over the hips' (front_h), the hump over them
+	var lift: float = float(spec.get("front_h", hh)) - hh
+	var hump: float = float(spec.get("hump", 0.0))
+	var sprawl: float = float(spec.get("sprawl", 0.0))
 	_node("Body", Vector3(0, hh, 0), model)
-	_node("Chest", Vector3(0, 0, -ln * 0.5), rig["Body"])
+	_node("Chest", Vector3(0, lift, -ln * 0.5), rig["Body"])
 	_node("Hips", Vector3(0, 0, ln * 0.5), rig["Body"])
 	_node("Neck", Vector3(0, float(spec["chest_r"]) * 0.4, -float(spec["chest_r"]) * 0.6), rig["Chest"])
 	_node("Head", spec["neck"], rig["Neck"])
 	var hd: Vector3 = spec["head"]
 	_node("Jaw", Vector3(0, -hd.y * 0.45, -hd.z * 0.1), rig["Head"])
-	var up: float = hh * 0.52
-	var lo: float = hh * 0.5
 	for c in [["FL", -1.0, "Chest"], ["FR", 1.0, "Chest"], ["BL", -1.0, "Hips"], ["BR", 1.0, "Hips"]]:
-		var r: float = float(spec["chest_r"] if c[2] == "Chest" else spec["hip_r"]) * 0.62
+		var front: bool = c[2] == "Chest"
+		# (a front leg is as long as the shoulders are high; a sprawled one reaches out and down)
+		var lh: float = (hh + lift) if front else hh
+		var up: float = lh * 0.52
+		var lo: float = lh * 0.5
+		var r: float = float(spec["chest_r"] if front else spec["hip_r"]) * 0.62 * (1.0 + sprawl * 0.8)
 		var leg := _node("Leg" + c[0], Vector3(float(c[1]) * r, -0.05, 0), rig[c[2]])
+		leg.rotation.z = float(c[1]) * sprawl * 0.7
 		var knee := _node("Knee" + c[0], Vector3(0, -up, 0), leg)
-		_legs.append([leg, knee, c[2] == "Chest", float(c[1])])
-		var thick: float = float(spec["chest_r"] if c[2] == "Chest" else spec["hip_r"]) * 0.36
+		knee.rotation.z = -float(c[1]) * sprawl * 0.9
+		_legs.append([leg, knee, front, float(c[1])])
+		var thick: float = float(spec["chest_r"] if front else spec["hip_r"]) * 0.36 * float(spec.get("leg_k", 1.0)) * (float(spec.get("front_k", 1.0)) if front else 1.0)
 		mb("Leg" + c[0]).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0.1, 0)), thick * 1.25, thick * 0.8, up + 0.1, 6, 1.0, Color.WHITE, true, true, true)
 		mb("Knee" + c[0]).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI), Vector3.ZERO), thick * 0.8, thick * 0.6, lo - 0.04, 6, 1.0, Color(0.9, 0.9, 0.9), true, true, true)
-		mb("Knee" + c[0]).add_blob(coat, Transform3D(Basis(), Vector3(0, -lo + thick * 0.4, -thick * 0.5)), Vector3(thick * 0.95, thick * 0.6, thick * 1.4), _rng_fixed(), 0.1, 3, 6, 1.0, Color(0.85, 0.85, 0.85), 0.0)
-	# the torso: a loft from the haunches to the shoulders
+		_foot("Knee" + c[0], str(spec.get("foot", "paw")), lo, thick, coat)
+	# the torso: a loft from the haunches to the shoulders (the front rings up with the shoulders, fuller with a hump)
 	var cr: float = spec["chest_r"]
 	var hr: float = spec["hip_r"]
-	var rings := [[-ln * 0.5 - cr * 0.85, cr * 0.5, cr * 0.55, 0.0], [-ln * 0.5 - cr * 0.4, cr * 0.95, cr * 1.0, 0.05], [-ln * 0.5 + cr * 0.3, cr, cr * 1.05, 0.0],
-		[0.0, (cr + hr) * 0.42, (cr + hr) * 0.44, -0.04 * ln], [ln * 0.5 - hr * 0.2, hr, hr, 0.0], [ln * 0.5 + hr * 0.55, hr * 0.85, hr * 0.8, 0.02], [ln * 0.5 + hr * 0.95, hr * 0.35, hr * 0.35, 0.0]]
+	var rings := [[-ln * 0.5 - cr * 0.85, cr * 0.5, cr * 0.55, -lift], [-ln * 0.5 - cr * 0.4, cr * 0.95, cr * (1.0 + hump * 0.2), 0.05 - lift - hump * cr * 0.2],
+		[-ln * 0.5 + cr * 0.3, cr, cr * (1.05 + hump * 0.3), -lift * 0.8 - hump * cr * 0.3],
+		[0.0, (cr + hr) * 0.42, (cr + hr) * 0.44 * (1.0 + hump * 0.15), -0.04 * ln - lift * 0.45 - hump * cr * 0.1], [ln * 0.5 - hr * 0.2, hr, hr, 0.0], [ln * 0.5 + hr * 0.55, hr * 0.85, hr * 0.8, 0.02], [ln * 0.5 + hr * 0.95, hr * 0.35, hr * 0.35, 0.0]]
 	mb("Body").add_loft(coat, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO), rings, MeshBuilder.profile_circle(10), 0.9, Color.WHITE, true, true)
 	# neck and head
 	var nk: Vector3 = spec["neck"]
@@ -125,20 +144,47 @@ func _geometry() -> void:
 		em.add_box(eye, Transform3D(Basis(Vector3.UP, s * 0.35), Vector3(s * hd.x * 0.62, hd.y * 0.25, -hd.z * 0.72)), Vector3(hd.x * 0.16, hd.y * 0.13, hd.x * 0.1), 1.0)
 		mb("Head").add_cylinder(coat, Transform3D(Basis(Vector3.FORWARD, s * 0.35), Vector3(s * hd.x * 0.55, hd.y * 0.75, hd.z * 0.15)), hd.x * 0.2, 0.02, hd.y * float(spec.get("ears", 0.6)), 4, 1.0, Color(0.85, 0.85, 0.85))
 	_eye_mb = em
-	# the tail: four links
+	# the tail: four links (a stub: one short blob; a tuft: a tassel on the last link)
 	var parent: Node3D = rig["Hips"]
-	var tl: float = float(spec["tail"]) / 4.0
+	var tk := str(spec.get("tail_kind", "long"))
+	var links := 1 if tk == "stub" else 4
+	var tl: float = float(spec["tail"]) / float(links)
 	var at := Vector3(0, hr * 0.4, hr * 0.9)
-	for i in range(4):
+	for i in range(links):
 		var link := _node("Tail%d" % i, at, parent)
 		_tail.append(link)
 		var tr: float = float(spec["tail_r"]) * (1.0 - i * 0.18)
-		mb("Tail%d" % i).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO), tr, tr * 0.82, tl + 0.02, 5, 1.0, Color(0.95, 0.95, 0.95), true, true, true)
+		if tk == "stub":
+			mb("Tail%d" % i).add_blob(coat, Transform3D(Basis(), Vector3(0, 0, tl * 0.4)), Vector3(tr * 1.6, tr * 1.4, maxf(tl * 0.6, tr * 1.2)), _rng_fixed(), 0.15, 3, 6, 1.0, Color(0.95, 0.95, 0.95))
+		else:
+			mb("Tail%d" % i).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO), tr, tr * 0.82, tl + 0.02, 5, 1.0, Color(0.95, 0.95, 0.95), true, true, true)
+		if tk == "tuft" and i == links - 1:
+			mb("Tail%d" % i).add_blob(coat, Transform3D(Basis(), Vector3(0, 0, tl + tr * 1.5)), Vector3(tr * 2.2, tr * 2.2, tr * 3.2), _rng_fixed(), 0.3, 3, 6, 1.0, Color(0.55, 0.55, 0.55))
 		parent = link
 		at = Vector3(0, 0, tl)
 	_extras()
 	for n in _parts.keys():
 		_paint(_parts[n], coat)
+
+
+## The foot at the end of a lower leg (`lo` long, `thick` its width): a paw (as it was), a bear's broad pad, a hoof,
+## a lizard's splayed claws.
+func _foot(knee: String, kind: String, lo: float, thick: float, coat: Material) -> void:
+	var at := Vector3(0, -lo + thick * 0.4, -thick * 0.5)
+	match kind:
+		"pad":
+			mb(knee).add_blob(coat, Transform3D(Basis(), at + Vector3(0, -thick * 0.1, -thick * 0.15)), Vector3(thick * 1.25, thick * 0.55, thick * 1.7), _rng_fixed(), 0.08, 3, 7, 1.0, Color(0.8, 0.8, 0.8), 0.0)
+		"hoof":
+			var horn := PSXMat.flat(Color(0.14, 0.11, 0.09))
+			mb(knee).add_cylinder(horn, Transform3D(Basis(), Vector3(0, -lo + thick * 0.3, 0)), thick * 0.75, thick * 0.9, thick * 0.6, 6, 1.0, Color.WHITE, true, true, false)
+		"claw":
+			var nail := PSXMat.flat(Color(0.2, 0.17, 0.12))
+			mb(knee).add_blob(coat, Transform3D(Basis(), at), Vector3(thick * 1.1, thick * 0.45, thick * 1.2), _rng_fixed(), 0.08, 3, 6, 1.0, Color(0.85, 0.85, 0.85), 0.0)
+			for k in range(3):
+				var a := (k - 1) * 0.5
+				mb(knee).add_cylinder(nail, Transform3D(Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, -1.45), at + Vector3(sin(a) * thick * 0.8, -thick * 0.1, -cos(a) * thick * 0.9)), thick * 0.18, 0.0, thick * 0.9, 3, 1.0, Color.WHITE, false, false, false)
+		_:
+			mb(knee).add_blob(coat, Transform3D(Basis(), at), Vector3(thick * 0.95, thick * 0.6, thick * 1.4), _rng_fixed(), 0.1, 3, 6, 1.0, Color(0.85, 0.85, 0.85), 0.0)
 
 
 func _node(n: String, pos: Vector3, parent: Node3D) -> Node3D:
@@ -188,17 +234,23 @@ func _animate(delta: float) -> void:
 	_spd = lerpf(_spd, moved.length() / maxf(delta, 0.001), minf(delta * 8.0, 1.0))
 	_pose_for(delta)
 	_tw += delta
+	_slope(delta)
 	var hh: float = spec["hip_h"]
+	var gait := str(spec.get("gait", "trot"))
+	var lumber := gait == "lumber"
 	var run := clampf(_spd / 7.0, 0.0, 1.4)
-	_gait += delta * (2.0 + _spd * 0.62)
+	# (a heavy beast's steps come slower and longer; a cat bounds from a lower speed)
+	_gait += delta * (2.0 + _spd * 0.62) * (0.78 if lumber else 1.0)
 	var amp := clampf(_spd / 3.0, 0.0, 1.0) * (0.5 + 0.25 * minf(run, 1.0))
-	var gallop := run > 0.9
+	var gallop := run > (0.6 if gait == "bound" else 0.9)
 	var crouch := _pose("crouch")
 	var body: Node3D = rig["Body"]
-	var by := hh * (1.0 - crouch * 0.38) + absf(sin(_gait * 2.0)) * 0.05 * hh * amp
+	var by := hh * (1.0 - crouch * 0.38) + absf(sin(_gait * 2.0)) * 0.05 * hh * amp * (1.6 if lumber else 1.0)
 	body.position.y = lerpf(body.position.y, by, minf(delta * 14.0, 1.0))
 	body.rotation.x = lerp_angle(body.rotation.x, _pose("rear") * 0.7 - crouch * 0.05 + (sin(_gait * 2.0) * 0.05 * amp if gallop else 0.0), minf(delta * 10.0, 1.0))
-	body.rotation.z = lerp_angle(body.rotation.z, sin(_gait) * 0.03 * amp, minf(delta * 8.0, 1.0))
+	# (lumbering: the shoulders roll side to side with each step, the head swaying against them)
+	body.rotation.z = lerp_angle(body.rotation.z, sin(_gait) * (0.09 if lumber else 0.03) * amp, minf(delta * 8.0, 1.0))
+	(rig["Neck"] as Node3D).rotation.y = lerp_angle((rig["Neck"] as Node3D).rotation.y, -sin(_gait) * 0.14 * amp if lumber else 0.0, minf(delta * 6.0, 1.0))
 	model.scale = Vector3(1, 1, 1.0 + _pose("stretch") * 0.18)
 	for l in _legs:
 		var leg: Node3D = l[0]
@@ -228,6 +280,34 @@ func _animate(delta: float) -> void:
 
 
 var _tw: float = 0.0
+## The ground's pitch under it, looked at this often (two rays: under the shoulders and under the hips).
+const SLOPE_EVERY := 0.12
+const SLOPE_MAX := 0.6
+var _slope_t := 0.0
+var _slope_want := 0.0
+
+
+## Pitched to the ground it stands on: up a rise nose up, down a slope nose down (not floating off a ridge).
+func _slope(delta: float) -> void:
+	_slope_t -= delta
+	if _slope_t <= 0.0 and is_inside_tree():
+		_slope_t = SLOPE_EVERY
+		var half := float(spec["len"]) * 0.5 + float(spec["chest_r"]) * 0.3
+		var fwd := -model.global_basis.z
+		fwd.y = 0.0
+		fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
+		var yf := _ground_y(global_position + fwd * half)
+		var yb := _ground_y(global_position - fwd * half)
+		_slope_want = 0.0 if is_nan(yf) or is_nan(yb) else clampf(atan2(yf - yb, half * 2.0), -SLOPE_MAX, SLOPE_MAX)
+	if state == S.DEAD:
+		_slope_want = 0.0
+	model.rotation.x = lerp_angle(model.rotation.x, _slope_want, minf(delta * 6.0, 1.0))
+
+
+func _ground_y(at: Vector3) -> float:
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 4.0, 1)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return float(hit["position"].y) if not hit.is_empty() else NAN
 
 
 ## The kind's pose for what it's doing (host and puppets read the same move/state/mv_t).

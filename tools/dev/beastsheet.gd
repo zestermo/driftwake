@@ -14,6 +14,10 @@ const IDLE_AT := 1.5
 const FIGHT_AT := [2.2, 3.6]
 const ROW_W := 480
 const ROW_H := 270
+## The three-quarter side the camera looks from (and every beast faces).
+const VIEW := Vector3(0.72, 0.0, 0.7) / 1.004
+## The way every beast faces: 45 degrees off the camera's line (a three-quarter view: the face and the flank).
+const FACE := Vector3(0.0, 0.0, 1.0)
 
 var stage
 var out := "res://tools/dev/out/beasts"
@@ -101,6 +105,12 @@ func _process(d: float) -> bool:
 
 func _setup() -> void:
 	root.get_node("Settings").set_value("video", "perf_overlay", false, false)
+	# (a darker ground: white coats on the white stage didn't read)
+	for g in stage.find_children("Ground*", "StaticBody3D", false, false):
+		for mi in g.find_children("*", "MeshInstance3D", true, false):
+			var m := StandardMaterial3D.new()
+			m.albedo_color = Color(0.33, 0.36, 0.3)
+			(mi as MeshInstance3D).material_override = m
 	var p = stage.player
 	p.health_component.max_health = 999999.0
 	p.health_component.current_health = 999999.0
@@ -134,14 +144,19 @@ func _next() -> void:
 		return
 	var j: Dictionary = jobs[job]
 	var p = stage.player
-	# (the stand-in captain beside it for scale, in shot from the camera's side)
-	p.global_position = Vector3(3.5, p.global_position.y, -5.0)
+	# (it faces the camera's three-quarter side, the stand-in captain in front of it: it fights toward the camera)
+	var at := Vector3(0, p.global_position.y, -9.0)
+	p.global_position = at + FACE * 6.0
 	p.velocity = Vector3.ZERO
 	p.reset_physics_interpolation()
-	var at := Vector3(0, p.global_position.y, -9.0)
-	beast = load(j["script"]).new()
+	var scr = load(j["script"])
+	if scr == null or not scr.can_instantiate():
+		print("BS FAILED: %s doesn't load" % j["script"])
+		quit(1)
+		return
+	beast = scr.new()
 	if beast.has_method("setup"):
-		beast.setup({"post": at, "yaw": 0.0, "level": 6, "name": j["name"]})
+		beast.setup({"post": at, "yaw": atan2(-FACE.x, -FACE.z), "level": 6, "name": j["name"]})
 	beast.name = "Beast_%s" % j["kind"]
 	stage.add_child(beast)
 	beast.global_position = at
@@ -179,7 +194,7 @@ func _frame_it() -> void:
 	var box: AABB = bt[0]
 	var size := maxf(maxf(box.size.x, box.size.z), box.size.y)
 	var c := box.get_center() if box.size.length() > 0.1 else (beast.global_position as Vector3) + Vector3.UP
-	var dir := Vector3(0.72, 0.0, 0.7).normalized()
+	var dir := VIEW
 	var want := c + dir * (size * 0.95 + 3.5) + Vector3.UP * (size * 0.2 + 1.0)
 	cam.global_position = cam.global_position.lerp(want, 0.15) if t > 0.05 else want
 	cam.look_at(c, Vector3.UP)
