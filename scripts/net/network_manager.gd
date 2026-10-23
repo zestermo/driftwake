@@ -862,6 +862,35 @@ func _all_rival_plunder(share: float, crew_name: String) -> void:
 	get_tree().call_group("hud", "show_toast", "%s took %d gold" % [crew_name.capitalize(), n] if n > 0 else "%s found your purse empty" % crew_name.capitalize())
 
 
+## Every captain beaten by an Admiralty squad: arrested (AdmiraltyBrig): the brig built here, our captain locked up
+## in it; they climb out back to `back_to`. The host then sets the guards at their posts.
+func _all_arrest(back_to: Vector3, officer: String) -> void:
+	var b := AdmiraltyBrig.build(get_tree(), back_to, officer)
+	var p := _me()
+	if p:
+		b.lock_up(p)
+	if is_host():
+		b.spawn_guards(2)
+
+
+## The brig's door picked open (true) for everyone, or (false) everyone thrown back in the cell.
+func _all_brig_door(open: bool) -> void:
+	var b := AdmiraltyBrig.of(get_tree())
+	if b == null:
+		return
+	if open:
+		b.open_door()
+	else:
+		b.reset()
+
+
+## Everyone's out of the brig: it goes (its guards with it).
+func _all_brig_gone() -> void:
+	var b := AdmiraltyBrig.of(get_tree())
+	if b:
+		b.queue_free()
+
+
 ## The rival crew's gone: a spared captain gets back up (a third of their health).
 func _all_rival_stand() -> void:
 	var p := _me()

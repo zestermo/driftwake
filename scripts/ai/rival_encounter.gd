@@ -407,6 +407,17 @@ func _lose() -> void:
 	phase = "plunder"
 	result = "lost"
 	_say(rivals[-1], RivalCrews.line(crew_id, "gloat", rng))
+	if squad():
+		# the Admiralty doesn't rob you: it arrests you (AdmiraltyBrig); the squad's gone when you wake
+		result = "arrested"
+		var lead: Node3D = get_tree().get_first_node_in_group("player")
+		var at: Vector3 = lead.global_position if lead else Vector3.ZERO
+		get_node("/root/Net").everyone("_all_arrest", [at, str(RivalCrews.crew(crew_id)["captain"])])
+		var rec0 := record()
+		rec0["lost"] = int(rec0["lost"]) + 1
+		rec0["last"] = "lost"
+		_leave_t = 0.5
+		return
 	get_node("/root/Net").everyone("_all_rival_plunder", [PLUNDER, str(RivalCrews.crew(crew_id)["name"])])
 	_scatter()
 	var rec := record()

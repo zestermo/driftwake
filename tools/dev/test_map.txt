@@ -21,7 +21,7 @@ tools/dev/t/ship/*                      t/ship
 scripts/ship/enemy_ship.gd              t/ship/admiralty_patrol
 tools/dev/t/input/*                     t/input
 scripts/input/*                         t/input t/player t/combat
-scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement t/combat/bounty_hunters t/combat/admiralty_hunter
+scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement t/combat/bounty_hunters t/combat/admiralty_hunter t/combat/arrest
 scripts/game/bounty.gd                  t/progression/bounty
 scripts/island/kit/wanted_poster.gd     t/progression/bounty
 scripts/dialogue/cutscene.gd            t/ui/cutscene

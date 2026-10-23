@@ -148,6 +148,15 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   next. Tests: t/combat/admiralty_hunter, rival_placement. **Assumed:** squad size by the same tiers as the crews
   (4 marines at Infamous); "tracks your ship down the chain" = waiting at the next harbours (no sea pursuit by a
   hunter's own ship yet); until the arrest piece, beating every captain plunders like a crew.
+- **Piece 11: arrest and escape.** `AdmiraltyBrig` (scripts/ai/admiralty_brig.gd): every captain beaten by an
+  Admiralty squad wakes in the brig (built on every machine at BRIG_AT, high above the world: a sealed room, the
+  ceiling keeps the rain out), 30% of their gold and their weapon (and off-hand) confiscated; F at the cell door picks
+  the lock (3 s; anyone's opens it for all), two marine guards (captain-style AIs) come on; the chest gives each
+  captain their own gear back; the hatch puts them back where they were taken; everyone down in there: back in the
+  cell, the door shut; everyone out: the brig goes. Net._all_arrest, _all_brig_door, _all_brig_gone. Test:
+  t/combat/arrest. **Assumed:** the brig is the Admiralty ship's (one plank room, a cot, a lantern), not an outpost
+  cell; only the equipped weapons are taken (the bag's others stay); no escape timer; the interior's look is
+  unchecked by a render (sealed: try it in game, Shift+Alt+F5 then let them beat you).
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite
