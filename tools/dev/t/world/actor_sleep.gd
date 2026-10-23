@@ -6,10 +6,12 @@ extends SceneTree
 ## A boarder never sleeps (left behind, it slips away).
 const TK := preload("res://tools/dev/test_kit.gd")
 ## Pedestals for the captain, west of the stage (the sea is east): x = -650 (everyone far), -140 (between
-## the people's wake and sleep ranges), -100 (within their wake range).
+## the people's wake and sleep ranges), -75 (the grunts 68-85 m off: between the hostiles' 70 m wake and 90 m sleep, ActorSleep.ENEMY), -45
+## (within everyone's wake range).
 const FAR_X := -650.0
 const MID_X := -140.0
-const NEAR_X := -100.0
+const ENEMY_MID_X := -75.0
+const NEAR_X := -45.0
 var AS
 var stage
 var p
@@ -97,7 +99,7 @@ func _process(_d: float) -> bool:
 			p = stage.player
 			p.health_component.max_health = 99999.0
 			p.health_component.current_health = 99999.0
-			for x in [FAR_X, MID_X, NEAR_X]:
+			for x in [FAR_X, MID_X, ENEMY_MID_X, NEAR_X]:
 				_box(x)
 			walker = stage.camp.grunts[0]
 			sitter = stage.camp.grunts[1]
@@ -162,7 +164,7 @@ func _process(_d: float) -> bool:
 			if not _all(false, actors, false):
 				return false
 			var where := actors.all(func(a): return a == ship or (a as Node3D).global_position.distance_to(frozen[a]["pos"]) < 0.3)
-			check("100 m off everyone wakes where they slept (no teleport)", where)
+			check("45 m off everyone wakes where they slept (no teleport)", where)
 			check("woken, the clocks pick up where they stopped (no fast-forward)", float(walker.st_t) - float(frozen[walker]["st_t"]) < 0.5)
 			check("woken, snapshots go out again", not walker.net_idle and not ship.net_idle)
 			check("the sitter is still seated", sitter.humanoid.seated)
@@ -172,13 +174,14 @@ func _process(_d: float) -> bool:
 		6:
 			check("woken, the hurtbox is back in the physics space", _hurtbox_found(walker))
 			check("awake again, the patrol walks on", walker.global_position.distance_to(frozen[walker]["pos"]) > 0.3 or walker._patrol_wait > 0.0)
-			go(MID_X)
+			go(ENEMY_MID_X)
 			until = TK.wait_secs(1.0)
 		7:
-			check("140 m off (between the ranges) awake people stay awake", _all(false, [walker, sitter, npc]))
+			check("75 m off (between the hostiles' ranges) awake grunts stay awake, the villager too", _all(false, [walker, sitter, npc]))
 			AS.enabled = false
 			go(FAR_X)
-			until = TK.wait_secs(1.5)
+			# (LEFT_BEHIND_SECS far from every captain: the 45 m pedestal reset its count)
+			until = TK.wait_secs(8.5)
 		8:
 			check("the boarder, left behind, slipped away (it never slept)", not is_instance_valid(boarder) or boarder.is_dead())
 			check("ActorSleep off (the bench's nosleep): nobody sleeps", _all(false, [walker, sitter, npc, ship]))

@@ -5928,3 +5928,17 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   `blast` (every gun and cannon firing), `cannon_blast` and `powder_burst`; the fireball and smoke sheets
   around it are unchanged. The `muzzle` sheet stays in the library.
 - t/fx/blocks, t/fx/flipbook and t/fx/sheets updated for the new sheet name and count.
+
+## 2026-10-22: combat perf, quick wins (grunt path spike, enemy sleep radii)
+- **The fights' worst ticks were navmesh paths:** every slow grunt tick (~5-8 ms, CHASE/REPOSITION) was `_nav_dir`'s
+  `map_get_path` across all of Brinehollow, re-asked each time the captain moved 1.5 m. Now a knee-height ray first
+  (`_clear_walk`, 30 m): clear, walk straight with no query; blocked, `query_path` capped at 60 m / 4096 polygons
+  (`NAV_SEARCH`, `NAV_POLYS`), at most ~1/s or when the goal moved 3 m (`NAV_REGOAL`). The on-mesh check reads the
+  path's first point instead of `map_get_closest_point` (also a whole-mesh search).
+- **Enemies sleep sooner:** `ActorSleep.ENEMY` [90, 70, 230, 210] for grunts and scuttlebugs (they notice at 8-17 m);
+  people keep 160/120. The training pen had 20 idle hostiles awake 60-120 m off.
+- Bench (yard, fight, brawl, back to back; the after run on a 15% busier machine): fight 20.3 -> 13.8 ms, physics
+  scripts -58%, the worst grunt call 7.9 -> 4.0 ms (brawl 7.7 -> gone), scuttlebugs 0.66 -> 0.10 ms.
+- Next if fights still dip: grunt AI at a lower think rate (physics scripts now ~1.5 ms in the fight), hair/cloth sims
+  only on the nearest fighters, then the skinned single-mesh bodies.
+- Tests: t/world/actor_sleep's pedestals moved for the enemy ranges (45 / 75 / 140 / 650 m).

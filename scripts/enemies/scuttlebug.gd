@@ -138,7 +138,7 @@ func _ready() -> void:
 	_wander_target = global_position
 	if Net.hosting:
 		net_rescale(Net.hp_scale())
-	ActorSleep.add(self)
+	ActorSleep.add(self, ActorSleep.ENEMY)
 
 
 # ==========================================================================

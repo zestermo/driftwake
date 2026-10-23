@@ -12,6 +12,9 @@ extends Node
 
 ## [sleep past, wake within, hide past, show within] (m)
 const PEOPLE := [160.0, 120.0, 230.0, 210.0]
+## Hostiles idle (not fighting: sleep_ok) sleep sooner: they notice a captain at 8-17 m, so waking at 70 m is still far
+## ahead of anything they'd do, and the training pen and the town's edges no longer keep a whole nest awake (2026-10-22).
+const ENEMY := [90.0, 70.0, 230.0, 210.0]
 ## Ships sleep only well past where they'd notice the crew's ship (EnemyShip.NOTICE, LOSE) and stay in sight.
 const SHIP := [420.0, 340.0, INF, INF]
 ## Every actor is looked at once every this many frames.

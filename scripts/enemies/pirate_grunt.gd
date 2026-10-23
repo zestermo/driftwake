@@ -491,7 +491,7 @@ func _ready() -> void:
 	_enter_idle()
 	if Net.hosting:
 		net_rescale(Net.hp_scale())
-	ActorSleep.add(self)
+	ActorSleep.add(self, ActorSleep.ENEMY)
 
 
 # ==========================================================================
@@ -1103,18 +1103,59 @@ func _get_token() -> bool:
 func _nav_dir(goal: Vector3, delta: float) -> Vector3:
 	var straight := _flat(goal - global_position).normalized()
 	_path_t -= delta
+	_query_t -= delta
 	if _path_t <= 0.0 or goal.distance_to(_path_goal) > 1.5:
-		_path_t = _rng.randf_range(0.4, 0.6)
+		_path_t = _rng.randf_range(0.25, 0.35)
 		_path_goal = goal
-		_path_i = 1
-		var map := get_world_3d().navigation_map
-		var on_mesh := NavigationServer3D.map_get_closest_point(map, global_position).distance_to(global_position) < 1.2
-		_path = NavigationServer3D.map_get_path(map, global_position, goal, true) if on_mesh else PackedVector3Array()
+		_walk_clear = _clear_walk(goal)
+		if not _walk_clear and (_query_t <= 0.0 or goal.distance_to(_query_goal) > NAV_REGOAL):
+			_query_t = _rng.randf_range(0.9, 1.2)
+			_query_goal = goal
+			_path_i = 1
+			if _nq == null:
+				_nq = NavigationPathQueryParameters3D.new()
+				_nq.path_search_max_distance = NAV_SEARCH
+				_nq.path_search_max_polygons = NAV_POLYS
+				_nr = NavigationPathQueryResult3D.new()
+			_nq.map = get_world_3d().navigation_map
+			_nq.start_position = global_position
+			_nq.target_position = goal
+			NavigationServer3D.query_path(_nq, _nr)
+			_path = _nr.path
+			# (its first point is the start put on the mesh: far off it, we're off the mesh, e.g. on a deck)
+			if not _path.is_empty() and _path[0].distance_to(global_position) > 1.2:
+				_path = PackedVector3Array()
+	if _walk_clear:
+		return straight
 	while _path_i < _path.size() and _flat(_path[_path_i] - global_position).length() < 0.8:
 		_path_i += 1
 	if _path_i >= _path.size():
 		return straight
 	return _flat(_path[_path_i] - global_position).normalized()
+
+
+## Straight at the goal when nothing's in the way (a ray at knee height, NAV_DIRECT m at most). A navmesh path across the
+## island costs ~5 ms (2026-10-22: every one of the fights' worst ticks was a chasing grunt's path, re-asked each time the
+## captain moved 1.5 m), so it's asked only round huts, rocks and cliffs, about once a second or when the goal has moved
+## NAV_REGOAL m.
+const NAV_DIRECT := 30.0
+const NAV_REGOAL := 3.0
+## The path search stops this far out (m) and after this many polygons: a whole island's mesh searched was the ~5 ms.
+const NAV_SEARCH := 60.0
+const NAV_POLYS := 4096
+var _nq: NavigationPathQueryParameters3D
+var _nr: NavigationPathQueryResult3D
+var _walk_clear := false
+var _query_t := 0.0
+var _query_goal := Vector3.INF
+
+
+func _clear_walk(goal: Vector3) -> bool:
+	if _flat(goal - global_position).length() > NAV_DIRECT:
+		return false
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3(0, 0.6, 0), goal + Vector3(0, 0.6, 0), 1)
+	q.exclude = [get_rid()]
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 static var _enemies: Array = []
