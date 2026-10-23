@@ -743,22 +743,47 @@ func afterimage(body: Node3D, color: Color = Color(0.6, 0.8, 1.0), life: float =
 	mat.albedo_color = Color(color.r, color.g, color.b, 0.45)
 	mat.no_depth_test = false
 	var n := 0
+	var skels := {}
 	for mi in body.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		if m.mesh == null or not m.is_visible_in_tree():
 			continue
-		var c := MeshInstance3D.new()
-		c.mesh = m.mesh
-		c.material_override = mat
-		c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		holder.add_child(c)
-		c.global_transform = m.global_transform
+		still_copy(m, holder, skels).material_override = mat
 		n += 1
 		if n > 40:
 			break
 	var tw := holder.create_tween()
 	tw.tween_property(mat, "albedo_color:a", 0.0, life)
 	tw.tween_callback(holder.queue_free)
+
+
+## A still copy of `m` under `holder`, posed as it is now, casting no shadow. A skinned mesh (a body's
+## skin, hair and cloth) rides a frozen copy of its skeleton (one per skeleton, kept in `skels`): the
+## mesh alone would stand in its rest pose.
+func still_copy(m: MeshInstance3D, holder: Node3D, skels: Dictionary) -> MeshInstance3D:
+	var c := MeshInstance3D.new()
+	c.mesh = m.mesh
+	c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var sk: Skeleton3D = m.get_node_or_null(m.skeleton) as Skeleton3D if m.skin else null
+	if sk == null:
+		holder.add_child(c)
+		c.global_transform = m.global_transform
+		return c
+	if not skels.has(sk):
+		var g := Skeleton3D.new()
+		for i in range(sk.get_bone_count()):
+			g.add_bone(sk.get_bone_name(i))
+		for i in range(sk.get_bone_count()):
+			g.set_bone_parent(i, sk.get_bone_parent(i))
+			g.set_bone_rest(i, sk.get_bone_rest(i))
+			g.set_bone_pose(i, sk.get_bone_pose(i))
+		holder.add_child(g)
+		g.global_transform = sk.global_transform
+		skels[sk] = g
+	(skels[sk] as Node).add_child(c)
+	c.skin = m.skin
+	c.skeleton = NodePath("..")
+	return c
 
 
 ## Afterimage (Acrobatics): a copy of `body` left standing for `secs` that the foes after its captain swing at

@@ -65,17 +65,14 @@ func _copy(body: Node3D) -> void:
 	_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_mat.albedo_color = Color(COLOR.r, COLOR.g, COLOR.b, 0.6)
 	var n := 0
+	var skels := {}
 	for mi in body.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		if m.mesh == null or not m.is_visible_in_tree():
 			continue
-		var c := MeshInstance3D.new()
-		c.mesh = m.mesh
+		var c: MeshInstance3D = FX.still_copy(m, self, skels)
 		c.material_override = _mat
-		c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		c.visibility_range_end = 60.0
-		add_child(c)
-		c.global_transform = m.global_transform
 		n += 1
 		if n > 40:
 			break
