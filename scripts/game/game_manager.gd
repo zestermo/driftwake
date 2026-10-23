@@ -18,6 +18,8 @@ var burned: Dictionary = {}
 var world_flags: Dictionary = {}
 ## The rival crews met in this world (RivalEncounter): crew id -> {"met", "won", "lost"} (won/lost: the captains' side).
 var rivals: Dictionary = {}
+## Where rival crews turn up (the host's; its plan is rivals["_plan"]).
+var rival_watch: RivalWatch
 ## Treasure maps found in bottles (treasure index -> true) and places put on
 ## the sea chart ("island:<name>", "reef:<i>", ... -> true).
 var maps: Dictionary = {}
@@ -77,6 +79,9 @@ var _on_page_hidden: JavaScriptObject
 
 func _ready() -> void:
 	loot_bag_scene = load("res://scenes/loot/loot_bag.tscn")
+	rival_watch = RivalWatch.new()
+	rival_watch.name = "RivalWatch"
+	add_child(rival_watch)
 	if OS.has_feature("web"):
 		_on_page_hidden = JavaScriptBridge.create_callback(func(_args: Array):
 			if str(JavaScriptBridge.eval("document.visibilityState")) == "hidden":
@@ -216,6 +221,8 @@ func apply_chain(at: int, is_set: bool, since: float) -> void:
 	chain_since = since
 	if moved:
 		_was_set = log_pose_set()
+		if Net.is_host() and rival_watch:
+			rival_watch.arrived(at)
 		var c := chain()
 		if c and at >= 0:
 			get_tree().call_group("hud", "show_toast", "Arrived at %s. The log pose will set in time." % c.node(at)["name"])

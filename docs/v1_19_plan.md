@@ -80,6 +80,14 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   dies (beaten, they call the retreat); co-op pairs each captain with the next rival in the queue (not yet by each
   captain's own mastery); the debug arrival is "turn up in a line 14 m off" (landing by ship comes with the
   placement piece).
+- **Piece 5: where they turn up.** `RivalWatch` (scripts/ai/rival_watch.gd, GameManager's, the host's): on each
+  chain arrival it decides; the meeting comes once the captain has been ashore 20 s, is 45 m in from the dock and no
+  fight is on, the crew coming up from the dock's side. Plan in GameManager.rivals["_plan"]. Test:
+  t/combat/rival_placement (the decisions). **Assumed:** the first meeting on the first chain island past
+  Brinehollow (layer 1) with the Mudlark Brigade; then none until 3 islands have passed, 45% an island after
+  (about one meeting every five islands), never at the capital, crews not met yet first, never the same twice
+  running; they "land" by walking up from the dock (no rival ship model yet). **Not yet tested in a world:** the
+  trigger on a real chain island (try: sail to the first chain island, walk inland).
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite

@@ -38,15 +38,16 @@ var _casts_seen := {}
 var _leave_t := 0.0
 
 
-## The host's start of a crew's visit near `near` (null if the crew's unknown or one's already here).
-static func start(near: Player, crew: String) -> RivalEncounter:
+## The host's start of a crew's visit near `near` (null if the crew's unknown or one's already here): they come
+## from `from`'s side (their landing: the dock), or in front of the captain.
+static func start(near: Player, crew: String, from := Vector3.INF) -> RivalEncounter:
 	if not RivalCrews.CREWS.has(crew) or near.get_tree().get_first_node_in_group("rival_encounter"):
 		return null
 	var e := RivalEncounter.new()
 	e.name = "RivalEncounter_" + crew
 	e.crew_id = crew
 	near.get_tree().current_scene.add_child(e)
-	e._arrive(near)
+	e._arrive(near, from)
 	return e
 
 
@@ -65,11 +66,11 @@ func record() -> Dictionary:
 	return r
 
 
-func _arrive(near: Player) -> void:
+func _arrive(near: Player, from: Vector3) -> void:
 	var rec := record()
 	var tier := int(rec["met"])
 	info = RivalCrews.members(crew_id, int(_gm().chain_seed), tier)
-	var fwd := -near.player_model.global_basis.z
+	var fwd := -near.player_model.global_basis.z if from == Vector3.INF else from - near.global_position
 	fwd.y = 0.0
 	fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
 	var side := fwd.cross(Vector3.UP).normalized()
