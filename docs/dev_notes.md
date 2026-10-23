@@ -5961,3 +5961,23 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   < 0 on it). Brinehollow: junk 1.2 m clear, merchant and sloop 4.2 m.
 - **The chapel's base:** its plinth went 1.4 m under the floor; on its slope the low side floated. `chapel(found)`,
   and KitLandmarks passes the footprint's drop + 0.6 (Brinehollow's: 3.45 m).
+
+## 2026-10-23: skinned bodies, piece 1 (one skeleton per body, behind a switch)
+- **What:** `BodyBuilder.one_skin` (static var, off; `DRIFTWAKE_ONE_SKIN=1` for a run; never the player's rig, the one
+  with `swappable_hands`). A body's skeleton is `LowerBody`, grown: ArmBody's bones from `LowerBody.ARMS` (21; its
+  TORSO bone copies the torso joint) and a follower bone per joint with rigid parts (`follow()`: neck, head...), every
+  rigid part bound into "Mesh" by `BodyBuilder._skin_one` (upper-arm parts into their arm's mesh). The arms keep their
+  own meshes (MeshL/MeshR: Haki's recolour, `sever`'s bake via `ArmBody.bake`); no ArmBody node. Joints carry no meshes,
+  so the animator, IK, Ragdoll.restore_rig, HumanoidSync and every `hand_r`/`torso` reader are unchanged. Docs plan:
+  docs/skinned_bodies_plan.md (piece 2: one texture-array material per body).
+- **Found on the way:** `FX.afterimage` and `Decoy` copied skinned meshes without their skin, so skinned parts stood in
+  the rest pose (legs and arms already did). `FX.still_copy` gives a skinned copy a frozen copy of its skeleton.
+- **Tests:** t/world/one_skin_same (28 looks from `_skin_cmp.look_of` built both ways and posed alike: the same 662k
+  vertices per material, position/normal/uv/colour; nothing left on joints; draws 17.3 -> 12.2 a body; the player's rig
+  keeps the old path), t/world/one_skin_ragdoll (ragdoll, sever an arm and the head, restore = a fresh rig's pose,
+  afterimage = the body), t/world/body_shadow_lod_one. Renders: modelshot `S.body_of(i, one, how, pose)` (a fixed
+  frame: skinned meshes report rest bounds) old vs new = inside the old-vs-old noise floor (0.05-0.07% px vs
+  0.05-0.11%); coplanar layers (cuffs, a coat edge) can z-fight differently now they share a mesh.
+- **Bench** (off/on back to back, gate, plaza/market/yard/fight; calib 24.4 vs 28.7 ms): frame 16.52 -> 15.81 ms (-4%),
+  draws 1,520 -> 1,427 (-6%), tail -8%, proc_scr -6%, draw -7%; per stop plaza -14%, market -18%, yard +7%, fight +4%
+  (noise). lower_body + arm_body 0.47 -> 0.47 ms (one script now). Default stays off until piece 3.
