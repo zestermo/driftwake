@@ -15,9 +15,9 @@ class_name GreatswordMoves
 ## lets go for Running Cleave, Crescent Gale and Tempest Turns, and flings out against the cut. Same joint
 ## conventions as humanoid.gd.
 
-## [right hand, blade, edge, left hand's slide] (chest frame). The low guard: hands at the right hip, the blade down
-## and forward across the body to the left (clear of the left knee), the edge down.
-const GUARD_GRIP := [Vector3(0.25, -0.58, -0.2), Vector3(-0.64, -0.5, -0.58), Vector3(0, -1, 0), 0.2]
+## [right hand, blade, edge, left hand's slide] (chest frame). The low guard (Zach's reference, 2026-10-22): both hands at the
+## right hip, the blade down and out to the right and a little behind, the point near the ground, the edge down.
+const GUARD_GRIP := [Vector3(0.08, -0.56, -0.34), Vector3(0.76, -0.61, 0.2), Vector3(-0.59, -0.79, -0.15), 0.1]
 ## Sprinting: in the right hand alone down at the side, the point dragged along the ground behind.
 const TRAIL_GRIP := [Vector3(0.36, -0.5, -0.02), Vector3(0.28, -0.86, 0.42), Vector3(0, -1, 0), -1.0]
 ## Moving (any direction, StanceLife's carry): the same, the point trailing low just off the ground.
@@ -35,7 +35,7 @@ const PULL := {"arm_l": Vector3(-0.55, 0.0, -0.35), "fore_l": Vector3(1.3, 0, 0)
 const ARC_C := Vector3(0, -0.3, 0)
 
 ## The guard: upright and easy, the chest turned a little toward the blade, eyes down its line. The arms seed the IK.
-const GUARD := {"hips": Vector3(0, 0.05, 0), "torso": Vector3(-0.06, 0.06, 0), "head": Vector3(0.12, -0.1, 0),
+const GUARD := {"hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.12, -0.32, 0), "head": Vector3(0.28, 0.4, 0),
 	"arm_r": Vector3(0.3, 0.0, 0.25), "fore_r": Vector3(0.7, 0, 0), "hand_r": Vector3.ZERO,
 	"arm_l": Vector3(0.6, -0.45, -0.1), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3.ZERO}
 ## The stance's feet (Humanoid.STANCE_LEGS): a relaxed stance, the left foot a little forward.
@@ -202,6 +202,34 @@ static func _cleaved(body: Dictionary) -> Dictionary:
 		[Vector3(0.0, -0.15, -0.55), Vector3(0.0, 0.4, -0.92), Vector3(0, -0.92, -0.4), 0.2])
 
 
+## Guardbreaker's crush: the cleave from standing (the full _cleaved is a landing's, bent near prone over it).
+const BREAK_CRUSH := {"pivot": Vector3(-0.12, 0, 0), "torso": Vector3(-0.3, 0.05, 0), "head": Vector3(0.3, -0.05, 0), "_lift": Vector3(0, -0.28, 0)}
+
+
+## The short rising cut (Guardbreaker's, Updraft's, Gatekeeper's release): low on the right swept up through the front.
+static func _rising() -> Dictionary:
+	return _k({"pivot": Vector3(-0.02, 0, 0), "hips": Vector3(0, -0.2, 0), "torso": Vector3(0.0, -0.25, 0), "head": Vector3(0.0, 0.25, 0),
+		"_lift": Vector3(0, -0.12, 0), "_scale": Vector3(0.96, 1.06, 1.0), "_smear": Vector3(0.12, 0, 0)}.merged(STEP_R),
+		[Vector3(0.05, -0.15, -0.5), Vector3(0.15, 0.6, -0.79), Vector3(0.2, 0.75, 0.6), 0.2])
+
+
+## Gatekeeper's gate: the blade point-down in the ground before you, hands on the pommel, the flat to them; `sunk`
+## leans on it harder (the plant's give, the release's dip).
+const GATE_GRIP := [Vector3(0.0, -0.32, -0.46), Vector3(0.0, -0.97, -0.24), Vector3(1, 0, 0), 0.14]
+
+
+static func _gate(sunk: bool) -> Dictionary:
+	return _k({"pivot": Vector3(-0.1 if sunk else -0.05, 0, 0), "hips": Vector3.ZERO, "torso": Vector3(-0.18 if sunk else -0.1, 0, 0), "head": Vector3(0.1, 0, 0),
+		"_lift": Vector3(0, -0.36 if sunk else -0.26, 0), "_scale": Vector3(1.04, 0.95, 1.0) if sunk else Vector3.ONE, "_smear": Vector3.ZERO}.merged(WIDE),
+		GATE_GRIP)
+
+
+## On the way back to the low guard (on the right) from the left: the blade carried forward and down out in front of the
+## legs first, so it never cuts back across through the thighs; both hands on it again.
+static func _ahead(from: Dictionary) -> Dictionary:
+	return from.merged({"_gr": Vector3(0.05, -0.38, -0.5), "_gd": Vector3(0.25, -0.45, -0.86), "_ge": Vector3(0, -0.89, 0.46), "_gs": Vector3(0.15, 0, 0)}, true)
+
+
 ## On the way back to the low guard from the right: the blade lowered through the front on the right first, so it never
 ## turns over the top or down through the legs; the left hand takes the grip again.
 static func _lowering(from: Dictionary) -> Dictionary:
@@ -329,7 +357,7 @@ static func _pose(h, n: String, u: float) -> Array:
 			var mid := _mid(drag, strike, Vector3(1.06, 0.97, 1.04), 0.14,
 				[Vector3(0.38, -0.36, -0.35), Vector3(0.97, -0.15, -0.2), Vector3(-0.2, 0, -0.98), -1.0])
 			return [_arc(h, u, [[0.0, from], [0.16, drag, "out"], [0.3, drag], [0.37, mid, "in"], [0.44, strike, "linear"], [0.58, _left_out(), "out"],
-				[0.74, _left_out()], [1.0, g]]), "full", Vector3.ZERO]
+				[0.74, _left_out()], [0.86, _ahead(g)], [1.0, g]]), "full", Vector3.ZERO]
 		"gs_dive":
 			# Falling Cleave: knees tucked with the blade heaved up overhead, held there the whole way down
 			var raise := _raised(TUCK)
@@ -353,11 +381,39 @@ static func _pose(h, n: String, u: float) -> Array:
 				[Vector3(0.05, -0.15, -0.5), Vector3(0.15, 0.6, -0.79), Vector3(0.2, 0.75, 0.6), 0.2])
 			var up := _raised(SET)
 			var over := _mid(rise, up, Vector3(0.97, 1.05, 1.0), 0.06, [Vector3(0.1, 0.3, -0.3), Vector3(0.1, 0.97, 0.2), Vector3(0, -0.2, 0.98), 0.2])
-			var crush := _cleaved({"_smear": Vector3(0.14, 0, 0)})
+			# (driven down on them from standing, not sprawled over it: 2026-10-22, the full cleave overshot near prone)
+			var crush := _cleaved(BREAK_CRUSH.merged({"_smear": Vector3(0.14, 0, 0)}))
 			var top := _mid(up, crush, Vector3(0.95, 1.05, 1.08), 0.16, TOP_GRIP)
-			var held := _cleaved({})
+			var held := _cleaved(BREAK_CRUSH)
 			return [_arc(h, u, [[0.0, g], [0.06 / T, _lift(g, load)], [0.13 / T, load, "out"], [0.22 / T, rise, "out"], [0.29 / T, over], [0.36 / T, up, "out"], [0.47 / T, up],
 				[0.52 / T, top, "in"], [0.57 / T, crush, "out"], [0.75 / T, held], [1.0, g]]), "full", Vector3.ZERO]
+		"gs_updraft":
+			# Updraft: low and wound to the right, a short rising cut that tears up under them, then up after them with the
+			# knees tucked and the blade heaved overhead, over the top and down in a cleave at the top of the leap (the
+			# landing plays gs_land)
+			var T: float = float(h._action.get("dur", 1.0))
+			var load := _c1().merged({"hips": Vector3(0, 0.45, 0), "torso": Vector3(-0.2, 0.5, 0), "head": Vector3(0.15, -0.5, 0), "_lift": Vector3(0, -0.3, 0),
+				"pivot": Vector3.ZERO, "_gr": Vector3(-0.22, -0.4, -0.36), "_gd": Vector3(-0.72, -0.25, 0.64)}, true).merged(SQUAT, true)
+			var rise := _rising()
+			var up := _raised(TUCK)
+			var over := _mid(rise, up, Vector3(0.97, 1.05, 1.0), 0.06, [Vector3(0.1, 0.3, -0.3), Vector3(0.1, 0.97, 0.2), Vector3(0, -0.2, 0.98), 0.2])
+			var crush := _cleaved(TUCK.merged({"pivot": Vector3(-0.15, 0, 0), "_lift": Vector3(0, -0.15, 0), "_smear": Vector3(0.14, 0, 0)}))
+			var top := _mid(up, crush, Vector3(0.95, 1.05, 1.08), 0.16, TOP_GRIP)
+			var held := _cleaved(TUCK.merged({"pivot": Vector3(-0.15, 0, 0), "_lift": Vector3(0, -0.15, 0)}))
+			return [_arc(h, u, [[0.0, g], [0.06 / T, _lift(g, load)], [0.14 / T, load, "out"], [0.22 / T, rise, "out"], [0.3 / T, over], [0.42 / T, up, "out"],
+				[0.58 / T, up], [0.64 / T, top, "in"], [0.7 / T, crush, "out"], [0.82 / T, held], [1.0, held]]), "full", Vector3.ZERO]
+		"gs_gate":
+			# Gatekeeper, held: the blade driven point-down into the ground before you, both hands on the pommel, its flat to
+			# them, braced wide behind it (played at the hold's longest; the release plays gs_gate_rise)
+			var T: float = float(h._action.get("dur", 1.5))
+			var gate := _gate(false)
+			return [_arc(h, u, [[0.0, g], [0.08 / T, _ahead(g)], [0.18 / T, gate, "out"], [0.24 / T, _gate(true)], [0.32 / T, gate], [1.0, gate]]), "full", Vector3.ZERO]
+		"gs_gate_rise":
+			# Gatekeeper's release: sunk on it a moment, then wrenched up out of the ground in a rising cut carried on overhead
+			var T: float = float(h._action.get("dur", 0.6))
+			var gate := _gate(false)
+			var up := _raised(SET)
+			return [_arc(h, u, [[0.0, gate], [0.07 / T, _gate(true)], [0.16 / T, _rising(), "out"], [0.28 / T, up, "out"], [0.42 / T, up], [1.0, g]]), "full", Vector3.ZERO]
 		"gs_crescent":
 			# Crescent Gale: the left hand lets go, the blade levelled behind on the left, then one huge flat backhand at
 			# arm's length through the front that flings a crescent of air off its edge, carried out past the right

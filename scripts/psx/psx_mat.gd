@@ -142,8 +142,8 @@ static func decal(color: Color, opts: Dictionary = {}) -> ShaderMaterial:
 
 
 ## A decal drawn from a flipbook sheet (assets/textures/fx/<sheet_name>.png, 4x2 frames; gen_dither_fx.py)
-## on a mesh's UVs. opts as decal(), plus fps (loops by itself; else set "frame"), palette ([dark, deep,
-## body, hi] for an index sheet).
+## on a mesh's UVs. opts as decal(), plus fps (loops by itself; else set "frame"), grid (Vector2, another
+## layout), palette ([dark, deep, body, hi] for an index sheet).
 static func decal_sheet(sheet_name: String, color: Color = Color.WHITE, opts: Dictionary = {}) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = DECAL_SHEET_UNSHADED_SHADER if opts.get("unshaded", false) else DECAL_SHEET_SHADER
@@ -152,6 +152,8 @@ static func decal_sheet(sheet_name: String, color: Color = Color.WHITE, opts: Di
 	for k in ["roughness", "specular", "pull", "fps"]:
 		if opts.has(k):
 			m.set_shader_parameter(k, float(opts[k]))
+	if opts.has("grid"):
+		m.set_shader_parameter("grid", opts["grid"])
 	if opts.has("palette"):
 		m.set_shader_parameter("palette_mode", true)
 		for i in range(4):

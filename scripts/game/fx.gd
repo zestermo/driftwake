@@ -31,18 +31,17 @@ var _flame_ramp: Gradient
 var _slash_mat: ShaderMaterial
 var _blood_mat: StandardMaterial3D
 var _streak_mesh: BoxMesh
-var _splat_mat: ShaderMaterial
+## The four splats settled (gen_dither_fx.py's dither_blood: two round, two directed), shared once landed.
+var _splat_mats: Array = []
+var _splat_quad: QuadMesh
 var _splats: Array = []
-## Spray (flecks, streaks, mist) is darker than what lands: it reads lighter in the air.
+## Spray (flecks, streaks, mist); what lands is drawn in dither_blood's own reds.
 const BLOOD := Color(0.2, 0.0, 0.012)
-const SPLAT := Color(0.42, 0.02, 0.03)
 ## Ground splats kept at once (the oldest go first) and how long each lasts.
 const MAX_SPLATS := 120
 const SPLAT_LIFE := 40.0
-## Splat shapes made at start ([round, directed]), each splat one of them turned and stretched its own way
-## (a fresh mesh per splat was ~1 ms of GDScript, 2-5 of them a bloody hit).
-const SPLAT_SHAPES := 12
-var _splat_shapes := [[], []]
+## A splat lands over this long (its row of the sheet), on its own material, then takes its shared one.
+const SPLAT_LAND := 0.22
 var _streams: Dictionary = {}
 var _slash_meshes: Dictionary = {}
 
@@ -74,13 +73,13 @@ func _ready() -> void:
 	_streak_mesh = BoxMesh.new()
 	_streak_mesh.size = Vector3(0.022, 0.16, 0.022)
 	_streak_mesh.material = streak_mat
-	# a decal (no depth writes, pulled toward the camera): splats overlap and lie on snapped ground
-	_splat_mat = PSXMat.decal(SPLAT, {"roughness": 0.25})
-	var srng := RandomNumberGenerator.new()
-	srng.seed = 7
-	for i in range(SPLAT_SHAPES):
-		_splat_shapes[0].append(_splat_mesh(false, srng))
-		_splat_shapes[1].append(_splat_mesh(true, srng))
+	# decals (no depth writes, pulled toward the camera): splats overlap and lie on snapped ground
+	for v in range(4):
+		_splat_mats.append(_splat_sheet_mat(v * 4 + 3))
+	# the sheet's main pool is 10 px of a 64 px frame across its radius: the splat's unit
+	_splat_quad = QuadMesh.new()
+	_splat_quad.size = Vector2(6.4, 6.4)
+	_splat_quad.orientation = PlaneMesh.FACE_Y
 	for k in SOUNDS:
 		_streams[k] = _sound_set(k)
 	var dim := Timer.new()
@@ -150,8 +149,8 @@ func warm_up() -> void:
 	bleed(at, side)
 	# (a splat drawn for a moment, not left lying on the ground where the captain wakes)
 	var splat := MeshInstance3D.new()
-	splat.mesh = _splat_shapes[0][0]
-	splat.material_override = _splat_mat
+	splat.mesh = _splat_quad
+	splat.material_override = _splat_mats[0]
 	_scene_root().add_child(splat)
 	splat.global_position = at
 	get_tree().create_timer(0.6).timeout.connect(splat.queue_free)
@@ -574,9 +573,11 @@ func _place_splat(at: Vector3, n: Vector3, size: float, along: Vector3 = Vector3
 	var up := n.normalized()
 	var x := along - up * along.dot(up)
 	var directed := x.length() > 0.05
+	var variant := (2 if directed else 0) + randi() % 2
+	var land := _splat_sheet_mat(variant * 4)
 	var mi := MeshInstance3D.new()
-	mi.mesh = (_splat_shapes[1] if directed else _splat_shapes[0]).pick_random()
-	mi.material_override = _splat_mat
+	mi.mesh = _splat_quad
+	mi.material_override = land
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_scene_root().add_child(mi)
 	var b: Basis
@@ -588,13 +589,16 @@ func _place_splat(at: Vector3, n: Vector3, size: float, along: Vector3 = Vector3
 		b = Basis(side, up, side.cross(up)).rotated(up, randf() * TAU)
 	var s := size * randf_range(0.8, 1.25)
 	var stretch := randf_range(1.2, 1.6) if directed else 1.0
-	mi.global_transform = Transform3D(b * Basis.from_scale(Vector3(s * stretch, s, s)), at + up * 0.015)
+	var flip := 1.0 if randf() < 0.5 else -1.0
+	mi.global_transform = Transform3D(b * Basis.from_scale(Vector3(s * stretch, s, s * flip)), at + up * 0.015)
 	_splats.append(mi)
 	while _splats.size() > MAX_SPLATS:
 		var old = _splats.pop_front()
 		if is_instance_valid(old):
 			old.queue_free()
 	var tw := mi.create_tween()
+	tw.tween_method(func(f: float): land.set_shader_parameter("frame", f), variant * 4.0, variant * 4.0 + 3.99, SPLAT_LAND)
+	tw.tween_callback(func(): mi.material_override = _splat_mats[variant])
 	tw.tween_interval(SPLAT_LIFE)
 	tw.tween_property(mi, "scale", Vector3.ZERO, 1.5)
 	tw.tween_callback(func():
@@ -603,49 +607,11 @@ func _place_splat(at: Vector3, n: Vector3, size: float, along: Vector3 = Vector3
 	return mi
 
 
-## An uneven unit splat (flat, +Y up): a few lumpy blobs run together, thin
-## fingers out of it and droplets flung round it - mostly onward (+X) when
-## `directed`. Vertex colours darken the middle (the albedo multiplies them).
-func _splat_mesh(directed: bool, rng: RandomNumberGenerator) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.set_normal(Vector3.UP)
-	var blobs := [[Vector2.ZERO, 1.0]]
-	for i in range(rng.randi_range(1, 3)):
-		var a := rng.randf() * TAU
-		blobs.append([Vector2(cos(a), sin(a)) * rng.randf_range(0.35, 0.7), rng.randf_range(0.45, 0.8)])
-	for i in range(rng.randi_range(4, 10)):
-		var a := rng.randf_range(-0.9, 0.9) if directed and rng.randf() < 0.75 else rng.randf() * TAU
-		blobs.append([Vector2(cos(a), sin(a)) * rng.randf_range(1.1, 2.6), rng.randf_range(0.06, 0.26)])
-	for bl in blobs:
-		var c: Vector2 = bl[0]
-		var r: float = bl[1]
-		var seg := 14 if r > 0.4 else 6
-		var ph1 := rng.randf() * TAU
-		var ph2 := rng.randf() * TAU
-		var rim: Array = []
-		for k in range(seg):
-			var a := float(k) / seg * TAU
-			var lump := 1.0 + 0.22 * sin(3.0 * a + ph1) + 0.12 * sin(5.0 * a + ph2)
-			rim.append(c + Vector2(cos(a), sin(a)) * r * lump * rng.randf_range(0.9, 1.08))
-		var mid := Color(0.9, 0.9, 0.9)
-		for k in range(seg):
-			var p0: Vector2 = rim[k]
-			var p1: Vector2 = rim[(k + 1) % seg]
-			st.set_color(mid)
-			st.add_vertex(Vector3(c.x, 0, c.y))
-			st.set_color(Color.WHITE)
-			st.add_vertex(Vector3(p1.x, 0, p1.y))
-			st.add_vertex(Vector3(p0.x, 0, p0.y))
-	for i in range(rng.randi_range(2, 5)):
-		var a := rng.randf_range(-0.7, 0.7) if directed else rng.randf() * TAU
-		var dv := Vector2(cos(a), sin(a))
-		var side := Vector2(-dv.y, dv.x) * rng.randf_range(0.08, 0.16)
-		var tip := dv * rng.randf_range(1.25, 1.75)
-		st.set_color(Color.WHITE)
-		for p in [dv * 0.7 + side, tip, dv * 0.7 - side]:
-			st.add_vertex(Vector3(p.x, 0, p.y))
-	return st.commit()
+## A material on the blood sheet (4x4 frames) showing `frame`.
+func _splat_sheet_mat(frame: int) -> ShaderMaterial:
+	var m := PSXMat.decal_sheet("dither_blood", Color.WHITE, {"roughness": 0.25, "specular": 0.3, "grid": Vector2(4, 4)})
+	m.set_shader_parameter("frame", float(frame))
+	return m
 
 
 func sparkle(pos: Vector3, amount: int = 8, color: Color = Color(1.0, 0.95, 0.6)) -> void:
@@ -728,7 +694,7 @@ func muzzle_sparks(pos: Vector3, dir: Vector3, amount: int = 10, color: Color = 
 ## Hit impact: a flash plus a spray of sparks.
 func impact(pos: Vector3, color: Color = Color(1.0, 0.9, 0.55)) -> void:
 	if flipbooks:
-		flash(pos, 1.7, Color.WHITE, "glint", 0.14)
+		flash(pos, 1.3, Color.WHITE, "dither_hit", 0.3)
 	else:
 		_burst(pos, 1, _impact_mat, 0.9, 0.12, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 			"grow": true, "color": Color(1, 1, 1, 1)})
@@ -740,7 +706,7 @@ func impact(pos: Vector3, color: Color = Color(1.0, 0.9, 0.55)) -> void:
 ## back toward the attacker (`dir`) and a few slow glints hanging in the air.
 func parry_sparks(pos: Vector3, dir: Vector3) -> void:
 	if flipbooks:
-		flash(pos, 2.2, Color.WHITE, "glint", 0.12)
+		flash(pos, 1.7, Color.WHITE, "dither_hit", 0.28)
 	else:
 		_burst(pos, 1, _impact_mat, 1.25, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 			"grow": true, "color": Color(1, 1, 1, 1)})
@@ -1402,15 +1368,26 @@ func _band(width: float) -> ArrayMesh:
 	return _bands[key]
 
 
-## A ring racing out from `pos` and fading, flat to `normal` (UP: along the
-## ground; a direction: a ring of air round a thrust or a punch).
+## Opacity of the dither rings (FX.ring): quieter than the old additive glow.
+const RING_ALPHA := 0.7
+static var _ring_quad: QuadMesh
+
+
+## A ring racing out from `pos` and fading, flat to `normal` (UP: along the ground; a direction: a ring of air
+## round a thrust or a punch). The dither shockwave (gen_dither_fx.py's dither_ring, dither_ring_wide from a
+## `width` of 0.2): a band in `color`'s tones with a bright leading pixel, thinning and breaking into dashes.
 func ring(pos: Vector3, normal: Vector3 = Vector3.UP, radius: float = 3.0, color: Color = Color.WHITE, life: float = 0.35, width: float = 0.12) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam and cam.global_position.distance_to(pos) > BURST_RANGE:
 		return
+	if _ring_quad == null:
+		_ring_quad = QuadMesh.new()
+		_ring_quad.size = Vector2(2.0, 2.0)
+		_ring_quad.orientation = PlaneMesh.FACE_Y
 	var mi := MeshInstance3D.new()
-	mi.mesh = _band(width)
-	var mat := _glow_mat(color)
+	mi.mesh = _ring_quad
+	var mat := PSXMat.decal_sheet("dither_ring_wide" if width >= 0.2 else "dither_ring", Color(1, 1, 1, RING_ALPHA * color.a),
+		{"unshaded": true, "palette": warn_palette(color)})
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var holder := Node3D.new()
@@ -1423,7 +1400,7 @@ func ring(pos: Vector3, normal: Vector3 = Vector3.UP, radius: float = 3.0, color
 	mi.scale = Vector3(radius * 0.12, 1.0, radius * 0.12)
 	var tw := holder.create_tween()
 	tw.tween_property(mi, "scale", Vector3(radius, 1.0, radius), life).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tw.parallel().tween_property(mat, "albedo_color:a", 0.0, life * 0.7).set_delay(life * 0.3)
+	tw.parallel().tween_method(func(f: float): mat.set_shader_parameter("frame", f), 0.0, 7.99, life)
 	tw.tween_callback(holder.queue_free)
 
 
@@ -1952,7 +1929,7 @@ func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 
 var flipbooks := true
 ## Every sheet in assets/textures/fx/flip_<name>.png, all 4x4 frames of 64 px.
 const FLIP_SHEETS := ["smoke", "explosion", "dust", "dust_low", "sand", "snow", "mist", "blood", "splash", "fire",
-	"fireball", "muzzle", "sparks", "glint", "magic", "wisp"]
+	"fireball", "muzzle", "sparks", "glint", "magic", "wisp", "dither_hit"]
 ## Light: grey-white sheets drawn additive, so the burst's colour tints them. The rest is matter.
 const FLIP_ADD := ["sparks", "glint", "magic"]
 ## Matter that doesn't glow: dimmed with the night (unshaded, it would shine white in the dark).

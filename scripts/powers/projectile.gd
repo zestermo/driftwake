@@ -143,8 +143,10 @@ func _ready() -> void:
 			_mesh.rotation = Vector3(0, 0, PI * 0.5)
 			_mesh.scale = Vector3(1.0, 1.0, 1.3)
 		elif kind == "gale_flat":
-			# (a flat sweep's: lying across the line, half again as wide)
-			_mesh.scale = Vector3(1.6, 1.0, 1.3)
+			# (a flat sweep's: across the line, half again as wide, its leading edge tipped up so it faces back at the
+			# camera; lying flat it was edge-on from behind, a hairline)
+			_mesh.rotation = Vector3(0.55, 0, 0)
+			_mesh.scale = Vector3(1.6, 1.0, 2.2)
 	elif kind in ["axe", "javelin"]:
 		_mesh.mesh = Props.weapon_mesh(model.trim_prefix("elem|"))
 		if kind == "javelin" and source is Player and (source as Player).body_model:

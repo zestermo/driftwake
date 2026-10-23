@@ -7,7 +7,8 @@ const TK := preload("res://tools/dev/test_kit.gd")
 const RUNS := [
 	[["gs_1", 0.9], ["gs_2", 0.85], ["gs_3", 0.9], ["gs_4", 1.1]],
 	[["gs_charge", 0.2], ["gs_heavy", 0.8]],
-	[["gs_rush", 0.8]], [["gs_guardbreak", 0.95]], [["gs_crescent", 0.8]], [["gs_tempest", 1.7]], [["gs_deflect", 0.45]]]
+	[["gs_rush", 0.8]], [["gs_guardbreak", 0.95]], [["gs_crescent", 0.8]], [["gs_tempest", 1.7]], [["gs_deflect", 0.45]],
+	[["gs_updraft", 1.0]], [["gs_gate", 1.5]], [["gs_gate_rise", 0.6]]]
 ## (m) how far out from the chest's axis the sword hand must get at some frame of each big swing (the old moves kept it
 ## within 0.4-0.47 m on all but the heavy and Guardbreaker)
 const REACH := {"gs_1": 0.5, "gs_3": 0.52, "gs_4": 0.55, "gs_heavy": 0.6, "gs_rush": 0.5, "gs_crescent": 0.52, "gs_tempest": 0.55}

@@ -428,11 +428,10 @@ func _follow(back: float, side: float, up: float, ahead: float, look_up: float) 
 
 ## Blood splats off the ground (they read as dark holes in a still).
 func _clean_blood() -> void:
-	var splat = root.get_node("FX")._splat_mat
-	if splat == null:
-		return
-	for n in current_scene.find_children("*", "MeshInstance3D", true, false):
-		if (n as MeshInstance3D).material_override == splat:
+	var fx = root.get_node("FX")
+	for n in fx._splats.duplicate():
+		if is_instance_valid(n):
+			fx._splats.erase(n)
 			n.free()
 
 
