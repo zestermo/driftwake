@@ -18,6 +18,11 @@ const ASHORE_S := 20.0
 const INLAND := 45.0
 const QUIET_R := 25.0
 const CHECK_EVERY := 0.5
+## A named Admiralty hunter (RivalCrews.ADMIRALTY): from the crew's Infamous, this chance at an island, waiting at
+## the harbour (they come as soon as the captain is ashore a moment); the officers in turn.
+const OFFICER_FROM := 3
+const OFFICER_CHANCE := 0.5
+const OFFICER_ASHORE_S := 3.0
 ## Bounty hunters: from this bounty tier (Notorious), this chance an island with no crew, 2 hunters (+1 a tier above),
 ## after a longer while ashore and not so far in.
 const HUNTERS_FROM := 2
@@ -56,6 +61,17 @@ func decide(n: Dictionary, id: int) -> void:
 	_ashore = 0.0
 	if str(n.get("role", "")) == "capital":
 		return
+	# an infamous crew: a named Admiralty hunter waits at the harbour (before any crew or hunters)
+	pl["officer"] = -1
+	if Bounty.tier_of(EnemyShip.crew_bounty(get_tree())) >= OFFICER_FROM:
+		var orng := RandomNumberGenerator.new()
+		orng.seed = hash(["officer", int(n.get("seed", id))])
+		if orng.randf() < OFFICER_CHANCE:
+			var ids: Array = RivalCrews.ADMIRALTY.keys()
+			pl["officer"] = id
+			pl["officer_id"] = str(ids[int(pl.get("officers_met", 0)) % ids.size()])
+			pl["hunters"] = -1
+			return
 	var come := false
 	if not bool(pl["met_first"]):
 		come = int(n.get("layer", 0)) >= 1
@@ -104,7 +120,8 @@ func _physics_process(delta: float) -> void:
 		return
 	var crew_here := int(plan()["pending"]) >= 0 and int(plan()["pending"]) == int(gm.chain_at)
 	var hunters_here := int(plan().get("hunters", -1)) >= 0 and int(plan().get("hunters", -1)) == int(gm.chain_at)
-	if not crew_here and not hunters_here:
+	var officer_here := int(plan().get("officer", -1)) >= 0 and int(plan().get("officer", -1)) == int(gm.chain_at)
+	if not crew_here and not hunters_here and not officer_here:
 		return
 	var p: Player = gm.player
 	if p == null or not is_instance_valid(p) or not p.is_inside_tree():
@@ -118,6 +135,17 @@ func _physics_process(delta: float) -> void:
 	_ashore = _ashore + dt if ashore else 0.0
 	var flat := Vector2(p.global_position.x - dock.x, p.global_position.z - dock.z).length()
 	if Cutscene.active or _hostile_near(p):
+		return
+	if officer_here:
+		if _ashore < OFFICER_ASHORE_S:
+			return
+		# they've been waiting at the harbour: they come at you from the land side
+		var inland := p.global_position - dock
+		inland.y = 0.0
+		var from := p.global_position + inland.normalized() * 10.0 if inland.length() > 2.0 else Vector3.INF
+		if RivalEncounter.start(p, str(plan()["officer_id"]), from) != null:
+			plan()["officer"] = -1
+			plan()["officers_met"] = int(plan().get("officers_met", 0)) + 1
 		return
 	if hunters_here:
 		if _ashore < HUNTER_ASHORE_S or flat < HUNTER_INLAND:

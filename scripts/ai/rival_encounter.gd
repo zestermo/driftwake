@@ -41,7 +41,7 @@ var _leave_t := 0.0
 ## The host's start of a crew's visit near `near` (null if the crew's unknown or one's already here): they come
 ## from `from`'s side (their landing: the dock), or in front of the captain.
 static func start(near: Player, crew: String, from := Vector3.INF) -> RivalEncounter:
-	if not RivalCrews.CREWS.has(crew) or near.get_tree().get_first_node_in_group("rival_encounter"):
+	if RivalCrews.crew(crew).is_empty() or crew == "bounty_hunters" or near.get_tree().get_first_node_in_group("rival_encounter"):
 		return null
 	var e := RivalEncounter.new()
 	e.name = "RivalEncounter_" + crew
@@ -64,6 +64,11 @@ static func start_ambush(near: Player, n: int, from := Vector3.INF) -> RivalEnco
 	near.get_tree().current_scene.add_child(e)
 	e._arrive(near, from)
 	return e
+
+
+## An Admiralty squad (RivalCrews.ADMIRALTY): the meeting, then all at once; their officer still withdraws.
+func squad() -> bool:
+	return RivalCrews.ADMIRALTY.has(crew_id)
 
 
 ## Bounty hunters: all at once, no meeting, no retreat.
@@ -207,6 +212,12 @@ func _fight() -> void:
 	if phase != "meet":
 		return
 	phase = "fight"
+	if squad():
+		# the Admiralty doesn't duel: the whole squad at once, each on the nearest captain
+		for r in rivals:
+			r.get_node("Brain").order = "fight"
+		_taunt_at = rng.randf_range(TAUNT_EVERY.x, TAUNT_EVERY.y)
+		return
 	var lead: Player = get_tree().get_first_node_in_group("player")
 	var wc := lead.weapon_class() if lead else ""
 	_queue = rivals.slice(0, rivals.size() - 1)
@@ -238,6 +249,22 @@ func _fight_tick(delta: float) -> void:
 		return
 	if ambush:
 		_ambush_tick(delta)
+		return
+	if squad():
+		for r in rivals:
+			if is_instance_valid(r) and _standing(r):
+				_react(r, r.get_node("Brain"))
+		var off = rivals[-1]
+		if is_instance_valid(off) and off.health_component.current_health <= off.health_component.max_health * RETREAT_AT:
+			_retreat()
+			return
+		_taunt_at -= delta
+		if _taunt_at <= 0.0:
+			_taunt_at = rng.randf_range(TAUNT_EVERY.x, TAUNT_EVERY.y)
+			var up_r := rivals.filter(func(r): return is_instance_valid(r) and _standing(r))
+			if not up_r.is_empty():
+				var w = up_r[rng.randi() % up_r.size()]
+				_say(w, RivalCrews.line(crew_id, "taunt", rng, w == rivals[-1]))
 		return
 	# one rival on each captain still up, from the queue
 	for c in caps:
@@ -362,7 +389,7 @@ func _retreat() -> void:
 	var at: Vector3 = rivals[-1].global_position if is_instance_valid(rivals[-1]) else Vector3.ZERO
 	var net := get_node("/root/Net")
 	net.coins(at, GOLD_EACH * rivals.size())
-	net.bounty("rival", at, 60.0, float(record()["met"]))
+	net.bounty("hunter" if squad() else "rival", at, 60.0, 1.0 if squad() else float(record()["met"]))
 	if rng.randf() < WEAPON_CHANCE:
 		var w := str(info[-1]["weapon"])
 		var traits: Array = WeaponTraits.TRAITS.keys()

@@ -144,9 +144,90 @@ const HUNTERS := {
 }
 
 
-## A crew's (or the hunters') data.
+## The Admiralty's named hunters (docs/v1_19_plan.md: persistent, built like the crews; from Infamous they wait at a
+## harbour): an officer and a squad of marines in the grey (EnemyShip.marine_look), the whole squad at once.
+## Generic naval ranks (docs/originality_plan.md).
+const ADMIRALTY := {
+	"vael": {
+		"name": "Commander Vael's squad", "captain": "Commander Idris Vael", "title": "the Grey Ledger", "weapon": "katana",
+		"pitch": 0.88, "body": "masc", "build": "slim", "hair": "slick", "hair_color": Color(0.2, 0.19, 0.2),
+		"hat": "none", "coat": "longcoat", "flag": Color(0.68, 0.7, 0.74), "marines": true,
+		"palette": [Color(0.2, 0.22, 0.25), Color(0.36, 0.39, 0.43), Color(0.2, 0.22, 0.25)],
+		"mate_weapons": ["cutlass", "spear"], "mate_names": ["Marine Hale", "Marine Orrin", "Marine Tess", "Marine Dunmore", "Marine Pike", "Marine Ansel"],
+		"lines": {
+			"meet": [["cap", "Captain. You've been entered in my ledger."],
+				["you", "Is that supposed to scare me?"],
+				["cap", "Every name in it has been crossed out. In time."],
+				["mate", "Squad, form up! By order of the Admiralty!"],
+				["cap", "Lay down your weapon. Or don't. The ledger balances either way."]],
+			"again": [["cap", "Your page is still open. Let's close it."]],
+			"grudge_won": [["cap", "You escaped my custody once. Clerical error. Corrected today."]],
+			"grudge_lost": [["cap", "You cost me a squad and a promotion. I've come to collect both."]],
+			"taunt": ["Predictable.", "Noted.", "Your form is untidy.", "Every mistake goes in the ledger."],
+			"hurt": ["Hm.", "Careless of me.", "That will be recorded."],
+			"ult": ["Final Entry.", "Account settled.", "Close the book."],
+			"mate_down": ["Up, marine. Discipline.", "Hold the line!"],
+			"retreat": ["Squad, withdraw in order. This page stays open.", "Fall back. I'll see you at the next harbour, Captain."],
+			"gloat": ["Restrain them. Gently. The Admiralty wants them whole.", "Entered and filed."],
+			"bounty": ["{b} gold. The Admiralty has never paid me so much to do so little.", "Your bounty is a sentence, Captain. I'm here to read it."],
+		},
+	},
+	"hollow": {
+		"name": "Captain Hollow's squad", "captain": "Captain Bertrand Hollow", "title": "the Breakwall", "weapon": "greatsword",
+		"pitch": 0.72, "body": "masc", "build": "stout", "hair": "crop", "hair_color": Color(0.55, 0.53, 0.5),
+		"hat": "morion", "coat": "greatcoat", "flag": Color(0.68, 0.7, 0.74), "marines": true,
+		"palette": [Color(0.3, 0.32, 0.35), Color(0.62, 0.65, 0.68), Color(0.22, 0.23, 0.25)],
+		"mate_weapons": ["warhammer", "boarding_axe", "cutlass"], "mate_names": ["Marine Brock", "Marine Kettering", "Marine Yull", "Marine Graves", "Marine Stoll", "Marine Ainsley"],
+		"lines": {
+			"meet": [["mate", "Captain Hollow, sir! The pirate's in sight!"],
+				["cap", "I see them. Shields up. Nobody runs."],
+				["you", "Who's running?"],
+				["cap", "You will be. Bertrand Hollow. They built the harbour walls after me."],
+				["cap", "Marines! Together! Like a wall!"]],
+			"again": [["cap", "Back again. The wall doesn't move."]],
+			"grudge_won": [["cap", "I carried you to the brig myself last time. You were lighter than you look."]],
+			"grudge_lost": [["cap", "You knocked down the wall. It's been rebuilt. Thicker."]],
+			"taunt": ["Hit the wall.", "Go on.", "Is that all you've got?", "Stand still and be arrested."],
+			"hurt": ["Hrm.", "Good arm.", "Hah!"],
+			"ult": ["Breakwall!", "Down!", "Hold fast!"],
+			"mate_down": ["On your feet, marine!", "Close ranks!"],
+			"retreat": ["Marines, back to the ship. In order! We'll come for them again.", "Withdraw. The wall bends. It doesn't break."],
+			"gloat": ["Irons on. Gently, they fought well.", "Into the brig with them."],
+			"bounty": ["{b} gold. That's a lot of harbour walls.", "Your face is on every board from here to the capital."],
+		},
+	},
+	"quill": {
+		"name": "Commodore Quill's squad", "captain": "Commodore Sabra Quill", "title": "the Iron Tide", "weapon": "cutlass",
+		"pitch": 1.02, "body": "fem", "build": "average", "hair": "bun", "hair_color": Color(0.75, 0.74, 0.72),
+		"hat": "bicorne", "coat": "admiral", "flag": Color(0.68, 0.7, 0.74), "marines": true,
+		"palette": [Color(0.18, 0.19, 0.22), Color(0.66, 0.68, 0.72), Color(0.18, 0.19, 0.22)],
+		"mate_weapons": ["cutlass", "spear", "dagger"], "mate_names": ["Marine Corbett", "Marine Vane", "Marine Lisle", "Marine Ferris", "Marine Ogden", "Marine Wren"],
+		"lines": {
+			"meet": [["cap", "So this is the captain who's been embarrassing my patrols."],
+				["you", "Your patrols embarrass themselves."],
+				["cap", "Ha. I like you. Sabra Quill, Commodore of the Grey Fleet. I'm still arresting you."],
+				["mate", "Marines, ready!"],
+				["cap", "All together, then. I don't do duels on the Admiralty's time."]],
+			"again": [["cap", "You again. Good. My patrols needed the practice."]],
+			"grudge_won": [["cap", "The brig didn't hold you. I've had words with the brig."]],
+			"grudge_lost": [["cap", "You beat me once. I've been looking forward to this."]],
+			"taunt": ["Too slow, pirate.", "Keep your guard up.", "Is that how they fight out there?", "Again!"],
+			"hurt": ["Nice.", "Oh, well done.", "That stung."],
+			"ult": ["Iron Tide!", "Full broadside!", "All hands!"],
+			"mate_down": ["Marine down! Cover him!", "Reform!"],
+			"retreat": ["Disengage! Back to the ships. We'll pick this up at sea.", "Enough. You've earned the day. Not the war."],
+			"gloat": ["Clap them in irons. Then get them some water.", "A fine fight. A finer arrest."],
+			"bounty": ["{b} on your head. The Admiralty thinks you're dangerous. I'd like to see.", "My clerks read your poster aloud every morning."],
+		},
+	},
+}
+
+
+## A crew's (or the hunters', or an Admiralty squad's) data.
 static func crew(crew_id: String) -> Dictionary:
-	return HUNTERS if crew_id == "bounty_hunters" else CREWS.get(crew_id, {})
+	if crew_id == "bounty_hunters":
+		return HUNTERS
+	return CREWS.get(crew_id, ADMIRALTY.get(crew_id, {}))
 
 
 ## `n` bounty hunters for this save (seeded by `seed_`), sharper with `tier` (the captain's bounty tier).
@@ -181,7 +262,7 @@ const MATES := [2, 3, 3, 4]
 ## The crew's faces as rolled for this save: [{name, look, weapon, captain, pitch}], the captain last.
 ## `tier` (how many times you've met: they come back stronger) raises the count and their skill.
 static func members(crew_id: String, save_seed: int, tier: int) -> Array:
-	var c: Dictionary = CREWS[crew_id]
+	var c: Dictionary = crew(crew_id)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([crew_id, save_seed])
 	var out := []
@@ -195,6 +276,8 @@ static func members(crew_id: String, save_seed: int, tier: int) -> Array:
 	for i in range(n):
 		var lk: Dictionary = CharacterLook.random_look(rng)
 		_dress(lk, c, rng)
+		if c.get("marines", false):
+			EnemyShip.marine_look(lk, rng, false)
 		lk["name"] = str(names[i % names.size()])
 		out.append({"name": lk["name"], "look": lk, "captain": false,
 			"weapon": str((c["mate_weapons"] as Array)[rng.randi() % (c["mate_weapons"] as Array).size()]),

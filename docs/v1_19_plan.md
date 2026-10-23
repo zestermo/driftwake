@@ -137,6 +137,17 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   stays wood-brown (the plank texture swallows a cool tint; tints over 1 clamp in the folded vertex colours): a
   grey hull wants a grey plank texture (gen_psx_textures) or an iron-plate band. **Assumed:** "more patrols as the
   bounty climbs" waits (the lanes are fixed at world build); the named hunters bring the extra heat.
+- **Piece 10: named Admiralty hunters.** `RivalCrews.ADMIRALTY`, for Zach's review: **Commander Idris Vael** ("the
+  Grey Ledger": cold, precise, katana, keeps a ledger of names), **Captain Bertrand Hollow** ("the Breakwall": a
+  stout wall of a man, greatsword, morion), **Commodore Sabra Quill** ("the Iron Tide": sharp, warm, commodore of
+  the Grey Fleet, cutlass, bicorne); each with a squad of marines in the grey. Run as RivalEncounter squads: the
+  meeting (their lines by the record, a line about your bounty), then the whole squad at once (the Admiralty doesn't
+  duel), the officer withdraws at 30% (never dies; comes back stronger), a hunter's bounty (12,000) when they do.
+  RivalWatch: once the crew's bounties together are Infamous, 50% of islands (seeded) have one waiting at the
+  harbour, coming at you from the land side once you're ashore; the officers in turn. **Shift+Alt+F5** calls the
+  next. Tests: t/combat/admiralty_hunter, rival_placement. **Assumed:** squad size by the same tiers as the crews
+  (4 marines at Infamous); "tracks your ship down the chain" = waiting at the next harbours (no sea pursuit by a
+  hunter's own ship yet); until the arrest piece, beating every captain plunders like a crew.
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite

@@ -1612,7 +1612,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				_toast("Debug: the host calls up rivals")
 				get_viewport().set_input_as_handled()
 				return
-			if k.ctrl_pressed:
+			if k.shift_pressed:
+				# Shift+Alt+F5: the next named Admiralty hunter and their squad (RivalCrews.ADMIRALTY)
+				var oids: Array = RivalCrews.ADMIRALTY.keys()
+				var oid := str(oids[_debug_crew % oids.size()])
+				_debug_crew += 1
+				_toast("Debug: %s" % RivalCrews.ADMIRALTY[oid]["captain"] if RivalEncounter.start(self, oid) else "Debug: an encounter's already on")
+			elif k.ctrl_pressed:
 				# Ctrl+Alt+F5: the next rival crew turns up (RivalEncounter: the meeting, duels in turn)
 				var ids := RivalCrews.ids()
 				var crew := str(ids[_debug_crew % ids.size()])
