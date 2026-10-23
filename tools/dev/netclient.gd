@@ -18,6 +18,10 @@ var data := {}
 var accepted := false
 var join_failed := false
 var start_delay := 2.5
+## How long we wait for the host to accept us (s). The host's first frames build its world in one ~30 s
+## frame here, past 60 s on a busy machine (2026-10-22: our hello and every retry arrived together when
+## it ended), so this waits as long as the chain mode's landing did.
+const JOIN_WAIT := 120.0
 ## "hostquit": after the first checks the host quits; we should land on the title
 var mode := ""
 
@@ -88,12 +92,12 @@ func _process(d: float) -> bool:
 				check("host accepted us", net.roster.size() >= 1)
 				change_scene_to_file("res://scenes/world/world.tscn")
 				go(2)
-			elif join_failed and st_t < (120.0 if mode == "chain" else 60.0):
+			elif join_failed and st_t < JOIN_WAIT:
 				# (the host is still loading its world, or landing on its island first, so its
 				# main thread can't answer the handshake before our timeout: knock again)
 				join_failed = false
 				net.join_game("127.0.0.1", port)
-			elif st_t > (120.0 if mode == "chain" else 60.0):
+			elif st_t > JOIN_WAIT:
 				check("host accepted us", false)
 				finish()
 		2:

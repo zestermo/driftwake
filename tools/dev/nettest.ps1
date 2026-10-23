@@ -70,10 +70,8 @@ if ($CI) {
 function Get-DepsOut([string]$n) { if ($CI) { return "" }; return Join-Path $logs "$key.$n.deps" }
 
 $port = 24700 + (Get-Random -Maximum 250)
-# (the guest knocks once the host's world is up: knocking at 2.5 s, mid-load, its hello could sit behind a
-# retransmit ENet stretched to a minute while the host was frozen, and the guest gave up at 60 s; 2026-10-22,
-# repeatable on 3996a827, which passed earlier in the day. Joining during a host's load is a known issue.)
-$delay = "10"
+# (the guest knocks at 2.5 s, while the host is still building its world: netclient waits JOIN_WAIT for it)
+$delay = "2.5"
 if ($Mode -eq "late") { $port = 24680; $delay = "7" }
 # (the host is boarded before we join)
 if ($Mode -eq "board") { $delay = "10" }
