@@ -118,7 +118,7 @@ func _process(_d: float) -> bool:
 			old = _ids()
 			fx.cannon_fire(at, Vector3.FORWARD)
 			var made := _new_flips(old)
-			check("flipbooks on: the cannon fires a muzzle flare and a smoke sheet (%s)" % str(made), made.has("muzzle") and made.has("smoke"))
+			check("flipbooks on: the cannon fires a muzzle flare and a smoke sheet (%s)" % str(made), made.has("dither_muzzle") and made.has("smoke"))
 			old = _ids()
 			root.get_node("Net").fx("heavy_dust", [at, 16, 1.0])
 			check("flipbooks on: heavy dust through Net.fx is a dust sheet", _new_flips(old).has("dust"))
@@ -143,7 +143,7 @@ func _process(_d: float) -> bool:
 				elif flat.length() > 12.0 and (v[1] as Vector3).y < 2.0:
 					far.append(v[0])
 			print("  flipbooks at the muzzle %s, out at sea %s" % [str(at_muzzle), str(far)])
-			check("a real shot: a flare and smoke at the muzzle", at_muzzle.has("muzzle") and at_muzzle.has("smoke"))
+			check("a real shot: a flare and smoke at the muzzle", at_muzzle.has("dither_muzzle") and at_muzzle.has("smoke"))
 			check("a real shot: a column of white water where the ball meets the sea", far.has("splash"))
 			_reset_flips()
 			p.state_machine.force_state("HeavyAttack", {})

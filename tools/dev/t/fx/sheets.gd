@@ -57,5 +57,5 @@ func _process(_d: float) -> bool:
 			and m.particles_anim_h_frames == 4 and m.particles_anim_v_frames == 4 and not m.particles_anim_loop
 			and (m.blend_mode == BaseMaterial3D.BLEND_MODE_ADD) == add
 			and m.texture_filter == BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS)
-	check("the library is 17 sheets (%d)" % fx.FLIP_SHEETS.size(), fx.FLIP_SHEETS.size() == 17)
+	check("the library is 18 sheets (%d)" % fx.FLIP_SHEETS.size(), fx.FLIP_SHEETS.size() == 18)
 	return TK.done(fails)

@@ -408,21 +408,6 @@ func lane(from: Vector3, to: Vector3, width: float, secs: float, color: Color = 
 	BeastFX.lane(from, to, width, secs, color)
 
 
-func _annulus(inner: float, outer: float) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var n := 32
-	for i in range(n):
-		var a0 := TAU * i / n
-		var a1 := TAU * (i + 1) / n
-		var o0 := Vector3(cos(a0), 0, sin(a0))
-		var o1 := Vector3(cos(a1), 0, sin(a1))
-		for v in [o0 * inner, o0 * outer, o1 * outer, o0 * inner, o1 * outer, o1 * inner]:
-			st.set_color(Color.WHITE)
-			st.add_vertex(v)
-	return st.commit()
-
-
 ## Little dust puff (footsteps, jumps, rolls).
 func dust(pos: Vector3, amount: int = 5, size: float = 0.5) -> void:
 	if flipbooks:
@@ -653,14 +638,17 @@ func water_ring(pos: Vector3, radius: float = 1.5, life: float = 1.1) -> void:
 	# (high enough off the surface that a passing crest doesn't swallow half of it)
 	holder.global_position = Vector3(pos.x, float(oc.surface_at(pos)) + 0.18, pos.z)
 	var tw := holder.create_tween()
+	if _ring_quad == null:
+		_ring_quad = QuadMesh.new()
+		_ring_quad.size = Vector2(2.0, 2.0)
+		_ring_quad.orientation = PlaneMesh.FACE_Y
+	# the dither rings (as FX.ring) in foam: a sea-blue edge, pale blue, foam, white
+	var pal := [Color(0.12, 0.28, 0.38), Color(0.55, 0.75, 0.85), Color(0.93, 0.97, 1.0), Color.WHITE]
 	for k in range(2):
 		var mi := MeshInstance3D.new()
-		mi.mesh = _band(0.24 if k == 0 else 0.16)
-		var mat := StandardMaterial3D.new()
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-		mat.albedo_color = Color(0.93, 0.97, 1.0, 0.75 if k == 0 else 0.6)
+		mi.mesh = _ring_quad
+		var mat := PSXMat.decal_sheet("dither_ring_wide" if k == 0 else "dither_ring", Color(1, 1, 1, 0.75 if k == 0 else 0.6),
+			{"unshaded": true, "palette": pal})
 		mi.material_override = mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		holder.add_child(mi)
@@ -668,7 +656,7 @@ func water_ring(pos: Vector3, radius: float = 1.5, life: float = 1.1) -> void:
 		var t := life * (1.0 if k == 0 else 0.8)
 		mi.scale = Vector3(r * 0.15, 1.0, r * 0.15)
 		tw.parallel().tween_property(mi, "scale", Vector3(r, 1.0, r), t).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-		tw.parallel().tween_property(mat, "albedo_color:a", 0.0, t * 0.6).set_delay(t * 0.4)
+		tw.parallel().tween_method(func(f: float): mat.set_shader_parameter("frame", f), 0.0, 7.99, t)
 	tw.parallel().tween_method(func(_k: float): holder.global_position.y = float(oc.surface_at(holder.global_position)) + 0.18, 0.0, 1.0, life)
 	tw.tween_callback(holder.queue_free)
 
@@ -1343,7 +1331,6 @@ const TWIN_TREES := ["dual", "dual_dagger", "dual_axe"]
 ## The dagger's shadow (dark wisps: alpha-blended, so they read against light ground).
 const SHADOW_SMOKE := Color(0.1, 0.03, 0.09, 0.85)
 
-static var _bands: Dictionary = {}
 
 
 static func tree_col(tree: String, which: int = EDGE) -> Color:
@@ -1359,13 +1346,6 @@ func _glow_mat(color: Color, alpha: float = 0.85) -> StandardMaterial3D:
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.albedo_color = Color(color.r, color.g, color.b, alpha)
 	return m
-
-
-func _band(width: float) -> ArrayMesh:
-	var key := snappedf(width, 0.01)
-	if not _bands.has(key):
-		_bands[key] = _annulus(1.0 - width, 1.0)
-	return _bands[key]
 
 
 ## Opacity of the dither rings (FX.ring): quieter than the old additive glow.
@@ -1884,7 +1864,7 @@ func powder_burst(pos: Vector3, dir: Vector3, size: float = 1.0, color: Color = 
 	var d := dir.normalized() if dir.length() > 0.01 else Vector3.UP
 	flash_light(pos, color.lerp(FIRE_LIGHT, 0.5), 2.0 * size, 3.0 + 2.5 * size, 0.1 + 0.06 * size)
 	if flipbooks:
-		flash(pos, 1.2 * size, Color.WHITE, "muzzle", 0.22)
+		flash(pos, 1.2 * size, Color.WHITE, "dither_muzzle", 0.3)
 	else:
 		_burst(pos, 1, _impact_mat, 0.9 * size, 0.1, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 			"grow": true, "color": Color(1, 1, 1, 1)})
@@ -1902,7 +1882,7 @@ func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 
 	var hot := glow.a > 0.0
 	flash_light(pos + Vector3(0, 0.8, 0), Color(glow.r, glow.g, glow.b) if hot else FIRE_LIGHT, 4.0 * size, 6.0 * size, 0.2 + 0.1 * size)
 	if flipbooks:
-		flash(pos + Vector3(0, 0.5, 0), 2.2 * size, Color.WHITE, "muzzle", 0.3)
+		flash(pos + Vector3(0, 0.5, 0), 2.2 * size, Color.WHITE, "dither_muzzle", 0.36)
 	else:
 		_burst(pos + Vector3(0, 0.5, 0), 1, _impact_mat, 2.0 * size, 0.14, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
 			"grow": true, "color": Color(1, 1, 1, 1)})
@@ -1929,7 +1909,7 @@ func cannon_blast(pos: Vector3, size: float = 1.5, glow: Color = Color(0, 0, 0, 
 var flipbooks := true
 ## Every sheet in assets/textures/fx/flip_<name>.png, all 4x4 frames of 64 px.
 const FLIP_SHEETS := ["smoke", "explosion", "dust", "dust_low", "sand", "snow", "mist", "blood", "splash", "fire",
-	"fireball", "muzzle", "sparks", "glint", "magic", "wisp", "dither_hit"]
+	"fireball", "muzzle", "sparks", "glint", "magic", "wisp", "dither_hit", "dither_muzzle"]
 ## Light: grey-white sheets drawn additive, so the burst's colour tints them. The rest is matter.
 const FLIP_ADD := ["sparks", "glint", "magic"]
 ## Matter that doesn't glow: dimmed with the night (unshaded, it would shine white in the dark).
@@ -2150,7 +2130,7 @@ func plume(pos: Vector3, dir: Vector3, sheet: String = "smoke", count: int = 4, 
 ## A flash at `pos`: one `glint` (a star, in `color`) or `muzzle` (a blast's flare) sheet played fast.
 func flash(pos: Vector3, size: float = 0.9, color: Color = Color.WHITE, sheet: String = "glint", life: float = 0.15) -> CPUParticles3D:
 	return flipbook(pos, sheet, 1, size, life, {"radius": 0.01, "vel_min": 0.0, "vel_max": 0.0, "gravity": Vector3.ZERO,
-		"damping": 0.0, "spin": 180.0 if sheet == "muzzle" else 0.0, "fade": 0.85, "color": color})
+		"damping": 0.0, "spin": 180.0 if sheet in ["muzzle", "dither_muzzle"] else 0.0, "fade": 0.85, "color": color})
 
 
 ## Something going off at `pos`, out along `normal`: the flare, a fireball when `hot`, and smoke
@@ -2159,7 +2139,7 @@ func flash(pos: Vector3, size: float = 0.9, color: Color = Color.WHITE, sheet: S
 func blast(pos: Vector3, normal: Vector3 = Vector3.UP, size: float = 1.0, hot: bool = true, smoke_col: Color = Color(0.8, 0.79, 0.77, 0.9), speed: float = 6.0) -> void:
 	var n := normal.normalized() if normal.length() > 0.01 else Vector3.UP
 	flash_light(pos + n * 0.5 * size, FIRE_LIGHT, (3.0 if hot else 2.0) * size, 5.0 * size + 2.0, 0.15 + 0.12 * size)
-	flash(pos, 1.6 * size, Color.WHITE, "muzzle", 0.35 + 0.1 * size)
+	flash(pos, 1.6 * size, Color.WHITE, "dither_muzzle", 0.35 + 0.1 * size)
 	if hot:
 		flipbook(pos + n * 0.3 * size, "fireball", 1 + int(size), 1.1 * size, 0.4 + 0.15 * size, {"radius": 0.1 * size,
 			"direction": n, "spread": 30.0, "vel_min": speed * 0.3, "vel_max": speed * 0.8, "gravity": Vector3.ZERO,
