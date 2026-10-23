@@ -114,6 +114,10 @@ func _physics_process(delta: float) -> void:
 	var net := get_node_or_null("/root/Net")
 	if net and not net.is_host():
 		return
+	# (never in a test or render tool: they walk chain islands for their own reasons; RivalEncounter's own tests
+	# start their encounters themselves)
+	if Settings.tool_run():
+		return
 	var gm := _gm()
 	var rv: Dictionary = gm.rivals
 	if not rv.has("_plan"):
