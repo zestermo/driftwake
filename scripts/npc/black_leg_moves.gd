@@ -55,6 +55,14 @@ const LAST_KICKS := 7
 const LAST_KICK_FROM := 0.7
 const LAST_KICK_EVERY := 0.13
 const LAST_HEEL := 1.95
+## Cleaver Kick: the crescent's top (the blade of air leaves the foot) at CLEAVE_AT. Flambe Dash: the hop, then the
+## flying side kick from FLAMBE_GO to FLAMBE_LAND (FLAMBE_LEN m through the line).
+const CLEAVE_DUR := 0.8
+const CLEAVE_AT := 0.3
+const FLAMBE_DUR := 1.0
+const FLAMBE_GO := 0.26
+const FLAMBE_LAND := 0.51
+const FLAMBE_LEN := 9.0
 
 
 static func guard(h) -> Dictionary:
@@ -222,16 +230,8 @@ static func pose(h, n: String, u: float) -> Array:
 		"bl_rush":
 			# Arrow Kick (at a sprint): sunk low, launched with the body turned side-on, the right leg shot straight out
 			# at them, the left knee tucked; landed crouched
-			var low := {"pivot": Vector3(-0.25, 0.2, 0), "hips": Vector3(0, 0.2, 0), "torso": Vector3(-0.3, -0.1, 0), "head": Vector3(0.3, -0.2, 0),
-				"leg_l": Vector3(0.9, 0, -0.15), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(-0.2, 0, 0.15), "shin_r": Vector3(-1.1, 0, 0),
-				"arm_l": Vector3(-0.6, 0, -0.4), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3(0.1, 0, 0),
-				"arm_r": Vector3(-0.6, 0, 0.4), "fore_r": Vector3(0.5, 0, 0), "hand_r": Vector3(0.1, 0, 0),
-				"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.05, 0.93, 1.0)}
-			var fly := {"pivot": Vector3(0, 1.45, 0.42), "hips": Vector3(0, 0.1, 0), "torso": Vector3(0.0, -0.35, 0.25), "head": Vector3(0.05, -1.1, -0.45),
-				"leg_r": Vector3(0.1, 0, 1.5), "shin_r": Vector3(-0.04, 0, 0), "leg_l": Vector3(1.35, 0, -0.1), "shin_l": Vector3(-2.2, 0, 0),
-				"arm_l": Vector3(0.9, 0.3, -1.1), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(0.1, 0, 0),
-				"arm_r": Vector3(0.3, 0, 1.25), "fore_r": Vector3(0.2, 0, 0), "hand_r": Vector3(0.1, 0, 0),
-				"_lift": Vector3(0, 0.32, 0), "_scale": Vector3(1.0, 0.98, 1.06)}
+			var low := _sink()
+			var fly := _fly()
 			var land := _walkover_land()
 			return [h._keys(u, [[0.0, g], [0.14, low, "out"], [0.3, fly, "out"], [0.58, fly.merged({"_scale": Vector3.ONE}, true)],
 				[0.74, land, "in"], [1.0, g]]), "full", lift]
@@ -292,6 +292,10 @@ static func pose(h, n: String, u: float) -> Array:
 			return [_wheel(h, u, T), "full", lift]
 		"bl_last":
 			return [_last(h, u, T), "full", lift]
+		"bl_cleave":
+			return [_cleave(h, u, T), "full", lift]
+		"bl_flambe":
+			return [_flambe(h, u, T), "full", lift]
 	push_error("BlackLegMoves: no pose for \"%s\"" % n)
 	return [g, "full", lift]
 
@@ -325,31 +329,35 @@ static func _heel_down() -> Dictionary:
 		"_lift": Vector3(0, -0.26, 0), "_scale": Vector3(1.06, 0.92, 1.04)}
 
 
-## Mule Kick: turned your back to them and down onto both hands, knees tucked (0.3 s), both heels driven back into
-## them (0.42 s), held, then up and round to face them again.
+## Mule Kick: turned your back to them and down onto both hands, tipped up over them nearly into a handstand with the
+## knees tucked to the chest (0.3 s), both heels driven up and back into them (0.42 s), held, then down and round to
+## face them again. (MULE_TIP: how far over the body goes; at a quarter turn it lay face-down on the ground.)
+const MULE_TIP := 2.45
+
+
 static func _mule(h, u: float, T: float) -> Dictionary:
 	var s := u * T
 	var reach := _p([_dip(), {"arm_l": Vector3(1.85, 0, -0.35), "arm_r": Vector3(1.85, 0, 0.35)}])
-	var tuck := {"hips": Vector3.ZERO, "torso": Vector3(-0.15, 0, 0), "head": Vector3(0.65, 0, 0),
-		"leg_l": Vector3(1.55, 0, -0.1), "shin_l": Vector3(-2.15, 0, 0), "leg_r": Vector3(1.55, 0, 0.1), "shin_r": Vector3(-2.15, 0, 0),
-		"arm_l": Vector3(1.75, 0, -0.3), "fore_l": Vector3(0.25, 0, 0), "hand_l": Vector3(-0.8, 0, 0),
-		"arm_r": Vector3(1.75, 0, 0.3), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3(-0.8, 0, 0),
-		"_lift": Vector3(0, -0.36, 0), "_scale": Vector3(1.04, 0.95, 0.97)}
-	var kick := tuck.merged({"torso": Vector3(-0.05, 0, 0), "head": Vector3(0.75, 0, 0),
-		"leg_l": Vector3(-0.3, 0, -0.07), "shin_l": Vector3(-0.05, 0, 0), "leg_r": Vector3(-0.3, 0, 0.07), "shin_r": Vector3(-0.05, 0, 0),
-		"_lift": Vector3(0, -0.3, 0), "_scale": Vector3(0.98, 0.98, 1.07)}, true)
+	var tuck := {"hips": Vector3.ZERO, "torso": Vector3(-0.15, 0, 0), "head": Vector3(0.6, 0, 0),
+		"leg_l": Vector3(1.75, 0, -0.1), "shin_l": Vector3(-2.2, 0, 0), "leg_r": Vector3(1.75, 0, 0.1), "shin_r": Vector3(-2.2, 0, 0),
+		"arm_l": Vector3(2.5, 0, -0.3), "fore_l": Vector3(0.25, 0, 0), "hand_l": Vector3(-0.7, 0, 0),
+		"arm_r": Vector3(2.5, 0, 0.3), "fore_r": Vector3(0.25, 0, 0), "hand_r": Vector3(-0.7, 0, 0),
+		"_lift": Vector3(0, -0.08, 0), "_scale": Vector3(1.04, 0.95, 0.97)}
+	var kick := tuck.merged({"torso": Vector3(-0.05, 0, 0), "head": Vector3(0.65, 0, 0),
+		"leg_l": Vector3(0.45, 0, -0.07), "shin_l": Vector3(-0.05, 0, 0), "leg_r": Vector3(0.45, 0, 0.07), "shin_r": Vector3(-0.05, 0, 0),
+		"_lift": Vector3(0, -0.04, 0), "_scale": Vector3(0.98, 0.98, 1.07)}, true)
 	var pz: Dictionary = h._keys(u, [[0.0, h._guard()], [0.16 / T, reach, "out"], [0.3 / T, tuck, "out"], [0.42 / T, kick, "out"],
 		[0.6 / T, kick.merged({"_scale": Vector3.ONE}, true)], [0.82 / T, _walkover_land(), "out"], [1.0, h._guard()]])
 	var yaw := PI * Humanoid._ease(s / 0.2) if s < 0.68 else lerpf(PI, TAU, Humanoid._ease((s - 0.68) / 0.24))
 	var pitch := 0.0
 	if s < 0.3:
-		pitch = -1.2 * Humanoid._shape(s / 0.3, "out")
+		pitch = -(MULE_TIP - 0.25) * Humanoid._shape(s / 0.3, "out")
 	elif s < 0.42:
-		pitch = lerpf(-1.2, -1.5, Humanoid._shape((s - 0.3) / 0.12, "out"))
+		pitch = lerpf(-(MULE_TIP - 0.25), -MULE_TIP, Humanoid._shape((s - 0.3) / 0.12, "out"))
 	elif s < 0.6:
-		pitch = -1.5
+		pitch = -MULE_TIP
 	else:
-		pitch = lerpf(-1.5, 0.0, Humanoid._ease((s - 0.6) / 0.25))
+		pitch = lerpf(-MULE_TIP, 0.0, Humanoid._ease((s - 0.6) / 0.25))
 	pz["pivot"] = Vector3(pitch, yaw, 0)
 	return pz
 
@@ -400,12 +408,15 @@ static func _wheel(h, u: float, T: float) -> Dictionary:
 	var hp: Vector3 = pz.get("pivot", Vector3.ZERO)
 	pz["pivot"] = Vector3(hp.x, hp.y + side, roll)
 	if k > 0.0 and k < 1.0:
-		pz["_lift"] = Vector3(0, 0.03 + 0.12 * (1.0 - cos(roll)), 0)
+		# (the hips a little higher upside down, held low enough that the planted hands reach the ground)
+		pz["_lift"] = Vector3(0, 0.02 + 0.035 * (1.0 - cos(roll)), 0)
 	return pz
 
 
 ## When Cartwheel Crescent's hands are down ([u from, u to, side, latched], at the played length WHEEL_DUR): each
-## turn the right hand (the leading side) then the left.
+## turn the right hand (the leading side) then the left, around where each points straight down (STAR's arms sit
+## ~23 deg off overhead: the right is under its shoulder ~157 deg into the turn, the left ~203; a plant from ~50 deg,
+## with the body still on its side, left the hands half a metre up, measured by t/weapons/black_leg_wheel_hands).
 static func _wheel_plants() -> Array:
 	var out: Array = []
 	var T: float = WHEEL_DUR
@@ -413,8 +424,8 @@ static func _wheel_plants() -> Array:
 	var turn := (r.y - r.x) * 0.5
 	for i in 2:
 		var a := r.x + turn * i
-		out.append([(a + turn * 0.14) / T, (a + turn * 0.42) / T, "r", true])
-		out.append([(a + turn * 0.36) / T, (a + turn * 0.64) / T, "l", true])
+		out.append([(a + turn * 0.34) / T, (a + turn * 0.54) / T, "r", true])
+		out.append([(a + turn * 0.47) / T, (a + turn * 0.67) / T, "l", true])
 	return out
 
 
@@ -447,6 +458,72 @@ static func _last(h, u: float, T: float) -> Dictionary:
 	return pz
 
 
+## Sunk low to spring, the arms swung back (Arrow Kick's and Flambe Dash's take-off).
+static func _sink() -> Dictionary:
+	return {"pivot": Vector3(-0.25, 0.2, 0), "hips": Vector3(0, 0.2, 0), "torso": Vector3(-0.3, -0.1, 0), "head": Vector3(0.3, -0.2, 0),
+		"leg_l": Vector3(0.9, 0, -0.15), "shin_l": Vector3(-1.5, 0, 0), "leg_r": Vector3(-0.2, 0, 0.15), "shin_r": Vector3(-1.1, 0, 0),
+		"arm_l": Vector3(-0.6, 0, -0.4), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(-0.6, 0, 0.4), "fore_r": Vector3(0.5, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3(0, -0.22, 0), "_scale": Vector3(1.05, 0.93, 1.0)}
+
+
+## The flying side kick: the body turned side-on in the air, the right leg shot straight out at them, the left knee
+## tucked (Arrow Kick, Flambe Dash).
+static func _fly() -> Dictionary:
+	return {"pivot": Vector3(0, 1.45, 0.42), "hips": Vector3(0, 0.1, 0), "torso": Vector3(0.0, -0.35, 0.25), "head": Vector3(0.05, -1.1, -0.45),
+		"leg_r": Vector3(0.1, 0, 1.5), "shin_r": Vector3(-0.04, 0, 0), "leg_l": Vector3(1.35, 0, -0.1), "shin_l": Vector3(-2.2, 0, 0),
+		"arm_l": Vector3(0.9, 0.3, -1.1), "fore_l": Vector3(0.7, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(0.3, 0, 1.25), "fore_r": Vector3(0.2, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3(0, 0.32, 0), "_scale": Vector3(1.0, 0.98, 1.06)}
+
+
+## Cleaver Kick: loaded on the left foot with the right leg drawn back low, then swung up on the outside, over the top
+## (CLEAVE_AT: leaning back off the left foot, the blade of air leaving the foot) and swept across to the left, the
+## arms flung against it; the leg brought down across and back to the guard.
+static func _cleave(h, u: float, T: float) -> Dictionary:
+	var at: float = CLEAVE_AT
+	var load_ := {"pivot": Vector3(0, 0.3, -0.05), "hips": Vector3(0, 0.35, 0), "torso": Vector3(-0.08, 0.3, -0.05), "head": Vector3(0.05, -0.4, 0.05),
+		"leg_r": Vector3(-0.4, 0, 0.35), "shin_r": Vector3(-0.5, 0, 0), "leg_l": Vector3(0.15, 0, -0.08), "shin_l": Vector3(-0.55, 0, 0),
+		"arm_l": Vector3(0.7, 0.2, -0.6), "fore_l": Vector3(1.1, 0, 0), "hand_l": Vector3(0.2, 0, 0),
+		"arm_r": Vector3(-0.4, 0, 0.6), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.2, 0, 0),
+		"_lift": Vector3(0, -0.1, 0), "_scale": Vector3(1.03, 0.95, 1.0)}
+	var rise := {"pivot": Vector3(0, 0.2, 0.2), "hips": Vector3(0, 0.2, 0), "torso": Vector3(0.1, 0.1, 0.15), "head": Vector3(-0.05, -0.15, -0.15),
+		"leg_r": Vector3(1.6, 0, 1.0), "shin_r": Vector3(-0.1, 0, 0), "leg_l": Vector3(0.0, 0, -0.1), "shin_l": Vector3(-0.3, 0, 0),
+		"arm_l": Vector3(0.4, 0, -1.2), "fore_l": Vector3(0.5, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(0.2, 0, 1.1), "fore_r": Vector3(0.4, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3(0, -0.02, 0), "_scale": Vector3(0.98, 1.04, 0.98)}
+	var top := {"pivot": Vector3(0.12, -0.15, 0.25), "hips": Vector3(0, -0.1, 0), "torso": Vector3(0.2, -0.1, 0.18), "head": Vector3(-0.25, 0.1, -0.15),
+		"leg_r": Vector3(2.35, 0, 0.25), "shin_r": Vector3(-0.04, 0, 0), "leg_l": Vector3(-0.05, 0, -0.05), "shin_l": Vector3(-0.12, 0, 0),
+		"arm_l": Vector3(0.9, 0.2, -1.0), "fore_l": Vector3(0.4, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(-0.6, 0, 0.5), "fore_r": Vector3(0.3, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3(0, 0.02, 0), "_scale": Vector3(0.97, 1.05, 0.98)}
+	var across := {"pivot": Vector3(0, -0.55, 0.12), "hips": Vector3(0, -0.45, 0), "torso": Vector3(0.05, -0.35, 0.1), "head": Vector3(0.0, 0.3, -0.05),
+		"leg_r": Vector3(1.5, 0, -0.55), "shin_r": Vector3(-0.1, 0, 0), "leg_l": Vector3(0.0, 0, -0.08), "shin_l": Vector3(-0.2, 0, 0),
+		"arm_l": Vector3(0.2, 0, -1.35), "fore_l": Vector3(0.4, 0, 0), "hand_l": Vector3(0.1, 0, 0),
+		"arm_r": Vector3(0.9, 0.3, 0.4), "fore_r": Vector3(0.6, 0, 0), "hand_r": Vector3(0.1, 0, 0),
+		"_lift": Vector3(0, 0.0, 0), "_scale": Vector3.ONE}
+	var down := {"pivot": Vector3(0, -0.35, 0.03), "hips": Vector3(0, -0.3, 0), "torso": Vector3(-0.05, -0.2, 0), "head": Vector3(0.05, 0.2, 0),
+		"leg_r": Vector3(0.55, 0, -0.25), "shin_r": Vector3(-0.7, 0, 0), "leg_l": Vector3(0.15, 0, -0.1), "shin_l": Vector3(-0.5, 0, 0),
+		"arm_l": Vector3(0.5, 0.1, -0.6), "fore_l": Vector3(0.9, 0, 0), "hand_l": Vector3(0.2, 0, 0),
+		"arm_r": Vector3(0.4, 0, 0.5), "fore_r": Vector3(0.9, 0, 0), "hand_r": Vector3(0.2, 0, 0),
+		"_lift": Vector3(0, -0.12, 0), "_scale": Vector3(1.02, 0.97, 1.0)}
+	return h._keys(u, [[0.0, h._guard()], [0.16 / T, load_, "out"], [(at - 0.06) / T, rise, "out"], [at / T, top, "out"],
+		[(at + 0.06) / T, across, "out"], [(at + 0.22) / T, down], [1.0, h._guard()]])
+
+
+## Flambe Dash: sunk low, a hop with the right knee tucked up (the leg heating), then the flying side kick held from
+## FLAMBE_GO to FLAMBE_LAND as it streaks through the line, landed crouched.
+static func _flambe(h, u: float, T: float) -> Dictionary:
+	var hop := {"pivot": Vector3(0.1, 0.6, 0.1), "hips": Vector3(0, 0.3, 0), "torso": Vector3(-0.2, -0.2, 0.1), "head": Vector3(0.15, -0.5, -0.1),
+		"leg_r": Vector3(1.3, 0, 0.3), "shin_r": Vector3(-2.2, 0, 0), "leg_l": Vector3(1.1, 0, -0.1), "shin_l": Vector3(-1.9, 0, 0),
+		"arm_l": Vector3(0.8, 0.3, -0.7), "fore_l": Vector3(1.3, 0, 0), "hand_l": Vector3(0.2, 0, 0),
+		"arm_r": Vector3(0.2, 0, 0.8), "fore_r": Vector3(1.2, 0, 0), "hand_r": Vector3(0.2, 0, 0),
+		"_lift": Vector3(0, 0.3, 0), "_scale": Vector3(0.96, 1.03, 0.96)}
+	var fly := _fly()
+	return h._keys(u, [[0.0, h._guard()], [0.1 / T, _sink(), "out"], [0.2 / T, hop, "out"], [FLAMBE_GO / T, fly, "out"],
+		[(FLAMBE_LAND - 0.03) / T, fly.merged({"_scale": Vector3.ONE}, true)], [(FLAMBE_LAND + 0.15) / T, _walkover_land(), "in"], [1.0, h._guard()]])
+
+
 # --------------------------------------------------------------------------
 # Hands on the ground (Humanoid._process, after the arm solvers, on black-leg bodies)
 # --------------------------------------------------------------------------
@@ -463,7 +540,8 @@ static func hands(h, _delta: float) -> void:
 	var floor_y: float = h.global_position.y + 0.05 * sc
 	var body: Basis = h.global_basis.orthonormalized()
 	for w in wins:
-		var k := clampf(minf(u - float(w[0]), float(w[1]) - u) / 0.05, 0.0, 1.0)
+		# (the hand eased down and up over 0.05 u, less in a short plant so it's fully down at the middle)
+		var k := clampf(minf(u - float(w[0]), float(w[1]) - u) / minf(0.05, (float(w[1]) - float(w[0])) * 0.3), 0.0, 1.0)
 		for side in str(w[2]):
 			var key := "%s%.2f" % [side, float(w[0])]
 			if k <= 0.0:

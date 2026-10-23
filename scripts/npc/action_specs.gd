@@ -284,6 +284,8 @@ const SPECS := {
 	"bl_hail": {"len": 1.3, "hit": [0.12, 0.86], "sharp": 64.0, "stance": "black_leg", "weapon": ""},
 	"bl_wheel": {"len": 1.45, "hit": [0.07, 0.8], "sharp": 46.0, "stance": "black_leg", "weapon": ""},
 	"bl_last": {"len": 2.7, "hit": [0.26, 0.73], "sharp": 50.0, "stance": "black_leg", "weapon": ""},
+	"bl_cleave": {"len": 0.8, "hit": [0.36, 0.44], "sharp": 50.0, "stance": "black_leg", "weapon": ""},
+	"bl_flambe": {"len": 1.0, "hit": [0.26, 0.52], "sharp": 46.0, "stance": "black_leg", "weapon": ""},
 	# --- unarmed ---
 	"fists_up": {"len": 0.42, "stance": "fist", "weapon": ""},
 	"fists_down": {"len": 0.4, "stance": "fist", "weapon": ""},

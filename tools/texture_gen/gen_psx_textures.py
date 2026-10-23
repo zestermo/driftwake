@@ -2059,6 +2059,30 @@ def gen_technique_icons():
         for x, y in ((3, 8), (20, 6), (19, 12)):
             d.line([(x, y), (x + 2, y - 4)], fill=HEAT)
 
+    def cleaver_kick(d):
+        # a leg swung up over the top, its crescent of air flung off the foot down the line
+        d.arc([1, 3, 15, 17], 200, 330, fill=HEAT_D, width=1)
+        leg(d, (5, 22), (9, 5), HEAT)
+        d.line([(5, 22), (9, 5)], fill=HEAT_W, width=1)
+        d.arc([10, 3, 22, 21], 290, 70, fill=HEAT, width=3)
+        d.arc([12, 5, 20, 19], 300, 60, fill=HEAT_W, width=1)
+        for y in (8, 12, 16):
+            d.line([(3, y + 1), (6, y)], fill=HEAT_W)
+
+    def flambe_dash(d):
+        # a flying side kick streaking along the line, a trail of crimson fire behind it
+        for x, h in ((2, 4), (5, 6), (8, 5), (11, 7)):
+            d.polygon([(x - 2, 16), (x, 16 - h), (x + 2, 16)], fill=HEAT_D if h < 6 else HEAT)
+        d.line([(1, 14), (12, 14)], fill=HEAT_W, width=1)
+        leg(d, (11, 12), (20, 12), HEAT)
+        d.line([(11, 12), (20, 12)], fill=HEAT_W, width=1)
+        leg(d, (11, 13), (13, 18), HEAT_D)
+        d.ellipse([7, 6, 11, 10], fill=SKIN)
+        d.line([(9, 10), (11, 12)], fill=BLACK, width=2)
+
+    for name, fn in (("cleaver_kick", cleaver_kick), ("flambe_dash", flambe_dash)):
+        _icon("skill_" + name, fn)
+
     for name, fn in (("riposte", riposte), ("iai_counter", iai_counter), ("cross_counter", cross_counter),
                      ("swordfish", swordfish), ("kraken_wake", kraken),
                      ("wind_sever", wind_sever), ("phantom_step", phantom), ("petal_storm", petals),

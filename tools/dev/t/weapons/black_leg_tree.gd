@@ -2,13 +2,15 @@ extends SceneTree
 ## The Black Leg tree (SkillTrees "black_leg"): its root and three branches, every node on it, its moves and skills
 ## real (each a black-leg Technique), its steps 30, one ultimate at 30, heat as its element (its own palette, apart
 ## from the axe's embers), Nonchalance at 10, the style mapped to it; and with it mastered each technique and the
-## ultimate lands on the dummy, the hands going down on the ground in Mule Kick.
+## ultimate lands on the dummy, the hands going down on the ground in Mule Kick with both heels driven up (a handstand,
+## not lying face-down).
 const TK := preload("res://tools/dev/test_kit.gd")
-const TECHS := ["last_course", "mule_kick", "hailstorm_heels", "cartwheel_crescent"]
+const TECHS := ["last_course", "mule_kick", "hailstorm_heels", "cartwheel_crescent", "cleaver_kick", "flambe_dash"]
 var stage
 var p
 var taken := 0.0
 var low := 9.0
+var heels := -9.0
 var ti := 0
 var step := 0
 var until := 0
@@ -29,6 +31,8 @@ func check(what: String, cond: bool) -> void:
 func _process(_d: float) -> bool:
 	if step == 2 and p.body_model.current_action() == "bl_mule":
 		low = minf(low, minf(p.body_model.hand_l.global_position.y, p.body_model.hand_r.global_position.y) - p.global_position.y)
+		var BLA = load("res://scripts/player_states/black_leg_arts.gd")
+		heels = maxf(heels, minf(BLA.foot(p, true).y, BLA.foot(p, false).y) - p.global_position.y)
 	if not stage.up or TK.ticking(until):
 		return false
 	match step:
@@ -64,11 +68,11 @@ func _process(_d: float) -> bool:
 			check("one ultimate, at 30 (%s)" % str(ults), ults == [30])
 			check("its moves: Handstand Spin, Arrow Kick, Cyclone Heel (%s)" % str(moves),
 				moves.size() == 3 and "handstand_spin" in moves and "arrow_kick" in moves and "cyclone_heel" in moves)
-			var techs_ok := skills.size() == 4
+			var techs_ok := skills.size() == 6
 			for sk in skills:
 				var d: Dictionary = SK.get_skill(sk)
 				techs_ok = techs_ok and d.get("styles", []) == ["black_leg"] and d.get("state", "") == "Technique" and d.get("tree", "") == "black_leg"
-			check("its four skills are black-leg techniques %s" % str(skills), techs_ok and skills.all(func(x): return x in TECHS))
+			check("its six skills are black-leg techniques %s" % str(skills), techs_ok and skills.all(func(x): return x in TECHS))
 			check("its element (heat) at 16 and 25", STS.node_def("bl_elem").get("level", 0) == 16 and STS.node_def("bl_elem2").get("level", 0) == 25
 				and fx.TREE_FX.has("black_leg"))
 			var a: Color = fx.TREE_FX["axe"][1]
@@ -100,6 +104,7 @@ func _process(_d: float) -> bool:
 			check("%s lands on the dummy (%.0f damage)" % [TECHS[ti], taken], taken > 0.0)
 			if TECHS[ti] == "mule_kick":
 				check("Mule Kick goes down on both hands (%.2f m)" % low, low < 0.15)
+				check("Mule Kick drives both heels up, over the hips (%.2f m)" % heels, heels > 1.05)
 			ti += 1
 			if ti < TECHS.size():
 				step = 1

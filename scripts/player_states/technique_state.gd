@@ -1540,6 +1540,7 @@ func _conquer() -> void:
 func exit() -> void:
 	player.hurtbox.set_deferred("monitorable", true)
 	player.is_parrying = false
+	player.set_collision_mask_value(12, true)  # (a dash through enemies, Flambe Dash, cut short)
 	_pc.buffs["bat_shots"] = 0.0
 	# Thousand Petals ends sheathed
 	if id == "petal_storm" and not player.body_model.weapon_in_hand:

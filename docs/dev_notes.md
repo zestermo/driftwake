@@ -5863,3 +5863,22 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   behind it. One mesh each (was a rim and a growing fill, additive). `FX.warn_mat` / `FX.warn_palette` share
   the telegraph's tones and TELE_ALPHA. Node names (ArcWarn, Lane, Telegraph) unchanged for the suites.
 - Tested by t/fx/ground_warn; grunttest, guntest, foresttest and r8test check the nodes appear.
+
+## 2026-10-22: black-leg finish (Cleaver Kick, Flambe Dash, polish)
+- **Cleaver Kick** (Flow, mastery 12; 18 energy, 7 s): `bl_cleave` (0.8 s): load on the left foot 0.16, leg up the
+  outside 0.24, over the top at **0.3** (CLEAVE_AT) where Projectile `"cleaver"` leaves (the slash crescent tipped across
+  the line, 34 m/s, 12 m, r 1.8; plain air, or black-leg heat with `"elem"` and BurnStatus 3 s x 5/s on each cut),
+  swept across and down, guard. Faces whoever's aimed at within 12 m.
+- **Flambe Dash** (Fire, 14; 22 energy, 8 s): `bl_flambe` (1.0 s): sink 0.1, hop with the knee tucked 0.2 (leg heats),
+  the flying side kick (`_fly()`, shared with Arrow Kick) from **0.26 to 0.51** at 36 m/s = 9 m, enemy collision
+  (layer 12) off for it (TechniqueState.exit() restores it); everyone within 1.5 m kicked aside (to their side of the
+  line, breaker, down), with the heat burning 3.5 s; trail of heat puffs (plain: dust) and a streak on landing.
+- **Polish:** Mule Kick tips over to MULE_TIP 2.45 rad (near a handstand, heels up and back at chest height) instead of
+  lying face-down at 1.5; Hailstorm Heels' rings sit on the foot (`foot()`) as it snaps out; HEAT_TINT 0.3 -> 0.16
+  green (and the heat lights) so the heel kicks' flames read cherry/crimson, not orange; Cartwheel Crescent's hands
+  floated 0.23-0.47 m: the plants opened ~50 deg into each turn (body still on its side; now around 157/203 deg where
+  each V'd arm points down), the 0.05 u ease never fully reached in the short plants (now 30% of a short window), and
+  the hips rose 0.26 m upside down (now 0.09): palms on the floor (wrist 0.10-0.12 m).
+- Tests: t/weapons/black_leg_tree (six techniques; Mule Kick heels over the hips), black_leg_cleaver_flambe (blade at
+  10 m + burn; the dash through the dummy, burn, collision back), black_leg_wheel_hands. Suites likely affected:
+  techtest (two new techniques), nettest (the `cleaver` projectile replicates through net_power like the others).

@@ -159,8 +159,9 @@ static func air_land(p: Player, already: Array, recover: float) -> void:
 # The techniques: Mule Kick (your back to them, down on both hands, both heels driven in), Hailstorm Heels (a hail
 # of kicks off one foot walking in, a big one last), Cartwheel Crescent (two cartwheels forward hand over hand, the
 # legs wheeling over through everyone on the way, a heel brought down at the end), Last Course (ult: a spin on one
-# foot that heats the leg red-hot, a storm of burning kicks, a leap, the heel down into a ring of fire). Poses:
-# bl_mule, bl_hail, bl_wheel, bl_last.
+# foot that heats the leg red-hot, a storm of burning kicks, a leap, the heel down into a ring of fire), Cleaver Kick
+# (a crescent kick throwing a blade of air down the line), Flambe Dash (a hop, a flying side kick streaking through
+# the line). Poses: bl_mule, bl_hail, bl_wheel, bl_last, bl_cleave, bl_flambe.
 # --------------------------------------------------------------------------
 const MULE_REACH := 4.5
 const MULE_DUR := 0.95
@@ -195,6 +196,20 @@ const LAST_HEEL := BlackLegMoves.LAST_HEEL
 const LAST_R := 6.5
 const LAST_FINAL := 45.0
 
+const CLEAVE_DUR := BlackLegMoves.CLEAVE_DUR
+const CLEAVE_AT := BlackLegMoves.CLEAVE_AT
+const CLEAVE_REACH := 12.0
+const CLEAVE_DAMAGE := 22.0
+
+const FLAMBE_DUR := BlackLegMoves.FLAMBE_DUR
+const FLAMBE_GO := BlackLegMoves.FLAMBE_GO
+const FLAMBE_LAND := BlackLegMoves.FLAMBE_LAND
+const FLAMBE_LEN := BlackLegMoves.FLAMBE_LEN
+const FLAMBE_R := 1.5
+const FLAMBE_DAMAGE := 24.0
+## With the heat: how long they burn, damage a second.
+const FLAMBE_BURN := Vector2(3.5, 5.0)
+
 
 static func enter(s, id: String) -> bool:
 	var p: Player = s.player
@@ -225,6 +240,15 @@ static func enter(s, id: String) -> bool:
 			p.hurtbox.set_deferred("monitorable", false)
 			p.body_model.play("bl_last", s.dur)
 			Net.fx("sfx", ["whoosh_big", p.global_position, -6.0, 0.05, 0.7])
+		"cleaver_kick", "flambe_dash":
+			# (both down the line you face, turned on whoever's ahead of where you look)
+			var e: Node3D = s._aimed(CLEAVE_REACH if id == "cleaver_kick" else FLAMBE_LEN)
+			if e:
+				s._dir = s._flat_to(e)
+			s.face_direction(s._dir, 1.0)
+			s.dur = CLEAVE_DUR if id == "cleaver_kick" else FLAMBE_DUR
+			p.body_model.play("bl_cleave" if id == "cleaver_kick" else "bl_flambe", s.dur)
+			Net.fx("sfx", ["whoosh", p.global_position, -8.0, 0.05, 1.1 if id == "cleaver_kick" else 0.9])
 		_:
 			return false
 	return true
@@ -240,6 +264,10 @@ static func update(s, delta: float) -> bool:
 			_wheel(s, delta)
 		"last_course":
 			_last(s, delta)
+		"cleaver_kick":
+			_cleaver(s, delta)
+		"flambe_dash":
+			_flambe(s, delta)
 		_:
 			return false
 	return true
@@ -295,7 +323,8 @@ static func _hail(s, delta: float) -> void:
 		if not s._once("k%d" % i, HAIL_FROM + HAIL_EVERY * i):
 			continue
 		var hit: Array = s._cone(2.5, 0.35, HAIL_DAMAGE, 1.5, false, false)
-		var at: Vector3 = p.global_position + Vector3(0, 0.5 + 0.45 * float(HAIL_HEIGHTS[i]), 0) + s._dir * 1.1
+		# (the ring on the foot itself as it snaps out, read off the body: a fixed height per kick sat beside it)
+		var at: Vector3 = foot(p, true) + s._dir * 0.15
 		Net.fx("ring", [at, s._dir, 0.55, s._col(), 0.1, 0.2])
 		Net.fx("sfx", ["whoosh", p.global_position, -10.0, 0.06, 1.2 + 0.05 * (i % 4)])
 		if not hit.is_empty():
@@ -334,6 +363,97 @@ static func _wheel(s, delta: float) -> void:
 		Net.fx("sfx", ["thud", at, -1.0, 0.05, 0.9])
 		CombatManager.apply_hitstop(0.08, [p])
 		CombatManager.apply_camera_kick(0.14, 0.28)
+
+
+## A high crescent kick: the leg swung up on the outside and over the top, and at the top (CLEAVE_AT) a blade of air
+## shot off the foot down the line (Projectile "cleaver": cuts everyone it passes; red-hot with the heat, burning them).
+static func _cleaver(s, delta: float) -> void:
+	var p: Player = s.player
+	s._rooted(delta, 0.0)
+	if s._once("glow", 0.08) and s._elem():
+		Net.fx("hot_leg", [p.body_model, true, 0.6, FX.tree_col("black_leg", FX.EDGE)])
+	if s._once("swoosh", CLEAVE_AT - 0.08):
+		Net.fx("kick_swoosh", [p.body_model, 0.2, s._col(), s._col(), "r"])
+		Net.fx("glint", [foot(p, true), s._col(FX.CORE), 0.7])
+	if s._once("cut", CLEAVE_AT):
+		var from: Vector3 = p.global_position + Vector3(0, 1.2, 0) + s._dir * 0.9
+		Projectile.launch(p.get_tree(), "cleaver", from, s._dir, p, CLEAVE_DAMAGE, "elem" if s._elem() else "")
+		var f := foot(p, true)
+		Net.fx("ring", [f, s._dir, 0.9, s._col(), 0.18, 0.16])
+		Net.fx("punch_wind", [from - s._dir * 0.4, s._dir, 1.8, s._col(FX.CORE), true])
+		if s._elem():
+			Net.fx("element", ["black_leg", f, s._dir + Vector3.UP * 0.2, 8, 4.5])
+		Net.fx("sfx", ["whoosh_big", from, -3.0, 0.05, 1.25])
+		CombatManager.apply_camera_kick(0.1, 0.22)
+
+
+## A hop as the leg heats, then a flying side kick streaking FLAMBE_LEN m down the line (through them: enemies don't
+## stop you), everyone it passes kicked aside off it and down; a trail along it, of crimson fire with the heat (and
+## them left burning), else of air and dust. Landed crouched.
+static func _flambe(s, delta: float) -> void:
+	var p: Player = s.player
+	var elem: bool = s._elem()
+	var flying: bool = s.t >= FLAMBE_GO and s.t < FLAMBE_LAND
+	if flying:
+		s._drift(delta, FLAMBE_LEN / (FLAMBE_LAND - FLAMBE_GO))
+		player_through(p, true)
+	else:
+		s._rooted(delta, 0.0)
+	if s._once("glow", 0.04) and elem:
+		Net.fx("hot_leg", [p.body_model, true, FLAMBE_LAND + 0.25, FX.tree_col("black_leg", FX.EDGE)])
+	if s._once("hop", 0.12):
+		Net.fx("dust", [p.global_position, 5, 0.5])
+		Net.fx("sfx", ["hup", p.global_position, -8.0, 0.05, 1.0])
+		if elem:
+			Net.fx("heat", [foot(p, true), Vector3.UP, 6, 2.5])
+	if s._once("go", FLAMBE_GO):
+		s._from = p.global_position
+		Net.fx("kick_swoosh", [p.body_model, FLAMBE_LAND - FLAMBE_GO, s._col(), s._col(FX.ACCENT) if elem else s._col(), "r"])
+		Net.fx("dust_ring", [p.global_position, 10, 0.7])
+		Net.fx("sfx", ["whoosh_big", p.global_position, -2.0, 0.05, 1.1])
+		CombatManager.apply_camera_kick(0.08, 0.2)
+	if flying:
+		# the trail: a puff of it every few hundredths of a second (~1.4 m) behind the foot
+		if s._once("trail%d" % int((s.t - FLAMBE_GO) / 0.04), s.t):
+			var at: Vector3 = p.global_position + Vector3(0, 0.9, 0)
+			if elem:
+				Net.fx("heat", [at, Vector3.UP - s._dir * 0.5, 5, 2.0])
+			else:
+				Net.fx("dust", [p.global_position, 3, 0.45])
+		for e in s._pc.enemies_in(p.global_position + Vector3(0, 0.9, 0), FLAMBE_R):
+			if e in s._hit:
+				continue
+			s._hit.append(e)
+			# kicked aside: off the line to whichever side they stood, and on along it
+			var rel: Vector3 = (e as Node3D).global_position - p.global_position
+			rel.y = 0.0
+			var side: Vector3 = s._dir.cross(Vector3.UP)
+			if rel.dot(side) < 0.0:
+				side = -side
+			var hd: HitData = s._hd(FLAMBE_DAMAGE, 10.0, true)
+			hd.breaker = true
+			s._strike_toward(e, hd, side + s._dir * 0.5)
+			var hit_at: Vector3 = (e as Node3D).global_position + Vector3(0, 1.0, 0)
+			_burst(s, hit_at, side, true)
+			Net.fx("impact", [hit_at, s._col(FX.ACCENT) if elem else Color(1.0, 0.9, 0.7)])
+			Net.fx("sfx", ["punch_heavy", hit_at, -3.0, 0.05, 1.0])
+			CombatManager.apply_hitstop(0.05, [p])
+			if elem:
+				BurnStatus.apply(e as Node3D, FLAMBE_BURN.x, FLAMBE_BURN.y, p)
+	if s._once("land", FLAMBE_LAND):
+		player_through(p, false)
+		var c: Color = s._col()
+		Net.fx("streak", [s._from + Vector3(0, 0.9, 0), p.global_position + Vector3(0, 0.9, 0), Color(c.r, c.g, c.b, 0.8), 0.22, 0.35])
+		Net.fx("dust_ring", [p.global_position, 12, 0.8])
+		Net.fx("sfx", ["thud", p.global_position, -4.0, 0.05, 1.0])
+		if elem:
+			Net.fx("heat", [p.global_position + Vector3(0, 0.3, 0), Vector3.UP, 8, 3.0])
+		p.squash(-3.5)
+
+
+## Through enemies (they don't stop you) or not: TechniqueState.exit() puts it back.
+static func player_through(p: Player, on: bool) -> void:
+	p.set_collision_mask_value(12, not on)
 
 
 ## The ultimate: a spin on one foot heating the leg (sparks off it on the ground, the moment as it catches), a storm

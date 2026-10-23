@@ -8,6 +8,8 @@ extends Node3D
 ##   "gale"   a greatsword's crescent of air pressure (a full-charge cleave, its techniques): the slash's crescent
 ##            stood on its edge, faster and shorter-lived, staggering everything it passes ("gale_flat": lying flat,
 ##            wider, off a flat sweep).
+##   "cleaver" Cleaver Kick: the slash's crescent tipped across the line off a crescent kick, 12 m, in black-leg's heat
+##            with the element (and burning whoever it cuts).
 ##   "axe"    Hatchet Throw: the thrower's axe spinning out and back to the hand,
 ##            cutting everything on the way out and again on the way back.
 ##   "javelin" Thunder Javelin: the thrower's spear point-first down a 16 m line (piercing, breaking
@@ -57,6 +59,8 @@ const RAVEN_T := 1.2
 const HOOK_OUT := 60.0
 const HOOK_BACK := 20.0
 const RIBBON_LIFE := 0.2
+## Cleaver Kick's burn with the heat: seconds, damage a second.
+const CLEAVER_BURN := Vector2(3.0, 5.0)
 static var _ribbon_mat: StandardMaterial3D
 
 
@@ -77,6 +81,9 @@ static func launch(tree: SceneTree, k: String, from: Vector3, direction: Vector3
 		"gale", "gale_flat":
 			p.speed = 26.0
 			p.range_m = 10.0
+		"cleaver":
+			p.speed = 34.0
+			p.range_m = 12.0
 		"axe":
 			p.speed = 20.0
 			p.range_m = 13.0
@@ -108,7 +115,7 @@ func _ready() -> void:
 		_mat.vertex_color_use_as_albedo = false
 		_mesh.mesh = _wave_mesh()
 		_mesh.material_override = _mat
-	elif kind in ["slash", "gale", "gale_flat"]:
+	elif kind in ["slash", "gale", "gale_flat", "cleaver"]:
 		# a thin crescent lying across the flight path (stood on its edge for the
 		# gale): a coloured sheath round a hot white core
 		var mb := MeshBuilder.new()
@@ -173,6 +180,10 @@ func _ready() -> void:
 		_mesh.mesh = sm
 		_mat.albedo_color = Color(0.4, 0.75, 0.25)
 		_mesh.material_override = _mat
+	if kind == "cleaver":
+		# (a crescent kick's: the slash's crescent tipped up across the line along the leg's sweep, a little bigger)
+		_mesh.rotation = Vector3(0.35, 0, 0.6)
+		_mesh.scale = Vector3(1.35, 1.0, 1.3)
 	_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_mesh)
 	global_basis = Basis.looking_at(dir, Vector3.UP) if absf(dir.y) < 0.98 else Basis.IDENTITY
@@ -308,7 +319,7 @@ func _cut(at: Vector3) -> void:
 	var r := 1.3
 	if kind == "wave":
 		r = 1.9
-	elif kind in ["gale", "gale_flat"]:
+	elif kind in ["gale", "gale_flat", "cleaver"]:
 		r = 1.8
 	elif kind in ["axe", "javelin"]:
 		r = 1.1
@@ -321,7 +332,7 @@ func _cut(at: Vector3) -> void:
 			continue
 		var hd := (source as Player).melee_hit(damage * (0.7 if kind == "javelin" and _back else 1.0), "skill")
 		hd.knockback_force = 9.0 if kind == "wave" else 6.0
-		hd.stagger_duration = 0.6 if kind.begins_with("gale") or kind == "javelin" else 0.35
+		hd.stagger_duration = 0.6 if kind.begins_with("gale") or kind in ["javelin", "cleaver"] else 0.35
 		hd.breaker = kind == "javelin"
 		hd.hitstop_duration = 0.05
 		hd.camera_shake_intensity = 0.08
@@ -332,6 +343,9 @@ func _cut(at: Vector3) -> void:
 		hb.take_hit(hd, source)
 		pc.add_ult(hd.damage)
 		pc.on_sword_hit(e, hd)
+		# Cleaver Kick's blade, red-hot with the heat: sets them burning
+		if kind == "cleaver" and _elemental():
+			BurnStatus.apply(e as Node3D, CLEAVER_BURN.x, CLEAVER_BURN.y, source)
 		var hit_at := (e as Node3D).global_position + Vector3(0, 1.0, 0)
 		var through := (dir if not _back else (source.global_position - global_position)).normalized()
 		FX.impact(hit_at, FX.tree_col(_tree(), FX.ACCENT))
@@ -559,8 +573,10 @@ func _finish() -> void:
 ## only when launched with model "elem" (the element awakened), a thrown axe when
 ## its model starts "elem|"; plain steel otherwise.
 func _tree() -> String:
-	if kind in ["slash", "wave", "gale", "gale_flat"] and model != "elem":
+	if kind in ["slash", "wave", "gale", "gale_flat", "cleaver"] and model != "elem":
 		return "plain"
+	if kind == "cleaver":
+		return "black_leg"
 	if (kind in ["axe", "javelin"] or _thrown()) and not model.begins_with("elem|"):
 		return "plain"
 	return {"slash": "sword", "wave": "katana", "axe": "axe", "javelin": "polearm", "gale": "greatsword", "gale_flat": "greatsword",

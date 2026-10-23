@@ -1504,7 +1504,8 @@ func element(tree: String, pos: Vector3, dir: Vector3, amount: int = 10, speed: 
 
 ## Heat thrown off a kick (black-leg's element): crimson flames tinted off the fire sheet (not the axe's orange
 ## embers), white-hot sparks flung hard along `dir`, and a brief red light.
-const HEAT_TINT := Color(1.0, 0.3, 0.3)
+## (the fire sheet is yellow-orange: the tint takes it down to cherry and crimson, the tree's colours; 0.3 green read orange)
+const HEAT_TINT := Color(1.0, 0.16, 0.22)
 
 
 func heat(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> void:
@@ -1512,7 +1513,7 @@ func heat(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> v
 	var core := tree_col("black_leg", CORE)
 	_burst(pos, maxi(amount * 2 / 3, 2), _spark_mat, 0.12, 0.35, {"radius": 0.12, "direction": d, "spread": 30.0, "vel_min": speed * 1.1,
 		"vel_max": speed * 2.0, "gravity": Vector3(0, -6.0, 0), "damping": 2.5, "grow": false, "color": Color(core.r, core.g, core.b, 1.0)})
-	flash_light(pos, Color(1.0, 0.35, 0.25), 1.2 + amount * 0.1, 3.0 + amount * 0.1, 0.2)
+	flash_light(pos, Color(1.0, 0.22, 0.22), 1.2 + amount * 0.1, 3.0 + amount * 0.1, 0.2)
 	if flipbooks:
 		flipbook(pos, "fire", maxi(amount / 3, 2), 0.9, 0.45, {"radius": 0.15, "direction": (d + Vector3.UP * 0.6).normalized(), "spread": 35.0,
 			"vel_min": speed * 0.3, "vel_max": speed * 0.7, "gravity": Vector3(0, 2.5, 0), "damping": 2.0, "explosiveness": 0.9, "start": 0.1,
@@ -1525,7 +1526,7 @@ func heat(pos: Vector3, dir: Vector3, amount: int = 10, speed: float = 4.0) -> v
 ## a pillar of it where the heel came down.
 func heat_ring(pos: Vector3, radius: float = 6.0) -> void:
 	var speed := radius / 0.35
-	flash_light(pos + Vector3(0, 0.8, 0), Color(1.0, 0.3, 0.2), 6.0, radius * 1.8, 0.5)
+	flash_light(pos + Vector3(0, 0.8, 0), Color(1.0, 0.2, 0.2), 6.0, radius * 1.8, 0.5)
 	if flipbooks:
 		flipbook(pos + Vector3(0, 0.3, 0), "fireball", 14, 1.4, 0.55, {"ring_radius": 0.4, "spread": 8.0, "direction": Vector3(0, 0.15, 0),
 			"vel_min": speed * 0.85, "vel_max": speed, "gravity": Vector3(0, 3.0, 0), "damping": speed * 1.6, "start": 0.1, "spin": 180.0,

@@ -1055,6 +1055,7 @@ static func _build_black_leg() -> void:
 		"Kicking, a shot from the front is kicked aside by itself (once every 3 s), and every shot you stop flies back at whoever fired it, twice as hard.")
 	_big("bl_hail", "Hailstorm Heels", "tech", 1, 5, {}, "", "hailstorm_heels")
 	_big("bl_wheel", "Cartwheel Crescent", "tech", 1, 10, {}, "", "cartwheel_crescent")
+	_big("bl_flambe", "Flambe Dash", "tech", 1, 14, {}, "", "flambe_dash")
 	_elem(1)
 	_elem(2)
 	_big("bl_last", "Last Course", "ult", 1, 30, {}, "", "last_course")
@@ -1064,6 +1065,7 @@ static func _build_black_leg() -> void:
 		"Attack at a sprint: launch side-on and shoot one leg straight through them. It breaks their wind-up and throws them down.")
 	_big("bl_cyclone", "Cyclone Heel", "move", 2, 6, {"mv_cyclone_heel": 1},
 		"Attack in the air: turn flat like a top with one leg out, kicking everyone you pass, and come down on one hand in a ring that knocks them flat (once per jump).")
+	_big("bl_cleaver", "Cleaver Kick", "tech", 2, 12, {}, "", "cleaver_kick")
 	_big("bl_tempo", "Galley Tempo", "passive", 2, 13, {"finisher_black_leg": 0.3, "heavy_black_leg": 0.25},
 		"Passive (a slot). The last kick of your combo lands 30% harder, and your Guillotine Heel (right-click) 25%.")
 	_variant("bl_way", "Cook's Way", 2, [

@@ -198,6 +198,10 @@ const ALL := {
 		"desc": "Up on one foot, a hail of snapping kicks at every height into whoever's in front, walking in, and a last big one that knocks them flat."},
 	"cartwheel_crescent": {"name": "Cartwheel Crescent", "tree": "black_leg", "cost": 22.0, "cooldown": 8.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
 		"desc": "Two cartwheels forward, hand over hand, the legs wheeling over in wide arcs that kick everyone along the way, and a heel brought down at the end that knocks them flat."},
+	"cleaver_kick": {"name": "Cleaver Kick", "tree": "black_leg", "cost": 18.0, "cooldown": 7.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
+		"desc": "A high crescent kick so fast it cuts the air: a blade of it shoots off your foot twelve paces down the line, cutting everyone it passes. With the heat awakened it flies red-hot and sets them burning."},
+	"flambe_dash": {"name": "Flambe Dash", "tree": "black_leg", "cost": 22.0, "cooldown": 8.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique",
+		"desc": "A hop as the leg heats, then a flying side kick that streaks nine paces through the line, kicking everyone on it aside and off their feet. With the heat awakened it leaves a trail of crimson fire and them burning."},
 	"last_course": {"name": "Last Course", "tree": "black_leg", "cost": 0.0, "cooldown": 3.0, "styles": ["black_leg"], "needs_text": "black-leg kicks", "state": "Technique", "ult": true,
 		"desc": "Ultimate. Spin on one foot until your leg glows red-hot, then a storm of burning kicks through everyone in front, a leap, and the heel brought down: the ground bursts into a ring of crimson fire that throws them all down."},
 	# --- Pistol ---
