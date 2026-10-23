@@ -207,7 +207,7 @@ func _standing(c: Player) -> bool:
 	return c.health_component.current_health > 0.0 and c.current_state_name() != "Downed" and not c.bleeding
 
 
-## The duels begin: the queue (the best match for the strongest captain's weapon first, the captain last).
+## The duels begin: the queue (the best match for the lead captain's fighting style first, the captain last).
 func _fight() -> void:
 	if phase != "meet":
 		return
@@ -219,9 +219,9 @@ func _fight() -> void:
 		_taunt_at = rng.randf_range(TAUNT_EVERY.x, TAUNT_EVERY.y)
 		return
 	var lead: Player = get_tree().get_first_node_in_group("player")
-	var wc := lead.weapon_class() if lead else ""
+	var wc := lead.style() if lead else ""
 	_queue = rivals.slice(0, rivals.size() - 1)
-	_queue.sort_custom(func(a, b): return int(a.weapon_class() == wc) > int(b.weapon_class() == wc))
+	_queue.sort_custom(func(a, b): return int(a.style() == wc) > int(b.style() == wc))
 	_queue.append(rivals[-1])
 	for r in rivals:
 		var b = r.get_node("Brain")
@@ -274,7 +274,7 @@ func _fight_tick(delta: float) -> void:
 	for c in up:
 		if _active.has(c):
 			continue
-		var next = _next_up()
+		var next = _next_up(c)
 		if next == null:
 			break
 		_active[c] = next
@@ -329,14 +329,24 @@ func _won_ambush() -> void:
 	_leave_t = 8.0
 
 
-func _next_up() -> Player:
-	while not _queue.is_empty():
-		var r = _queue[0]
-		if is_instance_valid(r) and _standing(r) and not r in _active.values():
-			_queue.pop_front()
-			return r
-		_queue.pop_front()
-	return null
+## The next rival for captain `c`: of the mates still waiting, the first with `c`'s fighting style (Player.style) (so each captain in
+## co-op gets a match for their own weapon, not the host's), else the first waiting; their captain only once every
+## mate has had their turn.
+func _next_up(c: Player = null) -> Player:
+	_queue = _queue.filter(func(r): return is_instance_valid(r) and _standing(r) and not r in _active.values())
+	if _queue.is_empty():
+		return null
+	var mates := _queue.filter(func(r): return r != rivals[-1])
+	var pick = _queue[0]
+	if not mates.is_empty():
+		pick = mates[0]
+		var wc := c.style() if c and is_instance_valid(c) else ""
+		for r in mates:
+			if wc != "" and r.style() == wc:
+				pick = r
+				break
+	_queue.erase(pick)
+	return pick
 
 
 ## Lines as things happen to a rival: hurt, its ultimate.

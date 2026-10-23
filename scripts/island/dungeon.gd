@@ -208,6 +208,10 @@ func _sleep_check() -> void:
 		for camp in enemies.get_children():
 			if camp is GruntCamp and not (camp as GruntCamp)._warming.is_empty():
 				return
+			# (a nest hatching a bug a frame on a building island: asleep mid-way, its last spots stayed empty here
+			# while the other machine's filled, and a co-op guest was missing the host's bugs)
+			if camp is ScuttlebugNest and (camp as ScuttlebugNest)._hatching:
+				return
 	_awake = near
 	enemies.process_mode = Node.PROCESS_MODE_INHERIT if near else Node.PROCESS_MODE_DISABLED
 	for l in lights:
