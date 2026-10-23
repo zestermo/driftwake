@@ -334,7 +334,14 @@ func price_at(i: int) -> int:
 
 ## On the curve, less the crew's discount here (a quest's reward: Journal.perks).
 func crew_price(entry: Array) -> int:
-	return roundi(SHOPS.price_of(entry) * (1.0 - Journal.discount(shop_id)))
+	return roundi(SHOPS.price_of(entry) * (1.0 - Journal.discount(shop_id)) * maxf(_bounty_k(), 0.0))
+
+
+## What our captain's bounty does to the prices here (Bounty.shop_k by the shop's trade).
+func _bounty_k() -> float:
+	var p := get_tree().get_first_node_in_group("player")
+	var b := int(p.get("bounty")) if p and p.get("bounty") != null else 0
+	return Bounty.shop_k(str(SHOPS.shop(shop_id).get("trade", "")), b)
 
 
 ## The stock slot of buy-back entry `k`.

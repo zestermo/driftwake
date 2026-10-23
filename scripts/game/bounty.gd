@@ -31,6 +31,37 @@ const PRICE_ADMIRALTY := [1.0, 1.15, 1.25, -1.0, -1.0]
 const PRICE_SHADY := [1.0, 0.92, 0.88, 0.85, 0.8]
 
 
+## Who supplies the Admiralty (they charge a wanted captain more, then won't serve them) and who doesn't ask.
+const ADMIRALTY_TRADES := ["armourer", "smith"]
+const SHADY_TRADES := ["treasure"]
+const REFUSE_LINES := ["I don't sell steel to wanted pirates. Off with you.", "Your face is on the board outside. Out.",
+	"The Admiralty buys from me. I'd like to keep it that way. Go."]
+
+
+## What townsfolk mutter when a wanted captain walks past (by tier; villagers' barks, half the time).
+const RECOGNISE := [
+	[],
+	["Isn't that the one from the board?", "That face... the poster by the well.", "Keep your voice down. That's a wanted captain.",
+		"Five thousand gold, that one. Walking about like they own the place."],
+	["Don't stare! That's the one the Admiralty's after.", "Lock the shutters, love. It's that captain.",
+		"Twenty thousand on their head and they're buying apples.", "My cousin says they sank three ships in a week."],
+	["Mother of tides, it's really them.", "Don't look. Don't look. Just walk.", "The Admiralty sent a hunter after that one, they say.",
+		"Sixty thousand. You could buy the whole island with that bounty."],
+	["They say the sea itself steers clear of that one.", "Inside. Everyone inside. Now.", "I'm not here. I didn't see anything.",
+		"A hundred and fifty thousand... I didn't think a person could be worth that."],
+]
+
+
+## A shop's price factor for a captain with bounty `b` (by its trade); -1: it won't serve them.
+static func shop_k(trade: String, b: int) -> float:
+	var t := tier_of(b)
+	if trade in ADMIRALTY_TRADES:
+		return float(PRICE_ADMIRALTY[t])
+	if trade in SHADY_TRADES:
+		return float(PRICE_SHADY[t])
+	return 1.0
+
+
 static func tier_of(b: int) -> int:
 	var t := 0
 	for i in range(TIERS.size()):

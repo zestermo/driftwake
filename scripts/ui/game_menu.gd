@@ -20,6 +20,7 @@ const YARD := preload("res://scripts/ui/shipwright_screen.gd")
 var _yard: Control
 # traders' stalls (talk to a vendor)
 const SHOP := preload("res://scripts/ui/shop_screen.gd")
+const SHOP_DATA := preload("res://scripts/game/shops.gd")
 var _shop: Control
 # cooking (the ship's galley; a camp's fire)
 const GALLEY := preload("res://scripts/ui/galley_screen.gd")
@@ -192,6 +193,12 @@ func _on_dialogue_event(ev: String) -> void:
 
 ## A trader's stall, now or (talking) when the talk ends.
 func open_shop(id: String) -> void:
+	# a wanted captain past what this trade will stand (Bounty.shop_k): turned away
+	var p := get_tree().get_first_node_in_group("player")
+	var b := int(p.get("bounty")) if p and p.get("bounty") != null else 0
+	if Bounty.shop_k(str(SHOP_DATA.shop(id).get("trade", "")), b) < 0.0:
+		get_tree().call_group("hud", "show_toast", "%s: \"%s\"" % [str(SHOP_DATA.shop(id).get("name", "")), Bounty.REFUSE_LINES[randi() % Bounty.REFUSE_LINES.size()]])
+		return
 	_shop.open_shop(id)
 	open("shop")
 

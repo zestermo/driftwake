@@ -168,6 +168,11 @@ func _bark(dt: float, to_player: float, kind: String) -> void:
 	var h := Weather.hour()
 	var pool: Array = ambient[("day" if h >= 6.0 and h < 18.0 else "evening" if h >= 18.0 and h < 22.0 else "night")].duplicate()
 	pool.append_array(ambient.get(kind, []))
+	# a wanted captain about: half the time it's them they talk about (Bounty)
+	var me := get_tree().get_first_node_in_group("player")
+	var tier := Bounty.tier_of(int(me.get("bounty"))) if me and me.get("bounty") != null else 0
+	if tier > 0 and randf() < 0.5:
+		pool = (Bounty.RECOGNISE[tier] as Array).duplicate()
 	# (their own lines only: a person whose pools ran dry on this island keeps quiet)
 	if pool.is_empty():
 		return

@@ -164,6 +164,11 @@ static func notice_board(rng: RandomNumberGenerator) -> StaticBody3D:
 		mb.add_box(PSXMat.flat(Color(0.3, 0.25, 0.2)), Transform3D(Basis(), pp + Vector3(0, 0.08, 0.008)), Vector3(0.24, 0.03, 0.005), 1.0)
 		mb.add_box(PSXMat.flat(Color(0.75, 0.15, 0.12)), Transform3D(Basis(), pp + Vector3(0, 0.19, 0.01)), Vector3(0.03, 0.03, 0.01), 1.0)
 	body.add_child(mb.to_instance())
+	# (wanted posters go up here once a captain is wanted: Bounty)
+	var wp := WantedPoster.new()
+	wp.name = "Wanted"
+	wp.position = Vector3(0, 1.45, 0.075)
+	body.add_child(wp)
 	var cs := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = Vector3(1.8, 2.2, 0.3)

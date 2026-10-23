@@ -114,6 +114,13 @@ Zach settled the whole version in one grill so it can be built in one go. This s
 
   Pace (estimated, not played): the first chain's islands give a boss and a couple of ships each (~9,000), so
   Wanted on the first or second island, Notorious around the fourth or fifth, Infamous near the chain's end.
+- **Piece 7: what a bounty changes on land.** Wanted posters (`WantedPoster` on every KitVillage notice board:
+  empty until someone's wanted, then the two most wanted captains' names and bounties); shops by trade
+  (`Bounty.shop_k`: armourers and smiths supply the Admiralty: dearer, then no service at Infamous with a line;
+  treasure dealers are shady: cheaper; the rest as ever); townsfolk barks: half their lines are about the wanted
+  captain (`Bounty.RECOGNISE`, by tier). Test: t/progression/bounty. **Assumed:** townsfolk only talk (no fleeing
+  yet: villagers have no flee behaviour; a later polish); the posters show the captains' names and bounties, no
+  portrait; which trades lean which way (armourer, smith / treasure).
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite
