@@ -11,8 +11,8 @@ const FADE := 1.2
 const DOSE := 1.2
 const CHECK := 0.2
 const MAX := 24
-const RIM := Color(0.55, 1.0, 0.28)
-const MID := Color(0.22, 0.62, 0.1)
+## Opacity (the dither pool, a little see-through)
+const ALPHA := 0.75
 
 var radius: float = 0.85
 var dps: float = 3.0
@@ -22,7 +22,8 @@ var _bub: float = 0.0
 var _mat: ShaderMaterial
 var _disc: MeshInstance3D
 
-static var _meshes: Array = []
+## A quad whose sheet pool (gen_dither_fx.py) reaches about `radius` at scale 1.
+static var _quad: QuadMesh
 static var _all: Array = []
 
 
@@ -49,12 +50,13 @@ static func live() -> Array:
 
 
 func _ready() -> void:
-	if _meshes.is_empty():
-		for i in range(3):
-			_meshes.append(_blob_mesh())
-	_mat = PSXMat.decal(Color(1, 1, 1, 0.85), {"unshaded": true})
+	if _quad == null:
+		_quad = QuadMesh.new()
+		_quad.size = Vector2(2.56, 2.56)
+		_quad.orientation = PlaneMesh.FACE_Y
+	_mat = PSXMat.decal_sheet("dither_puddle_poison", Color(1, 1, 1, ALPHA), {"unshaded": true, "fps": 6.0})
 	_disc = MeshInstance3D.new()
-	_disc.mesh = _meshes[randi() % _meshes.size()]
+	_disc.mesh = _quad
 	_disc.material_override = _mat
 	_disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_disc.scale = Vector3.ONE * radius * 0.3
@@ -68,7 +70,7 @@ func _physics_process(delta: float) -> void:
 	var k := clampf((LIFE - _t) / FADE, 0.0, 1.0)
 	if _t > 0.2:
 		_disc.scale = Vector3.ONE * radius * lerpf(0.7, 1.0, k)
-	_mat.set_shader_parameter("albedo_color", Color(1, 1, 1, 0.85 * k))
+	_mat.set_shader_parameter("albedo_color", Color(1, 1, 1, ALPHA * k))
 	if _t >= LIFE:
 		queue_free()
 		return
@@ -100,33 +102,3 @@ func _stands_in(p: Node3D, k: float) -> bool:
 		return false
 	var d := global_basis.inverse() * (p.global_position - global_position)
 	return d.y > -0.4 and d.y < 0.45 and Vector2(d.x, d.z).length() < radius * lerpf(0.7, 1.0, k)
-
-
-## A lumpy unit pool (flat, +Y up): a main blob and a few run-offs, bright at
-## the rim and darker in the middle.
-static func _blob_mesh() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.set_normal(Vector3.UP)
-	var blobs := [[Vector2.ZERO, 1.0]]
-	for i in range(randi_range(2, 4)):
-		var a := randf() * TAU
-		blobs.append([Vector2(cos(a), sin(a)) * randf_range(0.55, 0.85), randf_range(0.25, 0.45)])
-	for bl in blobs:
-		var c: Vector2 = bl[0]
-		var r: float = bl[1]
-		var seg := 14 if r > 0.5 else 8
-		var ph := randf() * TAU
-		var rim: Array = []
-		for k in range(seg):
-			var a := float(k) / seg * TAU
-			rim.append(c + Vector2(cos(a), sin(a)) * r * (1.0 + 0.18 * sin(3.0 * a + ph)))
-		for k in range(seg):
-			var p0: Vector2 = rim[k]
-			var p1: Vector2 = rim[(k + 1) % seg]
-			st.set_color(MID)
-			st.add_vertex(Vector3(c.x, 0, c.y))
-			st.set_color(RIM)
-			st.add_vertex(Vector3(p1.x, 0, p1.y))
-			st.add_vertex(Vector3(p0.x, 0, p0.y))
-	return st.commit()

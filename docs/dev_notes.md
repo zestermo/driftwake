@@ -5840,3 +5840,16 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   snap's tilt grows with distance and beat the old fixed 1.5 cm / 10 cm lifts. Rain puddles now lie 5 cm up.
 - Checked: modelshot through the tavern door at grazing angles (MS_PSX=1), the three decals on the ground; t/fx,
   t/island/house_doors. Renders with project.godot's threaded rendering need `--render-thread safe`.
+
+## 2026-10-22: dither effects, piece 1 (telegraph, rain and poison puddles)
+
+- Zach picked the "dither" direction from `gen_fx_style_samples.py` (chunky pixels, Bayer fills, a boiling 1 px
+  outline), asking for it subtler: no full fills, lower opacity. Sheets by `tools/texture_gen/gen_dither_fx.py`
+  (8 frames of 64 px, 4x2; no mipmaps, nearest).
+- The decal shader has a sheet mode (`psx_decal_sheet*.gdshader`, `PSXMat.decal_sheet`): `frame` set by code or
+  `fps` looping by itself (each MultiMesh instance its own phase), and a palette mode reading grey indices
+  (0.2 outline / 0.4 deep / 0.6 body / 0.8 highlight) so one sheet takes any caller's colour.
+- `FX.telegraph`: a quad with the index sheet, frame 0 -> 7 over the wind-up, coloured from its colour,
+  `TELE_ALPHA` 0.6: a thin ring dark outside, sparse speckle, a dithered edge closing in, small chevrons.
+  `arc_warn` and `lane` are still the old plain shapes. Rain puddles (cap 0.65) and poison puddles (0.75) loop
+  their sheets; blood splats keep their spatter shapes for now.

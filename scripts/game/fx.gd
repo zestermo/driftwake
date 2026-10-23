@@ -308,11 +308,19 @@ static var _ring_mesh: ArrayMesh
 static var _disc_mesh: ArrayMesh
 
 
-## A warning on the ground: a ring where a big attack will land, filling in
-## over `secs` (then it's gone). `follow` (a node key) carries it along on
-## that node (a ship's deck under way).
+## Opacity of the dither telegraph (kept quiet: Zach, 1.19, "more subtle").
+const TELE_ALPHA := 0.6
+static var _tele_quad: QuadMesh
+
+
+## A warning on the ground where a big attack will land: the dither sheet (gen_dither_fx.py) charging up
+## over `secs`, a thin ring with a dithered edge closing in, coloured from `color` (then it's gone).
+## `follow` (a node key) carries it along on that node (a ship's deck under way).
 func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.0, 0.18, 0.12), follow: String = "") -> void:
-	_tele_init()
+	if _tele_quad == null:
+		_tele_quad = QuadMesh.new()
+		_tele_quad.size = Vector2(2.0, 2.0)
+		_tele_quad.orientation = PlaneMesh.FACE_Y
 	var holder := Node3D.new()
 	holder.name = "Telegraph"
 	var net := get_node_or_null("/root/Net")
@@ -321,25 +329,18 @@ func telegraph(pos: Vector3, radius: float, secs: float, color: Color = Color(1.
 		on.add_child(holder)
 	else:
 		_scene_root().add_child(holder)
-	holder.global_position = pos + Vector3(0, 0.07, 0)
-	var ring := MeshInstance3D.new()
-	ring.mesh = _ring_mesh
-	ring.material_override = _tele_mat
-	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	ring.scale = Vector3(radius, 1.0, radius)
-	holder.add_child(ring)
-	var disc := MeshInstance3D.new()
-	disc.mesh = _disc_mesh
-	disc.material_override = _tele_mat
-	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	disc.scale = Vector3(0.01, 1.0, 0.01)
-	holder.add_child(disc)
-	var c1 := Color(color.r, color.g, color.b, 0.85)
-	var c2 := Color(color.r, color.g, color.b, 0.35)
-	_tint(ring, c1)
-	_tint(disc, c2)
+	holder.global_position = pos + Vector3(0, 0.04, 0)
+	var c := Color(color.r, color.g, color.b, 1.0)
+	var mat := PSXMat.decal_sheet("dither_telegraph", Color(1, 1, 1, TELE_ALPHA), {"unshaded": true,
+		"palette": [c * Color(0.18, 0.18, 0.18), c * Color(0.5, 0.5, 0.5), c, c.lerp(Color.WHITE, 0.55)]})
+	var mi := MeshInstance3D.new()
+	mi.mesh = _tele_quad
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.scale = Vector3(radius, 1.0, radius)
+	holder.add_child(mi)
 	var tw := holder.create_tween()
-	tw.tween_property(disc, "scale", Vector3(radius, 1.0, radius), maxf(secs, 0.05))
+	tw.tween_method(func(f: float): mat.set_shader_parameter("frame", f), 0.0, 7.99, maxf(secs, 0.05))
 	tw.tween_callback(holder.queue_free)
 
 

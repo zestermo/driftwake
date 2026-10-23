@@ -95,9 +95,6 @@ func _ready() -> void:
 	_rain.sub_emitter = _rain.get_path_to(_splash)
 	_pock_mm = _multimesh(POCKS, _pock_mat(), 0.8)
 	_puddle_mm = _multimesh(PUDDLES, _puddle_mat(), 1.0)
-	var blot := _puddle_mesh()
-	blot.surface_set_material(0, _puddle_mat())
-	_puddle_mm.mesh = blot
 
 
 func _multimesh(count: int, mat: Material, size: float) -> MultiMesh:
@@ -138,29 +135,11 @@ func _pock_mat() -> StandardMaterial3D:
 	return m
 
 
-## Standing water: dark and glossy, faded in by its instance's alpha.
-## A decal (PSXMat.decal): pulled toward the camera rather than floated, so slopes and the snapped ground
-## don't poke through it.
+## Standing water: the dither puddle loop (gen_dither_fx.py), glossy, faded in by its instance's alpha.
+## A decal (PSXMat.decal_sheet): pulled toward the camera rather than floated, so slopes and the snapped
+## ground don't poke through it.
 func _puddle_mat() -> ShaderMaterial:
-	return PSXMat.decal(Color(0.1, 0.11, 0.13), {"roughness": 0.06, "specular": 0.9})
-
-
-## A ragged flat blot, 1 m across.
-static func _puddle_mesh() -> ArrayMesh:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 4111
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var n := 12
-	var pts: Array = []
-	for i in range(n):
-		var a := TAU * i / n
-		pts.append(Vector3(cos(a), 0.0, sin(a)) * 0.5 * rng.randf_range(0.65, 1.0))
-	for i in range(n):
-		for p in [Vector3.ZERO, pts[i], pts[(i + 1) % n]]:
-			st.set_normal(Vector3.UP)
-			st.add_vertex(p)
-	return st.commit()
+	return PSXMat.decal_sheet("dither_puddle_rain", Color.WHITE, {"roughness": 0.06, "specular": 0.9, "fps": 5.0})
 
 
 func _process(delta: float) -> void:
@@ -268,7 +247,7 @@ func _puddles(c: Vector3, delta: float) -> void:
 			if size < 0.05:
 				continue
 			_puddle_mm.set_instance_transform(n, Transform3D(Basis(Vector3.UP, float(e[2])).scaled(Vector3(size, 1.0, size * float(e[3]))), at + Vector3.UP * 0.05))
-			_puddle_mm.set_instance_color(n, Color(1, 1, 1, clampf(wet * 2.0, 0.0, 0.8)))
+			_puddle_mm.set_instance_color(n, Color(1, 1, 1, clampf(wet * 2.0, 0.0, 0.65)))
 			n += 1
 	_puddle_mm.visible_instance_count = n
 	if _cells.size() > 2048:

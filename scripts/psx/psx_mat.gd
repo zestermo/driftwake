@@ -8,6 +8,8 @@ const LIT_SHADER := preload("res://shaders/psx/psx_lit.gdshader")
 const CUTOUT_SHADER := preload("res://shaders/psx/psx_cutout.gdshader")
 const DECAL_SHADER := preload("res://shaders/psx/psx_decal.gdshader")
 const DECAL_UNSHADED_SHADER := preload("res://shaders/psx/psx_decal_unshaded.gdshader")
+const DECAL_SHEET_SHADER := preload("res://shaders/psx/psx_decal_sheet.gdshader")
+const DECAL_SHEET_UNSHADED_SHADER := preload("res://shaders/psx/psx_decal_sheet_unshaded.gdshader")
 const SNOW_LAYER_SHADER := preload("res://shaders/world/snow_layer.gdshader")
 ## What a footprint multiplies the ground's colour by (terrain's prints), by ground: a blue shadow in snow, darker sand.
 const PRINT_TINT := {"snow": Vector3(0.52, 0.62, 0.82), "sand": Vector3(0.6, 0.46, 0.32)}
@@ -136,6 +138,24 @@ static func decal(color: Color, opts: Dictionary = {}) -> ShaderMaterial:
 	for k in ["roughness", "specular", "pull"]:
 		if opts.has(k):
 			m.set_shader_parameter(k, float(opts[k]))
+	return m
+
+
+## A decal drawn from a flipbook sheet (assets/textures/fx/<sheet_name>.png, 4x2 frames; gen_dither_fx.py)
+## on a mesh's UVs. opts as decal(), plus fps (loops by itself; else set "frame"), palette ([dark, deep,
+## body, hi] for an index sheet).
+static func decal_sheet(sheet_name: String, color: Color = Color.WHITE, opts: Dictionary = {}) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = DECAL_SHEET_UNSHADED_SHADER if opts.get("unshaded", false) else DECAL_SHEET_SHADER
+	m.set_shader_parameter("albedo_color", color)
+	m.set_shader_parameter("sheet", load("res://assets/textures/fx/%s.png" % sheet_name))
+	for k in ["roughness", "specular", "pull", "fps"]:
+		if opts.has(k):
+			m.set_shader_parameter(k, float(opts[k]))
+	if opts.has("palette"):
+		m.set_shader_parameter("palette_mode", true)
+		for i in range(4):
+			m.set_shader_parameter(["pal_dark", "pal_deep", "pal_body", "pal_hi"][i], opts["palette"][i])
 	return m
 
 
