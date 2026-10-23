@@ -291,7 +291,7 @@ func _process(d: float) -> bool:
 				check("the brig: 4 guns a side, 8 crew, a heavy hull", bg.cannons.size() == 8 and bg._crew.size() == 8 and bg.max_hull > 400.0)
 				check("the gunboat: 2 guns a side, 4 crew, fast", by["gunboat"].cannons.size() == 4 and by["gunboat"]._crew.size() == 4 and by["gunboat"]._max_speed() > 12.0)
 				var mr = by["marine"]
-				check("the Marines: in whites, the gull on the sail, never board", mr._crew.all(func(c): return c["look"]["name"] == "Marine" and c["look"]["top_color"].r > 0.9) and not mr.spec["boards"])
+				check("the Admiralty: in the grey, the gull on the sail, never board", mr._crew.all(func(c): return str(c["look"]["name"]).begins_with("Admiralty") and c["look"]["top_color"].r < 0.5) and not mr.spec["boards"] and mr.is_in_group("admiralty"))
 				set_meta("by", by)
 				# --- ramming: the brig runs at our ship with our captain on deck
 				var sea: Vector3 = get_meta("sea")
