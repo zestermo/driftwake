@@ -5890,3 +5890,12 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   (0.52 s); Crescent Gale's `gale_flat` tipped up 0.55 rad and thicker, so it isn't edge-on from behind.
 - Tests: t/weapons/greatsword_tree (six techniques, each lands), greatsword_clear (the new poses), greatsword_combo and
   greatsword_carry updated for the right-side guard and the walking guard.
+
+## 2026-10-22: dither effects, piece 4 (blood splats)
+
+- `FX._place_splat` lays a quad (`_splat_quad`, 6.4 units: the sheet's pool is 10 px of the 32 px half-frame)
+  on `dither_blood` (gen_dither_fx.py, 4x4: rows 0-1 round, 2-3 directed with the spatter to +U): a landing
+  over SPLAT_LAND 0.22 s on its own material (flung, spreading, pooling, settled), then the shared settled
+  material of its variant (`_splat_mats`, so 120 lying splats share 4 materials). Mirrored at random for
+  variety. Replaces the 24 random splat meshes and the SPLAT colour. Specular 0.3 (0.5 caught the sky pink).
+- siteshot's `_clean_blood` frees `FX._splats` instead of matching the old material. Tested by t/fx/blood_splats.
