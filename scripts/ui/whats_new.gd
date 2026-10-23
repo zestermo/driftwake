@@ -7,15 +7,12 @@ const SEEN_FILE := "user://whats_new_seen.txt"
 
 ## [heading, line] for this version.
 const NOTES := [
-	["Skill points, made simple", "One Combat pool from your Captain levels, spent on any weapon's tree, and one Adventure pool. Everything in a tree is bought now; a weapon's mastery decides what you may buy. Respec a tree at the ship's bunk for gold. Old saves buy back what they owned. K opens it all, with locked trees hidden and the details on select."],
-	["A guard of your own", "Master a weapon to about 15 for a second guard: its own stance, carry and moves. Toggle between the two once owned. The axe, daggers, dual swords, twin daggers and corsair awaken with their own drawn elements."],
-	["New techniques", "Two each for the polearm, hammer and twin axes: throw a Thunder Javelin, bat blows aside with Windmill Guard, send both axes round in Ravens' Return or swing a foe round you in Raider's Haul."],
-	["Through the air", "An upright air walk, a tumble after a long fall (an air step pulls you out), and Acrobatics' Breakfall, Skyward Dash, Sky Leap, Moonstep and Crash Landing. Fists hit like a marine's now."],
-	["Guard and swim", "Perfect Parry and Guard Style in Defense, Surface Sprint in Swimming. This is an unstable build: tell us what breaks."],
-	["Five new ways to fight", "Polearms (spear, trident, naginata, bisento, halberd, pitchfork), hammers and kanabo, twin axes, greatswords, and Black Leg kicks (learn them from Gus at the Salted Gull). Each has its own stance, moves, tree, element and ultimate. Find them in chests, shops and Haldor's forge."],
-	["Stances with character", "Every weapon now stands, runs and breathes its own way: a side-on cutlass, a reverse-grip dagger, a pistol at low ready, an axe hung low. Master the polearm for Whitebeard's planted stance, or Black Leg for hands in your pockets."],
-	["Play with a controller", "Full Xbox pad support: right-stick look, LB for skills, the radial wheels on the stick, and button prompts that follow whatever you're holding."],
-	["A first look at the capital", "Two islands down the chain from Brinehollow lies the First Sea's royal capital: a walled city with a palace on its hill. Walk the market street and plaza, rest at the Crown and Compass, take on city quests, and steer clear of Gallows Row. More of the city to come."],
+	["Rival crews", "Four pirate crews sail the first chain: the Gilded Gulls, the Brine Wolves, the Lantern Saints and the Mudlark Brigade. Their captains fight with your weapons, skills and ultimates. Meet them, duel them one at a time, and they'll remember who won."],
+	["A price on your head", "Every captain has a bounty now. Climb it and your poster goes up, townsfolk know your face, and shops pick a side. The Admiralty's grey ships come about for you, bounty hunters wait ashore, and named officers bring their squads."],
+	["Arrested", "Lose to the Admiralty (the whole crew, in co-op) and you wake in their brig with your weapons in a chest past the guards. Pick the lock and fight your way out."],
+	["A new opening", "New games start on a stormy night at sea, on Captain Maren Holt's deck. Cutscenes can be skipped (in co-op, once everyone presses skip)."],
+	["In the water and on the islands", "Attack while swimming to strike with your own weapon; sharks and morays can be fought. Pirates now carry spears, hammers, greatswords and twin axes, or fight with their feet."],
+	["Since 1.18", "New weapon kinds (polearms, hammers, twin axes, greatswords, Black Leg), simpler skill points, mastered guards, new techniques and acrobatics, controller support, and a first look at the royal capital."],
 ]
 
 

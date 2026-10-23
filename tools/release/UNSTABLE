@@ -1,3 +1,0 @@
-While this file exists, a version tag publishes an unstable build: a GitHub pre-release, so the website's
-Download button (GitHub's "latest") stays on the last stable version. Delete it for a stable release.
-See .github/workflows/build-windows.yml and the releases page's Unstable section (web/site/releases/).

@@ -1,6 +1,6 @@
 {
 	"about": "Driftwake's timeline, one entry per version, oldest first. Each release: fill in its entry (status \"shipped\", date, headline, img, added, news), set \"here\" to it, and move the next one to \"building\". An unstable release (an early build, a GitHub pre-release) gets \"unstable\": true: the timeline leaves it out and \"here\" stays on the last stable one. Images are names in /img (name.jpg and name-640.jpg; early/ holds the v1.5-era shots); clips are names in /img/clips (name.jpg + name.gif). Use Driftwake's own names (docs/originality_plan.md).",
-	"here": "1.18",
+	"here": "1.19",
 	"versions": [
 		{
 			"v": "0.1",
@@ -516,23 +516,36 @@
 		},
 		{
 			"v": "1.19",
-			"name": "The Admiralty and Rivals",
-			"status": "building",
-			"headline": "The Admiralty and rival pirate crews, fighting in the water, and a new opening that shows what's out there.",
-			"img": "coop",
-			"alt": "Three captains with swords drawn on a sloop's deck at sunset (current build)",
-			"plan": [
-				["Rival crews", "Persistent rival captains who fight like you do, with their own crews, lines and matchups, who come back stronger."],
-				["The Admiralty", "A navy with patrols that hunt you, named captains, bounties that grow and wanted posters."],
-				["Cutscenes", "A cutscene system for rival intros and story moments."],
-				["Fighting in the water", "Swimmers can fight back against sharks, and rivals and the Admiralty can follow you under."],
-				["A new opening", "An intro that sets up the world: the Admiralty, the rival crews, the sea's great powers and the end of the First Sea, and gives your captain a reason to go."]
+			"name": "Wanted",
+			"date": "2026-10-23",
+			"status": "shipped",
+			"headline": "Rival crews who fight with your weapons and skills, an Admiralty that puts a price on your head, and a new opening.",
+			"img": "rivals_duel",
+			"alt": "The captain trading blows with a rival crew's spearman in the snow at sunset",
+			"shots": [
+				["wanted", "A wanted poster on a village notice board: Wren Calloway, 64,000 gold"],
+				["admiralty", "An Admiralty squad in grey coats lined up on a snowy island"]
+			],
+			"clip": "squad",
+			"clipAlt": "The captain fights an Admiralty squad in grey coats on a snowy island",
+			"news": "/news/v1-19-wanted/",
+			"github": true,
+			"added": [
+				["Rival captains", "Captains run by the game with your weapons, moves, skills and ultimates, who read your spacing and punish whiffs."],
+				["Rival crews", "Four crews with their own captains and lines: a meeting, duels while the crew watches, and a grudge either way."],
+				["Cutscenes", "Camera shots, letterboxed subtitles and voice blips; in co-op everyone presses skip."],
+				["Bounties", "Each captain's own, with wanted posters, townsfolk who know your face and shops that change their prices."],
+				["The Admiralty", "Grey ironclad patrols, bounty hunters ashore and three named officers with squads."],
+				["Arrest and escape", "Lose to the Admiralty and break out of their brig to get your gear back."],
+				["A new opening", "A narrated storm at sea, then a fight on Captain Maren Holt's deck."],
+				["Fighting in the water", "Strike with your own weapon while swimming; sharks and morays can be fought."],
+				["New enemy weapons", "Spear, hammer, greatsword, twin-axe and black-leg pirates, each with its own moves."]
 			]
 		},
 		{
 			"v": "1.20",
 			"name": "The World",
-			"status": "planned",
+			"status": "building",
 			"headline": "A spooky island, the first cities, reworked beasts and bosses, and a polish pass across the chain.",
 			"img": "brinehollow",
 			"alt": "Brinehollow's harbour and market street (current build)",

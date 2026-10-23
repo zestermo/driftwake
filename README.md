@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.18.4-e0b040" alt="Version 1.18.4">
+  <img src="https://img.shields.io/badge/version-1.19-e0b040" alt="Version 1.19">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -163,7 +163,17 @@ one-handed blade, Z draws it and left click chops while you hang on.
 ## Version history
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
-always the last stable version (v1.18); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+always the last stable version (v1.19); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.19: Wanted (October 23, 2026)
+Rival captains run by the game, built like yours: the same weapons, moves, skills and ultimates, reading your spacing,
+blocking, rolling and punishing whiffs. Four rival crews (the Gilded Gulls, the Brine Wolves, the Lantern Saints and
+the Mudlark Brigade) turn up on chain islands for a meeting and duels while the crew watches; they remember who won
+and come back stronger. A cutscene system (letterboxed subtitles, voice blips, a co-op skip vote). Bounties for each
+captain with wanted posters, townsfolk who know your face and shops that change their prices; the Admiralty as grey
+ironclad patrols, bounty hunters ashore and three named officers with squads. Lose to the Admiralty and break out of
+their brig. A new opening: a narrated storm at sea and a fight on Captain Maren Holt's deck. Fighting in the water
+with your own weapon, and spear, hammer, greatsword, twin-axe and black-leg pirates on the chain islands.
 
 ### v1.18.4: Masters of the Craft (October 22, 2026), unstable
 Skill points made simple: one Combat pool from Captain levels, spent on any weapon's tree, and one Adventure pool;

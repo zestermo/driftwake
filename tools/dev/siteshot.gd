@@ -1766,23 +1766,45 @@ func _swing_for(secs: float) -> void:
 	var t0 := t
 	while t - t0 < secs:
 		p.stamina = p.max_stamina
+		# (never beaten: losing to a squad is an arrest, and the shot would be the brig)
+		p.health_component.current_health = p.health_component.max_health
 		if p.state_machine.current_state.name in ["Idle", "Move", "LightAttack"]:
 			p.input_buffer.buffer_action("light_attack")
 		await _wait(0.2)
 
 
+## A camera `dist` out to the side of the fight at `mid` (across `d`), on whichever side has nothing in the way.
+func _side_cam(mid: Vector3, d: Vector3, dist: float, up: float, flip := false) -> Vector3:
+	var side := d.normalized().cross(Vector3.UP) * (-1.0 if flip else 1.0)
+	var space: PhysicsDirectSpaceState3D = p.get_world_3d().direct_space_state
+	for s in [side, -side]:
+		var at: Vector3 = mid + s * dist + Vector3.UP * up
+		var q := PhysicsRayQueryParameters3D.create(mid + Vector3.UP * 1.0, at, 1)
+		if space.intersect_ray(q).is_empty():
+			return at
+	return mid + side * dist + Vector3.UP * up
+
+
 ## Side-on looks at the fight round the captain, each `every` s apart.
 func _fight_looks(tag: String, n: int, every: float) -> void:
 	for i in range(n):
-		var foe = _nearest_rival()
+		var foe = _foe()
 		var mid: Vector3 = p.global_position if foe == null else p.global_position.lerp(foe.global_position, 0.5)
 		var d: Vector3 = (Vector3.FORWARD if foe == null else foe.global_position - p.global_position)
 		d.y = 0.0
-		var side := d.normalized().cross(Vector3.UP)
 		var far := i % 2 == 1
-		_look(mid + side * (6.5 if far else 4.2) * (1.0 if i % 4 < 2 else -1.0) + Vector3.UP * (1.6 if far else 0.9), mid + Vector3.UP * 1.1)
+		_look(_side_cam(mid, d, 6.5 if far else 4.2, 1.6 if far else 0.9, i % 4 >= 2), mid + Vector3.UP * 1.1)
 		await _snap("%s_%d" % [tag, i])
 		await _wait(every)
+
+
+## The rival fighting the captain (the encounter's duel), else the nearest one standing.
+func _foe():
+	for e in get_nodes_in_group("rival_encounter"):
+		var r = e._active.get(p)
+		if r != null and is_instance_valid(r) and r.current_state_name() != "Downed":
+			return r
+	return _nearest_rival()
 
 
 func _nearest_rival():
@@ -1823,6 +1845,7 @@ func _shot_wanted() -> void:
 	var wp: Node3D = _brine().find_children("Wanted", "WantedPoster", true, false)[0]
 	keep_labels = wp
 	p.bounty = 64000
+	p.body_model.look["name"] = "Wren Calloway"
 	var out_d: Vector3 = wp.global_basis.z.normalized()
 	var across: Vector3 = wp.global_basis.x.normalized()
 	_stand(_ground(wp.global_position + out_d * 1.3 + across * 1.1), _yaw(-out_d))
@@ -1883,15 +1906,18 @@ func _clip_duel() -> void:
 	_own_cam()
 	_swing_for(9.0)
 	await _wait(2.5)
-	var foe = _nearest_rival()
+	var foe = _foe()
 	var mid: Vector3 = p.global_position if foe == null else p.global_position.lerp(foe.global_position, 0.5)
+	var d0: Vector3 = st[1] if foe == null else foe.global_position - p.global_position
+	d0.y = 0.0
+	# (the side picked once, clear of posts; the point it looks at eases after the pair)
+	var off: Vector3 = _side_cam(mid, d0, 5.2, 1.3) - mid
+	var hold := [mid]
 	aim = func():
-		var f2 = _nearest_rival()
+		var f2 = _foe()
 		var m2: Vector3 = p.global_position if f2 == null else p.global_position.lerp(f2.global_position, 0.5)
-		mid = mid.lerp(m2, 0.08)
-		var d: Vector3 = st[1] if f2 == null else f2.global_position - p.global_position
-		d.y = 0.0
-		_look(mid + d.normalized().cross(Vector3.UP) * 5.2 + Vector3.UP * 1.3, mid + Vector3.UP * 1.0)
+		hold[0] = (hold[0] as Vector3).lerp(m2, 0.08)
+		_look(hold[0] + off, hold[0] + Vector3.UP * 1.0)
 	await _clip("duel", 3.4)
 	aim = Callable()
 	await _rivals_gone()
