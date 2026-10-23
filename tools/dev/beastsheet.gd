@@ -5,7 +5,7 @@ extends SceneTree
 ## stand-in captain (invulnerable); each frame captioned with its number, theme, kind, name and triangle count.
 ## A kind shared between themes (one script) is shown once. Out: <dir>/<nn>_<kind>.png (its three frames in a row)
 ## and <dir>/sheet_<theme>.png (that theme's rows).
-## `& $env:GODOT --path . --script res://tools/dev/beastsheet.gd -- res://tools/dev/out/beasts [kind filter]`
+## `& $env:GODOT --path . --script res://tools/dev/beastsheet.gd -- res://tools/dev/out/beasts [kind filter]` (env BS_SIDE=1: side views)
 const TK := preload("res://tools/dev/test_kit.gd")
 const W := 1280
 const H := 720
@@ -18,6 +18,8 @@ const ROW_H := 270
 const VIEW := Vector3(0.72, 0.0, 0.7) / 1.004
 ## The way every beast faces: 45 degrees off the camera's line (a three-quarter view: the face and the flank).
 const FACE := Vector3(0.0, 0.0, 1.0)
+## BS_SIDE=1: a side view square to the flank instead (for judging legs and gaits).
+var SIDE := OS.get_environment("BS_SIDE") == "1"
 
 var stage
 var out := "res://tools/dev/out/beasts"
@@ -196,6 +198,10 @@ func _frame_it() -> void:
 	var c := box.get_center() if box.size.length() > 0.1 else (beast.global_position as Vector3) + Vector3.UP
 	var dir := VIEW
 	var want := c + dir * (size * 0.95 + 3.5) + Vector3.UP * (size * 0.2 + 1.0)
+	if SIDE:
+		# (square to the flank, low: how the legs read)
+		want = c + FACE.cross(Vector3.UP) * (size * 0.8 + 2.5) + Vector3.UP * 0.2
+
 	cam.global_position = cam.global_position.lerp(want, 0.15) if t > 0.05 else want
 	cam.look_at(c, Vector3.UP)
 	var j: Dictionary = jobs[job]

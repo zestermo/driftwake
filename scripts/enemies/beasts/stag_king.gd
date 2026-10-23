@@ -52,7 +52,7 @@ func _extras() -> void:
 		mb("Neck").add_blob(leaves[k % 2], Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(0, float(spec["chest_r"]) * 0.4 + y, 0.2 - k * 0.1)), Vector3(0.28, 0.16, 0.24), rng, 0.3, 2, 5, 0.6)
 	var hoof := PSXMat.flat(Color(0.8, 0.76, 0.68))
 	for leg in ["FL", "FR", "BL", "BR"]:
-		mb("Knee" + leg).add_cylinder(hoof, Transform3D(Basis(), Vector3(0, -float(spec["hip_h"]) * 0.5 + 0.02, -0.05)), 0.16, 0.13, 0.18, 6, 1.0)
+		mb(foot_part(leg)).add_cylinder(hoof, Transform3D(Basis(), Vector3(0, foot_y(leg) + 0.02, -0.05)), 0.16, 0.13, 0.18, 6, 1.0)
 
 
 func _coat_at(p: Vector3) -> Color:

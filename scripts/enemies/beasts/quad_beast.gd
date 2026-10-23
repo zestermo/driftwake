@@ -108,22 +108,38 @@ func _geometry() -> void:
 	_node("Head", spec["neck"], rig["Neck"])
 	var hd: Vector3 = spec["head"]
 	_node("Jaw", Vector3(0, -hd.y * 0.45, -hd.z * 0.1), rig["Head"])
+	var foot := str(spec.get("foot", "paw"))
+	var plant := foot == "pad"
+	var bend_k: float = float(spec.get("bend", 1.0))
 	for c in [["FL", -1.0, "Chest"], ["FR", 1.0, "Chest"], ["BL", -1.0, "Hips"], ["BR", 1.0, "Hips"]]:
 		var front: bool = c[2] == "Chest"
 		# (a front leg is as long as the shoulders are high; a sprawled one reaches out and down)
 		var lh: float = (hh + lift) if front else hh
-		var up: float = lh * 0.52
-		var lo: float = lh * 0.5
+		# three segments, bent at rest: thigh/upper arm, shin/forearm, the foot's bone (a hock or a pastern); a bear's
+		# (pad) flatter-footed. Their lengths scaled so the foot still reaches the ground.
+		var rest: Array = (LEG_REST_PAD if plant else LEG_REST)["front" if front else "hind"].map(func(a): return float(a) * bend_k)
+		var fr: Array = [0.44, 0.38, 0.14 if plant else 0.24]
+		var reach: float = fr[0] * cos(rest[0]) + fr[1] * cos(rest[0] + rest[1]) + fr[2] * cos(rest[0] + rest[1] + rest[2])
+		var u: float = lh * fr[0] / reach
+		var s: float = lh * fr[1] / reach
+		var m: float = lh * fr[2] / reach
 		var r: float = float(spec["chest_r"] if front else spec["hip_r"]) * 0.62 * (1.0 + sprawl * 0.8)
 		var leg := _node("Leg" + c[0], Vector3(float(c[1]) * r, -0.05, 0), rig[c[2]])
-		leg.rotation.z = float(c[1]) * sprawl * 0.7
-		var knee := _node("Knee" + c[0], Vector3(0, -up, 0), leg)
-		knee.rotation.z = -float(c[1]) * sprawl * 0.9
-		_legs.append([leg, knee, front, float(c[1])])
+		leg.rotation = Vector3(rest[0], 0.0, float(c[1]) * sprawl * 0.7)
+		var knee := _node("Knee" + c[0], Vector3(0, -u, 0), leg)
+		knee.rotation = Vector3(rest[1], 0.0, -float(c[1]) * sprawl * 0.9)
+		var ankle := _node("Ankle" + c[0], Vector3(0, -s, 0), knee)
+		ankle.rotation = Vector3(rest[2], 0.0, float(c[1]) * sprawl * 0.2)
+		_legs.append([leg, knee, front, float(c[1]), ankle, rest])
+		_foot_len[c[0]] = m
 		var thick: float = float(spec["chest_r"] if front else spec["hip_r"]) * 0.36 * float(spec.get("leg_k", 1.0)) * (float(spec.get("front_k", 1.0)) if front else 1.0)
-		mb("Leg" + c[0]).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0.1, 0)), thick * 1.25, thick * 0.8, up + 0.1, 6, 1.0, Color.WHITE, true, true, true)
-		mb("Knee" + c[0]).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI), Vector3.ZERO), thick * 0.8, thick * 0.6, lo - 0.04, 6, 1.0, Color(0.9, 0.9, 0.9), true, true, true)
-		_foot("Knee" + c[0], str(spec.get("foot", "paw")), lo, thick, coat)
+		mb("Leg" + c[0]).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, 0.1, 0)), thick * 1.25, thick * 0.82, u + 0.1, 6, 1.0, Color.WHITE, true, true, true)
+		# the joints: a knee (an elbow up front) and an ankle (a hock behind), rounded so the bend reads
+		mb("Knee" + c[0]).add_blob(coat, Transform3D(), Vector3.ONE * thick * 0.88, _rng_fixed(), 0.05, 3, 6, 1.0, Color(0.95, 0.95, 0.95))
+		mb("Knee" + c[0]).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI), Vector3.ZERO), thick * 0.82, thick * 0.62, s, 6, 1.0, Color(0.9, 0.9, 0.9), true, true, true)
+		mb("Ankle" + c[0]).add_blob(coat, Transform3D(), Vector3.ONE * thick * 0.66, _rng_fixed(), 0.05, 3, 6, 1.0, Color(0.88, 0.88, 0.88))
+		mb("Ankle" + c[0]).add_cylinder(coat, Transform3D(Basis(Vector3.RIGHT, PI), Vector3.ZERO), thick * 0.62, thick * 0.52, m, 6, 1.0, Color(0.86, 0.86, 0.86), true, true, true)
+		_foot("Ankle" + c[0], foot, m, thick, coat)
 	# the torso: a loft from the haunches to the shoulders (the front rings up with the shoulders, fuller with a hump)
 	var cr: float = spec["chest_r"]
 	var hr: float = spec["hip_r"]
@@ -167,8 +183,26 @@ func _geometry() -> void:
 		_paint(_parts[n], coat)
 
 
-## The foot at the end of a lower leg (`lo` long, `thick` its width): a paw (as it was), a bear's broad pad, a hoof,
-## a lizard's splayed claws.
+## A leg's bends at rest (radians; + swings the lower end forward): upper, middle, the foot's bone. A front leg's
+## elbow tucked back over a near-upright forearm and a slight pastern; a hind leg's knee forward, its shin back to a
+## hock, the foot's bone forward again (the zig-zag). A plantigrade bear's (pad) flatter.
+const LEG_REST := {"front": [-0.22, 0.3, 0.12], "hind": [0.42, -0.95, 0.62]}
+const LEG_REST_PAD := {"front": [-0.12, 0.18, 0.0], "hind": [0.28, -0.55, 0.3]}
+## Each leg's last segment's length (FL, FR, BL, BR): its foot hangs that far below its ankle.
+var _foot_len := {}
+
+
+## Where a kind hangs things on a foot (claws, hooves): the leg's ankle part, and the ground's height in its frame.
+func foot_part(leg: String) -> String:
+	return "Ankle" + leg
+
+
+func foot_y(leg: String) -> float:
+	return -float(_foot_len.get(leg, float(spec["hip_h"]) * 0.25))
+
+
+## The foot at the end of a leg's last segment (`lo` long, `thick` its width): a paw (as it was), a bear's broad pad,
+## a hoof, a lizard's splayed claws.
 func _foot(knee: String, kind: String, lo: float, thick: float, coat: Material) -> void:
 	var at := Vector3(0, -lo + thick * 0.4, -thick * 0.5)
 	match kind:
@@ -268,8 +302,13 @@ func _animate(delta: float) -> void:
 		else:
 			swing += crouch * 0.5
 			bend += crouch * 1.1
-		leg.rotation.x = lerp_angle(leg.rotation.x, swing + (crouch * 0.4 if front else -crouch * 0.6), minf(delta * 16.0, 1.0))
-		knee.rotation.x = lerp_angle(knee.rotation.x, (-bend if front else bend), minf(delta * 16.0, 1.0))
+		# (on top of each joint's bend at rest: a lifted foot folds the knee and the ankle the other way, so the foot
+		# swings through clear of the ground and lands flat)
+		var rest: Array = l[5]
+		var ankle: Node3D = l[4]
+		leg.rotation.x = lerp_angle(leg.rotation.x, float(rest[0]) + swing + (crouch * 0.4 if front else -crouch * 0.6), minf(delta * 16.0, 1.0))
+		knee.rotation.x = lerp_angle(knee.rotation.x, float(rest[1]) + (-bend if front else -bend * 0.9), minf(delta * 16.0, 1.0))
+		ankle.rotation.x = lerp_angle(ankle.rotation.x, float(rest[2]) + (bend * 0.5 if front else bend * 0.8), minf(delta * 16.0, 1.0))
 	var head: Node3D = rig["Head"]
 	head.rotation.x = lerp_angle(head.rotation.x, _pose("head"), minf(delta * 10.0, 1.0))
 	(rig["Jaw"] as Node3D).rotation.x = lerp_angle((rig["Jaw"] as Node3D).rotation.x, -_pose("jaw") * 0.65, minf(delta * 16.0, 1.0))

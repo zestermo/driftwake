@@ -67,7 +67,7 @@ func _extras() -> void:
 			mb("Head").add_tube(whisker, PackedVector3Array([w0, w0 + Vector3(s * 0.3, 0.02 - k * 0.04, 0.1), w0 + Vector3(s * 0.55, -0.04 - k * 0.06, 0.25)]), 0.008, 0.004, 3, 1.0)
 	for leg in ["FL", "FR"]:
 		for k in range(3):
-			mb("Knee" + leg).add_cylinder(bone, Transform3D(Basis(Vector3.RIGHT, -1.9), Vector3((k - 1) * 0.07, -float(spec["hip_h"]) * 0.5 + 0.06, -0.2)), 0.025, 0.0, 0.16, 3, 1.0, Color(0.85, 0.82, 0.75), false, false, false)
+			mb(foot_part(leg)).add_cylinder(bone, Transform3D(Basis(Vector3.RIGHT, -1.9), Vector3((k - 1) * 0.07, foot_y(leg) + 0.06, -0.2)), 0.025, 0.0, 0.16, 3, 1.0, Color(0.85, 0.82, 0.75), false, false, false)
 
 
 func _hp_base() -> float:

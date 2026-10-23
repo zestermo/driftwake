@@ -28,7 +28,7 @@ func _spec() -> Dictionary:
 	var c: Array = BEAR_COATS[variant % BEAR_COATS.size()]
 	return {"hip_h": 1.6, "front_h": 1.95, "len": 2.8, "chest_r": 0.95, "hip_r": 0.8, "neck": Vector3(0, -0.15, -0.7), "head": Vector3(0.55, 0.47, 0.55),
 		"snout": 0.42, "tail": 0.32, "tail_r": 0.16, "coat": c[0], "under": c[1], "mark": c[2], "tex": "fur_white", "ears": 0.0,
-		"eye": Color(0.3, 0.75, 1.0), "hump": 1.0, "leg_k": 1.35, "front_k": 1.15, "foot": "pad", "tail_kind": "stub", "gait": "lumber"}
+		"eye": Color(0.3, 0.75, 1.0), "hump": 1.0, "leg_k": 1.25, "front_k": 1.15, "foot": "pad", "tail_kind": "stub", "gait": "lumber", "bend": 1.7}
 
 
 ## A shaggy hump and ruff, a brow, small round ears, a black nose and lip, a fringe of fur under the belly,
@@ -62,10 +62,9 @@ func _extras() -> void:
 	# sickle claws on each pad
 	for leg in ["FL", "FR", "BL", "BR"]:
 		var front: bool = str(leg).begins_with("F")
-		var lo: float = ((hh + lift) if front else hh) * 0.5
-		var thick: float = (cr if front else hr) * 0.36 * 1.35 * (1.15 if front else 1.0)
+		var thick: float = (cr if front else hr) * 0.36 * 1.25 * (1.15 if front else 1.0)
 		for k in range(4):
-			mb("Knee" + leg).add_cylinder(black, Transform3D(Basis(Vector3.RIGHT, -1.75), Vector3((k - 1.5) * thick * 0.42, -lo + thick * 0.22, -thick * 1.75)), thick * 0.1, 0.0, thick * 0.75, 3, 1.0, Color.WHITE, false, false, false)
+			mb(foot_part(leg)).add_cylinder(black, Transform3D(Basis(Vector3.RIGHT, -1.75), Vector3((k - 1.5) * thick * 0.42, foot_y(leg) + thick * 0.22, -thick * 1.75)), thick * 0.1, 0.0, thick * 0.75, 3, 1.0, Color.WHITE, false, false, false)
 
 
 func _coat_at(p: Vector3) -> Color:
