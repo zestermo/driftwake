@@ -199,8 +199,8 @@ static func _crash(s, r: float, base: float) -> void:
 	s._spray(at + Vector3(0, 0.4, 0), Vector3.UP + s._dir * 0.3, 12, 4.5)
 	p.squash(-3.0)
 	CombatManager.apply_hitstop(0.08, [p])
-	CombatManager.apply_camera_kick(0.16, 0.3)
-	CombatManager.apply_camera_shake(0.2)
+	s.player.kick(0.16, 0.3)
+	s.player.shake(0.2)
 
 
 ## The left axe flung round the one you aimed at and hauled in (too heavy: you're hauled to them instead), then
@@ -242,7 +242,7 @@ static func _gallows(s, delta: float) -> void:
 			s._cone(2.6, 0.5, GALLOWS_DAMAGE, 6.0, false, true)
 		Net.fx("sfx", ["chop", p.global_position, -2.0, 0.05, 0.85])
 		CombatManager.apply_hitstop(0.09, [p])
-		CombatManager.apply_camera_kick(0.14, 0.28)
+		s.player.kick(0.14, 0.28)
 
 
 ## Eight chops trading hands every 0.1 s, walking in (each cuts everyone just ahead), then both crossed.
@@ -301,7 +301,7 @@ static func _winter(s, delta: float) -> void:
 		for e in s._victims:
 			if is_instance_valid(e) and (e as Node3D).global_position.distance_to(p.global_position) > HOOK_STAND:
 				hook(p, e, 4.0, HOOK_STAND)
-		CombatManager.apply_camera_kick(0.1, 0.25)
+		s.player.kick(0.1, 0.25)
 	if s._once("swoosh", WINTER_SPIN.x):
 		Net.fx("blade_swoosh", [p.body_model, WINTER_SPIN.y - WINTER_SPIN.x, s._col(), s._col(FX.ACCENT)])
 	if s.t < WINTER_SPIN.y:
@@ -337,8 +337,8 @@ static func _winter(s, delta: float) -> void:
 			Net.fx("debris", [at + Vector3(0, 0.2, 0), Vector3.UP, 12, Color(0.35, 0.3, 0.25), 6.0])
 		p.squash(-5.0)
 		CombatManager.apply_hitstop(0.12, [p])
-		CombatManager.apply_camera_shake(0.42)
-		CombatManager.apply_camera_kick(0.2, 0.4)
+		s.player.shake(0.42)
+		s.player.kick(0.2, 0.4)
 		p.hurtbox.set_deferred("monitorable", true)
 
 
@@ -362,7 +362,7 @@ static func _ravens(s, delta: float) -> void:
 		Projectile.launch(p.get_tree(), "raven_l", body.hand_l.global_position, s._dir, p, 0.0,
 			_model(s, p.offhand_weapon if p.offhand_weapon else p.equipped_weapon))
 		Net.fx("sfx", ["whoosh_big", p.global_position, -4.0, 0.05, 1.1])
-		CombatManager.apply_camera_kick(0.08, 0.2)
+		s.player.kick(0.08, 0.2)
 	if not s._done.has("origin"):
 		return
 	var k: float = (s.t - throw) / Projectile.RAVEN_T
@@ -481,7 +481,7 @@ static func _fling(s, alive: bool) -> void:
 	var p: Player = s.player
 	Net.fx("sfx", ["whoosh_big", p.global_position, -3.0, 0.05, 1.0])
 	p.squash(-2.0)
-	CombatManager.apply_camera_kick(0.14, 0.3)
+	s.player.kick(0.14, 0.3)
 	if not alive:
 		return
 	var e: Node3D = s._target
@@ -548,4 +548,4 @@ static func _circle(s, delta: float) -> void:
 		s._spray(at, -s._dir + Vector3.UP * 0.3, 8 if last else 4, 4.0)
 		CombatManager.apply_hitstop(0.08 if last else 0.04, [p])
 		if last:
-			CombatManager.apply_camera_kick(0.12, 0.25)
+			s.player.kick(0.12, 0.25)

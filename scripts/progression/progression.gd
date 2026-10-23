@@ -224,7 +224,7 @@ func _fallen_at(at: Vector3) -> Node3D:
 
 
 static func is_elite(e: Node) -> bool:
-	return e.is_in_group("bosses") or e.is_in_group("sea_kings") or e.get("captain") == true or e.get("brute") == true
+	return e.is_in_group("bosses") or e.is_in_group("sea_kings") or e.is_in_group("rivals") or e.get("captain") == true or e.get("brute") == true
 
 
 ## The boss a Will is learned from ("" for any other foe): see SkillTrees.WILL.

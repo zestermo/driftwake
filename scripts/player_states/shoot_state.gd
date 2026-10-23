@@ -89,7 +89,7 @@ func _fire(dual: bool) -> void:
 	var wall := space.intersect_ray(wq)
 	if not wall.is_empty():
 		end = wall["position"]
-	var eq := PhysicsRayQueryParameters3D.create(muzzle, end, 32)
+	var eq := PhysicsRayQueryParameters3D.create(muzzle, end, player.foe_mask())
 	eq.collide_with_areas = true
 	eq.collide_with_bodies = false
 	var hit := space.intersect_ray(eq)
@@ -120,7 +120,7 @@ func _fire(dual: bool) -> void:
 	Net.fx("sfx", ["gunshot", muzzle, -5.0, 0.08, 1.25 if dual else 1.15])
 	# (a shake this small lasts one frame: with rapid dual fire it's a hitch, not a kick)
 	if not dual:
-		CombatManager.apply_camera_shake(0.04)
+		player.shake(0.04)
 
 
 ## Ricochet (pistol tree): the ball glances off into the nearest other enemy.

@@ -421,7 +421,7 @@ func _ryuo(target: Node3D) -> void:
 	Net.fx("punch_wind", [at + Vector3.UP * 1.0, Vector3.UP, 0.5, Player.HAKI_TRAIL, true])
 	Net.fx("sparkle", [at + Vector3(0, 1.0, 0), 16, Player.HAKI_SPARK])
 	Net.fx("dust_ring", [at, 12, 1.2])
-	CombatManager.apply_camera_shake(0.16)
+	player.shake(0.16)
 
 
 ## A fruit power just finished: its colors linger on you for a moment.
@@ -558,7 +558,7 @@ func enemies_in(center: Vector3, radius: float) -> Array:
 	sph.radius = radius
 	sq.shape = sph
 	sq.transform = Transform3D(Basis.IDENTITY, center)
-	sq.collision_mask = 32
+	sq.collision_mask = player.foe_mask()
 	sq.collide_with_areas = true
 	sq.collide_with_bodies = false
 	for r in space.intersect_shape(sq, 32):

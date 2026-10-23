@@ -90,7 +90,7 @@ func _physics_process(delta: float) -> void:
 	sph.radius = HIT_RADIUS
 	sq.shape = sph
 	sq.transform = Transform3D(Basis.IDENTITY, to)
-	sq.collision_mask = 32
+	sq.collision_mask = (source as Player).foe_mask() if source is Player else 32
 	sq.collide_with_areas = true
 	sq.collide_with_bodies = false
 	for r in space.intersect_shape(sq, 8):

@@ -59,10 +59,10 @@ func physics_update(delta: float) -> void:
 	if _cooldown > 0.0:
 		_cooldown -= delta
 		return
-	if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("jump"):
+	if player.inp.just_pressed("interact") or player.inp.just_pressed("jump"):
 		transitioned.emit(self, "Idle", {})
 		return
-	if Input.is_action_just_pressed("light_attack") and not player.input_locked:
+	if player.inp.just_pressed("light_attack") and not player.input_locked:
 		if cannon.fire(player):
 			player.body_model.play("hit", 0.25)
 

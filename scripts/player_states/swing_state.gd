@@ -170,7 +170,7 @@ func physics_update(delta: float) -> void:
 	if _rope:
 		_rope.point_to(_hand())
 	# let go
-	if Input.is_action_just_pressed("jump"):
+	if player.inp.just_pressed("jump"):
 		player.velocity.y = maxf(player.velocity.y, 0.0) + 5.0
 		player.jumps_remaining = maxi(player.max_jumps - 1, 0)
 		# (the fall keeps the swing's speed, as a jump keeps a run's: steering doesn't cap it at a walk)

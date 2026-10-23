@@ -59,7 +59,7 @@ func physics_update(delta: float) -> void:
 	if _cool > 0.0:
 		_cool -= delta
 		return
-	if get_movement_input().length() > 0.3 or Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("interact") \
+	if get_movement_input().length() > 0.3 or player.inp.just_pressed("jump") or player.inp.just_pressed("interact") \
 			or input_buffer.has_action("dodge") or input_buffer.has_action("light_attack") or input_buffer.has_action("heavy_attack"):
 		transitioned.emit(self, "Idle", {})
 

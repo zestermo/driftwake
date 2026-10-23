@@ -56,19 +56,14 @@ func _ready() -> void:
 
 
 func get_movement_input() -> Vector2:
-	return Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	return player.inp.stick()
 
 
+## The stick in the world, measured from the captain's view (the camera rig's yaw; a brain's own).
 func get_camera_relative_direction(input: Vector2) -> Vector3:
-	var camera := player.get_viewport().get_camera_3d()
-	if not camera:
+	var yaw := player.inp.view_yaw(player)
+	if is_nan(yaw):
 		return Vector3.ZERO
-
-	# Use the CameraRig's Y rotation to derive forward/right on XZ plane
-	# CameraRig is Camera3D -> SpringArm3D -> CameraRig
-	var rig := camera.get_parent().get_parent() as Node3D
-	var yaw := rig.global_rotation.y
-
 	# In Godot, rotation.y = 0 means facing -Z. So forward = -Z direction rotated by yaw.
 	var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
 	var right := Vector3(cos(yaw), 0.0, -sin(yaw))
@@ -77,11 +72,9 @@ func get_camera_relative_direction(input: Vector2) -> Vector3:
 
 
 func get_camera_forward() -> Vector3:
-	var camera := player.get_viewport().get_camera_3d()
-	if not camera:
+	var yaw := player.inp.view_yaw(player)
+	if is_nan(yaw):
 		return -player.player_model.global_basis.z
-	var rig := camera.get_parent().get_parent() as Node3D
-	var yaw := rig.global_rotation.y
 	return Vector3(-sin(yaw), 0.0, -cos(yaw))
 
 
@@ -91,7 +84,7 @@ func apply_gravity(delta: float) -> void:
 		if player.velocity.y < 0.0:
 			g *= player.fall_gravity_mult
 			player.variable_jump_active = false
-		elif player.variable_jump_active and not Input.is_action_pressed("jump"):
+		elif player.variable_jump_active and not player.inp.pressed("jump"):
 			g *= player.short_hop_gravity_mult  # let go early = shorter hop
 		player.velocity.y -= g * delta
 		player.velocity.y = maxf(player.velocity.y, -Player.MAX_FALL_SPEED)
@@ -221,7 +214,7 @@ func face_direction(direction: Vector3, delta: float) -> void:
 func wants_jump() -> bool:
 	if player.is_using_item():
 		return false
-	return Input.is_action_just_pressed("jump") or player.consume_jump_buffer()
+	return player.inp.just_pressed("jump") or player.consume_jump_buffer()
 
 
 ## Horizontal air speed keeps your running momentum.

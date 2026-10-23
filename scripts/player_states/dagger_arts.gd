@@ -155,7 +155,7 @@ static func _cutthroat(s) -> void:
 	Net.fx("streak", [at - s._dir.cross(Vector3.UP) * 0.6, at + s._dir.cross(Vector3.UP) * 0.6, s._col(), 0.06, 0.25])
 	s._spray(at, s._dir + Vector3.UP * 0.4, 10, 3.0)
 	Net.fx("sfx", ["parry", p.global_position, -8.0, 0.05, 1.9])
-	CombatManager.apply_camera_kick(0.16, 0.3)
+	s.player.kick(0.16, 0.3)
 
 
 ## Knife Fan: five knives flicked out across a fan; everyone in it is cut and bleeds.
@@ -184,7 +184,7 @@ static func _fan(s) -> void:
 	Net.fx("ring", [from, s._dir, 1.0, s._col(), 0.18, 0.12])
 	s._spray(from, s._dir, 8, 4.0)
 	Net.fx("sfx", ["whoosh", from, -3.0, 0.05, 1.7])
-	CombatManager.apply_camera_kick(0.1, 0.2)
+	s.player.kick(0.1, 0.2)
 	p.squash(-1.5)
 
 
@@ -259,7 +259,7 @@ static func _eclipse(s, delta: float) -> void:
 					Net.fx("shadow_wisps", [at + Vector3(0, 1.0, 0), Vector3.UP, 14, s._col(), 3.0])
 		Net.fx("ring", [p.global_position, Vector3.UP, 9.0, s._col(), 0.6, 0.06])
 		Net.fx("sfx", ["whoosh_big", p.global_position, 3.0, 0.05, 0.7])
-		CombatManager.apply_camera_shake(0.4)
+		s.player.shake(0.4)
 		CombatManager.apply_hitstop(0.1, [p])
 		s._moment(0.3, 0.35, 0.7, 0.4)
 
@@ -291,7 +291,7 @@ static func _viper(s, delta: float) -> void:
 		Net.fx("ring", [s._chest() + s._dir * 1.2, s._dir, 1.4, s._col(), 0.22, 0.16])
 		s._spray(s._chest() + s._dir * 1.0, s._dir + Vector3.UP * 0.3, 10, 4.0)
 		Net.fx("sfx", ["whoosh_big", p.global_position, -4.0, 0.05, 1.4])
-		CombatManager.apply_camera_kick(0.18, 0.3)
+		s.player.kick(0.18, 0.3)
 		p.squash(-2.0)
 
 
@@ -320,8 +320,8 @@ static func _scissor_land(s) -> void:
 	s._spray(at + Vector3(0, 0.8, 0), s._dir + Vector3.UP * 0.3, 10, 3.5)
 	Net.fx("sfx", ["thud", p.global_position, -2.0, 0.05, 1.1])
 	Net.fx("sfx", ["parry", p.global_position, -8.0, 0.05, 1.6])
-	CombatManager.apply_camera_shake(0.16)
-	CombatManager.apply_camera_kick(0.16, 0.3)
+	s.player.shake(0.16)
+	s.player.kick(0.16, 0.3)
 	p.squash(-3.5)
 
 
@@ -335,7 +335,7 @@ static func _whet(s) -> void:
 	Net.fx("sparkle", [s._chest(), 12, s._col()])
 	s._spray(s._chest(), Vector3.UP, 12, 2.5)
 	Net.fx("sfx", ["parry", p.global_position, -6.0, 0.0, 2.1])
-	CombatManager.apply_camera_kick(0.1, 0.25)
+	s.player.kick(0.1, 0.25)
 
 
 ## Hundred Fangs: blink after blink round the one you picked, the path drawing a
@@ -380,6 +380,6 @@ static func _fangs(s, delta: float) -> void:
 		Net.fx("ring", [c + Vector3(0, 1.0, 0), Vector3.UP, 5.0, s._col(FX.ACCENT) if s._elem() else s._col(FX.CORE), 0.4, 0.06])
 		s._spray(c + Vector3(0, 1.0, 0), Vector3.UP, 20, 4.0)
 		Net.fx("sfx", ["parry", p.global_position, 0.0, 0.0, 1.4])
-		CombatManager.apply_camera_shake(0.35)
+		s.player.shake(0.35)
 		CombatManager.apply_hitstop(0.1, [p])
 		s._moment(0.3, 0.35, 0.7, 0.45)

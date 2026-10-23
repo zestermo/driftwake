@@ -66,7 +66,7 @@ static func fire(p, dir: Vector3, base: float, kind: String, opts: Dictionary = 
 	var wall := space.intersect_ray(wq)
 	if not wall.is_empty():
 		end = wall["position"]
-	var eq := PhysicsRayQueryParameters3D.create(from, end, 32)
+	var eq := PhysicsRayQueryParameters3D.create(from, end, p.foe_mask())
 	eq.collide_with_areas = true
 	eq.collide_with_bodies = false
 	# (the ray stops at the first hurtbox: our own would swallow a shot fired across our body)

@@ -120,7 +120,7 @@ func _moon_fx() -> void:
 	Net.fx("streak", [at, at - Vector3(0, 2.2, 0), Color(1.0, 0.98, 0.9), 0.14, 0.25])
 	Net.fx("sfx", ["jump", at, -5.0, 0.05, 0.75])
 	Net.fx("sfx", ["thud", at, -10.0, 0.05, 1.2])
-	CombatManager.apply_camera_shake(0.08)
+	player.shake(0.08)
 
 
 func physics_update(delta: float) -> void:
@@ -157,7 +157,7 @@ func physics_update(delta: float) -> void:
 		return
 
 	# Double jump
-	if Input.is_action_just_pressed("jump") and player.jumps_remaining > 0:
+	if player.inp.just_pressed("jump") and player.jumps_remaining > 0:
 		player.freefall_from = now_s()
 		_launch(true)
 		return

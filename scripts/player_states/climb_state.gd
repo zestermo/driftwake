@@ -170,13 +170,13 @@ func _hang(delta: float) -> void:
 	var h := player.body_model
 	h.climbing = true
 	h.climb_hold = "l" if player.armed else ""
-	if Input.is_action_just_pressed("jump"):
+	if player.inp.just_pressed("jump"):
 		_jump_off()
 		return
-	if Input.is_action_just_pressed("interact"):
+	if player.inp.just_pressed("interact"):
 		_let_go(0.8)
 		return
-	if Input.is_action_just_pressed("ready_weapon"):
+	if player.inp.just_pressed("ready_weapon"):
 		if player.armed:
 			player.sheathe_weapon()
 		elif _one_handed():
@@ -196,7 +196,7 @@ func _hang(delta: float) -> void:
 	var mv := -get_movement_input().y
 	if _chop_t >= 0.0:
 		mv = 0.0
-	var k := ARMED_MULT if player.armed else (HURRY if Input.is_action_pressed("sprint") else 1.0)
+	var k := ARMED_MULT if player.armed else (HURRY if player.inp.pressed("sprint") else 1.0)
 	k *= 1.0 + player.progression.stat("climb_pct")
 	if mv > 0.1:
 		s += mv * (LADDER_UP if _lad else RIG_UP) * k * delta

@@ -118,13 +118,13 @@ func physics_update(delta: float) -> void:
 		_landed = true
 		Net.fx("sfx", ["thud", hips, -2.0, 0.1, 0.85])
 		Net.fx("heavy_dust", [Vector3(hips.x, player.global_position.y, hips.z), 12, 0.8])
-		get_node("/root/CombatManager").apply_camera_shake(0.12)
+		player.shake(0.12)
 		if tumble:
 			player.tumble_landed(-_prev_vy)
 	_prev_vy = vy
 	if dead:
 		return
-	if not _landed and timer > 0.15 and Input.is_action_just_pressed("jump") and _recover():
+	if not _landed and timer > 0.15 and player.inp.just_pressed("jump") and _recover():
 		return
 	if tumble and not _landed:
 		return

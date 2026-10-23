@@ -38,7 +38,7 @@ func physics_update(delta: float) -> void:
 		parry_active = false
 		player.is_parrying = false
 		# still holding parry: settle into a block
-		if not parry_succeeded and Input.is_action_pressed("parry"):
+		if not parry_succeeded and player.inp.pressed("parry"):
 			transitioned.emit(self, "Block", {})
 			return
 
@@ -81,7 +81,7 @@ func _on_hit_during_parry(_hit_data: HitData, attacker: Node) -> void:
 		Net.fx("sfx", ["parry", at, -6.0, 0.06, 1.0])
 		var combat_mgr := get_node("/root/CombatManager")
 		combat_mgr.apply_hitstop(0.1, [player, attacker])
-		combat_mgr.apply_camera_shake(0.15)
+		player.shake(0.15)
 		if not _hit_data.ranged:
 			TraitMoves.on_parry(player, attacker)
 			# (twin axes: the beards hook their weapon and haul them in a step, reeling)
@@ -112,7 +112,7 @@ func _perfect(attacker: Node, at: Vector3, to_att: Vector3) -> void:
 	Net.fx("float_text", [at + Vector3.UP * 0.6, {"disarm": "Disarmed!", "shove": "Shoved!"}.get(how, "Perfect!"), Color(1.0, 0.95, 0.75)])
 	Net.fx("sfx", ["parry", at, -3.0, 0.04, 1.3])
 	CombatManager.apply_hitstop(0.06, [player])
-	CombatManager.apply_camera_kick(0.12, 0.25)
+	player.kick(0.12, 0.25)
 	if how == "disarm":
 		player.body_model.play("parry_disarm", ActionSpecs.length("parry_disarm"))
 	elif how == "shove":

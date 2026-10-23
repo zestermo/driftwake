@@ -12,7 +12,7 @@ func physics_update(delta: float) -> void:
 
 	var direction := get_camera_relative_direction(input)
 	var was_sprinting := player.sprinting
-	player.sprinting = Input.is_action_pressed("sprint") and not player.is_using_item() and player.can_sprint()
+	player.sprinting = player.inp.pressed("sprint") and not player.is_using_item() and player.can_sprint()
 	if player.sprinting:
 		player.drain_sprint(delta)
 		if not was_sprinting:

@@ -72,7 +72,7 @@ func physics_update(delta: float) -> void:
 	if input.length() > 0.1:
 		face_direction(get_camera_relative_direction(input), delta)
 	var held := now_s() - _from
-	if not Input.is_action_pressed("jump"):
+	if not player.inp.pressed("jump"):
 		if held < TAP:
 			transitioned.emit(self, "Jump", {"full": true})
 		else:
@@ -127,7 +127,7 @@ func _launch(k: float) -> void:
 	Net.fx("streak", [at + Vector3(0, 0.3, 0), at + Vector3(0, 3.0 + 4.0 * k, 0) + h * 0.15, Color(1.0, 0.95, 0.88), 0.18, 0.35])
 	Net.fx("sfx", ["thud", at, -4.0, 0.05, 0.75])
 	Net.fx("sfx", ["whoosh_big", at, -6.0, 0.05, 0.8])
-	CombatManager.apply_camera_shake(0.12 + 0.18 * k)
+	player.shake(0.12 + 0.18 * k)
 
 
 func _rise(delta: float) -> void:
@@ -157,4 +157,4 @@ func crater(speed: float) -> void:
 			Net.fx("ground_crack", [at, Vector3(cos(a), 0.0, sin(a)), 1.6 + 1.4 * k, Color(0, 0, 0, 0), s + i, 0.12])
 	Net.fx("sfx", ["rock_crash", at, -5.0, 0.06, 1.1])
 	Net.fx("sfx", ["thud", at, -2.0, 0.05, 0.7])
-	CombatManager.apply_camera_shake(0.2 + 0.2 * k)
+	player.shake(0.2 + 0.2 * k)

@@ -48,7 +48,7 @@ func physics_update(delta: float) -> void:
 	player.move_and_slide()
 	face_camera(delta)
 	player.body_model.ground_speed = Vector2(player.velocity.x, player.velocity.z).length()
-	if not Input.is_action_pressed("parry"):
+	if not player.inp.pressed("parry"):
 		transitioned.emit(self, "Idle" if mi.length() < 0.1 else "Move", {})
 		return
 	if player.progression.has_flag("rolling_guard"):
@@ -93,7 +93,7 @@ func _roll_update(delta: float) -> void:
 	if _roll_t < ROLL_DUR:
 		return
 	_roll_t = -1.0
-	if not Input.is_action_pressed("parry"):
+	if not player.inp.pressed("parry"):
 		transitioned.emit(self, "Idle" if get_movement_input().length() < 0.1 else "Move", {})
 		return
 	player.body_model.hold("guard_block")
@@ -123,7 +123,7 @@ func absorb(hit: HitData, dir: Vector3) -> bool:
 	Net.fx("sparkle", [at, 5, Color(1.0, 0.9, 0.55)])
 	CombatManager.guard(hit, player.armed and player.weapon_class() == "sword", at, -2.0, 0.08, 1.0)
 	CombatManager.apply_hitstop(0.04, [player])
-	CombatManager.apply_camera_shake(0.06)
+	player.shake(0.06)
 	if rolling():
 		return true
 	player.body_model.play("guard_block_hit", 0.2)

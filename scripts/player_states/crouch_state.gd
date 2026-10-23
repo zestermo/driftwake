@@ -35,7 +35,7 @@ func physics_update(delta: float) -> void:
 	if not player.is_on_floor():
 		transitioned.emit(self, "Fall", {})
 		return
-	if input.length() > 0.1 and Input.is_action_pressed("sprint") and player.can_sprint():
+	if input.length() > 0.1 and player.inp.pressed("sprint") and player.can_sprint():
 		transitioned.emit(self, "Move", {})
 		return
 	if wants_jump():

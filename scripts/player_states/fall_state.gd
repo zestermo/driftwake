@@ -58,7 +58,7 @@ func physics_update(delta: float) -> void:
 	if not player.can_coyote_jump() and player.jumps_remaining == player.max_jumps:
 		player.jumps_remaining -= 1
 
-	if Input.is_action_just_pressed("jump"):
+	if player.inp.just_pressed("jump"):
 		if player.can_coyote_jump():
 			transitioned.emit(self, "Jump", {"coyote": true})
 			return
@@ -101,7 +101,7 @@ func crash(speed: float) -> void:
 			Net.fx("ground_crack", [fist, Vector3(cos(a), 0.0, sin(a)), 1.0 + 1.2 * k, Color(0, 0, 0, 0), s + i, 0.1])
 	Net.fx("sfx", ["rock_crash", at, -6.0 + 3.0 * k, 0.06, 1.2])
 	Net.fx("sfx", ["thud", at, -3.0, 0.05, 0.8])
-	CombatManager.apply_camera_shake(0.16 + 0.16 * k)
+	player.shake(0.16 + 0.16 * k)
 	var wave := HitData.new()
 	wave.damage = lerpf(CRASH_DAMAGE, CRASH_DAMAGE_MAX, k) * player.damage_multiplier()
 	wave.knockdown = true
@@ -115,7 +115,7 @@ func crash(speed: float) -> void:
 	sph.radius = r
 	q.shape = sph
 	q.transform = Transform3D(Basis.IDENTITY, at + Vector3(0, 0.6, 0))
-	q.collision_mask = 32
+	q.collision_mask = player.foe_mask()
 	q.collide_with_areas = true
 	q.collide_with_bodies = false
 	var struck: Array = []

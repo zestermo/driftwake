@@ -189,7 +189,7 @@ func physics_update(delta: float) -> void:
 	elif player.stamina >= RECOVER:
 		_exhausted = false
 	var tired := _exhausted
-	var fast := Input.is_action_pressed("sprint") and not tired and dir != Vector3.ZERO
+	var fast := player.inp.pressed("sprint") and not tired and dir != Vector3.ZERO
 	var spd := TIRED_SPEED if tired else (FAST_SPEED if fast else SWIM_SPEED)
 	if _diving:
 		spd = DOLPHIN_SPEED if fast else DIVE_SPEED
@@ -224,7 +224,7 @@ func physics_update(delta: float) -> void:
 	hv = hv.move_toward(dir * spd, ACCEL * delta)
 	_dash_cd -= delta
 	# a tap of Shift: a burst of strokes (on top, or a dolphin kick under), then on at a sprint while it's held
-	if Input.is_action_just_pressed("sprint") and dir != Vector3.ZERO and not tired and _dash_cd <= 0.0 and _leap_t < 0.0 \
+	if player.inp.just_pressed("sprint") and dir != Vector3.ZERO and not tired and _dash_cd <= 0.0 and _leap_t < 0.0 \
 			and player.spend_stamina(DASH_COST):
 		_dash_t = DASH_TIME
 		_dash_cd = DASH_CD
@@ -241,7 +241,7 @@ func physics_update(delta: float) -> void:
 	_sea(delta)
 
 	# duck dive (Ctrl), then free under water until you come back up through the surface
-	if not _diving and Input.is_action_just_pressed("dodge") and not tired and player.spend_stamina(DIVE_COST):
+	if not _diving and player.inp.just_pressed("dodge") and not tired and player.spend_stamina(DIVE_COST):
 		_diving = true
 		_dive_t = 0.0
 		_vy = -DIVE_KICK
@@ -253,9 +253,9 @@ func physics_update(delta: float) -> void:
 		var want := DRIFT_UP
 		if tired:
 			want = ASCEND * 0.6
-		elif Input.is_action_pressed("jump"):
+		elif player.inp.pressed("jump"):
 			want = ASCEND
-		elif Input.is_action_pressed("dodge"):
+		elif player.inp.pressed("dodge"):
 			want = -DESCEND
 		_vy = move_toward(_vy, want, DIVE_VACCEL * delta)
 		if _dive_t > DIVE_MIN and want > 0.0 and player.global_position.y >= _float_y(false) - 0.08:
@@ -336,7 +336,7 @@ func physics_update(delta: float) -> void:
 
 	# a ladder you swim into takes you (you grab hold), as does Space by one
 	var ladder := _ladder_in_reach()
-	if ladder and (Input.is_action_just_pressed("jump") or _toward(ladder.global_position, dir)):
+	if ladder and (player.inp.just_pressed("jump") or _toward(ladder.global_position, dir)):
 		_show_climb("")
 		player.start_climb({"kind": "ladder", "ladder": ladder})
 		return
@@ -346,7 +346,7 @@ func physics_update(delta: float) -> void:
 		_ledge_t = 0.15
 		_ledge = _find_ledge()
 		_show_climb(Glyphs.hint("jump", "climb out") if not _ledge.is_empty() else "")
-	if Input.is_action_just_pressed("jump"):
+	if player.inp.just_pressed("jump"):
 		var now := _find_ledge()
 		if not now.is_empty() or not _ledge.is_empty():
 			_show_climb("")
@@ -414,7 +414,7 @@ func _sink_update(delta: float, dir: Vector3) -> void:
 		transitioned.emit(self, "Move" if dir != Vector3.ZERO else "Idle", {})
 		return
 	# a ladder can still save you
-	if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("interact"):
+	if player.inp.just_pressed("jump") or player.inp.just_pressed("interact"):
 		var ladder := _ladder_in_reach()
 		if ladder:
 			player.start_climb({"kind": "ladder", "ladder": ladder})
@@ -484,7 +484,7 @@ func _update_breath(delta: float, fast: bool) -> void:
 	if _gasp_t <= 0.0:
 		_gasp_t = GASP_TICK
 		player.health_component.take_damage(player.health_component.max_health * GASP_DPS * GASP_TICK)
-		CombatManager.apply_camera_shake(0.05)
+		player.shake(0.05)
 
 
 ## The sea pushing back: a rip's pull, the surf shoving you in on each breaking crest (with its current
@@ -514,7 +514,7 @@ func _sea(delta: float) -> void:
 		var at := _surface_point()
 		Net.fx("splash", [at + Vector3(0, 0.4, 0), 9, 0.8])
 		Net.fx("sfx", ["wave_break", at, -6.0, 0.1, 1.1])
-		CombatManager.apply_camera_shake(0.06)
+		player.shake(0.06)
 	_crest = crest
 
 

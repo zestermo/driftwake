@@ -415,7 +415,7 @@ func _land() -> void:
 	Net.fx("dust_ring", [at, 18, 1.0])
 	Net.fx("impact", [at + Vector3(0, 0.2, 0), Color(1.0, 0.9, 0.6)])
 	Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.8])
-	get_node("/root/CombatManager").apply_camera_shake(0.2)
+	player.shake(0.2)
 	# shockwave: everything close gets a smaller hit and a shove
 	var wave := HitData.new()
 	wave.damage = 8.0 * player.damage_multiplier()
@@ -445,8 +445,8 @@ func _moon_land() -> void:
 	Net.fx("puff_ring", [start + f * MOON_LINE * 0.6, "dust_low", 5, 0.4, 0.9, 0.7, Color.WHITE, 4.0])
 	Net.fx("sfx", ["thud", start, -2.0, 0.05, 1.0])
 	Net.fx("sfx", ["whoosh_big", start + f * 2.0, -4.0, 0.05, 1.3])
-	CombatManager.apply_camera_shake(0.22)
-	CombatManager.apply_camera_kick(0.16, 0.3)
+	player.shake(0.22)
+	player.kick(0.16, 0.3)
 	var wave := player.melee_hit(MOON_LAND_DAMAGE)
 	wave.knockdown = true
 	wave.sever = true
@@ -460,7 +460,7 @@ func _moon_land() -> void:
 	box.size = Vector3(MOON_LINE_W * 2.0, 1.8, MOON_LINE)
 	q.shape = box
 	q.transform = Transform3D(Basis.looking_at(f, Vector3.UP), start + f * (MOON_LINE * 0.5) + Vector3(0, 0.8, 0))
-	q.collision_mask = 32
+	q.collision_mask = player.foe_mask()
 	q.collide_with_areas = true
 	q.collide_with_bodies = false
 	for r in player.get_world_3d().direct_space_state.intersect_shape(q, 16):
@@ -487,8 +487,8 @@ func _spear_land() -> void:
 		Net.fx("bolt", [at + Vector3(0.3, 7.0, -0.2), at, FX.tree_col("polearm", FX.EDGE), 0.14, 0.3, randi() % 1000])
 		Net.fx("element", ["polearm", at + Vector3(0, 0.3, 0), Vector3.UP, 12, 5.0])
 		Net.fx("sfx", ["jelly_zap", at, -2.0, 0.05, 0.7])
-	CombatManager.apply_camera_shake(0.26)
-	CombatManager.apply_camera_kick(0.14, 0.3)
+	player.shake(0.26)
+	player.kick(0.14, 0.3)
 	var wave := HitData.new()
 	wave.damage = SPEAR_LAND_DAMAGE * player.damage_multiplier()
 	wave.knockdown = true
@@ -518,8 +518,8 @@ func _saw_land() -> void:
 	Net.fx("sfx", ["chop", at, 0.0, 0.05, 0.75])
 	if elem:
 		Net.fx("element", ["dual_axe", at + Vector3(0, 0.3, 0), Vector3.UP, 12, 4.5])
-	CombatManager.apply_camera_shake(0.24)
-	CombatManager.apply_camera_kick(0.14, 0.3)
+	player.shake(0.24)
+	player.kick(0.14, 0.3)
 	var wave := HitData.new()
 	wave.damage = SAW_LAND_DAMAGE * player.damage_multiplier()
 	wave.knockdown = true
@@ -546,7 +546,7 @@ func _burst(at: Vector3, r: float, hit: HitData, already: Array) -> void:
 	sph.radius = r
 	q.shape = sph
 	q.transform = Transform3D(Basis.IDENTITY, at + Vector3(0, 0.6, 0))
-	q.collision_mask = 32
+	q.collision_mask = player.foe_mask()
 	q.collide_with_areas = true
 	q.collide_with_bodies = false
 	for res in player.get_world_3d().direct_space_state.intersect_shape(q, 16):
@@ -591,8 +591,8 @@ func _split_ground() -> void:
 	Net.fx("impact", [start + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
 	Net.fx("sfx", ["thud", start, 2.0, 0.05, 0.7])
 	Net.fx("sfx", ["crunch", start + f * 2.0, -2.0, 0.05, 0.6])
-	CombatManager.apply_camera_shake(0.3)
-	CombatManager.apply_camera_kick(0.18, 0.3)
+	player.shake(0.3)
+	player.kick(0.18, 0.3)
 	var wave := player.melee_hit(AXE_LINE_DAMAGE)
 	wave.knockdown = true
 	wave.knockback_force = 9.0
@@ -605,7 +605,7 @@ func _split_ground() -> void:
 	box.size = Vector3(AXE_LINE_W, 1.8, AXE_LINE)
 	q.shape = box
 	q.transform = Transform3D(Basis.looking_at(f, Vector3.UP), start + f * (AXE_LINE * 0.5) + Vector3(0, 0.8, 0))
-	q.collision_mask = 32
+	q.collision_mask = player.foe_mask()
 	q.collide_with_areas = true
 	q.collide_with_bodies = false
 	for r in player.get_world_3d().direct_space_state.intersect_shape(q, 16):
@@ -691,7 +691,7 @@ func _rain_blast() -> void:
 		Net.fx("tracer", [muzzles[0], hb.global_position])
 		Net.fx("impact", [hb.global_position, Color(1.0, 0.75, 0.45)])
 	player.squash(-2.5)
-	CombatManager.apply_camera_shake(0.14)
+	player.shake(0.14)
 
 
 func _slash_update(delta: float) -> void:
@@ -809,7 +809,7 @@ func _cyclone_update(delta: float) -> void:
 		Net.fx("impact", [at + Vector3(0, 0.5, 0), _look("dual", FX.CORE)])
 		Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.9])
 		Net.fx("sfx", ["parry", at, -8.0, 0.05, 1.2])
-		CombatManager.apply_camera_shake(0.22)
+		player.shake(0.22)
 		var wave := player.melee_hit(CYCLONE_LAND_DAMAGE)
 		wave.knockdown = true
 		wave.knockback_force = 8.0
@@ -909,7 +909,7 @@ func _dive_hit(hb: Hurtbox, kick: bool, tree: String) -> void:
 		else:
 			Net.fx("element", [tree, at, _line + Vector3.UP * 0.3, 12, 6.0])
 	Net.fx("sfx", ["hit", at, 0.0, 0.05, 0.65 if kick else 0.85])
-	CombatManager.apply_camera_kick(0.2, 0.25)
+	player.kick(0.2, 0.25)
 	if kick:
 		player.air_uses["bounce"] = int(player.air_uses.get("bounce", 0)) + 1
 	var back := Vector3(_line.x, 0.0, _line.z).normalized()
@@ -928,7 +928,7 @@ func _dive_land(kick: bool, tree: String) -> void:
 	player.squash(-4.0)
 	Net.fx("dust_ring", [at, 16 if kick else 12, 1.0])
 	Net.fx("sfx", ["thud", at, 0.0 if kick else -3.0, 0.05, 0.8])
-	CombatManager.apply_camera_shake(0.18 if kick else 0.12)
+	player.shake(0.18 if kick else 0.12)
 	if kick:
 		# the fist into the ground: a small shockwave
 		player.body_model.play("fs_meteor_land", 0.44)
@@ -1009,7 +1009,7 @@ func _throw_knives() -> void:
 	Net.fx("sfx", ["whoosh", from, -4.0, 0.06, 1.6])
 	player.velocity = Vector3(player.velocity.x, 2.5, player.velocity.z) - _dir * 1.5
 	player.squash(-2.0)
-	CombatManager.apply_camera_kick(0.12, 0.25)
+	player.kick(0.12, 0.25)
 
 
 ## Hang Shot: hang drawing a bead, one heavy ball at the reticle, the recoil
@@ -1068,7 +1068,7 @@ func _hang_fire() -> void:
 	var wall := space.intersect_ray(wq)
 	if not wall.is_empty():
 		end = wall["position"]
-	var eq := PhysicsRayQueryParameters3D.create(muzzle, end, 32)
+	var eq := PhysicsRayQueryParameters3D.create(muzzle, end, player.foe_mask())
 	eq.collide_with_areas = true
 	eq.collide_with_bodies = false
 	var hit := space.intersect_ray(eq)
@@ -1098,7 +1098,7 @@ func _hang_fire() -> void:
 	if player.progression.elemental("pistol"):
 		Net.fx("sparkle", [muzzle + dir * 0.4, 10, _look("pistol", FX.ACCENT)])
 	Net.fx("sfx", ["gunshot", muzzle, 0.0, 0.05, 0.85])
-	CombatManager.apply_camera_shake(0.16)
+	player.shake(0.16)
 	var back := Vector3(dir.x, 0.0, dir.z).normalized()
 	player.velocity = -back * HANGSHOT_RECOIL.x + Vector3.UP * HANGSHOT_RECOIL.y
 	player.squash(-2.0)
@@ -1128,7 +1128,7 @@ func _drop_update(delta: float) -> void:
 					if hit_e:
 						_struck.append(hit_e)
 					player.velocity.y = 3.0
-					CombatManager.apply_camera_shake(0.08)
+					player.shake(0.08)
 				else:
 					Net.fx("sfx", ["blip_low", from, -10.0, 0.05, 1.5])
 			if timer >= DROP_GO:
@@ -1185,8 +1185,8 @@ func _drop_land() -> void:
 	if player.progression.elemental("corsair", 2):
 		Net.fx("powder_burst", [at + Vector3(0, 0.3, 0), Vector3.UP, 1.4, FX.tree_col("corsair", FX.EDGE)])
 	Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.85])
-	CombatManager.apply_camera_shake(0.2)
-	CombatManager.apply_camera_kick(0.14, 0.25)
+	player.shake(0.2)
+	player.kick(0.14, 0.25)
 	var wave := player.melee_hit(DROP_LAND_DAMAGE)
 	wave.knockdown = true
 	wave.knockback_force = 8.0

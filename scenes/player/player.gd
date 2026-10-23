@@ -185,6 +185,36 @@ const FREE_STATES := ["Idle", "Move", "Jump", "Fall"]
 ## Co-op. false on the other players' captains here (puppets): no brain,
 ## no input - they play back their owner's snapshots (see Net).
 var is_local: bool = true
+## Where this captain's held input comes from: the keyboard/pad and camera, or a brain's (CaptainInput.BrainInput).
+var inp: CaptainInput = CaptainInput.new()
+## A captain-style AI (a rival, an Admiralty officer): the full brain and states, fed by a brain instead of the
+## keyboard; none of the local captain's camera, HUD or saves (docs/v1_19_plan.md "Build notes").
+var is_ai: bool = false
+## How far an AI captain's camera shake reaches (full at the camera, none past this).
+const AI_SHAKE_R := 14.0
+
+
+## Camera shake from this captain's moves: the local captain's in full, an AI's fading with its distance.
+func shake(intensity: float, duration: float = 0.2) -> void:
+	if is_ai:
+		var cam := get_viewport().get_camera_3d()
+		if cam == null:
+			return
+		intensity *= 0.6 * clampf(1.0 - cam.global_position.distance_to(global_position) / AI_SHAKE_R, 0.0, 1.0)
+		if intensity <= 0.01:
+			return
+	CombatManager.apply_camera_shake(intensity, duration)
+
+
+## The hurtboxes this captain's blows and shots look for: the enemies' (32), or for an AI captain the players' (128).
+func foe_mask() -> int:
+	return 128 if is_ai else 32
+
+
+## The camera punching in on this captain's move: the local captain's only.
+func kick(amount: float, secs: float = 0.5) -> void:
+	if not is_ai:
+		CombatManager.apply_camera_kick(amount, secs)
 ## The peer that controls this captain.
 var net_id: int = 1
 ## Puppets: what the owner told us when joining (name, look).
@@ -249,6 +279,9 @@ func _ready() -> void:
 	add_child(fish_rod)
 	if not is_local:
 		_setup_puppet()
+		return
+	if is_ai:
+		_setup_ai()
 		return
 	_build_body()
 	_give_starting_items()
@@ -380,14 +413,16 @@ func refresh_look() -> void:
 	if body_model == null:
 		return
 	var lk := Gear.compose(appearance, equipment.slots, equipment.hidden)
-	lk["log_pose"] = has_log_pose()
+	lk["log_pose"] = has_log_pose() and not is_ai
 	body_model.apply_look(lk)
-	CharacterLook.save_look(body_model.look)
+	if not is_ai:
+		CharacterLook.save_look(body_model.look)
 	if hybrid:
 		hybrid = false
 		set_hybrid(true)
 	_recalc_stats()
-	_net_look()
+	if not is_ai:
+		_net_look()
 
 
 ## Wear the gear at a bag position; whatever it replaces takes its place.
@@ -502,7 +537,7 @@ func _on_hit_received(hit: HitData, attacker: Node) -> void:
 	if health_component.current_health <= 0.0 or current_state_name() == "Downed" or vanished():
 		return
 	# captains only hurt each other in a duel, and lightly
-	if attacker and attacker != self and attacker.is_in_group("players"):
+	if attacker and attacker != self and attacker.is_in_group("players") and not is_ai:
 		if not Duel.foes(self, attacker):
 			return
 		hit = Duel.soften(hit)
@@ -762,7 +797,7 @@ func _process(delta: float) -> void:
 		_puppet_process(delta)
 		return
 	_summon_tick(delta)
-	body_model.net_sync = Net.active
+	body_model.net_sync = Net.active and not is_ai   # (AI captains: guests get them in a later piece)
 	var hv := Vector3(velocity.x, 0, velocity.z)
 	var local := player_model.global_basis.inverse() * hv
 	body_model.ground_speed = hv.length()
@@ -951,7 +986,7 @@ func set_hybrid(on: bool) -> void:
 	Net.fx("sfx", ["howl" if on else "whoosh_big", global_position, -4.0, 0.05, 1.15 if on else 0.8])
 	if on and is_inside_tree():
 		FX.power_aura.call_deferred(body_model, "wolf", 2.0)
-	CombatManager.apply_camera_shake(0.12)
+	shake(0.12)
 	_recalc_stats()
 	weapon_changed.emit(equipped_weapon)
 	_net_look()
@@ -962,7 +997,7 @@ func set_hybrid(on: bool) -> void:
 ## the camera instead (with a little hysteresis so it doesn't flicker).
 func _update_head_look() -> void:
 	var cam := get_viewport().get_camera_3d()
-	if cam == null or body_model.head == null or context != Context.ON_FOOT or current_state_name() == "Talk":
+	if is_ai or cam == null or body_model.head == null or context != Context.ON_FOOT or current_state_name() == "Talk":
 		body_model.look_weight = 0.0
 		return
 	var head_pos := body_model.head.global_position
@@ -1253,7 +1288,7 @@ var _sprint_seen: float = -100.0
 func on_sprint_start() -> void:
 	var now := PlayerState.now_s()
 	if now - _sprint_seen > 0.6:
-		CombatManager.apply_camera_shake(SPRINT_SHAKE)
+		shake(SPRINT_SHAKE)
 		squash(-1.2)
 	_sprint_seen = now
 
@@ -1296,10 +1331,9 @@ func _regen_stamina(delta: float) -> void:
 ## Lean target in the camera's frame. Control stays instant (velocity follows
 ## the stick exactly); only the visual lean has inertia.
 func _update_lean_target(delta: float) -> void:
-	var cam := get_viewport().get_camera_3d()
-	var yaw := player_model.global_rotation.y
-	if cam and cam.get_parent() and cam.get_parent().get_parent() is Node3D:
-		yaw = (cam.get_parent().get_parent() as Node3D).global_rotation.y
+	var yaw := inp.view_yaw(self)
+	if is_nan(yaw):
+		yaw = player_model.global_rotation.y
 	var cam_f := Vector3(-sin(yaw), 0.0, -cos(yaw))
 	var cam_r := Vector3(cos(yaw), 0.0, -sin(yaw))
 	var hv := Vector3(velocity.x, 0.0, velocity.z)
@@ -1371,7 +1405,7 @@ func _fall_damage(speed: float, k: float = 1.0, reel: bool = true) -> void:
 		health_component.take_damage(dmg)
 	Net.fx("sfx", ["thud", global_position, -2.0, 0.05, 0.8])
 	Net.fx("dust_ring", [global_position, 18, 1.2])
-	CombatManager.apply_camera_shake(clampf(dmg / 60.0, 0.1, 0.4))
+	shake(clampf(dmg / 60.0, 0.1, 0.4))
 	Net.damage_number(roundf(dmg), global_position + Vector3(0, 1.9, 0))
 	if reel and health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai") and current_state_name() != "Downed":
 		state_machine.force_state("Stagger", {"stagger_duration": 0.55, "knockback_dir": Vector3.ZERO, "knockback_force": 0.0, "flinch": false})
@@ -1466,9 +1500,9 @@ func is_free() -> bool:
 func _input(event: InputEvent) -> void:
 	# (a pad's sprint is Pad's L3 latch, not Shift: leave it be)
 	if is_local and event is InputEventWithModifiers and not event.shift_pressed \
-			and Input.is_action_pressed("sprint") and not Pad.sprint_latched \
+			and inp.pressed("sprint") and not Pad.sprint_latched \
 			and not (event is InputEventKey and event.physical_keycode == KEY_SHIFT):
-		Input.action_release("sprint")
+		inp.release("sprint")
 
 
 ## Summon the ship: hold B somewhere near water; a cooldown after.
@@ -1480,7 +1514,7 @@ var _summon_cd: float = 0.0
 
 func _summon_tick(delta: float) -> void:
 	_summon_cd = maxf(_summon_cd - delta, 0.0)
-	if input_locked or not Input.is_action_pressed("summon_ship"):
+	if input_locked or not inp.pressed("summon_ship"):
 		if _summon_hold != 0.0:
 			_summon_hold = 0.0
 			get_tree().call_group("hud", "show_prompt", "", -1.0)
@@ -1566,7 +1600,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Shift+F5 slow motion, Ctrl+F5 clean view (blade trail instead of the arc effects)
 	if OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F5:
 		var k := event as InputEventKey
-		if k.shift_pressed:
+		if k.alt_pressed:
+			# Alt+F5: a duel with a captain-style AI (RivalDuel), sharper each time
+			var r := RivalDuel.spawn(self)
+			_toast("Debug: a rival (skill %.1f, %s)" % [r.get_node("Brain").skill, r.weapon_class()])
+		elif k.shift_pressed:
 			_toast(AnimLab.toggle_slow())
 		elif k.ctrl_pressed:
 			_toast(AnimLab.toggle_clean())
@@ -1705,7 +1743,7 @@ func debug_to_capital() -> void:
 
 
 func _log_pose_tick() -> void:
-	log_pose_up = has_log_pose() and not input_locked and Input.is_action_pressed("log_pose")
+	log_pose_up = has_log_pose() and not input_locked and inp.pressed("log_pose")
 	# on foot it's raised to the eye; at the helm or in a fight the HUD shows it all the same
 	var raise := log_pose_up and is_free()
 	if raise and (not body_model.is_busy() or body_model.current_action() == "log_pose"):
@@ -1721,6 +1759,8 @@ var _lantern_night := false
 
 
 func _lantern_tick() -> void:
+	if body_model.lantern == null:
+		return   # (an AI captain carries none: real lights are budgeted)
 	var night := NightLight.is_night()
 	var wet := body_model.swimming or body_model.diving
 	if night != _lantern_night or wet:
@@ -2406,7 +2446,7 @@ func _finish_use() -> void:
 				Net.fx("sparkle", [global_position + Vector3(0, 1.0, 0), 30, col])
 				Net.fx("dust_ring", [global_position, 14, 1.0])
 				Net.fx("sfx", ["whoosh_big", global_position, -4.0, 0.05, 0.8])
-		CombatManager.apply_camera_shake(0.25)
+		shake(0.25)
 		var line: String = {"logia": "Your body is %s now... but the sea will never hold you again." % ("fire" if item.devil_fruit == "ember" else "an element"),
 			"zoan": "The beast is in you now (press V)... but the sea will never hold you again.",
 			"paramecia": "Plants answer to you now... but the sea will never hold you again."}.get(power.fruit_type(), "")
@@ -2441,7 +2481,74 @@ func is_using_item() -> bool:
 
 
 func _toast(text: String) -> void:
-	get_tree().call_group("hud", "show_toast", text)
+	if not is_ai:
+		get_tree().call_group("hud", "show_toast", text)
+
+
+# ==========================================================================
+# Captain-style AI (docs/v1_19_plan.md "Build notes")
+# ==========================================================================
+## An AI captain beaten (health out): it's down for good.
+signal defeated
+
+## A captain-style AI: player.tscn with a brain instead of the keyboard, `look` its body, `brain` a node that sets its
+## BrainInput every tick (CaptainBrain). At `at`, facing `yaw`.
+static func spawn_ai(parent: Node, look: Dictionary, at: Vector3, yaw: float, brain: Node) -> Player:
+	var p: Player = load("res://scenes/player/player.tscn").instantiate()
+	p.is_ai = true
+	p.inp = CaptainInput.BrainInput.new()
+	p.net_profile = {"look": look, "name": str(look.get("name", "Rival"))}
+	brain.name = "Brain"
+	p.add_child(brain)
+	parent.add_child(p)
+	p.global_position = at
+	p.player_model.rotation.y = yaw
+	p.reset_physics_interpolation()
+	return p
+
+
+## The AI's setup: the local captain's brain and states, none of its camera, HUD, menus or saves; on the enemies'
+## side (it takes the players' blows, its own find the players).
+func _setup_ai() -> void:
+	remove_from_group("player")
+	remove_from_group("players")
+	add_to_group("enemies")
+	add_to_group("rivals")
+	for n in [input_buffer, state_machine]:
+		(n as Node).set_process_unhandled_input(false)
+	set_process_input(false)
+	set_process_unhandled_input(false)
+	interaction_component.process_mode = Node.PROCESS_MODE_DISABLED
+	interaction_component.set_deferred("monitoring", false)
+	interaction_component.set_deferred("monitorable", false)
+	hurtbox.collision_layer = 32
+	hurtbox.collision_mask = 16
+	sword_hitbox.collision_layer = 64
+	sword_hitbox.collision_mask = foe_mask()
+	var capsule := player_model.get_node_or_null("MeshInstance3D")
+	if capsule:
+		capsule.visible = false
+	var old_sword := sword_pivot.get_node_or_null("SwordMesh")
+	if old_sword:
+		old_sword.visible = false
+	lean = Node3D.new()
+	lean.name = "Lean"
+	player_model.add_child(lean)
+	body_model = Humanoid.new()
+	body_model.name = "Body"
+	body_model.swappable_hands = true
+	body_model.auto_point_guns = true
+	var lk: Dictionary = net_profile.get("look", {})
+	appearance = lk if not lk.is_empty() else CharacterLook.default_look()
+	body_model.setup(appearance)
+	lean.add_child(body_model)
+	body_model.footstep.connect(_on_footstep)
+	hurtbox.hit_received.connect(_on_hit_received)
+	sword_hitbox.hit_landed.connect(func(target: Node, data: HitData): power.on_sword_hit(target, data))
+	health_component.died.connect(func():
+		state_machine.force_state("Downed", {"dead": true, "velocity": _last_hit_velocity})
+		defeated.emit())
+	_recalc_stats()
 
 
 # ==========================================================================
@@ -2702,7 +2809,7 @@ func _net_look() -> void:
 ## A power object we launched (fireball, flying slash, burning ground):
 ## the other machines get a harmless copy fired by our puppet there.
 func net_power(kind: String, args: Array) -> void:
-	if is_local and Net.active:
+	if is_local and not is_ai and Net.active:
 		Net.event(self, "power", [kind, args])
 
 
@@ -2840,7 +2947,7 @@ func _revive_tick(delta: float) -> void:
 	if target != _revive_target:
 		_revive_t = 0.0
 	_revive_target = target
-	var holding := Input.is_action_pressed("interact")
+	var holding := inp.pressed("interact")
 	if holding:
 		_revive_t += delta * (1.0 + progression.stat("revive_pct"))
 		velocity.x = 0.0

@@ -52,7 +52,7 @@ func physics_update(delta: float) -> void:
 				_charged()
 			if input_buffer.consume_action("light_attack"):
 				_release()
-			elif not Input.is_action_pressed("heavy_attack"):
+			elif not player.inp.pressed("heavy_attack"):
 				phase = 3
 				timer = 0.0
 				player.body_model.play("draw", 0.3)
@@ -149,9 +149,9 @@ func _release() -> void:
 	if player.progression.elemental("katana"):
 		Net.fx("sakura", [_from, -_dir + Vector3.UP * 0.5, 3 + 3 * level, 3.0])
 	player.squash(-2.0 - level)
-	CombatManager.apply_camera_shake(0.06 + 0.04 * level)
+	player.shake(0.06 + 0.04 * level)
 	if full:
-		CombatManager.apply_camera_kick(0.25, 0.4)
+		player.kick(0.25, 0.4)
 
 
 func exit() -> void:

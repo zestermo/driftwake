@@ -66,11 +66,11 @@ func physics_update(delta: float) -> void:
 		enter_cooldown -= delta
 		return
 
-	if Input.is_action_just_pressed("interact"):
+	if player.inp.just_pressed("interact"):
 		transitioned.emit(self, "Idle", {})
 		return
 	# a broadside: every loaded gun on the side you're looking at
-	if Input.is_action_just_pressed("light_attack") and ship and not player.input_locked:
+	if player.inp.just_pressed("light_attack") and ship and not player.input_locked:
 		_broadside(ship)
 
 

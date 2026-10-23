@@ -352,8 +352,8 @@ func physics_update(delta: float) -> void:
 			Net.fx("dust_ring", [at, 16, 1.1])
 			Net.fx("impact", [at + Vector3(0, 0.2, 0), Color(1.0, 0.85, 0.55)])
 			Net.fx("sfx", ["thud", at, -2.0, 0.05, 0.75])
-			CombatManager.apply_camera_shake(0.18)
-			CombatManager.apply_camera_kick(0.12, 0.25)
+			player.shake(0.18)
+			player.kick(0.12, 0.25)
 		# swoosh!
 		var trail_len := 0.4 if last else 0.26
 		var trail := str(cfg["trails"][combo_index])
@@ -415,7 +415,7 @@ func physics_update(delta: float) -> void:
 		if get_movement_input().length() > 0.1:
 			transitioned.emit(self, "Move", {})
 			return
-		if Input.is_action_just_pressed("jump"):
+		if player.inp.just_pressed("jump"):
 			transitioned.emit(self, "Jump", {})
 			return
 		if combo_timer <= 0.0:
@@ -442,7 +442,7 @@ func _shot() -> void:
 	CorsairGun.shoot_or_butt(player, fwd, float(cfg["shots"][combo_index]), "finisher" if last else "",
 		{"knock": 10.0 if last else 5.0, "stagger": 0.6 if last else 0.4, "down": last, "stop": 0.09 if last else 0.05,
 		"shake": 0.2 if last else 0.1, "elem": elem, "size": 1.4 if last else 1.0})
-	CombatManager.apply_camera_kick(0.14 if last else 0.06, 0.22)
+	player.kick(0.14 if last else 0.06, 0.22)
 	player.squash(-1.5 if last else -1.0)
 
 

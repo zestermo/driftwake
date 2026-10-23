@@ -34,7 +34,34 @@ Zach settled the whole version in one grill so it can be built in one go. This s
 | Unknowns while building | **Decide, note, keep going**: the option that fits this record, marked **assumed** in "Assumed while building" below, for Zach's review. | Uninterrupted build. | Zach's review |
 
 ### Assumed while building
-(Filled in as the build goes.)
+- **Tooling window: already done on main** (checked 2026-10-23): compilecheck has the STATIC AUTOLOAD lint, crew_lib
+  reads a deps file inside a try/catch (a file deleted mid-read is a miss), nettest's logs and deps are named per mode
+  and its port is random per run, Humanoid._rng is seeded from the (test-seeded) global rng, fauna tests name creatures.
+
+### Build notes: the captain-style AI
+- A rival is a **real `Player`** (player.tscn) in AI mode, so it fights with the same states, weapons, skills,
+  techniques and ultimates. Three captain kinds: local (keyboard/pad + camera), puppet (co-op: snapshots, no brain),
+  **AI** (`is_ai`: the full brain, fed by a brain instead of the keyboard).
+- **Input:** `Player.inp` (`CaptainInput`): held input (the stick, sprint, block, jump...) and the view's yaw. The
+  local captain's wraps `Input` and the camera rig; an AI's is a `CaptainInput.BrainInput` its brain sets each tick.
+  Discrete presses go through the InputBuffer (`buffer_action`); skills, the ultimate and drawing call the Player.
+- **Local-only feedback** (camera shake, HUD, slow motion, screen flashes, saves, registering as the captain) is the
+  local captain's; an AI captain's shake falls off with distance from the camera.
+- **Sides:** an AI captain's hitboxes and target queries use the players' hurtbox layer (128) instead of the enemies'
+  (32), and its hurtbox sits on the enemies' layer; it's in the "enemies" and "rivals" groups, never "player(s)".
+- **Co-op:** the host simulates AI captains; guests see them as puppets (the captain snapshot path).
+
+### Build log
+- **Piece 1 (2026-10-23): the AI captain + a debug duel.** `CaptainInput` (scripts/input/captain_input.gd) and
+  `Player.inp`; `Player.shake()/kick()/foe_mask()`; `Player.is_ai`, `Player.spawn_ai()`, `_setup_ai()`;
+  `CaptainBrain` (scripts/ai/captain_brain.gd); `RivalDuel` (scripts/ai/rival_duel.gd), **Alt+F5** in a debug build.
+  Test: t/combat/rival_duel. **Not yet:** guests don't see AI captains (their body's net_sync and net_power are off
+  for now); skills in a rival's loadout (it casts what's in `power.loadout`, empty from RivalDuel); the rival crews.
+- **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
+  player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
+  in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite
+  (Captain's Presence doesn't soften their blows). After a combo a rival backs off and circles for a beat, and your
+  stagger never starts its next combo (no stunlocks); a missed swing of yours does.
 
 ## Decided (2026-10-19)
 

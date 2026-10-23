@@ -112,7 +112,7 @@ func enter(data: Dictionary) -> void:
 	player.body_model.dash_dir = Vector2(local.x, -local.z)
 	player.body_model.play("dash", dodge_duration)
 	player.squash(-2.2)
-	CombatManager.apply_camera_shake(player.DASH_SHAKE)
+	player.shake(player.DASH_SHAKE)
 	Net.fx("dust", [player.global_position - dodge_direction * 0.3 + Vector3(0, 0.05, 0), 7, 0.6])
 	Net.fx("sfx", ["whoosh", player.global_position, -9.0, 0.1, 1.15])
 	_trail_timer = 0.0
@@ -145,7 +145,7 @@ func _roll() -> void:
 	player.body_model.dash_dir = Vector2(0, 1)
 	player.body_model.play("dodge_roll", ROLL_DUR)
 	player.squash(-3.0)
-	CombatManager.apply_camera_shake(player.DASH_SHAKE)
+	player.shake(player.DASH_SHAKE)
 	var at := player.global_position
 	Net.fx("dust", [at - dodge_direction * 0.3 + Vector3(0, 0.05, 0), 8, 0.6])
 	Net.fx("sfx", ["whoosh", at, -9.0, 0.1, 0.9])

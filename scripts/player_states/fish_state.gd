@@ -55,7 +55,7 @@ func physics_update(delta: float) -> void:
 		_end("")
 		return
 	_hp = player.health_component.current_health
-	var reel := Input.is_action_just_pressed("interact") or input_buffer.consume_action("light_attack")
+	var reel := player.inp.just_pressed("interact") or input_buffer.consume_action("light_attack")
 	match phase:
 		"cast":
 			if _t >= Fishing.CAST_LEN * Fishing.RELEASE and _rod().phase == "":
@@ -104,7 +104,7 @@ func physics_update(delta: float) -> void:
 			if _t >= Fishing.STRIKE_LEN:
 				_end("")
 				return
-	if phase in ["wait", "bite"] and (get_movement_input().length() > 0.3 or Input.is_action_just_pressed("jump") or input_buffer.has_action("dodge")
+	if phase in ["wait", "bite"] and (get_movement_input().length() > 0.3 or player.inp.just_pressed("jump") or input_buffer.has_action("dodge")
 			or input_buffer.has_action("heavy_attack")):
 		_end("You reel in")
 
