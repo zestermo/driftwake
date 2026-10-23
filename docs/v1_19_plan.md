@@ -88,6 +88,32 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   (about one meeting every five islands), never at the capital, crews not met yet first, never the same twice
   running; they "land" by walking up from the dock (no rival ship model yet). **Not yet tested in a world:** the
   trigger on a real chain island (try: sail to the first chain island, walk inland).
+- **Piece 6: bounties.** `Bounty` (scripts/game/bounty.gd): each captain's own (`Player.bounty`, saved with the
+  captain, in the co-op snapshot), raised through `Net.bounty(kind, at, reach, k)` for every captain in reach, a toast
+  each time and a banner when a tier is crossed; the HUD shows "Bounty 6,900 - Wanted" under the gold. Test:
+  t/progression/bounty. **The numbers, for Zach's OK** (CLAUDE.md: feel systems preview their numbers; Zach took
+  "decide, note, keep going" for tonight, so they're built as one table in Bounty, quick to change):
+
+  | Deed | Bounty (gold) |
+  |---|---|
+  | a rival crew beaten | 3,000 x the times you've met them |
+  | a boss (a camp's or fort's captain, a beast boss) | 6,000 (a miniboss or the roamer 40%) |
+  | a Leviathan | 4,000 |
+  | a pirate ship sunk or taken | 1,500 |
+  | an Admiralty ship sunk or taken | 5,000 |
+  | an Admiralty officer beaten | 4,000 |
+  | a named Admiralty hunter beaten | 12,000 |
+  | a bounty hunter beaten | 1,500 |
+
+  | Tier | From | Switches on |
+  |---|---|---|
+  | Wanted | 5,000 | posters, townsfolk know your face, Admiralty-minded shops +15%, shady ones -8% |
+  | Notorious | 20,000 | patrols come about for you, bounty hunters; Admiralty shops +25%, shady -12% |
+  | Infamous | 60,000 | a named hunter takes your trail; Admiralty shops won't serve you; shady -15% |
+  | Dreaded | 150,000 | the hunters come tougher and in pairs, the strongest crews seek you out; shady -20% |
+
+  Pace (estimated, not played): the first chain's islands give a boss and a couple of ships each (~9,000), so
+  Wanted on the first or second island, Notorious around the fourth or fifth, Infamous near the chain's end.
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite

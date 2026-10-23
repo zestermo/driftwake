@@ -193,6 +193,8 @@ var is_ai: bool = false
 var _debug_crew := 0
 ## Max health scale (an AI captain's: a rival crew's captain and their returns are tougher).
 var hp_k := 1.0
+## This captain's bounty in gold (Bounty: their own, saved with them).
+var bounty := 0
 ## How far an AI captain's camera shake reaches (full at the camera, none past this).
 const AI_SHAKE_R := 14.0
 
@@ -2732,7 +2734,7 @@ func net_pack() -> Array:
 		flags |= NF_GALAXY
 	return [pos, Net.key_of(ship) if ship else "", velocity, yaw, lean.transform.basis if lean else Basis(), current_state_name(),
 		health_component.current_health, health_component.max_health, flags, HumanoidSync.pack(body_model), _rope_end(),
-		body_model.ragdoll.net_pack() if body_model.ragdoll else []]
+		body_model.ragdoll.net_pack() if body_model.ragdoll else [], bounty]
 
 
 ## Where our vine (swing / grapple) is stretched to, or INF.
@@ -2785,6 +2787,8 @@ func _puppet_process(delta: float) -> void:
 	lean.transform.basis = b[4]
 	_net_state = str(a[5])
 	context = Context.HELM if _net_state == "Helm" else Context.ON_FOOT
+	if b.size() > 12:
+		bounty = int(b[12])
 	var hc := health_component
 	if hc.max_health != float(b[7]) or hc.current_health != float(b[6]):
 		hc.max_health = float(b[7])

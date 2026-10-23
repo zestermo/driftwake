@@ -21,6 +21,7 @@ tools/dev/t/ship/*                      t/ship
 tools/dev/t/input/*                     t/input
 scripts/input/*                         t/input t/player t/combat
 scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement
+scripts/game/bounty.gd                  t/progression/bounty
 scripts/dialogue/cutscene.gd            t/ui/cutscene
 scripts/dialogue/speech_bubble.gd       t/combat/rival_crew
 scripts/game/duel.gd                    t/combat/rival_crew

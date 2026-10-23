@@ -1148,6 +1148,22 @@ func award_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
 	everyone("_all_xp", [amount, at, reach])
 
 
+## A deed that raises bounties (Bounty.TABLE[kind] x k): every captain within `reach` of `at` gets it, on their own
+## machine (each captain's bounty is their own).
+func bounty(kind: String, at: Vector3, reach: float = XP_RANGE, k: float = 1.0) -> void:
+	if not active:
+		_all_bounty(kind, at, reach, k)
+		return
+	everyone("_all_bounty", [kind, at, reach, k])
+
+
+func _all_bounty(kind: String, at: Vector3, reach: float, k: float) -> void:
+	var p := _me()
+	if p == null or (at != Vector3.INF and p.global_position.distance_to(at) > reach):
+		return
+	Bounty.add(p, roundi(float(Bounty.TABLE.get(kind, 0)) * k))
+
+
 func _all_xp(amount: int, at: Vector3, reach: float = XP_RANGE) -> void:
 	var p := local_player as Node3D
 	if p == null or not is_instance_valid(p):

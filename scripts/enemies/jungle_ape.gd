@@ -844,6 +844,7 @@ func _on_died() -> void:
 	super._on_died()
 	Net.coins(global_position + Vector3(0, 1.5, 0), _coins(24))
 	Net.award_xp(_xp(600), global_position + Vector3(0, 3.0, 0), 70.0)
+	Net.bounty("boss", global_position, 70.0)
 
 
 func _drop_weapon() -> void:

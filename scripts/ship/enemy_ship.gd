@@ -684,6 +684,7 @@ func _surrender() -> void:
 	_set_state(S.PRIZE)
 	_empty_t = 0.0
 	Net.award_xp(_xp(90), global_position, 160.0)
+	Net.bounty(_bounty_kind(), global_position, 160.0)
 	_prize()
 	Net.event(self, "prize", [])
 
@@ -928,6 +929,7 @@ func _start_sink(fought: bool = true) -> void:
 		bark("Abandon ship!", 3.0)
 		Net.fx("sfx", ["bell", global_position, 2.0, 0.02, 0.8])
 		Net.award_xp(_xp(100), global_position, 160.0)
+		Net.bounty(_bounty_kind(), global_position, 160.0)
 		_sea_credit()
 	sunk.emit(self)
 
@@ -1226,7 +1228,13 @@ func _strike() -> void:
 	_set_state(S.PRIZE)
 	_empty_t = 0.0
 	Net.award_xp(_xp(150), global_position, 60.0)
+	Net.bounty(_bounty_kind(), global_position, 60.0)
 	_prize()
+
+
+## What taking or sinking her raises a bounty by (Bounty.TABLE): an Admiralty ship more than a pirate's.
+func _bounty_kind() -> String:
+	return "admiralty_ship" if is_in_group("admiralty") else "ship"
 	Net.event(self, "prize", [])
 
 

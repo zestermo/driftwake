@@ -398,6 +398,25 @@ func _build_gold() -> void:
 	_gold_box.add_child(_gold_label)
 	_gold_box.modulate.a = 0.0
 	add_child(_gold_box)
+	# the captain's bounty (Bounty), under the gold and the meal: up with the inventory, and a while when it rises
+	_bounty_label = _tiny_label()
+	_bounty_label.name = "Bounty"
+	_bounty_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_bounty_label.offset_left = -220; _bounty_label.offset_top = 58; _bounty_label.offset_bottom = 70; _bounty_label.offset_right = -10
+	_bounty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_bounty_label.add_theme_font_size_override("font_size", 8)
+	_bounty_label.add_theme_color_override("font_color", Color(1.0, 0.62, 0.45))
+	_bounty_label.modulate.a = 0.0
+	add_child(_bounty_label)
+
+
+var _bounty_label: Label
+var _bounty_seen := -1
+var _bounty_t := 0.0
+
+
+func bounty_text() -> String:
+	return _bounty_label.text if _bounty_label else ""
 
 
 ## The meal you ate (Food): its icon, name and time left, top right under the gold.
@@ -462,6 +481,15 @@ func _update_gold(delta: float) -> void:
 	var keep: bool = GameMenu._current == "inventory"
 	_gold_box.modulate.a = 1.0 if keep else clampf(_gold_t / 0.8, 0.0, 1.0)
 	_gold_delta.visible = _gold_t > 0.0
+	var b: int = int(player.get("bounty")) if player else 0
+	if b != _bounty_seen:
+		if _bounty_seen >= 0:
+			_bounty_t = GOLD_SHOW
+		_bounty_seen = b
+		var t := Bounty.title(b)
+		_bounty_label.text = ("Bounty %s%s" % [Bounty.fmt(b), "  -  " + t if t != "" else ""]) if b > 0 else ""
+	_bounty_t = maxf(_bounty_t - delta, 0.0)
+	_bounty_label.modulate.a = 1.0 if keep else clampf(_bounty_t / 0.8, 0.0, 1.0)
 
 
 # ---- Skill bar ----

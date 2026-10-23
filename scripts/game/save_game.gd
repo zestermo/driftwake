@@ -262,6 +262,7 @@ static func save(player: Player) -> bool:
 		"weapon": item_ref(player.equipped_weapon),
 		"offhand": item_ref(player.offhand_weapon),
 		"kicks": player.kicks,
+		"bounty": player.bounty,
 		"loadouts": player.loadouts.duplicate(true),
 		"loadout_at": player.loadout_at,
 		"storage": stored,
@@ -363,6 +364,7 @@ static func load_into(player: Player) -> bool:
 		player.equip_weapon(w, false)
 	else:
 		player.kicks = bool(data.get("kicks", false)) and player.knows_black_leg()
+		player.bounty = int(data.get("bounty", 0))
 		player.unequip_weapon()
 	var off := item_from(data.get("offhand", []))
 	if off:

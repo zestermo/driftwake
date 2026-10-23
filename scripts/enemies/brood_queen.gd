@@ -411,6 +411,7 @@ func _on_died() -> void:
 	super._on_died()
 	Net.coins(global_position + Vector3(0, 1.0, 0), 25)
 	Net.award_xp(600, global_position + Vector3(0, 2.0 * size_k, 0))
+	Net.bounty("boss", global_position)
 
 
 func _process(delta: float) -> void:

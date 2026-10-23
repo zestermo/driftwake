@@ -81,6 +81,7 @@ func _process(_d: float) -> bool:
 			check("hurt badly, their captain calls the retreat: they flee", e.phase == "retreat" and e.result == "won"
 				and e.rivals.all(func(r): return r.get_node("Brain").order == "flee"))
 			check("...on the record as won", int(gm().rivals["brine_wolves"]["won"]) == 1)
+			check("...and the captain's bounty rose (%d)" % p.bounty, p.bounty >= 3000)
 			until = TK.wait_secs(6.5)
 		6:
 			check("...and they're gone", get_nodes_in_group("rivals").is_empty() and get_first_node_in_group("rival_encounter") == null)

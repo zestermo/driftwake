@@ -291,6 +291,7 @@ func _retreat() -> void:
 	var at: Vector3 = rivals[-1].global_position if is_instance_valid(rivals[-1]) else Vector3.ZERO
 	var net := get_node("/root/Net")
 	net.coins(at, GOLD_EACH * rivals.size())
+	net.bounty("rival", at, 60.0, float(record()["met"]))
 	if rng.randf() < WEAPON_CHANCE:
 		var w := str(info[-1]["weapon"])
 		var traits: Array = WeaponTraits.TRAITS.keys()
