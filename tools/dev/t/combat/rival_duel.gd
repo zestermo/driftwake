@@ -59,6 +59,8 @@ func _process(_d: float) -> bool:
 		3:
 			var lost: float = hp0 - p.health_component.current_health
 			check("it swings with the captain's own moves and hurts the captain (%.0f damage)" % lost, lost > 0.0)
+			var lo: Array = r.power.loadout
+			check("its loadout fits its cutlass (%s) and it used it (%d casts)" % [str(lo), r.get_node("Brain").casts], lo.filter(func(s): return s != "").size() >= 3 and r.get_node("Brain").casts > 0)
 			p.health_component.current_health = p.health_component.max_health
 			# the captain attacks the sharp one: count what it answers
 			swings = 0

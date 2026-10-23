@@ -55,8 +55,8 @@ Zach settled the whole version in one grill so it can be built in one go. This s
 - **Piece 1 (2026-10-23): the AI captain + a debug duel.** `CaptainInput` (scripts/input/captain_input.gd) and
   `Player.inp`; `Player.cam_shake()/cam_kick()/foe_mask()` (not shake/kick: siblings answering has_method("shake") pass for the camera rig); `Player.is_ai`, `Player.spawn_ai()`, `_setup_ai()`;
   `CaptainBrain` (scripts/ai/captain_brain.gd); `RivalDuel` (scripts/ai/rival_duel.gd), **Alt+F5** in a debug build.
-  Test: t/combat/rival_duel. **Not yet:** guests don't see AI captains (their body's net_sync and net_power are off
-  for now); skills in a rival's loadout (it casts what's in `power.loadout`, empty from RivalDuel); the rival crews.
+  Test: t/combat/rival_duel.
+- **Piece 2: rivals' skills and co-op.** `RivalDuel.give_kit`: weapon and captain skills that fit its style (a rookie 1, a captain 4 and an ultimate half charged). Co-op: `Net._all_spawn_rival` / `_all_rival_gone` (deterministic names); the host's AI is in `net_sync` (its captain snapshot), a guest's copy is a captain puppet built `is_ai` (enemies' side, its hurtbox on 32: a guest's blow routes to the host); `Net.ignore_overlap` and Hitbox let an AI captain's own swing be judged on the host and routed to the guest. nettest mode `rival` (prepush). Assumed: the debug key is the host's.
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite

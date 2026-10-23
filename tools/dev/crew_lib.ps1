@@ -191,7 +191,7 @@ function Get-AtomicGroup([string]$test) {
 
 ## The co-op modes with a ledger or recorded deps, plus the ones always tracked.
 function Get-NetKeys([string]$crew) {
-	$net = @("net", "net-chain", "net-board", "net-jam")
+	$net = @("net", "net-chain", "net-board", "net-jam", "net-rival")
 	foreach ($f in @(Get-ChildItem (Join-Path $crew "ledger"), (Join-Path $crew "deps") -Filter "net*" -File -ErrorAction SilentlyContinue)) {
 		$n = $f.BaseName
 		if ($n -match "^net(-\w+)?$" -and $net -notcontains $n) { $net += $n }

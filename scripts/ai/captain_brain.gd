@@ -29,6 +29,8 @@ var _skill_at := 0
 var _last_defence := ""
 ## How it answered the attacks it saw (dodge, parry, block, none): a count each.
 var answers := {}
+## Skills and ultimates it got off.
+var casts := 0
 
 const FOE_ATTACKS := ["LightAttack", "HeavyAttack", "Technique", "Skill", "Plunge", "Iai", "Shoot"]
 ## The ultimate waits for one of these (or a missed swing); combos only for a missed swing, never a stagger (no stunlocks).
@@ -165,6 +167,7 @@ func _cast(dist: float) -> bool:
 	_skill_at = _now() + _ticks(rng.randf_range(lerpf(5.0, 2.0, skill), lerpf(9.0, 4.0, skill)))
 	var opening := _foe_state_name() in OPENINGS or _foe_recovering()
 	if opening and p.power.can_cast(PowerComponent.ULT) == "" and p.power.try_cast(PowerComponent.ULT):
+		casts += 1
 		return true
 	var slots := []
 	for i in range(PowerComponent.SLOTS):
@@ -172,7 +175,10 @@ func _cast(dist: float) -> bool:
 			slots.append(i)
 	if slots.is_empty() or rng.randf() > lerpf(0.35, 0.7, skill):
 		return false
-	return p.power.try_cast(slots[rng.randi() % slots.size()])
+	if p.power.try_cast(slots[rng.randi() % slots.size()]):
+		casts += 1
+		return true
+	return false
 
 
 ## Close in, circle at reach, swing chains; a step back after.

@@ -797,7 +797,7 @@ func _process(delta: float) -> void:
 		_puppet_process(delta)
 		return
 	_summon_tick(delta)
-	body_model.net_sync = Net.active and not is_ai   # (AI captains: guests get them in a later piece)
+	body_model.net_sync = Net.active
 	var hv := Vector3(velocity.x, 0, velocity.z)
 	var local := player_model.global_basis.inverse() * hv
 	body_model.ground_speed = hv.length()
@@ -1602,6 +1602,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		var k := event as InputEventKey
 		if k.alt_pressed:
 			# Alt+F5: a duel with a captain-style AI (RivalDuel), sharper each time
+			if Net.is_client():
+				_toast("Debug: the host calls up rivals")
+				get_viewport().set_input_as_handled()
+				return
 			var r := RivalDuel.spawn(self)
 			_toast("Debug: a rival (skill %.1f, %s)" % [r.get_node("Brain").skill, r.weapon_class()])
 		elif k.shift_pressed:
@@ -2493,8 +2497,10 @@ signal defeated
 
 ## A captain-style AI: player.tscn with a brain instead of the keyboard, `look` its body, `brain` a node that sets its
 ## BrainInput every tick (CaptainBrain). At `at`, facing `yaw`.
-static func spawn_ai(parent: Node, look: Dictionary, at: Vector3, yaw: float, brain: Node) -> Player:
+static func spawn_ai(parent: Node, look: Dictionary, at: Vector3, yaw: float, brain: Node, pname := "") -> Player:
 	var p: Player = load("res://scenes/player/player.tscn").instantiate()
+	if pname != "":
+		p.name = pname
 	p.is_ai = true
 	p.inp = CaptainInput.BrainInput.new()
 	p.net_profile = {"look": look, "name": str(look.get("name", "Rival"))}
@@ -2514,6 +2520,8 @@ func _setup_ai() -> void:
 	remove_from_group("players")
 	add_to_group("enemies")
 	add_to_group("rivals")
+	# (co-op: its snapshot goes out like an enemy's; the guests show a captain puppet of it, Net._all_spawn_rival)
+	add_to_group("net_sync")
 	for n in [input_buffer, state_machine]:
 		(n as Node).set_process_unhandled_input(false)
 	set_process_input(false)
@@ -2598,6 +2606,14 @@ func _setup_puppet() -> void:
 	_nameplate.modulate = Color(0.85, 0.95, 1.0)
 	add_child(_nameplate)
 	_update_nameplate()
+	if is_ai:
+		# a guest's copy of the host's AI captain: on the enemies' side (its blows reach the host through route_hit)
+		remove_from_group("players")
+		add_to_group("enemies")
+		add_to_group("rivals")
+		hurtbox.collision_layer = 32
+		hurtbox.collision_mask = 16
+		_nameplate.modulate = Color(1.0, 0.55, 0.45)
 	visible = false  # until the first snapshot
 
 
@@ -2688,7 +2704,7 @@ func net_pack() -> Array:
 		flags |= NF_BLEED
 	if is_on_floor() or context == Context.HELM:
 		flags |= NF_FLOOR
-	if body_model.lantern.lit:
+	if body_model.lantern and body_model.lantern.lit:
 		flags |= NF_LANTERN
 	if _tide_on():
 		flags |= NF_TIDE
@@ -2809,7 +2825,7 @@ func _net_look() -> void:
 ## A power object we launched (fireball, flying slash, burning ground):
 ## the other machines get a harmless copy fired by our puppet there.
 func net_power(kind: String, args: Array) -> void:
-	if is_local and not is_ai and Net.active:
+	if is_local and Net.active:
 		Net.event(self, "power", [kind, args])
 
 

@@ -787,6 +787,31 @@ func everyone(method: String, args: Array = []) -> void:
 			_allr.rpc_id(id, time(), method, args)
 
 
+## A captain-style AI (RivalDuel) on every screen, named `rname` under `parent_key`: the host's runs its brain
+## (`skill`), a guest's is a captain puppet of it (its snapshots, its blows routed to the host).
+func _all_spawn_rival(parent_key: String, rname: String, look: Dictionary, weapon: String, at: Vector3, yaw: float, skill: float) -> void:
+	var parent := node_of(parent_key)
+	if parent == null or parent.has_node(rname):
+		return
+	if is_host():
+		RivalDuel.build(parent, rname, look, weapon, at, yaw, skill)
+		return
+	var p: Player = load("res://scenes/player/player.tscn").instantiate()
+	p.name = rname
+	p.is_local = false
+	p.is_ai = true
+	p.net_profile = {"look": look, "name": str(look.get("name", "Rival"))}
+	parent.add_child(p)
+	p.global_position = at
+
+
+## An AI captain gone (beaten and cleared, or the duel over) on every screen.
+func _all_rival_gone(key: String) -> void:
+	var n := node_of(key)
+	if n and n.is_in_group("rivals"):
+		n.queue_free()
+
+
 @rpc("any_peer", "call_remote", "reliable")
 func _allr(t: float, method: String, args: Array) -> void:
 	if method.begins_with("_all_"):
@@ -940,7 +965,7 @@ func route_hit(hurtbox: Node, data: HitData, attacker: Node) -> bool:
 ## A hitbox touching another machine's captain is that machine's business
 ## (it sees the same swing and decides).
 func ignore_overlap(hurtbox: Node) -> bool:
-	return active and hurtbox.owner is Player and not hurtbox.owner.is_local
+	return active and hurtbox.owner is Player and not hurtbox.owner.is_local and not hurtbox.owner.is_ai
 
 
 @rpc("any_peer", "call_remote", "reliable")

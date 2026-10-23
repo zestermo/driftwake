@@ -73,6 +73,9 @@ func _process(d: float) -> bool:
 	if mode == "chain" and step >= 100:
 		_chain_step()
 		return false
+	if mode == "rival" and step >= 300:
+		_rival_step()
+		return false
 	if mode == "duel" and step >= 200:
 		_duel_step()
 		return false
@@ -207,6 +210,9 @@ func _process(d: float) -> bool:
 				p.velocity = Vector3.ZERO
 				p.reset_physics_interpolation()
 				go(80)
+				return false
+			if mode == "rival":
+				go(300)
 				return false
 			if mode == "duel":
 				put(r["host_pos"] + Vector3(0, 0.3, 2.0))
@@ -1450,3 +1456,59 @@ func finish() -> void:
 		check("the clock was sampled after joining", false)
 	print("RESULT ", "OK" if fails == 0 else "FAILED (%d)" % fails)
 	quit()
+
+
+## Mode "rival": a captain-style AI the host runs (Net._all_spawn_rival) shows here as a puppet on the enemies'
+## side, our blow reaches the host's copy, its blows reach us here, and it goes on every screen.
+func _rival_step() -> void:
+	var r = p.get_parent().get_node_or_null("Rival_net")
+	match step:
+		300:
+			if st_t < 1.0:
+				return
+			tn.ask("rival_spawn", [p.global_position + Vector3(3, 0.3, 0)])
+			data["php"] = p.health_component.current_health
+			go(301)
+		301:
+			if (r == null or not r.visible) and st_t < 6.0:
+				return
+			check("the host's rival shows here: a captain puppet on the enemies' side",
+				r != null and r.visible and r.is_ai and not r.is_local and r.is_in_group("rivals") and not r.is_in_group("players"))
+			if r == null:
+				finish()
+				return
+			tn.ask("rival_report")
+			go(302)
+		302:
+			if not tn.got("rival_report"):
+				return
+			data["rhp"] = float(tn.replies["rival_report"]["hp"])
+			r.hurtbox.take_hit(_hd(20.0), p)
+			go(303)
+		303:
+			if st_t < 0.8:
+				return
+			tn.ask("rival_report")
+			go(304)
+		304:
+			if not tn.got("rival_report"):
+				return
+			var hp := float(tn.replies["rival_report"]["hp"])
+			check("our blow on its puppet reaches the host's rival (%.0f -> %.0f)" % [data["rhp"], hp], hp < float(data["rhp"]))
+			check("...and it takes us on (its foe: %s)" % tn.replies["rival_report"]["brain_foe"], str(tn.replies["rival_report"]["brain_foe"]) == net.key_of(p))
+			data["php"] = p.health_component.current_health
+			go(305)
+		305:
+			if p.health_component.current_health < float(data["php"]):
+				check("its blows reach us here (%.0f -> %.0f)" % [data["php"], p.health_component.current_health], true)
+				tn.ask("rival_gone")
+				go(306)
+			elif st_t > 12.0:
+				check("its blows reach us here", false)
+				tn.ask("rival_gone")
+				go(306)
+		306:
+			if r != null and st_t < 3.0:
+				return
+			check("cleared, it's gone here too", r == null)
+			finish()

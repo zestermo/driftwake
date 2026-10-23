@@ -371,6 +371,24 @@ func _run(name_: String, args: Array, from: int):
 					b.take_all(lp)
 					return true
 			return false
+		# --- mode "rival": a captain-style AI the host runs (Net._all_spawn_rival)
+		"rival_spawn":
+			var at: Vector3 = args[0]
+			var look: Dictionary = CharacterLook.default_look()
+			look["name"] = "Rival"
+			n.everyone("_all_spawn_rival", [n.key_of(lp.get_parent()), "Rival_net", look, "cutlass", at, 0.0, 0.9])
+			# (sent far off, so the rival takes the guest)
+			lp.global_position += Vector3(40, 3, 40)
+			lp.reset_physics_interpolation()
+			return true
+		"rival_report":
+			var r = lp.get_parent().get_node_or_null("Rival_net")
+			return {"hp": r.health_component.current_health if r else -1.0, "brain_foe": n.key_of(r.get_node("Brain").foe) if r and r.get_node("Brain").foe else ""}
+		"rival_gone":
+			var r = lp.get_parent().get_node_or_null("Rival_net")
+			if r:
+				n.everyone("_all_rival_gone", [n.key_of(r)])
+			return true
 		"duel_report":
 			var duel = n.get_node("Duel")
 			return {"state": duel.state.duplicate(true), "hp": lp.health_component.current_health, "dr": lp.damage_reduction(),

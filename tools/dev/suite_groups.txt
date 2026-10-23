@@ -9,7 +9,7 @@ Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest skyte
 Islands & world: smoketest chaintest isletest villagetest harbourtest harbourkindstest lifetest dungeontest landmarktest fidelitytest foresttest storytest ambiencetest r9test r10test perftest
 Sea & ships: shiptest seatest r8test yardtest riggingtest decktest legtest skytest
 Islands & world: smoketest chaintest isletest villagetest harbourtest harbourkindstest lifetest dungeontest landmarktest fidelitytest foresttest storytest denpathtest ambiencetest r9test r10test perftest
-Co-op: net net-chain net-board net-duel
+Co-op: net net-chain net-board net-duel net-rival
 Co-op: net net-chain net-board net-jam
 Moves & clothing: cliptest
 Music: musictest
