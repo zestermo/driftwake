@@ -876,6 +876,7 @@ static func _build_greatsword() -> void:
 	_big("gs_deflect", "Flat of the Blade", "mech", 0, 3, {"parryshot_greatsword": 1, "parry_greatsword": 0.06},
 		"Parry with a greatsword and you turn gunshots aside on the flat too (without it, a parry only stops blades), and your parry window is wider.")
 	_big("gs_break", "Guardbreaker", "tech", 0, 8, {}, "", "guardbreaker")
+	_big("gs_gate", "Gatekeeper", "tech", 0, 14, {}, "", "gatekeeper")
 	_big("gs_unyield", "Unyielding", "mech", 0, 20, {"armor_greatsword": 1, "def_greatsword": 5.0},
 		"Mid-swing with a greatsword, blows don't make you flinch or knock you off your feet, and you have 5 more defense with one in hand.")
 	_big("gs_crescent", "Crescent Gale", "tech", 1, 5, {}, "", "crescent_gale")
@@ -887,6 +888,7 @@ static func _build_greatsword() -> void:
 		"Adds a fourth blow to your combo: the backhand's momentum let carry you on round once more with the blade out at arm's length. It hits everyone about you and puts them on the ground.")
 	_big("gs_run", "Running Cleave", "move", 2, 4, {"mv_running_cleave": 1},
 		"Attack at a sprint: the blade dragged behind you swung round in one flat sweep through them as you lunge. It breaks their wind-up and throws them down.")
+	_big("gs_updraft", "Updraft", "tech", 2, 12, {}, "", "updraft")
 	_big("gs_fall", "Falling Cleave", "move", 2, 6, {"mv_falling_cleave": 1},
 		"Attack in the air: heave the blade up overhead and drop with it; landing drives it into the ground and splits a line ahead that knocks everyone on it flat (once per jump).")
 	_big("gs_flow", "Unbroken Momentum", "passive", 2, 13, {"finisher_greatsword": 0.3, "heavy_greatsword": 0.25},

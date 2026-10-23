@@ -46,8 +46,8 @@ func _process(_d: float) -> bool:
 			var b: Basis = p.player_model.global_basis
 			var tip: Vector3 = GA.tip(p) - p.global_position
 			var hand: Vector3 = p.body_model.hand_r.global_position - p.global_position
-			check("low guard: the hands at the hip (%.2f m up), the point near the ground (%.2f m) out left (%.2f) and ahead (%.2f)"
-				% [hand.y, tip.y, tip.dot(b.x), tip.dot(-b.z)], hand.y > 0.6 and hand.y < 1.15 and tip.y < 0.45 and tip.dot(b.x) < -0.3 and tip.dot(-b.z) > 0.15)
+			check("low guard: the hands at the hip (%.2f m up), the point near the ground (%.2f m) out right (%.2f) and a little behind (%.2f ahead)"
+				% [hand.y, tip.y, tip.dot(b.x), tip.dot(-b.z)], hand.y > 0.6 and hand.y < 1.15 and tip.y < 0.45 and tip.dot(b.x) > 0.5 and tip.dot(-b.z) < 0.1)
 			hits = 0
 			TK.act("light_attack")
 			until = TK.wait_ticks(6)

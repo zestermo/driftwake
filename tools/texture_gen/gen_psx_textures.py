@@ -2007,6 +2007,26 @@ def gen_technique_icons():
         d.ellipse([10, 10, 14, 14], fill=SKIN)
         d.point((12, 12), fill=W_)
 
+    def updraft(d):
+        # the rising cut, a gust swept up under a foe thrown high
+        greatblade(d, (3, 22), (15, 8))
+        for x, c in ((15, SEA), (19, JADE)):
+            d.arc([x - 4, 6, x + 4, 22], 280, 80, fill=c, width=1)
+        d.ellipse([16, 1, 21, 6], fill=SKIN)
+        d.line([(18, 6), (18, 9)], fill=BLUE, width=2)
+        for x in (6, 10):
+            d.line([(x, 23), (x + 2, 18)], fill=SEA)
+
+    def gatekeeper(d):
+        # the blade driven point-down before you, a shot stopped on its flat
+        d.line([(1, 22), (23, 22)], fill=ROCK)
+        greatblade(d, (11, 3), (11, 21))
+        d.rectangle([7, 4, 15, 5], fill=STEEL_D)
+        d.line([(23, 12), (17, 12)], fill=LEM_W)
+        for x, y in ((15, 10), (15, 14), (14, 12)):
+            d.point((x, y), fill=JADE)
+        d.arc([3, 0, 19, 16], 200, 340, fill=SEA, width=1)
+
     def skysplitter(d):
         greatblade(d, (12, 12), (12, 0))
         d.line([(12, 15), (10, 18), (13, 20), (11, 23)], fill=BLACK, width=2)
@@ -2080,7 +2100,7 @@ def gen_technique_icons():
                      ("cannonball_swing", cannonball_swing), ("anvil_counter", anvil_counter), ("gallows_hook", gallows_hook),
                      ("hewing_frenzy", hewing_frenzy), ("axestorm", axestorm), ("fimbulwinter", fimbulwinter),
                      ("ravens_return", ravens_return), ("raiders_haul", raiders_haul),
-                     ("guardbreaker", guardbreaker), ("crescent_gale", crescent_gale), ("tempest_turns", tempest_turns),
+                     ("guardbreaker", guardbreaker), ("crescent_gale", crescent_gale), ("tempest_turns", tempest_turns), ("updraft", updraft), ("gatekeeper", gatekeeper),
                      ("skysplitter", skysplitter), ("mule_kick", mule_kick), ("hailstorm_heels", hailstorm_heels),
                      ("cartwheel_crescent", cartwheel_crescent), ("last_course", last_course)):
         _icon("skill_" + name, fn)

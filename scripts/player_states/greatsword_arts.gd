@@ -156,6 +156,29 @@ const CRESCENT_AT := 0.3
 const CRESCENT_DAMAGE := 16.0
 const CRESCENT_GALE := 24.0
 
+## Updraft: the rising cut at UP_RISE, the leap after them to the apex, the cleave at UP_CLEAVE, the crash on landing.
+const UP_DUR := 1.0
+const UP_REACH := 4.0
+const UP_RISE := 0.22
+const UP_LEAP := 0.26
+const UP_APEX := 0.58
+const UP_CLEAVE := 0.7
+const UP_V := 10.0
+const UP_THROW := Vector2(1.5, 11.0)
+const UP_DROP := 26.0
+const UP_DAMAGE := [12.0, 22.0]
+const UP_CRASH_R := 3.2
+const UP_CRASH_DAMAGE := 12.0
+
+## Gatekeeper: held up to GATE_MAX (at least GATE_MIN), then the wrench (RISE_DUR long, the cut at RISE_AT).
+const GATE_MAX := 1.5
+const GATE_MIN := 0.3
+const RISE_DUR := 0.6
+const RISE_AT := 0.16
+const RISE_REACH := 3.2
+const RISE_DAMAGE := 18.0
+const RISE_GALE := 20.0
+
 const TEMPEST_DUR := 1.7
 const TEMPEST_R := 3.8
 const TEMPEST_DAMAGE := 8.0
@@ -195,6 +218,24 @@ static func enter(s, id: String) -> bool:
 			s.dur = 0.8
 			p.body_model.play("gs_crescent", s.dur)
 			Net.fx("gather", [tip(p), 1.0, s._col(), 0.2, 8])
+		"updraft":
+			s._target = s._aimed(UP_REACH)
+			if s._target == null:
+				s._target = s._nearest(UP_REACH, true)
+			if s._target == null:
+				s._refund("Nobody close enough")
+				return true
+			s.dur = 2.4
+			s._dir = s._flat_to(s._target)
+			s.face_direction(s._dir, 1.0)
+			p.body_model.play("gs_updraft", UP_DUR)
+			Net.fx("sfx", ["whoosh", p.global_position, -8.0, 0.05, 0.75])
+		"gatekeeper":
+			s.dur = GATE_MAX + RISE_DUR
+			p.is_parrying = true
+			s._pc.add_buff("bat_shots", GATE_MAX + 0.1)
+			p.body_model.play("gs_gate", GATE_MAX)
+			Net.fx("sfx", ["whoosh", p.global_position, -9.0, 0.05, 0.7])
 		"tempest_turns":
 			s.dur = TEMPEST_DUR
 			p.body_model.play("gs_tempest", s.dur)
@@ -217,6 +258,10 @@ static func update(s, delta: float) -> bool:
 			_guardbreak(s, delta)
 		"crescent_gale":
 			_crescent(s, delta)
+		"updraft":
+			_updraft(s, delta)
+		"gatekeeper":
+			_gatekeeper(s, delta)
 		"tempest_turns":
 			_tempest(s, delta)
 		"skysplitter":
@@ -257,8 +302,9 @@ static func _guardbreak(s, delta: float) -> void:
 	# (the real blade's trail over the rising cut and over the crush, as gs_guardbreak keys them)
 	if s._once("rise_trail", 0.12):
 		Net.fx("blade_swoosh", [p.body_model, 0.18, s._col()])
-	if s._once("crush_trail", 0.47):
-		Net.fx("blade_swoosh", [p.body_model, 0.14, s._col()])
+	# (from over the top down, not while it's held overhead: started at 0.47 it laid a flat sheet up in the air)
+	if s._once("crush_trail", 0.52):
+		Net.fx("blade_swoosh", [p.body_model, 0.09, s._col()])
 	if s._once("lift", BREAK_LIFT) and alive:
 		var hd: HitData = s._hd(BREAK_DAMAGE[0], 1.0, false)
 		hd.unblockable = true
@@ -308,6 +354,138 @@ static func _crescent(s, delta: float) -> void:
 			Net.fx("element", ["greatsword", p.global_position + Vector3(0, 1.0, 0) + s._dir, s._dir, 10, 6.0])
 		p.squash(-2.5)
 		CombatManager.apply_camera_kick(0.14, 0.28)
+
+
+## A rising cut tears a gust up under the one in front and throws them high (a boss only reels); up after them on the
+## wind, the cleave at the top brings the blade down on them, and the landing's crash knocks everyone close flat.
+static func _updraft(s, delta: float) -> void:
+	var p: Player = s.player
+	var alive: bool = s._target != null and is_instance_valid(s._target)
+	var landed: bool = s._done.has("crash")
+	if landed:
+		s._rooted(delta, 0.0)
+	elif s.t < UP_RISE:
+		var to: Vector3 = (s._target.global_position - p.global_position) if alive else Vector3.ZERO
+		to.y = 0.0
+		s._drift(delta, clampf((to.length() - 1.8) / UP_RISE, 0.0, 9.0))
+	elif s.t < UP_LEAP:
+		s._rooted(delta, 0.0)
+	elif s.t < UP_CLEAVE:
+		# up after them: rising out of the leap and easing off at the apex, drawn in under them as you go
+		var k := clampf((s.t - UP_LEAP) / (UP_APEX - UP_LEAP), 0.0, 1.0)
+		var h := Vector3.ZERO
+		if alive:
+			h = s._target.global_position - p.global_position
+			h.y = 0.0
+			h = h.normalized() * clampf((h.length() - 1.2) * 4.0, 0.0, 7.0) if h.length() > 0.05 else Vector3.ZERO
+		p.velocity = h + Vector3.UP * UP_V * (1.0 - k)
+		p.move_and_slide()
+	else:
+		p.velocity = Vector3(0, -UP_DROP, 0)
+		p.move_and_slide()
+	if s._once("rise_trail", UP_RISE - 0.08):
+		Net.fx("blade_swoosh", [p.body_model, 0.16, s._col()])
+	if s._once("rise", UP_RISE):
+		var at: Vector3 = p.global_position + s._dir * 1.6
+		Net.fx("ring", [at + Vector3(0, 0.3, 0), Vector3.UP, 1.5, s._col(), 0.3, 0.12])
+		Net.fx("dust_ring", [at, 12, 0.9])
+		Net.fx("sfx", ["whoosh_big", at, -2.0, 0.05, 0.85])
+		if alive:
+			var hd: HitData = s._hd(UP_DAMAGE[0], 1.0, false)
+			hd.unblockable = true
+			hd.breaker = true
+			var center: Vector3 = s._body_center(s._target)
+			Net.fx("impact", [center, s._col(FX.CORE)])
+			Net.fx("speed_lines", [center, Vector3.UP, s._col(FX.CORE), 8, 2.0, 0.25, randi() % 1000])
+			if FistArts.throwable(s._target) and s._target.has_method("launched"):
+				hd.stagger_duration = 0.2
+				hd.hitstop_duration = 0.0
+				s._strike(s._target, hd)
+				s._target.call("launched", s._dir * UP_THROW.x + Vector3.UP * UP_THROW.y)
+			else:
+				hd.stagger_duration = 1.0
+				s._strike(s._target, hd)
+			if s._elem():
+				Net.fx("element", ["greatsword", center, Vector3.UP, 10, 6.0])
+		p.squash(2.5)
+	if s._once("leap", UP_LEAP):
+		Net.fx("dust_ring", [p.global_position, 10, 0.8])
+		Net.fx("sfx", ["whoosh", p.global_position, -6.0, 0.05, 0.7])
+	if s._once("glint", UP_APEX):
+		Net.fx("glint", [tip(p), s._col(FX.CORE), 1.0])
+	if s._once("crush_trail", UP_CLEAVE - 0.06):
+		Net.fx("blade_swoosh", [p.body_model, 0.1, s._col()])
+	if s._once("cleave", UP_CLEAVE) and alive and s._body_center(s._target).distance_to(s._chest()) < 3.6:
+		var hd: HitData = s._hd(UP_DAMAGE[1], 4.0, true)
+		hd.unblockable = true
+		hd.breaker = true
+		shape_hit(p, hd)
+		s._strike(s._target, hd)
+		var at: Vector3 = s._body_center(s._target)
+		Net.fx("impact", [at, s._col(FX.CORE)])
+		Net.fx("sfx", ["slice_heavy", at, 0.0, 0.05, 0.8])
+		CombatManager.apply_hitstop(0.08, [p])
+	if not landed and s.t > UP_CLEAVE and (p.is_on_floor() or s.t > 1.8):
+		s._done["crash"] = true
+		s.dur = s.t + 0.55
+		p.velocity = Vector3.ZERO
+		p.body_model.play("gs_land", 0.55)
+		p.squash(-5.0)
+		var at: Vector3 = p.global_position
+		for e in s._pc.enemies_in(at + Vector3(0, 0.9, 0), UP_CRASH_R):
+			var hd: HitData = s._hd(UP_CRASH_DAMAGE, 8.0, true)
+			hd.breaker = true
+			s._strike(e, hd)
+		Net.fx("ring", [at + Vector3(0, 0.1, 0), Vector3.UP, UP_CRASH_R * 1.2, s._col(), 0.35, 0.1])
+		Net.fx("dust_ring", [at, 16, 1.1])
+		Net.fx("ground_crack", [at + s._dir * 0.5, s._dir, 2.4, Color(0, 0, 0, 0), randi() % 10000, 0.12])
+		Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.7])
+		if s._elem():
+			Net.fx("vortex", [p, 0.6, UP_CRASH_R, 2.0, FX.tree_col("greatsword", FX.EDGE), randi() % 10000])
+		CombatManager.apply_camera_shake(0.3)
+		CombatManager.apply_camera_kick(0.16, 0.3)
+
+
+## Held: the blade driven point-down before you like a gate (every blow and shot from the front stops on the flat); let
+## go (or at GATE_MAX) and it's wrenched up out of the ground in a rising cut nothing blocks, flinging a crescent of air
+## up the line.
+static func _gatekeeper(s, delta: float) -> void:
+	var p: Player = s.player
+	if not s._done.has("release"):
+		s._rooted(delta, 0.0)
+		var f: Vector3 = s.get_camera_forward()
+		f.y = 0.0
+		if f.length() > 0.01:
+			s._dir = f.normalized()
+			s.face_direction(s._dir, 1.0)
+		if s._once("plant", 0.18):
+			var at: Vector3 = p.global_position + s._dir * 0.75
+			Net.fx("dust_ring", [at, 10, 0.7])
+			Net.fx("ground_crack", [at, s._dir, 0.9, Color(0, 0, 0, 0), randi() % 10000, 0.08])
+			Net.fx("sfx", ["thud", at, -4.0, 0.05, 0.9])
+			p.squash(-1.5)
+		if (s.t >= GATE_MIN and not s._key_held()) or s.t >= GATE_MAX:
+			s._done["release"] = s.t
+			s.dur = s.t + RISE_DUR
+			p.is_parrying = false
+			s._pc.buffs["bat_shots"] = 0.0
+			p.body_model.play("gs_gate_rise", RISE_DUR)
+		return
+	s._rooted(delta, 0.0)
+	if s._once("rise_trail", float(s._done["release"]) + RISE_AT - 0.06):
+		Net.fx("blade_swoosh", [p.body_model, 0.16, s._col()])
+	if s._once("rise", float(s._done["release"]) + RISE_AT):
+		for e in s._cone(RISE_REACH, 0.3, RISE_DAMAGE, 7.0, false, true):
+			Net.fx("impact", [s._body_center(e), s._col(FX.CORE)])
+		var at: Vector3 = p.global_position + s._dir * 0.75
+		Net.fx("debris", [at + Vector3(0, 0.1, 0), Vector3.UP + s._dir * 0.4, 6, Color(0.35, 0.3, 0.25), 5.0])
+		Net.fx("dust_ring", [at, 12, 0.8])
+		Projectile.launch(p.get_tree(), "gale", p.global_position + Vector3(0, 1.0, 0) + s._dir * 1.0, s._dir, p, RISE_GALE, "elem" if s._elem() else "")
+		Net.fx("sfx", ["whoosh_big", p.global_position, -2.0, 0.05, 0.8])
+		if s._elem():
+			Net.fx("element", ["greatsword", at + Vector3(0, 0.5, 0), Vector3.UP + s._dir * 0.5, 10, 6.0])
+		p.squash(2.0)
+		CombatManager.apply_camera_kick(0.12, 0.25)
 
 
 ## Three turns with the blade out, walking, each quicker than the last: a cut all round on every half turn, then the

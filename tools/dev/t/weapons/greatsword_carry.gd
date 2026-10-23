@@ -1,5 +1,6 @@
 extends SceneTree
-## A greatsword on the move: carried in the right hand down at the side, the point trailing low behind, the same way
+## A greatsword on the move: walking, the low guard kept (both hands at the right hip, the point low out to the right
+## and behind, Zach 2026-10-22), the same way
 ## walking forward, backing off and strafing (no forward-only switch); at a sprint the point drags on the ground and
 ## its sparks fly from the blade's point as drawn (within 0.15 m of it), not from under it or a frame behind.
 const TK := preload("res://tools/dev/test_kit.gd")
@@ -59,20 +60,20 @@ func _process(_d: float) -> bool:
 			until = TK.wait_secs(0.9)
 		1:
 			fwd = tip_local()
-			check("walking forward, carried in the right hand alone (left on it %.2f), the point low behind on the right (%s)" % [bm.pole_lw, str(fwd)],
-				bm.pole_lw < 0.05 and fwd.x > 0.2 and fwd.y < 0.5 and fwd.z > 0.5)
+			check("walking forward, the low guard kept (left hand on it %.2f), the point low out right and behind (%s)" % [bm.pole_lw, str(fwd)],
+				bm.pole_lw > 0.9 and fwd.x > 0.5 and fwd.y < 0.5 and fwd.z > 0.3)
 			TK.release("move_forward")
 			TK.press("move_back")
 			until = TK.wait_secs(0.9)
 		2:
 			var t := tip_local()
-			check("backing off, the same carry (%s vs %s; the chest leans back a little)" % [str(t), str(fwd)], bm.pole_lw < 0.05 and t.distance_to(fwd) < 0.4)
+			check("backing off, the same guard (%s vs %s; the chest leans back a little)" % [str(t), str(fwd)], bm.pole_lw > 0.9 and t.distance_to(fwd) < 0.4)
 			TK.release("move_back")
 			TK.press("move_left")
 			until = TK.wait_secs(0.9)
 		3:
 			var t := tip_local()
-			check("strafing, the same carry (%s vs %s)" % [str(t), str(fwd)], bm.pole_lw < 0.05 and t.distance_to(fwd) < 0.3)
+			check("strafing, the same guard (%s vs %s)" % [str(t), str(fwd)], bm.pole_lw > 0.9 and t.distance_to(fwd) < 0.3)
 			TK.release("move_left")
 			TK.press("move_forward")
 			TK.press("sprint")

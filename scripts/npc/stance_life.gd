@@ -34,9 +34,10 @@ const RUN_OFF := 2.6
 const CARRY_IN := 0.15
 ## Stances that keep the guard at any walking speed and direction and carry only at a sprint, the guard staying under
 ## the sprint (Humanoid._locomotion) so the carry blends in from it.
-const SPRINT_ONLY := ["sword", "sword_pistol", "dual_sword", "axe"]
-## Stances that carry whenever they move (over MOVE_ON m/s, kept down to MOVE_OFF), the same carry every way they go.
-const ANY_WAY := ["greatsword"]
+const SPRINT_ONLY := ["sword", "sword_pistol", "dual_sword", "axe", "greatsword"]
+## Stances that carry whenever they move (over MOVE_ON m/s, kept down to MOVE_OFF), the same carry every way they go
+## (none now: the greatsword keeps its low guard walking and drags the point only at a sprint, Zach 2026-10-22).
+const ANY_WAY: Array[String] = []
 const MOVE_ON := 1.2
 const MOVE_OFF := 0.8
 const CUTLASS_RUN := {"arm_r": Vector3(0.35, 0, 0.25), "fore_r": Vector3(1.6, 0, 0), "hand_r": Vector3(0.45, -0.45, 0), "swing": 1.0, "steady": true}

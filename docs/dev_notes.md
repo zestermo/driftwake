@@ -5874,3 +5874,19 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   nine-spike impact with a white-hot core opening and dithering away (a five-point star read too cartoony).
   Their spark particles are unchanged.
 - Not converted: water_ring (own bands), elem_hit / drawn bursts (already hand-drawn), muzzle and cannon blasts.
+
+## 2026-10-22: the greatsword finish (1.19, carried from 1.18.4)
+- **The low guard moved to the right** (Zach's reference photo): both hands at the right hip, the blade down and out to the
+  right and a little behind, the point near the ground (`GreatswordMoves.GUARD_GRIP`, the chest turned toward it so the
+  left arm reaches in front of the chest). Walking keeps the guard; only a sprint drags the point (`StanceLife.SPRINT_ONLY`
+  now has "greatsword", `ANY_WAY` is empty). Running Cleave and the gate come back to it through `_ahead()` (the blade
+  forward and down in front of the legs), or they cut back through the right thigh.
+- **Updraft** (Momentum 12): a rising cut throws a light foe up (`launched`, a ragdoll), a boss reels; the captain leaps
+  after them, cleaves at the apex (0.7 s) and crashes down (a 3.2 m ring, knockdowns). `GreatswordArts._updraft`, pose
+  `gs_updraft` (+ `gs_land`).
+- **Gatekeeper** (Bulwark 14): held up to 1.5 s, the blade point-down before you (`is_parrying` + `bat_shots`, like
+  Windmill Guard); released, `gs_gate_rise` wrenches it up: an unblockable cone and a stood-up `gale` crescent.
+- Polish: Guardbreaker's crush from standing (`BREAK_CRUSH`, no near-prone sprawl), its trail started over the top
+  (0.52 s); Crescent Gale's `gale_flat` tipped up 0.55 rad and thicker, so it isn't edge-on from behind.
+- Tests: t/weapons/greatsword_tree (six techniques, each lands), greatsword_clear (the new poses), greatsword_combo and
+  greatsword_carry updated for the right-side guard and the walking guard.
