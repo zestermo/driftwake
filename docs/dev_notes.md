@@ -5899,3 +5899,14 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   material of its variant (`_splat_mats`, so 120 lying splats share 4 materials). Mirrored at random for
   variety. Replaces the 24 random splat meshes and the SPLAT colour. Specular 0.3 (0.5 caught the sky pink).
 - siteshot's `_clean_blood` frees `FX._splats` instead of matching the old material. Tested by t/fx/blood_splats.
+
+## 2026-10-22: dither effects, piece 5 (water rings, muzzle and cannon flares)
+
+- `FX.water_ring`'s two bands are the dither ring sheets (wide outer, thin inner) on `_ring_quad` in foam tones
+  (sea-blue edge, pale blue, foam, white), frames over each band's life, still riding the surface. `_band` and
+  `_annulus` are gone (no callers left).
+- `flip_dither_muzzle` (gen_dither_fx.py, an 18th FLIP_SHEETS sheet): seven uneven flame tongues round a
+  white-hot core at once, cooling to orange and then dithered powder smoke. It replaces the `muzzle` flare in
+  `blast` (every gun and cannon firing), `cannon_blast` and `powder_burst`; the fireball and smoke sheets
+  around it are unchanged. The `muzzle` sheet stays in the library.
+- t/fx/blocks, t/fx/flipbook and t/fx/sheets updated for the new sheet name and count.

@@ -15,6 +15,7 @@ sheet mode (shaders/psx/psx_decal_body.gdshaderinc, PSXMat.decal_sheet):
     dither_ring[_wide].png      FX.ring's shockwave (indices like the telegraph; band 0.12 / 0.3 of the radius)
     dither_blood.png            blood splats, 4x4: two round and two directed (spatter to +U), each a row of
                                 4 frames landing (FX._place_splat)
+    flip_dither_muzzle.png      a gun's or cannon's flare, 4x4 frames (FX.blast, cannon_blast, powder_burst)
     flip_dither_hit.png         a hit burst, 4x4 frames in FX.flipbook's format (impact, parry_sparks)
 and a preview at tools/dev/out/flipbook/dither.png. Deterministic.
 """
@@ -119,6 +120,42 @@ def hit(f: int, n: int = 16) -> np.ndarray:
     return img
 
 
+def muzzle(f: int, n: int = 16) -> np.ndarray:
+    """A gun's or a cannon's flare (flip format, 16 frames): uneven flame tongues round a white-hot core at
+    once, shrinking and opening as it cools to orange, then dithered powder smoke."""
+    t = f / (n - 1)
+    rs = 27 * (1 - 0.45 * t) if t > 0.06 else 18
+    rng = np.random.default_rng(805)
+    shape = rs * 0.42 * np.ones_like(R)
+    for k in range(7):                           # tongues: rounder than the hit's spikes
+        ak = k / 7 * 2 * np.pi + rng.uniform(-0.3, 0.3)
+        lk = rng.uniform(0.55, 1.0)
+        da = np.angle(np.exp(1j * (A - ak)))
+        shape = np.maximum(shape, rs * lk * np.clip(1 - np.abs(da) * 7 / (2 * np.pi) * 1.6, 0, 1) ** 0.7)
+    shape *= 1 + 0.08 * wob(A, 810 + f // 2)
+    m = R < shape
+    if t > 0.3:
+        m &= R > (t - 0.3) / 0.7 * rs * 0.55
+    img = blank()
+    frac = R / np.maximum(shape, 1e-3)
+    if t < 0.5:
+        hot = ("fffbe8", "ffe36a", "ff9a3a", "c2321f") if t < 0.25 else ("ffe36a", "ff9a3a", "d0402a", "7a2410")
+        img[m] = fs.hexc(hot[3])
+        img[m & (frac < 0.85)] = fs.hexc(hot[2])
+        img[m & (frac < 0.6)] = fs.hexc(hot[1])
+        img[m & (frac < 0.35)] = fs.hexc(hot[0])
+        ol = fs.hexc("2a0a08")
+    else:                                        # cooled to powder smoke
+        img[m & (DITH < 0.75)] = fs.hexc("6b625a")
+        img[m & (frac < 0.6) & (DITH < 0.5)] = fs.hexc("8e8478")
+        img[m & (frac > 0.85) & (DITH < 0.4)] = fs.hexc("c2321f")
+        ol = fs.hexc("2a2624")
+    if t > 0.55:
+        img[DITH < (t - 0.55) / 0.45] = 0
+    img[outline(img[..., 3] > 0)] = ol
+    return img
+
+
 BLOOD = [fs.hexc(c) for c in ("1a0204", "3a0408", "6e0a10", "8e1418", "d86a60")]
 
 
@@ -177,6 +214,7 @@ def main() -> None:
     sheets["dither_ring_wide"] = sheet([ring(f, 0.3) for f in range(FRAMES)])
     # the hit burst in FX.flipbook's format (flip_<name>.png, 4x4 frames of 64 px)
     sheets["flip_dither_hit"] = sheet([hit(f) for f in range(16)])
+    sheets["flip_dither_muzzle"] = sheet([muzzle(f) for f in range(16)])
     # blood: rows 0-1 round splats, rows 2-3 directed, each row one splat landing over 4 frames
     sheets["dither_blood"] = sheet([splat(v, k, v >= 2) for v in range(4) for k in range(4)])
     for name, im in sheets.items():

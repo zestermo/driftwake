@@ -99,10 +99,10 @@ func _process(_d: float) -> bool:
 			old = _ids()
 			fx.blast(at, Vector3.UP, 1.0, true)
 			var hot := _sheets(_new(old))
-			check("blast: three bursts, the flare, a fireball and smoke (%s)" % str(hot), hot == ["fireball", "muzzle", "smoke"])
+			check("blast: three bursts, the flare, a fireball and smoke (%s)" % str(hot), hot == ["dither_muzzle", "fireball", "smoke"])
 			old = _ids()
 			fx.blast(at, Vector3.UP, 1.0, false)
-			check("a cold blast has no fireball", _sheets(_new(old)) == ["muzzle", "smoke"])
+			check("a cold blast has no fireball", _sheets(_new(old)) == ["dither_muzzle", "smoke"])
 			made = [p1, p2, p3, p4]
 			holder = Node3D.new()
 			stage.add_child(holder)
