@@ -1511,4 +1511,6 @@ func _rival_step() -> void:
 			if r != null and st_t < 3.0:
 				return
 			check("cleared, it's gone here too", r == null)
-			finish()
+			# --- leave (the host checks we're gone, then quits too)
+			tn.ask("expect_leave")
+			go(30)
