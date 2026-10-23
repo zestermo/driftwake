@@ -120,7 +120,7 @@ func _fire(dual: bool) -> void:
 	Net.fx("sfx", ["gunshot", muzzle, -5.0, 0.08, 1.25 if dual else 1.15])
 	# (a shake this small lasts one frame: with rapid dual fire it's a hitch, not a kick)
 	if not dual:
-		player.shake(0.04)
+		player.cam_shake(0.04)
 
 
 ## Ricochet (pistol tree): the ball glances off into the nearest other enemy.

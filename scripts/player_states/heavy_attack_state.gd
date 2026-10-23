@@ -424,7 +424,7 @@ func _powder_shot() -> void:
 	var elem := player.progression.elemental("corsair", 2)
 	CorsairGun.shoot_or_butt(player, fwd, float(cfg["shot"]), "heavy",
 		{"knock": 11.0, "stagger": 0.6, "down": true, "stop": 0.1, "shake": 0.22, "elem": elem, "size": 1.5}, on)
-	player.kick(0.16, 0.3)
+	player.cam_kick(0.16, 0.3)
 	player.squash(-2.0)
 
 
@@ -488,7 +488,7 @@ func _strike_fx(second: bool = false) -> void:
 			Net.fx("debris", [at + Vector3(0, 0.1, 0), Vector3.UP + face * 0.3, 6, Color(0.35, 0.3, 0.25), 4.5])
 			if elem:
 				Net.fx("element", [tree, at + Vector3(0, 0.4, 0), Vector3.UP + face * 0.3, 12, 4.5])
-			player.kick(0.16, 0.3)
+			player.cam_kick(0.16, 0.3)
 		else:
 			Net.fx("ring", [at + Vector3(0, 1.0, 0), face, 0.8, FX.tree_col(tree, FX.EDGE), 0.16, 0.18])
 			if elem:
@@ -500,7 +500,7 @@ func _strike_fx(second: bool = false) -> void:
 		Net.fx("glint", [at, FX.tree_col(tree, FX.CORE), 0.7])
 		if elem:
 			Net.fx("element", [tree, at, face + Vector3.UP * 0.3, 10, 3.5])
-		player.kick(0.14, 0.28)
+		player.cam_kick(0.14, 0.28)
 		return
 	if cfg["tree"] == "dual_dagger":
 		var at := player.global_position + Vector3(0, 1.1, 0) + face * 1.0
@@ -509,7 +509,7 @@ func _strike_fx(second: bool = false) -> void:
 			Net.fx("ring", [at, face, 1.2, FX.tree_col(tree, FX.EDGE), 0.22, 0.14])
 			if elem:
 				Net.fx("element", [tree, at, face + Vector3.UP * 0.3, 10, 4.0])
-			player.kick(0.16, 0.3)
+			player.cam_kick(0.16, 0.3)
 		else:
 			Net.fx("ring", [at, face, 0.7, FX.tree_col(tree, FX.EDGE), 0.16, 0.18])
 		return
@@ -523,7 +523,7 @@ func _strike_fx(second: bool = false) -> void:
 		if elem:
 			Net.fx("bolt", [from, tip, FX.tree_col(tree, FX.EDGE), 0.1, 0.25, randi() % 1000])
 			Net.fx("element", [tree, tip, face + Vector3.UP * 0.2, 10, 5.0])
-		player.kick(0.14, 0.3)
+		player.cam_kick(0.14, 0.3)
 		return
 	if cfg.has("rehit"):
 		var c := player.global_position
@@ -534,7 +534,7 @@ func _strike_fx(second: bool = false) -> void:
 		Net.fx("debris", [c + Vector3(cos(a), 0.1, sin(a)) * 1.6, Vector3(cos(a), 1.3, sin(a)), 4, Color(0.35, 0.3, 0.25), 4.0])
 		if elem:
 			Net.fx("element", [tree, c + Vector3(0, 1.0, 0) + Vector3(cos(a), 0, sin(a)) * 1.8, Vector3(cos(a), 0.4, sin(a)), 8, 4.0])
-		player.kick(0.08, 0.25)
+		player.cam_kick(0.08, 0.25)
 		return
 	var f := get_camera_forward()
 	f.y = 0.0
@@ -546,14 +546,14 @@ func _strike_fx(second: bool = false) -> void:
 		Net.fx("ring", [at, Vector3.UP, 2.2, FX.tree_col(tree, FX.EDGE), 0.28, 0.12])
 		if elem:
 			Net.fx("element", [tree, at + Vector3(0, 0.4, 0), Vector3.UP + f * 0.3, 12, 4.5])
-		player.kick(0.16, 0.3)
+		player.cam_kick(0.16, 0.3)
 		return
 	var tip := player.global_position + Vector3(0, 1.2, 0) + f * 1.5
 	Net.fx("ring", [tip, f, 1.3, FX.tree_col(tree, FX.EDGE), 0.22, 0.16])
 	if elem:
 		Net.fx("element", [tree, tip, f + Vector3.UP * 0.2, 10, 6.5])
 	Net.fx("dust", [player.global_position + Vector3(0, 0.05, 0) - f * 0.4, 6, 0.6])
-	player.kick(0.12, 0.3)
+	player.cam_kick(0.12, 0.3)
 
 
 func _hit(knockdown: bool, base: float = -1.0) -> HitData:

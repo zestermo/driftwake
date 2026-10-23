@@ -72,7 +72,7 @@ static func cleave_fx(p: Player, level: int) -> void:
 	if level == 2:
 		Projectile.launch(p.get_tree(), "gale", p.global_position + Vector3(0, 1.2, 0) + face * 1.2, face, p, GALE_DAMAGE, "elem" if p.progression.elemental("greatsword") else "")
 		Net.fx("sfx", ["whoosh_big", at, -2.0, 0.05, 0.65])
-	p.kick(0.12 + 0.06 * level, 0.3)
+	p.cam_kick(0.12 + 0.06 * level, 0.3)
 
 
 ## A combo blow's show: with momentum built, a ring of air pressure off the point and a rising whoosh; with the
@@ -88,7 +88,7 @@ static func swing_fx(p: Player, mom: int, big: bool) -> void:
 	if elem:
 		Net.fx("element", ["greatsword", at, face + Vector3.UP * 0.2, 5 + 2 * mom, 4.0 + mom])
 	if mom >= 2 or big:
-		p.kick(0.06 + 0.03 * mom, 0.22)
+		p.cam_kick(0.06 + 0.03 * mom, 0.22)
 
 
 ## Falling Cleave's landing: the blade driven into the ground ahead, a cleave line split out in front; everyone on it
@@ -124,7 +124,7 @@ static func fall_land(p: Player, already: Array, recover: float) -> void:
 		if hb:
 			hb.take_hit(hit, p)
 	cleave_fx(p, 1)
-	p.shake(0.25)
+	p.cam_shake(0.25)
 
 
 ## A parried blow turned aside on the flat: the blade shoved out into them, a ring of air off it (the deflect pose
@@ -137,7 +137,7 @@ static func parried(p: Player, attacker: Node) -> void:
 	if elem:
 		Net.fx("element", ["greatsword", at, face, 6, 4.0])
 	if attacker is Node3D and is_instance_valid(attacker):
-		p.kick(0.08, 0.2)
+		p.cam_kick(0.08, 0.2)
 
 
 # --------------------------------------------------------------------------
@@ -331,8 +331,8 @@ static func _guardbreak(s, delta: float) -> void:
 		if s._elem():
 			Net.fx("element", ["greatsword", at, s._dir + Vector3.UP * 0.3, 10, 5.0])
 		CombatManager.apply_hitstop(0.1, [p])
-		s.player.kick(0.16, 0.3)
-		s.player.shake(0.18)
+		s.player.cam_kick(0.16, 0.3)
+		s.player.cam_shake(0.18)
 
 
 ## One huge flat sweep: everyone close in front cut, and a crescent of air flung off the edge down the line.
@@ -353,7 +353,7 @@ static func _crescent(s, delta: float) -> void:
 		if s._elem():
 			Net.fx("element", ["greatsword", p.global_position + Vector3(0, 1.0, 0) + s._dir, s._dir, 10, 6.0])
 		p.squash(-2.5)
-		s.player.kick(0.14, 0.28)
+		s.player.cam_kick(0.14, 0.28)
 
 
 ## A rising cut tears a gust up under the one in front and throws them high (a boss only reels); up after them on the
@@ -442,8 +442,8 @@ static func _updraft(s, delta: float) -> void:
 		Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.7])
 		if s._elem():
 			Net.fx("vortex", [p, 0.6, UP_CRASH_R, 2.0, FX.tree_col("greatsword", FX.EDGE), randi() % 10000])
-		s.player.shake(0.3)
-		s.player.kick(0.16, 0.3)
+		s.player.cam_shake(0.3)
+		s.player.cam_kick(0.16, 0.3)
 
 
 ## Held: the blade driven point-down before you like a gate (every blow and shot from the front stops on the flat); let
@@ -485,7 +485,7 @@ static func _gatekeeper(s, delta: float) -> void:
 		if s._elem():
 			Net.fx("element", ["greatsword", at + Vector3(0, 0.5, 0), Vector3.UP + s._dir * 0.5, 10, 6.0])
 		p.squash(2.0)
-		s.player.kick(0.12, 0.25)
+		s.player.cam_kick(0.12, 0.25)
 
 
 ## Three turns with the blade out, walking, each quicker than the last: a cut all round on every half turn, then the
@@ -513,7 +513,7 @@ static func _tempest(s, delta: float) -> void:
 		if s._elem():
 			Net.fx("vortex", [p, 0.8, TEMPEST_R, 2.4, FX.tree_col("greatsword", FX.EDGE), randi() % 10000])
 		CombatManager.apply_hitstop(0.08, [p])
-		s.player.shake(0.3)
+		s.player.cam_shake(0.3)
 
 
 ## Up high with the blade heaved overhead (the moment at the top), down in one cleave: the ground split in a line far
@@ -573,6 +573,6 @@ static func _sky(s, delta: float) -> void:
 		if elem:
 			Net.fx("vortex", [p, 1.2, 3.2, 3.2, FX.tree_col("greatsword", FX.EDGE), randi() % 10000])
 		CombatManager.apply_hitstop(0.12, [p])
-		s.player.shake(0.45)
-		s.player.kick(0.22, 0.45)
+		s.player.cam_shake(0.45)
+		s.player.cam_kick(0.22, 0.45)
 		p.hurtbox.set_deferred("monitorable", true)

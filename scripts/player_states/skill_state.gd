@@ -79,7 +79,7 @@ func enter(data: Dictionary) -> void:
 			_trail_dist = 0.0
 			Net.fx("flame", [player.global_position + Vector3(0, 0.8, 0), 14, 0.8, 0.5, 0.4])
 			Net.fx("sfx", ["fire_burst", player.global_position, -3.0, 0.1, 1.25])
-			player.shake(player.DASH_SHAKE * 1.5)
+			player.cam_shake(player.DASH_SHAKE * 1.5)
 		"fire_ring":
 			dur = 0.6
 			player.body_model.play("fire_ring", dur)
@@ -146,7 +146,7 @@ func enter(data: Dictionary) -> void:
 			Net.fx("sparkle", [player.global_position + Vector3(0, 1.2, 0), 18, Player.HAKI_SPARK])
 			Net.fx("sfx", ["haki", player.global_position, -1.0, 0.03, 1.0])
 			Net.fx("punch_wind", [player.global_position + Vector3.UP * 1.1, Vector3.UP, 0.4, Player.HAKI_TRAIL, true])
-			player.shake(0.12)
+			player.cam_shake(0.12)
 		"foresight":
 			dur = 0.4
 			var ft := player.progression.skill_tier("foresight")
@@ -281,7 +281,7 @@ func physics_update(delta: float) -> void:
 				if sea:
 					Net.fx("spray", [from, d.normalized() + player.player_model.global_basis.x * -0.6, 10, foam, 6.0])
 				Net.fx("sfx", ["whoosh_big", from, -2.0, 0.05, 1.3])
-				player.kick(0.12, 0.3)
+				player.cam_kick(0.12, 0.3)
 		"tiger_rush":
 			_tiger(delta)
 		"bullet_storm":
@@ -587,7 +587,7 @@ func _pounce(delta: float) -> void:
 		_pc.blast(c + Vector3(0, 0.8, 0), 2.6, hd)
 		Net.fx("dust_ring", [c, 16, 1.1])
 		Net.fx("sfx", ["thud", c, 0.0, 0.05, 0.9])
-		player.shake(0.2)
+		player.cam_shake(0.2)
 		player.velocity.x *= 0.2
 		player.velocity.z *= 0.2
 		t = maxf(t, dur * 0.7)
@@ -603,7 +603,7 @@ func _howl() -> void:
 	player.call("_recalc_stats")
 	Net.fx("sfx", ["howl", player.global_position, 0.0, 0.03])
 	Net.fx("dust_ring", [player.global_position, 18, 1.2])
-	player.shake(0.15)
+	player.cam_shake(0.15)
 	for e in _pc.enemies_in(player.global_position + Vector3(0, 0.9, 0), 8.0):
 		var hb := (e as Node).get("hurtbox") as Hurtbox
 		if hb:
@@ -695,7 +695,7 @@ func _throw_fireball() -> void:
 	Fireball.launch(player.get_tree(), from, d.normalized(), player)
 	Net.fx("flame", [from, 8, 0.5, 0.3, 0.15])
 	Net.fx("sfx", ["fire_burst", from, -3.0, 0.1, 1.3])
-	player.shake(0.05)
+	player.cam_shake(0.05)
 
 
 # --------------------------------------------------------------------------
@@ -747,7 +747,7 @@ func _ring() -> void:
 	_pc.ignite_burnables(c, 4.2)
 	Net.fx("fire_ring", [c, 4.2, 44])
 	Net.fx("sfx", ["fire_blast", c, -5.0, 0.08, 1.35])
-	player.shake(0.22)
+	player.cam_shake(0.22)
 
 
 # --------------------------------------------------------------------------
@@ -767,7 +767,7 @@ func _field() -> void:
 	FireZone.spawn(player.get_tree(), spot, 3.0, 6.0, 10.0, player)
 	Net.fx("flame", [spot + Vector3(0, 0.3, 0), 22, 1.0, 0.6, 1.6])
 	Net.fx("sfx", ["fire_burst", spot, -1.0, 0.1, 0.75])
-	player.shake(0.08)
+	player.cam_shake(0.08)
 
 
 # --------------------------------------------------------------------------
@@ -813,7 +813,7 @@ func _slam() -> void:
 	Net.fx("fire_pillar", [c, 7.0])
 	Net.fx("dust_ring", [c, 16, 1.2])
 	Net.fx("sfx", ["fire_blast", c, 2.0, 0.05, 0.9])
-	player.shake(0.5)
+	player.cam_shake(0.5)
 	CombatManager.apply_hitstop(0.08, [player])
 	FireZone.spawn(player.get_tree(), c, 5.0, 5.0, 12.0, player)
 	player.squash(-3.0)

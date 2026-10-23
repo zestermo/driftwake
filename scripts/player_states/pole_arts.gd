@@ -140,7 +140,7 @@ static func _thrusts(s, delta: float) -> void:
 			s._spray(tip, s._dir, 10, 5.0)
 			if s._elem():
 				Net.fx("bolt", [at, tip, s._col(), 0.1, 0.22, randi() % 1000])
-			s.player.kick(0.12, 0.25)
+			s.player.cam_kick(0.12, 0.25)
 		else:
 			s._cone(THRUST_REACH, 0.9, THRUST_DAMAGE, 1.5, false, false, 0.25)
 			var off := Vector3(randf_range(-0.15, 0.15), randf_range(-0.12, 0.18), 0)
@@ -168,7 +168,7 @@ static func _dragon(s, delta: float) -> void:
 				var at := p.global_position + Vector3(cos(a), 0.3, sin(a)) * DRAGON_R * 0.8
 				Net.fx("bolt", [at + Vector3(0, 0.9, 0), at, s._col(), 0.07, 0.18, randi() % 1000])
 		if second:
-			s.player.shake(0.2)
+			s.player.cam_shake(0.2)
 
 
 ## Up and over the one you face: the point driven down into them at the top of the vault (it breaks a guard),
@@ -208,7 +208,7 @@ static func _vstrike(s, delta: float) -> void:
 		if s._elem():
 			Net.fx("bolt", [at + Vector3(0, 5.0, 0), at, s._col(), 0.12, 0.25, randi() % 1000])
 		CombatManager.apply_hitstop(0.07, [p])
-		s.player.kick(0.16, 0.3)
+		s.player.cam_kick(0.16, 0.3)
 	if not s._done.has("land") and s.t > VSTRIKE_AT and (p.is_on_floor() or s.t > VSTRIKE_PLANT + 0.9):
 		s._done["land"] = true
 		p.velocity = Vector3.ZERO
@@ -263,8 +263,8 @@ static func _wheel(s, delta: float) -> void:
 					Net.fx("element", ["polearm", c, Vector3.UP, 8, 4.0])
 		else:
 			s._spray(at, Vector3.UP, 12, 5.0)
-		s.player.shake(0.35)
-		s.player.kick(0.2, 0.4)
+		s.player.cam_shake(0.35)
+		s.player.cam_kick(0.2, 0.4)
 		p.hurtbox.set_deferred("monitorable", true)
 
 
@@ -288,7 +288,7 @@ static func _javelin(s, delta: float) -> void:
 	Projectile.launch(p.get_tree(), "javelin", from, d, p, JAVELIN_DAMAGE, ("elem|" if s._elem() else "") + p.equipped_weapon.model())
 	Net.fx("ring", [from + d * 0.6, d, 1.0, s._col(), 0.2, 0.14])
 	Net.fx("sfx", ["whoosh_big", from, -3.0, 0.05, 1.2])
-	s.player.kick(0.12, 0.25)
+	s.player.cam_kick(0.12, 0.25)
 	p.squash(-2.0)
 
 
@@ -334,7 +334,7 @@ static func _windmill(s, delta: float) -> void:
 		s._spray(tip, s._dir, 10, 5.0)
 		if s._elem():
 			Net.fx("bolt", [at, tip, s._col(), 0.1, 0.22, randi() % 1000])
-		s.player.kick(0.14, 0.3)
+		s.player.cam_kick(0.14, 0.3)
 
 
 ## Anyone who's stepped into the spinning pole: clipped, and shoved back out to its tip.

@@ -31,7 +31,7 @@ static func thud(p: Player, big: bool) -> void:
 	if elem:
 		Net.fx("element", ["hammer", at + Vector3(0, 0.2, 0), Vector3.UP, 8 if big else 5, 4.0])
 	Net.fx("sfx", ["thud", at, -3.0 if big else -7.0, 0.06, 0.7 if big else 0.85])
-	p.shake(0.2 if big else 0.1)
+	p.cam_shake(0.2 if big else 0.1)
 
 
 ## A shockwave from `at`: everyone within `r` (not in `already`) takes `hit`; rings racing out over the ground,
@@ -58,8 +58,8 @@ static func quake_fx(p: Player, at: Vector3, r: float, elem: bool) -> void:
 		Net.fx("rock_spikes", [at, r * 0.7, 7, randi() % 10000, 1.0, 0.8])
 		Net.fx("element", ["hammer", at + Vector3(0, 0.3, 0), Vector3.UP, 10, 5.0])
 	Net.fx("sfx", ["thud", at, 2.0, 0.05, 0.6])
-	p.shake(0.3)
-	p.kick(0.14, 0.3)
+	p.cam_shake(0.3)
+	p.cam_kick(0.14, 0.3)
 
 
 ## Everyone within `r` of `at` (not in `already`) takes `hit`.
@@ -262,7 +262,7 @@ static func _skull(s, delta: float) -> void:
 			if s._elem():
 				Net.fx("element", ["hammer", at, Vector3.UP, 8, 4.0])
 			CombatManager.apply_hitstop(0.1, [p])
-			s.player.kick(0.16, 0.3)
+			s.player.cam_kick(0.16, 0.3)
 	if s._once("slam", SKULL_SLAM):
 		thud(p, false)
 		if s._elem():
@@ -368,8 +368,8 @@ static func _titan(s, delta: float) -> void:
 		else:
 			Net.fx("debris", [at + Vector3(0, 0.2, 0), Vector3.UP, 14, FX.tree_col("hammer", FX.ACCENT), 7.0])
 		CombatManager.apply_hitstop(0.12, [p])
-		s.player.shake(0.45)
-		s.player.kick(0.22, 0.45)
+		s.player.cam_shake(0.45)
+		s.player.cam_kick(0.22, 0.45)
 		p.hurtbox.set_deferred("monitorable", true)
 	if landed:
 		var since: float = s.t - float(s._done["slam_t"])
@@ -380,7 +380,7 @@ static func _titan(s, delta: float) -> void:
 				Net.fx("ring", [at, Vector3.UP, TITAN_R * (0.7 + 0.2 * i), s._col(), 0.3, 0.1])
 				Net.fx("dust_ring", [at, 10, 0.9])
 				Net.fx("sfx", ["thud", at, -4.0, 0.05, 0.55])
-				s.player.shake(0.18)
+				s.player.cam_shake(0.18)
 				for e in s._pc.enemies_in(at + Vector3(0, 0.9, 0), TITAN_R):
 					var hd: HitData = s._hd(TITAN_AFTER_DAMAGE, 3.0, false)
 					hd.stagger_duration = 0.4
@@ -438,7 +438,7 @@ static func _drive_hit(s, alive: bool) -> void:
 	Net.fx("ring", [at, s._dir, 1.4, s._col(), 0.22, 0.16])
 	Net.fx("sfx", ["whoosh_big", at, -4.0, 0.05, 0.8])
 	p.squash(-2.0)
-	s.player.kick(0.14, 0.3)
+	s.player.cam_kick(0.14, 0.3)
 	if not alive or (s._target as Node3D).global_position.distance_to(p.global_position) > 3.4:
 		return
 	var e: Node3D = s._target
@@ -475,7 +475,7 @@ static func _anvil(s, delta: float) -> void:
 		Net.fx("dust", [g + Vector3(0, 0.05, 0), 6, 0.6])
 		Net.fx("ring", [g + Vector3(0, 0.05, 0), Vector3.UP, 1.0, _ring_col(p, s._elem()), 0.2, 0.18])
 		Net.fx("sfx", ["thud", g, -5.0, 0.05, 0.8])
-		s.player.shake(0.08)
+		s.player.cam_shake(0.08)
 	if not s._done.has("rip"):
 		if p.parried_tick >= int(s._done["tick"]) and is_instance_valid(p.parried_by):
 			_ring_off(s, p.parried_by)
@@ -528,4 +528,4 @@ static func _ring_off(s, foe: Node3D) -> void:
 	Net.fx("sfx", ["parry", at, 0.0, 0.05, 0.55])
 	Net.fx("sfx", ["blip_high", at, -6.0, 0.0, 0.45])
 	CombatManager.apply_hitstop(0.1, [p])
-	s.player.kick(0.12, 0.25)
+	s.player.cam_kick(0.12, 0.25)

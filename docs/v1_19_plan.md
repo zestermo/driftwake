@@ -53,7 +53,7 @@ Zach settled the whole version in one grill so it can be built in one go. This s
 
 ### Build log
 - **Piece 1 (2026-10-23): the AI captain + a debug duel.** `CaptainInput` (scripts/input/captain_input.gd) and
-  `Player.inp`; `Player.shake()/kick()/foe_mask()`; `Player.is_ai`, `Player.spawn_ai()`, `_setup_ai()`;
+  `Player.inp`; `Player.cam_shake()/cam_kick()/foe_mask()` (not shake/kick: siblings answering has_method("shake") pass for the camera rig); `Player.is_ai`, `Player.spawn_ai()`, `_setup_ai()`;
   `CaptainBrain` (scripts/ai/captain_brain.gd); `RivalDuel` (scripts/ai/rival_duel.gd), **Alt+F5** in a debug build.
   Test: t/combat/rival_duel. **Not yet:** guests don't see AI captains (their body's net_sync and net_power are off
   for now); skills in a rival's loadout (it casts what's in `power.loadout`, empty from RivalDuel); the rival crews.

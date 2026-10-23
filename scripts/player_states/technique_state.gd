@@ -113,7 +113,7 @@ func enter(data: Dictionary) -> void:
 			Net.fx("glint", [clash, _col(FX.CORE), 1.1])
 			CombatManager.apply_hitstop(0.08, [player])
 			CombatManager.apply_slowmo(0.35, 0.12, 0.12)
-			player.kick(0.25, 0.4)
+			player.cam_kick(0.25, 0.4)
 		"swordfish":
 			dur = 0.95
 			player.body_model.play("swordfish", dur)
@@ -331,7 +331,7 @@ func physics_update(delta: float) -> void:
 				if last:
 					Net.fx("streak", [_chest() + _dir * 0.4, _chest() + _dir * 3.6, _col(), 0.12, 0.22])
 					Net.fx("sfx", ["whoosh_big", player.global_position, -4.0, 0.05, 1.3])
-					player.kick(0.2, 0.35)
+					player.cam_kick(0.2, 0.35)
 					player.squash(-2.0)
 		"kraken_wake":
 			_kraken(delta)
@@ -353,8 +353,8 @@ func physics_update(delta: float) -> void:
 					Net.fx("katana_burst", [from + Vector3(0, 0.6, 0), "katana_cloud", 1.8, 0.45, 30.0])
 				Net.fx("ring", [from + Vector3(0, 0.9, 0) + _dir * 1.2, _dir, 1.2, _col(), 0.24, 0.14])
 				_spray(from + Vector3(0, 0.6, 0), _dir + Vector3.UP * 0.8, 9, 4.0)
-				player.shake(0.15)
-				player.kick(0.15, 0.3)
+				player.cam_shake(0.15)
+				player.cam_kick(0.15, 0.3)
 				player.squash(-2.0)
 		"twin_waves":
 			_rooted(delta, 0.0)
@@ -391,7 +391,7 @@ func physics_update(delta: float) -> void:
 				Net.fx("katana_burst", [at, "katana_slash" if _elem() else "steel_slash", 2.0 if _elem() else 1.5, 0.35, 180.0])
 				_spray(at, _dir + Vector3.UP * 0.3, 8, 4.0)
 				Net.fx("sfx", ["parry", player.global_position, -8.0, 0.05, 1.7])
-				player.kick(0.15, 0.3)
+				player.cam_kick(0.15, 0.3)
 		"petal_storm":
 			_petals(delta)
 		"axe_throw":
@@ -434,8 +434,8 @@ func physics_update(delta: float) -> void:
 						var b := TAU * k / 5.0
 						Net.fx("drawn_burst", [c + Vector3(cos(b) * 1.4, 0.7, sin(b) * 1.4), "ember_cloud", 1.4, 0.5, 40.0])
 				Net.fx("sfx", ["thud", c, 2.0, 0.05, 0.6])
-				player.shake(0.25)
-				player.kick(0.2, 0.4)
+				player.cam_shake(0.25)
+				player.cam_kick(0.2, 0.4)
 		"maelstrom":
 			_maelstrom(delta)
 		"blade_dance":
@@ -498,7 +498,7 @@ func physics_update(delta: float) -> void:
 			if _once("final", 1.05):
 				_cone(2.4, 0.7, 22.0, 12.0, false, true)
 				Net.fx("punch_wind", [_chest() + _dir * 0.3, _dir, 1.6, Color(1.0, 0.97, 0.9), true])
-				player.shake(0.18)
+				player.cam_shake(0.18)
 		"rising_dragon":
 			_dragon(delta)
 		"palm_strike":
@@ -554,7 +554,7 @@ func _blade_tip(left: bool = false) -> Vector3:
 ## An ultimate's moment: time slows, the camera punches in, a flash.
 func _moment(slow: float, secs: float, kick: float, flash: float = 0.3) -> void:
 	CombatManager.apply_slowmo(slow, secs)
-	player.kick(kick, secs + 0.45)
+	player.cam_kick(kick, secs + 0.45)
 	var c := _col(FX.CORE)
 	Net.fx("screen_flash", [player.global_position, Color(c.r, c.g, c.b, flash), 0.3])
 
@@ -696,7 +696,7 @@ func _spin_hits(reach: float, every: float, base: float, end_t: float, final: fl
 		_ring(reach + 0.5, final, 11.0, true, false)
 		Net.fx("dust_ring", [player.global_position, 18, 1.3])
 		Net.fx("sfx", ["whoosh_big", player.global_position, 2.0, 0.05, 0.8])
-		player.shake(0.3)
+		player.cam_shake(0.3)
 
 
 func _drift(delta: float, spd: float) -> void:
@@ -742,8 +742,8 @@ func _twin_wave(side: float) -> void:
 		Net.fx("katana_burst", [from + Vector3(0, 0.6, 0), "katana_cloud", 1.6, 0.45, 30.0])
 	Net.fx("ring", [from + Vector3(0, 0.9, 0) + d.normalized() * 1.0, d.normalized(), 1.0, _col(), 0.22, 0.14])
 	_spray(from + Vector3(0, 0.6, 0), d.normalized() + Vector3.UP * 0.8, 7, 4.0)
-	player.shake(0.13)
-	player.kick(0.13, 0.28)
+	player.cam_shake(0.13)
+	player.cam_kick(0.13, 0.28)
 	player.squash(-2.0)
 
 
@@ -838,7 +838,7 @@ func _riposte_cut() -> void:
 			Net.fx("blade_swoosh", [player.body_model, 0.1, _col()])
 			var right := _dir.cross(Vector3.UP)
 			_spray(_chest() + _dir * 0.8, right * 0.8 + _dir * 0.6 + Vector3.UP * 0.2, 12, 6.0)
-	player.shake(0.15)
+	player.cam_shake(0.15)
 
 
 ## Kraken's Wake: the sea gathers round you, you blink from one victim to the
@@ -919,7 +919,7 @@ func _kraken(delta: float) -> void:
 			Net.fx("water_arc", [player.global_position + Vector3(0, 0.75, 0), back, back.cross(Vector3.UP), 2.6, TAU * 1.05, 0.95, 0.16, 0.8, _col(), 22])
 			Net.fx("sfx", ["splash_big", player.global_position, 2.0, 0.05, 0.8])
 		Net.fx("sfx", ["whoosh_big", player.global_position, 3.0, 0.05, 0.6])
-		player.shake(0.5)
+		player.cam_shake(0.5)
 		CombatManager.apply_hitstop(0.1, [player])
 		_moment(0.3, 0.35, 0.7, 0.45)
 
@@ -949,7 +949,7 @@ func _petals(delta: float) -> void:
 			Net.fx("katana_arc", [feet + Vector3(0, 1.0, 0), back, back.cross(Vector3.UP), 3.6, -TAU * 0.97, 0.95, true, 0.14, 41])
 		Net.fx("ring", [feet + Vector3(0, 1.0, 0), Vector3.UP, 9.0, _col(), 0.3, 0.05])
 		Net.fx("sfx", ["whoosh_big", feet, -1.0, 0.05, 1.4])
-		player.kick(0.25, 0.4)
+		player.cam_kick(0.25, 0.4)
 		var k := 0
 		for e in _victims:
 			if is_instance_valid(e):
@@ -987,7 +987,7 @@ func _petals(delta: float) -> void:
 			# a thousand petals let go over everyone in reach, falling through the still air
 			Net.fx("sakura", [feet + Vector3(0, 3.5, 0), Vector3.DOWN, 30, 0.8, 0.32, 6.0])
 		Net.fx("ring", [feet, Vector3.UP, 9.0, _col(), 0.6, 0.06])
-		player.shake(0.4)
+		player.cam_shake(0.4)
 		CombatManager.apply_hitstop(0.12, [player])
 		_moment(0.3, 0.35, 0.7, 0.45)
 
@@ -1007,7 +1007,7 @@ func _throw_axe() -> void:
 	d.y = clampf(d.y, -0.4, 0.3)
 	_axe = Projectile.launch(player.get_tree(), "axe", from, d.normalized(), player, 24.0, ("elem|" if _elem() else "") + player.equipped_weapon.model())
 	Net.fx("ring", [from + d.normalized() * 0.4, d.normalized(), 1.1, _col(), 0.2, 0.14])
-	player.kick(0.1, 0.25)
+	player.cam_kick(0.1, 0.25)
 	player.squash(-2.0)
 	var held: Node3D = player.body_model.weapon
 	if held:
@@ -1038,8 +1038,8 @@ func _split(length: float, width: float, base: float) -> void:
 	Net.fx("impact", [start + Vector3(0, 0.2, 0), _col(FX.ACCENT) if _elem() else Color(1.0, 0.85, 0.55)])
 	Net.fx("sfx", ["thud", start, 3.0, 0.05, 0.65])
 	Net.fx("sfx", ["crunch", start + _dir * 3.0, -1.0, 0.05, 0.55])
-	player.shake(0.35)
-	player.kick(0.22, 0.35)
+	player.cam_shake(0.35)
+	player.cam_kick(0.22, 0.35)
 	player.squash(-4.5)
 	for e in _pc.enemies_in(start + _dir * length * 0.5 + Vector3(0, 0.8, 0), length * 0.6):
 		var rel := (e as Node3D).global_position - start
@@ -1064,7 +1064,7 @@ func _maelstrom(delta: float) -> void:
 	_rooted(delta, 0.6 if t >= MAEL_GATHER else 0.0)
 	if _once("go", MAEL_GATHER):
 		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 0.9])
-		player.kick(0.2, 0.4)
+		player.cam_kick(0.2, 0.4)
 	if t < MAEL_GATHER:
 		return
 	# the storm round you: a drawn crescent (iron, or fire once awakened) laid round you every turn, at three heights
@@ -1155,7 +1155,7 @@ func _deadeye() -> void:
 	Net.fx("muzzle_sparks", [from, cf, 14])
 	Net.fx("smoke", [from + cf * 0.3, 8, 0.9, 1.6])
 	Net.fx("sfx", ["gunshot", from, 3.0, 0.03, 0.8])
-	player.shake(0.2)
+	player.cam_shake(0.2)
 
 
 func _smoke() -> void:
@@ -1181,7 +1181,7 @@ func _point_blank() -> void:
 	Net.fx("muzzle_sparks", [from, _dir, 18])
 	Net.fx("smoke", [from + _dir * 0.4, 6, 0.8, 1.2])
 	Net.fx("sfx", ["gunshot", from, 2.0, 0.05, 0.75])
-	player.shake(0.22)
+	player.cam_shake(0.22)
 
 
 func _waltz() -> void:
@@ -1226,7 +1226,7 @@ func _dance(delta: float) -> void:
 			_spray(_chest(), _dir + Vector3.UP * 0.3, 6, 3.5)
 		if last:
 			Net.fx("twin_cross", [_chest() + _dir * 1.4, _dir, 0.9, _col(), _col(FX.ACCENT), 0.3])
-			player.kick(0.15, 0.3)
+			player.cam_kick(0.15, 0.3)
 			player.squash(-2.0)
 
 
@@ -1245,8 +1245,8 @@ func _fang_land() -> void:
 	Net.fx("dust_ring", [player.global_position, 14, 1.0])
 	Net.fx("sfx", ["thud", player.global_position, 0.0, 0.05, 1.0])
 	Net.fx("sfx", ["parry", player.global_position, -8.0, 0.05, 1.4])
-	player.shake(0.2)
-	player.kick(0.18, 0.3)
+	player.cam_shake(0.2)
+	player.cam_kick(0.18, 0.3)
 	player.squash(-4.0)
 
 
@@ -1268,7 +1268,7 @@ func _tempest(delta: float) -> void:
 		Net.fx("vortex", [player.player_model, secs, 3.1, 2.0, _col(FX.ACCENT) if _elem() else _col(FX.CORE), randi() % 10000])
 		Net.fx("blade_swoosh", [player.body_model, secs, _col(), _col(FX.ACCENT)])
 		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 1.1])
-		player.kick(0.2, 0.4)
+		player.cam_kick(0.2, 0.4)
 	if t < TEMPEST_GATHER:
 		return
 	var before := _hits
@@ -1297,7 +1297,7 @@ func _tempest(delta: float) -> void:
 func _corsair_shot(base: float, target: Node3D, opts: Dictionary, size: float) -> Node3D:
 	var o := opts.merged({"elem": _elem(), "burst": _elem(), "ball": false, "size": size}, true)
 	var hit := CorsairGun.fire(player, _dir, base, "skill", o, target)
-	player.kick(0.18, 0.3)
+	player.cam_kick(0.18, 0.3)
 	player.squash(-1.5)
 	return hit
 
@@ -1338,8 +1338,8 @@ func _grapeshot() -> void:
 	Net.fx("dust", [player.global_position + _dir * 2.0, 10, 0.8])
 	Net.fx("sfx", ["gunshot", from, 3.0, 0.05, 0.6])
 	Net.fx("sfx", ["whoosh_big", from, -4.0, 0.05, 0.8])
-	player.shake(0.25)
-	player.kick(0.22, 0.3)
+	player.cam_shake(0.25)
+	player.cam_kick(0.22, 0.3)
 	player.velocity = -_dir * 4.0
 	player.squash(-2.5)
 
@@ -1374,7 +1374,7 @@ func _crossfire(delta: float) -> void:
 		Net.fx("impact", [at, _col(FX.ACCENT)])
 		Net.fx("ring", [at, _dir, 1.1, _col(), 0.2, 0.14])
 		_spray(at, _dir + Vector3.UP * 0.3, 8, 4.0)
-		player.kick(0.12, 0.25)
+		player.cam_kick(0.12, 0.25)
 	# turning round behind them
 	if t >= 0.28 and t <= 0.46:
 		var k := Humanoid._ease((t - 0.28) / 0.16)
@@ -1409,7 +1409,7 @@ func _broadside(delta: float) -> void:
 	if _once("order", 0.56):
 		Net.fx("blade_swoosh", [player.body_model, 0.12, _col()])
 		Net.fx("sfx", ["whoosh", player.global_position, -5.0, 0.05, 1.0])
-		player.kick(0.15, 0.3)
+		player.cam_kick(0.15, 0.3)
 	while _hits < _victims.size() and t >= BROAD_SHOTS + _hits * BROAD_EVERY:
 		var e: Node3D = _victims[_hits]
 		_hits += 1
@@ -1449,7 +1449,7 @@ func _broadside(delta: float) -> void:
 		Net.fx("ring", [player.global_position, Vector3.UP, 10.0, _col(), 0.6, 0.06])
 		Net.fx("sfx", ["thud", player.global_position, 4.0, 0.03, 0.5])
 		Net.fx("sfx", ["gunshot", player.global_position, 4.0, 0.05, 0.45])
-		player.shake(0.5)
+		player.cam_shake(0.5)
 		CombatManager.apply_hitstop(0.1, [player])
 		_moment(0.3, 0.35, 0.7, 0.45)
 
@@ -1479,7 +1479,7 @@ func _dragon(delta: float) -> void:
 		Net.fx("punch_wind", [_chest() + _dir * 0.4, Vector3.UP, 1.6, Color(1.0, 0.97, 0.9), true])
 		Net.fx("dust_ring", [player.global_position, 12, 0.9])
 		Net.fx("sfx", ["whoosh_big", player.global_position, -2.0, 0.05, 1.2])
-		player.shake(0.2 if hits.size() > 0 else 0.1)
+		player.cam_shake(0.2 if hits.size() > 0 else 0.1)
 	if t < 0.16:
 		_rooted(delta, 0.0)
 	else:
@@ -1500,7 +1500,7 @@ func _palm() -> void:
 	Net.fx("punch_wind", [_chest() + _dir * 0.3, _dir, 2.2, Color(1.0, 0.97, 0.9), true])
 	Net.fx("dust", [player.global_position + _dir * 1.5, 10, 0.8])
 	Net.fx("sfx", ["whoosh_big", player.global_position, -1.0, 0.05, 1.3])
-	player.shake(0.2)
+	player.cam_shake(0.2)
 
 
 # --------------------------------------------------------------------------
@@ -1513,7 +1513,7 @@ func _conquer() -> void:
 	Net.fx("punch_wind", [c + Vector3.UP * 1.2, Vector3.UP, 0.8, Color(0.2, 0.05, 0.08), true])
 	Net.fx("sfx", ["haki", c, 3.0, 0.0, 0.55])
 	Net.fx("sfx", ["thud", c, 2.0, 0.0, 0.5])
-	player.shake(0.45)
+	player.cam_shake(0.45)
 	for e in _pc.enemies_in(c + Vector3(0, 0.9, 0), 14.0):
 		var hb := e.get("hurtbox") as Hurtbox
 		var hc = e.get("health")

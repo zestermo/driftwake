@@ -123,7 +123,7 @@ func absorb(hit: HitData, dir: Vector3) -> bool:
 	Net.fx("sparkle", [at, 5, Color(1.0, 0.9, 0.55)])
 	CombatManager.guard(hit, player.armed and player.weapon_class() == "sword", at, -2.0, 0.08, 1.0)
 	CombatManager.apply_hitstop(0.04, [player])
-	player.shake(0.06)
+	player.cam_shake(0.06)
 	if rolling():
 		return true
 	player.body_model.play("guard_block_hit", 0.2)

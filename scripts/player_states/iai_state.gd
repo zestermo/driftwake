@@ -149,9 +149,9 @@ func _release() -> void:
 	if player.progression.elemental("katana"):
 		Net.fx("sakura", [_from, -_dir + Vector3.UP * 0.5, 3 + 3 * level, 3.0])
 	player.squash(-2.0 - level)
-	player.shake(0.06 + 0.04 * level)
+	player.cam_shake(0.06 + 0.04 * level)
 	if full:
-		player.kick(0.25, 0.4)
+		player.cam_kick(0.25, 0.4)
 
 
 func exit() -> void:

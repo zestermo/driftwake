@@ -195,7 +195,7 @@ const AI_SHAKE_R := 14.0
 
 
 ## Camera shake from this captain's moves: the local captain's in full, an AI's fading with its distance.
-func shake(intensity: float, duration: float = 0.2) -> void:
+func cam_shake(intensity: float, duration: float = 0.2) -> void:
 	if is_ai:
 		var cam := get_viewport().get_camera_3d()
 		if cam == null:
@@ -212,7 +212,7 @@ func foe_mask() -> int:
 
 
 ## The camera punching in on this captain's move: the local captain's only.
-func kick(amount: float, secs: float = 0.5) -> void:
+func cam_kick(amount: float, secs: float = 0.5) -> void:
 	if not is_ai:
 		CombatManager.apply_camera_kick(amount, secs)
 ## The peer that controls this captain.
@@ -986,7 +986,7 @@ func set_hybrid(on: bool) -> void:
 	Net.fx("sfx", ["howl" if on else "whoosh_big", global_position, -4.0, 0.05, 1.15 if on else 0.8])
 	if on and is_inside_tree():
 		FX.power_aura.call_deferred(body_model, "wolf", 2.0)
-	shake(0.12)
+	cam_shake(0.12)
 	_recalc_stats()
 	weapon_changed.emit(equipped_weapon)
 	_net_look()
@@ -1288,7 +1288,7 @@ var _sprint_seen: float = -100.0
 func on_sprint_start() -> void:
 	var now := PlayerState.now_s()
 	if now - _sprint_seen > 0.6:
-		shake(SPRINT_SHAKE)
+		cam_shake(SPRINT_SHAKE)
 		squash(-1.2)
 	_sprint_seen = now
 
@@ -1405,7 +1405,7 @@ func _fall_damage(speed: float, k: float = 1.0, reel: bool = true) -> void:
 		health_component.take_damage(dmg)
 	Net.fx("sfx", ["thud", global_position, -2.0, 0.05, 0.8])
 	Net.fx("dust_ring", [global_position, 18, 1.2])
-	shake(clampf(dmg / 60.0, 0.1, 0.4))
+	cam_shake(clampf(dmg / 60.0, 0.1, 0.4))
 	Net.damage_number(roundf(dmg), global_position + Vector3(0, 1.9, 0))
 	if reel and health_component.current_health > 0.0 and speed > SAFE_FALL_SPEED + 4.0 and not power.buff("tekkai") and current_state_name() != "Downed":
 		state_machine.force_state("Stagger", {"stagger_duration": 0.55, "knockback_dir": Vector3.ZERO, "knockback_force": 0.0, "flinch": false})
@@ -2446,7 +2446,7 @@ func _finish_use() -> void:
 				Net.fx("sparkle", [global_position + Vector3(0, 1.0, 0), 30, col])
 				Net.fx("dust_ring", [global_position, 14, 1.0])
 				Net.fx("sfx", ["whoosh_big", global_position, -4.0, 0.05, 0.8])
-		shake(0.25)
+		cam_shake(0.25)
 		var line: String = {"logia": "Your body is %s now... but the sea will never hold you again." % ("fire" if item.devil_fruit == "ember" else "an element"),
 			"zoan": "The beast is in you now (press V)... but the sea will never hold you again.",
 			"paramecia": "Plants answer to you now... but the sea will never hold you again."}.get(power.fruit_type(), "")

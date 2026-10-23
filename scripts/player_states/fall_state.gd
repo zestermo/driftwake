@@ -101,7 +101,7 @@ func crash(speed: float) -> void:
 			Net.fx("ground_crack", [fist, Vector3(cos(a), 0.0, sin(a)), 1.0 + 1.2 * k, Color(0, 0, 0, 0), s + i, 0.1])
 	Net.fx("sfx", ["rock_crash", at, -6.0 + 3.0 * k, 0.06, 1.2])
 	Net.fx("sfx", ["thud", at, -3.0, 0.05, 0.8])
-	player.shake(0.16 + 0.16 * k)
+	player.cam_shake(0.16 + 0.16 * k)
 	var wave := HitData.new()
 	wave.damage = lerpf(CRASH_DAMAGE, CRASH_DAMAGE_MAX, k) * player.damage_multiplier()
 	wave.knockdown = true

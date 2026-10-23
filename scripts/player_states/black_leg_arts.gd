@@ -70,9 +70,9 @@ static func kick_fx(p: Player, anim: String) -> void:
 			if hot:
 				Net.fx("element", ["black_leg", at, fwd + Vector3.UP * 0.2, 5 if anim != "bl_3" else 8, 3.5])
 			if anim == "bl_3":
-				p.kick(0.08, 0.2)
+				p.cam_kick(0.08, 0.2)
 			elif right:
-				p.kick(0.04, 0.15)
+				p.cam_kick(0.04, 0.15)
 
 
 ## Guillotine Heel coming down: the heel into the ground ahead - a crack, dust thrown up, a ring; with the heat on
@@ -91,7 +91,7 @@ static func heel_fx(p: Player) -> void:
 	Net.fx("sfx", ["thud", at, -1.0, 0.05, 0.85])
 	if hot:
 		Net.fx("element", ["black_leg", at + Vector3(0, 0.3, 0), Vector3.UP + fwd * 0.3, 14, 4.5])
-	p.kick(0.14, 0.28)
+	p.cam_kick(0.14, 0.28)
 
 
 ## A landed parry: down onto one hand and a sweep through their legs a beat later (bl_deflect) - a light blow
@@ -137,8 +137,8 @@ static func air_land(p: Player, already: Array, recover: float) -> void:
 	Net.fx("sfx", ["thud", at, 0.0, 0.05, 0.9])
 	if hot:
 		Net.fx("element", ["black_leg", at + Vector3(0, 0.3, 0), Vector3.UP, 12, 4.0])
-	p.shake(0.22)
-	p.kick(0.12, 0.28)
+	p.cam_shake(0.22)
+	p.cam_kick(0.12, 0.28)
 	for e in p.power.enemies_in(at + Vector3(0, 0.8, 0), AIR_LAND_R):
 		if e in already:
 			continue
@@ -307,7 +307,7 @@ static func _mule(s, delta: float) -> void:
 		Net.fx("punch_wind", [at - s._dir * 0.6, s._dir, 1.6, s._col(FX.CORE), true])
 		Net.fx("sfx", ["punch_heavy" if hit else "whoosh_big", at, -2.0, 0.05, 0.9])
 		CombatManager.apply_hitstop(0.09, [p])
-		s.player.kick(0.16, 0.3)
+		s.player.cam_kick(0.16, 0.3)
 
 
 ## Off the left foot, kick after kick at every height walking in (each into everyone just ahead), a big one last.
@@ -336,7 +336,7 @@ static func _hail(s, delta: float) -> void:
 		_burst(s, at, s._dir, true)
 		Net.fx("sfx", ["punch_heavy", at, -2.0, 0.05, 0.95])
 		CombatManager.apply_hitstop(0.08, [p])
-		s.player.kick(0.14, 0.26)
+		s.player.cam_kick(0.14, 0.26)
 
 
 ## Two cartwheels forward, the legs wheeling over through everyone about you on the way, then the heel brought down.
@@ -362,7 +362,7 @@ static func _wheel(s, delta: float) -> void:
 		_burst(s, at + Vector3(0, 0.2, 0), Vector3.UP, true)
 		Net.fx("sfx", ["thud", at, -1.0, 0.05, 0.9])
 		CombatManager.apply_hitstop(0.08, [p])
-		s.player.kick(0.14, 0.28)
+		s.player.cam_kick(0.14, 0.28)
 
 
 ## A high crescent kick: the leg swung up on the outside and over the top, and at the top (CLEAVE_AT) a blade of air
@@ -384,7 +384,7 @@ static func _cleaver(s, delta: float) -> void:
 		if s._elem():
 			Net.fx("element", ["black_leg", f, s._dir + Vector3.UP * 0.2, 8, 4.5])
 		Net.fx("sfx", ["whoosh_big", from, -3.0, 0.05, 1.25])
-		s.player.kick(0.1, 0.22)
+		s.player.cam_kick(0.1, 0.22)
 
 
 ## A hop as the leg heats, then a flying side kick streaking FLAMBE_LEN m down the line (through them: enemies don't
@@ -411,7 +411,7 @@ static func _flambe(s, delta: float) -> void:
 		Net.fx("kick_swoosh", [p.body_model, FLAMBE_LAND - FLAMBE_GO, s._col(), s._col(FX.ACCENT) if elem else s._col(), "r"])
 		Net.fx("dust_ring", [p.global_position, 10, 0.7])
 		Net.fx("sfx", ["whoosh_big", p.global_position, -2.0, 0.05, 1.1])
-		s.player.kick(0.08, 0.2)
+		s.player.cam_kick(0.08, 0.2)
 	if flying:
 		# the trail: a puff of it every few hundredths of a second (~1.4 m) behind the foot
 		if s._once("trail%d" % int((s.t - FLAMBE_GO) / 0.04), s.t):
@@ -514,6 +514,6 @@ static func _last(s, delta: float) -> void:
 			Net.fx("debris", [at + Vector3(0, 0.2, 0), Vector3.UP, 10, Color(0.35, 0.3, 0.25), 5.0])
 		p.squash(-5.0)
 		CombatManager.apply_hitstop(0.12, [p])
-		s.player.shake(0.42)
-		s.player.kick(0.2, 0.4)
+		s.player.cam_shake(0.42)
+		s.player.cam_kick(0.2, 0.4)
 		p.hurtbox.set_deferred("monitorable", true)

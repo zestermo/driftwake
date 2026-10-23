@@ -421,7 +421,7 @@ func _ryuo(target: Node3D) -> void:
 	Net.fx("punch_wind", [at + Vector3.UP * 1.0, Vector3.UP, 0.5, Player.HAKI_TRAIL, true])
 	Net.fx("sparkle", [at + Vector3(0, 1.0, 0), 16, Player.HAKI_SPARK])
 	Net.fx("dust_ring", [at, 12, 1.2])
-	player.shake(0.16)
+	player.cam_shake(0.16)
 
 
 ## A fruit power just finished: its colors linger on you for a moment.

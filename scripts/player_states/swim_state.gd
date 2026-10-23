@@ -484,7 +484,7 @@ func _update_breath(delta: float, fast: bool) -> void:
 	if _gasp_t <= 0.0:
 		_gasp_t = GASP_TICK
 		player.health_component.take_damage(player.health_component.max_health * GASP_DPS * GASP_TICK)
-		player.shake(0.05)
+		player.cam_shake(0.05)
 
 
 ## The sea pushing back: a rip's pull, the surf shoving you in on each breaking crest (with its current
@@ -514,7 +514,7 @@ func _sea(delta: float) -> void:
 		var at := _surface_point()
 		Net.fx("splash", [at + Vector3(0, 0.4, 0), 9, 0.8])
 		Net.fx("sfx", ["wave_break", at, -6.0, 0.1, 1.1])
-		player.shake(0.06)
+		player.cam_shake(0.06)
 	_crest = crest
 
 
