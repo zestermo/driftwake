@@ -31,10 +31,23 @@ const SEAT_FOLLOW := 0.32
 ## How far the seat pushes back (and a little down) at full hip flex.
 const SEAT_PUSH := Vector3(0.0, -0.012, 0.035)
 
+## One skin (BodyBuilder.one_skin): the whole body on this skeleton. ArmBody's bones follow
+## from ARMS (ArmBody.X + ARMS; its torso bone follows the torso joint), the arms keep their
+## own meshes (MeshL, MeshR: Haki, a severed arm) and every other rigid part (torso, neck,
+## head, hat...) is in "Mesh", bound to a bone that copies its joint wholesale (follow()).
+const ARMS := 21
+
 var leg_l: Node3D
 var leg_r: Node3D
 var shin_l: Node3D
 var shin_r: Node3D
+var torso: Node3D
+var arm_l: Node3D
+var arm_r: Node3D
+var fore_l: Node3D
+var fore_r: Node3D
+var _arm_mbs: Array = []
+var _follow: Array = []   # [joint, bone] copied wholesale
 
 
 func _init() -> void:
@@ -45,6 +58,44 @@ func _init() -> void:
 	for j in ["knee_l", "knee_r"]:
 		for i in range(1, 8):
 			add_bone("%s_%d" % [j, i])
+
+
+func has_arms() -> bool:
+	return torso != null
+
+
+## ArmBody's bones from ARMS on (first, before any follow()), its meshes (built in torso
+## space, bones numbered as ArmBody's) moved onto this skeleton by setup().
+func add_arms(t: Node3D, a_l: Node3D, a_r: Node3D, f_l: Node3D, f_r: Node3D, mb_l: MeshBuilder, mb_r: MeshBuilder) -> void:
+	assert(get_bone_count() == ARMS)
+	torso = t
+	arm_l = a_l
+	arm_r = a_r
+	fore_l = f_l
+	fore_r = f_r
+	_arm_mbs = [mb_l, mb_r]
+	for b in ["torso", "arm_l", "arm_r", "fore_l", "fore_r"]:
+		add_bone("a_" + b)
+	for j in ["shoulder_l", "shoulder_r", "elbow_l", "elbow_r"]:
+		for i in range(1, 8):
+			add_bone("%s_%d" % [j, i])
+
+
+## A bone copying `joint` wholesale (rest: the joint in hips space); its index.
+func follow(joint: Node3D, rest: Transform3D) -> int:
+	var b := get_bone_count()
+	add_bone("f_%s" % joint.name)
+	set_bone_rest(b, rest)
+	_follow.append([joint, b])
+	return b
+
+
+func arm_mesh(right: bool) -> MeshInstance3D:
+	return get_node("MeshR" if right else "MeshL")
+
+
+func bake_arm(right: bool) -> ArrayMesh:
+	return ArmBody.bake(self, arm_mesh(right))
 
 
 ## Rest pose = the joints where they were built (hips space), and the mesh
@@ -64,16 +115,35 @@ func setup(hips_leg_l: Node3D, hips_leg_r: Node3D, hips_shin_l: Node3D, hips_shi
 	for i in range(1, 8):
 		set_bone_rest(KNEE_L_CHAIN[i], leg_l.transform * shin_l.transform)
 		set_bone_rest(KNEE_R_CHAIN[i], leg_r.transform * shin_r.transform)
+	if has_arms():
+		# ArmBody's rests (torso space) in hips space
+		var t := torso.transform
+		set_bone_rest(ARMS + ArmBody.TORSO, t)
+		set_bone_rest(ARMS + ArmBody.ARM_L, t * arm_l.transform)
+		set_bone_rest(ARMS + ArmBody.ARM_R, t * arm_r.transform)
+		set_bone_rest(ARMS + ArmBody.FORE_L, t * arm_l.transform * fore_l.transform)
+		set_bone_rest(ARMS + ArmBody.FORE_R, t * arm_r.transform * fore_r.transform)
+		for c in [[ArmBody.SHOULDER_L_CHAIN, Transform3D(Basis(), arm_l.position)], [ArmBody.SHOULDER_R_CHAIN, Transform3D(Basis(), arm_r.position)],
+				[ArmBody.ELBOW_L_CHAIN, arm_l.transform * fore_l.transform], [ArmBody.ELBOW_R_CHAIN, arm_r.transform * fore_r.transform]]:
+			for i in range(1, 8):
+				set_bone_rest(ARMS + c[0][i], t * c[1])
 	reset_bone_poses()
 	var skin := Skin.new()
 	for b in range(get_bone_count()):
 		skin.add_bind(b, get_bone_global_rest(b).affine_inverse())
-	var mi := MeshInstance3D.new()
-	mi.name = "Mesh"
-	mi.mesh = mb.commit()
-	mi.skin = skin
-	add_child(mi)
-	mi.skeleton = NodePath("..")
+	var meshes := [["Mesh", mb]]
+	if has_arms():
+		for amb in _arm_mbs:
+			(amb as MeshBuilder).shift_bones(ARMS, torso.transform)
+		meshes += [["MeshL", _arm_mbs[0]], ["MeshR", _arm_mbs[1]]]
+	for m in meshes:
+		var mi := MeshInstance3D.new()
+		mi.name = m[0]
+		mi.mesh = (m[1] as MeshBuilder).commit()
+		mi.skin = skin
+		add_child(mi)
+		mi.skeleton = NodePath("..")
+	_arm_mbs = []
 
 
 var _rig: Humanoid
@@ -107,3 +177,22 @@ func _pose() -> void:
 		var rest_o := get_bone_rest(side[2]).origin
 		set_bone_global_pose(side[2], Transform3D(Basis(Quaternion.IDENTITY.slerp(q, SEAT_FOLLOW)),
 			rest_o + SEAT_PUSH * flex))
+	for f in _follow:
+		set_bone_global_pose(f[1], inv * (f[0] as Node3D).global_transform)
+	if not has_arms():
+		return
+	# ArmBody's pose (see there), in hips space: the shoulder helpers turn from the torso's turn
+	var t := inv * torso.global_transform
+	set_bone_global_pose(ARMS + ArmBody.TORSO, t)
+	var tq := t.basis.orthonormalized().get_rotation_quaternion()
+	for s in [[arm_l, fore_l, ArmBody.ARM_L, ArmBody.FORE_L, ArmBody.SHOULDER_L_CHAIN, ArmBody.ELBOW_L_CHAIN],
+			[arm_r, fore_r, ArmBody.ARM_R, ArmBody.FORE_R, ArmBody.SHOULDER_R_CHAIN, ArmBody.ELBOW_R_CHAIN]]:
+		var a: Transform3D = inv * (s[0] as Node3D).global_transform
+		var fo: Transform3D = inv * (s[1] as Node3D).global_transform
+		set_bone_global_pose(ARMS + s[2], a)
+		set_bone_global_pose(ARMS + s[3], fo)
+		var aq := a.basis.orthonormalized().get_rotation_quaternion()
+		var fq := fo.basis.orthonormalized().get_rotation_quaternion()
+		for i in range(1, 8):
+			set_bone_global_pose(ARMS + s[4][i], Transform3D(Basis(tq.slerp(aq, i / 8.0)), a.origin))
+			set_bone_global_pose(ARMS + s[5][i], Transform3D(Basis(aq.slerp(fq, i / 8.0)), fo.origin))

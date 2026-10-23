@@ -914,6 +914,24 @@ func rebind(xf: Transform3D, b: int) -> void:
 		s["w"] = ww
 
 
+## A skinned mesh moving onto a bigger skeleton: every bone index + `off`, every vertex moved by `xf`.
+func shift_bones(off: int, xf: Transform3D = Transform3D.IDENTITY) -> void:
+	for mat in _order:
+		var s: Dictionary = _surfaces[mat]
+		var bb: PackedInt32Array = s["b"]
+		for i in range(bb.size()):
+			bb[i] += off
+		s["b"] = bb
+		if xf != Transform3D.IDENTITY:
+			var v: PackedVector3Array = s["v"]
+			var n: PackedVector3Array = s["n"]
+			for i in range(v.size()):
+				v[i] = xf * v[i]
+				n[i] = (xf.basis * n[i]).normalized()
+			s["v"] = v
+			s["n"] = n
+
+
 ## One surface per texture instead of per tint: every plain PSXMat.lit surface moves onto its
 ## white twin (PSXMat.fold), its tint baked into the vertex colours (sRGB-encoded, decoded by the shader).
 func fold_tints() -> void:

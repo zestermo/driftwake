@@ -72,12 +72,17 @@ func setup(a_l: Node3D, a_r: Node3D, f_l: Node3D, f_r: Node3D, mb_l: MeshBuilder
 ## The arm as it is posed right now, as a plain (unskinned) mesh in this
 ## skeleton's space: skinned on the CPU, for a severed arm to carry off.
 func bake_arm(right: bool) -> ArrayMesh:
-	var mi := arm_mesh(right)
+	return bake(self, arm_mesh(right))
+
+
+## `mi` (skinned on `skel`) as it is posed right now, as a plain mesh in the skeleton's space
+## (ArmBody's arms, or a one-skin LowerBody's).
+static func bake(skel: Skeleton3D, mi: MeshInstance3D) -> ArrayMesh:
 	var src := mi.mesh as ArrayMesh
 	var skin := mi.skin
 	var mats: Array[Transform3D] = []
 	for i in range(skin.get_bind_count()):
-		mats.append(get_bone_global_pose(skin.get_bind_bone(i)) * skin.get_bind_pose(i))
+		mats.append(skel.get_bone_global_pose(skin.get_bind_bone(i)) * skin.get_bind_pose(i))
 	var out := ArrayMesh.new()
 	for s in range(src.get_surface_count()):
 		var arr := src.surface_get_arrays(s)

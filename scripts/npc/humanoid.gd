@@ -3574,6 +3574,9 @@ func sever(part: String, v: Vector3) -> void:
 	var side := part.substr(3)
 	if part != "head":
 		var ab = torso.get_node_or_null("ArmBody")
+		if ab == null:
+			var lb = hips.get_node_or_null("LowerBody")
+			ab = lb if lb and lb.has_arms() else null   # one skin (BodyBuilder.one_skin)
 		if ab:
 			var mi: MeshInstance3D = ab.arm_mesh(part == "arm_r")
 			var copy := MeshInstance3D.new()

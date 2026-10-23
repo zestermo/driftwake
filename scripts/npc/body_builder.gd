@@ -87,6 +87,16 @@ var _sims: Dictionary = {}
 var _skin_into: Dictionary = {}   # joint -> [skinned MeshBuilder, bone, joint's rest in its space]
 var _skinned: Array = []          # the skinned meshes' setups, run once every part is in
 
+## One skin per body (docs/skinned_bodies_plan.md, piece 1): the whole body on one skeleton
+## (LowerBody, with ArmBody's bones and a bone per rigid part's joint), the joints carrying no
+## meshes. Off until proven; only background rigs take it, never the player's (the one rig
+## with swappable hands).
+static var one_skin := false
+var _one := false
+var _lb: LowerBody
+var _lmb: MeshBuilder
+var _arm_mbs: Dictionary = {}
+
 
 static func build(hum: Humanoid, look: Dictionary) -> void:
 	var b := BodyBuilder.new()
@@ -96,7 +106,8 @@ static func build(hum: Humanoid, look: Dictionary) -> void:
 func _run(hum: Humanoid, look: Dictionary) -> void:
 	h = hum
 	lk = look
-	st = STYLES.get(str(lk.get("style", current_style())), STYLES[DEFAULT_STYLE])
+	_one = one_skin and not hum.swappable_hands
+	st =STYLES.get(str(lk.get("style", current_style())), STYLES[DEFAULT_STYLE])
 	fem = str(lk.get("body", "masc")) == "fem"
 	bf = BUILD_F.get(str(lk.get("build", "average")), BUILD_F["average"])
 	var ex := 0.45 if fem else 1.0  # women get a softer version of the style's V-taper
@@ -179,6 +190,8 @@ func _mesh(parent: Node3D, mb: MeshBuilder, _n: String = "Mesh") -> void:
 ## Rigid parts on a joint a skinned mesh has a bone for (shins, forearms) join that mesh
 ## bound to the bone: one draw instead of two.
 func _commit_parts() -> void:
+	if _one:
+		_lb.add_arms(h.torso, h.arm_l, h.arm_r, h.fore_l, h.fore_r, _arm_mbs[-1], _arm_mbs[1])
 	for node in _part_order:
 		var mb := _parts[node] as MeshBuilder
 		if _skin_into.has(node):
@@ -186,14 +199,40 @@ func _commit_parts() -> void:
 			mb.rebind(e[2], e[1])
 			(e[0] as MeshBuilder).merge(mb)
 			continue
+		if _one and _skin_one(node, mb):
+			continue
 		mb.fold_tints()
 		(node as Node3D).add_child(mb.to_instance("Mesh"))
 	for f in _skinned:
 		(f as Callable).call()
+	if _one:
+		for mb in [_lmb, _arm_mbs[-1], _arm_mbs[1]]:
+			(mb as MeshBuilder).fold_tints()
+		_lb.setup(h.leg_l, h.leg_r, h.shin_l, h.shin_r, _lmb)
 	_parts.clear()
 	_part_order.clear()
 	_skin_into.clear()
 	_skinned.clear()
+
+
+## One skin: a rigid part joins the skin bound to its joint's bone (an upper arm's its arm's
+## mesh, anything else the body's, on a bone copying the joint). False: a joint outside the hips.
+func _skin_one(node: Node3D, mb: MeshBuilder) -> bool:
+	if node == h.arm_l or node == h.arm_r:
+		mb.rebind(node.transform, ArmBody.ARM_L if node == h.arm_l else ArmBody.ARM_R)
+		(_arm_mbs[-1 if node == h.arm_l else 1] as MeshBuilder).merge(mb)
+		return true
+	var rest := Transform3D.IDENTITY
+	var n := node
+	while n != h.hips:
+		if n == null:
+			return false
+		rest = n.transform * rest
+		n = n.get_parent_node_3d()
+	var b := LowerBody.ARMS + ArmBody.TORSO if node == h.torso else _lb.follow(node, rest)
+	mb.rebind(rest, b)
+	_lmb.merge(mb)
+	return true
 
 
 ## Physics chains anchored on a joint (created on first use).
@@ -810,6 +849,10 @@ func _lower_body() -> void:
 	h.hips.add_child(lb)
 	_skin_into[h.shin_l] = [mb, LowerBody.SHIN_L, h.leg_l.transform * h.shin_l.transform]
 	_skin_into[h.shin_r] = [mb, LowerBody.SHIN_R, h.leg_r.transform * h.shin_r.transform]
+	if _one:
+		_lb = lb
+		_lmb = mb
+		return
 	_skinned.append(func():
 		mb.fold_tints()
 		lb.setup(h.leg_l, h.leg_r, h.shin_l, h.shin_r, mb))
@@ -1026,11 +1069,16 @@ func _arms() -> void:
 			if float(r[0]) < -ARM_BAND - 0.02:
 				tube.append(_limb_ring(r, fo0))
 		amb_all.add_rings(m_sleeve, tube, 3.0, Color.WHITE, true, true, pick)
-	var ab := ArmBody.new()
-	h.torso.add_child(ab)
 	_skin_into[h.fore_l] = [arm_mbs[-1], ArmBody.FORE_L, h.arm_l.transform * h.fore_l.transform]
 	_skin_into[h.fore_r] = [arm_mbs[1], ArmBody.FORE_R, h.arm_r.transform * h.fore_r.transform]
+	if _one:
+		_arm_mbs = arm_mbs
+	var ab := ArmBody.new() if not _one else null
+	if ab:
+		h.torso.add_child(ab)
 	_skinned.append(func():
+		if ab == null:
+			return
 		(arm_mbs[-1] as MeshBuilder).fold_tints()
 		(arm_mbs[1] as MeshBuilder).fold_tints()
 		ab.setup(h.arm_l, h.arm_r, h.fore_l, h.fore_r, arm_mbs[-1], arm_mbs[1]))
