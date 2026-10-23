@@ -5,6 +5,37 @@
 Marines with bounties (roadmap phase 6), plus a new interactive timeline roadmap on the website (below). A tooling window comes first. The perf pass and fishing moved into 1.18,
 and gear upgrading waits for a later release. The table below is the earlier draft, kept as a record.
 
+## Decided (2026-10-23): the full grill
+Zach settled the whole version in one grill so it can be built in one go. This section is the plan of record and
+**overrides the 2026-10-19 table below** where they differ (marked "reopened").
+
+| Decision | Choice | Why | Revisit when |
+|---|---|---|---|
+| Scope | **Rival crews** (captain-style AI, cutscene system, crews) + **the Admiralty, full roadmap phase 6** (bounties, wanted posters, patrol ships at sea, named hunters) + **the intro redesign** + **fighting in the water** + **the weapons' enemy pass**. Out: two/three-sword katana (later), gear upgrading (later), the Admiralty fortress (1.22 strongholds). | Zach: finish the whole version. | — |
+| Admiralty at sea (**reopened**: was "patrols and pursuit wait for 1.20") | Patrol ships in busier waters that come about when they spot a wanted captain, built on today's enemy ships and boarding; named hunters past bounty thresholds. | Zach chose full phase 6. | After play |
+| Carried over from 1.18.4 | Greatsword finish, black-leg finish, corsair/pistol guards, the web roadmap timeline: **already done** (Zach). | — | — |
+| Opening | The tooling window first (crew_lib deps-file race, autoload-name lint); **the perf pass counts as done** (the 2026-10-22/23 combat perf work and skinned bodies piece 1). | Zach. | Prepush bench |
+| Rival roster | **Authored captains**: 3-4 hand-written signature crews per chain (captain personality, theme, flag, signature weapon, lines) crewed by seeded members from pools. | Rivals you get to know; members vary per save. | — |
+| First meeting | **Placed first, then rolled**: the first meeting is set on an early chain island after the intro sets them up; then crews turn up on rolled islands every few islands, scaled to their level. | — | After play |
+| Captain-style AI | **Fair but sharp**: sees only what a player could (your tells, your spacing), blocks, dodges and parries some of the time, punishes whiffs, saves its ultimate for an opening. Skill per member (a rookie vs the captain). Used by rivals, Admiralty officers and hunters. Numbers tuned in play. | "Fought by seemingly other players." | After play |
+| Cutscene skip (co-op) | **Everyone presses skip**: a "waiting for N more" chip; it skips for all when the last captain presses (or it ends). | Nobody misses a scene they wanted. | — |
+| Bounty (co-op) | **Each captain's own** bounty and poster, raised by what they did; the ship draws patrols by the crew's total. | — | — |
+| What a bounty changes | **All four:** Admiralty heat (patrols, ships coming about, named hunters past thresholds, tougher as it climbs); **townsfolk react** (recognition lines, whispers, some flee; posters on boards; Admiralty-friendly shops charge more or refuse, shady ones give a better rate); **rivals react** (lines and respect follow it; bigger bounties draw stronger crews); **bounty hunters** (civilian ambushes on islands, apart from the Admiralty). | Zach. | Economy pass |
+| Losing to the Admiralty | **Arrested, then escape**: you wake in their ship's brig or an outpost cell, gear in a chest nearby, and break out (a short escape run); a share of gold is confiscated. | Stings, and its own little scene. | After play |
+| Arrest in co-op | **Only if all captains go down**; then everyone wakes in the cells together. While one stands, the downed get revived as usual. | Zach. | — |
+| Named hunters | **Persistent**, built like the rival crews: a named officer (look, weapon, voice, lines), remembers wins and losses, returns scaled and better equipped, tracks your ship down the chain and waits at harbours. | — | — |
+| The Admiralty's look | **Grey ironclad**: slate grey and steel, armoured officers, darker ships; oppressive. | Zach. | — |
+| Intro: motive | **Legend + personal spark**: a legendary prize past the end of the First Sea that the great powers want, and a personal spark on day one (the Admiralty strikes at the captain's home or mentor) so they set out to get strong enough to reach it and answer them. | Gives the game a goal. | — |
+| Intro: form | **Cutscene + short play**: a ~60-90 s skippable cutscene (the Admiralty, rival crews, the great powers, the sea's end), then the personal spark as a short playable moment, then Brinehollow as today. | — | — |
+| Fighting in the water | **Your own weapon**: a swimmer fights with what they carry, slowed, with water versions of a few moves (no separate diving knife or harpoon). Sharks and morays become fightable in the sea; the captain AI can follow you into the water. | Zach. | After play |
+| Weapons' enemy pass | As recorded below (grunt roles for spear, hammer, twin axes, greatsword, black-leg; readable cut-down movesets; they drop their weapon), fielded by rivals and the Admiralty too. | — | — |
+| Names and lines | **Claude writes, Zach reviews**: original Driftwake names (the legendary prize, the great powers, Admiralty ranks, the rival crews and captains) and lines, no One Piece terms (docs/originality_plan.md); listed in this doc for review. | — | Zach's review |
+| Build order | Tooling, the captain-style AI (on a debug duel key), the cutscene system, rival crews, bounties and posters, the Admiralty at sea and hunters, arrest and escape, the intro, fighting in the water, the enemy pass. Each lands in playable pieces. | The AI is the root the rest builds on. | — |
+| Unknowns while building | **Decide, note, keep going**: the option that fits this record, marked **assumed** in "Assumed while building" below, for Zach's review. | Uninterrupted build. | Zach's review |
+
+### Assumed while building
+(Filled in as the build goes.)
+
 ## Decided (2026-10-19)
 
 | Decision | Choice | Why | Revisit when |
