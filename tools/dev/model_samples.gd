@@ -12,6 +12,46 @@ static func body() -> Node3D:
 	return Humanoid.make(CharacterLook.default_look())
 
 
+## Look i of t/world/one_skin_same's range, built with BodyBuilder.one_skin `one`, held in that test's seeded pose
+## (seed `pose_i`; -1 = as built). `how`: "" | "<weapon> hand" | "<weapon> hip" | "peril" (the grunt's red overlay).
+## For old-vs-new sheets: render with one false, then true, and diff.
+static func body_of(i: int, one: bool, how := "", pose_i := -1) -> Node3D:
+	var sc = load("res://tools/dev/t/world/_skin_cmp.gd")
+	BodyBuilder.one_skin = one
+	var h := Humanoid.new()
+	h.lod = true
+	h.setup(sc.look_of(i))
+	BodyBuilder.one_skin = false
+	h.process_mode = Node.PROCESS_MODE_DISABLED
+	if how.ends_with(" hand") or how.ends_with(" hip"):
+		h.weapon_in_hand = how.ends_with(" hand")
+		h.set_weapon(Props.weapon_mesh(how.get_slice(" ", 0)))
+	var on_ready := func():
+		if pose_i >= 0:
+			sc.pose(h, pose_i)
+		if how == "peril":
+			var m := StandardMaterial3D.new()
+			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.albedo_color = Color(1.0, 0.08, 0.05, 0.4)
+			for mi in h.find_children("*", "MeshInstance3D", true, false):
+				(mi as MeshInstance3D).material_overlay = m
+	h.ready.connect(on_ready, CONNECT_ONE_SHOT)
+	# a fixed frame for modelshot's layout and camera (skinned meshes report their rest bounds, which
+	# differ between the two builds): an empty mesh with bounds holding the body either way
+	var frame := MeshInstance3D.new()
+	frame.name = "Frame"
+	# (one zero-area triangle along the box's diagonal: it draws nothing, and an empty mesh has no bounds)
+	var fm := ArrayMesh.new()
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(-1.6, -0.8, -1.6), Vector3(0.0, 1.0, 0.0), Vector3(1.6, 2.8, 1.6)])
+	fm.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	frame.mesh = fm
+	h.add_child(frame)
+	return h
+
+
 static func _body(n: String, size: Vector3, centre: Vector3) -> StaticBody3D:
 	var b := StaticBody3D.new()
 	b.name = n

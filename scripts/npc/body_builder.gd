@@ -90,8 +90,8 @@ var _skinned: Array = []          # the skinned meshes' setups, run once every p
 ## One skin per body (docs/skinned_bodies_plan.md, piece 1): the whole body on one skeleton
 ## (LowerBody, with ArmBody's bones and a bone per rigid part's joint), the joints carrying no
 ## meshes. Off until proven; only background rigs take it, never the player's (the one rig
-## with swappable hands).
-static var one_skin := false
+## with swappable hands). DRIFTWAKE_ONE_SKIN=1 turns it on for a run (the bench's old-vs-new).
+static var one_skin := OS.get_environment("DRIFTWAKE_ONE_SKIN") == "1"
 var _one := false
 var _lb: LowerBody
 var _lmb: MeshBuilder
