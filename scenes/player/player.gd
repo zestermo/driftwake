@@ -364,7 +364,9 @@ func open_creator(first_time: bool = false) -> void:
 			# the new captain's slot exists from here on
 			SaveGame.save(self)
 			# a new game's opening (Intro: the legend, the night Holt's ship went down), then the beach again
-			if SaveGame.enabled() and not Net.coop():
+			# (never in a test or render tool: one accepting the creator got the storm and Holt's deck under its shots;
+			# the intro's own test and render call Intro.play)
+			if SaveGame.enabled() and not Net.coop() and not Settings.tool_run():
 				Intro.play(self, wake_on_beach)
 		elif ok:
 			# later visits change body / face / hair only; clothes are gear now
