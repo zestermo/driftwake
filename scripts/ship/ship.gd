@@ -198,7 +198,9 @@ func place(world_pos: Vector3, yaw: float) -> void:
 	sail = 0.0
 	sail_shown = 0.0
 	_deck_delta = Transform3D.IDENTITY
-	global_transform = Transform3D(Basis(Vector3.UP, yaw), Vector3(world_pos.x, global_position.y, world_pos.z))
+	# (placed before it's in the world too: then its own position is the global one)
+	var y := global_position.y if is_inside_tree() else position.y
+	global_transform = Transform3D(Basis(Vector3.UP, yaw), Vector3(world_pos.x, y, world_pos.z))
 	reset_physics_interpolation()
 
 

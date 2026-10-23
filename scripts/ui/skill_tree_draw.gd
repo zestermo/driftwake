@@ -132,6 +132,9 @@ static func node_rect(id: String, c: Vector2) -> Rect2:
 ## names (bottom of the tree first); then each step's name where there's room. Returns {id: the name's rect}.
 static func place_labels(at: Dictionary, area: Rect2, taken: Array) -> Dictionary:
 	var out := {}
+	# (a panel not laid out yet, or too small, has no room: no labels, rather than a Rect2 error per candidate)
+	if area.size.x <= 0.0 or area.size.y <= 0.0:
+		return out
 	var segs: Array = []
 	for k in at.keys():
 		for l in SkillTrees.node_def(k)["links"]:

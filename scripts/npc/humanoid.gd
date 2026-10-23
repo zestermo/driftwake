@@ -2874,8 +2874,11 @@ func _process(delta: float) -> void:
 		hand_l.rotation = _cur["hand_l"]
 	_swing(delta)
 	_reach()
-	_hand_last["r"] = [hand_r.global_position, hand_r.rotation]
-	_hand_last["l"] = [hand_l.global_position, hand_l.rotation]
+	# (a hand briefly out of the tree has no global position to read: an error a frame in a debug build)
+	if hand_r.is_inside_tree():
+		_hand_last["r"] = [hand_r.global_position, hand_r.rotation]
+	if hand_l.is_inside_tree():
+		_hand_last["l"] = [hand_l.global_position, hand_l.rotation]
 	if _tail and is_instance_valid(_tail):
 		var wag := 1.0 + clampf(ground_speed * 0.15, 0.0, 1.0)
 		_tail.rotation = Vector3(0.75 + sin(_t * 3.1) * 0.08, sin(_t * 2.3) * 0.35 * wag, 0.0)
