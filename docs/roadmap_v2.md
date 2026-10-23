@@ -73,6 +73,12 @@ rules). Details for each item live in docs/todo.md and the per-feature plans.
 - v1.18 holds the progression core, the held map with fog of war, the crew journal and quests, NPC encounters and deeper swimming (docs/v1_18_plan.md). **Rival pirate crews** (matched One Piece-style duels, recurring and scaling, cutscene intros) are the headline of v1.19 (docs/rival_crews_plan.md).
 - **Strongholds and the Devil Fruits' return** (concept, 1.20 or later; docs/strongholds_plan.md): Marine strongholds (Enies Lobby-style raids up to an Admiral) and Warlord/Emperor hideouts are where Devil Fruits come from; player-style AI enemies can be fruit users, drawn from one world pool of fruits that frees a fruit again when its user dies. Builds on 1.19's Marines, cutscenes and captain AI; to be grilled before it's built.
 
+## Decided (2026-10-23)
+- **1.20 is the world, the cities come next** (docs/v1_20_plan.md "Decided"): 1.20 reworks the beasts and bosses (an
+  arena per island type), adds the fog isle, life between places, the polish pass and the names. The capital's full
+  build and the canal city move to their own release right after (1.20.x or 1.21), each with its own grill; combat
+  and gear and the strongholds move back one step to follow it.
+
 ## Release plan (Zach, 2026-10-19)
 The core gameplay loop and world progression come before the big fruit update, so players always have real things
 to work toward.
