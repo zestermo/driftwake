@@ -21,6 +21,7 @@ tools/dev/t/ship/*                      t/ship
 tools/dev/t/input/*                     t/input
 scripts/input/*                         t/input t/player t/combat
 scripts/ai/*                            t/combat/rival_duel
+scripts/dialogue/cutscene.gd            t/ui/cutscene
 tools/dev/t/coop/*                      t/coop
 tools/dev/t/economy/*                   t/economy
 scripts/items/economy.gd                t/economy t/ship

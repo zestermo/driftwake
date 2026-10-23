@@ -77,6 +77,9 @@ func _physics_process(_d: float) -> void:
 		return
 	bi.move = Vector2.ZERO
 	bi.hold("sprint", false)
+	if Cutscene.active:
+		bi.hold("parry", false)
+		return   # (a scene playing: it holds still, like the captains)
 	foe = _pick_foe()
 	if foe == null:
 		return

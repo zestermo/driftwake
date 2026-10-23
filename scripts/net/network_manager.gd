@@ -805,6 +805,52 @@ func _all_spawn_rival(parent_key: String, rname: String, look: Dictionary, weapo
 	p.global_position = at
 
 
+## A cutscene on every screen: each machine builds the same shots from `kind` and `args` (Cutscene.scripted), so
+## the nodes in it are each machine's own.
+func _all_cutscene(kind: String, args: Array) -> void:
+	_cut_votes.clear()
+	Cutscene.play(get_tree(), Cutscene.scripted(get_tree(), kind, args), kind)
+
+
+## The host's tally of who pressed skip on the scene playing.
+var _cut_votes := {}
+
+
+## Our captain pressed skip (Cutscene): the host counts it; once every captain has, the scene ends everywhere.
+func cutscene_skip(kind: String) -> void:
+	if hosting or not active:
+		_skip_vote(kind)
+	else:
+		_skip_vote.rpc_id(1, kind)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _skip_vote(kind: String) -> void:
+	if not is_host():
+		return
+	var who := multiplayer.get_remote_sender_id() if active else 1
+	_cut_votes[who if who != 0 else 1] = true
+	var left := 0
+	for id in ([1] + Array(multiplayer.get_peers()) if active else [1]):
+		if (id == 1 or players.has(id)) and not _cut_votes.has(id):
+			left += 1
+	if left <= 0:
+		everyone("_all_cutscene_end", [kind])
+	else:
+		everyone("_all_cutscene_waiting", [kind, left])
+
+
+func _all_cutscene_waiting(kind: String, n: int) -> void:
+	if Cutscene.active and Cutscene.active.kind == kind:
+		Cutscene.active.set_waiting(n)
+
+
+func _all_cutscene_end(kind: String) -> void:
+	_cut_votes.clear()
+	if Cutscene.active and Cutscene.active.kind == kind:
+		Cutscene.active.end(true)
+
+
 ## An AI captain gone (beaten and cleared, or the duel over) on every screen.
 func _all_rival_gone(key: String) -> void:
 	var n := node_of(key)
