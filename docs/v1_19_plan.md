@@ -157,6 +157,15 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   t/combat/arrest. **Assumed:** the brig is the Admiralty ship's (one plank room, a cot, a lantern), not an outpost
   cell; only the equipped weapons are taken (the bag's others stay); no escape timer; the interior's look is
   unchecked by a render (sealed: try it in game, Shift+Alt+F5 then let them beat you).
+- **Piece 12: the intro.** `Intro` (scripts/game/intro.gd), for Zach's review: a new game (after the creator, single
+  player) plays six narrated lines over a staged night storm far out at sea (the storm wall at the First Sea's end;
+  **the Last Lantern** past it, a light that shows the way to whatever a heart wants most; the Admiralty's grey
+  ships; the rival crews; **the Tide Lords**, four captains beyond the storm), the last on **Captain Maren Holt**
+  and her deckhand (you); then played: two marines from the grey cutter alongside come over the rail, Holt's last
+  order ("find the Lantern... make them answer for this"), a broadside, black, and the beach (the story as before).
+  Weather and time are put back. Cutscenes now follow node-anchored shots every frame (a rolling deck). Test:
+  t/ui/intro; render: tools/dev/introshot.gd. **Assumed:** the spark is the night you washed up (the existing
+  start); the narration's words; skipping it skips to the fight (the fight is short: 50 s at most).
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite

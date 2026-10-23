@@ -363,6 +363,9 @@ func open_creator(first_time: bool = false) -> void:
 				wake_on_beach()
 			# the new captain's slot exists from here on
 			SaveGame.save(self)
+			# a new game's opening (Intro: the legend, the night Holt's ship went down), then the beach again
+			if SaveGame.enabled() and not Net.coop():
+				Intro.play(self, wake_on_beach)
 		elif ok:
 			# later visits change body / face / hair only; clothes are gear now
 			for k in lk.keys():

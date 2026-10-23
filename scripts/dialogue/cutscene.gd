@@ -179,6 +179,10 @@ func _next() -> void:
 		(s["call"] as Callable).call()
 
 
+func _on_node(c) -> bool:
+	return c is Array and (c as Array).any(func(v): return v is Node3D)
+
+
 ## [from, look] for a shot's "cam"/"to" (the current one held if it gives none).
 func _resolve(c, off: Vector3) -> Array:
 	if not (c is Array) or (c as Array).size() < 2:
@@ -196,6 +200,11 @@ func _point(v, off: Vector3, look := false) -> Vector3:
 
 
 func _place(k: float) -> void:
+	# a shot on a node follows it every frame (a deck rolling in a swell, a captain walking)
+	var s: Dictionary = shots[_i] if _i >= 0 and _i < shots.size() else {}
+	if _on_node(s.get("cam")) or _on_node(s.get("to")):
+		_from = _resolve(s.get("cam", []), s.get("off", Vector3.ZERO))
+		_to = _resolve(s.get("to", []), s.get("off", Vector3.ZERO)) if s.has("to") else _from
 	var e := k * k * (3.0 - 2.0 * k)
 	var from: Vector3 = (_from[0] as Vector3).lerp(_to[0], e)
 	var look: Vector3 = (_from[1] as Vector3).lerp(_to[1], e)
