@@ -51,6 +51,26 @@ static func start(near: Player, crew: String, from := Vector3.INF) -> RivalEncou
 	return e
 
 
+## The host's bounty hunter ambush near `near` (Bounty: from Notorious): `n` hunters from `from`'s side, no meeting,
+## all at once, fighting until they're down (no retreat); null if an encounter's already on.
+static func start_ambush(near: Player, n: int, from := Vector3.INF) -> RivalEncounter:
+	if near.get_tree().get_first_node_in_group("rival_encounter"):
+		return null
+	var e := RivalEncounter.new()
+	e.name = "RivalEncounter_hunters"
+	e.crew_id = "bounty_hunters"
+	e.ambush = true
+	e._hunters_n = n
+	near.get_tree().current_scene.add_child(e)
+	e._arrive(near, from)
+	return e
+
+
+## Bounty hunters: all at once, no meeting, no retreat.
+var ambush := false
+var _hunters_n := 2
+
+
 func _gm() -> Node:
 	return get_node("/root/GameManager")
 
@@ -68,13 +88,18 @@ func record() -> Dictionary:
 
 func _arrive(near: Player, from: Vector3) -> void:
 	var rec := record()
-	var tier := int(rec["met"])
-	info = RivalCrews.members(crew_id, int(_gm().chain_seed), tier)
+	# (a bigger bounty draws them stronger: the tier is the times met or the captain's bounty tier, the higher)
+	var btier := Bounty.tier_of(int(near.bounty))
+	var tier := maxi(int(rec["met"]), btier)
+	if ambush:
+		info = RivalCrews.hunters(hash([int(_gm().chain_seed), int(rec["met"])]), _hunters_n, btier)
+	else:
+		info = RivalCrews.members(crew_id, int(_gm().chain_seed), tier)
 	var fwd := -near.player_model.global_basis.z if from == Vector3.INF else from - near.global_position
 	fwd.y = 0.0
 	fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3.FORWARD
 	var side := fwd.cross(Vector3.UP).normalized()
-	var centre := near.global_position + fwd * ARRIVE_AT
+	var centre := near.global_position + fwd * (9.0 if ambush else ARRIVE_AT)
 	var parent := near.get_parent()
 	var net := get_node("/root/Net")
 	var yaw := atan2(fwd.x, fwd.z) + PI
@@ -96,7 +121,14 @@ func _arrive(near: Player, from: Vector3) -> void:
 		r.health_component.current_health = r.health_component.max_health
 		r.defeated.connect(_on_defeated.bind(r))
 		rivals.append(r)
-	rec["met"] = tier + 1
+	rec["met"] = int(rec["met"]) + 1
+	if ambush:
+		# no meeting: a shout, and they're on you
+		phase = "fight"
+		for r in rivals:
+			r.get_node("Brain").order = "fight"
+		_say(rivals[0], RivalCrews.line(crew_id, "ambush", rng))
+		return
 	moment = "meet"
 	if tier > 0:
 		moment = "grudge_won" if str(rec.get("last", "")) == "lost" else ("grudge_lost" if str(rec.get("last", "")) == "won" else "again")
@@ -104,7 +136,7 @@ func _arrive(near: Player, from: Vector3) -> void:
 	for r in rivals.slice(0, rivals.size() - 1):
 		mates.append(net.key_of(r))
 	var you = get_tree().get_first_node_in_group("player")
-	net.everyone("_all_cutscene", ["rival_meet", [crew_id, moment, net.key_of(rivals[-1]), mates, net.key_of(you)]])
+	net.everyone("_all_cutscene", ["rival_meet", [crew_id, moment, net.key_of(rivals[-1]), mates, net.key_of(you), int(near.bounty)]])
 	var c := Cutscene.active
 	if c:
 		c.finished.connect(func(_skipped): _fight())
@@ -117,7 +149,7 @@ func _arrive(near: Player, from: Vector3) -> void:
 static func meet_shots(tree: SceneTree, args: Array) -> Array:
 	var net := tree.root.get_node("Net")
 	var crew := str(args[0])
-	var c: Dictionary = RivalCrews.CREWS.get(crew, {})
+	var c: Dictionary = RivalCrews.crew(crew)
 	if c.is_empty():
 		return []
 	var cap := net.node_of(str(args[2])) as Player
@@ -129,7 +161,15 @@ static func meet_shots(tree: SceneTree, args: Array) -> Array:
 	var you := net.node_of(str(args[4])) as Player
 	if cap == null or you == null:
 		return []
-	var lines: Array = (c["lines"] as Dictionary).get(str(args[1]), c["lines"]["meet"])
+	var lines: Array = ((c["lines"] as Dictionary).get(str(args[1]), c["lines"]["meet"]) as Array).duplicate()
+	# a wanted captain: their captain has something to say about it, after their first line
+	var b := int(args[5]) if args.size() > 5 else 0
+	var bl: Array = c["lines"].get("bounty", [])
+	if Bounty.tier_of(b) >= 1 and not bl.is_empty():
+		var at := 0
+		while at < lines.size() and str(lines[at][0]) != "cap":
+			at += 1
+		lines.insert(mini(at + 1, lines.size()), ["cap", str(bl[b % bl.size()]).replace("{b}", Bounty.fmt(b))])
 	var shots := [{"secs": 2.2, "cam": [you.player_model, cap], "off": Vector3(0.9, 2.0, -3.2), "fov": 55.0,
 		"to": [you.player_model, cap]}]
 	var mi := 0
@@ -196,6 +236,9 @@ func _fight_tick(delta: float) -> void:
 	if up.is_empty():
 		_lose()
 		return
+	if ambush:
+		_ambush_tick(delta)
+		return
 	# one rival on each captain still up, from the queue
 	for c in caps:
 		var r = _active.get(c)
@@ -235,6 +278,30 @@ func _fight_tick(delta: float) -> void:
 			_say(w, RivalCrews.line(crew_id, "taunt", rng, w == rivals[-1]))
 
 
+## Bounty hunters: everyone on the nearest captain, a shout now and then; all down and the captains are paid.
+func _ambush_tick(delta: float) -> void:
+	var standing := rivals.filter(func(r): return is_instance_valid(r) and _standing(r))
+	if standing.is_empty():
+		_won_ambush()
+		return
+	for r in standing:
+		_react(r, r.get_node("Brain"))
+	_taunt_at -= delta
+	if _taunt_at <= 0.0:
+		_taunt_at = rng.randf_range(TAUNT_EVERY.x, TAUNT_EVERY.y)
+		_say(standing[rng.randi() % standing.size()], RivalCrews.line(crew_id, "taunt", rng))
+
+
+func _won_ambush() -> void:
+	phase = "retreat"
+	result = "won"
+	var at: Vector3 = rivals[0].global_position if is_instance_valid(rivals[0]) else Vector3.ZERO
+	var net := get_node("/root/Net")
+	net.coins(at, GOLD_EACH * rivals.size())
+	net.bounty("bounty_hunter", at, 60.0, float(rivals.size()))
+	_leave_t = 8.0
+
+
 func _next_up() -> Player:
 	while not _queue.is_empty():
 		var r = _queue[0]
@@ -268,6 +335,10 @@ func _say(r: Player, text: String) -> void:
 
 func _on_defeated(r: Player) -> void:
 	if phase != "fight":
+		return
+	if ambush:
+		r.get_node("Brain").order = "hold"
+		_say(r, RivalCrews.line(crew_id, "down", rng))
 		return
 	if r == rivals[-1]:
 		# (their captain doesn't die: the retreat)
@@ -309,7 +380,7 @@ func _lose() -> void:
 	phase = "plunder"
 	result = "lost"
 	_say(rivals[-1], RivalCrews.line(crew_id, "gloat", rng))
-	get_node("/root/Net").everyone("_all_rival_plunder", [PLUNDER, str(RivalCrews.CREWS[crew_id]["name"])])
+	get_node("/root/Net").everyone("_all_rival_plunder", [PLUNDER, str(RivalCrews.crew(crew_id)["name"])])
 	_scatter()
 	var rec := record()
 	rec["lost"] = int(rec["lost"]) + 1

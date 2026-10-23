@@ -87,10 +87,15 @@ func _process(_d: float) -> bool:
 			check("...and they're gone", get_nodes_in_group("rivals").is_empty() and get_first_node_in_group("rival_encounter") == null)
 			p.inventory_component.add_item(ItemDB.get_item("gold"), 100)
 			gold0 = p.inventory_component.count("gold")
+			p.bounty = 25000
 			e = enc().start(p, "brine_wolves")
 			until = TK.wait_secs(0.3)
 		7:
 			check("met again after a loss of theirs: the grudge lines (%s)" % e.moment, e.moment == "grudge_lost")
+			var c = load("res://scripts/dialogue/cutscene.gd").active
+			var said: Array = c.shots.filter(func(s): return s.has("say")).map(func(s): return str(s["say"]["text"]))
+			check("...a notorious captain: they come stronger (%d of them) and talk about the bounty" % e.rivals.size(),
+				e.rivals.size() == 4 and said.any(func(t): return "25,000" in t or "poster" in t))
 			TK.act("interact")
 			until = TK.wait_ticks(4)
 		8:

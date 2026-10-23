@@ -20,7 +20,7 @@ tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
 tools/dev/t/input/*                     t/input
 scripts/input/*                         t/input t/player t/combat
-scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement
+scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement t/combat/bounty_hunters
 scripts/game/bounty.gd                  t/progression/bounty
 scripts/island/kit/wanted_poster.gd     t/progression/bounty
 scripts/dialogue/cutscene.gd            t/ui/cutscene

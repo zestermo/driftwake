@@ -37,6 +37,7 @@ const CREWS := {
 				"Fine! Fine. Enjoy it. Next time I bring a better coat."],
 			"gloat": ["Thank you, thank you. The gold is my fee for the lesson.",
 				"Don't sulk. You were nearly interesting."],
+			"bounty": ["{b} gold on your head? Darling, my hat cost more.", "I saw your poster. They didn't get your good side."],
 		},
 	},
 	"brine_wolves": {
@@ -65,6 +66,7 @@ const CREWS := {
 				"Pull back! Rourke doesn't lose twice in one day."],
 			"gloat": ["The sea takes a toll. Today the toll is your purse.",
 				"Rest there. You'll feel it tomorrow."],
+			"bounty": ["{b} on your head. Somebody's scared of you. I'm not.", "Your poster's on every board. Let's see if you're worth the paper."],
 		},
 	},
 	"lantern_saints": {
@@ -92,6 +94,7 @@ const CREWS := {
 			"retreat": ["Saints, withdraw. The measure is taken.",
 				"Enough. Your light holds. For now."],
 			"gloat": ["A toll for the lesson. Light costs oil.", "Rest. The dark will wait for you."],
+			"bounty": ["The Admiralty values you at {b}. I wonder what you value yourself at.", "Your name travels faster than your ship now."],
 		},
 	},
 	"mudlark_brigade": {
@@ -118,9 +121,50 @@ const CREWS := {
 			"retreat": ["Tactical retreat! That means run! To the boat!",
 				"We'll be back! Bigger! Taller, probably!"],
 			"gloat": ["We did it! We actually did it! Grab the gold!", "Mudlarks one, big captain nothing!"],
+			"bounty": ["{b} gold! You're famous! Can I have your autograph? After we beat you!", "I've got your poster on my wall! Is that weird? That's weird."],
 		},
 	},
 }
+
+## Civilian bounty hunters (Bounty: from Notorious): no captain, no meeting; they jump the captain together.
+const HUNTERS := {
+	"name": "the bounty hunters", "captain": "", "weapon": "cutlass", "pitch": 0.9,
+	"palette": [Color(0.4, 0.33, 0.25), Color(0.3, 0.28, 0.25), Color(0.22, 0.2, 0.18)], "flag": Color(0.5, 0.42, 0.3),
+	"mate_weapons": ["cutlass", "spear", "boarding_axe", "dagger", "warhammer"],
+	"mate_names": ["Corvin Shale", "Dagny Hale", "Morrow Pike", "Ilse Brand", "Tam Ruckett", "Quill Varga", "Sorrel Fenn",
+		"Ansel Crook", "Bree Mallin", "Wick Holloway"],
+	"lines": {
+		"ambush": ["There's the face from the poster!", "That bounty's mine!", "Easy money, lads. Take them!",
+			"Nothing personal, captain. It's the gold."],
+		"taunt": ["Hold still, you're worth more in one piece!", "The Admiralty pays either way!", "Surround them!"],
+		"hurt": ["Argh!", "Watch it!", "They bite back!"],
+		"down": ["Not worth it...", "Ugh.", "Should've stuck to smugglers..."],
+		"gloat": ["Your purse'll do for now. We'll be back for the rest.", "Lighter purse, same bounty. See you soon."],
+	},
+}
+
+
+## A crew's (or the hunters') data.
+static func crew(crew_id: String) -> Dictionary:
+	return HUNTERS if crew_id == "bounty_hunters" else CREWS.get(crew_id, {})
+
+
+## `n` bounty hunters for this save (seeded by `seed_`), sharper with `tier` (the captain's bounty tier).
+static func hunters(seed_: int, n: int, tier: int) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(["hunters", seed_])
+	var names: Array = (HUNTERS["mate_names"] as Array).duplicate()
+	var out := []
+	for i in range(n):
+		var lk: Dictionary = CharacterLook.random_look(rng)
+		_dress(lk, HUNTERS, rng)
+		var nm := str(names[rng.randi() % names.size()])
+		names.erase(nm)
+		lk["name"] = nm
+		out.append({"name": nm, "look": lk, "captain": false,
+			"weapon": str((HUNTERS["mate_weapons"] as Array)[rng.randi() % (HUNTERS["mate_weapons"] as Array).size()]),
+			"pitch": rng.randf_range(0.8, 1.1), "skill": clampf(0.35 + 0.12 * tier + rng.randf_range(-0.08, 0.08), 0.2, 0.9)})
+	return out
 
 ## Every crew's mates say these (taunts across the ring, a mate down, a cheer for their captain).
 const MATE_LINES := {
@@ -179,7 +223,8 @@ static func _dress(lk: Dictionary, c: Dictionary, rng: RandomNumberGenerator) ->
 
 
 static func line(crew_id: String, moment: String, rng: RandomNumberGenerator, captain := true) -> String:
-	var pool: Array = (CREWS[crew_id]["lines"] as Dictionary).get(moment, []) if captain else MATE_LINES.get(moment, [])
+	var own := captain or crew_id == "bounty_hunters"   # (hunters have only their own lines)
+	var pool: Array = (crew(crew_id).get("lines", {}) as Dictionary).get(moment, []) if own else MATE_LINES.get(moment, [])
 	if pool.is_empty():
 		return ""
 	var l = pool[rng.randi() % pool.size()]

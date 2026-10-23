@@ -7,6 +7,7 @@ extends Node
 ##   first meeting: the first chain island past Brinehollow, the Mudlark Brigade (rookies: the right first rivals)
 ##   then: once MIN_GAP islands have passed since the last, CHANCE an island (seeded by the island); never the capital;
 ##         the crews you haven't met first, never the same crew twice running
+## Bounty hunters (a notorious captain: Bounty) may wait on an island no crew comes to (HUNTER_CHANCE).
 ## The plan lives in GameManager.rivals["_plan"] (saved with them).
 
 const FIRST_CREW := "mudlark_brigade"
@@ -17,6 +18,12 @@ const ASHORE_S := 20.0
 const INLAND := 45.0
 const QUIET_R := 25.0
 const CHECK_EVERY := 0.5
+## Bounty hunters: from this bounty tier (Notorious), this chance an island with no crew, 2 hunters (+1 a tier above),
+## after a longer while ashore and not so far in.
+const HUNTERS_FROM := 2
+const HUNTER_CHANCE := 0.35
+const HUNTER_ASHORE_S := 40.0
+const HUNTER_INLAND := 30.0
 
 var _t := 0.0
 var _ashore := 0.0
@@ -56,9 +63,20 @@ func decide(n: Dictionary, id: int) -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(["rivals", int(n.get("seed", id))])
 		come = rng.randf() < CHANCE
+	pl["hunters"] = -1
 	if come:
 		pl["pending"] = id
 		pl["crew"] = FIRST_CREW if not bool(pl["met_first"]) else pick_crew(int(n.get("seed", id)))
+		return
+	# no crew here: bounty hunters try their luck on a notorious captain (Bounty)
+	var p = _gm().player
+	var tier := Bounty.tier_of(int(p.bounty)) if p and is_instance_valid(p) else 0
+	if tier >= HUNTERS_FROM:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(["hunters", int(n.get("seed", id))])
+		if rng.randf() < HUNTER_CHANCE:
+			pl["hunters"] = id
+			pl["hunters_n"] = 2 + maxi(tier - HUNTERS_FROM, 0)
 
 
 ## The crew that comes: one not met yet if any, else any but the last.
@@ -82,7 +100,11 @@ func _physics_process(delta: float) -> void:
 		return
 	var gm := _gm()
 	var rv: Dictionary = gm.rivals
-	if not rv.has("_plan") or int(plan()["pending"]) < 0 or int(plan()["pending"]) != int(gm.chain_at):
+	if not rv.has("_plan"):
+		return
+	var crew_here := int(plan()["pending"]) >= 0 and int(plan()["pending"]) == int(gm.chain_at)
+	var hunters_here := int(plan().get("hunters", -1)) >= 0 and int(plan().get("hunters", -1)) == int(gm.chain_at)
+	if not crew_here and not hunters_here:
 		return
 	var p: Player = gm.player
 	if p == null or not is_instance_valid(p) or not p.is_inside_tree():
@@ -95,7 +117,15 @@ func _physics_process(delta: float) -> void:
 		and not _aboard(p)
 	_ashore = _ashore + dt if ashore else 0.0
 	var flat := Vector2(p.global_position.x - dock.x, p.global_position.z - dock.z).length()
-	if _ashore < ASHORE_S or flat < INLAND or Cutscene.active or _hostile_near(p):
+	if Cutscene.active or _hostile_near(p):
+		return
+	if hunters_here:
+		if _ashore < HUNTER_ASHORE_S or flat < HUNTER_INLAND:
+			return
+		if RivalEncounter.start_ambush(p, int(plan().get("hunters_n", 2)), dock) != null:
+			plan()["hunters"] = -1
+		return
+	if _ashore < ASHORE_S or flat < INLAND:
 		return
 	var crew := str(plan()["crew"])
 	if RivalEncounter.start(p, crew, dock) == null:

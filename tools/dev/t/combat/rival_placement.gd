@@ -67,5 +67,18 @@ func _process(_d: float) -> bool:
 	pl["since"] = 5
 	w.decide(node(2, 4242), 50)
 	check("the same island decides the same", int(pl["pending"]) == a)
+	# a notorious captain: bounty hunters on some islands no crew comes to
+	stage.player.bounty = 25000
+	var hunted := 0
+	for i in range(30):
+		pl["since"] = 0
+		w.decide(node(2, 500 + i), 60 + i)
+		if int(pl.get("hunters", -1)) >= 0:
+			hunted += 1
+	check("a notorious captain: bounty hunters wait on some islands no crew comes to (%d of 30)" % hunted, hunted >= 5 and hunted <= 18)
+	stage.player.bounty = 0
+	pl["since"] = 0
+	w.decide(node(2, 4242), 90)
+	check("...none for a captain who isn't", int(pl.get("hunters", -1)) == -1)
 	gm.rivals.clear()
 	return TK.done(fails)

@@ -121,6 +121,13 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   captain (`Bounty.RECOGNISE`, by tier). Test: t/progression/bounty. **Assumed:** townsfolk only talk (no fleeing
   yet: villagers have no flee behaviour; a later polish); the posters show the captains' names and bounties, no
   portrait; which trades lean which way (armourer, smith / treasure).
+- **Piece 8: rivals react, bounty hunters.** A rival crew comes stronger for a bigger bounty (their tier: the times
+  met or the captain's bounty tier, the higher) and their captain has a line about it in the meeting (each crew's
+  "bounty" lines, the amount filled in). Bounty hunters (`RivalCrews.HUNTERS`, `RivalEncounter.start_ambush`): no
+  meeting, a shout, all at once, no retreat, 1,500 bounty and gold a hunter; they plunder like a crew if they win.
+  RivalWatch: from Notorious, 35% on an island no crew comes to (seeded), 2 hunters (+1 a tier above), after 40 s
+  ashore and 30 m in. Tests: t/combat/bounty_hunters, rival_crew, rival_placement. **Assumed:** the numbers above
+  (chance, count, wait); hunters are civilians in drab browns with a name pool of their own (Zach's review).
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite
