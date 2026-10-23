@@ -418,6 +418,12 @@ func build_piers(ctx: KitContext, piers: Array) -> void:
 		pier.add_child(lad)
 		var side := 1.0 if pr[3] else -1.0
 		var sp := root + out * (float(pr[1]) - 10.0) + along * (side * (1.5 + HullBuilder.HALF_BEAM + 0.7))
+		# (out along the pier until the whole hull is over open water: where the quay curves, a short pier's ship
+		# stood with its side on the paving, 2026-10-22)
+		for k in 16:
+			if _hull_clear(ctx, sp):
+				break
+			sp += out
 		var hull := MooredHull.new()
 		hull.name = "Moored_" + str(pr[2])
 		hull.collision_layer = 1
@@ -433,6 +439,32 @@ func build_piers(ctx: KitContext, piers: Array) -> void:
 		for k in range(3):
 			var rc := Props.rope_coil() if k != 1 else Props.barrel()
 			ctx.put(rc, Vector3(0, deck_y, 0) + KitContext.v3(root + out * (6.0 + k * 6.0) + along * (side * 1.0)))
+
+
+## A moored ship's footprint centred at `c` (its keel along `out`), with a metre round it, all past the quay's edge and
+## over water.
+func _hull_clear(ctx: KitContext, c: Vector2) -> bool:
+	for a in [-1.0, 1.0]:
+		for b in [-1.0, 1.0]:
+			var p: Vector2 = c + out * (a * (HullBuilder.STERN_Z + 1.0)) + along * (b * (HullBuilder.HALF_BEAM + 1.0))
+			if past_quay(p) < 1.0 or ctx.hv(p) > -0.3:
+				return false
+	return true
+
+
+## How far `p` lies out to sea past the quay's edge, by its nearest station (m; < 0 on the quay or inland of it).
+func past_quay(p: Vector2) -> float:
+	var best := INF
+	var off := 0.0
+	var n := 96
+	for i in n + 1:
+		var s := lerpf(s0, s1, float(i) / n)
+		var q := quay_pt(s, 0.0)
+		var d2 := q.distance_squared_to(p)
+		if d2 < best:
+			best = d2
+			off = (p - q).dot((quay_pt(s, -1.0) - q).normalized())
+	return off
 
 
 ## Longboats tied along the quay at these stations.

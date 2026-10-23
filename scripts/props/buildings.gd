@@ -141,6 +141,29 @@ static func _roof_y(kind: String, uw: float, ud: float, y0: float, top: float, p
 	return y0 + ud * pitch - 2.0 * pitch * absf(z)
 
 
+## The roof's own collider: its surface (_roof_y) sampled over the eaves and down to the wall tops, as one convex shape
+## (gable, hip and shed roofs are all convex). Houses had none: a captain stood on the wall box's flat top sunk in the
+## roof, or nowhere at all on the eaves (2026-10-22).
+static func _roof_col(body: Node3D, kind: String, uw: float, ud: float, y0: float, top: float, pitch: float, ev: float) -> void:
+	var ex := uw * 0.5 + (0.0 if kind == "shed" else ev)
+	var ez := ud * 0.5 + (0.0 if kind == "shed" else ev)
+	var pts := PackedVector3Array()
+	var n := 6
+	for i in n + 1:
+		for j in n + 1:
+			var x := lerpf(-ex, ex, float(i) / n)
+			var z := lerpf(-ez, ez, float(j) / n)
+			pts.append(Vector3(x, _roof_y(kind, uw, ud, y0, top, pitch, ev, x, z), z))
+	for c in [Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(1, 0, 1), Vector3(-1, 0, 1)]:
+		pts.append(Vector3(c.x * uw * 0.5, top, c.z * ud * 0.5))
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = pts
+	var cs := CollisionShape3D.new()
+	cs.name = "RoofCol"
+	cs.shape = shape
+	body.add_child(cs)
+
+
 const TRIM_COLORS := [Color(0.27, 0.42, 0.62), Color(0.25, 0.5, 0.44), Color(0.6, 0.22, 0.16), Color(0.78, 0.62, 0.26),
 	Color(0.86, 0.85, 0.8), Color(0.35, 0.3, 0.45)]
 const BLOOMS := [Color(0.9, 0.2, 0.22), Color(0.95, 0.82, 0.25), Color(0.92, 0.5, 0.7), Color(0.95, 0.95, 0.92), Color(0.6, 0.4, 0.85)]
@@ -650,6 +673,7 @@ static func house(spec: Dictionary = {}) -> Node3D:
 	_box_col(body, Vector3(w + 0.3, fl + h + found, d + 0.3), Vector3(0, (fl + h - found) * 0.5, 0))
 	if floors > 1:
 		_box_col(body, Vector3(uw, h2, ud), Vector3(0, fl + h + h2 * 0.5 + 0.1, 0))
+	_roof_col(body, roof_kind, uw, ud, y0, top, pitch, ev)
 	body.add_child(Occluders.box_node(_xf(Vector3(0, (fl + top) * 0.5, 0)), Vector3(w, top - fl, d)))
 	return body
 
@@ -1122,7 +1146,8 @@ static func smithy() -> Node3D:
 ## The sea chapel (front +Z): a stone hall with buttresses and tall windows,
 ## a bell tower over the door with an open belfry, a bronze bell and a
 ## weathervane. Closed.
-static func chapel() -> Node3D:
+## `found`: how far the stone plinth goes down under the floor (m), as deep as the ground drops across the footprint.
+static func chapel(found: float = 1.4) -> Node3D:
 	var w := 6.0
 	var d := 10.0
 	var h := 4.2
@@ -1138,9 +1163,9 @@ static func chapel() -> Node3D:
 	var roof := PSXMat.lit("roof_tiles", Color(0.75, 0.82, 0.9), {"affine": 0.8})
 	var window := PSXMat.lit("window", Color(0.8, 0.9, 1.0), {"emission": Color(0.8, 0.85, 1.0), "emission_energy": 0.7, "emission_tex": "window"})
 	var bronze := PSXMat.lit("metal", Color(0.85, 0.6, 0.3))
-	mb.add_box(dark, _xf(Vector3(0, -0.6, 0)), Vector3(w + 0.5, 1.6, d + 0.5), 0.5, Color.WHITE, true, false)
+	mb.add_box(dark, _xf(Vector3(0, (0.2 - found) * 0.5, 0)), Vector3(w + 0.5, found + 0.2, d + 0.5), 0.5, Color.WHITE, true, false)
 	tiled_box(mb, stone, Vector3(0, 0.2 + h * 0.5, 0), Vector3(w, h, d), 2.4, 0.5)
-	_box_col(body, Vector3(w + 0.5, h + 1.6, d + 0.5), Vector3(0, (h + 0.2 - 1.4) * 0.5, 0))
+	_box_col(body, Vector3(w + 0.5, h + 0.2 + found, d + 0.5), Vector3(0, (h + 0.2 - found) * 0.5, 0))
 	mb.add_gable_roof(roof, _xf(Vector3(0, h + 0.29, 0)), w, d, 2.6, 0.5, 0.5, Color.WHITE, stone)
 	mb.add_box(PSXMat.lit("roof_tiles", Color(0.6, 0.65, 0.72), {"affine": 0.8}), _xf(Vector3(0, h + 0.29 + 2.62, 0)), Vector3(0.28, 0.18, d + 1.1), 0.8)
 	_box_col(body, Vector3(w, 2.6, d), Vector3(0, h + 1.5, 0))

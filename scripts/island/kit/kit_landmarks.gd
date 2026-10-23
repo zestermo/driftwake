@@ -76,7 +76,8 @@ static func crane(ctx: KitContext, p: Vector2, face: Vector2) -> Node3D:
 
 
 static func chapel(ctx: KitContext, p: Vector2, face: Vector2) -> Node3D:
-	return ctx.place(Buildings.chapel(), p, KitContext.face_yaw(face), 6.2)
+	# (the plinth down to the lowest ground under it: on a slope its base stood clear of the grass, 2026-10-22)
+	return ctx.place(Buildings.chapel(maxf(ctx.ground_max(p, 6.2) - ctx.ground_min(p, 6.2) + 0.6, 1.4)), p, KitContext.face_yaw(face), 6.2)
 
 
 ## A lookout tower: four posts, a railed platform at `h` m (6 by default), a

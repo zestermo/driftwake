@@ -5949,3 +5949,15 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   distances, 15% slack for the ones swinging). Bench (off/on back to back): grunt AI 0.90 -> 0.51 ms, grunt rigs 1.12 ->
   0.82 ms a frame in the five-grunt fight; whole-frame change within calib noise. The brawl stop plays out a real fight
   and isn't comparable run to run (one run ended in the camp's middle: +630 draws of scenery).
+
+## 2026-10-23: Brinehollow fixes from Zach's captures (roofs, moored ships, the chapel's base)
+- **Roof collision:** `Buildings.house` had colliders only to the wall tops (you stood on the wall box's flat top sunk
+  in the roof). `_roof_col` adds one convex shape per roof: `_roof_y` sampled 7x7 over the eaves plus the wall-top
+  corners (gable, gable_front, hip, shed are all convex). Every house on every island goes through it.
+  t/island/house_roofs checks each kind, pitch and storey count; house_doors' "no steps" check skips "RoofCol".
+- **Moored ships on the quay:** `KitHarbour.build_piers` put a ship's centre at pier length - 10 m whatever the quay's
+  curve, so the junk's and the sloop's sides stood on the paving. Now it slides out along the pier until the footprint
+  plus 1 m is past the quay edge and over water (`_hull_clear`, `past_quay(p)`: how far out past the quay a point is,
+  < 0 on it). Brinehollow: junk 1.2 m clear, merchant and sloop 4.2 m.
+- **The chapel's base:** its plinth went 1.4 m under the floor; on its slope the low side floated. `chapel(found)`,
+  and KitLandmarks passes the footprint's drop + 0.6 (Brinehollow's: 3.45 m).

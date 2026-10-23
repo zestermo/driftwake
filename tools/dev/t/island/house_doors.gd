@@ -124,7 +124,7 @@ func _process(_d: float) -> bool:
 				if why0 != "":
 					lbad.append("%s: %s" % [n.name, why0])
 			check("the chapel, the harbour tower, the lighthouse and the snow store: a panelled door up walkable steps %s" % [lbad], lbad.is_empty())
-			var convex := bare.find_children("*", "CollisionShape3D", false, false).filter(func(c): return c.shape is ConvexPolygonShape3D)
+			var convex := bare.find_children("*", "CollisionShape3D", false, false).filter(func(c): return c.shape is ConvexPolygonShape3D and c.name != "RoofCol")
 			check("with steps false a stilted house has none", convex.is_empty())
 			var why := _walk(tavern, Vector3(-1.6, 0.3, 9.0 * 0.5 + 0.1))
 			check("the tavern: steps up to its doorway (%s)" % why, why == "")

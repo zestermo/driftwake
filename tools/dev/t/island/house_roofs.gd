@@ -1,7 +1,8 @@
 extends SceneTree
 ## Buildings.house's roofs sit over everything under them: on every roof kind, one and two storeys, a shallow
 ## and a steep pitch, no timber (the wall plate, the posts) inside the walls' footprint rises through the roof
-## (the plate's top used to show as a dark line along every eave), and a chimney stands at least 0.5 m clear of it.
+## (the plate's top used to show as a dark line along every eave), a chimney stands at least 0.5 m clear of it, and the
+## roof has its own collider from the wall tops up to the ridge (houses had none: 2026-10-22).
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
 var fails := 0
@@ -62,6 +63,17 @@ func _process(_d: float) -> bool:
 					need = maxf(need, B._roof_y(kind, uw, ud, top + 0.09, top, pitch, ev, cx + (0.35 if k % 2 == 0 else -0.35), cz + (0.35 if k < 2 else -0.35)) + 0.5)
 				if chimney_top < need:
 					bad.append("%s %.2f %d: the chimney tops out at %.2f, under %.2f" % [kind, pitch, floors, chimney_top, need])
+				# (something to stand on: the roof's own collider, up to the ridge and down to the wall tops)
+				var rc := n.get_node_or_null("RoofCol") as CollisionShape3D
+				var hi := -INF
+				var lo := INF
+				if rc and rc.shape is ConvexPolygonShape3D:
+					for q in (rc.shape as ConvexPolygonShape3D).points:
+						hi = maxf(hi, q.y)
+						lo = minf(lo, q.y)
+				var ridge: float = B._roof_y(kind, uw, ud, top + 0.09, top, pitch, ev, 0.0, 0.0)
+				if not (hi >= ridge - 0.01 and lo <= top + 0.01):
+					bad.append("%s %.2f %d: the roof collider spans %.2f..%.2f, not the wall tops %.2f to the ridge %.2f" % [kind, pitch, floors, lo, hi, top, ridge])
 				n.free()
-	check("no timber pokes through any roof and every chimney clears it %s" % [bad], bad.is_empty())
+	check("no timber pokes through any roof, every chimney clears it, every roof can be stood on %s" % [bad], bad.is_empty())
 	return TK.done(fails)
