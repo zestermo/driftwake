@@ -128,6 +128,23 @@ const SINK_SPEED := 1.6
 const SEABED_SPEED := 1.5
 const DROWN_GRACE := 1.0
 const DROWN_DPS := 10.0
+## Fighting in the water (docs/v1_19_plan.md: your own weapon, slowed): attack = a quick strike (the weapon's stab),
+## heavy = a lunging cut that carries you forward; at the surface or on a dive (a moray below, a shark alongside, a
+## rival who followed you in). The weapon comes out for it and goes back a while after.
+const STRIKE := {false: {"base": 11.0, "cost": 6.0, "cd": 0.55, "hit": 0.22, "r": 1.25},
+	true: {"base": 20.0, "cost": 14.0, "cd": 1.1, "hit": 0.12, "r": 1.6}}
+const STRIKE_REACH := 1.35
+const LUNGE_SPEED := 6.5
+const LUNGE_S := 0.3
+const SHEATHE_AFTER := 2.5
+const STRIKE_ACTIONS := {"dagger": "dg_stab", "polearm": "pole_thrust", "fist": "fs_jab"}
+var _strike_cd := 0.0
+var _strike_hit := -1.0
+var _strike_heavy := false
+var _lunge_t := 0.0
+var _drawn_t := 0.0
+## Water strikes landed (tests read it).
+var strikes_landed := 0
 var _cursed: bool = false
 var _under_t: float = 0.0
 var _bubble_t: float = 0.0
@@ -189,6 +206,7 @@ func physics_update(delta: float) -> void:
 	elif player.stamina >= RECOVER:
 		_exhausted = false
 	var tired := _exhausted
+	_strike_tick(delta, tired)
 	var fast := player.inp.pressed("sprint") and not tired and dir != Vector3.ZERO
 	var spd := TIRED_SPEED if tired else (FAST_SPEED if fast else SWIM_SPEED)
 	if _diving:
@@ -310,7 +328,16 @@ func physics_update(delta: float) -> void:
 	elif y + _vy * delta > target:
 		_vy = (target - y) / maxf(delta, 0.0001)
 	player.velocity = Vector3(hv.x + _drift.x, _vy, hv.z + _drift.z)
+	var lunge := Vector3.ZERO
+	if _lunge_t > 0.0:
+		# the heavy strike's lunge carries you forward through the water (for this move only: the swim's speed
+		# carries over tick to tick, so it comes off again after)
+		_lunge_t -= delta
+		lunge = -player.player_model.global_basis.z * LUNGE_SPEED
+		lunge.y = 0.0
+		player.velocity += lunge
 	player.move_and_slide()
+	player.velocity -= lunge
 	if dir != Vector3.ZERO:
 		face_direction(dir, delta * 0.6)
 
@@ -362,6 +389,61 @@ func physics_update(delta: float) -> void:
 
 
 ## Swimming at `at` (flat): the stroke's heading points at it.
+## Attack / heavy in the water: a strike (stamina; not exhausted), its blow a moment in; the weapon back away later.
+func _strike_tick(delta: float, tired: bool) -> void:
+	_strike_cd = maxf(_strike_cd - delta, 0.0)
+	if _strike_hit >= 0.0:
+		_strike_hit -= delta
+		if _strike_hit < 0.0:
+			_strike_land()
+	if player.armed:
+		_drawn_t += delta
+		if _drawn_t > SHEATHE_AFTER and _strike_cd <= 0.0 and _strike_hit < 0.0:
+			player.sheathe_weapon(true)
+	if tired or _strike_cd > 0.0 or _strike_hit >= 0.0:
+		return
+	var heavy := input_buffer.consume_action("heavy_attack")
+	if not heavy and not input_buffer.consume_action("light_attack"):
+		return
+	var s: Dictionary = STRIKE[heavy]
+	if not player.spend_stamina(float(s["cost"])):
+		return
+	if not player.armed and player.equipped_weapon:
+		player.draw_weapon(true)
+	_drawn_t = 0.0
+	_strike_heavy = heavy
+	_strike_cd = float(s["cd"])
+	_strike_hit = float(s["hit"])
+	if heavy:
+		_lunge_t = LUNGE_S
+	var wc := player.weapon_class()
+	player.body_model.play("dash_cut" if heavy else str(STRIKE_ACTIONS.get(wc, "thrust")), 0.6 if heavy else 0.45)
+	var at := player.global_position + Vector3(0, 0.4, 0)
+	Net.fx("splash", [at - player.player_model.global_basis.z * 0.8, 4 if heavy else 2, 0.5])
+	Net.fx("sfx", ["whoosh", at, -6.0, 0.1, 0.8 if heavy else 1.0])
+
+
+## The strike's blow: everyone in front of the captain, at their depth (a dive's below the surface).
+func _strike_land() -> void:
+	var s: Dictionary = STRIKE[_strike_heavy]
+	var fwd := -player.player_model.global_basis.z
+	var at := player.global_position + Vector3(0, 0.3 if not _diving else 0.0, 0) + fwd * STRIKE_REACH
+	var hd := player.melee_hit(float(s["base"]), "heavy" if _strike_heavy else "")
+	hd.knockback_force = 3.0 if _strike_heavy else 1.0
+	hd.stagger_duration = 0.35 if _strike_heavy else 0.15
+	var landed := false
+	for e in player.power.enemies_in(at, float(s["r"])):
+		var hb = e.get("hurtbox")
+		if hb == null:
+			continue
+		hb.take_hit(hd.duplicate(), player)
+		landed = true
+	if landed:
+		strikes_landed += 1
+		player.cam_shake(0.12 if _strike_heavy else 0.06)
+		Net.fx("bubbles", [at, 8])
+
+
 func _toward(at: Vector3, dir: Vector3) -> bool:
 	var to := Vector3(at.x - player.global_position.x, 0.0, at.z - player.global_position.z)
 	return dir != Vector3.ZERO and to.length() > 0.05 and dir.dot(to.normalized()) > 0.55

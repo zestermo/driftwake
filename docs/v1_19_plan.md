@@ -166,6 +166,14 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   Weather and time are put back. Cutscenes now follow node-anchored shots every frame (a rolling deck). Test:
   t/ui/intro; render: tools/dev/introshot.gd. **Assumed:** the spark is the night you washed up (the existing
   start); the narration's words; skipping it skips to the fight (the fight is short: 50 s at most).
+- **Piece 13: fighting in the water.** SwimState: attack = a quick strike with your own weapon (its stab: cutlass
+  thrust, dagger stab, spear thrust, a jab bare-handed; 11 base, 6 stamina, every 0.55 s), heavy = a lunging cut
+  (20 base, 14 stamina, a 2 m lunge, its blow early in it); at the surface or on a dive; the weapon comes out for it
+  and goes back 2.5 s after; not while exhausted. Hits through `power.enemies_in`, so sharks and morays (their
+  break-off at half health comes sooner now you can hurt them) and AI captains who follow you in (the same states:
+  an AI captain fights in the water the same way). Test: t/swim/water_strike (t/swim green). **Assumed:** the
+  numbers; no new animations (the land strikes played on the swimming body); techniques and skills stay
+  land-only.
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite
