@@ -543,6 +543,21 @@
 			]
 		},
 		{
+			"v": "1.19.1",
+			"name": "Fair Matches",
+			"date": "2026-10-23",
+			"unstable": true,
+			"status": "shipped",
+			"headline": "Fixes for v1.19: each captain duels a rival in their own style, and co-op guests see every dungeon bug.",
+			"img": "rivals_duel",
+			"alt": "The captain trading blows with a rival crew's spearman in the snow at sunset",
+			"github": true,
+			"added": [
+				["Fair matches", "Each captain faces the rival who fights in their own style; the crew's captain still comes last."],
+				["Dungeon bugs in co-op", "A far dungeon waits for its bugs to finish hatching before it sleeps."]
+			]
+		},
+		{
 			"v": "1.20",
 			"name": "The World",
 			"status": "building",

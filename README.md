@@ -7,7 +7,7 @@
 <p align="center"><i>The sea remembers every wake.</i></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.19-e0b040" alt="Version 1.19">
+  <img src="https://img.shields.io/badge/version-1.19.1-e0b040" alt="Version 1.19.1">
   <img src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" alt="Godot 4.7">
   <img src="https://img.shields.io/badge/co--op-1--4_players-c0392b" alt="Co-op for 1 to 4 players">
   <img src="https://img.shields.io/badge/platform-Windows-555" alt="Windows">
@@ -164,6 +164,12 @@ one-handed blade, Z draws it and left click chops while you hang on.
 
 Versions marked **unstable** are early builds for trying new things: newer, but less tested. The main download is
 always the last stable version (v1.19); unstable ones are on [the releases page](https://driftwake.fun/releases/).
+
+### v1.19.1: Fair Matches (October 23, 2026), unstable
+Fixes for v1.19. Each captain in a co-op crew now duels the rival who fights in their own style (before, everyone
+was matched on the host's weapon, and any blade counted as a match); the crew's captain still comes last. A
+dungeon far from the crew no longer falls asleep while its bugs are still hatching, which left a co-op guest
+missing some of the host's dungeon bugs.
 
 ### v1.19: Wanted (October 23, 2026)
 Rival captains run by the game, built like yours: the same weapons, moves, skills and ultimates, reading your spacing,

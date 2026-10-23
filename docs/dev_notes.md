@@ -6031,3 +6031,14 @@ Spec: docs/progression_plan.md "The other Adventure trees".
   `secs_since_t0()` in physics ticks. The other flaky.txt checks already wait in ticks; their flakes are something else.
 - **Not done (later, Zach's call):** one Godot process per atomic group. A bare boot of the project is ~21 s
   (compiling ~438 scripts / 149k lines) of each atomic test's ~30 s: ~95 min machine per full run.
+
+## v1.19.1: fair matches and co-op dungeon bugs (2026-10-23, unstable)
+- **Co-op dungeon bugs** (nettest's "all host enemies exist here" missing `Isle0/Dungeon0/Enemies/Bugs/B3_0`, `B4_0`
+  in 2 of 5 runs): on a chain island being built a ScuttlebugNest hatches a bug a frame (`_hatching`), and
+  `Dungeon._sleep_check` put a far dungeon's Enemies to sleep (PROCESS_MODE_DISABLED) mid-way, so the last spots
+  stayed empty on whichever machine was cut off, at a different spot on each. It now waits for a hatching nest the way
+  it already waited for a warming GruntCamp. Test: t/island/dungeon_nest_sleep (fails 0 of 4 hatched without it).
+- **Rival pairing**: `RivalEncounter._next_up(c)` gives each captain the waiting mate in their own fighting style,
+  else the first waiting, the crew's captain last. The lead's ordering compared `weapon_class()` (fist/sword/gun/claw:
+  every blade is "sword"), so it never matched anything; both use `Player.style()` now (polearm, katana, dagger...).
+  Test: t/combat/rival_pairing.
