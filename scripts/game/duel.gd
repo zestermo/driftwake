@@ -14,6 +14,8 @@ const FIGHT_TIME := 180.0
 const RING := 35.0
 const REVIVE_AFTER := 3.0
 const DAMAGE_K := 0.6
+## A captain beaten with a rival crew this close is spared (downed, not dead): the crew plunders instead.
+const RIVAL_SPARE_R := 40.0
 ## Of the level the winner is on (at least MIN_XP).
 const XP_SHARE := 0.02
 const MIN_XP := 10
@@ -143,7 +145,16 @@ static func soften(hit: HitData) -> HitData:
 
 ## Damage that would finish off a captain mid-duel, whatever its source (a bleed or burn names none): down, not dead (true: it's taken care of).
 static func beaten(p: Node, dmg: float) -> bool:
-	if inst == null or p == null or not p.is_in_group("players") or dmg < p.health_component.current_health:
+	if p == null or not p.is_in_group("players") or dmg < p.health_component.current_health:
+		return false
+	# beaten with a rival crew about: down, not dead (they plunder you instead: RivalEncounter). Every machine has the
+	# rivals (the host's AI, the guests' puppets), so a guest's captain is spared on its own machine too.
+	if p.is_inside_tree():
+		for r in p.get_tree().get_nodes_in_group("rivals"):
+			if (r as Node3D).global_position.distance_to(p.global_position) < RIVAL_SPARE_R:
+				spare(p)
+				return true
+	if inst == null:
 		return false
 	if not inst.fighting(inst.duel_of(inst.id_of(p))):
 		return false

@@ -57,6 +57,29 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   `CaptainBrain` (scripts/ai/captain_brain.gd); `RivalDuel` (scripts/ai/rival_duel.gd), **Alt+F5** in a debug build.
   Test: t/combat/rival_duel.
 - **Piece 2: rivals' skills and co-op.** `RivalDuel.give_kit`: weapon and captain skills that fit its style (a rookie 1, a captain 4 and an ultimate half charged). Co-op: `Net._all_spawn_rival` / `_all_rival_gone` (deterministic names); the host's AI is in `net_sync` (its captain snapshot), a guest's copy is a captain puppet built `is_ai` (enemies' side, its hurtbox on 32: a guest's blow routes to the host); `Net.ignore_overlap` and Hitbox let an AI captain's own swing be judged on the host and routed to the guest. nettest mode `rival` (prepush). Assumed: the debug key is the host's.
+- **Piece 3: cutscenes.** `Cutscene` (scripts/dialogue/cutscene.gd): camera shots with eased dollies, lines as
+  subtitles in the letterbox (the speaker's name over the typed line, voice blips at their pitch), the captain held,
+  AI brains still; `Cutscene.scripted(kind, args)` builds the same shots on every machine (`Net._all_cutscene`);
+  skip is a vote the host counts (a "waiting for N more" chip). Test: t/ui/cutscene. Render: tools/dev/rivalshot.gd.
+  **Assumed:** cutscene lines are subtitles, not bubbles (a world bubble in a close-up is huge and clips the bars);
+  fight lines are bubbles over the head (`SpeechBubble`, `FX.speech` through Net.fx).
+- **Piece 4: rival crews.** `RivalCrews` (scripts/ai/rival_crews.gd): four authored crews for the first chain, for
+  Zach's review: **the Gilded Gulls** (Captain Marisol Vane, "the Gilt Blade": a vain showboat duelist, cutlass,
+  white and gold), **the Brine Wolves** (Captain Haskel Rourke, "Ironjaw": a gruff brawler, warhammer, slate and
+  steel), **the Lantern Saints** (Captain Odessa Krane, "the Quiet Lamp": calm and exacting, katana, black and red),
+  **the Mudlark Brigade** (Captain Pip Tallow, "the Tide Rat": a cocky kid, dagger, mud green and brown); their
+  lines (meet, again, grudge_won, grudge_lost, taunt, hurt, ult, mate_down, retreat, gloat) and mates rolled from
+  each crew's name pool and palette (seeded per crew and save). `RivalEncounter` (host): they turn up in a line
+  facing you, the meeting plays (its lines by the record), duels in turn (one rival per standing captain, the best
+  match for the lead captain's weapon first, the captain last; the rest ring the fight and taunt), retreat at 30%
+  of their captain's health (gold, 35% a trait weapon of the captain's kind), every captain beaten = spared (Duel)
+  and plundered (25% of the gold), back up once they've gone. GameManager.rivals {met, won, lost, last}, saved.
+  **Ctrl+Alt+F5** calls up the next crew. Test: t/combat/rival_crew.
+  **Assumed:** 2 mates the first time, 3 the second and third, 4 after (`RivalCrews.MATES`); a return makes them
+  tougher (+15% health a meeting, their captain x1.8) and sharper (+0.12 skill a meeting); their captain never
+  dies (beaten, they call the retreat); co-op pairs each captain with the next rival in the queue (not yet by each
+  captain's own mastery); the debug arrival is "turn up in a line 14 m off" (landing by ship comes with the
+  placement piece).
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite

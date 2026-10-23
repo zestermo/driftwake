@@ -190,6 +190,9 @@ var inp: CaptainInput = CaptainInput.new()
 ## A captain-style AI (a rival, an Admiralty officer): the full brain and states, fed by a brain instead of the
 ## keyboard; none of the local captain's camera, HUD or saves (docs/v1_19_plan.md "Build notes").
 var is_ai: bool = false
+var _debug_crew := 0
+## Max health scale (an AI captain's: a rival crew's captain and their returns are tougher).
+var hp_k := 1.0
 ## How far an AI captain's camera shake reaches (full at the camera, none past this).
 const AI_SHAKE_R := 14.0
 
@@ -491,6 +494,7 @@ func _recalc_stats() -> void:
 		var mh := 100.0 + (attribute("endurance") - 5) * 10.0
 		if pr:
 			mh += pr.stat("max_hp")
+		mh *= hp_k
 		if not is_equal_approx(hc.max_health, mh):
 			hc.max_health = mh
 			hc.current_health = minf(hc.current_health, mh)
@@ -1606,8 +1610,18 @@ func _unhandled_input(event: InputEvent) -> void:
 				_toast("Debug: the host calls up rivals")
 				get_viewport().set_input_as_handled()
 				return
-			var r := RivalDuel.spawn(self)
-			_toast("Debug: a rival (skill %.1f, %s)" % [r.get_node("Brain").skill, r.weapon_class()])
+			if k.ctrl_pressed:
+				# Ctrl+Alt+F5: the next rival crew turns up (RivalEncounter: the meeting, duels in turn)
+				var ids := RivalCrews.ids()
+				var crew := str(ids[_debug_crew % ids.size()])
+				_debug_crew += 1
+				if RivalEncounter.start(self, crew) == null:
+					_toast("Debug: a crew's already here")
+				else:
+					_toast("Debug: %s" % RivalCrews.CREWS[crew]["name"])
+			else:
+				var r := RivalDuel.spawn(self)
+				_toast("Debug: a rival (skill %.1f, %s)" % [r.get_node("Brain").skill, r.weapon_class()])
 		elif k.shift_pressed:
 			_toast(AnimLab.toggle_slow())
 		elif k.ctrl_pressed:

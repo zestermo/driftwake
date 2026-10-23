@@ -851,6 +851,30 @@ func _all_cutscene_end(kind: String) -> void:
 		Cutscene.active.end(true)
 
 
+## A rival crew beat every captain (RivalEncounter): each captain loses a share of their gold on their own machine.
+func _all_rival_plunder(share: float, crew_name: String) -> void:
+	var p := _me()
+	if p == null:
+		return
+	var n := int(floor(p.inventory_component.count("gold") * share))
+	if n > 0:
+		p.inventory_component.remove_item(ItemDB.get_item("gold"), n)
+	get_tree().call_group("hud", "show_toast", "%s took %d gold" % [crew_name.capitalize(), n] if n > 0 else "%s found your purse empty" % crew_name.capitalize())
+
+
+## The rival crew's gone: a spared captain gets back up (a third of their health).
+func _all_rival_stand() -> void:
+	var p := _me()
+	if p and p.current_state_name() == "Downed" and p.health_component.current_health <= 0.0:
+		Duel.stand_up(p, p.health_component.max_health * 0.33, p.power.energy)
+
+
+## Our own captain (single player or co-op).
+func _me() -> Player:
+	var p = local_player if active else get_node("/root/GameManager").get("player")
+	return p as Player if p and is_instance_valid(p) else null
+
+
 ## An AI captain gone (beaten and cleared, or the duel over) on every screen.
 func _all_rival_gone(key: String) -> void:
 	var n := node_of(key)

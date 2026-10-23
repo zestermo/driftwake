@@ -757,6 +757,12 @@ func afterimage(body: Node3D, color: Color = Color(0.6, 0.8, 1.0), life: float =
 	tw.tween_callback(holder.queue_free)
 
 
+## A line said out loud over `who`'s head (SpeechBubble: typed out with voice blips at `pitch`). Net.fx("speech", ...)
+## for every screen.
+func speech(who: Node3D, text: String, pitch: float = 1.0) -> void:
+	SpeechBubble.say(who, text, pitch)
+
+
 ## A still copy of `m` under `holder`, posed as it is now, casting no shadow. A skinned mesh (a body's
 ## skin, hair and cloth) rides a frozen copy of its skeleton (one per skeleton, kept in `skels`): the
 ## mesh alone would stand in its rest pose.

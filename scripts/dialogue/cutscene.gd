@@ -1,7 +1,7 @@
 class_name Cutscene
 extends Node
 ## A short staged scene (1.19's rival crews first, the intro, later story beats): a run of camera shots with lines
-## spoken in speech bubbles (typewriter text with voice blips), letterboxed, the captain's control held. Skippable
+## spoken as subtitles in the letterbox (typewriter text with voice blips), the captain's control held. Skippable
 ## (Interact or Esc); in co-op every screen plays its own copy (Net._all_cutscene builds it from a kind and its args
 ## on each machine) and it's skipped once every captain has pressed skip (a "waiting for N more" chip).
 ##
@@ -12,7 +12,7 @@ extends Node
 ##   "off": Vector3(0, 1.6, -3)                     "from" relative to a node: right, up, forward (-Z) of it
 ##   "to": [from, look]                             where the camera eases to over the shot (a slow dolly)
 ##   "fov": 60.0
-##   "say": {"who": Node3D, "name": "Vey", "text": "...", "pitch": 0.9}   a line in a bubble over the speaker
+##   "say": {"who": Node3D, "name": "Vey", "text": "...", "pitch": 0.9}   a line, subtitled with its speaker's name
 ##   "act": [humanoid_holder, "action"]             an action played as the shot starts (Humanoid.play)
 ##   "call": Callable                               called as the shot starts
 ## All on game time (frames' delta), never the wall clock.
@@ -24,7 +24,7 @@ static var active: Cutscene = null
 
 const CHARS_PER_S := 38.0
 const LINE_HOLD := 1.1
-const BAR := 0.12   # the letterbox bars, as a share of the screen's height
+const BAR := 0.15   # the letterbox bars, as a share of the screen's height (the bottom one holds the line)
 
 var shots: Array = []
 var kind := ""
@@ -37,8 +37,8 @@ var _from := [Vector3.ZERO, Vector3.FORWARD]
 var _to := [Vector3.ZERO, Vector3.FORWARD]
 var _bars: CanvasLayer
 var _chip: Label
-var _bubble: Label3D
-var _name_tag: Label3D
+var _bubble: Label        # the line (a subtitle in the bottom bar)
+var _name_tag: Label
 var _speaker: Node3D
 var _line := ""
 var _shown := 0.0
@@ -49,7 +49,7 @@ var _done := false
 
 
 ## The shots of a scene by kind, built from `args` (node keys, names...) the same on every machine (co-op plays it
-## through Net._all_cutscene). Kinds: "test" (args: [speaker key]: two shots and a line).
+## through Net._all_cutscene). Kinds: "test" (args: [speaker key]: two shots and a line), "rival_meet" (RivalEncounter).
 static func scripted(tree: SceneTree, kind: String, args: Array) -> Array:
 	var net := tree.root.get_node_or_null("Net")
 	match kind:
@@ -60,6 +60,8 @@ static func scripted(tree: SceneTree, kind: String, args: Array) -> Array:
 				{"secs": 1.0, "cam": [who, who], "off": Vector3(-0.8, 1.6, 2.2),
 					"say": {"who": who, "name": "Test", "text": "Hold there, captain.", "pitch": 0.9}},
 			]
+		"rival_meet":
+			return RivalEncounter.meet_shots(tree, args)
 	return []
 
 
@@ -119,8 +121,9 @@ func _build_ui() -> void:
 	_chip.add_theme_color_override("font_color", Color(0.85, 0.82, 0.7))
 	_chip.text = "F / Esc: skip"
 	_bars.add_child(_chip)
-	_bubble = _label3d(34, Color(1, 0.97, 0.88))
-	_name_tag = _label3d(26, Color(1.0, 0.78, 0.4))
+	# the line as a subtitle in the bottom bar (a bubble over a head reads at play distance, not in a close-up)
+	_name_tag = _label2d(13, Color(1.0, 0.78, 0.4), 1.0 - BAR + 0.012, 1.0 - BAR + 0.05)
+	_bubble = _label2d(16, Color(1, 0.97, 0.88), 1.0 - BAR + 0.05, 1.0 - 0.012)
 	_blip = AudioStreamPlayer.new()
 	_blip.stream = load("res://assets/audio/blip.wav")
 	_blip.volume_db = -10.0
@@ -128,21 +131,21 @@ func _build_ui() -> void:
 	add_child(_blip)
 
 
-func _label3d(size: int, col: Color) -> Label3D:
-	var l := Label3D.new()
-	l.font = load("res://assets/fonts/PixelifySans-Regular.woff2")
-	l.font_size = size
-	l.pixel_size = 0.006
-	l.outline_size = 12
-	l.outline_modulate = Color(0.05, 0.04, 0.03)
-	l.modulate = col
-	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	l.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	l.no_depth_test = true
-	l.width = 420.0
+## A centred label across the screen between two heights (shares of the screen), in the bottom bar.
+func _label2d(size: int, col: Color, top: float, bottom: float) -> Label:
+	var l := Label.new()
+	l.add_theme_font_override("font", load("res://assets/fonts/PixelifySans-Regular.woff2"))
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	l.anchor_left = 0.12
+	l.anchor_right = 0.88
+	l.anchor_top = top
+	l.anchor_bottom = bottom
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.visible = false
-	add_child(l)
+	_bars.add_child(l)
 	return l
 
 
@@ -226,9 +229,6 @@ func _process(delta: float) -> void:
 			if prev % 3 == 0 and _line[mini(int(_shown) - 1, _line.length() - 1)] != " ":
 				_blip.pitch_scale = _pitch * randf_range(0.92, 1.08)
 				_blip.play()
-		var head := (_speaker.global_position if _speaker and is_instance_valid(_speaker) else _cam.global_position - _cam.global_basis.z * 3.0) + Vector3(0, 2.35, 0)
-		_bubble.global_position = head
-		_name_tag.global_position = head + Vector3(0, 0.32, 0)
 	if _t >= _len:
 		_next()
 

@@ -16,6 +16,8 @@ var opened: Dictionary = {}
 var burned: Dictionary = {}
 ## Saved world flags, set for everyone (Net.world_flag): "den_ladder" (Grell's sea ladder let down).
 var world_flags: Dictionary = {}
+## The rival crews met in this world (RivalEncounter): crew id -> {"met", "won", "lost"} (won/lost: the captains' side).
+var rivals: Dictionary = {}
 ## Treasure maps found in bottles (treasure index -> true) and places put on
 ## the sea chart ("island:<name>", "reef:<i>", ... -> true).
 var maps: Dictionary = {}
@@ -51,6 +53,7 @@ func reset_session() -> void:
 	opened.clear()
 	burned.clear()
 	world_flags.clear()
+	rivals.clear()
 	maps.clear()
 	charted.clear()
 	fog.clear()

@@ -31,6 +31,13 @@ var _last_defence := ""
 var answers := {}
 ## Skills and ultimates it got off.
 var casts := 0
+## Orders from a crew fight (RivalEncounter): "fight" (its foe: `target`, or the nearest captain), "watch" (ring the
+## duel `watch_r` m from `watch_center`, facing it, no blows), "flee" (sprint for `flee_to`), "hold" (stand).
+var order := "fight"
+var target: Node3D
+var watch_center: Node3D
+var watch_r := 9.0
+var flee_to := Vector3.ZERO
 
 const FOE_ATTACKS := ["LightAttack", "HeavyAttack", "Technique", "Skill", "Plunge", "Iai", "Shoot"]
 ## The ultimate waits for one of these (or a missed swing); combos only for a missed swing, never a stagger (no stunlocks).
@@ -80,7 +87,14 @@ func _physics_process(_d: float) -> void:
 	if Cutscene.active:
 		bi.hold("parry", false)
 		return   # (a scene playing: it holds still, like the captains)
-	foe = _pick_foe()
+	bi.hold("parry", _holding_block_until > _now())
+	match order:
+		"hold":
+			return
+		"flee":
+			_flee(bi)
+			return
+	foe = target if target and is_instance_valid(target) and _standing(target) else _pick_foe()
 	if foe == null:
 		return
 	var to := foe.global_position - p.global_position
@@ -90,12 +104,42 @@ func _physics_process(_d: float) -> void:
 		bi.yaw = atan2(-to.x, -to.z)
 	if not p.armed and p.is_free() and dist < 25.0:
 		p.toggle_weapon()
+	if order == "watch":
+		_watch(bi)
+		return
 	_watch_foe(dist)
 	if _defend(bi, dist):
 		return
 	if _cast(dist):
 		return
 	_move_and_swing(bi, dist)
+
+
+func _standing(c: Node3D) -> bool:
+	return c is Player and (c as Player).health_component.current_health > 0.0 and not (c as Player).bleeding \
+		and (c as Player).current_state_name() != "Downed"
+
+
+## Ring the duel at watch_r, drifting round it, facing the fight (the stick: toward/away to hold the ring, sideways
+## to drift).
+func _watch(bi: CaptainInput.BrainInput) -> void:
+	var c := watch_center if watch_center and is_instance_valid(watch_center) else foe
+	var off := p.global_position - c.global_position
+	off.y = 0.0
+	var d := off.length()
+	var radial := clampf((d - watch_r) / 3.0, -1.0, 1.0)   # + = too far: in (stick forward faces the foe)
+	bi.move = Vector2(_strafe * 0.35, -radial).limit_length(1.0)
+
+
+## Run for flee_to (the ship), sprinting; the yaw faces it.
+func _flee(bi: CaptainInput.BrainInput) -> void:
+	var to := flee_to - p.global_position
+	to.y = 0.0
+	if to.length() < 1.0:
+		return
+	bi.yaw = atan2(-to.x, -to.z)
+	bi.move = Vector2(0, -1)
+	bi.hold("sprint", true)
 
 
 ## The nearest captain still standing.

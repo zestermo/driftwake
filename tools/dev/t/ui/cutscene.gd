@@ -1,7 +1,7 @@
 extends SceneTree
 ## Cutscene (scripts/dialogue/cutscene.gd), played the co-op way (Net.everyone "_all_cutscene", here single player):
 ## it takes the camera and letterboxes the screen, the captain's held (the stick moves nothing), an AI captain holds
-## still, the line types out in a bubble over its speaker, and at the end the camera and control come back; played
+## still, the line types out as a subtitle under its speaker's name, and at the end the camera and control come back; played
 ## again, Interact skips it at once.
 const TK := preload("res://tools/dev/test_kit.gd")
 var stage
@@ -57,7 +57,7 @@ func _process(_d: float) -> bool:
 			check("...letterboxed", c._bars != null and c._bars.get_child_count() >= 2)
 			until = TK.wait_secs(0.9)
 		3:
-			check("the line types out in a bubble over its speaker ('%s')" % c._bubble.text, c._bubble.visible and c._bubble.text.length() > 0 and c._bubble.global_position.distance_to(stage.npc.global_position) < 3.5)
+			check("the line types out under its speaker's name ('%s: %s')" % [c._name_tag.text, c._bubble.text], c._bubble.visible and c._bubble.text.length() > 0 and c._name_tag.text == "Test")
 			until = TK.wait_secs(2.5)
 		4:
 			TK.release("move_forward")
