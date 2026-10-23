@@ -1,6 +1,6 @@
 # The gate before a push (a finished set of features or a version), the release tier: every test failing or
 # never run, and every stale one (a file it loads changed since its pass) unless its newest pass is since the
-# last release tag and none of the files changed since are test-side or tied to it by test_map.txt (carried:
+# previous release tag (second newest v*) and none of the files changed since are test-side or tied to it by test_map.txt (carried:
 # test_status.ps1 -Carry). smoketest and net always need their exact pass. Then push if nothing's left.
 # -Full: the strict run instead, every stale test whatever changed (Zach's call: e.g. once per major version).
 # -CI: GitHub runs every suite and co-op mode instead (ci.ps1 on HEAD's commit); green pushes that same commit
@@ -38,8 +38,8 @@ if ($CI) {
 }
 $carry = -not $Full
 if ($carry) {
-	# what the carry tier can't see: changed files since the last tag that no test_map.txt line ties to a test
-	$tag = @(git -C $root tag --list "v*" --sort=-creatordate | Select-Object -First 1)
+	# what the carry tier can't see: changed files since the previous release tag that no test_map.txt line ties to a test
+	$tag = @(git -C $root tag --list "v*" --sort=-creatordate | Select-Object -First 2 | Select-Object -Last 1)
 	if ($tag) {
 		$pats = @(Get-Content (Join-Path $PSScriptRoot "test_map.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") } | ForEach-Object { ($_ -split "\s+")[0] })
 		$loose = @(git -C $root diff --name-only $tag[0] HEAD | Where-Object { $f = $_; $f -match "^(scripts|scenes|shaders)/" -and $f -notmatch "\.uid$" -and @($pats | Where-Object { $f -like $_ }).Count -eq 0 })

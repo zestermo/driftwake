@@ -9,7 +9,7 @@
 #   .\tools\dev\test_status.ps1          # summary
 #   .\tools\dev\test_status.ps1 -Stale   # just the names that need to run (stale, failing or never run), on one line
 #   .\tools\dev\test_status.ps1 -Carry   # the release tier (prepush.ps1): a stale test whose newest pass is since the
-#                                        # last release tag counts as ok when none of the files changed since it are
+#                                        # previous release tag counts as ok when none of the files changed since it are
 #                                        # test-side (tools/dev/*) or tied to it by test_map.txt ("carried"); smoketest
 #                                        # and net always need their exact pass; full_only.txt's carry from any pass.
 #                                        # Leaves status.json (the pane's) alone.
@@ -82,11 +82,12 @@ foreach ($d in Get-ChildItem (Join-Path $crew "results") -Directory -ErrorAction
 }
 function Get-By($p) { return (Get-Content $p.File -TotalCount 1).Trim() }
 
-# the carry tier: passes since the newest release tag (v*), and the tests that never carry
+# the carry tier: passes since the previous release tag (the second newest v*: the newest is often the version
+# just tagged, after the passes it was tested with), and the tests that never carry
 $carryFrom = [datetime]::MaxValue
 if ($Carry) {
-	$tag = @(git -C $root tag --list "v*" --sort=-creatordate | Select-Object -First 1)
-	if ($tag) { $carryFrom = [datetime](git -C $root log -1 --format=%cI $tag[0]).Trim() }
+	$tags = @(git -C $root tag --list "v*" --sort=-creatordate | Select-Object -First 2)
+	if ($tags.Count -gt 0) { $carryFrom = [datetime](git -C $root log -1 --format=%cI $tags[-1]).Trim() }
 }
 $alwaysRun = @("smoketest", "net")
 $fullOnly = @(Get-Content (Join-Path $PSScriptRoot "full_only.txt") | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith("#") })

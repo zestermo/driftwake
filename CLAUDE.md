@@ -114,7 +114,7 @@ described here (Zach's choice). Tests are how agents prove their work before it 
      carried over the rebase).
   3. **Once every feature of the batch is merged onto main and its conflicts resolved, before a push:** the
      suites run **locally**, once: `tools/dev/prepush.ps1`, the **release tier** (2026-10-23): every failing or
-     never-run test, and every stale one *unless carried*: its newest pass is since the last release tag and none
+     never-run test, and every stale one *unless carried*: its newest pass is since the previous release tag and none
      of the files changed since are test-side (tools/dev/*) or tied to it by `test_map.txt`. smoketest and `net`
      always need their exact pass. Up to 5 at a time in the shared slots; it pushes main if all pass; `-NoPush`
      to just check. It prints the changed game files no map line covers: add map lines for them (carried tests
