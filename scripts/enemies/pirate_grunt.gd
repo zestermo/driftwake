@@ -267,6 +267,7 @@ func setup(cfg: Dictionary) -> PirateGrunt:
 	patrol = cfg.get("patrol", [])
 	seat_y = float(cfg.get("seat_y", 0.45))
 	role = str(cfg.get("role", "sword"))
+	_role_seed = int(cfg.get("seed", 1))
 	captain = bool(cfg.get("captain", false))
 	elite_rank = bool(cfg.get("elite", false))
 	title = str(cfg.get("title", ""))
@@ -287,6 +288,45 @@ static func look_for(cfg: Dictionary) -> Dictionary:
 
 ## A body to take over (a ship's crewman turning boarder) instead of building one.
 var _body: Humanoid
+
+## Grunts with the newer weapons (docs/v1_19_plan.md, the weapons' enemy pass): a cut-down moveset you learn to
+## read (the weapon's own light moves as the combo, one heavy, a sweep for the spear), its own reach, damage and
+## pace (x the wind-ups), its guard stance, and the weapon it drops. On chain islands an ordinary sword grunt is
+## one of these ROLE_CHANCE of the time (seeded: the same on every machine; Brinehollow's sea keeps its cutlasses).
+const ROLES := {
+	"spear": {"weapon": "spear", "stance": "polearm", "light": ["pole_thrust", "pole_thrust"], "heavy": "pole_lunge", "sweep": "pole_sweep",
+		"reach": 2.7, "dmg": 1.0, "pace": 1.0},
+	"hammer": {"weapon": "warhammer", "stance": "hammer", "light": ["ham_smash"], "heavy": "ham_upper", "sweep": "",
+		"reach": 2.2, "dmg": 1.45, "pace": 1.35},
+	"greatsword": {"weapon": "greatsword", "stance": "greatsword", "light": ["gs_1", "gs_2"], "heavy": "gs_heavy", "sweep": "",
+		"reach": 2.6, "dmg": 1.35, "pace": 1.3},
+	"twin_axe": {"weapon": "boarding_axe", "offhand": "boarding_axe", "stance": "dual_axe", "light": ["dx_1", "dx_2"], "heavy": "dx_heavy", "sweep": "",
+		"reach": 1.9, "dmg": 0.85, "pace": 0.8},
+	"black_leg": {"weapon": "", "stance": "black_leg", "light": ["bl_1", "bl_2"], "heavy": "bl_heavy", "sweep": "",
+		"reach": 2.0, "dmg": 1.0, "pace": 0.9},
+}
+const ROLE_CHANCE := 0.3
+var _role_seed := 1
+
+
+## (before the body's armed) an ordinary sword grunt on a chain island: one of ROLES a share of the time.
+func _roll_role() -> void:
+	if role != "sword" or level <= 0 or captain or elite_rank or is_in_group("bosses"):
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(["role", _role_seed, level])
+	if rng.randf() < ROLE_CHANCE:
+		var ks: Array = ROLES.keys()
+		role = str(ks[rng.randi() % ks.size()])
+
+
+func _role() -> Dictionary:
+	return ROLES.get(role, {})
+
+
+## How close it wants to be to swing (its weapon's reach).
+func _reach() -> float:
+	return float(_role().get("reach", COMBO_RANGE))
 
 
 ## A random member of the smuggler crew: anyone from the character creator's
@@ -357,10 +397,19 @@ func _ready() -> void:
 	facing.add_child(humanoid)
 	humanoid.reset_physics_interpolation()
 	# every pirate's blade is their own (and it's the one they drop)
+	_roll_role()
 	var d := WeaponDesigns.random_design("cutlass", _rng)
 	_blade_model = "cutlass:%s:0" % d
 	_blade_id = str(WeaponDesigns.DESIGNS["cutlass"][d]["id"]) if d != "" else "cutlass"
-	humanoid.set_weapon(Props.weapon_mesh("rifle" if role == "rifle" else _blade_model))
+	if not _role().is_empty():
+		# a newer weapon's grunt: its weapon (none for black-leg), its stance
+		var rw := str(_role()["weapon"])
+		_blade_model = rw
+		_blade_id = rw
+		humanoid.stance = str(_role()["stance"])
+	humanoid.set_weapon(Props.weapon_mesh("rifle" if role == "rifle" else _blade_model) if _blade_model != "" else null)
+	if _role().has("offhand"):
+		humanoid.set_offhand(Props.weapon_mesh(str(_role()["offhand"])))
 	if role == "rifle":
 		humanoid._attach_weapon(true)
 		humanoid.carry = "rifle"
@@ -404,14 +453,14 @@ func _ready() -> void:
 	hitbox.collision_mask = 128
 	var bs := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(1.7, 1.3, 1.5)
+	box.size = Vector3(1.7, 1.3, 1.5 * _reach() / COMBO_RANGE)
 	bs.shape = box
-	bs.position = Vector3(0, 1.0, -1.0)
+	bs.position = Vector3(0, 1.0, -1.0 * _reach() / COMBO_RANGE)
 	hitbox.add_child(bs)
 	facing.add_child(hitbox)
 	hitbox.owner = self
 	var hd := HitData.new()
-	hd.damage = _dmg(12.0)
+	hd.damage = _dmg(12.0) * float(_role().get("dmg", 1.0))
 	hd.knockback_force = 4.5
 	hd.stagger_duration = 0.3
 	hd.hitstop_duration = 0.06
@@ -420,7 +469,7 @@ func _ready() -> void:
 	hitbox.hit_data = hd
 	_hit_light = hd
 	_hit_heavy = hd.duplicate() as HitData
-	_hit_heavy.damage = _dmg(16.0)
+	_hit_heavy.damage = _dmg(16.0) * float(_role().get("dmg", 1.0))
 	_hit_heavy.knockback_force = 6.0
 	_hit_heavy.hitstop_duration = 0.08
 	_hit_heavy.camera_shake_intensity = 0.2
@@ -753,7 +802,7 @@ func _physics_process(delta: float) -> void:
 			_face(dir_p)
 			want = dir_p * RUN_SPEED * 0.85 + _separation()
 			running = true
-			if dist <= COMBO_RANGE + 0.15:
+			if dist <= _reach() + 0.15:
 				_start_wind()
 			elif st_t > 2.0 or not _player_ok(p):
 				_release_token()
@@ -769,9 +818,9 @@ func _physics_process(delta: float) -> void:
 				turn = 10.0
 			else:
 				turn = 2.0
-			if _attack in ["combo", "flurry", "feint", "sweep"] and dist > COMBO_RANGE + 0.3 and st_t < dur * 0.65:
+			if _attack in ["combo", "flurry", "feint", "sweep"] and dist > _reach() + 0.3 and st_t < dur * 0.65:
 				want = dir_p * 2.0
-			if _attack == "peril" and dist > COMBO_RANGE + 0.6 and st_t < dur * 0.7:
+			if _attack == "peril" and dist > _reach() + 0.6 and st_t < dur * 0.7:
 				want = dir_p * 2.4
 			# (the feint's first wind-up never glints: only the real one does)
 			if not _glinted and st_t > dur * 0.55 and _attack not in ["peril", "rush"] and not (_attack == "feint" and _swing_i == 0):
@@ -874,7 +923,7 @@ func _physics_process(delta: float) -> void:
 		S.BLOCK:
 			_face(dir_p)
 			accel = 10.0
-			if _riposte and st_t > 0.16 and p and _player_ok(p) and dist < COMBO_RANGE + 1.2:
+			if _riposte and st_t > 0.16 and p and _player_ok(p) and dist < _reach() + 1.2:
 				_riposte = false
 				_has_token = true
 				_attack = "combo"
@@ -1012,7 +1061,7 @@ func _physics_process(delta: float) -> void:
 				_enter_idle()
 
 	# its blow came down on the decoy: that shatters it
-	if lured and state == S.SWING and st_t > 0.24 and dist < COMBO_RANGE + 1.2:
+	if lured and state == S.SWING and st_t > 0.24 and dist < _reach() + 1.2:
 		Net.fx("decoy_break", [_lure.spot])
 		_lure = null
 
@@ -1253,6 +1302,11 @@ func _choose_attack(dist: float) -> String:
 		_last_attack = "peril"
 		return "peril"
 	var w := {"combo": 3.0, "flurry": 1.3, "feint": 1.0, "sweep": 1.0}
+	if not _role().is_empty():
+		# a newer weapon's cut-down moveset: its combo, its heavy, the spear's sweep
+		w = {"combo": 3.0}
+		if str(_role()["sweep"]) != "":
+			w["sweep"] = 1.0
 	if dist > 2.9:
 		w["lunge"] = 3.6
 	if w.has(_last_attack):
@@ -1280,7 +1334,26 @@ func _begin_attack(_dist: float) -> void:
 
 ## Swings in a combo.
 func _combo_hits() -> int:
-	return 2
+	return (_role()["light"] as Array).size() if not _role().is_empty() else 2
+
+
+## A newer weapon's move for this swing (the whole move, wind-up and all).
+func _role_action() -> String:
+	if _attack == "lunge":
+		return str(_role()["heavy"])
+	if _attack == "sweep":
+		return str(_role()["sweep"])
+	var l: Array = _role()["light"]
+	return str(l[_swing_i % l.size()])
+
+
+## How long the swing itself lasts (after the wind-up).
+func _swing_len() -> float:
+	if _attack == "lunge":
+		return 0.8
+	if _attack == "sweep":
+		return 0.55
+	return 0.36 if _attack == "flurry" else 0.5
 
 
 ## Light hits the guard soaks up before it breaks.
@@ -1289,6 +1362,10 @@ func _guard_max() -> int:
 
 
 func _wind_len() -> float:
+	return _wind_base() * float(_role().get("pace", 1.0))
+
+
+func _wind_base() -> float:
 	if _attack == "peril":
 		return PERIL_WIND
 	if _attack == "rush":
@@ -1334,7 +1411,11 @@ func _start_wind() -> void:
 		_sense(_target())
 		return
 	var anim := "lunge_wind" if _attack == "lunge" else ("sweep_wind" if _attack == "sweep" else ("wind_r" if _swing_i == 0 else "wind_l"))
-	humanoid.play(anim, _wind_len())
+	if _role().is_empty():
+		humanoid.play(anim, _wind_len())
+	else:
+		# a newer weapon's move plays whole, its wind-up the tell
+		humanoid.play(_role_action(), _wind_len() + _swing_len())
 	# the heavy attack (lunge) announces itself: the blade glows yellow
 	hitbox.hit_data = _hit_heavy if _attack == "lunge" else (_hit_sweep if _attack == "sweep" else _hit_light)
 	if _attack == "sweep":
@@ -1390,15 +1471,18 @@ func _start_swing() -> void:
 		Net.fx("sfx", ["whoosh_big", global_position, -1.0, 0.05, 1.1])
 	elif _attack == "lunge":
 		_lunge_dir = _fwd()
-		humanoid.play("lunge", 0.8)
+		if _role().is_empty():
+			humanoid.play("lunge", 0.8)
 		Net.fx("sfx", ["whoosh", global_position, -4.0, 0.08, 1.15])
 	elif _attack == "sweep":
-		humanoid.play("sweep", 0.55)
+		if _role().is_empty():
+			humanoid.play("sweep", 0.55)
 		velocity += _fwd() * 2.5
 		Net.fx("sfx", ["whoosh", global_position, -4.0, 0.1, 0.85])
 		Net.fx("dust", [global_position + _fwd() * 0.8, 6, 0.5])
 	else:
-		humanoid.play("swing_r" if _swing_i == 0 else "swing_l", 0.36 if _attack == "flurry" else 0.5)
+		if _role().is_empty():
+			humanoid.play("swing_r" if _swing_i == 0 else "swing_l", 0.36 if _attack == "flurry" else 0.5)
 		velocity += _fwd() * 3.0
 		Net.fx("sfx", ["whoosh", global_position, -5.0, 0.1, 1.15 if _attack == "flurry" else 1.0])
 
@@ -2025,7 +2109,7 @@ const DROP_BLADE := 0.04
 
 func _drop_weapon() -> void:
 	var table: Array = [["pistol", DROP_PISTOL, 1]]
-	if role == "sword":
+	if role == "sword" or (not _role().is_empty() and _blade_id != ""):
 		table.append([_blade_id, DROP_BLADE, 1])
 	Net.kill_loot(table, global_position)
 

@@ -174,6 +174,15 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   an AI captain fights in the water the same way). Test: t/swim/water_strike (t/swim green). **Assumed:** the
   numbers; no new animations (the land strikes played on the swimming body); techniques and skills stay
   land-only.
+- **Piece 14: the weapons' enemy pass.** `PirateGrunt.ROLES`: spear (thrusts, a lunging heavy, a leg sweep; reach
+  2.7), hammer (single smashes, an uppercut heavy; x1.45 damage, slower wind-ups), greatsword (two swings, a heavy;
+  reach 2.6, x1.35, slow), twin axes (two quick chops, a heavy; reach 1.9, x0.85, quick), black-leg (two kicks, a
+  heavy kick; no weapon to drop). The weapon's own move plays whole (its wind-up the tell); no flurries, feints,
+  blocks or pistols (a cut-down moveset you learn to read); each drops its weapon. On chain islands 30% of
+  ordinary sword grunts (seeded: the same on every machine); Brinehollow's sea untouched. Test:
+  t/combat/grunt_roles (t/combat green). **Assumed:** the numbers; the rivals and the Admiralty field these
+  weapons through their own captain-style AIs (RivalCrews' mate weapons), not through grunts; the grunts' looks
+  unchanged (only the weapon and stance); not rendered (try a chain island's camp).
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite

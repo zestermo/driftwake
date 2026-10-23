@@ -19,6 +19,7 @@ tools/dev/t/ui/*                        t/ui
 tools/dev/t/weapons/*                   t/weapons
 tools/dev/t/ship/*                      t/ship
 scripts/ship/enemy_ship.gd              t/ship/admiralty_patrol
+scripts/enemies/pirate_grunt.gd         t/combat/grunt_roles
 tools/dev/t/input/*                     t/input
 scripts/input/*                         t/input t/player t/combat
 scripts/ai/*                            t/combat/rival_duel t/combat/rival_crew t/combat/rival_placement t/combat/bounty_hunters t/combat/admiralty_hunter t/combat/arrest

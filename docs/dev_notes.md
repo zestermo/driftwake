@@ -5981,3 +5981,25 @@ Spec: docs/progression_plan.md "The other Adventure trees".
 - **Bench** (off/on back to back, gate, plaza/market/yard/fight; calib 24.4 vs 28.7 ms): frame 16.52 -> 15.81 ms (-4%),
   draws 1,520 -> 1,427 (-6%), tail -8%, proc_scr -6%, draw -7%; per stop plaza -14%, market -18%, yard +7%, fight +4%
   (noise). lower_body + arm_body 0.47 -> 0.47 ms (one script now). Default stays off until piece 3.
+
+## 2026-10-23: v1.19 built overnight (docs/v1_19_plan.md "Build log" has every piece, its tests and what's assumed)
+- **Captain-style AI:** `Player.inp` (CaptainInput: the keyboard and camera, or a brain's BrainInput) for every held
+  input; `Player.is_ai` (player.tscn with a brain: enemies' side, no HUD/camera/saves); `CaptainBrain` (spacing,
+  combos, reads your attack's start and dodges/parries/blocks by skill, skills and the ultimate on openings);
+  `cam_shake/cam_kick/foe_mask` per captain (never name a Player method `shake`: siblings answering
+  has_method("shake") pass for the camera rig). Co-op: `Net._all_spawn_rival` (guests get a captain puppet).
+- **Cutscenes:** `Cutscene` (shots, eased dollies, node-anchored shots followed every frame, letterbox subtitles with
+  voice blips, a skip vote in co-op); `SpeechBubble` / `FX.speech` for lines in a fight.
+- **Rival crews:** `RivalCrews` (four authored crews, bounty hunters, three Admiralty officers), `RivalEncounter`
+  (meeting, duels in turn / squads at once / ambushes, retreat, plunder or arrest, records in GameManager.rivals),
+  `RivalWatch` (where they turn up: placed then rolled; hunters from Notorious; officers at harbours from Infamous).
+- **Bounties:** `Bounty` (the table, tiers, per-captain, saved, in the snapshot), `Net.bounty`, wanted posters on
+  notice boards (`WantedPoster`), shops by trade, townsfolk lines.
+- **The Admiralty:** the Marine patrols restyled grey ironclad and gated on the crew's bounty; `AdmiraltyBrig`
+  (arrest and escape).
+- **The intro** (`Intro`), **fighting in the water** (SwimState strikes), **the weapons' enemy pass**
+  (`PirateGrunt.ROLES`).
+- **Also fixed:** Ship.summon_spot (looptest red on main since the moored-ships change: she appeared on the spot);
+  seatest's Marine-whites check (the restyle).
+- **Not yet run:** the world suites and nettest (prepush: `rival` is a new nettest mode); the trigger of rival/hunter/
+  officer meetings on a real chain island; the Admiralty hull is still wood-brown (needs a grey plank texture).
