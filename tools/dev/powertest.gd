@@ -369,12 +369,15 @@ func _process(d: float) -> bool:
 			p.state_machine.force_state("Fall", {})
 			p.health_component.max_health = 200.0
 			p.health_component.current_health = 200.0
-			put(ground(p.global_position + Vector3(4, 0, 0)) + Vector3.UP * 12.0)
+			# (straight down where the block was: 4 m off, by the camp, is the sea)
+			put(ground(p.global_position) + Vector3.UP * 12.0)
 			wait = 0.2
 			step += 1
 		57:
 			if not p.is_on_floor() and not saw.has("fall_landed"):
 				saw["fall_t"] = float(saw.get("fall_t", 0.0)) + d
+				saw["fall_vy"] = minf(float(saw.get("fall_vy", 0.0)), p.velocity.y)
+				saw["fall_st"] = "%s %s y%.1f" % [p.current_state_name(), p.context, p.global_position.y]
 				if float(saw["fall_t"]) < 10.0:
 					return false
 			if not saw.has("fall_landed"):
@@ -382,6 +385,7 @@ func _process(d: float) -> bool:
 				wait = 0.25
 				return false
 			var dmg: float = 200.0 - p.health_component.current_health
+			print("   fall: %.1f s, vy %.1f, last %s, now %s" % [float(saw.get("fall_t", 0.0)), float(saw.get("fall_vy", 0.0)), saw.get("fall_st", "-"), p.current_state_name()])
 			check("a 12 m fall hurts (%.0f)" % dmg, dmg > 25.0 and dmg < 90.0)
 			p.health_component.current_health = 200.0
 			put(ground(p.global_position) + Vector3.UP * 3.0)
