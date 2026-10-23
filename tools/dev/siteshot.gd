@@ -15,6 +15,8 @@ extends SceneTree
 ## 1.18: fishing dive shark galley (Brinehollow), heldmap camp snow desert (chain islands; snow and desert on the
 ##   first seed from 1 that opens on one); clips: clip_fish clip_dive clip_map clip_loadout.
 ##   The held map is the game's own camera (own_cam off), the rest a stand-in camera.
+## 1.19: rivals admiralty (chain island, a crew and a squad facing the captain), wanted (Brinehollow's notice board),
+##   brig, intro (the opening's storm, its own camera); clips: clip_duel clip_squad.
 const W := 1600
 const H := 900
 const GRID := Vector2(640, 360)
@@ -49,6 +51,8 @@ var frames: Array = []
 var settings
 var pups := {}
 var own_cam := true
+## Label3Ds under this node stay in the frame (the rest, nameplates and barks, are hidden).
+var keep_labels: Node = null
 
 
 func _initialize():
@@ -149,6 +153,13 @@ func _run() -> void:
 			"clip_dive": await _clip_dive()
 			"clip_map": await _clip_map()
 			"clip_loadout": await _clip_loadout()
+			"rivals": await _shot_rivals()
+			"admiralty": await _shot_admiralty()
+			"wanted": await _shot_wanted()
+			"brig": await _shot_brig()
+			"intro": await _shot_intro()
+			"clip_duel": await _clip_duel()
+			"clip_squad": await _clip_squad()
 		aim = Callable()
 		for a in ["move_forward", "dodge"]:
 			Input.action_release(a)
@@ -183,7 +194,7 @@ func _frame() -> Image:
 	_grid()
 	_clean_blood()
 	for l in current_scene.find_children("*", "Label3D", true, false):
-		(l as Label3D).visible = false
+		(l as Label3D).visible = keep_labels != null and is_instance_valid(keep_labels) and keep_labels.is_ancestor_of(l)
 	await RenderingServer.frame_post_draw
 	var img := root.get_texture().get_image()
 	img.convert(Image.FORMAT_RGB8)
@@ -1690,6 +1701,219 @@ func _clip_loadout() -> void:
 			await _wait(0.2)
 	clicks.call()
 	await _clip("loadout", 4.6)
+
+
+# --------------------------------------------------------------------------
+# 1.19: Rivals and the Admiralty
+# --------------------------------------------------------------------------
+## (by path: these classes touch autoloads, and this script compiles before they're up)
+func _cutscene():
+	return load("res://scripts/dialogue/cutscene.gd")
+
+
+func _encounter():
+	return load("res://scripts/ai/rival_encounter.gd")
+
+
+## The open ground by the camp, the camp's grunts sent off and the captain armed, facing `f`: [base, f, r].
+func _rival_stage(hour: float) -> Array:
+	await _isle(MAIN)
+	_time(hour, 0)
+	var st := _fight_stage()
+	_line_up(_grunts(), st[0], [])
+	_stand(st[0], _yaw(st[1]))
+	_arm("cutlass")
+	await _wait(0.6)
+	return st
+
+
+## A frame most of the way into each of the playing cutscene's shots listed in `which` (its line typed out), then
+## the rest skipped; the stand-in camera back after.
+func _cut_frames(tag: String, which: Array) -> void:
+	own_cam = false
+	var t0 := t
+	while _cutscene().active == null and t - t0 < 5.0:
+		await process_frame
+	var seen := -1
+	var at := t
+	var done := {}
+	while _cutscene().active != null and done.size() < which.size():
+		var c = _cutscene().active
+		if c._i != seen:
+			seen = c._i
+			at = t
+		if which.has(seen) and not done.has(seen) and t - at >= float(c._len) * 0.8:
+			done[seen] = true
+			await _snap("%s_shot%d" % [tag, seen])
+		await process_frame
+	if _cutscene().active != null:
+		_cutscene().active.end(true)
+	_own_cam()
+
+
+## Every rival and their encounter gone.
+func _rivals_gone() -> void:
+	for e in get_nodes_in_group("rival_encounter"):
+		for r in e.rivals:
+			if is_instance_valid(r):
+				r.queue_free()
+		e.queue_free()
+	await _wait(0.3)
+
+
+## The captain fighting back: light attacks while `secs` last.
+func _swing_for(secs: float) -> void:
+	var t0 := t
+	while t - t0 < secs:
+		p.stamina = p.max_stamina
+		if p.state_machine.current_state.name in ["Idle", "Move", "LightAttack"]:
+			p.input_buffer.buffer_action("light_attack")
+		await _wait(0.2)
+
+
+## Side-on looks at the fight round the captain, each `every` s apart.
+func _fight_looks(tag: String, n: int, every: float) -> void:
+	for i in range(n):
+		var foe = _nearest_rival()
+		var mid: Vector3 = p.global_position if foe == null else p.global_position.lerp(foe.global_position, 0.5)
+		var d: Vector3 = (Vector3.FORWARD if foe == null else foe.global_position - p.global_position)
+		d.y = 0.0
+		var side := d.normalized().cross(Vector3.UP)
+		var far := i % 2 == 1
+		_look(mid + side * (6.5 if far else 4.2) * (1.0 if i % 4 < 2 else -1.0) + Vector3.UP * (1.6 if far else 0.9), mid + Vector3.UP * 1.1)
+		await _snap("%s_%d" % [tag, i])
+		await _wait(every)
+
+
+func _nearest_rival():
+	var best = null
+	for e in get_nodes_in_group("rival_encounter"):
+		for r in e.rivals:
+			if is_instance_valid(r) and r.current_state_name() != "Downed" and (best == null or
+					r.global_position.distance_to(p.global_position) < best.global_position.distance_to(p.global_position)):
+				best = r
+	return best
+
+
+## A rival crew (the Gilded Gulls) turns up at golden hour: the meeting's shots, then the duel, the crew ringing it.
+func _shot_rivals() -> void:
+	var st: Array = await _rival_stage(17.2)
+	_encounter().start(p, "gilded_gulls", st[0] + st[1] * 12.0)
+	await _cut_frames("rivals", [0, 1, 2, 3])
+	_swing_for(6.0)
+	await _wait(2.5)
+	await _fight_looks("rivals_duel", 6, 0.3)
+	await _rivals_gone()
+
+
+## An Admiralty squad (Commodore Vael's) in the afternoon: the meeting, then all of them at once.
+func _shot_admiralty() -> void:
+	var st: Array = await _rival_stage(15.0)
+	_encounter().start(p, "vael", st[0] + st[1] * 12.0)
+	await _cut_frames("admiralty", [0, 1, 2])
+	_swing_for(6.0)
+	await _wait(2.0)
+	await _fight_looks("admiralty_fight", 6, 0.3)
+	await _rivals_gone()
+
+
+## A wanted captain's poster on Brinehollow's notice board, close and with the captain beside it.
+func _shot_wanted() -> void:
+	_time(15.5, 0)
+	var wp: Node3D = _brine().find_children("Wanted", "WantedPoster", true, false)[0]
+	keep_labels = wp
+	p.bounty = 64000
+	var out_d: Vector3 = wp.global_basis.z.normalized()
+	var across: Vector3 = wp.global_basis.x.normalized()
+	_stand(_ground(wp.global_position + out_d * 1.3 + across * 1.1), _yaw(-out_d))
+	p.sheathe_weapon(true)
+	# (the poster looks for wanted captains every 2 s)
+	await _wait(3.0)
+	_look(wp.global_position + out_d * 1.25 + Vector3.UP * 0.05, wp.global_position)
+	await _wait(0.3)
+	await _snap("wanted_close")
+	_look(wp.global_position + out_d * 3.4 - across * 1.6 + Vector3.UP * 0.2, wp.global_position + across * 0.5 - Vector3.UP * 0.3)
+	await _wait(0.3)
+	await _snap("wanted_board")
+	keep_labels = null
+	p.bounty = 0
+
+
+## Arrested: the captain in the Admiralty brig's cell, from outside the bars and down the hold.
+func _shot_brig() -> void:
+	_time(14.0, 0)
+	_arm("cutlass")
+	root.get_node("Net")._all_arrest(p.global_position, "Commander Vael")
+	await _wait(1.5)
+	var b: Node3D = current_scene.get_node("AdmiraltyBrig")
+	var cell: Vector3 = b.to_global(b.CELL)
+	_look(b.to_global(b.DOOR + Vector3(0.6, 1.5, 1.8)), cell + Vector3.UP * 1.0)
+	await _wait(0.3)
+	await _snap("brig_cell")
+	_look(b.to_global(b.HATCH + Vector3(0.0, 2.2, -0.8)), b.to_global(b.DOOR + Vector3(0, 0.9, 0)))
+	await _wait(0.3)
+	await _snap("brig_hold")
+	root.get_node("Net")._all_brig_gone()
+
+
+## A new game's opening: the narration over the storm and the Admiralty cutter, then the fight on Holt's deck.
+func _shot_intro() -> void:
+	_arm("cutlass")
+	var intro = load("res://scripts/game/intro.gd").play(p, func(): pass)
+	await _cut_frames("intro", [0, 1, 2, 3, 4, 5])
+	_swing_for(5.0)
+	await _wait(2.0)
+	for i in range(4):
+		var m = intro.marines[i % intro.marines.size()]
+		var mid: Vector3 = p.global_position.lerp(m.global_position if is_instance_valid(m) else p.global_position, 0.5)
+		_look(mid + intro._deck.global_basis.x * (4.5 if i % 2 == 0 else -4.5) + Vector3.UP * 1.4, mid + Vector3.UP * 1.0)
+		await _snap("intro_fight_%d" % i)
+		await _wait(0.4)
+	intro.queue_free()
+	await _wait(0.3)
+
+
+## A duel with a rival captain's mate: trading blows, filmed side on.
+func _clip_duel() -> void:
+	var st: Array = await _rival_stage(17.2)
+	_encounter().start(p, "gilded_gulls", st[0] + st[1] * 12.0)
+	await _wait(0.5)
+	if _cutscene().active != null:
+		_cutscene().active.end(true)
+	_own_cam()
+	_swing_for(9.0)
+	await _wait(2.5)
+	var foe = _nearest_rival()
+	var mid: Vector3 = p.global_position if foe == null else p.global_position.lerp(foe.global_position, 0.5)
+	aim = func():
+		var f2 = _nearest_rival()
+		var m2: Vector3 = p.global_position if f2 == null else p.global_position.lerp(f2.global_position, 0.5)
+		mid = mid.lerp(m2, 0.08)
+		var d: Vector3 = st[1] if f2 == null else f2.global_position - p.global_position
+		d.y = 0.0
+		_look(mid + d.normalized().cross(Vector3.UP) * 5.2 + Vector3.UP * 1.3, mid + Vector3.UP * 1.0)
+	await _clip("duel", 3.4)
+	aim = Callable()
+	await _rivals_gone()
+
+
+## An Admiralty squad all at once: the captain in the middle of the marines, filmed from further out.
+func _clip_squad() -> void:
+	var st: Array = await _rival_stage(15.0)
+	_encounter().start(p, "vael", st[0] + st[1] * 12.0)
+	await _wait(0.5)
+	if _cutscene().active != null:
+		_cutscene().active.end(true)
+	_own_cam()
+	_swing_for(9.0)
+	await _wait(3.0)
+	var mid: Vector3 = p.global_position
+	aim = func():
+		mid = mid.lerp(p.global_position, 0.06)
+		_look(mid - st[2] * 8.5 - st[1] * 2.0 + Vector3.UP * 3.2, mid + Vector3.UP * 0.8)
+	await _clip("squad", 3.4)
+	aim = Callable()
+	await _rivals_gone()
 
 
 # --------------------------------------------------------------------------
