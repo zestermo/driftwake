@@ -128,6 +128,15 @@ Zach settled the whole version in one grill so it can be built in one go. This s
   RivalWatch: from Notorious, 35% on an island no crew comes to (seeded), 2 hunters (+1 a tier above), after 40 s
   ashore and 30 m in. Tests: t/combat/bounty_hunters, rival_crew, rival_placement. **Assumed:** the numbers above
   (chance, count, wait); hunters are civilians in drab browns with a name pool of their own (Zach's review).
+- **Piece 9: the Admiralty at sea.** The old Marine patrols (EnemyShip kind "marine": the lane past Brinehollow, the
+  sea legs' picks) are the Admiralty's now: "Admiralty Cutter", grey ironclad (slate sails with a steel gull crest,
+  crews in slate jackets and steel helmets, half with cuirasses, the officer in a dark longcoat), in group
+  "admiralty" (sinking or taking one: an Admiralty ship's bounty). They leave a crew alone until the crew's
+  bounties together are Notorious (`EnemyShip.crew_bounty`, `ADMIRALTY_FROM`), then come about ("That's the wanted
+  ship! Come about!"); fired on, they come for you whatever. Test: t/ship/admiralty_patrol. **Follow-up:** the hull
+  stays wood-brown (the plank texture swallows a cool tint; tints over 1 clamp in the folded vertex colours): a
+  grey hull wants a grey plank texture (gen_psx_textures) or an iron-plate band. **Assumed:** "more patrols as the
+  bounty climbs" waits (the lanes are fixed at world build); the named hunters bring the extra heat.
 - **Assumed:** an AI captain's hits keep the world's hitstop, and its ultimate keeps its slow-motion beat (single
   player; co-op never slows the world): they read as the rival's big moments. Its own moves never punch your camera
   in; its shake fades out past 14 m. AI captains carry no lantern (real lights are budgeted). Rivals count as elite

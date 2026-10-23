@@ -40,7 +40,7 @@ const LORE := [
 	"Salt keeps meat, salt keeps fish, and enough of it keeps a sailor from scurvy. Mostly.",
 	"Lashing a helm keeps her heading. It won't keep her off the rocks.",
 	"The fruits of the sea's devils taste foul, they say, and you only eat one. The sea takes back what it gave: you'll never swim again.",
-	"Marines fly white sails. Pirates fly whatever they like.",
+	"The Admiralty flies grey sails. Pirates fly whatever they like.",
 	"A swordsman who trains at sea learns to cut on a moving deck. Ashore, the ground feels like cheating.",
 	"Every crew needs someone who reads. Someone has to know which island eats sailors.",
 ]

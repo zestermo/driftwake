@@ -49,7 +49,7 @@ static func cast() -> Array:
 		{"name": "Old Bettany", "spot": "stall3", "voice": 1.3, "barks": ["Pots, jugs, pitchers! Thrown on the wheel, not at your head!", "This jug held wine at the old king's wedding. Probably."]},
 		{"name": "Pim", "spot": "stall5", "voice": 1.2, "barks": ["Silks from the canal city! Well. From a man who's been there.", "Ribbon by the yard! Two yards for a crown!"]},
 		{"name": "Joss", "spot": "barrow0", "voice": 1.0, "barks": ["Apples! Pears! A melon you could row home in!", "Fruit for the voyage. Keeps the teeth in your head."]},
-		{"name": "Wynn", "spot": "barrow1", "voice": 1.1, "barks": ["Scarves and shawls, warm for the sea-winds!", "Feel that cloth. Go on. Softer than a Marine's heart."]},
+		{"name": "Wynn", "spot": "barrow1", "voice": 1.1, "barks": ["Scarves and shawls, warm for the sea-winds!", "Feel that cloth. Go on. Softer than an Admiralty man's heart."]},
 		{"name": "Dace", "spot": "fish0", "voice": 0.9, "barks": ["Eels! Live eels! Don't touch the bucket.", "The harbour's full of ships and every one of them wants fish."]},
 		{"name": "Crier Maddox", "spot": "arena_crier", "voice": 1.0, "barks": ["Next season, the Grand Arena opens its gates! Champions from every sea!",
 			"Hear ye! The arena seeks fighters! Next season, mind. Today they're still sweeping out the lions.", "Glory, gold and a royal purse! Next season, at the Grand Arena!"]},

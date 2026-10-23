@@ -42,7 +42,7 @@ const KINDS := {
 		"look": {"hull": Color(0.32, 0.27, 0.26), "deck": Color(0.6, 0.52, 0.45), "trim": Color(0.3, 0.06, 0.06), "sail": Color(0.12, 0.11, 0.12), "flag": Color(0.15, 0.13, 0.13), "emblem": "jolly"}},
 	"marine": {"speed": 13.5, "hull": 320.0, "guns": [-6.3, -3.2, 0.6], "crew": 6, "range": [36.0, 58.0], "scatter": 0.5,
 		"boards": false, "rams": true, "double": false, "yields": false,
-		"look": {"hull": Color(1.7, 1.7, 1.65), "deck": Color(0.8, 0.74, 0.64), "trim": Color(0.2, 0.32, 0.62), "sail": Color(0.95, 0.95, 0.92), "flag": Color(0.92, 0.92, 0.9), "emblem": "marine"}},
+		"look": {"hull": Color(0.72, 0.77, 0.86), "deck": Color(0.82, 0.84, 0.9), "trim": Color(0.86, 0.9, 0.97), "sail": Color(0.42, 0.44, 0.48), "flag": Color(0.3, 0.32, 0.36), "emblem": "marine"}},
 }
 
 const ACCEL := 2.6
@@ -209,6 +209,8 @@ func _ready() -> void:
 	add_to_group("enemy_ships")
 	add_to_group("net_sync")
 	add_to_group("decks")
+	if kind == "marine":
+		add_to_group("admiralty")
 	net_puppet = Net.is_client()
 	_rng.seed = look_seed
 	max_hull = _base_hull()
@@ -282,7 +284,7 @@ func _ready() -> void:
 	_bark.visible = false
 	add_child(_bark)
 	# her name and hull over the masthead, up for the whole fight
-	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Marine Cutter"}.get(kind, "Pirate Ship")
+	var title: String = {"sloop": "Pirate Sloop", "gunboat": "Pirate Gunboat", "brig": "Pirate Brig", "marine": "Admiralty Cutter"}.get(kind, "Pirate Ship")
 	_bar = OverheadBar.new().setup(title, HullBuilder.MAST_TOP + 2.6, 5.5, 320.0)
 	_bar.visible = false
 	add_child(_bar)
@@ -397,10 +399,10 @@ func _physics_process(delta: float) -> void:
 			# patched up at sea after a beating (enough to fight again)
 			if hull < max_hull * 0.6:
 				hull = minf(hull + 1.5 * delta, max_hull * 0.6)
-			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4 and _attackers() < MAX_ATTACKERS:
+			if tgt and dist < NOTICE and _huntable(tgt) and hull > max_hull * 0.4 and _attackers() < MAX_ATTACKERS and _wants_crew():
 				_set_state(S.HUNT)
 				_volley_cd = maxf(_volley_cd, FIRST_VOLLEY)
-				bark("A ship! Run out the guns!", 2.5)
+				bark("That's the wanted ship! Come about!" if kind == "marine" else "A ship! Run out the guns!", 2.5)
 				Net.fx("sfx", ["horn", global_position, 6.0, 0.03, 1.0])
 		S.HUNT, S.BROADSIDE:
 			var near_r: float = spec["range"][0]
@@ -813,25 +815,29 @@ static func crew_plan(seed_value: int, kind_name: String) -> Array:
 	return out
 
 
-## Marine whites over a random body: white cap and shirt, a blue neckerchief,
-## no pirate trimmings. The officer (at the wheel) wears a white coat.
+## The Admiralty's grey (docs/v1_19_plan.md: grey ironclad) over a random body: a slate jacket and trousers, a
+## steel helmet, a steel-grey neckerchief, no pirate trimmings. The officer (at the wheel) wears a dark longcoat
+## with steel trim and a cap. (The kind's id stays "marine": names on screen are the Admiralty's.)
 static func marine_look(lk: Dictionary, rng: RandomNumberGenerator, officer: bool) -> void:
-	var white := Color(0.93, 0.93, 0.9)
-	var blue := Color(0.18, 0.28, 0.58)
-	lk["name"] = "Marine"
-	lk["hat"] = "cap"
-	lk["hat_color"] = white
+	var slate := Color(0.36, 0.39, 0.43)
+	var dark := Color(0.2, 0.22, 0.25)
+	var steel := Color(0.62, 0.65, 0.68)
+	lk["name"] = "Admiralty officer" if officer else "Admiralty marine"
+	lk["hat"] = "cap" if officer else "morion"
+	lk["hat_color"] = dark if officer else steel
 	lk["top"] = "shirt"
-	lk["top_color"] = white
+	lk["top_color"] = slate
 	lk["sleeves"] = "long"
-	lk["vest"] = "none"
-	lk["coat"] = "jacket" if officer else "none"
-	lk["coat_color"] = white
+	lk["vest"] = "none" if officer else ("cuirass" if rng.randf() < 0.5 else "none")
+	lk["vest_color"] = steel
+	lk["coat"] = "longcoat" if officer else "jacket"
+	lk["coat_color"] = dark if officer else slate
+	lk["trim_color"] = steel
 	lk["legs"] = "trousers"
-	lk["legs_color"] = blue if rng.randf() < 0.5 else white
+	lk["legs_color"] = dark
 	lk["belt"] = "belt"
 	lk["scarf"] = true
-	lk["scarf_color"] = blue
+	lk["scarf_color"] = steel
 	lk["eyepatch"] = false
 	lk["earring"] = false
 	lk["pauldron"] = false
@@ -1230,6 +1236,26 @@ func _strike() -> void:
 	Net.award_xp(_xp(150), global_position, 60.0)
 	Net.bounty(_bounty_kind(), global_position, 60.0)
 	_prize()
+
+
+## Does she come after the crew's ship? Pirates always; the Admiralty once the crew's bounties together are
+## Notorious (Bounty: "patrols come about for you"). Fired on, either comes for you (_on_hit).
+func _wants_crew() -> bool:
+	if kind != "marine":
+		return true
+	return Bounty.tier_of(crew_bounty(get_tree())) >= ADMIRALTY_FROM
+
+
+## Every captain's bounty together (the ship draws patrols by the crew's total).
+static func crew_bounty(tree: SceneTree) -> int:
+	var b := 0
+	for c in tree.get_nodes_in_group("players"):
+		b += int(c.get("bounty")) if c.get("bounty") != null else 0
+	return b
+
+
+## The bounty tier the crew needs before an Admiralty patrol comes about for them (Notorious).
+const ADMIRALTY_FROM := 2
 
 
 ## What taking or sinking her raises a bounty by (Bounty.TABLE): an Admiralty ship more than a pirate's.

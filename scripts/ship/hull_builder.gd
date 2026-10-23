@@ -309,7 +309,7 @@ static func _stairs(mb: MeshBuilder, m: Dictionary) -> void:
 
 ## The enemies' (and wrecks') whole model under `parent`. opts: hull (Color),
 ## sail (Color), trim (Color), emblem ("jolly": skull and crossbones on the
-## sail and flag, "marine": the Marines' blue gull; the node is "Jolly" either
+## sail and flag, "marine": the Admiralty's steel gull; the node is "Jolly" either
 ## way), wreck (bool: a broken hulk - mast snapped, no sail, flag or lights).
 static func build(parent: Node3D, opts: Dictionary = {}) -> Node3D:
 	var mb := MeshBuilder.new()
@@ -432,14 +432,14 @@ static func jolly_material() -> ShaderMaterial:
 	return m
 
 
-## The Marines' seagull (painted at runtime), blue on transparent.
+## The Admiralty's seagull crest (painted at runtime), pale steel on transparent (on their grey sails).
 static func marine_material() -> ShaderMaterial:
 	if _marine_mat:
 		return _marine_mat
 	var n := 64
 	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
-	var blue := Color(0.16, 0.3, 0.62, 1.0)
+	var blue := Color(0.82, 0.85, 0.9, 1.0)
 	for y in range(n):
 		for x in range(n):
 			var on := false
