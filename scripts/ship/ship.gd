@@ -916,8 +916,13 @@ func summon_spot(at: Vector3) -> Array:
 	if best == Vector3.INF:
 		return []
 	var out := Vector3(best.x - at.x, 0.0, best.z - at.z).normalized()
-	var from := best + out * 30.0
-	return [from if _fits(from) else best, best]
+	# out to sea from it, or a little nearer or to either side (a moored hull there would leave her no run in)
+	for d in [30.0, 22.0, 15.0]:
+		for turn in [0.0, 0.5, -0.5]:
+			var from: Vector3 = best + out.rotated(Vector3.UP, turn) * d
+			if _fits(from):
+				return [from, best]
+	return [best, best]
 
 
 ## Deep water under her and round her (no land, docks or rocks). (Probed
